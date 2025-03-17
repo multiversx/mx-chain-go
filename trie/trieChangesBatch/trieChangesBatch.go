@@ -13,7 +13,7 @@ var log = logger.GetOrCreate("trieBatch")
 
 type trieChangesBatch struct {
 	insertedData map[string]core.TrieData
-	deletedKeys  map[string]struct{}
+	deletedKeys  map[string]core.TrieData
 
 	identifier string
 	mutex      sync.RWMutex
@@ -23,7 +23,7 @@ type trieChangesBatch struct {
 func NewTrieChangesBatch(identifier string) *trieChangesBatch {
 	return &trieChangesBatch{
 		insertedData: make(map[string]core.TrieData),
-		deletedKeys:  make(map[string]struct{}),
+		deletedKeys:  make(map[string]core.TrieData),
 		identifier:   identifier,
 	}
 }
@@ -51,7 +51,7 @@ func (t *trieChangesBatch) MarkForRemoval(key []byte) {
 		delete(t.insertedData, string(key))
 	}
 
-	t.deletedKeys[string(key)] = struct{}{}
+	t.deletedKeys[string(key)] = core.TrieData{Key: key}
 }
 
 // Get returns the data for the given key
@@ -77,14 +77,13 @@ func (t *trieChangesBatch) GetSortedDataForInsertion() []core.TrieData {
 	t.mutex.RLock()
 	defer t.mutex.RUnlock()
 
-	data := make([]core.TrieData, 0, len(t.insertedData))
-	for k := range t.insertedData {
-		data = append(data, t.insertedData[k])
+	if len(t.insertedData) == 0 {
+		return nil
 	}
 
-	log.Trace("sorted data for insertion", "identifier", t.identifier, "num insertions", len(data))
+	log.Trace("sorted data for insertion", "identifier", t.identifier, "num insertions", len(t.insertedData))
 
-	return getSortedData(data)
+	return getSortedData(t.insertedData)
 }
 
 // GetSortedDataForRemoval returns the data sorted for removal
@@ -92,14 +91,13 @@ func (t *trieChangesBatch) GetSortedDataForRemoval() []core.TrieData {
 	t.mutex.RLock()
 	defer t.mutex.RUnlock()
 
-	data := make([]core.TrieData, 0, len(t.deletedKeys))
-	for k := range t.deletedKeys {
-		data = append(data, core.TrieData{Key: []byte(k)})
+	if len(t.deletedKeys) == 0 {
+		return nil
 	}
 
-	log.Trace("sorted data for removal", "identifier", t.identifier, "num deletes", len(data))
+	log.Trace("sorted data for removal", "identifier", t.identifier, "num deletes", len(t.deletedKeys))
 
-	return getSortedData(data)
+	return getSortedData(t.deletedKeys)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
@@ -107,7 +105,12 @@ func (t *trieChangesBatch) IsInterfaceNil() bool {
 	return t == nil
 }
 
-func getSortedData(data []core.TrieData) []core.TrieData {
+func getSortedData(dataMap map[string]core.TrieData) []core.TrieData {
+	data := make([]core.TrieData, 0, len(dataMap))
+	for k := range dataMap {
+		data = append(data, dataMap[k])
+	}
+
 	sort.Slice(data, func(i, j int) bool {
 		return bytes.Compare(data[i].Key, data[j].Key) < 0
 	})

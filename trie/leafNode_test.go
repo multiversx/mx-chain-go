@@ -716,7 +716,7 @@ func TestLeafNode_insertBatch(t *testing.T) {
 		assert.NotNil(t, []byte("dog"), bn.children[2].(*leafNode).Value)
 		assert.NotNil(t, []byte("dog"), bn.children[3].(*leafNode).Value)
 		assert.True(t, bn.dirty)
-		assert.Nil(t, bn.hash)
+		assert.NotEqual(t, 0, len(bn.hash))
 	})
 	t.Run("extension node at the beginning after insert ", func(t *testing.T) {
 		t.Parallel()
@@ -745,7 +745,7 @@ func TestLeafNode_insertBatch(t *testing.T) {
 		assert.True(t, ok)
 		assert.Equal(t, []byte{1, 2}, en.Key)
 		assert.True(t, en.dirty)
-		assert.Nil(t, en.hash)
+		assert.NotEqual(t, 0, len(en.hash))
 	})
 }
 

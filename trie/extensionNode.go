@@ -349,6 +349,8 @@ func (en *extensionNode) insertAtSameKey(
 		goRoutinesManager.SetError(err)
 		return nil
 	}
+	newEn.EncodedChild = newNode.getHash()
+	newEn.setHash(goRoutinesManager)
 
 	return newEn
 }
@@ -379,18 +381,16 @@ func (en *extensionNode) insertInNewBn(
 		return nil
 	}
 
-	err = en.insertOldChildInBn(bn, childNode, oldChildPos, keyMatchLen)
-	if err != nil {
-		goRoutinesManager.SetError(err)
+	en.insertOldChildInBn(bn, childNode, oldChildPos, keyMatchLen, goRoutinesManager)
+	if !goRoutinesManager.ShouldContinueProcessing() {
 		return nil
 	}
 
 	newChild := newData[index]
 	newData = append(newData[:index], newData[index+1:]...)
 
-	err = en.insertNewChildInBn(bn, newChild, newChildPos, keyMatchLen)
-	if err != nil {
-		goRoutinesManager.SetError(err)
+	en.insertNewChildInBn(bn, newChild, newChildPos, keyMatchLen, goRoutinesManager)
+	if !goRoutinesManager.ShouldContinueProcessing() {
 		return nil
 	}
 
@@ -409,6 +409,7 @@ func (en *extensionNode) insertInNewBn(
 		}
 	}
 
+	newNode.setHash(goRoutinesManager)
 	if keyMatchLen == 0 {
 		return newNode
 	}
@@ -418,43 +419,51 @@ func (en *extensionNode) insertInNewBn(
 		goRoutinesManager.SetError(err)
 		return nil
 	}
-
+	newEn.EncodedChild = newNode.getHash()
+	newEn.setHash(goRoutinesManager)
 	return newEn
 }
 
-func (en *extensionNode) insertOldChildInBn(bn *branchNode, childNode node, oldChildPos byte, keyMatchLen int) error {
+func (en *extensionNode) insertOldChildInBn(bn *branchNode, childNode node, oldChildPos byte, keyMatchLen int, goRoutinesManager common.TrieGoroutinesManager) {
 	keyReminder := en.Key[keyMatchLen+1:]
 	childVersion, err := childNode.getVersion()
 	if err != nil {
-		return err
+		goRoutinesManager.SetError(err)
+		return
 	}
 	bn.setVersionForChild(childVersion, oldChildPos)
 
 	if len(keyReminder) < 1 {
 		bn.children[oldChildPos] = en.child
-		return nil
+		bn.EncodedChildren[oldChildPos] = en.EncodedChild
+		return
 	}
 
 	followingExtensionNode, err := newExtensionNode(en.Key[keyMatchLen+1:], childNode, en.marsh, en.hasher)
 	if err != nil {
-		return err
+		goRoutinesManager.SetError(err)
+		return
 	}
+	followingExtensionNode.EncodedChild = childNode.getHash()
+	followingExtensionNode.setHash(goRoutinesManager)
 
 	bn.children[oldChildPos] = followingExtensionNode
-	return nil
+	bn.EncodedChildren[oldChildPos] = followingExtensionNode.getHash()
 }
 
-func (en *extensionNode) insertNewChildInBn(bn *branchNode, newChild core.TrieData, newChildPos byte, keyMatchLen int) error {
+func (en *extensionNode) insertNewChildInBn(bn *branchNode, newChild core.TrieData, newChildPos byte, keyMatchLen int, goroutinesManager common.TrieGoroutinesManager) {
 	newChild.Key = newChild.Key[keyMatchLen+1:]
 
 	newLeaf, err := newLeafNode(newChild, en.marsh, en.hasher)
 	if err != nil {
-		return err
+		goroutinesManager.SetError(err)
+		return
 	}
+	newLeaf.setHash(goroutinesManager)
 
 	bn.children[newChildPos] = newLeaf
+	bn.EncodedChildren[newChildPos] = newLeaf.getHash()
 	bn.setVersionForChild(newChild.Version, newChildPos)
-	return nil
 }
 
 func (en *extensionNode) getDataWithMatchingPrefix(data []core.TrieData) []core.TrieData {
@@ -510,6 +519,7 @@ func (en *extensionNode) delete(
 			return false, nil
 		}
 
+		n.setHash(goRoutinesManager)
 		return true, n
 	case *extensionNode:
 		n, err := newExtensionNode(concat(en.Key, newNode.Key...), newNode.child, en.marsh, en.hasher)
@@ -517,6 +527,8 @@ func (en *extensionNode) delete(
 			goRoutinesManager.SetError(err)
 			return false, nil
 		}
+		n.EncodedChild = newNode.child.getHash()
+		n.setHash(goRoutinesManager)
 
 		return true, n
 	case *branchNode:
@@ -525,6 +537,8 @@ func (en *extensionNode) delete(
 			goRoutinesManager.SetError(err)
 			return false, nil
 		}
+		n.EncodedChild = newNode.getHash()
+		n.setHash(goRoutinesManager)
 
 		return true, n
 	case nil:

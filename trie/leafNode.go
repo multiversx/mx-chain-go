@@ -158,7 +158,7 @@ func (ln *leafNode) insert(
 	db common.TrieStorageInteractor,
 ) node {
 	if len(newData) == 1 && bytes.Equal(newData[0].Key, ln.Key) {
-		return ln.insertInSameLn(newData[0], modifiedHashes)
+		return ln.insertInSameLn(newData[0], modifiedHashes, goRoutinesManager)
 	}
 
 	keyMatchLen, _ := getMinKeyMatchLen(newData, ln.Key)
@@ -180,11 +180,13 @@ func (ln *leafNode) insert(
 		goRoutinesManager.SetError(err)
 		return nil
 	}
+	newEn.EncodedChild = bn.getHash()
+	newEn.setHash(goRoutinesManager)
 
 	return newEn
 }
 
-func (ln *leafNode) insertInSameLn(newData core.TrieData, modifiedHashes common.AtomicBytesSlice) node {
+func (ln *leafNode) insertInSameLn(newData core.TrieData, modifiedHashes common.AtomicBytesSlice, goRoutinesManager common.TrieGoroutinesManager) node {
 	if bytes.Equal(ln.Value, newData.Value) {
 		return nil
 	}
@@ -199,6 +201,7 @@ func (ln *leafNode) insertInSameLn(newData core.TrieData, modifiedHashes common.
 	ln.Version = uint32(newData.Version)
 	ln.dirty = true
 	ln.hash = nil
+	ln.setHash(goRoutinesManager)
 	return ln
 }
 
@@ -245,11 +248,17 @@ func (ln *leafNode) insertInNewBn(
 		goRoutinesManager.SetError(err)
 		return nil
 	}
+	oldLn.setHash(goRoutinesManager)
 	bn.children[posForOldLn] = oldLn
+	bn.EncodedChildren[posForOldLn] = oldLn.hash
 	bn.setVersionForChild(lnVersion, posForOldLn)
 
 	trimKeys(newData, keyMatchLen)
-	return bn.insert(newData, goRoutinesManager, modifiedHashes, db)
+	newNode := bn.insert(newData, goRoutinesManager, modifiedHashes, db)
+	if !check.IfNil(newNode) {
+		newNode.setHash(goRoutinesManager)
+	}
+	return newNode
 }
 
 func (ln *leafNode) delete(

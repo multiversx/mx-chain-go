@@ -105,14 +105,14 @@ func (bn *branchNode) setHashForChild(childPos int, goRoutinesManager common.Tri
 		return
 	}
 
-	encChild, err := encodeNodeAndGetHash(bn.children[childPos])
+	childHash, err := encodeNodeAndGetHash(bn.children[childPos])
 	if err != nil {
 		goRoutinesManager.SetError(err)
 		return
 	}
 
 	bn.childrenMutexes[childPos].Lock()
-	bn.EncodedChildren[childPos] = encChild
+	bn.EncodedChildren[childPos] = childHash
 	bn.childrenMutexes[childPos].Unlock()
 }
 
@@ -351,11 +351,20 @@ func (bn *branchNode) insert(
 		return nil
 	}
 
-	if bnHasBeenModified.IsSet() {
-		return bn
+	if !bnHasBeenModified.IsSet() {
+		return nil
 	}
 
-	return nil
+	bn.mutex.Lock()
+	hash, err := encodeNodeAndGetHash(bn)
+	if err != nil {
+		goRoutinesManager.SetError(err)
+		return nil
+	}
+	bn.hash = hash
+	bn.mutex.Unlock()
+
+	return bn
 }
 
 func (bn *branchNode) updateNode(
@@ -486,6 +495,10 @@ func (bn *branchNode) insertOnNilChild(
 		goRoutinesManager.SetError(err)
 		return
 	}
+	newNode.setHash(goRoutinesManager)
+	if !goRoutinesManager.ShouldContinueProcessing() {
+		return
+	}
 
 	if len(newData) > 1 {
 		newNode = newNode.insert(newData[1:], goRoutinesManager, modifiedHashes, db)
@@ -517,7 +530,7 @@ func (bn *branchNode) modifyNodeAfterInsert(modifiedHashes common.AtomicBytesSli
 	}
 
 	bn.childrenMutexes[childPos].Lock()
-	bn.EncodedChildren[childPos] = nil
+	bn.EncodedChildren[childPos] = newNode.getHash()
 	bn.children[childPos] = newNode
 	bn.childrenMutexes[childPos].Unlock()
 
@@ -568,6 +581,7 @@ func (bn *branchNode) reduceNodeIfNeeded(
 	}
 
 	if numChildren != 1 {
+		bn.setHash(goRoutinesManager)
 		return true, bn
 	}
 
@@ -587,7 +601,7 @@ func (bn *branchNode) reduceNodeIfNeeded(
 	if newChildHash && !child.isDirty() {
 		modifiedHashes.Append([][]byte{child.getHash()})
 	}
-
+	newNode.setHash(goRoutinesManager)
 	return true, newNode
 }
 
@@ -634,20 +648,25 @@ func (bn *branchNode) setNewChild(childPos byte, newNode node, modifiedHashes co
 	bn.hash = nil
 	bn.dirty = true
 
-	bn.childrenMutexes[childPos].Lock()
-	bn.children[childPos] = newNode
-	bn.EncodedChildren[childPos] = nil
-	bn.childrenMutexes[childPos].Unlock()
-
 	if check.IfNil(newNode) {
+		bn.childrenMutexes[childPos].Lock()
+		bn.children[childPos] = nil
+		bn.EncodedChildren[childPos] = nil
 		bn.setVersionForChild(core.NotSpecified, childPos)
+		bn.childrenMutexes[childPos].Unlock()
 		return nil
 	}
 	childVersion, err := newNode.getVersion()
 	if err != nil {
 		return err
 	}
+
+	bn.childrenMutexes[childPos].Lock()
+	bn.children[childPos] = newNode
+	bn.EncodedChildren[childPos] = newNode.getHash()
 	bn.setVersionForChild(childVersion, childPos)
+	bn.childrenMutexes[childPos].Unlock()
+
 	return nil
 }
 
