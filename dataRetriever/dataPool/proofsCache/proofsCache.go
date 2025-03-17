@@ -6,8 +6,6 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data"
 )
 
-const bucketSize = 100
-
 type proofNonceMapping struct {
 	headerHash string
 	nonce      uint64

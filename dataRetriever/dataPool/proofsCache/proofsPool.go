@@ -10,6 +10,7 @@ import (
 )
 
 const defaultCleanupNonceDelta = 3
+const defaultBucketSize = 100
 
 var log = logger.GetOrCreate("dataRetriever/proofscache")
 
@@ -20,19 +21,25 @@ type proofsPool struct {
 	mutAddedProofSubscribers sync.RWMutex
 	addedProofSubscribers    []func(headerProof data.HeaderProofHandler)
 	cleanupNonceDelta        uint64
+	bucketSize               int
 }
 
 // NewProofsPool creates a new proofs pool component
-func NewProofsPool(cleanupNonceDelta uint64) *proofsPool {
+func NewProofsPool(cleanupNonceDelta uint64, bucketSize int) *proofsPool {
 	if cleanupNonceDelta < defaultCleanupNonceDelta {
 		log.Debug("proofs pool: using default cleanup nonce delta", "cleanupNonceDelta", defaultCleanupNonceDelta)
 		cleanupNonceDelta = defaultCleanupNonceDelta
+	}
+	if bucketSize < defaultBucketSize {
+		log.Debug("proofs pool: using default bucket size", "bucketSize", defaultBucketSize)
+		bucketSize = defaultBucketSize
 	}
 
 	return &proofsPool{
 		cache:                 make(map[uint32]*proofsCache),
 		addedProofSubscribers: make([]func(headerProof data.HeaderProofHandler), 0),
 		cleanupNonceDelta:     cleanupNonceDelta,
+		bucketSize:            bucketSize,
 	}
 }
 
@@ -55,7 +62,7 @@ func (pp *proofsPool) AddProof(
 	pp.mutCache.Lock()
 	proofsPerShard, ok := pp.cache[shardID]
 	if !ok {
-		proofsPerShard = newProofsCache(bucketSize)
+		proofsPerShard = newProofsCache(pp.bucketSize)
 		pp.cache[shardID] = proofsPerShard
 	}
 	pp.mutCache.Unlock()
