@@ -119,7 +119,6 @@ func checkProofIntegrity(hdr data.HeaderHandler, enableEpochsHandler common.Enab
 	return nil
 }
 
-// TODO: move to intercepted meta block
 func checkMetaShardInfo(
 	shardInfo []data.ShardDataHandler,
 	coordinator sharding.Coordinator,
