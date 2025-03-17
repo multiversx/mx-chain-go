@@ -104,8 +104,8 @@ func (pp *proofsPool) addProof(
 	return true
 }
 
-// IsProofEqual will check if the provided proof is equal with the already existing proof in the pool
-func (pp *proofsPool) IsProofEqual(headerProof data.HeaderProofHandler) bool {
+// IsProofInPoolEqualTo will check if the provided proof is equal with the already existing proof in the pool
+func (pp *proofsPool) IsProofInPoolEqualTo(headerProof data.HeaderProofHandler) bool {
 	if check.IfNilReflect(headerProof) {
 		return false
 	}

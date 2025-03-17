@@ -12,7 +12,7 @@ type ProofsPoolMock struct {
 	CleanupProofsBehindNonceCalled func(shardID uint32, nonce uint64) error
 	GetProofCalled                 func(shardID uint32, headerHash []byte) (data.HeaderProofHandler, error)
 	HasProofCalled                 func(shardID uint32, headerHash []byte) bool
-	IsProofEqualCalled             func(headerProof data.HeaderProofHandler) bool
+	IsProofInPoolEqualToCalled     func(headerProof data.HeaderProofHandler) bool
 	RegisterHandlerCalled          func(handler func(headerProof data.HeaderProofHandler))
 }
 
@@ -61,10 +61,10 @@ func (p *ProofsPoolMock) HasProof(shardID uint32, headerHash []byte) bool {
 	return false
 }
 
-// IsProofEqual -
-func (p *ProofsPoolMock) IsProofEqual(headerProof data.HeaderProofHandler) bool {
-	if p.IsProofEqualCalled != nil {
-		return p.IsProofEqualCalled(headerProof)
+// IsProofInPoolEqualTo -
+func (p *ProofsPoolMock) IsProofInPoolEqualTo(headerProof data.HeaderProofHandler) bool {
+	if p.IsProofInPoolEqualToCalled != nil {
+		return p.IsProofInPoolEqualToCalled(headerProof)
 	}
 
 	return false

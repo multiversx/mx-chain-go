@@ -368,6 +368,6 @@ type ProofsPool interface {
 	CleanupProofsBehindNonce(shardID uint32, nonce uint64) error
 	GetProof(shardID uint32, headerHash []byte) (data.HeaderProofHandler, error)
 	HasProof(shardID uint32, headerHash []byte) bool
-	IsProofEqual(headerProof data.HeaderProofHandler) bool
+	IsProofInPoolEqualTo(headerProof data.HeaderProofHandler) bool
 	IsInterfaceNil() bool
 }

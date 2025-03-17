@@ -146,7 +146,7 @@ func checkMetaShardInfo(
 			continue
 		}
 
-		if proofs.IsProofEqual(sd.GetPreviousProof()) {
+		if proofs.IsProofInPoolEqualTo(sd.GetPreviousProof()) {
 			continue
 		}
 

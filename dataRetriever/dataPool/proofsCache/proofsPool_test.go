@@ -139,7 +139,7 @@ func TestProofsPool_IsProofEqual(t *testing.T) {
 
 		pp := proofscache.NewProofsPool(cleanupDelta, bucketSize)
 
-		ok := pp.IsProofEqual(proof1)
+		ok := pp.IsProofInPoolEqualTo(proof1)
 		require.False(t, ok)
 	})
 
@@ -148,7 +148,7 @@ func TestProofsPool_IsProofEqual(t *testing.T) {
 
 		pp := proofscache.NewProofsPool(cleanupDelta, bucketSize)
 
-		ok := pp.IsProofEqual(nil)
+		ok := pp.IsProofInPoolEqualTo(nil)
 		require.False(t, ok)
 	})
 
@@ -160,7 +160,7 @@ func TestProofsPool_IsProofEqual(t *testing.T) {
 		ok := pp.UpsertProof(proof1)
 		require.True(t, ok)
 
-		ok = pp.IsProofEqual(proof1)
+		ok = pp.IsProofInPoolEqualTo(proof1)
 		require.True(t, ok)
 	})
 
@@ -181,7 +181,7 @@ func TestProofsPool_IsProofEqual(t *testing.T) {
 			HeaderShardId:       shardID,
 		}
 
-		ok = pp.IsProofEqual(newProof1)
+		ok = pp.IsProofInPoolEqualTo(newProof1)
 		require.False(t, ok)
 	})
 }
