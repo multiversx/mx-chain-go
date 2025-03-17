@@ -685,7 +685,10 @@ func (sr *subroundEndRound) createAndBroadcastInvalidSigners(invalidSigners []by
 }
 
 func (sr *subroundEndRound) updateMetricsForLeader() {
-	// TODO: decide if we keep these metrics the same way
+	if !sr.IsSelfLeader() {
+		return
+	}
+
 	sr.appStatusHandler.Increment(common.MetricCountAcceptedBlocks)
 	sr.appStatusHandler.SetStringValue(common.MetricConsensusRoundState,
 		fmt.Sprintf("valid block produced in %f sec", time.Since(sr.RoundHandler().TimeStamp()).Seconds()))

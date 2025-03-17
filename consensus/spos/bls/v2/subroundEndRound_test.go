@@ -1296,6 +1296,18 @@ func TestSubroundEndRound_DoEndRoundJobByNode(t *testing.T) {
 		}
 		container.SetEnableEpochsHandler(enableEpochsHandler)
 
+		wasIncrementHandlerCalled := false
+		wasSetStringValueHandlerCalled := false
+		statusHandler := &statusHandler.AppStatusHandlerStub{
+			IncrementHandler: func(key string) {
+				require.Equal(t, common.MetricCountAcceptedBlocks, key)
+				wasIncrementHandlerCalled = true
+			},
+			SetStringValueHandler: func(key string, value string) {
+				require.Equal(t, common.MetricConsensusRoundState, key)
+				wasSetStringValueHandlerCalled = true
+			},
+		}
 		ch := make(chan bool, 1)
 		consensusState := initializers.InitConsensusState()
 		sr, _ := spos.NewSubround(
@@ -1311,13 +1323,13 @@ func TestSubroundEndRound_DoEndRoundJobByNode(t *testing.T) {
 			container,
 			chainID,
 			currentPid,
-			&statusHandler.AppStatusHandlerStub{},
+			statusHandler,
 		)
 
 		srEndRound, _ := v2.NewSubroundEndRound(
 			sr,
 			v2.ProcessingThresholdPercent,
-			&statusHandler.AppStatusHandlerStub{},
+			statusHandler,
 			&testscommon.SentSignatureTrackerStub{},
 			&consensusMocks.SposWorkerMock{},
 			&dataRetrieverMocks.ThrottlerStub{},
@@ -1337,8 +1349,13 @@ func TestSubroundEndRound_DoEndRoundJobByNode(t *testing.T) {
 			PreviousHeaderProof:      nil,
 		})
 
+		sr.SetLeader(sr.SelfPubKey())
+
 		r := srEndRound.DoEndRoundJobByNode()
 		require.True(t, r)
+
+		require.True(t, wasIncrementHandlerCalled)
+		require.True(t, wasSetStringValueHandlerCalled)
 	})
 	t.Run("invalid signers should wait for more signatures then work", func(t *testing.T) {
 		t.Parallel()
