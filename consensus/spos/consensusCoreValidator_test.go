@@ -46,6 +46,7 @@ func initConsensusDataContainer() *spos.ConsensusCore {
 	enableEpochsHandler := &enableEpochsHandlerMock.EnableEpochsHandlerStub{}
 	proofsPool := &dataRetriever.ProofsPoolMock{}
 	epochNotifier := &epochNotifierMock.EpochNotifierStub{}
+	invalidSignersCache := &consensusMocks.InvalidSignersCacheMock{}
 
 	consensusCore, _ := spos.NewConsensusCore(&spos.ConsensusCoreArgs{
 		BlockChain:                    blockChain,
@@ -73,6 +74,7 @@ func initConsensusDataContainer() *spos.ConsensusCore {
 		EnableEpochsHandler:           enableEpochsHandler,
 		EquivalentProofsPool:          proofsPool,
 		EpochNotifier:                 epochNotifier,
+		InvalidSignersCache:           invalidSignersCache,
 	})
 
 	return consensusCore
@@ -370,6 +372,17 @@ func TestConsensusContainerValidator_ValidateNilEpochStartRegistrationHandlerSho
 	err := spos.ValidateConsensusCore(container)
 
 	assert.Equal(t, spos.ErrNilEpochStartNotifier, err)
+}
+
+func TestConsensusContainerValidator_ValidateNilInvalidSignersCacheShouldFail(t *testing.T) {
+	t.Parallel()
+
+	container := initConsensusDataContainer()
+	container.SetInvalidSignersCache(nil)
+
+	err := spos.ValidateConsensusCore(container)
+
+	assert.Equal(t, spos.ErrNilInvalidSignersCache, err)
 }
 
 func TestConsensusContainerValidator_ShouldWork(t *testing.T) {

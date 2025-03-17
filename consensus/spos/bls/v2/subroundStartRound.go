@@ -101,6 +101,7 @@ func (sr *subroundStartRound) doStartRoundJob(_ context.Context) bool {
 	topic := spos.GetConsensusTopicID(sr.ShardCoordinator())
 	sr.GetAntiFloodHandler().ResetForTopic(topic)
 	sr.worker.ResetConsensusMessages()
+	sr.worker.ResetInvalidSignersCache()
 
 	return true
 }
