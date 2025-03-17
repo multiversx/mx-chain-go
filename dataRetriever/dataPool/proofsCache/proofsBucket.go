@@ -23,22 +23,13 @@ func (p *proofNonceBucket) isFull() bool {
 	return len(p.proofsByNonce) >= p.bucketSize
 }
 
-func (p *proofNonceBucket) insertInNew(proof data.HeaderProofHandler) {
-	p.insert(proof)
-	p.maxNonce = proof.GetHeaderNonce()
-}
-
-func (p *proofNonceBucket) insertInExisting(proof data.HeaderProofHandler) {
-	p.insert(proof)
-
-	if proof.GetHeaderNonce() > p.maxNonce {
-		p.maxNonce = proof.GetHeaderNonce()
-	}
-}
-
 func (p *proofNonceBucket) insert(proof data.HeaderProofHandler) {
 	p.proofsByNonce = append(p.proofsByNonce, &proofNonceMapping{
 		headerHash: string(proof.GetHeaderHash()),
 		nonce:      proof.GetHeaderNonce(),
 	})
+
+	if proof.GetHeaderNonce() > p.maxNonce {
+		p.maxNonce = proof.GetHeaderNonce()
+	}
 }

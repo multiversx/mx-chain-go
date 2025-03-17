@@ -69,12 +69,12 @@ func (pc *proofsCache) insertProofByNonce(proof data.HeaderProofHandler) {
 		return
 	}
 
-	headBucket.insertInExisting(proof)
+	headBucket.insert(proof)
 }
 
 func (pc *proofsCache) insertInNewBucket(proof data.HeaderProofHandler) {
 	bucket := newProofBucket(pc.bucketSize)
-	bucket.insertInNew(proof)
+	bucket.insert(proof)
 
 	pc.proofsByNonceBuckets = append([]*proofNonceBucket{bucket}, pc.proofsByNonceBuckets...)
 }
