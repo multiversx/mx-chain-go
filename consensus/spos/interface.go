@@ -48,6 +48,7 @@ type ConsensusCoreHandler interface {
 	EnableEpochsHandler() common.EnableEpochsHandler
 	EquivalentProofsPool() consensus.EquivalentProofsPool
 	EpochNotifier() process.EpochNotifier
+	InvalidSignersCache() InvalidSignersCache
 	IsInterfaceNil() bool
 }
 
@@ -127,6 +128,8 @@ type WorkerHandler interface {
 	ResetConsensusMessages()
 	// ResetConsensusRoundState resets the consensus round state when transitioning to a different consensus version
 	ResetConsensusRoundState()
+	// ResetInvalidSignersCache resets the invalid signers cache
+	ResetInvalidSignersCache()
 	// IsInterfaceNil returns true if there is no value under the interface
 	IsInterfaceNil() bool
 }
@@ -264,4 +267,12 @@ type RoundThresholdHandler interface {
 	SetThreshold(subroundId int, threshold int)
 	FallbackThreshold(subroundId int) int
 	SetFallbackThreshold(subroundId int, threshold int)
+}
+
+// InvalidSignersCache encapsulates the methods needed for a invalid signers cache
+type InvalidSignersCache interface {
+	AddInvalidSigners(headerHash []byte, invalidSigners []byte, invalidPublicKeys []string)
+	CheckKnownInvalidSigners(headerHash []byte, invalidSigners []byte) bool
+	Reset()
+	IsInterfaceNil() bool
 }

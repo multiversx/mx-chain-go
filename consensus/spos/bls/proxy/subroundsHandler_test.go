@@ -81,6 +81,7 @@ func getDefaultArgumentsSubroundHandler() (*SubroundsHandlerArgs, *spos.Consensu
 	consensusCore.SetEnableEpochsHandler(epochsEnable)
 	consensusCore.SetEquivalentProofsPool(&dataRetriever.ProofsPoolMock{})
 	consensusCore.SetEpochNotifier(epochNotifier)
+	consensusCore.SetInvalidSignersCache(&consensus.InvalidSignersCacheMock{})
 	handlerArgs.ConsensusCoreHandler = consensusCore
 
 	return handlerArgs, consensusCore

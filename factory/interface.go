@@ -406,6 +406,8 @@ type ConsensusWorker interface {
 	ResetConsensusMessages()
 	// ResetConsensusRoundState resets the state of the consensus round
 	ResetConsensusRoundState()
+	// ResetInvalidSignersCache resets the invalid signers cache
+	ResetInvalidSignersCache()
 	// ReceivedHeader method is a wired method through which worker will receive headers from network
 	ReceivedHeader(headerHandler data.HeaderHandler, headerHash []byte)
 	// ReceivedProof will handle a received proof in consensus worker
