@@ -262,7 +262,9 @@ func (sr *subroundEndRound) doEndRoundJobByNode() bool {
 			return false
 		}
 
-		proofSent, shouldWaitForMoreSignatures := sr.sendProof()
+		err := sr.sendProof()
+		proofSent := err == nil
+		shouldWaitForMoreSignatures := errors.Is(err, spos.ErrInvalidNumSigShares)
 		// if not enough valid signatures were detected, wait a bit more
 		// either more signatures will be received, either proof from another participant
 		if shouldWaitForMoreSignatures {
@@ -342,24 +344,23 @@ func (sr *subroundEndRound) finalizeConfirmedBlock() bool {
 	return true
 }
 
-func (sr *subroundEndRound) sendProof() (bool, bool) {
+func (sr *subroundEndRound) sendProof() error {
 	if !sr.shouldSendProof() {
-		return false, false
+		return errShouldNotSendProof
 	}
 
 	bitmap := sr.GenerateBitmap(bls.SrSignature)
 	err := sr.checkSignaturesValidity(bitmap)
 	if err != nil {
 		log.Debug("sendProof.checkSignaturesValidity", "error", err.Error())
-		return false, false
+		return err
 	}
 
 	// Aggregate signatures, handle invalid signers and send final info if needed
 	bitmap, sig, err := sr.aggregateSigsAndHandleInvalidSigners(bitmap)
 	if err != nil {
-		shouldWaitForMoreSignatures := errors.Is(err, spos.ErrInvalidNumSigShares)
 		log.Debug("sendProof.aggregateSigsAndHandleInvalidSigners", "error", err.Error())
-		return false, shouldWaitForMoreSignatures
+		return err
 	}
 
 	roundHandler := sr.RoundHandler()
@@ -367,7 +368,7 @@ func (sr *subroundEndRound) sendProof() (bool, bool) {
 		log.Debug("sendProof: time is out -> cancel broadcasting final info and header",
 			"round time stamp", roundHandler.TimeStamp(),
 			"current time", time.Now())
-		return false, false
+		return err
 	}
 
 	// broadcast header proof
@@ -376,7 +377,7 @@ func (sr *subroundEndRound) sendProof() (bool, bool) {
 		log.Warn("sendProof.createAndBroadcastProof", "error", err.Error())
 	}
 
-	return err == nil, false
+	return err
 }
 
 func (sr *subroundEndRound) shouldSendProof() bool {
