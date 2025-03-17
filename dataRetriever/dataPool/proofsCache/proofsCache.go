@@ -21,7 +21,6 @@ type proofsCache struct {
 }
 
 func newProofsCache(bucketSize int) *proofsCache {
-
 	return &proofsCache{
 		proofsByNonceBuckets: make([]*proofNonceBucket, 0),
 		bucketSize:           bucketSize,
@@ -89,24 +88,14 @@ func (pc *proofsCache) cleanupProofsBehindNonce(nonce uint64) {
 
 	buckets := make([]*proofNonceBucket, 0)
 
-	wg := &sync.WaitGroup{}
-
 	for _, bucket := range pc.proofsByNonceBuckets {
 		if nonce > bucket.maxNonce {
-			wg.Add(1)
-
-			go func(bucket *proofNonceBucket) {
-				pc.cleanupProofsInBucket(bucket)
-				wg.Done()
-			}(bucket)
-
+			pc.cleanupProofsInBucket(bucket)
 			continue
 		}
 
 		buckets = append(buckets, bucket)
 	}
-
-	wg.Wait()
 
 	pc.proofsByNonceBuckets = buckets
 }
