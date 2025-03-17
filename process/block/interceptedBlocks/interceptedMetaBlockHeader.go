@@ -31,6 +31,7 @@ type InterceptedMetaHeader struct {
 	validityAttester    process.ValidityAttester
 	epochStartTrigger   process.EpochStartTriggerHandler
 	enableEpochsHandler common.EnableEpochsHandler
+	proofsPool          process.ProofsPool
 }
 
 // NewInterceptedMetaHeader creates a new instance of InterceptedMetaHeader struct
@@ -54,6 +55,7 @@ func NewInterceptedMetaHeader(arg *ArgInterceptedBlockHeader) (*InterceptedMetaH
 		validityAttester:    arg.ValidityAttester,
 		epochStartTrigger:   arg.EpochStartTrigger,
 		enableEpochsHandler: arg.EnableEpochsHandler,
+		proofsPool:          arg.ProofsPool,
 	}
 	inHdr.processFields(arg.HdrBuff)
 
@@ -168,7 +170,7 @@ func (imh *InterceptedMetaHeader) integrity() error {
 		return err
 	}
 
-	err = checkMetaShardInfo(imh.hdr.GetShardInfoHandlers(), imh.shardCoordinator, imh.sigVerifier)
+	err = checkMetaShardInfo(imh.hdr.GetShardInfoHandlers(), imh.shardCoordinator, imh.sigVerifier, imh.proofsPool)
 	if err != nil {
 		return err
 	}
