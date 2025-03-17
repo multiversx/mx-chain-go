@@ -498,6 +498,78 @@ func TestDelayedBlockBroadcaster_SetValidatorData(t *testing.T) {
 	require.Equal(t, 1, len(vbb))
 }
 
+func TestDelayedBlockBroadcaster_SetHeaderForValidatorWithoutSignaturesShouldNotSetAlarm(t *testing.T) {
+	t.Parallel()
+
+	var logOutput bytes.Buffer
+	customFormatter := &logger.PlainFormatter{}
+	err := logger.AddLogObserver(&logOutput, customFormatter)
+	require.Nil(t, err)
+
+	originalLogPattern := logger.GetLogLevelPattern()
+	err = logger.SetLogLevel("*:TRACE")
+	require.Nil(t, err)
+
+	mbBroadcastCalled := atomic.Counter{}
+	txBroadcastCalled := atomic.Counter{}
+	headerBroadcastCalled := atomic.Counter{}
+
+	broadcastMiniBlocks := func(mbData map[uint32][]byte, pk []byte) error {
+		mbBroadcastCalled.Increment()
+		return nil
+	}
+	broadcastTransactions := func(txData map[string][][]byte, pk []byte) error {
+		txBroadcastCalled.Increment()
+		return nil
+	}
+	broadcastHeader := func(header data.HeaderHandler, pk []byte) error {
+		headerBroadcastCalled.Increment()
+		return nil
+	}
+	broadcastConsensusMessage := func(message *consensus.Message) error {
+		return nil
+	}
+
+	delayBroadcasterArgs := createDefaultDelayedBroadcasterArgs()
+	dbb, err := broadcast.NewDelayedBlockBroadcaster(delayBroadcasterArgs)
+	require.Nil(t, err)
+
+	err = dbb.SetBroadcastHandlers(broadcastMiniBlocks, broadcastTransactions, broadcastHeader, broadcastConsensusMessage)
+	require.Nil(t, err)
+
+	vArgs := createValidatorDelayArgs(0)
+
+	valHeaderData := broadcast.CreateValidatorHeaderBroadcastData(
+		vArgs.headerHash,
+		vArgs.header,
+		vArgs.metaMiniBlocks,
+		vArgs.metaTransactions,
+		vArgs.order,
+	)
+	err = dbb.SetHeaderForValidator(valHeaderData)
+	require.Nil(t, err)
+
+	logOutputStr := logOutput.String()
+	expectedLogMsg := "delayedBlockBroadcaster.SetHeaderForValidator: header alarm has not been set"
+	require.Contains(t, logOutputStr, expectedLogMsg)
+	require.Contains(t, logOutputStr, fmt.Sprintf("validatorConsensusOrder = %d", vArgs.order))
+
+	vbb := dbb.GetValidatorHeaderBroadcastData()
+	require.Equal(t, 0, len(vbb))
+
+	sleepTime := broadcast.ValidatorDelayPerOrder()*time.Duration(vArgs.order) +
+		time.Millisecond*100
+	time.Sleep(sleepTime)
+
+	vbb = dbb.GetValidatorHeaderBroadcastData()
+	require.Equal(t, 0, len(vbb))
+
+	err = logger.RemoveLogObserver(&logOutput)
+	require.Nil(t, err)
+	err = logger.SetLogLevel(originalLogPattern)
+	require.Nil(t, err)
+}
+
 func TestDelayedBlockBroadcaster_SetHeaderForValidatorShouldSetAlarmAndBroadcastHeader(t *testing.T) {
 	t.Parallel()
 
