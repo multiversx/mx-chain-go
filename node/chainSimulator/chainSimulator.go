@@ -6,6 +6,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+
 	"math/big"
 	"sync"
 	"time"
@@ -22,6 +23,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/core/sharding"
 	"github.com/multiversx/mx-chain-core-go/data/api"
+	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/data/endProcess"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	crypto "github.com/multiversx/mx-chain-crypto-go"
@@ -181,6 +183,8 @@ func (s *simulator) createChainHandlers(args ArgsBaseChainSimulator) error {
 	s.initialWalletKeys = outputConfigs.InitialWallets
 	s.validatorsPrivateKeys = outputConfigs.ValidatorsPrivateKeys
 
+	s.addProofs()
+
 	log.Info("running the chain simulator with the following parameters",
 		"number of shards (including meta)", args.NumOfShards+1,
 		"round per epoch", outputConfigs.Configs.GeneralConfig.EpochStartConfig.RoundsPerEpoch,
@@ -190,6 +194,27 @@ func (s *simulator) createChainHandlers(args ArgsBaseChainSimulator) error {
 		"temporary path", args.TempDir)
 
 	return nil
+}
+
+func (s *simulator) addProofs() {
+	proofs := make([]*block.HeaderProof, 0, len(s.nodes))
+
+	for shardID, nodeHandler := range s.nodes {
+		hash := nodeHandler.GetChainHandler().GetGenesisHeaderHash()
+		proofs = append(proofs, &block.HeaderProof{
+			HeaderShardId: shardID,
+			HeaderHash:    hash,
+		})
+	}
+
+	metachainProofsPool := s.GetNodeHandler(core.MetachainShardId).GetDataComponents().Datapool().Proofs()
+	for _, proof := range proofs {
+		_ = metachainProofsPool.AddProof(proof)
+
+		if proof.HeaderShardId != core.MetachainShardId {
+			_ = s.GetNodeHandler(proof.HeaderShardId).GetDataComponents().Datapool().Proofs().AddProof(proof)
+		}
+	}
 }
 
 func computeStartTimeBaseOnInitialRound(args ArgsChainSimulator) int64 {
@@ -313,7 +338,14 @@ func (s *simulator) ForceChangeOfEpoch() error {
 	epoch := s.nodes[core.MetachainShardId].GetProcessComponents().EpochStartTrigger().Epoch()
 	s.mutex.Unlock()
 
-	return s.GenerateBlocksUntilEpochIsReached(int32(epoch + 1))
+	err := s.GenerateBlocksUntilEpochIsReached(int32(epoch + 1))
+	if err != nil {
+		return err
+	}
+
+	s.incrementRoundOnAllValidators()
+
+	return s.allNodesCreateBlocks()
 }
 
 func (s *simulator) allNodesCreateBlocks() error {
