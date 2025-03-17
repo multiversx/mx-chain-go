@@ -1,8 +1,10 @@
 package broadcast_test
 
 import (
+	"bytes"
 	"encoding/hex"
 	"errors"
+	"fmt"
 	"strconv"
 	"sync"
 	"testing"
@@ -13,6 +15,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/atomic"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
+	logger "github.com/multiversx/mx-chain-logger-go"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -384,6 +387,78 @@ func TestDelayedBlockBroadcaster_SetLeaderData(t *testing.T) {
 
 	vbb := dbb.GetLeaderBroadcastData()
 	require.Equal(t, 1, len(vbb))
+}
+
+func TestDelayedBlockBroadcaster_SetLeaderDataOverCacheSizeShouldBroadcastOldest(t *testing.T) {
+	t.Parallel()
+
+	var logOutput bytes.Buffer
+	customFormatter := &logger.PlainFormatter{}
+	err := logger.AddLogObserver(&logOutput, customFormatter)
+	require.Nil(t, err)
+
+	originalLogPattern := logger.GetLogLevelPattern()
+	err = logger.SetLogLevel("*:DEBUG")
+	require.Nil(t, err)
+
+	mbBroadcastCalled := atomic.Counter{}
+	txBroadcastCalled := atomic.Counter{}
+
+	broadcastMiniBlocks := func(mbData map[uint32][]byte, pk []byte) error {
+		mbBroadcastCalled.Increment()
+		return nil
+	}
+	broadcastTransactions := func(txData map[string][][]byte, pk []byte) error {
+		txBroadcastCalled.Increment()
+		return nil
+	}
+	broadcastHeader := func(header data.HeaderHandler, pk []byte) error {
+		return nil
+	}
+	broadcastConsensusMessage := func(message *consensus.Message) error {
+		return nil
+	}
+
+	delayBroadcasterArgs := createDefaultDelayedBroadcasterArgs()
+	dbb, err := broadcast.NewDelayedBlockBroadcaster(delayBroadcasterArgs)
+	require.Nil(t, err)
+
+	err = dbb.SetBroadcastHandlers(broadcastMiniBlocks, broadcastTransactions, broadcastHeader, broadcastConsensusMessage)
+	require.Nil(t, err)
+
+	headerHash1, _, miniBlockData1, transactionsData1 := createDelayData("1")
+	delayedData1 := broadcast.CreateDelayBroadcastDataForLeader(headerHash1, miniBlockData1, transactionsData1)
+	err = dbb.SetLeaderData(delayedData1)
+	require.Nil(t, err)
+	time.Sleep(10 * time.Millisecond)
+
+	headerHash2, _, miniBlockData2, transactionsData2 := createDelayData("2")
+	delayedData2 := broadcast.CreateDelayBroadcastDataForLeader(headerHash2, miniBlockData2, transactionsData2)
+	err = dbb.SetLeaderData(delayedData2)
+	require.Nil(t, err)
+	time.Sleep(10 * time.Millisecond)
+
+	// should trigger the log message
+	headerHash3, _, miniBlockData3, transactionsData3 := createDelayData("3")
+	delayedData3 := broadcast.CreateDelayBroadcastDataForLeader(headerHash3, miniBlockData3, transactionsData3)
+	err = dbb.SetLeaderData(delayedData3)
+	require.Nil(t, err)
+	time.Sleep(10 * time.Millisecond)
+
+	logOutputStr := logOutput.String()
+	expectedLogMsg := "delayedBlockBroadcaster.SetLeaderData: leader broadcasts old data before alarm due to too much delay data"
+	require.Contains(t, logOutputStr, expectedLogMsg)
+	require.Contains(t, logOutputStr, fmt.Sprintf("headerHash = %s", hex.EncodeToString(headerHash1)))
+	require.Contains(t, logOutputStr, "nbDelayedData = 3")
+	require.Contains(t, logOutputStr, "maxDelayCacheSize = 2")
+
+	vbb := dbb.GetLeaderBroadcastData()
+	require.Equal(t, 2, len(vbb))
+
+	err = logger.RemoveLogObserver(&logOutput)
+	require.Nil(t, err)
+	err = logger.SetLogLevel(originalLogPattern)
+	require.Nil(t, err)
 }
 
 func TestDelayedBlockBroadcaster_SetValidatorDataNilDataShouldErr(t *testing.T) {
