@@ -31,10 +31,10 @@ updateNotifierNotarizationRound() {
 }
 
 setGenesisContract() {
-    local ESDT_SAFE_INIT_PARAMS="01"
+    local ESDT_SAFE_INIT_PARAMS="$(bech32ToHex $FEE_MARKET_ADDRESS_SOVEREIGN)"
     local FEE_MARKET_INIT_PARAMS="$(bech32ToHex $ESDT_SAFE_ADDRESS_SOVEREIGN)@00"
 
-    python3 $SCRIPT_PATH/pyScripts/genesis_contract.py $WALLET_ADDRESS $ESDT_SAFE_WASM $ESDT_SAFE_INIT_PARAMS $FEE_MARKET_WASM $FEE_MARKET_INIT_PARAMS
+    python3 $SCRIPT_PATH/pyScripts/genesis_contract.py $WALLET_ADDRESS $SOV_ESDT_SAFE_WASM $ESDT_SAFE_INIT_PARAMS $FEE_MARKET_WASM $FEE_MARKET_INIT_PARAMS
 }
 
 updateSovereignConfig() {

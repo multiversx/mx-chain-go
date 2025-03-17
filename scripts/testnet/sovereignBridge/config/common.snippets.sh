@@ -7,8 +7,13 @@ checkWalletBalanceOnMainChain() {
     return 0
 }
 
-getFundsInAddressSovereign() {
-    echo "Getting funds in wallet on sovereign chain..."
+fund() {
+    if [ "$#" -ne 1 ]; then
+        echo "Usage: fund <address>"
+        return 1
+    fi
+
+    echo "Funding wallet address $1 on sovereign chain..."
 
     local OUTFILE="${OUTFILE_PATH}/get-funds-sovereign.interaction.json"
     mxpy tx new \
@@ -16,7 +21,7 @@ getFundsInAddressSovereign() {
         --pem-index 0 \
         --proxy=${PROXY_SOVEREIGN} \
         --chain=${CHAIN_ID_SOVEREIGN} \
-        --receiver=${WALLET_ADDRESS} \
+        --receiver=$1 \
         --value=100000000000000000000000 \
         --gas-limit=50000 \
         --outfile=${OUTFILE} \

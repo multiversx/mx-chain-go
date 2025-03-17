@@ -59,12 +59,12 @@ def main():
     json_path = project_path + "/cmd/node/config/genesisSmartContracts.json"
 
     # esdt-safe ---------------------
-    esdt_safe_wasm_path = project_path + "/cmd/node/config/genesisContracts/esdt-safe.wasm"
+    esdt_safe_wasm_path = project_path + "/cmd/node/config/genesisContracts/sov-esdt-safe.wasm"
     copy_wasm_in_project(esdt_safe_wasm_path, esdt_safe_path)
 
     esdt_safe_genesis_contract = {
         "owner": owner_address,
-        "filename": "./config/genesisContracts/esdt-safe.wasm",
+        "filename": "./config/genesisContracts/sov-esdt-safe.wasm",
         "init-parameters": esdt_safe_init_params,
         "vm-type": "0500",
         "type": "esdt"

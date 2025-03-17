@@ -52,8 +52,8 @@ upgradeFeeMarketContractSovereign() {
 
 upgradeFeeMarketContractCall() {
     if [ $# -lt 4 ]; then
-        echo "Usage: $0 <arg1> <arg2> <arg3> <arg4>"
-        exit 1
+        echo "Usage: ${FUNCNAME[0]} <arg1> <arg2> <arg3> <arg4>"
+        return 1
     fi
 
     local ADDRESS=$1
@@ -89,8 +89,8 @@ removeFeeInFeeMarketContractSovereign() {
 }
 removeFeeInFeeMarketContractCall() {
     if [ $# -lt 4 ]; then
-        echo "Usage: $0 <arg1> <arg2> <arg3> <arg4>"
-        exit 1
+        echo "Usage: ${FUNCNAME[0]} <arg1> <arg2> <arg3> <arg4>"
+        return 1
     fi
 
     local ADDRESS=$1
@@ -126,8 +126,8 @@ setFixedFeeMarketContractSovereign() {
 }
 setFixedFeeMarketContractCall() {
     if [ $# -lt 4 ]; then
-        echo "Usage: $0 <arg1> <arg2> <arg3> <arg4>"
-        exit 1
+        echo "Usage: ${FUNCNAME[0]} <arg1> <arg2> <arg3> <arg4>"
+        return 1
     fi
 
     local ADDRESS=$1
@@ -142,7 +142,6 @@ setFixedFeeMarketContractCall() {
         --gas-limit=10000000 \
         --function="setFee" \
         --arguments \
-            str:SVN-c53da0 \
             0x010000000a53564e2d6335336461300000000901314fb370629800000000000901c9f78d2893e40000 \
         --outfile=${OUTFILE} \
         --recall-nonce \
@@ -166,8 +165,8 @@ setAnyTokenFeeMarketContractSovereign() {
 }
 setAnyTokenFeeMarketContractCall() {
     if [ $# -lt 4 ]; then
-        echo "Usage: $0 <arg1> <arg2> <arg3> <arg4>"
-        exit 1
+        echo "Usage: ${FUNCNAME[0]} <arg1> <arg2> <arg3> <arg4>"
+        return 1
     fi
 
     local ADDRESS=$1
