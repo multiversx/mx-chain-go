@@ -14,25 +14,26 @@ type proofNonceMapping struct {
 }
 
 type proofsCache struct {
-	mutProofsCache       sync.RWMutex
+	mutProofsByNonce     sync.RWMutex
 	proofsByNonceBuckets []*proofNonceBucket
 	bucketSize           int
-	proofsByHash         map[string]data.HeaderProofHandler
+
+	proofsByHash    map[string]data.HeaderProofHandler
+	mutProofsByHash sync.RWMutex
 }
 
 func newProofsCache(bucketSize int) *proofsCache {
 
 	return &proofsCache{
-		mutProofsCache:       sync.RWMutex{},
 		proofsByNonceBuckets: make([]*proofNonceBucket, 0),
-		proofsByHash:         make(map[string]data.HeaderProofHandler),
 		bucketSize:           bucketSize,
+		proofsByHash:         make(map[string]data.HeaderProofHandler),
 	}
 }
 
 func (pc *proofsCache) getProofByHash(headerHash []byte) (data.HeaderProofHandler, error) {
-	pc.mutProofsCache.RLock()
-	defer pc.mutProofsCache.RUnlock()
+	pc.mutProofsByHash.RLock()
+	defer pc.mutProofsByHash.RUnlock()
 
 	proof, ok := pc.proofsByHash[string(headerHash)]
 	if !ok {
@@ -47,15 +48,17 @@ func (pc *proofsCache) addProof(proof data.HeaderProofHandler) {
 		return
 	}
 
-	pc.mutProofsCache.Lock()
-	defer pc.mutProofsCache.Unlock()
-
 	pc.insertProofByNonce(proof)
 
+	pc.mutProofsByHash.Lock()
 	pc.proofsByHash[string(proof.GetHeaderHash())] = proof
+	pc.mutProofsByHash.Unlock()
 }
 
 func (pc *proofsCache) insertProofByNonce(proof data.HeaderProofHandler) {
+	pc.mutProofsByNonce.Lock()
+	defer pc.mutProofsByNonce.Unlock()
+
 	if len(pc.proofsByNonceBuckets) == 0 {
 		pc.insertInNewBucket(proof)
 		return
@@ -83,25 +86,37 @@ func (pc *proofsCache) cleanupProofsBehindNonce(nonce uint64) {
 		return
 	}
 
-	pc.mutProofsCache.Lock()
-	defer pc.mutProofsCache.Unlock()
+	pc.mutProofsByNonce.Lock()
+	defer pc.mutProofsByNonce.Unlock()
 
 	buckets := make([]*proofNonceBucket, 0)
 
+	wg := &sync.WaitGroup{}
+
 	for _, bucket := range pc.proofsByNonceBuckets {
-		log.Info("nnn", "nonce", nonce, "maxNonce", bucket.maxNonce)
 		if nonce > bucket.maxNonce {
-			pc.cleanupProofsInBucket(bucket)
+			wg.Add(1)
+
+			go func(bucket *proofNonceBucket) {
+				pc.cleanupProofsInBucket(bucket)
+				wg.Done()
+			}(bucket)
+
 			continue
 		}
 
 		buckets = append(buckets, bucket)
 	}
 
+	wg.Wait()
+
 	pc.proofsByNonceBuckets = buckets
 }
 
 func (pc *proofsCache) cleanupProofsInBucket(bucket *proofNonceBucket) {
+	pc.mutProofsByHash.Lock()
+	defer pc.mutProofsByHash.Unlock()
+
 	for _, proofInfo := range bucket.proofsByNonce {
 		delete(pc.proofsByHash, proofInfo.headerHash)
 	}
