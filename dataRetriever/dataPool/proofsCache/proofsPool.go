@@ -1,6 +1,7 @@
 package proofscache
 
 import (
+	"bytes"
 	"fmt"
 	"sync"
 
@@ -43,7 +44,20 @@ func NewProofsPool(cleanupNonceDelta uint64, bucketSize int) *proofsPool {
 	}
 }
 
-// AddProof will add the provided proof to the pool
+// UpsertProof will add the provided proof to the pool. If there is already an existing proof,
+// it will overwrite it.
+func (pp *proofsPool) UpsertProof(
+	headerProof data.HeaderProofHandler,
+) bool {
+	if check.IfNilReflect(headerProof) {
+		return false
+	}
+
+	return pp.addProof(headerProof)
+}
+
+// AddProof will add the provided proof to the pool, if it's not already in the pool.
+// It will return true if the proof the was added to the pool.
 func (pp *proofsPool) AddProof(
 	headerProof data.HeaderProofHandler,
 ) bool {
@@ -51,13 +65,18 @@ func (pp *proofsPool) AddProof(
 		return false
 	}
 
-	shardID := headerProof.GetHeaderShardId()
-	headerHash := headerProof.GetHeaderHash()
-
-	hasProof := pp.HasProof(shardID, headerHash)
+	hasProof := pp.HasProof(headerProof.GetHeaderShardId(), headerProof.GetHeaderHash())
 	if hasProof {
 		return false
 	}
+
+	return pp.addProof(headerProof)
+}
+
+func (pp *proofsPool) addProof(
+	headerProof data.HeaderProofHandler,
+) bool {
+	shardID := headerProof.GetHeaderShardId()
 
 	pp.mutCache.Lock()
 	proofsPerShard, ok := pp.cache[shardID]
@@ -83,6 +102,27 @@ func (pp *proofsPool) AddProof(
 	pp.callAddedProofSubscribers(headerProof)
 
 	return true
+}
+
+// IsProofEqual will check if the provided proof is equal with the already existing proof in the pool
+func (pp *proofsPool) IsProofEqual(headerProof data.HeaderProofHandler) (bool, error) {
+	if check.IfNilReflect(headerProof) {
+		return false, ErrNilProof
+	}
+
+	existingProof, err := pp.GetProof(headerProof.GetHeaderShardId(), headerProof.GetHeaderHash())
+	if err != nil {
+		return false, err
+	}
+
+	if !bytes.Equal(existingProof.GetAggregatedSignature(), headerProof.GetAggregatedSignature()) {
+		return false, nil
+	}
+	if !bytes.Equal(existingProof.GetPubKeysBitmap(), headerProof.GetPubKeysBitmap()) {
+		return false, nil
+	}
+
+	return true, nil
 }
 
 func (pp *proofsPool) callAddedProofSubscribers(headerProof data.HeaderProofHandler) {
