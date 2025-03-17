@@ -245,6 +245,7 @@ func InitConsensusCoreWithMultiSigner(multiSigner crypto.MultiSigner) *spos.Cons
 		EnableEpochsHandler:           enableEpochsHandler,
 		EquivalentProofsPool:          equivalentProofsPool,
 		EpochNotifier:                 epochNotifier,
+		InvalidSignersCache:           &InvalidSignersCacheMock{},
 	})
 
 	return container
