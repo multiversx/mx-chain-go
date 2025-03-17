@@ -276,3 +276,9 @@ var ErrNilEpochNotifier = errors.New("nil epoch notifier")
 
 // ErrNilEpochStartNotifier signals that nil epoch start notifier has been provided
 var ErrNilEpochStartNotifier = errors.New("nil epoch start notifier")
+
+// ErrInvalidSignersAlreadyReceived signals that an invalid signers message has been already received
+var ErrInvalidSignersAlreadyReceived = errors.New("invalid signers already received")
+
+// ErrNilInvalidSignersCache signals that nil invalid signers has been provided
+var ErrNilInvalidSignersCache = errors.New("nil invalid signers cache")

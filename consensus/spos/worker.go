@@ -18,7 +18,6 @@ import (
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	crypto "github.com/multiversx/mx-chain-crypto-go"
-
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/consensus"
 	errorsErd "github.com/multiversx/mx-chain-go/errors"
@@ -84,6 +83,8 @@ type Worker struct {
 	nodeRedundancyHandler     consensus.NodeRedundancyHandler
 	peerBlacklistHandler      consensus.PeerBlacklistHandler
 	closer                    core.SafeCloser
+
+	invalidSignersCache InvalidSignersCache
 }
 
 // WorkerArgs holds the consensus worker arguments
@@ -114,6 +115,7 @@ type WorkerArgs struct {
 	NodeRedundancyHandler    consensus.NodeRedundancyHandler
 	PeerBlacklistHandler     consensus.PeerBlacklistHandler
 	EnableEpochsHandler      common.EnableEpochsHandler
+	InvalidSignersCache      InvalidSignersCache
 }
 
 // NewWorker creates a new Worker object
@@ -166,6 +168,7 @@ func NewWorker(args *WorkerArgs) (*Worker, error) {
 		peerBlacklistHandler:     args.PeerBlacklistHandler,
 		closer:                   closing.NewSafeChanCloser(),
 		enableEpochsHandler:      args.EnableEpochsHandler,
+		invalidSignersCache:      args.InvalidSignersCache,
 	}
 
 	wrk.consensusMessageValidator = consensusMessageValidatorObj
@@ -268,6 +271,9 @@ func checkNewWorkerParams(args *WorkerArgs) error {
 	}
 	if check.IfNil(args.EnableEpochsHandler) {
 		return ErrNilEnableEpochsHandler
+	}
+	if check.IfNil(args.InvalidSignersCache) {
+		return ErrNilInvalidSignersCache
 	}
 
 	return nil
@@ -447,6 +453,7 @@ func (wrk *Worker) ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedP
 	isMessageWithBlockBody := wrk.consensusService.IsMessageWithBlockBody(msgType)
 	isMessageWithBlockHeader := wrk.consensusService.IsMessageWithBlockHeader(msgType)
 	isMessageWithBlockBodyAndHeader := wrk.consensusService.IsMessageWithBlockBodyAndHeader(msgType)
+	isMessageWithInvalidSigners := wrk.consensusService.IsMessageWithInvalidSigners(msgType)
 
 	if isMessageWithBlockBody || isMessageWithBlockBodyAndHeader {
 		wrk.doJobOnMessageWithBlockBody(cnsMsg)
@@ -461,6 +468,13 @@ func (wrk *Worker) ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedP
 
 	if wrk.consensusService.IsMessageWithSignature(msgType) {
 		wrk.doJobOnMessageWithSignature(cnsMsg, message)
+	}
+
+	if isMessageWithInvalidSigners {
+		err = wrk.verifyMessageWithInvalidSigners(cnsMsg)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	errNotCritical := wrk.checkSelfState(cnsMsg)
@@ -485,7 +499,8 @@ func (wrk *Worker) shouldBlacklistPeer(err error) bool {
 		errors.Is(err, errorsErd.ErrSignatureMismatch) ||
 		errors.Is(err, nodesCoordinator.ErrEpochNodesConfigDoesNotExist) ||
 		errors.Is(err, ErrMessageTypeLimitReached) ||
-		errors.Is(err, ErrEquivalentMessageAlreadyReceived) {
+		errors.Is(err, ErrEquivalentMessageAlreadyReceived) ||
+		errors.Is(err, ErrInvalidSignersAlreadyReceived) {
 		return false
 	}
 
@@ -555,6 +570,16 @@ func (wrk *Worker) doJobOnMessageWithHeader(cnsMsg *consensus.Message) error {
 			"error", errNotCritical.Error())
 		// we should not return error here because the other peers connected to self might need this message
 		// to advance the consensus
+	}
+
+	return nil
+}
+
+func (wrk *Worker) verifyMessageWithInvalidSigners(cnsMsg *consensus.Message) error {
+	// No need to guard this method by verification of common.EquivalentMessagesFlag as invalidSignersCache will have entries only for consensus v2
+	if wrk.invalidSignersCache.CheckKnownInvalidSigners(cnsMsg.BlockHeaderHash, cnsMsg.InvalidSigners) {
+		// return error here to avoid further broadcast of this message
+		return ErrInvalidSignersAlreadyReceived
 	}
 
 	return nil
@@ -803,6 +828,11 @@ func (wrk *Worker) ResetConsensusMessages() {
 // ResetConsensusRoundState resets the consensus round state
 func (wrk *Worker) ResetConsensusRoundState() {
 	wrk.consensusState.ResetConsensusRoundState()
+}
+
+// ResetInvalidSignersCache resets the invalid signers cache
+func (wrk *Worker) ResetInvalidSignersCache() {
+	wrk.invalidSignersCache.Reset()
 }
 
 func (wrk *Worker) checkValidityAndProcessFinalInfo(cnsMsg *consensus.Message, p2pMessage p2p.MessageP2P) error {

@@ -246,7 +246,7 @@ func createProofForHeader(pubKeyBitmap, signature, headerHash []byte, header dat
 		HeaderEpoch:         header.GetEpoch(),
 		HeaderNonce:         header.GetNonce(),
 		HeaderShardId:       header.GetShardID(),
-		HeaderRound:         header.GetNonce(),
+		HeaderRound:         header.GetRound(),
 		IsStartOfEpoch:      header.IsStartOfEpochBlock(),
 	}
 }
