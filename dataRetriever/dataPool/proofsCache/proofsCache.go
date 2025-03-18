@@ -14,15 +14,15 @@ type proofNonceMapping struct {
 
 type proofsCache struct {
 	mutProofsCache       sync.RWMutex
-	proofsByNonceBuckets []*proofNonceBucket
-	bucketSize           int
+	proofsByNonceBuckets sync.Map
+	bucketSize           uint64
 	proofsByHash         map[string]data.HeaderProofHandler
 }
 
 func newProofsCache(bucketSize int) *proofsCache {
 	return &proofsCache{
-		proofsByNonceBuckets: make([]*proofNonceBucket, 0),
-		bucketSize:           bucketSize,
+		proofsByNonceBuckets: sync.Map{},
+		bucketSize:           uint64(bucketSize),
 		proofsByHash:         make(map[string]data.HeaderProofHandler),
 	}
 }
@@ -52,27 +52,18 @@ func (pc *proofsCache) addProof(proof data.HeaderProofHandler) {
 	pc.proofsByHash[string(proof.GetHeaderHash())] = proof
 }
 
-func (pc *proofsCache) insertProofByNonce(proof data.HeaderProofHandler) {
-	if len(pc.proofsByNonceBuckets) == 0 {
-		pc.insertInNewBucket(proof)
-		return
-	}
-
-	headBucket := pc.proofsByNonceBuckets[0]
-
-	if headBucket.isFull() {
-		pc.insertInNewBucket(proof)
-		return
-	}
-
-	headBucket.insert(proof)
+// getBucketKey will return bucket key as lower bound window value
+func (pc *proofsCache) getBucketKey(index uint64) uint64 {
+	return (index / pc.bucketSize) * pc.bucketSize
 }
 
-func (pc *proofsCache) insertInNewBucket(proof data.HeaderProofHandler) {
-	bucket := newProofBucket(pc.bucketSize)
-	bucket.insert(proof)
+func (pc *proofsCache) insertProofByNonce(proof data.HeaderProofHandler) {
+	bucketKey := pc.getBucketKey(proof.GetHeaderNonce())
 
-	pc.proofsByNonceBuckets = append([]*proofNonceBucket{bucket}, pc.proofsByNonceBuckets...)
+	bucket, _ := pc.proofsByNonceBuckets.LoadOrStore(bucketKey, newProofBucket())
+
+	b := bucket.(*proofNonceBucket)
+	b.insert(proof)
 }
 
 func (pc *proofsCache) cleanupProofsBehindNonce(nonce uint64) {
@@ -83,22 +74,28 @@ func (pc *proofsCache) cleanupProofsBehindNonce(nonce uint64) {
 	pc.mutProofsCache.Lock()
 	defer pc.mutProofsCache.Unlock()
 
-	buckets := make([]*proofNonceBucket, 0)
+	bucketsToDelete := make([]uint64, 0)
 
-	for _, bucket := range pc.proofsByNonceBuckets {
+	pc.proofsByNonceBuckets.Range(func(key, value interface{}) bool {
+		bucketKey := key.(uint64)
+		bucket := value.(*proofNonceBucket)
+
 		if nonce > bucket.maxNonce {
 			pc.cleanupProofsInBucket(bucket)
-			continue
+			bucketsToDelete = append(bucketsToDelete, bucketKey)
+			pc.proofsByNonceBuckets.Delete(key)
 		}
 
-		buckets = append(buckets, bucket)
-	}
+		return true
+	})
 
-	pc.proofsByNonceBuckets = buckets
+	for _, key := range bucketsToDelete {
+		pc.proofsByNonceBuckets.Delete(key)
+	}
 }
 
 func (pc *proofsCache) cleanupProofsInBucket(bucket *proofNonceBucket) {
-	for _, proofInfo := range bucket.proofsByNonce {
-		delete(pc.proofsByHash, proofInfo.headerHash)
+	for _, headerHash := range bucket.proofsByNonce {
+		delete(pc.proofsByHash, headerHash)
 	}
 }

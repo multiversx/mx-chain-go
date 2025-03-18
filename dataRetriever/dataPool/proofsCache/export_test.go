@@ -8,21 +8,15 @@ func NewProofsCache(bucketSize int) *proofsCache {
 }
 
 // HeadBucketSize -
-func (pc *proofsCache) HeadBucketSize() int {
-	if len(pc.proofsByNonceBuckets) > 0 {
-		return len(pc.proofsByNonceBuckets[0].proofsByNonce)
-	}
-
-	return 0
-}
-
-// HeadBucketSize -
 func (pc *proofsCache) FullProofsByNonceSize() int {
 	size := 0
 
-	for _, bucket := range pc.proofsByNonceBuckets {
+	pc.proofsByNonceBuckets.Range(func(key, value interface{}) bool {
+		bucket := value.(*proofNonceBucket)
 		size += bucket.size()
-	}
+
+		return true
+	})
 
 	return size
 }
