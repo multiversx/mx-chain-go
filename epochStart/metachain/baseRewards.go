@@ -30,18 +30,18 @@ import (
 
 // BaseRewardsCreatorArgs defines the arguments structure needed to create a base rewards creator
 type BaseRewardsCreatorArgs struct {
-	ShardCoordinator              sharding.Coordinator
-	PubkeyConverter               core.PubkeyConverter
-	RewardsStorage                storage.Storer
-	MiniBlockStorage              storage.Storer
-	Hasher                        hashing.Hasher
-	Marshalizer                   marshal.Marshalizer
-	DataPool                      dataRetriever.PoolsHolder
-	ProtocolSustainabilityAddress string
-	NodesConfigProvider           epochStart.NodesConfigProvider
-	UserAccountsDB                state.AccountsAdapter
-	EnableEpochsHandler           common.EnableEpochsHandler
-	ExecutionOrderHandler         common.TxExecutionOrderHandler
+	ShardCoordinator      sharding.Coordinator
+	PubkeyConverter       core.PubkeyConverter
+	RewardsStorage        storage.Storer
+	MiniBlockStorage      storage.Storer
+	Hasher                hashing.Hasher
+	Marshalizer           marshal.Marshalizer
+	DataPool              dataRetriever.PoolsHolder
+	NodesConfigProvider   epochStart.NodesConfigProvider
+	UserAccountsDB        state.AccountsAdapter
+	EnableEpochsHandler   common.EnableEpochsHandler
+	ExecutionOrderHandler common.TxExecutionOrderHandler
+	RewardsHandler        process.RewardsHandler
 }
 
 type baseRewardsCreator struct {
@@ -50,7 +50,6 @@ type baseRewardsCreator struct {
 	pubkeyConverter                    core.PubkeyConverter
 	rewardsStorage                     storage.Storer
 	miniBlockStorage                   storage.Storer
-	protocolSustainabilityAddress      []byte
 	nodesConfigProvider                epochStart.NodesConfigProvider
 	hasher                             hashing.Hasher
 	marshalizer                        marshal.Marshalizer
@@ -63,6 +62,7 @@ type baseRewardsCreator struct {
 	enableEpochsHandler                common.EnableEpochsHandler
 	mutRewardsData                     sync.RWMutex
 	executionOrderHandler              common.TxExecutionOrderHandler
+	rewardsHandler                     process.RewardsHandler
 }
 
 // NewBaseRewardsCreator will create a new base rewards creator instance
@@ -70,17 +70,6 @@ func NewBaseRewardsCreator(args BaseRewardsCreatorArgs) (*baseRewardsCreator, er
 	err := checkBaseArgs(args)
 	if err != nil {
 		return nil, err
-	}
-
-	address, err := args.PubkeyConverter.Decode(args.ProtocolSustainabilityAddress)
-	if err != nil {
-		log.Warn("invalid protocol sustainability reward address", "err", err, "provided address", args.ProtocolSustainabilityAddress)
-		return nil, err
-	}
-
-	protocolSustainabilityShardID := args.ShardCoordinator.ComputeId(address)
-	if protocolSustainabilityShardID == core.MetachainShardId {
-		return nil, epochStart.ErrProtocolSustainabilityAddressInMetachain
 	}
 
 	currTxsCache := dataPool.NewCurrentBlockTransactionsPool()
@@ -93,7 +82,6 @@ func NewBaseRewardsCreator(args BaseRewardsCreatorArgs) (*baseRewardsCreator, er
 		marshalizer:                        args.Marshalizer,
 		miniBlockStorage:                   args.MiniBlockStorage,
 		dataPool:                           args.DataPool,
-		protocolSustainabilityAddress:      address,
 		nodesConfigProvider:                args.NodesConfigProvider,
 		accumulatedRewards:                 big.NewInt(0),
 		protocolSustainabilityValue:        big.NewInt(0),
@@ -101,6 +89,7 @@ func NewBaseRewardsCreator(args BaseRewardsCreatorArgs) (*baseRewardsCreator, er
 		mapBaseRewardsPerBlockPerValidator: make(map[uint32]*big.Int),
 		enableEpochsHandler:                args.EnableEpochsHandler,
 		executionOrderHandler:              args.ExecutionOrderHandler,
+		rewardsHandler:                     args.RewardsHandler,
 	}
 
 	return brc, nil
@@ -300,9 +289,6 @@ func checkBaseArgs(args BaseRewardsCreatorArgs) error {
 	if check.IfNil(args.DataPool) {
 		return epochStart.ErrNilDataPoolsHolder
 	}
-	if len(args.ProtocolSustainabilityAddress) == 0 {
-		return epochStart.ErrNilProtocolSustainabilityAddress
-	}
 	if check.IfNil(args.NodesConfigProvider) {
 		return epochStart.ErrNilNodesConfigProvider
 	}
@@ -322,6 +308,9 @@ func checkBaseArgs(args BaseRewardsCreatorArgs) error {
 	}
 	if check.IfNil(args.ExecutionOrderHandler) {
 		return epochStart.ErrNilExecutionOrderHandler
+	}
+	if check.IfNil(args.RewardsHandler) {
+		return epochStart.ErrNilRewardsHandler
 	}
 
 	return nil
@@ -359,16 +348,17 @@ func (brc *baseRewardsCreator) createProtocolSustainabilityRewardTransaction(
 	computedEconomics *block.Economics,
 ) (*rewardTx.RewardTx, uint32, error) {
 
-	shardID := brc.shardCoordinator.ComputeId(brc.protocolSustainabilityAddress)
+	protocolSustainabilityAddressForEpoch := brc.rewardsHandler.ProtocolSustainabilityAddressInEpoch(metaBlock.GetEpoch())
+	protocolSustainabilityShardID := brc.shardCoordinator.ComputeId([]byte(protocolSustainabilityAddressForEpoch))
 	protocolSustainabilityRwdTx := &rewardTx.RewardTx{
 		Round:   metaBlock.GetRound(),
 		Value:   big.NewInt(0).Set(computedEconomics.RewardsForProtocolSustainability),
-		RcvAddr: brc.protocolSustainabilityAddress,
+		RcvAddr: []byte(protocolSustainabilityAddressForEpoch),
 		Epoch:   metaBlock.GetEpoch(),
 	}
 
 	brc.accumulatedRewards.Add(brc.accumulatedRewards, protocolSustainabilityRwdTx.Value)
-	return protocolSustainabilityRwdTx, shardID, nil
+	return protocolSustainabilityRwdTx, protocolSustainabilityShardID, nil
 }
 
 func (brc *baseRewardsCreator) createRewardFromRwdInfo(
