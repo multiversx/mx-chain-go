@@ -205,14 +205,6 @@ func TestHdrInterceptorProcessor_SaveShouldWork(t *testing.T) {
 		},
 	}
 
-	wasAddedProofs := false
-	arg.Proofs = &dataRetriever.ProofsPoolMock{
-		UpsertProofCalled: func(headerProof data.HeaderProofHandler) bool {
-			wasAddedProofs = true
-			return true
-		},
-	}
-
 	hip, _ := processor.NewHdrInterceptorProcessor(arg)
 	chanCalled := make(chan struct{}, 1)
 	hip.RegisterHandler(func(topic string, hash []byte, data interface{}) {
@@ -223,7 +215,6 @@ func TestHdrInterceptorProcessor_SaveShouldWork(t *testing.T) {
 
 	assert.Nil(t, err)
 	assert.True(t, wasAddedHeaders)
-	assert.True(t, wasAddedProofs)
 
 	timeout := time.Second * 2
 	select {

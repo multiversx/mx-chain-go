@@ -49,7 +49,7 @@ func NewProofsPool(cleanupNonceDelta uint64, bucketSize int) *proofsPool {
 func (pp *proofsPool) UpsertProof(
 	headerProof data.HeaderProofHandler,
 ) bool {
-	if check.IfNilReflect(headerProof) {
+	if check.IfNil(headerProof) {
 		return false
 	}
 
@@ -106,7 +106,7 @@ func (pp *proofsPool) addProof(
 
 // IsProofInPoolEqualTo will check if the provided proof is equal with the already existing proof in the pool
 func (pp *proofsPool) IsProofInPoolEqualTo(headerProof data.HeaderProofHandler) bool {
-	if check.IfNilReflect(headerProof) {
+	if check.IfNil(headerProof) {
 		return false
 	}
 

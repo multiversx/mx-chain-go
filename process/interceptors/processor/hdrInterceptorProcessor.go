@@ -80,11 +80,6 @@ func (hip *HdrInterceptorProcessor) Save(data process.InterceptedData, _ core.Pe
 
 	hip.headers.AddHeader(interceptedHdr.Hash(), interceptedHdr.HeaderHandler())
 
-	if common.ShouldBlockHavePrevProof(interceptedHdr.HeaderHandler(), hip.enableEpochsHandler, common.EquivalentMessagesFlag) {
-		ok = hip.proofs.UpsertProof(interceptedHdr.HeaderHandler().GetPreviousProof())
-		log.Trace("HdrInterceptorProcessor.UpsertProof: add previous proof", "intercepted header hash", interceptedHdr.Hash(), "added", ok)
-	}
-
 	return nil
 }
 
