@@ -1181,21 +1181,25 @@ func (tpn *TestProcessorNode) initRatingsData() {
 func CreateRatingsData() *rating.RatingsData {
 	ratingsConfig := config.RatingsConfig{
 		ShardChain: config.ShardChain{
-			RatingSteps: config.RatingSteps{
-				HoursToMaxRatingFromStartRating: 50,
-				ProposerValidatorImportance:     1,
-				ProposerDecreaseFactor:          -4,
-				ValidatorDecreaseFactor:         -4,
-				ConsecutiveMissedBlocksPenalty:  1.1,
+			RatingStepsByEpoch: []config.RatingSteps{
+				{
+					HoursToMaxRatingFromStartRating: 50,
+					ProposerValidatorImportance:     1,
+					ProposerDecreaseFactor:          -4,
+					ValidatorDecreaseFactor:         -4,
+					ConsecutiveMissedBlocksPenalty:  1.1,
+				},
 			},
 		},
 		MetaChain: config.MetaChain{
-			RatingSteps: config.RatingSteps{
-				HoursToMaxRatingFromStartRating: 50,
-				ProposerValidatorImportance:     1,
-				ProposerDecreaseFactor:          -4,
-				ValidatorDecreaseFactor:         -4,
-				ConsecutiveMissedBlocksPenalty:  1.1,
+			RatingStepsByEpoch: []config.RatingSteps{
+				{
+					HoursToMaxRatingFromStartRating: 50,
+					ProposerValidatorImportance:     1,
+					ProposerDecreaseFactor:          -4,
+					ValidatorDecreaseFactor:         -4,
+					ConsecutiveMissedBlocksPenalty:  1.1,
+				},
 			},
 		},
 		General: config.General{

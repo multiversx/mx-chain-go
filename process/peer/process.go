@@ -404,10 +404,8 @@ func (vs *validatorStatistics) UpdatePeerState(header data.MetaHeaderHandler, ca
 	log.Trace("Increasing for leader", "leader", leaderPK, "round", previousHeader.GetRound())
 
 	log.Debug("UpdatePeerState - registering meta previous leader fees", "metaNonce", previousHeader.GetNonce())
-	bitmap := previousHeader.GetPubKeysBitmap()
-	if vs.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, previousHeader.GetEpoch()) {
-		bitmap = vs.getBitmapForFullConsensus(previousHeader.GetShardID(), previousHeader.GetEpoch())
-	}
+
+	bitmap := vs.getBitmapForHeader(previousHeader)
 	err = vs.updateValidatorInfoOnSuccessfulBlock(
 		leader,
 		consensusGroup,
@@ -427,6 +425,14 @@ func (vs *validatorStatistics) UpdatePeerState(header data.MetaHeaderHandler, ca
 	log.Trace("after updating validator stats", "rootHash", rootHash, "round", header.GetRound(), "selfId", vs.shardCoordinator.SelfId())
 
 	return rootHash, nil
+}
+
+func (vs *validatorStatistics) getBitmapForHeader(header data.HeaderHandler) []byte {
+	bitmap := header.GetPubKeysBitmap()
+	if vs.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, header.GetEpoch()) {
+		bitmap = vs.getBitmapForFullConsensus(header.GetShardID(), header.GetEpoch())
+	}
+	return bitmap
 }
 
 func computeEpoch(header data.HeaderHandler) uint32 {

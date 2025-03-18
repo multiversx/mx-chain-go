@@ -205,7 +205,7 @@ func TestTrieNodeResolver_ProcessReceivedMessageShouldGetFromTrieAndSend(t *test
 	assert.True(t, sendWasCalled)
 	assert.True(t, arg.Throttler.(*mock.ThrottlerStub).StartWasCalled())
 	assert.True(t, arg.Throttler.(*mock.ThrottlerStub).EndWasCalled())
-	assert.Nil(t, msgID)
+	assert.Len(t, msgID, 0)
 }
 
 func TestTrieNodeResolver_ProcessReceivedMessageShouldGetFromTrieAndMarshalizerFailShouldRetNilAndErr(t *testing.T) {
@@ -335,7 +335,7 @@ func TestTrieNodeResolver_ProcessReceivedMessageMultipleHashesGetSerializedNodeE
 	assert.Nil(t, err)
 	assert.True(t, arg.Throttler.(*mock.ThrottlerStub).StartWasCalled())
 	assert.True(t, arg.Throttler.(*mock.ThrottlerStub).EndWasCalled())
-	assert.Nil(t, msgID)
+	assert.Len(t, msgID, 0)
 }
 
 func TestTrieNodeResolver_ProcessReceivedMessageMultipleHashesGetSerializedNodesErrorsShouldNotSendSubtrie(t *testing.T) {
@@ -391,7 +391,7 @@ func TestTrieNodeResolver_ProcessReceivedMessageMultipleHashesGetSerializedNodes
 	assert.True(t, arg.Throttler.(*mock.ThrottlerStub).EndWasCalled())
 	require.Equal(t, 1, len(receivedNodes))
 	assert.Equal(t, nodes[0], receivedNodes[0])
-	assert.Nil(t, msgID)
+	assert.Len(t, msgID, 0)
 }
 
 func TestTrieNodeResolver_ProcessReceivedMessageMultipleHashesNotEnoughSpaceShouldNotReadSubtries(t *testing.T) {
@@ -448,7 +448,7 @@ func TestTrieNodeResolver_ProcessReceivedMessageMultipleHashesNotEnoughSpaceShou
 	assert.True(t, arg.Throttler.(*mock.ThrottlerStub).EndWasCalled())
 	require.Equal(t, 1, len(receivedNodes))
 	assert.Equal(t, nodes[0], receivedNodes[0])
-	assert.Nil(t, msgID)
+	assert.Len(t, msgID, 0)
 }
 
 func TestTrieNodeResolver_ProcessReceivedMessageMultipleHashesShouldWorkWithSubtries(t *testing.T) {
@@ -509,7 +509,7 @@ func TestTrieNodeResolver_ProcessReceivedMessageMultipleHashesShouldWorkWithSubt
 	assert.True(t, arg.Throttler.(*mock.ThrottlerStub).StartWasCalled())
 	assert.True(t, arg.Throttler.(*mock.ThrottlerStub).EndWasCalled())
 	require.Equal(t, 4, len(receivedNodes))
-	assert.Nil(t, msgID)
+	assert.Len(t, msgID, 0)
 	for _, n := range nodes {
 		assert.True(t, buffInSlice(n, receivedNodes))
 	}
@@ -576,7 +576,7 @@ func testTrieNodeResolverProcessReceivedMessageLargeTrieNode(
 	assert.True(t, arg.Throttler.(*mock.ThrottlerStub).StartWasCalled())
 	assert.True(t, arg.Throttler.(*mock.ThrottlerStub).EndWasCalled())
 	require.True(t, sendWasCalled)
-	assert.Nil(t, msgID)
+	assert.Len(t, msgID, 0)
 }
 
 func TestTrieNodeResolver_ProcessReceivedMessageLargeTrieNodeShouldSendFirstChunk(t *testing.T) {

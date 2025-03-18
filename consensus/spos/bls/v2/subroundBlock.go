@@ -363,14 +363,14 @@ func (sr *subroundBlock) saveProofForPreviousHeaderIfNeeded(header data.HeaderHa
 
 	hasProof := sr.EquivalentProofsPool().HasProof(sr.ShardCoordinator().SelfId(), header.GetPrevHash())
 	if hasProof {
-		log.Debug("saveProofForPreviousHeaderIfNeeded: proof already saved", "headerHash", hex.EncodeToString(header.GetPrevHash()))
+		log.Trace("saveProofForPreviousHeaderIfNeeded: proof already saved", "headerHash", hex.EncodeToString(header.GetPrevHash()))
 		return
 	}
 
 	proof := header.GetPreviousProof()
 	err := common.VerifyProofAgainstHeader(proof, prevHeader)
 	if err != nil {
-		log.Debug("saveProofForPreviousHeaderIfNeeded: invalid proof", "error", err.Error())
+		log.Warn("saveProofForPreviousHeaderIfNeeded: invalid proof", "error", err.Error())
 		return
 	}
 
@@ -527,13 +527,13 @@ func (sr *subroundBlock) receivedBlockHeader(headerHandler data.HeaderHandler) {
 		return
 	}
 
-	marshalledHeader, err := sr.Marshalizer().Marshal(headerHandler)
+	headerHash, err := core.CalculateHash(sr.Marshalizer(), sr.Hasher(), headerHandler)
 	if err != nil {
 		log.Debug("subroundBlock.receivedBlockHeader", "error", err.Error())
 		return
 	}
 
-	sr.SetData(sr.Hasher().Compute(string(marshalledHeader)))
+	sr.SetData(headerHash)
 	sr.SetHeader(headerHandler)
 
 	sr.saveProofForPreviousHeaderIfNeeded(headerHandler, prevHeader)

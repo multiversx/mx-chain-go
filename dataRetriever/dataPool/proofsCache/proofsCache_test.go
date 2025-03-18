@@ -18,80 +18,72 @@ func TestProofsCache(t *testing.T) {
 	t.Run("incremental nonces, should cleanup all caches", func(t *testing.T) {
 		t.Parallel()
 
+		proof0 := &block.HeaderProof{HeaderHash: []byte{0}, HeaderNonce: 0}
 		proof1 := &block.HeaderProof{HeaderHash: []byte{1}, HeaderNonce: 1}
 		proof2 := &block.HeaderProof{HeaderHash: []byte{2}, HeaderNonce: 2}
 		proof3 := &block.HeaderProof{HeaderHash: []byte{3}, HeaderNonce: 3}
 		proof4 := &block.HeaderProof{HeaderHash: []byte{4}, HeaderNonce: 4}
-		proof5 := &block.HeaderProof{HeaderHash: []byte{5}, HeaderNonce: 5}
 
 		pc := proofscache.NewProofsCache(4)
 
+		pc.AddProof(proof0)
 		pc.AddProof(proof1)
 		pc.AddProof(proof2)
 		pc.AddProof(proof3)
-		pc.AddProof(proof4)
 
 		require.Equal(t, 4, pc.FullProofsByNonceSize())
 		require.Equal(t, 4, pc.ProofsByHashSize())
 
-		pc.AddProof(proof5) // added to new head bucket
+		pc.AddProof(proof4) // added to new head bucket
 
-		require.Equal(t, 1, pc.HeadBucketSize())
 		require.Equal(t, 5, pc.ProofsByHashSize())
 
-		pc.CleanupProofsBehindNonce(5)
-		require.Equal(t, 1, pc.HeadBucketSize())
+		pc.CleanupProofsBehindNonce(4)
 		require.Equal(t, 1, pc.ProofsByHashSize())
 
 		pc.CleanupProofsBehindNonce(10)
-		require.Equal(t, 0, pc.HeadBucketSize())
 		require.Equal(t, 0, pc.ProofsByHashSize())
 	})
 
 	t.Run("non incremental nonces", func(t *testing.T) {
 		t.Parallel()
 
+		proof0 := &block.HeaderProof{HeaderHash: []byte{0}, HeaderNonce: 0}
 		proof1 := &block.HeaderProof{HeaderHash: []byte{1}, HeaderNonce: 1}
 		proof2 := &block.HeaderProof{HeaderHash: []byte{2}, HeaderNonce: 2}
 		proof3 := &block.HeaderProof{HeaderHash: []byte{3}, HeaderNonce: 3}
 		proof4 := &block.HeaderProof{HeaderHash: []byte{4}, HeaderNonce: 4}
 		proof5 := &block.HeaderProof{HeaderHash: []byte{5}, HeaderNonce: 5}
-		proof6 := &block.HeaderProof{HeaderHash: []byte{6}, HeaderNonce: 6}
 
 		pc := proofscache.NewProofsCache(4)
 
-		pc.AddProof(proof5)
+		pc.AddProof(proof4)
+		pc.AddProof(proof1)
 		pc.AddProof(proof2)
 		pc.AddProof(proof3)
-		pc.AddProof(proof4)
 
 		require.Equal(t, 4, pc.FullProofsByNonceSize())
 		require.Equal(t, 4, pc.ProofsByHashSize())
 
-		pc.AddProof(proof1) // added to new head bucket
+		pc.AddProof(proof0) // added to new head bucket
 
-		require.Equal(t, 1, pc.HeadBucketSize())
 		require.Equal(t, 5, pc.FullProofsByNonceSize())
 		require.Equal(t, 5, pc.ProofsByHashSize())
 
-		pc.CleanupProofsBehindNonce(5)
+		pc.CleanupProofsBehindNonce(4)
 
 		// cleanup up head bucket with only one proof
-		require.Equal(t, 4, pc.HeadBucketSize())
-		require.Equal(t, 4, pc.ProofsByHashSize())
+		require.Equal(t, 1, pc.ProofsByHashSize())
 
-		pc.AddProof(proof6) // added to new head bucket
+		pc.AddProof(proof5) // added to new head bucket
 
-		require.Equal(t, 1, pc.HeadBucketSize())
-		require.Equal(t, 5, pc.ProofsByHashSize())
+		require.Equal(t, 2, pc.ProofsByHashSize())
 
 		pc.CleanupProofsBehindNonce(5) // will not remove any bucket
-		require.Equal(t, 1, pc.HeadBucketSize())
-		require.Equal(t, 5, pc.FullProofsByNonceSize())
-		require.Equal(t, 5, pc.ProofsByHashSize())
+		require.Equal(t, 2, pc.FullProofsByNonceSize())
+		require.Equal(t, 2, pc.ProofsByHashSize())
 
 		pc.CleanupProofsBehindNonce(10)
-		require.Equal(t, 0, pc.HeadBucketSize())
 		require.Equal(t, 0, pc.ProofsByHashSize())
 	})
 
@@ -109,7 +101,6 @@ func TestProofsCache(t *testing.T) {
 			pc.AddProof(proof)
 		}
 
-		require.Equal(t, 10, pc.HeadBucketSize())
 		require.Equal(t, 100, pc.FullProofsByNonceSize())
 		require.Equal(t, 100, pc.ProofsByHashSize())
 

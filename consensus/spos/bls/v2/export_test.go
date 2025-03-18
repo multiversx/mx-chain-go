@@ -362,6 +362,6 @@ func (sr *subroundEndRound) GetEquivalentProofSender() string {
 }
 
 // SendProof -
-func (sr *subroundEndRound) SendProof() {
-	sr.sendProof()
+func (sr *subroundEndRound) SendProof() (bool, error) {
+	return sr.sendProof()
 }

@@ -61,7 +61,7 @@ func (pp *proofsPool) UpsertProof(
 func (pp *proofsPool) AddProof(
 	headerProof data.HeaderProofHandler,
 ) bool {
-	if check.IfNilReflect(headerProof) {
+	if check.IfNil(headerProof) {
 		return false
 	}
 

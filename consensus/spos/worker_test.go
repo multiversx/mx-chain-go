@@ -552,7 +552,7 @@ func TestWorker_ProcessReceivedMessageTxBlockBodyShouldRetNil(t *testing.T) {
 	}
 	msgID, err := wrk.ProcessReceivedMessage(msg, fromConnectedPeerId, &p2pmocks.MessengerStub{})
 	assert.Nil(t, err)
-	assert.Nil(t, msgID)
+	assert.Len(t, msgID, 0)
 }
 
 func TestWorker_ProcessReceivedMessageNilMessageShouldErr(t *testing.T) {
@@ -1071,19 +1071,19 @@ func TestWorker_ProcessReceivedMessageTypeLimitReachedShouldErr(t *testing.T) {
 	time.Sleep(time.Second)
 	assert.Equal(t, 1, len(wrk.ReceivedMessages()[bls.MtBlockBody]))
 	assert.Nil(t, err)
-	assert.Nil(t, msgID)
+	assert.Len(t, msgID, 0)
 
 	msgID, err = wrk.ProcessReceivedMessage(msg, fromConnectedPeerId, &p2pmocks.MessengerStub{})
 	time.Sleep(time.Second)
 	assert.Equal(t, 1, len(wrk.ReceivedMessages()[bls.MtBlockBody]))
 	assert.True(t, errors.Is(err, spos.ErrMessageTypeLimitReached))
-	assert.Nil(t, msgID)
+	assert.Len(t, msgID, 0)
 
 	msgID, err = wrk.ProcessReceivedMessage(msg, fromConnectedPeerId, &p2pmocks.MessengerStub{})
 	time.Sleep(time.Second)
 	assert.Equal(t, 1, len(wrk.ReceivedMessages()[bls.MtBlockBody]))
 	assert.True(t, errors.Is(err, spos.ErrMessageTypeLimitReached))
-	assert.Nil(t, msgID)
+	assert.Len(t, msgID, 0)
 }
 
 func TestWorker_ProcessReceivedMessageInvalidSignatureShouldErr(t *testing.T) {
@@ -1155,7 +1155,7 @@ func TestWorker_ProcessReceivedMessageReceivedMessageIsFromSelfShouldRetNilAndNo
 
 	assert.Equal(t, 0, len(wrk.ReceivedMessages()[bls.MtBlockBody]))
 	assert.Nil(t, err)
-	assert.Nil(t, msgID)
+	assert.Len(t, msgID, 0)
 }
 
 func TestWorker_ProcessReceivedMessageWhenRoundIsCanceledShouldRetNilAndNotProcess(t *testing.T) {
@@ -1191,7 +1191,7 @@ func TestWorker_ProcessReceivedMessageWhenRoundIsCanceledShouldRetNilAndNotProce
 
 	assert.Equal(t, 0, len(wrk.ReceivedMessages()[bls.MtBlockBody]))
 	assert.Nil(t, err)
-	assert.Nil(t, msgID)
+	assert.Len(t, msgID, 0)
 }
 
 func TestWorker_ProcessReceivedMessageWrongChainIDInProposedBlockShouldError(t *testing.T) {
@@ -1432,7 +1432,7 @@ func TestWorker_ProcessReceivedMessageOkValsShouldWork(t *testing.T) {
 	assert.Equal(t, 1, len(wrk.ReceivedMessages()[bls.MtBlockHeader]))
 	assert.Nil(t, err)
 	assert.True(t, wasUpdatePeerIDInfoCalled)
-	assert.Nil(t, msgID)
+	assert.Len(t, msgID, 0)
 }
 
 func TestWorker_CheckSelfStateShouldErrMessageFromItself(t *testing.T) {
@@ -2003,7 +2003,7 @@ func TestWorker_ProcessReceivedMessageWithSignature(t *testing.T) {
 		}
 		msgID, err := wrk.ProcessReceivedMessage(msg, "", &p2pmocks.MessengerStub{})
 		assert.Nil(t, err)
-		assert.Nil(t, msgID)
+		assert.Len(t, msgID, 0)
 
 		p2pMsgWithSignature, ok := wrk.ConsensusState().GetMessageWithSignature(string(pubKey))
 		require.True(t, ok)
@@ -2077,7 +2077,7 @@ func TestWorker_ProcessReceivedMessageWithInvalidSigners(t *testing.T) {
 	// first call should be ok
 	msgID, err := wrk.ProcessReceivedMessage(msg, "", &p2pmocks.MessengerStub{})
 	require.Nil(t, err)
-	require.Nil(t, msgID)
+	require.Len(t, msgID, 0)
 
 	// reset the received messages to allow a second one of the same type
 	wrk.ResetConsensusMessages()

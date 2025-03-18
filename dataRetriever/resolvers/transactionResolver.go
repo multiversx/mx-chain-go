@@ -107,10 +107,10 @@ func (txRes *TxResolver) ProcessReceivedMessage(message p2p.MessageP2P, fromConn
 	}
 
 	if err != nil {
-		err = fmt.Errorf("%w for hash %s", err, logger.DisplayByteSlice(rd.Value))
+		return nil, fmt.Errorf("%w for hash %s", err, logger.DisplayByteSlice(rd.Value))
 	}
 
-	return nil, err
+	return []byte{}, nil
 }
 
 func (txRes *TxResolver) resolveTxRequestByHash(hash []byte, pid core.PeerID, epoch uint32, source p2p.MessageHandler) error {

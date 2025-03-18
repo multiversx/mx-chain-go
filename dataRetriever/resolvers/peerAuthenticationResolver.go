@@ -97,10 +97,10 @@ func (res *peerAuthenticationResolver) ProcessReceivedMessage(message p2p.Messag
 		err = dataRetriever.ErrRequestTypeNotImplemented
 	}
 	if err != nil {
-		err = fmt.Errorf("%w for value %s", err, logger.DisplayByteSlice(rd.Value))
+		return nil, fmt.Errorf("%w for value %s", err, logger.DisplayByteSlice(rd.Value))
 	}
 
-	return nil, err
+	return []byte{}, nil
 }
 
 // resolveMultipleHashesRequest sends the response for multiple hashes request

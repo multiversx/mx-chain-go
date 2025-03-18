@@ -4,14 +4,12 @@ import "github.com/multiversx/mx-chain-core-go/data"
 
 type proofNonceBucket struct {
 	maxNonce      uint64
-	proofsByNonce []*proofNonceMapping
-	bucketSize    int
+	proofsByNonce map[uint64]string
 }
 
-func newProofBucket(bucketSize int) *proofNonceBucket {
+func newProofBucket() *proofNonceBucket {
 	return &proofNonceBucket{
-		proofsByNonce: make([]*proofNonceMapping, 0),
-		bucketSize:    bucketSize,
+		proofsByNonce: make(map[uint64]string),
 	}
 }
 
@@ -19,15 +17,8 @@ func (p *proofNonceBucket) size() int {
 	return len(p.proofsByNonce)
 }
 
-func (p *proofNonceBucket) isFull() bool {
-	return len(p.proofsByNonce) >= p.bucketSize
-}
-
 func (p *proofNonceBucket) insert(proof data.HeaderProofHandler) {
-	p.proofsByNonce = append(p.proofsByNonce, &proofNonceMapping{
-		headerHash: string(proof.GetHeaderHash()),
-		nonce:      proof.GetHeaderNonce(),
-	})
+	p.proofsByNonce[proof.GetHeaderNonce()] = string(proof.GetHeaderHash())
 
 	if proof.GetHeaderNonce() > p.maxNonce {
 		p.maxNonce = proof.GetHeaderNonce()

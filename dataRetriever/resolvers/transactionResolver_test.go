@@ -230,7 +230,7 @@ func TestTxResolver_ProcessReceivedMessageFoundInTxPoolShouldSearchAndSend(t *te
 	assert.True(t, sendWasCalled)
 	assert.True(t, arg.Throttler.(*mock.ThrottlerStub).StartWasCalled())
 	assert.True(t, arg.Throttler.(*mock.ThrottlerStub).EndWasCalled())
-	assert.Nil(t, msgID)
+	assert.Len(t, msgID, 0)
 }
 
 func TestTxResolver_ProcessReceivedMessageFoundInTxPoolMarshalizerFailShouldRetNilAndErr(t *testing.T) {
@@ -370,7 +370,7 @@ func TestTxResolver_ProcessReceivedMessageFoundInTxStorageShouldRetValAndSend(t 
 	assert.True(t, sendWasCalled)
 	assert.True(t, arg.Throttler.(*mock.ThrottlerStub).StartWasCalled())
 	assert.True(t, arg.Throttler.(*mock.ThrottlerStub).EndWasCalled())
-	assert.Nil(t, msgID)
+	assert.Len(t, msgID, 0)
 }
 
 func TestTxResolver_ProcessReceivedMessageFoundInTxStorageCheckRetError(t *testing.T) {
@@ -472,7 +472,7 @@ func TestTxResolver_ProcessReceivedMessageRequestedTwoSmallTransactionsShouldCal
 	assert.True(t, sendWasCalled)
 	assert.True(t, arg.Throttler.(*mock.ThrottlerStub).StartWasCalled())
 	assert.True(t, arg.Throttler.(*mock.ThrottlerStub).EndWasCalled())
-	assert.Nil(t, msgID)
+	assert.Len(t, msgID, 0)
 }
 
 func TestTxResolver_ProcessReceivedMessageRequestedTwoSmallTransactionsFoundOnlyOneShouldWork(t *testing.T) {

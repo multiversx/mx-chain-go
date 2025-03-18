@@ -100,7 +100,7 @@ func checkHeaderHandler(hdr data.HeaderHandler, enableEpochsHandler common.Enabl
 
 func checkProofIntegrity(hdr data.HeaderHandler, enableEpochsHandler common.EnableEpochsHandler) error {
 	prevHeaderProof := hdr.GetPreviousProof()
-	nilPreviousProof := check.IfNilReflect(prevHeaderProof)
+	nilPreviousProof := check.IfNil(prevHeaderProof)
 	shouldHavePrevProof := common.ShouldBlockHavePrevProof(hdr, enableEpochsHandler, common.EquivalentMessagesFlag)
 	missingPrevProof := nilPreviousProof && shouldHavePrevProof
 	unexpectedPrevProof := !nilPreviousProof && !shouldHavePrevProof
@@ -146,6 +146,7 @@ func checkMetaShardInfo(
 		err = checkProof(sd.GetPreviousProof(), headerSigVerifier)
 		if err != nil {
 			return err
+
 		}
 	}
 
@@ -153,7 +154,7 @@ func checkMetaShardInfo(
 }
 
 func checkProof(proof data.HeaderProofHandler, headerSigVerifier process.InterceptedHeaderSigVerifier) error {
-	if check.IfNilReflect(proof) {
+	if check.IfNil(proof) {
 		return nil
 	}
 
