@@ -345,10 +345,16 @@ func verifyRatingsConfig(settings config.RatingsConfig) error {
 		return err
 	}
 
-	return checkRatingStepsByEpochConfigForDest(settings.MetaChain.RatingStepsByEpoch, "metachain")
+	return checkRatingStepsByEpochConfigForDest(settings.MetaChain.RatingStepsByEpoch, "metaChain")
 }
 
 func checkRatingStepsByEpochConfigForDest(ratingStepsByEpoch []config.RatingSteps, configDestination string) error {
+	if len(ratingStepsByEpoch) == 0 {
+		return fmt.Errorf("%w for %s",
+			process.ErrInvalidRatingsConfig,
+			configDestination)
+	}
+
 	for _, ratingStepsForEpoch := range ratingStepsByEpoch {
 		if ratingStepsForEpoch.HoursToMaxRatingFromStartRating == 0 {
 			return fmt.Errorf("%w hoursToMaxRatingFromStartRating: %s, epoch: %d",

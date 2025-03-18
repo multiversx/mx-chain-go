@@ -281,6 +281,37 @@ func TestRatingsData_RatingsConsecutiveMissedBlocksPenaltyLowerThanOneShouldErr(
 	require.True(t, strings.Contains(err.Error(), "shard"))
 }
 
+func TestRatingsData_EmptyRatingsConfig(t *testing.T) {
+	t.Parallel()
+
+	t.Run("shard should error", func(t *testing.T) {
+		t.Parallel()
+
+		ratingsDataArg := createDummyRatingsData()
+		ratingsConfig := createDummyRatingsConfig()
+		ratingsConfig.ShardChain = config.ShardChain{}
+		ratingsDataArg.Config = ratingsConfig
+		ratingsData, err := NewRatingsData(ratingsDataArg)
+
+		require.Nil(t, ratingsData)
+		require.True(t, errors.Is(err, process.ErrInvalidRatingsConfig))
+		require.True(t, strings.Contains(err.Error(), "shardChain"))
+	})
+	t.Run("meta should error", func(t *testing.T) {
+		t.Parallel()
+
+		ratingsDataArg := createDummyRatingsData()
+		ratingsConfig := createDummyRatingsConfig()
+		ratingsConfig.MetaChain = config.MetaChain{}
+		ratingsDataArg.Config = ratingsConfig
+		ratingsData, err := NewRatingsData(ratingsDataArg)
+
+		require.Nil(t, ratingsData)
+		require.True(t, errors.Is(err, process.ErrInvalidRatingsConfig))
+		require.True(t, strings.Contains(err.Error(), "metaChain"))
+	})
+}
+
 func TestRatingsData_HoursToMaxRatingFromStartRatingZeroErr(t *testing.T) {
 	t.Parallel()
 
