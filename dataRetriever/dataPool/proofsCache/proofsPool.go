@@ -57,7 +57,7 @@ func (pp *proofsPool) UpsertProof(
 }
 
 // AddProof will add the provided proof to the pool, if it's not already in the pool.
-// It will return true if the proof the was added to the pool.
+// It will return true if the proof was added to the pool.
 func (pp *proofsPool) AddProof(
 	headerProof data.HeaderProofHandler,
 ) bool {

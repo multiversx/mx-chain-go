@@ -65,9 +65,6 @@ func NewInterceptedMetaHeaderDataFactory(argument *ArgInterceptedMetaHeaderFacto
 	if check.IfNil(argument.ValidityAttester) {
 		return nil, process.ErrNilValidityAttester
 	}
-	if check.IfNil(argument.ProofsPool) {
-		return nil, process.ErrNilProofsPool
-	}
 
 	return &interceptedMetaHeaderDataFactory{
 		marshalizer:             argument.CoreComponents.InternalMarshalizer(),
