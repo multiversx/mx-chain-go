@@ -3552,7 +3552,7 @@ func TestScProcessor_penalizeUserIfNeededShouldWork(t *testing.T) {
 func TestScProcessor_isTooMuchGasProvidedShouldWork(t *testing.T) {
 	t.Parallel()
 
-	economicsHandler := &economicsmocks.EconomicsHandlerStub{}
+	economicsHandler := &economicsmocks.EconomicsHandlerMock{}
 
 	gasProvided := uint64(100)
 	maxGasToRemain := gasProvided - (gasProvided / economicsHandler.MaxGasHigherFactorAccepted())
