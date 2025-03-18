@@ -367,7 +367,7 @@ func (sr *subroundEndRound) sendProof() (bool, error) {
 		log.Debug("sendProof: time is out -> cancel broadcasting final info and header",
 			"round time stamp", roundHandler.TimeStamp(),
 			"current time", time.Now())
-		return false, err
+		return false, ErrTimeOut
 	}
 
 	// broadcast header proof
