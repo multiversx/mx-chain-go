@@ -100,7 +100,7 @@ func createArgsCoreComponentsHolder() ArgsCoreComponentsHolder {
 						LeaderPercentage:                 0.1,
 						DeveloperPercentage:              0.1,
 						ProtocolSustainabilityPercentage: 0.1,
-						ProtocolSustainabilityAddress:    "erd1932eft30w753xyvme8d49qejgkjc09n5e49w4mwdjtm0neld797su0dlxp",
+						ProtocolSustainabilityAddress:    "2c5594ae2f77a913119bc9db52833245a5879674cd4aeaedcd92f6f9e7edf17d", // tests use hex address pub key conv
 						TopUpGradientPoint:               "300000000000000000000",
 						TopUpFactor:                      0.25,
 						EpochEnable:                      0,
