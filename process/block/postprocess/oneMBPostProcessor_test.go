@@ -29,7 +29,7 @@ func TestNewOneMBPostProcessor_NilHasher(t *testing.T) {
 		&storage.ChainStorerStub{},
 		block.TxBlock,
 		dataRetriever.TransactionUnit,
-		&economicsmocks.EconomicsHandlerStub{},
+		&economicsmocks.EconomicsHandlerMock{},
 	)
 
 	assert.Nil(t, irp)
@@ -46,7 +46,7 @@ func TestNewOneMBPostProcessor_NilMarshalizer(t *testing.T) {
 		&storage.ChainStorerStub{},
 		block.TxBlock,
 		dataRetriever.TransactionUnit,
-		&economicsmocks.EconomicsHandlerStub{},
+		&economicsmocks.EconomicsHandlerMock{},
 	)
 
 	assert.Nil(t, irp)
@@ -63,7 +63,7 @@ func TestNewOneMBPostProcessor_NilShardCoord(t *testing.T) {
 		&storage.ChainStorerStub{},
 		block.TxBlock,
 		dataRetriever.TransactionUnit,
-		&economicsmocks.EconomicsHandlerStub{},
+		&economicsmocks.EconomicsHandlerMock{},
 	)
 
 	assert.Nil(t, irp)
@@ -80,7 +80,7 @@ func TestNewOneMBPostProcessor_NilStorer(t *testing.T) {
 		nil,
 		block.TxBlock,
 		dataRetriever.TransactionUnit,
-		&economicsmocks.EconomicsHandlerStub{},
+		&economicsmocks.EconomicsHandlerMock{},
 	)
 
 	assert.Nil(t, irp)
@@ -114,7 +114,7 @@ func TestNewOneMBPostProcessor_OK(t *testing.T) {
 		&storage.ChainStorerStub{},
 		block.TxBlock,
 		dataRetriever.TransactionUnit,
-		&economicsmocks.EconomicsHandlerStub{},
+		&economicsmocks.EconomicsHandlerMock{},
 	)
 
 	assert.Nil(t, err)
@@ -131,7 +131,7 @@ func TestOneMBPostProcessor_CreateAllInterMiniBlocks(t *testing.T) {
 		&storage.ChainStorerStub{},
 		block.TxBlock,
 		dataRetriever.TransactionUnit,
-		&economicsmocks.EconomicsHandlerStub{},
+		&economicsmocks.EconomicsHandlerMock{},
 	)
 
 	mbs := irp.CreateAllInterMiniBlocks()
@@ -148,7 +148,7 @@ func TestOneMBPostProcessor_CreateAllInterMiniBlocksOneMinBlock(t *testing.T) {
 		&storage.ChainStorerStub{},
 		block.TxBlock,
 		dataRetriever.TransactionUnit,
-		&economicsmocks.EconomicsHandlerStub{},
+		&economicsmocks.EconomicsHandlerMock{},
 	)
 
 	txs := make([]data.TransactionHandler, 0)
@@ -174,7 +174,7 @@ func TestOneMBPostProcessor_VerifyNilBody(t *testing.T) {
 		&storage.ChainStorerStub{},
 		block.TxBlock,
 		dataRetriever.TransactionUnit,
-		&economicsmocks.EconomicsHandlerStub{},
+		&economicsmocks.EconomicsHandlerMock{},
 	)
 
 	err := irp.VerifyInterMiniBlocks(&block.Body{})
@@ -191,7 +191,7 @@ func TestOneMBPostProcessor_VerifyTooManyBlock(t *testing.T) {
 		&storage.ChainStorerStub{},
 		block.TxBlock,
 		dataRetriever.TransactionUnit,
-		&economicsmocks.EconomicsHandlerStub{},
+		&economicsmocks.EconomicsHandlerMock{},
 	)
 
 	txs := make([]data.TransactionHandler, 0)
@@ -236,7 +236,7 @@ func TestOneMBPostProcessor_VerifyNilMiniBlocks(t *testing.T) {
 		&storage.ChainStorerStub{},
 		block.TxBlock,
 		dataRetriever.TransactionUnit,
-		&economicsmocks.EconomicsHandlerStub{},
+		&economicsmocks.EconomicsHandlerMock{},
 	)
 
 	miniBlock := &block.MiniBlock{
@@ -260,7 +260,7 @@ func TestOneMBPostProcessor_VerifyOk(t *testing.T) {
 		&storage.ChainStorerStub{},
 		block.TxBlock,
 		dataRetriever.TransactionUnit,
-		&economicsmocks.EconomicsHandlerStub{},
+		&economicsmocks.EconomicsHandlerMock{},
 	)
 
 	txs := make([]data.TransactionHandler, 0)

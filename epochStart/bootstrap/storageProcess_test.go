@@ -90,7 +90,7 @@ func TestStorageEpochStartBootstrap_BootstrapFromGenesis(t *testing.T) {
 	roundDuration := uint64(60000)
 	coreComp, cryptoComp := createComponentsForEpochStart()
 	args := createMockStorageEpochStartBootstrapArgs(coreComp, cryptoComp)
-	args.EconomicsData = &economicsmocks.EconomicsHandlerStub{
+	args.EconomicsData = &economicsmocks.EconomicsHandlerMock{
 		MinGasPriceCalled: func() uint64 {
 			return 1
 		},
@@ -114,7 +114,7 @@ func TestStorageEpochStartBootstrap_BootstrapMetablockNotFound(t *testing.T) {
 	roundDuration := uint64(6000)
 	coreComp, cryptoComp := createComponentsForEpochStart()
 	args := createMockStorageEpochStartBootstrapArgs(coreComp, cryptoComp)
-	args.EconomicsData = &economicsmocks.EconomicsHandlerStub{
+	args.EconomicsData = &economicsmocks.EconomicsHandlerMock{
 		MinGasPriceCalled: func() uint64 {
 			return 1
 		},
