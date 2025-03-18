@@ -139,12 +139,6 @@ func checkMetaShardInfo(
 			return err
 		}
 
-		isSelfMeta := coordinator.SelfId() == core.MetachainShardId
-		isHeaderFromSelf := sd.GetShardID() == coordinator.SelfId()
-		if !(isSelfMeta || isHeaderFromSelf) {
-			continue
-		}
-
 		if proofs.IsProofInPoolEqualTo(sd.GetPreviousProof()) {
 			continue
 		}
