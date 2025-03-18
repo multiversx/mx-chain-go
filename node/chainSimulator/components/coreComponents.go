@@ -184,10 +184,6 @@ func CreateCoreComponents(args ArgsCoreComponentsHolder) (*coreComponentsHolder,
 		return nil, err
 	}
 
-	if err != nil {
-		return nil, err
-	}
-
 	argsEconomicsHandler := economics.ArgsNewEconomicsData{
 		TxVersionChecker:    instance.txVersionChecker,
 		Economics:           &args.EconomicsConfig,
