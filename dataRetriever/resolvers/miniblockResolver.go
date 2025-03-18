@@ -102,10 +102,10 @@ func (mbRes *miniblockResolver) ProcessReceivedMessage(message p2p.MessageP2P, f
 	}
 
 	if err != nil {
-		err = fmt.Errorf("%w for hash %s", err, logger.DisplayByteSlice(rd.Value))
+		return nil, fmt.Errorf("%w for hash %s", err, logger.DisplayByteSlice(rd.Value))
 	}
 
-	return nil, err
+	return []byte{}, nil
 }
 
 func (mbRes *miniblockResolver) resolveMbRequestByHash(hash []byte, pid core.PeerID, epoch uint32, source p2p.MessageHandler) error {

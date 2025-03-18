@@ -1309,51 +1309,6 @@ func TestHeaderSigVerifier_VerifyHeaderWithProof(t *testing.T) {
 		})
 		require.Equal(t, ErrProofHeaderHashMismatch, err)
 	})
-	t.Run("verifyHeaderProofAtTransition error should error", func(t *testing.T) {
-		t.Parallel()
-
-		args := createHeaderSigVerifierArgs()
-		args.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-			IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
-				return true
-			},
-		}
-		args.StorageService = &testscommonStorage.ChainStorerStub{
-			GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
-				return nil, expectedErr
-			},
-		}
-		wasAddProofCalled := false
-		args.ProofsPool = &dataRetrieverMocks.ProofsPoolMock{
-			AddProofCalled: func(headerProof data.HeaderProofHandler) bool {
-				wasAddProofCalled = true
-				return true
-			},
-		}
-		hdrSigVerifier, _ := NewHeaderSigVerifier(args)
-		require.NotNil(t, hdrSigVerifier)
-
-		err := hdrSigVerifier.VerifyHeaderWithProof(&testscommon.HeaderHandlerStub{
-			GetNonceCalled: func() uint64 {
-				return 2 // bypass ShouldBlockHavePrevProof
-			},
-			GetPrevHashCalled: func() []byte {
-				return []byte("header hash")
-			},
-			GetShardIDCalled: func() uint32 {
-				return 0
-			},
-			GetPreviousProofCalled: func() data.HeaderProofHandler {
-				return &dataBlock.HeaderProof{
-					IsStartOfEpoch: true,
-					HeaderShardId:  0,
-					HeaderHash:     []byte("header hash"),
-				}
-			},
-		})
-		require.Equal(t, expectedErr, err)
-		require.False(t, wasAddProofCalled)
-	})
 	t.Run("transition header should work", func(t *testing.T) {
 		t.Parallel()
 

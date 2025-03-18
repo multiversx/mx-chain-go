@@ -379,7 +379,7 @@ func displayHeader(headerHandler data.HeaderHandler) []*display.LineData {
 	var proofShard, proofEpoch uint32
 	var proofRound, proofNonce uint64
 	var isStartOfEpoch, hasProofInfo bool
-	if !check.IfNilReflect(proof) {
+	if !check.IfNil(proof) {
 		hasProofInfo = true
 		prevAggregatedSig, prevBitmap = proof.GetAggregatedSignature(), proof.GetPubKeysBitmap()
 		prevHash = proof.GetHeaderHash()

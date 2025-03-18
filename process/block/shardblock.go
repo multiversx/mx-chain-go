@@ -600,6 +600,19 @@ func (sp *shardProcessor) checkMetaHeadersValidityAndFinality() error {
 	return nil
 }
 
+func (sp *shardProcessor) checkHeaderHasProof(header data.HeaderHandler) error {
+	hash, errHash := sp.getHeaderHash(header)
+	if errHash != nil {
+		return errHash
+	}
+
+	if !sp.proofsPool.HasProof(header.GetShardID(), hash) {
+		return fmt.Errorf("%w, missing proof for header %s", process.ErrHeaderNotFinal, hex.EncodeToString(hash))
+	}
+
+	return nil
+}
+
 // check if shard headers are final by checking if newer headers were constructed upon them
 func (sp *shardProcessor) checkMetaHdrFinality(header data.HeaderHandler) error {
 	if check.IfNil(header) {
@@ -607,16 +620,7 @@ func (sp *shardProcessor) checkMetaHdrFinality(header data.HeaderHandler) error 
 	}
 
 	if sp.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, header.GetEpoch()) {
-		hash, errHash := sp.getHeaderHash(header)
-		if errHash != nil {
-			return errHash
-		}
-
-		if !sp.proofsPool.HasProof(header.GetShardID(), hash) {
-			return fmt.Errorf("%w, missing proof for header %s", process.ErrHeaderNotFinal, hex.EncodeToString(hash))
-		}
-
-		return nil
+		return sp.checkHeaderHasProof(header)
 	}
 
 	finalityAttestingMetaHdrs, err := sp.sortHeadersForCurrentBlockByNonce(false)
@@ -642,16 +646,7 @@ func (sp *shardProcessor) checkMetaHdrFinality(header data.HeaderHandler) error 
 			}
 
 			if sp.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, metaHdr.GetEpoch()) {
-				hash, errHash := sp.getHeaderHash(metaHdr)
-				if errHash != nil {
-					return errHash
-				}
-
-				if sp.proofsPool.HasProof(core.MetachainShardId, hash) {
-					return nil
-				}
-
-				return process.ErrHeaderNotFinal
+				return sp.checkHeaderHasProof(metaHdr)
 			}
 
 			lastVerifiedHdr = metaHdr

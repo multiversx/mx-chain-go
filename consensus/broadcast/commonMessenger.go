@@ -235,7 +235,7 @@ func (cm *commonMessenger) broadcast(topic string, data []byte, pkBytes []byte) 
 }
 
 func (cm *commonMessenger) broadcastEquivalentProof(proof *block.HeaderProof, pkBytes []byte, topic string) error {
-	if check.IfNilReflect(proof) {
+	if check.IfNil(proof) {
 		return spos.ErrNilHeaderProof
 	}
 
