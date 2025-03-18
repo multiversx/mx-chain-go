@@ -2290,7 +2290,9 @@ func TestSubroundEndRound_SendProof(t *testing.T) {
 			},
 		}
 		container.SetBroadcastMessenger(bm)
-		sr.SendProof()
+		wasSent, err := sr.SendProof()
+		require.False(t, wasSent)
+		require.NoError(t, err)
 	})
 	t.Run("not enough signatures should not send proof", func(t *testing.T) {
 		t.Parallel()
@@ -2305,7 +2307,86 @@ func TestSubroundEndRound_SendProof(t *testing.T) {
 			},
 		}
 		container.SetBroadcastMessenger(bm)
-		sr.SendProof()
+		wasSent, err := sr.SendProof()
+		require.False(t, wasSent)
+		require.Error(t, err)
+	})
+	t.Run("signature aggregation failure should not send proof", func(t *testing.T) {
+		t.Parallel()
+
+		container := consensusMocks.InitConsensusCore()
+		sr := initSubroundEndRoundWithContainer(container, &statusHandler.AppStatusHandlerStub{})
+
+		bm := &consensusMocks.BroadcastMessengerMock{
+			BroadcastEquivalentProofCalled: func(proof data.HeaderProofHandler, pkBytes []byte) error {
+				require.Fail(t, "should have not been called")
+				return nil
+			},
+		}
+		container.SetBroadcastMessenger(bm)
+		signingHandler := &consensusMocks.SigningHandlerStub{
+			AggregateSigsCalled: func(bitmap []byte, epoch uint32) ([]byte, error) {
+				return nil, expectedErr
+			},
+		}
+		container.SetSigningHandler(signingHandler)
+
+		for _, pubKey := range sr.ConsensusGroup() {
+			_ = sr.SetJobDone(pubKey, bls.SrSignature, true)
+		}
+
+		wasSent, err := sr.SendProof()
+		require.False(t, wasSent)
+		require.Equal(t, expectedErr, err)
+	})
+	t.Run("no time left should not send proof", func(t *testing.T) {
+		t.Parallel()
+
+		container := consensusMocks.InitConsensusCore()
+		sr := initSubroundEndRoundWithContainer(container, &statusHandler.AppStatusHandlerStub{})
+
+		bm := &consensusMocks.BroadcastMessengerMock{
+			BroadcastEquivalentProofCalled: func(proof data.HeaderProofHandler, pkBytes []byte) error {
+				require.Fail(t, "should have not been called")
+				return nil
+			},
+		}
+		container.SetBroadcastMessenger(bm)
+		roundHandler := &consensusMocks.RoundHandlerMock{
+			RemainingTimeCalled: func(startTime time.Time, maxTime time.Duration) time.Duration {
+				return -1 // no time left
+			},
+		}
+		container.SetRoundHandler(roundHandler)
+
+		for _, pubKey := range sr.ConsensusGroup() {
+			_ = sr.SetJobDone(pubKey, bls.SrSignature, true)
+		}
+
+		wasSent, err := sr.SendProof()
+		require.False(t, wasSent)
+		require.Equal(t, v2.ErrTimeOut, err)
+	})
+	t.Run("broadcast failure should not send proof", func(t *testing.T) {
+		t.Parallel()
+
+		container := consensusMocks.InitConsensusCore()
+		sr := initSubroundEndRoundWithContainer(container, &statusHandler.AppStatusHandlerStub{})
+
+		bm := &consensusMocks.BroadcastMessengerMock{
+			BroadcastEquivalentProofCalled: func(proof data.HeaderProofHandler, pkBytes []byte) error {
+				return expectedErr
+			},
+		}
+		container.SetBroadcastMessenger(bm)
+
+		for _, pubKey := range sr.ConsensusGroup() {
+			_ = sr.SetJobDone(pubKey, bls.SrSignature, true)
+		}
+
+		wasSent, err := sr.SendProof()
+		require.False(t, wasSent)
+		require.Equal(t, expectedErr, err)
 	})
 	t.Run("should send", func(t *testing.T) {
 		t.Parallel()
@@ -2313,10 +2394,10 @@ func TestSubroundEndRound_SendProof(t *testing.T) {
 		container := consensusMocks.InitConsensusCore()
 		sr := initSubroundEndRoundWithContainer(container, &statusHandler.AppStatusHandlerStub{})
 
-		wasSent := false
+		wasBroadcastEquivalentProofCalled := false
 		bm := &consensusMocks.BroadcastMessengerMock{
 			BroadcastEquivalentProofCalled: func(proof data.HeaderProofHandler, pkBytes []byte) error {
-				wasSent = true
+				wasBroadcastEquivalentProofCalled = true
 				return nil
 			},
 		}
@@ -2326,7 +2407,9 @@ func TestSubroundEndRound_SendProof(t *testing.T) {
 			_ = sr.SetJobDone(pubKey, bls.SrSignature, true)
 		}
 
-		sr.SendProof()
+		wasSent, err := sr.SendProof()
 		require.True(t, wasSent)
+		require.NoError(t, err)
+		require.True(t, wasBroadcastEquivalentProofCalled)
 	})
 }
