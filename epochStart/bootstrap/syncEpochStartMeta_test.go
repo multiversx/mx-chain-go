@@ -19,6 +19,7 @@ import (
 	processMock "github.com/multiversx/mx-chain-go/process/mock"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/cryptoMocks"
+	"github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
 	"github.com/multiversx/mx-chain-go/testscommon/economicsmocks"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/p2pmocks"
@@ -171,5 +172,6 @@ func getEpochStartSyncerArgs() ArgsNewEpochStartMetaSyncer {
 		HeaderIntegrityVerifier:        &mock.HeaderIntegrityVerifierStub{},
 		MetaBlockProcessor:             &mock.EpochStartMetaBlockProcessorStub{},
 		InterceptedDataVerifierFactory: &processMock.InterceptedDataVerifierFactoryMock{},
+		ProofsPool:                     &dataRetriever.ProofsPoolMock{},
 	}
 }
