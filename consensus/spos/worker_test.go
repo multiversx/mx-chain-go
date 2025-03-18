@@ -2077,7 +2077,7 @@ func TestWorker_ProcessReceivedMessageWithInvalidSigners(t *testing.T) {
 	// first call should be ok
 	msgID, err := wrk.ProcessReceivedMessage(msg, "", &p2pmocks.MessengerStub{})
 	require.Nil(t, err)
-	require.Nil(t, msgID)
+	require.Len(t, msgID, 0)
 
 	// reset the received messages to allow a second one of the same type
 	wrk.ResetConsensusMessages()
