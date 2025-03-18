@@ -72,17 +72,11 @@ func (pc *proofsCache) cleanupProofsBehindNonce(nonce uint64) {
 	pc.mutProofsCache.Lock()
 	defer pc.mutProofsCache.Unlock()
 
-	bucketsToDelete := make([]uint64, 0)
-
 	for key, bucket := range pc.proofsByNonceBuckets {
 		if nonce > bucket.maxNonce {
 			pc.cleanupProofsInBucket(bucket)
-			bucketsToDelete = append(bucketsToDelete, key)
+			delete(pc.proofsByNonceBuckets, key)
 		}
-	}
-
-	for _, key := range bucketsToDelete {
-		delete(pc.proofsByNonceBuckets, key)
 	}
 }
 
