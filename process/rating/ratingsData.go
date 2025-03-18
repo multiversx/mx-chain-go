@@ -85,6 +85,14 @@ func NewRatingsData(args RatingsDataArg) (*RatingsData, error) {
 		})
 	}
 
+	// avoid any invalid configuration where ratings are not sorted by epoch
+	slices.SortFunc(ratingsConfig.ShardChain.RatingStepsByEpoch, func(a, b config.RatingSteps) bool {
+		return a.EnableEpoch < b.EnableEpoch
+	})
+	slices.SortFunc(ratingsConfig.MetaChain.RatingStepsByEpoch, func(a, b config.RatingSteps) bool {
+		return a.EnableEpoch < b.EnableEpoch
+	})
+
 	if !checkForEpochZeroConfiguration(args) {
 		return nil, process.ErrMissingConfigurationForEpochZero
 	}
@@ -498,10 +506,6 @@ func (rd *RatingsData) updateRatingsMetrics(epoch uint32) {
 }
 
 func getRatingStepsForEpoch(epoch uint32, ratingStepsPerEpoch []config.RatingSteps) (config.RatingSteps, bool) {
-	slices.SortFunc(ratingStepsPerEpoch, func(a, b config.RatingSteps) bool {
-		return a.EnableEpoch < b.EnableEpoch
-	})
-
 	var ratingSteps config.RatingSteps
 	found := false
 	for _, ratingStepsForEpoch := range ratingStepsPerEpoch {
