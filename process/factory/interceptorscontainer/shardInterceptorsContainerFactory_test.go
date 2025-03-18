@@ -743,7 +743,7 @@ func getArgumentsShard(
 		Store:                          createShardStore(),
 		DataPool:                       createShardDataPools(),
 		MaxTxNonceDeltaAllowed:         maxTxNonceDeltaAllowed,
-		TxFeeHandler:                   &economicsmocks.EconomicsHandlerStub{},
+		TxFeeHandler:                   &economicsmocks.EconomicsHandlerMock{},
 		BlockBlackList:                 &testscommon.TimeCacheStub{},
 		HeaderSigVerifier:              &consensus.HeaderSigVerifierMock{},
 		HeaderIntegrityVerifier:        &mock.HeaderIntegrityVerifierStub{},
