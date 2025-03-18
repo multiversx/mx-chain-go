@@ -65,7 +65,7 @@ func ShouldBlockHavePrevProof(header data.HeaderHandler, enableEpochsHandler Ena
 
 // VerifyProofAgainstHeader verifies the fields on the proof match the ones on the header
 func VerifyProofAgainstHeader(proof data.HeaderProofHandler, header data.HeaderHandler) error {
-	if check.IfNilReflect(proof) {
+	if check.IfNil(proof) {
 		return ErrNilHeaderProof
 	}
 	if check.IfNil(header) {

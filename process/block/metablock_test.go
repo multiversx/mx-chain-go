@@ -13,9 +13,10 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/atomic"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
-	"github.com/multiversx/mx-chain-go/testscommon/pool"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/multiversx/mx-chain-go/testscommon/pool"
 
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
@@ -3869,7 +3870,7 @@ func TestMetaProcessor_CheckProofsForShardData(t *testing.T) {
 		dataComponents.Storage = &storageStubs.ChainStorerStub{
 			GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
 				return &storageStubs.StorerStub{
-					SearchFirstCalled: func(key []byte) ([]byte, error) {
+					GetCalled: func(key []byte) ([]byte, error) {
 						return nil, expectedErr
 					},
 				}, nil
@@ -3902,7 +3903,7 @@ func TestMetaProcessor_CheckProofsForShardData(t *testing.T) {
 			true)
 
 		err := mp.CheckProofsForShardDataIfNeeded(metaBlock, time.Second)
-		require.Equal(t, expectedErr, err)
+		require.ErrorIs(t, err, process.ErrMissingHeader)
 	})
 	t.Run("proof not matching header should error", func(t *testing.T) {
 		t.Parallel()

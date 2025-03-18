@@ -213,7 +213,7 @@ func TestMiniblockResolver_ProcessReceivedMessageFoundInPoolShouldRetValAndSend(
 	assert.True(t, wasSent)
 	assert.True(t, arg.Throttler.(*mock.ThrottlerStub).StartWasCalled())
 	assert.True(t, arg.Throttler.(*mock.ThrottlerStub).EndWasCalled())
-	assert.Nil(t, msgID)
+	assert.Len(t, msgID, 0)
 }
 
 func TestMiniblockResolver_ProcessReceivedMessageFoundInPoolMarshalizerFailShouldErr(t *testing.T) {
@@ -463,7 +463,7 @@ func TestMiniblockResolver_ProcessReceivedMessageNotFoundInPoolShouldRetFromStor
 	assert.True(t, wasSend)
 	assert.True(t, arg.Throttler.(*mock.ThrottlerStub).StartWasCalled())
 	assert.True(t, arg.Throttler.(*mock.ThrottlerStub).EndWasCalled())
-	assert.Nil(t, msgID)
+	assert.Len(t, msgID, 0)
 }
 
 func TestMiniblockResolver_ProcessReceivedMessageMarshalFails(t *testing.T) {

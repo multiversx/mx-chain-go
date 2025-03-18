@@ -4,6 +4,7 @@ import (
 	"sort"
 	"sync"
 
+	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
 )
 
@@ -39,7 +40,7 @@ func (pc *proofsCache) getProofByHash(headerHash []byte) (data.HeaderProofHandle
 }
 
 func (pc *proofsCache) addProof(proof data.HeaderProofHandler) {
-	if proof == nil {
+	if check.IfNil(proof) {
 		return
 	}
 

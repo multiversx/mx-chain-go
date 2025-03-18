@@ -330,7 +330,7 @@ func (wrk *Worker) RemoveAllReceivedHeaderHandlers() {
 
 // ReceivedProof process the received proof, calling each received proof handler registered in worker instance
 func (wrk *Worker) ReceivedProof(proofHandler consensus.ProofHandler) {
-	if check.IfNilReflect(proofHandler) {
+	if check.IfNil(proofHandler) {
 		log.Trace("ReceivedProof: nil proof handler")
 		return
 	}
@@ -482,12 +482,12 @@ func (wrk *Worker) ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedP
 		log.Trace("checkSelfState", "error", errNotCritical.Error())
 		// in this case should return nil but do not process the message
 		// nil error will mean that the interceptor will validate this message and broadcast it to the connected peers
-		return nil, nil
+		return []byte{}, nil
 	}
 
 	go wrk.executeReceivedMessages(cnsMsg)
 
-	return nil, nil
+	return []byte{}, nil
 }
 
 func (wrk *Worker) shouldBlacklistPeer(err error) bool {
@@ -590,7 +590,7 @@ func (wrk *Worker) checkHeaderPreviousProof(header data.HeaderHandler) error {
 		return fmt.Errorf("%w : received header on consensus topic after equivalent messages activation", ErrConsensusMessageNotExpected)
 	}
 
-	if !check.IfNilReflect(header.GetPreviousProof()) {
+	if !check.IfNil(header.GetPreviousProof()) {
 		return fmt.Errorf("%w : received header from consensus topic has previous proof", ErrHeaderProofNotExpected)
 	}
 

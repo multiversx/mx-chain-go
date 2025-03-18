@@ -79,12 +79,17 @@ func (tnRes *TrieNodeResolver) ProcessReceivedMessage(message p2p.MessageP2P, fr
 
 	switch rd.Type {
 	case dataRetriever.HashType:
-		return nil, tnRes.resolveOneHash(rd.Value, rd.ChunkIndex, message, source)
+		err = tnRes.resolveOneHash(rd.Value, rd.ChunkIndex, message, source)
 	case dataRetriever.HashArrayType:
-		return nil, tnRes.resolveMultipleHashes(rd.Value, message, source)
+		err = tnRes.resolveMultipleHashes(rd.Value, message, source)
 	default:
-		return nil, dataRetriever.ErrRequestTypeNotImplemented
+		err = dataRetriever.ErrRequestTypeNotImplemented
 	}
+
+	if err != nil {
+		return nil, err
+	}
+	return []byte{}, nil
 }
 
 func (tnRes *TrieNodeResolver) resolveMultipleHashes(hashesBuff []byte, message p2p.MessageP2P, source p2p.MessageHandler) error {

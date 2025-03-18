@@ -456,14 +456,9 @@ func (mp *metaProcessor) checkProofsForShardData(header *block.MetaBlock) error 
 			continue
 		}
 
-		shardHeadersStorer, err := mp.store.GetStorer(dataRetriever.BlockHeaderUnit)
-		if err != nil {
-			return err
-		}
-
 		prevProof := shardData.GetPreviousProof()
 		headersPool := mp.dataPool.Headers()
-		prevHeader, err := process.GetHeader(prevProof.GetHeaderHash(), headersPool, shardHeadersStorer, mp.marshalizer, prevProof.GetHeaderShardId())
+		prevHeader, err := process.GetHeader(prevProof.GetHeaderHash(), headersPool, mp.store, mp.marshalizer, prevProof.GetHeaderShardId())
 		if err != nil {
 			return err
 		}
@@ -1380,33 +1375,7 @@ func (mp *metaProcessor) CommitBlock(
 		"nonce", mp.forkDetector.GetHighestFinalBlockNonce(),
 	)
 
-	lastHeader := mp.blockChain.GetCurrentBlockHeader()
-	lastMetaBlock, ok := lastHeader.(data.MetaHeaderHandler)
-	if !ok {
-		if headerHandler.GetNonce() == firstHeaderNonce {
-			log.Debug("metaBlock.CommitBlock - nil current block header, this is expected at genesis time")
-		} else {
-			log.Error("metaBlock.CommitBlock - nil current block header, last current header should have not been nil")
-		}
-	}
-	lastMetaBlockHash := mp.blockChain.GetCurrentBlockHeaderHash()
-	if mp.lastRestartNonce == 0 {
-		mp.lastRestartNonce = header.GetNonce()
-	}
-
-	finalMetaBlock := lastMetaBlock
-	finalMetaBlockHash := lastMetaBlockHash
-	isBlockAfterEquivalentMessagesFlag := !check.IfNil(finalMetaBlock) &&
-		mp.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, finalMetaBlock.GetEpoch())
-	if isBlockAfterEquivalentMessagesFlag {
-		// for the first block we need to update both the state of the previous one and for current
-		if common.IsEpochChangeBlockForFlagActivation(header, mp.enableEpochsHandler, common.EquivalentMessagesFlag) {
-			mp.updateState(lastMetaBlock, lastMetaBlockHash)
-		}
-
-		finalMetaBlock = header
-		finalMetaBlockHash = headerHash
-	}
+	finalMetaBlock, finalMetaBlockHash := mp.computeFinalMetaBlock(header, headerHash)
 	mp.updateState(finalMetaBlock, finalMetaBlockHash)
 
 	committedRootHash, err := mp.accountsDB[state.UserAccountsState].RootHash()
@@ -1486,6 +1455,38 @@ func (mp *metaProcessor) CommitBlock(
 	mp.blockProcessingCutoffHandler.HandlePauseCutoff(header)
 
 	return nil
+}
+
+func (mp *metaProcessor) computeFinalMetaBlock(metaBlock *block.MetaBlock, metaBlockHash []byte) (data.MetaHeaderHandler, []byte) {
+	lastHeader := mp.blockChain.GetCurrentBlockHeader()
+	lastMetaBlock, ok := lastHeader.(data.MetaHeaderHandler)
+	if !ok {
+		if metaBlock.GetNonce() == firstHeaderNonce {
+			log.Debug("metaBlock.CommitBlock - nil current block header, this is expected at genesis time")
+		} else {
+			log.Error("metaBlock.CommitBlock - nil current block header, last current header should have not been nil")
+		}
+	}
+	lastMetaBlockHash := mp.blockChain.GetCurrentBlockHeaderHash()
+	if mp.lastRestartNonce == 0 {
+		mp.lastRestartNonce = metaBlock.GetNonce()
+	}
+
+	finalMetaBlock := lastMetaBlock
+	finalMetaBlockHash := lastMetaBlockHash
+	isBlockAfterEquivalentMessagesFlag := !check.IfNil(finalMetaBlock) &&
+		mp.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, finalMetaBlock.GetEpoch())
+	if isBlockAfterEquivalentMessagesFlag {
+		// for the first block we need to update both the state of the previous one and for current
+		if common.IsEpochChangeBlockForFlagActivation(metaBlock, mp.enableEpochsHandler, common.EquivalentMessagesFlag) {
+			mp.updateState(lastMetaBlock, lastMetaBlockHash)
+		}
+
+		finalMetaBlock = metaBlock
+		finalMetaBlockHash = metaBlockHash
+	}
+
+	return finalMetaBlock, finalMetaBlockHash
 }
 
 func (mp *metaProcessor) updateCrossShardInfo(metaBlock *block.MetaBlock) ([]string, error) {
@@ -1947,7 +1948,7 @@ func (mp *metaProcessor) checkShardHeadersValidity(metaHdr *block.MetaBlock) (ma
 }
 
 func verifyProof(proof data.HeaderProofHandler) error {
-	if check.IfNilReflect(proof) {
+	if check.IfNil(proof) {
 		return nil
 	}
 
@@ -2059,12 +2060,11 @@ func (mp *metaProcessor) checkShardHeaderFinalityBasedOnProofs(shardHdr data.Hea
 		return false, nil
 	}
 
-	marshalledHeader, err := mp.marshalizer.Marshal(shardHdr)
+	headerHash, err := core.CalculateHash(mp.marshalizer, mp.hasher, shardHdr)
 	if err != nil {
 		return true, err
 	}
 
-	headerHash := mp.hasher.Compute(string(marshalledHeader))
 	if !mp.proofsPool.HasProof(shardId, headerHash) {
 		return true, process.ErrHeaderNotFinal
 	}

@@ -12,6 +12,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/epochStart"
 	"github.com/multiversx/mx-chain-go/process"
@@ -150,7 +151,7 @@ func (e *epochStartMetaBlockProcessor) Save(data process.InterceptedData, fromCo
 	mbHash := interceptedHdr.Hash()
 
 	if metaBlock.IsStartOfEpochBlock() {
-		log.Debug("received epoch start meta", "epoch", metaBlock.GetEpoch(), "from peer", fromConnectedPeer.Pretty())
+		log.Debug("received epoch start meta block", "epoch", metaBlock.GetEpoch(), "from peer", fromConnectedPeer.Pretty())
 		e.mutReceivedMetaBlocks.Lock()
 		e.mapReceivedMetaBlocks[string(mbHash)] = metaBlock
 		e.addToPeerList(string(mbHash), fromConnectedPeer)
@@ -160,13 +161,11 @@ func (e *epochStartMetaBlockProcessor) Save(data process.InterceptedData, fromCo
 	}
 
 	if e.isEpochStartConfirmationBlockWithEquivalentMessages(metaBlock) {
-		log.Debug("received epoch start confirmation meta", "epoch", metaBlock.GetEpoch(), "from peer", fromConnectedPeer.Pretty())
+		log.Debug("received epoch start confirmation meta block", "epoch", metaBlock.GetEpoch(), "from peer", fromConnectedPeer.Pretty())
 		e.chanConfMetaBlockReached <- true
 
 		return nil
 	}
-
-	log.Debug("received metablock is not of type epoch start", "error", epochStart.ErrNotEpochStartBlock)
 
 	return nil
 }
