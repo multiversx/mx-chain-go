@@ -9,14 +9,14 @@ import (
 
 type proofsCache struct {
 	mutProofsCache       sync.RWMutex
-	proofsByNonceBuckets sync.Map
+	proofsByNonceBuckets map[uint64]*proofNonceBucket
 	bucketSize           uint64
 	proofsByHash         map[string]data.HeaderProofHandler
 }
 
 func newProofsCache(bucketSize int) *proofsCache {
 	return &proofsCache{
-		proofsByNonceBuckets: sync.Map{},
+		proofsByNonceBuckets: make(map[uint64]*proofNonceBucket),
 		bucketSize:           uint64(bucketSize),
 		proofsByHash:         make(map[string]data.HeaderProofHandler),
 	}
@@ -55,10 +55,13 @@ func (pc *proofsCache) getBucketKey(index uint64) uint64 {
 func (pc *proofsCache) insertProofByNonce(proof data.HeaderProofHandler) {
 	bucketKey := pc.getBucketKey(proof.GetHeaderNonce())
 
-	bucket, _ := pc.proofsByNonceBuckets.LoadOrStore(bucketKey, newProofBucket())
+	bucket, ok := pc.proofsByNonceBuckets[bucketKey]
+	if !ok {
+		bucket = newProofBucket()
+		pc.proofsByNonceBuckets[bucketKey] = bucket
+	}
 
-	b := bucket.(*proofNonceBucket)
-	b.insert(proof)
+	bucket.insert(proof)
 }
 
 func (pc *proofsCache) cleanupProofsBehindNonce(nonce uint64) {
@@ -69,17 +72,18 @@ func (pc *proofsCache) cleanupProofsBehindNonce(nonce uint64) {
 	pc.mutProofsCache.Lock()
 	defer pc.mutProofsCache.Unlock()
 
-	pc.proofsByNonceBuckets.Range(func(key, value interface{}) bool {
-		bucket := value.(*proofNonceBucket)
+	bucketsToDelete := make([]uint64, 0)
 
+	for key, bucket := range pc.proofsByNonceBuckets {
 		if nonce > bucket.maxNonce {
 			pc.cleanupProofsInBucket(bucket)
-			pc.proofsByNonceBuckets.Delete(key)
+			bucketsToDelete = append(bucketsToDelete, key)
 		}
+	}
 
-		return true
-	})
-
+	for _, key := range bucketsToDelete {
+		delete(pc.proofsByNonceBuckets, key)
+	}
 }
 
 func (pc *proofsCache) cleanupProofsInBucket(bucket *proofNonceBucket) {
