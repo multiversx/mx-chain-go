@@ -2065,12 +2065,11 @@ func (mp *metaProcessor) checkShardHeaderFinalityBasedOnProofs(shardHdr data.Hea
 		return false, nil
 	}
 
-	marshalledHeader, err := mp.marshalizer.Marshal(shardHdr)
+	headerHash, err := core.CalculateHash(mp.marshalizer, mp.hasher, shardHdr)
 	if err != nil {
 		return true, err
 	}
 
-	headerHash := mp.hasher.Compute(string(marshalledHeader))
 	if !mp.proofsPool.HasProof(shardId, headerHash) {
 		return true, process.ErrHeaderNotFinal
 	}
