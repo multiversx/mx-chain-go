@@ -7,11 +7,6 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data"
 )
 
-type proofNonceMapping struct {
-	headerHash string
-	nonce      uint64
-}
-
 type proofsCache struct {
 	mutProofsCache       sync.RWMutex
 	proofsByNonceBuckets sync.Map
@@ -74,24 +69,17 @@ func (pc *proofsCache) cleanupProofsBehindNonce(nonce uint64) {
 	pc.mutProofsCache.Lock()
 	defer pc.mutProofsCache.Unlock()
 
-	bucketsToDelete := make([]uint64, 0)
-
 	pc.proofsByNonceBuckets.Range(func(key, value interface{}) bool {
-		bucketKey := key.(uint64)
 		bucket := value.(*proofNonceBucket)
 
 		if nonce > bucket.maxNonce {
 			pc.cleanupProofsInBucket(bucket)
-			bucketsToDelete = append(bucketsToDelete, bucketKey)
 			pc.proofsByNonceBuckets.Delete(key)
 		}
 
 		return true
 	})
 
-	for _, key := range bucketsToDelete {
-		pc.proofsByNonceBuckets.Delete(key)
-	}
 }
 
 func (pc *proofsCache) cleanupProofsInBucket(bucket *proofNonceBucket) {
