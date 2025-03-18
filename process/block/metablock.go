@@ -441,10 +441,6 @@ func (mp *metaProcessor) checkProofsForShardData(header *block.MetaBlock) error 
 	defer mp.hdrsForCurrBlock.mutHdrsForBlock.RUnlock()
 
 	for _, shardData := range header.ShardInfo {
-		// TODO: consider the validation of the proof:
-		//	compare the one from proofsPool with what shardData.CurrentSignature and shardData.CurrentPubKeysBitmap hold
-		//	if they are different, verify the proof received on header
-
 		shardHeader, ok := mp.hdrsForCurrBlock.hdrHashAndInfo[string(shardData.HeaderHash)]
 		if !ok {
 			return fmt.Errorf("%w for header hash %s", process.ErrMissingHeader, hex.EncodeToString(shardData.HeaderHash))
@@ -1930,7 +1926,6 @@ func (mp *metaProcessor) checkShardHeadersValidity(metaHdr *block.MetaBlock) (ma
 		}
 
 		if common.ShouldBlockHavePrevProof(shardHdr, mp.enableEpochsHandler, common.EquivalentMessagesFlag) {
-			// TODO: proper check of the fields
 			err = verifyProof(shardData.GetPreviousProof())
 			if err != nil {
 				return nil, err
