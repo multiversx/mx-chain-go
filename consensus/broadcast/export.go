@@ -134,6 +134,11 @@ func (dbb *delayedBlockBroadcaster) AlarmExpired(headerHash string) {
 	dbb.alarmExpired(headerHash)
 }
 
+// HeaderAlarmExpired -
+func (dbb *delayedBlockBroadcaster) HeaderAlarmExpired(headerHash string) {
+	dbb.headerAlarmExpired(headerHash)
+}
+
 // GetShardDataFromMetaChainBlock -
 func GetShardDataFromMetaChainBlock(
 	headerHandler data.HeaderHandler,

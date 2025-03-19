@@ -302,6 +302,76 @@ func TestDelayedBlockBroadcaster_HeaderReceivedForNotRegisteredDelayedDataShould
 	assert.False(t, txBroadcastCalled.IsSet())
 }
 
+func TestDelayedBlockBroadcaster_HeaderReceivedForRegisteredDelayedDataWithoutSignaturesForShardShouldNotBroadcastTheData(t *testing.T) {
+	t.Parallel()
+
+	var logOutput bytes.Buffer
+	customFormatter := &logger.PlainFormatter{}
+	err := logger.AddLogObserver(&logOutput, customFormatter)
+	require.Nil(t, err)
+
+	originalLogPattern := logger.GetLogLevelPattern()
+	err = logger.SetLogLevel("*:TRACE")
+	require.Nil(t, err)
+
+	mbBroadcastCalled := atomic.Flag{}
+	txBroadcastCalled := atomic.Flag{}
+
+	broadcastMiniBlocks := func(mbData map[uint32][]byte, pk []byte) error {
+		_ = mbBroadcastCalled.SetReturningPrevious()
+		return nil
+	}
+	broadcastTransactions := func(txData map[string][][]byte, pk []byte) error {
+		_ = txBroadcastCalled.SetReturningPrevious()
+		return nil
+	}
+	broadcastHeader := func(header data.HeaderHandler, pk []byte) error {
+		return nil
+	}
+	broadcastConsensusMessage := func(message *consensus.Message) error {
+		return nil
+	}
+
+	delayBroadcasterArgs := createDefaultDelayedBroadcasterArgs()
+	dbb, err := broadcast.NewDelayedBlockBroadcaster(delayBroadcasterArgs)
+	require.Nil(t, err)
+
+	err = dbb.SetBroadcastHandlers(broadcastMiniBlocks, broadcastTransactions, broadcastHeader, broadcastConsensusMessage)
+	require.Nil(t, err)
+
+	headerHash, _, miniblocksData, transactionsData := createDelayData("1")
+	delayedData := broadcast.CreateDelayBroadcastDataForLeader(headerHash, miniblocksData, transactionsData)
+	err = dbb.SetLeaderData(delayedData)
+
+	metaBlock := createMetaBlock()
+	metaBlock.ShardInfo[0].HeaderHash = headerHash
+	metaBlock.ShardInfo[0].ShardID = 2
+
+	assert.Nil(t, err)
+	time.Sleep(10 * time.Millisecond)
+	assert.False(t, mbBroadcastCalled.IsSet())
+	assert.False(t, txBroadcastCalled.IsSet())
+
+	dbb.HeaderReceived(metaBlock, []byte("meta hash"))
+	sleepTime := common.ExtraDelayForBroadcastBlockInfo +
+		common.ExtraDelayBetweenBroadcastMbsAndTxs +
+		120*time.Millisecond
+	time.Sleep(sleepTime)
+
+	logOutputStr := logOutput.String()
+	expectedLogMsg := "delayedBlockBroadcaster.headerReceived: header received with no shardData for current shard"
+	require.Contains(t, logOutputStr, expectedLogMsg)
+	require.Contains(t, logOutputStr, fmt.Sprintf("headerHash = %s", hex.EncodeToString(headerHash)))
+
+	assert.False(t, mbBroadcastCalled.IsSet())
+	assert.False(t, txBroadcastCalled.IsSet())
+
+	err = logger.RemoveLogObserver(&logOutput)
+	require.Nil(t, err)
+	err = logger.SetLogLevel(originalLogPattern)
+	require.Nil(t, err)
+}
+
 func TestDelayedBlockBroadcaster_HeaderReceivedForNextRegisteredDelayedDataShouldBroadcastBoth(t *testing.T) {
 	t.Parallel()
 
@@ -631,6 +701,82 @@ func TestDelayedBlockBroadcaster_SetHeaderForValidatorShouldSetAlarmAndBroadcast
 
 	vbb = dbb.GetValidatorHeaderBroadcastData()
 	require.Equal(t, 0, len(vbb))
+}
+
+func TestDelayedBlockBroadcaster_SetHeaderForValidator_BroadcastHeaderError(t *testing.T) {
+	var logOutput bytes.Buffer
+	customFormatter := &logger.PlainFormatter{}
+	err := logger.AddLogObserver(&logOutput, customFormatter)
+	require.Nil(t, err)
+
+	originalLogPattern := logger.GetLogLevelPattern()
+	err = logger.SetLogLevel("*:WARN")
+	require.Nil(t, err)
+
+	mbBroadcastCalled := atomic.Counter{}
+	txBroadcastCalled := atomic.Counter{}
+
+	broadcastError := "broadcast error"
+
+	broadcastMiniBlocks := func(mbData map[uint32][]byte, pk []byte) error {
+		mbBroadcastCalled.Increment()
+		return nil
+	}
+	broadcastTransactions := func(txData map[string][][]byte, pk []byte) error {
+		txBroadcastCalled.Increment()
+		return nil
+	}
+	broadcastHeader := func(header data.HeaderHandler, pk []byte) error {
+		return fmt.Errorf(broadcastError)
+	}
+	broadcastConsensusMessage := func(message *consensus.Message) error {
+		return nil
+	}
+
+	delayBroadcasterArgs := createDefaultDelayedBroadcasterArgs()
+	dbb, err := broadcast.NewDelayedBlockBroadcaster(delayBroadcasterArgs)
+	require.Nil(t, err)
+
+	err = dbb.SetBroadcastHandlers(broadcastMiniBlocks, broadcastTransactions, broadcastHeader, broadcastConsensusMessage)
+	require.Nil(t, err)
+
+	vArgs := createValidatorDelayArgs(0)
+	err = vArgs.header.SetSignature([]byte("agg sig"))
+	require.Nil(t, err)
+
+	valHeaderData := broadcast.CreateValidatorHeaderBroadcastData(
+		vArgs.headerHash,
+		vArgs.header,
+		vArgs.metaMiniBlocks,
+		vArgs.metaTransactions,
+		vArgs.order,
+	)
+	err = dbb.SetHeaderForValidator(valHeaderData)
+	require.Nil(t, err)
+
+	vbb := dbb.GetValidatorHeaderBroadcastData()
+	require.Equal(t, 1, len(vbb))
+	require.Equal(t, int64(0), mbBroadcastCalled.Get())
+	require.Equal(t, int64(0), txBroadcastCalled.Get())
+
+	sleepTime := broadcast.ValidatorDelayPerOrder()*time.Duration(vArgs.order) +
+		time.Millisecond*100
+	time.Sleep(sleepTime)
+
+	logOutputStr := logOutput.String()
+	expectedLogMsg := "delayedBlockBroadcaster.headerAlarmExpired error = %s"
+	require.Contains(t, logOutputStr, fmt.Sprintf(expectedLogMsg, broadcastError))
+
+	require.Equal(t, int64(0), mbBroadcastCalled.Get())
+	require.Equal(t, int64(0), txBroadcastCalled.Get())
+
+	vbb = dbb.GetValidatorHeaderBroadcastData()
+	require.Equal(t, 0, len(vbb))
+
+	err = logger.RemoveLogObserver(&logOutput)
+	require.Nil(t, err)
+	err = logger.SetLogLevel(originalLogPattern)
+	require.Nil(t, err)
 }
 
 func TestDelayedBlockBroadcaster_SetValidatorDataFinalizedMetaHeaderShouldSetAlarmAndBroadcastHeaderAndData(t *testing.T) {
@@ -1262,6 +1408,64 @@ func TestDelayedBlockBroadcaster_AlarmExpiredShouldDoNothingForNotRegisteredData
 
 	vbd = dbb.GetValidatorBroadcastData()
 	require.Equal(t, 1, len(vbd))
+}
+
+func TestDelayedBlockBroadcaster_HeaderAlarmExpired_InvalidAlarmID(t *testing.T) {
+	var logOutput bytes.Buffer
+	customFormatter := &logger.PlainFormatter{}
+	err := logger.AddLogObserver(&logOutput, customFormatter)
+	require.Nil(t, err)
+
+	originalLogPattern := logger.GetLogLevelPattern()
+	err = logger.SetLogLevel("*:ERROR")
+	require.Nil(t, err)
+
+	delayBroadcasterArgs := createDefaultDelayedBroadcasterArgs()
+	dbb, err := broadcast.NewDelayedBlockBroadcaster(delayBroadcasterArgs)
+	require.Nil(t, err)
+
+	invalidAlarmID := "invalid_alarm_id"
+	dbb.HeaderAlarmExpired(invalidAlarmID)
+
+	logOutputStr := logOutput.String()
+	expectedLogMsg := "delayedBlockBroadcaster.headerAlarmExpired"
+	require.Contains(t, logOutputStr, expectedLogMsg)
+	require.Contains(t, logOutputStr, fmt.Sprintf("alarmID = %s", invalidAlarmID))
+
+	err = logger.RemoveLogObserver(&logOutput)
+	require.Nil(t, err)
+	err = logger.SetLogLevel(originalLogPattern)
+	require.Nil(t, err)
+}
+
+func TestDelayedBlockBroadcaster_HeaderAlarmExpired_HeaderDataNil(t *testing.T) {
+	var logOutput bytes.Buffer
+	customFormatter := &logger.PlainFormatter{}
+	err := logger.AddLogObserver(&logOutput, customFormatter)
+	require.Nil(t, err)
+
+	originalLogPattern := logger.GetLogLevelPattern()
+	err = logger.SetLogLevel("*:DEBUG")
+	require.Nil(t, err)
+
+	delayBroadcasterArgs := createDefaultDelayedBroadcasterArgs()
+	dbb, err := broadcast.NewDelayedBlockBroadcaster(delayBroadcasterArgs)
+	require.Nil(t, err)
+
+	invalidHeaderHash := []byte("invalid_header_hash")
+	alarmID := "header_" + hex.EncodeToString(invalidHeaderHash)
+
+	dbb.HeaderAlarmExpired(alarmID)
+
+	logOutputStr := logOutput.String()
+	expectedLogMsg := "delayedBlockBroadcaster.headerAlarmExpired: alarm data is nil"
+	require.Contains(t, logOutputStr, expectedLogMsg)
+	require.Contains(t, logOutputStr, "alarmID = "+alarmID)
+
+	err = logger.RemoveLogObserver(&logOutput)
+	require.Nil(t, err)
+	err = logger.SetLogLevel(originalLogPattern)
+	require.Nil(t, err)
 }
 
 func TestDelayedBlockBroadcaster_RegisterInterceptorCallback(t *testing.T) {
