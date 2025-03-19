@@ -10,7 +10,8 @@ import (
 func TestCreateStore(t *testing.T) {
 	t.Parallel()
 
-	store := CreateStore(2)
+	store, err := CreateStorageService(2, TriePathAndRootHash{}, nil)
+	require.Nil(t, err)
 	require.NotNil(t, store)
 
 	expectedUnits := []dataRetriever.UnitType{

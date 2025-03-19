@@ -59,6 +59,7 @@ type ArgsChainSimulator struct {
 	ApiInterface               components.APIConfigurator
 	AlterConfigsFunction       func(cfg *config.Configs)
 	VmQueryDelayAfterStartInMs uint64
+	TrieStoragePaths           map[string]components.TriePathAndRootHash
 }
 
 // ArgsBaseChainSimulator holds the arguments needed to create a new instance of simulator
@@ -214,6 +215,7 @@ func (s *simulator) createTestNode(
 		MetaChainConsensusGroupSize: args.MetaChainConsensusGroupSize,
 		RoundDurationInMillis:       args.RoundDurationInMillis,
 		VmQueryDelayAfterStartInMs:  args.VmQueryDelayAfterStartInMs,
+		TrieStoragePath:             args.TrieStoragePaths[shardIDStr],
 	}
 
 	return components.NewTestOnlyProcessingNode(argsTestOnlyProcessorNode)
