@@ -340,7 +340,7 @@ func (hsv *HeaderSigVerifier) VerifyHeaderWithProof(header data.HeaderHandler) e
 			return err
 		}
 
-		_ = hsv.proofsPool.AddProof(prevProof)
+		_ = hsv.proofsPool.UpsertProof(prevProof)
 		return nil
 	}
 
@@ -349,7 +349,7 @@ func (hsv *HeaderSigVerifier) VerifyHeaderWithProof(header data.HeaderHandler) e
 		return err
 	}
 
-	_ = hsv.proofsPool.AddProof(prevProof)
+	_ = hsv.proofsPool.UpsertProof(prevProof)
 
 	return nil
 }

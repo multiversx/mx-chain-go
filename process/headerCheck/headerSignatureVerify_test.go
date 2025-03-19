@@ -1325,7 +1325,7 @@ func TestHeaderSigVerifier_VerifyHeaderWithProof(t *testing.T) {
 		}
 		wasAddProofCalled := false
 		args.ProofsPool = &dataRetrieverMocks.ProofsPoolMock{
-			AddProofCalled: func(headerProof data.HeaderProofHandler) bool {
+			UpsertProofCalled: func(headerProof data.HeaderProofHandler) bool {
 				wasAddProofCalled = true
 				return true
 			},
@@ -1418,7 +1418,7 @@ func TestHeaderSigVerifier_VerifyHeaderWithProof(t *testing.T) {
 		}
 		wasAddProofCalled := false
 		args.ProofsPool = &dataRetrieverMocks.ProofsPoolMock{
-			AddProofCalled: func(headerProof data.HeaderProofHandler) bool {
+			UpsertProofCalled: func(headerProof data.HeaderProofHandler) bool {
 				wasAddProofCalled = true
 				return true
 			},

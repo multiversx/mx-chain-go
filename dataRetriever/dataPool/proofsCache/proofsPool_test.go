@@ -66,12 +66,15 @@ func TestProofsPool_ShouldWork(t *testing.T) {
 
 	pp := proofscache.NewProofsPool(cleanupDelta, bucketSize)
 
+	ok := pp.AddProof(nil)
+	require.False(t, ok)
+
 	_ = pp.AddProof(proof1)
 	_ = pp.AddProof(proof2)
 	_ = pp.AddProof(proof3)
 	_ = pp.AddProof(proof4)
 
-	ok := pp.AddProof(proof4)
+	ok = pp.AddProof(proof4)
 	require.False(t, ok)
 
 	proof, err := pp.GetProof(shardID, []byte("hash3"))
@@ -88,6 +91,99 @@ func TestProofsPool_ShouldWork(t *testing.T) {
 	proof, err = pp.GetProof(shardID, []byte("hash4"))
 	require.Nil(t, err)
 	require.Equal(t, proof4, proof)
+}
+
+func TestProofsPool_Upsert(t *testing.T) {
+	t.Parallel()
+
+	pp := proofscache.NewProofsPool(cleanupDelta, bucketSize)
+
+	ok := pp.UpsertProof(nil)
+	require.False(t, ok)
+
+	ok = pp.UpsertProof(proof1)
+	require.True(t, ok)
+
+	proof, err := pp.GetProof(shardID, []byte("hash1"))
+	require.Nil(t, err)
+	require.NotNil(t, proof)
+
+	require.Equal(t, proof1.GetAggregatedSignature(), proof.GetAggregatedSignature())
+	require.Equal(t, proof1.GetPubKeysBitmap(), proof.GetPubKeysBitmap())
+
+	newProof1 := &block.HeaderProof{
+		PubKeysBitmap:       []byte("newpubKeysBitmap1"),
+		AggregatedSignature: []byte("newaggSig1"),
+		HeaderHash:          []byte("hash1"),
+		HeaderEpoch:         1,
+		HeaderNonce:         1,
+		HeaderShardId:       shardID,
+	}
+
+	ok = pp.UpsertProof(newProof1)
+	require.True(t, ok)
+
+	proof, err = pp.GetProof(shardID, []byte("hash1"))
+	require.Nil(t, err)
+	require.NotNil(t, proof)
+
+	require.Equal(t, newProof1.GetAggregatedSignature(), proof.GetAggregatedSignature())
+	require.Equal(t, newProof1.GetPubKeysBitmap(), proof.GetPubKeysBitmap())
+}
+
+func TestProofsPool_IsProofEqual(t *testing.T) {
+	t.Parallel()
+
+	t.Run("not existing proof, should fail", func(t *testing.T) {
+		t.Parallel()
+
+		pp := proofscache.NewProofsPool(cleanupDelta, bucketSize)
+
+		ok := pp.IsProofInPoolEqualTo(proof1)
+		require.False(t, ok)
+	})
+
+	t.Run("nil provided proof, should fail", func(t *testing.T) {
+		t.Parallel()
+
+		pp := proofscache.NewProofsPool(cleanupDelta, bucketSize)
+
+		ok := pp.IsProofInPoolEqualTo(nil)
+		require.False(t, ok)
+	})
+
+	t.Run("same proof, should return true", func(t *testing.T) {
+		t.Parallel()
+
+		pp := proofscache.NewProofsPool(cleanupDelta, bucketSize)
+
+		ok := pp.UpsertProof(proof1)
+		require.True(t, ok)
+
+		ok = pp.IsProofInPoolEqualTo(proof1)
+		require.True(t, ok)
+	})
+
+	t.Run("not equal, should return false", func(t *testing.T) {
+		t.Parallel()
+
+		pp := proofscache.NewProofsPool(cleanupDelta, bucketSize)
+
+		ok := pp.UpsertProof(proof1)
+		require.True(t, ok)
+
+		newProof1 := &block.HeaderProof{
+			PubKeysBitmap:       []byte("newpubKeysBitmap1"),
+			AggregatedSignature: []byte("newaggSig1"),
+			HeaderHash:          []byte("hash1"),
+			HeaderEpoch:         1,
+			HeaderNonce:         1,
+			HeaderShardId:       shardID,
+		}
+
+		ok = pp.IsProofInPoolEqualTo(newProof1)
+		require.False(t, ok)
+	})
 }
 
 func TestProofsPool_RegisterHandler(t *testing.T) {
