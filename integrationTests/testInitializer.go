@@ -1167,10 +1167,6 @@ func ProposeBlock(nodes []*TestProcessorNode, leaders []*TestProcessorNode, roun
 	log.Info("Proposed block\n" + MakeDisplayTable(nodes))
 }
 
-func proofsEnabledFromGenesis(n *TestProcessorNode) bool {
-	return n.EnableEpochsHandler.GetActivationEpoch(common.EquivalentMessagesFlag) == 0
-}
-
 // SyncBlock synchronizes the proposed block in all the other shard nodes
 func SyncBlock(
 	t *testing.T,
