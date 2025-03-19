@@ -326,7 +326,7 @@ func (tcn *TestConsensusNode) initNode(args ArgsTestConsensusNode) {
 	argsKeysHolder := keysManagement.ArgsManagedPeersHolder{
 		KeyGenerator:          args.KeyGen,
 		P2PKeyGenerator:       args.P2PKeyGen,
-		MaxRoundsOfInactivity: 0,
+		MaxRoundsOfInactivity: 0, // 0 for main node, non-0 for backup node
 		PrefsConfig:           config.Preferences{},
 		P2PKeyConverter:       p2pFactory.NewP2PKeyConverter(),
 	}
