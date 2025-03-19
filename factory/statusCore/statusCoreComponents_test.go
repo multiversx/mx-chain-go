@@ -93,7 +93,7 @@ func TestStatusCoreComponentsFactory_Create(t *testing.T) {
 		expectedErr := errors.New("expected error")
 		coreCompStub := factory.NewCoreComponentsHolderStubFromRealComponent(componentsMock.GetCoreComponents())
 		coreCompStub.EconomicsDataCalled = func() process.EconomicsDataHandler {
-			return &economicsmocks.EconomicsHandlerStub{
+			return &economicsmocks.EconomicsHandlerMock{
 				SetStatusHandlerCalled: func(statusHandler core.AppStatusHandler) error {
 					return expectedErr
 				},

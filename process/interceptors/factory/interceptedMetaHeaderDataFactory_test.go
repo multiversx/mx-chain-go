@@ -58,7 +58,7 @@ func createMockPubkeyConverter() core.PubkeyConverter {
 }
 
 func createMockFeeHandler() process.FeeHandler {
-	return &economicsmocks.EconomicsHandlerStub{}
+	return &economicsmocks.EconomicsHandlerMock{}
 }
 
 func createMockComponentHolders() (*mock.CoreComponentsMock, *mock.CryptoComponentsMock) {

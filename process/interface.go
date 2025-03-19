@@ -658,6 +658,12 @@ type rewardsHandler interface {
 	MaxInflationRate(year uint32) float64
 	RewardsTopUpGradientPoint() *big.Int
 	RewardsTopUpFactor() float64
+	LeaderPercentageInEpoch(epoch uint32) float64
+	DeveloperPercentageInEpoch(epoch uint32) float64
+	ProtocolSustainabilityPercentageInEpoch(epoch uint32) float64
+	ProtocolSustainabilityAddressInEpoch(epoch uint32) string
+	RewardsTopUpGradientPointInEpoch(epoch uint32) *big.Int
+	RewardsTopUpFactorInEpoch(epoch uint32) float64
 }
 
 // RewardsHandler will return information about rewards
