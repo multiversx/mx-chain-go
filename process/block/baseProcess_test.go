@@ -458,7 +458,7 @@ func createMockTransactionCoordinatorArguments(
 		FeeHandler:                   &mock.FeeAccumulatorStub{},
 		BlockSizeComputation:         &testscommon.BlockSizeComputationStub{},
 		BalanceComputation:           &testscommon.BalanceComputationStub{},
-		EconomicsFee:                 &economicsmocks.EconomicsHandlerStub{},
+		EconomicsFee:                 &economicsmocks.EconomicsHandlerMock{},
 		TxTypeHandler:                &testscommon.TxTypeHandlerMock{},
 		TransactionsLogProcessor:     &mock.TxLogsProcessorStub{},
 		EnableEpochsHandler:          enableEpochsHandlerMock.NewEnableEpochsHandlerStub(),
