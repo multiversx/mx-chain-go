@@ -1,6 +1,10 @@
 package chainSimulator
 
-import "github.com/multiversx/mx-chain-go/node/chainSimulator/process"
+import (
+	"github.com/multiversx/mx-chain-go/node/chainSimulator/dtos"
+	"github.com/multiversx/mx-chain-go/node/chainSimulator/process"
+	"math/big"
+)
 
 // ChainHandler defines what a chain handler should be able to do
 type ChainHandler interface {
@@ -13,5 +17,7 @@ type ChainHandler interface {
 type ChainSimulator interface {
 	GenerateBlocks(numOfBlocks int) error
 	GetNodeHandler(shardID uint32) process.NodeHandler
+	GenerateAddressInShard(providedShardID uint32) dtos.WalletAddress
+	GenerateAndMintWalletAddress(targetShardID uint32, value *big.Int) (dtos.WalletAddress, error)
 	IsInterfaceNil() bool
 }
