@@ -52,15 +52,15 @@ type txInfoHolder struct {
 	tx   *transaction.Transaction
 }
 
-func feeHandlerMock() *economicsmocks.EconomicsHandlerStub {
-	return &economicsmocks.EconomicsHandlerStub{
+func feeHandlerMock() *economicsmocks.EconomicsHandlerMock {
+	return &economicsmocks.EconomicsHandlerMock{
 		ComputeGasLimitCalled: func(tx data.TransactionWithFeeHandler) uint64 {
 			return 0
 		},
 		MaxGasLimitPerBlockCalled: func(_ uint32) uint64 {
 			return MaxGasLimitPerBlock
 		},
-		MaxGasLimitPerMiniBlockCalled: func() uint64 {
+		MaxGasLimitPerMiniBlockCalled: func(shardID uint32) uint64 {
 			return MaxGasLimitPerBlock
 		},
 		MaxGasLimitPerBlockForSafeCrossShardCalled: func() uint64 {
@@ -1398,7 +1398,7 @@ func TestTransactionsPreprocessor_ComputeGasProvidedShouldWork(t *testing.T) {
 	txGasLimitInSender := maxGasLimit + 1
 	txGasLimitInReceiver := maxGasLimit
 	args := createDefaultTransactionsProcessorArgs()
-	args.EconomicsFee = &economicsmocks.EconomicsHandlerStub{
+	args.EconomicsFee = &economicsmocks.EconomicsHandlerMock{
 		MaxGasLimitPerBlockCalled: func(_ uint32) uint64 {
 			return maxGasLimit
 		},
@@ -1444,7 +1444,7 @@ func TestTransactionsPreprocessor_SplitMiniBlocksIfNeededShouldWork(t *testing.T
 	args := createDefaultTransactionsProcessorArgs()
 	enableEpochsHandlerStub := enableEpochsHandlerMock.NewEnableEpochsHandlerStub()
 	args.EnableEpochsHandler = enableEpochsHandlerStub
-	args.EconomicsFee = &economicsmocks.EconomicsHandlerStub{
+	args.EconomicsFee = &economicsmocks.EconomicsHandlerMock{
 		MaxGasLimitPerMiniBlockForSafeCrossShardCalled: func() uint64 {
 			return gasLimitPerMiniBlock
 		},
@@ -1512,7 +1512,7 @@ func TestTransactionsPreProcessor_preFilterTransactionsNoBandwidth(t *testing.T)
 			return txHandler.GetGasLimit(), txHandler.GetGasLimit(), nil
 		},
 	}
-	economicsFee := &economicsmocks.EconomicsHandlerStub{
+	economicsFee := &economicsmocks.EconomicsHandlerMock{
 		MinGasLimitCalled: func() uint64 {
 			return 10
 		},
@@ -1562,7 +1562,7 @@ func TestTransactionsPreProcessor_preFilterTransactionsLimitedBandwidthMultipleT
 			return txHandler.GetGasLimit(), txHandler.GetGasLimit(), nil
 		},
 	}
-	economicsFee := &economicsmocks.EconomicsHandlerStub{
+	economicsFee := &economicsmocks.EconomicsHandlerMock{
 		MinGasLimitCalled: func() uint64 {
 			return 10
 		},
@@ -1623,7 +1623,7 @@ func TestTransactionsPreProcessor_preFilterTransactionsLimitedBandwidthMultipleT
 			return txHandler.GetGasLimit(), txHandler.GetGasLimit(), nil
 		},
 	}
-	economicsFee := &economicsmocks.EconomicsHandlerStub{
+	economicsFee := &economicsmocks.EconomicsHandlerMock{
 		MinGasLimitCalled: func() uint64 {
 			return 10
 		},
@@ -1692,7 +1692,7 @@ func TestTransactionsPreProcessor_preFilterTransactionsHighBandwidth(t *testing.
 			return txHandler.GetGasLimit(), txHandler.GetGasLimit(), nil
 		},
 	}
-	economicsFee := &economicsmocks.EconomicsHandlerStub{
+	economicsFee := &economicsmocks.EconomicsHandlerMock{
 		MinGasLimitCalled: func() uint64 {
 			return 10
 		},
@@ -1752,7 +1752,7 @@ func TestTransactionsPreProcessor_getRemainingGasPerBlock(t *testing.T) {
 			return totalGasProvided
 		},
 	}
-	economicsFee := &economicsmocks.EconomicsHandlerStub{
+	economicsFee := &economicsmocks.EconomicsHandlerMock{
 		MaxGasLimitPerBlockCalled: func(shardID uint32) uint64 {
 			return maxGasPerBlock
 		},
@@ -1782,7 +1782,7 @@ func TestTransactionsPreProcessor_getRemainingGasPerBlockAsScheduled(t *testing.
 			return totalGasProvided
 		},
 	}
-	economicsFee := &economicsmocks.EconomicsHandlerStub{
+	economicsFee := &economicsmocks.EconomicsHandlerMock{
 		MaxGasLimitPerBlockCalled: func(shardID uint32) uint64 {
 			return maxGasPerBlock
 		},

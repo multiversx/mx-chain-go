@@ -209,7 +209,7 @@ func createMockEpochStartBootstrapArgs(
 			},
 			Requesters: generalCfg.Requesters,
 		},
-		EconomicsData: &economicsmocks.EconomicsHandlerStub{
+		EconomicsData: &economicsmocks.EconomicsHandlerMock{
 			MinGasPriceCalled: func() uint64 {
 				return 1
 			},
