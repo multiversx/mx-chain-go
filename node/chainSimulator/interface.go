@@ -1,9 +1,10 @@
 package chainSimulator
 
 import (
+	"math/big"
+
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/dtos"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/process"
-	"math/big"
 )
 
 // ChainHandler defines what a chain handler should be able to do
