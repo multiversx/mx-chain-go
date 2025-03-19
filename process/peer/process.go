@@ -671,6 +671,10 @@ func (vs *validatorStatistics) verifySignaturesBelowSignedThreshold(
 		return nil
 	}
 
+	if vs.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, epoch) {
+		return nil
+	}
+
 	validatorOccurrences := core.MaxUint32(1, validator.GetValidatorSuccess()+validator.GetValidatorFailure()+validator.GetValidatorIgnoredSignatures())
 	computedThreshold := float32(validator.GetValidatorSuccess()) / float32(validatorOccurrences)
 
