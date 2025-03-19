@@ -1160,22 +1160,6 @@ func ProposeBlock(nodes []*TestProcessorNode, leaders []*TestProcessorNode, roun
 		pk := n.NodeKeys.MainKey.Pk
 		n.BroadcastBlock(body, header, pk)
 		n.CommitBlock(body, header)
-
-		if proofsEnabledFromGenesis(n) {
-			coreComp := n.Node.GetCoreComponents()
-			hash, _ := core.CalculateHash(coreComp.InternalMarshalizer(), coreComp.Hasher(), header)
-			headerProof := &dataBlock.HeaderProof{
-				PubKeysBitmap:       header.GetPubKeysBitmap(),
-				AggregatedSignature: header.GetSignature(),
-				HeaderHash:          hash,
-				HeaderEpoch:         header.GetEpoch(),
-				HeaderNonce:         header.GetNonce(),
-				HeaderShardId:       header.GetShardID(),
-				HeaderRound:         header.GetRound(),
-				IsStartOfEpoch:      header.IsStartOfEpochBlock(),
-			}
-			n.BroadcastProof(headerProof, pk)
-		}
 	}
 
 	log.Info("Delaying for disseminating headers and miniblocks...")

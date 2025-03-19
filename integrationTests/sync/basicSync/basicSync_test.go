@@ -278,10 +278,10 @@ func TestSyncWorksInShard_EmptyBlocksNoForks_With_EquivalentProofs(t *testing.T)
 		if check.IfNil(nodes[i].BlockChain.GetCurrentBlockHeader()) {
 			assert.Fail(t, fmt.Sprintf("Node with idx %d does not have a current block", i))
 		} else {
-			if i == idxProposerMeta {
+			if i == idxProposerMeta { // metachain node has highest nonce since it's single node and it did not synced the header
 				assert.Equal(t, expectedNonce, nodes[i].BlockChain.GetCurrentBlockHeader().GetNonce())
-			} else {
-				assert.Equal(t, expectedNonce, nodes[i].BlockChain.GetCurrentBlockHeader().GetNonce())
+			} else { // shard nodes have not managed to sync last header since there is no proof for it; in the complete flow, when nodes will be fully sinced they will get current header directly from consensus, so they will receive the proof for header
+				assert.Equal(t, expectedNonce-1, nodes[i].BlockChain.GetCurrentBlockHeader().GetNonce())
 			}
 		}
 	}
@@ -372,9 +372,10 @@ func TestSyncMetaAndShard_With_EquivalentProofs(t *testing.T) {
 		if check.IfNil(nodes[i].BlockChain.GetCurrentBlockHeader()) {
 			assert.Fail(t, fmt.Sprintf("Node with idx %d does not have a current block", i))
 		} else {
-			if i == idxProposerMeta {
+			if i == idxProposerMeta { // metachain node has highest nonce since it's single node and it did not synced the header
 				assert.Equal(t, expectedNonce, nodes[i].BlockChain.GetCurrentBlockHeader().GetNonce())
-				assert.Equal(t, expectedNonce, nodes[i].BlockChain.GetCurrentBlockHeader().GetNonce())
+			} else { // shard nodes have not managed to sync last header since there is no proof for it; in the complete flow, when nodes will be fully sinced they will get current header directly from consensus, so they will receive the proof for header
+				assert.Equal(t, expectedNonce-1, nodes[i].BlockChain.GetCurrentBlockHeader().GetNonce())
 			}
 		}
 	}
