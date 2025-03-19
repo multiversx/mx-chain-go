@@ -2893,12 +2893,6 @@ func (tpn *TestProcessorNode) BroadcastBlock(body data.BodyHandler, header data.
 	_ = tpn.BroadcastMessenger.BroadcastTransactions(transactions, pkBytes)
 }
 
-// BroadcastProof broadcasts the proof to the connected peers
-func (tpn *TestProcessorNode) BroadcastProof(proof data.HeaderProofHandler, publicKey crypto.PublicKey) {
-	pkBytes, _ := publicKey.ToByteArray()
-	_ = tpn.BroadcastMessenger.BroadcastEquivalentProof(proof, pkBytes)
-}
-
 // WhiteListBody will whitelist all miniblocks from the given body for all the given nodes
 func (tpn *TestProcessorNode) WhiteListBody(nodes []*TestProcessorNode, bodyHandler data.BodyHandler) {
 	body, ok := bodyHandler.(*dataBlock.Body)
