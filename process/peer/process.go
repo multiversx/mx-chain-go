@@ -404,16 +404,15 @@ func (vs *validatorStatistics) UpdatePeerState(header data.MetaHeaderHandler, ca
 	log.Trace("Increasing for leader", "leader", leaderPK, "round", previousHeader.GetRound())
 
 	log.Debug("UpdatePeerState - registering meta previous leader fees", "metaNonce", previousHeader.GetNonce())
-	bitmap := previousHeader.GetPubKeysBitmap()
-	if vs.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, previousHeader.GetEpoch()) {
-		bitmap = vs.getBitmapForFullConsensus(previousHeader.GetShardID(), previousHeader.GetEpoch())
-	}
+
+	bitmap := vs.getBitmapForHeader(previousHeader)
 	err = vs.updateValidatorInfoOnSuccessfulBlock(
 		leader,
 		consensusGroup,
 		bitmap,
 		big.NewInt(0).Sub(previousHeader.GetAccumulatedFees(), previousHeader.GetDeveloperFees()),
 		previousHeader.GetShardID(),
+		previousHeader.GetEpoch(),
 	)
 	if err != nil {
 		return nil, err
@@ -427,6 +426,14 @@ func (vs *validatorStatistics) UpdatePeerState(header data.MetaHeaderHandler, ca
 	log.Trace("after updating validator stats", "rootHash", rootHash, "round", header.GetRound(), "selfId", vs.shardCoordinator.SelfId())
 
 	return rootHash, nil
+}
+
+func (vs *validatorStatistics) getBitmapForHeader(header data.HeaderHandler) []byte {
+	bitmap := header.GetPubKeysBitmap()
+	if vs.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, header.GetEpoch()) {
+		bitmap = vs.getBitmapForFullConsensus(header.GetShardID(), header.GetEpoch())
+	}
+	return bitmap
 }
 
 func computeEpoch(header data.HeaderHandler) uint32 {
@@ -953,6 +960,7 @@ func (vs *validatorStatistics) updateShardDataPeerState(
 			bitmap,
 			big.NewInt(0).Sub(h.AccumulatedFees, h.DeveloperFees),
 			h.ShardID,
+			currentHeader.GetEpoch(),
 		)
 		if shardInfoErr != nil {
 			return shardInfoErr
@@ -1041,6 +1049,7 @@ func (vs *validatorStatistics) updateValidatorInfoOnSuccessfulBlock(
 	signingBitmap []byte,
 	accumulatedFees *big.Int,
 	shardId uint32,
+	epoch uint32,
 ) error {
 
 	if len(signingBitmap) == 0 {
@@ -1067,9 +1076,9 @@ func (vs *validatorStatistics) updateValidatorInfoOnSuccessfulBlock(
 			newRating = vs.rater.ComputeIncreaseProposer(shardId, peerAcc.GetTempRating())
 			var leaderAccumulatedFees *big.Int
 			if vs.enableEpochsHandler.IsFlagEnabled(common.StakingV2FlagAfterEpoch) {
-				leaderAccumulatedFees = core.GetIntTrimmedPercentageOfValue(accumulatedFees, vs.rewardsHandler.LeaderPercentage())
+				leaderAccumulatedFees = core.GetIntTrimmedPercentageOfValue(accumulatedFees, vs.rewardsHandler.LeaderPercentageInEpoch(epoch))
 			} else {
-				leaderAccumulatedFees = core.GetApproximatePercentageOfValue(accumulatedFees, vs.rewardsHandler.LeaderPercentage())
+				leaderAccumulatedFees = core.GetApproximatePercentageOfValue(accumulatedFees, vs.rewardsHandler.LeaderPercentageInEpoch(epoch))
 			}
 
 			peerAcc.AddToAccumulatedFees(leaderAccumulatedFees)

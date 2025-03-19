@@ -16,6 +16,7 @@ import (
 )
 
 const cleanupDelta = 3
+const bucketSize = 100
 
 var shardID = uint32(1)
 
@@ -56,21 +57,24 @@ var proof4 = &block.HeaderProof{
 func TestNewProofsPool(t *testing.T) {
 	t.Parallel()
 
-	pp := proofscache.NewProofsPool(cleanupDelta)
+	pp := proofscache.NewProofsPool(cleanupDelta, bucketSize)
 	require.False(t, pp.IsInterfaceNil())
 }
 
 func TestProofsPool_ShouldWork(t *testing.T) {
 	t.Parallel()
 
-	pp := proofscache.NewProofsPool(cleanupDelta)
+	pp := proofscache.NewProofsPool(cleanupDelta, bucketSize)
+
+	ok := pp.AddProof(nil)
+	require.False(t, ok)
 
 	_ = pp.AddProof(proof1)
 	_ = pp.AddProof(proof2)
 	_ = pp.AddProof(proof3)
 	_ = pp.AddProof(proof4)
 
-	ok := pp.AddProof(proof4)
+	ok = pp.AddProof(proof4)
 	require.False(t, ok)
 
 	proof, err := pp.GetProof(shardID, []byte("hash3"))
@@ -89,10 +93,103 @@ func TestProofsPool_ShouldWork(t *testing.T) {
 	require.Equal(t, proof4, proof)
 }
 
+func TestProofsPool_Upsert(t *testing.T) {
+	t.Parallel()
+
+	pp := proofscache.NewProofsPool(cleanupDelta, bucketSize)
+
+	ok := pp.UpsertProof(nil)
+	require.False(t, ok)
+
+	ok = pp.UpsertProof(proof1)
+	require.True(t, ok)
+
+	proof, err := pp.GetProof(shardID, []byte("hash1"))
+	require.Nil(t, err)
+	require.NotNil(t, proof)
+
+	require.Equal(t, proof1.GetAggregatedSignature(), proof.GetAggregatedSignature())
+	require.Equal(t, proof1.GetPubKeysBitmap(), proof.GetPubKeysBitmap())
+
+	newProof1 := &block.HeaderProof{
+		PubKeysBitmap:       []byte("newpubKeysBitmap1"),
+		AggregatedSignature: []byte("newaggSig1"),
+		HeaderHash:          []byte("hash1"),
+		HeaderEpoch:         1,
+		HeaderNonce:         1,
+		HeaderShardId:       shardID,
+	}
+
+	ok = pp.UpsertProof(newProof1)
+	require.True(t, ok)
+
+	proof, err = pp.GetProof(shardID, []byte("hash1"))
+	require.Nil(t, err)
+	require.NotNil(t, proof)
+
+	require.Equal(t, newProof1.GetAggregatedSignature(), proof.GetAggregatedSignature())
+	require.Equal(t, newProof1.GetPubKeysBitmap(), proof.GetPubKeysBitmap())
+}
+
+func TestProofsPool_IsProofEqual(t *testing.T) {
+	t.Parallel()
+
+	t.Run("not existing proof, should fail", func(t *testing.T) {
+		t.Parallel()
+
+		pp := proofscache.NewProofsPool(cleanupDelta, bucketSize)
+
+		ok := pp.IsProofInPoolEqualTo(proof1)
+		require.False(t, ok)
+	})
+
+	t.Run("nil provided proof, should fail", func(t *testing.T) {
+		t.Parallel()
+
+		pp := proofscache.NewProofsPool(cleanupDelta, bucketSize)
+
+		ok := pp.IsProofInPoolEqualTo(nil)
+		require.False(t, ok)
+	})
+
+	t.Run("same proof, should return true", func(t *testing.T) {
+		t.Parallel()
+
+		pp := proofscache.NewProofsPool(cleanupDelta, bucketSize)
+
+		ok := pp.UpsertProof(proof1)
+		require.True(t, ok)
+
+		ok = pp.IsProofInPoolEqualTo(proof1)
+		require.True(t, ok)
+	})
+
+	t.Run("not equal, should return false", func(t *testing.T) {
+		t.Parallel()
+
+		pp := proofscache.NewProofsPool(cleanupDelta, bucketSize)
+
+		ok := pp.UpsertProof(proof1)
+		require.True(t, ok)
+
+		newProof1 := &block.HeaderProof{
+			PubKeysBitmap:       []byte("newpubKeysBitmap1"),
+			AggregatedSignature: []byte("newaggSig1"),
+			HeaderHash:          []byte("hash1"),
+			HeaderEpoch:         1,
+			HeaderNonce:         1,
+			HeaderShardId:       shardID,
+		}
+
+		ok = pp.IsProofInPoolEqualTo(newProof1)
+		require.False(t, ok)
+	})
+}
+
 func TestProofsPool_RegisterHandler(t *testing.T) {
 	t.Parallel()
 
-	pp := proofscache.NewProofsPool(cleanupDelta)
+	pp := proofscache.NewProofsPool(cleanupDelta, bucketSize)
 
 	wasCalled := false
 	wg := sync.WaitGroup{}
@@ -117,21 +214,14 @@ func TestProofsPool_CleanupProofsBehindNonce(t *testing.T) {
 	t.Run("should not cleanup proofs behind delta", func(t *testing.T) {
 		t.Parallel()
 
-		pp := proofscache.NewProofsPool(cleanupDelta)
+		pp := proofscache.NewProofsPool(cleanupDelta, bucketSize)
 
 		_ = pp.AddProof(proof1)
 		_ = pp.AddProof(proof2)
 		_ = pp.AddProof(proof3)
 		_ = pp.AddProof(proof4)
 
-		err := pp.CleanupProofsBehindNonce(shardID, 5)
-		require.Nil(t, err)
-
-		proof, err := pp.GetProof(shardID, []byte("hash1"))
-		require.Equal(t, proofscache.ErrMissingProof, err)
-		require.Nil(t, proof)
-
-		_, err = pp.GetProof(shardID, []byte("hash2"))
+		_, err := pp.GetProof(shardID, []byte("hash2"))
 		require.Nil(t, err)
 		_, err = pp.GetProof(shardID, []byte("hash3"))
 		require.Nil(t, err)
@@ -142,7 +232,7 @@ func TestProofsPool_CleanupProofsBehindNonce(t *testing.T) {
 	t.Run("should not cleanup if nonce smaller or equal to delta", func(t *testing.T) {
 		t.Parallel()
 
-		pp := proofscache.NewProofsPool(cleanupDelta)
+		pp := proofscache.NewProofsPool(cleanupDelta, bucketSize)
 
 		_ = pp.AddProof(proof1)
 		_ = pp.AddProof(proof2)
@@ -166,7 +256,7 @@ func TestProofsPool_CleanupProofsBehindNonce(t *testing.T) {
 func TestProofsPool_Concurrency(t *testing.T) {
 	t.Parallel()
 
-	pp := proofscache.NewProofsPool(cleanupDelta)
+	pp := proofscache.NewProofsPool(cleanupDelta, bucketSize)
 
 	numOperations := 1000
 
@@ -186,7 +276,7 @@ func TestProofsPool_Concurrency(t *testing.T) {
 					atomic.AddUint32(&cnt, 1)
 				}
 			case 4:
-				_ = pp.CleanupProofsBehindNonce(generateRandomShardID(), generateRandomNonce())
+				_ = pp.CleanupProofsBehindNonce(generateRandomShardID(), generateRandomNonce(100))
 			case 5:
 				handler := func(proof data.HeaderProofHandler) {
 				}
@@ -199,6 +289,8 @@ func TestProofsPool_Concurrency(t *testing.T) {
 		}(i)
 	}
 
+	wg.Wait()
+
 	require.GreaterOrEqual(t, uint32(numOperations/3), atomic.LoadUint32(&cnt))
 }
 
@@ -206,7 +298,7 @@ func generateProof() *block.HeaderProof {
 	return &block.HeaderProof{
 		HeaderHash:    generateRandomHash(),
 		HeaderEpoch:   1,
-		HeaderNonce:   generateRandomNonce(),
+		HeaderNonce:   generateRandomNonce(100),
 		HeaderShardId: generateRandomShardID(),
 	}
 }
@@ -217,8 +309,8 @@ func generateRandomHash() []byte {
 	return hash
 }
 
-func generateRandomNonce() uint64 {
-	val := generateRandomInt(3)
+func generateRandomNonce(n int64) uint64 {
+	val := generateRandomInt(n)
 	return val.Uint64()
 }
 

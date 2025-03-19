@@ -1088,7 +1088,7 @@ func (tpn *TestProcessorNode) InitializeProcessors(gasMap map[string]map[string]
 }
 
 func (tpn *TestProcessorNode) initDataPools() {
-	tpn.ProofsPool = proofscache.NewProofsPool(3)
+	tpn.ProofsPool = proofscache.NewProofsPool(3, 100)
 	tpn.DataPool = dataRetrieverMock.CreatePoolsHolderWithProofsPool(1, tpn.ShardCoordinator.SelfId(), tpn.ProofsPool)
 	cacherCfg := storageunit.CacheConfig{Capacity: 10000, Type: storageunit.LRUCache, Shards: 1}
 	suCache, _ := storageunit.NewCache(cacherCfg)
@@ -1113,11 +1113,14 @@ func (tpn *TestProcessorNode) initChainHandler() {
 
 func (tpn *TestProcessorNode) initEconomicsData(economicsConfig *config.EconomicsConfig) {
 	tpn.EnableEpochs.PenalizedTooMuchGasEnableEpoch = 0
+	pubKeyConv, _ := pubkeyConverter.NewBech32PubkeyConverter(32, "erd")
 	argsNewEconomicsData := economics.ArgsNewEconomicsData{
 		Economics:           economicsConfig,
 		EpochNotifier:       tpn.EpochNotifier,
 		EnableEpochsHandler: tpn.EnableEpochsHandler,
 		TxVersionChecker:    &testscommon.TxVersionCheckerStub{},
+		PubkeyConverter:     pubKeyConv,
+		ShardCoordinator:    tpn.ShardCoordinator,
 	}
 	economicsData, _ := economics.NewEconomicsData(argsNewEconomicsData)
 	tpn.EconomicsData = economics.NewTestEconomicsData(economicsData)
@@ -1181,21 +1184,25 @@ func (tpn *TestProcessorNode) initRatingsData() {
 func CreateRatingsData() *rating.RatingsData {
 	ratingsConfig := config.RatingsConfig{
 		ShardChain: config.ShardChain{
-			RatingSteps: config.RatingSteps{
-				HoursToMaxRatingFromStartRating: 50,
-				ProposerValidatorImportance:     1,
-				ProposerDecreaseFactor:          -4,
-				ValidatorDecreaseFactor:         -4,
-				ConsecutiveMissedBlocksPenalty:  1.1,
+			RatingStepsByEpoch: []config.RatingSteps{
+				{
+					HoursToMaxRatingFromStartRating: 50,
+					ProposerValidatorImportance:     1,
+					ProposerDecreaseFactor:          -4,
+					ValidatorDecreaseFactor:         -4,
+					ConsecutiveMissedBlocksPenalty:  1.1,
+				},
 			},
 		},
 		MetaChain: config.MetaChain{
-			RatingSteps: config.RatingSteps{
-				HoursToMaxRatingFromStartRating: 50,
-				ProposerValidatorImportance:     1,
-				ProposerDecreaseFactor:          -4,
-				ValidatorDecreaseFactor:         -4,
-				ConsecutiveMissedBlocksPenalty:  1.1,
+			RatingStepsByEpoch: []config.RatingSteps{
+				{
+					HoursToMaxRatingFromStartRating: 50,
+					ProposerValidatorImportance:     1,
+					ProposerDecreaseFactor:          -4,
+					ValidatorDecreaseFactor:         -4,
+					ConsecutiveMissedBlocksPenalty:  1.1,
+				},
 			},
 		},
 		General: config.General{
@@ -2344,21 +2351,20 @@ func (tpn *TestProcessorNode) initBlockProcessor() {
 		miniBlockStorage, _ := tpn.Storage.GetStorer(dataRetriever.MiniBlockUnit)
 		argsEpochRewards := metachain.RewardsCreatorProxyArgs{
 			BaseRewardsCreatorArgs: metachain.BaseRewardsCreatorArgs{
-				ShardCoordinator:              tpn.ShardCoordinator,
-				PubkeyConverter:               TestAddressPubkeyConverter,
-				RewardsStorage:                rewardsStorage,
-				MiniBlockStorage:              miniBlockStorage,
-				Hasher:                        TestHasher,
-				Marshalizer:                   TestMarshalizer,
-				DataPool:                      tpn.DataPool,
-				ProtocolSustainabilityAddress: testProtocolSustainabilityAddress,
-				NodesConfigProvider:           tpn.NodesCoordinator,
-				UserAccountsDB:                tpn.AccntState,
-				EnableEpochsHandler:           tpn.EnableEpochsHandler,
-				ExecutionOrderHandler:         tpn.TxExecutionOrderHandler,
+				ShardCoordinator:      tpn.ShardCoordinator,
+				PubkeyConverter:       TestAddressPubkeyConverter,
+				RewardsStorage:        rewardsStorage,
+				MiniBlockStorage:      miniBlockStorage,
+				Hasher:                TestHasher,
+				Marshalizer:           TestMarshalizer,
+				DataPool:              tpn.DataPool,
+				NodesConfigProvider:   tpn.NodesCoordinator,
+				UserAccountsDB:        tpn.AccntState,
+				EnableEpochsHandler:   tpn.EnableEpochsHandler,
+				ExecutionOrderHandler: tpn.TxExecutionOrderHandler,
+				RewardsHandler:        tpn.EconomicsData,
 			},
 			StakingDataProvider:   stakingDataProvider,
-			RewardsHandler:        tpn.EconomicsData,
 			EconomicsDataProvider: economicsDataProvider,
 		}
 		epochStartRewards, _ := metachain.NewRewardsCreatorProxy(argsEpochRewards)
@@ -3385,7 +3391,7 @@ func GetDefaultCoreComponents(enableEpochsHandler common.EnableEpochsHandler, ep
 		AlarmSchedulerField:          &testscommon.AlarmSchedulerStub{},
 		SyncTimerField:               &testscommon.SyncTimerStub{},
 		RoundHandlerField:            &testscommon.RoundHandlerMock{},
-		EconomicsDataField:           &economicsmocks.EconomicsHandlerStub{},
+		EconomicsDataField:           &economicsmocks.EconomicsHandlerMock{},
 		RatingsDataField:             &testscommon.RatingsInfoMock{},
 		RaterField:                   &testscommon.RaterMock{},
 		GenesisNodesSetupField:       &genesisMocks.NodesSetupStub{},

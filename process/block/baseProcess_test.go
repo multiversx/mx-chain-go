@@ -292,7 +292,7 @@ func initDataPool(testHash []byte) *dataRetrieverMock.PoolsHolderStub {
 			return cs
 		},
 		ProofsCalled: func() dataRetriever.ProofsPool {
-			return proofscache.NewProofsPool(3)
+			return proofscache.NewProofsPool(3, 100)
 		},
 	}
 
@@ -458,7 +458,7 @@ func createMockTransactionCoordinatorArguments(
 		FeeHandler:                   &mock.FeeAccumulatorStub{},
 		BlockSizeComputation:         &testscommon.BlockSizeComputationStub{},
 		BalanceComputation:           &testscommon.BalanceComputationStub{},
-		EconomicsFee:                 &economicsmocks.EconomicsHandlerStub{},
+		EconomicsFee:                 &economicsmocks.EconomicsHandlerMock{},
 		TxTypeHandler:                &testscommon.TxTypeHandlerMock{},
 		TransactionsLogProcessor:     &mock.TxLogsProcessorStub{},
 		EnableEpochsHandler:          enableEpochsHandlerMock.NewEnableEpochsHandlerStub(),

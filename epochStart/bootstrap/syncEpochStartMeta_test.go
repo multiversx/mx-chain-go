@@ -19,6 +19,7 @@ import (
 	processMock "github.com/multiversx/mx-chain-go/process/mock"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/cryptoMocks"
+	"github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
 	"github.com/multiversx/mx-chain-go/testscommon/economicsmocks"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/p2pmocks"
@@ -162,7 +163,7 @@ func getEpochStartSyncerArgs() ArgsNewEpochStartMetaSyncer {
 		RequestHandler:   &testscommon.RequestHandlerStub{},
 		Messenger:        &p2pmocks.MessengerStub{},
 		ShardCoordinator: mock.NewMultiShardsCoordinatorMock(2),
-		EconomicsData:    &economicsmocks.EconomicsHandlerStub{},
+		EconomicsData:    &economicsmocks.EconomicsHandlerMock{},
 		WhitelistHandler: &testscommon.WhiteListHandlerStub{},
 		StartInEpochConfig: config.EpochStartConfig{
 			MinNumConnectedPeersToStart:       2,
@@ -171,5 +172,6 @@ func getEpochStartSyncerArgs() ArgsNewEpochStartMetaSyncer {
 		HeaderIntegrityVerifier:        &mock.HeaderIntegrityVerifierStub{},
 		MetaBlockProcessor:             &mock.EpochStartMetaBlockProcessorStub{},
 		InterceptedDataVerifierFactory: &processMock.InterceptedDataVerifierFactoryMock{},
+		ProofsPool:                     &dataRetriever.ProofsPoolMock{},
 	}
 }

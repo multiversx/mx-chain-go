@@ -658,6 +658,12 @@ type rewardsHandler interface {
 	MaxInflationRate(year uint32) float64
 	RewardsTopUpGradientPoint() *big.Int
 	RewardsTopUpFactor() float64
+	LeaderPercentageInEpoch(epoch uint32) float64
+	DeveloperPercentageInEpoch(epoch uint32) float64
+	ProtocolSustainabilityPercentageInEpoch(epoch uint32) float64
+	ProtocolSustainabilityAddressInEpoch(epoch uint32) string
+	RewardsTopUpGradientPointInEpoch(epoch uint32) *big.Int
+	RewardsTopUpFactorInEpoch(epoch uint32) float64
 }
 
 // RewardsHandler will return information about rewards
@@ -1047,6 +1053,7 @@ type RatingsInfoHandler interface {
 	MetaChainRatingsStepHandler() RatingsStepHandler
 	ShardChainRatingsStepHandler() RatingsStepHandler
 	SelectionChances() []SelectionChance
+	SetStatusHandler(handler core.AppStatusHandler) error
 	IsInterfaceNil() bool
 }
 
@@ -1423,5 +1430,6 @@ type InterceptedDataVerifierFactory interface {
 // ProofsPool defines the behaviour of a proofs pool components
 type ProofsPool interface {
 	HasProof(shardID uint32, headerHash []byte) bool
+	IsProofInPoolEqualTo(headerProof data.HeaderProofHandler) bool
 	IsInterfaceNil() bool
 }
