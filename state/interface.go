@@ -5,7 +5,9 @@ import (
 	"math/big"
 
 	"github.com/multiversx/mx-chain-core-go/core"
+	coreData "github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/api"
+	data "github.com/multiversx/mx-chain-core-go/data/stateChange"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 
 	"github.com/multiversx/mx-chain-go/common"
@@ -90,6 +92,7 @@ type AccountsAdapter interface {
 	GetStackDebugFirstEntry() []byte
 	SetSyncer(syncer AccountsDBSyncer) error
 	StartSnapshotIfNeeded() error
+	SetTxHashForLatestStateChanges(txHash []byte, tx coreData.TransactionHandler)
 	Close() error
 	IsInterfaceNil() bool
 }
@@ -159,7 +162,7 @@ type baseAccountHandler interface {
 	GetRootHash() []byte
 	SetDataTrie(trie common.Trie)
 	DataTrie() common.DataTrieHandler
-	SaveDirtyData(trie common.Trie) ([]core.TrieData, error)
+	SaveDirtyData(trie common.Trie) ([]*data.DataTrieChange, []core.TrieData, error)
 	IsInterfaceNil() bool
 }
 
@@ -257,7 +260,7 @@ type DataTrieTracker interface {
 	SaveKeyValue(key []byte, value []byte) error
 	SetDataTrie(tr common.Trie)
 	DataTrie() common.DataTrieHandler
-	SaveDirtyData(common.Trie) ([]core.TrieData, error)
+	SaveDirtyData(common.Trie) ([]*data.DataTrieChange, []core.TrieData, error)
 	MigrateDataTrieLeaves(args vmcommon.ArgsMigrateDataTrieLeaves) error
 	IsInterfaceNil() bool
 }
@@ -352,4 +355,31 @@ type ValidatorInfoHandler interface {
 	ShallowClone() ValidatorInfoHandler
 	String() string
 	GoString() string
+}
+
+// StateChangesCollector defines the methods needed for an StateChangesCollector implementation
+type StateChangesCollector interface {
+	AddStateChange(stateChange StateChange)
+	AddSaveAccountStateChange(oldAccount, account vmcommon.AccountHandler, stateChange StateChange)
+	Reset()
+	Publish() (map[string]*data.StateChanges, error)
+	Store() error
+	AddTxHashToCollectedStateChanges(txHash []byte, tx coreData.TransactionHandler)
+	SetIndexToLastStateChange(index int) error
+	RevertToIndex(index int) error
+	IsInterfaceNil() bool
+}
+
+// StateChange defines the behaviour of a state change holder
+type StateChange interface {
+	GetType() data.ActionType
+	GetIndex() int32
+	GetTxHash() []byte
+	GetMainTrieKey() []byte
+	GetMainTrieVal() []byte
+	GetOperation() data.Operation
+	GetDataTrieChanges() []*data.DataTrieChange
+
+	SetTxHash(txHash []byte)
+	SetIndex(index int32)
 }

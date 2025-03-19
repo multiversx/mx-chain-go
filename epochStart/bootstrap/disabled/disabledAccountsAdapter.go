@@ -2,7 +2,8 @@ package disabled
 
 import (
 	"context"
-
+	
+	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/state"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
@@ -126,6 +127,10 @@ func (a *accountsAdapter) CommitInEpoch(_ uint32, _ uint32) ([]byte, error) {
 // GetStackDebugFirstEntry -
 func (a *accountsAdapter) GetStackDebugFirstEntry() []byte {
 	return nil
+}
+
+// SetTxHashForLatestStateChanges -
+func (a *accountsAdapter) SetTxHashForLatestStateChanges(_ []byte, _ data.TransactionHandler) {
 }
 
 // Close -

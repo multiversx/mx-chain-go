@@ -1591,6 +1591,8 @@ func (tpn *TestProcessorNode) initInnerProcessors(gasMap map[string]map[string]u
 		tpn.AccntState,
 		TestAddressPubkeyConverter,
 		tpn.ShardCoordinator,
+		TestMarshalizer,
+		TestHasher,
 	)
 
 	mapDNSAddresses := make(map[string]struct{})
@@ -2214,6 +2216,7 @@ func (tpn *TestProcessorNode) initBlockProcessor() {
 		BlockProcessingCutoffHandler: &testscommon.BlockProcessingCutoffStub{},
 		ManagedPeersHolder:           &testscommon.ManagedPeersHolderStub{},
 		SentSignaturesTracker:        &testscommon.SentSignatureTrackerStub{},
+		StateChangesCollector:        &stateMock.StateChangesCollectorStub{},
 	}
 
 	if check.IfNil(tpn.EpochStartNotifier) {

@@ -102,17 +102,18 @@ type baseProcessor struct {
 	blockProcessor   blockProcessor
 	txCounter        *transactionCounter
 
-	outportHandler      outport.OutportHandler
-	outportDataProvider outport.DataProviderOutport
-	historyRepo         dblookupext.HistoryRepository
-	epochNotifier       process.EpochNotifier
-	enableEpochsHandler common.EnableEpochsHandler
-	roundNotifier       process.RoundNotifier
-	enableRoundsHandler process.EnableRoundsHandler
-	vmContainerFactory  process.VirtualMachinesContainerFactory
-	vmContainer         process.VirtualMachinesContainer
-	gasConsumedProvider gasConsumedProvider
-	economicsData       process.EconomicsDataHandler
+	outportHandler        outport.OutportHandler
+	outportDataProvider   outport.DataProviderOutport
+	historyRepo           dblookupext.HistoryRepository
+	epochNotifier         process.EpochNotifier
+	enableEpochsHandler   common.EnableEpochsHandler
+	roundNotifier         process.RoundNotifier
+	enableRoundsHandler   process.EnableRoundsHandler
+	vmContainerFactory    process.VirtualMachinesContainerFactory
+	vmContainer           process.VirtualMachinesContainer
+	gasConsumedProvider   gasConsumedProvider
+	economicsData         process.EconomicsDataHandler
+	stateChangesCollector state.StateChangesCollector
 
 	processDataTriesOnCommitEpoch bool
 	lastRestartNonce              uint64
@@ -1773,9 +1774,10 @@ func (bp *baseProcessor) commitTrieEpochRootHashIfNeeded(metaBlock *block.MetaBl
 	totalSizeCodeLeaves := 0
 
 	argsAccCreator := factory.ArgsAccountCreator{
-		Hasher:              bp.hasher,
-		Marshaller:          bp.marshalizer,
-		EnableEpochsHandler: bp.enableEpochsHandler,
+		Hasher:                bp.hasher,
+		Marshaller:            bp.marshalizer,
+		EnableEpochsHandler:   bp.enableEpochsHandler,
+		StateChangesCollector: bp.stateChangesCollector,
 	}
 	accountCreator, err := factory.NewAccountCreator(argsAccCreator)
 	if err != nil {
