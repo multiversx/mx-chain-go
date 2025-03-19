@@ -4,10 +4,9 @@ import (
 	"bytes"
 	"math/big"
 
-	"github.com/multiversx/mx-chain-core-go/data/transaction"
-	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
-
+	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-go/state"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 )
 
 type dataAnalysisStateChangeDTO struct {
@@ -25,7 +24,7 @@ type dataAnalysisStateChangeDTO struct {
 
 type dataAnalysisStateChangesForTx struct {
 	StateChangesForTx
-	Tx *transaction.Transaction `json:"tx"`
+	Tx data.TransactionHandler `json:"tx"`
 }
 
 type userAccountHandler interface {

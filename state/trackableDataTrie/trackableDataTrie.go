@@ -107,20 +107,6 @@ func (tdt *trackableDataTrie) RetrieveValue(key []byte) ([]byte, uint32, error) 
 
 	log.Trace("retrieve value from trie", "key", key, "value", val, "account", tdt.identifier)
 
-	sc := &stateChange.StateChange{
-		Type:        stateChange.Read,
-		MainTrieKey: tdt.identifier,
-		MainTrieVal: nil,
-		DataTrieChanges: []*stateChange.DataTrieChange{
-			{
-				Type: stateChange.Read,
-				Key:  key,
-				Val:  val,
-			},
-		},
-	}
-	tdt.stateChangesCollector.AddStateChange(sc)
-
 	return val, depth, nil
 }
 
@@ -163,6 +149,7 @@ func (tdt *trackableDataTrie) MigrateDataTrieLeaves(args vmcommon.ArgsMigrateDat
 	dataToBeMigrated := args.TrieMigrator.GetLeavesToBeMigrated()
 	log.Debug("num leaves to be migrated", "num", len(dataToBeMigrated), "account", tdt.identifier)
 	for _, leafData := range dataToBeMigrated {
+		tdt.collectReadOperation(leafData.Key, leafData.Value, uint32(leafData.Version))
 		val, err := tdt.getValueWithoutMetadata(leafData.Key, leafData)
 		if err != nil {
 			return err
@@ -292,9 +279,10 @@ func (tdt *trackableDataTrie) updateTrie(dtr state.DataTrie) ([]*stateChange.Dat
 		if wasDeleted {
 			deletedKeys = append(deletedKeys,
 				&stateChange.DataTrieChange{
-					Type: stateChange.Write,
-					Key:  []byte(key),
-					Val:  nil,
+					Type:    stateChange.Write,
+					Key:     []byte(key),
+					Val:     nil,
+					Version: 0,
 				},
 			)
 		}
@@ -323,9 +311,10 @@ func (tdt *trackableDataTrie) updateTrie(dtr state.DataTrie) ([]*stateChange.Dat
 		}
 
 		newData[dataEntry.index] = &stateChange.DataTrieChange{
-			Type: stateChange.Write,
-			Key:  dataTrieKey,
-			Val:  dataTrieVal,
+			Type:    stateChange.Write,
+			Key:     dataTrieKey,
+			Val:     dataTrieVal,
+			Version: uint32(dataEntry.newVersion),
 		}
 	}
 
@@ -351,6 +340,23 @@ func (tdt *trackableDataTrie) updateTrie(dtr state.DataTrie) ([]*stateChange.Dat
 	return stateChanges, oldValues, nil
 }
 
+func (tdt *trackableDataTrie) collectReadOperation(key []byte, val []byte, version uint32) {
+	sc := &stateChange.StateChange{
+		Type:        stateChange.Read,
+		MainTrieKey: tdt.identifier,
+		MainTrieVal: nil,
+		DataTrieChanges: []*stateChange.DataTrieChange{
+			{
+				Type:    stateChange.Read,
+				Key:     key,
+				Val:     val,
+				Version: version,
+			},
+		},
+	}
+	tdt.stateChangesCollector.AddStateChange(sc)
+}
+
 func (tdt *trackableDataTrie) retrieveValueFromTrie(key []byte) (core.TrieData, uint32, error) {
 	if tdt.enableEpochsHandler.IsFlagEnabled(common.AutoBalanceDataTriesFlag) {
 		hashedKey := tdt.hasher.Compute(string(key))
@@ -358,6 +364,9 @@ func (tdt *trackableDataTrie) retrieveValueFromTrie(key []byte) (core.TrieData, 
 		if err != nil {
 			return core.TrieData{}, 0, err
 		}
+
+		tdt.collectReadOperation(hashedKey, valWithMetadata, uint32(core.AutoBalanceEnabled))
+
 		if len(valWithMetadata) != 0 {
 			trieValue := core.TrieData{
 				Key:     hashedKey,
@@ -373,6 +382,7 @@ func (tdt *trackableDataTrie) retrieveValueFromTrie(key []byte) (core.TrieData, 
 	if err != nil {
 		return core.TrieData{}, 0, err
 	}
+	tdt.collectReadOperation(key, valWithMetadata, uint32(core.NotSpecified))
 	if len(valWithMetadata) != 0 {
 		trieValue := core.TrieData{
 			Key:     key,

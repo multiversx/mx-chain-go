@@ -274,6 +274,8 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 		pcf.state.AccountsAdapter(),
 		pcf.coreData.AddressPubKeyConverter(),
 		pcf.bootstrapComponents.ShardCoordinator(),
+		pcf.coreData.InternalMarshalizer(),
+		pcf.coreData.Hasher(),
 	)
 	if err != nil {
 		return nil, err

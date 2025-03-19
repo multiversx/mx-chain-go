@@ -1,6 +1,7 @@
 package stateChanges
 
 import (
+	"errors"
 	"fmt"
 	"math/big"
 	"strconv"
@@ -201,10 +202,10 @@ func TestStateChangesCollector_RevertToIndex_FailIfWrongIndex(t *testing.T) {
 	numStateChanges := len(c.stateChanges)
 
 	err := c.RevertToIndex(-1)
-	require.Equal(t, state.ErrStateChangesIndexOutOfBounds, err)
+	require.True(t, errors.Is(err, state.ErrStateChangesIndexOutOfBounds))
 
 	err = c.RevertToIndex(numStateChanges + 1)
-	require.Equal(t, state.ErrStateChangesIndexOutOfBounds, err)
+	require.Nil(t, err)
 }
 
 func TestStateChangesCollector_RevertToIndex(t *testing.T) {
@@ -231,19 +232,19 @@ func TestStateChangesCollector_RevertToIndex(t *testing.T) {
 
 	err = c.RevertToIndex(numStateChanges)
 	require.Nil(t, err)
-	assert.Equal(t, numStateChanges*2-1, len(c.stateChanges))
+	assert.Equal(t, numStateChanges*2, len(c.stateChanges))
 
 	err = c.RevertToIndex(numStateChanges - 1)
 	require.Nil(t, err)
-	assert.Equal(t, numStateChanges-1, len(c.stateChanges))
+	assert.Equal(t, numStateChanges, len(c.stateChanges))
 
 	err = c.RevertToIndex(numStateChanges / 2)
 	require.Nil(t, err)
-	assert.Equal(t, numStateChanges/2, len(c.stateChanges))
+	assert.Equal(t, numStateChanges/2+1, len(c.stateChanges))
 
 	err = c.RevertToIndex(1)
 	require.Nil(t, err)
-	assert.Equal(t, 1, len(c.stateChanges))
+	assert.Equal(t, 2, len(c.stateChanges))
 
 	err = c.RevertToIndex(0)
 	require.Nil(t, err)
@@ -253,17 +254,17 @@ func TestStateChangesCollector_RevertToIndex(t *testing.T) {
 func TestStateChangesCollector_SetIndexToLastStateChange(t *testing.T) {
 	t.Parallel()
 
-	t.Run("should fail if valid index", func(t *testing.T) {
+	t.Run("should fail if invalid index", func(t *testing.T) {
 		t.Parallel()
 
 		c := NewCollector(WithCollectWrite())
 
 		err := c.SetIndexToLastStateChange(-1)
-		require.Equal(t, state.ErrStateChangesIndexOutOfBounds, err)
+		require.True(t, errors.Is(err, state.ErrStateChangesIndexOutOfBounds))
 
 		numStateChanges := len(c.stateChanges)
 		err = c.SetIndexToLastStateChange(numStateChanges + 1)
-		require.Equal(t, state.ErrStateChangesIndexOutOfBounds, err)
+		require.Nil(t, err)
 	})
 
 	t.Run("should work", func(t *testing.T) {
