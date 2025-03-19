@@ -216,6 +216,7 @@ func TestInitConfigMetrics(t *testing.T) {
 			MaskVMInternalDependenciesErrorsEnableEpoch:              109,
 			FixBackTransferOPCODEEnableEpoch:                         110,
 			ValidationOnGobDecodeEnableEpoch:                         111,
+			BarnardOpcodesEnableEpoch:                                112,
 			MaxNodesChangeEnableEpoch: []config.MaxNodesChangeConfig{
 				{
 					EpochEnable:            0,

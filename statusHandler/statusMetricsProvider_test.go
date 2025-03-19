@@ -409,6 +409,7 @@ func TestStatusMetrics_EnableEpochMetrics(t *testing.T) {
 	sm.SetUInt64Value(common.MetricMaskVMInternalDependenciesErrorsEnableEpoch, uint64(4))
 	sm.SetUInt64Value(common.MetricFixBackTransferOPCODEEnableEpoch, uint64(4))
 	sm.SetUInt64Value(common.MetricValidationOnGobDecodeEnableEpoch, uint64(4))
+	sm.SetUInt64Value(common.MetricBarnardOpcodesEnableEpoch, uint64(4))
 
 	maxNodesChangeConfig := []map[string]uint64{
 		{
@@ -545,7 +546,7 @@ func TestStatusMetrics_EnableEpochMetrics(t *testing.T) {
 		common.MetricMaskVMInternalDependenciesErrorsEnableEpoch:              uint64(4),
 		common.MetricFixBackTransferOPCODEEnableEpoch:                         uint64(4),
 		common.MetricValidationOnGobDecodeEnableEpoch:                         uint64(4),
-
+		common.MetricBarnardOpcodesEnableEpoch:                                uint64(4),
 		common.MetricMaxNodesChangeEnableEpoch: []map[string]interface{}{
 			{
 				common.MetricEpochEnable:            uint64(0),
