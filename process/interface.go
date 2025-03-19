@@ -1430,5 +1430,6 @@ type InterceptedDataVerifierFactory interface {
 // ProofsPool defines the behaviour of a proofs pool components
 type ProofsPool interface {
 	HasProof(shardID uint32, headerHash []byte) bool
+	IsProofInPoolEqualTo(headerProof data.HeaderProofHandler) bool
 	IsInterfaceNil() bool
 }

@@ -760,7 +760,12 @@ func (ficf *fullSyncInterceptorsContainerFactory) generateMetachainHeaderInterce
 		return nil
 	}
 
-	hdrFactory, err := interceptorFactory.NewInterceptedMetaHeaderDataFactory(ficf.argInterceptorFactory)
+	argsInterceptedMetaHeaderFactory := interceptorFactory.ArgInterceptedMetaHeaderFactory{
+		ArgInterceptedDataFactory: *ficf.argInterceptorFactory,
+		ProofsPool:                ficf.dataPool.Proofs(),
+	}
+
+	hdrFactory, err := interceptorFactory.NewInterceptedMetaHeaderDataFactory(&argsInterceptedMetaHeaderFactory)
 	if err != nil {
 		return err
 	}

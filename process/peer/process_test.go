@@ -2404,6 +2404,40 @@ func TestValidatorStatistics_ProcessValidatorInfosEndOfEpochWithLargeValidatorFa
 	assert.Equal(t, rater.MinRating, vi.GetShardValidatorsInfoMap()[0][0].GetTempRating())
 }
 
+func TestValidatorStatistics_ProcessRatingsEndOfEpochAfterEquivalentProofsShouldEarlyExit(t *testing.T) {
+	t.Parallel()
+
+	arguments := createMockArguments()
+	rater := createMockRater()
+	rater.GetSignedBlocksThresholdCalled = func() float32 {
+		return 0.025 // would have passed the `if computedThreshold <= signedThreshold` condition
+	}
+	rater.RevertIncreaseProposerCalled = func(shardId uint32, rating uint32, nrReverts uint32) uint32 {
+		require.Fail(t, "should have not been called")
+		return 0
+	}
+	arguments.Rater = rater
+	arguments.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+		IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
+			return flag == common.EquivalentMessagesFlag
+		},
+	}
+	updateArgumentsWithNeeded(arguments)
+
+	tempRating := uint32(5000)
+	validatorSuccess := uint32(2)
+	validatorIgnored := uint32(90)
+	validatorFailure := uint32(8)
+
+	vi := state.NewShardValidatorsInfoMap()
+	_ = vi.Add(createMockValidatorInfo(core.MetachainShardId, tempRating, validatorSuccess, validatorIgnored, validatorFailure))
+
+	validatorStatistics, _ := peer.NewValidatorStatisticsProcessor(arguments)
+	err := validatorStatistics.ProcessRatingsEndOfEpoch(vi, 1)
+	assert.Nil(t, err)
+	assert.Equal(t, tempRating, vi.GetShardValidatorsInfoMap()[core.MetachainShardId][0].GetTempRating()) // no change
+}
+
 func TestValidatorsProvider_PeerAccoutToValidatorInfo(t *testing.T) {
 	t.Parallel()
 
