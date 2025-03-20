@@ -78,15 +78,6 @@ func (h *headerValidator) IsHeaderConstructionValid(currHeader, prevHeader data.
 		return process.ErrBlockHashDoesNotMatch
 	}
 
-	if !bytes.Equal(currHeader.GetPrevRandSeed(), prevHeader.GetRandSeed()) {
-		log.Trace("header random seed does not match",
-			"shard", currHeader.GetShardID(),
-			"local header random seed", prevHeader.GetRandSeed(),
-			"received header with prev random seed", currHeader.GetPrevRandSeed(),
-		)
-		return process.ErrRandSeedDoesNotMatch
-	}
-
 	return nil
 }
 
