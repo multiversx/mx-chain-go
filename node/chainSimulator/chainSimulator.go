@@ -11,14 +11,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/multiversx/mx-chain-go/config"
-	"github.com/multiversx/mx-chain-go/node/chainSimulator/components"
-	"github.com/multiversx/mx-chain-go/node/chainSimulator/configs"
-	"github.com/multiversx/mx-chain-go/node/chainSimulator/dtos"
-	chainSimulatorErrors "github.com/multiversx/mx-chain-go/node/chainSimulator/errors"
-	"github.com/multiversx/mx-chain-go/node/chainSimulator/process"
-	mxChainSharding "github.com/multiversx/mx-chain-go/sharding"
-
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/core/sharding"
@@ -29,6 +21,12 @@ import (
 	crypto "github.com/multiversx/mx-chain-crypto-go"
 	"github.com/multiversx/mx-chain-crypto-go/signing"
 	"github.com/multiversx/mx-chain-crypto-go/signing/mcl"
+	"github.com/multiversx/mx-chain-go/config"
+	"github.com/multiversx/mx-chain-go/node/chainSimulator/components"
+	"github.com/multiversx/mx-chain-go/node/chainSimulator/configs"
+	"github.com/multiversx/mx-chain-go/node/chainSimulator/dtos"
+	chainSimulatorErrors "github.com/multiversx/mx-chain-go/node/chainSimulator/errors"
+	"github.com/multiversx/mx-chain-go/node/chainSimulator/process"
 	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
@@ -406,40 +404,43 @@ func (s *simulator) AddValidatorKeys(validatorsPrivateKeys [][]byte) error {
 // GenerateAndMintWalletAddress will generate an address in the provided shard and will mint that address with the provided value
 // if the target shard ID value does not correspond to a node handled by the chain simulator, the address will be generated in a random shard ID
 func (s *simulator) GenerateAndMintWalletAddress(targetShardID uint32, value *big.Int) (dtos.WalletAddress, error) {
-	addressConverter := s.nodes[core.MetachainShardId].GetCoreComponents().AddressPubKeyConverter()
-	nodeHandler := s.GetNodeHandler(targetShardID)
-	var buff []byte
-	if check.IfNil(nodeHandler) {
-		buff = generateAddress(addressConverter.Len())
-	} else {
-		buff = generateAddressInShard(nodeHandler.GetShardCoordinator(), addressConverter.Len())
-	}
+	wallet := s.GenerateAddressInShard(targetShardID)
 
-	address, err := addressConverter.Encode(buff)
-	if err != nil {
-		return dtos.WalletAddress{}, err
-	}
-
-	err = s.SetStateMultiple([]*dtos.AddressState{
+	err := s.SetStateMultiple([]*dtos.AddressState{
 		{
-			Address: address,
+			Address: wallet.Bech32,
 			Balance: value.String(),
 		},
 	})
 
-	return dtos.WalletAddress{
-		Bech32: address,
-		Bytes:  buff,
-	}, err
+	return wallet, err
 }
 
-func generateAddressInShard(shardCoordinator mxChainSharding.Coordinator, len int) []byte {
+// GenerateAddressInShard will generate a wallet address based on the provided shard
+func (s *simulator) GenerateAddressInShard(providedShardID uint32) dtos.WalletAddress {
+	converter := s.nodes[core.MetachainShardId].GetCoreComponents().AddressPubKeyConverter()
+	nodeHandler := s.GetNodeHandler(providedShardID)
+	if check.IfNil(nodeHandler) {
+		return generateWalletAddress(converter)
+	}
+
 	for {
-		buff := generateAddress(len)
-		shardID := shardCoordinator.ComputeId(buff)
-		if shardID == shardCoordinator.SelfId() {
-			return buff
+		buff := generateAddress(converter.Len())
+		if nodeHandler.GetShardCoordinator().ComputeId(buff) == providedShardID {
+			return generateWalletAddressFromBuffer(converter, buff)
 		}
+	}
+}
+
+func generateWalletAddress(converter core.PubkeyConverter) dtos.WalletAddress {
+	buff := generateAddress(converter.Len())
+	return generateWalletAddressFromBuffer(converter, buff)
+}
+
+func generateWalletAddressFromBuffer(converter core.PubkeyConverter, buff []byte) dtos.WalletAddress {
+	return dtos.WalletAddress{
+		Bech32: converter.SilentEncode(buff, log),
+		Bytes:  buff,
 	}
 }
 
@@ -626,7 +627,7 @@ func (s *simulator) computeTransactionsStatus(txsWithResult []*transactionWithRe
 
 		result, errGet := s.GetNodeHandler(destinationShardID).GetFacadeHandler().GetTransaction(resultTx.hexHash, true)
 		if errGet == nil && result.Status != transaction.TxStatusPending {
-			log.Info("############## transaction was executed ##############", "txHash", resultTx.hexHash)
+			log.Trace("############## transaction was executed ##############", "txHash", resultTx.hexHash)
 			resultTx.result = result
 			continue
 		}
@@ -668,7 +669,7 @@ func (s *simulator) sendTx(tx *transaction.Transaction) (string, error) {
 	for {
 		recoveredTx, _ := node.GetFacadeHandler().GetTransaction(txHashHex, false)
 		if recoveredTx != nil {
-			log.Info("############## send transaction ##############", "txHash", txHashHex)
+			log.Trace("############## send transaction ##############", "txHash", txHashHex)
 			return txHashHex, nil
 		}
 

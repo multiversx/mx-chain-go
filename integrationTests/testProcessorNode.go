@@ -565,11 +565,6 @@ func newBaseTestProcessorNode(args ArgTestProcessorNode) *TestProcessorNode {
 		tpn.OwnAccount = CreateTestWalletAccount(shardCoordinator, args.TxSignPrivKeyShardId)
 	}
 
-	tpn.HeaderSigVerifier = args.HeaderSigVerifier
-	if check.IfNil(tpn.HeaderSigVerifier) {
-		tpn.HeaderSigVerifier = &consensusMocks.HeaderSigVerifierMock{}
-	}
-
 	tpn.HeaderIntegrityVerifier = args.HeaderIntegrityVerifier
 	if check.IfNil(tpn.HeaderIntegrityVerifier) {
 		tpn.HeaderIntegrityVerifier = CreateHeaderIntegrityVerifier()
@@ -579,7 +574,22 @@ func newBaseTestProcessorNode(args ArgTestProcessorNode) *TestProcessorNode {
 
 	if !check.IfNil(args.DataPool) {
 		tpn.DataPool = args.DataPool
+		tpn.ProofsPool = tpn.DataPool.Proofs()
 		_ = messenger.SetThresholdMinConnectedPeers(minConnectedPeers)
+	}
+
+	tpn.HeaderSigVerifier = args.HeaderSigVerifier
+	if check.IfNil(tpn.HeaderSigVerifier) {
+		tpn.HeaderSigVerifier = &consensusMocks.HeaderSigVerifierMock{
+			VerifySignatureCalled: func(header data.HeaderHandler) error {
+				prevProof := header.GetPreviousProof()
+				if !check.IfNil(prevProof) {
+					tpn.ProofsPool.AddProof(prevProof)
+				}
+
+				return nil
+			},
+		}
 	}
 
 	return tpn
