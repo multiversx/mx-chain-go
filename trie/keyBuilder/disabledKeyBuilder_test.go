@@ -26,6 +26,7 @@ func TestDisabledKeyBuilder(t *testing.T) {
 	require.Nil(t, err)
 	require.True(t, bytes.Equal(key, []byte{}))
 
-	clonedBuilder := builder.Clone()
+	clonedBuilder := builder.ShallowClone()
 	require.Equal(t, &disabledKeyBuilder{}, clonedBuilder)
+	require.Equal(t, uint(0), clonedBuilder.Size())
 }
