@@ -117,7 +117,7 @@ func (mcm *metaChainMessenger) BroadcastHeader(header data.HeaderHandler, pkByte
 }
 
 // BroadcastEquivalentProof will broadcast the proof for a header on the metachain common topic
-func (mcm *metaChainMessenger) BroadcastEquivalentProof(proof *block.HeaderProof, pkBytes []byte) error {
+func (mcm *metaChainMessenger) BroadcastEquivalentProof(proof data.HeaderProofHandler, pkBytes []byte) error {
 	identifierMetaAll := mcm.shardCoordinator.CommunicationIdentifier(core.AllShardId)
 	topic := common.EquivalentProofsTopic + identifierMetaAll
 

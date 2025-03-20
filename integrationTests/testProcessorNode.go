@@ -565,11 +565,6 @@ func newBaseTestProcessorNode(args ArgTestProcessorNode) *TestProcessorNode {
 		tpn.OwnAccount = CreateTestWalletAccount(shardCoordinator, args.TxSignPrivKeyShardId)
 	}
 
-	tpn.HeaderSigVerifier = args.HeaderSigVerifier
-	if check.IfNil(tpn.HeaderSigVerifier) {
-		tpn.HeaderSigVerifier = &consensusMocks.HeaderSigVerifierMock{}
-	}
-
 	tpn.HeaderIntegrityVerifier = args.HeaderIntegrityVerifier
 	if check.IfNil(tpn.HeaderIntegrityVerifier) {
 		tpn.HeaderIntegrityVerifier = CreateHeaderIntegrityVerifier()
@@ -579,7 +574,22 @@ func newBaseTestProcessorNode(args ArgTestProcessorNode) *TestProcessorNode {
 
 	if !check.IfNil(args.DataPool) {
 		tpn.DataPool = args.DataPool
+		tpn.ProofsPool = tpn.DataPool.Proofs()
 		_ = messenger.SetThresholdMinConnectedPeers(minConnectedPeers)
+	}
+
+	tpn.HeaderSigVerifier = args.HeaderSigVerifier
+	if check.IfNil(tpn.HeaderSigVerifier) {
+		tpn.HeaderSigVerifier = &consensusMocks.HeaderSigVerifierMock{
+			VerifySignatureCalled: func(header data.HeaderHandler) error {
+				prevProof := header.GetPreviousProof()
+				if !check.IfNil(prevProof) {
+					tpn.ProofsPool.AddProof(prevProof)
+				}
+
+				return nil
+			},
+		}
 	}
 
 	return tpn
@@ -1088,7 +1098,7 @@ func (tpn *TestProcessorNode) InitializeProcessors(gasMap map[string]map[string]
 }
 
 func (tpn *TestProcessorNode) initDataPools() {
-	tpn.ProofsPool = proofscache.NewProofsPool(3)
+	tpn.ProofsPool = proofscache.NewProofsPool(3, 100)
 	tpn.DataPool = dataRetrieverMock.CreatePoolsHolderWithProofsPool(1, tpn.ShardCoordinator.SelfId(), tpn.ProofsPool)
 	cacherCfg := storageunit.CacheConfig{Capacity: 10000, Type: storageunit.LRUCache, Shards: 1}
 	suCache, _ := storageunit.NewCache(cacherCfg)
@@ -1184,21 +1194,25 @@ func (tpn *TestProcessorNode) initRatingsData() {
 func CreateRatingsData() *rating.RatingsData {
 	ratingsConfig := config.RatingsConfig{
 		ShardChain: config.ShardChain{
-			RatingSteps: config.RatingSteps{
-				HoursToMaxRatingFromStartRating: 50,
-				ProposerValidatorImportance:     1,
-				ProposerDecreaseFactor:          -4,
-				ValidatorDecreaseFactor:         -4,
-				ConsecutiveMissedBlocksPenalty:  1.1,
+			RatingStepsByEpoch: []config.RatingSteps{
+				{
+					HoursToMaxRatingFromStartRating: 50,
+					ProposerValidatorImportance:     1,
+					ProposerDecreaseFactor:          -4,
+					ValidatorDecreaseFactor:         -4,
+					ConsecutiveMissedBlocksPenalty:  1.1,
+				},
 			},
 		},
 		MetaChain: config.MetaChain{
-			RatingSteps: config.RatingSteps{
-				HoursToMaxRatingFromStartRating: 50,
-				ProposerValidatorImportance:     1,
-				ProposerDecreaseFactor:          -4,
-				ValidatorDecreaseFactor:         -4,
-				ConsecutiveMissedBlocksPenalty:  1.1,
+			RatingStepsByEpoch: []config.RatingSteps{
+				{
+					HoursToMaxRatingFromStartRating: 50,
+					ProposerValidatorImportance:     1,
+					ProposerDecreaseFactor:          -4,
+					ValidatorDecreaseFactor:         -4,
+					ConsecutiveMissedBlocksPenalty:  1.1,
+				},
 			},
 		},
 		General: config.General{

@@ -390,3 +390,25 @@ func TestChronology_StartRounds(t *testing.T) {
 	chr.StartRoundsTest(ctx)
 	assert.True(t, doneFuncCalled)
 }
+
+func TestChronology_StartRoundsShouldWork(t *testing.T) {
+	t.Parallel()
+
+	arg := getDefaultChronologyArg()
+	roundHandlerMock := &consensusMocks.RoundHandlerMock{}
+	roundHandlerMock.UpdateRound(roundHandlerMock.TimeStamp(), roundHandlerMock.TimeStamp().Add(roundHandlerMock.TimeDuration()))
+	arg.RoundHandler = roundHandlerMock
+	chr, _ := chronology.NewChronology(arg)
+
+	srm := initSubroundHandlerMock()
+	srm.DoWorkCalled = func(roundHandler consensus.RoundHandler) bool {
+		return true
+	}
+	chr.AddSubround(srm)
+	chr.SetSubroundId(1)
+	chr.StartRounds()
+	defer chr.Close()
+
+	assert.Equal(t, srm.Next(), chr.SubroundId())
+	time.Sleep(time.Millisecond * 10)
+}

@@ -16,6 +16,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/rewardTx"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/dataRetriever/dataPool"
@@ -56,7 +57,7 @@ type baseRewardsCreator struct {
 	mapBaseRewardsPerBlockPerValidator map[uint32]*big.Int
 	accumulatedRewards                 *big.Int
 	protocolSustainabilityValue        *big.Int
-	flagDelegationSystemSCEnabled      atomic.Flag //nolint
+	flagDelegationSystemSCEnabled      atomic.Flag // nolint
 	userAccountsDB                     state.AccountsAdapter
 	enableEpochsHandler                common.EnableEpochsHandler
 	mutRewardsData                     sync.RWMutex
@@ -456,7 +457,6 @@ func (brc *baseRewardsCreator) fillBaseRewardsPerBlockPerNode(baseRewardsPerNode
 
 func (brc *baseRewardsCreator) getConsensusGroupSizeForShardAndEpoch(shardID uint32, epoch uint32) int {
 	if epoch == 0 {
-		log.Warn("getConsensusGroupSizeForShardAndEpoch called for epoch 0", "shardID", shardID)
 		return brc.nodesConfigProvider.ConsensusGroupSizeForShardAndEpoch(shardID, 0)
 	}
 

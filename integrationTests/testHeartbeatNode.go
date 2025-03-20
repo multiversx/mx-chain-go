@@ -708,6 +708,7 @@ func (thn *TestHeartbeatNode) initMultiDataInterceptor(topic string, dataFactory
 		interceptors.ArgMultiDataInterceptor{
 			Topic:            topic,
 			Marshalizer:      TestMarshalizer,
+			Hasher:           TestHasher,
 			DataFactory:      dataFactory,
 			Processor:        processor,
 			Throttler:        TestThrottler,

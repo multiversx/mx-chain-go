@@ -1,6 +1,7 @@
 package proofscache
 
 import (
+	"bytes"
 	"fmt"
 	"sync"
 
@@ -10,6 +11,7 @@ import (
 )
 
 const defaultCleanupNonceDelta = 3
+const defaultBucketSize = 100
 
 var log = logger.GetOrCreate("dataRetriever/proofscache")
 
@@ -20,42 +22,66 @@ type proofsPool struct {
 	mutAddedProofSubscribers sync.RWMutex
 	addedProofSubscribers    []func(headerProof data.HeaderProofHandler)
 	cleanupNonceDelta        uint64
+	bucketSize               int
 }
 
 // NewProofsPool creates a new proofs pool component
-func NewProofsPool(cleanupNonceDelta uint64) *proofsPool {
+func NewProofsPool(cleanupNonceDelta uint64, bucketSize int) *proofsPool {
 	if cleanupNonceDelta < defaultCleanupNonceDelta {
 		log.Debug("proofs pool: using default cleanup nonce delta", "cleanupNonceDelta", defaultCleanupNonceDelta)
 		cleanupNonceDelta = defaultCleanupNonceDelta
+	}
+	if bucketSize < defaultBucketSize {
+		log.Debug("proofs pool: using default bucket size", "bucketSize", defaultBucketSize)
+		bucketSize = defaultBucketSize
 	}
 
 	return &proofsPool{
 		cache:                 make(map[uint32]*proofsCache),
 		addedProofSubscribers: make([]func(headerProof data.HeaderProofHandler), 0),
 		cleanupNonceDelta:     cleanupNonceDelta,
+		bucketSize:            bucketSize,
 	}
 }
 
-// AddProof will add the provided proof to the pool
-func (pp *proofsPool) AddProof(
+// UpsertProof will add the provided proof to the pool. If there is already an existing proof,
+// it will overwrite it.
+func (pp *proofsPool) UpsertProof(
 	headerProof data.HeaderProofHandler,
 ) bool {
-	if check.IfNilReflect(headerProof) {
+	if check.IfNil(headerProof) {
 		return false
 	}
 
-	shardID := headerProof.GetHeaderShardId()
-	headerHash := headerProof.GetHeaderHash()
+	return pp.addProof(headerProof)
+}
 
-	hasProof := pp.HasProof(shardID, headerHash)
+// AddProof will add the provided proof to the pool, if it's not already in the pool.
+// It will return true if the proof was added to the pool.
+func (pp *proofsPool) AddProof(
+	headerProof data.HeaderProofHandler,
+) bool {
+	if check.IfNil(headerProof) {
+		return false
+	}
+
+	hasProof := pp.HasProof(headerProof.GetHeaderShardId(), headerProof.GetHeaderHash())
 	if hasProof {
 		return false
 	}
 
+	return pp.addProof(headerProof)
+}
+
+func (pp *proofsPool) addProof(
+	headerProof data.HeaderProofHandler,
+) bool {
+	shardID := headerProof.GetHeaderShardId()
+
 	pp.mutCache.Lock()
 	proofsPerShard, ok := pp.cache[shardID]
 	if !ok {
-		proofsPerShard = newProofsCache()
+		proofsPerShard = newProofsCache(pp.bucketSize)
 		pp.cache[shardID] = proofsPerShard
 	}
 	pp.mutCache.Unlock()
@@ -74,6 +100,27 @@ func (pp *proofsPool) AddProof(
 	proofsPerShard.addProof(headerProof)
 
 	pp.callAddedProofSubscribers(headerProof)
+
+	return true
+}
+
+// IsProofInPoolEqualTo will check if the provided proof is equal with the already existing proof in the pool
+func (pp *proofsPool) IsProofInPoolEqualTo(headerProof data.HeaderProofHandler) bool {
+	if check.IfNil(headerProof) {
+		return false
+	}
+
+	existingProof, err := pp.GetProof(headerProof.GetHeaderShardId(), headerProof.GetHeaderHash())
+	if err != nil {
+		return false
+	}
+
+	if !bytes.Equal(existingProof.GetAggregatedSignature(), headerProof.GetAggregatedSignature()) {
+		return false
+	}
+	if !bytes.Equal(existingProof.GetPubKeysBitmap(), headerProof.GetPubKeysBitmap()) {
+		return false
+	}
 
 	return true
 }

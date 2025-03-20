@@ -26,6 +26,7 @@ type ArgBaseTracker struct {
 	FeeHandler          process.FeeHandler
 	EnableEpochsHandler common.EnableEpochsHandler
 	ProofsPool          process.ProofsPool
+	IsImportDBMode      bool
 }
 
 // ArgShardTracker holds all dependencies required by the process data factory in order to create

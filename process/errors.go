@@ -1289,3 +1289,6 @@ var ErrUnexpectedHeaderProof = errors.New("unexpected header proof")
 
 // ErrEpochMismatch signals that the epoch do not match
 var ErrEpochMismatch = errors.New("epoch mismatch")
+
+// ErrInvalidRatingsConfig signals that an invalid ratings config has been provided
+var ErrInvalidRatingsConfig = errors.New("invalid ratings config")
