@@ -48,6 +48,7 @@ type StatusComponentsFactoryArgs struct {
 	NetworkComponents    factory.NetworkComponentsHolder
 	StateComponents      factory.StateComponentsHolder
 	CryptoComponents     factory.CryptoComponentsHolder
+	DataComponents       factory.DataComponentsHolder
 	IsInImportMode       bool
 }
 
@@ -64,6 +65,7 @@ type statusComponentsFactory struct {
 	networkComponents    factory.NetworkComponentsHolder
 	stateComponents      factory.StateComponentsHolder
 	cryptoComponents     factory.CryptoComponentsHolder
+	dataComponents       factory.DataComponentsHolder
 	isInImportMode       bool
 }
 
@@ -95,6 +97,9 @@ func NewStatusComponentsFactory(args StatusComponentsFactoryArgs) (*statusCompon
 	if check.IfNil(args.CryptoComponents) {
 		return nil, errors.ErrNilCryptoComponents
 	}
+	if check.IfNil(args.DataComponents) {
+		return nil, errors.ErrNilDataComponents
+	}
 
 	return &statusComponentsFactory{
 		config:               args.Config,
@@ -109,6 +114,7 @@ func NewStatusComponentsFactory(args StatusComponentsFactoryArgs) (*statusCompon
 		stateComponents:      args.StateComponents,
 		isInImportMode:       args.IsInImportMode,
 		cryptoComponents:     args.CryptoComponents,
+		dataComponents:       args.DataComponents,
 	}, nil
 }
 
@@ -141,6 +147,10 @@ func (scf *statusComponentsFactory) Create() (*statusComponents, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	scf.dataComponents.Datapool().Transactions().RegisterOnAdded(outportHandler.NewTransactionHandlerInPool)
+	scf.dataComponents.Datapool().UnsignedTransactions().RegisterOnAdded(outportHandler.NewTransactionHandlerInPool)
+	scf.dataComponents.Datapool().RewardTransactions().RegisterOnAdded(outportHandler.NewTransactionHandlerInPool)
 
 	managedPeersMonitorArgs := keysManagement.ArgManagedPeersMonitor{
 		ManagedPeersHolder: scf.cryptoComponents.ManagedPeersHolder(),
