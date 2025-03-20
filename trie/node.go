@@ -4,6 +4,7 @@ package trie
 import (
 	"context"
 	"runtime/debug"
+	"sync"
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
@@ -25,42 +26,23 @@ const (
 	pollingIdleNode      = time.Millisecond
 )
 
-type baseNode struct {
-	hash   []byte
-	dirty  bool
-	marsh  marshal.Marshalizer
-	hasher hashing.Hasher
-}
-
 type branchNode struct {
 	CollapsedBn
 	children [nrOfChildren]node
 	*baseNode
+	childrenMutexes [nrOfChildren]sync.RWMutex
 }
 
 type extensionNode struct {
 	CollapsedEn
 	child node
 	*baseNode
+	childMutex sync.RWMutex
 }
 
 type leafNode struct {
 	CollapsedLn
 	*baseNode
-}
-
-func hashChildrenAndNode(n node) ([]byte, error) {
-	err := n.hashChildren()
-	if err != nil {
-		return nil, err
-	}
-
-	hashed, err := n.hashNode()
-	if err != nil {
-		return nil, err
-	}
-
-	return hashed, nil
 }
 
 func encodeNodeAndGetHash(n node) ([]byte, error) {
@@ -76,12 +58,12 @@ func encodeNodeAndGetHash(n node) ([]byte, error) {
 
 // encodeNodeAndCommitToDB will encode and save provided node. It returns the node's value in bytes
 func encodeNodeAndCommitToDB(n node, db common.BaseStorer) (int, error) {
-	key, err := computeAndSetNodeHash(n)
-	if err != nil {
-		return 0, err
+	key := n.getHash()
+	if len(key) == 0 {
+		return 0, ErrNodeHashIsNotSet
 	}
 
-	val, err := collapseAndEncodeNode(n)
+	val, err := n.getEncodedNode()
 	if err != nil {
 		return 0, err
 	}
@@ -93,39 +75,21 @@ func encodeNodeAndCommitToDB(n node, db common.BaseStorer) (int, error) {
 	return len(val), err
 }
 
-func collapseAndEncodeNode(n node) ([]byte, error) {
-	n, err := n.getCollapsed()
-	if err != nil {
-		return nil, err
-	}
-
-	return n.getEncodedNode()
-}
-
-func computeAndSetNodeHash(n node) ([]byte, error) {
-	key := n.getHash()
-	if len(key) != 0 {
-		return key, nil
-	}
-
-	err := n.setHash()
-	if err != nil {
-		return nil, err
-	}
-	key = n.getHash()
-
-	return key, nil
-}
-
-func getNodeFromDBAndDecode(n []byte, db common.TrieStorageInteractor, marshalizer marshal.Marshalizer, hasher hashing.Hasher) (node, error) {
-	encChild, err := db.Get(n)
+func getNodeFromDBAndDecode(n []byte, db common.TrieStorageInteractor, marshalizer marshal.Marshalizer, hasher hashing.Hasher) (node, []byte, error) {
+	encodedNode, err := db.Get(n)
 	if err != nil {
 		treatLogError(log, err, n)
 
-		return nil, core.NewGetNodeFromDBErrWithKey(n, err, db.GetIdentifier())
+		return nil, nil, core.NewGetNodeFromDBErrWithKey(n, err, db.GetIdentifier())
 	}
 
-	return decodeNode(encChild, marshalizer, hasher)
+	decodedNode, err := decodeNode(encodedNode, marshalizer, hasher)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	decodedNode.setGivenHash(n)
+	return decodedNode, encodedNode, nil
 }
 
 func treatLogError(logInstance logger.Logger, err error, key []byte) {
@@ -134,20 +98,6 @@ func treatLogError(logInstance logger.Logger, err error, key []byte) {
 	}
 
 	logInstance.Trace(core.GetNodeFromDBErrorString, "error", err, "key", key, "stack trace", string(debug.Stack()))
-}
-
-func resolveIfCollapsed(n node, pos byte, db common.TrieStorageInteractor) error {
-	err := n.isEmptyOrNil()
-	if err != nil {
-		return err
-	}
-
-	if !n.isPosCollapsed(int(pos)) {
-		handleStorageInteractorStats(db)
-		return nil
-	}
-
-	return n.resolveCollapsed(pos, db)
 }
 
 func handleStorageInteractorStats(db common.TrieStorageInteractor) {
@@ -164,19 +114,9 @@ func concat(s1 []byte, s2 ...byte) []byte {
 	return r
 }
 
-func hasValidHash(n node) (bool, error) {
-	err := n.isEmptyOrNil()
-	if err != nil {
-		return false, err
-	}
-
+func hasValidHash(n node) bool {
 	childHash := n.getHash()
-	childIsDirty := n.isDirty()
-	if childHash == nil || childIsDirty {
-		return false, nil
-	}
-
-	return true, nil
+	return len(childHash) != 0
 }
 
 func decodeNode(encNode []byte, marshalizer marshal.Marshalizer, hasher hashing.Hasher) (node, error) {
@@ -307,4 +247,31 @@ func shouldMigrateCurrentNode(
 	}
 
 	return true, nil
+}
+
+func saveDirtyNodeToStorage(
+	n node,
+	goRoutinesManager common.TrieGoroutinesManager,
+	hashesCollector common.TrieHashesCollector,
+	targetDb common.BaseStorer,
+	hasher hashing.Hasher,
+) bool {
+	n.setDirty(false)
+	encNode, err := n.getEncodedNode()
+	if err != nil {
+		goRoutinesManager.SetError(err)
+		return false
+	}
+	hash := hasher.Compute(string(encNode))
+	n.setGivenHash(hash)
+	hashesCollector.AddDirtyHash(hash)
+
+	// test point encodeNodeAndCommitToDB
+
+	err = targetDb.Put(hash, encNode)
+	if err != nil {
+		goRoutinesManager.SetError(err)
+		return false
+	}
+	return true
 }
