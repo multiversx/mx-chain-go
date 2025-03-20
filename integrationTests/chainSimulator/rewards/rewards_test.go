@@ -94,30 +94,29 @@ func TestRewardsAfterEquivalentMessagesWithTxs(t *testing.T) {
 	err = cs.GenerateBlocks(210)
 	require.Nil(t, err)
 
-	// find block with rewards transactions, in this range we should find the epoch start block
-	var metaBlock *apiCore.Block
-	found := false
-	metaFacadeHandler := cs.GetNodeHandler(core.MetachainShardId).GetFacadeHandler()
-	for nonce := uint64(210); nonce < 235; nonce++ {
-		metaBlock, err = metaFacadeHandler.GetBlockByNonce(nonce, apiCore.BlockQueryOptions{
-			WithTransactions: true,
-		})
-		require.Nil(t, err)
-
-		isEpochStart := metaBlock.EpochStartInfo != nil
-		if !isEpochStart {
-			continue
-		}
-
-		found = true
-		break
-	}
-	require.True(t, found)
+	metaBlock := getLastStartOfEpochBlock(t, cs, core.MetachainShardId)
 	require.NotNil(t, metaBlock)
 
 	leaderEncoded, _ := cs.GetNodeHandler(0).GetCoreComponents().ValidatorPubKeyConverter().Encode(leader.PubKey())
-	leaderOwner := validators[leaderEncoded]
-	fmt.Println(leaderOwner)
+	leaderOwnerBlockWithTxs := validators[leaderEncoded]
+
+	var anotherOwner string
+	found := false
+	for _, address := range validators {
+		if address != leaderOwnerBlockWithTxs {
+			anotherOwner = address
+			found = true
+		}
+	}
+	require.True(t, found)
+
+	rewardTxForLeader := getRewardTxForAddress(metaBlock, leaderOwnerBlockWithTxs)
+	require.NotNil(t, rewardTxForLeader)
+	anotherRewardTx := getRewardTxForAddress(metaBlock, anotherOwner)
+	require.NotNil(t, anotherRewardTx)
+
+	rewardTxValueLeaderWithTxs, _ := big.NewInt(0).SetString(rewardTxForLeader.Value, 10)
+	rewardTxValueAnotherOwner, _ := big.NewInt(0).SetString(anotherRewardTx.Value, 10)
 
 	coordinator := cs.GetNodeHandler(0).GetProcessComponents().NodesCoordinator()
 
@@ -129,8 +128,23 @@ func TestRewardsAfterEquivalentMessagesWithTxs(t *testing.T) {
 	diff := big.NewInt(0).Mul(big.NewInt(moveBalanceGasLimit*0.1), big.NewInt(gasPrice))
 	diff.Mul(diff, big.NewInt(int64(numTxs)))
 
+	// check reward tx value
+	require.Equal(t, rewardTxValueLeaderWithTxs, big.NewInt(0).Add(rewardTxValueAnotherOwner, diff))
+
 	// rewards for target shard should be rewards for another shard + diff
 	require.Equal(t, rewardsPerShard[targetShardID], big.NewInt(0).Add(rewardsPerShard[core.MetachainShardId], diff))
+}
+
+func getRewardTxForAddress(block *apiCore.Block, address string) *transaction.ApiTransactionResult {
+	for _, mb := range block.MiniBlocks {
+		for _, tx := range mb.Transactions {
+			if tx.Receiver == address {
+				return tx
+			}
+		}
+	}
+
+	return nil
 }
 
 func generateMoveBalance(t *testing.T, cs chainSimulator.ChainSimulator, numTxs int, senderShardID, receiverShardID uint32) []*transaction.Transaction {
@@ -231,30 +245,11 @@ func TestRewardsTxsAfterEquivalentMessages(t *testing.T) {
 	err = cs.GenerateBlocks(210)
 	require.Nil(t, err)
 
-	metaFacadeHandler := cs.GetNodeHandler(core.MetachainShardId).GetFacadeHandler()
-
 	nodesSetupFile := path.Join(tempDir, "config", "nodesSetup.json")
 	validators, err := readValidatorsAndOwners(nodesSetupFile)
 	require.Nil(t, err)
 
-	// find block with rewards transactions, in this range we should find the epoch start block
-	var metaBlock *apiCore.Block
-	found := false
-	for nonce := uint64(210); nonce < 235; nonce++ {
-		metaBlock, err = metaFacadeHandler.GetBlockByNonce(nonce, apiCore.BlockQueryOptions{
-			WithTransactions: true,
-		})
-		require.Nil(t, err)
-
-		isEpochStart := metaBlock.EpochStartInfo != nil
-		if !isEpochStart {
-			continue
-		}
-
-		found = true
-		break
-	}
-	require.True(t, found)
+	metaBlock := getLastStartOfEpochBlock(t, cs, core.MetachainShardId)
 	require.NotNil(t, metaBlock)
 
 	coordinator := cs.GetNodeHandler(0).GetProcessComponents().NodesCoordinator()
@@ -267,6 +262,23 @@ func TestRewardsTxsAfterEquivalentMessages(t *testing.T) {
 	}
 
 	require.True(t, allValuesEqual(rewardsPerShard))
+}
+
+func getLastStartOfEpochBlock(t *testing.T, cs chainSimulator.ChainSimulator, shardID uint32) *apiCore.Block {
+	metachainHandler := cs.GetNodeHandler(shardID).GetFacadeHandler()
+
+	networkStatus, err := metachainHandler.StatusMetrics().NetworkMetrics()
+	require.Nil(t, err)
+
+	epochStartBlocKNonce, ok := networkStatus[common.MetricNonceAtEpochStart].(uint64)
+	require.True(t, ok)
+
+	metaBlock, err := metachainHandler.GetBlockByNonce(epochStartBlocKNonce, apiCore.BlockQueryOptions{
+		WithTransactions: true,
+	})
+	require.Nil(t, err)
+
+	return metaBlock
 }
 
 func computeRewardsForShards(

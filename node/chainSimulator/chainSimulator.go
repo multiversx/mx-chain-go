@@ -416,6 +416,7 @@ func (s *simulator) GenerateAndMintWalletAddress(targetShardID uint32, value *bi
 	return wallet, err
 }
 
+// GenerateAddressInShard will generate a wallet address based on the provided shard
 func (s *simulator) GenerateAddressInShard(providedShardID uint32) dtos.WalletAddress {
 	converter := s.nodes[core.MetachainShardId].GetCoreComponents().AddressPubKeyConverter()
 	nodeHandler := s.GetNodeHandler(providedShardID)
