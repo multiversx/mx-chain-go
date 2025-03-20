@@ -11,6 +11,7 @@ import (
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/statusHandler"
 )
 
@@ -31,8 +32,12 @@ type rewardsConfigHandler struct {
 }
 
 // newRewardsConfigHandler returns a new instance of rewardsConfigHandler
-func newRewardsConfigHandler(rewardsSettings config.RewardsSettings) (*rewardsConfigHandler, error) {
-	rewardsConfigSlice, err := checkAndParseRewardsSettings(rewardsSettings)
+func newRewardsConfigHandler(
+	rewardsSettings config.RewardsSettings,
+	pubkeyConverter core.PubkeyConverter,
+	shardCoordinator sharding.Coordinator,
+) (*rewardsConfigHandler, error) {
+	rewardsConfigSlice, err := checkAndParseRewardsSettings(rewardsSettings, pubkeyConverter, shardCoordinator)
 	if err != nil {
 		return nil, err
 	}
@@ -129,7 +134,11 @@ func (handler *rewardsConfigHandler) updateRewardsConfigMetrics(epoch uint32) {
 	)
 }
 
-func checkAndParseRewardsSettings(rewardsSettings config.RewardsSettings) ([]*rewardsConfig, error) {
+func checkAndParseRewardsSettings(
+	rewardsSettings config.RewardsSettings,
+	pubkeyConverter core.PubkeyConverter,
+	shardCoordinator sharding.Coordinator,
+) ([]*rewardsConfig, error) {
 	rewardsConfigSlice := make([]*rewardsConfig, 0, len(rewardsSettings.RewardsConfigByEpoch))
 	for _, rewardsCfg := range rewardsSettings.RewardsConfigByEpoch {
 		err := checkRewardConfig(rewardsCfg)
@@ -139,11 +148,26 @@ func checkAndParseRewardsSettings(rewardsSettings config.RewardsSettings) ([]*re
 
 		topUpGradientPoint, _ := big.NewInt(0).SetString(rewardsCfg.TopUpGradientPoint, 10)
 
+		decodedAddress, err := pubkeyConverter.Decode(rewardsCfg.ProtocolSustainabilityAddress)
+		if err != nil {
+			log.Warn("invalid protocol sustainability reward address",
+				"err", err,
+				"provided address", rewardsCfg.ProtocolSustainabilityAddress,
+				"epoch", rewardsCfg.EpochEnable,
+			)
+			return nil, err
+		}
+
+		protocolSustainabilityShardID := shardCoordinator.ComputeId(decodedAddress)
+		if protocolSustainabilityShardID == core.MetachainShardId {
+			return nil, process.ErrProtocolSustainabilityAddressInMetachain
+		}
+
 		rewardsConfigSlice = append(rewardsConfigSlice, &rewardsConfig{
 			rewardsSettingEpoch:              rewardsCfg.EpochEnable,
 			leaderPercentage:                 rewardsCfg.LeaderPercentage,
 			protocolSustainabilityPercentage: rewardsCfg.ProtocolSustainabilityPercentage,
-			protocolSustainabilityAddress:    rewardsCfg.ProtocolSustainabilityAddress,
+			protocolSustainabilityAddress:    string(decodedAddress),
 			developerPercentage:              rewardsCfg.DeveloperPercentage,
 			topUpGradientPoint:               topUpGradientPoint,
 			topUpFactor:                      rewardsCfg.TopUpFactor,
