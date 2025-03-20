@@ -226,11 +226,6 @@ func (sr *subroundBlock) GetLeaderForHeader(headerHandler data.HeaderHandler) ([
 	return sr.getLeaderForHeader(headerHandler)
 }
 
-// SaveProofForPreviousHeaderIfNeeded will save proof if needed
-func (sr *subroundBlock) SaveProofForPreviousHeaderIfNeeded(header data.HeaderHandler, prevHeader data.HeaderHandler) {
-	sr.saveProofForPreviousHeaderIfNeeded(header, prevHeader)
-}
-
 // subroundSignature
 
 // SubroundSignature defines an alias to the subroundSignature structure
@@ -302,7 +297,7 @@ func (sr *subroundEndRound) ReceivedInvalidSignersInfo(cnsDta *consensus.Message
 }
 
 // VerifyInvalidSigners calls the unexported verifyInvalidSigners function
-func (sr *subroundEndRound) VerifyInvalidSigners(invalidSigners []byte) error {
+func (sr *subroundEndRound) VerifyInvalidSigners(invalidSigners []byte) ([]string, error) {
 	return sr.verifyInvalidSigners(invalidSigners)
 }
 
@@ -313,7 +308,7 @@ func (sr *subroundEndRound) GetMinConsensusGroupIndexOfManagedKeys() int {
 
 // CreateAndBroadcastInvalidSigners calls the unexported createAndBroadcastInvalidSigners function
 func (sr *subroundEndRound) CreateAndBroadcastInvalidSigners(invalidSigners []byte) {
-	sr.createAndBroadcastInvalidSigners(invalidSigners)
+	sr.createAndBroadcastInvalidSigners(invalidSigners, nil)
 }
 
 // GetFullMessagesForInvalidSigners calls the unexported getFullMessagesForInvalidSigners function
@@ -362,6 +357,6 @@ func (sr *subroundEndRound) GetEquivalentProofSender() string {
 }
 
 // SendProof -
-func (sr *subroundEndRound) SendProof() {
-	sr.sendProof()
+func (sr *subroundEndRound) SendProof() (bool, error) {
+	return sr.sendProof()
 }

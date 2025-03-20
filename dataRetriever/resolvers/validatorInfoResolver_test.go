@@ -301,7 +301,7 @@ func TestValidatorInfoResolver_ProcessReceivedMessage(t *testing.T) {
 		msgID, err := res.ProcessReceivedMessage(createRequestMsg(dataRetriever.HashType, []byte("hash")), fromConnectedPeer, &p2pmocks.MessengerStub{})
 		assert.Nil(t, err)
 		assert.True(t, wasCalled)
-		assert.Nil(t, msgID)
+		assert.Len(t, msgID, 0)
 	})
 	t.Run("should work, data from storage", func(t *testing.T) {
 		t.Parallel()
@@ -341,7 +341,7 @@ func TestValidatorInfoResolver_ProcessReceivedMessage(t *testing.T) {
 		msgID, err := res.ProcessReceivedMessage(createRequestMsg(dataRetriever.HashType, []byte("hash")), fromConnectedPeer, &p2pmocks.MessengerStub{})
 		assert.Nil(t, err)
 		assert.True(t, wasCalled)
-		assert.Nil(t, msgID)
+		assert.Len(t, msgID, 0)
 	})
 
 	// resolveMultipleHashesRequest
@@ -506,7 +506,7 @@ func TestValidatorInfoResolver_ProcessReceivedMessage(t *testing.T) {
 		msgID, err := res.ProcessReceivedMessage(createRequestMsg(dataRetriever.HashArrayType, buff), fromConnectedPeer, &p2pmocks.MessengerStub{})
 		assert.Nil(t, err)
 		assert.True(t, wasCalled)
-		assert.Nil(t, msgID)
+		assert.Len(t, msgID, 0)
 	})
 	t.Run("multiple chunks should work", func(t *testing.T) {
 		t.Parallel()
@@ -570,7 +570,7 @@ func TestValidatorInfoResolver_ProcessReceivedMessage(t *testing.T) {
 		assert.Nil(t, err)
 		assert.Equal(t, 2, numOfCallsSend)       // ~677 messages in a chunk
 		assert.Equal(t, 0, len(providedDataMap)) // all items should have been deleted on Send
-		assert.Nil(t, msgID)
+		assert.Len(t, msgID, 0)
 	})
 }
 

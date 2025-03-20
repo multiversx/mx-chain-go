@@ -100,7 +100,7 @@ func createArgsCoreComponentsHolder() ArgsCoreComponentsHolder {
 						LeaderPercentage:                 0.1,
 						DeveloperPercentage:              0.1,
 						ProtocolSustainabilityPercentage: 0.1,
-						ProtocolSustainabilityAddress:    "erd1932eft30w753xyvme8d49qejgkjc09n5e49w4mwdjtm0neld797su0dlxp",
+						ProtocolSustainabilityAddress:    testingProtocolSustainabilityAddress,
 						TopUpGradientPoint:               "300000000000000000000",
 						TopUpFactor:                      0.25,
 						EpochEnable:                      0,
@@ -121,21 +121,25 @@ func createArgsCoreComponentsHolder() ArgsCoreComponentsHolder {
 				},
 			},
 			ShardChain: config.ShardChain{
-				RatingSteps: config.RatingSteps{
-					HoursToMaxRatingFromStartRating: 2,
-					ProposerValidatorImportance:     1,
-					ProposerDecreaseFactor:          -4,
-					ValidatorDecreaseFactor:         -4,
-					ConsecutiveMissedBlocksPenalty:  1.2,
+				RatingStepsByEpoch: []config.RatingSteps{
+					{
+						HoursToMaxRatingFromStartRating: 2,
+						ProposerValidatorImportance:     1,
+						ProposerDecreaseFactor:          -4,
+						ValidatorDecreaseFactor:         -4,
+						ConsecutiveMissedBlocksPenalty:  1.2,
+					},
 				},
 			},
 			MetaChain: config.MetaChain{
-				RatingSteps: config.RatingSteps{
-					HoursToMaxRatingFromStartRating: 2,
-					ProposerValidatorImportance:     1,
-					ProposerDecreaseFactor:          -4,
-					ValidatorDecreaseFactor:         -4,
-					ConsecutiveMissedBlocksPenalty:  1.3,
+				RatingStepsByEpoch: []config.RatingSteps{
+					{
+						HoursToMaxRatingFromStartRating: 2,
+						ProposerValidatorImportance:     1,
+						ProposerDecreaseFactor:          -4,
+						ValidatorDecreaseFactor:         -4,
+						ConsecutiveMissedBlocksPenalty:  1.3,
+					},
 				},
 			},
 		},

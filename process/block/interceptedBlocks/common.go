@@ -1,8 +1,6 @@
 package interceptedBlocks
 
 import (
-	"sync"
-
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
@@ -102,7 +100,7 @@ func checkHeaderHandler(hdr data.HeaderHandler, enableEpochsHandler common.Enabl
 
 func checkProofIntegrity(hdr data.HeaderHandler, enableEpochsHandler common.EnableEpochsHandler) error {
 	prevHeaderProof := hdr.GetPreviousProof()
-	nilPreviousProof := check.IfNilReflect(prevHeaderProof)
+	nilPreviousProof := check.IfNil(prevHeaderProof)
 	shouldHavePrevProof := common.ShouldBlockHavePrevProof(hdr, enableEpochsHandler, common.EquivalentMessagesFlag)
 	missingPrevProof := nilPreviousProof && shouldHavePrevProof
 	unexpectedPrevProof := !nilPreviousProof && !shouldHavePrevProof
@@ -125,15 +123,11 @@ func checkMetaShardInfo(
 	shardInfo []data.ShardDataHandler,
 	coordinator sharding.Coordinator,
 	headerSigVerifier process.InterceptedHeaderSigVerifier,
+	proofs process.ProofsPool,
 ) error {
 	if coordinator.SelfId() != core.MetachainShardId {
 		return nil
 	}
-
-	wgProofsVerification := sync.WaitGroup{}
-
-	errChan := make(chan error, len(shardInfo))
-	defer close(errChan)
 
 	for _, sd := range shardInfo {
 		if sd.GetShardID() >= coordinator.NumberOfShards() && sd.GetShardID() != core.MetachainShardId {
@@ -145,48 +139,22 @@ func checkMetaShardInfo(
 			return err
 		}
 
-		isSelfMeta := coordinator.SelfId() == core.MetachainShardId
-		isHeaderFromSelf := sd.GetShardID() == coordinator.SelfId()
-		if !(isSelfMeta || isHeaderFromSelf) {
+		if proofs.IsProofInPoolEqualTo(sd.GetPreviousProof()) {
 			continue
 		}
 
-		wgProofsVerification.Add(1)
-		checkProofAsync(sd.GetPreviousProof(), headerSigVerifier, &wgProofsVerification, errChan)
-	}
+		err = checkProof(sd.GetPreviousProof(), headerSigVerifier)
+		if err != nil {
+			return err
 
-	wgProofsVerification.Wait()
-
-	return readFromChanNonBlocking(errChan)
-}
-
-func readFromChanNonBlocking(errChan chan error) error {
-	select {
-	case err := <-errChan:
-		return err
-	default:
-		return nil
-	}
-}
-
-func checkProofAsync(
-	proof data.HeaderProofHandler,
-	headerSigVerifier process.InterceptedHeaderSigVerifier,
-	wg *sync.WaitGroup,
-	errChan chan error,
-) {
-	go func(proof data.HeaderProofHandler) {
-		errCheckProof := checkProof(proof, headerSigVerifier)
-		if errCheckProof != nil {
-			errChan <- errCheckProof
 		}
+	}
 
-		wg.Done()
-	}(proof)
+	return nil
 }
 
 func checkProof(proof data.HeaderProofHandler, headerSigVerifier process.InterceptedHeaderSigVerifier) error {
-	if check.IfNilReflect(proof) {
+	if check.IfNil(proof) {
 		return nil
 	}
 

@@ -13,6 +13,7 @@ import (
 	"github.com/multiversx/mx-chain-go/process/mock"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/consensus"
+	"github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
 	"github.com/stretchr/testify/assert"
@@ -384,8 +385,8 @@ func TestCheckMetaShardInfo_WithNilOrEmptyShouldReturnNil(t *testing.T) {
 
 	shardCoordinator := mock.NewOneShardCoordinatorMock()
 
-	err1 := checkMetaShardInfo(nil, shardCoordinator, &consensus.HeaderSigVerifierMock{})
-	err2 := checkMetaShardInfo(make([]data.ShardDataHandler, 0), shardCoordinator, &consensus.HeaderSigVerifierMock{})
+	err1 := checkMetaShardInfo(nil, shardCoordinator, &consensus.HeaderSigVerifierMock{}, &dataRetriever.ProofsPoolMock{})
+	err2 := checkMetaShardInfo(make([]data.ShardDataHandler, 0), shardCoordinator, &consensus.HeaderSigVerifierMock{}, &dataRetriever.ProofsPoolMock{})
 
 	assert.Nil(t, err1)
 	assert.Nil(t, err2)
@@ -407,7 +408,7 @@ func TestCheckMetaShardInfo_ShouldNotCheckShardInfoForShards(t *testing.T) {
 		},
 	}
 
-	err := checkMetaShardInfo([]data.ShardDataHandler{&sd}, shardCoordinator, verifier)
+	err := checkMetaShardInfo([]data.ShardDataHandler{&sd}, shardCoordinator, verifier, &dataRetriever.ProofsPoolMock{})
 
 	assert.Nil(t, err)
 	assert.False(t, wasCalled)
@@ -426,7 +427,7 @@ func TestCheckMetaShardInfo_WrongShardIdShouldErr(t *testing.T) {
 		TxCount:               0,
 	}
 
-	err := checkMetaShardInfo([]data.ShardDataHandler{&sd}, shardCoordinator, &consensus.HeaderSigVerifierMock{})
+	err := checkMetaShardInfo([]data.ShardDataHandler{&sd}, shardCoordinator, &consensus.HeaderSigVerifierMock{}, &dataRetriever.ProofsPoolMock{})
 
 	assert.Equal(t, process.ErrInvalidShardId, err)
 }
@@ -451,7 +452,7 @@ func TestCheckMetaShardInfo_WrongMiniblockSenderShardIdShouldErr(t *testing.T) {
 		TxCount:               0,
 	}
 
-	err := checkMetaShardInfo([]data.ShardDataHandler{&sd}, shardCoordinator, &consensus.HeaderSigVerifierMock{})
+	err := checkMetaShardInfo([]data.ShardDataHandler{&sd}, shardCoordinator, &consensus.HeaderSigVerifierMock{}, &dataRetriever.ProofsPoolMock{})
 
 	assert.Equal(t, process.ErrInvalidShardId, err)
 }
@@ -476,7 +477,7 @@ func TestCheckMetaShardInfo_WrongMiniblockReceiverShardIdShouldErr(t *testing.T)
 		TxCount:               0,
 	}
 
-	err := checkMetaShardInfo([]data.ShardDataHandler{&sd}, shardCoordinator, &consensus.HeaderSigVerifierMock{})
+	err := checkMetaShardInfo([]data.ShardDataHandler{&sd}, shardCoordinator, &consensus.HeaderSigVerifierMock{}, &dataRetriever.ProofsPoolMock{})
 
 	assert.Equal(t, process.ErrInvalidShardId, err)
 }
@@ -502,7 +503,7 @@ func TestCheckMetaShardInfo_ReservedPopulatedShouldErr(t *testing.T) {
 		TxCount:               0,
 	}
 
-	err := checkMetaShardInfo([]data.ShardDataHandler{&sd}, shardCoordinator, &consensus.HeaderSigVerifierMock{})
+	err := checkMetaShardInfo([]data.ShardDataHandler{&sd}, shardCoordinator, &consensus.HeaderSigVerifierMock{}, &dataRetriever.ProofsPoolMock{})
 
 	assert.Equal(t, process.ErrReservedFieldInvalid, err)
 }
@@ -526,12 +527,12 @@ func TestCheckMetaShardInfo_OkValsShouldWork(t *testing.T) {
 		TxCount:               0,
 	}
 
-	err := checkMetaShardInfo([]data.ShardDataHandler{&sd}, shardCoordinator, &consensus.HeaderSigVerifierMock{})
+	err := checkMetaShardInfo([]data.ShardDataHandler{&sd}, shardCoordinator, &consensus.HeaderSigVerifierMock{}, &dataRetriever.ProofsPoolMock{})
 	assert.Nil(t, err)
 
 	miniBlock.Reserved = []byte("r")
 	sd.ShardMiniBlockHeaders = []block.MiniBlockHeader{miniBlock}
-	err = checkMetaShardInfo([]data.ShardDataHandler{&sd}, shardCoordinator, &consensus.HeaderSigVerifierMock{})
+	err = checkMetaShardInfo([]data.ShardDataHandler{&sd}, shardCoordinator, &consensus.HeaderSigVerifierMock{}, &dataRetriever.ProofsPoolMock{})
 	assert.Nil(t, err)
 }
 
@@ -580,6 +581,7 @@ func TestCheckMetaShardInfo_WithMultipleShardData(t *testing.T) {
 			[]data.ShardDataHandler{sd1, sd2},
 			shardCoordinator,
 			&consensus.HeaderSigVerifierMock{},
+			&dataRetriever.ProofsPoolMock{},
 		)
 
 		assert.Equal(t, process.ErrInvalidShardId, err)
@@ -631,6 +633,7 @@ func TestCheckMetaShardInfo_WithMultipleShardData(t *testing.T) {
 			[]data.ShardDataHandler{sd1, sd2},
 			shardCoordinator,
 			&consensus.HeaderSigVerifierMock{},
+			&dataRetriever.ProofsPoolMock{},
 		)
 
 		assert.Equal(t, process.ErrInvalidHeaderProof, err)
@@ -681,7 +684,7 @@ func TestCheckMetaShardInfo_FewShardDataErrorShouldReturnError(t *testing.T) {
 		}
 	}
 
-	err := checkMetaShardInfo(shardData, shardCoordinator, sigVerifier)
+	err := checkMetaShardInfo(shardData, shardCoordinator, sigVerifier, &dataRetriever.ProofsPoolMock{})
 	assert.Equal(t, providedRandomError, err)
 }
 

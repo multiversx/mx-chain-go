@@ -65,7 +65,7 @@ func createMockArgsNewIntermediateProcessorsFactory() shard.ArgsNewIntermediateP
 		PubkeyConverter:         createMockPubkeyConverter(),
 		Store:                   &storageStubs.ChainStorerStub{},
 		PoolsHolder:             createDataPools(),
-		EconomicsFee:            &economicsmocks.EconomicsHandlerStub{},
+		EconomicsFee:            &economicsmocks.EconomicsHandlerMock{},
 		EnableEpochsHandler:     enableEpochsHandlerMock.NewEnableEpochsHandlerStub(common.KeepExecOrderOnCreatedSCRsFlag),
 		TxExecutionOrderHandler: &txExecOrderStub.TxExecutionOrderHandlerStub{},
 	}

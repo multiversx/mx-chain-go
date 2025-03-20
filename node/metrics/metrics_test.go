@@ -418,21 +418,25 @@ func TestInitRatingsMetrics(t *testing.T) {
 			},
 		},
 		ShardChain: config.ShardChain{
-			RatingSteps: config.RatingSteps{
-				HoursToMaxRatingFromStartRating: 10,
-				ProposerValidatorImportance:     0.1,
-				ProposerDecreaseFactor:          0.1,
-				ValidatorDecreaseFactor:         0.1,
-				ConsecutiveMissedBlocksPenalty:  0.1,
+			RatingStepsByEpoch: []config.RatingSteps{
+				{
+					HoursToMaxRatingFromStartRating: 10,
+					ProposerValidatorImportance:     0.1,
+					ProposerDecreaseFactor:          0.1,
+					ValidatorDecreaseFactor:         0.1,
+					ConsecutiveMissedBlocksPenalty:  0.1,
+				},
 			},
 		},
 		MetaChain: config.MetaChain{
-			RatingSteps: config.RatingSteps{
-				HoursToMaxRatingFromStartRating: 10,
-				ProposerValidatorImportance:     0.1,
-				ProposerDecreaseFactor:          0.1,
-				ValidatorDecreaseFactor:         0.1,
-				ConsecutiveMissedBlocksPenalty:  0.1,
+			RatingStepsByEpoch: []config.RatingSteps{
+				{
+					HoursToMaxRatingFromStartRating: 10,
+					ProposerValidatorImportance:     0.1,
+					ProposerDecreaseFactor:          0.1,
+					ValidatorDecreaseFactor:         0.1,
+					ConsecutiveMissedBlocksPenalty:  0.1,
+				},
 			},
 		},
 		PeerHonesty: config.PeerHonestyConfig{
