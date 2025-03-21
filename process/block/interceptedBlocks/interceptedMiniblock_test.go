@@ -5,10 +5,11 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/stretchr/testify/assert"
+
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/block/interceptedBlocks"
 	"github.com/multiversx/mx-chain-go/process/mock"
-	"github.com/stretchr/testify/assert"
 )
 
 func createDefaultMiniblockArgument() *interceptedBlocks.ArgInterceptedMiniblock {
@@ -69,7 +70,7 @@ func TestNewInterceptedMiniblock_ShouldWork(t *testing.T) {
 	assert.Nil(t, err)
 }
 
-//------- CheckValidity
+//------- Verify
 
 func TestInterceptedMiniblock_InvalidReceiverShardIdShouldErr(t *testing.T) {
 	t.Parallel()

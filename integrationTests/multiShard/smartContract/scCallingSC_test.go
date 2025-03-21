@@ -16,16 +16,17 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	vmData "github.com/multiversx/mx-chain-core-go/data/vm"
+	logger "github.com/multiversx/mx-chain-logger-go"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
 	"github.com/multiversx/mx-chain-go/integrationTests"
 	"github.com/multiversx/mx-chain-go/integrationTests/vm"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/factory"
 	"github.com/multiversx/mx-chain-go/state"
 	systemVm "github.com/multiversx/mx-chain-go/vm"
-	logger "github.com/multiversx/mx-chain-logger-go"
-	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 var log = logger.GetOrCreate("integrationtests/multishard/smartcontract")
@@ -45,11 +46,10 @@ func TestSCCallingIntraShard(t *testing.T) {
 		numMetachainNodes,
 	)
 
-	idxProposers := make([]int, numOfShards+1)
+	leaders := make([]*integrationTests.TestProcessorNode, numOfShards)
 	for i := 0; i < numOfShards; i++ {
-		idxProposers[i] = i * nodesPerShard
+		leaders[i] = nodes[i*nodesPerShard]
 	}
-	idxProposers[numOfShards] = numOfShards * nodesPerShard
 
 	integrationTests.DisplayAndStartNodes(nodes)
 
@@ -86,7 +86,7 @@ func TestSCCallingIntraShard(t *testing.T) {
 		nodes,
 		nodes[0].EconomicsData.MaxGasLimitPerBlock(0)-1,
 	)
-	//000000000000000005005d3d53b5d0fcf07d222170978932166ee9f3972d3030
+	// 000000000000000005005d3d53b5d0fcf07d222170978932166ee9f3972d3030
 	secondSCAddress := putDeploySCToDataPool(
 		"./testdata/second/output/second.wasm",
 		secondSCOwner,
@@ -96,10 +96,10 @@ func TestSCCallingIntraShard(t *testing.T) {
 		nodes,
 		nodes[0].EconomicsData.MaxGasLimitPerBlock(0)-1,
 	)
-	//00000000000000000500017cc09151c48b99e2a1522fb70a5118ad4cb26c3031
+	// 00000000000000000500017cc09151c48b99e2a1522fb70a5118ad4cb26c3031
 
 	// Run two rounds, so the two SmartContracts get deployed.
-	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, 2, nonce, round, idxProposers)
+	nonce, round = integrationTests.WaitOperationToBeDone(t, leaders, nodes, 2, nonce, round)
 
 	time.Sleep(time.Second)
 
@@ -113,7 +113,7 @@ func TestSCCallingIntraShard(t *testing.T) {
 	}
 	time.Sleep(time.Second)
 
-	_, _ = integrationTests.WaitOperationToBeDone(t, nodes, 3, nonce, round, idxProposers)
+	_, _ = integrationTests.WaitOperationToBeDone(t, leaders, nodes, 3, nonce, round)
 
 	// verify how many times was the first SC called
 	for index, node := range nodes {
@@ -142,11 +142,11 @@ func TestScDeployAndChangeScOwner(t *testing.T) {
 		numMetachainNodes,
 	)
 
-	idxProposers := make([]int, numShards+1)
+	leaders := make([]*integrationTests.TestProcessorNode, numShards+1)
 	for i := 0; i < numShards; i++ {
-		idxProposers[i] = i * nodesPerShard
+		leaders[i] = nodes[i*nodesPerShard]
 	}
-	idxProposers[numShards] = numShards * nodesPerShard
+	leaders[numShards] = nodes[numShards*nodesPerShard]
 
 	integrationTests.DisplayAndStartNodes(nodes)
 
@@ -176,8 +176,8 @@ func TestScDeployAndChangeScOwner(t *testing.T) {
 	nonce := uint64(0)
 	round = integrationTests.IncrementAndPrintRound(round)
 	nonce++
-	integrationTests.ProposeBlock(nodes, idxProposers, round, nonce)
-	integrationTests.SyncBlock(t, nodes, idxProposers, round)
+	integrationTests.ProposeBlock(nodes, leaders, round, nonce)
+	integrationTests.SyncBlock(t, nodes, leaders, round)
 	round = integrationTests.IncrementAndPrintRound(round)
 	nonce++
 
@@ -195,8 +195,8 @@ func TestScDeployAndChangeScOwner(t *testing.T) {
 	for i := 0; i < numRoundsToPropagateMultiShard; i++ {
 		integrationTests.UpdateRound(nodes, round)
 		integrationTests.AddSelfNotarizedHeaderByMetachain(nodes)
-		integrationTests.ProposeBlock(nodes, idxProposers, round, nonce)
-		integrationTests.SyncBlock(t, nodes, idxProposers, round)
+		integrationTests.ProposeBlock(nodes, leaders, round, nonce)
+		integrationTests.SyncBlock(t, nodes, leaders, round)
 		round = integrationTests.IncrementAndPrintRound(round)
 		nonce++
 	}
@@ -222,8 +222,8 @@ func TestScDeployAndChangeScOwner(t *testing.T) {
 	for i := 0; i < numRoundsToPropagateMultiShard; i++ {
 		integrationTests.UpdateRound(nodes, round)
 		integrationTests.AddSelfNotarizedHeaderByMetachain(nodes)
-		integrationTests.ProposeBlock(nodes, idxProposers, round, nonce)
-		integrationTests.SyncBlock(t, nodes, idxProposers, round)
+		integrationTests.ProposeBlock(nodes, leaders, round, nonce)
+		integrationTests.SyncBlock(t, nodes, leaders, round)
 		round = integrationTests.IncrementAndPrintRound(round)
 		nonce++
 	}
@@ -252,11 +252,11 @@ func TestScDeployAndClaimSmartContractDeveloperRewards(t *testing.T) {
 		numMetachainNodes,
 	)
 
-	idxProposers := make([]int, numShards+1)
+	leaders := make([]*integrationTests.TestProcessorNode, numShards+1)
 	for i := 0; i < numShards; i++ {
-		idxProposers[i] = i * nodesPerShard
+		leaders[i] = nodes[i*nodesPerShard]
 	}
-	idxProposers[numShards] = numShards * nodesPerShard
+	leaders[numShards] = nodes[numShards*nodesPerShard]
 
 	integrationTests.DisplayAndStartNodes(nodes)
 
@@ -289,8 +289,8 @@ func TestScDeployAndClaimSmartContractDeveloperRewards(t *testing.T) {
 	nonce := uint64(0)
 	round = integrationTests.IncrementAndPrintRound(round)
 	nonce++
-	integrationTests.ProposeBlock(nodes, idxProposers, round, nonce)
-	integrationTests.SyncBlock(t, nodes, idxProposers, round)
+	integrationTests.ProposeBlock(nodes, leaders, round, nonce)
+	integrationTests.SyncBlock(t, nodes, leaders, round)
 	round = integrationTests.IncrementAndPrintRound(round)
 	nonce++
 
@@ -308,8 +308,8 @@ func TestScDeployAndClaimSmartContractDeveloperRewards(t *testing.T) {
 	for i := 0; i < 5; i++ {
 		integrationTests.UpdateRound(nodes, round)
 		integrationTests.AddSelfNotarizedHeaderByMetachain(nodes)
-		integrationTests.ProposeBlock(nodes, idxProposers, round, nonce)
-		integrationTests.SyncBlock(t, nodes, idxProposers, round)
+		integrationTests.ProposeBlock(nodes, leaders, round, nonce)
+		integrationTests.SyncBlock(t, nodes, leaders, round)
 		round = integrationTests.IncrementAndPrintRound(round)
 		nonce++
 	}
@@ -346,8 +346,8 @@ func TestScDeployAndClaimSmartContractDeveloperRewards(t *testing.T) {
 	for i := 0; i < 3; i++ {
 		integrationTests.UpdateRound(nodes, round)
 		integrationTests.AddSelfNotarizedHeaderByMetachain(nodes)
-		integrationTests.ProposeBlock(nodes, idxProposers, round, nonce)
-		integrationTests.SyncBlock(t, nodes, idxProposers, round)
+		integrationTests.ProposeBlock(nodes, leaders, round, nonce)
+		integrationTests.SyncBlock(t, nodes, leaders, round)
 		round = integrationTests.IncrementAndPrintRound(round)
 		nonce++
 	}
@@ -381,11 +381,11 @@ func TestSCCallingInCrossShard(t *testing.T) {
 		numMetachainNodes,
 	)
 
-	idxProposers := make([]int, numOfShards+1)
+	leaders := make([]*integrationTests.TestProcessorNode, numOfShards+1)
 	for i := 0; i < numOfShards; i++ {
-		idxProposers[i] = i * nodesPerShard
+		leaders[i] = nodes[i*nodesPerShard]
 	}
-	idxProposers[numOfShards] = numOfShards * nodesPerShard
+	leaders[numOfShards] = nodes[numOfShards*nodesPerShard]
 
 	integrationTests.DisplayAndStartNodes(nodes)
 
@@ -422,7 +422,7 @@ func TestSCCallingInCrossShard(t *testing.T) {
 		nodes,
 		nodes[0].EconomicsData.MaxGasLimitPerBlock(0)-1,
 	)
-	//000000000000000005005d3d53b5d0fcf07d222170978932166ee9f3972d3030
+	// 000000000000000005005d3d53b5d0fcf07d222170978932166ee9f3972d3030
 	secondSCAddress := putDeploySCToDataPool(
 		"./testdata/second/output/second.wasm",
 		secondSCOwner,
@@ -432,9 +432,9 @@ func TestSCCallingInCrossShard(t *testing.T) {
 		nodes,
 		nodes[0].EconomicsData.MaxGasLimitPerBlock(0)-1,
 	)
-	//00000000000000000500017cc09151c48b99e2a1522fb70a5118ad4cb26c3031
+	// 00000000000000000500017cc09151c48b99e2a1522fb70a5118ad4cb26c3031
 
-	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, 1, nonce, round, idxProposers)
+	nonce, round = integrationTests.WaitOperationToBeDone(t, leaders, nodes, 1, nonce, round)
 
 	// make smart contract call to shard 1 which will do in shard 0
 	for _, node := range nodes {
@@ -452,7 +452,7 @@ func TestSCCallingInCrossShard(t *testing.T) {
 	time.Sleep(time.Second)
 
 	nrRoundsToPropagateMultiShard := 10
-	_, _ = integrationTests.WaitOperationToBeDone(t, nodes, nrRoundsToPropagateMultiShard, nonce, round, idxProposers)
+	_, _ = integrationTests.WaitOperationToBeDone(t, leaders, nodes, nrRoundsToPropagateMultiShard, nonce, round)
 
 	// verify how many times was shard 0 and shard 1 called
 	shId := nodes[0].ShardCoordinator.ComputeId(firstSCAddress)
@@ -518,11 +518,11 @@ func TestSCCallingBuiltinAndFails(t *testing.T) {
 		numMetachainNodes,
 	)
 
-	idxProposers := make([]int, numOfShards+1)
+	leaders := make([]*integrationTests.TestProcessorNode, numOfShards+1)
 	for i := 0; i < numOfShards; i++ {
-		idxProposers[i] = i * nodesPerShard
+		leaders[i] = nodes[i*nodesPerShard]
 	}
-	idxProposers[numOfShards] = numOfShards * nodesPerShard
+	leaders[numOfShards] = nodes[numOfShards*nodesPerShard]
 
 	integrationTests.DisplayAndStartNodes(nodes)
 
@@ -557,7 +557,7 @@ func TestSCCallingBuiltinAndFails(t *testing.T) {
 		nodes[0].EconomicsData.MaxGasLimitPerBlock(0)-1,
 	)
 
-	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, 1, nonce, round, idxProposers)
+	nonce, round = integrationTests.WaitOperationToBeDone(t, leaders, nodes, 1, nonce, round)
 
 	sender := nodes[0]
 	receiver := nodes[1]
@@ -576,7 +576,7 @@ func TestSCCallingBuiltinAndFails(t *testing.T) {
 	)
 
 	time.Sleep(time.Second)
-	_, _ = integrationTests.WaitOperationToBeDone(t, nodes, 10, nonce, round, idxProposers)
+	_, _ = integrationTests.WaitOperationToBeDone(t, leaders, nodes, 10, nonce, round)
 	testValue1 := vm.GetIntValueFromSC(nil, sender.AccntState, scAddress, "testValue1", nil)
 	require.NotNil(t, testValue1)
 	require.Equal(t, uint64(255), testValue1.Uint64())
@@ -606,18 +606,16 @@ func TestSCCallingInCrossShardDelegationMock(t *testing.T) {
 	)
 
 	nodes := make([]*integrationTests.TestProcessorNode, 0)
-	idxProposers := make([]int, numOfShards+1)
+	leaders := make([]*integrationTests.TestProcessorNode, numOfShards+1)
 
 	for _, nds := range nodesMap {
 		nodes = append(nodes, nds...)
 	}
 
-	for _, nds := range nodesMap {
-		idx, err := getNodeIndex(nodes, nds[0])
-		assert.Nil(t, err)
-
-		idxProposers = append(idxProposers, idx)
+	for i := 0; i < numOfShards; i++ {
+		leaders[i] = nodesMap[uint32(i)][0]
 	}
+	leaders[numOfShards] = nodesMap[core.MetachainShardId][0]
 
 	integrationTests.DisplayAndStartNodes(nodes)
 
@@ -652,7 +650,7 @@ func TestSCCallingInCrossShardDelegationMock(t *testing.T) {
 		nodes[0].EconomicsData.MaxGasLimitPerBlock(0)-1,
 	)
 
-	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, 1, nonce, round, idxProposers)
+	nonce, round = integrationTests.WaitOperationToBeDone(t, leaders, nodes, 1, nonce, round)
 
 	// one node calls to stake all the money from the delegation - that's how the contract is :D
 	node := nodes[0]
@@ -665,7 +663,7 @@ func TestSCCallingInCrossShardDelegationMock(t *testing.T) {
 	time.Sleep(time.Second)
 
 	nrRoundsToPropagateMultiShard := 10
-	_, _ = integrationTests.WaitOperationToBeDone(t, nodes, nrRoundsToPropagateMultiShard, nonce, round, idxProposers)
+	_, _ = integrationTests.WaitOperationToBeDone(t, leaders, nodes, nrRoundsToPropagateMultiShard, nonce, round)
 
 	time.Sleep(time.Second)
 	// verify system smart contract has the value
@@ -707,18 +705,16 @@ func TestSCCallingInCrossShardDelegation(t *testing.T) {
 	)
 
 	nodes := make([]*integrationTests.TestProcessorNode, 0)
-	idxProposers := make([]int, numOfShards+1)
+	leaders := make([]*integrationTests.TestProcessorNode, numOfShards+1)
 
 	for _, nds := range nodesMap {
 		nodes = append(nodes, nds...)
 	}
 
-	for _, nds := range nodesMap {
-		idx, err := getNodeIndex(nodes, nds[0])
-		assert.Nil(t, err)
-
-		idxProposers = append(idxProposers, idx)
+	for i := 0; i < numOfShards; i++ {
+		leaders[i] = nodesMap[uint32(i)][0]
 	}
+	leaders[numOfShards] = nodesMap[core.MetachainShardId][0]
 
 	integrationTests.DisplayAndStartNodes(nodes)
 
@@ -761,7 +757,7 @@ func TestSCCallingInCrossShardDelegation(t *testing.T) {
 	)
 	shardNode.OwnAccount.Nonce++
 
-	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, 1, nonce, round, idxProposers)
+	nonce, round = integrationTests.WaitOperationToBeDone(t, leaders, nodes, 1, nonce, round)
 
 	// check that the version is the expected one
 	scQueryVersion := &process.SCQuery{
@@ -775,13 +771,13 @@ func TestSCCallingInCrossShardDelegation(t *testing.T) {
 	require.True(t, bytes.Contains(vmOutputVersion.ReturnData[0], []byte("0.3.")))
 	log.Info("SC deployed", "version", string(vmOutputVersion.ReturnData[0]))
 
-	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, 1, nonce, round, idxProposers)
+	nonce, round = integrationTests.WaitOperationToBeDone(t, leaders, nodes, 1, nonce, round)
 
 	// set stake per node
 	setStakePerNodeTxData := "setStakePerNode@" + core.ConvertToEvenHexBigInt(nodePrice)
 	integrationTests.CreateAndSendTransaction(shardNode, nodes, big.NewInt(0), delegateSCAddress, setStakePerNodeTxData, integrationTests.AdditionalGasLimit)
 
-	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, 1, nonce, round, idxProposers)
+	nonce, round = integrationTests.WaitOperationToBeDone(t, leaders, nodes, 1, nonce, round)
 
 	// add node
 	addNodesTxData := fmt.Sprintf("addNodes@%s@%s",
@@ -789,25 +785,25 @@ func TestSCCallingInCrossShardDelegation(t *testing.T) {
 		hex.EncodeToString(stakerBLSSignature))
 	integrationTests.CreateAndSendTransaction(shardNode, nodes, big.NewInt(0), delegateSCAddress, addNodesTxData, integrationTests.AdditionalGasLimit)
 
-	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, 1, nonce, round, idxProposers)
+	nonce, round = integrationTests.WaitOperationToBeDone(t, leaders, nodes, 1, nonce, round)
 
 	// stake some coin!
 	// here the node account fills all the required stake
 	stakeTxData := "stake"
 	integrationTests.CreateAndSendTransaction(shardNode, nodes, totalStake, delegateSCAddress, stakeTxData, integrationTests.AdditionalGasLimit)
 
-	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, 1, nonce, round, idxProposers)
+	nonce, round = integrationTests.WaitOperationToBeDone(t, leaders, nodes, 1, nonce, round)
 
 	// activate the delegation, this involves an async call to validatorSC
 	stakeAllAvailableTxData := "stakeAllAvailable"
 	integrationTests.CreateAndSendTransaction(shardNode, nodes, big.NewInt(0), delegateSCAddress, stakeAllAvailableTxData, 2*integrationTests.AdditionalGasLimit)
 
-	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, 1, nonce, round, idxProposers)
+	nonce, round = integrationTests.WaitOperationToBeDone(t, leaders, nodes, 1, nonce, round)
 
 	time.Sleep(time.Second)
 
 	nrRoundsToPropagateMultiShard := 10
-	_, _ = integrationTests.WaitOperationToBeDone(t, nodes, nrRoundsToPropagateMultiShard, nonce, round, idxProposers)
+	_, _ = integrationTests.WaitOperationToBeDone(t, leaders, nodes, nrRoundsToPropagateMultiShard, nonce, round)
 
 	time.Sleep(time.Second)
 
@@ -890,11 +886,10 @@ func TestSCNonPayableIntraShardErrorShouldProcessBlock(t *testing.T) {
 		numMetachainNodes,
 	)
 
-	idxProposers := make([]int, numOfShards+1)
+	leaders := make([]*integrationTests.TestProcessorNode, numOfShards)
 	for i := 0; i < numOfShards; i++ {
-		idxProposers[i] = i * nodesPerShard
+		leaders[i] = nodes[i*nodesPerShard]
 	}
-	idxProposers[numOfShards] = numOfShards * nodesPerShard
 
 	integrationTests.DisplayAndStartNodes(nodes)
 
@@ -931,7 +926,7 @@ func TestSCNonPayableIntraShardErrorShouldProcessBlock(t *testing.T) {
 		nodes,
 		nodes[0].EconomicsData.MaxGasLimitPerBlock(0)-1,
 	)
-	//000000000000000005005d3d53b5d0fcf07d222170978932166ee9f3972d3030
+	// 000000000000000005005d3d53b5d0fcf07d222170978932166ee9f3972d3030
 	secondSCAddress := putDeploySCToDataPool(
 		"./testdata/second/output/second.wasm",
 		secondSCOwner,
@@ -941,10 +936,10 @@ func TestSCNonPayableIntraShardErrorShouldProcessBlock(t *testing.T) {
 		nodes,
 		nodes[0].EconomicsData.MaxGasLimitPerBlock(0)-1,
 	)
-	//00000000000000000500017cc09151c48b99e2a1522fb70a5118ad4cb26c3031
+	// 00000000000000000500017cc09151c48b99e2a1522fb70a5118ad4cb26c3031
 
 	// Run two rounds, so the two SmartContracts get deployed.
-	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, 2, nonce, round, idxProposers)
+	nonce, round = integrationTests.WaitOperationToBeDone(t, leaders, nodes, 2, nonce, round)
 
 	time.Sleep(time.Second)
 
@@ -958,21 +953,11 @@ func TestSCNonPayableIntraShardErrorShouldProcessBlock(t *testing.T) {
 	}
 	time.Sleep(time.Second)
 
-	_, _ = integrationTests.WaitOperationToBeDone(t, nodes, 3, nonce, round, idxProposers)
+	_, _ = integrationTests.WaitOperationToBeDone(t, leaders, nodes, 3, nonce, round)
 
 	for _, node := range nodes {
 		assert.Equal(t, uint64(5), node.BlockChain.GetCurrentBlockHeader().GetNonce())
 	}
-}
-
-func getNodeIndex(nodeList []*integrationTests.TestProcessorNode, node *integrationTests.TestProcessorNode) (int, error) {
-	for i := range nodeList {
-		if node == nodeList[i] {
-			return i, nil
-		}
-	}
-
-	return 0, errors.New("no such node in list")
 }
 
 func putDeploySCToDataPool(

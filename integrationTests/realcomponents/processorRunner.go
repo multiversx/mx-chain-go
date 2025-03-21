@@ -95,7 +95,7 @@ func (pr *ProcessorRunner) createCoreComponents(tb testing.TB) {
 		RatingsConfig:       *pr.Config.RatingsConfig,
 		EconomicsConfig:     *pr.Config.EconomicsConfig,
 		ImportDbConfig:      *pr.Config.ImportDbConfig,
-		NodesFilename:       pr.Config.ConfigurationPathsHolder.Nodes,
+		NodesConfig:         *pr.Config.NodesConfig,
 		WorkingDirectory:    pr.Config.FlagsConfig.WorkingDir,
 		ChanStopNodeProcess: make(chan endProcess.ArgEndProcess),
 	}
@@ -308,6 +308,7 @@ func (pr *ProcessorRunner) createStatusComponents(tb testing.TB) {
 		pr.CoreComponents.EnableEpochsHandler(),
 		pr.DataComponents.Datapool().CurrentEpochValidatorInfo(),
 		pr.BootstrapComponents.NodesCoordinatorRegistryFactory(),
+		pr.CoreComponents.ChainParametersHandler(),
 	)
 	require.Nil(tb, err)
 

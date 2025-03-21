@@ -56,6 +56,7 @@ func TestRelayedV3WithChainSimulator(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
+	t.Run("successful intra shard guarded move balance", testRelayedV3MoveBalance(0, 0, false, true))
 	t.Run("sender == relayer move balance should consume fee", testRelayedV3RelayedBySenderMoveBalance())
 	t.Run("receiver == relayer move balance should consume fee", testRelayedV3RelayedByReceiverMoveBalance())
 	t.Run("successful intra shard move balance", testRelayedV3MoveBalance(0, 0, false, false))
@@ -104,7 +105,6 @@ func testRelayedV3MoveBalance(
 	guardedTx bool,
 ) func(t *testing.T) {
 	return func(t *testing.T) {
-
 		providedActivationEpoch := uint32(1)
 		alterConfigsFunc := func(cfg *config.Configs) {
 			cfg.EpochConfig.EnableEpochs.FixRelayedBaseCostEnableEpoch = providedActivationEpoch

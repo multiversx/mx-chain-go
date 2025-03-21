@@ -31,4 +31,5 @@ type ArgAPIBlockProcessor struct {
 	AccountsRepository           state.AccountsRepository
 	ScheduledTxsExecutionHandler process.ScheduledTxsExecutionHandler
 	EnableEpochsHandler          common.EnableEpochsHandler
+	ProofsPool                   dataRetriever.ProofsPool
 }

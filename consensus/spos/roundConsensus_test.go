@@ -296,23 +296,6 @@ func TestRoundConsensus_IsMultiKeyInConsensusGroup(t *testing.T) {
 	})
 }
 
-func TestRoundConsensus_IsKeyManagedByCurrentNode(t *testing.T) {
-	t.Parallel()
-
-	managedPkBytes := []byte("managed pk bytes")
-	wasCalled := false
-	keysHandler := &testscommon.KeysHandlerStub{
-		IsKeyManagedByCurrentNodeCalled: func(pkBytes []byte) bool {
-			assert.Equal(t, managedPkBytes, pkBytes)
-			wasCalled = true
-			return true
-		},
-	}
-	roundConsensus := initRoundConsensusWithKeysHandler(keysHandler)
-	assert.True(t, roundConsensus.IsKeyManagedByCurrentNode(managedPkBytes))
-	assert.True(t, wasCalled)
-}
-
 func TestRoundConsensus_IncrementRoundsWithoutReceivedMessages(t *testing.T) {
 	t.Parallel()
 

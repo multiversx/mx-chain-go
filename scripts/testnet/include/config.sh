@@ -135,8 +135,21 @@ updateNodeConfig() {
 
   updateConfigsForStakingV4
 
+  # Update chain parameters
+  updateChainParameters config_observer.toml
+  updateChainParameters config_validator.toml
+
   echo "Updated configuration for Nodes."
   popd
+}
+
+updateChainParameters() {
+  tomlFile=$1
+
+  sed -i "s,ShardConsensusGroupSize\([^,]*\),ShardConsensusGroupSize = $SHARD_CONSENSUS_SIZE," $tomlFile
+  sed -i "s,ShardMinNumNodes\([^,]*\),ShardMinNumNodes = $SHARD_CONSENSUS_SIZE," $tomlFile
+  sed -i "s,MetachainConsensusGroupSize\([^,]*\),MetachainConsensusGroupSize = $META_CONSENSUS_SIZE," $tomlFile
+  sed -i "s,MetachainMinNumNodes\([^,]*\),MetachainMinNumNodes = $META_CONSENSUS_SIZE," $tomlFile
 }
 
 updateConfigsForStakingV4() {

@@ -15,6 +15,10 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data"
 	dataTransaction "github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-crypto-go"
+	logger "github.com/multiversx/mx-chain-logger-go"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/interceptors"
@@ -22,13 +26,11 @@ import (
 	"github.com/multiversx/mx-chain-go/process/smartContract"
 	"github.com/multiversx/mx-chain-go/process/transaction"
 	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/cache"
 	"github.com/multiversx/mx-chain-go/testscommon/economicsmocks"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
-	logger "github.com/multiversx/mx-chain-logger-go"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 var errSingleSignKeyGenMock = errors.New("errSingleSignKeyGenMock")
@@ -1365,7 +1367,7 @@ func TestInterceptedTransaction_CheckValiditySecondTimeDoesNotVerifySig(t *testi
 		return shardCoordinator.CurrentShard
 	}
 
-	cache := testscommon.NewCacherMock()
+	cache := cache.NewCacherMock()
 	whiteListerVerifiedTxs, err := interceptors.NewWhiteListDataVerifier(cache)
 	require.Nil(t, err)
 
@@ -1645,7 +1647,7 @@ func TestRelayTransaction_NotAddedToWhitelistUntilIntegrityChecked(t *testing.T)
 	t.Parallel()
 
 	marshalizer := &mock.MarshalizerMock{}
-	whiteListHandler, _ := interceptors.NewWhiteListDataVerifier(testscommon.NewCacherMock())
+	whiteListHandler, _ := interceptors.NewWhiteListDataVerifier(cache.NewCacherMock())
 
 	userTx := &dataTransaction.Transaction{
 		SndAddr:   recvAddress,

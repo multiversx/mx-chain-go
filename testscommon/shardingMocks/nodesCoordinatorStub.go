@@ -9,19 +9,22 @@ import (
 
 // NodesCoordinatorStub -
 type NodesCoordinatorStub struct {
-	GetValidatorsPublicKeysCalled            func(randomness []byte, round uint64, shardId uint32, epoch uint32) ([]string, error)
-	GetValidatorsRewardsAddressesCalled      func(randomness []byte, round uint64, shardId uint32, epoch uint32) ([]string, error)
-	GetValidatorWithPublicKeyCalled          func(publicKey []byte) (validator nodesCoordinator.Validator, shardId uint32, err error)
-	GetAllValidatorsPublicKeysCalled         func() (map[uint32][][]byte, error)
-	GetAllWaitingValidatorsPublicKeysCalled  func(_ uint32) (map[uint32][][]byte, error)
-	GetAllEligibleValidatorsPublicKeysCalled func(epoch uint32) (map[uint32][][]byte, error)
-	ConsensusGroupSizeCalled                 func(shardID uint32) int
-	ComputeConsensusGroupCalled              func(randomness []byte, round uint64, shardId uint32, epoch uint32) (validatorsGroup []nodesCoordinator.Validator, err error)
-	EpochStartPrepareCalled                  func(metaHdr data.HeaderHandler, body data.BodyHandler)
-	GetConsensusWhitelistedNodesCalled       func(epoch uint32) (map[string]struct{}, error)
-	GetOwnPublicKeyCalled                    func() []byte
-	GetWaitingEpochsLeftForPublicKeyCalled   func(publicKey []byte) (uint32, error)
-	GetNumTotalEligibleCalled                func() uint64
+	GetValidatorsPublicKeysCalled                    func(randomness []byte, round uint64, shardId uint32, epoch uint32) (string, []string, error)
+	GetValidatorsRewardsAddressesCalled              func(randomness []byte, round uint64, shardId uint32, epoch uint32) ([]string, error)
+	GetValidatorWithPublicKeyCalled                  func(publicKey []byte) (validator nodesCoordinator.Validator, shardId uint32, err error)
+	GetAllValidatorsPublicKeysCalled                 func() (map[uint32][][]byte, error)
+	GetAllWaitingValidatorsPublicKeysCalled          func(_ uint32) (map[uint32][][]byte, error)
+	GetAllEligibleValidatorsPublicKeysCalled         func(epoch uint32) (map[uint32][][]byte, error)
+	GetAllEligibleValidatorsPublicKeysForShardCalled func(epoch uint32, shardID uint32) ([]string, error)
+	GetValidatorsIndexesCalled                       func(pubKeys []string, epoch uint32) ([]uint64, error)
+	ConsensusGroupSizeCalled                         func(shardID uint32, epoch uint32) int
+	ComputeConsensusGroupCalled                      func(randomness []byte, round uint64, shardId uint32, epoch uint32) (leader nodesCoordinator.Validator, validatorsGroup []nodesCoordinator.Validator, err error)
+	EpochStartPrepareCalled                          func(metaHdr data.HeaderHandler, body data.BodyHandler)
+	GetConsensusWhitelistedNodesCalled               func(epoch uint32) (map[string]struct{}, error)
+	GetOwnPublicKeyCalled                            func() []byte
+	GetWaitingEpochsLeftForPublicKeyCalled           func(publicKey []byte) (uint32, error)
+	GetNumTotalEligibleCalled                        func() uint64
+	ShardIdForEpochCalled                            func(epoch uint32) (uint32, error)
 }
 
 // NodesCoordinatorToRegistry -
@@ -69,6 +72,14 @@ func (ncm *NodesCoordinatorStub) GetAllEligibleValidatorsPublicKeys(epoch uint32
 	return nil, nil
 }
 
+// GetAllEligibleValidatorsPublicKeysForShard -
+func (ncm *NodesCoordinatorStub) GetAllEligibleValidatorsPublicKeysForShard(epoch uint32, shardID uint32) ([]string, error) {
+	if ncm.GetAllEligibleValidatorsPublicKeysForShardCalled != nil {
+		return ncm.GetAllEligibleValidatorsPublicKeysForShardCalled(epoch, shardID)
+	}
+	return nil, nil
+}
+
 // GetAllWaitingValidatorsPublicKeys -
 func (ncm *NodesCoordinatorStub) GetAllWaitingValidatorsPublicKeys(epoch uint32) (map[uint32][][]byte, error) {
 	if ncm.GetAllWaitingValidatorsPublicKeysCalled != nil {
@@ -106,7 +117,10 @@ func (ncm *NodesCoordinatorStub) GetAllValidatorsPublicKeys(_ uint32) (map[uint3
 }
 
 // GetValidatorsIndexes -
-func (ncm *NodesCoordinatorStub) GetValidatorsIndexes(_ []string, _ uint32) ([]uint64, error) {
+func (ncm *NodesCoordinatorStub) GetValidatorsIndexes(pubkeys []string, epoch uint32) ([]uint64, error) {
+	if ncm.GetValidatorsIndexesCalled != nil {
+		return ncm.GetValidatorsIndexesCalled(pubkeys, epoch)
+	}
 	return nil, nil
 }
 
@@ -116,20 +130,18 @@ func (ncm *NodesCoordinatorStub) ComputeConsensusGroup(
 	round uint64,
 	shardId uint32,
 	epoch uint32,
-) (validatorsGroup []nodesCoordinator.Validator, err error) {
+) (leader nodesCoordinator.Validator, validatorsGroup []nodesCoordinator.Validator, err error) {
 	if ncm.ComputeConsensusGroupCalled != nil {
 		return ncm.ComputeConsensusGroupCalled(randomness, round, shardId, epoch)
 	}
 
-	var list []nodesCoordinator.Validator
-
-	return list, nil
+	return nil, nil, nil
 }
 
-// ConsensusGroupSize -
-func (ncm *NodesCoordinatorStub) ConsensusGroupSize(shardID uint32) int {
+// ConsensusGroupSizeForShardAndEpoch -
+func (ncm *NodesCoordinatorStub) ConsensusGroupSizeForShardAndEpoch(shardID uint32, epoch uint32) int {
 	if ncm.ConsensusGroupSizeCalled != nil {
-		return ncm.ConsensusGroupSizeCalled(shardID)
+		return ncm.ConsensusGroupSizeCalled(shardID, epoch)
 	}
 	return 1
 }
@@ -140,12 +152,12 @@ func (ncm *NodesCoordinatorStub) GetConsensusValidatorsPublicKeys(
 	round uint64,
 	shardId uint32,
 	epoch uint32,
-) ([]string, error) {
+) (string, []string, error) {
 	if ncm.GetValidatorsPublicKeysCalled != nil {
 		return ncm.GetValidatorsPublicKeysCalled(randomness, round, shardId, epoch)
 	}
 
-	return nil, nil
+	return "", nil, nil
 }
 
 // SetNodesPerShards -
@@ -165,8 +177,12 @@ func (ncm *NodesCoordinatorStub) GetSavedStateKey() []byte {
 
 // ShardIdForEpoch returns the nodesCoordinator configured ShardId for specified epoch if epoch configuration exists,
 // otherwise error
-func (ncm *NodesCoordinatorStub) ShardIdForEpoch(_ uint32) (uint32, error) {
-	panic("not implemented")
+func (ncm *NodesCoordinatorStub) ShardIdForEpoch(epoch uint32) (uint32, error) {
+
+	if ncm.ShardIdForEpochCalled != nil {
+		return ncm.ShardIdForEpochCalled(epoch)
+	}
+	return 0, nil
 }
 
 // ShuffleOutForEpoch verifies if the shards changed in the new epoch and calls the shuffleOutHandler

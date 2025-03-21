@@ -8,16 +8,19 @@ import (
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/core/pubkeyConverter"
 	"github.com/multiversx/mx-chain-core-go/data"
 	crypto "github.com/multiversx/mx-chain-crypto-go"
+	logger "github.com/multiversx/mx-chain-logger-go"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
 	"github.com/multiversx/mx-chain-go/config"
 	consensusComp "github.com/multiversx/mx-chain-go/factory/consensus"
 	"github.com/multiversx/mx-chain-go/integrationTests"
 	"github.com/multiversx/mx-chain-go/process"
 	consensusMocks "github.com/multiversx/mx-chain-go/testscommon/consensus"
-	logger "github.com/multiversx/mx-chain-logger-go"
-	"github.com/stretchr/testify/assert"
 )
 
 const (
@@ -31,17 +34,185 @@ var (
 	log                    = logger.GetOrCreate("integrationtests/consensus")
 )
 
-func encodeAddress(address []byte) string {
-	return hex.EncodeToString(address)
-}
-
-func getPkEncoded(pubKey crypto.PublicKey) string {
-	pk, err := pubKey.ToByteArray()
-	if err != nil {
-		return err.Error()
+func TestConsensusBLSFullTestSingleKeys(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
 	}
 
-	return encodeAddress(pk)
+	runFullConsensusTest(t, blsConsensusType, 1)
+}
+
+func TestConsensusBLSFullTestMultiKeys(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
+	runFullConsensusTest(t, blsConsensusType, 5)
+}
+
+func TestConsensusBLSNotEnoughValidators(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
+	runConsensusWithNotEnoughValidators(t, blsConsensusType)
+}
+
+func TestConsensusBLSWithFullProcessing_BeforeEquivalentProofs(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
+	testConsensusBLSWithFullProcessing(t, integrationTests.UnreachableEpoch, 1)
+}
+
+func TestConsensusBLSWithFullProcessing_WithEquivalentProofs(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
+	testConsensusBLSWithFullProcessing(t, uint32(0), 1)
+}
+
+func TestConsensusBLSWithFullProcessing_WithEquivalentProofs_MultiKeys(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
+	testConsensusBLSWithFullProcessing(t, uint32(0), 3)
+}
+
+func testConsensusBLSWithFullProcessing(t *testing.T, equivalentProofsActivationEpoch uint32, numKeysOnEachNode int) {
+	numMetaNodes := uint32(2)
+	numNodes := uint32(2)
+	consensusSize := uint32(2 * numKeysOnEachNode)
+	roundTime := uint64(1000)
+
+	log.Info("runFullNodesTest",
+		"numNodes", numNodes,
+		"numKeysOnEachNode", numKeysOnEachNode,
+		"consensusSize", consensusSize,
+	)
+
+	enableEpochsConfig := integrationTests.CreateEnableEpochsConfig()
+
+	enableEpochsConfig.EquivalentMessagesEnableEpoch = equivalentProofsActivationEpoch
+	enableEpochsConfig.FixedOrderInConsensusEnableEpoch = equivalentProofsActivationEpoch
+
+	fmt.Println("Step 1. Setup nodes...")
+
+	nodes := integrationTests.CreateNodesWithTestFullNode(
+		int(numMetaNodes),
+		int(numNodes),
+		int(consensusSize),
+		roundTime,
+		blsConsensusType,
+		numKeysOnEachNode,
+		enableEpochsConfig,
+		true,
+	)
+
+	for shardID, nodesList := range nodes {
+		for _, n := range nodesList {
+			skBuff, _ := n.NodeKeys.MainKey.Sk.ToByteArray()
+			pkBuff, _ := n.NodeKeys.MainKey.Pk.ToByteArray()
+
+			encodedNodePkBuff := testPubkeyConverter.SilentEncode(pkBuff, log)
+
+			fmt.Printf("Shard ID: %v, sk: %s, pk: %s\n",
+				shardID,
+				hex.EncodeToString(skBuff),
+				encodedNodePkBuff,
+			)
+		}
+	}
+
+	time.Sleep(p2pBootstrapDelay)
+
+	defer func() {
+		for _, nodesList := range nodes {
+			for _, n := range nodesList {
+				n.Close()
+			}
+		}
+	}()
+
+	for _, nodesList := range nodes {
+		for _, n := range nodesList {
+			err := startFullConsensusNode(n)
+			require.Nil(t, err)
+		}
+	}
+
+	fmt.Println("Wait for several rounds...")
+
+	time.Sleep(15 * time.Second)
+
+	fmt.Println("Checking shards...")
+
+	expectedNonce := uint64(10)
+	for _, nodesList := range nodes {
+		for _, n := range nodesList {
+			for i := 1; i < len(nodes); i++ {
+				if check.IfNil(n.Node.GetDataComponents().Blockchain().GetCurrentBlockHeader()) {
+					assert.Fail(t, fmt.Sprintf("Node with idx %d does not have a current block", i))
+				} else {
+					assert.GreaterOrEqual(t, n.Node.GetDataComponents().Blockchain().GetCurrentBlockHeader().GetNonce(), expectedNonce)
+				}
+			}
+		}
+	}
+}
+
+func startFullConsensusNode(
+	n *integrationTests.TestFullNode,
+) error {
+	statusComponents := integrationTests.GetDefaultStatusComponents()
+
+	consensusArgs := consensusComp.ConsensusComponentsFactoryArgs{
+		Config: config.Config{
+			Consensus: config.ConsensusConfig{
+				Type: blsConsensusType,
+			},
+			ValidatorPubkeyConverter: config.PubkeyConfig{
+				Length:          96,
+				Type:            "bls",
+				SignatureLength: 48,
+			},
+			TrieSync: config.TrieSyncConfig{
+				NumConcurrentTrieSyncers:  5,
+				MaxHardCapForMissingNodes: 5,
+				TrieSyncerVersion:         2,
+				CheckNodesOnDisk:          false,
+			},
+			GeneralSettings: config.GeneralSettingsConfig{
+				SyncProcessTimeInMillis: 6000,
+			},
+		},
+		BootstrapRoundIndex:  0,
+		CoreComponents:       n.Node.GetCoreComponents(),
+		NetworkComponents:    n.Node.GetNetworkComponents(),
+		CryptoComponents:     n.Node.GetCryptoComponents(),
+		DataComponents:       n.Node.GetDataComponents(),
+		ProcessComponents:    n.Node.GetProcessComponents(),
+		StateComponents:      n.Node.GetStateComponents(),
+		StatusComponents:     statusComponents,
+		StatusCoreComponents: n.Node.GetStatusCoreComponents(),
+		ScheduledProcessor:   &consensusMocks.ScheduledProcessorStub{},
+		IsInImportMode:       n.Node.IsInImportMode(),
+	}
+
+	consensusFactory, err := consensusComp.NewConsensusComponentsFactory(consensusArgs)
+	if err != nil {
+		return err
+	}
+
+	managedConsensusComponents, err := consensusComp.NewManagedConsensusComponents(consensusFactory)
+	if err != nil {
+		return err
+	}
+
+	return managedConsensusComponents.Create()
 }
 
 func initNodesAndTest(
@@ -52,6 +223,7 @@ func initNodesAndTest(
 	roundTime uint64,
 	consensusType string,
 	numKeysOnEachNode int,
+	enableEpochsConfig config.EnableEpochs,
 ) map[uint32][]*integrationTests.TestConsensusNode {
 
 	fmt.Println("Step 1. Setup nodes...")
@@ -63,6 +235,7 @@ func initNodesAndTest(
 		roundTime,
 		consensusType,
 		numKeysOnEachNode,
+		enableEpochsConfig,
 	)
 
 	for shardID, nodesList := range nodes {
@@ -215,10 +388,14 @@ func checkBlockProposedEveryRound(numCommBlock uint64, nonceForRoundMap map[uint
 	}
 }
 
-func runFullConsensusTest(t *testing.T, consensusType string, numKeysOnEachNode int) {
+func runFullConsensusTest(
+	t *testing.T,
+	consensusType string,
+	numKeysOnEachNode int,
+) {
 	numMetaNodes := uint32(4)
 	numNodes := uint32(4)
-	consensusSize := uint32(4 * numKeysOnEachNode)
+	consensusSize := uint32(3 * numKeysOnEachNode)
 	numInvalid := uint32(0)
 	roundTime := uint64(1000)
 	numCommBlock := uint64(8)
@@ -229,7 +406,22 @@ func runFullConsensusTest(t *testing.T, consensusType string, numKeysOnEachNode 
 		"consensusSize", consensusSize,
 	)
 
-	nodes := initNodesAndTest(numMetaNodes, numNodes, consensusSize, numInvalid, roundTime, consensusType, numKeysOnEachNode)
+	enableEpochsConfig := integrationTests.CreateEnableEpochsConfig()
+
+	equivalentProofsActivationEpoch := integrationTests.UnreachableEpoch
+	enableEpochsConfig.EquivalentMessagesEnableEpoch = equivalentProofsActivationEpoch
+	enableEpochsConfig.FixedOrderInConsensusEnableEpoch = equivalentProofsActivationEpoch
+
+	nodes := initNodesAndTest(
+		numMetaNodes,
+		numNodes,
+		consensusSize,
+		numInvalid,
+		roundTime,
+		consensusType,
+		numKeysOnEachNode,
+		enableEpochsConfig,
+	)
 
 	defer func() {
 		for shardID := range nodes {
@@ -270,29 +462,16 @@ func runFullConsensusTest(t *testing.T, consensusType string, numKeysOnEachNode 
 	}
 }
 
-func TestConsensusBLSFullTestSingleKeys(t *testing.T) {
-	if testing.Short() {
-		t.Skip("this is not a short test")
-	}
-
-	runFullConsensusTest(t, blsConsensusType, 1)
-}
-
-func TestConsensusBLSFullTestMultiKeys(t *testing.T) {
-	if testing.Short() {
-		t.Skip("this is not a short test")
-	}
-
-	runFullConsensusTest(t, blsConsensusType, 5)
-}
-
 func runConsensusWithNotEnoughValidators(t *testing.T, consensusType string) {
 	numMetaNodes := uint32(4)
 	numNodes := uint32(4)
 	consensusSize := uint32(4)
 	numInvalid := uint32(2)
 	roundTime := uint64(1000)
-	nodes := initNodesAndTest(numMetaNodes, numNodes, consensusSize, numInvalid, roundTime, consensusType, 1)
+	enableEpochsConfig := integrationTests.CreateEnableEpochsConfig()
+	enableEpochsConfig.EquivalentMessagesEnableEpoch = integrationTests.UnreachableEpoch
+	enableEpochsConfig.FixedOrderInConsensusEnableEpoch = integrationTests.UnreachableEpoch
+	nodes := initNodesAndTest(numMetaNodes, numNodes, consensusSize, numInvalid, roundTime, consensusType, 1, enableEpochsConfig)
 
 	defer func() {
 		for shardID := range nodes {
@@ -325,14 +504,6 @@ func runConsensusWithNotEnoughValidators(t *testing.T, consensusType string) {
 	}
 }
 
-func TestConsensusBLSNotEnoughValidators(t *testing.T) {
-	if testing.Short() {
-		t.Skip("this is not a short test")
-	}
-
-	runConsensusWithNotEnoughValidators(t, blsConsensusType)
-}
-
 func displayAndStartNodes(shardID uint32, nodes []*integrationTests.TestConsensusNode) {
 	for _, n := range nodes {
 		skBuff, _ := n.NodeKeys.Sk.ToByteArray()
@@ -346,4 +517,17 @@ func displayAndStartNodes(shardID uint32, nodes []*integrationTests.TestConsensu
 			encodedNodePkBuff,
 		)
 	}
+}
+
+func encodeAddress(address []byte) string {
+	return hex.EncodeToString(address)
+}
+
+func getPkEncoded(pubKey crypto.PublicKey) string {
+	pk, err := pubKey.ToByteArray()
+	if err != nil {
+		return err.Error()
+	}
+
+	return encodeAddress(pk)
 }

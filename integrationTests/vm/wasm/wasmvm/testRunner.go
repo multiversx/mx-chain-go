@@ -3,6 +3,7 @@ package wasmvm
 import (
 	"crypto/rand"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"math/big"
 	"time"
@@ -171,7 +172,7 @@ func DeployAndExecuteERC20WithBigInt(
 		return nil, err
 	}
 	if returnCode != vmcommon.Ok {
-		return nil, fmt.Errorf(returnCode.String())
+		return nil, errors.New(returnCode.String())
 	}
 	ownerNonce++
 
@@ -263,7 +264,7 @@ func SetupERC20Test(
 		return err
 	}
 	if returnCode != vmcommon.Ok {
-		return fmt.Errorf(returnCode.String())
+		return errors.New(returnCode.String())
 	}
 
 	testContext.ContractOwner.Nonce++

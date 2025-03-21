@@ -6,19 +6,21 @@ import (
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/stretchr/testify/assert"
+
 	heartbeatMessages "github.com/multiversx/mx-chain-go/heartbeat"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/heartbeat"
 	"github.com/multiversx/mx-chain-go/process/interceptors/processor"
 	"github.com/multiversx/mx-chain-go/process/mock"
 	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/cache"
 	"github.com/multiversx/mx-chain-go/testscommon/p2pmocks"
-	"github.com/stretchr/testify/assert"
 )
 
 func createHeartbeatInterceptorProcessArg() processor.ArgHeartbeatInterceptorProcessor {
 	return processor.ArgHeartbeatInterceptorProcessor{
-		HeartbeatCacher:  testscommon.NewCacherStub(),
+		HeartbeatCacher:  cache.NewCacherStub(),
 		ShardCoordinator: &testscommon.ShardsCoordinatorMock{},
 		PeerShardMapper:  &p2pmocks.NetworkShardingCollectorStub{},
 	}
@@ -133,7 +135,7 @@ func TestHeartbeatInterceptorProcessor_Save(t *testing.T) {
 		wasCalled := false
 		providedPid := core.PeerID("pid")
 		arg := createHeartbeatInterceptorProcessArg()
-		arg.HeartbeatCacher = &testscommon.CacherStub{
+		arg.HeartbeatCacher = &cache.CacherStub{
 			PutCalled: func(key []byte, value interface{}, sizeInBytes int) (evicted bool) {
 				assert.True(t, bytes.Equal(providedPid.Bytes(), key))
 				ihb := value.(*heartbeatMessages.HeartbeatV2)

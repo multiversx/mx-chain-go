@@ -26,6 +26,7 @@ type dataPool struct {
 	peerAuthentications    storage.Cacher
 	heartbeats             storage.Cacher
 	validatorsInfo         dataRetriever.ShardedDataCacherNotifier
+	proofs                 dataRetriever.ProofsPool
 }
 
 // DataPoolArgs represents the data pool's constructor structure
@@ -44,6 +45,7 @@ type DataPoolArgs struct {
 	PeerAuthentications       storage.Cacher
 	Heartbeats                storage.Cacher
 	ValidatorsInfo            dataRetriever.ShardedDataCacherNotifier
+	Proofs                    dataRetriever.ProofsPool
 }
 
 // NewDataPool creates a data pools holder object
@@ -90,6 +92,9 @@ func NewDataPool(args DataPoolArgs) (*dataPool, error) {
 	if check.IfNil(args.ValidatorsInfo) {
 		return nil, dataRetriever.ErrNilValidatorInfoPool
 	}
+	if check.IfNil(args.Proofs) {
+		return nil, dataRetriever.ErrNilProofsPool
+	}
 
 	return &dataPool{
 		transactions:           args.Transactions,
@@ -106,6 +111,7 @@ func NewDataPool(args DataPoolArgs) (*dataPool, error) {
 		peerAuthentications:    args.PeerAuthentications,
 		heartbeats:             args.Heartbeats,
 		validatorsInfo:         args.ValidatorsInfo,
+		proofs:                 args.Proofs,
 	}, nil
 }
 
@@ -177,6 +183,11 @@ func (dp *dataPool) Heartbeats() storage.Cacher {
 // ValidatorsInfo returns the holder for validators info
 func (dp *dataPool) ValidatorsInfo() dataRetriever.ShardedDataCacherNotifier {
 	return dp.validatorsInfo
+}
+
+// Proofs returns the holder for equivalent proofs
+func (dp *dataPool) Proofs() dataRetriever.ProofsPool {
+	return dp.proofs
 }
 
 // Close closes all the components
