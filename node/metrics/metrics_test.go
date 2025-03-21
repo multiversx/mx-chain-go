@@ -217,6 +217,7 @@ func TestInitConfigMetrics(t *testing.T) {
 			FixBackTransferOPCODEEnableEpoch:                         110,
 			ValidationOnGobDecodeEnableEpoch:                         111,
 			BarnardOpcodesEnableEpoch:                                112,
+			AutomaticActivationOfNodesDisableEpoch:                   108,
 			MaxNodesChangeEnableEpoch: []config.MaxNodesChangeConfig{
 				{
 					EpochEnable:            0,
@@ -344,6 +345,7 @@ func TestInitConfigMetrics(t *testing.T) {
 		"erd_fix_back_transfer_opcode_enable_epoch":                            uint32(110),
 		"erd_validation_on_gobdecode_enable_epoch":                             uint32(111),
 		"erd_barnard_opcodes_enable_epoch":                                     uint32(112),
+		"erd_automatic_activation_of_nodes_disable_epoch":                      uint32(108),
 		"erd_max_nodes_change_enable_epoch":                                    nil,
 		"erd_total_supply":                                                     "12345",
 		"erd_hysteresis":                                                       "0.100000",
