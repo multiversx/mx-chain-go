@@ -164,7 +164,7 @@ func TestPeerAuthenticationResolver_ProcessReceivedMessage(t *testing.T) {
 		assert.Nil(t, err)
 		assert.False(t, res.IsInterfaceNil())
 
-		err = res.ProcessReceivedMessage(nil, fromConnectedPeer, &p2pmocks.MessengerStub{})
+		_, err = res.ProcessReceivedMessage(nil, fromConnectedPeer, &p2pmocks.MessengerStub{})
 		assert.Equal(t, dataRetriever.ErrNilMessage, err)
 	})
 	t.Run("canProcessMessage due to antiflood handler error", func(t *testing.T) {
@@ -180,7 +180,7 @@ func TestPeerAuthenticationResolver_ProcessReceivedMessage(t *testing.T) {
 		assert.Nil(t, err)
 		assert.False(t, res.IsInterfaceNil())
 
-		err = res.ProcessReceivedMessage(createRequestMsg(dataRetriever.ChunkType, nil), fromConnectedPeer, &p2pmocks.MessengerStub{})
+		_, err = res.ProcessReceivedMessage(createRequestMsg(dataRetriever.ChunkType, nil), fromConnectedPeer, &p2pmocks.MessengerStub{})
 		assert.True(t, errors.Is(err, expectedErr))
 		assert.False(t, arg.Throttler.(*mock.ThrottlerStub).StartWasCalled())
 		assert.False(t, arg.Throttler.(*mock.ThrottlerStub).EndWasCalled())
@@ -198,7 +198,7 @@ func TestPeerAuthenticationResolver_ProcessReceivedMessage(t *testing.T) {
 		assert.Nil(t, err)
 		assert.False(t, res.IsInterfaceNil())
 
-		err = res.ProcessReceivedMessage(createRequestMsg(dataRetriever.ChunkType, nil), fromConnectedPeer, &p2pmocks.MessengerStub{})
+		_, err = res.ProcessReceivedMessage(createRequestMsg(dataRetriever.ChunkType, nil), fromConnectedPeer, &p2pmocks.MessengerStub{})
 		assert.True(t, errors.Is(err, expectedErr))
 	})
 	t.Run("invalid request type should error", func(t *testing.T) {
@@ -213,7 +213,7 @@ func TestPeerAuthenticationResolver_ProcessReceivedMessage(t *testing.T) {
 		assert.Nil(t, err)
 		assert.False(t, res.IsInterfaceNil())
 
-		err = res.ProcessReceivedMessage(createRequestMsg(dataRetriever.HashType, requestedBuff), fromConnectedPeer, &p2pmocks.MessengerStub{})
+		_, err = res.ProcessReceivedMessage(createRequestMsg(dataRetriever.HashType, requestedBuff), fromConnectedPeer, &p2pmocks.MessengerStub{})
 		assert.True(t, errors.Is(err, dataRetriever.ErrRequestTypeNotImplemented))
 	})
 
@@ -227,7 +227,7 @@ func TestPeerAuthenticationResolver_ProcessReceivedMessage(t *testing.T) {
 		assert.Nil(t, err)
 		assert.False(t, res.IsInterfaceNil())
 
-		err = res.ProcessReceivedMessage(createRequestMsg(dataRetriever.HashArrayType, []byte("invalid data")), fromConnectedPeer, &p2pmocks.MessengerStub{})
+		_, err = res.ProcessReceivedMessage(createRequestMsg(dataRetriever.HashArrayType, []byte("invalid data")), fromConnectedPeer, &p2pmocks.MessengerStub{})
 		assert.NotNil(t, err)
 	})
 	t.Run("resolveMultipleHashesRequest: all hashes missing from cache should error", func(t *testing.T) {
@@ -254,7 +254,7 @@ func TestPeerAuthenticationResolver_ProcessReceivedMessage(t *testing.T) {
 		hashes := getKeysSlice()
 		providedHashes, err := arg.Marshaller.Marshal(batch.Batch{Data: hashes})
 		assert.Nil(t, err)
-		err = res.ProcessReceivedMessage(createRequestMsg(dataRetriever.HashArrayType, providedHashes), fromConnectedPeer, &p2pmocks.MessengerStub{})
+		_, err = res.ProcessReceivedMessage(createRequestMsg(dataRetriever.HashArrayType, providedHashes), fromConnectedPeer, &p2pmocks.MessengerStub{})
 		expectedSubstrErr := fmt.Sprintf("%s %x", "from buff", providedHashes)
 		assert.True(t, strings.Contains(fmt.Sprintf("%s", err), expectedSubstrErr))
 		assert.False(t, wasSent)
@@ -283,7 +283,7 @@ func TestPeerAuthenticationResolver_ProcessReceivedMessage(t *testing.T) {
 		hashes := getKeysSlice()
 		providedHashes, err := arg.Marshaller.Marshal(batch.Batch{Data: hashes})
 		assert.Nil(t, err)
-		err = res.ProcessReceivedMessage(createRequestMsg(dataRetriever.HashArrayType, providedHashes), fromConnectedPeer, &p2pmocks.MessengerStub{})
+		_, err = res.ProcessReceivedMessage(createRequestMsg(dataRetriever.HashArrayType, providedHashes), fromConnectedPeer, &p2pmocks.MessengerStub{})
 		expectedSubstrErr := fmt.Sprintf("%s %x", "from buff", providedHashes)
 		assert.True(t, strings.Contains(fmt.Sprintf("%s", err), expectedSubstrErr))
 		assert.False(t, wasSent)
@@ -319,7 +319,7 @@ func TestPeerAuthenticationResolver_ProcessReceivedMessage(t *testing.T) {
 		hashes := getKeysSlice()
 		providedHashes, err := arg.Marshaller.Marshal(batch.Batch{Data: hashes})
 		assert.Nil(t, err)
-		err = res.ProcessReceivedMessage(createRequestMsg(dataRetriever.HashArrayType, providedHashes), fromConnectedPeer, &p2pmocks.MessengerStub{})
+		_, err = res.ProcessReceivedMessage(createRequestMsg(dataRetriever.HashArrayType, providedHashes), fromConnectedPeer, &p2pmocks.MessengerStub{})
 		expectedSubstrErr := fmt.Sprintf("%s %x", "from buff", providedHashes)
 		assert.True(t, strings.Contains(fmt.Sprintf("%s", err), expectedSubstrErr))
 		assert.False(t, wasSent)
@@ -387,7 +387,7 @@ func TestPeerAuthenticationResolver_ProcessReceivedMessage(t *testing.T) {
 		assert.Nil(t, err)
 		assert.False(t, res.IsInterfaceNil())
 
-		err = res.ProcessReceivedMessage(createRequestMsg(dataRetriever.HashArrayType, providedHashes), fromConnectedPeer, &p2pmocks.MessengerStub{})
+		_, err = res.ProcessReceivedMessage(createRequestMsg(dataRetriever.HashArrayType, providedHashes), fromConnectedPeer, &p2pmocks.MessengerStub{})
 		assert.Nil(t, err)
 		assert.True(t, wasSent)
 	})
@@ -413,7 +413,7 @@ func TestPeerAuthenticationResolver_ProcessReceivedMessage(t *testing.T) {
 		hashes := getKeysSlice()
 		providedHashes, err := arg.Marshaller.Marshal(batch.Batch{Data: hashes})
 		assert.Nil(t, err)
-		err = res.ProcessReceivedMessage(createRequestMsg(dataRetriever.HashArrayType, providedHashes), fromConnectedPeer, &p2pmocks.MessengerStub{})
+		_, err = res.ProcessReceivedMessage(createRequestMsg(dataRetriever.HashArrayType, providedHashes), fromConnectedPeer, &p2pmocks.MessengerStub{})
 		assert.True(t, errors.Is(err, expectedErr))
 	})
 	t.Run("resolveMultipleHashesRequest: Send returns error", func(t *testing.T) {
@@ -438,7 +438,7 @@ func TestPeerAuthenticationResolver_ProcessReceivedMessage(t *testing.T) {
 		hashes := getKeysSlice()
 		providedHashes, err := arg.Marshaller.Marshal(batch.Batch{Data: hashes})
 		assert.Nil(t, err)
-		err = res.ProcessReceivedMessage(createRequestMsg(dataRetriever.HashArrayType, providedHashes), fromConnectedPeer, &p2pmocks.MessengerStub{})
+		_, err = res.ProcessReceivedMessage(createRequestMsg(dataRetriever.HashArrayType, providedHashes), fromConnectedPeer, &p2pmocks.MessengerStub{})
 		assert.True(t, errors.Is(err, expectedErr))
 	})
 	t.Run("resolveMultipleHashesRequest: send large data buff", func(t *testing.T) {
@@ -501,7 +501,7 @@ func TestPeerAuthenticationResolver_ProcessReceivedMessage(t *testing.T) {
 		chunkIndex := uint32(0)
 		providedHashes, err := arg.Marshaller.Marshal(&batch.Batch{Data: providedKeys})
 		assert.Nil(t, err)
-		err = res.ProcessReceivedMessage(createRequestMsgWithChunkIndex(dataRetriever.HashArrayType, providedHashes, epoch, chunkIndex), fromConnectedPeer, &p2pmocks.MessengerStub{})
+		_, err = res.ProcessReceivedMessage(createRequestMsgWithChunkIndex(dataRetriever.HashArrayType, providedHashes, epoch, chunkIndex), fromConnectedPeer, &p2pmocks.MessengerStub{})
 		assert.Nil(t, err)
 		assert.Equal(t, 2, messagesSent)
 		assert.Equal(t, expectedLen, hashesReceived)

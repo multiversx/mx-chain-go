@@ -164,9 +164,10 @@ func TestSingleDataInterceptor_ProcessReceivedMessageNilMessageShouldErr(t *test
 	arg := createMockArgSingleDataInterceptor()
 	sdi, _ := interceptors.NewSingleDataInterceptor(arg)
 
-	err := sdi.ProcessReceivedMessage(nil, fromConnectedPeerId, &p2pmocks.MessengerStub{})
+	msgID, err := sdi.ProcessReceivedMessage(nil, fromConnectedPeerId, &p2pmocks.MessengerStub{})
 
 	assert.Equal(t, process.ErrNilMessage, err)
+	assert.Nil(t, msgID)
 }
 
 func TestSingleDataInterceptor_ProcessReceivedMessageFactoryCreationErrorShouldErr(t *testing.T) {
@@ -198,11 +199,12 @@ func TestSingleDataInterceptor_ProcessReceivedMessageFactoryCreationErrorShouldE
 		DataField: []byte("data to be processed"),
 		PeerField: originatorPid,
 	}
-	err := sdi.ProcessReceivedMessage(msg, fromConnectedPeerId, &p2pmocks.MessengerStub{})
+	msgID, err := sdi.ProcessReceivedMessage(msg, fromConnectedPeerId, &p2pmocks.MessengerStub{})
 
 	assert.Equal(t, errExpected, err)
 	assert.True(t, originatorBlackListed)
 	assert.True(t, fromConnectedPeerBlackListed)
+	assert.Nil(t, msgID)
 }
 
 func TestSingleDataInterceptor_ProcessReceivedMessageIsNotValidShouldNotCallProcess(t *testing.T) {
@@ -250,7 +252,7 @@ func testProcessReceiveMessage(t *testing.T, isForCurrentShard bool, validityErr
 	msg := &p2pmocks.P2PMessageMock{
 		DataField: []byte("data to be processed"),
 	}
-	err := sdi.ProcessReceivedMessage(msg, fromConnectedPeerId, &p2pmocks.MessengerStub{})
+	msgID, err := sdi.ProcessReceivedMessage(msg, fromConnectedPeerId, &p2pmocks.MessengerStub{})
 
 	time.Sleep(time.Second)
 
@@ -259,6 +261,7 @@ func testProcessReceiveMessage(t *testing.T, isForCurrentShard bool, validityErr
 	assert.Equal(t, int32(calledNum), atomic.LoadInt32(&processCalledNum))
 	assert.Equal(t, int32(1), throttler.EndProcessingCount())
 	assert.Equal(t, int32(1), throttler.EndProcessingCount())
+	assert.Nil(t, msgID)
 }
 
 func TestSingleDataInterceptor_ProcessReceivedMessageWhitelistedShouldWork(t *testing.T) {
@@ -267,12 +270,16 @@ func TestSingleDataInterceptor_ProcessReceivedMessageWhitelistedShouldWork(t *te
 	checkCalledNum := int32(0)
 	processCalledNum := int32(0)
 	throttler := createMockThrottler()
+	msgHash := []byte("hash")
 	interceptedData := &testscommon.InterceptedDataStub{
 		CheckValidityCalled: func() error {
 			return nil
 		},
 		IsForCurrentShardCalled: func() bool {
 			return false
+		},
+		HashCalled: func() []byte {
+			return msgHash
 		},
 	}
 
@@ -294,7 +301,7 @@ func TestSingleDataInterceptor_ProcessReceivedMessageWhitelistedShouldWork(t *te
 	msg := &p2pmocks.P2PMessageMock{
 		DataField: []byte("data to be processed"),
 	}
-	err := sdi.ProcessReceivedMessage(msg, fromConnectedPeerId, &p2pmocks.MessengerStub{})
+	msgID, err := sdi.ProcessReceivedMessage(msg, fromConnectedPeerId, &p2pmocks.MessengerStub{})
 
 	time.Sleep(time.Second)
 
@@ -303,6 +310,7 @@ func TestSingleDataInterceptor_ProcessReceivedMessageWhitelistedShouldWork(t *te
 	assert.Equal(t, int32(1), atomic.LoadInt32(&processCalledNum))
 	assert.Equal(t, int32(1), throttler.EndProcessingCount())
 	assert.Equal(t, int32(1), throttler.EndProcessingCount())
+	assert.Equal(t, msgHash, msgID)
 }
 
 func TestSingleDataInterceptor_InvalidTxVersionShouldBlackList(t *testing.T) {
@@ -362,10 +370,11 @@ func processReceivedMessageSingleDataInvalidVersion(t *testing.T, expectedErr er
 		DataField: []byte("data to be processed"),
 		PeerField: originator,
 	}
-	err := sdi.ProcessReceivedMessage(msg, fromConnectedPeerId, &p2pmocks.MessengerStub{})
+	msgID, err := sdi.ProcessReceivedMessage(msg, fromConnectedPeerId, &p2pmocks.MessengerStub{})
 	assert.Equal(t, expectedErr, err)
 	assert.True(t, isFromConnectedPeerBlackListed)
 	assert.True(t, isOriginatorBlackListed)
+	assert.Nil(t, msgID)
 }
 
 func TestSingleDataInterceptor_ProcessReceivedMessageWithOriginator(t *testing.T) {
@@ -374,12 +383,16 @@ func TestSingleDataInterceptor_ProcessReceivedMessageWithOriginator(t *testing.T
 	checkCalledNum := int32(0)
 	processCalledNum := int32(0)
 	throttler := createMockThrottler()
+	msgHash := []byte("hash")
 	interceptedData := &testscommon.InterceptedDataStub{
 		CheckValidityCalled: func() error {
 			return nil
 		},
 		IsForCurrentShardCalled: func() bool {
 			return false
+		},
+		HashCalled: func() []byte {
+			return msgHash
 		},
 	}
 
@@ -407,7 +420,7 @@ func TestSingleDataInterceptor_ProcessReceivedMessageWithOriginator(t *testing.T
 	msg := &p2pmocks.P2PMessageMock{
 		DataField: []byte("data to be processed"),
 	}
-	err := sdi.ProcessReceivedMessage(msg, fromConnectedPeerId, &p2pmocks.MessengerStub{})
+	msgID, err := sdi.ProcessReceivedMessage(msg, fromConnectedPeerId, &p2pmocks.MessengerStub{})
 
 	time.Sleep(time.Second)
 
@@ -416,12 +429,13 @@ func TestSingleDataInterceptor_ProcessReceivedMessageWithOriginator(t *testing.T
 	assert.Equal(t, int32(1), atomic.LoadInt32(&processCalledNum))
 	assert.Equal(t, int32(1), throttler.EndProcessingCount())
 	assert.Equal(t, int32(1), throttler.EndProcessingCount())
+	assert.Equal(t, msgHash, msgID)
 
 	whiteListHandler.IsWhiteListedCalled = func(interceptedData process.InterceptedData) bool {
 		return false
 	}
 
-	err = sdi.ProcessReceivedMessage(msg, fromConnectedPeerId, &p2pmocks.MessengerStub{})
+	msgID, err = sdi.ProcessReceivedMessage(msg, fromConnectedPeerId, &p2pmocks.MessengerStub{})
 
 	time.Sleep(time.Second)
 
@@ -430,6 +444,7 @@ func TestSingleDataInterceptor_ProcessReceivedMessageWithOriginator(t *testing.T
 	assert.Equal(t, int32(1), atomic.LoadInt32(&processCalledNum))
 	assert.Equal(t, int32(2), throttler.EndProcessingCount())
 	assert.Equal(t, int32(2), throttler.EndProcessingCount())
+	assert.Nil(t, msgID)
 }
 
 //------- debug

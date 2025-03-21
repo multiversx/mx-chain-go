@@ -8,19 +8,19 @@ import (
 
 // InterceptorStub -
 type InterceptorStub struct {
-	ProcessReceivedMessageCalled     func(message p2p.MessageP2P) error
+	ProcessReceivedMessageCalled     func(message p2p.MessageP2P) ([]byte, error)
 	SetInterceptedDebugHandlerCalled func(debugger process.InterceptedDebugger) error
 	RegisterHandlerCalled            func(handler func(topic string, hash []byte, data interface{}))
 	CloseCalled                      func() error
 }
 
 // ProcessReceivedMessage -
-func (is *InterceptorStub) ProcessReceivedMessage(message p2p.MessageP2P, _ core.PeerID, _ p2p.MessageHandler) error {
+func (is *InterceptorStub) ProcessReceivedMessage(message p2p.MessageP2P, _ core.PeerID, _ p2p.MessageHandler) ([]byte, error) {
 	if is.ProcessReceivedMessageCalled != nil {
 		return is.ProcessReceivedMessageCalled(message)
 	}
 
-	return nil
+	return nil, nil
 }
 
 // SetInterceptedDebugHandler -

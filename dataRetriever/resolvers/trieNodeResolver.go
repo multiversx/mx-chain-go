@@ -62,10 +62,10 @@ func checkArgTrieNodeResolver(arg ArgTrieNodeResolver) error {
 
 // ProcessReceivedMessage will be the callback func from the p2p.Messenger and will be called each time a new message was received
 // (for the topic this validator was registered to, usually a request topic)
-func (tnRes *TrieNodeResolver) ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedPeer core.PeerID, source p2p.MessageHandler) error {
+func (tnRes *TrieNodeResolver) ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedPeer core.PeerID, source p2p.MessageHandler) ([]byte, error) {
 	err := tnRes.canProcessMessage(message, fromConnectedPeer)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	tnRes.throttler.StartProcessing()
@@ -73,16 +73,16 @@ func (tnRes *TrieNodeResolver) ProcessReceivedMessage(message p2p.MessageP2P, fr
 
 	rd, err := tnRes.parseReceivedMessage(message, fromConnectedPeer)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	switch rd.Type {
 	case dataRetriever.HashType:
-		return tnRes.resolveOneHash(rd.Value, rd.ChunkIndex, message, source)
+		return nil, tnRes.resolveOneHash(rd.Value, rd.ChunkIndex, message, source)
 	case dataRetriever.HashArrayType:
-		return tnRes.resolveMultipleHashes(rd.Value, message, source)
+		return nil, tnRes.resolveMultipleHashes(rd.Value, message, source)
 	default:
-		return dataRetriever.ErrRequestTypeNotImplemented
+		return nil, dataRetriever.ErrRequestTypeNotImplemented
 	}
 }
 

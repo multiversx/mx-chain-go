@@ -2443,7 +2443,7 @@ func TestSyncSetGuardianTransaction(t *testing.T) {
 		TimestampField: 0,
 	}
 
-	err = interceptor.ProcessReceivedMessage(msg, "pid", nil)
+	_, err = interceptor.ProcessReceivedMessage(msg, "pid", nil)
 	assert.Nil(t, err)
 
 	time.Sleep(time.Second)

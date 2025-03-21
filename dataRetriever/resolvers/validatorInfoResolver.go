@@ -89,10 +89,10 @@ func checkArgs(args ArgValidatorInfoResolver) error {
 
 // ProcessReceivedMessage represents the callback func from the p2p.Messenger that is called each time a new message is received
 // (for the topic this validator was registered to, usually a request topic)
-func (res *validatorInfoResolver) ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedPeer core.PeerID, source p2p.MessageHandler) error {
+func (res *validatorInfoResolver) ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedPeer core.PeerID, source p2p.MessageHandler) ([]byte, error) {
 	err := res.canProcessMessage(message, fromConnectedPeer)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	res.throttler.StartProcessing()
@@ -100,17 +100,17 @@ func (res *validatorInfoResolver) ProcessReceivedMessage(message p2p.MessageP2P,
 
 	rd, err := res.parseReceivedMessage(message, fromConnectedPeer)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	switch rd.Type {
 	case dataRetriever.HashType:
-		return res.resolveHashRequest(rd.Value, rd.Epoch, fromConnectedPeer, source)
+		return nil, res.resolveHashRequest(rd.Value, rd.Epoch, fromConnectedPeer, source)
 	case dataRetriever.HashArrayType:
-		return res.resolveMultipleHashesRequest(rd.Value, rd.Epoch, fromConnectedPeer, source)
+		return nil, res.resolveMultipleHashesRequest(rd.Value, rd.Epoch, fromConnectedPeer, source)
 	}
 
-	return fmt.Errorf("%w for value %s", dataRetriever.ErrRequestTypeNotImplemented, logger.DisplayByteSlice(rd.Value))
+	return nil, fmt.Errorf("%w for value %s", dataRetriever.ErrRequestTypeNotImplemented, logger.DisplayByteSlice(rd.Value))
 }
 
 // resolveHashRequest sends the response for a hash request

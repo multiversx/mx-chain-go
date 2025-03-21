@@ -21,7 +21,7 @@ type ResolverThrottler interface {
 
 // Resolver defines what a data resolver should do
 type Resolver interface {
-	ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedPeer core.PeerID, source p2p.MessageHandler) error
+	ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedPeer core.PeerID, source p2p.MessageHandler) ([]byte, error)
 	SetDebugHandler(handler DebugHandler) error
 	Close() error
 	IsInterfaceNil() bool

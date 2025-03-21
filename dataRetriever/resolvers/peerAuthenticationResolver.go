@@ -75,10 +75,10 @@ func checkArgPeerAuthenticationResolver(arg ArgPeerAuthenticationResolver) error
 
 // ProcessReceivedMessage represents the callback func from the p2p.Messenger that is called each time a new message is received
 // (for the topic this validator was registered to, usually a request topic)
-func (res *peerAuthenticationResolver) ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedPeer core.PeerID, source p2p.MessageHandler) error {
+func (res *peerAuthenticationResolver) ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedPeer core.PeerID, source p2p.MessageHandler) ([]byte, error) {
 	err := res.canProcessMessage(message, fromConnectedPeer)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	res.throttler.StartProcessing()
@@ -86,12 +86,12 @@ func (res *peerAuthenticationResolver) ProcessReceivedMessage(message p2p.Messag
 
 	rd, err := res.parseReceivedMessage(message, fromConnectedPeer)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	switch rd.Type {
 	case dataRetriever.HashArrayType:
-		return res.resolveMultipleHashesRequest(rd.Value, message.Peer(), source)
+		return nil, res.resolveMultipleHashesRequest(rd.Value, message.Peer(), source)
 	default:
 		err = dataRetriever.ErrRequestTypeNotImplemented
 	}
@@ -99,7 +99,7 @@ func (res *peerAuthenticationResolver) ProcessReceivedMessage(message p2p.Messag
 		err = fmt.Errorf("%w for value %s", err, logger.DisplayByteSlice(rd.Value))
 	}
 
-	return err
+	return nil, err
 }
 
 // resolveMultipleHashesRequest sends the response for multiple hashes request

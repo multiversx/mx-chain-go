@@ -109,10 +109,10 @@ func (hdrRes *HeaderResolver) SetEpochHandler(epochHandler dataRetriever.EpochHa
 
 // ProcessReceivedMessage will be the callback func from the p2p.Messenger and will be called each time a new message was received
 // (for the topic this validator was registered to, usually a request topic)
-func (hdrRes *HeaderResolver) ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedPeer core.PeerID, source p2p.MessageHandler) error {
+func (hdrRes *HeaderResolver) ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedPeer core.PeerID, source p2p.MessageHandler) ([]byte, error) {
 	err := hdrRes.canProcessMessage(message, fromConnectedPeer)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	hdrRes.throttler.StartProcessing()
@@ -120,7 +120,7 @@ func (hdrRes *HeaderResolver) ProcessReceivedMessage(message p2p.MessageP2P, fro
 
 	rd, err := hdrRes.parseReceivedMessage(message, fromConnectedPeer)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	var buff []byte
@@ -133,7 +133,7 @@ func (hdrRes *HeaderResolver) ProcessReceivedMessage(message p2p.MessageP2P, fro
 	case dataRetriever.EpochType:
 		buff, err = hdrRes.resolveHeaderFromEpoch(rd.Value)
 	default:
-		return dataRetriever.ErrResolveTypeUnknown
+		return nil, dataRetriever.ErrResolveTypeUnknown
 	}
 	if err != nil {
 		hdrRes.DebugHandler().LogFailedToResolveData(
@@ -141,7 +141,7 @@ func (hdrRes *HeaderResolver) ProcessReceivedMessage(message p2p.MessageP2P, fro
 			rd.Value,
 			err,
 		)
-		return err
+		return nil, err
 	}
 
 	if buff == nil {
@@ -153,12 +153,12 @@ func (hdrRes *HeaderResolver) ProcessReceivedMessage(message p2p.MessageP2P, fro
 
 		log.Trace("missing data",
 			"data", rd)
-		return nil
+		return nil, nil
 	}
 
 	hdrRes.DebugHandler().LogSucceededToResolveData(hdrRes.topic, rd.Value)
 
-	return hdrRes.Send(buff, message.Peer(), source)
+	return nil, hdrRes.Send(buff, message.Peer(), source)
 }
 
 func (hdrRes *HeaderResolver) resolveHeaderFromNonce(rd *dataRetriever.RequestData) ([]byte, error) {
