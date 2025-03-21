@@ -302,7 +302,7 @@ func TestDelayedBlockBroadcaster_HeaderReceivedForNotRegisteredDelayedDataShould
 	assert.False(t, txBroadcastCalled.IsSet())
 }
 
-func TestDelayedBlockBroadcaster_HeaderReceivedForRegisteredDelayedDataWithoutSignaturesForShardShouldNotBroadcastTheData(t *testing.T) {
+func TestDelayedBlockBroadcaster_HeaderReceivedWithoutSignaturesForShardShouldNotBroadcastTheData(t *testing.T) {
 	t.Parallel()
 
 	var logOutput bytes.Buffer
@@ -344,8 +344,7 @@ func TestDelayedBlockBroadcaster_HeaderReceivedForRegisteredDelayedDataWithoutSi
 	err = dbb.SetLeaderData(delayedData)
 
 	metaBlock := createMetaBlock()
-	metaBlock.ShardInfo[0].HeaderHash = headerHash
-	metaBlock.ShardInfo[0].ShardID = 2
+	metaBlock.ShardInfo = []block.ShardData{}
 
 	assert.Nil(t, err)
 	time.Sleep(10 * time.Millisecond)
@@ -355,7 +354,7 @@ func TestDelayedBlockBroadcaster_HeaderReceivedForRegisteredDelayedDataWithoutSi
 	dbb.HeaderReceived(metaBlock, []byte("meta hash"))
 	sleepTime := common.ExtraDelayForBroadcastBlockInfo +
 		common.ExtraDelayBetweenBroadcastMbsAndTxs +
-		120*time.Millisecond
+		100*time.Millisecond
 	time.Sleep(sleepTime)
 
 	logOutputStr := logOutput.String()
@@ -1536,6 +1535,52 @@ func TestDelayedBlockBroadcaster_RegisterInterceptorCallback(t *testing.T) {
 	nbRegisteredMbsHandlers = len(cbsMiniblock)
 	mutCbs.Unlock()
 	require.Equal(t, 2, nbRegisteredMbsHandlers)
+}
+
+func TestDelayedBlockBroadcaster_BroadcastBlockDataFailedBroadcast(t *testing.T) {
+	t.Parallel()
+
+	var logOutput bytes.Buffer
+	customFormatter := &logger.PlainFormatter{}
+	err := logger.AddLogObserver(&logOutput, customFormatter)
+	require.Nil(t, err)
+
+	originalLogPattern := logger.GetLogLevelPattern()
+	err = logger.SetLogLevel("*:ERROR")
+	require.Nil(t, err)
+
+	errMiniBlocks := "mini blocks broadcast error"
+	broadcastMiniBlocks := func(mbData map[uint32][]byte, pk []byte) error {
+		return fmt.Errorf(errMiniBlocks)
+	}
+	errTxs := "transactions broadcast error"
+	broadcastTransactions := func(txData map[string][][]byte, pk []byte) error {
+		return fmt.Errorf(errTxs)
+	}
+	broadcastHeader := func(header data.HeaderHandler, pk []byte) error {
+		return nil
+	}
+	broadcastConsensusMessage := func(message *consensus.Message) error {
+		return nil
+	}
+
+	delayBroadcasterArgs := createDefaultDelayedBroadcasterArgs()
+	dbb, err := broadcast.NewDelayedBlockBroadcaster(delayBroadcasterArgs)
+	require.Nil(t, err)
+
+	err = dbb.SetBroadcastHandlers(broadcastMiniBlocks, broadcastTransactions, broadcastHeader, broadcastConsensusMessage)
+	require.Nil(t, err)
+
+	dbb.BroadcastBlockData(nil, nil, nil, time.Millisecond*100)
+
+	logOutputString := logOutput.String()
+	require.Contains(t, logOutputString, errMiniBlocks)
+	require.Contains(t, logOutputString, errTxs)
+
+	err = logger.RemoveLogObserver(&logOutput)
+	require.Nil(t, err)
+	err = logger.SetLogLevel(originalLogPattern)
+	require.Nil(t, err)
 }
 
 func TestDelayedBlockBroadcaster_GetShardDataFromMetaChainBlock(t *testing.T) {

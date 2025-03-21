@@ -173,6 +173,16 @@ func (dbb *delayedBlockBroadcaster) InterceptedHeaderData(topic string, hash []b
 	dbb.interceptedHeader(topic, hash, header)
 }
 
+// BroadcastBlockData -
+func (dbb *delayedBlockBroadcaster) BroadcastBlockData(
+	miniBlocks map[uint32][]byte,
+	transactions map[string][][]byte,
+	pkBytes []byte,
+	delay time.Duration,
+) {
+	dbb.broadcastBlockData(miniBlocks, transactions, pkBytes, delay)
+}
+
 // NewCommonMessenger will return a new instance of a commonMessenger
 func NewCommonMessenger(
 	marshalizer marshal.Marshalizer,
