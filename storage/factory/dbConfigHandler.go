@@ -39,7 +39,7 @@ func (dh *dbConfigHandler) GetDBConfig(path string) (*config.DBConfig, error) {
 	dbConfigFromFile := &config.DBConfig{}
 	err := readCorrectConfigurationFromToml(dbConfigFromFile, getPersisterConfigFilePath(path))
 	if err == nil {
-		log.Debug("GetDBConfig: loaded db config from toml config file",
+		log.Debug("GetDBConfig: loaded db config from toml config file ",
 			"config path", path,
 			"configuration", fmt.Sprintf("%+v", dbConfigFromFile),
 		)

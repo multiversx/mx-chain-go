@@ -25,7 +25,7 @@ func (detector *PanicDoubleTransactionsDetector) ProcessBlockBody(body *block.Bo
 	printReport := strings.Builder{}
 
 	for _, miniBlock := range body.MiniBlocks {
-		log.Debug("checking for double transactions: miniblock",
+		log.Debug("checking for double transactions:  miniblock",
 			"sender shard", miniBlock.SenderShardID,
 			"receiver shard", miniBlock.ReceiverShardID,
 			"type", miniBlock.Type,

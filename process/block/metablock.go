@@ -378,7 +378,7 @@ func (mp *metaProcessor) ProcessBlock(
 	startTime := time.Now()
 	err = mp.txCoordinator.ProcessBlockTransaction(header, &block.Body{MiniBlocks: miniBlocks}, haveTime)
 	elapsedTime := time.Since(startTime)
-	log.Debug("elapsed time to process block transaction",
+	log.Debug("elapsed time to process block transaction ",
 		"time [s]", elapsedTime,
 	)
 	if err != nil {
@@ -1065,7 +1065,7 @@ func (mp *metaProcessor) createMiniBlocks(
 	if len(mbsToMe) > 0 {
 		miniBlocks = append(miniBlocks, mbsToMe...)
 
-		log.Debug("processed miniblocks and txs with destination in self shard",
+		log.Debug("processed miniblocks and txs with destination in self shard ",
 			"num miniblocks", len(mbsToMe),
 			"num txs", numTxs,
 			"num shard headers", numShardHeaders,
@@ -1081,13 +1081,13 @@ func (mp *metaProcessor) createMiniBlocks(
 			numTxs += uint32(len(mb.TxHashes))
 		}
 
-		log.Debug("processed miniblocks and txs from self shard",
+		log.Debug("processed miniblocks and txs from self shard ",
 			"num miniblocks", len(mbsFromMe),
 			"num txs", numTxs,
 		)
 	}
 
-	log.Debug("creating mini blocks has been finished",
+	log.Debug("creating mini blocks has been finished ",
 		"miniblocks created", len(miniBlocks),
 	)
 
@@ -1973,7 +1973,7 @@ func (mp *metaProcessor) getFinalMiniBlockHeaders(miniBlockHeaderHandlers []data
 	miniBlockHeaders := make([]data.MiniBlockHeaderHandler, 0)
 	for _, miniBlockHeader := range miniBlockHeaderHandlers {
 		if !miniBlockHeader.IsFinal() {
-			log.Debug("metaProcessor.getFinalMiniBlockHeaders: do not check validity for mini block which is not final", "mb hash", miniBlockHeader.GetHash())
+			log.Debug("metaProcessor.getFinalMiniBlockHeaders: do not check validity for mini block which is not final", "mbHash", miniBlockHeader.GetHash())
 			continue
 		}
 
@@ -2300,7 +2300,7 @@ func (mp *metaProcessor) createShardInfo() ([]data.ShardDataHandler, error) {
 			if mp.enableEpochsHandler.IsFlagEnabled(common.ScheduledMiniBlocksFlag) {
 				miniBlockHeader := shardHdr.GetMiniBlockHeaderHandlers()[i]
 				if !miniBlockHeader.IsFinal() {
-					log.Debug("metaProcessor.createShardInfo: do not create shard data with mini block which is not final", "mb hash", miniBlockHeader.GetHash())
+					log.Debug("metaProcessor.createShardInfo: do not create shard data with mini block which is not final", "mbHash", miniBlockHeader.GetHash())
 					continue
 				}
 			}

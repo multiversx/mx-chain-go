@@ -208,7 +208,7 @@ func (sdp *standardDelegationProcessor) executeStake(smartContracts []genesis.In
 	for _, sc := range smartContracts {
 		accounts := sdp.accuntsParser.GetInitialAccountsForDelegated(getDeployedSCAddressBytes(sc))
 		if len(accounts) == 0 {
-			log.Debug("genesis delegation SC was not delegated by any account",
+			log.Debug("genesis delegation SC was not delegated by any account ",
 				"SC owner", sc.GetOwner(),
 				"SC address", getDeployedSCAddress(sc),
 			)
@@ -289,7 +289,7 @@ func (sdp *standardDelegationProcessor) executeManageBlsKeys(
 
 		lenDelegated := len(delegatedNodes)
 		if lenDelegated == 0 {
-			log.Debug("genesis delegation SC does not have staked nodes",
+			log.Debug("genesis delegation SC does not have staked nodes ",
 				"SC owner", sc.GetOwner(),
 				"SC address", getDeployedSCAddress(sc),
 				"function", addNodesFunction,
@@ -458,7 +458,7 @@ func (sdp *standardDelegationProcessor) checkDelegator(
 func (sdp *standardDelegationProcessor) verifyRegisteredNodes(sc genesis.InitialSmartContractHandler) error {
 	delegatedNodes := sdp.nodesListSplitter.GetDelegatedNodes(getDeployedSCAddressBytes(sc))
 	if len(delegatedNodes) == 0 {
-		log.Debug("genesis delegation SC does not have staked nodes",
+		log.Debug("genesis delegation SC does not have staked nodes ",
 			"SC owner", sc.GetOwner(),
 			"SC address", getDeployedSCAddress(sc),
 			"function", addNodesFunction,

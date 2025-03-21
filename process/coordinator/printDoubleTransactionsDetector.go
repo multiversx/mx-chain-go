@@ -80,7 +80,7 @@ func (detector *printDoubleTransactionsDetector) ProcessBlockBody(body *block.Bo
 
 	for _, miniBlock := range body.MiniBlocks {
 		mbHash, _ := core.CalculateHash(detector.marshaller, detector.hasher, miniBlock)
-		log.Debug("checking for double transactions: miniblock",
+		log.Debug("checking for double transactions:  miniblock",
 			"sender shard", miniBlock.SenderShardID,
 			"receiver shard", miniBlock.ReceiverShardID,
 			"type", miniBlock.Type,

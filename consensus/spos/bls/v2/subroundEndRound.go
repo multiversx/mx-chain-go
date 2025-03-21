@@ -246,7 +246,7 @@ func (sr *subroundEndRound) commitBlock() error {
 	if elapsedTime >= common.CommitMaxTime {
 		log.Warn("doEndRoundJobByNode.CommitBlock", "elapsed time", elapsedTime)
 	} else {
-		log.Debug("elapsed time to commit block", "time [s]", elapsedTime)
+		log.Debug("elapsed time to commit block ", "time [s]", elapsedTime)
 	}
 	if err != nil {
 		log.Debug("doEndRoundJobByNode.CommitBlock", "error", err)
