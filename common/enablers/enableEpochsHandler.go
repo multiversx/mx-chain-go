@@ -816,6 +816,12 @@ func (handler *enableEpochsHandler) createAllFlagsMap() {
 			},
 			activationEpoch: handler.enableEpochsConfig.ValidationOnGobDecodeEnableEpoch,
 		},
+		common.BarnardOpcodesFlag: {
+			isActiveInEpoch: func(epoch uint32) bool {
+				return epoch >= handler.enableEpochsConfig.BarnardOpcodesEnableEpoch
+			},
+			activationEpoch: handler.enableEpochsConfig.BarnardOpcodesEnableEpoch,
+		},
 	}
 }
 

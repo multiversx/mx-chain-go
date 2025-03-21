@@ -127,6 +127,7 @@ type EnableEpochs struct {
 	MaskVMInternalDependenciesErrorsEnableEpoch              uint32
 	FixBackTransferOPCODEEnableEpoch                         uint32
 	ValidationOnGobDecodeEnableEpoch                         uint32
+	BarnardOpcodesEnableEpoch                                uint32
 	AutomaticActivationOfNodesDisableEpoch                   uint32
 	BLSMultiSignerEnableEpoch                                []MultiSignerConfig
 }

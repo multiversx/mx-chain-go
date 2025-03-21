@@ -902,6 +902,9 @@ func TestEnableEpochConfig(t *testing.T) {
 	# ValidationOnGobDecodeEnableEpoch represents the epoch when validation on GobDecode will be taken into account
     ValidationOnGobDecodeEnableEpoch = 107
 
+	# BarnardOpcodesEnableEpoch represents the epoch when Barnard opcodes will be enabled
+	BarnardOpcodesEnableEpoch = 108
+
     # AutomaticActivationOfNodesDisableEpoch represents the epoch when automatic activation of nodes for validators is disabled
     AutomaticActivationOfNodesDisableEpoch = 104
 
@@ -1030,6 +1033,7 @@ func TestEnableEpochConfig(t *testing.T) {
 			MaskVMInternalDependenciesErrorsEnableEpoch:              105,
 			FixBackTransferOPCODEEnableEpoch:                         106,
 			ValidationOnGobDecodeEnableEpoch:                         107,
+			BarnardOpcodesEnableEpoch:                                108,
 			AutomaticActivationOfNodesDisableEpoch:                   104,
 			MaxNodesChangeEnableEpoch: []MaxNodesChangeConfig{
 				{
