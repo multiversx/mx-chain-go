@@ -68,6 +68,7 @@ func (inHdr *InterceptedHeader) processFields(txBuff []byte) {
 
 // CheckValidity checks if the received header is valid (not nil fields, valid sig and so on)
 func (inHdr *InterceptedHeader) CheckValidity() error {
+	log.Debug("CheckValidity for header with", "epoch", inHdr.hdr.GetEpoch(), "hash", logger.DisplayByteSlice(inHdr.hash))
 	err := inHdr.integrityVerifier.Verify(inHdr.hdr)
 	if err != nil {
 		log.Debug("jail-debug: CheckValidity.Verify", "error", err.Error())
