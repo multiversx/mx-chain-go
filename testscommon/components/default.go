@@ -157,5 +157,6 @@ func GetDefaultProcessComponents(shardCoordinator sharding.Coordinator) *mock.Pr
 			},
 		},
 		HardforkTriggerField: &testscommon.HardforkTriggerStub{},
+		BlockchainHookField:  &testscommon.BlockChainHookStub{},
 	}
 }

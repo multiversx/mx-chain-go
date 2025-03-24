@@ -2,6 +2,7 @@ package disabled
 
 import (
 	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/block"
 )
 
 type epochStartTrigger struct {
@@ -52,6 +53,16 @@ func (e *epochStartTrigger) RevertStateToBlock(_ data.HeaderHandler) error {
 // EpochStartMetaHdrHash -
 func (e *epochStartTrigger) EpochStartMetaHdrHash() []byte {
 	return nil
+}
+
+// LastCommitedEpochStartHdr -
+func (e *epochStartTrigger) LastCommitedEpochStartHdr() (data.HeaderHandler, error) {
+	return &block.HeaderV2{}, nil
+}
+
+// GetEpochStartHdrFromStorage -
+func (e *epochStartTrigger) GetEpochStartHdrFromStorage(_ uint32) (data.HeaderHandler, error) {
+	return &block.HeaderV2{}, nil
 }
 
 // GetSavedStateKey -
