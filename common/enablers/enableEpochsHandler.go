@@ -804,6 +804,12 @@ func (handler *enableEpochsHandler) createAllFlagsMap() {
 			},
 			activationEpoch: handler.enableEpochsConfig.RelayedTransactionsV3FixESDTTransferEnableEpoch,
 		},
+		common.AutomaticActivationOfNodesDisableFlag: {
+			isActiveInEpoch: func(epoch uint32) bool {
+				return epoch >= handler.enableEpochsConfig.AutomaticActivationOfNodesDisableEpoch
+			},
+			activationEpoch: handler.enableEpochsConfig.AutomaticActivationOfNodesDisableEpoch,
+		},
 		common.MaskInternalDependenciesErrorsFlag: {
 			isActiveInEpoch: func(epoch uint32) bool {
 				return epoch >= handler.enableEpochsConfig.MaskVMInternalDependenciesErrorsEnableEpoch
@@ -821,6 +827,12 @@ func (handler *enableEpochsHandler) createAllFlagsMap() {
 				return epoch >= handler.enableEpochsConfig.ValidationOnGobDecodeEnableEpoch
 			},
 			activationEpoch: handler.enableEpochsConfig.ValidationOnGobDecodeEnableEpoch,
+		},
+		common.BarnardOpcodesFlag: {
+			isActiveInEpoch: func(epoch uint32) bool {
+				return epoch >= handler.enableEpochsConfig.BarnardOpcodesEnableEpoch
+			},
+			activationEpoch: handler.enableEpochsConfig.BarnardOpcodesEnableEpoch,
 		},
 	}
 }

@@ -200,9 +200,12 @@ func createMockProcessComponentsFactoryArgs() processComp.ProcessComponentsFacto
 				},
 			},
 			EpochChangeNotifier: &epochNotifier.EpochNotifierStub{},
-			EconomicsHandler: &economicsmocks.EconomicsHandlerStub{
-				ProtocolSustainabilityAddressCalled: func() string {
+			EconomicsHandler: &economicsmocks.EconomicsHandlerMock{
+				ProtocolSustainabilityAddressInEpochCalled: func(epoch uint32) string {
 					return testingProtocolSustainabilityAddress
+				},
+				GenesisTotalSupplyCalled: func() *big.Int {
+					return big.NewInt(100000000)
 				},
 			},
 			Hash:                         blake2b.NewBlake2b(),
@@ -361,7 +364,7 @@ func TestNewProcessComponentsFactory(t *testing.T) {
 
 		args := createMockProcessComponentsFactoryArgs()
 		args.CoreData = &mock.CoreComponentsMock{
-			EconomicsHandler: &economicsmocks.EconomicsHandlerStub{},
+			EconomicsHandler: &economicsmocks.EconomicsHandlerMock{},
 			NodesConfig:      nil,
 		}
 		pcf, err := processComp.NewProcessComponentsFactory(args)
@@ -373,7 +376,7 @@ func TestNewProcessComponentsFactory(t *testing.T) {
 
 		args := createMockProcessComponentsFactoryArgs()
 		args.CoreData = &mock.CoreComponentsMock{
-			EconomicsHandler: &economicsmocks.EconomicsHandlerStub{},
+			EconomicsHandler: &economicsmocks.EconomicsHandlerMock{},
 			NodesConfig:      &nodesSetupMock.NodesSetupStub{},
 			AddrPubKeyConv:   nil,
 		}
@@ -386,7 +389,7 @@ func TestNewProcessComponentsFactory(t *testing.T) {
 
 		args := createMockProcessComponentsFactoryArgs()
 		args.CoreData = &mock.CoreComponentsMock{
-			EconomicsHandler:    &economicsmocks.EconomicsHandlerStub{},
+			EconomicsHandler:    &economicsmocks.EconomicsHandlerMock{},
 			NodesConfig:         &nodesSetupMock.NodesSetupStub{},
 			AddrPubKeyConv:      &testscommon.PubkeyConverterStub{},
 			EpochChangeNotifier: nil,
@@ -400,7 +403,7 @@ func TestNewProcessComponentsFactory(t *testing.T) {
 
 		args := createMockProcessComponentsFactoryArgs()
 		args.CoreData = &mock.CoreComponentsMock{
-			EconomicsHandler:    &economicsmocks.EconomicsHandlerStub{},
+			EconomicsHandler:    &economicsmocks.EconomicsHandlerMock{},
 			NodesConfig:         &nodesSetupMock.NodesSetupStub{},
 			AddrPubKeyConv:      &testscommon.PubkeyConverterStub{},
 			EpochChangeNotifier: &epochNotifier.EpochNotifierStub{},
@@ -415,7 +418,7 @@ func TestNewProcessComponentsFactory(t *testing.T) {
 
 		args := createMockProcessComponentsFactoryArgs()
 		args.CoreData = &mock.CoreComponentsMock{
-			EconomicsHandler:    &economicsmocks.EconomicsHandlerStub{},
+			EconomicsHandler:    &economicsmocks.EconomicsHandlerMock{},
 			NodesConfig:         &nodesSetupMock.NodesSetupStub{},
 			AddrPubKeyConv:      &testscommon.PubkeyConverterStub{},
 			EpochChangeNotifier: &epochNotifier.EpochNotifierStub{},
@@ -431,7 +434,7 @@ func TestNewProcessComponentsFactory(t *testing.T) {
 
 		args := createMockProcessComponentsFactoryArgs()
 		args.CoreData = &mock.CoreComponentsMock{
-			EconomicsHandler:    &economicsmocks.EconomicsHandlerStub{},
+			EconomicsHandler:    &economicsmocks.EconomicsHandlerMock{},
 			NodesConfig:         &nodesSetupMock.NodesSetupStub{},
 			AddrPubKeyConv:      &testscommon.PubkeyConverterStub{},
 			EpochChangeNotifier: &epochNotifier.EpochNotifierStub{},

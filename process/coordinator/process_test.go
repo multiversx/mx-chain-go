@@ -51,15 +51,15 @@ const MaxGasLimitPerBlock = uint64(100000)
 
 var txHash = []byte("tx_hash1")
 
-func FeeHandlerMock() *economicsmocks.EconomicsHandlerStub {
-	return &economicsmocks.EconomicsHandlerStub{
+func FeeHandlerMock() *economicsmocks.EconomicsHandlerMock {
+	return &economicsmocks.EconomicsHandlerMock{
 		ComputeGasLimitCalled: func(tx data.TransactionWithFeeHandler) uint64 {
 			return 0
 		},
 		MaxGasLimitPerBlockCalled: func(_ uint32) uint64 {
 			return MaxGasLimitPerBlock
 		},
-		MaxGasLimitPerMiniBlockCalled: func() uint64 {
+		MaxGasLimitPerMiniBlockCalled: func(shardID uint32) uint64 {
 			return MaxGasLimitPerBlock
 		},
 		MaxGasLimitPerBlockForSafeCrossShardCalled: func() uint64 {
@@ -239,7 +239,7 @@ func createMockTransactionCoordinatorArguments() ArgTransactionCoordinator {
 		FeeHandler:                   &mock.FeeAccumulatorStub{},
 		BlockSizeComputation:         &testscommon.BlockSizeComputationStub{},
 		BalanceComputation:           &testscommon.BalanceComputationStub{},
-		EconomicsFee:                 &economicsmocks.EconomicsHandlerStub{},
+		EconomicsFee:                 &economicsmocks.EconomicsHandlerMock{},
 		TxTypeHandler:                &testscommon.TxTypeHandlerMock{},
 		TransactionsLogProcessor:     &mock.TxLogsProcessorStub{},
 		EnableEpochsHandler:          enableEpochsHandlerMock.NewEnableEpochsHandlerStub(),
@@ -574,7 +574,7 @@ func createInterimProcessorContainer() process.IntermediateProcessorContainer {
 		PubkeyConverter:         createMockPubkeyConverter(),
 		Store:                   initStore(),
 		PoolsHolder:             initDataPool([]byte("test_hash1")),
-		EconomicsFee:            &economicsmocks.EconomicsHandlerStub{},
+		EconomicsFee:            &economicsmocks.EconomicsHandlerMock{},
 		EnableEpochsHandler:     enableEpochsHandlerMock.NewEnableEpochsHandlerStub(common.KeepExecOrderOnCreatedSCRsFlag),
 		TxExecutionOrderHandler: &commonMock.TxExecutionOrderHandlerStub{},
 	}
@@ -1417,7 +1417,7 @@ func TestTransactionCoordinator_CreateMbsAndProcessTransactionsFromMeMultipleMin
 	argsTransactionCoordinator.MiniBlockPool = tdp.MiniBlocks()
 	argsTransactionCoordinator.PreProcessors = createPreProcessorContainerWithDataPool(
 		tdp,
-		&economicsmocks.EconomicsHandlerStub{
+		&economicsmocks.EconomicsHandlerMock{
 			MaxGasLimitPerBlockCalled: func(_ uint32) uint64 {
 				return MaxGasLimitPerBlock
 			},
@@ -1488,7 +1488,7 @@ func TestTransactionCoordinator_CompactAndExpandMiniblocksShouldWork(t *testing.
 	argsTransactionCoordinator.MiniBlockPool = tdp.MiniBlocks()
 	argsTransactionCoordinator.PreProcessors = createPreProcessorContainerWithDataPool(
 		tdp,
-		&economicsmocks.EconomicsHandlerStub{
+		&economicsmocks.EconomicsHandlerMock{
 			MaxGasLimitPerBlockCalled: func(_ uint32) uint64 {
 				return MaxGasLimitPerBlock
 			},
@@ -2265,7 +2265,7 @@ func TestTransactionCoordinator_VerifyCreatedBlockTransactionsNilOrMiss(t *testi
 		PubkeyConverter:         createMockPubkeyConverter(),
 		Store:                   &storageStubs.ChainStorerStub{},
 		PoolsHolder:             tdp,
-		EconomicsFee:            &economicsmocks.EconomicsHandlerStub{},
+		EconomicsFee:            &economicsmocks.EconomicsHandlerMock{},
 		EnableEpochsHandler:     enableEpochsHandlerMock.NewEnableEpochsHandlerStub(common.KeepExecOrderOnCreatedSCRsFlag),
 		TxExecutionOrderHandler: &commonMock.TxExecutionOrderHandlerStub{},
 	}
@@ -2322,7 +2322,7 @@ func TestTransactionCoordinator_VerifyCreatedBlockTransactionsOk(t *testing.T) {
 		PubkeyConverter:  createMockPubkeyConverter(),
 		Store:            &storageStubs.ChainStorerStub{},
 		PoolsHolder:      tdp,
-		EconomicsFee: &economicsmocks.EconomicsHandlerStub{
+		EconomicsFee: &economicsmocks.EconomicsHandlerMock{
 			MaxGasLimitPerBlockCalled: func(_ uint32) uint64 {
 				return MaxGasLimitPerBlock
 			},
@@ -2646,7 +2646,7 @@ func TestTransactionCoordinator_VerifyCreatedMiniBlocksShouldReturnWhenEpochIsNo
 		FeeHandler:               &mock.FeeAccumulatorStub{},
 		BlockSizeComputation:     &testscommon.BlockSizeComputationStub{},
 		BalanceComputation:       &testscommon.BalanceComputationStub{},
-		EconomicsFee:             &economicsmocks.EconomicsHandlerStub{},
+		EconomicsFee:             &economicsmocks.EconomicsHandlerMock{},
 		TxTypeHandler:            &testscommon.TxTypeHandlerMock{},
 		TransactionsLogProcessor: &mock.TxLogsProcessorStub{},
 		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{
@@ -2693,14 +2693,14 @@ func TestTransactionCoordinator_VerifyCreatedMiniBlocksShouldErrMaxGasLimitPerMi
 		FeeHandler:           &mock.FeeAccumulatorStub{},
 		BlockSizeComputation: &testscommon.BlockSizeComputationStub{},
 		BalanceComputation:   &testscommon.BalanceComputationStub{},
-		EconomicsFee: &economicsmocks.EconomicsHandlerStub{
+		EconomicsFee: &economicsmocks.EconomicsHandlerMock{
 			ComputeGasLimitCalled: func(tx data.TransactionWithFeeHandler) uint64 {
 				return maxGasLimitPerBlock + 1
 			},
 			MaxGasLimitPerBlockCalled: func(_ uint32) uint64 {
 				return maxGasLimitPerBlock
 			},
-			MaxGasLimitPerMiniBlockCalled: func() uint64 {
+			MaxGasLimitPerMiniBlockCalled: func(shardID uint32) uint64 {
 				return maxGasLimitPerBlock
 			},
 		},
@@ -2761,7 +2761,7 @@ func TestTransactionCoordinator_VerifyCreatedMiniBlocksShouldErrMaxAccumulatedFe
 		FeeHandler:           &mock.FeeAccumulatorStub{},
 		BlockSizeComputation: &testscommon.BlockSizeComputationStub{},
 		BalanceComputation:   &testscommon.BalanceComputationStub{},
-		EconomicsFee: &economicsmocks.EconomicsHandlerStub{
+		EconomicsFee: &economicsmocks.EconomicsHandlerMock{
 			ComputeGasLimitCalled: func(tx data.TransactionWithFeeHandler) uint64 {
 				return maxGasLimitPerBlock
 			},
@@ -2840,7 +2840,7 @@ func TestTransactionCoordinator_VerifyCreatedMiniBlocksShouldErrMaxDeveloperFees
 		FeeHandler:           &mock.FeeAccumulatorStub{},
 		BlockSizeComputation: &testscommon.BlockSizeComputationStub{},
 		BalanceComputation:   &testscommon.BalanceComputationStub{},
-		EconomicsFee: &economicsmocks.EconomicsHandlerStub{
+		EconomicsFee: &economicsmocks.EconomicsHandlerMock{
 			ComputeGasLimitCalled: func(tx data.TransactionWithFeeHandler) uint64 {
 				return maxGasLimitPerBlock
 			},
@@ -2919,7 +2919,7 @@ func TestTransactionCoordinator_VerifyCreatedMiniBlocksShouldWork(t *testing.T) 
 		FeeHandler:           &mock.FeeAccumulatorStub{},
 		BlockSizeComputation: &testscommon.BlockSizeComputationStub{},
 		BalanceComputation:   &testscommon.BalanceComputationStub{},
-		EconomicsFee: &economicsmocks.EconomicsHandlerStub{
+		EconomicsFee: &economicsmocks.EconomicsHandlerMock{
 			ComputeGasLimitCalled: func(tx data.TransactionWithFeeHandler) uint64 {
 				return maxGasLimitPerBlock
 			},
@@ -2997,7 +2997,7 @@ func TestTransactionCoordinator_GetAllTransactionsShouldWork(t *testing.T) {
 		FeeHandler:                   &mock.FeeAccumulatorStub{},
 		BlockSizeComputation:         &testscommon.BlockSizeComputationStub{},
 		BalanceComputation:           &testscommon.BalanceComputationStub{},
-		EconomicsFee:                 &economicsmocks.EconomicsHandlerStub{},
+		EconomicsFee:                 &economicsmocks.EconomicsHandlerMock{},
 		TxTypeHandler:                &testscommon.TxTypeHandlerMock{},
 		TransactionsLogProcessor:     &mock.TxLogsProcessorStub{},
 		EnableEpochsHandler:          enableEpochsHandlerMock.NewEnableEpochsHandlerStub(),
@@ -3072,11 +3072,11 @@ func TestTransactionCoordinator_VerifyGasLimitShouldErrMaxGasLimitPerMiniBlockIn
 		FeeHandler:           &mock.FeeAccumulatorStub{},
 		BlockSizeComputation: &testscommon.BlockSizeComputationStub{},
 		BalanceComputation:   &testscommon.BalanceComputationStub{},
-		EconomicsFee: &economicsmocks.EconomicsHandlerStub{
+		EconomicsFee: &economicsmocks.EconomicsHandlerMock{
 			MaxGasLimitPerBlockCalled: func(_ uint32) uint64 {
 				return tx1GasLimit + tx2GasLimit + tx3GasLimit - 1
 			},
-			MaxGasLimitPerMiniBlockCalled: func() uint64 {
+			MaxGasLimitPerMiniBlockCalled: func(shardID uint32) uint64 {
 				return tx1GasLimit + tx2GasLimit + tx3GasLimit - 1
 			},
 			ComputeGasLimitCalled: func(tx data.TransactionWithFeeHandler) uint64 {
@@ -3167,7 +3167,7 @@ func TestTransactionCoordinator_VerifyGasLimitShouldWork(t *testing.T) {
 		FeeHandler:           &mock.FeeAccumulatorStub{},
 		BlockSizeComputation: &testscommon.BlockSizeComputationStub{},
 		BalanceComputation:   &testscommon.BalanceComputationStub{},
-		EconomicsFee: &economicsmocks.EconomicsHandlerStub{
+		EconomicsFee: &economicsmocks.EconomicsHandlerMock{
 			MaxGasLimitPerBlockCalled: func(_ uint32) uint64 {
 				return tx1GasLimit + tx2GasLimit + tx3GasLimit
 			},
@@ -3258,7 +3258,7 @@ func TestTransactionCoordinator_CheckGasProvidedByMiniBlockInReceiverShardShould
 		FeeHandler:                   &mock.FeeAccumulatorStub{},
 		BlockSizeComputation:         &testscommon.BlockSizeComputationStub{},
 		BalanceComputation:           &testscommon.BalanceComputationStub{},
-		EconomicsFee:                 &economicsmocks.EconomicsHandlerStub{},
+		EconomicsFee:                 &economicsmocks.EconomicsHandlerMock{},
 		TxTypeHandler:                &testscommon.TxTypeHandlerMock{},
 		TransactionsLogProcessor:     &mock.TxLogsProcessorStub{},
 		EnableEpochsHandler:          enableEpochsHandlerMock.NewEnableEpochsHandlerStub(),
@@ -3302,7 +3302,7 @@ func TestTransactionCoordinator_CheckGasProvidedByMiniBlockInReceiverShardShould
 		FeeHandler:           &mock.FeeAccumulatorStub{},
 		BlockSizeComputation: &testscommon.BlockSizeComputationStub{},
 		BalanceComputation:   &testscommon.BalanceComputationStub{},
-		EconomicsFee: &economicsmocks.EconomicsHandlerStub{
+		EconomicsFee: &economicsmocks.EconomicsHandlerMock{
 			ComputeGasLimitCalled: func(tx data.TransactionWithFeeHandler) uint64 {
 				return tx.GetGasLimit() + 1
 			},
@@ -3361,7 +3361,7 @@ func TestTransactionCoordinator_CheckGasProvidedByMiniBlockInReceiverShardShould
 		FeeHandler:           &mock.FeeAccumulatorStub{},
 		BlockSizeComputation: &testscommon.BlockSizeComputationStub{},
 		BalanceComputation:   &testscommon.BalanceComputationStub{},
-		EconomicsFee: &economicsmocks.EconomicsHandlerStub{
+		EconomicsFee: &economicsmocks.EconomicsHandlerMock{
 			ComputeGasLimitCalled: func(tx data.TransactionWithFeeHandler) uint64 {
 				return 0
 			},
@@ -3425,11 +3425,11 @@ func TestTransactionCoordinator_CheckGasProvidedByMiniBlockInReceiverShardShould
 		FeeHandler:           &mock.FeeAccumulatorStub{},
 		BlockSizeComputation: &testscommon.BlockSizeComputationStub{},
 		BalanceComputation:   &testscommon.BalanceComputationStub{},
-		EconomicsFee: &economicsmocks.EconomicsHandlerStub{
+		EconomicsFee: &economicsmocks.EconomicsHandlerMock{
 			MaxGasLimitPerBlockCalled: func(_ uint32) uint64 {
 				return tx1GasLimit + tx2GasLimit + tx3GasLimit - 1
 			},
-			MaxGasLimitPerMiniBlockCalled: func() uint64 {
+			MaxGasLimitPerMiniBlockCalled: func(shardID uint32) uint64 {
 				return tx1GasLimit + tx2GasLimit + tx3GasLimit - 1
 			},
 			ComputeGasLimitCalled: func(tx data.TransactionWithFeeHandler) uint64 {
@@ -3494,7 +3494,7 @@ func TestTransactionCoordinator_CheckGasProvidedByMiniBlockInReceiverShardShould
 		FeeHandler:           &mock.FeeAccumulatorStub{},
 		BlockSizeComputation: &testscommon.BlockSizeComputationStub{},
 		BalanceComputation:   &testscommon.BalanceComputationStub{},
-		EconomicsFee: &economicsmocks.EconomicsHandlerStub{
+		EconomicsFee: &economicsmocks.EconomicsHandlerMock{
 			MaxGasLimitPerBlockCalled: func(_ uint32) uint64 {
 				return tx1GasLimit + tx2GasLimit + tx3GasLimit
 			},
@@ -3560,7 +3560,7 @@ func TestTransactionCoordinator_VerifyFeesShouldErrMissingTransaction(t *testing
 		FeeHandler:                   &mock.FeeAccumulatorStub{},
 		BlockSizeComputation:         &testscommon.BlockSizeComputationStub{},
 		BalanceComputation:           &testscommon.BalanceComputationStub{},
-		EconomicsFee:                 &economicsmocks.EconomicsHandlerStub{},
+		EconomicsFee:                 &economicsmocks.EconomicsHandlerMock{},
 		TxTypeHandler:                &testscommon.TxTypeHandlerMock{},
 		TransactionsLogProcessor:     &mock.TxLogsProcessorStub{},
 		EnableEpochsHandler:          enableEpochsHandlerMock.NewEnableEpochsHandlerStub(),
@@ -3617,7 +3617,7 @@ func TestTransactionCoordinator_VerifyFeesShouldErrMaxAccumulatedFeesExceeded(t 
 		FeeHandler:           &mock.FeeAccumulatorStub{},
 		BlockSizeComputation: &testscommon.BlockSizeComputationStub{},
 		BalanceComputation:   &testscommon.BalanceComputationStub{},
-		EconomicsFee: &economicsmocks.EconomicsHandlerStub{
+		EconomicsFee: &economicsmocks.EconomicsHandlerMock{
 			DeveloperPercentageCalled: func() float64 {
 				return 0.1
 			},
@@ -3688,7 +3688,7 @@ func TestTransactionCoordinator_VerifyFeesShouldErrMaxDeveloperFeesExceeded(t *t
 		FeeHandler:           &mock.FeeAccumulatorStub{},
 		BlockSizeComputation: &testscommon.BlockSizeComputationStub{},
 		BalanceComputation:   &testscommon.BalanceComputationStub{},
-		EconomicsFee: &economicsmocks.EconomicsHandlerStub{
+		EconomicsFee: &economicsmocks.EconomicsHandlerMock{
 			DeveloperPercentageCalled: func() float64 {
 				return 0.1
 			},
@@ -3760,7 +3760,7 @@ func TestTransactionCoordinator_VerifyFeesShouldErrMaxAccumulatedFeesExceededWhe
 		FeeHandler:           &mock.FeeAccumulatorStub{},
 		BlockSizeComputation: &testscommon.BlockSizeComputationStub{},
 		BalanceComputation:   &testscommon.BalanceComputationStub{},
-		EconomicsFee: &economicsmocks.EconomicsHandlerStub{
+		EconomicsFee: &economicsmocks.EconomicsHandlerMock{
 			DeveloperPercentageCalled: func() float64 {
 				return 0.1
 			},
@@ -3846,7 +3846,7 @@ func TestTransactionCoordinator_VerifyFeesShouldErrMaxDeveloperFeesExceededWhenS
 		FeeHandler:           &mock.FeeAccumulatorStub{},
 		BlockSizeComputation: &testscommon.BlockSizeComputationStub{},
 		BalanceComputation:   &testscommon.BalanceComputationStub{},
-		EconomicsFee: &economicsmocks.EconomicsHandlerStub{
+		EconomicsFee: &economicsmocks.EconomicsHandlerMock{
 			DeveloperPercentageCalled: func() float64 {
 				return 0.1
 			},
@@ -3932,7 +3932,7 @@ func TestTransactionCoordinator_VerifyFeesShouldWork(t *testing.T) {
 		FeeHandler:           &mock.FeeAccumulatorStub{},
 		BlockSizeComputation: &testscommon.BlockSizeComputationStub{},
 		BalanceComputation:   &testscommon.BalanceComputationStub{},
-		EconomicsFee: &economicsmocks.EconomicsHandlerStub{
+		EconomicsFee: &economicsmocks.EconomicsHandlerMock{
 			DeveloperPercentageCalled: func() float64 {
 				return 0.1
 			},
@@ -4021,7 +4021,7 @@ func TestTransactionCoordinator_GetMaxAccumulatedAndDeveloperFeesShouldErr(t *te
 		FeeHandler:                   &mock.FeeAccumulatorStub{},
 		BlockSizeComputation:         &testscommon.BlockSizeComputationStub{},
 		BalanceComputation:           &testscommon.BalanceComputationStub{},
-		EconomicsFee:                 &economicsmocks.EconomicsHandlerStub{},
+		EconomicsFee:                 &economicsmocks.EconomicsHandlerMock{},
 		TxTypeHandler:                &testscommon.TxTypeHandlerMock{},
 		TransactionsLogProcessor:     &mock.TxLogsProcessorStub{},
 		EnableEpochsHandler:          enableEpochsHandlerMock.NewEnableEpochsHandlerStub(),
@@ -4075,7 +4075,7 @@ func TestTransactionCoordinator_GetMaxAccumulatedAndDeveloperFeesShouldWork(t *t
 		FeeHandler:           &mock.FeeAccumulatorStub{},
 		BlockSizeComputation: &testscommon.BlockSizeComputationStub{},
 		BalanceComputation:   &testscommon.BalanceComputationStub{},
-		EconomicsFee: &economicsmocks.EconomicsHandlerStub{
+		EconomicsFee: &economicsmocks.EconomicsHandlerMock{
 			DeveloperPercentageCalled: func() float64 {
 				return 0.1
 			},
@@ -4151,7 +4151,7 @@ func TestTransactionCoordinator_RevertIfNeededShouldWork(t *testing.T) {
 		},
 		BlockSizeComputation:         &testscommon.BlockSizeComputationStub{},
 		BalanceComputation:           &testscommon.BalanceComputationStub{},
-		EconomicsFee:                 &economicsmocks.EconomicsHandlerStub{},
+		EconomicsFee:                 &economicsmocks.EconomicsHandlerMock{},
 		TxTypeHandler:                &testscommon.TxTypeHandlerMock{},
 		TransactionsLogProcessor:     &mock.TxLogsProcessorStub{},
 		EnableEpochsHandler:          enableEpochsHandlerMock.NewEnableEpochsHandlerStub(),
