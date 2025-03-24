@@ -480,8 +480,6 @@ func TestDelayedBlockBroadcaster_SetLeaderData(t *testing.T) {
 }
 
 func TestDelayedBlockBroadcaster_SetLeaderDataOverCacheSizeShouldBroadcastOldest(t *testing.T) {
-	t.Parallel()
-
 	var logOutput bytes.Buffer
 	var logMutex sync.Mutex
 
@@ -498,15 +496,10 @@ func TestDelayedBlockBroadcaster_SetLeaderDataOverCacheSizeShouldBroadcastOldest
 	err = logger.SetLogLevel("*:DEBUG")
 	require.Nil(t, err)
 
-	mbBroadcastCalled := atomic.Counter{}
-	txBroadcastCalled := atomic.Counter{}
-
 	broadcastMiniBlocks := func(mbData map[uint32][]byte, pk []byte) error {
-		mbBroadcastCalled.Increment()
 		return nil
 	}
 	broadcastTransactions := func(txData map[string][][]byte, pk []byte) error {
-		txBroadcastCalled.Increment()
 		return nil
 	}
 	broadcastHeader := func(header data.HeaderHandler, pk []byte) error {
@@ -599,8 +592,6 @@ func TestDelayedBlockBroadcaster_SetValidatorData(t *testing.T) {
 }
 
 func TestDelayedBlockBroadcaster_SetHeaderForValidatorWithoutSignaturesShouldNotSetAlarm(t *testing.T) {
-	t.Parallel()
-
 	var logOutput bytes.Buffer
 	var logMutex sync.Mutex
 
@@ -744,8 +735,6 @@ func TestDelayedBlockBroadcaster_SetHeaderForValidatorShouldSetAlarmAndBroadcast
 }
 
 func TestDelayedBlockBroadcaster_SetHeaderForValidator_BroadcastHeaderError(t *testing.T) {
-	t.Parallel()
-
 	var logOutput bytes.Buffer
 	var logMutex sync.Mutex
 
@@ -1611,8 +1600,6 @@ func TestDelayedBlockBroadcaster_RegisterInterceptorCallback(t *testing.T) {
 }
 
 func TestDelayedBlockBroadcaster_BroadcastBlockDataFailedBroadcast(t *testing.T) {
-	t.Parallel()
-
 	var logOutput bytes.Buffer
 	var logMutex sync.Mutex
 
