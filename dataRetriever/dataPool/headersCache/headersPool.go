@@ -73,7 +73,10 @@ func (pool *headersPool) AddHeader(headerHash []byte, header data.HeaderHandler)
 func (pool *headersPool) callAddedDataHandlers(headerHandler data.HeaderHandler, headerHash []byte) {
 	pool.mutAddedDataHandlers.RLock()
 	for _, handler := range pool.addedDataHandlers {
-		go handler(headerHandler, headerHash)
+		go func(innerHandler func(headerHandler data.HeaderHandler, headerHash []byte)) {
+			log.Info("calling added data handler", "header handler", innerHandler)
+			innerHandler(headerHandler, headerHash)
+		}(handler)
 	}
 	pool.mutAddedDataHandlers.RUnlock()
 }

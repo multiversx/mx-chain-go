@@ -209,8 +209,9 @@ func (fct *factory) generateBlockSubround() error {
 	if err != nil {
 		return err
 	}
-
+	log.Info("generated new subroundblock")
 	fct.worker.AddReceivedMessageCall(bls.MtBlockBody, subroundBlockInstance.receivedBlockBody)
+	log.Info("subroundBlockInstance.receivedBlockHeader")
 	fct.worker.AddReceivedHeaderHandler(subroundBlockInstance.receivedBlockHeader)
 	fct.consensusCore.Chronology().AddSubround(subroundBlockInstance)
 

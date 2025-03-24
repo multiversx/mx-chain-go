@@ -3,6 +3,7 @@ package core
 import (
 	"bytes"
 	"fmt"
+	"path/filepath"
 	"sync"
 	"time"
 
@@ -177,6 +178,9 @@ func (ccf *coreComponentsFactory) Create() (*coreComponents, error) {
 		return nil, err
 	}
 
+	_, file := filepath.Split(ccf.workingDir)
+	log.Info("NTP config", "file", file)
+	ccf.config.NTPConfig.ValidatorName = file
 	syncer := ntp.NewSyncTime(ccf.config.NTPConfig, nil)
 	syncer.StartSyncingTime()
 	log.Debug("NTP average clock offset", "value", syncer.ClockOffset())

@@ -83,6 +83,7 @@ type NTPConfig struct {
 	TimeoutMilliseconds int
 	SyncPeriodSeconds   int
 	Version             int
+	ValidatorName       string
 }
 
 // EvictionWaitingListConfig will hold the configuration for the EvictionWaitingList

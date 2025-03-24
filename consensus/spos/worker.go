@@ -317,6 +317,7 @@ func (wrk *Worker) ReceivedHeader(headerHandler data.HeaderHandler, _ []byte) {
 // AddReceivedHeaderHandler adds a new handler function for a received header
 func (wrk *Worker) AddReceivedHeaderHandler(handler func(data.HeaderHandler)) {
 	wrk.mutReceivedHeadersHandler.Lock()
+	log.Info("add received header handler", "handler", handler)
 	wrk.receivedHeadersHandlers = append(wrk.receivedHeadersHandlers, handler)
 	wrk.mutReceivedHeadersHandler.Unlock()
 }

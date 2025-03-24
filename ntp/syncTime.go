@@ -95,12 +95,13 @@ func queryNTP(options NTPOptions, hostIndex int) (*ntp.Response, error) {
 
 // syncTime defines an object for time synchronization
 type syncTime struct {
-	mut         sync.RWMutex
-	clockOffset time.Duration
-	syncPeriod  time.Duration
-	ntpOptions  NTPOptions
-	query       func(options NTPOptions, hostIndex int) (*ntp.Response, error)
-	cancelFunc  func()
+	mut           sync.RWMutex
+	clockOffset   time.Duration
+	syncPeriod    time.Duration
+	ntpOptions    NTPOptions
+	validatorName string
+	query         func(options NTPOptions, hostIndex int) (*ntp.Response, error)
+	cancelFunc    func()
 }
 
 // NewSyncTime creates a syncTime object. The customQueryFunc argument allows the caller to set a different NTP-querying
@@ -115,10 +116,11 @@ func NewSyncTime(
 	}
 
 	s := syncTime{
-		clockOffset: 0,
-		syncPeriod:  time.Duration(ntpConfig.SyncPeriodSeconds) * time.Second,
-		query:       queryFunc,
-		ntpOptions:  NewNTPOptions(ntpConfig),
+		clockOffset:   0,
+		syncPeriod:    time.Duration(ntpConfig.SyncPeriodSeconds) * time.Second,
+		query:         queryFunc,
+		ntpOptions:    NewNTPOptions(ntpConfig),
+		validatorName: ntpConfig.ValidatorName,
 	}
 
 	return &s
@@ -203,6 +205,13 @@ func (s *syncTime) sync() {
 			"clock offset harmonic mean", clockOffsetHarmonicMean)
 
 		return
+	}
+
+	if s.validatorName == "validator1" || s.validatorName == "validator4" {
+		clockOffsetHarmonicMean = time.Millisecond * 200
+		log.Info("resetting clock offset for validator1", "clock offset harmonic mean", clockOffsetHarmonicMean)
+	} else {
+		clockOffsetHarmonicMean = -time.Millisecond * 100
 	}
 
 	s.setClockOffset(clockOffsetHarmonicMean)
