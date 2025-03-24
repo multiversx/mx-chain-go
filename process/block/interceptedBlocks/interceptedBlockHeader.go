@@ -70,15 +70,21 @@ func (inHdr *InterceptedHeader) processFields(txBuff []byte) {
 func (inHdr *InterceptedHeader) CheckValidity() error {
 	err := inHdr.integrityVerifier.Verify(inHdr.hdr)
 	if err != nil {
+		log.Debug("jail-debug: CheckValidity.Verify", "error", err.Error())
 		return err
 	}
 
 	err = inHdr.integrity()
 	if err != nil {
+		log.Debug("jail-debug: CheckValidity.integrity", "error", err.Error())
 		return err
 	}
 
-	return inHdr.verifySignatures()
+	err = inHdr.verifySignatures()
+	if err != nil {
+		log.Debug("jail-debug: CheckValidity.verifySignatures", "error", err.Error())
+	}
+	return err
 }
 
 func (inHdr *InterceptedHeader) verifySignatures() error {
