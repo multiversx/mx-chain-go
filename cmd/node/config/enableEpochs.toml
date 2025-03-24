@@ -354,6 +354,12 @@
     # ValidationOnGobDecodeEnableEpoch represents the epoch when validation on GobDecode will be taken into account
     ValidationOnGobDecodeEnableEpoch = 2
 
+    # BarnardOpcodesEnableEpoch represents the epoch when Barnard opcodes will be enabled
+    BarnardOpcodesEnableEpoch = 2
+
+    # AutomaticActivationOfNodesDisableEpoch represents the epoch when automatic activation of nodes for validators is disabled
+    AutomaticActivationOfNodesDisableEpoch = 2
+
     # BLSMultiSignerEnableEpoch represents the activation epoch for different types of BLS multi-signers
     BLSMultiSignerEnableEpoch = [
         { EnableEpoch = 0, Type = "no-KOSK" },

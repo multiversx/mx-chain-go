@@ -32,6 +32,8 @@ func createEconomicsData(enableEpochsHandler common.EnableEpochsHandler) process
 		EnableEpochsHandler: enableEpochsHandler,
 		TxVersionChecker:    &testscommon.TxVersionCheckerStub{},
 		EpochNotifier:       &epochNotifier.EpochNotifierStub{},
+		PubkeyConverter:     &testscommon.PubkeyConverterStub{},
+		ShardCoordinator:    &testscommon.ShardsCoordinatorMock{},
 	})
 
 	return economicsData

@@ -246,12 +246,23 @@ func (ccf *coreComponentsFactory) Create() (*coreComponents, error) {
 
 	txVersionChecker := versioning.NewTxVersionChecker(ccf.config.GeneralSettings.MinTransactionVersion)
 
+	// This shard coordinator uses a hardcoded selfId of 0 as it does not know its selfId.
+	// Its main purpose is to validate the rewards config (protocol sustainability address shard against meta),
+	// inside economics data and should not be used for another scope.
+	// The real component will be created later on, as part of bootstrap components.
+	shardCoordinator, err := sharding.NewMultiShardCoordinator(genesisNodesConfig.NumberOfShards(), 0)
+	if err != nil {
+		return nil, err
+	}
+
 	log.Trace("creating economics data components")
 	argsNewEconomicsData := economics.ArgsNewEconomicsData{
 		Economics:           &ccf.economicsConfig,
 		EpochNotifier:       epochNotifier,
 		EnableEpochsHandler: enableEpochsHandler,
 		TxVersionChecker:    txVersionChecker,
+		PubkeyConverter:     addressPubkeyConverter,
+		ShardCoordinator:    shardCoordinator,
 	}
 	economicsData, err := economics.NewEconomicsData(argsNewEconomicsData)
 	if err != nil {
