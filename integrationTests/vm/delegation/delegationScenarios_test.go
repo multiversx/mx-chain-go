@@ -796,6 +796,7 @@ func TestDelegationSystemDelegateSameUsersAFewTimes(t *testing.T) {
 	tpn.EpochNotifier.CheckEpoch(&testscommon.HeaderHandlerStub{
 		EpochField: integrationTests.UnreachableEpoch + 1,
 	})
+
 	err := tpn.BlockchainHook.SetCurrentHeader(&block.MetaBlock{Nonce: 1})
 	assert.Nil(t, err)
 
@@ -816,7 +817,7 @@ func TestDelegationSystemDelegateSameUsersAFewTimes(t *testing.T) {
 	txData = "setAutomaticActivation@" + hex.EncodeToString([]byte("true"))
 	returnedCode, err = processTransaction(tpn, tpn.OwnAccount.Address, delegationScAddress, txData, big.NewInt(0))
 	assert.Nil(t, err)
-	assert.Equal(t, vmcommon.Ok, returnedCode)
+	assert.Equal(t, vmcommon.UserError, returnedCode)
 
 	// self delegate 1250 eGLD
 	txData = "delegate"
@@ -1356,10 +1357,10 @@ func addEpochStartHeader(t *testing.T, tpn *integrationTests.TestProcessorNode, 
 		}
 	}
 
-	bytes, err := integrationTests.TestMarshalizer.Marshal(header)
+	dataBytes, err := integrationTests.TestMarshalizer.Marshal(header)
 	assert.Nil(t, err)
 
-	err = storage.Put([]byte(core.EpochStartIdentifier(epoch)), bytes)
+	err = storage.Put([]byte(core.EpochStartIdentifier(epoch)), dataBytes)
 	assert.Nil(t, err)
 }
 

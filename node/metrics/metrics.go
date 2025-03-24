@@ -208,6 +208,7 @@ func InitConfigMetrics(
 	appStatusHandler.SetUInt64Value(common.MetricFixBackTransferOPCODEEnableEpoch, uint64(enableEpochs.FixBackTransferOPCODEEnableEpoch))
 	appStatusHandler.SetUInt64Value(common.MetricValidationOnGobDecodeEnableEpoch, uint64(enableEpochs.ValidationOnGobDecodeEnableEpoch))
 	appStatusHandler.SetUInt64Value(common.MetricBarnardOpcodesEnableEpoch, uint64(enableEpochs.BarnardOpcodesEnableEpoch))
+	appStatusHandler.SetUInt64Value(common.MetricAutomaticActivationOfNodesDisableEpoch, uint64(enableEpochs.AutomaticActivationOfNodesDisableEpoch))
 
 	for i, nodesChangeConfig := range enableEpochs.MaxNodesChangeEnableEpoch {
 		epochEnable := fmt.Sprintf("%s%d%s", common.MetricMaxNodesChangeEnableEpoch, i, common.EpochEnableSuffix)
