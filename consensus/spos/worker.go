@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"strconv"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
@@ -85,6 +86,8 @@ type Worker struct {
 	closer                    core.SafeCloser
 
 	invalidSignersCache InvalidSignersCache
+
+	messagesMap sync.Map
 }
 
 // WorkerArgs holds the consensus worker arguments
@@ -167,6 +170,7 @@ func NewWorker(args *WorkerArgs) (*Worker, error) {
 		nodeRedundancyHandler:    args.NodeRedundancyHandler,
 		peerBlacklistHandler:     args.PeerBlacklistHandler,
 		closer:                   closing.NewSafeChanCloser(),
+		messagesMap:              sync.Map{},
 		enableEpochsHandler:      args.EnableEpochsHandler,
 		invalidSignersCache:      args.InvalidSignersCache,
 	}
@@ -185,7 +189,7 @@ func NewWorker(args *WorkerArgs) (*Worker, error) {
 	wrk.antifloodHandler.SetMaxMessagesForTopic(topic, maxMessagesInARoundPerPeer)
 
 	wrk.mapDisplayHashConsensusMessage = make(map[string][]*consensus.Message)
-
+	wrk.StartTimer()
 	return &wrk, nil
 }
 
@@ -425,6 +429,14 @@ func (wrk *Worker) ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedP
 			wrk.antifloodHandler.BlacklistPeer(fromConnectedPeer, reason, common.InvalidMessageBlacklistDuration)
 		}
 	}()
+
+	value := int64(1)
+	count, loaded := wrk.messagesMap.LoadOrStore(topic, &value)
+	if loaded {
+		atomic.AddInt64(count.(*int64), value)
+	} else {
+		wrk.messagesMap.Store(topic, &value)
+	}
 
 	cnsMsg := &consensus.Message{}
 	err = wrk.marshalizer.Unmarshal(cnsMsg, message.Data())
@@ -872,4 +884,30 @@ func emptyChannel(ch chan *consensus.Message) int {
 			return readsCnt
 		}
 	}
+}
+
+func (wrk *Worker) StartTimer() {
+	go func() {
+		now := time.Now()
+		nextMinute := now.Truncate(time.Minute).Add(time.Minute)
+		time.Sleep(time.Until(nextMinute))
+
+		// Start ticker to run every minute
+		ticker := time.NewTicker(time.Minute)
+		defer ticker.Stop()
+
+		log.Info("Starting task execution at", "topic", "worker")
+
+		for _ = range ticker.C {
+			wrk.messagesMap.Range(func(key, value any) bool {
+				v := int64(1)
+				count, loaded := wrk.messagesMap.LoadOrStore(key, &v)
+				if loaded {
+					currentCount := atomic.LoadInt64(count.(*int64))
+					log.Info("messages statistics", "type", "worker", "topic", key, "count", currentCount)
+				}
+				return true
+			})
+		}
+	}()
 }

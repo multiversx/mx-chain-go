@@ -92,6 +92,8 @@ func NewMultiDataInterceptor(arg ArgMultiDataInterceptor) (*MultiDataInterceptor
 			preferredPeersHolder:    arg.PreferredPeersHolder,
 			debugHandler:            handler.NewDisabledInterceptorDebugHandler(),
 			interceptedDataVerifier: arg.InterceptedDataVerifier,
+			messagesMap:             sync.Map{},
+			bdiType:                 "multi",
 		},
 		marshalizer:      arg.Marshalizer,
 		hasher:           arg.Hasher,
@@ -99,6 +101,8 @@ func NewMultiDataInterceptor(arg ArgMultiDataInterceptor) (*MultiDataInterceptor
 		whiteListRequest: arg.WhiteListRequest,
 		chunksProcessor:  disabled.NewDisabledInterceptedChunksProcessor(),
 	}
+
+	multiDataIntercept.StartTimer()
 
 	return multiDataIntercept, nil
 }

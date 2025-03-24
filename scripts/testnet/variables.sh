@@ -52,7 +52,7 @@ export GENESIS_STAKE_TYPE="direct" #'delegated' or 'direct' as in direct stake
 export OBSERVERS_ANTIFLOOD_DISABLE=0
 
 # Shard structure
-export SHARDCOUNT=2
+export SHARDCOUNT=3
 export SHARD_VALIDATORCOUNT=3
 export SHARD_OBSERVERCOUNT=1
 export SHARD_CONSENSUS_SIZE=3
@@ -62,7 +62,7 @@ export META_VALIDATORCOUNT=3
 export META_OBSERVERCOUNT=1
 export META_CONSENSUS_SIZE=$META_VALIDATORCOUNT
 
-export ROUND_DURATION_IN_MS=6000
+export ROUND_DURATION_IN_MS=1000
 
 # MULTI_KEY_NODES if set to 1, one observer will be generated on each shard that will handle all generated keys
 export MULTI_KEY_NODES=0
@@ -74,7 +74,7 @@ export EXTRA_KEYS=1
 export ALWAYS_NEW_CHAINID=1
 
 # ROUNDS_PER_EPOCH represents the number of rounds per epoch. If set to 0, it won't override the node's config
-export ROUNDS_PER_EPOCH=0
+export ROUNDS_PER_EPOCH=100
 
 # HYSTERESIS defines the hysteresis value for number of nodes in shard
 export HYSTERESIS=0.0
