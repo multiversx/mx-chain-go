@@ -321,6 +321,7 @@ func (wrk *Worker) convertHeaderToConsensusMessage(header data.HeaderHandler) (*
 		Header:          headerBytes,
 		BlockHeaderHash: wrk.hasher.Compute(string(headerBytes)),
 		MsgType:         int64(wrk.consensusService.GetMessageTypeBlockHeader()),
+		RoundIndex:      int64(header.GetRound()),
 	}, nil
 }
 
