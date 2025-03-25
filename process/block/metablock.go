@@ -343,7 +343,7 @@ func (mp *metaProcessor) ProcessBlock(
 		}
 	}
 
-	err = mp.checkProofsForShardData(header, haveTime())
+	err = mp.checkProofsForShardDataIfNeeded(header, haveTime())
 	if err != nil {
 		return err
 	}
@@ -418,7 +418,7 @@ func (mp *metaProcessor) ProcessBlock(
 	return nil
 }
 
-func (mp *metaProcessor) checkProofsForShardData(header *block.MetaBlock, waitTime time.Duration) error {
+func (mp *metaProcessor) checkProofsForShardDataIfNeeded(header *block.MetaBlock, waitTime time.Duration) error {
 	if !(mp.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, header.Epoch) && header.GetNonce() > 1) {
 		return nil
 	}
@@ -428,11 +428,19 @@ func (mp *metaProcessor) checkProofsForShardData(header *block.MetaBlock, waitTi
 	mp.mutRequestedAttestingNoncesMap.Unlock()
 	_ = core.EmptyChannel(mp.allProofsReceived)
 
-	for _, shardData := range header.ShardInfo {
-		// TODO: consider the validation of the proof:
-		//	compare the one from proofsPool with what shardData.CurrentSignature and shardData.CurrentPubKeysBitmap hold
-		//	if they are different, verify the proof received on header
+	err := mp.checkProofsForShardData(header)
+	if err != nil {
+		return err
+	}
 
+	return mp.waitAllMissingProofs(waitTime)
+}
+
+func (mp *metaProcessor) checkProofsForShardData(header *block.MetaBlock) error {
+	mp.hdrsForCurrBlock.mutHdrsForBlock.RLock()
+	defer mp.hdrsForCurrBlock.mutHdrsForBlock.RUnlock()
+
+	for _, shardData := range header.ShardInfo {
 		shardHeader, ok := mp.hdrsForCurrBlock.hdrHashAndInfo[string(shardData.HeaderHash)]
 		if !ok {
 			return fmt.Errorf("%w for header hash %s", process.ErrMissingHeader, hex.EncodeToString(shardData.HeaderHash))
@@ -448,14 +456,9 @@ func (mp *metaProcessor) checkProofsForShardData(header *block.MetaBlock, waitTi
 			continue
 		}
 
-		shardHeadersStorer, err := mp.store.GetStorer(dataRetriever.BlockHeaderUnit)
-		if err != nil {
-			return err
-		}
-
 		prevProof := shardData.GetPreviousProof()
 		headersPool := mp.dataPool.Headers()
-		prevHeader, err := process.GetHeader(prevProof.GetHeaderHash(), headersPool, shardHeadersStorer, mp.marshalizer, prevProof.GetHeaderShardId())
+		prevHeader, err := process.GetHeader(prevProof.GetHeaderHash(), headersPool, mp.store, mp.marshalizer, prevProof.GetHeaderShardId())
 		if err != nil {
 			return err
 		}
@@ -466,7 +469,7 @@ func (mp *metaProcessor) checkProofsForShardData(header *block.MetaBlock, waitTi
 		}
 	}
 
-	return mp.waitAllMissingProofs(waitTime)
+	return nil
 }
 
 func (mp *metaProcessor) processEpochStartMetaBlock(
@@ -1372,33 +1375,7 @@ func (mp *metaProcessor) CommitBlock(
 		"nonce", mp.forkDetector.GetHighestFinalBlockNonce(),
 	)
 
-	lastHeader := mp.blockChain.GetCurrentBlockHeader()
-	lastMetaBlock, ok := lastHeader.(data.MetaHeaderHandler)
-	if !ok {
-		if headerHandler.GetNonce() == firstHeaderNonce {
-			log.Debug("metaBlock.CommitBlock - nil current block header, this is expected at genesis time")
-		} else {
-			log.Error("metaBlock.CommitBlock - nil current block header, last current header should have not been nil")
-		}
-	}
-	lastMetaBlockHash := mp.blockChain.GetCurrentBlockHeaderHash()
-	if mp.lastRestartNonce == 0 {
-		mp.lastRestartNonce = header.GetNonce()
-	}
-
-	finalMetaBlock := lastMetaBlock
-	finalMetaBlockHash := lastMetaBlockHash
-	isBlockAfterEquivalentMessagesFlag := !check.IfNil(finalMetaBlock) &&
-		mp.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, finalMetaBlock.GetEpoch())
-	if isBlockAfterEquivalentMessagesFlag {
-		// for the first block we need to update both the state of the previous one and for current
-		if common.IsEpochChangeBlockForFlagActivation(header, mp.enableEpochsHandler, common.EquivalentMessagesFlag) {
-			mp.updateState(lastMetaBlock, lastMetaBlockHash)
-		}
-
-		finalMetaBlock = header
-		finalMetaBlockHash = headerHash
-	}
+	finalMetaBlock, finalMetaBlockHash := mp.computeFinalMetaBlock(header, headerHash)
 	mp.updateState(finalMetaBlock, finalMetaBlockHash)
 
 	committedRootHash, err := mp.accountsDB[state.UserAccountsState].RootHash()
@@ -1480,6 +1457,38 @@ func (mp *metaProcessor) CommitBlock(
 	return nil
 }
 
+func (mp *metaProcessor) computeFinalMetaBlock(metaBlock *block.MetaBlock, metaBlockHash []byte) (data.MetaHeaderHandler, []byte) {
+	lastHeader := mp.blockChain.GetCurrentBlockHeader()
+	lastMetaBlock, ok := lastHeader.(data.MetaHeaderHandler)
+	if !ok {
+		if metaBlock.GetNonce() == firstHeaderNonce {
+			log.Debug("metaBlock.CommitBlock - nil current block header, this is expected at genesis time")
+		} else {
+			log.Error("metaBlock.CommitBlock - nil current block header, last current header should have not been nil")
+		}
+	}
+	lastMetaBlockHash := mp.blockChain.GetCurrentBlockHeaderHash()
+	if mp.lastRestartNonce == 0 {
+		mp.lastRestartNonce = metaBlock.GetNonce()
+	}
+
+	finalMetaBlock := lastMetaBlock
+	finalMetaBlockHash := lastMetaBlockHash
+	isBlockAfterEquivalentMessagesFlag := !check.IfNil(finalMetaBlock) &&
+		mp.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, finalMetaBlock.GetEpoch())
+	if isBlockAfterEquivalentMessagesFlag {
+		// for the first block we need to update both the state of the previous one and for current
+		if common.IsEpochChangeBlockForFlagActivation(metaBlock, mp.enableEpochsHandler, common.EquivalentMessagesFlag) {
+			mp.updateState(lastMetaBlock, lastMetaBlockHash)
+		}
+
+		finalMetaBlock = metaBlock
+		finalMetaBlockHash = metaBlockHash
+	}
+
+	return finalMetaBlock, finalMetaBlockHash
+}
+
 func (mp *metaProcessor) updateCrossShardInfo(metaBlock *block.MetaBlock) ([]string, error) {
 	mp.hdrsForCurrBlock.mutHdrsForBlock.RLock()
 	defer mp.hdrsForCurrBlock.mutHdrsForBlock.RUnlock()
@@ -1543,15 +1552,15 @@ func (mp *metaProcessor) displayPoolsInfo() {
 	mp.displayMiniBlocksPool()
 }
 
-func (mp *metaProcessor) updateState(lastMetaBlock data.MetaHeaderHandler, lastMetaBlockHash []byte) {
-	if check.IfNil(lastMetaBlock) {
+func (mp *metaProcessor) updateState(metaBlock data.MetaHeaderHandler, metaBlockHash []byte) {
+	if check.IfNil(metaBlock) {
 		log.Debug("updateState nil header")
 		return
 	}
 
-	mp.validatorStatisticsProcessor.SetLastFinalizedRootHash(lastMetaBlock.GetValidatorStatsRootHash())
+	mp.validatorStatisticsProcessor.SetLastFinalizedRootHash(metaBlock.GetValidatorStatsRootHash())
 
-	prevMetaBlockHash := lastMetaBlock.GetPrevHash()
+	prevMetaBlockHash := metaBlock.GetPrevHash()
 	prevMetaBlock, errNotCritical := process.GetMetaHeader(
 		prevMetaBlockHash,
 		mp.dataPool.Headers(),
@@ -1563,20 +1572,20 @@ func (mp *metaProcessor) updateState(lastMetaBlock data.MetaHeaderHandler, lastM
 		return
 	}
 
-	if lastMetaBlock.IsStartOfEpochBlock() {
+	if metaBlock.IsStartOfEpochBlock() {
 		log.Debug("trie snapshot",
-			"rootHash", lastMetaBlock.GetRootHash(),
+			"rootHash", metaBlock.GetRootHash(),
 			"prevRootHash", prevMetaBlock.GetRootHash(),
-			"validatorStatsRootHash", lastMetaBlock.GetValidatorStatsRootHash())
-		mp.accountsDB[state.UserAccountsState].SnapshotState(lastMetaBlock.GetRootHash(), lastMetaBlock.GetEpoch())
-		mp.accountsDB[state.PeerAccountsState].SnapshotState(lastMetaBlock.GetValidatorStatsRootHash(), lastMetaBlock.GetEpoch())
+			"validatorStatsRootHash", metaBlock.GetValidatorStatsRootHash())
+		mp.accountsDB[state.UserAccountsState].SnapshotState(metaBlock.GetRootHash(), metaBlock.GetEpoch())
+		mp.accountsDB[state.PeerAccountsState].SnapshotState(metaBlock.GetValidatorStatsRootHash(), metaBlock.GetEpoch())
 		go func() {
-			metaBlock, ok := lastMetaBlock.(*block.MetaBlock)
+			metaBlock, ok := metaBlock.(*block.MetaBlock)
 			if !ok {
-				log.Warn("cannot commit Trie Epoch Root Hash: lastMetaBlock is not *block.MetaBlock")
+				log.Warn("cannot commit Trie Epoch Root Hash: metaBlock is not *block.MetaBlock")
 				return
 			}
-			err := mp.commitTrieEpochRootHashIfNeeded(metaBlock, lastMetaBlock.GetRootHash())
+			err := mp.commitTrieEpochRootHashIfNeeded(metaBlock, metaBlock.GetRootHash())
 			if err != nil {
 				log.Warn("couldn't commit trie checkpoint", "epoch", metaBlock.Epoch, "error", err)
 			}
@@ -1584,21 +1593,26 @@ func (mp *metaProcessor) updateState(lastMetaBlock data.MetaHeaderHandler, lastM
 	}
 
 	mp.updateStateStorage(
-		lastMetaBlock,
-		lastMetaBlock.GetRootHash(),
+		metaBlock,
+		metaBlock.GetRootHash(),
 		prevMetaBlock.GetRootHash(),
 		mp.accountsDB[state.UserAccountsState],
 	)
 
 	mp.updateStateStorage(
-		lastMetaBlock,
-		lastMetaBlock.GetValidatorStatsRootHash(),
+		metaBlock,
+		metaBlock.GetValidatorStatsRootHash(),
 		prevMetaBlock.GetValidatorStatsRootHash(),
 		mp.accountsDB[state.PeerAccountsState],
 	)
 
-	mp.setFinalizedHeaderHashInIndexer(lastMetaBlock.GetPrevHash())
-	mp.blockChain.SetFinalBlockInfo(lastMetaBlock.GetNonce(), lastMetaBlockHash, lastMetaBlock.GetRootHash())
+	outportFinalizedHeaderHash := metaBlockHash
+	if !common.ShouldBlockHavePrevProof(metaBlock, mp.enableEpochsHandler, common.EquivalentMessagesFlag) {
+		outportFinalizedHeaderHash = metaBlock.GetPrevHash()
+	}
+	mp.setFinalizedHeaderHashInIndexer(outportFinalizedHeaderHash)
+
+	mp.blockChain.SetFinalBlockInfo(metaBlock.GetNonce(), metaBlockHash, metaBlock.GetRootHash())
 }
 
 func (mp *metaProcessor) getLastSelfNotarizedHeaderByShard(
@@ -1912,7 +1926,6 @@ func (mp *metaProcessor) checkShardHeadersValidity(metaHdr *block.MetaBlock) (ma
 		}
 
 		if common.ShouldBlockHavePrevProof(shardHdr, mp.enableEpochsHandler, common.EquivalentMessagesFlag) {
-			// TODO: proper check of the fields
 			err = verifyProof(shardData.GetPreviousProof())
 			if err != nil {
 				return nil, err
@@ -1935,7 +1948,7 @@ func (mp *metaProcessor) checkShardHeadersValidity(metaHdr *block.MetaBlock) (ma
 }
 
 func verifyProof(proof data.HeaderProofHandler) error {
-	if check.IfNilReflect(proof) {
+	if check.IfNil(proof) {
 		return nil
 	}
 
@@ -2047,12 +2060,11 @@ func (mp *metaProcessor) checkShardHeaderFinalityBasedOnProofs(shardHdr data.Hea
 		return false, nil
 	}
 
-	marshalledHeader, err := mp.marshalizer.Marshal(shardHdr)
+	headerHash, err := core.CalculateHash(mp.marshalizer, mp.hasher, shardHdr)
 	if err != nil {
 		return true, err
 	}
 
-	headerHash := mp.hasher.Compute(string(marshalledHeader))
 	if !mp.proofsPool.HasProof(shardId, headerHash) {
 		return true, process.ErrHeaderNotFinal
 	}
@@ -2246,7 +2258,7 @@ func (mp *metaProcessor) createShardInfo() ([]data.ShardDataHandler, error) {
 		}
 
 		isBlockAfterEquivalentMessagesFlag := !check.IfNil(headerInfo.hdr) &&
-			mp.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, headerInfo.hdr.GetEpoch()) && headerInfo.hdr.GetNonce() > 1
+			mp.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, headerInfo.hdr.GetEpoch()) && headerInfo.hdr.GetNonce() >= 1
 		hasMissingShardHdrProof := isBlockAfterEquivalentMessagesFlag && !mp.proofsPool.HasProof(headerInfo.hdr.GetShardID(), []byte(hdrHash))
 		if hasMissingShardHdrProof {
 			return nil, fmt.Errorf("%w for shard header with hash %s", process.ErrMissingHeaderProof, hex.EncodeToString([]byte(hdrHash)))
@@ -2352,7 +2364,7 @@ func (mp *metaProcessor) computeAccumulatedFeesInEpoch(metaHdr data.MetaHeaderHa
 		"meta nonce", metaHdr.GetNonce(),
 		"accumulatedFees", metaHdr.GetAccumulatedFees().String(),
 		"devFees", metaHdr.GetDeveloperFees().String(),
-		"meta leader fees", core.GetIntTrimmedPercentageOfValue(big.NewInt(0).Sub(metaHdr.GetAccumulatedFees(), metaHdr.GetDeveloperFees()), mp.economicsData.LeaderPercentage()).String())
+		"meta leader fees", core.GetIntTrimmedPercentageOfValue(big.NewInt(0).Sub(metaHdr.GetAccumulatedFees(), metaHdr.GetDeveloperFees()), mp.economicsData.LeaderPercentageInEpoch(metaHdr.GetEpoch())).String())
 
 	for _, shardData := range metaHdr.GetShardInfoHandlers() {
 		log.Debug("computeAccumulatedFeesInEpoch - adding shard data fees",
@@ -2360,7 +2372,7 @@ func (mp *metaProcessor) computeAccumulatedFeesInEpoch(metaHdr data.MetaHeaderHa
 			"shardHeader nonce", shardData.GetNonce(),
 			"shardHeader accumulated fees", shardData.GetAccumulatedFees().String(),
 			"shardHeader dev fees", shardData.GetDeveloperFees().String(),
-			"shardHeader leader fees", core.GetIntTrimmedPercentageOfValue(big.NewInt(0).Sub(shardData.GetAccumulatedFees(), shardData.GetDeveloperFees()), mp.economicsData.LeaderPercentage()).String(),
+			"shardHeader leader fees", core.GetIntTrimmedPercentageOfValue(big.NewInt(0).Sub(shardData.GetAccumulatedFees(), shardData.GetDeveloperFees()), mp.economicsData.LeaderPercentageInEpoch(metaHdr.GetEpoch())).String(),
 		)
 
 		currentlyAccumulatedFeesInEpoch.Add(currentlyAccumulatedFeesInEpoch, shardData.GetAccumulatedFees())

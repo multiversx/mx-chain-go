@@ -262,7 +262,7 @@ func TestSubroundStartRound_NewSubroundStartRoundNilValidatorGroupSelectorShould
 	ch := make(chan bool, 1)
 
 	sr, _ := defaultSubround(consensusState, ch, container)
-	container.SetValidatorGroupSelector(nil)
+	container.SetNodesCoordinator(nil)
 	srStartRound, err := defaultSubroundStartRoundFromSubround(sr)
 
 	assert.Nil(t, srStartRound)
@@ -390,7 +390,7 @@ func TestSubroundStartRound_InitCurrentRoundShouldReturnFalseWhenGenerateNextCon
 	}
 	container := consensus.InitConsensusCore()
 
-	container.SetValidatorGroupSelector(validatorGroupSelector)
+	container.SetNodesCoordinator(validatorGroupSelector)
 
 	srStartRound := initSubroundStartRoundWithContainer(container)
 
@@ -434,7 +434,7 @@ func TestSubroundStartRound_InitCurrentRoundShouldReturnFalseWhenGetLeaderErr(t 
 	}
 
 	container := consensus.InitConsensusCore()
-	container.SetValidatorGroupSelector(validatorGroupSelector)
+	container.SetNodesCoordinator(validatorGroupSelector)
 
 	srStartRound := initSubroundStartRoundWithContainer(container)
 
@@ -864,7 +864,7 @@ func TestSubroundStartRound_IndexRoundIfNeededFailShardIdForEpoch(t *testing.T) 
 		},
 	})
 
-	container.SetValidatorGroupSelector(
+	container.SetNodesCoordinator(
 		&shardingMocks.NodesCoordinatorStub{
 			ShardIdForEpochCalled: func(epoch uint32) (uint32, error) {
 				return 0, expErr
@@ -894,7 +894,7 @@ func TestSubroundStartRound_IndexRoundIfNeededFailShardIdForEpoch(t *testing.T) 
 
 }
 
-func TestSubroundStartRound_IndexRoundIfNeededFailGetValidatorsIndexes(t *testing.T) {
+func TestSubroundStartRound_IndexRoundIfNeededGetValidatorsIndexesShouldNotBeCalled(t *testing.T) {
 
 	pubKeys := []string{"testKey1", "testKey2"}
 
@@ -908,9 +908,10 @@ func TestSubroundStartRound_IndexRoundIfNeededFailGetValidatorsIndexes(t *testin
 		},
 	})
 
-	container.SetValidatorGroupSelector(
+	container.SetNodesCoordinator(
 		&shardingMocks.NodesCoordinatorStub{
 			GetValidatorsIndexesCalled: func(pubKeys []string, epoch uint32) ([]uint64, error) {
+				require.Fail(t, "SaveRoundsInfo should not be called")
 				return nil, expErr
 			},
 		})
@@ -925,17 +926,18 @@ func TestSubroundStartRound_IndexRoundIfNeededFailGetValidatorsIndexes(t *testin
 	)
 	require.Nil(t, err)
 
+	called := false
 	_ = startRound.SetOutportHandler(&outport.OutportStub{
 		HasDriversCalled: func() bool {
 			return true
 		},
 		SaveRoundsInfoCalled: func(roundsInfo *outportcore.RoundsInfo) {
-			require.Fail(t, "SaveRoundsInfo should not be called")
+			called = true
 		},
 	})
 
 	startRound.IndexRoundIfNeeded(pubKeys)
-
+	require.True(t, called)
 }
 
 func TestSubroundStartRound_IndexRoundIfNeededShouldFullyWork(t *testing.T) {
@@ -991,7 +993,7 @@ func TestSubroundStartRound_IndexRoundIfNeededDifferentShardIdFail(t *testing.T)
 		},
 	})
 
-	container.SetValidatorGroupSelector(&shardingMocks.NodesCoordinatorStub{
+	container.SetNodesCoordinator(&shardingMocks.NodesCoordinatorStub{
 		ShardIdForEpochCalled: func(epoch uint32) (uint32, error) {
 			return 0, nil
 		},
@@ -1042,7 +1044,7 @@ func TestSubroundStartRound_changeEpoch(t *testing.T) {
 
 		container := consensus.InitConsensusCore()
 		exErr := fmt.Errorf("expected error")
-		container.SetValidatorGroupSelector(
+		container.SetNodesCoordinator(
 			&shardingMocks.NodesCoordinatorStub{
 				GetConsensusWhitelistedNodesCalled: func(epoch uint32) (map[string]struct{}, error) {
 					return nil, exErr
@@ -1071,7 +1073,7 @@ func TestSubroundStartRound_changeEpoch(t *testing.T) {
 			"bbb": {},
 		}
 
-		container.SetValidatorGroupSelector(
+		container.SetNodesCoordinator(
 			&shardingMocks.NodesCoordinatorStub{
 				GetConsensusWhitelistedNodesCalled: func(epoch uint32) (map[string]struct{}, error) {
 					return expectedKeys, nil
@@ -1105,7 +1107,7 @@ func TestSubroundStartRound_GenerateNextConsensusGroupShouldReturnErr(t *testing
 		return nil, nil, expErr
 	}
 	container := consensus.InitConsensusCore()
-	container.SetValidatorGroupSelector(validatorGroupSelector)
+	container.SetNodesCoordinator(validatorGroupSelector)
 
 	srStartRound := initSubroundStartRoundWithContainer(container)
 

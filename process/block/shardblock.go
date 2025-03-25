@@ -293,26 +293,7 @@ func (sp *shardProcessor) ProcessBlock(
 		return process.ErrAccountStateDirty
 	}
 
-	sp.mutRequestedAttestingNoncesMap.Lock()
-	sp.requestedAttestingNoncesMap = make(map[string]uint64)
-	sp.mutRequestedAttestingNoncesMap.Unlock()
-	_ = core.EmptyChannel(sp.allProofsReceived)
-
-	// check proofs for cross notarized metablocks
-	for _, metaBlockHash := range header.GetMetaBlockHashes() {
-		hInfo, ok := sp.hdrsForCurrBlock.hdrHashAndInfo[string(metaBlockHash)]
-		if !ok {
-			return fmt.Errorf("%w for header hash %s", process.ErrMissingHeader, hex.EncodeToString(metaBlockHash))
-		}
-
-		if !sp.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, hInfo.hdr.GetEpoch()) {
-			continue
-		}
-
-		sp.checkProofRequestingNextHeaderIfMissing(core.MetachainShardId, metaBlockHash, hInfo.hdr.GetNonce())
-	}
-
-	err = sp.waitAllMissingProofs(haveTime())
+	err = sp.checkProofsForCrossNotarizedMetaBlocks(header, haveTime())
 	if err != nil {
 		return err
 	}
@@ -383,6 +364,40 @@ func (sp *shardProcessor) ProcessBlock(
 	err = sp.blockProcessingCutoffHandler.HandleProcessErrorCutoff(header)
 	if err != nil {
 		return err
+	}
+
+	return nil
+}
+
+func (sp *shardProcessor) checkProofsForCrossNotarizedMetaBlocks(header data.ShardHeaderHandler, waitTime time.Duration) error {
+	sp.mutRequestedAttestingNoncesMap.Lock()
+	sp.requestedAttestingNoncesMap = make(map[string]uint64)
+	sp.mutRequestedAttestingNoncesMap.Unlock()
+	_ = core.EmptyChannel(sp.allProofsReceived)
+
+	err := sp.checkProofsRequestingMissing(header)
+	if err != nil {
+		return nil
+	}
+
+	return sp.waitAllMissingProofs(waitTime)
+}
+
+func (sp *shardProcessor) checkProofsRequestingMissing(header data.ShardHeaderHandler) error {
+	sp.hdrsForCurrBlock.mutHdrsForBlock.RLock()
+	defer sp.hdrsForCurrBlock.mutHdrsForBlock.RUnlock()
+
+	for _, metaBlockHash := range header.GetMetaBlockHashes() {
+		hInfo, ok := sp.hdrsForCurrBlock.hdrHashAndInfo[string(metaBlockHash)]
+		if !ok {
+			return fmt.Errorf("%w for header hash %s", process.ErrMissingHeader, hex.EncodeToString(metaBlockHash))
+		}
+
+		if !sp.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, hInfo.hdr.GetEpoch()) {
+			continue
+		}
+
+		sp.checkProofRequestingNextHeaderIfMissing(core.MetachainShardId, metaBlockHash, hInfo.hdr.GetNonce())
 	}
 
 	return nil
@@ -585,6 +600,19 @@ func (sp *shardProcessor) checkMetaHeadersValidityAndFinality() error {
 	return nil
 }
 
+func (sp *shardProcessor) checkHeaderHasProof(header data.HeaderHandler) error {
+	hash, errHash := sp.getHeaderHash(header)
+	if errHash != nil {
+		return errHash
+	}
+
+	if !sp.proofsPool.HasProof(header.GetShardID(), hash) {
+		return fmt.Errorf("%w, missing proof for header %s", process.ErrHeaderNotFinal, hex.EncodeToString(hash))
+	}
+
+	return nil
+}
+
 // check if shard headers are final by checking if newer headers were constructed upon them
 func (sp *shardProcessor) checkMetaHdrFinality(header data.HeaderHandler) error {
 	if check.IfNil(header) {
@@ -592,16 +620,7 @@ func (sp *shardProcessor) checkMetaHdrFinality(header data.HeaderHandler) error 
 	}
 
 	if sp.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, header.GetEpoch()) {
-		hash, errHash := sp.getHeaderHash(header)
-		if errHash != nil {
-			return errHash
-		}
-
-		if !sp.proofsPool.HasProof(header.GetShardID(), hash) {
-			return fmt.Errorf("%w, missing proof for header %s", process.ErrHeaderNotFinal, hex.EncodeToString(hash))
-		}
-
-		return nil
+		return sp.checkHeaderHasProof(header)
 	}
 
 	finalityAttestingMetaHdrs, err := sp.sortHeadersForCurrentBlockByNonce(false)
@@ -627,16 +646,7 @@ func (sp *shardProcessor) checkMetaHdrFinality(header data.HeaderHandler) error 
 			}
 
 			if sp.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, metaHdr.GetEpoch()) {
-				hash, errHash := sp.getHeaderHash(metaHdr)
-				if errHash != nil {
-					return errHash
-				}
-
-				if sp.proofsPool.HasProof(core.MetachainShardId, hash) {
-					return nil
-				}
-
-				return process.ErrHeaderNotFinal
+				return sp.checkHeaderHasProof(metaHdr)
 			}
 
 			lastVerifiedHdr = metaHdr

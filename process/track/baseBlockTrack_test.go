@@ -114,7 +114,7 @@ func CreateShardTrackerMockArguments() track.ArgShardTracker {
 	}
 	headerValidator, _ := processBlock.NewHeaderValidator(argsHeaderValidator)
 	whitelistHandler := &testscommon.WhiteListHandlerStub{}
-	feeHandler := &economicsmocks.EconomicsHandlerStub{
+	feeHandler := &economicsmocks.EconomicsHandlerMock{
 		MaxGasLimitPerBlockForSafeCrossShardCalled: func() uint64 {
 			return maxGasLimitPerBlock
 		},
@@ -159,7 +159,7 @@ func CreateMetaTrackerMockArguments() track.ArgMetaTracker {
 	}
 	headerValidator, _ := processBlock.NewHeaderValidator(argsHeaderValidator)
 	whitelistHandler := &testscommon.WhiteListHandlerStub{}
-	feeHandler := &economicsmocks.EconomicsHandlerStub{
+	feeHandler := &economicsmocks.EconomicsHandlerMock{
 		MaxGasLimitPerBlockForSafeCrossShardCalled: func() uint64 {
 			return maxGasLimitPerBlock
 		},
@@ -202,7 +202,7 @@ func CreateBaseTrackerMockArguments() track.ArgBaseTracker {
 		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 	}
 	headerValidator, _ := processBlock.NewHeaderValidator(argsHeaderValidator)
-	feeHandler := &economicsmocks.EconomicsHandlerStub{
+	feeHandler := &economicsmocks.EconomicsHandlerMock{
 		MaxGasLimitPerBlockForSafeCrossShardCalled: func() uint64 {
 			return maxGasLimitPerBlock
 		},

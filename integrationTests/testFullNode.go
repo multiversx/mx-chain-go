@@ -456,7 +456,7 @@ func (tpn *TestFullNode) initNode(
 	argsKeysHolder := keysManagement.ArgsManagedPeersHolder{
 		KeyGenerator:          args.KeyGen,
 		P2PKeyGenerator:       args.P2PKeyGen,
-		MaxRoundsOfInactivity: 10,
+		MaxRoundsOfInactivity: 0, // 0 for main node, non-0 for backup node
 		PrefsConfig:           config.Preferences{},
 		P2PKeyConverter:       p2pFactory.NewP2PKeyConverter(),
 	}
@@ -919,21 +919,20 @@ func (tpn *TestFullNode) initBlockProcessor(
 		miniBlockStorage, _ := tpn.Storage.GetStorer(dataRetriever.MiniBlockUnit)
 		argsEpochRewards := metachain.RewardsCreatorProxyArgs{
 			BaseRewardsCreatorArgs: metachain.BaseRewardsCreatorArgs{
-				ShardCoordinator:              tpn.ShardCoordinator,
-				PubkeyConverter:               TestAddressPubkeyConverter,
-				RewardsStorage:                rewardsStorage,
-				MiniBlockStorage:              miniBlockStorage,
-				Hasher:                        TestHasher,
-				Marshalizer:                   TestMarshalizer,
-				DataPool:                      tpn.DataPool,
-				ProtocolSustainabilityAddress: testProtocolSustainabilityAddress,
-				NodesConfigProvider:           tpn.NodesCoordinator,
-				UserAccountsDB:                tpn.AccntState,
-				EnableEpochsHandler:           tpn.EnableEpochsHandler,
-				ExecutionOrderHandler:         tpn.TxExecutionOrderHandler,
+				ShardCoordinator:      tpn.ShardCoordinator,
+				PubkeyConverter:       TestAddressPubkeyConverter,
+				RewardsStorage:        rewardsStorage,
+				MiniBlockStorage:      miniBlockStorage,
+				Hasher:                TestHasher,
+				Marshalizer:           TestMarshalizer,
+				DataPool:              tpn.DataPool,
+				NodesConfigProvider:   tpn.NodesCoordinator,
+				UserAccountsDB:        tpn.AccntState,
+				EnableEpochsHandler:   tpn.EnableEpochsHandler,
+				ExecutionOrderHandler: tpn.TxExecutionOrderHandler,
+				RewardsHandler:        tpn.EconomicsData,
 			},
 			StakingDataProvider:   stakingDataProvider,
-			RewardsHandler:        tpn.EconomicsData,
 			EconomicsDataProvider: economicsDataProvider,
 		}
 		epochStartRewards, err := metachain.NewRewardsCreatorProxy(argsEpochRewards)

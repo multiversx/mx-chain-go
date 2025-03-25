@@ -1,6 +1,9 @@
 package mock
 
-import "github.com/multiversx/mx-chain-go/process"
+import (
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-go/process"
+)
 
 // RatingsInfoMock -
 type RatingsInfoMock struct {
@@ -11,6 +14,7 @@ type RatingsInfoMock struct {
 	MetaRatingsStepDataProperty   process.RatingsStepHandler
 	ShardRatingsStepDataProperty  process.RatingsStepHandler
 	SelectionChancesProperty      []process.SelectionChance
+	SetStatusHandlerCalled        func(handler core.AppStatusHandler) error
 }
 
 // StartRating -
@@ -46,6 +50,14 @@ func (rd *RatingsInfoMock) MetaChainRatingsStepHandler() process.RatingsStepHand
 // ShardChainRatingsStepHandler -
 func (rd *RatingsInfoMock) ShardChainRatingsStepHandler() process.RatingsStepHandler {
 	return rd.ShardRatingsStepDataProperty
+}
+
+// SetStatusHandler -
+func (rd *RatingsInfoMock) SetStatusHandler(handler core.AppStatusHandler) error {
+	if rd.SetStatusHandlerCalled != nil {
+		return rd.SetStatusHandlerCalled(handler)
+	}
+	return nil
 }
 
 // IsInterfaceNil -

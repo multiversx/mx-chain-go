@@ -185,13 +185,9 @@ func indexRoundInfo(
 	roundsInfo := make([]*outportcore.RoundInfo, 0)
 	roundsInfo = append(roundsInfo, roundInfo)
 	for i := lastBlockRound + 1; i < currentBlockRound; i++ {
-		_, publicKeys, err := nodesCoordinator.GetConsensusValidatorsPublicKeys(lastHeader.GetRandSeed(), i, shardId, lastHeader.GetEpoch())
-		if err != nil {
-			continue
-		}
-		signersIndexes, err = nodesCoordinator.GetValidatorsIndexes(publicKeys, lastHeader.GetEpoch())
-		if err != nil {
-			log.Error(err.Error(), "round", i)
+		var ok bool
+		signersIndexes, ok = getSignersIndices(header, lastHeader, i, nodesCoordinator)
+		if !ok {
 			continue
 		}
 
@@ -208,6 +204,28 @@ func indexRoundInfo(
 	}
 
 	outportHandler.SaveRoundsInfo(&outportcore.RoundsInfo{ShardID: shardId, RoundsInfo: roundsInfo})
+}
+
+func getSignersIndices(header, lastHeader data.HeaderHandler, round uint64, nodesCoordinator nodesCoordinator.NodesCoordinator) ([]uint64, bool) {
+	havePrevProf := !check.IfNil(header.GetPreviousProof())
+	// if a header have previous proof EquivalentMessage flag is active and all validators are in consensus group - signer indices no longer needed
+	if havePrevProf {
+		return make([]uint64, 0), true
+	}
+
+	_, publicKeys, err := nodesCoordinator.GetConsensusValidatorsPublicKeys(lastHeader.GetRandSeed(), round, header.GetShardID(), lastHeader.GetEpoch())
+	if err != nil {
+		log.Error("getSignersIndices: cannot get validators public keys", "error", err.Error(), "round", round)
+		return nil, false
+	}
+
+	signersIndexes, err := nodesCoordinator.GetValidatorsIndexes(publicKeys, lastHeader.GetEpoch())
+	if err != nil {
+		log.Error("getSignersIndices: cannot get signers indices", "error", err.Error(), "round", round)
+		return nil, false
+	}
+
+	return signersIndexes, true
 }
 
 func indexValidatorsRating(

@@ -10,14 +10,15 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data/batch"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/dataRetriever/mock"
 	"github.com/multiversx/mx-chain-go/dataRetriever/resolvers"
 	"github.com/multiversx/mx-chain-go/p2p"
 	"github.com/multiversx/mx-chain-go/testscommon/p2pmocks"
 	trieMock "github.com/multiversx/mx-chain-go/testscommon/trie"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 var fromConnectedPeer = core.PeerID("from connected peer")
@@ -108,10 +109,11 @@ func TestTrieNodeResolver_ProcessReceivedAntiflooderCanProcessMessageErrShouldEr
 	}
 	tnRes, _ := resolvers.NewTrieNodeResolver(arg)
 
-	err := tnRes.ProcessReceivedMessage(&p2pmocks.P2PMessageMock{}, fromConnectedPeer, &p2pmocks.MessengerStub{})
+	msgID, err := tnRes.ProcessReceivedMessage(&p2pmocks.P2PMessageMock{}, fromConnectedPeer, &p2pmocks.MessengerStub{})
 	assert.True(t, errors.Is(err, expectedErr))
 	assert.False(t, arg.Throttler.(*mock.ThrottlerStub).StartWasCalled())
 	assert.False(t, arg.Throttler.(*mock.ThrottlerStub).EndWasCalled())
+	assert.Nil(t, msgID)
 }
 
 func TestTrieNodeResolver_ProcessReceivedMessageNilMessageShouldErr(t *testing.T) {
@@ -120,10 +122,11 @@ func TestTrieNodeResolver_ProcessReceivedMessageNilMessageShouldErr(t *testing.T
 	arg := createMockArgTrieNodeResolver()
 	tnRes, _ := resolvers.NewTrieNodeResolver(arg)
 
-	err := tnRes.ProcessReceivedMessage(nil, fromConnectedPeer, &p2pmocks.MessengerStub{})
+	msgID, err := tnRes.ProcessReceivedMessage(nil, fromConnectedPeer, &p2pmocks.MessengerStub{})
 	assert.Equal(t, dataRetriever.ErrNilMessage, err)
 	assert.False(t, arg.Throttler.(*mock.ThrottlerStub).StartWasCalled())
 	assert.False(t, arg.Throttler.(*mock.ThrottlerStub).EndWasCalled())
+	assert.Nil(t, msgID)
 }
 
 func TestTrieNodeResolver_ProcessReceivedMessageWrongTypeShouldErr(t *testing.T) {
@@ -137,10 +140,11 @@ func TestTrieNodeResolver_ProcessReceivedMessageWrongTypeShouldErr(t *testing.T)
 	data, _ := marshalizer.Marshal(&dataRetriever.RequestData{Type: dataRetriever.NonceType, Value: []byte("aaa")})
 	msg := &p2pmocks.P2PMessageMock{DataField: data}
 
-	err := tnRes.ProcessReceivedMessage(msg, fromConnectedPeer, &p2pmocks.MessengerStub{})
+	msgID, err := tnRes.ProcessReceivedMessage(msg, fromConnectedPeer, &p2pmocks.MessengerStub{})
 	assert.Equal(t, dataRetriever.ErrRequestTypeNotImplemented, err)
 	assert.True(t, arg.Throttler.(*mock.ThrottlerStub).StartWasCalled())
 	assert.True(t, arg.Throttler.(*mock.ThrottlerStub).EndWasCalled())
+	assert.Nil(t, msgID)
 }
 
 func TestTrieNodeResolver_ProcessReceivedMessageNilValueShouldErr(t *testing.T) {
@@ -154,13 +158,14 @@ func TestTrieNodeResolver_ProcessReceivedMessageNilValueShouldErr(t *testing.T) 
 	data, _ := marshalizer.Marshal(&dataRetriever.RequestData{Type: dataRetriever.HashType, Value: nil})
 	msg := &p2pmocks.P2PMessageMock{DataField: data}
 
-	err := tnRes.ProcessReceivedMessage(msg, fromConnectedPeer, &p2pmocks.MessengerStub{})
+	msgID, err := tnRes.ProcessReceivedMessage(msg, fromConnectedPeer, &p2pmocks.MessengerStub{})
 	assert.Equal(t, dataRetriever.ErrNilValue, err)
 	assert.True(t, arg.Throttler.(*mock.ThrottlerStub).StartWasCalled())
 	assert.True(t, arg.Throttler.(*mock.ThrottlerStub).EndWasCalled())
+	assert.Nil(t, msgID)
 }
 
-//TODO in this PR: add more unit tests
+// TODO in this PR: add more unit tests
 
 func TestTrieNodeResolver_ProcessReceivedMessageShouldGetFromTrieAndSend(t *testing.T) {
 	t.Parallel()
@@ -193,13 +198,14 @@ func TestTrieNodeResolver_ProcessReceivedMessageShouldGetFromTrieAndSend(t *test
 	data, _ := marshalizer.Marshal(&dataRetriever.RequestData{Type: dataRetriever.HashType, Value: []byte("node1")})
 	msg := &p2pmocks.P2PMessageMock{DataField: data}
 
-	err := tnRes.ProcessReceivedMessage(msg, fromConnectedPeer, &p2pmocks.MessengerStub{})
+	msgID, err := tnRes.ProcessReceivedMessage(msg, fromConnectedPeer, &p2pmocks.MessengerStub{})
 
 	assert.Nil(t, err)
 	assert.True(t, getSerializedNodesWasCalled)
 	assert.True(t, sendWasCalled)
 	assert.True(t, arg.Throttler.(*mock.ThrottlerStub).StartWasCalled())
 	assert.True(t, arg.Throttler.(*mock.ThrottlerStub).EndWasCalled())
+	assert.Len(t, msgID, 0)
 }
 
 func TestTrieNodeResolver_ProcessReceivedMessageShouldGetFromTrieAndMarshalizerFailShouldRetNilAndErr(t *testing.T) {
@@ -223,10 +229,11 @@ func TestTrieNodeResolver_ProcessReceivedMessageShouldGetFromTrieAndMarshalizerF
 	data, _ := marshalizerMock.Marshal(&dataRetriever.RequestData{Type: dataRetriever.HashType, Value: []byte("node1")})
 	msg := &p2pmocks.P2PMessageMock{DataField: data}
 
-	err := tnRes.ProcessReceivedMessage(msg, fromConnectedPeer, &p2pmocks.MessengerStub{})
+	msgID, err := tnRes.ProcessReceivedMessage(msg, fromConnectedPeer, &p2pmocks.MessengerStub{})
 	assert.Equal(t, errExpected, err)
 	assert.True(t, arg.Throttler.(*mock.ThrottlerStub).StartWasCalled())
 	assert.True(t, arg.Throttler.(*mock.ThrottlerStub).EndWasCalled())
+	assert.Nil(t, msgID)
 }
 
 func TestTrieNodeResolver_ProcessReceivedMessageTrieErrorsShouldErr(t *testing.T) {
@@ -243,10 +250,11 @@ func TestTrieNodeResolver_ProcessReceivedMessageTrieErrorsShouldErr(t *testing.T
 	data, _ := arg.Marshaller.Marshal(&dataRetriever.RequestData{Type: dataRetriever.HashType, Value: []byte("node1")})
 	msg := &p2pmocks.P2PMessageMock{DataField: data}
 
-	err := tnRes.ProcessReceivedMessage(msg, fromConnectedPeer, &p2pmocks.MessengerStub{})
+	msgID, err := tnRes.ProcessReceivedMessage(msg, fromConnectedPeer, &p2pmocks.MessengerStub{})
 	assert.Equal(t, expectedErr, err)
 	assert.True(t, arg.Throttler.(*mock.ThrottlerStub).StartWasCalled())
 	assert.True(t, arg.Throttler.(*mock.ThrottlerStub).EndWasCalled())
+	assert.Nil(t, msgID)
 }
 
 func TestTrieNodeResolver_ProcessReceivedMessageMultipleHashesUnmarshalFails(t *testing.T) {
@@ -286,10 +294,11 @@ func TestTrieNodeResolver_ProcessReceivedMessageMultipleHashesUnmarshalFails(t *
 	)
 	msg := &p2pmocks.P2PMessageMock{DataField: data}
 
-	err := tnRes.ProcessReceivedMessage(msg, fromConnectedPeer, &p2pmocks.MessengerStub{})
+	msgID, err := tnRes.ProcessReceivedMessage(msg, fromConnectedPeer, &p2pmocks.MessengerStub{})
 	assert.Equal(t, expectedErr, err)
 	assert.True(t, arg.Throttler.(*mock.ThrottlerStub).StartWasCalled())
 	assert.True(t, arg.Throttler.(*mock.ThrottlerStub).EndWasCalled())
+	assert.Nil(t, msgID)
 }
 
 func TestTrieNodeResolver_ProcessReceivedMessageMultipleHashesGetSerializedNodeErrorsShouldNotSend(t *testing.T) {
@@ -322,10 +331,11 @@ func TestTrieNodeResolver_ProcessReceivedMessageMultipleHashesGetSerializedNodeE
 	)
 	msg := &p2pmocks.P2PMessageMock{DataField: data}
 
-	err := tnRes.ProcessReceivedMessage(msg, fromConnectedPeer, &p2pmocks.MessengerStub{})
+	msgID, err := tnRes.ProcessReceivedMessage(msg, fromConnectedPeer, &p2pmocks.MessengerStub{})
 	assert.Nil(t, err)
 	assert.True(t, arg.Throttler.(*mock.ThrottlerStub).StartWasCalled())
 	assert.True(t, arg.Throttler.(*mock.ThrottlerStub).EndWasCalled())
+	assert.Len(t, msgID, 0)
 }
 
 func TestTrieNodeResolver_ProcessReceivedMessageMultipleHashesGetSerializedNodesErrorsShouldNotSendSubtrie(t *testing.T) {
@@ -375,12 +385,13 @@ func TestTrieNodeResolver_ProcessReceivedMessageMultipleHashesGetSerializedNodes
 	)
 	msg := &p2pmocks.P2PMessageMock{DataField: data}
 
-	err := tnRes.ProcessReceivedMessage(msg, fromConnectedPeer, &p2pmocks.MessengerStub{})
+	msgID, err := tnRes.ProcessReceivedMessage(msg, fromConnectedPeer, &p2pmocks.MessengerStub{})
 	assert.Nil(t, err)
 	assert.True(t, arg.Throttler.(*mock.ThrottlerStub).StartWasCalled())
 	assert.True(t, arg.Throttler.(*mock.ThrottlerStub).EndWasCalled())
 	require.Equal(t, 1, len(receivedNodes))
 	assert.Equal(t, nodes[0], receivedNodes[0])
+	assert.Len(t, msgID, 0)
 }
 
 func TestTrieNodeResolver_ProcessReceivedMessageMultipleHashesNotEnoughSpaceShouldNotReadSubtries(t *testing.T) {
@@ -431,12 +442,13 @@ func TestTrieNodeResolver_ProcessReceivedMessageMultipleHashesNotEnoughSpaceShou
 	)
 	msg := &p2pmocks.P2PMessageMock{DataField: data}
 
-	err := tnRes.ProcessReceivedMessage(msg, fromConnectedPeer, &p2pmocks.MessengerStub{})
+	msgID, err := tnRes.ProcessReceivedMessage(msg, fromConnectedPeer, &p2pmocks.MessengerStub{})
 	assert.Nil(t, err)
 	assert.True(t, arg.Throttler.(*mock.ThrottlerStub).StartWasCalled())
 	assert.True(t, arg.Throttler.(*mock.ThrottlerStub).EndWasCalled())
 	require.Equal(t, 1, len(receivedNodes))
 	assert.Equal(t, nodes[0], receivedNodes[0])
+	assert.Len(t, msgID, 0)
 }
 
 func TestTrieNodeResolver_ProcessReceivedMessageMultipleHashesShouldWorkWithSubtries(t *testing.T) {
@@ -492,11 +504,12 @@ func TestTrieNodeResolver_ProcessReceivedMessageMultipleHashesShouldWorkWithSubt
 	)
 	msg := &p2pmocks.P2PMessageMock{DataField: data}
 
-	err := tnRes.ProcessReceivedMessage(msg, fromConnectedPeer, &p2pmocks.MessengerStub{})
+	msgID, err := tnRes.ProcessReceivedMessage(msg, fromConnectedPeer, &p2pmocks.MessengerStub{})
 	assert.Nil(t, err)
 	assert.True(t, arg.Throttler.(*mock.ThrottlerStub).StartWasCalled())
 	assert.True(t, arg.Throttler.(*mock.ThrottlerStub).EndWasCalled())
 	require.Equal(t, 4, len(receivedNodes))
+	assert.Len(t, msgID, 0)
 	for _, n := range nodes {
 		assert.True(t, buffInSlice(n, receivedNodes))
 	}
@@ -558,17 +571,18 @@ func testTrieNodeResolverProcessReceivedMessageLargeTrieNode(
 	)
 	msg := &p2pmocks.P2PMessageMock{DataField: data}
 
-	err := tnRes.ProcessReceivedMessage(msg, fromConnectedPeer, &p2pmocks.MessengerStub{})
+	msgID, err := tnRes.ProcessReceivedMessage(msg, fromConnectedPeer, &p2pmocks.MessengerStub{})
 	assert.Nil(t, err)
 	assert.True(t, arg.Throttler.(*mock.ThrottlerStub).StartWasCalled())
 	assert.True(t, arg.Throttler.(*mock.ThrottlerStub).EndWasCalled())
 	require.True(t, sendWasCalled)
+	assert.Len(t, msgID, 0)
 }
 
 func TestTrieNodeResolver_ProcessReceivedMessageLargeTrieNodeShouldSendFirstChunk(t *testing.T) {
 	t.Parallel()
 
-	randBuff := make([]byte, 1<<20) //1MB
+	randBuff := make([]byte, 1<<20) // 1MB
 	_, _ = rand.Read(randBuff)
 	testTrieNodeResolverProcessReceivedMessageLargeTrieNode(t, randBuff, 0, 4, 0, core.MaxBufferSizeToSendTrieNodes)
 }
@@ -576,7 +590,7 @@ func TestTrieNodeResolver_ProcessReceivedMessageLargeTrieNodeShouldSendFirstChun
 func TestTrieNodeResolver_ProcessReceivedMessageLargeTrieNodeShouldSendRequiredChunk(t *testing.T) {
 	t.Parallel()
 
-	randBuff := make([]byte, 1<<20) //1MB
+	randBuff := make([]byte, 1<<20) // 1MB
 	_, _ = rand.Read(randBuff)
 	testTrieNodeResolverProcessReceivedMessageLargeTrieNode(
 		t,
@@ -603,7 +617,7 @@ func TestTrieNodeResolver_ProcessReceivedMessageLargeTrieNodeShouldSendRequiredC
 		4*core.MaxBufferSizeToSendTrieNodes,
 	)
 
-	randBuff = make([]byte, 1<<20+1) //1MB + 1 byte
+	randBuff = make([]byte, 1<<20+1) // 1MB + 1 byte
 	_, _ = rand.Read(randBuff)
 	startIndex := len(randBuff) - 1
 	endIndex := len(randBuff)
