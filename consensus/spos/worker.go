@@ -304,7 +304,7 @@ func (wrk *Worker) addFutureHeaderToProcessIfNeeded(header data.HeaderHandler) {
 
 	headerConsensusMessage, err := wrk.convertHeaderToConsensusMessage(header)
 	if err != nil {
-		log.Warn("addFutureHeaderToProcessIfNeeded: convertHeaderToConsensusMessage failed")
+		log.Error("addFutureHeaderToProcessIfNeeded: convertHeaderToConsensusMessage failed")
 		return
 	}
 
