@@ -1076,7 +1076,7 @@ func (bp *baseProcessor) requestMissingFinalityAttestingHeaders(
 	}
 
 	if requestedHeaders > 0 {
-		log.Debug("requested missing finality attesting headers",
+		log.Debug("requested missing finality attesting headers ",
 			"num headers", requestedHeaders,
 			"shard", shardID)
 	}

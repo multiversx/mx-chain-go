@@ -1358,7 +1358,7 @@ func (txs *transactions) splitMiniBlockBasedOnMaxGasLimitIfNeeded(miniBlock *blo
 
 		isGasLimitExceeded := gasLimitInReceiverShard+gasProvidedByTxInReceiverShard > txs.economicsFee.MaxGasLimitPerMiniBlockForSafeCrossShard()
 		if isGasLimitExceeded {
-			log.Debug("transactions.splitMiniBlockIfNeeded: gas limit exceeded",
+			log.Debug("transactions.splitMiniBlockIfNeeded: gas limit exceeded ",
 				"mb type", currentMiniBlock.Type,
 				"sender shard", currentMiniBlock.SenderShardID,
 				"receiver shard", currentMiniBlock.ReceiverShardID,

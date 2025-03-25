@@ -93,18 +93,18 @@ start_time_log = '''
 INFO [2025-02-21 14:28:33.738] [factory]            [/0/0/]        start time                               formatted = Fri Feb 21 14:28:29 UTC 2025 seconds = 1740148109 '''
 
 network_connection_log = '''
-DEBUG[2025-02-21 18:53:14.625] [main/p2p]           [0/26/2647/(END_ROUND)] network connection status                network = main known peers = 55 connected peers = 28 intra shard validators = 2 intra shard observers = 7 cross shard validators = 5 cross shard observers = 13 unknown = 0 seeders = 1 current shard = 0 validators histogram = shard 0: 2, shard 1: 2, shard 2: 2, meta: 1 observers histogram = shard 0: 7, shard 1: 4, shard 2: 2, meta: 7 preferred peers histogram =  
+DEBUG[2025-02-21 18:53:14.625] [main/p2p]           [0/26/2647/(END_ROUND)] network connection status                network = main known peers = 55 connected peers = 28 intra shard validators = 2 intra shard observers = 7 cross shard validators = 5 cross shard observers = 13 unknown = 0 seeders = 1 current shard = 0 validators histogram = shard 0: 2, shard 1: 2, shard 2: 2, meta: 1 observers histogram = shard 0: 7, shard 1: 4, shard 2: 2, meta: 7 preferred peers histogram = 
 DEBUG[2025-02-21 18:53:14.625] [main/p2p]           [0/26/2647/(END_ROUND)] network connection metrics               network = main connections/s = 3 disconnections/s = 3 connections = 63 disconnections = 63 time = 20s 
 '''
 scheduled_txs_log = '''
-DEBUG[2025-02-21 14:31:23.039] [..block/preprocess] [0/0/29/(END_ROUND)] scheduledTxsExecution.GetScheduledRootHash scheduled root hash =  
-DEBUG[2025-02-21 14:31:23.039] [..block/preprocess] [0/0/29/(END_ROUND)] scheduledTxsExecution.GetScheduledIntermediateTxs num of scheduled intermediate txs = 0 
-DEBUG[2025-02-21 14:31:23.040] [..block/preprocess] [0/0/29/(END_ROUND)] scheduledTxsExecution.GetScheduledGasAndFees accumulatedFees = 0 developerFees = 0 gasProvided = 0 gasPenalized = 0 gasRefunded = 0 
-DEBUG[2025-02-21 14:31:23.040] [..block/preprocess] [0/0/29/(END_ROUND)] scheduledTxsExecution.SaveStateIfNeeded  header hash = eab8f3f0197e0ec68b71a6cf2fed98811dd740906595ae7a3d189d0c75e35a7e scheduled root hash =  num of scheduled txs = 0 num of scheduled intermediate txs = 0 accumulatedFees = 0 developerFees = 0 gasProvided = 0 gasPenalized = 0 gasRefunded = 0 
-DEBUG[2025-02-21 18:53:29.296] [..block/preprocess] [0/26/2650/(END_ROUND)] scheduledTxsExecution.GetScheduledRootHash scheduled root hash = 39012320e3d45859b7bf97f2b89a1d0ed0fdde20176cbb23970c0ac3199a5149 
-DEBUG[2025-02-21 18:53:29.296] [..block/preprocess] [0/26/2650/(END_ROUND)] scheduledTxsExecution.GetScheduledIntermediateTxs num of scheduled intermediate txs = 0 
-DEBUG[2025-02-21 18:53:29.296] [..block/preprocess] [0/26/2650/(END_ROUND)] scheduledTxsExecution.GetScheduledGasAndFees accumulatedFees = 0 developerFees = 0 gasProvided = 0 gasPenalized = 0 gasRefunded = 0 
-DEBUG[2025-02-21 18:53:29.296] [..block/preprocess] [0/26/2650/(END_ROUND)] scheduledTxsExecution.SaveStateIfNeeded  header hash = cc77686defc6f5423759185f1cb07dbfb0cf10a2472d7d77558f94482831c0b3 scheduled root hash = 39012320e3d45859b7bf97f2b89a1d0ed0fdde20176cbb23970c0ac3199a5149 num of scheduled txs = 0 num of scheduled intermediate txs = 0 accumulatedFees = 0 developerFees = 0 gasProvided = 0 gasPenalized = 0 gasRefunded = 0 
+DEBUG[2025-02-21 14:31:23.039] [..block/preprocess] [0/0/29/(END_ROUND)] scheduledTxsExecution.GetScheduledRootHash scheduled root hash =
+DEBUG[2025-02-21 14:31:23.039] [..block/preprocess] [0/0/29/(END_ROUND)] scheduledTxsExecution.GetScheduledIntermediateTxs num of scheduled intermediate txs = 0
+DEBUG[2025-02-21 14:31:23.040] [..block/preprocess] [0/0/29/(END_ROUND)] scheduledTxsExecution.GetScheduledGasAndFees accumulatedFees = 0 developerFees = 0 gasProvided = 0 gasPenalized = 0 gasRefunded = 0
+DEBUG[2025-02-21 14:31:23.040] [..block/preprocess] [0/0/29/(END_ROUND)] scheduledTxsExecution.SaveStateIfNeeded  header hash = eab8f3f0197e0ec68b71a6cf2fed98811dd740906595ae7a3d189d0c75e35a7e scheduled root hash =  num of scheduled txs = 0 num of scheduled intermediate txs = 0 accumulatedFees = 0 developerFees = 0 gasProvided = 0 gasPenalized = 0 gasRefunded = 0
+DEBUG[2025-02-21 18:53:29.296] [..block/preprocess] [0/26/2650/(END_ROUND)] scheduledTxsExecution.GetScheduledRootHash scheduled root hash = 39012320e3d45859b7bf97f2b89a1d0ed0fdde20176cbb23970c0ac3199a5149
+DEBUG[2025-02-21 18:53:29.296] [..block/preprocess] [0/26/2650/(END_ROUND)] scheduledTxsExecution.GetScheduledIntermediateTxs num of scheduled intermediate txs = 0
+DEBUG[2025-02-21 18:53:29.296] [..block/preprocess] [0/26/2650/(END_ROUND)] scheduledTxsExecution.GetScheduledGasAndFees accumulatedFees = 0 developerFees = 0 gasProvided = 0 gasPenalized = 0 gasRefunded = 0
+DEBUG[2025-02-21 18:53:29.296] [..block/preprocess] [0/26/2650/(END_ROUND)] scheduledTxsExecution.SaveStateIfNeeded  header hash = cc77686defc6f5423759185f1cb07dbfb0cf10a2472d7d77558f94482831c0b3 scheduled root hash = 39012320e3d45859b7bf97f2b89a1d0ed0fdde20176cbb23970c0ac3199a5149 num of scheduled txs = 0 num of scheduled intermediate txs = 0 accumulatedFees = 0 developerFees = 0 gasProvided = 0 gasPenalized = 0 gasRefunded = 0
 '''
 special_chars_in_parameters_log = '''
 DEBUG[2025-02-21 14:58:59.305] [storage/leveldb]    [0/3/305/(END_ROUND)] processLoop - closing the leveldb process loop path = /home/ubuntu/go/src/github.com/multiversx/mx-chain-go/cmd/node/db/1/Epoch_0/Shard_0/BootstrapData
@@ -117,8 +117,8 @@ DEBUG[2025-02-21 14:48:53.177] [storage/pruning]    [0/2/204/(END_ROUND)] Prunin
 DEBUG[2025-02-21 18:51:49.438] [trieStatistics]     [0/26/2633/(END_ROUND)] migration stats for dataTrie             stats = [num leaves with auto balanced version = 18306 num leaves with not specified version = 55]
 DEBUG[2025-02-21 18:51:49.438] [trieStatistics]     [0/26/2633/(END_ROUND)] migration stats for mainTrie             stats = [num leaves with not specified version = 191807] '''
 
-trie_statistics_log = '''DEBUG[2025-02-21 18:51:49.437] [trieStatistics]     [0/26/2633/(END_ROUND)] tries statistics                         num of nodes = 282160 total size = 33.37 MB num tries by type = dataTrie: 8, mainTrie: 1 num main trie leaves = 191807 max depth main trie = 8  
- top 10 tries by size 
+trie_statistics_log = '''DEBUG[2025-02-21 18:51:49.437] [trieStatistics]     [0/26/2633/(END_ROUND)] tries statistics                         num of nodes = 282160 total size = 33.37 MB num tries by type = dataTrie: 8, mainTrie: 1 num main trie leaves = 191807 max depth main trie = 8
+ top 10 tries by size
  = address , rootHash 1837f7a10db1a10f48ad66a5318af6e1e903ee3c3def69d8d4cd5b74ad059b6a, total trie size = 29.56 MB, num trie nodes =  257198, max trie depth = 8, branch nodes size 9.89 MB, extension nodes size 83.07 KB, leaf nodes size 19.59 MB, num branches 63156, num extensions 2235, num leaves 191807 num leaves with not specified version = 191807
 address erd1qqqqqqqqqqqqqpgq8q34an2esnmzyzwtw2s25jvf6pzsuv99wmzqj7lz3c, rootHash 6cd8d92a737b9dde53b8bda3cd2143b39763ef1a194e7f6d2625f55bb21c5ce5, total trie size = 2.39 MB, num trie nodes =  16996, max trie depth = 6, branch nodes size 764.60 KB, extension nodes size 4.42 KB, leaf nodes size 1.64 MB, num branches 4495, num extensions 113, num leaves 12388 num leaves with auto balanced version = 12388
 address erd1qqqqqqqqqqqqqpgq757dnjww7m08velt2udhwkgyzh5dv5z6squqpxgcgs, rootHash afbc42e556dee59e7166fc02233c8700038255ada7bf079ea394b69df67da63c, total trie size = 627.50 KB, num trie nodes =  2340, max trie depth = 5, branch nodes size 102.22 KB, extension nodes size 721 B, leaf nodes size 524.57 KB, num branches 563, num extensions 18, num leaves 1759 num leaves with auto balanced version = 1759
@@ -127,8 +127,8 @@ address erd1qqqqqqqqqqqqqpgq2yh3yfp27efsyy42ax669s3jdly96gqyu8sq02al4x, rootHash
 address erd1qqqqqqqqqqqqqpgqm0zz9tdzkdj44q6vzy66e7adruhfrxuk5yzqwyx64e, rootHash 737093b26d974c4abc5c825add0c73983841a20f8a7593691344a98b3002da52, total trie size = 20.68 KB, num trie nodes =  137, max trie depth = 4, branch nodes size 5.90 KB, extension nodes size 120 B, leaf nodes size 14.67 KB, num branches 33, num extensions 3, num leaves 101 num leaves with auto balanced version = 101
 address erd1qqqqqqqqqqqqqpgq057pgv40852jkkvhax9w847wvw2wppak3ejqmjszm9, rootHash ccb0cf3a260c67bc4eb92c3668b88a4cf3bfcc38f9991ef0aa673ca90c996df7, total trie size = 20.36 KB, num trie nodes =  132, max trie depth = 4, branch nodes size 5.64 KB, extension nodes size 40 B, leaf nodes size 14.67 KB, num branches 30, num extensions 1, num leaves 101 num leaves with auto balanced version = 101
 address erd1qqqqqqqqqqqqqpgqrchxzx5uu8sv3ceg8nx8cxc0gesezure5awqn46gtd, rootHash f5bc330b22748ede67b325cd3d4e521cb8eb869605394f31a0fbfc1bcceef8b3, total trie size = 10.73 KB, num trie nodes =  90, max trie depth = 7, branch nodes size 3.44 KB, extension nodes size 323 B, leaf nodes size 6.97 KB, num branches 26, num extensions 8, num leaves 56 num leaves with auto balanced version = 1 num leaves with not specified version = 55
-address erd1qqqqqqqqqqqqqpgq5y3gv23vhf2njqklzswhkngz0xksvk5yjscq4wm54v, rootHash 4bde86c9b755c7ca8467a6334296494c0c97d19a4861d6d19857b50d28cd1531, total trie size = 141 B, num trie nodes =  1, max trie depth = 0, branch nodes size 0 B, extension nodes size 0 B, leaf nodes size 141 B, num branches 0, num extensions 0, num leaves 1 num leaves with auto balanced version = 1  
- top 10 tries by depth 
+address erd1qqqqqqqqqqqqqpgq5y3gv23vhf2njqklzswhkngz0xksvk5yjscq4wm54v, rootHash 4bde86c9b755c7ca8467a6334296494c0c97d19a4861d6d19857b50d28cd1531, total trie size = 141 B, num trie nodes =  1, max trie depth = 0, branch nodes size 0 B, extension nodes size 0 B, leaf nodes size 141 B, num branches 0, num extensions 0, num leaves 1 num leaves with auto balanced version = 1
+ top 10 tries by depth
  = address , rootHash 1837f7a10db1a10f48ad66a5318af6e1e903ee3c3def69d8d4cd5b74ad059b6a, total trie size = 29.56 MB, num trie nodes =  257198, max trie depth = 8, branch nodes size 9.89 MB, extension nodes size 83.07 KB, leaf nodes size 19.59 MB, num branches 63156, num extensions 2235, num leaves 191807 num leaves with not specified version = 191807
 address erd1qqqqqqqqqqqqqpgqrchxzx5uu8sv3ceg8nx8cxc0gesezure5awqn46gtd, rootHash f5bc330b22748ede67b325cd3d4e521cb8eb869605394f31a0fbfc1bcceef8b3, total trie size = 10.73 KB, num trie nodes =  90, max trie depth = 7, branch nodes size 3.44 KB, extension nodes size 323 B, leaf nodes size 6.97 KB, num branches 26, num extensions 8, num leaves 56 num leaves with auto balanced version = 1 num leaves with not specified version = 55
 address erd1qqqqqqqqqqqqqpgq2yh3yfp27efsyy42ax669s3jdly96gqyu8sq02al4x, rootHash 878534af2c7db421b4c39141b265c3d2f9caff20dcc47ce5619e4c64c344b799, total trie size = 377.69 KB, num trie nodes =  2576, max trie depth = 6, branch nodes size 112.53 KB, extension nodes size 884 B, leaf nodes size 264.30 KB, num branches 621, num extensions 22, num leaves 1933 num leaves with auto balanced version = 1933
@@ -137,8 +137,56 @@ address erd1qqqqqqqqqqqqqpgq5ql4hvuqfss472jxrp6vldyrcj8yl0vyg86qx9zvm5, rootHash
 address erd1qqqqqqqqqqqqqpgq757dnjww7m08velt2udhwkgyzh5dv5z6squqpxgcgs, rootHash afbc42e556dee59e7166fc02233c8700038255ada7bf079ea394b69df67da63c, total trie size = 627.50 KB, num trie nodes =  2340, max trie depth = 5, branch nodes size 102.22 KB, extension nodes size 721 B, leaf nodes size 524.57 KB, num branches 563, num extensions 18, num leaves 1759 num leaves with auto balanced version = 1759
 address erd1qqqqqqqqqqqqqpgqm0zz9tdzkdj44q6vzy66e7adruhfrxuk5yzqwyx64e, rootHash 737093b26d974c4abc5c825add0c73983841a20f8a7593691344a98b3002da52, total trie size = 20.68 KB, num trie nodes =  137, max trie depth = 4, branch nodes size 5.90 KB, extension nodes size 120 B, leaf nodes size 14.67 KB, num branches 33, num extensions 3, num leaves 101 num leaves with auto balanced version = 101
 address erd1qqqqqqqqqqqqqpgq057pgv40852jkkvhax9w847wvw2wppak3ejqmjszm9, rootHash ccb0cf3a260c67bc4eb92c3668b88a4cf3bfcc38f9991ef0aa673ca90c996df7, total trie size = 20.36 KB, num trie nodes =  132, max trie depth = 4, branch nodes size 5.64 KB, extension nodes size 40 B, leaf nodes size 14.67 KB, num branches 30, num extensions 1, num leaves 101 num leaves with auto balanced version = 101
-address erd1qqqqqqqqqqqqqpgq5y3gv23vhf2njqklzswhkngz0xksvk5yjscq4wm54v, rootHash 4bde86c9b755c7ca8467a6334296494c0c97d19a4861d6d19857b50d28cd1531, total trie size = 141 B, num trie nodes =  1, max trie depth = 0, branch nodes size 0 B, extension nodes size 0 B, leaf nodes size 141 B, num branches 0, num extensions 0, num leaves 1 num leaves with auto balanced version = 1 
+address erd1qqqqqqqqqqqqqpgq5y3gv23vhf2njqklzswhkngz0xksvk5yjscq4wm54v, rootHash 4bde86c9b755c7ca8467a6334296494c0c97d19a4861d6d19857b50d28cd1531, total trie size = 141 B, num trie nodes =  1, max trie depth = 0, branch nodes size 0 B, extension nodes size 0 B, leaf nodes size 141 B, num branches 0, num extensions 0, num leaves 1 num leaves with auto balanced version = 1
 '''
+
+misc_no_ascii_chars_log = '''INFO [2025-03-11 11:00:41.520] [node]               [/0/0/]        starting node                            version = logs-to-json-conversion-00208db9bb/go1.20.7/linux-amd64/70b02c7576 pid = 8203
+DEBUG[2025-03-11 11:01:01.022] [node]               [1/0/0/]       starting node... executeOneComponentCreationCycle
+DEBUG[2025-03-11 13:32:31.990] [node]               [0/14/2839/(END_ROUND)] starting node... executeOneComponentCreationCycle
+INFO [2025-03-11 13:32:00.918] [main/p2p]           [1/14/2839/(END_ROUND)] listening on addresses                   addr0 = /ip4/10.0.0.143/tcp/37870/p2p/16Uiu2HAmCRqUbbixX67JHPLuH2h6dSqTqt961CdLRXMSzsDXsd23 addr1 = /ip4/127.0.0.1/tcp/37870/p2p/16Uiu2HAmCRqUbbixX67JHPLuH2h6dSqTqt961CdLRXMSzsDXsd23
+DEBUG[2025-03-11 11:00:41.557] [..rottle/antiflood] [/0/0/]        SetMaxMessagesForTopic                   topic = shardBlocks* num messages = 30
+DEBUG[2025-03-11 11:01:01.024] [process/sync]       [1/0/0/]       storageBootstrapper.loadBlocks           LastHeader = shard 1, nonce 1171, epoch 5, hash 25ff478ad6b9f8ab78f28570e04b93b90931522c4da2927be5b9361ef47bc101 LastCrossNotarizedHeaders = [shard 4294967295, nonce 1191, epoch 0, hash f5e0f02a598bc292a55e10f19b04bda72198fee0cba7c220f2dd21f2dbf365a9] LastSelfNotarizedHeaders = [shard 1, nonce 1171, epoch 5, hash 25ff478ad6b9f8ab78f28570e04b93b90931522c4da2927be5b9361ef47bc101] HighestFinalBlockNonce = 1171 NodesCoordinatorConfigKey = 6839b5f19d9a0544b91f3f141af7212c5e380aef0ec9523012c2a21b01c7a07d220e37973ddd0f1454298e633e5b8b0a EpochStartTriggerConfigKey = 31323032 '''
+
+starting_managed_components_log = '''DEBUG[2025-03-11 11:00:41.521] [node]               [/0/0/]
+
+====================Starting managedComponents creation================================
+DEBUG[2025-03-11 11:00:41.521] [node]               [/0/0/]        applying custom configs based on the current architecture '''
+
+monitor_new_cashe_logs = '''DEBUG[2025-03-11 11:00:41.557] [storage]            [/0/0/]        MonitorNewCache                          name = Antiflood capacity = 0 B cumulated = 0 B
+DEBUG[2025-03-11 11:00:41.557] [storage]            [/0/0/]        MonitorNewCache                          name = PeerHonesty capacity = 0 B cumulated = 0 B
+DEBUG[2025-03-11 11:00:42.561] [storage]            [/0/0/]        MonitorNewCache                          name = TrieNodesDataPool capacity = 100.00 MB cumulated = 700.00 MB
+DEBUG[2025-03-11 11:00:42.561] [storage]            [/0/0/]        MonitorNewCache                          name = SmartContractDataPool capacity = 200.00 MB cumulated = 900.00 MB
+DEBUG[2025-03-11 11:00:42.561] [storage]            [/0/0/]        MonitorNewCache                          name = HeartbeatPool capacity = 300.00 MB cumulated = 1.17 GB '''
+
+new_sharded_data_log = '''DEBUG[2025-03-11 11:01:00.809] [..ever/shardeddata] [1/0/0/]       NewShardedData                           name = validatorsInfoPool config = {"Name":"ValidatorInfoPool","Type":"","SizeInBytes":31457280,"SizeInBytesPerSender":0,"Capacity":10000,"SizePerSender":0,"Shards":4}
+DEBUG[2025-03-11 13:32:01.922] [..ever/shardeddata] [1/14/2839/(END_ROUND)] NewShardedData                           name = uTxPool config = {"Name":"UnsignedTransactionDataPool","Type":"","SizeInBytes":31457280,"SizeInBytesPerSender":0,"Capacity":75000,"SizePerSender":0,"Shards":4}
+DEBUG[2025-03-11 13:32:01.922] [..ever/shardeddata] [1/14/2839/(END_ROUND)] NewShardedData                           name = rewardTxPool config = {"Name":"RewardTransactionDataPool","Type":"","SizeInBytes":26214400,"SizeInBytesPerSender":0,"Capacity":75000,"SizePerSender":0,"Shards":4}
+DEBUG[2025-03-11 13:32:01.923] [..ever/shardeddata] [1/14/2839/(END_ROUND)] NewShardedData                           name = validatorsInfoPool config = {"Name":"ValidatorInfoPool","Type":"","SizeInBytes":31457280,"SizeInBytesPerSender":0,"Capacity":10000,"SizePerSender":0,"Shards":4}
+DEBUG[2025-03-11 13:32:31.863] [..ever/shardeddata] [0/14/2839/(END_ROUND)] NewShardedData                           name = uTxPool config = {"Name":"UnsignedTransactionDataPool","Type":"","SizeInBytes":31457280,"SizeInBytesPerSender":0,"Capacity":75000,"SizePerSender":0,"Shards":4}
+DEBUG[2025-03-11 13:32:31.863] [..ever/shardeddata] [0/14/2839/(END_ROUND)] NewShardedData                           name = rewardTxPool config = {"Name":"RewardTransactionDataPool","Type":"","SizeInBytes":26214400,"SizeInBytesPerSender":0,"Capacity":75000,"SizePerSender":0,"Shards":4}
+DEBUG[2025-03-11 13:32:31.863] [..ever/shardeddata] [0/14/2839/(END_ROUND)] NewShardedData                           name = validatorsInfoPool config = {"Name":"ValidatorInfoPool","Type":"","SizeInBytes":31457280,"SizeInBytesPerSender":0,"Capacity":10000,"SizePerSender":0,"Shards":4} '''
+
+vm_mettering_log = '''TRACE[2025-03-10 23:59:06.489] [vm/storage]         [0/0/0/]       storage added                            key = 6e5f626c6f636b735f6265666f72655f756e626f6e64 value = 030d40
+TRACE[2025-03-10 23:59:06.489] [vm/host]            [0/0/0/]       checkFinalGasAfterExit
+TRACE[2025-03-10 23:59:06.489] [vm/metering]        [0/0/0/]       UpdateGasStateOnSuccess
+TRACE[2025-03-10 23:59:06.489] [vm/metering]        [0/0/0/]       check gas
+TRACE[2025-03-10 23:59:06.489] [vm/metering]        [0/0/0/]       metering state                           e2948c2d2d2d2d2d2d2d2d2d2d2020202020202020202020207363 = 00000000000000000500ed8e25a94efa837aae0e593112cfbb01b448755069e1
+TRACE[2025-03-10 23:59:06.489] [vm/metering]        [0/0/0/]                                                |                function = 
+TRACE[2025-03-10 23:59:06.489] [vm/metering]        [0/0/0/]                                                |        initial provided = 9223372036854775807
+TRACE[2025-03-10 23:59:06.489] [vm/metering]        [0/0/0/]                                                |            initial cost = 17487900
+TRACE[2025-03-10 23:59:06.489] [vm/metering]        [0/0/0/]                                                |            gas for exec = 9223372036837287907
+TRACE[2025-03-10 23:59:06.489] [vm/metering]        [0/0/0/]                                                |            instance gas = 2008429
+TRACE[2025-03-10 23:59:06.489] [vm/metering]        [0/0/0/]                                                |                gas left = 9223372036835279478
+TRACE[2025-03-10 23:59:06.489] [vm/metering]        [0/0/0/]                                                |         gas spent by sc = 19496329
+TRACE[2025-03-10 23:59:06.489] [vm/metering]        [0/0/0/]                                                |         gas transferred = 0
+TRACE[2025-03-10 23:59:06.489] [vm/metering]        [0/0/0/]                                                |      gas used by others = 0
+TRACE[2025-03-10 23:59:06.489] [vm/metering]        [0/0/0/]                                                | adjusted gas used by sc = 19496329
+TRACE[2025-03-10 23:59:06.489] [vm/metering]        [0/0/0/]                                                | gas per acct = 19496329 key = 00000000000000000500ed8e25a94efa837aae0e593112cfbb01b448755069e1
+TRACE[2025-03-10 23:59:06.489] [vm/metering]        [0/0/0/]                                                e2949420737461636b2073697a65 = 0
+TRACE[2025-03-10 23:59:06.489] [vm/metering]        [0/0/0/]       UpdateGasStateOnSuccess                  vmOutput.GasRemaining = 9223372036835279478
+TRACE[2025-03-10 23:59:06.489] [vm/metering]        [0/0/0/]       UpdateGasStateOnSuccess                  instance gas left = 9223372036835279478 '''
+
+
 complete_round_log = '''
 DEBUG[2025-02-07 09:14:20.003] [..ensus/chronology] [1/0/858/(BLOCK)] 2025-02-07 09:14:20.001026524  ################################### ROUND 859 BEGINS (1738919660) ###################################
 DEBUG[2025-02-07 09:14:20.003] [..ensus/chronology] [1/0/859/(BLOCK)] 2025-02-07 09:14:20.001080633  ................................... SUBROUND (START_ROUND) BEGINS ...................................

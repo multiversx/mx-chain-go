@@ -5,9 +5,12 @@ import pytest
 from scripts.logsConversion.logsToJsonConverter import LogsToJsonConverter
 from scripts.logsConversion.sample_data import (
     comma_separated_log, common_entries_log, contract_deployed_log,
-    empty_value_log, several_words_in_key_log, special_chars_in_parameters_log,
-    statistics_entries_log, total_transactions_in_pool_logs, start_time_log, scheduled_txs_log,
-    transactions_processed_table_log, trie_statistics_log, initialized_chainParametersHolder_log)
+    empty_value_log, initialized_chainParametersHolder_log,
+    misc_no_ascii_chars_log, monitor_new_cashe_logs, network_connection_log,
+    new_sharded_data_log, scheduled_txs_log, several_words_in_key_log,
+    special_chars_in_parameters_log, start_time_log, statistics_entries_log,
+    total_transactions_in_pool_logs, transactions_processed_table_log,
+    trie_statistics_log, vm_mettering_log)
 
 
 def normalize_spacing(log_entry):
@@ -48,7 +51,53 @@ class TestLogsParsing:
             assert (line.to_dict() in expected_result)
 
     def test_network_connection(self):
-        pass
+        converter = LogsToJsonConverter('node1')
+
+        converter.parse(network_connection_log.split('\n'))
+        assert len(converter.log_content) == 2
+        assert (converter.log_content[0].to_dict() == '{"v": "node1", "t": 1740156794.625, "l": 1, "n": "main/p2p", "s": "0", "e": "26", "r": "2647", "sr": "END_ROUND", "m": "network connection status", "a": {"network": "main", "known peers": "55", "connected peers": "28", "intra shard validators": "2", "intra shard observers": "7", "cross shard validators": "5", "cross shard observers": "13", "unknown": "0", "seeders": "1", "current shard": "0", "validators histogram": {"shard 0": "2", "shard 1": "2", "shard 2": "2", "meta": "1"}, "observers histogram": {"shard 0": "7", "shard 1": "4", "shard 2": "2", "meta": "7"}, "preferred peers histogram": {}}}')
+        assert (converter.log_content[1].to_dict() == '{"v": "node1", "t": 1740156794.625, "l": 1, "n": "main/p2p", "s": "0", "e": "26", "r": "2647", "sr": "END_ROUND", "m": "network connection metrics", "a": {"network": "main", "connections/s": "3", "disconnections/s": "3", "connections": "63", "disconnections": "63", "time": "20s"}}')
+
+    def test_monitor_new_cashe_logs(self):
+        converter = LogsToJsonConverter('node1')
+        expected_result = [
+            '{"v": "node1", "t": 1741683641.557, "l": 1, "n": "storage", "s": "", "e": 0, "r": 0, "sr": "", "m": "MonitorNewCache", "a": {"name": "Antiflood", "capacity": "0B", "cumulated": "0B"}}',
+            '{"v": "node1", "t": 1741683641.557, "l": 1, "n": "storage", "s": "", "e": 0, "r": 0, "sr": "", "m": "MonitorNewCache", "a": {"name": "PeerHonesty", "capacity": "0B", "cumulated": "0B"}}',
+            '{"v": "node1", "t": 1741683642.561, "l": 1, "n": "storage", "s": "", "e": 0, "r": 0, "sr": "", "m": "MonitorNewCache", "a": {"name": "TrieNodesDataPool", "capacity": "100.00MB", "cumulated": "700.00MB"}}',
+            '{"v": "node1", "t": 1741683642.561, "l": 1, "n": "storage", "s": "", "e": 0, "r": 0, "sr": "", "m": "MonitorNewCache", "a": {"name": "SmartContractDataPool", "capacity": "200.00MB", "cumulated": "900.00MB"}}',
+            '{"v": "node1", "t": 1741683642.561, "l": 1, "n": "storage", "s": "", "e": 0, "r": 0, "sr": "", "m": "MonitorNewCache", "a": {"name": "HeartbeatPool", "capacity": "300.00MB", "cumulated": "1.17GB"}}'
+        ]
+        converter.parse(monitor_new_cashe_logs.split('\n'))
+        assert len(converter.log_content) == 5
+        for line in converter.log_content:
+            assert (line.to_dict() in expected_result)
+
+    def test_vm_mettering(self):
+        converter = LogsToJsonConverter('node1')
+        expected_result = [
+            '{"v": "node1", "t": 1741643946.489, "l": 0, "n": "vm/storage", "s": "", "e": 0, "r": 0, "sr": "", "m": "storage added", "a": {"key": "6e5f626c6f636b735f6265666f72655f756e626f6e64", "value": "030d40"}}',
+            '{"v": "node1", "t": 1741643946.489, "l": 0, "n": "vm/host", "s": "", "e": 0, "r": 0, "sr": "", "m": "checkFinalGasAfterExit", "a": {}}',
+            '{"v": "node1", "t": 1741643946.489, "l": 0, "n": "vm/metering", "s": "", "e": 0, "r": 0, "sr": "", "m": "UpdateGasStateOnSuccess", "a": {}}',
+            '{"v": "node1", "t": 1741643946.489, "l": 0, "n": "vm/metering", "s": "", "e": 0, "r": 0, "sr": "", "m": "check gas", "a": {}}',
+            '{"v": "node1", "t": 1741643946.489, "l": 0, "n": "vm/metering", "s": "", "e": 0, "r": 0, "sr": "", "m": "metering state", "a": {"e2948c2d2d2d2d2d2d2d2d2d2d2020202020202020202020207363": "00000000000000000500ed8e25a94efa837aae0e593112cfbb01b448755069e1"}}',
+            '{"v": "node1", "t": 1741643946.489, "l": 0, "n": "vm/metering", "s": "", "e": 0, "r": 0, "sr": "", "m": "metering state", "a": {"function": ""}}',
+            '{"v": "node1", "t": 1741643946.489, "l": 0, "n": "vm/metering", "s": "", "e": 0, "r": 0, "sr": "", "m": "metering state", "a": {"initial provided": "9223372036854775807"}}',
+            '{"v": "node1", "t": 1741643946.489, "l": 0, "n": "vm/metering", "s": "", "e": 0, "r": 0, "sr": "", "m": "metering state", "a": {"initial cost": "17487900"}}',
+            '{"v": "node1", "t": 1741643946.489, "l": 0, "n": "vm/metering", "s": "", "e": 0, "r": 0, "sr": "", "m": "metering state", "a": {"gas for exec": "9223372036837287907"}}',
+            '{"v": "node1", "t": 1741643946.489, "l": 0, "n": "vm/metering", "s": "", "e": 0, "r": 0, "sr": "", "m": "metering state", "a": {"instance gas": "2008429"}}',
+            '{"v": "node1", "t": 1741643946.489, "l": 0, "n": "vm/metering", "s": "", "e": 0, "r": 0, "sr": "", "m": "metering state", "a": {"gas left": "9223372036835279478"}}',
+            '{"v": "node1", "t": 1741643946.489, "l": 0, "n": "vm/metering", "s": "", "e": 0, "r": 0, "sr": "", "m": "metering state", "a": {"gas spent by sc": "19496329"}}',
+            '{"v": "node1", "t": 1741643946.489, "l": 0, "n": "vm/metering", "s": "", "e": 0, "r": 0, "sr": "", "m": "metering state", "a": {"gas transferred": "0"}}',
+            '{"v": "node1", "t": 1741643946.489, "l": 0, "n": "vm/metering", "s": "", "e": 0, "r": 0, "sr": "", "m": "metering state", "a": {"gas used by others": "0"}}',
+            '{"v": "node1", "t": 1741643946.489, "l": 0, "n": "vm/metering", "s": "", "e": 0, "r": 0, "sr": "", "m": "metering state", "a": {"adjusted gas used by sc": "19496329"}}',
+            '{"v": "node1", "t": 1741643946.489, "l": 0, "n": "vm/metering", "s": "", "e": 0, "r": 0, "sr": "", "m": "metering state", "a": {"gas per acct": "19496329", "key": "00000000000000000500ed8e25a94efa837aae0e593112cfbb01b448755069e1"}}',
+            '{"v": "node1", "t": 1741643946.489, "l": 0, "n": "vm/metering", "s": "", "e": 0, "r": 0, "sr": "", "m": "metering state", "a": {"e2949420737461636b2073697a65": "0"}}',
+            '{"v": "node1", "t": 1741643946.489, "l": 0, "n": "vm/metering", "s": "", "e": 0, "r": 0, "sr": "", "m": "UpdateGasStateOnSuccess", "a": {"vmOutput.GasRemaining": "9223372036835279478"}}',
+            '{"v": "node1", "t": 1741643946.489, "l": 0, "n": "vm/metering", "s": "", "e": 0, "r": 0, "sr": "", "m": "UpdateGasStateOnSuccess", "a": {"instance gas left": "9223372036835279478"}}'
+        ]
+        converter.parse(vm_mettering_log.split('\n'))
+        for line in converter.log_content:
+            assert (line.to_dict() in expected_result)
 
     def test_scheduled_txs(self):
         converter = LogsToJsonConverter('node1')
@@ -67,26 +116,21 @@ class TestLogsParsing:
         assert len(converter.log_content) == 8
         for line in converter.log_content:
             assert (line.to_dict() in expected_result)
-            # print(line.to_dict())
 
     def test_start_time(self):
-        'formatted = Fri Feb 21 14:28:29 UTC 2025 seconds = 1740148109'
         converter = LogsToJsonConverter('node1')
         converter.parse(start_time_log.split('\n'))
         assert len(converter.log_content) == 1
         entry = converter.log_content[0]
         assert entry.to_dict() == '{"v": "node1", "t": 1740140913.738, "l": 2, "n": "factory", "s": "", "e": 0, "r": 0, "sr": "", "m": "start time", "a": {"formatted": "Fri Feb 21 14:28:29 UTC 2025", "seconds": "1740148109"}}'
-        print(entry.to_dict())
 
     def test_block_header_proof_sent(self):
         block_header_proof_sent_log = 'DEBUG[2025-02-21 18:53:23.109] [..nsus/spos/bls/v2] [0/26/2649/(END_ROUND)] step 3: block header proof has been sent PubKeysBitmap = fd02 AggregateSignature = d94a7f18409f9d931a8f96691ea9f2b875281125bf71f9956f5223ccb6fb8d89bfd5f0e8abfeb4975e126c4e250d0988 proof sender = f547e115b1ada7cf9b8aeef45ee0d9ec4b206315ef44be706d994a0571688cd96291d1ab6c3761df29d00a2ba290a3185e4796bc49891906f86e16da01af3fd52320944b96b60e679ac8e686d4819e97e15e5fe46503c556b4acdd8079624005 '
-        ' step 3: block header proof has been sent PubKeysBitmap = fd02 AggregateSignature = d94a7f18409f9d931a8f96691ea9f2b875281125bf71f9956f5223ccb6fb8d89bfd5f0e8abfeb4975e126c4e250d0988 proof sender = f547e115b1ada7cf9b8aeef45ee0d9ec4b206315ef44be706d994a0571688cd96291d1ab6c3761df29d00a2ba290a3185e4796bc49891906f86e16da01af3fd52320944b96b60e679ac8e686d4819e97e15e5fe46503c556b4acdd8079624005'
         converter = LogsToJsonConverter('node1')
         converter.parse(block_header_proof_sent_log.split('\n'))
         assert len(converter.log_content) == 1
         entry = converter.log_content[0]
-        # assert entry.to_dict() == '{"v": "node1", "t": 1740140913.738, "l": 2, "n": "factory", "s": "", "e": 0, "r": 0, "sr": "", "m": "start time", "a": {"formatted": "Fri Feb 21 14:28:29 UTC 2025", "seconds": "1740148109"}}'
-        print(entry.to_dict())
+        assert entry.to_dict() == '{"v": "node1", "t": 1740156803.109, "l": 1, "n": "..nsus/spos/bls/v2", "s": "0", "e": "26", "r": "2649", "sr": "END_ROUND", "m": "step 3: block header proof has been sent", "a": {"PubKeysBitmap": "fd02", "AggregateSignature": "d94a7f18409f9d931a8f96691ea9f2b875281125bf71f9956f5223ccb6fb8d89bfd5f0e8abfeb4975e126c4e250d0988", "proof sender": "f547e115b1ada7cf9b8aeef45ee0d9ec4b206315ef44be706d994a0571688cd96291d1ab6c3761df29d00a2ba290a3185e4796bc49891906f86e16da01af3fd52320944b96b60e679ac8e686d4819e97e15e5fe46503c556b4acdd8079624005"}}'
 
     def test_trie_statistics_ignore(self):
         'num of nodes = 282160 total size = 33.37 MB num tries by type = dataTrie: 8, mainTrie: 1 num main trie leaves = 191807 max depth main trie = 8'
@@ -94,7 +138,7 @@ class TestLogsParsing:
         converter.parse(trie_statistics_log.split('\n'))
         assert len(converter.log_content) == 1
         for entry in converter.log_content:
-            assert entry.to_dict() == '{"v": "node1", "t": 1740156709.437, "l": 1, "n": "trieStatistics", "s": "0", "e": "26", "r": "2633", "sr": "END_ROUND", "m": "tries statistics", "a": {"num of nodes": "282160", "total size": "33.37", "MB num tries by type": "dataTrie", "1 num main trie leaves": "191807", "max depth main trie": "8 : 8, mainTrie:"}}'
+            assert entry.to_dict() == '{"v": "node1", "t": 1740156709.437, "l": 1, "n": "trieStatistics", "s": "0", "e": "26", "r": "2633", "sr": "END_ROUND", "m": "tries statistics", "a": {"num of nodes": "282160", "total size": "33.37MB", "num tries by type": "dataTrie:", "1 num main trie leaves": "191807", "max depth main trie": "8 8, mainTrie:"}}'
             # TODO fix this
 
     def test_transactions_processed(self):
@@ -181,6 +225,32 @@ class TestLogsParsing:
         conv.parse(special_chars_in_parameters_log.split('\n'))
 
         assert len(conv.log_content) == 9
+
+        for entry in conv.log_content:
+            assert entry.to_dict() in expected_result
+
+    def test_new_sharded_data(self):
+        conv = LogsToJsonConverter('node1')
+        conv.parse(new_sharded_data_log.split('\n'))
+
+        assert len(conv.log_content) == 7
+
+        for entry in conv.log_content:
+            # assert entry.to_dict() in expected_result
+            print(entry.to_dict())
+
+    def test_miscelanious(self):
+        conv = LogsToJsonConverter('node1')
+        conv.parse(misc_no_ascii_chars_log.split('\n'))
+        expected_result = [
+            '{"v": "node1", "t": 1741683641.52, "l": 2, "n": "node", "s": "", "e": 0, "r": 0, "sr": "", "m": "starting node", "a": {"version": "logs-to-json-conversion-00208db9bb/go1.20.7/linux-amd64/70b02c7576", "pid": "8203"}}',
+            '{"v": "node1", "t": 1741683661.022, "l": 1, "n": "node", "s": "", "e": 0, "r": 0, "sr": "", "m": "starting node... executeOneComponentCreationCycle", "a": {}}',
+            '{"v": "node1", "t": 1741692751.99, "l": 1, "n": "node", "s": "0", "e": "14", "r": "2839", "sr": "END_ROUND", "m": "starting node... executeOneComponentCreationCycle", "a": {}}',
+            '{"v": "node1", "t": 1741692720.918, "l": 2, "n": "main/p2p", "s": "1", "e": "14", "r": "2839", "sr": "END_ROUND", "m": "listening on addresses", "a": {"addr0": "/ip4/10.0.0.143/tcp/37870/p2p/16Uiu2HAmCRqUbbixX67JHPLuH2h6dSqTqt961CdLRXMSzsDXsd23", "addr1": "/ip4/127.0.0.1/tcp/37870/p2p/16Uiu2HAmCRqUbbixX67JHPLuH2h6dSqTqt961CdLRXMSzsDXsd23"}}',
+            '{"v": "node1", "t": 1741683641.557, "l": 1, "n": "..rottle/antiflood", "s": "", "e": 0, "r": 0, "sr": "", "m": "SetMaxMessagesForTopic", "a": {"topic": "shardBlocks*", "num messages": "30"}}',
+            '{"v": "node1", "t": 1741683661.024, "l": 1, "n": "process/sync", "s": "", "e": 0, "r": 0, "sr": "", "m": "storageBootstrapper.loadBlocks", "a": {"LastHeader": {"shard": "1", "nonce": "1171", "epoch": "5", "hash": "25ff478ad6b9f8ab78f28570e04b93b90931522c4da2927be5b9361ef47bc101"}, "LastCrossNotarizedHeaders": {"shard": "4294967295", "nonce": "1191", "epoch": "0", "hash": "f5e0f02a598bc292a55e10f19b04bda72198fee0cba7c220f2dd21f2dbf365a9"}, "LastSelfNotarizedHeaders": {"shard": "1", "nonce": "1171", "epoch": "5", "hash": "25ff478ad6b9f8ab78f28570e04b93b90931522c4da2927be5b9361ef47bc101"}, "HighestFinalBlockNonce": "1171", "NodesCoordinatorConfigKey": "6839b5f19d9a0544b91f3f141af7212c5e380aef0ec9523012c2a21b01c7a07d220e37973ddd0f1454298e633e5b8b0a", "EpochStartTriggerConfigKey": "31323032"}}'
+        ]
+        assert len(conv.log_content) == 6
 
         for entry in conv.log_content:
             assert entry.to_dict() in expected_result

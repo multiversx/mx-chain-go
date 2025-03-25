@@ -254,12 +254,12 @@ func (sp *shardProcessor) ProcessBlock(
 	haveMissingMetaHeaders := requestedMetaHdrs > 0 || requestedFinalityAttestingMetaHdrs > 0
 	if haveMissingMetaHeaders {
 		if requestedMetaHdrs > 0 {
-			log.Debug("requested missing meta headers",
+			log.Debug("requested missing meta headers ",
 				"num headers", requestedMetaHdrs,
 			)
 		}
 		if requestedFinalityAttestingMetaHdrs > 0 {
-			log.Debug("requested missing finality attesting meta headers",
+			log.Debug("requested missing finality attesting meta headers ",
 				"num finality meta headers", requestedFinalityAttestingMetaHdrs,
 			)
 		}

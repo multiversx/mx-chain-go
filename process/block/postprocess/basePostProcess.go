@@ -9,7 +9,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
-	"github.com/multiversx/mx-chain-logger-go"
+	logger "github.com/multiversx/mx-chain-logger-go"
 
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/process"
@@ -276,7 +276,7 @@ func (bpp *basePostProcessor) splitMiniBlockIfNeeded(miniBlock *block.MiniBlock)
 		isGasLimitExceeded := gasLimitInReceiverShard+interResult.tx.GetGasLimit() >
 			bpp.economicsFee.MaxGasLimitPerMiniBlockForSafeCrossShard()
 		if isGasLimitExceeded {
-			log.Debug("basePostProcessor.splitMiniBlockIfNeeded: gas limit exceeded",
+			log.Debug("basePostProcessor.splitMiniBlockIfNeeded: gas limit exceeded ",
 				"mb type", currentMiniBlock.Type,
 				"sender shard", currentMiniBlock.SenderShardID,
 				"receiver shard", currentMiniBlock.ReceiverShardID,

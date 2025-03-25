@@ -181,7 +181,7 @@ func (p *peerMiniBlockSyncer) receivedValidatorInfo(key []byte, val interface{})
 	numMissingValidatorsInfo := p.numMissingValidatorsInfo
 	p.mutValidatorsInfoForBlock.Unlock()
 
-	log.Debug("peerMiniBlockSyncer.receivedValidatorInfo", "tx hash", key, "num missing validators info", numMissingValidatorsInfo)
+	log.Debug("peerMiniBlockSyncer.receivedValidatorInfo ", "tx hash", key, "num missing validators info", numMissingValidatorsInfo)
 
 	if numMissingValidatorsInfo == 0 {
 		p.chRcvAllValidatorsInfo <- struct{}{}

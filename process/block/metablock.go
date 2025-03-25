@@ -314,12 +314,12 @@ func (mp *metaProcessor) ProcessBlock(
 	haveMissingShardHeaders := requestedShardHdrs > 0 || requestedFinalityAttestingShardHdrs > 0
 	if haveMissingShardHeaders {
 		if requestedShardHdrs > 0 {
-			log.Debug("requested missing shard headers",
+			log.Debug("requested missing shard headers ",
 				"num headers", requestedShardHdrs,
 			)
 		}
 		if requestedFinalityAttestingShardHdrs > 0 {
-			log.Debug("requested missing finality attesting shard headers",
+			log.Debug("requested missing finality attesting shard headers ",
 				"num finality shard headers", requestedFinalityAttestingShardHdrs,
 			)
 		}
@@ -333,7 +333,7 @@ func (mp *metaProcessor) ProcessBlock(
 		mp.hdrsForCurrBlock.resetMissingHdrs()
 
 		if requestedShardHdrs > 0 {
-			log.Debug("received missing shard headers",
+			log.Debug("received missing shard headers ",
 				"num headers", requestedShardHdrs-missingShardHdrs,
 			)
 		}
