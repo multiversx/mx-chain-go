@@ -290,10 +290,11 @@ func (wrk *Worker) receivedSyncState(isNodeSynchronized bool) {
 }
 
 func (wrk *Worker) addFutureHeaderToProcessIfNeeded(header data.HeaderHandler) {
+	log.Info("addFutureHeaderToProcessIfNeeded", "round", header.GetRound())
 	if check.IfNil(header) {
 		return
 	}
-	if wrk.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, header.GetEpoch()) {
+	if !wrk.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, header.GetEpoch()) {
 		return
 	}
 
@@ -307,8 +308,9 @@ func (wrk *Worker) addFutureHeaderToProcessIfNeeded(header data.HeaderHandler) {
 		log.Warn("addFutureHeaderToProcessIfNeeded: convertHeaderToConsensusMessage failed")
 		return
 	}
-
+	log.Info("addFutureHeaderToProcessIfNeeded", "executeReceivedMessages", "before")
 	go wrk.executeReceivedMessages(headerConsensusMessage)
+	log.Info("addFutureHeaderToProcessIfNeeded", "executeReceivedMessages", "after")
 }
 
 func (wrk *Worker) convertHeaderToConsensusMessage(header data.HeaderHandler) (*consensus.Message, error) {
@@ -741,6 +743,7 @@ func (wrk *Worker) executeMessage(cnsDtaList []*consensus.Message) {
 			continue
 		}
 		if wrk.consensusState.GetRoundIndex() != cnsDta.RoundIndex {
+			log.Info("executeMessage: message for different round", "round", cnsDta.RoundIndex)
 			continue
 		}
 
@@ -796,7 +799,7 @@ func (wrk *Worker) callReceivedHeaderCallbacks(message *consensus.Message) {
 	if message.MsgType != int64(headerMessageType) || !wrk.enableEpochsHandler.IsFlagEnabled(common.EquivalentMessagesFlag) {
 		return
 	}
-
+	log.Info("callReceivedHeaderCallbacks", "round", message.RoundIndex)
 	header := wrk.blockProcessor.DecodeBlockHeader(message.Header)
 	if check.IfNil(header) {
 		return
@@ -812,6 +815,7 @@ func (wrk *Worker) callReceivedHeaderCallbacks(message *consensus.Message) {
 	case wrk.consensusStateChangedChannel <- true:
 	default:
 	}
+	log.Info("callReceivedHeaderCallbacks", "onexit", message.RoundIndex)
 }
 
 // Extend does an extension for the subround with subroundId
