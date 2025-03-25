@@ -231,6 +231,7 @@ func (ccf *coreComponentsFactory) Create() (*coreComponents, error) {
 		"formatted", startTime.Format("Mon Jan 2 15:04:05 MST 2006"),
 		"seconds", startTime.Unix())
 
+	log.Info("round duration", "value", genesisNodesConfig.RoundDuration)
 	genesisTime := time.Unix(genesisNodesConfig.StartTime, 0)
 	roundHandler, err := round.NewRound(
 		genesisTime,
