@@ -22,7 +22,7 @@ type ResolverThrottler interface {
 
 // Resolver defines what a data resolver should do
 type Resolver interface {
-	ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedPeer core.PeerID, source p2p.MessageHandler) error
+	ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedPeer core.PeerID, source p2p.MessageHandler) ([]byte, error)
 	SetDebugHandler(handler DebugHandler) error
 	Close() error
 	IsInterfaceNil() bool
@@ -363,9 +363,11 @@ type PeerAuthenticationPayloadValidator interface {
 // ProofsPool defines the behaviour of a proofs pool components
 type ProofsPool interface {
 	AddProof(headerProof data.HeaderProofHandler) bool
+	UpsertProof(headerProof data.HeaderProofHandler) bool
 	RegisterHandler(handler func(headerProof data.HeaderProofHandler))
 	CleanupProofsBehindNonce(shardID uint32, nonce uint64) error
 	GetProof(shardID uint32, headerHash []byte) (data.HeaderProofHandler, error)
 	HasProof(shardID uint32, headerHash []byte) bool
+	IsProofInPoolEqualTo(headerProof data.HeaderProofHandler) bool
 	IsInterfaceNil() bool
 }

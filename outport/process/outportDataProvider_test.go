@@ -571,6 +571,22 @@ func Test_collectExecutedTxHashes(t *testing.T) {
 	})
 }
 
+func TestFindLeaderIndex(t *testing.T) {
+	t.Parallel()
+
+	leaderKey := "a"
+	keys := []string{"a", "b", "c", "d", "e", "f", "g"}
+	require.Equal(t, uint64(0), findLeaderIndex(keys, leaderKey))
+
+	leaderKey = "g"
+	keys = []string{"a", "b", "c", "d", "e", "f", "g"}
+	require.Equal(t, uint64(6), findLeaderIndex(keys, leaderKey))
+
+	leaderKey = "notFound"
+	keys = []string{"a", "b", "c", "d", "e", "f", "g"}
+	require.Equal(t, uint64(0), findLeaderIndex(keys, leaderKey))
+}
+
 func createMbsAndMbHeaders(numPairs int, numTxsPerMb int) ([]*block.MiniBlock, []block.MiniBlockHeader) {
 	mbs := make([]*block.MiniBlock, numPairs)
 	mbHeaders := make([]block.MiniBlockHeader, numPairs)

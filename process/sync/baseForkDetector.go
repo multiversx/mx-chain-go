@@ -744,7 +744,7 @@ func (bfd *baseForkDetector) processReceivedProof(proof data.HeaderProofHandler)
 	probableHighestNonce := bfd.computeProbableHighestNonce()
 	bfd.setProbableHighestNonce(probableHighestNonce)
 
-	log.Debug("forkDetector.processReceivedProof",
+	log.Trace("forkDetector.processReceivedProof",
 		"round", hInfo.round,
 		"nonce", hInfo.nonce,
 		"hash", hInfo.hash,

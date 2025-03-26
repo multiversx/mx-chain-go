@@ -716,7 +716,7 @@ func getArgumentsMeta(
 		Store:                          createMetaStore(),
 		DataPool:                       createMetaDataPools(),
 		MaxTxNonceDeltaAllowed:         maxTxNonceDeltaAllowed,
-		TxFeeHandler:                   &economicsmocks.EconomicsHandlerStub{},
+		TxFeeHandler:                   &economicsmocks.EconomicsHandlerMock{},
 		BlockBlackList:                 &testscommon.TimeCacheStub{},
 		HeaderSigVerifier:              &consensus.HeaderSigVerifierMock{},
 		HeaderIntegrityVerifier:        &mock.HeaderIntegrityVerifierStub{},

@@ -1260,6 +1260,9 @@ var ErrRelayedByGuardianNotAllowed = errors.New("relayed by guardian not allowed
 // ErrInvalidRelayedTxV3 signals that an invalid relayed tx v3 has been provided
 var ErrInvalidRelayedTxV3 = errors.New("invalid relayed transaction")
 
+// ErrProtocolSustainabilityAddressInMetachain signals that protocol sustainability address is in metachain which is not allowed
+var ErrProtocolSustainabilityAddressInMetachain = errors.New("protocol sustainability address in metachain")
+
 // ErrNilHeaderProof signals that a nil header proof has been provided
 var ErrNilHeaderProof = errors.New("nil header proof")
 
@@ -1286,3 +1289,6 @@ var ErrUnexpectedHeaderProof = errors.New("unexpected header proof")
 
 // ErrEpochMismatch signals that the epoch do not match
 var ErrEpochMismatch = errors.New("epoch mismatch")
+
+// ErrInvalidRatingsConfig signals that an invalid ratings config has been provided
+var ErrInvalidRatingsConfig = errors.New("invalid ratings config")

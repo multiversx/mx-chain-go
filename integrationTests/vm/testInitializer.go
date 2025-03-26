@@ -249,7 +249,7 @@ func (vmTestContext *VMTestContext) GetIntValueFromSCWithTransientVM(funcName st
 // GetVMOutputWithTransientVM -
 func (vmTestContext *VMTestContext) GetVMOutputWithTransientVM(funcName string, args ...[]byte) *vmcommon.VMOutput {
 	scAddressBytes := vmTestContext.Contract.Address
-	feeHandler := &economicsmocks.EconomicsHandlerStub{
+	feeHandler := &economicsmocks.EconomicsHandlerMock{
 		MaxGasLimitPerBlockCalled: func(_ uint32) uint64 {
 			return uint64(math.MaxUint64)
 		},
@@ -327,6 +327,7 @@ func createEconomicsData(enableEpochsConfig config.EnableEpochs, gasPriceModifie
 	enableEpochsHandler, _ := enablers.NewEnableEpochsHandler(enableEpochsConfig, realEpochNotifier)
 
 	argsNewEconomicsData := economics.ArgsNewEconomicsData{
+		TxVersionChecker: versioning.NewTxVersionChecker(minTransactionVersion),
 		Economics: &config.EconomicsConfig{
 			GlobalSettings: config.GlobalSettings{
 				GenesisTotalSupply: "2000000000000000000000",
@@ -369,7 +370,8 @@ func createEconomicsData(enableEpochsConfig config.EnableEpochs, gasPriceModifie
 		},
 		EpochNotifier:       realEpochNotifier,
 		EnableEpochsHandler: enableEpochsHandler,
-		TxVersionChecker:    versioning.NewTxVersionChecker(minTransactionVersion),
+		PubkeyConverter:     &testscommon.PubkeyConverterStub{},
+		ShardCoordinator:    &testscommon.ShardsCoordinatorMock{},
 	}
 
 	return economics.NewEconomicsData(argsNewEconomicsData)
@@ -1711,7 +1713,7 @@ func GetVmOutput(
 		_ = vmContainer.Close()
 	}()
 
-	feeHandler := &economicsmocks.EconomicsHandlerStub{
+	feeHandler := &economicsmocks.EconomicsHandlerMock{
 		MaxGasLimitPerBlockCalled: func(_ uint32) uint64 {
 			return uint64(math.MaxUint64)
 		},

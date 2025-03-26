@@ -26,6 +26,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"golang.org/x/exp/slices"
 
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
@@ -61,6 +62,8 @@ import (
 	statusHandlerMock "github.com/multiversx/mx-chain-go/testscommon/statusHandler"
 	storageStubs "github.com/multiversx/mx-chain-go/testscommon/storage"
 )
+
+var expectedErr = errors.New("expected error")
 
 const (
 	busyIdentifier = "busy"
@@ -289,7 +292,7 @@ func initDataPool(testHash []byte) *dataRetrieverMock.PoolsHolderStub {
 			return cs
 		},
 		ProofsCalled: func() dataRetriever.ProofsPool {
-			return proofscache.NewProofsPool(3)
+			return proofscache.NewProofsPool(3, 100)
 		},
 	}
 
@@ -455,7 +458,7 @@ func createMockTransactionCoordinatorArguments(
 		FeeHandler:                   &mock.FeeAccumulatorStub{},
 		BlockSizeComputation:         &testscommon.BlockSizeComputationStub{},
 		BalanceComputation:           &testscommon.BalanceComputationStub{},
-		EconomicsFee:                 &economicsmocks.EconomicsHandlerStub{},
+		EconomicsFee:                 &economicsmocks.EconomicsHandlerMock{},
 		TxTypeHandler:                &testscommon.TxTypeHandlerMock{},
 		TransactionsLogProcessor:     &mock.TxLogsProcessorStub{},
 		EnableEpochsHandler:          enableEpochsHandlerMock.NewEnableEpochsHandlerStub(),
@@ -783,6 +786,38 @@ func TestCheckProcessorNilParameters(t *testing.T) {
 				return args
 			},
 			expectedErr: process.ErrNilManagedPeersHolder,
+		},
+		{
+			args: func() blproc.ArgBaseProcessor {
+				args := createArgBaseProcessor(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+				args.OutportDataProvider = nil
+				return args
+			},
+			expectedErr: process.ErrNilOutportDataProvider,
+		},
+		{
+			args: func() blproc.ArgBaseProcessor {
+				args := createArgBaseProcessor(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+				args.BlockProcessingCutoffHandler = nil
+				return args
+			},
+			expectedErr: process.ErrNilBlockProcessingCutoffHandler,
+		},
+		{
+			args: func() blproc.ArgBaseProcessor {
+				args := createArgBaseProcessor(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+				args.ManagedPeersHolder = nil
+				return args
+			},
+			expectedErr: process.ErrNilManagedPeersHolder,
+		},
+		{
+			args: func() blproc.ArgBaseProcessor {
+				args := createArgBaseProcessor(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+				args.SentSignaturesTracker = nil
+				return args
+			},
+			expectedErr: process.ErrNilSentSignatureTracker,
 		},
 		{
 			args: func() blproc.ArgBaseProcessor {
@@ -1970,7 +2005,6 @@ func TestBaseProcessor_commitTrieEpochRootHashIfNeeded_GetAllLeaves(t *testing.T
 
 		arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
 
-		expectedErr := errors.New("expected error")
 		arguments.AccountsDB = map[state.AccountsDbIdentifier]state.AccountsAdapter{
 			state.UserAccountsState: &stateMock.AccountsStub{
 				RootHashCalled: func() ([]byte, error) {
@@ -2008,7 +2042,6 @@ func TestBaseProcessor_commitTrieEpochRootHashIfNeeded_GetAllLeaves(t *testing.T
 
 		arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
 
-		expectedErr := errors.New("expected error")
 		arguments.AccountsDB = map[state.AccountsDbIdentifier]state.AccountsAdapter{
 			state.UserAccountsState: &stateMock.AccountsStub{
 				RootHashCalled: func() ([]byte, error) {
@@ -2695,7 +2728,6 @@ func TestBaseProcessor_checkScheduledMiniBlockValidity(t *testing.T) {
 
 		coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
 		coreComponents.EnableEpochsHandlerField = enableEpochsHandlerMock.NewEnableEpochsHandlerStub(common.ScheduledMiniBlocksFlag)
-		expectedErr := errors.New("expected error")
 		coreComponents.IntMarsh = &marshallerMock.MarshalizerStub{
 			MarshalCalled: func(obj interface{}) ([]byte, error) {
 				return nil, expectedErr
@@ -3127,7 +3159,6 @@ func TestBaseProcessor_ConcurrentCallsNonceOfFirstCommittedBlock(t *testing.T) {
 func TestBaseProcessor_CheckSentSignaturesAtCommitTime(t *testing.T) {
 	t.Parallel()
 
-	expectedErr := errors.New("expected error")
 	t.Run("nodes coordinator errors, should return error", func(t *testing.T) {
 		nodesCoordinatorInstance := shardingMocks.NewNodesCoordinatorMock()
 		nodesCoordinatorInstance.ComputeValidatorsGroupCalled = func(randomness []byte, round uint64, shardId uint32, epoch uint32) (leader nodesCoordinator.Validator, validatorsGroup []nodesCoordinator.Validator, err error) {
@@ -3177,5 +3208,429 @@ func TestBaseProcessor_CheckSentSignaturesAtCommitTime(t *testing.T) {
 		assert.Nil(t, err)
 
 		assert.Equal(t, [][]byte{validator0.PubKey(), validator2.PubKey()}, resetCountersCalled)
+	})
+}
+
+func TestBaseProcessor_FilterHeadersWithoutProofs(t *testing.T) {
+	t.Parallel()
+
+	headersForCurrentBlock := map[string]data.HeaderHandler{
+		"hash0": &testscommon.HeaderHandlerStub{
+			EpochField: 12,
+			GetNonceCalled: func() uint64 {
+				return 1
+			},
+			GetShardIDCalled: func() uint32 {
+				return 0
+			},
+		},
+		"hash1": &testscommon.HeaderHandlerStub{
+			EpochField: 12,
+			GetNonceCalled: func() uint64 {
+				return 1
+			},
+			GetShardIDCalled: func() uint32 {
+				return 1
+			},
+		},
+		"hash2": &testscommon.HeaderHandlerStub{
+			EpochField: 12, // no proof for this one, should be marked for deletion
+			GetNonceCalled: func() uint64 {
+				return 2
+			},
+			GetShardIDCalled: func() uint32 {
+				return 0
+			},
+		},
+		"hash3": &testscommon.HeaderHandlerStub{
+			EpochField: 1, // flag not active, for coverage only
+			GetNonceCalled: func() uint64 {
+				return 2
+			},
+			GetShardIDCalled: func() uint32 {
+				return 1
+			},
+		},
+	}
+	coreComp, dataComp, bootstrapComp, statusComp := createComponentHolderMocks()
+	bootstrapComp.Coordinator = &mock.ShardCoordinatorStub{
+		NumberOfShardsCalled: func() uint32 {
+			return 2
+		},
+	}
+	coreComp.EnableEpochsHandlerField = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+		IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
+			return epoch == 12
+		},
+	}
+	dataPool := initDataPool([]byte(""))
+	dataPool.ProofsCalled = func() dataRetriever.ProofsPool {
+		return &dataRetrieverMock.ProofsPoolMock{
+			HasProofCalled: func(shardID uint32, headerHash []byte) bool {
+				return string(headerHash) != "hash2"
+			},
+		}
+	}
+	dataComp.DataPool = dataPool
+	arguments := CreateMockArguments(coreComp, dataComp, bootstrapComp, statusComp)
+	bp, _ := blproc.NewShardProcessor(arguments)
+
+	for hash, header := range headersForCurrentBlock {
+		bp.SetHdrForCurrentBlock([]byte(hash), header, true)
+	}
+
+	// this call should fail because header with nonce 2 from shard 0 (hash2) does not have proof
+	// and there is no other header with the same nonce and proof
+	headersWithProofs, err := bp.FilterHeadersWithoutProofs()
+	require.True(t, errors.Is(err, process.ErrMissingHeaderProof))
+	require.Nil(t, headersWithProofs)
+
+	// add one more header with same nonce as hash2, but this one has proof
+	bp.SetHdrForCurrentBlock(
+		[]byte("hash4"),
+		&testscommon.HeaderHandlerStub{
+			EpochField: 12, // same nonce as above, but this one has proof
+			GetNonceCalled: func() uint64 {
+				return 2
+			},
+			GetShardIDCalled: func() uint32 {
+				return 0
+			},
+		},
+		true,
+	)
+
+	// this call should succeed, as for nonce 2 in shard 0 we have 2 headers, hash2 and hash4, but hash4 has proof
+	headersWithProofs, err = bp.FilterHeadersWithoutProofs()
+	require.NoError(t, err)
+	require.Equal(t, 4, len(headersWithProofs))
+
+	returnedHashes := make([]string, 0, len(headersWithProofs))
+	for hash := range headersWithProofs {
+		returnedHashes = append(returnedHashes, hash)
+	}
+	slices.Sort(returnedHashes)
+
+	expectedSortedHashes := []string{"hash0", "hash1", "hash3", "hash4"}
+	require.Equal(t, expectedSortedHashes, returnedHashes)
+}
+
+func TestBaseProcessor_DisplayHeader(t *testing.T) {
+	t.Parallel()
+
+	t.Run("shard header with proof info", func(t *testing.T) {
+		t.Parallel()
+
+		header := &block.HeaderV2{
+			Header: &block.Header{
+				ChainID:         []byte("1"),
+				Epoch:           2,
+				Round:           3,
+				TimeStamp:       4,
+				Nonce:           5,
+				PrevHash:        []byte("prevHash"),
+				PrevRandSeed:    []byte("prevRandSeed"),
+				RandSeed:        []byte("randSeed"),
+				LeaderSignature: []byte("leaderSig"),
+				RootHash:        []byte("rootHash"),
+				ReceiptsHash:    []byte("receiptsHash"),
+			},
+			ScheduledRootHash:        []byte("schRootHash"),
+			ScheduledAccumulatedFees: big.NewInt(6),
+			ScheduledDeveloperFees:   big.NewInt(7),
+			ScheduledGasProvided:     8,
+			ScheduledGasPenalized:    9,
+			ScheduledGasRefunded:     10,
+			PreviousHeaderProof: &block.HeaderProof{
+				PubKeysBitmap:       []byte("bitmap"),
+				AggregatedSignature: []byte("sig"),
+				HeaderHash:          []byte("prevHash"),
+				HeaderEpoch:         2,
+				HeaderNonce:         4,
+				HeaderShardId:       0,
+				HeaderRound:         2,
+				IsStartOfEpoch:      false,
+			},
+		}
+
+		lines := blproc.DisplayHeader(header)
+		require.Equal(t, 24, len(lines))
+	})
+	t.Run("meta header with proof info", func(t *testing.T) {
+		t.Parallel()
+
+		header := &block.MetaBlock{
+			Nonce:           5,
+			Epoch:           2,
+			Round:           3,
+			TimeStamp:       4,
+			LeaderSignature: []byte("leaderSig"),
+			PrevHash:        []byte("prevHash"),
+			PrevRandSeed:    []byte("prevRandSeed"),
+			RandSeed:        []byte("randSeed"),
+			RootHash:        []byte("rootHash"),
+			ReceiptsHash:    []byte("receiptsHash"),
+			EpochStart:      block.EpochStart{},
+			ChainID:         []byte("1"),
+			PreviousHeaderProof: &block.HeaderProof{
+				PubKeysBitmap:       []byte("bitmap"),
+				AggregatedSignature: []byte("sig"),
+				HeaderHash:          []byte("prevHash"),
+				HeaderEpoch:         2,
+				HeaderNonce:         4,
+				HeaderShardId:       0,
+				HeaderRound:         2,
+				IsStartOfEpoch:      false,
+			},
+		}
+
+		lines := blproc.DisplayHeader(header)
+		require.Equal(t, 24, len(lines))
+	})
+}
+
+func TestBaseProcessor_AddPrevProofIfNeeded(t *testing.T) {
+	t.Parallel()
+
+	t.Run("should not add proof for blocks that should not have", func(t *testing.T) {
+		t.Parallel()
+
+		header := &testscommon.HeaderHandlerStub{
+			GetNonceCalled: func() uint64 {
+				return 1
+			},
+		}
+
+		coreComp, dataComp, bootstrapComp, statusComp := createComponentHolderMocks()
+		dataPool := initDataPool([]byte(""))
+		dataPool.ProofsCalled = func() dataRetriever.ProofsPool {
+			return &dataRetrieverMock.ProofsPoolMock{
+				GetProofCalled: func(shardID uint32, headerHash []byte) (data.HeaderProofHandler, error) {
+					require.Fail(t, "should have not been called")
+					return nil, nil
+				},
+			}
+		}
+		dataComp.DataPool = dataPool
+		arguments := CreateMockArguments(coreComp, dataComp, bootstrapComp, statusComp)
+		bp, _ := blproc.NewShardProcessor(arguments)
+
+		err := bp.AddPrevProofIfNeeded(header)
+		require.NoError(t, err)
+	})
+	t.Run("error on GetProof should not add prev proof", func(t *testing.T) {
+		t.Parallel()
+
+		header := &testscommon.HeaderHandlerStub{
+			GetNonceCalled: func() uint64 {
+				return 2
+			},
+			IsStartOfEpochBlockCalled: func() bool {
+				return false
+			},
+			SetPreviousProofCalled: func(proof data.HeaderProofHandler) {
+				require.Fail(t, "should have not been called")
+			},
+			GetPrevHashCalled: func() []byte {
+				return []byte("prevHash")
+			},
+		}
+
+		coreComp, dataComp, bootstrapComp, statusComp := createComponentHolderMocks()
+		coreComp.EnableEpochsHandlerField = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+			IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
+				return true
+			},
+		}
+		dataPool := initDataPool([]byte(""))
+		dataPool.ProofsCalled = func() dataRetriever.ProofsPool {
+			return &dataRetrieverMock.ProofsPoolMock{
+				GetProofCalled: func(shardID uint32, headerHash []byte) (data.HeaderProofHandler, error) {
+					return nil, expectedErr
+				},
+			}
+		}
+		dataComp.DataPool = dataPool
+		arguments := CreateMockArguments(coreComp, dataComp, bootstrapComp, statusComp)
+		bp, _ := blproc.NewShardProcessor(arguments)
+
+		err := bp.AddPrevProofIfNeeded(header)
+		require.Equal(t, expectedErr, err)
+	})
+	t.Run("should work", func(t *testing.T) {
+		t.Parallel()
+
+		providedProof := &block.HeaderProof{
+			HeaderHash: []byte("hash"),
+		}
+		wasSetPreviousProofCalled := false
+		header := &testscommon.HeaderHandlerStub{
+			EpochField: 5,
+			GetNonceCalled: func() uint64 {
+				return 2
+			},
+			IsStartOfEpochBlockCalled: func() bool {
+				return false
+			},
+			SetPreviousProofCalled: func(proof data.HeaderProofHandler) {
+				require.Equal(t, providedProof, proof)
+				wasSetPreviousProofCalled = true
+			},
+			GetPrevHashCalled: func() []byte {
+				return []byte("prevHash")
+			},
+		}
+
+		coreComp, dataComp, bootstrapComp, statusComp := createComponentHolderMocks()
+		coreComp.EnableEpochsHandlerField = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+			IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
+				return true
+			},
+		}
+		dataPool := initDataPool([]byte(""))
+		dataPool.ProofsCalled = func() dataRetriever.ProofsPool {
+			return &dataRetrieverMock.ProofsPoolMock{
+				GetProofCalled: func(shardID uint32, headerHash []byte) (data.HeaderProofHandler, error) {
+					return providedProof, nil
+				},
+			}
+		}
+		dataComp.DataPool = dataPool
+		arguments := CreateMockArguments(coreComp, dataComp, bootstrapComp, statusComp)
+		bp, _ := blproc.NewShardProcessor(arguments)
+
+		err := bp.AddPrevProofIfNeeded(header)
+		require.NoError(t, err)
+		require.True(t, wasSetPreviousProofCalled)
+	})
+}
+
+func TestBaseProcessor_SemiFunctional_WaitAllMissingProofs(t *testing.T) {
+	t.Parallel()
+
+	requestedHash := []byte("hash")
+	requestedNonce := uint64(2)
+	requestedShard := core.MetachainShardId
+
+	t.Run("happy flow, request header -> receive -> quit waiting", func(t *testing.T) {
+		t.Parallel()
+
+		coreComp, dataComp, bootstrapComp, statusComp := createComponentHolderMocks()
+		coreComp.EnableEpochsHandlerField = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+			IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
+				return true
+			},
+		}
+		dataPool := initDataPool([]byte(""))
+		dataPool.ProofsCalled = func() dataRetriever.ProofsPool {
+			return &dataRetrieverMock.ProofsPoolMock{
+				HasProofCalled: func(shardID uint32, headerHash []byte) bool {
+					// this should be called after the header was received
+					return string(requestedHash) == string(headerHash)
+				},
+			}
+		}
+		dataComp.DataPool = dataPool
+		arguments := CreateMockArguments(coreComp, dataComp, bootstrapComp, statusComp)
+		bp, _ := blproc.NewShardProcessor(arguments)
+
+		// init internal map to avoid panics
+		bp.InitRequestedAttestingNoncesMap()
+
+		chDone := make(chan bool, 1)
+
+		go func() {
+			// wait for missing proofs, this is a blocking operation
+			waitTime := time.Millisecond * 100
+			err := bp.WaitAllMissingProofs(waitTime)
+			require.NoError(t, err)
+
+			chDone <- true
+		}()
+
+		go func() {
+			// this should be called on go routine because it will write on the internal chan
+			time.Sleep(time.Millisecond * 20)
+
+			// call receivedMetaBlock with some dummy headers for coverage
+
+			// nothing we are waiting for yet, early exit on checkReceivedHeaderIfAttestingIsNeeded
+			dummyNotWaitingMetaBlock := &block.MetaBlock{
+				Nonce:    requestedNonce + 2,
+				PrevHash: requestedHash,
+			}
+			bp.ReceivedMetaBlock(dummyNotWaitingMetaBlock, []byte("dummyNotWaitingMetaBlockHash"))
+
+			// first request next header, so waitAllMissingProofs knows it has to wait for a proof
+			bp.RequestNextHeader(requestedHash, requestedNonce, requestedShard)
+
+			// epoch start block, so we get an early return on checkReceivedHeaderIfAttestingIsNeeded
+			dummyEpochStartMetaBlock := &block.MetaBlock{
+				Nonce:    requestedNonce + 1,
+				PrevHash: requestedHash,
+				EpochStart: block.EpochStart{
+					LastFinalizedHeaders: []block.EpochStartShardData{
+						{
+							Nonce: 1,
+						},
+					},
+				},
+			}
+			bp.ReceivedMetaBlock(dummyEpochStartMetaBlock, []byte("dummyEpochStartMetaBlockHash"))
+
+			// not requestedHash that we are waiting for, early exit on checkReceivedHeaderAndUpdateMissingAttesting
+			dummyMetaBlock := &block.MetaBlock{
+				Nonce:    requestedNonce + 2,
+				PrevHash: []byte("anotherPrevHash"),
+			}
+			bp.ReceivedMetaBlock(dummyMetaBlock, []byte("dummyMetaBlockHash"))
+
+			// this is the metaBlock the test is waiting for
+			metaBlock := &block.MetaBlock{
+				Nonce:    requestedNonce,
+				PrevHash: requestedHash, // this is basically the next header that will have proof for current
+			}
+			metaBlockHash := []byte("nextHash")
+			bp.ReceivedMetaBlock(metaBlock, metaBlockHash)
+		}()
+
+		<-chDone
+	})
+	t.Run("no proof needed should early exit without error", func(t *testing.T) {
+		t.Parallel()
+
+		arguments := CreateMockArguments(createComponentHolderMocks())
+		bp, _ := blproc.NewShardProcessor(arguments)
+
+		// jump straight into waiting, without a prior header request
+		// no need for goroutine, the select section should not be reached for this test
+		waitTime := time.Millisecond * 100
+		err := bp.WaitAllMissingProofs(waitTime)
+		require.NoError(t, err)
+	})
+	t.Run("timeout, next header is not received should error", func(t *testing.T) {
+		t.Parallel()
+
+		arguments := CreateMockArguments(createComponentHolderMocks())
+		bp, _ := blproc.NewShardProcessor(arguments)
+
+		// init internal map to avoid panics
+		bp.InitRequestedAttestingNoncesMap()
+
+		// first request next header, so waitAllMissingProofs knows it has to wait for a proof
+		bp.RequestNextHeader(requestedHash, requestedNonce, requestedShard)
+
+		chDone := make(chan bool, 1)
+
+		go func() {
+			// wait for missing proofs, this is a blocking operation
+			waitTime := time.Millisecond * 100
+			err := bp.WaitAllMissingProofs(waitTime)
+			require.Equal(t, process.ErrTimeIsOut, err)
+
+			chDone <- true
+		}()
+
+		<-chDone
 	})
 }

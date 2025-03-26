@@ -221,7 +221,7 @@ func createMockEpochStartBootstrapArgs(
 			},
 			Requesters: generalCfg.Requesters,
 		},
-		EconomicsData: &economicsmocks.EconomicsHandlerStub{
+		EconomicsData: &economicsmocks.EconomicsHandlerMock{
 			MinGasPriceCalled: func() uint64 {
 				return 1
 			},
@@ -2465,8 +2465,9 @@ func TestSyncSetGuardianTransaction(t *testing.T) {
 		TimestampField: 0,
 	}
 
-	err = interceptor.ProcessReceivedMessage(msg, "pid", nil)
+	msgID, err := interceptor.ProcessReceivedMessage(msg, "pid", nil)
 	assert.Nil(t, err)
+	assert.NotNil(t, msgID)
 
 	time.Sleep(time.Second)
 

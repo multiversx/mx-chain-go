@@ -110,7 +110,7 @@ func NewPoolsHolderMock() *PoolsHolderMock {
 	})
 	panicIfError("NewPoolsHolderMock", err)
 
-	holder.proofs = proofscache.NewProofsPool(3)
+	holder.proofs = proofscache.NewProofsPool(3, 100)
 
 	return holder
 }

@@ -21,7 +21,9 @@ import (
 func createEconomicsData() process.EconomicsDataHandler {
 	economicsConfig := testscommon.GetEconomicsConfig()
 	economicsData, _ := economics.NewEconomicsData(economics.ArgsNewEconomicsData{
-		Economics: &economicsConfig,
+		TxVersionChecker: &testscommon.TxVersionCheckerStub{},
+		Economics:        &economicsConfig,
+		EpochNotifier:    &epochNotifier.EpochNotifierStub{},
 		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{
 			IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
 				if flag == common.PenalizedTooMuchGasFlag {
@@ -33,8 +35,8 @@ func createEconomicsData() process.EconomicsDataHandler {
 				return false
 			},
 		},
-		TxVersionChecker: &testscommon.TxVersionCheckerStub{},
-		EpochNotifier:    &epochNotifier.EpochNotifierStub{},
+		PubkeyConverter:  &testscommon.PubkeyConverterStub{},
+		ShardCoordinator: &testscommon.ShardsCoordinatorMock{},
 	})
 
 	return economicsData

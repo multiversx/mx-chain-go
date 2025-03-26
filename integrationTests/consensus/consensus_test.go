@@ -63,7 +63,7 @@ func TestConsensusBLSWithFullProcessing_BeforeEquivalentProofs(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	testConsensusBLSWithFullProcessing(t, integrationTests.UnreachableEpoch)
+	testConsensusBLSWithFullProcessing(t, integrationTests.UnreachableEpoch, 1)
 }
 
 func TestConsensusBLSWithFullProcessing_WithEquivalentProofs(t *testing.T) {
@@ -71,11 +71,18 @@ func TestConsensusBLSWithFullProcessing_WithEquivalentProofs(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	testConsensusBLSWithFullProcessing(t, uint32(0))
+	testConsensusBLSWithFullProcessing(t, uint32(0), 1)
 }
 
-func testConsensusBLSWithFullProcessing(t *testing.T, equivalentProofsActivationEpoch uint32) {
-	numKeysOnEachNode := 1
+func TestConsensusBLSWithFullProcessing_WithEquivalentProofs_MultiKeys(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
+	testConsensusBLSWithFullProcessing(t, uint32(0), 3)
+}
+
+func testConsensusBLSWithFullProcessing(t *testing.T, equivalentProofsActivationEpoch uint32, numKeysOnEachNode int) {
 	numMetaNodes := uint32(2)
 	numNodes := uint32(2)
 	consensusSize := uint32(2 * numKeysOnEachNode)

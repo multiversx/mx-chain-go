@@ -574,6 +574,7 @@ func (e *epochStartBootstrap) prepareComponentsToSyncFromNetwork() error {
 		HeaderIntegrityVerifier:        e.headerIntegrityVerifier,
 		MetaBlockProcessor:             metaBlockProcessor,
 		InterceptedDataVerifierFactory: e.interceptedDataVerifierFactory,
+		ProofsPool:                     e.dataPool.Proofs(),
 	}
 	e.epochStartMetaBlockSyncer, err = NewEpochStartMetaSyncer(argsEpochStartSyncer)
 	if err != nil {
