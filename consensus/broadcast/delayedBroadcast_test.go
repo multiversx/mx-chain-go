@@ -41,16 +41,29 @@ type validatorDelayArgs struct {
 }
 
 type syncLogObserver struct {
-	buffer    *bytes.Buffer
-	mutex     *sync.Mutex
-	formatter logger.Formatter
+	sync.Mutex
+	buffer *bytes.Buffer
 }
 
 // Write method that locks the mutex before writing
 func (o *syncLogObserver) Write(p []byte) (n int, err error) {
-	o.mutex.Lock()
-	defer o.mutex.Unlock()
+	o.Lock()
+	defer o.Unlock()
 	return o.buffer.Write(p)
+}
+
+func (o *syncLogObserver) getBufferStr() string {
+	o.Lock()
+	logOutputStr := o.buffer.String()
+	o.Unlock()
+
+	return logOutputStr
+}
+
+func createLogsObserver() *syncLogObserver {
+	return &syncLogObserver{
+		buffer: &bytes.Buffer{},
+	}
 }
 
 func createValidatorDelayArgs(index int) *validatorDelayArgs {
@@ -316,31 +329,30 @@ func TestDelayedBlockBroadcaster_HeaderReceivedForNotRegisteredDelayedDataShould
 }
 
 func TestDelayedBlockBroadcaster_HeaderReceivedWithoutSignaturesForShardShouldNotBroadcastTheData(t *testing.T) {
-	var logOutput bytes.Buffer
-	var logMutex sync.Mutex
-
-	customFormatter := &logger.PlainFormatter{}
-	observer := syncLogObserver{
-		buffer:    &logOutput,
-		mutex:     &logMutex,
-		formatter: customFormatter,
-	}
-	err := logger.AddLogObserver(&observer, customFormatter)
+	observer := createLogsObserver()
+	err := logger.AddLogObserver(observer, &logger.PlainFormatter{})
 	require.Nil(t, err)
 
 	originalLogPattern := logger.GetLogLevelPattern()
 	err = logger.SetLogLevel("*:TRACE")
 	require.Nil(t, err)
 
+	defer func() {
+		err = logger.RemoveLogObserver(observer)
+		require.Nil(t, err)
+		err = logger.SetLogLevel(originalLogPattern)
+		require.Nil(t, err)
+	}()
+
 	mbBroadcastCalled := atomic.Flag{}
 	txBroadcastCalled := atomic.Flag{}
 
 	broadcastMiniBlocks := func(mbData map[uint32][]byte, pk []byte) error {
-		_ = mbBroadcastCalled.SetReturningPrevious()
+		mbBroadcastCalled.SetValue(true)
 		return nil
 	}
 	broadcastTransactions := func(txData map[string][][]byte, pk []byte) error {
-		_ = txBroadcastCalled.SetReturningPrevious()
+		txBroadcastCalled.SetValue(true)
 		return nil
 	}
 	broadcastHeader := func(header data.HeaderHandler, pk []byte) error {
@@ -375,21 +387,13 @@ func TestDelayedBlockBroadcaster_HeaderReceivedWithoutSignaturesForShardShouldNo
 		100*time.Millisecond
 	time.Sleep(sleepTime)
 
-	logMutex.Lock()
-	logOutputStr := logOutput.String()
-	logMutex.Unlock()
-
+	logOutputStr := observer.getBufferStr()
 	expectedLogMsg := "delayedBlockBroadcaster.headerReceived: header received with no shardData for current shard"
 	require.Contains(t, logOutputStr, expectedLogMsg)
 	require.Contains(t, logOutputStr, fmt.Sprintf("headerHash = %s", hex.EncodeToString(headerHash)))
 
 	assert.False(t, mbBroadcastCalled.IsSet())
 	assert.False(t, txBroadcastCalled.IsSet())
-
-	err = logger.RemoveLogObserver(&observer)
-	require.Nil(t, err)
-	err = logger.SetLogLevel(originalLogPattern)
-	require.Nil(t, err)
 }
 
 func TestDelayedBlockBroadcaster_HeaderReceivedForNextRegisteredDelayedDataShouldBroadcastBoth(t *testing.T) {
@@ -480,21 +484,20 @@ func TestDelayedBlockBroadcaster_SetLeaderData(t *testing.T) {
 }
 
 func TestDelayedBlockBroadcaster_SetLeaderDataOverCacheSizeShouldBroadcastOldest(t *testing.T) {
-	var logOutput bytes.Buffer
-	var logMutex sync.Mutex
-
-	customFormatter := &logger.PlainFormatter{}
-	observer := syncLogObserver{
-		buffer:    &logOutput,
-		mutex:     &logMutex,
-		formatter: customFormatter,
-	}
-	err := logger.AddLogObserver(&observer, customFormatter)
+	observer := createLogsObserver()
+	err := logger.AddLogObserver(observer, &logger.PlainFormatter{})
 	require.Nil(t, err)
 
 	originalLogPattern := logger.GetLogLevelPattern()
 	err = logger.SetLogLevel("*:DEBUG")
 	require.Nil(t, err)
+
+	defer func() {
+		err = logger.RemoveLogObserver(observer)
+		require.Nil(t, err)
+		err = logger.SetLogLevel(originalLogPattern)
+		require.Nil(t, err)
+	}()
 
 	broadcastMiniBlocks := func(mbData map[uint32][]byte, pk []byte) error {
 		return nil
@@ -535,10 +538,7 @@ func TestDelayedBlockBroadcaster_SetLeaderDataOverCacheSizeShouldBroadcastOldest
 	require.Nil(t, err)
 	time.Sleep(10 * time.Millisecond)
 
-	logMutex.Lock()
-	logOutputStr := logOutput.String()
-	logMutex.Unlock()
-
+	logOutputStr := observer.getBufferStr()
 	expectedLogMsg := "delayedBlockBroadcaster.SetLeaderData: leader broadcasts old data before alarm due to too much delay data"
 	require.Contains(t, logOutputStr, expectedLogMsg)
 	require.Contains(t, logOutputStr, fmt.Sprintf("headerHash = %s", hex.EncodeToString(headerHash1)))
@@ -547,11 +547,6 @@ func TestDelayedBlockBroadcaster_SetLeaderDataOverCacheSizeShouldBroadcastOldest
 
 	vbb := dbb.GetLeaderBroadcastData()
 	require.Equal(t, 2, len(vbb))
-
-	err = logger.RemoveLogObserver(&observer)
-	require.Nil(t, err)
-	err = logger.SetLogLevel(originalLogPattern)
-	require.Nil(t, err)
 }
 
 func TestDelayedBlockBroadcaster_SetValidatorDataNilDataShouldErr(t *testing.T) {
@@ -603,21 +598,20 @@ func TestDelayedBlockBroadcaster_SetBroadcastHandlersFailsIfNilHandler(t *testin
 }
 
 func TestDelayedBlockBroadcaster_SetHeaderForValidatorWithoutSignaturesShouldNotSetAlarm(t *testing.T) {
-	var logOutput bytes.Buffer
-	var logMutex sync.Mutex
-
-	customFormatter := &logger.PlainFormatter{}
-	observer := syncLogObserver{
-		buffer:    &logOutput,
-		mutex:     &logMutex,
-		formatter: customFormatter,
-	}
-	err := logger.AddLogObserver(&observer, customFormatter)
+	observer := createLogsObserver()
+	err := logger.AddLogObserver(observer, &logger.PlainFormatter{})
 	require.Nil(t, err)
 
 	originalLogPattern := logger.GetLogLevelPattern()
 	err = logger.SetLogLevel("*:TRACE")
 	require.Nil(t, err)
+
+	defer func() {
+		err = logger.RemoveLogObserver(observer)
+		require.Nil(t, err)
+		err = logger.SetLogLevel(originalLogPattern)
+		require.Nil(t, err)
+	}()
 
 	mbBroadcastCalled := atomic.Counter{}
 	txBroadcastCalled := atomic.Counter{}
@@ -658,10 +652,7 @@ func TestDelayedBlockBroadcaster_SetHeaderForValidatorWithoutSignaturesShouldNot
 	err = dbb.SetHeaderForValidator(valHeaderData)
 	require.Nil(t, err)
 
-	logMutex.Lock()
-	logOutputStr := logOutput.String()
-	logMutex.Unlock()
-
+	logOutputStr := observer.getBufferStr()
 	expectedLogMsg := "delayedBlockBroadcaster.SetHeaderForValidator: header alarm has not been set"
 	require.Contains(t, logOutputStr, expectedLogMsg)
 	require.Contains(t, logOutputStr, fmt.Sprintf("validatorConsensusOrder = %d", vArgs.order))
@@ -675,11 +666,6 @@ func TestDelayedBlockBroadcaster_SetHeaderForValidatorWithoutSignaturesShouldNot
 
 	vbb = dbb.GetValidatorHeaderBroadcastData()
 	require.Equal(t, 0, len(vbb))
-
-	err = logger.RemoveLogObserver(&observer)
-	require.Nil(t, err)
-	err = logger.SetLogLevel(originalLogPattern)
-	require.Nil(t, err)
 }
 
 func TestDelayedBlockBroadcaster_SetHeaderForValidatorShouldSetAlarmAndBroadcastHeader(t *testing.T) {
@@ -746,21 +732,14 @@ func TestDelayedBlockBroadcaster_SetHeaderForValidatorShouldSetAlarmAndBroadcast
 }
 
 func TestDelayedBlockBroadcaster_SetHeaderForValidator_BroadcastHeaderError(t *testing.T) {
-	var logOutput bytes.Buffer
-	var logMutex sync.Mutex
-
-	customFormatter := &logger.PlainFormatter{}
-	observer := syncLogObserver{
-		buffer:    &logOutput,
-		mutex:     &logMutex,
-		formatter: customFormatter,
-	}
-	err := logger.AddLogObserver(&observer, customFormatter)
+	observer := createLogsObserver()
+	err := logger.AddLogObserver(observer, &logger.PlainFormatter{})
 	require.Nil(t, err)
 
-	originalLogPattern := logger.GetLogLevelPattern()
-	err = logger.SetLogLevel("*:WARN")
-	require.Nil(t, err)
+	defer func() {
+		err = logger.RemoveLogObserver(observer)
+		require.Nil(t, err)
+	}()
 
 	mbBroadcastCalled := atomic.Counter{}
 	txBroadcastCalled := atomic.Counter{}
@@ -812,10 +791,7 @@ func TestDelayedBlockBroadcaster_SetHeaderForValidator_BroadcastHeaderError(t *t
 		time.Millisecond*100
 	time.Sleep(sleepTime)
 
-	logMutex.Lock()
-	logOutputStr := logOutput.String()
-	logMutex.Unlock()
-
+	logOutputStr := observer.getBufferStr()
 	expectedLogMsg := "delayedBlockBroadcaster.headerAlarmExpired error = %s"
 	require.Contains(t, logOutputStr, fmt.Sprintf(expectedLogMsg, broadcastError))
 
@@ -824,11 +800,6 @@ func TestDelayedBlockBroadcaster_SetHeaderForValidator_BroadcastHeaderError(t *t
 
 	vbb = dbb.GetValidatorHeaderBroadcastData()
 	require.Equal(t, 0, len(vbb))
-
-	err = logger.RemoveLogObserver(&observer)
-	require.Nil(t, err)
-	err = logger.SetLogLevel(originalLogPattern)
-	require.Nil(t, err)
 }
 
 func TestDelayedBlockBroadcaster_SetValidatorDataFinalizedMetaHeaderShouldSetAlarmAndBroadcastHeaderAndData(t *testing.T) {
@@ -1463,21 +1434,14 @@ func TestDelayedBlockBroadcaster_AlarmExpiredShouldDoNothingForNotRegisteredData
 }
 
 func TestDelayedBlockBroadcaster_HeaderAlarmExpired_InvalidAlarmID(t *testing.T) {
-	var logOutput bytes.Buffer
-	var logMutex sync.Mutex
-
-	customFormatter := &logger.PlainFormatter{}
-	observer := syncLogObserver{
-		buffer:    &logOutput,
-		mutex:     &logMutex,
-		formatter: customFormatter,
-	}
-	err := logger.AddLogObserver(&observer, customFormatter)
+	observer := createLogsObserver()
+	err := logger.AddLogObserver(observer, &logger.PlainFormatter{})
 	require.Nil(t, err)
 
-	originalLogPattern := logger.GetLogLevelPattern()
-	err = logger.SetLogLevel("*:ERROR")
-	require.Nil(t, err)
+	defer func() {
+		err = logger.RemoveLogObserver(observer)
+		require.Nil(t, err)
+	}()
 
 	delayBroadcasterArgs := createDefaultDelayedBroadcasterArgs()
 	dbb, err := broadcast.NewDelayedBlockBroadcaster(delayBroadcasterArgs)
@@ -1486,36 +1450,27 @@ func TestDelayedBlockBroadcaster_HeaderAlarmExpired_InvalidAlarmID(t *testing.T)
 	invalidAlarmID := "invalid_alarm_id"
 	dbb.HeaderAlarmExpired(invalidAlarmID)
 
-	logMutex.Lock()
-	logOutputStr := logOutput.String()
-	logMutex.Unlock()
-
+	logOutputStr := observer.getBufferStr()
 	expectedLogMsg := "delayedBlockBroadcaster.headerAlarmExpired"
 	require.Contains(t, logOutputStr, expectedLogMsg)
 	require.Contains(t, logOutputStr, fmt.Sprintf("alarmID = %s", invalidAlarmID))
-
-	err = logger.RemoveLogObserver(&observer)
-	require.Nil(t, err)
-	err = logger.SetLogLevel(originalLogPattern)
-	require.Nil(t, err)
 }
 
 func TestDelayedBlockBroadcaster_HeaderAlarmExpired_HeaderDataNil(t *testing.T) {
-	var logOutput bytes.Buffer
-	var logMutex sync.Mutex
-
-	customFormatter := &logger.PlainFormatter{}
-	observer := syncLogObserver{
-		buffer:    &logOutput,
-		mutex:     &logMutex,
-		formatter: customFormatter,
-	}
-	err := logger.AddLogObserver(&observer, customFormatter)
+	observer := createLogsObserver()
+	err := logger.AddLogObserver(observer, &logger.PlainFormatter{})
 	require.Nil(t, err)
 
 	originalLogPattern := logger.GetLogLevelPattern()
 	err = logger.SetLogLevel("*:DEBUG")
 	require.Nil(t, err)
+
+	defer func() {
+		err = logger.RemoveLogObserver(observer)
+		require.Nil(t, err)
+		err = logger.SetLogLevel(originalLogPattern)
+		require.Nil(t, err)
+	}()
 
 	delayBroadcasterArgs := createDefaultDelayedBroadcasterArgs()
 	dbb, err := broadcast.NewDelayedBlockBroadcaster(delayBroadcasterArgs)
@@ -1526,18 +1481,10 @@ func TestDelayedBlockBroadcaster_HeaderAlarmExpired_HeaderDataNil(t *testing.T) 
 
 	dbb.HeaderAlarmExpired(alarmID)
 
-	logMutex.Lock()
-	logOutputStr := logOutput.String()
-	logMutex.Unlock()
-
+	logOutputStr := observer.getBufferStr()
 	expectedLogMsg := "delayedBlockBroadcaster.headerAlarmExpired: alarm data is nil"
 	require.Contains(t, logOutputStr, expectedLogMsg)
 	require.Contains(t, logOutputStr, "alarmID = "+alarmID)
-
-	err = logger.RemoveLogObserver(&observer)
-	require.Nil(t, err)
-	err = logger.SetLogLevel(originalLogPattern)
-	require.Nil(t, err)
 }
 
 func TestDelayedBlockBroadcaster_RegisterInterceptorCallback(t *testing.T) {
@@ -1611,21 +1558,14 @@ func TestDelayedBlockBroadcaster_RegisterInterceptorCallback(t *testing.T) {
 }
 
 func TestDelayedBlockBroadcaster_BroadcastBlockDataFailedBroadcast(t *testing.T) {
-	var logOutput bytes.Buffer
-	var logMutex sync.Mutex
-
-	customFormatter := &logger.PlainFormatter{}
-	observer := syncLogObserver{
-		buffer:    &logOutput,
-		mutex:     &logMutex,
-		formatter: customFormatter,
-	}
-	err := logger.AddLogObserver(&observer, customFormatter)
+	observer := createLogsObserver()
+	err := logger.AddLogObserver(observer, &logger.PlainFormatter{})
 	require.Nil(t, err)
 
-	originalLogPattern := logger.GetLogLevelPattern()
-	err = logger.SetLogLevel("*:ERROR")
-	require.Nil(t, err)
+	defer func() {
+		err = logger.RemoveLogObserver(observer)
+		require.Nil(t, err)
+	}()
 
 	errMiniBlocks := "mini blocks broadcast error"
 	broadcastMiniBlocks := func(mbData map[uint32][]byte, pk []byte) error {
@@ -1651,17 +1591,9 @@ func TestDelayedBlockBroadcaster_BroadcastBlockDataFailedBroadcast(t *testing.T)
 
 	dbb.BroadcastBlockData(nil, nil, nil, time.Millisecond*100)
 
-	logMutex.Lock()
-	logOutputString := logOutput.String()
-	logMutex.Unlock()
-
-	require.Contains(t, logOutputString, errMiniBlocks)
-	require.Contains(t, logOutputString, errTxs)
-
-	err = logger.RemoveLogObserver(&observer)
-	require.Nil(t, err)
-	err = logger.SetLogLevel(originalLogPattern)
-	require.Nil(t, err)
+	logOutputStr := observer.getBufferStr()
+	require.Contains(t, logOutputStr, errMiniBlocks)
+	require.Contains(t, logOutputStr, errTxs)
 }
 
 func TestDelayedBlockBroadcaster_GetShardDataFromMetaChainBlockInvalidMetaHandler(t *testing.T) {
