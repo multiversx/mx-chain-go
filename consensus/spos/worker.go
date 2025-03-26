@@ -304,7 +304,7 @@ func (wrk *Worker) addFutureHeaderToProcessIfNeeded(header data.HeaderHandler) {
 
 	headerConsensusMessage, err := wrk.convertHeaderToConsensusMessage(header)
 	if err != nil {
-		log.Error("addFutureHeaderToProcessIfNeeded: convertHeaderToConsensusMessage failed")
+		log.Error("addFutureHeaderToProcessIfNeeded: convertHeaderToConsensusMessage failed", "error", err.Error())
 		return
 	}
 
@@ -318,10 +318,9 @@ func (wrk *Worker) convertHeaderToConsensusMessage(header data.HeaderHandler) (*
 	}
 
 	return &consensus.Message{
-		Header:          headerBytes,
-		BlockHeaderHash: wrk.hasher.Compute(string(headerBytes)),
-		MsgType:         int64(wrk.consensusService.GetMessageTypeBlockHeader()),
-		RoundIndex:      int64(header.GetRound()),
+		Header:     headerBytes,
+		MsgType:    int64(wrk.consensusService.GetMessageTypeBlockHeader()),
+		RoundIndex: int64(header.GetRound()),
 	}, nil
 }
 
