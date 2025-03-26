@@ -1,6 +1,9 @@
 package testscommon
 
-import "time"
+import (
+	"fmt"
+	"time"
+)
 
 // RequestHandlerStub -
 type RequestHandlerStub struct {
@@ -62,8 +65,10 @@ func (rhs *RequestHandlerStub) SetEpoch(_ uint32) {
 // RequestShardHeader -
 func (rhs *RequestHandlerStub) RequestShardHeader(shardID uint32, hash []byte) {
 	if rhs.RequestShardHeaderCalled == nil {
+		fmt.Println("I DONT HAVE A HANDLER")
 		return
 	}
+	fmt.Println("I HAVE A HANDLER")
 	rhs.RequestShardHeaderCalled(shardID, hash)
 }
 
