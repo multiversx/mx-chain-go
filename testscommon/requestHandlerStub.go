@@ -1,8 +1,6 @@
 package testscommon
 
-import (
-	"time"
-)
+import "time"
 
 // RequestHandlerStub -
 type RequestHandlerStub struct {
@@ -66,7 +64,6 @@ func (rhs *RequestHandlerStub) RequestShardHeader(shardID uint32, hash []byte) {
 	if rhs.RequestShardHeaderCalled == nil {
 		return
 	}
-
 	rhs.RequestShardHeaderCalled(shardID, hash)
 }
 
