@@ -889,11 +889,11 @@ func emptyChannel(ch chan *consensus.Message) int {
 func (wrk *Worker) StartTimer() {
 	go func() {
 		now := time.Now()
-		nextMinute := now.Truncate(time.Minute).Add(time.Minute)
+		nextMinute := now.Truncate(time.Second * 10).Add(time.Second * 10)
 		time.Sleep(time.Until(nextMinute))
 
 		// Start ticker to run every minute
-		ticker := time.NewTicker(time.Minute)
+		ticker := time.NewTicker(time.Second * 10)
 		defer ticker.Stop()
 
 		log.Info("Starting task execution at", "topic", "worker")
