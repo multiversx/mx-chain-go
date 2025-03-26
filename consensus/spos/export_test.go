@@ -6,8 +6,10 @@ import (
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/marshal"
 
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/process"
 )
@@ -167,6 +169,26 @@ func (wrk *Worker) AppendReceivedMessagesCalls(messageType consensus.MessageType
 // ExecuteMessageChannel -
 func (wrk *Worker) ExecuteMessageChannel() chan *consensus.Message {
 	return wrk.executeMessageChannel
+}
+
+// ConvertHeaderToConsensusMessage -
+func (wrk *Worker) ConvertHeaderToConsensusMessage(header data.HeaderHandler) (*consensus.Message, error) {
+	return wrk.convertHeaderToConsensusMessage(header)
+}
+
+// Hasher -
+func (wrk *Worker) Hasher() data.Hasher {
+	return wrk.hasher
+}
+
+// SetEnableEpochsHandler
+func (wrk *Worker) SetEnableEpochsHandler(enableEpochsHandler common.EnableEpochsHandler) {
+	wrk.enableEpochsHandler = enableEpochsHandler
+}
+
+// AddFutureHeaderToProcessIfNeeded -
+func (wrk *Worker) AddFutureHeaderToProcessIfNeeded(header data.HeaderHandler) {
+	wrk.addFutureHeaderToProcessIfNeeded(header)
 }
 
 // ConsensusStateChangedChannel -

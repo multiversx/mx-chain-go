@@ -18,6 +18,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	crypto "github.com/multiversx/mx-chain-crypto-go"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/consensus"
 	errorsErd "github.com/multiversx/mx-chain-go/errors"
@@ -288,6 +289,41 @@ func (wrk *Worker) receivedSyncState(isNodeSynchronized bool) {
 	}
 }
 
+func (wrk *Worker) addFutureHeaderToProcessIfNeeded(header data.HeaderHandler) {
+	if check.IfNil(header) {
+		return
+	}
+	if !wrk.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, header.GetEpoch()) {
+		return
+	}
+
+	isHeaderForNextRound := int64(header.GetRound()) == wrk.roundHandler.Index()+1
+	if !isHeaderForNextRound {
+		return
+	}
+
+	headerConsensusMessage, err := wrk.convertHeaderToConsensusMessage(header)
+	if err != nil {
+		log.Error("addFutureHeaderToProcessIfNeeded: convertHeaderToConsensusMessage failed", "error", err.Error())
+		return
+	}
+
+	go wrk.executeReceivedMessages(headerConsensusMessage)
+}
+
+func (wrk *Worker) convertHeaderToConsensusMessage(header data.HeaderHandler) (*consensus.Message, error) {
+	headerBytes, err := wrk.marshalizer.Marshal(header)
+	if err != nil {
+		return nil, ErrInvalidHeader
+	}
+
+	return &consensus.Message{
+		Header:     headerBytes,
+		MsgType:    int64(wrk.consensusService.GetMessageTypeBlockHeader()),
+		RoundIndex: int64(header.GetRound()),
+	}, nil
+}
+
 // ReceivedHeader process the received header, calling each received header handler registered in worker instance
 func (wrk *Worker) ReceivedHeader(headerHandler data.HeaderHandler, _ []byte) {
 	if check.IfNil(headerHandler) {
@@ -295,6 +331,7 @@ func (wrk *Worker) ReceivedHeader(headerHandler data.HeaderHandler, _ []byte) {
 		return
 	}
 
+	wrk.addFutureHeaderToProcessIfNeeded(headerHandler)
 	isHeaderForOtherShard := headerHandler.GetShardID() != wrk.shardCoordinator.SelfId()
 	isHeaderForOtherRound := int64(headerHandler.GetRound()) != wrk.roundHandler.Index()
 	headerCanNotBeProcessed := isHeaderForOtherShard || isHeaderForOtherRound
@@ -748,6 +785,31 @@ func (wrk *Worker) checkChannels(ctx context.Context) {
 				}
 			}
 		}
+
+		wrk.callReceivedHeaderCallbacks(rcvDta)
+	}
+}
+
+func (wrk *Worker) callReceivedHeaderCallbacks(message *consensus.Message) {
+	headerMessageType := wrk.consensusService.GetMessageTypeBlockHeader()
+	if message.MsgType != int64(headerMessageType) || !wrk.enableEpochsHandler.IsFlagEnabled(common.EquivalentMessagesFlag) {
+		return
+	}
+
+	header := wrk.blockProcessor.DecodeBlockHeader(message.Header)
+	if check.IfNil(header) {
+		return
+	}
+
+	wrk.mutReceivedHeadersHandler.RLock()
+	for _, handler := range wrk.receivedHeadersHandlers {
+		handler(header)
+	}
+	wrk.mutReceivedHeadersHandler.RUnlock()
+
+	select {
+	case wrk.consensusStateChangedChannel <- true:
+	default:
 	}
 }
 
