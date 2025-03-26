@@ -1827,11 +1827,14 @@ func TestWorker_StoredHeadersExecution(t *testing.T) {
 			_ = wrk.ConsensusState().SetJobDone(wrk.ConsensusState().ConsensusGroup()[0], bls.SrBlock, true)
 		})
 
-		roundHandler := wrk.RoundHandler()
-		mockRoundHandler, ok := roundHandler.(*consensusMocks.RoundHandlerMock)
-		require.True(t, ok)
-
-		mockRoundHandler.RoundIndex = 99
+		roundIndex := &atomic.Int64{}
+		roundIndex.Store(99)
+		roundHandler := &consensusMocks.RoundHandlerMock{
+			IndexCalled: func() int64 {
+				return roundIndex.Load()
+			},
+		}
+		wrk.SetRoundHandler(roundHandler)
 		wrk.ConsensusState().SetRoundIndex(99)
 		cnsGroup := wrk.ConsensusState().ConsensusGroup()
 
@@ -1867,11 +1870,15 @@ func TestWorker_StoredHeadersExecution(t *testing.T) {
 			_ = wrk.ConsensusState().SetJobDone(wrk.ConsensusState().ConsensusGroup()[0], bls.SrBlock, true)
 		})
 
-		roundHandler := wrk.RoundHandler()
-		mockRoundHandler, ok := roundHandler.(*consensusMocks.RoundHandlerMock)
-		require.True(t, ok)
+		roundIndex := &atomic.Int64{}
+		roundIndex.Store(99)
+		roundHandler := &consensusMocks.RoundHandlerMock{
+			IndexCalled: func() int64 {
+				return roundIndex.Load()
+			},
+		}
+		wrk.SetRoundHandler(roundHandler)
 
-		mockRoundHandler.RoundIndex = 99
 		wrk.ConsensusState().SetRoundIndex(99)
 		cnsGroup := wrk.ConsensusState().ConsensusGroup()
 
@@ -1890,7 +1897,7 @@ func TestWorker_StoredHeadersExecution(t *testing.T) {
 		wrk.ConsensusState().SetStatus(bls.SrStartRound, spos.SsFinished)
 		wrk.AddFutureHeaderToProcessIfNeeded(hdr)
 		time.Sleep(200 * time.Millisecond)
-		mockRoundHandler.RoundIndex = 100
+		roundIndex.Store(100)
 		wrk.ConsensusState().SetRoundIndex(100)
 		wrk.ExecuteStoredMessages()
 		time.Sleep(200 * time.Millisecond)
@@ -1913,11 +1920,15 @@ func TestWorker_StoredHeadersExecution(t *testing.T) {
 			_ = wrk.ConsensusState().SetJobDone(wrk.ConsensusState().ConsensusGroup()[0], bls.SrBlock, true)
 		})
 
-		roundHandler := wrk.RoundHandler()
-		mockRoundHandler, ok := roundHandler.(*consensusMocks.RoundHandlerMock)
-		require.True(t, ok)
+		roundIndex := &atomic.Int64{}
+		roundIndex.Store(99)
+		roundHandler := &consensusMocks.RoundHandlerMock{
+			IndexCalled: func() int64 {
+				return roundIndex.Load()
+			},
+		}
+		wrk.SetRoundHandler(roundHandler)
 
-		mockRoundHandler.RoundIndex = 99
 		wrk.ConsensusState().SetRoundIndex(99)
 		cnsGroup := wrk.ConsensusState().ConsensusGroup()
 
@@ -1936,7 +1947,7 @@ func TestWorker_StoredHeadersExecution(t *testing.T) {
 		wrk.ConsensusState().SetStatus(bls.SrStartRound, spos.SsFinished)
 		wrk.AddFutureHeaderToProcessIfNeeded(hdr)
 		time.Sleep(200 * time.Millisecond)
-		mockRoundHandler.RoundIndex = 100
+		roundIndex.Store(100)
 		wrk.ConsensusState().SetRoundIndex(100)
 		wrk.ExecuteStoredMessages()
 		time.Sleep(200 * time.Millisecond)
