@@ -199,7 +199,7 @@ func TestRewardsCreatorV2_adjustProtocolSustainabilityRewardsPositiveValue(t *te
 	require.NotNil(t, rwd)
 
 	initialProtRewardValue := big.NewInt(1000000)
-	protRwAddr, _ := args.PubkeyConverter.Decode(args.ProtocolSustainabilityAddress)
+	protRwAddr, _ := args.PubkeyConverter.Decode(args.RewardsHandler.ProtocolSustainabilityAddressInEpoch(0))
 	protRwTx := &rewardTx.RewardTx{
 		Round:   100,
 		Value:   big.NewInt(0).Set(initialProtRewardValue),
@@ -230,7 +230,7 @@ func TestRewardsCreatorV2_adjustProtocolSustainabilityRewardsNegValueNotAccepted
 	require.NotNil(t, rwd)
 
 	initialProtRewardValue := big.NewInt(10)
-	protRwAddr, _ := args.PubkeyConverter.Decode(args.ProtocolSustainabilityAddress)
+	protRwAddr, _ := args.PubkeyConverter.Decode(args.RewardsHandler.ProtocolSustainabilityAddressInEpoch(0))
 	protRwTx := &rewardTx.RewardTx{
 		Round:   100,
 		Value:   big.NewInt(0).Set(initialProtRewardValue),
@@ -262,7 +262,7 @@ func TestRewardsCreatorV2_adjustProtocolSustainabilityRewardsInitialNegativeValu
 	require.NotNil(t, rwd)
 
 	initialProtRewardValue := big.NewInt(-100)
-	protRwAddr, _ := args.PubkeyConverter.Decode(args.ProtocolSustainabilityAddress)
+	protRwAddr, _ := args.PubkeyConverter.Decode(args.RewardsHandler.ProtocolSustainabilityAddressInEpoch(0))
 	protRwTx := &rewardTx.RewardTx{
 		Round:   100,
 		Value:   big.NewInt(0).Set(initialProtRewardValue),
@@ -539,7 +539,7 @@ func TestNewRewardsCreatorV2_computeTopUpRewardsZeroTopup(t *testing.T) {
 	totalToDistribute, _ := big.NewInt(-1).SetString("3000000000000000000000", 10)
 	totalTopUpEligible := big.NewInt(0)
 
-	topUpRewards := rwd.computeTopUpRewards(totalToDistribute, totalTopUpEligible)
+	topUpRewards := rwd.computeTopUpRewards(totalToDistribute, totalTopUpEligible, 0)
 	require.NotNil(t, topUpRewards)
 	require.Equal(t, big.NewInt(0), topUpRewards)
 }
@@ -555,7 +555,7 @@ func TestNewRewardsCreatorV2_computeTopUpRewardsNegativeToDistribute(t *testing.
 	totalToDistribute := big.NewInt(-1)
 	totalTopUpEligible := big.NewInt(10000)
 
-	topUpRewards := rwd.computeTopUpRewards(totalToDistribute, totalTopUpEligible)
+	topUpRewards := rwd.computeTopUpRewards(totalToDistribute, totalTopUpEligible, 0)
 	require.NotNil(t, topUpRewards)
 	require.Equal(t, big.NewInt(0), topUpRewards)
 }
@@ -569,27 +569,27 @@ func TestNewRewardsCreatorV2_computeTopUpRewards(t *testing.T) {
 	require.NotNil(t, rwd)
 
 	totalToDistribute, _ := big.NewInt(0).SetString("3000000000000000000000", 10)
-	topUpRewardsLimit := core.GetApproximatePercentageOfValue(totalToDistribute, rwd.rewardsHandler.RewardsTopUpFactor())
+	topUpRewardsLimit := core.GetApproximatePercentageOfValue(totalToDistribute, rwd.rewardsHandler.RewardsTopUpFactorInEpoch(0))
 
 	totalTopUpEligible, _ := big.NewInt(0).SetString("2000000000000000000000000", 10)
-	topUpRewards := rwd.computeTopUpRewards(totalToDistribute, totalTopUpEligible)
+	topUpRewards := rwd.computeTopUpRewards(totalToDistribute, totalTopUpEligible, 0)
 	require.NotNil(t, topUpRewards)
 	require.True(t, topUpRewards.Cmp(topUpRewardsLimit) < 0)
 
 	totalTopUpEligible, _ = big.NewInt(0).SetString("3000000000000000000000000", 10)
-	topUpRewards = rwd.computeTopUpRewards(totalToDistribute, totalTopUpEligible)
+	topUpRewards = rwd.computeTopUpRewards(totalToDistribute, totalTopUpEligible, 0)
 
 	require.NotNil(t, topUpRewards)
 	require.Equal(t, topUpRewards, big.NewInt(0).Div(topUpRewardsLimit, big.NewInt(2)))
 
 	totalTopUpEligible, _ = big.NewInt(0).SetString("3500000000000000000000000", 10)
-	topUpRewards = rwd.computeTopUpRewards(totalToDistribute, totalTopUpEligible)
+	topUpRewards = rwd.computeTopUpRewards(totalToDistribute, totalTopUpEligible, 0)
 
 	require.NotNil(t, topUpRewards)
 	require.True(t, topUpRewards.Cmp(big.NewInt(0).Div(topUpRewardsLimit, big.NewInt(2))) > 0)
 
 	totalTopUpEligible, _ = big.NewInt(0).SetString("9000000000000000000000000000000", 10)
-	topUpRewards = rwd.computeTopUpRewards(totalToDistribute, totalTopUpEligible)
+	topUpRewards = rwd.computeTopUpRewards(totalToDistribute, totalTopUpEligible, 0)
 
 	require.NotNil(t, topUpRewards)
 	require.True(t, topUpRewards.Cmp(big.NewInt(0).Div(topUpRewardsLimit, big.NewInt(2))) > 0)
@@ -1766,11 +1766,11 @@ func getRewardsCreatorV2Arguments() RewardsCreatorArgsV2 {
 	rewardsTopUpGradientPoint, _ := big.NewInt(0).SetString("3000000000000000000000000", 10)
 	topUpRewardFactor := 0.25
 
-	rewardsHandler := &economicsmocks.EconomicsHandlerStub{
-		RewardsTopUpGradientPointCalled: func() *big.Int {
+	rewardsHandler := &economicsmocks.EconomicsHandlerMock{
+		RewardsTopUpGradientPointInEpochCalled: func(_ uint32) *big.Int {
 			return big.NewInt(0).Set(rewardsTopUpGradientPoint)
 		},
-		RewardsTopUpFactorCalled: func() float64 {
+		RewardsTopUpFactorInEpochCalled: func(_ uint32) float64 {
 			return topUpRewardFactor
 		},
 	}
@@ -1786,11 +1786,11 @@ func getRewardsCreatorV35Arguments() RewardsCreatorArgsV2 {
 	rewardsTopUpGradientPoint, _ := big.NewInt(0).SetString("2000000000000000000000000", 10)
 	topUpRewardFactor := 0.5
 
-	rewardsHandler := &economicsmocks.EconomicsHandlerStub{
-		RewardsTopUpGradientPointCalled: func() *big.Int {
+	rewardsHandler := &economicsmocks.EconomicsHandlerMock{
+		RewardsTopUpGradientPointInEpochCalled: func(_ uint32) *big.Int {
 			return big.NewInt(0).Set(rewardsTopUpGradientPoint)
 		},
-		RewardsTopUpFactorCalled: func() float64 {
+		RewardsTopUpFactorInEpochCalled: func(_ uint32) float64 {
 			return topUpRewardFactor
 		},
 	}

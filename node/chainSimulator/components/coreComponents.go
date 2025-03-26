@@ -184,15 +184,13 @@ func CreateCoreComponents(args ArgsCoreComponentsHolder) (*coreComponentsHolder,
 		return nil, err
 	}
 
-	if err != nil {
-		return nil, err
-	}
-
 	argsEconomicsHandler := economics.ArgsNewEconomicsData{
 		TxVersionChecker:    instance.txVersionChecker,
 		Economics:           &args.EconomicsConfig,
 		EpochNotifier:       instance.epochNotifier,
 		EnableEpochsHandler: instance.enableEpochsHandler,
+		PubkeyConverter:     instance.addressPubKeyConverter,
+		ShardCoordinator:    testscommon.NewMultiShardsCoordinatorMock(instance.genesisNodesSetup.NumberOfShards()),
 	}
 
 	instance.economicsData, err = economics.NewEconomicsData(argsEconomicsHandler)

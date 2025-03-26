@@ -128,7 +128,7 @@ func (scm *shardChainMessenger) BroadcastHeader(header data.HeaderHandler, pkByt
 }
 
 // BroadcastEquivalentProof will broadcast the proof for a header on the shard metachain common topic
-func (scm *shardChainMessenger) BroadcastEquivalentProof(proof *block.HeaderProof, pkBytes []byte) error {
+func (scm *shardChainMessenger) BroadcastEquivalentProof(proof data.HeaderProofHandler, pkBytes []byte) error {
 	shardIdentifier := scm.shardCoordinator.CommunicationIdentifier(core.MetachainShardId)
 	topic := common.EquivalentProofsTopic + shardIdentifier
 

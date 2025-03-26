@@ -253,6 +253,8 @@ func (context *TestContext) initFeeHandlers() {
 		EpochNotifier:       context.EpochNotifier,
 		EnableEpochsHandler: context.EnableEpochsHandler,
 		TxVersionChecker:    &testscommon.TxVersionCheckerStub{},
+		PubkeyConverter:     &testscommon.PubkeyConverterStub{},
+		ShardCoordinator:    &testscommon.ShardsCoordinatorMock{},
 	}
 	economicsData, _ := economics.NewEconomicsData(argsNewEconomicsData)
 

@@ -6,15 +6,18 @@ import (
 	"sync"
 	"testing"
 
+	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/mock"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/consensus"
+	"github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func createDefaultBlockHeaderArgument() *ArgInterceptedBlockHeader {
@@ -130,6 +133,28 @@ func TestCheckBlockHeaderArgument_NilShardCoordinatorShouldErr(t *testing.T) {
 	err := checkBlockHeaderArgument(arg)
 
 	assert.Equal(t, process.ErrNilShardCoordinator, err)
+}
+
+func TestCheckBlockHeaderArgument_NilHeaderIntegrityVerifierShouldErr(t *testing.T) {
+	t.Parallel()
+
+	arg := createDefaultBlockHeaderArgument()
+	arg.HeaderIntegrityVerifier = nil
+
+	err := checkBlockHeaderArgument(arg)
+
+	assert.Equal(t, process.ErrNilHeaderIntegrityVerifier, err)
+}
+
+func TestCheckBlockHeaderArgument_NilEpochStartTriggerShouldErr(t *testing.T) {
+	t.Parallel()
+
+	arg := createDefaultBlockHeaderArgument()
+	arg.EpochStartTrigger = nil
+
+	err := checkBlockHeaderArgument(arg)
+
+	assert.Equal(t, process.ErrNilEpochStartTrigger, err)
 }
 
 func TestCheckBlockHeaderArgument_NilValidityAttesterShouldErr(t *testing.T) {
@@ -308,10 +333,31 @@ func TestCheckHeaderHandler_NilPrevRandSeedErr(t *testing.T) {
 	assert.Equal(t, process.ErrNilPrevRandSeed, err)
 }
 
+func TestCheckHeaderHandler_InvalidProof(t *testing.T) {
+	t.Parallel()
+
+	hdr := createDefaultHeaderHandler()
+	hdr.GetPreviousProofCalled = func() data.HeaderProofHandler {
+		return nil
+	}
+	hdr.GetNonceCalled = func() uint64 {
+		return 2
+	}
+
+	eeh := &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+		IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
+			return true
+		},
+	}
+
+	err := checkHeaderHandler(hdr, eeh)
+
+	assert.Equal(t, process.ErrMissingPrevHeaderProof, err)
+}
+
 func TestCheckHeaderHandler_CheckFieldsForNilErrors(t *testing.T) {
 	t.Parallel()
 
-	expectedErr := errors.New("expected error")
 	hdr := createDefaultHeaderHandler()
 	hdr.CheckFieldsForNilCalled = func() error {
 		return expectedErr
@@ -339,17 +385,40 @@ func TestCheckMetaShardInfo_WithNilOrEmptyShouldReturnNil(t *testing.T) {
 
 	shardCoordinator := mock.NewOneShardCoordinatorMock()
 
-	err1 := checkMetaShardInfo(nil, shardCoordinator, &consensus.HeaderSigVerifierMock{})
-	err2 := checkMetaShardInfo(make([]data.ShardDataHandler, 0), shardCoordinator, &consensus.HeaderSigVerifierMock{})
+	err1 := checkMetaShardInfo(nil, shardCoordinator, &consensus.HeaderSigVerifierMock{}, &dataRetriever.ProofsPoolMock{})
+	err2 := checkMetaShardInfo(make([]data.ShardDataHandler, 0), shardCoordinator, &consensus.HeaderSigVerifierMock{}, &dataRetriever.ProofsPoolMock{})
 
 	assert.Nil(t, err1)
 	assert.Nil(t, err2)
+}
+
+func TestCheckMetaShardInfo_ShouldNotCheckShardInfoForShards(t *testing.T) {
+	t.Parallel()
+
+	shardCoordinator := mock.NewOneShardCoordinatorMock()
+	_ = shardCoordinator.SetSelfId(1)
+
+	sd := block.ShardData{}
+
+	wasCalled := false
+	verifier := &consensus.HeaderSigVerifierMock{
+		VerifyHeaderProofCalled: func(proofHandler data.HeaderProofHandler) error {
+			wasCalled = true
+			return nil
+		},
+	}
+
+	err := checkMetaShardInfo([]data.ShardDataHandler{&sd}, shardCoordinator, verifier, &dataRetriever.ProofsPoolMock{})
+
+	assert.Nil(t, err)
+	assert.False(t, wasCalled)
 }
 
 func TestCheckMetaShardInfo_WrongShardIdShouldErr(t *testing.T) {
 	t.Parallel()
 
 	shardCoordinator := mock.NewOneShardCoordinatorMock()
+	_ = shardCoordinator.SetSelfId(core.MetachainShardId)
 	wrongShardId := uint32(2)
 	sd := block.ShardData{
 		ShardID:               wrongShardId,
@@ -358,7 +427,7 @@ func TestCheckMetaShardInfo_WrongShardIdShouldErr(t *testing.T) {
 		TxCount:               0,
 	}
 
-	err := checkMetaShardInfo([]data.ShardDataHandler{&sd}, shardCoordinator, &consensus.HeaderSigVerifierMock{})
+	err := checkMetaShardInfo([]data.ShardDataHandler{&sd}, shardCoordinator, &consensus.HeaderSigVerifierMock{}, &dataRetriever.ProofsPoolMock{})
 
 	assert.Equal(t, process.ErrInvalidShardId, err)
 }
@@ -367,6 +436,7 @@ func TestCheckMetaShardInfo_WrongMiniblockSenderShardIdShouldErr(t *testing.T) {
 	t.Parallel()
 
 	shardCoordinator := mock.NewOneShardCoordinatorMock()
+	_ = shardCoordinator.SetSelfId(core.MetachainShardId)
 	wrongShardId := uint32(2)
 	miniBlock := block.MiniBlockHeader{
 		Hash:            make([]byte, 0),
@@ -382,7 +452,7 @@ func TestCheckMetaShardInfo_WrongMiniblockSenderShardIdShouldErr(t *testing.T) {
 		TxCount:               0,
 	}
 
-	err := checkMetaShardInfo([]data.ShardDataHandler{&sd}, shardCoordinator, &consensus.HeaderSigVerifierMock{})
+	err := checkMetaShardInfo([]data.ShardDataHandler{&sd}, shardCoordinator, &consensus.HeaderSigVerifierMock{}, &dataRetriever.ProofsPoolMock{})
 
 	assert.Equal(t, process.ErrInvalidShardId, err)
 }
@@ -391,6 +461,7 @@ func TestCheckMetaShardInfo_WrongMiniblockReceiverShardIdShouldErr(t *testing.T)
 	t.Parallel()
 
 	shardCoordinator := mock.NewOneShardCoordinatorMock()
+	_ = shardCoordinator.SetSelfId(core.MetachainShardId)
 	wrongShardId := uint32(2)
 	miniBlock := block.MiniBlockHeader{
 		Hash:            make([]byte, 0),
@@ -406,7 +477,7 @@ func TestCheckMetaShardInfo_WrongMiniblockReceiverShardIdShouldErr(t *testing.T)
 		TxCount:               0,
 	}
 
-	err := checkMetaShardInfo([]data.ShardDataHandler{&sd}, shardCoordinator, &consensus.HeaderSigVerifierMock{})
+	err := checkMetaShardInfo([]data.ShardDataHandler{&sd}, shardCoordinator, &consensus.HeaderSigVerifierMock{}, &dataRetriever.ProofsPoolMock{})
 
 	assert.Equal(t, process.ErrInvalidShardId, err)
 }
@@ -415,6 +486,8 @@ func TestCheckMetaShardInfo_ReservedPopulatedShouldErr(t *testing.T) {
 	t.Parallel()
 
 	shardCoordinator := mock.NewOneShardCoordinatorMock()
+	_ = shardCoordinator.SetSelfId(core.MetachainShardId)
+
 	miniBlock := block.MiniBlockHeader{
 		Hash:            make([]byte, 0),
 		ReceiverShardID: shardCoordinator.SelfId(),
@@ -430,7 +503,7 @@ func TestCheckMetaShardInfo_ReservedPopulatedShouldErr(t *testing.T) {
 		TxCount:               0,
 	}
 
-	err := checkMetaShardInfo([]data.ShardDataHandler{&sd}, shardCoordinator, &consensus.HeaderSigVerifierMock{})
+	err := checkMetaShardInfo([]data.ShardDataHandler{&sd}, shardCoordinator, &consensus.HeaderSigVerifierMock{}, &dataRetriever.ProofsPoolMock{})
 
 	assert.Equal(t, process.ErrReservedFieldInvalid, err)
 }
@@ -439,6 +512,7 @@ func TestCheckMetaShardInfo_OkValsShouldWork(t *testing.T) {
 	t.Parallel()
 
 	shardCoordinator := mock.NewOneShardCoordinatorMock()
+	_ = shardCoordinator.SetSelfId(core.MetachainShardId)
 	miniBlock := block.MiniBlockHeader{
 		Hash:            make([]byte, 0),
 		ReceiverShardID: shardCoordinator.SelfId(),
@@ -453,12 +527,12 @@ func TestCheckMetaShardInfo_OkValsShouldWork(t *testing.T) {
 		TxCount:               0,
 	}
 
-	err := checkMetaShardInfo([]data.ShardDataHandler{&sd}, shardCoordinator, &consensus.HeaderSigVerifierMock{})
+	err := checkMetaShardInfo([]data.ShardDataHandler{&sd}, shardCoordinator, &consensus.HeaderSigVerifierMock{}, &dataRetriever.ProofsPoolMock{})
 	assert.Nil(t, err)
 
 	miniBlock.Reserved = []byte("r")
 	sd.ShardMiniBlockHeaders = []block.MiniBlockHeader{miniBlock}
-	err = checkMetaShardInfo([]data.ShardDataHandler{&sd}, shardCoordinator, &consensus.HeaderSigVerifierMock{})
+	err = checkMetaShardInfo([]data.ShardDataHandler{&sd}, shardCoordinator, &consensus.HeaderSigVerifierMock{}, &dataRetriever.ProofsPoolMock{})
 	assert.Nil(t, err)
 }
 
@@ -469,6 +543,7 @@ func TestCheckMetaShardInfo_WithMultipleShardData(t *testing.T) {
 		t.Parallel()
 
 		shardCoordinator := mock.NewOneShardCoordinatorMock()
+		_ = shardCoordinator.SetSelfId(core.MetachainShardId)
 		wrongShardId := uint32(2)
 		miniBlock1 := block.MiniBlockHeader{
 			Hash:            make([]byte, 0),
@@ -506,6 +581,7 @@ func TestCheckMetaShardInfo_WithMultipleShardData(t *testing.T) {
 			[]data.ShardDataHandler{sd1, sd2},
 			shardCoordinator,
 			&consensus.HeaderSigVerifierMock{},
+			&dataRetriever.ProofsPoolMock{},
 		)
 
 		assert.Equal(t, process.ErrInvalidShardId, err)
@@ -515,6 +591,7 @@ func TestCheckMetaShardInfo_WithMultipleShardData(t *testing.T) {
 		t.Parallel()
 
 		shardCoordinator := mock.NewOneShardCoordinatorMock()
+		_ = shardCoordinator.SetSelfId(core.MetachainShardId)
 		miniBlock1 := block.MiniBlockHeader{
 			Hash:            make([]byte, 0),
 			ReceiverShardID: shardCoordinator.SelfId(),
@@ -556,6 +633,7 @@ func TestCheckMetaShardInfo_WithMultipleShardData(t *testing.T) {
 			[]data.ShardDataHandler{sd1, sd2},
 			shardCoordinator,
 			&consensus.HeaderSigVerifierMock{},
+			&dataRetriever.ProofsPoolMock{},
 		)
 
 		assert.Equal(t, process.ErrInvalidHeaderProof, err)
@@ -566,6 +644,7 @@ func TestCheckMetaShardInfo_FewShardDataErrorShouldReturnError(t *testing.T) {
 	t.Parallel()
 
 	shardCoordinator := mock.NewOneShardCoordinatorMock()
+	_ = shardCoordinator.SetSelfId(core.MetachainShardId)
 	miniBlock := block.MiniBlockHeader{
 		Hash:            make([]byte, 0),
 		ReceiverShardID: shardCoordinator.SelfId(),
@@ -605,7 +684,7 @@ func TestCheckMetaShardInfo_FewShardDataErrorShouldReturnError(t *testing.T) {
 		}
 	}
 
-	err := checkMetaShardInfo(shardData, shardCoordinator, sigVerifier)
+	err := checkMetaShardInfo(shardData, shardCoordinator, sigVerifier, &dataRetriever.ProofsPoolMock{})
 	assert.Equal(t, providedRandomError, err)
 }
 
@@ -710,4 +789,58 @@ func TestCheckMiniBlocksHeaders_OkValsShouldWork(t *testing.T) {
 	err := checkMiniBlocksHeaders([]data.MiniBlockHeaderHandler{&miniblockHeader}, shardCoordinator)
 
 	assert.Nil(t, err)
+}
+
+func Test_CheckProofIntegrity(t *testing.T) {
+	t.Parallel()
+
+	eeh := &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+		IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
+			return true
+		},
+	}
+	headerWithNoPrevProof := &testscommon.HeaderHandlerStub{
+		GetNonceCalled: func() uint64 {
+			return 2
+		},
+	}
+	err := checkProofIntegrity(headerWithNoPrevProof, eeh)
+	require.Equal(t, process.ErrMissingPrevHeaderProof, err)
+
+	headerWithUnexpectedPrevProof := &testscommon.HeaderHandlerStub{
+		GetNonceCalled: func() uint64 {
+			return 1
+		},
+		GetPreviousProofCalled: func() data.HeaderProofHandler {
+			return &block.HeaderProof{}
+		},
+	}
+	err = checkProofIntegrity(headerWithUnexpectedPrevProof, eeh)
+	require.Equal(t, process.ErrUnexpectedHeaderProof, err)
+
+	headerWithIncompletePrevProof := &testscommon.HeaderHandlerStub{
+		GetNonceCalled: func() uint64 {
+			return 2
+		},
+		GetPreviousProofCalled: func() data.HeaderProofHandler {
+			return &block.HeaderProof{}
+		},
+	}
+	err = checkProofIntegrity(headerWithIncompletePrevProof, eeh)
+	require.Equal(t, process.ErrInvalidHeaderProof, err)
+
+	headerWithPrevProofOk := &testscommon.HeaderHandlerStub{
+		GetNonceCalled: func() uint64 {
+			return 2
+		},
+		GetPreviousProofCalled: func() data.HeaderProofHandler {
+			return &block.HeaderProof{
+				AggregatedSignature: []byte("sig"),
+				PubKeysBitmap:       []byte("bitmap"),
+				HeaderHash:          []byte("hash"),
+			}
+		},
+	}
+	err = checkProofIntegrity(headerWithPrevProofOk, eeh)
+	require.NoError(t, err)
 }

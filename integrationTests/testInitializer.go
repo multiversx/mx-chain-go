@@ -1048,7 +1048,7 @@ func CreateSimpleTxProcessor(accnts state.AccountsAdapter) process.TransactionPr
 		ScProcessor:      &testscommon.SCProcessorMock{},
 		TxFeeHandler:     &testscommon.UnsignedTxHandlerStub{},
 		TxTypeHandler:    &testscommon.TxTypeHandlerMock{},
-		EconomicsFee: &economicsmocks.EconomicsHandlerStub{
+		EconomicsFee: &economicsmocks.EconomicsHandlerMock{
 			ComputeGasLimitCalled: func(tx data.TransactionWithFeeHandler) uint64 {
 				return tx.GetGasLimit()
 			},

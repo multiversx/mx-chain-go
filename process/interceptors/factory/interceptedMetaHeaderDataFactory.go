@@ -12,6 +12,12 @@ import (
 
 var _ process.InterceptedDataFactory = (*interceptedMetaHeaderDataFactory)(nil)
 
+// ArgInterceptedMetaHeaderFactory is the DTO used to create a new instance of meta header factory
+type ArgInterceptedMetaHeaderFactory struct {
+	ArgInterceptedDataFactory
+	ProofsPool process.ProofsPool
+}
+
 type interceptedMetaHeaderDataFactory struct {
 	marshalizer             marshal.Marshalizer
 	hasher                  hashing.Hasher
@@ -21,10 +27,11 @@ type interceptedMetaHeaderDataFactory struct {
 	validityAttester        process.ValidityAttester
 	epochStartTrigger       process.EpochStartTriggerHandler
 	enableEpochsHandler     common.EnableEpochsHandler
+	proofsPool              process.ProofsPool
 }
 
 // NewInterceptedMetaHeaderDataFactory creates an instance of interceptedMetaHeaderDataFactory
-func NewInterceptedMetaHeaderDataFactory(argument *ArgInterceptedDataFactory) (*interceptedMetaHeaderDataFactory, error) {
+func NewInterceptedMetaHeaderDataFactory(argument *ArgInterceptedMetaHeaderFactory) (*interceptedMetaHeaderDataFactory, error) {
 	if argument == nil {
 		return nil, process.ErrNilArgumentStruct
 	}
@@ -58,6 +65,9 @@ func NewInterceptedMetaHeaderDataFactory(argument *ArgInterceptedDataFactory) (*
 	if check.IfNil(argument.ValidityAttester) {
 		return nil, process.ErrNilValidityAttester
 	}
+	if check.IfNil(argument.ProofsPool) {
+		return nil, process.ErrNilProofsPool
+	}
 
 	return &interceptedMetaHeaderDataFactory{
 		marshalizer:             argument.CoreComponents.InternalMarshalizer(),
@@ -68,6 +78,7 @@ func NewInterceptedMetaHeaderDataFactory(argument *ArgInterceptedDataFactory) (*
 		validityAttester:        argument.ValidityAttester,
 		epochStartTrigger:       argument.EpochStartTrigger,
 		enableEpochsHandler:     argument.CoreComponents.EnableEpochsHandler(),
+		proofsPool:              argument.ProofsPool,
 	}, nil
 }
 
@@ -83,6 +94,7 @@ func (imhdf *interceptedMetaHeaderDataFactory) Create(buff []byte) (process.Inte
 		ValidityAttester:        imhdf.validityAttester,
 		EpochStartTrigger:       imhdf.epochStartTrigger,
 		EnableEpochsHandler:     imhdf.enableEpochsHandler,
+		ProofsPool:              imhdf.proofsPool,
 	}
 
 	return interceptedBlocks.NewInterceptedMetaHeader(arg)

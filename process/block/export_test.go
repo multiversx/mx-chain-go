@@ -9,6 +9,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/data/scheduled"
+	"github.com/multiversx/mx-chain-core-go/display"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
 
@@ -71,6 +72,35 @@ func (bp *baseProcessor) SetLastRestartNonce(lastRestartNonce uint64) {
 // CommitTrieEpochRootHashIfNeeded -
 func (bp *baseProcessor) CommitTrieEpochRootHashIfNeeded(metaBlock *block.MetaBlock, rootHash []byte) error {
 	return bp.commitTrieEpochRootHashIfNeeded(metaBlock, rootHash)
+}
+
+// FilterHeadersWithoutProofs -
+func (bp *baseProcessor) FilterHeadersWithoutProofs() (map[string]*hdrInfo, error) {
+	return bp.filterHeadersWithoutProofs()
+}
+
+// AddPrevProofIfNeeded -
+func (bp *baseProcessor) AddPrevProofIfNeeded(header data.HeaderHandler) error {
+	return bp.addPrevProofIfNeeded(header)
+}
+
+// WaitAllMissingProofs -
+func (bp *baseProcessor) WaitAllMissingProofs(waitTime time.Duration) error {
+	return bp.waitAllMissingProofs(waitTime)
+}
+
+// RequestNextHeader -
+func (bp *baseProcessor) RequestNextHeader(currentHeaderHash []byte, nonce uint64, shardID uint32) {
+	bp.requestNextHeader(currentHeaderHash, nonce, shardID)
+}
+
+// InitRequestedAttestingNoncesMap -
+func (bp *baseProcessor) InitRequestedAttestingNoncesMap() {
+	bp.mutRequestedAttestingNoncesMap.Lock()
+	bp.requestedAttestingNoncesMap = make(map[string]uint64)
+	bp.mutRequestedAttestingNoncesMap.Unlock()
+
+	bp.allProofsReceived = make(chan bool)
 }
 
 // ReceivedMetaBlock -
@@ -694,6 +724,11 @@ func (mp *metaProcessor) ComputeExistingAndRequestMissingShardHeaders(metaBlock 
 	return mp.computeExistingAndRequestMissingShardHeaders(metaBlock)
 }
 
+// CheckProofsForShardDataIfNeeded -
+func (mp *metaProcessor) CheckProofsForShardDataIfNeeded(header *block.MetaBlock, waitTime time.Duration) error {
+	return mp.checkProofsForShardDataIfNeeded(header, waitTime)
+}
+
 // ComputeExistingAndRequestMissingMetaHeaders -
 func (sp *shardProcessor) ComputeExistingAndRequestMissingMetaHeaders(header data.ShardHeaderHandler) (uint32, uint32) {
 	return sp.computeExistingAndRequestMissingMetaHeaders(header)
@@ -813,4 +848,9 @@ func (hfb *hdrForBlock) GetHdrHashAndInfo() map[string]*HdrInfo {
 	}
 
 	return m
+}
+
+// DisplayHeader -
+func DisplayHeader(headerHandler data.HeaderHandler) []*display.LineData {
+	return displayHeader(headerHandler)
 }

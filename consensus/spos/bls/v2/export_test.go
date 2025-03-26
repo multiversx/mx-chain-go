@@ -221,6 +221,11 @@ func (sr *subroundBlock) ReceivedBlockHeader(header data.HeaderHandler) {
 	sr.receivedBlockHeader(header)
 }
 
+// GetLeaderForHeader returns the leader based on header info
+func (sr *subroundBlock) GetLeaderForHeader(headerHandler data.HeaderHandler) ([]byte, error) {
+	return sr.getLeaderForHeader(headerHandler)
+}
+
 // subroundSignature
 
 // SubroundSignature defines an alias to the subroundSignature structure
@@ -292,7 +297,7 @@ func (sr *subroundEndRound) ReceivedInvalidSignersInfo(cnsDta *consensus.Message
 }
 
 // VerifyInvalidSigners calls the unexported verifyInvalidSigners function
-func (sr *subroundEndRound) VerifyInvalidSigners(invalidSigners []byte) error {
+func (sr *subroundEndRound) VerifyInvalidSigners(invalidSigners []byte) ([]string, error) {
 	return sr.verifyInvalidSigners(invalidSigners)
 }
 
@@ -303,7 +308,7 @@ func (sr *subroundEndRound) GetMinConsensusGroupIndexOfManagedKeys() int {
 
 // CreateAndBroadcastInvalidSigners calls the unexported createAndBroadcastInvalidSigners function
 func (sr *subroundEndRound) CreateAndBroadcastInvalidSigners(invalidSigners []byte) {
-	sr.createAndBroadcastInvalidSigners(invalidSigners)
+	sr.createAndBroadcastInvalidSigners(invalidSigners, nil)
 }
 
 // GetFullMessagesForInvalidSigners calls the unexported getFullMessagesForInvalidSigners function
@@ -339,4 +344,19 @@ func (sr *subroundSignature) DoSignatureJobForManagedKeys(ctx context.Context) b
 // ReceivedSignature method is called when a signature is received through the signature channel
 func (sr *subroundEndRound) ReceivedSignature(cnsDta *consensus.Message) bool {
 	return sr.receivedSignature(context.Background(), cnsDta)
+}
+
+// WaitForProof -
+func (sr *subroundEndRound) WaitForProof() bool {
+	return sr.waitForProof()
+}
+
+// GetEquivalentProofSender -
+func (sr *subroundEndRound) GetEquivalentProofSender() string {
+	return sr.getEquivalentProofSender()
+}
+
+// SendProof -
+func (sr *subroundEndRound) SendProof() (bool, error) {
+	return sr.sendProof()
 }

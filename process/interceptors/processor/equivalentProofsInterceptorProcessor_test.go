@@ -5,6 +5,7 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/stretchr/testify/require"
 
 	"github.com/multiversx/mx-chain-go/consensus/mock"
@@ -92,12 +93,12 @@ func TestEquivalentProofsInterceptorProcessor_Save(t *testing.T) {
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
 
-		wasCalled := false
+		cntWasAdded := 0
 		args := createMockArgEquivalentProofsInterceptorProcessor()
 		args.EquivalentProofsPool = &dataRetriever.ProofsPoolMock{
 			AddProofCalled: func(notarizedProof data.HeaderProofHandler) bool {
-				wasCalled = true
-				return true
+				cntWasAdded++
+				return cntWasAdded == 1
 			},
 		}
 		epip, err := NewEquivalentProofsInterceptorProcessor(args)
@@ -123,7 +124,11 @@ func TestEquivalentProofsInterceptorProcessor_Save(t *testing.T) {
 
 		err = epip.Save(iep, "", "")
 		require.NoError(t, err)
-		require.True(t, wasCalled)
+		require.Equal(t, 1, cntWasAdded)
+
+		err = epip.Save(iep, "", "")
+		require.Equal(t, common.ErrAlreadyExistingEquivalentProof, err)
+		require.Equal(t, 2, cntWasAdded)
 	})
 }
 
