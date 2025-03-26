@@ -145,6 +145,7 @@ func (ns *netStatistics) processStatistics(nStart []net.IOCountersStat, nEnd []n
 
 // EpochConfirmed is called whenever a new epoch is starting
 func (ns *netStatistics) EpochConfirmed(_ uint32, _ uint64) {
+	log.Info("netStatistics epoch confirmed", "totalBytesSentInEpoch", ns.TotalSentInCurrentEpoch(), "totalBytesReceivedInEpoch", ns.TotalReceivedInCurrentEpoch())
 	atomic.StoreUint64(&ns.totalBytesSentInEpoch, 0)
 	atomic.StoreUint64(&ns.totalBytesReceivedInEpoch, 0)
 	atomic.StoreUint64(&ns.bpsSentPeak, 0)
