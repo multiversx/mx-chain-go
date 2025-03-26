@@ -84,6 +84,7 @@ func NewStakingSmartContract(
 		return nil, vm.ErrNegativeMaximumPercentageToBleed
 	}
 	if args.MinNumNodes > args.StakingSCConfig.MaxNumberOfNodesForStake {
+		log.Info("minNumNodes is greater than maxNumNodes, setting minNumNodes to maxNumNodes", "minNumNodes", args.MinNumNodes, "maxNumNodes", args.StakingSCConfig.MaxNumberOfNodesForStake)
 		return nil, vm.ErrInvalidMaxNumberOfNodes
 	}
 	if check.IfNil(args.EnableEpochsHandler) {

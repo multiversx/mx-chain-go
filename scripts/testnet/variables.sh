@@ -53,12 +53,12 @@ export OBSERVERS_ANTIFLOOD_DISABLE=0
 
 # Shard structure
 export SHARDCOUNT=3
-export SHARD_VALIDATORCOUNT=10
+export SHARD_VALIDATORCOUNT=20
 export SHARD_OBSERVERCOUNT=1
-export SHARD_CONSENSUS_SIZE=10
+export SHARD_CONSENSUS_SIZE=20
 
 # Metashard structure
-export META_VALIDATORCOUNT=10
+export META_VALIDATORCOUNT=20
 export META_OBSERVERCOUNT=1
 export META_CONSENSUS_SIZE=$META_VALIDATORCOUNT
 
@@ -102,7 +102,7 @@ export PORT_ORIGIN_VALIDATOR_REST="9500"
 # Use tmux or not. If set to 1, only 2 terminal windows will be opened, and
 # tmux will be used to display the running executables using split windows.
 # Recommended. Tmux needs to be installed.
-export USETMUX=1
+export USETMUX=0
 
 # Log level for the logger in the Node.
 export LOGLEVEL="*:INFO"
