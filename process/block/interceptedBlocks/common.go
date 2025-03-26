@@ -143,7 +143,7 @@ func checkMetaShardInfo(
 			continue
 		}
 
-		log.Warn("proof in pool not equal to provided prev proof, will check prev proof",
+		log.Debug("proof in pool not equal to provided prev proof, will check prev proof",
 			"headerHash", sd.GetPreviousProof().GetHeaderHash(),
 		)
 
