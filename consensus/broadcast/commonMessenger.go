@@ -7,7 +7,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/core/partitioning"
-	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	crypto "github.com/multiversx/mx-chain-crypto-go"
@@ -234,7 +234,7 @@ func (cm *commonMessenger) broadcast(topic string, data []byte, pkBytes []byte) 
 	cm.messenger.BroadcastUsingPrivateKey(topic, data, pid, skBytes)
 }
 
-func (cm *commonMessenger) broadcastEquivalentProof(proof *block.HeaderProof, pkBytes []byte, topic string) error {
+func (cm *commonMessenger) broadcastEquivalentProof(proof data.HeaderProofHandler, pkBytes []byte, topic string) error {
 	if check.IfNil(proof) {
 		return spos.ErrNilHeaderProof
 	}
