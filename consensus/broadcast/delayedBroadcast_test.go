@@ -591,6 +591,17 @@ func TestDelayedBlockBroadcaster_SetValidatorData(t *testing.T) {
 	require.Equal(t, 1, len(vbb))
 }
 
+func TestDelayedBlockBroadcaster_SetBroadcastHandlersFailsIfNilHandler(t *testing.T) {
+	t.Parallel()
+
+	delayBroadcasterArgs := createDefaultDelayedBroadcasterArgs()
+	dbb, err := broadcast.NewDelayedBlockBroadcaster(delayBroadcasterArgs)
+	require.Nil(t, err)
+
+	err = dbb.SetBroadcastHandlers(nil, nil, nil, nil)
+	require.Equal(t, spos.ErrNilParameter, err)
+}
+
 func TestDelayedBlockBroadcaster_SetHeaderForValidatorWithoutSignaturesShouldNotSetAlarm(t *testing.T) {
 	var logOutput bytes.Buffer
 	var logMutex sync.Mutex
@@ -1651,6 +1662,14 @@ func TestDelayedBlockBroadcaster_BroadcastBlockDataFailedBroadcast(t *testing.T)
 	require.Nil(t, err)
 	err = logger.SetLogLevel(originalLogPattern)
 	require.Nil(t, err)
+}
+
+func TestDelayedBlockBroadcaster_GetShardDataFromMetaChainBlockInvalidMetaHandler(t *testing.T) {
+	shardID := uint32(0)
+
+	_, _, err := broadcast.GetShardDataFromMetaChainBlock(nil, shardID)
+	require.NotNil(t, err)
+	require.Equal(t, spos.ErrInvalidMetaHeader, err)
 }
 
 func TestDelayedBlockBroadcaster_GetShardDataFromMetaChainBlock(t *testing.T) {
