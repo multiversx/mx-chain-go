@@ -3,6 +3,8 @@ package interceptors
 import (
 	"bytes"
 	"sync"
+	"sync/atomic"
+	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
@@ -19,6 +21,8 @@ type baseDataInterceptor struct {
 	mutDebugHandler      sync.RWMutex
 	debugHandler         process.InterceptedDebugger
 	preferredPeersHolder process.PreferredPeersHolderHandler
+	messagesMap          sync.Map
+	bdiType              string
 }
 
 func (bdi *baseDataInterceptor) preProcessMesage(message p2p.MessageP2P, fromConnectedPeer core.PeerID) error {
@@ -63,6 +67,14 @@ func (bdi *baseDataInterceptor) isMessageFromSelfToSelf(fromConnectedPeer core.P
 }
 
 func (bdi *baseDataInterceptor) processInterceptedData(data process.InterceptedData, msg p2p.MessageP2P) {
+	value := int64(1)
+	count, loaded := bdi.messagesMap.LoadOrStore(bdi.topic, &value)
+	if loaded {
+		atomic.AddInt64(count.(*int64), value)
+	} else {
+		bdi.messagesMap.Store(bdi.topic, &value)
+	}
+
 	err := bdi.processor.Validate(data, msg.Peer())
 	if err != nil {
 		log.Trace("intercepted data is not valid",
@@ -130,4 +142,27 @@ func (bdi *baseDataInterceptor) SetInterceptedDebugHandler(handler process.Inter
 	bdi.mutDebugHandler.Unlock()
 
 	return nil
+}
+
+func (bdi *baseDataInterceptor) StartTimer() {
+	go func() {
+		now := time.Now()
+		nextMinute := now.Truncate(time.Minute).Add(time.Minute)
+		time.Sleep(time.Until(nextMinute))
+
+		// Start ticker to run every minute
+		ticker := time.NewTicker(time.Second * 10)
+		defer ticker.Stop()
+
+		log.Info("Starting task execution at", "topic", bdi.topic)
+
+		for _ = range ticker.C {
+			value := int64(1)
+			count, loaded := bdi.messagesMap.LoadOrStore(bdi.topic, &value)
+			if loaded {
+				currentCount := atomic.LoadInt64(count.(*int64))
+				log.Info("messages statistics", "type", bdi.bdiType, "topic", bdi.topic, "count", currentCount)
+			}
+		}
+	}()
 }

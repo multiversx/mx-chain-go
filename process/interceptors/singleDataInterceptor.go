@@ -7,6 +7,7 @@ import (
 	"github.com/multiversx/mx-chain-go/debug/handler"
 	"github.com/multiversx/mx-chain-go/p2p"
 	"github.com/multiversx/mx-chain-go/process"
+	"sync"
 )
 
 // ArgSingleDataInterceptor is the argument for the single-data interceptor
@@ -64,11 +65,13 @@ func NewSingleDataInterceptor(arg ArgSingleDataInterceptor) (*SingleDataIntercep
 			processor:            arg.Processor,
 			preferredPeersHolder: arg.PreferredPeersHolder,
 			debugHandler:         handler.NewDisabledInterceptorDebugHandler(),
+			messagesMap:          sync.Map{},
+			bdiType:              "single",
 		},
 		factory:          arg.DataFactory,
 		whiteListRequest: arg.WhiteListRequest,
 	}
-
+	singleDataIntercept.StartTimer()
 	return singleDataIntercept, nil
 }
 

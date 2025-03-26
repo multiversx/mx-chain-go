@@ -79,12 +79,16 @@ func NewMultiDataInterceptor(arg ArgMultiDataInterceptor) (*MultiDataInterceptor
 			processor:            arg.Processor,
 			preferredPeersHolder: arg.PreferredPeersHolder,
 			debugHandler:         handler.NewDisabledInterceptorDebugHandler(),
+			messagesMap:          sync.Map{},
+			bdiType:              "multi",
 		},
 		marshalizer:      arg.Marshalizer,
 		factory:          arg.DataFactory,
 		whiteListRequest: arg.WhiteListRequest,
 		chunksProcessor:  disabled.NewDisabledInterceptedChunksProcessor(),
 	}
+
+	multiDataIntercept.StartTimer()
 
 	return multiDataIntercept, nil
 }

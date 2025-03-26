@@ -75,13 +75,15 @@ func (messenger *syncedMessenger) receive(fromConnectedPeer core.PeerID, message
 	if check.IfNil(message) {
 		return
 	}
-
+	log.Info("receive message count", "topic", message.Topic())
 	messenger.mutOperation.RLock()
 	handlers := messenger.topics[message.Topic()]
+
 	messenger.mutOperation.RUnlock()
 
 	wg := &sync.WaitGroup{}
 	wg.Add(len(handlers))
+
 	for _, handler := range handlers {
 		// this is needed to process all received messages on multiple go routines
 		go func(proc p2p.MessageProcessor, p2pMessage p2p.MessageP2P, peer core.PeerID, localWG *sync.WaitGroup) {
