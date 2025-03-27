@@ -6,9 +6,10 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data/batch"
+	logger "github.com/multiversx/mx-chain-logger-go"
+
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/p2p"
-	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
 var _ dataRetriever.Resolver = (*TrieNodeResolver)(nil)
@@ -62,10 +63,10 @@ func checkArgTrieNodeResolver(arg ArgTrieNodeResolver) error {
 
 // ProcessReceivedMessage will be the callback func from the p2p.Messenger and will be called each time a new message was received
 // (for the topic this validator was registered to, usually a request topic)
-func (tnRes *TrieNodeResolver) ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedPeer core.PeerID, source p2p.MessageHandler) error {
+func (tnRes *TrieNodeResolver) ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedPeer core.PeerID, source p2p.MessageHandler) ([]byte, error) {
 	err := tnRes.canProcessMessage(message, fromConnectedPeer)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	tnRes.throttler.StartProcessing()
@@ -73,17 +74,22 @@ func (tnRes *TrieNodeResolver) ProcessReceivedMessage(message p2p.MessageP2P, fr
 
 	rd, err := tnRes.parseReceivedMessage(message, fromConnectedPeer)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	switch rd.Type {
 	case dataRetriever.HashType:
-		return tnRes.resolveOneHash(rd.Value, rd.ChunkIndex, message, source)
+		err = tnRes.resolveOneHash(rd.Value, rd.ChunkIndex, message, source)
 	case dataRetriever.HashArrayType:
-		return tnRes.resolveMultipleHashes(rd.Value, message, source)
+		err = tnRes.resolveMultipleHashes(rd.Value, message, source)
 	default:
-		return dataRetriever.ErrRequestTypeNotImplemented
+		err = dataRetriever.ErrRequestTypeNotImplemented
 	}
+
+	if err != nil {
+		return nil, err
+	}
+	return []byte{}, nil
 }
 
 func (tnRes *TrieNodeResolver) resolveMultipleHashes(hashesBuff []byte, message p2p.MessageP2P, source p2p.MessageHandler) error {
@@ -214,7 +220,7 @@ func (tnRes *TrieNodeResolver) sendResponse(
 ) error {
 
 	if len(serializedNodes) == 0 {
-		//do not send useless message
+		// do not send useless message
 		return nil
 	}
 

@@ -6,8 +6,9 @@ import (
 
 	"github.com/multiversx/mx-chain-communication-go/p2p"
 	"github.com/multiversx/mx-chain-core-go/core"
-	"github.com/multiversx/mx-chain-go/testscommon/p2pmocks"
 	"github.com/stretchr/testify/assert"
+
+	"github.com/multiversx/mx-chain-go/testscommon/p2pmocks"
 )
 
 func TestSyncedBroadcastNetwork_BroadcastShouldWorkOn3Peers(t *testing.T) {
@@ -181,6 +182,7 @@ func TestSyncedBroadcastNetwork_SendDirectlyShouldNotDeadlock(t *testing.T) {
 
 	topic := "topic"
 	testMessage := []byte("test message")
+	msgID := []byte("msgID")
 
 	peer1, err := NewSyncedMessenger(network)
 	assert.Nil(t, err)
@@ -191,9 +193,9 @@ func TestSyncedBroadcastNetwork_SendDirectlyShouldNotDeadlock(t *testing.T) {
 	peer2, err := NewSyncedMessenger(network)
 	assert.Nil(t, err)
 	processor2 := &p2pmocks.MessageProcessorStub{
-		ProcessReceivedMessageCalled: func(message p2p.MessageP2P, fromConnectedPeer core.PeerID, source p2p.MessageHandler) error {
+		ProcessReceivedMessageCalled: func(message p2p.MessageP2P, fromConnectedPeer core.PeerID, source p2p.MessageHandler) ([]byte, error) {
 			log.Debug("sending message back to", "pid", fromConnectedPeer.Pretty())
-			return source.SendToConnectedPeer(message.Topic(), []byte("reply: "+string(message.Data())), fromConnectedPeer)
+			return msgID, source.SendToConnectedPeer(message.Topic(), []byte("reply: "+string(message.Data())), fromConnectedPeer)
 		},
 	}
 	_ = peer2.CreateTopic(topic, true)
@@ -285,7 +287,7 @@ func TestSyncedBroadcastNetwork_GetConnectedPeersOnTopic(t *testing.T) {
 
 func createMessageProcessor(t *testing.T, dataMap map[core.PeerID]map[string][]byte, pid core.PeerID) p2p.MessageProcessor {
 	return &p2pmocks.MessageProcessorStub{
-		ProcessReceivedMessageCalled: func(message p2p.MessageP2P, fromConnectedPeer core.PeerID, source p2p.MessageHandler) error {
+		ProcessReceivedMessageCalled: func(message p2p.MessageP2P, fromConnectedPeer core.PeerID, source p2p.MessageHandler) ([]byte, error) {
 			m, found := dataMap[pid]
 			if !found {
 				m = make(map[string][]byte)
@@ -297,7 +299,7 @@ func createMessageProcessor(t *testing.T, dataMap map[core.PeerID]map[string][]b
 			assert.Equal(t, message.Peer(), fromConnectedPeer)
 			m[message.Topic()] = message.Data()
 
-			return nil
+			return nil, nil
 		},
 	}
 }

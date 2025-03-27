@@ -31,7 +31,7 @@ import (
 )
 
 func initSubroundEndRoundWithContainer(
-	container *consensusMocks.ConsensusCoreMock,
+	container *spos.ConsensusCore,
 	appStatusHandler core.AppStatusHandler,
 ) v1.SubroundEndRound {
 	ch := make(chan bool, 1)

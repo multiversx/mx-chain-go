@@ -772,7 +772,6 @@ func (boot *baseBootstrap) cleanProofsBehindFinal(header data.HeaderHandler) {
 		return
 	}
 
-	// TODO: analyse fork detection by proofs
 	finalNonce := boot.forkDetector.GetHighestFinalBlockNonce()
 
 	err := boot.proofs.CleanupProofsBehindNonce(header.GetShardID(), finalNonce)

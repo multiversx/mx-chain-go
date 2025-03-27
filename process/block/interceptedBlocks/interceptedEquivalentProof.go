@@ -142,8 +142,6 @@ func (iep *interceptedEquivalentProof) CheckValidity() error {
 		return common.ErrAlreadyExistingEquivalentProof
 	}
 
-	// TODO: make sure proof fields (besides ones used to verify signature) should be checked on processing.
-
 	return iep.headerSigVerifier.VerifyHeaderProof(iep.proof)
 }
 

@@ -85,9 +85,9 @@ startSingleValidator() {
   local startCommand=""
   if [ "$NODE_WATCHER" -eq 1 ]; then
     setWorkdirForNextCommands "$TESTNETDIR/node_working_dirs/$DIR_NAME$VALIDATOR_INDEX"
-    startCommand="$(assembleCommand_startValidatorNodeWithWatcher $VALIDATOR_INDEX $DIR_NAME)"
+    startCommand="$(assembleCommand_startValidatorNodeWithWatcher $VALIDATOR_INDEX $DIR_NAME $SHARD)"
   else
-    startCommand="$(assembleCommand_startValidatorNode $VALIDATOR_INDEX $DIR_NAME)"
+    startCommand="$(assembleCommand_startValidatorNode $VALIDATOR_INDEX $DIR_NAME $SHARD)"
   fi
   runCommandInTerminal "$startCommand"
 }
@@ -129,12 +129,13 @@ stopSingleValidator() {
 assembleCommand_startValidatorNodeWithWatcher() {
   VALIDATOR_INDEX=$1
   DIR_NAME=$2
+  SHARD=$3
   (( PORT=$PORT_ORIGIN_VALIDATOR + $VALIDATOR_INDEX ))
   WORKING_DIR=$TESTNETDIR/node_working_dirs/$DIR_NAME$VALIDATOR_INDEX
 
   local source_command="source $MULTIVERSXTESTNETSCRIPTSDIR/include/watcher.sh"
   local watcher_command="node-start-with-watcher $VALIDATOR_INDEX $PORT &"
-  local node_command=$(assembleCommand_startValidatorNode $VALIDATOR_INDEX $DIR_NAME)
+  local node_command=$(assembleCommand_startValidatorNode $VALIDATOR_INDEX $DIR_NAME $SHARD)
   mkdir -p $WORKING_DIR
   echo "$node_command" > $WORKING_DIR/node-command
   echo "$PORT" > $WORKING_DIR/node-port
@@ -145,6 +146,7 @@ assembleCommand_startValidatorNodeWithWatcher() {
 assembleCommand_startValidatorNode() {
   VALIDATOR_INDEX=$1
   DIR_NAME=$2
+  SHARD=$3
   (( PORT=$PORT_ORIGIN_VALIDATOR + $VALIDATOR_INDEX ))
   (( RESTAPIPORT=$PORT_ORIGIN_VALIDATOR_REST + $VALIDATOR_INDEX ))
   (( KEY_INDEX=$VALIDATOR_INDEX ))
@@ -154,6 +156,10 @@ assembleCommand_startValidatorNode() {
         -port $PORT --profile-mode -log-save -log-level $LOGLEVEL --log-logger-name --log-correlation --use-health-service -rest-api-interface localhost:$RESTAPIPORT \
         -sk-index $KEY_INDEX \
         -working-directory $WORKING_DIR -config ./config/config_validator.toml"
+
+  if [[ $MULTI_KEY_NODES -eq 1 ]]; then
+      node_command="$node_command --destination-shard-as-observer $SHARD"
+  fi
 
   if [ -n "$NODE_NICENESS" ]
   then

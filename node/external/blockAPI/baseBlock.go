@@ -20,6 +20,8 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/typeConverters"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+	logger "github.com/multiversx/mx-chain-logger-go"
+
 	"github.com/multiversx/mx-chain-go/api/shared/logging"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
@@ -28,7 +30,6 @@ import (
 	"github.com/multiversx/mx-chain-go/outport/process/alteredaccounts/shared"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/state"
-	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
 // BlockStatus is the status of a block
@@ -610,7 +611,7 @@ func (bap *baseAPIBlockProcessor) addProofs(
 	getHeaderHandlerByNonce func(nonce uint64) (data.HeaderHandler, error),
 ) error {
 	prevHeaderProof := header.GetPreviousProof()
-	isNil := check.IfNilReflect(prevHeaderProof)
+	isNil := check.IfNil(prevHeaderProof)
 	if isNil && !bap.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, header.GetEpoch()) {
 		return nil
 	}
@@ -623,6 +624,9 @@ func (bap *baseAPIBlockProcessor) addProofs(
 	if err != nil {
 		return errCannotFindBlockProof
 	}
+
+	apiBlock.PubKeyBitmap = hex.EncodeToString(headerProof.GetPubKeysBitmap())
+	apiBlock.Signature = hex.EncodeToString(headerProof.GetAggregatedSignature())
 
 	apiBlock.Proof = proofToAPIProof(headerProof)
 

@@ -21,10 +21,8 @@ import (
 	logger "github.com/multiversx/mx-chain-logger-go"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 
-	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/state"
-	"github.com/multiversx/mx-chain-go/storage"
 )
 
 var log = logger.GetOrCreate("process")
@@ -780,22 +778,16 @@ func GetSortedStorageUpdates(account *vmcommon.OutputAccount) []*vmcommon.Storag
 // GetHeader tries to get the header from pool first and if not found, searches for it through storer
 func GetHeader(
 	headerHash []byte,
-	headersPool common.HeadersPool,
-	headersStorer storage.Storer,
+	headersPool dataRetriever.HeadersPool,
+	headersStorer dataRetriever.StorageService,
 	marshaller marshal.Marshalizer,
 	shardID uint32,
 ) (data.HeaderHandler, error) {
-	header, err := headersPool.GetHeaderByHash(headerHash)
-	if err == nil {
-		return header, nil
+	if shardID == core.MetachainShardId {
+		return GetMetaHeader(headerHash, headersPool, marshaller, headersStorer)
 	}
 
-	headerBytes, err := headersStorer.SearchFirst(headerHash)
-	if err != nil {
-		return nil, err
-	}
-
-	return UnmarshalHeader(shardID, marshaller, headerBytes)
+	return GetShardHeader(headerHash, headersPool, marshaller, headersStorer)
 }
 
 // UnmarshalHeader unmarshalls a block header

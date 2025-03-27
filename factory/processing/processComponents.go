@@ -1354,6 +1354,7 @@ func (pcf *processComponentsFactory) newBlockTracker(
 		FeeHandler:          pcf.coreData.EconomicsData(),
 		EnableEpochsHandler: pcf.coreData.EnableEpochsHandler(),
 		ProofsPool:          pcf.data.Datapool().Proofs(),
+		IsImportDBMode:      pcf.importDBConfig.IsImportDBMode,
 	}
 
 	if shardCoordinator.SelfId() < shardCoordinator.NumberOfShards() {

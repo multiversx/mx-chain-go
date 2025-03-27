@@ -31,6 +31,7 @@ type InterceptedMetaHeader struct {
 	validityAttester    process.ValidityAttester
 	epochStartTrigger   process.EpochStartTriggerHandler
 	enableEpochsHandler common.EnableEpochsHandler
+	proofsPool          process.ProofsPool
 }
 
 // NewInterceptedMetaHeader creates a new instance of InterceptedMetaHeader struct
@@ -54,6 +55,7 @@ func NewInterceptedMetaHeader(arg *ArgInterceptedBlockHeader) (*InterceptedMetaH
 		validityAttester:    arg.ValidityAttester,
 		epochStartTrigger:   arg.EpochStartTrigger,
 		enableEpochsHandler: arg.EnableEpochsHandler,
+		proofsPool:          arg.ProofsPool,
 	}
 	inHdr.processFields(arg.HdrBuff)
 
@@ -88,7 +90,7 @@ func (imh *InterceptedMetaHeader) HeaderHandler() data.HeaderHandler {
 
 // CheckValidity checks if the received meta header is valid (not nil fields, valid sig and so on)
 func (imh *InterceptedMetaHeader) CheckValidity() error {
-	log.Debug("CheckValidity for header with", "epoch", imh.hdr.GetEpoch(), "hash", logger.DisplayByteSlice(imh.hash))
+	log.Trace("CheckValidity for header with", "epoch", imh.hdr.GetEpoch(), "hash", logger.DisplayByteSlice(imh.hash))
 
 	err := imh.integrity()
 	if err != nil {
@@ -168,7 +170,7 @@ func (imh *InterceptedMetaHeader) integrity() error {
 		return err
 	}
 
-	err = checkMetaShardInfo(imh.hdr.GetShardInfoHandlers(), imh.shardCoordinator, imh.sigVerifier)
+	err = checkMetaShardInfo(imh.hdr.GetShardInfoHandlers(), imh.shardCoordinator, imh.sigVerifier, imh.proofsPool)
 	if err != nil {
 		return err
 	}

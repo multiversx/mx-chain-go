@@ -373,6 +373,7 @@
 
 [ProofsPoolConfig]
     CleanupNonceDelta = 3
+    BucketSize = 100
 
 [BadBlocksCache]
     Name = "BadBlocksCache"
@@ -681,8 +682,7 @@
         TimeOutForSCExecutionInMilliseconds = 10000 # 10 seconds = 10000 milliseconds
         WasmerSIGSEGVPassthrough            = false # must be false for release
         WasmVMVersions = [
-            { StartEpoch = 0, Version = "v1.4" },
-            { StartEpoch = 1, Version = "v1.5" }, # TODO: set also the RoundActivations.DisableAsyncCallV1 accordingly
+            { StartEpoch = 0, Version = "v1.5" },
         ]
         TransferAndExecuteByUserAddresses = [ # TODO: set real contract addresses for all shards
             "erd1qqqqqqqqqqqqqpgqr46jrxr6r2unaqh75ugd308dwx5vgnhwh47qtvepe3", #shard 0
@@ -693,8 +693,7 @@
         TimeOutForSCExecutionInMilliseconds = 10000 # 10 seconds = 10000 milliseconds
         WasmerSIGSEGVPassthrough            = false # must be false for release
         WasmVMVersions = [
-            { StartEpoch = 0, Version = "v1.4" },
-            { StartEpoch = 1, Version = "v1.5" }, # TODO: set also the RoundActivations.DisableAsyncCallV1 accordingly
+            { StartEpoch = 0, Version = "v1.5" },
         ]
         TransferAndExecuteByUserAddresses = [ # TODO: set real contract addresses for all shards
             "erd1qqqqqqqqqqqqqpgqr46jrxr6r2unaqh75ugd308dwx5vgnhwh47qtvepe3",
