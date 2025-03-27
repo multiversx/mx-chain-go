@@ -37,7 +37,7 @@ func newExtensionNode(key []byte, child node, marshalizer marshal.Marshalizer, h
 	return &extensionNode{
 		CollapsedEn: CollapsedEn{
 			Key:          key,
-			EncodedChild: nil,
+			ChildHash:    nil,
 			ChildVersion: uint32(childVersion),
 		},
 		child: child,
@@ -69,7 +69,7 @@ func (en *extensionNode) setHash(goRoutinesManager common.TrieGoroutinesManager)
 			goRoutinesManager.SetError(err)
 			return
 		}
-		en.EncodedChild = encChild
+		en.ChildHash = encChild
 	}
 
 	hash, err := encodeNodeAndGetHash(en)
@@ -84,7 +84,7 @@ func (en *extensionNode) shouldSetHashForChild() bool {
 	en.childMutex.RLock()
 	defer en.childMutex.RUnlock()
 
-	if en.child != nil && en.EncodedChild == nil {
+	if en.child != nil && en.ChildHash == nil {
 		return true
 	}
 
@@ -119,7 +119,7 @@ func (en *extensionNode) commitDirty(
 			return
 		}
 
-		en.EncodedChild = child.getHash()
+		en.ChildHash = child.getHash()
 	}
 
 	ok := saveDirtyNodeToStorage(en, goRoutinesManager, hashesCollector, targetDb, en.hasher)
@@ -150,11 +150,11 @@ func (en *extensionNode) commitSnapshot(
 		return core.ErrContextClosing
 	}
 
-	child, childBytes, err := getNodeFromDBAndDecode(en.EncodedChild, db, en.marsh, en.hasher)
+	child, childBytes, err := getNodeFromDBAndDecode(en.ChildHash, db, en.marsh, en.hasher)
 	if err != nil {
 		return err
 	}
-	childIsMissing, err := treatCommitSnapshotError(err, en.EncodedChild, missingNodesChan)
+	childIsMissing, err := treatCommitSnapshotError(err, en.ChildHash, missingNodesChan)
 	if err != nil {
 		return err
 	}
@@ -193,7 +193,7 @@ func (en *extensionNode) getEncodedNode() ([]byte, error) {
 }
 
 func (en *extensionNode) isCollapsed() bool {
-	return en.child == nil && len(en.EncodedChild) != 0
+	return en.child == nil && len(en.ChildHash) != 0
 }
 
 func (en *extensionNode) resolveIfCollapsed(db common.TrieStorageInteractor) (node, error) {
@@ -205,7 +205,7 @@ func (en *extensionNode) resolveIfCollapsed(db common.TrieStorageInteractor) (no
 		return en.child, nil
 	}
 
-	child, _, err := getNodeFromDBAndDecode(en.EncodedChild, db, en.marsh, en.hasher)
+	child, _, err := getNodeFromDBAndDecode(en.ChildHash, db, en.marsh, en.hasher)
 	if err != nil {
 		return nil, err
 	}
@@ -255,7 +255,7 @@ func (en *extensionNode) getNext(key []byte, db common.TrieStorageInteractor) (*
 	if keysDontMatch {
 		return nil, ErrNodeNotFound
 	}
-	child, encodedChild, err := getNodeFromDBAndDecode(en.EncodedChild, db, en.marsh, en.hasher)
+	child, ChildHash, err := getNodeFromDBAndDecode(en.ChildHash, db, en.marsh, en.hasher)
 	if err != nil {
 		return nil, err
 	}
@@ -263,7 +263,7 @@ func (en *extensionNode) getNext(key []byte, db common.TrieStorageInteractor) (*
 	key = key[len(en.Key):]
 	return &nodeData{
 		currentNode: child,
-		encodedNode: encodedChild,
+		encodedNode: ChildHash,
 		hexKey:      key,
 	}, nil
 }
@@ -349,7 +349,7 @@ func (en *extensionNode) insertAtSameKey(
 		goRoutinesManager.SetError(err)
 		return nil
 	}
-	newEn.EncodedChild = newNode.getHash()
+	newEn.ChildHash = newNode.getHash()
 	newEn.setHash(goRoutinesManager)
 
 	return newEn
@@ -422,7 +422,7 @@ func (en *extensionNode) insertInNewBn(
 		goRoutinesManager.SetError(err)
 		return nil
 	}
-	newEn.EncodedChild = newNode.getHash()
+	newEn.ChildHash = newNode.getHash()
 	newEn.setHash(goRoutinesManager)
 	return newEn
 }
@@ -438,7 +438,7 @@ func (en *extensionNode) insertOldChildInBn(bn *branchNode, childNode node, oldC
 
 	if len(keyReminder) < 1 {
 		bn.children[oldChildPos] = en.child
-		bn.EncodedChildren[oldChildPos] = en.EncodedChild
+		bn.ChildrenHashes[oldChildPos] = en.ChildHash
 		return
 	}
 
@@ -447,11 +447,11 @@ func (en *extensionNode) insertOldChildInBn(bn *branchNode, childNode node, oldC
 		goRoutinesManager.SetError(err)
 		return
 	}
-	followingExtensionNode.EncodedChild = childNode.getHash()
+	followingExtensionNode.ChildHash = childNode.getHash()
 	followingExtensionNode.setHash(goRoutinesManager)
 
 	bn.children[oldChildPos] = followingExtensionNode
-	bn.EncodedChildren[oldChildPos] = followingExtensionNode.getHash()
+	bn.ChildrenHashes[oldChildPos] = followingExtensionNode.getHash()
 }
 
 func (en *extensionNode) insertNewChildInBn(bn *branchNode, newChild core.TrieData, newChildPos byte, keyMatchLen int, goroutinesManager common.TrieGoroutinesManager) {
@@ -465,7 +465,7 @@ func (en *extensionNode) insertNewChildInBn(bn *branchNode, newChild core.TrieDa
 	newLeaf.setHash(goroutinesManager)
 
 	bn.children[newChildPos] = newLeaf
-	bn.EncodedChildren[newChildPos] = newLeaf.getHash()
+	bn.ChildrenHashes[newChildPos] = newLeaf.getHash()
 	bn.setVersionForChild(newChild.Version, newChildPos)
 }
 
@@ -530,7 +530,7 @@ func (en *extensionNode) delete(
 			goRoutinesManager.SetError(err)
 			return false, nil
 		}
-		n.EncodedChild = newNode.child.getHash()
+		n.ChildHash = newNode.child.getHash()
 		n.setHash(goRoutinesManager)
 
 		return true, n
@@ -540,7 +540,7 @@ func (en *extensionNode) delete(
 			goRoutinesManager.SetError(err)
 			return false, nil
 		}
-		n.EncodedChild = newNode.getHash()
+		n.ChildHash = newNode.getHash()
 		n.setHash(goRoutinesManager)
 
 		return true, n
@@ -575,7 +575,7 @@ func (en *extensionNode) isEmptyOrNil() error {
 
 	en.childMutex.RLock()
 	defer en.childMutex.RUnlock()
-	if en.child == nil && len(en.EncodedChild) == 0 {
+	if en.child == nil && len(en.ChildHash) == 0 {
 		return ErrEmptyExtensionNode
 	}
 	return nil
@@ -588,7 +588,7 @@ func (en *extensionNode) print(writer io.Writer, index int, db common.TrieStorag
 
 	_, err := en.resolveIfCollapsed(db)
 	if err != nil {
-		log.Debug("extension node: print trie err", "error", err, "hash", en.EncodedChild)
+		log.Debug("extension node: print trie err", "error", err, "hash", en.ChildHash)
 	}
 
 	key := ""
@@ -629,15 +629,15 @@ func (en *extensionNode) loadChildren(getNode func([]byte) (node, error)) ([][]b
 		return nil, nil, fmt.Errorf("loadChildren error %w", err)
 	}
 
-	if en.EncodedChild == nil {
+	if en.ChildHash == nil {
 		return nil, nil, ErrNilExtensionNode
 	}
 
-	child, err := getNode(en.EncodedChild)
+	child, err := getNode(en.ChildHash)
 	if err != nil {
-		return [][]byte{en.EncodedChild}, nil, nil
+		return [][]byte{en.ChildHash}, nil, nil
 	}
-	log.Trace("load extension node child", "child hash", en.EncodedChild)
+	log.Trace("load extension node child", "child hash", en.ChildHash)
 	en.child = child
 
 	return nil, []node{child}, nil
@@ -688,7 +688,7 @@ func (en *extensionNode) getNextHashAndKey(key []byte) (bool, []byte, []byte) {
 	}
 
 	nextKey := key[len(en.Key):]
-	wantHash := en.EncodedChild
+	wantHash := en.ChildHash
 
 	return false, wantHash, nextKey
 }
@@ -700,7 +700,7 @@ func (en *extensionNode) sizeInBytes() int {
 
 	// hasher + marshalizer + child + dirty flag = 3 * pointerSizeInBytes + 1
 	nodeSize := len(en.hash) + len(en.Key) + (numNodeInnerPointers+1)*pointerSizeInBytes + 1
-	nodeSize += len(en.EncodedChild)
+	nodeSize += len(en.ChildHash)
 
 	return nodeSize
 }
@@ -710,7 +710,7 @@ func (en *extensionNode) getValue() []byte {
 }
 
 func (en *extensionNode) collectStats(ts common.TrieStatisticsHandler, depthLevel int, nodeSize uint64, db common.TrieStorageInteractor) error {
-	child, childBytes, err := getNodeFromDBAndDecode(en.EncodedChild, db, en.marsh, en.hasher)
+	child, childBytes, err := getNodeFromDBAndDecode(en.ChildHash, db, en.marsh, en.hasher)
 	if err != nil {
 		return err
 	}

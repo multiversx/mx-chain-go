@@ -31,7 +31,7 @@ func newBranchNode(marshalizer marshal.Marshalizer, hasher hashing.Hasher) (*bra
 
 	return &branchNode{
 		CollapsedBn: CollapsedBn{
-			EncodedChildren: encChildren,
+			ChildrenHashes: encChildren,
 		},
 		children: children,
 		baseNode: &baseNode{
@@ -112,7 +112,7 @@ func (bn *branchNode) setHashForChild(childPos int, goRoutinesManager common.Tri
 	}
 
 	bn.childrenMutexes[childPos].Lock()
-	bn.EncodedChildren[childPos] = childHash
+	bn.ChildrenHashes[childPos] = childHash
 	bn.childrenMutexes[childPos].Unlock()
 }
 
@@ -120,7 +120,7 @@ func (bn *branchNode) shouldSetHashForChild(childPos int) bool {
 	bn.childrenMutexes[childPos].RLock()
 	defer bn.childrenMutexes[childPos].RUnlock()
 
-	if bn.children[childPos] != nil && bn.EncodedChildren[childPos] == nil {
+	if bn.children[childPos] != nil && bn.ChildrenHashes[childPos] == nil {
 		return true
 	}
 
@@ -163,7 +163,7 @@ func (bn *branchNode) commitDirty(
 			}
 
 			bn.childrenMutexes[i].Lock()
-			bn.EncodedChildren[i] = child.getHash()
+			bn.ChildrenHashes[i] = child.getHash()
 			bn.childrenMutexes[i].Unlock()
 
 			continue
@@ -182,7 +182,7 @@ func (bn *branchNode) commitDirty(
 			}
 
 			bn.childrenMutexes[childPos].Lock()
-			bn.EncodedChildren[childPos] = child.getHash()
+			bn.ChildrenHashes[childPos] = child.getHash()
 			bn.childrenMutexes[childPos].Unlock()
 		}(i)
 
@@ -220,13 +220,13 @@ func (bn *branchNode) commitSnapshot(
 		return core.ErrContextClosing
 	}
 
-	for i := range bn.EncodedChildren {
-		if len(bn.EncodedChildren[i]) == 0 {
+	for i := range bn.ChildrenHashes {
+		if len(bn.ChildrenHashes[i]) == 0 {
 			continue
 		}
 
-		child, childBytes, err := getNodeFromDBAndDecode(bn.EncodedChildren[i], db, bn.marsh, bn.hasher)
-		childIsMissing, err := treatCommitSnapshotError(err, bn.EncodedChildren[i], missingNodesChan)
+		child, childBytes, err := getNodeFromDBAndDecode(bn.ChildrenHashes[i], db, bn.marsh, bn.hasher)
+		childIsMissing, err := treatCommitSnapshotError(err, bn.ChildrenHashes[i], missingNodesChan)
 		if err != nil {
 			return err
 		}
@@ -274,13 +274,13 @@ func (bn *branchNode) resolveIfCollapsed(pos byte, db common.TrieStorageInteract
 	bn.childrenMutexes[pos].Lock()
 	defer bn.childrenMutexes[pos].Unlock()
 
-	isPosCollapsed := bn.children[pos] == nil && len(bn.EncodedChildren[pos]) != 0
+	isPosCollapsed := bn.children[pos] == nil && len(bn.ChildrenHashes[pos]) != 0
 	if !isPosCollapsed {
 		handleStorageInteractorStats(db)
 		return bn.children[pos], nil
 	}
 
-	child, _, err := getNodeFromDBAndDecode(bn.EncodedChildren[pos], db, bn.marsh, bn.hasher)
+	child, _, err := getNodeFromDBAndDecode(bn.ChildrenHashes[pos], db, bn.marsh, bn.hasher)
 	if err != nil {
 		return nil, err
 	}
@@ -318,10 +318,10 @@ func (bn *branchNode) getNext(key []byte, db common.TrieStorageInteractor) (*nod
 		return nil, ErrChildPosOutOfRange
 	}
 	key = key[1:]
-	if len(bn.EncodedChildren[childPos]) == 0 {
+	if len(bn.ChildrenHashes[childPos]) == 0 {
 		return nil, ErrNodeNotFound
 	}
-	childNode, encodedNode, err := getNodeFromDBAndDecode(bn.EncodedChildren[childPos], db, bn.marsh, bn.hasher)
+	childNode, encodedNode, err := getNodeFromDBAndDecode(bn.ChildrenHashes[childPos], db, bn.marsh, bn.hasher)
 	if err != nil {
 		return nil, err
 	}
@@ -530,7 +530,7 @@ func (bn *branchNode) modifyNodeAfterInsert(modifiedHashes common.AtomicBytesSli
 	}
 
 	bn.childrenMutexes[childPos].Lock()
-	bn.EncodedChildren[childPos] = newNode.getHash()
+	bn.ChildrenHashes[childPos] = newNode.getHash()
 	bn.children[childPos] = newNode
 	bn.childrenMutexes[childPos].Unlock()
 
@@ -651,7 +651,7 @@ func (bn *branchNode) setNewChild(childPos byte, newNode node, modifiedHashes co
 	if check.IfNil(newNode) {
 		bn.childrenMutexes[childPos].Lock()
 		bn.children[childPos] = nil
-		bn.EncodedChildren[childPos] = nil
+		bn.ChildrenHashes[childPos] = nil
 		bn.setVersionForChild(core.NotSpecified, childPos)
 		bn.childrenMutexes[childPos].Unlock()
 		return nil
@@ -663,7 +663,7 @@ func (bn *branchNode) setNewChild(childPos byte, newNode node, modifiedHashes co
 
 	bn.childrenMutexes[childPos].Lock()
 	bn.children[childPos] = newNode
-	bn.EncodedChildren[childPos] = newNode.getHash()
+	bn.ChildrenHashes[childPos] = newNode.getHash()
 	bn.setVersionForChild(childVersion, childPos)
 	bn.childrenMutexes[childPos].Unlock()
 
@@ -693,7 +693,7 @@ func (bn *branchNode) reduceNode(pos int, _ common.TrieStorageInteractor) (node,
 func getChildPosition(n *branchNode) (numChildren int, childPos int) {
 	for i := 0; i < nrOfChildren; i++ {
 		n.childrenMutexes[i].RLock()
-		if n.children[i] != nil || len(n.EncodedChildren[i]) != 0 {
+		if n.children[i] != nil || len(n.ChildrenHashes[i]) != 0 {
 			numChildren++
 			childPos = i
 		}
@@ -707,7 +707,7 @@ func (bn *branchNode) isEmptyOrNil() error {
 		return ErrNilBranchNode
 	}
 	for i := range bn.children {
-		if bn.children[i] != nil || len(bn.EncodedChildren[i]) != 0 {
+		if bn.children[i] != nil || len(bn.ChildrenHashes[i]) != 0 {
 			return nil
 		}
 	}
@@ -724,7 +724,7 @@ func (bn *branchNode) print(writer io.Writer, index int, db common.TrieStorageIn
 	for i := 0; i < len(bn.children); i++ {
 		_, err := bn.resolveIfCollapsed(byte(i), db)
 		if err != nil {
-			log.Debug("branch node: print trie err", "error", err, "hash", bn.EncodedChildren[i])
+			log.Debug("branch node: print trie err", "error", err, "hash", bn.ChildrenHashes[i])
 		}
 
 		if bn.children[i] == nil {
@@ -774,20 +774,20 @@ func (bn *branchNode) loadChildren(getNode func([]byte) (node, error)) ([][]byte
 
 	existingChildren := make([]node, 0)
 	missingChildren := make([][]byte, 0)
-	for i := range bn.EncodedChildren {
-		if len(bn.EncodedChildren[i]) == 0 {
+	for i := range bn.ChildrenHashes {
+		if len(bn.ChildrenHashes[i]) == 0 {
 			continue
 		}
 
 		var child node
-		child, err = getNode(bn.EncodedChildren[i])
+		child, err = getNode(bn.ChildrenHashes[i])
 		if err != nil {
-			missingChildren = append(missingChildren, bn.EncodedChildren[i])
+			missingChildren = append(missingChildren, bn.ChildrenHashes[i])
 			continue
 		}
 
 		existingChildren = append(existingChildren, child)
-		log.Trace("load branch node child", "child hash", bn.EncodedChildren[i])
+		log.Trace("load branch node child", "child hash", bn.ChildrenHashes[i])
 		bn.children[i] = child
 	}
 
@@ -845,7 +845,7 @@ func (bn *branchNode) getNextHashAndKey(key []byte) (bool, []byte, []byte) {
 		return false, nil, nil
 	}
 
-	wantHash := bn.EncodedChildren[key[0]]
+	wantHash := bn.ChildrenHashes[key[0]]
 	nextKey := key[1:]
 
 	return false, wantHash, nextKey
@@ -858,7 +858,7 @@ func (bn *branchNode) sizeInBytes() int {
 
 	// hasher + marshalizer + dirty flag = numNodeInnerPointers * pointerSizeInBytes + 1
 	nodeSize := len(bn.hash) + numNodeInnerPointers*pointerSizeInBytes + 1
-	for _, collapsed := range bn.EncodedChildren {
+	for _, collapsed := range bn.ChildrenHashes {
 		nodeSize += len(collapsed)
 	}
 	nodeSize += len(bn.children) * pointerSizeInBytes
@@ -871,12 +871,12 @@ func (bn *branchNode) getValue() []byte {
 }
 
 func (bn *branchNode) collectStats(ts common.TrieStatisticsHandler, depthLevel int, nodeSize uint64, db common.TrieStorageInteractor) error {
-	for i := range bn.EncodedChildren {
-		if len(bn.EncodedChildren[i]) == 0 {
+	for i := range bn.ChildrenHashes {
+		if len(bn.ChildrenHashes[i]) == 0 {
 			continue
 		}
 
-		child, childBytes, err := getNodeFromDBAndDecode(bn.EncodedChildren[i], db, bn.marsh, bn.hasher)
+		child, childBytes, err := getNodeFromDBAndDecode(bn.ChildrenHashes[i], db, bn.marsh, bn.hasher)
 		if err != nil {
 			return err
 		}
@@ -900,7 +900,7 @@ func (bn *branchNode) getVersion() (core.TrieNodeVersion, error) {
 	var nodeVersion byte
 	for i := range bn.children {
 		index++
-		if bn.children[i] == nil && len(bn.EncodedChildren[i]) == 0 {
+		if bn.children[i] == nil && len(bn.ChildrenHashes[i]) == 0 {
 			continue
 		}
 
@@ -909,7 +909,7 @@ func (bn *branchNode) getVersion() (core.TrieNodeVersion, error) {
 	}
 
 	for i := index; i < len(bn.children); i++ {
-		if bn.children[i] == nil && len(bn.EncodedChildren[i]) == 0 {
+		if bn.children[i] == nil && len(bn.ChildrenHashes[i]) == 0 {
 			continue
 		}
 
@@ -948,7 +948,7 @@ func (bn *branchNode) collectLeavesForMigration(
 	}
 
 	for i := range bn.children {
-		if bn.children[i] == nil && len(bn.EncodedChildren[i]) == 0 {
+		if bn.children[i] == nil && len(bn.ChildrenHashes[i]) == 0 {
 			continue
 		}
 

@@ -26,7 +26,7 @@ func getEnAndCollapsedEn() (*extensionNode, *extensionNode) {
 	en, _ := newExtensionNode([]byte("d"), child, child.marsh, child.hasher)
 
 	childHash, _ := encodeNodeAndGetHash(collapsedChild)
-	collapsedEn := &extensionNode{CollapsedEn: CollapsedEn{Key: []byte("d"), EncodedChild: childHash}, baseNode: &baseNode{}}
+	collapsedEn := &extensionNode{CollapsedEn: CollapsedEn{Key: []byte("d"), ChildHash: childHash}, baseNode: &baseNode{}}
 	collapsedEn.marsh = child.marsh
 	collapsedEn.hasher = child.hasher
 	return en, collapsedEn
@@ -38,8 +38,8 @@ func TestExtensionNode_newExtensionNode(t *testing.T) {
 	bn, _ := getBnAndCollapsedBn(getTestMarshalizerAndHasher())
 	expectedEn := &extensionNode{
 		CollapsedEn: CollapsedEn{
-			Key:          []byte("dog"),
-			EncodedChild: nil,
+			Key:       []byte("dog"),
+			ChildHash: nil,
 		},
 		child: bn,
 		baseNode: &baseNode{
@@ -188,9 +188,9 @@ func TestExtensionNode_resolveCollapsed(t *testing.T) {
 
 	child, err := collapsedEn.resolveIfCollapsed(db)
 	assert.Nil(t, err)
-	assert.Equal(t, en.child.(*branchNode).EncodedChildren[2], child.(*branchNode).EncodedChildren[2])
-	assert.Equal(t, en.child.(*branchNode).EncodedChildren[6], child.(*branchNode).EncodedChildren[6])
-	assert.Equal(t, en.child.(*branchNode).EncodedChildren[13], child.(*branchNode).EncodedChildren[13])
+	assert.Equal(t, en.child.(*branchNode).ChildrenHashes[2], child.(*branchNode).ChildrenHashes[2])
+	assert.Equal(t, en.child.(*branchNode).ChildrenHashes[6], child.(*branchNode).ChildrenHashes[6])
+	assert.Equal(t, en.child.(*branchNode).ChildrenHashes[13], child.(*branchNode).ChildrenHashes[13])
 	assert.Equal(t, en.child.getHash(), collapsedEn.child.getHash())
 
 	h1, _ := encodeNodeAndGetHash(resolved)
@@ -285,7 +285,7 @@ func TestExtensionNode_getNext(t *testing.T) {
 	key = append(key, lnKey...)
 
 	data, err := en.getNext(key, db)
-	child, childBytes, _ := getNodeFromDBAndDecode(en.EncodedChild, db, en.marsh, en.hasher)
+	child, childBytes, _ := getNodeFromDBAndDecode(en.ChildHash, db, en.marsh, en.hasher)
 	assert.NotNil(t, data)
 	assert.Equal(t, childBytes, data.encodedNode)
 	assert.Equal(t, child, data.currentNode)
@@ -655,7 +655,7 @@ func TestExtensionNode_newExtensionNodeOkVals(t *testing.T) {
 
 	assert.Nil(t, err)
 	assert.Equal(t, key, en.Key)
-	assert.Nil(t, en.EncodedChild)
+	assert.Nil(t, en.ChildHash)
 	assert.Equal(t, child, en.child)
 	assert.Equal(t, hasher, en.hasher)
 	assert.Equal(t, marsh, en.marsh)
@@ -686,7 +686,7 @@ func TestExtensionNode_commitCollapsesTrieIfMaxTrieLevelInMemoryIsReached(t *tes
 	en.commitDirty(0, 1, manager, hashesCollector.NewDisabledHashesCollector(), testscommon.NewMemDbMock(), testscommon.NewMemDbMock())
 	assert.Nil(t, manager.GetError())
 
-	assert.Equal(t, collapsedEn.EncodedChild, en.EncodedChild)
+	assert.Equal(t, collapsedEn.ChildHash, en.ChildHash)
 	assert.Equal(t, collapsedEn.child, en.child)
 	assert.Equal(t, collapsedEn.hash, en.hash)
 }
@@ -717,7 +717,7 @@ func TestExtensionNode_getNextHashAndKey(t *testing.T) {
 	proofVerified, nextHash, nextKey := collapsedEn.getNextHashAndKey([]byte("d"))
 
 	assert.False(t, proofVerified)
-	assert.Equal(t, collapsedEn.EncodedChild, nextHash)
+	assert.Equal(t, collapsedEn.ChildHash, nextHash)
 	assert.Equal(t, []byte{}, nextKey)
 }
 
@@ -754,8 +754,8 @@ func TestExtensionNode_SizeInBytes(t *testing.T) {
 	hash := []byte("hash")
 	en = &extensionNode{
 		CollapsedEn: CollapsedEn{
-			Key:          key,
-			EncodedChild: collapsed,
+			Key:       key,
+			ChildHash: collapsed,
 		},
 		child: nil,
 		baseNode: &baseNode{
