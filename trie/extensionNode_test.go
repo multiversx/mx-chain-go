@@ -1102,6 +1102,42 @@ func TestExtensionNode_insertInNewBn(t *testing.T) {
 		assert.Equal(t, []byte{3, 3, 4, 5}, bn.children[3].(*leafNode).Key)
 		assert.Equal(t, []byte{2}, bn.children[1].(*extensionNode).Key)
 	})
+	t.Run("branch and insert existing value", func(t *testing.T) {
+		t.Parallel()
+
+		originalEn := getEn()
+		originalEn.setHash(getTestGoroutinesManager())
+		manager := getTestGoroutinesManager()
+		originalEn.commitDirty(0, 5, manager, hashesCollector.NewDisabledHashesCollector(), testscommon.NewMemDbMock(), testscommon.NewMemDbMock())
+		assert.Nil(t, manager.GetError())
+		originalHash := originalEn.getHash()
+
+		data := []core.TrieData{
+			getTrieDataWithDefaultVersion(string([]byte{1, 3, 6, 7, 16}), "dog"),   // new value
+			getTrieDataWithDefaultVersion(string([]byte{1, 2, 4, 3, 4, 5}), "dog"), // this is already in the trie
+		}
+
+		th, _ := throttler.NewNumGoRoutinesThrottler(5)
+		goRoutinesManager, err := NewGoroutinesManager(th, errChan.NewErrChanWrapper(), make(chan struct{}), "")
+		assert.Nil(t, err)
+
+		modifiedHashes := common.NewModifiedHashesSlice(initialModifiedHashesCapacity)
+		newNode := originalEn.insert(data, goRoutinesManager, modifiedHashes, nil)
+		assert.Nil(t, goRoutinesManager.GetError())
+		expectedNumTrieNodesChanged := 1
+		assert.Equal(t, expectedNumTrieNodesChanged, len(modifiedHashes.Get()))
+		en, ok := newNode.(*extensionNode)
+		assert.True(t, ok)
+		assert.True(t, en.dirty)
+
+		bn, ok := en.child.(*branchNode)
+		assert.True(t, ok)
+		assert.True(t, bn.dirty)
+
+		assert.False(t, bn.children[2].(*branchNode).dirty)
+		assert.Equal(t, originalEn.child, bn.children[2])
+		assert.NotEqual(t, originalHash, en.getHash())
+	})
 }
 
 func TestExtensionNode_deleteBatch(t *testing.T) {

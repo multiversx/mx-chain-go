@@ -409,6 +409,9 @@ func (en *extensionNode) insertInNewBn(
 		}
 	}
 
+	if check.IfNil(newNode) {
+		newNode = bn
+	}
 	newNode.setHash(goRoutinesManager)
 	if keyMatchLen == 0 {
 		return newNode
