@@ -29,7 +29,7 @@ func TestNode_encodeNodeAndGetHashBranchNode(t *testing.T) {
 	encChildren := make([][]byte, nrOfChildren)
 	encChildren[1] = []byte("dog")
 	encChildren[10] = []byte("doge")
-	bn.EncodedChildren = encChildren
+	bn.ChildrenHashes = encChildren
 
 	encNode, _ := bn.marsh.Marshal(bn)
 	encNode = append(encNode, branch)
@@ -46,8 +46,8 @@ func TestNode_encodeNodeAndGetHashExtensionNode(t *testing.T) {
 	marsh, hasher := getTestMarshalizerAndHasher()
 	en := &extensionNode{
 		CollapsedEn: CollapsedEn{
-			Key:          []byte{2},
-			EncodedChild: []byte("doge"),
+			Key:       []byte{2},
+			ChildHash: []byte("doge"),
 		},
 		baseNode: &baseNode{
 

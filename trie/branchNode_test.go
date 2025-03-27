@@ -49,7 +49,7 @@ func getTrieDataWithDefaultVersion(key string, val string) core.TrieData {
 
 func getBnAndCollapsedBn(marshalizer marshal.Marshalizer, hasher hashing.Hasher) (*branchNode, *branchNode) {
 	var children [nrOfChildren]node
-	EncodedChildren := make([][]byte, nrOfChildren)
+	ChildrenHashes := make([][]byte, nrOfChildren)
 
 	children[2], _ = newLeafNode(getTrieDataWithDefaultVersion("dog", "dog"), marshalizer, hasher)
 	children[6], _ = newLeafNode(getTrieDataWithDefaultVersion("doe", "doe"), marshalizer, hasher)
@@ -57,11 +57,11 @@ func getBnAndCollapsedBn(marshalizer marshal.Marshalizer, hasher hashing.Hasher)
 	bn, _ := newBranchNode(marshalizer, hasher)
 	bn.children = children
 
-	EncodedChildren[2], _ = encodeNodeAndGetHash(children[2])
-	EncodedChildren[6], _ = encodeNodeAndGetHash(children[6])
-	EncodedChildren[13], _ = encodeNodeAndGetHash(children[13])
+	ChildrenHashes[2], _ = encodeNodeAndGetHash(children[2])
+	ChildrenHashes[6], _ = encodeNodeAndGetHash(children[6])
+	ChildrenHashes[13], _ = encodeNodeAndGetHash(children[13])
 	collapsedBn, _ := newBranchNode(marshalizer, hasher)
-	collapsedBn.EncodedChildren = EncodedChildren
+	collapsedBn.ChildrenHashes = ChildrenHashes
 
 	return bn, collapsedBn
 }
@@ -73,7 +73,7 @@ func emptyDirtyBranchNode() *branchNode {
 
 	return &branchNode{
 		CollapsedBn: CollapsedBn{
-			EncodedChildren: encChildren,
+			ChildrenHashes:  encChildren,
 			ChildrenVersion: childrenVersion,
 		},
 		children: children,
@@ -254,7 +254,7 @@ func TestBranchNode_resolveIfCollapsed(t *testing.T) {
 	bn.commitDirty(0, 5, getTestGoroutinesManager(), hashesCollector.NewDisabledHashesCollector(), db, db)
 	resolved, _ := newLeafNode(getTrieDataWithDefaultVersion("dog", "dog"), bn.marsh, bn.hasher)
 	resolved.dirty = false
-	resolved.hash = bn.EncodedChildren[childPos]
+	resolved.hash = bn.ChildrenHashes[childPos]
 
 	childNode, err := collapsedBn.resolveIfCollapsed(childPos, db)
 	assert.Nil(t, err)
@@ -935,7 +935,7 @@ func TestBranchNode_newBranchNodeOkVals(t *testing.T) {
 	bn, err := newBranchNode(marsh, hasher)
 
 	assert.Nil(t, err)
-	assert.Equal(t, make([][]byte, nrOfChildren), bn.EncodedChildren)
+	assert.Equal(t, make([][]byte, nrOfChildren), bn.ChildrenHashes)
 	assert.Equal(t, children, bn.children)
 	assert.Equal(t, marsh, bn.marsh)
 	assert.Equal(t, hasher, bn.hasher)
@@ -962,7 +962,7 @@ func TestBranchNode_setRootHashCollapsedChildren(t *testing.T) {
 	marsh, hasher := getTestMarshalizerAndHasher()
 	bn := &branchNode{
 		CollapsedBn: CollapsedBn{
-			EncodedChildren: make([][]byte, nrOfChildren),
+			ChildrenHashes: make([][]byte, nrOfChildren),
 		},
 		baseNode: &baseNode{
 			marsh:  marsh,
@@ -994,7 +994,7 @@ func TestBranchNode_commitCollapsesTrieIfMaxTrieLevelInMemoryIsReached(t *testin
 	bn.commitDirty(0, 1, manager, hashesCollector.NewDisabledHashesCollector(), testscommon.NewMemDbMock(), testscommon.NewMemDbMock())
 	assert.Nil(t, manager.GetError())
 
-	assert.Equal(t, collapsedBn.EncodedChildren, bn.EncodedChildren)
+	assert.Equal(t, collapsedBn.ChildrenHashes, bn.ChildrenHashes)
 	assert.Equal(t, collapsedBn.children, bn.children)
 	assert.Equal(t, collapsedBn.hash, bn.hash)
 }
@@ -1039,7 +1039,7 @@ func TestBranchNode_getNextHashAndKey(t *testing.T) {
 	proofVerified, nextHash, nextKey := collapsedBn.getNextHashAndKey([]byte{2})
 
 	assert.False(t, proofVerified)
-	assert.Equal(t, collapsedBn.EncodedChildren[2], nextHash)
+	assert.Equal(t, collapsedBn.ChildrenHashes[2], nextHash)
 	assert.Equal(t, []byte{}, nextKey)
 }
 
@@ -1076,7 +1076,7 @@ func TestBranchNode_SizeInBytes(t *testing.T) {
 	hash := []byte("hash")
 	bn = &branchNode{
 		CollapsedBn: CollapsedBn{
-			EncodedChildren: [][]byte{collapsed1, collapsed2},
+			ChildrenHashes: [][]byte{collapsed1, collapsed2},
 		},
 		children: [17]node{},
 		baseNode: &baseNode{
