@@ -278,7 +278,7 @@ func TestTrieDB_RecreateFromStorageShouldWork(t *testing.T) {
 	key := hasher.Compute("key")
 	value := hasher.Compute("value")
 
-	_ = tr1.Update(key, value)
+	tr1.Update(key, value)
 	h1, _ := tr1.RootHash()
 	err := tr1.Commit(hashesCollector.NewDisabledHashesCollector())
 	require.Nil(t, err)

@@ -106,9 +106,9 @@ func newEmptyTrie() (*patriciaMerkleTrie, *trieStorageManager) {
 
 func initTrie() *patriciaMerkleTrie {
 	tr, _ := newEmptyTrie()
-	_ = tr.Update([]byte("doe"), []byte("reindeer"))
-	_ = tr.Update([]byte("dog"), []byte("puppy"))
-	_ = tr.Update([]byte("ddog"), []byte("cat"))
+	tr.Update([]byte("doe"), []byte("reindeer"))
+	tr.Update([]byte("dog"), []byte("puppy"))
+	tr.Update([]byte("ddog"), []byte("cat"))
 	_ = tr.Commit(hashesCollector.NewDisabledHashesCollector())
 
 	return tr
@@ -736,12 +736,12 @@ func TestReduceBranchNodeWithExtensionNodeChildShouldWork(t *testing.T) {
 	tr, _ := newEmptyTrie()
 	expectedTr, _ := newEmptyTrie()
 
-	_ = expectedTr.Update([]byte("dog"), []byte("dog"))
-	_ = expectedTr.Update([]byte("doll"), []byte("doll"))
+	expectedTr.Update([]byte("dog"), []byte("dog"))
+	expectedTr.Update([]byte("doll"), []byte("doll"))
 
-	_ = tr.Update([]byte("dog"), []byte("dog"))
-	_ = tr.Update([]byte("doll"), []byte("doll"))
-	_ = tr.Update([]byte("wolf"), []byte("wolf"))
+	tr.Update([]byte("dog"), []byte("dog"))
+	tr.Update([]byte("doll"), []byte("doll"))
+	tr.Update([]byte("wolf"), []byte("wolf"))
 	tr.Delete([]byte("wolf"))
 
 	expectedHash, _ := expectedTr.RootHash()
@@ -755,12 +755,12 @@ func TestReduceBranchNodeWithBranchNodeChildShouldWork(t *testing.T) {
 	tr, _ := newEmptyTrie()
 	expectedTr, _ := newEmptyTrie()
 
-	_ = expectedTr.Update([]byte("dog"), []byte("puppy"))
-	_ = expectedTr.Update([]byte("dogglesworth"), []byte("cat"))
+	expectedTr.Update([]byte("dog"), []byte("puppy"))
+	expectedTr.Update([]byte("dogglesworth"), []byte("cat"))
 
-	_ = tr.Update([]byte("doe"), []byte("reindeer"))
-	_ = tr.Update([]byte("dog"), []byte("puppy"))
-	_ = tr.Update([]byte("dogglesworth"), []byte("cat"))
+	tr.Update([]byte("doe"), []byte("reindeer"))
+	tr.Update([]byte("dog"), []byte("puppy"))
+	tr.Update([]byte("dogglesworth"), []byte("cat"))
 	tr.Delete([]byte("doe"))
 
 	expectedHash, _ := expectedTr.RootHash()
@@ -774,12 +774,12 @@ func TestReduceBranchNodeWithLeafNodeChildShouldWork(t *testing.T) {
 	tr, _ := newEmptyTrie()
 	expectedTr, _ := newEmptyTrie()
 
-	_ = expectedTr.Update([]byte("doe"), []byte("reindeer"))
-	_ = expectedTr.Update([]byte("dogglesworth"), []byte("cat"))
+	expectedTr.Update([]byte("doe"), []byte("reindeer"))
+	expectedTr.Update([]byte("dogglesworth"), []byte("cat"))
 
-	_ = tr.Update([]byte("doe"), []byte("reindeer"))
-	_ = tr.Update([]byte("dog"), []byte("puppy"))
-	_ = tr.Update([]byte("dogglesworth"), []byte("cat"))
+	tr.Update([]byte("doe"), []byte("reindeer"))
+	tr.Update([]byte("dog"), []byte("puppy"))
+	tr.Update([]byte("dogglesworth"), []byte("cat"))
 	tr.Delete([]byte("dog"))
 
 	expectedHash, _ := expectedTr.RootHash()
@@ -793,12 +793,12 @@ func TestReduceBranchNodeWithLeafNodeValueShouldWork(t *testing.T) {
 	tr, _ := newEmptyTrie()
 	expectedTr, _ := newEmptyTrie()
 
-	_ = expectedTr.Update([]byte("doe"), []byte("reindeer"))
-	_ = expectedTr.Update([]byte("dog"), []byte("puppy"))
+	expectedTr.Update([]byte("doe"), []byte("reindeer"))
+	expectedTr.Update([]byte("dog"), []byte("puppy"))
 
-	_ = tr.Update([]byte("doe"), []byte("reindeer"))
-	_ = tr.Update([]byte("dog"), []byte("puppy"))
-	_ = tr.Update([]byte("dogglesworth"), []byte("cat"))
+	tr.Update([]byte("doe"), []byte("reindeer"))
+	tr.Update([]byte("dog"), []byte("puppy"))
+	tr.Update([]byte("dogglesworth"), []byte("cat"))
 	tr.Delete([]byte("dogglesworth"))
 
 	expectedHash, _ := expectedTr.RootHash()
@@ -884,9 +884,9 @@ func TestPatriciaMerkleTrie_CommitCollapsedDirtyTrieShouldWork(t *testing.T) {
 	t.Parallel()
 
 	tr, _ := newEmptyTrie()
-	_ = tr.Update([]byte("aaa"), []byte("aaa"))
-	_ = tr.Update([]byte("nnn"), []byte("nnn"))
-	_ = tr.Update([]byte("zzz"), []byte("zzz"))
+	tr.Update([]byte("aaa"), []byte("aaa"))
+	tr.Update([]byte("nnn"), []byte("nnn"))
+	tr.Update([]byte("zzz"), []byte("zzz"))
 	_ = tr.Commit(hashesCollector.NewDisabledHashesCollector())
 	rootHash, _ := tr.RootHash()
 	collapsedTrie, _ := tr.recreate(rootHash, "", tr.trieStorage)

@@ -73,7 +73,7 @@ func addDataToTrie(numKeysValues int, tr common.Trie) {
 	for i := 0; i < numKeysValues; i++ {
 		keyVal := hasherMock.Compute(fmt.Sprintf("%d", i))
 
-		_ = tr.Update(keyVal, keyVal)
+		tr.Update(keyVal, keyVal)
 	}
 	ExecuteUpdatesFromBatch(tr)
 }

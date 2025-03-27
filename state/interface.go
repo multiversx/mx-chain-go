@@ -20,7 +20,7 @@ type AccountFactory interface {
 // Updater set a new value for a key, implemented by trie
 type Updater interface {
 	Get(key []byte) ([]byte, uint32, error)
-	Update(key, value []byte) error
+	Update(key, value []byte)
 	IsInterfaceNil() bool
 }
 
@@ -217,7 +217,7 @@ type AccountsAdapterAPI interface {
 type DataTrie interface {
 	common.Trie
 
-	UpdateWithVersion(key []byte, value []byte, version core.TrieNodeVersion) error
+	UpdateWithVersion(key []byte, value []byte, version core.TrieNodeVersion)
 	CollectLeavesForMigration(args vmcommon.ArgsMigrateDataTrieLeaves) error
 }
 

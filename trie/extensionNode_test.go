@@ -597,8 +597,8 @@ func TestExtensionNode_loadChildren(t *testing.T) {
 
 	marsh, hasher := getTestMarshalizerAndHasher()
 	tr, _ := newEmptyTrie()
-	_ = tr.Update([]byte("dog"), []byte("puppy"))
-	_ = tr.Update([]byte("ddog"), []byte("cat"))
+	tr.Update([]byte("dog"), []byte("puppy"))
+	tr.Update([]byte("ddog"), []byte("cat"))
 	_ = tr.Commit(hashesCollector.NewDisabledHashesCollector())
 	tr.GetRootNode().setHash(getTestGoroutinesManager())
 	nodes, _ := getEncodedTrieNodesAndHashes(tr)

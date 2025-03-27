@@ -3,7 +3,7 @@ package syncer
 import (
 	"testing"
 	"time"
-	
+
 	"github.com/multiversx/mx-chain-core-go/core/throttler"
 	"github.com/multiversx/mx-chain-go/dataRetriever/mock"
 	"github.com/multiversx/mx-chain-go/state/hashesCollector"
@@ -102,7 +102,7 @@ func TestUserAccountsSyncer_MissingDataTrieNodeFound(t *testing.T) {
 	tr, _ := trie.NewTrie(trieArgs)
 	key := []byte("key")
 	value := []byte("value")
-	_ = tr.Update(key, value)
+	tr.Update(key, value)
 	rootHash, _ := tr.RootHash()
 	_ = tr.Commit(hashesCollector.NewDisabledHashesCollector())
 

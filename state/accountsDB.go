@@ -412,11 +412,7 @@ func saveCodeEntry(codeHash []byte, entry *CodeEntry, trie Updater, marshalizer 
 		return err
 	}
 
-	err = trie.Update(codeHash, codeEntry)
-	if err != nil {
-		return err
-	}
-
+	trie.Update(codeHash, codeEntry)
 	return nil
 }
 
@@ -495,7 +491,8 @@ func (adb *AccountsDB) saveAccountToTrie(accountHandler vmcommon.AccountHandler,
 		return err
 	}
 
-	return mainTrie.Update(accountHandler.AddressBytes(), buff)
+	mainTrie.Update(accountHandler.AddressBytes(), buff)
+	return nil
 }
 
 // RemoveAccount removes the account data from underlying trie.
