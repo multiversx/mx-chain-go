@@ -3,6 +3,7 @@ package storagePruningManager
 import (
 	"testing"
 
+	"github.com/multiversx/mx-chain-core-go/core/throttler"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/common/holders"
 	"github.com/multiversx/mx-chain-go/common/statistics"
@@ -32,7 +33,16 @@ func getDefaultTrieAndAccountsDbAndStoragePruningManager() (common.Trie, *state.
 	hasher := &hashingMocks.HasherMock{}
 	args := storage.GetStorageManagerArgs()
 	trieStorage, _ := trie.NewTrieStorageManager(args)
-	tr, _ := trie.NewTrie(trieStorage, marshaller, hasher, &enableEpochsHandlerMock.EnableEpochsHandlerStub{}, 5)
+	th, _ := throttler.NewNumGoRoutinesThrottler(10)
+	trieArgs := trie.TrieArgs{
+		TrieStorage:          trieStorage,
+		Marshalizer:          marshaller,
+		Hasher:               hasher,
+		EnableEpochsHandler:  &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		MaxTrieLevelInMemory: 5,
+		Throttler:            th,
+	}
+	tr, _ := trie.NewTrie(trieArgs)
 	ewlArgs := evictionWaitingList.MemoryEvictionWaitingListArgs{
 		RootHashesSize: 100,
 		HashesSize:     10000,
@@ -224,7 +234,7 @@ func TestAccountsDB_PruneAfterCancelPruneShouldFail(t *testing.T) {
 	spm.CancelPrune(rootHash, state.OldRoot, trieStorage)
 	spm.PruneTrie(rootHash, state.OldRoot, trieStorage, state.NewPruningHandler(state.EnableDataRemoval))
 
-	newTr, err := tr.Recreate(holders.NewDefaultRootHashesHolder(rootHash))
+	newTr, err := tr.Recreate(holders.NewDefaultRootHashesHolder(rootHash), "")
 	assert.Nil(t, err)
 	assert.NotNil(t, newTr)
 }

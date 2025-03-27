@@ -7,16 +7,16 @@ import (
 
 // StoragePruningManagerStub -
 type StoragePruningManagerStub struct {
-	MarkForEvictionCalled func(bytes []byte, bytes2 []byte, hashes common.ModifiedHashes, hashes2 common.ModifiedHashes) error
+	MarkForEvictionCalled func(bytes []byte, collector common.TrieHashesCollector) error
 	PruneTrieCalled       func(rootHash []byte, identifier state.TriePruningIdentifier, tsm common.StorageManager, handler state.PruningHandler)
 	CancelPruneCalled     func(rootHash []byte, identifier state.TriePruningIdentifier, tsm common.StorageManager)
 	CloseCalled           func() error
 }
 
 // MarkForEviction -
-func (stub *StoragePruningManagerStub) MarkForEviction(bytes []byte, bytes2 []byte, hashes common.ModifiedHashes, hashes2 common.ModifiedHashes) error {
+func (stub *StoragePruningManagerStub) MarkForEviction(bytes []byte, collector common.TrieHashesCollector) error {
 	if stub.MarkForEvictionCalled != nil {
-		return stub.MarkForEvictionCalled(bytes, bytes2, hashes, hashes2)
+		return stub.MarkForEvictionCalled(bytes, collector)
 	}
 
 	return nil
