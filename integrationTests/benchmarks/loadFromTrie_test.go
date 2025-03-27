@@ -144,7 +144,7 @@ func insertKeysIntoTrie(t *testing.T, tr common.Trie, numTrieLevels int, numChil
 func insertInTrie(tr common.Trie, numTrieLevels int, numChildrenPerBranch int) []byte {
 	keys := integrationTests.GenerateTrieKeysForMaxLevel(numTrieLevels, numChildrenPerBranch)
 	for _, key := range keys {
-		_ = tr.Update(key, key)
+		tr.Update(key, key)
 	}
 
 	lastKeyIndex := len(keys) - 1

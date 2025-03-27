@@ -148,8 +148,8 @@ func TestWriteContinuouslyInTree(t *testing.T) {
 		}
 
 		key, val := testStorage.CreateStoredData(uint64(i))
-		err := tr.Update(key, val)
-
+		tr.Update(key, val)
+		_, err := tr.RootHash()
 		assert.Nil(t, err)
 	}
 }

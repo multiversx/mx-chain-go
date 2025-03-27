@@ -429,7 +429,7 @@ func TestInsertSameNodeShouldNotSetDirtyBnRoot(t *testing.T) {
 	_ = tr.Commit(hashesCollector.NewDisabledHashesCollector())
 	rootHash := tr.GetRootNode().getHash()
 
-	_ = tr.Update([]byte("dog"), []byte("puppy"))
+	tr.Update([]byte("dog"), []byte("puppy"))
 	ExecuteUpdatesFromBatch(tr)
 	assert.False(t, tr.GetRootNode().isDirty())
 	assert.Equal(t, rootHash, tr.GetRootNode().getHash())
@@ -440,12 +440,12 @@ func TestInsertSameNodeShouldNotSetDirtyEnRoot(t *testing.T) {
 	t.Parallel()
 
 	tr, _ := newEmptyTrie()
-	_ = tr.Update([]byte("dog"), []byte("puppy"))
-	_ = tr.Update([]byte("log"), []byte("wood"))
+	tr.Update([]byte("dog"), []byte("puppy"))
+	tr.Update([]byte("log"), []byte("wood"))
 	_ = tr.Commit(hashesCollector.NewDisabledHashesCollector())
 	rootHash := tr.GetRootNode().getHash()
 
-	_ = tr.Update([]byte("dog"), []byte("puppy"))
+	tr.Update([]byte("dog"), []byte("puppy"))
 	ExecuteUpdatesFromBatch(tr)
 	assert.False(t, tr.GetRootNode().isDirty())
 	assert.Equal(t, rootHash, tr.GetRootNode().getHash())
@@ -456,11 +456,11 @@ func TestInsertSameNodeShouldNotSetDirtyLnRoot(t *testing.T) {
 	t.Parallel()
 
 	tr, _ := newEmptyTrie()
-	_ = tr.Update([]byte("dog"), []byte("puppy"))
+	tr.Update([]byte("dog"), []byte("puppy"))
 	_ = tr.Commit(hashesCollector.NewDisabledHashesCollector())
 	rootHash := tr.GetRootNode().getHash()
 
-	_ = tr.Update([]byte("dog"), []byte("puppy"))
+	tr.Update([]byte("dog"), []byte("puppy"))
 	ExecuteUpdatesFromBatch(tr)
 	assert.False(t, tr.GetRootNode().isDirty())
 	assert.Equal(t, rootHash, tr.GetRootNode().getHash())
@@ -474,7 +474,7 @@ func TestLeafNode_deleteDifferentKeyShouldNotModifyTrie(t *testing.T) {
 	_ = tr.Commit(hashesCollector.NewDisabledHashesCollector())
 	rootHash := tr.GetRootNode().getHash()
 
-	_ = tr.Update([]byte("ddoe"), []byte{})
+	tr.Update([]byte("ddoe"), []byte{})
 	ExecuteUpdatesFromBatch(tr)
 	assert.False(t, tr.GetRootNode().isDirty())
 	assert.Equal(t, rootHash, tr.GetRootNode().getHash())

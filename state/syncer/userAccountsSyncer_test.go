@@ -118,7 +118,7 @@ func getSerializedTrieNode(
 	trieArgs.Hasher = hasher
 
 	tr, _ := trie.NewTrie(trieArgs)
-	_ = tr.Update(key, []byte("value"))
+	tr.Update(key, []byte("value"))
 	_ = tr.Commit(hashesCollector.NewDisabledHashesCollector())
 
 	return serializedLeafNode
@@ -266,9 +266,9 @@ func TestUserAccountsSyncer_SyncAccountDataTries(t *testing.T) {
 		accountBytes, err := args.Marshalizer.Marshal(account)
 		require.Nil(t, err)
 
-		_ = tr.Update([]byte("doe"), []byte("reindeer"))
-		_ = tr.Update([]byte("dog"), []byte("puppy"))
-		_ = tr.Update([]byte("ddog"), accountBytes)
+		tr.Update([]byte("doe"), []byte("reindeer"))
+		tr.Update([]byte("dog"), []byte("puppy"))
+		tr.Update([]byte("ddog"), accountBytes)
 		_ = tr.Commit(hashesCollector.NewDisabledHashesCollector())
 
 		leavesChannels := &common.TrieIteratorChannels{
@@ -329,9 +329,9 @@ func TestUserAccountsSyncer_SyncAccountDataTries(t *testing.T) {
 		accountBytes, err := args.Marshalizer.Marshal(account)
 		require.Nil(t, err)
 
-		_ = tr.Update([]byte("doe"), []byte("reindeer"))
-		_ = tr.Update([]byte("dog"), []byte("puppy"))
-		_ = tr.Update([]byte("ddog"), accountBytes)
+		tr.Update([]byte("doe"), []byte("reindeer"))
+		tr.Update([]byte("dog"), []byte("puppy"))
+		tr.Update([]byte("ddog"), accountBytes)
 		_ = tr.Commit(hashesCollector.NewDisabledHashesCollector())
 
 		leavesChannels := &common.TrieIteratorChannels{
@@ -395,7 +395,7 @@ func TestUserAccountsSyncer_MissingDataTrieNodeFound(t *testing.T) {
 	tr, _ := trie.NewTrie(trieArgs)
 	key := []byte("key")
 	value := []byte("value")
-	_ = tr.Update(key, value)
+	tr.Update(key, value)
 	rootHash, _ := tr.RootHash()
 	_ = tr.Commit(hashesCollector.NewDisabledHashesCollector())
 

@@ -24,7 +24,7 @@ type statsCollector interface {
 }
 
 type dataTrie interface {
-	UpdateWithVersion(key []byte, value []byte, version core.TrieNodeVersion) error
+	UpdateWithVersion(key []byte, value []byte, version core.TrieNodeVersion)
 }
 
 func TestMigrateDataTrieBuiltInFunc(t *testing.T) {
@@ -217,8 +217,7 @@ func generateDataTrie(
 	for i := 1; i < numLeaves; i++ {
 		key := keyGenerator(i)
 		value := getValWithAppendedData(key, key, accAddr)
-		err := tr.UpdateWithVersion(key, value, core.NotSpecified)
-		require.Nil(t, err)
+		tr.UpdateWithVersion(key, value, core.NotSpecified)
 
 		keys[i] = key
 	}

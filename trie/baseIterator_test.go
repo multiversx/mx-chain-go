@@ -36,13 +36,13 @@ func TestBaseIterator_HasNext(t *testing.T) {
 	t.Parallel()
 
 	tr := emptyTrie()
-	_ = tr.Update([]byte("dog"), []byte("dog"))
+	tr.Update([]byte("dog"), []byte("dog"))
 	_ = tr.Commit(hashesCollector.NewDisabledHashesCollector())
 	rootHash, _ := tr.RootHash()
 	it, _ := trie.NewBaseIterator(tr, rootHash)
 	assert.False(t, it.HasNext())
 
-	_ = tr.Update([]byte("doe"), []byte("doe"))
+	tr.Update([]byte("doe"), []byte("doe"))
 	_ = tr.Commit(hashesCollector.NewDisabledHashesCollector())
 	rootHash, _ = tr.RootHash()
 	it, _ = trie.NewBaseIterator(tr, rootHash)
@@ -81,10 +81,10 @@ func TestIterator_Search(t *testing.T) {
 	t.Parallel()
 
 	tr := emptyTrie()
-	_ = tr.Update([]byte("doe"), []byte("reindeer"))
-	_ = tr.Update([]byte("dog"), []byte("puppy"))
-	_ = tr.Update([]byte("ddog"), []byte("cat"))
-	_ = tr.Update([]byte("ddoge"), []byte("foo"))
+	tr.Update([]byte("doe"), []byte("reindeer"))
+	tr.Update([]byte("dog"), []byte("puppy"))
+	tr.Update([]byte("ddog"), []byte("cat"))
+	tr.Update([]byte("ddoge"), []byte("foo"))
 	_ = tr.Commit(hashesCollector.NewDisabledHashesCollector())
 
 	expectedHashes := []string{

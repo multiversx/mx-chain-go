@@ -312,9 +312,6 @@ func TestAccountsDB_SaveAccountNilOldAccount(t *testing.T) {
 		GetCalled: func(_ []byte) ([]byte, uint32, error) {
 			return nil, 0, nil
 		},
-		UpdateCalled: func(key, value []byte) error {
-			return nil
-		},
 		GetStorageManagerCalled: func() common.StorageManager {
 			return &storageManager.StorageManagerStub{}
 		},
@@ -335,9 +332,6 @@ func TestAccountsDB_SaveAccountExistingOldAccount(t *testing.T) {
 			serializedAcc, err := (&marshallerMock.MarshalizerMock{}).Marshal(acc)
 			return serializedAcc, 0, err
 		},
-		UpdateCalled: func(key, value []byte) error {
-			return nil
-		},
 		GetStorageManagerCalled: func() common.StorageManager {
 			return &storageManager.StorageManagerStub{}
 		},
@@ -356,9 +350,6 @@ func TestAccountsDB_SaveAccountSavesCodeAndDataTrieForUserAccount(t *testing.T) 
 		GetCalled: func(_ []byte) ([]byte, uint32, error) {
 			return nil, 0, nil
 		},
-		UpdateWithVersionCalled: func(key, value []byte, version core.TrieNodeVersion) error {
-			return nil
-		},
 		RootCalled: func() (i []byte, err error) {
 			return []byte("rootHash"), nil
 		},
@@ -368,9 +359,8 @@ func TestAccountsDB_SaveAccountSavesCodeAndDataTrieForUserAccount(t *testing.T) 
 		GetCalled: func(_ []byte) ([]byte, uint32, error) {
 			return nil, 0, nil
 		},
-		UpdateCalled: func(key, value []byte) error {
+		UpdateCalled: func(key, value []byte) {
 			updateCalled++
-			return nil
 		},
 		GetStorageManagerCalled: func() common.StorageManager {
 			return &storageManager.StorageManagerStub{}
@@ -435,9 +425,6 @@ func TestAccountsDB_SaveAccountWithSomeValuesShouldWork(t *testing.T) {
 		GetCalled: func(_ []byte) ([]byte, uint32, error) {
 			return nil, 0, nil
 		},
-		UpdateCalled: func(key, value []byte) error {
-			return nil
-		},
 		GetStorageManagerCalled: func() common.StorageManager {
 			return &storageManager.StorageManagerStub{}
 		},
@@ -501,9 +488,6 @@ func TestAccountsDB_LoadAccountNotFoundShouldCreateEmpty(t *testing.T) {
 	trieStub := &trieMock.TrieStub{
 		GetCalled: func(_ []byte) ([]byte, uint32, error) {
 			return nil, 0, nil
-		},
-		UpdateCalled: func(key, value []byte) error {
-			return nil
 		},
 		GetStorageManagerCalled: func() common.StorageManager {
 			return &storageManager.StorageManagerStub{}
@@ -893,9 +877,6 @@ func TestAccountsDB_CommitShouldCallCommitFromTrie(t *testing.T) {
 			return &trieMock.TrieStub{
 				GetCalled: func(_ []byte) ([]byte, uint32, error) {
 					return []byte("doge"), 0, nil
-				},
-				UpdateWithVersionCalled: func(key, value []byte, version core.TrieNodeVersion) error {
-					return nil
 				},
 				CommitCalled: func(_ common.TrieHashesCollector) error {
 					commitCalled++
@@ -1835,15 +1816,15 @@ func TestAccountsDB_TrieDatabasePruning(t *testing.T) {
 	t.Parallel()
 
 	tr, adb := getDefaultTrieAndAccountsDb()
-	_ = tr.Update([]byte("doe"), []byte("reindeer"))
-	_ = tr.Update([]byte("dog"), []byte("puppy"))
-	_ = tr.Update([]byte("ddog"), []byte("cat"))
+	tr.Update([]byte("doe"), []byte("reindeer"))
+	tr.Update([]byte("dog"), []byte("puppy"))
+	tr.Update([]byte("ddog"), []byte("cat"))
 	_, err := adb.Commit()
 	assert.Nil(t, err)
 
 	rootHash, _ := tr.RootHash()
 
-	_ = tr.Update([]byte("dog"), []byte("doee"))
+	tr.Update([]byte("dog"), []byte("doee"))
 	_, err = adb.Commit()
 	assert.Nil(t, err)
 
@@ -1882,7 +1863,7 @@ func TestAccountsDB_PruningAndPruningCancellingOnTrieRollback(t *testing.T) {
 
 	rootHashes := make([][]byte, 0)
 	for _, testVal := range testVals {
-		_ = tr.Update(testVal.key, testVal.value)
+		tr.Update(testVal.key, testVal.value)
 		_, _ = adb.Commit()
 
 		rootHash, _ := tr.RootHash()
@@ -1925,13 +1906,13 @@ func TestAccountsDB_Prune(t *testing.T) {
 	t.Parallel()
 
 	tr, adb := getDefaultTrieAndAccountsDb()
-	_ = tr.Update([]byte("doe"), []byte("reindeer"))
-	_ = tr.Update([]byte("dog"), []byte("puppy"))
-	_ = tr.Update([]byte("dogglesworth"), []byte("cat"))
+	tr.Update([]byte("doe"), []byte("reindeer"))
+	tr.Update([]byte("dog"), []byte("puppy"))
+	tr.Update([]byte("dogglesworth"), []byte("cat"))
 	_, _ = adb.Commit()
 	rootHash, _ := tr.RootHash()
 
-	_ = tr.Update([]byte("dog"), []byte("value of dog"))
+	tr.Update([]byte("dog"), []byte("value of dog"))
 	_, _ = adb.Commit()
 
 	adb.CancelPrune(rootHash, state.NewRoot)
@@ -2693,7 +2674,7 @@ func prepareTrie(tr common.Trie, numKeys int) common.ModifiedHashes {
 	for i := 0; i < numKeys; i++ {
 		key := fmt.Sprintf("key%d", i)
 		val := fmt.Sprintf("val%d", i)
-		_ = tr.Update([]byte(key), []byte(val))
+		tr.Update([]byte(key), []byte(val))
 	}
 
 	hc := hashesCollector.NewDataTrieHashesCollector()

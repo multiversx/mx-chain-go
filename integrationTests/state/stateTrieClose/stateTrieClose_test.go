@@ -26,7 +26,7 @@ func TestPatriciaMerkleTrie_Close(t *testing.T) {
 	tr, _ := trie.NewTrie(integrationTests.GetTrieArgs(trieStorage))
 
 	for i := 0; i < numLeavesToAdd; i++ {
-		_ = tr.Update([]byte(strconv.Itoa(i)), []byte(strconv.Itoa(i)))
+		tr.Update([]byte(strconv.Itoa(i)), []byte(strconv.Itoa(i)))
 	}
 	_ = tr.Commit(hashesCollector.NewDisabledHashesCollector())
 	time.Sleep(time.Second * 2) // allow the commit go routines to finish completely as to not alter the further counters
@@ -69,7 +69,7 @@ func TestPatriciaMerkleTrie_Close(t *testing.T) {
 	err = leavesChannel1.ErrChan.ReadFromChanNonBlocking()
 	assert.Nil(t, err)
 
-	_ = tr.Update([]byte("god"), []byte("puppy"))
+	tr.Update([]byte("god"), []byte("puppy"))
 	_ = tr.Commit(hashesCollector.NewDisabledHashesCollector())
 
 	rootHash, _ = tr.RootHash()
@@ -90,7 +90,7 @@ func TestPatriciaMerkleTrie_Close(t *testing.T) {
 	err = leavesChannel1.ErrChan.ReadFromChanNonBlocking()
 	assert.Nil(t, err)
 
-	_ = tr.Update([]byte("eggod"), []byte("cat"))
+	tr.Update([]byte("eggod"), []byte("cat"))
 	_ = tr.Commit(hashesCollector.NewDisabledHashesCollector())
 
 	rootHash, _ = tr.RootHash()

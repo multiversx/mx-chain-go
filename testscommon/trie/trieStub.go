@@ -14,8 +14,8 @@ var errNotImplemented = errors.New("not implemented")
 // TrieStub -
 type TrieStub struct {
 	GetCalled                       func(key []byte) ([]byte, uint32, error)
-	UpdateCalled                    func(key, value []byte) error
-	UpdateWithVersionCalled         func(key, value []byte, version core.TrieNodeVersion) error
+	UpdateCalled                    func(key, value []byte)
+	UpdateWithVersionCalled         func(key, value []byte, version core.TrieNodeVersion)
 	DeleteCalled                    func(key []byte)
 	RootCalled                      func() ([]byte, error)
 	CommitCalled                    func(collector common.TrieHashesCollector) error
@@ -78,21 +78,17 @@ func (ts *TrieStub) Get(key []byte) ([]byte, uint32, error) {
 }
 
 // Update -
-func (ts *TrieStub) Update(key, value []byte) error {
+func (ts *TrieStub) Update(key, value []byte) {
 	if ts.UpdateCalled != nil {
-		return ts.UpdateCalled(key, value)
+		ts.UpdateCalled(key, value)
 	}
-
-	return errNotImplemented
 }
 
 // UpdateWithVersion -
-func (ts *TrieStub) UpdateWithVersion(key []byte, value []byte, version core.TrieNodeVersion) error {
+func (ts *TrieStub) UpdateWithVersion(key []byte, value []byte, version core.TrieNodeVersion) {
 	if ts.UpdateWithVersionCalled != nil {
-		return ts.UpdateWithVersionCalled(key, value, version)
+		ts.UpdateWithVersionCalled(key, value, version)
 	}
-
-	return errNotImplemented
 }
 
 // CollectLeavesForMigration -
