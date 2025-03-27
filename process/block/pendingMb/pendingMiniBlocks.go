@@ -189,6 +189,8 @@ func (p *pendingMiniBlocks) GetPendingMiniBlocks(shardID uint32) [][]byte {
 	p.mutPendingMbShard.RLock()
 	defer p.mutPendingMbShard.RUnlock()
 
+	log.Info("GetPendingMiniBlocks - start", "shard", shardID)
+
 	pendingMiniBlocksToReturn := make([][]byte, 0)
 	for mbHash, mbShardID := range p.mapPendingMbShard {
 		if mbShardID != shardID {
@@ -196,8 +198,9 @@ func (p *pendingMiniBlocks) GetPendingMiniBlocks(shardID uint32) [][]byte {
 		}
 
 		pendingMiniBlocksToReturn = append(pendingMiniBlocksToReturn, []byte(mbHash))
+		log.Info("GetPendingMiniBlocks", "mbhash", []byte(mbHash))
 	}
-
+	log.Info("GetPendingMiniBlocks - end", "shard", shardID)
 	if len(pendingMiniBlocksToReturn) == 0 {
 		return nil
 	}

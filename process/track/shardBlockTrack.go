@@ -147,6 +147,7 @@ func (sbt *shardBlockTrack) ComputeCrossInfo(headers []data.HeaderHandler) {
 	}
 
 	for _, shardInfo := range metaBlock.ShardInfo {
+		log.Info("compute cross info from meta block", "shardID", shardInfo.ShardID, "numPendingMiniBlocks", shardInfo.NumPendingMiniBlocks, "lastIncludedMetaNonce", shardInfo.LastIncludedMetaNonce)
 		sbt.blockBalancer.SetNumPendingMiniBlocks(shardInfo.ShardID, shardInfo.NumPendingMiniBlocks)
 		sbt.blockBalancer.SetLastShardProcessedMetaNonce(shardInfo.ShardID, shardInfo.LastIncludedMetaNonce)
 	}
