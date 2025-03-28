@@ -1,6 +1,8 @@
 package process
 
 import (
+	"errors"
+
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
@@ -89,6 +91,18 @@ func (creator *blocksCreator) CreateNewBlock() error {
 	}
 
 	pubKeyBitmap := GeneratePubKeyBitmap(len(validators))
+	for idx, validator := range validators {
+		isManaged := cryptoComponents.KeysHandler().IsKeyManagedByCurrentNode(validator.PubKey())
+		if isManaged {
+			continue
+		}
+
+		err = UnsetBitInBitmap(idx, pubKeyBitmap)
+		if err != nil {
+			return err
+		}
+	}
+
 	err = newHeader.SetPubKeysBitmap(pubKeyBitmap)
 	if err != nil {
 		return err
@@ -402,4 +416,13 @@ func GeneratePubKeyBitmap(numOfOnes int) []byte {
 	}
 
 	return result
+}
+
+func UnsetBitInBitmap(index int, bitmap []byte) error {
+	if len(bitmap) < index/8 {
+		return errors.New("bitmap too short")
+	}
+	bitmap[index/8] = bitmap[index/8] & ^(1 << uint8(index%8))
+
+	return nil
 }
