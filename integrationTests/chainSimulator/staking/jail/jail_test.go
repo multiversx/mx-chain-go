@@ -300,8 +300,10 @@ func TestJailNodes(t *testing.T) {
 	walletAddress, err := cs.GenerateAndMintWalletAddress(core.AllShardId, mintValue)
 	require.Nil(t, err)
 
-	err = cs.GenerateBlocks(1)
-	require.Nil(t, err)
+	for i := 0; i < 10; i++ {
+		err = cs.ForceChangeOfEpoch()
+		require.Nil(t, err)
+	}
 
 	txDataField := fmt.Sprintf("stake@01@%s@%s", blsKeys[0], staking.MockBLSSignature)
 	txStake := chainSimulatorIntegrationTests.GenerateTransaction(walletAddress.Bytes, 0, vm.ValidatorSCAddress, chainSimulatorIntegrationTests.MinimumStakeValue, txDataField, staking.GasLimitForStakeOperation)

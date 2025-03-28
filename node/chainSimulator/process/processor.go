@@ -1,6 +1,8 @@
 package process
 
 import (
+	"errors"
+
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
@@ -89,6 +91,18 @@ func (creator *blocksCreator) CreateNewBlock() error {
 	}
 
 	pubKeyBitmap := GeneratePubKeyBitmap(len(validators))
+	for idx, validator := range validators {
+		isManaged := cryptoComponents.KeysHandler().IsKeyManagedByCurrentNode(validator.PubKey())
+		if isManaged {
+			continue
+		}
+
+		err = UnsetBitInBitmap(idx, pubKeyBitmap)
+		if err != nil {
+			return err
+		}
+	}
+
 	err = newHeader.SetPubKeysBitmap(pubKeyBitmap)
 	if err != nil {
 		return err
@@ -116,11 +130,11 @@ func (creator *blocksCreator) CreateNewBlock() error {
 	enableEpochHandler := coreComponents.EnableEpochsHandler()
 	var previousProof *dataBlock.HeaderProof
 	if !nilPrevHeader && enableEpochHandler.IsFlagEnabled(common.EquivalentMessagesFlag) {
-		sig, errS := creator.generateSignature(prevHash, leader.PubKey(), prevHeader)
-		if errS != nil {
-			return errS
-		}
-		previousProof = createProofForHeader(pubKeyBitmap, sig, prevHash, prevHeader)
+		//sig, errS := creator.generateSignature(prevHash, leader.PubKey(), prevHeader)
+		//if errS != nil {
+		//	return errS
+		//}
+		previousProof = createProofForHeader(pubKeyBitmap, []byte(""), prevHash, prevHeader)
 		_ = creator.nodeHandler.GetDataComponents().Datapool().Proofs().AddProof(previousProof)
 	}
 
@@ -228,6 +242,18 @@ func (creator *blocksCreator) updatePreviousProofAndAddonHeader(currentHeaderHas
 	}
 
 	previousProof.PubKeysBitmap = GeneratePubKeyBitmap(len(validators))
+	for idx, validator := range validators {
+		isManaged := creator.nodeHandler.GetCryptoComponents().KeysHandler().IsKeyManagedByCurrentNode(validator.PubKey())
+		if isManaged {
+			continue
+		}
+
+		err = UnsetBitInBitmap(idx, previousProof.PubKeysBitmap)
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	previousProof.AggregatedSignature, err = creator.generateSignatureForProofs(currentHeaderHash, previousProof, validators)
 	if err != nil {
 		return nil, err
@@ -402,4 +428,13 @@ func GeneratePubKeyBitmap(numOfOnes int) []byte {
 	}
 
 	return result
+}
+
+func UnsetBitInBitmap(index int, bitmap []byte) error {
+	if len(bitmap) < index/8 {
+		return errors.New("bitmap too short")
+	}
+	bitmap[index/8] = bitmap[index/8] & ^(1 << uint8(index%8))
+
+	return nil
 }
