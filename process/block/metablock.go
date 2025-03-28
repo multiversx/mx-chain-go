@@ -1952,17 +1952,11 @@ func verifyProof(proof data.HeaderProofHandler) error {
 		return nil
 	}
 
-	if isIncompleteProof(proof) {
+	if common.IsIncompleteProof(proof) {
 		return process.ErrInvalidHeaderProof
 	}
 
 	return nil
-}
-
-func isIncompleteProof(proof data.HeaderProofHandler) bool {
-	return len(proof.GetAggregatedSignature()) == 0 ||
-		len(proof.GetPubKeysBitmap()) == 0 ||
-		len(proof.GetHeaderHash()) == 0
 }
 
 func (mp *metaProcessor) getFinalMiniBlockHeaders(miniBlockHeaderHandlers []data.MiniBlockHeaderHandler) []data.MiniBlockHeaderHandler {
