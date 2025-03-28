@@ -885,9 +885,19 @@ func (sr *subroundEndRound) receivedSignature(_ context.Context, cnsDta *consens
 }
 
 func (sr *subroundEndRound) checkReceivedSignatures() bool {
+	isTransitionBlock := check.IfNil(sr.GetHeader().GetPreviousProof())
+
 	threshold := sr.Threshold(bls.SrSignature)
+	if isTransitionBlock {
+		threshold = core.GetPBFTThreshold(sr.ConsensusGroupSize())
+	}
+
 	if sr.FallbackHeaderValidator().ShouldApplyFallbackValidation(sr.GetHeader()) {
 		threshold = sr.FallbackThreshold(bls.SrSignature)
+		if isTransitionBlock {
+			threshold = core.GetPBFTFallbackThreshold(sr.ConsensusGroupSize())
+		}
+
 		log.Warn("subroundEndRound.checkReceivedSignatures: fallback validation has been applied",
 			"minimum number of signatures required", threshold,
 			"actual number of signatures received", sr.getNumOfSignaturesCollected(),
@@ -906,7 +916,8 @@ func (sr *subroundEndRound) checkReceivedSignatures() bool {
 		log.Debug("step 2: signatures collection done",
 			"subround", sr.Name(),
 			"signatures received", numSigs,
-			"total signatures", len(sr.ConsensusGroup()))
+			"total signatures", len(sr.ConsensusGroup()),
+			"threshold", threshold)
 
 		return true
 	}
