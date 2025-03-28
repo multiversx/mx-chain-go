@@ -139,11 +139,7 @@ func checkMetaShardInfo(
 			return err
 		}
 
-		if proofs.IsProofInPoolEqualTo(sd.GetPreviousProof()) {
-			continue
-		}
-
-		err = checkProof(sd.GetPreviousProof(), headerSigVerifier)
+		err = checkProof(sd.GetPreviousProof(), headerSigVerifier, proofs)
 		if err != nil {
 			return err
 
@@ -153,10 +149,22 @@ func checkMetaShardInfo(
 	return nil
 }
 
-func checkProof(proof data.HeaderProofHandler, headerSigVerifier process.InterceptedHeaderSigVerifier) error {
+func checkProof(
+	proof data.HeaderProofHandler,
+	headerSigVerifier process.InterceptedHeaderSigVerifier,
+	proofs process.ProofsPool,
+) error {
 	if check.IfNil(proof) {
 		return nil
 	}
+
+	if proofs.IsProofInPoolEqualTo(proof) {
+		return nil
+	}
+
+	log.Debug("proof in pool not equal to provided prev proof, will check prev proof",
+		"headerHash", proof.GetHeaderHash(),
+	)
 
 	if isIncompleteProof(proof) {
 		return process.ErrInvalidHeaderProof

@@ -1763,6 +1763,204 @@ func TestWorker_CheckChannelsShouldWork(t *testing.T) {
 	_ = wrk.Close()
 }
 
+func TestWorker_ConvertHeaderToConsensusMessage(t *testing.T) {
+	t.Parallel()
+
+	t.Run("nil header should error", func(t *testing.T) {
+		wrk := *initWorker(&statusHandlerMock.AppStatusHandlerStub{})
+		_, err := wrk.ConvertHeaderToConsensusMessage(nil)
+		require.Equal(t, spos.ErrInvalidHeader, err)
+	})
+	t.Run("valid header v2 should not error", func(t *testing.T) {
+		wrk := *initWorker(&statusHandlerMock.AppStatusHandlerStub{})
+		marshaller := wrk.Marshalizer()
+		hdr := &block.HeaderV2{
+			Header: &block.Header{
+				Round: 100,
+			},
+		}
+
+		hdrStr, _ := marshaller.Marshal(hdr)
+		expectedConsensusMsg := &consensus.Message{
+			Header:     hdrStr,
+			MsgType:    int64(bls.MtBlockHeader),
+			RoundIndex: 100,
+		}
+
+		message, err := wrk.ConvertHeaderToConsensusMessage(hdr)
+		require.Nil(t, err)
+		require.Equal(t, expectedConsensusMsg, message)
+	})
+	t.Run("valid header metaHeader should not error", func(t *testing.T) {
+		wrk := *initWorker(&statusHandlerMock.AppStatusHandlerStub{})
+		marshaller := wrk.Marshalizer()
+		hdr := &block.MetaBlock{
+			Round: 100,
+		}
+
+		hdrStr, _ := marshaller.Marshal(hdr)
+		expectedConsensusMsg := &consensus.Message{
+			Header:     hdrStr,
+			MsgType:    int64(bls.MtBlockHeader),
+			RoundIndex: 100,
+		}
+
+		message, err := wrk.ConvertHeaderToConsensusMessage(hdr)
+		require.Nil(t, err)
+		require.Equal(t, expectedConsensusMsg, message)
+	})
+}
+
+func TestWorker_StoredHeadersExecution(t *testing.T) {
+	t.Parallel()
+
+	hdr := &block.HeaderV2{
+		Header: &block.Header{
+			Round: 100,
+		},
+	}
+
+	t.Run("Test stored headers before current round advances to same round should not finalize round", func(t *testing.T) {
+		wrk := *initWorker(&statusHandlerMock.AppStatusHandlerStub{})
+		wrk.StartWorking()
+		wrk.AddReceivedHeaderHandler(func(handler data.HeaderHandler) {
+			_ = wrk.ConsensusState().SetJobDone(wrk.ConsensusState().ConsensusGroup()[0], bls.SrBlock, true)
+		})
+
+		roundIndex := &atomic.Int64{}
+		roundIndex.Store(99)
+		roundHandler := &consensusMocks.RoundHandlerMock{
+			IndexCalled: func() int64 {
+				return roundIndex.Load()
+			},
+		}
+		wrk.SetRoundHandler(roundHandler)
+		wrk.ConsensusState().SetRoundIndex(99)
+		cnsGroup := wrk.ConsensusState().ConsensusGroup()
+
+		wrk.BlockProcessor().(*testscommon.BlockProcessorStub).DecodeBlockHeaderCalled = func(dta []byte) data.HeaderHandler {
+			return hdr
+		}
+		wrk.SetEnableEpochsHandler(&enableEpochsHandlerMock.EnableEpochsHandlerStub{
+			IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
+				return true
+			},
+			IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
+				return true
+			},
+		})
+
+		wrk.ConsensusState().SetStatus(bls.SrStartRound, spos.SsFinished)
+		wrk.AddFutureHeaderToProcessIfNeeded(hdr)
+		time.Sleep(200 * time.Millisecond)
+		wrk.ExecuteStoredMessages()
+		time.Sleep(200 * time.Millisecond)
+
+		isBlockJobDone, err := wrk.ConsensusState().JobDone(cnsGroup[0], bls.SrBlock)
+
+		assert.Nil(t, err)
+		assert.False(t, isBlockJobDone)
+
+		_ = wrk.Close()
+	})
+	t.Run("Test stored headers should finalize round after roundIndex advances", func(t *testing.T) {
+		wrk := *initWorker(&statusHandlerMock.AppStatusHandlerStub{})
+		wrk.StartWorking()
+		wrk.AddReceivedHeaderHandler(func(handler data.HeaderHandler) {
+			_ = wrk.ConsensusState().SetJobDone(wrk.ConsensusState().ConsensusGroup()[0], bls.SrBlock, true)
+		})
+
+		roundIndex := &atomic.Int64{}
+		roundIndex.Store(99)
+		roundHandler := &consensusMocks.RoundHandlerMock{
+			IndexCalled: func() int64 {
+				return roundIndex.Load()
+			},
+		}
+		wrk.SetRoundHandler(roundHandler)
+
+		wrk.ConsensusState().SetRoundIndex(99)
+		cnsGroup := wrk.ConsensusState().ConsensusGroup()
+
+		wrk.BlockProcessor().(*testscommon.BlockProcessorStub).DecodeBlockHeaderCalled = func(dta []byte) data.HeaderHandler {
+			return hdr
+		}
+		wrk.SetEnableEpochsHandler(&enableEpochsHandlerMock.EnableEpochsHandlerStub{
+			IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
+				return true
+			},
+			IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
+				return true
+			},
+		})
+
+		wrk.ConsensusState().SetStatus(bls.SrStartRound, spos.SsFinished)
+		wrk.AddFutureHeaderToProcessIfNeeded(hdr)
+		time.Sleep(200 * time.Millisecond)
+		roundIndex.Store(100)
+		wrk.ConsensusState().SetRoundIndex(100)
+		wrk.ExecuteStoredMessages()
+		time.Sleep(200 * time.Millisecond)
+
+		isBlockJobDone, err := wrk.ConsensusState().JobDone(cnsGroup[0], bls.SrBlock)
+
+		assert.Nil(t, err)
+		assert.True(t, isBlockJobDone)
+
+		_ = wrk.Close()
+	})
+	t.Run("Test stored meta headers should finalize round after roundIndex advances", func(t *testing.T) {
+		hdr := &block.MetaBlock{
+			Round: 100,
+		}
+
+		wrk := *initWorker(&statusHandlerMock.AppStatusHandlerStub{})
+		wrk.StartWorking()
+		wrk.AddReceivedHeaderHandler(func(handler data.HeaderHandler) {
+			_ = wrk.ConsensusState().SetJobDone(wrk.ConsensusState().ConsensusGroup()[0], bls.SrBlock, true)
+		})
+
+		roundIndex := &atomic.Int64{}
+		roundIndex.Store(99)
+		roundHandler := &consensusMocks.RoundHandlerMock{
+			IndexCalled: func() int64 {
+				return roundIndex.Load()
+			},
+		}
+		wrk.SetRoundHandler(roundHandler)
+
+		wrk.ConsensusState().SetRoundIndex(99)
+		cnsGroup := wrk.ConsensusState().ConsensusGroup()
+
+		wrk.BlockProcessor().(*testscommon.BlockProcessorStub).DecodeBlockHeaderCalled = func(dta []byte) data.HeaderHandler {
+			return hdr
+		}
+		wrk.SetEnableEpochsHandler(&enableEpochsHandlerMock.EnableEpochsHandlerStub{
+			IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
+				return true
+			},
+			IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
+				return true
+			},
+		})
+
+		wrk.ConsensusState().SetStatus(bls.SrStartRound, spos.SsFinished)
+		wrk.AddFutureHeaderToProcessIfNeeded(hdr)
+		time.Sleep(200 * time.Millisecond)
+		roundIndex.Store(100)
+		wrk.ConsensusState().SetRoundIndex(100)
+		wrk.ExecuteStoredMessages()
+		time.Sleep(200 * time.Millisecond)
+
+		isBlockJobDone, err := wrk.ConsensusState().JobDone(cnsGroup[0], bls.SrBlock)
+
+		assert.Nil(t, err)
+		assert.True(t, isBlockJobDone)
+
+		_ = wrk.Close()
+	})
+}
+
 func TestWorker_ExtendShouldReturnWhenRoundIsCanceled(t *testing.T) {
 	t.Parallel()
 	wrk := *initWorker(&statusHandlerMock.AppStatusHandlerStub{})
