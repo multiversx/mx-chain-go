@@ -9,6 +9,7 @@ import (
 
 	"github.com/multiversx/mx-chain-go/consensus/mock"
 	processMock "github.com/multiversx/mx-chain-go/process/mock"
+	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/consensus"
 	"github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
 	"github.com/multiversx/mx-chain-go/testscommon/genericMocks"
@@ -20,8 +21,9 @@ func createMockArgInterceptedEquivalentProofsFactory() ArgInterceptedEquivalentP
 	return ArgInterceptedEquivalentProofsFactory{
 		ArgInterceptedDataFactory: ArgInterceptedDataFactory{
 			CoreComponents: &processMock.CoreComponentsMock{
-				IntMarsh: &mock.MarshalizerMock{},
-				Hash:     &hashingMocks.HasherMock{},
+				IntMarsh:               &mock.MarshalizerMock{},
+				Hash:                   &hashingMocks.HasherMock{},
+				FieldsSizeCheckerField: &testscommon.FieldsSizeCheckerMock{},
 			},
 			ShardCoordinator:  &mock.ShardCoordinatorMock{},
 			HeaderSigVerifier: &consensus.HeaderSigVerifierMock{},

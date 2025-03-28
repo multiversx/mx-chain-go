@@ -386,3 +386,9 @@ type ChainParametersSubscriptionHandler interface {
 type HeadersPool interface {
 	GetHeaderByHash(hash []byte) (data.HeaderHandler, error)
 }
+
+// FieldsSizeChecker defines the behavior a the fields size checker common component
+type FieldsSizeChecker interface {
+	IsProofSizeValid(proof data.HeaderProofHandler) bool
+	IsInterfaceNil() bool
+}

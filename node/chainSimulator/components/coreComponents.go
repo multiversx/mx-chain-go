@@ -9,6 +9,7 @@ import (
 	"github.com/multiversx/mx-chain-go/common/chainparametersnotifier"
 	"github.com/multiversx/mx-chain-go/common/enablers"
 	factoryPubKey "github.com/multiversx/mx-chain-go/common/factory"
+	"github.com/multiversx/mx-chain-go/common/fieldsChecker"
 	"github.com/multiversx/mx-chain-go/common/forking"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/consensus"
@@ -76,6 +77,7 @@ type coreComponentsHolder struct {
 	enableEpochsHandler           common.EnableEpochsHandler
 	chainParametersSubscriber     process.ChainParametersSubscriber
 	chainParametersHandler        process.ChainParametersHandler
+	fieldsSizeChecker             common.FieldsSizeChecker
 }
 
 // ArgsCoreComponentsHolder will hold arguments needed for the core components holder
@@ -247,6 +249,12 @@ func CreateCoreComponents(args ArgsCoreComponentsHolder) (*coreComponentsHolder,
 		return nil, err
 	}
 	instance.hardforkTriggerPubKey = pubKeyBytes
+
+	fieldsChecker, err := fieldsChecker.NewFieldsSizeChecker(instance.chainParametersHandler, hasher)
+	if err != nil {
+		return nil, err
+	}
+	instance.fieldsSizeChecker = fieldsChecker
 
 	instance.collectClosableComponents()
 
@@ -447,6 +455,11 @@ func (c *coreComponentsHolder) ChainParametersSubscriber() process.ChainParamete
 // ChainParametersHandler will return the chain parameters handler
 func (c *coreComponentsHolder) ChainParametersHandler() process.ChainParametersHandler {
 	return c.chainParametersHandler
+}
+
+// FieldsSizeChecker will return the fields size checker component
+func (c *coreComponentsHolder) FieldsSizeChecker() common.FieldsSizeChecker {
+	return c.fieldsSizeChecker
 }
 
 func (c *coreComponentsHolder) collectClosableComponents() {

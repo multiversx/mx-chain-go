@@ -112,7 +112,7 @@ func checkProofIntegrity(hdr data.HeaderHandler, enableEpochsHandler common.Enab
 	if unexpectedPrevProof {
 		return process.ErrUnexpectedHeaderProof
 	}
-	if hasPrevProof && isIncompleteProof(prevHeaderProof) {
+	if hasPrevProof && common.IsIncompleteProof(prevHeaderProof) {
 		return process.ErrInvalidHeaderProof
 	}
 
@@ -142,7 +142,6 @@ func checkMetaShardInfo(
 		err = checkProof(sd.GetPreviousProof(), headerSigVerifier, proofs)
 		if err != nil {
 			return err
-
 		}
 	}
 
@@ -166,17 +165,11 @@ func checkProof(
 		"headerHash", proof.GetHeaderHash(),
 	)
 
-	if isIncompleteProof(proof) {
+	if common.IsIncompleteProof(proof) {
 		return process.ErrInvalidHeaderProof
 	}
 
 	return headerSigVerifier.VerifyHeaderProof(proof)
-}
-
-func isIncompleteProof(proof data.HeaderProofHandler) bool {
-	return len(proof.GetAggregatedSignature()) == 0 ||
-		len(proof.GetPubKeysBitmap()) == 0 ||
-		len(proof.GetHeaderHash()) == 0
 }
 
 func checkShardData(sd data.ShardDataHandler, coordinator sharding.Coordinator) error {

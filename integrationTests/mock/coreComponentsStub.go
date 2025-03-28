@@ -56,6 +56,7 @@ type CoreComponentsStub struct {
 	EnableEpochsHandlerField           common.EnableEpochsHandler
 	ChainParametersHandlerField        process.ChainParametersHandler
 	ChainParametersSubscriberField     process.ChainParametersSubscriber
+	FieldsSizeCheckerField             common.FieldsSizeChecker
 }
 
 // Create -
@@ -269,6 +270,11 @@ func (ccs *CoreComponentsStub) ChainParametersHandler() process.ChainParametersH
 // ChainParametersSubscriber -
 func (ccs *CoreComponentsStub) ChainParametersSubscriber() process.ChainParametersSubscriber {
 	return ccs.ChainParametersSubscriberField
+}
+
+// FieldsSizeChecker -
+func (ccs *CoreComponentsStub) FieldsSizeChecker() common.FieldsSizeChecker {
+	return ccs.FieldsSizeCheckerField
 }
 
 // IsInterfaceNil -

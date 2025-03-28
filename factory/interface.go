@@ -137,6 +137,7 @@ type CoreComponentsHolder interface {
 	HardforkTriggerPubKey() []byte
 	EnableEpochsHandler() common.EnableEpochsHandler
 	ChainParametersHandler() process.ChainParametersHandler
+	FieldsSizeChecker() common.FieldsSizeChecker
 	IsInterfaceNil() bool
 }
 

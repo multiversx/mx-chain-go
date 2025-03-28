@@ -42,6 +42,7 @@ type CoreComponentsMock struct {
 	ChainParametersHandlerField    process.ChainParametersHandler
 	HardforkTriggerPubKeyField     []byte
 	ChainParametersSubscriberField process.ChainParametersSubscriber
+	FieldsSizeCheckerField         common.FieldsSizeChecker
 }
 
 // ChanStopNodeProcess -
@@ -185,6 +186,11 @@ func (ccm *CoreComponentsMock) HardforkTriggerPubKey() []byte {
 // ChainParametersSubscriber -
 func (ccm *CoreComponentsMock) ChainParametersSubscriber() process.ChainParametersSubscriber {
 	return ccm.ChainParametersSubscriberField
+}
+
+// FieldsSizeChecker -
+func (ccm *CoreComponentsMock) FieldsSizeChecker() common.FieldsSizeChecker {
+	return ccm.FieldsSizeCheckerField
 }
 
 // IsInterfaceNil -

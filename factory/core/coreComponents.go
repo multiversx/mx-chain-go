@@ -23,6 +23,7 @@ import (
 	"github.com/multiversx/mx-chain-go/common/chainparametersnotifier"
 	"github.com/multiversx/mx-chain-go/common/enablers"
 	commonFactory "github.com/multiversx/mx-chain-go/common/factory"
+	"github.com/multiversx/mx-chain-go/common/fieldsChecker"
 	"github.com/multiversx/mx-chain-go/common/forking"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/consensus"
@@ -110,6 +111,7 @@ type coreComponents struct {
 	hardforkTriggerPubKey         []byte
 	enableEpochsHandler           common.EnableEpochsHandler
 	chainParametersHandler        process.ChainParametersHandler
+	fieldsSizeChecker             common.FieldsSizeChecker
 }
 
 // NewCoreComponentsFactory initializes the factory which is responsible to creating core components
@@ -332,6 +334,11 @@ func (ccf *coreComponentsFactory) Create() (*coreComponents, error) {
 		return nil, err
 	}
 
+	fieldsSizeChecker, err := fieldsChecker.NewFieldsSizeChecker(chainParametersHandler, hasher)
+	if err != nil {
+		return nil, err
+	}
+
 	return &coreComponents{
 		hasher:                        hasher,
 		txSignHasher:                  txSignHasher,
@@ -369,6 +376,7 @@ func (ccf *coreComponentsFactory) Create() (*coreComponents, error) {
 		hardforkTriggerPubKey:         pubKeyBytes,
 		enableEpochsHandler:           enableEpochsHandler,
 		chainParametersHandler:        chainParametersHandler,
+		fieldsSizeChecker:             fieldsSizeChecker,
 	}, nil
 }
 
