@@ -130,11 +130,11 @@ func (creator *blocksCreator) CreateNewBlock() error {
 	enableEpochHandler := coreComponents.EnableEpochsHandler()
 	var previousProof *dataBlock.HeaderProof
 	if !nilPrevHeader && enableEpochHandler.IsFlagEnabled(common.EquivalentMessagesFlag) {
-		sig, errS := creator.generateSignature(prevHash, leader.PubKey(), prevHeader)
-		if errS != nil {
-			return errS
-		}
-		previousProof = createProofForHeader(pubKeyBitmap, sig, prevHash, prevHeader)
+		//sig, errS := creator.generateSignature(prevHash, leader.PubKey(), prevHeader)
+		//if errS != nil {
+		//	return errS
+		//}
+		previousProof = createProofForHeader(pubKeyBitmap, []byte(""), prevHash, prevHeader)
 		_ = creator.nodeHandler.GetDataComponents().Datapool().Proofs().AddProof(previousProof)
 	}
 
@@ -242,6 +242,18 @@ func (creator *blocksCreator) updatePreviousProofAndAddonHeader(currentHeaderHas
 	}
 
 	previousProof.PubKeysBitmap = GeneratePubKeyBitmap(len(validators))
+	for idx, validator := range validators {
+		isManaged := creator.nodeHandler.GetCryptoComponents().KeysHandler().IsKeyManagedByCurrentNode(validator.PubKey())
+		if isManaged {
+			continue
+		}
+
+		err = UnsetBitInBitmap(idx, previousProof.PubKeysBitmap)
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	previousProof.AggregatedSignature, err = creator.generateSignatureForProofs(currentHeaderHash, previousProof, validators)
 	if err != nil {
 		return nil, err
