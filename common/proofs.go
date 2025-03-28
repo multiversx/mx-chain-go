@@ -50,13 +50,7 @@ func VerifyProofAgainstHeader(proof data.HeaderProofHandler, header data.HeaderH
 	return nil
 }
 
-// IsProofValid check proof fields validity
-func IsProofValid(proof data.HeaderProofHandler) bool {
-	return len(proof.GetAggregatedSignature()) > 0 &&
-		len(proof.GetPubKeysBitmap()) > 0 &&
-		len(proof.GetHeaderHash()) > 0
-}
-
+// IsIncompleteProof checks empty proof fields
 func IsIncompleteProof(proof data.HeaderProofHandler) bool {
 	return len(proof.GetAggregatedSignature()) == 0 ||
 		len(proof.GetPubKeysBitmap()) == 0 ||
