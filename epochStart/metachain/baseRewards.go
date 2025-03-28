@@ -489,11 +489,11 @@ func (brc *baseRewardsCreator) verifyCreatedRewardMiniBlocksWithMetaBlock(metaBl
 				generatedTxHashes = append(generatedTxHashes, hex.EncodeToString(hash))
 			}
 
-			log.Debug("rewardsCreator.VerifyRewardsMiniBlocks, generated reward tx hashes:\n" +
+			log.Debug("rewardsCreator.VerifyRewardsMiniBlocks, generated reward  tx hashes:\n" +
 				strings.Join(generatedTxHashes, "\n"))
 			log.Debug("rewardsCreator.VerifyRewardsMiniBlocks",
-				"received mb hash", miniBlockHdr.GetHash(),
-				"computed mb hash", createdMBHash,
+				"receivedMbHash", miniBlockHdr.GetHash(),
+				"computedMbHash", createdMBHash,
 			)
 
 			return epochStart.ErrRewardMiniBlockHashDoesNotMatch

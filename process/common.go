@@ -908,7 +908,7 @@ func GetFinalCrossMiniBlockHashes(header data.HeaderHandler, shardID uint32) map
 	for crossMiniBlockHash, senderShardID := range crossMiniBlockHashes {
 		miniBlockHeader := GetMiniBlockHeaderWithHash(header, []byte(crossMiniBlockHash))
 		if miniBlockHeader != nil && !miniBlockHeader.IsFinal() {
-			log.Debug("GetFinalCrossMiniBlockHashes: skip mini block which is not final", "mb hash", miniBlockHeader.GetHash())
+			log.Debug("GetFinalCrossMiniBlockHashes: skip mini block which is not final", "mbHash", miniBlockHeader.GetHash())
 			continue
 		}
 
