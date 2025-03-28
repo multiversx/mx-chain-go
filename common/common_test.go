@@ -10,7 +10,9 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/smartContractResult"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/chainParameters"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/stretchr/testify/require"
 )
@@ -423,4 +425,83 @@ func TestGetShardIDs(t *testing.T) {
 	require.True(t, hasShard1)
 	_, hasShardM := shardIDs[core.MetachainShardId]
 	require.True(t, hasShardM)
+}
+
+func TestGetBitmapSize(t *testing.T) {
+	t.Parallel()
+
+	require.Equal(t, 1, common.GetBitmapSize(8))
+	require.Equal(t, 2, common.GetBitmapSize(8+1))
+	require.Equal(t, 2, common.GetBitmapSize(8*2-1))
+	require.Equal(t, 50, common.GetBitmapSize(8*50)) // 400 consensus size
+}
+
+func TestConsesusGroupSizeForShardAndEpoch(t *testing.T) {
+	t.Parallel()
+
+	t.Run("shard node", func(t *testing.T) {
+		t.Parallel()
+
+		groupSize := uint32(400)
+
+		size := common.ConsensusGroupSizeForShardAndEpoch(
+			&testscommon.LoggerStub{},
+			&chainParameters.ChainParametersHandlerStub{
+				ChainParametersForEpochCalled: func(epoch uint32) (config.ChainParametersByEpochConfig, error) {
+					return config.ChainParametersByEpochConfig{
+						ShardConsensusGroupSize: groupSize,
+					}, nil
+				},
+			},
+			1,
+			2,
+		)
+
+		require.Equal(t, int(groupSize), size)
+	})
+
+	t.Run("meta node", func(t *testing.T) {
+		t.Parallel()
+
+		groupSize := uint32(400)
+
+		size := common.ConsensusGroupSizeForShardAndEpoch(
+			&testscommon.LoggerStub{},
+			&chainParameters.ChainParametersHandlerStub{
+				ChainParametersForEpochCalled: func(epoch uint32) (config.ChainParametersByEpochConfig, error) {
+					return config.ChainParametersByEpochConfig{
+						MetachainConsensusGroupSize: groupSize,
+					}, nil
+				},
+			},
+			core.MetachainShardId,
+			2,
+		)
+
+		require.Equal(t, int(groupSize), size)
+	})
+
+	t.Run("on fail, use current parameters", func(t *testing.T) {
+		t.Parallel()
+
+		groupSize := uint32(400)
+
+		size := common.ConsensusGroupSizeForShardAndEpoch(
+			&testscommon.LoggerStub{},
+			&chainParameters.ChainParametersHandlerStub{
+				ChainParametersForEpochCalled: func(epoch uint32) (config.ChainParametersByEpochConfig, error) {
+					return config.ChainParametersByEpochConfig{}, errors.New("fail")
+				},
+				CurrentChainParametersCalled: func() config.ChainParametersByEpochConfig {
+					return config.ChainParametersByEpochConfig{
+						MetachainConsensusGroupSize: groupSize,
+					}
+				},
+			},
+			core.MetachainShardId,
+			2,
+		)
+
+		require.Equal(t, int(groupSize), size)
+	})
 }

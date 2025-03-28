@@ -11,7 +11,7 @@ import (
 	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
-var log = logger.GetOrCreate("fieldschecker")
+var log = logger.GetOrCreate("fieldsChecker")
 
 type fieldsSizeChecker struct {
 	hasher                 hashing.Hasher
