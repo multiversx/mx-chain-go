@@ -152,7 +152,7 @@ starting_managed_components_log = '''DEBUG[2025-03-11 11:00:41.521] [node]      
 ====================Starting managedComponents creation================================
 DEBUG[2025-03-11 11:00:41.521] [node]               [/0/0/]        applying custom configs based on the current architecture '''
 
-monitor_new_cashe_logs = '''DEBUG[2025-03-11 11:00:41.557] [storage]            [/0/0/]        MonitorNewCache                          name = Antiflood capacity = 0 B cumulated = 0 B
+monitor_new_cache_logs = '''DEBUG[2025-03-11 11:00:41.557] [storage]            [/0/0/]        MonitorNewCache                          name = Antiflood capacity = 0 B cumulated = 0 B
 DEBUG[2025-03-11 11:00:41.557] [storage]            [/0/0/]        MonitorNewCache                          name = PeerHonesty capacity = 0 B cumulated = 0 B
 DEBUG[2025-03-11 11:00:42.561] [storage]            [/0/0/]        MonitorNewCache                          name = TrieNodesDataPool capacity = 100.00 MB cumulated = 700.00 MB
 DEBUG[2025-03-11 11:00:42.561] [storage]            [/0/0/]        MonitorNewCache                          name = SmartContractDataPool capacity = 200.00 MB cumulated = 900.00 MB

@@ -6,7 +6,7 @@ from scripts.logsConversion.logsToJsonConverter import LogsToJsonConverter
 from scripts.logsConversion.sample_data import (
     comma_separated_log, common_entries_log, contract_deployed_log,
     empty_value_log, initialized_chainParametersHolder_log,
-    misc_no_ascii_chars_log, monitor_new_cashe_logs, network_connection_log,
+    misc_no_ascii_chars_log, monitor_new_cache_logs, network_connection_log,
     new_sharded_data_log, scheduled_txs_log, several_words_in_key_log,
     special_chars_in_parameters_log, start_time_log, statistics_entries_log,
     total_transactions_in_pool_logs, transactions_processed_table_log,
@@ -58,7 +58,7 @@ class TestLogsParsing:
         assert (converter.log_content[0].to_dict() == '{"v": "node1", "t": 1740156794.625, "l": 1, "n": "main/p2p", "s": "0", "e": "26", "r": "2647", "sr": "END_ROUND", "m": "network connection status", "a": {"network": "main", "known peers": "55", "connected peers": "28", "intra shard validators": "2", "intra shard observers": "7", "cross shard validators": "5", "cross shard observers": "13", "unknown": "0", "seeders": "1", "current shard": "0", "validators histogram": {"shard 0": "2", "shard 1": "2", "shard 2": "2", "meta": "1"}, "observers histogram": {"shard 0": "7", "shard 1": "4", "shard 2": "2", "meta": "7"}, "preferred peers histogram": {}}}')
         assert (converter.log_content[1].to_dict() == '{"v": "node1", "t": 1740156794.625, "l": 1, "n": "main/p2p", "s": "0", "e": "26", "r": "2647", "sr": "END_ROUND", "m": "network connection metrics", "a": {"network": "main", "connections/s": "3", "disconnections/s": "3", "connections": "63", "disconnections": "63", "time": "20s"}}')
 
-    def test_monitor_new_cashe_logs(self):
+    def test_monitor_new_cache_logs(self):
         converter = LogsToJsonConverter('node1')
         expected_result = [
             '{"v": "node1", "t": 1741683641.557, "l": 1, "n": "storage", "s": "", "e": 0, "r": 0, "sr": "", "m": "MonitorNewCache", "a": {"name": "Antiflood", "capacity": "0B", "cumulated": "0B"}}',
@@ -67,7 +67,7 @@ class TestLogsParsing:
             '{"v": "node1", "t": 1741683642.561, "l": 1, "n": "storage", "s": "", "e": 0, "r": 0, "sr": "", "m": "MonitorNewCache", "a": {"name": "SmartContractDataPool", "capacity": "200.00MB", "cumulated": "900.00MB"}}',
             '{"v": "node1", "t": 1741683642.561, "l": 1, "n": "storage", "s": "", "e": 0, "r": 0, "sr": "", "m": "MonitorNewCache", "a": {"name": "HeartbeatPool", "capacity": "300.00MB", "cumulated": "1.17GB"}}'
         ]
-        converter.parse(monitor_new_cashe_logs.split('\n'))
+        converter.parse(monitor_new_cache_logs.split('\n'))
         assert len(converter.log_content) == 5
         for line in converter.log_content:
             assert (line.to_dict() in expected_result)

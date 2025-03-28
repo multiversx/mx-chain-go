@@ -1,11 +1,12 @@
 
+import argparse
 import json
 import re
 import tarfile
 import zipfile
 from typing import IO, Any
 
-from scripts.logsConversion.logsToJsonConverter import LogsToJsonConverter
+from scripts.logsConversion.logsToJsonConverter import OUTPUT_FOLDER, LogsToJsonConverter, validate_file_path
 
 
 class ArchiveHandler:
@@ -18,10 +19,10 @@ class ArchiveHandler:
 
     # loop through nodes and process logs
 
-    def parse_logs(self, zip_path: str):
+    def parse_logs(self):
         # Open the zip file and process tar.gz files inside it that each correspond to a node
 
-        with zipfile.ZipFile(zip_path, 'r') as zip_file:
+        with zipfile.ZipFile(self.logs_path, 'r') as zip_file:
             # List all files inside the zip
             file_list = zip_file.namelist()
 
@@ -54,28 +55,37 @@ class ArchiveHandler:
                         continue
 
                     with raw_data as f:
+                        member_name = member.name.split('/')[-1]
                         # Decode the content to text
                         log_content = f.read().decode('utf-8')
-                        print('***' + member.name.split('/')[-1])
-                        converter = LogsToJsonConverter(tar_gz_path)
+                        print('***' + member_name)
+                        converter = LogsToJsonConverter(node_name=member_name,
+                                                        output_path=OUTPUT_FOLDER + f'/{tar_gz_path.replace(".tar.gz", "")}',
+                                                        )
                         converter.parse(log_content.split('\n'))
+                        converter.write_to_file(member_name.replace('.log', '.jsonl'))
 
 
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser(
+        description='''
+        Runs node log conversion to JSON format. Example script:
 
-    zip_pathes = [
-        # '/home/mihaela/Downloads/perf-report_mainnet6L_ovh-p03_19-11-2024_16-21-20.zip',
-        # '/home/mihaela/Downloads/perf-report_mainnet7L_ovh-p03_19-11-2024_21-38-47.zip',
-        # '/home/mihaela/Downloads/perf-report_spica1L_ovh-p03_27-11-2024_22-20-35.zip',
-        # '/home/mihaela/Downloads/perf-report_spica2L_ovh-p03_28-11-2024_10-55-21.zip',
-        # '/home/mihaela/Downloads/perf-report_spica3L_ovh-p03_28-11-2024_10-55-21.zip',
-        # '/home/mihaela/Downloads/perf-report_mempool1L_ovh-p03_04-12-2024_10-55-21.zip',
-        # '/home/mihaela/Downloads/perf-report_mempool3L_ovh-p03_06-12-2024_10-55-21.zip',
-        # '/home/mihaela/Downloads/perf-report_mempool5L_do-ams_06-12-2024_10-55-21.zip',
-        '/home/mihaela/Downloads/perf-report_mempool6L_ovh-p03_06-12-2024_10-55-21.zip',
-        # '/home/mihaela/Downloads/perf-report_mempool2L_ovh-p03_28-11-2024_10-55-21.zip'
-    ]
+            python logsToJsonConverter --node_name=ovh-p03-validator-7 --path=logsPath/mx-chain-go-2024-12-10-10-14-21.log
+        ''',
+        epilog='\n',
+        formatter_class=argparse.RawTextHelpFormatter
+    )
 
-    for zip_path in zip_pathes:
-        parser = ArchiveHandler(zip_path)
-        parser.parse_logs(zip_path)
+    parser.add_argument(
+        '--path',
+        required=True,
+        type=validate_file_path,
+        help='Path to the run zip file.'
+    )
+
+    args = parser.parse_args()
+
+    handler = ArchiveHandler(args.path)
+    handler.parse_logs()
+    print(f'Output folder: {OUTPUT_FOLDER}' / f'{handler.run_name}')

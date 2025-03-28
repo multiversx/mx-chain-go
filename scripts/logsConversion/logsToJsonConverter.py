@@ -77,6 +77,17 @@ class LogsToJsonConverter:
         self.output_path = output_path
         self.log_content = log_content if log_content else []
 
+    def write_to_file(self, output_file_name: str):
+        output_file_path = self.output_path + '/' + f'{self.node_name}_{output_file_name}'
+        directory = os.path.dirname(output_file_path)
+        os.makedirs(directory, exist_ok=True)
+
+        with open(output_file_path, 'w') as f:
+            for entry in self.log_content:
+                f.write(entry.to_dict())
+                f.write('\n')
+        return output_file_path
+
     def is_block_table(self, line: str) -> bool:
         table_strings = ['+-', '| ']
         return line[:2] in table_strings
@@ -106,7 +117,6 @@ class LogsToJsonConverter:
             param_str = param_str.strip().replace('stats = [', '').replace(']', '')
 
         pattern = r"([\w\s]+)\s*=\s*(\[.*?\])" if param_str.strip().startswith('epochs to close') else r"([\w\s\[\]().,-/]+?)\s*=\s*(\{.*\}|\S+)"
-        # r"([\w\s\[\]().,-/]+?)\s*=\s*([\w().,-/_]+)"
 
         matches = re.findall(pattern, param_str)
         remaining_text = param_str
@@ -115,7 +125,6 @@ class LogsToJsonConverter:
             value = v.strip()
             target_dict[k.strip()] = (json.loads(value) if value.startswith("{") and '"' in value else value)
 
-            # target_dict[k.strip()] = json.loads(v.strip()) if v.strip().startswith('{') and v.strip().endswith('}') else v.strip()
             remaining_text = re.sub(re.escape(f"{k.strip()} = {v.strip()}"), "", remaining_text, count=1).strip()
 
         # unmatched text after parsing all key-value pairs
@@ -198,7 +207,8 @@ class LogsToJsonConverter:
             r'(?P<message>.*)$'                        # The rest of the log message
         )
 
-        context_pattern = re.compile(r'(?P<shard>\d+)/(?P<epoch>\d+)/(?P<round>\d+)/\((?P<subround>[^)]+)\)')
+        # context_pattern = re.compile(r'(?P<shard>\d+)/(?P<epoch>\d+)/(?P<round>\d+)/\((?P<subround>[^)]+)\)')
+        context_pattern = re.compile(r'(?P<shard>\S+)/(?P<epoch>\d+)/(?P<round>\d+)(?:/\((?P<subround>[^\)]+)\))?/?')
 
         no_space_in_message = []
         first_params = []
@@ -218,7 +228,8 @@ class LogsToJsonConverter:
                 # parse shard, epoch, round, subround
                 context_match = context_pattern.match(context)
                 if context_match:
-                    shard, epoch, round, sub_round = context_match.group('shard').strip(), context_match.group('epoch').strip(), context_match.group('round').strip(), context_match.group('subround').strip()
+                    tmp_subround = context_match.group('subround')
+                    shard, epoch, round, sub_round = context_match.group('shard').strip(), context_match.group('epoch').strip(), context_match.group('round').strip(), tmp_subround.strip() if tmp_subround else ''
                 else:
                     shard, epoch, round, sub_round = '', 0, 0, ''
 
@@ -369,19 +380,12 @@ def main():
     args = parser.parse_args()
 
     converter = LogsToJsonConverter(args.node_name)
-    # log_file = '~/Downloads/perf-deg-andromeda/OVH-P04--Shard-0--4cd5fb6017a3--172.30.40.76--ovh-p04-validator-26/logs/logs/mx-chain-go-2025-02-21-14-28-33.log'
     with open(args.path, "r") as file:
         log = file.readlines()
         converter.parse(log)
-
-    output_file_name = OUTPUT_FOLDER + '/' + f'{args.node_name}_{args.path.split('/')[-1].replace('.log', '.jsonl')}'
-    directory = os.path.dirname(output_file_name)
-    os.makedirs(directory, exist_ok=True)
-    print('Output file name: ', output_file_name)
-    with open(output_file_name, 'w') as f:
-        for entry in converter.log_content:
-            f.write(entry.to_dict())
-            f.write('\n')
+    output_file_name = args.path.split('/')[-1].replace('.log', '.jsonl')
+    output_file_path = converter.write_to_file(output_file_name)
+    print('Output file name: ', output_file_path)
 
 
 def validate_file_path(path: str):
