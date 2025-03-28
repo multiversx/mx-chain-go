@@ -87,14 +87,9 @@ type ConsensusService interface {
 	GetMaxMessagesInARoundPerPeer() uint32
 	// GetMaxNumOfMessageTypeAccepted returns the maximum number of accepted consensus message types per round, per public key
 	GetMaxNumOfMessageTypeAccepted(msgType consensus.MessageType) uint32
+	// GetMessageTypeBlockHeader returns the message type for the block header
+	GetMessageTypeBlockHeader() consensus.MessageType
 	// IsInterfaceNil returns true if there is no value under the interface
-	IsInterfaceNil() bool
-}
-
-// SubroundsFactory encapsulates the methods specifically for a subrounds factory type (bls, bn)
-// for different consensus types
-type SubroundsFactory interface {
-	GenerateSubrounds() error
 	IsInterfaceNil() bool
 }
 

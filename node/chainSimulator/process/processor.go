@@ -327,12 +327,22 @@ func (creator *blocksCreator) setHeaderSignatures(
 
 func (creator *blocksCreator) generateAggregatedSignature(headerHash []byte, epoch uint32, pubKeysBitmap []byte, pubKeys []string) ([]byte, error) {
 	signingHandler := creator.nodeHandler.GetCryptoComponents().ConsensusSigningHandler()
-	err := signingHandler.Reset(pubKeys)
+
+	managedKeys := make([]string, 0)
+	for _, pubKey := range pubKeys {
+		isManaged := creator.nodeHandler.GetCryptoComponents().KeysHandler().IsKeyManagedByCurrentNode([]byte(pubKey))
+		if !isManaged {
+			continue
+		}
+
+		managedKeys = append(managedKeys, pubKey)
+	}
+
+	err := signingHandler.Reset(managedKeys)
 	if err != nil {
 		return nil, err
 	}
-
-	for idx, pubKey := range pubKeys {
+	for idx, pubKey := range managedKeys {
 		if _, err = signingHandler.CreateSignatureShareForPublicKey(headerHash, uint16(idx), epoch, []byte(pubKey)); err != nil {
 			return nil, err
 		}

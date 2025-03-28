@@ -148,6 +148,11 @@ func (wrk *worker) CanProceed(consensusState *spos.ConsensusState, msgType conse
 	return false
 }
 
+// GetMessageTypeBlockHeader returns the message type for block header
+func (wrk *worker) GetMessageTypeBlockHeader() consensus.MessageType {
+	return MtBlockHeader
+}
+
 // GetMaxNumOfMessageTypeAccepted returns the maximum number of accepted consensus message types per round, per public key
 func (wrk *worker) GetMaxNumOfMessageTypeAccepted(msgType consensus.MessageType) uint32 {
 	if msgType == MtSignature {

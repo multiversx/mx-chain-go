@@ -355,8 +355,10 @@ func (sr *subroundEndRound) sendProof() (bool, error) {
 		return false, err
 	}
 
+	currentSender := sr.getEquivalentProofSender()
+
 	// Aggregate signatures, handle invalid signers and send final info if needed
-	bitmap, sig, err := sr.aggregateSigsAndHandleInvalidSigners(bitmap)
+	bitmap, sig, err := sr.aggregateSigsAndHandleInvalidSigners(bitmap, currentSender)
 	if err != nil {
 		log.Debug("sendProof.aggregateSigsAndHandleInvalidSigners", "error", err.Error())
 		return false, err
@@ -371,7 +373,7 @@ func (sr *subroundEndRound) sendProof() (bool, error) {
 	}
 
 	// broadcast header proof
-	err = sr.createAndBroadcastProof(sig, bitmap)
+	err = sr.createAndBroadcastProof(sig, bitmap, currentSender)
 	if err != nil {
 		log.Warn("sendProof.createAndBroadcastProof", "error", err.Error())
 	}
@@ -389,12 +391,12 @@ func (sr *subroundEndRound) shouldSendProof() bool {
 	return sr.IsSelfInConsensusGroup()
 }
 
-func (sr *subroundEndRound) aggregateSigsAndHandleInvalidSigners(bitmap []byte) ([]byte, []byte, error) {
+func (sr *subroundEndRound) aggregateSigsAndHandleInvalidSigners(bitmap []byte, sender string) ([]byte, []byte, error) {
 	sig, err := sr.SigningHandler().AggregateSigs(bitmap, sr.GetHeader().GetEpoch())
 	if err != nil {
 		log.Debug("doEndRoundJobByNode.AggregateSigs", "error", err.Error())
 
-		return sr.handleInvalidSignersOnAggSigFail()
+		return sr.handleInvalidSignersOnAggSigFail(sender)
 	}
 
 	err = sr.SigningHandler().SetAggregatedSig(sig)
@@ -408,7 +410,7 @@ func (sr *subroundEndRound) aggregateSigsAndHandleInvalidSigners(bitmap []byte) 
 	if err != nil {
 		log.Debug("doEndRoundJobByNode.Verify", "error", err.Error())
 
-		return sr.handleInvalidSignersOnAggSigFail()
+		return sr.handleInvalidSignersOnAggSigFail(sender)
 	}
 
 	return bitmap, sig, nil
@@ -524,7 +526,7 @@ func (sr *subroundEndRound) getFullMessagesForInvalidSigners(invalidPubKeys []st
 	return invalidSigners, nil
 }
 
-func (sr *subroundEndRound) handleInvalidSignersOnAggSigFail() ([]byte, []byte, error) {
+func (sr *subroundEndRound) handleInvalidSignersOnAggSigFail(sender string) ([]byte, []byte, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), sr.RoundHandler().TimeDuration())
 	invalidPubKeys, err := sr.verifyNodesOnAggSigFail(ctx)
 	cancel()
@@ -540,7 +542,7 @@ func (sr *subroundEndRound) handleInvalidSignersOnAggSigFail() ([]byte, []byte, 
 	}
 
 	if len(invalidSigners) > 0 {
-		sr.createAndBroadcastInvalidSigners(invalidSigners, invalidPubKeys)
+		sr.createAndBroadcastInvalidSigners(invalidSigners, invalidPubKeys, sender)
 	}
 
 	bitmap, sig, err := sr.computeAggSigOnValidNodes()
@@ -590,7 +592,11 @@ func (sr *subroundEndRound) computeAggSigOnValidNodes() ([]byte, []byte, error) 
 	return bitmap, sig, nil
 }
 
-func (sr *subroundEndRound) createAndBroadcastProof(signature []byte, bitmap []byte) error {
+func (sr *subroundEndRound) createAndBroadcastProof(
+	signature []byte,
+	bitmap []byte,
+	sender string,
+) error {
 	headerProof := &block.HeaderProof{
 		PubKeysBitmap:       bitmap,
 		AggregatedSignature: signature,
@@ -602,7 +608,6 @@ func (sr *subroundEndRound) createAndBroadcastProof(signature []byte, bitmap []b
 		IsStartOfEpoch:      sr.GetHeader().IsStartOfEpochBlock(),
 	}
 
-	sender := sr.getEquivalentProofSender()
 	err := sr.BroadcastMessenger().BroadcastEquivalentProof(headerProof, []byte(sender))
 	if err != nil {
 		return err
@@ -645,14 +650,12 @@ func (sr *subroundEndRound) getRandomManagedKeyProofSender() string {
 	return randManagedKey
 }
 
-func (sr *subroundEndRound) createAndBroadcastInvalidSigners(invalidSigners []byte, invalidSignersPubKeys []string) {
-	if !sr.ShouldConsiderSelfKeyInConsensus() {
-		return
-	}
-
-	sender, err := sr.GetLeader()
-	if err != nil {
-		log.Debug("createAndBroadcastInvalidSigners.getSender", "error", err)
+func (sr *subroundEndRound) createAndBroadcastInvalidSigners(
+	invalidSigners []byte,
+	invalidSignersPubKeys []string,
+	sender string,
+) {
+	if !sr.ShouldConsiderSelfKeyInConsensus() && !sr.IsMultiKeyInConsensusGroup() {
 		return
 	}
 
@@ -675,13 +678,13 @@ func (sr *subroundEndRound) createAndBroadcastInvalidSigners(invalidSigners []by
 
 	sr.InvalidSignersCache().AddInvalidSigners(sr.GetData(), invalidSigners, invalidSignersPubKeys)
 
-	err = sr.BroadcastMessenger().BroadcastConsensusMessage(cnsMsg)
+	err := sr.BroadcastMessenger().BroadcastConsensusMessage(cnsMsg)
 	if err != nil {
 		log.Debug("doEndRoundJob.BroadcastConsensusMessage", "error", err.Error())
 		return
 	}
 
-	log.Debug("step 3: invalid signers info has been sent")
+	log.Debug("step 3: invalid signers info has been sent", "sender", hex.EncodeToString([]byte(sender)))
 }
 
 func (sr *subroundEndRound) updateMetricsForLeader() {
@@ -882,9 +885,19 @@ func (sr *subroundEndRound) receivedSignature(_ context.Context, cnsDta *consens
 }
 
 func (sr *subroundEndRound) checkReceivedSignatures() bool {
+	isTransitionBlock := check.IfNil(sr.GetHeader().GetPreviousProof())
+
 	threshold := sr.Threshold(bls.SrSignature)
+	if isTransitionBlock {
+		threshold = core.GetPBFTThreshold(sr.ConsensusGroupSize())
+	}
+
 	if sr.FallbackHeaderValidator().ShouldApplyFallbackValidation(sr.GetHeader()) {
 		threshold = sr.FallbackThreshold(bls.SrSignature)
+		if isTransitionBlock {
+			threshold = core.GetPBFTFallbackThreshold(sr.ConsensusGroupSize())
+		}
+
 		log.Warn("subroundEndRound.checkReceivedSignatures: fallback validation has been applied",
 			"minimum number of signatures required", threshold,
 			"actual number of signatures received", sr.getNumOfSignaturesCollected(),
@@ -903,7 +916,8 @@ func (sr *subroundEndRound) checkReceivedSignatures() bool {
 		log.Debug("step 2: signatures collection done",
 			"subround", sr.Name(),
 			"signatures received", numSigs,
-			"total signatures", len(sr.ConsensusGroup()))
+			"total signatures", len(sr.ConsensusGroup()),
+			"threshold", threshold)
 
 		return true
 	}

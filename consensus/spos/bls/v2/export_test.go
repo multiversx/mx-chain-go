@@ -268,7 +268,7 @@ func (sr *subroundEndRound) DoEndRoundJobByNode() bool {
 
 // CreateAndBroadcastProof calls the unexported createAndBroadcastHeaderFinalInfo function
 func (sr *subroundEndRound) CreateAndBroadcastProof(signature []byte, bitmap []byte) {
-	_ = sr.createAndBroadcastProof(signature, bitmap)
+	_ = sr.createAndBroadcastProof(signature, bitmap, "sender")
 }
 
 // ReceivedProof calls the unexported receivedProof function
@@ -308,7 +308,7 @@ func (sr *subroundEndRound) GetMinConsensusGroupIndexOfManagedKeys() int {
 
 // CreateAndBroadcastInvalidSigners calls the unexported createAndBroadcastInvalidSigners function
 func (sr *subroundEndRound) CreateAndBroadcastInvalidSigners(invalidSigners []byte) {
-	sr.createAndBroadcastInvalidSigners(invalidSigners, nil)
+	sr.createAndBroadcastInvalidSigners(invalidSigners, nil, "sender")
 }
 
 // GetFullMessagesForInvalidSigners calls the unexported getFullMessagesForInvalidSigners function
