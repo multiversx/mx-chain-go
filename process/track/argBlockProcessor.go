@@ -1,6 +1,11 @@
 package track
 
 import (
+	"github.com/multiversx/mx-chain-core-go/hashing"
+	"github.com/multiversx/mx-chain-core-go/marshal"
+
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/sharding"
 )
@@ -19,4 +24,10 @@ type ArgBlockProcessor struct {
 	SelfNotarizedHeadersNotifier          blockNotifierHandler
 	FinalMetachainHeadersNotifier         blockNotifierHandler
 	RoundHandler                          process.RoundHandler
+	EnableEpochsHandler                   common.EnableEpochsHandler
+	ProofsPool                            process.ProofsPool
+	Marshaller                            marshal.Marshalizer
+	Hasher                                hashing.Hasher
+	HeadersPool                           dataRetriever.HeadersPool
+	IsImportDBMode                        bool
 }

@@ -5,10 +5,11 @@ import (
 	"testing"
 
 	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/stretchr/testify/assert"
+
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/testscommon/shardingMocks"
-	"github.com/stretchr/testify/assert"
 )
 
 func TestComputeConsensusGroup(t *testing.T) {
@@ -16,14 +17,15 @@ func TestComputeConsensusGroup(t *testing.T) {
 
 	t.Run("nil header should error", func(t *testing.T) {
 		nodesCoordinatorInstance := shardingMocks.NewNodesCoordinatorMock()
-		nodesCoordinatorInstance.ComputeValidatorsGroupCalled = func(randomness []byte, round uint64, shardId uint32, epoch uint32) (validatorsGroup []nodesCoordinator.Validator, err error) {
+		nodesCoordinatorInstance.ComputeValidatorsGroupCalled = func(randomness []byte, round uint64, shardId uint32, epoch uint32) (leader nodesCoordinator.Validator, validatorsGroup []nodesCoordinator.Validator, err error) {
 			assert.Fail(t, "should have not called ComputeValidatorsGroupCalled")
-			return nil, nil
+			return nil, nil, nil
 		}
 
-		vGroup, err := ComputeConsensusGroup(nil, nodesCoordinatorInstance)
+		leader, vGroup, err := ComputeConsensusGroup(nil, nodesCoordinatorInstance)
 		assert.Equal(t, process.ErrNilHeaderHandler, err)
 		assert.Nil(t, vGroup)
+		assert.Nil(t, leader)
 	})
 	t.Run("nil nodes coordinator should error", func(t *testing.T) {
 		header := &block.Header{
@@ -34,9 +36,10 @@ func TestComputeConsensusGroup(t *testing.T) {
 			PrevRandSeed: []byte("prev rand seed"),
 		}
 
-		vGroup, err := ComputeConsensusGroup(header, nil)
+		leader, vGroup, err := ComputeConsensusGroup(header, nil)
 		assert.Equal(t, process.ErrNilNodesCoordinator, err)
 		assert.Nil(t, vGroup)
+		assert.Nil(t, leader)
 	})
 	t.Run("should work for a random block", func(t *testing.T) {
 		header := &block.Header{
@@ -52,18 +55,19 @@ func TestComputeConsensusGroup(t *testing.T) {
 
 		validatorGroup := []nodesCoordinator.Validator{validator1, validator2}
 		nodesCoordinatorInstance := shardingMocks.NewNodesCoordinatorMock()
-		nodesCoordinatorInstance.ComputeValidatorsGroupCalled = func(randomness []byte, round uint64, shardId uint32, epoch uint32) (validatorsGroup []nodesCoordinator.Validator, err error) {
+		nodesCoordinatorInstance.ComputeValidatorsGroupCalled = func(randomness []byte, round uint64, shardId uint32, epoch uint32) (leader nodesCoordinator.Validator, validatorsGroup []nodesCoordinator.Validator, err error) {
 			assert.Equal(t, header.PrevRandSeed, randomness)
 			assert.Equal(t, header.Round, round)
 			assert.Equal(t, header.ShardID, shardId)
 			assert.Equal(t, header.Epoch, epoch)
 
-			return validatorGroup, nil
+			return validator1, validatorGroup, nil
 		}
 
-		vGroup, err := ComputeConsensusGroup(header, nodesCoordinatorInstance)
+		leader, vGroup, err := ComputeConsensusGroup(header, nodesCoordinatorInstance)
 		assert.Nil(t, err)
 		assert.Equal(t, validatorGroup, vGroup)
+		assert.Equal(t, validator1, leader)
 	})
 	t.Run("should work for a start of epoch block", func(t *testing.T) {
 		header := &block.Header{
@@ -80,18 +84,19 @@ func TestComputeConsensusGroup(t *testing.T) {
 
 		validatorGroup := []nodesCoordinator.Validator{validator1, validator2}
 		nodesCoordinatorInstance := shardingMocks.NewNodesCoordinatorMock()
-		nodesCoordinatorInstance.ComputeValidatorsGroupCalled = func(randomness []byte, round uint64, shardId uint32, epoch uint32) (validatorsGroup []nodesCoordinator.Validator, err error) {
+		nodesCoordinatorInstance.ComputeValidatorsGroupCalled = func(randomness []byte, round uint64, shardId uint32, epoch uint32) (leader nodesCoordinator.Validator, validatorsGroup []nodesCoordinator.Validator, err error) {
 			assert.Equal(t, header.PrevRandSeed, randomness)
 			assert.Equal(t, header.Round, round)
 			assert.Equal(t, header.ShardID, shardId)
 			assert.Equal(t, header.Epoch-1, epoch)
 
-			return validatorGroup, nil
+			return validator1, validatorGroup, nil
 		}
 
-		vGroup, err := ComputeConsensusGroup(header, nodesCoordinatorInstance)
+		leader, vGroup, err := ComputeConsensusGroup(header, nodesCoordinatorInstance)
 		assert.Nil(t, err)
 		assert.Equal(t, validatorGroup, vGroup)
+		assert.Equal(t, validator1, leader)
 	})
 }
 

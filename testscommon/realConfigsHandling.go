@@ -6,6 +6,7 @@ import (
 	"path"
 	"strings"
 
+	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
 )
@@ -83,6 +84,12 @@ func CreateTestConfigs(tempDir string, originalConfigsPath string) (*config.Conf
 		return nil, err
 	}
 
+	var nodesSetup config.NodesConfig
+	err = core.LoadJsonFile(&nodesSetup, path.Join(newConfigsPath, "nodesSetup.json"))
+	if err != nil {
+		return nil, err
+	}
+
 	// make the node pass the network wait constraints
 	mainP2PConfig.Node.MinNumPeersToWaitForOnBootstrap = 0
 	mainP2PConfig.Node.ThresholdMinConnectedPeers = 0
@@ -114,6 +121,7 @@ func CreateTestConfigs(tempDir string, originalConfigsPath string) (*config.Conf
 		},
 		EpochConfig: epochConfig,
 		RoundConfig: roundConfig,
+		NodesConfig: &nodesSetup,
 	}, nil
 }
 

@@ -12,10 +12,12 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/multiversx/mx-chain-logger-go"
+
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/sharding"
-	"github.com/multiversx/mx-chain-logger-go"
 )
 
 var _ process.ValidityAttester = (*baseBlockTrack)(nil)
@@ -35,6 +37,7 @@ type baseBlockTrack struct {
 	roundHandler     process.RoundHandler
 	shardCoordinator sharding.Coordinator
 	headersPool      dataRetriever.HeadersPool
+	proofsPool       dataRetriever.ProofsPool
 	store            dataRetriever.StorageService
 
 	blockProcessor                        blockProcessorHandler
@@ -47,6 +50,7 @@ type baseBlockTrack struct {
 	blockBalancer                         blockBalancerHandler
 	whitelistHandler                      process.WhiteListHandler
 	feeHandler                            process.FeeHandler
+	enableEpochsHandler                   core.EnableEpochsHandler
 
 	mutHeaders                  sync.RWMutex
 	headers                     map[uint32]map[uint64][]*HeaderInfo
@@ -103,6 +107,7 @@ func createBaseBlockTrack(arguments ArgBaseTracker) (*baseBlockTrack, error) {
 		roundHandler:                          arguments.RoundHandler,
 		shardCoordinator:                      arguments.ShardCoordinator,
 		headersPool:                           arguments.PoolsHolder.Headers(),
+		proofsPool:                            arguments.PoolsHolder.Proofs(),
 		store:                                 arguments.Store,
 		crossNotarizer:                        crossNotarizer,
 		selfNotarizer:                         selfNotarizer,
@@ -114,12 +119,45 @@ func createBaseBlockTrack(arguments ArgBaseTracker) (*baseBlockTrack, error) {
 		maxNumHeadersToKeepPerShard:           maxNumHeadersToKeepPerShard,
 		whitelistHandler:                      arguments.WhitelistHandler,
 		feeHandler:                            arguments.FeeHandler,
+		enableEpochsHandler:                   arguments.EnableEpochsHandler,
 	}
 
 	return bbt, nil
 }
 
+func (bbt *baseBlockTrack) receivedProof(proof data.HeaderProofHandler) {
+	if check.IfNil(proof) {
+		return
+	}
+
+	headerHash := proof.GetHeaderHash()
+	header, err := bbt.getHeaderForProof(proof)
+	if err != nil {
+		log.Debug("baseBlockTrack.receivedProof with missing header", "headerHash", headerHash)
+		return
+	}
+	log.Debug("received proof from network in block tracker",
+		"shard", proof.GetHeaderShardId(),
+		"epoch", proof.GetHeaderEpoch(),
+		"round", proof.GetHeaderRound(),
+		"nonce", proof.GetHeaderNonce(),
+		"hash", proof.GetHeaderHash(),
+	)
+
+	bbt.receivedHeader(header, headerHash)
+}
+
+func (bbt *baseBlockTrack) getHeaderForProof(proof data.HeaderProofHandler) (data.HeaderHandler, error) {
+	return process.GetHeader(proof.GetHeaderHash(), bbt.headersPool, bbt.store, bbt.marshalizer, proof.GetHeaderShardId())
+}
+
 func (bbt *baseBlockTrack) receivedHeader(headerHandler data.HeaderHandler, headerHash []byte) {
+	if bbt.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, headerHandler.GetEpoch()) {
+		if !bbt.proofsPool.HasProof(headerHandler.GetShardID(), headerHash) {
+			return
+		}
+	}
+
 	if headerHandler.GetShardID() == core.MetachainShardId {
 		bbt.receivedMetaBlock(headerHandler, headerHash)
 		return
@@ -784,11 +822,17 @@ func checkTrackerNilParameters(arguments ArgBaseTracker) error {
 	if check.IfNil(arguments.PoolsHolder.Headers()) {
 		return process.ErrNilHeadersDataPool
 	}
+	if check.IfNil(arguments.PoolsHolder.Proofs()) {
+		return process.ErrNilProofsPool
+	}
 	if check.IfNil(arguments.FeeHandler) {
 		return process.ErrNilEconomicsData
 	}
 	if check.IfNil(arguments.WhitelistHandler) {
 		return process.ErrNilWhiteListHandler
+	}
+	if check.IfNil(arguments.EnableEpochsHandler) {
+		return process.ErrNilEnableEpochsHandler
 	}
 
 	return nil

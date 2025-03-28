@@ -11,8 +11,10 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/consensus"
+	"github.com/multiversx/mx-chain-go/consensus/broadcast/shared"
 	"github.com/multiversx/mx-chain-go/consensus/spos"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/factory"
@@ -35,25 +37,6 @@ type ArgsDelayedBlockBroadcaster struct {
 	AlarmScheduler        timersScheduler
 }
 
-type validatorHeaderBroadcastData struct {
-	headerHash           []byte
-	header               data.HeaderHandler
-	metaMiniBlocksData   map[uint32][]byte
-	metaTransactionsData map[string][][]byte
-	order                uint32
-	pkBytes              []byte
-}
-
-type delayedBroadcastData struct {
-	headerHash      []byte
-	header          data.HeaderHandler
-	miniBlocksData  map[uint32][]byte
-	miniBlockHashes map[string]map[string]struct{}
-	transactions    map[string][][]byte
-	order           uint32
-	pkBytes         []byte
-}
-
 // timersScheduler exposes functionality for scheduling multiple timers
 type timersScheduler interface {
 	Add(callback func(alarmID string), duration time.Duration, alarmID string)
@@ -72,15 +55,16 @@ type delayedBlockBroadcaster struct {
 	interceptorsContainer      process.InterceptorsContainer
 	shardCoordinator           sharding.Coordinator
 	headersSubscriber          consensus.HeadersPoolSubscriber
-	valHeaderBroadcastData     []*validatorHeaderBroadcastData
-	valBroadcastData           []*delayedBroadcastData
-	delayedBroadcastData       []*delayedBroadcastData
+	valHeaderBroadcastData     []*shared.ValidatorHeaderBroadcastData
+	valBroadcastData           []*shared.DelayedBroadcastData
+	delayedBroadcastData       []*shared.DelayedBroadcastData
 	maxDelayCacheSize          uint32
 	maxValidatorDelayCacheSize uint32
 	mutDataForBroadcast        sync.RWMutex
 	broadcastMiniblocksData    func(mbData map[uint32][]byte, pkBytes []byte) error
 	broadcastTxsData           func(txData map[string][][]byte, pkBytes []byte) error
 	broadcastHeader            func(header data.HeaderHandler, pkBytes []byte) error
+	broadcastConsensusMessage  func(message *consensus.Message) error
 	cacheHeaders               storage.Cacher
 	mutHeadersCache            sync.RWMutex
 }
@@ -110,9 +94,9 @@ func NewDelayedBlockBroadcaster(args *ArgsDelayedBlockBroadcaster) (*delayedBloc
 		shardCoordinator:           args.ShardCoordinator,
 		interceptorsContainer:      args.InterceptorsContainer,
 		headersSubscriber:          args.HeadersSubscriber,
-		valHeaderBroadcastData:     make([]*validatorHeaderBroadcastData, 0),
-		valBroadcastData:           make([]*delayedBroadcastData, 0),
-		delayedBroadcastData:       make([]*delayedBroadcastData, 0),
+		valHeaderBroadcastData:     make([]*shared.ValidatorHeaderBroadcastData, 0),
+		valBroadcastData:           make([]*shared.DelayedBroadcastData, 0),
+		delayedBroadcastData:       make([]*shared.DelayedBroadcastData, 0),
 		maxDelayCacheSize:          args.LeaderCacheSize,
 		maxValidatorDelayCacheSize: args.ValidatorCacheSize,
 		mutDataForBroadcast:        sync.RWMutex{},
@@ -135,22 +119,22 @@ func NewDelayedBlockBroadcaster(args *ArgsDelayedBlockBroadcaster) (*delayedBloc
 }
 
 // SetLeaderData sets the data for consensus leader delayed broadcast
-func (dbb *delayedBlockBroadcaster) SetLeaderData(broadcastData *delayedBroadcastData) error {
+func (dbb *delayedBlockBroadcaster) SetLeaderData(broadcastData *shared.DelayedBroadcastData) error {
 	if broadcastData == nil {
 		return spos.ErrNilParameter
 	}
 
 	log.Trace("delayedBlockBroadcaster.SetLeaderData: setting leader delay data",
-		"headerHash", broadcastData.headerHash,
+		"headerHash", broadcastData.HeaderHash,
 	)
 
-	dataToBroadcast := make([]*delayedBroadcastData, 0)
+	dataToBroadcast := make([]*shared.DelayedBroadcastData, 0)
 
 	dbb.mutDataForBroadcast.Lock()
 	dbb.delayedBroadcastData = append(dbb.delayedBroadcastData, broadcastData)
 	if len(dbb.delayedBroadcastData) > int(dbb.maxDelayCacheSize) {
 		log.Debug("delayedBlockBroadcaster.SetLeaderData: leader broadcasts old data before alarm due to too much delay data",
-			"headerHash", dbb.delayedBroadcastData[0].headerHash,
+			"headerHash", dbb.delayedBroadcastData[0].HeaderHash,
 			"nbDelayedData", len(dbb.delayedBroadcastData),
 			"maxDelayCacheSize", dbb.maxDelayCacheSize,
 		)
@@ -167,13 +151,16 @@ func (dbb *delayedBlockBroadcaster) SetLeaderData(broadcastData *delayedBroadcas
 }
 
 // SetHeaderForValidator sets the header to be broadcast by validator if leader fails to broadcast it
-func (dbb *delayedBlockBroadcaster) SetHeaderForValidator(vData *validatorHeaderBroadcastData) error {
-	if check.IfNil(vData.header) {
+func (dbb *delayedBlockBroadcaster) SetHeaderForValidator(vData *shared.ValidatorHeaderBroadcastData) error {
+	if check.IfNil(vData.Header) {
 		return spos.ErrNilHeader
 	}
-	if len(vData.headerHash) == 0 {
+	if len(vData.HeaderHash) == 0 {
 		return spos.ErrNilHeaderHash
 	}
+
+	dbb.mutDataForBroadcast.Lock()
+	defer dbb.mutDataForBroadcast.Unlock()
 
 	log.Trace("delayedBlockBroadcaster.SetHeaderForValidator",
 		"nbDelayedBroadcastData", len(dbb.delayedBroadcastData),
@@ -182,25 +169,25 @@ func (dbb *delayedBlockBroadcaster) SetHeaderForValidator(vData *validatorHeader
 	)
 
 	// set alarm only for validators that are aware that the block was finalized
-	if len(vData.header.GetSignature()) != 0 {
-		_, alreadyReceived := dbb.cacheHeaders.Get(vData.headerHash)
+	if len(vData.Header.GetSignature()) != 0 {
+		_, alreadyReceived := dbb.cacheHeaders.Get(vData.HeaderHash)
 		if alreadyReceived {
 			return nil
 		}
 
-		duration := validatorDelayPerOrder * time.Duration(vData.order)
+		duration := validatorDelayPerOrder * time.Duration(vData.Order)
 		dbb.valHeaderBroadcastData = append(dbb.valHeaderBroadcastData, vData)
-		alarmID := prefixHeaderAlarm + hex.EncodeToString(vData.headerHash)
+		alarmID := prefixHeaderAlarm + hex.EncodeToString(vData.HeaderHash)
 		dbb.alarm.Add(dbb.headerAlarmExpired, duration, alarmID)
 		log.Trace("delayedBlockBroadcaster.SetHeaderForValidator: header alarm has been set",
-			"validatorConsensusOrder", vData.order,
-			"headerHash", vData.headerHash,
+			"validatorConsensusOrder", vData.Order,
+			"headerHash", vData.HeaderHash,
 			"alarmID", alarmID,
 			"duration", duration,
 		)
 	} else {
 		log.Trace("delayedBlockBroadcaster.SetHeaderForValidator: header alarm has not been set",
-			"validatorConsensusOrder", vData.order,
+			"validatorConsensusOrder", vData.Order,
 		)
 	}
 
@@ -208,29 +195,29 @@ func (dbb *delayedBlockBroadcaster) SetHeaderForValidator(vData *validatorHeader
 }
 
 // SetValidatorData sets the data for consensus validator delayed broadcast
-func (dbb *delayedBlockBroadcaster) SetValidatorData(broadcastData *delayedBroadcastData) error {
+func (dbb *delayedBlockBroadcaster) SetValidatorData(broadcastData *shared.DelayedBroadcastData) error {
 	if broadcastData == nil {
 		return spos.ErrNilParameter
 	}
 
 	alarmIDsToCancel := make([]string, 0)
 	log.Trace("delayedBlockBroadcaster.SetValidatorData: setting validator delay data",
-		"headerHash", broadcastData.headerHash,
-		"round", broadcastData.header.GetRound(),
-		"prevRandSeed", broadcastData.header.GetPrevRandSeed(),
+		"headerHash", broadcastData.HeaderHash,
+		"round", broadcastData.Header.GetRound(),
+		"prevRandSeed", broadcastData.Header.GetPrevRandSeed(),
 	)
 
 	dbb.mutDataForBroadcast.Lock()
-	broadcastData.miniBlockHashes = dbb.extractMiniBlockHashesCrossFromMe(broadcastData.header)
+	broadcastData.MiniBlockHashes = dbb.extractMiniBlockHashesCrossFromMe(broadcastData.Header)
 	dbb.valBroadcastData = append(dbb.valBroadcastData, broadcastData)
 
 	if len(dbb.valBroadcastData) > int(dbb.maxValidatorDelayCacheSize) {
-		alarmHeaderID := prefixHeaderAlarm + hex.EncodeToString(dbb.valBroadcastData[0].headerHash)
-		alarmDelayID := prefixDelayDataAlarm + hex.EncodeToString(dbb.valBroadcastData[0].headerHash)
+		alarmHeaderID := prefixHeaderAlarm + hex.EncodeToString(dbb.valBroadcastData[0].HeaderHash)
+		alarmDelayID := prefixDelayDataAlarm + hex.EncodeToString(dbb.valBroadcastData[0].HeaderHash)
 		alarmIDsToCancel = append(alarmIDsToCancel, alarmHeaderID, alarmDelayID)
 		dbb.valBroadcastData = dbb.valBroadcastData[1:]
 		log.Debug("delayedBlockBroadcaster.SetValidatorData: canceling old alarms (header and delay data) due to too much delay data",
-			"headerHash", dbb.valBroadcastData[0].headerHash,
+			"headerHash", dbb.valBroadcastData[0].HeaderHash,
 			"alarmID-header", alarmHeaderID,
 			"alarmID-delay", alarmDelayID,
 			"nbDelayData", len(dbb.valBroadcastData),
@@ -251,8 +238,9 @@ func (dbb *delayedBlockBroadcaster) SetBroadcastHandlers(
 	mbBroadcast func(mbData map[uint32][]byte, pkBytes []byte) error,
 	txBroadcast func(txData map[string][][]byte, pkBytes []byte) error,
 	headerBroadcast func(header data.HeaderHandler, pkBytes []byte) error,
+	consensusMessageBroadcast func(message *consensus.Message) error,
 ) error {
-	if mbBroadcast == nil || txBroadcast == nil || headerBroadcast == nil {
+	if mbBroadcast == nil || txBroadcast == nil || headerBroadcast == nil || consensusMessageBroadcast == nil {
 		return spos.ErrNilParameter
 	}
 
@@ -262,6 +250,7 @@ func (dbb *delayedBlockBroadcaster) SetBroadcastHandlers(
 	dbb.broadcastMiniblocksData = mbBroadcast
 	dbb.broadcastTxsData = txBroadcast
 	dbb.broadcastHeader = headerBroadcast
+	dbb.broadcastConsensusMessage = consensusMessageBroadcast
 
 	return nil
 }
@@ -319,12 +308,12 @@ func (dbb *delayedBlockBroadcaster) broadcastDataForHeaders(headerHashes [][]byt
 	time.Sleep(common.ExtraDelayForBroadcastBlockInfo)
 
 	dbb.mutDataForBroadcast.Lock()
-	dataToBroadcast := make([]*delayedBroadcastData, 0)
+	dataToBroadcast := make([]*shared.DelayedBroadcastData, 0)
 
 OuterLoop:
 	for i := len(dbb.delayedBroadcastData) - 1; i >= 0; i-- {
 		for _, headerHash := range headerHashes {
-			if bytes.Equal(dbb.delayedBroadcastData[i].headerHash, headerHash) {
+			if bytes.Equal(dbb.delayedBroadcastData[i].HeaderHash, headerHash) {
 				log.Debug("delayedBlockBroadcaster.broadcastDataForHeaders: leader broadcasts block data",
 					"headerHash", headerHash,
 				)
@@ -366,29 +355,29 @@ func (dbb *delayedBlockBroadcaster) scheduleValidatorBroadcast(dataForValidators
 	log.Trace("delayedBlockBroadcaster.scheduleValidatorBroadcast: registered data for broadcast")
 	for i := range dbb.valBroadcastData {
 		log.Trace("delayedBlockBroadcaster.scheduleValidatorBroadcast",
-			"round", dbb.valBroadcastData[i].header.GetRound(),
-			"prevRandSeed", dbb.valBroadcastData[i].header.GetPrevRandSeed(),
+			"round", dbb.valBroadcastData[i].Header.GetRound(),
+			"prevRandSeed", dbb.valBroadcastData[i].Header.GetPrevRandSeed(),
 		)
 	}
 
 	for _, headerData := range dataForValidators {
 		for _, broadcastData := range dbb.valBroadcastData {
-			sameRound := headerData.round == broadcastData.header.GetRound()
-			samePrevRandomness := bytes.Equal(headerData.prevRandSeed, broadcastData.header.GetPrevRandSeed())
+			sameRound := headerData.round == broadcastData.Header.GetRound()
+			samePrevRandomness := bytes.Equal(headerData.prevRandSeed, broadcastData.Header.GetPrevRandSeed())
 			if sameRound && samePrevRandomness {
-				duration := validatorDelayPerOrder*time.Duration(broadcastData.order) + common.ExtraDelayForBroadcastBlockInfo
-				alarmID := prefixDelayDataAlarm + hex.EncodeToString(broadcastData.headerHash)
+				duration := validatorDelayPerOrder*time.Duration(broadcastData.Order) + common.ExtraDelayForBroadcastBlockInfo
+				alarmID := prefixDelayDataAlarm + hex.EncodeToString(broadcastData.HeaderHash)
 
 				alarmsToAdd = append(alarmsToAdd, alarmParams{
 					id:       alarmID,
 					duration: duration,
 				})
 				log.Trace("delayedBlockBroadcaster.scheduleValidatorBroadcast: scheduling delay data broadcast for notarized header",
-					"headerHash", broadcastData.headerHash,
+					"headerHash", broadcastData.HeaderHash,
 					"alarmID", alarmID,
 					"round", headerData.round,
 					"prevRandSeed", headerData.prevRandSeed,
-					"consensusOrder", broadcastData.order,
+					"consensusOrder", broadcastData.Order,
 				)
 			}
 		}
@@ -411,9 +400,9 @@ func (dbb *delayedBlockBroadcaster) alarmExpired(alarmID string) {
 	}
 
 	dbb.mutDataForBroadcast.Lock()
-	dataToBroadcast := make([]*delayedBroadcastData, 0)
+	dataToBroadcast := make([]*shared.DelayedBroadcastData, 0)
 	for i, broadcastData := range dbb.valBroadcastData {
-		if bytes.Equal(broadcastData.headerHash, headerHash) {
+		if bytes.Equal(broadcastData.HeaderHash, headerHash) {
 			log.Debug("delayedBlockBroadcaster.alarmExpired: validator broadcasts block data (with delay) instead of leader",
 				"headerHash", headerHash,
 				"alarmID", alarmID,
@@ -440,9 +429,9 @@ func (dbb *delayedBlockBroadcaster) headerAlarmExpired(alarmID string) {
 	}
 
 	dbb.mutDataForBroadcast.Lock()
-	var vHeader *validatorHeaderBroadcastData
+	var vHeader *shared.ValidatorHeaderBroadcastData
 	for i, broadcastData := range dbb.valHeaderBroadcastData {
-		if bytes.Equal(broadcastData.headerHash, headerHash) {
+		if bytes.Equal(broadcastData.HeaderHash, headerHash) {
 			vHeader = broadcastData
 			dbb.valHeaderBroadcastData = append(dbb.valHeaderBroadcastData[:i], dbb.valHeaderBroadcastData[i+1:]...)
 			break
@@ -463,7 +452,7 @@ func (dbb *delayedBlockBroadcaster) headerAlarmExpired(alarmID string) {
 		"alarmID", alarmID,
 	)
 	// broadcast header
-	err = dbb.broadcastHeader(vHeader.header, vHeader.pkBytes)
+	err = dbb.broadcastHeader(vHeader.Header, vHeader.PkBytes)
 	if err != nil {
 		log.Warn("delayedBlockBroadcaster.headerAlarmExpired", "error", err.Error(),
 			"headerHash", headerHash,
@@ -477,15 +466,15 @@ func (dbb *delayedBlockBroadcaster) headerAlarmExpired(alarmID string) {
 			"headerHash", headerHash,
 			"alarmID", alarmID,
 		)
-		go dbb.broadcastBlockData(vHeader.metaMiniBlocksData, vHeader.metaTransactionsData, vHeader.pkBytes, common.ExtraDelayForBroadcastBlockInfo)
+		go dbb.broadcastBlockData(vHeader.MetaMiniBlocksData, vHeader.MetaTransactionsData, vHeader.PkBytes, common.ExtraDelayForBroadcastBlockInfo)
 	}
 }
 
-func (dbb *delayedBlockBroadcaster) broadcastDelayedData(broadcastData []*delayedBroadcastData) {
+func (dbb *delayedBlockBroadcaster) broadcastDelayedData(broadcastData []*shared.DelayedBroadcastData) {
 	for _, bData := range broadcastData {
 		go func(miniBlocks map[uint32][]byte, transactions map[string][][]byte, pkBytes []byte) {
 			dbb.broadcastBlockData(miniBlocks, transactions, pkBytes, 0)
-		}(bData.miniBlocksData, bData.transactions, bData.pkBytes)
+		}(bData.MiniBlocksData, bData.Transactions, bData.PkBytes)
 	}
 }
 
@@ -596,7 +585,7 @@ func (dbb *delayedBlockBroadcaster) registerInterceptorsCallbackForShard(
 	rootTopic string,
 	cb func(topic string, hash []byte, data interface{}),
 ) error {
-	shardIDs := dbb.shardIdentifiers()
+	shardIDs := common.GetShardIDs(dbb.shardCoordinator.NumberOfShards())
 	for idx := range shardIDs {
 		// interested only in cross shard data
 		if idx == dbb.shardCoordinator.SelfId() {
@@ -612,16 +601,6 @@ func (dbb *delayedBlockBroadcaster) registerInterceptorsCallbackForShard(
 	}
 
 	return nil
-}
-
-func (dbb *delayedBlockBroadcaster) shardIdentifiers() map[uint32]struct{} {
-	shardIdentifiers := make(map[uint32]struct{})
-	for i := uint32(0); i < dbb.shardCoordinator.NumberOfShards(); i++ {
-		shardIdentifiers[i] = struct{}{}
-	}
-	shardIdentifiers[core.MetachainShardId] = struct{}{}
-
-	return shardIdentifiers
 }
 
 func (dbb *delayedBlockBroadcaster) interceptedHeader(_ string, headerHash []byte, header interface{}) {
@@ -646,8 +625,8 @@ func (dbb *delayedBlockBroadcaster) interceptedHeader(_ string, headerHash []byt
 	alarmsToCancel := make([]string, 0)
 	dbb.mutDataForBroadcast.Lock()
 	for i, broadcastData := range dbb.valHeaderBroadcastData {
-		samePrevRandSeed := bytes.Equal(broadcastData.header.GetPrevRandSeed(), headerHandler.GetPrevRandSeed())
-		sameRound := broadcastData.header.GetRound() == headerHandler.GetRound()
+		samePrevRandSeed := bytes.Equal(broadcastData.Header.GetPrevRandSeed(), headerHandler.GetPrevRandSeed())
+		sameRound := broadcastData.Header.GetRound() == headerHandler.GetRound()
 		sameHeader := samePrevRandSeed && sameRound
 
 		if sameHeader {
@@ -676,24 +655,24 @@ func (dbb *delayedBlockBroadcaster) interceptedMiniBlockData(topic string, hash 
 		"topic", topic,
 	)
 
-	remainingValBroadcastData := make([]*delayedBroadcastData, 0)
+	remainingValBroadcastData := make([]*shared.DelayedBroadcastData, 0)
 	alarmsToCancel := make([]string, 0)
 
 	dbb.mutDataForBroadcast.Lock()
 	for i, broadcastData := range dbb.valBroadcastData {
-		mbHashesMap := broadcastData.miniBlockHashes
+		mbHashesMap := broadcastData.MiniBlockHashes
 		if len(mbHashesMap) > 0 && len(mbHashesMap[topic]) > 0 {
-			delete(broadcastData.miniBlockHashes[topic], string(hash))
+			delete(broadcastData.MiniBlockHashes[topic], string(hash))
 			if len(mbHashesMap[topic]) == 0 {
 				delete(mbHashesMap, topic)
 			}
 		}
 
 		if len(mbHashesMap) == 0 {
-			alarmID := prefixDelayDataAlarm + hex.EncodeToString(broadcastData.headerHash)
+			alarmID := prefixDelayDataAlarm + hex.EncodeToString(broadcastData.HeaderHash)
 			alarmsToCancel = append(alarmsToCancel, alarmID)
 			log.Trace("delayedBlockBroadcaster.interceptedMiniBlockData: leader has broadcast block data, validator cancelling alarm",
-				"headerHash", broadcastData.headerHash,
+				"headerHash", broadcastData.HeaderHash,
 				"alarmID", alarmID,
 			)
 		} else {
@@ -743,4 +722,9 @@ func (dbb *delayedBlockBroadcaster) extractMbsFromMeTo(header data.HeaderHandler
 	}
 
 	return mbHashesForShard
+}
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (dbb *delayedBlockBroadcaster) IsInterfaceNil() bool {
+	return dbb == nil
 }

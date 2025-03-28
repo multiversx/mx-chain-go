@@ -2,6 +2,7 @@ package blockAPI
 
 import (
 	"encoding/hex"
+	"github.com/multiversx/mx-chain-core-go/data"
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
@@ -39,18 +40,28 @@ func newMetaApiBlockProcessor(arg *ArgAPIBlockProcessor, emptyReceiptsHash []byt
 			accountsRepository:           arg.AccountsRepository,
 			scheduledTxsExecutionHandler: arg.ScheduledTxsExecutionHandler,
 			enableEpochsHandler:          arg.EnableEpochsHandler,
+			proofsPool:                   arg.ProofsPool,
 		},
 	}
 }
 
 // GetBlockByNonce wil return a meta APIBlock by nonce
 func (mbp *metaAPIBlockProcessor) GetBlockByNonce(nonce uint64, options api.BlockQueryOptions) (*api.Block, error) {
+	headerHash, blockBytes, err := mbp.getBlockHashAndBytesByNonce(nonce)
+	if err != nil {
+		return nil, err
+	}
+
+	return mbp.convertMetaBlockBytesToAPIBlock(headerHash, blockBytes, options)
+}
+
+func (mbp *metaAPIBlockProcessor) getBlockHashAndBytesByNonce(nonce uint64) ([]byte, []byte, error) {
 	storerUnit := dataRetriever.MetaHdrNonceHashDataUnit
 
 	nonceToByteSlice := mbp.uint64ByteSliceConverter.ToByteSlice(nonce)
 	headerHash, err := mbp.store.Get(storerUnit, nonceToByteSlice)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	// if genesis block, get the nonce key corresponding to the altered block
@@ -60,15 +71,15 @@ func (mbp *metaAPIBlockProcessor) GetBlockByNonce(nonce uint64, options api.Bloc
 
 	alteredHeaderHash, err := mbp.store.Get(storerUnit, nonceToByteSlice)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	blockBytes, err := mbp.getFromStorer(dataRetriever.MetaBlockUnit, alteredHeaderHash)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
-	return mbp.convertMetaBlockBytesToAPIBlock(headerHash, blockBytes, options)
+	return headerHash, blockBytes, nil
 }
 
 // GetBlockByHash will return a meta APIBlock by hash
@@ -242,7 +253,27 @@ func (mbp *metaAPIBlockProcessor) convertMetaBlockBytesToAPIBlock(hash []byte, b
 	addScheduledInfoInBlock(blockHeader, apiMetaBlock)
 	addStartOfEpochInfoInBlock(blockHeader, apiMetaBlock)
 
+	err = mbp.addProofs(hash, blockHeader, apiMetaBlock, mbp.getHeaderHandler)
+	if err != nil {
+		return nil, err
+	}
+
 	return apiMetaBlock, nil
+}
+
+func (mbp *metaAPIBlockProcessor) getHeaderHandler(nonce uint64) (data.HeaderHandler, error) {
+	_, blockBytes, err := mbp.getBlockHashAndBytesByNonce(nonce)
+	if err != nil {
+		return nil, err
+	}
+
+	blockHeader := &block.MetaBlock{}
+	err = mbp.marshalizer.Unmarshal(blockHeader, blockBytes)
+	if err != nil {
+		return nil, err
+	}
+
+	return blockHeader, nil
 }
 
 func addStartOfEpochInfoInBlock(metaBlock *block.MetaBlock, apiBlock *api.Block) {

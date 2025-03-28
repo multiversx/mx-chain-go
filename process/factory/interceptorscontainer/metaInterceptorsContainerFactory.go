@@ -5,6 +5,8 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/core/throttler"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/factory"
 	"github.com/multiversx/mx-chain-go/process/factory/containers"
@@ -79,6 +81,9 @@ func NewMetaInterceptorsContainerFactory(
 	if check.IfNil(args.PeerSignatureHandler) {
 		return nil, process.ErrNilPeerSignatureHandler
 	}
+	if check.IfNil(args.InterceptedDataVerifierFactory) {
+		return nil, process.ErrNilInterceptedDataVerifierFactory
+	}
 	if args.HeartbeatExpiryTimespanInSec < minTimespanDurationInSec {
 		return nil, process.ErrInvalidExpiryTimespan
 	}
@@ -102,28 +107,30 @@ func NewMetaInterceptorsContainerFactory(
 	}
 
 	base := &baseInterceptorsContainerFactory{
-		mainContainer:              containers.NewInterceptorsContainer(),
-		fullArchiveContainer:       containers.NewInterceptorsContainer(),
-		shardCoordinator:           args.ShardCoordinator,
-		mainMessenger:              args.MainMessenger,
-		fullArchiveMessenger:       args.FullArchiveMessenger,
-		store:                      args.Store,
-		dataPool:                   args.DataPool,
-		nodesCoordinator:           args.NodesCoordinator,
-		blockBlackList:             args.BlockBlackList,
-		argInterceptorFactory:      argInterceptorFactory,
-		maxTxNonceDeltaAllowed:     args.MaxTxNonceDeltaAllowed,
-		accounts:                   args.Accounts,
-		antifloodHandler:           args.AntifloodHandler,
-		whiteListHandler:           args.WhiteListHandler,
-		whiteListerVerifiedTxs:     args.WhiteListerVerifiedTxs,
-		preferredPeersHolder:       args.PreferredPeersHolder,
-		hasher:                     args.CoreComponents.Hasher(),
-		requestHandler:             args.RequestHandler,
-		mainPeerShardMapper:        args.MainPeerShardMapper,
-		fullArchivePeerShardMapper: args.FullArchivePeerShardMapper,
-		hardforkTrigger:            args.HardforkTrigger,
-		nodeOperationMode:          args.NodeOperationMode,
+		mainContainer:                  containers.NewInterceptorsContainer(),
+		fullArchiveContainer:           containers.NewInterceptorsContainer(),
+		shardCoordinator:               args.ShardCoordinator,
+		mainMessenger:                  args.MainMessenger,
+		fullArchiveMessenger:           args.FullArchiveMessenger,
+		store:                          args.Store,
+		dataPool:                       args.DataPool,
+		nodesCoordinator:               args.NodesCoordinator,
+		blockBlackList:                 args.BlockBlackList,
+		argInterceptorFactory:          argInterceptorFactory,
+		maxTxNonceDeltaAllowed:         args.MaxTxNonceDeltaAllowed,
+		accounts:                       args.Accounts,
+		antifloodHandler:               args.AntifloodHandler,
+		whiteListHandler:               args.WhiteListHandler,
+		whiteListerVerifiedTxs:         args.WhiteListerVerifiedTxs,
+		preferredPeersHolder:           args.PreferredPeersHolder,
+		hasher:                         args.CoreComponents.Hasher(),
+		requestHandler:                 args.RequestHandler,
+		mainPeerShardMapper:            args.MainPeerShardMapper,
+		fullArchivePeerShardMapper:     args.FullArchivePeerShardMapper,
+		hardforkTrigger:                args.HardforkTrigger,
+		nodeOperationMode:              args.NodeOperationMode,
+		interceptedDataVerifierFactory: args.InterceptedDataVerifierFactory,
+		enableEpochsHandler:            args.CoreComponents.EnableEpochsHandler(),
 	}
 
 	icf := &metaInterceptorsContainerFactory{
@@ -195,6 +202,11 @@ func (micf *metaInterceptorsContainerFactory) Create() (process.InterceptorsCont
 		return nil, nil, err
 	}
 
+	err = micf.generateEquivalentProofsInterceptors()
+	if err != nil {
+		return nil, nil, err
+	}
+
 	return micf.mainContainer, micf.fullArchiveContainer, nil
 }
 
@@ -253,24 +265,32 @@ func (micf *metaInterceptorsContainerFactory) createOneShardHeaderInterceptor(to
 	}
 
 	argProcessor := &processor.ArgHdrInterceptorProcessor{
-		Headers:        micf.dataPool.Headers(),
-		BlockBlackList: micf.blockBlackList,
+		Headers:             micf.dataPool.Headers(),
+		BlockBlackList:      micf.blockBlackList,
+		Proofs:              micf.dataPool.Proofs(),
+		EnableEpochsHandler: micf.enableEpochsHandler,
 	}
 	hdrProcessor, err := processor.NewHdrInterceptorProcessor(argProcessor)
 	if err != nil {
 		return nil, err
 	}
 
+	interceptedDataVerifier, err := micf.interceptedDataVerifierFactory.Create(topic)
+	if err != nil {
+		return nil, err
+	}
+
 	interceptor, err := processInterceptors.NewSingleDataInterceptor(
 		processInterceptors.ArgSingleDataInterceptor{
-			Topic:                topic,
-			DataFactory:          hdrFactory,
-			Processor:            hdrProcessor,
-			Throttler:            micf.globalThrottler,
-			AntifloodHandler:     micf.antifloodHandler,
-			WhiteListRequest:     micf.whiteListHandler,
-			CurrentPeerId:        micf.mainMessenger.ID(),
-			PreferredPeersHolder: micf.preferredPeersHolder,
+			Topic:                   topic,
+			DataFactory:             hdrFactory,
+			Processor:               hdrProcessor,
+			Throttler:               micf.globalThrottler,
+			AntifloodHandler:        micf.antifloodHandler,
+			WhiteListRequest:        micf.whiteListHandler,
+			CurrentPeerId:           micf.mainMessenger.ID(),
+			PreferredPeersHolder:    micf.preferredPeersHolder,
+			InterceptedDataVerifier: interceptedDataVerifier,
 		},
 	)
 	if err != nil {
@@ -325,6 +345,39 @@ func (micf *metaInterceptorsContainerFactory) generateRewardTxInterceptors() err
 		keys[int(idx)] = identifierScr
 		interceptorSlice[int(idx)] = interceptor
 	}
+
+	return micf.addInterceptorsToContainers(keys, interceptorSlice)
+}
+
+func (micf *metaInterceptorsContainerFactory) generateEquivalentProofsInterceptors() error {
+	shardC := micf.shardCoordinator
+	noOfShards := shardC.NumberOfShards()
+
+	keys := make([]string, noOfShards+1)
+	interceptorSlice := make([]process.Interceptor, noOfShards+1)
+
+	for idx := uint32(0); idx < noOfShards; idx++ {
+		// equivalent proofs shard topic, to listen for shard proofs, for example: equivalentProofs_0_META
+		identifierEquivalentProofs := common.EquivalentProofsTopic + shardC.CommunicationIdentifier(idx)
+		interceptor, err := micf.createOneShardEquivalentProofsInterceptor(identifierEquivalentProofs)
+		if err != nil {
+			return err
+		}
+
+		keys[int(idx)] = identifierEquivalentProofs
+		interceptorSlice[int(idx)] = interceptor
+	}
+
+	// equivalent proofs meta all topic, equivalentProofs_META_ALL
+	identifierEquivalentProofs := common.EquivalentProofsTopic + shardC.CommunicationIdentifier(core.AllShardId)
+
+	interceptor, err := micf.createOneShardEquivalentProofsInterceptor(identifierEquivalentProofs)
+	if err != nil {
+		return err
+	}
+
+	keys[noOfShards] = identifierEquivalentProofs
+	interceptorSlice[noOfShards] = interceptor
 
 	return micf.addInterceptorsToContainers(keys, interceptorSlice)
 }

@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
+
 	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/ntp"
 )
@@ -98,6 +99,14 @@ func (rnd *round) RemainingTime(startTime time.Time, maxTime time.Duration) time
 	remainingTime := maxTime - elapsedTime
 
 	return remainingTime
+}
+
+// RevertOneRound reverts the round index and time stamp by one round, used in case of a transition to new consensus
+func (rnd *round) RevertOneRound() {
+	rnd.Lock()
+	rnd.index--
+	rnd.timeStamp = rnd.timeStamp.Add(-rnd.timeDuration)
+	rnd.Unlock()
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

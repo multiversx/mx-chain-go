@@ -24,8 +24,7 @@ import (
 const (
 	stakingV4JailUnJailStep1EnableEpoch = 5
 	defaultPathToInitialConfig          = "../../../../cmd/node/config/"
-
-	epochWhenNodeIsJailed = 4
+	epochWhenNodeIsJailed               = 4
 )
 
 // Test description
@@ -79,6 +78,8 @@ func testChainSimulatorJailAndUnJail(t *testing.T, targetEpoch int32, nodeStatus
 		MetaChainMinNodes:      2,
 		AlterConfigsFunction: func(cfg *config.Configs) {
 			configs.SetStakingV4ActivationEpochs(cfg, stakingV4JailUnJailStep1EnableEpoch)
+			cfg.EpochConfig.EnableEpochs.FixedOrderInConsensusEnableEpoch = 100
+			cfg.EpochConfig.EnableEpochs.EquivalentMessagesEnableEpoch = 100
 			newNumNodes := cfg.SystemSCConfig.StakingSystemSCConfig.MaxNumberOfNodesForStake + 8 // 8 nodes until new nodes will be placed on queue
 			configs.SetMaxNumberOfNodesInConfigs(cfg, uint32(newNumNodes), 0, numOfShards)
 			configs.SetQuickJailRatingConfig(cfg)
@@ -254,4 +255,64 @@ func TestChainSimulator_FromQueueToAuctionList(t *testing.T) {
 	require.Equal(t, staking.UnStakedStatus, status)
 
 	staking.CheckValidatorStatus(t, cs, blsKeys[0], string(common.InactiveList))
+}
+
+func TestJailNodes(t *testing.T) {
+	startTime := time.Now().Unix()
+	roundDurationInMillis := uint64(6000)
+	roundsPerEpoch := core.OptionalUint64{
+		HasValue: true,
+		Value:    20,
+	}
+
+	numOfShards := uint32(3)
+
+	cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
+		BypassTxSignatureCheck:   true,
+		TempDir:                  t.TempDir(),
+		PathToInitialConfig:      defaultPathToInitialConfig,
+		NumOfShards:              numOfShards,
+		GenesisTimestamp:         startTime,
+		RoundDurationInMillis:    roundDurationInMillis,
+		RoundsPerEpoch:           roundsPerEpoch,
+		ApiInterface:             api.NewNoApiInterface(),
+		MinNodesPerShard:         4,
+		MetaChainMinNodes:        4,
+		NumNodesWaitingListMeta:  1,
+		NumNodesWaitingListShard: 1,
+		AlterConfigsFunction: func(cfg *config.Configs) {
+			configs.SetQuickJailRatingConfig(cfg)
+			newNumNodes := cfg.SystemSCConfig.StakingSystemSCConfig.MaxNumberOfNodesForStake + 1
+			configs.SetMaxNumberOfNodesInConfigs(cfg, uint32(newNumNodes), 0, numOfShards)
+		},
+	})
+	require.Nil(t, err)
+	require.NotNil(t, cs)
+	defer cs.Close()
+
+	err = cs.GenerateBlocks(30)
+	require.Nil(t, err)
+
+	_, blsKeys, err := chainSimulator.GenerateBlsPrivateKeys(1)
+	require.Nil(t, err)
+
+	mintValue := big.NewInt(0).Mul(chainSimulatorIntegrationTests.OneEGLD, big.NewInt(6000))
+	walletAddress, err := cs.GenerateAndMintWalletAddress(core.AllShardId, mintValue)
+	require.Nil(t, err)
+
+	err = cs.GenerateBlocks(1)
+	require.Nil(t, err)
+
+	txDataField := fmt.Sprintf("stake@01@%s@%s", blsKeys[0], staking.MockBLSSignature)
+	txStake := chainSimulatorIntegrationTests.GenerateTransaction(walletAddress.Bytes, 0, vm.ValidatorSCAddress, chainSimulatorIntegrationTests.MinimumStakeValue, txDataField, staking.GasLimitForStakeOperation)
+	stakeTx, err := cs.SendTxAndGenerateBlockTilTxIsExecuted(txStake, staking.MaxNumOfBlockToGenerateWhenExecutingTx)
+	require.Nil(t, err)
+	require.NotNil(t, stakeTx)
+
+	err = cs.GenerateBlocks(200)
+	require.Nil(t, err)
+
+	decodedBLSKey0, _ := hex.DecodeString(blsKeys[0])
+	status := staking.GetBLSKeyStatus(t, cs.GetNodeHandler(core.MetachainShardId), decodedBLSKey0)
+	require.Equal(t, "jailed", status)
 }

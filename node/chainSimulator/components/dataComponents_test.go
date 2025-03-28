@@ -3,12 +3,14 @@ package components
 import (
 	"testing"
 
+	"github.com/stretchr/testify/require"
+
 	retriever "github.com/multiversx/mx-chain-go/dataRetriever"
 	chainStorage "github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/cache"
 	"github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
 	"github.com/multiversx/mx-chain-go/testscommon/storage"
-	"github.com/stretchr/testify/require"
 )
 
 func createArgsDataComponentsHolder() ArgsDataComponentsHolder {
@@ -21,7 +23,7 @@ func createArgsDataComponentsHolder() ArgsDataComponentsHolder {
 		},
 		DataPool: &dataRetriever.PoolsHolderStub{
 			MiniBlocksCalled: func() chainStorage.Cacher {
-				return &testscommon.CacherStub{}
+				return &cache.CacherStub{}
 			},
 		},
 		InternalMarshaller: &testscommon.MarshallerStub{},
