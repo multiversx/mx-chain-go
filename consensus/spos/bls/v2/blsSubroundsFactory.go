@@ -108,8 +108,8 @@ func (fct *factory) SetOutportHandler(driver outport.OutportHandler) {
 }
 
 // GenerateSubrounds will generate the subrounds used in BLS Cns
-func (fct *factory) GenerateSubrounds() error {
-	fct.initConsensusThreshold()
+func (fct *factory) GenerateSubrounds(epoch uint32) error {
+	fct.initConsensusThreshold(epoch)
 	fct.consensusCore.Chronology().RemoveAllSubrounds()
 	fct.worker.RemoveAllReceivedMessagesCalls()
 	fct.worker.RemoveAllReceivedHeaderHandlers()
@@ -293,13 +293,20 @@ func (fct *factory) generateEndRoundSubround() error {
 	return nil
 }
 
-func (fct *factory) initConsensusThreshold() {
-	pBFTThreshold := core.GetPBFTThreshold(fct.consensusState.ConsensusGroupSize())
-	pBFTFallbackThreshold := core.GetPBFTFallbackThreshold(fct.consensusState.ConsensusGroupSize())
+func (fct *factory) initConsensusThreshold(epoch uint32) {
+	consensusGroupSizeForEpoch := fct.consensusCore.NodesCoordinator().ConsensusGroupSizeForShardAndEpoch(fct.consensusCore.ShardCoordinator().SelfId(), epoch)
+	pBFTThreshold := core.GetPBFTThreshold(consensusGroupSizeForEpoch)
+	pBFTFallbackThreshold := core.GetPBFTFallbackThreshold(consensusGroupSizeForEpoch)
 	fct.consensusState.SetThreshold(bls.SrBlock, 1)
 	fct.consensusState.SetThreshold(bls.SrSignature, pBFTThreshold)
 	fct.consensusState.SetFallbackThreshold(bls.SrBlock, 1)
 	fct.consensusState.SetFallbackThreshold(bls.SrSignature, pBFTFallbackThreshold)
+
+	log.Debug("initConsensusThreshold updating thresholds",
+		"epoch", epoch,
+		"pBFTThreshold", pBFTThreshold,
+		"pBFTFallbackThreshold", pBFTFallbackThreshold,
+	)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
