@@ -780,11 +780,12 @@ func checkArgs(args ConsensusComponentsFactoryArgs) error {
 }
 
 func getConsensusGroupSize(nodesConfig sharding.GenesisNodesSetupHandler, shardCoordinator sharding.Coordinator, nodesCoordinator nodesCoord.NodesCoordinator, epoch uint32) (int, error) {
+	log.Info("getConsensusGroupSize - start")
 	consensusGroupSize := nodesCoordinator.ConsensusGroupSizeForShardAndEpoch(shardCoordinator.SelfId(), epoch)
 	if consensusGroupSize > 0 {
 		return consensusGroupSize, nil
 	}
-
+	log.Info("getConsensusGroupSize - not found")
 	if shardCoordinator.SelfId() == core.MetachainShardId {
 		return int(nodesConfig.GetMetaConsensusGroupSize()), nil
 	}

@@ -294,6 +294,7 @@ func (fct *factory) generateEndRoundSubround() error {
 }
 
 func (fct *factory) initConsensusThreshold() {
+	log.Info("BLS subrounds factory initConsensusThreshold", "consensusGroupSize", fct.consensusState.ConsensusGroupSize())
 	pBFTThreshold := core.GetPBFTThreshold(fct.consensusState.ConsensusGroupSize())
 	pBFTFallbackThreshold := core.GetPBFTFallbackThreshold(fct.consensusState.ConsensusGroupSize())
 	fct.consensusState.SetThreshold(bls.SrBlock, 1)

@@ -896,6 +896,7 @@ func (sr *subroundEndRound) checkReceivedSignatures() bool {
 
 	areSignaturesCollected, numSigs := sr.areSignaturesCollected(threshold)
 	areAllSignaturesCollected := numSigs == sr.ConsensusGroupSize()
+	log.Info("step 2: signatures collection", "aresignaturesCollected", areSignaturesCollected, "numSigs", numSigs, "consensusGroupSize", sr.ConsensusGroupSize())
 
 	isSignatureCollectionDone := areAllSignaturesCollected || (areSignaturesCollected && sr.GetWaitingAllSignaturesTimeOut())
 
