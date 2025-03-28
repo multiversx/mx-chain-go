@@ -257,7 +257,7 @@ func TestChainSimulator_FromQueueToAuctionList(t *testing.T) {
 	staking.CheckValidatorStatus(t, cs, blsKeys[0], string(common.InactiveList))
 }
 
-func TestJailNodesStakingV4Scenarios(t *testing.T) {
+func TestJailNodes(t *testing.T) {
 	startTime := time.Now().Unix()
 	roundDurationInMillis := uint64(6000)
 	roundsPerEpoch := core.OptionalUint64{
@@ -276,10 +276,10 @@ func TestJailNodesStakingV4Scenarios(t *testing.T) {
 		RoundDurationInMillis:    roundDurationInMillis,
 		RoundsPerEpoch:           roundsPerEpoch,
 		ApiInterface:             api.NewNoApiInterface(),
-		MinNodesPerShard:         10,
-		MetaChainMinNodes:        10,
-		NumNodesWaitingListMeta:  6,
-		NumNodesWaitingListShard: 6,
+		MinNodesPerShard:         4,
+		MetaChainMinNodes:        4,
+		NumNodesWaitingListMeta:  1,
+		NumNodesWaitingListShard: 1,
 		AlterConfigsFunction: func(cfg *config.Configs) {
 			configs.SetQuickJailRatingConfig(cfg)
 			newNumNodes := cfg.SystemSCConfig.StakingSystemSCConfig.MaxNumberOfNodesForStake + 1
