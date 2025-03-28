@@ -33,7 +33,7 @@ type SubroundsHandlerArgs struct {
 
 // subroundsFactory defines the methods needed to generate the subrounds
 type subroundsFactory interface {
-	GenerateSubrounds() error
+	GenerateSubrounds(epoch uint32) error
 	SetOutportHandler(driver outport.OutportHandler)
 	IsInterfaceNil() bool
 }
@@ -187,7 +187,7 @@ func (s *SubroundsHandler) initSubroundsForEpoch(epoch uint32) error {
 		log.Warn("SubroundsHandler.initSubroundsForEpoch: cannot close the chronology", "error", err)
 	}
 
-	err = fct.GenerateSubrounds()
+	err = fct.GenerateSubrounds(epoch)
 	if err != nil {
 		return err
 	}
