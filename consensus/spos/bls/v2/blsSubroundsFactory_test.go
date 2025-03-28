@@ -7,7 +7,9 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-go/testscommon/shardingMocks"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/consensus/spos"
@@ -648,11 +650,21 @@ func TestFactory_GenerateSubroundsShouldWork(t *testing.T) {
 	}
 	container := testscommonConsensus.InitConsensusCore()
 	container.SetChronology(chrm)
+	providedEpoch := uint32(123)
+	wasConsensusGroupSizeCalled := false
+	container.SetNodesCoordinator(&shardingMocks.NodesCoordinatorMock{
+		ConsensusGroupSizeCalled: func(shard uint32, epoch uint32) int {
+			wasConsensusGroupSizeCalled = true
+			require.Equal(t, providedEpoch, epoch)
+			return 1
+		},
+	})
 	fct := *initFactoryWithContainer(container)
 	fct.SetOutportHandler(&testscommonOutport.OutportStub{})
 
-	err := fct.GenerateSubrounds()
+	err := fct.GenerateSubrounds(providedEpoch)
 	assert.Nil(t, err)
+	require.True(t, wasConsensusGroupSizeCalled)
 
 	assert.Equal(t, 4, subroundHandlers)
 }
@@ -663,7 +675,7 @@ func TestFactory_GenerateSubroundsNilOutportShouldFail(t *testing.T) {
 	container := testscommonConsensus.InitConsensusCore()
 	fct := *initFactoryWithContainer(container)
 
-	err := fct.GenerateSubrounds()
+	err := fct.GenerateSubrounds(0)
 	assert.Equal(t, outport.ErrNilDriver, err)
 }
 
