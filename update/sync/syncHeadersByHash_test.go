@@ -3,6 +3,7 @@ package sync
 import (
 	"context"
 	"errors"
+	"sync"
 	"testing"
 	"time"
 
@@ -149,19 +150,26 @@ func TestSyncHeadersByHash_GetHeadersShouldReceiveAndReturnOkMb(t *testing.T) {
 			handlerToNotify = handler
 		},
 	}
+
+	var wg sync.WaitGroup
+	expectedHash := []byte("hash")
+	expectedMB := &block.MetaBlock{Nonce: 37}
+	args.RequestHandler = &testscommon.RequestHandlerStub{
+		RequestShardHeaderCalled: func(shardID uint32, hash []byte) {
+			wg.Add(1)
+			go func() {
+				handlerToNotify(expectedMB, expectedHash)
+				wg.Done()
+			}()
+		},
+	}
+
 	mhhs, _ := NewMissingheadersByHashSyncer(args)
 	require.NotNil(t, mhhs)
 
-	expectedHash := []byte("hash")
-	expectedMB := &block.MetaBlock{Nonce: 37}
-	go func() {
-		time.Sleep(10 * time.Millisecond)
-		handlerToNotify(expectedMB, expectedHash)
-	}()
-	ctx, cancel := context.WithTimeout(context.Background(), 100*time.Millisecond)
-	err := mhhs.SyncMissingHeadersByHash([]uint32{0}, [][]byte{[]byte("hash")}, ctx)
+	err := mhhs.SyncMissingHeadersByHash([]uint32{0}, [][]byte{[]byte("hash")}, context.Background())
 	require.NoError(t, err)
-	cancel()
+	wg.Wait()
 
 	res, err := mhhs.GetHeaders()
 	require.NoError(t, err)
