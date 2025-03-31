@@ -21,7 +21,6 @@ type interceptedShardHeaderDataFactory struct {
 	validityAttester        process.ValidityAttester
 	epochStartTrigger       process.EpochStartTriggerHandler
 	enableEpochsHandler     common.EnableEpochsHandler
-	fieldsSizeChecker       common.FieldsSizeChecker
 }
 
 // NewInterceptedShardHeaderDataFactory creates an instance of interceptedShardHeaderDataFactory
