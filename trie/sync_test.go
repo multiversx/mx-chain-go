@@ -11,6 +11,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/state/hashesCollector"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
@@ -210,8 +211,9 @@ func TestTrieSync_FoundInStorageShouldNotRequest(t *testing.T) {
 	timeout := time.Second * 200
 	testMarshalizer, testHasher := getTestMarshalizerAndHasher()
 	bn, _ := getBnAndCollapsedBn(testMarshalizer, testHasher)
-	err := bn.setHash()
-	require.Nil(t, err)
+	manager := getTestGoroutinesManager()
+	bn.setHash(manager)
+	require.Nil(t, manager.GetError())
 	rootHash := bn.getHash()
 
 	_, trieStorage := newEmptyTrie()
@@ -223,8 +225,7 @@ func TestTrieSync_FoundInStorageShouldNotRequest(t *testing.T) {
 		},
 	}
 
-	err = bn.commitSnapshot(db, nil, nil, context.Background(), statistics.NewTrieStatistics(), &testscommon.ProcessStatusHandlerStub{}, 0)
-	require.Nil(t, err)
+	bn.commitDirty(0, 5, getTestGoroutinesManager(), hashesCollector.NewDisabledHashesCollector(), db, db)
 
 	leaves, err := bn.getChildren(db)
 	require.Nil(t, err)
