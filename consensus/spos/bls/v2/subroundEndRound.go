@@ -374,7 +374,7 @@ func (sr *subroundEndRound) sendProof() (bool, error) {
 
 	// broadcast header proof
 	err = sr.createAndBroadcastProof(sig, bitmap, currentSender)
-	if err != nil {
+	if err != nil && !errors.Is(err, ErrProofAlreadyPropagated) {
 		log.Warn("sendProof.createAndBroadcastProof", "error", err.Error())
 	}
 
@@ -392,6 +392,9 @@ func (sr *subroundEndRound) shouldSendProof() bool {
 }
 
 func (sr *subroundEndRound) aggregateSigsAndHandleInvalidSigners(bitmap []byte, sender string) ([]byte, []byte, error) {
+	if sr.EquivalentProofsPool().HasProof(sr.ShardCoordinator().SelfId(), sr.GetData()) {
+		return nil, nil, ErrProofAlreadyPropagated
+	}
 	sig, err := sr.SigningHandler().AggregateSigs(bitmap, sr.GetHeader().GetEpoch())
 	if err != nil {
 		log.Debug("doEndRoundJobByNode.AggregateSigs", "error", err.Error())
@@ -541,6 +544,10 @@ func (sr *subroundEndRound) handleInvalidSignersOnAggSigFail(sender string) ([]b
 		return nil, nil, err
 	}
 
+	if sr.EquivalentProofsPool().HasProof(sr.ShardCoordinator().SelfId(), sr.GetData()) {
+		return nil, nil, ErrProofAlreadyPropagated
+	}
+
 	if len(invalidSigners) > 0 {
 		sr.createAndBroadcastInvalidSigners(invalidSigners, invalidPubKeys, sender)
 	}
@@ -599,7 +606,7 @@ func (sr *subroundEndRound) createAndBroadcastProof(
 ) error {
 	if sr.EquivalentProofsPool().HasProof(sr.ShardCoordinator().SelfId(), sr.GetData()) {
 		// no need to broadcast a proof if already received and verified one
-		return nil
+		return ErrProofAlreadyPropagated
 	}
 
 	headerProof := &block.HeaderProof{
