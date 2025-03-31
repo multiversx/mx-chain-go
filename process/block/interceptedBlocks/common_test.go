@@ -9,6 +9,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/mock"
 	"github.com/multiversx/mx-chain-go/testscommon"
@@ -263,7 +264,7 @@ func TestCheckHeaderHandler_NilPubKeysBitmapShouldErr(t *testing.T) {
 		return nil
 	}
 
-	err := checkHeaderHandler(hdr, enableEpochsHandlerMock.NewEnableEpochsHandlerStub())
+	err := checkHeaderHandler(hdr, enableEpochsHandlerMock.NewEnableEpochsHandlerStub(), &testscommon.FieldsSizeCheckerMock{})
 
 	assert.Equal(t, process.ErrNilPubKeysBitmap, err)
 }
@@ -276,7 +277,7 @@ func TestCheckHeaderHandler_NilPrevHashShouldErr(t *testing.T) {
 		return nil
 	}
 
-	err := checkHeaderHandler(hdr, enableEpochsHandlerMock.NewEnableEpochsHandlerStub())
+	err := checkHeaderHandler(hdr, enableEpochsHandlerMock.NewEnableEpochsHandlerStub(), &testscommon.FieldsSizeCheckerMock{})
 
 	assert.Equal(t, process.ErrNilPreviousBlockHash, err)
 }
@@ -289,7 +290,7 @@ func TestCheckHeaderHandler_NilSignatureShouldErr(t *testing.T) {
 		return nil
 	}
 
-	err := checkHeaderHandler(hdr, enableEpochsHandlerMock.NewEnableEpochsHandlerStub())
+	err := checkHeaderHandler(hdr, enableEpochsHandlerMock.NewEnableEpochsHandlerStub(), &testscommon.FieldsSizeCheckerMock{})
 
 	assert.Equal(t, process.ErrNilSignature, err)
 }
@@ -302,7 +303,7 @@ func TestCheckHeaderHandler_NilRootHashErr(t *testing.T) {
 		return nil
 	}
 
-	err := checkHeaderHandler(hdr, enableEpochsHandlerMock.NewEnableEpochsHandlerStub())
+	err := checkHeaderHandler(hdr, enableEpochsHandlerMock.NewEnableEpochsHandlerStub(), &testscommon.FieldsSizeCheckerMock{})
 
 	assert.Equal(t, process.ErrNilRootHash, err)
 }
@@ -315,7 +316,7 @@ func TestCheckHeaderHandler_NilRandSeedErr(t *testing.T) {
 		return nil
 	}
 
-	err := checkHeaderHandler(hdr, enableEpochsHandlerMock.NewEnableEpochsHandlerStub())
+	err := checkHeaderHandler(hdr, enableEpochsHandlerMock.NewEnableEpochsHandlerStub(), &testscommon.FieldsSizeCheckerMock{})
 
 	assert.Equal(t, process.ErrNilRandSeed, err)
 }
@@ -328,7 +329,7 @@ func TestCheckHeaderHandler_NilPrevRandSeedErr(t *testing.T) {
 		return nil
 	}
 
-	err := checkHeaderHandler(hdr, enableEpochsHandlerMock.NewEnableEpochsHandlerStub())
+	err := checkHeaderHandler(hdr, enableEpochsHandlerMock.NewEnableEpochsHandlerStub(), &testscommon.FieldsSizeCheckerMock{})
 
 	assert.Equal(t, process.ErrNilPrevRandSeed, err)
 }
@@ -350,7 +351,13 @@ func TestCheckHeaderHandler_InvalidProof(t *testing.T) {
 		},
 	}
 
-	err := checkHeaderHandler(hdr, eeh)
+	fieldsSizeChecker := &testscommon.FieldsSizeCheckerMock{
+		IsProofSizeValidCalled: func(proof data.HeaderProofHandler) bool {
+			return false
+		},
+	}
+
+	err := checkHeaderHandler(hdr, eeh, fieldsSizeChecker)
 
 	assert.Equal(t, process.ErrMissingPrevHeaderProof, err)
 }
@@ -363,7 +370,7 @@ func TestCheckHeaderHandler_CheckFieldsForNilErrors(t *testing.T) {
 		return expectedErr
 	}
 
-	err := checkHeaderHandler(hdr, enableEpochsHandlerMock.NewEnableEpochsHandlerStub())
+	err := checkHeaderHandler(hdr, enableEpochsHandlerMock.NewEnableEpochsHandlerStub(), &testscommon.FieldsSizeCheckerMock{})
 
 	assert.Equal(t, expectedErr, err)
 }
@@ -373,7 +380,24 @@ func TestCheckHeaderHandler_ShouldWork(t *testing.T) {
 
 	hdr := createDefaultHeaderHandler()
 
-	err := checkHeaderHandler(hdr, enableEpochsHandlerMock.NewEnableEpochsHandlerStub())
+	err := checkHeaderHandler(hdr, enableEpochsHandlerMock.NewEnableEpochsHandlerStub(), &testscommon.FieldsSizeCheckerMock{})
+
+	assert.Nil(t, err)
+}
+
+func TestCheckHeaderHandler_ShouldWork_WithPrevProof(t *testing.T) {
+	t.Parallel()
+
+	hdr := createDefaultHeaderHandler()
+
+	enableEpochsHandler := &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+		IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
+			return flag == common.EquivalentMessagesFlag
+		},
+	}
+	hdr.SetPreviousProof(&block.HeaderProof{HeaderNonce: 1})
+
+	err := checkHeaderHandler(hdr, enableEpochsHandler, &testscommon.FieldsSizeCheckerMock{})
 
 	assert.Nil(t, err)
 }
@@ -804,7 +828,7 @@ func Test_CheckProofIntegrity(t *testing.T) {
 			return 2
 		},
 	}
-	err := checkProofIntegrity(headerWithNoPrevProof, eeh)
+	err := checkProofIntegrity(headerWithNoPrevProof, eeh, &testscommon.FieldsSizeCheckerMock{})
 	require.Equal(t, process.ErrMissingPrevHeaderProof, err)
 
 	headerWithUnexpectedPrevProof := &testscommon.HeaderHandlerStub{
@@ -815,7 +839,7 @@ func Test_CheckProofIntegrity(t *testing.T) {
 			return &block.HeaderProof{}
 		},
 	}
-	err = checkProofIntegrity(headerWithUnexpectedPrevProof, eeh)
+	err = checkProofIntegrity(headerWithUnexpectedPrevProof, eeh, &testscommon.FieldsSizeCheckerMock{})
 	require.Equal(t, process.ErrUnexpectedHeaderProof, err)
 
 	headerWithIncompletePrevProof := &testscommon.HeaderHandlerStub{
@@ -826,7 +850,7 @@ func Test_CheckProofIntegrity(t *testing.T) {
 			return &block.HeaderProof{}
 		},
 	}
-	err = checkProofIntegrity(headerWithIncompletePrevProof, eeh)
+	err = checkProofIntegrity(headerWithIncompletePrevProof, eeh, &testscommon.FieldsSizeCheckerMock{})
 	require.Equal(t, process.ErrInvalidHeaderProof, err)
 
 	headerWithPrevProofOk := &testscommon.HeaderHandlerStub{
@@ -841,6 +865,13 @@ func Test_CheckProofIntegrity(t *testing.T) {
 			}
 		},
 	}
-	err = checkProofIntegrity(headerWithPrevProofOk, eeh)
+
+	fieldsSizeChecker := &testscommon.FieldsSizeCheckerMock{
+		IsProofSizeValidCalled: func(proof data.HeaderProofHandler) bool {
+			return true
+		},
+	}
+
+	err = checkProofIntegrity(headerWithPrevProofOk, eeh, fieldsSizeChecker)
 	require.NoError(t, err)
 }

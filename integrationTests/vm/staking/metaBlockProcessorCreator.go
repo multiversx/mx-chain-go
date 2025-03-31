@@ -118,6 +118,9 @@ func createMetaBlockProcessor(
 		EpochValidatorInfoCreator:    valInfoCreator,
 		ValidatorStatisticsProcessor: validatorsInfoCreator,
 		EpochSystemSCProcessor:       systemSCProcessor,
+		FieldsSizeChecker: &testscommon.FieldsSizeCheckerMock{
+			IsProofSizeValidCalled: func(proof data.HeaderProofHandler) bool { return true },
+		},
 	}
 
 	metaProc, _ := blproc.NewMetaProcessor(args)

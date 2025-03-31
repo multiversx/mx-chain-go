@@ -973,6 +973,7 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 		EpochValidatorInfoCreator:    validatorInfoCreator,
 		ValidatorStatisticsProcessor: validatorStatisticsProcessor,
 		EpochSystemSCProcessor:       epochStartSystemSCProcessor,
+		FieldsSizeChecker:            pcf.coreData.FieldsSizeChecker(),
 	}
 
 	metaProcessor, err := block.NewMetaProcessor(arguments)

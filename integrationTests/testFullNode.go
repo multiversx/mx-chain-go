@@ -1011,6 +1011,9 @@ func (tpn *TestFullNode) initBlockProcessor(
 			EpochValidatorInfoCreator:    epochStartValidatorInfo,
 			ValidatorStatisticsProcessor: tpn.ValidatorStatisticsProcessor,
 			EpochSystemSCProcessor:       epochStartSystemSCProcessor,
+			FieldsSizeChecker: &testscommon.FieldsSizeCheckerMock{
+				IsProofSizeValidCalled: func(proof data.HeaderProofHandler) bool { return true },
+			},
 		}
 
 		tpn.BlockProcessor, err = block.NewMetaProcessor(arguments)
@@ -1112,6 +1115,9 @@ func (tpn *TestFullNode) initBlockProcessorWithSync(
 				},
 			},
 			EpochSystemSCProcessor: &testscommon.EpochStartSystemSCStub{},
+			FieldsSizeChecker: &testscommon.FieldsSizeCheckerMock{
+				IsProofSizeValidCalled: func(proof data.HeaderProofHandler) bool { return true },
+			},
 		}
 
 		tpn.BlockProcessor, err = block.NewMetaProcessor(arguments)

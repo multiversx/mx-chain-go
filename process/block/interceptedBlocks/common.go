@@ -6,6 +6,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data"
 
 	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/sharding"
 )
@@ -68,7 +69,11 @@ func checkMiniblockArgument(arg *ArgInterceptedMiniblock) error {
 	return nil
 }
 
-func checkHeaderHandler(hdr data.HeaderHandler, enableEpochsHandler common.EnableEpochsHandler) error {
+func checkHeaderHandler(
+	hdr data.HeaderHandler,
+	enableEpochsHandler common.EnableEpochsHandler,
+	fieldsSizeChecker common.FieldsSizeChecker,
+) error {
 	equivalentMessagesEnabled := enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, hdr.GetEpoch())
 
 	if len(hdr.GetPubKeysBitmap()) == 0 && !equivalentMessagesEnabled {
@@ -90,7 +95,7 @@ func checkHeaderHandler(hdr data.HeaderHandler, enableEpochsHandler common.Enabl
 		return process.ErrNilPrevRandSeed
 	}
 
-	err := checkProofIntegrity(hdr, enableEpochsHandler)
+	err := checkProofIntegrity(hdr, enableEpochsHandler, fieldsSizeChecker)
 	if err != nil {
 		return err
 	}
@@ -98,7 +103,15 @@ func checkHeaderHandler(hdr data.HeaderHandler, enableEpochsHandler common.Enabl
 	return hdr.CheckFieldsForNil()
 }
 
-func checkProofIntegrity(hdr data.HeaderHandler, enableEpochsHandler common.EnableEpochsHandler) error {
+func checkProofIntegrity(
+	hdr data.HeaderHandler,
+	enableEpochsHandler common.EnableEpochsHandler,
+	fieldsSizeChecker common.FieldsSizeChecker,
+) error {
+	if check.IfNil(fieldsSizeChecker) {
+		return errors.ErrNilFieldsSizeChecker
+	}
+
 	prevHeaderProof := hdr.GetPreviousProof()
 	nilPreviousProof := check.IfNil(prevHeaderProof)
 	shouldHavePrevProof := common.ShouldBlockHavePrevProof(hdr, enableEpochsHandler, common.EquivalentMessagesFlag)
@@ -112,7 +125,7 @@ func checkProofIntegrity(hdr data.HeaderHandler, enableEpochsHandler common.Enab
 	if unexpectedPrevProof {
 		return process.ErrUnexpectedHeaderProof
 	}
-	if hasPrevProof && common.IsIncompleteProof(prevHeaderProof) {
+	if hasPrevProof && !fieldsSizeChecker.IsProofSizeValid(prevHeaderProof) {
 		return process.ErrInvalidHeaderProof
 	}
 
