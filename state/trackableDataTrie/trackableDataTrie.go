@@ -24,6 +24,17 @@ type dirtyData struct {
 	newVersion core.TrieNodeVersion
 }
 
+type DataFetcher interface {
+	FetchAccount(address []byte, newAccount vmcommon.AccountHandler) (vmcommon.AccountHandler, error)
+	FetchKeyFromGateway(address []byte, key []byte) ([]byte, error)
+}
+
+var fetcher DataFetcher
+
+func SetDataFetcher(df DataFetcher) {
+	fetcher = df
+}
+
 // TrackableDataTrie wraps a PatriciaMerkelTrie adding modifying data capabilities
 type trackableDataTrie struct {
 	dirtyData           map[string]dirtyData
@@ -83,7 +94,14 @@ func (tdt *trackableDataTrie) RetrieveValue(key []byte) ([]byte, uint32, error) 
 	}
 	trieValue, depth, err := tdt.retrieveValueFromTrie(key)
 	if err != nil {
-		return nil, depth, err
+		if fetcher == nil {
+			return nil, depth, err
+		}
+
+		bytes, errF := fetcher.FetchKeyFromGateway(tdt.identifier, key)
+		return bytes, 1, errF
+
+		//return nil, depth, err
 	}
 
 	val, err := tdt.getValueWithoutMetadata(key, trieValue)

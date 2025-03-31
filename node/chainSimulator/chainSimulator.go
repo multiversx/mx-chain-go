@@ -6,7 +6,6 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
-
 	"math/big"
 	"sync"
 	"time"
@@ -106,6 +105,10 @@ func NewBaseChainSimulator(args ArgsBaseChainSimulator) (*simulator, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	//dataFetcher := fetcher.NewDataFetcher("https://gateway.multiversx.com", instance.nodes[0].GetCoreComponents().AddressPubKeyConverter())
+	//state.SetDataFetcher(dataFetcher)
+	//trackableDataTrie.SetDataFetcher(dataFetcher)
 
 	return instance, nil
 }
