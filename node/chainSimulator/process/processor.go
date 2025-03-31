@@ -130,11 +130,11 @@ func (creator *blocksCreator) CreateNewBlock() error {
 	enableEpochHandler := coreComponents.EnableEpochsHandler()
 	var previousProof *dataBlock.HeaderProof
 	if !nilPrevHeader && enableEpochHandler.IsFlagEnabled(common.EquivalentMessagesFlag) {
-		//sig, errS := creator.generateSignature(prevHash, leader.PubKey(), prevHeader)
-		//if errS != nil {
-		//	return errS
-		//}
-		previousProof = createProofForHeader(pubKeyBitmap, []byte(""), prevHash, prevHeader)
+		sig, errS := creator.generateSignature(prevHash, leader.PubKey(), prevHeader)
+		if errS != nil {
+			return errS
+		}
+		previousProof = createProofForHeader(pubKeyBitmap, sig, prevHash, prevHeader)
 		_ = creator.nodeHandler.GetDataComponents().Datapool().Proofs().AddProof(previousProof)
 	}
 
@@ -303,7 +303,7 @@ func (creator *blocksCreator) generateSignature(headerHash, blsKeyBytes []byte, 
 	return creator.generateAggregatedSignature(
 		headerHash,
 		header.GetEpoch(),
-		header.GetPubKeysBitmap(),
+		[]byte{1},
 		[]string{string(blsKeyBytes)},
 	)
 }
