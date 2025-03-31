@@ -597,6 +597,11 @@ func (sr *subroundEndRound) createAndBroadcastProof(
 	bitmap []byte,
 	sender string,
 ) error {
+	if sr.EquivalentProofsPool().HasProof(sr.ShardCoordinator().SelfId(), sr.GetData()) {
+		// no need to broadcast a proof if already received and verified one
+		return nil
+	}
+
 	headerProof := &block.HeaderProof{
 		PubKeysBitmap:       bitmap,
 		AggregatedSignature: signature,
