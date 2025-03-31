@@ -180,7 +180,7 @@ func (ln *leafNode) insert(
 		goRoutinesManager.SetError(err)
 		return nil
 	}
-	newEn.EncodedChild = bn.getHash()
+	newEn.ChildHash = bn.getHash()
 	newEn.setHash(goRoutinesManager)
 
 	return newEn
@@ -250,7 +250,7 @@ func (ln *leafNode) insertInNewBn(
 	}
 	oldLn.setHash(goRoutinesManager)
 	bn.children[posForOldLn] = oldLn
-	bn.EncodedChildren[posForOldLn] = oldLn.hash
+	bn.ChildrenHashes[posForOldLn] = oldLn.hash
 	bn.setVersionForChild(lnVersion, posForOldLn)
 
 	trimKeys(newData, keyMatchLen)
