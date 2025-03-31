@@ -51,11 +51,11 @@ func (pc *fieldsSizeChecker) isBitmapSizeValid(
 	consensusSize := common.ConsensusGroupSizeForShardAndEpoch(log, pc.chainParametersHandler, shardID, epoch)
 	expectedBitmapSize := common.GetBitmapSize(consensusSize)
 
-	return len(bitmap) > 0 && len(bitmap) <= expectedBitmapSize
+	return len(bitmap) == expectedBitmapSize
 }
 
 func (pc *fieldsSizeChecker) isHeaderHashSizeValid(headerHash []byte) bool {
-	return len(headerHash) > 0 && len(headerHash) <= pc.hasher.Size()
+	return len(headerHash) == pc.hasher.Size()
 }
 
 func (pc *fieldsSizeChecker) isAggregatedSigSizeValid(aggSig []byte) bool {
