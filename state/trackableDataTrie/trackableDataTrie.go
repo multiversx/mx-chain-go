@@ -365,7 +365,8 @@ func (tdt *trackableDataTrie) modifyTrie(key []byte, dataEntry dirtyData, oldVal
 		return nil, err
 	}
 
-	return newKey, dtr.UpdateWithVersion(newKey, value, version)
+	dtr.UpdateWithVersion(newKey, value, version)
+	return newKey, nil
 }
 
 func (tdt *trackableDataTrie) deleteFromTrie(oldVal core.TrieData, key []byte, dtr state.DataTrie) {

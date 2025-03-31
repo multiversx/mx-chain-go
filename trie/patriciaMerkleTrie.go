@@ -149,20 +149,20 @@ func (tr *patriciaMerkleTrie) Get(key []byte) ([]byte, uint32, error) {
 // Update updates the value at the given key.
 // If the key is not in the trie, it will be added.
 // If the value is empty, the key will be removed from the trie
-func (tr *patriciaMerkleTrie) Update(key, value []byte) error {
+func (tr *patriciaMerkleTrie) Update(key, value []byte) {
 	log.Trace("update trie", "key", key, "val", value)
 
-	return tr.updateBatch(key, value, core.NotSpecified)
+	tr.updateBatch(key, value, core.NotSpecified)
 }
 
 // UpdateWithVersion does the same thing as Update, but the new leaf that is created will be of the specified version
-func (tr *patriciaMerkleTrie) UpdateWithVersion(key []byte, value []byte, version core.TrieNodeVersion) error {
+func (tr *patriciaMerkleTrie) UpdateWithVersion(key []byte, value []byte, version core.TrieNodeVersion) {
 	log.Trace("update trie with version", "key", key, "val", value, "version", version)
 
-	return tr.updateBatch(key, value, version)
+	tr.updateBatch(key, value, version)
 }
 
-func (tr *patriciaMerkleTrie) updateBatch(key []byte, value []byte, version core.TrieNodeVersion) error {
+func (tr *patriciaMerkleTrie) updateBatch(key []byte, value []byte, version core.TrieNodeVersion) {
 	hexKey := keyBytesToHex(key)
 	if len(value) != 0 {
 		newData := core.TrieData{
@@ -171,11 +171,10 @@ func (tr *patriciaMerkleTrie) updateBatch(key []byte, value []byte, version core
 			Version: version,
 		}
 		tr.batchManager.Add(newData)
-		return nil
+		return
 	}
 
 	tr.batchManager.MarkForRemoval(hexKey)
-	return nil
 }
 
 // Delete removes the node that has the given key from the tree
@@ -218,7 +217,7 @@ func (tr *patriciaMerkleTrie) insertBatch(sortedDataForInsertion []core.TrieData
 		if err != nil {
 			return err
 		}
-		
+
 		sortedDataForInsertion = sortedDataForInsertion[1:]
 		if len(sortedDataForInsertion) == 0 {
 			tr.SetNewRootNode(newRoot)

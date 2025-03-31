@@ -394,10 +394,7 @@ func (si *stateImport) importDataTrie(identifier string, shID uint32, keys [][]b
 			break
 		}
 		// TODO this will not work for a partially migrated trie
-		err = dataTrie.Update(address, value)
-		if err != nil {
-			break
-		}
+		dataTrie.Update(address, value)
 	}
 	if err != nil {
 		return fmt.Errorf("%w identifier: %s", err, identifier)
@@ -565,8 +562,8 @@ func (si *stateImport) unMarshalAndSaveAccount(
 			"key", hex.EncodeToString(address),
 			"error", err,
 		)
-		err = mainTrie.Update(address, buffer)
-		return err
+		mainTrie.Update(address, buffer)
+		return nil
 	}
 
 	return accountsDB.ImportAccount(account)

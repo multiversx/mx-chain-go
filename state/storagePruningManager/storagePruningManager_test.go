@@ -88,13 +88,13 @@ func TestAccountsDB_TriePruneAndCancelPruneWhileSnapshotInProgressAddsToPruningB
 	tr, adb, spm := getDefaultTrieAndAccountsDbAndStoragePruningManager()
 	trieStorage := tr.GetStorageManager()
 
-	_ = tr.Update([]byte("doe"), []byte("reindeer"))
-	_ = tr.Update([]byte("dog"), []byte("puppy"))
-	_ = tr.Update([]byte("dogglesworth"), []byte("cat"))
+	tr.Update([]byte("doe"), []byte("reindeer"))
+	tr.Update([]byte("dog"), []byte("puppy"))
+	tr.Update([]byte("dogglesworth"), []byte("cat"))
 	_, _ = adb.Commit()
 	oldRootHash, _ := tr.RootHash()
 
-	_ = tr.Update([]byte("dogglesworth"), []byte("catnip"))
+	tr.Update([]byte("dogglesworth"), []byte("catnip"))
 	_, _ = adb.Commit()
 	newRootHash, _ := tr.RootHash()
 
@@ -111,13 +111,13 @@ func TestAccountsDB_TriePruneOnRollbackWhileSnapshotInProgressCancelsPrune(t *te
 
 	tr, adb, spm := getDefaultTrieAndAccountsDbAndStoragePruningManager()
 	trieStorage := tr.GetStorageManager()
-	_ = tr.Update([]byte("doe"), []byte("reindeer"))
-	_ = tr.Update([]byte("dog"), []byte("puppy"))
-	_ = tr.Update([]byte("dogglesworth"), []byte("cat"))
+	tr.Update([]byte("doe"), []byte("reindeer"))
+	tr.Update([]byte("dog"), []byte("puppy"))
+	tr.Update([]byte("dogglesworth"), []byte("cat"))
 	_, _ = adb.Commit()
 	oldRootHash, _ := tr.RootHash()
 
-	_ = tr.Update([]byte("dogglesworth"), []byte("catnip"))
+	tr.Update([]byte("dogglesworth"), []byte("catnip"))
 	_, _ = adb.Commit()
 	newRootHash, _ := tr.RootHash()
 
@@ -134,13 +134,13 @@ func TestAccountsDB_TriePruneAfterSnapshotIsDonePrunesBufferedHashes(t *testing.
 
 	tr, adb, spm := getDefaultTrieAndAccountsDbAndStoragePruningManager()
 	trieStorage := tr.GetStorageManager()
-	_ = tr.Update([]byte("doe"), []byte("reindeer"))
-	_ = tr.Update([]byte("dog"), []byte("puppy"))
-	_ = tr.Update([]byte("dogglesworth"), []byte("cat"))
+	tr.Update([]byte("doe"), []byte("reindeer"))
+	tr.Update([]byte("dog"), []byte("puppy"))
+	tr.Update([]byte("dogglesworth"), []byte("cat"))
 	_, _ = adb.Commit()
 	oldRootHash, _ := tr.RootHash()
 
-	_ = tr.Update([]byte("dogglesworth"), []byte("catnip"))
+	tr.Update([]byte("dogglesworth"), []byte("catnip"))
 	_, _ = adb.Commit()
 	newRootHash, _ := tr.RootHash()
 
@@ -160,13 +160,13 @@ func TestAccountsDB_TrieCancelPruneAndPruningBufferNotEmptyAddsToPruningBuffer(t
 	tr, adb, spm := getDefaultTrieAndAccountsDbAndStoragePruningManager()
 	trieStorage := tr.GetStorageManager()
 
-	_ = tr.Update([]byte("doe"), []byte("reindeer"))
-	_ = tr.Update([]byte("dog"), []byte("puppy"))
-	_ = tr.Update([]byte("dogglesworth"), []byte("cat"))
+	tr.Update([]byte("doe"), []byte("reindeer"))
+	tr.Update([]byte("dog"), []byte("puppy"))
+	tr.Update([]byte("dogglesworth"), []byte("cat"))
 	_, _ = adb.Commit()
 	oldRootHash, _ := tr.RootHash()
 
-	_ = tr.Update([]byte("dogglesworth"), []byte("catnip"))
+	tr.Update([]byte("dogglesworth"), []byte("catnip"))
 	_, _ = adb.Commit()
 	newRootHash, _ := tr.RootHash()
 
@@ -186,13 +186,13 @@ func TestAccountsDB_TriePruneAndCancelPruneAddedToBufferInOrder(t *testing.T) {
 	tr, adb, spm := getDefaultTrieAndAccountsDbAndStoragePruningManager()
 	trieStorage := tr.GetStorageManager()
 
-	_ = tr.Update([]byte("doe"), []byte("reindeer"))
-	_ = tr.Update([]byte("dog"), []byte("puppy"))
-	_ = tr.Update([]byte("dogglesworth"), []byte("cat"))
+	tr.Update([]byte("doe"), []byte("reindeer"))
+	tr.Update([]byte("dog"), []byte("puppy"))
+	tr.Update([]byte("dogglesworth"), []byte("cat"))
 	_, _ = adb.Commit()
 	oldRootHash, _ := tr.RootHash()
 
-	_ = tr.Update([]byte("dogglesworth"), []byte("catnip"))
+	tr.Update([]byte("dogglesworth"), []byte("catnip"))
 	_, _ = adb.Commit()
 	newRootHash, _ := tr.RootHash()
 
@@ -221,13 +221,13 @@ func TestAccountsDB_PruneAfterCancelPruneShouldFail(t *testing.T) {
 	tr, adb, spm := getDefaultTrieAndAccountsDbAndStoragePruningManager()
 	trieStorage := tr.GetStorageManager()
 
-	_ = tr.Update([]byte("doe"), []byte("reindeer"))
-	_ = tr.Update([]byte("dog"), []byte("puppy"))
-	_ = tr.Update([]byte("ddog"), []byte("cat"))
+	tr.Update([]byte("doe"), []byte("reindeer"))
+	tr.Update([]byte("dog"), []byte("puppy"))
+	tr.Update([]byte("ddog"), []byte("cat"))
 	_, _ = adb.Commit()
 	rootHash, _ := tr.RootHash()
 
-	_ = tr.Update([]byte("dog"), []byte("value of dog"))
+	tr.Update([]byte("dog"), []byte("value of dog"))
 	_, _ = adb.Commit()
 	spm.CancelPrune(rootHash, state.NewRoot, trieStorage)
 

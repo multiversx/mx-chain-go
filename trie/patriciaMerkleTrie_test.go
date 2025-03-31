@@ -73,7 +73,7 @@ func initTrieMultipleValues(nr int) (common.Trie, [][]byte) {
 
 	for i := 0; i < nr; i++ {
 		values = append(values, hsh.Compute(fmt.Sprint(i)))
-		_ = tr.Update(values[i], values[i])
+		tr.Update(values[i], values[i])
 	}
 
 	return tr, values
@@ -88,9 +88,9 @@ func initTrie() common.Trie {
 }
 
 func addDefaultDataToTrie(tr common.Trie) {
-	_ = tr.Update([]byte("doe"), []byte("reindeer"))
-	_ = tr.Update([]byte("dog"), []byte("puppy"))
-	_ = tr.Update([]byte("ddog"), []byte("cat"))
+	tr.Update([]byte("doe"), []byte("reindeer"))
+	tr.Update([]byte("dog"), []byte("puppy"))
+	tr.Update([]byte("ddog"), []byte("cat"))
 }
 
 func TestNewTrieWithNilTrieStorage(t *testing.T) {
@@ -186,7 +186,7 @@ func TestPatriciaMerkleTree_Update(t *testing.T) {
 	tr := initTrie()
 
 	newVal := []byte("doge")
-	_ = tr.Update([]byte("dog"), newVal)
+	tr.Update([]byte("dog"), newVal)
 
 	val, _, _ := tr.Get([]byte("dog"))
 	assert.Equal(t, newVal, val)
@@ -198,7 +198,7 @@ func TestPatriciaMerkleTree_UpdateEmptyVal(t *testing.T) {
 	tr := initTrie()
 	var empty []byte
 
-	_ = tr.Update([]byte("doe"), []byte{})
+	tr.Update([]byte("doe"), []byte{})
 
 	v, _, _ := tr.Get([]byte("doe"))
 	assert.Equal(t, empty, v)
@@ -209,7 +209,7 @@ func TestPatriciaMerkleTree_UpdateNotExisting(t *testing.T) {
 
 	tr := initTrie()
 
-	_ = tr.Update([]byte("does"), []byte("this"))
+	tr.Update([]byte("does"), []byte("this"))
 
 	v, _, _ := tr.Get([]byte("does"))
 	assert.Equal(t, []byte("this"), v)
@@ -267,7 +267,7 @@ func TestPatriciaMerkleTree_Consistency(t *testing.T) {
 		root1, err := tr.RootHash()
 		assert.Nil(t, err)
 
-		_ = tr.Update([]byte("dodge"), []byte("viper"))
+		tr.Update([]byte("dodge"), []byte("viper"))
 		root2, err := tr.RootHash()
 		assert.Nil(t, err)
 
@@ -284,7 +284,7 @@ func TestPatriciaMerkleTree_Consistency(t *testing.T) {
 		tr := initTrie()
 		numValues := 1000
 		for i := 0; i < numValues; i++ {
-			_ = tr.Update(generateRandomByteArray(32), generateRandomByteArray(32))
+			tr.Update(generateRandomByteArray(32), generateRandomByteArray(32))
 		}
 		originalRootHash, err := tr.RootHash()
 		assert.Nil(t, err)
@@ -293,7 +293,7 @@ func TestPatriciaMerkleTree_Consistency(t *testing.T) {
 		newKeys := make([][]byte, numValues)
 		for i := 0; i < numValues; i++ {
 			newKeys[i] = generateRandomByteArray(32)
-			_ = tr.Update(newKeys[i], generateRandomByteArray(32))
+			tr.Update(newKeys[i], generateRandomByteArray(32))
 		}
 		newRootHash, err := tr.RootHash()
 		assert.Nil(t, err)
@@ -324,8 +324,7 @@ func TestPatriciaMerkleTrie_UpdateAndGetConcurrently(t *testing.T) {
 
 	for i := 0; i < nrInserts; i++ {
 		go func(index int) {
-			err := tr.Update([]byte(strconv.Itoa(index)), []byte(strconv.Itoa(index)))
-			assert.Nil(t, err)
+			tr.Update([]byte(strconv.Itoa(index)), []byte(strconv.Itoa(index)))
 
 			val, _, err := tr.Get([]byte(strconv.Itoa(index)))
 			assert.Nil(t, err)
@@ -366,9 +365,9 @@ func TestPatriciaMerkleTree_CommitCollapsesTrieOk(t *testing.T) {
 
 	tr := initTrie()
 
-	_ = tr.Update([]byte("zebra"), []byte("zebra"))
-	_ = tr.Update([]byte("doggo"), []byte("doggo"))
-	_ = tr.Update([]byte("doggless"), []byte("doggless"))
+	tr.Update([]byte("zebra"), []byte("zebra"))
+	tr.Update([]byte("doggo"), []byte("doggo"))
+	tr.Update([]byte("doggless"), []byte("doggless"))
 
 	err := tr.Commit(hashesCollector.NewDisabledHashesCollector())
 	assert.Nil(t, err)
@@ -415,8 +414,8 @@ func TestPatriciaMerkleTree_InsertAfterCommit(t *testing.T) {
 	err := tr1.Commit(hashesCollector.NewDisabledHashesCollector())
 	assert.Nil(t, err)
 
-	_ = tr1.Update([]byte("doge"), []byte("coin"))
-	_ = tr2.Update([]byte("doge"), []byte("coin"))
+	tr1.Update([]byte("doge"), []byte("coin"))
+	tr2.Update([]byte("doge"), []byte("coin"))
 
 	root1, _ := tr1.RootHash()
 	root2, _ := tr2.RootHash()
@@ -566,12 +565,12 @@ func TestPatriciaMerkleTree_reduceBranchNodeReturnsOldHashesCorrectly(t *testing
 	val2 := []byte("val2")
 
 	tr := emptyTrie()
-	_ = tr.Update(key1, val1)
-	_ = tr.Update(key2, val2)
+	tr.Update(key1, val1)
+	tr.Update(key2, val2)
 	_ = tr.Commit(hashesCollector.NewDisabledHashesCollector())
 
-	_ = tr.Update(key1, nil)
-	_ = tr.Update(key1, val1)
+	tr.Update(key1, nil)
+	tr.Update(key1, val1)
 	hc := hashesCollector.NewDataTrieHashesCollector()
 	_ = tr.Commit(hc)
 
@@ -700,8 +699,8 @@ func TestPatriciaMerkleTrie_GetAllLeavesOnChannel(t *testing.T) {
 		t.Parallel()
 
 		tr := emptyTrie()
-		_ = tr.Update([]byte("doe"), []byte("reindeer"))
-		_ = tr.Update([]byte("dog"), []byte("puppy"))
+		tr.Update([]byte("doe"), []byte("reindeer"))
+		tr.Update([]byte("dog"), []byte("puppy"))
 		_ = tr.Commit(hashesCollector.NewDisabledHashesCollector())
 		rootHash, _ := tr.RootHash()
 
@@ -834,8 +833,8 @@ func TestPatriciaMerkleTrie_VerifyProofBranchNodeWantHashShouldWork(t *testing.T
 
 	tr := emptyTrie()
 
-	_ = tr.Update([]byte("dog"), []byte("cat"))
-	_ = tr.Update([]byte("zebra"), []byte("horse"))
+	tr.Update([]byte("dog"), []byte("cat"))
+	tr.Update([]byte("zebra"), []byte("horse"))
 	_ = tr.Commit(hashesCollector.NewDisabledHashesCollector())
 	rootHash, _ := tr.RootHash()
 
@@ -850,8 +849,8 @@ func TestPatriciaMerkleTrie_VerifyProofExtensionNodeWantHashShouldWork(t *testin
 
 	tr := emptyTrie()
 
-	_ = tr.Update([]byte("dog"), []byte("cat"))
-	_ = tr.Update([]byte("doe"), []byte("reindeer"))
+	tr.Update([]byte("dog"), []byte("cat"))
+	tr.Update([]byte("doe"), []byte("reindeer"))
 	_ = tr.Commit(hashesCollector.NewDisabledHashesCollector())
 	rootHash, _ := tr.RootHash()
 
@@ -889,13 +888,13 @@ func TestPatriciaMerkleTrie_VerifyProofFromDifferentTrieShouldNotWork(t *testing
 	tr1 := emptyTrie()
 	tr2 := emptyTrie()
 
-	_ = tr1.Update([]byte("doe"), []byte("reindeer"))
-	_ = tr1.Update([]byte("dog"), []byte("puppy"))
-	_ = tr1.Update([]byte("dogglesworth"), []byte("cat"))
+	tr1.Update([]byte("doe"), []byte("reindeer"))
+	tr1.Update([]byte("dog"), []byte("puppy"))
+	tr1.Update([]byte("dogglesworth"), []byte("cat"))
 
-	_ = tr2.Update([]byte("doe"), []byte("reindeer"))
-	_ = tr2.Update([]byte("dog"), []byte("puppy"))
-	_ = tr2.Update([]byte("dogglesworth"), []byte("caterpillar"))
+	tr2.Update([]byte("doe"), []byte("reindeer"))
+	tr2.Update([]byte("dog"), []byte("puppy"))
+	tr2.Update([]byte("dogglesworth"), []byte("caterpillar"))
 	_ = tr2.Commit(hashesCollector.NewDisabledHashesCollector())
 	rootHash2, _ := tr2.RootHash()
 	rootHash, _ := tr1.RootHash()
@@ -919,7 +918,7 @@ func TestPatriciaMerkleTrie_GetAndVerifyProof(t *testing.T) {
 		_, _ = cryptoRand.Read(buff)
 
 		values[i] = buff
-		_ = tr.Update(values[i], values[i])
+		tr.Update(values[i], values[i])
 	}
 
 	_ = tr.Commit(hashesCollector.NewDisabledHashesCollector())
@@ -956,9 +955,9 @@ func TestPatriciaMerkleTrie_GetTrieStats(t *testing.T) {
 
 	tr := emptyTrie()
 
-	_ = tr.Update([]byte("dog"), []byte("reindeer"))
-	_ = tr.Update([]byte("fog"), []byte("puppy"))
-	_ = tr.Update([]byte("dogglesworth"), []byte("cat"))
+	tr.Update([]byte("dog"), []byte("reindeer"))
+	tr.Update([]byte("fog"), []byte("puppy"))
+	tr.Update([]byte("dogglesworth"), []byte("cat"))
 	_ = tr.Commit(hashesCollector.NewDisabledHashesCollector())
 
 	rootHash, _ := tr.RootHash()
@@ -1014,8 +1013,7 @@ func TestPatriciaMerkleTrie_ConcurrentOperations(t *testing.T) {
 				_, _, err := tr.Get([]byte("dog"))
 				assert.Nil(t, err)
 			case 1:
-				err := tr.Update([]byte("doe"), []byte("alt"))
-				assert.Nil(t, err)
+				tr.Update([]byte("doe"), []byte("alt"))
 			case 2:
 				tr.Delete([]byte("alt"))
 			case 3:
@@ -1136,7 +1134,7 @@ func TestPatriciaMerkleTrie_GetSerializedNodesShouldSerializeTheCalls(t *testing
 
 type dataTrie interface {
 	CollectLeavesForMigration(args vmcommon.ArgsMigrateDataTrieLeaves) error
-	UpdateWithVersion(key []byte, value []byte, version core.TrieNodeVersion) error
+	UpdateWithVersion(key []byte, value []byte, version core.TrieNodeVersion)
 }
 
 func TestPatriciaMerkleTrie_CollectLeavesForMigration(t *testing.T) {
@@ -1189,9 +1187,9 @@ func TestPatriciaMerkleTrie_CollectLeavesForMigration(t *testing.T) {
 			},
 		)
 		dtr := tr.(dataTrie)
-		_ = dtr.UpdateWithVersion([]byte("dog"), []byte("reindeer"), core.AutoBalanceEnabled)
-		_ = dtr.UpdateWithVersion([]byte("ddog"), []byte("puppy"), core.AutoBalanceEnabled)
-		_ = dtr.UpdateWithVersion([]byte("doe"), []byte("cat"), core.AutoBalanceEnabled)
+		dtr.UpdateWithVersion([]byte("dog"), []byte("reindeer"), core.AutoBalanceEnabled)
+		dtr.UpdateWithVersion([]byte("ddog"), []byte("puppy"), core.AutoBalanceEnabled)
+		dtr.UpdateWithVersion([]byte("doe"), []byte("cat"), core.AutoBalanceEnabled)
 		trie.ExecuteUpdatesFromBatch(tr)
 
 		dtm := &trieMock.DataTrieMigratorStub{
@@ -1225,9 +1223,9 @@ func TestPatriciaMerkleTrie_CollectLeavesForMigration(t *testing.T) {
 		dtr := tr.(dataTrie)
 		key := []byte("dog")
 		value := []byte("reindeer")
-		_ = dtr.UpdateWithVersion(key, value, core.NotSpecified)
-		_ = dtr.UpdateWithVersion([]byte("ddog"), []byte("puppy"), core.AutoBalanceEnabled)
-		_ = dtr.UpdateWithVersion([]byte("doe"), []byte("cat"), core.AutoBalanceEnabled)
+		dtr.UpdateWithVersion(key, value, core.NotSpecified)
+		dtr.UpdateWithVersion([]byte("ddog"), []byte("puppy"), core.AutoBalanceEnabled)
+		dtr.UpdateWithVersion([]byte("doe"), []byte("cat"), core.AutoBalanceEnabled)
 		trie.ExecuteUpdatesFromBatch(tr)
 
 		dtm := &trieMock.DataTrieMigratorStub{
@@ -1446,9 +1444,9 @@ func TestPatriciaMerkleTrie_CollectLeavesForMigration(t *testing.T) {
 			},
 		)
 		dtr := tr.(dataTrie)
-		_ = dtr.UpdateWithVersion([]byte("dog"), []byte("reindeer"), core.AutoBalanceEnabled)
-		_ = dtr.UpdateWithVersion([]byte("ddog"), []byte("puppy"), core.AutoBalanceEnabled)
-		_ = dtr.UpdateWithVersion([]byte("doe"), []byte("cat"), core.NotSpecified)
+		dtr.UpdateWithVersion([]byte("dog"), []byte("reindeer"), core.AutoBalanceEnabled)
+		dtr.UpdateWithVersion([]byte("ddog"), []byte("puppy"), core.AutoBalanceEnabled)
+		dtr.UpdateWithVersion([]byte("doe"), []byte("cat"), core.NotSpecified)
 		trie.ExecuteUpdatesFromBatch(tr)
 
 		dtm := &trieMock.DataTrieMigratorStub{
@@ -1486,9 +1484,9 @@ func TestPatriciaMerkleTrie_CollectLeavesForMigration(t *testing.T) {
 			},
 		)
 		dtr := tr.(dataTrie)
-		_ = dtr.UpdateWithVersion([]byte("dog"), []byte("reindeer"), core.AutoBalanceEnabled)
-		_ = dtr.UpdateWithVersion([]byte("ddog"), []byte("puppy"), core.AutoBalanceEnabled)
-		_ = dtr.UpdateWithVersion([]byte("doe"), []byte("cat"), core.AutoBalanceEnabled)
+		dtr.UpdateWithVersion([]byte("dog"), []byte("reindeer"), core.AutoBalanceEnabled)
+		dtr.UpdateWithVersion([]byte("ddog"), []byte("puppy"), core.AutoBalanceEnabled)
+		dtr.UpdateWithVersion([]byte("doe"), []byte("cat"), core.AutoBalanceEnabled)
 		trie.ExecuteUpdatesFromBatch(tr)
 
 		dtm := &trieMock.DataTrieMigratorStub{
@@ -1538,7 +1536,7 @@ func TestPatriciaMerkleTrie_IsMigrated(t *testing.T) {
 		trieArgs.EnableEpochsHandler = enableEpochs
 		tr, _ := trie.NewTrie(trieArgs)
 
-		_ = tr.Update([]byte("dog"), []byte("reindeer"))
+		tr.Update([]byte("dog"), []byte("reindeer"))
 		trie.ExecuteUpdatesFromBatch(tr)
 		isMigrated, err := tr.IsMigratedToLatestVersion()
 		assert.False(t, isMigrated)
@@ -1557,7 +1555,7 @@ func TestPatriciaMerkleTrie_IsMigrated(t *testing.T) {
 		trieArgs.EnableEpochsHandler = enableEpochs
 		tr, _ := trie.NewTrie(trieArgs)
 
-		_ = tr.UpdateWithVersion([]byte("dog"), []byte("reindeer"), core.AutoBalanceEnabled)
+		tr.UpdateWithVersion([]byte("dog"), []byte("reindeer"), core.AutoBalanceEnabled)
 		isMigrated, err := tr.IsMigratedToLatestVersion()
 		assert.True(t, isMigrated)
 		assert.Nil(t, err)
@@ -1570,7 +1568,7 @@ func TestPatriciaMerkleTrie_InsertOneValInNilTrie(t *testing.T) {
 	tr := emptyTrie()
 	key := []byte("dog")
 	value := []byte("cat")
-	_ = tr.Update(key, value)
+	tr.Update(key, value)
 	trie.ExecuteUpdatesFromBatch(tr)
 
 	val, depth, err := tr.Get(key)
@@ -1594,7 +1592,7 @@ func TestPatriciaMerkleTrie_AddBatchedDataToTrie(t *testing.T) {
 
 			if i%2 != 0 {
 				go func(idx int) {
-					_ = tr.Update([]byte("dog"+strconv.Itoa(idx)), []byte("reindeer"))
+					tr.Update([]byte("dog"+strconv.Itoa(idx)), []byte("reindeer"))
 					wg.Done()
 				}(i)
 			} else {
@@ -1642,7 +1640,7 @@ func TestPatriciaMerkleTrie_AddBatchedDataToTrie(t *testing.T) {
 		firstBatchOperations := 1000
 		secondBatchOperations := 500
 		for i := 0; i < firstBatchOperations; i++ {
-			_ = tr.Update([]byte("dog"+strconv.Itoa(i)), []byte("reindeer"))
+			tr.Update([]byte("dog"+strconv.Itoa(i)), []byte("reindeer"))
 		}
 
 		wg := sync.WaitGroup{}
@@ -1658,7 +1656,7 @@ func TestPatriciaMerkleTrie_AddBatchedDataToTrie(t *testing.T) {
 		}
 
 		for i := firstBatchOperations; i < firstBatchOperations+secondBatchOperations; i++ {
-			_ = tr.Update([]byte("dog"+strconv.Itoa(i)), []byte("reindeer"))
+			tr.Update([]byte("dog"+strconv.Itoa(i)), []byte("reindeer"))
 		}
 
 		waitForSignal.Store(false)
@@ -1710,7 +1708,7 @@ func TestPatriciaMerkleTrie_AddBatchedDataToTrie(t *testing.T) {
 		firstBatchOperations := 1000
 		secondBatchOperations := 500
 		for i := 0; i < firstBatchOperations; i++ {
-			_ = tr.Update([]byte("dog"+strconv.Itoa(i)), []byte("reindeer"))
+			tr.Update([]byte("dog"+strconv.Itoa(i)), []byte("reindeer"))
 		}
 
 		wg := sync.WaitGroup{}
@@ -1726,7 +1724,7 @@ func TestPatriciaMerkleTrie_AddBatchedDataToTrie(t *testing.T) {
 		}
 
 		for i := firstBatchOperations; i < firstBatchOperations+secondBatchOperations; i++ {
-			_ = tr.Update([]byte("dog"+strconv.Itoa(i)), []byte("reindeer"))
+			tr.Update([]byte("dog"+strconv.Itoa(i)), []byte("reindeer"))
 		}
 
 		wg.Add(1)
@@ -1761,7 +1759,7 @@ func TestPatriciaMerkleTrie_Get(t *testing.T) {
 		tr := emptyTrie()
 		numOperations := 1000
 		for i := 0; i < numOperations; i++ {
-			_ = tr.Update([]byte("dog"+strconv.Itoa(i)), []byte("reindeer"+strconv.Itoa(i)))
+			tr.Update([]byte("dog"+strconv.Itoa(i)), []byte("reindeer"+strconv.Itoa(i)))
 		}
 		trie.ExecuteUpdatesFromBatch(tr)
 
@@ -1784,12 +1782,12 @@ func TestPatriciaMerkleTrie_Get(t *testing.T) {
 		numTrieValues := 1000
 		numBatchValues := 500
 		for i := 0; i < numTrieValues; i++ {
-			_ = tr.Update([]byte("dog"+strconv.Itoa(i)), []byte("reindeer"+strconv.Itoa(i)))
+			tr.Update([]byte("dog"+strconv.Itoa(i)), []byte("reindeer"+strconv.Itoa(i)))
 		}
 		trie.ExecuteUpdatesFromBatch(tr)
 
 		for i := numTrieValues; i < numTrieValues+numBatchValues; i++ {
-			_ = tr.Update([]byte("dog"+strconv.Itoa(i)), []byte("reindeer"+strconv.Itoa(i)))
+			tr.Update([]byte("dog"+strconv.Itoa(i)), []byte("reindeer"+strconv.Itoa(i)))
 		}
 
 		// check some values are in the batch
@@ -1819,7 +1817,7 @@ func TestPatriciaMerkleTrie_Get(t *testing.T) {
 		numTrieValues := 1000
 		numBatchValues := 500
 		for i := 0; i < numTrieValues; i++ {
-			_ = tr.Update([]byte("dog"+strconv.Itoa(i)), []byte("reindeer"+strconv.Itoa(i)))
+			tr.Update([]byte("dog"+strconv.Itoa(i)), []byte("reindeer"+strconv.Itoa(i)))
 		}
 		_ = tr.Commit(hashesCollector.NewDisabledHashesCollector())
 
@@ -1828,7 +1826,7 @@ func TestPatriciaMerkleTrie_Get(t *testing.T) {
 		tr, _ = tr.Recreate(holders.NewDefaultRootHashesHolder(rootHash), "")
 
 		for i := numTrieValues; i < numTrieValues+numBatchValues; i++ {
-			_ = tr.Update([]byte("dog"+strconv.Itoa(i)), []byte("reindeer"+strconv.Itoa(i)))
+			tr.Update([]byte("dog"+strconv.Itoa(i)), []byte("reindeer"+strconv.Itoa(i)))
 		}
 
 		// check some values are in the batch
@@ -1877,7 +1875,7 @@ func TestPatriciaMerkleTrie_Get(t *testing.T) {
 
 		numOperations := 1000
 		for i := 0; i < numOperations; i++ {
-			_ = tr.Update([]byte("dog"+strconv.Itoa(i)), []byte("reindeer"))
+			tr.Update([]byte("dog"+strconv.Itoa(i)), []byte("reindeer"))
 		}
 
 		wg := sync.WaitGroup{}
@@ -1913,7 +1911,7 @@ func TestPatriciaMerkleTrie_RootHash(t *testing.T) {
 		tr := emptyTrie()
 		numOperations := 1000
 		for i := 0; i < numOperations; i++ {
-			_ = tr.Update([]byte("dog"+strconv.Itoa(i)), []byte("reindeer"))
+			tr.Update([]byte("dog"+strconv.Itoa(i)), []byte("reindeer"))
 		}
 
 		rootHash, err := tr.RootHash()
@@ -1927,7 +1925,7 @@ func TestPatriciaMerkleTrie_RootHash(t *testing.T) {
 		tr := emptyTrie()
 		numOperations := 1000
 		for i := 0; i < numOperations; i++ {
-			_ = tr.Update([]byte("dog"+strconv.Itoa(i)), []byte("reindeer"))
+			tr.Update([]byte("dog"+strconv.Itoa(i)), []byte("reindeer"))
 		}
 		trie.ExecuteUpdatesFromBatch(tr)
 
@@ -1945,8 +1943,7 @@ func TestPatriciaMerkleTrie_RootHash(t *testing.T) {
 		}()
 
 		for i := numOperations; i < numOperations*10; i++ {
-			err := tr.Update([]byte("dog"+strconv.Itoa(i)), []byte("reindeer"))
-			assert.Nil(t, err)
+			tr.Update([]byte("dog"+strconv.Itoa(i)), []byte("reindeer"))
 		}
 
 		waitForSignal.Store(false)
@@ -1971,7 +1968,7 @@ func TestPatriciaMerkleTrie_RootHash(t *testing.T) {
 		tr := emptyTrie()
 		numOperations := 100000
 		for i := 0; i < numOperations; i++ {
-			_ = tr.Update([]byte("dog"+strconv.Itoa(i)), []byte("reindeer"))
+			tr.Update([]byte("dog"+strconv.Itoa(i)), []byte("reindeer"))
 		}
 		trie.ExecuteUpdatesFromBatch(tr)
 
@@ -2011,7 +2008,7 @@ func TestPatricianMerkleTrie_ConcurrentOperations(t *testing.T) {
 
 		for i := 0; i < numValsPerBatch; i++ {
 			key := []byte("dog" + strconv.Itoa(i))
-			_ = tr.Update(key, []byte("reindeer"+strconv.Itoa(i)))
+			tr.Update(key, []byte("reindeer"+strconv.Itoa(i)))
 			keys[i] = key
 		}
 		trie.ExecuteUpdatesFromBatch(tr)
@@ -2032,7 +2029,7 @@ func TestPatricianMerkleTrie_ConcurrentOperations(t *testing.T) {
 			for j := 0; j < numValsPerBatch; j++ {
 				keyIndex := i*numValsPerBatch + j
 				key := []byte("dog" + strconv.Itoa(keyIndex))
-				_ = tr.Update(key, []byte("reindeer"+strconv.Itoa(keyIndex)))
+				tr.Update(key, []byte("reindeer"+strconv.Itoa(keyIndex)))
 				keys[keyIndex] = key
 			}
 			trie.ExecuteUpdatesFromBatch(tr)
@@ -2045,7 +2042,7 @@ func TestPatricianMerkleTrie_ConcurrentOperations(t *testing.T) {
 
 		tr2 := emptyTrie()
 		for i, key := range keys {
-			_ = tr2.Update(key, []byte("reindeer"+strconv.Itoa(i)))
+			tr2.Update(key, []byte("reindeer"+strconv.Itoa(i)))
 		}
 		trie.ExecuteUpdatesFromBatch(tr2)
 		rootHash2, err := tr2.RootHash()
@@ -2064,7 +2061,7 @@ func BenchmarkPatriciaMerkleTree_Insert(b *testing.B) {
 
 	for i := 0; i < nrValuesInTrie; i++ {
 		val := hsh.Compute(strconv.Itoa(i))
-		_ = tr.Update(val, val)
+		tr.Update(val, val)
 	}
 	for i := 0; i < nrValuesNotInTrie; i++ {
 		values[i] = hsh.Compute(strconv.Itoa(i + nrValuesInTrie))
@@ -2072,7 +2069,7 @@ func BenchmarkPatriciaMerkleTree_Insert(b *testing.B) {
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		_ = tr.Update(values[i%nrValuesNotInTrie], values[i%nrValuesNotInTrie])
+		tr.Update(values[i%nrValuesNotInTrie], values[i%nrValuesNotInTrie])
 	}
 }
 
@@ -2086,7 +2083,7 @@ func BenchmarkPatriciaMerkleTree_InsertCollapsedTrie(b *testing.B) {
 
 	for i := 0; i < nrValuesInTrie; i++ {
 		val := hsh.Compute(strconv.Itoa(i))
-		_ = tr.Update(val, val)
+		tr.Update(val, val)
 	}
 	for i := 0; i < nrValuesNotInTrie; i++ {
 		values[i] = hsh.Compute(strconv.Itoa(i + nrValuesInTrie))
@@ -2095,7 +2092,7 @@ func BenchmarkPatriciaMerkleTree_InsertCollapsedTrie(b *testing.B) {
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		_ = tr.Update(values[i%nrValuesNotInTrie], values[i%nrValuesNotInTrie])
+		tr.Update(values[i%nrValuesNotInTrie], values[i%nrValuesNotInTrie])
 	}
 }
 
@@ -2108,7 +2105,7 @@ func BenchmarkPatriciaMerkleTree_Delete(b *testing.B) {
 
 	for i := 0; i < nrValuesInTrie; i++ {
 		values[i] = hsh.Compute(strconv.Itoa(i))
-		_ = tr.Update(values[i], values[i])
+		tr.Update(values[i], values[i])
 	}
 
 	b.ResetTimer()
@@ -2126,7 +2123,7 @@ func BenchmarkPatriciaMerkleTree_DeleteCollapsedTrie(b *testing.B) {
 
 	for i := 0; i < nrValuesInTrie; i++ {
 		values[i] = hsh.Compute(strconv.Itoa(i))
-		_ = tr.Update(values[i], values[i])
+		tr.Update(values[i], values[i])
 	}
 
 	_ = tr.Commit(hashesCollector.NewDisabledHashesCollector())
@@ -2146,7 +2143,7 @@ func BenchmarkPatriciaMerkleTree_Get(b *testing.B) {
 
 	for i := 0; i < nrValuesInTrie; i++ {
 		values[i] = hsh.Compute(strconv.Itoa(i))
-		_ = tr.Update(values[i], values[i])
+		tr.Update(values[i], values[i])
 	}
 
 	b.ResetTimer()
@@ -2164,7 +2161,7 @@ func BenchmarkPatriciaMerkleTree_GetCollapsedTrie(b *testing.B) {
 
 	for i := 0; i < nrValuesInTrie; i++ {
 		values[i] = hsh.Compute(strconv.Itoa(i))
-		_ = tr.Update(values[i], values[i])
+		tr.Update(values[i], values[i])
 	}
 	_ = tr.Commit(hashesCollector.NewDisabledHashesCollector())
 
@@ -2182,7 +2179,7 @@ func BenchmarkPatriciaMerkleTree_Commit(b *testing.B) {
 		tr := emptyTrie()
 		for j := 0; j < nrValuesInTrie; j++ {
 			hash := hsh.Compute(strconv.Itoa(j))
-			_ = tr.Update(hash, hash)
+			tr.Update(hash, hash)
 		}
 		b.StartTimer()
 
@@ -2202,7 +2199,7 @@ func BenchmarkPatriciaMerkleTrie_RootHashAfterChanging30000Nodes(b *testing.B) {
 		key := hsh.Compute(strconv.Itoa(i))
 		value := append(key, []byte(strconv.Itoa(i))...)
 
-		_ = tr.Update(key, value)
+		tr.Update(key, value)
 		values[i] = key
 	}
 	_ = tr.Commit(hashesCollector.NewDisabledHashesCollector())
@@ -2211,7 +2208,7 @@ func BenchmarkPatriciaMerkleTrie_RootHashAfterChanging30000Nodes(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		b.StopTimer()
 		for j := 0; j < nrOfValuesToModify; j++ {
-			_ = tr.Update(values[j], values[j])
+			tr.Update(values[j], values[j])
 		}
 		b.StartTimer()
 		_, _ = tr.RootHash()
@@ -2231,7 +2228,7 @@ func BenchmarkPatriciaMerkleTrie_RootHashAfterChanging30000NodesInBatchesOf200(b
 		key := hsh.Compute(strconv.Itoa(i))
 		value := append(key, []byte(strconv.Itoa(i))...)
 
-		_ = tr.Update(key, value)
+		tr.Update(key, value)
 		values[i] = key
 	}
 	_ = tr.Commit(hashesCollector.NewDisabledHashesCollector())
@@ -2240,7 +2237,7 @@ func BenchmarkPatriciaMerkleTrie_RootHashAfterChanging30000NodesInBatchesOf200(b
 	for i := 0; i < b.N; i++ {
 		for j := 0; j < nrOfValuesToModify; j++ {
 			b.StopTimer()
-			_ = tr.Update(values[j], values[j])
+			tr.Update(values[j], values[j])
 			if j%nrOfValuesToCommit == 0 {
 				b.StartTimer()
 				_, _ = tr.RootHash()
@@ -2260,7 +2257,7 @@ func BenchmarkPatriciaMerkleTrie_Update(b *testing.B) {
 		key := hsh.Compute(strconv.Itoa(i))
 		value := append(key, []byte(strconv.Itoa(i))...)
 
-		_ = tr.Update(key, value)
+		tr.Update(key, value)
 		values[i] = key
 	}
 	_ = tr.Commit(hashesCollector.NewDisabledHashesCollector())
@@ -2269,7 +2266,7 @@ func BenchmarkPatriciaMerkleTrie_Update(b *testing.B) {
 
 	for i := 0; i < b.N; i++ {
 		for j := 0; j < nrValuesInTrie; j++ {
-			_ = tr.Update(values[j], values[j])
+			tr.Update(values[j], values[j])
 		}
 	}
 }
