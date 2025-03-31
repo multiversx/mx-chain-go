@@ -93,13 +93,6 @@ type ConsensusService interface {
 	IsInterfaceNil() bool
 }
 
-// SubroundsFactory encapsulates the methods specifically for a subrounds factory type (bls, bn)
-// for different consensus types
-type SubroundsFactory interface {
-	GenerateSubrounds() error
-	IsInterfaceNil() bool
-}
-
 // WorkerHandler represents the interface for the SposWorker
 type WorkerHandler interface {
 	Close() error
