@@ -172,7 +172,7 @@ func (imh *InterceptedMetaHeader) integrity() error {
 		return err
 	}
 
-	err = checkMetaShardInfo(imh.hdr.GetShardInfoHandlers(), imh.shardCoordinator, imh.sigVerifier, imh.proofsPool)
+	err = checkMetaShardInfo(imh.hdr.GetShardInfoHandlers(), imh.shardCoordinator, imh.sigVerifier, imh.proofsPool, imh.fieldsSizeChecker)
 	if err != nil {
 		return err
 	}

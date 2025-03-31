@@ -137,6 +137,7 @@ func checkMetaShardInfo(
 	coordinator sharding.Coordinator,
 	headerSigVerifier process.InterceptedHeaderSigVerifier,
 	proofs process.ProofsPool,
+	fieldsSizeChecker common.FieldsSizeChecker,
 ) error {
 	if coordinator.SelfId() != core.MetachainShardId {
 		return nil
@@ -152,7 +153,7 @@ func checkMetaShardInfo(
 			return err
 		}
 
-		err = checkProof(sd.GetPreviousProof(), headerSigVerifier, proofs)
+		err = checkProof(sd.GetPreviousProof(), headerSigVerifier, proofs, fieldsSizeChecker)
 		if err != nil {
 			return err
 		}
@@ -165,6 +166,7 @@ func checkProof(
 	proof data.HeaderProofHandler,
 	headerSigVerifier process.InterceptedHeaderSigVerifier,
 	proofs process.ProofsPool,
+	fieldsSizeChecker common.FieldsSizeChecker,
 ) error {
 	if check.IfNil(proof) {
 		return nil
@@ -178,7 +180,7 @@ func checkProof(
 		"headerHash", proof.GetHeaderHash(),
 	)
 
-	if common.IsIncompleteProof(proof) {
+	if !fieldsSizeChecker.IsProofSizeValid(proof) {
 		return process.ErrInvalidHeaderProof
 	}
 
