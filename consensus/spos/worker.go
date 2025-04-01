@@ -599,7 +599,9 @@ func (wrk *Worker) doJobOnMessageWithHeader(cnsMsg *consensus.Message) error {
 		return err
 	}
 
+	log.Info("received header from consensus topic - before - processReceivedHeaderMetric")
 	wrk.processReceivedHeaderMetric(cnsMsg)
+	log.Info("received header from consensus topic - after - processReceivedHeaderMetric")
 
 	errNotCritical := wrk.forkDetector.AddHeader(header, headerHash, process.BHProposed, nil, nil)
 	if errNotCritical != nil {
@@ -672,14 +674,17 @@ func (wrk *Worker) addBlockToPool(bodyBytes []byte) {
 
 func (wrk *Worker) processReceivedHeaderMetric(cnsDta *consensus.Message) {
 	if wrk.consensusState.ConsensusGroup() == nil || !wrk.consensusState.IsNodeLeaderInCurrentRound(string(cnsDta.PubKey)) {
+		log.Info("processReceivedHeaderMetric: node is not leader in current round")
 		return
 	}
 
 	sinceRoundStart := time.Since(wrk.roundHandler.TimeStamp())
+	log.Info("sinceRoundStart", "sinceRoundStart", sinceRoundStart)
 	if sinceRoundStart < 0 {
 		sinceRoundStart = 0
 	}
 	percent := sinceRoundStart * 100 / wrk.roundHandler.TimeDuration()
+	log.Info("processReceivedHeaderMetric", "percent", percent)
 	wrk.appStatusHandler.SetUInt64Value(common.MetricReceivedProposedBlock, uint64(percent))
 
 	isMainMachineActive, redundancyReason := wrk.computeRedundancyMetrics()
