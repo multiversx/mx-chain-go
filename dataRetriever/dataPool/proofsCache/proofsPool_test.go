@@ -267,7 +267,7 @@ func TestProofsPool_Concurrency(t *testing.T) {
 
 	for i := 0; i < numOperations; i++ {
 		go func(idx int) {
-			switch idx % 6 {
+			switch idx % 9 {
 			case 0, 1, 2:
 				_ = pp.AddProof(generateProof())
 			case 3:
@@ -281,6 +281,8 @@ func TestProofsPool_Concurrency(t *testing.T) {
 				handler := func(proof data.HeaderProofHandler) {
 				}
 				pp.RegisterHandler(handler)
+			case 6, 7, 8:
+				_ = pp.HasProof(generateRandomShardID(), generateRandomHash())
 			default:
 				assert.Fail(t, "should have not beed called")
 			}

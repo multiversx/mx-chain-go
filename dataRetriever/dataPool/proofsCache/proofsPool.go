@@ -53,7 +53,7 @@ func (pp *proofsPool) UpsertProof(
 		return false
 	}
 
-	return pp.addProof(headerProof)
+	return pp.addProof(headerProof, true)
 }
 
 // AddProof will add the provided proof to the pool, if it's not already in the pool.
@@ -65,20 +65,25 @@ func (pp *proofsPool) AddProof(
 		return false
 	}
 
-	hasProof := pp.HasProof(headerProof.GetHeaderShardId(), headerProof.GetHeaderHash())
-	if hasProof {
-		return false
-	}
-
-	return pp.addProof(headerProof)
+	return pp.addProof(headerProof, false)
 }
 
 func (pp *proofsPool) addProof(
 	headerProof data.HeaderProofHandler,
+	overwrite bool,
 ) bool {
 	shardID := headerProof.GetHeaderShardId()
 
 	pp.mutCache.Lock()
+
+	if !overwrite {
+		hasProof := pp.hasProofUnprotected(headerProof.GetHeaderShardId(), headerProof.GetHeaderHash())
+		if hasProof {
+			pp.mutCache.Unlock()
+			return false
+		}
+	}
+
 	proofsPerShard, ok := pp.cache[shardID]
 	if !ok {
 		proofsPerShard = newProofsCache(pp.bucketSize)
@@ -186,12 +191,40 @@ func (pp *proofsPool) GetProof(
 	return proofsPerShard.getProofByHash(headerHash)
 }
 
+func (pp *proofsPool) getProofUnprotected(
+	shardID uint32,
+	headerHash []byte,
+) (data.HeaderProofHandler, error) {
+	if headerHash == nil {
+		return nil, fmt.Errorf("nil header hash")
+	}
+	log.Trace("trying to get proof",
+		"headerHash", headerHash,
+		"shardID", shardID,
+	)
+
+	proofsPerShard, ok := pp.cache[shardID]
+	if !ok {
+		return nil, fmt.Errorf("%w: proofs cache per shard not found, shard ID: %d", ErrMissingProof, shardID)
+	}
+
+	return proofsPerShard.getProofByHash(headerHash)
+}
+
 // HasProof will check if there is a proof for the provided hash
 func (pp *proofsPool) HasProof(
 	shardID uint32,
 	headerHash []byte,
 ) bool {
 	_, err := pp.GetProof(shardID, headerHash)
+	return err == nil
+}
+
+func (pp *proofsPool) hasProofUnprotected(
+	shardID uint32,
+	headerHash []byte,
+) bool {
+	_, err := pp.getProofUnprotected(shardID, headerHash)
 	return err == nil
 }
 
