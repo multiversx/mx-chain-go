@@ -322,6 +322,10 @@ func (wrk *Worker) processReceivedHeaderMetricIfNeeded(header data.HeaderHandler
 	if !isHeaderForCurrentRound {
 		return
 	}
+	isHeaderFromCurrentShard := header.GetShardID() == wrk.shardCoordinator.SelfId()
+	if !isHeaderFromCurrentShard {
+		return
+	}
 
 	wrk.processReceivedHeaderMetric()
 }
