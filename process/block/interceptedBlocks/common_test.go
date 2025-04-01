@@ -32,6 +32,7 @@ func createDefaultBlockHeaderArgument() *ArgInterceptedBlockHeader {
 		ValidityAttester:        &mock.ValidityAttesterStub{},
 		EpochStartTrigger:       &mock.EpochStartTriggerStub{},
 		EnableEpochsHandler:     &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		FieldsSizeChecker:       &testscommon.FieldsSizeCheckerMock{},
 	}
 
 	return arg
