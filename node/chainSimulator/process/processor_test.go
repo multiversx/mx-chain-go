@@ -648,4 +648,10 @@ func TestGeneratePubKeyBitmap(t *testing.T) {
 	bitmap = chainSimulatorProcess.GeneratePubKeyBitmap(20)
 	_ = chainSimulatorProcess.UnsetBitInBitmap(3, bitmap)
 	require.Equal(t, []byte{247, 255, 15}, bitmap)
+
+	err := chainSimulatorProcess.UnsetBitInBitmap(3, nil)
+	require.Equal(t, common.ErrWrongSizeBitmap, err)
+
+	err = chainSimulatorProcess.UnsetBitInBitmap(3, []byte{})
+	require.Equal(t, common.ErrWrongSizeBitmap, err)
 }

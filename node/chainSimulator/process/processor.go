@@ -1,8 +1,6 @@
 package process
 
 import (
-	"errors"
-
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
@@ -314,7 +312,7 @@ func (creator *blocksCreator) generateSignature(headerHash, blsKeyBytes []byte, 
 	return creator.generateAggregatedSignature(
 		headerHash,
 		header.GetEpoch(),
-		[]byte{1},
+		header.GetPubKeysBitmap(),
 		[]string{string(blsKeyBytes)},
 	)
 }
@@ -446,9 +444,10 @@ func GeneratePubKeyBitmap(numOfOnes int) []byte {
 	return result
 }
 
+// UnsetBitInBitmap will unset a bit from provided bit based on the provided index
 func UnsetBitInBitmap(index int, bitmap []byte) error {
-	if len(bitmap) < index/8 {
-		return errors.New("bitmap too short")
+	if index/8 >= len(bitmap) {
+		return common.ErrWrongSizeBitmap
 	}
 	bitmap[index/8] = bitmap[index/8] & ^(1 << uint8(index%8))
 
