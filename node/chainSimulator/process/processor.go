@@ -364,7 +364,7 @@ func (creator *blocksCreator) generateAggregatedSignature(headerHash []byte, epo
 		managedKeys = append(managedKeys, pubKey)
 	}
 
-	err := signingHandler.Reset(managedKeys)
+	err := signingHandler.Reset(pubKeys)
 	if err != nil {
 		return nil, err
 	}
