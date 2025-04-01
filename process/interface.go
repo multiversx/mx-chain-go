@@ -1167,6 +1167,7 @@ type EpochStartEventNotifier interface {
 type NodesCoordinator interface {
 	GetValidatorWithPublicKey(publicKey []byte) (validator nodesCoordinator.Validator, shardId uint32, err error)
 	GetAllEligibleValidatorsPublicKeys(epoch uint32) (map[uint32][][]byte, error)
+	GetAllEligibleValidatorsPublicKeysForShard(epoch uint32, shardID uint32) ([]string, error)
 	GetAllWaitingValidatorsPublicKeys(epoch uint32) (map[uint32][][]byte, error)
 	GetAllLeavingValidatorsPublicKeys(epoch uint32) (map[uint32][][]byte, error)
 	IsInterfaceNil() bool

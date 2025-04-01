@@ -936,6 +936,8 @@ func (bicf *baseInterceptorsContainerFactory) createOneShardEquivalentProofsInte
 	argProcessor := processor.ArgEquivalentProofsInterceptorProcessor{
 		EquivalentProofsPool: bicf.dataPool.Proofs(),
 		Marshaller:           marshaller,
+		PeerShardMapper:      bicf.mainPeerShardMapper,
+		NodesCoordinator:     bicf.nodesCoordinator,
 	}
 	equivalentProofsProcessor, err := processor.NewEquivalentProofsInterceptorProcessor(argProcessor)
 	if err != nil {

@@ -1,6 +1,8 @@
 package processor
 
 import (
+	"fmt"
+
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/marshal"
@@ -12,12 +14,16 @@ import (
 type ArgEquivalentProofsInterceptorProcessor struct {
 	EquivalentProofsPool EquivalentProofsPool
 	Marshaller           marshal.Marshalizer
+	PeerShardMapper      process.PeerShardMapper
+	NodesCoordinator     process.NodesCoordinator
 }
 
 // equivalentProofsInterceptorProcessor is the processor used when intercepting equivalent proofs
 type equivalentProofsInterceptorProcessor struct {
 	equivalentProofsPool EquivalentProofsPool
 	marshaller           marshal.Marshalizer
+	peerShardMapper      process.PeerShardMapper
+	nodesCoordinator     process.NodesCoordinator
 }
 
 // NewEquivalentProofsInterceptorProcessor creates a new equivalentProofsInterceptorProcessor
@@ -30,6 +36,8 @@ func NewEquivalentProofsInterceptorProcessor(args ArgEquivalentProofsInterceptor
 	return &equivalentProofsInterceptorProcessor{
 		equivalentProofsPool: args.EquivalentProofsPool,
 		marshaller:           args.Marshaller,
+		peerShardMapper:      args.PeerShardMapper,
+		nodesCoordinator:     args.NodesCoordinator,
 	}, nil
 }
 
@@ -40,14 +48,38 @@ func checkArgsEquivalentProofs(args ArgEquivalentProofsInterceptorProcessor) err
 	if check.IfNil(args.Marshaller) {
 		return process.ErrNilMarshalizer
 	}
+	if check.IfNil(args.PeerShardMapper) {
+		return process.ErrNilPeerShardMapper
+	}
+	if check.IfNil(args.NodesCoordinator) {
+		return process.ErrNilNodesCoordinator
+	}
 
 	return nil
 }
 
-// Validate checks if the intercepted data can be processed
-// returns nil as proper validity checks are done at intercepted data level
-func (epip *equivalentProofsInterceptorProcessor) Validate(_ process.InterceptedData, _ core.PeerID) error {
-	return nil
+// Validate checks if the intercepted data was sent by an eligible node
+func (epip *equivalentProofsInterceptorProcessor) Validate(data process.InterceptedData, pid core.PeerID) error {
+	interceptedProof, ok := data.(interceptedEquivalentProof)
+	if !ok {
+		return process.ErrWrongTypeAssertion
+	}
+
+	proof := interceptedProof.GetProof()
+
+	eligibleList, err := epip.nodesCoordinator.GetAllEligibleValidatorsPublicKeysForShard(proof.GetHeaderEpoch(), proof.GetHeaderShardId())
+	if err != nil {
+		return err
+	}
+
+	peerInfo := epip.peerShardMapper.GetPeerInfo(pid)
+	for _, eligibleValidator := range eligibleList {
+		if string(peerInfo.PkBytes) == eligibleValidator {
+			return nil
+		}
+	}
+
+	return fmt.Errorf("%w, proof sender must be an eligible node", process.ErrInvalidHeaderProof)
 }
 
 // Save will save the intercepted equivalent proof inside the proofs tracker
