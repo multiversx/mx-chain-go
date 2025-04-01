@@ -3186,6 +3186,42 @@ func TestAccountsDB_MigrateDataTrieWithFunc(t *testing.T) {
 	assert.True(t, isMigrated)
 }
 
+func TestAccountsDB_DeleteNonMigratedLeafAndRevert_SameRootHash(t *testing.T) {
+	t.Parallel()
+
+	autoBalanceEnabled := false
+	enableEpochsHandler := &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+		IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
+			return autoBalanceEnabled
+		},
+	}
+	adb, _, _ := getDefaultStateComponents(testscommon.NewSnapshotPruningStorerMock(), enableEpochsHandler)
+
+	addr := []byte("addr")
+	acc, _ := adb.LoadAccount(addr)
+	value := []byte("value")
+	_ = acc.(state.UserAccountHandler).SaveKeyValue([]byte("key1"), value)
+	_ = acc.(state.UserAccountHandler).SaveKeyValue([]byte("key2"), value)
+	_ = acc.(state.UserAccountHandler).SaveKeyValue([]byte("key3"), value)
+	_ = adb.SaveAccount(acc)
+	_, _ = adb.Commit()
+
+	autoBalanceEnabled = true
+	acc, _ = adb.LoadAccount(addr)
+	_ = acc.(state.UserAccountHandler).SaveKeyValue([]byte("key4"), value)
+	_ = adb.SaveAccount(acc)
+	snapshot := adb.JournalLen()
+
+	acc, _ = adb.LoadAccount(addr)
+	rootHashBeforeRevert := acc.(state.UserAccountHandler).GetRootHash()
+	_ = acc.(state.UserAccountHandler).SaveKeyValue([]byte("key1"), nil)
+	_ = adb.SaveAccount(acc)
+	err := adb.RevertToSnapshot(snapshot)
+	assert.Nil(t, err)
+	rootHashAfterRevert := acc.(state.UserAccountHandler).GetRootHash()
+	assert.Equal(t, rootHashBeforeRevert, rootHashAfterRevert)
+}
+
 func BenchmarkAccountsDB_GetMethodsInParallel(b *testing.B) {
 	_, adb := getDefaultTrieAndAccountsDb()
 
