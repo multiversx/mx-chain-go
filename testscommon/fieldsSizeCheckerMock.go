@@ -13,7 +13,7 @@ func (mock *FieldsSizeCheckerMock) IsProofSizeValid(proof data.HeaderProofHandle
 		return mock.IsProofSizeValidCalled(proof)
 	}
 
-	return false
+	return true
 }
 
 // IsInterfaceNil -

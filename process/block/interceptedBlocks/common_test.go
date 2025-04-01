@@ -660,7 +660,9 @@ func TestCheckMetaShardInfo_WithMultipleShardData(t *testing.T) {
 			shardCoordinator,
 			&consensus.HeaderSigVerifierMock{},
 			&dataRetriever.ProofsPoolMock{},
-			&testscommon.FieldsSizeCheckerMock{},
+			&testscommon.FieldsSizeCheckerMock{
+				IsProofSizeValidCalled: func(proof data.HeaderProofHandler) bool { return false },
+			},
 		)
 
 		assert.Equal(t, process.ErrInvalidHeaderProof, err)
@@ -857,7 +859,14 @@ func Test_CheckProofIntegrity(t *testing.T) {
 			return &block.HeaderProof{}
 		},
 	}
-	err = checkProofIntegrity(headerWithIncompletePrevProof, eeh, &testscommon.FieldsSizeCheckerMock{})
+
+	fieldsSizeChecker := &testscommon.FieldsSizeCheckerMock{
+		IsProofSizeValidCalled: func(proof data.HeaderProofHandler) bool {
+			return false
+		},
+	}
+
+	err = checkProofIntegrity(headerWithIncompletePrevProof, eeh, fieldsSizeChecker)
 	require.Equal(t, process.ErrInvalidHeaderProof, err)
 
 	headerWithPrevProofOk := &testscommon.HeaderHandlerStub{
@@ -873,7 +882,7 @@ func Test_CheckProofIntegrity(t *testing.T) {
 		},
 	}
 
-	fieldsSizeChecker := &testscommon.FieldsSizeCheckerMock{
+	fieldsSizeChecker = &testscommon.FieldsSizeCheckerMock{
 		IsProofSizeValidCalled: func(proof data.HeaderProofHandler) bool {
 			return true
 		},
