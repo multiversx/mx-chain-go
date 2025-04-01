@@ -255,7 +255,14 @@ func (creator *blocksCreator) updatePreviousProofAndAddonHeader(currentHeaderHas
 
 		pubKeyBitmap := newHeader.GetPubKeysBitmap()
 		err = UnsetBitInBitmap(idx, pubKeyBitmap)
-		_ = newHeader.SetPubKeysBitmap(pubKeyBitmap)
+		if err != nil {
+			return nil, err
+		}
+
+		err = newHeader.SetPubKeysBitmap(pubKeyBitmap)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	previousProof.AggregatedSignature, err = creator.generateSignatureForProofs(currentHeaderHash, previousProof, validators)
