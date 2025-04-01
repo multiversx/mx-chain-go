@@ -248,11 +248,22 @@ func (scf *stateComponentsFactory) createAccountsAdapters(triesContainer common.
 		return nil, nil, nil, fmt.Errorf("%w: %s", errors.ErrAccountsAdapterCreation, err.Error())
 	}
 
+	argsAPIAccCreator := factoryState.ArgsAccountCreator{
+		Hasher:                scf.core.Hasher(),
+		Marshaller:            scf.core.InternalMarshalizer(),
+		EnableEpochsHandler:   scf.core.EnableEpochsHandler(),
+		StateChangesCollector: disabled.NewDisabledStateChangesCollector(),
+	}
+	accountFactoryAPI, err := factoryState.NewAccountCreator(argsAPIAccCreator)
+	if err != nil {
+		return nil, nil, nil, err
+	}
+
 	argsAPIAccountsDB := state.ArgsAccountsDB{
 		Trie:                  merkleTrie,
 		Hasher:                scf.core.Hasher(),
 		Marshaller:            scf.core.InternalMarshalizer(),
-		AccountFactory:        accountFactory,
+		AccountFactory:        accountFactoryAPI,
 		StoragePruningManager: storagePruning,
 		AddressConverter:      scf.core.AddressPubKeyConverter(),
 		SnapshotsManager:      disabled.NewDisabledSnapshotsManager(),
