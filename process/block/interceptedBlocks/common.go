@@ -45,6 +45,9 @@ func checkBlockHeaderArgument(arg *ArgInterceptedBlockHeader) error {
 	if check.IfNil(arg.EnableEpochsHandler) {
 		return process.ErrNilEnableEpochsHandler
 	}
+	if check.IfNil(arg.FieldsSizeChecker) {
+		return errors.ErrNilFieldsSizeChecker
+	}
 
 	return nil
 }
