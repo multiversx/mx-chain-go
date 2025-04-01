@@ -3,6 +3,7 @@ package processor
 import (
 	"testing"
 
+	"github.com/multiversx/mx-chain-core-go/core/sync"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-go/common"
@@ -111,6 +112,7 @@ func TestEquivalentProofsInterceptorProcessor_Save(t *testing.T) {
 			Proofs:            &dataRetriever.ProofsPoolMock{},
 			Headers:           &pool.HeadersPoolStub{},
 			Hasher:            &hashingMocks.HasherMock{},
+			KeyRWMutexHandler: sync.NewKeyRWMutex(),
 		}
 		argInterceptedEquivalentProof.DataBuff, _ = argInterceptedEquivalentProof.Marshaller.Marshal(&block.HeaderProof{
 			PubKeysBitmap:       []byte("bitmap"),

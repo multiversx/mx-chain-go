@@ -3,9 +3,11 @@ package interceptedBlocks
 import (
 	"errors"
 	"fmt"
+	"sync"
 	"testing"
 
 	"github.com/multiversx/mx-chain-core-go/core"
+	coreSync "github.com/multiversx/mx-chain-core-go/core/sync"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	logger "github.com/multiversx/mx-chain-logger-go"
@@ -30,6 +32,21 @@ var (
 	providedShard  = uint32(0)
 	providedRound  = uint64(123456)
 )
+
+func createMockDataBuffWithHash(headerHash []byte) []byte {
+	proof := &block.HeaderProof{
+		PubKeysBitmap:       []byte("bitmap"),
+		AggregatedSignature: []byte("sig"),
+		HeaderHash:          headerHash,
+		HeaderEpoch:         providedEpoch,
+		HeaderNonce:         providedNonce,
+		HeaderShardId:       providedShard,
+		HeaderRound:         providedRound,
+	}
+
+	dataBuff, _ := testMarshaller.Marshal(proof)
+	return dataBuff
+}
 
 func createMockDataBuff() []byte {
 	proof := &block.HeaderProof{
@@ -68,6 +85,7 @@ func createMockArgInterceptedEquivalentProof() ArgInterceptedEquivalentProof {
 				}, nil
 			},
 		},
+		KeyRWMutexHandler: coreSync.NewKeyRWMutex(),
 	}
 }
 
@@ -212,6 +230,40 @@ func TestInterceptedEquivalentProof_CheckValidity(t *testing.T) {
 
 		err = iep.CheckValidity()
 		require.NoError(t, err)
+	})
+	t.Run("concurrent calls should work", func(t *testing.T) {
+		t.Parallel()
+
+		defer func() {
+			r := recover()
+			if r != nil {
+				require.Fail(t, "should have not panicked")
+			}
+		}()
+
+		km := coreSync.NewKeyRWMutex()
+
+		numCalls := 1000
+		wg := sync.WaitGroup{}
+		wg.Add(numCalls)
+
+		for i := 0; i < numCalls; i++ {
+			go func(idx int) {
+				hash := fmt.Sprintf("hash_%d", idx%5) // make sure hashes repeat
+
+				args := createMockArgInterceptedEquivalentProof()
+				args.KeyRWMutexHandler = km
+				args.DataBuff = createMockDataBuffWithHash([]byte(hash))
+				iep, err := NewInterceptedEquivalentProof(args)
+				require.NoError(t, err)
+
+				_ = iep.CheckValidity()
+
+				wg.Done()
+			}(i)
+		}
+
+		wg.Wait()
 	})
 }
 

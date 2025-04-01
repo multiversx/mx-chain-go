@@ -1,6 +1,7 @@
 package factory
 
 import (
+	"github.com/multiversx/mx-chain-core-go/core/sync"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
 
@@ -27,6 +28,7 @@ type interceptedEquivalentProofsFactory struct {
 	headersPool       dataRetriever.HeadersPool
 	storage           dataRetriever.StorageService
 	hasher            hashing.Hasher
+	km                sync.KeyRWMutexHandler
 }
 
 // NewInterceptedEquivalentProofsFactory creates a new instance of interceptedEquivalentProofsFactory
@@ -39,6 +41,7 @@ func NewInterceptedEquivalentProofsFactory(args ArgInterceptedEquivalentProofsFa
 		headersPool:       args.HeadersPool,
 		storage:           args.Storage,
 		hasher:            args.CoreComponents.Hasher(),
+		km:                sync.NewKeyRWMutex(),
 	}
 }
 
@@ -52,6 +55,7 @@ func (factory *interceptedEquivalentProofsFactory) Create(buff []byte) (process.
 		Proofs:            factory.proofsPool,
 		Headers:           factory.headersPool,
 		Hasher:            factory.hasher,
+		KeyRWMutexHandler: factory.km,
 	}
 	return interceptedBlocks.NewInterceptedEquivalentProof(args)
 }

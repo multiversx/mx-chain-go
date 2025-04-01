@@ -31,6 +31,7 @@ type ArgInterceptedEquivalentProof struct {
 	HeaderSigVerifier consensus.HeaderSigVerifier
 	Proofs            dataRetriever.ProofsPool
 	Headers           dataRetriever.HeadersPool
+	KeyRWMutexHandler sync.KeyRWMutexHandler
 }
 
 type interceptedEquivalentProof struct {
@@ -68,7 +69,7 @@ func NewInterceptedEquivalentProof(args ArgInterceptedEquivalentProof) (*interce
 		marshaller:        args.Marshaller,
 		hasher:            args.Hasher,
 		hash:              hash,
-		km:                sync.NewKeyRWMutex(),
+		km:                args.KeyRWMutexHandler,
 	}, nil
 }
 
@@ -93,6 +94,9 @@ func checkArgInterceptedEquivalentProof(args ArgInterceptedEquivalentProof) erro
 	}
 	if check.IfNil(args.Hasher) {
 		return process.ErrNilHasher
+	}
+	if check.IfNil(args.KeyRWMutexHandler) {
+		return process.ErrNilKeyRWMutexHandler
 	}
 
 	return nil
