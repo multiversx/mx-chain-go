@@ -5,6 +5,7 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/core/sync"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/hashing"
@@ -41,6 +42,7 @@ type interceptedEquivalentProof struct {
 	marshaller        marshaling.Marshalizer
 	hasher            hashing.Hasher
 	hash              []byte
+	km                sync.KeyRWMutexHandler
 }
 
 // NewInterceptedEquivalentProof returns a new instance of interceptedEquivalentProof
@@ -66,6 +68,7 @@ func NewInterceptedEquivalentProof(args ArgInterceptedEquivalentProof) (*interce
 		marshaller:        args.Marshaller,
 		hasher:            args.Hasher,
 		hash:              hash,
+		km:                sync.NewKeyRWMutex(),
 	}, nil
 }
 
@@ -136,6 +139,10 @@ func (iep *interceptedEquivalentProof) CheckValidity() error {
 	if err != nil {
 		return err
 	}
+
+	headerHash := string(iep.proof.GetHeaderHash())
+	iep.km.Lock(headerHash)
+	defer iep.km.Unlock(headerHash)
 
 	ok := iep.proofsPool.HasProof(iep.proof.GetHeaderShardId(), iep.proof.GetHeaderHash())
 	if ok {
