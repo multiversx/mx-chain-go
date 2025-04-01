@@ -1028,7 +1028,7 @@ func (pcf *processComponentsFactory) createOutportDataProvider(
 	return factoryOutportProvider.CreateOutportDataProvider(factoryOutportProvider.ArgOutportDataProviderFactory{
 		HasDrivers:             pcf.statusComponents.OutportHandler().HasDrivers(),
 		AddressConverter:       pcf.coreData.AddressPubKeyConverter(),
-		AccountsDB:             pcf.state.AccountsAdapter(),
+		AccountsDB:             pcf.state.AccountsAdapterAPI(),
 		Marshaller:             pcf.coreData.InternalMarshalizer(),
 		EsdtDataStorageHandler: pcf.esdtNftStorage,
 		TransactionsStorer:     txsStorer,
