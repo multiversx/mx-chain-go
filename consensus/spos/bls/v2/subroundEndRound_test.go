@@ -1220,7 +1220,7 @@ func TestSubroundEndRound_DoEndRoundJobByNode(t *testing.T) {
 		numCalls := 0
 		container.SetEquivalentProofsPool(&dataRetriever.ProofsPoolMock{
 			HasProofCalled: func(shardID uint32, headerHash []byte) bool {
-				if numCalls <= 1 {
+				if numCalls <= 2 {
 					numCalls++
 					return false
 				}
@@ -1298,7 +1298,7 @@ func TestSubroundEndRound_DoEndRoundJobByNode(t *testing.T) {
 
 		wasIncrementHandlerCalled := false
 		wasSetStringValueHandlerCalled := false
-		statusHandler := &statusHandler.AppStatusHandlerStub{
+		sh := &statusHandler.AppStatusHandlerStub{
 			IncrementHandler: func(key string) {
 				require.Equal(t, common.MetricCountAcceptedBlocks, key)
 				wasIncrementHandlerCalled = true
@@ -1323,13 +1323,13 @@ func TestSubroundEndRound_DoEndRoundJobByNode(t *testing.T) {
 			container,
 			chainID,
 			currentPid,
-			statusHandler,
+			sh,
 		)
 
 		srEndRound, _ := v2.NewSubroundEndRound(
 			sr,
 			v2.ProcessingThresholdPercent,
-			statusHandler,
+			sh,
 			&testscommon.SentSignatureTrackerStub{},
 			&consensusMocks.SposWorkerMock{},
 			&dataRetrieverMocks.ThrottlerStub{},
@@ -2231,7 +2231,7 @@ func TestSubroundEndRound_GetEquivalentProofSender(t *testing.T) {
 			pubKeys = append(pubKeys, pubKey)
 		}
 
-		nodesCoordinator := &shardingMocks.NodesCoordinatorMock{
+		nc := &shardingMocks.NodesCoordinatorMock{
 			ComputeValidatorsGroupCalled: func(randomness []byte, round uint64, shardId uint32, epoch uint32) (nodesCoordinator.Validator, []nodesCoordinator.Validator, error) {
 				defaultSelectionChances := uint32(1)
 				leader := shardingMocks.NewValidatorMock([]byte(pubKeys[0]), 1, defaultSelectionChances)
@@ -2248,7 +2248,7 @@ func TestSubroundEndRound_GetEquivalentProofSender(t *testing.T) {
 				}, nil
 			},
 		}
-		container.SetNodesCoordinator(nodesCoordinator)
+		container.SetNodesCoordinator(nc)
 
 		keysHandlerMock := &testscommon.KeysHandlerStub{
 			IsKeyManagedByCurrentNodeCalled: func(pkBytes []byte) bool {
