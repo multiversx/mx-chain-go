@@ -12,8 +12,8 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/common"
-	"github.com/multiversx/mx-chain-go/testscommon"
 	processMocks "github.com/multiversx/mx-chain-go/process/mock"
+	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/shardingMocks"
 	"github.com/stretchr/testify/require"
 
@@ -51,6 +51,7 @@ func createInterceptedEquivalentProof(
 		Proofs:            &dataRetriever.ProofsPoolMock{},
 		Headers:           &pool.HeadersPoolStub{},
 		Hasher:            &hashingMocks.HasherMock{},
+		ProofSizeChecker:  &testscommon.FieldsSizeCheckerMock{},
 		KeyRWMutexHandler: coreSync.NewKeyRWMutex(),
 	}
 	argInterceptedEquivalentProof.DataBuff, _ = argInterceptedEquivalentProof.Marshaller.Marshal(&block.HeaderProof{
