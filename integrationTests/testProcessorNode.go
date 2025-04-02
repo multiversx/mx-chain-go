@@ -3412,6 +3412,7 @@ func GetDefaultCoreComponents(enableEpochsHandler common.EnableEpochsHandler, ep
 		TxVersionCheckField:          versioning.NewTxVersionChecker(MinTransactionVersion),
 		ProcessStatusHandlerInternal: &testscommon.ProcessStatusHandlerStub{},
 		EnableEpochsHandlerField:     enableEpochsHandler,
+		FieldsSizeCheckerField:       &testscommon.FieldsSizeCheckerMock{},
 	}
 }
 
