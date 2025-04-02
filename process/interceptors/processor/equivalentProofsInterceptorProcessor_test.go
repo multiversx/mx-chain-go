@@ -3,22 +3,13 @@ package processor
 import (
 	"testing"
 
-	coreSync "github.com/multiversx/mx-chain-core-go/core/sync"
-	"github.com/multiversx/mx-chain-core-go/data/block"
-	"github.com/multiversx/mx-chain-core-go/marshal"
 	processMocks "github.com/multiversx/mx-chain-go/process/mock"
-	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/shardingMocks"
 	"github.com/stretchr/testify/require"
 
-	"github.com/multiversx/mx-chain-go/consensus/mock"
 	"github.com/multiversx/mx-chain-go/process"
-	"github.com/multiversx/mx-chain-go/process/block/interceptedBlocks"
-	"github.com/multiversx/mx-chain-go/testscommon/consensus"
 	"github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
-	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
-	"github.com/multiversx/mx-chain-go/testscommon/pool"
 )
 
 func createMockArgEquivalentProofsInterceptorProcessor() ArgEquivalentProofsInterceptorProcessor {
@@ -28,35 +19,6 @@ func createMockArgEquivalentProofsInterceptorProcessor() ArgEquivalentProofsInte
 		PeerShardMapper:      &processMocks.PeerShardMapperStub{},
 		NodesCoordinator:     &shardingMocks.NodesCoordinatorMock{},
 	}
-}
-
-func createInterceptedEquivalentProof(
-	epoch uint32,
-	shard uint32,
-	marshaller marshal.Marshalizer,
-) process.InterceptedData {
-	argInterceptedEquivalentProof := interceptedBlocks.ArgInterceptedEquivalentProof{
-		Marshaller:         marshaller,
-		ShardCoordinator:   &mock.ShardCoordinatorMock{},
-		HeaderSigVerifier:  &consensus.HeaderSigVerifierMock{},
-		Proofs:             &dataRetriever.ProofsPoolMock{},
-		Headers:            &pool.HeadersPoolStub{},
-		Hasher:             &hashingMocks.HasherMock{},
-		ProofSizeChecker:   &testscommon.FieldsSizeCheckerMock{},
-		KeyRWMutexHandler:  coreSync.NewKeyRWMutex(),
-		EligibleNodesCache: &testscommon.EligibleNodesCacheMock{},
-	}
-	argInterceptedEquivalentProof.DataBuff, _ = argInterceptedEquivalentProof.Marshaller.Marshal(&block.HeaderProof{
-		PubKeysBitmap:       []byte("bitmap"),
-		AggregatedSignature: []byte("sig"),
-		HeaderHash:          []byte("hash"),
-		HeaderEpoch:         epoch,
-		HeaderNonce:         345,
-		HeaderShardId:       shard,
-	})
-	iep, _ := interceptedBlocks.NewInterceptedEquivalentProof(argInterceptedEquivalentProof)
-
-	return iep
 }
 
 func TestEquivalentProofsInterceptorProcessor_IsInterfaceNil(t *testing.T) {
