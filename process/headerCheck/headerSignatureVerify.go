@@ -341,10 +341,10 @@ func (hsv *HeaderSigVerifier) VerifyHeaderWithProof(header data.HeaderHandler) e
 		return nil
 	}
 
-	err = hsv.VerifyHeaderProof(prevProof)
-	if err != nil {
-		return err
-	}
+	// err = hsv.VerifyHeaderProof(prevProof)
+	// if err != nil {
+	// 	return err
+	// }
 
 	_ = hsv.proofsPool.UpsertProof(prevProof)
 
