@@ -13,6 +13,11 @@ import (
 
 var log = logger.GetOrCreate("fieldsChecker")
 
+const (
+	// max size for signature in bytes
+	sigMaxSize = 100
+)
+
 type fieldsSizeChecker struct {
 	hasher                 hashing.Hasher
 	chainParametersHandler sharding.ChainParametersHandler
@@ -59,8 +64,7 @@ func (pc *fieldsSizeChecker) isHeaderHashSizeValid(headerHash []byte) bool {
 }
 
 func (pc *fieldsSizeChecker) isAggregatedSigSizeValid(aggSig []byte) bool {
-	// TODO: add upper bound check
-	return len(aggSig) > 0
+	return len(aggSig) > 0 && len(aggSig) <= sigMaxSize
 }
 
 // IsInterfaceNil -

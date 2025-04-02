@@ -102,4 +102,12 @@ func TestFieldsSizeChecker_IsProofSizeValid(t *testing.T) {
 		HeaderShardId:       1,
 	})
 	require.False(t, ok)
+
+	ok = fsc.IsProofSizeValid(&block.HeaderProof{
+		PubKeysBitmap:       []byte{1},
+		AggregatedSignature: bytes.Repeat([]byte("h"), 101), // bigger sig size
+		HeaderHash:          bytes.Repeat([]byte("h"), 32),
+		HeaderShardId:       1,
+	})
+	require.False(t, ok)
 }
