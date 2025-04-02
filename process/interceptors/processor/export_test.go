@@ -7,3 +7,12 @@ func (hip *HdrInterceptorProcessor) RegisteredHandlers() []func(topic string, ha
 
 	return hip.registeredHandlers
 }
+
+// GetEligibleNodesMap -
+func (epip *equivalentProofsInterceptorProcessor) GetEligibleNodesMap() map[uint32]map[uint32]map[string]struct{} {
+	epip.mutEligibleNodesMap.RLock()
+	defer epip.mutEligibleNodesMap.RUnlock()
+	eligibleMap := epip.eligibleNodesMap
+
+	return eligibleMap
+}
