@@ -160,7 +160,7 @@ func (iep *interceptedEquivalentProof) CheckValidity() error {
 		return err
 	}
 
-	if !iep.eligibleNodesCache.IsPeerEligible(iep.messageOriginator, iep.proof.GetHeaderShardId(), iep.getEpochForEligibleList()) {
+	if !iep.eligibleNodesCache.IsPeerEligible(iep.messageOriginator, iep.proof.GetHeaderShardId(), common.GetEpochForConsensus(iep.proof)) {
 		return fmt.Errorf("%w, proof originator must be an eligible node", process.ErrInvalidHeaderProof)
 	}
 
@@ -186,14 +186,6 @@ func (iep *interceptedEquivalentProof) CheckValidity() error {
 	}
 
 	return nil
-}
-func (iep *interceptedEquivalentProof) getEpochForEligibleList() uint32 {
-	epochForEligibleList := iep.proof.GetHeaderEpoch()
-	if iep.proof.GetIsStartOfEpoch() && epochForEligibleList > 0 {
-		return epochForEligibleList - 1
-	}
-
-	return epochForEligibleList
 }
 
 func (iep *interceptedEquivalentProof) integrity() error {
