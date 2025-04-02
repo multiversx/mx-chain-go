@@ -89,6 +89,18 @@ func (creator *blocksCreator) CreateNewBlock() error {
 	}
 
 	pubKeyBitmap := GeneratePubKeyBitmap(len(validators))
+	for idx, validator := range validators {
+		isManaged := cryptoComponents.KeysHandler().IsKeyManagedByCurrentNode(validator.PubKey())
+		if isManaged {
+			continue
+		}
+
+		err = UnsetBitInBitmap(idx, pubKeyBitmap)
+		if err != nil {
+			return err
+		}
+	}
+
 	err = newHeader.SetPubKeysBitmap(pubKeyBitmap)
 	if err != nil {
 		return err
@@ -228,6 +240,29 @@ func (creator *blocksCreator) updatePreviousProofAndAddonHeader(currentHeaderHas
 	}
 
 	previousProof.PubKeysBitmap = GeneratePubKeyBitmap(len(validators))
+	for idx, validator := range validators {
+		isManaged := creator.nodeHandler.GetCryptoComponents().KeysHandler().IsKeyManagedByCurrentNode(validator.PubKey())
+		if isManaged {
+			continue
+		}
+
+		err = UnsetBitInBitmap(idx, previousProof.PubKeysBitmap)
+		if err != nil {
+			return nil, err
+		}
+
+		pubKeyBitmap := newHeader.GetPubKeysBitmap()
+		err = UnsetBitInBitmap(idx, pubKeyBitmap)
+		if err != nil {
+			return nil, err
+		}
+
+		err = newHeader.SetPubKeysBitmap(pubKeyBitmap)
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	previousProof.AggregatedSignature, err = creator.generateSignatureForProofs(currentHeaderHash, previousProof, validators)
 	if err != nil {
 		return nil, err
@@ -328,27 +363,32 @@ func (creator *blocksCreator) setHeaderSignatures(
 func (creator *blocksCreator) generateAggregatedSignature(headerHash []byte, epoch uint32, pubKeysBitmap []byte, pubKeys []string) ([]byte, error) {
 	signingHandler := creator.nodeHandler.GetCryptoComponents().ConsensusSigningHandler()
 
-	managedKeys := make([]string, 0)
-	for _, pubKey := range pubKeys {
-		isManaged := creator.nodeHandler.GetCryptoComponents().KeysHandler().IsKeyManagedByCurrentNode([]byte(pubKey))
-		if !isManaged {
-			continue
-		}
-
-		managedKeys = append(managedKeys, pubKey)
-	}
-
-	err := signingHandler.Reset(managedKeys)
+	err := signingHandler.Reset(pubKeys)
 	if err != nil {
 		return nil, err
 	}
-	for idx, pubKey := range managedKeys {
+
+	totalKey := 0
+	for idx, pubKey := range pubKeys {
+		isManaged := creator.nodeHandler.GetCryptoComponents().KeysHandler().IsKeyManagedByCurrentNode([]byte(pubKey))
+		if !isManaged {
+
+			continue
+		}
+
+		totalKey++
 		if _, err = signingHandler.CreateSignatureShareForPublicKey(headerHash, uint16(idx), epoch, []byte(pubKey)); err != nil {
 			return nil, err
 		}
 	}
 
-	return signingHandler.AggregateSigs(pubKeysBitmap, epoch)
+	aggSig, err := signingHandler.AggregateSigs(pubKeysBitmap, epoch)
+	if err != nil {
+		log.Warn("total", "total", totalKey, "err", err)
+		return nil, err
+	}
+
+	return aggSig, nil
 }
 
 func extractValidatorPubKeys(validators []nodesCoordinator.Validator) []string {
@@ -402,4 +442,14 @@ func GeneratePubKeyBitmap(numOfOnes int) []byte {
 	}
 
 	return result
+}
+
+// UnsetBitInBitmap will unset a bit from provided bit based on the provided index
+func UnsetBitInBitmap(index int, bitmap []byte) error {
+	if index/8 >= len(bitmap) {
+		return common.ErrWrongSizeBitmap
+	}
+	bitmap[index/8] = bitmap[index/8] & ^(1 << uint8(index%8))
+
+	return nil
 }
