@@ -85,6 +85,7 @@ func createMockArgInterceptedEquivalentProof() ArgInterceptedEquivalentProof {
 				}, nil
 			},
 		},
+		ProofSizeChecker: &testscommon.FieldsSizeCheckerMock{},
 		KeyRWMutexHandler: coreSync.NewKeyRWMutex(),
 	}
 }
@@ -200,6 +201,12 @@ func TestInterceptedEquivalentProof_CheckValidity(t *testing.T) {
 		}
 		args := createMockArgInterceptedEquivalentProof()
 		args.DataBuff, _ = args.Marshaller.Marshal(proof)
+		args.ProofSizeChecker = &testscommon.FieldsSizeCheckerMock{
+			IsProofSizeValidCalled: func(proof data.HeaderProofHandler) bool {
+				return false
+			},
+		}
+
 		iep, err := NewInterceptedEquivalentProof(args)
 		require.NoError(t, err)
 

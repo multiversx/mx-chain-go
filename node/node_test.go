@@ -5341,6 +5341,7 @@ func getDefaultCoreComponents() *nodeMockFactory.CoreComponentsMock {
 		EpochChangeNotifier:      &epochNotifier.EpochNotifierStub{},
 		TxVersionCheckHandler:    versioning.NewTxVersionChecker(0),
 		EnableEpochsHandlerField: enableEpochsHandlerMock.NewEnableEpochsHandlerStub(common.RelayedTransactionsV3Flag),
+		FieldsSizeCheckerField:   &testscommon.FieldsSizeCheckerMock{},
 	}
 }
 

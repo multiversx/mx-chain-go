@@ -5,6 +5,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
 
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/process"
@@ -28,6 +29,7 @@ type interceptedEquivalentProofsFactory struct {
 	headersPool       dataRetriever.HeadersPool
 	storage           dataRetriever.StorageService
 	hasher            hashing.Hasher
+	proofSizeChecker  common.FieldsSizeChecker
 	km                sync.KeyRWMutexHandler
 }
 
@@ -41,6 +43,7 @@ func NewInterceptedEquivalentProofsFactory(args ArgInterceptedEquivalentProofsFa
 		headersPool:       args.HeadersPool,
 		storage:           args.Storage,
 		hasher:            args.CoreComponents.Hasher(),
+		proofSizeChecker:  args.CoreComponents.FieldsSizeChecker(),
 		km:                sync.NewKeyRWMutex(),
 	}
 }
@@ -55,6 +58,7 @@ func (factory *interceptedEquivalentProofsFactory) Create(buff []byte) (process.
 		Proofs:            factory.proofsPool,
 		Headers:           factory.headersPool,
 		Hasher:            factory.hasher,
+		ProofSizeChecker:  factory.proofSizeChecker,
 		KeyRWMutexHandler: factory.km,
 	}
 	return interceptedBlocks.NewInterceptedEquivalentProof(args)
