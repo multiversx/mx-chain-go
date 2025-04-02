@@ -640,4 +640,12 @@ func TestGeneratePubKeyBitmap(t *testing.T) {
 	require.Equal(t, []byte{3}, chainSimulatorProcess.GeneratePubKeyBitmap(2))
 	require.Equal(t, []byte{7}, chainSimulatorProcess.GeneratePubKeyBitmap(3))
 	require.Equal(t, []byte{255, 255, 15}, chainSimulatorProcess.GeneratePubKeyBitmap(20))
+
+	bitmap := chainSimulatorProcess.GeneratePubKeyBitmap(2)
+	_ = chainSimulatorProcess.UnsetBitInBitmap(0, bitmap)
+	require.Equal(t, []byte{2}, bitmap)
+
+	bitmap = chainSimulatorProcess.GeneratePubKeyBitmap(20)
+	_ = chainSimulatorProcess.UnsetBitInBitmap(3, bitmap)
+	require.Equal(t, []byte{247, 255, 15}, bitmap)
 }
