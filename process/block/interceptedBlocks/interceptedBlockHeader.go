@@ -29,6 +29,7 @@ type InterceptedHeader struct {
 	validityAttester    process.ValidityAttester
 	epochStartTrigger   process.EpochStartTriggerHandler
 	enableEpochsHandler common.EnableEpochsHandler
+	fieldsSizeChecker   common.FieldsSizeChecker
 }
 
 // NewInterceptedHeader creates a new instance of InterceptedHeader struct
@@ -52,6 +53,7 @@ func NewInterceptedHeader(arg *ArgInterceptedBlockHeader) (*InterceptedHeader, e
 		validityAttester:    arg.ValidityAttester,
 		epochStartTrigger:   arg.EpochStartTrigger,
 		enableEpochsHandler: arg.EnableEpochsHandler,
+		fieldsSizeChecker:   arg.FieldsSizeChecker,
 	}
 	inHdr.processFields(arg.HdrBuff)
 
@@ -149,7 +151,7 @@ func (inHdr *InterceptedHeader) integrity() error {
 			inHdr.epochStartTrigger.EpochFinalityAttestingRound())
 	}
 
-	err := checkHeaderHandler(inHdr.HeaderHandler(), inHdr.enableEpochsHandler)
+	err := checkHeaderHandler(inHdr.HeaderHandler(), inHdr.enableEpochsHandler, inHdr.fieldsSizeChecker)
 	if err != nil {
 		return err
 	}
