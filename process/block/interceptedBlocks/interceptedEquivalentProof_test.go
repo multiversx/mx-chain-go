@@ -10,6 +10,7 @@ import (
 	coreSync "github.com/multiversx/mx-chain-core-go/core/sync"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
+	errErd "github.com/multiversx/mx-chain-go/errors"
 	logger "github.com/multiversx/mx-chain-logger-go"
 	"github.com/stretchr/testify/require"
 
@@ -85,8 +86,9 @@ func createMockArgInterceptedEquivalentProof() ArgInterceptedEquivalentProof {
 				}, nil
 			},
 		},
-		ProofSizeChecker: &testscommon.FieldsSizeCheckerMock{},
-		KeyRWMutexHandler: coreSync.NewKeyRWMutex(),
+		ProofSizeChecker:   &testscommon.FieldsSizeCheckerMock{},
+		KeyRWMutexHandler:  coreSync.NewKeyRWMutex(),
+		EligibleNodesCache: &testscommon.EligibleNodesCacheMock{},
 	}
 }
 
@@ -179,6 +181,33 @@ func TestNewInterceptedEquivalentProof(t *testing.T) {
 		require.Equal(t, expectedErr, err)
 		require.Nil(t, iep)
 	})
+	t.Run("nil ProofSizeChecker should error", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockArgInterceptedEquivalentProof()
+		args.ProofSizeChecker = nil
+		iep, err := NewInterceptedEquivalentProof(args)
+		require.Equal(t, errErd.ErrNilFieldsSizeChecker, err)
+		require.Nil(t, iep)
+	})
+	t.Run("nil KeyRWMutexHandler should error", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockArgInterceptedEquivalentProof()
+		args.KeyRWMutexHandler = nil
+		iep, err := NewInterceptedEquivalentProof(args)
+		require.Equal(t, process.ErrNilKeyRWMutexHandler, err)
+		require.Nil(t, iep)
+	})
+	t.Run("nil EligibleNodesCache should error", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockArgInterceptedEquivalentProof()
+		args.EligibleNodesCache = nil
+		iep, err := NewInterceptedEquivalentProof(args)
+		require.Equal(t, process.ErrNilEligibleNodesCache, err)
+		require.Nil(t, iep)
+	})
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
 
@@ -212,6 +241,22 @@ func TestInterceptedEquivalentProof_CheckValidity(t *testing.T) {
 
 		err = iep.CheckValidity()
 		require.Equal(t, ErrInvalidProof, err)
+	})
+	t.Run("node not eligible should error", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockArgInterceptedEquivalentProof()
+		args.EligibleNodesCache = &testscommon.EligibleNodesCacheMock{
+			IsPeerEligibleCalled: func(pid core.PeerID, shard uint32, epoch uint32) bool {
+				return false
+			},
+		}
+
+		iep, err := NewInterceptedEquivalentProof(args)
+		require.NoError(t, err)
+
+		err = iep.CheckValidity()
+		require.True(t, errors.Is(err, process.ErrInvalidHeaderProof))
 	})
 	t.Run("already exiting proof should error", func(t *testing.T) {
 		t.Parallel()

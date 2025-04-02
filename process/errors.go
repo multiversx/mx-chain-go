@@ -1295,3 +1295,6 @@ var ErrInvalidRatingsConfig = errors.New("invalid ratings config")
 
 // ErrNilKeyRWMutexHandler signals that a nil KeyRWMutexHandler has been provided
 var ErrNilKeyRWMutexHandler = errors.New("nil key rw mutex handler")
+
+// ErrNilEligibleNodesCache signals that a nil eligible nodes cache has been provided
+var ErrNilEligibleNodesCache = errors.New("nil eligible nodes cache")
