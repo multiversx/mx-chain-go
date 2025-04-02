@@ -49,3 +49,13 @@ func VerifyProofAgainstHeader(proof data.HeaderProofHandler, header data.HeaderH
 
 	return nil
 }
+
+// GetEpochForConsensus will get epoch to be used by consensus based on equivalent proof data
+func GetEpochForConsensus(proof data.HeaderProofHandler) uint32 {
+	epochForConsensus := proof.GetHeaderEpoch()
+	if proof.GetIsStartOfEpoch() && epochForConsensus > 0 {
+		epochForConsensus = epochForConsensus - 1
+	}
+
+	return epochForConsensus
+}

@@ -43,8 +43,10 @@ func NewFieldsSizeChecker(
 
 // IsProofSizeValid will check proof fields size
 func (pc *fieldsSizeChecker) IsProofSizeValid(proof data.HeaderProofHandler) bool {
+	epochForConsensus := common.GetEpochForConsensus(proof)
+
 	return pc.isAggregatedSigSizeValid(proof.GetAggregatedSignature()) &&
-		pc.isBitmapSizeValid(proof.GetPubKeysBitmap(), proof.GetHeaderEpoch(), proof.GetHeaderShardId()) &&
+		pc.isBitmapSizeValid(proof.GetPubKeysBitmap(), epochForConsensus, proof.GetHeaderShardId()) &&
 		pc.isHeaderHashSizeValid(proof.GetHeaderHash())
 }
 
