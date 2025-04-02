@@ -1209,18 +1209,7 @@ func (ihnc *indexHashedNodesCoordinator) ConsensusGroupSizeForShardAndEpoch(
 	shardID uint32,
 	epoch uint32,
 ) int {
-	currentChainParameters, err := ihnc.chainParametersHandler.ChainParametersForEpoch(epoch)
-	if err != nil {
-		log.Warn("indexHashedNodesCoordinator.ConsensusGroupSizeForShardAndEpoch: could not compute chain params for epoch. "+
-			"Will use the current chain parameters", "epoch", epoch, "error", err)
-		currentChainParameters = ihnc.chainParametersHandler.CurrentChainParameters()
-	}
-
-	if shardID == core.MetachainShardId {
-		return int(currentChainParameters.MetachainConsensusGroupSize)
-	}
-
-	return int(currentChainParameters.ShardConsensusGroupSize)
+	return common.ConsensusGroupSizeForShardAndEpoch(log, ihnc.chainParametersHandler, shardID, epoch)
 }
 
 // GetNumTotalEligible returns the number of total eligible accross all shards from current setup
