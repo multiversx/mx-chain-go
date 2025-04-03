@@ -125,9 +125,7 @@ func (tr *patriciaMerkleTrie) Get(key []byte) ([]byte, uint32, error) {
 	tr.trieOperationInProgress.SetValue(true)
 	defer tr.trieOperationInProgress.Reset()
 
-	hexKey := keyBytesToHex(key)
-	//TODO in order to reduce the memory usage, store keys as bytes and convert them to hex only when needed
-	val, found := tr.batchManager.Get(hexKey)
+	val, found := tr.batchManager.Get(key)
 	if found {
 		return val, 0, nil
 	}
@@ -137,6 +135,7 @@ func (tr *patriciaMerkleTrie) Get(key []byte) ([]byte, uint32, error) {
 		return nil, 0, nil
 	}
 
+	hexKey := keyBuilder.KeyBytesToHex(key)
 	val, depth, err := rootNode.tryGet(hexKey, rootDepthLevel, tr.trieStorage)
 	if err != nil {
 		err = fmt.Errorf("trie get error: %w, for key %v", err, hex.EncodeToString(key))
@@ -163,10 +162,9 @@ func (tr *patriciaMerkleTrie) UpdateWithVersion(key []byte, value []byte, versio
 }
 
 func (tr *patriciaMerkleTrie) updateBatch(key []byte, value []byte, version core.TrieNodeVersion) {
-	hexKey := keyBytesToHex(key)
 	if len(value) != 0 {
 		newData := core.TrieData{
-			Key:     hexKey,
+			Key:     key,
 			Value:   value,
 			Version: version,
 		}
@@ -174,13 +172,12 @@ func (tr *patriciaMerkleTrie) updateBatch(key []byte, value []byte, version core
 		return
 	}
 
-	tr.batchManager.MarkForRemoval(hexKey)
+	tr.batchManager.MarkForRemoval(key)
 }
 
 // Delete removes the node that has the given key from the tree
 func (tr *patriciaMerkleTrie) Delete(key []byte) {
-	hexKey := keyBytesToHex(key)
-	tr.batchManager.MarkForRemoval(hexKey)
+	tr.batchManager.MarkForRemoval(key)
 }
 
 func (tr *patriciaMerkleTrie) updateTrie() error {
@@ -638,7 +635,7 @@ func (tr *patriciaMerkleTrie) GetProof(key []byte, rootHash []byte) ([][]byte, [
 	data := &nodeData{
 		currentNode: rootNode,
 		encodedNode: encodedNode,
-		hexKey:      keyBytesToHex(key),
+		hexKey:      keyBuilder.KeyBytesToHex(key),
 	}
 
 	for {
@@ -670,7 +667,7 @@ func (tr *patriciaMerkleTrie) VerifyProof(rootHash []byte, key []byte, proof [][
 
 func (tr *patriciaMerkleTrie) verifyProof(rootHash []byte, key []byte, proof [][]byte) (bool, error) {
 	wantHash := rootHash
-	key = keyBytesToHex(key)
+	key = keyBuilder.KeyBytesToHex(key)
 	for _, encodedNode := range proof {
 		if encodedNode == nil {
 			return false, nil

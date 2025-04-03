@@ -14,6 +14,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/trie/keyBuilder"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 )
 
@@ -231,7 +232,7 @@ func (ln *leafNode) insertInNewBn(
 	}
 
 	var newKeyForOldLn []byte
-	posForOldLn := byte(hexTerminator)
+	posForOldLn := byte(keyBuilder.HexTerminator)
 	if len(ln.Key) > keyMatchLen {
 		newKeyForOldLn = ln.Key[keyMatchLen+1:]
 		posForOldLn = ln.Key[keyMatchLen]
