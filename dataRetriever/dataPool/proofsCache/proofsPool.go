@@ -186,6 +186,32 @@ func (pp *proofsPool) GetProof(
 	return proofsPerShard.getProofByHash(headerHash)
 }
 
+// GetProofByHash will get the proof from pool, searching through all shard
+func (pp *proofsPool) GetProofByHash(headerHash []byte) (data.HeaderProofHandler, error) {
+	if headerHash == nil {
+		return nil, fmt.Errorf("nil header hash")
+	}
+	log.Trace("trying to get proof",
+		"headerHash", headerHash,
+	)
+
+	pp.mutCache.RLock()
+	allShardsCache := make([]*proofsCache, 0, len(pp.cache))
+	for _, shardCache := range pp.cache {
+		allShardsCache = append(allShardsCache, shardCache)
+	}
+	pp.mutCache.RUnlock()
+
+	for _, shardCache := range allShardsCache {
+		proof, err := shardCache.getProofByHash(headerHash)
+		if err == nil {
+			return proof, nil
+		}
+	}
+
+	return nil, ErrMissingProof
+}
+
 // HasProof will check if there is a proof for the provided hash
 func (pp *proofsPool) HasProof(
 	shardID uint32,
