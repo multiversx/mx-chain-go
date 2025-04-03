@@ -90,6 +90,10 @@ func (r *RequestHandler) RequestValidatorInfo(_ []byte) {
 func (r *RequestHandler) RequestValidatorsInfo(_ [][]byte) {
 }
 
+// RequestEquivalentProofByHash does nothing
+func (r *RequestHandler) RequestEquivalentProofByHash(_ []byte, _ uint32, _ uint32) {
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (r *RequestHandler) IsInterfaceNil() bool {
 	return r == nil

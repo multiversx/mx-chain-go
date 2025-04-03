@@ -124,17 +124,7 @@ func (creator *blocksCreator) CreateNewBlock() error {
 		return err
 	}
 
-	nilPrevHeader := check.IfNil(prevHeader)
 	enableEpochHandler := coreComponents.EnableEpochsHandler()
-	var previousProof *dataBlock.HeaderProof
-	if !nilPrevHeader && enableEpochHandler.IsFlagEnabled(common.EquivalentMessagesFlag) {
-		sig, errS := creator.generateSignature(prevHash, leader.PubKey(), prevHeader)
-		if errS != nil {
-			return errS
-		}
-		previousProof = createProofForHeader(pubKeyBitmap, sig, prevHash, prevHeader)
-		_ = creator.nodeHandler.GetDataComponents().Datapool().Proofs().AddProof(previousProof)
-	}
 
 	header, block, err := bp.CreateBlock(newHeader, func() bool {
 		return true
@@ -143,7 +133,7 @@ func (creator *blocksCreator) CreateNewBlock() error {
 		return err
 	}
 
-	headerProof, err := creator.ApplySignaturesAndGetProof(header, prevHeader, previousProof, enableEpochHandler, validators, leader, pubKeyBitmap)
+	headerProof, err := creator.ApplySignaturesAndGetProof(header, prevHeader, enableEpochHandler, validators, leader, pubKeyBitmap)
 	if err != nil {
 		return err
 	}
@@ -179,25 +169,18 @@ func (creator *blocksCreator) CreateNewBlock() error {
 	return messenger.BroadcastTransactions(transactions, leader.PubKey())
 }
 
+// ApplySignaturesAndGetProof =
 func (creator *blocksCreator) ApplySignaturesAndGetProof(
 	header data.HeaderHandler,
 	prevHeader data.HeaderHandler,
-	prevProof *dataBlock.HeaderProof,
 	enableEpochHandler common.EnableEpochsHandler,
 	validators []nodesCoordinator.Validator,
 	leader nodesCoordinator.Validator,
 	pubKeyBitmap []byte,
 ) (*dataBlock.HeaderProof, error) {
 	nilPrevHeader := check.IfNil(prevHeader)
-	var err error
-	if !nilPrevHeader && common.ShouldBlockHavePrevProof(header, enableEpochHandler, common.EquivalentMessagesFlag) {
-		validators, err = creator.updatePreviousProofAndAddonHeader(header.GetPrevHash(), prevHeader, header, prevProof)
-		if err != nil {
-			return nil, err
-		}
-	}
 
-	err = creator.setHeaderSignatures(header, leader.PubKey(), validators)
+	err := creator.setHeaderSignatures(header, leader.PubKey(), validators)
 	if err != nil {
 		return nil, err
 	}
@@ -262,13 +245,6 @@ func (creator *blocksCreator) updatePreviousProofAndAddonHeader(currentHeaderHas
 			return nil, err
 		}
 	}
-
-	previousProof.AggregatedSignature, err = creator.generateSignatureForProofs(currentHeaderHash, previousProof, validators)
-	if err != nil {
-		return nil, err
-	}
-
-	newHeader.SetPreviousProof(previousProof)
 
 	return validators, nil
 }

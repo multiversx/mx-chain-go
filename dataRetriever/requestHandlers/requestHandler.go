@@ -2,6 +2,7 @@ package requestHandlers
 
 import (
 	"encoding/binary"
+	"encoding/hex"
 	"fmt"
 	"runtime/debug"
 	"sync"
@@ -31,6 +32,7 @@ const uniqueHeadersSuffix = "hdr"
 const uniqueMetaHeadersSuffix = "mhdr"
 const uniqueTrieNodesSuffix = "tn"
 const uniqueValidatorInfoSuffix = "vi"
+const uniqueEquivalentProofSuffix = "eqp"
 
 // TODO move the keys definitions that are whitelisted in core and use them in InterceptedData implementations, Identifiers() function
 
@@ -866,4 +868,90 @@ func (rrh *resolverRequestHandler) RequestPeerAuthenticationsByHashes(destShardI
 			"epoch", epoch,
 		)
 	}
+}
+
+// RequestEquivalentProofByHash asks for equivalent proof for the provided header hash
+func (rrh *resolverRequestHandler) RequestEquivalentProofByHash(headerHash []byte, headerEpoch uint32, headerShard uint32) {
+	if !rrh.testIfRequestIsNeeded(headerHash, uniqueEquivalentProofSuffix) {
+		return
+	}
+
+	log.Debug("requesting equivalent proof from network",
+		"headerHash", hex.EncodeToString(headerHash),
+	)
+
+	requester, err := rrh.getEquivalentProofsRequester(headerShard)
+	if err != nil {
+		log.Error("RequestEquivalentProof.getEquivalentProofsRequester",
+			"error", err.Error(),
+			"headerHash", hex.EncodeToString(headerHash),
+		)
+		return
+	}
+
+	rrh.whiteList.Add([][]byte{headerHash})
+
+	err = requester.RequestDataFromHash(headerHash, headerEpoch)
+	if err != nil {
+		log.Debug("RequestEquivalentProof.RequestDataFromHash",
+			"error", err.Error(),
+			"headerHash", hex.EncodeToString(headerHash),
+			"headerShard", headerShard,
+			"headerEpoch", headerEpoch,
+		)
+		return
+	}
+
+	rrh.addRequestedItems([][]byte{headerHash}, uniqueEquivalentProofSuffix)
+}
+
+func (rrh *resolverRequestHandler) getEquivalentProofsRequester(headerShard uint32) (dataRetriever.Requester, error) {
+	// there are multiple scenarios for equivalent proofs:
+	// 1. self meta  requesting meta proof  -> should request on equivalentProofs_META_ALL
+	// 2. self meta  requesting shard proof -> should request on equivalentProofs_shard_META
+	// 3. self shard requesting intra proof -> should request on equivalentProofs_self_META
+	// 4. self shard requesting meta proof  -> should request on equivalentProofs_META_ALL
+	// 4. self shard requesting cross proof -> should never happen!
+
+	isSelfMeta := rrh.shardID == core.MetachainShardId
+	shardIdMissmatch := rrh.shardID != headerShard
+	isRequestForMeta := headerShard == core.MetachainShardId
+	isRequestInvalid := !isSelfMeta && shardIdMissmatch
+	if isRequestInvalid {
+		return nil, dataRetriever.ErrBadRequest
+	}
+
+	if isRequestForMeta {
+		topic := common.EquivalentProofsTopic + core.CommunicationIdentifierBetweenShards(core.MetachainShardId, core.AllShardId)
+		requester, err := rrh.requestersFinder.MetaChainRequester(topic)
+		if err != nil {
+			err = fmt.Errorf("%w, topic: %s, current shard ID: %d, requested header shard ID: %d",
+				err, topic, rrh.shardID, headerShard)
+
+			log.Warn("available requesters in container",
+				"requesters", rrh.requestersFinder.RequesterKeys(),
+			)
+			return nil, err
+		}
+
+		return requester, nil
+	}
+
+	crossShardID := core.MetachainShardId
+	if isSelfMeta {
+		crossShardID = headerShard
+	}
+
+	requester, err := rrh.requestersFinder.CrossShardRequester(common.EquivalentProofsTopic, crossShardID)
+	if err != nil {
+		err = fmt.Errorf("%w, base topic: %s, current shard ID: %d, cross shard ID: %d",
+			err, common.EquivalentProofsTopic, rrh.shardID, crossShardID)
+
+		log.Warn("available requesters in container",
+			"requesters", rrh.requestersFinder.RequesterKeys(),
+		)
+		return nil, err
+	}
+
+	return requester, nil
 }

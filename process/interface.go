@@ -606,6 +606,7 @@ type RequestHandler interface {
 	RequestPeerAuthenticationsByHashes(destShardID uint32, hashes [][]byte)
 	RequestValidatorInfo(hash []byte)
 	RequestValidatorsInfo(hashes [][]byte)
+	RequestEquivalentProofByHash(headerHash []byte, headerEpoch uint32, headerShard uint32)
 	IsInterfaceNil() bool
 }
 
@@ -861,7 +862,6 @@ type InterceptedHeaderSigVerifier interface {
 	VerifySignature(header data.HeaderHandler) error
 	VerifySignatureForHash(header data.HeaderHandler, hash []byte, pubkeysBitmap []byte, signature []byte) error
 	VerifyHeaderProof(headerProof data.HeaderProofHandler) error
-	VerifyHeaderWithProof(header data.HeaderHandler) error
 	IsInterfaceNil() bool
 }
 

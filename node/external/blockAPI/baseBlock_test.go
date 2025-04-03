@@ -441,28 +441,27 @@ func TestProofToAPIProof(t *testing.T) {
 	}, proofToAPIProof(headerProof))
 }
 
-func TestAddProofs(t *testing.T) {
+func TestAddProof(t *testing.T) {
 	t.Parallel()
 
-	t.Run("no proofs for required block should error", func(t *testing.T) {
+	t.Run("no proof for required block should error", func(t *testing.T) {
 		t.Parallel()
 
 		baseAPIBlockProc := createBaseBlockProcessor()
+		baseAPIBlockProc.enableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+			IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
+				return true
+			},
+		}
 		baseAPIBlockProc.proofsPool = &dataRetrieverTestsCommon.ProofsPoolMock{
 			GetProofCalled: func(shardID uint32, headerHash []byte) (data.HeaderProofHandler, error) {
 				return nil, errors.New("error")
 			},
 		}
 
-		header := &block.HeaderV2{
-			PreviousHeaderProof: &block.HeaderProof{
-				PubKeysBitmap: []byte("bitmap"),
-			},
-		}
+		header := &block.HeaderV2{}
 
-		err := baseAPIBlockProc.addProofs([]byte("hash"), header, &api.Block{}, func(nonce uint64) (data.HeaderHandler, error) {
-			return nil, errors.New("error")
-		})
+		err := baseAPIBlockProc.addProof([]byte("hash"), header, &api.Block{})
 		require.Equal(t, errCannotFindBlockProof, err)
 	})
 
@@ -470,93 +469,24 @@ func TestAddProofs(t *testing.T) {
 		t.Parallel()
 
 		baseAPIBlockProc := createBaseBlockProcessor()
-		baseAPIBlockProc.proofsPool = &dataRetrieverTestsCommon.ProofsPoolMock{
-			GetProofCalled: func(shardID uint32, headerHash []byte) (data.HeaderProofHandler, error) {
-				return &block.HeaderProof{
-					HeaderHash: []byte("hash2"),
-				}, nil
-			},
-		}
-
-		header := &block.HeaderV2{
-			PreviousHeaderProof: &block.HeaderProof{
-				HeaderHash: []byte("hash1"),
-			},
-		}
-
-		apiBlock := &api.Block{}
-		err := baseAPIBlockProc.addProofs([]byte("hash"), header, apiBlock, func(nonce uint64) (data.HeaderHandler, error) {
-			return nil, nil
-		})
-		require.Nil(t, err)
-		require.Equal(t, &api.HeaderProof{
-			HeaderHash: hex.EncodeToString([]byte("hash1")),
-		}, apiBlock.PreviousHeaderProof)
-
-		require.Equal(t, &api.HeaderProof{
-			HeaderHash: hex.EncodeToString([]byte("hash2")),
-		}, apiBlock.Proof)
-	})
-
-	t.Run("no previous proof only current proof", func(t *testing.T) {
-		t.Parallel()
-
-		baseAPIBlockProc := createBaseBlockProcessor()
-		baseAPIBlockProc.proofsPool = &dataRetrieverTestsCommon.ProofsPoolMock{
-			GetProofCalled: func(shardID uint32, headerHash []byte) (data.HeaderProofHandler, error) {
-				return &block.HeaderProof{
-					HeaderHash: []byte("hash2"),
-				}, nil
-			},
-		}
-
 		baseAPIBlockProc.enableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
 			IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
 				return true
 			},
 		}
+		baseAPIBlockProc.proofsPool = &dataRetrieverTestsCommon.ProofsPoolMock{
+			GetProofCalled: func(shardID uint32, headerHash []byte) (data.HeaderProofHandler, error) {
+				return &block.HeaderProof{
+					HeaderHash: []byte("hash2"),
+				}, nil
+			},
+		}
+
 		header := &block.HeaderV2{}
 
 		apiBlock := &api.Block{}
-		err := baseAPIBlockProc.addProofs([]byte("hash"), header, apiBlock, func(nonce uint64) (data.HeaderHandler, error) {
-			return nil, nil
-		})
+		err := baseAPIBlockProc.addProof([]byte("hash"), header, apiBlock)
 		require.Nil(t, err)
-		require.Nil(t, apiBlock.PreviousHeaderProof)
-
-		require.Equal(t, &api.HeaderProof{
-			HeaderHash: hex.EncodeToString([]byte("hash2")),
-		}, apiBlock.Proof)
-	})
-
-	t.Run("proof for block returned from next block", func(t *testing.T) {
-		t.Parallel()
-
-		baseAPIBlockProc := createBaseBlockProcessor()
-		baseAPIBlockProc.proofsPool = &dataRetrieverTestsCommon.ProofsPoolMock{
-			GetProofCalled: func(shardID uint32, headerHash []byte) (data.HeaderProofHandler, error) {
-				return nil, errors.New("error")
-			},
-		}
-
-		header := &block.HeaderV2{
-			PreviousHeaderProof: &block.HeaderProof{
-				HeaderHash: []byte("hash1"),
-			},
-		}
-
-		apiBlock := &api.Block{}
-		err := baseAPIBlockProc.addProofs([]byte("hash"), header, apiBlock, func(nonce uint64) (data.HeaderHandler, error) {
-			return &block.HeaderV2{
-				PreviousHeaderProof: &block.HeaderProof{
-					HeaderHash: []byte("hash2"),
-				},
-			}, nil
-		})
-		require.Nil(t, err)
-		require.Equal(t, &api.HeaderProof{
-			HeaderHash: hex.EncodeToString([]byte("hash1")),
-		}, apiBlock.PreviousHeaderProof)
 
 		require.Equal(t, &api.HeaderProof{
 			HeaderHash: hex.EncodeToString([]byte("hash2")),

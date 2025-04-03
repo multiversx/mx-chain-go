@@ -1997,3 +1997,242 @@ func TestResolverRequestHandler_IsInterfaceNil(t *testing.T) {
 	)
 	require.False(t, rrh.IsInterfaceNil())
 }
+
+func TestResolverRequestHandler_RequestEquivalentProofByHash(t *testing.T) {
+	t.Parallel()
+
+	t.Run("hash already requested should work", func(t *testing.T) {
+		t.Parallel()
+
+		providedHash := []byte("provided hash")
+		rrh, _ := NewResolverRequestHandler(
+			&dataRetrieverMocks.RequestersFinderStub{
+				MetaChainRequesterCalled: func(baseTopic string) (requester dataRetriever.Requester, e error) {
+					require.Fail(t, "should not have been called")
+					return nil, nil
+				},
+			},
+			&mock.RequestedItemsHandlerStub{
+				HasCalled: func(key string) bool {
+					return true
+				},
+			},
+			&mock.WhiteListHandlerStub{
+				AddCalled: func(keys [][]byte) {
+					require.Fail(t, "should not have been called")
+				},
+			},
+			100,
+			0,
+			time.Second,
+		)
+
+		rrh.RequestEquivalentProofByHash(providedHash, 0, core.MetachainShardId)
+	})
+	t.Run("invalid cross shard request should early exit", func(t *testing.T) {
+		t.Parallel()
+
+		providedHash := []byte("provided hash")
+		rrh, _ := NewResolverRequestHandler(
+			&dataRetrieverMocks.RequestersFinderStub{},
+			&mock.RequestedItemsHandlerStub{},
+			&mock.WhiteListHandlerStub{
+				AddCalled: func(keys [][]byte) {
+					require.Fail(t, "should not have been called")
+				},
+			},
+			100,
+			0,
+			time.Second,
+		)
+
+		rrh.RequestEquivalentProofByHash(providedHash, 0, 1)
+	})
+	t.Run("missing metachain requester should early exit", func(t *testing.T) {
+		t.Parallel()
+
+		providedHash := []byte("provided hash")
+		rrh, _ := NewResolverRequestHandler(
+			&dataRetrieverMocks.RequestersFinderStub{
+				MetaChainRequesterCalled: func(baseTopic string) (dataRetriever.Requester, error) {
+					return nil, errExpected
+				},
+			},
+			&mock.RequestedItemsHandlerStub{},
+			&mock.WhiteListHandlerStub{
+				AddCalled: func(keys [][]byte) {
+					require.Fail(t, "should not have been called")
+				},
+			},
+			100,
+			core.MetachainShardId,
+			time.Second,
+		)
+
+		rrh.RequestEquivalentProofByHash(providedHash, 0, core.MetachainShardId)
+	})
+	t.Run("missing crossshard requester should early exit", func(t *testing.T) {
+		t.Parallel()
+
+		providedHash := []byte("provided hash")
+		rrh, _ := NewResolverRequestHandler(
+			&dataRetrieverMocks.RequestersFinderStub{
+				CrossShardRequesterCalled: func(baseTopic string, crossShard uint32) (dataRetriever.Requester, error) {
+					return nil, errExpected
+				},
+			},
+			&mock.RequestedItemsHandlerStub{},
+			&mock.WhiteListHandlerStub{
+				AddCalled: func(keys [][]byte) {
+					require.Fail(t, "should not have been called")
+				},
+			},
+			100,
+			0,
+			time.Second,
+		)
+
+		rrh.RequestEquivalentProofByHash(providedHash, 0, core.MetachainShardId)
+	})
+	t.Run("MetaChainRequester returns error", func(t *testing.T) {
+		t.Parallel()
+
+		providedHash := []byte("provided hash")
+		res := &dataRetrieverMocks.RequesterStub{
+			RequestDataFromHashCalled: func(hash []byte, epoch uint32) error {
+				require.Fail(t, "should not have been called")
+
+				return nil
+			},
+		}
+
+		rrh, _ := NewResolverRequestHandler(
+			&dataRetrieverMocks.RequestersFinderStub{
+				MetaChainRequesterCalled: func(baseTopic string) (requester dataRetriever.Requester, e error) {
+					return res, errExpected
+				},
+			},
+			&mock.RequestedItemsHandlerStub{},
+			&mock.WhiteListHandlerStub{},
+			100,
+			core.MetachainShardId,
+			time.Second,
+		)
+
+		rrh.RequestEquivalentProofByHash(providedHash, 0, core.MetachainShardId)
+	})
+	t.Run("CrossChainRequester returns error", func(t *testing.T) {
+		t.Parallel()
+
+		providedHash := []byte("provided hash")
+		res := &dataRetrieverMocks.RequesterStub{
+			RequestDataFromHashCalled: func(hash []byte, epoch uint32) error {
+				require.Fail(t, "should not have been called")
+				return nil
+			},
+		}
+
+		rrh, _ := NewResolverRequestHandler(
+			&dataRetrieverMocks.RequestersFinderStub{
+				CrossShardRequesterCalled: func(baseTopic string, crossShard uint32) (dataRetriever.Requester, error) {
+					return res, errExpected
+				},
+			},
+			&mock.RequestedItemsHandlerStub{},
+			&mock.WhiteListHandlerStub{},
+			100,
+			0,
+			time.Second,
+		)
+
+		rrh.RequestEquivalentProofByHash(providedHash, 0, 0)
+	})
+	t.Run("RequestDataFromHash returns error", func(t *testing.T) {
+		t.Parallel()
+
+		providedHash := []byte("provided hash")
+		res := &dataRetrieverMocks.RequesterStub{
+			RequestDataFromHashCalled: func(hash []byte, epoch uint32) error {
+				return errExpected
+			},
+		}
+
+		rrh, _ := NewResolverRequestHandler(
+			&dataRetrieverMocks.RequestersFinderStub{
+				MetaChainRequesterCalled: func(baseTopic string) (requester dataRetriever.Requester, e error) {
+					return res, nil
+				},
+			},
+			&mock.RequestedItemsHandlerStub{
+				AddCalled: func(key string) error {
+					require.Fail(t, "should not have been called")
+					return nil
+				},
+			},
+			&mock.WhiteListHandlerStub{},
+			100,
+			core.MetachainShardId,
+			time.Second,
+		)
+
+		rrh.RequestEquivalentProofByHash(providedHash, 0, core.MetachainShardId)
+	})
+	t.Run("should work shard 0 requesting from 0", func(t *testing.T) {
+		t.Parallel()
+
+		providedHash := []byte("provided hash")
+		wasCalled := false
+		res := &dataRetrieverMocks.RequesterStub{
+			RequestDataFromHashCalled: func(hash []byte, epoch uint32) error {
+				assert.True(t, bytes.Equal(providedHash, hash))
+				wasCalled = true
+				return nil
+			},
+		}
+
+		rrh, _ := NewResolverRequestHandler(
+			&dataRetrieverMocks.RequestersFinderStub{
+				CrossShardRequesterCalled: func(baseTopic string, crossShard uint32) (dataRetriever.Requester, error) {
+					return res, nil
+				},
+			},
+			&mock.RequestedItemsHandlerStub{},
+			&mock.WhiteListHandlerStub{},
+			100,
+			0,
+			time.Second,
+		)
+
+		rrh.RequestEquivalentProofByHash(providedHash, 0, 0)
+		assert.True(t, wasCalled)
+	})
+	t.Run("should work shard meta requesting from 0", func(t *testing.T) {
+		t.Parallel()
+
+		providedHash := []byte("provided hash")
+		wasCalled := false
+		res := &dataRetrieverMocks.RequesterStub{
+			RequestDataFromHashCalled: func(hash []byte, epoch uint32) error {
+				assert.True(t, bytes.Equal(providedHash, hash))
+				wasCalled = true
+				return nil
+			},
+		}
+
+		rrh, _ := NewResolverRequestHandler(
+			&dataRetrieverMocks.RequestersFinderStub{
+				CrossShardRequesterCalled: func(baseTopic string, crossShard uint32) (dataRetriever.Requester, error) {
+					return res, nil
+				},
+			},
+			&mock.RequestedItemsHandlerStub{},
+			&mock.WhiteListHandlerStub{},
+			100,
+			core.MetachainShardId,
+			time.Second,
+		)
+
+		rrh.RequestEquivalentProofByHash(providedHash, 0, 0)
+		assert.True(t, wasCalled)
+	})
+}

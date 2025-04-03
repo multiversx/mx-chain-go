@@ -155,6 +155,8 @@ func NewShardProcessor(arguments ArgShardProcessor) (*shardProcessor, error) {
 	headersPool := sp.dataPool.Headers()
 	headersPool.RegisterHandler(sp.receivedMetaBlock)
 
+	sp.proofsPool.RegisterHandler(sp.checkReceivedProofIfAttestingIsNeeded)
+
 	sp.metaBlockFinality = process.BlockFinality
 
 	return &sp, nil
@@ -370,9 +372,9 @@ func (sp *shardProcessor) ProcessBlock(
 }
 
 func (sp *shardProcessor) checkProofsForCrossNotarizedMetaBlocks(header data.ShardHeaderHandler, waitTime time.Duration) error {
-	sp.mutRequestedAttestingNoncesMap.Lock()
-	sp.requestedAttestingNoncesMap = make(map[string]uint64)
-	sp.mutRequestedAttestingNoncesMap.Unlock()
+	sp.mutRequestedProofsMap.Lock()
+	sp.requestedProofsMap = make(map[string]struct{})
+	sp.mutRequestedProofsMap.Unlock()
 	_ = core.EmptyChannel(sp.allProofsReceived)
 
 	err := sp.checkProofsRequestingMissing(header)
@@ -397,7 +399,7 @@ func (sp *shardProcessor) checkProofsRequestingMissing(header data.ShardHeaderHa
 			continue
 		}
 
-		sp.checkProofRequestingNextHeaderIfMissing(core.MetachainShardId, metaBlockHash, hInfo.hdr.GetNonce())
+		sp.checkProofRequestingIfMissing(metaBlockHash, hInfo.hdr.GetEpoch(), core.MetachainShardId)
 	}
 
 	return nil
@@ -706,7 +708,14 @@ func (sp *shardProcessor) indexBlockIfNeeded(
 	log.Debug("indexed block", "hash", headerHash, "nonce", header.GetNonce(), "round", header.GetRound())
 
 	shardID := sp.shardCoordinator.SelfId()
-	indexRoundInfo(sp.outportHandler, sp.nodesCoordinator, shardID, header, lastBlockHeader, argSaveBlock.SignersIndexes)
+	indexRoundInfo(
+		sp.outportHandler,
+		sp.nodesCoordinator,
+		shardID, header,
+		lastBlockHeader,
+		argSaveBlock.SignersIndexes,
+		sp.enableEpochsHandler,
+	)
 }
 
 // RestoreBlockIntoPools restores the TxBlock and MetaBlock into associated pools
@@ -922,11 +931,6 @@ func (sp *shardProcessor) CreateBlock(
 		}
 	}
 
-	err = sp.addPrevProofIfNeeded(shardHdr)
-	if err != nil {
-		return nil, nil, err
-	}
-
 	sp.epochNotifier.CheckEpoch(shardHdr)
 	sp.blockChainHook.SetCurrentHeader(shardHdr)
 	body, processedMiniBlocksDestMeInfo, err := sp.createBlockBody(shardHdr, haveTime)
@@ -1101,7 +1105,7 @@ func (sp *shardProcessor) CommitBlock(
 	}
 
 	finalHeaderHash := headerHash
-	if !common.ShouldBlockHavePrevProof(header, sp.enableEpochsHandler, common.EquivalentMessagesFlag) {
+	if !common.IsFlagEnabledAfterEpochsStartBlock(header, sp.enableEpochsHandler, common.EquivalentMessagesFlag) {
 		finalHeaderHash = currentHeaderHash
 	}
 
@@ -1800,8 +1804,6 @@ func (sp *shardProcessor) receivedMetaBlock(headerHandler data.HeaderHandler, me
 		"nonce", metaBlock.Nonce,
 		"hash", metaBlockHash,
 	)
-
-	sp.checkReceivedHeaderIfAttestingIsNeeded(headerHandler)
 
 	sp.hdrsForCurrBlock.mutHdrsForBlock.Lock()
 

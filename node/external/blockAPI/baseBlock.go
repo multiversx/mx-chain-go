@@ -604,23 +604,16 @@ func createAlteredBlockHash(hash []byte) []byte {
 	return alteredHash
 }
 
-func (bap *baseAPIBlockProcessor) addProofs(
+func (bap *baseAPIBlockProcessor) addProof(
 	headerHash []byte,
 	header data.HeaderHandler,
 	apiBlock *api.Block,
-	getHeaderHandlerByNonce func(nonce uint64) (data.HeaderHandler, error),
 ) error {
-	prevHeaderProof := header.GetPreviousProof()
-	isNil := check.IfNil(prevHeaderProof)
-	if isNil && !bap.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, header.GetEpoch()) {
+	if !bap.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, header.GetEpoch()) {
 		return nil
 	}
 
-	if !isNil {
-		apiBlock.PreviousHeaderProof = proofToAPIProof(prevHeaderProof)
-	}
-
-	headerProof, err := bap.getHeaderProof(headerHash, header, getHeaderHandlerByNonce)
+	headerProof, err := bap.getHeaderProof(headerHash, header)
 	if err != nil {
 		return errCannotFindBlockProof
 	}
@@ -636,19 +629,11 @@ func (bap *baseAPIBlockProcessor) addProofs(
 func (bap *baseAPIBlockProcessor) getHeaderProof(
 	headerHash []byte,
 	header data.HeaderHandler,
-	getHeaderByNonce func(nonce uint64) (data.HeaderHandler, error),
 ) (data.HeaderProofHandler, error) {
 	proofFromPool, err := bap.proofsPool.GetProof(header.GetShardID(), headerHash)
-	if err == nil {
-		return proofFromPool, nil
-	}
+	return proofFromPool, err
 
-	nextHeader, err := getHeaderByNonce(header.GetNonce() + 1)
-	if err != nil {
-		return nil, err
-	}
-
-	return nextHeader.GetPreviousProof(), nil
+	// TODO: try to get it from storage here once all PRs are merged
 }
 
 func proofToAPIProof(proof data.HeaderProofHandler) *api.HeaderProof {

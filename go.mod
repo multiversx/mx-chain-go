@@ -17,7 +17,7 @@ require (
 	github.com/libp2p/go-libp2p-pubsub v0.9.3
 	github.com/mitchellh/mapstructure v1.5.0
 	github.com/multiversx/mx-chain-communication-go v1.2.0
-	github.com/multiversx/mx-chain-core-go v1.3.0
+	github.com/multiversx/mx-chain-core-go v1.3.1-0.20250402145918-df6b45b4e74f
 	github.com/multiversx/mx-chain-crypto-go v1.2.12
 	github.com/multiversx/mx-chain-es-indexer-go v1.8.0
 	github.com/multiversx/mx-chain-logger-go v1.0.15

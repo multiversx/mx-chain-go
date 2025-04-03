@@ -454,10 +454,9 @@ func (st *storageBootstrapper) applyBlock(headerHash []byte, header data.HeaderH
 	}
 
 	st.forkDetector.AddCheckpoint(header.GetNonce(), header.GetRound(), headerHash)
-	if header.GetShardID() == core.MetachainShardId || !check.IfNil(header.GetPreviousProof()) {
-		st.forkDetector.SetFinalToLastCheckpoint()
-		st.forkDetector.ResetProbableHighestNonce()
-	}
+	st.forkDetector.SetFinalToLastCheckpoint()
+	st.forkDetector.ResetProbableHighestNonce()
+
 	return nil
 }
 
