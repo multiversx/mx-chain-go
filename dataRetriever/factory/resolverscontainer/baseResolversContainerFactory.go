@@ -14,6 +14,7 @@ import (
 	"github.com/multiversx/mx-chain-go/p2p"
 	"github.com/multiversx/mx-chain-go/process/factory"
 	"github.com/multiversx/mx-chain-go/sharding"
+	"github.com/multiversx/mx-chain-go/testscommon/storage"
 	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
@@ -416,4 +417,47 @@ func (brcf *baseResolversContainerFactory) generateValidatorInfoResolver() error
 	}
 
 	return brcf.container.Add(identifierValidatorInfo, validatorInfoResolver)
+}
+
+func (brcf *baseResolversContainerFactory) createEquivalentProofsResolver(
+	topic string,
+	targetShardID uint32,
+) (dataRetriever.Resolver, error) {
+	resolverSender, err := brcf.createOneResolverSenderWithSpecifiedNumRequests(
+		topic,
+		EmptyExcludePeersOnTopic,
+		targetShardID,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	arg := resolvers.ArgEquivalentProofsResolver{
+		ArgBaseResolver: resolvers.ArgBaseResolver{
+			SenderResolver:   resolverSender,
+			Marshaller:       brcf.marshalizer,
+			AntifloodHandler: brcf.inputAntifloodHandler,
+			Throttler:        brcf.trieNodesThrottler,
+		},
+		DataPacker:              brcf.dataPacker,
+		EquivalentProofsStorage: &storage.StorerStub{}, // TODO: pass the proper storer once PRs are merged
+		EquivalentProofsPool:    brcf.dataPools.Proofs(),
+		IsFullHistoryNode:       brcf.isFullHistoryNode,
+	}
+	resolver, err := resolvers.NewEquivalentProofsResolver(arg)
+	if err != nil {
+		return nil, err
+	}
+
+	err = brcf.mainMessenger.RegisterMessageProcessor(resolver.RequestTopic(), common.DefaultResolversIdentifier, resolver)
+	if err != nil {
+		return nil, err
+	}
+
+	err = brcf.fullArchiveMessenger.RegisterMessageProcessor(resolver.RequestTopic(), common.DefaultResolversIdentifier, resolver)
+	if err != nil {
+		return nil, err
+	}
+
+	return resolver, nil
 }
