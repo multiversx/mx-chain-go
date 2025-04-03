@@ -11,7 +11,6 @@ import (
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/common"
-	"github.com/multiversx/mx-chain-go/trie/keyBuilder"
 	logger "github.com/multiversx/mx-chain-logger-go"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 )
@@ -19,8 +18,6 @@ import (
 const (
 	nrOfChildren         = 17
 	firstByte            = 0
-	hexTerminator        = 16
-	nibbleMask           = 0x0f
 	pointerSizeInBytes   = 8
 	numNodeInnerPointers = 2 // each trie node contains a marshalizer and a hasher
 	pollingIdleNode      = time.Millisecond
@@ -158,24 +155,6 @@ func getEmptyNodeOfType(t byte) (node, error) {
 
 func childPosOutOfRange(pos byte) bool {
 	return pos >= nrOfChildren
-}
-
-// keyBytesToHex transforms key bytes into hex nibbles. The key nibbles are reversed, meaning that the
-// last key nibble will be the first in the hex key. A hex terminator is added at the end of the hex key.
-func keyBytesToHex(str []byte) []byte {
-	hexLength := len(str)*2 + 1
-	nibbles := make([]byte, hexLength)
-
-	hexSliceIndex := 0
-	nibbles[hexLength-1] = hexTerminator
-
-	for i := hexLength - 2; i > 0; i -= 2 {
-		nibbles[i] = str[hexSliceIndex] >> keyBuilder.NibbleSize
-		nibbles[i-1] = str[hexSliceIndex] & nibbleMask
-		hexSliceIndex++
-	}
-
-	return nibbles
 }
 
 // prefixLen returns the length of the common prefix of a and b.

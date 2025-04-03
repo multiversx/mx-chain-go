@@ -340,7 +340,7 @@ func TestKeyBytesToHex(t *testing.T) {
 	}
 
 	for i := range test {
-		assert.Equal(t, test[i].hex, keyBytesToHex(test[i].key))
+		assert.Equal(t, test[i].hex, keyBuilder.KeyBytesToHex(test[i].key))
 	}
 }
 

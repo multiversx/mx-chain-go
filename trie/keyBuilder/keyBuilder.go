@@ -8,7 +8,11 @@ const (
 	// NibbleSize marks the size of a byte nibble
 	NibbleSize = 4
 
-	keyLength = 32
+	// HexTerminator is the terminator for a trie hex key
+	HexTerminator = 16
+
+	keyLength  = 32
+	nibbleMask = 0x0f
 )
 
 type keyBuilder struct {
@@ -58,6 +62,24 @@ func hexToTrieKeyBytes(hex []byte) ([]byte, error) {
 	}
 
 	return key, nil
+}
+
+// KeyBytesToHex transforms key bytes into hex nibbles. The key nibbles are reversed, meaning that the
+// last key nibble will be the first in the hex key. A hex terminator is added at the end of the hex key.
+func KeyBytesToHex(str []byte) []byte {
+	hexLength := len(str)*2 + 1
+	nibbles := make([]byte, hexLength)
+
+	hexSliceIndex := 0
+	nibbles[hexLength-1] = HexTerminator
+
+	for i := hexLength - 2; i > 0; i -= 2 {
+		nibbles[i] = str[hexSliceIndex] >> NibbleSize
+		nibbles[i-1] = str[hexSliceIndex] & nibbleMask
+		hexSliceIndex++
+	}
+
+	return nibbles
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
