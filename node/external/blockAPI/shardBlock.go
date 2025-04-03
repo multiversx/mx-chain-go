@@ -242,7 +242,7 @@ func (sbp *shardAPIBlockProcessor) convertShardBlockBytesToAPIBlock(hash []byte,
 	}
 
 	addScheduledInfoInBlock(blockHeader, apiBlock)
-	err = sbp.addProofs(hash, blockHeader, apiBlock, sbp.getHeaderHandler)
+	err = sbp.addProofs(hash, blockHeader, apiBlock)
 	if err != nil {
 		return nil, err
 	}
