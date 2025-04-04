@@ -160,6 +160,8 @@ func (iep *interceptedEquivalentProof) CheckValidity() error {
 		return err
 	}
 
+	// TODO: avoid this check if the intercepted proof was requested by the current node,
+	// in order to avoid dropping valid messages from not-eligible nodes
 	if !iep.eligibleNodesCache.IsPeerEligible(iep.messageOriginator, iep.proof.GetHeaderShardId(), common.GetEpochForConsensus(iep.proof)) {
 		return fmt.Errorf("%w, proof originator must be an eligible node", process.ErrInvalidHeaderProof)
 	}
