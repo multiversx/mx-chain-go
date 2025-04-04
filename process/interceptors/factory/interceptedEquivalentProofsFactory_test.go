@@ -30,10 +30,11 @@ func createMockArgInterceptedEquivalentProofsFactory() ArgInterceptedEquivalentP
 			HeaderSigVerifier: &consensus.HeaderSigVerifierMock{},
 			NodesCoordinator:  &shardingMocks.NodesCoordinatorStub{},
 		},
-		ProofsPool:      &dataRetriever.ProofsPoolMock{},
-		HeadersPool:     &pool.HeadersPoolStub{},
-		Storage:         &genericMocks.ChainStorerMock{},
-		PeerShardMapper: &processMock.PeerShardMapperStub{},
+		ProofsPool:       &dataRetriever.ProofsPoolMock{},
+		HeadersPool:      &pool.HeadersPoolStub{},
+		Storage:          &genericMocks.ChainStorerMock{},
+		PeerShardMapper:  &processMock.PeerShardMapperStub{},
+		WhiteListHandler: &testscommon.WhiteListHandlerStub{},
 	}
 }
 
