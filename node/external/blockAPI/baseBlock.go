@@ -631,9 +631,24 @@ func (bap *baseAPIBlockProcessor) getHeaderProof(
 	header data.HeaderHandler,
 ) (data.HeaderProofHandler, error) {
 	proofFromPool, err := bap.proofsPool.GetProof(header.GetShardID(), headerHash)
-	return proofFromPool, err
+	if err == nil {
+		return proofFromPool, nil
+	}
 
-	// TODO: try to get it from storage here once all PRs are merged
+	proofsStorer, err := bap.store.GetStorer(dataRetriever.ProofsUnit)
+	if err != nil {
+		return nil, err
+	}
+
+	proofBytes, err := proofsStorer.GetFromEpoch(headerHash, header.GetEpoch())
+	if err != nil {
+		return nil, err
+	}
+
+	proof := &block.HeaderProof{}
+	err = bap.marshalizer.Unmarshal(proof, proofBytes)
+
+	return proof, err
 }
 
 func proofToAPIProof(proof data.HeaderProofHandler) *api.HeaderProof {
