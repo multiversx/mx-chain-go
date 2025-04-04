@@ -62,22 +62,36 @@ jobs:
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
-            // Get the latest comment
+            // Get all comments
             const comments = await github.rest.issues.listComments({
               owner: context.repo.owner,
               repo: context.repo.repo,
               issue_number: context.issue.number,
             });
 
-            const lastComment = comments.data.pop(); // Get the last comment
+            // Find the last comment that contains 'Run Tests:'
+            let lastTestComment = null;
+            for (let i = comments.data.length - 1; i >= 0; i--) {
+              if (comments.data[i].body.includes('Run Tests:')) {
+                lastTestComment = comments.data[i];
+                break;
+              }
+            }
 
-            if (lastComment && lastComment.body.includes('Run Tests:')) {
-              const body = lastComment.body.trim();
+            if (lastTestComment) {
+              const body = lastTestComment.body.trim();
+              core.info(`Found comment containing 'Run Tests:': ${body}`);
               core.setOutput('latest_comment', body);
 
-              // Parse the branches from the last comment
-              const simulatorBranchMatch = body.match(/mx-chain-simulator-go:\s*(\S+)/);
-              const testingSuiteBranchMatch = body.match(/mx-chain-testing-suite:\s*(\S+)/);
+              // Improved regex patterns to handle multiline formats and variations
+              const simulatorBranchMatch = body.match(/mx-chain-simulator-go\s*:\s*(\S+)/);
+              const testingSuiteBranchMatch = body.match(/mx-chain-testing-suite\s*:\s*(\S+)/);
+              const goBranchMatch = body.match(/mx-chain-go\s*:\s*(\S+)/);
+
+              // Log found matches for debugging
+              core.info(`Simulator match: ${simulatorBranchMatch ? simulatorBranchMatch[1] : 'none'}`);
+              core.info(`Testing Suite match: ${testingSuiteBranchMatch ? testingSuiteBranchMatch[1] : 'none'}`);
+              core.info(`Go match: ${goBranchMatch ? goBranchMatch[1] : 'none'}`);
 
               // Override the target branches if specified
               if (simulatorBranchMatch) {
@@ -86,8 +100,14 @@ jobs:
               if (testingSuiteBranchMatch) {
                 core.exportVariable('MX_CHAIN_TESTING_SUITE_TARGET_BRANCH', testingSuiteBranchMatch[1]);
               }
+              if (goBranchMatch) {
+                core.exportVariable('MX_CHAIN_GO_TARGET_BRANCH', goBranchMatch[1]);
+              }
+
+              // Log which comment was used for configuration
+              core.info(`Using 'Run Tests:' comment from ${lastTestComment.user.login} at ${lastTestComment.created_at}`);
             } else {
-              core.info('The last comment does not contain "Run Tests:". Skipping branch override.');
+              core.info('No comment containing "Run Tests:" was found. Using default branch settings.');
             }
       
 
