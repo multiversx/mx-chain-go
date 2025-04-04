@@ -235,6 +235,16 @@ func (psf *StorageServiceFactory) createAndAddBaseStorageUnits(
 	}
 	store.AddStorer(dataRetriever.MetaBlockUnit, metaBlockUnit)
 
+	proofsUnitArgs, err := psf.createPruningStorerArgs(psf.generalConfig.ProofStorage, disabledCustomDatabaseRemover)
+	if err != nil {
+		return err
+	}
+	proofsUnit, err := psf.createPruningPersister(proofsUnitArgs)
+	if err != nil {
+		return fmt.Errorf("%w for ProofsStorage", err)
+	}
+	store.AddStorer(dataRetriever.ProofsUnit, proofsUnit)
+
 	metaHdrHashNonceUnit, err := psf.createStaticStorageUnit(psf.generalConfig.MetaHdrNonceHashStorage, shardID, emptyDBPathSuffix)
 	if err != nil {
 		return fmt.Errorf("%w for MetaHdrNonceHashStorage", err)

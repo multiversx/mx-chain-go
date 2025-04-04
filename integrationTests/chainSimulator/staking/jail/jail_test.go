@@ -22,9 +22,9 @@ import (
 )
 
 const (
-	stakingV4JailUnJailStep1EnableEpoch = 5
+	stakingV4JailUnJailStep1EnableEpoch = 9
 	defaultPathToInitialConfig          = "../../../../cmd/node/config/"
-	epochWhenNodeIsJailed               = 4
+	epochWhenNodeIsJailed               = 8
 )
 
 // Test description
@@ -39,19 +39,19 @@ func TestChainSimulator_ValidatorJailUnJail(t *testing.T) {
 	}
 
 	t.Run("staking ph 4 is not active", func(t *testing.T) {
-		testChainSimulatorJailAndUnJail(t, 4, "new")
+		testChainSimulatorJailAndUnJail(t, 8, "new")
 	})
 
 	t.Run("staking ph 4 step 1 active", func(t *testing.T) {
-		testChainSimulatorJailAndUnJail(t, 5, "auction")
+		testChainSimulatorJailAndUnJail(t, 9, "auction")
 	})
 
 	t.Run("staking ph 4 step 2 active", func(t *testing.T) {
-		testChainSimulatorJailAndUnJail(t, 6, "auction")
+		testChainSimulatorJailAndUnJail(t, 10, "auction")
 	})
 
 	t.Run("staking ph 4 step 3 active", func(t *testing.T) {
-		testChainSimulatorJailAndUnJail(t, 7, "auction")
+		testChainSimulatorJailAndUnJail(t, 11, "auction")
 	})
 }
 
@@ -74,8 +74,8 @@ func testChainSimulatorJailAndUnJail(t *testing.T, targetEpoch int32, nodeStatus
 		RoundDurationInMillis:  roundDurationInMillis,
 		RoundsPerEpoch:         roundsPerEpoch,
 		ApiInterface:           api.NewNoApiInterface(),
-		MinNodesPerShard:       2,
-		MetaChainMinNodes:      2,
+		MinNodesPerShard:       4,
+		MetaChainMinNodes:      4,
 		AlterConfigsFunction: func(cfg *config.Configs) {
 			configs.SetStakingV4ActivationEpochs(cfg, stakingV4JailUnJailStep1EnableEpoch)
 			cfg.EpochConfig.EnableEpochs.FixedOrderInConsensusEnableEpoch = 100
@@ -179,8 +179,8 @@ func TestChainSimulator_FromQueueToAuctionList(t *testing.T) {
 		RoundDurationInMillis:  roundDurationInMillis,
 		RoundsPerEpoch:         roundsPerEpoch,
 		ApiInterface:           api.NewNoApiInterface(),
-		MinNodesPerShard:       3,
-		MetaChainMinNodes:      3,
+		MinNodesPerShard:       4,
+		MetaChainMinNodes:      4,
 		AlterConfigsFunction: func(cfg *config.Configs) {
 			configs.SetStakingV4ActivationEpochs(cfg, stakingV4JailUnJailStep1EnableEpoch)
 			configs.SetQuickJailRatingConfig(cfg)

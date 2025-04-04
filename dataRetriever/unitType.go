@@ -49,6 +49,8 @@ const (
 	PeerAccountsUnit UnitType = 21
 	// ScheduledSCRsUnit is the scheduled SCRs storage unit identifier
 	ScheduledSCRsUnit UnitType = 22
+	// ProofsUnit is the header proofs unit identifier
+	ProofsUnit UnitType = 23
 
 	// ShardHdrNonceHashDataUnit is the header nonce-hash pair data unit identifier
 	//TODO: Add only unit types lower than 100
