@@ -156,6 +156,7 @@ type Config struct {
 	RewardTxStorage                 StorageConfig
 	ShardHdrNonceHashStorage        StorageConfig
 	MetaHdrNonceHashStorage         StorageConfig
+	ProofsNonceHashStorage          StorageConfig
 	StatusMetricsStorage            StorageConfig
 	ReceiptsStorage                 StorageConfig
 	ScheduledSCRsStorage            StorageConfig

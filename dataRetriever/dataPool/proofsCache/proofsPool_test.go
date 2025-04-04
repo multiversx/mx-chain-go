@@ -80,7 +80,7 @@ func TestProofsPool_ShouldWork(t *testing.T) {
 	proof, err := pp.GetProof(shardID, []byte("hash3"))
 	require.Nil(t, err)
 	require.Equal(t, proof3, proof)
-	proof, err = pp.GetProofByHash([]byte("hash3"))
+	proof, err = pp.GetProofByNonce(3, shardID)
 	require.Nil(t, err)
 	require.Equal(t, proof3, proof)
 
@@ -90,14 +90,14 @@ func TestProofsPool_ShouldWork(t *testing.T) {
 	proof, err = pp.GetProof(shardID, []byte("hash3"))
 	require.Nil(t, err)
 	require.Equal(t, proof3, proof)
-	proof, err = pp.GetProofByHash([]byte("hash3"))
+	proof, err = pp.GetProofByNonce(3, shardID)
 	require.Nil(t, err)
 	require.Equal(t, proof3, proof)
 
 	proof, err = pp.GetProof(shardID, []byte("hash4"))
 	require.Nil(t, err)
 	require.Equal(t, proof4, proof)
-	proof, err = pp.GetProofByHash([]byte("hash4"))
+	proof, err = pp.GetProofByNonce(4, shardID)
 	require.Nil(t, err)
 	require.Equal(t, proof4, proof)
 }
@@ -285,10 +285,7 @@ func TestProofsPool_Concurrency(t *testing.T) {
 					atomic.AddUint32(&cnt, 1)
 				}
 			case 4:
-				_, err := pp.GetProofByHash(generateRandomHash())
-				if errors.Is(err, proofscache.ErrMissingProof) {
-					atomic.AddUint32(&cnt, 1)
-				}
+				_, _ = pp.GetProofByNonce(generateRandomNonce(100), generateRandomShardID())
 			case 5:
 				_ = pp.CleanupProofsBehindNonce(generateRandomShardID(), generateRandomNonce(100))
 			case 6:

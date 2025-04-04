@@ -34,6 +34,29 @@ func (pc *proofsCache) getProofByHash(headerHash []byte) (data.HeaderProofHandle
 	return proof, nil
 }
 
+func (pc *proofsCache) getProofByNonce(headerNonce uint64) (data.HeaderProofHandler, error) {
+	pc.mutProofsCache.RLock()
+	defer pc.mutProofsCache.RUnlock()
+
+	bucketKey := pc.getBucketKey(headerNonce)
+	bucket, ok := pc.proofsByNonceBuckets[bucketKey]
+	if !ok {
+		return nil, ErrMissingProof
+	}
+
+	proofHash, ok := bucket.proofsByNonce[headerNonce]
+	if !ok {
+		return nil, ErrMissingProof
+	}
+
+	proof, ok := pc.proofsByHash[proofHash]
+	if !ok {
+		return nil, ErrMissingProof
+	}
+
+	return proof, nil
+}
+
 func (pc *proofsCache) addProof(proof data.HeaderProofHandler) {
 	if check.IfNil(proof) {
 		return
