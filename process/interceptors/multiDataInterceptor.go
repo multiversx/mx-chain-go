@@ -232,7 +232,7 @@ func (mdi *MultiDataInterceptor) createInterceptedMultiDataMsgID(interceptedMult
 }
 
 func (mdi *MultiDataInterceptor) interceptedData(dataBuff []byte, originator core.PeerID, fromConnectedPeer core.PeerID) (process.InterceptedData, error) {
-	interceptedData, err := mdi.factory.Create(dataBuff)
+	interceptedData, err := mdi.factory.Create(dataBuff, originator)
 	if err != nil {
 		// this situation is so severe that we need to black list de peers
 		reason := "can not create object from received bytes, topic " + mdi.topic + ", error " + err.Error()

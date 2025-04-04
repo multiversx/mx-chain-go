@@ -117,7 +117,7 @@ type HdrValidatorHandler interface {
 
 // InterceptedDataFactory can create new instances of InterceptedData
 type InterceptedDataFactory interface {
-	Create(buff []byte) (InterceptedData, error)
+	Create(buff []byte, messageOriginator core.PeerID) (InterceptedData, error)
 	IsInterfaceNil() bool
 }
 
@@ -1167,6 +1167,7 @@ type EpochStartEventNotifier interface {
 type NodesCoordinator interface {
 	GetValidatorWithPublicKey(publicKey []byte) (validator nodesCoordinator.Validator, shardId uint32, err error)
 	GetAllEligibleValidatorsPublicKeys(epoch uint32) (map[uint32][][]byte, error)
+	GetAllEligibleValidatorsPublicKeysForShard(epoch uint32, shardID uint32) ([]string, error)
 	GetAllWaitingValidatorsPublicKeys(epoch uint32) (map[uint32][][]byte, error)
 	GetAllLeavingValidatorsPublicKeys(epoch uint32) (map[uint32][][]byte, error)
 	IsInterfaceNil() bool
@@ -1432,5 +1433,11 @@ type InterceptedDataVerifierFactory interface {
 type ProofsPool interface {
 	HasProof(shardID uint32, headerHash []byte) bool
 	IsProofInPoolEqualTo(headerProof data.HeaderProofHandler) bool
+	IsInterfaceNil() bool
+}
+
+// EligibleNodesCache defines the behaviour of a cache for eligible nodes
+type EligibleNodesCache interface {
+	IsPeerEligible(pid core.PeerID, shard uint32, epoch uint32) bool
 	IsInterfaceNil() bool
 }

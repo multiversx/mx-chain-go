@@ -4,7 +4,6 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/marshal"
-	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/process"
 )
 
@@ -12,6 +11,8 @@ import (
 type ArgEquivalentProofsInterceptorProcessor struct {
 	EquivalentProofsPool EquivalentProofsPool
 	Marshaller           marshal.Marshalizer
+	PeerShardMapper      process.PeerShardMapper
+	NodesCoordinator     process.NodesCoordinator
 }
 
 // equivalentProofsInterceptorProcessor is the processor used when intercepting equivalent proofs
@@ -40,6 +41,12 @@ func checkArgsEquivalentProofs(args ArgEquivalentProofsInterceptorProcessor) err
 	if check.IfNil(args.Marshaller) {
 		return process.ErrNilMarshalizer
 	}
+	if check.IfNil(args.PeerShardMapper) {
+		return process.ErrNilPeerShardMapper
+	}
+	if check.IfNil(args.NodesCoordinator) {
+		return process.ErrNilNodesCoordinator
+	}
 
 	return nil
 }
@@ -50,18 +57,9 @@ func (epip *equivalentProofsInterceptorProcessor) Validate(_ process.Intercepted
 	return nil
 }
 
-// Save will save the intercepted equivalent proof inside the proofs tracker
-func (epip *equivalentProofsInterceptorProcessor) Save(data process.InterceptedData, _ core.PeerID, _ string) error {
-	interceptedProof, ok := data.(interceptedEquivalentProof)
-	if !ok {
-		return process.ErrWrongTypeAssertion
-	}
-
-	wasAdded := epip.equivalentProofsPool.AddProof(interceptedProof.GetProof())
-	if !wasAdded {
-		return common.ErrAlreadyExistingEquivalentProof
-	}
-
+// Save returns nil
+// proof is added after validity checks, at intercepted data level
+func (epip *equivalentProofsInterceptorProcessor) Save(_ process.InterceptedData, _ core.PeerID, _ string) error {
 	return nil
 }
 
