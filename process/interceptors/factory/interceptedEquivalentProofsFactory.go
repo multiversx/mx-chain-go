@@ -17,10 +17,11 @@ import (
 // ArgInterceptedEquivalentProofsFactory is the DTO used to create a new instance of interceptedEquivalentProofsFactory
 type ArgInterceptedEquivalentProofsFactory struct {
 	ArgInterceptedDataFactory
-	ProofsPool      dataRetriever.ProofsPool
-	HeadersPool     dataRetriever.HeadersPool
-	Storage         dataRetriever.StorageService
-	PeerShardMapper process.PeerShardMapper
+	ProofsPool       dataRetriever.ProofsPool
+	HeadersPool      dataRetriever.HeadersPool
+	Storage          dataRetriever.StorageService
+	PeerShardMapper  process.PeerShardMapper
+	WhiteListHandler process.WhiteListHandler
 }
 
 type interceptedEquivalentProofsFactory struct {
@@ -34,6 +35,7 @@ type interceptedEquivalentProofsFactory struct {
 	proofSizeChecker   common.FieldsSizeChecker
 	km                 sync.KeyRWMutexHandler
 	eligibleNodesCache process.EligibleNodesCache
+	whiteListHandler   process.WhiteListHandler
 }
 
 // NewInterceptedEquivalentProofsFactory creates a new instance of interceptedEquivalentProofsFactory
@@ -54,6 +56,7 @@ func NewInterceptedEquivalentProofsFactory(args ArgInterceptedEquivalentProofsFa
 		proofSizeChecker:   args.CoreComponents.FieldsSizeChecker(),
 		km:                 sync.NewKeyRWMutex(),
 		eligibleNodesCache: enc,
+		whiteListHandler:   args.WhiteListHandler,
 	}, nil
 }
 
@@ -71,6 +74,7 @@ func (factory *interceptedEquivalentProofsFactory) Create(buff []byte, messageOr
 		KeyRWMutexHandler:  factory.km,
 		EligibleNodesCache: factory.eligibleNodesCache,
 		MessageOriginator:  messageOriginator,
+		WhiteListHandler:   factory.whiteListHandler,
 	}
 	return interceptedBlocks.NewInterceptedEquivalentProof(args)
 }

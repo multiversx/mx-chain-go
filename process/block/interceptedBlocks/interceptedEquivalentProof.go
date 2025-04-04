@@ -36,6 +36,7 @@ type ArgInterceptedEquivalentProof struct {
 	KeyRWMutexHandler  sync.KeyRWMutexHandler
 	EligibleNodesCache process.EligibleNodesCache
 	MessageOriginator  core.PeerID
+	WhiteListHandler   process.WhiteListHandler
 }
 
 type interceptedEquivalentProof struct {
@@ -51,6 +52,7 @@ type interceptedEquivalentProof struct {
 	km                 sync.KeyRWMutexHandler
 	eligibleNodesCache process.EligibleNodesCache
 	messageOriginator  core.PeerID
+	whiteListHandler   process.WhiteListHandler
 }
 
 // NewInterceptedEquivalentProof returns a new instance of interceptedEquivalentProof
@@ -80,6 +82,7 @@ func NewInterceptedEquivalentProof(args ArgInterceptedEquivalentProof) (*interce
 		km:                 args.KeyRWMutexHandler,
 		eligibleNodesCache: args.EligibleNodesCache,
 		messageOriginator:  args.MessageOriginator,
+		whiteListHandler:   args.WhiteListHandler,
 	}, nil
 }
 
@@ -113,6 +116,9 @@ func checkArgInterceptedEquivalentProof(args ArgInterceptedEquivalentProof) erro
 	}
 	if check.IfNil(args.EligibleNodesCache) {
 		return process.ErrNilEligibleNodesCache
+	}
+	if check.IfNil(args.WhiteListHandler) {
+		return process.ErrNilWhiteListHandler
 	}
 
 	return nil
@@ -160,10 +166,11 @@ func (iep *interceptedEquivalentProof) CheckValidity() error {
 		return err
 	}
 
-	// TODO: avoid this check if the intercepted proof was requested by the current node,
-	// in order to avoid dropping valid messages from not-eligible nodes
-	if !iep.eligibleNodesCache.IsPeerEligible(iep.messageOriginator, iep.proof.GetHeaderShardId(), common.GetEpochForConsensus(iep.proof)) {
-		return fmt.Errorf("%w, proof originator must be an eligible node", process.ErrInvalidHeaderProof)
+	shouldSkipEligibleVerification := iep.whiteListHandler.IsWhiteListed(iep)
+	if !shouldSkipEligibleVerification {
+		if !iep.eligibleNodesCache.IsPeerEligible(iep.messageOriginator, iep.proof.GetHeaderShardId(), common.GetEpochForConsensus(iep.proof)) {
+			return fmt.Errorf("%w, proof originator must be an eligible node", process.ErrInvalidHeaderProof)
+		}
 	}
 
 	headerHash := string(iep.proof.GetHeaderHash())

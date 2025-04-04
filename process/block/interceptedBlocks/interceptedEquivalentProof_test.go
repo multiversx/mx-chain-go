@@ -89,6 +89,7 @@ func createMockArgInterceptedEquivalentProof() ArgInterceptedEquivalentProof {
 		ProofSizeChecker:   &testscommon.FieldsSizeCheckerMock{},
 		KeyRWMutexHandler:  coreSync.NewKeyRWMutex(),
 		EligibleNodesCache: &testscommon.EligibleNodesCacheMock{},
+		WhiteListHandler:   &testscommon.WhiteListHandlerStub{},
 	}
 }
 
@@ -206,6 +207,15 @@ func TestNewInterceptedEquivalentProof(t *testing.T) {
 		args.EligibleNodesCache = nil
 		iep, err := NewInterceptedEquivalentProof(args)
 		require.Equal(t, process.ErrNilEligibleNodesCache, err)
+		require.Nil(t, iep)
+	})
+	t.Run("nil WhiteListHandler should error", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockArgInterceptedEquivalentProof()
+		args.WhiteListHandler = nil
+		iep, err := NewInterceptedEquivalentProof(args)
+		require.Equal(t, process.ErrNilWhiteListHandler, err)
 		require.Nil(t, iep)
 	})
 	t.Run("should work", func(t *testing.T) {
