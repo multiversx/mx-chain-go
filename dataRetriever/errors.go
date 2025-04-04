@@ -265,3 +265,15 @@ var ErrValidatorInfoNotFound = errors.New("validator info not found")
 
 // ErrNilProofsPool signals that a nil proofs pool has been provided
 var ErrNilProofsPool = errors.New("nil proofs pool")
+
+// ErrNilProofsStorage signals that a nil proofs storage has been provided
+var ErrNilProofsStorage = errors.New("nil proofs storage")
+
+// ErrEquivalentProofsNotFound signals that no equivalent proof found
+var ErrEquivalentProofsNotFound = errors.New("equivalent proof not found")
+
+// ErrInvalidHashShardKey signals that the provided hash-shard key is invalid
+var ErrInvalidHashShardKey = errors.New("invalid hash shard key")
+
+// ErrInvalidNonceShardKey signals that the provided nonce-shard key is invalid
+var ErrInvalidNonceShardKey = errors.New("invalid nonce shard key")
