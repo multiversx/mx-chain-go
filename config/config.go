@@ -166,6 +166,7 @@ type Config struct {
 
 	BootstrapStorage StorageConfig
 	MetaBlockStorage StorageConfig
+	ProofStorage     StorageConfig
 
 	AccountsTrieStorage      StorageConfig
 	PeerAccountsTrieStorage  StorageConfig
