@@ -174,6 +174,9 @@ func TestNewShardProcessor(t *testing.T) {
 					HeadersCalled: func() dataRetriever.HeadersPool {
 						return nil
 					},
+					ProofsCalled: func() dataRetriever.ProofsPool {
+						return &dataRetrieverMock.ProofsPoolMock{}
+					},
 				}
 				return CreateMockArgumentsMultiShard(coreComponents, &dataCompCopy, bootstrapComponents, statusComponents)
 			},
@@ -1433,6 +1436,9 @@ func TestShardProcessor_RequestEpochStartInfo(t *testing.T) {
 			TransactionsCalled: func() dataRetriever.ShardedDataCacherNotifier {
 				return &testscommon.ShardedDataStub{}
 			},
+			ProofsCalled: func() dataRetriever.ProofsPool {
+				return &dataRetrieverMock.ProofsPoolMock{}
+			},
 		}
 
 		args := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
@@ -1484,6 +1490,9 @@ func TestShardProcessor_RequestEpochStartInfo(t *testing.T) {
 			},
 			TransactionsCalled: func() dataRetriever.ShardedDataCacherNotifier {
 				return &testscommon.ShardedDataStub{}
+			},
+			ProofsCalled: func() dataRetriever.ProofsPool {
+				return &dataRetrieverMock.ProofsPoolMock{}
 			},
 		}
 
@@ -1542,6 +1551,9 @@ func TestShardProcessor_RequestEpochStartInfo(t *testing.T) {
 			},
 			TransactionsCalled: func() dataRetriever.ShardedDataCacherNotifier {
 				return &testscommon.ShardedDataStub{}
+			},
+			ProofsCalled: func() dataRetriever.ProofsPool {
+				return &dataRetrieverMock.ProofsPoolMock{}
 			},
 		}
 
@@ -4928,6 +4940,9 @@ func TestShardProcessor_CheckEpochCorrectnessShouldRemoveAndRequestStartOfEpochM
 					}
 				},
 			}
+		},
+		ProofsCalled: func() dataRetriever.ProofsPool {
+			return &dataRetrieverMock.ProofsPoolMock{}
 		},
 	}
 

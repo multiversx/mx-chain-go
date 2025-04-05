@@ -442,10 +442,10 @@ func TestProofToAPIProof(t *testing.T) {
 	}, proofToAPIProof(headerProof))
 }
 
-func TestAddProofs(t *testing.T) {
+func TestAddProof(t *testing.T) {
 	t.Parallel()
 
-	t.Run("no proofs for required block should error", func(t *testing.T) {
+	t.Run("no proof for required block should error", func(t *testing.T) {
 		t.Parallel()
 
 		baseAPIBlockProc := createBaseBlockProcessor()
@@ -465,13 +465,9 @@ func TestAddProofs(t *testing.T) {
 			},
 		}
 
-		header := &block.HeaderV2{
-			PreviousHeaderProof: &block.HeaderProof{
-				PubKeysBitmap: []byte("bitmap"),
-			},
-		}
+		header := &block.HeaderV2{}
 
-		err := baseAPIBlockProc.addProofs([]byte("hash"), header, &api.Block{})
+		err := baseAPIBlockProc.addProof([]byte("hash"), header, &api.Block{})
 		require.Equal(t, errCannotFindBlockProof, err)
 	})
 
@@ -492,14 +488,10 @@ func TestAddProofs(t *testing.T) {
 			},
 		}
 
-		header := &block.HeaderV2{
-			PreviousHeaderProof: &block.HeaderProof{
-				HeaderHash: []byte("hash1"),
-			},
-		}
+		header := &block.HeaderV2{}
 
 		apiBlock := &api.Block{}
-		err := baseAPIBlockProc.addProofs([]byte("hash"), header, apiBlock)
+		err := baseAPIBlockProc.addProof([]byte("hash"), header, apiBlock)
 		require.Nil(t, err)
 
 		require.Equal(t, &api.HeaderProof{
@@ -532,7 +524,7 @@ func TestAddProofs(t *testing.T) {
 		header := &block.HeaderV2{}
 
 		apiBlock := &api.Block{}
-		err := baseAPIBlockProc.addProofs([]byte("hash"), header, apiBlock)
+		err := baseAPIBlockProc.addProof([]byte("hash"), header, apiBlock)
 		require.Nil(t, err)
 
 		require.Equal(t, &api.HeaderProof{
@@ -571,14 +563,10 @@ func TestAddProofs(t *testing.T) {
 			},
 		}
 
-		header := &block.HeaderV2{
-			PreviousHeaderProof: &block.HeaderProof{
-				HeaderHash: []byte("hash1"),
-			},
-		}
+		header := &block.HeaderV2{}
 
 		apiBlock := &api.Block{}
-		err = baseAPIBlockProc.addProofs([]byte("hash"), header, apiBlock)
+		err = baseAPIBlockProc.addProof([]byte("hash"), header, apiBlock)
 		require.Nil(t, err)
 
 		require.Equal(t, &api.HeaderProof{

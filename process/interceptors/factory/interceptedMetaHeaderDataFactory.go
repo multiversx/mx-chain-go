@@ -28,7 +28,6 @@ type interceptedMetaHeaderDataFactory struct {
 	epochStartTrigger       process.EpochStartTriggerHandler
 	enableEpochsHandler     common.EnableEpochsHandler
 	proofsPool              process.ProofsPool
-	fieldsSizeChecker       common.FieldsSizeChecker
 }
 
 // NewInterceptedMetaHeaderDataFactory creates an instance of interceptedMetaHeaderDataFactory
@@ -80,7 +79,6 @@ func NewInterceptedMetaHeaderDataFactory(argument *ArgInterceptedMetaHeaderFacto
 		epochStartTrigger:       argument.EpochStartTrigger,
 		enableEpochsHandler:     argument.CoreComponents.EnableEpochsHandler(),
 		proofsPool:              argument.ProofsPool,
-		fieldsSizeChecker:       argument.CoreComponents.FieldsSizeChecker(),
 	}, nil
 }
 
@@ -97,7 +95,6 @@ func (imhdf *interceptedMetaHeaderDataFactory) Create(buff []byte) (process.Inte
 		EpochStartTrigger:       imhdf.epochStartTrigger,
 		EnableEpochsHandler:     imhdf.enableEpochsHandler,
 		ProofsPool:              imhdf.proofsPool,
-		FieldsSizeChecker:       imhdf.fieldsSizeChecker,
 	}
 
 	return interceptedBlocks.NewInterceptedMetaHeader(arg)

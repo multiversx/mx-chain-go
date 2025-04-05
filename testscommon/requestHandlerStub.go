@@ -22,6 +22,7 @@ type RequestHandlerStub struct {
 	RequestPeerAuthenticationsByHashesCalled func(destShardID uint32, hashes [][]byte)
 	RequestValidatorInfoCalled               func(hash []byte)
 	RequestValidatorsInfoCalled              func(hashes [][]byte)
+	RequestEquivalentProofByHashCalled       func(headerHash []byte, headerEpoch uint32, headerShard uint32)
 }
 
 // SetNumPeersToQuery -
@@ -173,6 +174,13 @@ func (rhs *RequestHandlerStub) RequestValidatorInfo(hash []byte) {
 func (rhs *RequestHandlerStub) RequestValidatorsInfo(hashes [][]byte) {
 	if rhs.RequestValidatorsInfoCalled != nil {
 		rhs.RequestValidatorsInfoCalled(hashes)
+	}
+}
+
+// RequestEquivalentProofByHash -
+func (rhs *RequestHandlerStub) RequestEquivalentProofByHash(headerHash []byte, headerEpoch uint32, headerShard uint32) {
+	if rhs.RequestEquivalentProofByHashCalled != nil {
+		rhs.RequestEquivalentProofByHashCalled(headerHash, headerEpoch, headerShard)
 	}
 }
 

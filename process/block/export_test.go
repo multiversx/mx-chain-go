@@ -79,26 +79,21 @@ func (bp *baseProcessor) FilterHeadersWithoutProofs() (map[string]*hdrInfo, erro
 	return bp.filterHeadersWithoutProofs()
 }
 
-// AddPrevProofIfNeeded -
-func (bp *baseProcessor) AddPrevProofIfNeeded(header data.HeaderHandler) error {
-	return bp.addPrevProofIfNeeded(header)
-}
-
 // WaitAllMissingProofs -
 func (bp *baseProcessor) WaitAllMissingProofs(waitTime time.Duration) error {
 	return bp.waitAllMissingProofs(waitTime)
 }
 
-// RequestNextHeader -
-func (bp *baseProcessor) RequestNextHeader(currentHeaderHash []byte, nonce uint64, shardID uint32) {
-	bp.requestNextHeader(currentHeaderHash, nonce, shardID)
+// RequestProof -
+func (bp *baseProcessor) RequestProof(currentHeaderHash []byte, epoch uint32, shardID uint32) {
+	bp.requestProof(currentHeaderHash, epoch, shardID)
 }
 
-// InitRequestedAttestingNoncesMap -
-func (bp *baseProcessor) InitRequestedAttestingNoncesMap() {
-	bp.mutRequestedAttestingNoncesMap.Lock()
-	bp.requestedAttestingNoncesMap = make(map[string]uint64)
-	bp.mutRequestedAttestingNoncesMap.Unlock()
+// InitRequestedProofsMap -
+func (bp *baseProcessor) InitRequestedProofsMap() {
+	bp.mutRequestedProofsMap.Lock()
+	bp.requestedProofsMap = make(map[string]struct{})
+	bp.mutRequestedProofsMap.Unlock()
 
 	bp.allProofsReceived = make(chan bool)
 }
@@ -851,6 +846,9 @@ func (hfb *hdrForBlock) GetHdrHashAndInfo() map[string]*HdrInfo {
 }
 
 // DisplayHeader -
-func DisplayHeader(headerHandler data.HeaderHandler) []*display.LineData {
-	return displayHeader(headerHandler)
+func DisplayHeader(
+	headerHandler data.HeaderHandler,
+	headerProof data.HeaderProofHandler,
+) []*display.LineData {
+	return displayHeader(headerHandler, headerProof)
 }

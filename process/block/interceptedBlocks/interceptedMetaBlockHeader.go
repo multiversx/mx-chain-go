@@ -32,7 +32,6 @@ type InterceptedMetaHeader struct {
 	epochStartTrigger   process.EpochStartTriggerHandler
 	enableEpochsHandler common.EnableEpochsHandler
 	proofsPool          process.ProofsPool
-	fieldsSizeChecker   common.FieldsSizeChecker
 }
 
 // NewInterceptedMetaHeader creates a new instance of InterceptedMetaHeader struct
@@ -57,7 +56,6 @@ func NewInterceptedMetaHeader(arg *ArgInterceptedBlockHeader) (*InterceptedMetaH
 		epochStartTrigger:   arg.EpochStartTrigger,
 		enableEpochsHandler: arg.EnableEpochsHandler,
 		proofsPool:          arg.ProofsPool,
-		fieldsSizeChecker:   arg.FieldsSizeChecker,
 	}
 	inHdr.processFields(arg.HdrBuff)
 
@@ -167,12 +165,12 @@ func (imh *InterceptedMetaHeader) isMetaHeaderEpochOutOfRange() bool {
 
 // integrity checks the integrity of the meta header block wrapper
 func (imh *InterceptedMetaHeader) integrity() error {
-	err := checkHeaderHandler(imh.HeaderHandler(), imh.enableEpochsHandler, imh.fieldsSizeChecker)
+	err := checkHeaderHandler(imh.HeaderHandler(), imh.enableEpochsHandler)
 	if err != nil {
 		return err
 	}
 
-	err = checkMetaShardInfo(imh.hdr.GetShardInfoHandlers(), imh.shardCoordinator, imh.sigVerifier, imh.proofsPool, imh.fieldsSizeChecker)
+	err = checkMetaShardInfo(imh.hdr.GetShardInfoHandlers(), imh.shardCoordinator)
 	if err != nil {
 		return err
 	}

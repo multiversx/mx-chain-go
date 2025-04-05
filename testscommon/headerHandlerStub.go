@@ -38,8 +38,6 @@ type HeaderHandlerStub struct {
 	SetRandSeedCalled                      func(seed []byte) error
 	SetSignatureCalled                     func(signature []byte) error
 	SetLeaderSignatureCalled               func(signature []byte) error
-	GetPreviousProofCalled                 func() data.HeaderProofHandler
-	SetPreviousProofCalled                 func(proof data.HeaderProofHandler)
 	GetShardIDCalled                       func() uint32
 	SetRootHashCalled                      func(hash []byte) error
 }
@@ -436,20 +434,4 @@ func (hhs *HeaderHandlerStub) SetBlockBodyTypeInt32(blockBodyType int32) error {
 	hhs.BlockBodyTypeInt32Field = blockBodyType
 
 	return nil
-}
-
-// GetPreviousProof -
-func (hhs *HeaderHandlerStub) GetPreviousProof() data.HeaderProofHandler {
-	if hhs.GetPreviousProofCalled != nil {
-		return hhs.GetPreviousProofCalled()
-	}
-
-	return nil
-}
-
-// SetPreviousProof -
-func (hhs *HeaderHandlerStub) SetPreviousProof(proof data.HeaderProofHandler) {
-	if hhs.SetPreviousProofCalled != nil {
-		hhs.SetPreviousProofCalled(proof)
-	}
 }

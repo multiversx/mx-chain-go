@@ -182,6 +182,8 @@ func NewMetaProcessor(arguments ArgMetaProcessor) (*metaProcessor, error) {
 	headersPool := mp.dataPool.Headers()
 	headersPool.RegisterHandler(mp.receivedShardHeader)
 
+	mp.proofsPool.RegisterHandler(mp.checkReceivedProofIfAttestingIsNeeded)
+
 	mp.chRcvAllHdrs = make(chan bool)
 
 	mp.shardBlockFinality = process.BlockFinality
@@ -429,9 +431,9 @@ func (mp *metaProcessor) checkProofsForShardDataIfNeeded(header *block.MetaBlock
 		return nil
 	}
 
-	mp.mutRequestedAttestingNoncesMap.Lock()
-	mp.requestedAttestingNoncesMap = make(map[string]uint64)
-	mp.mutRequestedAttestingNoncesMap.Unlock()
+	mp.mutRequestedProofsMap.Lock()
+	mp.requestedProofsMap = make(map[string]struct{})
+	mp.mutRequestedProofsMap.Unlock()
 	_ = core.EmptyChannel(mp.allProofsReceived)
 
 	err := mp.checkProofsForShardData(header)
@@ -456,23 +458,7 @@ func (mp *metaProcessor) checkProofsForShardData(header *block.MetaBlock) error 
 			continue
 		}
 
-		mp.checkProofRequestingNextHeaderIfMissing(shardData.ShardID, shardData.HeaderHash, shardData.Nonce)
-
-		if !common.ShouldBlockHavePrevProof(shardHeader.hdr, mp.enableEpochsHandler, common.EquivalentMessagesFlag) {
-			continue
-		}
-
-		prevProof := shardData.GetPreviousProof()
-		headersPool := mp.dataPool.Headers()
-		prevHeader, err := process.GetHeader(prevProof.GetHeaderHash(), headersPool, mp.store, mp.marshalizer, prevProof.GetHeaderShardId())
-		if err != nil {
-			return err
-		}
-
-		err = common.VerifyProofAgainstHeader(prevProof, prevHeader)
-		if err != nil {
-			return err
-		}
+		mp.checkProofRequestingIfMissing(shardData.HeaderHash, shardData.Epoch, shardData.ShardID)
 	}
 
 	return nil
@@ -716,7 +702,15 @@ func (mp *metaProcessor) indexBlock(
 
 	log.Debug("indexed block", "hash", headerHash, "nonce", metaBlock.GetNonce(), "round", metaBlock.GetRound())
 
-	indexRoundInfo(mp.outportHandler, mp.nodesCoordinator, core.MetachainShardId, metaBlock, lastMetaBlock, argSaveBlock.SignersIndexes)
+	indexRoundInfo(
+		mp.outportHandler,
+		mp.nodesCoordinator,
+		core.MetachainShardId,
+		metaBlock,
+		lastMetaBlock,
+		argSaveBlock.SignersIndexes,
+		mp.enableEpochsHandler,
+	)
 
 	if metaBlock.GetNonce() != 1 && !metaBlock.IsStartOfEpochBlock() {
 		return
@@ -843,11 +837,6 @@ func (mp *metaProcessor) CreateBlock(
 	}
 
 	err = mp.updateHeaderForEpochStartIfNeeded(metaHdr)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	err = mp.addPrevProofIfNeeded(metaHdr)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -1422,6 +1411,7 @@ func (mp *metaProcessor) CommitBlock(
 			headerHash,
 			numShardHeadersFromPool,
 			mp.blockTracker,
+			mp.dataPool,
 		)
 	}()
 
@@ -1613,7 +1603,7 @@ func (mp *metaProcessor) updateState(metaBlock data.MetaHeaderHandler, metaBlock
 	)
 
 	outportFinalizedHeaderHash := metaBlockHash
-	if !common.ShouldBlockHavePrevProof(metaBlock, mp.enableEpochsHandler, common.EquivalentMessagesFlag) {
+	if !common.IsFlagEnabledAfterEpochsStartBlock(metaBlock, mp.enableEpochsHandler, common.EquivalentMessagesFlag) {
 		outportFinalizedHeaderHash = metaBlock.GetPrevHash()
 	}
 	mp.setFinalizedHeaderHashInIndexer(outportFinalizedHeaderHash)
@@ -1931,13 +1921,6 @@ func (mp *metaProcessor) checkShardHeadersValidity(metaHdr *block.MetaBlock) (ma
 			}
 		}
 
-		if common.ShouldBlockHavePrevProof(shardHdr, mp.enableEpochsHandler, common.EquivalentMessagesFlag) {
-			err = mp.verifyProof(shardData.GetPreviousProof())
-			if err != nil {
-				return nil, err
-			}
-		}
-
 		mapMiniBlockHeadersInMetaBlock := make(map[string]struct{})
 		for _, shardMiniBlockHdr := range shardData.ShardMiniBlockHeaders {
 			mapMiniBlockHeadersInMetaBlock[string(shardMiniBlockHdr.Hash)] = struct{}{}
@@ -2086,8 +2069,6 @@ func (mp *metaProcessor) receivedShardHeader(headerHandler data.HeaderHandler, s
 		"nonce", shardHeader.GetNonce(),
 		"hash", shardHeaderHash,
 	)
-
-	mp.checkReceivedHeaderIfAttestingIsNeeded(headerHandler)
 
 	mp.hdrsForCurrBlock.mutHdrsForBlock.Lock()
 
@@ -2279,12 +2260,6 @@ func (mp *metaProcessor) createShardInfo() ([]data.ShardDataHandler, error) {
 		shardData.PrevRandSeed = shardHdr.GetPrevRandSeed()
 		shardData.PubKeysBitmap = shardHdr.GetPubKeysBitmap()
 		if mp.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, shardHdr.GetEpoch()) {
-			prevProof := shardHdr.GetPreviousProof()
-			err := shardData.SetPreviousProof(prevProof)
-			if err != nil {
-				return nil, err
-			}
-
 			shardData.Epoch = shardHdr.GetEpoch()
 		}
 		shardData.NumPendingMiniBlocks = uint32(len(mp.pendingMiniBlocksHandler.GetPendingMiniBlocks(shardData.ShardID)))

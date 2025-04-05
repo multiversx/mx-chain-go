@@ -9,7 +9,6 @@ import (
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
 
-	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/process"
 )
 
@@ -95,15 +94,7 @@ func (h *headerValidator) IsHeaderConstructionValid(currHeader, prevHeader data.
 		return process.ErrRandSeedDoesNotMatch
 	}
 
-	return h.verifyProofForBlock(prevHeader, currHeader.GetPreviousProof())
-}
-
-func (h *headerValidator) verifyProofForBlock(header data.HeaderHandler, proof data.HeaderProofHandler) error {
-	if !h.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, header.GetEpoch()) {
-		return nil
-	}
-
-	return common.VerifyProofAgainstHeader(proof, header)
+	return nil
 }
 
 // IsInterfaceNil returns if underlying object is true
