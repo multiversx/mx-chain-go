@@ -186,6 +186,7 @@ func (c *collector) Store() error {
 		if err != nil {
 			return fmt.Errorf("failed to marshal state changes to JSON: %w", err)
 		}
+		log.Trace("state changes for", "txHash", stateChange.TxHash, "marshalledData", marshalledData)
 
 		err = c.storer.Put(stateChange.TxHash, marshalledData)
 		if err != nil {
