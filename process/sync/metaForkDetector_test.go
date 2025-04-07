@@ -6,6 +6,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 
+	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/mock"
 	"github.com/multiversx/mx-chain-go/process/sync"
@@ -209,6 +210,32 @@ func TestMetaForkDetector_AddHeaderWithProcessedBlockShouldSetCheckpoint(t *test
 	)
 	_ = bfd.AddHeader(hdr1, hash1, process.BHProcessed, nil, nil)
 	assert.Equal(t, hdr1.Nonce, bfd.LastCheckpointNonce())
+}
+
+func TestMetaForkDetector_AddHeaderWithProcessedBlockAndFlagShouldSetCheckpoint(t *testing.T) {
+	t.Parallel()
+
+	hdr1 := &block.Header{Nonce: 23, Round: 25, PubKeysBitmap: []byte("X")}
+	hash1 := []byte("hash1")
+	roundHandlerMock := &mock.RoundHandlerMock{RoundIndex: 26}
+	bfd, _ := sync.NewMetaForkDetector(
+		roundHandlerMock,
+		&testscommon.TimeCacheStub{},
+		&mock.BlockTrackerMock{},
+		0,
+		&enableEpochsHandlerMock.EnableEpochsHandlerStub{
+			IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
+				return true
+			},
+		},
+		&dataRetriever.ProofsPoolMock{
+			HasProofCalled: func(shardID uint32, headerHash []byte) bool {
+				return true
+			},
+		},
+	)
+	_ = bfd.AddHeader(hdr1, hash1, process.BHProcessed, nil, nil)
+	assert.Equal(t, hdr1.Nonce, bfd.FinalCheckpointNonce())
 }
 
 func TestMetaForkDetector_AddHeaderPresentShouldNotRewriteState(t *testing.T) {
