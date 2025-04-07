@@ -179,7 +179,9 @@ func (c *collector) Store() error {
 	}
 
 	for _, stateChange := range stateChangesForTx {
-		log.Trace("storing state changes for tx", "txHash", stateChange.TxHash, "stateChanges", stateChange.StateChanges)
+		for _, sc := range stateChange.StateChanges {
+			log.Trace("storing state changes for tx", "txHash", stateChange.TxHash, "stateChanges", sc)
+		}
 		marshalledData, err := json.Marshal(stateChange)
 		if err != nil {
 			return fmt.Errorf("failed to marshal state changes to JSON: %w", err)
@@ -321,7 +323,9 @@ func (c *collector) getDataAnalysisStateChangesForTxs() ([]dataAnalysisStateChan
 			StateChangesForTx: stateChangeForTx,
 			Tx:                cachedTx,
 		}
-		log.Trace("add state changes for tx", "txHash", stateChangeForTx.TxHash, "stateChanges", stateChangeForTx.StateChanges)
+		for _, stateChange := range stateChangeForTx.StateChanges {
+			log.Trace("add state changes for tx", "txHash", stateChangeForTx.TxHash, "stateChanges", stateChange)
+		}
 		dataAnalysisStateChangesForTxs = append(dataAnalysisStateChangesForTxs, stateChangesForTx)
 	}
 
