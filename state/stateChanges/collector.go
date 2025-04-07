@@ -175,6 +175,8 @@ func (c *collector) Store() error {
 		return fmt.Errorf("failed to retrieve data analysis state changes for tx: %w", err)
 	}
 
+	log.Trace("store", "numStateChanges", len(stateChangesForTx), "stateChanges", stateChangesForTx)
+
 	for _, stateChange := range stateChangesForTx {
 		marshalledData, err := json.Marshal(stateChange)
 		if err != nil {
@@ -266,6 +268,7 @@ func (c *collector) getStateChangesForTxs() ([]StateChangesForTx, error) {
 	defer c.stateChangesMut.Unlock()
 
 	stateChangesForTxsMap := make(map[string][]state.StateChange)
+	log.Trace("getStateChangesForTxs", "numStateChanges", len(c.stateChanges), "stateChanges", c.stateChanges)
 
 	for i := 0; i < len(c.stateChanges); i++ {
 		st := c.stateChanges[i]
