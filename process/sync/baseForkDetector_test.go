@@ -1494,10 +1494,6 @@ func TestBaseForkDetector_BlockWithoutProofShouldReturnEarly(t *testing.T) {
 	assert.Equal(t, uint64(0), bfd.ProbableHighestNonce())
 }
 
-// 1. block withput proof
-// AddHeader -> doJobOnBHProcessed -> appendSelfNotarizedHeaders -> append
-// 2. proof for block
-// ReceiveProof
 func TestBaseForkDetector_ReceivedProofForBlockHeaderShouldSetProof(t *testing.T) {
 	t.Parallel()
 
