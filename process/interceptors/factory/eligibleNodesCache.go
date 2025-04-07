@@ -6,7 +6,10 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-go/process"
+	logger "github.com/multiversx/mx-chain-logger-go"
 )
+
+var log = logger.GetOrCreate("eligibleNodesCache")
 
 // max number of epochs to keep in the local map
 const epochsDelta = uint32(3)
@@ -14,6 +17,22 @@ const epochsDelta = uint32(3)
 type epochLimits struct {
 	min uint32
 	max uint32
+}
+
+func (limits *epochLimits) isHigherInRange(newEpoch uint32) bool {
+	return newEpoch > limits.min && newEpoch < limits.min+epochsDelta
+}
+
+func (limits *epochLimits) isHigherOutOfRange(newEpoch uint32) bool {
+	return newEpoch >= limits.min+epochsDelta
+}
+
+func (limits *epochLimits) isLowerInRange(newEpoch uint32) bool {
+	return newEpoch < limits.max && newEpoch > limits.max-epochsDelta && limits.max >= epochsDelta
+}
+
+func (limits *epochLimits) isLowerOutOfRange(newEpoch uint32) bool {
+	return newEpoch <= limits.max-epochsDelta && limits.max >= epochsDelta
 }
 
 type eligibleNodesCache struct {
@@ -64,6 +83,7 @@ func (cache *eligibleNodesCache) IsPeerEligible(pid core.PeerID, shard uint32, e
 	// get the eligible list for the new epoch from nodesCoordinator
 	eligibleNodesForShardInEpoch, err := cache.getEligibleNodesForShardInEpoch(epoch, shard)
 	if err != nil {
+		log.Trace("IsPeerEligible.getEligibleNodesForShardInEpoch failed", "error", err)
 		return false
 	}
 
@@ -105,13 +125,9 @@ func (cache *eligibleNodesCache) updateMapsIfNeeded(
 	//		cache it and update the max cached if needed
 	//	4. the new epoch is lower than the max cached but still in the delta limits ->
 	//		cache it and update the min cached if needed
-	isHigherInRange := newEpoch > limitEpochsForShard.min && newEpoch < limitEpochsForShard.min+epochsDelta
-	isHigherOutOfRange := newEpoch >= limitEpochsForShard.min+epochsDelta
-	isLowerInRange := newEpoch < limitEpochsForShard.max && newEpoch > limitEpochsForShard.max-epochsDelta && limitEpochsForShard.max >= epochsDelta
-	isLowerOutOfRange := newEpoch <= limitEpochsForShard.max-epochsDelta && limitEpochsForShard.max >= epochsDelta
 
 	// case 1.
-	if isHigherOutOfRange {
+	if limitEpochsForShard.isHigherOutOfRange(newEpoch) {
 		tmpMin := newEpoch
 		for cachedEpoch := range cache.eligibleNodesMap[shard] {
 			shouldDeleteEpoch := cachedEpoch <= newEpoch-epochsDelta
@@ -137,7 +153,7 @@ func (cache *eligibleNodesCache) updateMapsIfNeeded(
 	}
 
 	// case 2.
-	if isLowerOutOfRange {
+	if limitEpochsForShard.isLowerOutOfRange(newEpoch) {
 		tmpMax := newEpoch
 		for cachedEpoch := range cache.eligibleNodesMap[shard] {
 			shouldDeleteEpoch := cachedEpoch >= newEpoch+epochsDelta
@@ -163,7 +179,7 @@ func (cache *eligibleNodesCache) updateMapsIfNeeded(
 	}
 
 	// case 3.
-	if isHigherInRange {
+	if limitEpochsForShard.isHigherInRange(newEpoch) {
 		// append the new epoch and store it as the max limit
 		cache.eligibleNodesMap[shard][newEpoch] = eligibleNodesForShardInEpoch
 		if cache.epochsLimitsForShardMap[shard].max < newEpoch {
@@ -173,7 +189,7 @@ func (cache *eligibleNodesCache) updateMapsIfNeeded(
 	}
 
 	// case 4.
-	if isLowerInRange {
+	if limitEpochsForShard.isLowerInRange(newEpoch) {
 		// append the new epoch and store it as the min limit
 		cache.eligibleNodesMap[shard][newEpoch] = eligibleNodesForShardInEpoch
 
@@ -189,11 +205,13 @@ func (cache *eligibleNodesCache) isPeerEligible(pid core.PeerID, shard uint32, e
 
 	eligibleNodesForShard, hasShardCached := cache.eligibleNodesMap[shard]
 	if !hasShardCached {
+		// if the shard is not cached yet, peer is not eligible and cache should be updated from nodesCoordinator
 		return false, true
 	}
 
 	eligibleNodesForShardInEpoch, hasEpochCachedForShard := eligibleNodesForShard[epoch]
 	if !hasEpochCachedForShard {
+		// if the epoch is not cached yet for the shard, peer is not eligible and cache should be updated from nodesCoordinator
 		return false, true
 	}
 
