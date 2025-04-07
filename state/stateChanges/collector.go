@@ -1,7 +1,6 @@
 package stateChanges
 
 import (
-	"bytes"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
@@ -249,31 +248,33 @@ func (c *collector) getStateChangesForTxs() ([]StateChangesForTx, error) {
 	c.stateChangesMut.Lock()
 	defer c.stateChangesMut.Unlock()
 
-	stateChangesForTxs := make([]StateChangesForTx, 0)
+	stateChangesForTxsMap := make(map[string][]state.StateChange)
 
 	for i := 0; i < len(c.stateChanges); i++ {
-		txHash := c.stateChanges[i].GetTxHash()
+		st := c.stateChanges[i]
+
+		txHash := st.GetTxHash()
 
 		if len(txHash) == 0 {
 			log.Warn("empty tx hash, state change event not associated to a transaction")
 			continue
 		}
 
-		innerStateChangesForTx := make([]state.StateChange, 0)
-		for j := i; j < len(c.stateChanges); j++ {
-			txHash2 := c.stateChanges[j].GetTxHash()
-			if !bytes.Equal(txHash, txHash2) {
-				i = j
-				break
-			}
-
-			innerStateChangesForTx = append(innerStateChangesForTx, c.stateChanges[j])
-			i = j
+		_, ok := stateChangesForTxsMap[string(txHash)]
+		if !ok {
+			log.Trace("created new state changes for tx", "txHash", txHash)
+			stateChangesForTxsMap[string(txHash)] = []state.StateChange{st}
+		} else {
+			log.Trace("appended state change to existing state changes for tx", "txHash", txHash)
+			stateChangesForTxsMap[string(txHash)] = append(stateChangesForTxsMap[string(txHash)], st)
 		}
+	}
 
+	stateChangesForTxs := make([]StateChangesForTx, 0)
+	for txHash, sts := range stateChangesForTxsMap {
 		stateChangesForTx := StateChangesForTx{
-			TxHash:       txHash,
-			StateChanges: innerStateChangesForTx,
+			TxHash:       []byte(txHash),
+			StateChanges: sts,
 		}
 		stateChangesForTxs = append(stateChangesForTxs, stateChangesForTx)
 	}
