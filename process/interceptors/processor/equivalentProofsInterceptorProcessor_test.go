@@ -6,6 +6,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/stretchr/testify/require"
 
 	"github.com/multiversx/mx-chain-go/consensus/mock"
@@ -111,6 +112,7 @@ func TestEquivalentProofsInterceptorProcessor_Save(t *testing.T) {
 			Proofs:            &dataRetriever.ProofsPoolMock{},
 			Headers:           &pool.HeadersPoolStub{},
 			Hasher:            &hashingMocks.HasherMock{},
+			ProofSizeChecker:  &testscommon.FieldsSizeCheckerMock{},
 		}
 		argInterceptedEquivalentProof.DataBuff, _ = argInterceptedEquivalentProof.Marshaller.Marshal(&block.HeaderProof{
 			PubKeysBitmap:       []byte("bitmap"),

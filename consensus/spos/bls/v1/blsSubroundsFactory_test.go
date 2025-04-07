@@ -621,7 +621,7 @@ func TestFactory_GenerateSubroundsShouldWork(t *testing.T) {
 	fct := *initFactoryWithContainer(container)
 	fct.SetOutportHandler(&testscommonOutport.OutportStub{})
 
-	err := fct.GenerateSubrounds()
+	err := fct.GenerateSubrounds(0)
 	assert.Nil(t, err)
 
 	assert.Equal(t, 4, subroundHandlers)
@@ -633,7 +633,7 @@ func TestFactory_GenerateSubroundsNilOutportShouldFail(t *testing.T) {
 	container := consensusMock.InitConsensusCore()
 	fct := *initFactoryWithContainer(container)
 
-	err := fct.GenerateSubrounds()
+	err := fct.GenerateSubrounds(0)
 	assert.Equal(t, outport.ErrNilDriver, err)
 }
 

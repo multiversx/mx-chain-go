@@ -1100,7 +1100,12 @@ func (sp *shardProcessor) CommitBlock(
 		sp.lastRestartNonce = header.GetNonce()
 	}
 
-	sp.updateState(selfNotarizedHeaders, header, currentHeaderHash)
+	finalHeaderHash := headerHash
+	if !common.ShouldBlockHavePrevProof(header, sp.enableEpochsHandler, common.EquivalentMessagesFlag) {
+		finalHeaderHash = currentHeaderHash
+	}
+
+	sp.updateState(selfNotarizedHeaders, header, finalHeaderHash)
 
 	highestFinalBlockNonce := sp.forkDetector.GetHighestFinalBlockNonce()
 	log.Debug("highest final shard block",

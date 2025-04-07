@@ -15,6 +15,7 @@ import (
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
+	"github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/sharding"
 )
@@ -30,6 +31,7 @@ type ArgInterceptedEquivalentProof struct {
 	HeaderSigVerifier consensus.HeaderSigVerifier
 	Proofs            dataRetriever.ProofsPool
 	Headers           dataRetriever.HeadersPool
+	ProofSizeChecker  common.FieldsSizeChecker
 }
 
 type interceptedEquivalentProof struct {
@@ -41,6 +43,7 @@ type interceptedEquivalentProof struct {
 	marshaller        marshaling.Marshalizer
 	hasher            hashing.Hasher
 	hash              []byte
+	proofSizeChecker  common.FieldsSizeChecker
 }
 
 // NewInterceptedEquivalentProof returns a new instance of interceptedEquivalentProof
@@ -65,6 +68,7 @@ func NewInterceptedEquivalentProof(args ArgInterceptedEquivalentProof) (*interce
 		headersPool:       args.Headers,
 		marshaller:        args.Marshaller,
 		hasher:            args.Hasher,
+		proofSizeChecker:  args.ProofSizeChecker,
 		hash:              hash,
 	}, nil
 }
@@ -90,6 +94,9 @@ func checkArgInterceptedEquivalentProof(args ArgInterceptedEquivalentProof) erro
 	}
 	if check.IfNil(args.Hasher) {
 		return process.ErrNilHasher
+	}
+	if check.IfNil(args.ProofSizeChecker) {
+		return errors.ErrNilFieldsSizeChecker
 	}
 
 	return nil
@@ -146,10 +153,7 @@ func (iep *interceptedEquivalentProof) CheckValidity() error {
 }
 
 func (iep *interceptedEquivalentProof) integrity() error {
-	isProofValid := len(iep.proof.AggregatedSignature) > 0 &&
-		len(iep.proof.PubKeysBitmap) > 0 &&
-		len(iep.proof.HeaderHash) > 0
-	if !isProofValid {
+	if !iep.proofSizeChecker.IsProofSizeValid(iep.proof) {
 		return ErrInvalidProof
 	}
 

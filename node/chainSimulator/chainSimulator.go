@@ -85,7 +85,7 @@ type simulator struct {
 func NewChainSimulator(args ArgsChainSimulator) (*simulator, error) {
 	return NewBaseChainSimulator(ArgsBaseChainSimulator{
 		ArgsChainSimulator:          args,
-		ConsensusGroupSize:          configs.ChainSimulatorConsensusGroupSize,
+		ConsensusGroupSize:          args.MinNodesPerShard,
 		MetaChainConsensusGroupSize: args.MetaChainMinNodes,
 	})
 }
