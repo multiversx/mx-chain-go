@@ -52,7 +52,7 @@ func NewInterceptedUnsignedTxDataFactory(argument *ArgInterceptedDataFactory) (*
 }
 
 // Create creates instances of InterceptedData by unmarshalling provided buffer
-func (iutdf *interceptedUnsignedTxDataFactory) Create(buff []byte) (process.InterceptedData, error) {
+func (iutdf *interceptedUnsignedTxDataFactory) Create(buff []byte, _ core.PeerID) (process.InterceptedData, error) {
 	return unsigned.NewInterceptedUnsignedTransaction(
 		buff,
 		iutdf.protoMarshalizer,
