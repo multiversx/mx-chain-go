@@ -3,6 +3,7 @@ package headerCheck
 import (
 	"bytes"
 	"fmt"
+	"math/rand"
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
@@ -416,6 +417,16 @@ func (hsv *HeaderSigVerifier) VerifyHeaderProof(proofHandler data.HeaderProofHan
 	if common.IsEpochStartProofForFlagActivation(proofHandler, hsv.enableEpochsHandler) {
 		return hsv.verifyHeaderProofAtTransition(proofHandler)
 	}
+	random := rand.Intn(1000)
+	start := time.Now()
+	defer func() {
+		log.Debug("VerifyHeaderProof took",
+			"random", random,
+			"shardID", proofHandler.GetHeaderShardId(),
+			"headerHash", proofHandler.GetHeaderHash(),
+			"duration", time.Since(start),
+		)
+	}()
 
 	multiSigVerifier, err := hsv.multiSigContainer.GetMultiSigner(proofHandler.GetHeaderEpoch())
 	if err != nil {
