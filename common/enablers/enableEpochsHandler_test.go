@@ -128,6 +128,8 @@ func createEnableEpochsConfig() config.EnableEpochs {
 		MaskVMInternalDependenciesErrorsEnableEpoch:              111,
 		FixBackTransferOPCODEEnableEpoch:                         112,
 		ValidationOnGobDecodeEnableEpoch:                         113,
+		BarnardOpcodesEnableEpoch:                                114,
+		AutomaticActivationOfNodesDisableEpoch:                   110,
 	}
 }
 
@@ -459,6 +461,8 @@ func TestEnableEpochsHandler_GetActivationEpoch(t *testing.T) {
 	require.Equal(t, cfg.MaskVMInternalDependenciesErrorsEnableEpoch, handler.GetActivationEpoch(common.MaskInternalDependenciesErrorsFlag))
 	require.Equal(t, cfg.FixBackTransferOPCODEEnableEpoch, handler.GetActivationEpoch(common.FixBackTransferOPCODEFlag))
 	require.Equal(t, cfg.ValidationOnGobDecodeEnableEpoch, handler.GetActivationEpoch(common.ValidationOnGobDecodeFlag))
+	require.Equal(t, cfg.BarnardOpcodesEnableEpoch, handler.GetActivationEpoch(common.BarnardOpcodesFlag))
+	require.Equal(t, cfg.AutomaticActivationOfNodesDisableEpoch, handler.GetActivationEpoch(common.AutomaticActivationOfNodesDisableFlag))
 }
 
 func TestEnableEpochsHandler_IsInterfaceNil(t *testing.T) {

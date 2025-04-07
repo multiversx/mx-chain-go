@@ -153,7 +153,7 @@ func getEpochStartSyncerArgs() ArgsNewEpochStartMetaSyncer {
 		RequestHandler:   &testscommon.RequestHandlerStub{},
 		Messenger:        &p2pmocks.MessengerStub{},
 		ShardCoordinator: mock.NewMultiShardsCoordinatorMock(2),
-		EconomicsData:    &economicsmocks.EconomicsHandlerStub{},
+		EconomicsData:    &economicsmocks.EconomicsHandlerMock{},
 		WhitelistHandler: &testscommon.WhiteListHandlerStub{},
 		StartInEpochConfig: config.EpochStartConfig{
 			MinNumConnectedPeersToStart:       2,

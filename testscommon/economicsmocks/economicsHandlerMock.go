@@ -30,6 +30,7 @@ type EconomicsHandlerMock struct {
 	ComputeTxFeeCalled                                  func(tx data.TransactionWithFeeHandler) *big.Int
 	DeveloperPercentageCalled                           func() float64
 	MinGasPriceCalled                                   func() uint64
+	MinGasLimitCalled                                   func() uint64
 	GasPerDataByteCalled                                func() uint64
 	MaxGasHigherFactorAcceptedCalled                    func() uint64
 	RewardsTopUpGradientPointCalled                     func() *big.Int
@@ -48,6 +49,14 @@ type EconomicsHandlerMock struct {
 	ComputeGasLimitInEpochCalled                        func(tx data.TransactionWithFeeHandler, epoch uint32) uint64
 	ComputeGasUsedAndFeeBasedOnRefundValueInEpochCalled func(tx data.TransactionWithFeeHandler, refundValue *big.Int, epoch uint32) (uint64, *big.Int)
 	ComputeTxFeeBasedOnGasUsedInEpochCalled             func(tx data.TransactionWithFeeHandler, gasUsed uint64, epoch uint32) *big.Int
+	GenesisTotalSupplyCalled                            func() *big.Int
+	MaxGasPriceSetGuardianCalled                        func() uint64
+	LeaderPercentageInEpochCalled                       func(epoch uint32) float64
+	DeveloperPercentageInEpochCalled                    func(epoch uint32) float64
+	ProtocolSustainabilityPercentageInEpochCalled       func(epoch uint32) float64
+	ProtocolSustainabilityAddressInEpochCalled          func(epoch uint32) string
+	RewardsTopUpGradientPointInEpochCalled              func(epoch uint32) *big.Int
+	RewardsTopUpFactorInEpochCalled                     func(epoch uint32) float64
 }
 
 // ComputeGasUnitsFromRefundValue -
@@ -90,6 +99,9 @@ func (ehm *EconomicsHandlerMock) MinGasPrice() uint64 {
 
 // MinGasLimit will return min gas limit
 func (ehm *EconomicsHandlerMock) MinGasLimit() uint64 {
+	if ehm.MinGasLimitCalled != nil {
+		return ehm.MinGasLimitCalled()
+	}
 	return 0
 }
 
@@ -100,6 +112,9 @@ func (ehm *EconomicsHandlerMock) ExtraGasLimitGuardedTx() uint64 {
 
 // MaxGasPriceSetGuardian -
 func (ehm *EconomicsHandlerMock) MaxGasPriceSetGuardian() uint64 {
+	if ehm.MaxGasPriceSetGuardianCalled != nil {
+		return ehm.MaxGasPriceSetGuardianCalled()
+	}
 	return 0
 }
 
@@ -110,11 +125,17 @@ func (ehm *EconomicsHandlerMock) GasPerDataByte() uint64 {
 
 // DeveloperPercentage -
 func (ehm *EconomicsHandlerMock) DeveloperPercentage() float64 {
-	return ehm.DeveloperPercentageCalled()
+	if ehm.DeveloperPercentageCalled != nil {
+		return ehm.DeveloperPercentageCalled()
+	}
+	return 0.0
 }
 
 // GenesisTotalSupply -
 func (ehm *EconomicsHandlerMock) GenesisTotalSupply() *big.Int {
+	if ehm.GenesisTotalSupplyCalled != nil {
+		return ehm.GenesisTotalSupplyCalled()
+	}
 	return big.NewInt(0)
 }
 
@@ -347,6 +368,54 @@ func (ehm *EconomicsHandlerMock) ComputeTxFeeBasedOnGasUsedInEpoch(tx data.Trans
 		return ehm.ComputeTxFeeBasedOnGasUsedInEpochCalled(tx, gasUsed, epoch)
 	}
 	return nil
+}
+
+// LeaderPercentageInEpoch -
+func (ehm *EconomicsHandlerMock) LeaderPercentageInEpoch(epoch uint32) float64 {
+	if ehm.LeaderPercentageInEpochCalled != nil {
+		return ehm.LeaderPercentageInEpochCalled(epoch)
+	}
+	return 0
+}
+
+// DeveloperPercentageInEpoch -
+func (ehm *EconomicsHandlerMock) DeveloperPercentageInEpoch(epoch uint32) float64 {
+	if ehm.DeveloperPercentageInEpochCalled != nil {
+		return ehm.DeveloperPercentageInEpochCalled(epoch)
+	}
+	return 0
+}
+
+// ProtocolSustainabilityPercentageInEpoch -
+func (ehm *EconomicsHandlerMock) ProtocolSustainabilityPercentageInEpoch(epoch uint32) float64 {
+	if ehm.ProtocolSustainabilityPercentageInEpochCalled != nil {
+		return ehm.ProtocolSustainabilityPercentageInEpochCalled(epoch)
+	}
+	return 0
+}
+
+// ProtocolSustainabilityAddressInEpoch -
+func (ehm *EconomicsHandlerMock) ProtocolSustainabilityAddressInEpoch(epoch uint32) string {
+	if ehm.ProtocolSustainabilityAddressInEpochCalled != nil {
+		return ehm.ProtocolSustainabilityAddressInEpochCalled(epoch)
+	}
+	return ""
+}
+
+// RewardsTopUpGradientPointInEpoch -
+func (ehm *EconomicsHandlerMock) RewardsTopUpGradientPointInEpoch(epoch uint32) *big.Int {
+	if ehm.RewardsTopUpGradientPointInEpochCalled != nil {
+		return ehm.RewardsTopUpGradientPointInEpochCalled(epoch)
+	}
+	return big.NewInt(0)
+}
+
+// RewardsTopUpFactorInEpoch -
+func (ehm *EconomicsHandlerMock) RewardsTopUpFactorInEpoch(epoch uint32) float64 {
+	if ehm.RewardsTopUpFactorInEpochCalled != nil {
+		return ehm.RewardsTopUpFactorInEpochCalled(epoch)
+	}
+	return 0
 }
 
 // MaxGasHigherFactorAccepted -
