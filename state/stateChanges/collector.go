@@ -178,11 +178,8 @@ func (c *collector) Store() error {
 		return fmt.Errorf("failed to retrieve data analysis state changes for tx: %w", err)
 	}
 
-	for _, stateChanges := range stateChangesForTx {
-		log.Trace("state changes for tx on Store", "txHash", stateChanges.TxHash, "state changes", stateChanges.StateChanges)
-	}
-
 	for _, stateChange := range stateChangesForTx {
+		log.Trace("storing state changes for tx", "txHash", stateChange.TxHash, "stateChanges", stateChange.StateChanges)
 		marshalledData, err := json.Marshal(stateChange)
 		if err != nil {
 			return fmt.Errorf("failed to marshal state changes to JSON: %w", err)
@@ -274,9 +271,6 @@ func (c *collector) getStateChangesForTxs() ([]StateChangesForTx, error) {
 
 	stateChangesForTxsMap := make(map[string][]state.StateChange)
 
-	for _, stateChanges := range c.stateChanges {
-		log.Trace("state changes for tx on getStateChangesForTxs", "txHash", stateChanges.GetTxHash(), "state changes", stateChanges)
-	}
 	for i := 0; i < len(c.stateChanges); i++ {
 		st := c.stateChanges[i]
 
@@ -289,10 +283,10 @@ func (c *collector) getStateChangesForTxs() ([]StateChangesForTx, error) {
 
 		_, ok := stateChangesForTxsMap[string(txHash)]
 		if !ok {
-			log.Trace("created new state changes for tx", "txHash", txHash)
+			log.Trace("created new state changes for tx", "txHash", txHash, "stateChange", st)
 			stateChangesForTxsMap[string(txHash)] = []state.StateChange{st}
 		} else {
-			log.Trace("appended state change to existing state changes for tx", "txHash", txHash)
+			log.Trace("appended state change to existing state changes for tx", "txHash", txHash, "stateChange", st)
 			stateChangesForTxsMap[string(txHash)] = append(stateChangesForTxsMap[string(txHash)], st)
 		}
 	}
@@ -327,6 +321,7 @@ func (c *collector) getDataAnalysisStateChangesForTxs() ([]dataAnalysisStateChan
 			StateChangesForTx: stateChangeForTx,
 			Tx:                cachedTx,
 		}
+		log.Trace("add state changes for tx", "txHash", stateChangeForTx.TxHash, "stateChanges", stateChangeForTx.StateChanges)
 		dataAnalysisStateChangesForTxs = append(dataAnalysisStateChangesForTxs, stateChangesForTx)
 	}
 
