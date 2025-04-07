@@ -334,6 +334,19 @@
         MaxBatchSize = 100
         MaxOpenFiles = 10
 
+[ProofsNonceHashStorage]
+    [ProofsNonceHashStorage.Cache]
+        Name = "ProofsNonceHashStorage"
+        Capacity = 1000
+        Type = "SizeLRU"
+        SizeInBytes = 3145728 #3MB
+    [ProofsNonceHashStorage.DB]
+        FilePath = "ProofsNonceHash"
+        Type = "LvlDBSerial"
+        BatchDelaySeconds = 2
+        MaxBatchSize = 100
+        MaxOpenFiles = 10
+
 [AccountsTrieStorage]
     [AccountsTrieStorage.Cache]
         Name = "AccountsTrieStorage"

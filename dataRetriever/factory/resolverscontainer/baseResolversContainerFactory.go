@@ -14,7 +14,6 @@ import (
 	"github.com/multiversx/mx-chain-go/p2p"
 	"github.com/multiversx/mx-chain-go/process/factory"
 	"github.com/multiversx/mx-chain-go/sharding"
-	"github.com/multiversx/mx-chain-go/testscommon/storage"
 	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
@@ -432,6 +431,16 @@ func (brcf *baseResolversContainerFactory) createEquivalentProofsResolver(
 		return nil, err
 	}
 
+	proofsStorage, err := brcf.store.GetStorer(dataRetriever.ProofsUnit)
+	if err != nil {
+		return nil, err
+	}
+
+	proofsNonceHashStorage, err := brcf.store.GetStorer(dataRetriever.ProofsNonceHashDataUnit)
+	if err != nil {
+		return nil, err
+	}
+
 	arg := resolvers.ArgEquivalentProofsResolver{
 		ArgBaseResolver: resolvers.ArgBaseResolver{
 			SenderResolver:   resolverSender,
@@ -439,10 +448,11 @@ func (brcf *baseResolversContainerFactory) createEquivalentProofsResolver(
 			AntifloodHandler: brcf.inputAntifloodHandler,
 			Throttler:        brcf.trieNodesThrottler,
 		},
-		DataPacker:              brcf.dataPacker,
-		EquivalentProofsStorage: &storage.StorerStub{}, // TODO: pass the proper storer once PRs are merged
-		EquivalentProofsPool:    brcf.dataPools.Proofs(),
-		IsFullHistoryNode:       brcf.isFullHistoryNode,
+		DataPacker:                       brcf.dataPacker,
+		EquivalentProofsStorage:          proofsStorage,
+		EquivalentProofsNonceHashStorage: proofsNonceHashStorage,
+		EquivalentProofsPool:             brcf.dataPools.Proofs(),
+		IsFullHistoryNode:                brcf.isFullHistoryNode,
 	}
 	resolver, err := resolvers.NewEquivalentProofsResolver(arg)
 	if err != nil {

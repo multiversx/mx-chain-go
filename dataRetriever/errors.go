@@ -271,3 +271,9 @@ var ErrNilProofsStorage = errors.New("nil proofs storage")
 
 // ErrEquivalentProofsNotFound signals that no equivalent proof found
 var ErrEquivalentProofsNotFound = errors.New("equivalent proof not found")
+
+// ErrInvalidHashShardKey signals that the provided hash-shard key is invalid
+var ErrInvalidHashShardKey = errors.New("invalid hash shard key")
+
+// ErrInvalidNonceShardKey signals that the provided nonce-shard key is invalid
+var ErrInvalidNonceShardKey = errors.New("invalid nonce shard key")
