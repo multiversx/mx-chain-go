@@ -60,7 +60,7 @@ func TestNewInterceptedPeerShardFactory(t *testing.T) {
 			ShardId: "5",
 		}
 		msgBuff, _ := arg.CoreComponents.InternalMarshalizer().Marshal(msg)
-		interceptedData, err := idcif.Create(msgBuff)
+		interceptedData, err := idcif.Create(msgBuff, "")
 		assert.Nil(t, err)
 		assert.False(t, check.IfNil(interceptedData))
 		assert.True(t, strings.Contains(fmt.Sprintf("%T", interceptedData), "*p2p.interceptedPeerShard"))
