@@ -110,13 +110,13 @@ func (c *collector) Publish() (map[string]*data.StateChanges, error) {
 			continue
 		}
 
-		st, ok := stateChange.(*data.StateChange)
-		if !ok {
-			log.Warn("failed to cast state change to data.StateChange", "stateChange", stateChangeToString(stateChange))
+		st, err := getUnderlyingStateChange(stateChange)
+		if err != nil {
+			log.Error("type assertion failed", "stateChange", stateChangeToString(stateChange), "error", err)
 			continue
 		}
 
-		_, ok = stateChangesForTxs[txHash]
+		_, ok := stateChangesForTxs[txHash]
 		if !ok {
 			log.Trace("created new state changes for tx", "txHash", txHash)
 			stateChangesForTxs[txHash] = &data.StateChanges{
@@ -130,6 +130,22 @@ func (c *collector) Publish() (map[string]*data.StateChanges, error) {
 	log.Trace("published state changes", "numTxs", len(stateChangesForTxs))
 
 	return stateChangesForTxs, nil
+}
+
+func getUnderlyingStateChange(stateChange state.StateChange) (*data.StateChange, error) {
+	st, ok := stateChange.(*data.StateChange)
+	if ok {
+		return st, nil
+	}
+	dst, ok := stateChange.(*dataAnalysisStateChangeDTO)
+	if !ok {
+		return nil, fmt.Errorf("failed to cast state change to data.StateChange, type %T", stateChange)
+	}
+	st, ok = dst.StateChange.(*data.StateChange)
+	if !ok {
+		return nil, fmt.Errorf("failed to cast state change to data.StateChange, type %T", dst.StateChange)
+	}
+	return st, nil
 }
 
 func stateChangeToString(stateChange state.StateChange) string {
@@ -244,6 +260,7 @@ func (c *collector) RevertToIndex(index int) error {
 	return nil
 }
 
+// TODO merge this func with Publish() in the future.
 func (c *collector) getStateChangesForTxs() ([]StateChangesForTx, error) {
 	c.stateChangesMut.Lock()
 	defer c.stateChangesMut.Unlock()
