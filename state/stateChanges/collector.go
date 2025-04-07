@@ -127,7 +127,10 @@ func (c *collector) Publish() (map[string]*data.StateChanges, error) {
 			stateChangesForTxs[txHash].StateChanges = append(stateChangesForTxs[txHash].StateChanges, st)
 		}
 	}
-	log.Trace("published state changes", "numTxs", len(stateChangesForTxs))
+
+	for txhash, stateChanges := range stateChangesForTxs {
+		log.Trace("state changes for tx on Publish", "txHash", txhash, "state changes", stateChanges.StateChanges)
+	}
 
 	return stateChangesForTxs, nil
 }
@@ -175,7 +178,9 @@ func (c *collector) Store() error {
 		return fmt.Errorf("failed to retrieve data analysis state changes for tx: %w", err)
 	}
 
-	log.Trace("store", "numStateChanges", len(stateChangesForTx), "stateChanges", stateChangesForTx)
+	for _, stateChanges := range stateChangesForTx {
+		log.Trace("state changes for tx on Store", "txHash", stateChanges.TxHash, "state changes", stateChanges.StateChanges)
+	}
 
 	for _, stateChange := range stateChangesForTx {
 		marshalledData, err := json.Marshal(stateChange)
@@ -268,8 +273,10 @@ func (c *collector) getStateChangesForTxs() ([]StateChangesForTx, error) {
 	defer c.stateChangesMut.Unlock()
 
 	stateChangesForTxsMap := make(map[string][]state.StateChange)
-	log.Trace("getStateChangesForTxs", "numStateChanges", len(c.stateChanges), "stateChanges", c.stateChanges)
 
+	for _, stateChanges := range c.stateChanges {
+		log.Trace("state changes for tx on getStateChangesForTxs", "txHash", stateChanges.GetTxHash(), "state changes", stateChanges)
+	}
 	for i := 0; i < len(c.stateChanges); i++ {
 		st := c.stateChanges[i]
 
