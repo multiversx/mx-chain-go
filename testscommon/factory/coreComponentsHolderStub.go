@@ -57,6 +57,7 @@ type CoreComponentsHolderStub struct {
 	RoundNotifierCalled                 func() process.RoundNotifier
 	ChainParametersSubscriberCalled     func() process.ChainParametersSubscriber
 	ChainParametersHandlerCalled        func() process.ChainParametersHandler
+	FieldsSizeCheckerCalled             func() common.FieldsSizeChecker
 }
 
 // NewCoreComponentsHolderStubFromRealComponent -
@@ -99,6 +100,7 @@ func NewCoreComponentsHolderStubFromRealComponent(coreComponents factory.CoreCom
 		RoundNotifierCalled:                 coreComponents.RoundNotifier,
 		ChainParametersHandlerCalled:        coreComponents.ChainParametersHandler,
 		ChainParametersSubscriberCalled:     coreComponents.ChainParametersSubscriber,
+		FieldsSizeCheckerCalled:             coreComponents.FieldsSizeChecker,
 	}
 }
 
@@ -394,6 +396,14 @@ func (stub *CoreComponentsHolderStub) ChainParametersSubscriber() process.ChainP
 func (stub *CoreComponentsHolderStub) ChainParametersHandler() process.ChainParametersHandler {
 	if stub.ChainParametersHandlerCalled != nil {
 		return stub.ChainParametersHandlerCalled()
+	}
+	return nil
+}
+
+// FieldsSizeChecker -
+func (stub *CoreComponentsHolderStub) FieldsSizeChecker() common.FieldsSizeChecker {
+	if stub.FieldsSizeCheckerCalled != nil {
+		return stub.FieldsSizeCheckerCalled()
 	}
 	return nil
 }

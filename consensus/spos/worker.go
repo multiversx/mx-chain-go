@@ -311,6 +311,25 @@ func (wrk *Worker) addFutureHeaderToProcessIfNeeded(header data.HeaderHandler) {
 	go wrk.executeReceivedMessages(headerConsensusMessage)
 }
 
+func (wrk *Worker) processReceivedHeaderMetricIfNeeded(header data.HeaderHandler) {
+	if check.IfNil(header) {
+		return
+	}
+	if !wrk.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, header.GetEpoch()) {
+		return
+	}
+	isHeaderForCurrentRound := int64(header.GetRound()) == wrk.roundHandler.Index()
+	if !isHeaderForCurrentRound {
+		return
+	}
+	isHeaderFromCurrentShard := header.GetShardID() == wrk.shardCoordinator.SelfId()
+	if !isHeaderFromCurrentShard {
+		return
+	}
+
+	wrk.processReceivedHeaderMetric()
+}
+
 func (wrk *Worker) convertHeaderToConsensusMessage(header data.HeaderHandler) (*consensus.Message, error) {
 	headerBytes, err := wrk.marshalizer.Marshal(header)
 	if err != nil {
@@ -332,6 +351,7 @@ func (wrk *Worker) ReceivedHeader(headerHandler data.HeaderHandler, _ []byte) {
 	}
 
 	wrk.addFutureHeaderToProcessIfNeeded(headerHandler)
+	wrk.processReceivedHeaderMetricIfNeeded(headerHandler)
 	isHeaderForOtherShard := headerHandler.GetShardID() != wrk.shardCoordinator.SelfId()
 	isHeaderForOtherRound := int64(headerHandler.GetRound()) != wrk.roundHandler.Index()
 	headerCanNotBeProcessed := isHeaderForOtherShard || isHeaderForOtherRound
@@ -599,7 +619,7 @@ func (wrk *Worker) doJobOnMessageWithHeader(cnsMsg *consensus.Message) error {
 		return err
 	}
 
-	wrk.processReceivedHeaderMetric(cnsMsg)
+	wrk.processReceivedHeaderMetricForConsensusMessage(cnsMsg)
 
 	errNotCritical := wrk.forkDetector.AddHeader(header, headerHash, process.BHProposed, nil, nil)
 	if errNotCritical != nil {
@@ -670,8 +690,16 @@ func (wrk *Worker) addBlockToPool(bodyBytes []byte) {
 	}
 }
 
-func (wrk *Worker) processReceivedHeaderMetric(cnsDta *consensus.Message) {
-	if wrk.consensusState.ConsensusGroup() == nil || !wrk.consensusState.IsNodeLeaderInCurrentRound(string(cnsDta.PubKey)) {
+func (wrk *Worker) processReceivedHeaderMetricForConsensusMessage(cnsDta *consensus.Message) {
+	if !wrk.consensusState.IsNodeLeaderInCurrentRound(string(cnsDta.PubKey)) {
+		return
+	}
+
+	wrk.processReceivedHeaderMetric()
+}
+
+func (wrk *Worker) processReceivedHeaderMetric() {
+	if wrk.consensusState.ConsensusGroup() == nil {
 		return
 	}
 
