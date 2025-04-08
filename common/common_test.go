@@ -10,7 +10,9 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/smartContractResult"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/chainParameters"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/stretchr/testify/require"
 )
@@ -75,155 +77,6 @@ func TestIsValidRelayedTxV3(t *testing.T) {
 	}
 	require.True(t, common.IsValidRelayedTxV3(relayedTxV3))
 	require.True(t, common.IsRelayedTxV3(relayedTxV3))
-}
-
-func TestVerifyProofAgainstHeader(t *testing.T) {
-	t.Parallel()
-
-	t.Run("nil proof or header", func(t *testing.T) {
-		t.Parallel()
-
-		proof := &block.HeaderProof{
-			PubKeysBitmap:       []byte("bitmap"),
-			AggregatedSignature: []byte("aggSig"),
-			HeaderHash:          []byte("hash"),
-			HeaderEpoch:         2,
-			HeaderNonce:         2,
-			HeaderShardId:       2,
-			HeaderRound:         2,
-			IsStartOfEpoch:      true,
-		}
-
-		header := &block.HeaderV2{
-			Header: &block.Header{
-				Nonce:              2,
-				ShardID:            2,
-				Round:              2,
-				Epoch:              2,
-				EpochStartMetaHash: []byte("epoch start meta hash"),
-			},
-		}
-
-		err := common.VerifyProofAgainstHeader(nil, header)
-		require.Equal(t, common.ErrNilHeaderProof, err)
-
-		err = common.VerifyProofAgainstHeader(proof, nil)
-		require.Equal(t, common.ErrNilHeaderHandler, err)
-	})
-
-	t.Run("nonce mismatch", func(t *testing.T) {
-		t.Parallel()
-
-		proof := &block.HeaderProof{
-			HeaderNonce: 2,
-		}
-
-		header := &block.HeaderV2{
-			Header: &block.Header{
-				Nonce: 3,
-			},
-		}
-
-		err := common.VerifyProofAgainstHeader(proof, header)
-		require.True(t, errors.Is(err, common.ErrInvalidHeaderProof))
-	})
-
-	t.Run("round mismatch", func(t *testing.T) {
-		t.Parallel()
-
-		proof := &block.HeaderProof{
-			HeaderRound: 2,
-		}
-
-		header := &block.HeaderV2{
-			Header: &block.Header{
-				Round: 3,
-			},
-		}
-
-		err := common.VerifyProofAgainstHeader(proof, header)
-		require.True(t, errors.Is(err, common.ErrInvalidHeaderProof))
-	})
-
-	t.Run("epoch mismatch", func(t *testing.T) {
-		t.Parallel()
-
-		proof := &block.HeaderProof{
-			HeaderEpoch: 2,
-		}
-
-		header := &block.HeaderV2{
-			Header: &block.Header{
-				Epoch: 3,
-			},
-		}
-
-		err := common.VerifyProofAgainstHeader(proof, header)
-		require.True(t, errors.Is(err, common.ErrInvalidHeaderProof))
-	})
-
-	t.Run("shard mismatch", func(t *testing.T) {
-		t.Parallel()
-
-		proof := &block.HeaderProof{
-			HeaderShardId: 2,
-		}
-
-		header := &block.HeaderV2{
-			Header: &block.Header{
-				ShardID: 3,
-			},
-		}
-
-		err := common.VerifyProofAgainstHeader(proof, header)
-		require.True(t, errors.Is(err, common.ErrInvalidHeaderProof))
-	})
-
-	t.Run("nonce mismatch", func(t *testing.T) {
-		t.Parallel()
-
-		proof := &block.HeaderProof{
-			IsStartOfEpoch: false,
-		}
-
-		header := &block.HeaderV2{
-			Header: &block.Header{
-				EpochStartMetaHash: []byte("meta blockk hash"),
-			},
-		}
-
-		err := common.VerifyProofAgainstHeader(proof, header)
-		require.True(t, errors.Is(err, common.ErrInvalidHeaderProof))
-	})
-
-	t.Run("should work", func(t *testing.T) {
-		t.Parallel()
-
-		proof := &block.HeaderProof{
-			PubKeysBitmap:       []byte("bitmap"),
-			AggregatedSignature: []byte("aggSig"),
-			HeaderHash:          []byte("hash"),
-			HeaderEpoch:         2,
-			HeaderNonce:         2,
-			HeaderShardId:       2,
-			HeaderRound:         2,
-			IsStartOfEpoch:      true,
-		}
-
-		header := &block.HeaderV2{
-			Header: &block.Header{
-				Nonce:              2,
-				ShardID:            2,
-				Round:              2,
-				Epoch:              2,
-				EpochStartMetaHash: []byte("epoch start meta hash"),
-			},
-		}
-
-		err := common.VerifyProofAgainstHeader(proof, header)
-		require.Nil(t, err)
-
-	})
 }
 
 func TestIsConsensusBitmapValid(t *testing.T) {
@@ -315,103 +168,6 @@ func TestIsEpochChangeBlockForFlagActivation(t *testing.T) {
 	require.False(t, common.IsEpochChangeBlockForFlagActivation(notEpochStartHeaderOtherEpoch, eeh, testFlag))
 }
 
-func TestIsEpochStartProofForFlagActivation(t *testing.T) {
-	t.Parallel()
-
-	providedEpoch := uint32(123)
-	eeh := &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-		GetActivationEpochCalled: func(flag core.EnableEpochFlag) uint32 {
-			require.Equal(t, common.EquivalentMessagesFlag, flag)
-			return providedEpoch
-		},
-	}
-
-	epochStartProofSameEpoch := &block.HeaderProof{
-		IsStartOfEpoch: true,
-		HeaderEpoch:    providedEpoch,
-	}
-	notEpochStartProofSameEpoch := &block.HeaderProof{
-		IsStartOfEpoch: false,
-		HeaderEpoch:    providedEpoch,
-	}
-	epochStartProofOtherEpoch := &block.HeaderProof{
-		IsStartOfEpoch: true,
-		HeaderEpoch:    providedEpoch + 1,
-	}
-	notEpochStartProofOtherEpoch := &block.HeaderProof{
-		IsStartOfEpoch: false,
-		HeaderEpoch:    providedEpoch + 1,
-	}
-
-	require.True(t, common.IsEpochStartProofForFlagActivation(epochStartProofSameEpoch, eeh))
-	require.False(t, common.IsEpochStartProofForFlagActivation(notEpochStartProofSameEpoch, eeh))
-	require.False(t, common.IsEpochStartProofForFlagActivation(epochStartProofOtherEpoch, eeh))
-	require.False(t, common.IsEpochStartProofForFlagActivation(notEpochStartProofOtherEpoch, eeh))
-}
-
-func TestShouldBlockHavePrevProof(t *testing.T) {
-	t.Parallel()
-
-	providedEpoch := uint32(123)
-	eeh := &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-		IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
-			require.Equal(t, testFlag, flag)
-			return epoch >= providedEpoch
-		},
-		GetActivationEpochCalled: func(flag core.EnableEpochFlag) uint32 {
-			require.Equal(t, testFlag, flag)
-			return providedEpoch
-		},
-	}
-
-	epochStartHeaderInActivationEpoch := &block.HeaderV2{
-		Header: &block.Header{
-			EpochStartMetaHash: []byte("meta hash"),
-			Epoch:              providedEpoch,
-			Nonce:              2,
-		},
-	}
-	notEpochStartHeaderInActivationEpoch := &block.HeaderV2{
-		Header: &block.Header{
-			Epoch: providedEpoch,
-			Nonce: 2,
-		},
-	}
-	epochStartHeaderPrevEpoch := &block.HeaderV2{
-		Header: &block.Header{
-			EpochStartMetaHash: []byte("meta hash"),
-			Epoch:              providedEpoch - 1,
-			Nonce:              2,
-		},
-	}
-	notEpochStartHeaderPrevEpoch := &block.HeaderV2{
-		Header: &block.Header{
-			Epoch: providedEpoch - 1,
-			Nonce: 2,
-		},
-	}
-	epochStartHeaderNextEpoch := &block.HeaderV2{
-		Header: &block.Header{
-			EpochStartMetaHash: []byte("meta hash"),
-			Epoch:              providedEpoch + 1,
-			Nonce:              2,
-		},
-	}
-	notEpochStartHeaderNextEpoch := &block.HeaderV2{
-		Header: &block.Header{
-			Epoch: providedEpoch + 1,
-			Nonce: 2,
-		},
-	}
-
-	require.False(t, common.ShouldBlockHavePrevProof(epochStartHeaderInActivationEpoch, eeh, testFlag))
-	require.True(t, common.ShouldBlockHavePrevProof(notEpochStartHeaderInActivationEpoch, eeh, testFlag))
-	require.False(t, common.ShouldBlockHavePrevProof(epochStartHeaderPrevEpoch, eeh, testFlag))
-	require.False(t, common.ShouldBlockHavePrevProof(notEpochStartHeaderPrevEpoch, eeh, testFlag))
-	require.True(t, common.ShouldBlockHavePrevProof(epochStartHeaderNextEpoch, eeh, testFlag))
-	require.True(t, common.ShouldBlockHavePrevProof(notEpochStartHeaderNextEpoch, eeh, testFlag))
-}
-
 func TestGetShardIDs(t *testing.T) {
 	t.Parallel()
 
@@ -423,4 +179,83 @@ func TestGetShardIDs(t *testing.T) {
 	require.True(t, hasShard1)
 	_, hasShardM := shardIDs[core.MetachainShardId]
 	require.True(t, hasShardM)
+}
+
+func TestGetBitmapSize(t *testing.T) {
+	t.Parallel()
+
+	require.Equal(t, 1, common.GetBitmapSize(8))
+	require.Equal(t, 2, common.GetBitmapSize(8+1))
+	require.Equal(t, 2, common.GetBitmapSize(8*2-1))
+	require.Equal(t, 50, common.GetBitmapSize(8*50)) // 400 consensus size
+}
+
+func TestConsesusGroupSizeForShardAndEpoch(t *testing.T) {
+	t.Parallel()
+
+	t.Run("shard node", func(t *testing.T) {
+		t.Parallel()
+
+		groupSize := uint32(400)
+
+		size := common.ConsensusGroupSizeForShardAndEpoch(
+			&testscommon.LoggerStub{},
+			&chainParameters.ChainParametersHandlerStub{
+				ChainParametersForEpochCalled: func(epoch uint32) (config.ChainParametersByEpochConfig, error) {
+					return config.ChainParametersByEpochConfig{
+						ShardConsensusGroupSize: groupSize,
+					}, nil
+				},
+			},
+			1,
+			2,
+		)
+
+		require.Equal(t, int(groupSize), size)
+	})
+
+	t.Run("meta node", func(t *testing.T) {
+		t.Parallel()
+
+		groupSize := uint32(400)
+
+		size := common.ConsensusGroupSizeForShardAndEpoch(
+			&testscommon.LoggerStub{},
+			&chainParameters.ChainParametersHandlerStub{
+				ChainParametersForEpochCalled: func(epoch uint32) (config.ChainParametersByEpochConfig, error) {
+					return config.ChainParametersByEpochConfig{
+						MetachainConsensusGroupSize: groupSize,
+					}, nil
+				},
+			},
+			core.MetachainShardId,
+			2,
+		)
+
+		require.Equal(t, int(groupSize), size)
+	})
+
+	t.Run("on fail, use current parameters", func(t *testing.T) {
+		t.Parallel()
+
+		groupSize := uint32(400)
+
+		size := common.ConsensusGroupSizeForShardAndEpoch(
+			&testscommon.LoggerStub{},
+			&chainParameters.ChainParametersHandlerStub{
+				ChainParametersForEpochCalled: func(epoch uint32) (config.ChainParametersByEpochConfig, error) {
+					return config.ChainParametersByEpochConfig{}, errors.New("fail")
+				},
+				CurrentChainParametersCalled: func() config.ChainParametersByEpochConfig {
+					return config.ChainParametersByEpochConfig{
+						MetachainConsensusGroupSize: groupSize,
+					}
+				},
+			},
+			core.MetachainShardId,
+			2,
+		)
+
+		require.Equal(t, int(groupSize), size)
+	})
 }

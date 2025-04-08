@@ -28,3 +28,6 @@ var ErrNotEnoughSignatures = errors.New("not enough signatures")
 
 // ErrWrongSizeBitmap signals that the provided bitmap's length is bigger than the one that was required
 var ErrWrongSizeBitmap = errors.New("wrong size bitmap has been provided")
+
+// ErrNilChainParametersHandler signals that a nil chain parameters handler has been provided
+var ErrNilChainParametersHandler = errors.New("nil chain parameters handler")

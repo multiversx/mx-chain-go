@@ -601,3 +601,6 @@ var ErrNilSentSignatureTracker = errors.New("nil sent signature tracker")
 
 // ErrNilEpochSystemSCProcessor defines the error for setting a nil EpochSystemSCProcessor
 var ErrNilEpochSystemSCProcessor = errors.New("nil epoch system SC processor")
+
+// ErrNilFieldsSizeChecker signals tat a nil fields size checker has been provided
+var ErrNilFieldsSizeChecker = errors.New("nil fields size checker")

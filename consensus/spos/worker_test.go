@@ -2321,7 +2321,27 @@ func TestWorker_ReceivedHeader(t *testing.T) {
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
 
-		workerArgs := createDefaultWorkerArgs(&statusHandlerMock.AppStatusHandlerStub{})
+		wasSetUInt64ValueCalled := false
+		setStringValueCnt := 0
+		appStatusHandler := &statusHandlerMock.AppStatusHandlerStub{
+			SetUInt64ValueHandler: func(key string, value uint64) {
+				require.Equal(t, common.MetricReceivedProposedBlock, key)
+				wasSetUInt64ValueCalled = true
+			},
+			SetStringValueHandler: func(key string, value string) {
+				setStringValueCnt++
+				if key != common.MetricRedundancyIsMainActive &&
+					key != common.MetricRedundancyStepInReason {
+					require.Fail(t, "unexpected key for SetStringValue")
+				}
+			},
+		}
+		workerArgs := createDefaultWorkerArgs(appStatusHandler)
+		workerArgs.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+			IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
+				return flag == common.EquivalentMessagesFlag
+			},
+		}
 		wrk, _ := spos.NewWorker(workerArgs)
 		wrk.ConsensusState().SetHeader(&block.HeaderV2{})
 
@@ -2337,6 +2357,8 @@ func TestWorker_ReceivedHeader(t *testing.T) {
 		require.True(t, wasHandlerCalled)
 
 		wrk.RemoveAllReceivedHeaderHandlers() // coverage only
+		require.True(t, wasSetUInt64ValueCalled)
+		require.Equal(t, 2, setStringValueCnt)
 	})
 }
 

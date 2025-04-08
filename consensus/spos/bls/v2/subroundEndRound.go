@@ -374,7 +374,7 @@ func (sr *subroundEndRound) sendProof() (bool, error) {
 
 	// broadcast header proof
 	err = sr.createAndBroadcastProof(sig, bitmap, currentSender)
-	if err != nil {
+	if err != nil && !errors.Is(err, ErrProofAlreadyPropagated) {
 		log.Warn("sendProof.createAndBroadcastProof", "error", err.Error())
 	}
 
@@ -392,6 +392,9 @@ func (sr *subroundEndRound) shouldSendProof() bool {
 }
 
 func (sr *subroundEndRound) aggregateSigsAndHandleInvalidSigners(bitmap []byte, sender string) ([]byte, []byte, error) {
+	if sr.EquivalentProofsPool().HasProof(sr.ShardCoordinator().SelfId(), sr.GetData()) {
+		return nil, nil, ErrProofAlreadyPropagated
+	}
 	sig, err := sr.SigningHandler().AggregateSigs(bitmap, sr.GetHeader().GetEpoch())
 	if err != nil {
 		log.Debug("doEndRoundJobByNode.AggregateSigs", "error", err.Error())
@@ -541,6 +544,10 @@ func (sr *subroundEndRound) handleInvalidSignersOnAggSigFail(sender string) ([]b
 		return nil, nil, err
 	}
 
+	if sr.EquivalentProofsPool().HasProof(sr.ShardCoordinator().SelfId(), sr.GetData()) {
+		return nil, nil, ErrProofAlreadyPropagated
+	}
+
 	if len(invalidSigners) > 0 {
 		sr.createAndBroadcastInvalidSigners(invalidSigners, invalidPubKeys, sender)
 	}
@@ -597,6 +604,11 @@ func (sr *subroundEndRound) createAndBroadcastProof(
 	bitmap []byte,
 	sender string,
 ) error {
+	if sr.EquivalentProofsPool().HasProof(sr.ShardCoordinator().SelfId(), sr.GetData()) {
+		// no need to broadcast a proof if already received and verified one
+		return ErrProofAlreadyPropagated
+	}
+
 	headerProof := &block.HeaderProof{
 		PubKeysBitmap:       bitmap,
 		AggregatedSignature: signature,
@@ -885,9 +897,19 @@ func (sr *subroundEndRound) receivedSignature(_ context.Context, cnsDta *consens
 }
 
 func (sr *subroundEndRound) checkReceivedSignatures() bool {
+	isTransitionBlock := check.IfNil(sr.GetHeader().GetPreviousProof())
+
 	threshold := sr.Threshold(bls.SrSignature)
+	if isTransitionBlock {
+		threshold = core.GetPBFTThreshold(sr.ConsensusGroupSize())
+	}
+
 	if sr.FallbackHeaderValidator().ShouldApplyFallbackValidation(sr.GetHeader()) {
 		threshold = sr.FallbackThreshold(bls.SrSignature)
+		if isTransitionBlock {
+			threshold = core.GetPBFTFallbackThreshold(sr.ConsensusGroupSize())
+		}
+
 		log.Warn("subroundEndRound.checkReceivedSignatures: fallback validation has been applied",
 			"minimum number of signatures required", threshold,
 			"actual number of signatures received", sr.getNumOfSignaturesCollected(),
@@ -906,7 +928,8 @@ func (sr *subroundEndRound) checkReceivedSignatures() bool {
 		log.Debug("step 2: signatures collection done",
 			"subround", sr.Name(),
 			"signatures received", numSigs,
-			"total signatures", len(sr.ConsensusGroup()))
+			"total signatures", len(sr.ConsensusGroup()),
+			"threshold", threshold)
 
 		return true
 	}
