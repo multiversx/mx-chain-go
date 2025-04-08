@@ -4,7 +4,6 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	"github.com/multiversx/mx-chain-core-go/marshal"
 	"strings"
 	"sync"
 
@@ -72,17 +71,6 @@ func (c *collector) AddStateChange(stateChange state.StateChange) {
 
 // AddSaveAccountStateChange adds a new state change for the save account operation
 func (c *collector) AddSaveAccountStateChange(oldAccount, account vmcommon.AccountHandler, stateChange state.StateChange) {
-	if c.storer != nil {
-		dataAnalysisStateChange := &dataAnalysisStateChangeDTO{
-			StateChange: stateChange,
-		}
-
-		checkAccountChanges(oldAccount, account, dataAnalysisStateChange)
-
-		c.AddStateChange(dataAnalysisStateChange)
-		return
-	}
-
 	c.AddStateChange(stateChange)
 }
 
@@ -192,17 +180,6 @@ func (c *collector) Store() error {
 		err = c.storer.Put(stateChange.TxHash, marshalledData)
 		if err != nil {
 			return fmt.Errorf("failed to store marshalled data: %w", err)
-		}
-
-		da := &dataAnalysisStateChangesForTx{}
-		marshaller := marshal.JsonMarshalizer{}
-		err = marshaller.Unmarshal(da, marshalledData)
-		if err != nil {
-			log.Error("error decoding state change", "txHash", stateChange.TxHash, "stateChange", da, "error", err.Error())
-		}
-
-		for _, sc := range da.StateChanges {
-			log.Trace("unmarshalled state change for tx", "txHash", sc.GetTxHash(), "stateChanges", sc)
 		}
 	}
 
