@@ -1,6 +1,7 @@
 package sync_test
 
 import (
+	"github.com/multiversx/mx-chain-go/testscommon/processMocks"
 	"math"
 	"testing"
 	"time"
@@ -1409,7 +1410,7 @@ func TestBaseForkDetector_ReceivedProof(t *testing.T) {
 		&dataRetriever.ProofsPoolMock{},
 	)
 
-	proof := &mock.HeaderProofHandlerStub{
+	proof := &processMocks.HeaderProofHandlerStub{
 		GetHeaderNonceCalled: func() uint64 {
 			return 10
 		},
@@ -1431,7 +1432,7 @@ func TestBaseForkDetector_ReceivedProof(t *testing.T) {
 
 	assert.Equal(t, uint64(10), bfd.ProbableHighestNonce())
 
-	proof2 := &mock.HeaderProofHandlerStub{
+	proof2 := &processMocks.HeaderProofHandlerStub{
 		GetHeaderNonceCalled: func() uint64 {
 			return 10
 		},
@@ -1525,7 +1526,7 @@ func TestBaseForkDetector_ReceivedProofForBlockHeaderShouldSetProof(t *testing.T
 	assert.Equal(t, []byte("hash0"), hdrInfos[0].Hash())
 	assert.Equal(t, false, hdrInfos[0].HasProof())
 
-	proof := &mock.HeaderProofHandlerStub{
+	proof := &processMocks.HeaderProofHandlerStub{
 		GetHeaderEpochCalled: func() uint32 {
 			return 1
 		},
