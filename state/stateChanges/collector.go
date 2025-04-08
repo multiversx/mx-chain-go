@@ -1,7 +1,6 @@
 package stateChanges
 
 import (
-	"bytes"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
@@ -72,17 +71,6 @@ func (c *collector) AddStateChange(stateChange state.StateChange) {
 
 // AddSaveAccountStateChange adds a new state change for the save account operation
 func (c *collector) AddSaveAccountStateChange(oldAccount, account vmcommon.AccountHandler, stateChange state.StateChange) {
-	if c.storer != nil {
-		dataAnalysisStateChange := &dataAnalysisStateChangeDTO{
-			StateChange: stateChange,
-		}
-
-		checkAccountChanges(oldAccount, account, dataAnalysisStateChange)
-
-		c.AddStateChange(dataAnalysisStateChange)
-		return
-	}
-
 	c.AddStateChange(stateChange)
 }
 
@@ -128,7 +116,10 @@ func (c *collector) Publish() (map[string]*data.StateChanges, error) {
 			stateChangesForTxs[txHash].StateChanges = append(stateChangesForTxs[txHash].StateChanges, st)
 		}
 	}
-	log.Trace("published state changes", "numTxs", len(stateChangesForTxs))
+
+	for txhash, stateChanges := range stateChangesForTxs {
+		log.Trace("state changes for tx on Publish", "txHash", txhash, "state changes", stateChanges.StateChanges)
+	}
 
 	return stateChangesForTxs, nil
 }
@@ -177,10 +168,14 @@ func (c *collector) Store() error {
 	}
 
 	for _, stateChange := range stateChangesForTx {
+		for _, sc := range stateChange.StateChanges {
+			log.Trace("storing state changes for tx", "txHash", stateChange.TxHash, "stateChanges", sc)
+		}
 		marshalledData, err := json.Marshal(stateChange)
 		if err != nil {
 			return fmt.Errorf("failed to marshal state changes to JSON: %w", err)
 		}
+		log.Trace("state changes for", "txHash", stateChange.TxHash, "marshalledData", marshalledData)
 
 		err = c.storer.Put(stateChange.TxHash, marshalledData)
 		if err != nil {
@@ -266,31 +261,33 @@ func (c *collector) getStateChangesForTxs() ([]StateChangesForTx, error) {
 	c.stateChangesMut.Lock()
 	defer c.stateChangesMut.Unlock()
 
-	stateChangesForTxs := make([]StateChangesForTx, 0)
+	stateChangesForTxsMap := make(map[string][]state.StateChange)
 
 	for i := 0; i < len(c.stateChanges); i++ {
-		txHash := c.stateChanges[i].GetTxHash()
+		st := c.stateChanges[i]
+
+		txHash := st.GetTxHash()
 
 		if len(txHash) == 0 {
 			log.Warn("empty tx hash, state change event not associated to a transaction")
 			continue
 		}
 
-		innerStateChangesForTx := make([]state.StateChange, 0)
-		for j := i; j < len(c.stateChanges); j++ {
-			txHash2 := c.stateChanges[j].GetTxHash()
-			if !bytes.Equal(txHash, txHash2) {
-				i = j
-				break
-			}
-
-			innerStateChangesForTx = append(innerStateChangesForTx, c.stateChanges[j])
-			i = j
+		_, ok := stateChangesForTxsMap[string(txHash)]
+		if !ok {
+			log.Trace("created new state changes for tx", "txHash", txHash, "stateChange", st)
+			stateChangesForTxsMap[string(txHash)] = []state.StateChange{st}
+		} else {
+			log.Trace("appended state change to existing state changes for tx", "txHash", txHash, "stateChange", st)
+			stateChangesForTxsMap[string(txHash)] = append(stateChangesForTxsMap[string(txHash)], st)
 		}
+	}
 
+	stateChangesForTxs := make([]StateChangesForTx, 0)
+	for txHash, sts := range stateChangesForTxsMap {
 		stateChangesForTx := StateChangesForTx{
-			TxHash:       txHash,
-			StateChanges: innerStateChangesForTx,
+			TxHash:       []byte(txHash),
+			StateChanges: sts,
 		}
 		stateChangesForTxs = append(stateChangesForTxs, stateChangesForTx)
 	}
@@ -315,6 +312,9 @@ func (c *collector) getDataAnalysisStateChangesForTxs() ([]dataAnalysisStateChan
 		stateChangesForTx := dataAnalysisStateChangesForTx{
 			StateChangesForTx: stateChangeForTx,
 			Tx:                cachedTx,
+		}
+		for _, stateChange := range stateChangeForTx.StateChanges {
+			log.Trace("add state changes for tx", "txHash", stateChangeForTx.TxHash, "stateChanges", stateChange)
 		}
 		dataAnalysisStateChangesForTxs = append(dataAnalysisStateChangesForTxs, stateChangesForTx)
 	}
