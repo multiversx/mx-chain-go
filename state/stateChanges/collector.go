@@ -4,6 +4,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"github.com/multiversx/mx-chain-core-go/marshal"
 	"strings"
 	"sync"
 
@@ -193,10 +194,11 @@ func (c *collector) Store() error {
 			return fmt.Errorf("failed to store marshalled data: %w", err)
 		}
 
-		da := &dataAnalysisStateChangesForTx{}
-		err = json.Unmarshal(marshalledData, da)
+		da := dataAnalysisStateChangesForTx{}
+		marshaller := marshal.JsonMarshalizer{}
+		err = marshaller.Unmarshal(da, marshalledData)
 		if err != nil {
-			log.Trace("error decoding state change", "txHash", stateChange.TxHash)
+			log.Trace("error decoding state change", "txHash", stateChange.TxHash, "stateChange", da)
 			return fmt.Errorf("failed to unmarshal state changes from JSON: %w", err)
 		}
 
