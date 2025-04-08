@@ -192,6 +192,17 @@ func (c *collector) Store() error {
 		if err != nil {
 			return fmt.Errorf("failed to store marshalled data: %w", err)
 		}
+
+		da := &dataAnalysisStateChangesForTx{}
+		err = json.Unmarshal(marshalledData, da)
+		if err != nil {
+			log.Trace("error decoding state change", "txHash", stateChange.TxHash)
+			return fmt.Errorf("failed to unmarshal state changes from JSON: %w", err)
+		}
+
+		for _, sc := range da.StateChanges {
+			log.Trace("unmarshalled state change for tx", "txHash", sc.GetTxHash(), "stateChanges", sc)
+		}
 	}
 
 	return nil
