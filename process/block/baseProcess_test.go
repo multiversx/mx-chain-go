@@ -129,7 +129,7 @@ func createArgBaseProcessor(
 		BlockProcessingCutoffHandler:   &testscommon.BlockProcessingCutoffStub{},
 		ManagedPeersHolder:             &testscommon.ManagedPeersHolderStub{},
 		SentSignaturesTracker:          &testscommon.SentSignatureTrackerStub{},
-		StateChangesCollector:          disabled.NewDisabledStateChangesCollector(),
+		StateAccessesCollector:         disabled.NewDisabledStateAccessesCollector(),
 	}
 }
 

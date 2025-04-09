@@ -139,7 +139,7 @@ func NewMetaProcessor(arguments ArgMetaProcessor) (*metaProcessor, error) {
 		blockProcessingCutoffHandler:  arguments.BlockProcessingCutoffHandler,
 		managedPeersHolder:            arguments.ManagedPeersHolder,
 		sentSignaturesTracker:         arguments.SentSignaturesTracker,
-		stateChangesCollector:         arguments.StateChangesCollector,
+		stateAccessesCollector:        arguments.StateAccessesCollector,
 		extraDelayRequestBlockInfo:    time.Duration(arguments.Config.EpochStartConfig.ExtraDelayForRequestBlockInfoInMilliseconds) * time.Millisecond,
 	}
 
@@ -1307,7 +1307,7 @@ func (mp *metaProcessor) CommitBlock(
 
 	// TODO: Should be sent also validatorInfoTxs alongside rewardsTxs -> mp.validatorInfoCreator.GetValidatorInfoTxs(body) ?
 	mp.indexBlock(header, headerHash, body, lastMetaBlock, notarizedHeadersHashes, rewardsTxs)
-	mp.stateChangesCollector.Reset()
+	mp.stateAccessesCollector.Reset()
 	mp.recordBlockInHistory(headerHash, headerHandler, bodyHandler)
 
 	highestFinalBlockNonce := mp.forkDetector.GetHighestFinalBlockNonce()

@@ -103,10 +103,10 @@ func Test_newBlockProcessorCreatorForMeta(t *testing.T) {
 	trieStorageManagers[dataRetriever.PeerAccountsUnit.String()] = storageManagerPeer
 
 	argsAccCreator := factoryState.ArgsAccountCreator{
-		Hasher:                coreComponents.Hasher(),
-		Marshaller:            coreComponents.InternalMarshalizer(),
-		EnableEpochsHandler:   coreComponents.EnableEpochsHandler(),
-		StateChangesCollector: &stateMock.StateChangesCollectorStub{},
+		Hasher:                 coreComponents.Hasher(),
+		Marshaller:             coreComponents.InternalMarshalizer(),
+		EnableEpochsHandler:    coreComponents.EnableEpochsHandler(),
+		StateAccessesCollector: &stateMock.StateAccessesCollectorStub{},
 	}
 	accCreator, _ := factoryState.NewAccountCreator(argsAccCreator)
 
@@ -207,14 +207,14 @@ func createAccountAdapter(
 	}
 
 	args := state.ArgsAccountsDB{
-		Trie:                  tr,
-		Hasher:                hasher,
-		Marshaller:            marshaller,
-		AccountFactory:        accountFactory,
-		StoragePruningManager: disabled.NewDisabledStoragePruningManager(),
-		AddressConverter:      &testscommon.PubkeyConverterMock{},
-		SnapshotsManager:      disabledState.NewDisabledSnapshotsManager(),
-		StateChangesCollector: disabledState.NewDisabledStateChangesCollector(),
+		Trie:                   tr,
+		Hasher:                 hasher,
+		Marshaller:             marshaller,
+		AccountFactory:         accountFactory,
+		StoragePruningManager:  disabled.NewDisabledStoragePruningManager(),
+		AddressConverter:       &testscommon.PubkeyConverterMock{},
+		SnapshotsManager:       disabledState.NewDisabledSnapshotsManager(),
+		StateAccessesCollector: disabledState.NewDisabledStateAccessesCollector(),
 	}
 	adb, err := state.NewAccountsDB(args)
 	if err != nil {

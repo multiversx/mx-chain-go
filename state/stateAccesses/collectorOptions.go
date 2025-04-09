@@ -1,4 +1,4 @@
-package stateChanges
+package stateAccesses
 
 import (
 	"github.com/multiversx/mx-chain-go/storage"

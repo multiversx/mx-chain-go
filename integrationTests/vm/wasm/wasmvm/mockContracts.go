@@ -108,10 +108,10 @@ func GetAddressForNewAccountOnWalletAndNodeWithVM(
 
 	address := net.NewAddressWithVM(wallet, vmType)
 	argsAccCreation := stateFactory.ArgsAccountCreator{
-		Hasher:                &hashingMocks.HasherMock{},
-		Marshaller:            &marshallerMock.MarshalizerMock{},
-		EnableEpochsHandler:   &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
-		StateChangesCollector: &stateMock.StateChangesCollectorStub{},
+		Hasher:                 &hashingMocks.HasherMock{},
+		Marshaller:             &marshallerMock.MarshalizerMock{},
+		EnableEpochsHandler:    &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		StateAccessesCollector: &stateMock.StateAccessesCollectorStub{},
 	}
 	accountFactory, _ := stateFactory.NewAccountCreator(argsAccCreation)
 

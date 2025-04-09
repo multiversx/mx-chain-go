@@ -1,4 +1,4 @@
-package stateChanges
+package stateAccesses
 
 import (
 	"errors"
@@ -8,198 +8,166 @@ import (
 	"testing"
 
 	data "github.com/multiversx/mx-chain-core-go/data/stateChange"
-	"github.com/multiversx/mx-chain-core-go/data/transaction"
-	"github.com/stretchr/testify/assert"
 
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/storage/mock"
 	mockState "github.com/multiversx/mx-chain-go/testscommon/state"
 
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-func getWriteStateChange() *data.StateChange {
-	return &data.StateChange{
+func getWriteStateAccess() *data.StateAccess {
+	return &data.StateAccess{
 		Type: data.Write,
 	}
 }
 
-func getReadStateChange() *data.StateChange {
-	return &data.StateChange{
+func getReadStateAccess() *data.StateAccess {
+	return &data.StateAccess{
 		Type: data.Read,
 	}
 }
 
-func TestNewStateChangesCollector(t *testing.T) {
+func TestNewStateAccessesCollector(t *testing.T) {
 	t.Parallel()
 
-	stateChangesCollector := NewCollector()
-	require.False(t, stateChangesCollector.IsInterfaceNil())
+	StateAccessesCollector := NewCollector()
+	require.False(t, StateAccessesCollector.IsInterfaceNil())
 }
 
-func TestStateChangesCollector_AddStateChange(t *testing.T) {
+func TestStateAccessesCollector_AddStateAccess(t *testing.T) {
 	t.Parallel()
 
 	t.Run("default collector", func(t *testing.T) {
 		t.Parallel()
 
 		c := NewCollector()
-		assert.Equal(t, 0, len(c.stateChanges))
+		assert.Equal(t, 0, len(c.stateAccesses))
 
 		numStateChanges := 10
 		for i := 0; i < numStateChanges; i++ {
-			c.AddStateChange(getWriteStateChange())
+			c.AddStateAccess(getWriteStateAccess())
 		}
-		assert.Equal(t, 0, len(c.stateChanges))
+		assert.Equal(t, 0, len(c.stateAccesses))
 	})
 
 	t.Run("collect only write", func(t *testing.T) {
 		t.Parallel()
 
 		c := NewCollector(WithCollectWrite())
-		assert.Equal(t, 0, len(c.stateChanges))
+		assert.Equal(t, 0, len(c.stateAccesses))
 
 		numStateChanges := 10
 		for i := 0; i < numStateChanges; i++ {
-			c.AddStateChange(getWriteStateChange())
+			c.AddStateAccess(getWriteStateAccess())
 		}
 
-		c.AddStateChange(getReadStateChange())
-		assert.Equal(t, numStateChanges, len(c.stateChanges))
+		c.AddStateAccess(getReadStateAccess())
+		assert.Equal(t, numStateChanges, len(c.stateAccesses))
 	})
 
 	t.Run("collect only read", func(t *testing.T) {
 		t.Parallel()
 
 		c := NewCollector(WithCollectRead())
-		assert.Equal(t, 0, len(c.stateChanges))
+		assert.Equal(t, 0, len(c.stateAccesses))
 
 		numStateChanges := 10
 		for i := 0; i < numStateChanges; i++ {
-			c.AddStateChange(getReadStateChange())
+			c.AddStateAccess(getReadStateAccess())
 		}
 
-		c.AddStateChange(getWriteStateChange())
-		assert.Equal(t, numStateChanges, len(c.stateChanges))
+		c.AddStateAccess(getWriteStateAccess())
+		assert.Equal(t, numStateChanges, len(c.stateAccesses))
 	})
 
 	t.Run("collect both read and write", func(t *testing.T) {
 		t.Parallel()
 
 		c := NewCollector(WithCollectRead(), WithCollectWrite())
-		assert.Equal(t, 0, len(c.stateChanges))
+		assert.Equal(t, 0, len(c.stateAccesses))
 
 		numStateChanges := 10
 		for i := 0; i < numStateChanges; i++ {
 			if i%2 == 0 {
-				c.AddStateChange(getReadStateChange())
+				c.AddStateAccess(getReadStateAccess())
 			} else {
-				c.AddStateChange(getWriteStateChange())
+				c.AddStateAccess(getWriteStateAccess())
 			}
 		}
-		assert.Equal(t, numStateChanges, len(c.stateChanges))
+		assert.Equal(t, numStateChanges, len(c.stateAccesses))
 	})
 }
 
-func TestStateChangesCollector_GetStateChanges(t *testing.T) {
-	t.Parallel()
-
-	t.Run("getStateChanges with tx hash", func(t *testing.T) {
-		t.Parallel()
-
-		c := NewCollector(WithCollectWrite())
-		assert.Equal(t, 0, len(c.stateChanges))
-
-		numStateChanges := 10
-		for i := 0; i < numStateChanges; i++ {
-			c.AddStateChange(&data.StateChange{
-				Type:        data.Write,
-				MainTrieKey: []byte(strconv.Itoa(i)),
-			})
-		}
-		assert.Equal(t, numStateChanges, len(c.stateChanges))
-		stateChangesForTxs, _ := c.getStateChangesForTxs()
-		assert.Equal(t, 0, len(stateChangesForTxs))
-		c.AddTxHashToCollectedStateChanges([]byte("txHash"), &transaction.Transaction{})
-		assert.Equal(t, numStateChanges, len(c.stateChanges))
-		assert.Equal(t, 1, len(c.GetStateChanges()))
-		assert.Equal(t, []byte("txHash"), c.GetStateChanges()[0].TxHash)
-		assert.Equal(t, numStateChanges, len(c.GetStateChanges()[0].StateChanges))
-
-		stateChangesForTx := c.GetStateChanges()
-		assert.Equal(t, 1, len(stateChangesForTx))
-		assert.Equal(t, []byte("txHash"), stateChangesForTx[0].TxHash)
-		for i := 0; i < len(stateChangesForTx[0].StateChanges); i++ {
-			sc, ok := stateChangesForTx[0].StateChanges[i].(*data.StateChange)
-			require.True(t, ok)
-
-			assert.Equal(t, []byte(strconv.Itoa(i)), sc.MainTrieKey)
-		}
-	})
-
-	t.Run("getStateChanges without tx hash", func(t *testing.T) {
-		t.Parallel()
-
-		c := NewCollector(WithCollectWrite(), WithStorer(&mock.PersisterStub{}))
-		assert.Equal(t, 0, len(c.stateChanges))
-		assert.Equal(t, 0, len(c.GetStateChanges()))
-
-		numStateChanges := 10
-		for i := 0; i < numStateChanges; i++ {
-			c.AddStateChange(&data.StateChange{
-				Type:        data.Write,
-				MainTrieKey: []byte(strconv.Itoa(i)),
-			})
-		}
-		assert.Equal(t, numStateChanges, len(c.stateChanges))
-		assert.Equal(t, 0, len(c.GetStateChanges()))
-
-		stateChangesForTx := c.GetStateChanges()
-		assert.Equal(t, 0, len(stateChangesForTx))
-	})
-}
-
-func TestStateChangesCollector_AddTxHashToCollectedStateChanges(t *testing.T) {
+func TestStateAccessesCollector_GetStateChanges(t *testing.T) {
 	t.Parallel()
 
 	c := NewCollector(WithCollectWrite())
-	assert.Equal(t, 0, len(c.stateChanges))
+	assert.Equal(t, 0, len(c.stateAccesses))
+
+	numStateChanges := 10
+	for i := 0; i < numStateChanges; i++ {
+		c.AddStateAccess(&data.StateAccess{
+			Type:        data.Write,
+			MainTrieKey: []byte(strconv.Itoa(i)),
+		})
+	}
+	assert.Equal(t, numStateChanges, len(c.stateAccesses))
+	stateChangesForTxs := getStateAccessesForTxs(c.stateAccesses, false)
+	assert.Equal(t, 0, len(stateChangesForTxs))
+	c.AddTxHashToCollectedStateChanges([]byte("txHash"))
+	assert.Equal(t, numStateChanges, len(c.stateAccesses))
+	assert.Equal(t, 1, len(c.GetStateChanges()))
+	stateAccesses, ok := c.GetStateChanges()["txHash"]
+	require.True(t, ok)
+	assert.Equal(t, numStateChanges, len(stateAccesses.StateAccess))
+
+	for i := 0; i < len(stateAccesses.StateAccess); i++ {
+		assert.Equal(t, []byte(strconv.Itoa(i)), stateAccesses.StateAccess[i].MainTrieKey)
+	}
+}
+
+func TestStateAccessesCollector_AddTxHashToCollectedStateChanges(t *testing.T) {
+	t.Parallel()
+
+	c := NewCollector(WithCollectWrite())
+	assert.Equal(t, 0, len(c.stateAccesses))
 	assert.Equal(t, 0, len(c.GetStateChanges()))
 
-	c.AddTxHashToCollectedStateChanges([]byte("txHash0"), &transaction.Transaction{})
+	c.AddTxHashToCollectedStateChanges([]byte("txHash0"))
 
-	stateChange := &data.StateChange{
+	stateChange := &data.StateAccess{
 		Type:            data.Write,
 		MainTrieKey:     []byte("mainTrieKey"),
 		MainTrieVal:     []byte("mainTrieVal"),
 		DataTrieChanges: []*data.DataTrieChange{{Key: []byte("dataTrieKey"), Val: []byte("dataTrieVal")}},
 	}
-	c.AddStateChange(stateChange)
+	c.AddStateAccess(stateChange)
 
-	assert.Equal(t, 1, len(c.stateChanges))
+	assert.Equal(t, 1, len(c.stateAccesses))
 	assert.Equal(t, 0, len(c.GetStateChanges()))
-	c.AddTxHashToCollectedStateChanges([]byte("txHash"), &transaction.Transaction{})
-	assert.Equal(t, 1, len(c.stateChanges))
+	c.AddTxHashToCollectedStateChanges([]byte("txHash"))
+	assert.Equal(t, 1, len(c.stateAccesses))
 	assert.Equal(t, 1, len(c.GetStateChanges()))
 
 	stateChangesForTx := c.GetStateChanges()
-	assert.Equal(t, 1, len(stateChangesForTx))
-	assert.Equal(t, []byte("txHash"), stateChangesForTx[0].TxHash)
-	assert.Equal(t, 1, len(stateChangesForTx[0].StateChanges))
-
-	sc, ok := stateChangesForTx[0].StateChanges[0].(*data.StateChange)
+	stateAccesses, ok := stateChangesForTx["txHash"]
 	require.True(t, ok)
+	assert.Equal(t, 1, len(stateChangesForTx))
+	assert.Equal(t, 1, len(stateAccesses.StateAccess))
 
+	sc := stateAccesses.StateAccess[0]
 	assert.Equal(t, []byte("mainTrieKey"), sc.MainTrieKey)
 	assert.Equal(t, []byte("mainTrieVal"), sc.MainTrieVal)
 	assert.Equal(t, 1, len(sc.DataTrieChanges))
 }
 
-func TestStateChangesCollector_RevertToIndex_FailIfWrongIndex(t *testing.T) {
+func TestStateAccessesCollector_RevertToIndex_FailIfWrongIndex(t *testing.T) {
 	t.Parallel()
 
 	c := NewCollector(WithCollectWrite())
-	numStateChanges := len(c.stateChanges)
+	numStateChanges := len(c.stateAccesses)
 
 	err := c.RevertToIndex(-1)
 	require.True(t, errors.Is(err, state.ErrStateChangesIndexOutOfBounds))
@@ -208,50 +176,50 @@ func TestStateChangesCollector_RevertToIndex_FailIfWrongIndex(t *testing.T) {
 	require.Nil(t, err)
 }
 
-func TestStateChangesCollector_RevertToIndex(t *testing.T) {
+func TestStateAccessesCollector_RevertToIndex(t *testing.T) {
 	t.Parallel()
 
 	c := NewCollector(WithCollectWrite())
 
 	numStateChanges := 10
 	for i := 0; i < numStateChanges; i++ {
-		c.AddStateChange(getWriteStateChange())
+		c.AddStateAccess(getWriteStateAccess())
 		err := c.SetIndexToLastStateChange(i)
 		require.Nil(t, err)
 	}
-	c.AddTxHashToCollectedStateChanges([]byte("txHash1"), &transaction.Transaction{})
+	c.AddTxHashToCollectedStateChanges([]byte("txHash1"))
 
 	for i := numStateChanges; i < numStateChanges*2; i++ {
-		c.AddStateChange(getWriteStateChange())
-		c.AddTxHashToCollectedStateChanges([]byte("txHash"+fmt.Sprintf("%d", i)), &transaction.Transaction{})
+		c.AddStateAccess(getWriteStateAccess())
+		c.AddTxHashToCollectedStateChanges([]byte("txHash" + fmt.Sprintf("%d", i)))
 	}
 	err := c.SetIndexToLastStateChange(numStateChanges)
 	require.Nil(t, err)
 
-	assert.Equal(t, numStateChanges*2, len(c.stateChanges))
+	assert.Equal(t, numStateChanges*2, len(c.stateAccesses))
 
 	err = c.RevertToIndex(numStateChanges)
 	require.Nil(t, err)
-	assert.Equal(t, numStateChanges*2, len(c.stateChanges))
+	assert.Equal(t, numStateChanges*2, len(c.stateAccesses))
 
 	err = c.RevertToIndex(numStateChanges - 1)
 	require.Nil(t, err)
-	assert.Equal(t, numStateChanges, len(c.stateChanges))
+	assert.Equal(t, numStateChanges, len(c.stateAccesses))
 
 	err = c.RevertToIndex(numStateChanges / 2)
 	require.Nil(t, err)
-	assert.Equal(t, numStateChanges/2+1, len(c.stateChanges))
+	assert.Equal(t, numStateChanges/2+1, len(c.stateAccesses))
 
 	err = c.RevertToIndex(1)
 	require.Nil(t, err)
-	assert.Equal(t, 2, len(c.stateChanges))
+	assert.Equal(t, 2, len(c.stateAccesses))
 
 	err = c.RevertToIndex(0)
 	require.Nil(t, err)
-	assert.Equal(t, 0, len(c.stateChanges))
+	assert.Equal(t, 0, len(c.stateAccesses))
 }
 
-func TestStateChangesCollector_SetIndexToLastStateChange(t *testing.T) {
+func TestStateAccessesCollector_SetIndexToLastStateChange(t *testing.T) {
 	t.Parallel()
 
 	t.Run("should fail if invalid index", func(t *testing.T) {
@@ -262,7 +230,7 @@ func TestStateChangesCollector_SetIndexToLastStateChange(t *testing.T) {
 		err := c.SetIndexToLastStateChange(-1)
 		require.True(t, errors.Is(err, state.ErrStateChangesIndexOutOfBounds))
 
-		numStateChanges := len(c.stateChanges)
+		numStateChanges := len(c.stateAccesses)
 		err = c.SetIndexToLastStateChange(numStateChanges + 1)
 		require.Nil(t, err)
 	})
@@ -274,66 +242,66 @@ func TestStateChangesCollector_SetIndexToLastStateChange(t *testing.T) {
 
 		numStateChanges := 10
 		for i := 0; i < numStateChanges; i++ {
-			c.AddStateChange(getWriteStateChange())
+			c.AddStateAccess(getWriteStateAccess())
 			err := c.SetIndexToLastStateChange(i)
 			require.Nil(t, err)
 		}
-		c.AddTxHashToCollectedStateChanges([]byte("txHash1"), &transaction.Transaction{})
+		c.AddTxHashToCollectedStateChanges([]byte("txHash1"))
 
 		for i := numStateChanges; i < numStateChanges*2; i++ {
-			c.AddStateChange(getWriteStateChange())
-			c.AddTxHashToCollectedStateChanges([]byte("txHash"+fmt.Sprintf("%d", i)), &transaction.Transaction{})
+			c.AddStateAccess(getWriteStateAccess())
+			c.AddTxHashToCollectedStateChanges([]byte("txHash" + fmt.Sprintf("%d", i)))
 		}
 		err := c.SetIndexToLastStateChange(numStateChanges)
 		require.Nil(t, err)
 
-		assert.Equal(t, numStateChanges*2, len(c.stateChanges))
+		assert.Equal(t, numStateChanges*2, len(c.stateAccesses))
 	})
 }
 
-func TestStateChangesCollector_Reset(t *testing.T) {
+func TestStateAccessesCollector_Reset(t *testing.T) {
 	t.Parallel()
 
 	c := NewCollector(WithCollectWrite())
-	assert.Equal(t, 0, len(c.stateChanges))
+	assert.Equal(t, 0, len(c.stateAccesses))
 
 	numStateChanges := 10
 	for i := 0; i < numStateChanges; i++ {
-		c.AddStateChange(getWriteStateChange())
+		c.AddStateAccess(getWriteStateAccess())
 	}
-	c.AddTxHashToCollectedStateChanges([]byte("txHash"), &transaction.Transaction{})
+	c.AddTxHashToCollectedStateChanges([]byte("txHash"))
 	for i := numStateChanges; i < numStateChanges*2; i++ {
-		c.AddStateChange(getWriteStateChange())
+		c.AddStateAccess(getWriteStateAccess())
 	}
-	assert.Equal(t, numStateChanges*2, len(c.stateChanges))
+	assert.Equal(t, numStateChanges*2, len(c.stateAccesses))
 
 	assert.Equal(t, 1, len(c.GetStateChanges()))
 
 	c.Reset()
-	assert.Equal(t, 0, len(c.stateChanges))
+	assert.Equal(t, 0, len(c.stateAccesses))
 
 	assert.Equal(t, 0, len(c.GetStateChanges()))
 }
 
-func TestStateChangesCollector_Publish(t *testing.T) {
+func TestStateAccessesCollector_Publish(t *testing.T) {
 	t.Parallel()
 
 	t.Run("collect only write", func(t *testing.T) {
 		t.Parallel()
 
 		c := NewCollector(WithCollectWrite())
-		assert.Equal(t, 0, len(c.stateChanges))
+		assert.Equal(t, 0, len(c.stateAccesses))
 
 		numStateChanges := 20
 		for i := 0; i < numStateChanges; i++ {
 			if i%2 == 0 {
-				c.AddStateChange(&data.StateChange{
+				c.AddStateAccess(&data.StateAccess{
 					Type: data.Write,
 					// distribute evenly based on parity of the index
 					TxHash: []byte(fmt.Sprintf("hash%d", i%2)),
 				})
 			} else {
-				c.AddStateChange(&data.StateChange{
+				c.AddStateAccess(&data.StateAccess{
 					Type: data.Read,
 					// distribute evenly based on parity of the index
 					TxHash: []byte(fmt.Sprintf("hash%d", i%2)),
@@ -345,11 +313,11 @@ func TestStateChangesCollector_Publish(t *testing.T) {
 		require.NoError(t, err)
 
 		require.Len(t, stateChangesForTx, 1)
-		require.Len(t, stateChangesForTx["hash0"].StateChanges, 10)
+		require.Len(t, stateChangesForTx["hash0"].StateAccess, 10)
 
-		require.Equal(t, stateChangesForTx, map[string]*data.StateChanges{
+		require.Equal(t, stateChangesForTx, map[string]*data.StateAccesses{
 			"hash0": {
-				StateChanges: []*data.StateChange{
+				StateAccess: []*data.StateAccess{
 					{Type: data.Write, TxHash: []byte("hash0")},
 					{Type: data.Write, TxHash: []byte("hash0")},
 					{Type: data.Write, TxHash: []byte("hash0")},
@@ -369,18 +337,18 @@ func TestStateChangesCollector_Publish(t *testing.T) {
 		t.Parallel()
 
 		c := NewCollector(WithCollectRead())
-		assert.Equal(t, 0, len(c.stateChanges))
+		assert.Equal(t, 0, len(c.stateAccesses))
 
 		numStateChanges := 20
 		for i := 0; i < numStateChanges; i++ {
 			if i%2 == 0 {
-				c.AddStateChange(&data.StateChange{
+				c.AddStateAccess(&data.StateAccess{
 					Type: data.Write,
 					// distribute evenly based on parity of the index
 					TxHash: []byte(fmt.Sprintf("hash%d", i%2)),
 				})
 			} else {
-				c.AddStateChange(&data.StateChange{
+				c.AddStateAccess(&data.StateAccess{
 					Type: data.Read,
 					// distribute evenly based on parity of the index
 					TxHash: []byte(fmt.Sprintf("hash%d", i%2)),
@@ -392,11 +360,11 @@ func TestStateChangesCollector_Publish(t *testing.T) {
 		require.NoError(t, err)
 
 		require.Len(t, stateChangesForTx, 1)
-		require.Len(t, stateChangesForTx["hash1"].StateChanges, 10)
+		require.Len(t, stateChangesForTx["hash1"].StateAccess, 10)
 
-		require.Equal(t, stateChangesForTx, map[string]*data.StateChanges{
+		require.Equal(t, stateChangesForTx, map[string]*data.StateAccesses{
 			"hash1": {
-				StateChanges: []*data.StateChange{
+				StateAccess: []*data.StateAccess{
 					{Type: data.Read, TxHash: []byte("hash1")},
 					{Type: data.Read, TxHash: []byte("hash1")},
 					{Type: data.Read, TxHash: []byte("hash1")},
@@ -416,18 +384,18 @@ func TestStateChangesCollector_Publish(t *testing.T) {
 		t.Parallel()
 
 		c := NewCollector(WithCollectRead(), WithCollectWrite())
-		assert.Equal(t, 0, len(c.stateChanges))
+		assert.Equal(t, 0, len(c.stateAccesses))
 
 		numStateChanges := 20
 		for i := 0; i < numStateChanges; i++ {
 			if i%2 == 0 {
-				c.AddStateChange(&data.StateChange{
+				c.AddStateAccess(&data.StateAccess{
 					Type: data.Write,
 					// distribute evenly based on parity of the index
 					TxHash: []byte(fmt.Sprintf("hash%d", i%2)),
 				})
 			} else {
-				c.AddStateChange(&data.StateChange{
+				c.AddStateAccess(&data.StateAccess{
 					Type: data.Read,
 					// distribute evenly based on parity of the index
 					TxHash: []byte(fmt.Sprintf("hash%d", i%2)),
@@ -439,12 +407,12 @@ func TestStateChangesCollector_Publish(t *testing.T) {
 		require.NoError(t, err)
 
 		require.Len(t, stateChangesForTx, 2)
-		require.Len(t, stateChangesForTx["hash0"].StateChanges, 10)
-		require.Len(t, stateChangesForTx["hash1"].StateChanges, 10)
+		require.Len(t, stateChangesForTx["hash0"].StateAccess, 10)
+		require.Len(t, stateChangesForTx["hash1"].StateAccess, 10)
 
-		require.Equal(t, stateChangesForTx, map[string]*data.StateChanges{
+		require.Equal(t, stateChangesForTx, map[string]*data.StateAccesses{
 			"hash0": {
-				StateChanges: []*data.StateChange{
+				StateAccess: []*data.StateAccess{
 					{Type: data.Write, TxHash: []byte("hash0")},
 					{Type: data.Write, TxHash: []byte("hash0")},
 					{Type: data.Write, TxHash: []byte("hash0")},
@@ -458,7 +426,7 @@ func TestStateChangesCollector_Publish(t *testing.T) {
 				},
 			},
 			"hash1": {
-				StateChanges: []*data.StateChange{
+				StateAccess: []*data.StateAccess{
 					{Type: data.Read, TxHash: []byte("hash1")},
 					{Type: data.Read, TxHash: []byte("hash1")},
 					{Type: data.Read, TxHash: []byte("hash1")},
@@ -487,7 +455,7 @@ func TestNewDataAnalysisCollector(t *testing.T) {
 	})
 }
 
-func TestDataAnalysisStateChangesCollector_AddSaveAccountStateChange(t *testing.T) {
+func TestDataAnalysisStateAccessesCollector_AddSaveAccountStateChange(t *testing.T) {
 	t.Parallel()
 
 	t.Run("nil old account should return early", func(t *testing.T) {
@@ -495,10 +463,10 @@ func TestDataAnalysisStateChangesCollector_AddSaveAccountStateChange(t *testing.
 
 		c := NewCollector(WithCollectWrite(), WithStorer(&mock.PersisterStub{}))
 
-		c.AddSaveAccountStateChange(
+		c.AddSaveAccountStateAccess(
 			nil,
 			&mockState.UserAccountStub{},
-			&data.StateChange{
+			&data.StateAccess{
 				Type:        data.Write,
 				Index:       2,
 				TxHash:      []byte("txHash1"),
@@ -506,23 +474,15 @@ func TestDataAnalysisStateChangesCollector_AddSaveAccountStateChange(t *testing.
 			},
 		)
 
-		c.AddTxHashToCollectedStateChanges([]byte("txHash1"), &transaction.Transaction{})
+		c.AddTxHashToCollectedStateChanges([]byte("txHash1"))
 
 		stateChangesForTx := c.GetStateChanges()
 		require.Equal(t, 1, len(stateChangesForTx))
+		stateAccesses, ok := stateChangesForTx["txHash1"]
+		assert.True(t, ok)
 
-		sc := stateChangesForTx[0].StateChanges[0]
-		dasc, ok := sc.(*dataAnalysisStateChangeDTO)
-		require.True(t, ok)
-
-		require.False(t, dasc.Nonce)
-		require.False(t, dasc.Balance)
-		require.False(t, dasc.CodeHash)
-		require.False(t, dasc.RootHash)
-		require.False(t, dasc.DeveloperReward)
-		require.False(t, dasc.OwnerAddress)
-		require.False(t, dasc.UserName)
-		require.False(t, dasc.CodeMetadata)
+		sc := stateAccesses.StateAccess[0]
+		require.Nil(t, sc.AccountChanges)
 	})
 
 	t.Run("nil new account should return early", func(t *testing.T) {
@@ -530,10 +490,10 @@ func TestDataAnalysisStateChangesCollector_AddSaveAccountStateChange(t *testing.
 
 		c := NewCollector(WithCollectWrite(), WithStorer(&mock.PersisterStub{}))
 
-		c.AddSaveAccountStateChange(
+		c.AddSaveAccountStateAccess(
 			&mockState.UserAccountStub{},
 			nil,
-			&data.StateChange{
+			&data.StateAccess{
 				Type:        data.Write,
 				Index:       2,
 				TxHash:      []byte("txHash1"),
@@ -541,23 +501,15 @@ func TestDataAnalysisStateChangesCollector_AddSaveAccountStateChange(t *testing.
 			},
 		)
 
-		c.AddTxHashToCollectedStateChanges([]byte("txHash1"), &transaction.Transaction{})
+		c.AddTxHashToCollectedStateChanges([]byte("txHash1"))
 
 		stateChangesForTx := c.GetStateChanges()
 		require.Equal(t, 1, len(stateChangesForTx))
+		stateAccesses, ok := stateChangesForTx["txHash1"]
+		assert.True(t, ok)
 
-		sc := stateChangesForTx[0].StateChanges[0]
-		dasc, ok := sc.(*dataAnalysisStateChangeDTO)
-		require.True(t, ok)
-
-		require.False(t, dasc.Nonce)
-		require.False(t, dasc.Balance)
-		require.False(t, dasc.CodeHash)
-		require.False(t, dasc.RootHash)
-		require.False(t, dasc.DeveloperReward)
-		require.False(t, dasc.OwnerAddress)
-		require.False(t, dasc.UserName)
-		require.False(t, dasc.CodeMetadata)
+		sc := stateAccesses.StateAccess[0]
+		require.Nil(t, sc.AccountChanges)
 	})
 
 	t.Run("should work", func(t *testing.T) {
@@ -565,7 +517,7 @@ func TestDataAnalysisStateChangesCollector_AddSaveAccountStateChange(t *testing.
 
 		c := NewCollector(WithCollectWrite(), WithStorer(&mock.PersisterStub{}))
 
-		c.AddSaveAccountStateChange(
+		c.AddSaveAccountStateAccess(
 			&mockState.UserAccountStub{
 				Nonce:            0,
 				Balance:          big.NewInt(0),
@@ -592,7 +544,7 @@ func TestDataAnalysisStateChangesCollector_AddSaveAccountStateChange(t *testing.
 					return []byte{1}
 				},
 			},
-			&data.StateChange{
+			&data.StateAccess{
 				Type:        data.Write,
 				Index:       2,
 				TxHash:      []byte("txHash1"),
@@ -600,42 +552,42 @@ func TestDataAnalysisStateChangesCollector_AddSaveAccountStateChange(t *testing.
 			},
 		)
 
-		c.AddTxHashToCollectedStateChanges([]byte("txHash1"), &transaction.Transaction{})
+		c.AddTxHashToCollectedStateChanges([]byte("txHash1"))
 
 		stateChangesForTx := c.GetStateChanges()
 		require.Equal(t, 1, len(stateChangesForTx))
 
-		sc := stateChangesForTx[0].StateChanges[0]
-		dasc, ok := sc.(*dataAnalysisStateChangeDTO)
-		require.True(t, ok)
+		stateAccesses, ok := stateChangesForTx["txHash1"]
+		assert.True(t, ok)
 
-		require.True(t, dasc.Nonce)
-		require.True(t, dasc.Balance)
-		require.True(t, dasc.CodeHash)
-		require.True(t, dasc.RootHash)
-		require.True(t, dasc.DeveloperReward)
-		require.True(t, dasc.OwnerAddress)
-		require.True(t, dasc.UserName)
-		require.True(t, dasc.CodeMetadata)
+		sc := stateAccesses.StateAccess[0]
+		require.True(t, sc.AccountChanges.Nonce)
+		require.True(t, sc.AccountChanges.Balance)
+		require.True(t, sc.AccountChanges.CodeHash)
+		require.True(t, sc.AccountChanges.RootHash)
+		require.True(t, sc.AccountChanges.DeveloperReward)
+		require.True(t, sc.AccountChanges.OwnerAddress)
+		require.True(t, sc.AccountChanges.UserName)
+		require.True(t, sc.AccountChanges.CodeMetadata)
 	})
 }
 
-func TestDataAnalysisStateChangesCollector_Reset(t *testing.T) {
+func TestDataAnalysisStateAccessesCollector_Reset(t *testing.T) {
 	t.Parallel()
 
 	c := NewCollector(WithCollectWrite(), WithStorer(&mock.PersisterStub{}))
 
 	numStateChanges := 10
 	for i := 0; i < numStateChanges; i++ {
-		c.AddStateChange(getWriteStateChange())
+		c.AddStateAccess(getWriteStateAccess())
 	}
-	require.Equal(t, numStateChanges, len(c.stateChanges))
+	require.Equal(t, numStateChanges, len(c.stateAccesses))
 
 	c.Reset()
 	require.Equal(t, 0, len(c.GetStateChanges()))
 }
 
-func TestDataAnalysisStateChangesCollector_Store(t *testing.T) {
+func TestDataAnalysisStateAccessesCollector_Store(t *testing.T) {
 	t.Parallel()
 
 	t.Run("with storer", func(t *testing.T) {
@@ -653,9 +605,9 @@ func TestDataAnalysisStateChangesCollector_Store(t *testing.T) {
 
 		numStateChanges := 10
 		for i := 0; i < numStateChanges; i++ {
-			c.AddStateChange(getWriteStateChange())
+			c.AddStateAccess(getWriteStateAccess())
 		}
-		c.AddTxHashToCollectedStateChanges([]byte("txHash1"), &transaction.Transaction{})
+		c.AddTxHashToCollectedStateChanges([]byte("txHash1"))
 
 		err := c.Store()
 		require.Nil(t, err)
@@ -670,9 +622,9 @@ func TestDataAnalysisStateChangesCollector_Store(t *testing.T) {
 
 		numStateChanges := 10
 		for i := 0; i < numStateChanges; i++ {
-			c.AddStateChange(getWriteStateChange())
+			c.AddStateAccess(getWriteStateAccess())
 		}
-		c.AddTxHashToCollectedStateChanges([]byte("txHash1"), &transaction.Transaction{})
+		c.AddTxHashToCollectedStateChanges([]byte("txHash1"))
 
 		err := c.Store()
 		require.Nil(t, err)

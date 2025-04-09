@@ -5,7 +5,6 @@ import (
 	"math/big"
 
 	"github.com/multiversx/mx-chain-core-go/core"
-	coreData "github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/api"
 	data "github.com/multiversx/mx-chain-core-go/data/stateChange"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
@@ -92,7 +91,7 @@ type AccountsAdapter interface {
 	GetStackDebugFirstEntry() []byte
 	SetSyncer(syncer AccountsDBSyncer) error
 	StartSnapshotIfNeeded() error
-	SetTxHashForLatestStateChanges(txHash []byte, tx coreData.TransactionHandler)
+	SetTxHashForLatestStateChanges(txHash []byte)
 	Close() error
 	IsInterfaceNil() bool
 }
@@ -357,29 +356,15 @@ type ValidatorInfoHandler interface {
 	GoString() string
 }
 
-// StateChangesCollector defines the methods needed for an StateChangesCollector implementation
-type StateChangesCollector interface {
-	AddStateChange(stateChange StateChange)
-	AddSaveAccountStateChange(oldAccount, account vmcommon.AccountHandler, stateChange StateChange)
+// StateAccessesCollector defines the methods needed for an StateAccessesCollector implementation
+type StateAccessesCollector interface {
+	AddStateAccess(stateAccess *data.StateAccess)
+	AddSaveAccountStateAccess(oldAccount, account vmcommon.AccountHandler, stateChange *data.StateAccess)
 	Reset()
-	Publish() (map[string]*data.StateChanges, error)
+	Publish() (map[string]*data.StateAccesses, error)
 	Store() error
-	AddTxHashToCollectedStateChanges(txHash []byte, tx coreData.TransactionHandler)
+	AddTxHashToCollectedStateChanges(txHash []byte)
 	SetIndexToLastStateChange(index int) error
 	RevertToIndex(index int) error
 	IsInterfaceNil() bool
-}
-
-// StateChange defines the behaviour of a state change holder
-type StateChange interface {
-	GetType() data.ActionType
-	GetIndex() int32
-	GetTxHash() []byte
-	GetMainTrieKey() []byte
-	GetMainTrieVal() []byte
-	GetOperation() data.Operation
-	GetDataTrieChanges() []*data.DataTrieChange
-
-	SetTxHash(txHash []byte)
-	SetIndex(index int32)
 }

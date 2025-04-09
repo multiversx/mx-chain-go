@@ -41,7 +41,7 @@ type ArgOutportDataProvider struct {
 	Marshaller               marshal.Marshalizer
 	Hasher                   hashing.Hasher
 	ExecutionOrderHandler    common.ExecutionOrderGetter
-	StateChangesCollector    state.StateChangesCollector
+	StateAccessesCollector   state.StateAccessesCollector
 }
 
 // ArgPrepareOutportSaveBlockData holds the arguments needed for prepare outport save block data
@@ -70,7 +70,7 @@ type outportDataProvider struct {
 	executionOrderHandler    common.ExecutionOrderGetter
 	marshaller               marshal.Marshalizer
 	hasher                   hashing.Hasher
-	stateChangesCollector    state.StateChangesCollector
+	StateAccessesCollector   state.StateAccessesCollector
 }
 
 // NewOutportDataProvider will create a new instance of outportDataProvider
@@ -87,7 +87,7 @@ func NewOutportDataProvider(arg ArgOutportDataProvider) (*outportDataProvider, e
 		executionOrderHandler:    arg.ExecutionOrderHandler,
 		marshaller:               arg.Marshaller,
 		hasher:                   arg.Hasher,
-		stateChangesCollector:    arg.StateChangesCollector,
+		StateAccessesCollector:   arg.StateAccessesCollector,
 	}, nil
 }
 
@@ -139,7 +139,7 @@ func (odp *outportDataProvider) PrepareOutportSaveBlockData(arg ArgPrepareOutpor
 		return nil, err
 	}
 
-	stateChanges, err := odp.stateChangesCollector.Publish()
+	stateAccesses, err := odp.StateAccessesCollector.Publish()
 	if err != nil {
 		return nil, fmt.Errorf("failed to publish state changes: %w", err)
 	}
@@ -155,7 +155,7 @@ func (odp *outportDataProvider) PrepareOutportSaveBlockData(arg ArgPrepareOutpor
 				GasPenalized:   odp.gasConsumedProvider.TotalGasPenalized(),
 				MaxGasPerBlock: odp.economicsData.MaxGasLimitPerBlock(odp.shardID),
 			},
-			StateChanges:           stateChanges,
+			StateAccesses:          stateAccesses,
 			AlteredAccounts:        alteredAccounts,
 			NotarizedHeadersHashes: arg.NotarizedHeadersHashes,
 			NumberOfShards:         odp.numOfShards,

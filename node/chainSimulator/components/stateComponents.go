@@ -110,8 +110,8 @@ func (s *stateComponentsHolder) MissingTrieNodesNotifier() common.MissingTrieNod
 	return s.missingTrieNodesNotifier
 }
 
-func (s *stateComponentsHolder) StateChangesCollector() state.StateChangesCollector {
-	return disabled.NewDisabledStateChangesCollector()
+func (s *stateComponentsHolder) StateAccessesCollector() state.StateAccessesCollector {
+	return disabled.NewDisabledStateAccessesCollector()
 }
 
 // Close will close the state components
