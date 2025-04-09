@@ -98,18 +98,13 @@ func (cache *eligibleNodesCache) refreshCache(epoch uint32, shardID uint32) (map
 	}
 
 	cachedEpochs := cache.nodesCoordinator.GetCachedEpochs()
-	epochsToBeDeleted := make([]uint32, 0)
 	for cachedEpoch := range cache.eligibleNodesMap {
 		_, isEpochCachedByNodesCoordinator := cachedEpochs[cachedEpoch]
 		if isEpochCachedByNodesCoordinator {
 			continue
 		}
 
-		epochsToBeDeleted = append(epochsToBeDeleted, cachedEpoch)
-	}
-
-	for _, epochToDelete := range epochsToBeDeleted {
-		delete(cache.eligibleNodesMap, epochToDelete)
+		delete(cache.eligibleNodesMap, cachedEpoch)
 	}
 
 	eligibleNodesForShardInEpoch := make(map[string]struct{}, len(eligibleList))
