@@ -1040,7 +1040,12 @@ func (txs *transactions) ComputeSortedTxs() {
 	sortedTxsGasLimit := txs.computeOverestimations(sortedTxs, currentSenders)
 	remainingTxsGasLlimit := txs.computeOverestimations(remainingTxsForScheduled, currentSenders)
 
-	log.Info("selected txs", "initialGasBandwidth", initialGasBandwidth, "gasBandwidthForScheduled", gasBandwidthForScheduled, "gasBandwidth", gasBandwidth, "sortedTxsGasLimit", sortedTxsGasLimit, "remainingTxsGasLlimit", remainingTxsGasLlimit)
+	log.Info("selected txs",
+		"initialGasBandwidth", fmt.Sprintf("%.3f", getGaInBillions(initialGasBandwidth)),
+		"gasBandwidthForScheduled", fmt.Sprintf("%.3f", getGaInBillions(gasBandwidthForScheduled)),
+		"gasBandwidth", fmt.Sprintf("%.3f", getGaInBillions(gasBandwidth)),
+		"sortedTxsGasLimit", fmt.Sprintf("%.3f", getGaInBillions(sortedTxsGasLimit)),
+		"remainingTxsGasLlimit", fmt.Sprintf("%.3f", getGaInBillions(remainingTxsGasLlimit)))
 
 	// sort the senders based on the overestimation
 	sortedSenders := make([]*senderOverestimation, 0)
@@ -1056,7 +1061,13 @@ func (txs *transactions) ComputeSortedTxs() {
 	}
 
 	log.Debug("computeSortedTxs: elapsed time to computeSortedTxs - for testing purposes", "selected sortedTxs", len(sortedTxs), "selected scheduled", len(remainingTxsForScheduled), "elapsed", time.Since(startTime))
+}
 
+func getGaInBillions(gas uint64) float32 {
+	if gas == 0 {
+		return 0
+	}
+	return float32(gas) / 1e9
 }
 
 func (txs *transactions) computeOverestimations(allTxs []*txcache.WrappedTransaction, currentSenders map[string]*senderOverestimation) uint64 {
@@ -1085,7 +1096,7 @@ func (txs *transactions) computeOverestimations(allTxs []*txcache.WrappedTransac
 		currentSenders[erdSender].overEstimationSum = (overEstimation*(nrTxs-1) + estimation) / nrTxs
 		currentSenders[erdSender].numberOfTxs = nrTxs
 		gasLimitSum += tx.GetGasLimit()
-		log.Info("tx estimation before prefilterTransactions", "txHash", allTxs[i].TxHash, "gasLimit", allTxs[i].Tx.GetGasLimit(), "computedFee", allTxs[i].Fee, "ppu", allTxs[i].PricePerUnit, "estimation", estimation, "erdSender", erdSender, "nrTxs", nrTxs, "averageOverEstimation", currentSenders[erdSender].overEstimationSum)
+		log.Info("tx estimation before prefilterTransactions", "txHash", allTxs[i].TxHash, "gasLimit", allTxs[i].Tx.GetGasLimit(), "computedFee", allTxs[i].Fee, "ppu", allTxs[i].PricePerUnit, "estimation", estimation, "erdSender", erdSender, "erdReceiver", erdReceiver, "nrTxs", nrTxs, "averageOverEstimation", currentSenders[erdSender].overEstimationSum)
 	}
 
 	return gasLimitSum
