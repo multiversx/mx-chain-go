@@ -550,6 +550,28 @@ func (sc *scProcessor) finishSCExecution(
 
 	sc.vmOutputCacher.Put(txHash, vmOutput, 0)
 
+	gasUsed := tx.GetGasLimit() - vmOutput.GasRemaining
+	overestimation := float64(tx.GetGasLimit()) / float64(gasUsed)
+
+	hrAddress, _ := sc.pubkeyConv.Encode(tx.GetRcvAddr())
+
+	shardId := sc.shardCoordinator.ComputeId(tx.GetRcvAddr())
+	if sc.shardCoordinator.SelfId() == shardId && core.IsSmartContractAddress(tx.GetRcvAddr()) {
+		prediction := process.GetReceiverManager().PredictEstimation(hrAddress)
+		predError := (overestimation - prediction) / overestimation
+		process.GetReceiverManager().UpdateEstimation(hrAddress, overestimation)
+		log.Info("finishSCExecution",
+			"txHash", hex.EncodeToString(txHash),
+			"receiver", hrAddress,
+			"overEstimation", fmt.Sprintf("%.2f", overestimation),
+			"prediction", fmt.Sprintf("%.2f", prediction),
+			"error", fmt.Sprintf("%.2f %%", predError*100),
+			"gasLimit", tx.GetGasLimit(),
+			"gasUsed", gasUsed,
+			"gasRemaining", vmOutput.GasRemaining,
+			"totalConsumedFee", totalConsumedFee.String())
+	}
+
 	return vmcommon.Ok, nil
 }
 

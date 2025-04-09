@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"math/rand"
 	"sort"
 	"sync"
 	"time"
@@ -790,6 +791,8 @@ func (txs *transactions) CreateBlockStarted() {
 	txs.mutOrderedTxs.Unlock()
 
 	txs.scheduledTxsExecutionHandler.Init()
+
+	txs.ComputeSortedTxs()
 }
 
 // AddTxsFromMiniBlocks will add the transactions from the provided miniblocks into the internal cache
@@ -1002,6 +1005,78 @@ func (txs *transactions) getRemainingGasPerBlockAsScheduled() uint64 {
 		gasBandwidth = maxGasPerBlock - gasProvided
 	}
 	return gasBandwidth
+}
+
+type senderOverestimation struct {
+	sender            string
+	overEstimationSum float64
+	numberOfTxs       uint32
+}
+
+func (txs *transactions) ComputeSortedTxs() {
+	log.Info("computeSortedTxs: start computing sorted transactions")
+	randomness := make([]byte, 0)
+	currentSenders := make(map[string]*senderOverestimation)
+	for i := 0; i < 32; i++ {
+		randomness = append(randomness, byte(rand.Intn(256)))
+	}
+	gasBandwidth := txs.getRemainingGasPerBlock() * selectionGasBandwidthIncreasePercent / 100
+	gasBandwidthForScheduled := uint64(0)
+	if txs.enableEpochsHandler.IsFlagEnabled(common.ScheduledMiniBlocksFlag) {
+		gasBandwidthForScheduled = txs.getRemainingGasPerBlockAsScheduled() * selectionGasBandwidthIncreaseScheduledPercent / 100
+		gasBandwidth += gasBandwidthForScheduled
+	}
+
+	startTime := time.Now()
+	sortedTxs, remainingTxsForScheduled, _ := txs.computeSortedTxs(txs.shardCoordinator.SelfId(), txs.shardCoordinator.SelfId(), gasBandwidth, randomness)
+
+	allTxs := append(sortedTxs, remainingTxsForScheduled...)
+
+	if len(allTxs) == 0 {
+		return
+	}
+
+	for i := 0; i < len(allTxs); i++ {
+		tx, ok := allTxs[i].Tx.(*transaction.Transaction)
+		if !ok {
+			log.Warn("computeSortedTxs: wrong type assertion", "error", process.ErrWrongTypeAssertion)
+			continue
+		}
+		erdReceiver, _ := txs.pubkeyConverter.Encode(tx.GetRcvAddr())
+		erdSender, _ := txs.pubkeyConverter.Encode(tx.GetSndAddr())
+
+		estimation := process.GetReceiverManager().PredictEstimation(erdReceiver)
+
+		if currentSenders[erdSender] == nil {
+			currentSenders[erdSender] = &senderOverestimation{
+				sender:            erdSender,
+				overEstimationSum: 0,
+				numberOfTxs:       0,
+			}
+		}
+
+		nrTxs := currentSenders[erdSender].numberOfTxs + 1
+		currentSenders[erdSender].overEstimationSum += estimation / float64(nrTxs)
+		currentSenders[erdSender].numberOfTxs = nrTxs
+
+		log.Info("tx estimation before prefilterTransactions", "txHash", allTxs[i].TxHash, "estimation", estimation, "erdSender", erdSender, "nrTxs", nrTxs, "averageOverEstimation", currentSenders[erdSender].overEstimationSum)
+	}
+
+	// sort the senders based on the overestimation
+	sortedSenders := make([]*senderOverestimation, 0)
+	for _, sender := range currentSenders {
+		sortedSenders = append(sortedSenders, sender)
+	}
+	sort.Slice(sortedSenders, func(i, j int) bool {
+		return sortedSenders[i].overEstimationSum < sortedSenders[j].overEstimationSum
+	})
+
+	for i := 0; i < len(sortedSenders); i++ {
+		log.Info("sorted senders", "sender", sortedSenders[i].sender, "overEstimationSum", sortedSenders[i].overEstimationSum, "numberOfTxs", sortedSenders[i].numberOfTxs)
+	}
+
+	log.Debug("computeSortedTxs: elapsed time to computeSortedTxs - for testing purposes", "elapsed", time.Since(startTime))
+
 }
 
 // CreateAndProcessMiniBlocks creates miniBlocks from storage and processes the transactions added into the miniblocks
