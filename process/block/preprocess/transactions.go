@@ -1059,7 +1059,7 @@ func (txs *transactions) ComputeSortedTxs() {
 		currentSenders[erdSender].overEstimationSum += estimation / float64(nrTxs)
 		currentSenders[erdSender].numberOfTxs = nrTxs
 
-		log.Info("tx estimation before prefilterTransactions", "txHash", allTxs[i].TxHash, "estimation", estimation, "erdSender", erdSender, "nrTxs", nrTxs, "averageOverEstimation", currentSenders[erdSender].overEstimationSum)
+		log.Info("tx estimation before prefilterTransactions", "txHash", allTxs[i].TxHash, "gasLimit", allTxs[i].Tx.GetGasLimit(), "computedFee", allTxs[i].Fee, "ppu", allTxs[i].PricePerUnit, "estimation", estimation, "erdSender", erdSender, "nrTxs", nrTxs, "averageOverEstimation", currentSenders[erdSender].overEstimationSum)
 	}
 
 	// sort the senders based on the overestimation
@@ -1075,7 +1075,7 @@ func (txs *transactions) ComputeSortedTxs() {
 		log.Info("sorted senders", "sender", sortedSenders[i].sender, "overEstimationSum", sortedSenders[i].overEstimationSum, "numberOfTxs", sortedSenders[i].numberOfTxs)
 	}
 
-	log.Debug("computeSortedTxs: elapsed time to computeSortedTxs - for testing purposes", "elapsed", time.Since(startTime))
+	log.Debug("computeSortedTxs: elapsed time to computeSortedTxs - for testing purposes", "selected number", len(allTxs), "elapsed", time.Since(startTime))
 
 }
 
@@ -1097,6 +1097,17 @@ func (txs *transactions) CreateAndProcessMiniBlocks(haveTime func() bool, random
 	if err != nil {
 		log.Debug("computeSortedTxs", "error", err.Error())
 		return make(block.MiniBlockSlice, 0), nil
+	}
+
+	sortedTxsGasLimit := uint64(0)
+	for i := 0; i < len(sortedTxs); i++ {
+		tx, ok := sortedTxs[i].Tx.(*transaction.Transaction)
+		if !ok {
+			log.Warn("computeSortedTxs: wrong type assertion", "error", process.ErrWrongTypeAssertion)
+			continue
+		}
+		sortedTxsGasLimit += tx.GetGasLimit()
+		log.Debug("computeSortedTxs: sorted txs gas limit", "txHash", sortedTxs[i].TxHash, "gasLimit", tx.GetGasLimit())
 	}
 
 	if len(sortedTxs) == 0 {
@@ -1139,6 +1150,28 @@ func (txs *transactions) CreateAndProcessMiniBlocks(haveTime func() bool, random
 	if err != nil {
 		log.Debug("createAndProcessMiniBlocksFromMe", "error", err.Error())
 		return make(block.MiniBlockSlice, 0), nil
+	}
+
+	remainingTxsForScheduledGasLimit := uint64(0)
+	for i := 0; i < len(remainingTxsForScheduled); i++ {
+		tx, ok := remainingTxsForScheduled[i].Tx.(*transaction.Transaction)
+		if !ok {
+			log.Warn("computeSortedTxs: wrong type assertion", "error", process.ErrWrongTypeAssertion)
+			continue
+		}
+		remainingTxsForScheduledGasLimit += tx.GetGasLimit()
+		log.Debug("remainingTxsForScheduledGasLimit: sorted txs gas limit", "txHash", sortedTxs[i].TxHash, "gasLimit", tx.GetGasLimit())
+	}
+
+	remainingTxsGasLimit := uint64(0)
+	for i := 0; i < len(remainingTxs); i++ {
+		tx, ok := remainingTxs[i].Tx.(*transaction.Transaction)
+		if !ok {
+			log.Warn("computeSortedTxs: wrong type assertion", "error", process.ErrWrongTypeAssertion)
+			continue
+		}
+		remainingTxsGasLimit += tx.GetGasLimit()
+		log.Debug("remainingTxsGasLimit: sorted txs gas limit", "txHash", sortedTxs[i].TxHash, "gasLimit", tx.GetGasLimit())
 	}
 
 	sortedTxsForScheduled := append(remainingTxs, remainingTxsForScheduled...)
