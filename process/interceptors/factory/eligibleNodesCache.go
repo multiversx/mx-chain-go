@@ -36,6 +36,8 @@ func (limits *epochLimits) isLowerOutOfRange(newEpoch uint32) bool {
 }
 
 type eligibleNodesCache struct {
+	// TODO: consider moving eligibleNodesMap and epochsLimitsForShardMap into a new component
+	// as suggested here: https://github.com/multiversx/mx-chain-go/pull/6928#discussion_r2031035523
 	// eligibleNodesMap holds a map with key shard id and value
 	//		a map with key epoch and value
 	//		a map with key eligible node pk and value struct{}
@@ -118,9 +120,9 @@ func (cache *eligibleNodesCache) updateMapsIfNeeded(
 	// reaching this point means that the shard is cached, but we have a new epoch
 	// there are different situations for the new epoch:
 	//	1. the epoch is higher than the min cached epoch + epochs delta ->
-	//		store the new + all cached ones that ate still in delta limit
+	//		store the new + all cached ones that are still in delta limit
 	//  2. the epoch is lower than the max cached epoch - epochs delta ->
-	//		store the new + all cached ones that ate still in delta limit
+	//		store the new + all cached ones that are still in delta limit
 	// 	3. the new epoch is higher than the min cached but still in the delta limits ->
 	//		cache it and update the max cached if needed
 	//	4. the new epoch is lower than the max cached but still in the delta limits ->
@@ -128,74 +130,104 @@ func (cache *eligibleNodesCache) updateMapsIfNeeded(
 
 	// case 1.
 	if limitEpochsForShard.isHigherOutOfRange(newEpoch) {
-		tmpMin := newEpoch
-		for cachedEpoch := range cache.eligibleNodesMap[shard] {
-			shouldDeleteEpoch := cachedEpoch <= newEpoch-epochsDelta
-			if shouldDeleteEpoch {
-				delete(cache.eligibleNodesMap[shard], cachedEpoch)
-				continue
-			}
-
-			if cachedEpoch < tmpMin {
-				tmpMin = cachedEpoch
-			}
-		}
-
-		// store the limits
-		// if nothing was saved from previous cached ones, they would be the new one
-		cache.epochsLimitsForShardMap[shard] = &epochLimits{
-			min: tmpMin,
-			max: newEpoch,
-		}
-		cache.eligibleNodesMap[shard][newEpoch] = eligibleNodesForShardInEpoch
-
+		cache.handleHigherOutOfRange(newEpoch, shard, eligibleNodesForShardInEpoch)
 		return
 	}
 
 	// case 2.
 	if limitEpochsForShard.isLowerOutOfRange(newEpoch) {
-		tmpMax := newEpoch
-		for cachedEpoch := range cache.eligibleNodesMap[shard] {
-			shouldDeleteEpoch := cachedEpoch >= newEpoch+epochsDelta
-			if shouldDeleteEpoch {
-				delete(cache.eligibleNodesMap[shard], cachedEpoch)
-				continue
-			}
-
-			if cachedEpoch > tmpMax {
-				tmpMax = cachedEpoch
-			}
-		}
-
-		// store the limits
-		// if nothing was saved from previous cached ones, they would be the new one
-		cache.epochsLimitsForShardMap[shard] = &epochLimits{
-			min: newEpoch,
-			max: tmpMax,
-		}
-		cache.eligibleNodesMap[shard][newEpoch] = eligibleNodesForShardInEpoch
-
+		cache.handleLowerOutOfRange(newEpoch, shard, eligibleNodesForShardInEpoch)
 		return
 	}
 
 	// case 3.
 	if limitEpochsForShard.isHigherInRange(newEpoch) {
-		// append the new epoch and store it as the max limit
-		cache.eligibleNodesMap[shard][newEpoch] = eligibleNodesForShardInEpoch
-		if cache.epochsLimitsForShardMap[shard].max < newEpoch {
-			cache.epochsLimitsForShardMap[shard].max = newEpoch
-		}
+		cache.handleHigherInRange(newEpoch, shard, eligibleNodesForShardInEpoch)
 		return
 	}
 
 	// case 4.
 	if limitEpochsForShard.isLowerInRange(newEpoch) {
-		// append the new epoch and store it as the min limit
-		cache.eligibleNodesMap[shard][newEpoch] = eligibleNodesForShardInEpoch
+		cache.handleLowerInRange(newEpoch, shard, eligibleNodesForShardInEpoch)
+	}
+}
 
-		if cache.epochsLimitsForShardMap[shard].min > newEpoch {
-			cache.epochsLimitsForShardMap[shard].min = newEpoch
+func (cache *eligibleNodesCache) handleHigherOutOfRange(
+	newEpoch uint32,
+	shard uint32,
+	eligibleNodesForShardInEpoch map[string]struct{},
+) {
+	tmpMin := newEpoch
+	for cachedEpoch := range cache.eligibleNodesMap[shard] {
+		shouldDeleteEpoch := cachedEpoch <= newEpoch-epochsDelta
+		if shouldDeleteEpoch {
+			delete(cache.eligibleNodesMap[shard], cachedEpoch)
+			continue
 		}
+
+		if cachedEpoch < tmpMin {
+			tmpMin = cachedEpoch
+		}
+	}
+
+	// store the limits
+	// if nothing was saved from previous cached ones, they would be the new ones
+	cache.epochsLimitsForShardMap[shard] = &epochLimits{
+		min: tmpMin,
+		max: newEpoch,
+	}
+	cache.eligibleNodesMap[shard][newEpoch] = eligibleNodesForShardInEpoch
+}
+
+func (cache *eligibleNodesCache) handleLowerOutOfRange(
+	newEpoch uint32,
+	shard uint32,
+	eligibleNodesForShardInEpoch map[string]struct{},
+) {
+	tmpMax := newEpoch
+	for cachedEpoch := range cache.eligibleNodesMap[shard] {
+		shouldDeleteEpoch := cachedEpoch >= newEpoch+epochsDelta
+		if shouldDeleteEpoch {
+			delete(cache.eligibleNodesMap[shard], cachedEpoch)
+			continue
+		}
+
+		if cachedEpoch > tmpMax {
+			tmpMax = cachedEpoch
+		}
+	}
+
+	// store the limits
+	// if nothing was saved from previous cached ones, they would be the new ones
+	cache.epochsLimitsForShardMap[shard] = &epochLimits{
+		min: newEpoch,
+		max: tmpMax,
+	}
+	cache.eligibleNodesMap[shard][newEpoch] = eligibleNodesForShardInEpoch
+}
+
+func (cache *eligibleNodesCache) handleHigherInRange(
+	newEpoch uint32,
+	shard uint32,
+	eligibleNodesForShardInEpoch map[string]struct{},
+) {
+	// append the new epoch and store it as the max limit
+	cache.eligibleNodesMap[shard][newEpoch] = eligibleNodesForShardInEpoch
+	if cache.epochsLimitsForShardMap[shard].max < newEpoch {
+		cache.epochsLimitsForShardMap[shard].max = newEpoch
+	}
+}
+
+func (cache *eligibleNodesCache) handleLowerInRange(
+	newEpoch uint32,
+	shard uint32,
+	eligibleNodesForShardInEpoch map[string]struct{},
+) {
+	// append the new epoch and store it as the min limit
+	cache.eligibleNodesMap[shard][newEpoch] = eligibleNodesForShardInEpoch
+
+	if cache.epochsLimitsForShardMap[shard].min > newEpoch {
+		cache.epochsLimitsForShardMap[shard].min = newEpoch
 	}
 }
 
