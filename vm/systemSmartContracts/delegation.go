@@ -725,6 +725,10 @@ func (d *delegation) makeStakeArgsIfAutomaticActivation(
 	status *DelegationContractStatus,
 	globalFund *GlobalFundData,
 ) [][]byte {
+	if d.enableEpochsHandler.IsFlagEnabled(common.AutomaticActivationOfNodesDisableFlag) {
+		return nil
+	}
+
 	lenStakableKeys := uint64(len(status.NotStakedKeys)) + uint64(len(status.UnStakedKeys))
 	if !config.AutomaticActivation || lenStakableKeys == 0 {
 		return nil
@@ -810,6 +814,10 @@ func (d *delegation) setAutomaticActivation(args *vmcommon.ContractCallInput) vm
 
 	switch string(args.Arguments[0]) {
 	case "true":
+		if d.enableEpochsHandler.IsFlagEnabled(common.AutomaticActivationOfNodesDisableFlag) {
+			d.eei.AddReturnMessage("automatic activation is disabled")
+			return vmcommon.UserError
+		}
 		dConfig.AutomaticActivation = true
 	case "false":
 		dConfig.AutomaticActivation = false
@@ -2597,7 +2605,7 @@ func (d *delegation) getContractConfig(args *vmcommon.ContractCallInput) vmcommo
 	}
 
 	automaticActivation := "false"
-	if delegationConfig.AutomaticActivation {
+	if delegationConfig.AutomaticActivation && !d.enableEpochsHandler.IsFlagEnabled(common.AutomaticActivationOfNodesDisableFlag) {
 		automaticActivation = "true"
 	}
 
