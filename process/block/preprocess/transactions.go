@@ -1010,7 +1010,7 @@ func (txs *transactions) getRemainingGasPerBlockAsScheduled() uint64 {
 type senderOverestimation struct {
 	sender            string
 	overEstimationSum float64
-	numberOfTxs       uint32
+	numberOfTxs       float64
 }
 
 func (txs *transactions) ComputeSortedTxs() {
@@ -1021,6 +1021,7 @@ func (txs *transactions) ComputeSortedTxs() {
 		randomness = append(randomness, byte(rand.Intn(256)))
 	}
 	gasBandwidth := txs.getRemainingGasPerBlock() * selectionGasBandwidthIncreasePercent / 100
+	initialGasBandwidth := gasBandwidth
 	gasBandwidthForScheduled := uint64(0)
 	if txs.enableEpochsHandler.IsFlagEnabled(common.ScheduledMiniBlocksFlag) {
 		gasBandwidthForScheduled = txs.getRemainingGasPerBlockAsScheduled() * selectionGasBandwidthIncreaseScheduledPercent / 100
@@ -1036,31 +1037,10 @@ func (txs *transactions) ComputeSortedTxs() {
 		return
 	}
 
-	for i := 0; i < len(allTxs); i++ {
-		tx, ok := allTxs[i].Tx.(*transaction.Transaction)
-		if !ok {
-			log.Warn("computeSortedTxs: wrong type assertion", "error", process.ErrWrongTypeAssertion)
-			continue
-		}
-		erdReceiver, _ := txs.pubkeyConverter.Encode(tx.GetRcvAddr())
-		erdSender, _ := txs.pubkeyConverter.Encode(tx.GetSndAddr())
+	sortedTxsGasLimit := txs.computeOverestimations(sortedTxs, currentSenders)
+	remainingTxsGasLlimit := txs.computeOverestimations(remainingTxsForScheduled, currentSenders)
 
-		estimation := process.GetReceiverManager().PredictEstimation(erdReceiver)
-
-		if currentSenders[erdSender] == nil {
-			currentSenders[erdSender] = &senderOverestimation{
-				sender:            erdSender,
-				overEstimationSum: 0,
-				numberOfTxs:       0,
-			}
-		}
-
-		nrTxs := currentSenders[erdSender].numberOfTxs + 1
-		currentSenders[erdSender].overEstimationSum += estimation / float64(nrTxs)
-		currentSenders[erdSender].numberOfTxs = nrTxs
-
-		log.Info("tx estimation before prefilterTransactions", "txHash", allTxs[i].TxHash, "gasLimit", allTxs[i].Tx.GetGasLimit(), "computedFee", allTxs[i].Fee, "ppu", allTxs[i].PricePerUnit, "estimation", estimation, "erdSender", erdSender, "nrTxs", nrTxs, "averageOverEstimation", currentSenders[erdSender].overEstimationSum)
-	}
+	log.Info("selected txs", "initialGasBandwidth", initialGasBandwidth, "gasBandwidthForScheduled", gasBandwidthForScheduled, "gasBandwidth", gasBandwidth, "sortedTxsGasLimit", sortedTxsGasLimit, "remainingTxsGasLlimit", remainingTxsGasLlimit)
 
 	// sort the senders based on the overestimation
 	sortedSenders := make([]*senderOverestimation, 0)
@@ -1075,8 +1055,40 @@ func (txs *transactions) ComputeSortedTxs() {
 		log.Info("sorted senders", "sender", sortedSenders[i].sender, "overEstimationSum", sortedSenders[i].overEstimationSum, "numberOfTxs", sortedSenders[i].numberOfTxs)
 	}
 
-	log.Debug("computeSortedTxs: elapsed time to computeSortedTxs - for testing purposes", "selected number", len(allTxs), "elapsed", time.Since(startTime))
+	log.Debug("computeSortedTxs: elapsed time to computeSortedTxs - for testing purposes", "selected sortedTxs", len(sortedTxs), "selected scheduled", len(remainingTxsForScheduled), "elapsed", time.Since(startTime))
 
+}
+
+func (txs *transactions) computeOverestimations(allTxs []*txcache.WrappedTransaction, currentSenders map[string]*senderOverestimation) uint64 {
+	gasLimitSum := uint64(0)
+	for i := 0; i < len(allTxs); i++ {
+		tx, ok := allTxs[i].Tx.(*transaction.Transaction)
+		if !ok {
+			log.Warn("computeSortedTxs: wrong type assertion", "error", process.ErrWrongTypeAssertion)
+			continue
+		}
+		erdReceiver, _ := txs.pubkeyConverter.Encode(tx.GetRcvAddr())
+		erdSender, _ := txs.pubkeyConverter.Encode(tx.GetSndAddr())
+
+		estimation := process.GetReceiverManager().PredictEstimation(erdReceiver)
+
+		if currentSenders[erdSender] == nil {
+			currentSenders[erdSender] = &senderOverestimation{
+				sender:            erdSender,
+				overEstimationSum: float64(0),
+				numberOfTxs:       float64(0),
+			}
+		}
+
+		nrTxs := currentSenders[erdSender].numberOfTxs + 1
+		overEstimation := currentSenders[erdSender].overEstimationSum
+		currentSenders[erdSender].overEstimationSum = (overEstimation*(nrTxs-1) + estimation) / nrTxs
+		currentSenders[erdSender].numberOfTxs = nrTxs
+		gasLimitSum += tx.GetGasLimit()
+		log.Info("tx estimation before prefilterTransactions", "txHash", allTxs[i].TxHash, "gasLimit", allTxs[i].Tx.GetGasLimit(), "computedFee", allTxs[i].Fee, "ppu", allTxs[i].PricePerUnit, "estimation", estimation, "erdSender", erdSender, "nrTxs", nrTxs, "averageOverEstimation", currentSenders[erdSender].overEstimationSum)
+	}
+
+	return gasLimitSum
 }
 
 // CreateAndProcessMiniBlocks creates miniBlocks from storage and processes the transactions added into the miniblocks
