@@ -1,6 +1,7 @@
 package common
 
 import (
+	"fmt"
 	"math/bits"
 
 	"github.com/multiversx/mx-chain-core-go/core"
@@ -137,4 +138,10 @@ func ConsensusGroupSizeForShardAndEpoch(
 	}
 
 	return int(currentChainParameters.ShardConsensusGroupSize)
+}
+
+// GetEquivalentProofNonceShardKey returns a string key nonce-shardID
+func GetEquivalentProofNonceShardKey(nonce uint64, shardID uint32) string {
+	return fmt.Sprintf("%d-%d", nonce, shardID)
+
 }
