@@ -85,8 +85,8 @@ func (bp *baseProcessor) WaitAllMissingProofs(waitTime time.Duration) error {
 }
 
 // RequestProof -
-func (bp *baseProcessor) RequestProof(currentHeaderHash []byte, epoch uint32, shardID uint32) {
-	bp.requestProof(currentHeaderHash, epoch, shardID)
+func (bp *baseProcessor) RequestProof(currentHeaderHash []byte, shardID uint32) {
+	bp.requestProof(currentHeaderHash, shardID)
 }
 
 // InitRequestedProofsMap -

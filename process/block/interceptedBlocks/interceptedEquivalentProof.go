@@ -10,6 +10,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/multiversx/mx-chain-go/common/logging"
 	logger "github.com/multiversx/mx-chain-logger-go"
 	"github.com/multiversx/mx-chain-vm-v1_2-go/ipc/marshaling"
 
@@ -37,6 +38,7 @@ type ArgInterceptedEquivalentProof struct {
 	EligibleNodesCache process.EligibleNodesCache
 	MessageOriginator  core.PeerID
 	WhiteListHandler   process.WhiteListHandler
+	Store              dataRetriever.StorageService
 }
 
 type interceptedEquivalentProof struct {
@@ -53,6 +55,7 @@ type interceptedEquivalentProof struct {
 	eligibleNodesCache process.EligibleNodesCache
 	messageOriginator  core.PeerID
 	whiteListHandler   process.WhiteListHandler
+	store              dataRetriever.StorageService
 }
 
 // NewInterceptedEquivalentProof returns a new instance of interceptedEquivalentProof
@@ -83,6 +86,7 @@ func NewInterceptedEquivalentProof(args ArgInterceptedEquivalentProof) (*interce
 		eligibleNodesCache: args.EligibleNodesCache,
 		messageOriginator:  args.MessageOriginator,
 		whiteListHandler:   args.WhiteListHandler,
+		store:              args.Store,
 	}, nil
 }
 
@@ -119,6 +123,9 @@ func checkArgInterceptedEquivalentProof(args ArgInterceptedEquivalentProof) erro
 	}
 	if check.IfNil(args.WhiteListHandler) {
 		return process.ErrNilWhiteListHandler
+	}
+	if check.IfNil(args.Store) {
+		return process.ErrNilStorageService
 	}
 
 	return nil
@@ -194,6 +201,29 @@ func (iep *interceptedEquivalentProof) CheckValidity() error {
 		return common.ErrAlreadyExistingEquivalentProof
 	}
 
+	marshalledProof, errNotCritical := iep.marshaller.Marshal(iep.proof)
+	if errNotCritical != nil {
+		logging.LogErrAsWarnExceptAsDebugIfClosingError(log, errNotCritical,
+			"CheckValidity.Marshal proof",
+			"err", errNotCritical)
+		return nil
+	}
+
+	errNotCritical = iep.store.Put(dataRetriever.ProofsUnit, iep.proof.GetHeaderHash(), marshalledProof)
+	if errNotCritical != nil {
+		logging.LogErrAsWarnExceptAsDebugIfClosingError(log, errNotCritical,
+			"CheckValidity.Put -> ProofsUnit",
+			"err", errNotCritical)
+	}
+
+	key := common.GetEquivalentProofNonceShardKey(iep.proof.GetHeaderNonce(), iep.proof.GetHeaderShardId())
+	errNotCritical = iep.store.Put(dataRetriever.ProofsNonceHashDataUnit, []byte(key), iep.proof.GetHeaderHash())
+	if errNotCritical != nil {
+		logging.LogErrAsWarnExceptAsDebugIfClosingError(log, errNotCritical,
+			"CheckValidity.Put -> ProofsNonceHashDataUnit",
+			"err", errNotCritical)
+	}
+
 	return nil
 }
 
@@ -227,7 +257,11 @@ func (iep *interceptedEquivalentProof) Type() string {
 
 // Identifiers returns the identifiers used in requests
 func (iep *interceptedEquivalentProof) Identifiers() [][]byte {
-	return [][]byte{iep.proof.HeaderHash}
+	return [][]byte{
+		iep.proof.HeaderHash,
+		// needed for the interceptor, when data is requested by nonce
+		[]byte(common.GetEquivalentProofNonceShardKey(iep.proof.HeaderNonce, iep.proof.HeaderShardId)),
+	}
 }
 
 // String returns the proof's most important fields as string

@@ -368,7 +368,7 @@ func (micf *metaInterceptorsContainerFactory) generateEquivalentProofsIntercepto
 		interceptorSlice[int(idx)] = interceptor
 	}
 
-	// equivalent proofs meta all topic, equivalentProofs_META_ALL
+	// equivalent proofs meta all topic, equivalentProofs_ALL
 	identifierEquivalentProofs := common.EquivalentProofsTopic + shardC.CommunicationIdentifier(core.AllShardId)
 
 	interceptor, err := micf.createOneShardEquivalentProofsInterceptor(identifierEquivalentProofs)

@@ -187,6 +187,7 @@ func (boot *ShardBootstrap) requestHeaderWithNonce(nonce uint64) {
 		"probable highest nonce", boot.forkDetector.ProbableHighestNonce(),
 	)
 	boot.requestHandler.RequestShardHeaderByNonce(boot.shardCoordinator.SelfId(), nonce)
+	boot.requestHandler.RequestEquivalentProofByNonce(boot.shardCoordinator.SelfId(), nonce)
 }
 
 // requestHeaderWithHash method requests a block header from network when it is not found in the pool
@@ -197,6 +198,7 @@ func (boot *ShardBootstrap) requestHeaderWithHash(hash []byte) {
 		"probable highest nonce", boot.forkDetector.ProbableHighestNonce(),
 	)
 	boot.requestHandler.RequestShardHeader(boot.shardCoordinator.SelfId(), hash)
+	boot.requestHandler.RequestEquivalentProofByHash(boot.shardCoordinator.SelfId(), hash)
 }
 
 // getHeaderWithNonceRequestingIfMissing method gets the header with a given nonce from pool. If it is not found there, it will
@@ -281,12 +283,15 @@ func (boot *ShardBootstrap) getCurrHeader() (data.HeaderHandler, error) {
 }
 
 func (boot *ShardBootstrap) haveHeaderInPoolWithNonce(nonce uint64) bool {
-	_, _, err := process.GetShardHeaderFromPoolWithNonce(
+	_, hash, err := process.GetShardHeaderFromPoolWithNonce(
 		nonce,
 		boot.shardCoordinator.SelfId(),
 		boot.headers)
+	if err != nil {
+		return false
+	}
 
-	return err == nil
+	return boot.proofs.HasProof(boot.shardCoordinator.SelfId(), hash)
 }
 
 func (boot *ShardBootstrap) getShardHeaderFromPool(headerHash []byte) (data.HeaderHandler, error) {
@@ -353,6 +358,7 @@ func (boot *ShardBootstrap) isForkTriggeredByMeta() bool {
 
 func (boot *ShardBootstrap) requestHeaderByNonce(nonce uint64) {
 	boot.requestHandler.RequestShardHeaderByNonce(boot.shardCoordinator.SelfId(), nonce)
+	boot.requestHandler.RequestEquivalentProofByNonce(boot.shardCoordinator.SelfId(), nonce)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

@@ -226,14 +226,14 @@ func GetGeneralConfig() config.Config {
 				MaxOpenFiles:      10,
 			},
 		},
-		ProofStorage: config.StorageConfig{
+		ProofsStorage: config.StorageConfig{
 			Cache: config.CacheConfig{
 				Capacity: 10000,
 				Type:     "LRU",
 				Shards:   1,
 			},
 			DB: config.DBConfig{
-				FilePath:          "ProofStorage",
+				FilePath:          "ProofsStorage",
 				Type:              "MemoryDB",
 				BatchDelaySeconds: 30,
 				MaxBatchSize:      6,

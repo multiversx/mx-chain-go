@@ -234,6 +234,7 @@ func (boot *MetaBootstrap) requestHeaderWithNonce(nonce uint64) {
 		"probable highest nonce", boot.forkDetector.ProbableHighestNonce(),
 	)
 	boot.requestHandler.RequestMetaHeaderByNonce(nonce)
+	boot.requestHandler.RequestEquivalentProofByNonce(core.MetachainShardId, nonce)
 }
 
 // requestHeaderWithHash method requests a block header from network when it is not found in the pool
@@ -244,6 +245,7 @@ func (boot *MetaBootstrap) requestHeaderWithHash(hash []byte) {
 		"probable highest nonce", boot.forkDetector.ProbableHighestNonce(),
 	)
 	boot.requestHandler.RequestMetaHeader(hash)
+	boot.requestHandler.RequestEquivalentProofByHash(core.MetachainShardId, hash)
 }
 
 // getHeaderWithNonceRequestingIfMissing method gets the header with a given nonce from pool. If it is not found there, it will
@@ -327,11 +329,14 @@ func (boot *MetaBootstrap) getCurrHeader() (data.HeaderHandler, error) {
 }
 
 func (boot *MetaBootstrap) haveHeaderInPoolWithNonce(nonce uint64) bool {
-	_, _, err := process.GetMetaHeaderFromPoolWithNonce(
+	_, hash, err := process.GetMetaHeaderFromPoolWithNonce(
 		nonce,
 		boot.headers)
+	if err != nil {
+		return false
+	}
 
-	return err == nil
+	return boot.proofs.HasProof(core.MetachainShardId, hash)
 }
 
 func (boot *MetaBootstrap) getMetaHeaderFromPool(headerHash []byte) (data.HeaderHandler, error) {
@@ -395,6 +400,7 @@ func (boot *MetaBootstrap) isForkTriggeredByMeta() bool {
 
 func (boot *MetaBootstrap) requestHeaderByNonce(nonce uint64) {
 	boot.requestHandler.RequestMetaHeaderByNonce(nonce)
+	boot.requestHandler.RequestEquivalentProofByNonce(core.MetachainShardId, nonce)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

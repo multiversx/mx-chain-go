@@ -3395,7 +3395,6 @@ func TestBaseProcessor_SemiFunctional_WaitAllMissingProofs(t *testing.T) {
 	requestedHash := []byte("hash")
 	requestedNonce := uint64(2)
 	requestedShard := core.MetachainShardId
-	requestedEpoch := uint32(3)
 
 	t.Run("happy flow, request header -> receive -> quit waiting", func(t *testing.T) {
 		t.Parallel()
@@ -3447,7 +3446,7 @@ func TestBaseProcessor_SemiFunctional_WaitAllMissingProofs(t *testing.T) {
 			bp.ReceivedMetaBlock(dummyNotWaitingMetaBlock, []byte("dummyNotWaitingMetaBlockHash"))
 
 			// first request the proof, so waitAllMissingProofs knows it has to wait for a proof
-			bp.RequestProof(requestedHash, requestedEpoch, requestedShard)
+			bp.RequestProof(requestedHash, requestedShard)
 
 			// epoch start block, so we get an early return on checkReceivedHeaderIfAttestingIsNeeded
 			dummyEpochStartMetaBlock := &block.MetaBlock{
@@ -3503,7 +3502,7 @@ func TestBaseProcessor_SemiFunctional_WaitAllMissingProofs(t *testing.T) {
 		bp.InitRequestedProofsMap()
 
 		// first request the proof, so waitAllMissingProofs knows it has to wait for a proof
-		bp.RequestProof(requestedHash, requestedEpoch, requestedShard)
+		bp.RequestProof(requestedHash, requestedShard)
 
 		chDone := make(chan bool, 1)
 

@@ -21,8 +21,8 @@ import (
 )
 
 var (
-	providedHashKey  = []byte("hash_0")
-	providedNonceKey = []byte("1_1")
+	providedHashKey  = []byte("hash-0")
+	providedNonceKey = []byte("1-1")
 )
 
 func createMockArgEquivalentProofsResolver() resolvers.ArgEquivalentProofsResolver {
@@ -519,7 +519,7 @@ func TestEquivalentProofsResolver_ProcessReceivedMessage(t *testing.T) {
 	t.Run("resolveMultipleHashesRequest: one hash in pool, one in storage should work", func(t *testing.T) {
 		t.Parallel()
 
-		providedHashKey2 := []byte("hash2_2")
+		providedHashKey2 := []byte("hash2-2")
 		args := createMockArgEquivalentProofsResolver()
 		args.EquivalentProofsPool = &dataRetrieverMocks.ProofsPoolMock{
 			GetProofCalled: func(shardID uint32, headerHash []byte) (data.HeaderProofHandler, error) {

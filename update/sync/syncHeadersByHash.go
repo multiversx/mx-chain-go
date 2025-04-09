@@ -104,10 +104,12 @@ func (m *syncHeadersByHash) SyncMissingHeadersByHash(shardIDs []uint32, headersH
 			requestedHdrs++
 			if shardId == core.MetachainShardId {
 				m.requestHandler.RequestMetaHeader([]byte(hash))
+				m.requestHandler.RequestEquivalentProofByHash(core.MetachainShardId, []byte(hash))
 				continue
 			}
 
 			m.requestHandler.RequestShardHeader(shardId, []byte(hash))
+			m.requestHandler.RequestEquivalentProofByHash(shardId, []byte(hash))
 		}
 
 		if requestedHdrs == 0 {

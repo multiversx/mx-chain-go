@@ -871,7 +871,7 @@ func (rrh *resolverRequestHandler) RequestPeerAuthenticationsByHashes(destShardI
 }
 
 // RequestEquivalentProofByHash asks for equivalent proof for the provided header hash
-func (rrh *resolverRequestHandler) RequestEquivalentProofByHash(headerHash []byte, headerEpoch uint32, headerShard uint32) {
+func (rrh *resolverRequestHandler) RequestEquivalentProofByHash(headerShard uint32, headerHash []byte) {
 	if !rrh.testIfRequestIsNeeded(headerHash, uniqueEquivalentProofSuffix) {
 		return
 	}
@@ -891,13 +891,15 @@ func (rrh *resolverRequestHandler) RequestEquivalentProofByHash(headerHash []byt
 
 	rrh.whiteList.Add([][]byte{headerHash})
 
-	err = requester.RequestDataFromHash(headerHash, headerEpoch)
+	requestKey := fmt.Sprintf("%s-%d", string(headerHash), headerShard)
+	epoch := rrh.getEpoch()
+	err = requester.RequestDataFromHash([]byte(requestKey), epoch)
 	if err != nil {
 		log.Debug("RequestEquivalentProof.RequestDataFromHash",
 			"error", err.Error(),
 			"headerHash", hex.EncodeToString(headerHash),
 			"headerShard", headerShard,
-			"headerEpoch", headerEpoch,
+			"epoch", epoch,
 		)
 		return
 	}
@@ -905,17 +907,61 @@ func (rrh *resolverRequestHandler) RequestEquivalentProofByHash(headerHash []byt
 	rrh.addRequestedItems([][]byte{headerHash}, uniqueEquivalentProofSuffix)
 }
 
+// RequestEquivalentProofByNonce asks for equivalent proof for the provided header nonce
+func (rrh *resolverRequestHandler) RequestEquivalentProofByNonce(headerShard uint32, headerNonce uint64) {
+	key := fmt.Sprintf(common.GetEquivalentProofNonceShardKey(headerNonce, headerShard))
+	if !rrh.testIfRequestIsNeeded([]byte(key), uniqueEquivalentProofSuffix) {
+		return
+	}
+
+	log.Debug("requesting equivalent proof from network",
+		"headerNonce", headerNonce,
+		"headerShard", headerShard,
+	)
+
+	requester, err := rrh.getEquivalentProofsRequester(headerShard)
+	if err != nil {
+		log.Error("RequestEquivalentProof.getEquivalentProofsRequester",
+			"error", err.Error(),
+			"headerNonce", headerNonce,
+		)
+		return
+	}
+
+	proofsRequester, ok := requester.(EquivalentProofsRequester)
+	if !ok {
+		log.Warn("wrong assertion type when creating equivalent proofs requester")
+		return
+	}
+
+	rrh.whiteList.Add([][]byte{[]byte(key)})
+
+	epoch := rrh.getEpoch()
+	err = proofsRequester.RequestDataFromNonce([]byte(key), epoch)
+	if err != nil {
+		log.Debug("RequestEquivalentProof.RequestDataFromNonce",
+			"error", err.Error(),
+			"headerNonce", headerNonce,
+			"headerShard", headerShard,
+			"epoch", epoch,
+		)
+		return
+	}
+
+	rrh.addRequestedItems([][]byte{[]byte(key)}, uniqueEquivalentProofSuffix)
+}
+
 func (rrh *resolverRequestHandler) getEquivalentProofsRequester(headerShard uint32) (dataRetriever.Requester, error) {
 	// there are multiple scenarios for equivalent proofs:
-	// 1. self meta  requesting meta proof  -> should request on equivalentProofs_META_ALL
+	// 1. self meta  requesting meta proof  -> should request on equivalentProofs_ALL
 	// 2. self meta  requesting shard proof -> should request on equivalentProofs_shard_META
 	// 3. self shard requesting intra proof -> should request on equivalentProofs_self_META
-	// 4. self shard requesting meta proof  -> should request on equivalentProofs_META_ALL
+	// 4. self shard requesting meta proof  -> should request on equivalentProofs_ALL
 	// 4. self shard requesting cross proof -> should never happen!
 
 	isSelfMeta := rrh.shardID == core.MetachainShardId
-	shardIdMissmatch := rrh.shardID != headerShard
 	isRequestForMeta := headerShard == core.MetachainShardId
+	shardIdMissmatch := rrh.shardID != headerShard && !isRequestForMeta
 	isRequestInvalid := !isSelfMeta && shardIdMissmatch
 	if isRequestInvalid {
 		return nil, dataRetriever.ErrBadRequest

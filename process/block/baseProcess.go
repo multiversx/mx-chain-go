@@ -2304,7 +2304,6 @@ func (bp *baseProcessor) getHeaderHash(header data.HeaderHandler) ([]byte, error
 
 func (bp *baseProcessor) checkProofRequestingIfMissing(
 	headerHash []byte,
-	headerEpoch uint32,
 	headerShard uint32,
 ) {
 	if bp.proofsPool.HasProof(headerShard, headerHash) {
@@ -2313,18 +2312,17 @@ func (bp *baseProcessor) checkProofRequestingIfMissing(
 
 	log.Debug("could not find proof for header, requesting it",
 		"current hash", hex.EncodeToString(headerHash),
-		"header epoch", headerEpoch,
 		"header shard", headerShard)
 
-	bp.requestProof(headerHash, headerEpoch, headerShard)
+	bp.requestProof(headerHash, headerShard)
 }
 
-func (bp *baseProcessor) requestProof(currentHeaderHash []byte, headerEpoch uint32, shardID uint32) {
+func (bp *baseProcessor) requestProof(currentHeaderHash []byte, shardID uint32) {
 	bp.mutRequestedProofsMap.Lock()
 	bp.requestedProofsMap[string(currentHeaderHash)] = struct{}{}
 	bp.mutRequestedProofsMap.Unlock()
 
-	go bp.requestHandler.RequestEquivalentProofByHash(currentHeaderHash, headerEpoch, shardID)
+	go bp.requestHandler.RequestEquivalentProofByHash(shardID, currentHeaderHash)
 }
 
 func (bp *baseProcessor) waitAllMissingProofs(waitTime time.Duration) error {

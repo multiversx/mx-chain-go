@@ -2,6 +2,7 @@ package requestHandlers
 
 import (
 	"bytes"
+	"fmt"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -2027,7 +2028,7 @@ func TestResolverRequestHandler_RequestEquivalentProofByHash(t *testing.T) {
 			time.Second,
 		)
 
-		rrh.RequestEquivalentProofByHash(providedHash, 0, core.MetachainShardId)
+		rrh.RequestEquivalentProofByHash(core.MetachainShardId, providedHash)
 	})
 	t.Run("invalid cross shard request should early exit", func(t *testing.T) {
 		t.Parallel()
@@ -2046,7 +2047,7 @@ func TestResolverRequestHandler_RequestEquivalentProofByHash(t *testing.T) {
 			time.Second,
 		)
 
-		rrh.RequestEquivalentProofByHash(providedHash, 0, 1)
+		rrh.RequestEquivalentProofByHash(1, providedHash)
 	})
 	t.Run("missing metachain requester should early exit", func(t *testing.T) {
 		t.Parallel()
@@ -2069,7 +2070,7 @@ func TestResolverRequestHandler_RequestEquivalentProofByHash(t *testing.T) {
 			time.Second,
 		)
 
-		rrh.RequestEquivalentProofByHash(providedHash, 0, core.MetachainShardId)
+		rrh.RequestEquivalentProofByHash(core.MetachainShardId, providedHash)
 	})
 	t.Run("missing crossshard requester should early exit", func(t *testing.T) {
 		t.Parallel()
@@ -2092,7 +2093,7 @@ func TestResolverRequestHandler_RequestEquivalentProofByHash(t *testing.T) {
 			time.Second,
 		)
 
-		rrh.RequestEquivalentProofByHash(providedHash, 0, core.MetachainShardId)
+		rrh.RequestEquivalentProofByHash(core.MetachainShardId, providedHash)
 	})
 	t.Run("MetaChainRequester returns error", func(t *testing.T) {
 		t.Parallel()
@@ -2119,7 +2120,7 @@ func TestResolverRequestHandler_RequestEquivalentProofByHash(t *testing.T) {
 			time.Second,
 		)
 
-		rrh.RequestEquivalentProofByHash(providedHash, 0, core.MetachainShardId)
+		rrh.RequestEquivalentProofByHash(core.MetachainShardId, providedHash)
 	})
 	t.Run("CrossChainRequester returns error", func(t *testing.T) {
 		t.Parallel()
@@ -2145,7 +2146,7 @@ func TestResolverRequestHandler_RequestEquivalentProofByHash(t *testing.T) {
 			time.Second,
 		)
 
-		rrh.RequestEquivalentProofByHash(providedHash, 0, 0)
+		rrh.RequestEquivalentProofByHash(0, providedHash)
 	})
 	t.Run("RequestDataFromHash returns error", func(t *testing.T) {
 		t.Parallel()
@@ -2175,7 +2176,7 @@ func TestResolverRequestHandler_RequestEquivalentProofByHash(t *testing.T) {
 			time.Second,
 		)
 
-		rrh.RequestEquivalentProofByHash(providedHash, 0, core.MetachainShardId)
+		rrh.RequestEquivalentProofByHash(core.MetachainShardId, providedHash)
 	})
 	t.Run("should work shard 0 requesting from 0", func(t *testing.T) {
 		t.Parallel()
@@ -2184,7 +2185,8 @@ func TestResolverRequestHandler_RequestEquivalentProofByHash(t *testing.T) {
 		wasCalled := false
 		res := &dataRetrieverMocks.RequesterStub{
 			RequestDataFromHashCalled: func(hash []byte, epoch uint32) error {
-				assert.True(t, bytes.Equal(providedHash, hash))
+				key := fmt.Sprintf("%s-%d", string(providedHash), 0)
+				assert.True(t, bytes.Equal([]byte(key), hash))
 				wasCalled = true
 				return nil
 			},
@@ -2203,7 +2205,7 @@ func TestResolverRequestHandler_RequestEquivalentProofByHash(t *testing.T) {
 			time.Second,
 		)
 
-		rrh.RequestEquivalentProofByHash(providedHash, 0, 0)
+		rrh.RequestEquivalentProofByHash(0, providedHash)
 		assert.True(t, wasCalled)
 	})
 	t.Run("should work shard meta requesting from 0", func(t *testing.T) {
@@ -2213,7 +2215,8 @@ func TestResolverRequestHandler_RequestEquivalentProofByHash(t *testing.T) {
 		wasCalled := false
 		res := &dataRetrieverMocks.RequesterStub{
 			RequestDataFromHashCalled: func(hash []byte, epoch uint32) error {
-				assert.True(t, bytes.Equal(providedHash, hash))
+				key := fmt.Sprintf("%s-%d", string(providedHash), core.MetachainShardId)
+				assert.True(t, bytes.Equal([]byte(key), hash))
 				wasCalled = true
 				return nil
 			},
@@ -2232,7 +2235,7 @@ func TestResolverRequestHandler_RequestEquivalentProofByHash(t *testing.T) {
 			time.Second,
 		)
 
-		rrh.RequestEquivalentProofByHash(providedHash, 0, 0)
+		rrh.RequestEquivalentProofByHash(0, providedHash)
 		assert.True(t, wasCalled)
 	})
 }

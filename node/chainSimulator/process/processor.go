@@ -210,45 +210,6 @@ func (creator *blocksCreator) ApplySignaturesAndGetProof(
 	return headerProof, nil
 }
 
-func (creator *blocksCreator) updatePreviousProofAndAddonHeader(currentHeaderHash []byte, currentHeader, newHeader data.HeaderHandler, previousProof *dataBlock.HeaderProof) ([]nodesCoordinator.Validator, error) {
-	selectionEpoch := currentHeader.GetEpoch()
-	if currentHeader.IsStartOfEpochBlock() {
-		selectionEpoch = selectionEpoch - 1
-	}
-
-	nc := creator.nodeHandler.GetProcessComponents().NodesCoordinator()
-	_, validators, err := nc.ComputeConsensusGroup(currentHeader.GetPrevRandSeed(), currentHeader.GetRound(), currentHeader.GetShardID(), selectionEpoch)
-	if err != nil {
-		return nil, err
-	}
-
-	previousProof.PubKeysBitmap = GeneratePubKeyBitmap(len(validators))
-	for idx, validator := range validators {
-		isManaged := creator.nodeHandler.GetCryptoComponents().KeysHandler().IsKeyManagedByCurrentNode(validator.PubKey())
-		if isManaged {
-			continue
-		}
-
-		err = UnsetBitInBitmap(idx, previousProof.PubKeysBitmap)
-		if err != nil {
-			return nil, err
-		}
-
-		pubKeyBitmap := newHeader.GetPubKeysBitmap()
-		err = UnsetBitInBitmap(idx, pubKeyBitmap)
-		if err != nil {
-			return nil, err
-		}
-
-		err = newHeader.SetPubKeysBitmap(pubKeyBitmap)
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	return validators, nil
-}
-
 func createProofForHeader(pubKeyBitmap, signature, headerHash []byte, header data.HeaderHandler) *dataBlock.HeaderProof {
 	return &dataBlock.HeaderProof{
 		PubKeysBitmap:       pubKeyBitmap,
@@ -282,21 +243,6 @@ func (creator *blocksCreator) getPreviousHeaderData() (nonce, round uint64, prev
 	nonce = chainHandler.GetGenesisHeader().GetNonce()
 
 	return
-}
-
-func (creator *blocksCreator) generateSignature(headerHash, blsKeyBytes []byte, header data.HeaderHandler) ([]byte, error) {
-	return creator.generateAggregatedSignature(
-		headerHash,
-		header.GetEpoch(),
-		header.GetPubKeysBitmap(),
-		[]string{string(blsKeyBytes)},
-	)
-}
-
-func (creator *blocksCreator) generateSignatureForProofs(headerHash []byte, proof *dataBlock.HeaderProof, validators []nodesCoordinator.Validator,
-) ([]byte, error) {
-	pubKeys := extractValidatorPubKeys(validators)
-	return creator.generateAggregatedSignature(headerHash, proof.GetHeaderEpoch(), proof.GetPubKeysBitmap(), pubKeys)
 }
 
 func (creator *blocksCreator) setHeaderSignatures(

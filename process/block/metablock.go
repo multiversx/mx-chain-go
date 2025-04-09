@@ -19,7 +19,6 @@ import (
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/common/holders"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
-	commonErrors "github.com/multiversx/mx-chain-go/errors"
 	processOutport "github.com/multiversx/mx-chain-go/outport/process"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/block/bootstrapStorage"
@@ -47,7 +46,6 @@ type metaProcessor struct {
 	shardBlockFinality           uint32
 	chRcvAllHdrs                 chan bool
 	headersCounter               *headersCounter
-	fieldsSizeChecker            common.FieldsSizeChecker
 }
 
 // NewMetaProcessor creates a new metaProcessor object
@@ -88,9 +86,6 @@ func NewMetaProcessor(arguments ArgMetaProcessor) (*metaProcessor, error) {
 	}
 	if check.IfNil(arguments.ReceiptsRepository) {
 		return nil, process.ErrNilReceiptsRepository
-	}
-	if check.IfNil(arguments.FieldsSizeChecker) {
-		return nil, commonErrors.ErrNilFieldsSizeChecker
 	}
 
 	processDebugger, err := createDisabledProcessDebugger()
@@ -160,7 +155,6 @@ func NewMetaProcessor(arguments ArgMetaProcessor) (*metaProcessor, error) {
 		validatorStatisticsProcessor: arguments.ValidatorStatisticsProcessor,
 		validatorInfoCreator:         arguments.EpochValidatorInfoCreator,
 		epochSystemSCProcessor:       arguments.EpochSystemSCProcessor,
-		fieldsSizeChecker:            arguments.FieldsSizeChecker,
 	}
 
 	argsTransactionCounter := ArgsTransactionCounter{
@@ -458,7 +452,7 @@ func (mp *metaProcessor) checkProofsForShardData(header *block.MetaBlock) error 
 			continue
 		}
 
-		mp.checkProofRequestingIfMissing(shardData.HeaderHash, shardData.Epoch, shardData.ShardID)
+		mp.checkProofRequestingIfMissing(shardData.HeaderHash, shardData.ShardID)
 	}
 
 	return nil
@@ -1934,18 +1928,6 @@ func (mp *metaProcessor) checkShardHeadersValidity(metaHdr *block.MetaBlock) (ma
 	}
 
 	return highestNonceHdrs, nil
-}
-
-func (mp *metaProcessor) verifyProof(proof data.HeaderProofHandler) error {
-	if check.IfNil(proof) {
-		return nil
-	}
-
-	if !mp.fieldsSizeChecker.IsProofSizeValid(proof) {
-		return process.ErrInvalidHeaderProof
-	}
-
-	return nil
 }
 
 func (mp *metaProcessor) getFinalMiniBlockHeaders(miniBlockHeaderHandlers []data.MiniBlockHeaderHandler) []data.MiniBlockHeaderHandler {

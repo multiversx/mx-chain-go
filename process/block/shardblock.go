@@ -399,7 +399,7 @@ func (sp *shardProcessor) checkProofsRequestingMissing(header data.ShardHeaderHa
 			continue
 		}
 
-		sp.checkProofRequestingIfMissing(metaBlockHash, hInfo.hdr.GetEpoch(), core.MetachainShardId)
+		sp.checkProofRequestingIfMissing(metaBlockHash, core.MetachainShardId)
 	}
 
 	return nil

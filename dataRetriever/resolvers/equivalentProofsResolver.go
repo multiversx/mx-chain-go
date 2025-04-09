@@ -19,7 +19,7 @@ import (
 const maxBuffToSendEquivalentProofs = 1 << 18 // 256KB
 
 const (
-	keySeparator   = "_"
+	keySeparator   = "-"
 	expectedKeyLen = 2
 	hashIndex      = 0
 	shardIndex     = 1
@@ -135,7 +135,7 @@ func (res *equivalentProofsResolver) resolveHashRequest(hashShardKey []byte, epo
 		return fmt.Errorf("resolveHashRequest.fetchEquivalentProofAsByteSlice error %w", err)
 	}
 
-	return res.marshalAndSend(data, pid, source)
+	return res.Send(data, pid, source)
 }
 
 // resolveMultipleHashesRequest sends the response for multiple hashes request
@@ -162,7 +162,7 @@ func (res *equivalentProofsResolver) resolveNonceRequest(nonceShardKey []byte, e
 		return fmt.Errorf("resolveNonceRequest.fetchEquivalentProofFromNonceAsByteSlice error %w", err)
 	}
 
-	return res.marshalAndSend(data, pid, source)
+	return res.Send(data, pid, source)
 }
 
 // sendEquivalentProofsForHashes sends multiple equivalent proofs for specific hashes
@@ -180,18 +180,6 @@ func (res *equivalentProofsResolver) sendEquivalentProofsForHashes(dataBuff [][]
 	}
 
 	return nil
-}
-
-func (res *equivalentProofsResolver) marshalAndSend(data []byte, pid core.PeerID, source p2p.MessageHandler) error {
-	b := &batch.Batch{
-		Data: [][]byte{data},
-	}
-	buff, err := res.marshalizer.Marshal(b)
-	if err != nil {
-		return err
-	}
-
-	return res.Send(buff, pid, source)
 }
 
 // fetchEquivalentProofsSlicesForHeaders fetches all equivalent proofs for the given header hashes
