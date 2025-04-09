@@ -214,7 +214,7 @@ func getSignersIndices(
 	round uint64,
 	nodesCoordinator nodesCoordinator.NodesCoordinator,
 ) ([]uint64, bool) {
-	// if a header have previous proof EquivalentMessage flag is active and all validators are in consensus group - signer indices no longer needed
+	// if EquivalentMessagesFlag is active and all validators are in consensus group - signer indices no longer needed
 	if common.IsFlagEnabledAfterEpochsStartBlock(header, enableEpochsHandler, common.EquivalentMessagesFlag) {
 		return make([]uint64, 0), true
 	}

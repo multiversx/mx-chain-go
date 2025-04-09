@@ -118,32 +118,12 @@ func (imh *InterceptedMetaHeader) CheckValidity() error {
 		return err
 	}
 
-	if imh.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, imh.hdr.GetEpoch()) {
-		return imh.verifySignaturesForEquivalentProofs()
-	}
-
 	err = imh.sigVerifier.VerifyRandSeedAndLeaderSignature(imh.hdr)
 	if err != nil {
 		return err
 	}
 
 	err = imh.sigVerifier.VerifySignature(imh.hdr)
-	if err != nil {
-		return err
-	}
-
-	return imh.integrityVerifier.Verify(imh.hdr)
-}
-
-func (imh *InterceptedMetaHeader) verifySignaturesForEquivalentProofs() error {
-	// for equivalent proofs, we check first the previous proof to make sure we add it to the proofs pool if we are validating the
-	// block after the change of epoch, otherwise we never add the previous proof to proofs pool in sync mode.
-	err := imh.sigVerifier.VerifySignature(imh.hdr)
-	if err != nil {
-		return err
-	}
-
-	err = imh.sigVerifier.VerifyRandSeedAndLeaderSignature(imh.hdr)
 	if err != nil {
 		return err
 	}

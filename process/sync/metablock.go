@@ -2,6 +2,7 @@ package sync
 
 import (
 	"context"
+	"encoding/hex"
 	"fmt"
 
 	"github.com/multiversx/mx-chain-core-go/core"
@@ -270,6 +271,27 @@ func (boot *MetaBootstrap) getHeaderWithNonceRequestingIfMissing(nonce uint64) (
 		}
 	}
 
+	// if header already in pool, check proof and request it if needed
+	if boot.proofs.HasProof(core.MetachainShardId, hash) {
+		return hdr, hash, nil
+	}
+
+	// reuse same mechanism and channel
+	_ = core.EmptyChannel(boot.chRcvHdrNonce)
+	boot.setRequestedHeaderNonce(&nonce)
+	log.Debug("requesting equivalent proof from network",
+		"hash", hex.EncodeToString(hash),
+	)
+	boot.requestHandler.RequestEquivalentProofByHash(core.MetachainShardId, hash)
+	err = boot.waitForHeaderNonce()
+	if err != nil {
+		return nil, nil, err
+	}
+
+	if !boot.proofs.HasProof(core.MetachainShardId, hash) {
+		return nil, nil, process.ErrMissingHeaderProof
+	}
+
 	return hdr, hash, nil
 }
 
@@ -289,6 +311,27 @@ func (boot *MetaBootstrap) getHeaderWithHashRequestingIfMissing(hash []byte) (da
 		if err != nil {
 			return nil, err
 		}
+	}
+
+	// if header already in pool, check proof and request it if needed
+	if boot.proofs.HasProof(core.MetachainShardId, hash) {
+		return hdr, nil
+	}
+
+	// safe to reuse same mechanism and channel
+	_ = core.EmptyChannel(boot.chRcvHdrHash)
+	boot.setRequestedHeaderHash(hash)
+	log.Debug("requesting equivalent proof from network",
+		"hash", hex.EncodeToString(hash),
+	)
+	boot.requestHandler.RequestEquivalentProofByHash(core.MetachainShardId, hash)
+	err = boot.waitForHeaderHash()
+	if err != nil {
+		return nil, err
+	}
+
+	if !boot.proofs.HasProof(core.MetachainShardId, hash) {
+		return nil, process.ErrMissingHeaderProof
 	}
 
 	return hdr, nil

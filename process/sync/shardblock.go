@@ -2,6 +2,7 @@ package sync
 
 import (
 	"context"
+	"encoding/hex"
 	"fmt"
 	"math"
 
@@ -225,6 +226,27 @@ func (boot *ShardBootstrap) getHeaderWithNonceRequestingIfMissing(nonce uint64) 
 		}
 	}
 
+	// if header already in pool, check proof and request it if needed
+	if boot.proofs.HasProof(boot.shardCoordinator.SelfId(), hash) {
+		return hdr, hash, nil
+	}
+
+	// reuse same mechanism and channel
+	_ = core.EmptyChannel(boot.chRcvHdrNonce)
+	boot.setRequestedHeaderNonce(&nonce)
+	log.Debug("requesting equivalent proof from network",
+		"hash", hex.EncodeToString(hash),
+	)
+	boot.requestHandler.RequestEquivalentProofByHash(boot.shardCoordinator.SelfId(), hash)
+	err = boot.waitForHeaderNonce()
+	if err != nil {
+		return nil, nil, err
+	}
+
+	if !boot.proofs.HasProof(boot.shardCoordinator.SelfId(), hash) {
+		return nil, nil, process.ErrMissingHeaderProof
+	}
+
 	return hdr, hash, nil
 }
 
@@ -246,7 +268,56 @@ func (boot *ShardBootstrap) getHeaderWithHashRequestingIfMissing(hash []byte) (d
 		}
 	}
 
+	// if header already in pool, check proof and request it if needed
+	if boot.proofs.HasProof(boot.shardCoordinator.SelfId(), hash) {
+		return hdr, nil
+	}
+
+	// safe to reuse same mechanism and channel
+	_ = core.EmptyChannel(boot.chRcvHdrHash)
+	boot.setRequestedHeaderHash(hash)
+	log.Debug("requesting equivalent proof from network",
+		"hash", hex.EncodeToString(hash),
+	)
+	boot.requestHandler.RequestEquivalentProofByHash(boot.shardCoordinator.SelfId(), hash)
+	err = boot.waitForHeaderHash()
+	if err != nil {
+		return nil, err
+	}
+
+	if !boot.proofs.HasProof(boot.shardCoordinator.SelfId(), hash) {
+		return nil, process.ErrMissingHeaderProof
+	}
+
 	return hdr, nil
+}
+
+func (boot *ShardBootstrap) checkProofForHashRequestingIfMissing(
+	hash []byte,
+	shard uint32,
+) error {
+	// if header already in pool, check proof and request it if needed
+	if boot.proofs.HasProof(shard, hash) {
+		return nil
+	}
+
+	// safe to reuse same mechanism and channel
+	_ = core.EmptyChannel(boot.chRcvHdrHash)
+	boot.setRequestedHeaderHash(hash)
+	log.Debug("requesting equivalent proof from network",
+		"hash", hex.EncodeToString(hash),
+	)
+	boot.requestHandler.RequestEquivalentProofByHash(boot.shardCoordinator.SelfId(), hash)
+	err := boot.waitForHeaderHash()
+	if err != nil {
+		return err
+	}
+
+	if !boot.proofs.HasProof(boot.shardCoordinator.SelfId(), hash) {
+		return process.ErrMissingHeaderProof
+	}
+
+	return nil
 }
 
 func (boot *ShardBootstrap) getPrevHeader(
