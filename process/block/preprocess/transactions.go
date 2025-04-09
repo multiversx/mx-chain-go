@@ -1552,6 +1552,18 @@ func (txs *transactions) computeSortedTxs(
 
 	sortedTxs := sortedTransactionsProvider.GetSortedTransactions(session)
 
+	gasSumFromCache := uint64(0)
+	for i := 0; i < len(sortedTxs); i++ {
+		tx, ok := sortedTxs[i].Tx.(*transaction.Transaction)
+		if !ok {
+			log.Warn("computeSortedTxs: wrong type assertion", "error", process.ErrWrongTypeAssertion)
+			continue
+		}
+		gasSumFromCache += tx.GetGasLimit()
+	}
+
+	log.Debug("computeSortedTxs: gas sum from cache", "gasSumFromCache", gasSumFromCache)
+
 	// TODO: this could be moved to SortedTransactionsProvider
 	selectedTxs, remainingTxs := txs.preFilterTransactionsWithMoveBalancePriority(sortedTxs, gasBandwidth)
 	txs.sortTransactionsBySenderAndNonce(selectedTxs, randomness)
