@@ -1098,7 +1098,7 @@ func (txs *transactions) computeOverestimations(allTxs []*txcache.WrappedTransac
 		gasLimitSum += tx.GetGasLimit()
 		log.Info("tx estimation before prefilterTransactions", "txHash", allTxs[i].TxHash, "gasLimit", allTxs[i].Tx.GetGasLimit(), "computedFee", allTxs[i].Fee, "ppu", allTxs[i].PricePerUnit, "estimation", estimation, "erdSender", erdSender, "erdReceiver", erdReceiver, "nrTxs", nrTxs, "averageOverEstimation", currentSenders[erdSender].overEstimationSum)
 	}
-
+	log.Info("computeOverestimations", "gasLimitSum", gasLimitSum, "numberOfTxs", len(allTxs))
 	return gasLimitSum
 }
 

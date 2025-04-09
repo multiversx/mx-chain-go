@@ -67,6 +67,7 @@ func main() {
 	app.Name = "MultiversX Node CLI App"
 	machineID := core.GetAnonymizedMachineID(app.Name)
 
+	appVersion = "v1.8.12.0-0-0-gde61749"
 	baseVersion := fmt.Sprintf("%s/%s/%s-%s", appVersion, runtime.Version(), runtime.GOOS, runtime.GOARCH)
 	app.Version = fmt.Sprintf("%s/%s", baseVersion, machineID)
 	app.Usage = "This is the entry point for starting a new MultiversX node - the app will start after the genesis timestamp"
