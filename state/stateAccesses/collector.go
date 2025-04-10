@@ -153,6 +153,9 @@ func stateAccessToString(stateAccess *data.StateAccess) string {
 
 // Store will store the collected state changes if it has been configured with a storer
 func (c *collector) Store() error {
+	c.stateChangesMut.RLock()
+	defer c.stateChangesMut.RUnlock()
+
 	// TODO: evaluate adding a more explicit field check here
 	if check.IfNil(c.storer) {
 		return nil
