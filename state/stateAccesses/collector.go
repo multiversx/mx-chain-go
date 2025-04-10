@@ -2,13 +2,13 @@ package stateAccesses
 
 import (
 	"encoding/hex"
-	"encoding/json"
 	"fmt"
 	"strings"
 	"sync"
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	data "github.com/multiversx/mx-chain-core-go/data/stateChange"
+	"github.com/multiversx/mx-chain-core-go/marshal"
 	logger "github.com/multiversx/mx-chain-logger-go"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 
@@ -24,22 +24,28 @@ type collector struct {
 	stateAccesses   []*data.StateAccess
 	stateChangesMut sync.RWMutex
 	storer          storage.Persister
+	marshaller      marshal.Marshalizer
 }
 
 // NewCollector will collect based on the options the state changes.
-func NewCollector(opts ...CollectorOption) *collector {
+func NewCollector(marshaller marshal.Marshalizer, opts ...CollectorOption) (*collector, error) {
+	if check.IfNil(marshaller) {
+		return nil, state.ErrNilMarshalizer
+	}
+
 	c := &collector{stateAccesses: make([]*data.StateAccess, 0)}
 	for _, opt := range opts {
 		opt(c)
 	}
 
+	c.marshaller = marshaller
 	log.Debug("created new state changes collector",
 		"withRead", c.collectRead,
 		"withWrite", c.collectWrite,
 		"withStorer", c.storer != nil,
 	)
 
-	return c
+	return c, nil
 }
 
 // AddStateAccess adds a new state access to the collector
@@ -154,9 +160,9 @@ func (c *collector) Store() error {
 
 	stateAccessesForTxs := getStateAccessesForTxs(c.stateAccesses, true)
 	for txHash, stateChange := range stateAccessesForTxs {
-		marshalledData, err := json.Marshal(stateChange)
+		marshalledData, err := c.marshaller.Marshal(stateChange)
 		if err != nil {
-			return fmt.Errorf("failed to marshal state changes to JSON: %w", err)
+			return fmt.Errorf("failed to marshal state changes: %w", err)
 		}
 
 		err = c.storer.Put([]byte(txHash), marshalledData)

@@ -165,7 +165,7 @@ func (scf *stateComponentsFactory) createStateAccessesCollector() (state.StateAc
 		opts = append(opts, stateAccesses.WithStorer(db))
 	}
 
-	return stateAccesses.NewCollector(opts...), nil
+	return stateAccesses.NewCollector(scf.core.InternalMarshalizer(), opts...)
 }
 
 func (scf *stateComponentsFactory) createStateAccessesCollectorPeerAccounts() (state.StateAccessesCollector, error) {

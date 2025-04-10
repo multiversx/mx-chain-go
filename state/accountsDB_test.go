@@ -171,6 +171,7 @@ func getDefaultStateComponents(
 		StateStatsHandler:    statistics.NewStateStatistics(),
 	})
 
+	collector, _ := stateAccesses.NewCollector(marshaller, stateAccesses.WithCollectWrite())
 	argsAccountsDB := state.ArgsAccountsDB{
 		Trie:                   tr,
 		Hasher:                 hasher,
@@ -179,7 +180,7 @@ func getDefaultStateComponents(
 		StoragePruningManager:  spm,
 		AddressConverter:       &testscommon.PubkeyConverterMock{},
 		SnapshotsManager:       snapshotsManager,
-		StateAccessesCollector: stateAccesses.NewCollector(stateAccesses.WithCollectWrite()),
+		StateAccessesCollector: collector,
 	}
 	adb, _ := state.NewAccountsDB(argsAccountsDB)
 

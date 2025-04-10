@@ -32,8 +32,20 @@ func getReadStateAccess() *data.StateAccess {
 func TestNewStateAccessesCollector(t *testing.T) {
 	t.Parallel()
 
-	StateAccessesCollector := NewCollector()
-	require.False(t, StateAccessesCollector.IsInterfaceNil())
+	t.Run("nil marshaller", func(t *testing.T) {
+		t.Parallel()
+
+		stateAccessesCollector, err := NewCollector(nil)
+		require.True(t, stateAccessesCollector.IsInterfaceNil())
+		require.Equal(t, state.ErrNilMarshalizer, err)
+	})
+	t.Run("should work with default options", func(t *testing.T) {
+		t.Parallel()
+
+		stateAccessesCollector, err := NewCollector(&mock.MarshalizerMock{})
+		require.False(t, stateAccessesCollector.IsInterfaceNil())
+		require.Nil(t, err)
+	})
 }
 
 func TestStateAccessesCollector_AddStateAccess(t *testing.T) {
@@ -42,7 +54,7 @@ func TestStateAccessesCollector_AddStateAccess(t *testing.T) {
 	t.Run("default collector", func(t *testing.T) {
 		t.Parallel()
 
-		c := NewCollector()
+		c, _ := NewCollector(&mock.MarshalizerMock{})
 		assert.Equal(t, 0, len(c.stateAccesses))
 
 		numStateChanges := 10
@@ -55,7 +67,7 @@ func TestStateAccessesCollector_AddStateAccess(t *testing.T) {
 	t.Run("collect only write", func(t *testing.T) {
 		t.Parallel()
 
-		c := NewCollector(WithCollectWrite())
+		c, _ := NewCollector(&mock.MarshalizerMock{}, WithCollectWrite())
 		assert.Equal(t, 0, len(c.stateAccesses))
 
 		numStateChanges := 10
@@ -70,7 +82,7 @@ func TestStateAccessesCollector_AddStateAccess(t *testing.T) {
 	t.Run("collect only read", func(t *testing.T) {
 		t.Parallel()
 
-		c := NewCollector(WithCollectRead())
+		c, _ := NewCollector(&mock.MarshalizerMock{}, WithCollectRead())
 		assert.Equal(t, 0, len(c.stateAccesses))
 
 		numStateChanges := 10
@@ -85,7 +97,7 @@ func TestStateAccessesCollector_AddStateAccess(t *testing.T) {
 	t.Run("collect both read and write", func(t *testing.T) {
 		t.Parallel()
 
-		c := NewCollector(WithCollectRead(), WithCollectWrite())
+		c, _ := NewCollector(&mock.MarshalizerMock{}, WithCollectRead(), WithCollectWrite())
 		assert.Equal(t, 0, len(c.stateAccesses))
 
 		numStateChanges := 10
@@ -103,7 +115,7 @@ func TestStateAccessesCollector_AddStateAccess(t *testing.T) {
 func TestStateAccessesCollector_GetStateChanges(t *testing.T) {
 	t.Parallel()
 
-	c := NewCollector(WithCollectWrite())
+	c, _ := NewCollector(&mock.MarshalizerMock{}, WithCollectWrite())
 	assert.Equal(t, 0, len(c.stateAccesses))
 
 	numStateChanges := 10
@@ -131,7 +143,7 @@ func TestStateAccessesCollector_GetStateChanges(t *testing.T) {
 func TestStateAccessesCollector_AddTxHashToCollectedStateChanges(t *testing.T) {
 	t.Parallel()
 
-	c := NewCollector(WithCollectWrite())
+	c, _ := NewCollector(&mock.MarshalizerMock{}, WithCollectWrite())
 	assert.Equal(t, 0, len(c.stateAccesses))
 	assert.Equal(t, 0, len(c.GetStateChanges()))
 
@@ -166,7 +178,7 @@ func TestStateAccessesCollector_AddTxHashToCollectedStateChanges(t *testing.T) {
 func TestStateAccessesCollector_RevertToIndex_FailIfWrongIndex(t *testing.T) {
 	t.Parallel()
 
-	c := NewCollector(WithCollectWrite())
+	c, _ := NewCollector(&mock.MarshalizerMock{}, WithCollectWrite())
 	numStateChanges := len(c.stateAccesses)
 
 	err := c.RevertToIndex(-1)
@@ -179,7 +191,7 @@ func TestStateAccessesCollector_RevertToIndex_FailIfWrongIndex(t *testing.T) {
 func TestStateAccessesCollector_RevertToIndex(t *testing.T) {
 	t.Parallel()
 
-	c := NewCollector(WithCollectWrite())
+	c, _ := NewCollector(&mock.MarshalizerMock{}, WithCollectWrite())
 
 	numStateChanges := 10
 	for i := 0; i < numStateChanges; i++ {
@@ -225,7 +237,7 @@ func TestStateAccessesCollector_SetIndexToLastStateChange(t *testing.T) {
 	t.Run("should fail if invalid index", func(t *testing.T) {
 		t.Parallel()
 
-		c := NewCollector(WithCollectWrite())
+		c, _ := NewCollector(&mock.MarshalizerMock{}, WithCollectWrite())
 
 		err := c.SetIndexToLastStateChange(-1)
 		require.True(t, errors.Is(err, state.ErrStateChangesIndexOutOfBounds))
@@ -238,7 +250,7 @@ func TestStateAccessesCollector_SetIndexToLastStateChange(t *testing.T) {
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
 
-		c := NewCollector(WithCollectWrite())
+		c, _ := NewCollector(&mock.MarshalizerMock{}, WithCollectWrite())
 
 		numStateChanges := 10
 		for i := 0; i < numStateChanges; i++ {
@@ -262,7 +274,7 @@ func TestStateAccessesCollector_SetIndexToLastStateChange(t *testing.T) {
 func TestStateAccessesCollector_Reset(t *testing.T) {
 	t.Parallel()
 
-	c := NewCollector(WithCollectWrite())
+	c, _ := NewCollector(&mock.MarshalizerMock{}, WithCollectWrite())
 	assert.Equal(t, 0, len(c.stateAccesses))
 
 	numStateChanges := 10
@@ -289,7 +301,7 @@ func TestStateAccessesCollector_Publish(t *testing.T) {
 	t.Run("collect only write", func(t *testing.T) {
 		t.Parallel()
 
-		c := NewCollector(WithCollectWrite())
+		c, _ := NewCollector(&mock.MarshalizerMock{}, WithCollectWrite())
 		assert.Equal(t, 0, len(c.stateAccesses))
 
 		numStateChanges := 20
@@ -336,7 +348,7 @@ func TestStateAccessesCollector_Publish(t *testing.T) {
 	t.Run("collect only read", func(t *testing.T) {
 		t.Parallel()
 
-		c := NewCollector(WithCollectRead())
+		c, _ := NewCollector(&mock.MarshalizerMock{}, WithCollectRead())
 		assert.Equal(t, 0, len(c.stateAccesses))
 
 		numStateChanges := 20
@@ -383,7 +395,7 @@ func TestStateAccessesCollector_Publish(t *testing.T) {
 	t.Run("collect both read and write", func(t *testing.T) {
 		t.Parallel()
 
-		c := NewCollector(WithCollectRead(), WithCollectWrite())
+		c, _ := NewCollector(&mock.MarshalizerMock{}, WithCollectRead(), WithCollectWrite())
 		assert.Equal(t, 0, len(c.stateAccesses))
 
 		numStateChanges := 20
@@ -449,7 +461,7 @@ func TestNewDataAnalysisCollector(t *testing.T) {
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
 
-		c := NewCollector(WithStorer(&mock.PersisterStub{}))
+		c, _ := NewCollector(&mock.MarshalizerMock{}, WithStorer(&mock.PersisterStub{}))
 		require.False(t, c.IsInterfaceNil())
 		require.NotNil(t, c.storer)
 	})
@@ -461,7 +473,7 @@ func TestDataAnalysisStateAccessesCollector_AddSaveAccountStateChange(t *testing
 	t.Run("nil old account should return early", func(t *testing.T) {
 		t.Parallel()
 
-		c := NewCollector(WithCollectWrite(), WithStorer(&mock.PersisterStub{}))
+		c, _ := NewCollector(&mock.MarshalizerMock{}, WithCollectWrite(), WithStorer(&mock.PersisterStub{}))
 
 		c.AddSaveAccountStateAccess(
 			nil,
@@ -488,7 +500,7 @@ func TestDataAnalysisStateAccessesCollector_AddSaveAccountStateChange(t *testing
 	t.Run("nil new account should return early", func(t *testing.T) {
 		t.Parallel()
 
-		c := NewCollector(WithCollectWrite(), WithStorer(&mock.PersisterStub{}))
+		c, _ := NewCollector(&mock.MarshalizerMock{}, WithCollectWrite(), WithStorer(&mock.PersisterStub{}))
 
 		c.AddSaveAccountStateAccess(
 			&mockState.UserAccountStub{},
@@ -515,7 +527,7 @@ func TestDataAnalysisStateAccessesCollector_AddSaveAccountStateChange(t *testing
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
 
-		c := NewCollector(WithCollectWrite(), WithStorer(&mock.PersisterStub{}))
+		c, _ := NewCollector(&mock.MarshalizerMock{}, WithCollectWrite(), WithStorer(&mock.PersisterStub{}))
 
 		c.AddSaveAccountStateAccess(
 			&mockState.UserAccountStub{
@@ -575,7 +587,7 @@ func TestDataAnalysisStateAccessesCollector_AddSaveAccountStateChange(t *testing
 func TestDataAnalysisStateAccessesCollector_Reset(t *testing.T) {
 	t.Parallel()
 
-	c := NewCollector(WithCollectWrite(), WithStorer(&mock.PersisterStub{}))
+	c, _ := NewCollector(&mock.MarshalizerMock{}, WithCollectWrite(), WithStorer(&mock.PersisterStub{}))
 
 	numStateChanges := 10
 	for i := 0; i < numStateChanges; i++ {
@@ -601,7 +613,7 @@ func TestDataAnalysisStateAccessesCollector_Store(t *testing.T) {
 			},
 		}
 
-		c := NewCollector(WithCollectWrite(), WithStorer(storer))
+		c, _ := NewCollector(&mock.MarshalizerMock{}, WithCollectWrite(), WithStorer(storer))
 
 		numStateChanges := 10
 		for i := 0; i < numStateChanges; i++ {
@@ -618,7 +630,7 @@ func TestDataAnalysisStateAccessesCollector_Store(t *testing.T) {
 	t.Run("without storer, should return nil directly", func(t *testing.T) {
 		t.Parallel()
 
-		c := NewCollector(WithCollectWrite())
+		c, _ := NewCollector(&mock.MarshalizerMock{}, WithCollectWrite())
 
 		numStateChanges := 10
 		for i := 0; i < numStateChanges; i++ {
