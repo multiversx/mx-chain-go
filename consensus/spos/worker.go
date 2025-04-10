@@ -873,6 +873,10 @@ func (wrk *Worker) removeConsensusHeaderFromPool() {
 	if len(headerHash) == 0 {
 		return
 	}
+	header := wrk.consensusState.GetHeader()
+	if check.IfNil(header) {
+		return
+	}
 
 	blockProcessorWithPoolAccess, ok := wrk.blockProcessor.(blockProcessorWithPool)
 	if !ok {
@@ -880,6 +884,11 @@ func (wrk *Worker) removeConsensusHeaderFromPool() {
 	}
 
 	blockProcessorWithPoolAccess.RemoveHeaderFromPool(headerHash)
+	if !wrk.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, header.GetEpoch()) {
+		return
+	}
+
+	wrk.forkDetector.RemoveHeader(header.GetNonce(), headerHash)
 }
 
 // DisplayStatistics logs the consensus messages split on proposed headers
