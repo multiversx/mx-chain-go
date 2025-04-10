@@ -873,8 +873,13 @@ func (wrk *Worker) removeConsensusHeaderFromPool() {
 	if len(headerHash) == 0 {
 		return
 	}
+
 	header := wrk.consensusState.GetHeader()
 	if check.IfNil(header) {
+		return
+	}
+
+	if !wrk.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, header.GetEpoch()) {
 		return
 	}
 
@@ -884,10 +889,6 @@ func (wrk *Worker) removeConsensusHeaderFromPool() {
 	}
 
 	blockProcessorWithPoolAccess.RemoveHeaderFromPool(headerHash)
-	if !wrk.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, header.GetEpoch()) {
-		return
-	}
-
 	wrk.forkDetector.RemoveHeader(header.GetNonce(), headerHash)
 }
 
