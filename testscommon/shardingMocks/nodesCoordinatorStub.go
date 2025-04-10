@@ -25,6 +25,7 @@ type NodesCoordinatorStub struct {
 	GetWaitingEpochsLeftForPublicKeyCalled           func(publicKey []byte) (uint32, error)
 	GetNumTotalEligibleCalled                        func() uint64
 	ShardIdForEpochCalled                            func(epoch uint32) (uint32, error)
+	GetCachedEpochsCalled                            func() map[uint32]struct{}
 }
 
 // NodesCoordinatorToRegistry -
@@ -224,6 +225,14 @@ func (ncm *NodesCoordinatorStub) GetWaitingEpochsLeftForPublicKey(publicKey []by
 		return ncm.GetWaitingEpochsLeftForPublicKeyCalled(publicKey)
 	}
 	return 0, nil
+}
+
+// GetCachedEpochs -
+func (ncm *NodesCoordinatorStub) GetCachedEpochs() map[uint32]struct{} {
+	if ncm.GetCachedEpochsCalled != nil {
+		return ncm.GetCachedEpochsCalled()
+	}
+	return make(map[uint32]struct{})
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
