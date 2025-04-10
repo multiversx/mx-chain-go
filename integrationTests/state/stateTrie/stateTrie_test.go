@@ -1059,10 +1059,10 @@ func createAccounts(
 	tr, _ := trie.NewTrie(trieStorage, integrationTests.TestMarshalizer, integrationTests.TestHasher, &enableEpochsHandlerMock.EnableEpochsHandlerStub{}, maxTrieLevelInMemory)
 	spm, _ := storagePruningManager.NewStoragePruningManager(ewl, 10)
 	argsAccCreator := factory.ArgsAccountCreator{
-		Hasher:                integrationTests.TestHasher,
-		Marshaller:            integrationTests.TestMarshalizer,
-		EnableEpochsHandler:   &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
-		StateChangesCollector: &stateMock.StateChangesCollectorStub{},
+		Hasher:                 integrationTests.TestHasher,
+		Marshaller:             integrationTests.TestMarshalizer,
+		EnableEpochsHandler:    &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		StateAccessesCollector: &stateMock.StateAccessesCollectorStub{},
 	}
 	accCreator, _ := factory.NewAccountCreator(argsAccCreator)
 	snapshotsManager, _ := state.NewSnapshotsManager(state.ArgsNewSnapshotsManager{
@@ -1077,14 +1077,14 @@ func createAccounts(
 		StateStatsHandler:    statistics.NewStateStatistics(),
 	})
 	argsAccountsDB := state.ArgsAccountsDB{
-		Trie:                  tr,
-		Hasher:                integrationTests.TestHasher,
-		Marshaller:            integrationTests.TestMarshalizer,
-		AccountFactory:        accCreator,
-		StoragePruningManager: spm,
-		AddressConverter:      &testscommon.PubkeyConverterMock{},
-		SnapshotsManager:      snapshotsManager,
-		StateChangesCollector: &stateMock.StateChangesCollectorStub{},
+		Trie:                   tr,
+		Hasher:                 integrationTests.TestHasher,
+		Marshaller:             integrationTests.TestMarshalizer,
+		AccountFactory:         accCreator,
+		StoragePruningManager:  spm,
+		AddressConverter:       &testscommon.PubkeyConverterMock{},
+		SnapshotsManager:       snapshotsManager,
+		StateAccessesCollector: &stateMock.StateAccessesCollectorStub{},
 	}
 	adb, _ := state.NewAccountsDB(argsAccountsDB)
 
@@ -2733,10 +2733,10 @@ func createAccountsDBTestSetup() *state.AccountsDB {
 	tr, _ := trie.NewTrie(trieStorage, integrationTests.TestMarshalizer, integrationTests.TestHasher, &enableEpochsHandlerMock.EnableEpochsHandlerStub{}, maxTrieLevelInMemory)
 	spm, _ := storagePruningManager.NewStoragePruningManager(ewl, 10)
 	argsAccCreator := factory.ArgsAccountCreator{
-		Hasher:                integrationTests.TestHasher,
-		Marshaller:            integrationTests.TestMarshalizer,
-		EnableEpochsHandler:   &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
-		StateChangesCollector: &stateMock.StateChangesCollectorStub{},
+		Hasher:                 integrationTests.TestHasher,
+		Marshaller:             integrationTests.TestMarshalizer,
+		EnableEpochsHandler:    &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		StateAccessesCollector: &stateMock.StateAccessesCollectorStub{},
 	}
 	accCreator, _ := factory.NewAccountCreator(argsAccCreator)
 
@@ -2753,14 +2753,14 @@ func createAccountsDBTestSetup() *state.AccountsDB {
 	})
 
 	argsAccountsDB := state.ArgsAccountsDB{
-		Trie:                  tr,
-		Hasher:                integrationTests.TestHasher,
-		Marshaller:            integrationTests.TestMarshalizer,
-		AccountFactory:        accCreator,
-		StoragePruningManager: spm,
-		AddressConverter:      &testscommon.PubkeyConverterMock{},
-		SnapshotsManager:      snapshotsManager,
-		StateChangesCollector: &stateMock.StateChangesCollectorStub{},
+		Trie:                   tr,
+		Hasher:                 integrationTests.TestHasher,
+		Marshaller:             integrationTests.TestMarshalizer,
+		AccountFactory:         accCreator,
+		StoragePruningManager:  spm,
+		AddressConverter:       &testscommon.PubkeyConverterMock{},
+		SnapshotsManager:       snapshotsManager,
+		StateAccessesCollector: &stateMock.StateAccessesCollectorStub{},
 	}
 	adb, _ := state.NewAccountsDB(argsAccountsDB)
 

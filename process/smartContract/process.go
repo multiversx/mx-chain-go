@@ -2808,7 +2808,7 @@ func (sc *scProcessor) ProcessSmartContractResult(scr *smartContractResult.Smart
 
 	// TODO refactor to set the tx hash for the following state changes before the processing occurs
 	defer func() {
-		sc.accounts.SetTxHashForLatestStateChanges(txHash, scr)
+		sc.accounts.SetTxHashForLatestStateChanges(txHash)
 		log.Debug("SetTxHashForLatestStateChanges", "txHash", txHash)
 	}()
 

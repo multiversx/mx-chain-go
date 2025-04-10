@@ -494,10 +494,10 @@ func (gbc *genesisBlockCreator) getNewArgForShard(shardID uint32) (ArgsGenesisBl
 	}
 
 	argsAccCreator := factoryState.ArgsAccountCreator{
-		Hasher:                newArgument.Core.Hasher(),
-		Marshaller:            newArgument.Core.InternalMarshalizer(),
-		EnableEpochsHandler:   newArgument.Core.EnableEpochsHandler(),
-		StateChangesCollector: disabledState.NewDisabledStateChangesCollector(),
+		Hasher:                 newArgument.Core.Hasher(),
+		Marshaller:             newArgument.Core.InternalMarshalizer(),
+		EnableEpochsHandler:    newArgument.Core.EnableEpochsHandler(),
+		StateAccessesCollector: disabledState.NewDisabledStateAccessesCollector(),
 	}
 	accCreator, err := factoryState.NewAccountCreator(argsAccCreator)
 	if err != nil {

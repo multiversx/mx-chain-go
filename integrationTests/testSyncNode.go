@@ -106,7 +106,7 @@ func (tpn *TestProcessorNode) initBlockProcessorWithSync() {
 		BlockProcessingCutoffHandler: &testscommon.BlockProcessingCutoffStub{},
 		ManagedPeersHolder:           &testscommon.ManagedPeersHolderStub{},
 		SentSignaturesTracker:        &testscommon.SentSignatureTrackerStub{},
-		StateChangesCollector:        stateDisabled.NewDisabledStateChangesCollector(),
+		StateAccessesCollector:       stateDisabled.NewDisabledStateAccessesCollector(),
 	}
 
 	if tpn.ShardCoordinator.SelfId() == core.MetachainShardId {

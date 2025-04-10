@@ -116,7 +116,7 @@ func (rtp *rewardTxProcessor) ProcessRewardTransaction(rTx *rewardTx.RewardTx) e
 
 	// TODO refactor to set the tx hash for the following state changes before the processing occurs
 	defer func() {
-		rtp.accounts.SetTxHashForLatestStateChanges(txHash, rTx)
+		rtp.accounts.SetTxHashForLatestStateChanges(txHash)
 		log.Debug("SetTxHashForLatestStateChanges", "txHash", txHash)
 	}()
 

@@ -166,8 +166,8 @@ var ErrValidatorsDifferentShards = errors.New("validators are not in the same sh
 // ErrValidatorNotFound signals that a validator was not found
 var ErrValidatorNotFound = errors.New("validator not found")
 
-// ErrNilStateChangesCollector signals that a nil state changes collector has been given
-var ErrNilStateChangesCollector = errors.New("nil state changes collector")
+// ErrNilStateAccessesCollector signals that a nil state access collector has been given
+var ErrNilStateAccessesCollector = errors.New("nil state changes collector")
 
 // ErrStateChangesIndexOutOfBounds signals that the state changes index is out of bounds
 var ErrStateChangesIndexOutOfBounds = errors.New("state changes index out of bounds")

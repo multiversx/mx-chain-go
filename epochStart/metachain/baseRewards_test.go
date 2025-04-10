@@ -1178,10 +1178,10 @@ func getBaseRewardsArguments() BaseRewardsCreatorArgs {
 
 	trieFactoryManager, _ := trie.CreateTrieStorageManager(storageManagerArgs, storage.GetStorageManagerOptions())
 	argsAccCreator := factory.ArgsAccountCreator{
-		Hasher:                hasher,
-		Marshaller:            marshalizer,
-		EnableEpochsHandler:   &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
-		StateChangesCollector: &stateMock.StateChangesCollectorStub{},
+		Hasher:                 hasher,
+		Marshaller:             marshalizer,
+		EnableEpochsHandler:    &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		StateAccessesCollector: &stateMock.StateAccessesCollectorStub{},
 	}
 	accCreator, _ := factory.NewAccountCreator(argsAccCreator)
 	enableEpochsHandler := &enableEpochsHandlerMock.EnableEpochsHandlerStub{}

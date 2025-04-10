@@ -199,7 +199,7 @@ func (txProc *txProcessor) ProcessTransaction(tx *transaction.Transaction) (vmco
 
 	// TODO refactor to set the tx hash for the following state changes before the processing occurs
 	defer func() {
-		txProc.accounts.SetTxHashForLatestStateChanges(txHash, tx)
+		txProc.accounts.SetTxHashForLatestStateChanges(txHash)
 		log.Debug("SetTxHashForLatestStateChanges", "txHash", txHash)
 	}()
 

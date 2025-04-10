@@ -124,7 +124,7 @@ func (txProc *metaTxProcessor) ProcessTransaction(tx *transaction.Transaction) (
 	)
 
 	defer func() {
-		txProc.accounts.SetTxHashForLatestStateChanges(txHash, tx)
+		txProc.accounts.SetTxHashForLatestStateChanges(txHash)
 		log.Debug("SetTxHashForLatestStateChanges", "txHash", txHash)
 	}()
 

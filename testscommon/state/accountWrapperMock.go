@@ -50,7 +50,7 @@ func NewAccountWrapMock(adr []byte) *AccountWrapMock {
 		&hashingMocks.HasherMock{},
 		&marshallerMock.MarshalizerMock{},
 		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
-		disabled.NewDisabledStateChangesCollector(),
+		disabled.NewDisabledStateAccessesCollector(),
 	)
 
 	return &AccountWrapMock{

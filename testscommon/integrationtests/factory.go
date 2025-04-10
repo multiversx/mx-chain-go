@@ -105,10 +105,10 @@ func CreateAccountsDB(db storage.Storer, enableEpochs common.EnableEpochsHandler
 	spm, _ := storagePruningManager.NewStoragePruningManager(ewl, 10)
 
 	argsAccCreator := accountFactory.ArgsAccountCreator{
-		Hasher:                TestHasher,
-		Marshaller:            TestMarshalizer,
-		EnableEpochsHandler:   enableEpochs,
-		StateChangesCollector: disabled.NewDisabledStateChangesCollector(),
+		Hasher:                 TestHasher,
+		Marshaller:             TestMarshalizer,
+		EnableEpochsHandler:    enableEpochs,
+		StateAccessesCollector: disabled.NewDisabledStateAccessesCollector(),
 	}
 	accCreator, _ := accountFactory.NewAccountCreator(argsAccCreator)
 
@@ -125,14 +125,14 @@ func CreateAccountsDB(db storage.Storer, enableEpochs common.EnableEpochsHandler
 	})
 
 	argsAccountsDB := state.ArgsAccountsDB{
-		Trie:                  tr,
-		Hasher:                TestHasher,
-		Marshaller:            TestMarshalizer,
-		AccountFactory:        accCreator,
-		StoragePruningManager: spm,
-		AddressConverter:      &testscommon.PubkeyConverterMock{},
-		SnapshotsManager:      snapshotsManager,
-		StateChangesCollector: disabled.NewDisabledStateChangesCollector(),
+		Trie:                   tr,
+		Hasher:                 TestHasher,
+		Marshaller:             TestMarshalizer,
+		AccountFactory:         accCreator,
+		StoragePruningManager:  spm,
+		AddressConverter:       &testscommon.PubkeyConverterMock{},
+		SnapshotsManager:       snapshotsManager,
+		StateAccessesCollector: disabled.NewDisabledStateAccessesCollector(),
 	}
 	adb, _ := state.NewAccountsDB(argsAccountsDB)
 

@@ -105,7 +105,7 @@ func createMetaBlockProcessor(
 			ManagedPeersHolder:             &testscommon.ManagedPeersHolderStub{},
 			BlockProcessingCutoffHandler:   &testscommon.BlockProcessingCutoffStub{},
 			SentSignaturesTracker:          &testscommon.SentSignatureTrackerStub{},
-			StateChangesCollector:          disabled.NewDisabledStateChangesCollector(),
+			StateAccessesCollector:         disabled.NewDisabledStateAccessesCollector(),
 		},
 		SCToProtocol:             stakingToPeer,
 		PendingMiniBlocksHandler: &mock.PendingMiniBlocksHandlerStub{},

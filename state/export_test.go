@@ -28,14 +28,14 @@ func (adb *AccountsDB) GetObsoleteHashes() map[string][][]byte {
 	return adb.obsoleteDataTrieHashes
 }
 
-// ResetStateChangesCollector -
-func (adb *AccountsDB) ResetStateChangesCollector() (map[string]*data.StateChanges, error) {
-	stateChanges, err := adb.stateChangesCollector.Publish()
+// ResetStateAccessesCollector -
+func (adb *AccountsDB) ResetStateAccessesCollector() (map[string]*data.StateAccesses, error) {
+	stateChanges, err := adb.StateAccessesCollector.Publish()
 	if err != nil {
 		return nil, err
 	}
 
-	adb.stateChangesCollector.Reset()
+	adb.StateAccessesCollector.Reset()
 
 	return stateChanges, nil
 }

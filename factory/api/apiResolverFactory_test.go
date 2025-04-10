@@ -345,8 +345,8 @@ func createMockSCQueryElementArgs() api.SCQueryElementArgs {
 			PeerAccountsCalled: func() state.AccountsAdapter {
 				return &stateMocks.AccountsStub{}
 			},
-			StateChangesCollectorCalled: func() state.StateChangesCollector {
-				return stateDisabled.NewDisabledStateChangesCollector()
+			StateAccessesCollectorCalled: func() state.StateAccessesCollector {
+				return stateDisabled.NewDisabledStateAccessesCollector()
 			},
 		},
 		StatusCoreComponents: &factory.StatusCoreComponentsStub{
