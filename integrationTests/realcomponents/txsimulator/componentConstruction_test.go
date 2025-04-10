@@ -23,6 +23,8 @@ func TestTransactionSimulationComponentConstructionOnMetachain(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
+	_ = logger.SetLogLevel("*:TRACE")
+
 	cfg, err := testscommon.CreateTestConfigs(t.TempDir(), "../../../cmd/node/config")
 	require.Nil(t, err)
 

@@ -1263,6 +1263,8 @@ func (g *governanceContract) getValidProposal(nonce *big.Int) (*GeneralProposal,
 	}
 
 	currentEpoch := uint64(g.eei.BlockChainHook().CurrentEpoch())
+
+	log.Error("getValidProposal", "current", currentEpoch, "start", proposal.StartVoteEpoch, "end", proposal.EndVoteEpoch)
 	if currentEpoch < proposal.StartVoteEpoch {
 		return nil, vm.ErrVotingNotStartedForProposal
 	}
@@ -1305,7 +1307,7 @@ func (g *governanceContract) proposalExists(reference []byte) bool {
 	return len(marshaledData) > 0
 }
 
-// startEndEpochFromArguments converts the nonce string arguments to uint64
+// startEndEpochFromArguments converts the epoch string arguments to uint64
 func (g *governanceContract) startEndEpochFromArguments(argStart []byte, argEnd []byte) (uint64, uint64, error) {
 	startVoteEpoch := big.NewInt(0).SetBytes(argStart).Uint64()
 	endVoteEpoch := big.NewInt(0).SetBytes(argEnd).Uint64()
@@ -1317,6 +1319,8 @@ func (g *governanceContract) startEndEpochFromArguments(argStart []byte, argEnd 
 	if endVoteEpoch-startVoteEpoch >= uint64(g.unBondPeriodInEpochs) {
 		return 0, 0, vm.ErrInvalidStartEndVoteEpoch
 	}
+	log.Error("numbers: ", "start", startVoteEpoch, "current", currentEpoch, "maxVoting", g.maxVotingDelayPeriodInEpochs, "diff", startVoteEpoch-currentEpoch)
+
 	if g.enableEpochsHandler.IsFlagEnabled(common.GovernanceFixesFlag) && startVoteEpoch-currentEpoch >= uint64(g.maxVotingDelayPeriodInEpochs) {
 		return 0, 0, vm.ErrInvalidStartEndVoteEpoch
 	}
