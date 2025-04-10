@@ -131,6 +131,7 @@ func (tpn *TestProcessorNode) initBlockProcessorWithSync() {
 				},
 			},
 			EpochSystemSCProcessor: &testscommon.EpochStartSystemSCStub{},
+			FieldsSizeChecker:      &testscommon.FieldsSizeCheckerMock{},
 		}
 
 		tpn.BlockProcessor, err = block.NewMetaProcessor(arguments)
