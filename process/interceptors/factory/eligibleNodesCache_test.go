@@ -67,38 +67,6 @@ func TestEligibleNodesCache_IsPeerEligible(t *testing.T) {
 
 		require.False(t, cache.IsPeerEligible("pid", 0, 0))
 	})
-	t.Run("nodes coordinator error on second call should error", func(t *testing.T) {
-		t.Parallel()
-
-		providedPid := core.PeerID("providedPid")
-		providedPK := []byte("providedPK")
-
-		cnt := 0
-		nodesCoordinator := &shardingMocks.NodesCoordinatorMock{
-			GetAllEligibleValidatorsPublicKeysForShardCalled: func(epoch uint32, shardID uint32) ([]string, error) {
-				cnt++
-				if cnt > 1 {
-					return nil, expectedErr
-				}
-				return []string{string(providedPK)}, nil
-			},
-		}
-		peerShardMapper := &mock.PeerShardMapperStub{
-			GetPeerInfoCalled: func(pid core.PeerID) core.P2PPeerInfo {
-				require.Equal(t, providedPid, pid)
-				return core.P2PPeerInfo{
-					PkBytes: providedPK,
-				}
-			},
-		}
-		cache, err := newEligibleNodesCache(peerShardMapper, nodesCoordinator)
-		require.NoError(t, err)
-
-		require.True(t, cache.IsPeerEligible(providedPid, 0, 0))
-
-		// new epoch, force second call
-		require.False(t, cache.IsPeerEligible(providedPid, 0, 1))
-	})
 	t.Run("node not eligible should error", func(t *testing.T) {
 		t.Parallel()
 
@@ -143,6 +111,11 @@ func TestEligibleNodesCache_IsPeerEligible(t *testing.T) {
 				cntGetAllEligibleValidatorsPublicKeysForShardCalled++
 				return []string{string(providedPK)}, nil
 			},
+			GetCachedEpochsCalled: func() map[uint32]struct{} {
+				return map[uint32]struct{}{
+					0: {},
+				}
+			},
 		}
 		cache, err := newEligibleNodesCache(peerShardMapper, nodesCoordinator)
 		require.NoError(t, err)
@@ -159,40 +132,31 @@ func TestEligibleNodesCache_IsPeerEligible(t *testing.T) {
 		// should return from cache, same epoch and shard
 		require.True(t, cache.IsPeerEligible(providedPid, 1, 0))
 
-		// should not return from cache, new epoch in delta limits
-		require.True(t, cache.IsPeerEligible(providedPid, 1, 1))
-
 		// expecting calls to nodesCoordinator:
 		//	- first call on the initial proof
 		//	- second call on the third proof, which has a different shard
-		// 	- third call on the last proof, which has a different epoch
-		expectedCalls := 3
+		expectedCalls := 2
 		require.Equal(t, expectedCalls, cntGetAllEligibleValidatorsPublicKeysForShardCalled)
 
-		// new epoch for shard 1 was in delta limits, no reset
+		// same epoch, 2 shards
 		eligibleMap := cache.eligibleNodesMap
-		require.Equal(t, 2, len(eligibleMap)) // 2 shards
-		eligibleListForShard0ByEpoch, ok := eligibleMap[0]
+		require.Equal(t, 1, len(eligibleMap))
+		require.Equal(t, 2, len(eligibleMap[0])) // 2 shards
+		eligibleListForShard0ByEpoch, ok := eligibleMap[0][0]
 		require.True(t, ok) // must have shard 0
-		eligibleListForShard1ByEpoch, ok := eligibleMap[1]
+		eligibleListForShard1ByEpoch, ok := eligibleMap[0][1]
 		require.True(t, ok) // must have shard 1
 
 		require.Equal(t, 1, len(eligibleListForShard0ByEpoch)) // tests ran with epoch 0 only
-		require.Equal(t, 2, len(eligibleListForShard1ByEpoch)) // new epoch in delta limits
+		require.Equal(t, 1, len(eligibleListForShard1ByEpoch)) // tests ran with epoch 0 only
 
-		shard0EligibleNodes, ok := eligibleListForShard0ByEpoch[0]
-		require.True(t, ok) // must have one eligible for epoch 0
-		require.Equal(t, 1, len(shard0EligibleNodes))
+		_, ok = eligibleListForShard0ByEpoch[string(providedPK)]
+		require.True(t, ok) // must have the eligible node
 
-		shardMetaEligibleNodesEpoch0, ok := eligibleListForShard1ByEpoch[0]
-		require.True(t, ok) // must have one eligible for epoch 0
-		require.Equal(t, 1, len(shardMetaEligibleNodesEpoch0))
-
-		shardMetaEligibleNodesEpoch1, ok := eligibleListForShard1ByEpoch[1]
-		require.True(t, ok) // must have one eligible for epoch 1
-		require.Equal(t, 1, len(shardMetaEligibleNodesEpoch1))
+		_, ok = eligibleListForShard1ByEpoch[string(providedPK)]
+		require.True(t, ok) // must have  the eligible node
 	})
-	t.Run("should work extreme scenarios", func(t *testing.T) {
+	t.Run("should work with cache cleanup", func(t *testing.T) {
 		t.Parallel()
 
 		providedPid := core.PeerID("providedPid")
@@ -206,16 +170,17 @@ func TestEligibleNodesCache_IsPeerEligible(t *testing.T) {
 				}
 			},
 		}
+		cachedEpochs := make(map[uint32]struct{})
 		nodesCoordinator := &shardingMocks.NodesCoordinatorMock{
 			GetAllEligibleValidatorsPublicKeysForShardCalled: func(epoch uint32, shardID uint32) ([]string, error) {
 				return []string{string(providedPK)}, nil
 			},
+			GetCachedEpochsCalled: func() map[uint32]struct{} {
+				return cachedEpochs
+			},
 		}
 		cache, err := newEligibleNodesCache(peerShardMapper, nodesCoordinator)
 		require.NoError(t, err)
-
-		// =================================================================
-		// testing higher epochs
 
 		// 1st call: should not return from cache, new shard
 		require.True(t, cache.IsPeerEligible(providedPid, 1, 30))
@@ -223,128 +188,32 @@ func TestEligibleNodesCache_IsPeerEligible(t *testing.T) {
 		// 2nd call: should return from cache, same epoch and shard
 		require.True(t, cache.IsPeerEligible(providedPid, 1, 30))
 
-		// 3rd call: should not return from cache, new epoch in delta limits
+		cachedEpochs = map[uint32]struct{}{
+			30: {}, // old calls
+			32: {}, // keep nodes coordinator aligned with the upcoming call
+		}
+
+		// 3rd call: should not return from cache, new epoch
 		require.True(t, cache.IsPeerEligible(providedPid, 1, 32))
 
-		// 4th call: should not return from cache, new epoch out of delta limits
-		require.True(t, cache.IsPeerEligible(providedPid, 1, 34))
+		cachedEpochs = map[uint32]struct{}{
+			// 30: {}, <- deleted epoch 30 from nodesCoordinator, should remove it from local cache too
+			32: {}, // keep nodes coordinator aligned with the upcoming call
+		}
 
-		// =================================================================
-		// checking results
+		// 4th call: should not return from cache, same epoch but new shard
+		require.True(t, cache.IsPeerEligible(providedPid, 2, 32))
+
 		eligibleMap := cache.eligibleNodesMap
-		require.Equal(t, 1, len(eligibleMap)) // 1 shard
-		eligibleListForShard1ByEpoch, ok := eligibleMap[1]
-		require.True(t, ok) // must have shard 1
-
-		// 4th call was outside of delta limits, should keep it and the prev one
-		require.Equal(t, 2, len(eligibleListForShard1ByEpoch))
-
-		_, ok = eligibleListForShard1ByEpoch[30]
-		require.False(t, ok) // epoch 30 should have been cleaned, too old
-
-		shardMetaEligibleNodesEpoch32, ok := eligibleListForShard1ByEpoch[32]
-		require.True(t, ok) // must have one eligible for epoch 32
-		require.Equal(t, 1, len(shardMetaEligibleNodesEpoch32))
-
-		shardMetaEligibleNodesEpoch34, ok := eligibleListForShard1ByEpoch[34]
-		require.True(t, ok) // must have one eligible for epoch 34
-		require.Equal(t, 1, len(shardMetaEligibleNodesEpoch34))
-		// =================================================================
-
-		// 5th call: should not return from cache, new epoch out of delta limits
-		require.True(t, cache.IsPeerEligible(providedPid, 1, 50))
-
-		// =================================================================
-		// checking results
-		require.Equal(t, 1, len(eligibleMap)) // 1 shard
-		eligibleListForShard1ByEpoch, ok = eligibleMap[1]
-		require.True(t, ok) // must have shard 1
-
-		// 5th call was outside of delta limits by too much, should have deleted the others
-		require.Equal(t, 1, len(eligibleListForShard1ByEpoch))
-
-		shardMetaEligibleNodesEpoch50, ok := eligibleListForShard1ByEpoch[50]
-		require.True(t, ok) // must have one eligible for epoch 50
-		require.Equal(t, 1, len(shardMetaEligibleNodesEpoch50))
-		// =================================================================
-
-		// =================================================================
-		// testing lower epochs
-
-		// 6th call: should not return from cache, new epoch inside delta
-		require.True(t, cache.IsPeerEligible(providedPid, 1, 49))
-
-		// 7th call: should not return from cache, new epoch inside delta
-		require.True(t, cache.IsPeerEligible(providedPid, 1, 48))
-
-		// =================================================================
-		// checking results
-		require.Equal(t, 1, len(eligibleMap)) // 1 shard
-		eligibleListForShard1ByEpoch, ok = eligibleMap[1]
-		require.True(t, ok) // must have shard 1
-
-		// all calls were inside delta
-		require.Equal(t, 3, len(eligibleListForShard1ByEpoch))
-
-		shardMetaEligibleNodesEpoch50, ok = eligibleListForShard1ByEpoch[50]
-		require.True(t, ok) // must have one eligible for epoch 50
-		require.Equal(t, 1, len(shardMetaEligibleNodesEpoch50))
-
-		shardMetaEligibleNodesEpoch49, ok := eligibleListForShard1ByEpoch[49]
-		require.True(t, ok) // must have one eligible for epoch 49
-		require.Equal(t, 1, len(shardMetaEligibleNodesEpoch49))
-
-		shardMetaEligibleNodesEpoch48, ok := eligibleListForShard1ByEpoch[48]
-		require.True(t, ok) // must have one eligible for epoch 48
-		require.Equal(t, 1, len(shardMetaEligibleNodesEpoch48))
-
-		// =================================================================
-
-		// 8th call: should not return from cache, new epoch outside delta, should delete epoch 50
-		require.True(t, cache.IsPeerEligible(providedPid, 1, 47))
-
-		// =================================================================
-		// checking results
-		require.Equal(t, 1, len(eligibleMap)) // 1 shard
-		eligibleListForShard1ByEpoch, ok = eligibleMap[1]
-		require.True(t, ok) // must have shard 1
-
-		// deleted one, added one
-		require.Equal(t, 3, len(eligibleListForShard1ByEpoch))
-
-		_, ok = eligibleListForShard1ByEpoch[50]
-		require.False(t, ok)
-
-		shardMetaEligibleNodesEpoch49, ok = eligibleListForShard1ByEpoch[49]
-		require.True(t, ok) // must have one eligible for epoch 49
-		require.Equal(t, 1, len(shardMetaEligibleNodesEpoch49))
-
-		shardMetaEligibleNodesEpoch48, ok = eligibleListForShard1ByEpoch[48]
-		require.True(t, ok) // must have one eligible for epoch 48
-		require.Equal(t, 1, len(shardMetaEligibleNodesEpoch48))
-
-		shardMetaEligibleNodesEpoch47, ok := eligibleListForShard1ByEpoch[47]
-		require.True(t, ok) // must have one eligible for epoch 47
-		require.Equal(t, 1, len(shardMetaEligibleNodesEpoch47))
-
-		// =================================================================
-
-		// 9th call: should not return from cache, new epoch outside delta
-		require.True(t, cache.IsPeerEligible(providedPid, 1, 40))
-
-		// =================================================================
-		// checking results
-		require.Equal(t, 1, len(eligibleMap)) // 1 shard
-		eligibleListForShard1ByEpoch, ok = eligibleMap[1]
-		require.True(t, ok) // must have shard 1
-
-		// 10th call was outside of delta limits by too much, should have deleted the others
-		require.Equal(t, 1, len(eligibleListForShard1ByEpoch))
-
-		shardMetaEligibleNodesEpoch40, ok := eligibleListForShard1ByEpoch[40]
-		require.True(t, ok) // must have one eligible for epoch 40
-		require.Equal(t, 1, len(shardMetaEligibleNodesEpoch40))
-		// =================================================================
+		require.Equal(t, 1, len(eligibleMap)) // one epoch, 32
+		nodesPerShardInEpoch, ok := eligibleMap[32]
+		require.True(t, ok)
+		require.Equal(t, 2, len(nodesPerShardInEpoch)) // 2 shards on epoch 32
+		for _, eligibleInShard := range nodesPerShardInEpoch {
+			require.Equal(t, 1, len(eligibleInShard)) // one node in each shard
+			_, ok := eligibleInShard[string(providedPK)]
+			require.True(t, ok)
+		}
 	})
 	t.Run("should work, concurrent calls", func(t *testing.T) {
 		t.Parallel()
@@ -385,6 +254,13 @@ func TestEligibleNodesCache_IsPeerEligible(t *testing.T) {
 
 				return nil, expectedErr
 			},
+			GetCachedEpochsCalled: func() map[uint32]struct{} {
+				// this test will only run with 0 and Meta
+				return map[uint32]struct{}{
+					0:                     {},
+					core.MetachainShardId: {},
+				}
+			},
 		}
 		cache, err := newEligibleNodesCache(peerShardMapper, nodesCoordinator)
 		require.NoError(t, err)
@@ -413,24 +289,15 @@ func TestEligibleNodesCache_IsPeerEligible(t *testing.T) {
 		wg.Wait()
 
 		eligibleMap := cache.eligibleNodesMap
-		require.Equal(t, 2, len(eligibleMap)) // 2 shards
-		eligibleListForShard0ByEpoch, ok := eligibleMap[0]
-		require.True(t, ok) // must have shard 0
-		eligibleListForShardMetaByEpoch, ok := eligibleMap[core.MetachainShardId]
-		require.True(t, ok) // must have shard meta
-
-		require.Equal(t, 1, len(eligibleListForShard0ByEpoch))    // tests ran with epoch 0 only
-		require.Equal(t, 1, len(eligibleListForShardMetaByEpoch)) // tests ran with epoch 0 only
-
-		shard0EligibleNodes, ok := eligibleListForShard0ByEpoch[0]
-		require.True(t, ok) // must have one eligible for epoch 0
-		require.Equal(t, 1, len(shard0EligibleNodes))
+		require.Equal(t, 1, len(eligibleMap)) // 1 epoch
+		eligibleListForEpoch0ByShard, ok := eligibleMap[0]
+		require.True(t, ok) // must have epoch 0
+		shard0EligibleNodes, ok := eligibleListForEpoch0ByShard[0]
+		require.True(t, ok) // must have eligible for epoch 0 shard 0
 		_, ok = shard0EligibleNodes[string(providedPKShard0)]
 		require.True(t, ok) // must have only the provided shard 0 pk
-
-		shardMetaEligibleNodes, ok := eligibleListForShardMetaByEpoch[0]
-		require.True(t, ok) // must have one eligible for epoch 0
-		require.Equal(t, 1, len(shardMetaEligibleNodes))
+		shardMetaEligibleNodes, ok := eligibleListForEpoch0ByShard[core.MetachainShardId]
+		require.True(t, ok) // must have eligible for epoch 0 shard meta
 		_, ok = shardMetaEligibleNodes[string(providedPKShardMeta)]
 		require.True(t, ok) // must have only the provided shard meta pk
 	})
