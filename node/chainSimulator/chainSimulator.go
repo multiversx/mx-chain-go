@@ -182,6 +182,7 @@ func (s *simulator) createChainHandlers(args ArgsBaseChainSimulator) error {
 	s.validatorsPrivateKeys = outputConfigs.ValidatorsPrivateKeys
 
 	s.addProofs()
+	s.updateNodesCoordinator()
 
 	log.Info("running the chain simulator with the following parameters",
 		"number of shards (including meta)", args.NumOfShards+1,
@@ -192,6 +193,24 @@ func (s *simulator) createChainHandlers(args ArgsBaseChainSimulator) error {
 		"temporary path", args.TempDir)
 
 	return nil
+}
+
+func (s *simulator) updateNodesCoordinator() {
+	nodePks := make([]string, 0)
+
+	for _, nodeHandler := range s.nodes {
+		pubKey, err := nodeHandler.GetCryptoComponents().PublicKey().ToByteArray()
+		if err != nil {
+			log.Error("failed to get pub key", "error", err)
+			continue
+		}
+
+		nodePks = append(nodePks, string(pubKey))
+	}
+
+	for _, nodeHandler := range s.nodes {
+		nodeHandler.GetNodesCoordinator().SetCustomPubKeys(nodePks)
+	}
 }
 
 func (s *simulator) addProofs() {

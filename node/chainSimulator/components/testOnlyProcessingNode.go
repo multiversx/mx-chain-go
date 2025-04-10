@@ -22,7 +22,6 @@ import (
 	"github.com/multiversx/mx-chain-go/process/block/postprocess"
 	"github.com/multiversx/mx-chain-go/process/smartContract"
 	"github.com/multiversx/mx-chain-go/sharding"
-	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/state"
 
 	"github.com/multiversx/mx-chain-core-go/core"
@@ -64,7 +63,7 @@ type testOnlyProcessingNode struct {
 	ProcessComponentsHolder   factory.ProcessComponentsHandler
 	DataComponentsHolder      factory.DataComponentsHandler
 
-	NodesCoordinator      nodesCoordinator.NodesCoordinator
+	NodesCoordinator      nodesCoordinatorWrapperHandler
 	ChainHandler          chainData.ChainHandler
 	ArgumentsParser       process.ArgumentsParser
 	TransactionFeeHandler process.TransactionFeeHandler
@@ -291,7 +290,7 @@ func (node *testOnlyProcessingNode) createNodesCoordinator(pref config.Preferenc
 
 	pref.DestinationShardAsObserver = shardIDStr
 
-	node.NodesCoordinator, err = bootstrapComp.CreateNodesCoordinator(
+	nodesCoordinator, err := bootstrapComp.CreateNodesCoordinator(
 		nodesShufflerOut,
 		node.CoreComponentsHolder.GenesisNodesSetup(),
 		pref,
@@ -316,6 +315,9 @@ func (node *testOnlyProcessingNode) createNodesCoordinator(pref config.Preferenc
 		return err
 	}
 
+	nodesCoordinatorWrapper := CreateNodesCoordinatorWrapper(nodesCoordinator)
+	node.NodesCoordinator = nodesCoordinatorWrapper
+
 	return nil
 }
 
@@ -335,7 +337,11 @@ func (node *testOnlyProcessingNode) createBroadcastMessenger() error {
 		return err
 	}
 
-	node.broadcastMessenger, err = NewInstantBroadcastMessenger(broadcastMessenger, node.BootstrapComponentsHolder.ShardCoordinator())
+	node.broadcastMessenger, err = NewInstantBroadcastMessenger(
+		broadcastMessenger,
+		node.BootstrapComponentsHolder.ShardCoordinator(),
+	)
+
 	return err
 }
 
@@ -387,6 +393,11 @@ func (node *testOnlyProcessingNode) GetFacadeHandler() shared.FacadeHandler {
 // GetStatusCoreComponents will return the status core components
 func (node *testOnlyProcessingNode) GetStatusCoreComponents() factory.StatusCoreComponentsHolder {
 	return node.StatusCoreComponents
+}
+
+// GetNodesCoordinator will return the nodes coordinator
+func (node *testOnlyProcessingNode) GetNodesCoordinator() nodesCoordinatorWrapperHandler {
+	return node.NodesCoordinator
 }
 
 func (node *testOnlyProcessingNode) collectClosableComponents(apiInterface APIConfigurator) {
