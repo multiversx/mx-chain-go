@@ -59,7 +59,7 @@ type stateComponents struct {
 	triesContainer           common.TriesHolder
 	trieStorageManagers      map[string]common.StorageManager
 	missingTrieNodesNotifier common.MissingTrieNodesNotifier
-	StateAccessesCollector   state.StateAccessesCollector
+	stateAccessesCollector   state.StateAccessesCollector
 }
 
 // NewStateComponentsFactory will return a new instance of stateComponentsFactory
@@ -97,12 +97,12 @@ func (scf *stateComponentsFactory) Create() (*stateComponents, error) {
 		return nil, err
 	}
 
-	StateAccessesCollector, err := scf.createStateAccessesCollector()
+	stateAccessesCollector, err := scf.createStateAccessesCollector()
 	if err != nil {
 		return nil, err
 	}
 
-	accountsAdapter, accountsAdapterAPI, accountsRepository, err := scf.createAccountsAdapters(triesContainer, StateAccessesCollector)
+	accountsAdapter, accountsAdapterAPI, accountsRepository, err := scf.createAccountsAdapters(triesContainer, stateAccessesCollector)
 	if err != nil {
 		return nil, err
 	}
@@ -120,7 +120,7 @@ func (scf *stateComponentsFactory) Create() (*stateComponents, error) {
 		triesContainer:           triesContainer,
 		trieStorageManagers:      trieStorageManagers,
 		missingTrieNodesNotifier: syncer.NewMissingTrieNodesNotifier(),
-		StateAccessesCollector:   StateAccessesCollector,
+		stateAccessesCollector:   stateAccessesCollector,
 	}, nil
 }
 
