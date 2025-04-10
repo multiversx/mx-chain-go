@@ -885,7 +885,7 @@ func (wrk *Worker) removeConsensusHeaderFromPool() {
 
 	blockProcessorWithPoolAccess, ok := wrk.blockProcessor.(blockProcessorWithPool)
 	if !ok {
-		return
+		log.Error("removeConsensusHeaderFromPool: blockProcessorWithPoolAccess is nil")
 	}
 
 	blockProcessorWithPoolAccess.RemoveHeaderFromPool(headerHash)
