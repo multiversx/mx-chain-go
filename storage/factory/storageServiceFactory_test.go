@@ -409,7 +409,7 @@ func TestStorageServiceFactory_CreateForShard(t *testing.T) {
 		assert.Nil(t, err)
 		assert.False(t, check.IfNil(storageService))
 		allStorers := storageService.GetAllStorers()
-		expectedStorers := 25
+		expectedStorers := 24
 		assert.Equal(t, expectedStorers, len(allStorers))
 
 		storer, _ := storageService.GetStorer(dataRetriever.UserAccountsUnit)
@@ -431,7 +431,7 @@ func TestStorageServiceFactory_CreateForShard(t *testing.T) {
 		assert.False(t, check.IfNil(storageService))
 		allStorers := storageService.GetAllStorers()
 		numDBLookupExtensionUnits := 6
-		expectedStorers := 25 - numDBLookupExtensionUnits
+		expectedStorers := 24 - numDBLookupExtensionUnits
 		assert.Equal(t, expectedStorers, len(allStorers))
 		_ = storageService.CloseAll()
 	})
@@ -445,7 +445,7 @@ func TestStorageServiceFactory_CreateForShard(t *testing.T) {
 		assert.Nil(t, err)
 		assert.False(t, check.IfNil(storageService))
 		allStorers := storageService.GetAllStorers()
-		expectedStorers := 25 // we still have a storer for trie epoch root hash
+		expectedStorers := 24 // we still have a storer for trie epoch root hash
 		assert.Equal(t, expectedStorers, len(allStorers))
 		_ = storageService.CloseAll()
 	})
@@ -459,7 +459,7 @@ func TestStorageServiceFactory_CreateForShard(t *testing.T) {
 		assert.Nil(t, err)
 		assert.False(t, check.IfNil(storageService))
 		allStorers := storageService.GetAllStorers()
-		expectedStorers := 25
+		expectedStorers := 24
 		assert.Equal(t, expectedStorers, len(allStorers))
 
 		storer, _ := storageService.GetStorer(dataRetriever.UserAccountsUnit)
@@ -528,7 +528,7 @@ func TestStorageServiceFactory_CreateForMeta(t *testing.T) {
 		allStorers := storageService.GetAllStorers()
 		missingStorers := 2 // PeerChangesUnit and ShardHdrNonceHashDataUnit
 		numShardHdrStorage := 3
-		expectedStorers := 25 - missingStorers + numShardHdrStorage
+		expectedStorers := 24 - missingStorers + numShardHdrStorage
 		assert.Equal(t, expectedStorers, len(allStorers))
 
 		storer, _ := storageService.GetStorer(dataRetriever.UserAccountsUnit)
@@ -551,7 +551,7 @@ func TestStorageServiceFactory_CreateForMeta(t *testing.T) {
 		allStorers := storageService.GetAllStorers()
 		missingStorers := 2 // PeerChangesUnit and ShardHdrNonceHashDataUnit
 		numShardHdrStorage := 3
-		expectedStorers := 25 - missingStorers + numShardHdrStorage
+		expectedStorers := 24 - missingStorers + numShardHdrStorage
 		assert.Equal(t, expectedStorers, len(allStorers))
 
 		storer, _ := storageService.GetStorer(dataRetriever.UserAccountsUnit)
