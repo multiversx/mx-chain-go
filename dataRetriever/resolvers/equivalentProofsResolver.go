@@ -8,6 +8,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data/batch"
+	"github.com/multiversx/mx-chain-core-go/data/typeConverters"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/p2p"
 	"github.com/multiversx/mx-chain-go/process/interceptors/processor"
@@ -29,20 +30,21 @@ const (
 // ArgEquivalentProofsResolver is the argument structure used to create a new equivalent proofs resolver instance
 type ArgEquivalentProofsResolver struct {
 	ArgBaseResolver
-	DataPacker                       dataRetriever.DataPacker
-	EquivalentProofsStorage          storage.Storer
-	EquivalentProofsNonceHashStorage storage.Storer
-	EquivalentProofsPool             processor.EquivalentProofsPool
-	IsFullHistoryNode                bool
+	DataPacker           dataRetriever.DataPacker
+	Storage              dataRetriever.StorageService
+	EquivalentProofsPool processor.EquivalentProofsPool
+	NonceConverter       typeConverters.Uint64ByteSliceConverter
+	IsFullHistoryNode    bool
 }
 
 type equivalentProofsResolver struct {
 	*baseResolver
 	baseStorageResolver
 	messageProcessor
-	dataPacker                       dataRetriever.DataPacker
-	equivalentProofsNonceHashStorage storage.Storer
-	equivalentProofsPool             processor.EquivalentProofsPool
+	dataPacker           dataRetriever.DataPacker
+	storage              dataRetriever.StorageService
+	equivalentProofsPool processor.EquivalentProofsPool
+	nonceConverter       typeConverters.Uint64ByteSliceConverter
 }
 
 // NewEquivalentProofsResolver creates an equivalent proofs resolver
@@ -52,20 +54,26 @@ func NewEquivalentProofsResolver(args ArgEquivalentProofsResolver) (*equivalentP
 		return nil, err
 	}
 
+	equivalentProofsStorage, err := args.Storage.GetStorer(dataRetriever.ProofsUnit)
+	if err != nil {
+		return nil, err
+	}
+
 	return &equivalentProofsResolver{
 		baseResolver: &baseResolver{
 			TopicResolverSender: args.SenderResolver,
 		},
-		baseStorageResolver: createBaseStorageResolver(args.EquivalentProofsStorage, args.IsFullHistoryNode),
+		baseStorageResolver: createBaseStorageResolver(equivalentProofsStorage, args.IsFullHistoryNode),
 		messageProcessor: messageProcessor{
 			marshalizer:      args.Marshaller,
 			antifloodHandler: args.AntifloodHandler,
 			throttler:        args.Throttler,
 			topic:            args.SenderResolver.RequestTopic(),
 		},
-		dataPacker:                       args.DataPacker,
-		equivalentProofsNonceHashStorage: args.EquivalentProofsNonceHashStorage,
-		equivalentProofsPool:             args.EquivalentProofsPool,
+		dataPacker:           args.DataPacker,
+		storage:              args.Storage,
+		equivalentProofsPool: args.EquivalentProofsPool,
+		nonceConverter:       args.NonceConverter,
 	}, nil
 }
 
@@ -77,14 +85,14 @@ func checkArgEquivalentProofsResolver(args ArgEquivalentProofsResolver) error {
 	if check.IfNil(args.DataPacker) {
 		return dataRetriever.ErrNilDataPacker
 	}
-	if check.IfNil(args.EquivalentProofsStorage) {
-		return fmt.Errorf("%w for EquivalentProofsStorage", dataRetriever.ErrNilProofsStorage)
-	}
-	if check.IfNil(args.EquivalentProofsNonceHashStorage) {
-		return fmt.Errorf("%w for EquivalentProofsNonceHashStorage", dataRetriever.ErrNilProofsStorage)
+	if check.IfNil(args.Storage) {
+		return dataRetriever.ErrNilStore
 	}
 	if check.IfNil(args.EquivalentProofsPool) {
 		return dataRetriever.ErrNilProofsPool
+	}
+	if check.IfNil(args.NonceConverter) {
+		return dataRetriever.ErrNilUint64ByteSliceConverter
 	}
 
 	return nil
@@ -235,20 +243,34 @@ func (res *equivalentProofsResolver) fetchEquivalentProofFromNonceAsByteSlice(no
 
 	proof, err := res.equivalentProofsPool.GetProofByNonce(headerNonce, shardID)
 	if err != nil {
-		return res.getProofFromStorageByNonce(nonceShardKey, epoch)
+		return res.getProofFromStorageByNonce(headerNonce, shardID, epoch)
 	}
 
 	return res.marshalizer.Marshal(proof)
 }
 
 // getProofFromStorageByNonce returns the value from equivalent storage if exists
-func (res *equivalentProofsResolver) getProofFromStorageByNonce(nonceShardKey []byte, epoch uint32) ([]byte, error) {
-	headerHash, err := res.equivalentProofsNonceHashStorage.Get(nonceShardKey)
+func (res *equivalentProofsResolver) getProofFromStorageByNonce(headerNonce uint64, shardID uint32, epoch uint32) ([]byte, error) {
+	storer, err := res.getStorerForShard(shardID)
+	if err != nil {
+		return nil, err
+	}
+
+	nonceBytes := res.nonceConverter.ToByteSlice(headerNonce)
+	headerHash, err := storer.SearchFirst(nonceBytes)
 	if err != nil {
 		return nil, err
 	}
 
 	return res.getFromStorage(headerHash, epoch)
+}
+
+func (res *equivalentProofsResolver) getStorerForShard(shardID uint32) (storage.Storer, error) {
+	if shardID == core.MetachainShardId {
+		return res.storage.GetStorer(dataRetriever.MetaHdrNonceHashDataUnit)
+	}
+
+	return res.storage.GetStorer(dataRetriever.ShardHdrNonceHashDataUnit)
 }
 
 func getHashAndShard(hashShardKey []byte) ([]byte, uint32, error) {

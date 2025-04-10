@@ -220,16 +220,6 @@ func GetGeneralConfig() config.Config {
 				MaxOpenFiles:      10,
 			},
 		},
-		ProofsNonceHashStorage: config.StorageConfig{
-			Cache: getLRUCacheConfig(),
-			DB: config.DBConfig{
-				FilePath:          AddTimestampSuffix("Proofs"),
-				Type:              string(storageunit.MemoryDB),
-				BatchDelaySeconds: 30,
-				MaxBatchSize:      6,
-				MaxOpenFiles:      10,
-			},
-		},
 		MetaHdrNonceHashStorage: config.StorageConfig{
 			Cache: getLRUCacheConfig(),
 			DB: config.DBConfig{

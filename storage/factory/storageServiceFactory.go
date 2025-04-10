@@ -245,12 +245,6 @@ func (psf *StorageServiceFactory) createAndAddBaseStorageUnits(
 	}
 	store.AddStorer(dataRetriever.ProofsUnit, proofsUnit)
 
-	proofsNonceHashUnit, err := psf.createStaticStorageUnit(psf.generalConfig.ProofsNonceHashStorage, shardID, emptyDBPathSuffix)
-	if err != nil {
-		return fmt.Errorf("%w for ProofsNonceHashStorage", err)
-	}
-	store.AddStorer(dataRetriever.ProofsNonceHashDataUnit, proofsNonceHashUnit)
-
 	metaHdrHashNonceUnit, err := psf.createStaticStorageUnit(psf.generalConfig.MetaHdrNonceHashStorage, shardID, emptyDBPathSuffix)
 	if err != nil {
 		return fmt.Errorf("%w for MetaHdrNonceHashStorage", err)
