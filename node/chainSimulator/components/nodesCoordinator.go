@@ -2,7 +2,7 @@ package components
 
 import "github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 
-type nodesCoordinatorWrapperHandler interface {
+type NodesCoordinatorWrapperHandler interface {
 	nodesCoordinator.NodesCoordinator
 	SetCustomPubKeys(pubKeys []string)
 }
@@ -13,7 +13,7 @@ type nodesCoordinatorWrapper struct {
 }
 
 // CreateNodesCoordinatorWrapper -
-func CreateNodesCoordinatorWrapper(nodesCoordinator nodesCoordinator.NodesCoordinator) nodesCoordinatorWrapperHandler {
+func CreateNodesCoordinatorWrapper(nodesCoordinator nodesCoordinator.NodesCoordinator) NodesCoordinatorWrapperHandler {
 	return &nodesCoordinatorWrapper{
 		NodesCoordinator: nodesCoordinator,
 	}

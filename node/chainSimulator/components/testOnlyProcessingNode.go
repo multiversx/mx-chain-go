@@ -63,7 +63,7 @@ type testOnlyProcessingNode struct {
 	ProcessComponentsHolder   factory.ProcessComponentsHandler
 	DataComponentsHolder      factory.DataComponentsHandler
 
-	NodesCoordinator      nodesCoordinatorWrapperHandler
+	NodesCoordinator      NodesCoordinatorWrapperHandler
 	ChainHandler          chainData.ChainHandler
 	ArgumentsParser       process.ArgumentsParser
 	TransactionFeeHandler process.TransactionFeeHandler
@@ -396,7 +396,7 @@ func (node *testOnlyProcessingNode) GetStatusCoreComponents() factory.StatusCore
 }
 
 // GetNodesCoordinator will return the nodes coordinator
-func (node *testOnlyProcessingNode) GetNodesCoordinator() nodesCoordinatorWrapperHandler {
+func (node *testOnlyProcessingNode) GetNodesCoordinator() NodesCoordinatorWrapperHandler {
 	return node.NodesCoordinator
 }
 
