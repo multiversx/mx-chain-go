@@ -1,13 +1,14 @@
 package process
 
 import (
+	"github.com/multiversx/mx-chain-core-go/core"
 	chainData "github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-go/api/shared"
 	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/factory"
-	"github.com/multiversx/mx-chain-go/node/chainSimulator/components"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/dtos"
 	"github.com/multiversx/mx-chain-go/sharding"
+	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 )
 
 // NodeHandler defines what a node handler should be able to do
@@ -22,11 +23,14 @@ type NodeHandler interface {
 	GetStateComponents() factory.StateComponentsHolder
 	GetFacadeHandler() shared.FacadeHandler
 	GetStatusCoreComponents() factory.StatusCoreComponentsHolder
-	GetNodesCoordinator() components.NodesCoordinatorWrapperHandler
+	GetNetworkComponents() factory.NetworkComponentsHolder
+	GetNodesCoordinator() nodesCoordinator.NodesCoordinator
 	SetKeyValueForAddress(addressBytes []byte, state map[string]string) error
 	SetStateForAddress(address []byte, state *dtos.AddressState) error
 	RemoveAccount(address []byte) error
 	ForceChangeOfEpoch() error
+	GetBasePeers() map[uint32]core.PeerID
+	SetBasePeers(basePeers map[uint32]core.PeerID)
 	Close() error
 	IsInterfaceNil() bool
 }

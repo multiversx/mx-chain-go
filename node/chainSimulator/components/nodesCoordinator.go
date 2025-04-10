@@ -1,15 +1,23 @@
 package components
 
-import "github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
+import (
+	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
+	"github.com/multiversx/mx-chain-go/testscommon/shardingMocks"
+)
+
+type PubKeyShard struct {
+	PubKey  string
+	ShardID uint32
+}
 
 type NodesCoordinatorWrapperHandler interface {
 	nodesCoordinator.NodesCoordinator
-	SetCustomPubKeys(pubKeys []string)
+	SetCustomPubKeys(pubKeys []PubKeyShard)
 }
 
 type nodesCoordinatorWrapper struct {
 	nodesCoordinator.NodesCoordinator
-	customPubKeys []string
+	customPubKeys []PubKeyShard
 }
 
 // CreateNodesCoordinatorWrapper -
@@ -33,14 +41,33 @@ func (ncw *nodesCoordinatorWrapper) GetAllEligibleValidatorsPublicKeysForShard(e
 		validatorsPubKeys = append(validatorsPubKeys, string(shardEligible[i]))
 	}
 
-	if len(ncw.customPubKeys) > 0 {
-		validatorsPubKeys = append(validatorsPubKeys, ncw.customPubKeys...)
+	for _, pubKey := range ncw.customPubKeys {
+		validatorsPubKeys = append(validatorsPubKeys, pubKey.PubKey)
 	}
 
 	return validatorsPubKeys, nil
 }
 
+func (ncw *nodesCoordinatorWrapper) GetValidatorWithPublicKey(publicKey []byte) (nodesCoordinator.Validator, uint32, error) {
+	validKey := false
+	shardID := uint32(0)
+	for _, pubKey := range ncw.customPubKeys {
+		if pubKey.PubKey == string(publicKey) {
+			validKey = true
+			shardID = pubKey.ShardID
+			break
+		}
+	}
+
+	if !validKey {
+		return nil, 0, nodesCoordinator.ErrValidatorNotFound
+	}
+
+	validator := shardingMocks.NewValidatorMock(publicKey, 1, 1)
+	return validator, shardID, nil
+}
+
 // SetCustomPubKeys -
-func (ncw *nodesCoordinatorWrapper) SetCustomPubKeys(pubKeys []string) {
+func (ncw *nodesCoordinatorWrapper) SetCustomPubKeys(pubKeys []PubKeyShard) {
 	ncw.customPubKeys = pubKeys
 }

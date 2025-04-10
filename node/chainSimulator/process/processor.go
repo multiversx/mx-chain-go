@@ -143,6 +143,10 @@ func (creator *blocksCreator) CreateNewBlock() error {
 		return err
 	}
 
+	if header.IsStartOfEpochBlock() {
+		creator.updatePeerShardMapper(validators, header.GetEpoch(), header.GetShardID())
+	}
+
 	headerProof, err := creator.ApplySignaturesAndGetProof(header, prevHeader, previousProof, enableEpochHandler, validators, leader, pubKeyBitmap)
 	if err != nil {
 		return err
@@ -177,6 +181,40 @@ func (creator *blocksCreator) CreateNewBlock() error {
 	}
 
 	return messenger.BroadcastTransactions(transactions, leader.PubKey())
+}
+
+func (creator *blocksCreator) updatePeerShardMapper(
+	validators []nodesCoordinator.Validator,
+	epoch uint32,
+	shardID uint32,
+) {
+	peerShardMapper := creator.nodeHandler.GetProcessComponents().PeerShardMapper()
+
+	// localID := creator.nodeHandler.GetNetworkComponents().NetworkMessenger().ID()
+
+	// pubKeys := make([][]byte, 0)
+	// for _, validator := range validators {
+	// 	pubKeys = append(pubKeys, validator.PubKey())
+	// 	peerShardMapper.UpdatePeerIDInfo(localID, validator.PubKey(), shardID)
+	// }
+
+	nc := creator.nodeHandler.GetProcessComponents().NodesCoordinator()
+
+	eligibleMaps, err := nc.GetAllEligibleValidatorsPublicKeys(epoch)
+	if err != nil {
+		log.Error("failed to updatePeerShardMapper", "error", err)
+		return
+	}
+
+	for shardID, eligibleMap := range eligibleMaps {
+		for _, pubKey := range eligibleMap {
+			peerID := creator.nodeHandler.GetBasePeers()[shardID]
+
+			log.Error("added peer mapping", "peerID", peerID.Pretty(), "shardID", shardID, "addrs", pubKey)
+			peerShardMapper.UpdatePeerIDInfo(peerID, pubKey, shardID)
+		}
+	}
+
 }
 
 func (creator *blocksCreator) ApplySignaturesAndGetProof(

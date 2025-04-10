@@ -22,6 +22,7 @@ import (
 	"github.com/multiversx/mx-chain-go/process/block/postprocess"
 	"github.com/multiversx/mx-chain-go/process/smartContract"
 	"github.com/multiversx/mx-chain-go/sharding"
+	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/state"
 
 	"github.com/multiversx/mx-chain-core-go/core"
@@ -63,7 +64,7 @@ type testOnlyProcessingNode struct {
 	ProcessComponentsHolder   factory.ProcessComponentsHandler
 	DataComponentsHolder      factory.DataComponentsHandler
 
-	NodesCoordinator      NodesCoordinatorWrapperHandler
+	NodesCoordinator      nodesCoordinator.NodesCoordinator
 	ChainHandler          chainData.ChainHandler
 	ArgumentsParser       process.ArgumentsParser
 	TransactionFeeHandler process.TransactionFeeHandler
@@ -73,6 +74,8 @@ type testOnlyProcessingNode struct {
 
 	httpServer    shared.UpgradeableHttpServerHandler
 	facadeHandler shared.FacadeHandler
+
+	basePeers map[uint32]core.PeerID
 }
 
 // NewTestOnlyProcessingNode creates a new instance of a node that is able to only process transactions
@@ -315,8 +318,8 @@ func (node *testOnlyProcessingNode) createNodesCoordinator(pref config.Preferenc
 		return err
 	}
 
-	nodesCoordinatorWrapper := CreateNodesCoordinatorWrapper(nodesCoordinator)
-	node.NodesCoordinator = nodesCoordinatorWrapper
+	// nodesCoordinatorWrapper := CreateNodesCoordinatorWrapper(nodesCoordinator)
+	node.NodesCoordinator = nodesCoordinator
 
 	return nil
 }
@@ -395,8 +398,13 @@ func (node *testOnlyProcessingNode) GetStatusCoreComponents() factory.StatusCore
 	return node.StatusCoreComponents
 }
 
+// NetworkComponents will return the network components
+func (node *testOnlyProcessingNode) GetNetworkComponents() factory.NetworkComponentsHolder {
+	return node.NetworkComponentsHolder
+}
+
 // GetNodesCoordinator will return the nodes coordinator
-func (node *testOnlyProcessingNode) GetNodesCoordinator() NodesCoordinatorWrapperHandler {
+func (node *testOnlyProcessingNode) GetNodesCoordinator() nodesCoordinator.NodesCoordinator {
 	return node.NodesCoordinator
 }
 
@@ -613,6 +621,16 @@ func (node *testOnlyProcessingNode) getUserAccount(address []byte) (state.UserAc
 	}
 
 	return userAccount, nil
+}
+
+// GetBasePeers -
+func (node *testOnlyProcessingNode) GetBasePeers() map[uint32]core.PeerID {
+	return node.basePeers
+}
+
+// SetBasePeers -
+func (node *testOnlyProcessingNode) SetBasePeers(basePeers map[uint32]core.PeerID) {
+	node.basePeers = basePeers
 }
 
 // Close will call the Close methods on all inner components
