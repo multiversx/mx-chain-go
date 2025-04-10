@@ -1936,7 +1936,22 @@ func (bp *baseProcessor) ProcessScheduledBlock(headerHandler data.HeaderHandler,
 	bp.scheduledTxsExecutionHandler.SetScheduledRootHash(rootHash)
 	bp.scheduledTxsExecutionHandler.SetScheduledGasAndFees(scheduledProcessingGasAndFees)
 
+	log.Debug("gasUsageInMillion",
+		"			total", getGasFormattedInMillion(finalProcessingGasAndFees),
+		"			normal", getGasFormattedInMillion(normalProcessingGasAndFees),
+		"			scheduled", getGasFormattedInMillion(scheduledProcessingGasAndFees),
+	)
+
 	return nil
+}
+
+func getGasFormattedInMillion(gas scheduled.GasAndFees) string {
+	gasProvided := gas.GetGasProvided() / 1e6
+	gasPenalized := gas.GetGasPenalized() / 1e6
+	gasRefunded := gas.GetGasRefunded() / 1e6
+	gasUsed := gasProvided - gasPenalized - gasRefunded
+
+	return fmt.Sprintf("{provided=%4d, used=%4d, refunded=%4d, penalized=%4d}", gasProvided, gasUsed, gasRefunded, gasPenalized)
 }
 
 func getScheduledMiniBlocksFromMe(headerHandler data.HeaderHandler, bodyHandler data.BodyHandler) (block.MiniBlockSlice, error) {
