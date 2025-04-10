@@ -431,16 +431,6 @@ func (brcf *baseResolversContainerFactory) createEquivalentProofsResolver(
 		return nil, err
 	}
 
-	proofsStorage, err := brcf.store.GetStorer(dataRetriever.ProofsUnit)
-	if err != nil {
-		return nil, err
-	}
-
-	proofsNonceHashStorage, err := brcf.store.GetStorer(dataRetriever.ProofsNonceHashDataUnit)
-	if err != nil {
-		return nil, err
-	}
-
 	arg := resolvers.ArgEquivalentProofsResolver{
 		ArgBaseResolver: resolvers.ArgBaseResolver{
 			SenderResolver:   resolverSender,
@@ -448,11 +438,11 @@ func (brcf *baseResolversContainerFactory) createEquivalentProofsResolver(
 			AntifloodHandler: brcf.inputAntifloodHandler,
 			Throttler:        brcf.trieNodesThrottler,
 		},
-		DataPacker:                       brcf.dataPacker,
-		EquivalentProofsStorage:          proofsStorage,
-		EquivalentProofsNonceHashStorage: proofsNonceHashStorage,
-		EquivalentProofsPool:             brcf.dataPools.Proofs(),
-		IsFullHistoryNode:                brcf.isFullHistoryNode,
+		DataPacker:           brcf.dataPacker,
+		Storage:              brcf.store,
+		EquivalentProofsPool: brcf.dataPools.Proofs(),
+		NonceConverter:       brcf.uint64ByteSliceConverter,
+		IsFullHistoryNode:    brcf.isFullHistoryNode,
 	}
 	resolver, err := resolvers.NewEquivalentProofsResolver(arg)
 	if err != nil {

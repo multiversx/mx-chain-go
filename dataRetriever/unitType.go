@@ -51,8 +51,6 @@ const (
 	ScheduledSCRsUnit UnitType = 22
 	// ProofsUnit is the header proofs unit identifier
 	ProofsUnit UnitType = 23
-	// ProofsNonceHashDataUnit is the proofs nonce-hash pair data unit identifier
-	ProofsNonceHashDataUnit UnitType = 24
 
 	// ShardHdrNonceHashDataUnit is the header nonce-hash pair data unit identifier
 	//TODO: Add only unit types lower than 100

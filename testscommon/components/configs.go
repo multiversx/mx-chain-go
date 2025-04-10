@@ -212,20 +212,6 @@ func GetGeneralConfig() config.Config {
 		ResourceStats: config.ResourceStatsConfig{
 			RefreshIntervalInSec: 1,
 		},
-		ProofsNonceHashStorage: config.StorageConfig{
-			Cache: config.CacheConfig{
-				Capacity: 10000,
-				Type:     "LRU",
-				Shards:   1,
-			},
-			DB: config.DBConfig{
-				FilePath:          "ProofsNonceHashStorage",
-				Type:              "MemoryDB",
-				BatchDelaySeconds: 30,
-				MaxBatchSize:      6,
-				MaxOpenFiles:      10,
-			},
-		},
 		ProofsStorage: config.StorageConfig{
 			Cache: config.CacheConfig{
 				Capacity: 10000,

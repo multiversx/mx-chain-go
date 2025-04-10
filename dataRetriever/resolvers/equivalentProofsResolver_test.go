@@ -2,6 +2,8 @@ package resolvers_test
 
 import (
 	"errors"
+	"fmt"
+	"math/big"
 	"testing"
 
 	"github.com/multiversx/mx-chain-core-go/core"
@@ -13,6 +15,7 @@ import (
 	"github.com/multiversx/mx-chain-go/dataRetriever/mock"
 	"github.com/multiversx/mx-chain-go/dataRetriever/resolvers"
 	"github.com/multiversx/mx-chain-go/p2p"
+	"github.com/multiversx/mx-chain-go/storage"
 	dataRetrieverMocks "github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
 	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/p2pmocks"
@@ -27,12 +30,20 @@ var (
 
 func createMockArgEquivalentProofsResolver() resolvers.ArgEquivalentProofsResolver {
 	return resolvers.ArgEquivalentProofsResolver{
-		ArgBaseResolver:                  createMockArgBaseResolver(),
-		DataPacker:                       &mock.DataPackerStub{},
-		EquivalentProofsStorage:          &storageStubs.StorerStub{},
-		EquivalentProofsNonceHashStorage: &storageStubs.StorerStub{},
-		EquivalentProofsPool:             &dataRetrieverMocks.ProofsPoolMock{},
-		IsFullHistoryNode:                false,
+		ArgBaseResolver: createMockArgBaseResolver(),
+		DataPacker:      &mock.DataPackerStub{},
+		Storage: &storageStubs.ChainStorerStub{
+			GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
+				return &storageStubs.StorerStub{}, nil
+			},
+		},
+		EquivalentProofsPool: &dataRetrieverMocks.ProofsPoolMock{},
+		NonceConverter: &mock.Uint64ByteSliceConverterMock{
+			ToByteSliceCalled: func(u uint64) []byte {
+				return big.NewInt(0).SetUint64(u).Bytes()
+			},
+		},
+		IsFullHistoryNode: false,
 	}
 }
 
@@ -63,22 +74,22 @@ func TestNewEquivalentProofsResolver(t *testing.T) {
 		require.Equal(t, dataRetriever.ErrNilDataPacker, err)
 		require.Nil(t, res)
 	})
-	t.Run("nil EquivalentProofsStorage should error", func(t *testing.T) {
+	t.Run("nil Storage should error", func(t *testing.T) {
 		t.Parallel()
 
 		args := createMockArgEquivalentProofsResolver()
-		args.EquivalentProofsStorage = nil
+		args.Storage = nil
 		res, err := resolvers.NewEquivalentProofsResolver(args)
-		require.True(t, errors.Is(err, dataRetriever.ErrNilProofsStorage))
+		require.True(t, errors.Is(err, dataRetriever.ErrNilStore))
 		require.Nil(t, res)
 	})
-	t.Run("nil EquivalentProofsNonceHashStorage should error", func(t *testing.T) {
+	t.Run("nil NonceConverter should error", func(t *testing.T) {
 		t.Parallel()
 
 		args := createMockArgEquivalentProofsResolver()
-		args.EquivalentProofsNonceHashStorage = nil
+		args.NonceConverter = nil
 		res, err := resolvers.NewEquivalentProofsResolver(args)
-		require.True(t, errors.Is(err, dataRetriever.ErrNilProofsStorage))
+		require.True(t, errors.Is(err, dataRetriever.ErrNilUint64ByteSliceConverter))
 		require.Nil(t, res)
 	})
 	t.Run("nil EquivalentProofsPool should error", func(t *testing.T) {
@@ -88,6 +99,19 @@ func TestNewEquivalentProofsResolver(t *testing.T) {
 		args.EquivalentProofsPool = nil
 		res, err := resolvers.NewEquivalentProofsResolver(args)
 		require.Equal(t, dataRetriever.ErrNilProofsPool, err)
+		require.Nil(t, res)
+	})
+	t.Run("error on GetStorer should error", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockArgEquivalentProofsResolver()
+		args.Storage = &storageStubs.ChainStorerStub{
+			GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
+				return nil, expectedErr
+			},
+		}
+		res, err := resolvers.NewEquivalentProofsResolver(args)
+		require.Equal(t, expectedErr, err)
 		require.Nil(t, res)
 	})
 	t.Run("should work", func(t *testing.T) {
@@ -230,12 +254,16 @@ func TestEquivalentProofsResolver_ProcessReceivedMessage(t *testing.T) {
 			},
 		}
 		wasSearchFirstCalled := false
-		args.EquivalentProofsStorage = &storageStubs.StorerStub{
-			SearchFirstCalled: func(key []byte) ([]byte, error) {
-				wasSearchFirstCalled = true
-				require.Equal(t, []byte("hash"), key)
+		args.Storage = &storageStubs.ChainStorerStub{
+			GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
+				return &storageStubs.StorerStub{
+					SearchFirstCalled: func(key []byte) ([]byte, error) {
+						wasSearchFirstCalled = true
+						require.Equal(t, []byte("hash"), key)
 
-				return nil, expectedErr
+						return nil, expectedErr
+					},
+				}, nil
 			},
 		}
 		args.SenderResolver = &mock.TopicResolverSenderStub{
@@ -293,11 +321,15 @@ func TestEquivalentProofsResolver_ProcessReceivedMessage(t *testing.T) {
 				return nil, expectedErr
 			},
 		}
-		args.EquivalentProofsStorage = &storageStubs.StorerStub{
-			SearchFirstCalled: func(key []byte) ([]byte, error) {
-				require.Equal(t, []byte("hash"), key)
+		args.Storage = &storageStubs.ChainStorerStub{
+			GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
+				return &storageStubs.StorerStub{
+					SearchFirstCalled: func(key []byte) ([]byte, error) {
+						require.Equal(t, []byte("hash"), key)
 
-				return []byte("proof"), nil
+						return []byte("proof"), nil
+					},
+				}, nil
 			},
 		}
 		wasSendCalled := false
@@ -368,12 +400,16 @@ func TestEquivalentProofsResolver_ProcessReceivedMessage(t *testing.T) {
 			},
 		}
 		wasSearchFirstCalled := false
-		args.EquivalentProofsStorage = &storageStubs.StorerStub{
-			SearchFirstCalled: func(key []byte) ([]byte, error) {
-				wasSearchFirstCalled = true
-				require.Equal(t, []byte("hash"), key)
+		args.Storage = &storageStubs.ChainStorerStub{
+			GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
+				return &storageStubs.StorerStub{
+					SearchFirstCalled: func(key []byte) ([]byte, error) {
+						wasSearchFirstCalled = true
+						require.Equal(t, []byte("hash"), key)
 
-				return nil, expectedErr
+						return nil, expectedErr
+					},
+				}, nil
 			},
 		}
 		args.SenderResolver = &mock.TopicResolverSenderStub{
@@ -491,11 +527,15 @@ func TestEquivalentProofsResolver_ProcessReceivedMessage(t *testing.T) {
 				return nil, expectedErr
 			},
 		}
-		args.EquivalentProofsStorage = &storageStubs.StorerStub{
-			SearchFirstCalled: func(key []byte) ([]byte, error) {
-				require.Equal(t, []byte("hash"), key)
+		args.Storage = &storageStubs.ChainStorerStub{
+			GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
+				return &storageStubs.StorerStub{
+					SearchFirstCalled: func(key []byte) ([]byte, error) {
+						require.Equal(t, []byte("hash"), key)
 
-				return []byte("proof"), nil
+						return []byte("proof"), nil
+					},
+				}, nil
 			},
 		}
 		wasSendCalled := false
@@ -529,12 +569,16 @@ func TestEquivalentProofsResolver_ProcessReceivedMessage(t *testing.T) {
 				return nil, expectedErr
 			},
 		}
-		args.EquivalentProofsStorage = &storageStubs.StorerStub{
-			SearchFirstCalled: func(key []byte) ([]byte, error) {
-				if string(key) == "hash2" {
-					return []byte("proof"), nil
-				}
-				return nil, expectedErr
+		args.Storage = &storageStubs.ChainStorerStub{
+			GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
+				return &storageStubs.StorerStub{
+					SearchFirstCalled: func(key []byte) ([]byte, error) {
+						if string(key) == "hash2" {
+							return []byte("proof"), nil
+						}
+						return nil, expectedErr
+					},
+				}, nil
 			},
 		}
 		cntSendCalled := 0
@@ -619,23 +663,28 @@ func TestEquivalentProofsResolver_ProcessReceivedMessage(t *testing.T) {
 		require.Error(t, err)
 		require.Nil(t, msgID)
 	})
-	t.Run("resolveNonceRequest: error on equivalentProofsNonceHashStorage should error", func(t *testing.T) {
+	t.Run("resolveNonceRequest: error on nonceHashStorage should error", func(t *testing.T) {
 		t.Parallel()
 
+		providedMetaNonceKey := fmt.Sprintf("%d_%d", 1, core.MetachainShardId) // meta for coverage
 		args := createMockArgEquivalentProofsResolver()
 		wasGetProofByNonceCalled := false
 		args.EquivalentProofsPool = &dataRetrieverMocks.ProofsPoolMock{
 			GetProofByNonceCalled: func(headerNonce uint64, shardID uint32) (data.HeaderProofHandler, error) {
 				wasGetProofByNonceCalled = true
 				require.Equal(t, uint64(1), headerNonce)
-				require.Equal(t, uint32(1), shardID)
+				require.Equal(t, core.MetachainShardId, shardID)
 
 				return nil, expectedErr
 			},
 		}
-		args.EquivalentProofsNonceHashStorage = &storageStubs.StorerStub{
-			GetCalled: func(key []byte) ([]byte, error) {
-				return nil, expectedErr
+		args.Storage = &storageStubs.ChainStorerStub{
+			GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
+				return &storageStubs.StorerStub{
+					SearchFirstCalled: func(key []byte) ([]byte, error) {
+						return nil, expectedErr
+					},
+				}, nil
 			},
 		}
 		args.SenderResolver = &mock.TopicResolverSenderStub{
@@ -648,7 +697,7 @@ func TestEquivalentProofsResolver_ProcessReceivedMessage(t *testing.T) {
 		res, err := resolvers.NewEquivalentProofsResolver(args)
 		require.Nil(t, err)
 
-		msgID, err := res.ProcessReceivedMessage(createRequestMsg(dataRetriever.NonceType, providedNonceKey), fromConnectedPeer, &p2pmocks.MessengerStub{})
+		msgID, err := res.ProcessReceivedMessage(createRequestMsg(dataRetriever.NonceType, []byte(providedMetaNonceKey)), fromConnectedPeer, &p2pmocks.MessengerStub{})
 		require.True(t, errors.Is(err, expectedErr))
 		require.Nil(t, msgID)
 		require.True(t, wasGetProofByNonceCalled)
@@ -668,17 +717,15 @@ func TestEquivalentProofsResolver_ProcessReceivedMessage(t *testing.T) {
 			},
 		}
 		wasSearchFirstCalled := false
-		args.EquivalentProofsStorage = &storageStubs.StorerStub{
-			SearchFirstCalled: func(key []byte) ([]byte, error) {
-				wasSearchFirstCalled = true
-				require.Equal(t, []byte("hash"), key)
+		args.Storage = &storageStubs.ChainStorerStub{
+			GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
+				return &storageStubs.StorerStub{
+					SearchFirstCalled: func(key []byte) ([]byte, error) {
+						wasSearchFirstCalled = true
 
-				return nil, expectedErr
-			},
-		}
-		args.EquivalentProofsNonceHashStorage = &storageStubs.StorerStub{
-			GetCalled: func(key []byte) ([]byte, error) {
-				return []byte("hash"), nil
+						return nil, expectedErr
+					},
+				}, nil
 			},
 		}
 		args.SenderResolver = &mock.TopicResolverSenderStub{
@@ -737,16 +784,23 @@ func TestEquivalentProofsResolver_ProcessReceivedMessage(t *testing.T) {
 				return nil, expectedErr
 			},
 		}
-		args.EquivalentProofsStorage = &storageStubs.StorerStub{
-			SearchFirstCalled: func(key []byte) ([]byte, error) {
-				require.Equal(t, []byte("hash"), key)
+		args.Storage = &storageStubs.ChainStorerStub{
+			GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
+				if unitType == dataRetriever.ShardHdrNonceHashDataUnit {
+					return &storageStubs.StorerStub{
+						SearchFirstCalled: func(key []byte) ([]byte, error) {
+							return []byte("hash"), nil
+						},
+					}, nil
+				}
 
-				return []byte("proof"), nil
-			},
-		}
-		args.EquivalentProofsNonceHashStorage = &storageStubs.StorerStub{
-			GetCalled: func(key []byte) ([]byte, error) {
-				return []byte("hash"), nil
+				return &storageStubs.StorerStub{
+					SearchFirstCalled: func(key []byte) ([]byte, error) {
+						require.Equal(t, []byte("hash"), key)
+
+						return []byte("proof"), nil
+					},
+				}, nil
 			},
 		}
 		wasSendCalled := false
