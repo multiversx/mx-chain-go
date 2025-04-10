@@ -1313,14 +1313,15 @@ func (g *governanceContract) startEndEpochFromArguments(argStart []byte, argEnd 
 	endVoteEpoch := big.NewInt(0).SetBytes(argEnd).Uint64()
 
 	currentEpoch := uint64(g.eei.BlockChainHook().CurrentEpoch())
+
+	log.Error("numbers: ", "start", startVoteEpoch, "current", currentEpoch, "maxVoting", g.maxVotingDelayPeriodInEpochs, "diff", startVoteEpoch-currentEpoch)
+
 	if currentEpoch > startVoteEpoch || startVoteEpoch > endVoteEpoch {
 		return 0, 0, vm.ErrInvalidStartEndVoteEpoch
 	}
 	if endVoteEpoch-startVoteEpoch >= uint64(g.unBondPeriodInEpochs) {
 		return 0, 0, vm.ErrInvalidStartEndVoteEpoch
 	}
-	log.Error("numbers: ", "start", startVoteEpoch, "current", currentEpoch, "maxVoting", g.maxVotingDelayPeriodInEpochs, "diff", startVoteEpoch-currentEpoch)
-
 	if g.enableEpochsHandler.IsFlagEnabled(common.GovernanceFixesFlag) && startVoteEpoch-currentEpoch >= uint64(g.maxVotingDelayPeriodInEpochs) {
 		return 0, 0, vm.ErrInvalidStartEndVoteEpoch
 	}
