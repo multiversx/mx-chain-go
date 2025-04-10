@@ -35,6 +35,10 @@ var _ closing.Closer = (*Worker)(nil)
 const sleepTime = 5 * time.Millisecond
 const redundancySingleKeySteppedIn = "single-key node stepped in"
 
+type blockProcessorWithPool interface {
+	RemoveHeaderFromPool(headerHash []byte)
+}
+
 // Worker defines the data needed by spos to communicate between nodes which are in the validators group
 type Worker struct {
 	consensusService        ConsensusService
@@ -859,7 +863,23 @@ func (wrk *Worker) Extend(subroundId int) {
 
 	wrk.scheduledProcessor.ForceStopScheduledExecutionBlocking()
 	wrk.blockProcessor.RevertCurrentBlock()
+	wrk.removeConsensusHeaderFromPool()
+
 	log.Debug("current block is reverted")
+}
+
+func (wrk *Worker) removeConsensusHeaderFromPool() {
+	headerHash := wrk.consensusState.GetData()
+	if len(headerHash) == 0 {
+		return
+	}
+
+	blockProcessorWithPoolAccess, ok := wrk.blockProcessor.(blockProcessorWithPool)
+	if !ok {
+		return
+	}
+
+	blockProcessorWithPoolAccess.RemoveHeaderFromPool(headerHash)
 }
 
 // DisplayStatistics logs the consensus messages split on proposed headers
