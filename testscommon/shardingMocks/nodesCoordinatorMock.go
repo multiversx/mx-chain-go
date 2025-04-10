@@ -32,6 +32,7 @@ type NodesCoordinatorMock struct {
 	GetAllShuffledOutValidatorsPublicKeysCalled       func(epoch uint32) (map[uint32][][]byte, error)
 	GetShuffledOutToAuctionValidatorsPublicKeysCalled func(epoch uint32) (map[uint32][][]byte, error)
 	GetNumTotalEligibleCalled                         func() uint64
+	GetCachedEpochsCalled                             func() map[uint32]struct{}
 }
 
 // NewNodesCoordinatorMock -
@@ -315,6 +316,15 @@ func (ncm *NodesCoordinatorMock) ValidatorsWeights(validators []nodesCoordinator
 // GetWaitingEpochsLeftForPublicKey always returns 0
 func (ncm *NodesCoordinatorMock) GetWaitingEpochsLeftForPublicKey(_ []byte) (uint32, error) {
 	return 0, nil
+}
+
+// GetCachedEpochs -
+func (ncm *NodesCoordinatorMock) GetCachedEpochs() map[uint32]struct{} {
+	if ncm.GetCachedEpochsCalled != nil {
+		return ncm.GetCachedEpochsCalled()
+	}
+
+	return make(map[uint32]struct{})
 }
 
 // IsInterfaceNil -

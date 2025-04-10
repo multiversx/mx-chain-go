@@ -33,6 +33,7 @@ type NodesCoordinator interface {
 	ConsensusGroupSizeForShardAndEpoch(uint32, uint32) int
 	GetNumTotalEligible() uint64
 	GetWaitingEpochsLeftForPublicKey(publicKey []byte) (uint32, error)
+	GetCachedEpochs() map[uint32]struct{}
 	IsInterfaceNil() bool
 }
 
