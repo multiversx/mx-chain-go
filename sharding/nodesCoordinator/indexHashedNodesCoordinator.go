@@ -680,6 +680,19 @@ func (ihnc *indexHashedNodesCoordinator) GetValidatorsIndexes(
 	return signersIndexes, nil
 }
 
+// GetCachedEpochs returns all epochs cached
+func (ihnc *indexHashedNodesCoordinator) GetCachedEpochs() map[uint32]struct{} {
+	cachedEpochs := make(map[uint32]struct{}, nodesCoordinatorStoredEpochs)
+
+	ihnc.mutNodesConfig.RLock()
+	for epoch := range ihnc.nodesConfig {
+		cachedEpochs[epoch] = struct{}{}
+	}
+	ihnc.mutNodesConfig.RUnlock()
+
+	return cachedEpochs
+}
+
 // EpochStartPrepare is called when an epoch start event is observed, but not yet confirmed/committed.
 // Some components may need to do some initialisation on this event
 func (ihnc *indexHashedNodesCoordinator) EpochStartPrepare(metaHdr data.HeaderHandler, body data.BodyHandler) {
