@@ -216,14 +216,6 @@ func (iep *interceptedEquivalentProof) CheckValidity() error {
 			"err", errNotCritical)
 	}
 
-	key := common.GetEquivalentProofNonceShardKey(iep.proof.GetHeaderNonce(), iep.proof.GetHeaderShardId())
-	errNotCritical = iep.store.Put(dataRetriever.ProofsNonceHashDataUnit, []byte(key), iep.proof.GetHeaderHash())
-	if errNotCritical != nil {
-		logging.LogErrAsWarnExceptAsDebugIfClosingError(log, errNotCritical,
-			"CheckValidity.Put -> ProofsNonceHashDataUnit",
-			"err", errNotCritical)
-	}
-
 	return nil
 }
 

@@ -909,7 +909,7 @@ func (rrh *resolverRequestHandler) RequestEquivalentProofByHash(headerShard uint
 
 // RequestEquivalentProofByNonce asks for equivalent proof for the provided header nonce
 func (rrh *resolverRequestHandler) RequestEquivalentProofByNonce(headerShard uint32, headerNonce uint64) {
-	key := fmt.Sprintf(common.GetEquivalentProofNonceShardKey(headerNonce, headerShard))
+	key := common.GetEquivalentProofNonceShardKey(headerNonce, headerShard)
 	if !rrh.testIfRequestIsNeeded([]byte(key), uniqueEquivalentProofSuffix) {
 		return
 	}

@@ -52,6 +52,7 @@ type RequestHandler interface {
 	RequestMetaHeaderByNonce(nonce uint64)
 	SetNumPeersToQuery(topic string, intra int, cross int) error
 	GetNumPeersToQuery(topic string) (int, int, error)
+	RequestEquivalentProofByNonce(headerShard uint32, headerNonce uint64)
 	IsInterfaceNil() bool
 }
 
@@ -59,5 +60,11 @@ type RequestHandler interface {
 type NodeTypeProviderHandler interface {
 	SetType(nodeType core.NodeType)
 	GetType() core.NodeType
+	IsInterfaceNil() bool
+}
+
+// ProofsPool defines the behaviour of a proofs pool components
+type ProofsPool interface {
+	RegisterHandler(handler func(headerProof data.HeaderProofHandler))
 	IsInterfaceNil() bool
 }
