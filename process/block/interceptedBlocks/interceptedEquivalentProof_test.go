@@ -11,6 +11,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	errErd "github.com/multiversx/mx-chain-go/errors"
+	"github.com/multiversx/mx-chain-go/testscommon/genericMocks"
 	logger "github.com/multiversx/mx-chain-logger-go"
 	"github.com/stretchr/testify/require"
 
@@ -90,6 +91,7 @@ func createMockArgInterceptedEquivalentProof() ArgInterceptedEquivalentProof {
 		KeyRWMutexHandler:  coreSync.NewKeyRWMutex(),
 		EligibleNodesCache: &testscommon.EligibleNodesCacheMock{},
 		WhiteListHandler:   &testscommon.WhiteListHandlerStub{},
+		Store:              &genericMocks.ChainStorerMock{},
 	}
 }
 
@@ -216,6 +218,15 @@ func TestNewInterceptedEquivalentProof(t *testing.T) {
 		args.WhiteListHandler = nil
 		iep, err := NewInterceptedEquivalentProof(args)
 		require.Equal(t, process.ErrNilWhiteListHandler, err)
+		require.Nil(t, iep)
+	})
+	t.Run("nil Store should error", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockArgInterceptedEquivalentProof()
+		args.Store = nil
+		iep, err := NewInterceptedEquivalentProof(args)
+		require.Equal(t, process.ErrNilStorageService, err)
 		require.Nil(t, iep)
 	})
 	t.Run("should work", func(t *testing.T) {

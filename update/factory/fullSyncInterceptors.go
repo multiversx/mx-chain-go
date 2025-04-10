@@ -762,7 +762,6 @@ func (ficf *fullSyncInterceptorsContainerFactory) generateMetachainHeaderInterce
 
 	argsInterceptedMetaHeaderFactory := interceptorFactory.ArgInterceptedMetaHeaderFactory{
 		ArgInterceptedDataFactory: *ficf.argInterceptorFactory,
-		ProofsPool:                ficf.dataPool.Proofs(),
 	}
 
 	hdrFactory, err := interceptorFactory.NewInterceptedMetaHeaderDataFactory(&argsInterceptedMetaHeaderFactory)

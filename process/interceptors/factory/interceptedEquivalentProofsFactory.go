@@ -75,6 +75,7 @@ func (factory *interceptedEquivalentProofsFactory) Create(buff []byte, messageOr
 		EligibleNodesCache: factory.eligibleNodesCache,
 		MessageOriginator:  messageOriginator,
 		WhiteListHandler:   factory.whiteListHandler,
+		Store:              factory.storage,
 	}
 	return interceptedBlocks.NewInterceptedEquivalentProof(args)
 }

@@ -155,7 +155,7 @@ func createMockEpochStartBootstrapArgs(
 			PeerAccountsTrieStorage:         generalCfg.PeerAccountsTrieStorage,
 			HeartbeatV2:                     generalCfg.HeartbeatV2,
 			Hardfork:                        generalCfg.Hardfork,
-			ProofStorage:                    generalCfg.ProofStorage,
+			ProofsStorage:                   generalCfg.ProofsStorage,
 			EvictionWaitingList: config.EvictionWaitingListConfig{
 				HashesSize:     100,
 				RootHashesSize: 100,

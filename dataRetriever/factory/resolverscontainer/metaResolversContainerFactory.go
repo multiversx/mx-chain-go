@@ -379,7 +379,7 @@ func (mrcf *metaResolversContainerFactory) generateEquivalentProofsResolvers() e
 	keys := make([]string, 0)
 	resolversSlice := make([]dataRetriever.Resolver, 0)
 
-	// on meta should be one resolver for each shard + one for META_ALL, similar as interceptors
+	// on meta should be one resolver for each shard + one for ALL, similar as interceptors
 	for idx := uint32(0); idx < noOfShards; idx++ {
 		identifier := common.EquivalentProofsTopic + shardC.CommunicationIdentifier(idx)
 		resolver, err := mrcf.createEquivalentProofsResolver(

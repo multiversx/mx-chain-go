@@ -604,7 +604,7 @@ func createAlteredBlockHash(hash []byte) []byte {
 	return alteredHash
 }
 
-func (bap *baseAPIBlockProcessor) addProofs(
+func (bap *baseAPIBlockProcessor) addProof(
 	headerHash []byte,
 	header data.HeaderHandler,
 	apiBlock *api.Block,

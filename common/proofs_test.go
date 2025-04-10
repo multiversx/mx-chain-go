@@ -45,69 +45,6 @@ func TestIsEpochStartProofForFlagActivation(t *testing.T) {
 	require.False(t, common.IsEpochStartProofForFlagActivation(notEpochStartProofOtherEpoch, eeh))
 }
 
-func TestShouldBlockHavePrevProof(t *testing.T) {
-	t.Parallel()
-
-	providedEpoch := uint32(123)
-	eeh := &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-		IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
-			require.Equal(t, testFlag, flag)
-			return epoch >= providedEpoch
-		},
-		GetActivationEpochCalled: func(flag core.EnableEpochFlag) uint32 {
-			require.Equal(t, testFlag, flag)
-			return providedEpoch
-		},
-	}
-
-	epochStartHeaderInActivationEpoch := &block.HeaderV2{
-		Header: &block.Header{
-			EpochStartMetaHash: []byte("meta hash"),
-			Epoch:              providedEpoch,
-			Nonce:              2,
-		},
-	}
-	notEpochStartHeaderInActivationEpoch := &block.HeaderV2{
-		Header: &block.Header{
-			Epoch: providedEpoch,
-			Nonce: 2,
-		},
-	}
-	epochStartHeaderPrevEpoch := &block.HeaderV2{
-		Header: &block.Header{
-			EpochStartMetaHash: []byte("meta hash"),
-			Epoch:              providedEpoch - 1,
-			Nonce:              2,
-		},
-	}
-	notEpochStartHeaderPrevEpoch := &block.HeaderV2{
-		Header: &block.Header{
-			Epoch: providedEpoch - 1,
-			Nonce: 2,
-		},
-	}
-	epochStartHeaderNextEpoch := &block.HeaderV2{
-		Header: &block.Header{
-			EpochStartMetaHash: []byte("meta hash"),
-			Epoch:              providedEpoch + 1,
-			Nonce:              2,
-		},
-	}
-	notEpochStartHeaderNextEpoch := &block.HeaderV2{
-		Header: &block.Header{
-			Epoch: providedEpoch + 1,
-			Nonce: 2,
-		},
-	}
-
-	require.False(t, common.ShouldBlockHavePrevProof(epochStartHeaderInActivationEpoch, eeh, testFlag))
-	require.True(t, common.ShouldBlockHavePrevProof(notEpochStartHeaderInActivationEpoch, eeh, testFlag))
-	require.False(t, common.ShouldBlockHavePrevProof(epochStartHeaderPrevEpoch, eeh, testFlag))
-	require.False(t, common.ShouldBlockHavePrevProof(notEpochStartHeaderPrevEpoch, eeh, testFlag))
-	require.True(t, common.ShouldBlockHavePrevProof(epochStartHeaderNextEpoch, eeh, testFlag))
-	require.True(t, common.ShouldBlockHavePrevProof(notEpochStartHeaderNextEpoch, eeh, testFlag))
-}
-
 func TestVerifyProofAgainstHeader(t *testing.T) {
 	t.Parallel()
 

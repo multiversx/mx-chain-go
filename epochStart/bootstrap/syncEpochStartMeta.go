@@ -4,6 +4,7 @@ import (
 	"context"
 	"time"
 
+	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/hashing"
@@ -29,6 +30,7 @@ type epochStartMetaSyncer struct {
 	marshalizer                    marshal.Marshalizer
 	hasher                         hashing.Hasher
 	singleDataInterceptor          process.Interceptor
+	proofsInterceptor              process.Interceptor
 	metaBlockProcessor             EpochStartMetaBlockInterceptorProcessor
 	interceptedDataVerifierFactory process.InterceptedDataVerifierFactory
 }
@@ -48,6 +50,9 @@ type ArgsNewEpochStartMetaSyncer struct {
 	MetaBlockProcessor             EpochStartMetaBlockInterceptorProcessor
 	InterceptedDataVerifierFactory process.InterceptedDataVerifierFactory
 	ProofsPool                     dataRetriever.ProofsPool
+	ProofsInterceptorProcessor     process.InterceptorProcessor
+	Storage                        dataRetriever.StorageService
+	HeadersPool                    dataRetriever.HeadersPool
 }
 
 // NewEpochStartMetaSyncer will return a new instance of epochStartMetaSyncer
@@ -69,6 +74,15 @@ func NewEpochStartMetaSyncer(args ArgsNewEpochStartMetaSyncer) (*epochStartMetaS
 	}
 	if check.IfNil(args.InterceptedDataVerifierFactory) {
 		return nil, epochStart.ErrNilInterceptedDataVerifierFactory
+	}
+	if check.IfNil(args.ProofsInterceptorProcessor) {
+		return nil, epochStart.ErrNilEquivalentProofsProcessor
+	}
+	if check.IfNil(args.Storage) {
+		return nil, epochStart.ErrNilStorageService
+	}
+	if check.IfNil(args.HeadersPool) {
+		return nil, epochStart.ErrNilHeadersDataPool
 	}
 
 	e := &epochStartMetaSyncer{
@@ -94,7 +108,6 @@ func NewEpochStartMetaSyncer(args ArgsNewEpochStartMetaSyncer) (*epochStartMetaS
 	}
 	argsInterceptedMetaHeaderFactory := interceptorsFactory.ArgInterceptedMetaHeaderFactory{
 		ArgInterceptedDataFactory: argsInterceptedDataFactory,
-		ProofsPool:                args.ProofsPool,
 	}
 
 	interceptedMetaHdrDataFactory, err := interceptorsFactory.NewInterceptedMetaHeaderDataFactory(&argsInterceptedMetaHeaderFactory)
@@ -112,6 +125,37 @@ func NewEpochStartMetaSyncer(args ArgsNewEpochStartMetaSyncer) (*epochStartMetaS
 			Topic:                   factory.MetachainBlocksTopic,
 			DataFactory:             interceptedMetaHdrDataFactory,
 			Processor:               args.MetaBlockProcessor,
+			Throttler:               disabled.NewThrottler(),
+			AntifloodHandler:        disabled.NewAntiFloodHandler(),
+			WhiteListRequest:        args.WhitelistHandler,
+			CurrentPeerId:           args.Messenger.ID(),
+			PreferredPeersHolder:    disabled.NewPreferredPeersHolder(),
+			InterceptedDataVerifier: interceptedDataVerifier,
+		},
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	argsInterceptedEquivalentProofsFactory := interceptorsFactory.ArgInterceptedEquivalentProofsFactory{
+		ArgInterceptedDataFactory: argsInterceptedDataFactory,
+		ProofsPool:                args.ProofsPool,
+		HeadersPool:               args.HeadersPool,
+		Storage:                   args.Storage,
+		PeerShardMapper:           disabled.NewPeerShardMapper(), // no need for real psm, proofs will be requested thus whitelisted
+		WhiteListHandler:          args.WhitelistHandler,
+	}
+	interceptedEquivalentProofsFactory, err := interceptorsFactory.NewInterceptedEquivalentProofsFactory(argsInterceptedEquivalentProofsFactory)
+	if err != nil {
+		return nil, err
+	}
+
+	proofsTopic := common.EquivalentProofsTopic + core.CommunicationIdentifierBetweenShards(core.MetachainShardId, core.AllShardId)
+	e.proofsInterceptor, err = interceptors.NewSingleDataInterceptor(
+		interceptors.ArgSingleDataInterceptor{
+			Topic:                   proofsTopic,
+			DataFactory:             interceptedEquivalentProofsFactory,
+			Processor:               args.ProofsInterceptorProcessor,
 			Throttler:               disabled.NewThrottler(),
 			AntifloodHandler:        disabled.NewAntiFloodHandler(),
 			WhiteListRequest:        args.WhitelistHandler,
@@ -153,6 +197,12 @@ func (e *epochStartMetaSyncer) resetTopicsAndInterceptors() {
 	if err != nil {
 		log.Trace("error unregistering message processors", "error", err)
 	}
+
+	proofsTopic := common.EquivalentProofsTopic + core.CommunicationIdentifierBetweenShards(core.MetachainShardId, core.AllShardId)
+	err = e.messenger.UnregisterMessageProcessor(proofsTopic, common.EpochStartInterceptorsIdentifier)
+	if err != nil {
+		log.Trace("error unregistering message processors", "error", err)
+	}
 }
 
 func (e *epochStartMetaSyncer) initTopicForEpochStartMetaBlockInterceptor() error {
@@ -162,8 +212,20 @@ func (e *epochStartMetaSyncer) initTopicForEpochStartMetaBlockInterceptor() erro
 		return err
 	}
 
+	proofsTopic := common.EquivalentProofsTopic + core.CommunicationIdentifierBetweenShards(core.MetachainShardId, core.AllShardId)
+	err = e.messenger.CreateTopic(proofsTopic, true)
+	if err != nil {
+		log.Warn("error messenger create topic", "topic", proofsTopic, "error", err)
+		return err
+	}
+
 	e.resetTopicsAndInterceptors()
 	err = e.messenger.RegisterMessageProcessor(factory.MetachainBlocksTopic, common.EpochStartInterceptorsIdentifier, e.singleDataInterceptor)
+	if err != nil {
+		return err
+	}
+
+	err = e.messenger.RegisterMessageProcessor(proofsTopic, common.EpochStartInterceptorsIdentifier, e.proofsInterceptor)
 	if err != nil {
 		return err
 	}

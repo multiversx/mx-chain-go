@@ -13,6 +13,7 @@ import (
 	"github.com/multiversx/mx-chain-go/epochStart"
 	"github.com/multiversx/mx-chain-go/epochStart/mock"
 	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/p2pmocks"
@@ -31,6 +32,7 @@ func TestNewEpochStartMetaBlockProcessor_NilMessengerShouldErr(t *testing.T) {
 		3,
 		3,
 		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		&dataRetriever.ProofsPoolMock{},
 	)
 
 	assert.Equal(t, epochStart.ErrNilMessenger, err)
@@ -49,6 +51,7 @@ func TestNewEpochStartMetaBlockProcessor_NilRequestHandlerShouldErr(t *testing.T
 		3,
 		3,
 		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		&dataRetriever.ProofsPoolMock{},
 	)
 
 	assert.Equal(t, epochStart.ErrNilRequestHandler, err)
@@ -67,6 +70,7 @@ func TestNewEpochStartMetaBlockProcessor_NilMarshalizerShouldErr(t *testing.T) {
 		3,
 		3,
 		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		&dataRetriever.ProofsPoolMock{},
 	)
 
 	assert.Equal(t, epochStart.ErrNilMarshalizer, err)
@@ -85,6 +89,7 @@ func TestNewEpochStartMetaBlockProcessor_NilHasherShouldErr(t *testing.T) {
 		3,
 		3,
 		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		&dataRetriever.ProofsPoolMock{},
 	)
 
 	assert.Equal(t, epochStart.ErrNilHasher, err)
@@ -103,6 +108,7 @@ func TestNewEpochStartMetaBlockProcessor_InvalidConsensusPercentageShouldErr(t *
 		3,
 		3,
 		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		&dataRetriever.ProofsPoolMock{},
 	)
 
 	assert.Equal(t, epochStart.ErrInvalidConsensusThreshold, err)
@@ -124,6 +130,7 @@ func TestNewEpochStartMetaBlockProcessorOkValsShouldWork(t *testing.T) {
 		3,
 		3,
 		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		&dataRetriever.ProofsPoolMock{},
 	)
 
 	assert.NoError(t, err)
@@ -161,6 +168,7 @@ func TestNewEpochStartMetaBlockProcessorOkValsShouldWorkAfterMoreTriesWaitingFor
 		3,
 		3,
 		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		&dataRetriever.ProofsPoolMock{},
 	)
 
 	assert.NoError(t, err)
@@ -182,6 +190,7 @@ func TestEpochStartMetaBlockProcessor_Validate(t *testing.T) {
 		3,
 		3,
 		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		&dataRetriever.ProofsPoolMock{},
 	)
 
 	assert.Nil(t, esmbp.Validate(nil, ""))
@@ -202,6 +211,7 @@ func TestEpochStartMetaBlockProcessor_SaveNilInterceptedDataShouldNotReturnError
 		3,
 		3,
 		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		&dataRetriever.ProofsPoolMock{},
 	)
 
 	err := esmbp.Save(nil, "peer0", "")
@@ -224,6 +234,7 @@ func TestEpochStartMetaBlockProcessor_SaveOkInterceptedDataShouldWork(t *testing
 		3,
 		3,
 		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		&dataRetriever.ProofsPoolMock{},
 	)
 
 	assert.Zero(t, len(esmbp.GetMapMetaBlock()))
@@ -254,6 +265,7 @@ func TestEpochStartMetaBlockProcessor_GetEpochStartMetaBlockShouldTimeOut(t *tes
 		3,
 		3,
 		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		&dataRetriever.ProofsPoolMock{},
 	)
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Millisecond)
@@ -279,6 +291,7 @@ func TestEpochStartMetaBlockProcessor_GetEpochStartMetaBlockShouldReturnMostRece
 		3,
 		5,
 		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		&dataRetriever.ProofsPoolMock{},
 	)
 
 	expectedMetaBlock := &block.MetaBlock{
@@ -324,6 +337,7 @@ func TestEpochStartMetaBlockProcessor_GetEpochStartMetaBlockShouldWorkFromFirstT
 		3,
 		3,
 		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		&dataRetriever.ProofsPoolMock{},
 	)
 
 	expectedMetaBlock := &block.MetaBlock{
@@ -369,6 +383,7 @@ func TestEpochStartMetaBlockProcessor_GetEpochStartMetaBlock_BeforeEquivalentMes
 		3,
 		3,
 		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		&dataRetriever.ProofsPoolMock{},
 	)
 	expectedMetaBlock := &block.MetaBlock{
 		Nonce:      10,
@@ -415,6 +430,7 @@ func TestEpochStartMetaBlockProcessor_GetEpochStartMetaBlock_AfterEquivalentMess
 				return flag == common.EquivalentMessagesFlag
 			},
 		},
+		&dataRetriever.ProofsPoolMock{},
 	)
 	expectedMetaBlock := &block.MetaBlock{
 		Nonce:      10,

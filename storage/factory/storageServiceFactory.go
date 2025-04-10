@@ -235,7 +235,7 @@ func (psf *StorageServiceFactory) createAndAddBaseStorageUnits(
 	}
 	store.AddStorer(dataRetriever.MetaBlockUnit, metaBlockUnit)
 
-	proofsUnitArgs, err := psf.createPruningStorerArgs(psf.generalConfig.ProofStorage, disabledCustomDatabaseRemover)
+	proofsUnitArgs, err := psf.createPruningStorerArgs(psf.generalConfig.ProofsStorage, disabledCustomDatabaseRemover)
 	if err != nil {
 		return err
 	}
