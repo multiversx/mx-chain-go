@@ -293,7 +293,7 @@ func (node *testOnlyProcessingNode) createNodesCoordinator(pref config.Preferenc
 
 	pref.DestinationShardAsObserver = shardIDStr
 
-	nodesCoordinator, err := bootstrapComp.CreateNodesCoordinator(
+	node.NodesCoordinator, err = bootstrapComp.CreateNodesCoordinator(
 		nodesShufflerOut,
 		node.CoreComponentsHolder.GenesisNodesSetup(),
 		pref,
@@ -318,9 +318,6 @@ func (node *testOnlyProcessingNode) createNodesCoordinator(pref config.Preferenc
 		return err
 	}
 
-	// nodesCoordinatorWrapper := CreateNodesCoordinatorWrapper(nodesCoordinator)
-	node.NodesCoordinator = nodesCoordinator
-
 	return nil
 }
 
@@ -340,10 +337,7 @@ func (node *testOnlyProcessingNode) createBroadcastMessenger() error {
 		return err
 	}
 
-	node.broadcastMessenger, err = NewInstantBroadcastMessenger(
-		broadcastMessenger,
-		node.BootstrapComponentsHolder.ShardCoordinator(),
-	)
+	node.broadcastMessenger, err = NewInstantBroadcastMessenger(broadcastMessenger, node.BootstrapComponentsHolder.ShardCoordinator())
 
 	return err
 }
@@ -401,11 +395,6 @@ func (node *testOnlyProcessingNode) GetStatusCoreComponents() factory.StatusCore
 // NetworkComponents will return the network components
 func (node *testOnlyProcessingNode) GetNetworkComponents() factory.NetworkComponentsHolder {
 	return node.NetworkComponentsHolder
-}
-
-// GetNodesCoordinator will return the nodes coordinator
-func (node *testOnlyProcessingNode) GetNodesCoordinator() nodesCoordinator.NodesCoordinator {
-	return node.NodesCoordinator
 }
 
 func (node *testOnlyProcessingNode) collectClosableComponents(apiInterface APIConfigurator) {

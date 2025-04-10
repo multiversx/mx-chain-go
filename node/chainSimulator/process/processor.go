@@ -190,19 +190,11 @@ func (creator *blocksCreator) updatePeerShardMapper(
 ) {
 	peerShardMapper := creator.nodeHandler.GetProcessComponents().PeerShardMapper()
 
-	// localID := creator.nodeHandler.GetNetworkComponents().NetworkMessenger().ID()
-
-	// pubKeys := make([][]byte, 0)
-	// for _, validator := range validators {
-	// 	pubKeys = append(pubKeys, validator.PubKey())
-	// 	peerShardMapper.UpdatePeerIDInfo(localID, validator.PubKey(), shardID)
-	// }
-
 	nc := creator.nodeHandler.GetProcessComponents().NodesCoordinator()
 
 	eligibleMaps, err := nc.GetAllEligibleValidatorsPublicKeys(epoch)
 	if err != nil {
-		log.Error("failed to updatePeerShardMapper", "error", err)
+		log.Error("failed to get eligible validators map", "error", err)
 		return
 	}
 
@@ -210,7 +202,7 @@ func (creator *blocksCreator) updatePeerShardMapper(
 		for _, pubKey := range eligibleMap {
 			peerID := creator.nodeHandler.GetBasePeers()[shardID]
 
-			log.Error("added peer mapping", "peerID", peerID.Pretty(), "shardID", shardID, "addrs", pubKey)
+			log.Debug("added custom peer mapping", "peerID", peerID.Pretty(), "shardID", shardID, "addrs", pubKey)
 			peerShardMapper.UpdatePeerIDInfo(peerID, pubKey, shardID)
 		}
 	}

@@ -182,7 +182,6 @@ func (s *simulator) createChainHandlers(args ArgsBaseChainSimulator) error {
 	s.validatorsPrivateKeys = outputConfigs.ValidatorsPrivateKeys
 
 	s.addProofs()
-	// s.updateNodesCoordinator()
 	s.setBasePeerIds()
 
 	log.Info("running the chain simulator with the following parameters",
@@ -205,56 +204,6 @@ func (s *simulator) setBasePeerIds() {
 
 	for _, nodeHandler := range s.nodes {
 		nodeHandler.SetBasePeers(peerIds)
-	}
-}
-
-func (s *simulator) updateNodesCoordinator() {
-	nodePks := make([]components.PubKeyShard, 0)
-
-	peerIds := make([]core.PeerID, 0)
-	for _, nodeHandler := range s.nodes {
-		pubKey, err := nodeHandler.GetCryptoComponents().PublicKey().ToByteArray()
-		if err != nil {
-			log.Error("failed to get pub key", "error", err)
-			continue
-		}
-
-		log.Error("simulator: custom pubkey", "pubKey", pubKey)
-
-		nodePks = append(nodePks, components.PubKeyShard{
-			PubKey:  string(pubKey),
-			ShardID: nodeHandler.GetShardCoordinator().SelfId(),
-		},
-		)
-
-		peerID := nodeHandler.GetCryptoComponents().KeysHandler().GetAssociatedPid(pubKey)
-		peerIds = append(peerIds, peerID)
-	}
-
-	for _, nodeHandler := range s.nodes {
-		nc := nodeHandler.GetProcessComponents().NodesCoordinator()
-		peerShardMapper := nodeHandler.GetProcessComponents().PeerShardMapper()
-
-		pubKey, err := nodeHandler.GetCryptoComponents().PublicKey().ToByteArray()
-		if err != nil {
-			log.Error("failed to get pub key", "error", err)
-			continue
-		}
-		peerID := nodeHandler.GetCryptoComponents().KeysHandler().GetAssociatedPid(pubKey)
-
-		eligibleMaps, err := nc.GetAllEligibleValidatorsPublicKeys(0)
-		if err != nil {
-			log.Error("failed to updatePeerShardMapper", "error", err)
-			return
-		}
-
-		for shardID, eligibleMap := range eligibleMaps {
-			for _, pubKey := range eligibleMap {
-
-				log.Error("added peer mapping", "peerID", peerID.Pretty(), "shardID", shardID, "addrs", pubKey)
-				peerShardMapper.UpdatePeerIDInfo(peerID, pubKey, shardID)
-			}
-		}
 	}
 }
 
