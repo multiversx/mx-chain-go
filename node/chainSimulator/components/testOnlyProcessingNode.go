@@ -612,12 +612,12 @@ func (node *testOnlyProcessingNode) getUserAccount(address []byte) (state.UserAc
 	return userAccount, nil
 }
 
-// GetBasePeers -
+// GetBasePeers returns return network messenger ids for base nodes
 func (node *testOnlyProcessingNode) GetBasePeers() map[uint32]core.PeerID {
 	return node.basePeers
 }
 
-// SetBasePeers -
+// SetBasePeers will set base network messenger id nodes per shard
 func (node *testOnlyProcessingNode) SetBasePeers(basePeers map[uint32]core.PeerID) {
 	node.basePeers = basePeers
 }
