@@ -41,7 +41,7 @@ const (
 	TrieEpochRootHashUnit UnitType = 17
 	// ESDTSuppliesUnit is the ESDT supplies storage unit identifier
 	ESDTSuppliesUnit UnitType = 18
-	// RoundHdrHashDataUnit is the round- block header hash storage data unit identifier
+	// RoundHdrHashDataUnit is the round-block header hash storage data unit identifier
 	RoundHdrHashDataUnit UnitType = 19
 	// UserAccountsUnit is the user accounts storage unit identifier
 	UserAccountsUnit UnitType = 20
