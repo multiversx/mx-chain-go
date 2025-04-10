@@ -1,6 +1,7 @@
 package factory
 
 import (
+	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-go/process"
@@ -34,7 +35,7 @@ func NewInterceptedTrieNodeDataFactory(
 }
 
 // Create creates instances of InterceptedData by unmarshalling provided buffer
-func (sidf *interceptedTrieNodeDataFactory) Create(buff []byte) (process.InterceptedData, error) {
+func (sidf *interceptedTrieNodeDataFactory) Create(buff []byte, _ core.PeerID) (process.InterceptedData, error) {
 	return trie.NewInterceptedTrieNode(buff, sidf.hasher)
 }
 
