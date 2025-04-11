@@ -417,3 +417,47 @@ func (brcf *baseResolversContainerFactory) generateValidatorInfoResolver() error
 
 	return brcf.container.Add(identifierValidatorInfo, validatorInfoResolver)
 }
+
+func (brcf *baseResolversContainerFactory) createEquivalentProofsResolver(
+	topic string,
+	targetShardID uint32,
+) (dataRetriever.Resolver, error) {
+	resolverSender, err := brcf.createOneResolverSenderWithSpecifiedNumRequests(
+		topic,
+		EmptyExcludePeersOnTopic,
+		targetShardID,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	arg := resolvers.ArgEquivalentProofsResolver{
+		ArgBaseResolver: resolvers.ArgBaseResolver{
+			SenderResolver:   resolverSender,
+			Marshaller:       brcf.marshalizer,
+			AntifloodHandler: brcf.inputAntifloodHandler,
+			Throttler:        brcf.trieNodesThrottler,
+		},
+		DataPacker:           brcf.dataPacker,
+		Storage:              brcf.store,
+		EquivalentProofsPool: brcf.dataPools.Proofs(),
+		NonceConverter:       brcf.uint64ByteSliceConverter,
+		IsFullHistoryNode:    brcf.isFullHistoryNode,
+	}
+	resolver, err := resolvers.NewEquivalentProofsResolver(arg)
+	if err != nil {
+		return nil, err
+	}
+
+	err = brcf.mainMessenger.RegisterMessageProcessor(resolver.RequestTopic(), common.DefaultResolversIdentifier, resolver)
+	if err != nil {
+		return nil, err
+	}
+
+	err = brcf.fullArchiveMessenger.RegisterMessageProcessor(resolver.RequestTopic(), common.DefaultResolversIdentifier, resolver)
+	if err != nil {
+		return nil, err
+	}
+
+	return resolver, nil
+}

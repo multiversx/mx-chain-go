@@ -85,6 +85,11 @@ func (mrcf *metaRequestersContainerFactory) Create() (dataRetriever.RequestersCo
 		return nil, err
 	}
 
+	err = mrcf.generateEquivalentProofsRequesters()
+	if err != nil {
+		return nil, err
+	}
+
 	return mrcf.container, nil
 }
 
@@ -254,6 +259,47 @@ func (mrcf *metaRequestersContainerFactory) generateRewardsRequesters(topic stri
 		requestersSlice[idx] = requester
 		keys[idx] = identifierTx
 	}
+
+	return mrcf.container.AddMultiple(keys, requestersSlice)
+}
+
+func (mrcf *metaRequestersContainerFactory) generateEquivalentProofsRequesters() error {
+	shardC := mrcf.shardCoordinator
+	noOfShards := shardC.NumberOfShards()
+
+	keys := make([]string, 0)
+	requestersSlice := make([]dataRetriever.Requester, 0)
+
+	// on meta should be one requester for each shard + one for META_ALL, similar as interceptors
+	for idx := uint32(0); idx < noOfShards; idx++ {
+		identifier := common.EquivalentProofsTopic + shardC.CommunicationIdentifier(idx)
+		requester, err := mrcf.createEquivalentProofsRequester(
+			identifier,
+			mrcf.numCrossShardPeers,
+			mrcf.numIntraShardPeers,
+			idx,
+		)
+		if err != nil {
+			return err
+		}
+
+		requestersSlice = append(requestersSlice, requester)
+		keys = append(keys, identifier)
+	}
+
+	identifier := common.EquivalentProofsTopic + core.CommunicationIdentifierBetweenShards(core.MetachainShardId, core.AllShardId)
+	requester, err := mrcf.createEquivalentProofsRequester(
+		identifier,
+		mrcf.numCrossShardPeers,
+		mrcf.numIntraShardPeers,
+		core.MetachainShardId,
+	)
+	if err != nil {
+		return err
+	}
+
+	requestersSlice = append(requestersSlice, requester)
+	keys = append(keys, identifier)
 
 	return mrcf.container.AddMultiple(keys, requestersSlice)
 }

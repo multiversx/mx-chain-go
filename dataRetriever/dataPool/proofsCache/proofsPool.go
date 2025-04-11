@@ -186,6 +186,23 @@ func (pp *proofsPool) GetProof(
 	return proofsPerShard.getProofByHash(headerHash)
 }
 
+// GetProofByNonce will get the proof from pool for the provided header nonce, searching through all shards
+func (pp *proofsPool) GetProofByNonce(headerNonce uint64, shardID uint32) (data.HeaderProofHandler, error) {
+	log.Trace("trying to get proof",
+		"headerNonce", headerNonce,
+		"shardID", shardID,
+	)
+
+	pp.mutCache.RLock()
+	proofsPerShard, ok := pp.cache[shardID]
+	pp.mutCache.RUnlock()
+	if !ok {
+		return nil, fmt.Errorf("%w: proofs cache per shard not found, shard ID: %d", ErrMissingProof, shardID)
+	}
+
+	return proofsPerShard.getProofByNonce(headerNonce)
+}
+
 // HasProof will check if there is a proof for the provided hash
 func (pp *proofsPool) HasProof(
 	shardID uint32,
