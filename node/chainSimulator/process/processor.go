@@ -143,8 +143,12 @@ func (creator *blocksCreator) CreateNewBlock() error {
 		return err
 	}
 
-	if header.IsStartOfEpochBlock() {
-		creator.updatePeerShardMapper(validators, header.GetEpoch(), header.GetShardID())
+	prevHeaderStartOfEpoch := false
+	if prevHeader != nil {
+		prevHeaderStartOfEpoch = prevHeader.IsStartOfEpochBlock()
+	}
+	if prevHeaderStartOfEpoch {
+		creator.updatePeerShardMapper(header.GetEpoch())
 	}
 
 	headerProof, err := creator.ApplySignaturesAndGetProof(header, prevHeader, previousProof, enableEpochHandler, validators, leader, pubKeyBitmap)
@@ -184,9 +188,7 @@ func (creator *blocksCreator) CreateNewBlock() error {
 }
 
 func (creator *blocksCreator) updatePeerShardMapper(
-	validators []nodesCoordinator.Validator,
 	epoch uint32,
-	shardID uint32,
 ) {
 	peerShardMapper := creator.nodeHandler.GetProcessComponents().PeerShardMapper()
 

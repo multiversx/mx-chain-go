@@ -179,8 +179,8 @@ func TestChainSimulator_FromQueueToAuctionList(t *testing.T) {
 		RoundDurationInMillis:  roundDurationInMillis,
 		RoundsPerEpoch:         roundsPerEpoch,
 		ApiInterface:           api.NewNoApiInterface(),
-		MinNodesPerShard:       3,
-		MetaChainMinNodes:      3,
+		MinNodesPerShard:       4,
+		MetaChainMinNodes:      4,
 		AlterConfigsFunction: func(cfg *config.Configs) {
 			configs.SetStakingV4ActivationEpochs(cfg, stakingV4JailUnJailStep1EnableEpoch)
 			configs.SetQuickJailRatingConfig(cfg)
