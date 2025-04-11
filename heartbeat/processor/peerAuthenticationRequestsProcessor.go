@@ -132,7 +132,7 @@ func (processor *peerAuthenticationRequestsProcessor) startRequestingMessages(ct
 	requestsTimer := time.NewTimer(processor.delayBetweenRequests)
 	for {
 		if processor.isThresholdReached(sortedValidatorsKeys) {
-			log.Debug("received enough messages, closing peerAuthenticationRequestsProcessor go routine",
+			log.Debug("received enough messages, closing peerAuthenticationRequestsProcessor go routine ",
 				"received", processor.peerAuthenticationPool.Len(),
 				"validators", len(sortedValidatorsKeys))
 			return
