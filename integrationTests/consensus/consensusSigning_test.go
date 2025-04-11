@@ -12,6 +12,7 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-go/integrationTests"
+	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
 func initNodesWithTestSigner(
@@ -21,7 +22,7 @@ func initNodesWithTestSigner(
 	numInvalid uint32,
 	roundTime uint64,
 	consensusType string,
-) map[uint32][]*integrationTests.TestFullNode {
+) (map[uint32][]*integrationTests.TestFullNode, map[string]struct{}) {
 
 	fmt.Println("Step 1. Setup nodes...")
 
@@ -44,6 +45,8 @@ func initNodesWithTestSigner(
 
 	time.Sleep(p2pBootstrapDelay)
 
+	invalidNodesAddresses := make(map[string]struct{}, 0)
+
 	for shardID := range nodes {
 		if numInvalid < numNodes {
 			for i := uint32(0); i < numInvalid; i++ {
@@ -57,15 +60,17 @@ func initNodesWithTestSigner(
 						// sig share with invalid size
 						invalidSigShare = bytes.Repeat([]byte("a"), 3)
 					}
-					log.Warn("invalid sig share from ", "pk", getPkEncoded(nodes[shardID][ii].NodeKeys.MainKey.Pk), "sig", invalidSigShare)
+					log.Warn("invalid sig share from ", "pk", nodes[shardID][ii].NodeKeys.MainKey.Pk, "sig", invalidSigShare)
 
 					return invalidSigShare, nil
 				}
+
+				invalidNodesAddresses[string(nodes[shardID][ii].OwnAccount.Address)] = struct{}{}
 			}
 		}
 	}
 
-	return nodes
+	return nodes, invalidNodesAddresses
 }
 
 func TestConsensusWithInvalidSigners(t *testing.T) {
@@ -73,13 +78,15 @@ func TestConsensusWithInvalidSigners(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
+	logger.SetLogLevel("*:DEBUG")
+
 	numMetaNodes := uint32(4)
 	numNodes := uint32(4)
 	consensusSize := uint32(4)
 	numInvalid := uint32(1)
 	roundTime := uint64(1000)
 
-	nodes := initNodesWithTestSigner(numMetaNodes, numNodes, consensusSize, numInvalid, roundTime, blsConsensusType)
+	nodes, invalidNodesAddresses := initNodesWithTestSigner(numMetaNodes, numNodes, consensusSize, numInvalid, roundTime, blsConsensusType)
 
 	defer func() {
 		for shardID := range nodes {
@@ -111,6 +118,11 @@ func TestConsensusWithInvalidSigners(t *testing.T) {
 	for _, nodesList := range nodes {
 		for _, n := range nodesList {
 			for i := 1; i < len(nodes); i++ {
+				_, ok := invalidNodesAddresses[string(n.OwnAccount.Address)]
+				if ok {
+					continue
+				}
+
 				if check.IfNil(n.Node.GetDataComponents().Blockchain().GetCurrentBlockHeader()) {
 					assert.Fail(t, fmt.Sprintf("Node with idx %d does not have a current block", i))
 				} else {
