@@ -1017,7 +1017,7 @@ func TestHeaderSigVerifier_VerifyHeaderProof(t *testing.T) {
 		t.Parallel()
 
 		args := createHeaderSigVerifierArgs()
-		args.EnableEpochsHandler = enableEpochsHandlerMock.NewEnableEpochsHandlerStub(common.FixedOrderInConsensusFlag)
+		args.EnableEpochsHandler = enableEpochsHandlerMock.NewEnableEpochsHandlerStub(common.EquivalentMessagesFlag)
 		hdrSigVerifier, err := NewHeaderSigVerifier(args)
 		require.NoError(t, err)
 
@@ -1074,7 +1074,7 @@ func TestHeaderSigVerifier_VerifyHeaderProof(t *testing.T) {
 		}
 		args.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
 			IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
-				return flag == common.FixedOrderInConsensusFlag || flag == common.EquivalentMessagesFlag
+				return flag == common.EquivalentMessagesFlag
 			},
 		}
 		args.MultiSigContainer = &cryptoMocks.MultiSignerContainerStub{
@@ -1133,7 +1133,7 @@ func TestHeaderSigVerifier_VerifyHeaderProof(t *testing.T) {
 		}
 		args.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
 			IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
-				return flag == common.FixedOrderInConsensusFlag || flag == common.EquivalentMessagesFlag
+				return flag == common.EquivalentMessagesFlag
 			},
 		}
 		args.MultiSigContainer = &cryptoMocks.MultiSignerContainerStub{
@@ -1173,7 +1173,7 @@ func TestHeaderSigVerifier_VerifyHeaderProof(t *testing.T) {
 		}
 		args.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
 			IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
-				return flag == common.FixedOrderInConsensusFlag || flag == common.EquivalentMessagesFlag
+				return flag == common.EquivalentMessagesFlag
 			},
 		}
 		args.MultiSigContainer = &cryptoMocks.MultiSignerContainerStub{
