@@ -12,7 +12,6 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-go/integrationTests"
-	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
 func initNodesWithTestSigner(
@@ -77,8 +76,6 @@ func TestConsensusWithInvalidSigners(t *testing.T) {
 	if testing.Short() {
 		t.Skip("this is not a short test")
 	}
-
-	logger.SetLogLevel("*:DEBUG")
 
 	numMetaNodes := uint32(4)
 	numNodes := uint32(4)
