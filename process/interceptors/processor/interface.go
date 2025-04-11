@@ -26,11 +26,6 @@ type interceptedValidatorInfo interface {
 	ValidatorInfo() *state.ShardValidatorInfo
 }
 
-type interceptedEquivalentProof interface {
-	Hash() []byte
-	GetProof() data.HeaderProofHandler
-}
-
 // EquivalentProofsPool defines the behaviour of a proofs pool components
 type EquivalentProofsPool interface {
 	AddProof(headerProof data.HeaderProofHandler) bool

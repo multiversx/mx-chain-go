@@ -3183,6 +3183,27 @@ func TestIndexHashedNodesCoordinator_selectLeaderAndConsensusGroup(t *testing.T)
 	})
 }
 
+func TestIndexHashedNodesCoordinator_GetCachedEpochs(t *testing.T) {
+	t.Parallel()
+
+	arguments := createArguments()
+	ihnc, err := NewIndexHashedNodesCoordinator(arguments)
+	require.Nil(t, err)
+
+	cachedEpochs := ihnc.GetCachedEpochs()
+	require.Equal(t, 1, len(cachedEpochs))
+
+	// add new epoch
+	ihnc.AddDummyEpoch(1)
+	cachedEpochs = ihnc.GetCachedEpochs()
+	require.Equal(t, 2, len(cachedEpochs))
+
+	// add new epoch
+	ihnc.AddDummyEpoch(2)
+	cachedEpochs = ihnc.GetCachedEpochs()
+	require.Equal(t, 3, len(cachedEpochs))
+}
+
 type consensusSizeChangeTestArgs struct {
 	t                     *testing.T
 	ihnc                  *indexHashedNodesCoordinator

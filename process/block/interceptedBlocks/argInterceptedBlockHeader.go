@@ -20,4 +20,5 @@ type ArgInterceptedBlockHeader struct {
 	EpochStartTrigger       process.EpochStartTriggerHandler
 	EnableEpochsHandler     common.EnableEpochsHandler
 	ProofsPool              process.ProofsPool
+	FieldsSizeChecker       common.FieldsSizeChecker
 }

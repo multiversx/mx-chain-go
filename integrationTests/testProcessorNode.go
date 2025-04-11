@@ -2450,6 +2450,7 @@ func (tpn *TestProcessorNode) initBlockProcessor() {
 			EpochValidatorInfoCreator:    epochStartValidatorInfo,
 			ValidatorStatisticsProcessor: tpn.ValidatorStatisticsProcessor,
 			EpochSystemSCProcessor:       epochStartSystemSCProcessor,
+			FieldsSizeChecker:            &testscommon.FieldsSizeCheckerMock{},
 		}
 
 		tpn.BlockProcessor, err = block.NewMetaProcessor(arguments)
@@ -3411,6 +3412,7 @@ func GetDefaultCoreComponents(enableEpochsHandler common.EnableEpochsHandler, ep
 		TxVersionCheckField:          versioning.NewTxVersionChecker(MinTransactionVersion),
 		ProcessStatusHandlerInternal: &testscommon.ProcessStatusHandlerStub{},
 		EnableEpochsHandlerField:     enableEpochsHandler,
+		FieldsSizeCheckerField:       &testscommon.FieldsSizeCheckerMock{},
 	}
 }
 
