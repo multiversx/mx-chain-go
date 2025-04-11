@@ -44,7 +44,7 @@ func initNodesWithTestSigner(
 
 	time.Sleep(p2pBootstrapDelay)
 
-	invalidNodesAddresses := make(map[string]struct{}, 0)
+	invalidNodesAddresses := make(map[string]struct{})
 
 	for shardID := range nodes {
 		if numInvalid < numNodes {
