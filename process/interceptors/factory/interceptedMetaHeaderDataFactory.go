@@ -1,15 +1,23 @@
 package factory
 
 import (
+	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/block/interceptedBlocks"
 	"github.com/multiversx/mx-chain-go/sharding"
 )
 
 var _ process.InterceptedDataFactory = (*interceptedMetaHeaderDataFactory)(nil)
+
+// ArgInterceptedMetaHeaderFactory is the DTO used to create a new instance of meta header factory
+type ArgInterceptedMetaHeaderFactory struct {
+	ArgInterceptedDataFactory
+	ProofsPool process.ProofsPool
+}
 
 type interceptedMetaHeaderDataFactory struct {
 	marshalizer             marshal.Marshalizer
@@ -19,10 +27,13 @@ type interceptedMetaHeaderDataFactory struct {
 	headerIntegrityVerifier process.HeaderIntegrityVerifier
 	validityAttester        process.ValidityAttester
 	epochStartTrigger       process.EpochStartTriggerHandler
+	enableEpochsHandler     common.EnableEpochsHandler
+	proofsPool              process.ProofsPool
+	fieldsSizeChecker       common.FieldsSizeChecker
 }
 
 // NewInterceptedMetaHeaderDataFactory creates an instance of interceptedMetaHeaderDataFactory
-func NewInterceptedMetaHeaderDataFactory(argument *ArgInterceptedDataFactory) (*interceptedMetaHeaderDataFactory, error) {
+func NewInterceptedMetaHeaderDataFactory(argument *ArgInterceptedMetaHeaderFactory) (*interceptedMetaHeaderDataFactory, error) {
 	if argument == nil {
 		return nil, process.ErrNilArgumentStruct
 	}
@@ -56,6 +67,9 @@ func NewInterceptedMetaHeaderDataFactory(argument *ArgInterceptedDataFactory) (*
 	if check.IfNil(argument.ValidityAttester) {
 		return nil, process.ErrNilValidityAttester
 	}
+	if check.IfNil(argument.ProofsPool) {
+		return nil, process.ErrNilProofsPool
+	}
 
 	return &interceptedMetaHeaderDataFactory{
 		marshalizer:             argument.CoreComponents.InternalMarshalizer(),
@@ -65,11 +79,14 @@ func NewInterceptedMetaHeaderDataFactory(argument *ArgInterceptedDataFactory) (*
 		headerIntegrityVerifier: argument.HeaderIntegrityVerifier,
 		validityAttester:        argument.ValidityAttester,
 		epochStartTrigger:       argument.EpochStartTrigger,
+		enableEpochsHandler:     argument.CoreComponents.EnableEpochsHandler(),
+		proofsPool:              argument.ProofsPool,
+		fieldsSizeChecker:       argument.CoreComponents.FieldsSizeChecker(),
 	}, nil
 }
 
 // Create creates instances of InterceptedData by unmarshalling provided buffer
-func (imhdf *interceptedMetaHeaderDataFactory) Create(buff []byte) (process.InterceptedData, error) {
+func (imhdf *interceptedMetaHeaderDataFactory) Create(buff []byte, _ core.PeerID) (process.InterceptedData, error) {
 	arg := &interceptedBlocks.ArgInterceptedBlockHeader{
 		HdrBuff:                 buff,
 		Marshalizer:             imhdf.marshalizer,
@@ -79,6 +96,9 @@ func (imhdf *interceptedMetaHeaderDataFactory) Create(buff []byte) (process.Inte
 		HeaderIntegrityVerifier: imhdf.headerIntegrityVerifier,
 		ValidityAttester:        imhdf.validityAttester,
 		EpochStartTrigger:       imhdf.epochStartTrigger,
+		EnableEpochsHandler:     imhdf.enableEpochsHandler,
+		ProofsPool:              imhdf.proofsPool,
+		FieldsSizeChecker:       imhdf.fieldsSizeChecker,
 	}
 
 	return interceptedBlocks.NewInterceptedMetaHeader(arg)

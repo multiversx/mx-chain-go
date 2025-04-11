@@ -2,13 +2,6 @@ package headerCheck
 
 import "errors"
 
-// ErrNotEnoughSignatures signals that a block is not signed by at least the minimum number of validators from
-// the consensus group
-var ErrNotEnoughSignatures = errors.New("not enough signatures in block")
-
-// ErrWrongSizeBitmap signals that the provided bitmap's length is bigger than the one that was required
-var ErrWrongSizeBitmap = errors.New("wrong size bitmap has been provided")
-
 // ErrInvalidReferenceChainID signals that the provided reference chain ID is not valid
 var ErrInvalidReferenceChainID = errors.New("invalid reference Chain ID provided")
 
@@ -23,3 +16,12 @@ var ErrIndexOutOfBounds = errors.New("index is out of bounds")
 
 // ErrIndexNotSelected signals that the given index is not selected
 var ErrIndexNotSelected = errors.New("index is not selected")
+
+// ErrProofShardMismatch signals that the proof shard does not match the header shard
+var ErrProofShardMismatch = errors.New("proof shard mismatch")
+
+// ErrProofHeaderHashMismatch signals that the proof header hash does not match the header hash
+var ErrProofHeaderHashMismatch = errors.New("proof header hash mismatch")
+
+// ErrProofNotExpected signals that the proof is not expected
+var ErrProofNotExpected = errors.New("proof not expected")

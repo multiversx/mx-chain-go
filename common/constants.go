@@ -94,6 +94,9 @@ const ConnectionTopic = "connection"
 // ValidatorInfoTopic is the topic used for validatorInfo signaling
 const ValidatorInfoTopic = "validatorInfo"
 
+// EquivalentProofsTopic is the topic used for equivalent proofs
+const EquivalentProofsTopic = "equivalentProofs"
+
 // MetricCurrentRound is the metric for monitoring the current round of a node
 const MetricCurrentRound = "erd_current_round"
 
@@ -854,10 +857,14 @@ const (
 const (
 	// StorerOrder defines the order of storers to be notified of a start of epoch event
 	StorerOrder = iota
+	// ChainParametersOrder defines the order in which ChainParameters is notified of a start of epoch event
+	ChainParametersOrder
 	// NodesCoordinatorOrder defines the order in which NodesCoordinator is notified of a start of epoch event
 	NodesCoordinatorOrder
-	// ConsensusOrder defines the order in which Consensus is notified of a start of epoch event
-	ConsensusOrder
+	// ConsensusHandlerOrder defines the order in which ConsensusHandler is notified of a start of epoch event
+	ConsensusHandlerOrder
+	// ConsensusStartRoundOrder defines the order in which Consensus StartRound subround is notified of a start of epoch event
+	ConsensusStartRoundOrder
 	// NetworkShardingOrder defines the order in which the network sharding subsystem is notified of a start of epoch event
 	NetworkShardingOrder
 	// IndexerOrder defines the order in which indexer is notified of a start of epoch event
@@ -966,7 +973,7 @@ const PutInStorerMaxTime = time.Second
 const DefaultUnstakedEpoch = math.MaxUint32
 
 // InvalidMessageBlacklistDuration represents the time to keep a peer in the black list if it sends a message that
-// does not follow the protocol: example not useing the same marshaler as the other peers
+// does not follow the protocol: example not using the same marshaler as the other peers
 const InvalidMessageBlacklistDuration = time.Second * 3600
 
 // PublicKeyBlacklistDuration represents the time to keep a public key in the black list if it will degrade its
@@ -1245,5 +1252,7 @@ const (
 	FixRelayedMoveBalanceToNonPayableSCFlag            core.EnableEpochFlag = "FixRelayedMoveBalanceToNonPayableSCFlag"
 	RelayedTransactionsV3Flag                          core.EnableEpochFlag = "RelayedTransactionsV3Flag"
 	RelayedTransactionsV3FixESDTTransferFlag           core.EnableEpochFlag = "RelayedTransactionsV3FixESDTTransferFlag"
+	EquivalentMessagesFlag                             core.EnableEpochFlag = "EquivalentMessagesFlag"
+	FixedOrderInConsensusFlag                          core.EnableEpochFlag = "FixedOrderInConsensusFlag"
 	// all new flags must be added to createAllFlagsMap method, as part of enableEpochsHandler allFlagsDefined
 )

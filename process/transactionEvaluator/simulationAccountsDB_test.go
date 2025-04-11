@@ -37,36 +37,36 @@ func TestReadOnlyAccountsDB_WriteOperationsShouldNotCalled(t *testing.T) {
 	failErrMsg := "this function should have not be called"
 	accDb := &stateMock.AccountsStub{
 		SaveAccountCalled: func(account vmcommon.AccountHandler) error {
-			t.Errorf(failErrMsg)
+			t.Errorf("%s", failErrMsg)
 			return nil
 		},
 		RemoveAccountCalled: func(_ []byte) error {
-			t.Errorf(failErrMsg)
+			t.Errorf("%s", failErrMsg)
 			return nil
 		},
 		CommitCalled: func() ([]byte, error) {
-			t.Errorf(failErrMsg)
+			t.Errorf("%s", failErrMsg)
 			return nil, nil
 		},
 		RevertToSnapshotCalled: func(_ int) error {
-			t.Errorf(failErrMsg)
+			t.Errorf("%s", failErrMsg)
 			return nil
 		},
 		RecreateTrieCalled: func(_ common.RootHashHolder) error {
-			t.Errorf(failErrMsg)
+			t.Errorf("%s", failErrMsg)
 			return nil
 		},
 		PruneTrieCalled: func(_ []byte, _ state.TriePruningIdentifier, _ state.PruningHandler) {
-			t.Errorf(failErrMsg)
+			t.Errorf("%s", failErrMsg)
 		},
 		CancelPruneCalled: func(_ []byte, _ state.TriePruningIdentifier) {
-			t.Errorf(failErrMsg)
+			t.Errorf("%s", failErrMsg)
 		},
 		SnapshotStateCalled: func(_ []byte, _ uint32) {
-			t.Errorf(failErrMsg)
+			t.Errorf("%s", failErrMsg)
 		},
 		RecreateAllTriesCalled: func(_ []byte) (map[string]common.Trie, error) {
-			t.Errorf(failErrMsg)
+			t.Errorf("%s", failErrMsg)
 			return nil, nil
 		},
 	}

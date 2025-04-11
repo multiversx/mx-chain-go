@@ -240,7 +240,7 @@ extractDefaultReturn() {
 
 writeWithReturn() {
   { echo "return mock.$mockField($stringParamNames)";
-  echo "}";
+  echo -e "}\n";
   } >> "$mockPath"
 
   # compute default values to return when mock member is not provided, separated by comma

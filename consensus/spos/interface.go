@@ -9,6 +9,8 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/outport"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+
+	"github.com/multiversx/mx-chain-go/common"
 	cryptoCommon "github.com/multiversx/mx-chain-go/common/crypto"
 	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/epochStart"
@@ -21,51 +23,32 @@ import (
 
 // ConsensusCoreHandler encapsulates all needed data for the Consensus
 type ConsensusCoreHandler interface {
-	// Blockchain gets the ChainHandler stored in the ConsensusCore
 	Blockchain() data.ChainHandler
-	// BlockProcessor gets the BlockProcessor stored in the ConsensusCore
 	BlockProcessor() process.BlockProcessor
-	// BootStrapper gets the Bootstrapper stored in the ConsensusCore
 	BootStrapper() process.Bootstrapper
-	// BroadcastMessenger gets the BroadcastMessenger stored in ConsensusCore
 	BroadcastMessenger() consensus.BroadcastMessenger
-	// Chronology gets the ChronologyHandler stored in the ConsensusCore
 	Chronology() consensus.ChronologyHandler
-	// GetAntiFloodHandler returns the antiflood handler which will be used in subrounds
 	GetAntiFloodHandler() consensus.P2PAntifloodHandler
-	// Hasher gets the Hasher stored in the ConsensusCore
 	Hasher() hashing.Hasher
-	// Marshalizer gets the Marshalizer stored in the ConsensusCore
 	Marshalizer() marshal.Marshalizer
-	// MultiSignerContainer gets the MultiSigner container from the ConsensusCore
 	MultiSignerContainer() cryptoCommon.MultiSignerContainer
-	// RoundHandler gets the RoundHandler stored in the ConsensusCore
 	RoundHandler() consensus.RoundHandler
-	// ShardCoordinator gets the ShardCoordinator stored in the ConsensusCore
 	ShardCoordinator() sharding.Coordinator
-	// SyncTimer gets the SyncTimer stored in the ConsensusCore
 	SyncTimer() ntp.SyncTimer
-	// NodesCoordinator gets the NodesCoordinator stored in the ConsensusCore
 	NodesCoordinator() nodesCoordinator.NodesCoordinator
-	// EpochStartRegistrationHandler gets the RegistrationHandler stored in the ConsensusCore
 	EpochStartRegistrationHandler() epochStart.RegistrationHandler
-	// PeerHonestyHandler returns the peer honesty handler which will be used in subrounds
 	PeerHonestyHandler() consensus.PeerHonestyHandler
-	// HeaderSigVerifier returns the sig verifier handler which will be used in subrounds
 	HeaderSigVerifier() consensus.HeaderSigVerifier
-	// FallbackHeaderValidator returns the fallback header validator handler which will be used in subrounds
 	FallbackHeaderValidator() consensus.FallbackHeaderValidator
-	// NodeRedundancyHandler returns the node redundancy handler which will be used in subrounds
 	NodeRedundancyHandler() consensus.NodeRedundancyHandler
-	// ScheduledProcessor returns the scheduled txs processor
 	ScheduledProcessor() consensus.ScheduledProcessor
-	// MessageSigningHandler returns the p2p signing handler
 	MessageSigningHandler() consensus.P2PSigningHandler
-	// PeerBlacklistHandler return the peer blacklist handler
 	PeerBlacklistHandler() consensus.PeerBlacklistHandler
-	// SigningHandler returns the signing handler component
 	SigningHandler() consensus.SigningHandler
-	// IsInterfaceNil returns true if there is no value under the interface
+	EnableEpochsHandler() common.EnableEpochsHandler
+	EquivalentProofsPool() consensus.EquivalentProofsPool
+	EpochNotifier() process.EpochNotifier
+	InvalidSignersCache() InvalidSignersCache
 	IsInterfaceNil() bool
 }
 
@@ -104,14 +87,9 @@ type ConsensusService interface {
 	GetMaxMessagesInARoundPerPeer() uint32
 	// GetMaxNumOfMessageTypeAccepted returns the maximum number of accepted consensus message types per round, per public key
 	GetMaxNumOfMessageTypeAccepted(msgType consensus.MessageType) uint32
+	// GetMessageTypeBlockHeader returns the message type for the block header
+	GetMessageTypeBlockHeader() consensus.MessageType
 	// IsInterfaceNil returns true if there is no value under the interface
-	IsInterfaceNil() bool
-}
-
-// SubroundsFactory encapsulates the methods specifically for a subrounds factory type (bls, bn)
-// for different consensus types
-type SubroundsFactory interface {
-	GenerateSubrounds() error
 	IsInterfaceNil() bool
 }
 
@@ -123,10 +101,14 @@ type WorkerHandler interface {
 	AddReceivedMessageCall(messageType consensus.MessageType, receivedMessageCall func(ctx context.Context, cnsDta *consensus.Message) bool)
 	// AddReceivedHeaderHandler adds a new handler function for a received header
 	AddReceivedHeaderHandler(handler func(data.HeaderHandler))
+	// RemoveAllReceivedHeaderHandlers removes all the functions handlers
+	RemoveAllReceivedHeaderHandlers()
+	// AddReceivedProofHandler adds a new handler function for a received proof
+	AddReceivedProofHandler(handler func(consensus.ProofHandler))
 	// RemoveAllReceivedMessagesCalls removes all the functions handlers
 	RemoveAllReceivedMessagesCalls()
 	// ProcessReceivedMessage method redirects the received message to the channel which should handle it
-	ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedPeer core.PeerID, source p2p.MessageHandler) error
+	ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedPeer core.PeerID, source p2p.MessageHandler) ([]byte, error)
 	// Extend does an extension for the subround with subroundId
 	Extend(subroundId int)
 	// GetConsensusStateChangedChannel gets the channel for the consensusStateChanged
@@ -137,8 +119,12 @@ type WorkerHandler interface {
 	DisplayStatistics()
 	// ReceivedHeader method is a wired method through which worker will receive headers from network
 	ReceivedHeader(headerHandler data.HeaderHandler, headerHash []byte)
-	// ResetConsensusMessages resets at the start of each round all the previous consensus messages received
+	// ResetConsensusMessages resets at the start of each round all the previous consensus messages received and equivalent messages, keeping the provided proofs
 	ResetConsensusMessages()
+	// ResetConsensusRoundState resets the consensus round state when transitioning to a different consensus version
+	ResetConsensusRoundState()
+	// ResetInvalidSignersCache resets the invalid signers cache
+	ResetInvalidSignersCache()
 	// IsInterfaceNil returns true if there is no value under the interface
 	IsInterfaceNil() bool
 }
@@ -154,6 +140,9 @@ type HeaderSigVerifier interface {
 	VerifyRandSeed(header data.HeaderHandler) error
 	VerifyLeaderSignature(header data.HeaderHandler) error
 	VerifySignature(header data.HeaderHandler) error
+	VerifySignatureForHash(header data.HeaderHandler, hash []byte, pubkeysBitmap []byte, signature []byte) error
+	VerifyHeaderWithProof(header data.HeaderHandler) error
+	VerifyHeaderProof(headerProof data.HeaderProofHandler) error
 	IsInterfaceNil() bool
 }
 
@@ -175,5 +164,110 @@ type PeerBlackListCacher interface {
 type SentSignaturesTracker interface {
 	StartRound()
 	SignatureSent(pkBytes []byte)
+	IsInterfaceNil() bool
+}
+
+// ConsensusStateHandler encapsulates all needed data for the Consensus
+type ConsensusStateHandler interface {
+	ResetConsensusState()
+	ResetConsensusRoundState()
+	AddReceivedHeader(headerHandler data.HeaderHandler)
+	GetReceivedHeaders() []data.HeaderHandler
+	AddMessageWithSignature(key string, message p2p.MessageP2P)
+	GetMessageWithSignature(key string) (p2p.MessageP2P, bool)
+	IsNodeLeaderInCurrentRound(node string) bool
+	GetLeader() (string, error)
+	GetNextConsensusGroup(
+		randomSource []byte,
+		round uint64,
+		shardId uint32,
+		nodesCoordinator nodesCoordinator.NodesCoordinator,
+		epoch uint32,
+	) (string, []string, error)
+	IsConsensusDataSet() bool
+	IsConsensusDataEqual(data []byte) bool
+	IsJobDone(node string, currentSubroundId int) bool
+	IsSubroundFinished(subroundID int) bool
+	IsNodeSelf(node string) bool
+	IsBlockBodyAlreadyReceived() bool
+	IsHeaderAlreadyReceived() bool
+	CanDoSubroundJob(currentSubroundId int) bool
+	CanProcessReceivedMessage(cnsDta *consensus.Message, currentRoundIndex int64, currentSubroundId int) bool
+	GenerateBitmap(subroundId int) []byte
+	ProcessingBlock() bool
+	SetProcessingBlock(processingBlock bool)
+	GetData() []byte
+	SetData(data []byte)
+	IsMultiKeyLeaderInCurrentRound() bool
+	IsLeaderJobDone(currentSubroundId int) bool
+	IsMultiKeyJobDone(currentSubroundId int) bool
+	IsSelfJobDone(currentSubroundID int) bool
+	GetMultikeyRedundancyStepInReason() string
+	ResetRoundsWithoutReceivedMessages(pkBytes []byte, pid core.PeerID)
+	GetRoundCanceled() bool
+	SetRoundCanceled(state bool)
+	GetRoundIndex() int64
+	SetRoundIndex(roundIndex int64)
+	GetRoundTimeStamp() time.Time
+	SetRoundTimeStamp(roundTimeStamp time.Time)
+	GetExtendedCalled() bool
+	GetBody() data.BodyHandler
+	SetBody(body data.BodyHandler)
+	GetHeader() data.HeaderHandler
+	SetHeader(header data.HeaderHandler)
+	GetWaitingAllSignaturesTimeOut() bool
+	SetWaitingAllSignaturesTimeOut(bool)
+	RoundConsensusHandler
+	RoundStatusHandler
+	RoundThresholdHandler
+	IsInterfaceNil() bool
+}
+
+// RoundConsensusHandler encapsulates the methods needed for a consensus round
+type RoundConsensusHandler interface {
+	ConsensusGroupIndex(pubKey string) (int, error)
+	SelfConsensusGroupIndex() (int, error)
+	SetEligibleList(eligibleList map[string]struct{})
+	ConsensusGroup() []string
+	SetConsensusGroup(consensusGroup []string)
+	SetLeader(leader string)
+	ConsensusGroupSize() int
+	SetConsensusGroupSize(consensusGroupSize int)
+	SelfPubKey() string
+	SetSelfPubKey(selfPubKey string)
+	JobDone(key string, subroundId int) (bool, error)
+	SetJobDone(key string, subroundId int, value bool) error
+	SelfJobDone(subroundId int) (bool, error)
+	IsNodeInConsensusGroup(node string) bool
+	IsNodeInEligibleList(node string) bool
+	ComputeSize(subroundId int) int
+	ResetRoundState()
+	IsMultiKeyInConsensusGroup() bool
+	IsKeyManagedBySelf(pkBytes []byte) bool
+	IncrementRoundsWithoutReceivedMessages(pkBytes []byte)
+	GetKeysHandler() consensus.KeysHandler
+	Leader() string
+}
+
+// RoundStatusHandler encapsulates the methods needed for the status of a subround
+type RoundStatusHandler interface {
+	Status(subroundId int) SubroundStatus
+	SetStatus(subroundId int, subroundStatus SubroundStatus)
+	ResetRoundStatus()
+}
+
+// RoundThresholdHandler encapsulates the methods needed for the round consensus threshold
+type RoundThresholdHandler interface {
+	Threshold(subroundId int) int
+	SetThreshold(subroundId int, threshold int)
+	FallbackThreshold(subroundId int) int
+	SetFallbackThreshold(subroundId int, threshold int)
+}
+
+// InvalidSignersCache encapsulates the methods needed for a invalid signers cache
+type InvalidSignersCache interface {
+	AddInvalidSigners(headerHash []byte, invalidSigners []byte, invalidPublicKeys []string)
+	CheckKnownInvalidSigners(headerHash []byte, invalidSigners []byte) bool
+	Reset()
 	IsInterfaceNil() bool
 }

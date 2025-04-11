@@ -54,6 +54,9 @@ type CoreComponentsStub struct {
 	ProcessStatusHandlerInternal       common.ProcessStatusHandler
 	HardforkTriggerPubKeyField         []byte
 	EnableEpochsHandlerField           common.EnableEpochsHandler
+	ChainParametersHandlerField        process.ChainParametersHandler
+	ChainParametersSubscriberField     process.ChainParametersSubscriber
+	FieldsSizeCheckerField             common.FieldsSizeChecker
 }
 
 // Create -
@@ -257,6 +260,21 @@ func (ccs *CoreComponentsStub) HardforkTriggerPubKey() []byte {
 // EnableEpochsHandler -
 func (ccs *CoreComponentsStub) EnableEpochsHandler() common.EnableEpochsHandler {
 	return ccs.EnableEpochsHandlerField
+}
+
+// ChainParametersHandler -
+func (ccs *CoreComponentsStub) ChainParametersHandler() process.ChainParametersHandler {
+	return ccs.ChainParametersHandlerField
+}
+
+// ChainParametersSubscriber -
+func (ccs *CoreComponentsStub) ChainParametersSubscriber() process.ChainParametersSubscriber {
+	return ccs.ChainParametersSubscriberField
+}
+
+// FieldsSizeChecker -
+func (ccs *CoreComponentsStub) FieldsSizeChecker() common.FieldsSizeChecker {
+	return ccs.FieldsSizeCheckerField
 }
 
 // IsInterfaceNil -

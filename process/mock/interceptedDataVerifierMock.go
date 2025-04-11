@@ -1,17 +1,24 @@
 package mock
 
-import "github.com/multiversx/mx-chain-go/process"
+import (
+	"github.com/multiversx/mx-chain-go/process"
+)
 
 // InterceptedDataVerifierMock -
 type InterceptedDataVerifierMock struct {
+	VerifyCalled func(interceptedData process.InterceptedData) error
 }
 
-// IsForCurrentShard -
-func (i *InterceptedDataVerifierMock) IsForCurrentShard(_ process.InterceptedData) bool {
-	return true
+// Verify -
+func (idv *InterceptedDataVerifierMock) Verify(interceptedData process.InterceptedData) error {
+	if idv.VerifyCalled != nil {
+		return idv.VerifyCalled(interceptedData)
+	}
+
+	return nil
 }
 
-// IsInterfaceNil returns true if underlying object is
-func (i *InterceptedDataVerifierMock) IsInterfaceNil() bool {
-	return i == nil
+// IsInterfaceNil -
+func (idv *InterceptedDataVerifierMock) IsInterfaceNil() bool {
+	return idv == nil
 }

@@ -9,8 +9,11 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data/batch"
+
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/cache"
+
 	"github.com/stretchr/testify/assert"
 )
 
@@ -31,7 +34,7 @@ func createMockTrieNodesChunksProcessorArgs() TrieNodesChunksProcessorArgs {
 				return 32
 			},
 		},
-		ChunksCacher:    testscommon.NewCacherMock(),
+		ChunksCacher:    cache.NewCacherMock(),
 		RequestInterval: time.Second,
 		RequestHandler:  &testscommon.RequestHandlerStub{},
 		Topic:           "topic",

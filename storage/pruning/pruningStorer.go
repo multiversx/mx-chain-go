@@ -323,7 +323,7 @@ func (ps *PruningStorer) Put(key, data []byte) error {
 
 	persisterToUse := ps.getPersisterToUse()
 
-	return ps.doPutInPersister(key, data, persisterToUse.getPersister())
+	return ps.doPutInPersister(key, data, persisterToUse.getPersister(), persisterToUse.epoch)
 }
 
 func (ps *PruningStorer) getPersisterToUse() *persisterData {
@@ -358,12 +358,14 @@ func (ps *PruningStorer) getPersisterToUse() *persisterData {
 	return persisterToUse
 }
 
-func (ps *PruningStorer) doPutInPersister(key, data []byte, persister storage.Persister) error {
+func (ps *PruningStorer) doPutInPersister(key, data []byte, persister storage.Persister, epoch uint32) error {
 	err := persister.Put(key, data)
 	if err != nil {
 		ps.cacher.Remove(key)
 		return err
 	}
+
+	ps.stateStatsHandler.IncrWritePersister(epoch)
 
 	return nil
 }
@@ -385,7 +387,7 @@ func (ps *PruningStorer) PutInEpoch(key, data []byte, epoch uint32) error {
 	}
 	defer closePersister()
 
-	return ps.doPutInPersister(key, data, persister)
+	return ps.doPutInPersister(key, data, persister, epoch)
 }
 
 func (ps *PruningStorer) createAndInitPersisterIfClosedProtected(pd *persisterData) (storage.Persister, func(), error) {
@@ -434,7 +436,7 @@ func (ps *PruningStorer) createAndInitPersister(pd *persisterData) (storage.Pers
 func (ps *PruningStorer) Get(key []byte) ([]byte, error) {
 	v, ok := ps.cacher.Get(key)
 	if ok {
-		ps.stateStatsHandler.IncrementCache()
+		ps.stateStatsHandler.IncrCache()
 		return v.([]byte), nil
 	}
 
@@ -457,7 +459,7 @@ func (ps *PruningStorer) Get(key []byte) ([]byte, error) {
 		// if found in persistence unit, add it to cache and return
 		_ = ps.cacher.Put(key, val, len(val))
 
-		ps.stateStatsHandler.IncrementPersister(ps.activePersisters[idx].epoch)
+		ps.stateStatsHandler.IncrPersister(ps.activePersisters[idx].epoch)
 
 		return val, nil
 	}
@@ -578,6 +580,7 @@ func (ps *PruningStorer) GetBulkFromEpoch(keys [][]byte, epoch uint32) ([]data.K
 func (ps *PruningStorer) SearchFirst(key []byte) ([]byte, error) {
 	v, ok := ps.cacher.Get(key)
 	if ok {
+		ps.stateStatsHandler.IncrCache()
 		return v.([]byte), nil
 	}
 
@@ -589,6 +592,7 @@ func (ps *PruningStorer) SearchFirst(key []byte) ([]byte, error) {
 	for _, pd := range ps.activePersisters {
 		res, err = pd.getPersister().Get(key)
 		if err == nil {
+			ps.stateStatsHandler.IncrPersister(pd.epoch)
 			return res, nil
 		}
 	}
