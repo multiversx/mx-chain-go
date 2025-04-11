@@ -229,7 +229,7 @@ func (bp *baseProcessor) checkBlockValidity(
 }
 
 func (bp *baseProcessor) checkPrevProofValidity(prevHeader, headerHandler data.HeaderHandler) error {
-	if !common.ShouldBlockHavePrevProof(headerHandler, bp.enableEpochsHandler, common.EquivalentMessagesFlag) {
+	if !common.ShouldBlockHavePrevProof(headerHandler, bp.enableEpochsHandler, common.AndromedaFlag) {
 		return nil
 	}
 
@@ -591,7 +591,7 @@ func checkProcessorParameters(arguments ArgBaseProcessor) error {
 		common.ScheduledMiniBlocksFlag,
 		common.StakingV2Flag,
 		common.CurrentRandomnessOnSortingFlag,
-		common.EquivalentMessagesFlag,
+		common.AndromedaFlag,
 	})
 	if err != nil {
 		return err
@@ -679,7 +679,7 @@ func (bp *baseProcessor) filterHeadersWithoutProofs() (map[string]*hdrInfo, erro
 	filteredHeadersInfo := make(map[string]*hdrInfo)
 
 	for hdrHash, headerInfo := range bp.hdrsForCurrBlock.hdrHashAndInfo {
-		if bp.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, headerInfo.hdr.GetEpoch()) {
+		if bp.enableEpochsHandler.IsFlagEnabledInEpoch(common.AndromedaFlag, headerInfo.hdr.GetEpoch()) {
 			if bp.hasMissingProof(headerInfo, hdrHash) {
 				removedNonces[headerInfo.hdr.GetShardID()][headerInfo.hdr.GetNonce()] = struct{}{}
 				continue
@@ -790,7 +790,7 @@ func (bp *baseProcessor) sortHeaderHashesForCurrentBlockByNonce(usedInBlock bool
 }
 
 func (bp *baseProcessor) hasMissingProof(headerInfo *hdrInfo, hdrHash string) bool {
-	isFlagEnabledForHeader := bp.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, headerInfo.hdr.GetEpoch()) && headerInfo.hdr.GetNonce() >= 1
+	isFlagEnabledForHeader := bp.enableEpochsHandler.IsFlagEnabledInEpoch(common.AndromedaFlag, headerInfo.hdr.GetEpoch()) && headerInfo.hdr.GetNonce() >= 1
 	if !isFlagEnabledForHeader {
 		return false
 	}
@@ -1107,7 +1107,7 @@ func (bp *baseProcessor) cleanupPools(headerHandler data.HeaderHandler) {
 		highestPrevFinalBlockNonce,
 	)
 
-	if common.ShouldBlockHavePrevProof(headerHandler, bp.enableEpochsHandler, common.EquivalentMessagesFlag) {
+	if common.ShouldBlockHavePrevProof(headerHandler, bp.enableEpochsHandler, common.AndromedaFlag) {
 		err := bp.dataPool.Proofs().CleanupProofsBehindNonce(bp.shardCoordinator.SelfId(), highestPrevFinalBlockNonce)
 		if err != nil {
 			log.Warn("failed to cleanup notarized proofs behind nonce",
@@ -1146,7 +1146,7 @@ func (bp *baseProcessor) cleanupPoolsForCrossShard(
 		crossNotarizedHeader.GetNonce(),
 	)
 
-	if common.ShouldBlockHavePrevProof(crossNotarizedHeader, bp.enableEpochsHandler, common.EquivalentMessagesFlag) {
+	if common.ShouldBlockHavePrevProof(crossNotarizedHeader, bp.enableEpochsHandler, common.AndromedaFlag) {
 		err = bp.dataPool.Proofs().CleanupProofsBehindNonce(shardID, noncesToPrevFinal)
 		if err != nil {
 			log.Warn("failed to cleanup notarized proofs behind nonce",
@@ -2308,7 +2308,7 @@ func (bp *baseProcessor) checkSentSignaturesAtCommitTime(header data.HeaderHandl
 }
 
 func (bp *baseProcessor) addPrevProofIfNeeded(header data.HeaderHandler) error {
-	if !common.ShouldBlockHavePrevProof(header, bp.enableEpochsHandler, common.EquivalentMessagesFlag) {
+	if !common.ShouldBlockHavePrevProof(header, bp.enableEpochsHandler, common.AndromedaFlag) {
 		return nil
 	}
 
@@ -2397,7 +2397,7 @@ func (bp *baseProcessor) waitAllMissingProofs(waitTime time.Duration) error {
 }
 
 func (bp *baseProcessor) checkReceivedHeaderIfAttestingIsNeeded(headerHandler data.HeaderHandler) {
-	if !common.ShouldBlockHavePrevProof(headerHandler, bp.enableEpochsHandler, common.EquivalentMessagesFlag) {
+	if !common.ShouldBlockHavePrevProof(headerHandler, bp.enableEpochsHandler, common.AndromedaFlag) {
 		return
 	}
 

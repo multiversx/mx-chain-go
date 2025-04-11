@@ -335,8 +335,8 @@ func (sr *subroundBlock) createHeader() (data.HeaderHandler, error) {
 		return nil, err
 	}
 
-	if sr.EnableEpochsHandler().IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, hdr.GetEpoch()) {
-		return nil, ErrEquivalentMessagesFlagEnabledWithConsensusV1
+	if sr.EnableEpochsHandler().IsFlagEnabledInEpoch(common.AndromedaFlag, hdr.GetEpoch()) {
+		return nil, ErrAndromedaFlagEnabledWithConsensusV1
 	}
 
 	err = hdr.SetPrevHash(prevHash)
@@ -502,7 +502,7 @@ func (sr *subroundBlock) receivedFullHeader(headerHandler data.HeaderHandler) {
 		return
 	}
 
-	if !sr.EnableEpochsHandler().IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, headerHandler.GetEpoch()) {
+	if !sr.EnableEpochsHandler().IsFlagEnabledInEpoch(common.AndromedaFlag, headerHandler.GetEpoch()) {
 		log.Debug("subroundBlock.ReceivedFullHeader early exit", "flagNotEnabled in header epoch", headerHandler.GetEpoch())
 		return
 	}

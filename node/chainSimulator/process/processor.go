@@ -127,7 +127,7 @@ func (creator *blocksCreator) CreateNewBlock() error {
 	nilPrevHeader := check.IfNil(prevHeader)
 	enableEpochHandler := coreComponents.EnableEpochsHandler()
 	var previousProof *dataBlock.HeaderProof
-	if !nilPrevHeader && enableEpochHandler.IsFlagEnabled(common.EquivalentMessagesFlag) {
+	if !nilPrevHeader && enableEpochHandler.IsFlagEnabled(common.AndromedaFlag) {
 		sig, errS := creator.generateSignature(prevHash, leader.PubKey(), prevHeader)
 		if errS != nil {
 			return errS
@@ -190,7 +190,7 @@ func (creator *blocksCreator) ApplySignaturesAndGetProof(
 ) (*dataBlock.HeaderProof, error) {
 	nilPrevHeader := check.IfNil(prevHeader)
 	var err error
-	if !nilPrevHeader && common.ShouldBlockHavePrevProof(header, enableEpochHandler, common.EquivalentMessagesFlag) {
+	if !nilPrevHeader && common.ShouldBlockHavePrevProof(header, enableEpochHandler, common.AndromedaFlag) {
 		validators, err = creator.updatePreviousProofAndAddonHeader(header.GetPrevHash(), prevHeader, header, prevProof)
 		if err != nil {
 			return nil, err
@@ -217,7 +217,7 @@ func (creator *blocksCreator) ApplySignaturesAndGetProof(
 	}
 
 	var headerProof *dataBlock.HeaderProof
-	shouldAddCurrentProof := !nilPrevHeader && enableEpochHandler.IsFlagEnabled(common.EquivalentMessagesFlag)
+	shouldAddCurrentProof := !nilPrevHeader && enableEpochHandler.IsFlagEnabled(common.AndromedaFlag)
 	if shouldAddCurrentProof {
 		headerProof = createProofForHeader(pubKeyBitmap, newHeaderSig, headerHash, header)
 		dataPool := creator.nodeHandler.GetDataComponents().Datapool()
@@ -345,7 +345,7 @@ func (creator *blocksCreator) setHeaderSignatures(
 		return err
 	}
 
-	isEquivalentMessageEnabled := creator.nodeHandler.GetCoreComponents().EnableEpochsHandler().IsFlagEnabled(common.EquivalentMessagesFlag)
+	isEquivalentMessageEnabled := creator.nodeHandler.GetCoreComponents().EnableEpochsHandler().IsFlagEnabled(common.AndromedaFlag)
 	if !isEquivalentMessageEnabled {
 		if err = header.SetSignature(sig); err != nil {
 			return err

@@ -864,7 +864,7 @@ func TestSubroundEndRound_ReceivedProof(t *testing.T) {
 		container := consensusMocks.InitConsensusCore()
 		enableEpochsHandler := &enableEpochsHandlerMock.EnableEpochsHandlerStub{
 			IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
-				return flag == common.EquivalentMessagesFlag
+				return flag == common.AndromedaFlag
 			},
 		}
 		container.SetEnableEpochsHandler(enableEpochsHandler)
@@ -1159,7 +1159,7 @@ func TestSubroundEndRound_DoEndRoundJobByNode(t *testing.T) {
 		container := consensusMocks.InitConsensusCore()
 		enableEpochsHandler := &enableEpochsHandlerMock.EnableEpochsHandlerStub{
 			IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
-				return flag == common.EquivalentMessagesFlag
+				return flag == common.AndromedaFlag
 			},
 		}
 		container.SetEnableEpochsHandler(enableEpochsHandler)
@@ -1291,7 +1291,7 @@ func TestSubroundEndRound_DoEndRoundJobByNode(t *testing.T) {
 		})
 		enableEpochsHandler := &enableEpochsHandlerMock.EnableEpochsHandlerStub{
 			IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
-				return flag == common.EquivalentMessagesFlag
+				return flag == common.AndromedaFlag
 			},
 		}
 		container.SetEnableEpochsHandler(enableEpochsHandler)
@@ -1397,7 +1397,7 @@ func TestSubroundEndRound_DoEndRoundJobByNode(t *testing.T) {
 		})
 		enableEpochsHandler := &enableEpochsHandlerMock.EnableEpochsHandlerStub{
 			IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
-				return flag == common.EquivalentMessagesFlag
+				return flag == common.AndromedaFlag
 			},
 		}
 		container.SetEnableEpochsHandler(enableEpochsHandler)
