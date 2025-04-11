@@ -29,7 +29,6 @@ func initNodesWithTestSigner(
 
 	enableEpochsConfig := integrationTests.CreateEnableEpochsConfig()
 	enableEpochsConfig.EquivalentMessagesEnableEpoch = equivalentProofsActivationEpoch
-	enableEpochsConfig.FixedOrderInConsensusEnableEpoch = equivalentProofsActivationEpoch
 
 	nodes := integrationTests.CreateNodesWithTestFullNode(
 		int(numMetaNodes),

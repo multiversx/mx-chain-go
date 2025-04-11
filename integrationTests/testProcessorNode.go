@@ -3375,7 +3375,6 @@ func CreateEnableEpochsConfig() config.EnableEpochs {
 		FixRelayedBaseCostEnableEpoch:                     UnreachableEpoch,
 		FixRelayedMoveBalanceToNonPayableSCEnableEpoch:    UnreachableEpoch,
 		EquivalentMessagesEnableEpoch:                     UnreachableEpoch,
-		FixedOrderInConsensusEnableEpoch:                  UnreachableEpoch,
 	}
 }
 
@@ -3688,7 +3687,6 @@ func GetDefaultEnableEpochsConfig() *config.EnableEpochs {
 		StakingV4Step2EnableEpoch:                       UnreachableEpoch,
 		StakingV4Step3EnableEpoch:                       UnreachableEpoch,
 		EquivalentMessagesEnableEpoch:                   UnreachableEpoch,
-		FixedOrderInConsensusEnableEpoch:                UnreachableEpoch,
 	}
 }
 

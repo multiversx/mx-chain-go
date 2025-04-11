@@ -71,7 +71,6 @@ func createCoreComponents() factory.CoreComponentsHolder {
 		GovernanceEnableEpoch:              integrationTests.UnreachableEpoch,
 		RefactorPeersMiniBlocksEnableEpoch: integrationTests.UnreachableEpoch,
 		EquivalentMessagesEnableEpoch:      integrationTests.UnreachableEpoch,
-		FixedOrderInConsensusEnableEpoch:   integrationTests.UnreachableEpoch,
 	}
 
 	enableEpochsHandler, _ := enablers.NewEnableEpochsHandler(configEnableEpochs, epochNotifier)

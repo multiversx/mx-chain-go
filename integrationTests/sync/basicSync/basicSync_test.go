@@ -210,7 +210,6 @@ func TestSyncWorksInShard_EmptyBlocksNoForks_With_EquivalentProofs(t *testing.T)
 
 	enableEpochs := integrationTests.CreateEnableEpochsConfig()
 	enableEpochs.EquivalentMessagesEnableEpoch = uint32(0)
-	enableEpochs.FixedOrderInConsensusEnableEpoch = uint32(0)
 
 	nodes := make([]*integrationTests.TestProcessorNode, numNodesPerShard+1)
 	connectableNodes := make([]integrationTests.Connectable, 0)
@@ -299,7 +298,6 @@ func TestSyncMetaAndShard_With_EquivalentProofs(t *testing.T) {
 
 	enableEpochs := integrationTests.CreateEnableEpochsConfig()
 	enableEpochs.EquivalentMessagesEnableEpoch = uint32(0)
-	enableEpochs.FixedOrderInConsensusEnableEpoch = uint32(0)
 
 	nodes := make([]*integrationTests.TestProcessorNode, 2*numNodesPerShard)
 	leaders := make([]*integrationTests.TestProcessorNode, 0)
