@@ -69,7 +69,7 @@ func TestInterceptedMiniblockDataFactory_ShouldWorkAndCreate(t *testing.T) {
 	marshalizer := &mock.MarshalizerMock{}
 	emptyBlockBody := &block.Body{}
 	emptyBlockBodyBuff, _ := marshalizer.Marshal(emptyBlockBody)
-	interceptedData, err := imdf.Create(emptyBlockBodyBuff)
+	interceptedData, err := imdf.Create(emptyBlockBodyBuff, "")
 	assert.Nil(t, err)
 
 	_, ok := interceptedData.(*interceptedBlocks.InterceptedMiniblock)

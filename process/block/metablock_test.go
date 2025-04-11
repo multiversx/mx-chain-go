@@ -164,6 +164,7 @@ func createMockMetaArguments(
 		EpochValidatorInfoCreator:    &testscommon.EpochValidatorInfoCreatorStub{},
 		ValidatorStatisticsProcessor: &testscommon.ValidatorStatisticsProcessorStub{},
 		EpochSystemSCProcessor:       &testscommon.EpochStartSystemSCStub{},
+		FieldsSizeChecker:            &testscommon.FieldsSizeCheckerMock{},
 	}
 	return arguments
 }

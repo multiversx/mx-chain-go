@@ -1,6 +1,7 @@
 package factory
 
 import (
+	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
@@ -28,6 +29,7 @@ type interceptedMetaHeaderDataFactory struct {
 	epochStartTrigger       process.EpochStartTriggerHandler
 	enableEpochsHandler     common.EnableEpochsHandler
 	proofsPool              process.ProofsPool
+	fieldsSizeChecker       common.FieldsSizeChecker
 }
 
 // NewInterceptedMetaHeaderDataFactory creates an instance of interceptedMetaHeaderDataFactory
@@ -79,11 +81,12 @@ func NewInterceptedMetaHeaderDataFactory(argument *ArgInterceptedMetaHeaderFacto
 		epochStartTrigger:       argument.EpochStartTrigger,
 		enableEpochsHandler:     argument.CoreComponents.EnableEpochsHandler(),
 		proofsPool:              argument.ProofsPool,
+		fieldsSizeChecker:       argument.CoreComponents.FieldsSizeChecker(),
 	}, nil
 }
 
 // Create creates instances of InterceptedData by unmarshalling provided buffer
-func (imhdf *interceptedMetaHeaderDataFactory) Create(buff []byte) (process.InterceptedData, error) {
+func (imhdf *interceptedMetaHeaderDataFactory) Create(buff []byte, _ core.PeerID) (process.InterceptedData, error) {
 	arg := &interceptedBlocks.ArgInterceptedBlockHeader{
 		HdrBuff:                 buff,
 		Marshalizer:             imhdf.marshalizer,
@@ -95,6 +98,7 @@ func (imhdf *interceptedMetaHeaderDataFactory) Create(buff []byte) (process.Inte
 		EpochStartTrigger:       imhdf.epochStartTrigger,
 		EnableEpochsHandler:     imhdf.enableEpochsHandler,
 		ProofsPool:              imhdf.proofsPool,
+		FieldsSizeChecker:       imhdf.fieldsSizeChecker,
 	}
 
 	return interceptedBlocks.NewInterceptedMetaHeader(arg)

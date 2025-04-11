@@ -55,6 +55,7 @@ type CoreComponentsMock struct {
 	EnableEpochsHandlerField       common.EnableEpochsHandler
 	ChainParametersHandlerField    process.ChainParametersHandler
 	ChainParametersSubscriberField process.ChainParametersSubscriber
+	FieldsSizeCheckerField         common.FieldsSizeChecker
 }
 
 // Create -
@@ -268,6 +269,11 @@ func (ccm *CoreComponentsMock) ChainParametersHandler() process.ChainParametersH
 // ChainParametersSubscriber -
 func (ccm *CoreComponentsMock) ChainParametersSubscriber() process.ChainParametersSubscriber {
 	return ccm.ChainParametersSubscriberField
+}
+
+// FieldsSizeChecker -
+func (ccm *CoreComponentsMock) FieldsSizeChecker() common.FieldsSizeChecker {
+	return ccm.FieldsSizeCheckerField
 }
 
 // IsInterfaceNil -

@@ -1,6 +1,7 @@
 package factory
 
 import (
+	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
@@ -21,6 +22,7 @@ type interceptedShardHeaderDataFactory struct {
 	validityAttester        process.ValidityAttester
 	epochStartTrigger       process.EpochStartTriggerHandler
 	enableEpochsHandler     common.EnableEpochsHandler
+	fieldsSizeChecker       common.FieldsSizeChecker
 }
 
 // NewInterceptedShardHeaderDataFactory creates an instance of interceptedShardHeaderDataFactory
@@ -68,11 +70,12 @@ func NewInterceptedShardHeaderDataFactory(argument *ArgInterceptedDataFactory) (
 		validityAttester:        argument.ValidityAttester,
 		epochStartTrigger:       argument.EpochStartTrigger,
 		enableEpochsHandler:     argument.CoreComponents.EnableEpochsHandler(),
+		fieldsSizeChecker:       argument.CoreComponents.FieldsSizeChecker(),
 	}, nil
 }
 
 // Create creates instances of InterceptedData by unmarshalling provided buffer
-func (ishdf *interceptedShardHeaderDataFactory) Create(buff []byte) (process.InterceptedData, error) {
+func (ishdf *interceptedShardHeaderDataFactory) Create(buff []byte, _ core.PeerID) (process.InterceptedData, error) {
 	arg := &interceptedBlocks.ArgInterceptedBlockHeader{
 		HdrBuff:                 buff,
 		Marshalizer:             ishdf.marshalizer,
@@ -83,6 +86,7 @@ func (ishdf *interceptedShardHeaderDataFactory) Create(buff []byte) (process.Int
 		ValidityAttester:        ishdf.validityAttester,
 		EpochStartTrigger:       ishdf.epochStartTrigger,
 		EnableEpochsHandler:     ishdf.enableEpochsHandler,
+		FieldsSizeChecker:       ishdf.fieldsSizeChecker,
 	}
 
 	return interceptedBlocks.NewInterceptedHeader(arg)
