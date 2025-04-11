@@ -17,7 +17,7 @@ func TestIsEpochStartProofForFlagActivation(t *testing.T) {
 	providedEpoch := uint32(123)
 	eeh := &enableEpochsHandlerMock.EnableEpochsHandlerStub{
 		GetActivationEpochCalled: func(flag core.EnableEpochFlag) uint32 {
-			require.Equal(t, common.EquivalentMessagesFlag, flag)
+			require.Equal(t, common.AndromedaFlag, flag)
 			return providedEpoch
 		},
 	}

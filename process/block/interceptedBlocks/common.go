@@ -77,7 +77,7 @@ func checkHeaderHandler(
 	enableEpochsHandler common.EnableEpochsHandler,
 	fieldsSizeChecker common.FieldsSizeChecker,
 ) error {
-	equivalentMessagesEnabled := enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, hdr.GetEpoch())
+	equivalentMessagesEnabled := enableEpochsHandler.IsFlagEnabledInEpoch(common.AndromedaFlag, hdr.GetEpoch())
 
 	if len(hdr.GetPubKeysBitmap()) == 0 && !equivalentMessagesEnabled {
 		return process.ErrNilPubKeysBitmap
@@ -117,7 +117,7 @@ func checkProofIntegrity(
 
 	prevHeaderProof := hdr.GetPreviousProof()
 	nilPreviousProof := check.IfNil(prevHeaderProof)
-	shouldHavePrevProof := common.ShouldBlockHavePrevProof(hdr, enableEpochsHandler, common.EquivalentMessagesFlag)
+	shouldHavePrevProof := common.ShouldBlockHavePrevProof(hdr, enableEpochsHandler, common.AndromedaFlag)
 	missingPrevProof := nilPreviousProof && shouldHavePrevProof
 	unexpectedPrevProof := !nilPreviousProof && !shouldHavePrevProof
 	hasPrevProof := !nilPreviousProof && !missingPrevProof

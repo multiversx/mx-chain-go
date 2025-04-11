@@ -908,8 +908,8 @@ func TestEnableEpochConfig(t *testing.T) {
 	# RelayedTransactionsV3FixESDTTransferEnableEpoch represents the epoch when the fix for relayed transactions v3 with esdt transfer will be enabled
     RelayedTransactionsV3FixESDTTransferEnableEpoch = 104
 
-	# EquivalentMessagesEnableEpoch represents the epoch when the equivalent messages are enabled
-	EquivalentMessagesEnableEpoch = 105
+	# AndromedaEnableEpoch represents the epoch when the equivalent messages are enabled
+	AndromedaEnableEpoch = 105
 
     # MaxNodesChangeEnableEpoch holds configuration for changing the maximum number of nodes and the enabling epoch
     MaxNodesChangeEnableEpoch = [
@@ -1033,7 +1033,7 @@ func TestEnableEpochConfig(t *testing.T) {
 			FixRelayedMoveBalanceToNonPayableSCEnableEpoch:           102,
 			RelayedTransactionsV3EnableEpoch:                         103,
 			RelayedTransactionsV3FixESDTTransferEnableEpoch:          104,
-			EquivalentMessagesEnableEpoch:                            105,
+			AndromedaEnableEpoch:                            105,
 			MaxNodesChangeEnableEpoch: []MaxNodesChangeConfig{
 				{
 					EpochEnable:            44,

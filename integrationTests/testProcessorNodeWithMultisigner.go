@@ -184,7 +184,7 @@ func CreateNodeWithBLSAndTxKeys(
 		ScheduledMiniBlocksEnableEpoch:       UnreachableEpoch,
 		MiniBlockPartialExecutionEnableEpoch: UnreachableEpoch,
 		RefactorPeersMiniBlocksEnableEpoch:   UnreachableEpoch,
-		EquivalentMessagesEnableEpoch:        UnreachableEpoch,
+		AndromedaEnableEpoch:        UnreachableEpoch,
 	}
 
 	return CreateNode(
@@ -246,7 +246,7 @@ func CreateNodesWithNodesCoordinatorFactory(
 		StakingV4Step1EnableEpoch:                       UnreachableEpoch,
 		StakingV4Step2EnableEpoch:                       UnreachableEpoch,
 		StakingV4Step3EnableEpoch:                       UnreachableEpoch,
-		EquivalentMessagesEnableEpoch:                   UnreachableEpoch,
+		AndromedaEnableEpoch:                   UnreachableEpoch,
 	}
 
 	nodesMap := make(map[uint32][]*TestProcessorNode)
@@ -499,7 +499,7 @@ func CreateNodesWithNodesCoordinatorAndHeaderSigVerifier(
 					StakingV2EnableEpoch:                 UnreachableEpoch,
 					ScheduledMiniBlocksEnableEpoch:       UnreachableEpoch,
 					MiniBlockPartialExecutionEnableEpoch: UnreachableEpoch,
-					EquivalentMessagesEnableEpoch:        UnreachableEpoch,
+					AndromedaEnableEpoch:        UnreachableEpoch,
 				},
 				NodeKeys:                cp.NodesKeys[shardId][i],
 				NodesSetup:              nodesSetup,
@@ -640,7 +640,7 @@ func CreateNodesWithNodesCoordinatorKeygenAndSingleSigner(
 					StakingV2EnableEpoch:                 UnreachableEpoch,
 					ScheduledMiniBlocksEnableEpoch:       UnreachableEpoch,
 					MiniBlockPartialExecutionEnableEpoch: UnreachableEpoch,
-					EquivalentMessagesEnableEpoch:        UnreachableEpoch,
+					AndromedaEnableEpoch:        UnreachableEpoch,
 				},
 				NodeKeys:                cp.NodesKeys[shardId][i],
 				NodesSetup:              nodesSetup,

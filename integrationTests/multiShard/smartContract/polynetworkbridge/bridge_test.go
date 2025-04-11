@@ -32,7 +32,7 @@ func TestBridgeSetupAndBurn(t *testing.T) {
 		GlobalMintBurnDisableEpoch:          integrationTests.UnreachableEpoch,
 		SCProcessorV2EnableEpoch:            integrationTests.UnreachableEpoch,
 		FixAsyncCallBackArgsListEnableEpoch: integrationTests.UnreachableEpoch,
-		EquivalentMessagesEnableEpoch:       integrationTests.UnreachableEpoch,
+		AndromedaEnableEpoch:       integrationTests.UnreachableEpoch,
 	}
 	arwenVersion := config.WasmVMVersionByEpoch{Version: "v1.4"}
 	vmConfig := &config.VirtualMachineConfig{

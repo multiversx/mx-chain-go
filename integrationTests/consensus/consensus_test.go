@@ -96,7 +96,7 @@ func testConsensusBLSWithFullProcessing(t *testing.T, equivalentProofsActivation
 
 	enableEpochsConfig := integrationTests.CreateEnableEpochsConfig()
 
-	enableEpochsConfig.EquivalentMessagesEnableEpoch = equivalentProofsActivationEpoch
+	enableEpochsConfig.AndromedaEnableEpoch = equivalentProofsActivationEpoch
 
 	fmt.Println("Step 1. Setup nodes...")
 
@@ -408,7 +408,7 @@ func runFullConsensusTest(
 	enableEpochsConfig := integrationTests.CreateEnableEpochsConfig()
 
 	equivalentProofsActivationEpoch := integrationTests.UnreachableEpoch
-	enableEpochsConfig.EquivalentMessagesEnableEpoch = equivalentProofsActivationEpoch
+	enableEpochsConfig.AndromedaEnableEpoch = equivalentProofsActivationEpoch
 
 	nodes := initNodesAndTest(
 		numMetaNodes,
@@ -467,7 +467,7 @@ func runConsensusWithNotEnoughValidators(t *testing.T, consensusType string) {
 	numInvalid := uint32(2)
 	roundTime := uint64(1000)
 	enableEpochsConfig := integrationTests.CreateEnableEpochsConfig()
-	enableEpochsConfig.EquivalentMessagesEnableEpoch = integrationTests.UnreachableEpoch
+	enableEpochsConfig.AndromedaEnableEpoch = integrationTests.UnreachableEpoch
 	nodes := initNodesAndTest(numMetaNodes, numNodes, consensusSize, numInvalid, roundTime, consensusType, 1, enableEpochsConfig)
 
 	defer func() {

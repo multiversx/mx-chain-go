@@ -428,7 +428,7 @@ func (ihnc *indexHashedNodesCoordinator) selectLeaderAndConsensusGroup(
 	epoch uint32,
 ) (Validator, []Validator, error) {
 	leaderPositionInSelection := 0
-	if !ihnc.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, epoch) {
+	if !ihnc.enableEpochsHandler.IsFlagEnabledInEpoch(common.AndromedaFlag, epoch) {
 		tempList, err := selectValidators(selector, randomness, uint32(consensusSize), eligibleList)
 		if err != nil {
 			return nil, nil, err

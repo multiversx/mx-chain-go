@@ -2279,7 +2279,7 @@ func TestShardBootstrap_HandleEquivalentProof(t *testing.T) {
 		args.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
 			IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
 				if epoch == 4 {
-					return flag == common.EquivalentMessagesFlag
+					return flag == common.AndromedaFlag
 				}
 
 				return false
@@ -2324,7 +2324,7 @@ func TestShardBootstrap_HandleEquivalentProof(t *testing.T) {
 		args := CreateShardBootstrapMockArguments()
 		args.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
 			IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
-				return flag == common.EquivalentMessagesFlag
+				return flag == common.AndromedaFlag
 			},
 		}
 
@@ -2382,7 +2382,7 @@ func TestShardBootstrap_HandleEquivalentProof(t *testing.T) {
 		args := CreateShardBootstrapMockArguments()
 		args.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
 			IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
-				return flag == common.EquivalentMessagesFlag
+				return flag == common.AndromedaFlag
 			},
 		}
 
@@ -2453,7 +2453,7 @@ func TestShardBootstrap_HandleEquivalentProof(t *testing.T) {
 		args := CreateShardBootstrapMockArguments()
 		args.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
 			IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
-				return flag == common.EquivalentMessagesFlag
+				return flag == common.AndromedaFlag
 			},
 		}
 
@@ -2519,7 +2519,7 @@ func TestShardBootstrap_HandleEquivalentProof(t *testing.T) {
 		args := CreateShardBootstrapMockArguments()
 		args.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
 			IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
-				return flag == common.EquivalentMessagesFlag
+				return flag == common.AndromedaFlag
 			},
 		}
 

@@ -393,7 +393,7 @@ func TestCheckHeaderHandler_ShouldWork_WithPrevProof(t *testing.T) {
 
 	enableEpochsHandler := &enableEpochsHandlerMock.EnableEpochsHandlerStub{
 		IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
-			return flag == common.EquivalentMessagesFlag
+			return flag == common.AndromedaFlag
 		},
 	}
 	hdr.SetPreviousProof(&block.HeaderProof{HeaderNonce: 1})

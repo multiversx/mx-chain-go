@@ -393,7 +393,7 @@ func (sp *shardProcessor) checkProofsRequestingMissing(header data.ShardHeaderHa
 			return fmt.Errorf("%w for header hash %s", process.ErrMissingHeader, hex.EncodeToString(metaBlockHash))
 		}
 
-		if !sp.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, hInfo.hdr.GetEpoch()) {
+		if !sp.enableEpochsHandler.IsFlagEnabledInEpoch(common.AndromedaFlag, hInfo.hdr.GetEpoch()) {
 			continue
 		}
 
@@ -512,7 +512,7 @@ func (sp *shardProcessor) checkEpochCorrectness(
 	}
 
 	epochChangeConfirmed := sp.epochStartTrigger.EpochStartRound() < sp.epochStartTrigger.EpochFinalityAttestingRound()
-	if sp.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, header.GetEpoch()) {
+	if sp.enableEpochsHandler.IsFlagEnabledInEpoch(common.AndromedaFlag, header.GetEpoch()) {
 		epochChangeConfirmed = sp.epochStartTrigger.EpochStartRound() <= sp.epochStartTrigger.EpochFinalityAttestingRound()
 	}
 
@@ -619,7 +619,7 @@ func (sp *shardProcessor) checkMetaHdrFinality(header data.HeaderHandler) error 
 		return process.ErrNilBlockHeader
 	}
 
-	if sp.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, header.GetEpoch()) {
+	if sp.enableEpochsHandler.IsFlagEnabledInEpoch(common.AndromedaFlag, header.GetEpoch()) {
 		return sp.checkHeaderHasProof(header)
 	}
 
@@ -645,7 +645,7 @@ func (sp *shardProcessor) checkMetaHdrFinality(header data.HeaderHandler) error 
 				continue
 			}
 
-			if sp.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, metaHdr.GetEpoch()) {
+			if sp.enableEpochsHandler.IsFlagEnabledInEpoch(common.AndromedaFlag, metaHdr.GetEpoch()) {
 				return sp.checkHeaderHasProof(metaHdr)
 			}
 
@@ -1101,7 +1101,7 @@ func (sp *shardProcessor) CommitBlock(
 	}
 
 	finalHeaderHash := headerHash
-	if !common.ShouldBlockHavePrevProof(header, sp.enableEpochsHandler, common.EquivalentMessagesFlag) {
+	if !common.ShouldBlockHavePrevProof(header, sp.enableEpochsHandler, common.AndromedaFlag) {
 		finalHeaderHash = currentHeaderHash
 	}
 
@@ -1313,7 +1313,7 @@ func (sp *shardProcessor) updateState(headers []data.HeaderHandler, currentHeade
 			sp.accountsDB[state.UserAccountsState],
 		)
 
-		if sp.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, header.GetEpoch()) {
+		if sp.enableEpochsHandler.IsFlagEnabledInEpoch(common.AndromedaFlag, header.GetEpoch()) {
 			continue
 		}
 
@@ -1322,7 +1322,7 @@ func (sp *shardProcessor) updateState(headers []data.HeaderHandler, currentHeade
 		sp.setFinalBlockInfo(header, headerHash, scheduledHeaderRootHash)
 	}
 
-	if !sp.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, currentHeader.GetEpoch()) {
+	if !sp.enableEpochsHandler.IsFlagEnabledInEpoch(common.AndromedaFlag, currentHeader.GetEpoch()) {
 		return
 	}
 
@@ -1845,7 +1845,7 @@ func (sp *shardProcessor) receivedMetaBlock(headerHandler data.HeaderHandler, me
 }
 
 func (sp *shardProcessor) hasProofForMetablock(metaBlockHash []byte, metaBlock *block.MetaBlock) bool {
-	shouldConsiderProofsForNotarization := sp.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, metaBlock.Epoch)
+	shouldConsiderProofsForNotarization := sp.enableEpochsHandler.IsFlagEnabledInEpoch(common.AndromedaFlag, metaBlock.Epoch)
 	if !shouldConsiderProofsForNotarization {
 		sp.hdrsForCurrBlock.missingFinalityAttestingHdrs = sp.requestMissingFinalityAttestingHeaders(
 			core.MetachainShardId,
@@ -1899,7 +1899,7 @@ func (sp *shardProcessor) computeExistingAndRequestMissingMetaHeaders(header dat
 			sp.hdrsForCurrBlock.highestHdrNonce[core.MetachainShardId] = hdr.GetNonce()
 		}
 
-		shouldConsiderProofsForNotarization := sp.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, hdr.GetEpoch())
+		shouldConsiderProofsForNotarization := sp.enableEpochsHandler.IsFlagEnabledInEpoch(common.AndromedaFlag, hdr.GetEpoch())
 		hasProofForMetablock := sp.proofsPool.HasProof(core.MetachainShardId, metaBlockHashes[i])
 		if !shouldConsiderProofsForNotarization {
 			continue
@@ -2046,7 +2046,7 @@ func (sp *shardProcessor) createAndProcessMiniBlocksDstMe(haveTime func() bool) 
 		}
 
 		hasProofForHdr := sp.proofsPool.HasProof(core.MetachainShardId, orderedMetaBlocksHashes[i])
-		shouldConsiderProofsForNotarization := sp.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, orderedMetaBlocks[i].GetEpoch())
+		shouldConsiderProofsForNotarization := sp.enableEpochsHandler.IsFlagEnabledInEpoch(common.AndromedaFlag, orderedMetaBlocks[i].GetEpoch())
 		if !hasProofForHdr && shouldConsiderProofsForNotarization {
 			log.Trace("no proof for meta header",
 				"hash", logger.DisplayByteSlice(orderedMetaBlocksHashes[i]),

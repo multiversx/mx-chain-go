@@ -84,7 +84,7 @@ func (inHdr *InterceptedHeader) CheckValidity() error {
 }
 
 func (inHdr *InterceptedHeader) verifySignatures() error {
-	if inHdr.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, inHdr.hdr.GetEpoch()) {
+	if inHdr.enableEpochsHandler.IsFlagEnabledInEpoch(common.AndromedaFlag, inHdr.hdr.GetEpoch()) {
 		return inHdr.verifySignaturesForEquivalentProofs()
 	}
 	err := inHdr.sigVerifier.VerifyRandSeedAndLeaderSignature(inHdr.hdr)

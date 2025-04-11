@@ -120,7 +120,7 @@ func (imh *InterceptedMetaHeader) CheckValidity() error {
 		return err
 	}
 
-	if imh.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, imh.hdr.GetEpoch()) {
+	if imh.enableEpochsHandler.IsFlagEnabledInEpoch(common.AndromedaFlag, imh.hdr.GetEpoch()) {
 		return imh.verifySignaturesForEquivalentProofs()
 	}
 

@@ -247,7 +247,7 @@ func TestInterceptedHeader_CheckValidityLeaderSignatureOkWithFlagActiveShouldWor
 	arg := createDefaultShardArgumentWithV2Support()
 	arg.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
 		IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
-			return flag == common.EquivalentMessagesFlag
+			return flag == common.AndromedaFlag
 		},
 	}
 	wasVerifySignatureCalled := false

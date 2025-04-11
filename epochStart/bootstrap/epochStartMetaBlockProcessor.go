@@ -160,7 +160,7 @@ func (e *epochStartMetaBlockProcessor) Save(data process.InterceptedData, fromCo
 		return nil
 	}
 
-	if e.isEpochStartConfirmationBlockWithEquivalentMessages(metaBlock) {
+	if e.isEpochStartConfirmationBlockWithAndromeda(metaBlock) {
 		log.Debug("received epoch start confirmation meta block", "epoch", metaBlock.GetEpoch(), "from peer", fromConnectedPeer.Pretty())
 		e.chanConfMetaBlockReached <- true
 
@@ -170,8 +170,8 @@ func (e *epochStartMetaBlockProcessor) Save(data process.InterceptedData, fromCo
 	return nil
 }
 
-func (e *epochStartMetaBlockProcessor) isEpochStartConfirmationBlockWithEquivalentMessages(metaBlock data.HeaderHandler) bool {
-	if !e.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, metaBlock.GetEpoch()) {
+func (e *epochStartMetaBlockProcessor) isEpochStartConfirmationBlockWithAndromeda(metaBlock data.HeaderHandler) bool {
+	if !e.enableEpochsHandler.IsFlagEnabledInEpoch(common.AndromedaFlag, metaBlock.GetEpoch()) {
 		return false
 	}
 
@@ -220,7 +220,7 @@ func (e *epochStartMetaBlockProcessor) GetEpochStartMetaBlock(ctx context.Contex
 		return nil, err
 	}
 
-	if e.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, metaBlock.GetEpoch()) {
+	if e.enableEpochsHandler.IsFlagEnabledInEpoch(common.AndromedaFlag, metaBlock.GetEpoch()) {
 		err = e.waitForConfMetaBlock(ctx, metaBlock)
 		if err != nil {
 			return nil, err

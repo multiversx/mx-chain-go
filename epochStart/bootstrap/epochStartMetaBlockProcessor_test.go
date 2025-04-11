@@ -351,7 +351,7 @@ func TestEpochStartMetaBlockProcessor_GetEpochStartMetaBlockShouldWorkFromFirstT
 	assert.Equal(t, expectedMetaBlock, mb)
 }
 
-func TestEpochStartMetaBlockProcessor_GetEpochStartMetaBlock_BeforeEquivalentMessages(t *testing.T) {
+func TestEpochStartMetaBlockProcessor_GetEpochStartMetaBlock_BeforeAndromeda(t *testing.T) {
 	t.Parallel()
 
 	tts := durationBetweenChecks - 10*time.Millisecond
@@ -393,7 +393,7 @@ func TestEpochStartMetaBlockProcessor_GetEpochStartMetaBlock_BeforeEquivalentMes
 	assert.Equal(t, expectedMetaBlock, mb)
 }
 
-func TestEpochStartMetaBlockProcessor_GetEpochStartMetaBlock_AfterEquivalentMessages(t *testing.T) {
+func TestEpochStartMetaBlockProcessor_GetEpochStartMetaBlock_AfterAndromeda(t *testing.T) {
 	t.Parallel()
 
 	tts := durationBetweenChecks - 10*time.Millisecond
@@ -412,7 +412,7 @@ func TestEpochStartMetaBlockProcessor_GetEpochStartMetaBlock_AfterEquivalentMess
 		3,
 		&enableEpochsHandlerMock.EnableEpochsHandlerStub{
 			IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
-				return flag == common.EquivalentMessagesFlag
+				return flag == common.AndromedaFlag
 			},
 		},
 	)

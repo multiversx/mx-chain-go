@@ -78,7 +78,7 @@ func testChainSimulatorJailAndUnJail(t *testing.T, targetEpoch int32, nodeStatus
 		MetaChainMinNodes:      4,
 		AlterConfigsFunction: func(cfg *config.Configs) {
 			configs.SetStakingV4ActivationEpochs(cfg, stakingV4JailUnJailStep1EnableEpoch)
-			cfg.EpochConfig.EnableEpochs.EquivalentMessagesEnableEpoch = 100
+			cfg.EpochConfig.EnableEpochs.AndromedaEnableEpoch = 100
 			newNumNodes := cfg.SystemSCConfig.StakingSystemSCConfig.MaxNumberOfNodesForStake + 8 // 8 nodes until new nodes will be placed on queue
 			configs.SetMaxNumberOfNodesInConfigs(cfg, uint32(newNumNodes), 0, numOfShards)
 			configs.SetQuickJailRatingConfig(cfg)

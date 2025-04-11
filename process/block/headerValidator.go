@@ -99,7 +99,7 @@ func (h *headerValidator) IsHeaderConstructionValid(currHeader, prevHeader data.
 }
 
 func (h *headerValidator) verifyProofForBlock(header data.HeaderHandler, proof data.HeaderProofHandler) error {
-	if !h.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, header.GetEpoch()) {
+	if !h.enableEpochsHandler.IsFlagEnabledInEpoch(common.AndromedaFlag, header.GetEpoch()) {
 		return nil
 	}
 

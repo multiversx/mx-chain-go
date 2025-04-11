@@ -449,7 +449,7 @@ func (st *storageBootstrapper) applyBlock(headerHash []byte, header data.HeaderH
 	}
 
 	st.blkc.SetCurrentBlockHeaderHash(headerHash)
-	if !st.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, header.GetEpoch()) {
+	if !st.enableEpochsHandler.IsFlagEnabledInEpoch(common.AndromedaFlag, header.GetEpoch()) {
 		return nil
 	}
 

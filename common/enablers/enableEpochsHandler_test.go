@@ -125,7 +125,7 @@ func createEnableEpochsConfig() config.EnableEpochs {
 		UseGasBoundedShouldFailExecutionEnableEpoch:              108,
 		RelayedTransactionsV3EnableEpoch:                         109,
 		RelayedTransactionsV3FixESDTTransferEnableEpoch:          110,
-		EquivalentMessagesEnableEpoch:                            111,
+		AndromedaEnableEpoch:                            111,
 	}
 }
 
@@ -328,7 +328,7 @@ func TestEnableEpochsHandler_IsFlagEnabled(t *testing.T) {
 	require.True(t, handler.IsFlagEnabled(common.DynamicESDTFlag))
 	require.True(t, handler.IsFlagEnabled(common.FixRelayedBaseCostFlag))
 	require.True(t, handler.IsFlagEnabled(common.FixRelayedMoveBalanceToNonPayableSCFlag))
-	require.True(t, handler.IsFlagEnabled(common.EquivalentMessagesFlag))
+	require.True(t, handler.IsFlagEnabled(common.AndromedaFlag))
 }
 
 func TestEnableEpochsHandler_GetActivationEpoch(t *testing.T) {
@@ -454,7 +454,7 @@ func TestEnableEpochsHandler_GetActivationEpoch(t *testing.T) {
 	require.Equal(t, cfg.FixRelayedMoveBalanceToNonPayableSCEnableEpoch, handler.GetActivationEpoch(common.FixRelayedMoveBalanceToNonPayableSCFlag))
 	require.Equal(t, cfg.RelayedTransactionsV3EnableEpoch, handler.GetActivationEpoch(common.RelayedTransactionsV3Flag))
 	require.Equal(t, cfg.RelayedTransactionsV3FixESDTTransferEnableEpoch, handler.GetActivationEpoch(common.RelayedTransactionsV3FixESDTTransferFlag))
-	require.Equal(t, cfg.EquivalentMessagesEnableEpoch, handler.GetActivationEpoch(common.EquivalentMessagesFlag))
+	require.Equal(t, cfg.AndromedaEnableEpoch, handler.GetActivationEpoch(common.AndromedaFlag))
 }
 
 func TestEnableEpochsHandler_IsInterfaceNil(t *testing.T) {

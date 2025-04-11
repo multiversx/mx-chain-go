@@ -718,7 +718,7 @@ func (boot *baseBootstrap) handleEquivalentProof(
 	header data.HeaderHandler,
 	headerHash []byte,
 ) error {
-	if !boot.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, header.GetEpoch()) {
+	if !boot.enableEpochsHandler.IsFlagEnabledInEpoch(common.AndromedaFlag, header.GetEpoch()) {
 		return nil
 	}
 
@@ -768,7 +768,7 @@ func (boot *baseBootstrap) cleanNoncesSyncedWithErrorsBehindFinal() {
 }
 
 func (boot *baseBootstrap) cleanProofsBehindFinal(header data.HeaderHandler) {
-	if !boot.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, header.GetEpoch()) {
+	if !boot.enableEpochsHandler.IsFlagEnabledInEpoch(common.AndromedaFlag, header.GetEpoch()) {
 		return
 	}
 

@@ -138,7 +138,7 @@ func CreateChainSimulatorConfigs(args ArgsChainSimulatorConfigs) (*ArgsConfigsSi
 	if args.AlterConfigsFunction != nil {
 		args.AlterConfigsFunction(configs)
 		// this is needed to keep in sync EquivalentMessage flag and the second entry from chain parameters
-		configs.GeneralConfig.GeneralSettings.ChainParametersByEpoch[1].EnableEpoch = configs.EpochConfig.EnableEpochs.EquivalentMessagesEnableEpoch
+		configs.GeneralConfig.GeneralSettings.ChainParametersByEpoch[1].EnableEpoch = configs.EpochConfig.EnableEpochs.AndromedaEnableEpoch
 	}
 
 	return &ArgsConfigsSimulator{

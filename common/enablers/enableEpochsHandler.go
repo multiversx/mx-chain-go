@@ -792,11 +792,11 @@ func (handler *enableEpochsHandler) createAllFlagsMap() {
 			},
 			activationEpoch: handler.enableEpochsConfig.RelayedTransactionsV3FixESDTTransferEnableEpoch,
 		},
-		common.EquivalentMessagesFlag: {
+		common.AndromedaFlag: {
 			isActiveInEpoch: func(epoch uint32) bool {
-				return epoch >= handler.enableEpochsConfig.EquivalentMessagesEnableEpoch
+				return epoch >= handler.enableEpochsConfig.AndromedaEnableEpoch
 			},
-			activationEpoch: handler.enableEpochsConfig.EquivalentMessagesEnableEpoch,
+			activationEpoch: handler.enableEpochsConfig.AndromedaEnableEpoch,
 		},
 	}
 }
