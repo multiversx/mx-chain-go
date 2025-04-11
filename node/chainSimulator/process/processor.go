@@ -143,6 +143,14 @@ func (creator *blocksCreator) CreateNewBlock() error {
 		return err
 	}
 
+	prevHeaderStartOfEpoch := false
+	if prevHeader != nil {
+		prevHeaderStartOfEpoch = prevHeader.IsStartOfEpochBlock()
+	}
+	if prevHeaderStartOfEpoch {
+		creator.updatePeerShardMapper(header.GetEpoch())
+	}
+
 	headerProof, err := creator.ApplySignaturesAndGetProof(header, prevHeader, previousProof, enableEpochHandler, validators, leader, pubKeyBitmap)
 	if err != nil {
 		return err
@@ -177,6 +185,30 @@ func (creator *blocksCreator) CreateNewBlock() error {
 	}
 
 	return messenger.BroadcastTransactions(transactions, leader.PubKey())
+}
+
+func (creator *blocksCreator) updatePeerShardMapper(
+	epoch uint32,
+) {
+	peerShardMapper := creator.nodeHandler.GetProcessComponents().PeerShardMapper()
+
+	nc := creator.nodeHandler.GetProcessComponents().NodesCoordinator()
+
+	eligibleMaps, err := nc.GetAllEligibleValidatorsPublicKeys(epoch)
+	if err != nil {
+		log.Error("failed to get eligible validators map", "error", err)
+		return
+	}
+
+	for shardID, eligibleMap := range eligibleMaps {
+		for _, pubKey := range eligibleMap {
+			peerID := creator.nodeHandler.GetBasePeers()[shardID]
+
+			log.Debug("added custom peer mapping", "peerID", peerID.Pretty(), "shardID", shardID, "addrs", pubKey)
+			peerShardMapper.UpdatePeerIDInfo(peerID, pubKey, shardID)
+		}
+	}
+
 }
 
 func (creator *blocksCreator) ApplySignaturesAndGetProof(
