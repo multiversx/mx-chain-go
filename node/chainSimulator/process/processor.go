@@ -169,7 +169,7 @@ func (creator *blocksCreator) CreateNewBlock() error {
 	return messenger.BroadcastTransactions(transactions, leader.PubKey())
 }
 
-// ApplySignaturesAndGetProof =
+// ApplySignaturesAndGetProof -
 func (creator *blocksCreator) ApplySignaturesAndGetProof(
 	header data.HeaderHandler,
 	prevHeader data.HeaderHandler,

@@ -626,10 +626,12 @@ func (e *epochStartBootstrap) createSyncers() error {
 	}
 
 	syncMissingHeadersArgs := updateSync.ArgsNewMissingHeadersByHashSyncer{
-		Storage:        disabled.CreateMemUnit(),
-		Cache:          e.dataPool.Headers(),
-		Marshalizer:    e.coreComponentsHolder.InternalMarshalizer(),
-		RequestHandler: e.requestHandler,
+		Storage:             disabled.CreateMemUnit(),
+		Cache:               e.dataPool.Headers(),
+		ProofsPool:          e.dataPool.Proofs(),
+		Marshalizer:         e.coreComponentsHolder.InternalMarshalizer(),
+		RequestHandler:      e.requestHandler,
+		EnableEpochsHandler: e.enableEpochsHandler,
 	}
 	e.headersSyncer, err = updateSync.NewMissingheadersByHashSyncer(syncMissingHeadersArgs)
 	if err != nil {

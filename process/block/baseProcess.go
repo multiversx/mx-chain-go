@@ -1134,6 +1134,7 @@ func (bp *baseProcessor) cleanupPoolsForCrossShard(
 	)
 
 	if common.IsFlagEnabledAfterEpochsStartBlock(crossNotarizedHeader, bp.enableEpochsHandler, common.EquivalentMessagesFlag) {
+		err = bp.dataPool.Proofs().CleanupProofsBehindNonce(shardID, noncesToPrevFinal)
 		if err != nil {
 			log.Warn("failed to cleanup notarized proofs behind nonce",
 				"nonce", noncesToPrevFinal,

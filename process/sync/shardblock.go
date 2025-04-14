@@ -292,34 +292,6 @@ func (boot *ShardBootstrap) getHeaderWithHashRequestingIfMissing(hash []byte) (d
 	return hdr, nil
 }
 
-func (boot *ShardBootstrap) checkProofForHashRequestingIfMissing(
-	hash []byte,
-	shard uint32,
-) error {
-	// if header already in pool, check proof and request it if needed
-	if boot.proofs.HasProof(shard, hash) {
-		return nil
-	}
-
-	// safe to reuse same mechanism and channel
-	_ = core.EmptyChannel(boot.chRcvHdrHash)
-	boot.setRequestedHeaderHash(hash)
-	log.Debug("requesting equivalent proof from network",
-		"hash", hex.EncodeToString(hash),
-	)
-	boot.requestHandler.RequestEquivalentProofByHash(boot.shardCoordinator.SelfId(), hash)
-	err := boot.waitForHeaderHash()
-	if err != nil {
-		return err
-	}
-
-	if !boot.proofs.HasProof(boot.shardCoordinator.SelfId(), hash) {
-		return process.ErrMissingHeaderProof
-	}
-
-	return nil
-}
-
 func (boot *ShardBootstrap) getPrevHeader(
 	header data.HeaderHandler,
 	headerStore storage.Storer,

@@ -882,7 +882,7 @@ func (rrh *resolverRequestHandler) RequestEquivalentProofByHash(headerShard uint
 
 	requester, err := rrh.getEquivalentProofsRequester(headerShard)
 	if err != nil {
-		log.Error("RequestEquivalentProof.getEquivalentProofsRequester",
+		log.Error("RequestEquivalentProofByHash.getEquivalentProofsRequester",
 			"error", err.Error(),
 			"headerHash", hex.EncodeToString(headerHash),
 		)
@@ -895,7 +895,7 @@ func (rrh *resolverRequestHandler) RequestEquivalentProofByHash(headerShard uint
 	epoch := rrh.getEpoch()
 	err = requester.RequestDataFromHash([]byte(requestKey), epoch)
 	if err != nil {
-		log.Debug("RequestEquivalentProof.RequestDataFromHash",
+		log.Debug("RequestEquivalentProofByHash.RequestDataFromHash",
 			"error", err.Error(),
 			"headerHash", hex.EncodeToString(headerHash),
 			"headerShard", headerShard,
@@ -921,7 +921,7 @@ func (rrh *resolverRequestHandler) RequestEquivalentProofByNonce(headerShard uin
 
 	requester, err := rrh.getEquivalentProofsRequester(headerShard)
 	if err != nil {
-		log.Error("RequestEquivalentProof.getEquivalentProofsRequester",
+		log.Error("RequestEquivalentProofByNonce.getEquivalentProofsRequester",
 			"error", err.Error(),
 			"headerNonce", headerNonce,
 		)
@@ -939,7 +939,7 @@ func (rrh *resolverRequestHandler) RequestEquivalentProofByNonce(headerShard uin
 	epoch := rrh.getEpoch()
 	err = proofsRequester.RequestDataFromNonce([]byte(key), epoch)
 	if err != nil {
-		log.Debug("RequestEquivalentProof.RequestDataFromNonce",
+		log.Debug("RequestEquivalentProofByNonce.RequestDataFromNonce",
 			"error", err.Error(),
 			"headerNonce", headerNonce,
 			"headerShard", headerShard,
