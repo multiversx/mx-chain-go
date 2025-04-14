@@ -9,6 +9,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/state"
@@ -235,7 +236,9 @@ func (boot *MetaBootstrap) requestHeaderWithNonce(nonce uint64) {
 		"probable highest nonce", boot.forkDetector.ProbableHighestNonce(),
 	)
 	boot.requestHandler.RequestMetaHeaderByNonce(nonce)
-	boot.requestHandler.RequestEquivalentProofByNonce(core.MetachainShardId, nonce)
+	if !boot.hasProofByNonce(nonce) {
+		boot.requestHandler.RequestEquivalentProofByNonce(core.MetachainShardId, nonce)
+	}
 }
 
 // requestHeaderWithHash method requests a block header from network when it is not found in the pool
@@ -246,7 +249,9 @@ func (boot *MetaBootstrap) requestHeaderWithHash(hash []byte) {
 		"probable highest nonce", boot.forkDetector.ProbableHighestNonce(),
 	)
 	boot.requestHandler.RequestMetaHeader(hash)
-	boot.requestHandler.RequestEquivalentProofByHash(core.MetachainShardId, hash)
+	if !boot.hasProof(hash) {
+		boot.requestHandler.RequestEquivalentProofByHash(core.MetachainShardId, hash)
+	}
 }
 
 // getHeaderWithNonceRequestingIfMissing method gets the header with a given nonce from pool. If it is not found there, it will
@@ -272,7 +277,7 @@ func (boot *MetaBootstrap) getHeaderWithNonceRequestingIfMissing(nonce uint64) (
 	}
 
 	// if header already in pool, check proof and request it if needed
-	if boot.proofs.HasProof(core.MetachainShardId, hash) {
+	if boot.hasProof(hash) {
 		return hdr, hash, nil
 	}
 
@@ -314,7 +319,7 @@ func (boot *MetaBootstrap) getHeaderWithHashRequestingIfMissing(hash []byte) (da
 	}
 
 	// if header already in pool, check proof and request it if needed
-	if boot.proofs.HasProof(core.MetachainShardId, hash) {
+	if boot.hasProof(hash) {
 		return hdr, nil
 	}
 
@@ -335,6 +340,23 @@ func (boot *MetaBootstrap) getHeaderWithHashRequestingIfMissing(hash []byte) (da
 	}
 
 	return hdr, nil
+}
+
+func (boot *MetaBootstrap) hasProof(hash []byte) bool {
+	if !boot.enableEpochsHandler.IsFlagEnabled(common.EquivalentMessagesFlag) {
+		return true
+	}
+
+	return boot.proofs.HasProof(core.MetachainShardId, hash)
+}
+
+func (boot *MetaBootstrap) hasProofByNonce(nonce uint64) bool {
+	if !boot.enableEpochsHandler.IsFlagEnabled(common.EquivalentMessagesFlag) {
+		return true
+	}
+
+	_, err := boot.proofs.GetProofByNonce(nonce, core.MetachainShardId)
+	return err == nil
 }
 
 func (boot *MetaBootstrap) getPrevHeader(
@@ -371,15 +393,15 @@ func (boot *MetaBootstrap) getCurrHeader() (data.HeaderHandler, error) {
 	return header, nil
 }
 
-func (boot *MetaBootstrap) haveHeaderInPoolWithNonce(nonce uint64) bool {
+func (boot *MetaBootstrap) haveHeaderInPoolWithNonce(nonce uint64) (bool, bool) {
 	_, hash, err := process.GetMetaHeaderFromPoolWithNonce(
 		nonce,
 		boot.headers)
 	if err != nil {
-		return false
+		return false, boot.proofs.HasProof(core.MetachainShardId, hash)
 	}
 
-	return boot.proofs.HasProof(core.MetachainShardId, hash)
+	return true, boot.proofs.HasProof(core.MetachainShardId, hash)
 }
 
 func (boot *MetaBootstrap) getMetaHeaderFromPool(headerHash []byte) (data.HeaderHandler, error) {
@@ -443,6 +465,9 @@ func (boot *MetaBootstrap) isForkTriggeredByMeta() bool {
 
 func (boot *MetaBootstrap) requestHeaderByNonce(nonce uint64) {
 	boot.requestHandler.RequestMetaHeaderByNonce(nonce)
+}
+
+func (boot *MetaBootstrap) requestProofByNonce(nonce uint64) {
 	boot.requestHandler.RequestEquivalentProofByNonce(core.MetachainShardId, nonce)
 }
 

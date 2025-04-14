@@ -172,7 +172,7 @@ func (m *syncHeadersByHash) SyncMissingHeadersByHash(shardIDs []uint32, headersH
 }
 
 func (m *syncHeadersByHash) hasProof(shardID uint32, hash []byte) bool {
-	if !m.enableEpochsHandler.IsFlagEnabled(common.EquivalentProofsTopic) {
+	if !m.enableEpochsHandler.IsFlagEnabled(common.EquivalentMessagesFlag) {
 		return true
 	}
 

@@ -961,7 +961,7 @@ func (rrh *resolverRequestHandler) getEquivalentProofsRequester(headerShard uint
 
 	isSelfMeta := rrh.shardID == core.MetachainShardId
 	isRequestForMeta := headerShard == core.MetachainShardId
-	shardIdMissmatch := rrh.shardID != headerShard && !isRequestForMeta
+	shardIdMissmatch := rrh.shardID != headerShard && !isRequestForMeta && !isSelfMeta
 	isRequestInvalid := !isSelfMeta && shardIdMissmatch
 	if isRequestInvalid {
 		return nil, dataRetriever.ErrBadRequest

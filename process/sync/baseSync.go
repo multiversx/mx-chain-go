@@ -174,11 +174,11 @@ func (boot *baseBootstrap) processReceivedProof(headerProof data.HeaderProofHand
 }
 
 func (boot *baseBootstrap) checkProofCorrespondsToRequestedHash(headerProof data.HeaderProofHandler) {
-	boot.mutRcvHdrHash.Lock()
+	boot.mutRcvHdrHash.RLock()
 	hash := boot.requestedHeaderHash()
 	wasHashRequested := hash != nil && bytes.Equal(hash, headerProof.GetHeaderHash())
 	if !wasHashRequested {
-		boot.mutRcvHdrHash.Unlock()
+		boot.mutRcvHdrHash.RUnlock()
 		return
 	}
 
@@ -188,22 +188,22 @@ func (boot *baseBootstrap) checkProofCorrespondsToRequestedHash(headerProof data
 	hasHeader := err == nil
 	if hasHeader {
 		boot.setRequestedHeaderHash(nil)
-		boot.mutRcvHdrHash.Unlock()
+		boot.mutRcvHdrHash.RUnlock()
 
 		boot.chRcvHdrHash <- true
 
 		return
 	}
 
-	boot.mutRcvHdrHash.Unlock()
+	boot.mutRcvHdrHash.RUnlock()
 }
 
 func (boot *baseBootstrap) checkProofCorrespondsToRequestedNonce(headerProof data.HeaderProofHandler) {
-	boot.mutRcvHdrNonce.Lock()
+	boot.mutRcvHdrNonce.RLock()
 	n := boot.requestedHeaderNonce()
 	wasNonceRequested := n != nil && *n == headerProof.GetHeaderNonce()
 	if !wasNonceRequested {
-		boot.mutRcvHdrNonce.Unlock()
+		boot.mutRcvHdrNonce.RUnlock()
 		return
 	}
 
@@ -213,14 +213,14 @@ func (boot *baseBootstrap) checkProofCorrespondsToRequestedNonce(headerProof dat
 	hasHeader := err == nil
 	if hasHeader {
 		boot.setRequestedHeaderNonce(nil)
-		boot.mutRcvHdrNonce.Unlock()
+		boot.mutRcvHdrNonce.RUnlock()
 
 		boot.chRcvHdrNonce <- true
 
 		return
 	}
 
-	boot.mutRcvHdrNonce.Unlock()
+	boot.mutRcvHdrNonce.RUnlock()
 }
 
 func (boot *baseBootstrap) processReceivedHeader(headerHandler data.HeaderHandler, headerHash []byte) {
@@ -1302,12 +1302,17 @@ func (boot *baseBootstrap) requestHeaders(fromNonce uint64, toNonce uint64) {
 	defer boot.mutRequestHeaders.Unlock()
 
 	for currentNonce := fromNonce; currentNonce <= toNonce; currentNonce++ {
-		haveHeader := boot.blockBootstrapper.haveHeaderInPoolWithNonce(currentNonce)
-		if haveHeader {
+		hasHeader, hasProof := boot.blockBootstrapper.haveHeaderInPoolWithNonce(currentNonce)
+		if hasHeader && hasProof {
 			continue
 		}
 
-		boot.blockBootstrapper.requestHeaderByNonce(currentNonce)
+		if !hasHeader {
+			boot.blockBootstrapper.requestHeaderByNonce(currentNonce)
+		}
+		if !hasProof {
+			boot.blockBootstrapper.requestProofByNonce(currentNonce)
+		}
 	}
 }
 

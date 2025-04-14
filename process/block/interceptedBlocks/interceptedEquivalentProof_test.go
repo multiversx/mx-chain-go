@@ -435,7 +435,10 @@ func TestInterceptedEquivalentProof_Getters(t *testing.T) {
 
 	require.Equal(t, proof, iep.GetProof()) // pointer testing
 	require.Equal(t, hash, iep.Hash())
-	require.Equal(t, [][]byte{proof.HeaderHash}, iep.Identifiers())
+	require.Equal(t, [][]byte{
+		proof.HeaderHash,
+		[]byte(common.GetEquivalentProofNonceShardKey(proof.HeaderNonce, proof.HeaderShardId)),
+	}, iep.Identifiers())
 	require.Equal(t, interceptedEquivalentProofType, iep.Type())
 	expectedStr := fmt.Sprintf("bitmap=%s, signature=%s, hash=%s, epoch=123, shard=0, nonce=345, round=123456, isEpochStart=false",
 		logger.DisplayByteSlice(proof.PubKeysBitmap),

@@ -59,8 +59,10 @@ type nonceAndHashInfo struct {
 }
 
 type hdrInfo struct {
-	usedInBlock bool
-	hdr         data.HeaderHandler
+	usedInBlock       bool
+	hdr               data.HeaderHandler
+	hasProof          bool
+	hasProofRequested bool
 }
 
 type baseProcessor struct {
@@ -124,10 +126,8 @@ type baseProcessor struct {
 	nonceOfFirstCommittedBlock    core.OptionalUint64
 	extraDelayRequestBlockInfo    time.Duration
 
-	proofsPool            dataRetriever.ProofsPool
-	mutRequestedProofsMap sync.RWMutex
-	requestedProofsMap    map[string]struct{}
-	allProofsReceived     chan bool
+	proofsPool   dataRetriever.ProofsPool
+	chRcvAllHdrs chan bool
 }
 
 type bootStorerDataArgs struct {
@@ -2303,86 +2303,45 @@ func (bp *baseProcessor) getHeaderHash(header data.HeaderHandler) ([]byte, error
 	return bp.hasher.Compute(string(marshalledHeader)), nil
 }
 
-func (bp *baseProcessor) checkProofRequestingIfMissing(
-	headerHash []byte,
-	headerShard uint32,
-) {
-	if bp.proofsPool.HasProof(headerShard, headerHash) {
-		return
+func (bp *baseProcessor) requestProofIfNeeded(currentHeaderHash []byte, epoch uint32, shardID uint32) bool {
+	if !bp.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, epoch) {
+		return false
+	}
+	if bp.proofsPool.HasProof(shardID, currentHeaderHash) {
+		return true
 	}
 
-	log.Debug("could not find proof for header, requesting it",
-		"current hash", hex.EncodeToString(headerHash),
-		"header shard", headerShard)
-
-	bp.requestProof(headerHash, headerShard)
-}
-
-func (bp *baseProcessor) requestProof(currentHeaderHash []byte, shardID uint32) {
-	bp.mutRequestedProofsMap.Lock()
-	bp.requestedProofsMap[string(currentHeaderHash)] = struct{}{}
-	bp.mutRequestedProofsMap.Unlock()
-
+	bp.hdrsForCurrBlock.hdrHashAndInfo[string(currentHeaderHash)].hasProofRequested = true
+	bp.hdrsForCurrBlock.missingProofs++
 	go bp.requestHandler.RequestEquivalentProofByHash(shardID, currentHeaderHash)
-}
 
-func (bp *baseProcessor) waitAllMissingProofs(waitTime time.Duration) error {
-	bp.mutRequestedProofsMap.RLock()
-	isWaitingForProofs := len(bp.requestedProofsMap) > 0
-	bp.mutRequestedProofsMap.RUnlock()
-	if !isWaitingForProofs {
-		return nil
-	}
-
-	select {
-	case <-bp.allProofsReceived:
-		return nil
-	case <-time.After(waitTime):
-		bp.mutRequestedProofsMap.RLock()
-		defer bp.mutRequestedProofsMap.RUnlock()
-
-		logMessage := ""
-		for hash := range bp.requestedProofsMap {
-			logMessage += fmt.Sprintf("\nhash = %s", hex.EncodeToString([]byte(hash)))
-		}
-
-		log.Debug("baseProcessor.waitAllMissingProofs still pending proofs for headers" + logMessage)
-
-		return process.ErrTimeIsOut
-	}
+	return false
 }
 
 func (bp *baseProcessor) checkReceivedProofIfAttestingIsNeeded(proof data.HeaderProofHandler) {
-	bp.mutRequestedProofsMap.RLock()
-	isWaitingForProofs := len(bp.requestedProofsMap) > 0
-	bp.mutRequestedProofsMap.RUnlock()
+	bp.hdrsForCurrBlock.mutHdrsForBlock.Lock()
+	hdrHashAndInfo, ok := bp.hdrsForCurrBlock.hdrHashAndInfo[string(proof.GetHeaderHash())]
+	if !ok {
+		bp.hdrsForCurrBlock.mutHdrsForBlock.Unlock()
+		return // proof not missing
+	}
+
+	isWaitingForProofs := hdrHashAndInfo.hasProofRequested
 	if !isWaitingForProofs {
+		bp.hdrsForCurrBlock.mutHdrsForBlock.Unlock()
 		return
 	}
 
-	allProofsReceived := bp.checkReceivedProofAndUpdateMissing(proof)
-	if allProofsReceived {
-		bp.allProofsReceived <- true
+	hdrHashAndInfo.hasProof = true
+	bp.hdrsForCurrBlock.missingProofs--
+
+	missingMetaHdrs := bp.hdrsForCurrBlock.missingHdrs
+	missingFinalityAttestingMetaHdrs := bp.hdrsForCurrBlock.missingFinalityAttestingHdrs
+	missingProofs := bp.hdrsForCurrBlock.missingProofs
+	bp.hdrsForCurrBlock.mutHdrsForBlock.Unlock()
+
+	allMissingMetaHeadersReceived := missingMetaHdrs == 0 && missingFinalityAttestingMetaHdrs == 0 && missingProofs == 0
+	if allMissingMetaHeadersReceived {
+		bp.chRcvAllHdrs <- true
 	}
-}
-
-func (bp *baseProcessor) checkReceivedProofAndUpdateMissing(proof data.HeaderProofHandler) bool {
-	bp.mutRequestedProofsMap.Lock()
-	defer bp.mutRequestedProofsMap.Unlock()
-
-	_, isMissingProof := bp.requestedProofsMap[string(proof.GetHeaderHash())]
-	if !isMissingProof {
-		log.Trace("received proof but not from the requested ones")
-		return len(bp.requestedProofsMap) == 0
-	}
-
-	if !bp.proofsPool.HasProof(proof.GetHeaderShardId(), proof.GetHeaderHash()) {
-		// this should never happen
-		log.Debug("received proof but proof is still missing", "hash", hex.EncodeToString(proof.GetHeaderHash()))
-		return len(bp.requestedProofsMap) == 0
-	}
-
-	delete(bp.requestedProofsMap, string(proof.GetHeaderHash()))
-
-	return len(bp.requestedProofsMap) == 0
 }

@@ -9,6 +9,8 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-go/testscommon/genericMocks"
+	"github.com/multiversx/mx-chain-go/testscommon/pool"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -173,5 +175,8 @@ func getEpochStartSyncerArgs() ArgsNewEpochStartMetaSyncer {
 		MetaBlockProcessor:             &mock.EpochStartMetaBlockProcessorStub{},
 		InterceptedDataVerifierFactory: &processMock.InterceptedDataVerifierFactoryMock{},
 		ProofsPool:                     &dataRetriever.ProofsPoolMock{},
+		ProofsInterceptorProcessor:     &processMock.InterceptorProcessorStub{},
+		Storage:                        &genericMocks.ChainStorerMock{},
+		HeadersPool:                    &pool.HeadersPoolStub{},
 	}
 }

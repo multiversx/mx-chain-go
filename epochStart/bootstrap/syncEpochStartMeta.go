@@ -225,12 +225,7 @@ func (e *epochStartMetaSyncer) initTopicForEpochStartMetaBlockInterceptor() erro
 		return err
 	}
 
-	err = e.messenger.RegisterMessageProcessor(proofsTopic, common.EpochStartInterceptorsIdentifier, e.proofsInterceptor)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return e.messenger.RegisterMessageProcessor(proofsTopic, common.EpochStartInterceptorsIdentifier, e.proofsInterceptor)
 }
 
 // IsInterfaceNil returns true if underlying object is nil

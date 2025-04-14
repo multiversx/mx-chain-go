@@ -2030,7 +2030,7 @@ func TestResolverRequestHandler_RequestEquivalentProofByHash(t *testing.T) {
 
 		rrh.RequestEquivalentProofByHash(core.MetachainShardId, providedHash)
 	})
-	t.Run("invalid cross shard request should early exit", func(t *testing.T) {
+	t.Run("invalid cross-shard request should early exit", func(t *testing.T) {
 		t.Parallel()
 
 		providedHash := []byte("provided hash")
@@ -2072,7 +2072,7 @@ func TestResolverRequestHandler_RequestEquivalentProofByHash(t *testing.T) {
 
 		rrh.RequestEquivalentProofByHash(core.MetachainShardId, providedHash)
 	})
-	t.Run("missing crossshard requester should early exit", func(t *testing.T) {
+	t.Run("missing cross-shard requester should early exit", func(t *testing.T) {
 		t.Parallel()
 
 		providedHash := []byte("provided hash")
@@ -2093,7 +2093,7 @@ func TestResolverRequestHandler_RequestEquivalentProofByHash(t *testing.T) {
 			time.Second,
 		)
 
-		rrh.RequestEquivalentProofByHash(core.MetachainShardId, providedHash)
+		rrh.RequestEquivalentProofByHash(1, providedHash)
 	})
 	t.Run("MetaChainRequester returns error", func(t *testing.T) {
 		t.Parallel()
@@ -2215,7 +2215,7 @@ func TestResolverRequestHandler_RequestEquivalentProofByHash(t *testing.T) {
 		wasCalled := false
 		res := &dataRetrieverMocks.RequesterStub{
 			RequestDataFromHashCalled: func(hash []byte, epoch uint32) error {
-				key := fmt.Sprintf("%s-%d", string(providedHash), core.MetachainShardId)
+				key := fmt.Sprintf("%s-%d", string(providedHash), 0)
 				assert.True(t, bytes.Equal([]byte(key), hash))
 				wasCalled = true
 				return nil
