@@ -164,7 +164,7 @@ func (iep *interceptedEquivalentProof) CheckValidity() (err error) {
 	rand := rand2.Intn(1000)
 	log.Debug(fmt.Sprintf("Checking intercepted equivalent proof validity %d", rand), "proof header hash", iep.proof.HeaderHash)
 	defer func() {
-		log.Debug(fmt.Sprintf("Finished checking intercepted equivalent proof validity %d", rand), "proof header hash", iep.proof.HeaderHash, "err", err)
+		log.Debug(fmt.Sprintf("Finished intercepted equivalent proof validity %d", rand), "proof header hash", iep.proof.HeaderHash, "err", err)
 	}()
 	err = iep.integrity()
 	if err != nil {
