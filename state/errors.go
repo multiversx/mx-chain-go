@@ -171,3 +171,6 @@ var ErrNilStateAccessesCollector = errors.New("nil state accesses collector")
 
 // ErrStateChangesIndexOutOfBounds signals that the state changes index is out of bounds
 var ErrStateChangesIndexOutOfBounds = errors.New("state changes index out of bounds")
+
+// ErrNilStateAccessesStorer signals that a nil state accesses storer has been given
+var ErrNilStateAccessesStorer = errors.New("nil state accesses storer")

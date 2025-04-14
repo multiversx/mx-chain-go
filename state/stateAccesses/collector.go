@@ -8,29 +8,27 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	data "github.com/multiversx/mx-chain-core-go/data/stateChange"
-	"github.com/multiversx/mx-chain-core-go/marshal"
 	logger "github.com/multiversx/mx-chain-logger-go"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 
 	"github.com/multiversx/mx-chain-go/state"
-	"github.com/multiversx/mx-chain-go/storage"
 )
 
 var log = logger.GetOrCreate("state/stateAccesses")
 
 type collector struct {
-	collectRead     bool
-	collectWrite    bool
-	stateAccesses   []*data.StateAccess
-	stateChangesMut sync.RWMutex
-	storer          storage.Persister
-	marshaller      marshal.Marshalizer
+	collectRead         bool
+	collectWrite        bool
+	stateAccesses       []*data.StateAccess
+	stateAccessesForTxs map[string]*data.StateAccesses
+	storer              state.StateAccessesStorer
+	stateChangesMut     sync.RWMutex
 }
 
 // NewCollector will collect based on the options the state changes.
-func NewCollector(marshaller marshal.Marshalizer, opts ...CollectorOption) (*collector, error) {
-	if check.IfNil(marshaller) {
-		return nil, state.ErrNilMarshalizer
+func NewCollector(storer state.StateAccessesStorer, opts ...CollectorOption) (*collector, error) {
+	if check.IfNil(storer) {
+		return nil, state.ErrNilStateAccessesStorer
 	}
 
 	c := &collector{stateAccesses: make([]*data.StateAccess, 0)}
@@ -38,11 +36,10 @@ func NewCollector(marshaller marshal.Marshalizer, opts ...CollectorOption) (*col
 		opt(c)
 	}
 
-	c.marshaller = marshaller
+	c.storer = storer
 	log.Debug("created new state changes collector",
 		"withRead", c.collectRead,
 		"withWrite", c.collectWrite,
-		"withStorer", c.storer != nil,
 	)
 
 	return c, nil
@@ -156,25 +153,8 @@ func (c *collector) Store() error {
 	c.stateChangesMut.RLock()
 	defer c.stateChangesMut.RUnlock()
 
-	// TODO: evaluate adding a more explicit field check here
-	if check.IfNil(c.storer) {
-		return nil
-	}
-
 	stateAccessesForTxs := getStateAccessesForTxs(c.stateAccesses, true)
-	for txHash, stateChange := range stateAccessesForTxs {
-		marshalledData, err := c.marshaller.Marshal(stateChange)
-		if err != nil {
-			return fmt.Errorf("failed to marshal state changes: %w", err)
-		}
-
-		err = c.storer.Put([]byte(txHash), marshalledData)
-		if err != nil {
-			return fmt.Errorf("failed to store marshalled data: %w", err)
-		}
-	}
-
-	return nil
+	return c.storer.Store(stateAccessesForTxs)
 }
 
 // AddTxHashToCollectedStateChanges will try to set txHash field to each state change

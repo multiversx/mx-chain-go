@@ -368,3 +368,9 @@ type StateAccessesCollector interface {
 	RevertToIndex(index int) error
 	IsInterfaceNil() bool
 }
+
+// StateAccessesStorer defines the methods needed for an StateAccessesStorer implementation
+type StateAccessesStorer interface {
+	Store(_ map[string]*data.StateAccesses) error
+	IsInterfaceNil() bool
+}

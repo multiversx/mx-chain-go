@@ -32,6 +32,7 @@ import (
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/state/accounts"
 	"github.com/multiversx/mx-chain-go/state/dataTrieValue"
+	stateDisabled "github.com/multiversx/mx-chain-go/state/disabled"
 	"github.com/multiversx/mx-chain-go/state/factory"
 	"github.com/multiversx/mx-chain-go/state/iteratorChannelsProvider"
 	"github.com/multiversx/mx-chain-go/state/lastSnapshotMarker"
@@ -171,7 +172,7 @@ func getDefaultStateComponents(
 		StateStatsHandler:    statistics.NewStateStatistics(),
 	})
 
-	collector, _ := stateAccesses.NewCollector(marshaller, stateAccesses.WithCollectWrite())
+	collector, _ := stateAccesses.NewCollector(stateDisabled.NewDisabledStateAccessesStorer(), stateAccesses.WithCollectWrite())
 	argsAccountsDB := state.ArgsAccountsDB{
 		Trie:                   tr,
 		Hasher:                 hasher,

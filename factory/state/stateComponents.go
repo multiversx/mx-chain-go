@@ -142,6 +142,7 @@ func (scf *stateComponentsFactory) createStateAccessesCollector() (state.StateAc
 		opts = append(opts, stateAccesses.WithCollectWrite())
 	}
 
+	storerForCollector := disabled.NewDisabledStateAccessesStorer()
 	if scf.config.StateTriesConfig.StateChangesDataAnalysis {
 		// TODO: move to toml config file
 		dbConfig := config.DBConfig{
@@ -159,13 +160,16 @@ func (scf *stateComponentsFactory) createStateAccessesCollector() (state.StateAc
 
 		db, err := persisterFactory.CreateWithRetries(dbConfig.FilePath)
 		if err != nil {
-			return nil, fmt.Errorf("%w while creating the db for the trie nodes", err)
+			return nil, fmt.Errorf("%w while creating the db for the state accesses collector", err)
 		}
 
-		opts = append(opts, stateAccesses.WithStorer(db))
+		storerForCollector, err = stateAccesses.NewStateAccessesStorer(db, scf.core.InternalMarshalizer())
+		if err != nil {
+			return nil, fmt.Errorf("%w while creating the storer for the state accesses", err)
+		}
 	}
 
-	return stateAccesses.NewCollector(scf.core.InternalMarshalizer(), opts...)
+	return stateAccesses.NewCollector(storerForCollector, opts...)
 }
 
 func (scf *stateComponentsFactory) createStateAccessesCollectorPeerAccounts() (state.StateAccessesCollector, error) {
