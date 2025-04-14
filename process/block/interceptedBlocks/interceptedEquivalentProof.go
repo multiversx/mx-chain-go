@@ -2,6 +2,7 @@ package interceptedBlocks
 
 import (
 	"fmt"
+	rand2 "math/rand"
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
@@ -159,9 +160,13 @@ func extractIsForCurrentShard(shardCoordinator sharding.Coordinator, equivalentP
 }
 
 // CheckValidity checks if the received proof is valid
-func (iep *interceptedEquivalentProof) CheckValidity() error {
-	log.Debug("Checking intercepted equivalent proof validity", "proof header hash", iep.proof.HeaderHash)
-	err := iep.integrity()
+func (iep *interceptedEquivalentProof) CheckValidity() (err error) {
+	rand := rand2.Intn(1000)
+	log.Debug(fmt.Sprintf("Checking intercepted equivalent proof validity %d", rand), "proof header hash", iep.proof.HeaderHash)
+	defer func() {
+		log.Debug(fmt.Sprintf("Finished checking intercepted equivalent proof validity %d", rand), "proof header hash", iep.proof.HeaderHash, "err", err)
+	}()
+	err = iep.integrity()
 	if err != nil {
 		return err
 	}
