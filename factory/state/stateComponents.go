@@ -322,7 +322,7 @@ func (scf *stateComponentsFactory) createPeerAdapter(triesContainer common.Tries
 		return nil, err
 	}
 
-	StateAccessesCollector, err := scf.createStateAccessesCollectorPeerAccounts()
+	stateAccessesCollector, err := scf.createStateAccessesCollectorPeerAccounts()
 	if err != nil {
 		return nil, err
 	}
@@ -335,7 +335,7 @@ func (scf *stateComponentsFactory) createPeerAdapter(triesContainer common.Tries
 		StoragePruningManager:  storagePruning,
 		AddressConverter:       scf.core.AddressPubKeyConverter(),
 		SnapshotsManager:       snapshotManager,
-		StateAccessesCollector: StateAccessesCollector,
+		StateAccessesCollector: stateAccessesCollector,
 	}
 	peerAdapter, err := state.NewPeerAccountsDB(argsProcessingPeerAccountsDB)
 	if err != nil {

@@ -85,7 +85,7 @@ type AccountsDB struct {
 	lastRootHash           []byte
 	dataTries              common.TriesHolder
 	entries                []JournalEntry
-	StateAccessesCollector StateAccessesCollector
+	stateAccessesCollector StateAccessesCollector
 	mutOp                  sync.RWMutex
 	loadCodeMeasurements   *loadingMeasurements
 	addressConverter       core.PubkeyConverter
@@ -133,7 +133,7 @@ func createAccountsDb(args ArgsAccountsDB) *AccountsDB {
 		},
 		addressConverter:       args.AddressConverter,
 		snapshotsManger:        args.SnapshotsManager,
-		StateAccessesCollector: args.StateAccessesCollector,
+		stateAccessesCollector: args.StateAccessesCollector,
 	}
 }
 
@@ -216,7 +216,7 @@ func (adb *AccountsDB) GetCode(codeHash []byte) []byte {
 		Operation:       stateChange.GetCode,
 		DataTrieChanges: nil,
 	}
-	adb.StateAccessesCollector.AddStateAccess(sc)
+	adb.stateAccessesCollector.AddStateAccess(sc)
 
 	err = adb.marshaller.Unmarshal(&codeEntry, val)
 	if err != nil {
@@ -293,7 +293,7 @@ func (adb *AccountsDB) SaveAccount(account vmcommon.AccountHandler) error {
 		Index:           int32(len(adb.entries)),
 	}
 
-	adb.StateAccessesCollector.AddSaveAccountStateAccess(oldAccount, account, sc)
+	adb.stateAccessesCollector.AddSaveAccountStateAccess(oldAccount, account, sc)
 
 	return nil
 }
@@ -379,7 +379,7 @@ func (adb *AccountsDB) updateOldCodeEntry(oldCodeHash []byte) (*CodeEntry, error
 		Operation:       stateChange.GetCode,
 		DataTrieChanges: nil,
 	}
-	adb.StateAccessesCollector.AddStateAccess(sc)
+	adb.stateAccessesCollector.AddStateAccess(sc)
 
 	unmodifiedOldCodeEntry := &CodeEntry{
 		Code:          oldCodeEntry.Code,
@@ -399,7 +399,7 @@ func (adb *AccountsDB) updateOldCodeEntry(oldCodeHash []byte) (*CodeEntry, error
 			Operation:       stateChange.WriteCode,
 			DataTrieChanges: nil,
 		}
-		adb.StateAccessesCollector.AddStateAccess(sc1)
+		adb.stateAccessesCollector.AddStateAccess(sc1)
 
 		return unmodifiedOldCodeEntry, nil
 	}
@@ -417,7 +417,7 @@ func (adb *AccountsDB) updateOldCodeEntry(oldCodeHash []byte) (*CodeEntry, error
 		Operation:       stateChange.WriteCode,
 		DataTrieChanges: nil,
 	}
-	adb.StateAccessesCollector.AddStateAccess(sc)
+	adb.stateAccessesCollector.AddStateAccess(sc)
 
 	return unmodifiedOldCodeEntry, nil
 }
@@ -439,7 +439,7 @@ func (adb *AccountsDB) updateNewCodeEntry(newCodeHash []byte, newCode []byte) er
 		Operation:       stateChange.GetCode,
 		DataTrieChanges: nil,
 	}
-	adb.StateAccessesCollector.AddStateAccess(sc)
+	adb.stateAccessesCollector.AddStateAccess(sc)
 
 	if newCodeEntry == nil {
 		newCodeEntry = &CodeEntry{
@@ -460,7 +460,7 @@ func (adb *AccountsDB) updateNewCodeEntry(newCodeHash []byte, newCode []byte) er
 		Operation:       stateChange.WriteCode,
 		DataTrieChanges: nil,
 	}
-	adb.StateAccessesCollector.AddStateAccess(sc)
+	adb.stateAccessesCollector.AddStateAccess(sc)
 
 	return nil
 }
@@ -660,7 +660,7 @@ func (adb *AccountsDB) removeDataTrie(baseAcc baseAccountHandler) error {
 		Operation:       stateChange.RemoveDataTrie,
 		DataTrieChanges: nil,
 	}
-	adb.StateAccessesCollector.AddStateAccess(sc)
+	adb.stateAccessesCollector.AddStateAccess(sc)
 	entry, err := NewJournalEntryDataTrieRemove(rootHash, adb.obsoleteDataTrieHashes)
 	if err != nil {
 		return err
@@ -730,7 +730,7 @@ func (adb *AccountsDB) getAccount(address []byte, mainTrie common.Trie) (vmcommo
 		Operation:       stateChange.GetAccount,
 		DataTrieChanges: nil,
 	}
-	adb.StateAccessesCollector.AddStateAccess(sc)
+	adb.stateAccessesCollector.AddStateAccess(sc)
 
 	acnt, err := adb.accountFactory.CreateAccount(address)
 	if err != nil {
@@ -862,7 +862,7 @@ func (adb *AccountsDB) RevertToSnapshot(snapshot int) error {
 
 	adb.entries = adb.entries[:snapshot]
 
-	return adb.StateAccessesCollector.RevertToIndex(snapshot)
+	return adb.stateAccessesCollector.RevertToIndex(snapshot)
 }
 
 // JournalLen will return the number of entries
@@ -919,7 +919,7 @@ func (adb *AccountsDB) commit() ([]byte, error) {
 	adb.entries = make([]JournalEntry, 0)
 
 	// If the StateAccessesCollector is configured in data analysis mode, it will persist the state changes locally
-	err := adb.StateAccessesCollector.Store()
+	err := adb.stateAccessesCollector.Store()
 	if err != nil {
 		return nil, err
 	}
@@ -1039,7 +1039,7 @@ func (adb *AccountsDB) recreateTrie(options common.RootHashHolder) error {
 	adb.dataTries.Reset()
 	adb.entries = make([]JournalEntry, 0)
 
-	adb.StateAccessesCollector.Reset()
+	adb.stateAccessesCollector.Reset()
 	newTrie, err := adb.mainTrie.Recreate(options)
 	if err != nil {
 		return err
@@ -1155,7 +1155,7 @@ func (adb *AccountsDB) journalize(entry JournalEntry) {
 		"entry type", fmt.Sprintf("%T", entry),
 	)
 
-	err := adb.StateAccessesCollector.SetIndexToLastStateChange(len(adb.entries))
+	err := adb.stateAccessesCollector.SetIndexToLastStateChange(len(adb.entries))
 	if err != nil {
 		log.Trace("failed to set index to last state change",
 			"num journal entries", len(adb.entries),
@@ -1311,7 +1311,7 @@ func collectStats(
 
 // SetTxHashForLatestStateChanges will return the state changes since the last call of this method
 func (adb *AccountsDB) SetTxHashForLatestStateChanges(txHash []byte) {
-	adb.StateAccessesCollector.AddTxHashToCollectedStateChanges(txHash)
+	adb.stateAccessesCollector.AddTxHashToCollectedStateChanges(txHash)
 }
 
 // IsSnapshotInProgress returns true if there is a snapshot in progress

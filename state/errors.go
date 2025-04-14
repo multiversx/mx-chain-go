@@ -140,7 +140,7 @@ var ErrNilAddressConverter = errors.New("nil address converter")
 var ErrNilEnableEpochsHandler = errors.New("nil enable epochs handler")
 
 // ErrNilStateMetrics signals that a nil state metrics has been provided
-var ErrNilStateMetrics = errors.New("nil sstate metrics")
+var ErrNilStateMetrics = errors.New("nil state metrics")
 
 // ErrNilChannelsProvider signals that a nil channels provider has been given
 var ErrNilChannelsProvider = errors.New("nil channels provider")
@@ -167,7 +167,7 @@ var ErrValidatorsDifferentShards = errors.New("validators are not in the same sh
 var ErrValidatorNotFound = errors.New("validator not found")
 
 // ErrNilStateAccessesCollector signals that a nil state access collector has been given
-var ErrNilStateAccessesCollector = errors.New("nil state changes collector")
+var ErrNilStateAccessesCollector = errors.New("nil state accesses collector")
 
 // ErrStateChangesIndexOutOfBounds signals that the state changes index is out of bounds
 var ErrStateChangesIndexOutOfBounds = errors.New("state changes index out of bounds")
