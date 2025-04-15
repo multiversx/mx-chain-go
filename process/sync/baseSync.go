@@ -391,8 +391,8 @@ func (boot *baseBootstrap) getEpochOfCurrentBlock() uint32 {
 	return epoch
 }
 
-// waitForHeaderNonce method wait for header with the requested nonce to be received
-func (boot *baseBootstrap) waitForHeaderNonce() error {
+// waitForHeaderAndProofByNonce method wait for header with the requested nonce to be received
+func (boot *baseBootstrap) waitForHeaderAndProofByNonce() error {
 	select {
 	case <-boot.chRcvHdrNonce:
 		return nil
@@ -1158,6 +1158,37 @@ func (boot *baseBootstrap) getHeaderWithHashRequestingIfMissing(hash []byte) (da
 	return hdr, nil
 }
 
+// getHeaderWithNonceRequestingIfMissing method gets the header with a given nonce from pool. If it is not found there, it will
+// be requested from network
+func (boot *baseBootstrap) getHeaderWithNonceRequestingIfMissing(nonce uint64) (data.HeaderHandler, []byte, error) {
+	hdr, hash, err := boot.getHeaderFromPoolWithNonce(nonce)
+
+	hasHeader := err == nil
+	hasProof := boot.hasProofByNonce(nonce)
+
+	if hasHeader && hasProof {
+		return hdr, hash, nil
+	}
+
+	boot.requestHeaderAndProofByNonceIfMissing(hash, nonce, hasHeader, hasProof)
+
+	err = boot.waitForHeaderAndProofByNonce()
+	if err != nil {
+		return nil, nil, err
+	}
+
+	hdr, hash, err = boot.getHeaderFromPoolWithNonce(nonce)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	if !boot.hasProof(hash) {
+		return nil, nil, process.ErrMissingHeaderProof
+	}
+
+	return hdr, hash, nil
+}
+
 func (boot *baseBootstrap) requestHeaderAndProofByHashIfMissing(
 	hash []byte,
 	hasHeader bool,
@@ -1171,13 +1202,47 @@ func (boot *baseBootstrap) requestHeaderAndProofByHashIfMissing(
 			"probable highest nonce", boot.forkDetector.ProbableHighestNonce(),
 		)
 		boot.requestHandler.RequestMetaHeader(hash)
+		if boot.shardCoordinator.SelfId() == core.MetachainShardId {
+			boot.requestHandler.RequestMetaHeader(hash)
+		} else {
+			boot.requestHandler.RequestShardHeader(boot.shardCoordinator.SelfId(), hash)
+		}
 	}
 
 	if !hasProof {
 		log.Debug("requesting equivalent proof from network",
 			"hash", hex.EncodeToString(hash),
 		)
-		boot.requestHandler.RequestEquivalentProofByHash(core.MetachainShardId, hash)
+		boot.requestHandler.RequestEquivalentProofByHash(boot.shardCoordinator.SelfId(), hash)
+	}
+}
+
+func (boot *baseBootstrap) requestHeaderAndProofByNonceIfMissing(
+	hash []byte,
+	nonce uint64,
+	hasHeader bool,
+	hasProof bool,
+) {
+	_ = core.EmptyChannel(boot.chRcvHdrNonce)
+	boot.setRequestedHeaderNonce(&nonce)
+	if !hasHeader {
+		log.Debug("requesting meta header by nonce from network",
+			"hash", hash,
+			"probable highest nonce", boot.forkDetector.ProbableHighestNonce(),
+		)
+
+		if boot.shardCoordinator.SelfId() == core.MetachainShardId {
+			boot.requestHandler.RequestMetaHeaderByNonce(nonce)
+		} else {
+			boot.requestHandler.RequestShardHeaderByNonce(boot.shardCoordinator.SelfId(), nonce)
+		}
+	}
+
+	if !hasProof {
+		log.Debug("requesting equivalent proof from network",
+			"hash", hex.EncodeToString(hash),
+		)
+		boot.requestHandler.RequestEquivalentProofByHash(boot.shardCoordinator.SelfId(), hash)
 	}
 }
 
@@ -1197,12 +1262,31 @@ func (boot *baseBootstrap) getHeaderFromPool(hash []byte) (data.HeaderHandler, e
 	return process.GetShardHeaderFromPool(hash, boot.headers)
 }
 
+func (boot *baseBootstrap) getHeaderFromPoolWithNonce(
+	nonce uint64,
+) (data.HeaderHandler, []byte, error) {
+	if boot.shardCoordinator.SelfId() == core.MetachainShardId {
+		return process.GetMetaHeaderFromPoolWithNonce(nonce, boot.headers)
+	}
+
+	return process.GetShardHeaderFromPoolWithNonce(nonce, boot.shardCoordinator.SelfId(), boot.headers)
+}
+
 func (boot *MetaBootstrap) hasProof(hash []byte) bool {
 	if !boot.enableEpochsHandler.IsFlagEnabled(common.EquivalentMessagesFlag) {
 		return true
 	}
 
 	return boot.proofs.HasProof(boot.shardCoordinator.SelfId(), hash)
+}
+
+func (boot *baseBootstrap) hasProofByNonce(nonce uint64) bool {
+	if !boot.enableEpochsHandler.IsFlagEnabled(common.EquivalentMessagesFlag) {
+		return true
+	}
+
+	_, err := boot.proofs.GetProofByNonce(nonce, boot.shardCoordinator.SelfId())
+	return err == nil
 }
 
 func (boot *baseBootstrap) isForcedRollBackOneBlock() bool {
