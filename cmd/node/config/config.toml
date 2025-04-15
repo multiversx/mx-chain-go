@@ -662,9 +662,18 @@
     MaxStateTrieLevelInMemory = 5
     MaxPeerTrieLevelInMemory = 5
     StateStatisticsEnabled = false
-    StateChangesTypesToCollect = []
-    StateChangesDataAnalysis = false
     StateChangesPeerAccountsEnabled = false
+
+[StateAccessesCollectorConfig]
+    TypesToCollect = []
+    SaveToStorage = false
+    WithAccountChanges = false
+    [DB]
+        FilePath = "StateAccesses"
+        Type = "LvlDBSerial"
+        BatchDelaySeconds = 2
+        MaxBatchSize = 100
+        MaxOpenFiles = 10
 
 [BlockSizeThrottleConfig]
     MinSizeInBytes = 104857 # 104857 is 10% from 1MB

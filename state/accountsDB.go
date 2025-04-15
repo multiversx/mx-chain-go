@@ -291,9 +291,10 @@ func (adb *AccountsDB) SaveAccount(account vmcommon.AccountHandler) error {
 		DataTrieChanges: newDataTrieValues,
 		Operation:       stateChange.SaveAccount,
 		Index:           int32(len(adb.entries)),
+		AccountChanges:  adb.stateAccessesCollector.GetAccountChanges(oldAccount, account),
 	}
 
-	adb.stateAccessesCollector.AddSaveAccountStateAccess(oldAccount, account, sc)
+	adb.stateAccessesCollector.AddStateAccess(sc)
 
 	return nil
 }

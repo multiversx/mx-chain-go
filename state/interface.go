@@ -359,9 +359,9 @@ type ValidatorInfoHandler interface {
 // StateAccessesCollector defines the methods needed for an StateAccessesCollector implementation
 type StateAccessesCollector interface {
 	AddStateAccess(stateAccess *data.StateAccess)
-	AddSaveAccountStateAccess(oldAccount, account vmcommon.AccountHandler, stateChange *data.StateAccess)
+	GetAccountChanges(oldAccount, account vmcommon.AccountHandler) *data.AccountChanges
 	Reset()
-	Publish() (map[string]*data.StateAccesses, error)
+	GetCollectedAccesses() map[string]*data.StateAccesses
 	Store() error
 	AddTxHashToCollectedStateChanges(txHash []byte)
 	SetIndexToLastStateChange(index int) error

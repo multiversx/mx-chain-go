@@ -323,8 +323,7 @@ func TestStateAccessesCollector_Publish(t *testing.T) {
 			}
 		}
 
-		stateChangesForTx, err := c.Publish()
-		require.NoError(t, err)
+		stateChangesForTx := c.GetCollectedAccesses()
 
 		require.Len(t, stateChangesForTx, 1)
 		require.Len(t, stateChangesForTx["hash0"].StateAccess, 10)
@@ -370,8 +369,7 @@ func TestStateAccessesCollector_Publish(t *testing.T) {
 			}
 		}
 
-		stateChangesForTx, err := c.Publish()
-		require.NoError(t, err)
+		stateChangesForTx := c.GetCollectedAccesses()
 
 		require.Len(t, stateChangesForTx, 1)
 		require.Len(t, stateChangesForTx["hash1"].StateAccess, 10)
@@ -417,8 +415,7 @@ func TestStateAccessesCollector_Publish(t *testing.T) {
 			}
 		}
 
-		stateChangesForTx, err := c.Publish()
-		require.NoError(t, err)
+		stateChangesForTx := c.GetCollectedAccesses()
 
 		require.Len(t, stateChangesForTx, 2)
 		require.Len(t, stateChangesForTx["hash0"].StateAccess, 10)
@@ -457,72 +454,42 @@ func TestStateAccessesCollector_Publish(t *testing.T) {
 	})
 }
 
-func TestDataAnalysisStateAccessesCollector_AddSaveAccountStateChange(t *testing.T) {
+func TestCollector_GetAccountChanges(t *testing.T) {
 	t.Parallel()
 
 	t.Run("nil old account should return early", func(t *testing.T) {
 		t.Parallel()
 
 		storer, _ := NewStateAccessesStorer(&mock.PersisterStub{}, &mock.MarshalizerMock{})
-		c, _ := NewCollector(storer, WithCollectWrite())
+		c, _ := NewCollector(storer, WithCollectWrite(), WithAccountChanges())
 
-		c.AddSaveAccountStateAccess(
+		accountChanges := c.GetAccountChanges(
 			nil,
 			&mockState.UserAccountStub{},
-			&data.StateAccess{
-				Type:        data.Write,
-				Index:       2,
-				TxHash:      []byte("txHash1"),
-				MainTrieKey: []byte("key1"),
-			},
 		)
-
-		c.AddTxHashToCollectedStateChanges([]byte("txHash1"))
-
-		stateChangesForTx := c.GetStateChanges()
-		require.Equal(t, 1, len(stateChangesForTx))
-		stateAccesses, ok := stateChangesForTx["txHash1"]
-		assert.True(t, ok)
-
-		sc := stateAccesses.StateAccess[0]
-		require.Nil(t, sc.AccountChanges)
+		assert.Nil(t, accountChanges)
 	})
 
 	t.Run("nil new account should return early", func(t *testing.T) {
 		t.Parallel()
 
 		storer, _ := NewStateAccessesStorer(&mock.PersisterStub{}, &mock.MarshalizerMock{})
-		c, _ := NewCollector(storer, WithCollectWrite())
+		c, _ := NewCollector(storer, WithCollectWrite(), WithAccountChanges())
 
-		c.AddSaveAccountStateAccess(
+		accountChanges := c.GetAccountChanges(
 			&mockState.UserAccountStub{},
 			nil,
-			&data.StateAccess{
-				Type:        data.Write,
-				Index:       2,
-				TxHash:      []byte("txHash1"),
-				MainTrieKey: []byte("key1"),
-			},
 		)
-
-		c.AddTxHashToCollectedStateChanges([]byte("txHash1"))
-
-		stateChangesForTx := c.GetStateChanges()
-		require.Equal(t, 1, len(stateChangesForTx))
-		stateAccesses, ok := stateChangesForTx["txHash1"]
-		assert.True(t, ok)
-
-		sc := stateAccesses.StateAccess[0]
-		require.Nil(t, sc.AccountChanges)
+		assert.Nil(t, accountChanges)
 	})
 
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
 
 		storer, _ := NewStateAccessesStorer(&mock.PersisterStub{}, &mock.MarshalizerMock{})
-		c, _ := NewCollector(storer, WithCollectWrite())
+		c, _ := NewCollector(storer, WithCollectWrite(), WithAccountChanges())
 
-		c.AddSaveAccountStateAccess(
+		accountChanges := c.GetAccountChanges(
 			&mockState.UserAccountStub{
 				Nonce:            0,
 				Balance:          big.NewInt(0),
@@ -549,35 +516,20 @@ func TestDataAnalysisStateAccessesCollector_AddSaveAccountStateChange(t *testing
 					return []byte{1}
 				},
 			},
-			&data.StateAccess{
-				Type:        data.Write,
-				Index:       2,
-				TxHash:      []byte("txHash1"),
-				MainTrieKey: []byte("key1"),
-			},
 		)
 
-		c.AddTxHashToCollectedStateChanges([]byte("txHash1"))
-
-		stateChangesForTx := c.GetStateChanges()
-		require.Equal(t, 1, len(stateChangesForTx))
-
-		stateAccesses, ok := stateChangesForTx["txHash1"]
-		assert.True(t, ok)
-
-		sc := stateAccesses.StateAccess[0]
-		require.True(t, sc.AccountChanges.Nonce)
-		require.True(t, sc.AccountChanges.Balance)
-		require.True(t, sc.AccountChanges.CodeHash)
-		require.True(t, sc.AccountChanges.RootHash)
-		require.True(t, sc.AccountChanges.DeveloperReward)
-		require.True(t, sc.AccountChanges.OwnerAddress)
-		require.True(t, sc.AccountChanges.UserName)
-		require.True(t, sc.AccountChanges.CodeMetadata)
+		require.True(t, accountChanges.Nonce)
+		require.True(t, accountChanges.Balance)
+		require.True(t, accountChanges.CodeHash)
+		require.True(t, accountChanges.RootHash)
+		require.True(t, accountChanges.DeveloperReward)
+		require.True(t, accountChanges.OwnerAddress)
+		require.True(t, accountChanges.UserName)
+		require.True(t, accountChanges.CodeMetadata)
 	})
 }
 
-func TestDataAnalysisStateAccessesCollector_Reset(t *testing.T) {
+func TestCollector_Reset(t *testing.T) {
 	t.Parallel()
 
 	storer, _ := NewStateAccessesStorer(&mock.PersisterStub{}, &mock.MarshalizerMock{})
@@ -593,7 +545,7 @@ func TestDataAnalysisStateAccessesCollector_Reset(t *testing.T) {
 	require.Equal(t, 0, len(c.GetStateChanges()))
 }
 
-func TestDataAnalysisStateAccessesCollector_Store(t *testing.T) {
+func TestCollector_Store(t *testing.T) {
 	t.Parallel()
 
 	t.Run("with storer", func(t *testing.T) {

@@ -16,8 +16,9 @@ func NewDisabledStateAccessesCollector() state.StateAccessesCollector {
 	return &disabledStateAccessesCollector{}
 }
 
-// AddSaveAccountStateAccess -
-func (d *disabledStateAccessesCollector) AddSaveAccountStateAccess(_, _ vmcommon.AccountHandler, _ *data.StateAccess) {
+// GetAccountChanges returns nil
+func (d *disabledStateAccessesCollector) GetAccountChanges(_, _ vmcommon.AccountHandler) *data.AccountChanges {
+	return nil
 }
 
 // AddStateAccess does nothing
@@ -42,9 +43,9 @@ func (d *disabledStateAccessesCollector) RevertToIndex(_ int) error {
 	return nil
 }
 
-// Publish -
-func (d *disabledStateAccessesCollector) Publish() (map[string]*data.StateAccesses, error) {
-	return nil, nil
+// GetCollectedAccesses -
+func (d *disabledStateAccessesCollector) GetCollectedAccesses() map[string]*data.StateAccesses {
+	return nil
 }
 
 // Store -

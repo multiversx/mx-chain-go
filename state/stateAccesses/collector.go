@@ -17,12 +17,12 @@ import (
 var log = logger.GetOrCreate("state/stateAccesses")
 
 type collector struct {
-	collectRead         bool
-	collectWrite        bool
-	stateAccesses       []*data.StateAccess
-	stateAccessesForTxs map[string]*data.StateAccesses
-	storer              state.StateAccessesStorer
-	stateChangesMut     sync.RWMutex
+	collectRead        bool
+	collectWrite       bool
+	withAccountChanges bool
+	stateAccesses      []*data.StateAccess
+	storer             state.StateAccessesStorer
+	stateChangesMut    sync.RWMutex
 }
 
 // NewCollector will collect based on the options the state changes.
@@ -40,6 +40,7 @@ func NewCollector(storer state.StateAccessesStorer, opts ...CollectorOption) (*c
 	log.Debug("created new state changes collector",
 		"withRead", c.collectRead,
 		"withWrite", c.collectWrite,
+		"withAccountChanges", c.withAccountChanges,
 	)
 
 	return c, nil
@@ -59,13 +60,13 @@ func (c *collector) AddStateAccess(stateAccess *data.StateAccess) {
 	}
 }
 
-// AddSaveAccountStateAccess adds a new state access for the save account operation
-func (c *collector) AddSaveAccountStateAccess(oldAccount, account vmcommon.AccountHandler, stateAccess *data.StateAccess) {
-	if c.storer != nil {
-		stateAccess.AccountChanges = getAccountChanges(oldAccount, account)
+// GetAccountChanges will return the account changes
+func (c *collector) GetAccountChanges(oldAccount, account vmcommon.AccountHandler) *data.AccountChanges {
+	if c.withAccountChanges {
+		return getAccountChanges(oldAccount, account)
 	}
 
-	c.AddStateAccess(stateAccess)
+	return nil
 }
 
 // Reset resets the state changes collector
@@ -77,15 +78,15 @@ func (c *collector) Reset() {
 	log.Trace("reset state changes collector")
 }
 
-// Publish will export state changes
-func (c *collector) Publish() (map[string]*data.StateAccesses, error) {
+// GetCollectedAccesses will return the collected state accesses
+func (c *collector) GetCollectedAccesses() map[string]*data.StateAccesses {
 	c.stateChangesMut.RLock()
 	defer c.stateChangesMut.RUnlock()
 
 	stateAccessesForTxs := getStateAccessesForTxs(c.stateAccesses, false)
 
 	logCollectedStateAccesses("state accesses to publish", stateAccessesForTxs)
-	return stateAccessesForTxs, nil
+	return stateAccessesForTxs
 }
 
 func getStateAccessesForTxs(collectedStateAccesses []*data.StateAccess, withAccountChanges bool) map[string]*data.StateAccesses {

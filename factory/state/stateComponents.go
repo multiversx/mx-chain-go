@@ -125,11 +125,11 @@ func (scf *stateComponentsFactory) Create() (*stateComponents, error) {
 }
 
 func (scf *stateComponentsFactory) createStateAccessesCollector() (state.StateAccessesCollector, error) {
-	if len(scf.config.StateTriesConfig.StateChangesTypesToCollect) == 0 {
+	if len(scf.config.StateAccessesCollectorConfig.TypesToCollect) == 0 {
 		return disabled.NewDisabledStateAccessesCollector(), nil
 	}
 
-	collectRead, collectWrite, err := parseStateChangesTypesToCollect(scf.config.StateTriesConfig.StateChangesTypesToCollect)
+	collectRead, collectWrite, err := parseStateChangesTypesToCollect(scf.config.StateAccessesCollectorConfig.TypesToCollect)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse state changes types to collect: %w", err)
 	}
@@ -141,35 +141,35 @@ func (scf *stateComponentsFactory) createStateAccessesCollector() (state.StateAc
 	if collectWrite {
 		opts = append(opts, stateAccesses.WithCollectWrite())
 	}
-
-	storerForCollector := disabled.NewDisabledStateAccessesStorer()
-	if scf.config.StateTriesConfig.StateChangesDataAnalysis {
-		// TODO: move to toml config file
-		dbConfig := config.DBConfig{
-			FilePath:          "stateAccesses",
-			Type:              "LvlDBSerial",
-			BatchDelaySeconds: 2,
-			MaxBatchSize:      100,
-			MaxOpenFiles:      10,
-		}
-
-		persisterFactory, err := storageFactory.NewPersisterFactory(dbConfig)
-		if err != nil {
-			return nil, err
-		}
-
-		db, err := persisterFactory.CreateWithRetries(dbConfig.FilePath)
-		if err != nil {
-			return nil, fmt.Errorf("%w while creating the db for the state accesses collector", err)
-		}
-
-		storerForCollector, err = stateAccesses.NewStateAccessesStorer(db, scf.core.InternalMarshalizer())
-		if err != nil {
-			return nil, fmt.Errorf("%w while creating the storer for the state accesses", err)
-		}
+	if scf.config.StateAccessesCollectorConfig.WithAccountChanges {
+		opts = append(opts, stateAccesses.WithAccountChanges())
 	}
 
-	return stateAccesses.NewCollector(storerForCollector, opts...)
+	storer, err := scf.getStorerForCollector()
+	if err != nil {
+		return nil, err
+	}
+
+	return stateAccesses.NewCollector(storer, opts...)
+}
+
+func (scf *stateComponentsFactory) getStorerForCollector() (state.StateAccessesStorer, error) {
+	if scf.config.StateAccessesCollectorConfig.SaveToStorage == false {
+		return disabled.NewDisabledStateAccessesStorer(), nil
+	}
+
+	dbConfig := scf.config.StateAccessesCollectorConfig.DB
+	persisterFactory, err := storageFactory.NewPersisterFactory(dbConfig)
+	if err != nil {
+		return nil, err
+	}
+
+	db, err := persisterFactory.CreateWithRetries(dbConfig.FilePath)
+	if err != nil {
+		return nil, fmt.Errorf("%w while creating the db for the state accesses collector", err)
+	}
+
+	return stateAccesses.NewStateAccessesStorer(db, scf.core.InternalMarshalizer())
 }
 
 func (scf *stateComponentsFactory) createStateAccessesCollectorPeerAccounts() (state.StateAccessesCollector, error) {

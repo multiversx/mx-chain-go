@@ -139,11 +139,6 @@ func (odp *outportDataProvider) PrepareOutportSaveBlockData(arg ArgPrepareOutpor
 		return nil, err
 	}
 
-	stateAccesses, err := odp.StateAccessesCollector.Publish()
-	if err != nil {
-		return nil, fmt.Errorf("failed to publish state changes: %w", err)
-	}
-
 	return &outportcore.OutportBlockWithHeaderAndBody{
 		OutportBlock: &outportcore.OutportBlock{
 			ShardID:         odp.shardID,
@@ -155,7 +150,7 @@ func (odp *outportDataProvider) PrepareOutportSaveBlockData(arg ArgPrepareOutpor
 				GasPenalized:   odp.gasConsumedProvider.TotalGasPenalized(),
 				MaxGasPerBlock: odp.economicsData.MaxGasLimitPerBlock(odp.shardID),
 			},
-			StateAccesses:          stateAccesses,
+			StateAccesses:          odp.StateAccessesCollector.GetCollectedAccesses(),
 			AlteredAccounts:        alteredAccounts,
 			NotarizedHeadersHashes: arg.NotarizedHeadersHashes,
 			NumberOfShards:         odp.numOfShards,

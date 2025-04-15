@@ -8,12 +8,12 @@ import (
 // StateAccessesCollectorStub represents a mock for the StateAccessesCollector interface
 type StateAccessesCollectorStub struct {
 	AddStateChangeCalled                   func(stateAccess *stateChange.StateAccess)
-	AddSaveAccountStateChangeCalled        func(oldAccount, account vmcommon.AccountHandler, stateChange *stateChange.StateAccess)
+	GetAccountChangesCalled                func(oldAccount, account vmcommon.AccountHandler) *stateChange.AccountChanges
 	ResetCalled                            func()
 	AddTxHashToCollectedStateChangesCalled func(txHash []byte)
 	SetIndexToLastStateChangeCalled        func(index int) error
 	RevertToIndexCalled                    func(index int) error
-	PublishCalled                          func() (map[string]*stateChange.StateAccesses, error)
+	GetCollectedAccessesCalled             func() map[string]*stateChange.StateAccesses
 	StoreCalled                            func() error
 	IsInterfaceNilCalled                   func() bool
 }
@@ -25,11 +25,12 @@ func (s *StateAccessesCollectorStub) AddStateAccess(stateChange *stateChange.Sta
 	}
 }
 
-// AddSaveAccountStateAccess -
-func (s *StateAccessesCollectorStub) AddSaveAccountStateAccess(oldAccount, account vmcommon.AccountHandler, stateChange *stateChange.StateAccess) {
-	if s.AddSaveAccountStateChangeCalled != nil {
-		s.AddSaveAccountStateChangeCalled(oldAccount, account, stateChange)
+// GetAccountChanges -
+func (s *StateAccessesCollectorStub) GetAccountChanges(oldAccount, account vmcommon.AccountHandler) *stateChange.AccountChanges {
+	if s.GetAccountChangesCalled != nil {
+		s.GetAccountChangesCalled(oldAccount, account)
 	}
+	return nil
 }
 
 // Reset -
@@ -64,15 +65,16 @@ func (s *StateAccessesCollectorStub) RevertToIndex(index int) error {
 	return nil
 }
 
-// Publish -
-func (s *StateAccessesCollectorStub) Publish() (map[string]*stateChange.StateAccesses, error) {
-	if s.PublishCalled != nil {
-		return s.PublishCalled()
+// GetCollectedAccesses -
+func (s *StateAccessesCollectorStub) GetCollectedAccesses() map[string]*stateChange.StateAccesses {
+	if s.GetCollectedAccessesCalled != nil {
+		return s.GetCollectedAccessesCalled()
 	}
 
-	return nil, nil
+	return nil
 }
 
+// Store -
 func (s *StateAccessesCollectorStub) Store() error {
 	if s.StoreCalled != nil {
 		return s.StoreCalled()

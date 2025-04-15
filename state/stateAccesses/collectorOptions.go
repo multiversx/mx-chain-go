@@ -16,3 +16,11 @@ func WithCollectWrite() func(c *collector) {
 		c.collectWrite = true
 	}
 }
+
+// WithAccountChanges will enable collecting account changes.
+// This is a struct that marks which fields of the account have changed
+func WithAccountChanges() func(c *collector) {
+	return func(c *collector) {
+		c.withAccountChanges = true
+	}
+}
