@@ -746,17 +746,12 @@ func (boot *baseBootstrap) syncBlock() error {
 		}
 	}()
 
-	header, headerHash, err := boot.getNextHeaderRequestingIfMissing()
+	header, err = boot.getNextHeaderRequestingIfMissing()
 	if err != nil {
 		return err
 	}
 
 	go boot.requestHeadersFromNonceIfMissing(header.GetNonce() + 1)
-
-	err = boot.handleEquivalentProof(header, headerHash)
-	if err != nil {
-		return err
-	}
 
 	body, err = boot.blockBootstrapper.getBlockBodyRequestingIfMissing(header)
 	if err != nil {
@@ -809,23 +804,6 @@ func (boot *baseBootstrap) syncBlock() error {
 
 	boot.cleanNoncesSyncedWithErrorsBehindFinal()
 	boot.cleanProofsBehindFinal(header)
-
-	return nil
-}
-
-func (boot *baseBootstrap) handleEquivalentProof(
-	header data.HeaderHandler,
-	headerHash []byte,
-) error {
-	if !boot.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, header.GetEpoch()) {
-		return nil
-	}
-
-	// process block only if there is a proof for it
-	hasProof := boot.proofs.HasProof(header.GetShardID(), headerHash)
-	if !hasProof {
-		return fmt.Errorf("baseBootstrap.handleEquivalentProof: did not have proof for header, headerHash %s", hex.EncodeToString(headerHash))
-	}
 
 	return nil
 }
@@ -1092,7 +1070,7 @@ func (boot *baseBootstrap) getRootHashFromBlock(hdr data.HeaderHandler, hdrHash 
 	return hdrRootHash
 }
 
-func (boot *baseBootstrap) getNextHeaderRequestingIfMissing() (data.HeaderHandler, []byte, error) {
+func (boot *baseBootstrap) getNextHeaderRequestingIfMissing() (data.HeaderHandler, error) {
 	nonce := boot.getNonceForNextBlock()
 
 	boot.setRequestedHeaderHash(nil)
@@ -1104,11 +1082,11 @@ func (boot *baseBootstrap) getNextHeaderRequestingIfMissing() (data.HeaderHandle
 	}
 
 	if hash != nil {
-		header, err := boot.blockBootstrapper.getHeaderWithHashRequestingIfMissing(hash)
-		return header, hash, err
+		header, err := boot.getHeaderWithHashRequestingIfMissing(hash)
+		return header, err
 	}
 
-	return boot.blockBootstrapper.getHeaderWithNonceRequestingIfMissing(nonce)
+	return boot.getHeaderWithNonceRequestingIfMissing(nonce)
 }
 
 // getHeaderWithHashRequestingIfMissing method gets the header with a given hash from pool. If it is not found there,
@@ -1144,33 +1122,33 @@ func (boot *baseBootstrap) getHeaderWithHashRequestingIfMissing(hash []byte) (da
 
 // getHeaderWithNonceRequestingIfMissing method gets the header with a given nonce from pool. If it is not found there, it will
 // be requested from network
-func (boot *baseBootstrap) getHeaderWithNonceRequestingIfMissing(nonce uint64) (data.HeaderHandler, []byte, error) {
+func (boot *baseBootstrap) getHeaderWithNonceRequestingIfMissing(nonce uint64) (data.HeaderHandler, error) {
 	hdr, hash, err := boot.getHeaderFromPoolWithNonce(nonce)
 
 	hasHeader := err == nil
 	hasProof := boot.hasProofByNonce(nonce)
 
 	if hasHeader && hasProof {
-		return hdr, hash, nil
+		return hdr, nil
 	}
 
 	boot.requestHeaderAndProofByNonceIfMissing(hash, nonce, hasHeader, hasProof)
 
 	err = boot.waitForHeaderAndProofByNonce()
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
 	hdr, hash, err = boot.getHeaderFromPoolWithNonce(nonce)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
 	if !boot.hasProof(hash) {
-		return nil, nil, process.ErrMissingHeaderProof
+		return nil, process.ErrMissingHeaderProof
 	}
 
-	return hdr, hash, nil
+	return hdr, nil
 }
 
 func (boot *baseBootstrap) requestHeaderAndProofByHashIfMissing(
