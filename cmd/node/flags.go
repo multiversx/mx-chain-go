@@ -414,7 +414,7 @@ var (
 	// If enabled, it will override the configuration
 	stateAccessesTypesToCollect = cli.StringSliceFlag{
 		Name:  "state-accesses-types-to-collect",
-		Usage: "String slice option for enabling collecting specified state changes types. Can be (READ, WRITE)",
+		Usage: "String slice option for enabling collecting specified state accesses types. Can be (READ, WRITE)",
 	}
 )
 
