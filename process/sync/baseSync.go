@@ -313,22 +313,6 @@ func (boot *baseBootstrap) confirmHeaderReceivedByHash(headerHandler data.Header
 	boot.mutRcvHdrHash.Unlock()
 }
 
-func (boot *baseBootstrap) requestHeaderAndProofByHash(hash []byte, shardID uint32) {
-	boot.setRequestedHeaderHash(hash)
-	log.Debug("requesting meta header from network",
-		"hash", hash,
-		"probable highest nonce", boot.forkDetector.ProbableHighestNonce(),
-	)
-	boot.requestHandler.RequestMetaHeader(hash)
-
-	if !boot.hasProof(hash) {
-		log.Debug("requesting equivalent proof from network",
-			"hash", hex.EncodeToString(hash),
-		)
-		boot.requestHandler.RequestEquivalentProofByHash(core.MetachainShardId, hash)
-	}
-}
-
 func (boot *baseBootstrap) hasProof(hash []byte) bool {
 	if !boot.enableEpochsHandler.IsFlagEnabled(common.EquivalentMessagesFlag) {
 		return true
@@ -1197,7 +1181,8 @@ func (boot *baseBootstrap) requestHeaderAndProofByHashIfMissing(
 	_ = core.EmptyChannel(boot.chRcvHdrHash)
 	boot.setRequestedHeaderHash(hash)
 	if !hasHeader {
-		log.Debug("requesting meta header from network",
+		logMsg := fmt.Sprintf("requesting %s header from network", boot.getShardLabel())
+		log.Debug(logMsg,
 			"hash", hash,
 			"probable highest nonce", boot.forkDetector.ProbableHighestNonce(),
 		)
@@ -1217,6 +1202,15 @@ func (boot *baseBootstrap) requestHeaderAndProofByHashIfMissing(
 	}
 }
 
+func (boot *baseBootstrap) getShardLabel() string {
+	shardLabel := "meta"
+	if boot.shardCoordinator.SelfId() != core.MetachainShardId {
+		shardLabel = "shard"
+	}
+
+	return shardLabel
+}
+
 func (boot *baseBootstrap) requestHeaderAndProofByNonceIfMissing(
 	hash []byte,
 	nonce uint64,
@@ -1226,7 +1220,8 @@ func (boot *baseBootstrap) requestHeaderAndProofByNonceIfMissing(
 	_ = core.EmptyChannel(boot.chRcvHdrNonce)
 	boot.setRequestedHeaderNonce(&nonce)
 	if !hasHeader {
-		log.Debug("requesting meta header by nonce from network",
+		logMsg := fmt.Sprintf("requesting %s header by nonce from network", boot.getShardLabel())
+		log.Debug(logMsg,
 			"hash", hash,
 			"probable highest nonce", boot.forkDetector.ProbableHighestNonce(),
 		)
