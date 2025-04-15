@@ -33,6 +33,7 @@ type epochStartMetaBlockProcessor struct {
 	marshalizer         marshal.Marshalizer
 	hasher              hashing.Hasher
 	enableEpochsHandler common.EnableEpochsHandler
+	proofsPool          ProofsPool
 
 	mutReceivedMetaBlocks  sync.RWMutex
 	mapReceivedMetaBlocks  map[string]data.MetaHeaderHandler
@@ -99,6 +100,7 @@ func NewEpochStartMetaBlockProcessor(
 		mapMetaBlocksFromPeers:            make(map[string][]core.PeerID),
 		chanMetaBlockProofReached:         make(chan bool, 1),
 		chanMetaBlockReached:              make(chan bool, 1),
+		proofsPool:                        proofsPool,
 	}
 
 	proofsPool.RegisterHandler(processor.receivedProof)
@@ -246,7 +248,12 @@ func (e *epochStartMetaBlockProcessor) waitForMetaBlockProof(ctx context.Context
 		return epochStart.ErrNilMetaBlock
 	}
 
-	err := e.requestProofForMetaBlock(metaBlock.GetNonce())
+	_, err := e.proofsPool.GetProofByNonce(metaBlock.GetNonce(), core.MetachainShardId)
+	if err == nil {
+		return nil
+	}
+
+	err = e.requestProofForMetaBlock(metaBlock.GetNonce())
 	if err != nil {
 		return err
 	}

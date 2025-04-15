@@ -66,5 +66,6 @@ type NodeTypeProviderHandler interface {
 // ProofsPool defines the behaviour of a proofs pool components
 type ProofsPool interface {
 	RegisterHandler(handler func(headerProof data.HeaderProofHandler))
+	GetProofByNonce(headerNonce uint64, shardID uint32) (data.HeaderProofHandler, error)
 	IsInterfaceNil() bool
 }

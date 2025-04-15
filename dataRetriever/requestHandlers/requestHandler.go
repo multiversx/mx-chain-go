@@ -914,7 +914,7 @@ func (rrh *resolverRequestHandler) RequestEquivalentProofByNonce(headerShard uin
 		return
 	}
 
-	log.Debug("requesting equivalent proof from network",
+	log.Debug("requesting equivalent proof by nonce from network",
 		"headerNonce", headerNonce,
 		"headerShard", headerShard,
 	)

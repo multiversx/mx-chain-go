@@ -353,7 +353,9 @@ func (boot *ShardBootstrap) haveHeaderInPoolWithNonce(nonce uint64) (bool, bool)
 		boot.shardCoordinator.SelfId(),
 		boot.headers)
 	if err != nil {
-		return false, boot.proofs.HasProof(boot.shardCoordinator.SelfId(), hash)
+		_, errGetProof := boot.proofs.GetProofByNonce(nonce, boot.shardCoordinator.SelfId())
+		hasProof := errGetProof == nil
+		return false, hasProof
 	}
 
 	return true, boot.proofs.HasProof(boot.shardCoordinator.SelfId(), hash)

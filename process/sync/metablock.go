@@ -398,7 +398,9 @@ func (boot *MetaBootstrap) haveHeaderInPoolWithNonce(nonce uint64) (bool, bool) 
 		nonce,
 		boot.headers)
 	if err != nil {
-		return false, boot.proofs.HasProof(core.MetachainShardId, hash)
+		_, errGetProof := boot.proofs.GetProofByNonce(nonce, core.MetachainShardId)
+		hasProof := errGetProof == nil
+		return false, hasProof
 	}
 
 	return true, boot.proofs.HasProof(core.MetachainShardId, hash)
