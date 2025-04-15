@@ -154,7 +154,7 @@ func (scf *stateComponentsFactory) createStateAccessesCollector() (state.StateAc
 }
 
 func (scf *stateComponentsFactory) getStorerForCollector() (state.StateAccessesStorer, error) {
-	if scf.config.StateAccessesCollectorConfig.SaveToStorage == false {
+	if !scf.config.StateAccessesCollectorConfig.SaveToStorage {
 		return disabled.NewDisabledStateAccessesStorer(), nil
 	}
 
