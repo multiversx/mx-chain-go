@@ -85,7 +85,6 @@ func NewShardBootstrap(arguments ArgShardBootstrapper) (*ShardBootstrap, error) 
 
 	base.blockBootstrapper = &boot
 	base.syncStarter = &boot
-	base.getHeaderFromPool = boot.getShardHeaderFromPool
 	base.requestMiniBlocks = boot.requestMiniBlocksFromHeaderWithNonceIfMissing
 
 	// placed in struct fields for performance reasons
@@ -270,48 +269,6 @@ func (boot *ShardBootstrap) getHeaderWithNonceRequestingIfMissing(nonce uint64) 
 	}
 
 	return hdr, hash, nil
-}
-
-// getHeaderWithHashRequestingIfMissing method gets the header with a given hash from pool. If it is not found there,
-// it will be requested from network
-func (boot *ShardBootstrap) getHeaderWithHashRequestingIfMissing(hash []byte) (data.HeaderHandler, error) {
-	hdr, err := process.GetShardHeader(hash, boot.headers, boot.marshalizer, boot.store)
-	if err != nil {
-		_ = core.EmptyChannel(boot.chRcvHdrHash)
-		boot.requestHeaderWithHash(hash)
-		err = boot.waitForHeaderHash()
-		if err != nil {
-			return nil, err
-		}
-
-		hdr, err = process.GetShardHeaderFromPool(hash, boot.headers)
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	// if header already in pool, check proof and request it if needed
-	if boot.hasProof(hash) {
-		return hdr, nil
-	}
-
-	// safe to reuse same mechanism and channel
-	_ = core.EmptyChannel(boot.chRcvHdrHash)
-	boot.setRequestedHeaderHash(hash)
-	log.Debug("requesting equivalent proof from network",
-		"hash", hex.EncodeToString(hash),
-	)
-	boot.requestHandler.RequestEquivalentProofByHash(boot.shardCoordinator.SelfId(), hash)
-	err = boot.waitForHeaderHash()
-	if err != nil {
-		return nil, err
-	}
-
-	if !boot.proofs.HasProof(boot.shardCoordinator.SelfId(), hash) {
-		return nil, process.ErrMissingHeaderProof
-	}
-
-	return hdr, nil
 }
 
 func (boot *ShardBootstrap) getPrevHeader(
