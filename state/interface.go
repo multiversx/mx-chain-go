@@ -371,6 +371,6 @@ type StateAccessesCollector interface {
 
 // StateAccessesStorer defines the methods needed for an StateAccessesStorer implementation
 type StateAccessesStorer interface {
-	Store(_ map[string]*data.StateAccesses) error
+	Store(stateAccessesForTxs map[string]*data.StateAccesses) error
 	IsInterfaceNil() bool
 }

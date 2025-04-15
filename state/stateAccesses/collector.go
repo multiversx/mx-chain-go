@@ -83,23 +83,18 @@ func (c *collector) GetCollectedAccesses() map[string]*data.StateAccesses {
 	c.stateChangesMut.RLock()
 	defer c.stateChangesMut.RUnlock()
 
-	stateAccessesForTxs := getStateAccessesForTxs(c.stateAccesses, false)
+	stateAccessesForTxs := getStateAccessesForTxs(c.stateAccesses)
 
-	logCollectedStateAccesses("state accesses to publish", stateAccessesForTxs)
 	return stateAccessesForTxs
 }
 
-func getStateAccessesForTxs(collectedStateAccesses []*data.StateAccess, withAccountChanges bool) map[string]*data.StateAccesses {
+func getStateAccessesForTxs(collectedStateAccesses []*data.StateAccess) map[string]*data.StateAccesses {
 	stateAccessesForTx := make(map[string]*data.StateAccesses)
 	for _, stateAccess := range collectedStateAccesses {
 		txHash := string(stateAccess.GetTxHash())
 		if len(txHash) == 0 {
 			log.Warn("empty tx hash, state change event not associated to a transaction", "stateChange", stateAccessToString(stateAccess))
 			continue
-		}
-
-		if !withAccountChanges {
-			stateAccess.AccountChanges = nil
 		}
 
 		_, ok := stateAccessesForTx[txHash]
@@ -114,6 +109,7 @@ func getStateAccessesForTxs(collectedStateAccesses []*data.StateAccess, withAcco
 		stateAccessesForTx[txHash].StateAccess = append(stateAccessesForTx[txHash].StateAccess, stateAccess)
 	}
 
+	logCollectedStateAccesses("state accesses to publish", stateAccessesForTx)
 	return stateAccessesForTx
 }
 
@@ -139,13 +135,14 @@ func stateAccessToString(stateAccess *data.StateAccess) string {
 	for i, dataTrieChange := range stateAccess.GetDataTrieChanges() {
 		dataTrieChanges[i] = fmt.Sprintf("key: %v, val: %v, type: %v", hex.EncodeToString(dataTrieChange.Key), hex.EncodeToString(dataTrieChange.Val), dataTrieChange.Type)
 	}
-	return fmt.Sprintf("type: %v, operation: %v, mainTrieKey: %v, mainTrieVal: %v, index: %v, dataTrieChanges: %v",
+	return fmt.Sprintf("type: %v, operation: %v, mainTrieKey: %v, mainTrieVal: %v, index: %v, dataTrieChanges: %v, accountChanges %v",
 		stateAccess.GetType(),
 		stateAccess.GetOperation(),
 		hex.EncodeToString(stateAccess.GetMainTrieKey()),
 		hex.EncodeToString(stateAccess.GetMainTrieVal()),
 		stateAccess.GetIndex(),
 		strings.Join(dataTrieChanges, ", "),
+		stateAccess.GetAccountChanges(),
 	)
 }
 
@@ -154,7 +151,7 @@ func (c *collector) Store() error {
 	c.stateChangesMut.RLock()
 	defer c.stateChangesMut.RUnlock()
 
-	stateAccessesForTxs := getStateAccessesForTxs(c.stateAccesses, true)
+	stateAccessesForTxs := getStateAccessesForTxs(c.stateAccesses)
 	return c.storer.Store(stateAccessesForTxs)
 }
 
