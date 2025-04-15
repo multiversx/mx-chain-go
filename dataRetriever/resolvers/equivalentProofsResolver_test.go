@@ -187,16 +187,10 @@ func TestEquivalentProofsResolver_ProcessReceivedMessage(t *testing.T) {
 				return &block.HeaderProof{}, nil
 			},
 		}
-		cnt := 0
 		mockMarshaller := &marshallerMock.MarshalizerMock{}
 		args.Marshaller = &marshallerMock.MarshalizerStub{
 			MarshalCalled: func(obj interface{}) ([]byte, error) {
-				cnt++
-				if cnt > 1 {
-					return nil, expectedErr
-				}
-
-				return mockMarshaller.Marshal(obj)
+				return nil, expectedErr
 			},
 			UnmarshalCalled: func(obj interface{}, buff []byte) error {
 				return mockMarshaller.Unmarshal(obj, buff)
@@ -213,7 +207,7 @@ func TestEquivalentProofsResolver_ProcessReceivedMessage(t *testing.T) {
 		require.Nil(t, err)
 
 		msgID, err := res.ProcessReceivedMessage(createRequestMsg(dataRetriever.HashType, providedHashKey), fromConnectedPeer, &p2pmocks.MessengerStub{})
-		require.Equal(t, expectedErr, err)
+		require.True(t, errors.Is(err, expectedErr))
 		require.Nil(t, msgID)
 	})
 	t.Run("resolveHashRequest: invalid key should error", func(t *testing.T) {
@@ -666,7 +660,7 @@ func TestEquivalentProofsResolver_ProcessReceivedMessage(t *testing.T) {
 	t.Run("resolveNonceRequest: error on nonceHashStorage should error", func(t *testing.T) {
 		t.Parallel()
 
-		providedMetaNonceKey := fmt.Sprintf("%d_%d", 1, core.MetachainShardId) // meta for coverage
+		providedMetaNonceKey := fmt.Sprintf("%d-%d", 1, core.MetachainShardId) // meta for coverage
 		args := createMockArgEquivalentProofsResolver()
 		wasGetProofByNonceCalled := false
 		args.EquivalentProofsPool = &dataRetrieverMocks.ProofsPoolMock{
