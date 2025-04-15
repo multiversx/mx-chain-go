@@ -103,45 +103,13 @@ func (m *syncHeadersByHash) SyncMissingHeadersByHash(shardIDs []uint32, headersH
 		m.mutMissingHdrs.Lock()
 		m.stopSyncing = false
 		for hash, shardId := range mapHashesToRequest {
-			hasProof := m.hasProof(shardId, []byte(hash))
-			hasHeader := false
-			if _, ok := m.mapHeaders[hash]; ok {
-				hasHeader = ok
-				if hasProof {
-					delete(mapHashesToRequest, hash)
-					continue
-				}
+			requestedHeader, requestedProof := m.updateMapsAndRequestIfNeeded(shardId, hash, mapHashesToRequest)
+			if requestedHeader {
+				requestedHdrs++
 			}
-
-			m.mapHashes[hash] = struct{}{}
-			header, ok := m.getHeaderFromPoolOrStorage([]byte(hash))
-			if ok {
-				hasHeader = ok
-				if hasProof {
-					m.mapHeaders[hash] = header
-					delete(mapHashesToRequest, hash)
-					continue
-				}
-			}
-
-			requestedHdrs++
-			if !hasProof {
+			if requestedProof {
 				requestedProofs++
-				m.requestHandler.RequestEquivalentProofByHash(shardId, []byte(hash))
 			}
-
-			if hasHeader {
-				continue
-			}
-
-			if shardId == core.MetachainShardId {
-				m.requestHandler.RequestMetaHeader([]byte(hash))
-				m.requestHandler.RequestEquivalentProofByHash(core.MetachainShardId, []byte(hash))
-				continue
-			}
-
-			m.requestHandler.RequestShardHeader(shardId, []byte(hash))
-			m.requestHandler.RequestEquivalentProofByHash(shardId, []byte(hash))
 		}
 
 		if requestedHdrs == 0 && requestedProofs == 0 {
@@ -169,6 +137,50 @@ func (m *syncHeadersByHash) SyncMissingHeadersByHash(shardIDs []uint32, headersH
 			return update.ErrTimeIsOut
 		}
 	}
+}
+
+func (m *syncHeadersByHash) updateMapsAndRequestIfNeeded(
+	shardId uint32,
+	hash string,
+	mapHashesToRequest map[string]uint32,
+) (bool, bool) {
+	hasProof := m.hasProof(shardId, []byte(hash))
+	hasHeader := false
+	if _, ok := m.mapHeaders[hash]; ok {
+		hasHeader = ok
+		if hasProof {
+			delete(mapHashesToRequest, hash)
+			return false, false
+		}
+	}
+
+	m.mapHashes[hash] = struct{}{}
+	header, ok := m.getHeaderFromPoolOrStorage([]byte(hash))
+	if ok {
+		hasHeader = ok
+		if hasProof {
+			m.mapHeaders[hash] = header
+			delete(mapHashesToRequest, hash)
+			return false, false
+		}
+	}
+
+	if !hasProof {
+		m.requestHandler.RequestEquivalentProofByHash(shardId, []byte(hash))
+	}
+
+	if hasHeader {
+		return false, !hasProof
+	}
+
+	if shardId == core.MetachainShardId {
+		m.requestHandler.RequestMetaHeader([]byte(hash))
+		return true, !hasProof
+	}
+
+	m.requestHandler.RequestShardHeader(shardId, []byte(hash))
+
+	return true, !hasProof
 }
 
 func (m *syncHeadersByHash) hasProof(shardID uint32, hash []byte) bool {
@@ -224,15 +236,13 @@ func (m *syncHeadersByHash) receivedProof(proofHandler data.HeaderProofHandler) 
 		return
 	}
 
-	if _, ok := m.mapHeaders[string(hdrHash)]; ok {
-		m.mutMissingHdrs.Unlock()
-		return
-	}
-
-	hdrHandler, ok := m.getHeaderFromPoolOrStorage(hdrHash)
+	hdrHandler, ok := m.mapHeaders[string(hdrHash)]
 	if !ok {
-		m.mutMissingHdrs.Unlock()
-		return
+		hdrHandler, ok = m.getHeaderFromPoolOrStorage(hdrHash)
+		if !ok {
+			m.mutMissingHdrs.Unlock()
+			return
+		}
 	}
 
 	m.mapHeaders[string(hdrHash)] = hdrHandler

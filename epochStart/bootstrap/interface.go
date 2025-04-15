@@ -53,6 +53,7 @@ type RequestHandler interface {
 	SetNumPeersToQuery(topic string, intra int, cross int) error
 	GetNumPeersToQuery(topic string) (int, int, error)
 	RequestEquivalentProofByNonce(headerShard uint32, headerNonce uint64)
+	RequestEquivalentProofByHash(headerShard uint32, headerHash []byte)
 	IsInterfaceNil() bool
 }
 
@@ -67,5 +68,6 @@ type NodeTypeProviderHandler interface {
 type ProofsPool interface {
 	RegisterHandler(handler func(headerProof data.HeaderProofHandler))
 	GetProofByNonce(headerNonce uint64, shardID uint32) (data.HeaderProofHandler, error)
+	HasProof(shardID uint32, headerHash []byte) bool
 	IsInterfaceNil() bool
 }

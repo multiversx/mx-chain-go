@@ -42,6 +42,7 @@ type epochStartMetaBlockProcessor struct {
 	chanMetaBlockProofReached         chan bool
 	chanMetaBlockReached              chan bool
 	metaBlock                         data.MetaHeaderHandler
+	metaBlockHash                     string
 	peerCountTarget                   int
 	minNumConnectedPeers              int
 	minNumOfPeersToConsiderBlockValid int
@@ -199,13 +200,13 @@ func (e *epochStartMetaBlockProcessor) GetEpochStartMetaBlock(ctx context.Contex
 		}
 	}()
 
-	metaBlock, err := e.waitForMetaBlock(ctx)
+	metaBlock, metaBlockHash, err := e.waitForMetaBlock(ctx)
 	if err != nil {
 		return nil, err
 	}
 
 	if e.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, metaBlock.GetEpoch()) {
-		err = e.waitForMetaBlockProof(ctx, metaBlock)
+		err = e.waitForMetaBlockProof(ctx, []byte(metaBlockHash))
 		if err != nil {
 			return nil, err
 		}
@@ -214,10 +215,10 @@ func (e *epochStartMetaBlockProcessor) GetEpochStartMetaBlock(ctx context.Contex
 	return metaBlock, nil
 }
 
-func (e *epochStartMetaBlockProcessor) waitForMetaBlock(ctx context.Context) (data.MetaHeaderHandler, error) {
+func (e *epochStartMetaBlockProcessor) waitForMetaBlock(ctx context.Context) (data.MetaHeaderHandler, string, error) {
 	err := e.requestMetaBlock()
 	if err != nil {
-		return nil, err
+		return nil, "", err
 	}
 
 	chanRequests := time.After(durationBetweenReRequests)
@@ -226,14 +227,14 @@ func (e *epochStartMetaBlockProcessor) waitForMetaBlock(ctx context.Context) (da
 	for {
 		select {
 		case <-e.chanMetaBlockReached:
-			return e.metaBlock, nil
+			return e.metaBlock, e.metaBlockHash, nil
 		case <-ctx.Done():
-			metaBlock, _, errGet := e.getMostReceivedMetaBlock()
-			return metaBlock, errGet
+			metaBlock, hash, errGet := e.getMostReceivedMetaBlock()
+			return metaBlock, hash, errGet
 		case <-chanRequests:
 			err = e.requestMetaBlock()
 			if err != nil {
-				return nil, err
+				return nil, "", err
 			}
 			chanRequests = time.After(durationBetweenReRequests)
 		case <-chanCheckMaps:
@@ -243,17 +244,12 @@ func (e *epochStartMetaBlockProcessor) waitForMetaBlock(ctx context.Context) (da
 	}
 }
 
-func (e *epochStartMetaBlockProcessor) waitForMetaBlockProof(ctx context.Context, metaBlock data.MetaHeaderHandler) error {
-	if check.IfNil(metaBlock) {
-		return epochStart.ErrNilMetaBlock
-	}
-
-	_, err := e.proofsPool.GetProofByNonce(metaBlock.GetNonce(), core.MetachainShardId)
-	if err == nil {
+func (e *epochStartMetaBlockProcessor) waitForMetaBlockProof(ctx context.Context, metaBlockHash []byte) error {
+	if e.proofsPool.HasProof(core.MetachainShardId, metaBlockHash) {
 		return nil
 	}
 
-	err = e.requestProofForMetaBlock(metaBlock.GetNonce())
+	err := e.requestProofForMetaBlock(metaBlockHash)
 	if err != nil {
 		return err
 	}
@@ -267,7 +263,7 @@ func (e *epochStartMetaBlockProcessor) waitForMetaBlockProof(ctx context.Context
 		case <-ctx.Done():
 			return epochStart.ErrTimeoutWaitingForMetaBlock
 		case <-chanRequests:
-			err = e.requestProofForMetaBlock(metaBlock.GetNonce())
+			err = e.requestProofForMetaBlock(metaBlockHash)
 			if err != nil {
 				return err
 			}
@@ -308,7 +304,7 @@ func (e *epochStartMetaBlockProcessor) requestMetaBlock() error {
 	return nil
 }
 
-func (e *epochStartMetaBlockProcessor) requestProofForMetaBlock(nonce uint64) error {
+func (e *epochStartMetaBlockProcessor) requestProofForMetaBlock(metablockHash []byte) error {
 	numConnectedPeers := len(e.messenger.ConnectedPeers())
 	topic := common.EquivalentProofsTopic + core.CommunicationIdentifierBetweenShards(core.MetachainShardId, core.AllShardId)
 	err := e.requestHandler.SetNumPeersToQuery(topic, numConnectedPeers, numConnectedPeers)
@@ -316,7 +312,7 @@ func (e *epochStartMetaBlockProcessor) requestProofForMetaBlock(nonce uint64) er
 		return err
 	}
 
-	e.requestHandler.RequestEquivalentProofByNonce(core.MetachainShardId, nonce)
+	e.requestHandler.RequestEquivalentProofByHash(core.MetachainShardId, metablockHash)
 
 	return nil
 }
@@ -347,6 +343,7 @@ func (e *epochStartMetaBlockProcessor) checkMetaBlockMaps() {
 	hash, metaBlockFound := e.checkReceivedMetaBlock(e.mapMetaBlocksFromPeers)
 	if metaBlockFound {
 		e.metaBlock = e.mapReceivedMetaBlocks[hash]
+		e.metaBlockHash = hash
 		e.chanMetaBlockReached <- true
 	}
 }
