@@ -10,12 +10,12 @@ import (
 )
 
 type stateAccessesStorer struct {
-	storer     storage.Persister
+	storer     storage.Storer
 	marshaller marshal.Marshalizer
 }
 
 // NewStateAccessesStorer creates a new state accesses storer
-func NewStateAccessesStorer(storer storage.Persister, marshaller marshal.Marshalizer) (state.StateAccessesStorer, error) {
+func NewStateAccessesStorer(storer storage.Storer, marshaller marshal.Marshalizer) (state.StateAccessesStorer, error) {
 	if check.IfNil(storer) {
 		return nil, state.ErrNilStateAccessesStorer
 	}

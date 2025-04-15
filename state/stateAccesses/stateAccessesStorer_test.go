@@ -1,13 +1,13 @@
 package stateAccesses
 
 import (
-	data "github.com/multiversx/mx-chain-core-go/data/stateChange"
 	"testing"
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
+	data "github.com/multiversx/mx-chain-core-go/data/stateChange"
 	"github.com/multiversx/mx-chain-go/state"
-	"github.com/multiversx/mx-chain-go/storage/mock"
 	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
+	"github.com/multiversx/mx-chain-go/testscommon/storage"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -24,14 +24,14 @@ func TestNewStateAccessesStorer(t *testing.T) {
 	t.Run("nil marshaller", func(t *testing.T) {
 		t.Parallel()
 
-		storer, err := NewStateAccessesStorer(&mock.PersisterStub{}, nil)
+		storer, err := NewStateAccessesStorer(&storage.StorerStub{}, nil)
 		assert.True(t, check.IfNil(storer))
 		assert.Equal(t, state.ErrNilMarshalizer, err)
 	})
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
 
-		storer, err := NewStateAccessesStorer(&mock.PersisterStub{}, &marshallerMock.MarshalizerMock{})
+		storer, err := NewStateAccessesStorer(&storage.StorerStub{}, &marshallerMock.MarshalizerMock{})
 		assert.NotNil(t, storer)
 		assert.Nil(t, err)
 		assert.False(t, storer.IsInterfaceNil())
@@ -50,7 +50,7 @@ func TestStateAccessesStorer_Store(t *testing.T) {
 			return marshalledBytes, nil
 		},
 	}
-	db := &mock.PersisterStub{
+	db := &storage.StorerStub{
 		PutCalled: func(key []byte, value []byte) error {
 			putCalled++
 			assert.Equal(t, marshalledBytes, value)

@@ -23,7 +23,6 @@ import (
 	"github.com/multiversx/mx-chain-go/state/storagePruningManager"
 	"github.com/multiversx/mx-chain-go/state/storagePruningManager/evictionWaitingList"
 	"github.com/multiversx/mx-chain-go/state/syncer"
-	storageFactory "github.com/multiversx/mx-chain-go/storage/factory"
 	trieFactory "github.com/multiversx/mx-chain-go/trie/factory"
 )
 
@@ -158,18 +157,12 @@ func (scf *stateComponentsFactory) getStorerForCollector() (state.StateAccessesS
 		return disabled.NewDisabledStateAccessesStorer(), nil
 	}
 
-	dbConfig := scf.config.StateAccessesCollectorConfig.DB
-	persisterFactory, err := storageFactory.NewPersisterFactory(dbConfig)
+	storer, err := scf.storageService.GetStorer(dataRetriever.StateAccessesUnit)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to get storer for state accesses: %w", err)
 	}
 
-	db, err := persisterFactory.CreateWithRetries(dbConfig.FilePath)
-	if err != nil {
-		return nil, fmt.Errorf("%w while creating the db for the state accesses collector", err)
-	}
-
-	return stateAccesses.NewStateAccessesStorer(db, scf.core.InternalMarshalizer())
+	return stateAccesses.NewStateAccessesStorer(storer, scf.core.InternalMarshalizer())
 }
 
 func (scf *stateComponentsFactory) createStateAccessesCollectorPeerAccounts() (state.StateAccessesCollector, error) {

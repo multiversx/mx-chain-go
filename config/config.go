@@ -157,6 +157,7 @@ type Config struct {
 	SmartContractsStorageForSCQuery StorageConfig
 	TrieEpochRootHashStorage        StorageConfig
 	SmartContractsStorageSimulate   StorageConfig
+	StateAccessesStorage            StorageConfig
 
 	BootstrapStorage StorageConfig
 	MetaBlockStorage StorageConfig
@@ -321,7 +322,6 @@ type StateAccessesCollectorConfig struct {
 	TypesToCollect     []string
 	SaveToStorage      bool
 	WithAccountChanges bool
-	DB                 DBConfig
 }
 
 // TrieStorageManagerConfig will hold config information about trie storage manager

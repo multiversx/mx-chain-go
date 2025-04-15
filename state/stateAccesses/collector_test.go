@@ -14,6 +14,7 @@ import (
 	"github.com/multiversx/mx-chain-go/state/disabled"
 	"github.com/multiversx/mx-chain-go/storage/mock"
 	mockState "github.com/multiversx/mx-chain-go/testscommon/state"
+	"github.com/multiversx/mx-chain-go/testscommon/storage"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -128,7 +129,7 @@ func TestStateAccessesCollector_GetStateChanges(t *testing.T) {
 		})
 	}
 	assert.Equal(t, numStateChanges, len(c.stateAccesses))
-	stateChangesForTxs := getStateAccessesForTxs(c.stateAccesses, false)
+	stateChangesForTxs := getStateAccessesForTxs(c.stateAccesses)
 	assert.Equal(t, 0, len(stateChangesForTxs))
 	c.AddTxHashToCollectedStateChanges([]byte("txHash"))
 	assert.Equal(t, numStateChanges, len(c.stateAccesses))
@@ -460,7 +461,7 @@ func TestCollector_GetAccountChanges(t *testing.T) {
 	t.Run("nil old account should return early", func(t *testing.T) {
 		t.Parallel()
 
-		storer, _ := NewStateAccessesStorer(&mock.PersisterStub{}, &mock.MarshalizerMock{})
+		storer, _ := NewStateAccessesStorer(&storage.StorerStub{}, &mock.MarshalizerMock{})
 		c, _ := NewCollector(storer, WithCollectWrite(), WithAccountChanges())
 
 		accountChanges := c.GetAccountChanges(
@@ -473,7 +474,7 @@ func TestCollector_GetAccountChanges(t *testing.T) {
 	t.Run("nil new account should return early", func(t *testing.T) {
 		t.Parallel()
 
-		storer, _ := NewStateAccessesStorer(&mock.PersisterStub{}, &mock.MarshalizerMock{})
+		storer, _ := NewStateAccessesStorer(&storage.StorerStub{}, &mock.MarshalizerMock{})
 		c, _ := NewCollector(storer, WithCollectWrite(), WithAccountChanges())
 
 		accountChanges := c.GetAccountChanges(
@@ -486,7 +487,7 @@ func TestCollector_GetAccountChanges(t *testing.T) {
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
 
-		storer, _ := NewStateAccessesStorer(&mock.PersisterStub{}, &mock.MarshalizerMock{})
+		storer, _ := NewStateAccessesStorer(&storage.StorerStub{}, &mock.MarshalizerMock{})
 		c, _ := NewCollector(storer, WithCollectWrite(), WithAccountChanges())
 
 		accountChanges := c.GetAccountChanges(
@@ -532,7 +533,7 @@ func TestCollector_GetAccountChanges(t *testing.T) {
 func TestCollector_Reset(t *testing.T) {
 	t.Parallel()
 
-	storer, _ := NewStateAccessesStorer(&mock.PersisterStub{}, &mock.MarshalizerMock{})
+	storer, _ := NewStateAccessesStorer(&storage.StorerStub{}, &mock.MarshalizerMock{})
 	c, _ := NewCollector(storer, WithCollectWrite())
 
 	numStateChanges := 10
@@ -552,7 +553,7 @@ func TestCollector_Store(t *testing.T) {
 		t.Parallel()
 
 		putCalled := false
-		db := &mock.PersisterStub{
+		db := &storage.StorerStub{
 			PutCalled: func(key, val []byte) error {
 				putCalled = true
 				return nil
