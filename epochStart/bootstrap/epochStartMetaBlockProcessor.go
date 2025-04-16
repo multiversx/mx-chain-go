@@ -231,7 +231,9 @@ func (e *epochStartMetaBlockProcessor) waitForMetaBlock(ctx context.Context) (da
 			return e.metaBlock, e.metaBlockHash, nil
 		case <-ctx.Done():
 			metaBlock, hash, errGet := e.getMostReceivedMetaBlock()
-			e.requestHandler.SetEpoch(e.metaBlock.GetEpoch())
+			if !check.IfNil(e.metaBlock) {
+				e.requestHandler.SetEpoch(e.metaBlock.GetEpoch())
+			}
 			return metaBlock, hash, errGet
 		case <-chanRequests:
 			err = e.requestMetaBlock()
