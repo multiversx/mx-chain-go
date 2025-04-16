@@ -227,9 +227,11 @@ func (e *epochStartMetaBlockProcessor) waitForMetaBlock(ctx context.Context) (da
 	for {
 		select {
 		case <-e.chanMetaBlockReached:
+			e.requestHandler.SetEpoch(e.metaBlock.GetEpoch())
 			return e.metaBlock, e.metaBlockHash, nil
 		case <-ctx.Done():
 			metaBlock, hash, errGet := e.getMostReceivedMetaBlock()
+			e.requestHandler.SetEpoch(e.metaBlock.GetEpoch())
 			return metaBlock, hash, errGet
 		case <-chanRequests:
 			err = e.requestMetaBlock()
@@ -344,6 +346,7 @@ func (e *epochStartMetaBlockProcessor) checkMetaBlockMaps() {
 	if metaBlockFound {
 		e.metaBlock = e.mapReceivedMetaBlocks[hash]
 		e.metaBlockHash = hash
+		e.requestHandler.SetEpoch(e.metaBlock.GetEpoch())
 		e.chanMetaBlockReached <- true
 	}
 }

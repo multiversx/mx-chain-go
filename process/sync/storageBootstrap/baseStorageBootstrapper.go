@@ -47,6 +47,7 @@ type ArgsBaseStorageBootstrapper struct {
 	ProcessedMiniBlocksTracker   process.ProcessedMiniBlocksTracker
 	AppStatusHandler             core.AppStatusHandler
 	EnableEpochsHandler          common.EnableEpochsHandler
+	ProofsPool                   process.ProofsPool
 }
 
 // ArgsShardStorageBootstrapper is structure used to create a new storage bootstrapper for shard
@@ -83,6 +84,7 @@ type storageBootstrapper struct {
 	processedMiniBlocksTracker   process.ProcessedMiniBlocksTracker
 	appStatusHandler             core.AppStatusHandler
 	enableEpochsHandler          common.EnableEpochsHandler
+	proofsPool                   process.ProofsPool
 }
 
 func (st *storageBootstrapper) loadBlocks() error {
@@ -296,6 +298,12 @@ func (st *storageBootstrapper) applyHeaderInfo(hdrInfo bootstrapStorage.Bootstra
 		return err
 	}
 
+	err = st.getAndApplyProofForHeader(headerHash, headerFromStorage)
+	if err != nil {
+		log.Debug("cannot apply proof for header ", "nonce", headerFromStorage.GetNonce(), "error", err.Error())
+		return err
+	}
+
 	return nil
 }
 
@@ -368,6 +376,12 @@ func (st *storageBootstrapper) applyBootInfos(bootInfos []bootstrapStorage.Boots
 		header, err = st.bootstrapper.getHeader(bootInfos[i].LastHeader.Hash)
 		if err != nil {
 			log.Debug("cannot get header", "hash", bootInfos[i].LastHeader.Hash, "error", err.Error())
+			return err
+		}
+
+		err = st.getAndApplyProofForHeader(bootInfos[i].LastHeader.Hash, header)
+		if err != nil {
+			log.Debug("cannot get and apply header proof", "hash", bootInfos[i].LastHeader.Hash, "error", err.Error())
 			return err
 		}
 
@@ -449,11 +463,34 @@ func (st *storageBootstrapper) applyBlock(headerHash []byte, header data.HeaderH
 	}
 
 	st.blkc.SetCurrentBlockHeaderHash(headerHash)
+
+	return nil
+}
+
+func (st *storageBootstrapper) getAndApplyProofForHeader(headerHash []byte, header data.HeaderHandler) error {
 	if !st.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, header.GetEpoch()) {
 		return nil
 	}
 
-	st.forkDetector.AddCheckpoint(header.GetNonce(), header.GetRound(), headerHash)
+	proofsStorer, err := st.store.GetStorer(dataRetriever.ProofsUnit)
+	if err != nil {
+		return err
+	}
+
+	marshaledProof, err := proofsStorer.SearchFirst(headerHash)
+	if err != nil {
+		return err
+	}
+
+	proof := &block.HeaderProof{}
+	err = st.marshalizer.Unmarshal(proof, marshaledProof)
+	if err != nil {
+		return err
+	}
+
+	st.proofsPool.AddProof(proof)
+
+	st.forkDetector.AddCheckpoint(proof.GetHeaderNonce(), proof.GetHeaderRound(), proof.GetHeaderHash())
 	st.forkDetector.SetFinalToLastCheckpoint()
 	st.forkDetector.ResetProbableHighestNonce()
 
@@ -527,6 +564,9 @@ func checkBaseStorageBootstrapperArguments(args ArgsBaseStorageBootstrapper) err
 	if check.IfNil(args.EnableEpochsHandler) {
 		return process.ErrNilEnableEpochsHandler
 	}
+	if check.IfNil(args.ProofsPool) {
+		return process.ErrNilProofsPool
+	}
 
 	return nil
 }
@@ -545,6 +585,11 @@ func (st *storageBootstrapper) restoreBlockBodyIntoPools(headerHash []byte) erro
 	}
 
 	err = st.blkExecutor.RestoreBlockBodyIntoPools(bodyHandler)
+	if err != nil {
+		return err
+	}
+
+	err = st.getAndApplyProofForHeader(headerHash, headerHandler)
 	if err != nil {
 		return err
 	}

@@ -2161,11 +2161,15 @@ func (mp *metaProcessor) computeExistingAndRequestMissingShardHeaders(metaBlock 
 			usedInBlock: true,
 		}
 
+		mp.requestProofIfNeeded(shardData.HeaderHash, hdr.GetEpoch(), shardData.ShardID)
+
+		if common.IsEpochChangeBlockForFlagActivation(hdr, mp.enableEpochsHandler, common.EquivalentMessagesFlag) {
+			continue
+		}
+
 		if hdr.GetNonce() > mp.hdrsForCurrBlock.highestHdrNonce[shardData.ShardID] {
 			mp.hdrsForCurrBlock.highestHdrNonce[shardData.ShardID] = hdr.GetNonce()
 		}
-
-		mp.requestProofIfNeeded(shardData.HeaderHash, hdr.GetEpoch(), shardData.ShardID)
 
 		mp.updateLastNotarizedBlockForShard(hdr, shardData.HeaderHash)
 	}

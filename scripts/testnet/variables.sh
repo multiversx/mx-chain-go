@@ -44,7 +44,7 @@ export NODE_WATCHER=0
 export SEEDNODE_DELAY=5
 export GENESIS_DELAY=30
 export HARDFORK_DELAY=900 #15 minutes enough to take export and gracefully close
-export NODE_DELAY=60
+export NODE_DELAY=30
 
 export GENESIS_STAKE_TYPE="direct" #'delegated' or 'direct' as in direct stake
 
@@ -52,13 +52,13 @@ export GENESIS_STAKE_TYPE="direct" #'delegated' or 'direct' as in direct stake
 export OBSERVERS_ANTIFLOOD_DISABLE=0
 
 # Shard structure
-export SHARDCOUNT=2
-export SHARD_VALIDATORCOUNT=3
+export SHARDCOUNT=1
+export SHARD_VALIDATORCOUNT=2
 export SHARD_OBSERVERCOUNT=1
-export SHARD_CONSENSUS_SIZE=3
+export SHARD_CONSENSUS_SIZE=2
 
 # Metashard structure
-export META_VALIDATORCOUNT=3
+export META_VALIDATORCOUNT=2
 export META_OBSERVERCOUNT=1
 export META_CONSENSUS_SIZE=$META_VALIDATORCOUNT
 

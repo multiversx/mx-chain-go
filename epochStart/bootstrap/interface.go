@@ -54,6 +54,7 @@ type RequestHandler interface {
 	GetNumPeersToQuery(topic string) (int, int, error)
 	RequestEquivalentProofByNonce(headerShard uint32, headerNonce uint64)
 	RequestEquivalentProofByHash(headerShard uint32, headerHash []byte)
+	SetEpoch(epoch uint32)
 	IsInterfaceNil() bool
 }
 
@@ -67,6 +68,7 @@ type NodeTypeProviderHandler interface {
 // ProofsPool defines the behaviour of a proofs pool components
 type ProofsPool interface {
 	RegisterHandler(handler func(headerProof data.HeaderProofHandler))
+	GetProof(shardID uint32, headerHash []byte) (data.HeaderProofHandler, error)
 	GetProofByNonce(headerNonce uint64, shardID uint32) (data.HeaderProofHandler, error)
 	HasProof(shardID uint32, headerHash []byte) bool
 	IsInterfaceNil() bool

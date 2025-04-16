@@ -301,9 +301,11 @@ func (rrh *resolverRequestHandler) RequestShardHeader(shardID uint32, hash []byt
 		return
 	}
 
+	epoch := rrh.getEpoch()
 	log.Debug("requesting shard header from network",
 		"shard", shardID,
 		"hash", hash,
+		"epoch", epoch,
 	)
 
 	headerRequester, err := rrh.getShardHeaderRequester(shardID)
@@ -317,7 +319,6 @@ func (rrh *resolverRequestHandler) RequestShardHeader(shardID uint32, hash []byt
 
 	rrh.whiteList.Add([][]byte{hash})
 
-	epoch := rrh.getEpoch()
 	err = headerRequester.RequestDataFromHash(hash, epoch)
 	if err != nil {
 		log.Debug("RequestShardHeader.RequestDataFromHash",
@@ -876,8 +877,10 @@ func (rrh *resolverRequestHandler) RequestEquivalentProofByHash(headerShard uint
 		return
 	}
 
+	epoch := rrh.getEpoch()
 	log.Debug("requesting equivalent proof from network",
 		"headerHash", hex.EncodeToString(headerHash),
+		"epoch", epoch,
 	)
 
 	requester, err := rrh.getEquivalentProofsRequester(headerShard)
@@ -885,6 +888,7 @@ func (rrh *resolverRequestHandler) RequestEquivalentProofByHash(headerShard uint
 		log.Error("RequestEquivalentProofByHash.getEquivalentProofsRequester",
 			"error", err.Error(),
 			"headerHash", hex.EncodeToString(headerHash),
+			"epoch", epoch,
 		)
 		return
 	}
@@ -892,7 +896,6 @@ func (rrh *resolverRequestHandler) RequestEquivalentProofByHash(headerShard uint
 	rrh.whiteList.Add([][]byte{headerHash})
 
 	requestKey := fmt.Sprintf("%s-%d", string(headerHash), headerShard)
-	epoch := rrh.getEpoch()
 	err = requester.RequestDataFromHash([]byte(requestKey), epoch)
 	if err != nil {
 		log.Debug("RequestEquivalentProofByHash.RequestDataFromHash",
