@@ -54,6 +54,16 @@ func (boot *ShardBootstrap) ReceivedProof(header data.HeaderProofHandler) {
 	boot.processReceivedProof(header)
 }
 
+// SetRcvHdrNonce -
+func (boot *ShardBootstrap) SetRcvHdrNonce() {
+	boot.chRcvHdrNonce <- true
+}
+
+// SetRcvHdrHash -
+func (boot *ShardBootstrap) SetRcvHdrHash() {
+	boot.chRcvHdrHash <- true
+}
+
 // RollBack -
 func (boot *ShardBootstrap) RollBack(revertUsingForkNonce bool) error {
 	return boot.rollBack(revertUsingForkNonce)

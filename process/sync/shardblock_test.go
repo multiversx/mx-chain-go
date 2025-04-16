@@ -2227,6 +2227,273 @@ func TestShardBootstrap_SyncBlockGetNodeDBErrorShouldSync(t *testing.T) {
 	assert.True(t, syncCalled)
 }
 
+func TestShardBootstrap_SyncBlock_WithEquivalentProofs(t *testing.T) {
+	t.Parallel()
+
+	t.Run("time is out when existing header and missing proof", func(t *testing.T) {
+		t.Parallel()
+
+		args := CreateShardBootstrapMockArguments()
+
+		args.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+			IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
+				return flag == common.EquivalentMessagesFlag
+			},
+		}
+
+		hdr := block.Header{Nonce: 1}
+		blkc := &testscommon.ChainHandlerStub{
+			GetGenesisHeaderCalled: func() data.HeaderHandler {
+				return &block.Header{}
+			},
+			GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
+				return &hdr
+			},
+		}
+		args.ChainHandler = blkc
+
+		forkDetector := &mock.ForkDetectorMock{}
+		forkDetector.CheckForkCalled = func() *process.ForkInfo {
+			return process.NewForkInfo()
+		}
+		forkDetector.ProbableHighestNonceCalled = func() uint64 {
+			return 100
+		}
+		forkDetector.GetNotarizedHeaderHashCalled = func(nonce uint64) []byte {
+			return nil
+		}
+		args.ForkDetector = forkDetector
+		args.RoundHandler, _ = round.NewRound(time.Now(),
+			time.Now().Add(2*100*time.Millisecond),
+			100*time.Millisecond,
+			&mock.SyncTimerMock{},
+			0,
+		)
+		args.BlockProcessor = createBlockProcessor(args.ChainHandler)
+
+		pools := createMockPools()
+		pools.ProofsCalled = func() dataRetriever.ProofsPool {
+			return &dataRetrieverMock.ProofsPoolMock{
+				GetProofByNonceCalled: func(headerNonce uint64, shardID uint32) (data.HeaderProofHandler, error) {
+					return nil, errors.New("missing proof")
+				},
+			}
+		}
+
+		args.PoolsHolder = pools
+
+		bs, _ := sync.NewShardBootstrap(args)
+		r := bs.SyncBlock(context.Background())
+
+		assert.Equal(t, process.ErrTimeIsOut, r)
+	})
+
+	t.Run("should receive header and proof if missing, requesting by nonce", func(t *testing.T) {
+		t.Parallel()
+
+		args := CreateShardBootstrapMockArguments()
+
+		args.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+			IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
+				return flag == common.EquivalentMessagesFlag
+			},
+		}
+
+		hdr := block.Header{Nonce: 1}
+		blkc := &testscommon.ChainHandlerStub{
+			GetGenesisHeaderCalled: func() data.HeaderHandler {
+				return &block.Header{}
+			},
+			GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
+				return &hdr
+			},
+		}
+		args.ChainHandler = blkc
+
+		forkDetector := &mock.ForkDetectorMock{}
+		forkDetector.CheckForkCalled = func() *process.ForkInfo {
+			return process.NewForkInfo()
+		}
+		forkDetector.ProbableHighestNonceCalled = func() uint64 {
+			return 100
+		}
+		forkDetector.GetNotarizedHeaderHashCalled = func(nonce uint64) []byte {
+			return nil
+		}
+		args.ForkDetector = forkDetector
+		args.RoundHandler, _ = round.NewRound(time.Now(),
+			time.Now().Add(2*100*time.Millisecond),
+			100*time.Millisecond,
+			&mock.SyncTimerMock{},
+			0,
+		)
+		args.BlockProcessor = createBlockProcessor(args.ChainHandler)
+
+		pools := createMockPools()
+		pools.ProofsCalled = func() dataRetriever.ProofsPool {
+			return &dataRetrieverMock.ProofsPoolMock{
+				GetProofByNonceCalled: func(headerNonce uint64, shardID uint32) (data.HeaderProofHandler, error) {
+					return nil, errors.New("missing proof")
+				},
+				HasProofCalled: func(shardID uint32, headerHash []byte) bool {
+					return true // second check after wait is done by hash
+				},
+			}
+		}
+
+		numHeaderCalls := 0
+		pools.HeadersCalled = func() dataRetriever.HeadersPool {
+			sds := &mock.HeadersCacherStub{}
+			sds.GetHeaderByNonceAndShardIdCalled = func(hdrNonce uint64, shardId uint32) (handlers []data.HeaderHandler, i [][]byte, e error) {
+				if numHeaderCalls == 0 {
+					numHeaderCalls++
+					return nil, nil, errors.New("err")
+				}
+
+				return []data.HeaderHandler{
+					&block.Header{
+						Nonce:    1,
+						Round:    1,
+						RootHash: []byte("bbb")},
+				}, [][]byte{[]byte("aaa")}, nil
+			}
+
+			return sds
+		}
+		args.PoolsHolder = pools
+
+		receive := make(chan bool, 2)
+
+		args.RequestHandler = &testscommon.RequestHandlerStub{
+			RequestShardHeaderByNonceCalled: func(shardID uint32, nonce uint64) {
+				receive <- true
+			},
+			RequestEquivalentProofByHashCalled: func(headerShard uint32, headerHash []byte) {
+				receive <- true
+			},
+		}
+
+		bs, _ := sync.NewShardBootstrap(args)
+
+		go func() {
+			// wait for both header and proof requests
+			<-receive
+			<-receive
+
+			bs.SetRcvHdrNonce()
+		}()
+
+		err := bs.SyncBlock(context.Background())
+
+		assert.Nil(t, err)
+	})
+
+	t.Run("should receive header and proof if missing, requesting by hash", func(t *testing.T) {
+		t.Parallel()
+
+		args := CreateShardBootstrapMockArguments()
+
+		args.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+			IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
+				return flag == common.EquivalentMessagesFlag
+			},
+		}
+
+		hdr := block.Header{Nonce: 1}
+		blkc := &testscommon.ChainHandlerStub{
+			GetGenesisHeaderCalled: func() data.HeaderHandler {
+				return &block.Header{}
+			},
+			GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
+				return &hdr
+			},
+		}
+		args.ChainHandler = blkc
+
+		forkDetector := &mock.ForkDetectorMock{}
+		forkDetector.CheckForkCalled = func() *process.ForkInfo {
+			return process.NewForkInfo()
+		}
+		forkDetector.ProbableHighestNonceCalled = func() uint64 {
+			return 100
+		}
+
+		hash := []byte("hash1")
+		forkDetector.GetNotarizedHeaderHashCalled = func(nonce uint64) []byte {
+			return hash
+		}
+		args.ForkDetector = forkDetector
+		args.RoundHandler, _ = round.NewRound(time.Now(),
+			time.Now().Add(2*100*time.Millisecond),
+			100*time.Millisecond,
+			&mock.SyncTimerMock{},
+			0,
+		)
+		args.BlockProcessor = createBlockProcessor(args.ChainHandler)
+
+		pools := createMockPools()
+
+		numProofCalls := 0
+		pools.ProofsCalled = func() dataRetriever.ProofsPool {
+			return &dataRetrieverMock.ProofsPoolMock{
+				GetProofByNonceCalled: func(headerNonce uint64, shardID uint32) (data.HeaderProofHandler, error) {
+					return nil, errors.New("missing proof")
+				},
+				HasProofCalled: func(shardID uint32, headerHash []byte) bool {
+					if numProofCalls == 0 {
+						numProofCalls++
+						return false
+					}
+
+					return true // second check after wait is done by hash
+				},
+			}
+		}
+
+		numHeaderCalls := 0
+		pools.HeadersCalled = func() dataRetriever.HeadersPool {
+			sds := &mock.HeadersCacherStub{}
+
+			sds.GetHeaderByHashCalled = func(hash []byte) (data.HeaderHandler, error) {
+				if numHeaderCalls == 0 {
+					numHeaderCalls++
+					return nil, errors.New("err")
+				}
+
+				return &block.Header{}, nil
+			}
+
+			return sds
+		}
+		args.PoolsHolder = pools
+
+		receive := make(chan bool, 2)
+
+		args.RequestHandler = &testscommon.RequestHandlerStub{
+			RequestMetaHeaderCalled: func(hash []byte) {
+				receive <- true
+			},
+			RequestEquivalentProofByHashCalled: func(headerShard uint32, headerHash []byte) {
+				receive <- true
+			},
+		}
+
+		bs, _ := sync.NewShardBootstrap(args)
+
+		go func() {
+			// wait for both header and proof requests
+			<-receive
+			<-receive
+
+			bs.SetRcvHdrHash()
+		}()
+
+		err := bs.SyncBlock(context.Background())
+
+		assert.Nil(t, err)
+	})
+}
+
 func TestShardBootstrap_NilInnerBootstrapperClose(t *testing.T) {
 	t.Parallel()
 
