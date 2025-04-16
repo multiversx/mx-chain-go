@@ -311,6 +311,7 @@ func (scf *stateComponentsFactory) createPeerAdapter(triesContainer common.Tries
 		return nil, err
 	}
 
+	// TODO: also collect state accesses for the peer trie
 	argsProcessingPeerAccountsDB := state.ArgsAccountsDB{
 		Trie:                   merkleTrie,
 		Hasher:                 scf.core.Hasher(),
