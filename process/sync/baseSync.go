@@ -1179,9 +1179,10 @@ func (boot *baseBootstrap) requestHeaderByHash(hash []byte) {
 	boot.requestHandler.RequestMetaHeader(hash)
 	if boot.shardCoordinator.SelfId() == core.MetachainShardId {
 		boot.requestHandler.RequestMetaHeader(hash)
-	} else {
-		boot.requestHandler.RequestShardHeader(boot.shardCoordinator.SelfId(), hash)
+		return
 	}
+
+	boot.requestHandler.RequestShardHeader(boot.shardCoordinator.SelfId(), hash)
 }
 
 func (boot *baseBootstrap) getShardLabel() string {
@@ -1222,9 +1223,10 @@ func (boot *baseBootstrap) requestHeaderByNonce(hash []byte, nonce uint64) {
 
 	if boot.shardCoordinator.SelfId() == core.MetachainShardId {
 		boot.requestHandler.RequestMetaHeaderByNonce(nonce)
-	} else {
-		boot.requestHandler.RequestShardHeaderByNonce(boot.shardCoordinator.SelfId(), nonce)
+		return
 	}
+
+	boot.requestHandler.RequestShardHeaderByNonce(boot.shardCoordinator.SelfId(), nonce)
 }
 
 func (boot *baseBootstrap) getHeader(hash []byte) (data.HeaderHandler, error) {
