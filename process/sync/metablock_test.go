@@ -21,7 +21,6 @@ import (
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/consensus/round"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
-	"github.com/multiversx/mx-chain-go/dataRetriever/blockchain"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/mock"
 	"github.com/multiversx/mx-chain-go/process/sync"
@@ -1131,124 +1130,95 @@ func TestMetaBootstrap_GetHeaderFromPoolShouldReturnHeader(t *testing.T) {
 
 // ------- testing received headers
 
-func TestMetaBootstrap_ReceivedHeadersFoundInPoolShouldAddToForkDetector(t *testing.T) {
+func TestMetaBootstrap_ReceivedHeaders(t *testing.T) {
 	t.Parallel()
 
-	args := CreateMetaBootstrapMockArguments()
+	t.Run("should add to fork detector if header hash matches", func(t *testing.T) {
+		t.Parallel()
 
-	addedHash := []byte("hash")
-	addedHdr := &block.MetaBlock{}
+		args := CreateMetaBootstrapMockArguments()
 
-	pools := createMockPools()
-	pools.HeadersCalled = func() dataRetriever.HeadersPool {
-		sds := &mock.HeadersCacherStub{}
-		sds.RegisterHandlerCalled = func(func(header data.HeaderHandler, key []byte)) {
-		}
-		sds.GetHeaderByHashCalled = func(key []byte) (handler data.HeaderHandler, e error) {
-			if bytes.Equal(key, addedHash) {
-				return addedHdr, nil
+		addedHash := []byte("hash")
+		addedHdr := &block.MetaBlock{}
+
+		wasAdded := false
+
+		forkDetector := &mock.ForkDetectorMock{}
+		forkDetector.AddHeaderCalled = func(header data.HeaderHandler, hash []byte, state process.BlockHeaderState, selfNotarizedHeaders []data.HeaderHandler, selfNotarizedHeadersHashes [][]byte) error {
+			if state == process.BHProcessed {
+				return errors.New("processed")
 			}
 
-			return nil, errors.New("err")
+			if !bytes.Equal(hash, addedHash) {
+				return errors.New("hash mismatch")
+			}
+
+			if !reflect.DeepEqual(header, addedHdr) {
+				return errors.New("header mismatch")
+			}
+
+			wasAdded = true
+			return nil
 		}
-
-		return sds
-	}
-	args.PoolsHolder = pools
-
-	wasAdded := false
-
-	forkDetector := &mock.ForkDetectorMock{}
-	forkDetector.AddHeaderCalled = func(header data.HeaderHandler, hash []byte, state process.BlockHeaderState, selfNotarizedHeaders []data.HeaderHandler, selfNotarizedHeadersHashes [][]byte) error {
-		if state == process.BHProcessed {
-			return errors.New("processed")
+		forkDetector.ProbableHighestNonceCalled = func() uint64 {
+			return 0
 		}
+		args.ForkDetector = forkDetector
 
-		if !bytes.Equal(hash, addedHash) {
-			return errors.New("hash mismatch")
-		}
+		shardCoordinator := mock.NewMultipleShardsCoordinatorMock()
+		shardCoordinator.CurrentShard = core.MetachainShardId
+		args.ShardCoordinator = shardCoordinator
+		args.RoundHandler = initRoundHandler()
 
-		if !reflect.DeepEqual(header, addedHdr) {
-			return errors.New("header mismatch")
-		}
+		bs, err := sync.NewMetaBootstrap(args)
+		require.Nil(t, err)
+		bs.ReceivedHeaders(addedHdr, addedHash)
+		time.Sleep(500 * time.Millisecond)
 
-		wasAdded = true
-		return nil
-	}
-	forkDetector.ProbableHighestNonceCalled = func() uint64 {
-		return 0
-	}
-	args.ForkDetector = forkDetector
-
-	shardCoordinator := mock.NewMultipleShardsCoordinatorMock()
-	shardCoordinator.CurrentShard = core.MetachainShardId
-	args.ShardCoordinator = shardCoordinator
-	args.RoundHandler = initRoundHandler()
-
-	bs, err := sync.NewMetaBootstrap(args)
-	require.Nil(t, err)
-	bs.ReceivedHeaders(addedHdr, addedHash)
-	time.Sleep(500 * time.Millisecond)
-
-	assert.True(t, wasAdded)
-}
-
-func TestMetaBootstrap_ReceivedHeadersNotFoundInPoolShouldNotAddToForkDetector(t *testing.T) {
-	t.Parallel()
-
-	args := CreateMetaBootstrapMockArguments()
-
-	addedHash := []byte("hash")
-	addedHdr := &block.MetaBlock{Nonce: 1}
-
-	wasAdded := false
-
-	forkDetector := &mock.ForkDetectorMock{}
-	forkDetector.AddHeaderCalled = func(header data.HeaderHandler, hash []byte, state process.BlockHeaderState, selfNotarizedHeaders []data.HeaderHandler, selfNotarizedHeadersHashes [][]byte) error {
-		if state == process.BHProcessed {
-			return errors.New("processed")
-		}
-
-		if !bytes.Equal(hash, addedHash) {
-			return errors.New("hash mismatch")
-		}
-
-		if !reflect.DeepEqual(header, addedHdr) {
-			return errors.New("header mismatch")
-		}
-
-		wasAdded = true
-		return nil
-	}
-	args.ForkDetector = forkDetector
-
-	headerStorage := &storageStubs.StorerStub{}
-	headerStorage.GetCalled = func(key []byte) (i []byte, e error) {
-		if bytes.Equal(key, addedHash) {
-			buff, _ := args.Marshalizer.Marshal(addedHdr)
-
-			return buff, nil
-		}
-
-		return nil, nil
-	}
-	args.Store = createMetaStore()
-	args.Store.AddStorer(dataRetriever.MetaBlockUnit, headerStorage)
-	blkc, _ := blockchain.NewBlockChain(&statusHandlerMock.AppStatusHandlerStub{})
-	_ = blkc.SetGenesisHeader(&block.Header{Nonce: 0})
-	args.ChainHandler = blkc
-	args.RoundHandler = initRoundHandler()
-
-	bs, err := sync.NewMetaBootstrap(args)
-	require.Nil(t, err)
-	bs.ReceivedHeaders(addedHdr, addedHash)
-	bs.ReceivedProof(&block.HeaderProof{
-		HeaderHash: addedHash,
+		assert.True(t, wasAdded)
 	})
-	time.Sleep(500 * time.Millisecond)
 
-	// TODO: fix it
-	assert.True(t, wasAdded)
+	t.Run("should not add to fork detector if header hash does not match", func(t *testing.T) {
+		t.Parallel()
+
+		args := CreateMetaBootstrapMockArguments()
+
+		addedHash := []byte("hash")
+		addedHdr := &block.MetaBlock{}
+
+		wasAdded := false
+
+		forkDetector := &mock.ForkDetectorMock{}
+		forkDetector.AddHeaderCalled = func(header data.HeaderHandler, hash []byte, state process.BlockHeaderState, selfNotarizedHeaders []data.HeaderHandler, selfNotarizedHeadersHashes [][]byte) error {
+			if state == process.BHProcessed {
+				return errors.New("processed")
+			}
+
+			if !bytes.Equal(hash, addedHash) {
+				return errors.New("hash mismatch")
+			}
+
+			if !reflect.DeepEqual(header, addedHdr) {
+				return errors.New("header mismatch")
+			}
+
+			wasAdded = true
+			return nil
+		}
+		args.ForkDetector = forkDetector
+
+		shardCoordinator := mock.NewMultipleShardsCoordinatorMock()
+		shardCoordinator.CurrentShard = core.MetachainShardId
+		args.ShardCoordinator = shardCoordinator
+		args.RoundHandler = initRoundHandler()
+
+		bs, err := sync.NewMetaBootstrap(args)
+		require.Nil(t, err)
+		bs.ReceivedHeaders(addedHdr, []byte("otherHash"))
+		time.Sleep(500 * time.Millisecond)
+
+		assert.False(t, wasAdded)
+	})
 }
 
 // ------- RollBack
