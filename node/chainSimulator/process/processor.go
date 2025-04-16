@@ -5,11 +5,10 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
 	dataBlock "github.com/multiversx/mx-chain-core-go/data/block"
-	logger "github.com/multiversx/mx-chain-logger-go"
-
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/configs"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
+	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
 var log = logger.GetOrCreate("process-block")
@@ -169,6 +168,30 @@ func (creator *blocksCreator) CreateNewBlock() error {
 	return messenger.BroadcastTransactions(transactions, leader.PubKey())
 }
 
+func (creator *blocksCreator) updatePeerShardMapper(
+	epoch uint32,
+) {
+	peerShardMapper := creator.nodeHandler.GetProcessComponents().PeerShardMapper()
+
+	nc := creator.nodeHandler.GetProcessComponents().NodesCoordinator()
+
+	eligibleMaps, err := nc.GetAllEligibleValidatorsPublicKeys(epoch)
+	if err != nil {
+		log.Error("failed to get eligible validators map", "error", err)
+		return
+	}
+
+	for shardID, eligibleMap := range eligibleMaps {
+		for _, pubKey := range eligibleMap {
+			peerID := creator.nodeHandler.GetBasePeers()[shardID]
+
+			log.Debug("added custom peer mapping", "peerID", peerID.Pretty(), "shardID", shardID, "addrs", pubKey)
+			peerShardMapper.UpdatePeerIDInfo(peerID, pubKey, shardID)
+		}
+	}
+
+}
+
 // ApplySignaturesAndGetProof -
 func (creator *blocksCreator) ApplySignaturesAndGetProof(
 	header data.HeaderHandler,
@@ -203,6 +226,12 @@ func (creator *blocksCreator) ApplySignaturesAndGetProof(
 	shouldAddCurrentProof := !nilPrevHeader && enableEpochHandler.IsFlagEnabled(common.EquivalentMessagesFlag)
 	if shouldAddCurrentProof {
 		headerProof = createProofForHeader(pubKeyBitmap, newHeaderSig, headerHash, header)
+		creator.nodeHandler.GetDataComponents().Datapool().Headers().AddHeader(headerHash, header)
+		err = creator.nodeHandler.GetProcessComponents().HeaderSigVerifier().VerifyHeaderProof(headerProof)
+		if err != nil {
+			return nil, err
+		}
+
 		dataPool := creator.nodeHandler.GetDataComponents().Datapool()
 		_ = dataPool.Proofs().AddProof(headerProof)
 	}
@@ -243,6 +272,16 @@ func (creator *blocksCreator) getPreviousHeaderData() (nonce, round uint64, prev
 	nonce = chainHandler.GetGenesisHeader().GetNonce()
 
 	return
+}
+
+func (creator *blocksCreator) getConsensusGroup(currentHeader data.HeaderHandler) (nodesCoordinator.Validator, []nodesCoordinator.Validator, error) {
+	selectionEpoch := currentHeader.GetEpoch()
+	if currentHeader.IsStartOfEpochBlock() {
+		selectionEpoch = selectionEpoch - 1
+	}
+
+	nc := creator.nodeHandler.GetProcessComponents().NodesCoordinator()
+	return nc.ComputeConsensusGroup(currentHeader.GetPrevRandSeed(), currentHeader.GetRound(), currentHeader.GetShardID(), selectionEpoch)
 }
 
 func (creator *blocksCreator) setHeaderSignatures(
