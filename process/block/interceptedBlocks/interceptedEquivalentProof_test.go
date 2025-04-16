@@ -91,7 +91,7 @@ func createMockArgInterceptedEquivalentProof() ArgInterceptedEquivalentProof {
 		KeyRWMutexHandler:  coreSync.NewKeyRWMutex(),
 		EligibleNodesCache: &testscommon.EligibleNodesCacheMock{},
 		WhiteListHandler:   &testscommon.WhiteListHandlerStub{},
-		Store:              &genericMocks.ChainStorerMock{},
+		Store:              genericMocks.NewChainStorerMock(0),
 	}
 }
 

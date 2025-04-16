@@ -1810,6 +1810,12 @@ func (bp *baseProcessor) restoreBlockBody(headerHandler data.HeaderHandler, body
 	go bp.txCounter.headerReverted(headerHandler)
 }
 
+// RemoveHeaderFromPool removes the header from the pool
+func (bp *baseProcessor) RemoveHeaderFromPool(headerHash []byte) {
+	headersPool := bp.dataPool.Headers()
+	headersPool.RemoveHeaderByHash(headerHash)
+}
+
 // RestoreBlockBodyIntoPools restores the block body into associated pools
 func (bp *baseProcessor) RestoreBlockBodyIntoPools(bodyHandler data.BodyHandler) error {
 	if check.IfNil(bodyHandler) {
@@ -2308,6 +2314,7 @@ func (bp *baseProcessor) requestProofIfNeeded(currentHeaderHash []byte, epoch ui
 		return false
 	}
 	if bp.proofsPool.HasProof(shardID, currentHeaderHash) {
+		bp.hdrsForCurrBlock.hdrHashAndInfo[string(currentHeaderHash)].hasProof = true
 		return true
 	}
 

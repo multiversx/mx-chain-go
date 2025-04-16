@@ -1896,7 +1896,8 @@ func (sp *shardProcessor) computeExistingAndRequestMissingMetaHeaders(header dat
 
 		sp.requestProofIfNeeded(metaBlockHashes[i], hdr.GetEpoch(), core.MetachainShardId)
 
-		sp.hdrsForCurrBlock.hdrHashAndInfo[string(metaBlockHashes[i])].hasProof = true
+		sp.hdrsForCurrBlock.hdrHashAndInfo[string(metaBlockHashes[i])].hasProofRequested = true
+
 		if hdr.GetNonce() > lastMetablockNonceWithProof {
 			lastMetablockNonceWithProof = hdr.GetNonce()
 		}

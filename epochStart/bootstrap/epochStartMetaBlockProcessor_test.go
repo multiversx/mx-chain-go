@@ -430,7 +430,11 @@ func TestEpochStartMetaBlockProcessor_GetEpochStartMetaBlock_AfterEquivalentMess
 				return flag == common.EquivalentMessagesFlag
 			},
 		},
-		&dataRetriever.ProofsPoolMock{},
+		&dataRetriever.ProofsPoolMock{
+			HasProofCalled: func(shardID uint32, headerHash []byte) bool {
+				return true
+			},
+		},
 	)
 	expectedMetaBlock := &block.MetaBlock{
 		Nonce:      10,

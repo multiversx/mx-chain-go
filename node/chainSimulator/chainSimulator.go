@@ -182,6 +182,7 @@ func (s *simulator) createChainHandlers(args ArgsBaseChainSimulator) error {
 	s.validatorsPrivateKeys = outputConfigs.ValidatorsPrivateKeys
 
 	s.addProofs()
+	s.setBasePeerIds()
 
 	log.Info("running the chain simulator with the following parameters",
 		"number of shards (including meta)", args.NumOfShards+1,
@@ -192,6 +193,18 @@ func (s *simulator) createChainHandlers(args ArgsBaseChainSimulator) error {
 		"temporary path", args.TempDir)
 
 	return nil
+}
+
+func (s *simulator) setBasePeerIds() {
+	peerIds := make(map[uint32]core.PeerID, 0)
+	for _, nodeHandler := range s.nodes {
+		peerID := nodeHandler.GetNetworkComponents().NetworkMessenger().ID()
+		peerIds[nodeHandler.GetShardCoordinator().SelfId()] = peerID
+	}
+
+	for _, nodeHandler := range s.nodes {
+		nodeHandler.SetBasePeers(peerIds)
+	}
 }
 
 func (s *simulator) addProofs() {
