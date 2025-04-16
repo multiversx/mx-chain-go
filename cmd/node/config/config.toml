@@ -677,7 +677,7 @@
     StateStatisticsEnabled = false
 
 [StateAccessesCollectorConfig]
-    TypesToCollect = []
+    TypesToCollect = []          # These can be "READ","WRITE".
     SaveToStorage = false
     WithAccountChanges = false
 
