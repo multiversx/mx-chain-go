@@ -376,7 +376,7 @@ func (sr *subroundEndRound) doEndRoundJobByLeader() bool {
 	if elapsedTime >= common.CommitMaxTime {
 		log.Warn("doEndRoundJobByLeader.CommitBlock", "elapsed time", elapsedTime)
 	} else {
-		log.Debug("elapsed time to commit block",
+		log.Debug("elapsed time to commit block ",
 			"time [s]", elapsedTime,
 		)
 	}
@@ -685,7 +685,7 @@ func (sr *subroundEndRound) doEndRoundJobByParticipant(cnsDta *consensus.Message
 	if elapsedTime >= common.CommitMaxTime {
 		log.Warn("doEndRoundJobByParticipant.CommitBlock", "elapsed time", elapsedTime)
 	} else {
-		log.Debug("elapsed time to commit block",
+		log.Debug("elapsed time to commit block ",
 			"time [s]", elapsedTime,
 		)
 	}

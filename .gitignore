@@ -20,9 +20,11 @@ opcode.trace
 /vendor
 /esdata
 .env
+venv
 *.log
 genessis.json
-
+scripts/logsConversion/__pycache__
+scripts/__pycache__
 /cross_build
 tags
 

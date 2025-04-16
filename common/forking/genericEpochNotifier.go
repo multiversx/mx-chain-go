@@ -54,7 +54,7 @@ func (gen *genericEpochNotifier) CheckEpoch(header data.HeaderHandler) {
 	copy(handlersCopy, gen.handlers)
 	gen.mutHandler.RUnlock()
 
-	log.Debug("genericEpochNotifier.NotifyEpochChangeConfirmed",
+	log.Debug("genericEpochNotifier.NotifyEpochChangeConfirmed ",
 		"new epoch", epoch,
 		"new epoch at timestamp", timestamp,
 		"num handlers", len(handlersCopy),
