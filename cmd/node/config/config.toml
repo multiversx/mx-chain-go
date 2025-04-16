@@ -675,7 +675,6 @@
     MaxStateTrieLevelInMemory = 5
     MaxPeerTrieLevelInMemory = 5
     StateStatisticsEnabled = false
-    StateChangesPeerAccountsEnabled = false
 
 [StateAccessesCollectorConfig]
     TypesToCollect = []

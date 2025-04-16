@@ -165,14 +165,6 @@ func (scf *stateComponentsFactory) getStorerForCollector() (state.StateAccessesS
 	return stateAccesses.NewStateAccessesStorer(storer, scf.core.InternalMarshalizer())
 }
 
-func (scf *stateComponentsFactory) createStateAccessesCollectorPeerAccounts() (state.StateAccessesCollector, error) {
-	if !scf.config.StateTriesConfig.StateChangesPeerAccountsEnabled {
-		return disabled.NewDisabledStateAccessesCollector(), nil
-	}
-
-	return scf.createStateAccessesCollector()
-}
-
 func (scf *stateComponentsFactory) createSnapshotManager(
 	accountFactory state.AccountFactory,
 	stateMetrics state.StateMetrics,
@@ -319,11 +311,6 @@ func (scf *stateComponentsFactory) createPeerAdapter(triesContainer common.Tries
 		return nil, err
 	}
 
-	stateAccessesCollector, err := scf.createStateAccessesCollectorPeerAccounts()
-	if err != nil {
-		return nil, err
-	}
-
 	argsProcessingPeerAccountsDB := state.ArgsAccountsDB{
 		Trie:                   merkleTrie,
 		Hasher:                 scf.core.Hasher(),
@@ -332,7 +319,7 @@ func (scf *stateComponentsFactory) createPeerAdapter(triesContainer common.Tries
 		StoragePruningManager:  storagePruning,
 		AddressConverter:       scf.core.AddressPubKeyConverter(),
 		SnapshotsManager:       snapshotManager,
-		StateAccessesCollector: stateAccessesCollector,
+		StateAccessesCollector: disabled.NewDisabledStateAccessesCollector(),
 	}
 	peerAdapter, err := state.NewPeerAccountsDB(argsProcessingPeerAccountsDB)
 	if err != nil {
