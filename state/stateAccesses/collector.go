@@ -17,12 +17,13 @@ import (
 var log = logger.GetOrCreate("state/stateAccesses")
 
 type collector struct {
-	collectRead        bool
-	collectWrite       bool
-	withAccountChanges bool
-	stateAccesses      []*data.StateAccess
-	storer             state.StateAccessesStorer
-	stateChangesMut    sync.RWMutex
+	collectRead         bool
+	collectWrite        bool
+	withAccountChanges  bool
+	stateAccesses       []*data.StateAccess
+	stateAccessesForTxs map[string]*data.StateAccesses
+	storer              state.StateAccessesStorer
+	stateChangesMut     sync.RWMutex
 }
 
 // NewCollector will collect based on the options the state changes.
@@ -31,7 +32,10 @@ func NewCollector(storer state.StateAccessesStorer, opts ...CollectorOption) (*c
 		return nil, state.ErrNilStateAccessesStorer
 	}
 
-	c := &collector{stateAccesses: make([]*data.StateAccess, 0)}
+	c := &collector{
+		stateAccesses:       make([]*data.StateAccess, 0),
+		stateAccessesForTxs: make(map[string]*data.StateAccesses),
+	}
 	for _, opt := range opts {
 		opt(c)
 	}
@@ -75,42 +79,54 @@ func (c *collector) Reset() {
 	defer c.stateChangesMut.Unlock()
 
 	c.stateAccesses = make([]*data.StateAccess, 0)
+	c.stateAccessesForTxs = make(map[string]*data.StateAccesses)
 	log.Trace("reset state changes collector")
 }
 
 // GetCollectedAccesses will return the collected state accesses
 func (c *collector) GetCollectedAccesses() map[string]*data.StateAccesses {
-	c.stateChangesMut.RLock()
-	defer c.stateChangesMut.RUnlock()
-
-	stateAccessesForTxs := getStateAccessesForTxs(c.stateAccesses)
-
-	return stateAccessesForTxs
+	return c.getStateAccessesForTxs()
 }
 
-func getStateAccessesForTxs(collectedStateAccesses []*data.StateAccess) map[string]*data.StateAccesses {
-	stateAccessesForTx := make(map[string]*data.StateAccesses)
-	for _, stateAccess := range collectedStateAccesses {
+func (c *collector) getStateAccessesForTxs() map[string]*data.StateAccesses {
+	c.stateChangesMut.Lock()
+	defer c.stateChangesMut.Unlock()
+
+	if len(c.stateAccessesForTxs) != 0 && len(c.stateAccesses) == 0 {
+		return c.stateAccessesForTxs
+	}
+	if len(c.stateAccessesForTxs) != 0 && len(c.stateAccesses) != 0 {
+		log.Warn("state accesses already collected, but new state changes were added after")
+	}
+
+	stateAccessWithNoAssociatedTx := 0
+	for _, stateAccess := range c.stateAccesses {
 		txHash := string(stateAccess.GetTxHash())
 		if len(txHash) == 0 {
-			log.Warn("empty tx hash, state change event not associated to a transaction", "stateChange", stateAccessToString(stateAccess))
+			stateAccessWithNoAssociatedTx++
+			log.Trace("empty tx hash, state access event not associated to a transaction", "stateChange", stateAccessToString(stateAccess))
 			continue
 		}
 
-		_, ok := stateAccessesForTx[txHash]
+		_, ok := c.stateAccessesForTxs[txHash]
 		if !ok {
-			stateAccessesForTx[txHash] = &data.StateAccesses{
+			c.stateAccessesForTxs[txHash] = &data.StateAccesses{
 				StateAccess: []*data.StateAccess{stateAccess},
 			}
 
 			continue
 		}
 
-		stateAccessesForTx[txHash].StateAccess = append(stateAccessesForTx[txHash].StateAccess, stateAccess)
+		c.stateAccessesForTxs[txHash].StateAccess = append(c.stateAccessesForTxs[txHash].StateAccess, stateAccess)
 	}
 
-	logCollectedStateAccesses("state accesses to publish", stateAccessesForTx)
-	return stateAccessesForTx
+	if stateAccessWithNoAssociatedTx > 0 {
+		log.Warn("state accesses with no associated tx; use state:TRACE for more data", "num", stateAccessWithNoAssociatedTx)
+	}
+	c.stateAccesses = make([]*data.StateAccess, 0)
+	logCollectedStateAccesses("state accesses for txs", c.stateAccessesForTxs)
+
+	return c.stateAccessesForTxs
 }
 
 func logCollectedStateAccesses(message string, stateAccessesForTx map[string]*data.StateAccesses) {
@@ -148,11 +164,7 @@ func stateAccessToString(stateAccess *data.StateAccess) string {
 
 // Store will store the collected state changes if it has been configured with a storer
 func (c *collector) Store() error {
-	c.stateChangesMut.RLock()
-	defer c.stateChangesMut.RUnlock()
-
-	stateAccessesForTxs := getStateAccessesForTxs(c.stateAccesses)
-	return c.storer.Store(stateAccessesForTxs)
+	return c.storer.Store(c.getStateAccessesForTxs())
 }
 
 // AddTxHashToCollectedStateChanges will try to set txHash field to each state change
