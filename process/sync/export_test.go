@@ -29,9 +29,29 @@ func (boot *MetaBootstrap) ReceivedHeaders(header data.HeaderHandler, key []byte
 	boot.processReceivedHeader(header, key)
 }
 
+// ReceivedProof -
+func (boot *MetaBootstrap) ReceivedProof(header data.HeaderProofHandler) {
+	boot.processReceivedProof(header)
+}
+
+// SetRcvHdrNonce -
+func (boot *MetaBootstrap) SetRcvHdrNonce() {
+	boot.chRcvHdrNonce <- true
+}
+
+// SetRcvHdrHash -
+func (boot *MetaBootstrap) SetRcvHdrHash() {
+	boot.chRcvHdrHash <- true
+}
+
 // ReceivedHeaders -
 func (boot *ShardBootstrap) ReceivedHeaders(header data.HeaderHandler, key []byte) {
 	boot.processReceivedHeader(header, key)
+}
+
+// ReceivedProof -
+func (boot *ShardBootstrap) ReceivedProof(header data.HeaderProofHandler) {
+	boot.processReceivedProof(header)
 }
 
 // RollBack -
