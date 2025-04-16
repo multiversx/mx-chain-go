@@ -168,30 +168,6 @@ func (creator *blocksCreator) CreateNewBlock() error {
 	return messenger.BroadcastTransactions(transactions, leader.PubKey())
 }
 
-func (creator *blocksCreator) updatePeerShardMapper(
-	epoch uint32,
-) {
-	peerShardMapper := creator.nodeHandler.GetProcessComponents().PeerShardMapper()
-
-	nc := creator.nodeHandler.GetProcessComponents().NodesCoordinator()
-
-	eligibleMaps, err := nc.GetAllEligibleValidatorsPublicKeys(epoch)
-	if err != nil {
-		log.Error("failed to get eligible validators map", "error", err)
-		return
-	}
-
-	for shardID, eligibleMap := range eligibleMaps {
-		for _, pubKey := range eligibleMap {
-			peerID := creator.nodeHandler.GetBasePeers()[shardID]
-
-			log.Debug("added custom peer mapping", "peerID", peerID.Pretty(), "shardID", shardID, "addrs", pubKey)
-			peerShardMapper.UpdatePeerIDInfo(peerID, pubKey, shardID)
-		}
-	}
-
-}
-
 // ApplySignaturesAndGetProof -
 func (creator *blocksCreator) ApplySignaturesAndGetProof(
 	header data.HeaderHandler,
@@ -272,16 +248,6 @@ func (creator *blocksCreator) getPreviousHeaderData() (nonce, round uint64, prev
 	nonce = chainHandler.GetGenesisHeader().GetNonce()
 
 	return
-}
-
-func (creator *blocksCreator) getConsensusGroup(currentHeader data.HeaderHandler) (nodesCoordinator.Validator, []nodesCoordinator.Validator, error) {
-	selectionEpoch := currentHeader.GetEpoch()
-	if currentHeader.IsStartOfEpochBlock() {
-		selectionEpoch = selectionEpoch - 1
-	}
-
-	nc := creator.nodeHandler.GetProcessComponents().NodesCoordinator()
-	return nc.ComputeConsensusGroup(currentHeader.GetPrevRandSeed(), currentHeader.GetRound(), currentHeader.GetShardID(), selectionEpoch)
 }
 
 func (creator *blocksCreator) setHeaderSignatures(
