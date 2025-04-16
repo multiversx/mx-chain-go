@@ -1159,17 +1159,7 @@ func (boot *baseBootstrap) requestHeaderAndProofByHashIfMissing(
 	_ = core.EmptyChannel(boot.chRcvHdrHash)
 	boot.setRequestedHeaderHash(hash)
 	if !hasHeader {
-		logMsg := fmt.Sprintf("requesting %s header from network", boot.getShardLabel())
-		log.Debug(logMsg,
-			"hash", hash,
-			"probable highest nonce", boot.forkDetector.ProbableHighestNonce(),
-		)
-		boot.requestHandler.RequestMetaHeader(hash)
-		if boot.shardCoordinator.SelfId() == core.MetachainShardId {
-			boot.requestHandler.RequestMetaHeader(hash)
-		} else {
-			boot.requestHandler.RequestShardHeader(boot.shardCoordinator.SelfId(), hash)
-		}
+		boot.requestHeaderByHash(hash)
 	}
 
 	if !hasProof {
@@ -1177,6 +1167,20 @@ func (boot *baseBootstrap) requestHeaderAndProofByHashIfMissing(
 			"hash", hex.EncodeToString(hash),
 		)
 		boot.requestHandler.RequestEquivalentProofByHash(boot.shardCoordinator.SelfId(), hash)
+	}
+}
+
+func (boot *baseBootstrap) requestHeaderByHash(hash []byte) {
+	logMsg := fmt.Sprintf("requesting %s header from network", boot.getShardLabel())
+	log.Debug(logMsg,
+		"hash", hash,
+		"probable highest nonce", boot.forkDetector.ProbableHighestNonce(),
+	)
+	boot.requestHandler.RequestMetaHeader(hash)
+	if boot.shardCoordinator.SelfId() == core.MetachainShardId {
+		boot.requestHandler.RequestMetaHeader(hash)
+	} else {
+		boot.requestHandler.RequestShardHeader(boot.shardCoordinator.SelfId(), hash)
 	}
 }
 
@@ -1198,17 +1202,7 @@ func (boot *baseBootstrap) requestHeaderAndProofByNonceIfMissing(
 	_ = core.EmptyChannel(boot.chRcvHdrNonce)
 	boot.setRequestedHeaderNonce(&nonce)
 	if !hasHeader {
-		logMsg := fmt.Sprintf("requesting %s header by nonce from network", boot.getShardLabel())
-		log.Debug(logMsg,
-			"hash", hash,
-			"probable highest nonce", boot.forkDetector.ProbableHighestNonce(),
-		)
-
-		if boot.shardCoordinator.SelfId() == core.MetachainShardId {
-			boot.requestHandler.RequestMetaHeaderByNonce(nonce)
-		} else {
-			boot.requestHandler.RequestShardHeaderByNonce(boot.shardCoordinator.SelfId(), nonce)
-		}
+		boot.requestHeaderByNonce(hash, nonce)
 	}
 
 	if !hasProof {
@@ -1216,6 +1210,20 @@ func (boot *baseBootstrap) requestHeaderAndProofByNonceIfMissing(
 			"hash", hex.EncodeToString(hash),
 		)
 		boot.requestHandler.RequestEquivalentProofByHash(boot.shardCoordinator.SelfId(), hash)
+	}
+}
+
+func (boot *baseBootstrap) requestHeaderByNonce(hash []byte, nonce uint64) {
+	logMsg := fmt.Sprintf("requesting %s header by nonce from network", boot.getShardLabel())
+	log.Debug(logMsg,
+		"hash", hash,
+		"probable highest nonce", boot.forkDetector.ProbableHighestNonce(),
+	)
+
+	if boot.shardCoordinator.SelfId() == core.MetachainShardId {
+		boot.requestHandler.RequestMetaHeaderByNonce(nonce)
+	} else {
+		boot.requestHandler.RequestShardHeaderByNonce(boot.shardCoordinator.SelfId(), nonce)
 	}
 }
 

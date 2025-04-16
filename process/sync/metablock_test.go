@@ -1242,6 +1242,9 @@ func TestMetaBootstrap_ReceivedHeadersNotFoundInPoolShouldNotAddToForkDetector(t
 	bs, err := sync.NewMetaBootstrap(args)
 	require.Nil(t, err)
 	bs.ReceivedHeaders(addedHdr, addedHash)
+	bs.ReceivedProof(&block.HeaderProof{
+		HeaderHash: addedHash,
+	})
 	time.Sleep(500 * time.Millisecond)
 
 	// TODO: fix it

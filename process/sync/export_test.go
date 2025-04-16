@@ -14,9 +14,10 @@ import (
 func (boot *baseBootstrap) RequestHeaderWithNonce(nonce uint64) {
 	if boot.shardCoordinator.SelfId() == core.MetachainShardId {
 		boot.requestHandler.RequestMetaHeaderByNonce(nonce)
-	} else {
-		boot.requestHandler.RequestShardHeaderByNonce(boot.shardCoordinator.SelfId(), nonce)
+		return
 	}
+
+	boot.requestHandler.RequestShardHeaderByNonce(boot.shardCoordinator.SelfId(), nonce)
 }
 
 // GetMiniBlocks -
