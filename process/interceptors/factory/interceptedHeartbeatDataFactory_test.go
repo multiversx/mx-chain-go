@@ -67,7 +67,7 @@ func TestNewInterceptedHeartbeatDataFactory(t *testing.T) {
 		marshaledHeartbeat, err := marshaller.Marshal(hb)
 		assert.Nil(t, err)
 
-		interceptedData, err := ihdf.Create(marshaledHeartbeat)
+		interceptedData, err := ihdf.Create(marshaledHeartbeat, "")
 		assert.NotNil(t, interceptedData)
 		assert.Nil(t, err)
 		assert.True(t, strings.Contains(fmt.Sprintf("%T", interceptedData), "*heartbeat.interceptedHeartbeat"))

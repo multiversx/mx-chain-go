@@ -20,39 +20,42 @@ import (
 
 // CoreComponentsMock -
 type CoreComponentsMock struct {
-	IntMarsh                     marshal.Marshalizer
-	TxMarsh                      marshal.Marshalizer
-	VmMarsh                      marshal.Marshalizer
-	Hash                         hashing.Hasher
-	TxSignHasherField            hashing.Hasher
-	UInt64ByteSliceConv          typeConverters.Uint64ByteSliceConverter
-	AddrPubKeyConv               core.PubkeyConverter
-	ValPubKeyConv                core.PubkeyConverter
-	PathHdl                      storage.PathManagerHandler
-	ChainIdCalled                func() string
-	MinTransactionVersionCalled  func() uint32
-	WDTimer                      core.WatchdogTimer
-	Alarm                        core.TimersScheduler
-	NtpTimer                     ntp.SyncTimer
-	RoundChangeNotifier          process.RoundNotifier
-	RoundHandlerField            consensus.RoundHandler
-	EconomicsHandler             process.EconomicsDataHandler
-	APIEconomicsHandler          process.EconomicsDataHandler
-	RatingsConfig                process.RatingsInfoHandler
-	RatingHandler                sharding.PeerAccountListAndRatingHandler
-	NodesConfig                  sharding.GenesisNodesSetupHandler
-	EpochChangeNotifier          process.EpochNotifier
-	EnableRoundsHandlerField     process.EnableRoundsHandler
-	EpochNotifierWithConfirm     factory.EpochStartNotifierWithConfirm
-	ChanStopProcess              chan endProcess.ArgEndProcess
-	Shuffler                     nodesCoordinator.NodesShuffler
-	TxVersionCheckHandler        process.TxVersionCheckerHandler
-	StartTime                    time.Time
-	NodeTypeProviderField        core.NodeTypeProviderHandler
-	WasmVMChangeLockerInternal   common.Locker
-	ProcessStatusHandlerInternal common.ProcessStatusHandler
-	HardforkTriggerPubKeyField   []byte
-	EnableEpochsHandlerField     common.EnableEpochsHandler
+	IntMarsh                       marshal.Marshalizer
+	TxMarsh                        marshal.Marshalizer
+	VmMarsh                        marshal.Marshalizer
+	Hash                           hashing.Hasher
+	TxSignHasherField              hashing.Hasher
+	UInt64ByteSliceConv            typeConverters.Uint64ByteSliceConverter
+	AddrPubKeyConv                 core.PubkeyConverter
+	ValPubKeyConv                  core.PubkeyConverter
+	PathHdl                        storage.PathManagerHandler
+	ChainIdCalled                  func() string
+	MinTransactionVersionCalled    func() uint32
+	WDTimer                        core.WatchdogTimer
+	Alarm                          core.TimersScheduler
+	NtpTimer                       ntp.SyncTimer
+	RoundChangeNotifier            process.RoundNotifier
+	RoundHandlerField              consensus.RoundHandler
+	EconomicsHandler               process.EconomicsDataHandler
+	APIEconomicsHandler            process.EconomicsDataHandler
+	RatingsConfig                  process.RatingsInfoHandler
+	RatingHandler                  sharding.PeerAccountListAndRatingHandler
+	NodesConfig                    sharding.GenesisNodesSetupHandler
+	EpochChangeNotifier            process.EpochNotifier
+	EnableRoundsHandlerField       process.EnableRoundsHandler
+	EpochNotifierWithConfirm       factory.EpochStartNotifierWithConfirm
+	ChanStopProcess                chan endProcess.ArgEndProcess
+	Shuffler                       nodesCoordinator.NodesShuffler
+	TxVersionCheckHandler          process.TxVersionCheckerHandler
+	StartTime                      time.Time
+	NodeTypeProviderField          core.NodeTypeProviderHandler
+	WasmVMChangeLockerInternal     common.Locker
+	ProcessStatusHandlerInternal   common.ProcessStatusHandler
+	HardforkTriggerPubKeyField     []byte
+	EnableEpochsHandlerField       common.EnableEpochsHandler
+	ChainParametersHandlerField    process.ChainParametersHandler
+	ChainParametersSubscriberField process.ChainParametersSubscriber
+	FieldsSizeCheckerField         common.FieldsSizeChecker
 }
 
 // Create -
@@ -256,6 +259,21 @@ func (ccm *CoreComponentsMock) HardforkTriggerPubKey() []byte {
 // EnableEpochsHandler -
 func (ccm *CoreComponentsMock) EnableEpochsHandler() common.EnableEpochsHandler {
 	return ccm.EnableEpochsHandlerField
+}
+
+// ChainParametersHandler -
+func (ccm *CoreComponentsMock) ChainParametersHandler() process.ChainParametersHandler {
+	return ccm.ChainParametersHandlerField
+}
+
+// ChainParametersSubscriber -
+func (ccm *CoreComponentsMock) ChainParametersSubscriber() process.ChainParametersSubscriber {
+	return ccm.ChainParametersSubscriberField
+}
+
+// FieldsSizeChecker -
+func (ccm *CoreComponentsMock) FieldsSizeChecker() common.FieldsSizeChecker {
+	return ccm.FieldsSizeCheckerField
 }
 
 // IsInterfaceNil -

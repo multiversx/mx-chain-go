@@ -11,7 +11,11 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/data/endProcess"
 	"github.com/multiversx/mx-chain-core-go/data/typeConverters/uint64ByteSlice"
+	"github.com/stretchr/testify/assert"
+
 	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/common/enablers"
+	"github.com/multiversx/mx-chain-go/common/forking"
 	"github.com/multiversx/mx-chain-go/common/statistics/disabled"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
@@ -24,6 +28,7 @@ import (
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/block/bootstrapStorage"
 	"github.com/multiversx/mx-chain-go/process/block/pendingMb"
+	interceptorsFactory "github.com/multiversx/mx-chain-go/process/interceptors/factory"
 	"github.com/multiversx/mx-chain-go/process/smartContract"
 	"github.com/multiversx/mx-chain-go/process/sync/storageBootstrap"
 	"github.com/multiversx/mx-chain-go/sharding"
@@ -31,7 +36,8 @@ import (
 	"github.com/multiversx/mx-chain-go/storage/factory"
 	"github.com/multiversx/mx-chain-go/storage/storageunit"
 	"github.com/multiversx/mx-chain-go/testscommon"
-	epochNotifierMock "github.com/multiversx/mx-chain-go/testscommon/epochNotifier"
+	"github.com/multiversx/mx-chain-go/testscommon/chainParameters"
+	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/genericMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/genesisMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
@@ -40,7 +46,6 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/scheduledDataSyncer"
 	"github.com/multiversx/mx-chain-go/testscommon/shardingMocks"
 	statusHandlerMock "github.com/multiversx/mx-chain-go/testscommon/statusHandler"
-	"github.com/stretchr/testify/assert"
 )
 
 func TestStartInEpochForAShardNodeInMultiShardedEnvironment(t *testing.T) {
@@ -72,6 +77,8 @@ func testNodeStartsInEpoch(t *testing.T, shardID uint32, expectedHighestRound ui
 		StakingV4Step1EnableEpoch:            integrationTests.UnreachableEpoch,
 		StakingV4Step2EnableEpoch:            integrationTests.UnreachableEpoch,
 		StakingV4Step3EnableEpoch:            integrationTests.UnreachableEpoch,
+		EquivalentMessagesEnableEpoch:        integrationTests.UnreachableEpoch,
+		FixedOrderInConsensusEnableEpoch:     integrationTests.UnreachableEpoch,
 	}
 
 	nodes := integrationTests.CreateNodesWithEnableEpochs(
@@ -86,11 +93,11 @@ func testNodeStartsInEpoch(t *testing.T, shardID uint32, expectedHighestRound ui
 		node.EpochStartTrigger.SetRoundsPerEpoch(roundsPerEpoch)
 	}
 
-	idxProposers := make([]int, numOfShards+1)
+	leaders := make([]*integrationTests.TestProcessorNode, numOfShards+1)
 	for i := 0; i < numOfShards; i++ {
-		idxProposers[i] = i * numNodesPerShard
+		leaders[i] = nodes[i*numNodesPerShard]
 	}
-	idxProposers[numOfShards] = numOfShards * numNodesPerShard
+	leaders[numOfShards] = nodes[numOfShards*numNodesPerShard]
 
 	integrationTests.DisplayAndStartNodes(nodes)
 
@@ -117,8 +124,8 @@ func testNodeStartsInEpoch(t *testing.T, shardID uint32, expectedHighestRound ui
 	nrRoundsToPropagateMultiShard := uint64(5)
 	for i := uint64(0); i <= (uint64(epoch)*roundsPerEpoch)+nrRoundsToPropagateMultiShard; i++ {
 		integrationTests.UpdateRound(nodes, round)
-		integrationTests.ProposeBlock(nodes, idxProposers, round, nonce)
-		integrationTests.SyncBlock(t, nodes, idxProposers, round)
+		integrationTests.ProposeBlock(nodes, leaders, round, nonce)
+		integrationTests.SyncBlock(t, nodes, leaders, round)
 		round = integrationTests.IncrementAndPrintRound(round)
 		nonce++
 
@@ -221,7 +228,9 @@ func testNodeStartsInEpoch(t *testing.T, shardID uint32, expectedHighestRound ui
 	cryptoComponents.BlKeyGen = &mock.KeyGenMock{}
 	cryptoComponents.TxKeyGen = &mock.KeyGenMock{}
 
-	coreComponents := integrationTests.GetDefaultCoreComponents(integrationTests.CreateEnableEpochsConfig())
+	genericEpochNotifier := forking.NewGenericEpochNotifier()
+	enableEpochsHandler, _ := enablers.NewEnableEpochsHandler(enableEpochsConfig, genericEpochNotifier)
+	coreComponents := integrationTests.GetDefaultCoreComponents(enableEpochsHandler, genericEpochNotifier)
 	coreComponents.InternalMarshalizerField = integrationTests.TestMarshalizer
 	coreComponents.TxMarshalizerField = integrationTests.TestMarshalizer
 	coreComponents.HasherField = integrationTests.TestHasher
@@ -234,11 +243,16 @@ func testNodeStartsInEpoch(t *testing.T, shardID uint32, expectedHighestRound ui
 	coreComponents.NodeTypeProviderField = &nodeTypeProviderMock.NodeTypeProviderStub{}
 	coreComponents.ChanStopNodeProcessField = endProcess.GetDummyEndProcessChannel()
 	coreComponents.HardforkTriggerPubKeyField = []byte("provided hardfork pub key")
+	coreComponents.ChainParametersHandlerField = &chainParameters.ChainParametersHandlerStub{}
 
 	nodesCoordinatorRegistryFactory, _ := nodesCoordinator.NewNodesCoordinatorRegistryFactory(
 		&marshallerMock.MarshalizerMock{},
 		444,
 	)
+	interceptorDataVerifierArgs := interceptorsFactory.InterceptedDataVerifierFactoryArgs{
+		CacheSpan:   time.Second * 5,
+		CacheExpiry: time.Second * 10,
+	}
 	argsBootstrapHandler := bootstrap.ArgsEpochStartBootstrap{
 		NodesCoordinatorRegistryFactory: nodesCoordinatorRegistryFactory,
 		CryptoComponentsHolder:          cryptoComponents,
@@ -277,8 +291,10 @@ func testNodeStartsInEpoch(t *testing.T, shardID uint32, expectedHighestRound ui
 		FlagsConfig: config.ContextFlagsConfig{
 			ForceStartFromNetwork: false,
 		},
-		TrieSyncStatisticsProvider: &testscommon.SizeSyncStatisticsHandlerStub{},
-		StateStatsHandler:          disabled.NewStateStatistics(),
+		TrieSyncStatisticsProvider:     &testscommon.SizeSyncStatisticsHandlerStub{},
+		StateStatsHandler:              disabled.NewStateStatistics(),
+		EnableEpochsHandler:            &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		InterceptedDataVerifierFactory: interceptorsFactory.NewInterceptedDataVerifierFactory(interceptorDataVerifierArgs),
 	}
 
 	epochStartBootstrap, err := bootstrap.NewEpochStartBootstrap(argsBootstrapHandler)
@@ -345,9 +361,10 @@ func testNodeStartsInEpoch(t *testing.T, shardID uint32, expectedHighestRound ui
 		ChainID:                      string(integrationTests.ChainID),
 		ScheduledTxsExecutionHandler: &testscommon.ScheduledTxsExecutionStub{},
 		MiniblocksProvider:           &mock.MiniBlocksProviderStub{},
-		EpochNotifier:                &epochNotifierMock.EpochNotifierStub{},
+		EpochNotifier:                genericEpochNotifier,
 		ProcessedMiniBlocksTracker:   &testscommon.ProcessedMiniBlocksTrackerStub{},
 		AppStatusHandler:             &statusHandlerMock.AppStatusHandlerMock{},
+		EnableEpochsHandler:          enableEpochsHandler,
 	}
 
 	bootstrapper, err := getBootstrapper(shardID, argsBaseBootstrapper)

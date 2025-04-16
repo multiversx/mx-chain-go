@@ -17,21 +17,21 @@ import (
 var log = logger.GetOrCreate("relayedtests")
 
 // CreateGeneralSetupForRelayTxTest will create the general setup for relayed transactions
-func CreateGeneralSetupForRelayTxTest(baseCostFixEnabled bool) ([]*integrationTests.TestProcessorNode, []int, []*integrationTests.TestWalletAccount, *integrationTests.TestWalletAccount) {
+func CreateGeneralSetupForRelayTxTest(baseCostFixEnabled bool) ([]*integrationTests.TestProcessorNode, []*integrationTests.TestProcessorNode, []*integrationTests.TestWalletAccount, *integrationTests.TestWalletAccount) {
 	initialVal := big.NewInt(10000000000)
 	epochsConfig := integrationTests.GetDefaultEnableEpochsConfig()
 	if !baseCostFixEnabled {
 		epochsConfig.FixRelayedBaseCostEnableEpoch = integrationTests.UnreachableEpoch
 		epochsConfig.FixRelayedMoveBalanceToNonPayableSCEnableEpoch = integrationTests.UnreachableEpoch
 	}
-	nodes, idxProposers := createAndMintNodes(initialVal, epochsConfig)
+	nodes, leaders := createAndMintNodes(initialVal, epochsConfig)
 
 	players, relayerAccount := createAndMintPlayers(baseCostFixEnabled, nodes, initialVal)
 
-	return nodes, idxProposers, players, relayerAccount
+	return nodes, leaders, players, relayerAccount
 }
 
-func createAndMintNodes(initialVal *big.Int, enableEpochsConfig *config.EnableEpochs) ([]*integrationTests.TestProcessorNode, []int) {
+func createAndMintNodes(initialVal *big.Int, enableEpochsConfig *config.EnableEpochs) ([]*integrationTests.TestProcessorNode, []*integrationTests.TestProcessorNode) {
 	numOfShards := 2
 	nodesPerShard := 2
 	numMetachainNodes := 1
@@ -43,17 +43,17 @@ func createAndMintNodes(initialVal *big.Int, enableEpochsConfig *config.EnableEp
 		enableEpochsConfig,
 	)
 
-	idxProposers := make([]int, numOfShards+1)
+	leaders := make([]*integrationTests.TestProcessorNode, numOfShards+1)
 	for i := 0; i < numOfShards; i++ {
-		idxProposers[i] = i * nodesPerShard
+		leaders[i] = nodes[i*nodesPerShard]
 	}
-	idxProposers[numOfShards] = numOfShards * nodesPerShard
+	leaders[numOfShards] = nodes[numOfShards*nodesPerShard]
 
 	integrationTests.DisplayAndStartNodes(nodes)
 
 	integrationTests.MintAllNodes(nodes, initialVal)
 
-	return nodes, idxProposers
+	return nodes, leaders
 }
 
 func createAndMintPlayers(

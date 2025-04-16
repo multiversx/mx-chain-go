@@ -5,10 +5,13 @@ import (
 	"encoding/binary"
 	"fmt"
 	"math/big"
+	"strconv"
 	"testing"
 
-	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
+	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
 )
 
 func TestComputeStartIndexAndNumAppearancesForValidator(t *testing.T) {
@@ -150,4 +153,106 @@ func getExpandedEligibleList(num int) []uint32 {
 
 func newValidatorMock(pubKey []byte, chances uint32, index uint32) *validator {
 	return &validator{pubKey: pubKey, index: index, chances: chances}
+}
+
+func TestSerializableShardValidatorListToValidatorListShouldErrNilPubKey(t *testing.T) {
+	t.Parallel()
+
+	listOfSerializableValidators := []*SerializableValidator{
+		{
+			PubKey:  nil,
+			Chances: 1,
+			Index:   1,
+		},
+	}
+
+	_, err := SerializableShardValidatorListToValidatorList(listOfSerializableValidators)
+	require.Equal(t, ErrNilPubKey, err)
+}
+
+func TestSerializableShardValidatorListToValidatorListShouldWork(t *testing.T) {
+	t.Parallel()
+
+	listOfSerializableValidators := []*SerializableValidator{
+		{
+			PubKey:  []byte("pubkey"),
+			Chances: 1,
+			Index:   1,
+		},
+	}
+
+	expectedListOfValidators := make([]Validator, 1)
+	v, _ := NewValidator(listOfSerializableValidators[0].PubKey, listOfSerializableValidators[0].Chances, listOfSerializableValidators[0].Index)
+	require.NotNil(t, v)
+	expectedListOfValidators[0] = v
+
+	valReturned, err := SerializableShardValidatorListToValidatorList(listOfSerializableValidators)
+
+	require.Nil(t, err)
+	require.Equal(t, expectedListOfValidators, valReturned)
+}
+
+func TestSerializableValidatorsToValidatorsShouldWork(t *testing.T) {
+	t.Parallel()
+
+	mapOfSerializableValidators := make(map[string][]*SerializableValidator, 1)
+	mapOfSerializableValidators["1"] = []*SerializableValidator{
+		{
+			PubKey:  []byte("pubkey"),
+			Chances: 1,
+			Index:   1,
+		},
+	}
+
+	expectedMapOfValidators := make(map[uint32][]Validator, 1)
+
+	v, _ := NewValidator(mapOfSerializableValidators["1"][0].PubKey, mapOfSerializableValidators["1"][0].Chances, mapOfSerializableValidators["1"][0].Index)
+	expectedMapOfValidators[uint32(1)] = []Validator{v}
+
+	require.NotNil(t, v)
+
+	valReturned, err := SerializableValidatorsToValidators(mapOfSerializableValidators)
+
+	require.Nil(t, err)
+	require.Equal(t, expectedMapOfValidators, valReturned)
+}
+
+func TestSerializableValidatorsToValidatorsShouldErrNilPubKey(t *testing.T) {
+	t.Parallel()
+
+	mapOfSerializableValidators := make(map[string][]*SerializableValidator, 1)
+	mapOfSerializableValidators["1"] = []*SerializableValidator{
+		{
+			PubKey:  nil,
+			Chances: 1,
+			Index:   1,
+		},
+	}
+
+	_, err := SerializableValidatorsToValidators(mapOfSerializableValidators)
+
+	require.Equal(t, ErrNilPubKey, err)
+}
+
+func TestSerializableValidatorsToValidatorsShouldErrEmptyString(t *testing.T) {
+	t.Parallel()
+
+	mapOfSerializableValidators := make(map[string][]*SerializableValidator, 1)
+	mapOfSerializableValidators[""] = []*SerializableValidator{
+		{
+			PubKey:  []byte("pubkey"),
+			Chances: 1,
+			Index:   1,
+		},
+	}
+
+	expectedMapOfValidators := make(map[uint32][]Validator, 1)
+
+	v, _ := NewValidator(mapOfSerializableValidators[""][0].PubKey, mapOfSerializableValidators[""][0].Chances, mapOfSerializableValidators[""][0].Index)
+	require.NotNil(t, v)
+	expectedMapOfValidators[uint32(1)] = []Validator{v}
+
+	_, err := SerializableValidatorsToValidators(mapOfSerializableValidators)
+
+	require.Equal(t, &strconv.NumError{Func: "ParseUint", Num: "", Err: strconv.ErrSyntax}, err)
 }

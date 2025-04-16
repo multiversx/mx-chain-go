@@ -5,22 +5,33 @@ import (
 	"math/big"
 	"testing"
 
+	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
 	dataBlock "github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/block/interceptedBlocks"
 	"github.com/multiversx/mx-chain-go/process/mock"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
+	"github.com/multiversx/mx-chain-go/sharding"
+	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/consensus"
+	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 )
 
 func createDefaultMetaArgument() *interceptedBlocks.ArgInterceptedBlockHeader {
+	shardCoordinator := mock.NewOneShardCoordinatorMock()
+	return createMetaArgumentWithShardCoordinator(shardCoordinator)
+}
+
+func createMetaArgumentWithShardCoordinator(shardCoordinator sharding.Coordinator) *interceptedBlocks.ArgInterceptedBlockHeader {
 	arg := &interceptedBlocks.ArgInterceptedBlockHeader{
-		ShardCoordinator:        mock.NewOneShardCoordinatorMock(),
+		ShardCoordinator:        shardCoordinator,
 		Hasher:                  testHasher,
 		Marshalizer:             testMarshalizer,
-		HeaderSigVerifier:       &mock.HeaderSigVerifierStub{},
+		HeaderSigVerifier:       &consensus.HeaderSigVerifierMock{},
 		HeaderIntegrityVerifier: &mock.HeaderIntegrityVerifierStub{},
 		ValidityAttester:        &mock.ValidityAttesterStub{},
 		EpochStartTrigger: &mock.EpochStartTriggerStub{
@@ -28,6 +39,8 @@ func createDefaultMetaArgument() *interceptedBlocks.ArgInterceptedBlockHeader {
 				return hdrEpoch
 			},
 		},
+		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		FieldsSizeChecker:   &testscommon.FieldsSizeCheckerMock{},
 	}
 
 	hdr := createMockMetaHeader()
@@ -128,7 +141,10 @@ func TestInterceptedMetaHeader_ErrorInMiniBlockShouldErr(t *testing.T) {
 	}
 	buff, _ := testMarshalizer.Marshal(hdr)
 
-	arg := createDefaultMetaArgument()
+	shardCoordinator := mock.NewOneShardCoordinatorMock()
+	_ = shardCoordinator.SetSelfId(core.MetachainShardId)
+
+	arg := createMetaArgumentWithShardCoordinator(shardCoordinator)
 	arg.HdrBuff = buff
 	inHdr, _ := interceptedBlocks.NewInterceptedMetaHeader(arg)
 
@@ -204,7 +220,7 @@ func TestInterceptedMetaHeader_CheckValidityLeaderSignatureNotCorrectShouldErr(t
 	buff, _ := testMarshalizer.Marshal(hdr)
 
 	arg := createDefaultMetaArgument()
-	arg.HeaderSigVerifier = &mock.HeaderSigVerifierStub{
+	arg.HeaderSigVerifier = &consensus.HeaderSigVerifierMock{
 		VerifyRandSeedAndLeaderSignatureCalled: func(header data.HeaderHandler) error {
 			return expectedErr
 		},

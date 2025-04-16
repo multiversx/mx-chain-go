@@ -3,6 +3,7 @@ package process
 import (
 	"encoding/hex"
 	"fmt"
+
 	"math/big"
 
 	"github.com/multiversx/mx-chain-core-go/core"
@@ -16,12 +17,14 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+	logger "github.com/multiversx/mx-chain-logger-go"
+
 	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/outport/process/alteredaccounts/shared"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
-	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
 var log = logger.GetOrCreate("outport/process/outportDataProvider")
@@ -39,6 +42,8 @@ type ArgOutportDataProvider struct {
 	Marshaller               marshal.Marshalizer
 	Hasher                   hashing.Hasher
 	ExecutionOrderHandler    common.ExecutionOrderGetter
+	ProofsPool               dataRetriever.ProofsPool
+	EnableEpochsHandler      common.EnableEpochsHandler
 }
 
 // ArgPrepareOutportSaveBlockData holds the arguments needed for prepare outport save block data
@@ -67,6 +72,8 @@ type outportDataProvider struct {
 	executionOrderHandler    common.ExecutionOrderGetter
 	marshaller               marshal.Marshalizer
 	hasher                   hashing.Hasher
+	proofsPool               dataRetriever.ProofsPool
+	enableEpochsHandler      common.EnableEpochsHandler
 }
 
 // NewOutportDataProvider will create a new instance of outportDataProvider
@@ -83,6 +90,8 @@ func NewOutportDataProvider(arg ArgOutportDataProvider) (*outportDataProvider, e
 		executionOrderHandler:    arg.ExecutionOrderHandler,
 		marshaller:               arg.Marshaller,
 		hasher:                   arg.Hasher,
+		proofsPool:               arg.ProofsPool,
+		enableEpochsHandler:      arg.EnableEpochsHandler,
 	}, nil
 }
 
@@ -124,7 +133,7 @@ func (odp *outportDataProvider) PrepareOutportSaveBlockData(arg ArgPrepareOutpor
 		return nil, fmt.Errorf("alteredAccountsProvider.ExtractAlteredAccountsFromPool %s", err)
 	}
 
-	signersIndexes, err := odp.getSignersIndexes(arg.Header)
+	leaderBlsKey, leaderIndex, signersIndexes, err := odp.getSignersIndexes(arg.Header)
 	if err != nil {
 		return nil, err
 	}
@@ -134,7 +143,7 @@ func (odp *outportDataProvider) PrepareOutportSaveBlockData(arg ArgPrepareOutpor
 		return nil, err
 	}
 
-	return &outportcore.OutportBlockWithHeaderAndBody{
+	outportBlock := &outportcore.OutportBlockWithHeaderAndBody{
 		OutportBlock: &outportcore.OutportBlock{
 			ShardID:         odp.shardID,
 			BlockData:       nil, // this will be filled with specific data for each driver
@@ -152,6 +161,8 @@ func (odp *outportDataProvider) PrepareOutportSaveBlockData(arg ArgPrepareOutpor
 
 			HighestFinalBlockNonce: arg.HighestFinalBlockNonce,
 			HighestFinalBlockHash:  arg.HighestFinalBlockHash,
+			LeaderIndex:            leaderIndex,
+			LeaderBLSKey:           []byte(leaderBlsKey),
 		},
 		HeaderDataWithBody: &outportcore.HeaderDataWithBody{
 			Body:                 arg.Body,
@@ -159,7 +170,18 @@ func (odp *outportDataProvider) PrepareOutportSaveBlockData(arg ArgPrepareOutpor
 			HeaderHash:           arg.HeaderHash,
 			IntraShardMiniBlocks: intraMiniBlocks,
 		},
-	}, nil
+	}
+
+	if odp.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, arg.Header.GetEpoch()) {
+		headerProof, err := odp.proofsPool.GetProof(arg.Header.GetShardID(), arg.HeaderHash)
+		if err != nil {
+			return nil, err
+		}
+
+		outportBlock.HeaderDataWithBody.HeaderProof = headerProof
+	}
+
+	return outportBlock, nil
 }
 
 func collectExecutedTxHashes(bodyHandler data.BodyHandler, headerHandler data.HeaderHandler) (map[string]struct{}, error) {
@@ -290,24 +312,41 @@ func (odp *outportDataProvider) computeEpoch(header data.HeaderHandler) uint32 {
 	return epoch
 }
 
-func (odp *outportDataProvider) getSignersIndexes(header data.HeaderHandler) ([]uint64, error) {
+func (odp *outportDataProvider) getSignersIndexes(header data.HeaderHandler) (string, uint64, []uint64, error) {
 	epoch := odp.computeEpoch(header)
-	pubKeys, err := odp.nodesCoordinator.GetConsensusValidatorsPublicKeys(
+	leader, pubKeys, err := odp.nodesCoordinator.GetConsensusValidatorsPublicKeys(
 		header.GetPrevRandSeed(),
 		header.GetRound(),
 		odp.shardID,
 		epoch,
 	)
+
 	if err != nil {
-		return nil, fmt.Errorf("nodesCoordinator.GetConsensusValidatorsPublicKeys %w", err)
+		return "", 0, nil, fmt.Errorf("nodesCoordinator.GetConsensusValidatorsPublicKeys %w", err)
 	}
 
-	signersIndexes, err := odp.nodesCoordinator.GetValidatorsIndexes(pubKeys, epoch)
-	if err != nil {
-		return nil, fmt.Errorf("nodesCoordinator.GetValidatorsIndexes %s", err)
+	leaderIndex := findLeaderIndex(pubKeys, leader)
+
+	signersIndexes := make([]uint64, 0)
+	// when EquivalentMessages flag is enabled signer indices can be empty because all validators are in consensus group
+	if odp.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, header.GetEpoch()) {
+		return leader, leaderIndex, signersIndexes, nil
 	}
 
-	return signersIndexes, nil
+	signersIndexes, err = odp.nodesCoordinator.GetValidatorsIndexes(pubKeys, epoch)
+	if err != nil {
+		return "", 0, nil, fmt.Errorf("nodesCoordinator.GetValidatorsIndexes %s", err)
+	}
+	return leader, leaderIndex, signersIndexes, nil
+}
+
+func findLeaderIndex(blsKeys []string, leaderBlsKey string) uint64 {
+	for i := 0; i < len(blsKeys); i++ {
+		if blsKeys[i] == leaderBlsKey {
+			return uint64(i)
+		}
+	}
+	return 0
 }
 
 func (odp *outportDataProvider) createPool(rewardsTxs map[string]data.TransactionHandler) (*outportcore.TransactionPool, error) {

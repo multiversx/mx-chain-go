@@ -7,9 +7,10 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
+
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/state"
-	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 )
 
 // TriggerHandler defines the functionalities for an start of epoch trigger
@@ -116,7 +117,7 @@ type StartOfEpochMetaSyncer interface {
 
 // NodesConfigProvider will provide the necessary information for start in epoch economics block creation
 type NodesConfigProvider interface {
-	ConsensusGroupSize(shardID uint32) int
+	ConsensusGroupSizeForShardAndEpoch(shardID uint32, epoch uint32) int
 	IsInterfaceNil() bool
 }
 

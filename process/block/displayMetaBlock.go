@@ -145,7 +145,7 @@ func (hc *headersCounter) displayShardInfo(lines []*display.LineData, header *bl
 			"Header hash",
 			logger.DisplayByteSlice(shardData.HeaderHash)}))
 
-		if shardData.ShardMiniBlockHeaders == nil || len(shardData.ShardMiniBlockHeaders) == 0 {
+		if len(shardData.ShardMiniBlockHeaders) == 0 {
 			lines = append(lines, display.NewLineData(false, []string{
 				"", "ShardMiniBlockHeaders", "<EMPTY>"}))
 		}
@@ -197,7 +197,7 @@ func (hc *headersCounter) displayTxBlockBody(
 			miniBlock.SenderShardID,
 			miniBlock.ReceiverShardID)
 
-		if miniBlock.TxHashes == nil || len(miniBlock.TxHashes) == 0 {
+		if len(miniBlock.TxHashes) == 0 {
 			lines = append(lines, display.NewLineData(false, []string{
 				part, "", "<EMPTY>"}))
 		}

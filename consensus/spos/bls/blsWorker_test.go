@@ -4,67 +4,13 @@ import (
 	"testing"
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/stretchr/testify/assert"
+
 	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/consensus/spos"
 	"github.com/multiversx/mx-chain-go/consensus/spos/bls"
-	"github.com/multiversx/mx-chain-go/testscommon"
-	"github.com/stretchr/testify/assert"
+	"github.com/multiversx/mx-chain-go/testscommon/consensus/initializers"
 )
-
-func createEligibleList(size int) []string {
-	eligibleList := make([]string, 0)
-	for i := 0; i < size; i++ {
-		eligibleList = append(eligibleList, string([]byte{byte(i + 65)}))
-	}
-	return eligibleList
-}
-
-func initConsensusState() *spos.ConsensusState {
-	return initConsensusStateWithKeysHandler(&testscommon.KeysHandlerStub{})
-}
-
-func initConsensusStateWithKeysHandler(keysHandler consensus.KeysHandler) *spos.ConsensusState {
-	consensusGroupSize := 9
-	eligibleList := createEligibleList(consensusGroupSize)
-
-	eligibleNodesPubKeys := make(map[string]struct{})
-	for _, key := range eligibleList {
-		eligibleNodesPubKeys[key] = struct{}{}
-	}
-
-	indexLeader := 1
-	rcns, _ := spos.NewRoundConsensus(
-		eligibleNodesPubKeys,
-		consensusGroupSize,
-		eligibleList[indexLeader],
-		keysHandler,
-	)
-
-	rcns.SetConsensusGroup(eligibleList)
-	rcns.ResetRoundState()
-
-	pBFTThreshold := consensusGroupSize*2/3 + 1
-	pBFTFallbackThreshold := consensusGroupSize*1/2 + 1
-
-	rthr := spos.NewRoundThreshold()
-	rthr.SetThreshold(1, 1)
-	rthr.SetThreshold(2, pBFTThreshold)
-	rthr.SetFallbackThreshold(1, 1)
-	rthr.SetFallbackThreshold(2, pBFTFallbackThreshold)
-
-	rstatus := spos.NewRoundStatus()
-	rstatus.ResetRoundStatus()
-
-	cns := spos.NewConsensusState(
-		rcns,
-		rthr,
-		rstatus,
-	)
-
-	cns.Data = []byte("X")
-	cns.RoundIndex = 0
-	return cns
-}
 
 func TestWorker_NewConsensusServiceShouldWork(t *testing.T) {
 	t.Parallel()
@@ -121,7 +67,7 @@ func TestWorker_CanProceedWithSrStartRoundFinishedForMtBlockBodyAndHeaderShouldW
 
 	blsService, _ := bls.NewConsensusService()
 
-	consensusState := initConsensusState()
+	consensusState := initializers.InitConsensusState()
 	consensusState.SetStatus(bls.SrStartRound, spos.SsFinished)
 
 	canProceed := blsService.CanProceed(consensusState, bls.MtBlockBodyAndHeader)
@@ -133,7 +79,7 @@ func TestWorker_CanProceedWithSrStartRoundNotFinishedForMtBlockBodyAndHeaderShou
 
 	blsService, _ := bls.NewConsensusService()
 
-	consensusState := initConsensusState()
+	consensusState := initializers.InitConsensusState()
 	consensusState.SetStatus(bls.SrStartRound, spos.SsNotFinished)
 
 	canProceed := blsService.CanProceed(consensusState, bls.MtBlockBodyAndHeader)
@@ -145,7 +91,7 @@ func TestWorker_CanProceedWithSrStartRoundFinishedForMtBlockBodyShouldWork(t *te
 
 	blsService, _ := bls.NewConsensusService()
 
-	consensusState := initConsensusState()
+	consensusState := initializers.InitConsensusState()
 	consensusState.SetStatus(bls.SrStartRound, spos.SsFinished)
 
 	canProceed := blsService.CanProceed(consensusState, bls.MtBlockBody)
@@ -157,7 +103,7 @@ func TestWorker_CanProceedWithSrStartRoundNotFinishedForMtBlockBodyShouldNotWork
 
 	blsService, _ := bls.NewConsensusService()
 
-	consensusState := initConsensusState()
+	consensusState := initializers.InitConsensusState()
 	consensusState.SetStatus(bls.SrStartRound, spos.SsNotFinished)
 
 	canProceed := blsService.CanProceed(consensusState, bls.MtBlockBody)
@@ -169,7 +115,7 @@ func TestWorker_CanProceedWithSrStartRoundFinishedForMtBlockHeaderShouldWork(t *
 
 	blsService, _ := bls.NewConsensusService()
 
-	consensusState := initConsensusState()
+	consensusState := initializers.InitConsensusState()
 	consensusState.SetStatus(bls.SrStartRound, spos.SsFinished)
 
 	canProceed := blsService.CanProceed(consensusState, bls.MtBlockHeader)
@@ -181,7 +127,7 @@ func TestWorker_CanProceedWithSrStartRoundNotFinishedForMtBlockHeaderShouldNotWo
 
 	blsService, _ := bls.NewConsensusService()
 
-	consensusState := initConsensusState()
+	consensusState := initializers.InitConsensusState()
 	consensusState.SetStatus(bls.SrStartRound, spos.SsNotFinished)
 
 	canProceed := blsService.CanProceed(consensusState, bls.MtBlockHeader)
@@ -193,7 +139,7 @@ func TestWorker_CanProceedWithSrBlockFinishedForMtBlockHeaderShouldWork(t *testi
 
 	blsService, _ := bls.NewConsensusService()
 
-	consensusState := initConsensusState()
+	consensusState := initializers.InitConsensusState()
 	consensusState.SetStatus(bls.SrBlock, spos.SsFinished)
 
 	canProceed := blsService.CanProceed(consensusState, bls.MtSignature)
@@ -205,7 +151,7 @@ func TestWorker_CanProceedWithSrBlockRoundNotFinishedForMtBlockHeaderShouldNotWo
 
 	blsService, _ := bls.NewConsensusService()
 
-	consensusState := initConsensusState()
+	consensusState := initializers.InitConsensusState()
 	consensusState.SetStatus(bls.SrBlock, spos.SsNotFinished)
 
 	canProceed := blsService.CanProceed(consensusState, bls.MtSignature)
@@ -217,7 +163,7 @@ func TestWorker_CanProceedWithSrSignatureFinishedForMtBlockHeaderFinalInfoShould
 
 	blsService, _ := bls.NewConsensusService()
 
-	consensusState := initConsensusState()
+	consensusState := initializers.InitConsensusState()
 	consensusState.SetStatus(bls.SrSignature, spos.SsFinished)
 
 	canProceed := blsService.CanProceed(consensusState, bls.MtBlockHeaderFinalInfo)
@@ -229,7 +175,7 @@ func TestWorker_CanProceedWithSrSignatureRoundNotFinishedForMtBlockHeaderFinalIn
 
 	blsService, _ := bls.NewConsensusService()
 
-	consensusState := initConsensusState()
+	consensusState := initializers.InitConsensusState()
 	consensusState.SetStatus(bls.SrSignature, spos.SsNotFinished)
 
 	canProceed := blsService.CanProceed(consensusState, bls.MtBlockHeaderFinalInfo)
@@ -240,7 +186,7 @@ func TestWorker_CanProceedWitUnkownMessageTypeShouldNotWork(t *testing.T) {
 	t.Parallel()
 
 	blsService, _ := bls.NewConsensusService()
-	consensusState := initConsensusState()
+	consensusState := initializers.InitConsensusState()
 
 	canProceed := blsService.CanProceed(consensusState, -1)
 	assert.False(t, canProceed)

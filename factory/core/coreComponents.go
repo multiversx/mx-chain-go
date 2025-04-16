@@ -20,8 +20,10 @@ import (
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	marshalizerFactory "github.com/multiversx/mx-chain-core-go/marshal/factory"
 	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/common/chainparametersnotifier"
 	"github.com/multiversx/mx-chain-go/common/enablers"
 	commonFactory "github.com/multiversx/mx-chain-go/common/factory"
+	"github.com/multiversx/mx-chain-go/common/fieldsChecker"
 	"github.com/multiversx/mx-chain-go/common/forking"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/consensus"
@@ -52,7 +54,7 @@ type CoreComponentsFactoryArgs struct {
 	RatingsConfig       config.RatingsConfig
 	EconomicsConfig     config.EconomicsConfig
 	ImportDbConfig      config.ImportDbConfig
-	NodesFilename       string
+	NodesConfig         config.NodesConfig
 	WorkingDirectory    string
 	ChanStopNodeProcess chan endProcess.ArgEndProcess
 }
@@ -66,7 +68,7 @@ type coreComponentsFactory struct {
 	ratingsConfig       config.RatingsConfig
 	economicsConfig     config.EconomicsConfig
 	importDbConfig      config.ImportDbConfig
-	nodesFilename       string
+	nodesSetupConfig    config.NodesConfig
 	workingDir          string
 	chanStopNodeProcess chan endProcess.ArgEndProcess
 }
@@ -98,6 +100,7 @@ type coreComponents struct {
 	minTransactionVersion         uint32
 	epochNotifier                 process.EpochNotifier
 	roundNotifier                 process.RoundNotifier
+	chainParametersSubscriber     process.ChainParametersSubscriber
 	enableRoundsHandler           process.EnableRoundsHandler
 	epochStartNotifierWithConfirm factory.EpochStartNotifierWithConfirm
 	chanStopNodeProcess           chan endProcess.ArgEndProcess
@@ -107,6 +110,8 @@ type coreComponents struct {
 	processStatusHandler          common.ProcessStatusHandler
 	hardforkTriggerPubKey         []byte
 	enableEpochsHandler           common.EnableEpochsHandler
+	chainParametersHandler        process.ChainParametersHandler
+	fieldsSizeChecker             common.FieldsSizeChecker
 }
 
 // NewCoreComponentsFactory initializes the factory which is responsible to creating core components
@@ -121,7 +126,7 @@ func NewCoreComponentsFactory(args CoreComponentsFactoryArgs) (*coreComponentsFa
 		economicsConfig:     args.EconomicsConfig,
 		workingDir:          args.WorkingDirectory,
 		chanStopNodeProcess: args.ChanStopNodeProcess,
-		nodesFilename:       args.NodesFilename,
+		nodesSetupConfig:    args.NodesConfig,
 	}, nil
 }
 
@@ -178,8 +183,23 @@ func (ccf *coreComponentsFactory) Create() (*coreComponents, error) {
 	syncer.StartSyncingTime()
 	log.Debug("NTP average clock offset", "value", syncer.ClockOffset())
 
+	epochNotifier := forking.NewGenericEpochNotifier()
+	epochStartHandlerWithConfirm := notifier.NewEpochStartSubscriptionHandler()
+
+	chainParametersNotifier := chainparametersnotifier.NewChainParametersNotifier()
+	argsChainParametersHandler := sharding.ArgsChainParametersHolder{
+		EpochStartEventNotifier: epochStartHandlerWithConfirm,
+		ChainParameters:         ccf.config.GeneralSettings.ChainParametersByEpoch,
+		ChainParametersNotifier: chainParametersNotifier,
+	}
+	chainParametersHandler, err := sharding.NewChainParametersHolder(argsChainParametersHandler)
+	if err != nil {
+		return nil, err
+	}
+
 	genesisNodesConfig, err := sharding.NewNodesSetup(
-		ccf.nodesFilename,
+		ccf.nodesSetupConfig,
+		chainParametersHandler,
 		addressPubkeyConverter,
 		validatorPubkeyConverter,
 		ccf.config.GeneralSettings.GenesisMaxNumberOfShards,
@@ -209,8 +229,6 @@ func (ccf *coreComponentsFactory) Create() (*coreComponents, error) {
 		"formatted", startTime.Format("Mon Jan 2 15:04:05 MST 2006"),
 		"seconds", startTime.Unix())
 
-	log.Debug("config", "file", ccf.nodesFilename)
-
 	genesisTime := time.Unix(genesisNodesConfig.StartTime, 0)
 	roundHandler, err := round.NewRound(
 		genesisTime,
@@ -236,7 +254,6 @@ func (ccf *coreComponentsFactory) Create() (*coreComponents, error) {
 		return nil, err
 	}
 
-	epochNotifier := forking.NewGenericEpochNotifier()
 	enableEpochsHandler, err := enablers.NewEnableEpochsHandler(ccf.epochConfig.EnableEpochs, epochNotifier)
 	if err != nil {
 		return nil, err
@@ -276,12 +293,10 @@ func (ccf *coreComponentsFactory) Create() (*coreComponents, error) {
 
 	log.Trace("creating ratings data")
 	ratingDataArgs := rating.RatingsDataArg{
-		Config:                   ccf.ratingsConfig,
-		ShardConsensusSize:       genesisNodesConfig.ConsensusGroupSize,
-		MetaConsensusSize:        genesisNodesConfig.MetaChainConsensusGroupSize,
-		ShardMinNodes:            genesisNodesConfig.MinNodesPerShard,
-		MetaMinNodes:             genesisNodesConfig.MetaChainMinNodes,
-		RoundDurationMiliseconds: genesisNodesConfig.RoundDuration,
+		Config:                    ccf.ratingsConfig,
+		ChainParametersHolder:     chainParametersHandler,
+		RoundDurationMilliseconds: genesisNodesConfig.RoundDuration,
+		EpochNotifier:             epochNotifier,
 	}
 	ratingsData, err := rating.NewRatingsData(ratingDataArgs)
 	if err != nil {
@@ -294,10 +309,6 @@ func (ccf *coreComponentsFactory) Create() (*coreComponents, error) {
 	}
 
 	argsNodesShuffler := &nodesCoordinator.NodesShufflerArgs{
-		NodesShard:           genesisNodesConfig.MinNumberOfShardNodes(),
-		NodesMeta:            genesisNodesConfig.MinNumberOfMetaNodes(),
-		Hysteresis:           genesisNodesConfig.GetHysteresis(),
-		Adaptivity:           genesisNodesConfig.GetAdaptivity(),
 		ShuffleBetweenShards: true,
 		MaxNodesEnableConfig: ccf.epochConfig.EnableEpochs.MaxNodesChangeEnableEpoch,
 		EnableEpochsHandler:  enableEpochsHandler,
@@ -319,6 +330,11 @@ func (ccf *coreComponentsFactory) Create() (*coreComponents, error) {
 	}
 
 	encodedAddressLen, err := computeEncodedAddressLen(addressPubkeyConverter)
+	if err != nil {
+		return nil, err
+	}
+
+	fieldsSizeChecker, err := fieldsChecker.NewFieldsSizeChecker(chainParametersHandler, hasher)
 	if err != nil {
 		return nil, err
 	}
@@ -349,8 +365,9 @@ func (ccf *coreComponentsFactory) Create() (*coreComponents, error) {
 		minTransactionVersion:         ccf.config.GeneralSettings.MinTransactionVersion,
 		epochNotifier:                 epochNotifier,
 		roundNotifier:                 roundNotifier,
+		chainParametersSubscriber:     chainParametersNotifier,
 		enableRoundsHandler:           enableRoundsHandler,
-		epochStartNotifierWithConfirm: notifier.NewEpochStartSubscriptionHandler(),
+		epochStartNotifierWithConfirm: epochStartHandlerWithConfirm,
 		chanStopNodeProcess:           ccf.chanStopNodeProcess,
 		encodedAddressLen:             encodedAddressLen,
 		nodeTypeProvider:              nodeTypeProvider,
@@ -358,6 +375,8 @@ func (ccf *coreComponentsFactory) Create() (*coreComponents, error) {
 		processStatusHandler:          statusHandler.NewProcessStatusHandler(),
 		hardforkTriggerPubKey:         pubKeyBytes,
 		enableEpochsHandler:           enableEpochsHandler,
+		chainParametersHandler:        chainParametersHandler,
+		fieldsSizeChecker:             fieldsSizeChecker,
 	}, nil
 }
 

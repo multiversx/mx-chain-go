@@ -6,10 +6,11 @@ import (
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/data/endProcess"
+	"github.com/stretchr/testify/require"
+
 	"github.com/multiversx/mx-chain-go/integrationTests/factory"
 	"github.com/multiversx/mx-chain-go/node"
 	"github.com/multiversx/mx-chain-go/testscommon/goroutines"
-	"github.com/stretchr/testify/require"
 )
 
 func TestStateComponents_Create_Close_ShouldWork(t *testing.T) {

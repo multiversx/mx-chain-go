@@ -163,6 +163,12 @@ func (sccf *statusCoreComponentsFactory) createStatusHandler() (core.AppStatusHa
 		return nil, nil, nil, err
 	}
 
+	err = sccf.coreComp.RatingsData().SetStatusHandler(handler)
+	if err != nil {
+		log.Debug("cannot set status handler to ratingsData", "error", err)
+		return nil, nil, nil, err
+	}
+
 	return handler, statusMetrics, persistentHandler, nil
 }
 
