@@ -62,10 +62,10 @@ func createMockPubkeyConverter() *testscommon.PubkeyConverterMock {
 
 func createAccount(address []byte) state.UserAccountHandler {
 	argsAccCreation := stateFactory.ArgsAccountCreator{
-		Hasher:                &hashingMocks.HasherMock{},
-		Marshaller:            &marshallerMock.MarshalizerMock{},
-		EnableEpochsHandler:   enableEpochsHandlerMock.NewEnableEpochsHandlerStub(),
-		StateChangesCollector: &stateMock.StateChangesCollectorStub{},
+		Hasher:                 &hashingMocks.HasherMock{},
+		Marshaller:             &marshallerMock.MarshalizerMock{},
+		EnableEpochsHandler:    enableEpochsHandlerMock.NewEnableEpochsHandlerStub(),
+		StateAccessesCollector: &stateMock.StateAccessesCollectorStub{},
 	}
 	accountFactory, _ := stateFactory.NewAccountCreator(argsAccCreation)
 	account, _ := accountFactory.CreateAccount(address)

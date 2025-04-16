@@ -157,16 +157,18 @@ type Config struct {
 	SmartContractsStorageForSCQuery StorageConfig
 	TrieEpochRootHashStorage        StorageConfig
 	SmartContractsStorageSimulate   StorageConfig
+	StateAccessesStorage            StorageConfig
 
 	BootstrapStorage StorageConfig
 	MetaBlockStorage StorageConfig
 
-	AccountsTrieStorage      StorageConfig
-	PeerAccountsTrieStorage  StorageConfig
-	EvictionWaitingList      EvictionWaitingListConfig
-	StateTriesConfig         StateTriesConfig
-	TrieStorageManagerConfig TrieStorageManagerConfig
-	BadBlocksCache           CacheConfig
+	AccountsTrieStorage          StorageConfig
+	PeerAccountsTrieStorage      StorageConfig
+	EvictionWaitingList          EvictionWaitingListConfig
+	StateTriesConfig             StateTriesConfig
+	StateAccessesCollectorConfig StateAccessesCollectorConfig
+	TrieStorageManagerConfig     TrieStorageManagerConfig
+	BadBlocksCache               CacheConfig
 
 	TxBlockBodyDataPool         CacheConfig
 	PeerBlockBodyDataPool       CacheConfig
@@ -306,15 +308,19 @@ type FacadeConfig struct {
 
 // StateTriesConfig will hold information about state tries
 type StateTriesConfig struct {
-	SnapshotsEnabled                bool
-	AccountsStatePruningEnabled     bool
-	PeerStatePruningEnabled         bool
-	StateChangesDataAnalysis        bool
-	StateChangesTypesToCollect      []string
-	StateChangesPeerAccountsEnabled bool
-	MaxStateTrieLevelInMemory       uint
-	MaxPeerTrieLevelInMemory        uint
-	StateStatisticsEnabled          bool
+	SnapshotsEnabled            bool
+	AccountsStatePruningEnabled bool
+	PeerStatePruningEnabled     bool
+	MaxStateTrieLevelInMemory   uint
+	MaxPeerTrieLevelInMemory    uint
+	StateStatisticsEnabled      bool
+}
+
+// StateAccessesCollectorConfig will hold information about state accesses collector
+type StateAccessesCollectorConfig struct {
+	TypesToCollect     []string
+	SaveToStorage      bool
+	WithAccountChanges bool
 }
 
 // TrieStorageManagerConfig will hold config information about trie storage manager

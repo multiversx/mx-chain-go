@@ -1,31 +1,12 @@
-package stateChanges
+package stateAccesses
 
 import (
 	"bytes"
 	"math/big"
 
-	"github.com/multiversx/mx-chain-core-go/data"
-	"github.com/multiversx/mx-chain-go/state"
+	"github.com/multiversx/mx-chain-core-go/data/stateChange"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 )
-
-type dataAnalysisStateChangeDTO struct {
-	state.StateChange
-	Operation       string `json:"operation"`
-	Nonce           bool   `json:"nonceChanged"`
-	Balance         bool   `json:"balanceChanged"`
-	CodeHash        bool   `json:"codeHashChanged"`
-	RootHash        bool   `json:"rootHashChanged"`
-	DeveloperReward bool   `json:"developerRewardChanged"`
-	OwnerAddress    bool   `json:"ownerAddressChanged"`
-	UserName        bool   `json:"userNameChanged"`
-	CodeMetadata    bool   `json:"codeMetadataChanged"`
-}
-
-type dataAnalysisStateChangesForTx struct {
-	StateChangesForTx
-	Tx data.TransactionHandler `json:"tx"`
-}
 
 type userAccountHandler interface {
 	GetCodeMetadata() []byte
@@ -38,45 +19,49 @@ type userAccountHandler interface {
 	vmcommon.AccountHandler
 }
 
-func checkAccountChanges(oldAcc, newAcc vmcommon.AccountHandler, stateChange *dataAnalysisStateChangeDTO) {
+func getAccountChanges(oldAcc, newAcc vmcommon.AccountHandler) *stateChange.AccountChanges {
 	baseNewAcc, newAccOk := newAcc.(userAccountHandler)
 	if !newAccOk {
-		return
+		return nil
 	}
 	baseOldAccount, oldAccOk := oldAcc.(userAccountHandler)
 	if !oldAccOk {
-		return
+		return nil
 	}
 
+	accountChanges := &stateChange.AccountChanges{}
+
 	if baseNewAcc.GetNonce() != baseOldAccount.GetNonce() {
-		stateChange.Nonce = true
+		accountChanges.Nonce = true
 	}
 
 	if baseNewAcc.GetBalance().Uint64() != baseOldAccount.GetBalance().Uint64() {
-		stateChange.Balance = true
+		accountChanges.Balance = true
 	}
 
 	if !bytes.Equal(baseNewAcc.GetCodeHash(), baseOldAccount.GetCodeHash()) {
-		stateChange.CodeHash = true
+		accountChanges.CodeHash = true
 	}
 
 	if !bytes.Equal(baseNewAcc.GetRootHash(), baseOldAccount.GetRootHash()) {
-		stateChange.RootHash = true
+		accountChanges.RootHash = true
 	}
 
 	if !bytes.Equal(baseNewAcc.GetDeveloperReward().Bytes(), baseOldAccount.GetDeveloperReward().Bytes()) {
-		stateChange.DeveloperReward = true
+		accountChanges.DeveloperReward = true
 	}
 
 	if !bytes.Equal(baseNewAcc.GetOwnerAddress(), baseOldAccount.GetOwnerAddress()) {
-		stateChange.OwnerAddress = true
+		accountChanges.OwnerAddress = true
 	}
 
 	if !bytes.Equal(baseNewAcc.GetUserName(), baseOldAccount.GetUserName()) {
-		stateChange.UserName = true
+		accountChanges.UserName = true
 	}
 
 	if !bytes.Equal(baseNewAcc.GetCodeMetadata(), baseOldAccount.GetCodeMetadata()) {
-		stateChange.CodeMetadata = true
+		accountChanges.CodeMetadata = true
 	}
+
+	return accountChanges
 }

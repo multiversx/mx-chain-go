@@ -43,10 +43,10 @@ func getDefaultTrieAndAccountsDbAndStoragePruningManager() (common.Trie, *state.
 	spm, _ := NewStoragePruningManager(ewl, generalCfg.PruningBufferLen)
 
 	argsAccCreator := factory.ArgsAccountCreator{
-		Hasher:                hasher,
-		Marshaller:            marshaller,
-		EnableEpochsHandler:   &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
-		StateChangesCollector: &stateMock.StateChangesCollectorStub{},
+		Hasher:                 hasher,
+		Marshaller:             marshaller,
+		EnableEpochsHandler:    &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		StateAccessesCollector: &stateMock.StateAccessesCollectorStub{},
 	}
 	accCreator, _ := factory.NewAccountCreator(argsAccCreator)
 
@@ -63,14 +63,14 @@ func getDefaultTrieAndAccountsDbAndStoragePruningManager() (common.Trie, *state.
 	})
 
 	argsAccountsDB := state.ArgsAccountsDB{
-		Trie:                  tr,
-		Hasher:                hasher,
-		Marshaller:            marshaller,
-		AccountFactory:        accCreator,
-		StoragePruningManager: spm,
-		AddressConverter:      &testscommon.PubkeyConverterMock{},
-		SnapshotsManager:      snapshotsManager,
-		StateChangesCollector: &stateMock.StateChangesCollectorStub{},
+		Trie:                   tr,
+		Hasher:                 hasher,
+		Marshaller:             marshaller,
+		AccountFactory:         accCreator,
+		StoragePruningManager:  spm,
+		AddressConverter:       &testscommon.PubkeyConverterMock{},
+		SnapshotsManager:       snapshotsManager,
+		StateAccessesCollector: &stateMock.StateAccessesCollectorStub{},
 	}
 	adb, _ := state.NewAccountsDB(argsAccountsDB)
 

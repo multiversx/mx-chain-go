@@ -102,18 +102,18 @@ type baseProcessor struct {
 	blockProcessor   blockProcessor
 	txCounter        *transactionCounter
 
-	outportHandler        outport.OutportHandler
-	outportDataProvider   outport.DataProviderOutport
-	historyRepo           dblookupext.HistoryRepository
-	epochNotifier         process.EpochNotifier
-	enableEpochsHandler   common.EnableEpochsHandler
-	roundNotifier         process.RoundNotifier
-	enableRoundsHandler   process.EnableRoundsHandler
-	vmContainerFactory    process.VirtualMachinesContainerFactory
-	vmContainer           process.VirtualMachinesContainer
-	gasConsumedProvider   gasConsumedProvider
-	economicsData         process.EconomicsDataHandler
-	stateChangesCollector state.StateChangesCollector
+	outportHandler         outport.OutportHandler
+	outportDataProvider    outport.DataProviderOutport
+	historyRepo            dblookupext.HistoryRepository
+	epochNotifier          process.EpochNotifier
+	enableEpochsHandler    common.EnableEpochsHandler
+	roundNotifier          process.RoundNotifier
+	enableRoundsHandler    process.EnableRoundsHandler
+	vmContainerFactory     process.VirtualMachinesContainerFactory
+	vmContainer            process.VirtualMachinesContainer
+	gasConsumedProvider    gasConsumedProvider
+	economicsData          process.EconomicsDataHandler
+	stateAccessesCollector state.StateAccessesCollector
 
 	processDataTriesOnCommitEpoch bool
 	lastRestartNonce              uint64
@@ -1774,10 +1774,10 @@ func (bp *baseProcessor) commitTrieEpochRootHashIfNeeded(metaBlock *block.MetaBl
 	totalSizeCodeLeaves := 0
 
 	argsAccCreator := factory.ArgsAccountCreator{
-		Hasher:                bp.hasher,
-		Marshaller:            bp.marshalizer,
-		EnableEpochsHandler:   bp.enableEpochsHandler,
-		StateChangesCollector: bp.stateChangesCollector,
+		Hasher:                 bp.hasher,
+		Marshaller:             bp.marshalizer,
+		EnableEpochsHandler:    bp.enableEpochsHandler,
+		StateAccessesCollector: bp.stateAccessesCollector,
 	}
 	accountCreator, err := factory.NewAccountCreator(argsAccCreator)
 	if err != nil {

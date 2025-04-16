@@ -444,7 +444,7 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 		BlockProcessingCutoffHandler: blockProcessingCutoffHandler,
 		ManagedPeersHolder:           pcf.crypto.ManagedPeersHolder(),
 		SentSignaturesTracker:        sentSignaturesTracker,
-		StateChangesCollector:        pcf.state.StateChangesCollector(),
+		StateAccessesCollector:       pcf.state.StateAccessesCollector(),
 	}
 	arguments := block.ArgShardProcessor{
 		ArgBaseProcessor: argumentsBaseProcessor,
@@ -882,7 +882,7 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 		BlockProcessingCutoffHandler: blockProcessingCutoffhandler,
 		ManagedPeersHolder:           pcf.crypto.ManagedPeersHolder(),
 		SentSignaturesTracker:        sentSignaturesTracker,
-		StateChangesCollector:        pcf.state.StateChangesCollector(),
+		StateAccessesCollector:       pcf.state.StateAccessesCollector(),
 	}
 
 	esdtOwnerAddress, err := pcf.coreData.AddressPubKeyConverter().Decode(pcf.systemSCConfig.ESDTSystemSCConfig.OwnerAddress)
@@ -1028,7 +1028,7 @@ func (pcf *processComponentsFactory) createOutportDataProvider(
 	return factoryOutportProvider.CreateOutportDataProvider(factoryOutportProvider.ArgOutportDataProviderFactory{
 		HasDrivers:             pcf.statusComponents.OutportHandler().HasDrivers(),
 		AddressConverter:       pcf.coreData.AddressPubKeyConverter(),
-		AccountsDB:             pcf.state.AccountsAdapter(),
+		AccountsDB:             pcf.state.AccountsAdapterAPI(),
 		Marshaller:             pcf.coreData.InternalMarshalizer(),
 		EsdtDataStorageHandler: pcf.esdtNftStorage,
 		TransactionsStorer:     txsStorer,
@@ -1042,7 +1042,7 @@ func (pcf *processComponentsFactory) createOutportDataProvider(
 		MbsStorer:              mbsStorer,
 		EnableEpochsHandler:    pcf.coreData.EnableEpochsHandler(),
 		ExecutionOrderGetter:   pcf.txExecutionOrderHandler,
-		StateChangesCollector:  pcf.state.StateChangesCollector(),
+		StateAccessesCollector: pcf.state.StateAccessesCollector(),
 	})
 }
 

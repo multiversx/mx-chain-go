@@ -15,18 +15,18 @@ import (
 
 // ArgsAccountCreator holds the arguments needed to create a new account creator
 type ArgsAccountCreator struct {
-	Hasher                hashing.Hasher
-	Marshaller            marshal.Marshalizer
-	EnableEpochsHandler   common.EnableEpochsHandler
-	StateChangesCollector state.StateChangesCollector
+	Hasher                 hashing.Hasher
+	Marshaller             marshal.Marshalizer
+	EnableEpochsHandler    common.EnableEpochsHandler
+	StateAccessesCollector state.StateAccessesCollector
 }
 
 // AccountCreator has method to create a new account
 type accountCreator struct {
-	hasher                hashing.Hasher
-	marshaller            marshal.Marshalizer
-	enableEpochsHandler   common.EnableEpochsHandler
-	stateChangesCollector state.StateChangesCollector
+	hasher                 hashing.Hasher
+	marshaller             marshal.Marshalizer
+	enableEpochsHandler    common.EnableEpochsHandler
+	StateAccessesCollector state.StateAccessesCollector
 }
 
 // NewAccountCreator creates a new instance of AccountCreator
@@ -40,21 +40,21 @@ func NewAccountCreator(args ArgsAccountCreator) (state.AccountFactory, error) {
 	if check.IfNil(args.EnableEpochsHandler) {
 		return nil, errors.ErrNilEnableEpochsHandler
 	}
-	if check.IfNil(args.StateChangesCollector) {
-		return nil, state.ErrNilStateChangesCollector
+	if check.IfNil(args.StateAccessesCollector) {
+		return nil, state.ErrNilStateAccessesCollector
 	}
 
 	return &accountCreator{
-		hasher:                args.Hasher,
-		marshaller:            args.Marshaller,
-		enableEpochsHandler:   args.EnableEpochsHandler,
-		stateChangesCollector: args.StateChangesCollector,
+		hasher:                 args.Hasher,
+		marshaller:             args.Marshaller,
+		enableEpochsHandler:    args.EnableEpochsHandler,
+		StateAccessesCollector: args.StateAccessesCollector,
 	}, nil
 }
 
 // CreateAccount calls the new Account creator and returns the result
 func (ac *accountCreator) CreateAccount(address []byte) (vmcommon.AccountHandler, error) {
-	tdt, err := trackableDataTrie.NewTrackableDataTrie(address, ac.hasher, ac.marshaller, ac.enableEpochsHandler, ac.stateChangesCollector)
+	tdt, err := trackableDataTrie.NewTrackableDataTrie(address, ac.hasher, ac.marshaller, ac.enableEpochsHandler, ac.StateAccessesCollector)
 	if err != nil {
 		return nil, err
 	}

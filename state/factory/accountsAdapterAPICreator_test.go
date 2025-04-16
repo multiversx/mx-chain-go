@@ -24,13 +24,13 @@ func createMockAccountsArgs() state.ArgsAccountsDB {
 				return &storageManager.StorageManagerStub{}
 			},
 		},
-		Hasher:                &testscommon.HasherStub{},
-		Marshaller:            &marshallerMock.MarshalizerMock{},
-		AccountFactory:        &mockState.AccountsFactoryStub{},
-		StoragePruningManager: &mockState.StoragePruningManagerStub{},
-		AddressConverter:      &testscommon.PubkeyConverterMock{},
-		SnapshotsManager:      &mockState.SnapshotsManagerStub{},
-		StateChangesCollector: &stateMock.StateChangesCollectorStub{},
+		Hasher:                 &testscommon.HasherStub{},
+		Marshaller:             &marshallerMock.MarshalizerMock{},
+		AccountFactory:         &mockState.AccountsFactoryStub{},
+		StoragePruningManager:  &mockState.StoragePruningManagerStub{},
+		AddressConverter:       &testscommon.PubkeyConverterMock{},
+		SnapshotsManager:       &mockState.SnapshotsManagerStub{},
+		StateAccessesCollector: &stateMock.StateAccessesCollectorStub{},
 	}
 }
 

@@ -254,8 +254,8 @@ func readConfigs(ctx *cli.Context, log logger.Logger) (*config.Configs, error) {
 	if ctx.IsSet(identityFlagName.Name) {
 		preferencesConfig.Preferences.Identity = ctx.GlobalString(identityFlagName.Name)
 	}
-	if ctx.IsSet(stateChangesTypesToCollect.Name) {
-		generalConfig.StateTriesConfig.StateChangesTypesToCollect = ctx.GlobalStringSlice(stateChangesTypesToCollect.Name)
+	if ctx.IsSet(stateAccessesTypesToCollect.Name) {
+		generalConfig.StateAccessesCollectorConfig.TypesToCollect = ctx.GlobalStringSlice(stateAccessesTypesToCollect.Name)
 	}
 
 	return &config.Configs{
