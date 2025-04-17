@@ -1118,7 +1118,7 @@ func (boot *baseBootstrap) getHeaderWithHashRequestingIfMissing(hash []byte) (da
 	//		if it has a proof, request the header
 	//		if it does not have the proof, request both and decide when header is received if it truly needed the proof
 	_, errGetProof := boot.proofs.GetProof(boot.shardCoordinator.SelfId(), hash)
-	hasProof := err == errGetProof
+	hasProof := errGetProof == nil
 	needsProof := !hasProof
 	if hasHeader {
 		isFlagActiveForExistingHeader := boot.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, hdr.GetEpoch())
@@ -1162,7 +1162,7 @@ func (boot *baseBootstrap) getHeaderWithNonceRequestingIfMissing(nonce uint64) (
 	//		if it has a proof, request the header
 	//		if it does not have the proof, request both and decide when header is received if it truly needed the proof
 	_, errGetProof := boot.proofs.GetProofByNonce(nonce, boot.shardCoordinator.SelfId())
-	hasProof := err == errGetProof
+	hasProof := errGetProof == nil
 	needsProof := !hasProof
 	if hasHeader {
 		isFlagActiveForExistingHeader := boot.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, hdr.GetEpoch())
