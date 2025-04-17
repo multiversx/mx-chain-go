@@ -329,13 +329,6 @@ func (e *epochStartMetaBlockProcessor) receivedProof(proof data.HeaderProofHandl
 	hashesMatchMostReceived := string(proof.GetHeaderHash()) == hash
 	hashesMatchLocal := string(proof.GetHeaderHash()) == e.metaBlockHash
 	if !hashesMatchMostReceived && !hashesMatchLocal {
-		log.Error("sorin-debug",
-			"hashesMatchMostReceived", hashesMatchMostReceived,
-			"hashesMatchLocal", hashesMatchLocal,
-			"startOfEpochMetaBlock", hash,
-			"hashesMatchLocal", e.metaBlockHash,
-			"proof", string(proof.GetHeaderHash()),
-		)
 		return
 	}
 
