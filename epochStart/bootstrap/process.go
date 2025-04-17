@@ -14,6 +14,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/data/typeConverters/uint64ByteSlice"
+	"github.com/multiversx/mx-chain-go/process/interceptors/processor"
 	logger "github.com/multiversx/mx-chain-logger-go"
 
 	"github.com/multiversx/mx-chain-go/common"
@@ -557,6 +558,7 @@ func (e *epochStartBootstrap) prepareComponentsToSyncFromNetwork() error {
 		epochStartConfig.MinNumConnectedPeersToStart,
 		epochStartConfig.MinNumOfPeersToConsiderBlockValid,
 		e.enableEpochsHandler,
+		e.dataPool.Proofs(),
 	)
 	if err != nil {
 		return err
@@ -575,6 +577,9 @@ func (e *epochStartBootstrap) prepareComponentsToSyncFromNetwork() error {
 		MetaBlockProcessor:             metaBlockProcessor,
 		InterceptedDataVerifierFactory: e.interceptedDataVerifierFactory,
 		ProofsPool:                     e.dataPool.Proofs(),
+		ProofsInterceptorProcessor:     processor.NewEquivalentProofsInterceptorProcessor(),
+		Storage:                        e.storageService,
+		HeadersPool:                    e.dataPool.Headers(),
 	}
 	e.epochStartMetaBlockSyncer, err = NewEpochStartMetaSyncer(argsEpochStartSyncer)
 	if err != nil {
@@ -621,10 +626,12 @@ func (e *epochStartBootstrap) createSyncers() error {
 	}
 
 	syncMissingHeadersArgs := updateSync.ArgsNewMissingHeadersByHashSyncer{
-		Storage:        disabled.CreateMemUnit(),
-		Cache:          e.dataPool.Headers(),
-		Marshalizer:    e.coreComponentsHolder.InternalMarshalizer(),
-		RequestHandler: e.requestHandler,
+		Storage:             disabled.CreateMemUnit(),
+		Cache:               e.dataPool.Headers(),
+		ProofsPool:          e.dataPool.Proofs(),
+		Marshalizer:         e.coreComponentsHolder.InternalMarshalizer(),
+		RequestHandler:      e.requestHandler,
+		EnableEpochsHandler: e.enableEpochsHandler,
 	}
 	e.headersSyncer, err = updateSync.NewMissingheadersByHashSyncer(syncMissingHeadersArgs)
 	if err != nil {
@@ -818,6 +825,8 @@ func (e *epochStartBootstrap) requestAndProcessForMeta(peerMiniBlocks []*block.M
 		ManagedPeersHolder:              e.cryptoComponentsHolder.ManagedPeersHolder(),
 		NodeProcessingMode:              e.nodeProcessingMode,
 		StateStatsHandler:               e.stateStatsHandler,
+		ProofsPool:                      e.dataPool.Proofs(),
+		EnableEpochsHandler:             e.enableEpochsHandler,
 	}
 	storageHandlerComponent, err := NewMetaStorageHandler(argsStorageHandler)
 	if err != nil {
@@ -990,6 +999,8 @@ func (e *epochStartBootstrap) requestAndProcessForShard(peerMiniBlocks []*block.
 		ManagedPeersHolder:              e.cryptoComponentsHolder.ManagedPeersHolder(),
 		NodeProcessingMode:              e.nodeProcessingMode,
 		StateStatsHandler:               e.stateStatsHandler,
+		ProofsPool:                      e.dataPool.Proofs(),
+		EnableEpochsHandler:             e.enableEpochsHandler,
 	}
 	storageHandlerComponent, err := NewShardStorageHandler(argsStorageHandler)
 	if err != nil {

@@ -43,6 +43,7 @@ func NewMetaStorageBootstrapper(arguments ArgsMetaStorageBootstrapper) (*metaSto
 		processedMiniBlocksTracker:   arguments.ProcessedMiniBlocksTracker,
 		appStatusHandler:             arguments.AppStatusHandler,
 		enableEpochsHandler:          arguments.EnableEpochsHandler,
+		proofsPool:                   arguments.ProofsPool,
 	}
 
 	boot := metaStorageBootstrapper{
@@ -72,6 +73,11 @@ func (msb *metaStorageBootstrapper) IsInterfaceNil() bool {
 func (msb *metaStorageBootstrapper) applyCrossNotarizedHeaders(crossNotarizedHeaders []bootstrapStorage.BootstrapHeaderInfo) error {
 	for _, crossNotarizedHeader := range crossNotarizedHeaders {
 		header, err := process.GetShardHeaderFromStorage(crossNotarizedHeader.Hash, msb.marshalizer, msb.store)
+		if err != nil {
+			return err
+		}
+
+		err = msb.getAndApplyProofForHeader(crossNotarizedHeader.Hash, header)
 		if err != nil {
 			return err
 		}
@@ -156,6 +162,11 @@ func (msb *metaStorageBootstrapper) applySelfNotarizedHeaders(
 
 	for _, bootstrapHeaderInfo := range bootstrapHeadersInfo {
 		selfNotarizedHeader, err := msb.getHeader(bootstrapHeaderInfo.Hash)
+		if err != nil {
+			return nil, nil, err
+		}
+
+		err = msb.getAndApplyProofForHeader(bootstrapHeaderInfo.Hash, selfNotarizedHeader)
 		if err != nil {
 			return nil, nil, err
 		}

@@ -3,6 +3,7 @@ package sync
 import (
 	"time"
 
+	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-go/common"
@@ -10,8 +11,13 @@ import (
 )
 
 // RequestHeaderWithNonce -
-func (boot *ShardBootstrap) RequestHeaderWithNonce(nonce uint64) {
-	boot.requestHeaderWithNonce(nonce)
+func (boot *baseBootstrap) RequestHeaderWithNonce(nonce uint64) {
+	if boot.shardCoordinator.SelfId() == core.MetachainShardId {
+		boot.requestHandler.RequestMetaHeaderByNonce(nonce)
+		return
+	}
+
+	boot.requestHandler.RequestShardHeaderByNonce(boot.shardCoordinator.SelfId(), nonce)
 }
 
 // GetMiniBlocks -
@@ -24,9 +30,39 @@ func (boot *MetaBootstrap) ReceivedHeaders(header data.HeaderHandler, key []byte
 	boot.processReceivedHeader(header, key)
 }
 
+// ReceivedProof -
+func (boot *MetaBootstrap) ReceivedProof(header data.HeaderProofHandler) {
+	boot.processReceivedProof(header)
+}
+
+// SetRcvHdrNonce -
+func (boot *MetaBootstrap) SetRcvHdrNonce() {
+	boot.chRcvHdrNonce <- true
+}
+
+// SetRcvHdrHash -
+func (boot *MetaBootstrap) SetRcvHdrHash() {
+	boot.chRcvHdrHash <- true
+}
+
 // ReceivedHeaders -
 func (boot *ShardBootstrap) ReceivedHeaders(header data.HeaderHandler, key []byte) {
 	boot.processReceivedHeader(header, key)
+}
+
+// ReceivedProof -
+func (boot *ShardBootstrap) ReceivedProof(header data.HeaderProofHandler) {
+	boot.processReceivedProof(header)
+}
+
+// SetRcvHdrNonce -
+func (boot *ShardBootstrap) SetRcvHdrNonce() {
+	boot.chRcvHdrNonce <- true
+}
+
+// SetRcvHdrHash -
+func (boot *ShardBootstrap) SetRcvHdrHash() {
+	boot.chRcvHdrHash <- true
 }
 
 // RollBack -
@@ -315,12 +351,4 @@ func (boot *baseBootstrap) IsInImportMode() bool {
 // ProcessWaitTime -
 func (boot *baseBootstrap) ProcessWaitTime() time.Duration {
 	return boot.processWaitTime
-}
-
-// HandleEquivalentProof -
-func (boot *baseBootstrap) HandleEquivalentProof(
-	header data.HeaderHandler,
-	headerHash []byte,
-) error {
-	return boot.handleEquivalentProof(header, headerHash)
 }

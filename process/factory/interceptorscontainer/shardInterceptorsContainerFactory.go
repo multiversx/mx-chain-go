@@ -259,7 +259,7 @@ func (sicf *shardInterceptorsContainerFactory) generateEquivalentProofsIntercept
 		return err
 	}
 
-	// equivalent proofs _ALL topic, to listen for meta proofs, example: equivalentProofs_META_ALL
+	// equivalent proofs ALL topic, to listen for meta proofs, example: equivalentProofs_ALL
 	identifierEquivalentProofsMetaAll := common.EquivalentProofsTopic + core.CommunicationIdentifierBetweenShards(core.MetachainShardId, core.AllShardId)
 
 	interceptorMetaAll, err := sicf.createOneShardEquivalentProofsInterceptor(identifierEquivalentProofsMetaAll)

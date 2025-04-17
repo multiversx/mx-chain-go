@@ -11,7 +11,10 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
+	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/testscommon"
+	dataRetrieverMocks "github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
+	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/genericMocks"
 	storageStubs "github.com/multiversx/mx-chain-go/testscommon/storage"
 	"github.com/multiversx/mx-chain-go/update"
@@ -41,6 +44,14 @@ func TestNewMissingheadersByHashSyncer_NilParamsShouldErr(t *testing.T) {
 	nilRequestHandlerArgs := okArgs
 	nilRequestHandlerArgs.RequestHandler = nil
 	testInput[nilRequestHandlerArgs] = update.ErrNilRequestHandler
+
+	nilProofsPoolArgs := okArgs
+	nilProofsPoolArgs.ProofsPool = nil
+	testInput[nilProofsPoolArgs] = dataRetriever.ErrNilProofsPool
+
+	nilEnableEpochsHandlerArgs := okArgs
+	nilEnableEpochsHandlerArgs.EnableEpochsHandler = nil
+	testInput[nilEnableEpochsHandlerArgs] = process.ErrNilEnableEpochsHandler
 
 	for args, expectedErr := range testInput {
 		mhhs, err := NewMissingheadersByHashSyncer(args)
@@ -182,9 +193,11 @@ func TestSyncHeadersByHash_GetHeadersShouldReceiveAndReturnOkMb(t *testing.T) {
 
 func getMisingHeadersByHashSyncerArgs() ArgsNewMissingHeadersByHashSyncer {
 	return ArgsNewMissingHeadersByHashSyncer{
-		Storage:        genericMocks.NewStorerMock(),
-		Cache:          &mock.HeadersCacherStub{},
-		Marshalizer:    &mock.MarshalizerMock{},
-		RequestHandler: &testscommon.RequestHandlerStub{},
+		Storage:             genericMocks.NewStorerMock(),
+		Cache:               &mock.HeadersCacherStub{},
+		ProofsPool:          &dataRetrieverMocks.ProofsPoolMock{},
+		Marshalizer:         &mock.MarshalizerMock{},
+		RequestHandler:      &testscommon.RequestHandlerStub{},
+		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 	}
 }

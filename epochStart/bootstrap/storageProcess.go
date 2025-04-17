@@ -11,6 +11,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/data/endProcess"
+	"github.com/multiversx/mx-chain-go/process/interceptors/processor"
 
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
@@ -190,6 +191,9 @@ func (sesb *storageEpochStartBootstrap) prepareComponentsToSync() error {
 		MetaBlockProcessor:             metablockProcessor,
 		InterceptedDataVerifierFactory: sesb.interceptedDataVerifierFactory,
 		ProofsPool:                     sesb.dataPool.Proofs(),
+		ProofsInterceptorProcessor:     processor.NewEquivalentProofsInterceptorProcessor(),
+		Storage:                        sesb.storageService,
+		HeadersPool:                    sesb.dataPool.Headers(),
 	}
 
 	sesb.epochStartMetaBlockSyncer, err = NewEpochStartMetaSyncer(argsEpochStartSyncer)

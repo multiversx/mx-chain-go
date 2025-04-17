@@ -44,6 +44,7 @@ func NewShardStorageBootstrapper(arguments ArgsShardStorageBootstrapper) (*shard
 		processedMiniBlocksTracker:   arguments.ProcessedMiniBlocksTracker,
 		appStatusHandler:             arguments.AppStatusHandler,
 		enableEpochsHandler:          arguments.EnableEpochsHandler,
+		proofsPool:                   arguments.ProofsPool,
 	}
 
 	boot := shardStorageBootstrapper{
@@ -85,6 +86,11 @@ func (ssb *shardStorageBootstrapper) applyCrossNotarizedHeaders(crossNotarizedHe
 		}
 
 		metaBlock, err := process.GetMetaHeaderFromStorage(crossNotarizedHeader.Hash, ssb.marshalizer, ssb.store)
+		if err != nil {
+			return err
+		}
+
+		err = ssb.getAndApplyProofForHeader(crossNotarizedHeader.Hash, metaBlock)
 		if err != nil {
 			return err
 		}
@@ -250,6 +256,11 @@ func (ssb *shardStorageBootstrapper) applySelfNotarizedHeaders(
 	selfNotarizedHeaders := make([]data.HeaderHandler, len(selfNotarizedHeadersHashes))
 	for index, selfNotarizedHeaderHash := range selfNotarizedHeadersHashes {
 		selfNotarizedHeader, err := ssb.getHeader(selfNotarizedHeaderHash)
+		if err != nil {
+			return nil, nil, err
+		}
+
+		err = ssb.getAndApplyProofForHeader(selfNotarizedHeaderHash, selfNotarizedHeader)
 		if err != nil {
 			return nil, nil, err
 		}

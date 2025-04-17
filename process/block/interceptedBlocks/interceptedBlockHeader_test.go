@@ -8,7 +8,6 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
-	"github.com/multiversx/mx-chain-core-go/data/block"
 	dataBlock "github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/stretchr/testify/assert"
@@ -18,7 +17,6 @@ import (
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/block/interceptedBlocks"
 	"github.com/multiversx/mx-chain-go/process/mock"
-	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/consensus"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
@@ -41,7 +39,6 @@ func createDefaultShardArgument() *interceptedBlocks.ArgInterceptedBlockHeader {
 		ValidityAttester:        &mock.ValidityAttesterStub{},
 		EpochStartTrigger:       &mock.EpochStartTriggerStub{},
 		EnableEpochsHandler:     &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
-		FieldsSizeChecker:       &testscommon.FieldsSizeCheckerMock{},
 	}
 
 	hdr := createMockShardHeader()
@@ -60,11 +57,6 @@ func createDefaultShardArgumentWithV2Support() *interceptedBlocks.ArgIntercepted
 		ValidityAttester:        &mock.ValidityAttesterStub{},
 		EpochStartTrigger:       &mock.EpochStartTriggerStub{},
 		EnableEpochsHandler:     &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
-		FieldsSizeChecker: &testscommon.FieldsSizeCheckerMock{
-			IsProofSizeValidCalled: func(proof data.HeaderProofHandler) bool {
-				return true
-			},
-		},
 	}
 	hdr := createMockShardHeader()
 	arg.HdrBuff, _ = arg.Marshalizer.Marshal(hdr)
@@ -243,7 +235,6 @@ func TestInterceptedHeader_CheckValidityLeaderSignatureOkShouldWork(t *testing.T
 func TestInterceptedHeader_CheckValidityLeaderSignatureOkWithFlagActiveShouldWork(t *testing.T) {
 	t.Parallel()
 
-	headerHash := []byte("header hash")
 	arg := createDefaultShardArgumentWithV2Support()
 	arg.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
 		IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
@@ -251,15 +242,10 @@ func TestInterceptedHeader_CheckValidityLeaderSignatureOkWithFlagActiveShouldWor
 		},
 	}
 	wasVerifySignatureCalled := false
-	providedPrevBitmap := []byte{1, 1, 1, 1}
-	providedPrevSig := []byte("provided sig")
 	arg.HeaderSigVerifier = &consensus.HeaderSigVerifierMock{
 		VerifySignatureCalled: func(header data.HeaderHandler) error {
 			wasVerifySignatureCalled = true
-			proof := header.GetPreviousProof()
-			prevSig, prevBitmap := proof.GetAggregatedSignature(), proof.GetPubKeysBitmap()
-			assert.Equal(t, providedPrevBitmap, prevBitmap)
-			assert.Equal(t, providedPrevSig, prevSig)
+
 			return nil
 		},
 	}
@@ -269,11 +255,6 @@ func TestInterceptedHeader_CheckValidityLeaderSignatureOkWithFlagActiveShouldWor
 		ScheduledRootHash:        []byte("root hash"),
 		ScheduledAccumulatedFees: big.NewInt(0),
 		ScheduledDeveloperFees:   big.NewInt(0),
-		PreviousHeaderProof: &block.HeaderProof{
-			PubKeysBitmap:       providedPrevBitmap,
-			AggregatedSignature: providedPrevSig,
-			HeaderHash:          headerHash,
-		},
 	}
 	buff, _ := marshaller.Marshal(hdr)
 

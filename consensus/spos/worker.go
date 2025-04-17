@@ -618,11 +618,6 @@ func (wrk *Worker) doJobOnMessageWithHeader(cnsMsg *consensus.Message) error {
 			err)
 	}
 
-	err = wrk.checkHeaderPreviousProof(header)
-	if err != nil {
-		return err
-	}
-
 	wrk.processReceivedHeaderMetricForConsensusMessage(cnsMsg)
 
 	errNotCritical := wrk.forkDetector.AddHeader(header, headerHash, process.BHProposed, nil, nil)
@@ -641,18 +636,6 @@ func (wrk *Worker) verifyMessageWithInvalidSigners(cnsMsg *consensus.Message) er
 	if wrk.invalidSignersCache.CheckKnownInvalidSigners(cnsMsg.BlockHeaderHash, cnsMsg.InvalidSigners) {
 		// return error here to avoid further broadcast of this message
 		return ErrInvalidSignersAlreadyReceived
-	}
-
-	return nil
-}
-
-func (wrk *Worker) checkHeaderPreviousProof(header data.HeaderHandler) error {
-	if wrk.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, header.GetEpoch()) {
-		return fmt.Errorf("%w : received header on consensus topic after equivalent messages activation", ErrConsensusMessageNotExpected)
-	}
-
-	if !check.IfNil(header.GetPreviousProof()) {
-		return fmt.Errorf("%w : received header from consensus topic has previous proof", ErrHeaderProofNotExpected)
 	}
 
 	return nil

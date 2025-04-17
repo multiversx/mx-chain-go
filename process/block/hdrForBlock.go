@@ -16,6 +16,7 @@ type lastNotarizedHeaderInfo struct {
 type hdrForBlock struct {
 	missingHdrs                  uint32
 	missingFinalityAttestingHdrs uint32
+	missingProofs                uint32
 	highestHdrNonce              map[uint32]uint64
 	mutHdrsForBlock              sync.RWMutex
 	hdrHashAndInfo               map[string]*hdrInfo
@@ -42,6 +43,7 @@ func (hfb *hdrForBlock) resetMissingHdrs() {
 	hfb.mutHdrsForBlock.Lock()
 	hfb.missingHdrs = 0
 	hfb.missingFinalityAttestingHdrs = 0
+	hfb.missingProofs = 0
 	hfb.mutHdrsForBlock.Unlock()
 }
 

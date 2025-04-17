@@ -2,53 +2,16 @@ package processor
 
 import (
 	"github.com/multiversx/mx-chain-core-go/core"
-	"github.com/multiversx/mx-chain-core-go/core/check"
-	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/process"
 )
 
-// ArgEquivalentProofsInterceptorProcessor is the argument for the interceptor processor used for equivalent proofs
-type ArgEquivalentProofsInterceptorProcessor struct {
-	EquivalentProofsPool EquivalentProofsPool
-	Marshaller           marshal.Marshalizer
-	PeerShardMapper      process.PeerShardMapper
-	NodesCoordinator     process.NodesCoordinator
-}
-
 // equivalentProofsInterceptorProcessor is the processor used when intercepting equivalent proofs
 type equivalentProofsInterceptorProcessor struct {
-	equivalentProofsPool EquivalentProofsPool
-	marshaller           marshal.Marshalizer
 }
 
 // NewEquivalentProofsInterceptorProcessor creates a new equivalentProofsInterceptorProcessor
-func NewEquivalentProofsInterceptorProcessor(args ArgEquivalentProofsInterceptorProcessor) (*equivalentProofsInterceptorProcessor, error) {
-	err := checkArgsEquivalentProofs(args)
-	if err != nil {
-		return nil, err
-	}
-
-	return &equivalentProofsInterceptorProcessor{
-		equivalentProofsPool: args.EquivalentProofsPool,
-		marshaller:           args.Marshaller,
-	}, nil
-}
-
-func checkArgsEquivalentProofs(args ArgEquivalentProofsInterceptorProcessor) error {
-	if check.IfNil(args.EquivalentProofsPool) {
-		return process.ErrNilProofsPool
-	}
-	if check.IfNil(args.Marshaller) {
-		return process.ErrNilMarshalizer
-	}
-	if check.IfNil(args.PeerShardMapper) {
-		return process.ErrNilPeerShardMapper
-	}
-	if check.IfNil(args.NodesCoordinator) {
-		return process.ErrNilNodesCoordinator
-	}
-
-	return nil
+func NewEquivalentProofsInterceptorProcessor() *equivalentProofsInterceptorProcessor {
+	return &equivalentProofsInterceptorProcessor{}
 }
 
 // Validate checks if the intercepted data can be processed

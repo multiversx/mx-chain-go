@@ -76,6 +76,9 @@ func createDataPoolsForShard() dataRetriever.PoolsHolder {
 	pools.RewardTransactionsCalled = func() dataRetriever.ShardedDataCacherNotifier {
 		return testscommon.NewShardedDataStub()
 	}
+	pools.ProofsCalled = func() dataRetriever.ProofsPool {
+		return &dataRetrieverMock.ProofsPoolMock{}
+	}
 
 	return pools
 }
@@ -452,8 +455,10 @@ func TestShardResolversContainerFactory_With4ShardsShouldWork(t *testing.T) {
 	numResolverTrieNodes := 1
 	numResolverPeerAuth := 1
 	numResolverValidatorInfo := 1
+	numResolverEquivalentProofs := 2
 	totalResolvers := numResolverTxs + numResolverHeaders + numResolverMiniBlocks + numResolverMetaBlockHeaders +
-		numResolverSCRs + numResolverRewardTxs + numResolverTrieNodes + numResolverPeerAuth + numResolverValidatorInfo
+		numResolverSCRs + numResolverRewardTxs + numResolverTrieNodes + numResolverPeerAuth + numResolverValidatorInfo +
+		numResolverEquivalentProofs
 
 	assert.Equal(t, totalResolvers, container.Len())
 	assert.Equal(t, totalResolvers, registerMainCnt)
