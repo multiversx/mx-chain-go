@@ -346,28 +346,7 @@ func TestCheckHeaderHandler_ShouldWork(t *testing.T) {
 
 	hdr := createDefaultHeaderHandler()
 
-<<<<<<< HEAD
-	err := checkHeaderHandler(hdr, enableEpochsHandlerMock.NewEnableEpochsHandlerStub(), &testscommon.FieldsSizeCheckerMock{})
-
-	assert.Nil(t, err)
-}
-
-func TestCheckHeaderHandler_ShouldWork_WithPrevProof(t *testing.T) {
-	t.Parallel()
-
-	hdr := createDefaultHeaderHandler()
-
-	enableEpochsHandler := &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-		IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
-			return flag == common.AndromedaFlag
-		},
-	}
-	hdr.SetPreviousProof(&block.HeaderProof{HeaderNonce: 1})
-
-	err := checkHeaderHandler(hdr, enableEpochsHandler, &testscommon.FieldsSizeCheckerMock{})
-=======
 	err := checkHeaderHandler(hdr, enableEpochsHandlerMock.NewEnableEpochsHandlerStub())
->>>>>>> feat/andromeda-patch2
 
 	assert.Nil(t, err)
 }

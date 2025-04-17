@@ -2844,28 +2844,6 @@ func (tpn *TestProcessorNode) setBlockSignatures(blockHeader data.HeaderHandler)
 		return err
 	}
 
-<<<<<<< HEAD
-	if common.ShouldBlockHavePrevProof(blockHeader, tpn.EnableEpochsHandler, common.AndromedaFlag) {
-		previousProof := &dataBlock.HeaderProof{
-			PubKeysBitmap:       pubKeysBitmap,
-			AggregatedSignature: sig,
-			HeaderHash:          currHdrHash,
-			HeaderEpoch:         currHdr.GetEpoch(),
-			HeaderNonce:         currHdr.GetNonce(),
-			HeaderShardId:       currHdr.GetShardID(),
-			HeaderRound:         currHdr.GetRound(),
-			IsStartOfEpoch:      blockHeader.IsStartOfEpochBlock(),
-		}
-		blockHeader.SetPreviousProof(previousProof)
-
-		wasAdded := tpn.ProofsPool.AddProof(previousProof)
-		if !wasAdded {
-			log.Warn("ProofsPool.AddProof not added", "currHdrHash", currHdrHash, "node", tpn.OwnAccount.Address)
-		}
-	}
-
-=======
->>>>>>> feat/andromeda-patch2
 	err = blockHeader.SetPubKeysBitmap(pubKeysBitmap)
 	if err != nil {
 		log.Warn("blockHeader.SetPubKeysBitmap", "error", err.Error())
@@ -3373,7 +3351,7 @@ func CreateEnableEpochsConfig() config.EnableEpochs {
 		SCProcessorV2EnableEpoch:                          UnreachableEpoch,
 		FixRelayedBaseCostEnableEpoch:                     UnreachableEpoch,
 		FixRelayedMoveBalanceToNonPayableSCEnableEpoch:    UnreachableEpoch,
-		AndromedaEnableEpoch:                     UnreachableEpoch,
+		AndromedaEnableEpoch:                              UnreachableEpoch,
 	}
 }
 
@@ -3685,7 +3663,7 @@ func GetDefaultEnableEpochsConfig() *config.EnableEpochs {
 		StakingV4Step1EnableEpoch:                       UnreachableEpoch,
 		StakingV4Step2EnableEpoch:                       UnreachableEpoch,
 		StakingV4Step3EnableEpoch:                       UnreachableEpoch,
-		AndromedaEnableEpoch:                   UnreachableEpoch,
+		AndromedaEnableEpoch:                            UnreachableEpoch,
 	}
 }
 

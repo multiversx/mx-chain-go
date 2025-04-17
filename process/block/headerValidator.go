@@ -94,19 +94,7 @@ func (h *headerValidator) IsHeaderConstructionValid(currHeader, prevHeader data.
 		return process.ErrRandSeedDoesNotMatch
 	}
 
-<<<<<<< HEAD
-	return h.verifyProofForBlock(prevHeader, currHeader.GetPreviousProof())
-}
-
-func (h *headerValidator) verifyProofForBlock(header data.HeaderHandler, proof data.HeaderProofHandler) error {
-	if !h.enableEpochsHandler.IsFlagEnabledInEpoch(common.AndromedaFlag, header.GetEpoch()) {
-		return nil
-	}
-
-	return common.VerifyProofAgainstHeader(proof, header)
-=======
 	return nil
->>>>>>> feat/andromeda-patch2
 }
 
 // IsInterfaceNil returns if underlying object is true

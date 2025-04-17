@@ -225,20 +225,7 @@ func (bp *baseProcessor) checkBlockValidity(
 		return process.ErrEpochDoesNotMatch
 	}
 
-<<<<<<< HEAD
-	return bp.checkPrevProofValidity(currentBlockHeader, headerHandler)
-}
-
-func (bp *baseProcessor) checkPrevProofValidity(prevHeader, headerHandler data.HeaderHandler) error {
-	if !common.ShouldBlockHavePrevProof(headerHandler, bp.enableEpochsHandler, common.AndromedaFlag) {
-		return nil
-	}
-
-	prevProof := headerHandler.GetPreviousProof()
-	return common.VerifyProofAgainstHeader(prevProof, prevHeader)
-=======
 	return nil
->>>>>>> feat/andromeda-patch2
 }
 
 // checkScheduledRootHash checks if the scheduled root hash from the given header is the same with the current user accounts state root hash
@@ -1107,11 +1094,7 @@ func (bp *baseProcessor) cleanupPools(headerHandler data.HeaderHandler) {
 		highestPrevFinalBlockNonce,
 	)
 
-<<<<<<< HEAD
-	if common.ShouldBlockHavePrevProof(headerHandler, bp.enableEpochsHandler, common.AndromedaFlag) {
-=======
-	if common.IsFlagEnabledAfterEpochsStartBlock(headerHandler, bp.enableEpochsHandler, common.EquivalentMessagesFlag) {
->>>>>>> feat/andromeda-patch2
+	if common.IsFlagEnabledAfterEpochsStartBlock(headerHandler, bp.enableEpochsHandler, common.AndromedaFlag) {
 		err := bp.dataPool.Proofs().CleanupProofsBehindNonce(bp.shardCoordinator.SelfId(), highestPrevFinalBlockNonce)
 		if err != nil {
 			log.Warn("failed to cleanup notarized proofs behind nonce",
@@ -1150,11 +1133,7 @@ func (bp *baseProcessor) cleanupPoolsForCrossShard(
 		crossNotarizedHeader.GetNonce(),
 	)
 
-<<<<<<< HEAD
-	if common.ShouldBlockHavePrevProof(crossNotarizedHeader, bp.enableEpochsHandler, common.AndromedaFlag) {
-=======
-	if common.IsFlagEnabledAfterEpochsStartBlock(crossNotarizedHeader, bp.enableEpochsHandler, common.EquivalentMessagesFlag) {
->>>>>>> feat/andromeda-patch2
+	if common.IsFlagEnabledAfterEpochsStartBlock(crossNotarizedHeader, bp.enableEpochsHandler, common.AndromedaFlag) {
 		err = bp.dataPool.Proofs().CleanupProofsBehindNonce(shardID, noncesToPrevFinal)
 		if err != nil {
 			log.Warn("failed to cleanup notarized proofs behind nonce",
@@ -2321,35 +2300,6 @@ func (bp *baseProcessor) checkSentSignaturesAtCommitTime(header data.HeaderHandl
 	return nil
 }
 
-<<<<<<< HEAD
-func (bp *baseProcessor) addPrevProofIfNeeded(header data.HeaderHandler) error {
-	if !common.ShouldBlockHavePrevProof(header, bp.enableEpochsHandler, common.AndromedaFlag) {
-		return nil
-	}
-
-	prevBlockProof, err := bp.proofsPool.GetProof(bp.shardCoordinator.SelfId(), header.GetPrevHash())
-	if err != nil {
-		return err
-	}
-
-	header.SetPreviousProof(prevBlockProof)
-
-	log.Debug("added proof on header",
-		"header hash", prevBlockProof.GetHeaderHash(),
-		"epoch", prevBlockProof.GetHeaderEpoch(),
-		"nonce", prevBlockProof.GetHeaderNonce(),
-		"shardID", prevBlockProof.GetHeaderShardId(),
-		"pubKeys bitmap", prevBlockProof.GetPubKeysBitmap(),
-		"round", prevBlockProof.GetHeaderRound(),
-		"nonce", prevBlockProof.GetHeaderNonce(),
-		"isStartOfEpoch", prevBlockProof.GetIsStartOfEpoch(),
-	)
-
-	return nil
-}
-
-=======
->>>>>>> feat/andromeda-patch2
 func (bp *baseProcessor) getHeaderHash(header data.HeaderHandler) ([]byte, error) {
 	marshalledHeader, errMarshal := bp.marshalizer.Marshal(header)
 	if errMarshal != nil {
@@ -2360,7 +2310,7 @@ func (bp *baseProcessor) getHeaderHash(header data.HeaderHandler) ([]byte, error
 }
 
 func (bp *baseProcessor) requestProofIfNeeded(currentHeaderHash []byte, epoch uint32, shardID uint32) bool {
-	if !bp.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, epoch) {
+	if !bp.enableEpochsHandler.IsFlagEnabledInEpoch(common.AndromedaFlag, epoch) {
 		return false
 	}
 	if bp.proofsPool.HasProof(shardID, currentHeaderHash) {
@@ -2385,33 +2335,7 @@ func (bp *baseProcessor) checkReceivedProofIfAttestingIsNeeded(proof data.Header
 
 	isWaitingForProofs := hdrHashAndInfo.hasProofRequested
 	if !isWaitingForProofs {
-<<<<<<< HEAD
-		return nil
-	}
-
-	select {
-	case <-bp.allProofsReceived:
-		return nil
-	case <-time.After(waitTime):
-		bp.mutRequestedAttestingNoncesMap.RLock()
-		defer bp.mutRequestedAttestingNoncesMap.RUnlock()
-
-		logMessage := ""
-		for hash := range bp.requestedAttestingNoncesMap {
-			logMessage += fmt.Sprintf("\nhash = %s", hex.EncodeToString([]byte(hash)))
-		}
-
-		log.Debug("baseProcessor.waitAllMissingProofs still pending proofs for headers" + logMessage)
-
-		return process.ErrTimeIsOut
-	}
-}
-
-func (bp *baseProcessor) checkReceivedHeaderIfAttestingIsNeeded(headerHandler data.HeaderHandler) {
-	if !common.ShouldBlockHavePrevProof(headerHandler, bp.enableEpochsHandler, common.AndromedaFlag) {
-=======
 		bp.hdrsForCurrBlock.mutHdrsForBlock.Unlock()
->>>>>>> feat/andromeda-patch2
 		return
 	}
 

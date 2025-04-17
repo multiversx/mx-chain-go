@@ -314,7 +314,7 @@ func (boot *baseBootstrap) confirmHeaderReceivedByHash(headerHandler data.Header
 }
 
 func (boot *baseBootstrap) hasProof(hash []byte) bool {
-	if !boot.enableEpochsHandler.IsFlagEnabled(common.EquivalentMessagesFlag) {
+	if !boot.enableEpochsHandler.IsFlagEnabled(common.AndromedaFlag) {
 		return true
 	}
 
@@ -799,38 +799,6 @@ func (boot *baseBootstrap) syncBlock() error {
 	return nil
 }
 
-<<<<<<< HEAD
-func (boot *baseBootstrap) handleEquivalentProof(
-	header data.HeaderHandler,
-	headerHash []byte,
-) error {
-	if !boot.enableEpochsHandler.IsFlagEnabledInEpoch(common.AndromedaFlag, header.GetEpoch()) {
-		return nil
-	}
-
-	// process block only if there is a proof for it
-	hasProof := boot.proofs.HasProof(header.GetShardID(), headerHash)
-	if hasProof {
-		return nil
-	}
-
-	log.Trace("baseBootstrap.handleEquivalentProof: did not have proof for header, will try again", "headerHash", headerHash)
-
-	_, _, err := boot.blockBootstrapper.getHeaderWithNonceRequestingIfMissing(header.GetNonce() + 1)
-	if err != nil {
-		return err
-	}
-
-	hasProof = boot.proofs.HasProof(header.GetShardID(), headerHash)
-	if !hasProof {
-		return fmt.Errorf("baseBootstrap.handleEquivalentProof: did not have proof for header, headerHash %s", hex.EncodeToString(headerHash))
-	}
-
-	return nil
-}
-
-=======
->>>>>>> feat/andromeda-patch2
 func (boot *baseBootstrap) handleTrieSyncError(err error, ctx context.Context) {
 	shouldOutputLog := err != nil && !common.IsContextDone(ctx)
 	if shouldOutputLog {
@@ -1279,7 +1247,7 @@ func (boot *baseBootstrap) getHeaderFromPoolWithNonce(
 }
 
 func (boot *baseBootstrap) hasProofByNonce(nonce uint64) bool {
-	if !boot.enableEpochsHandler.IsFlagEnabled(common.EquivalentMessagesFlag) {
+	if !boot.enableEpochsHandler.IsFlagEnabled(common.AndromedaFlag) {
 		return true
 	}
 

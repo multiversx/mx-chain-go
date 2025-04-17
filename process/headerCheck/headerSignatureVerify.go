@@ -248,16 +248,8 @@ func getPubKeySigners(consensusPubKeys []string, pubKeysBitmap []byte) [][]byte 
 
 // VerifySignature will check if signature is correct
 func (hsv *HeaderSigVerifier) VerifySignature(header data.HeaderHandler) error {
-<<<<<<< HEAD
 	if hsv.enableEpochsHandler.IsFlagEnabledInEpoch(common.AndromedaFlag, header.GetEpoch()) {
-		return hsv.VerifyHeaderWithProof(header)
-	}
-	if prevProof := header.GetPreviousProof(); !check.IfNil(prevProof) {
-		return ErrProofNotExpected
-=======
-	if hsv.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, header.GetEpoch()) {
 		return nil
->>>>>>> feat/andromeda-patch2
 	}
 
 	headerCopy, err := hsv.copyHeaderWithoutSig(header)
@@ -302,45 +294,6 @@ func (hsv *HeaderSigVerifier) VerifySignatureForHash(header data.HeaderHandler, 
 	return multiSigVerifier.VerifyAggregatedSig(pubKeysSigners, hash, signature)
 }
 
-<<<<<<< HEAD
-// VerifyHeaderWithProof checks if the proof on the header is correct
-func (hsv *HeaderSigVerifier) VerifyHeaderWithProof(header data.HeaderHandler) error {
-	// first block for transition to equivalent proofs consensus does not have a previous proof
-	if !common.ShouldBlockHavePrevProof(header, hsv.enableEpochsHandler, common.AndromedaFlag) {
-		if prevProof := header.GetPreviousProof(); !check.IfNil(prevProof) {
-			return ErrProofNotExpected
-		}
-		return nil
-	}
-
-	err := verifyPrevProofForHeaderIntegrity(header)
-	if err != nil {
-		return err
-	}
-
-	prevProof := header.GetPreviousProof()
-	if common.IsEpochStartProofForFlagActivation(prevProof, hsv.enableEpochsHandler) {
-		err = hsv.verifyHeaderProofAtTransition(prevProof)
-		if err != nil {
-			return err
-		}
-
-		_ = hsv.proofsPool.UpsertProof(prevProof)
-		return nil
-	}
-
-	err = hsv.VerifyHeaderProof(prevProof)
-	if err != nil {
-		return err
-	}
-
-	_ = hsv.proofsPool.UpsertProof(prevProof)
-
-	return nil
-}
-
-=======
->>>>>>> feat/andromeda-patch2
 func (hsv *HeaderSigVerifier) getHeaderForProofAtTransition(proof data.HeaderProofHandler) (data.HeaderHandler, error) {
 	var header data.HeaderHandler
 	var err error

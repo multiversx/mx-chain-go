@@ -82,12 +82,6 @@ func (inHdr *InterceptedHeader) CheckValidity() error {
 }
 
 func (inHdr *InterceptedHeader) verifySignatures() error {
-<<<<<<< HEAD
-	if inHdr.enableEpochsHandler.IsFlagEnabledInEpoch(common.AndromedaFlag, inHdr.hdr.GetEpoch()) {
-		return inHdr.verifySignaturesForEquivalentProofs()
-	}
-=======
->>>>>>> feat/andromeda-patch2
 	err := inHdr.sigVerifier.VerifyRandSeedAndLeaderSignature(inHdr.hdr)
 	if err != nil {
 		return err

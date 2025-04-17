@@ -124,18 +124,6 @@ func (creator *blocksCreator) CreateNewBlock() error {
 	}
 
 	enableEpochHandler := coreComponents.EnableEpochsHandler()
-<<<<<<< HEAD
-	var previousProof *dataBlock.HeaderProof
-	if !nilPrevHeader && enableEpochHandler.IsFlagEnabled(common.AndromedaFlag) {
-		sig, errS := creator.generateSignature(prevHash, leader.PubKey(), prevHeader)
-		if errS != nil {
-			return errS
-		}
-		previousProof = createProofForHeader(pubKeyBitmap, sig, prevHash, prevHeader)
-		_ = creator.nodeHandler.GetDataComponents().Datapool().Proofs().AddProof(previousProof)
-	}
-=======
->>>>>>> feat/andromeda-patch2
 
 	header, block, err := bp.CreateBlock(newHeader, func() bool {
 		return true
@@ -222,16 +210,6 @@ func (creator *blocksCreator) ApplySignaturesAndGetProof(
 	pubKeyBitmap []byte,
 ) (*dataBlock.HeaderProof, error) {
 	nilPrevHeader := check.IfNil(prevHeader)
-<<<<<<< HEAD
-	var err error
-	if !nilPrevHeader && common.ShouldBlockHavePrevProof(header, enableEpochHandler, common.AndromedaFlag) {
-		validators, err = creator.updatePreviousProofAndAddonHeader(header.GetPrevHash(), prevHeader, header, prevProof)
-		if err != nil {
-			return nil, err
-		}
-	}
-=======
->>>>>>> feat/andromeda-patch2
 
 	err := creator.setHeaderSignatures(header, leader.PubKey(), validators)
 	if err != nil {

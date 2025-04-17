@@ -641,21 +641,6 @@ func (wrk *Worker) verifyMessageWithInvalidSigners(cnsMsg *consensus.Message) er
 	return nil
 }
 
-<<<<<<< HEAD
-func (wrk *Worker) checkHeaderPreviousProof(header data.HeaderHandler) error {
-	if wrk.enableEpochsHandler.IsFlagEnabledInEpoch(common.AndromedaFlag, header.GetEpoch()) {
-		return fmt.Errorf("%w : received header on consensus topic after equivalent messages activation", ErrConsensusMessageNotExpected)
-	}
-
-	if !check.IfNil(header.GetPreviousProof()) {
-		return fmt.Errorf("%w : received header from consensus topic has previous proof", ErrHeaderProofNotExpected)
-	}
-
-	return nil
-}
-
-=======
->>>>>>> feat/andromeda-patch2
 func (wrk *Worker) verifyHeaderHash(hash []byte, marshalledHeader []byte) bool {
 	computedHash := wrk.hasher.Compute(string(marshalledHeader))
 	return bytes.Equal(hash, computedHash)
@@ -877,7 +862,7 @@ func (wrk *Worker) removeConsensusHeaderFromPool() {
 		return
 	}
 
-	if !wrk.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, header.GetEpoch()) {
+	if !wrk.enableEpochsHandler.IsFlagEnabledInEpoch(common.AndromedaFlag, header.GetEpoch()) {
 		return
 	}
 

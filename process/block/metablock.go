@@ -425,63 +425,6 @@ func (mp *metaProcessor) ProcessBlock(
 	return nil
 }
 
-<<<<<<< HEAD
-func (mp *metaProcessor) checkProofsForShardDataIfNeeded(header *block.MetaBlock, waitTime time.Duration) error {
-	if !(mp.enableEpochsHandler.IsFlagEnabledInEpoch(common.AndromedaFlag, header.Epoch) && header.GetNonce() > 1) {
-		return nil
-	}
-
-	mp.mutRequestedAttestingNoncesMap.Lock()
-	mp.requestedAttestingNoncesMap = make(map[string]uint64)
-	mp.mutRequestedAttestingNoncesMap.Unlock()
-	_ = core.EmptyChannel(mp.allProofsReceived)
-
-	err := mp.checkProofsForShardData(header)
-	if err != nil {
-		return err
-	}
-
-	return mp.waitAllMissingProofs(waitTime)
-}
-
-func (mp *metaProcessor) checkProofsForShardData(header *block.MetaBlock) error {
-	mp.hdrsForCurrBlock.mutHdrsForBlock.RLock()
-	defer mp.hdrsForCurrBlock.mutHdrsForBlock.RUnlock()
-
-	for _, shardData := range header.ShardInfo {
-		shardHeader, ok := mp.hdrsForCurrBlock.hdrHashAndInfo[string(shardData.HeaderHash)]
-		if !ok {
-			return fmt.Errorf("%w for header hash %s", process.ErrMissingHeader, hex.EncodeToString(shardData.HeaderHash))
-		}
-
-		if !mp.enableEpochsHandler.IsFlagEnabledInEpoch(common.AndromedaFlag, shardHeader.hdr.GetEpoch()) {
-			continue
-		}
-
-		mp.checkProofRequestingNextHeaderIfMissing(shardData.ShardID, shardData.HeaderHash, shardData.Nonce)
-
-		if !common.ShouldBlockHavePrevProof(shardHeader.hdr, mp.enableEpochsHandler, common.AndromedaFlag) {
-			continue
-		}
-
-		prevProof := shardData.GetPreviousProof()
-		headersPool := mp.dataPool.Headers()
-		prevHeader, err := process.GetHeader(prevProof.GetHeaderHash(), headersPool, mp.store, mp.marshalizer, prevProof.GetHeaderShardId())
-		if err != nil {
-			return err
-		}
-
-		err = common.VerifyProofAgainstHeader(prevProof, prevHeader)
-		if err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
-
-=======
->>>>>>> feat/andromeda-patch2
 func (mp *metaProcessor) processEpochStartMetaBlock(
 	header *block.MetaBlock,
 	body *block.Body,
@@ -1621,11 +1564,7 @@ func (mp *metaProcessor) updateState(metaBlock data.MetaHeaderHandler, metaBlock
 	)
 
 	outportFinalizedHeaderHash := metaBlockHash
-<<<<<<< HEAD
-	if !common.ShouldBlockHavePrevProof(metaBlock, mp.enableEpochsHandler, common.AndromedaFlag) {
-=======
-	if !common.IsFlagEnabledAfterEpochsStartBlock(metaBlock, mp.enableEpochsHandler, common.EquivalentMessagesFlag) {
->>>>>>> feat/andromeda-patch2
+	if !common.IsFlagEnabledAfterEpochsStartBlock(metaBlock, mp.enableEpochsHandler, common.AndromedaFlag) {
 		outportFinalizedHeaderHash = metaBlock.GetPrevHash()
 	}
 	mp.setFinalizedHeaderHashInIndexer(outportFinalizedHeaderHash)
@@ -1943,16 +1882,6 @@ func (mp *metaProcessor) checkShardHeadersValidity(metaHdr *block.MetaBlock) (ma
 			}
 		}
 
-<<<<<<< HEAD
-		if common.ShouldBlockHavePrevProof(shardHdr, mp.enableEpochsHandler, common.AndromedaFlag) {
-			err = mp.verifyProof(shardData.GetPreviousProof())
-			if err != nil {
-				return nil, err
-			}
-		}
-
-=======
->>>>>>> feat/andromeda-patch2
 		mapMiniBlockHeadersInMetaBlock := make(map[string]struct{})
 		for _, shardMiniBlockHdr := range shardData.ShardMiniBlockHeaders {
 			mapMiniBlockHeadersInMetaBlock[string(shardMiniBlockHdr.Hash)] = struct{}{}
@@ -2234,20 +2163,12 @@ func (mp *metaProcessor) computeExistingAndRequestMissingShardHeaders(metaBlock 
 
 		mp.requestProofIfNeeded(shardData.HeaderHash, hdr.GetEpoch(), shardData.ShardID)
 
-		if common.IsEpochChangeBlockForFlagActivation(hdr, mp.enableEpochsHandler, common.EquivalentMessagesFlag) {
+		if common.IsEpochChangeBlockForFlagActivation(hdr, mp.enableEpochsHandler, common.AndromedaFlag) {
 			continue
 		}
 
-<<<<<<< HEAD
-		shouldConsiderProofsForNotarization := mp.enableEpochsHandler.IsFlagEnabledInEpoch(common.AndromedaFlag, hdr.GetEpoch())
-		hasProofForShardHeader := mp.proofsPool.HasProof(shardData.ShardID, shardData.HeaderHash)
-		if shouldConsiderProofsForNotarization && !hasProofForShardHeader {
-			// if there is no proof for current shard header, request the next one that holds this proof
-			go mp.requestHandler.RequestShardHeaderByNonce(hdr.GetShardID(), hdr.GetNonce()+1)
-=======
 		if hdr.GetNonce() > mp.hdrsForCurrBlock.highestHdrNonce[shardData.ShardID] {
 			mp.hdrsForCurrBlock.highestHdrNonce[shardData.ShardID] = hdr.GetNonce()
->>>>>>> feat/andromeda-patch2
 		}
 
 		mp.updateLastNotarizedBlockForShard(hdr, shardData.HeaderHash)
@@ -2295,17 +2216,7 @@ func (mp *metaProcessor) createShardInfo() ([]data.ShardDataHandler, error) {
 		shardData.Nonce = shardHdr.GetNonce()
 		shardData.PrevRandSeed = shardHdr.GetPrevRandSeed()
 		shardData.PubKeysBitmap = shardHdr.GetPubKeysBitmap()
-<<<<<<< HEAD
 		if mp.enableEpochsHandler.IsFlagEnabledInEpoch(common.AndromedaFlag, shardHdr.GetEpoch()) {
-			prevProof := shardHdr.GetPreviousProof()
-			err := shardData.SetPreviousProof(prevProof)
-			if err != nil {
-				return nil, err
-			}
-
-=======
-		if mp.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, shardHdr.GetEpoch()) {
->>>>>>> feat/andromeda-patch2
 			shardData.Epoch = shardHdr.GetEpoch()
 		}
 		shardData.NumPendingMiniBlocks = uint32(len(mp.pendingMiniBlocksHandler.GetPendingMiniBlocks(shardData.ShardID)))

@@ -377,43 +377,6 @@ func (sp *shardProcessor) ProcessBlock(
 	return nil
 }
 
-<<<<<<< HEAD
-func (sp *shardProcessor) checkProofsForCrossNotarizedMetaBlocks(header data.ShardHeaderHandler, waitTime time.Duration) error {
-	sp.mutRequestedAttestingNoncesMap.Lock()
-	sp.requestedAttestingNoncesMap = make(map[string]uint64)
-	sp.mutRequestedAttestingNoncesMap.Unlock()
-	_ = core.EmptyChannel(sp.allProofsReceived)
-
-	err := sp.checkProofsRequestingMissing(header)
-	if err != nil {
-		return nil
-	}
-
-	return sp.waitAllMissingProofs(waitTime)
-}
-
-func (sp *shardProcessor) checkProofsRequestingMissing(header data.ShardHeaderHandler) error {
-	sp.hdrsForCurrBlock.mutHdrsForBlock.RLock()
-	defer sp.hdrsForCurrBlock.mutHdrsForBlock.RUnlock()
-
-	for _, metaBlockHash := range header.GetMetaBlockHashes() {
-		hInfo, ok := sp.hdrsForCurrBlock.hdrHashAndInfo[string(metaBlockHash)]
-		if !ok {
-			return fmt.Errorf("%w for header hash %s", process.ErrMissingHeader, hex.EncodeToString(metaBlockHash))
-		}
-
-		if !sp.enableEpochsHandler.IsFlagEnabledInEpoch(common.AndromedaFlag, hInfo.hdr.GetEpoch()) {
-			continue
-		}
-
-		sp.checkProofRequestingNextHeaderIfMissing(core.MetachainShardId, metaBlockHash, hInfo.hdr.GetNonce())
-	}
-
-	return nil
-}
-
-=======
->>>>>>> feat/andromeda-patch2
 func (sp *shardProcessor) requestEpochStartInfo(header data.ShardHeaderHandler, haveTime func() time.Duration) error {
 	if !header.IsStartOfEpochBlock() {
 		return nil
@@ -449,7 +412,7 @@ func (sp *shardProcessor) requestEpochStartInfo(header data.ShardHeaderHandler, 
 			continue
 		}
 
-		shouldConsiderProofsForNotarization := sp.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, epochStartMetaHdr.GetEpoch())
+		shouldConsiderProofsForNotarization := sp.enableEpochsHandler.IsFlagEnabledInEpoch(common.AndromedaFlag, epochStartMetaHdr.GetEpoch())
 		if !shouldConsiderProofsForNotarization {
 			_, _, err = headersPool.GetHeadersByNonceAndShardId(epochStartMetaHdr.GetNonce()+1, core.MetachainShardId)
 			if err != nil {
@@ -1125,11 +1088,7 @@ func (sp *shardProcessor) CommitBlock(
 	}
 
 	finalHeaderHash := headerHash
-<<<<<<< HEAD
-	if !common.ShouldBlockHavePrevProof(header, sp.enableEpochsHandler, common.AndromedaFlag) {
-=======
-	if !common.IsFlagEnabledAfterEpochsStartBlock(header, sp.enableEpochsHandler, common.EquivalentMessagesFlag) {
->>>>>>> feat/andromeda-patch2
+	if !common.IsFlagEnabledAfterEpochsStartBlock(header, sp.enableEpochsHandler, common.AndromedaFlag) {
 		finalHeaderHash = currentHeaderHash
 	}
 
@@ -1875,13 +1834,8 @@ func (sp *shardProcessor) receivedMetaBlock(headerHandler data.HeaderHandler, me
 	go sp.requestMiniBlocksIfNeeded(headerHandler)
 }
 
-<<<<<<< HEAD
-func (sp *shardProcessor) hasProofForMetablock(metaBlockHash []byte, metaBlock *block.MetaBlock) bool {
-	shouldConsiderProofsForNotarization := sp.enableEpochsHandler.IsFlagEnabledInEpoch(common.AndromedaFlag, metaBlock.Epoch)
-=======
 func (sp *shardProcessor) checkFinalityRequestingMissing(metaBlock *block.MetaBlock) {
-	shouldConsiderProofsForNotarization := sp.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, metaBlock.Epoch)
->>>>>>> feat/andromeda-patch2
+	shouldConsiderProofsForNotarization := sp.enableEpochsHandler.IsFlagEnabledInEpoch(common.AndromedaFlag, metaBlock.Epoch)
 	if !shouldConsiderProofsForNotarization {
 		sp.hdrsForCurrBlock.missingFinalityAttestingHdrs = sp.requestMissingFinalityAttestingHeaders(
 			core.MetachainShardId,
@@ -1935,12 +1889,7 @@ func (sp *shardProcessor) computeExistingAndRequestMissingMetaHeaders(header dat
 			sp.hdrsForCurrBlock.highestHdrNonce[core.MetachainShardId] = hdr.GetNonce()
 		}
 
-<<<<<<< HEAD
 		shouldConsiderProofsForNotarization := sp.enableEpochsHandler.IsFlagEnabledInEpoch(common.AndromedaFlag, hdr.GetEpoch())
-		hasProofForMetablock := sp.proofsPool.HasProof(core.MetachainShardId, metaBlockHashes[i])
-=======
-		shouldConsiderProofsForNotarization := sp.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, hdr.GetEpoch())
->>>>>>> feat/andromeda-patch2
 		if !shouldConsiderProofsForNotarization {
 			continue
 		}

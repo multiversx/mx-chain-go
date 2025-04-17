@@ -96,38 +96,6 @@ func checkHeaderHandler(
 	return hdr.CheckFieldsForNil()
 }
 
-<<<<<<< HEAD
-func checkProofIntegrity(
-	hdr data.HeaderHandler,
-	enableEpochsHandler common.EnableEpochsHandler,
-	fieldsSizeChecker common.FieldsSizeChecker,
-) error {
-	if check.IfNil(fieldsSizeChecker) {
-		return errors.ErrNilFieldsSizeChecker
-	}
-
-	prevHeaderProof := hdr.GetPreviousProof()
-	nilPreviousProof := check.IfNil(prevHeaderProof)
-	shouldHavePrevProof := common.ShouldBlockHavePrevProof(hdr, enableEpochsHandler, common.AndromedaFlag)
-	missingPrevProof := nilPreviousProof && shouldHavePrevProof
-	unexpectedPrevProof := !nilPreviousProof && !shouldHavePrevProof
-	hasPrevProof := !nilPreviousProof && !missingPrevProof
-
-	if missingPrevProof {
-		return process.ErrMissingPrevHeaderProof
-	}
-	if unexpectedPrevProof {
-		return process.ErrUnexpectedHeaderProof
-	}
-	if hasPrevProof && !fieldsSizeChecker.IsProofSizeValid(prevHeaderProof) {
-		return process.ErrInvalidHeaderProof
-	}
-
-	return nil
-}
-
-=======
->>>>>>> feat/andromeda-patch2
 func checkMetaShardInfo(
 	shardInfo []data.ShardDataHandler,
 	coordinator sharding.Coordinator,

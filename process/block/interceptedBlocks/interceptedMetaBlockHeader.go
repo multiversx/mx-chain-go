@@ -116,13 +116,6 @@ func (imh *InterceptedMetaHeader) CheckValidity() error {
 		return err
 	}
 
-<<<<<<< HEAD
-	if imh.enableEpochsHandler.IsFlagEnabledInEpoch(common.AndromedaFlag, imh.hdr.GetEpoch()) {
-		return imh.verifySignaturesForEquivalentProofs()
-	}
-
-=======
->>>>>>> feat/andromeda-patch2
 	err = imh.sigVerifier.VerifyRandSeedAndLeaderSignature(imh.hdr)
 	if err != nil {
 		return err

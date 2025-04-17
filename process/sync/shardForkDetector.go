@@ -116,11 +116,7 @@ func (sfd *shardForkDetector) doJobOnBHProcessed(
 	sfd.addCheckpoint(newCheckpoint)
 	// first shard block with proof does not have increased consensus
 	// so instant finality will only be set after the first block with increased consensus
-<<<<<<< HEAD
-	if common.ShouldBlockHavePrevProof(header, sfd.enableEpochsHandler, common.AndromedaFlag) {
-=======
-	if common.IsFlagEnabledAfterEpochsStartBlock(header, sfd.enableEpochsHandler, common.EquivalentMessagesFlag) {
->>>>>>> feat/andromeda-patch2
+	if common.IsFlagEnabledAfterEpochsStartBlock(header, sfd.enableEpochsHandler, common.AndromedaFlag) {
 		sfd.setFinalCheckpoint(newCheckpoint)
 	}
 	sfd.removePastOrInvalidRecords()

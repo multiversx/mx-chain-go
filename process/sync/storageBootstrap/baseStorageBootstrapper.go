@@ -463,16 +463,12 @@ func (st *storageBootstrapper) applyBlock(headerHash []byte, header data.HeaderH
 	}
 
 	st.blkc.SetCurrentBlockHeaderHash(headerHash)
-<<<<<<< HEAD
-	if !st.enableEpochsHandler.IsFlagEnabledInEpoch(common.AndromedaFlag, header.GetEpoch()) {
-=======
 
-	if !st.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, header.GetEpoch()) {
->>>>>>> feat/andromeda-patch2
+	if !st.enableEpochsHandler.IsFlagEnabledInEpoch(common.AndromedaFlag, header.GetEpoch()) {
 		return nil
 	}
 
-	isFlagEnabledAfterEpochStart := common.IsFlagEnabledAfterEpochsStartBlock(header, st.enableEpochsHandler, common.EquivalentMessagesFlag)
+	isFlagEnabledAfterEpochStart := common.IsFlagEnabledAfterEpochsStartBlock(header, st.enableEpochsHandler, common.AndromedaFlag)
 
 	st.forkDetector.AddCheckpoint(header.GetNonce(), header.GetRound(), headerHash)
 	if header.GetShardID() == core.MetachainShardId || isFlagEnabledAfterEpochStart {
@@ -484,7 +480,7 @@ func (st *storageBootstrapper) applyBlock(headerHash []byte, header data.HeaderH
 }
 
 func (st *storageBootstrapper) getAndApplyProofForHeader(headerHash []byte, header data.HeaderHandler) error {
-	if !st.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, header.GetEpoch()) {
+	if !st.enableEpochsHandler.IsFlagEnabledInEpoch(common.AndromedaFlag, header.GetEpoch()) {
 		return nil
 	}
 

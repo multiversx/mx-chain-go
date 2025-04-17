@@ -575,7 +575,7 @@ func (sr *subroundBlock) isFlagActiveForHeader(headerHandler data.HeaderHandler)
 	if check.IfNil(headerHandler) {
 		return false
 	}
-	return sr.EnableEpochsHandler().IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, headerHandler.GetEpoch())
+	return sr.EnableEpochsHandler().IsFlagEnabledInEpoch(common.AndromedaFlag, headerHandler.GetEpoch())
 }
 
 func (sr *subroundBlock) processReceivedBlock(ctx context.Context, cnsDta *consensus.Message) bool {

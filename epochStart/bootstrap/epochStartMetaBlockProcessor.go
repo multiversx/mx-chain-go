@@ -169,39 +169,9 @@ func (e *epochStartMetaBlockProcessor) Save(data process.InterceptedData, fromCo
 		return nil
 	}
 
-<<<<<<< HEAD
-	if e.isEpochStartConfirmationBlockWithAndromeda(metaBlock) {
-		log.Debug("received epoch start confirmation meta block", "epoch", metaBlock.GetEpoch(), "from peer", fromConnectedPeer.Pretty())
-		e.chanConfMetaBlockReached <- true
-
-		return nil
-	}
-
 	return nil
 }
 
-func (e *epochStartMetaBlockProcessor) isEpochStartConfirmationBlockWithAndromeda(metaBlock data.HeaderHandler) bool {
-	if !e.enableEpochsHandler.IsFlagEnabledInEpoch(common.AndromedaFlag, metaBlock.GetEpoch()) {
-		return false
-	}
-
-	startOfEpochMetaBlock, err := e.getMostReceivedMetaBlock()
-	if err != nil {
-		return false
-	}
-
-	if startOfEpochMetaBlock.GetNonce() != metaBlock.GetNonce()-1 {
-		return false
-	}
-
-	return true
-}
-
-=======
-	return nil
-}
-
->>>>>>> feat/andromeda-patch2
 // this func should be called under mutex protection
 func (e *epochStartMetaBlockProcessor) addToPeerList(hash string, peer core.PeerID) {
 	peersListForHash := e.mapMetaBlocksFromPeers[hash]
@@ -235,13 +205,8 @@ func (e *epochStartMetaBlockProcessor) GetEpochStartMetaBlock(ctx context.Contex
 		return nil, err
 	}
 
-<<<<<<< HEAD
 	if e.enableEpochsHandler.IsFlagEnabledInEpoch(common.AndromedaFlag, metaBlock.GetEpoch()) {
-		err = e.waitForConfMetaBlock(ctx, metaBlock)
-=======
-	if e.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, metaBlock.GetEpoch()) {
 		err = e.waitForMetaBlockProof(ctx, []byte(metaBlockHash))
->>>>>>> feat/andromeda-patch2
 		if err != nil {
 			return nil, err
 		}
