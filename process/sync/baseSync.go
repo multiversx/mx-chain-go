@@ -108,8 +108,7 @@ type baseBootstrap struct {
 
 	requestMiniBlocks func(headerHandler data.HeaderHandler)
 
-	networkWatcher    process.NetworkConnectionWatcher
-	getHeaderFromPool func([]byte) (data.HeaderHandler, error)
+	networkWatcher process.NetworkConnectionWatcher
 
 	headerStore          storage.Storer
 	headerNonceHashStore storage.Storer
@@ -314,6 +313,14 @@ func (boot *baseBootstrap) confirmHeaderReceivedByHash(headerHandler data.Header
 	boot.mutRcvHdrHash.Unlock()
 }
 
+func (boot *baseBootstrap) hasProof(hash []byte) bool {
+	if !boot.enableEpochsHandler.IsFlagEnabled(common.EquivalentMessagesFlag) {
+		return true
+	}
+
+	return boot.proofs.HasProof(boot.shardCoordinator.SelfId(), hash)
+}
+
 // AddSyncStateListener adds a syncStateListener that get notified each time the sync status of the node changes
 func (boot *baseBootstrap) AddSyncStateListener(syncStateListener func(isSyncing bool)) {
 	boot.mutSyncStateListeners.Lock()
@@ -359,8 +366,8 @@ func (boot *baseBootstrap) getEpochOfCurrentBlock() uint32 {
 	return epoch
 }
 
-// waitForHeaderNonce method wait for header with the requested nonce to be received
-func (boot *baseBootstrap) waitForHeaderNonce() error {
+// waitForHeaderAndProofByNonce method wait for header with the requested nonce to be received
+func (boot *baseBootstrap) waitForHeaderAndProofByNonce() error {
 	select {
 	case <-boot.chRcvHdrNonce:
 		return nil
@@ -370,7 +377,7 @@ func (boot *baseBootstrap) waitForHeaderNonce() error {
 }
 
 // waitForHeaderHash method wait for header with the requested hash to be received
-func (boot *baseBootstrap) waitForHeaderHash() error {
+func (boot *baseBootstrap) waitForHeaderAndProofByHash() error {
 	select {
 	case <-boot.chRcvHdrHash:
 		return nil
@@ -730,17 +737,12 @@ func (boot *baseBootstrap) syncBlock() error {
 		}
 	}()
 
-	header, headerHash, err := boot.getNextHeaderRequestingIfMissing()
+	header, err = boot.getNextHeaderRequestingIfMissing()
 	if err != nil {
 		return err
 	}
 
 	go boot.requestHeadersFromNonceIfMissing(header.GetNonce() + 1)
-
-	err = boot.handleEquivalentProof(header, headerHash)
-	if err != nil {
-		return err
-	}
 
 	body, err = boot.blockBootstrapper.getBlockBodyRequestingIfMissing(header)
 	if err != nil {
@@ -793,23 +795,6 @@ func (boot *baseBootstrap) syncBlock() error {
 
 	boot.cleanNoncesSyncedWithErrorsBehindFinal()
 	boot.cleanProofsBehindFinal(header)
-
-	return nil
-}
-
-func (boot *baseBootstrap) handleEquivalentProof(
-	header data.HeaderHandler,
-	headerHash []byte,
-) error {
-	if !boot.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, header.GetEpoch()) {
-		return nil
-	}
-
-	// process block only if there is a proof for it
-	hasProof := boot.proofs.HasProof(header.GetShardID(), headerHash)
-	if !hasProof {
-		return fmt.Errorf("baseBootstrap.handleEquivalentProof: did not have proof for header, headerHash %s", hex.EncodeToString(headerHash))
-	}
 
 	return nil
 }
@@ -1076,7 +1061,7 @@ func (boot *baseBootstrap) getRootHashFromBlock(hdr data.HeaderHandler, hdrHash 
 	return hdrRootHash
 }
 
-func (boot *baseBootstrap) getNextHeaderRequestingIfMissing() (data.HeaderHandler, []byte, error) {
+func (boot *baseBootstrap) getNextHeaderRequestingIfMissing() (data.HeaderHandler, error) {
 	nonce := boot.getNonceForNextBlock()
 
 	boot.setRequestedHeaderHash(nil)
@@ -1088,11 +1073,186 @@ func (boot *baseBootstrap) getNextHeaderRequestingIfMissing() (data.HeaderHandle
 	}
 
 	if hash != nil {
-		header, err := boot.blockBootstrapper.getHeaderWithHashRequestingIfMissing(hash)
-		return header, hash, err
+		header, err := boot.getHeaderWithHashRequestingIfMissing(hash)
+		return header, err
 	}
 
-	return boot.blockBootstrapper.getHeaderWithNonceRequestingIfMissing(nonce)
+	return boot.getHeaderWithNonceRequestingIfMissing(nonce)
+}
+
+// getHeaderWithHashRequestingIfMissing method gets the header with a given hash from pool. If it is not found there,
+// it will be requested from network
+func (boot *baseBootstrap) getHeaderWithHashRequestingIfMissing(hash []byte) (data.HeaderHandler, error) {
+	hdr, err := boot.getHeader(hash)
+
+	hasHeader := err == nil
+	hasProof := boot.hasProof(hash)
+
+	if hasHeader && hasProof {
+		return hdr, nil
+	}
+
+	boot.requestHeaderAndProofByHashIfMissing(hash, hasHeader, hasProof)
+
+	err = boot.waitForHeaderAndProofByHash()
+	if err != nil {
+		return nil, err
+	}
+
+	hdr, err = boot.getHeaderFromPool(hash)
+	if err != nil {
+		return nil, err
+	}
+
+	if !boot.hasProof(hash) {
+		return nil, process.ErrMissingHeaderProof
+	}
+
+	return hdr, nil
+}
+
+// getHeaderWithNonceRequestingIfMissing method gets the header with a given nonce from pool. If it is not found there, it will
+// be requested from network
+func (boot *baseBootstrap) getHeaderWithNonceRequestingIfMissing(nonce uint64) (data.HeaderHandler, error) {
+	hdr, hash, err := boot.getHeaderFromPoolWithNonce(nonce)
+
+	hasHeader := err == nil
+	hasProof := boot.hasProofByNonce(nonce)
+
+	if hasHeader && hasProof {
+		return hdr, nil
+	}
+
+	boot.requestHeaderAndProofByNonceIfMissing(hash, nonce, hasHeader, hasProof)
+
+	err = boot.waitForHeaderAndProofByNonce()
+	if err != nil {
+		return nil, err
+	}
+
+	hdr, hash, err = boot.getHeaderFromPoolWithNonce(nonce)
+	if err != nil {
+		return nil, err
+	}
+
+	if !boot.hasProof(hash) {
+		return nil, process.ErrMissingHeaderProof
+	}
+
+	return hdr, nil
+}
+
+func (boot *baseBootstrap) requestHeaderAndProofByHashIfMissing(
+	hash []byte,
+	hasHeader bool,
+	hasProof bool,
+) {
+	_ = core.EmptyChannel(boot.chRcvHdrHash)
+	boot.setRequestedHeaderHash(hash)
+	if !hasHeader {
+		boot.requestHeaderByHash(hash)
+	}
+
+	if !hasProof {
+		log.Debug("requesting equivalent proof from network",
+			"hash", hex.EncodeToString(hash),
+		)
+		boot.requestHandler.RequestEquivalentProofByHash(boot.shardCoordinator.SelfId(), hash)
+	}
+}
+
+func (boot *baseBootstrap) requestHeaderByHash(hash []byte) {
+	logMsg := fmt.Sprintf("requesting %s header from network", boot.getShardLabel())
+	log.Debug(logMsg,
+		"hash", hash,
+		"probable highest nonce", boot.forkDetector.ProbableHighestNonce(),
+	)
+	boot.requestHandler.RequestMetaHeader(hash)
+	if boot.shardCoordinator.SelfId() == core.MetachainShardId {
+		boot.requestHandler.RequestMetaHeader(hash)
+		return
+	}
+
+	boot.requestHandler.RequestShardHeader(boot.shardCoordinator.SelfId(), hash)
+}
+
+func (boot *baseBootstrap) getShardLabel() string {
+	shardLabel := "meta"
+	if boot.shardCoordinator.SelfId() != core.MetachainShardId {
+		shardLabel = "shard"
+	}
+
+	return shardLabel
+}
+
+func (boot *baseBootstrap) requestHeaderAndProofByNonceIfMissing(
+	hash []byte,
+	nonce uint64,
+	hasHeader bool,
+	hasProof bool,
+) {
+	_ = core.EmptyChannel(boot.chRcvHdrNonce)
+	boot.setRequestedHeaderNonce(&nonce)
+	if !hasHeader {
+		boot.requestHeaderByNonce(hash, nonce)
+	}
+
+	if !hasProof {
+		log.Debug("requesting equivalent proof from network",
+			"hash", hex.EncodeToString(hash),
+		)
+		boot.requestHandler.RequestEquivalentProofByHash(boot.shardCoordinator.SelfId(), hash)
+	}
+}
+
+func (boot *baseBootstrap) requestHeaderByNonce(hash []byte, nonce uint64) {
+	logMsg := fmt.Sprintf("requesting %s header by nonce from network", boot.getShardLabel())
+	log.Debug(logMsg,
+		"hash", hash,
+		"probable highest nonce", boot.forkDetector.ProbableHighestNonce(),
+	)
+
+	if boot.shardCoordinator.SelfId() == core.MetachainShardId {
+		boot.requestHandler.RequestMetaHeaderByNonce(nonce)
+		return
+	}
+
+	boot.requestHandler.RequestShardHeaderByNonce(boot.shardCoordinator.SelfId(), nonce)
+}
+
+func (boot *baseBootstrap) getHeader(hash []byte) (data.HeaderHandler, error) {
+	if boot.shardCoordinator.SelfId() == core.MetachainShardId {
+		return process.GetMetaHeader(hash, boot.headers, boot.marshalizer, boot.store)
+	}
+
+	return process.GetShardHeader(hash, boot.headers, boot.marshalizer, boot.store)
+}
+
+func (boot *baseBootstrap) getHeaderFromPool(hash []byte) (data.HeaderHandler, error) {
+	if boot.shardCoordinator.SelfId() == core.MetachainShardId {
+		return process.GetMetaHeaderFromPool(hash, boot.headers)
+	}
+
+	return process.GetShardHeaderFromPool(hash, boot.headers)
+}
+
+func (boot *baseBootstrap) getHeaderFromPoolWithNonce(
+	nonce uint64,
+) (data.HeaderHandler, []byte, error) {
+	if boot.shardCoordinator.SelfId() == core.MetachainShardId {
+		return process.GetMetaHeaderFromPoolWithNonce(nonce, boot.headers)
+	}
+
+	return process.GetShardHeaderFromPoolWithNonce(nonce, boot.shardCoordinator.SelfId(), boot.headers)
+}
+
+func (boot *baseBootstrap) hasProofByNonce(nonce uint64) bool {
+	if !boot.enableEpochsHandler.IsFlagEnabled(common.EquivalentMessagesFlag) {
+		return true
+	}
+
+	_, err := boot.proofs.GetProofByNonce(nonce, boot.shardCoordinator.SelfId())
+	return err == nil
 }
 
 func (boot *baseBootstrap) isForcedRollBackOneBlock() bool {
