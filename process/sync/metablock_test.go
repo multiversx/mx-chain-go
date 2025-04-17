@@ -68,7 +68,7 @@ func createMetaStore() dataRetriever.StorageService {
 
 func CreateMetaBootstrapMockArguments() sync.ArgMetaBootstrapper {
 	shardCoordinator := mock.NewOneShardCoordinatorMock()
-	shardCoordinator.SetSelfId(core.MetachainShardId)
+	_ = shardCoordinator.SetSelfId(core.MetachainShardId)
 
 	argsBaseBootstrapper := sync.ArgBaseBootstrapper{
 		PoolsHolder:                  createMockPools(),
