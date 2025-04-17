@@ -327,12 +327,18 @@ func (e *epochStartMetaBlockProcessor) receivedProof(proof data.HeaderProofHandl
 		return
 	}
 
-	hashesMatch := hex.EncodeToString(proof.GetHeaderHash()) != hash
-	if !hashesMatch {
+	hashesMatchMostReceived := hex.EncodeToString(proof.GetHeaderHash()) == hash
+	hashesMatchLocal := hex.EncodeToString(proof.GetHeaderHash()) == e.metaBlockHash
+	if !hashesMatchMostReceived && !hashesMatchLocal {
 		return
 	}
 
-	err = common.VerifyProofAgainstHeader(proof, startOfEpochMetaBlock)
+	metaBlock := e.metaBlock
+	if hashesMatchMostReceived {
+		metaBlock = startOfEpochMetaBlock
+	}
+
+	err = common.VerifyProofAgainstHeader(proof, metaBlock)
 	if err != nil {
 		return
 	}

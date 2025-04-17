@@ -464,6 +464,18 @@ func (st *storageBootstrapper) applyBlock(headerHash []byte, header data.HeaderH
 
 	st.blkc.SetCurrentBlockHeaderHash(headerHash)
 
+	if !st.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, header.GetEpoch()) {
+		return nil
+	}
+
+	isFlagEnabledAfterEpochStart := common.IsFlagEnabledAfterEpochsStartBlock(header, st.enableEpochsHandler, common.EquivalentMessagesFlag)
+
+	st.forkDetector.AddCheckpoint(header.GetNonce(), header.GetRound(), headerHash)
+	if header.GetShardID() == core.MetachainShardId || isFlagEnabledAfterEpochStart {
+		st.forkDetector.SetFinalToLastCheckpoint()
+		st.forkDetector.ResetProbableHighestNonce()
+	}
+
 	return nil
 }
 
@@ -489,10 +501,6 @@ func (st *storageBootstrapper) getAndApplyProofForHeader(headerHash []byte, head
 	}
 
 	st.proofsPool.AddProof(proof)
-
-	st.forkDetector.AddCheckpoint(proof.GetHeaderNonce(), proof.GetHeaderRound(), proof.GetHeaderHash())
-	st.forkDetector.SetFinalToLastCheckpoint()
-	st.forkDetector.ResetProbableHighestNonce()
 
 	return nil
 }
