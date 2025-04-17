@@ -22,7 +22,6 @@ type interceptedShardHeaderDataFactory struct {
 	validityAttester        process.ValidityAttester
 	epochStartTrigger       process.EpochStartTriggerHandler
 	enableEpochsHandler     common.EnableEpochsHandler
-	fieldsSizeChecker       common.FieldsSizeChecker
 }
 
 // NewInterceptedShardHeaderDataFactory creates an instance of interceptedShardHeaderDataFactory
@@ -70,7 +69,6 @@ func NewInterceptedShardHeaderDataFactory(argument *ArgInterceptedDataFactory) (
 		validityAttester:        argument.ValidityAttester,
 		epochStartTrigger:       argument.EpochStartTrigger,
 		enableEpochsHandler:     argument.CoreComponents.EnableEpochsHandler(),
-		fieldsSizeChecker:       argument.CoreComponents.FieldsSizeChecker(),
 	}, nil
 }
 
@@ -86,7 +84,6 @@ func (ishdf *interceptedShardHeaderDataFactory) Create(buff []byte, _ core.PeerI
 		ValidityAttester:        ishdf.validityAttester,
 		EpochStartTrigger:       ishdf.epochStartTrigger,
 		EnableEpochsHandler:     ishdf.enableEpochsHandler,
-		FieldsSizeChecker:       ishdf.fieldsSizeChecker,
 	}
 
 	return interceptedBlocks.NewInterceptedHeader(arg)

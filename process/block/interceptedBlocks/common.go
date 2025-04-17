@@ -6,7 +6,6 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data"
 
 	"github.com/multiversx/mx-chain-go/common"
-	"github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/sharding"
 )
@@ -45,9 +44,6 @@ func checkBlockHeaderArgument(arg *ArgInterceptedBlockHeader) error {
 	if check.IfNil(arg.EnableEpochsHandler) {
 		return process.ErrNilEnableEpochsHandler
 	}
-	if check.IfNil(arg.FieldsSizeChecker) {
-		return errors.ErrNilFieldsSizeChecker
-	}
 
 	return nil
 }
@@ -75,7 +71,6 @@ func checkMiniblockArgument(arg *ArgInterceptedMiniblock) error {
 func checkHeaderHandler(
 	hdr data.HeaderHandler,
 	enableEpochsHandler common.EnableEpochsHandler,
-	fieldsSizeChecker common.FieldsSizeChecker,
 ) error {
 	equivalentMessagesEnabled := enableEpochsHandler.IsFlagEnabledInEpoch(common.AndromedaFlag, hdr.GetEpoch())
 
@@ -98,14 +93,10 @@ func checkHeaderHandler(
 		return process.ErrNilPrevRandSeed
 	}
 
-	err := checkProofIntegrity(hdr, enableEpochsHandler, fieldsSizeChecker)
-	if err != nil {
-		return err
-	}
-
 	return hdr.CheckFieldsForNil()
 }
 
+<<<<<<< HEAD
 func checkProofIntegrity(
 	hdr data.HeaderHandler,
 	enableEpochsHandler common.EnableEpochsHandler,
@@ -135,12 +126,11 @@ func checkProofIntegrity(
 	return nil
 }
 
+=======
+>>>>>>> feat/andromeda-patch2
 func checkMetaShardInfo(
 	shardInfo []data.ShardDataHandler,
 	coordinator sharding.Coordinator,
-	headerSigVerifier process.InterceptedHeaderSigVerifier,
-	proofs process.ProofsPool,
-	fieldsSizeChecker common.FieldsSizeChecker,
 ) error {
 	if coordinator.SelfId() != core.MetachainShardId {
 		return nil
@@ -155,39 +145,9 @@ func checkMetaShardInfo(
 		if err != nil {
 			return err
 		}
-
-		err = checkProof(sd.GetPreviousProof(), headerSigVerifier, proofs, fieldsSizeChecker)
-		if err != nil {
-			return err
-		}
 	}
 
 	return nil
-}
-
-func checkProof(
-	proof data.HeaderProofHandler,
-	headerSigVerifier process.InterceptedHeaderSigVerifier,
-	proofs process.ProofsPool,
-	fieldsSizeChecker common.FieldsSizeChecker,
-) error {
-	if check.IfNil(proof) {
-		return nil
-	}
-
-	if proofs.IsProofInPoolEqualTo(proof) {
-		return nil
-	}
-
-	log.Debug("proof in pool not equal to provided prev proof, will check prev proof",
-		"headerHash", proof.GetHeaderHash(),
-	)
-
-	if !fieldsSizeChecker.IsProofSizeValid(proof) {
-		return process.ErrInvalidHeaderProof
-	}
-
-	return headerSigVerifier.VerifyHeaderProof(proof)
 }
 
 func checkShardData(sd data.ShardDataHandler, coordinator sharding.Coordinator) error {

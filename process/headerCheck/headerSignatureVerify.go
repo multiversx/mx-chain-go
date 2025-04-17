@@ -1,7 +1,6 @@
 package headerCheck
 
 import (
-	"bytes"
 	"fmt"
 	"time"
 
@@ -249,11 +248,16 @@ func getPubKeySigners(consensusPubKeys []string, pubKeysBitmap []byte) [][]byte 
 
 // VerifySignature will check if signature is correct
 func (hsv *HeaderSigVerifier) VerifySignature(header data.HeaderHandler) error {
+<<<<<<< HEAD
 	if hsv.enableEpochsHandler.IsFlagEnabledInEpoch(common.AndromedaFlag, header.GetEpoch()) {
 		return hsv.VerifyHeaderWithProof(header)
 	}
 	if prevProof := header.GetPreviousProof(); !check.IfNil(prevProof) {
 		return ErrProofNotExpected
+=======
+	if hsv.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, header.GetEpoch()) {
+		return nil
+>>>>>>> feat/andromeda-patch2
 	}
 
 	headerCopy, err := hsv.copyHeaderWithoutSig(header)
@@ -269,23 +273,6 @@ func (hsv *HeaderSigVerifier) VerifySignature(header data.HeaderHandler) error {
 	bitmap := header.GetPubKeysBitmap()
 	sig := header.GetSignature()
 	return hsv.VerifySignatureForHash(headerCopy, hash, bitmap, sig)
-}
-
-func verifyPrevProofForHeaderIntegrity(header data.HeaderHandler) error {
-	prevProof := header.GetPreviousProof()
-	if check.IfNil(prevProof) {
-		return process.ErrNilHeaderProof
-	}
-
-	if header.GetShardID() != prevProof.GetHeaderShardId() {
-		return ErrProofShardMismatch
-	}
-
-	if !bytes.Equal(header.GetPrevHash(), prevProof.GetHeaderHash()) {
-		return ErrProofHeaderHashMismatch
-	}
-
-	return nil
 }
 
 // VerifySignatureForHash will check if signature is correct for the provided hash
@@ -315,6 +302,7 @@ func (hsv *HeaderSigVerifier) VerifySignatureForHash(header data.HeaderHandler, 
 	return multiSigVerifier.VerifyAggregatedSig(pubKeysSigners, hash, signature)
 }
 
+<<<<<<< HEAD
 // VerifyHeaderWithProof checks if the proof on the header is correct
 func (hsv *HeaderSigVerifier) VerifyHeaderWithProof(header data.HeaderHandler) error {
 	// first block for transition to equivalent proofs consensus does not have a previous proof
@@ -351,6 +339,8 @@ func (hsv *HeaderSigVerifier) VerifyHeaderWithProof(header data.HeaderHandler) e
 	return nil
 }
 
+=======
+>>>>>>> feat/andromeda-patch2
 func (hsv *HeaderSigVerifier) getHeaderForProofAtTransition(proof data.HeaderProofHandler) (data.HeaderHandler, error) {
 	var header data.HeaderHandler
 	var err error

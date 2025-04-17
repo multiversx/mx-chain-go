@@ -352,3 +352,9 @@ var ErrUint32SubtractionOverflow = errors.New("uint32 subtraction overflowed")
 
 // ErrReceivedAuctionValidatorsBeforeStakingV4 signals that an auction node has been provided before enabling staking v4
 var ErrReceivedAuctionValidatorsBeforeStakingV4 = errors.New("auction node has been provided before enabling staking v4")
+
+// ErrNilEquivalentProofsProcessor signals that a nil equivalent proofs processor was provided
+var ErrNilEquivalentProofsProcessor = errors.New("nil equivalent proofs processor")
+
+// ErrNilHeadersDataPool signals that a nil headers pool has been provided
+var ErrNilHeadersDataPool = errors.New("nil headers data pool")

@@ -190,7 +190,7 @@ func (srcf *shardRequestersContainerFactory) generateEquivalentProofsRequesters(
 	keys := make([]string, 0)
 	requestersSlice := make([]dataRetriever.Requester, 0)
 
-	// should be 2 resolvers on shards, similar as interceptors: self_META + META_ALL
+	// should be 2 resolvers on shards, similar as interceptors: self_META + ALL
 	identifier := common.EquivalentProofsTopic + shardC.CommunicationIdentifier(core.MetachainShardId)
 	requester, err := srcf.createEquivalentProofsRequester(
 		identifier,

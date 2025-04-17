@@ -252,7 +252,7 @@ func (mbp *metaAPIBlockProcessor) convertMetaBlockBytesToAPIBlock(hash []byte, b
 	addScheduledInfoInBlock(blockHeader, apiMetaBlock)
 	addStartOfEpochInfoInBlock(blockHeader, apiMetaBlock)
 
-	err = mbp.addProofs(hash, blockHeader, apiMetaBlock)
+	err = mbp.addProof(hash, blockHeader, apiMetaBlock)
 	if err != nil {
 		return nil, err
 	}

@@ -3,7 +3,6 @@ package common
 import (
 	"fmt"
 
-	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-go/consensus"
@@ -15,11 +14,6 @@ func IsEpochStartProofForFlagActivation(proof consensus.ProofHandler, enableEpoc
 	isProofInActivationEpoch := proof.GetHeaderEpoch() == enableEpochsHandler.GetActivationEpoch(AndromedaFlag)
 
 	return isStartOfEpochProof && isProofInActivationEpoch
-}
-
-// ShouldBlockHavePrevProof returns true if the block should have a proof
-func ShouldBlockHavePrevProof(header data.HeaderHandler, enableEpochsHandler EnableEpochsHandler, flag core.EnableEpochFlag) bool {
-	return isFlagEnabledAfterEpochsStartBlock(header, enableEpochsHandler, flag) && header.GetNonce() > 1
 }
 
 // VerifyProofAgainstHeader verifies the fields on the proof match the ones on the header

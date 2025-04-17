@@ -421,7 +421,7 @@ func (sr *subroundBlock) receivedBlockBodyAndHeader(ctx context.Context, cnsDta 
 	}
 
 	header := sr.BlockProcessor().DecodeBlockHeader(cnsDta.Header)
-	if headerHasProof(header) {
+	if sr.isFlagActiveForHeader(header) {
 		return false
 	}
 
@@ -546,7 +546,7 @@ func (sr *subroundBlock) receivedBlockHeader(ctx context.Context, cnsDta *consen
 	}
 
 	header := sr.BlockProcessor().DecodeBlockHeader(cnsDta.Header)
-	if headerHasProof(header) {
+	if sr.isFlagActiveForHeader(header) {
 		return false
 	}
 
@@ -571,11 +571,11 @@ func (sr *subroundBlock) receivedBlockHeader(ctx context.Context, cnsDta *consen
 	return blockProcessedWithSuccess
 }
 
-func headerHasProof(headerHandler data.HeaderHandler) bool {
+func (sr *subroundBlock) isFlagActiveForHeader(headerHandler data.HeaderHandler) bool {
 	if check.IfNil(headerHandler) {
 		return false
 	}
-	return !check.IfNil(headerHandler.GetPreviousProof())
+	return sr.EnableEpochsHandler().IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, headerHandler.GetEpoch())
 }
 
 func (sr *subroundBlock) processReceivedBlock(ctx context.Context, cnsDta *consensus.Message) bool {

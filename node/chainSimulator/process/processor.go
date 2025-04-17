@@ -5,11 +5,10 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
 	dataBlock "github.com/multiversx/mx-chain-core-go/data/block"
-	logger "github.com/multiversx/mx-chain-logger-go"
-
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/configs"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
+	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
 var log = logger.GetOrCreate("process-block")
@@ -124,8 +123,8 @@ func (creator *blocksCreator) CreateNewBlock() error {
 		return err
 	}
 
-	nilPrevHeader := check.IfNil(prevHeader)
 	enableEpochHandler := coreComponents.EnableEpochsHandler()
+<<<<<<< HEAD
 	var previousProof *dataBlock.HeaderProof
 	if !nilPrevHeader && enableEpochHandler.IsFlagEnabled(common.AndromedaFlag) {
 		sig, errS := creator.generateSignature(prevHash, leader.PubKey(), prevHeader)
@@ -135,6 +134,8 @@ func (creator *blocksCreator) CreateNewBlock() error {
 		previousProof = createProofForHeader(pubKeyBitmap, sig, prevHash, prevHeader)
 		_ = creator.nodeHandler.GetDataComponents().Datapool().Proofs().AddProof(previousProof)
 	}
+=======
+>>>>>>> feat/andromeda-patch2
 
 	header, block, err := bp.CreateBlock(newHeader, func() bool {
 		return true
@@ -143,7 +144,15 @@ func (creator *blocksCreator) CreateNewBlock() error {
 		return err
 	}
 
-	headerProof, err := creator.ApplySignaturesAndGetProof(header, prevHeader, previousProof, enableEpochHandler, validators, leader, pubKeyBitmap)
+	prevHeaderStartOfEpoch := false
+	if prevHeader != nil {
+		prevHeaderStartOfEpoch = prevHeader.IsStartOfEpochBlock()
+	}
+	if prevHeaderStartOfEpoch {
+		creator.updatePeerShardMapper(header.GetEpoch())
+	}
+
+	headerProof, err := creator.ApplySignaturesAndGetProof(header, prevHeader, enableEpochHandler, validators, leader, pubKeyBitmap)
 	if err != nil {
 		return err
 	}
@@ -179,16 +188,41 @@ func (creator *blocksCreator) CreateNewBlock() error {
 	return messenger.BroadcastTransactions(transactions, leader.PubKey())
 }
 
+func (creator *blocksCreator) updatePeerShardMapper(
+	epoch uint32,
+) {
+	peerShardMapper := creator.nodeHandler.GetProcessComponents().PeerShardMapper()
+
+	nc := creator.nodeHandler.GetProcessComponents().NodesCoordinator()
+
+	eligibleMaps, err := nc.GetAllEligibleValidatorsPublicKeys(epoch)
+	if err != nil {
+		log.Error("failed to get eligible validators map", "error", err)
+		return
+	}
+
+	for shardID, eligibleMap := range eligibleMaps {
+		for _, pubKey := range eligibleMap {
+			peerID := creator.nodeHandler.GetBasePeers()[shardID]
+
+			log.Debug("added custom peer mapping", "peerID", peerID.Pretty(), "shardID", shardID, "addrs", pubKey)
+			peerShardMapper.UpdatePeerIDInfo(peerID, pubKey, shardID)
+		}
+	}
+
+}
+
+// ApplySignaturesAndGetProof -
 func (creator *blocksCreator) ApplySignaturesAndGetProof(
 	header data.HeaderHandler,
 	prevHeader data.HeaderHandler,
-	prevProof *dataBlock.HeaderProof,
 	enableEpochHandler common.EnableEpochsHandler,
 	validators []nodesCoordinator.Validator,
 	leader nodesCoordinator.Validator,
 	pubKeyBitmap []byte,
 ) (*dataBlock.HeaderProof, error) {
 	nilPrevHeader := check.IfNil(prevHeader)
+<<<<<<< HEAD
 	var err error
 	if !nilPrevHeader && common.ShouldBlockHavePrevProof(header, enableEpochHandler, common.AndromedaFlag) {
 		validators, err = creator.updatePreviousProofAndAddonHeader(header.GetPrevHash(), prevHeader, header, prevProof)
@@ -196,8 +230,10 @@ func (creator *blocksCreator) ApplySignaturesAndGetProof(
 			return nil, err
 		}
 	}
+=======
+>>>>>>> feat/andromeda-patch2
 
-	err = creator.setHeaderSignatures(header, leader.PubKey(), validators)
+	err := creator.setHeaderSignatures(header, leader.PubKey(), validators)
 	if err != nil {
 		return nil, err
 	}
@@ -220,57 +256,17 @@ func (creator *blocksCreator) ApplySignaturesAndGetProof(
 	shouldAddCurrentProof := !nilPrevHeader && enableEpochHandler.IsFlagEnabled(common.AndromedaFlag)
 	if shouldAddCurrentProof {
 		headerProof = createProofForHeader(pubKeyBitmap, newHeaderSig, headerHash, header)
+		creator.nodeHandler.GetDataComponents().Datapool().Headers().AddHeader(headerHash, header)
+		err = creator.nodeHandler.GetProcessComponents().HeaderSigVerifier().VerifyHeaderProof(headerProof)
+		if err != nil {
+			return nil, err
+		}
+
 		dataPool := creator.nodeHandler.GetDataComponents().Datapool()
 		_ = dataPool.Proofs().AddProof(headerProof)
 	}
 
 	return headerProof, nil
-}
-
-func (creator *blocksCreator) updatePreviousProofAndAddonHeader(currentHeaderHash []byte, currentHeader, newHeader data.HeaderHandler, previousProof *dataBlock.HeaderProof) ([]nodesCoordinator.Validator, error) {
-	selectionEpoch := currentHeader.GetEpoch()
-	if currentHeader.IsStartOfEpochBlock() {
-		selectionEpoch = selectionEpoch - 1
-	}
-
-	nc := creator.nodeHandler.GetProcessComponents().NodesCoordinator()
-	_, validators, err := nc.ComputeConsensusGroup(currentHeader.GetPrevRandSeed(), currentHeader.GetRound(), currentHeader.GetShardID(), selectionEpoch)
-	if err != nil {
-		return nil, err
-	}
-
-	previousProof.PubKeysBitmap = GeneratePubKeyBitmap(len(validators))
-	for idx, validator := range validators {
-		isManaged := creator.nodeHandler.GetCryptoComponents().KeysHandler().IsKeyManagedByCurrentNode(validator.PubKey())
-		if isManaged {
-			continue
-		}
-
-		err = UnsetBitInBitmap(idx, previousProof.PubKeysBitmap)
-		if err != nil {
-			return nil, err
-		}
-
-		pubKeyBitmap := newHeader.GetPubKeysBitmap()
-		err = UnsetBitInBitmap(idx, pubKeyBitmap)
-		if err != nil {
-			return nil, err
-		}
-
-		err = newHeader.SetPubKeysBitmap(pubKeyBitmap)
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	previousProof.AggregatedSignature, err = creator.generateSignatureForProofs(currentHeaderHash, previousProof, validators)
-	if err != nil {
-		return nil, err
-	}
-
-	newHeader.SetPreviousProof(previousProof)
-
-	return validators, nil
 }
 
 func createProofForHeader(pubKeyBitmap, signature, headerHash []byte, header data.HeaderHandler) *dataBlock.HeaderProof {
@@ -306,21 +302,6 @@ func (creator *blocksCreator) getPreviousHeaderData() (nonce, round uint64, prev
 	nonce = chainHandler.GetGenesisHeader().GetNonce()
 
 	return
-}
-
-func (creator *blocksCreator) generateSignature(headerHash, blsKeyBytes []byte, header data.HeaderHandler) ([]byte, error) {
-	return creator.generateAggregatedSignature(
-		headerHash,
-		header.GetEpoch(),
-		header.GetPubKeysBitmap(),
-		[]string{string(blsKeyBytes)},
-	)
-}
-
-func (creator *blocksCreator) generateSignatureForProofs(headerHash []byte, proof *dataBlock.HeaderProof, validators []nodesCoordinator.Validator,
-) ([]byte, error) {
-	pubKeys := extractValidatorPubKeys(validators)
-	return creator.generateAggregatedSignature(headerHash, proof.GetHeaderEpoch(), proof.GetPubKeysBitmap(), pubKeys)
 }
 
 func (creator *blocksCreator) setHeaderSignatures(

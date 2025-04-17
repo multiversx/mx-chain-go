@@ -47,7 +47,7 @@ func createMockArgument(t *testing.T) StorageServiceFactoryArgs {
 			StatusMetricsStorage:       createMockStorageConfig("StatusMetricsStorage"),
 			PeerBlockBodyStorage:       createMockStorageConfig("PeerBlockBodyStorage"),
 			TrieEpochRootHashStorage:   createMockStorageConfig("TrieEpochRootHashStorage"),
-			ProofStorage:               createMockStorageConfig("ProofStorage"),
+			ProofsStorage:              createMockStorageConfig("ProofsStorage"),
 			DbLookupExtensions: config.DbLookupExtensionsConfig{
 				Enabled:                            true,
 				DbLookupMaxActivePersisters:        10,

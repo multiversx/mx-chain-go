@@ -1346,7 +1346,6 @@ func TestSubroundEndRound_DoEndRoundJobByNode(t *testing.T) {
 			ScheduledRootHash:        []byte("sch root hash"),
 			ScheduledAccumulatedFees: big.NewInt(0),
 			ScheduledDeveloperFees:   big.NewInt(0),
-			PreviousHeaderProof:      nil,
 		})
 
 		sr.SetLeader(sr.SelfPubKey())
@@ -1443,7 +1442,6 @@ func TestSubroundEndRound_DoEndRoundJobByNode(t *testing.T) {
 			ScheduledRootHash:        []byte("sch root hash"),
 			ScheduledAccumulatedFees: big.NewInt(0),
 			ScheduledDeveloperFees:   big.NewInt(0),
-			PreviousHeaderProof:      nil,
 		})
 
 		go func() {

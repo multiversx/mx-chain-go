@@ -581,10 +581,9 @@ func newBaseTestProcessorNode(args ArgTestProcessorNode) *TestProcessorNode {
 	tpn.HeaderSigVerifier = args.HeaderSigVerifier
 	if check.IfNil(tpn.HeaderSigVerifier) {
 		tpn.HeaderSigVerifier = &consensusMocks.HeaderSigVerifierMock{
-			VerifySignatureCalled: func(header data.HeaderHandler) error {
-				prevProof := header.GetPreviousProof()
-				if !check.IfNil(prevProof) {
-					tpn.ProofsPool.AddProof(prevProof)
+			VerifyHeaderProofCalled: func(proofHandler data.HeaderProofHandler) error {
+				if !check.IfNil(proofHandler) {
+					tpn.ProofsPool.AddProof(proofHandler)
 				}
 
 				return nil
@@ -2450,7 +2449,6 @@ func (tpn *TestProcessorNode) initBlockProcessor() {
 			EpochValidatorInfoCreator:    epochStartValidatorInfo,
 			ValidatorStatisticsProcessor: tpn.ValidatorStatisticsProcessor,
 			EpochSystemSCProcessor:       epochStartSystemSCProcessor,
-			FieldsSizeChecker:            &testscommon.FieldsSizeCheckerMock{},
 		}
 
 		tpn.BlockProcessor, err = block.NewMetaProcessor(arguments)
@@ -2830,8 +2828,6 @@ func (tpn *TestProcessorNode) ProposeBlock(round uint64, nonce uint64) (data.Bod
 }
 
 func (tpn *TestProcessorNode) setBlockSignatures(blockHeader data.HeaderHandler) error {
-	currHdrHash := tpn.BlockChain.GetCurrentBlockHeaderHash()
-	currHdr := tpn.BlockChain.GetCurrentBlockHeader()
 	sig := []byte("aggregated signature")
 	pubKeysBitmap := []byte{1}
 
@@ -2848,6 +2844,7 @@ func (tpn *TestProcessorNode) setBlockSignatures(blockHeader data.HeaderHandler)
 		return err
 	}
 
+<<<<<<< HEAD
 	if common.ShouldBlockHavePrevProof(blockHeader, tpn.EnableEpochsHandler, common.AndromedaFlag) {
 		previousProof := &dataBlock.HeaderProof{
 			PubKeysBitmap:       pubKeysBitmap,
@@ -2867,6 +2864,8 @@ func (tpn *TestProcessorNode) setBlockSignatures(blockHeader data.HeaderHandler)
 		}
 	}
 
+=======
+>>>>>>> feat/andromeda-patch2
 	err = blockHeader.SetPubKeysBitmap(pubKeysBitmap)
 	if err != nil {
 		log.Warn("blockHeader.SetPubKeysBitmap", "error", err.Error())
