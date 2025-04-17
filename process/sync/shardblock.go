@@ -225,10 +225,6 @@ func (boot *ShardBootstrap) haveHeaderInPoolWithNonce(nonce uint64) (bool, bool)
 	return true, boot.proofs.HasProof(boot.shardCoordinator.SelfId(), hash)
 }
 
-func (boot *ShardBootstrap) getShardHeaderFromPool(headerHash []byte) (data.HeaderHandler, error) {
-	return process.GetShardHeaderFromPool(headerHash, boot.headers)
-}
-
 func (boot *ShardBootstrap) requestMiniBlocksFromHeaderWithNonceIfMissing(headerHandler data.HeaderHandler) {
 	nextBlockNonce := boot.getNonceForNextBlock()
 	maxNonce := core.MinUint64(nextBlockNonce+process.MaxHeadersToRequestInAdvance-1, boot.forkDetector.ProbableHighestNonce())

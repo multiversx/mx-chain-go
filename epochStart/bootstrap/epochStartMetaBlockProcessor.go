@@ -2,7 +2,6 @@ package bootstrap
 
 import (
 	"context"
-	"encoding/hex"
 	"math"
 	"sync"
 	"time"
@@ -327,8 +326,8 @@ func (e *epochStartMetaBlockProcessor) receivedProof(proof data.HeaderProofHandl
 		return
 	}
 
-	hashesMatchMostReceived := hex.EncodeToString(proof.GetHeaderHash()) == hash
-	hashesMatchLocal := hex.EncodeToString(proof.GetHeaderHash()) == e.metaBlockHash
+	hashesMatchMostReceived := string(proof.GetHeaderHash()) == hash
+	hashesMatchLocal := string(proof.GetHeaderHash()) == e.metaBlockHash
 	if !hashesMatchMostReceived && !hashesMatchLocal {
 		return
 	}

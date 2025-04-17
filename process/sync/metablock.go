@@ -272,10 +272,6 @@ func (boot *MetaBootstrap) haveHeaderInPoolWithNonce(nonce uint64) (bool, bool) 
 	return true, boot.proofs.HasProof(core.MetachainShardId, hash)
 }
 
-func (boot *MetaBootstrap) getMetaHeaderFromPool(headerHash []byte) (data.HeaderHandler, error) {
-	return process.GetMetaHeaderFromPool(headerHash, boot.headers)
-}
-
 func (boot *MetaBootstrap) getBlockBodyRequestingIfMissing(headerHandler data.HeaderHandler) (data.BodyHandler, error) {
 	header, ok := headerHandler.(*block.MetaBlock)
 	if !ok {
