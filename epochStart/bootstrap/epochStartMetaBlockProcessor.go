@@ -2,7 +2,6 @@ package bootstrap
 
 import (
 	"context"
-	"encoding/hex"
 	"math"
 	"sync"
 	"time"
@@ -327,9 +326,16 @@ func (e *epochStartMetaBlockProcessor) receivedProof(proof data.HeaderProofHandl
 		return
 	}
 
-	hashesMatchMostReceived := hex.EncodeToString(proof.GetHeaderHash()) == hash
-	hashesMatchLocal := hex.EncodeToString(proof.GetHeaderHash()) == e.metaBlockHash
+	hashesMatchMostReceived := string(proof.GetHeaderHash()) == hash
+	hashesMatchLocal := string(proof.GetHeaderHash()) == e.metaBlockHash
 	if !hashesMatchMostReceived && !hashesMatchLocal {
+		log.Error("sorin-debug",
+			"hashesMatchMostReceived", hashesMatchMostReceived,
+			"hashesMatchLocal", hashesMatchLocal,
+			"startOfEpochMetaBlock", hash,
+			"hashesMatchLocal", e.metaBlockHash,
+			"proof", string(proof.GetHeaderHash()),
+		)
 		return
 	}
 
@@ -340,6 +346,7 @@ func (e *epochStartMetaBlockProcessor) receivedProof(proof data.HeaderProofHandl
 
 	err = common.VerifyProofAgainstHeader(proof, metaBlock)
 	if err != nil {
+		log.Error("sorin-debug")
 		return
 	}
 
