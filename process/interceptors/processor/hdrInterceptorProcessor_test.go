@@ -201,7 +201,7 @@ func TestHdrInterceptorProcessor_SaveShouldWork(t *testing.T) {
 	}
 	arg.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
 		IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
-			return flag == common.EquivalentMessagesFlag
+			return flag == common.AndromedaFlag
 		},
 	}
 

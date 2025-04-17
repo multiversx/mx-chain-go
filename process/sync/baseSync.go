@@ -314,7 +314,7 @@ func (boot *baseBootstrap) confirmHeaderReceivedByHash(headerHandler data.Header
 }
 
 func (boot *baseBootstrap) hasProof(hash []byte) bool {
-	if !boot.enableEpochsHandler.IsFlagEnabled(common.EquivalentMessagesFlag) {
+	if !boot.enableEpochsHandler.IsFlagEnabled(common.AndromedaFlag) {
 		return true
 	}
 
@@ -824,7 +824,7 @@ func (boot *baseBootstrap) cleanNoncesSyncedWithErrorsBehindFinal() {
 }
 
 func (boot *baseBootstrap) cleanProofsBehindFinal(header data.HeaderHandler) {
-	if !boot.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, header.GetEpoch()) {
+	if !boot.enableEpochsHandler.IsFlagEnabledInEpoch(common.AndromedaFlag, header.GetEpoch()) {
 		return
 	}
 
@@ -1247,7 +1247,7 @@ func (boot *baseBootstrap) getHeaderFromPoolWithNonce(
 }
 
 func (boot *baseBootstrap) hasProofByNonce(nonce uint64) bool {
-	if !boot.enableEpochsHandler.IsFlagEnabled(common.EquivalentMessagesFlag) {
+	if !boot.enableEpochsHandler.IsFlagEnabled(common.AndromedaFlag) {
 		return true
 	}
 

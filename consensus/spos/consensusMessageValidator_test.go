@@ -249,7 +249,7 @@ func TestCheckMessageWithFinalInfo_LeaderSignatureCheck(t *testing.T) {
 		consensusMessageValidatorArgs := createDefaultConsensusMessageValidatorArgs()
 		consensusMessageValidatorArgs.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
 			IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
-				return flag == common.EquivalentMessagesFlag
+				return flag == common.AndromedaFlag
 			},
 		}
 		consensusMessageValidatorArgs.ConsensusState.SetHeader(&block.Header{Epoch: 2})
@@ -421,7 +421,7 @@ func TestCheckMessageWithBlockBodyAndHeaderValidity_NilSigShareAfterActivation(t
 	consensusMessageValidatorArgs := createDefaultConsensusMessageValidatorArgs()
 	consensusMessageValidatorArgs.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
 		IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
-			return flag == common.EquivalentMessagesFlag
+			return flag == common.AndromedaFlag
 		},
 	}
 	cmv, _ := spos.NewConsensusMessageValidator(consensusMessageValidatorArgs)
@@ -520,7 +520,7 @@ func TestCheckConsensusMessageValidityForMessageType_MessageWithBlockHeaderInval
 	consensusMessageValidatorArgs := createDefaultConsensusMessageValidatorArgs()
 	consensusMessageValidatorArgs.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
 		IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
-			return flag == common.EquivalentMessagesFlag
+			return flag == common.AndromedaFlag
 		},
 	}
 	cmv, _ := spos.NewConsensusMessageValidator(consensusMessageValidatorArgs)

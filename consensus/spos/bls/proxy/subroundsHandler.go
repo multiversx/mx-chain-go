@@ -144,7 +144,7 @@ func (s *SubroundsHandler) Start(epoch uint32) error {
 func (s *SubroundsHandler) initSubroundsForEpoch(epoch uint32) error {
 	var err error
 	var fct subroundsFactory
-	if s.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, epoch) {
+	if s.enableEpochsHandler.IsFlagEnabledInEpoch(common.AndromedaFlag, epoch) {
 		if s.currentConsensusType == consensusV2 {
 			return nil
 		}

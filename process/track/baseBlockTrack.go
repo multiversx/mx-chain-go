@@ -152,7 +152,7 @@ func (bbt *baseBlockTrack) getHeaderForProof(proof data.HeaderProofHandler) (dat
 }
 
 func (bbt *baseBlockTrack) receivedHeader(headerHandler data.HeaderHandler, headerHash []byte) {
-	if bbt.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, headerHandler.GetEpoch()) {
+	if bbt.enableEpochsHandler.IsFlagEnabledInEpoch(common.AndromedaFlag, headerHandler.GetEpoch()) {
 		if !bbt.proofsPool.HasProof(headerHandler.GetShardID(), headerHash) {
 			return
 		}

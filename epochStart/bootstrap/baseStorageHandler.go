@@ -115,7 +115,7 @@ func (bsh *baseStorageHandler) groupMiniBlocksByShard(miniBlocks map[string]*blo
 }
 
 func (bsh *baseStorageHandler) saveProofToStorage(shardID uint32, headerHash []byte, header data.HeaderHandler) error {
-	if !bsh.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, header.GetEpoch()) {
+	if !bsh.enableEpochsHandler.IsFlagEnabledInEpoch(common.AndromedaFlag, header.GetEpoch()) {
 		return nil
 	}
 
