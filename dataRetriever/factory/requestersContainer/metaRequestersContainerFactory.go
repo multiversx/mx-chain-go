@@ -270,7 +270,7 @@ func (mrcf *metaRequestersContainerFactory) generateEquivalentProofsRequesters()
 	keys := make([]string, 0)
 	requestersSlice := make([]dataRetriever.Requester, 0)
 
-	// on meta should be one requester for each shard + one for META_ALL, similar as interceptors
+	// on meta should be one requester for each shard + one for ALL, similar as interceptors
 	for idx := uint32(0); idx < noOfShards; idx++ {
 		identifier := common.EquivalentProofsTopic + shardC.CommunicationIdentifier(idx)
 		requester, err := mrcf.createEquivalentProofsRequester(

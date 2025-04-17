@@ -168,6 +168,59 @@ func (boot *baseBootstrap) processReceivedProof(headerProof data.HeaderProofHand
 	}
 
 	boot.forkDetector.ReceivedProof(headerProof)
+
+	boot.checkProofCorrespondsToRequestedHash(headerProof)
+	boot.checkProofCorrespondsToRequestedNonce(headerProof)
+}
+
+func (boot *baseBootstrap) checkProofCorrespondsToRequestedHash(headerProof data.HeaderProofHandler) {
+	boot.mutRcvHdrHash.RLock()
+	hash := boot.requestedHeaderHash()
+	wasHashRequested := hash != nil && bytes.Equal(hash, headerProof.GetHeaderHash())
+	if !wasHashRequested {
+		boot.mutRcvHdrHash.RUnlock()
+		return
+	}
+
+	// if header is also received, release the chan and set requested to nil
+	// otherwise wait for the header
+	_, err := boot.headers.GetHeaderByHash(headerProof.GetHeaderHash())
+	hasHeader := err == nil
+	if hasHeader {
+		boot.setRequestedHeaderHash(nil)
+		boot.mutRcvHdrHash.RUnlock()
+
+		boot.chRcvHdrHash <- true
+
+		return
+	}
+
+	boot.mutRcvHdrHash.RUnlock()
+}
+
+func (boot *baseBootstrap) checkProofCorrespondsToRequestedNonce(headerProof data.HeaderProofHandler) {
+	boot.mutRcvHdrNonce.RLock()
+	n := boot.requestedHeaderNonce()
+	wasNonceRequested := n != nil && *n == headerProof.GetHeaderNonce()
+	if !wasNonceRequested {
+		boot.mutRcvHdrNonce.RUnlock()
+		return
+	}
+
+	// if header is also received, release the chan and set requested to nil
+	// otherwise wait for the header
+	_, err := boot.headers.GetHeaderByHash(headerProof.GetHeaderHash())
+	hasHeader := err == nil
+	if hasHeader {
+		boot.setRequestedHeaderNonce(nil)
+		boot.mutRcvHdrNonce.RUnlock()
+
+		boot.chRcvHdrNonce <- true
+
+		return
+	}
+
+	boot.mutRcvHdrNonce.RUnlock()
 }
 
 func (boot *baseBootstrap) processReceivedHeader(headerHandler data.HeaderHandler, headerHash []byte) {
@@ -203,9 +256,24 @@ func (boot *baseBootstrap) confirmHeaderReceivedByNonce(headerHandler data.Heade
 			"nonce", headerHandler.GetNonce(),
 			"hash", hdrHash,
 		)
-		boot.setRequestedHeaderNonce(nil)
+		// if proof is also received, release chan and set requested to nil
+		// otherwise, wait for the proof too
+		hasProof := boot.proofs.HasProof(headerHandler.GetShardID(), hdrHash)
+		if hasProof {
+			log.Debug("received requested proof from network",
+				"shard", headerHandler.GetShardID(),
+				"round", headerHandler.GetRound(),
+				"nonce", headerHandler.GetNonce(),
+				"hash", hdrHash,
+			)
+			boot.setRequestedHeaderNonce(nil)
+		}
 		boot.mutRcvHdrNonce.Unlock()
-		boot.chRcvHdrNonce <- true
+
+		if hasProof {
+			boot.chRcvHdrNonce <- true
+		}
+
 		return
 	}
 
@@ -222,12 +290,27 @@ func (boot *baseBootstrap) confirmHeaderReceivedByHash(headerHandler data.Header
 			"nonce", headerHandler.GetNonce(),
 			"hash", hash,
 		)
-		boot.setRequestedHeaderHash(nil)
+		// if proof is also received, release chan and set requested to nil
+		// otherwise, wait for the proof too
+		hasProof := boot.proofs.HasProof(headerHandler.GetShardID(), hash)
+		if hasProof {
+			log.Debug("received requested proof from network",
+				"shard", headerHandler.GetShardID(),
+				"round", headerHandler.GetRound(),
+				"nonce", headerHandler.GetNonce(),
+				"hash", hash,
+			)
+			boot.setRequestedHeaderHash(nil)
+		}
 		boot.mutRcvHdrHash.Unlock()
-		boot.chRcvHdrHash <- true
+
+		if hasProof {
+			boot.chRcvHdrHash <- true
+		}
 
 		return
 	}
+
 	boot.mutRcvHdrHash.Unlock()
 }
 
@@ -724,18 +807,6 @@ func (boot *baseBootstrap) handleEquivalentProof(
 
 	// process block only if there is a proof for it
 	hasProof := boot.proofs.HasProof(header.GetShardID(), headerHash)
-	if hasProof {
-		return nil
-	}
-
-	log.Trace("baseBootstrap.handleEquivalentProof: did not have proof for header, will try again", "headerHash", headerHash)
-
-	_, _, err := boot.blockBootstrapper.getHeaderWithNonceRequestingIfMissing(header.GetNonce() + 1)
-	if err != nil {
-		return err
-	}
-
-	hasProof = boot.proofs.HasProof(header.GetShardID(), headerHash)
 	if !hasProof {
 		return fmt.Errorf("baseBootstrap.handleEquivalentProof: did not have proof for header, headerHash %s", hex.EncodeToString(headerHash))
 	}
@@ -1231,12 +1302,17 @@ func (boot *baseBootstrap) requestHeaders(fromNonce uint64, toNonce uint64) {
 	defer boot.mutRequestHeaders.Unlock()
 
 	for currentNonce := fromNonce; currentNonce <= toNonce; currentNonce++ {
-		haveHeader := boot.blockBootstrapper.haveHeaderInPoolWithNonce(currentNonce)
-		if haveHeader {
+		hasHeader, hasProof := boot.blockBootstrapper.haveHeaderInPoolWithNonce(currentNonce)
+		if hasHeader && hasProof {
 			continue
 		}
 
-		boot.blockBootstrapper.requestHeaderByNonce(currentNonce)
+		if !hasHeader {
+			boot.blockBootstrapper.requestHeaderByNonce(currentNonce)
+		}
+		if !hasProof {
+			boot.blockBootstrapper.requestProofByNonce(currentNonce)
+		}
 	}
 }
 

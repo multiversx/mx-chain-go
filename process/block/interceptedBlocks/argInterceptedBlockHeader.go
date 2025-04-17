@@ -19,6 +19,4 @@ type ArgInterceptedBlockHeader struct {
 	ValidityAttester        process.ValidityAttester
 	EpochStartTrigger       process.EpochStartTriggerHandler
 	EnableEpochsHandler     common.EnableEpochsHandler
-	ProofsPool              process.ProofsPool
-	FieldsSizeChecker       common.FieldsSizeChecker
 }

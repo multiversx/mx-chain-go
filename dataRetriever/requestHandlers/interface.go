@@ -26,3 +26,8 @@ type HeaderRequester interface {
 	NonceRequester
 	EpochRequester
 }
+
+// EquivalentProofsRequester defines what an equivalent proofs requester can do
+type EquivalentProofsRequester interface {
+	RequestDataFromNonce(nonceShardKey []byte, epoch uint32) error
+}

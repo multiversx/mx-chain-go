@@ -112,6 +112,8 @@ func (ut UnitType) String() string {
 		return "PeerAccountsUnit"
 	case ScheduledSCRsUnit:
 		return "ScheduledSCRsUnit"
+	case ProofsUnit:
+		return "ProofsUnit"
 	}
 
 	if ut < ShardHdrNonceHashDataUnit {
