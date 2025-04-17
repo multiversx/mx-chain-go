@@ -56,16 +56,6 @@ func createMetaBlockProcessor(blk data.ChainHandler) *testscommon.BlockProcessor
 	return blockProcessorMock
 }
 
-func createMetaStore() dataRetriever.StorageService {
-	store := dataRetriever.NewChainStorer()
-	store.AddStorer(dataRetriever.MetaBlockUnit, generateTestUnit())
-	store.AddStorer(dataRetriever.ShardHdrNonceHashDataUnit, generateTestUnit())
-	store.AddStorer(dataRetriever.MetaHdrNonceHashDataUnit, generateTestUnit())
-	store.AddStorer(dataRetriever.UserAccountsUnit, generateTestUnit())
-	store.AddStorer(dataRetriever.PeerAccountsUnit, generateTestUnit())
-	return store
-}
-
 func CreateMetaBootstrapMockArguments() sync.ArgMetaBootstrapper {
 	shardCoordinator := mock.NewOneShardCoordinatorMock()
 	_ = shardCoordinator.SetSelfId(core.MetachainShardId)
