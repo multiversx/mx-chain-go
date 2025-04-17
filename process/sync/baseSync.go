@@ -256,6 +256,7 @@ func (boot *baseBootstrap) confirmHeaderReceivedByNonce(headerHandler data.Heade
 			"hash", hdrHash,
 		)
 
+		// if flag is not active for the header, do not check the proof and release chan
 		isFlagActive := boot.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, headerHandler.GetEpoch())
 		if !isFlagActive {
 			boot.setRequestedHeaderNonce(nil)
@@ -301,6 +302,7 @@ func (boot *baseBootstrap) confirmHeaderReceivedByHash(headerHandler data.Header
 			"hash", hash,
 		)
 
+		// if flag is not active for the header, do not check the proof and release chan
 		isFlagActive := boot.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, headerHandler.GetEpoch())
 		if !isFlagActive {
 			boot.setRequestedHeaderHash(nil)
