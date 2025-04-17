@@ -345,6 +345,7 @@ func (tdt *trackableDataTrie) collectReadOperation(key []byte, val []byte, versi
 		Type:        stateChange.Read,
 		MainTrieKey: tdt.identifier,
 		MainTrieVal: nil,
+		Operation:   stateChange.GetDataTrieValue,
 		DataTrieChanges: []*stateChange.DataTrieChange{
 			{
 				Type:    stateChange.Read,
