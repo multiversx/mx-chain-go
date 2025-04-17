@@ -321,15 +321,6 @@ func (boot *baseBootstrap) hasProof(hash []byte) bool {
 	return boot.proofs.HasProof(boot.shardCoordinator.SelfId(), hash)
 }
 
-func (boot *baseBootstrap) hasHeader(hash []byte) bool {
-	_, err := boot.headers.GetHeaderByHash(hash)
-	if err != nil {
-		return false
-	}
-
-	return true
-}
-
 // AddSyncStateListener adds a syncStateListener that get notified each time the sync status of the node changes
 func (boot *baseBootstrap) AddSyncStateListener(syncStateListener func(isSyncing bool)) {
 	boot.mutSyncStateListeners.Lock()
