@@ -2294,7 +2294,7 @@ func TestShardBootstrap_SyncBlock_WithEquivalentProofs(t *testing.T) {
 		args := CreateShardBootstrapMockArguments()
 
 		args.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-			IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
+			IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
 				return flag == common.EquivalentMessagesFlag
 			},
 		}
@@ -2368,7 +2368,7 @@ func TestShardBootstrap_SyncBlock_WithEquivalentProofs(t *testing.T) {
 			RequestShardHeaderByNonceCalled: func(shardID uint32, nonce uint64) {
 				receive <- true
 			},
-			RequestEquivalentProofByHashCalled: func(headerShard uint32, headerHash []byte) {
+			RequestEquivalentProofByNonceCalled: func(headerShard uint32, headerNonce uint64) {
 				receive <- true
 			},
 		}

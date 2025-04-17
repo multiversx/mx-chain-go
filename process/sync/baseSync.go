@@ -1198,17 +1198,21 @@ func (boot *baseBootstrap) requestHeaderAndProofByHashIfMissing(
 	needsProof bool,
 ) {
 	_ = core.EmptyChannel(boot.chRcvHdrHash)
-	boot.setRequestedHeaderHash(hash)
 	if needsHeader {
+		boot.setRequestedHeaderHash(hash)
 		boot.requestHeaderByHash(hash)
 	}
 
-	if needsProof {
-		log.Debug("requesting equivalent proof from network",
-			"hash", hex.EncodeToString(hash),
-		)
-		boot.requestHandler.RequestEquivalentProofByHash(boot.shardCoordinator.SelfId(), hash)
+	if !needsProof {
+		return
 	}
+
+	log.Debug("requesting equivalent proof from network",
+		"hash", hex.EncodeToString(hash),
+	)
+
+	boot.setRequestedHeaderHash(hash)
+	boot.requestHandler.RequestEquivalentProofByHash(boot.shardCoordinator.SelfId(), hash)
 }
 
 func (boot *baseBootstrap) requestHeaderByHash(hash []byte) {
@@ -1242,8 +1246,8 @@ func (boot *baseBootstrap) requestHeaderAndProofByNonceIfMissing(
 	needsProof bool,
 ) {
 	_ = core.EmptyChannel(boot.chRcvHdrNonce)
-	boot.setRequestedHeaderNonce(&nonce)
 	if needsHeader {
+		boot.setRequestedHeaderNonce(&nonce)
 		boot.requestHeaderByNonce(nonce)
 	}
 
@@ -1256,6 +1260,7 @@ func (boot *baseBootstrap) requestHeaderAndProofByNonceIfMissing(
 			"nonce", nonce,
 		)
 
+		boot.setRequestedHeaderNonce(&nonce)
 		boot.requestHandler.RequestEquivalentProofByNonce(boot.shardCoordinator.SelfId(), nonce)
 		return
 	}
