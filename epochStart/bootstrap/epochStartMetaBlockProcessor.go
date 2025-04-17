@@ -339,7 +339,6 @@ func (e *epochStartMetaBlockProcessor) receivedProof(proof data.HeaderProofHandl
 
 	err = common.VerifyProofAgainstHeader(proof, metaBlock)
 	if err != nil {
-		log.Error("sorin-debug")
 		return
 	}
 
