@@ -1246,14 +1246,6 @@ func (boot *baseBootstrap) getHeaderFromPoolWithNonce(
 	return process.GetShardHeaderFromPoolWithNonce(nonce, boot.shardCoordinator.SelfId(), boot.headers)
 }
 
-func (boot *MetaBootstrap) hasProof(hash []byte) bool {
-	if !boot.enableEpochsHandler.IsFlagEnabled(common.EquivalentMessagesFlag) {
-		return true
-	}
-
-	return boot.proofs.HasProof(boot.shardCoordinator.SelfId(), hash)
-}
-
 func (boot *baseBootstrap) hasProofByNonce(nonce uint64) bool {
 	if !boot.enableEpochsHandler.IsFlagEnabled(common.EquivalentMessagesFlag) {
 		return true
