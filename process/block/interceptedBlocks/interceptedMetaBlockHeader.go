@@ -138,9 +138,6 @@ func (imh *InterceptedMetaHeader) CheckValidity() error {
 	return err
 }
 
-	return imh.integrityVerifier.Verify(imh.hdr)
-}
-
 func (imh *InterceptedMetaHeader) isMetaHeaderEpochOutOfRange() bool {
 	if imh.shardCoordinator.SelfId() == core.MetachainShardId {
 		return false
