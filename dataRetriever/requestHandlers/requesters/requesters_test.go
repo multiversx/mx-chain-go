@@ -21,23 +21,27 @@ const (
 	txRequester       requestHandlerType = "transactionRequester"
 	trieRequester     requestHandlerType = "trieNodeRequester"
 	vInfoRequester    requestHandlerType = "validatorInfoNodeRequester"
+	eqProofsRequester requestHandlerType = "equivalentProofsRequester"
 )
 
 var expectedErr = errors.New("expected error")
 
 func Test_Requesters(t *testing.T) {
 	t.Parallel()
+
 	testNewRequester(t, peerAuthRequester)
 	testNewRequester(t, mbRequester)
 	testNewRequester(t, txRequester)
 	testNewRequester(t, trieRequester)
 	testNewRequester(t, vInfoRequester)
+	testNewRequester(t, eqProofsRequester)
 
 	testRequestDataFromHashArray(t, peerAuthRequester)
 	testRequestDataFromHashArray(t, mbRequester)
 	testRequestDataFromHashArray(t, txRequester)
 	testRequestDataFromHashArray(t, trieRequester)
 	testRequestDataFromHashArray(t, vInfoRequester)
+	testRequestDataFromHashArray(t, eqProofsRequester)
 
 	testRequestDataFromReferenceAndChunk(t, trieRequester)
 }
@@ -147,6 +151,8 @@ func getHandler(requesterType requestHandlerType, argsBase ArgBaseRequester) (ch
 		return NewTrieNodeRequester(ArgTrieNodeRequester{argsBase})
 	case vInfoRequester:
 		return NewValidatorInfoRequester(ArgValidatorInfoRequester{argsBase})
+	case eqProofsRequester:
+		return NewEquivalentProofsRequester(ArgEquivalentProofsRequester{argsBase})
 	}
 	return nil, errors.New("invalid requester type")
 }

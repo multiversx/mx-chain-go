@@ -31,8 +31,6 @@ type InterceptedMetaHeader struct {
 	validityAttester    process.ValidityAttester
 	epochStartTrigger   process.EpochStartTriggerHandler
 	enableEpochsHandler common.EnableEpochsHandler
-	proofsPool          process.ProofsPool
-	fieldsSizeChecker   common.FieldsSizeChecker
 }
 
 // NewInterceptedMetaHeader creates a new instance of InterceptedMetaHeader struct
@@ -56,8 +54,6 @@ func NewInterceptedMetaHeader(arg *ArgInterceptedBlockHeader) (*InterceptedMetaH
 		validityAttester:    arg.ValidityAttester,
 		epochStartTrigger:   arg.EpochStartTrigger,
 		enableEpochsHandler: arg.EnableEpochsHandler,
-		proofsPool:          arg.ProofsPool,
-		fieldsSizeChecker:   arg.FieldsSizeChecker,
 	}
 	inHdr.processFields(arg.HdrBuff)
 
@@ -123,14 +119,6 @@ func (imh *InterceptedMetaHeader) CheckValidity() error {
 		return err
 	}
 
-	if imh.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, imh.hdr.GetEpoch()) {
-		err = imh.verifySignaturesForEquivalentProofs()
-		if err != nil {
-			log.Debug("jail-debug: meta CheckValidity.verifySignaturesForEquivalentProofs", "error", err.Error())
-		}
-		return err
-	}
-
 	err = imh.sigVerifier.VerifyRandSeedAndLeaderSignature(imh.hdr)
 	if err != nil {
 		log.Debug("jail-debug: meta CheckValidity.VerifyRandSeedAndLeaderSignature", "error", err.Error())
@@ -150,19 +138,6 @@ func (imh *InterceptedMetaHeader) CheckValidity() error {
 	return err
 }
 
-func (imh *InterceptedMetaHeader) verifySignaturesForEquivalentProofs() error {
-	// for equivalent proofs, we check first the previous proof to make sure we add it to the proofs pool if we are validating the
-	// block after the change of epoch, otherwise we never add the previous proof to proofs pool in sync mode.
-	err := imh.sigVerifier.VerifySignature(imh.hdr)
-	if err != nil {
-		return err
-	}
-
-	err = imh.sigVerifier.VerifyRandSeedAndLeaderSignature(imh.hdr)
-	if err != nil {
-		return err
-	}
-
 	return imh.integrityVerifier.Verify(imh.hdr)
 }
 
@@ -180,12 +155,12 @@ func (imh *InterceptedMetaHeader) isMetaHeaderEpochOutOfRange() bool {
 
 // integrity checks the integrity of the meta header block wrapper
 func (imh *InterceptedMetaHeader) integrity() error {
-	err := checkHeaderHandler(imh.HeaderHandler(), imh.enableEpochsHandler, imh.fieldsSizeChecker)
+	err := checkHeaderHandler(imh.HeaderHandler(), imh.enableEpochsHandler)
 	if err != nil {
 		return err
 	}
 
-	err = checkMetaShardInfo(imh.hdr.GetShardInfoHandlers(), imh.shardCoordinator, imh.sigVerifier, imh.proofsPool, imh.fieldsSizeChecker)
+	err = checkMetaShardInfo(imh.hdr.GetShardInfoHandlers(), imh.shardCoordinator)
 	if err != nil {
 		return err
 	}

@@ -129,6 +129,11 @@ func (srcf *shardResolversContainerFactory) Create() (dataRetriever.ResolversCon
 		return nil, err
 	}
 
+	err = srcf.generateEquivalentProofsResolvers()
+	if err != nil {
+		return nil, err
+	}
+
 	return srcf.container, nil
 }
 
@@ -284,6 +289,40 @@ func (srcf *shardResolversContainerFactory) generateRewardResolver(
 	keys = append(keys, identifierTx)
 
 	return srcf.container.AddMultiple(keys, resolverSlice)
+}
+
+func (srcf *shardResolversContainerFactory) generateEquivalentProofsResolvers() error {
+	shardC := srcf.shardCoordinator
+
+	keys := make([]string, 0)
+	resolversSlice := make([]dataRetriever.Resolver, 0)
+
+	// should be 2 resolvers on shards, similar as interceptors: self_META + ALL
+	identifier := common.EquivalentProofsTopic + shardC.CommunicationIdentifier(core.MetachainShardId)
+	resolver, err := srcf.createEquivalentProofsResolver(
+		identifier,
+		shardC.SelfId(),
+	)
+	if err != nil {
+		return err
+	}
+
+	resolversSlice = append(resolversSlice, resolver)
+	keys = append(keys, identifier)
+
+	identifier = common.EquivalentProofsTopic + core.CommunicationIdentifierBetweenShards(core.MetachainShardId, core.AllShardId)
+	resolver, err = srcf.createEquivalentProofsResolver(
+		identifier,
+		core.MetachainShardId,
+	)
+	if err != nil {
+		return err
+	}
+
+	resolversSlice = append(resolversSlice, resolver)
+	keys = append(keys, identifier)
+
+	return srcf.container.AddMultiple(keys, resolversSlice)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

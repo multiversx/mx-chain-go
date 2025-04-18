@@ -80,6 +80,9 @@ func TestProofsPool_ShouldWork(t *testing.T) {
 	proof, err := pp.GetProof(shardID, []byte("hash3"))
 	require.Nil(t, err)
 	require.Equal(t, proof3, proof)
+	proof, err = pp.GetProofByNonce(3, shardID)
+	require.Nil(t, err)
+	require.Equal(t, proof3, proof)
 
 	err = pp.CleanupProofsBehindNonce(shardID, 4)
 	require.Nil(t, err)
@@ -87,8 +90,14 @@ func TestProofsPool_ShouldWork(t *testing.T) {
 	proof, err = pp.GetProof(shardID, []byte("hash3"))
 	require.Nil(t, err)
 	require.Equal(t, proof3, proof)
+	proof, err = pp.GetProofByNonce(3, shardID)
+	require.Nil(t, err)
+	require.Equal(t, proof3, proof)
 
 	proof, err = pp.GetProof(shardID, []byte("hash4"))
+	require.Nil(t, err)
+	require.Equal(t, proof4, proof)
+	proof, err = pp.GetProofByNonce(4, shardID)
 	require.Nil(t, err)
 	require.Equal(t, proof4, proof)
 }
@@ -267,7 +276,7 @@ func TestProofsPool_Concurrency(t *testing.T) {
 
 	for i := 0; i < numOperations; i++ {
 		go func(idx int) {
-			switch idx % 6 {
+			switch idx % 7 {
 			case 0, 1, 2:
 				_ = pp.AddProof(generateProof())
 			case 3:
@@ -276,8 +285,10 @@ func TestProofsPool_Concurrency(t *testing.T) {
 					atomic.AddUint32(&cnt, 1)
 				}
 			case 4:
-				_ = pp.CleanupProofsBehindNonce(generateRandomShardID(), generateRandomNonce(100))
+				_, _ = pp.GetProofByNonce(generateRandomNonce(100), generateRandomShardID())
 			case 5:
+				_ = pp.CleanupProofsBehindNonce(generateRandomShardID(), generateRandomNonce(100))
+			case 6:
 				handler := func(proof data.HeaderProofHandler) {
 				}
 				pp.RegisterHandler(handler)

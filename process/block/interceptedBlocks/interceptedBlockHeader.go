@@ -29,7 +29,6 @@ type InterceptedHeader struct {
 	validityAttester    process.ValidityAttester
 	epochStartTrigger   process.EpochStartTriggerHandler
 	enableEpochsHandler common.EnableEpochsHandler
-	fieldsSizeChecker   common.FieldsSizeChecker
 }
 
 // NewInterceptedHeader creates a new instance of InterceptedHeader struct
@@ -53,7 +52,6 @@ func NewInterceptedHeader(arg *ArgInterceptedBlockHeader) (*InterceptedHeader, e
 		validityAttester:    arg.ValidityAttester,
 		epochStartTrigger:   arg.EpochStartTrigger,
 		enableEpochsHandler: arg.EnableEpochsHandler,
-		fieldsSizeChecker:   arg.FieldsSizeChecker,
 	}
 	inHdr.processFields(arg.HdrBuff)
 
@@ -91,25 +89,12 @@ func (inHdr *InterceptedHeader) CheckValidity() error {
 }
 
 func (inHdr *InterceptedHeader) verifySignatures() error {
-	if inHdr.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, inHdr.hdr.GetEpoch()) {
-		return inHdr.verifySignaturesForEquivalentProofs()
-	}
 	err := inHdr.sigVerifier.VerifyRandSeedAndLeaderSignature(inHdr.hdr)
 	if err != nil {
 		return err
 	}
 
 	return inHdr.sigVerifier.VerifySignature(inHdr.hdr)
-}
-
-func (inHdr *InterceptedHeader) verifySignaturesForEquivalentProofs() error {
-	// for equivalent proofs, we check first the previous proof to make sure we add it to the proofs pool if we are validating the
-	// block after the change of epoch, otherwise we never add the previous proof to proofs pool in sync mode.
-	err := inHdr.sigVerifier.VerifySignature(inHdr.hdr)
-	if err != nil {
-		return err
-	}
-	return inHdr.sigVerifier.VerifyRandSeedAndLeaderSignature(inHdr.hdr)
 }
 
 func (inHdr *InterceptedHeader) isEpochCorrect() bool {
@@ -151,7 +136,7 @@ func (inHdr *InterceptedHeader) integrity() error {
 			inHdr.epochStartTrigger.EpochFinalityAttestingRound())
 	}
 
-	err := checkHeaderHandler(inHdr.HeaderHandler(), inHdr.enableEpochsHandler, inHdr.fieldsSizeChecker)
+	err := checkHeaderHandler(inHdr.HeaderHandler(), inHdr.enableEpochsHandler)
 	if err != nil {
 		return err
 	}

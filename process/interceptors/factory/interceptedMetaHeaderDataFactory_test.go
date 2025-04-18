@@ -17,7 +17,6 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/consensus"
 	"github.com/multiversx/mx-chain-go/testscommon/cryptoMocks"
-	"github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
 	"github.com/multiversx/mx-chain-go/testscommon/economicsmocks"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/epochNotifier"
@@ -111,7 +110,6 @@ func createMockArgMetaHeaderFactoryArgument(
 			HeartbeatExpiryTimespanInSec: 30,
 			PeerID:                       "pid",
 		},
-		ProofsPool: &dataRetriever.ProofsPoolMock{},
 	}
 }
 

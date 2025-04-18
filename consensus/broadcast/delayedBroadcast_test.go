@@ -87,7 +87,6 @@ func createValidatorDelayArgs(index int) *validatorDelayArgs {
 					},
 				},
 			},
-			PreviousHeaderProof: &block.HeaderProof{},
 		},
 		miniBlocks:       map[uint32][]byte{0: []byte("miniblock data sh0" + iStr), 1: []byte("miniblock data sh1" + iStr)},
 		miniBlockHashes:  map[string]map[string]struct{}{"txBlockBodies_0": {"miniBlockHash0" + iStr: struct{}{}}, "txBlockBodies_0_1": {"miniBlockHash1" + iStr: struct{}{}}},
