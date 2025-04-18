@@ -88,21 +88,23 @@ func (imh *InterceptedMetaHeader) HeaderHandler() data.HeaderHandler {
 
 // CheckValidity checks if the received meta header is valid (not nil fields, valid sig and so on)
 func (imh *InterceptedMetaHeader) CheckValidity() error {
-	log.Trace("CheckValidity for header with", "epoch", imh.hdr.GetEpoch(), "hash", logger.DisplayByteSlice(imh.hash))
+	log.Debug("CheckValidity for meta header with", "epoch", imh.hdr.GetEpoch(), "hash", logger.DisplayByteSlice(imh.hash))
 
 	err := imh.integrity()
 	if err != nil {
+		log.Debug("jail-debug: meta CheckValidity.integrity", "error", err.Error())
 		return err
 	}
 
 	if !imh.validityAttester.CheckBlockAgainstWhitelist(imh) {
 		err = imh.validityAttester.CheckBlockAgainstFinal(imh.HeaderHandler())
 		if err != nil {
+			log.Debug("jail-debug: meta CheckValidity.CheckBlockAgainstFinal", "error", err.Error())
 			return err
 		}
 
 		if imh.isMetaHeaderEpochOutOfRange() {
-			log.Trace("InterceptedMetaHeader.CheckValidity",
+			log.Debug("InterceptedMetaHeader.CheckValidity",
 				"trigger epoch", imh.epochStartTrigger.Epoch(),
 				"metaBlock epoch", imh.hdr.GetEpoch(),
 				"error", process.ErrMetaHeaderEpochOutOfRange)
@@ -113,20 +115,27 @@ func (imh *InterceptedMetaHeader) CheckValidity() error {
 
 	err = imh.validityAttester.CheckBlockAgainstRoundHandler(imh.HeaderHandler())
 	if err != nil {
+		log.Debug("jail-debug: meta CheckValidity.CheckBlockAgainstRoundHandler", "error", err.Error())
 		return err
 	}
 
 	err = imh.sigVerifier.VerifyRandSeedAndLeaderSignature(imh.hdr)
 	if err != nil {
+		log.Debug("jail-debug: meta CheckValidity.VerifyRandSeedAndLeaderSignature", "error", err.Error())
 		return err
 	}
 
 	err = imh.sigVerifier.VerifySignature(imh.hdr)
 	if err != nil {
+		log.Debug("jail-debug: meta CheckValidity.VerifySignature", "error", err.Error())
 		return err
 	}
 
-	return imh.integrityVerifier.Verify(imh.hdr)
+	err = imh.integrityVerifier.Verify(imh.hdr)
+	if err != nil {
+		log.Debug("jail-debug: meta CheckValidity.Verify", "error", err.Error())
+	}
+	return err
 }
 
 func (imh *InterceptedMetaHeader) isMetaHeaderEpochOutOfRange() bool {

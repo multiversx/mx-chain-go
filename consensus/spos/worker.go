@@ -695,6 +695,7 @@ func (wrk *Worker) processReceivedHeaderMetric() {
 		sinceRoundStart = 0
 	}
 	percent := sinceRoundStart * 100 / wrk.roundHandler.TimeDuration()
+	log.Info("received proposed block", "time since round start", sinceRoundStart.String(), "percent", percent.String())
 	wrk.appStatusHandler.SetUInt64Value(common.MetricReceivedProposedBlock, uint64(percent))
 
 	isMainMachineActive, redundancyReason := wrk.computeRedundancyMetrics()
