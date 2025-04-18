@@ -1278,9 +1278,6 @@ var ErrInvalidInterceptedData = errors.New("invalid intercepted data")
 // ErrMissingHeaderProof signals that the proof for the header is missing
 var ErrMissingHeaderProof = errors.New("missing header proof")
 
-// ErrMissingPrevHeaderProof signals that the proof for the previous header is missing
-var ErrMissingPrevHeaderProof = errors.New("missing previous header proof")
-
 // ErrInvalidHeaderProof signals that an invalid equivalent proof has been provided
 var ErrInvalidHeaderProof = errors.New("invalid equivalent proof")
 
@@ -1292,3 +1289,9 @@ var ErrEpochMismatch = errors.New("epoch mismatch")
 
 // ErrInvalidRatingsConfig signals that an invalid ratings config has been provided
 var ErrInvalidRatingsConfig = errors.New("invalid ratings config")
+
+// ErrNilKeyRWMutexHandler signals that a nil KeyRWMutexHandler has been provided
+var ErrNilKeyRWMutexHandler = errors.New("nil key rw mutex handler")
+
+// ErrNilEligibleNodesCache signals that a nil eligible nodes cache has been provided
+var ErrNilEligibleNodesCache = errors.New("nil eligible nodes cache")

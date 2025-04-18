@@ -131,6 +131,11 @@ func (mrcf *metaResolversContainerFactory) Create() (dataRetriever.ResolversCont
 		return nil, err
 	}
 
+	err = mrcf.generateEquivalentProofsResolvers()
+	if err != nil {
+		return nil, err
+	}
+
 	return mrcf.container, nil
 }
 
@@ -365,6 +370,43 @@ func (mrcf *metaResolversContainerFactory) generateRewardsResolvers(
 	}
 
 	return mrcf.container.AddMultiple(keys, resolverSlice)
+}
+
+func (mrcf *metaResolversContainerFactory) generateEquivalentProofsResolvers() error {
+	shardC := mrcf.shardCoordinator
+	noOfShards := shardC.NumberOfShards()
+
+	keys := make([]string, 0)
+	resolversSlice := make([]dataRetriever.Resolver, 0)
+
+	// on meta should be one resolver for each shard + one for ALL, similar as interceptors
+	for idx := uint32(0); idx < noOfShards; idx++ {
+		identifier := common.EquivalentProofsTopic + shardC.CommunicationIdentifier(idx)
+		resolver, err := mrcf.createEquivalentProofsResolver(
+			identifier,
+			idx,
+		)
+		if err != nil {
+			return err
+		}
+
+		resolversSlice = append(resolversSlice, resolver)
+		keys = append(keys, identifier)
+	}
+
+	identifier := common.EquivalentProofsTopic + core.CommunicationIdentifierBetweenShards(core.MetachainShardId, core.AllShardId)
+	resolver, err := mrcf.createEquivalentProofsResolver(
+		identifier,
+		core.MetachainShardId,
+	)
+	if err != nil {
+		return err
+	}
+
+	resolversSlice = append(resolversSlice, resolver)
+	keys = append(keys, identifier)
+
+	return mrcf.container.AddMultiple(keys, resolversSlice)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

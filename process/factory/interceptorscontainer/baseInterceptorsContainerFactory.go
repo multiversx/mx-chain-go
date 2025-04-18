@@ -568,7 +568,6 @@ func (bicf *baseInterceptorsContainerFactory) generateMetachainHeaderInterceptor
 
 	argsInterceptedMetaHeaderFactory := interceptorFactory.ArgInterceptedMetaHeaderFactory{
 		ArgInterceptedDataFactory: *bicf.argInterceptorFactory,
-		ProofsPool:                bicf.dataPool.Proofs(),
 	}
 	hdrFactory, err := interceptorFactory.NewInterceptedMetaHeaderDataFactory(&argsInterceptedMetaHeaderFactory)
 	if err != nil {
@@ -929,15 +928,10 @@ func (bicf *baseInterceptorsContainerFactory) createOneShardEquivalentProofsInte
 		ProofsPool:                bicf.dataPool.Proofs(),
 		HeadersPool:               bicf.dataPool.Headers(),
 		Storage:                   bicf.store,
+		PeerShardMapper:           bicf.mainPeerShardMapper,
+		WhiteListHandler:          bicf.whiteListHandler,
 	}
-	equivalentProofsFactory := interceptorFactory.NewInterceptedEquivalentProofsFactory(args)
-
-	marshaller := bicf.argInterceptorFactory.CoreComponents.InternalMarshalizer()
-	argProcessor := processor.ArgEquivalentProofsInterceptorProcessor{
-		EquivalentProofsPool: bicf.dataPool.Proofs(),
-		Marshaller:           marshaller,
-	}
-	equivalentProofsProcessor, err := processor.NewEquivalentProofsInterceptorProcessor(argProcessor)
+	equivalentProofsFactory, err := interceptorFactory.NewInterceptedEquivalentProofsFactory(args)
 	if err != nil {
 		return nil, err
 	}
@@ -951,7 +945,7 @@ func (bicf *baseInterceptorsContainerFactory) createOneShardEquivalentProofsInte
 		interceptors.ArgSingleDataInterceptor{
 			Topic:                   topic,
 			DataFactory:             equivalentProofsFactory,
-			Processor:               equivalentProofsProcessor,
+			Processor:               processor.NewEquivalentProofsInterceptorProcessor(),
 			Throttler:               bicf.globalThrottler,
 			AntifloodHandler:        bicf.antifloodHandler,
 			WhiteListRequest:        bicf.whiteListHandler,

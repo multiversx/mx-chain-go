@@ -155,6 +155,7 @@ func createMockEpochStartBootstrapArgs(
 			PeerAccountsTrieStorage:         generalCfg.PeerAccountsTrieStorage,
 			HeartbeatV2:                     generalCfg.HeartbeatV2,
 			Hardfork:                        generalCfg.Hardfork,
+			ProofsStorage:                   generalCfg.ProofsStorage,
 			EvictionWaitingList: config.EvictionWaitingListConfig{
 				HashesSize:     100,
 				RootHashesSize: 100,
@@ -1291,6 +1292,9 @@ func TestRequestAndProcessForShard_ShouldFail(t *testing.T) {
 			TrieNodesCalled: func() storage.Cacher {
 				return nil
 			},
+			ProofsCalled: func() dataRetriever.ProofsPool {
+				return &dataRetrieverMock.ProofsPoolMock{}
+			},
 		}
 
 		epochStartProvider.miniBlocksSyncer = &epochStartMocks.PendingMiniBlockSyncHandlerStub{}
@@ -1361,6 +1365,9 @@ func TestRequestAndProcessForShard_ShouldFail(t *testing.T) {
 					},
 				}
 			},
+			ProofsCalled: func() dataRetriever.ProofsPool {
+				return &dataRetrieverMock.ProofsPoolMock{}
+			},
 		}
 
 		epochStartProvider.miniBlocksSyncer = &epochStartMocks.PendingMiniBlockSyncHandlerStub{}
@@ -1392,6 +1399,11 @@ func TestRequestAndProcessForMeta_ShouldFail(t *testing.T) {
 
 		epochStartProvider, _ := NewEpochStartBootstrap(args)
 		epochStartProvider.epochStartMeta = metaBlock
+		epochStartProvider.dataPool = &dataRetrieverMock.PoolsHolderStub{
+			ProofsCalled: func() dataRetriever.ProofsPool {
+				return &dataRetrieverMock.ProofsPoolMock{}
+			},
+		}
 
 		epochStartProvider.shardCoordinator = nil
 
@@ -1474,6 +1486,9 @@ func TestRequestAndProcessForMeta_ShouldFail(t *testing.T) {
 						return nil, true
 					},
 				}
+			},
+			ProofsCalled: func() dataRetriever.ProofsPool {
+				return &dataRetrieverMock.ProofsPoolMock{}
 			},
 		}
 
@@ -1849,6 +1864,9 @@ func TestRequestAndProcessing(t *testing.T) {
 			CurrEpochValidatorInfoCalled: func() dataRetriever.ValidatorInfoCacher {
 				return &validatorInfoCacherStub.ValidatorInfoCacherStub{}
 			},
+			ProofsCalled: func() dataRetriever.ProofsPool {
+				return &dataRetrieverMock.ProofsPoolMock{}
+			},
 		}
 		epochStartProvider.requestHandler = &testscommon.RequestHandlerStub{}
 		epochStartProvider.miniBlocksSyncer = &epochStartMocks.PendingMiniBlockSyncHandlerStub{}
@@ -1918,6 +1936,9 @@ func TestRequestAndProcessing(t *testing.T) {
 			},
 			CurrEpochValidatorInfoCalled: func() dataRetriever.ValidatorInfoCacher {
 				return &validatorInfoCacherStub.ValidatorInfoCacherStub{}
+			},
+			ProofsCalled: func() dataRetriever.ProofsPool {
+				return &dataRetrieverMock.ProofsPoolMock{}
 			},
 		}
 		epochStartProvider.requestHandler = &testscommon.RequestHandlerStub{}

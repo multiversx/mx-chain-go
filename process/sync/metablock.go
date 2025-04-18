@@ -98,7 +98,6 @@ func NewMetaBootstrap(arguments ArgMetaBootstrapper) (*MetaBootstrap, error) {
 
 	base.blockBootstrapper = &boot
 	base.syncStarter = &boot
-	base.getHeaderFromPool = boot.getMetaHeaderFromPool
 	base.requestMiniBlocks = boot.requestMiniBlocksFromHeaderWithNonceIfMissing
 
 	// placed in struct fields for performance reasons
@@ -226,72 +225,6 @@ func (boot *MetaBootstrap) Close() error {
 	return boot.baseBootstrap.Close()
 }
 
-// requestHeaderWithNonce method requests a block header from network when it is not found in the pool
-func (boot *MetaBootstrap) requestHeaderWithNonce(nonce uint64) {
-	boot.setRequestedHeaderNonce(&nonce)
-	log.Debug("requesting meta header from network",
-		"nonce", nonce,
-		"probable highest nonce", boot.forkDetector.ProbableHighestNonce(),
-	)
-	boot.requestHandler.RequestMetaHeaderByNonce(nonce)
-}
-
-// requestHeaderWithHash method requests a block header from network when it is not found in the pool
-func (boot *MetaBootstrap) requestHeaderWithHash(hash []byte) {
-	boot.setRequestedHeaderHash(hash)
-	log.Debug("requesting meta header from network",
-		"hash", hash,
-		"probable highest nonce", boot.forkDetector.ProbableHighestNonce(),
-	)
-	boot.requestHandler.RequestMetaHeader(hash)
-}
-
-// getHeaderWithNonceRequestingIfMissing method gets the header with a given nonce from pool. If it is not found there, it will
-// be requested from network
-func (boot *MetaBootstrap) getHeaderWithNonceRequestingIfMissing(nonce uint64) (data.HeaderHandler, []byte, error) {
-	hdr, hash, err := process.GetMetaHeaderFromPoolWithNonce(
-		nonce,
-		boot.headers)
-	if err != nil {
-		_ = core.EmptyChannel(boot.chRcvHdrNonce)
-		boot.requestHeaderWithNonce(nonce)
-		err = boot.waitForHeaderNonce()
-		if err != nil {
-			return nil, nil, err
-		}
-
-		hdr, hash, err = process.GetMetaHeaderFromPoolWithNonce(
-			nonce,
-			boot.headers)
-		if err != nil {
-			return nil, nil, err
-		}
-	}
-
-	return hdr, hash, nil
-}
-
-// getHeaderWithHashRequestingIfMissing method gets the header with a given hash from pool. If it is not found there,
-// it will be requested from network
-func (boot *MetaBootstrap) getHeaderWithHashRequestingIfMissing(hash []byte) (data.HeaderHandler, error) {
-	hdr, err := process.GetMetaHeader(hash, boot.headers, boot.marshalizer, boot.store)
-	if err != nil {
-		_ = core.EmptyChannel(boot.chRcvHdrHash)
-		boot.requestHeaderWithHash(hash)
-		err = boot.waitForHeaderHash()
-		if err != nil {
-			return nil, err
-		}
-
-		hdr, err = process.GetMetaHeaderFromPool(hash, boot.headers)
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	return hdr, nil
-}
-
 func (boot *MetaBootstrap) getPrevHeader(
 	header data.HeaderHandler,
 	headerStore storage.Storer,
@@ -326,16 +259,17 @@ func (boot *MetaBootstrap) getCurrHeader() (data.HeaderHandler, error) {
 	return header, nil
 }
 
-func (boot *MetaBootstrap) haveHeaderInPoolWithNonce(nonce uint64) bool {
-	_, _, err := process.GetMetaHeaderFromPoolWithNonce(
+func (boot *MetaBootstrap) haveHeaderInPoolWithNonce(nonce uint64) (bool, bool) {
+	_, hash, err := process.GetMetaHeaderFromPoolWithNonce(
 		nonce,
 		boot.headers)
+	if err != nil {
+		_, errGetProof := boot.proofs.GetProofByNonce(nonce, core.MetachainShardId)
+		hasProof := errGetProof == nil
+		return false, hasProof
+	}
 
-	return err == nil
-}
-
-func (boot *MetaBootstrap) getMetaHeaderFromPool(headerHash []byte) (data.HeaderHandler, error) {
-	return process.GetMetaHeaderFromPool(headerHash, boot.headers)
+	return true, boot.proofs.HasProof(core.MetachainShardId, hash)
 }
 
 func (boot *MetaBootstrap) getBlockBodyRequestingIfMissing(headerHandler data.HeaderHandler) (data.BodyHandler, error) {
@@ -395,6 +329,10 @@ func (boot *MetaBootstrap) isForkTriggeredByMeta() bool {
 
 func (boot *MetaBootstrap) requestHeaderByNonce(nonce uint64) {
 	boot.requestHandler.RequestMetaHeaderByNonce(nonce)
+}
+
+func (boot *MetaBootstrap) requestProofByNonce(nonce uint64) {
+	boot.requestHandler.RequestEquivalentProofByNonce(core.MetachainShardId, nonce)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

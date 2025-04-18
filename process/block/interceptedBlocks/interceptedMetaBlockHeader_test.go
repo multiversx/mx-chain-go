@@ -16,7 +16,6 @@ import (
 	"github.com/multiversx/mx-chain-go/process/block/interceptedBlocks"
 	"github.com/multiversx/mx-chain-go/process/mock"
 	"github.com/multiversx/mx-chain-go/sharding"
-	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/consensus"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 )
@@ -40,7 +39,6 @@ func createMetaArgumentWithShardCoordinator(shardCoordinator sharding.Coordinato
 			},
 		},
 		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
-		FieldsSizeChecker:   &testscommon.FieldsSizeCheckerMock{},
 	}
 
 	hdr := createMockMetaHeader()

@@ -4,7 +4,6 @@ import (
 	"encoding/hex"
 	"time"
 
-	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/alteredAccount"
 	"github.com/multiversx/mx-chain-core-go/data/api"
 	"github.com/multiversx/mx-chain-core-go/data/block"
@@ -242,26 +241,12 @@ func (sbp *shardAPIBlockProcessor) convertShardBlockBytesToAPIBlock(hash []byte,
 	}
 
 	addScheduledInfoInBlock(blockHeader, apiBlock)
-	err = sbp.addProofs(hash, blockHeader, apiBlock, sbp.getHeaderHandler)
+	err = sbp.addProof(hash, blockHeader, apiBlock)
 	if err != nil {
 		return nil, err
 	}
 
 	return apiBlock, nil
-}
-
-func (sbp *shardAPIBlockProcessor) getHeaderHandler(nonce uint64) (data.HeaderHandler, error) {
-	_, blockBytes, err := sbp.getBlockHashAndBytesByNonce(nonce)
-	if err != nil {
-		return nil, err
-	}
-
-	blockHeader, err := process.UnmarshalShardHeader(sbp.marshalizer, blockBytes)
-	if err != nil {
-		return nil, err
-	}
-
-	return blockHeader, nil
 }
 
 // IsInterfaceNil returns true if underlying object is nil

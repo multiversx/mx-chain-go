@@ -1,6 +1,7 @@
 package factory
 
 import (
+	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
@@ -15,7 +16,6 @@ var _ process.InterceptedDataFactory = (*interceptedMetaHeaderDataFactory)(nil)
 // ArgInterceptedMetaHeaderFactory is the DTO used to create a new instance of meta header factory
 type ArgInterceptedMetaHeaderFactory struct {
 	ArgInterceptedDataFactory
-	ProofsPool process.ProofsPool
 }
 
 type interceptedMetaHeaderDataFactory struct {
@@ -27,8 +27,6 @@ type interceptedMetaHeaderDataFactory struct {
 	validityAttester        process.ValidityAttester
 	epochStartTrigger       process.EpochStartTriggerHandler
 	enableEpochsHandler     common.EnableEpochsHandler
-	proofsPool              process.ProofsPool
-	fieldsSizeChecker       common.FieldsSizeChecker
 }
 
 // NewInterceptedMetaHeaderDataFactory creates an instance of interceptedMetaHeaderDataFactory
@@ -66,9 +64,6 @@ func NewInterceptedMetaHeaderDataFactory(argument *ArgInterceptedMetaHeaderFacto
 	if check.IfNil(argument.ValidityAttester) {
 		return nil, process.ErrNilValidityAttester
 	}
-	if check.IfNil(argument.ProofsPool) {
-		return nil, process.ErrNilProofsPool
-	}
 
 	return &interceptedMetaHeaderDataFactory{
 		marshalizer:             argument.CoreComponents.InternalMarshalizer(),
@@ -79,13 +74,11 @@ func NewInterceptedMetaHeaderDataFactory(argument *ArgInterceptedMetaHeaderFacto
 		validityAttester:        argument.ValidityAttester,
 		epochStartTrigger:       argument.EpochStartTrigger,
 		enableEpochsHandler:     argument.CoreComponents.EnableEpochsHandler(),
-		proofsPool:              argument.ProofsPool,
-		fieldsSizeChecker:       argument.CoreComponents.FieldsSizeChecker(),
 	}, nil
 }
 
 // Create creates instances of InterceptedData by unmarshalling provided buffer
-func (imhdf *interceptedMetaHeaderDataFactory) Create(buff []byte) (process.InterceptedData, error) {
+func (imhdf *interceptedMetaHeaderDataFactory) Create(buff []byte, _ core.PeerID) (process.InterceptedData, error) {
 	arg := &interceptedBlocks.ArgInterceptedBlockHeader{
 		HdrBuff:                 buff,
 		Marshalizer:             imhdf.marshalizer,
@@ -96,8 +89,6 @@ func (imhdf *interceptedMetaHeaderDataFactory) Create(buff []byte) (process.Inte
 		ValidityAttester:        imhdf.validityAttester,
 		EpochStartTrigger:       imhdf.epochStartTrigger,
 		EnableEpochsHandler:     imhdf.enableEpochsHandler,
-		ProofsPool:              imhdf.proofsPool,
-		FieldsSizeChecker:       imhdf.fieldsSizeChecker,
 	}
 
 	return interceptedBlocks.NewInterceptedMetaHeader(arg)

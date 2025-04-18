@@ -35,6 +35,10 @@ var _ closing.Closer = (*Worker)(nil)
 const sleepTime = 5 * time.Millisecond
 const redundancySingleKeySteppedIn = "single-key node stepped in"
 
+type blockProcessorWithPool interface {
+	RemoveHeaderFromPool(headerHash []byte)
+}
+
 // Worker defines the data needed by spos to communicate between nodes which are in the validators group
 type Worker struct {
 	consensusService        ConsensusService
@@ -614,11 +618,6 @@ func (wrk *Worker) doJobOnMessageWithHeader(cnsMsg *consensus.Message) error {
 			err)
 	}
 
-	err = wrk.checkHeaderPreviousProof(header)
-	if err != nil {
-		return err
-	}
-
 	wrk.processReceivedHeaderMetricForConsensusMessage(cnsMsg)
 
 	errNotCritical := wrk.forkDetector.AddHeader(header, headerHash, process.BHProposed, nil, nil)
@@ -637,18 +636,6 @@ func (wrk *Worker) verifyMessageWithInvalidSigners(cnsMsg *consensus.Message) er
 	if wrk.invalidSignersCache.CheckKnownInvalidSigners(cnsMsg.BlockHeaderHash, cnsMsg.InvalidSigners) {
 		// return error here to avoid further broadcast of this message
 		return ErrInvalidSignersAlreadyReceived
-	}
-
-	return nil
-}
-
-func (wrk *Worker) checkHeaderPreviousProof(header data.HeaderHandler) error {
-	if wrk.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, header.GetEpoch()) {
-		return fmt.Errorf("%w : received header on consensus topic after equivalent messages activation", ErrConsensusMessageNotExpected)
-	}
-
-	if !check.IfNil(header.GetPreviousProof()) {
-		return fmt.Errorf("%w : received header from consensus topic has previous proof", ErrHeaderProofNotExpected)
 	}
 
 	return nil
@@ -859,7 +846,34 @@ func (wrk *Worker) Extend(subroundId int) {
 
 	wrk.scheduledProcessor.ForceStopScheduledExecutionBlocking()
 	wrk.blockProcessor.RevertCurrentBlock()
+	wrk.removeConsensusHeaderFromPool()
+
 	log.Debug("current block is reverted")
+}
+
+func (wrk *Worker) removeConsensusHeaderFromPool() {
+	headerHash := wrk.consensusState.GetData()
+	if len(headerHash) == 0 {
+		return
+	}
+
+	header := wrk.consensusState.GetHeader()
+	if check.IfNil(header) {
+		return
+	}
+
+	if !wrk.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, header.GetEpoch()) {
+		return
+	}
+
+	blockProcessorWithPoolAccess, ok := wrk.blockProcessor.(blockProcessorWithPool)
+	if !ok {
+		log.Error("removeConsensusHeaderFromPool: blockProcessorWithPoolAccess is nil")
+		return
+	}
+
+	blockProcessorWithPoolAccess.RemoveHeaderFromPool(headerHash)
+	wrk.forkDetector.RemoveHeader(header.GetNonce(), headerHash)
 }
 
 // DisplayStatistics logs the consensus messages split on proposed headers

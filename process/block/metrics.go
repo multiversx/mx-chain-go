@@ -163,6 +163,7 @@ func indexRoundInfo(
 	header data.HeaderHandler,
 	lastHeader data.HeaderHandler,
 	signersIndexes []uint64,
+	enableEpochsHandler common.EnableEpochsHandler,
 ) {
 	roundInfo := &outportcore.RoundInfo{
 		Round:            header.GetRound(),
@@ -186,7 +187,7 @@ func indexRoundInfo(
 	roundsInfo = append(roundsInfo, roundInfo)
 	for i := lastBlockRound + 1; i < currentBlockRound; i++ {
 		var ok bool
-		signersIndexes, ok = getSignersIndices(header, lastHeader, i, nodesCoordinator)
+		signersIndexes, ok = getSignersIndices(header, enableEpochsHandler, lastHeader, i, nodesCoordinator)
 		if !ok {
 			continue
 		}
@@ -206,10 +207,15 @@ func indexRoundInfo(
 	outportHandler.SaveRoundsInfo(&outportcore.RoundsInfo{ShardID: shardId, RoundsInfo: roundsInfo})
 }
 
-func getSignersIndices(header, lastHeader data.HeaderHandler, round uint64, nodesCoordinator nodesCoordinator.NodesCoordinator) ([]uint64, bool) {
-	havePrevProf := !check.IfNil(header.GetPreviousProof())
-	// if a header have previous proof EquivalentMessage flag is active and all validators are in consensus group - signer indices no longer needed
-	if havePrevProf {
+func getSignersIndices(
+	header data.HeaderHandler,
+	enableEpochsHandler common.EnableEpochsHandler,
+	lastHeader data.HeaderHandler,
+	round uint64,
+	nodesCoordinator nodesCoordinator.NodesCoordinator,
+) ([]uint64, bool) {
+	// if EquivalentMessagesFlag is active and all validators are in consensus group - signer indices no longer needed
+	if common.IsFlagEnabledAfterEpochsStartBlock(header, enableEpochsHandler, common.EquivalentMessagesFlag) {
 		return make([]uint64, 0), true
 	}
 

@@ -7,6 +7,7 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
+	dataRetrieverMocks "github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
 	"github.com/stretchr/testify/assert"
 
 	"github.com/multiversx/mx-chain-go/dataRetriever"
@@ -47,6 +48,7 @@ func createMockShardStorageBootstrapperArgs() ArgsBaseStorageBootstrapper {
 		ProcessedMiniBlocksTracker:   &testscommon.ProcessedMiniBlocksTrackerStub{},
 		AppStatusHandler:             &statusHandler.AppStatusHandlerMock{},
 		EnableEpochsHandler:          &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		ProofsPool:                   &dataRetrieverMocks.ProofsPoolMock{},
 	}
 
 	return argsBaseBootstrapper
