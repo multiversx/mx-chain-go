@@ -578,8 +578,6 @@ func (e *epochStartBootstrap) prepareComponentsToSyncFromNetwork() error {
 		InterceptedDataVerifierFactory: e.interceptedDataVerifierFactory,
 		ProofsPool:                     e.dataPool.Proofs(),
 		ProofsInterceptorProcessor:     processor.NewEquivalentProofsInterceptorProcessor(),
-		Storage:                        e.storageService,
-		HeadersPool:                    e.dataPool.Headers(),
 	}
 	e.epochStartMetaBlockSyncer, err = NewEpochStartMetaSyncer(argsEpochStartSyncer)
 	if err != nil {

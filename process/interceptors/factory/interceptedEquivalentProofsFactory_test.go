@@ -13,9 +13,7 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/consensus"
 	"github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
-	"github.com/multiversx/mx-chain-go/testscommon/genericMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
-	"github.com/multiversx/mx-chain-go/testscommon/pool"
 )
 
 func createMockArgInterceptedEquivalentProofsFactory() ArgInterceptedEquivalentProofsFactory {
@@ -31,8 +29,6 @@ func createMockArgInterceptedEquivalentProofsFactory() ArgInterceptedEquivalentP
 			NodesCoordinator:  &shardingMocks.NodesCoordinatorStub{},
 		},
 		ProofsPool:       &dataRetriever.ProofsPoolMock{},
-		HeadersPool:      &pool.HeadersPoolStub{},
-		Storage:          &genericMocks.ChainStorerMock{},
 		PeerShardMapper:  &processMock.PeerShardMapperStub{},
 		WhiteListHandler: &testscommon.WhiteListHandlerStub{},
 	}
