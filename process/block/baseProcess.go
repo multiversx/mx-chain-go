@@ -1558,7 +1558,7 @@ func (bp *baseProcessor) saveMetaHeader(header data.HeaderHandler, headerHash []
 func (bp *baseProcessor) saveProof(shardID uint32, hash []byte) {
 	proof, err := bp.proofsPool.GetProof(shardID, hash)
 	if err != nil {
-		log.Debug("could not find proof for header",
+		log.Error("could not find proof for header",
 			"hash", hex.EncodeToString(hash),
 			"shard", shardID,
 		)

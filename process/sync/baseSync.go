@@ -1153,21 +1153,7 @@ func (boot *baseBootstrap) getHeaderWithHashRequestingIfMissing(hash []byte) (da
 func (boot *baseBootstrap) getHeaderWithNonceRequestingIfMissing(nonce uint64) (data.HeaderHandler, error) {
 	hdr, hash, err := boot.getHeaderFromPoolWithNonce(nonce)
 	hasHeader := err == nil
-
-	// if header exists, check if it has or needs a proof
-	// 		if it has a proof, do not wait
-	// 		if it does not need a proof, do not wait
-	// 		if it needs a proof, request and wait for the proof
-	// if header does not exist
-	//		if it has a proof, request the header
-	//		if it does not have the proof, request both and decide when header is received if it truly needed the proof
-	_, errGetProof := boot.proofs.GetProofByNonce(nonce, boot.shardCoordinator.SelfId())
-	hasProof := errGetProof == nil
-	needsProof := !hasProof
-	if hasHeader {
-		isFlagActiveForExistingHeader := boot.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, hdr.GetEpoch())
-		needsProof = needsProof && isFlagActiveForExistingHeader
-	}
+	needsProof := boot.checkNeedsProofByNonce(nonce, hdr)
 
 	if hasHeader && !needsProof {
 		return hdr, nil
@@ -1190,6 +1176,30 @@ func (boot *baseBootstrap) getHeaderWithNonceRequestingIfMissing(nonce uint64) (
 	}
 
 	return hdr, nil
+}
+
+func (boot *baseBootstrap) checkNeedsProofByNonce(
+	nonce uint64,
+	header data.HeaderHandler,
+) bool {
+	// if header exists, check if it has or needs a proof
+	// 		if it has a proof, do not wait
+	// 		if it does not need a proof, do not wait
+	// 		if it needs a proof, request and wait for the proof
+	// if header does not exist
+	//		if it has a proof, request the header
+	//		if it does not have the proof, request both and decide when header is received if it truly needed the proof
+	_, errGetProof := boot.proofs.GetProofByNonce(nonce, boot.shardCoordinator.SelfId())
+	hasProof := errGetProof == nil
+	needsProof := !hasProof
+
+	if check.IfNil(header) {
+		return needsProof
+	}
+
+	isFlagActiveForExistingHeader := boot.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, header.GetEpoch())
+	needsProof = needsProof && isFlagActiveForExistingHeader
+	return needsProof
 }
 
 func (boot *baseBootstrap) requestHeaderAndProofByHashIfMissing(
