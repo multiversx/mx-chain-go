@@ -1221,7 +1221,7 @@ func (boot *baseBootstrap) requestHeaderByHash(hash []byte) {
 		"hash", hash,
 		"probable highest nonce", boot.forkDetector.ProbableHighestNonce(),
 	)
-	boot.requestHandler.RequestMetaHeader(hash)
+
 	if boot.shardCoordinator.SelfId() == core.MetachainShardId {
 		boot.requestHandler.RequestMetaHeader(hash)
 		return
