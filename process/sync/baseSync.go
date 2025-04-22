@@ -1148,7 +1148,7 @@ func (boot *baseBootstrap) checkNeedsProofByHash(hash []byte, header data.Header
 		return needsProof
 	}
 
-	isFlagActiveForExistingHeader := boot.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, hdr.GetEpoch())
+	isFlagActiveForExistingHeader := boot.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, header.GetEpoch())
 	needsProof = needsProof && isFlagActiveForExistingHeader
 	return needsProof
 }
