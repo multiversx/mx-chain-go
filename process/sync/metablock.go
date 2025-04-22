@@ -259,17 +259,25 @@ func (boot *MetaBootstrap) getCurrHeader() (data.HeaderHandler, error) {
 	return header, nil
 }
 
-func (boot *MetaBootstrap) haveHeaderInPoolWithNonce(nonce uint64) (bool, bool) {
-	_, hash, err := process.GetMetaHeaderFromPoolWithNonce(
+func (boot *MetaBootstrap) getHeaderAndProofFromPoolWithNonce(nonce uint64) (data.HeaderHandler, data.HeaderProofHandler) {
+	header, hash, err := process.GetMetaHeaderFromPoolWithNonce(
 		nonce,
 		boot.headers)
 	if err != nil {
-		_, errGetProof := boot.proofs.GetProofByNonce(nonce, core.MetachainShardId)
-		hasProof := errGetProof == nil
-		return false, hasProof
+		proof, errGetProof := boot.proofs.GetProofByNonce(nonce, core.MetachainShardId)
+		if errGetProof != nil {
+			return nil, nil
+		}
+
+		return nil, proof
 	}
 
-	return true, boot.proofs.HasProof(core.MetachainShardId, hash)
+	proof, errGetProof := boot.proofs.GetProof(core.MetachainShardId, hash)
+	if errGetProof != nil {
+		return header, nil
+	}
+
+	return header, proof
 }
 
 func (boot *MetaBootstrap) getBlockBodyRequestingIfMissing(headerHandler data.HeaderHandler) (data.BodyHandler, error) {
@@ -331,8 +339,8 @@ func (boot *MetaBootstrap) requestHeaderByNonce(nonce uint64) {
 	boot.requestHandler.RequestMetaHeaderByNonce(nonce)
 }
 
-func (boot *MetaBootstrap) requestProofByNonce(nonce uint64) {
-	boot.requestHandler.RequestEquivalentProofByNonce(core.MetachainShardId, nonce)
+func (boot *MetaBootstrap) requestProofByNonce(nonce uint64, epoch uint32) {
+	boot.requestHandler.RequestEquivalentProofByNonce(core.MetachainShardId, nonce, epoch)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

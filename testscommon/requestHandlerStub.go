@@ -22,8 +22,8 @@ type RequestHandlerStub struct {
 	RequestPeerAuthenticationsByHashesCalled func(destShardID uint32, hashes [][]byte)
 	RequestValidatorInfoCalled               func(hash []byte)
 	RequestValidatorsInfoCalled              func(hashes [][]byte)
-	RequestEquivalentProofByHashCalled       func(headerShard uint32, headerHash []byte)
-	RequestEquivalentProofByNonceCalled      func(headerShard uint32, headerNonce uint64)
+	RequestEquivalentProofByHashCalled       func(headerShard uint32, headerHash []byte, epoch uint32)
+	RequestEquivalentProofByNonceCalled      func(headerShard uint32, headerNonce uint64, epoch uint32)
 }
 
 // SetNumPeersToQuery -
@@ -179,16 +179,16 @@ func (rhs *RequestHandlerStub) RequestValidatorsInfo(hashes [][]byte) {
 }
 
 // RequestEquivalentProofByHash -
-func (rhs *RequestHandlerStub) RequestEquivalentProofByHash(headerShard uint32, headerHash []byte) {
+func (rhs *RequestHandlerStub) RequestEquivalentProofByHash(headerShard uint32, headerHash []byte, epoch uint32) {
 	if rhs.RequestEquivalentProofByHashCalled != nil {
-		rhs.RequestEquivalentProofByHashCalled(headerShard, headerHash)
+		rhs.RequestEquivalentProofByHashCalled(headerShard, headerHash, epoch)
 	}
 }
 
 // RequestEquivalentProofByNonce -
-func (rhs *RequestHandlerStub) RequestEquivalentProofByNonce(headerShard uint32, headerNonce uint64) {
+func (rhs *RequestHandlerStub) RequestEquivalentProofByNonce(headerShard uint32, headerNonce uint64, epoch uint32) {
 	if rhs.RequestEquivalentProofByNonceCalled != nil {
-		rhs.RequestEquivalentProofByNonceCalled(headerShard, headerNonce)
+		rhs.RequestEquivalentProofByNonceCalled(headerShard, headerNonce, epoch)
 	}
 }
 

@@ -91,11 +91,11 @@ func (r *RequestHandler) RequestValidatorsInfo(_ [][]byte) {
 }
 
 // RequestEquivalentProofByHash does nothing
-func (r *RequestHandler) RequestEquivalentProofByHash(_ uint32, _ []byte) {
+func (r *RequestHandler) RequestEquivalentProofByHash(_ uint32, _ []byte, _ uint32) {
 }
 
 // RequestEquivalentProofByNonce does nothing
-func (r *RequestHandler) RequestEquivalentProofByNonce(_ uint32, _ uint64) {
+func (r *RequestHandler) RequestEquivalentProofByNonce(_ uint32, _ uint64, _ uint32) {
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

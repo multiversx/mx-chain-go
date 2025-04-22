@@ -211,18 +211,26 @@ func (boot *ShardBootstrap) getCurrHeader() (data.HeaderHandler, error) {
 	return header, nil
 }
 
-func (boot *ShardBootstrap) haveHeaderInPoolWithNonce(nonce uint64) (bool, bool) {
-	_, hash, err := process.GetShardHeaderFromPoolWithNonce(
+func (boot *ShardBootstrap) getHeaderAndProofFromPoolWithNonce(nonce uint64) (data.HeaderHandler, data.HeaderProofHandler) {
+	header, hash, err := process.GetShardHeaderFromPoolWithNonce(
 		nonce,
 		boot.shardCoordinator.SelfId(),
 		boot.headers)
 	if err != nil {
-		_, errGetProof := boot.proofs.GetProofByNonce(nonce, boot.shardCoordinator.SelfId())
-		hasProof := errGetProof == nil
-		return false, hasProof
+		proof, errGetProof := boot.proofs.GetProofByNonce(nonce, boot.shardCoordinator.SelfId())
+		if errGetProof != nil {
+			return nil, nil
+		}
+
+		return nil, proof
 	}
 
-	return true, boot.proofs.HasProof(boot.shardCoordinator.SelfId(), hash)
+	proof, errGetProof := boot.proofs.GetProof(boot.shardCoordinator.SelfId(), hash)
+	if errGetProof != nil {
+		return header, nil
+	}
+
+	return header, proof
 }
 
 func (boot *ShardBootstrap) requestMiniBlocksFromHeaderWithNonceIfMissing(headerHandler data.HeaderHandler) {
@@ -287,8 +295,8 @@ func (boot *ShardBootstrap) requestHeaderByNonce(nonce uint64) {
 	boot.requestHandler.RequestShardHeaderByNonce(boot.shardCoordinator.SelfId(), nonce)
 }
 
-func (boot *ShardBootstrap) requestProofByNonce(nonce uint64) {
-	boot.requestHandler.RequestEquivalentProofByNonce(boot.shardCoordinator.SelfId(), nonce)
+func (boot *ShardBootstrap) requestProofByNonce(nonce uint64, epoch uint32) {
+	boot.requestHandler.RequestEquivalentProofByNonce(boot.shardCoordinator.SelfId(), nonce, epoch)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

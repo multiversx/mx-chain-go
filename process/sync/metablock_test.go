@@ -1892,7 +1892,7 @@ func TestMetaBootstrap_SyncBlock_WithEquivalentProofs(t *testing.T) {
 			RequestMetaHeaderByNonceCalled: func(nonce uint64) {
 				receive <- true
 			},
-			RequestEquivalentProofByNonceCalled: func(headerShard uint32, headerNonce uint64) {
+			RequestEquivalentProofByNonceCalled: func(headerShard uint32, headerNonce uint64, epoch uint32) {
 				receive <- true
 			},
 		}
@@ -1997,7 +1997,7 @@ func TestMetaBootstrap_SyncBlock_WithEquivalentProofs(t *testing.T) {
 			RequestMetaHeaderCalled: func(hash []byte) {
 				receive <- true
 			},
-			RequestEquivalentProofByHashCalled: func(headerShard uint32, headerHash []byte) {
+			RequestEquivalentProofByHashCalled: func(headerShard uint32, headerHash []byte, epoch uint32) {
 				receive <- true
 			},
 		}

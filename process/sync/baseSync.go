@@ -1114,7 +1114,11 @@ func (boot *baseBootstrap) getHeaderWithHashRequestingIfMissing(hash []byte) (da
 		return hdr, nil
 	}
 
-	boot.requestHeaderAndProofByHashIfMissing(hash, !hasHeader, needsProof)
+	epoch := boot.enableEpochsHandler.GetCurrentEpoch()
+	if hasHeader {
+		epoch = hdr.GetEpoch()
+	}
+	boot.requestHeaderAndProofByHashIfMissing(hash, epoch, !hasHeader, needsProof)
 
 	err = boot.waitForHeaderAndProofByHash()
 	if err != nil {
@@ -1164,7 +1168,11 @@ func (boot *baseBootstrap) getHeaderWithNonceRequestingIfMissing(nonce uint64) (
 		return hdr, nil
 	}
 
-	boot.requestHeaderAndProofByNonceIfMissing(hash, nonce, !hasHeader, needsProof)
+	epoch := boot.enableEpochsHandler.GetCurrentEpoch()
+	if hasHeader {
+		epoch = hdr.GetEpoch()
+	}
+	boot.requestHeaderAndProofByNonceIfMissing(hash, nonce, epoch, !hasHeader, needsProof)
 
 	err = boot.waitForHeaderAndProofByNonce()
 	if err != nil {
@@ -1209,6 +1217,7 @@ func (boot *baseBootstrap) checkNeedsProofByNonce(
 
 func (boot *baseBootstrap) requestHeaderAndProofByHashIfMissing(
 	hash []byte,
+	epoch uint32,
 	needsHeader bool,
 	needsProof bool,
 ) {
@@ -1227,7 +1236,7 @@ func (boot *baseBootstrap) requestHeaderAndProofByHashIfMissing(
 	)
 
 	boot.setRequestedHeaderHash(hash)
-	boot.requestHandler.RequestEquivalentProofByHash(boot.shardCoordinator.SelfId(), hash)
+	boot.requestHandler.RequestEquivalentProofByHash(boot.shardCoordinator.SelfId(), hash, epoch)
 }
 
 func (boot *baseBootstrap) requestHeaderByHash(hash []byte) {
@@ -1257,6 +1266,7 @@ func (boot *baseBootstrap) getShardLabel() string {
 func (boot *baseBootstrap) requestHeaderAndProofByNonceIfMissing(
 	hash []byte,
 	nonce uint64,
+	epoch uint32,
 	needsHeader bool,
 	needsProof bool,
 ) {
@@ -1276,14 +1286,14 @@ func (boot *baseBootstrap) requestHeaderAndProofByNonceIfMissing(
 		)
 
 		boot.setRequestedHeaderNonce(&nonce)
-		boot.requestHandler.RequestEquivalentProofByNonce(boot.shardCoordinator.SelfId(), nonce)
+		boot.requestHandler.RequestEquivalentProofByNonce(boot.shardCoordinator.SelfId(), nonce, epoch)
 		return
 	}
 
 	log.Debug("requesting equivalent proof from network",
 		"hash", hex.EncodeToString(hash),
 	)
-	boot.requestHandler.RequestEquivalentProofByHash(boot.shardCoordinator.SelfId(), hash)
+	boot.requestHandler.RequestEquivalentProofByHash(boot.shardCoordinator.SelfId(), hash, epoch)
 }
 
 func (boot *baseBootstrap) requestHeaderByNonce(nonce uint64) {
@@ -1534,16 +1544,23 @@ func (boot *baseBootstrap) requestHeaders(fromNonce uint64, toNonce uint64) {
 	defer boot.mutRequestHeaders.Unlock()
 
 	for currentNonce := fromNonce; currentNonce <= toNonce; currentNonce++ {
-		hasHeader, hasProof := boot.blockBootstrapper.haveHeaderInPoolWithNonce(currentNonce)
+		header, proof := boot.blockBootstrapper.getHeaderAndProofFromPoolWithNonce(currentNonce)
+		hasHeader := !check.IfNil(header)
+		hasProof := !check.IfNil(proof)
 		if hasHeader && hasProof {
 			continue
+		}
+
+		epoch := boot.enableEpochsHandler.GetCurrentEpoch()
+		if hasHeader {
+			epoch = header.GetEpoch()
 		}
 
 		if !hasHeader {
 			boot.blockBootstrapper.requestHeaderByNonce(currentNonce)
 		}
 		if !hasProof {
-			boot.blockBootstrapper.requestProofByNonce(currentNonce)
+			boot.blockBootstrapper.requestProofByNonce(currentNonce, epoch)
 		}
 	}
 }

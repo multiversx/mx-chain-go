@@ -205,7 +205,7 @@ func (e *epochStartMetaBlockProcessor) GetEpochStartMetaBlock(ctx context.Contex
 	}
 
 	if e.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, metaBlock.GetEpoch()) {
-		err = e.waitForMetaBlockProof(ctx, []byte(metaBlockHash))
+		err = e.waitForMetaBlockProof(ctx, []byte(metaBlockHash), metaBlock.GetEpoch())
 		if err != nil {
 			return nil, err
 		}
@@ -226,14 +226,9 @@ func (e *epochStartMetaBlockProcessor) waitForMetaBlock(ctx context.Context) (da
 	for {
 		select {
 		case <-e.chanMetaBlockReached:
-			e.requestHandler.SetEpoch(e.metaBlock.GetEpoch())
 			return e.metaBlock, e.metaBlockHash, nil
 		case <-ctx.Done():
-			metaBlock, hash, errGet := e.getMostReceivedMetaBlock()
-			if !check.IfNil(e.metaBlock) {
-				e.requestHandler.SetEpoch(e.metaBlock.GetEpoch())
-			}
-			return metaBlock, hash, errGet
+			return e.getMostReceivedMetaBlock()
 		case <-chanRequests:
 			err = e.requestMetaBlock()
 			if err != nil {
@@ -247,12 +242,16 @@ func (e *epochStartMetaBlockProcessor) waitForMetaBlock(ctx context.Context) (da
 	}
 }
 
-func (e *epochStartMetaBlockProcessor) waitForMetaBlockProof(ctx context.Context, metaBlockHash []byte) error {
+func (e *epochStartMetaBlockProcessor) waitForMetaBlockProof(
+	ctx context.Context,
+	metaBlockHash []byte,
+	epoch uint32,
+) error {
 	if e.proofsPool.HasProof(core.MetachainShardId, metaBlockHash) {
 		return nil
 	}
 
-	err := e.requestProofForMetaBlock(metaBlockHash)
+	err := e.requestProofForMetaBlock(metaBlockHash, epoch)
 	if err != nil {
 		return err
 	}
@@ -266,7 +265,7 @@ func (e *epochStartMetaBlockProcessor) waitForMetaBlockProof(ctx context.Context
 		case <-ctx.Done():
 			return epochStart.ErrTimeoutWaitingForMetaBlock
 		case <-chanRequests:
-			err = e.requestProofForMetaBlock(metaBlockHash)
+			err = e.requestProofForMetaBlock(metaBlockHash, epoch)
 			if err != nil {
 				return err
 			}
@@ -307,7 +306,7 @@ func (e *epochStartMetaBlockProcessor) requestMetaBlock() error {
 	return nil
 }
 
-func (e *epochStartMetaBlockProcessor) requestProofForMetaBlock(metablockHash []byte) error {
+func (e *epochStartMetaBlockProcessor) requestProofForMetaBlock(metablockHash []byte, epoch uint32) error {
 	numConnectedPeers := len(e.messenger.ConnectedPeers())
 	topic := common.EquivalentProofsTopic + core.CommunicationIdentifierBetweenShards(core.MetachainShardId, core.AllShardId)
 	err := e.requestHandler.SetNumPeersToQuery(topic, numConnectedPeers, numConnectedPeers)
@@ -315,7 +314,7 @@ func (e *epochStartMetaBlockProcessor) requestProofForMetaBlock(metablockHash []
 		return err
 	}
 
-	e.requestHandler.RequestEquivalentProofByHash(core.MetachainShardId, metablockHash)
+	e.requestHandler.RequestEquivalentProofByHash(core.MetachainShardId, metablockHash, epoch)
 
 	return nil
 }
@@ -353,7 +352,6 @@ func (e *epochStartMetaBlockProcessor) checkMetaBlockMaps() {
 	if metaBlockFound {
 		e.metaBlock = e.mapReceivedMetaBlocks[hash]
 		e.metaBlockHash = hash
-		e.requestHandler.SetEpoch(e.metaBlock.GetEpoch())
 		e.chanMetaBlockReached <- true
 	}
 }

@@ -606,8 +606,8 @@ type RequestHandler interface {
 	RequestPeerAuthenticationsByHashes(destShardID uint32, hashes [][]byte)
 	RequestValidatorInfo(hash []byte)
 	RequestValidatorsInfo(hashes [][]byte)
-	RequestEquivalentProofByHash(headerShard uint32, headerHash []byte)
-	RequestEquivalentProofByNonce(headerShard uint32, headerNonce uint64)
+	RequestEquivalentProofByHash(headerShard uint32, headerHash []byte, epoch uint32)
+	RequestEquivalentProofByNonce(headerShard uint32, headerNonce uint64, epoch uint32)
 	IsInterfaceNil() bool
 }
 
