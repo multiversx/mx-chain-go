@@ -1960,7 +1960,7 @@ func TestMetaBootstrap_SyncBlock_WithEquivalentProofs(t *testing.T) {
 		numProofCalls := 0
 		pools.ProofsCalled = func() dataRetriever.ProofsPool {
 			return &dataRetrieverMock.ProofsPoolMock{
-				GetProofByNonceCalled: func(headerNonce uint64, shardID uint32) (data.HeaderProofHandler, error) {
+				GetProofCalled: func(shardID uint32, headerHash []byte) (data.HeaderProofHandler, error) {
 					return nil, errors.New("missing proof")
 				},
 				HasProofCalled: func(shardID uint32, headerHash []byte) bool {

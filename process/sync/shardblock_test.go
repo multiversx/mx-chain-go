@@ -2470,7 +2470,7 @@ func TestShardBootstrap_SyncBlock_WithEquivalentProofs(t *testing.T) {
 		receive := make(chan bool, 2)
 
 		args.RequestHandler = &testscommon.RequestHandlerStub{
-			RequestMetaHeaderCalled: func(hash []byte) {
+			RequestShardHeaderCalled: func(shardID uint32, hash []byte) {
 				receive <- true
 			},
 			RequestEquivalentProofByHashCalled: func(headerShard uint32, headerHash []byte) {
