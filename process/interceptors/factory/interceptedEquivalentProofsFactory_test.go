@@ -28,9 +28,7 @@ func createMockArgInterceptedEquivalentProofsFactory() ArgInterceptedEquivalentP
 			HeaderSigVerifier: &consensus.HeaderSigVerifierMock{},
 			NodesCoordinator:  &shardingMocks.NodesCoordinatorStub{},
 		},
-		ProofsPool:       &dataRetriever.ProofsPoolMock{},
-		PeerShardMapper:  &processMock.PeerShardMapperStub{},
-		WhiteListHandler: &testscommon.WhiteListHandlerStub{},
+		ProofsPool: &dataRetriever.ProofsPoolMock{},
 	}
 }
 
@@ -40,14 +38,14 @@ func TestInterceptedEquivalentProofsFactory_IsInterfaceNil(t *testing.T) {
 	var factory *interceptedEquivalentProofsFactory
 	require.True(t, factory.IsInterfaceNil())
 
-	factory, _ = NewInterceptedEquivalentProofsFactory(createMockArgInterceptedEquivalentProofsFactory())
+	factory = NewInterceptedEquivalentProofsFactory(createMockArgInterceptedEquivalentProofsFactory())
 	require.False(t, factory.IsInterfaceNil())
 }
 
 func TestNewInterceptedEquivalentProofsFactory(t *testing.T) {
 	t.Parallel()
 
-	factory, _ := NewInterceptedEquivalentProofsFactory(createMockArgInterceptedEquivalentProofsFactory())
+	factory := NewInterceptedEquivalentProofsFactory(createMockArgInterceptedEquivalentProofsFactory())
 	require.NotNil(t, factory)
 }
 
@@ -55,7 +53,7 @@ func TestInterceptedEquivalentProofsFactory_Create(t *testing.T) {
 	t.Parallel()
 
 	args := createMockArgInterceptedEquivalentProofsFactory()
-	factory, _ := NewInterceptedEquivalentProofsFactory(args)
+	factory := NewInterceptedEquivalentProofsFactory(args)
 	require.NotNil(t, factory)
 
 	providedProof := &block.HeaderProof{

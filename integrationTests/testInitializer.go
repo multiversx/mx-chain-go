@@ -1160,12 +1160,33 @@ func ProposeBlock(nodes []*TestProcessorNode, leaders []*TestProcessorNode, roun
 		n.WhiteListBody(nodes, body)
 		pk := n.NodeKeys.MainKey.Pk
 		n.BroadcastBlock(body, header, pk)
+		broadcastProofIfNeeded(n, header)
 		n.CommitBlock(body, header)
 	}
 
 	log.Info("Delaying for disseminating headers and miniblocks...")
 	time.Sleep(stepDelayAdjustment)
 	log.Info("Proposed block\n" + MakeDisplayTable(nodes))
+}
+
+func broadcastProofIfNeeded(node *TestProcessorNode, header data.HeaderHandler) {
+	coreComp := node.Node.GetCoreComponents()
+	if !coreComp.EnableEpochsHandler().IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, header.GetEpoch()) {
+		return
+	}
+
+	hash, _ := core.CalculateHash(coreComp.InternalMarshalizer(), coreComp.Hasher(), header)
+	proof := &dataBlock.HeaderProof{
+		PubKeysBitmap:       []byte("bitmap"),
+		AggregatedSignature: []byte("sig"),
+		HeaderHash:          hash,
+		HeaderEpoch:         header.GetEpoch(),
+		HeaderNonce:         header.GetNonce(),
+		HeaderShardId:       header.GetShardID(),
+		HeaderRound:         header.GetRound(),
+		IsStartOfEpoch:      header.IsStartOfEpochBlock(),
+	}
+	node.BroadcastProof(proof, node.NodeKeys.MainKey.Pk)
 }
 
 // SyncBlock synchronizes the proposed block in all the other shard nodes

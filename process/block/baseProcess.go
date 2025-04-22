@@ -1520,7 +1520,7 @@ func (bp *baseProcessor) saveShardHeader(header data.HeaderHandler, headerHash [
 			"err", errNotCritical)
 	}
 
-	bp.saveProof(header.GetShardID(), headerHash)
+	bp.saveProof(header.GetShardID(), headerHash, header.GetEpoch())
 
 	elapsedTime := time.Since(startTime)
 	if elapsedTime >= common.PutInStorerMaxTime {
@@ -1547,7 +1547,7 @@ func (bp *baseProcessor) saveMetaHeader(header data.HeaderHandler, headerHash []
 			"err", errNotCritical)
 	}
 
-	bp.saveProof(core.MetachainShardId, headerHash)
+	bp.saveProof(core.MetachainShardId, headerHash, header.GetEpoch())
 
 	elapsedTime := time.Since(startTime)
 	if elapsedTime >= common.PutInStorerMaxTime {
@@ -1555,7 +1555,11 @@ func (bp *baseProcessor) saveMetaHeader(header data.HeaderHandler, headerHash []
 	}
 }
 
-func (bp *baseProcessor) saveProof(shardID uint32, hash []byte) {
+func (bp *baseProcessor) saveProof(shardID uint32, hash []byte, epoch uint32) {
+	if !bp.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, epoch) {
+		return
+	}
+
 	proof, err := bp.proofsPool.GetProof(shardID, hash)
 	if err != nil {
 		log.Error("could not find proof for header",

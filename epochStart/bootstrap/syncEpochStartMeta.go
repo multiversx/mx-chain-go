@@ -132,10 +132,8 @@ func NewEpochStartMetaSyncer(args ArgsNewEpochStartMetaSyncer) (*epochStartMetaS
 	argsInterceptedEquivalentProofsFactory := interceptorsFactory.ArgInterceptedEquivalentProofsFactory{
 		ArgInterceptedDataFactory: argsInterceptedDataFactory,
 		ProofsPool:                args.ProofsPool,
-		PeerShardMapper:           disabled.NewPeerShardMapper(), // no need for real psm, proofs will be requested thus whitelisted
-		WhiteListHandler:          args.WhitelistHandler,
 	}
-	interceptedEquivalentProofsFactory, err := interceptorsFactory.NewInterceptedEquivalentProofsFactory(argsInterceptedEquivalentProofsFactory)
+	interceptedEquivalentProofsFactory := interceptorsFactory.NewInterceptedEquivalentProofsFactory(argsInterceptedEquivalentProofsFactory)
 	if err != nil {
 		return nil, err
 	}

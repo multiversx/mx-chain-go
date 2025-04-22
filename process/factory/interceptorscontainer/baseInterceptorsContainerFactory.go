@@ -926,13 +926,8 @@ func (bicf *baseInterceptorsContainerFactory) createOneShardEquivalentProofsInte
 	args := interceptorFactory.ArgInterceptedEquivalentProofsFactory{
 		ArgInterceptedDataFactory: *bicf.argInterceptorFactory,
 		ProofsPool:                bicf.dataPool.Proofs(),
-		PeerShardMapper:           bicf.mainPeerShardMapper,
-		WhiteListHandler:          bicf.whiteListHandler,
 	}
-	equivalentProofsFactory, err := interceptorFactory.NewInterceptedEquivalentProofsFactory(args)
-	if err != nil {
-		return nil, err
-	}
+	equivalentProofsFactory := interceptorFactory.NewInterceptedEquivalentProofsFactory(args)
 
 	interceptedDataVerifier, err := bicf.interceptedDataVerifierFactory.Create(topic)
 	if err != nil {
