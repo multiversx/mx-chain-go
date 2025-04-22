@@ -581,13 +581,13 @@ func newBaseTestProcessorNode(args ArgTestProcessorNode) *TestProcessorNode {
 	tpn.HeaderSigVerifier = args.HeaderSigVerifier
 	if check.IfNil(tpn.HeaderSigVerifier) {
 		tpn.HeaderSigVerifier = &consensusMocks.HeaderSigVerifierMock{
-			//VerifyHeaderProofCalled: func(proofHandler data.HeaderProofHandler) error {
-			//	if !check.IfNil(proofHandler) {
-			//		tpn.ProofsPool.AddProof(proofHandler)
-			//	}
-			//
-			//	return nil
-			//},
+			VerifyHeaderProofCalled: func(proofHandler data.HeaderProofHandler) error {
+				if !check.IfNil(proofHandler) {
+					tpn.ProofsPool.AddProof(proofHandler)
+				}
+
+				return nil
+			},
 		}
 	}
 
@@ -2869,14 +2869,6 @@ func (tpn *TestProcessorNode) BroadcastBlock(body data.BodyHandler, header data.
 	miniBlocks, transactions, _ := tpn.BlockProcessor.MarshalizedDataToBroadcast(header, body)
 	_ = tpn.BroadcastMessenger.BroadcastMiniBlocks(miniBlocks, pkBytes)
 	_ = tpn.BroadcastMessenger.BroadcastTransactions(transactions, pkBytes)
-}
-
-// BroadcastProof broadcasts the header proof to the connected peers
-func (tpn *TestProcessorNode) BroadcastProof(proof data.HeaderProofHandler, publicKey crypto.PublicKey) {
-	pkBytes, _ := publicKey.ToByteArray()
-	_ = tpn.BroadcastMessenger.BroadcastEquivalentProof(proof, pkBytes)
-
-	time.Sleep(tpn.WaitTime)
 }
 
 // WhiteListBody will whitelist all miniblocks from the given body for all the given nodes

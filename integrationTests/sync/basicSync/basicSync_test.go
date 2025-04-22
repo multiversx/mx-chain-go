@@ -222,7 +222,6 @@ func TestSyncWorksInShard_EmptyBlocksNoForks_With_EquivalentProofs(t *testing.T)
 			WithSync:             true,
 			EpochsConfig:         &enableEpochs,
 		})
-		nodes[i].WaitTime = 10 * time.Millisecond // allow proofs to be received
 		connectableNodes = append(connectableNodes, nodes[i])
 	}
 
@@ -235,7 +234,6 @@ func TestSyncWorksInShard_EmptyBlocksNoForks_With_EquivalentProofs(t *testing.T)
 	})
 	idxProposerMeta := numNodesPerShard
 	nodes[idxProposerMeta] = metachainNode
-	metachainNode.WaitTime = 10 * time.Millisecond // allow proofs to be received
 	connectableNodes = append(connectableNodes, metachainNode)
 
 	idxProposerShard0 := 0
@@ -312,7 +310,6 @@ func TestSyncMetaAndShard_With_EquivalentProofs(t *testing.T) {
 			WithSync:             true,
 			EpochsConfig:         &enableEpochs,
 		})
-		nodes[i].WaitTime = 10 * time.Millisecond // allow proofs to be received
 		connectableNodes = append(connectableNodes, nodes[i])
 	}
 
@@ -329,7 +326,6 @@ func TestSyncMetaAndShard_With_EquivalentProofs(t *testing.T) {
 			EpochsConfig:         &enableEpochs,
 		})
 		nodes[idxProposerMeta+i] = metachainNode
-		metachainNode.WaitTime = 10 * time.Millisecond // allow proofs to be received
 		connectableNodes = append(connectableNodes, metachainNode)
 	}
 	leaders = append(leaders, nodes[idxProposerMeta])
