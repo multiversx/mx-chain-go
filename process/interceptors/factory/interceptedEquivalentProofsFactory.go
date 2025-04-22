@@ -18,8 +18,6 @@ import (
 type ArgInterceptedEquivalentProofsFactory struct {
 	ArgInterceptedDataFactory
 	ProofsPool       dataRetriever.ProofsPool
-	HeadersPool      dataRetriever.HeadersPool
-	Storage          dataRetriever.StorageService
 	PeerShardMapper  process.PeerShardMapper
 	WhiteListHandler process.WhiteListHandler
 }
@@ -29,8 +27,6 @@ type interceptedEquivalentProofsFactory struct {
 	shardCoordinator   sharding.Coordinator
 	headerSigVerifier  consensus.HeaderSigVerifier
 	proofsPool         dataRetriever.ProofsPool
-	headersPool        dataRetriever.HeadersPool
-	storage            dataRetriever.StorageService
 	hasher             hashing.Hasher
 	proofSizeChecker   common.FieldsSizeChecker
 	km                 sync.KeyRWMutexHandler
@@ -50,8 +46,6 @@ func NewInterceptedEquivalentProofsFactory(args ArgInterceptedEquivalentProofsFa
 		shardCoordinator:   args.ShardCoordinator,
 		headerSigVerifier:  args.HeaderSigVerifier,
 		proofsPool:         args.ProofsPool,
-		headersPool:        args.HeadersPool,
-		storage:            args.Storage,
 		hasher:             args.CoreComponents.Hasher(),
 		proofSizeChecker:   args.CoreComponents.FieldsSizeChecker(),
 		km:                 sync.NewKeyRWMutex(),
@@ -68,14 +62,12 @@ func (factory *interceptedEquivalentProofsFactory) Create(buff []byte, messageOr
 		ShardCoordinator:   factory.shardCoordinator,
 		HeaderSigVerifier:  factory.headerSigVerifier,
 		Proofs:             factory.proofsPool,
-		Headers:            factory.headersPool,
 		Hasher:             factory.hasher,
 		ProofSizeChecker:   factory.proofSizeChecker,
 		KeyRWMutexHandler:  factory.km,
 		EligibleNodesCache: factory.eligibleNodesCache,
 		MessageOriginator:  messageOriginator,
 		WhiteListHandler:   factory.whiteListHandler,
-		Store:              factory.storage,
 	}
 	return interceptedBlocks.NewInterceptedEquivalentProof(args)
 }

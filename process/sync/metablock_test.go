@@ -56,16 +56,6 @@ func createMetaBlockProcessor(blk data.ChainHandler) *testscommon.BlockProcessor
 	return blockProcessorMock
 }
 
-func createMetaStore() dataRetriever.StorageService {
-	store := dataRetriever.NewChainStorer()
-	store.AddStorer(dataRetriever.MetaBlockUnit, generateTestUnit())
-	store.AddStorer(dataRetriever.ShardHdrNonceHashDataUnit, generateTestUnit())
-	store.AddStorer(dataRetriever.MetaHdrNonceHashDataUnit, generateTestUnit())
-	store.AddStorer(dataRetriever.UserAccountsUnit, generateTestUnit())
-	store.AddStorer(dataRetriever.PeerAccountsUnit, generateTestUnit())
-	return store
-}
-
 func CreateMetaBootstrapMockArguments() sync.ArgMetaBootstrapper {
 	shardCoordinator := mock.NewOneShardCoordinatorMock()
 	_ = shardCoordinator.SetSelfId(core.MetachainShardId)
@@ -1828,7 +1818,7 @@ func TestMetaBootstrap_SyncBlock_WithEquivalentProofs(t *testing.T) {
 		args := CreateMetaBootstrapMockArguments()
 
 		args.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-			IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
+			IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
 				return flag == common.EquivalentMessagesFlag
 			},
 		}
@@ -1902,7 +1892,7 @@ func TestMetaBootstrap_SyncBlock_WithEquivalentProofs(t *testing.T) {
 			RequestMetaHeaderByNonceCalled: func(nonce uint64) {
 				receive <- true
 			},
-			RequestEquivalentProofByHashCalled: func(headerShard uint32, headerHash []byte) {
+			RequestEquivalentProofByNonceCalled: func(headerShard uint32, headerNonce uint64) {
 				receive <- true
 			},
 		}
@@ -1970,7 +1960,7 @@ func TestMetaBootstrap_SyncBlock_WithEquivalentProofs(t *testing.T) {
 		numProofCalls := 0
 		pools.ProofsCalled = func() dataRetriever.ProofsPool {
 			return &dataRetrieverMock.ProofsPoolMock{
-				GetProofByNonceCalled: func(headerNonce uint64, shardID uint32) (data.HeaderProofHandler, error) {
+				GetProofCalled: func(shardID uint32, headerHash []byte) (data.HeaderProofHandler, error) {
 					return nil, errors.New("missing proof")
 				},
 				HasProofCalled: func(shardID uint32, headerHash []byte) bool {
