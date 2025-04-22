@@ -1109,22 +1109,7 @@ func (boot *baseBootstrap) getNextHeaderRequestingIfMissing() (data.HeaderHandle
 func (boot *baseBootstrap) getHeaderWithHashRequestingIfMissing(hash []byte) (data.HeaderHandler, error) {
 	hdr, err := boot.getHeader(hash)
 	hasHeader := err == nil
-
-	// if header exists, check if it has or needs a proof
-	// 		if it has a proof, do not wait
-	// 		if it does not need a proof, do not wait
-	// 		if it needs a proof, request and wait for the proof
-	// if header does not exist
-	//		if it has a proof, request the header
-	//		if it does not have the proof, request both and decide when header is received if it truly needed the proof
-	_, errGetProof := boot.proofs.GetProof(boot.shardCoordinator.SelfId(), hash)
-	hasProof := errGetProof == nil
-	needsProof := !hasProof
-	if hasHeader {
-		isFlagActiveForExistingHeader := boot.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, hdr.GetEpoch())
-		needsProof = needsProof && isFlagActiveForExistingHeader
-	}
-
+	needsProof := boot.checkNeedsProofByHash(hash, hdr)
 	if hasHeader && !needsProof {
 		return hdr, nil
 	}
@@ -1146,6 +1131,26 @@ func (boot *baseBootstrap) getHeaderWithHashRequestingIfMissing(hash []byte) (da
 	}
 
 	return hdr, nil
+}
+
+func (boot *baseBootstrap) checkNeedsProofByHash(hash []byte, header data.HeaderHandler) bool {
+	// if header exists, check if it has or needs a proof
+	// 		if it has a proof, do not wait
+	// 		if it does not need a proof, do not wait
+	// 		if it needs a proof, request and wait for the proof
+	// if header does not exist
+	//		if it has a proof, request the header
+	//		if it does not have the proof, request both and decide when header is received if it truly needed the proof
+	_, errGetProof := boot.proofs.GetProof(boot.shardCoordinator.SelfId(), hash)
+	hasProof := errGetProof == nil
+	needsProof := !hasProof
+	if check.IfNil(header) {
+		return needsProof
+	}
+
+	isFlagActiveForExistingHeader := boot.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, hdr.GetEpoch())
+	needsProof = needsProof && isFlagActiveForExistingHeader
+	return needsProof
 }
 
 // getHeaderWithNonceRequestingIfMissing method gets the header with a given nonce from pool. If it is not found there, it will
