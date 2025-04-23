@@ -261,8 +261,9 @@ func TestSyncWorksInShard_EmptyBlocksNoForks_With_EquivalentProofs(t *testing.T)
 	nonce++
 
 	numRoundsToTest := 5
+
 	for i := 0; i < numRoundsToTest; i++ {
-		integrationTests.ProposeBlock(nodes, leaders, round, nonce)
+		integrationTests.ProposeBlockWithProof(nodes, leaders, round, nonce)
 
 		time.Sleep(integrationTests.SyncDelay)
 
@@ -353,7 +354,7 @@ func TestSyncMetaAndShard_With_EquivalentProofs(t *testing.T) {
 
 	numRoundsToTest := 5
 	for i := 0; i < numRoundsToTest; i++ {
-		integrationTests.ProposeBlock(nodes, leaders, round, nonce)
+		integrationTests.ProposeBlockWithProof(nodes, leaders, round, nonce)
 
 		time.Sleep(integrationTests.SyncDelay)
 
