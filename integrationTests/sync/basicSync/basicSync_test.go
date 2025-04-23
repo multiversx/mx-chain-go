@@ -203,8 +203,6 @@ func TestSyncWorksInShard_EmptyBlocksNoForks_With_EquivalentProofs(t *testing.T)
 		t.Skip("this is not a short test")
 	}
 
-	logger.SetLogLevel("*:DEBUG,sync:TRACE,proofscache:TRACE")
-
 	// 3 shard nodes and 1 metachain node
 	maxShards := uint32(1)
 	shardId := uint32(0)
@@ -264,9 +262,8 @@ func TestSyncWorksInShard_EmptyBlocksNoForks_With_EquivalentProofs(t *testing.T)
 
 	numRoundsToTest := 5
 
-	headerInfosByRound := make(map[uint64]map[uint32]*integrationTests.ProposedBlockInfo)
 	for i := 0; i < numRoundsToTest; i++ {
-		headerInfosByRound[round] = integrationTests.ProposeBlockWithoutBroadcast(nodes, leaders, round, nonce)
+		integrationTests.ProposeBlockWithProof(nodes, leaders, round, nonce)
 
 		time.Sleep(integrationTests.SyncDelay)
 
@@ -275,35 +272,7 @@ func TestSyncWorksInShard_EmptyBlocksNoForks_With_EquivalentProofs(t *testing.T)
 		nonce++
 	}
 
-	// for _, n := range leaders {
-	// 	pk := n.NodeKeys.MainKey.Pk
-	// 	header := headerInfosByRound[1][n.ShardCoordinator.SelfId()].Header
-	// 	n.BroadcastProof(header, pk)
-	// }
-
-	// time.Sleep(integrationTests.SyncDelay)
-
-	for _, n := range leaders {
-		pk := n.NodeKeys.MainKey.Pk
-		header := headerInfosByRound[round-1][n.ShardCoordinator.SelfId()].Header
-		body := headerInfosByRound[round-1][n.ShardCoordinator.SelfId()].Body
-
-		time.Sleep(integrationTests.SyncDelay)
-
-		n.BroadcastBlock(body, header, pk)
-
-		coreComp := n.Node.GetCoreComponents()
-		hash, _ := core.CalculateHash(coreComp.InternalMarshalizer(), coreComp.Hasher(), header)
-		proof, err := n.Node.GetDataComponents().Datapool().Proofs().GetProof(n.ShardCoordinator.SelfId(), hash)
-		log.LogIfError(err)
-
-		_ = n.Node.GetDataComponents().Datapool().Proofs().CleanupProofsBehindNonce(n.ShardCoordinator.SelfId(), 10)
-
-		n.BroadcastProof(proof, pk)
-
-	}
-
-	time.Sleep(time.Second * 10)
+	time.Sleep(integrationTests.SyncDelay)
 
 	expectedNonce := nodes[0].BlockChain.GetCurrentBlockHeader().GetNonce()
 	for i := 1; i < len(nodes); i++ {
@@ -385,7 +354,7 @@ func TestSyncMetaAndShard_With_EquivalentProofs(t *testing.T) {
 
 	numRoundsToTest := 5
 	for i := 0; i < numRoundsToTest; i++ {
-		integrationTests.ProposeBlock(nodes, leaders, round, nonce)
+		integrationTests.ProposeBlockWithProof(nodes, leaders, round, nonce)
 
 		time.Sleep(integrationTests.SyncDelay)
 

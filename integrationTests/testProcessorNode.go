@@ -582,10 +582,6 @@ func newBaseTestProcessorNode(args ArgTestProcessorNode) *TestProcessorNode {
 	if check.IfNil(tpn.HeaderSigVerifier) {
 		tpn.HeaderSigVerifier = &consensusMocks.HeaderSigVerifierMock{
 			VerifyHeaderProofCalled: func(proofHandler data.HeaderProofHandler) error {
-				if !check.IfNil(proofHandler) {
-					tpn.ProofsPool.AddProof(proofHandler)
-				}
-
 				return nil
 			},
 		}

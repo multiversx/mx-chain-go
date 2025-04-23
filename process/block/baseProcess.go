@@ -1557,6 +1557,8 @@ func (bp *baseProcessor) saveMetaHeader(header data.HeaderHandler, headerHash []
 	if elapsedTime >= common.PutInStorerMaxTime {
 		log.Warn("saveMetaHeader", "elapsed time", elapsedTime)
 	}
+
+	log.Info("saved header to storage", "hash", headerHash)
 }
 
 func (bp *baseProcessor) saveProof(shardID uint32, hash []byte, epoch uint32) {
@@ -1586,6 +1588,8 @@ func (bp *baseProcessor) saveProof(shardID uint32, hash []byte, epoch uint32) {
 			"saveProof.Put -> ProofsUnit",
 			"err", errNotCritical)
 	}
+
+	log.Info("saved proof to storage", "hash", hash)
 }
 
 func getLastSelfNotarizedHeaderByItself(chainHandler data.ChainHandler) (data.HeaderHandler, []byte) {

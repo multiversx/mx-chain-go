@@ -1160,8 +1160,9 @@ func ProposeBlock(nodes []*TestProcessorNode, leaders []*TestProcessorNode, roun
 		n.WhiteListBody(nodes, body)
 		pk := n.NodeKeys.MainKey.Pk
 		n.BroadcastBlock(body, header, pk)
+
+		_ = addProofIfNeeded(n, header)
 		n.CommitBlock(body, header)
-		addProofIfNeeded(n, header)
 	}
 
 	log.Info("Delaying for disseminating headers and miniblocks...")
@@ -1169,41 +1170,42 @@ func ProposeBlock(nodes []*TestProcessorNode, leaders []*TestProcessorNode, roun
 	log.Info("Proposed block\n" + MakeDisplayTable(nodes))
 }
 
-type ProposedBlockInfo struct {
-	Body   data.BodyHandler
-	Header data.HeaderHandler
-}
-
-func ProposeBlockWithoutBroadcast(
+func ProposeBlockWithProof(
 	nodes []*TestProcessorNode,
 	leaders []*TestProcessorNode,
 	round uint64,
 	nonce uint64,
-) map[uint32]*ProposedBlockInfo {
+) {
 	log.Info("All shards propose blocks without broadcast...")
 
-	headerInfos := make(map[uint32]*ProposedBlockInfo)
+	stepDelayAdjustment := StepDelay * time.Duration(1+len(nodes)/3)
 
 	for _, n := range leaders {
 		body, header, _ := n.ProposeBlock(round, nonce)
 		n.WhiteListBody(nodes, body)
+		pk := n.NodeKeys.MainKey.Pk
+		n.BroadcastBlock(body, header, pk)
 
-		addProofIfNeeded(n, header)
+		proof := addProofIfNeeded(n, header)
 		n.CommitBlock(body, header)
 
-		headerInfos[n.ShardCoordinator.SelfId()] = &ProposedBlockInfo{
-			Body:   body,
-			Header: header,
-		}
+		time.Sleep(SyncDelay)
+
+		_ = n.Node.GetDataComponents().Datapool().Proofs().CleanupProofsBehindNonce(n.ShardCoordinator.SelfId(), nonce+4) // default cleanup delta is 3
+
+		n.BroadcastProof(proof, pk)
+
 	}
 
-	return headerInfos
+	log.Info("Delaying for disseminating headers and miniblocks...")
+	time.Sleep(stepDelayAdjustment)
+	log.Info("Proposed block\n" + MakeDisplayTable(nodes))
 }
 
-func addProofIfNeeded(node *TestProcessorNode, header data.HeaderHandler) {
+func addProofIfNeeded(node *TestProcessorNode, header data.HeaderHandler) data.HeaderProofHandler {
 	coreComp := node.Node.GetCoreComponents()
 	if !common.IsProofsFlagEnabledForHeader(coreComp.EnableEpochsHandler(), header) {
-		return
+		return nil
 	}
 
 	hash, _ := core.CalculateHash(coreComp.InternalMarshalizer(), coreComp.Hasher(), header)
@@ -1219,6 +1221,8 @@ func addProofIfNeeded(node *TestProcessorNode, header data.HeaderHandler) {
 	}
 
 	node.Node.GetDataComponents().Datapool().Proofs().AddProof(proof)
+
+	return proof
 }
 
 // SyncBlock synchronizes the proposed block in all the other shard nodes
