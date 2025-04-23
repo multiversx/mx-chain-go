@@ -1520,7 +1520,9 @@ func (bp *baseProcessor) saveShardHeader(header data.HeaderHandler, headerHash [
 			"err", errNotCritical)
 	}
 
-	bp.saveProof(header.GetShardID(), headerHash, header.GetEpoch())
+	if header.GetNonce() > 0 {
+		bp.saveProof(header.GetShardID(), headerHash, header.GetEpoch())
+	}
 
 	elapsedTime := time.Since(startTime)
 	if elapsedTime >= common.PutInStorerMaxTime {
@@ -1547,7 +1549,9 @@ func (bp *baseProcessor) saveMetaHeader(header data.HeaderHandler, headerHash []
 			"err", errNotCritical)
 	}
 
-	bp.saveProof(core.MetachainShardId, headerHash, header.GetEpoch())
+	if header.GetNonce() > 0 {
+		bp.saveProof(core.MetachainShardId, headerHash, header.GetEpoch())
+	}
 
 	elapsedTime := time.Since(startTime)
 	if elapsedTime >= common.PutInStorerMaxTime {

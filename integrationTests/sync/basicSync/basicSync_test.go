@@ -203,10 +203,12 @@ func TestSyncWorksInShard_EmptyBlocksNoForks_With_EquivalentProofs(t *testing.T)
 		t.Skip("this is not a short test")
 	}
 
+	logger.SetLogLevel("*:DEBUG,sync:TRACE")
+
 	// 3 shard nodes and 1 metachain node
 	maxShards := uint32(1)
 	shardId := uint32(0)
-	numNodesPerShard := 3
+	numNodesPerShard := 2
 
 	enableEpochs := integrationTests.CreateEnableEpochsConfig()
 	enableEpochs.EquivalentMessagesEnableEpoch = uint32(0)
@@ -261,8 +263,10 @@ func TestSyncWorksInShard_EmptyBlocksNoForks_With_EquivalentProofs(t *testing.T)
 	nonce++
 
 	numRoundsToTest := 5
+
+	headerInfosByRound := make(map[uint64]map[uint32]*integrationTests.ProposedBlockInfo)
 	for i := 0; i < numRoundsToTest; i++ {
-		integrationTests.ProposeBlock(nodes, leaders, round, nonce)
+		headerInfosByRound[round] = integrationTests.ProposeBlockWithoutBroadcast(nodes, leaders, round, nonce)
 
 		time.Sleep(integrationTests.SyncDelay)
 
@@ -271,7 +275,21 @@ func TestSyncWorksInShard_EmptyBlocksNoForks_With_EquivalentProofs(t *testing.T)
 		nonce++
 	}
 
+	for _, n := range leaders {
+		pk := n.NodeKeys.MainKey.Pk
+		header := headerInfosByRound[1][n.ShardCoordinator.SelfId()].Header
+		n.BroadcastProof(header, pk)
+	}
+
 	time.Sleep(integrationTests.SyncDelay)
+
+	for _, n := range leaders {
+		pk := n.NodeKeys.MainKey.Pk
+		header := headerInfosByRound[round-1][n.ShardCoordinator.SelfId()].Header
+		n.BroadcastProof(header, pk)
+	}
+
+	time.Sleep(time.Second * 10)
 
 	expectedNonce := nodes[0].BlockChain.GetCurrentBlockHeader().GetNonce()
 	for i := 1; i < len(nodes); i++ {

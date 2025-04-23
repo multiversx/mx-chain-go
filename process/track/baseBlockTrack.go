@@ -50,7 +50,7 @@ type baseBlockTrack struct {
 	blockBalancer                         blockBalancerHandler
 	whitelistHandler                      process.WhiteListHandler
 	feeHandler                            process.FeeHandler
-	enableEpochsHandler                   core.EnableEpochsHandler
+	enableEpochsHandler                   common.EnableEpochsHandler
 
 	mutHeaders                  sync.RWMutex
 	headers                     map[uint32]map[uint64][]*HeaderInfo
@@ -152,7 +152,7 @@ func (bbt *baseBlockTrack) getHeaderForProof(proof data.HeaderProofHandler) (dat
 }
 
 func (bbt *baseBlockTrack) receivedHeader(headerHandler data.HeaderHandler, headerHash []byte) {
-	if bbt.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, headerHandler.GetEpoch()) && headerHandler.GetNonce() > 1 {
+	if common.IsProofsFlagEnabledForHeader(bbt.enableEpochsHandler, headerHandler) {
 		if !bbt.proofsPool.HasProof(headerHandler.GetShardID(), headerHash) {
 			return
 		}

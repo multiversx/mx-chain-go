@@ -2724,6 +2724,7 @@ func (tpn *TestProcessorNode) addHandlersForCounters() {
 // StartSync calls Bootstrapper.StartSync. Errors if bootstrapper is not set
 func (tpn *TestProcessorNode) StartSync() error {
 	if tpn.Bootstrapper == nil || fmt.Sprintf("%T", tpn.Bootstrapper) == "*mock.testBootstrapperMock" {
+		log.Error("dasdsadsa")
 		return errors.New("no bootstrapper available")
 	}
 
@@ -2736,7 +2737,10 @@ func (tpn *TestProcessorNode) LoadTxSignSkBytes(skBytes []byte) {
 }
 
 // ProposeBlock proposes a new block
-func (tpn *TestProcessorNode) ProposeBlock(round uint64, nonce uint64) (data.BodyHandler, data.HeaderHandler, [][]byte) {
+func (tpn *TestProcessorNode) ProposeBlock(
+	round uint64,
+	nonce uint64,
+) (data.BodyHandler, data.HeaderHandler, [][]byte) {
 	startTime := time.Now()
 	maxTime := time.Second * 2
 
@@ -2748,6 +2752,7 @@ func (tpn *TestProcessorNode) ProposeBlock(round uint64, nonce uint64) (data.Bod
 
 	blockHeader, err := tpn.BlockProcessor.CreateNewHeader(round, nonce)
 	if err != nil {
+		log.Warn("blockHeader.CreateNewHeader", "error", err.Error())
 		return nil, nil, nil
 	}
 
@@ -2827,7 +2832,9 @@ func (tpn *TestProcessorNode) ProposeBlock(round uint64, nonce uint64) (data.Bod
 	return blockBody, blockHeader, txHashes
 }
 
-func (tpn *TestProcessorNode) setBlockSignatures(blockHeader data.HeaderHandler) error {
+func (tpn *TestProcessorNode) setBlockSignatures(
+	blockHeader data.HeaderHandler,
+) error {
 	sig := []byte("aggregated signature")
 	pubKeysBitmap := []byte{1}
 
@@ -2855,7 +2862,8 @@ func (tpn *TestProcessorNode) setBlockSignatures(blockHeader data.HeaderHandler)
 		log.Warn("blockHeader.SetSignature", "error", err.Error())
 		return err
 	}
-	return err
+
+	return nil
 }
 
 // BroadcastBlock broadcasts the block and body to the connected peers
@@ -2869,6 +2877,25 @@ func (tpn *TestProcessorNode) BroadcastBlock(body data.BodyHandler, header data.
 	miniBlocks, transactions, _ := tpn.BlockProcessor.MarshalizedDataToBroadcast(header, body)
 	_ = tpn.BroadcastMessenger.BroadcastMiniBlocks(miniBlocks, pkBytes)
 	_ = tpn.BroadcastMessenger.BroadcastTransactions(transactions, pkBytes)
+}
+
+func (tpn *TestProcessorNode) BroadcastProof(header data.HeaderHandler, publicKey crypto.PublicKey) {
+	coreComp := tpn.Node.GetCoreComponents()
+	if !common.IsProofsFlagEnabledForHeader(coreComp.EnableEpochsHandler(), header) {
+		return
+	}
+
+	hash, _ := core.CalculateHash(coreComp.InternalMarshalizer(), coreComp.Hasher(), header)
+	shardID := tpn.ShardCoordinator.SelfId()
+
+	pkBytes, _ := publicKey.ToByteArray()
+
+	proof, err := tpn.Node.GetDataComponents().Datapool().Proofs().GetProof(shardID, hash)
+	if err != nil {
+		log.Error("failed to get proofff", "error", err)
+	}
+
+	tpn.BroadcastMessenger.BroadcastEquivalentProof(proof, pkBytes)
 }
 
 // WhiteListBody will whitelist all miniblocks from the given body for all the given nodes

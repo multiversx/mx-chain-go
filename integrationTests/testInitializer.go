@@ -1169,9 +1169,45 @@ func ProposeBlock(nodes []*TestProcessorNode, leaders []*TestProcessorNode, roun
 	log.Info("Proposed block\n" + MakeDisplayTable(nodes))
 }
 
+type ProposedBlockInfo struct {
+	Body   data.BodyHandler
+	Header data.HeaderHandler
+}
+
+func ProposeBlockWithoutBroadcast(
+	nodes []*TestProcessorNode,
+	leaders []*TestProcessorNode,
+	round uint64,
+	nonce uint64,
+) map[uint32]*ProposedBlockInfo {
+	log.Info("All shards propose blocks without broadcast...")
+
+	headerInfos := make(map[uint32]*ProposedBlockInfo)
+
+	for _, n := range leaders {
+		body, header, _ := n.ProposeBlock(round, nonce)
+		n.WhiteListBody(nodes, body)
+
+		pk := n.NodeKeys.MainKey.Pk
+		n.BroadcastBlock(body, header, pk)
+
+		n.CommitBlock(body, header)
+		addProofIfNeeded(n, header)
+
+		headerInfos[n.ShardCoordinator.SelfId()] = &ProposedBlockInfo{
+			Body:   body,
+			Header: header,
+		}
+
+		n.BroadcastProof(header, pk)
+	}
+
+	return headerInfos
+}
+
 func addProofIfNeeded(node *TestProcessorNode, header data.HeaderHandler) {
 	coreComp := node.Node.GetCoreComponents()
-	if !coreComp.EnableEpochsHandler().IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, header.GetEpoch()) || header.GetNonce() <= 1 {
+	if !common.IsProofsFlagEnabledForHeader(coreComp.EnableEpochsHandler(), header) {
 		return
 	}
 

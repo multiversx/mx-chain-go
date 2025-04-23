@@ -257,7 +257,7 @@ func (boot *baseBootstrap) confirmHeaderReceivedByNonce(headerHandler data.Heade
 		)
 
 		// if flag is not active for the header, do not check the proof and release chan
-		isFlagActive := boot.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, headerHandler.GetEpoch()) && headerHandler.GetNonce() > 0
+		isFlagActive := common.IsProofsFlagEnabledForHeader(boot.enableEpochsHandler, headerHandler)
 		if !isFlagActive {
 			boot.setRequestedHeaderNonce(nil)
 			boot.mutRcvHdrNonce.Unlock()
@@ -303,7 +303,7 @@ func (boot *baseBootstrap) confirmHeaderReceivedByHash(headerHandler data.Header
 		)
 
 		// if flag is not active for the header, do not check the proof and release chan
-		isFlagActive := boot.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, headerHandler.GetEpoch()) && headerHandler.GetNonce() > 0
+		isFlagActive := common.IsProofsFlagEnabledForHeader(boot.enableEpochsHandler, headerHandler)
 		if !isFlagActive {
 			boot.setRequestedHeaderHash(nil)
 			boot.mutRcvHdrHash.Unlock()
@@ -338,7 +338,7 @@ func (boot *baseBootstrap) confirmHeaderReceivedByHash(headerHandler data.Header
 }
 
 func (boot *baseBootstrap) hasProof(hash []byte, epoch uint32, nonce uint64) bool {
-	if !boot.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, epoch) || nonce <= 1 {
+	if !boot.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, epoch) || nonce == 0 {
 		return true
 	}
 
