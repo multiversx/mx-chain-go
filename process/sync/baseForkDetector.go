@@ -764,10 +764,11 @@ func (bfd *baseForkDetector) processReceivedBlock(
 	doJobOnBHProcessed func(data.HeaderHandler, []byte, []data.HeaderHandler, [][]byte),
 ) {
 	hasProof := true // old blocks have consensus proof on them
-	if bfd.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, header.GetEpoch()) {
+	if bfd.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, header.GetEpoch()) && header.GetNonce() > 1 {
 		hasProof = bfd.proofsPool.HasProof(header.GetShardID(), headerHash)
 	}
 	bfd.setHighestNonceReceived(header.GetNonce())
+	bfd.setProbableHighestNonce(header.GetNonce())
 
 	if state == process.BHProposed || !hasProof {
 		log.Trace("forkDetector.processReceivedBlock: block is proposed or has no proof", "state", state, "has proof", hasProof)

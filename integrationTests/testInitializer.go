@@ -1160,8 +1160,8 @@ func ProposeBlock(nodes []*TestProcessorNode, leaders []*TestProcessorNode, roun
 		n.WhiteListBody(nodes, body)
 		pk := n.NodeKeys.MainKey.Pk
 		n.BroadcastBlock(body, header, pk)
-		addProofIfNeeded(n, header)
 		n.CommitBlock(body, header)
+		addProofIfNeeded(n, header)
 	}
 
 	log.Info("Delaying for disseminating headers and miniblocks...")
@@ -1171,7 +1171,7 @@ func ProposeBlock(nodes []*TestProcessorNode, leaders []*TestProcessorNode, roun
 
 func addProofIfNeeded(node *TestProcessorNode, header data.HeaderHandler) {
 	coreComp := node.Node.GetCoreComponents()
-	if !coreComp.EnableEpochsHandler().IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, header.GetEpoch()) {
+	if !coreComp.EnableEpochsHandler().IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, header.GetEpoch()) || header.GetNonce() <= 1 {
 		return
 	}
 
