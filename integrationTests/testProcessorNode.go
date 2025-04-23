@@ -2720,7 +2720,6 @@ func (tpn *TestProcessorNode) addHandlersForCounters() {
 // StartSync calls Bootstrapper.StartSync. Errors if bootstrapper is not set
 func (tpn *TestProcessorNode) StartSync() error {
 	if tpn.Bootstrapper == nil || fmt.Sprintf("%T", tpn.Bootstrapper) == "*mock.testBootstrapperMock" {
-		log.Error("dasdsadsa")
 		return errors.New("no bootstrapper available")
 	}
 

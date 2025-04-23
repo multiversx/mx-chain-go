@@ -1170,6 +1170,7 @@ func ProposeBlock(nodes []*TestProcessorNode, leaders []*TestProcessorNode, roun
 	log.Info("Proposed block\n" + MakeDisplayTable(nodes))
 }
 
+// ProposeBlockWithProof proposes a block for every shard with custom handling for equivalent proof
 func ProposeBlockWithProof(
 	nodes []*TestProcessorNode,
 	leaders []*TestProcessorNode,
@@ -1191,6 +1192,7 @@ func ProposeBlockWithProof(
 
 		time.Sleep(SyncDelay)
 
+		// cleanup proof from pool before broadcasting so that the interceptor will propagate the proof to the other nodes
 		_ = n.Node.GetDataComponents().Datapool().Proofs().CleanupProofsBehindNonce(n.ShardCoordinator.SelfId(), nonce+4) // default cleanup delta is 3
 
 		n.BroadcastProof(proof, pk)

@@ -206,7 +206,7 @@ func TestSyncWorksInShard_EmptyBlocksNoForks_With_EquivalentProofs(t *testing.T)
 	// 3 shard nodes and 1 metachain node
 	maxShards := uint32(1)
 	shardId := uint32(0)
-	numNodesPerShard := 2
+	numNodesPerShard := 3
 
 	enableEpochs := integrationTests.CreateEnableEpochsConfig()
 	enableEpochs.EquivalentMessagesEnableEpoch = uint32(0)
