@@ -483,13 +483,12 @@ func (bp *blockProcessor) requestHeaders(shardID uint32, fromNonce uint64) {
 
 		bp.blockTracker.AddHeaderFromPool(shardID, nonce)
 
-		epoch := bp.enableEpochsHandler.GetCurrentEpoch()
 		if shardID == core.MetachainShardId {
 			bp.requestHandler.RequestMetaHeaderByNonce(nonce)
-			bp.requestHandler.RequestEquivalentProofByNonce(core.MetachainShardId, nonce, epoch)
+			bp.requestHandler.RequestEquivalentProofByNonce(core.MetachainShardId, nonce)
 		} else {
 			bp.requestHandler.RequestShardHeaderByNonce(shardID, nonce)
-			bp.requestHandler.RequestEquivalentProofByNonce(shardID, nonce, epoch)
+			bp.requestHandler.RequestEquivalentProofByNonce(shardID, nonce)
 		}
 	}
 }

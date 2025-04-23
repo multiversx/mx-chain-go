@@ -295,8 +295,8 @@ func (boot *ShardBootstrap) requestHeaderByNonce(nonce uint64) {
 	boot.requestHandler.RequestShardHeaderByNonce(boot.shardCoordinator.SelfId(), nonce)
 }
 
-func (boot *ShardBootstrap) requestProofByNonce(nonce uint64, epoch uint32) {
-	boot.requestHandler.RequestEquivalentProofByNonce(boot.shardCoordinator.SelfId(), nonce, epoch)
+func (boot *ShardBootstrap) requestProofByNonce(nonce uint64) {
+	boot.requestHandler.RequestEquivalentProofByNonce(boot.shardCoordinator.SelfId(), nonce)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

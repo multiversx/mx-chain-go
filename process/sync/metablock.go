@@ -339,8 +339,8 @@ func (boot *MetaBootstrap) requestHeaderByNonce(nonce uint64) {
 	boot.requestHandler.RequestMetaHeaderByNonce(nonce)
 }
 
-func (boot *MetaBootstrap) requestProofByNonce(nonce uint64, epoch uint32) {
-	boot.requestHandler.RequestEquivalentProofByNonce(core.MetachainShardId, nonce, epoch)
+func (boot *MetaBootstrap) requestProofByNonce(nonce uint64) {
+	boot.requestHandler.RequestEquivalentProofByNonce(core.MetachainShardId, nonce)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

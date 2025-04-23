@@ -2368,7 +2368,7 @@ func TestShardBootstrap_SyncBlock_WithEquivalentProofs(t *testing.T) {
 			RequestShardHeaderByNonceCalled: func(shardID uint32, nonce uint64) {
 				receive <- true
 			},
-			RequestEquivalentProofByNonceCalled: func(headerShard uint32, headerNonce uint64, epoch uint32) {
+			RequestEquivalentProofByNonceCalled: func(headerShard uint32, headerNonce uint64) {
 				receive <- true
 			},
 		}
@@ -2473,7 +2473,7 @@ func TestShardBootstrap_SyncBlock_WithEquivalentProofs(t *testing.T) {
 			RequestShardHeaderCalled: func(shardID uint32, hash []byte) {
 				receive <- true
 			},
-			RequestEquivalentProofByHashCalled: func(headerShard uint32, headerHash []byte, epoch uint32) {
+			RequestEquivalentProofByHashCalled: func(headerShard uint32, headerHash []byte) {
 				receive <- true
 			},
 		}
