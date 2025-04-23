@@ -110,7 +110,7 @@ func (mfd *metaForkDetector) doJobOnBHProcessed(
 	mfd.setFinalCheckpoint(mfd.lastCheckpoint())
 	newCheckpoint := &checkpointInfo{nonce: header.GetNonce(), round: header.GetRound(), hash: headerHash}
 	mfd.addCheckpoint(newCheckpoint)
-	if mfd.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, header.GetEpoch()) && header.GetNonce() > 1 {
+	if common.IsProofsFlagEnabledForHeader(mfd.enableEpochsHandler, header) {
 		mfd.setFinalCheckpoint(newCheckpoint)
 	}
 	mfd.removePastOrInvalidRecords()

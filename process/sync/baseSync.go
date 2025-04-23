@@ -257,7 +257,7 @@ func (boot *baseBootstrap) confirmHeaderReceivedByNonce(headerHandler data.Heade
 		)
 
 		// if flag is not active for the header, do not check the proof and release chan
-		isFlagActive := boot.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, headerHandler.GetEpoch()) && headerHandler.GetNonce() > 1
+		isFlagActive := boot.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, headerHandler.GetEpoch()) && headerHandler.GetNonce() > 0
 		if !isFlagActive {
 			boot.setRequestedHeaderNonce(nil)
 			boot.mutRcvHdrNonce.Unlock()
@@ -303,7 +303,7 @@ func (boot *baseBootstrap) confirmHeaderReceivedByHash(headerHandler data.Header
 		)
 
 		// if flag is not active for the header, do not check the proof and release chan
-		isFlagActive := boot.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, headerHandler.GetEpoch()) && headerHandler.GetNonce() > 1
+		isFlagActive := boot.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, headerHandler.GetEpoch()) && headerHandler.GetNonce() > 0
 		if !isFlagActive {
 			boot.setRequestedHeaderHash(nil)
 			boot.mutRcvHdrHash.Unlock()
@@ -1150,7 +1150,7 @@ func (boot *baseBootstrap) checkNeedsProofByHash(hash []byte, header data.Header
 		return needsProof
 	}
 
-	isFlagActiveForExistingHeader := boot.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, header.GetEpoch()) && header.GetNonce() > 1
+	isFlagActiveForExistingHeader := common.IsProofsFlagEnabledForHeader(boot.enableEpochsHandler, header)
 	needsProof = needsProof && isFlagActiveForExistingHeader
 	return needsProof
 }
@@ -1209,7 +1209,7 @@ func (boot *baseBootstrap) checkNeedsProofByNonce(
 		return needsProof
 	}
 
-	isFlagActiveForExistingHeader := boot.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, header.GetEpoch()) && header.GetNonce() > 1
+	isFlagActiveForExistingHeader := common.IsProofsFlagEnabledForHeader(boot.enableEpochsHandler, header)
 	needsProof = needsProof && isFlagActiveForExistingHeader
 	return needsProof
 }
