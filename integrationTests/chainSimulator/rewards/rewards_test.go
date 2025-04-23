@@ -32,7 +32,7 @@ const (
 	gasPrice            = 1_000_000_000
 )
 
-func TestRewardsAfterEquivalentMessagesWithTxs(t *testing.T) {
+func TestRewardsAfterAndromedaWithTxs(t *testing.T) {
 	if testing.Short() {
 		t.Skip("this is not a short test")
 	}
@@ -205,7 +205,7 @@ func generateMoveBalanceTxs(t *testing.T, cs chainSimulator.ChainSimulator, send
 	return txs
 }
 
-func TestRewardsTxsAfterEquivalentMessages(t *testing.T) {
+func TestRewardsTxsAfterAndromeda(t *testing.T) {
 	if testing.Short() {
 		t.Skip("this is not a short test")
 	}

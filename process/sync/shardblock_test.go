@@ -2237,7 +2237,7 @@ func TestShardBootstrap_SyncBlock_WithEquivalentProofs(t *testing.T) {
 
 		args.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
 			IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
-				return flag == common.EquivalentMessagesFlag
+				return flag == common.AndromedaFlag
 			},
 		}
 
@@ -2295,7 +2295,7 @@ func TestShardBootstrap_SyncBlock_WithEquivalentProofs(t *testing.T) {
 
 		args.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
 			IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
-				return flag == common.EquivalentMessagesFlag
+				return flag == common.AndromedaFlag
 			},
 		}
 
@@ -2395,7 +2395,7 @@ func TestShardBootstrap_SyncBlock_WithEquivalentProofs(t *testing.T) {
 
 		args.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
 			IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
-				return flag == common.EquivalentMessagesFlag
+				return flag == common.AndromedaFlag
 			},
 		}
 

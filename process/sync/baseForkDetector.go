@@ -310,7 +310,7 @@ func (bfd *baseForkDetector) append(hdrInfo *headerInfo) bool {
 }
 
 func (bfd *baseForkDetector) adjustHeadersWithInfo(hInfo *headerInfo) {
-	if !bfd.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, hInfo.epoch) {
+	if !bfd.enableEpochsHandler.IsFlagEnabledInEpoch(common.AndromedaFlag, hInfo.epoch) {
 		return
 	}
 

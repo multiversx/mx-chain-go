@@ -430,7 +430,7 @@ func (vs *validatorStatistics) UpdatePeerState(header data.MetaHeaderHandler, ca
 
 func (vs *validatorStatistics) getBitmapForHeader(header data.HeaderHandler) []byte {
 	bitmap := header.GetPubKeysBitmap()
-	if vs.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, header.GetEpoch()) {
+	if vs.enableEpochsHandler.IsFlagEnabledInEpoch(common.AndromedaFlag, header.GetEpoch()) {
 		bitmap = vs.getBitmapForFullConsensus(header.GetShardID(), header.GetEpoch())
 	}
 	return bitmap
@@ -671,7 +671,7 @@ func (vs *validatorStatistics) verifySignaturesBelowSignedThreshold(
 		return nil
 	}
 
-	if vs.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, epoch) {
+	if vs.enableEpochsHandler.IsFlagEnabledInEpoch(common.AndromedaFlag, epoch) {
 		return nil
 	}
 
@@ -955,7 +955,7 @@ func (vs *validatorStatistics) updateShardDataPeerState(
 
 		log.Debug("updateShardDataPeerState - registering shard leader fees", "shard headerHash", h.HeaderHash, "accumulatedFees", h.AccumulatedFees.String(), "developerFees", h.DeveloperFees.String())
 		bitmap := h.PubKeysBitmap
-		if vs.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, h.Epoch) {
+		if vs.enableEpochsHandler.IsFlagEnabledInEpoch(common.AndromedaFlag, h.Epoch) {
 			bitmap = vs.getBitmapForFullConsensus(h.ShardID, h.Epoch)
 		}
 		shardInfoErr = vs.updateValidatorInfoOnSuccessfulBlock(

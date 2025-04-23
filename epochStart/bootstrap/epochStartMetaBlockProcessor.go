@@ -204,7 +204,7 @@ func (e *epochStartMetaBlockProcessor) GetEpochStartMetaBlock(ctx context.Contex
 		return nil, err
 	}
 
-	if e.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, metaBlock.GetEpoch()) {
+	if e.enableEpochsHandler.IsFlagEnabledInEpoch(common.AndromedaFlag, metaBlock.GetEpoch()) {
 		err = e.waitForMetaBlockProof(ctx, []byte(metaBlockHash))
 		if err != nil {
 			return nil, err

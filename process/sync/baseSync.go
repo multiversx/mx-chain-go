@@ -848,7 +848,7 @@ func (boot *baseBootstrap) cleanNoncesSyncedWithErrorsBehindFinal() {
 }
 
 func (boot *baseBootstrap) cleanProofsBehindFinal(header data.HeaderHandler) {
-	if !boot.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, header.GetEpoch()) {
+	if !boot.enableEpochsHandler.IsFlagEnabledInEpoch(common.AndromedaFlag, header.GetEpoch()) {
 		return
 	}
 

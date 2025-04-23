@@ -3363,8 +3363,7 @@ func CreateEnableEpochsConfig() config.EnableEpochs {
 		SCProcessorV2EnableEpoch:                          UnreachableEpoch,
 		FixRelayedBaseCostEnableEpoch:                     UnreachableEpoch,
 		FixRelayedMoveBalanceToNonPayableSCEnableEpoch:    UnreachableEpoch,
-		EquivalentMessagesEnableEpoch:                     UnreachableEpoch,
-		FixedOrderInConsensusEnableEpoch:                  UnreachableEpoch,
+		AndromedaEnableEpoch:                              UnreachableEpoch,
 	}
 }
 
@@ -3525,7 +3524,7 @@ func getDefaultBootstrapComponents(shardCoordinator sharding.Coordinator, handle
 
 	headerVersionHandler := &testscommon.HeaderVersionHandlerStub{
 		GetVersionCalled: func(epoch uint32) string {
-			if handler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, epoch) {
+			if handler.IsFlagEnabledInEpoch(common.AndromedaFlag, epoch) {
 				return "2"
 			}
 			return "1"
@@ -3676,8 +3675,7 @@ func GetDefaultEnableEpochsConfig() *config.EnableEpochs {
 		StakingV4Step1EnableEpoch:                       UnreachableEpoch,
 		StakingV4Step2EnableEpoch:                       UnreachableEpoch,
 		StakingV4Step3EnableEpoch:                       UnreachableEpoch,
-		EquivalentMessagesEnableEpoch:                   UnreachableEpoch,
-		FixedOrderInConsensusEnableEpoch:                UnreachableEpoch,
+		AndromedaEnableEpoch:                            UnreachableEpoch,
 	}
 }
 

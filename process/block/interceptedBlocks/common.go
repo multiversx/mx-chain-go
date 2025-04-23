@@ -72,7 +72,7 @@ func checkHeaderHandler(
 	hdr data.HeaderHandler,
 	enableEpochsHandler common.EnableEpochsHandler,
 ) error {
-	equivalentMessagesEnabled := enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, hdr.GetEpoch())
+	equivalentMessagesEnabled := enableEpochsHandler.IsFlagEnabledInEpoch(common.AndromedaFlag, hdr.GetEpoch())
 
 	if len(hdr.GetPubKeysBitmap()) == 0 && !equivalentMessagesEnabled {
 		return process.ErrNilPubKeysBitmap

@@ -190,7 +190,7 @@ func (m *syncHeadersByHash) updateMapsAndRequestIfNeeded(
 }
 
 func (m *syncHeadersByHash) hasProof(shardID uint32, hash []byte, epoch uint32) bool {
-	if !m.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, epoch) {
+	if !m.enableEpochsHandler.IsFlagEnabledInEpoch(common.AndromedaFlag, epoch) {
 		return true
 	}
 
