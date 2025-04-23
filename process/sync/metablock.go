@@ -259,27 +259,6 @@ func (boot *MetaBootstrap) getCurrHeader() (data.HeaderHandler, error) {
 	return header, nil
 }
 
-func (boot *MetaBootstrap) getHeaderAndProofFromPoolWithNonce(nonce uint64) (data.HeaderHandler, data.HeaderProofHandler) {
-	header, hash, err := process.GetMetaHeaderFromPoolWithNonce(
-		nonce,
-		boot.headers)
-	if err != nil {
-		proof, errGetProof := boot.proofs.GetProofByNonce(nonce, core.MetachainShardId)
-		if errGetProof != nil {
-			return nil, nil
-		}
-
-		return nil, proof
-	}
-
-	proof, errGetProof := boot.proofs.GetProof(core.MetachainShardId, hash)
-	if errGetProof != nil {
-		return header, nil
-	}
-
-	return header, proof
-}
-
 func (boot *MetaBootstrap) getBlockBodyRequestingIfMissing(headerHandler data.HeaderHandler) (data.BodyHandler, error) {
 	header, ok := headerHandler.(*block.MetaBlock)
 	if !ok {

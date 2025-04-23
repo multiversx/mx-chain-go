@@ -2,6 +2,7 @@ package requestHandlers
 
 import (
 	"bytes"
+	"encoding/hex"
 	"fmt"
 	"sync/atomic"
 	"testing"
@@ -2185,7 +2186,7 @@ func TestResolverRequestHandler_RequestEquivalentProofByHash(t *testing.T) {
 		wasCalled := false
 		res := &dataRetrieverMocks.RequesterStub{
 			RequestDataFromHashCalled: func(hash []byte, epoch uint32) error {
-				key := fmt.Sprintf("%s-%d", string(providedHash), 0)
+				key := fmt.Sprintf("%s-%d", hex.EncodeToString(providedHash), 0)
 				assert.True(t, bytes.Equal([]byte(key), hash))
 				wasCalled = true
 				return nil
@@ -2215,7 +2216,7 @@ func TestResolverRequestHandler_RequestEquivalentProofByHash(t *testing.T) {
 		wasCalled := false
 		res := &dataRetrieverMocks.RequesterStub{
 			RequestDataFromHashCalled: func(hash []byte, epoch uint32) error {
-				key := fmt.Sprintf("%s-%d", string(providedHash), 0)
+				key := fmt.Sprintf("%s-%d", hex.EncodeToString(providedHash), 0)
 				assert.True(t, bytes.Equal([]byte(key), hash))
 				wasCalled = true
 				return nil
