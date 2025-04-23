@@ -2353,7 +2353,7 @@ func (bp *baseProcessor) requestProofIfNeeded(currentHeaderHash []byte, epoch ui
 
 	bp.hdrsForCurrBlock.hdrHashAndInfo[string(currentHeaderHash)].hasProofRequested = true
 	bp.hdrsForCurrBlock.missingProofs++
-	go bp.requestHandler.RequestEquivalentProofByHash(shardID, currentHeaderHash, epoch)
+	go bp.requestHandler.RequestEquivalentProofByHash(shardID, currentHeaderHash)
 
 	return false
 }

@@ -52,8 +52,8 @@ type RequestHandler interface {
 	RequestMetaHeaderByNonce(nonce uint64)
 	SetNumPeersToQuery(topic string, intra int, cross int) error
 	GetNumPeersToQuery(topic string) (int, int, error)
-	RequestEquivalentProofByNonce(headerShard uint32, headerNonce uint64, epoch uint32)
-	RequestEquivalentProofByHash(headerShard uint32, headerHash []byte, epoch uint32)
+	RequestEquivalentProofByNonce(headerShard uint32, headerNonce uint64)
+	RequestEquivalentProofByHash(headerShard uint32, headerHash []byte)
 	SetEpoch(epoch uint32)
 	IsInterfaceNil() bool
 }

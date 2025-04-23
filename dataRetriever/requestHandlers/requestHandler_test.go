@@ -2028,7 +2028,7 @@ func TestResolverRequestHandler_RequestEquivalentProofByHash(t *testing.T) {
 			time.Second,
 		)
 
-		rrh.RequestEquivalentProofByHash(core.MetachainShardId, providedHash, 0)
+		rrh.RequestEquivalentProofByHash(core.MetachainShardId, providedHash)
 	})
 	t.Run("invalid cross-shard request should early exit", func(t *testing.T) {
 		t.Parallel()
@@ -2047,7 +2047,7 @@ func TestResolverRequestHandler_RequestEquivalentProofByHash(t *testing.T) {
 			time.Second,
 		)
 
-		rrh.RequestEquivalentProofByHash(1, providedHash, 0)
+		rrh.RequestEquivalentProofByHash(1, providedHash)
 	})
 	t.Run("missing metachain requester should early exit", func(t *testing.T) {
 		t.Parallel()
@@ -2070,7 +2070,7 @@ func TestResolverRequestHandler_RequestEquivalentProofByHash(t *testing.T) {
 			time.Second,
 		)
 
-		rrh.RequestEquivalentProofByHash(core.MetachainShardId, providedHash, 0)
+		rrh.RequestEquivalentProofByHash(core.MetachainShardId, providedHash)
 	})
 	t.Run("missing cross-shard requester should early exit", func(t *testing.T) {
 		t.Parallel()
@@ -2093,7 +2093,7 @@ func TestResolverRequestHandler_RequestEquivalentProofByHash(t *testing.T) {
 			time.Second,
 		)
 
-		rrh.RequestEquivalentProofByHash(1, providedHash, 0)
+		rrh.RequestEquivalentProofByHash(1, providedHash)
 	})
 	t.Run("MetaChainRequester returns error", func(t *testing.T) {
 		t.Parallel()
@@ -2120,7 +2120,7 @@ func TestResolverRequestHandler_RequestEquivalentProofByHash(t *testing.T) {
 			time.Second,
 		)
 
-		rrh.RequestEquivalentProofByHash(core.MetachainShardId, providedHash, 0)
+		rrh.RequestEquivalentProofByHash(core.MetachainShardId, providedHash)
 	})
 	t.Run("CrossChainRequester returns error", func(t *testing.T) {
 		t.Parallel()
@@ -2146,7 +2146,7 @@ func TestResolverRequestHandler_RequestEquivalentProofByHash(t *testing.T) {
 			time.Second,
 		)
 
-		rrh.RequestEquivalentProofByHash(0, providedHash, 0)
+		rrh.RequestEquivalentProofByHash(0, providedHash)
 	})
 	t.Run("RequestDataFromHash returns error", func(t *testing.T) {
 		t.Parallel()
@@ -2176,7 +2176,7 @@ func TestResolverRequestHandler_RequestEquivalentProofByHash(t *testing.T) {
 			time.Second,
 		)
 
-		rrh.RequestEquivalentProofByHash(core.MetachainShardId, providedHash, 0)
+		rrh.RequestEquivalentProofByHash(core.MetachainShardId, providedHash)
 	})
 	t.Run("should work shard 0 requesting from 0", func(t *testing.T) {
 		t.Parallel()
@@ -2205,7 +2205,7 @@ func TestResolverRequestHandler_RequestEquivalentProofByHash(t *testing.T) {
 			time.Second,
 		)
 
-		rrh.RequestEquivalentProofByHash(0, providedHash, 0)
+		rrh.RequestEquivalentProofByHash(0, providedHash)
 		assert.True(t, wasCalled)
 	})
 	t.Run("should work shard meta requesting from 0", func(t *testing.T) {
@@ -2235,7 +2235,7 @@ func TestResolverRequestHandler_RequestEquivalentProofByHash(t *testing.T) {
 			time.Second,
 		)
 
-		rrh.RequestEquivalentProofByHash(0, providedHash, 0)
+		rrh.RequestEquivalentProofByHash(0, providedHash)
 		assert.True(t, wasCalled)
 	})
 }

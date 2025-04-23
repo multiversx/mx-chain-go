@@ -205,7 +205,7 @@ func (e *epochStartMetaBlockProcessor) GetEpochStartMetaBlock(ctx context.Contex
 	}
 
 	if e.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, metaBlock.GetEpoch()) {
-		err = e.waitForMetaBlockProof(ctx, []byte(metaBlockHash), metaBlock.GetEpoch())
+		err = e.waitForMetaBlockProof(ctx, []byte(metaBlockHash))
 		if err != nil {
 			return nil, err
 		}
@@ -245,13 +245,12 @@ func (e *epochStartMetaBlockProcessor) waitForMetaBlock(ctx context.Context) (da
 func (e *epochStartMetaBlockProcessor) waitForMetaBlockProof(
 	ctx context.Context,
 	metaBlockHash []byte,
-	epoch uint32,
 ) error {
 	if e.proofsPool.HasProof(core.MetachainShardId, metaBlockHash) {
 		return nil
 	}
 
-	err := e.requestProofForMetaBlock(metaBlockHash, epoch)
+	err := e.requestProofForMetaBlock(metaBlockHash)
 	if err != nil {
 		return err
 	}
@@ -265,7 +264,7 @@ func (e *epochStartMetaBlockProcessor) waitForMetaBlockProof(
 		case <-ctx.Done():
 			return epochStart.ErrTimeoutWaitingForMetaBlock
 		case <-chanRequests:
-			err = e.requestProofForMetaBlock(metaBlockHash, epoch)
+			err = e.requestProofForMetaBlock(metaBlockHash)
 			if err != nil {
 				return err
 			}
@@ -306,7 +305,7 @@ func (e *epochStartMetaBlockProcessor) requestMetaBlock() error {
 	return nil
 }
 
-func (e *epochStartMetaBlockProcessor) requestProofForMetaBlock(metablockHash []byte, epoch uint32) error {
+func (e *epochStartMetaBlockProcessor) requestProofForMetaBlock(metablockHash []byte) error {
 	numConnectedPeers := len(e.messenger.ConnectedPeers())
 	topic := common.EquivalentProofsTopic + core.CommunicationIdentifierBetweenShards(core.MetachainShardId, core.AllShardId)
 	err := e.requestHandler.SetNumPeersToQuery(topic, numConnectedPeers, numConnectedPeers)
@@ -314,7 +313,7 @@ func (e *epochStartMetaBlockProcessor) requestProofForMetaBlock(metablockHash []
 		return err
 	}
 
-	e.requestHandler.RequestEquivalentProofByHash(core.MetachainShardId, metablockHash, epoch)
+	e.requestHandler.RequestEquivalentProofByHash(core.MetachainShardId, metablockHash)
 
 	return nil
 }
