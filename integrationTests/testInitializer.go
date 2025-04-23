@@ -1177,7 +1177,7 @@ func ProposeBlockWithProof(
 	round uint64,
 	nonce uint64,
 ) {
-	log.Info("All shards propose blocks without broadcast...")
+	log.Info("All shards propose blocks with proof...")
 
 	stepDelayAdjustment := StepDelay * time.Duration(1+len(nodes)/3)
 

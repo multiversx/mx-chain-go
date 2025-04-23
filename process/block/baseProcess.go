@@ -1586,7 +1586,7 @@ func (bp *baseProcessor) saveProof(
 			"err", errNotCritical)
 	}
 
-	log.Info("saved proof to storage", "hash", hash)
+	log.Trace("saved proof to storage", "hash", hash)
 }
 
 func getLastSelfNotarizedHeaderByItself(chainHandler data.ChainHandler) (data.HeaderHandler, []byte) {
