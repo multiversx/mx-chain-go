@@ -1617,9 +1617,7 @@ func (boot *baseBootstrap) handleTokensSuppliesRepopulation() error {
 }
 
 func (boot *baseBootstrap) getHeaderAndProofFromPoolWithNonce(nonce uint64) (data.HeaderHandler, data.HeaderProofHandler) {
-	header, hash, err := process.GetMetaHeaderFromPoolWithNonce(
-		nonce,
-		boot.headers)
+	header, hash, err := boot.getHeaderFromPoolWithNonce(nonce)
 	if err != nil {
 		proof, errGetProof := boot.proofs.GetProofByNonce(nonce, boot.shardCoordinator.SelfId())
 		if errGetProof != nil {
