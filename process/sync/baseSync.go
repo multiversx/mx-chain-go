@@ -1534,7 +1534,9 @@ func (boot *baseBootstrap) requestHeaders(fromNonce uint64, toNonce uint64) {
 	defer boot.mutRequestHeaders.Unlock()
 
 	for currentNonce := fromNonce; currentNonce <= toNonce; currentNonce++ {
-		hasHeader, hasProof := boot.blockBootstrapper.haveHeaderInPoolWithNonce(currentNonce)
+		header, proof := boot.blockBootstrapper.getHeaderAndProofFromPoolWithNonce(currentNonce)
+		hasHeader := !check.IfNil(header)
+		hasProof := !check.IfNil(proof)
 		if hasHeader && hasProof {
 			continue
 		}
@@ -1612,6 +1614,25 @@ func (boot *baseBootstrap) handleTokensSuppliesRepopulation() error {
 	}
 
 	return tokensSuppliesProc.SaveSupplies()
+}
+
+func (boot *baseBootstrap) getHeaderAndProofFromPoolWithNonce(nonce uint64) (data.HeaderHandler, data.HeaderProofHandler) {
+	header, hash, err := boot.getHeaderFromPoolWithNonce(nonce)
+	if err != nil {
+		proof, errGetProof := boot.proofs.GetProofByNonce(nonce, boot.shardCoordinator.SelfId())
+		if errGetProof != nil {
+			return nil, nil
+		}
+
+		return nil, proof
+	}
+
+	proof, errGetProof := boot.proofs.GetProof(boot.shardCoordinator.SelfId(), hash)
+	if errGetProof != nil {
+		return header, nil
+	}
+
+	return header, proof
 }
 
 // Close will close the endless running go routine
