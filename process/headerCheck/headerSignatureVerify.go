@@ -144,7 +144,7 @@ func (hsv *HeaderSigVerifier) getConsensusSignersForEquivalentProofs(proof data.
 	if check.IfNil(proof) {
 		return nil, process.ErrNilHeaderProof
 	}
-	if !hsv.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, proof.GetHeaderEpoch()) {
+	if !hsv.enableEpochsHandler.IsFlagEnabledInEpoch(common.AndromedaFlag, proof.GetHeaderEpoch()) {
 		return nil, process.ErrUnexpectedHeaderProof
 	}
 
@@ -192,7 +192,7 @@ func (hsv *HeaderSigVerifier) getConsensusSigners(
 		return nil, process.ErrNilPubKeysBitmap
 	}
 
-	if !hsv.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, epoch) {
+	if !hsv.enableEpochsHandler.IsFlagEnabledInEpoch(common.AndromedaFlag, epoch) {
 		if pubKeysBitmap[0]&1 == 0 {
 			return nil, process.ErrBlockProposerSignatureMissing
 		}
@@ -249,7 +249,7 @@ func getPubKeySigners(consensusPubKeys []string, pubKeysBitmap []byte) [][]byte 
 
 // VerifySignature will check if signature is correct
 func (hsv *HeaderSigVerifier) VerifySignature(header data.HeaderHandler) error {
-	if hsv.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, header.GetEpoch()) {
+	if hsv.enableEpochsHandler.IsFlagEnabledInEpoch(common.AndromedaFlag, header.GetEpoch()) {
 		return nil
 	}
 
@@ -350,8 +350,8 @@ func (hsv *HeaderSigVerifier) VerifyHeaderProof(proofHandler data.HeaderProofHan
 	if check.IfNil(proofHandler) {
 		return process.ErrNilHeaderProof
 	}
-	if !hsv.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, proofHandler.GetHeaderEpoch()) {
-		return fmt.Errorf("%w for flag %s", process.ErrFlagNotActive, common.EquivalentMessagesFlag)
+	if !hsv.enableEpochsHandler.IsFlagEnabledInEpoch(common.AndromedaFlag, proofHandler.GetHeaderEpoch()) {
+		return fmt.Errorf("%w for flag %s", process.ErrFlagNotActive, common.AndromedaFlag)
 	}
 
 	if common.IsEpochStartProofForFlagActivation(proofHandler, hsv.enableEpochsHandler) {
@@ -492,7 +492,7 @@ func (hsv *HeaderSigVerifier) copyHeaderWithoutSig(header data.HeaderHandler) (d
 		return nil, err
 	}
 
-	if !hsv.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, header.GetEpoch()) {
+	if !hsv.enableEpochsHandler.IsFlagEnabledInEpoch(common.AndromedaFlag, header.GetEpoch()) {
 		err = headerCopy.SetLeaderSignature(nil)
 		if err != nil {
 			return nil, err

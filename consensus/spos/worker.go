@@ -297,7 +297,7 @@ func (wrk *Worker) addFutureHeaderToProcessIfNeeded(header data.HeaderHandler) {
 	if check.IfNil(header) {
 		return
 	}
-	if !wrk.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, header.GetEpoch()) {
+	if !wrk.enableEpochsHandler.IsFlagEnabledInEpoch(common.AndromedaFlag, header.GetEpoch()) {
 		return
 	}
 
@@ -319,7 +319,7 @@ func (wrk *Worker) processReceivedHeaderMetricIfNeeded(header data.HeaderHandler
 	if check.IfNil(header) {
 		return
 	}
-	if !wrk.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, header.GetEpoch()) {
+	if !wrk.enableEpochsHandler.IsFlagEnabledInEpoch(common.AndromedaFlag, header.GetEpoch()) {
 		return
 	}
 	isHeaderForCurrentRound := int64(header.GetRound()) == wrk.roundHandler.Index()
@@ -632,7 +632,7 @@ func (wrk *Worker) doJobOnMessageWithHeader(cnsMsg *consensus.Message) error {
 }
 
 func (wrk *Worker) verifyMessageWithInvalidSigners(cnsMsg *consensus.Message) error {
-	// No need to guard this method by verification of common.EquivalentMessagesFlag as invalidSignersCache will have entries only for consensus v2
+	// No need to guard this method by verification of common.AndromedaFlag as invalidSignersCache will have entries only for consensus v2
 	if wrk.invalidSignersCache.CheckKnownInvalidSigners(cnsMsg.BlockHeaderHash, cnsMsg.InvalidSigners) {
 		// return error here to avoid further broadcast of this message
 		return ErrInvalidSignersAlreadyReceived
@@ -808,7 +808,7 @@ func (wrk *Worker) checkChannels(ctx context.Context) {
 
 func (wrk *Worker) callReceivedHeaderCallbacks(message *consensus.Message) {
 	headerMessageType := wrk.consensusService.GetMessageTypeBlockHeader()
-	if message.MsgType != int64(headerMessageType) || !wrk.enableEpochsHandler.IsFlagEnabled(common.EquivalentMessagesFlag) {
+	if message.MsgType != int64(headerMessageType) || !wrk.enableEpochsHandler.IsFlagEnabled(common.AndromedaFlag) {
 		return
 	}
 
@@ -863,7 +863,7 @@ func (wrk *Worker) removeConsensusHeaderFromPool() {
 		return
 	}
 
-	if !wrk.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, header.GetEpoch()) {
+	if !wrk.enableEpochsHandler.IsFlagEnabledInEpoch(common.AndromedaFlag, header.GetEpoch()) {
 		return
 	}
 

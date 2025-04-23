@@ -173,7 +173,6 @@ func (m *syncHeadersByHash) updateMapsAndRequestIfNeeded(
 	if hasHeader {
 		if !hasProof {
 			hasRequestedProof = true
-			m.requestHandler.SetEpoch(header.GetEpoch())
 			m.requestHandler.RequestEquivalentProofByHash(shardId, []byte(hash))
 		}
 
@@ -191,7 +190,7 @@ func (m *syncHeadersByHash) updateMapsAndRequestIfNeeded(
 }
 
 func (m *syncHeadersByHash) hasProof(shardID uint32, hash []byte, epoch uint32) bool {
-	if !m.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, epoch) {
+	if !m.enableEpochsHandler.IsFlagEnabledInEpoch(common.AndromedaFlag, epoch) {
 		return true
 	}
 
@@ -213,7 +212,6 @@ func (m *syncHeadersByHash) receivedHeader(hdrHandler data.HeaderHandler, hdrHas
 	}
 
 	if !m.hasProof(hdrHandler.GetShardID(), hdrHash, hdrHandler.GetEpoch()) {
-		m.requestHandler.SetEpoch(hdrHandler.GetEpoch())
 		go m.requestHandler.RequestEquivalentProofByHash(hdrHandler.GetShardID(), hdrHash)
 		m.mutMissingHdrs.Unlock()
 		return

@@ -23,7 +23,7 @@ var ErrLowerRoundInBlock = errors.New("lower round in block")
 // ErrHigherRoundInBlock signals that the round index in block is higher than the current round of chronology
 var ErrHigherRoundInBlock = errors.New("higher round in block")
 
-//ErrCorruptBootstrapFromStorageDb signals that the bootstrap database is corrupt
+// ErrCorruptBootstrapFromStorageDb signals that the bootstrap database is corrupt
 var ErrCorruptBootstrapFromStorageDb = errors.New("corrupt bootstrap storage database")
 
 // ErrSignedBlock signals that a block is signed

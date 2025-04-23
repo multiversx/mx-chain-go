@@ -10,7 +10,6 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
-	"github.com/multiversx/mx-chain-go/common/logging"
 	logger "github.com/multiversx/mx-chain-logger-go"
 	"github.com/multiversx/mx-chain-vm-v1_2-go/ipc/marshaling"
 
@@ -26,36 +25,26 @@ const interceptedEquivalentProofType = "intercepted equivalent proof"
 
 // ArgInterceptedEquivalentProof is the argument used in the intercepted equivalent proof constructor
 type ArgInterceptedEquivalentProof struct {
-	DataBuff           []byte
-	Marshaller         marshal.Marshalizer
-	Hasher             hashing.Hasher
-	ShardCoordinator   sharding.Coordinator
-	HeaderSigVerifier  consensus.HeaderSigVerifier
-	Proofs             dataRetriever.ProofsPool
-	Headers            dataRetriever.HeadersPool
-	ProofSizeChecker   common.FieldsSizeChecker
-	KeyRWMutexHandler  sync.KeyRWMutexHandler
-	EligibleNodesCache process.EligibleNodesCache
-	MessageOriginator  core.PeerID
-	WhiteListHandler   process.WhiteListHandler
-	Store              dataRetriever.StorageService
+	DataBuff          []byte
+	Marshaller        marshal.Marshalizer
+	Hasher            hashing.Hasher
+	ShardCoordinator  sharding.Coordinator
+	HeaderSigVerifier consensus.HeaderSigVerifier
+	Proofs            dataRetriever.ProofsPool
+	ProofSizeChecker  common.FieldsSizeChecker
+	KeyRWMutexHandler sync.KeyRWMutexHandler
 }
 
 type interceptedEquivalentProof struct {
-	proof              *block.HeaderProof
-	isForCurrentShard  bool
-	headerSigVerifier  consensus.HeaderSigVerifier
-	proofsPool         dataRetriever.ProofsPool
-	headersPool        dataRetriever.HeadersPool
-	marshaller         marshaling.Marshalizer
-	hasher             hashing.Hasher
-	hash               []byte
-	proofSizeChecker   common.FieldsSizeChecker
-	km                 sync.KeyRWMutexHandler
-	eligibleNodesCache process.EligibleNodesCache
-	messageOriginator  core.PeerID
-	whiteListHandler   process.WhiteListHandler
-	store              dataRetriever.StorageService
+	proof             *block.HeaderProof
+	isForCurrentShard bool
+	headerSigVerifier consensus.HeaderSigVerifier
+	proofsPool        dataRetriever.ProofsPool
+	marshaller        marshaling.Marshalizer
+	hasher            hashing.Hasher
+	hash              []byte
+	proofSizeChecker  common.FieldsSizeChecker
+	km                sync.KeyRWMutexHandler
 }
 
 // NewInterceptedEquivalentProof returns a new instance of interceptedEquivalentProof
@@ -73,20 +62,15 @@ func NewInterceptedEquivalentProof(args ArgInterceptedEquivalentProof) (*interce
 	hash := args.Hasher.Compute(string(args.DataBuff))
 
 	return &interceptedEquivalentProof{
-		proof:              equivalentProof,
-		isForCurrentShard:  extractIsForCurrentShard(args.ShardCoordinator, equivalentProof),
-		headerSigVerifier:  args.HeaderSigVerifier,
-		proofsPool:         args.Proofs,
-		headersPool:        args.Headers,
-		marshaller:         args.Marshaller,
-		hasher:             args.Hasher,
-		proofSizeChecker:   args.ProofSizeChecker,
-		hash:               hash,
-		km:                 args.KeyRWMutexHandler,
-		eligibleNodesCache: args.EligibleNodesCache,
-		messageOriginator:  args.MessageOriginator,
-		whiteListHandler:   args.WhiteListHandler,
-		store:              args.Store,
+		proof:             equivalentProof,
+		isForCurrentShard: extractIsForCurrentShard(args.ShardCoordinator, equivalentProof),
+		headerSigVerifier: args.HeaderSigVerifier,
+		proofsPool:        args.Proofs,
+		marshaller:        args.Marshaller,
+		hasher:            args.Hasher,
+		proofSizeChecker:  args.ProofSizeChecker,
+		hash:              hash,
+		km:                args.KeyRWMutexHandler,
 	}, nil
 }
 
@@ -106,9 +90,6 @@ func checkArgInterceptedEquivalentProof(args ArgInterceptedEquivalentProof) erro
 	if check.IfNil(args.Proofs) {
 		return process.ErrNilProofsPool
 	}
-	if check.IfNil(args.Headers) {
-		return process.ErrNilHeadersDataPool
-	}
 	if check.IfNil(args.Hasher) {
 		return process.ErrNilHasher
 	}
@@ -117,15 +98,6 @@ func checkArgInterceptedEquivalentProof(args ArgInterceptedEquivalentProof) erro
 	}
 	if check.IfNil(args.KeyRWMutexHandler) {
 		return process.ErrNilKeyRWMutexHandler
-	}
-	if check.IfNil(args.EligibleNodesCache) {
-		return process.ErrNilEligibleNodesCache
-	}
-	if check.IfNil(args.WhiteListHandler) {
-		return process.ErrNilWhiteListHandler
-	}
-	if check.IfNil(args.Store) {
-		return process.ErrNilStorageService
 	}
 
 	return nil
@@ -173,13 +145,6 @@ func (iep *interceptedEquivalentProof) CheckValidity() error {
 		return err
 	}
 
-	shouldSkipEligibleVerification := iep.whiteListHandler.IsWhiteListed(iep)
-	if !shouldSkipEligibleVerification {
-		if !iep.eligibleNodesCache.IsPeerEligible(iep.messageOriginator, iep.proof.GetHeaderShardId(), common.GetEpochForConsensus(iep.proof)) {
-			return fmt.Errorf("%w, proof originator must be an eligible node", process.ErrInvalidHeaderProof)
-		}
-	}
-
 	headerHash := string(iep.proof.GetHeaderHash())
 	iep.km.Lock(headerHash)
 	defer iep.km.Unlock(headerHash)
@@ -199,21 +164,6 @@ func (iep *interceptedEquivalentProof) CheckValidity() error {
 	if !wasAdded {
 		// with the current implementation, this should never happen
 		return common.ErrAlreadyExistingEquivalentProof
-	}
-
-	marshalledProof, errNotCritical := iep.marshaller.Marshal(iep.proof)
-	if errNotCritical != nil {
-		logging.LogErrAsWarnExceptAsDebugIfClosingError(log, errNotCritical,
-			"CheckValidity.Marshal proof",
-			"err", errNotCritical)
-		return nil
-	}
-
-	errNotCritical = iep.store.Put(dataRetriever.ProofsUnit, iep.proof.GetHeaderHash(), marshalledProof)
-	if errNotCritical != nil {
-		logging.LogErrAsWarnExceptAsDebugIfClosingError(log, errNotCritical,
-			"CheckValidity.Put -> ProofsUnit",
-			"err", errNotCritical)
 	}
 
 	return nil

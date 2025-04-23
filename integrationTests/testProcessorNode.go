@@ -582,10 +582,6 @@ func newBaseTestProcessorNode(args ArgTestProcessorNode) *TestProcessorNode {
 	if check.IfNil(tpn.HeaderSigVerifier) {
 		tpn.HeaderSigVerifier = &consensusMocks.HeaderSigVerifierMock{
 			VerifyHeaderProofCalled: func(proofHandler data.HeaderProofHandler) error {
-				if !check.IfNil(proofHandler) {
-					tpn.ProofsPool.AddProof(proofHandler)
-				}
-
 				return nil
 			},
 		}
@@ -2736,7 +2732,10 @@ func (tpn *TestProcessorNode) LoadTxSignSkBytes(skBytes []byte) {
 }
 
 // ProposeBlock proposes a new block
-func (tpn *TestProcessorNode) ProposeBlock(round uint64, nonce uint64) (data.BodyHandler, data.HeaderHandler, [][]byte) {
+func (tpn *TestProcessorNode) ProposeBlock(
+	round uint64,
+	nonce uint64,
+) (data.BodyHandler, data.HeaderHandler, [][]byte) {
 	startTime := time.Now()
 	maxTime := time.Second * 2
 
@@ -2748,6 +2747,7 @@ func (tpn *TestProcessorNode) ProposeBlock(round uint64, nonce uint64) (data.Bod
 
 	blockHeader, err := tpn.BlockProcessor.CreateNewHeader(round, nonce)
 	if err != nil {
+		log.Warn("blockHeader.CreateNewHeader", "error", err.Error())
 		return nil, nil, nil
 	}
 
@@ -2827,7 +2827,9 @@ func (tpn *TestProcessorNode) ProposeBlock(round uint64, nonce uint64) (data.Bod
 	return blockBody, blockHeader, txHashes
 }
 
-func (tpn *TestProcessorNode) setBlockSignatures(blockHeader data.HeaderHandler) error {
+func (tpn *TestProcessorNode) setBlockSignatures(
+	blockHeader data.HeaderHandler,
+) error {
 	sig := []byte("aggregated signature")
 	pubKeysBitmap := []byte{1}
 
@@ -2855,7 +2857,8 @@ func (tpn *TestProcessorNode) setBlockSignatures(blockHeader data.HeaderHandler)
 		log.Warn("blockHeader.SetSignature", "error", err.Error())
 		return err
 	}
-	return err
+
+	return nil
 }
 
 // BroadcastBlock broadcasts the block and body to the connected peers
@@ -2869,6 +2872,15 @@ func (tpn *TestProcessorNode) BroadcastBlock(body data.BodyHandler, header data.
 	miniBlocks, transactions, _ := tpn.BlockProcessor.MarshalizedDataToBroadcast(header, body)
 	_ = tpn.BroadcastMessenger.BroadcastMiniBlocks(miniBlocks, pkBytes)
 	_ = tpn.BroadcastMessenger.BroadcastTransactions(transactions, pkBytes)
+}
+
+// BroadcastProof broadcasts the proof to the connected peers
+func (tpn *TestProcessorNode) BroadcastProof(
+	proof data.HeaderProofHandler,
+	publicKey crypto.PublicKey,
+) {
+	pkBytes, _ := publicKey.ToByteArray()
+	_ = tpn.BroadcastMessenger.BroadcastEquivalentProof(proof, pkBytes)
 }
 
 // WhiteListBody will whitelist all miniblocks from the given body for all the given nodes
@@ -3351,8 +3363,7 @@ func CreateEnableEpochsConfig() config.EnableEpochs {
 		SCProcessorV2EnableEpoch:                          UnreachableEpoch,
 		FixRelayedBaseCostEnableEpoch:                     UnreachableEpoch,
 		FixRelayedMoveBalanceToNonPayableSCEnableEpoch:    UnreachableEpoch,
-		EquivalentMessagesEnableEpoch:                     UnreachableEpoch,
-		FixedOrderInConsensusEnableEpoch:                  UnreachableEpoch,
+		AndromedaEnableEpoch:                              UnreachableEpoch,
 	}
 }
 
@@ -3513,7 +3524,7 @@ func getDefaultBootstrapComponents(shardCoordinator sharding.Coordinator, handle
 
 	headerVersionHandler := &testscommon.HeaderVersionHandlerStub{
 		GetVersionCalled: func(epoch uint32) string {
-			if handler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, epoch) {
+			if handler.IsFlagEnabledInEpoch(common.AndromedaFlag, epoch) {
 				return "2"
 			}
 			return "1"
@@ -3664,8 +3675,7 @@ func GetDefaultEnableEpochsConfig() *config.EnableEpochs {
 		StakingV4Step1EnableEpoch:                       UnreachableEpoch,
 		StakingV4Step2EnableEpoch:                       UnreachableEpoch,
 		StakingV4Step3EnableEpoch:                       UnreachableEpoch,
-		EquivalentMessagesEnableEpoch:                   UnreachableEpoch,
-		FixedOrderInConsensusEnableEpoch:                UnreachableEpoch,
+		AndromedaEnableEpoch:                            UnreachableEpoch,
 	}
 }
 

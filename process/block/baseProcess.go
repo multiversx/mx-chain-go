@@ -578,7 +578,7 @@ func checkProcessorParameters(arguments ArgBaseProcessor) error {
 		common.ScheduledMiniBlocksFlag,
 		common.StakingV2Flag,
 		common.CurrentRandomnessOnSortingFlag,
-		common.EquivalentMessagesFlag,
+		common.AndromedaFlag,
 	})
 	if err != nil {
 		return err
@@ -666,7 +666,7 @@ func (bp *baseProcessor) filterHeadersWithoutProofs() (map[string]*hdrInfo, erro
 	filteredHeadersInfo := make(map[string]*hdrInfo)
 
 	for hdrHash, headerInfo := range bp.hdrsForCurrBlock.hdrHashAndInfo {
-		if bp.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, headerInfo.hdr.GetEpoch()) {
+		if bp.enableEpochsHandler.IsFlagEnabledInEpoch(common.AndromedaFlag, headerInfo.hdr.GetEpoch()) {
 			if bp.hasMissingProof(headerInfo, hdrHash) {
 				removedNonces[headerInfo.hdr.GetShardID()][headerInfo.hdr.GetNonce()] = struct{}{}
 				continue
@@ -777,7 +777,7 @@ func (bp *baseProcessor) sortHeaderHashesForCurrentBlockByNonce(usedInBlock bool
 }
 
 func (bp *baseProcessor) hasMissingProof(headerInfo *hdrInfo, hdrHash string) bool {
-	isFlagEnabledForHeader := bp.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, headerInfo.hdr.GetEpoch()) && headerInfo.hdr.GetNonce() >= 1
+	isFlagEnabledForHeader := bp.enableEpochsHandler.IsFlagEnabledInEpoch(common.AndromedaFlag, headerInfo.hdr.GetEpoch()) && headerInfo.hdr.GetNonce() >= 1
 	if !isFlagEnabledForHeader {
 		return false
 	}
@@ -1094,7 +1094,7 @@ func (bp *baseProcessor) cleanupPools(headerHandler data.HeaderHandler) {
 		highestPrevFinalBlockNonce,
 	)
 
-	if common.IsFlagEnabledAfterEpochsStartBlock(headerHandler, bp.enableEpochsHandler, common.EquivalentMessagesFlag) {
+	if common.IsFlagEnabledAfterEpochsStartBlock(headerHandler, bp.enableEpochsHandler, common.AndromedaFlag) {
 		err := bp.dataPool.Proofs().CleanupProofsBehindNonce(bp.shardCoordinator.SelfId(), highestPrevFinalBlockNonce)
 		if err != nil {
 			log.Warn("failed to cleanup notarized proofs behind nonce",
@@ -1133,7 +1133,7 @@ func (bp *baseProcessor) cleanupPoolsForCrossShard(
 		crossNotarizedHeader.GetNonce(),
 	)
 
-	if common.IsFlagEnabledAfterEpochsStartBlock(crossNotarizedHeader, bp.enableEpochsHandler, common.EquivalentMessagesFlag) {
+	if common.IsFlagEnabledAfterEpochsStartBlock(crossNotarizedHeader, bp.enableEpochsHandler, common.AndromedaFlag) {
 		err = bp.dataPool.Proofs().CleanupProofsBehindNonce(shardID, noncesToPrevFinal)
 		if err != nil {
 			log.Warn("failed to cleanup notarized proofs behind nonce",
@@ -1520,6 +1520,8 @@ func (bp *baseProcessor) saveShardHeader(header data.HeaderHandler, headerHash [
 			"err", errNotCritical)
 	}
 
+	bp.saveProof(headerHash, header)
+
 	elapsedTime := time.Since(startTime)
 	if elapsedTime >= common.PutInStorerMaxTime {
 		log.Warn("saveShardHeader", "elapsed time", elapsedTime)
@@ -1545,10 +1547,46 @@ func (bp *baseProcessor) saveMetaHeader(header data.HeaderHandler, headerHash []
 			"err", errNotCritical)
 	}
 
+	bp.saveProof(headerHash, header)
+
 	elapsedTime := time.Since(startTime)
 	if elapsedTime >= common.PutInStorerMaxTime {
 		log.Warn("saveMetaHeader", "elapsed time", elapsedTime)
 	}
+}
+
+func (bp *baseProcessor) saveProof(
+	hash []byte,
+	header data.HeaderHandler,
+) {
+	if !common.IsProofsFlagEnabledForHeader(bp.enableEpochsHandler, header) {
+		return
+	}
+
+	proof, err := bp.proofsPool.GetProof(header.GetShardID(), hash)
+	if err != nil {
+		log.Error("could not find proof for header",
+			"hash", hex.EncodeToString(hash),
+			"shard", header.GetShardID(),
+		)
+		return
+	}
+	marshalledProof, errNotCritical := bp.marshalizer.Marshal(proof)
+	if errNotCritical != nil {
+		logging.LogErrAsWarnExceptAsDebugIfClosingError(log, errNotCritical,
+			"saveProof.Marshal proof",
+			"err", errNotCritical)
+		return
+	}
+
+	errNotCritical = bp.store.Put(dataRetriever.ProofsUnit, proof.GetHeaderHash(), marshalledProof)
+	if errNotCritical != nil {
+		logging.LogErrAsWarnExceptAsDebugIfClosingError(log, errNotCritical,
+			"saveProof.Put -> ProofsUnit",
+			"err", errNotCritical)
+	}
+
+	log.Trace("saved proof to storage", "hash", hash)
 }
 
 func getLastSelfNotarizedHeaderByItself(chainHandler data.ChainHandler) (data.HeaderHandler, []byte) {
@@ -2310,7 +2348,7 @@ func (bp *baseProcessor) getHeaderHash(header data.HeaderHandler) ([]byte, error
 }
 
 func (bp *baseProcessor) requestProofIfNeeded(currentHeaderHash []byte, epoch uint32, shardID uint32) bool {
-	if !bp.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, epoch) {
+	if !bp.enableEpochsHandler.IsFlagEnabledInEpoch(common.AndromedaFlag, epoch) {
 		return false
 	}
 	if bp.proofsPool.HasProof(shardID, currentHeaderHash) {

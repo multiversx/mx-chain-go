@@ -925,7 +925,7 @@ func TestBasicForkDetector_ProbableHighestNonce(t *testing.T) {
 		0,
 		&enableEpochsHandlerMock.EnableEpochsHandlerStub{
 			IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
-				return flag != common.EquivalentMessagesFlag
+				return flag != common.AndromedaFlag
 			},
 		},
 		&dataRetriever.ProofsPoolMock{},
@@ -1352,7 +1352,7 @@ func TestBaseForkDetector_GetNotarizedHeaderHash(t *testing.T) {
 		0,
 		&enableEpochsHandlerMock.EnableEpochsHandlerStub{
 			IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
-				return flag != common.EquivalentMessagesFlag
+				return flag != common.AndromedaFlag
 			},
 		},
 		&dataRetriever.ProofsPoolMock{},
