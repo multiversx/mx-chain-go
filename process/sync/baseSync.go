@@ -337,8 +337,8 @@ func (boot *baseBootstrap) confirmHeaderReceivedByHash(headerHandler data.Header
 	boot.mutRcvHdrHash.Unlock()
 }
 
-func (boot *baseBootstrap) hasProof(hash []byte, epoch uint32, nonce uint64) bool {
-	if !boot.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, epoch) || nonce == 0 {
+func (boot *baseBootstrap) hasProof(hash []byte, header data.HeaderHandler) bool {
+	if !common.IsProofsFlagEnabledForHeader(boot.enableEpochsHandler, header) {
 		return true
 	}
 
@@ -1128,7 +1128,7 @@ func (boot *baseBootstrap) getHeaderWithHashRequestingIfMissing(hash []byte) (da
 		return nil, err
 	}
 
-	if !boot.hasProof(hash, hdr.GetEpoch(), hdr.GetNonce()) {
+	if !boot.hasProof(hash, hdr) {
 		return nil, process.ErrMissingHeaderProof
 	}
 
@@ -1183,7 +1183,7 @@ func (boot *baseBootstrap) getHeaderWithNonceRequestingIfMissing(nonce uint64) (
 		return nil, err
 	}
 
-	if !boot.hasProof(hash, hdr.GetEpoch(), hdr.GetNonce()) {
+	if !boot.hasProof(hash, hdr) {
 		return nil, process.ErrMissingHeaderProof
 	}
 

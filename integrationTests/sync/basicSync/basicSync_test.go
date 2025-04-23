@@ -203,7 +203,7 @@ func TestSyncWorksInShard_EmptyBlocksNoForks_With_EquivalentProofs(t *testing.T)
 		t.Skip("this is not a short test")
 	}
 
-	logger.SetLogLevel("*:DEBUG,sync:TRACE")
+	logger.SetLogLevel("*:DEBUG,sync:TRACE,proofscache:TRACE")
 
 	// 3 shard nodes and 1 metachain node
 	maxShards := uint32(1)
@@ -275,18 +275,32 @@ func TestSyncWorksInShard_EmptyBlocksNoForks_With_EquivalentProofs(t *testing.T)
 		nonce++
 	}
 
-	for _, n := range leaders {
-		pk := n.NodeKeys.MainKey.Pk
-		header := headerInfosByRound[1][n.ShardCoordinator.SelfId()].Header
-		n.BroadcastProof(header, pk)
-	}
+	// for _, n := range leaders {
+	// 	pk := n.NodeKeys.MainKey.Pk
+	// 	header := headerInfosByRound[1][n.ShardCoordinator.SelfId()].Header
+	// 	n.BroadcastProof(header, pk)
+	// }
 
-	time.Sleep(integrationTests.SyncDelay)
+	// time.Sleep(integrationTests.SyncDelay)
 
 	for _, n := range leaders {
 		pk := n.NodeKeys.MainKey.Pk
 		header := headerInfosByRound[round-1][n.ShardCoordinator.SelfId()].Header
-		n.BroadcastProof(header, pk)
+		body := headerInfosByRound[round-1][n.ShardCoordinator.SelfId()].Body
+
+		time.Sleep(integrationTests.SyncDelay)
+
+		n.BroadcastBlock(body, header, pk)
+
+		coreComp := n.Node.GetCoreComponents()
+		hash, _ := core.CalculateHash(coreComp.InternalMarshalizer(), coreComp.Hasher(), header)
+		proof, err := n.Node.GetDataComponents().Datapool().Proofs().GetProof(n.ShardCoordinator.SelfId(), hash)
+		log.LogIfError(err)
+
+		_ = n.Node.GetDataComponents().Datapool().Proofs().CleanupProofsBehindNonce(n.ShardCoordinator.SelfId(), 10)
+
+		n.BroadcastProof(proof, pk)
+
 	}
 
 	time.Sleep(time.Second * 10)

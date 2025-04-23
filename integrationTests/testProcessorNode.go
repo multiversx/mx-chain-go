@@ -2879,22 +2879,11 @@ func (tpn *TestProcessorNode) BroadcastBlock(body data.BodyHandler, header data.
 	_ = tpn.BroadcastMessenger.BroadcastTransactions(transactions, pkBytes)
 }
 
-func (tpn *TestProcessorNode) BroadcastProof(header data.HeaderHandler, publicKey crypto.PublicKey) {
-	coreComp := tpn.Node.GetCoreComponents()
-	if !common.IsProofsFlagEnabledForHeader(coreComp.EnableEpochsHandler(), header) {
-		return
-	}
-
-	hash, _ := core.CalculateHash(coreComp.InternalMarshalizer(), coreComp.Hasher(), header)
-	shardID := tpn.ShardCoordinator.SelfId()
-
+func (tpn *TestProcessorNode) BroadcastProof(
+	proof data.HeaderProofHandler,
+	publicKey crypto.PublicKey,
+) {
 	pkBytes, _ := publicKey.ToByteArray()
-
-	proof, err := tpn.Node.GetDataComponents().Datapool().Proofs().GetProof(shardID, hash)
-	if err != nil {
-		log.Error("failed to get proofff", "error", err)
-	}
-
 	tpn.BroadcastMessenger.BroadcastEquivalentProof(proof, pkBytes)
 }
 

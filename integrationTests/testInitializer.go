@@ -1188,18 +1188,13 @@ func ProposeBlockWithoutBroadcast(
 		body, header, _ := n.ProposeBlock(round, nonce)
 		n.WhiteListBody(nodes, body)
 
-		pk := n.NodeKeys.MainKey.Pk
-		n.BroadcastBlock(body, header, pk)
-
-		n.CommitBlock(body, header)
 		addProofIfNeeded(n, header)
+		n.CommitBlock(body, header)
 
 		headerInfos[n.ShardCoordinator.SelfId()] = &ProposedBlockInfo{
 			Body:   body,
 			Header: header,
 		}
-
-		n.BroadcastProof(header, pk)
 	}
 
 	return headerInfos
