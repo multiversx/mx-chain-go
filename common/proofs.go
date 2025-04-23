@@ -22,7 +22,7 @@ func IsProofsFlagEnabledForHeader(
 	header data.HeaderHandler,
 ) bool {
 	ifFlagActive := enableEpochsHandler.IsFlagEnabledInEpoch(EquivalentMessagesFlag, header.GetEpoch())
-	isGenesisBlock := header.GetNonce() <= 0
+	isGenesisBlock := header.GetNonce() == 0
 
 	return ifFlagActive && !isGenesisBlock
 }
