@@ -764,7 +764,11 @@ func (bfd *baseForkDetector) processReceivedBlock(
 	doJobOnBHProcessed func(data.HeaderHandler, []byte, []data.HeaderHandler, [][]byte),
 ) {
 	hasProof := true // old blocks have consensus proof on them
+<<<<<<< HEAD
 	if bfd.enableEpochsHandler.IsFlagEnabledInEpoch(common.AndromedaFlag, header.GetEpoch()) {
+=======
+	if common.IsProofsFlagEnabledForHeader(bfd.enableEpochsHandler, header) {
+>>>>>>> sync-integration-test-at-genesis
 		hasProof = bfd.proofsPool.HasProof(header.GetShardID(), headerHash)
 	}
 	bfd.setHighestNonceReceived(header.GetNonce())

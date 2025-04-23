@@ -2,7 +2,6 @@ package bootstrap
 
 import (
 	"context"
-	"encoding/hex"
 	"math"
 	"sync"
 	"time"
@@ -227,14 +226,9 @@ func (e *epochStartMetaBlockProcessor) waitForMetaBlock(ctx context.Context) (da
 	for {
 		select {
 		case <-e.chanMetaBlockReached:
-			e.requestHandler.SetEpoch(e.metaBlock.GetEpoch())
 			return e.metaBlock, e.metaBlockHash, nil
 		case <-ctx.Done():
-			metaBlock, hash, errGet := e.getMostReceivedMetaBlock()
-			if !check.IfNil(e.metaBlock) {
-				e.requestHandler.SetEpoch(e.metaBlock.GetEpoch())
-			}
-			return metaBlock, hash, errGet
+			return e.getMostReceivedMetaBlock()
 		case <-chanRequests:
 			err = e.requestMetaBlock()
 			if err != nil {
@@ -248,7 +242,10 @@ func (e *epochStartMetaBlockProcessor) waitForMetaBlock(ctx context.Context) (da
 	}
 }
 
-func (e *epochStartMetaBlockProcessor) waitForMetaBlockProof(ctx context.Context, metaBlockHash []byte) error {
+func (e *epochStartMetaBlockProcessor) waitForMetaBlockProof(
+	ctx context.Context,
+	metaBlockHash []byte,
+) error {
 	if e.proofsPool.HasProof(core.MetachainShardId, metaBlockHash) {
 		return nil
 	}
@@ -327,8 +324,8 @@ func (e *epochStartMetaBlockProcessor) receivedProof(proof data.HeaderProofHandl
 		return
 	}
 
-	hashesMatchMostReceived := hex.EncodeToString(proof.GetHeaderHash()) == hash
-	hashesMatchLocal := hex.EncodeToString(proof.GetHeaderHash()) == e.metaBlockHash
+	hashesMatchMostReceived := string(proof.GetHeaderHash()) == hash
+	hashesMatchLocal := string(proof.GetHeaderHash()) == e.metaBlockHash
 	if !hashesMatchMostReceived && !hashesMatchLocal {
 		return
 	}
@@ -354,7 +351,6 @@ func (e *epochStartMetaBlockProcessor) checkMetaBlockMaps() {
 	if metaBlockFound {
 		e.metaBlock = e.mapReceivedMetaBlocks[hash]
 		e.metaBlockHash = hash
-		e.requestHandler.SetEpoch(e.metaBlock.GetEpoch())
 		e.chanMetaBlockReached <- true
 	}
 }

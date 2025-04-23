@@ -2294,8 +2294,13 @@ func TestShardBootstrap_SyncBlock_WithEquivalentProofs(t *testing.T) {
 		args := CreateShardBootstrapMockArguments()
 
 		args.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+<<<<<<< HEAD
 			IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
 				return flag == common.AndromedaFlag
+=======
+			IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
+				return flag == common.EquivalentMessagesFlag
+>>>>>>> sync-integration-test-at-genesis
 			},
 		}
 
@@ -2368,7 +2373,7 @@ func TestShardBootstrap_SyncBlock_WithEquivalentProofs(t *testing.T) {
 			RequestShardHeaderByNonceCalled: func(shardID uint32, nonce uint64) {
 				receive <- true
 			},
-			RequestEquivalentProofByHashCalled: func(headerShard uint32, headerHash []byte) {
+			RequestEquivalentProofByNonceCalled: func(headerShard uint32, headerNonce uint64) {
 				receive <- true
 			},
 		}
@@ -2436,7 +2441,7 @@ func TestShardBootstrap_SyncBlock_WithEquivalentProofs(t *testing.T) {
 		numProofCalls := 0
 		pools.ProofsCalled = func() dataRetriever.ProofsPool {
 			return &dataRetrieverMock.ProofsPoolMock{
-				GetProofByNonceCalled: func(headerNonce uint64, shardID uint32) (data.HeaderProofHandler, error) {
+				GetProofCalled: func(shardID uint32, headerHash []byte) (data.HeaderProofHandler, error) {
 					return nil, errors.New("missing proof")
 				},
 				HasProofCalled: func(shardID uint32, headerHash []byte) bool {
@@ -2470,7 +2475,7 @@ func TestShardBootstrap_SyncBlock_WithEquivalentProofs(t *testing.T) {
 		receive := make(chan bool, 2)
 
 		args.RequestHandler = &testscommon.RequestHandlerStub{
-			RequestMetaHeaderCalled: func(hash []byte) {
+			RequestShardHeaderCalled: func(shardID uint32, hash []byte) {
 				receive <- true
 			},
 			RequestEquivalentProofByHashCalled: func(headerShard uint32, headerHash []byte) {

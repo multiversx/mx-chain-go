@@ -1,6 +1,7 @@
 package resolvers_test
 
 import (
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"math/big"
@@ -24,7 +25,7 @@ import (
 )
 
 var (
-	providedHashKey  = []byte("hash-0")
+	providedHashKey  = []byte(fmt.Sprintf("%s-0", hex.EncodeToString([]byte("hash"))))
 	providedNonceKey = []byte("1-1")
 )
 
@@ -553,7 +554,7 @@ func TestEquivalentProofsResolver_ProcessReceivedMessage(t *testing.T) {
 	t.Run("resolveMultipleHashesRequest: one hash in pool, one in storage should work", func(t *testing.T) {
 		t.Parallel()
 
-		providedHashKey2 := []byte("hash2-2")
+		providedHashKey2 := []byte(fmt.Sprintf("%s-2", hex.EncodeToString([]byte("hash2"))))
 		args := createMockArgEquivalentProofsResolver()
 		args.EquivalentProofsPool = &dataRetrieverMocks.ProofsPoolMock{
 			GetProofCalled: func(shardID uint32, headerHash []byte) (data.HeaderProofHandler, error) {

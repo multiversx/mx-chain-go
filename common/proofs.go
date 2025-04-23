@@ -16,6 +16,17 @@ func IsEpochStartProofForFlagActivation(proof consensus.ProofHandler, enableEpoc
 	return isStartOfEpochProof && isProofInActivationEpoch
 }
 
+// IsProofsFlagEnabledForHeader returns true if proofs flag has to be enabled for the provided header
+func IsProofsFlagEnabledForHeader(
+	enableEpochsHandler EnableEpochsHandler,
+	header data.HeaderHandler,
+) bool {
+	ifFlagActive := enableEpochsHandler.IsFlagEnabledInEpoch(EquivalentMessagesFlag, header.GetEpoch())
+	isGenesisBlock := header.GetNonce() == 0
+
+	return ifFlagActive && !isGenesisBlock
+}
+
 // VerifyProofAgainstHeader verifies the fields on the proof match the ones on the header
 func VerifyProofAgainstHeader(proof data.HeaderProofHandler, header data.HeaderHandler) error {
 	if check.IfNil(proof) {

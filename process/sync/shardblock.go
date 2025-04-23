@@ -211,24 +211,6 @@ func (boot *ShardBootstrap) getCurrHeader() (data.HeaderHandler, error) {
 	return header, nil
 }
 
-func (boot *ShardBootstrap) haveHeaderInPoolWithNonce(nonce uint64) (bool, bool) {
-	_, hash, err := process.GetShardHeaderFromPoolWithNonce(
-		nonce,
-		boot.shardCoordinator.SelfId(),
-		boot.headers)
-	if err != nil {
-		_, errGetProof := boot.proofs.GetProofByNonce(nonce, boot.shardCoordinator.SelfId())
-		hasProof := errGetProof == nil
-		return false, hasProof
-	}
-
-	return true, boot.proofs.HasProof(boot.shardCoordinator.SelfId(), hash)
-}
-
-func (boot *ShardBootstrap) getShardHeaderFromPool(headerHash []byte) (data.HeaderHandler, error) {
-	return process.GetShardHeaderFromPool(headerHash, boot.headers)
-}
-
 func (boot *ShardBootstrap) requestMiniBlocksFromHeaderWithNonceIfMissing(headerHandler data.HeaderHandler) {
 	nextBlockNonce := boot.getNonceForNextBlock()
 	maxNonce := core.MinUint64(nextBlockNonce+process.MaxHeadersToRequestInAdvance-1, boot.forkDetector.ProbableHighestNonce())

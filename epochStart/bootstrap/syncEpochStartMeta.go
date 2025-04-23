@@ -51,8 +51,6 @@ type ArgsNewEpochStartMetaSyncer struct {
 	InterceptedDataVerifierFactory process.InterceptedDataVerifierFactory
 	ProofsPool                     dataRetriever.ProofsPool
 	ProofsInterceptorProcessor     process.InterceptorProcessor
-	Storage                        dataRetriever.StorageService
-	HeadersPool                    dataRetriever.HeadersPool
 }
 
 // NewEpochStartMetaSyncer will return a new instance of epochStartMetaSyncer
@@ -77,12 +75,6 @@ func NewEpochStartMetaSyncer(args ArgsNewEpochStartMetaSyncer) (*epochStartMetaS
 	}
 	if check.IfNil(args.ProofsInterceptorProcessor) {
 		return nil, epochStart.ErrNilEquivalentProofsProcessor
-	}
-	if check.IfNil(args.Storage) {
-		return nil, epochStart.ErrNilStorageService
-	}
-	if check.IfNil(args.HeadersPool) {
-		return nil, epochStart.ErrNilHeadersDataPool
 	}
 
 	e := &epochStartMetaSyncer{
@@ -140,12 +132,8 @@ func NewEpochStartMetaSyncer(args ArgsNewEpochStartMetaSyncer) (*epochStartMetaS
 	argsInterceptedEquivalentProofsFactory := interceptorsFactory.ArgInterceptedEquivalentProofsFactory{
 		ArgInterceptedDataFactory: argsInterceptedDataFactory,
 		ProofsPool:                args.ProofsPool,
-		HeadersPool:               args.HeadersPool,
-		Storage:                   args.Storage,
-		PeerShardMapper:           disabled.NewPeerShardMapper(), // no need for real psm, proofs will be requested thus whitelisted
-		WhiteListHandler:          args.WhitelistHandler,
 	}
-	interceptedEquivalentProofsFactory, err := interceptorsFactory.NewInterceptedEquivalentProofsFactory(argsInterceptedEquivalentProofsFactory)
+	interceptedEquivalentProofsFactory := interceptorsFactory.NewInterceptedEquivalentProofsFactory(argsInterceptedEquivalentProofsFactory)
 	if err != nil {
 		return nil, err
 	}

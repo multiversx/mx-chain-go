@@ -1520,6 +1520,8 @@ func (bp *baseProcessor) saveShardHeader(header data.HeaderHandler, headerHash [
 			"err", errNotCritical)
 	}
 
+	bp.saveProof(headerHash, header)
+
 	elapsedTime := time.Since(startTime)
 	if elapsedTime >= common.PutInStorerMaxTime {
 		log.Warn("saveShardHeader", "elapsed time", elapsedTime)
@@ -1545,10 +1547,46 @@ func (bp *baseProcessor) saveMetaHeader(header data.HeaderHandler, headerHash []
 			"err", errNotCritical)
 	}
 
+	bp.saveProof(headerHash, header)
+
 	elapsedTime := time.Since(startTime)
 	if elapsedTime >= common.PutInStorerMaxTime {
 		log.Warn("saveMetaHeader", "elapsed time", elapsedTime)
 	}
+}
+
+func (bp *baseProcessor) saveProof(
+	hash []byte,
+	header data.HeaderHandler,
+) {
+	if !common.IsProofsFlagEnabledForHeader(bp.enableEpochsHandler, header) {
+		return
+	}
+
+	proof, err := bp.proofsPool.GetProof(header.GetShardID(), hash)
+	if err != nil {
+		log.Error("could not find proof for header",
+			"hash", hex.EncodeToString(hash),
+			"shard", header.GetShardID(),
+		)
+		return
+	}
+	marshalledProof, errNotCritical := bp.marshalizer.Marshal(proof)
+	if errNotCritical != nil {
+		logging.LogErrAsWarnExceptAsDebugIfClosingError(log, errNotCritical,
+			"saveProof.Marshal proof",
+			"err", errNotCritical)
+		return
+	}
+
+	errNotCritical = bp.store.Put(dataRetriever.ProofsUnit, proof.GetHeaderHash(), marshalledProof)
+	if errNotCritical != nil {
+		logging.LogErrAsWarnExceptAsDebugIfClosingError(log, errNotCritical,
+			"saveProof.Put -> ProofsUnit",
+			"err", errNotCritical)
+	}
+
+	log.Trace("saved proof to storage", "hash", hash)
 }
 
 func getLastSelfNotarizedHeaderByItself(chainHandler data.ChainHandler) (data.HeaderHandler, []byte) {

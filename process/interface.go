@@ -1437,9 +1437,3 @@ type ProofsPool interface {
 	IsProofInPoolEqualTo(headerProof data.HeaderProofHandler) bool
 	IsInterfaceNil() bool
 }
-
-// EligibleNodesCache defines the behaviour of a cache for eligible nodes
-type EligibleNodesCache interface {
-	IsPeerEligible(pid core.PeerID, shard uint32, epoch uint32) bool
-	IsInterfaceNil() bool
-}

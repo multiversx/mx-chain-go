@@ -231,7 +231,11 @@ func (creator *blocksCreator) ApplySignaturesAndGetProof(
 	}
 
 	var headerProof *dataBlock.HeaderProof
+<<<<<<< HEAD
 	shouldAddCurrentProof := !nilPrevHeader && enableEpochHandler.IsFlagEnabled(common.AndromedaFlag)
+=======
+	shouldAddCurrentProof := !nilPrevHeader && enableEpochHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, header.GetEpoch())
+>>>>>>> sync-integration-test-at-genesis
 	if shouldAddCurrentProof {
 		headerProof = createProofForHeader(pubKeyBitmap, newHeaderSig, headerHash, header)
 		creator.nodeHandler.GetDataComponents().Datapool().Headers().AddHeader(headerHash, header)
@@ -304,7 +308,11 @@ func (creator *blocksCreator) setHeaderSignatures(
 		return err
 	}
 
+<<<<<<< HEAD
 	isEquivalentMessageEnabled := creator.nodeHandler.GetCoreComponents().EnableEpochsHandler().IsFlagEnabled(common.AndromedaFlag)
+=======
+	isEquivalentMessageEnabled := creator.nodeHandler.GetCoreComponents().EnableEpochsHandler().IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, header.GetEpoch())
+>>>>>>> sync-integration-test-at-genesis
 	if !isEquivalentMessageEnabled {
 		if err = header.SetSignature(sig); err != nil {
 			return err
