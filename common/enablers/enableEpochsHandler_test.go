@@ -125,7 +125,7 @@ func createEnableEpochsConfig() config.EnableEpochs {
 		UseGasBoundedShouldFailExecutionEnableEpoch:              108,
 		RelayedTransactionsV3EnableEpoch:                         109,
 		RelayedTransactionsV3FixESDTTransferEnableEpoch:          110,
-		AndromedaEnableEpoch:                            111,
+		AndromedaEnableEpoch:                                     111,
 	}
 }
 

@@ -1033,7 +1033,7 @@ func TestEnableEpochConfig(t *testing.T) {
 			FixRelayedMoveBalanceToNonPayableSCEnableEpoch:           102,
 			RelayedTransactionsV3EnableEpoch:                         103,
 			RelayedTransactionsV3FixESDTTransferEnableEpoch:          104,
-			AndromedaEnableEpoch:                            105,
+			AndromedaEnableEpoch:                                     105,
 			MaxNodesChangeEnableEpoch: []MaxNodesChangeConfig{
 				{
 					EpochEnable:            44,
