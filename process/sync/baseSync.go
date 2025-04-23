@@ -1096,14 +1096,12 @@ func (boot *baseBootstrap) getNextHeaderRequestingIfMissing() (data.HeaderHandle
 		hash = boot.forkInfo.Hash
 	}
 
-	log.Error("getNextHeaderRequestingIfMissing", "hash", hash)
-
 	if hash != nil {
-		header, err := boot.blockBootstrapper.getHeaderWithHashRequestingIfMissing(hash)
+		header, err := boot.getHeaderWithHashRequestingIfMissing(hash)
 		return header, err
 	}
 
-	return boot.blockBootstrapper.getHeaderWithNonceRequestingIfMissing(nonce)
+	return boot.getHeaderWithNonceRequestingIfMissing(nonce)
 }
 
 // getHeaderWithHashRequestingIfMissing method gets the header with a given hash from pool. If it is not found there,
@@ -1161,11 +1159,6 @@ func (boot *baseBootstrap) getHeaderWithNonceRequestingIfMissing(nonce uint64) (
 	hdr, hash, err := boot.getHeaderFromPoolWithNonce(nonce)
 	hasHeader := err == nil
 	needsProof := boot.checkNeedsProofByNonce(nonce, hdr)
-
-	log.Error("getHeaderWithNonceRequestingIfMissing",
-		"hasHeader", hasHeader,
-		"needsProof", needsProof,
-	)
 
 	if hasHeader && !needsProof {
 		return hdr, nil

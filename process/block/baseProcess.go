@@ -1553,8 +1553,6 @@ func (bp *baseProcessor) saveMetaHeader(header data.HeaderHandler, headerHash []
 	if elapsedTime >= common.PutInStorerMaxTime {
 		log.Warn("saveMetaHeader", "elapsed time", elapsedTime)
 	}
-
-	log.Info("saved header to storage", "hash", headerHash)
 }
 
 func (bp *baseProcessor) saveProof(
