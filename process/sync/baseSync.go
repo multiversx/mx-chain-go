@@ -1616,6 +1616,27 @@ func (boot *baseBootstrap) handleTokensSuppliesRepopulation() error {
 	return tokensSuppliesProc.SaveSupplies()
 }
 
+func (boot *baseBootstrap) getHeaderAndProofFromPoolWithNonce(nonce uint64) (data.HeaderHandler, data.HeaderProofHandler) {
+	header, hash, err := process.GetMetaHeaderFromPoolWithNonce(
+		nonce,
+		boot.headers)
+	if err != nil {
+		proof, errGetProof := boot.proofs.GetProofByNonce(nonce, boot.shardCoordinator.SelfId())
+		if errGetProof != nil {
+			return nil, nil
+		}
+
+		return nil, proof
+	}
+
+	proof, errGetProof := boot.proofs.GetProof(boot.shardCoordinator.SelfId(), hash)
+	if errGetProof != nil {
+		return header, nil
+	}
+
+	return header, proof
+}
+
 // Close will close the endless running go routine
 func (boot *baseBootstrap) Close() error {
 	if boot.cancelFunc != nil {
