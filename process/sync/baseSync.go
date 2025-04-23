@@ -257,7 +257,7 @@ func (boot *baseBootstrap) confirmHeaderReceivedByNonce(headerHandler data.Heade
 		)
 
 		// if flag is not active for the header, do not check the proof and release chan
-		isFlagActive := boot.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, headerHandler.GetEpoch())
+		isFlagActive := common.IsProofsFlagEnabledForHeader(boot.enableEpochsHandler, headerHandler)
 		if !isFlagActive {
 			boot.setRequestedHeaderNonce(nil)
 			boot.mutRcvHdrNonce.Unlock()
@@ -303,7 +303,7 @@ func (boot *baseBootstrap) confirmHeaderReceivedByHash(headerHandler data.Header
 		)
 
 		// if flag is not active for the header, do not check the proof and release chan
-		isFlagActive := boot.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, headerHandler.GetEpoch())
+		isFlagActive := common.IsProofsFlagEnabledForHeader(boot.enableEpochsHandler, headerHandler)
 		if !isFlagActive {
 			boot.setRequestedHeaderHash(nil)
 			boot.mutRcvHdrHash.Unlock()
@@ -337,8 +337,8 @@ func (boot *baseBootstrap) confirmHeaderReceivedByHash(headerHandler data.Header
 	boot.mutRcvHdrHash.Unlock()
 }
 
-func (boot *baseBootstrap) hasProof(hash []byte, epoch uint32) bool {
-	if !boot.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, epoch) {
+func (boot *baseBootstrap) hasProof(hash []byte, header data.HeaderHandler) bool {
+	if !common.IsProofsFlagEnabledForHeader(boot.enableEpochsHandler, header) {
 		return true
 	}
 
@@ -848,7 +848,7 @@ func (boot *baseBootstrap) cleanNoncesSyncedWithErrorsBehindFinal() {
 }
 
 func (boot *baseBootstrap) cleanProofsBehindFinal(header data.HeaderHandler) {
-	if !boot.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, header.GetEpoch()) {
+	if !boot.enableEpochsHandler.IsFlagEnabledInEpoch(common.AndromedaFlag, header.GetEpoch()) {
 		return
 	}
 
@@ -1109,22 +1109,7 @@ func (boot *baseBootstrap) getNextHeaderRequestingIfMissing() (data.HeaderHandle
 func (boot *baseBootstrap) getHeaderWithHashRequestingIfMissing(hash []byte) (data.HeaderHandler, error) {
 	hdr, err := boot.getHeader(hash)
 	hasHeader := err == nil
-
-	// if header exists, check if it has or needs a proof
-	// 		if it has a proof, do not wait
-	// 		if it does not need a proof, do not wait
-	// 		if it needs a proof, request and wait for the proof
-	// if header does not exist
-	//		if it has a proof, request the header
-	//		if it does not have the proof, request both and decide when header is received if it truly needed the proof
-	_, errGetProof := boot.proofs.GetProof(boot.shardCoordinator.SelfId(), hash)
-	hasProof := errGetProof == nil
-	needsProof := !hasProof
-	if hasHeader {
-		isFlagActiveForExistingHeader := boot.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, hdr.GetEpoch())
-		needsProof = needsProof && isFlagActiveForExistingHeader
-	}
-
+	needsProof := boot.checkNeedsProofByHash(hash, hdr)
 	if hasHeader && !needsProof {
 		return hdr, nil
 	}
@@ -1141,19 +1126,14 @@ func (boot *baseBootstrap) getHeaderWithHashRequestingIfMissing(hash []byte) (da
 		return nil, err
 	}
 
-	if !boot.hasProof(hash, hdr.GetEpoch()) {
+	if !boot.hasProof(hash, hdr) {
 		return nil, process.ErrMissingHeaderProof
 	}
 
 	return hdr, nil
 }
 
-// getHeaderWithNonceRequestingIfMissing method gets the header with a given nonce from pool. If it is not found there, it will
-// be requested from network
-func (boot *baseBootstrap) getHeaderWithNonceRequestingIfMissing(nonce uint64) (data.HeaderHandler, error) {
-	hdr, hash, err := boot.getHeaderFromPoolWithNonce(nonce)
-	hasHeader := err == nil
-
+func (boot *baseBootstrap) checkNeedsProofByHash(hash []byte, header data.HeaderHandler) bool {
 	// if header exists, check if it has or needs a proof
 	// 		if it has a proof, do not wait
 	// 		if it does not need a proof, do not wait
@@ -1161,13 +1141,24 @@ func (boot *baseBootstrap) getHeaderWithNonceRequestingIfMissing(nonce uint64) (
 	// if header does not exist
 	//		if it has a proof, request the header
 	//		if it does not have the proof, request both and decide when header is received if it truly needed the proof
-	_, errGetProof := boot.proofs.GetProofByNonce(nonce, boot.shardCoordinator.SelfId())
+	_, errGetProof := boot.proofs.GetProof(boot.shardCoordinator.SelfId(), hash)
 	hasProof := errGetProof == nil
 	needsProof := !hasProof
-	if hasHeader {
-		isFlagActiveForExistingHeader := boot.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, hdr.GetEpoch())
-		needsProof = needsProof && isFlagActiveForExistingHeader
+	if check.IfNil(header) {
+		return needsProof
 	}
+
+	isFlagActiveForExistingHeader := common.IsProofsFlagEnabledForHeader(boot.enableEpochsHandler, header)
+	needsProof = needsProof && isFlagActiveForExistingHeader
+	return needsProof
+}
+
+// getHeaderWithNonceRequestingIfMissing method gets the header with a given nonce from pool. If it is not found there, it will
+// be requested from network
+func (boot *baseBootstrap) getHeaderWithNonceRequestingIfMissing(nonce uint64) (data.HeaderHandler, error) {
+	hdr, hash, err := boot.getHeaderFromPoolWithNonce(nonce)
+	hasHeader := err == nil
+	needsProof := boot.checkNeedsProofByNonce(nonce, hdr)
 
 	if hasHeader && !needsProof {
 		return hdr, nil
@@ -1185,11 +1176,35 @@ func (boot *baseBootstrap) getHeaderWithNonceRequestingIfMissing(nonce uint64) (
 		return nil, err
 	}
 
-	if !boot.hasProof(hash, hdr.GetEpoch()) {
+	if !boot.hasProof(hash, hdr) {
 		return nil, process.ErrMissingHeaderProof
 	}
 
 	return hdr, nil
+}
+
+func (boot *baseBootstrap) checkNeedsProofByNonce(
+	nonce uint64,
+	header data.HeaderHandler,
+) bool {
+	// if header exists, check if it has or needs a proof
+	// 		if it has a proof, do not wait
+	// 		if it does not need a proof, do not wait
+	// 		if it needs a proof, request and wait for the proof
+	// if header does not exist
+	//		if it has a proof, request the header
+	//		if it does not have the proof, request both and decide when header is received if it truly needed the proof
+	_, errGetProof := boot.proofs.GetProofByNonce(nonce, boot.shardCoordinator.SelfId())
+	hasProof := errGetProof == nil
+	needsProof := !hasProof
+
+	if check.IfNil(header) {
+		return needsProof
+	}
+
+	isFlagActiveForExistingHeader := common.IsProofsFlagEnabledForHeader(boot.enableEpochsHandler, header)
+	needsProof = needsProof && isFlagActiveForExistingHeader
+	return needsProof
 }
 
 func (boot *baseBootstrap) requestHeaderAndProofByHashIfMissing(
@@ -1221,7 +1236,7 @@ func (boot *baseBootstrap) requestHeaderByHash(hash []byte) {
 		"hash", hash,
 		"probable highest nonce", boot.forkDetector.ProbableHighestNonce(),
 	)
-	boot.requestHandler.RequestMetaHeader(hash)
+
 	if boot.shardCoordinator.SelfId() == core.MetachainShardId {
 		boot.requestHandler.RequestMetaHeader(hash)
 		return
@@ -1268,6 +1283,8 @@ func (boot *baseBootstrap) requestHeaderAndProofByNonceIfMissing(
 	log.Debug("requesting equivalent proof from network",
 		"hash", hex.EncodeToString(hash),
 	)
+
+	boot.setRequestedHeaderNonce(&nonce)
 	boot.requestHandler.RequestEquivalentProofByHash(boot.shardCoordinator.SelfId(), hash)
 }
 
@@ -1519,7 +1536,9 @@ func (boot *baseBootstrap) requestHeaders(fromNonce uint64, toNonce uint64) {
 	defer boot.mutRequestHeaders.Unlock()
 
 	for currentNonce := fromNonce; currentNonce <= toNonce; currentNonce++ {
-		hasHeader, hasProof := boot.blockBootstrapper.haveHeaderInPoolWithNonce(currentNonce)
+		header, proof := boot.blockBootstrapper.getHeaderAndProofFromPoolWithNonce(currentNonce)
+		hasHeader := !check.IfNil(header)
+		hasProof := !check.IfNil(proof)
 		if hasHeader && hasProof {
 			continue
 		}
@@ -1597,6 +1616,25 @@ func (boot *baseBootstrap) handleTokensSuppliesRepopulation() error {
 	}
 
 	return tokensSuppliesProc.SaveSupplies()
+}
+
+func (boot *baseBootstrap) getHeaderAndProofFromPoolWithNonce(nonce uint64) (data.HeaderHandler, data.HeaderProofHandler) {
+	header, hash, err := boot.getHeaderFromPoolWithNonce(nonce)
+	if err != nil {
+		proof, errGetProof := boot.proofs.GetProofByNonce(nonce, boot.shardCoordinator.SelfId())
+		if errGetProof != nil {
+			return nil, nil
+		}
+
+		return nil, proof
+	}
+
+	proof, errGetProof := boot.proofs.GetProof(boot.shardCoordinator.SelfId(), hash)
+	if errGetProof != nil {
+		return header, nil
+	}
+
+	return header, proof
 }
 
 // Close will close the endless running go routine

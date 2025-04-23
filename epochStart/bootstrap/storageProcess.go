@@ -192,8 +192,6 @@ func (sesb *storageEpochStartBootstrap) prepareComponentsToSync() error {
 		InterceptedDataVerifierFactory: sesb.interceptedDataVerifierFactory,
 		ProofsPool:                     sesb.dataPool.Proofs(),
 		ProofsInterceptorProcessor:     processor.NewEquivalentProofsInterceptorProcessor(),
-		Storage:                        sesb.storageService,
-		HeadersPool:                    sesb.dataPool.Headers(),
 	}
 
 	sesb.epochStartMetaBlockSyncer, err = NewEpochStartMetaSyncer(argsEpochStartSyncer)

@@ -2339,7 +2339,7 @@ func TestWorker_ReceivedHeader(t *testing.T) {
 		workerArgs := createDefaultWorkerArgs(appStatusHandler)
 		workerArgs.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
 			IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
-				return flag == common.EquivalentMessagesFlag
+				return flag == common.AndromedaFlag
 			},
 		}
 		wrk, _ := spos.NewWorker(workerArgs)

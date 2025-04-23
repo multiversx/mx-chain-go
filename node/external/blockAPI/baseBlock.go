@@ -609,7 +609,7 @@ func (bap *baseAPIBlockProcessor) addProof(
 	header data.HeaderHandler,
 	apiBlock *api.Block,
 ) error {
-	if !bap.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, header.GetEpoch()) {
+	if !bap.enableEpochsHandler.IsFlagEnabledInEpoch(common.AndromedaFlag, header.GetEpoch()) {
 		return nil
 	}
 

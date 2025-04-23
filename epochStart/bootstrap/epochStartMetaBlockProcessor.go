@@ -204,7 +204,7 @@ func (e *epochStartMetaBlockProcessor) GetEpochStartMetaBlock(ctx context.Contex
 		return nil, err
 	}
 
-	if e.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, metaBlock.GetEpoch()) {
+	if e.enableEpochsHandler.IsFlagEnabledInEpoch(common.AndromedaFlag, metaBlock.GetEpoch()) {
 		err = e.waitForMetaBlockProof(ctx, []byte(metaBlockHash))
 		if err != nil {
 			return nil, err
@@ -226,14 +226,9 @@ func (e *epochStartMetaBlockProcessor) waitForMetaBlock(ctx context.Context) (da
 	for {
 		select {
 		case <-e.chanMetaBlockReached:
-			e.requestHandler.SetEpoch(e.metaBlock.GetEpoch())
 			return e.metaBlock, e.metaBlockHash, nil
 		case <-ctx.Done():
-			metaBlock, hash, errGet := e.getMostReceivedMetaBlock()
-			if !check.IfNil(e.metaBlock) {
-				e.requestHandler.SetEpoch(e.metaBlock.GetEpoch())
-			}
-			return metaBlock, hash, errGet
+			return e.getMostReceivedMetaBlock()
 		case <-chanRequests:
 			err = e.requestMetaBlock()
 			if err != nil {
@@ -247,7 +242,10 @@ func (e *epochStartMetaBlockProcessor) waitForMetaBlock(ctx context.Context) (da
 	}
 }
 
-func (e *epochStartMetaBlockProcessor) waitForMetaBlockProof(ctx context.Context, metaBlockHash []byte) error {
+func (e *epochStartMetaBlockProcessor) waitForMetaBlockProof(
+	ctx context.Context,
+	metaBlockHash []byte,
+) error {
 	if e.proofsPool.HasProof(core.MetachainShardId, metaBlockHash) {
 		return nil
 	}
@@ -353,7 +351,6 @@ func (e *epochStartMetaBlockProcessor) checkMetaBlockMaps() {
 	if metaBlockFound {
 		e.metaBlock = e.mapReceivedMetaBlocks[hash]
 		e.metaBlockHash = hash
-		e.requestHandler.SetEpoch(e.metaBlock.GetEpoch())
 		e.chanMetaBlockReached <- true
 	}
 }

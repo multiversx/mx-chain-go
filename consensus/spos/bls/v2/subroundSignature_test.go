@@ -630,7 +630,7 @@ func TestSubroundSignature_SendSignature(t *testing.T) {
 
 		enableEpochsHandler := &enableEpochsHandlerMock.EnableEpochsHandlerStub{
 			IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
-				return flag == common.EquivalentMessagesFlag
+				return flag == common.AndromedaFlag
 			},
 		}
 		container.SetEnableEpochsHandler(enableEpochsHandler)
@@ -697,7 +697,7 @@ func TestSubroundSignature_SendSignature(t *testing.T) {
 
 		enableEpochsHandler := &enableEpochsHandlerMock.EnableEpochsHandlerStub{
 			IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
-				return flag == common.EquivalentMessagesFlag
+				return flag == common.AndromedaFlag
 			},
 		}
 		container.SetEnableEpochsHandler(enableEpochsHandler)
@@ -763,7 +763,7 @@ func TestSubroundSignature_DoSignatureJobForManagedKeys(t *testing.T) {
 		container := consensusMocks.InitConsensusCore()
 		enableEpochsHandler := &enableEpochsHandlerMock.EnableEpochsHandlerStub{
 			IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
-				return flag == common.EquivalentMessagesFlag
+				return flag == common.AndromedaFlag
 			},
 		}
 		container.SetEnableEpochsHandler(enableEpochsHandler)
@@ -849,7 +849,7 @@ func TestSubroundSignature_DoSignatureJobForManagedKeys(t *testing.T) {
 		container := consensusMocks.InitConsensusCore()
 		enableEpochsHandler := &enableEpochsHandlerMock.EnableEpochsHandlerStub{
 			IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
-				return flag == common.EquivalentMessagesFlag
+				return flag == common.AndromedaFlag
 			},
 		}
 		container.SetEnableEpochsHandler(enableEpochsHandler)

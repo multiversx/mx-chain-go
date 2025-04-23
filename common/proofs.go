@@ -11,9 +11,20 @@ import (
 // IsEpochStartProofForFlagActivation returns true if the provided proof is the proof of the epoch start block on the activation epoch of equivalent messages
 func IsEpochStartProofForFlagActivation(proof consensus.ProofHandler, enableEpochsHandler EnableEpochsHandler) bool {
 	isStartOfEpochProof := proof.GetIsStartOfEpoch()
-	isProofInActivationEpoch := proof.GetHeaderEpoch() == enableEpochsHandler.GetActivationEpoch(EquivalentMessagesFlag)
+	isProofInActivationEpoch := proof.GetHeaderEpoch() == enableEpochsHandler.GetActivationEpoch(AndromedaFlag)
 
 	return isStartOfEpochProof && isProofInActivationEpoch
+}
+
+// IsProofsFlagEnabledForHeader returns true if proofs flag has to be enabled for the provided header
+func IsProofsFlagEnabledForHeader(
+	enableEpochsHandler EnableEpochsHandler,
+	header data.HeaderHandler,
+) bool {
+	ifFlagActive := enableEpochsHandler.IsFlagEnabledInEpoch(AndromedaFlag, header.GetEpoch())
+	isGenesisBlock := header.GetNonce() == 0
+
+	return ifFlagActive && !isGenesisBlock
 }
 
 // VerifyProofAgainstHeader verifies the fields on the proof match the ones on the header

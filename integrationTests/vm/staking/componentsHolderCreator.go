@@ -70,8 +70,7 @@ func createCoreComponents() factory.CoreComponentsHolder {
 		StakingV4Step3EnableEpoch:          stakingV4Step3EnableEpoch,
 		GovernanceEnableEpoch:              integrationTests.UnreachableEpoch,
 		RefactorPeersMiniBlocksEnableEpoch: integrationTests.UnreachableEpoch,
-		EquivalentMessagesEnableEpoch:      integrationTests.UnreachableEpoch,
-		FixedOrderInConsensusEnableEpoch:   integrationTests.UnreachableEpoch,
+		AndromedaEnableEpoch:               integrationTests.UnreachableEpoch,
 	}
 
 	enableEpochsHandler, _ := enablers.NewEnableEpochsHandler(configEnableEpochs, epochNotifier)

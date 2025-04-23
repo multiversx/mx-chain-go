@@ -17,65 +17,43 @@ import (
 // ArgInterceptedEquivalentProofsFactory is the DTO used to create a new instance of interceptedEquivalentProofsFactory
 type ArgInterceptedEquivalentProofsFactory struct {
 	ArgInterceptedDataFactory
-	ProofsPool       dataRetriever.ProofsPool
-	HeadersPool      dataRetriever.HeadersPool
-	Storage          dataRetriever.StorageService
-	PeerShardMapper  process.PeerShardMapper
-	WhiteListHandler process.WhiteListHandler
+	ProofsPool dataRetriever.ProofsPool
 }
 
 type interceptedEquivalentProofsFactory struct {
-	marshaller         marshal.Marshalizer
-	shardCoordinator   sharding.Coordinator
-	headerSigVerifier  consensus.HeaderSigVerifier
-	proofsPool         dataRetriever.ProofsPool
-	headersPool        dataRetriever.HeadersPool
-	storage            dataRetriever.StorageService
-	hasher             hashing.Hasher
-	proofSizeChecker   common.FieldsSizeChecker
-	km                 sync.KeyRWMutexHandler
-	eligibleNodesCache process.EligibleNodesCache
-	whiteListHandler   process.WhiteListHandler
+	marshaller        marshal.Marshalizer
+	shardCoordinator  sharding.Coordinator
+	headerSigVerifier consensus.HeaderSigVerifier
+	proofsPool        dataRetriever.ProofsPool
+	hasher            hashing.Hasher
+	proofSizeChecker  common.FieldsSizeChecker
+	km                sync.KeyRWMutexHandler
 }
 
 // NewInterceptedEquivalentProofsFactory creates a new instance of interceptedEquivalentProofsFactory
-func NewInterceptedEquivalentProofsFactory(args ArgInterceptedEquivalentProofsFactory) (*interceptedEquivalentProofsFactory, error) {
-	enc, err := newEligibleNodesCache(args.PeerShardMapper, args.NodesCoordinator)
-	if err != nil {
-		return nil, err
-	}
-
+func NewInterceptedEquivalentProofsFactory(args ArgInterceptedEquivalentProofsFactory) *interceptedEquivalentProofsFactory {
 	return &interceptedEquivalentProofsFactory{
-		marshaller:         args.CoreComponents.InternalMarshalizer(),
-		shardCoordinator:   args.ShardCoordinator,
-		headerSigVerifier:  args.HeaderSigVerifier,
-		proofsPool:         args.ProofsPool,
-		headersPool:        args.HeadersPool,
-		storage:            args.Storage,
-		hasher:             args.CoreComponents.Hasher(),
-		proofSizeChecker:   args.CoreComponents.FieldsSizeChecker(),
-		km:                 sync.NewKeyRWMutex(),
-		eligibleNodesCache: enc,
-		whiteListHandler:   args.WhiteListHandler,
-	}, nil
+		marshaller:        args.CoreComponents.InternalMarshalizer(),
+		shardCoordinator:  args.ShardCoordinator,
+		headerSigVerifier: args.HeaderSigVerifier,
+		proofsPool:        args.ProofsPool,
+		hasher:            args.CoreComponents.Hasher(),
+		proofSizeChecker:  args.CoreComponents.FieldsSizeChecker(),
+		km:                sync.NewKeyRWMutex(),
+	}
 }
 
 // Create creates instances of InterceptedData by unmarshalling provided buffer
-func (factory *interceptedEquivalentProofsFactory) Create(buff []byte, messageOriginator core.PeerID) (process.InterceptedData, error) {
+func (factory *interceptedEquivalentProofsFactory) Create(buff []byte, _ core.PeerID) (process.InterceptedData, error) {
 	args := interceptedBlocks.ArgInterceptedEquivalentProof{
-		DataBuff:           buff,
-		Marshaller:         factory.marshaller,
-		ShardCoordinator:   factory.shardCoordinator,
-		HeaderSigVerifier:  factory.headerSigVerifier,
-		Proofs:             factory.proofsPool,
-		Headers:            factory.headersPool,
-		Hasher:             factory.hasher,
-		ProofSizeChecker:   factory.proofSizeChecker,
-		KeyRWMutexHandler:  factory.km,
-		EligibleNodesCache: factory.eligibleNodesCache,
-		MessageOriginator:  messageOriginator,
-		WhiteListHandler:   factory.whiteListHandler,
-		Store:              factory.storage,
+		DataBuff:          buff,
+		Marshaller:        factory.marshaller,
+		ShardCoordinator:  factory.shardCoordinator,
+		HeaderSigVerifier: factory.headerSigVerifier,
+		Proofs:            factory.proofsPool,
+		Hasher:            factory.hasher,
+		ProofSizeChecker:  factory.proofSizeChecker,
+		KeyRWMutexHandler: factory.km,
 	}
 	return interceptedBlocks.NewInterceptedEquivalentProof(args)
 }

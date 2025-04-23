@@ -1,6 +1,7 @@
 package resolvers
 
 import (
+	"encoding/hex"
 	"fmt"
 	"strconv"
 	"strings"
@@ -268,7 +269,11 @@ func getHashAndShard(hashShardKey []byte) ([]byte, uint32, error) {
 		return nil, 0, dataRetriever.ErrInvalidHashShardKey
 	}
 
-	hash := []byte(result[hashIndex])
+	hash, err := hex.DecodeString(result[hashIndex])
+	if err != nil {
+		return nil, 0, err
+	}
+
 	shard, err := strconv.Atoi(result[shardIndex])
 	if err != nil {
 		return nil, 0, err
