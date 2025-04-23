@@ -2294,13 +2294,8 @@ func TestShardBootstrap_SyncBlock_WithEquivalentProofs(t *testing.T) {
 		args := CreateShardBootstrapMockArguments()
 
 		args.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-<<<<<<< HEAD
-			IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
-				return flag == common.AndromedaFlag
-=======
 			IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
-				return flag == common.EquivalentMessagesFlag
->>>>>>> sync-integration-test-at-genesis
+				return flag == common.AndromedaFlag
 			},
 		}
 

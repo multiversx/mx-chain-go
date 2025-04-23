@@ -21,7 +21,7 @@ func IsProofsFlagEnabledForHeader(
 	enableEpochsHandler EnableEpochsHandler,
 	header data.HeaderHandler,
 ) bool {
-	ifFlagActive := enableEpochsHandler.IsFlagEnabledInEpoch(EquivalentMessagesFlag, header.GetEpoch())
+	ifFlagActive := enableEpochsHandler.IsFlagEnabledInEpoch(AndromedaFlag, header.GetEpoch())
 	isGenesisBlock := header.GetNonce() == 0
 
 	return ifFlagActive && !isGenesisBlock

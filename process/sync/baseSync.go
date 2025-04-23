@@ -337,13 +337,8 @@ func (boot *baseBootstrap) confirmHeaderReceivedByHash(headerHandler data.Header
 	boot.mutRcvHdrHash.Unlock()
 }
 
-<<<<<<< HEAD
-func (boot *baseBootstrap) hasProof(hash []byte) bool {
-	if !boot.enableEpochsHandler.IsFlagEnabled(common.AndromedaFlag) {
-=======
 func (boot *baseBootstrap) hasProof(hash []byte, header data.HeaderHandler) bool {
 	if !common.IsProofsFlagEnabledForHeader(boot.enableEpochsHandler, header) {
->>>>>>> sync-integration-test-at-genesis
 		return true
 	}
 
@@ -1334,18 +1329,6 @@ func (boot *baseBootstrap) getHeaderFromPoolWithNonce(
 	return process.GetShardHeaderFromPoolWithNonce(nonce, boot.shardCoordinator.SelfId(), boot.headers)
 }
 
-<<<<<<< HEAD
-func (boot *baseBootstrap) hasProofByNonce(nonce uint64) bool {
-	if !boot.enableEpochsHandler.IsFlagEnabled(common.AndromedaFlag) {
-		return true
-	}
-
-	_, err := boot.proofs.GetProofByNonce(nonce, boot.shardCoordinator.SelfId())
-	return err == nil
-}
-
-=======
->>>>>>> sync-integration-test-at-genesis
 func (boot *baseBootstrap) isForcedRollBackOneBlock() bool {
 	return boot.forkInfo.IsDetected &&
 		boot.forkInfo.Nonce == math.MaxUint64 &&

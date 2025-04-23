@@ -152,11 +152,7 @@ func (bbt *baseBlockTrack) getHeaderForProof(proof data.HeaderProofHandler) (dat
 }
 
 func (bbt *baseBlockTrack) receivedHeader(headerHandler data.HeaderHandler, headerHash []byte) {
-<<<<<<< HEAD
-	if bbt.enableEpochsHandler.IsFlagEnabledInEpoch(common.AndromedaFlag, headerHandler.GetEpoch()) {
-=======
 	if common.IsProofsFlagEnabledForHeader(bbt.enableEpochsHandler, headerHandler) {
->>>>>>> sync-integration-test-at-genesis
 		if !bbt.proofsPool.HasProof(headerHandler.GetShardID(), headerHash) {
 			return
 		}
