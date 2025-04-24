@@ -433,8 +433,12 @@ func (sp *shardProcessor) requestEpochStartInfo(header data.ShardHeaderHandler, 
 }
 
 func (sp *shardProcessor) requestEpochStartProofIfNeeded(hash []byte) bool {
+	if sp.epochStartTrigger.IsEpochStart() {
+		return true // no proof needed
+	}
+
 	if !sp.enableEpochsHandler.IsFlagEnabledInEpoch(common.AndromedaFlag, sp.epochStartTrigger.MetaEpoch()) {
-		return true
+		return true // no proof needed
 	}
 
 	hasProof := sp.proofsPool.HasProof(core.MetachainShardId, hash)
