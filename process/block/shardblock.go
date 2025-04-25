@@ -1821,7 +1821,7 @@ func (sp *shardProcessor) receivedMetaBlock(headerHandler data.HeaderHandler, me
 			}
 
 			if !hasProof && !hasProofRequested {
-				sp.requestProofIfNeeded(metaBlockHash, metaBlock.GetEpoch(), core.MetachainShardId)
+				sp.requestProofIfNeeded(metaBlockHash, metaBlock)
 			}
 		}
 
@@ -1909,7 +1909,7 @@ func (sp *shardProcessor) computeExistingAndRequestMissingMetaHeaders(header dat
 			continue
 		}
 
-		sp.requestProofIfNeeded(metaBlockHashes[i], hdr.GetEpoch(), core.MetachainShardId)
+		sp.requestProofIfNeeded(metaBlockHashes[i], hdr)
 
 		sp.hdrsForCurrBlock.hdrHashAndInfo[string(metaBlockHashes[i])].hasProofRequested = true
 
