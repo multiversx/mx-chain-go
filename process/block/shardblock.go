@@ -392,7 +392,7 @@ func (sp *shardProcessor) requestEpochStartInfo(header data.ShardHeaderHandler, 
 	sp.dataPool.Headers().RemoveHeaderByHash(header.GetEpochStartMetaHash())
 	go sp.requestHandler.RequestMetaHeader(header.GetEpochStartMetaHash())
 
-	sp.requestEpochStartProofIfNeeded(header.GetEpochStartMetaHash())
+	sp.requestEpochStartProofIfNeeded(header.GetEpochStartMetaHash(), header.GetEpoch())
 
 	headersPool := sp.dataPool.Headers()
 	for {
@@ -408,7 +408,7 @@ func (sp *shardProcessor) requestEpochStartInfo(header data.ShardHeaderHandler, 
 		epochStartMetaHdr, err := headersPool.GetHeaderByHash(header.GetEpochStartMetaHash())
 		if err != nil {
 			go sp.requestHandler.RequestMetaHeader(header.GetEpochStartMetaHash())
-			sp.requestEpochStartProofIfNeeded(header.GetEpochStartMetaHash())
+			sp.requestEpochStartProofIfNeeded(header.GetEpochStartMetaHash(), header.GetEpoch())
 			continue
 		}
 
@@ -420,7 +420,7 @@ func (sp *shardProcessor) requestEpochStartInfo(header data.ShardHeaderHandler, 
 				continue
 			}
 		} else {
-			hasProof := sp.requestEpochStartProofIfNeeded(header.GetEpochStartMetaHash())
+			hasProof := sp.requestEpochStartProofIfNeeded(header.GetEpochStartMetaHash(), header.GetEpoch())
 			if !hasProof {
 				continue
 			}
@@ -432,8 +432,8 @@ func (sp *shardProcessor) requestEpochStartInfo(header data.ShardHeaderHandler, 
 	return process.ErrTimeIsOut
 }
 
-func (sp *shardProcessor) requestEpochStartProofIfNeeded(hash []byte) bool {
-	if !sp.enableEpochsHandler.IsFlagEnabledInEpoch(common.AndromedaFlag, sp.epochStartTrigger.MetaEpoch()) {
+func (sp *shardProcessor) requestEpochStartProofIfNeeded(hash []byte, epoch uint32) bool {
+	if !sp.enableEpochsHandler.IsFlagEnabledInEpoch(common.AndromedaFlag, epoch) {
 		return true // no proof needed
 	}
 
