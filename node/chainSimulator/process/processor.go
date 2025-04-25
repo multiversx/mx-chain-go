@@ -1,17 +1,14 @@
 package process
 
 import (
-	"errors"
-
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
 	dataBlock "github.com/multiversx/mx-chain-core-go/data/block"
-	logger "github.com/multiversx/mx-chain-logger-go"
-
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/configs"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
+	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
 var log = logger.GetOrCreate("process-block")
@@ -130,11 +127,16 @@ func (creator *blocksCreator) CreateNewBlock() error {
 	enableEpochHandler := coreComponents.EnableEpochsHandler()
 	var previousProof *dataBlock.HeaderProof
 	if !nilPrevHeader && enableEpochHandler.IsFlagEnabled(common.EquivalentMessagesFlag) {
-		//sig, errS := creator.generateSignature(prevHash, leader.PubKey(), prevHeader)
-		//if errS != nil {
-		//	return errS
-		//}
-		previousProof = createProofForHeader(pubKeyBitmap, []byte(""), prevHash, prevHeader)
+		_, prevHeaderValidators, errV := creator.getConsensusGroup(prevHeader)
+		if errV != nil {
+			return errV
+		}
+
+		sig, errS := creator.generateSignature(prevHash, prevHeaderValidators, prevHeader)
+		if errS != nil {
+			return errS
+		}
+		previousProof = createProofForHeader(pubKeyBitmap, sig, prevHash, prevHeader)
 		_ = creator.nodeHandler.GetDataComponents().Datapool().Proofs().AddProof(previousProof)
 	}
 
@@ -143,6 +145,14 @@ func (creator *blocksCreator) CreateNewBlock() error {
 	})
 	if err != nil {
 		return err
+	}
+
+	prevHeaderStartOfEpoch := false
+	if prevHeader != nil {
+		prevHeaderStartOfEpoch = prevHeader.IsStartOfEpochBlock()
+	}
+	if prevHeaderStartOfEpoch {
+		creator.updatePeerShardMapper(header.GetEpoch())
 	}
 
 	headerProof, err := creator.ApplySignaturesAndGetProof(header, prevHeader, previousProof, enableEpochHandler, validators, leader, pubKeyBitmap)
@@ -181,6 +191,30 @@ func (creator *blocksCreator) CreateNewBlock() error {
 	return messenger.BroadcastTransactions(transactions, leader.PubKey())
 }
 
+func (creator *blocksCreator) updatePeerShardMapper(
+	epoch uint32,
+) {
+	peerShardMapper := creator.nodeHandler.GetProcessComponents().PeerShardMapper()
+
+	nc := creator.nodeHandler.GetProcessComponents().NodesCoordinator()
+
+	eligibleMaps, err := nc.GetAllEligibleValidatorsPublicKeys(epoch)
+	if err != nil {
+		log.Error("failed to get eligible validators map", "error", err)
+		return
+	}
+
+	for shardID, eligibleMap := range eligibleMaps {
+		for _, pubKey := range eligibleMap {
+			peerID := creator.nodeHandler.GetBasePeers()[shardID]
+
+			log.Debug("added custom peer mapping", "peerID", peerID.Pretty(), "shardID", shardID, "addrs", pubKey)
+			peerShardMapper.UpdatePeerIDInfo(peerID, pubKey, shardID)
+		}
+	}
+
+}
+
 func (creator *blocksCreator) ApplySignaturesAndGetProof(
 	header data.HeaderHandler,
 	prevHeader data.HeaderHandler,
@@ -193,7 +227,7 @@ func (creator *blocksCreator) ApplySignaturesAndGetProof(
 	nilPrevHeader := check.IfNil(prevHeader)
 	var err error
 	if !nilPrevHeader && common.ShouldBlockHavePrevProof(header, enableEpochHandler, common.EquivalentMessagesFlag) {
-		validators, err = creator.updatePreviousProofAndAddonHeader(header.GetPrevHash(), prevHeader, header, prevProof)
+		err = creator.updatePreviousProofAndAddonHeader(header.GetPrevHash(), prevHeader, header, prevProof)
 		if err != nil {
 			return nil, err
 		}
@@ -222,6 +256,12 @@ func (creator *blocksCreator) ApplySignaturesAndGetProof(
 	shouldAddCurrentProof := !nilPrevHeader && enableEpochHandler.IsFlagEnabled(common.EquivalentMessagesFlag)
 	if shouldAddCurrentProof {
 		headerProof = createProofForHeader(pubKeyBitmap, newHeaderSig, headerHash, header)
+		creator.nodeHandler.GetDataComponents().Datapool().Headers().AddHeader(headerHash, header)
+		err = creator.nodeHandler.GetProcessComponents().HeaderSigVerifier().VerifyHeaderProof(headerProof)
+		if err != nil {
+			return nil, err
+		}
+
 		dataPool := creator.nodeHandler.GetDataComponents().Datapool()
 		_ = dataPool.Proofs().AddProof(headerProof)
 	}
@@ -229,16 +269,10 @@ func (creator *blocksCreator) ApplySignaturesAndGetProof(
 	return headerProof, nil
 }
 
-func (creator *blocksCreator) updatePreviousProofAndAddonHeader(currentHeaderHash []byte, currentHeader, newHeader data.HeaderHandler, previousProof *dataBlock.HeaderProof) ([]nodesCoordinator.Validator, error) {
-	selectionEpoch := currentHeader.GetEpoch()
-	if currentHeader.IsStartOfEpochBlock() {
-		selectionEpoch = selectionEpoch - 1
-	}
-
-	nc := creator.nodeHandler.GetProcessComponents().NodesCoordinator()
-	_, validators, err := nc.ComputeConsensusGroup(currentHeader.GetPrevRandSeed(), currentHeader.GetRound(), currentHeader.GetShardID(), selectionEpoch)
+func (creator *blocksCreator) updatePreviousProofAndAddonHeader(currentHeaderHash []byte, currentHeader, newHeader data.HeaderHandler, previousProof *dataBlock.HeaderProof) error {
+	_, validators, err := creator.getConsensusGroup(currentHeader)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	previousProof.PubKeysBitmap = GeneratePubKeyBitmap(len(validators))
@@ -250,18 +284,34 @@ func (creator *blocksCreator) updatePreviousProofAndAddonHeader(currentHeaderHas
 
 		err = UnsetBitInBitmap(idx, previousProof.PubKeysBitmap)
 		if err != nil {
-			return nil, err
+			return err
 		}
 	}
 
 	previousProof.AggregatedSignature, err = creator.generateSignatureForProofs(currentHeaderHash, previousProof, validators)
 	if err != nil {
-		return nil, err
+		return err
+	}
+
+	creator.nodeHandler.GetDataComponents().Datapool().Headers().AddHeader(previousProof.HeaderHash, currentHeader)
+	err = creator.nodeHandler.GetProcessComponents().HeaderSigVerifier().VerifyHeaderProof(previousProof)
+	if err != nil {
+		return err
 	}
 
 	newHeader.SetPreviousProof(previousProof)
 
-	return validators, nil
+	return nil
+}
+
+func (creator *blocksCreator) getConsensusGroup(currentHeader data.HeaderHandler) (nodesCoordinator.Validator, []nodesCoordinator.Validator, error) {
+	selectionEpoch := currentHeader.GetEpoch()
+	if currentHeader.IsStartOfEpochBlock() {
+		selectionEpoch = selectionEpoch - 1
+	}
+
+	nc := creator.nodeHandler.GetProcessComponents().NodesCoordinator()
+	return nc.ComputeConsensusGroup(currentHeader.GetPrevRandSeed(), currentHeader.GetRound(), currentHeader.GetShardID(), selectionEpoch)
 }
 
 func createProofForHeader(pubKeyBitmap, signature, headerHash []byte, header data.HeaderHandler) *dataBlock.HeaderProof {
@@ -299,12 +349,17 @@ func (creator *blocksCreator) getPreviousHeaderData() (nonce, round uint64, prev
 	return
 }
 
-func (creator *blocksCreator) generateSignature(headerHash, blsKeyBytes []byte, header data.HeaderHandler) ([]byte, error) {
+func (creator *blocksCreator) generateSignature(headerHash []byte, validators []nodesCoordinator.Validator, header data.HeaderHandler) ([]byte, error) {
+	validatorsKey := make([]string, 0)
+	for _, validator := range validators {
+		validatorsKey = append(validatorsKey, string(validator.PubKey()))
+	}
+
 	return creator.generateAggregatedSignature(
 		headerHash,
 		header.GetEpoch(),
 		header.GetPubKeysBitmap(),
-		[]string{string(blsKeyBytes)},
+		validatorsKey,
 	)
 }
 
@@ -354,27 +409,32 @@ func (creator *blocksCreator) setHeaderSignatures(
 func (creator *blocksCreator) generateAggregatedSignature(headerHash []byte, epoch uint32, pubKeysBitmap []byte, pubKeys []string) ([]byte, error) {
 	signingHandler := creator.nodeHandler.GetCryptoComponents().ConsensusSigningHandler()
 
-	managedKeys := make([]string, 0)
-	for _, pubKey := range pubKeys {
-		isManaged := creator.nodeHandler.GetCryptoComponents().KeysHandler().IsKeyManagedByCurrentNode([]byte(pubKey))
-		if !isManaged {
-			continue
-		}
-
-		managedKeys = append(managedKeys, pubKey)
-	}
-
-	err := signingHandler.Reset(managedKeys)
+	err := signingHandler.Reset(pubKeys)
 	if err != nil {
 		return nil, err
 	}
-	for idx, pubKey := range managedKeys {
+
+	totalKey := 0
+	for idx, pubKey := range pubKeys {
+		isManaged := creator.nodeHandler.GetCryptoComponents().KeysHandler().IsKeyManagedByCurrentNode([]byte(pubKey))
+		if !isManaged {
+
+			continue
+		}
+
+		totalKey++
 		if _, err = signingHandler.CreateSignatureShareForPublicKey(headerHash, uint16(idx), epoch, []byte(pubKey)); err != nil {
 			return nil, err
 		}
 	}
 
-	return signingHandler.AggregateSigs(pubKeysBitmap, epoch)
+	aggSig, err := signingHandler.AggregateSigs(pubKeysBitmap, epoch)
+	if err != nil {
+		log.Warn("total", "total", totalKey, "err", err)
+		return nil, err
+	}
+
+	return aggSig, nil
 }
 
 func extractValidatorPubKeys(validators []nodesCoordinator.Validator) []string {
@@ -430,9 +490,10 @@ func GeneratePubKeyBitmap(numOfOnes int) []byte {
 	return result
 }
 
+// UnsetBitInBitmap will unset a bit from provided bit based on the provided index
 func UnsetBitInBitmap(index int, bitmap []byte) error {
-	if len(bitmap) < index/8 {
-		return errors.New("bitmap too short")
+	if index/8 >= len(bitmap) {
+		return common.ErrWrongSizeBitmap
 	}
 	bitmap[index/8] = bitmap[index/8] & ^(1 << uint8(index%8))
 

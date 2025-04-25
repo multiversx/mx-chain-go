@@ -3,11 +3,14 @@ package interceptedBlocks
 import (
 	"errors"
 	"fmt"
+	"sync"
 	"testing"
 
 	"github.com/multiversx/mx-chain-core-go/core"
+	coreSync "github.com/multiversx/mx-chain-core-go/core/sync"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
+	errErd "github.com/multiversx/mx-chain-go/errors"
 	logger "github.com/multiversx/mx-chain-logger-go"
 	"github.com/stretchr/testify/require"
 
@@ -30,6 +33,21 @@ var (
 	providedShard  = uint32(0)
 	providedRound  = uint64(123456)
 )
+
+func createMockDataBuffWithHash(headerHash []byte) []byte {
+	proof := &block.HeaderProof{
+		PubKeysBitmap:       []byte("bitmap"),
+		AggregatedSignature: []byte("sig"),
+		HeaderHash:          headerHash,
+		HeaderEpoch:         providedEpoch,
+		HeaderNonce:         providedNonce,
+		HeaderShardId:       providedShard,
+		HeaderRound:         providedRound,
+	}
+
+	dataBuff, _ := testMarshaller.Marshal(proof)
+	return dataBuff
+}
 
 func createMockDataBuff() []byte {
 	proof := &block.HeaderProof{
@@ -68,6 +86,10 @@ func createMockArgInterceptedEquivalentProof() ArgInterceptedEquivalentProof {
 				}, nil
 			},
 		},
+		ProofSizeChecker:   &testscommon.FieldsSizeCheckerMock{},
+		KeyRWMutexHandler:  coreSync.NewKeyRWMutex(),
+		EligibleNodesCache: &testscommon.EligibleNodesCacheMock{},
+		WhiteListHandler:   &testscommon.WhiteListHandlerStub{},
 	}
 }
 
@@ -160,6 +182,42 @@ func TestNewInterceptedEquivalentProof(t *testing.T) {
 		require.Equal(t, expectedErr, err)
 		require.Nil(t, iep)
 	})
+	t.Run("nil ProofSizeChecker should error", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockArgInterceptedEquivalentProof()
+		args.ProofSizeChecker = nil
+		iep, err := NewInterceptedEquivalentProof(args)
+		require.Equal(t, errErd.ErrNilFieldsSizeChecker, err)
+		require.Nil(t, iep)
+	})
+	t.Run("nil KeyRWMutexHandler should error", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockArgInterceptedEquivalentProof()
+		args.KeyRWMutexHandler = nil
+		iep, err := NewInterceptedEquivalentProof(args)
+		require.Equal(t, process.ErrNilKeyRWMutexHandler, err)
+		require.Nil(t, iep)
+	})
+	t.Run("nil EligibleNodesCache should error", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockArgInterceptedEquivalentProof()
+		args.EligibleNodesCache = nil
+		iep, err := NewInterceptedEquivalentProof(args)
+		require.Equal(t, process.ErrNilEligibleNodesCache, err)
+		require.Nil(t, iep)
+	})
+	t.Run("nil WhiteListHandler should error", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockArgInterceptedEquivalentProof()
+		args.WhiteListHandler = nil
+		iep, err := NewInterceptedEquivalentProof(args)
+		require.Equal(t, process.ErrNilWhiteListHandler, err)
+		require.Nil(t, iep)
+	})
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
 
@@ -182,11 +240,33 @@ func TestInterceptedEquivalentProof_CheckValidity(t *testing.T) {
 		}
 		args := createMockArgInterceptedEquivalentProof()
 		args.DataBuff, _ = args.Marshaller.Marshal(proof)
+		args.ProofSizeChecker = &testscommon.FieldsSizeCheckerMock{
+			IsProofSizeValidCalled: func(proof data.HeaderProofHandler) bool {
+				return false
+			},
+		}
+
 		iep, err := NewInterceptedEquivalentProof(args)
 		require.NoError(t, err)
 
 		err = iep.CheckValidity()
 		require.Equal(t, ErrInvalidProof, err)
+	})
+	t.Run("node not eligible should error", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockArgInterceptedEquivalentProof()
+		args.EligibleNodesCache = &testscommon.EligibleNodesCacheMock{
+			IsPeerEligibleCalled: func(pid core.PeerID, shard uint32, epoch uint32) bool {
+				return false
+			},
+		}
+
+		iep, err := NewInterceptedEquivalentProof(args)
+		require.NoError(t, err)
+
+		err = iep.CheckValidity()
+		require.True(t, errors.Is(err, process.ErrInvalidHeaderProof))
 	})
 	t.Run("already exiting proof should error", func(t *testing.T) {
 		t.Parallel()
@@ -212,6 +292,40 @@ func TestInterceptedEquivalentProof_CheckValidity(t *testing.T) {
 
 		err = iep.CheckValidity()
 		require.NoError(t, err)
+	})
+	t.Run("concurrent calls should work", func(t *testing.T) {
+		t.Parallel()
+
+		defer func() {
+			r := recover()
+			if r != nil {
+				require.Fail(t, "should have not panicked")
+			}
+		}()
+
+		km := coreSync.NewKeyRWMutex()
+
+		numCalls := 1000
+		wg := sync.WaitGroup{}
+		wg.Add(numCalls)
+
+		for i := 0; i < numCalls; i++ {
+			go func(idx int) {
+				hash := fmt.Sprintf("hash_%d", idx%5) // make sure hashes repeat
+
+				args := createMockArgInterceptedEquivalentProof()
+				args.KeyRWMutexHandler = km
+				args.DataBuff = createMockDataBuffWithHash([]byte(hash))
+				iep, err := NewInterceptedEquivalentProof(args)
+				require.NoError(t, err)
+
+				_ = iep.CheckValidity()
+
+				wg.Done()
+			}(i)
+		}
+
+		wg.Wait()
 	})
 }
 
