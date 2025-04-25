@@ -79,11 +79,6 @@ func (bp *baseProcessor) FilterHeadersWithoutProofs() (map[string]*hdrInfo, erro
 	return bp.filterHeadersWithoutProofs()
 }
 
-// RequestProof -
-func (bp *baseProcessor) RequestProof(currentHeaderHash []byte, epoch uint32, shardID uint32) {
-	bp.requestProofIfNeeded(currentHeaderHash, epoch, shardID)
-}
-
 // ReceivedMetaBlock -
 func (sp *shardProcessor) ReceivedMetaBlock(header data.HeaderHandler, metaBlockHash []byte) {
 	sp.receivedMetaBlock(header, metaBlockHash)
