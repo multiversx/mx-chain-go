@@ -2347,18 +2347,29 @@ func (bp *baseProcessor) getHeaderHash(header data.HeaderHandler) ([]byte, error
 	return bp.hasher.Compute(string(marshalledHeader)), nil
 }
 
-func (bp *baseProcessor) requestProofIfNeeded(currentHeaderHash []byte, epoch uint32, shardID uint32) bool {
-	if !bp.enableEpochsHandler.IsFlagEnabledInEpoch(common.AndromedaFlag, epoch) {
+func (bp *baseProcessor) requestProofIfNeeded(currentHeaderHash []byte, header data.HeaderHandler) bool {
+	if !bp.enableEpochsHandler.IsFlagEnabledInEpoch(common.AndromedaFlag, header.GetEpoch()) {
 		return false
 	}
-	if bp.proofsPool.HasProof(shardID, currentHeaderHash) {
-		bp.hdrsForCurrBlock.hdrHashAndInfo[string(currentHeaderHash)].hasProof = true
+	if bp.proofsPool.HasProof(header.GetShardID(), currentHeaderHash) {
+		_, ok := bp.hdrsForCurrBlock.hdrHashAndInfo[string(currentHeaderHash)]
+		if ok {
+			bp.hdrsForCurrBlock.hdrHashAndInfo[string(currentHeaderHash)].hasProof = true
+		}
+
 		return true
+	}
+
+	_, ok := bp.hdrsForCurrBlock.hdrHashAndInfo[string(currentHeaderHash)]
+	if !ok {
+		bp.hdrsForCurrBlock.hdrHashAndInfo[string(currentHeaderHash)] = &hdrInfo{
+			hdr: header,
+		}
 	}
 
 	bp.hdrsForCurrBlock.hdrHashAndInfo[string(currentHeaderHash)].hasProofRequested = true
 	bp.hdrsForCurrBlock.missingProofs++
-	go bp.requestHandler.RequestEquivalentProofByHash(shardID, currentHeaderHash)
+	go bp.requestHandler.RequestEquivalentProofByHash(header.GetShardID(), currentHeaderHash)
 
 	return false
 }
