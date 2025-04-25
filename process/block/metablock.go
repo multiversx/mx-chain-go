@@ -2038,7 +2038,7 @@ func (mp *metaProcessor) receivedShardHeader(headerHandler data.HeaderHandler, s
 			mp.updateLastNotarizedBlockForShard(shardHeader, shardHeaderHash)
 
 			if !hasProof && !hasProofRequested {
-				mp.requestProofIfNeeded(shardHeaderHash, shardHeader.GetEpoch(), shardHeader.GetShardID())
+				mp.requestProofIfNeeded(shardHeaderHash, shardHeader)
 			}
 		}
 
@@ -2161,7 +2161,7 @@ func (mp *metaProcessor) computeExistingAndRequestMissingShardHeaders(metaBlock 
 			usedInBlock: true,
 		}
 
-		mp.requestProofIfNeeded(shardData.HeaderHash, hdr.GetEpoch(), shardData.ShardID)
+		mp.requestProofIfNeeded(shardData.HeaderHash, hdr)
 
 		if common.IsEpochChangeBlockForFlagActivation(hdr, mp.enableEpochsHandler, common.AndromedaFlag) {
 			continue
