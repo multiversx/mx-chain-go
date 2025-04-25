@@ -2352,8 +2352,17 @@ func (bp *baseProcessor) requestProofIfNeeded(currentHeaderHash []byte, epoch ui
 		return false
 	}
 	if bp.proofsPool.HasProof(shardID, currentHeaderHash) {
-		bp.hdrsForCurrBlock.hdrHashAndInfo[string(currentHeaderHash)].hasProof = true
+		_, ok := bp.hdrsForCurrBlock.hdrHashAndInfo[string(currentHeaderHash)]
+		if ok {
+			bp.hdrsForCurrBlock.hdrHashAndInfo[string(currentHeaderHash)].hasProof = true
+		}
+
 		return true
+	}
+
+	_, ok := bp.hdrsForCurrBlock.hdrHashAndInfo[string(currentHeaderHash)]
+	if !ok {
+		bp.hdrsForCurrBlock.hdrHashAndInfo[string(currentHeaderHash)] = &hdrInfo{}
 	}
 
 	bp.hdrsForCurrBlock.hdrHashAndInfo[string(currentHeaderHash)].hasProofRequested = true
