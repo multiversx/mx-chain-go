@@ -85,7 +85,7 @@ func (messenger *syncedMessenger) receive(fromConnectedPeer core.PeerID, message
 	for _, handler := range handlers {
 		// this is needed to process all received messages on multiple go routines
 		go func(proc p2p.MessageProcessor, p2pMessage p2p.MessageP2P, peer core.PeerID, localWG *sync.WaitGroup) {
-			err := proc.ProcessReceivedMessage(p2pMessage, peer, messenger)
+			_, err := proc.ProcessReceivedMessage(p2pMessage, peer, messenger)
 			if err != nil {
 				log.Trace("received message syncedMessenger", "error", err, "topic", p2pMessage.Topic(), "from connected peer", peer.Pretty())
 			}
@@ -98,8 +98,8 @@ func (messenger *syncedMessenger) receive(fromConnectedPeer core.PeerID, message
 }
 
 // ProcessReceivedMessage does nothing and returns nil
-func (messenger *syncedMessenger) ProcessReceivedMessage(_ p2p.MessageP2P, _ core.PeerID, _ p2p.MessageHandler) error {
-	return nil
+func (messenger *syncedMessenger) ProcessReceivedMessage(_ p2p.MessageP2P, _ core.PeerID, _ p2p.MessageHandler) ([]byte, error) {
+	return nil, nil
 }
 
 // CreateTopic will create a topic for receiving data

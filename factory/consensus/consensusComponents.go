@@ -9,6 +9,9 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/throttler"
 	"github.com/multiversx/mx-chain-core-go/core/watchdog"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+	logger "github.com/multiversx/mx-chain-logger-go"
+	"github.com/multiversx/mx-chain-storage-go/timecache"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/common/disabled"
 	"github.com/multiversx/mx-chain-go/config"
@@ -16,6 +19,7 @@ import (
 	"github.com/multiversx/mx-chain-go/consensus/blacklist"
 	"github.com/multiversx/mx-chain-go/consensus/chronology"
 	"github.com/multiversx/mx-chain-go/consensus/spos"
+	"github.com/multiversx/mx-chain-go/consensus/spos/bls/proxy"
 	"github.com/multiversx/mx-chain-go/consensus/spos/sposFactory"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/errors"
@@ -25,16 +29,17 @@ import (
 	"github.com/multiversx/mx-chain-go/process/sync"
 	"github.com/multiversx/mx-chain-go/process/sync/storageBootstrap"
 	"github.com/multiversx/mx-chain-go/sharding"
+	nodesCoord "github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/state/syncer"
 	"github.com/multiversx/mx-chain-go/trie/statistics"
 	"github.com/multiversx/mx-chain-go/update"
-	logger "github.com/multiversx/mx-chain-logger-go"
-	"github.com/multiversx/mx-chain-storage-go/timecache"
 )
 
 var log = logger.GetOrCreate("factory")
 
 const defaultSpan = 300 * time.Second
+
+const numSignatureGoRoutinesThrottler = 30
 
 // ConsensusComponentsFactoryArgs holds the arguments needed to create a consensus components factory
 type ConsensusComponentsFactoryArgs struct {
@@ -78,7 +83,6 @@ type consensusComponents struct {
 	worker               factory.ConsensusWorker
 	peerBlacklistHandler consensus.PeerBlacklistHandler
 	consensusTopic       string
-	consensusGroupSize   int
 }
 
 // NewConsensusComponentsFactory creates an instance of consensusComponentsFactory
@@ -112,13 +116,6 @@ func (ccf *consensusComponentsFactory) Create() (*consensusComponents, error) {
 
 	cc := &consensusComponents{}
 
-	consensusGroupSize, err := getConsensusGroupSize(ccf.coreComponents.GenesisNodesSetup(), ccf.processComponents.ShardCoordinator())
-	if err != nil {
-		return nil, err
-	}
-
-	cc.consensusGroupSize = int(consensusGroupSize)
-
 	blockchain := ccf.dataComponents.Blockchain()
 	notInitializedGenesisBlock := len(blockchain.GetGenesisHeaderHash()) == 0 ||
 		check.IfNil(blockchain.GetGenesisHeader())
@@ -142,7 +139,12 @@ func (ccf *consensusComponentsFactory) Create() (*consensusComponents, error) {
 	}
 
 	epoch := ccf.getEpoch()
-	consensusState, err := ccf.createConsensusState(epoch, cc.consensusGroupSize)
+
+	consensusGroupSize, err := getConsensusGroupSize(ccf.coreComponents.GenesisNodesSetup(), ccf.processComponents.ShardCoordinator(), ccf.processComponents.NodesCoordinator(), epoch)
+	if err != nil {
+		return nil, err
+	}
+	consensusState, err := ccf.createConsensusState(epoch, consensusGroupSize)
 	if err != nil {
 		return nil, err
 	}
@@ -178,6 +180,21 @@ func (ccf *consensusComponentsFactory) Create() (*consensusComponents, error) {
 		return nil, err
 	}
 
+	p2pSigningHandler, err := ccf.createP2pSigningHandler()
+	if err != nil {
+		return nil, err
+	}
+
+	argsInvalidSignersCacher := spos.ArgInvalidSignersCache{
+		Hasher:         ccf.coreComponents.Hasher(),
+		SigningHandler: p2pSigningHandler,
+		Marshaller:     ccf.coreComponents.InternalMarshalizer(),
+	}
+	invalidSignersCache, err := spos.NewInvalidSignersCache(argsInvalidSignersCacher)
+	if err != nil {
+		return nil, err
+	}
+
 	workerArgs := &spos.WorkerArgs{
 		ConsensusService:         consensusService,
 		BlockChain:               ccf.dataComponents.Blockchain(),
@@ -204,6 +221,8 @@ func (ccf *consensusComponentsFactory) Create() (*consensusComponents, error) {
 		AppStatusHandler:         ccf.statusCoreComponents.AppStatusHandler(),
 		NodeRedundancyHandler:    ccf.processComponents.NodeRedundancyHandler(),
 		PeerBlacklistHandler:     cc.peerBlacklistHandler,
+		EnableEpochsHandler:      ccf.coreComponents.EnableEpochsHandler(),
+		InvalidSignersCache:      invalidSignersCache,
 	}
 
 	cc.worker, err = spos.NewWorker(workerArgs)
@@ -214,17 +233,11 @@ func (ccf *consensusComponentsFactory) Create() (*consensusComponents, error) {
 	cc.worker.StartWorking()
 	ccf.dataComponents.Datapool().Headers().RegisterHandler(cc.worker.ReceivedHeader)
 
-	// apply consensus group size on the input antiflooder just before consensus creation topic
-	ccf.networkComponents.InputAntiFloodHandler().ApplyConsensusSize(
-		ccf.processComponents.NodesCoordinator().ConsensusGroupSize(
-			ccf.processComponents.ShardCoordinator().SelfId()),
+	ccf.networkComponents.InputAntiFloodHandler().SetConsensusSizeNotifier(
+		ccf.coreComponents.ChainParametersSubscriber(),
+		ccf.processComponents.ShardCoordinator().SelfId(),
 	)
 	err = ccf.createConsensusTopic(cc)
-	if err != nil {
-		return nil, err
-	}
-
-	p2pSigningHandler, err := ccf.createP2pSigningHandler()
 	if err != nil {
 		return nil, err
 	}
@@ -252,6 +265,10 @@ func (ccf *consensusComponentsFactory) Create() (*consensusComponents, error) {
 		MessageSigningHandler:         p2pSigningHandler,
 		PeerBlacklistHandler:          cc.peerBlacklistHandler,
 		SigningHandler:                ccf.cryptoComponents.ConsensusSigningHandler(),
+		EnableEpochsHandler:           ccf.coreComponents.EnableEpochsHandler(),
+		EquivalentProofsPool:          ccf.dataComponents.Datapool().Proofs(),
+		EpochNotifier:                 ccf.coreComponents.EpochNotifier(),
+		InvalidSignersCache:           invalidSignersCache,
 	}
 
 	consensusDataContainer, err := spos.NewConsensusCore(
@@ -260,28 +277,34 @@ func (ccf *consensusComponentsFactory) Create() (*consensusComponents, error) {
 	if err != nil {
 		return nil, err
 	}
-
-	fct, err := sposFactory.GetSubroundsFactory(
-		consensusDataContainer,
-		consensusState,
-		cc.worker,
-		ccf.config.Consensus.Type,
-		ccf.statusCoreComponents.AppStatusHandler(),
-		ccf.statusComponents.OutportHandler(),
-		ccf.processComponents.SentSignaturesTracker(),
-		[]byte(ccf.coreComponents.ChainID()),
-		ccf.networkComponents.NetworkMessenger().ID(),
-	)
+	signatureThrottler, err := throttler.NewNumGoRoutinesThrottler(numSignatureGoRoutinesThrottler)
 	if err != nil {
 		return nil, err
 	}
 
-	err = fct.GenerateSubrounds()
+	subroundsHandlerArgs := &proxy.SubroundsHandlerArgs{
+		Chronology:           cc.chronology,
+		ConsensusCoreHandler: consensusDataContainer,
+		ConsensusState:       consensusState,
+		Worker:               cc.worker,
+		SignatureThrottler:   signatureThrottler,
+		AppStatusHandler:     ccf.statusCoreComponents.AppStatusHandler(),
+		OutportHandler:       ccf.statusComponents.OutportHandler(),
+		SentSignatureTracker: ccf.processComponents.SentSignaturesTracker(),
+		EnableEpochsHandler:  ccf.coreComponents.EnableEpochsHandler(),
+		ChainID:              []byte(ccf.coreComponents.ChainID()),
+		CurrentPid:           ccf.networkComponents.NetworkMessenger().ID(),
+	}
+
+	subroundsHandler, err := proxy.NewSubroundsHandler(subroundsHandlerArgs)
 	if err != nil {
 		return nil, err
 	}
 
-	cc.chronology.StartRounds()
+	err = subroundsHandler.Start(epoch)
+	if err != nil {
+		return nil, err
+	}
 
 	err = ccf.addCloserInstances(cc.chronology, cc.bootstrapper, cc.worker, ccf.coreComponents.SyncTimer())
 	if err != nil {
@@ -434,6 +457,7 @@ func (ccf *consensusComponentsFactory) createShardBootstrapper() (process.Bootst
 		EpochNotifier:                ccf.coreComponents.EpochNotifier(),
 		ProcessedMiniBlocksTracker:   ccf.processComponents.ProcessedMiniBlocksTracker(),
 		AppStatusHandler:             ccf.statusCoreComponents.AppStatusHandler(),
+		EnableEpochsHandler:          ccf.coreComponents.EnableEpochsHandler(),
 	}
 
 	argsShardStorageBootstrapper := storageBootstrap.ArgsShardStorageBootstrapper{
@@ -488,6 +512,7 @@ func (ccf *consensusComponentsFactory) createShardBootstrapper() (process.Bootst
 		ScheduledTxsExecutionHandler: ccf.processComponents.ScheduledTxsExecutionHandler(),
 		ProcessWaitTime:              time.Duration(ccf.config.GeneralSettings.SyncProcessTimeInMillis) * time.Millisecond,
 		RepopulateTokensSupplies:     ccf.flagsConfig.RepopulateTokensSupplies,
+		EnableEpochsHandler:          ccf.coreComponents.EnableEpochsHandler(),
 	}
 
 	argsShardBootstrapper := sync.ArgShardBootstrapper{
@@ -567,6 +592,7 @@ func (ccf *consensusComponentsFactory) createMetaChainBootstrapper() (process.Bo
 		EpochNotifier:                ccf.coreComponents.EpochNotifier(),
 		ProcessedMiniBlocksTracker:   ccf.processComponents.ProcessedMiniBlocksTracker(),
 		AppStatusHandler:             ccf.statusCoreComponents.AppStatusHandler(),
+		EnableEpochsHandler:          ccf.coreComponents.EnableEpochsHandler(),
 	}
 
 	argsMetaStorageBootstrapper := storageBootstrap.ArgsMetaStorageBootstrapper{
@@ -618,6 +644,7 @@ func (ccf *consensusComponentsFactory) createMetaChainBootstrapper() (process.Bo
 		ScheduledTxsExecutionHandler: ccf.processComponents.ScheduledTxsExecutionHandler(),
 		ProcessWaitTime:              time.Duration(ccf.config.GeneralSettings.SyncProcessTimeInMillis) * time.Millisecond,
 		RepopulateTokensSupplies:     ccf.flagsConfig.RepopulateTokensSupplies,
+		EnableEpochsHandler:          ccf.coreComponents.EnableEpochsHandler(),
 	}
 
 	argsMetaBootstrapper := sync.ArgMetaBootstrapper{
@@ -752,12 +779,17 @@ func checkArgs(args ConsensusComponentsFactoryArgs) error {
 	return nil
 }
 
-func getConsensusGroupSize(nodesConfig sharding.GenesisNodesSetupHandler, shardCoordinator sharding.Coordinator) (uint32, error) {
+func getConsensusGroupSize(nodesConfig sharding.GenesisNodesSetupHandler, shardCoordinator sharding.Coordinator, nodesCoordinator nodesCoord.NodesCoordinator, epoch uint32) (int, error) {
+	consensusGroupSize := nodesCoordinator.ConsensusGroupSizeForShardAndEpoch(shardCoordinator.SelfId(), epoch)
+	if consensusGroupSize > 0 {
+		return consensusGroupSize, nil
+	}
+
 	if shardCoordinator.SelfId() == core.MetachainShardId {
-		return nodesConfig.GetMetaConsensusGroupSize(), nil
+		return int(nodesConfig.GetMetaConsensusGroupSize()), nil
 	}
 	if shardCoordinator.SelfId() < shardCoordinator.NumberOfShards() {
-		return nodesConfig.GetShardConsensusGroupSize(), nil
+		return int(nodesConfig.GetShardConsensusGroupSize()), nil
 	}
 
 	return 0, sharding.ErrShardIdOutOfRange

@@ -973,6 +973,7 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 		EpochValidatorInfoCreator:    validatorInfoCreator,
 		ValidatorStatisticsProcessor: validatorStatisticsProcessor,
 		EpochSystemSCProcessor:       epochStartSystemSCProcessor,
+		FieldsSizeChecker:            pcf.coreData.FieldsSizeChecker(),
 	}
 
 	metaProcessor, err := block.NewMetaProcessor(arguments)
@@ -1036,6 +1037,7 @@ func (pcf *processComponentsFactory) createOutportDataProvider(
 		MbsStorer:              mbsStorer,
 		EnableEpochsHandler:    pcf.coreData.EnableEpochsHandler(),
 		ExecutionOrderGetter:   pcf.txExecutionOrderHandler,
+		ProofsPool:             pcf.data.Datapool().Proofs(),
 	})
 }
 

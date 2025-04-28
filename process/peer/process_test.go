@@ -469,8 +469,8 @@ func TestValidatorStatisticsProcessor_UpdatePeerStateComputeValidatorErrShouldEr
 
 	arguments := createMockArguments()
 	arguments.NodesCoordinator = &shardingMocks.NodesCoordinatorMock{
-		ComputeValidatorsGroupCalled: func(randomness []byte, round uint64, shardId uint32, epoch uint32) (validatorsGroup []nodesCoordinator.Validator, err error) {
-			return nil, computeValidatorsErr
+		ComputeValidatorsGroupCalled: func(randomness []byte, round uint64, shardId uint32, epoch uint32) (leader nodesCoordinator.Validator, validatorsGroup []nodesCoordinator.Validator, err error) {
+			return nil, nil, computeValidatorsErr
 		},
 	}
 	validatorStatistics, _ := peer.NewValidatorStatisticsProcessor(arguments)
@@ -494,9 +494,10 @@ func TestValidatorStatisticsProcessor_UpdatePeerStateGetExistingAccountErr(t *te
 	}
 
 	arguments := createMockArguments()
+	validator := &shardingMocks.ValidatorMock{}
 	arguments.NodesCoordinator = &shardingMocks.NodesCoordinatorMock{
-		ComputeValidatorsGroupCalled: func(randomness []byte, round uint64, shardId uint32, epoch uint32) (validatorsGroup []nodesCoordinator.Validator, err error) {
-			return []nodesCoordinator.Validator{&shardingMocks.ValidatorMock{}}, nil
+		ComputeValidatorsGroupCalled: func(randomness []byte, round uint64, shardId uint32, epoch uint32) (leader nodesCoordinator.Validator, validatorsGroup []nodesCoordinator.Validator, err error) {
+			return validator, []nodesCoordinator.Validator{validator}, nil
 		},
 	}
 	arguments.PeerAdapter = adapter
@@ -519,9 +520,10 @@ func TestValidatorStatisticsProcessor_UpdatePeerStateGetExistingAccountInvalidTy
 	}
 
 	arguments := createMockArguments()
+	validator := &shardingMocks.ValidatorMock{}
 	arguments.NodesCoordinator = &shardingMocks.NodesCoordinatorMock{
-		ComputeValidatorsGroupCalled: func(randomness []byte, round uint64, shardId uint32, epoch uint32) (validatorsGroup []nodesCoordinator.Validator, err error) {
-			return []nodesCoordinator.Validator{&shardingMocks.ValidatorMock{}}, nil
+		ComputeValidatorsGroupCalled: func(randomness []byte, round uint64, shardId uint32, epoch uint32) (leader nodesCoordinator.Validator, validatorsGroup []nodesCoordinator.Validator, err error) {
+			return validator, []nodesCoordinator.Validator{validator}, nil
 		},
 	}
 	arguments.PeerAdapter = adapter
@@ -563,9 +565,11 @@ func TestValidatorStatisticsProcessor_UpdatePeerStateGetHeaderError(t *testing.T
 			}, nil
 		},
 	}
+
+	validator1 := &shardingMocks.ValidatorMock{}
 	arguments.NodesCoordinator = &shardingMocks.NodesCoordinatorMock{
-		ComputeValidatorsGroupCalled: func(randomness []byte, round uint64, shardId uint32, epoch uint32) (validatorsGroup []nodesCoordinator.Validator, err error) {
-			return []nodesCoordinator.Validator{&shardingMocks.ValidatorMock{}, &shardingMocks.ValidatorMock{}}, nil
+		ComputeValidatorsGroupCalled: func(randomness []byte, round uint64, shardId uint32, epoch uint32) (leader nodesCoordinator.Validator, validatorsGroup []nodesCoordinator.Validator, err error) {
+			return validator1, []nodesCoordinator.Validator{validator1, &shardingMocks.ValidatorMock{}}, nil
 		},
 	}
 	arguments.ShardCoordinator = shardCoordinatorMock
@@ -619,9 +623,15 @@ func TestValidatorStatisticsProcessor_UpdatePeerStateCallsIncrease(t *testing.T)
 			}, nil
 		},
 	}
+
+	validator1 := &shardingMocks.ValidatorMock{
+		PubKeyCalled: func() []byte {
+			return []byte("pk1")
+		},
+	}
 	arguments.NodesCoordinator = &shardingMocks.NodesCoordinatorMock{
-		ComputeValidatorsGroupCalled: func(randomness []byte, round uint64, shardId uint32, epoch uint32) (validatorsGroup []nodesCoordinator.Validator, err error) {
-			return []nodesCoordinator.Validator{&shardingMocks.ValidatorMock{}, &shardingMocks.ValidatorMock{}}, nil
+		ComputeValidatorsGroupCalled: func(randomness []byte, round uint64, shardId uint32, epoch uint32) (leader nodesCoordinator.Validator, validatorsGroup []nodesCoordinator.Validator, err error) {
+			return validator1, []nodesCoordinator.Validator{validator1, &shardingMocks.ValidatorMock{PubKeyCalled: func() []byte { return []byte("pk2") }}}, nil
 		},
 	}
 	arguments.ShardCoordinator = shardCoordinatorMock
@@ -1291,9 +1301,11 @@ func TestValidatorStatisticsProcessor_UpdatePeerStateCheckForMissedBlocksErr(t *
 			}, nil
 		},
 	}
+
+	validator1 := &shardingMocks.ValidatorMock{}
 	arguments.NodesCoordinator = &shardingMocks.NodesCoordinatorMock{
-		ComputeValidatorsGroupCalled: func(randomness []byte, round uint64, shardId uint32, epoch uint32) (validatorsGroup []nodesCoordinator.Validator, err error) {
-			return []nodesCoordinator.Validator{&shardingMocks.ValidatorMock{}, &shardingMocks.ValidatorMock{}}, nil
+		ComputeValidatorsGroupCalled: func(randomness []byte, round uint64, shardId uint32, epoch uint32) (leader nodesCoordinator.Validator, validatorsGroup []nodesCoordinator.Validator, err error) {
+			return validator1, []nodesCoordinator.Validator{validator1, &shardingMocks.ValidatorMock{}}, nil
 		},
 	}
 	arguments.ShardCoordinator = shardCoordinatorMock
@@ -1359,9 +1371,9 @@ func TestValidatorStatisticsProcessor_CheckForMissedBlocksNoMissedBlocks(t *test
 	arguments.DataPool = dataRetrieverMock.NewPoolsHolderStub()
 	arguments.StorageService = &storageStubs.ChainStorerStub{}
 	arguments.NodesCoordinator = &shardingMocks.NodesCoordinatorMock{
-		ComputeValidatorsGroupCalled: func(randomness []byte, round uint64, shardId uint32, epoch uint32) (validatorsGroup []nodesCoordinator.Validator, err error) {
+		ComputeValidatorsGroupCalled: func(randomness []byte, round uint64, shardId uint32, epoch uint32) (leader nodesCoordinator.Validator, validatorsGroup []nodesCoordinator.Validator, err error) {
 			computeValidatorGroupCalled = true
-			return nil, nil
+			return nil, nil, nil
 		},
 	}
 	arguments.ShardCoordinator = shardCoordinatorMock
@@ -1445,8 +1457,8 @@ func TestValidatorStatisticsProcessor_CheckForMissedBlocksErrOnComputeValidatorL
 	arguments.DataPool = dataRetrieverMock.NewPoolsHolderStub()
 	arguments.StorageService = &storageStubs.ChainStorerStub{}
 	arguments.NodesCoordinator = &shardingMocks.NodesCoordinatorMock{
-		ComputeValidatorsGroupCalled: func(randomness []byte, round uint64, shardId uint32, epoch uint32) (validatorsGroup []nodesCoordinator.Validator, err error) {
-			return nil, computeErr
+		ComputeValidatorsGroupCalled: func(randomness []byte, round uint64, shardId uint32, epoch uint32) (leader nodesCoordinator.Validator, validatorsGroup []nodesCoordinator.Validator, err error) {
+			return nil, nil, computeErr
 		},
 	}
 	arguments.ShardCoordinator = shardCoordinatorMock
@@ -1472,10 +1484,11 @@ func TestValidatorStatisticsProcessor_CheckForMissedBlocksErrOnDecrease(t *testi
 	}
 
 	arguments := createMockArguments()
+	validator1 := &shardingMocks.ValidatorMock{}
 	arguments.NodesCoordinator = &shardingMocks.NodesCoordinatorMock{
-		ComputeValidatorsGroupCalled: func(randomness []byte, round uint64, shardId uint32, epoch uint32) (validatorsGroup []nodesCoordinator.Validator, err error) {
-			return []nodesCoordinator.Validator{
-				&shardingMocks.ValidatorMock{},
+		ComputeValidatorsGroupCalled: func(randomness []byte, round uint64, shardId uint32, epoch uint32) (leader nodesCoordinator.Validator, validatorsGroup []nodesCoordinator.Validator, err error) {
+			return validator1, []nodesCoordinator.Validator{
+				validator1,
 			}, nil
 		},
 	}
@@ -1506,14 +1519,15 @@ func TestValidatorStatisticsProcessor_CheckForMissedBlocksCallsDecrease(t *testi
 	}
 
 	arguments := createMockArguments()
+	validator := &shardingMocks.ValidatorMock{
+		PubKeyCalled: func() []byte {
+			return pubKey
+		},
+	}
 	arguments.NodesCoordinator = &shardingMocks.NodesCoordinatorMock{
-		ComputeValidatorsGroupCalled: func(randomness []byte, round uint64, shardId uint32, epoch uint32) (validatorsGroup []nodesCoordinator.Validator, err error) {
-			return []nodesCoordinator.Validator{
-				&shardingMocks.ValidatorMock{
-					PubKeyCalled: func() []byte {
-						return pubKey
-					},
-				},
+		ComputeValidatorsGroupCalled: func(randomness []byte, round uint64, shardId uint32, epoch uint32) (leader nodesCoordinator.Validator, validatorsGroup []nodesCoordinator.Validator, err error) {
+			return validator, []nodesCoordinator.Validator{
+				validator,
 			}, nil
 		},
 	}
@@ -1557,10 +1571,11 @@ func TestValidatorStatisticsProcessor_CheckForMissedBlocksWithRoundDifferenceGre
 	}
 
 	arguments := createMockArguments()
+	validator := &shardingMocks.ValidatorMock{}
 	arguments.NodesCoordinator = &shardingMocks.NodesCoordinatorMock{
-		ComputeValidatorsGroupCalled: func(randomness []byte, round uint64, shardId uint32, _ uint32) (validatorsGroup []nodesCoordinator.Validator, err error) {
-			return []nodesCoordinator.Validator{
-				&shardingMocks.ValidatorMock{},
+		ComputeValidatorsGroupCalled: func(randomness []byte, round uint64, shardId uint32, _ uint32) (leader nodesCoordinator.Validator, validatorsGroup []nodesCoordinator.Validator, err error) {
+			return validator, []nodesCoordinator.Validator{
+				validator,
 			}, nil
 		},
 		GetAllEligibleValidatorsPublicKeysCalled: func(_ uint32) (map[uint32][][]byte, error) {
@@ -1616,10 +1631,11 @@ func TestValidatorStatisticsProcessor_CheckForMissedBlocksWithRoundDifferenceGre
 	}
 
 	arguments := createMockArguments()
+	validator := &shardingMocks.ValidatorMock{}
 	arguments.NodesCoordinator = &shardingMocks.NodesCoordinatorMock{
-		ComputeValidatorsGroupCalled: func(randomness []byte, round uint64, shardId uint32, _ uint32) (validatorsGroup []nodesCoordinator.Validator, err error) {
-			return []nodesCoordinator.Validator{
-				&shardingMocks.ValidatorMock{},
+		ComputeValidatorsGroupCalled: func(randomness []byte, round uint64, shardId uint32, _ uint32) (leader nodesCoordinator.Validator, validatorsGroup []nodesCoordinator.Validator, err error) {
+			return validator, []nodesCoordinator.Validator{
+				validator,
 			}, nil
 		},
 		GetAllEligibleValidatorsPublicKeysCalled: func(_ uint32) (map[uint32][][]byte, error) {
@@ -1818,13 +1834,13 @@ func DoComputeMissingBlocks(
 
 	arguments := createMockArguments()
 	arguments.NodesCoordinator = &shardingMocks.NodesCoordinatorMock{
-		ComputeValidatorsGroupCalled: func(randomness []byte, round uint64, shardId uint32, _ uint32) (validatorsGroup []nodesCoordinator.Validator, err error) {
-			return consensus, nil
+		ComputeValidatorsGroupCalled: func(randomness []byte, round uint64, shardId uint32, _ uint32) (leader nodesCoordinator.Validator, validatorsGroup []nodesCoordinator.Validator, err error) {
+			return consensus[0], consensus, nil
 		},
 		GetAllEligibleValidatorsPublicKeysCalled: func(_ uint32) (map[uint32][][]byte, error) {
 			return validatorPublicKeys, nil
 		},
-		ConsensusGroupSizeCalled: func(uint32) int {
+		ConsensusGroupSizeCalled: func(uint32, uint32) int {
 			return consensusGroupSize
 		},
 		GetValidatorWithPublicKeyCalled: func(publicKey []byte) (nodesCoordinator.Validator, uint32, error) {
@@ -1893,14 +1909,18 @@ func TestValidatorStatisticsProcessor_UpdatePeerStateCallsPubKeyForValidator(t *
 
 	pubKeyCalled := false
 	arguments := createMockArguments()
+	validator := &shardingMocks.ValidatorMock{
+		PubKeyCalled: func() []byte {
+			pubKeyCalled = true
+			return make([]byte, 0)
+		},
+	}
 	arguments.NodesCoordinator = &shardingMocks.NodesCoordinatorMock{
-		ComputeValidatorsGroupCalled: func(randomness []byte, round uint64, shardId uint32, epoch uint32) (validatorsGroup []nodesCoordinator.Validator, err error) {
-			return []nodesCoordinator.Validator{&shardingMocks.ValidatorMock{
-				PubKeyCalled: func() []byte {
-					pubKeyCalled = true
-					return make([]byte, 0)
-				},
-			}, &shardingMocks.ValidatorMock{}}, nil
+		ComputeValidatorsGroupCalled: func(randomness []byte, round uint64, shardId uint32, epoch uint32) (leader nodesCoordinator.Validator, validatorsGroup []nodesCoordinator.Validator, err error) {
+			return validator, []nodesCoordinator.Validator{
+				validator,
+				&shardingMocks.ValidatorMock{},
+			}, nil
 		},
 	}
 	arguments.DataPool = &dataRetrieverMock.PoolsHolderStub{
@@ -2384,6 +2404,40 @@ func TestValidatorStatistics_ProcessValidatorInfosEndOfEpochWithLargeValidatorFa
 	assert.Equal(t, rater.MinRating, vi.GetShardValidatorsInfoMap()[0][0].GetTempRating())
 }
 
+func TestValidatorStatistics_ProcessRatingsEndOfEpochAfterEquivalentProofsShouldEarlyExit(t *testing.T) {
+	t.Parallel()
+
+	arguments := createMockArguments()
+	rater := createMockRater()
+	rater.GetSignedBlocksThresholdCalled = func() float32 {
+		return 0.025 // would have passed the `if computedThreshold <= signedThreshold` condition
+	}
+	rater.RevertIncreaseProposerCalled = func(shardId uint32, rating uint32, nrReverts uint32) uint32 {
+		require.Fail(t, "should have not been called")
+		return 0
+	}
+	arguments.Rater = rater
+	arguments.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+		IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
+			return flag == common.EquivalentMessagesFlag
+		},
+	}
+	updateArgumentsWithNeeded(arguments)
+
+	tempRating := uint32(5000)
+	validatorSuccess := uint32(2)
+	validatorIgnored := uint32(90)
+	validatorFailure := uint32(8)
+
+	vi := state.NewShardValidatorsInfoMap()
+	_ = vi.Add(createMockValidatorInfo(core.MetachainShardId, tempRating, validatorSuccess, validatorIgnored, validatorFailure))
+
+	validatorStatistics, _ := peer.NewValidatorStatisticsProcessor(arguments)
+	err := validatorStatistics.ProcessRatingsEndOfEpoch(vi, 1)
+	assert.Nil(t, err)
+	assert.Equal(t, tempRating, vi.GetShardValidatorsInfoMap()[core.MetachainShardId][0].GetTempRating()) // no change
+}
+
 func TestValidatorsProvider_PeerAccoutToValidatorInfo(t *testing.T) {
 	t.Parallel()
 
@@ -2605,13 +2659,13 @@ func createUpdateTestArgs(consensusGroup map[string][]nodesCoordinator.Validator
 	arguments.PeerAdapter = adapter
 
 	arguments.NodesCoordinator = &shardingMocks.NodesCoordinatorMock{
-		ComputeValidatorsGroupCalled: func(randomness []byte, round uint64, shardId uint32, epoch uint32) (validatorsGroup []nodesCoordinator.Validator, err error) {
+		ComputeValidatorsGroupCalled: func(randomness []byte, round uint64, shardId uint32, epoch uint32) (leader nodesCoordinator.Validator, validatorsGroup []nodesCoordinator.Validator, err error) {
 			key := fmt.Sprintf(consensusGroupFormat, string(randomness), round, shardId, epoch)
 			validatorsArray, ok := consensusGroup[key]
 			if !ok {
-				return nil, process.ErrEmptyConsensusGroup
+				return nil, nil, process.ErrEmptyConsensusGroup
 			}
-			return validatorsArray, nil
+			return validatorsArray[0], validatorsArray, nil
 		},
 	}
 	return arguments

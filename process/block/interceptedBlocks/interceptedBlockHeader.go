@@ -6,9 +6,11 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/hashing"
+	logger "github.com/multiversx/mx-chain-logger-go"
+
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/sharding"
-	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
 var _ process.HdrValidatorHandler = (*InterceptedHeader)(nil)
@@ -17,15 +19,17 @@ var _ process.InterceptedData = (*InterceptedHeader)(nil)
 // InterceptedHeader represents the wrapper over HeaderWrapper struct.
 // It implements Newer and Hashed interfaces
 type InterceptedHeader struct {
-	hdr               data.HeaderHandler
-	sigVerifier       process.InterceptedHeaderSigVerifier
-	integrityVerifier process.HeaderIntegrityVerifier
-	hasher            hashing.Hasher
-	shardCoordinator  sharding.Coordinator
-	hash              []byte
-	isForCurrentShard bool
-	validityAttester  process.ValidityAttester
-	epochStartTrigger process.EpochStartTriggerHandler
+	hdr                 data.HeaderHandler
+	sigVerifier         process.InterceptedHeaderSigVerifier
+	integrityVerifier   process.HeaderIntegrityVerifier
+	hasher              hashing.Hasher
+	shardCoordinator    sharding.Coordinator
+	hash                []byte
+	isForCurrentShard   bool
+	validityAttester    process.ValidityAttester
+	epochStartTrigger   process.EpochStartTriggerHandler
+	enableEpochsHandler common.EnableEpochsHandler
+	fieldsSizeChecker   common.FieldsSizeChecker
 }
 
 // NewInterceptedHeader creates a new instance of InterceptedHeader struct
@@ -41,13 +45,15 @@ func NewInterceptedHeader(arg *ArgInterceptedBlockHeader) (*InterceptedHeader, e
 	}
 
 	inHdr := &InterceptedHeader{
-		hdr:               hdr,
-		hasher:            arg.Hasher,
-		sigVerifier:       arg.HeaderSigVerifier,
-		integrityVerifier: arg.HeaderIntegrityVerifier,
-		shardCoordinator:  arg.ShardCoordinator,
-		validityAttester:  arg.ValidityAttester,
-		epochStartTrigger: arg.EpochStartTrigger,
+		hdr:                 hdr,
+		hasher:              arg.Hasher,
+		sigVerifier:         arg.HeaderSigVerifier,
+		integrityVerifier:   arg.HeaderIntegrityVerifier,
+		shardCoordinator:    arg.ShardCoordinator,
+		validityAttester:    arg.ValidityAttester,
+		epochStartTrigger:   arg.EpochStartTrigger,
+		enableEpochsHandler: arg.EnableEpochsHandler,
+		fieldsSizeChecker:   arg.FieldsSizeChecker,
 	}
 	inHdr.processFields(arg.HdrBuff)
 
@@ -74,12 +80,29 @@ func (inHdr *InterceptedHeader) CheckValidity() error {
 		return err
 	}
 
-	err = inHdr.sigVerifier.VerifyRandSeedAndLeaderSignature(inHdr.hdr)
+	return inHdr.verifySignatures()
+}
+
+func (inHdr *InterceptedHeader) verifySignatures() error {
+	if inHdr.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, inHdr.hdr.GetEpoch()) {
+		return inHdr.verifySignaturesForEquivalentProofs()
+	}
+	err := inHdr.sigVerifier.VerifyRandSeedAndLeaderSignature(inHdr.hdr)
 	if err != nil {
 		return err
 	}
 
 	return inHdr.sigVerifier.VerifySignature(inHdr.hdr)
+}
+
+func (inHdr *InterceptedHeader) verifySignaturesForEquivalentProofs() error {
+	// for equivalent proofs, we check first the previous proof to make sure we add it to the proofs pool if we are validating the
+	// block after the change of epoch, otherwise we never add the previous proof to proofs pool in sync mode.
+	err := inHdr.sigVerifier.VerifySignature(inHdr.hdr)
+	if err != nil {
+		return err
+	}
+	return inHdr.sigVerifier.VerifyRandSeedAndLeaderSignature(inHdr.hdr)
 }
 
 func (inHdr *InterceptedHeader) isEpochCorrect() bool {
@@ -121,7 +144,7 @@ func (inHdr *InterceptedHeader) integrity() error {
 			inHdr.epochStartTrigger.EpochFinalityAttestingRound())
 	}
 
-	err := checkHeaderHandler(inHdr.HeaderHandler())
+	err := checkHeaderHandler(inHdr.HeaderHandler(), inHdr.enableEpochsHandler, inHdr.fieldsSizeChecker)
 	if err != nil {
 		return err
 	}

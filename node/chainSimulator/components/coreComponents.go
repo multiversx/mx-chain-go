@@ -6,12 +6,13 @@ import (
 	"time"
 
 	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/common/chainparametersnotifier"
 	"github.com/multiversx/mx-chain-go/common/enablers"
 	factoryPubKey "github.com/multiversx/mx-chain-go/common/factory"
+	"github.com/multiversx/mx-chain-go/common/fieldsChecker"
 	"github.com/multiversx/mx-chain-go/common/forking"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/consensus"
-	"github.com/multiversx/mx-chain-go/consensus/mock"
 	"github.com/multiversx/mx-chain-go/epochStart/notifier"
 	"github.com/multiversx/mx-chain-go/factory"
 	"github.com/multiversx/mx-chain-go/ntp"
@@ -74,6 +75,9 @@ type coreComponentsHolder struct {
 	processStatusHandler          common.ProcessStatusHandler
 	hardforkTriggerPubKey         []byte
 	enableEpochsHandler           common.EnableEpochsHandler
+	chainParametersSubscriber     process.ChainParametersSubscriber
+	chainParametersHandler        process.ChainParametersHandler
+	fieldsSizeChecker             common.FieldsSizeChecker
 }
 
 // ArgsCoreComponentsHolder will hold arguments needed for the core components holder
@@ -145,10 +149,28 @@ func CreateCoreComponents(args ArgsCoreComponentsHolder) (*coreComponentsHolder,
 	}
 
 	instance.watchdog = &watchdog.DisabledWatchdog{}
-	instance.alarmScheduler = &mock.AlarmSchedulerStub{}
+	instance.alarmScheduler = &testscommon.AlarmSchedulerStub{}
 	instance.syncTimer = &testscommon.SyncTimerStub{}
 
-	instance.genesisNodesSetup, err = sharding.NewNodesSetup(args.NodesSetupPath, instance.addressPubKeyConverter, instance.validatorPubKeyConverter, args.NumShards)
+	instance.epochStartNotifierWithConfirm = notifier.NewEpochStartSubscriptionHandler()
+	instance.chainParametersSubscriber = chainparametersnotifier.NewChainParametersNotifier()
+	chainParametersNotifier := chainparametersnotifier.NewChainParametersNotifier()
+	argsChainParametersHandler := sharding.ArgsChainParametersHolder{
+		EpochStartEventNotifier: instance.epochStartNotifierWithConfirm,
+		ChainParameters:         args.Config.GeneralSettings.ChainParametersByEpoch,
+		ChainParametersNotifier: chainParametersNotifier,
+	}
+	instance.chainParametersHandler, err = sharding.NewChainParametersHolder(argsChainParametersHandler)
+	if err != nil {
+		return nil, err
+	}
+
+	var nodesSetup config.NodesConfig
+	err = core.LoadJsonFile(&nodesSetup, args.NodesSetupPath)
+	if err != nil {
+		return nil, err
+	}
+	instance.genesisNodesSetup, err = sharding.NewNodesSetup(nodesSetup, instance.chainParametersHandler, instance.addressPubKeyConverter, instance.validatorPubKeyConverter, args.NumShards)
 	if err != nil {
 		return nil, err
 	}
@@ -160,10 +182,6 @@ func CreateCoreComponents(args ArgsCoreComponentsHolder) (*coreComponentsHolder,
 	instance.txVersionChecker = versioning.NewTxVersionChecker(args.Config.GeneralSettings.MinTransactionVersion)
 	instance.epochNotifier = forking.NewGenericEpochNotifier()
 	instance.enableEpochsHandler, err = enablers.NewEnableEpochsHandler(args.EnableEpochsConfig, instance.epochNotifier)
-	if err != nil {
-		return nil, err
-	}
-
 	if err != nil {
 		return nil, err
 	}
@@ -184,12 +202,10 @@ func CreateCoreComponents(args ArgsCoreComponentsHolder) (*coreComponentsHolder,
 	instance.apiEconomicsData = instance.economicsData
 
 	instance.ratingsData, err = rating.NewRatingsData(rating.RatingsDataArg{
-		Config:                   args.RatingConfig,
-		ShardConsensusSize:       args.ConsensusGroupSize,
-		MetaConsensusSize:        args.MetaChainConsensusGroupSize,
-		ShardMinNodes:            args.MinNodesPerShard,
-		MetaMinNodes:             args.MinNodesMeta,
-		RoundDurationMiliseconds: args.RoundDurationInMs,
+		EpochNotifier:             instance.epochNotifier,
+		Config:                    args.RatingConfig,
+		ChainParametersHolder:     instance.chainParametersHandler,
+		RoundDurationMilliseconds: args.RoundDurationInMs,
 	})
 	if err != nil {
 		return nil, err
@@ -201,10 +217,6 @@ func CreateCoreComponents(args ArgsCoreComponentsHolder) (*coreComponentsHolder,
 	}
 
 	instance.nodesShuffler, err = nodesCoordinator.NewHashValidatorsShuffler(&nodesCoordinator.NodesShufflerArgs{
-		NodesShard:           args.MinNodesPerShard,
-		NodesMeta:            args.MinNodesMeta,
-		Hysteresis:           0,
-		Adaptivity:           false,
 		ShuffleBetweenShards: true,
 		MaxNodesEnableConfig: args.EnableEpochsConfig.MaxNodesChangeEnableEpoch,
 		EnableEpochsHandler:  instance.enableEpochsHandler,
@@ -220,7 +232,6 @@ func CreateCoreComponents(args ArgsCoreComponentsHolder) (*coreComponentsHolder,
 		return nil, err
 	}
 
-	instance.epochStartNotifierWithConfirm = notifier.NewEpochStartSubscriptionHandler()
 	instance.chanStopNodeProcess = args.ChanStopNodeProcess
 	instance.genesisTime = time.Unix(instance.genesisNodesSetup.GetStartTime(), 0)
 	instance.chainID = args.Config.GeneralSettings.ChainID
@@ -238,6 +249,12 @@ func CreateCoreComponents(args ArgsCoreComponentsHolder) (*coreComponentsHolder,
 		return nil, err
 	}
 	instance.hardforkTriggerPubKey = pubKeyBytes
+
+	fieldsChecker, err := fieldsChecker.NewFieldsSizeChecker(instance.chainParametersHandler, hasher)
+	if err != nil {
+		return nil, err
+	}
+	instance.fieldsSizeChecker = fieldsChecker
 
 	instance.collectClosableComponents()
 
@@ -428,6 +445,21 @@ func (c *coreComponentsHolder) HardforkTriggerPubKey() []byte {
 // EnableEpochsHandler will return the enable epoch handler
 func (c *coreComponentsHolder) EnableEpochsHandler() common.EnableEpochsHandler {
 	return c.enableEpochsHandler
+}
+
+// ChainParametersSubscriber will return the chain parameters subscriber
+func (c *coreComponentsHolder) ChainParametersSubscriber() process.ChainParametersSubscriber {
+	return c.chainParametersSubscriber
+}
+
+// ChainParametersHandler will return the chain parameters handler
+func (c *coreComponentsHolder) ChainParametersHandler() process.ChainParametersHandler {
+	return c.chainParametersHandler
+}
+
+// FieldsSizeChecker will return the fields size checker component
+func (c *coreComponentsHolder) FieldsSizeChecker() common.FieldsSizeChecker {
+	return c.fieldsSizeChecker
 }
 
 func (c *coreComponentsHolder) collectClosableComponents() {

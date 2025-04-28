@@ -15,7 +15,9 @@ import (
 	"github.com/multiversx/mx-chain-go/process/mock"
 	processMocks "github.com/multiversx/mx-chain-go/process/mock"
 	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/consensus"
 	"github.com/multiversx/mx-chain-go/testscommon/cryptoMocks"
+	"github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
 	"github.com/multiversx/mx-chain-go/testscommon/economicsmocks"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/epochNotifier"
@@ -74,6 +76,7 @@ func createMockComponentHolders() (*mock.CoreComponentsMock, *mock.CryptoCompone
 		EpochNotifierField:         &epochNotifier.EpochNotifierStub{},
 		HardforkTriggerPubKeyField: []byte("provided hardfork pub key"),
 		EnableEpochsHandlerField:   &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		FieldsSizeCheckerField:     &testscommon.FieldsSizeCheckerMock{},
 	}
 	cryptoComponents := &mock.CryptoComponentsMock{
 		BlockSig:          createMockSigner(),
@@ -84,6 +87,32 @@ func createMockComponentHolders() (*mock.CoreComponentsMock, *mock.CryptoCompone
 	}
 
 	return coreComponents, cryptoComponents
+}
+
+func createMockArgMetaHeaderFactoryArgument(
+	coreComponents *mock.CoreComponentsMock,
+	cryptoComponents *mock.CryptoComponentsMock,
+) *ArgInterceptedMetaHeaderFactory {
+	return &ArgInterceptedMetaHeaderFactory{
+		ArgInterceptedDataFactory: ArgInterceptedDataFactory{
+			CoreComponents:               coreComponents,
+			CryptoComponents:             cryptoComponents,
+			ShardCoordinator:             mock.NewOneShardCoordinatorMock(),
+			NodesCoordinator:             shardingMocks.NewNodesCoordinatorMock(),
+			FeeHandler:                   createMockFeeHandler(),
+			WhiteListerVerifiedTxs:       &testscommon.WhiteListHandlerStub{},
+			HeaderSigVerifier:            &consensus.HeaderSigVerifierMock{},
+			ValidityAttester:             &mock.ValidityAttesterStub{},
+			HeaderIntegrityVerifier:      &mock.HeaderIntegrityVerifierStub{},
+			EpochStartTrigger:            &mock.EpochStartTriggerStub{},
+			ArgsParser:                   &testscommon.ArgumentParserMock{},
+			PeerSignatureHandler:         &processMocks.PeerSignatureHandlerStub{},
+			SignaturesHandler:            &processMocks.SignaturesHandlerStub{},
+			HeartbeatExpiryTimespanInSec: 30,
+			PeerID:                       "pid",
+		},
+		ProofsPool: &dataRetriever.ProofsPoolMock{},
+	}
 }
 
 func createMockArgument(
@@ -97,7 +126,7 @@ func createMockArgument(
 		NodesCoordinator:             shardingMocks.NewNodesCoordinatorMock(),
 		FeeHandler:                   createMockFeeHandler(),
 		WhiteListerVerifiedTxs:       &testscommon.WhiteListHandlerStub{},
-		HeaderSigVerifier:            &mock.HeaderSigVerifierStub{},
+		HeaderSigVerifier:            &consensus.HeaderSigVerifierMock{},
 		ValidityAttester:             &mock.ValidityAttesterStub{},
 		HeaderIntegrityVerifier:      &mock.HeaderIntegrityVerifierStub{},
 		EpochStartTrigger:            &mock.EpochStartTriggerStub{},
@@ -123,7 +152,7 @@ func TestNewInterceptedMetaHeaderDataFactory_NilMarshalizerShouldErr(t *testing.
 
 	coreComp, cryptoComp := createMockComponentHolders()
 	coreComp.IntMarsh = nil
-	arg := createMockArgument(coreComp, cryptoComp)
+	arg := createMockArgMetaHeaderFactoryArgument(coreComp, cryptoComp)
 
 	imh, err := NewInterceptedMetaHeaderDataFactory(arg)
 	assert.Nil(t, imh)
@@ -135,7 +164,7 @@ func TestNewInterceptedMetaHeaderDataFactory_NilSignMarshalizerShouldErr(t *test
 
 	coreComp, cryptoComp := createMockComponentHolders()
 	coreComp.TxMarsh = nil
-	arg := createMockArgument(coreComp, cryptoComp)
+	arg := createMockArgMetaHeaderFactoryArgument(coreComp, cryptoComp)
 
 	imh, err := NewInterceptedMetaHeaderDataFactory(arg)
 	assert.True(t, check.IfNil(imh))
@@ -147,7 +176,7 @@ func TestNewInterceptedMetaHeaderDataFactory_NilHasherShouldErr(t *testing.T) {
 
 	coreComp, cryptoComp := createMockComponentHolders()
 	coreComp.Hash = nil
-	arg := createMockArgument(coreComp, cryptoComp)
+	arg := createMockArgMetaHeaderFactoryArgument(coreComp, cryptoComp)
 
 	imh, err := NewInterceptedMetaHeaderDataFactory(arg)
 	assert.True(t, check.IfNil(imh))
@@ -157,7 +186,7 @@ func TestNewInterceptedMetaHeaderDataFactory_NilHasherShouldErr(t *testing.T) {
 func TestNewInterceptedMetaHeaderDataFactory_NilHeaderSigVerifierShouldErr(t *testing.T) {
 	t.Parallel()
 	coreComp, cryptoComp := createMockComponentHolders()
-	arg := createMockArgument(coreComp, cryptoComp)
+	arg := createMockArgMetaHeaderFactoryArgument(coreComp, cryptoComp)
 	arg.HeaderSigVerifier = nil
 
 	imh, err := NewInterceptedMetaHeaderDataFactory(arg)
@@ -169,7 +198,7 @@ func TestNewInterceptedMetaHeaderDataFactory_NilHeaderIntegrityVerifierShouldErr
 	t.Parallel()
 
 	coreComp, cryptoComp := createMockComponentHolders()
-	arg := createMockArgument(coreComp, cryptoComp)
+	arg := createMockArgMetaHeaderFactoryArgument(coreComp, cryptoComp)
 	arg.HeaderIntegrityVerifier = nil
 
 	imh, err := NewInterceptedMetaHeaderDataFactory(arg)
@@ -181,7 +210,7 @@ func TestNewInterceptedMetaHeaderDataFactory_NilShardCoordinatorShouldErr(t *tes
 	t.Parallel()
 
 	coreComp, cryptoComp := createMockComponentHolders()
-	arg := createMockArgument(coreComp, cryptoComp)
+	arg := createMockArgMetaHeaderFactoryArgument(coreComp, cryptoComp)
 	arg.ShardCoordinator = nil
 
 	imh, err := NewInterceptedMetaHeaderDataFactory(arg)
@@ -196,7 +225,7 @@ func TestNewInterceptedMetaHeaderDataFactory_NilChainIdShouldErr(t *testing.T) {
 	coreComp.ChainIdCalled = func() string {
 		return ""
 	}
-	arg := createMockArgument(coreComp, cryptoComp)
+	arg := createMockArgMetaHeaderFactoryArgument(coreComp, cryptoComp)
 
 	imh, err := NewInterceptedMetaHeaderDataFactory(arg)
 	assert.True(t, check.IfNil(imh))
@@ -207,7 +236,7 @@ func TestNewInterceptedMetaHeaderDataFactory_NilValidityAttesterShouldErr(t *tes
 	t.Parallel()
 
 	coreComp, cryptoComp := createMockComponentHolders()
-	arg := createMockArgument(coreComp, cryptoComp)
+	arg := createMockArgMetaHeaderFactoryArgument(coreComp, cryptoComp)
 	arg.ValidityAttester = nil
 
 	imh, err := NewInterceptedMetaHeaderDataFactory(arg)
@@ -219,7 +248,7 @@ func TestNewInterceptedMetaHeaderDataFactory_ShouldWorkAndCreate(t *testing.T) {
 	t.Parallel()
 
 	coreComp, cryptoComp := createMockComponentHolders()
-	arg := createMockArgument(coreComp, cryptoComp)
+	arg := createMockArgMetaHeaderFactoryArgument(coreComp, cryptoComp)
 
 	imh, err := NewInterceptedMetaHeaderDataFactory(arg)
 	assert.False(t, check.IfNil(imh))
@@ -229,7 +258,7 @@ func TestNewInterceptedMetaHeaderDataFactory_ShouldWorkAndCreate(t *testing.T) {
 	marshalizer := &mock.MarshalizerMock{}
 	emptyMetaHeader := &block.Header{}
 	emptyMetaHeaderBuff, _ := marshalizer.Marshal(emptyMetaHeader)
-	interceptedData, err := imh.Create(emptyMetaHeaderBuff)
+	interceptedData, err := imh.Create(emptyMetaHeaderBuff, "")
 	assert.Nil(t, err)
 
 	_, ok := interceptedData.(*interceptedBlocks.InterceptedMetaHeader)

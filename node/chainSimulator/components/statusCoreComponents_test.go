@@ -46,6 +46,7 @@ func createArgs() (config.Configs, factory.CoreComponentsHolder) {
 		IntMarsh:            &testscommon.MarshallerStub{},
 		UInt64ByteSliceConv: &mockTests.Uint64ByteSliceConverterMock{},
 		NodesConfig:         &genesisMocks.NodesSetupStub{},
+		RatingsConfig:       &testscommon.RatingsInfoMock{},
 	}
 }
 

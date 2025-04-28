@@ -5,7 +5,9 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data"
-	"github.com/multiversx/mx-chain-go/common"
+
+	"github.com/multiversx/mx-chain-go/common/enablers"
+	"github.com/multiversx/mx-chain-go/common/forking"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/dataRetriever/provider"
@@ -45,27 +47,25 @@ func (tpn *TestProcessorNode) initBlockProcessorWithSync() {
 	accountsDb[state.UserAccountsState] = tpn.AccntState
 	accountsDb[state.PeerAccountsState] = tpn.PeerState
 
-	coreComponents := GetDefaultCoreComponents(CreateEnableEpochsConfig())
+	if tpn.EpochNotifier == nil {
+		tpn.EpochNotifier = forking.NewGenericEpochNotifier()
+	}
+	if tpn.EnableEpochsHandler == nil {
+		tpn.EnableEpochsHandler, _ = enablers.NewEnableEpochsHandler(CreateEnableEpochsConfig(), tpn.EpochNotifier)
+	}
+	coreComponents := GetDefaultCoreComponents(tpn.EnableEpochsHandler, tpn.EpochNotifier)
 	coreComponents.InternalMarshalizerField = TestMarshalizer
 	coreComponents.HasherField = TestHasher
 	coreComponents.Uint64ByteSliceConverterField = TestUint64Converter
 	coreComponents.EpochNotifierField = tpn.EpochNotifier
 	coreComponents.RoundNotifierField = tpn.RoundNotifier
-	coreComponents.EnableEpochsHandlerField = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-		GetActivationEpochCalled: func(flag core.EnableEpochFlag) uint32 {
-			if flag == common.RefactorPeersMiniBlocksFlag {
-				return UnreachableEpoch
-			}
-			return 0
-		},
-	}
 
 	dataComponents := GetDefaultDataComponents()
 	dataComponents.Store = tpn.Storage
 	dataComponents.DataPool = tpn.DataPool
 	dataComponents.BlockChain = tpn.BlockChain
 
-	bootstrapComponents := getDefaultBootstrapComponents(tpn.ShardCoordinator)
+	bootstrapComponents := getDefaultBootstrapComponents(tpn.ShardCoordinator, tpn.EnableEpochsHandler)
 	bootstrapComponents.HdrIntegrityVerifier = tpn.HeaderIntegrityVerifier
 
 	statusComponents := GetDefaultStatusComponents()
@@ -108,7 +108,13 @@ func (tpn *TestProcessorNode) initBlockProcessorWithSync() {
 	}
 
 	if tpn.ShardCoordinator.SelfId() == core.MetachainShardId {
-		tpn.ForkDetector, _ = sync.NewMetaForkDetector(tpn.RoundHandler, tpn.BlockBlackListHandler, tpn.BlockTracker, 0)
+		tpn.ForkDetector, _ = sync.NewMetaForkDetector(
+			tpn.RoundHandler,
+			tpn.BlockBlackListHandler,
+			tpn.BlockTracker,
+			0,
+			tpn.EnableEpochsHandler,
+			tpn.DataPool.Proofs())
 		argumentsBase.ForkDetector = tpn.ForkDetector
 		argumentsBase.TxCoordinator = &mock.TransactionCoordinatorMock{}
 		arguments := block.ArgMetaProcessor{
@@ -125,11 +131,18 @@ func (tpn *TestProcessorNode) initBlockProcessorWithSync() {
 				},
 			},
 			EpochSystemSCProcessor: &testscommon.EpochStartSystemSCStub{},
+			FieldsSizeChecker:      &testscommon.FieldsSizeCheckerMock{},
 		}
 
 		tpn.BlockProcessor, err = block.NewMetaProcessor(arguments)
 	} else {
-		tpn.ForkDetector, _ = sync.NewShardForkDetector(tpn.RoundHandler, tpn.BlockBlackListHandler, tpn.BlockTracker, 0)
+		tpn.ForkDetector, _ = sync.NewShardForkDetector(
+			tpn.RoundHandler,
+			tpn.BlockBlackListHandler,
+			tpn.BlockTracker,
+			0,
+			tpn.EnableEpochsHandler,
+			tpn.DataPool.Proofs())
 		argumentsBase.ForkDetector = tpn.ForkDetector
 		argumentsBase.BlockChainHook = tpn.BlockchainHook
 		argumentsBase.TxCoordinator = tpn.TxCoordinator
@@ -176,6 +189,7 @@ func (tpn *TestProcessorNode) createShardBootstrapper() (TestBootstrapper, error
 		ScheduledTxsExecutionHandler: &testscommon.ScheduledTxsExecutionStub{},
 		ProcessWaitTime:              tpn.RoundHandler.TimeDuration(),
 		RepopulateTokensSupplies:     false,
+		EnableEpochsHandler:          tpn.EnableEpochsHandler,
 	}
 
 	argsShardBootstrapper := sync.ArgShardBootstrapper{
@@ -222,6 +236,7 @@ func (tpn *TestProcessorNode) createMetaChainBootstrapper() (TestBootstrapper, e
 		ScheduledTxsExecutionHandler: &testscommon.ScheduledTxsExecutionStub{},
 		ProcessWaitTime:              tpn.RoundHandler.TimeDuration(),
 		RepopulateTokensSupplies:     false,
+		EnableEpochsHandler:          &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 	}
 
 	argsMetaBootstrapper := sync.ArgMetaBootstrapper{

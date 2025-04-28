@@ -40,6 +40,12 @@
     # Make sure that this is greater than the unbonding period!
     SetGuardianEpochsDelay = 2 # TODO: for mainnet should be 20, 2 is just for testing
 
+    # ChainParametersByEpoch defines chain operation configurable values that can be modified based on epochs
+    ChainParametersByEpoch = [
+        { EnableEpoch = 0, RoundDuration = 6000, ShardConsensusGroupSize = 7, ShardMinNumNodes = 10, MetachainConsensusGroupSize = 10, MetachainMinNumNodes = 10, Hysteresis = 0.2, Adaptivity = false },
+        { EnableEpoch = 8, RoundDuration = 6000, ShardConsensusGroupSize = 10, ShardMinNumNodes = 10, MetachainConsensusGroupSize = 10, MetachainMinNumNodes = 10, Hysteresis = 0.2, Adaptivity = false }
+    ]
+
 [HardwareRequirements]
     CPUFlags = ["SSE4", "SSE42"]
 
@@ -365,6 +371,10 @@
     MaxHeadersPerShard = 1000
     NumElementsToRemoveOnEviction = 200
 
+[ProofsPoolConfig]
+    CleanupNonceDelta = 3
+    BucketSize = 100
+
 [BadBlocksCache]
     Name = "BadBlocksCache"
     Capacity = 1000
@@ -672,8 +682,7 @@
         TimeOutForSCExecutionInMilliseconds = 10000 # 10 seconds = 10000 milliseconds
         WasmerSIGSEGVPassthrough            = false # must be false for release
         WasmVMVersions = [
-            { StartEpoch = 0, Version = "v1.4" },
-            { StartEpoch = 1, Version = "v1.5" }, # TODO: set also the RoundActivations.DisableAsyncCallV1 accordingly
+            { StartEpoch = 0, Version = "v1.5" },
         ]
         TransferAndExecuteByUserAddresses = [ # TODO: set real contract addresses for all shards
             "erd1qqqqqqqqqqqqqpgqr46jrxr6r2unaqh75ugd308dwx5vgnhwh47qtvepe3", #shard 0
@@ -684,8 +693,7 @@
         TimeOutForSCExecutionInMilliseconds = 10000 # 10 seconds = 10000 milliseconds
         WasmerSIGSEGVPassthrough            = false # must be false for release
         WasmVMVersions = [
-            { StartEpoch = 0, Version = "v1.4" },
-            { StartEpoch = 1, Version = "v1.5" }, # TODO: set also the RoundActivations.DisableAsyncCallV1 accordingly
+            { StartEpoch = 0, Version = "v1.5" },
         ]
         TransferAndExecuteByUserAddresses = [ # TODO: set real contract addresses for all shards
             "erd1qqqqqqqqqqqqqpgqr46jrxr6r2unaqh75ugd308dwx5vgnhwh47qtvepe3",
@@ -946,3 +954,7 @@
     # MaxRoundsOfInactivityAccepted defines the number of rounds missed by a main or higher level backup machine before
     # the current machine will take over and propose/sign blocks. Used in both single-key and multi-key modes.
     MaxRoundsOfInactivityAccepted = 3
+
+[InterceptedDataVerifier]
+    CacheSpanInSec = 30
+    CacheExpiryInSec = 30

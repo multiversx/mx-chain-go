@@ -50,6 +50,9 @@ func checkArgOutportDataProviderFactory(arg ArgOutportDataProviderFactory) error
 	if check.IfNil(arg.ExecutionOrderGetter) {
 		return process.ErrNilExecutionOrderGetter
 	}
+	if check.IfNil(arg.ProofsPool) {
+		return process.ErrNilProofsPool
+	}
 
 	return nil
 }

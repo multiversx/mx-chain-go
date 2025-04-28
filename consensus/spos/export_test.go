@@ -3,15 +3,25 @@ package spos
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/process"
 )
 
 // RedundancySingleKeySteppedIn exposes the redundancySingleKeySteppedIn constant
 const RedundancySingleKeySteppedIn = redundancySingleKeySteppedIn
+
+// LeaderSingleKeyStartMsg -
+const LeaderSingleKeyStartMsg = singleKeyStartMsg
+
+// LeaderMultiKeyStartMsg -
+const LeaderMultiKeyStartMsg = multiKeyStartMsg
 
 type RoundConsensus struct {
 	*roundConsensus
@@ -142,23 +152,43 @@ func (wrk *Worker) NilReceivedMessages() {
 }
 
 // ReceivedMessagesCalls -
-func (wrk *Worker) ReceivedMessagesCalls() map[consensus.MessageType]func(context.Context, *consensus.Message) bool {
+func (wrk *Worker) ReceivedMessagesCalls() map[consensus.MessageType][]func(context.Context, *consensus.Message) bool {
 	wrk.mutReceivedMessagesCalls.RLock()
 	defer wrk.mutReceivedMessagesCalls.RUnlock()
 
 	return wrk.receivedMessagesCalls
 }
 
-// SetReceivedMessagesCalls -
-func (wrk *Worker) SetReceivedMessagesCalls(messageType consensus.MessageType, f func(context.Context, *consensus.Message) bool) {
+// AppendReceivedMessagesCalls -
+func (wrk *Worker) AppendReceivedMessagesCalls(messageType consensus.MessageType, f func(context.Context, *consensus.Message) bool) {
 	wrk.mutReceivedMessagesCalls.Lock()
-	wrk.receivedMessagesCalls[messageType] = f
+	wrk.receivedMessagesCalls[messageType] = append(wrk.receivedMessagesCalls[messageType], f)
 	wrk.mutReceivedMessagesCalls.Unlock()
 }
 
 // ExecuteMessageChannel -
 func (wrk *Worker) ExecuteMessageChannel() chan *consensus.Message {
 	return wrk.executeMessageChannel
+}
+
+// ConvertHeaderToConsensusMessage -
+func (wrk *Worker) ConvertHeaderToConsensusMessage(header data.HeaderHandler) (*consensus.Message, error) {
+	return wrk.convertHeaderToConsensusMessage(header)
+}
+
+// Hasher -
+func (wrk *Worker) Hasher() data.Hasher {
+	return wrk.hasher
+}
+
+// SetEnableEpochsHandler
+func (wrk *Worker) SetEnableEpochsHandler(enableEpochsHandler common.EnableEpochsHandler) {
+	wrk.enableEpochsHandler = enableEpochsHandler
+}
+
+// AddFutureHeaderToProcessIfNeeded -
+func (wrk *Worker) AddFutureHeaderToProcessIfNeeded(header data.HeaderHandler) {
+	wrk.addFutureHeaderToProcessIfNeeded(header)
 }
 
 // ConsensusStateChangedChannel -
@@ -265,3 +295,61 @@ func (cmv *consensusMessageValidator) GetNumOfMessageTypeForPublicKey(pk []byte,
 func (cmv *consensusMessageValidator) ResetConsensusMessages() {
 	cmv.resetConsensusMessages()
 }
+
+// SetStatus -
+func (sp *scheduledProcessorWrapper) SetStatus(status processingStatus) {
+	sp.setStatus(status)
+}
+
+// GetStatus -
+func (sp *scheduledProcessorWrapper) GetStatus() processingStatus {
+	return sp.getStatus()
+}
+
+// SetStartTime -
+func (sp *scheduledProcessorWrapper) SetStartTime(t time.Time) {
+	sp.startTime = t
+}
+
+// GetStartTime -
+func (sp *scheduledProcessorWrapper) GetStartTime() time.Time {
+	return sp.startTime
+}
+
+// GetRoundTimeHandler -
+func (sp *scheduledProcessorWrapper) GetRoundTimeHandler() process.RoundTimeDurationHandler {
+	return sp.roundTimeDurationHandler
+}
+
+// ProcessingNotStarted -
+var ProcessingNotStarted = processingNotStarted
+
+// ProcessingError -
+var ProcessingError = processingError
+
+// InProgress -
+var InProgress = inProgress
+
+// ProcessingOK -
+var ProcessingOK = processingOK
+
+// Stopped -
+var Stopped = stopped
+
+// ProcessingNotStartedString -
+var ProcessingNotStartedString = processingNotStartedString
+
+// ProcessingErrorString -
+var ProcessingErrorString = processingErrorString
+
+// InProgressString -
+var InProgressString = inProgressString
+
+// ProcessingOKString -
+var ProcessingOKString = processingOKString
+
+// StoppedString -
+var StoppedString = stoppedString
+
+// UnexpectedString -
+var UnexpectedString = unexpectedString

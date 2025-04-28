@@ -37,6 +37,7 @@ import (
 	"github.com/multiversx/mx-chain-go/storage/database"
 	"github.com/multiversx/mx-chain-go/storage/storageunit"
 	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/cache"
 	commonMock "github.com/multiversx/mx-chain-go/testscommon/common"
 	dataRetrieverMock "github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
 	"github.com/multiversx/mx-chain-go/testscommon/economicsmocks"
@@ -82,7 +83,7 @@ func createShardedDataChacherNotifier(
 		return &testscommon.ShardedDataStub{
 			RegisterOnAddedCalled: func(i func(key []byte, value interface{})) {},
 			ShardDataStoreCalled: func(id string) (c storage.Cacher) {
-				return &testscommon.CacherStub{
+				return &cache.CacherStub{
 					PeekCalled: func(key []byte) (value interface{}, ok bool) {
 						if reflect.DeepEqual(key, testHash) {
 							return handler, true
@@ -127,7 +128,7 @@ func initDataPool(testHash []byte) *dataRetrieverMock.PoolsHolderStub {
 		UnsignedTransactionsCalled: unsignedTxHandler,
 		RewardTransactionsCalled:   rewardTxCalled,
 		MetaBlocksCalled: func() storage.Cacher {
-			return &testscommon.CacherStub{
+			return &cache.CacherStub{
 				GetCalled: func(key []byte) (value interface{}, ok bool) {
 					if reflect.DeepEqual(key, []byte("tx1_hash")) {
 						return &transaction.Transaction{Nonce: 10}, true
@@ -150,7 +151,7 @@ func initDataPool(testHash []byte) *dataRetrieverMock.PoolsHolderStub {
 			}
 		},
 		MiniBlocksCalled: func() storage.Cacher {
-			cs := testscommon.NewCacherStub()
+			cs := cache.NewCacherStub()
 			cs.RegisterHandlerCalled = func(i func(key []byte, value interface{})) {
 			}
 			cs.GetCalled = func(key []byte) (value interface{}, ok bool) {
@@ -1164,7 +1165,7 @@ func TestTransactionCoordinator_CreateMbsAndProcessTransactionsFromMeNothingToPr
 	shardedCacheMock := &testscommon.ShardedDataStub{
 		RegisterOnAddedCalled: func(i func(key []byte, value interface{})) {},
 		ShardDataStoreCalled: func(id string) (c storage.Cacher) {
-			return &testscommon.CacherStub{
+			return &cache.CacherStub{
 				PeekCalled: func(key []byte) (value interface{}, ok bool) {
 					return nil, false
 				},
@@ -2360,7 +2361,7 @@ func TestTransactionCoordinator_VerifyCreatedBlockTransactionsOk(t *testing.T) {
 		return &testscommon.ShardedDataStub{
 			RegisterOnAddedCalled: func(i func(key []byte, value interface{})) {},
 			ShardDataStoreCalled: func(id string) (c storage.Cacher) {
-				return &testscommon.CacherStub{
+				return &cache.CacherStub{
 					PeekCalled: func(key []byte) (value interface{}, ok bool) {
 						if reflect.DeepEqual(key, scrHash) {
 							return scr, true
@@ -4542,7 +4543,7 @@ func TestTransactionCoordinator_requestMissingMiniBlocksAndTransactionsShouldWor
 	t.Parallel()
 
 	args := createMockTransactionCoordinatorArguments()
-	args.MiniBlockPool = &testscommon.CacherStub{
+	args.MiniBlockPool = &cache.CacherStub{
 		PeekCalled: func(key []byte) (value interface{}, ok bool) {
 			if bytes.Equal(key, []byte("hash0")) || bytes.Equal(key, []byte("hash1")) || bytes.Equal(key, []byte("hash2")) {
 				if bytes.Equal(key, []byte("hash0")) {

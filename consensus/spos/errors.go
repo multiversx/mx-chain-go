@@ -243,3 +243,42 @@ var ErrNilFunctionHandler = errors.New("nil function handler")
 
 // ErrWrongHashForHeader signals that the hash of the header is not the expected one
 var ErrWrongHashForHeader = errors.New("wrong hash for header")
+
+// ErrNilSentSignatureTracker defines the error for setting a nil SentSignatureTracker
+var ErrNilSentSignatureTracker = errors.New("nil sent signature tracker")
+
+// ErrEquivalentMessageAlreadyReceived signals that an equivalent message has been already received
+var ErrEquivalentMessageAlreadyReceived = errors.New("equivalent message already received")
+
+// ErrNilEnableEpochsHandler signals that a nil enable epochs handler has been provided
+var ErrNilEnableEpochsHandler = errors.New("nil enable epochs handler")
+
+// ErrNilThrottler signals that a nil throttler has been provided
+var ErrNilThrottler = errors.New("nil throttler")
+
+// ErrTimeIsOut signals that time is out
+var ErrTimeIsOut = errors.New("time is out")
+
+// ErrNilEquivalentProofPool signals that a nil proof pool has been provided
+var ErrNilEquivalentProofPool = errors.New("nil equivalent proof pool")
+
+// ErrNilHeaderProof signals that a nil header proof has been provided
+var ErrNilHeaderProof = errors.New("nil header proof")
+
+// ErrHeaderProofNotExpected signals that a header proof was not expected
+var ErrHeaderProofNotExpected = errors.New("header proof not expected")
+
+// ErrConsensusMessageNotExpected signals that a consensus message was not expected
+var ErrConsensusMessageNotExpected = errors.New("consensus message not expected")
+
+// ErrNilEpochNotifier signals that a nil epoch notifier has been provided
+var ErrNilEpochNotifier = errors.New("nil epoch notifier")
+
+// ErrNilEpochStartNotifier signals that nil epoch start notifier has been provided
+var ErrNilEpochStartNotifier = errors.New("nil epoch start notifier")
+
+// ErrInvalidSignersAlreadyReceived signals that an invalid signers message has been already received
+var ErrInvalidSignersAlreadyReceived = errors.New("invalid signers already received")
+
+// ErrNilInvalidSignersCache signals that nil invalid signers has been provided
+var ErrNilInvalidSignersCache = errors.New("nil invalid signers cache")

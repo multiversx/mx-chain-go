@@ -38,6 +38,10 @@ type HeaderHandlerStub struct {
 	SetRandSeedCalled                      func(seed []byte) error
 	SetSignatureCalled                     func(signature []byte) error
 	SetLeaderSignatureCalled               func(signature []byte) error
+	GetPreviousProofCalled                 func() data.HeaderProofHandler
+	SetPreviousProofCalled                 func(proof data.HeaderProofHandler)
+	GetShardIDCalled                       func() uint32
+	SetRootHashCalled                      func(hash []byte) error
 }
 
 // GetAccumulatedFees -
@@ -89,6 +93,9 @@ func (hhs *HeaderHandlerStub) ShallowClone() data.HeaderHandler {
 
 // GetShardID -
 func (hhs *HeaderHandlerStub) GetShardID() uint32 {
+	if hhs.GetShardIDCalled != nil {
+		return hhs.GetShardIDCalled()
+	}
 	return 1
 }
 
@@ -199,8 +206,11 @@ func (hhs *HeaderHandlerStub) SetTimeStamp(timestamp uint64) error {
 }
 
 // SetRootHash -
-func (hhs *HeaderHandlerStub) SetRootHash(_ []byte) error {
-	panic("implement me")
+func (hhs *HeaderHandlerStub) SetRootHash(hash []byte) error {
+	if hhs.SetRootHashCalled != nil {
+		return hhs.SetRootHashCalled(hash)
+	}
+	return nil
 }
 
 // SetPrevHash -
@@ -426,4 +436,20 @@ func (hhs *HeaderHandlerStub) SetBlockBodyTypeInt32(blockBodyType int32) error {
 	hhs.BlockBodyTypeInt32Field = blockBodyType
 
 	return nil
+}
+
+// GetPreviousProof -
+func (hhs *HeaderHandlerStub) GetPreviousProof() data.HeaderProofHandler {
+	if hhs.GetPreviousProofCalled != nil {
+		return hhs.GetPreviousProofCalled()
+	}
+
+	return nil
+}
+
+// SetPreviousProof -
+func (hhs *HeaderHandlerStub) SetPreviousProof(proof data.HeaderProofHandler) {
+	if hhs.SetPreviousProofCalled != nil {
+		hhs.SetPreviousProofCalled(proof)
+	}
 }

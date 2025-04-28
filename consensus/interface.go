@@ -7,6 +7,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data"
 	crypto "github.com/multiversx/mx-chain-crypto-go"
+
 	"github.com/multiversx/mx-chain-go/p2p"
 )
 
@@ -22,6 +23,12 @@ type RoundHandler interface {
 	TimeStamp() time.Time
 	TimeDuration() time.Duration
 	RemainingTime(startTime time.Time, maxTime time.Duration) time.Duration
+	IsInterfaceNil() bool
+}
+
+// RoundHandlerConsensusSwitch defines the actions which should be handled by a consensus switch round implementation
+type RoundHandlerConsensusSwitch interface {
+	RevertOneRound()
 	IsInterfaceNil() bool
 }
 
@@ -61,12 +68,14 @@ type ChronologyHandler interface {
 type BroadcastMessenger interface {
 	BroadcastBlock(data.BodyHandler, data.HeaderHandler) error
 	BroadcastHeader(data.HeaderHandler, []byte) error
+	BroadcastEquivalentProof(proof data.HeaderProofHandler, pkBytes []byte) error
 	BroadcastMiniBlocks(map[uint32][]byte, []byte) error
 	BroadcastTransactions(map[string][][]byte, []byte) error
 	BroadcastConsensusMessage(*Message) error
 	BroadcastBlockDataLeader(header data.HeaderHandler, miniBlocks map[uint32][]byte, transactions map[string][][]byte, pkBytes []byte) error
 	PrepareBroadcastHeaderValidator(header data.HeaderHandler, miniBlocks map[uint32][]byte, transactions map[string][][]byte, idx int, pkBytes []byte)
 	PrepareBroadcastBlockDataValidator(header data.HeaderHandler, miniBlocks map[uint32][]byte, transactions map[string][][]byte, idx int, pkBytes []byte)
+	PrepareBroadcastBlockDataWithEquivalentProofs(header data.HeaderHandler, miniBlocks map[uint32][]byte, transactions map[string][][]byte, pkBytes []byte)
 	IsInterfaceNil() bool
 }
 
@@ -122,11 +131,14 @@ type HeaderSigVerifier interface {
 	VerifyRandSeed(header data.HeaderHandler) error
 	VerifyLeaderSignature(header data.HeaderHandler) error
 	VerifySignature(header data.HeaderHandler) error
+	VerifySignatureForHash(header data.HeaderHandler, hash []byte, pubkeysBitmap []byte, signature []byte) error
+	VerifyHeaderProof(headerProof data.HeaderProofHandler) error
 	IsInterfaceNil() bool
 }
 
 // FallbackHeaderValidator defines the behaviour of a component able to signal when a fallback header validation could be applied
 type FallbackHeaderValidator interface {
+	ShouldApplyFallbackValidationForHeaderWith(shardID uint32, startOfEpochBlock bool, round uint64, prevHeaderHash []byte) bool
 	ShouldApplyFallbackValidation(headerHandler data.HeaderHandler) bool
 	IsInterfaceNil() bool
 }
@@ -191,5 +203,25 @@ type KeysHandler interface {
 	IsOriginalPublicKeyOfTheNode(pkBytes []byte) bool
 	ResetRoundsWithoutReceivedMessages(pkBytes []byte, pid core.PeerID)
 	GetRedundancyStepInReason() string
+	IsInterfaceNil() bool
+}
+
+// EquivalentProofsPool defines the behaviour of a proofs pool components
+type EquivalentProofsPool interface {
+	AddProof(headerProof data.HeaderProofHandler) bool
+	GetProof(shardID uint32, headerHash []byte) (data.HeaderProofHandler, error)
+	HasProof(shardID uint32, headerHash []byte) bool
+	IsInterfaceNil() bool
+}
+
+// ProofHandler defines the interface for a proof handler
+type ProofHandler interface {
+	GetPubKeysBitmap() []byte
+	GetAggregatedSignature() []byte
+	GetHeaderHash() []byte
+	GetHeaderEpoch() uint32
+	GetHeaderNonce() uint64
+	GetHeaderShardId() uint32
+	GetIsStartOfEpoch() bool
 	IsInterfaceNil() bool
 }

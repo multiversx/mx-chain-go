@@ -19,7 +19,13 @@ func (ihnc *indexHashedNodesCoordinator) SetNodesConfigFromValidatorsInfo(epoch 
 	unStakeLeavingList := ihnc.createSortedListFromMap(newNodesConfig.leavingMap)
 	additionalLeavingList := ihnc.createSortedListFromMap(additionalLeavingMap)
 
+	chainParameters, err := ihnc.chainParametersHandler.ChainParametersForEpoch(epoch)
+	if err != nil {
+		return err
+	}
+
 	shufflerArgs := ArgsUpdateNodes{
+		ChainParameters:   chainParameters,
 		Eligible:          newNodesConfig.eligibleMap,
 		Waiting:           newNodesConfig.waitingMap,
 		NewNodes:          newNodesConfig.newList,

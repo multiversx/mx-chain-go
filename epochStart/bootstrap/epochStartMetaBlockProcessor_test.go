@@ -9,9 +9,11 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/epochStart"
 	"github.com/multiversx/mx-chain-go/epochStart/mock"
 	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/p2pmocks"
 	"github.com/stretchr/testify/assert"
@@ -28,6 +30,7 @@ func TestNewEpochStartMetaBlockProcessor_NilMessengerShouldErr(t *testing.T) {
 		50,
 		3,
 		3,
+		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 	)
 
 	assert.Equal(t, epochStart.ErrNilMessenger, err)
@@ -45,6 +48,7 @@ func TestNewEpochStartMetaBlockProcessor_NilRequestHandlerShouldErr(t *testing.T
 		50,
 		3,
 		3,
+		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 	)
 
 	assert.Equal(t, epochStart.ErrNilRequestHandler, err)
@@ -62,6 +66,7 @@ func TestNewEpochStartMetaBlockProcessor_NilMarshalizerShouldErr(t *testing.T) {
 		50,
 		3,
 		3,
+		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 	)
 
 	assert.Equal(t, epochStart.ErrNilMarshalizer, err)
@@ -79,6 +84,7 @@ func TestNewEpochStartMetaBlockProcessor_NilHasherShouldErr(t *testing.T) {
 		50,
 		3,
 		3,
+		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 	)
 
 	assert.Equal(t, epochStart.ErrNilHasher, err)
@@ -96,6 +102,7 @@ func TestNewEpochStartMetaBlockProcessor_InvalidConsensusPercentageShouldErr(t *
 		101,
 		3,
 		3,
+		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 	)
 
 	assert.Equal(t, epochStart.ErrInvalidConsensusThreshold, err)
@@ -116,6 +123,7 @@ func TestNewEpochStartMetaBlockProcessorOkValsShouldWork(t *testing.T) {
 		50,
 		3,
 		3,
+		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 	)
 
 	assert.NoError(t, err)
@@ -152,6 +160,7 @@ func TestNewEpochStartMetaBlockProcessorOkValsShouldWorkAfterMoreTriesWaitingFor
 		50,
 		3,
 		3,
+		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 	)
 
 	assert.NoError(t, err)
@@ -172,6 +181,7 @@ func TestEpochStartMetaBlockProcessor_Validate(t *testing.T) {
 		50,
 		3,
 		3,
+		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 	)
 
 	assert.Nil(t, esmbp.Validate(nil, ""))
@@ -191,6 +201,7 @@ func TestEpochStartMetaBlockProcessor_SaveNilInterceptedDataShouldNotReturnError
 		50,
 		3,
 		3,
+		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 	)
 
 	err := esmbp.Save(nil, "peer0", "")
@@ -212,6 +223,7 @@ func TestEpochStartMetaBlockProcessor_SaveOkInterceptedDataShouldWork(t *testing
 		50,
 		3,
 		3,
+		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 	)
 
 	assert.Zero(t, len(esmbp.GetMapMetaBlock()))
@@ -241,6 +253,7 @@ func TestEpochStartMetaBlockProcessor_GetEpochStartMetaBlockShouldTimeOut(t *tes
 		50,
 		3,
 		3,
+		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 	)
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Millisecond)
@@ -264,21 +277,30 @@ func TestEpochStartMetaBlockProcessor_GetEpochStartMetaBlockShouldReturnMostRece
 		&hashingMocks.HasherMock{},
 		99,
 		3,
-		3,
+		5,
+		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 	)
 
 	expectedMetaBlock := &block.MetaBlock{
 		Nonce:      10,
 		EpochStart: block.EpochStart{LastFinalizedHeaders: []block.EpochStartShardData{{Round: 1}}},
 	}
+	confirmationMetaBlock := &block.MetaBlock{
+		Nonce: 11,
+	}
 	intData := mock.NewInterceptedMetaBlockMock(expectedMetaBlock, []byte("hash"))
+	intData2 := mock.NewInterceptedMetaBlockMock(confirmationMetaBlock, []byte("hash2"))
 
 	for i := 0; i < esmbp.minNumOfPeersToConsiderBlockValid; i++ {
 		_ = esmbp.Save(intData, core.PeerID(fmt.Sprintf("peer_%d", i)), "")
 	}
 
+	for i := 0; i < esmbp.minNumOfPeersToConsiderBlockValid; i++ {
+		_ = esmbp.Save(intData2, core.PeerID(fmt.Sprintf("peer_%d", i)), "")
+	}
+
 	// we need a slightly more time than 1 second in order to also properly test the select branches
-	timeout := time.Second + time.Millisecond*500
+	timeout := 2*time.Second + time.Millisecond*500
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	mb, err := esmbp.GetEpochStartMetaBlock(ctx)
 	cancel()
@@ -301,16 +323,25 @@ func TestEpochStartMetaBlockProcessor_GetEpochStartMetaBlockShouldWorkFromFirstT
 		50,
 		3,
 		3,
+		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 	)
 
 	expectedMetaBlock := &block.MetaBlock{
 		Nonce:      10,
 		EpochStart: block.EpochStart{LastFinalizedHeaders: []block.EpochStartShardData{{Round: 1}}},
 	}
+	confirmationMetaBlock := &block.MetaBlock{
+		Nonce: 11,
+	}
 	intData := mock.NewInterceptedMetaBlockMock(expectedMetaBlock, []byte("hash"))
+	intData2 := mock.NewInterceptedMetaBlockMock(confirmationMetaBlock, []byte("hash2"))
 
 	for i := 0; i < 6; i++ {
 		_ = esmbp.Save(intData, core.PeerID(fmt.Sprintf("peer_%d", i)), "")
+	}
+
+	for i := 0; i < 6; i++ {
+		_ = esmbp.Save(intData2, core.PeerID(fmt.Sprintf("peer_%d", i)), "")
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
@@ -320,19 +351,11 @@ func TestEpochStartMetaBlockProcessor_GetEpochStartMetaBlockShouldWorkFromFirstT
 	assert.Equal(t, expectedMetaBlock, mb)
 }
 
-func TestEpochStartMetaBlockProcessor_GetEpochStartMetaBlockShouldWorkAfterMultipleTries(t *testing.T) {
+func TestEpochStartMetaBlockProcessor_GetEpochStartMetaBlock_BeforeEquivalentMessages(t *testing.T) {
 	t.Parallel()
 
-	testEpochStartMbIsReceivedWithSleepBetweenReceivedMessages(t, durationBetweenChecks-10*time.Millisecond)
-}
+	tts := durationBetweenChecks - 10*time.Millisecond
 
-func TestEpochStartMetaBlockProcessor_GetEpochStartMetaBlockShouldWorkAfterMultipleRequests(t *testing.T) {
-	t.Parallel()
-
-	testEpochStartMbIsReceivedWithSleepBetweenReceivedMessages(t, durationBetweenChecks-10*time.Millisecond)
-}
-
-func testEpochStartMbIsReceivedWithSleepBetweenReceivedMessages(t *testing.T, tts time.Duration) {
 	esmbp, _ := NewEpochStartMetaBlockProcessor(
 		&p2pmocks.MessengerStub{
 			ConnectedPeersCalled: func() []core.PeerID {
@@ -345,12 +368,14 @@ func testEpochStartMbIsReceivedWithSleepBetweenReceivedMessages(t *testing.T, tt
 		64,
 		3,
 		3,
+		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 	)
 	expectedMetaBlock := &block.MetaBlock{
 		Nonce:      10,
 		EpochStart: block.EpochStart{LastFinalizedHeaders: []block.EpochStartShardData{{Round: 1}}},
 	}
 	intData := mock.NewInterceptedMetaBlockMock(expectedMetaBlock, []byte("hash"))
+
 	go func() {
 		index := 0
 		for {
@@ -360,6 +385,68 @@ func testEpochStartMbIsReceivedWithSleepBetweenReceivedMessages(t *testing.T, tt
 			index += 2
 		}
 	}()
+
+	ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
+	mb, err := esmbp.GetEpochStartMetaBlock(ctx)
+	cancel()
+	assert.NoError(t, err)
+	assert.Equal(t, expectedMetaBlock, mb)
+}
+
+func TestEpochStartMetaBlockProcessor_GetEpochStartMetaBlock_AfterEquivalentMessages(t *testing.T) {
+	t.Parallel()
+
+	tts := durationBetweenChecks - 10*time.Millisecond
+
+	esmbp, _ := NewEpochStartMetaBlockProcessor(
+		&p2pmocks.MessengerStub{
+			ConnectedPeersCalled: func() []core.PeerID {
+				return []core.PeerID{"peer_0", "peer_1", "peer_2", "peer_3", "peer_4", "peer_5"}
+			},
+		},
+		&testscommon.RequestHandlerStub{},
+		&mock.MarshalizerMock{},
+		&hashingMocks.HasherMock{},
+		64,
+		3,
+		3,
+		&enableEpochsHandlerMock.EnableEpochsHandlerStub{
+			IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
+				return flag == common.EquivalentMessagesFlag
+			},
+		},
+	)
+	expectedMetaBlock := &block.MetaBlock{
+		Nonce:      10,
+		EpochStart: block.EpochStart{LastFinalizedHeaders: []block.EpochStartShardData{{Round: 1}}},
+	}
+	intData := mock.NewInterceptedMetaBlockMock(expectedMetaBlock, []byte("hash"))
+
+	confirmationMetaBlock := &block.MetaBlock{
+		Nonce: 11,
+	}
+	intData2 := mock.NewInterceptedMetaBlockMock(confirmationMetaBlock, []byte("hash2"))
+
+	go func() {
+		index := 0
+		for {
+			time.Sleep(tts)
+			_ = esmbp.Save(intData, core.PeerID(fmt.Sprintf("peer_%d", index)), "")
+			_ = esmbp.Save(intData, core.PeerID(fmt.Sprintf("peer_%d", index+1)), "")
+			index += 2
+		}
+	}()
+
+	go func() {
+		index := 0
+		for {
+			time.Sleep(tts)
+			_ = esmbp.Save(intData2, core.PeerID(fmt.Sprintf("peer_%d", index)), "")
+			_ = esmbp.Save(intData2, core.PeerID(fmt.Sprintf("peer_%d", index+1)), "")
+			index += 2
+		}
+	}()
+
 	ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
 	mb, err := esmbp.GetEpochStartMetaBlock(ctx)
 	cancel()

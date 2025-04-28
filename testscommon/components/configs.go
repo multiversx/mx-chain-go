@@ -156,6 +156,18 @@ func GetGeneralConfig() config.Config {
 			MinTransactionVersion:    1,
 			GenesisMaxNumberOfShards: 3,
 			SetGuardianEpochsDelay:   20,
+			ChainParametersByEpoch: []config.ChainParametersByEpochConfig{
+				{
+					EnableEpoch:                 0,
+					RoundDuration:               4000,
+					ShardConsensusGroupSize:     1,
+					ShardMinNumNodes:            1,
+					MetachainConsensusGroupSize: 1,
+					MetachainMinNumNodes:        1,
+					Hysteresis:                  0,
+					Adaptivity:                  false,
+				},
+			},
 		},
 		Marshalizer: config.MarshalizerConfig{
 			Type:           TestMarshalizer,
@@ -275,21 +287,27 @@ func CreateDummyRatingsConfig() config.RatingsConfig {
 			},
 		},
 		ShardChain: config.ShardChain{
-			RatingSteps: config.RatingSteps{
-				HoursToMaxRatingFromStartRating: 2,
-				ProposerValidatorImportance:     1,
-				ProposerDecreaseFactor:          -4,
-				ValidatorDecreaseFactor:         -4,
-				ConsecutiveMissedBlocksPenalty:  ConsecutiveMissedBlocksPenalty,
+			RatingStepsByEpoch: []config.RatingSteps{
+				{
+					HoursToMaxRatingFromStartRating: 2,
+					ProposerValidatorImportance:     1,
+					ProposerDecreaseFactor:          -4,
+					ValidatorDecreaseFactor:         -4,
+					ConsecutiveMissedBlocksPenalty:  ConsecutiveMissedBlocksPenalty,
+					EnableEpoch:                     0,
+				},
 			},
 		},
 		MetaChain: config.MetaChain{
-			RatingSteps: config.RatingSteps{
-				HoursToMaxRatingFromStartRating: 2,
-				ProposerValidatorImportance:     1,
-				ProposerDecreaseFactor:          -4,
-				ValidatorDecreaseFactor:         -4,
-				ConsecutiveMissedBlocksPenalty:  ConsecutiveMissedBlocksPenalty,
+			RatingStepsByEpoch: []config.RatingSteps{
+				{
+					HoursToMaxRatingFromStartRating: 2,
+					ProposerValidatorImportance:     1,
+					ProposerDecreaseFactor:          -4,
+					ValidatorDecreaseFactor:         -4,
+					ConsecutiveMissedBlocksPenalty:  ConsecutiveMissedBlocksPenalty,
+					EnableEpoch:                     0,
+				},
 			},
 		},
 	}

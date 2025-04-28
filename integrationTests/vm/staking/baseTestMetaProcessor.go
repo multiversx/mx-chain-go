@@ -263,7 +263,7 @@ func (tmp *TestMetaProcessor) createNewHeader(t *testing.T, round uint64) *block
 		round,
 		currentHash,
 		currentHeader.GetRandSeed(),
-		tmp.NodesCoordinator.ConsensusGroupSize(core.MetachainShardId),
+		tmp.NodesCoordinator.ConsensusGroupSizeForShardAndEpoch(core.MetachainShardId, 0),
 	)
 
 	return header

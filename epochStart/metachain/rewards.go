@@ -77,7 +77,7 @@ func (rc *rewardsCreator) CreateRewardsMiniBlocks(
 		return nil, err
 	}
 
-	rc.fillBaseRewardsPerBlockPerNode(economicsData.GetRewardsPerBlock())
+	rc.fillBaseRewardsPerBlockPerNode(economicsData.GetRewardsPerBlock(), metaBlock.GetEpoch())
 	err = rc.addValidatorRewardsToMiniBlocks(validatorsInfo, metaBlock, miniBlocks, protSustRwdTx)
 	if err != nil {
 		return nil, err
