@@ -25,6 +25,7 @@ const (
 	logFilePrefix   = "mx-chain-go"
 )
 
+// test
 var (
 	memoryBallastObject []byte
 	nodeHelpTemplate    = `NAME:
