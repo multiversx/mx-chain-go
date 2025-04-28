@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"math/big"
+	"strconv"
 	"testing"
 
 	data "github.com/multiversx/mx-chain-core-go/data/stateChange"
@@ -279,13 +280,15 @@ func TestStateAccessesCollector_GetCollectedAccesses(t *testing.T) {
 		for i := 0; i < numStateChanges; i++ {
 			if i%2 == 0 {
 				c.AddStateAccess(&data.StateAccess{
-					Type: data.Write,
+					MainTrieKey: []byte(strconv.Itoa(i)),
+					Type:        data.Write,
 					// distribute evenly based on parity of the index
 					TxHash: []byte(fmt.Sprintf("hash%d", i%2)),
 				})
 			} else {
 				c.AddStateAccess(&data.StateAccess{
-					Type: data.Read,
+					MainTrieKey: []byte(strconv.Itoa(i)),
+					Type:        data.Read,
 					// distribute evenly based on parity of the index
 					TxHash: []byte(fmt.Sprintf("hash%d", i%2)),
 				})
@@ -300,16 +303,16 @@ func TestStateAccessesCollector_GetCollectedAccesses(t *testing.T) {
 		require.Equal(t, stateChangesForTx, map[string]*data.StateAccesses{
 			"hash0": {
 				StateAccess: []*data.StateAccess{
-					{Type: data.Write, TxHash: []byte("hash0")},
-					{Type: data.Write, TxHash: []byte("hash0")},
-					{Type: data.Write, TxHash: []byte("hash0")},
-					{Type: data.Write, TxHash: []byte("hash0")},
-					{Type: data.Write, TxHash: []byte("hash0")},
-					{Type: data.Write, TxHash: []byte("hash0")},
-					{Type: data.Write, TxHash: []byte("hash0")},
-					{Type: data.Write, TxHash: []byte("hash0")},
-					{Type: data.Write, TxHash: []byte("hash0")},
-					{Type: data.Write, TxHash: []byte("hash0")},
+					{MainTrieKey: []byte(strconv.Itoa(0)), Type: data.Write, TxHash: []byte("hash0")},
+					{MainTrieKey: []byte(strconv.Itoa(2)), Type: data.Write, TxHash: []byte("hash0")},
+					{MainTrieKey: []byte(strconv.Itoa(4)), Type: data.Write, TxHash: []byte("hash0")},
+					{MainTrieKey: []byte(strconv.Itoa(6)), Type: data.Write, TxHash: []byte("hash0")},
+					{MainTrieKey: []byte(strconv.Itoa(8)), Type: data.Write, TxHash: []byte("hash0")},
+					{MainTrieKey: []byte(strconv.Itoa(10)), Type: data.Write, TxHash: []byte("hash0")},
+					{MainTrieKey: []byte(strconv.Itoa(12)), Type: data.Write, TxHash: []byte("hash0")},
+					{MainTrieKey: []byte(strconv.Itoa(14)), Type: data.Write, TxHash: []byte("hash0")},
+					{MainTrieKey: []byte(strconv.Itoa(16)), Type: data.Write, TxHash: []byte("hash0")},
+					{MainTrieKey: []byte(strconv.Itoa(18)), Type: data.Write, TxHash: []byte("hash0")},
 				},
 			},
 		})
@@ -325,13 +328,15 @@ func TestStateAccessesCollector_GetCollectedAccesses(t *testing.T) {
 		for i := 0; i < numStateChanges; i++ {
 			if i%2 == 0 {
 				c.AddStateAccess(&data.StateAccess{
-					Type: data.Write,
+					MainTrieKey: []byte(strconv.Itoa(i)),
+					Type:        data.Write,
 					// distribute evenly based on parity of the index
 					TxHash: []byte(fmt.Sprintf("hash%d", i%2)),
 				})
 			} else {
 				c.AddStateAccess(&data.StateAccess{
-					Type: data.Read,
+					MainTrieKey: []byte(strconv.Itoa(i)),
+					Type:        data.Read,
 					// distribute evenly based on parity of the index
 					TxHash: []byte(fmt.Sprintf("hash%d", i%2)),
 				})
@@ -346,16 +351,16 @@ func TestStateAccessesCollector_GetCollectedAccesses(t *testing.T) {
 		require.Equal(t, stateChangesForTx, map[string]*data.StateAccesses{
 			"hash1": {
 				StateAccess: []*data.StateAccess{
-					{Type: data.Read, TxHash: []byte("hash1")},
-					{Type: data.Read, TxHash: []byte("hash1")},
-					{Type: data.Read, TxHash: []byte("hash1")},
-					{Type: data.Read, TxHash: []byte("hash1")},
-					{Type: data.Read, TxHash: []byte("hash1")},
-					{Type: data.Read, TxHash: []byte("hash1")},
-					{Type: data.Read, TxHash: []byte("hash1")},
-					{Type: data.Read, TxHash: []byte("hash1")},
-					{Type: data.Read, TxHash: []byte("hash1")},
-					{Type: data.Read, TxHash: []byte("hash1")},
+					{MainTrieKey: []byte(strconv.Itoa(1)), Type: data.Read, TxHash: []byte("hash1")},
+					{MainTrieKey: []byte(strconv.Itoa(3)), Type: data.Read, TxHash: []byte("hash1")},
+					{MainTrieKey: []byte(strconv.Itoa(5)), Type: data.Read, TxHash: []byte("hash1")},
+					{MainTrieKey: []byte(strconv.Itoa(7)), Type: data.Read, TxHash: []byte("hash1")},
+					{MainTrieKey: []byte(strconv.Itoa(9)), Type: data.Read, TxHash: []byte("hash1")},
+					{MainTrieKey: []byte(strconv.Itoa(11)), Type: data.Read, TxHash: []byte("hash1")},
+					{MainTrieKey: []byte(strconv.Itoa(13)), Type: data.Read, TxHash: []byte("hash1")},
+					{MainTrieKey: []byte(strconv.Itoa(15)), Type: data.Read, TxHash: []byte("hash1")},
+					{MainTrieKey: []byte(strconv.Itoa(17)), Type: data.Read, TxHash: []byte("hash1")},
+					{MainTrieKey: []byte(strconv.Itoa(19)), Type: data.Read, TxHash: []byte("hash1")},
 				},
 			},
 		})
@@ -371,13 +376,15 @@ func TestStateAccessesCollector_GetCollectedAccesses(t *testing.T) {
 		for i := 0; i < numStateChanges; i++ {
 			if i%2 == 0 {
 				c.AddStateAccess(&data.StateAccess{
-					Type: data.Write,
+					MainTrieKey: []byte(strconv.Itoa(i)),
+					Type:        data.Write,
 					// distribute evenly based on parity of the index
 					TxHash: []byte(fmt.Sprintf("hash%d", i%2)),
 				})
 			} else {
 				c.AddStateAccess(&data.StateAccess{
-					Type: data.Read,
+					MainTrieKey: []byte(strconv.Itoa(i)),
+					Type:        data.Read,
 					// distribute evenly based on parity of the index
 					TxHash: []byte(fmt.Sprintf("hash%d", i%2)),
 				})
@@ -393,30 +400,30 @@ func TestStateAccessesCollector_GetCollectedAccesses(t *testing.T) {
 		require.Equal(t, stateChangesForTx, map[string]*data.StateAccesses{
 			"hash0": {
 				StateAccess: []*data.StateAccess{
-					{Type: data.Write, TxHash: []byte("hash0")},
-					{Type: data.Write, TxHash: []byte("hash0")},
-					{Type: data.Write, TxHash: []byte("hash0")},
-					{Type: data.Write, TxHash: []byte("hash0")},
-					{Type: data.Write, TxHash: []byte("hash0")},
-					{Type: data.Write, TxHash: []byte("hash0")},
-					{Type: data.Write, TxHash: []byte("hash0")},
-					{Type: data.Write, TxHash: []byte("hash0")},
-					{Type: data.Write, TxHash: []byte("hash0")},
-					{Type: data.Write, TxHash: []byte("hash0")},
+					{MainTrieKey: []byte(strconv.Itoa(0)), Type: data.Write, TxHash: []byte("hash0")},
+					{MainTrieKey: []byte(strconv.Itoa(2)), Type: data.Write, TxHash: []byte("hash0")},
+					{MainTrieKey: []byte(strconv.Itoa(4)), Type: data.Write, TxHash: []byte("hash0")},
+					{MainTrieKey: []byte(strconv.Itoa(6)), Type: data.Write, TxHash: []byte("hash0")},
+					{MainTrieKey: []byte(strconv.Itoa(8)), Type: data.Write, TxHash: []byte("hash0")},
+					{MainTrieKey: []byte(strconv.Itoa(10)), Type: data.Write, TxHash: []byte("hash0")},
+					{MainTrieKey: []byte(strconv.Itoa(12)), Type: data.Write, TxHash: []byte("hash0")},
+					{MainTrieKey: []byte(strconv.Itoa(14)), Type: data.Write, TxHash: []byte("hash0")},
+					{MainTrieKey: []byte(strconv.Itoa(16)), Type: data.Write, TxHash: []byte("hash0")},
+					{MainTrieKey: []byte(strconv.Itoa(18)), Type: data.Write, TxHash: []byte("hash0")},
 				},
 			},
 			"hash1": {
 				StateAccess: []*data.StateAccess{
-					{Type: data.Read, TxHash: []byte("hash1")},
-					{Type: data.Read, TxHash: []byte("hash1")},
-					{Type: data.Read, TxHash: []byte("hash1")},
-					{Type: data.Read, TxHash: []byte("hash1")},
-					{Type: data.Read, TxHash: []byte("hash1")},
-					{Type: data.Read, TxHash: []byte("hash1")},
-					{Type: data.Read, TxHash: []byte("hash1")},
-					{Type: data.Read, TxHash: []byte("hash1")},
-					{Type: data.Read, TxHash: []byte("hash1")},
-					{Type: data.Read, TxHash: []byte("hash1")},
+					{MainTrieKey: []byte(strconv.Itoa(1)), Type: data.Read, TxHash: []byte("hash1")},
+					{MainTrieKey: []byte(strconv.Itoa(3)), Type: data.Read, TxHash: []byte("hash1")},
+					{MainTrieKey: []byte(strconv.Itoa(5)), Type: data.Read, TxHash: []byte("hash1")},
+					{MainTrieKey: []byte(strconv.Itoa(7)), Type: data.Read, TxHash: []byte("hash1")},
+					{MainTrieKey: []byte(strconv.Itoa(9)), Type: data.Read, TxHash: []byte("hash1")},
+					{MainTrieKey: []byte(strconv.Itoa(11)), Type: data.Read, TxHash: []byte("hash1")},
+					{MainTrieKey: []byte(strconv.Itoa(13)), Type: data.Read, TxHash: []byte("hash1")},
+					{MainTrieKey: []byte(strconv.Itoa(15)), Type: data.Read, TxHash: []byte("hash1")},
+					{MainTrieKey: []byte(strconv.Itoa(17)), Type: data.Read, TxHash: []byte("hash1")},
+					{MainTrieKey: []byte(strconv.Itoa(19)), Type: data.Read, TxHash: []byte("hash1")},
 				},
 			},
 		})
