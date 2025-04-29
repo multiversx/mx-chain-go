@@ -104,17 +104,18 @@ type baseProcessor struct {
 	blockProcessor   blockProcessor
 	txCounter        *transactionCounter
 
-	outportHandler      outport.OutportHandler
-	outportDataProvider outport.DataProviderOutport
-	historyRepo         dblookupext.HistoryRepository
-	epochNotifier       process.EpochNotifier
-	enableEpochsHandler common.EnableEpochsHandler
-	roundNotifier       process.RoundNotifier
-	enableRoundsHandler process.EnableRoundsHandler
-	vmContainerFactory  process.VirtualMachinesContainerFactory
-	vmContainer         process.VirtualMachinesContainer
-	gasConsumedProvider gasConsumedProvider
-	economicsData       process.EconomicsDataHandler
+	outportHandler                outport.OutportHandler
+	outportDataProvider           outport.DataProviderOutport
+	historyRepo                   dblookupext.HistoryRepository
+	epochNotifier                 process.EpochNotifier
+	enableEpochsHandler           common.EnableEpochsHandler
+	roundNotifier                 process.RoundNotifier
+	enableRoundsHandler           process.EnableRoundsHandler
+	vmContainerFactory            process.VirtualMachinesContainerFactory
+	vmContainer                   process.VirtualMachinesContainer
+	gasConsumedProvider           gasConsumedProvider
+	economicsData                 process.EconomicsDataHandler
+	epochChangeGracePeriodHandler common.EpochChangeGracePeriodHandler
 
 	processDataTriesOnCommitEpoch bool
 	lastRestartNonce              uint64
@@ -582,6 +583,9 @@ func checkProcessorParameters(arguments ArgBaseProcessor) error {
 	})
 	if err != nil {
 		return err
+	}
+	if check.IfNil(arguments.CoreComponents.EpochChangeGracePeriodHandler()) {
+		return process.ErrNilEpochChangeGracePeriodHandler
 	}
 	if check.IfNil(arguments.CoreComponents.RoundNotifier()) {
 		return process.ErrNilRoundNotifier

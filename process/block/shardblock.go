@@ -110,6 +110,7 @@ func NewShardProcessor(arguments ArgShardProcessor) (*shardProcessor, error) {
 		enableEpochsHandler:           arguments.CoreComponents.EnableEpochsHandler(),
 		roundNotifier:                 arguments.CoreComponents.RoundNotifier(),
 		enableRoundsHandler:           arguments.CoreComponents.EnableRoundsHandler(),
+		epochChangeGracePeriodHandler: arguments.CoreComponents.EpochChangeGracePeriodHandler(),
 		vmContainerFactory:            arguments.VMContainersFactory,
 		vmContainer:                   arguments.VmContainer,
 		processDataTriesOnCommitEpoch: arguments.Config.Debug.EpochStart.ProcessDataTrieOnCommitEpoch,
@@ -516,8 +517,13 @@ func (sp *shardProcessor) checkEpochCorrectness(
 		epochChangeConfirmed = sp.epochStartTrigger.EpochStartRound() <= sp.epochStartTrigger.EpochFinalityAttestingRound()
 	}
 
+	gracePeriod, err := sp.epochChangeGracePeriodHandler.GetGracePeriodForEpoch(header.GetEpoch())
+	if err != nil {
+		return fmt.Errorf("%w could not get grace period for epoch %d", err, header.GetEpoch())
+	}
+
 	isOldEpochAndShouldBeNew := sp.epochStartTrigger.IsEpochStart() &&
-		header.GetRound() > sp.epochStartTrigger.EpochFinalityAttestingRound()+process.EpochChangeGracePeriod &&
+		header.GetRound() > sp.epochStartTrigger.EpochFinalityAttestingRound()+uint64(gracePeriod) &&
 		header.GetEpoch() < sp.epochStartTrigger.MetaEpoch() &&
 		epochChangeConfirmed
 	if isOldEpochAndShouldBeNew {
@@ -1426,7 +1432,12 @@ func (sp *shardProcessor) checkEpochCorrectnessCrossChain() error {
 
 	shouldRevertChain := false
 	nonce := currentHeader.GetNonce()
-	shouldEnterNewEpochRound := sp.epochStartTrigger.EpochFinalityAttestingRound() + process.EpochChangeGracePeriod
+	gracePeriodForEpoch, err := sp.epochChangeGracePeriodHandler.GetGracePeriodForEpoch(sp.epochStartTrigger.MetaEpoch())
+	if err != nil {
+		log.Debug("checkEpochCorrectnessCrossChain.GetGracePeriodForEpoch", "error", err.Error())
+		return err
+	}
+	shouldEnterNewEpochRound := sp.epochStartTrigger.EpochFinalityAttestingRound() + uint64(gracePeriodForEpoch)
 
 	for round := currentHeader.GetRound(); round > shouldEnterNewEpochRound && currentHeader.GetEpoch() < sp.epochStartTrigger.MetaEpoch(); round = currentHeader.GetRound() {
 		if round <= lastFinalizedRound {
