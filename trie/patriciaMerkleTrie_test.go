@@ -26,6 +26,7 @@ import (
 	errorsCommon "github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/state/hashesCollector"
 	"github.com/multiversx/mx-chain-go/state/parsers"
+	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/storageManager"
 	trieMock "github.com/multiversx/mx-chain-go/testscommon/trie"
@@ -678,7 +679,7 @@ func TestPatriciaMerkleTrie_GetAllLeavesOnChannel(t *testing.T) {
 		keyBuilderStub.GetKeyCalled = func() ([]byte, error) {
 			return nil, expectedErr
 		}
-		keyBuilderStub.CloneCalled = func() common.KeyBuilder {
+		keyBuilderStub.ShallowCloneCalled = func() common.KeyBuilder {
 			return keyBuilderStub
 		}
 
@@ -720,7 +721,7 @@ func TestPatriciaMerkleTrie_GetAllLeavesOnChannel(t *testing.T) {
 			}
 			return nil, expectedErr
 		}
-		keyBuilderStub.CloneCalled = func() common.KeyBuilder {
+		keyBuilderStub.ShallowCloneCalled = func() common.KeyBuilder {
 			return keyBuilderStub
 		}
 
@@ -2049,6 +2050,39 @@ func TestPatricianMerkleTrie_ConcurrentOperations(t *testing.T) {
 		assert.Nil(t, err)
 		assert.Equal(t, rootHash1, rootHash2)
 	})
+}
+
+func TestGetNodeDataFromHash(t *testing.T) {
+	t.Parallel()
+
+	tr := initTrie()
+	_ = tr.Update([]byte("111"), []byte("111"))
+	_ = tr.Update([]byte("aaa"), []byte("aaa"))
+	_ = tr.Commit()
+
+	hashSize := 32
+	keySize := 1
+
+	rootHash, _ := tr.RootHash()
+	nodeData, err := trie.GetNodeDataFromHash(rootHash, keyBuilder.NewKeyBuilder(), tr.GetStorageManager(), &marshal.GogoProtoMarshalizer{}, &testscommon.KeccakMock{})
+	assert.Nil(t, err)
+	assert.Equal(t, 3, len(nodeData))
+
+	firstChildData := nodeData[0]
+	assert.Equal(t, uint(1), firstChildData.GetKeyBuilder().Size())
+	assert.Equal(t, uint64(hashSize+keySize), firstChildData.Size())
+	assert.False(t, firstChildData.IsLeaf())
+
+	seconChildData := nodeData[1]
+	assert.Equal(t, uint(1), seconChildData.GetKeyBuilder().Size())
+	assert.Equal(t, uint64(hashSize+keySize), seconChildData.Size())
+	assert.False(t, seconChildData.IsLeaf())
+
+	thirdChildData := nodeData[2]
+	assert.Equal(t, uint(1), thirdChildData.GetKeyBuilder().Size())
+	assert.Equal(t, uint64(hashSize+keySize), thirdChildData.Size())
+	assert.False(t, thirdChildData.IsLeaf())
+
 }
 
 func BenchmarkPatriciaMerkleTree_Insert(b *testing.B) {

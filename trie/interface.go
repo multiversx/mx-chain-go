@@ -41,7 +41,7 @@ type node interface {
 	isEmptyOrNil() error
 	print(writer io.Writer, index int, db common.TrieStorageInteractor)
 	getChildren(db common.TrieStorageInteractor) ([]node, error)
-
+	getNodeData(common.KeyBuilder) ([]common.TrieNodeData, error)
 	loadChildren(func([]byte) (node, error)) ([][]byte, []node, error)
 	getAllLeavesOnChannel(chan core.KeyValueHolder, common.KeyBuilder, common.TrieLeafParser, common.TrieStorageInteractor, marshal.Marshalizer, chan struct{}, context.Context) error
 	getNextHashAndKey([]byte) (bool, []byte, []byte)
