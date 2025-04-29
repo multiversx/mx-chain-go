@@ -8,8 +8,11 @@ import (
 	"testing"
 
 	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/throttler"
 	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/common/errChan"
 	"github.com/multiversx/mx-chain-go/common/holders"
+	"github.com/multiversx/mx-chain-go/state/hashesCollector"
 	"github.com/multiversx/mx-chain-go/storage/cache"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
@@ -24,7 +27,7 @@ func getEnAndCollapsedEn() (*extensionNode, *extensionNode) {
 	en, _ := newExtensionNode([]byte("d"), child, child.marsh, child.hasher)
 
 	childHash, _ := encodeNodeAndGetHash(collapsedChild)
-	collapsedEn := &extensionNode{CollapsedEn: CollapsedEn{Key: []byte("d"), EncodedChild: childHash}, baseNode: &baseNode{}}
+	collapsedEn := &extensionNode{CollapsedEn: CollapsedEn{Key: []byte("d"), ChildHash: childHash}, baseNode: &baseNode{}}
 	collapsedEn.marsh = child.marsh
 	collapsedEn.hasher = child.hasher
 	return en, collapsedEn
@@ -36,8 +39,8 @@ func TestExtensionNode_newExtensionNode(t *testing.T) {
 	bn, _ := getBnAndCollapsedBn(getTestMarshalizerAndHasher())
 	expectedEn := &extensionNode{
 		CollapsedEn: CollapsedEn{
-			Key:          []byte("dog"),
-			EncodedChild: nil,
+			Key:       []byte("dog"),
+			ChildHash: nil,
 		},
 		child: bn,
 		baseNode: &baseNode{
@@ -67,76 +70,16 @@ func TestExtensionNode_isDirty(t *testing.T) {
 	assert.Equal(t, false, en.isDirty())
 }
 
-func TestExtensionNode_getCollapsed(t *testing.T) {
-	t.Parallel()
-
-	en, collapsedEn := getEnAndCollapsedEn()
-	collapsedEn.dirty = true
-
-	collapsed, err := en.getCollapsed()
-	assert.Nil(t, err)
-	assert.Equal(t, collapsedEn, collapsed)
-}
-
-func TestExtensionNode_getCollapsedEmptyNode(t *testing.T) {
-	t.Parallel()
-
-	en := &extensionNode{}
-
-	collapsed, err := en.getCollapsed()
-	assert.True(t, errors.Is(err, ErrEmptyExtensionNode))
-	assert.Nil(t, collapsed)
-}
-
-func TestExtensionNode_getCollapsedNilNode(t *testing.T) {
-	t.Parallel()
-
-	var en *extensionNode
-
-	collapsed, err := en.getCollapsed()
-	assert.True(t, errors.Is(err, ErrNilExtensionNode))
-	assert.Nil(t, collapsed)
-}
-
-func TestExtensionNode_getCollapsedCollapsedNode(t *testing.T) {
-	t.Parallel()
-
-	_, collapsedEn := getEnAndCollapsedEn()
-
-	collapsed, err := collapsedEn.getCollapsed()
-	assert.Nil(t, err)
-	assert.Equal(t, collapsedEn, collapsed)
-}
-
 func TestExtensionNode_setHash(t *testing.T) {
 	t.Parallel()
 
 	en, collapsedEn := getEnAndCollapsedEn()
 	hash, _ := encodeNodeAndGetHash(collapsedEn)
+	manager := getTestGoroutinesManager()
 
-	err := en.setHash()
-	assert.Nil(t, err)
+	en.setHash(manager)
+	assert.Nil(t, manager.GetError())
 	assert.Equal(t, hash, en.hash)
-}
-
-func TestExtensionNode_setHashEmptyNode(t *testing.T) {
-	t.Parallel()
-
-	en := &extensionNode{baseNode: &baseNode{}}
-
-	err := en.setHash()
-	assert.True(t, errors.Is(err, ErrEmptyExtensionNode))
-	assert.Nil(t, en.hash)
-}
-
-func TestExtensionNode_setHashNilNode(t *testing.T) {
-	t.Parallel()
-
-	var en *extensionNode
-
-	err := en.setHash()
-	assert.True(t, errors.Is(err, ErrNilExtensionNode))
-	assert.Nil(t, en)
 }
 
 func TestExtensionNode_setHashCollapsedNode(t *testing.T) {
@@ -144,9 +87,10 @@ func TestExtensionNode_setHashCollapsedNode(t *testing.T) {
 
 	_, collapsedEn := getEnAndCollapsedEn()
 	hash, _ := encodeNodeAndGetHash(collapsedEn)
+	manager := getTestGoroutinesManager()
 
-	err := collapsedEn.setHash()
-	assert.Nil(t, err)
+	collapsedEn.setHash(manager)
+	assert.Nil(t, manager.GetError())
 	assert.Equal(t, hash, collapsedEn.hash)
 }
 
@@ -160,90 +104,17 @@ func TestExtensionNode_setGivenHash(t *testing.T) {
 	assert.Equal(t, expectedHash, en.hash)
 }
 
-func TestExtensionNode_hashChildren(t *testing.T) {
-	t.Parallel()
-
-	en, _ := getEnAndCollapsedEn()
-	assert.Nil(t, en.child.getHash())
-
-	err := en.hashChildren()
-	assert.Nil(t, err)
-
-	childHash, _ := encodeNodeAndGetHash(en.child)
-	assert.Equal(t, childHash, en.child.getHash())
-}
-
-func TestExtensionNode_hashChildrenEmptyNode(t *testing.T) {
-	t.Parallel()
-
-	en := &extensionNode{}
-
-	err := en.hashChildren()
-	assert.True(t, errors.Is(err, ErrEmptyExtensionNode))
-}
-
-func TestExtensionNode_hashChildrenNilNode(t *testing.T) {
-	t.Parallel()
-
-	var en *extensionNode
-
-	err := en.hashChildren()
-	assert.True(t, errors.Is(err, ErrNilExtensionNode))
-}
-
-func TestExtensionNode_hashChildrenCollapsedNode(t *testing.T) {
-	t.Parallel()
-
-	_, collapsedEn := getEnAndCollapsedEn()
-
-	err := collapsedEn.hashChildren()
-	assert.Nil(t, err)
-
-	_, collapsedEn2 := getEnAndCollapsedEn()
-	assert.Equal(t, collapsedEn2, collapsedEn)
-}
-
-func TestExtensionNode_hashNode(t *testing.T) {
-	t.Parallel()
-
-	_, collapsedEn := getEnAndCollapsedEn()
-	expectedHash, _ := encodeNodeAndGetHash(collapsedEn)
-
-	hash, err := collapsedEn.hashNode()
-	assert.Nil(t, err)
-	assert.Equal(t, expectedHash, hash)
-}
-
-func TestExtensionNode_hashNodeEmptyNode(t *testing.T) {
-	t.Parallel()
-
-	en := &extensionNode{}
-
-	hash, err := en.hashNode()
-	assert.True(t, errors.Is(err, ErrEmptyExtensionNode))
-	assert.Nil(t, hash)
-}
-
-func TestExtensionNode_hashNodeNilNode(t *testing.T) {
-	t.Parallel()
-
-	var en *extensionNode
-
-	hash, err := en.hashNode()
-	assert.True(t, errors.Is(err, ErrNilExtensionNode))
-	assert.Nil(t, hash)
-}
-
 func TestExtensionNode_commit(t *testing.T) {
 	t.Parallel()
 
 	db := testscommon.NewMemDbMock()
 	en, collapsedEn := getEnAndCollapsedEn()
 	hash, _ := encodeNodeAndGetHash(collapsedEn)
-	_ = en.setHash()
+	en.setHash(getTestGoroutinesManager())
 
-	err := en.commitDirty(0, 5, db, db)
-	assert.Nil(t, err)
+	manager := getTestGoroutinesManager()
+	en.commitDirty(0, 5, manager, hashesCollector.NewDisabledHashesCollector(), db, db)
+	assert.Nil(t, manager.GetError())
 
 	encNode, _ := db.Get(hash)
 	n, _ := decodeNode(encNode, en.marsh, en.hasher)
@@ -253,35 +124,18 @@ func TestExtensionNode_commit(t *testing.T) {
 	assert.Equal(t, h1, h2)
 }
 
-func TestExtensionNode_commitEmptyNode(t *testing.T) {
-	t.Parallel()
-
-	en := &extensionNode{}
-
-	err := en.commitDirty(0, 5, nil, nil)
-	assert.True(t, errors.Is(err, ErrEmptyExtensionNode))
-}
-
-func TestExtensionNode_commitNilNode(t *testing.T) {
-	t.Parallel()
-
-	var en *extensionNode
-
-	err := en.commitDirty(0, 5, nil, nil)
-	assert.True(t, errors.Is(err, ErrNilExtensionNode))
-}
-
 func TestExtensionNode_commitCollapsedNode(t *testing.T) {
 	t.Parallel()
 
 	db := testscommon.NewMemDbMock()
 	_, collapsedEn := getEnAndCollapsedEn()
 	hash, _ := encodeNodeAndGetHash(collapsedEn)
-	_ = collapsedEn.setHash()
+	collapsedEn.setHash(getTestGoroutinesManager())
 
 	collapsedEn.dirty = true
-	err := collapsedEn.commitDirty(0, 5, db, db)
-	assert.Nil(t, err)
+	manager := getTestGoroutinesManager()
+	collapsedEn.commitDirty(0, 5, manager, hashesCollector.NewDisabledHashesCollector(), db, db)
+	assert.Nil(t, manager.GetError())
 
 	encNode, _ := db.Get(hash)
 	n, _ := decodeNode(encNode, collapsedEn.marsh, collapsedEn.hasher)
@@ -329,35 +183,20 @@ func TestExtensionNode_resolveCollapsed(t *testing.T) {
 
 	db := testscommon.NewMemDbMock()
 	en, collapsedEn := getEnAndCollapsedEn()
-	_ = en.setHash()
-	_ = en.commitDirty(0, 5, db, db)
+	en.setHash(getTestGoroutinesManager())
+	en.commitDirty(0, 5, getTestGoroutinesManager(), hashesCollector.NewDisabledHashesCollector(), db, db)
 	_, resolved := getBnAndCollapsedBn(en.marsh, en.hasher)
 
-	err := collapsedEn.resolveCollapsed(0, db)
+	child, err := collapsedEn.resolveIfCollapsed(db)
 	assert.Nil(t, err)
+	assert.Equal(t, en.child.(*branchNode).ChildrenHashes[2], child.(*branchNode).ChildrenHashes[2])
+	assert.Equal(t, en.child.(*branchNode).ChildrenHashes[6], child.(*branchNode).ChildrenHashes[6])
+	assert.Equal(t, en.child.(*branchNode).ChildrenHashes[13], child.(*branchNode).ChildrenHashes[13])
 	assert.Equal(t, en.child.getHash(), collapsedEn.child.getHash())
 
 	h1, _ := encodeNodeAndGetHash(resolved)
 	h2, _ := encodeNodeAndGetHash(collapsedEn.child)
 	assert.Equal(t, h1, h2)
-}
-
-func TestExtensionNode_resolveCollapsedEmptyNode(t *testing.T) {
-	t.Parallel()
-
-	en := &extensionNode{}
-
-	err := en.resolveCollapsed(0, nil)
-	assert.True(t, errors.Is(err, ErrEmptyExtensionNode))
-}
-
-func TestExtensionNode_resolveCollapsedNilNode(t *testing.T) {
-	t.Parallel()
-
-	var en *extensionNode
-
-	err := en.resolveCollapsed(2, nil)
-	assert.True(t, errors.Is(err, ErrNilExtensionNode))
 }
 
 func TestExtensionNode_isCollapsed(t *testing.T) {
@@ -418,8 +257,8 @@ func TestExtensionNode_tryGetCollapsedNode(t *testing.T) {
 
 	db := testscommon.NewMemDbMock()
 	en, collapsedEn := getEnAndCollapsedEn()
-	_ = en.setHash()
-	_ = en.commitDirty(0, 5, db, db)
+	en.setHash(getTestGoroutinesManager())
+	en.commitDirty(0, 5, getTestGoroutinesManager(), hashesCollector.NewDisabledHashesCollector(), db, db)
 
 	enKey := []byte{100}
 	bnKey := []byte{2}
@@ -433,35 +272,12 @@ func TestExtensionNode_tryGetCollapsedNode(t *testing.T) {
 	assert.Equal(t, uint32(2), maxDepth)
 }
 
-func TestExtensionNode_tryGetEmptyNode(t *testing.T) {
-	t.Parallel()
-
-	en := &extensionNode{}
-	key := []byte("dog")
-
-	val, maxDepth, err := en.tryGet(key, 0, nil)
-	assert.True(t, errors.Is(err, ErrEmptyExtensionNode))
-	assert.Nil(t, val)
-	assert.Equal(t, uint32(0), maxDepth)
-}
-
-func TestExtensionNode_tryGetNilNode(t *testing.T) {
-	t.Parallel()
-
-	var en *extensionNode
-	key := []byte("dog")
-
-	val, maxDepth, err := en.tryGet(key, 0, nil)
-	assert.True(t, errors.Is(err, ErrNilExtensionNode))
-	assert.Nil(t, val)
-	assert.Equal(t, uint32(0), maxDepth)
-}
-
 func TestExtensionNode_getNext(t *testing.T) {
 	t.Parallel()
 
 	en, _ := getEnAndCollapsedEn()
-	nextNode, _ := getBnAndCollapsedBn(en.marsh, en.hasher)
+	db := testscommon.NewMemDbMock()
+	en.commitDirty(0, 5, getTestGoroutinesManager(), hashesCollector.NewDisabledHashesCollector(), db, db)
 
 	enKey := []byte{100}
 	bnKey := []byte{2}
@@ -469,9 +285,12 @@ func TestExtensionNode_getNext(t *testing.T) {
 	key := append(enKey, bnKey...)
 	key = append(key, lnKey...)
 
-	n, newKey, err := en.getNext(key, nil)
-	assert.Equal(t, nextNode, n)
-	assert.Equal(t, key[1:], newKey)
+	data, err := en.getNext(key, db)
+	child, childBytes, _ := getNodeFromDBAndDecode(en.ChildHash, db, en.marsh, en.hasher)
+	assert.NotNil(t, data)
+	assert.Equal(t, childBytes, data.encodedNode)
+	assert.Equal(t, child, data.currentNode)
+	assert.Equal(t, key[1:], data.hexKey)
 	assert.Nil(t, err)
 }
 
@@ -483,9 +302,8 @@ func TestExtensionNode_getNextWrongKey(t *testing.T) {
 	lnKey := []byte("dog")
 	key := append(bnKey, lnKey...)
 
-	n, key, err := en.getNext(key, nil)
-	assert.Nil(t, n)
-	assert.Nil(t, key)
+	data, err := en.getNext(key, nil)
+	assert.Nil(t, data)
 	assert.Equal(t, ErrNodeNotFound, err)
 }
 
@@ -495,9 +313,12 @@ func TestExtensionNode_insert(t *testing.T) {
 	en, _ := getEnAndCollapsedEn()
 	key := []byte{100, 15, 5, 6}
 
-	newNode, _, err := en.insert(getTrieDataWithDefaultVersion(string(key), "dogs"), nil)
+	goRoutinesManager := getTestGoroutinesManager()
+	data := []core.TrieData{getTrieDataWithDefaultVersion(string(key), "dogs")}
+
+	newNode := en.insert(data, goRoutinesManager, common.NewModifiedHashesSlice(initialModifiedHashesCapacity), nil)
 	assert.NotNil(t, newNode)
-	assert.Nil(t, err)
+	assert.Nil(t, goRoutinesManager.GetError())
 
 	val, _, _ := newNode.tryGet(key, 0, nil)
 	assert.Equal(t, []byte("dogs"), val)
@@ -510,12 +331,15 @@ func TestExtensionNode_insertCollapsedNode(t *testing.T) {
 	en, collapsedEn := getEnAndCollapsedEn()
 	key := []byte{100, 15, 5, 6}
 
-	_ = en.setHash()
-	_ = en.commitDirty(0, 5, db, db)
+	en.setHash(getTestGoroutinesManager())
+	en.commitDirty(0, 5, getTestGoroutinesManager(), hashesCollector.NewDisabledHashesCollector(), db, db)
 
-	newNode, _, err := collapsedEn.insert(getTrieDataWithDefaultVersion(string(key), "dogs"), db)
+	goRoutinesManager := getTestGoroutinesManager()
+	data := []core.TrieData{getTrieDataWithDefaultVersion(string(key), "dogs")}
+
+	newNode := collapsedEn.insert(data, goRoutinesManager, common.NewModifiedHashesSlice(initialModifiedHashesCapacity), db)
 	assert.NotNil(t, newNode)
-	assert.Nil(t, err)
+	assert.Nil(t, goRoutinesManager.GetError())
 
 	val, _, _ := newNode.tryGet(key, 0, db)
 	assert.Equal(t, []byte("dogs"), val)
@@ -528,17 +352,22 @@ func TestExtensionNode_insertInStoredEnSameKey(t *testing.T) {
 	en, _ := getEnAndCollapsedEn()
 	enKey := []byte{100}
 	key := append(enKey, []byte{11, 12}...)
+	en.setHash(getTestGoroutinesManager())
 
-	_ = en.commitDirty(0, 5, db, db)
+	en.commitDirty(0, 5, getTestGoroutinesManager(), hashesCollector.NewDisabledHashesCollector(), db, db)
 	enHash := en.getHash()
-	bn, _, _ := en.getNext(enKey, db)
-	bnHash := bn.getHash()
+	nd, _ := en.getNext(enKey, db)
+	bnHash := nd.currentNode.getHash()
 	expectedHashes := [][]byte{bnHash, enHash}
 
-	newNode, oldHashes, err := en.insert(getTrieDataWithDefaultVersion(string(key), "dogs"), db)
+	goRoutinesManager := getTestGoroutinesManager()
+	data := []core.TrieData{getTrieDataWithDefaultVersion(string(key), "dogs")}
+
+	modifiedHashes := common.NewModifiedHashesSlice(initialModifiedHashesCapacity)
+	newNode := en.insert(data, goRoutinesManager, modifiedHashes, db)
 	assert.NotNil(t, newNode)
-	assert.Nil(t, err)
-	assert.Equal(t, expectedHashes, oldHashes)
+	assert.Nil(t, goRoutinesManager.GetError())
+	assert.Equal(t, expectedHashes, modifiedHashes.Get())
 }
 
 func TestExtensionNode_insertInStoredEnDifferentKey(t *testing.T) {
@@ -549,14 +378,19 @@ func TestExtensionNode_insertInStoredEnDifferentKey(t *testing.T) {
 	enKey := []byte{1}
 	en, _ := newExtensionNode(enKey, bn, bn.marsh, bn.hasher)
 	nodeKey := []byte{11, 12}
+	en.setHash(getTestGoroutinesManager())
 
-	_ = en.commitDirty(0, 5, db, db)
+	en.commitDirty(0, 5, getTestGoroutinesManager(), hashesCollector.NewDisabledHashesCollector(), db, db)
 	expectedHashes := [][]byte{en.getHash()}
 
-	newNode, oldHashes, err := en.insert(getTrieDataWithDefaultVersion(string(nodeKey), "dogs"), db)
+	goRoutinesManager := getTestGoroutinesManager()
+	data := []core.TrieData{getTrieDataWithDefaultVersion(string(nodeKey), "dogs")}
+
+	modifiedHashes := common.NewModifiedHashesSlice(initialModifiedHashesCapacity)
+	newNode := en.insert(data, goRoutinesManager, modifiedHashes, db)
 	assert.NotNil(t, newNode)
-	assert.Nil(t, err)
-	assert.Equal(t, expectedHashes, oldHashes)
+	assert.Nil(t, goRoutinesManager.GetError())
+	assert.True(t, slicesContainSameElements(expectedHashes, modifiedHashes.Get()))
 }
 
 func TestExtensionNode_insertInDirtyEnSameKey(t *testing.T) {
@@ -565,10 +399,14 @@ func TestExtensionNode_insertInDirtyEnSameKey(t *testing.T) {
 	en, _ := getEnAndCollapsedEn()
 	nodeKey := []byte{100, 11, 12}
 
-	newNode, oldHashes, err := en.insert(getTrieDataWithDefaultVersion(string(nodeKey), "dogs"), nil)
+	goRoutinesManager := getTestGoroutinesManager()
+	data := []core.TrieData{getTrieDataWithDefaultVersion(string(nodeKey), "dogs")}
+
+	modifiedHashes := common.NewModifiedHashesSlice(initialModifiedHashesCapacity)
+	newNode := en.insert(data, goRoutinesManager, modifiedHashes, nil)
 	assert.NotNil(t, newNode)
-	assert.Nil(t, err)
-	assert.Equal(t, [][]byte{}, oldHashes)
+	assert.Nil(t, goRoutinesManager.GetError())
+	assert.Equal(t, [][]byte{}, modifiedHashes.Get())
 }
 
 func TestExtensionNode_insertInDirtyEnDifferentKey(t *testing.T) {
@@ -579,21 +417,14 @@ func TestExtensionNode_insertInDirtyEnDifferentKey(t *testing.T) {
 	en, _ := newExtensionNode(enKey, bn, bn.marsh, bn.hasher)
 	nodeKey := []byte{11, 12}
 
-	newNode, oldHashes, err := en.insert(getTrieDataWithDefaultVersion(string(nodeKey), "dogs"), nil)
+	goRoutinesManager := getTestGoroutinesManager()
+	data := []core.TrieData{getTrieDataWithDefaultVersion(string(nodeKey), "dogs")}
+
+	modifiedHashes := common.NewModifiedHashesSlice(initialModifiedHashesCapacity)
+	newNode := en.insert(data, goRoutinesManager, modifiedHashes, nil)
 	assert.NotNil(t, newNode)
-	assert.Nil(t, err)
-	assert.Equal(t, [][]byte{}, oldHashes)
-}
-
-func TestExtensionNode_insertInNilNode(t *testing.T) {
-	t.Parallel()
-
-	var en *extensionNode
-
-	newNode, _, err := en.insert(getTrieDataWithDefaultVersion("key", "val"), nil)
-	assert.Nil(t, newNode)
-	assert.True(t, errors.Is(err, ErrNilExtensionNode))
-	assert.Nil(t, newNode)
+	assert.Nil(t, goRoutinesManager.GetError())
+	assert.Equal(t, [][]byte{}, modifiedHashes.Get())
 }
 
 func TestExtensionNode_delete(t *testing.T) {
@@ -610,10 +441,12 @@ func TestExtensionNode_delete(t *testing.T) {
 
 	val, _, _ := en.tryGet(key, 0, nil)
 	assert.Equal(t, dogBytes, val)
+	data := []core.TrieData{{Key: key}}
 
-	dirty, _, _, err := en.delete(key, nil)
+	goRoutinesManager := getTestGoroutinesManager()
+	dirty, _ := en.delete(data, goRoutinesManager, common.NewModifiedHashesSlice(initialModifiedHashesCapacity), nil)
 	assert.True(t, dirty)
-	assert.Nil(t, err)
+	assert.Nil(t, goRoutinesManager.GetError())
 	val, _, _ = en.tryGet(key, 0, nil)
 	assert.Nil(t, val)
 }
@@ -629,16 +462,20 @@ func TestExtensionNode_deleteFromStoredEn(t *testing.T) {
 	key := append(enKey, bnKey...)
 	key = append(key, lnKey...)
 	lnPathKey := key
+	en.setHash(getTestGoroutinesManager())
 
-	_ = en.commitDirty(0, 5, db, db)
-	bn, key, _ := en.getNext(key, db)
-	ln, _, _ := bn.getNext(key, db)
-	expectedHashes := [][]byte{ln.getHash(), bn.getHash(), en.getHash()}
+	en.commitDirty(0, 5, getTestGoroutinesManager(), hashesCollector.NewDisabledHashesCollector(), db, db)
+	bnData, _ := en.getNext(key, db)
+	lnData, _ := bnData.currentNode.getNext(bnData.hexKey, db)
+	expectedHashes := [][]byte{lnData.currentNode.getHash(), bnData.currentNode.getHash(), en.getHash()}
+	data := []core.TrieData{{Key: lnPathKey}}
 
-	dirty, _, oldHashes, err := en.delete(lnPathKey, db)
+	goRoutinesManager := getTestGoroutinesManager()
+	modifiedHashes := common.NewModifiedHashesSlice(initialModifiedHashesCapacity)
+	dirty, _ := en.delete(data, goRoutinesManager, modifiedHashes, db)
 	assert.True(t, dirty)
-	assert.Nil(t, err)
-	assert.Equal(t, expectedHashes, oldHashes)
+	assert.Nil(t, goRoutinesManager.GetError())
+	assert.True(t, slicesContainSameElements(expectedHashes, modifiedHashes.Get()))
 }
 
 func TestExtensionNode_deleteFromDirtyEn(t *testing.T) {
@@ -646,44 +483,14 @@ func TestExtensionNode_deleteFromDirtyEn(t *testing.T) {
 
 	en, _ := getEnAndCollapsedEn()
 	lnKey := []byte{100, 2, 100, 111, 103}
+	data := []core.TrieData{{Key: lnKey}}
 
-	dirty, _, oldHashes, err := en.delete(lnKey, nil)
+	goRoutinesManager := getTestGoroutinesManager()
+	modifiedHashes := common.NewModifiedHashesSlice(initialModifiedHashesCapacity)
+	dirty, _ := en.delete(data, goRoutinesManager, modifiedHashes, nil)
 	assert.True(t, dirty)
-	assert.Nil(t, err)
-	assert.Equal(t, [][]byte{}, oldHashes)
-}
-
-func TestExtendedNode_deleteEmptyNode(t *testing.T) {
-	t.Parallel()
-
-	en := &extensionNode{}
-
-	dirty, newNode, _, err := en.delete([]byte("dog"), nil)
-	assert.False(t, dirty)
-	assert.True(t, errors.Is(err, ErrEmptyExtensionNode))
-	assert.Nil(t, newNode)
-}
-
-func TestExtensionNode_deleteNilNode(t *testing.T) {
-	t.Parallel()
-
-	var en *extensionNode
-
-	dirty, newNode, _, err := en.delete([]byte("dog"), nil)
-	assert.False(t, dirty)
-	assert.True(t, errors.Is(err, ErrNilExtensionNode))
-	assert.Nil(t, newNode)
-}
-
-func TestExtensionNode_deleteEmptykey(t *testing.T) {
-	t.Parallel()
-
-	en, _ := getEnAndCollapsedEn()
-
-	dirty, newNode, _, err := en.delete([]byte{}, nil)
-	assert.False(t, dirty)
-	assert.Equal(t, ErrValueTooShort, err)
-	assert.Nil(t, newNode)
+	assert.Nil(t, goRoutinesManager.GetError())
+	assert.Equal(t, [][]byte{}, modifiedHashes.Get())
 }
 
 func TestExtensionNode_deleteCollapsedNode(t *testing.T) {
@@ -691,8 +498,8 @@ func TestExtensionNode_deleteCollapsedNode(t *testing.T) {
 
 	db := testscommon.NewMemDbMock()
 	en, collapsedEn := getEnAndCollapsedEn()
-	_ = en.setHash()
-	_ = en.commitDirty(0, 5, db, db)
+	en.setHash(getTestGoroutinesManager())
+	en.commitDirty(0, 5, getTestGoroutinesManager(), hashesCollector.NewDisabledHashesCollector(), db, db)
 
 	enKey := []byte{100}
 	bnKey := []byte{2}
@@ -702,10 +509,12 @@ func TestExtensionNode_deleteCollapsedNode(t *testing.T) {
 
 	val, _, _ := en.tryGet(key, 0, db)
 	assert.Equal(t, []byte("dog"), val)
+	data := []core.TrieData{{Key: key}}
 
-	dirty, newNode, _, err := collapsedEn.delete(key, db)
+	goRoutinesManager := getTestGoroutinesManager()
+	dirty, newNode := collapsedEn.delete(data, goRoutinesManager, common.NewModifiedHashesSlice(initialModifiedHashesCapacity), db)
 	assert.True(t, dirty)
-	assert.Nil(t, err)
+	assert.Nil(t, goRoutinesManager.GetError())
 	val, _, _ = newNode.tryGet(key, 0, db)
 	assert.Nil(t, val)
 }
@@ -722,7 +531,7 @@ func TestExtensionNode_reduceNode(t *testing.T) {
 	expected.hasher = en.hasher
 	expected.child = en.child
 
-	n, newChildPos, err := en.reduceNode(2)
+	n, newChildPos, err := en.reduceNode(2, nil)
 	assert.Equal(t, expected, n)
 	assert.Nil(t, err)
 	assert.True(t, newChildPos)
@@ -732,24 +541,14 @@ func TestExtensionNode_reduceNodeCollapsedNode(t *testing.T) {
 	t.Parallel()
 
 	tr := initTrie()
-	_ = tr.Commit()
+	_ = tr.Commit(hashesCollector.NewDisabledHashesCollector())
 	rootHash, _ := tr.RootHash()
-	collapsedTrie, _ := tr.Recreate(holders.NewDefaultRootHashesHolder(rootHash))
+	collapsedTrie, _ := tr.Recreate(holders.NewDefaultRootHashesHolder(rootHash), "")
 
-	err := collapsedTrie.Delete([]byte("doe"))
+	collapsedTrie.Delete([]byte("doe"))
+
+	err := collapsedTrie.Commit(hashesCollector.NewDisabledHashesCollector())
 	assert.Nil(t, err)
-
-	err = collapsedTrie.Commit()
-	assert.Nil(t, err)
-}
-
-func TestExtensionNode_clone(t *testing.T) {
-	t.Parallel()
-
-	en, _ := getEnAndCollapsedEn()
-	clone := en.clone()
-	assert.False(t, en == clone)
-	assert.Equal(t, en, clone)
 }
 
 func TestExtensionNode_isEmptyOrNil(t *testing.T) {
@@ -777,21 +576,12 @@ func TestExtensionNode_getChildrenCollapsedEn(t *testing.T) {
 
 	db := testscommon.NewMemDbMock()
 	en, collapsedEn := getEnAndCollapsedEn()
-	_ = en.commitDirty(0, 5, db, db)
+	en.setHash(getTestGoroutinesManager())
+	en.commitDirty(0, 5, getTestGoroutinesManager(), hashesCollector.NewDisabledHashesCollector(), db, db)
 
 	children, err := collapsedEn.getChildren(db)
 	assert.Nil(t, err)
 	assert.Equal(t, 1, len(children))
-}
-
-func TestExtensionNode_isValid(t *testing.T) {
-	t.Parallel()
-
-	en, _ := getEnAndCollapsedEn()
-	assert.True(t, en.isValid())
-
-	en.child = nil
-	assert.False(t, en.isValid())
 }
 
 func TestExtensionNode_setDirty(t *testing.T) {
@@ -808,9 +598,10 @@ func TestExtensionNode_loadChildren(t *testing.T) {
 
 	marsh, hasher := getTestMarshalizerAndHasher()
 	tr, _ := newEmptyTrie()
-	_ = tr.Update([]byte("dog"), []byte("puppy"))
-	_ = tr.Update([]byte("ddog"), []byte("cat"))
-	_ = tr.root.setRootHash()
+	tr.Update([]byte("dog"), []byte("puppy"))
+	tr.Update([]byte("ddog"), []byte("cat"))
+	_ = tr.Commit(hashesCollector.NewDisabledHashesCollector())
+	tr.GetRootNode().setHash(getTestGoroutinesManager())
 	nodes, _ := getEncodedTrieNodesAndHashes(tr)
 	nodesCacher, _ := cache.NewLRUCache(100)
 	for i := range nodes {
@@ -818,7 +609,7 @@ func TestExtensionNode_loadChildren(t *testing.T) {
 		nodesCacher.Put(n.hash, n, len(n.GetSerialized()))
 	}
 
-	en := getCollapsedEn(t, tr.root)
+	en := getCollapsedEn(t, tr.GetRootNode())
 
 	getNode := func(hash []byte) (node, error) {
 		cacheData, _ := nodesCacher.Get(hash)
@@ -865,7 +656,7 @@ func TestExtensionNode_newExtensionNodeOkVals(t *testing.T) {
 
 	assert.Nil(t, err)
 	assert.Equal(t, key, en.Key)
-	assert.Nil(t, en.EncodedChild)
+	assert.Nil(t, en.ChildHash)
 	assert.Equal(t, child, en.child)
 	assert.Equal(t, hasher, en.hasher)
 	assert.Equal(t, marsh, en.marsh)
@@ -889,12 +680,14 @@ func TestExtensionNode_commitCollapsesTrieIfMaxTrieLevelInMemoryIsReached(t *tes
 	t.Parallel()
 
 	en, collapsedEn := getEnAndCollapsedEn()
-	_ = collapsedEn.setRootHash()
+	collapsedEn.setHash(getTestGoroutinesManager())
+	en.setHash(getTestGoroutinesManager())
 
-	err := en.commitDirty(0, 1, testscommon.NewMemDbMock(), testscommon.NewMemDbMock())
-	assert.Nil(t, err)
+	manager := getTestGoroutinesManager()
+	en.commitDirty(0, 1, manager, hashesCollector.NewDisabledHashesCollector(), testscommon.NewMemDbMock(), testscommon.NewMemDbMock())
+	assert.Nil(t, manager.GetError())
 
-	assert.Equal(t, collapsedEn.EncodedChild, en.EncodedChild)
+	assert.Equal(t, collapsedEn.ChildHash, en.ChildHash)
 	assert.Equal(t, collapsedEn.child, en.child)
 	assert.Equal(t, collapsedEn.hash, en.hash)
 }
@@ -907,50 +700,15 @@ func TestExtensionNode_printShouldNotPanicEvenIfNodeIsCollapsed(t *testing.T) {
 
 	db := testscommon.NewMemDbMock()
 	en, collapsedEn := getEnAndCollapsedEn()
-	_ = en.commitDirty(0, 5, db, db)
-	_ = collapsedEn.commitSnapshot(db, nil, nil, context.Background(), statistics.NewTrieStatistics(), &testscommon.ProcessStatusHandlerStub{}, 0)
+	en.setHash(getTestGoroutinesManager())
+	collapsedEn.setHash(getTestGoroutinesManager())
+	en.commitDirty(0, 5, getTestGoroutinesManager(), hashesCollector.NewDisabledHashesCollector(), db, db)
+	collapsedEn.commitDirty(0, 5, getTestGoroutinesManager(), hashesCollector.NewDisabledHashesCollector(), db, db)
 
 	en.print(enWriter, 0, db)
 	collapsedEn.print(collapsedEnWriter, 0, db)
 
 	assert.Equal(t, enWriter.Bytes(), collapsedEnWriter.Bytes())
-}
-
-func TestExtensionNode_getDirtyHashesFromCleanNode(t *testing.T) {
-	t.Parallel()
-
-	db := testscommon.NewMemDbMock()
-	en, _ := getEnAndCollapsedEn()
-	_ = en.commitSnapshot(db, nil, nil, context.Background(), statistics.NewTrieStatistics(), &testscommon.ProcessStatusHandlerStub{}, 0)
-	dirtyHashes := make(common.ModifiedHashes)
-
-	err := en.getDirtyHashes(dirtyHashes)
-	assert.Nil(t, err)
-	assert.Equal(t, 0, len(dirtyHashes))
-}
-
-func TestExtensionNode_getAllHashes(t *testing.T) {
-	t.Parallel()
-
-	trieNodes := 5
-	en, _ := getEnAndCollapsedEn()
-
-	hashes, err := en.getAllHashes(testscommon.NewMemDbMock())
-	assert.Nil(t, err)
-	assert.Equal(t, trieNodes, len(hashes))
-}
-
-func TestExtensionNode_getAllHashesResolvesCollapsed(t *testing.T) {
-	t.Parallel()
-
-	trieNodes := 5
-	db := testscommon.NewMemDbMock()
-	en, collapsedEn := getEnAndCollapsedEn()
-	_ = en.commitSnapshot(db, nil, nil, context.Background(), statistics.NewTrieStatistics(), &testscommon.ProcessStatusHandlerStub{}, 0)
-
-	hashes, err := collapsedEn.getAllHashes(db)
-	assert.Nil(t, err)
-	assert.Equal(t, trieNodes, len(hashes))
 }
 
 func TestExtensionNode_getNextHashAndKey(t *testing.T) {
@@ -960,7 +718,7 @@ func TestExtensionNode_getNextHashAndKey(t *testing.T) {
 	proofVerified, nextHash, nextKey := collapsedEn.getNextHashAndKey([]byte("d"))
 
 	assert.False(t, proofVerified)
-	assert.Equal(t, collapsedEn.EncodedChild, nextHash)
+	assert.Equal(t, collapsedEn.ChildHash, nextHash)
 	assert.Equal(t, []byte{}, nextKey)
 }
 
@@ -997,8 +755,8 @@ func TestExtensionNode_SizeInBytes(t *testing.T) {
 	hash := []byte("hash")
 	en = &extensionNode{
 		CollapsedEn: CollapsedEn{
-			Key:          key,
-			EncodedChild: collapsed,
+			Key:       key,
+			ChildHash: collapsed,
 		},
 		child: nil,
 		baseNode: &baseNode{
@@ -1011,7 +769,7 @@ func TestExtensionNode_SizeInBytes(t *testing.T) {
 	assert.Equal(t, len(collapsed)+len(key)+len(hash)+1+3*pointerSizeInBytes, en.sizeInBytes())
 }
 
-func TestExtensionNode_commitContextDone(t *testing.T) {
+func TestExtensionNode_commitSnapshotContextDone(t *testing.T) {
 	t.Parallel()
 
 	db := testscommon.NewMemDbMock()
@@ -1019,7 +777,7 @@ func TestExtensionNode_commitContextDone(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
 
-	err := en.commitSnapshot(db, nil, nil, ctx, statistics.NewTrieStatistics(), &testscommon.ProcessStatusHandlerStub{}, 0)
+	err := en.commitSnapshot(db, nil, nil, ctx, statistics.NewTrieStatistics(), &testscommon.ProcessStatusHandlerStub{}, []byte("nodeBytes"), 0)
 	assert.Equal(t, core.ErrContextClosing, err)
 }
 
@@ -1040,7 +798,8 @@ func TestExtensionNode_commitSnapshotDbIsClosing(t *testing.T) {
 
 	_, collapsedEn := getEnAndCollapsedEn()
 	missingNodesChan := make(chan []byte, 10)
-	err := collapsedEn.commitSnapshot(db, nil, missingNodesChan, context.Background(), statistics.NewTrieStatistics(), &testscommon.ProcessStatusHandlerStub{}, 0)
+	nodeBytes, _ := collapsedEn.getEncodedNode()
+	err := collapsedEn.commitSnapshot(db, nil, missingNodesChan, context.Background(), statistics.NewTrieStatistics(), &testscommon.ProcessStatusHandlerStub{}, nodeBytes, 0)
 	assert.True(t, core.IsClosingError(err))
 	assert.Equal(t, 0, len(missingNodesChan))
 }
@@ -1095,8 +854,7 @@ func TestExtensionNode_getNodeData(t *testing.T) {
 	t.Run("gets data from child", func(t *testing.T) {
 		t.Parallel()
 
-		en, _ := getEnAndCollapsedEn()
-		en, _ = en.getCollapsedEn()
+		_, en := getEnAndCollapsedEn()
 		hashSize := 32
 		keySize := 1
 
@@ -1106,8 +864,431 @@ func TestExtensionNode_getNodeData(t *testing.T) {
 		assert.Equal(t, 1, len(nodeData))
 
 		assert.Equal(t, uint(1), nodeData[0].GetKeyBuilder().Size())
-		assert.Equal(t, en.EncodedChild, nodeData[0].GetData())
+		assert.Equal(t, en.ChildHash, nodeData[0].GetData())
 		assert.Equal(t, uint64(hashSize+keySize), nodeData[0].Size())
 		assert.False(t, nodeData[0].IsLeaf())
+	})
+}
+
+func Test_getMinKeyMatchLen(t *testing.T) {
+	t.Parallel()
+
+	t.Run("same key", func(t *testing.T) {
+		t.Parallel()
+
+		newData := []core.TrieData{
+			{
+				Key: []byte("dog"),
+			},
+		}
+		keyMatchLen, index := getMinKeyMatchLen(newData, []byte("dog"))
+		assert.Equal(t, 3, keyMatchLen)
+		assert.Equal(t, 0, index)
+	})
+	t.Run("first key is min", func(t *testing.T) {
+		t.Parallel()
+
+		newData := []core.TrieData{
+			{
+				Key: []byte("dog"),
+			},
+			{
+				Key: []byte("doge"),
+			},
+		}
+		keyMatchLen, index := getMinKeyMatchLen(newData, []byte("doe"))
+		assert.Equal(t, 2, keyMatchLen)
+		assert.Equal(t, 0, index)
+
+	})
+	t.Run("last key is min", func(t *testing.T) {
+		t.Parallel()
+
+		newData := []core.TrieData{
+			{
+				Key: []byte("doge"),
+			},
+			{
+				Key: []byte("dad"),
+			},
+		}
+		keyMatchLen, index := getMinKeyMatchLen(newData, []byte("doe"))
+		assert.Equal(t, 1, keyMatchLen)
+		assert.Equal(t, 1, index)
+
+	})
+	t.Run("no match", func(t *testing.T) {
+		t.Parallel()
+
+		newData := []core.TrieData{
+			{
+				Key: []byte("doge"),
+			},
+			{
+				Key: []byte("dog"),
+			},
+		}
+		keyMatchLen, index := getMinKeyMatchLen(newData, []byte("cat"))
+		assert.Equal(t, 0, keyMatchLen)
+		assert.Equal(t, 0, index)
+	})
+}
+
+func Test_removeCommonPrefix(t *testing.T) {
+	t.Parallel()
+
+	t.Run("no common prefix", func(t *testing.T) {
+		t.Parallel()
+
+		newData := []core.TrieData{
+			{
+				Key: []byte("doge"),
+			},
+			{
+				Key: []byte("cat"),
+			},
+		}
+
+		err := removeCommonPrefix(newData, 0)
+		assert.Nil(t, err)
+		assert.Equal(t, []byte("doge"), newData[0].Key)
+		assert.Equal(t, []byte("cat"), newData[1].Key)
+	})
+	t.Run("remove prefix from all", func(t *testing.T) {
+		t.Parallel()
+
+		newData := []core.TrieData{
+			{
+				Key: []byte("doge"),
+			},
+			{
+				Key: []byte("doe"),
+			},
+		}
+
+		err := removeCommonPrefix(newData, 2)
+		assert.Nil(t, err)
+		assert.Equal(t, []byte("ge"), newData[0].Key)
+		assert.Equal(t, []byte("e"), newData[1].Key)
+
+	})
+	t.Run("one key is less than the prefix", func(t *testing.T) {
+		t.Parallel()
+
+		newData := []core.TrieData{
+			{
+				Key: []byte("doge"),
+			},
+			{
+				Key: []byte("do"),
+			},
+		}
+
+		err := removeCommonPrefix(newData, 3)
+		assert.Equal(t, ErrValueTooShort, err)
+	})
+}
+
+func getEn() *extensionNode {
+	marsh, hasher := getTestMarshalizerAndHasher()
+	var children [nrOfChildren]node
+	children[4], _ = newLeafNode(getTrieDataWithDefaultVersion(string([]byte{3, 4, 5}), "dog"), marsh, hasher)
+	children[7], _ = newLeafNode(getTrieDataWithDefaultVersion(string([]byte{7, 8, 9}), "doe"), marsh, hasher)
+	bn, _ := newBranchNode(marsh, hasher)
+	bn.children = children
+	en, _ := newExtensionNode([]byte{1, 2}, bn, marsh, hasher)
+	return en
+}
+
+func TestExtensionNode_insertInSameEn(t *testing.T) {
+	t.Parallel()
+
+	t.Run("insert same data", func(t *testing.T) {
+		t.Parallel()
+
+		en := getEn()
+		en.setHash(getTestGoroutinesManager())
+		manager := getTestGoroutinesManager()
+		en.commitDirty(0, 5, manager, hashesCollector.NewDisabledHashesCollector(), testscommon.NewMemDbMock(), testscommon.NewMemDbMock())
+		assert.Nil(t, manager.GetError())
+
+		data := []core.TrieData{
+			getTrieDataWithDefaultVersion(string([]byte{1, 2, 4, 3, 4, 5}), "dog"),
+			getTrieDataWithDefaultVersion(string([]byte{1, 2, 7, 7, 8, 9}), "doe"),
+		}
+
+		th, _ := throttler.NewNumGoRoutinesThrottler(5)
+		goRoutinesManager, err := NewGoroutinesManager(th, errChan.NewErrChanWrapper(), make(chan struct{}), "")
+		assert.Nil(t, err)
+
+		modifiedHashes := common.NewModifiedHashesSlice(initialModifiedHashesCapacity)
+		newNode := en.insert(data, goRoutinesManager, modifiedHashes, nil)
+		assert.Nil(t, goRoutinesManager.GetError())
+		expectedNumTrieNodesChanged := 0
+		assert.Equal(t, expectedNumTrieNodesChanged, len(modifiedHashes.Get()))
+		assert.Nil(t, newNode)
+		assert.False(t, en.dirty)
+	})
+	t.Run("insert different data", func(t *testing.T) {
+		t.Parallel()
+
+		en := getEn()
+		en.setHash(getTestGoroutinesManager())
+		manager := getTestGoroutinesManager()
+		en.commitDirty(0, 5, manager, hashesCollector.NewDisabledHashesCollector(), testscommon.NewMemDbMock(), testscommon.NewMemDbMock())
+		assert.Nil(t, manager.GetError())
+
+		data := []core.TrieData{
+			getTrieDataWithDefaultVersion(string([]byte{1, 2, 6, 7, 16}), "dog"),
+			getTrieDataWithDefaultVersion(string([]byte{1, 2, 3, 4, 5}), "doe"),
+		}
+
+		th, _ := throttler.NewNumGoRoutinesThrottler(5)
+		goRoutinesManager, err := NewGoroutinesManager(th, errChan.NewErrChanWrapper(), make(chan struct{}), "")
+		assert.Nil(t, err)
+
+		modifiedHashes := common.NewModifiedHashesSlice(initialModifiedHashesCapacity)
+		newNode := en.insert(data, goRoutinesManager, modifiedHashes, nil)
+		assert.Nil(t, goRoutinesManager.GetError())
+		expectedNumTrieNodesChanged := 2
+		assert.Equal(t, expectedNumTrieNodesChanged, len(modifiedHashes.Get()))
+		en, ok := newNode.(*extensionNode)
+		assert.True(t, ok)
+		assert.True(t, en.dirty)
+		bn, ok := en.child.(*branchNode)
+		assert.True(t, ok)
+		assert.False(t, bn.children[4].isDirty())
+		assert.False(t, bn.children[7].isDirty())
+		assert.Equal(t, []byte{4, 5}, bn.children[3].(*leafNode).Key)
+		assert.Equal(t, []byte{7, 16}, bn.children[6].(*leafNode).Key)
+	})
+}
+
+func TestExtensionNode_insertInNewBn(t *testing.T) {
+	t.Parallel()
+
+	t.Run("with a new en parent", func(t *testing.T) {
+		t.Parallel()
+
+		en := getEn()
+		en.setHash(getTestGoroutinesManager())
+		manager := getTestGoroutinesManager()
+		en.commitDirty(0, 5, manager, hashesCollector.NewDisabledHashesCollector(), testscommon.NewMemDbMock(), testscommon.NewMemDbMock())
+		assert.Nil(t, manager.GetError())
+
+		data := []core.TrieData{
+			getTrieDataWithDefaultVersion(string([]byte{1, 3, 6, 7, 16}), "dog"),
+			getTrieDataWithDefaultVersion(string([]byte{1, 3, 3, 4, 5}), "doe"),
+		}
+
+		th, _ := throttler.NewNumGoRoutinesThrottler(5)
+		goRoutinesManager, err := NewGoroutinesManager(th, errChan.NewErrChanWrapper(), make(chan struct{}), "")
+		assert.Nil(t, err)
+
+		modifiedHashes := common.NewModifiedHashesSlice(initialModifiedHashesCapacity)
+		newNode := en.insert(data, goRoutinesManager, modifiedHashes, nil)
+		assert.Nil(t, goRoutinesManager.GetError())
+		expectedNumTrieNodesChanged := 1
+		assert.Equal(t, expectedNumTrieNodesChanged, len(modifiedHashes.Get()))
+		en, ok := newNode.(*extensionNode)
+		assert.True(t, ok)
+		assert.True(t, en.dirty)
+		assert.Equal(t, []byte{1}, en.Key)
+		bn, ok := en.child.(*branchNode)
+		assert.True(t, ok)
+		assert.False(t, bn.children[2].isDirty())
+		assert.True(t, bn.children[3].isDirty())
+		_, ok = bn.children[2].(*branchNode)
+		assert.True(t, ok)
+		_, ok = bn.children[3].(*branchNode)
+		assert.True(t, ok)
+	})
+	t.Run("branch at the beginning of the en", func(t *testing.T) {
+		t.Parallel()
+
+		en := getEn()
+		en.setHash(getTestGoroutinesManager())
+		manager := getTestGoroutinesManager()
+		en.commitDirty(0, 5, manager, hashesCollector.NewDisabledHashesCollector(), testscommon.NewMemDbMock(), testscommon.NewMemDbMock())
+		assert.Nil(t, manager.GetError())
+
+		data := []core.TrieData{
+			getTrieDataWithDefaultVersion(string([]byte{2, 3, 6, 7, 16}), "dog"),
+			getTrieDataWithDefaultVersion(string([]byte{3, 3, 3, 4, 5}), "doe"),
+		}
+
+		th, _ := throttler.NewNumGoRoutinesThrottler(5)
+		goRoutinesManager, err := NewGoroutinesManager(th, errChan.NewErrChanWrapper(), make(chan struct{}), "")
+		assert.Nil(t, err)
+
+		modifiedHashes := common.NewModifiedHashesSlice(initialModifiedHashesCapacity)
+		newNode := en.insert(data, goRoutinesManager, modifiedHashes, nil)
+		assert.Nil(t, goRoutinesManager.GetError())
+		expectedNumTrieNodesChanged := 1
+		assert.Equal(t, expectedNumTrieNodesChanged, len(modifiedHashes.Get()))
+		bn, ok := newNode.(*branchNode)
+		assert.True(t, ok)
+		assert.True(t, bn.dirty)
+		assert.Equal(t, []byte{3, 6, 7, 16}, bn.children[2].(*leafNode).Key)
+		assert.Equal(t, []byte{3, 3, 4, 5}, bn.children[3].(*leafNode).Key)
+		assert.Equal(t, []byte{2}, bn.children[1].(*extensionNode).Key)
+	})
+	t.Run("branch and insert existing value", func(t *testing.T) {
+		t.Parallel()
+
+		originalEn := getEn()
+		originalEn.setHash(getTestGoroutinesManager())
+		manager := getTestGoroutinesManager()
+		originalEn.commitDirty(0, 5, manager, hashesCollector.NewDisabledHashesCollector(), testscommon.NewMemDbMock(), testscommon.NewMemDbMock())
+		assert.Nil(t, manager.GetError())
+		originalHash := originalEn.getHash()
+
+		data := []core.TrieData{
+			getTrieDataWithDefaultVersion(string([]byte{1, 3, 6, 7, 16}), "dog"),   // new value
+			getTrieDataWithDefaultVersion(string([]byte{1, 2, 4, 3, 4, 5}), "dog"), // this is already in the trie
+		}
+
+		th, _ := throttler.NewNumGoRoutinesThrottler(5)
+		goRoutinesManager, err := NewGoroutinesManager(th, errChan.NewErrChanWrapper(), make(chan struct{}), "")
+		assert.Nil(t, err)
+
+		modifiedHashes := common.NewModifiedHashesSlice(initialModifiedHashesCapacity)
+		newNode := originalEn.insert(data, goRoutinesManager, modifiedHashes, nil)
+		assert.Nil(t, goRoutinesManager.GetError())
+		expectedNumTrieNodesChanged := 1
+		assert.Equal(t, expectedNumTrieNodesChanged, len(modifiedHashes.Get()))
+		en, ok := newNode.(*extensionNode)
+		assert.True(t, ok)
+		assert.True(t, en.dirty)
+
+		bn, ok := en.child.(*branchNode)
+		assert.True(t, ok)
+		assert.True(t, bn.dirty)
+
+		assert.False(t, bn.children[2].(*branchNode).dirty)
+		assert.Equal(t, originalEn.child, bn.children[2])
+		assert.NotEqual(t, originalHash, en.getHash())
+	})
+}
+
+func TestExtensionNode_deleteBatch(t *testing.T) {
+	t.Parallel()
+
+	t.Run("delete invalid node", func(t *testing.T) {
+		t.Parallel()
+
+		en := getEn()
+		en.setHash(getTestGoroutinesManager())
+		manager := getTestGoroutinesManager()
+		en.commitDirty(0, 5, manager, hashesCollector.NewDisabledHashesCollector(), testscommon.NewMemDbMock(), testscommon.NewMemDbMock())
+		assert.Nil(t, manager.GetError())
+
+		data := []core.TrieData{
+			getTrieDataWithDefaultVersion(string([]byte{2, 3, 6, 7, 16}), "dog"),
+			getTrieDataWithDefaultVersion(string([]byte{3, 3, 3, 4, 5}), "doe"),
+		}
+
+		th, _ := throttler.NewNumGoRoutinesThrottler(5)
+		goRoutinesManager, err := NewGoroutinesManager(th, errChan.NewErrChanWrapper(), make(chan struct{}), "")
+		assert.Nil(t, err)
+
+		modifiedHashes := common.NewModifiedHashesSlice(initialModifiedHashesCapacity)
+		dirty, newNode := en.delete(data, goRoutinesManager, modifiedHashes, nil)
+		assert.False(t, dirty)
+		assert.Nil(t, goRoutinesManager.GetError())
+		expectedNumTrieNodesChanged := 0
+		assert.Equal(t, expectedNumTrieNodesChanged, len(modifiedHashes.Get()))
+		assert.Equal(t, en, newNode)
+	})
+	t.Run("reduce to leaf after delete", func(t *testing.T) {
+		t.Parallel()
+
+		en := getEn()
+		en.setHash(getTestGoroutinesManager())
+		manager := getTestGoroutinesManager()
+		en.commitDirty(0, 5, manager, hashesCollector.NewDisabledHashesCollector(), testscommon.NewMemDbMock(), testscommon.NewMemDbMock())
+		assert.Nil(t, manager.GetError())
+
+		data := []core.TrieData{
+			getTrieDataWithDefaultVersion(string([]byte{1, 2, 4, 3, 4, 5}), "dog"),
+		}
+
+		th, _ := throttler.NewNumGoRoutinesThrottler(5)
+		goRoutinesManager, err := NewGoroutinesManager(th, errChan.NewErrChanWrapper(), make(chan struct{}), "")
+		assert.Nil(t, err)
+
+		modifiedHashes := common.NewModifiedHashesSlice(initialModifiedHashesCapacity)
+		dirty, newNode := en.delete(data, goRoutinesManager, modifiedHashes, nil)
+		assert.True(t, dirty)
+		assert.Nil(t, goRoutinesManager.GetError())
+		expectedNumTrieNodesChanged := 4
+		assert.Equal(t, expectedNumTrieNodesChanged, len(modifiedHashes.Get()))
+		ln, ok := newNode.(*leafNode)
+		assert.True(t, ok)
+		assert.Equal(t, []byte{1, 2, 7, 7, 8, 9}, ln.Key)
+		assert.True(t, ln.dirty)
+	})
+	t.Run("reduce to extension node after delete", func(t *testing.T) {
+		t.Parallel()
+
+		en := getEn()
+		manager := getTestGoroutinesManager()
+		en.setHash(manager)
+		assert.Nil(t, manager.GetError())
+		data := []core.TrieData{
+			getTrieDataWithDefaultVersion(string([]byte{1, 2, 4, 4, 5, 6}), "dog"),
+		}
+
+		th, _ := throttler.NewNumGoRoutinesThrottler(5)
+		goRoutinesManager, err := NewGoroutinesManager(th, errChan.NewErrChanWrapper(), make(chan struct{}), "")
+		assert.Nil(t, err)
+
+		newEn := en.insert(data, goRoutinesManager, common.NewModifiedHashesSlice(initialModifiedHashesCapacity), nil)
+		newEn.setHash(manager)
+		assert.Nil(t, manager.GetError())
+		newEn.commitDirty(0, 5, manager, hashesCollector.NewDisabledHashesCollector(), testscommon.NewMemDbMock(), testscommon.NewMemDbMock())
+		assert.Nil(t, manager.GetError())
+
+		dataForRemoval := []core.TrieData{
+			getTrieDataWithDefaultVersion(string([]byte{1, 2, 7, 7, 8, 9}), "dog"),
+		}
+
+		modifiedHashes := common.NewModifiedHashesSlice(initialModifiedHashesCapacity)
+		dirty, newNode := newEn.delete(dataForRemoval, goRoutinesManager, modifiedHashes, nil)
+		assert.True(t, dirty)
+		assert.Nil(t, goRoutinesManager.GetError())
+		expectedNumTrieNodesChanged := 3
+		assert.Equal(t, expectedNumTrieNodesChanged, len(modifiedHashes.Get()))
+		en, ok := newNode.(*extensionNode)
+		assert.True(t, ok)
+		assert.Equal(t, []byte{1, 2, 4}, en.Key)
+		assert.True(t, en.dirty)
+	})
+	t.Run("delete all children", func(t *testing.T) {
+		t.Parallel()
+
+		en := getEn()
+		manager := getTestGoroutinesManager()
+		en.setHash(manager)
+		assert.Nil(t, manager.GetError())
+		en.commitDirty(0, 5, manager, hashesCollector.NewDisabledHashesCollector(), testscommon.NewMemDbMock(), testscommon.NewMemDbMock())
+		assert.Nil(t, manager.GetError())
+
+		data := []core.TrieData{
+			getTrieDataWithDefaultVersion(string([]byte{1, 2, 4, 3, 4, 5}), "dog"),
+			getTrieDataWithDefaultVersion(string([]byte{1, 2, 7, 7, 8, 9}), "doe"),
+		}
+
+		th, _ := throttler.NewNumGoRoutinesThrottler(5)
+		goRoutinesManager, err := NewGoroutinesManager(th, errChan.NewErrChanWrapper(), make(chan struct{}), "")
+		assert.Nil(t, err)
+
+		modifiedHashes := common.NewModifiedHashesSlice(initialModifiedHashesCapacity)
+		dirty, newNode := en.delete(data, goRoutinesManager, modifiedHashes, nil)
+		assert.True(t, dirty)
+		assert.Nil(t, goRoutinesManager.GetError())
+		expectedNumTrieNodesChanged := 4
+		assert.Equal(t, expectedNumTrieNodesChanged, len(modifiedHashes.Get()))
+		assert.Nil(t, newNode)
 	})
 }

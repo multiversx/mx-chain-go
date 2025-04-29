@@ -9,6 +9,7 @@ import (
 	disabled2 "github.com/multiversx/mx-chain-go/common/disabled"
 	"github.com/multiversx/mx-chain-go/common/statistics/disabled"
 	"github.com/multiversx/mx-chain-go/config"
+	"github.com/multiversx/mx-chain-go/state/hashesCollector"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
@@ -40,8 +41,16 @@ func GetDefaultTrieParameters() (common.StorageManager, marshal.Marshalizer, has
 // GetNewTrie -
 func GetNewTrie() common.Trie {
 	tsm, marshaller, hasher := GetDefaultTrieParameters()
-	tr, _ := trie.NewTrie(tsm, marshaller, hasher, &enableEpochsHandlerMock.EnableEpochsHandlerStub{}, 5)
-
+	trieArgs := trie.TrieArgs{
+		TrieStorage:          tsm,
+		Marshalizer:          marshaller,
+		Hasher:               hasher,
+		EnableEpochsHandler:  &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		MaxTrieLevelInMemory: 5,
+		Throttler:            trie.NewDisabledTrieGoRoutinesThrottler(),
+		Identifier:           "test trie",
+	}
+	tr, _ := trie.NewTrie(trieArgs)
 	return tr
 }
 
@@ -49,7 +58,7 @@ func GetNewTrie() common.Trie {
 func AddDataToTrie(tr common.Trie, numLeaves int) {
 	for i := 0; i < numLeaves; i++ {
 		val := fmt.Sprintf("value%v", i)
-		_ = tr.Update([]byte(val), []byte(val))
+		tr.Update([]byte(val), []byte(val))
 	}
-	_ = tr.Commit()
+	_ = tr.Commit(hashesCollector.NewDisabledHashesCollector())
 }
