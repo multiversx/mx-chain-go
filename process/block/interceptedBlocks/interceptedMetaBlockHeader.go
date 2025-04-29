@@ -2,6 +2,10 @@ package interceptedBlocks
 
 import (
 	"fmt"
+	"os"
+	"runtime"
+	"runtime/pprof"
+	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data"
@@ -89,6 +93,41 @@ func (imh *InterceptedMetaHeader) HeaderHandler() data.HeaderHandler {
 // CheckValidity checks if the received meta header is valid (not nil fields, valid sig and so on)
 func (imh *InterceptedMetaHeader) CheckValidity() error {
 	log.Trace("CheckValidity for header with", "epoch", imh.hdr.GetEpoch(), "hash", logger.DisplayByteSlice(imh.hash))
+
+	startTime := time.Now()
+
+	runtime.SetMutexProfileFraction(5)
+
+	defer func() {
+		elapsedTime := time.Since(startTime)
+		if elapsedTime < time.Second*2 {
+			fm, err := os.Create("checkvalidity_mutex.proff")
+			if err != nil {
+				log.Error(err.Error())
+			}
+			defer fm.Close()
+
+			fg, err := os.Create("checkvalidity_goroutines.proff")
+			if err != nil {
+				log.Error(err.Error())
+			}
+			defer fg.Close()
+
+			err = pprof.Lookup("mutex").WriteTo(fm, 0)
+			if err != nil {
+				log.Error("failed to write mutex profiling", "error", err.Error())
+			}
+
+			err = pprof.Lookup("goroutine").WriteTo(fg, 0)
+			if err != nil {
+				log.Error("failed to write mutex profiling", "error", err.Error())
+			}
+		}
+
+		log.Debug("DONE: CheckValidity for meta header with", "epoch", imh.hdr.GetEpoch(), "hash", logger.DisplayByteSlice(imh.hash), "elapsed time", elapsedTime)
+
+		runtime.SetMutexProfileFraction(0)
+	}()
 
 	err := imh.integrity()
 	if err != nil {
