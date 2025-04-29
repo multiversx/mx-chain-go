@@ -101,13 +101,17 @@ func (imh *InterceptedMetaHeader) CheckValidity() error {
 	defer func() {
 		elapsedTime := time.Since(startTime)
 		if elapsedTime > time.Second*2 {
-			fm, err := os.Create("checkvalidity_mutex.proff")
+			timestamp := time.Now().Unix()
+
+			fm_filename := fmt.Sprintf("checkvalidity_mutex_%d.proff", timestamp)
+			fm, err := os.Create(fm_filename)
 			if err != nil {
 				log.Error(err.Error())
 			}
 			defer fm.Close()
 
-			fg, err := os.Create("checkvalidity_goroutines.proff")
+			fg_filename := fmt.Sprintf("checkvalidity_goroutines_%d.proff", timestamp)
+			fg, err := os.Create(fg_filename)
 			if err != nil {
 				log.Error(err.Error())
 			}
