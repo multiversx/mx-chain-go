@@ -161,12 +161,13 @@ type Config struct {
 	BootstrapStorage StorageConfig
 	MetaBlockStorage StorageConfig
 
-	AccountsTrieStorage      StorageConfig
-	PeerAccountsTrieStorage  StorageConfig
-	EvictionWaitingList      EvictionWaitingListConfig
-	StateTriesConfig         StateTriesConfig
-	TrieStorageManagerConfig TrieStorageManagerConfig
-	BadBlocksCache           CacheConfig
+	AccountsTrieStorage       StorageConfig
+	PeerAccountsTrieStorage   StorageConfig
+	EvictionWaitingList       EvictionWaitingListConfig
+	StateTriesConfig          StateTriesConfig
+	TrieStorageManagerConfig  TrieStorageManagerConfig
+	TrieLeavesRetrieverConfig TrieLeavesRetrieverConfig
+	BadBlocksCache            CacheConfig
 
 	TxBlockBodyDataPool         CacheConfig
 	PeerBlockBodyDataPool       CacheConfig
@@ -640,4 +641,10 @@ type PoolsCleanersConfig struct {
 // RedundancyConfig represents the config options to be used when setting the redundancy configuration
 type RedundancyConfig struct {
 	MaxRoundsOfInactivityAccepted int
+}
+
+// TrieLeavesRetrieverConfig represents the config options to be used when setting up the trie leaves retriever
+type TrieLeavesRetrieverConfig struct {
+	Enabled        bool
+	MaxSizeInBytes uint64
 }

@@ -15,6 +15,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/trie/keyBuilder"
+	"github.com/multiversx/mx-chain-go/trie/leavesRetriever/trieNodeData"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 )
 
@@ -467,6 +468,29 @@ func (ln *leafNode) collectLeavesForMigration(
 	}
 
 	return migrationArgs.TrieMigrator.AddLeafToMigrationQueue(leafData, migrationArgs.NewVersion)
+}
+
+func (ln *leafNode) getNodeData(keyBuilder common.KeyBuilder) ([]common.TrieNodeData, error) {
+	err := ln.isEmptyOrNil()
+	if err != nil {
+		return nil, fmt.Errorf("getNodeData error %w", err)
+	}
+
+	version, err := ln.getVersion()
+	if err != nil {
+		return nil, err
+	}
+
+	data := make([]common.TrieNodeData, 1)
+	clonedKeyBuilder := keyBuilder.DeepClone()
+	clonedKeyBuilder.BuildKey(ln.Key)
+	nodeData, err := trieNodeData.NewLeafNodeData(clonedKeyBuilder, ln.Value, version)
+	if err != nil {
+		return nil, err
+	}
+	data[0] = nodeData
+
+	return data, nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
