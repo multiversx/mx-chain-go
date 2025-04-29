@@ -3,7 +3,6 @@ package stateAccesses
 import (
 	"errors"
 	"fmt"
-	"math"
 	"math/big"
 	"strconv"
 	"testing"
@@ -439,7 +438,7 @@ func TestStateAccessesCollector_GetCollectedAccesses(t *testing.T) {
 		c.AddStateAccess(&data.StateAccess{
 			Type:        data.Write,
 			TxHash:      []byte("hash"),
-			MainTrieKey: []byte(strconv.Itoa(0)),
+			MainTrieKey: []byte("account1"),
 			MainTrieVal: []byte("mainTrieVal1"),
 		})
 
@@ -447,7 +446,7 @@ func TestStateAccessesCollector_GetCollectedAccesses(t *testing.T) {
 			Type:        data.Read,
 			Index:       0,
 			TxHash:      []byte("hash"),
-			MainTrieKey: []byte(strconv.Itoa(1)),
+			MainTrieKey: []byte("account2"),
 			MainTrieVal: []byte("mainTrieVal2"),
 		})
 
@@ -459,8 +458,8 @@ func TestStateAccessesCollector_GetCollectedAccesses(t *testing.T) {
 		require.Equal(t, stateChangesForTx, map[string]*data.StateAccesses{
 			"hash": {
 				StateAccess: []*data.StateAccess{
-					{MainTrieKey: []byte(strconv.Itoa(0)), Type: data.Write, TxHash: []byte("hash"), MainTrieVal: []byte("mainTrieVal1")},
-					{MainTrieKey: []byte(strconv.Itoa(1)), Type: data.Read, TxHash: []byte("hash"), MainTrieVal: []byte("mainTrieVal2")},
+					{MainTrieKey: []byte("account1"), Type: data.Write, TxHash: []byte("hash"), MainTrieVal: []byte("mainTrieVal1")},
+					{MainTrieKey: []byte("account2"), Type: data.Read, TxHash: []byte("hash"), MainTrieVal: []byte("mainTrieVal2")},
 				},
 			},
 		})
@@ -475,7 +474,7 @@ func TestStateAccessesCollector_GetCollectedAccesses(t *testing.T) {
 		c.AddStateAccess(&data.StateAccess{
 			Type:        data.Write,
 			TxHash:      []byte("hash"),
-			MainTrieKey: []byte(strconv.Itoa(1)),
+			MainTrieKey: []byte("account1"),
 			MainTrieVal: []byte("mainTrieVal1"),
 		})
 
@@ -483,7 +482,7 @@ func TestStateAccessesCollector_GetCollectedAccesses(t *testing.T) {
 			Type:        data.Read,
 			Index:       0,
 			TxHash:      []byte("hash"),
-			MainTrieKey: []byte(strconv.Itoa(1)),
+			MainTrieKey: []byte("account1"),
 			MainTrieVal: []byte("mainTrieVal2"),
 		})
 
@@ -495,8 +494,8 @@ func TestStateAccessesCollector_GetCollectedAccesses(t *testing.T) {
 		require.Equal(t, stateChangesForTx, map[string]*data.StateAccesses{
 			"hash": {
 				StateAccess: []*data.StateAccess{
-					{MainTrieKey: []byte(strconv.Itoa(1)), Type: data.Write, TxHash: []byte("hash"), MainTrieVal: []byte("mainTrieVal1")},
-					{MainTrieKey: []byte(strconv.Itoa(1)), Type: data.Read, TxHash: []byte("hash"), MainTrieVal: []byte("mainTrieVal2")},
+					{MainTrieKey: []byte("account1"), Type: data.Write, TxHash: []byte("hash"), MainTrieVal: []byte("mainTrieVal1")},
+					{MainTrieKey: []byte("account1"), Type: data.Read, TxHash: []byte("hash"), MainTrieVal: []byte("mainTrieVal2")},
 				},
 			},
 		})
@@ -511,7 +510,7 @@ func TestStateAccessesCollector_GetCollectedAccesses(t *testing.T) {
 		c.AddStateAccess(&data.StateAccess{
 			Type:        data.Write,
 			TxHash:      []byte("hash"),
-			MainTrieKey: []byte(strconv.Itoa(1)),
+			MainTrieKey: []byte("account1"),
 			MainTrieVal: []byte("mainTrieVal1"),
 		})
 
@@ -519,7 +518,7 @@ func TestStateAccessesCollector_GetCollectedAccesses(t *testing.T) {
 			Type:        data.Write,
 			Index:       0,
 			TxHash:      []byte("hash"),
-			MainTrieKey: []byte(strconv.Itoa(1)),
+			MainTrieKey: []byte("account1"),
 			MainTrieVal: []byte("mainTrieVal2"),
 		})
 
@@ -532,7 +531,7 @@ func TestStateAccessesCollector_GetCollectedAccesses(t *testing.T) {
 			"hash": {
 				StateAccess: []*data.StateAccess{
 					{
-						MainTrieKey: []byte(strconv.Itoa(1)), Type: data.Write,
+						MainTrieKey: []byte("account1"), Type: data.Write,
 						TxHash: []byte("hash"), MainTrieVal: []byte("mainTrieVal2"),
 						DataTrieChanges: make([]*data.DataTrieChange, 0),
 					},
@@ -547,28 +546,30 @@ func TestStateAccessesCollector_GetCollectedAccesses(t *testing.T) {
 		c, _ := NewCollector(disabled.NewDisabledStateAccessesStorer(), WithCollectRead(), WithCollectWrite(), WithAccountChanges())
 		assert.Equal(t, 0, len(c.stateAccesses))
 
+		defaultAccChanges := &data.AccountChanges{
+			Nonce:           false,
+			Balance:         false,
+			CodeHash:        false,
+			RootHash:        false,
+			DeveloperReward: false,
+			OwnerAddress:    false,
+			UserName:        false,
+			CodeMetadata:    false,
+		}
+
 		c.AddStateAccess(&data.StateAccess{
-			Type:        data.Write,
-			TxHash:      []byte("hash"),
-			MainTrieKey: []byte(strconv.Itoa(1)),
-			MainTrieVal: []byte("mainTrieVal1"),
-			AccountChanges: &data.AccountChanges{
-				Nonce:           false,
-				Balance:         false,
-				CodeHash:        false,
-				RootHash:        false,
-				DeveloperReward: false,
-				OwnerAddress:    false,
-				UserName:        false,
-				CodeMetadata:    false,
-			},
+			Type:           data.Write,
+			TxHash:         []byte("hash"),
+			MainTrieKey:    []byte("account1"),
+			MainTrieVal:    []byte("mainTrieVal1"),
+			AccountChanges: defaultAccChanges,
 		})
 
 		c.AddStateAccess(&data.StateAccess{
 			Type:           data.Write,
 			Index:          0,
 			TxHash:         []byte("hash"),
-			MainTrieKey:    []byte(strconv.Itoa(1)),
+			MainTrieKey:    []byte("account1"),
 			MainTrieVal:    []byte("mainTrieVal2"),
 			AccountChanges: nil,
 		})
@@ -582,19 +583,10 @@ func TestStateAccessesCollector_GetCollectedAccesses(t *testing.T) {
 			"hash": {
 				StateAccess: []*data.StateAccess{
 					{
-						MainTrieKey: []byte(strconv.Itoa(1)), Type: data.Write,
+						MainTrieKey: []byte("account1"), Type: data.Write,
 						TxHash: []byte("hash"), MainTrieVal: []byte("mainTrieVal2"),
 						DataTrieChanges: make([]*data.DataTrieChange, 0),
-						AccountChanges: &data.AccountChanges{
-							Nonce:           false,
-							Balance:         false,
-							CodeHash:        false,
-							RootHash:        false,
-							DeveloperReward: false,
-							OwnerAddress:    false,
-							UserName:        false,
-							CodeMetadata:    false,
-						},
+						AccountChanges:  defaultAccChanges,
 					},
 				},
 			},
@@ -610,7 +602,7 @@ func TestStateAccessesCollector_GetCollectedAccesses(t *testing.T) {
 		c.AddStateAccess(&data.StateAccess{
 			Type:        data.Write,
 			TxHash:      []byte("hash"),
-			MainTrieKey: []byte(strconv.Itoa(1)),
+			MainTrieKey: []byte("account1"),
 			MainTrieVal: []byte("mainTrieVal1"),
 			AccountChanges: &data.AccountChanges{
 				Nonce:           false,
@@ -628,7 +620,7 @@ func TestStateAccessesCollector_GetCollectedAccesses(t *testing.T) {
 			Type:        data.Write,
 			Index:       0,
 			TxHash:      []byte("hash"),
-			MainTrieKey: []byte(strconv.Itoa(1)),
+			MainTrieKey: []byte("account1"),
 			MainTrieVal: []byte("mainTrieVal2"),
 			AccountChanges: &data.AccountChanges{
 				Nonce:           true,
@@ -651,7 +643,7 @@ func TestStateAccessesCollector_GetCollectedAccesses(t *testing.T) {
 			"hash": {
 				StateAccess: []*data.StateAccess{
 					{
-						MainTrieKey: []byte(strconv.Itoa(1)), Type: data.Write,
+						MainTrieKey: []byte("account1"), Type: data.Write,
 						TxHash: []byte("hash"), MainTrieVal: []byte("mainTrieVal2"),
 						DataTrieChanges: make([]*data.DataTrieChange, 0),
 						AccountChanges: &data.AccountChanges{
@@ -697,8 +689,18 @@ func TestStateAccessesCollector_GetCollectedAccesses(t *testing.T) {
 			UserName:        false,
 			CodeMetadata:    true,
 		}
-		var accChanges *data.AccountChanges
 
+		operations := []uint32{
+			data.NotSet,
+			data.GetCode,
+			data.SaveAccount,
+			data.GetAccount,
+			data.WriteCode,
+			data.RemoveDataTrie,
+			data.GetDataTrieValue,
+		}
+
+		var accChanges *data.AccountChanges
 		numStateChanges := 20
 		for i := 0; i < numStateChanges; i++ {
 			if i%2 == 0 {
@@ -709,7 +711,7 @@ func TestStateAccessesCollector_GetCollectedAccesses(t *testing.T) {
 					TxHash:         []byte("txHash"),
 					AccountChanges: defaultAccChanges,
 					MainTrieVal:    []byte(fmt.Sprintf("mainTrieVal%d", i)),
-					Operation:      uint32(math.Pow(2, float64(i%6))),
+					Operation:      operations[i%len(operations)],
 				})
 			} else {
 				if i == 19 {
@@ -741,7 +743,7 @@ func TestStateAccessesCollector_GetCollectedAccesses(t *testing.T) {
 						DataTrieChanges: make([]*data.DataTrieChange, 0),
 						AccountChanges:  defaultAccChanges,
 						MainTrieVal:     []byte(fmt.Sprintf("mainTrieVal%d", 18)),
-						Operation:       21,
+						Operation:       63,
 					},
 					{
 						MainTrieKey: []byte("key"), Type: data.Read, TxHash: []byte("txHash"),
