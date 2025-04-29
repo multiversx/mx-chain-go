@@ -257,11 +257,11 @@ func CreateCoreComponents(args ArgsCoreComponentsHolder) (*coreComponentsHolder,
 	}
 	instance.hardforkTriggerPubKey = pubKeyBytes
 
-	fieldsChecker, err := fieldsChecker.NewFieldsSizeChecker(instance.chainParametersHandler, hasher)
+	fchecker, err := fieldsChecker.NewFieldsSizeChecker(instance.chainParametersHandler, hasher)
 	if err != nil {
 		return nil, err
 	}
-	instance.fieldsSizeChecker = fieldsChecker
+	instance.fieldsSizeChecker = fchecker
 
 	instance.collectClosableComponents()
 
