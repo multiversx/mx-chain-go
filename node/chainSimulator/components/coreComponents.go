@@ -78,6 +78,7 @@ type coreComponentsHolder struct {
 	chainParametersSubscriber     process.ChainParametersSubscriber
 	chainParametersHandler        process.ChainParametersHandler
 	fieldsSizeChecker             common.FieldsSizeChecker
+	epochChangeGracePeriodHandler common.EpochChangeGracePeriodHandler
 }
 
 // ArgsCoreComponentsHolder will hold arguments needed for the core components holder
@@ -460,6 +461,11 @@ func (c *coreComponentsHolder) ChainParametersHandler() process.ChainParametersH
 // FieldsSizeChecker will return the fields size checker component
 func (c *coreComponentsHolder) FieldsSizeChecker() common.FieldsSizeChecker {
 	return c.fieldsSizeChecker
+}
+
+// EpochChangeGracePeriodHandler will return the epoch change grace period handler
+func (c *coreComponentsHolder) EpochChangeGracePeriodHandler() common.EpochChangeGracePeriodHandler {
+	return c.epochChangeGracePeriodHandler
 }
 
 func (c *coreComponentsHolder) collectClosableComponents() {

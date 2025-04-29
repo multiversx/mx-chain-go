@@ -7,6 +7,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/typeConverters"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/process"
@@ -17,32 +18,33 @@ import (
 
 // CoreComponentsMock -
 type CoreComponentsMock struct {
-	IntMarsh                       marshal.Marshalizer
-	TxMarsh                        marshal.Marshalizer
-	Hash                           hashing.Hasher
-	TxSignHasherField              hashing.Hasher
-	UInt64ByteSliceConv            typeConverters.Uint64ByteSliceConverter
-	AddrPubKeyConv                 core.PubkeyConverter
-	ValPubKeyConv                  core.PubkeyConverter
-	PathHdl                        storage.PathManagerHandler
-	ChainIdCalled                  func() string
-	MinTransactionVersionCalled    func() uint32
-	GenesisNodesSetupCalled        func() sharding.GenesisNodesSetupHandler
-	TxVersionCheckField            process.TxVersionCheckerHandler
-	EpochNotifierField             process.EpochNotifier
-	EnableEpochsHandlerField       common.EnableEpochsHandler
-	RoundNotifierField             process.RoundNotifier
-	EnableRoundsHandlerField       process.EnableRoundsHandler
-	RoundField                     consensus.RoundHandler
-	StatusField                    core.AppStatusHandler
-	ChanStopNode                   chan endProcess.ArgEndProcess
-	NodeTypeProviderField          core.NodeTypeProviderHandler
-	EconomicsDataField             process.EconomicsDataHandler
-	ProcessStatusHandlerField      common.ProcessStatusHandler
-	ChainParametersHandlerField    process.ChainParametersHandler
-	HardforkTriggerPubKeyField     []byte
-	ChainParametersSubscriberField process.ChainParametersSubscriber
-	FieldsSizeCheckerField         common.FieldsSizeChecker
+	IntMarsh                           marshal.Marshalizer
+	TxMarsh                            marshal.Marshalizer
+	Hash                               hashing.Hasher
+	TxSignHasherField                  hashing.Hasher
+	UInt64ByteSliceConv                typeConverters.Uint64ByteSliceConverter
+	AddrPubKeyConv                     core.PubkeyConverter
+	ValPubKeyConv                      core.PubkeyConverter
+	PathHdl                            storage.PathManagerHandler
+	ChainIdCalled                      func() string
+	MinTransactionVersionCalled        func() uint32
+	GenesisNodesSetupCalled            func() sharding.GenesisNodesSetupHandler
+	TxVersionCheckField                process.TxVersionCheckerHandler
+	EpochNotifierField                 process.EpochNotifier
+	EnableEpochsHandlerField           common.EnableEpochsHandler
+	RoundNotifierField                 process.RoundNotifier
+	EnableRoundsHandlerField           process.EnableRoundsHandler
+	RoundField                         consensus.RoundHandler
+	StatusField                        core.AppStatusHandler
+	ChanStopNode                       chan endProcess.ArgEndProcess
+	NodeTypeProviderField              core.NodeTypeProviderHandler
+	EconomicsDataField                 process.EconomicsDataHandler
+	ProcessStatusHandlerField          common.ProcessStatusHandler
+	ChainParametersHandlerField        process.ChainParametersHandler
+	HardforkTriggerPubKeyField         []byte
+	ChainParametersSubscriberField     process.ChainParametersSubscriber
+	FieldsSizeCheckerField             common.FieldsSizeChecker
+	EpochChangeGracePeriodHandlerField common.EpochChangeGracePeriodHandler
 }
 
 // ChanStopNodeProcess -
@@ -191,6 +193,11 @@ func (ccm *CoreComponentsMock) ChainParametersSubscriber() process.ChainParamete
 // FieldsSizeChecker -
 func (ccm *CoreComponentsMock) FieldsSizeChecker() common.FieldsSizeChecker {
 	return ccm.FieldsSizeCheckerField
+}
+
+// EpochChangeGracePeriodHandler -
+func (ccm *CoreComponentsMock) EpochChangeGracePeriodHandler() common.EpochChangeGracePeriodHandler {
+	return ccm.EpochChangeGracePeriodHandlerField
 }
 
 // IsInterfaceNil -
