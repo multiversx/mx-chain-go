@@ -51,6 +51,7 @@ type baseBlockTrack struct {
 	whitelistHandler                      process.WhiteListHandler
 	feeHandler                            process.FeeHandler
 	enableEpochsHandler                   common.EnableEpochsHandler
+	epochChangeGracePeriodHandler         common.EpochChangeGracePeriodHandler
 
 	mutHeaders                  sync.RWMutex
 	headers                     map[uint32]map[uint64][]*HeaderInfo
@@ -120,6 +121,7 @@ func createBaseBlockTrack(arguments ArgBaseTracker) (*baseBlockTrack, error) {
 		whitelistHandler:                      arguments.WhitelistHandler,
 		feeHandler:                            arguments.FeeHandler,
 		enableEpochsHandler:                   arguments.EnableEpochsHandler,
+		epochChangeGracePeriodHandler:         arguments.EpochChangeGracePeriodHandler,
 	}
 
 	return bbt, nil
@@ -833,6 +835,9 @@ func checkTrackerNilParameters(arguments ArgBaseTracker) error {
 	}
 	if check.IfNil(arguments.EnableEpochsHandler) {
 		return process.ErrNilEnableEpochsHandler
+	}
+	if check.IfNil(arguments.EpochChangeGracePeriodHandler) {
+		return process.ErrNilEpochChangeGracePeriodHandler
 	}
 
 	return nil
