@@ -1,6 +1,7 @@
 package stateAccesses
 
 import (
+	"bytes"
 	"encoding/hex"
 	"fmt"
 	"strings"
@@ -117,7 +118,7 @@ func (c *collector) getStateAccessesForTxs() map[string]*data.StateAccesses {
 			continue
 		}
 
-		c.stateAccessesForTxs[txHash].StateAccess = append(c.stateAccessesForTxs[txHash].StateAccess, stateAccess)
+		c.mergeStateAccessesIfSameAccount(txHash, stateAccess)
 	}
 
 	if stateAccessWithNoAssociatedTx > 0 {
@@ -127,6 +128,51 @@ func (c *collector) getStateAccessesForTxs() map[string]*data.StateAccesses {
 	logCollectedStateAccesses("state accesses for txs", c.stateAccessesForTxs)
 
 	return c.stateAccessesForTxs
+}
+
+func (c *collector) mergeStateAccessesIfSameAccount(txHash string, stateAccess *data.StateAccess) {
+	stateAccesses := c.stateAccessesForTxs[txHash].StateAccess
+	wasMerged := false
+	for i := range stateAccesses {
+		sameAccount := bytes.Equal(stateAccesses[i].MainTrieKey, stateAccess.MainTrieKey)
+		if !sameAccount {
+			continue
+		}
+		sameActionType := stateAccesses[i].Type == stateAccess.Type
+		if !sameActionType {
+			continue
+		}
+		wasMerged = true
+		stateAccesses[i].MainTrieVal = stateAccess.MainTrieVal
+		stateAccesses[i].Operation = data.MergeOperations(stateAccesses[i].Operation, stateAccess.Operation)
+		stateAccesses[i].DataTrieChanges = data.MergeDataTrieChanges(stateAccesses[i].DataTrieChanges, stateAccess.DataTrieChanges)
+		if c.withAccountChanges {
+			stateAccesses[i].AccountChanges = mergeAccountChanges(stateAccesses[i].AccountChanges, stateAccess.AccountChanges)
+		}
+	}
+	if !wasMerged {
+		c.stateAccessesForTxs[txHash].StateAccess = append(c.stateAccessesForTxs[txHash].StateAccess, stateAccess)
+	}
+}
+
+func mergeAccountChanges(accountChanges1, accountChanges2 *data.AccountChanges) *data.AccountChanges {
+	if accountChanges1 == nil {
+		return accountChanges2
+	}
+	if accountChanges2 == nil {
+		return accountChanges1
+	}
+
+	accountChanges1.Nonce = accountChanges1.Nonce || accountChanges2.Nonce
+	accountChanges1.Balance = accountChanges1.Balance || accountChanges2.Balance
+	accountChanges1.CodeHash = accountChanges1.CodeHash || accountChanges2.CodeHash
+	accountChanges1.RootHash = accountChanges1.RootHash || accountChanges2.RootHash
+	accountChanges1.DeveloperReward = accountChanges1.DeveloperReward || accountChanges2.DeveloperReward
+	accountChanges1.OwnerAddress = accountChanges1.OwnerAddress || accountChanges2.OwnerAddress
+	accountChanges1.UserName = accountChanges1.UserName || accountChanges2.UserName
+	accountChanges1.CodeMetadata = accountChanges1.CodeMetadata || accountChanges2.CodeMetadata
+
+	return accountChanges1
 }
 
 func logCollectedStateAccesses(message string, stateAccessesForTx map[string]*data.StateAccesses) {
