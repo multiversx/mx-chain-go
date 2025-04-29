@@ -1081,7 +1081,7 @@ func (pcf *processComponentsFactory) saveShardBlock(genesisBlockHash []byte, mar
 		log.Error("error storing genesis shardblock", "error", errNotCritical.Error())
 	}
 
-	hdrNonceHashDataUnit := dataRetriever.ShardHdrNonceHashDataUnit + dataRetriever.UnitType(shardID)
+	hdrNonceHashDataUnit := dataRetriever.GetHdrNonceHashDataUnit(shardID)
 	errNotCritical = pcf.data.StorageService().Put(hdrNonceHashDataUnit, nonceToByteSlice, genesisBlockHash)
 	if errNotCritical != nil {
 		log.Error("error storing genesis shard header (nonce-hash)", "error", errNotCritical.Error())
