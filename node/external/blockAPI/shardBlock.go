@@ -56,7 +56,7 @@ func (sbp *shardAPIBlockProcessor) GetBlockByNonce(nonce uint64, options api.Blo
 }
 
 func (sbp *shardAPIBlockProcessor) getBlockHashAndBytesByNonce(nonce uint64) ([]byte, []byte, error) {
-	storerUnit := dataRetriever.ShardHdrNonceHashDataUnit + dataRetriever.UnitType(sbp.selfShardID)
+	storerUnit := dataRetriever.GetHdrNonceHashDataUnit(sbp.selfShardID)
 
 	nonceToByteSlice := sbp.uint64ByteSliceConverter.ToByteSlice(nonce)
 	headerHash, err := sbp.store.Get(storerUnit, nonceToByteSlice)
@@ -108,7 +108,7 @@ func (sbp *shardAPIBlockProcessor) GetBlockByHash(hash []byte, options api.Block
 		return nil, err
 	}
 
-	storerUnit := dataRetriever.ShardHdrNonceHashDataUnit + dataRetriever.UnitType(sbp.selfShardID)
+	storerUnit := dataRetriever.GetHdrNonceHashDataUnit(sbp.selfShardID)
 
 	return sbp.computeStatusAndPutInBlock(blockAPI, storerUnit)
 }
@@ -155,7 +155,7 @@ func (sbp *shardAPIBlockProcessor) getHashAndBlockBytesFromStorerByHash(params a
 }
 
 func (sbp *shardAPIBlockProcessor) getHashAndBlockBytesFromStorerByNonce(params api.GetBlockParameters) ([]byte, []byte, error) {
-	storerUnit := dataRetriever.ShardHdrNonceHashDataUnit + dataRetriever.UnitType(sbp.selfShardID)
+	storerUnit := dataRetriever.GetHdrNonceHashDataUnit(sbp.selfShardID)
 
 	nonceToByteSlice := sbp.uint64ByteSliceConverter.ToByteSlice(params.Nonce)
 	headerHash, err := sbp.store.Get(storerUnit, nonceToByteSlice)

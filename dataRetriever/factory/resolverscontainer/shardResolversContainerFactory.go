@@ -154,7 +154,7 @@ func (srcf *shardResolversContainerFactory) generateHeaderResolvers() error {
 		return err
 	}
 
-	hdrNonceHashDataUnit := dataRetriever.ShardHdrNonceHashDataUnit + dataRetriever.UnitType(shardC.SelfId())
+	hdrNonceHashDataUnit := dataRetriever.GetHdrNonceHashDataUnit(shardC.SelfId())
 	hdrNonceStore, err := srcf.store.GetStorer(hdrNonceHashDataUnit)
 	if err != nil {
 		return err

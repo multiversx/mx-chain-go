@@ -107,7 +107,7 @@ func (mrcf *metaRequestersContainerFactory) createShardHeaderRequester(
 	}
 
 	// TODO change this data unit creation method through a factory or func
-	hdrNonceHashDataUnit := dataRetriever.ShardHdrNonceHashDataUnit + dataRetriever.UnitType(shardID)
+	hdrNonceHashDataUnit := dataRetriever.GetHdrNonceHashDataUnit(shardID)
 	hdrNonceStore, err := mrcf.store.GetStorer(hdrNonceHashDataUnit)
 	if err != nil {
 		return nil, err
