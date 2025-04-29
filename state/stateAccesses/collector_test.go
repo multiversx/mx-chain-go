@@ -428,6 +428,333 @@ func TestStateAccessesCollector_GetCollectedAccesses(t *testing.T) {
 			},
 		})
 	})
+
+	t.Run("not merging for different accounts", func(t *testing.T) {
+		t.Parallel()
+
+		c, _ := NewCollector(disabled.NewDisabledStateAccessesStorer(), WithCollectRead(), WithCollectWrite())
+		assert.Equal(t, 0, len(c.stateAccesses))
+
+		c.AddStateAccess(&data.StateAccess{
+			Type:        data.Write,
+			TxHash:      []byte("hash"),
+			MainTrieKey: []byte("account1"),
+			MainTrieVal: []byte("mainTrieVal1"),
+		})
+
+		c.AddStateAccess(&data.StateAccess{
+			Type:        data.Read,
+			Index:       0,
+			TxHash:      []byte("hash"),
+			MainTrieKey: []byte("account2"),
+			MainTrieVal: []byte("mainTrieVal2"),
+		})
+
+		stateChangesForTx := c.GetCollectedAccesses()
+
+		require.Len(t, stateChangesForTx, 1)
+		require.Len(t, stateChangesForTx["hash"].StateAccess, 2)
+
+		require.Equal(t, stateChangesForTx, map[string]*data.StateAccesses{
+			"hash": {
+				StateAccess: []*data.StateAccess{
+					{MainTrieKey: []byte("account1"), Type: data.Write, TxHash: []byte("hash"), MainTrieVal: []byte("mainTrieVal1")},
+					{MainTrieKey: []byte("account2"), Type: data.Read, TxHash: []byte("hash"), MainTrieVal: []byte("mainTrieVal2")},
+				},
+			},
+		})
+	})
+
+	t.Run("not merging for different action types", func(t *testing.T) {
+		t.Parallel()
+
+		c, _ := NewCollector(disabled.NewDisabledStateAccessesStorer(), WithCollectRead(), WithCollectWrite())
+		assert.Equal(t, 0, len(c.stateAccesses))
+
+		c.AddStateAccess(&data.StateAccess{
+			Type:        data.Write,
+			TxHash:      []byte("hash"),
+			MainTrieKey: []byte("account1"),
+			MainTrieVal: []byte("mainTrieVal1"),
+		})
+
+		c.AddStateAccess(&data.StateAccess{
+			Type:        data.Read,
+			Index:       0,
+			TxHash:      []byte("hash"),
+			MainTrieKey: []byte("account1"),
+			MainTrieVal: []byte("mainTrieVal2"),
+		})
+
+		stateChangesForTx := c.GetCollectedAccesses()
+
+		require.Len(t, stateChangesForTx, 1)
+		require.Len(t, stateChangesForTx["hash"].StateAccess, 2)
+
+		require.Equal(t, stateChangesForTx, map[string]*data.StateAccesses{
+			"hash": {
+				StateAccess: []*data.StateAccess{
+					{MainTrieKey: []byte("account1"), Type: data.Write, TxHash: []byte("hash"), MainTrieVal: []byte("mainTrieVal1")},
+					{MainTrieKey: []byte("account1"), Type: data.Read, TxHash: []byte("hash"), MainTrieVal: []byte("mainTrieVal2")},
+				},
+			},
+		})
+	})
+
+	t.Run("merging for same action types, last mainTrieVal should remain", func(t *testing.T) {
+		t.Parallel()
+
+		c, _ := NewCollector(disabled.NewDisabledStateAccessesStorer(), WithCollectRead(), WithCollectWrite())
+		assert.Equal(t, 0, len(c.stateAccesses))
+
+		c.AddStateAccess(&data.StateAccess{
+			Type:        data.Write,
+			TxHash:      []byte("hash"),
+			MainTrieKey: []byte("account1"),
+			MainTrieVal: []byte("mainTrieVal1"),
+		})
+
+		c.AddStateAccess(&data.StateAccess{
+			Type:        data.Write,
+			Index:       0,
+			TxHash:      []byte("hash"),
+			MainTrieKey: []byte("account1"),
+			MainTrieVal: []byte("mainTrieVal2"),
+		})
+
+		stateChangesForTx := c.GetCollectedAccesses()
+
+		require.Len(t, stateChangesForTx, 1)
+		require.Len(t, stateChangesForTx["hash"].StateAccess, 1)
+
+		require.Equal(t, stateChangesForTx, map[string]*data.StateAccesses{
+			"hash": {
+				StateAccess: []*data.StateAccess{
+					{
+						MainTrieKey: []byte("account1"), Type: data.Write,
+						TxHash: []byte("hash"), MainTrieVal: []byte("mainTrieVal2"),
+						DataTrieChanges: make([]*data.DataTrieChange, 0),
+					},
+				},
+			},
+		})
+	})
+
+	t.Run("merging nil account changes should return one account change", func(t *testing.T) {
+		t.Parallel()
+
+		c, _ := NewCollector(disabled.NewDisabledStateAccessesStorer(), WithCollectRead(), WithCollectWrite(), WithAccountChanges())
+		assert.Equal(t, 0, len(c.stateAccesses))
+
+		defaultAccChanges := &data.AccountChanges{
+			Nonce:           false,
+			Balance:         false,
+			CodeHash:        false,
+			RootHash:        false,
+			DeveloperReward: false,
+			OwnerAddress:    false,
+			UserName:        false,
+			CodeMetadata:    false,
+		}
+
+		c.AddStateAccess(&data.StateAccess{
+			Type:           data.Write,
+			TxHash:         []byte("hash"),
+			MainTrieKey:    []byte("account1"),
+			MainTrieVal:    []byte("mainTrieVal1"),
+			AccountChanges: defaultAccChanges,
+		})
+
+		c.AddStateAccess(&data.StateAccess{
+			Type:           data.Write,
+			Index:          0,
+			TxHash:         []byte("hash"),
+			MainTrieKey:    []byte("account1"),
+			MainTrieVal:    []byte("mainTrieVal2"),
+			AccountChanges: nil,
+		})
+
+		stateChangesForTx := c.GetCollectedAccesses()
+
+		require.Len(t, stateChangesForTx, 1)
+		require.Len(t, stateChangesForTx["hash"].StateAccess, 1)
+
+		require.Equal(t, stateChangesForTx, map[string]*data.StateAccesses{
+			"hash": {
+				StateAccess: []*data.StateAccess{
+					{
+						MainTrieKey: []byte("account1"), Type: data.Write,
+						TxHash: []byte("hash"), MainTrieVal: []byte("mainTrieVal2"),
+						DataTrieChanges: make([]*data.DataTrieChange, 0),
+						AccountChanges:  defaultAccChanges,
+					},
+				},
+			},
+		})
+	})
+
+	t.Run("merging not nil account changes should work", func(t *testing.T) {
+		t.Parallel()
+
+		c, _ := NewCollector(disabled.NewDisabledStateAccessesStorer(), WithCollectRead(), WithCollectWrite(), WithAccountChanges())
+		assert.Equal(t, 0, len(c.stateAccesses))
+
+		c.AddStateAccess(&data.StateAccess{
+			Type:        data.Write,
+			TxHash:      []byte("hash"),
+			MainTrieKey: []byte("account1"),
+			MainTrieVal: []byte("mainTrieVal1"),
+			AccountChanges: &data.AccountChanges{
+				Nonce:           false,
+				Balance:         true,
+				CodeHash:        false,
+				RootHash:        true,
+				DeveloperReward: false,
+				OwnerAddress:    true,
+				UserName:        false,
+				CodeMetadata:    true,
+			},
+		})
+
+		c.AddStateAccess(&data.StateAccess{
+			Type:        data.Write,
+			Index:       0,
+			TxHash:      []byte("hash"),
+			MainTrieKey: []byte("account1"),
+			MainTrieVal: []byte("mainTrieVal2"),
+			AccountChanges: &data.AccountChanges{
+				Nonce:           true,
+				Balance:         false,
+				CodeHash:        true,
+				RootHash:        false,
+				DeveloperReward: true,
+				OwnerAddress:    false,
+				UserName:        true,
+				CodeMetadata:    false,
+			},
+		})
+
+		stateChangesForTx := c.GetCollectedAccesses()
+
+		require.Len(t, stateChangesForTx, 1)
+		require.Len(t, stateChangesForTx["hash"].StateAccess, 1)
+
+		require.Equal(t, stateChangesForTx, map[string]*data.StateAccesses{
+			"hash": {
+				StateAccess: []*data.StateAccess{
+					{
+						MainTrieKey: []byte("account1"), Type: data.Write,
+						TxHash: []byte("hash"), MainTrieVal: []byte("mainTrieVal2"),
+						DataTrieChanges: make([]*data.DataTrieChange, 0),
+						AccountChanges: &data.AccountChanges{
+							Nonce:           true,
+							Balance:         true,
+							CodeHash:        true,
+							RootHash:        true,
+							DeveloperReward: true,
+							OwnerAddress:    true,
+							UserName:        true,
+							CodeMetadata:    true,
+						},
+					},
+				},
+			},
+		})
+	})
+
+	t.Run("merge should work", func(t *testing.T) {
+		t.Parallel()
+
+		c, _ := NewCollector(disabled.NewDisabledStateAccessesStorer(), WithCollectRead(), WithCollectWrite(), WithAccountChanges())
+		assert.Equal(t, 0, len(c.stateAccesses))
+
+		defaultAccChanges := &data.AccountChanges{
+			Nonce:           false,
+			Balance:         false,
+			CodeHash:        false,
+			RootHash:        false,
+			DeveloperReward: false,
+			OwnerAddress:    false,
+			UserName:        false,
+			CodeMetadata:    false,
+		}
+
+		modifiedAccChanges := &data.AccountChanges{
+			Nonce:           false,
+			Balance:         true,
+			CodeHash:        false,
+			RootHash:        true,
+			DeveloperReward: false,
+			OwnerAddress:    true,
+			UserName:        false,
+			CodeMetadata:    true,
+		}
+
+		operations := []uint32{
+			data.NotSet,
+			data.GetCode,
+			data.SaveAccount,
+			data.GetAccount,
+			data.WriteCode,
+			data.RemoveDataTrie,
+			data.GetDataTrieValue,
+		}
+
+		var accChanges *data.AccountChanges
+		numStateChanges := 20
+		for i := 0; i < numStateChanges; i++ {
+			if i%2 == 0 {
+				c.AddStateAccess(&data.StateAccess{
+					MainTrieKey: []byte("key"),
+					Type:        data.Write,
+					// distribute evenly based on parity of the index
+					TxHash:         []byte("txHash"),
+					AccountChanges: defaultAccChanges,
+					MainTrieVal:    []byte(fmt.Sprintf("mainTrieVal%d", i)),
+					Operation:      operations[i%len(operations)],
+				})
+			} else {
+				if i == 19 {
+					accChanges = modifiedAccChanges
+				} else {
+					accChanges = defaultAccChanges
+				}
+				c.AddStateAccess(&data.StateAccess{
+					MainTrieKey: []byte("key"),
+					Type:        data.Read,
+					// distribute evenly based on parity of the index
+					TxHash:         []byte("txHash"),
+					AccountChanges: accChanges,
+					MainTrieVal:    []byte(fmt.Sprintf("mainTrieVal%d", i)),
+				})
+			}
+		}
+
+		stateChangesForTx := c.GetCollectedAccesses()
+
+		require.Len(t, stateChangesForTx, 1)
+		require.Len(t, stateChangesForTx["txHash"].StateAccess, 2)
+
+		require.Equal(t, stateChangesForTx, map[string]*data.StateAccesses{
+			"txHash": {
+				StateAccess: []*data.StateAccess{
+					{
+						MainTrieKey: []byte("key"), Type: data.Write, TxHash: []byte("txHash"),
+						DataTrieChanges: make([]*data.DataTrieChange, 0),
+						AccountChanges:  defaultAccChanges,
+						MainTrieVal:     []byte(fmt.Sprintf("mainTrieVal%d", 18)),
+						Operation:       63,
+					},
+					{
+						MainTrieKey: []byte("key"), Type: data.Read, TxHash: []byte("txHash"),
+						DataTrieChanges: make([]*data.DataTrieChange, 0),
+						AccountChanges:  modifiedAccChanges,
+						MainTrieVal:     []byte(fmt.Sprintf("mainTrieVal%d", 19)),
+					},
+				},
+			},
+		})
+	})
 }
 
 func TestCollector_GetAccountChanges(t *testing.T) {
