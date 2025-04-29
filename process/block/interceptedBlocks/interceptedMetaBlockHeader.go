@@ -100,7 +100,7 @@ func (imh *InterceptedMetaHeader) CheckValidity() error {
 
 	defer func() {
 		elapsedTime := time.Since(startTime)
-		if elapsedTime < time.Second*2 {
+		if elapsedTime > time.Second*2 {
 			fm, err := os.Create("checkvalidity_mutex.proff")
 			if err != nil {
 				log.Error(err.Error())
