@@ -770,7 +770,7 @@ func (en *extensionNode) getNodeData(keyBuilder common.KeyBuilder) ([]common.Tri
 	data := make([]common.TrieNodeData, 1)
 	clonedKeyBuilder := keyBuilder.DeepClone()
 	clonedKeyBuilder.BuildKey(en.Key)
-	childData, err := trieNodeData.NewIntermediaryNodeData(clonedKeyBuilder, en.EncodedChild)
+	childData, err := trieNodeData.NewIntermediaryNodeData(clonedKeyBuilder, en.ChildHash)
 	if err != nil {
 		return nil, err
 	}

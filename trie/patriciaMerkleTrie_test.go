@@ -16,6 +16,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/throttler"
 	"github.com/multiversx/mx-chain-core-go/hashing/keccak"
+	"github.com/multiversx/mx-chain-core-go/marshal"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -2056,9 +2057,9 @@ func TestGetNodeDataFromHash(t *testing.T) {
 	t.Parallel()
 
 	tr := initTrie()
-	_ = tr.Update([]byte("111"), []byte("111"))
-	_ = tr.Update([]byte("aaa"), []byte("aaa"))
-	_ = tr.Commit()
+	tr.Update([]byte("111"), []byte("111"))
+	tr.Update([]byte("aaa"), []byte("aaa"))
+	_ = tr.Commit(hashesCollector.NewDisabledHashesCollector())
 
 	hashSize := 32
 	keySize := 1

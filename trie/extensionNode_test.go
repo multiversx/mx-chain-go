@@ -854,8 +854,7 @@ func TestExtensionNode_getNodeData(t *testing.T) {
 	t.Run("gets data from child", func(t *testing.T) {
 		t.Parallel()
 
-		en, _ := getEnAndCollapsedEn()
-		en, _ = en.getCollapsedEn()
+		_, en := getEnAndCollapsedEn()
 		hashSize := 32
 		keySize := 1
 
@@ -865,7 +864,7 @@ func TestExtensionNode_getNodeData(t *testing.T) {
 		assert.Equal(t, 1, len(nodeData))
 
 		assert.Equal(t, uint(1), nodeData[0].GetKeyBuilder().Size())
-		assert.Equal(t, en.EncodedChild, nodeData[0].GetData())
+		assert.Equal(t, en.ChildHash, nodeData[0].GetData())
 		assert.Equal(t, uint64(hashSize+keySize), nodeData[0].Size())
 		assert.False(t, nodeData[0].IsLeaf())
 	})

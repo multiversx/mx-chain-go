@@ -1292,11 +1292,11 @@ func TestBranchNode_getNodeData(t *testing.T) {
 		t.Parallel()
 
 		tr := initTrie()
-		_ = tr.Update([]byte("111"), []byte("111"))
-		_ = tr.Update([]byte("aaa"), []byte("aaa"))
-		_ = tr.Commit()
+		tr.Update([]byte("111"), []byte("111"))
+		tr.Update([]byte("aaa"), []byte("aaa"))
+		_ = tr.Commit(hashesCollector.NewDisabledHashesCollector())
 
-		bn, ok := tr.root.(*branchNode)
+		bn, ok := tr.GetRootNode().(*branchNode)
 		assert.True(t, ok)
 
 		hashSize := 32
@@ -1309,21 +1309,21 @@ func TestBranchNode_getNodeData(t *testing.T) {
 		// branch node as child
 		firstChildData := nodeData[0]
 		assert.Equal(t, uint(1), firstChildData.GetKeyBuilder().Size())
-		assert.Equal(t, bn.EncodedChildren[1], firstChildData.GetData())
+		assert.Equal(t, bn.ChildrenHashes[1], firstChildData.GetData())
 		assert.Equal(t, uint64(hashSize+keySize), firstChildData.Size())
 		assert.False(t, firstChildData.IsLeaf())
 
 		// leaf node as child
 		seconChildData := nodeData[1]
 		assert.Equal(t, uint(1), seconChildData.GetKeyBuilder().Size())
-		assert.Equal(t, bn.EncodedChildren[5], seconChildData.GetData())
+		assert.Equal(t, bn.ChildrenHashes[5], seconChildData.GetData())
 		assert.Equal(t, uint64(hashSize+keySize), seconChildData.Size())
 		assert.False(t, seconChildData.IsLeaf())
 
 		// extension node as child
 		thirdChildData := nodeData[2]
 		assert.Equal(t, uint(1), thirdChildData.GetKeyBuilder().Size())
-		assert.Equal(t, bn.EncodedChildren[7], thirdChildData.GetData())
+		assert.Equal(t, bn.ChildrenHashes[7], thirdChildData.GetData())
 		assert.Equal(t, uint64(hashSize+keySize), thirdChildData.Size())
 		assert.False(t, thirdChildData.IsLeaf())
 	})

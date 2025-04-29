@@ -984,14 +984,14 @@ func (bn *branchNode) getNodeData(keyBuilder common.KeyBuilder) ([]common.TrieNo
 	}
 
 	data := make([]common.TrieNodeData, 0)
-	for i := range bn.EncodedChildren {
-		if len(bn.EncodedChildren[i]) == 0 {
+	for i := range bn.ChildrenHashes {
+		if len(bn.ChildrenHashes[i]) == 0 {
 			continue
 		}
 
 		clonedKeyBuilder := keyBuilder.DeepClone()
 		clonedKeyBuilder.BuildKey([]byte{byte(i)})
-		childData, err := trieNodeData.NewIntermediaryNodeData(clonedKeyBuilder, bn.EncodedChildren[i])
+		childData, err := trieNodeData.NewIntermediaryNodeData(clonedKeyBuilder, bn.ChildrenHashes[i])
 		if err != nil {
 			return nil, err
 		}

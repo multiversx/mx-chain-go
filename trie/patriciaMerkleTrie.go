@@ -786,7 +786,7 @@ func (tr *patriciaMerkleTrie) IsMigratedToLatestVersion() (bool, error) {
 
 // GetNodeDataFromHash returns the node data for the given hash
 func GetNodeDataFromHash(hash []byte, keyBuilder common.KeyBuilder, db common.TrieStorageInteractor, msh marshal.Marshalizer, hsh hashing.Hasher) ([]common.TrieNodeData, error) {
-	n, err := getNodeFromDBAndDecode(hash, db, msh, hsh)
+	n, _, err := getNodeFromDBAndDecode(hash, db, msh, hsh)
 	if err != nil {
 		return nil, err
 	}
