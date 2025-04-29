@@ -132,7 +132,7 @@ func (msb *metaStorageBootstrapper) cleanupNotarizedStorage(metaBlockHash []byte
 			"nonce", shardHeader.GetNonce(),
 			"hash", shardHeaderHash)
 
-		hdrNonceHashDataUnit := dataRetriever.ShardHdrNonceHashDataUnit + dataRetriever.UnitType(shardHeader.GetShardID())
+		hdrNonceHashDataUnit := dataRetriever.GetHdrNonceHashDataUnit(shardHeader.GetShardID())
 		storer, err := msb.store.GetStorer(hdrNonceHashDataUnit)
 		if err != nil {
 			log.Debug("could not get storage unit",

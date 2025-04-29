@@ -346,7 +346,7 @@ func GetShardHeaderFromStorageWithNonce(
 		storageService,
 		uint64Converter,
 		marshalizer,
-		dataRetriever.ShardHdrNonceHashDataUnit+dataRetriever.UnitType(shardId))
+		dataRetriever.GetHdrNonceHashDataUnit(shardId))
 	if err != nil {
 		return nil, nil, err
 	}

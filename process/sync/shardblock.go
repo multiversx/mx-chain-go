@@ -91,7 +91,7 @@ func NewShardBootstrap(arguments ArgShardBootstrapper) (*ShardBootstrap, error) 
 		return nil, err
 	}
 
-	hdrNonceHashDataUnit := dataRetriever.ShardHdrNonceHashDataUnit + dataRetriever.UnitType(boot.shardCoordinator.SelfId())
+	hdrNonceHashDataUnit := dataRetriever.GetHdrNonceHashDataUnit(boot.shardCoordinator.SelfId())
 	base.headerNonceHashStore, err = boot.store.GetStorer(hdrNonceHashDataUnit)
 	if err != nil {
 		return nil, err
