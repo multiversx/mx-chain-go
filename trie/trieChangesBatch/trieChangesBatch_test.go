@@ -5,6 +5,7 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-go/trie/keyBuilder"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -107,9 +108,9 @@ func TestTrieChangesBatch_GetSortedDataForInsertion(t *testing.T) {
 
 	data := tcb.GetSortedDataForInsertion()
 	assert.Equal(t, 3, len(data))
-	assert.Equal(t, "key1", string(data[0].Key))
-	assert.Equal(t, "key2", string(data[1].Key))
-	assert.Equal(t, "key3", string(data[2].Key))
+	assert.Equal(t, keyBuilder.KeyBytesToHex([]byte("key1")), data[0].Key)
+	assert.Equal(t, keyBuilder.KeyBytesToHex([]byte("key2")), data[1].Key)
+	assert.Equal(t, keyBuilder.KeyBytesToHex([]byte("key3")), data[2].Key)
 }
 
 func TestTrieChangesBatch_GetSortedDataForRemoval(t *testing.T) {
@@ -127,7 +128,7 @@ func TestTrieChangesBatch_GetSortedDataForRemoval(t *testing.T) {
 
 	data := tcb.GetSortedDataForRemoval()
 	assert.Equal(t, 3, len(data))
-	assert.Equal(t, key1, string(data[0].Key))
-	assert.Equal(t, key2, string(data[1].Key))
-	assert.Equal(t, key3, string(data[2].Key))
+	assert.Equal(t, keyBuilder.KeyBytesToHex([]byte(key1)), data[0].Key)
+	assert.Equal(t, keyBuilder.KeyBytesToHex([]byte(key2)), data[1].Key)
+	assert.Equal(t, keyBuilder.KeyBytesToHex([]byte(key3)), data[2].Key)
 }

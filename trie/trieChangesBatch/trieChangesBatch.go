@@ -6,6 +6,7 @@ import (
 	"sync"
 
 	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-go/trie/keyBuilder"
 	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
@@ -107,8 +108,9 @@ func (t *trieChangesBatch) IsInterfaceNil() bool {
 
 func getSortedData(dataMap map[string]core.TrieData) []core.TrieData {
 	data := make([]core.TrieData, 0, len(dataMap))
-	for k := range dataMap {
-		data = append(data, dataMap[k])
+	for _, trieData := range dataMap {
+		trieData.Key = keyBuilder.KeyBytesToHex(trieData.Key)
+		data = append(data, trieData)
 	}
 
 	sort.Slice(data, func(i, j int) bool {
