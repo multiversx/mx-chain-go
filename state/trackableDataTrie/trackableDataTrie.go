@@ -2,7 +2,6 @@ package trackableDataTrie
 
 import (
 	"fmt"
-
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
@@ -25,7 +24,6 @@ type dirtyData struct {
 }
 
 type DataFetcher interface {
-	FetchAccount(address []byte, newAccount vmcommon.AccountHandler) (vmcommon.AccountHandler, error)
 	FetchKeyFromGateway(address []byte, key []byte) ([]byte, error)
 }
 
@@ -94,14 +92,15 @@ func (tdt *trackableDataTrie) RetrieveValue(key []byte) ([]byte, uint32, error) 
 	}
 	trieValue, depth, err := tdt.retrieveValueFromTrie(key)
 	if err != nil {
+		return nil, depth, err
+	}
+	if trieValue.Value == nil {
 		if fetcher == nil {
 			return nil, depth, err
 		}
 
 		bytes, errF := fetcher.FetchKeyFromGateway(tdt.identifier, key)
 		return bytes, 1, errF
-
-		//return nil, depth, err
 	}
 
 	val, err := tdt.getValueWithoutMetadata(key, trieValue)

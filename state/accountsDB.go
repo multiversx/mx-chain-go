@@ -594,7 +594,7 @@ func (adb *AccountsDB) removeCode(baseAcc baseAccountHandler) error {
 }
 
 type dataFetcher interface {
-	FetchAccount(address []byte, newAccount vmcommon.AccountHandler) (vmcommon.AccountHandler, error)
+	FetchAccount(address []byte, newAccount vmcommon.AccountHandler) (UserAccountHandler, error)
 }
 
 var fetcher dataFetcher
