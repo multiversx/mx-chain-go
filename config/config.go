@@ -288,6 +288,12 @@ type MultiSignerConfig struct {
 	Type        string
 }
 
+// EpochChangeGracePeriodByEpoch defines a config tuple for the epoch change grace period
+type EpochChangeGracePeriodByEpoch struct {
+	EnableEpoch         uint32
+	GracePeriodInRounds uint32
+}
+
 // GeneralSettingsConfig will hold the general settings for a node
 type GeneralSettingsConfig struct {
 	StatusPollingIntervalSec             int
@@ -301,6 +307,7 @@ type GeneralSettingsConfig struct {
 	SyncProcessTimeInMillis              uint32
 	SetGuardianEpochsDelay               uint32
 	ChainParametersByEpoch               []ChainParametersByEpochConfig
+	EpochChangeGracePeriodByEpoch        []EpochChangeGracePeriodByEpoch
 }
 
 // HardwareRequirementsConfig will hold the hardware requirements config
