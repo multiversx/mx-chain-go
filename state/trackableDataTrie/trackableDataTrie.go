@@ -38,7 +38,7 @@ type trackableDataTrie struct {
 	marshaller             marshal.Marshalizer
 	enableEpochsHandler    common.EnableEpochsHandler
 	identifier             []byte
-	StateAccessesCollector state.StateAccessesCollector
+	stateAccessesCollector state.StateAccessesCollector
 }
 
 // NewTrackableDataTrie returns an instance of trackableDataTrie
@@ -47,7 +47,7 @@ func NewTrackableDataTrie(
 	hasher hashing.Hasher,
 	marshaller marshal.Marshalizer,
 	enableEpochsHandler common.EnableEpochsHandler,
-	StateAccessesCollector state.StateAccessesCollector,
+	stateAccessesCollector state.StateAccessesCollector,
 ) (*trackableDataTrie, error) {
 	if check.IfNil(hasher) {
 		return nil, state.ErrNilHasher
@@ -58,7 +58,7 @@ func NewTrackableDataTrie(
 	if check.IfNil(enableEpochsHandler) {
 		return nil, state.ErrNilEnableEpochsHandler
 	}
-	if check.IfNil(StateAccessesCollector) {
+	if check.IfNil(stateAccessesCollector) {
 		return nil, state.ErrNilStateAccessesCollector
 	}
 
@@ -76,7 +76,7 @@ func NewTrackableDataTrie(
 		dirtyData:              make(map[string]dirtyData),
 		identifier:             identifier,
 		enableEpochsHandler:    enableEpochsHandler,
-		StateAccessesCollector: StateAccessesCollector,
+		stateAccessesCollector: stateAccessesCollector,
 	}, nil
 }
 
@@ -354,7 +354,7 @@ func (tdt *trackableDataTrie) collectReadOperation(key []byte, val []byte, versi
 			},
 		},
 	}
-	tdt.StateAccessesCollector.AddStateAccess(sc)
+	tdt.stateAccessesCollector.AddStateAccess(sc)
 }
 
 func (tdt *trackableDataTrie) retrieveValueFromTrie(key []byte) (core.TrieData, uint32, error) {

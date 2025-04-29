@@ -23,10 +23,10 @@ type collector struct {
 	stateAccesses       []*data.StateAccess
 	stateAccessesForTxs map[string]*data.StateAccesses
 	storer              state.StateAccessesStorer
-	stateChangesMut     sync.RWMutex
+	stateAccessesMut    sync.RWMutex
 }
 
-// NewCollector will collect based on the options the state changes.
+// NewCollector will create a new collector which gathers the state accesses based on the provided options.
 func NewCollector(storer state.StateAccessesStorer, opts ...CollectorOption) (*collector, error) {
 	if check.IfNil(storer) {
 		return nil, state.ErrNilStateAccessesStorer
@@ -41,7 +41,7 @@ func NewCollector(storer state.StateAccessesStorer, opts ...CollectorOption) (*c
 	}
 
 	c.storer = storer
-	log.Debug("created new state changes collector",
+	log.Debug("created new state accesses collector",
 		"withRead", c.collectRead,
 		"withWrite", c.collectWrite,
 		"withAccountChanges", c.withAccountChanges,
@@ -52,8 +52,8 @@ func NewCollector(storer state.StateAccessesStorer, opts ...CollectorOption) (*c
 
 // AddStateAccess adds a new state access to the collector
 func (c *collector) AddStateAccess(stateAccess *data.StateAccess) {
-	c.stateChangesMut.Lock()
-	defer c.stateChangesMut.Unlock()
+	c.stateAccessesMut.Lock()
+	defer c.stateAccessesMut.Unlock()
 
 	if stateAccess.GetType() == data.Write && c.collectWrite {
 		c.stateAccesses = append(c.stateAccesses, stateAccess)
@@ -73,14 +73,14 @@ func (c *collector) GetAccountChanges(oldAccount, account vmcommon.AccountHandle
 	return nil
 }
 
-// Reset resets the state changes collector
+// Reset resets the state accesses collector
 func (c *collector) Reset() {
-	c.stateChangesMut.Lock()
-	defer c.stateChangesMut.Unlock()
+	c.stateAccessesMut.Lock()
+	defer c.stateAccessesMut.Unlock()
 
 	c.stateAccesses = make([]*data.StateAccess, 0)
 	c.stateAccessesForTxs = make(map[string]*data.StateAccesses)
-	log.Trace("reset state changes collector")
+	log.Trace("reset state accesses collector")
 }
 
 // GetCollectedAccesses will return the collected state accesses
@@ -89,14 +89,14 @@ func (c *collector) GetCollectedAccesses() map[string]*data.StateAccesses {
 }
 
 func (c *collector) getStateAccessesForTxs() map[string]*data.StateAccesses {
-	c.stateChangesMut.Lock()
-	defer c.stateChangesMut.Unlock()
+	c.stateAccessesMut.Lock()
+	defer c.stateAccessesMut.Unlock()
 
 	if len(c.stateAccessesForTxs) != 0 && len(c.stateAccesses) == 0 {
 		return c.stateAccessesForTxs
 	}
 	if len(c.stateAccessesForTxs) != 0 && len(c.stateAccesses) != 0 {
-		log.Warn("state accesses already collected, but new state changes were added after")
+		log.Warn("state accesses already collected, but new state accesses were added after")
 	}
 
 	stateAccessWithNoAssociatedTx := 0
@@ -162,34 +162,34 @@ func stateAccessToString(stateAccess *data.StateAccess) string {
 	)
 }
 
-// Store will store the collected state changes if it has been configured with a storer
+// Store will call the Store method of the underlying storer, giving it the collected state accesses.
 func (c *collector) Store() error {
 	return c.storer.Store(c.getStateAccessesForTxs())
 }
 
-// AddTxHashToCollectedStateChanges will try to set txHash field to each state change
+// AddTxHashToCollectedStateAccesses will try to set txHash field to each state access
 // if the field is not already set
-func (c *collector) AddTxHashToCollectedStateChanges(txHash []byte) {
-	c.stateChangesMut.Lock()
-	defer c.stateChangesMut.Unlock()
+func (c *collector) AddTxHashToCollectedStateAccesses(txHash []byte) {
+	c.stateAccessesMut.Lock()
+	defer c.stateAccessesMut.Unlock()
 
 	for i := len(c.stateAccesses) - 1; i >= 0; i-- {
 		if len(c.stateAccesses[i].GetTxHash()) > 0 {
 			break
 		}
 
-		log.Trace("added tx hash to state change", "txHash", txHash, "index", c.stateAccesses[i].GetIndex())
+		log.Trace("added tx hash to state access", "txHash", txHash, "index", c.stateAccesses[i].GetIndex())
 		c.stateAccesses[i].TxHash = txHash
 	}
 }
 
-// SetIndexToLastStateChange will set index to the last state change
-func (c *collector) SetIndexToLastStateChange(index int) error {
-	c.stateChangesMut.Lock()
-	defer c.stateChangesMut.Unlock()
+// SetIndexToLatestStateAccesses will set the index to the latest collected state accesses
+func (c *collector) SetIndexToLatestStateAccesses(index int) error {
+	c.stateAccessesMut.Lock()
+	defer c.stateAccessesMut.Unlock()
 
 	if index < 0 {
-		return fmt.Errorf("SetIndexToLastStateChange: %w for index %v, num state changes %v", state.ErrStateChangesIndexOutOfBounds, index, len(c.stateAccesses))
+		return fmt.Errorf("SetIndexToLatestStateAccesses: %w for index %v, num state accesses %v", state.ErrStateAccessesIndexOutOfBounds, index, len(c.stateAccesses))
 	}
 
 	if len(c.stateAccesses) == 0 {
@@ -200,7 +200,7 @@ func (c *collector) SetIndexToLastStateChange(index int) error {
 		if c.stateAccesses[i].GetIndex() != 0 {
 			return nil
 		}
-		log.Trace("set index to last state change", "stateChange num", i, "index", index)
+		log.Trace("set index to last state access", "stateChange num", i, "index", index)
 		c.stateAccesses[i].Index = int32(index)
 	}
 
@@ -210,7 +210,7 @@ func (c *collector) SetIndexToLastStateChange(index int) error {
 // RevertToIndex will revert to index
 func (c *collector) RevertToIndex(index int) error {
 	if index < 0 {
-		return fmt.Errorf("RevertToIndex: %w for index %v, num state changes %v", state.ErrStateChangesIndexOutOfBounds, index, len(c.stateAccesses))
+		return fmt.Errorf("RevertToIndex: %w for index %v, num state accesses %v", state.ErrStateAccessesIndexOutOfBounds, index, len(c.stateAccesses))
 	}
 
 	if index == 0 {
@@ -218,14 +218,14 @@ func (c *collector) RevertToIndex(index int) error {
 		return nil
 	}
 
-	c.stateChangesMut.Lock()
-	defer c.stateChangesMut.Unlock()
+	c.stateAccessesMut.Lock()
+	defer c.stateAccessesMut.Unlock()
 
-	log.Trace("num state changes before revert", "num", len(c.stateAccesses))
+	log.Trace("num state accesses before revert", "num", len(c.stateAccesses))
 	for i := len(c.stateAccesses) - 1; i >= 0; i-- {
 		if c.stateAccesses[i].GetIndex() == int32(index) {
 			c.stateAccesses = c.stateAccesses[:i+1]
-			log.Trace("reverted to index", "index", index, "num state changes after revert", len(c.stateAccesses))
+			log.Trace("reverted to index", "index", index, "num state accesses after revert", len(c.stateAccesses))
 			break
 		}
 	}

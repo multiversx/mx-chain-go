@@ -29,12 +29,12 @@ func (d *disabledStateAccessesCollector) AddStateAccess(_ *data.StateAccess) {
 func (d *disabledStateAccessesCollector) Reset() {
 }
 
-// AddTxHashToCollectedStateChanges does nothing
-func (d *disabledStateAccessesCollector) AddTxHashToCollectedStateChanges(_ []byte) {
+// AddTxHashToCollectedStateAccesses does nothing
+func (d *disabledStateAccessesCollector) AddTxHashToCollectedStateAccesses(_ []byte) {
 }
 
-// SetIndexToLastStateChange -
-func (d *disabledStateAccessesCollector) SetIndexToLastStateChange(_ int) error {
+// SetIndexToLatestStateAccesses -
+func (d *disabledStateAccessesCollector) SetIndexToLatestStateAccesses(_ int) error {
 	return nil
 }
 
