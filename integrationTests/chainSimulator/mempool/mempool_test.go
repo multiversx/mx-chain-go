@@ -2,15 +2,31 @@ package mempool
 
 import (
 	"math/big"
+	"os"
 	"testing"
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
+	logger "github.com/multiversx/mx-chain-logger-go"
+	"github.com/stretchr/testify/require"
+
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/configs"
 	"github.com/multiversx/mx-chain-go/storage"
-	"github.com/stretchr/testify/require"
 )
+
+func removeANSIColorsForLoggerIfNeeded(disableAnsi bool) error {
+	if !disableAnsi {
+		return nil
+	}
+
+	err := logger.RemoveLogObserver(os.Stdout)
+	if err != nil {
+		return err
+	}
+
+	return logger.AddLogObserver(os.Stdout, &logger.PlainFormatter{})
+}
 
 func TestMempoolWithChainSimulator_Selection(t *testing.T) {
 	if testing.Short() {
@@ -20,6 +36,10 @@ func TestMempoolWithChainSimulator_Selection(t *testing.T) {
 	numSenders := 10000
 	numTransactionsPerSender := 3
 	shard := 0
+
+	// _ = removeANSIColorsForLoggerIfNeeded(true)
+	//
+	// err := logger.SetLogLevel("*:TRACE")
 
 	simulator := startChainSimulator(t, func(cfg *config.Configs) {})
 	defer simulator.Close()

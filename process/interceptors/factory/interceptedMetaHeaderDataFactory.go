@@ -5,6 +5,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/block/interceptedBlocks"
@@ -19,14 +20,15 @@ type ArgInterceptedMetaHeaderFactory struct {
 }
 
 type interceptedMetaHeaderDataFactory struct {
-	marshalizer             marshal.Marshalizer
-	hasher                  hashing.Hasher
-	shardCoordinator        sharding.Coordinator
-	headerSigVerifier       process.InterceptedHeaderSigVerifier
-	headerIntegrityVerifier process.HeaderIntegrityVerifier
-	validityAttester        process.ValidityAttester
-	epochStartTrigger       process.EpochStartTriggerHandler
-	enableEpochsHandler     common.EnableEpochsHandler
+	marshalizer                   marshal.Marshalizer
+	hasher                        hashing.Hasher
+	shardCoordinator              sharding.Coordinator
+	headerSigVerifier             process.InterceptedHeaderSigVerifier
+	headerIntegrityVerifier       process.HeaderIntegrityVerifier
+	validityAttester              process.ValidityAttester
+	epochStartTrigger             process.EpochStartTriggerHandler
+	enableEpochsHandler           common.EnableEpochsHandler
+	epochChangeGracePeriodHandler common.EpochChangeGracePeriodHandler
 }
 
 // NewInterceptedMetaHeaderDataFactory creates an instance of interceptedMetaHeaderDataFactory
@@ -45,6 +47,9 @@ func NewInterceptedMetaHeaderDataFactory(argument *ArgInterceptedMetaHeaderFacto
 	}
 	if check.IfNil(argument.CoreComponents.Hasher()) {
 		return nil, process.ErrNilHasher
+	}
+	if check.IfNil(argument.CoreComponents.EpochChangeGracePeriodHandler()) {
+		return nil, process.ErrNilEpochChangeGracePeriodHandler
 	}
 	if check.IfNil(argument.ShardCoordinator) {
 		return nil, process.ErrNilShardCoordinator
@@ -66,29 +71,31 @@ func NewInterceptedMetaHeaderDataFactory(argument *ArgInterceptedMetaHeaderFacto
 	}
 
 	return &interceptedMetaHeaderDataFactory{
-		marshalizer:             argument.CoreComponents.InternalMarshalizer(),
-		hasher:                  argument.CoreComponents.Hasher(),
-		shardCoordinator:        argument.ShardCoordinator,
-		headerSigVerifier:       argument.HeaderSigVerifier,
-		headerIntegrityVerifier: argument.HeaderIntegrityVerifier,
-		validityAttester:        argument.ValidityAttester,
-		epochStartTrigger:       argument.EpochStartTrigger,
-		enableEpochsHandler:     argument.CoreComponents.EnableEpochsHandler(),
+		marshalizer:                   argument.CoreComponents.InternalMarshalizer(),
+		hasher:                        argument.CoreComponents.Hasher(),
+		shardCoordinator:              argument.ShardCoordinator,
+		headerSigVerifier:             argument.HeaderSigVerifier,
+		headerIntegrityVerifier:       argument.HeaderIntegrityVerifier,
+		validityAttester:              argument.ValidityAttester,
+		epochStartTrigger:             argument.EpochStartTrigger,
+		enableEpochsHandler:           argument.CoreComponents.EnableEpochsHandler(),
+		epochChangeGracePeriodHandler: argument.CoreComponents.EpochChangeGracePeriodHandler(),
 	}, nil
 }
 
 // Create creates instances of InterceptedData by unmarshalling provided buffer
 func (imhdf *interceptedMetaHeaderDataFactory) Create(buff []byte, _ core.PeerID) (process.InterceptedData, error) {
 	arg := &interceptedBlocks.ArgInterceptedBlockHeader{
-		HdrBuff:                 buff,
-		Marshalizer:             imhdf.marshalizer,
-		Hasher:                  imhdf.hasher,
-		ShardCoordinator:        imhdf.shardCoordinator,
-		HeaderSigVerifier:       imhdf.headerSigVerifier,
-		HeaderIntegrityVerifier: imhdf.headerIntegrityVerifier,
-		ValidityAttester:        imhdf.validityAttester,
-		EpochStartTrigger:       imhdf.epochStartTrigger,
-		EnableEpochsHandler:     imhdf.enableEpochsHandler,
+		HdrBuff:                       buff,
+		Marshalizer:                   imhdf.marshalizer,
+		Hasher:                        imhdf.hasher,
+		ShardCoordinator:              imhdf.shardCoordinator,
+		HeaderSigVerifier:             imhdf.headerSigVerifier,
+		HeaderIntegrityVerifier:       imhdf.headerIntegrityVerifier,
+		ValidityAttester:              imhdf.validityAttester,
+		EpochStartTrigger:             imhdf.epochStartTrigger,
+		EnableEpochsHandler:           imhdf.enableEpochsHandler,
+		EpochChangeGracePeriodHandler: imhdf.epochChangeGracePeriodHandler,
 	}
 
 	return interceptedBlocks.NewInterceptedMetaHeader(arg)

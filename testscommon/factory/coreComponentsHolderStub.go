@@ -103,6 +103,7 @@ func NewCoreComponentsHolderStubFromRealComponent(coreComponents factory.CoreCom
 		ChainParametersHandlerCalled:        coreComponents.ChainParametersHandler,
 		ChainParametersSubscriberCalled:     coreComponents.ChainParametersSubscriber,
 		FieldsSizeCheckerCalled:             coreComponents.FieldsSizeChecker,
+		EpochChangeGracePeriodHandlerCalled: coreComponents.EpochChangeGracePeriodHandler,
 	}
 }
 

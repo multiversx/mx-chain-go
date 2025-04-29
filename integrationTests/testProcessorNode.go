@@ -40,6 +40,7 @@ import (
 	"github.com/multiversx/mx-chain-go/common/enablers"
 	"github.com/multiversx/mx-chain-go/common/errChan"
 	"github.com/multiversx/mx-chain-go/common/forking"
+	"github.com/multiversx/mx-chain-go/common/graceperiod"
 	"github.com/multiversx/mx-chain-go/common/ordering"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/consensus"
@@ -144,6 +145,8 @@ var hardforkPubKey = "153dae6cb3963260f309959bf285537b77ae16d82e9933147be7827f73
 
 // TestHasher represents a sha256 hasher
 var TestHasher = sha256.NewSha256()
+
+var TestEpochChangeGracePeriod, _ = graceperiod.NewEpochChangeGracePeriod([]config.EpochChangeGracePeriodByEpoch{{EnableEpoch: 0, GracePeriodInRounds: 1}})
 
 // TestTxSignHasher represents a sha3 legacy keccak 256 hasher
 var TestTxSignHasher = keccak.NewKeccak()
@@ -411,15 +414,16 @@ type TestProcessorNode struct {
 	ChainID               []byte
 	MinTransactionVersion uint32
 
-	ExportHandler            update.ExportHandler
-	WaitTime                 time.Duration
-	HistoryRepository        dblookupext.HistoryRepository
-	EpochNotifier            process.EpochNotifier
-	RoundNotifier            process.RoundNotifier
-	EnableEpochs             config.EnableEpochs
-	EnableRoundsHandler      process.EnableRoundsHandler
-	EnableEpochsHandler      common.EnableEpochsHandler
-	UseValidVmBlsSigVerifier bool
+	ExportHandler                 update.ExportHandler
+	WaitTime                      time.Duration
+	HistoryRepository             dblookupext.HistoryRepository
+	EpochNotifier                 process.EpochNotifier
+	RoundNotifier                 process.RoundNotifier
+	EnableEpochs                  config.EnableEpochs
+	EnableRoundsHandler           process.EnableRoundsHandler
+	EnableEpochsHandler           common.EnableEpochsHandler
+	EpochChangeGracePeriodHandler common.EpochChangeGracePeriodHandler
+	UseValidVmBlsSigVerifier      bool
 
 	TransactionLogProcessor process.TransactionLogProcessor
 	PeersRatingHandler      p2p.PeersRatingHandler
@@ -513,36 +517,37 @@ func newBaseTestProcessorNode(args ArgTestProcessorNode) *TestProcessorNode {
 
 	logsProcessor, _ := transactionLog.NewTxLogProcessor(transactionLog.ArgTxLogProcessor{Marshalizer: TestMarshalizer})
 	tpn := &TestProcessorNode{
-		ShardCoordinator:           shardCoordinator,
-		MainMessenger:              messenger,
-		FullArchiveMessenger:       fullArchiveMessenger,
-		NodeOperationMode:          nodeOperationMode,
-		NodesCoordinator:           nodesCoordinatorInstance,
-		ChainID:                    ChainID,
-		MinTransactionVersion:      MinTransactionVersion,
-		NodesSetup:                 nodesSetup,
-		HistoryRepository:          &dblookupextMock.HistoryRepositoryStub{},
-		EpochNotifier:              genericEpochNotifier,
-		RoundNotifier:              genericRoundNotifier,
-		EnableRoundsHandler:        enableRoundsHandler,
-		EnableEpochsHandler:        enableEpochsHandler,
-		EpochProvider:              &mock.CurrentNetworkEpochProviderStub{},
-		WasmVMChangeLocker:         &sync.RWMutex{},
-		TransactionLogProcessor:    logsProcessor,
-		Bootstrapper:               mock.NewTestBootstrapperMock(),
-		PeersRatingHandler:         peersRatingHandler,
-		MainPeerShardMapper:        mock.NewNetworkShardingCollectorMock(),
-		FullArchivePeerShardMapper: mock.NewNetworkShardingCollectorMock(),
-		EnableEpochs:               *epochsConfig,
-		UseValidVmBlsSigVerifier:   args.WithBLSSigVerifier,
-		StorageBootstrapper:        &mock.StorageBootstrapperMock{},
-		BootstrapStorer:            &mock.BoostrapStorerMock{},
-		RatingsData:                args.RatingsData,
-		EpochStartNotifier:         args.EpochStartSubscriber,
-		GuardedAccountHandler:      &guardianMocks.GuardedAccountHandlerStub{},
-		AppStatusHandler:           appStatusHandler,
-		PeersRatingMonitor:         peersRatingMonitor,
-		TxExecutionOrderHandler:    ordering.NewOrderedCollection(),
+		ShardCoordinator:              shardCoordinator,
+		MainMessenger:                 messenger,
+		FullArchiveMessenger:          fullArchiveMessenger,
+		NodeOperationMode:             nodeOperationMode,
+		NodesCoordinator:              nodesCoordinatorInstance,
+		ChainID:                       ChainID,
+		MinTransactionVersion:         MinTransactionVersion,
+		NodesSetup:                    nodesSetup,
+		HistoryRepository:             &dblookupextMock.HistoryRepositoryStub{},
+		EpochNotifier:                 genericEpochNotifier,
+		RoundNotifier:                 genericRoundNotifier,
+		EnableRoundsHandler:           enableRoundsHandler,
+		EnableEpochsHandler:           enableEpochsHandler,
+		EpochChangeGracePeriodHandler: TestEpochChangeGracePeriod,
+		EpochProvider:                 &mock.CurrentNetworkEpochProviderStub{},
+		WasmVMChangeLocker:            &sync.RWMutex{},
+		TransactionLogProcessor:       logsProcessor,
+		Bootstrapper:                  mock.NewTestBootstrapperMock(),
+		PeersRatingHandler:            peersRatingHandler,
+		MainPeerShardMapper:           mock.NewNetworkShardingCollectorMock(),
+		FullArchivePeerShardMapper:    mock.NewNetworkShardingCollectorMock(),
+		EnableEpochs:                  *epochsConfig,
+		UseValidVmBlsSigVerifier:      args.WithBLSSigVerifier,
+		StorageBootstrapper:           &mock.StorageBootstrapperMock{},
+		BootstrapStorer:               &mock.BoostrapStorerMock{},
+		RatingsData:                   args.RatingsData,
+		EpochStartNotifier:            args.EpochStartSubscriber,
+		GuardedAccountHandler:         &guardianMocks.GuardedAccountHandlerStub{},
+		AppStatusHandler:              appStatusHandler,
+		PeersRatingMonitor:            peersRatingMonitor,
+		TxExecutionOrderHandler:       ordering.NewOrderedCollection(),
 	}
 
 	tpn.NodeKeys = args.NodeKeys
@@ -3126,19 +3131,20 @@ func (tpn *TestProcessorNode) initRequestedItemsHandler() {
 
 func (tpn *TestProcessorNode) initBlockTracker() {
 	argBaseTracker := track.ArgBaseTracker{
-		Hasher:              TestHasher,
-		HeaderValidator:     tpn.HeaderValidator,
-		Marshalizer:         TestMarshalizer,
-		RequestHandler:      tpn.RequestHandler,
-		RoundHandler:        tpn.RoundHandler,
-		ShardCoordinator:    tpn.ShardCoordinator,
-		Store:               tpn.Storage,
-		StartHeaders:        tpn.GenesisBlocks,
-		PoolsHolder:         tpn.DataPool,
-		WhitelistHandler:    tpn.WhiteListHandler,
-		FeeHandler:          tpn.EconomicsData,
-		EnableEpochsHandler: tpn.EnableEpochsHandler,
-		ProofsPool:          tpn.DataPool.Proofs(),
+		Hasher:                        TestHasher,
+		HeaderValidator:               tpn.HeaderValidator,
+		Marshalizer:                   TestMarshalizer,
+		RequestHandler:                tpn.RequestHandler,
+		RoundHandler:                  tpn.RoundHandler,
+		ShardCoordinator:              tpn.ShardCoordinator,
+		Store:                         tpn.Storage,
+		StartHeaders:                  tpn.GenesisBlocks,
+		PoolsHolder:                   tpn.DataPool,
+		WhitelistHandler:              tpn.WhiteListHandler,
+		FeeHandler:                    tpn.EconomicsData,
+		EnableEpochsHandler:           tpn.EnableEpochsHandler,
+		EpochChangeGracePeriodHandler: TestEpochChangeGracePeriod,
+		ProofsPool:                    tpn.DataPool.Proofs(),
 	}
 
 	var err error
@@ -3385,22 +3391,23 @@ func GetDefaultCoreComponents(enableEpochsHandler common.EnableEpochsHandler, ep
 		MinTransactionVersionCalled: func() uint32 {
 			return 1
 		},
-		StatusHandlerField:           &statusHandlerMock.AppStatusHandlerStub{},
-		WatchdogField:                &testscommon.WatchdogMock{},
-		AlarmSchedulerField:          &testscommon.AlarmSchedulerStub{},
-		SyncTimerField:               &testscommon.SyncTimerStub{},
-		RoundHandlerField:            &testscommon.RoundHandlerMock{},
-		EconomicsDataField:           &economicsmocks.EconomicsHandlerMock{},
-		RatingsDataField:             &testscommon.RatingsInfoMock{},
-		RaterField:                   &testscommon.RaterMock{},
-		GenesisNodesSetupField:       &genesisMocks.NodesSetupStub{},
-		GenesisTimeField:             time.Time{},
-		EpochNotifierField:           epochNotifier,
-		EnableRoundsHandlerField:     &testscommon.EnableRoundsHandlerStub{},
-		TxVersionCheckField:          versioning.NewTxVersionChecker(MinTransactionVersion),
-		ProcessStatusHandlerInternal: &testscommon.ProcessStatusHandlerStub{},
-		EnableEpochsHandlerField:     enableEpochsHandler,
-		FieldsSizeCheckerField:       &testscommon.FieldsSizeCheckerMock{},
+		StatusHandlerField:                 &statusHandlerMock.AppStatusHandlerStub{},
+		WatchdogField:                      &testscommon.WatchdogMock{},
+		AlarmSchedulerField:                &testscommon.AlarmSchedulerStub{},
+		SyncTimerField:                     &testscommon.SyncTimerStub{},
+		RoundHandlerField:                  &testscommon.RoundHandlerMock{},
+		EconomicsDataField:                 &economicsmocks.EconomicsHandlerMock{},
+		RatingsDataField:                   &testscommon.RatingsInfoMock{},
+		RaterField:                         &testscommon.RaterMock{},
+		GenesisNodesSetupField:             &genesisMocks.NodesSetupStub{},
+		GenesisTimeField:                   time.Time{},
+		EpochNotifierField:                 epochNotifier,
+		EnableRoundsHandlerField:           &testscommon.EnableRoundsHandlerStub{},
+		TxVersionCheckField:                versioning.NewTxVersionChecker(MinTransactionVersion),
+		ProcessStatusHandlerInternal:       &testscommon.ProcessStatusHandlerStub{},
+		EnableEpochsHandlerField:           enableEpochsHandler,
+		EpochChangeGracePeriodHandlerField: TestEpochChangeGracePeriod,
+		FieldsSizeCheckerField:             &testscommon.FieldsSizeCheckerMock{},
 	}
 }
 
