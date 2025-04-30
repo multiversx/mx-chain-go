@@ -9,13 +9,19 @@ import (
 )
 
 func TestNewEpochChangeGracePeriod(t *testing.T) {
+	t.Parallel()
+
 	t.Run("should return error for empty config", func(t *testing.T) {
+		t.Parallel()
+
 		ecgp, err := NewEpochChangeGracePeriod(nil)
 		require.Nil(t, ecgp)
 		require.Equal(t, errEmptyGracePeriodByEpochConfig, err)
 	})
 
 	t.Run("should return error for duplicate epoch configs", func(t *testing.T) {
+		t.Parallel()
+
 		configs := []config.EpochChangeGracePeriodByEpoch{
 			{EnableEpoch: 0, GracePeriodInRounds: 10},
 			{EnableEpoch: 1, GracePeriodInRounds: 20},
@@ -27,6 +33,8 @@ func TestNewEpochChangeGracePeriod(t *testing.T) {
 	})
 
 	t.Run("should return error for missing epoch 0 config", func(t *testing.T) {
+		t.Parallel()
+
 		configs := []config.EpochChangeGracePeriodByEpoch{
 			{EnableEpoch: 1, GracePeriodInRounds: 20},
 			{EnableEpoch: 2, GracePeriodInRounds: 30},
@@ -36,7 +44,9 @@ func TestNewEpochChangeGracePeriod(t *testing.T) {
 		require.Equal(t, errMissingEpochZeroConfig, err)
 	})
 
-	t.Run("should create EpochChangeGracePeriod successfully", func(t *testing.T) {
+	t.Run("should create epochChangeGracePeriod successfully", func(t *testing.T) {
+		t.Parallel()
+
 		configs := []config.EpochChangeGracePeriodByEpoch{
 			{EnableEpoch: 0, GracePeriodInRounds: 10},
 			{EnableEpoch: 2, GracePeriodInRounds: 30},
@@ -52,6 +62,8 @@ func TestNewEpochChangeGracePeriod(t *testing.T) {
 }
 
 func TestGetGracePeriodForEpoch(t *testing.T) {
+	t.Parallel()
+
 	configs := []config.EpochChangeGracePeriodByEpoch{
 		{EnableEpoch: 0, GracePeriodInRounds: 10},
 		{EnableEpoch: 2, GracePeriodInRounds: 30},
@@ -62,24 +74,32 @@ func TestGetGracePeriodForEpoch(t *testing.T) {
 	require.NoError(t, err)
 
 	t.Run("should return correct grace period for matching epoch", func(t *testing.T) {
+		t.Parallel()
+
 		gracePeriod, err := ecgp.GetGracePeriodForEpoch(2)
 		require.NoError(t, err)
 		require.Equal(t, uint32(30), gracePeriod)
 	})
 
 	t.Run("should return grace period for closest lower epoch", func(t *testing.T) {
+		t.Parallel()
+
 		gracePeriod, err := ecgp.GetGracePeriodForEpoch(4)
 		require.NoError(t, err)
 		require.Equal(t, uint32(30), gracePeriod)
 	})
 
 	t.Run("should return grace period for higher epochs than configured", func(t *testing.T) {
+		t.Parallel()
+
 		gracePeriod, err := ecgp.GetGracePeriodForEpoch(10)
 		require.NoError(t, err)
 		require.Equal(t, uint32(50), gracePeriod)
 	})
 
 	t.Run("should return error for empty config", func(t *testing.T) {
+		t.Parallel()
+
 		cfg := []config.EpochChangeGracePeriodByEpoch{
 			{EnableEpoch: 0, GracePeriodInRounds: 10},
 		}
@@ -93,9 +113,11 @@ func TestGetGracePeriodForEpoch(t *testing.T) {
 }
 
 func TestIsInterfaceNil(t *testing.T) {
-	var ecgp *EpochChangeGracePeriod
+	t.Parallel()
+
+	var ecgp *epochChangeGracePeriod
 	require.True(t, ecgp.IsInterfaceNil())
 
-	ecgp = &EpochChangeGracePeriod{}
+	ecgp = &epochChangeGracePeriod{}
 	require.False(t, ecgp.IsInterfaceNil())
 }

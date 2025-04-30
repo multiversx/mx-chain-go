@@ -174,7 +174,7 @@ func (ccf *coreComponentsFactory) Create() (*coreComponents, error) {
 
 	epochChangeGracePeriodHandler, err := graceperiod.NewEpochChangeGracePeriod(ccf.config.GeneralSettings.EpochChangeGracePeriodByEpoch)
 	if err != nil {
-		return nil, fmt.Errorf("%w for EpochChangeGracePeriod", err)
+		return nil, fmt.Errorf("%w for epochChangeGracePeriod", err)
 	}
 
 	pathHandler, err := storageFactory.CreatePathManager(

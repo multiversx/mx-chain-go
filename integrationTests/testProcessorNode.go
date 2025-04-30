@@ -146,6 +146,7 @@ var hardforkPubKey = "153dae6cb3963260f309959bf285537b77ae16d82e9933147be7827f73
 // TestHasher represents a sha256 hasher
 var TestHasher = sha256.NewSha256()
 
+// TestEpochChangeGracePeriod represents the grace period for epoch change handler
 var TestEpochChangeGracePeriod, _ = graceperiod.NewEpochChangeGracePeriod([]config.EpochChangeGracePeriodByEpoch{{EnableEpoch: 0, GracePeriodInRounds: 1}})
 
 // TestTxSignHasher represents a sha3 legacy keccak 256 hasher

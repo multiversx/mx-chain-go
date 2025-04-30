@@ -11,14 +11,15 @@ var errEmptyGracePeriodByEpochConfig = errors.New("empty grace period by epoch c
 var errDuplicatedEpochConfig = errors.New("duplicated epoch config")
 var errMissingEpochZeroConfig = errors.New("missing configuration for epoch 0")
 
-type EpochChangeGracePeriod struct {
+// epochChangeGracePeriod holds the grace period configuration for epoch changes
+type epochChangeGracePeriod struct {
 	orderedConfigByEpoch []config.EpochChangeGracePeriodByEpoch
 }
 
-// NewEpochChangeGracePeriod creates a new instance of EpochChangeGracePeriod
+// NewEpochChangeGracePeriod creates a new instance of epochChangeGracePeriod
 func NewEpochChangeGracePeriod(
 	gracePeriodByEpoch []config.EpochChangeGracePeriodByEpoch,
-) (*EpochChangeGracePeriod, error) {
+) (*epochChangeGracePeriod, error) {
 	if len(gracePeriodByEpoch) == 0 {
 		return nil, errEmptyGracePeriodByEpochConfig
 	}
@@ -38,7 +39,7 @@ func NewEpochChangeGracePeriod(
 		return nil, errMissingEpochZeroConfig
 	}
 
-	ecgp := &EpochChangeGracePeriod{
+	ecgp := &epochChangeGracePeriod{
 		orderedConfigByEpoch: make([]config.EpochChangeGracePeriodByEpoch, len(gracePeriodByEpoch)),
 	}
 
@@ -52,7 +53,7 @@ func NewEpochChangeGracePeriod(
 }
 
 // GetGracePeriodForEpoch returns the grace period for the given epoch
-func (ecgp *EpochChangeGracePeriod) GetGracePeriodForEpoch(epoch uint32) (uint32, error) {
+func (ecgp *epochChangeGracePeriod) GetGracePeriodForEpoch(epoch uint32) (uint32, error) {
 	for i := len(ecgp.orderedConfigByEpoch) - 1; i >= 0; i-- {
 		if ecgp.orderedConfigByEpoch[i].EnableEpoch <= epoch {
 			return ecgp.orderedConfigByEpoch[i].GracePeriodInRounds, nil
@@ -63,6 +64,6 @@ func (ecgp *EpochChangeGracePeriod) GetGracePeriodForEpoch(epoch uint32) (uint32
 }
 
 // IsInterfaceNil checks if the instance is nil
-func (ecgp *EpochChangeGracePeriod) IsInterfaceNil() bool {
+func (ecgp *epochChangeGracePeriod) IsInterfaceNil() bool {
 	return ecgp == nil
 }

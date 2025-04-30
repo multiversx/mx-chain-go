@@ -49,7 +49,7 @@
     # EpochChangeGracePeriodEnableEpoch represents the configuration of different grace periods for epoch change with their activation epochs
     EpochChangeGracePeriodByEpoch = [
         {EnableEpoch = 0, GracePeriodInRounds = 1 },
-        {EnableEpoch = 8, GracePeriodInRounds = 2 }, # Andromeda epoch comes with a longer grace period
+        {EnableEpoch = 8, GracePeriodInRounds = 10 }, # Andromeda epoch comes with a longer grace period
     ]
 
 [HardwareRequirements]

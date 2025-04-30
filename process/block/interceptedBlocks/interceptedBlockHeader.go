@@ -107,6 +107,7 @@ func (inHdr *InterceptedHeader) isEpochCorrect() bool {
 	}
 	gracePeriod, err := inHdr.epochChangeGracePeriodHandler.GetGracePeriodForEpoch(inHdr.hdr.GetEpoch())
 	if err != nil {
+		log.Warn("isEpochCorrect", "epoch", inHdr.hdr.GetEpoch(), "error", err)
 		return false
 	}
 	if inHdr.hdr.GetRound() <= inHdr.epochStartTrigger.EpochFinalityAttestingRound()+uint64(gracePeriod) {

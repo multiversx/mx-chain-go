@@ -43,9 +43,6 @@ func NewInterceptedShardHeaderDataFactory(argument *ArgInterceptedDataFactory) (
 	if check.IfNil(argument.CoreComponents.Hasher()) {
 		return nil, process.ErrNilHasher
 	}
-	if check.IfNil(argument.CoreComponents.EpochChangeGracePeriodHandler()) {
-		return nil, process.ErrNilEpochChangeGracePeriodHandler
-	}
 	if check.IfNil(argument.ShardCoordinator) {
 		return nil, process.ErrNilShardCoordinator
 	}
