@@ -259,7 +259,7 @@ func (res *equivalentProofsResolver) getStorerForShard(shardID uint32) (storage.
 		return res.storage.GetStorer(dataRetriever.MetaHdrNonceHashDataUnit)
 	}
 
-	return res.storage.GetStorer(dataRetriever.ShardHdrNonceHashDataUnit)
+	return res.storage.GetStorer(dataRetriever.GetHdrNonceHashDataUnit(shardID))
 }
 
 func getHashAndShard(hashShardKey []byte) ([]byte, uint32, error) {

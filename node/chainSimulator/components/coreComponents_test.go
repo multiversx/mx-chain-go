@@ -5,8 +5,9 @@ import (
 	"testing"
 
 	"github.com/multiversx/mx-chain-core-go/data/endProcess"
-	"github.com/multiversx/mx-chain-go/testscommon/components"
 	"github.com/stretchr/testify/require"
+
+	"github.com/multiversx/mx-chain-go/testscommon/components"
 
 	"github.com/multiversx/mx-chain-go/config"
 )
@@ -53,6 +54,7 @@ func createArgsCoreComponentsHolder() ArgsCoreComponentsHolder {
 						Adaptivity:                  false,
 					},
 				},
+				EpochChangeGracePeriodByEpoch: []config.EpochChangeGracePeriodByEpoch{{EnableEpoch: 0, GracePeriodInRounds: 1}},
 			},
 			Hardfork: config.HardforkConfig{
 				PublicKeyToListenFrom: components.DummyPk,

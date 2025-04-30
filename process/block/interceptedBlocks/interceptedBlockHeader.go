@@ -19,16 +19,17 @@ var _ process.InterceptedData = (*InterceptedHeader)(nil)
 // InterceptedHeader represents the wrapper over HeaderWrapper struct.
 // It implements Newer and Hashed interfaces
 type InterceptedHeader struct {
-	hdr                 data.HeaderHandler
-	sigVerifier         process.InterceptedHeaderSigVerifier
-	integrityVerifier   process.HeaderIntegrityVerifier
-	hasher              hashing.Hasher
-	shardCoordinator    sharding.Coordinator
-	hash                []byte
-	isForCurrentShard   bool
-	validityAttester    process.ValidityAttester
-	epochStartTrigger   process.EpochStartTriggerHandler
-	enableEpochsHandler common.EnableEpochsHandler
+	hdr                           data.HeaderHandler
+	sigVerifier                   process.InterceptedHeaderSigVerifier
+	integrityVerifier             process.HeaderIntegrityVerifier
+	hasher                        hashing.Hasher
+	shardCoordinator              sharding.Coordinator
+	hash                          []byte
+	isForCurrentShard             bool
+	validityAttester              process.ValidityAttester
+	epochStartTrigger             process.EpochStartTriggerHandler
+	enableEpochsHandler           common.EnableEpochsHandler
+	epochChangeGracePeriodHandler common.EpochChangeGracePeriodHandler
 }
 
 // NewInterceptedHeader creates a new instance of InterceptedHeader struct
@@ -44,14 +45,15 @@ func NewInterceptedHeader(arg *ArgInterceptedBlockHeader) (*InterceptedHeader, e
 	}
 
 	inHdr := &InterceptedHeader{
-		hdr:                 hdr,
-		hasher:              arg.Hasher,
-		sigVerifier:         arg.HeaderSigVerifier,
-		integrityVerifier:   arg.HeaderIntegrityVerifier,
-		shardCoordinator:    arg.ShardCoordinator,
-		validityAttester:    arg.ValidityAttester,
-		epochStartTrigger:   arg.EpochStartTrigger,
-		enableEpochsHandler: arg.EnableEpochsHandler,
+		hdr:                           hdr,
+		hasher:                        arg.Hasher,
+		sigVerifier:                   arg.HeaderSigVerifier,
+		integrityVerifier:             arg.HeaderIntegrityVerifier,
+		shardCoordinator:              arg.ShardCoordinator,
+		validityAttester:              arg.ValidityAttester,
+		epochStartTrigger:             arg.EpochStartTrigger,
+		enableEpochsHandler:           arg.EnableEpochsHandler,
+		epochChangeGracePeriodHandler: arg.EpochChangeGracePeriodHandler,
 	}
 	inHdr.processFields(arg.HdrBuff)
 
@@ -110,7 +112,12 @@ func (inHdr *InterceptedHeader) isEpochCorrect() bool {
 	if inHdr.hdr.GetRound() <= inHdr.epochStartTrigger.EpochStartRound() {
 		return true
 	}
-	if inHdr.hdr.GetRound() <= inHdr.epochStartTrigger.EpochFinalityAttestingRound()+process.EpochChangeGracePeriod {
+	gracePeriod, err := inHdr.epochChangeGracePeriodHandler.GetGracePeriodForEpoch(inHdr.hdr.GetEpoch())
+	if err != nil {
+		log.Warn("isEpochCorrect", "epoch", inHdr.hdr.GetEpoch(), "error", err)
+		return false
+	}
+	if inHdr.hdr.GetRound() <= inHdr.epochStartTrigger.EpochFinalityAttestingRound()+uint64(gracePeriod) {
 		return true
 	}
 

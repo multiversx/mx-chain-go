@@ -781,7 +781,8 @@ func TestEquivalentProofsResolver_ProcessReceivedMessage(t *testing.T) {
 		}
 		args.Storage = &storageStubs.ChainStorerStub{
 			GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
-				if unitType == dataRetriever.ShardHdrNonceHashDataUnit {
+				expectedUnitType := dataRetriever.GetHdrNonceHashDataUnit(1)
+				if unitType == expectedUnitType {
 					return &storageStubs.StorerStub{
 						SearchFirstCalled: func(key []byte) ([]byte, error) {
 							return []byte("hash"), nil

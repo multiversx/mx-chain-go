@@ -14,6 +14,8 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/common/graceperiod"
+	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/block/interceptedBlocks"
 	"github.com/multiversx/mx-chain-go/process/mock"
@@ -30,15 +32,17 @@ var hdrRound = uint64(67)
 var hdrEpoch = uint32(78)
 
 func createDefaultShardArgument() *interceptedBlocks.ArgInterceptedBlockHeader {
+	gracePeriod, _ := graceperiod.NewEpochChangeGracePeriod([]config.EpochChangeGracePeriodByEpoch{{EnableEpoch: 0, GracePeriodInRounds: 1}})
 	arg := &interceptedBlocks.ArgInterceptedBlockHeader{
-		ShardCoordinator:        mock.NewOneShardCoordinatorMock(),
-		Hasher:                  testHasher,
-		Marshalizer:             testMarshalizer,
-		HeaderSigVerifier:       &consensus.HeaderSigVerifierMock{},
-		HeaderIntegrityVerifier: &mock.HeaderIntegrityVerifierStub{},
-		ValidityAttester:        &mock.ValidityAttesterStub{},
-		EpochStartTrigger:       &mock.EpochStartTriggerStub{},
-		EnableEpochsHandler:     &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		ShardCoordinator:              mock.NewOneShardCoordinatorMock(),
+		Hasher:                        testHasher,
+		Marshalizer:                   testMarshalizer,
+		HeaderSigVerifier:             &consensus.HeaderSigVerifierMock{},
+		HeaderIntegrityVerifier:       &mock.HeaderIntegrityVerifierStub{},
+		ValidityAttester:              &mock.ValidityAttesterStub{},
+		EpochStartTrigger:             &mock.EpochStartTriggerStub{},
+		EnableEpochsHandler:           &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		EpochChangeGracePeriodHandler: gracePeriod,
 	}
 
 	hdr := createMockShardHeader()
@@ -48,15 +52,17 @@ func createDefaultShardArgument() *interceptedBlocks.ArgInterceptedBlockHeader {
 }
 
 func createDefaultShardArgumentWithV2Support() *interceptedBlocks.ArgInterceptedBlockHeader {
+	gracePeriod, _ := graceperiod.NewEpochChangeGracePeriod([]config.EpochChangeGracePeriodByEpoch{{EnableEpoch: 0, GracePeriodInRounds: 1}})
 	arg := &interceptedBlocks.ArgInterceptedBlockHeader{
-		ShardCoordinator:        mock.NewOneShardCoordinatorMock(),
-		Hasher:                  testHasher,
-		Marshalizer:             &marshal.GogoProtoMarshalizer{},
-		HeaderSigVerifier:       &consensus.HeaderSigVerifierMock{},
-		HeaderIntegrityVerifier: &mock.HeaderIntegrityVerifierStub{},
-		ValidityAttester:        &mock.ValidityAttesterStub{},
-		EpochStartTrigger:       &mock.EpochStartTriggerStub{},
-		EnableEpochsHandler:     &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		ShardCoordinator:              mock.NewOneShardCoordinatorMock(),
+		Hasher:                        testHasher,
+		Marshalizer:                   &marshal.GogoProtoMarshalizer{},
+		HeaderSigVerifier:             &consensus.HeaderSigVerifierMock{},
+		HeaderIntegrityVerifier:       &mock.HeaderIntegrityVerifierStub{},
+		ValidityAttester:              &mock.ValidityAttesterStub{},
+		EpochStartTrigger:             &mock.EpochStartTriggerStub{},
+		EnableEpochsHandler:           &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		EpochChangeGracePeriodHandler: gracePeriod,
 	}
 	hdr := createMockShardHeader()
 	arg.HdrBuff, _ = arg.Marshalizer.Marshal(hdr)

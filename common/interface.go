@@ -8,6 +8,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	crypto "github.com/multiversx/mx-chain-crypto-go"
+
 	"github.com/multiversx/mx-chain-go/config"
 )
 
@@ -387,8 +388,14 @@ type HeadersPool interface {
 	GetHeaderByHash(hash []byte) (data.HeaderHandler, error)
 }
 
-// FieldsSizeChecker defines the behavior a the fields size checker common component
+// FieldsSizeChecker defines the behavior of a fields size checker common component
 type FieldsSizeChecker interface {
 	IsProofSizeValid(proof data.HeaderProofHandler) bool
+	IsInterfaceNil() bool
+}
+
+// EpochChangeGracePeriodHandler defines the behavior of a component that can return the grace period for a specific epoch
+type EpochChangeGracePeriodHandler interface {
+	GetGracePeriodForEpoch(epoch uint32) (uint32, error)
 	IsInterfaceNil() bool
 }
