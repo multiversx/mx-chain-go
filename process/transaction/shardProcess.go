@@ -197,10 +197,10 @@ func (txProc *txProcessor) ProcessTransaction(tx *transaction.Transaction) (vmco
 		txProc.pubkeyConv,
 	)
 
-	// TODO refactor to set the tx hash for the following state changes before the processing occurs
+	// TODO refactor to set the tx hash for the following state accesses before the processing occurs
 	defer func() {
-		txProc.accounts.SetTxHashForLatestStateChanges(txHash)
-		log.Debug("SetTxHashForLatestStateChanges", "txHash", txHash)
+		txProc.accounts.SetTxHashForLatestStateAccesses(txHash)
+		log.Debug("SetTxHashForLatestStateAccesses", "txHash", txHash)
 	}()
 
 	txType, dstShardTxType, isRelayedV3 := txProc.txTypeHandler.ComputeTransactionType(tx)

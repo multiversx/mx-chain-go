@@ -31,10 +31,10 @@ func NewStateAccessesStorer(storer storage.Storer, marshaller marshal.Marshalize
 
 // Store saves the state accesses for the given transactions in the given storer.
 func (sas *stateAccessesStorer) Store(stateAccessesForTxs map[string]*data.StateAccesses) error {
-	for txHash, stateChange := range stateAccessesForTxs {
-		marshalledData, err := sas.marshaller.Marshal(stateChange)
+	for txHash, stateAccess := range stateAccessesForTxs {
+		marshalledData, err := sas.marshaller.Marshal(stateAccess)
 		if err != nil {
-			return fmt.Errorf("failed to marshal state changes: %w", err)
+			return fmt.Errorf("failed to marshal state accesses: %w", err)
 		}
 
 		err = sas.storer.Put([]byte(txHash), marshalledData)

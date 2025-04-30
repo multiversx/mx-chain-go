@@ -169,8 +169,8 @@ var ErrValidatorNotFound = errors.New("validator not found")
 // ErrNilStateAccessesCollector signals that a nil state access collector has been given
 var ErrNilStateAccessesCollector = errors.New("nil state accesses collector")
 
-// ErrStateAccessesIndexOutOfBounds signals that the state changes index is out of bounds
-var ErrStateAccessesIndexOutOfBounds = errors.New("state changes index out of bounds")
+// ErrStateAccessesIndexOutOfBounds signals that the state access index is out of bounds
+var ErrStateAccessesIndexOutOfBounds = errors.New("state access index out of bounds")
 
 // ErrNilStateAccessesStorer signals that a nil state accesses storer has been given
 var ErrNilStateAccessesStorer = errors.New("nil state accesses storer")

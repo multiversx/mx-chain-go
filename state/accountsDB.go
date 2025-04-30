@@ -1157,7 +1157,7 @@ func (adb *AccountsDB) journalize(entry JournalEntry) {
 
 	err := adb.stateAccessesCollector.SetIndexToLatestStateAccesses(len(adb.entries))
 	if err != nil {
-		log.Trace("failed to set index to last state change",
+		log.Trace("failed to set index to latest state accesses",
 			"num journal entries", len(adb.entries),
 			"error", err.Error(),
 		)
@@ -1309,8 +1309,8 @@ func collectStats(
 	log.Debug(strings.Join(trieStats.ToString(), " "))
 }
 
-// SetTxHashForLatestStateChanges will return the state changes since the last call of this method
-func (adb *AccountsDB) SetTxHashForLatestStateChanges(txHash []byte) {
+// SetTxHashForLatestStateAccesses will return the state changes since the last call of this method
+func (adb *AccountsDB) SetTxHashForLatestStateAccesses(txHash []byte) {
 	adb.stateAccessesCollector.AddTxHashToCollectedStateAccesses(txHash)
 }
 

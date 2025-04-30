@@ -466,7 +466,7 @@ func stepCreateAccountWithDataTrieAndCode(
 
 	txHash := []byte("accountCreationTxHash")
 
-	adb.SetTxHashForLatestStateChanges(txHash)
+	adb.SetTxHashForLatestStateAccesses(txHash)
 	serializedAcc, _ := marshaller.Marshal(userAcc)
 	codeHash := userAcc.GetCodeHash()
 
@@ -519,7 +519,7 @@ func stepMigrateDataTrieValAndChangeCode(
 
 	txHash := []byte("accountCreationTxHash")
 
-	adb.SetTxHashForLatestStateChanges(txHash)
+	adb.SetTxHashForLatestStateAccesses(txHash)
 
 	stateChangesForTx, err := adb.ResetStateAccessesCollector()
 	assert.Nil(t, err)
@@ -2955,7 +2955,7 @@ func TestAccountsDb_Concurrent(t *testing.T) {
 	numAccounts := 100000
 	accountsAddresses := generateAccounts(t, numAccounts, adb)
 
-	adb.SetTxHashForLatestStateChanges([]byte("txHash"))
+	adb.SetTxHashForLatestStateAccesses([]byte("txHash"))
 	rootHash, _ := adb.Commit()
 
 	testAccountMethodsConcurrency(t, adb, accountsAddresses, rootHash)

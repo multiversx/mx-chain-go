@@ -128,8 +128,8 @@ func (a *accountsAdapter) GetStackDebugFirstEntry() []byte {
 	return nil
 }
 
-// SetTxHashForLatestStateChanges -
-func (a *accountsAdapter) SetTxHashForLatestStateChanges(_ []byte) {
+// SetTxHashForLatestStateAccesses -
+func (a *accountsAdapter) SetTxHashForLatestStateAccesses(_ []byte) {
 }
 
 // Close -

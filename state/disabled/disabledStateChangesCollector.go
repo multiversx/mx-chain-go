@@ -7,7 +7,7 @@ import (
 	"github.com/multiversx/mx-chain-go/state"
 )
 
-// disabledStateAccessesCollector is a state changes collector that does nothing
+// disabledStateAccessesCollector is a state accesses collector that does nothing
 type disabledStateAccessesCollector struct {
 }
 

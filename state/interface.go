@@ -91,7 +91,7 @@ type AccountsAdapter interface {
 	GetStackDebugFirstEntry() []byte
 	SetSyncer(syncer AccountsDBSyncer) error
 	StartSnapshotIfNeeded() error
-	SetTxHashForLatestStateChanges(txHash []byte)
+	SetTxHashForLatestStateAccesses(txHash []byte)
 	Close() error
 	IsInterfaceNil() bool
 }
