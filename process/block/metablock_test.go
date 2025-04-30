@@ -17,6 +17,8 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/common/graceperiod"
+	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/dataRetriever/blockchain"
 	"github.com/multiversx/mx-chain-go/process"
@@ -48,18 +50,19 @@ func createMockComponentHolders() (
 	*mock.StatusComponentsMock,
 ) {
 	mdp := initDataPool([]byte("tx_hash"))
-
+	gracePeriod, _ := graceperiod.NewEpochChangeGracePeriod([]config.EpochChangeGracePeriodByEpoch{{EnableEpoch: 0, GracePeriodInRounds: 1}})
 	coreComponents := &mock.CoreComponentsMock{
-		IntMarsh:                  &mock.MarshalizerMock{},
-		Hash:                      &mock.HasherStub{},
-		UInt64ByteSliceConv:       &mock.Uint64ByteSliceConverterMock{},
-		StatusField:               &statusHandlerMock.AppStatusHandlerStub{},
-		RoundField:                &mock.RoundHandlerMock{RoundTimeDuration: time.Second},
-		ProcessStatusHandlerField: &testscommon.ProcessStatusHandlerStub{},
-		EpochNotifierField:        &epochNotifier.EpochNotifierStub{},
-		EnableEpochsHandlerField:  enableEpochsHandlerMock.NewEnableEpochsHandlerStub(),
-		RoundNotifierField:        &epochNotifier.RoundNotifierStub{},
-		EnableRoundsHandlerField:  &testscommon.EnableRoundsHandlerStub{},
+		IntMarsh:                           &mock.MarshalizerMock{},
+		Hash:                               &mock.HasherStub{},
+		UInt64ByteSliceConv:                &mock.Uint64ByteSliceConverterMock{},
+		StatusField:                        &statusHandlerMock.AppStatusHandlerStub{},
+		RoundField:                         &mock.RoundHandlerMock{RoundTimeDuration: time.Second},
+		ProcessStatusHandlerField:          &testscommon.ProcessStatusHandlerStub{},
+		EpochNotifierField:                 &epochNotifier.EpochNotifierStub{},
+		EnableEpochsHandlerField:           enableEpochsHandlerMock.NewEnableEpochsHandlerStub(),
+		RoundNotifierField:                 &epochNotifier.RoundNotifierStub{},
+		EnableRoundsHandlerField:           &testscommon.EnableRoundsHandlerStub{},
+		EpochChangeGracePeriodHandlerField: gracePeriod,
 	}
 
 	dataComponents := &mock.DataComponentsMock{

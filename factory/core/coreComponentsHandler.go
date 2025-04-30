@@ -11,6 +11,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/typeConverters"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/errors"
@@ -621,6 +622,18 @@ func (mcc *managedCoreComponents) FieldsSizeChecker() common.FieldsSizeChecker {
 	}
 
 	return mcc.coreComponents.fieldsSizeChecker
+}
+
+// EpochChangeGracePeriodHandler returns the epoch change grace period handler component
+func (mcc *managedCoreComponents) EpochChangeGracePeriodHandler() common.EpochChangeGracePeriodHandler {
+	mcc.mutCoreComponents.RLock()
+	defer mcc.mutCoreComponents.RUnlock()
+
+	if mcc.coreComponents == nil {
+		return nil
+	}
+
+	return mcc.coreComponents.epochChangeGracePeriodHandler
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

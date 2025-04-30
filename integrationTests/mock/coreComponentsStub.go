@@ -8,6 +8,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/typeConverters"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/factory"
@@ -57,6 +58,7 @@ type CoreComponentsStub struct {
 	ChainParametersHandlerField        process.ChainParametersHandler
 	ChainParametersSubscriberField     process.ChainParametersSubscriber
 	FieldsSizeCheckerField             common.FieldsSizeChecker
+	EpochChangeGracePeriodHandlerField common.EpochChangeGracePeriodHandler
 }
 
 // Create -
@@ -275,6 +277,11 @@ func (ccs *CoreComponentsStub) ChainParametersSubscriber() process.ChainParamete
 // FieldsSizeChecker -
 func (ccs *CoreComponentsStub) FieldsSizeChecker() common.FieldsSizeChecker {
 	return ccs.FieldsSizeCheckerField
+}
+
+// EpochChangeGracePeriodHandler -
+func (ccs *CoreComponentsStub) EpochChangeGracePeriodHandler() common.EpochChangeGracePeriodHandler {
+	return ccs.EpochChangeGracePeriodHandlerField
 }
 
 // IsInterfaceNil -

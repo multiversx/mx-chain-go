@@ -104,17 +104,18 @@ type baseProcessor struct {
 	blockProcessor   blockProcessor
 	txCounter        *transactionCounter
 
-	outportHandler      outport.OutportHandler
-	outportDataProvider outport.DataProviderOutport
-	historyRepo         dblookupext.HistoryRepository
-	epochNotifier       process.EpochNotifier
-	enableEpochsHandler common.EnableEpochsHandler
-	roundNotifier       process.RoundNotifier
-	enableRoundsHandler process.EnableRoundsHandler
-	vmContainerFactory  process.VirtualMachinesContainerFactory
-	vmContainer         process.VirtualMachinesContainer
-	gasConsumedProvider gasConsumedProvider
-	economicsData       process.EconomicsDataHandler
+	outportHandler                outport.OutportHandler
+	outportDataProvider           outport.DataProviderOutport
+	historyRepo                   dblookupext.HistoryRepository
+	epochNotifier                 process.EpochNotifier
+	enableEpochsHandler           common.EnableEpochsHandler
+	roundNotifier                 process.RoundNotifier
+	enableRoundsHandler           process.EnableRoundsHandler
+	vmContainerFactory            process.VirtualMachinesContainerFactory
+	vmContainer                   process.VirtualMachinesContainer
+	gasConsumedProvider           gasConsumedProvider
+	economicsData                 process.EconomicsDataHandler
+	epochChangeGracePeriodHandler common.EpochChangeGracePeriodHandler
 
 	processDataTriesOnCommitEpoch bool
 	lastRestartNonce              uint64
@@ -582,6 +583,9 @@ func checkProcessorParameters(arguments ArgBaseProcessor) error {
 	})
 	if err != nil {
 		return err
+	}
+	if check.IfNil(arguments.CoreComponents.EpochChangeGracePeriodHandler()) {
+		return process.ErrNilEpochChangeGracePeriodHandler
 	}
 	if check.IfNil(arguments.CoreComponents.RoundNotifier()) {
 		return process.ErrNilRoundNotifier
@@ -1504,7 +1508,7 @@ func (bp *baseProcessor) saveShardHeader(header data.HeaderHandler, headerHash [
 	startTime := time.Now()
 
 	nonceToByteSlice := bp.uint64Converter.ToByteSlice(header.GetNonce())
-	hdrNonceHashDataUnit := dataRetriever.ShardHdrNonceHashDataUnit + dataRetriever.UnitType(header.GetShardID())
+	hdrNonceHashDataUnit := dataRetriever.GetHdrNonceHashDataUnit(header.GetShardID())
 
 	errNotCritical := bp.store.Put(hdrNonceHashDataUnit, nonceToByteSlice, headerHash)
 	if errNotCritical != nil {

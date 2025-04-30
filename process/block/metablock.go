@@ -124,6 +124,7 @@ func NewMetaProcessor(arguments ArgMetaProcessor) (*metaProcessor, error) {
 		enableEpochsHandler:           arguments.CoreComponents.EnableEpochsHandler(),
 		roundNotifier:                 arguments.CoreComponents.RoundNotifier(),
 		enableRoundsHandler:           arguments.CoreComponents.EnableRoundsHandler(),
+		epochChangeGracePeriodHandler: arguments.CoreComponents.EpochChangeGracePeriodHandler(),
 		vmContainerFactory:            arguments.VMContainersFactory,
 		vmContainer:                   arguments.VmContainer,
 		processDataTriesOnCommitEpoch: arguments.Config.Debug.EpochStart.ProcessDataTrieOnCommitEpoch,
@@ -714,7 +715,7 @@ func (mp *metaProcessor) RestoreBlockIntoPools(headerHandler data.HeaderHandler,
 
 		headersPool.AddHeader(hdrHash, shardHeader)
 
-		hdrNonceHashDataUnit := dataRetriever.ShardHdrNonceHashDataUnit + dataRetriever.UnitType(shardHeader.GetShardID())
+		hdrNonceHashDataUnit := dataRetriever.GetHdrNonceHashDataUnit(shardHeader.GetShardID())
 		storer, errNotCritical := mp.store.GetStorer(hdrNonceHashDataUnit)
 		if errNotCritical != nil {
 			log.Debug("storage unit not found", "unit", hdrNonceHashDataUnit, "error", errNotCritical.Error())
