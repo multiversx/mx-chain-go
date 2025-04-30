@@ -1146,6 +1146,9 @@ var ErrNilESDTGlobalSettingsHandler = errors.New("nil esdt global settings handl
 // ErrNilEnableEpochsHandler signals that a nil enable epochs handler has been provided
 var ErrNilEnableEpochsHandler = errors.New("nil enable epochs handler")
 
+// ErrNilEpochChangeGracePeriodHandler signals that a nil epoch change grace period handler has been provided
+var ErrNilEpochChangeGracePeriodHandler = errors.New("nil epoch change grace period handler")
+
 // ErrNilMultiSignerContainer signals that the given multisigner container is nil
 var ErrNilMultiSignerContainer = errors.New("nil multiSigner container")
 

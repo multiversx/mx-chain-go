@@ -4,6 +4,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/process"
@@ -13,20 +14,21 @@ import (
 // ArgBaseTracker holds all dependencies required by the process data factory in order to create
 // new instances of shard/meta block tracker
 type ArgBaseTracker struct {
-	Hasher              hashing.Hasher
-	HeaderValidator     process.HeaderConstructionValidator
-	Marshalizer         marshal.Marshalizer
-	RequestHandler      process.RequestHandler
-	RoundHandler        process.RoundHandler
-	ShardCoordinator    sharding.Coordinator
-	Store               dataRetriever.StorageService
-	StartHeaders        map[uint32]data.HeaderHandler
-	PoolsHolder         dataRetriever.PoolsHolder
-	WhitelistHandler    process.WhiteListHandler
-	FeeHandler          process.FeeHandler
-	EnableEpochsHandler common.EnableEpochsHandler
-	ProofsPool          process.ProofsPool
-	IsImportDBMode      bool
+	Hasher                        hashing.Hasher
+	HeaderValidator               process.HeaderConstructionValidator
+	Marshalizer                   marshal.Marshalizer
+	RequestHandler                process.RequestHandler
+	RoundHandler                  process.RoundHandler
+	ShardCoordinator              sharding.Coordinator
+	Store                         dataRetriever.StorageService
+	StartHeaders                  map[uint32]data.HeaderHandler
+	PoolsHolder                   dataRetriever.PoolsHolder
+	WhitelistHandler              process.WhiteListHandler
+	FeeHandler                    process.FeeHandler
+	EnableEpochsHandler           common.EnableEpochsHandler
+	ProofsPool                    process.ProofsPool
+	EpochChangeGracePeriodHandler common.EpochChangeGracePeriodHandler
+	IsImportDBMode                bool
 }
 
 // ArgShardTracker holds all dependencies required by the process data factory in order to create

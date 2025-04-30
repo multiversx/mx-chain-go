@@ -12,6 +12,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/multiversx/mx-chain-go/common/graceperiod"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/epochStart"
 	"github.com/multiversx/mx-chain-go/epochStart/mock"
@@ -141,6 +142,7 @@ func TestEpochStartMetaSyncer_SyncEpochStartMetaShouldWork(t *testing.T) {
 }
 
 func getEpochStartSyncerArgs() ArgsNewEpochStartMetaSyncer {
+	gracePeriod, _ := graceperiod.NewEpochChangeGracePeriod([]config.EpochChangeGracePeriodByEpoch{{EnableEpoch: 0, GracePeriodInRounds: 1}})
 	return ArgsNewEpochStartMetaSyncer{
 		CoreComponentsHolder: &mock.CoreComponentsMock{
 			IntMarsh:            &mock.MarshalizerMock{},
@@ -152,6 +154,7 @@ func getEpochStartSyncerArgs() ArgsNewEpochStartMetaSyncer {
 			ChainIdCalled: func() string {
 				return "chain-ID"
 			},
+			EpochChangeGracePeriodHandlerField: gracePeriod,
 		},
 		CryptoComponentsHolder: &mock.CryptoComponentsMock{
 			PubKey:   &cryptoMocks.PublicKeyStub{},
