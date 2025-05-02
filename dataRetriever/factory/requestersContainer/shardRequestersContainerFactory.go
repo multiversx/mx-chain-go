@@ -42,6 +42,7 @@ func NewShardRequestersContainerFactory(
 		numIntraShardPeers:              int(numIntraShardPeers),
 		numTotalPeers:                   int(args.RequesterConfig.NumTotalPeers),
 		numFullHistoryPeers:             int(args.RequesterConfig.NumFullHistoryPeers),
+		enableEpochsHandler:             args.EnableEpochsHandler,
 	}
 
 	err := base.checkParams()
