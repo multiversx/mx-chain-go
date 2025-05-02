@@ -17,14 +17,6 @@ import (
 // maxBuffToSendEquivalentProofs represents max buffer size to send in bytes
 const maxBuffToSendEquivalentProofs = 1 << 18 // 256KB
 
-const (
-	keySeparator   = "-"
-	expectedKeyLen = 2
-	hashIndex      = 0
-	shardIndex     = 1
-	nonceIndex     = 0
-)
-
 // ArgEquivalentProofsResolver is the argument structure used to create a new equivalent proofs resolver instance
 type ArgEquivalentProofsResolver struct {
 	ArgBaseResolver
