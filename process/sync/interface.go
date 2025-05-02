@@ -15,7 +15,6 @@ type blockBootstrapper interface {
 	getBlockBody(headerHandler data.HeaderHandler) (data.BodyHandler, error)
 	getHeaderWithHashRequestingIfMissing(hash []byte) (data.HeaderHandler, error)
 	getHeaderWithNonceRequestingIfMissing(nonce uint64) (data.HeaderHandler, error)
-	getHeaderAndProofFromPoolWithNonce(nonce uint64) (data.HeaderHandler, data.HeaderProofHandler)
 	getBlockBodyRequestingIfMissing(headerHandler data.HeaderHandler) (data.BodyHandler, error)
 	isForkTriggeredByMeta() bool
 	requestHeaderByNonce(nonce uint64)
