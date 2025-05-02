@@ -80,7 +80,8 @@ func checkArgs(args ArgEquivalentProofsRequester) error {
 	return nil
 }
 
-func (requester *equivalentProofsRequester) RequestDataFromHash(hashShardKey []byte, epoch uint32) error {
+// RequestDataFromHash requests equivalent proofs data from storage for the specified hash-shard key
+func (requester *equivalentProofsRequester) RequestDataFromHash(hashShardKey []byte, _ uint32) error {
 	requester.mutEpochHandler.RLock()
 	metaEpoch := requester.epochHandler.MetaEpoch()
 	requester.mutEpochHandler.RUnlock()
@@ -109,7 +110,7 @@ func (requester *equivalentProofsRequester) RequestDataFromHash(hashShardKey []b
 	return requester.sendToSelf(buff)
 }
 
-// RequestDataFromNonce requests equivalent proofs data from other peers for the specified nonce-shard key
+// RequestDataFromNonce requests equivalent proofs data from storage for the specified nonce-shard key
 func (requester *equivalentProofsRequester) RequestDataFromNonce(nonceShardKey []byte, epoch uint32) error {
 	headerNonce, shardID, err := common.GetNonceAndShardFromKey(nonceShardKey)
 	if err != nil {

@@ -897,7 +897,7 @@ func (rrh *resolverRequestHandler) RequestEquivalentProofByHash(headerShard uint
 
 	rrh.whiteList.Add([][]byte{headerHash})
 
-	requestKey := common.GetEquivalentProofHashShardKey(headerHash, headerShard)
+	requestKey := fmt.Sprintf("%s-%d", encodedHash, headerShard)
 	err = requester.RequestDataFromHash([]byte(requestKey), epoch)
 	if err != nil {
 		log.Debug("RequestEquivalentProofByHash.RequestDataFromHash",
