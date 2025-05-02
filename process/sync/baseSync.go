@@ -1542,17 +1542,18 @@ func (boot *baseBootstrap) requestHeaders(fromNonce uint64, toNonce uint64) {
 	defer boot.mutRequestHeaders.Unlock()
 
 	for currentNonce := fromNonce; currentNonce <= toNonce; currentNonce++ {
-		header, proof := boot.blockBootstrapper.getHeaderAndProofFromPoolWithNonce(currentNonce)
-		hasHeader := !check.IfNil(header)
-		hasProof := !check.IfNil(proof)
-		if hasHeader && hasProof {
+		hdr, hash, err := boot.getHeaderFromPoolWithNonce(currentNonce)
+		hasHeader := err == nil
+		if hasHeader && boot.hasProof(hash, hdr) {
 			continue
 		}
 
+		needsProof := boot.checkNeedsProofByNonce(currentNonce, hdr, hash)
 		if !hasHeader {
 			boot.blockBootstrapper.requestHeaderByNonce(currentNonce)
 		}
-		if !hasProof {
+
+		if needsProof {
 			boot.blockBootstrapper.requestProofByNonce(currentNonce)
 		}
 	}
