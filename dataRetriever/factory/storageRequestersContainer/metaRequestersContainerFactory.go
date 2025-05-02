@@ -1,6 +1,8 @@
 package storagerequesterscontainer
 
 import (
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/dataRetriever/factory/containers"
 	storagerequesters "github.com/multiversx/mx-chain-go/dataRetriever/storageRequesters"
@@ -69,6 +71,11 @@ func (mrcf *metaRequestersContainerFactory) Create() (dataRetriever.RequestersCo
 		factory.RewardsTransactionTopic,
 		dataRetriever.RewardTransactionUnit,
 	)
+	if err != nil {
+		return nil, err
+	}
+
+	err = mrcf.generateEquivalentProofsRequesters()
 	if err != nil {
 		return nil, err
 	}
@@ -192,6 +199,37 @@ func (mrcf *metaRequestersContainerFactory) generateRewardsRequesters(
 		requestersSlice[idx] = requester
 		keys[idx] = identifierTx
 	}
+
+	return mrcf.container.AddMultiple(keys, requestersSlice)
+}
+
+func (mrcf *metaRequestersContainerFactory) generateEquivalentProofsRequesters() error {
+	shardC := mrcf.shardCoordinator
+	noOfShards := shardC.NumberOfShards()
+
+	keys := make([]string, 0)
+	requestersSlice := make([]dataRetriever.Requester, 0)
+
+	// on meta should be one requester for each shard + one for ALL, similar as interceptors
+	for idx := uint32(0); idx < noOfShards; idx++ {
+		identifier := common.EquivalentProofsTopic + shardC.CommunicationIdentifier(idx)
+		requester, err := mrcf.createEquivalentProofsRequester(identifier)
+		if err != nil {
+			return err
+		}
+
+		requestersSlice = append(requestersSlice, requester)
+		keys = append(keys, identifier)
+	}
+
+	identifier := common.EquivalentProofsTopic + core.CommunicationIdentifierBetweenShards(core.MetachainShardId, core.AllShardId)
+	requester, err := mrcf.createEquivalentProofsRequester(identifier)
+	if err != nil {
+		return err
+	}
+
+	requestersSlice = append(requestersSlice, requester)
+	keys = append(keys, identifier)
 
 	return mrcf.container.AddMultiple(keys, requestersSlice)
 }
