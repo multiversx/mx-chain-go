@@ -5,11 +5,13 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/dataRetriever/factory/requestersContainer"
 	"github.com/multiversx/mx-chain-go/dataRetriever/mock"
 	"github.com/multiversx/mx-chain-go/p2p"
+	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/p2pmocks"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -279,5 +281,10 @@ func getArguments() requesterscontainer.FactoryArgs {
 		FullArchivePreferredPeersHolder: &p2pmocks.PeersHolderStub{},
 		PeersRatingHandler:              &p2pmocks.PeersRatingHandlerStub{},
 		SizeCheckDelta:                  0,
+		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+			IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
+				return true
+			},
+		},
 	}
 }

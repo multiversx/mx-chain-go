@@ -1547,6 +1547,7 @@ func (tpn *TestProcessorNode) initRequesters() {
 		FullArchivePreferredPeersHolder: &p2pmocks.PeersHolderStub{},
 		PeersRatingHandler:              tpn.PeersRatingHandler,
 		SizeCheckDelta:                  0,
+		EnableEpochsHandler:             tpn.EnableEpochsHandler,
 	}
 
 	if tpn.ShardCoordinator.SelfId() == core.MetachainShardId {

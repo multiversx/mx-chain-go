@@ -2,6 +2,8 @@ package requesters
 
 import (
 	"errors"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"testing"
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
@@ -152,7 +154,14 @@ func getHandler(requesterType requestHandlerType, argsBase ArgBaseRequester) (ch
 	case vInfoRequester:
 		return NewValidatorInfoRequester(ArgValidatorInfoRequester{argsBase})
 	case eqProofsRequester:
-		return NewEquivalentProofsRequester(ArgEquivalentProofsRequester{argsBase})
+		return NewEquivalentProofsRequester(ArgEquivalentProofsRequester{
+			ArgBaseRequester: argsBase,
+			EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+				IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
+					return true
+				},
+			},
+		})
 	}
 	return nil, errors.New("invalid requester type")
 }

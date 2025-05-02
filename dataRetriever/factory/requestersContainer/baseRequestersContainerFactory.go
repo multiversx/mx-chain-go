@@ -36,6 +36,7 @@ type baseRequestersContainerFactory struct {
 	mainPreferredPeersHolder        dataRetriever.PreferredPeersHolderHandler
 	fullArchivePreferredPeersHolder dataRetriever.PreferredPeersHolderHandler
 	peersRatingHandler              dataRetriever.PeersRatingHandler
+	enableEpochsHandler             common.EnableEpochsHandler
 	numCrossShardPeers              int
 	numIntraShardPeers              int
 	numTotalPeers                   int
@@ -367,6 +368,7 @@ func (brcf *baseRequestersContainerFactory) createEquivalentProofsRequester(
 			RequestSender: requestSender,
 			Marshaller:    brcf.marshaller,
 		},
+		EnableEpochsHandler: brcf.enableEpochsHandler,
 	}
 	return requesters.NewEquivalentProofsRequester(arg)
 }
