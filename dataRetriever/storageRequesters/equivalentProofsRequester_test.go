@@ -1,6 +1,8 @@
 package storagerequesters
 
 import (
+	"testing"
+
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data/endProcess"
 	"github.com/multiversx/mx-chain-go/common"
@@ -12,7 +14,6 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/p2pmocks"
 	"github.com/multiversx/mx-chain-go/testscommon/storage"
 	"github.com/stretchr/testify/require"
-	"testing"
 )
 
 func createMockArgEquivalentProofsRequester() ArgEquivalentProofsRequester {

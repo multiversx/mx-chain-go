@@ -83,7 +83,7 @@ func checkArgs(args ArgEquivalentProofsRequester) error {
 
 // RequestDataFromHash requests equivalent proofs data from storage for the specified hash-shard key
 func (requester *equivalentProofsRequester) RequestDataFromHash(hashShardKey []byte, epoch uint32) error {
-	if !requester.enableEpochsHandler.IsFlagEnabledInEpoch(common.AndromedaFlag, epoch+1) {
+	if !requester.enableEpochsHandler.IsFlagEnabledInEpoch(common.AndromedaFlag, epoch) {
 		return nil
 	}
 
@@ -107,7 +107,7 @@ func (requester *equivalentProofsRequester) RequestDataFromHash(hashShardKey []b
 
 // RequestDataFromNonce requests equivalent proofs data from storage for the specified nonce-shard key
 func (requester *equivalentProofsRequester) RequestDataFromNonce(nonceShardKey []byte, epoch uint32) error {
-	if !requester.enableEpochsHandler.IsFlagEnabledInEpoch(common.AndromedaFlag, epoch+1) {
+	if !requester.enableEpochsHandler.IsFlagEnabledInEpoch(common.AndromedaFlag, epoch) {
 		return nil
 	}
 
