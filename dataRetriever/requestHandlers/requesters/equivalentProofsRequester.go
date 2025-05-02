@@ -62,7 +62,7 @@ func (requester *equivalentProofsRequester) RequestDataFromHashArray(hashes [][]
 
 // RequestDataFromNonce requests equivalent proofs data from other peers for the specified nonce-shard key
 func (requester *equivalentProofsRequester) RequestDataFromNonce(nonceShardKey []byte, epoch uint32) error {
-	if !requester.enableEpochsHandler.IsFlagEnabledInEpoch(common.AndromedaFlag, epoch+1) {
+	if !requester.enableEpochsHandler.IsFlagEnabledInEpoch(common.AndromedaFlag, epoch) {
 		return nil
 	}
 
