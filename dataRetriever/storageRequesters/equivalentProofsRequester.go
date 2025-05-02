@@ -8,9 +8,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
-	"github.com/multiversx/mx-chain-go/dataRetriever/resolvers/epochproviders/disabled"
 	"github.com/multiversx/mx-chain-go/storage"
-	"sync"
 	"time"
 )
 
@@ -24,15 +22,15 @@ type ArgEquivalentProofsRequester struct {
 	NonceConverter           typeConverters.Uint64ByteSliceConverter
 	Storage                  dataRetriever.StorageService
 	Marshaller               marshal.Marshalizer
+	EnableEpochsHandler      core.EnableEpochsHandler
 }
 
 type equivalentProofsRequester struct {
 	*storageRequester
-	nonceConverter  typeConverters.Uint64ByteSliceConverter
-	storage         dataRetriever.StorageService
-	marshaller      marshal.Marshalizer
-	mutEpochHandler sync.RWMutex
-	epochHandler    dataRetriever.EpochHandler
+	nonceConverter      typeConverters.Uint64ByteSliceConverter
+	storage             dataRetriever.StorageService
+	marshaller          marshal.Marshalizer
+	enableEpochsHandler core.EnableEpochsHandler
 }
 
 // NewEquivalentProofsRequester returns a new instance of equivalent proofs requester
@@ -50,10 +48,10 @@ func NewEquivalentProofsRequester(args ArgEquivalentProofsRequester) (*equivalen
 			chanGracefullyClose:      args.ChanGracefullyClose,
 			delayBeforeGracefulClose: args.DelayBeforeGracefulClose,
 		},
-		nonceConverter: args.NonceConverter,
-		storage:        args.Storage,
-		marshaller:     args.Marshaller,
-		epochHandler:   disabled.NewEpochHandler(),
+		nonceConverter:      args.NonceConverter,
+		storage:             args.Storage,
+		marshaller:          args.Marshaller,
+		enableEpochsHandler: args.EnableEpochsHandler,
 	}, nil
 }
 
@@ -76,34 +74,31 @@ func checkArgs(args ArgEquivalentProofsRequester) error {
 	if check.IfNil(args.Marshaller) {
 		return dataRetriever.ErrNilMarshalizer
 	}
+	if check.IfNil(args.EnableEpochsHandler) {
+		return dataRetriever.ErrNilEnableEpochsHandler
+	}
 
 	return nil
 }
 
 // RequestDataFromHash requests equivalent proofs data from storage for the specified hash-shard key
-func (requester *equivalentProofsRequester) RequestDataFromHash(hashShardKey []byte, _ uint32) error {
-	requester.mutEpochHandler.RLock()
-	metaEpoch := requester.epochHandler.MetaEpoch()
-	requester.mutEpochHandler.RUnlock()
-
-	requester.manualEpochStartNotifier.NewEpoch(metaEpoch + 1)
-	requester.manualEpochStartNotifier.NewEpoch(metaEpoch + 2)
+func (requester *equivalentProofsRequester) RequestDataFromHash(hashShardKey []byte, epoch uint32) error {
+	if !requester.enableEpochsHandler.IsFlagEnabledInEpoch(common.AndromedaFlag, epoch) {
+		return nil
+	}
 
 	headerHash, _, err := common.GetHashAndShardFromKey(hashShardKey)
 	if err != nil {
-		requester.signalGracefullyClose()
 		return err
 	}
 
 	equivalentProofsStorage, err := requester.storage.GetStorer(dataRetriever.ProofsUnit)
 	if err != nil {
-		requester.signalGracefullyClose()
 		return err
 	}
 
 	buff, err := equivalentProofsStorage.SearchFirst(headerHash)
 	if err != nil {
-		requester.signalGracefullyClose()
 		return err
 	}
 
@@ -112,21 +107,22 @@ func (requester *equivalentProofsRequester) RequestDataFromHash(hashShardKey []b
 
 // RequestDataFromNonce requests equivalent proofs data from storage for the specified nonce-shard key
 func (requester *equivalentProofsRequester) RequestDataFromNonce(nonceShardKey []byte, epoch uint32) error {
+	if !requester.enableEpochsHandler.IsFlagEnabledInEpoch(common.AndromedaFlag, epoch) {
+		return nil
+	}
+
 	headerNonce, shardID, err := common.GetNonceAndShardFromKey(nonceShardKey)
 	if err != nil {
-		requester.signalGracefullyClose()
 		return err
 	}
 	storer, err := requester.getStorerForShard(shardID)
 	if err != nil {
-		requester.signalGracefullyClose()
 		return err
 	}
 
 	nonceKey := requester.nonceConverter.ToByteSlice(headerNonce)
 	hash, err := storer.SearchFirst(nonceKey)
 	if err != nil {
-		requester.signalGracefullyClose()
 		return err
 	}
 

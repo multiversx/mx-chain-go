@@ -1298,6 +1298,7 @@ func (e *epochStartBootstrap) createRequestHandler() error {
 		FullArchivePreferredPeersHolder: disabled.NewPreferredPeersHolder(),
 		PeersRatingHandler:              disabled.NewDisabledPeersRatingHandler(),
 		SizeCheckDelta:                  0,
+		EnableEpochsHandler:             e.enableEpochsHandler,
 	}
 	requestersFactory, err := requesterscontainer.NewMetaRequestersContainerFactory(requestersContainerArgs)
 	if err != nil {
