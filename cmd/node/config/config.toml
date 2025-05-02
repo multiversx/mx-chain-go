@@ -46,6 +46,12 @@
         { EnableEpoch = 8, RoundDuration = 6000, ShardConsensusGroupSize = 10, ShardMinNumNodes = 10, MetachainConsensusGroupSize = 10, MetachainMinNumNodes = 10, Hysteresis = 0.2, Adaptivity = false }
     ]
 
+    # EpochChangeGracePeriodEnableEpoch represents the configuration of different grace periods for epoch change with their activation epochs
+    EpochChangeGracePeriodByEpoch = [
+        {EnableEpoch = 0, GracePeriodInRounds = 1 },
+        {EnableEpoch = 8, GracePeriodInRounds = 10 }, # Andromeda epoch comes with a longer grace period
+    ]
+
 [HardwareRequirements]
     CPUFlags = ["SSE4", "SSE42"]
 

@@ -23,6 +23,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/common/graceperiod"
 	"github.com/multiversx/mx-chain-go/common/statistics"
 	disabledStatistics "github.com/multiversx/mx-chain-go/common/statistics/disabled"
 	"github.com/multiversx/mx-chain-go/config"
@@ -85,6 +86,9 @@ func createComponentsForEpochStart() (*mock.CoreComponentsMock, *mock.CryptoComp
 			}
 		},
 	}
+
+	gracePeriod, _ := graceperiod.NewEpochChangeGracePeriod([]config.EpochChangeGracePeriodByEpoch{{EnableEpoch: 0, GracePeriodInRounds: 1}})
+
 	return &mock.CoreComponentsMock{
 			IntMarsh:                     &mock.MarshalizerMock{},
 			Marsh:                        &mock.MarshalizerMock{},
@@ -106,7 +110,8 @@ func createComponentsForEpochStart() (*mock.CoreComponentsMock, *mock.CryptoComp
 					return 0
 				},
 			},
-			ChainParametersHandlerField: chainParams,
+			EpochChangeGracePeriodHandlerField: gracePeriod,
+			ChainParametersHandlerField:        chainParams,
 		},
 		&mock.CryptoComponentsMock{
 			PubKey:          &cryptoMocks.PublicKeyStub{},

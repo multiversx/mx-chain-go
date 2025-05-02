@@ -6,26 +6,31 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/stretchr/testify/assert"
+
+	"github.com/multiversx/mx-chain-go/common/graceperiod"
+	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/mock"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/consensus"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
-	"github.com/stretchr/testify/assert"
 )
 
 func createDefaultBlockHeaderArgument() *ArgInterceptedBlockHeader {
+	gracePeriod, _ := graceperiod.NewEpochChangeGracePeriod([]config.EpochChangeGracePeriodByEpoch{{EnableEpoch: 0, GracePeriodInRounds: 1}})
 	arg := &ArgInterceptedBlockHeader{
-		ShardCoordinator:        mock.NewOneShardCoordinatorMock(),
-		Hasher:                  &hashingMocks.HasherMock{},
-		Marshalizer:             &mock.MarshalizerMock{},
-		HdrBuff:                 []byte("test buffer"),
-		HeaderSigVerifier:       &consensus.HeaderSigVerifierMock{},
-		HeaderIntegrityVerifier: &mock.HeaderIntegrityVerifierStub{},
-		ValidityAttester:        &mock.ValidityAttesterStub{},
-		EpochStartTrigger:       &mock.EpochStartTriggerStub{},
-		EnableEpochsHandler:     &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		ShardCoordinator:              mock.NewOneShardCoordinatorMock(),
+		Hasher:                        &hashingMocks.HasherMock{},
+		Marshalizer:                   &mock.MarshalizerMock{},
+		HdrBuff:                       []byte("test buffer"),
+		HeaderSigVerifier:             &consensus.HeaderSigVerifierMock{},
+		HeaderIntegrityVerifier:       &mock.HeaderIntegrityVerifierStub{},
+		ValidityAttester:              &mock.ValidityAttesterStub{},
+		EpochStartTrigger:             &mock.EpochStartTriggerStub{},
+		EnableEpochsHandler:           &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		EpochChangeGracePeriodHandler: gracePeriod,
 	}
 
 	return arg
@@ -65,7 +70,7 @@ func createDefaultHeaderHandler() *testscommon.HeaderHandlerStub {
 	}
 }
 
-//-------- checkBlockHeaderArgument
+// -------- checkBlockHeaderArgument
 
 func TestCheckBlockHeaderArgument_NilArgumentShouldErr(t *testing.T) {
 	t.Parallel()
@@ -184,7 +189,7 @@ func TestCheckBlockHeaderArgument_ShouldWork(t *testing.T) {
 	assert.Nil(t, err)
 }
 
-//-------- checkMiniblockArgument
+// -------- checkMiniblockArgument
 
 func TestCheckMiniblockArgument_NilArgumentShouldErr(t *testing.T) {
 	t.Parallel()
@@ -248,7 +253,7 @@ func TestCheckMiniblockArgument_ShouldWork(t *testing.T) {
 	assert.Nil(t, err)
 }
 
-//-------- checkHeaderHandler
+// -------- checkHeaderHandler
 
 func TestCheckHeaderHandler_NilPubKeysBitmapShouldErr(t *testing.T) {
 	t.Parallel()
@@ -351,7 +356,7 @@ func TestCheckHeaderHandler_ShouldWork(t *testing.T) {
 	assert.Nil(t, err)
 }
 
-//------- checkMetaShardInfo
+// ------- checkMetaShardInfo
 
 func TestCheckMetaShardInfo_WithNilOrEmptyShouldReturnNil(t *testing.T) {
 	t.Parallel()
@@ -549,7 +554,7 @@ func TestCheckMetaShardInfo_WithMultipleShardData(t *testing.T) {
 	})
 }
 
-//------- checkMiniBlocksHeaders
+// ------- checkMiniBlocksHeaders
 
 func TestCheckMiniBlocksHeaders_WithNilOrEmptyShouldReturnNil(t *testing.T) {
 	t.Parallel()
