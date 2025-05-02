@@ -1,15 +1,12 @@
 package resolvers
 
 import (
-	"encoding/hex"
 	"fmt"
-	"strconv"
-	"strings"
-
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data/batch"
 	"github.com/multiversx/mx-chain-core-go/data/typeConverters"
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/p2p"
 	"github.com/multiversx/mx-chain-go/process/interceptors/processor"
@@ -134,7 +131,7 @@ func (res *equivalentProofsResolver) ProcessReceivedMessage(message p2p.MessageP
 
 // resolveHashRequest sends the response for a hash request
 func (res *equivalentProofsResolver) resolveHashRequest(hashShardKey []byte, epoch uint32, pid core.PeerID, source p2p.MessageHandler) error {
-	headerHash, shardID, err := getHashAndShard(hashShardKey)
+	headerHash, shardID, err := common.GetHashAndShardFromKey(hashShardKey)
 	if err != nil {
 		return fmt.Errorf("resolveHashRequest.getHashAndShard error %w", err)
 	}
@@ -195,7 +192,7 @@ func (res *equivalentProofsResolver) sendEquivalentProofsForHashes(dataBuff [][]
 func (res *equivalentProofsResolver) fetchEquivalentProofsSlicesForHeaders(hashShardKeys [][]byte, epoch uint32) ([][]byte, error) {
 	equivalentProofs := make([][]byte, 0)
 	for _, hashShardKey := range hashShardKeys {
-		headerHash, shardID, err := getHashAndShard(hashShardKey)
+		headerHash, shardID, err := common.GetHashAndShardFromKey(hashShardKey)
 		if err != nil {
 			return nil, err
 		}
@@ -225,7 +222,7 @@ func (res *equivalentProofsResolver) fetchEquivalentProofAsByteSlice(headerHash 
 
 // fetchEquivalentProofFromNonceAsByteSlice returns the value from equivalent proofs pool or storage if exists
 func (res *equivalentProofsResolver) fetchEquivalentProofFromNonceAsByteSlice(nonceShardKey []byte, epoch uint32) ([]byte, error) {
-	headerNonce, shardID, err := getNonceAndShard(nonceShardKey)
+	headerNonce, shardID, err := common.GetNonceAndShardFromKey(nonceShardKey)
 	if err != nil {
 		return nil, fmt.Errorf("fetchEquivalentProofFromNonceAsByteSlice.getNonceAndShard error %w", err)
 	}
@@ -260,46 +257,6 @@ func (res *equivalentProofsResolver) getStorerForShard(shardID uint32) (storage.
 	}
 
 	return res.storage.GetStorer(dataRetriever.GetHdrNonceHashDataUnit(shardID))
-}
-
-func getHashAndShard(hashShardKey []byte) ([]byte, uint32, error) {
-	hashShardKeyStr := string(hashShardKey)
-	result := strings.Split(hashShardKeyStr, keySeparator)
-	if len(result) != expectedKeyLen {
-		return nil, 0, dataRetriever.ErrInvalidHashShardKey
-	}
-
-	hash, err := hex.DecodeString(result[hashIndex])
-	if err != nil {
-		return nil, 0, err
-	}
-
-	shard, err := strconv.Atoi(result[shardIndex])
-	if err != nil {
-		return nil, 0, err
-	}
-
-	return hash, uint32(shard), nil
-}
-
-func getNonceAndShard(nonceShardKey []byte) (uint64, uint32, error) {
-	nonceShardKeyStr := string(nonceShardKey)
-	result := strings.Split(nonceShardKeyStr, keySeparator)
-	if len(result) != expectedKeyLen {
-		return 0, 0, dataRetriever.ErrInvalidNonceShardKey
-	}
-
-	nonce, err := strconv.Atoi(result[nonceIndex])
-	if err != nil {
-		return 0, 0, err
-	}
-
-	shard, err := strconv.Atoi(result[shardIndex])
-	if err != nil {
-		return 0, 0, err
-	}
-
-	return uint64(nonce), uint32(shard), nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

@@ -1,0 +1,147 @@
+package storagerequesters
+
+import (
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/data/endProcess"
+	"github.com/multiversx/mx-chain-core-go/data/typeConverters"
+	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/dataRetriever"
+	"github.com/multiversx/mx-chain-go/dataRetriever/resolvers/epochproviders/disabled"
+	"github.com/multiversx/mx-chain-go/storage"
+	"sync"
+	"time"
+)
+
+// ArgEquivalentProofsRequester is the argument structure used to create a new equivalent proofs requester instance
+type ArgEquivalentProofsRequester struct {
+	Messenger                dataRetriever.MessageHandler
+	ResponseTopicName        string
+	ManualEpochStartNotifier dataRetriever.ManualEpochStartNotifier
+	ChanGracefullyClose      chan endProcess.ArgEndProcess
+	DelayBeforeGracefulClose time.Duration
+	NonceConverter           typeConverters.Uint64ByteSliceConverter
+	Storage                  dataRetriever.StorageService
+	Marshaller               marshal.Marshalizer
+}
+
+type equivalentProofsRequester struct {
+	*storageRequester
+	nonceConverter  typeConverters.Uint64ByteSliceConverter
+	storage         dataRetriever.StorageService
+	marshaller      marshal.Marshalizer
+	mutEpochHandler sync.RWMutex
+	epochHandler    dataRetriever.EpochHandler
+}
+
+// NewEquivalentProofsRequester returns a new instance of equivalent proofs requester
+func NewEquivalentProofsRequester(args ArgEquivalentProofsRequester) (*equivalentProofsRequester, error) {
+	err := checkArgs(args)
+	if err != nil {
+		return nil, err
+	}
+
+	return &equivalentProofsRequester{
+		storageRequester: &storageRequester{
+			messenger:                args.Messenger,
+			responseTopicName:        args.ResponseTopicName,
+			manualEpochStartNotifier: args.ManualEpochStartNotifier,
+			chanGracefullyClose:      args.ChanGracefullyClose,
+			delayBeforeGracefulClose: args.DelayBeforeGracefulClose,
+		},
+		nonceConverter: args.NonceConverter,
+		storage:        args.Storage,
+		marshaller:     args.Marshaller,
+		epochHandler:   disabled.NewEpochHandler(),
+	}, nil
+}
+
+func checkArgs(args ArgEquivalentProofsRequester) error {
+	if check.IfNil(args.Messenger) {
+		return dataRetriever.ErrNilMessenger
+	}
+	if check.IfNil(args.ManualEpochStartNotifier) {
+		return dataRetriever.ErrNilManualEpochStartNotifier
+	}
+	if args.ChanGracefullyClose == nil {
+		return dataRetriever.ErrNilGracefullyCloseChannel
+	}
+	if check.IfNil(args.NonceConverter) {
+		return dataRetriever.ErrNilUint64ByteSliceConverter
+	}
+	if check.IfNil(args.Storage) {
+		return dataRetriever.ErrNilStore
+	}
+	if check.IfNil(args.Marshaller) {
+		return dataRetriever.ErrNilMarshalizer
+	}
+
+	return nil
+}
+
+func (requester *equivalentProofsRequester) RequestDataFromHash(hashShardKey []byte, epoch uint32) error {
+	requester.mutEpochHandler.RLock()
+	metaEpoch := requester.epochHandler.MetaEpoch()
+	requester.mutEpochHandler.RUnlock()
+
+	requester.manualEpochStartNotifier.NewEpoch(metaEpoch + 1)
+	requester.manualEpochStartNotifier.NewEpoch(metaEpoch + 2)
+
+	headerHash, _, err := common.GetHashAndShardFromKey(hashShardKey)
+	if err != nil {
+		requester.signalGracefullyClose()
+		return err
+	}
+
+	equivalentProofsStorage, err := requester.storage.GetStorer(dataRetriever.ProofsUnit)
+	if err != nil {
+		requester.signalGracefullyClose()
+		return err
+	}
+
+	buff, err := equivalentProofsStorage.SearchFirst(headerHash)
+	if err != nil {
+		requester.signalGracefullyClose()
+		return err
+	}
+
+	return requester.sendToSelf(buff)
+}
+
+// RequestDataFromNonce requests equivalent proofs data from other peers for the specified nonce-shard key
+func (requester *equivalentProofsRequester) RequestDataFromNonce(nonceShardKey []byte, epoch uint32) error {
+	headerNonce, shardID, err := common.GetNonceAndShardFromKey(nonceShardKey)
+	if err != nil {
+		requester.signalGracefullyClose()
+		return err
+	}
+	storer, err := requester.getStorerForShard(shardID)
+	if err != nil {
+		requester.signalGracefullyClose()
+		return err
+	}
+
+	nonceKey := requester.nonceConverter.ToByteSlice(headerNonce)
+	hash, err := storer.SearchFirst(nonceKey)
+	if err != nil {
+		requester.signalGracefullyClose()
+		return err
+	}
+
+	hashShardKey := common.GetEquivalentProofHashShardKey(hash, shardID)
+	return requester.RequestDataFromHash([]byte(hashShardKey), epoch)
+}
+
+func (requester *equivalentProofsRequester) getStorerForShard(shardID uint32) (storage.Storer, error) {
+	if shardID == core.MetachainShardId {
+		return requester.storage.GetStorer(dataRetriever.MetaHdrNonceHashDataUnit)
+	}
+
+	return requester.storage.GetStorer(dataRetriever.GetHdrNonceHashDataUnit(shardID))
+}
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (requester *equivalentProofsRequester) IsInterfaceNil() bool {
+	return requester == nil
+}
