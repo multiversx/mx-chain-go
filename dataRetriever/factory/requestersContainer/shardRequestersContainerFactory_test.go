@@ -2,6 +2,8 @@ package requesterscontainer_test
 
 import (
 	"errors"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"strings"
 	"testing"
 
@@ -279,5 +281,10 @@ func getArguments() requesterscontainer.FactoryArgs {
 		FullArchivePreferredPeersHolder: &p2pmocks.PeersHolderStub{},
 		PeersRatingHandler:              &p2pmocks.PeersRatingHandlerStub{},
 		SizeCheckDelta:                  0,
+		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+			IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
+				return true
+			},
+		},
 	}
 }

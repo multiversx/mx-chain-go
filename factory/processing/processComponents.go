@@ -1493,6 +1493,7 @@ func (pcf *processComponentsFactory) newRequestersContainerFactory(
 		FullArchivePreferredPeersHolder: pcf.network.FullArchivePreferredPeersHolderHandler(),
 		PeersRatingHandler:              pcf.network.PeersRatingHandler(),
 		SizeCheckDelta:                  pcf.config.Marshalizer.SizeCheckDelta,
+		EnableEpochsHandler:             pcf.coreData.EnableEpochsHandler(),
 	}
 
 	if shardCoordinator.SelfId() < shardCoordinator.NumberOfShards() {

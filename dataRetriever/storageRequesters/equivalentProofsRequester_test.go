@@ -7,6 +7,7 @@ import (
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/dataRetriever/mock"
 	chainStorage "github.com/multiversx/mx-chain-go/storage"
+	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/genericMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/p2pmocks"
 	"github.com/multiversx/mx-chain-go/testscommon/storage"
@@ -30,6 +31,11 @@ func createMockArgEquivalentProofsRequester() ArgEquivalentProofsRequester {
 		},
 		Storage:    &genericMocks.ChainStorerMock{},
 		Marshaller: &mock.MarshalizerMock{},
+		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+			IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
+				return true
+			},
+		},
 	}
 }
 
@@ -88,6 +94,15 @@ func TestNewEquivalentProofsRequester(t *testing.T) {
 		args.Marshaller = nil
 		req, err := NewEquivalentProofsRequester(args)
 		require.Equal(t, dataRetriever.ErrNilMarshalizer, err)
+		require.Nil(t, req)
+	})
+	t.Run("nil EnableEpochsHandler should error", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockArgEquivalentProofsRequester()
+		args.EnableEpochsHandler = nil
+		req, err := NewEquivalentProofsRequester(args)
+		require.Equal(t, dataRetriever.ErrNilEnableEpochsHandler, err)
 		require.Nil(t, req)
 	})
 	t.Run("should work", func(t *testing.T) {

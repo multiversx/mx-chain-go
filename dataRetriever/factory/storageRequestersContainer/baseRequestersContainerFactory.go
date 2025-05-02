@@ -279,6 +279,7 @@ func (brcf *baseRequestersContainerFactory) createEquivalentProofsRequester(
 		NonceConverter:           brcf.uint64ByteSliceConverter,
 		Storage:                  brcf.store,
 		Marshaller:               brcf.marshalizer,
+		EnableEpochsHandler:      brcf.enableEpochsHandler,
 	}
 
 	return storagerequesters.NewEquivalentProofsRequester(args)
