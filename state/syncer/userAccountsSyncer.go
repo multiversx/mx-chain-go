@@ -159,6 +159,9 @@ func (u *userAccountsSyncer) SyncAccounts(rootHash []byte, storageMarker common.
 
 	log.Debug("main trie and data tries synced", "main trie root hash", rootHash, "num data tries", len(u.dataTries))
 
+	log.Info("waiting for 2 epochs")
+	time.Sleep(1 * 70 * time.Second)
+
 	return nil
 }
 

@@ -1049,11 +1049,13 @@ func (bp *baseProcessor) requestMissingFinalityAttestingHeaders(
 
 	headersPool := bp.dataPool.Headers()
 	lastFinalityAttestingHeader := highestHdrNonce + uint64(finality)
+	requestedHeaderNonces := ""
 	for i := highestHdrNonce + 1; i <= lastFinalityAttestingHeader; i++ {
 		headers, headersHashes, err := headersPool.GetHeadersByNonceAndShardId(i, shardID)
 		if err != nil {
 			missingFinalityAttestingHeaders++
 			requestedHeaders++
+			requestedHeaderNonces += fmt.Sprintf("%d ", i)
 			go bp.requestHeaderByShardAndNonce(shardID, i)
 			continue
 		}
@@ -1069,7 +1071,8 @@ func (bp *baseProcessor) requestMissingFinalityAttestingHeaders(
 	if requestedHeaders > 0 {
 		log.Debug("requested missing finality attesting headers",
 			"num headers", requestedHeaders,
-			"shard", shardID)
+			"shard", shardID,
+			"nonces", requestedHeaderNonces)
 	}
 
 	return missingFinalityAttestingHeaders

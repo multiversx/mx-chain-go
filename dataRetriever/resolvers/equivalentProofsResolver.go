@@ -240,7 +240,9 @@ func (res *equivalentProofsResolver) getProofFromStorageByNonce(headerNonce uint
 		return nil, err
 	}
 
-	return res.getFromStorage(headerHash, epoch)
+	proof, err := res.getFromStorage(headerHash, epoch)
+	log.Debug("getProofFromStorageByNonce", "headerHash", headerHash, "proof", proof, "err", err)
+	return proof, err
 }
 
 func (res *equivalentProofsResolver) getStorerForShard(shardID uint32) (storage.Storer, error) {

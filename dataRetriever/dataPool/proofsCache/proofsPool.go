@@ -11,7 +11,7 @@ import (
 )
 
 const defaultCleanupNonceDelta = 3
-const defaultBucketSize = 100
+const defaultBucketSize = 10
 
 var log = logger.GetOrCreate("dataRetriever/proofscache")
 

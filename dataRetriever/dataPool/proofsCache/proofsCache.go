@@ -15,6 +15,7 @@ type proofsCache struct {
 }
 
 func newProofsCache(bucketSize int) *proofsCache {
+	log.Info("creating proofsCache: ", "bucketSize", bucketSize)
 	return &proofsCache{
 		proofsByNonceBuckets: make(map[uint64]*proofNonceBucket),
 		bucketSize:           uint64(bucketSize),
@@ -34,9 +35,12 @@ func (pc *proofsCache) getProofByHash(headerHash []byte) (data.HeaderProofHandle
 	return proof, nil
 }
 
-func (pc *proofsCache) getProofByNonce(headerNonce uint64) (data.HeaderProofHandler, error) {
+func (pc *proofsCache) getProofByNonce(headerNonce uint64) (proof data.HeaderProofHandler, err error) {
 	pc.mutProofsCache.RLock()
 	defer pc.mutProofsCache.RUnlock()
+	defer func() {
+		log.Debug("proofsCache - getting proof by nonce", "headerNonce", headerNonce, "proof", proof, "err", err)
+	}()
 
 	bucketKey := pc.getBucketKey(headerNonce)
 	bucket, ok := pc.proofsByNonceBuckets[bucketKey]
@@ -49,7 +53,7 @@ func (pc *proofsCache) getProofByNonce(headerNonce uint64) (data.HeaderProofHand
 		return nil, ErrMissingProof
 	}
 
-	proof, ok := pc.proofsByHash[proofHash]
+	proof, ok = pc.proofsByHash[proofHash]
 	if !ok {
 		return nil, ErrMissingProof
 	}
@@ -97,6 +101,7 @@ func (pc *proofsCache) cleanupProofsBehindNonce(nonce uint64) {
 
 	for key, bucket := range pc.proofsByNonceBuckets {
 		if nonce > bucket.maxNonce {
+			log.Debug("proofsCache - cleaning up proofs in bucket", "bucketKey", key, "maxNonce", bucket.maxNonce)
 			pc.cleanupProofsInBucket(bucket)
 			delete(pc.proofsByNonceBuckets, key)
 		}

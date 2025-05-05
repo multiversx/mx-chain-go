@@ -158,6 +158,7 @@ func (b *baseAccountsSyncer) printStatisticsAndUpdateMetrics(ctx context.Context
 				"peak processing speed", peakSpeed,
 				"average processing speed", averageSpeed,
 			)
+
 			b.userAccountsSyncStatisticsHandler.Reset()
 			b.updateMetrics()
 			return

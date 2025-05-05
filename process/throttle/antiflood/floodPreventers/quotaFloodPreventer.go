@@ -102,7 +102,7 @@ func NewQuotaFloodPreventer(arg ArgQuotaFloodPreventer) (*quotaFloodPreventer, e
 			arg.IncreaseFactor,
 		)
 	}
-
+	log.Info("quotaFloodPreventer created", "name", arg.Name, "computedMaxNumMessagesPerPeer", arg.BaseMaxNumMessagesPerPeer, "baseMaxNumMessagesPerPeer", arg.BaseMaxNumMessagesPerPeer, "maxTotalSizePerPeer", arg.MaxTotalSizePerPeer, "percentReserved", arg.PercentReserved, "increaseThreshold", arg.IncreaseThreshold, "increaseFactor", arg.IncreaseFactor)
 	return &quotaFloodPreventer{
 		name:                          arg.Name,
 		cacher:                        arg.Cacher,
@@ -150,7 +150,8 @@ func (qfp *quotaFloodPreventer) increaseLoad(pid core.PeerID, size uint64) error
 	maxSizeMessagesReached := qfp.isMaximumReached(qfp.maxTotalSizePerPeer, q.sizeReceivedMessages)
 	isPeerQuotaReached := maxNumMessagesReached || maxSizeMessagesReached
 	if isPeerQuotaReached {
-		return fmt.Errorf("%w for pid %s", process.ErrSystemBusy, pid.Pretty())
+		return fmt.Errorf("%w for pid %s - %s - maxNumMessagesReached: %t, maxSizeMessagesReached: %t, numReceivedMessages=%d, sizeReceivedMessages=%d",
+			process.ErrSystemBusy, pid.Pretty(), qfp.name, maxNumMessagesReached, maxSizeMessagesReached, uint64(q.numReceivedMessages), q.sizeReceivedMessages)
 	}
 
 	q.numProcessedMessages++
