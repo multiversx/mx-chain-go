@@ -672,6 +672,7 @@ func (e *epochStartBootstrap) syncHeadersFrom(meta data.MetaHeaderHandler) (map[
 	// add the epoch start meta hash to the list to sync its proof
 	// TODO: this can be removed when the proof will be loaded from storage
 	hashesToRequest = append(hashesToRequest, epochStartMetaHash)
+	shardIds = append(shardIds, core.MetachainShardId)
 
 	ctx, cancel := context.WithTimeout(context.Background(), DefaultTimeToWaitForRequestedData)
 	err = e.headersSyncer.SyncMissingHeadersByHash(shardIds, hashesToRequest, ctx)
