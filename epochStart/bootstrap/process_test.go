@@ -1595,11 +1595,14 @@ func TestRequestAndProcessing(t *testing.T) {
 
 		epochStartProvider, _ := NewEpochStartBootstrap(args)
 		epochStartProvider.epochStartMeta = epochStartMetaBlock
+		epochStartMetaHash, err := core.CalculateHash(epochStartProvider.coreComponentsHolder.InternalMarshalizer(), epochStartProvider.coreComponentsHolder.Hasher(), epochStartMetaBlock)
+		require.Nil(t, err)
+
 		expectedErr := errors.New("sync miniBlocksSyncer headers by hash error")
 		epochStartProvider.headersSyncer = &epochStartMocks.HeadersByHashSyncerStub{
 			SyncMissingHeadersByHashCalled: func(shardIDs []uint32, headersHashes [][]byte, ctx context.Context) error {
-				assert.Equal(t, [][]byte{notarizedShardHeaderHash}, headersHashes)
-				assert.Equal(t, []uint32{shardId}, shardIDs)
+				assert.Equal(t, [][]byte{notarizedShardHeaderHash, epochStartMetaHash}, headersHashes)
+				assert.Equal(t, []uint32{shardId, core.MetachainShardId}, shardIDs)
 				return expectedErr
 			},
 		}
