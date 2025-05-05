@@ -480,14 +480,14 @@ func CreateAccountsDBWithEnableEpochsHandler(
 	})
 
 	args := state.ArgsAccountsDB{
-		Trie:                  tr,
-		Hasher:                sha256.NewSha256(),
-		Marshaller:            TestMarshalizer,
-		AccountFactory:        accountFactory,
-		StoragePruningManager: spm,
-		AddressConverter:      &testscommon.PubkeyConverterMock{},
-		SnapshotsManager:      snapshotsManager,
-		StateChangesCollector: disabled.NewDisabledStateChangesCollector(),
+		Trie:                   tr,
+		Hasher:                 sha256.NewSha256(),
+		Marshaller:             TestMarshalizer,
+		AccountFactory:         accountFactory,
+		StoragePruningManager:  spm,
+		AddressConverter:       &testscommon.PubkeyConverterMock{},
+		SnapshotsManager:       snapshotsManager,
+		StateAccessesCollector: disabled.NewDisabledStateAccessesCollector(),
 	}
 	adb, _ := state.NewAccountsDB(args)
 
@@ -498,10 +498,10 @@ func getAccountFactory(accountType Type, enableEpochsHandler common.EnableEpochs
 	switch accountType {
 	case UserAccount:
 		argsAccCreator := factory.ArgsAccountCreator{
-			Hasher:                TestHasher,
-			Marshaller:            TestMarshalizer,
-			EnableEpochsHandler:   enableEpochsHandler,
-			StateChangesCollector: disabled.NewDisabledStateChangesCollector(),
+			Hasher:                 TestHasher,
+			Marshaller:             TestMarshalizer,
+			EnableEpochsHandler:    enableEpochsHandler,
+			StateAccessesCollector: disabled.NewDisabledStateAccessesCollector(),
 		}
 		return factory.NewAccountCreator(argsAccCreator)
 	case ValidatorAccount:
@@ -973,7 +973,7 @@ func GenerateAddressJournalAccountAccountsDB() ([]byte, state.UserAccountHandler
 	adb, _ := CreateAccountsDB(UserAccount, trieStorage)
 
 	dtlp, _ := parsers.NewDataTrieLeafParser(adr, &marshallerMock.MarshalizerMock{}, &enableEpochsHandlerMock.EnableEpochsHandlerStub{})
-	dtt, _ := trackableDataTrie.NewTrackableDataTrie(adr, &testscommon.HasherStub{}, &marshallerMock.MarshalizerMock{}, &enableEpochsHandlerMock.EnableEpochsHandlerStub{}, disabled.NewDisabledStateChangesCollector())
+	dtt, _ := trackableDataTrie.NewTrackableDataTrie(adr, &testscommon.HasherStub{}, &marshallerMock.MarshalizerMock{}, &enableEpochsHandlerMock.EnableEpochsHandlerStub{}, disabled.NewDisabledStateAccessesCollector())
 
 	account, _ := accounts.NewUserAccount(adr, dtt, dtlp)
 

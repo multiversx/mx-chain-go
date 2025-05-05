@@ -32,13 +32,13 @@ type dirtyData struct {
 
 // TrackableDataTrie wraps a PatriciaMerkelTrie adding modifying data capabilities
 type trackableDataTrie struct {
-	dirtyData             map[string]dirtyData
-	tr                    common.Trie
-	hasher                hashing.Hasher
-	marshaller            marshal.Marshalizer
-	enableEpochsHandler   common.EnableEpochsHandler
-	identifier            []byte
-	stateChangesCollector state.StateChangesCollector
+	dirtyData              map[string]dirtyData
+	tr                     common.Trie
+	hasher                 hashing.Hasher
+	marshaller             marshal.Marshalizer
+	enableEpochsHandler    common.EnableEpochsHandler
+	identifier             []byte
+	stateAccessesCollector state.StateAccessesCollector
 }
 
 // NewTrackableDataTrie returns an instance of trackableDataTrie
@@ -47,7 +47,7 @@ func NewTrackableDataTrie(
 	hasher hashing.Hasher,
 	marshaller marshal.Marshalizer,
 	enableEpochsHandler common.EnableEpochsHandler,
-	stateChangesCollector state.StateChangesCollector,
+	stateAccessesCollector state.StateAccessesCollector,
 ) (*trackableDataTrie, error) {
 	if check.IfNil(hasher) {
 		return nil, state.ErrNilHasher
@@ -58,8 +58,8 @@ func NewTrackableDataTrie(
 	if check.IfNil(enableEpochsHandler) {
 		return nil, state.ErrNilEnableEpochsHandler
 	}
-	if check.IfNil(stateChangesCollector) {
-		return nil, state.ErrNilStateChangesCollector
+	if check.IfNil(stateAccessesCollector) {
+		return nil, state.ErrNilStateAccessesCollector
 	}
 
 	err := core.CheckHandlerCompatibility(enableEpochsHandler, []core.EnableEpochFlag{
@@ -70,13 +70,13 @@ func NewTrackableDataTrie(
 	}
 
 	return &trackableDataTrie{
-		tr:                    nil,
-		hasher:                hasher,
-		marshaller:            marshaller,
-		dirtyData:             make(map[string]dirtyData),
-		identifier:            identifier,
-		enableEpochsHandler:   enableEpochsHandler,
-		stateChangesCollector: stateChangesCollector,
+		tr:                     nil,
+		hasher:                 hasher,
+		marshaller:             marshaller,
+		dirtyData:              make(map[string]dirtyData),
+		identifier:             identifier,
+		enableEpochsHandler:    enableEpochsHandler,
+		stateAccessesCollector: stateAccessesCollector,
 	}, nil
 }
 
@@ -341,7 +341,7 @@ func (tdt *trackableDataTrie) updateTrie(dtr state.DataTrie) ([]*stateChange.Dat
 }
 
 func (tdt *trackableDataTrie) collectReadOperation(key []byte, val []byte, version uint32) {
-	sc := &stateChange.StateChange{
+	sc := &stateChange.StateAccess{
 		Type:        stateChange.Read,
 		MainTrieKey: tdt.identifier,
 		MainTrieVal: nil,
@@ -354,7 +354,7 @@ func (tdt *trackableDataTrie) collectReadOperation(key []byte, val []byte, versi
 			},
 		},
 	}
-	tdt.stateChangesCollector.AddStateChange(sc)
+	tdt.stateAccessesCollector.AddStateAccess(sc)
 }
 
 func (tdt *trackableDataTrie) retrieveValueFromTrie(key []byte) (core.TrieData, uint32, error) {

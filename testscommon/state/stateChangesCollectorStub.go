@@ -1,65 +1,63 @@
 package state
 
 import (
-	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/stateChange"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
-
-	"github.com/multiversx/mx-chain-go/state"
 )
 
-// StateChangesCollectorStub represents a mock for the StateChangesCollector interface
-type StateChangesCollectorStub struct {
-	AddStateChangeCalled                   func(stateChange state.StateChange)
-	AddSaveAccountStateChangeCalled        func(oldAccount, account vmcommon.AccountHandler, stateChange state.StateChange)
-	ResetCalled                            func()
-	AddTxHashToCollectedStateChangesCalled func(txHash []byte, tx data.TransactionHandler)
-	SetIndexToLastStateChangeCalled        func(index int) error
-	RevertToIndexCalled                    func(index int) error
-	PublishCalled                          func() (map[string]*stateChange.StateChanges, error)
-	StoreCalled                            func() error
-	IsInterfaceNilCalled                   func() bool
+// StateAccessesCollectorStub represents a mock for the StateAccessesCollector interface
+type StateAccessesCollectorStub struct {
+	AddStateChangeCalled                    func(stateAccess *stateChange.StateAccess)
+	GetAccountChangesCalled                 func(oldAccount, account vmcommon.AccountHandler) *stateChange.AccountChanges
+	ResetCalled                             func()
+	AddTxHashToCollectedStateAccessesCalled func(txHash []byte)
+	SetIndexToLatestStateAccessesCalled     func(index int) error
+	RevertToIndexCalled                     func(index int) error
+	GetCollectedAccessesCalled              func() map[string]*stateChange.StateAccesses
+	StoreCalled                             func() error
+	IsInterfaceNilCalled                    func() bool
 }
 
-// AddStateChange -
-func (s *StateChangesCollectorStub) AddStateChange(stateChange state.StateChange) {
+// AddStateAccess -
+func (s *StateAccessesCollectorStub) AddStateAccess(stateChange *stateChange.StateAccess) {
 	if s.AddStateChangeCalled != nil {
 		s.AddStateChangeCalled(stateChange)
 	}
 }
 
-// AddSaveAccountStateChange -
-func (s *StateChangesCollectorStub) AddSaveAccountStateChange(oldAccount, account vmcommon.AccountHandler, stateChange state.StateChange) {
-	if s.AddSaveAccountStateChangeCalled != nil {
-		s.AddSaveAccountStateChangeCalled(oldAccount, account, stateChange)
+// GetAccountChanges -
+func (s *StateAccessesCollectorStub) GetAccountChanges(oldAccount, account vmcommon.AccountHandler) *stateChange.AccountChanges {
+	if s.GetAccountChangesCalled != nil {
+		s.GetAccountChangesCalled(oldAccount, account)
 	}
+	return nil
 }
 
 // Reset -
-func (s *StateChangesCollectorStub) Reset() {
+func (s *StateAccessesCollectorStub) Reset() {
 	if s.ResetCalled != nil {
 		s.ResetCalled()
 	}
 }
 
-// AddTxHashToCollectedStateChanges -
-func (s *StateChangesCollectorStub) AddTxHashToCollectedStateChanges(txHash []byte, tx data.TransactionHandler) {
-	if s.AddTxHashToCollectedStateChangesCalled != nil {
-		s.AddTxHashToCollectedStateChangesCalled(txHash, tx)
+// AddTxHashToCollectedStateAccesses -
+func (s *StateAccessesCollectorStub) AddTxHashToCollectedStateAccesses(txHash []byte) {
+	if s.AddTxHashToCollectedStateAccessesCalled != nil {
+		s.AddTxHashToCollectedStateAccessesCalled(txHash)
 	}
 }
 
-// SetIndexToLastStateChange -
-func (s *StateChangesCollectorStub) SetIndexToLastStateChange(index int) error {
-	if s.SetIndexToLastStateChangeCalled != nil {
-		return s.SetIndexToLastStateChangeCalled(index)
+// SetIndexToLatestStateAccesses -
+func (s *StateAccessesCollectorStub) SetIndexToLatestStateAccesses(index int) error {
+	if s.SetIndexToLatestStateAccessesCalled != nil {
+		return s.SetIndexToLatestStateAccessesCalled(index)
 	}
 
 	return nil
 }
 
 // RevertToIndex -
-func (s *StateChangesCollectorStub) RevertToIndex(index int) error {
+func (s *StateAccessesCollectorStub) RevertToIndex(index int) error {
 	if s.RevertToIndexCalled != nil {
 		return s.RevertToIndexCalled(index)
 	}
@@ -67,16 +65,17 @@ func (s *StateChangesCollectorStub) RevertToIndex(index int) error {
 	return nil
 }
 
-// Publish -
-func (s *StateChangesCollectorStub) Publish() (map[string]*stateChange.StateChanges, error) {
-	if s.PublishCalled != nil {
-		return s.PublishCalled()
+// GetCollectedAccesses -
+func (s *StateAccessesCollectorStub) GetCollectedAccesses() map[string]*stateChange.StateAccesses {
+	if s.GetCollectedAccessesCalled != nil {
+		return s.GetCollectedAccessesCalled()
 	}
 
-	return nil, nil
+	return nil
 }
 
-func (s *StateChangesCollectorStub) Store() error {
+// Store -
+func (s *StateAccessesCollectorStub) Store() error {
 	if s.StoreCalled != nil {
 		return s.StoreCalled()
 	}
@@ -85,7 +84,7 @@ func (s *StateChangesCollectorStub) Store() error {
 }
 
 // IsInterfaceNil -
-func (s *StateChangesCollectorStub) IsInterfaceNil() bool {
+func (s *StateAccessesCollectorStub) IsInterfaceNil() bool {
 	if s.IsInterfaceNilCalled != nil {
 		return s.IsInterfaceNilCalled()
 	}

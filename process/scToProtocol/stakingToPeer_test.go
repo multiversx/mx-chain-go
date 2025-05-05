@@ -66,7 +66,7 @@ func createStakingScAccount() state.UserAccountHandler {
 		&hashingMocks.HasherMock{},
 		&marshallerMock.MarshalizerMock{},
 		enableEpochsHandlerMock.NewEnableEpochsHandlerStub(),
-		&stateMock.StateChangesCollectorStub{},
+		&stateMock.StateAccessesCollectorStub{},
 	)
 
 	userAcc, _ := accounts.NewUserAccount(vm.StakingSCAddress, dtt, &trie.TrieLeafParserStub{})

@@ -316,7 +316,7 @@ func TestRewardTxProcessor_ProcessRewardTransactionToASmartContractShouldWork(t 
 		&hashingMocks.HasherMock{},
 		&marshallerMock.MarshalizerMock{},
 		enableEpochsHandlerMock.NewEnableEpochsHandlerStub(),
-		&stateMock.StateChangesCollectorStub{},
+		&stateMock.StateAccessesCollectorStub{},
 	)
 	userAccount, _ := accounts.NewUserAccount(address, dtt, &trie.TrieLeafParserStub{})
 	accountsDb := &stateMock.AccountsStub{

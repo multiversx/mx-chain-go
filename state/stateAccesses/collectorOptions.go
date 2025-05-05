@@ -1,8 +1,4 @@
-package stateChanges
-
-import (
-	"github.com/multiversx/mx-chain-go/storage"
-)
+package stateAccesses
 
 // CollectorOption specifies the possible options for the collector
 type CollectorOption func(*collector)
@@ -21,9 +17,10 @@ func WithCollectWrite() func(c *collector) {
 	}
 }
 
-// WithStorer will enable storing action types
-func WithStorer(storer storage.Persister) func(c *collector) {
+// WithAccountChanges will enable collecting account changes.
+// This is a struct that marks which fields of the account have changed
+func WithAccountChanges() func(c *collector) {
 	return func(c *collector) {
-		c.storer = storer
+		c.withAccountChanges = true
 	}
 }

@@ -287,10 +287,10 @@ func newAccountCreator(
 	switch accType {
 	case UserAccount:
 		args := factory.ArgsAccountCreator{
-			Hasher:                hasher,
-			Marshaller:            marshaller,
-			EnableEpochsHandler:   handler,
-			StateChangesCollector: disabledState.NewDisabledStateChangesCollector(),
+			Hasher:                 hasher,
+			Marshaller:             marshaller,
+			EnableEpochsHandler:    handler,
+			StateAccessesCollector: disabledState.NewDisabledStateAccessesCollector(),
 		}
 		return factory.NewAccountCreator(args)
 	case ValidatorAccount:
@@ -414,14 +414,14 @@ func (si *stateImport) getAccountsDB(accType Type, shardID uint32, accountFactor
 	if accType == ValidatorAccount {
 		if check.IfNil(si.validatorDB) {
 			argsAccountDB := state.ArgsAccountsDB{
-				Trie:                  currentTrie,
-				Hasher:                si.hasher,
-				Marshaller:            si.marshalizer,
-				AccountFactory:        accountFactory,
-				StoragePruningManager: disabled.NewDisabledStoragePruningManager(),
-				AddressConverter:      si.addressConverter,
-				SnapshotsManager:      disabledState.NewDisabledSnapshotsManager(),
-				StateChangesCollector: disabledState.NewDisabledStateChangesCollector(),
+				Trie:                   currentTrie,
+				Hasher:                 si.hasher,
+				Marshaller:             si.marshalizer,
+				AccountFactory:         accountFactory,
+				StoragePruningManager:  disabled.NewDisabledStoragePruningManager(),
+				AddressConverter:       si.addressConverter,
+				SnapshotsManager:       disabledState.NewDisabledSnapshotsManager(),
+				StateAccessesCollector: disabledState.NewDisabledStateAccessesCollector(),
 			}
 			accountsDB, errCreate := state.NewAccountsDB(argsAccountDB)
 			if errCreate != nil {
@@ -438,14 +438,14 @@ func (si *stateImport) getAccountsDB(accType Type, shardID uint32, accountFactor
 	}
 
 	argsAccountDB := state.ArgsAccountsDB{
-		Trie:                  currentTrie,
-		Hasher:                si.hasher,
-		Marshaller:            si.marshalizer,
-		AccountFactory:        accountFactory,
-		StoragePruningManager: disabled.NewDisabledStoragePruningManager(),
-		AddressConverter:      si.addressConverter,
-		SnapshotsManager:      disabledState.NewDisabledSnapshotsManager(),
-		StateChangesCollector: disabledState.NewDisabledStateChangesCollector(),
+		Trie:                   currentTrie,
+		Hasher:                 si.hasher,
+		Marshaller:             si.marshalizer,
+		AccountFactory:         accountFactory,
+		StoragePruningManager:  disabled.NewDisabledStoragePruningManager(),
+		AddressConverter:       si.addressConverter,
+		SnapshotsManager:       disabledState.NewDisabledSnapshotsManager(),
+		StateAccessesCollector: disabledState.NewDisabledStateAccessesCollector(),
 	}
 	accountsDB, err = state.NewAccountsDB(argsAccountDB)
 	si.accountDBsMap[shardID] = accountsDB

@@ -202,7 +202,7 @@ func TestTokensSuppliesProcessor_HandleTrieAccountIteration(t *testing.T) {
 			&hashingMocks.HasherMock{},
 			&marshallerMock.MarshalizerMock{},
 			&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
-			&stateMock.StateChangesCollectorStub{},
+			&stateMock.StateAccessesCollectorStub{},
 		)
 		dtlp, _ := parsers.NewDataTrieLeafParser([]byte("addr"), &marshallerMock.MarshalizerMock{}, &enableEpochsHandlerMock.EnableEpochsHandlerStub{})
 		userAcc, _ := accounts.NewUserAccount([]byte("addr"), dtt, dtlp)

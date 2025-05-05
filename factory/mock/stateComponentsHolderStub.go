@@ -14,7 +14,7 @@ type StateComponentsHolderStub struct {
 	TriesContainerCalled           func() common.TriesHolder
 	TrieStorageManagersCalled      func() map[string]common.StorageManager
 	MissingTrieNodesNotifierCalled func() common.MissingTrieNodesNotifier
-	StateChangesCollectorCalled    func() state.StateChangesCollector
+	StateAccessesCollectorCalled   func() state.StateAccessesCollector
 }
 
 // PeerAccounts -
@@ -80,10 +80,10 @@ func (s *StateComponentsHolderStub) MissingTrieNodesNotifier() common.MissingTri
 	return nil
 }
 
-// StateChangesCollector -
-func (s *StateComponentsHolderStub) StateChangesCollector() state.StateChangesCollector {
-	if s.StateChangesCollectorCalled != nil {
-		return s.StateChangesCollectorCalled()
+// StateAccessesCollector -
+func (s *StateComponentsHolderStub) StateAccessesCollector() state.StateAccessesCollector {
+	if s.StateAccessesCollectorCalled != nil {
+		return s.StateAccessesCollectorCalled()
 	}
 
 	return nil

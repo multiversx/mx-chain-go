@@ -410,11 +410,11 @@ var (
 		Usage: "Boolean option for enabling the /debug/metrics/prometheus route for p2p prometheus metrics",
 	}
 
-	// stateChangesTypesToCollect defines a flag for collecting specified types of state changes
+	// stateAccessesTypesToCollect defines a flag for collecting specified types of state accesses
 	// If enabled, it will override the configuration
-	stateChangesTypesToCollect = cli.StringSliceFlag{
-		Name:  "state-changes-types-to-collect",
-		Usage: "String slice option for enabling collecting specified state changes types. Can be (READ, WRITE)",
+	stateAccessesTypesToCollect = cli.StringSliceFlag{
+		Name:  "state-accesses-types-to-collect",
+		Usage: "String slice option for enabling collecting specified state accesses types. Can be (READ, WRITE)",
 	}
 )
 
@@ -478,7 +478,7 @@ func getFlags() []cli.Flag {
 		operationMode,
 		repopulateTokensSupplies,
 		p2pPrometheusMetrics,
-		stateChangesTypesToCollect,
+		stateAccessesTypesToCollect,
 	}
 }
 
