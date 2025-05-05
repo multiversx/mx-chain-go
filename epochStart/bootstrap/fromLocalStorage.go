@@ -9,6 +9,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/epochStart"
 	"github.com/multiversx/mx-chain-go/epochStart/bootstrap/disabled"
@@ -130,6 +131,7 @@ func (e *epochStartBootstrap) prepareEpochFromStorage() (Parameters, error) {
 	if err != nil {
 		return Parameters{}, err
 	}
+	e.requestHandler.SetEpoch(e.epochStartMeta.GetEpoch())
 
 	err = e.createSyncers()
 	if err != nil {
