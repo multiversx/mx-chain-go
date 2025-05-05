@@ -27,6 +27,7 @@ import (
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/state"
+	disabledState "github.com/multiversx/mx-chain-go/state/disabled"
 	stateFactory "github.com/multiversx/mx-chain-go/state/factory"
 	"github.com/multiversx/mx-chain-go/state/storagePruningManager"
 	"github.com/multiversx/mx-chain-go/state/storagePruningManager/evictionWaitingList"
@@ -157,9 +158,10 @@ func createStateComponents(coreComponents factory.CoreComponentsHolder) factory.
 	trieFactoryManager, _ := trie.NewTrieStorageManagerWithoutPruning(tsm)
 
 	argsAccCreator := stateFactory.ArgsAccountCreator{
-		Hasher:              coreComponents.Hasher(),
-		Marshaller:          coreComponents.InternalMarshalizer(),
-		EnableEpochsHandler: coreComponents.EnableEpochsHandler(),
+		Hasher:                 coreComponents.Hasher(),
+		Marshaller:             coreComponents.InternalMarshalizer(),
+		EnableEpochsHandler:    coreComponents.EnableEpochsHandler(),
+		StateAccessesCollector: disabledState.NewDisabledStateAccessesCollector(),
 	}
 
 	accCreator, _ := stateFactory.NewAccountCreator(argsAccCreator)
@@ -208,13 +210,14 @@ func createAccountsDB(
 	ewl, _ := evictionWaitingList.NewMemoryEvictionWaitingList(argsEvictionWaitingList)
 	spm, _ := storagePruningManager.NewStoragePruningManager(ewl, 10)
 	argsAccountsDb := state.ArgsAccountsDB{
-		Trie:                  tr,
-		Hasher:                coreComponents.Hasher(),
-		Marshaller:            coreComponents.InternalMarshalizer(),
-		AccountFactory:        accountFactory,
-		StoragePruningManager: spm,
-		AddressConverter:      coreComponents.AddressPubKeyConverter(),
-		SnapshotsManager:      &stateTests.SnapshotsManagerStub{},
+		Trie:                   tr,
+		Hasher:                 coreComponents.Hasher(),
+		Marshaller:             coreComponents.InternalMarshalizer(),
+		AccountFactory:         accountFactory,
+		StoragePruningManager:  spm,
+		AddressConverter:       coreComponents.AddressPubKeyConverter(),
+		SnapshotsManager:       &stateTests.SnapshotsManagerStub{},
+		StateAccessesCollector: disabledState.NewDisabledStateAccessesCollector(),
 	}
 	adb, _ := state.NewAccountsDB(argsAccountsDb)
 	return adb
