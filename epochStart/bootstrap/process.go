@@ -14,8 +14,9 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/data/typeConverters/uint64ByteSlice"
-	"github.com/multiversx/mx-chain-go/process/interceptors/processor"
 	logger "github.com/multiversx/mx-chain-logger-go"
+
+	"github.com/multiversx/mx-chain-go/process/interceptors/processor"
 
 	"github.com/multiversx/mx-chain-go/common"
 	disabledCommon "github.com/multiversx/mx-chain-go/common/disabled"
@@ -654,7 +655,10 @@ func (e *epochStartBootstrap) createSyncers() error {
 func (e *epochStartBootstrap) syncHeadersFrom(meta data.MetaHeaderHandler) (map[string]data.HeaderHandler, error) {
 	hashesToRequest := make([][]byte, 0, len(meta.GetEpochStartHandler().GetLastFinalizedHeaderHandlers())+1)
 	shardIds := make([]uint32, 0, len(meta.GetEpochStartHandler().GetLastFinalizedHeaderHandlers())+1)
-
+	epochStartMetaHash, err := core.CalculateHash(e.coreComponentsHolder.InternalMarshalizer(), e.coreComponentsHolder.Hasher(), e.epochStartMeta)
+	if err != nil {
+		return nil, err
+	}
 	for _, epochStartData := range meta.GetEpochStartHandler().GetLastFinalizedHeaderHandlers() {
 		hashesToRequest = append(hashesToRequest, epochStartData.GetHeaderHash())
 		shardIds = append(shardIds, epochStartData.GetShardID())
@@ -665,8 +669,12 @@ func (e *epochStartBootstrap) syncHeadersFrom(meta data.MetaHeaderHandler) (map[
 		shardIds = append(shardIds, core.MetachainShardId)
 	}
 
+	// add the epoch start meta hash to the list to sync its proof
+	// TODO: this can be removed when the proof will be loaded from storage
+	hashesToRequest = append(hashesToRequest, epochStartMetaHash)
+
 	ctx, cancel := context.WithTimeout(context.Background(), DefaultTimeToWaitForRequestedData)
-	err := e.headersSyncer.SyncMissingHeadersByHash(shardIds, hashesToRequest, ctx)
+	err = e.headersSyncer.SyncMissingHeadersByHash(shardIds, hashesToRequest, ctx)
 	cancel()
 	if err != nil {
 		return nil, err
