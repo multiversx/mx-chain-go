@@ -447,6 +447,8 @@ func (ps *PruningStorer) Get(key []byte) ([]byte, error) {
 
 	numClosedDbs := 0
 	for idx := 0; idx < len(ps.activePersisters); idx++ {
+		ps.stateStatsHandler.IncrPersister(ps.activePersisters[idx].epoch)
+
 		val, err := ps.activePersisters[idx].persister.Get(key)
 		if err != nil {
 			if errors.Is(err, storage.ErrDBIsClosed) {
@@ -458,8 +460,6 @@ func (ps *PruningStorer) Get(key []byte) ([]byte, error) {
 
 		// if found in persistence unit, add it to cache and return
 		_ = ps.cacher.Put(key, val, len(val))
-
-		ps.stateStatsHandler.IncrPersister(ps.activePersisters[idx].epoch)
 
 		return val, nil
 	}
@@ -519,9 +519,10 @@ func (ps *PruningStorer) GetFromEpoch(key []byte, epoch uint32) ([]byte, error) 
 	}
 	defer closePersister()
 
+	ps.stateStatsHandler.IncrPersister(pd.epoch)
+
 	res, err := persister.Get(key)
 	if err == nil {
-		ps.stateStatsHandler.IncrPersister(pd.epoch)
 		return res, nil
 	}
 
@@ -592,9 +593,10 @@ func (ps *PruningStorer) SearchFirst(key []byte) ([]byte, error) {
 	ps.lock.RLock()
 	defer ps.lock.RUnlock()
 	for _, pd := range ps.activePersisters {
+		ps.stateStatsHandler.IncrPersister(pd.epoch)
+
 		res, err = pd.getPersister().Get(key)
 		if err == nil {
-			ps.stateStatsHandler.IncrPersister(pd.epoch)
 			return res, nil
 		}
 	}
