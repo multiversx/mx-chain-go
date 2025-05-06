@@ -501,6 +501,7 @@ func (ps *PruningStorer) GetFromEpoch(key []byte, epoch uint32) ([]byte, error) 
 	// TODO: this will be used when requesting from resolvers
 	v, ok := ps.cacher.Get(key)
 	if ok {
+		ps.stateStatsHandler.IncrCache()
 		return v.([]byte), nil
 	}
 
@@ -520,6 +521,7 @@ func (ps *PruningStorer) GetFromEpoch(key []byte, epoch uint32) ([]byte, error) 
 
 	res, err := persister.Get(key)
 	if err == nil {
+		ps.stateStatsHandler.IncrPersister(pd.epoch)
 		return res, nil
 	}
 
