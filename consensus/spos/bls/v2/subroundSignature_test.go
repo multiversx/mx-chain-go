@@ -20,6 +20,7 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon"
 	consensusMocks "github.com/multiversx/mx-chain-go/testscommon/consensus"
 	"github.com/multiversx/mx-chain-go/testscommon/consensus/initializers"
+	"github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/statusHandler"
 )
@@ -427,6 +428,23 @@ func TestSubroundSignature_DoSignatureJob(t *testing.T) {
 
 		r := sr.DoSignatureJob()
 		assert.False(t, r)
+	})
+	t.Run("proof already received should return true", func(t *testing.T) {
+		t.Parallel()
+
+		providedHash := []byte("providedHash")
+		container := consensusMocks.InitConsensusCore()
+		container.SetEquivalentProofsPool(&dataRetriever.ProofsPoolMock{
+			HasProofCalled: func(shardID uint32, headerHash []byte) bool {
+				return string(headerHash) == string(providedHash)
+			},
+		})
+		sr := initSubroundSignatureWithContainer(container)
+		sr.SetData(providedHash)
+		sr.SetHeader(&block.Header{})
+
+		r := sr.DoSignatureJob()
+		assert.True(t, r)
 	})
 	t.Run("single key error should return false", func(t *testing.T) {
 		t.Parallel()
