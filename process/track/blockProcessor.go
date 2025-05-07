@@ -455,8 +455,7 @@ func (bp *blockProcessor) requestHeadersIfNothingNewIsReceived(
 	}
 
 	shouldRequestHeaders := bp.roundHandler.Index()-int64(highestRoundInReceivedHeaders) > process.MaxRoundsWithoutNewBlockReceived &&
-		int64(latestValidHeader.GetNonce())-int64(lastNotarizedHeaderNonce) <= process.MaxHeadersToRequestInAdvance &&
-		!bp.isImportDBMode // TODO: consider updating this condition to work for import db as well
+		int64(latestValidHeader.GetNonce())-int64(lastNotarizedHeaderNonce) <= process.MaxHeadersToRequestInAdvance
 	if !shouldRequestHeaders {
 		return
 	}
@@ -469,8 +468,6 @@ func (bp *blockProcessor) requestHeadersIfNothingNewIsReceived(
 
 	fromNonce := latestValidHeader.GetNonce()
 	shardID := latestValidHeader.GetShardID()
-	// remove first header from pool - to force re-triggering the callbacks on receiving the header (edge case for epoch change)
-	bp.headersPool.RemoveHeaderByNonceAndShardId(fromNonce, shardID)
 	bp.requestHeaders(shardID, fromNonce)
 }
 
