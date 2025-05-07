@@ -1328,6 +1328,7 @@ func (e *epochStartBootstrap) createRequestHandler() error {
 		maxToRequest,
 		core.MetachainShardId,
 		timeBetweenRequests,
+		e.dataPool.Headers(),
 	)
 	return err
 }

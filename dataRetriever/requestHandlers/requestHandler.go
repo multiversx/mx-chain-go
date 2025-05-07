@@ -11,11 +11,12 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/core/partitioning"
+	logger "github.com/multiversx/mx-chain-logger-go"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/epochStart"
 	"github.com/multiversx/mx-chain-go/process/factory"
-	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
 var _ epochStart.RequestHandler = (*resolverRequestHandler)(nil)
@@ -47,6 +48,7 @@ type resolverRequestHandler struct {
 	sweepTime             time.Time
 	requestInterval       time.Duration
 	mutSweepTime          sync.Mutex
+	headersPool           dataRetriever.HeadersPool
 
 	trieHashesAccumulator map[string]struct{}
 	lastTrieRequestTime   time.Time
@@ -61,6 +63,7 @@ func NewResolverRequestHandler(
 	maxTxsToRequest int,
 	shardID uint32,
 	requestInterval time.Duration,
+	headersPool dataRetriever.HeadersPool,
 ) (*resolverRequestHandler, error) {
 
 	if check.IfNil(finder) {
@@ -78,6 +81,9 @@ func NewResolverRequestHandler(
 	if requestInterval < time.Millisecond {
 		return nil, fmt.Errorf("%w:request interval is smaller than a millisecond", dataRetriever.ErrRequestIntervalTooSmall)
 	}
+	if check.IfNil(headersPool) {
+		return nil, dataRetriever.ErrNilHeadersDataPool
+	}
 
 	rrh := &resolverRequestHandler{
 		requestersFinder:      finder,
@@ -88,6 +94,7 @@ func NewResolverRequestHandler(
 		whiteList:             whiteList,
 		requestInterval:       requestInterval,
 		trieHashesAccumulator: make(map[string]struct{}),
+		headersPool:           headersPool,
 	}
 
 	rrh.sweepTime = time.Now()
@@ -878,6 +885,11 @@ func (rrh *resolverRequestHandler) RequestEquivalentProofByHash(headerShard uint
 	}
 
 	epoch := rrh.getEpoch()
+	hdr, err := rrh.headersPool.GetHeaderByHash(headerHash)
+	if err == nil && !check.IfNil(hdr) {
+		epoch = hdr.GetEpoch()
+	}
+
 	encodedHash := hex.EncodeToString(headerHash)
 	log.Debug("requesting equivalent proof from network",
 		"headerHash", encodedHash,
@@ -920,6 +932,10 @@ func (rrh *resolverRequestHandler) RequestEquivalentProofByNonce(headerShard uin
 	}
 
 	epoch := rrh.getEpoch()
+	hdrs, _, err := rrh.headersPool.GetHeadersByNonceAndShardId(headerNonce, headerShard)
+	if err == nil && len(hdrs) > 0 {
+		epoch = hdrs[len(hdrs)-1].GetEpoch()
+	}
 	log.Debug("requesting equivalent proof by nonce from network",
 		"headerNonce", headerNonce,
 		"headerShard", headerShard,

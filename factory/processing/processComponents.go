@@ -350,6 +350,7 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 		common.MaxTxsToRequest,
 		pcf.bootstrapComponents.ShardCoordinator().SelfId(),
 		time.Second,
+		pcf.data.Datapool().Headers(),
 	)
 	if err != nil {
 		return nil, err

@@ -221,6 +221,7 @@ func (sesb *storageEpochStartBootstrap) createStorageRequestHandler() error {
 		maxToRequest,
 		core.MetachainShardId,
 		timeBetweenRequests,
+		sesb.dataPool.Headers(),
 	)
 	return err
 }
