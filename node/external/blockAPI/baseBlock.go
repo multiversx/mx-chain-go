@@ -609,19 +609,21 @@ func (bap *baseAPIBlockProcessor) addProof(
 	header data.HeaderHandler,
 	apiBlock *api.Block,
 ) error {
-	if !bap.enableEpochsHandler.IsFlagEnabledInEpoch(common.AndromedaFlag, header.GetEpoch()) {
-		return nil
-	}
-
-	headerProof, err := bap.getHeaderProof(headerHash, header)
-	if err != nil {
-		return errCannotFindBlockProof
-	}
-
-	apiBlock.PubKeyBitmap = hex.EncodeToString(headerProof.GetPubKeysBitmap())
-	apiBlock.Signature = hex.EncodeToString(headerProof.GetAggregatedSignature())
-
-	apiBlock.Proof = proofToAPIProof(headerProof)
+	//if !bap.enableEpochsHandler.IsFlagEnabledInEpoch(common.AndromedaFlag, header.GetEpoch()) {
+	//	return nil
+	//}
+	//
+	//headerProof, err := bap.getHeaderProof(headerHash, header)
+	//if err != nil {
+	//	return errCannotFindBlockProof
+	//}
+	//
+	//apiBlock.PubKeyBitmap = hex.EncodeToString(headerProof.GetPubKeysBitmap())
+	//apiBlock.Signature = hex.EncodeToString(headerProof.GetAggregatedSignature())
+	//
+	//apiBlock.Proof = proofToAPIProof(headerProof)
+	//
+	//return nil
 
 	return nil
 }
