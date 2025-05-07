@@ -1164,6 +1164,11 @@ func (boot *baseBootstrap) getHeaderWithNonceRequestingIfMissing(nonce uint64) (
 	}
 
 	needsProof := boot.checkNeedsProofByNonce(nonce, hdr, hash)
+
+	if hasHeader {
+		boot.requestHandler.SetEpoch(hdr.GetEpoch())
+	}
+
 	boot.requestHeaderAndProofByNonceIfMissing(hash, nonce, !hasHeader, needsProof)
 
 	err = boot.waitForHeaderAndProofByNonce()
@@ -1546,6 +1551,10 @@ func (boot *baseBootstrap) requestHeaders(fromNonce uint64, toNonce uint64) {
 		hasHeader := err == nil
 		if hasHeader && boot.hasProof(hash, hdr) {
 			continue
+		}
+
+		if hasHeader {
+			boot.requestHandler.SetEpoch(hdr.GetEpoch())
 		}
 
 		needsProof := boot.checkNeedsProofByNonce(currentNonce, hdr, hash)
