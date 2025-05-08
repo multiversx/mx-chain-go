@@ -560,9 +560,11 @@ func (ps *PruningStorer) GetBulkFromEpoch(keys [][]byte, epoch uint32) ([]data.K
 		if ok {
 			keyValue := data.KeyValuePair{Key: key, Value: v.([]byte)}
 			results = append(results, keyValue)
+			ps.stateStatsHandler.IncrCache()
 			continue
 		}
 
+		ps.stateStatsHandler.IncrPersister(pd.epoch)
 		res, errGet := persisterToRead.Get(key)
 		if errGet != nil {
 			log.Warn("cannot get from persister",
@@ -614,6 +616,7 @@ func (ps *PruningStorer) SearchFirst(key []byte) ([]byte, error) {
 func (ps *PruningStorer) Has(key []byte) error {
 	has := ps.cacher.Has(key)
 	if has {
+		ps.stateStatsHandler.IncrCache()
 		return nil
 	}
 
@@ -621,6 +624,7 @@ func (ps *PruningStorer) Has(key []byte) error {
 	defer ps.lock.RUnlock()
 
 	for _, persister := range ps.activePersisters {
+		ps.stateStatsHandler.IncrPersister(persister.epoch)
 		if persister.getPersister().Has(key) != nil {
 			continue
 		}
@@ -650,6 +654,7 @@ func (ps *PruningStorer) RemoveFromCurrentEpoch(key []byte) error {
 
 	persisterToUse := ps.activePersisters[0]
 
+	ps.stateStatsHandler.IncrWritePersister(persisterToUse.epoch)
 	return persisterToUse.persister.Remove(key)
 }
 
@@ -661,6 +666,7 @@ func (ps *PruningStorer) Remove(key []byte) error {
 	ps.lock.RLock()
 	defer ps.lock.RUnlock()
 	for _, pd := range ps.activePersisters {
+		ps.stateStatsHandler.IncrWritePersister(pd.epoch)
 		err = pd.persister.Remove(key)
 		if err == nil {
 			return nil
