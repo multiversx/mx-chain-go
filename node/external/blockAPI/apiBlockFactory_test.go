@@ -26,6 +26,10 @@ import (
 
 func createMockArgsAPIBlockProc() *ArgAPIBlockProcessor {
 	statusComputer, _ := txstatus.NewStatusComputer(0, mock.NewNonceHashConverterMock(), &storageMocks.ChainStorerStub{})
+	chainHandler := &testscommon.ChainHandlerMock{}
+	_ = chainHandler.SetCurrentBlockHeaderAndRootHash(&block.Header{
+		Nonce: 123456,
+	}, []byte("root"))
 
 	return &ArgAPIBlockProcessor{
 		Store:                        &storageMocks.ChainStorerStub{},
@@ -43,6 +47,7 @@ func createMockArgsAPIBlockProc() *ArgAPIBlockProcessor {
 		ScheduledTxsExecutionHandler: &testscommon.ScheduledTxsExecutionStub{},
 		EnableEpochsHandler:          &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 		ProofsPool:                   &dataRetrieverTestCommon.ProofsPoolMock{},
+		BlockChain:                   chainHandler,
 	}
 }
 
@@ -193,6 +198,16 @@ func TestCreateAPIBlockProcessorNilArgs(t *testing.T) {
 
 		_, err := CreateAPIBlockProcessor(arguments)
 		assert.Equal(t, process.ErrNilProofsPool, err)
+	})
+
+	t.Run("NilBlockChain", func(t *testing.T) {
+		t.Parallel()
+
+		arguments := createMockArgsAPIBlockProc()
+		arguments.BlockChain = nil
+
+		_, err := CreateAPIBlockProcessor(arguments)
+		assert.Equal(t, process.ErrNilBlockChain, err)
 	})
 }
 

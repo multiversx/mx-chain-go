@@ -40,12 +40,17 @@ func newMetaApiBlockProcessor(arg *ArgAPIBlockProcessor, emptyReceiptsHash []byt
 			scheduledTxsExecutionHandler: arg.ScheduledTxsExecutionHandler,
 			enableEpochsHandler:          arg.EnableEpochsHandler,
 			proofsPool:                   arg.ProofsPool,
+			blockchain:                   arg.BlockChain,
 		},
 	}
 }
 
 // GetBlockByNonce wil return a meta APIBlock by nonce
 func (mbp *metaAPIBlockProcessor) GetBlockByNonce(nonce uint64, options api.BlockQueryOptions) (*api.Block, error) {
+	if !mbp.isBlockNonceInStorage(nonce) {
+		return nil, errBlockNotFound
+	}
+
 	headerHash, blockBytes, err := mbp.getBlockHashAndBytesByNonce(nonce)
 	if err != nil {
 		return nil, err
