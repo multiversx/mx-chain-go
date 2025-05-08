@@ -99,10 +99,6 @@ func (mbp *metaAPIBlockProcessor) GetBlockByHash(hash []byte, options api.BlockQ
 		return nil, err
 	}
 
-	if !mbp.isBlockNonceInStorage(blockHeader.Nonce) {
-		return nil, errBlockNotFound
-	}
-
 	// if genesis block, get the altered block bytes
 	if blockHeader.GetNonce() == 0 {
 		alteredHash := createAlteredBlockHash(hash)
@@ -179,10 +175,6 @@ func (mbp *metaAPIBlockProcessor) convertMetaBlockBytesToAPIBlock(hash []byte, b
 	err := mbp.marshalizer.Unmarshal(blockHeader, blockBytes)
 	if err != nil {
 		return nil, err
-	}
-
-	if !mbp.isBlockNonceInStorage(blockHeader.GetNonce()) {
-		return nil, errBlockNotFound
 	}
 
 	numOfTxs := uint32(0)

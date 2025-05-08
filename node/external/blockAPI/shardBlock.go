@@ -99,10 +99,6 @@ func (sbp *shardAPIBlockProcessor) GetBlockByHash(hash []byte, options api.Block
 		return nil, err
 	}
 
-	if !sbp.isBlockNonceInStorage(blockHeader.GetNonce()) {
-		return nil, errBlockNotFound
-	}
-
 	// if genesis block, get the altered block bytes
 	if blockHeader.GetNonce() == 0 {
 		alteredHash := createAlteredBlockHash(hash)
@@ -180,10 +176,6 @@ func (sbp *shardAPIBlockProcessor) convertShardBlockBytesToAPIBlock(hash []byte,
 	blockHeader, err := process.UnmarshalShardHeader(sbp.marshalizer, blockBytes)
 	if err != nil {
 		return nil, err
-	}
-
-	if !sbp.isBlockNonceInStorage(blockHeader.GetNonce()) {
-		return nil, errBlockNotFound
 	}
 
 	numOfTxs := uint32(0)
