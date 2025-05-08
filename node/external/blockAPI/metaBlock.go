@@ -40,12 +40,17 @@ func newMetaApiBlockProcessor(arg *ArgAPIBlockProcessor, emptyReceiptsHash []byt
 			scheduledTxsExecutionHandler: arg.ScheduledTxsExecutionHandler,
 			enableEpochsHandler:          arg.EnableEpochsHandler,
 			proofsPool:                   arg.ProofsPool,
+			blockchain:                   arg.BlockChain,
 		},
 	}
 }
 
 // GetBlockByNonce wil return a meta APIBlock by nonce
 func (mbp *metaAPIBlockProcessor) GetBlockByNonce(nonce uint64, options api.BlockQueryOptions) (*api.Block, error) {
+	if !mbp.isBlockNonceInStorage(nonce) {
+		return nil, errBlockNotFound
+	}
+
 	headerHash, blockBytes, err := mbp.getBlockHashAndBytesByNonce(nonce)
 	if err != nil {
 		return nil, err
@@ -92,6 +97,10 @@ func (mbp *metaAPIBlockProcessor) GetBlockByHash(hash []byte, options api.BlockQ
 	err = mbp.marshalizer.Unmarshal(blockHeader, blockBytes)
 	if err != nil {
 		return nil, err
+	}
+
+	if !mbp.isBlockNonceInStorage(blockHeader.Nonce) {
+		return nil, errBlockNotFound
 	}
 
 	// if genesis block, get the altered block bytes
@@ -170,6 +179,10 @@ func (mbp *metaAPIBlockProcessor) convertMetaBlockBytesToAPIBlock(hash []byte, b
 	err := mbp.marshalizer.Unmarshal(blockHeader, blockBytes)
 	if err != nil {
 		return nil, err
+	}
+
+	if !mbp.isBlockNonceInStorage(blockHeader.GetNonce()) {
+		return nil, errBlockNotFound
 	}
 
 	numOfTxs := uint32(0)

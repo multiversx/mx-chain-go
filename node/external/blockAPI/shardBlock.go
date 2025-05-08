@@ -41,12 +41,17 @@ func newShardApiBlockProcessor(arg *ArgAPIBlockProcessor, emptyReceiptsHash []by
 			scheduledTxsExecutionHandler: arg.ScheduledTxsExecutionHandler,
 			enableEpochsHandler:          arg.EnableEpochsHandler,
 			proofsPool:                   arg.ProofsPool,
+			blockchain:                   arg.BlockChain,
 		},
 	}
 }
 
 // GetBlockByNonce will return a shard APIBlock by nonce
 func (sbp *shardAPIBlockProcessor) GetBlockByNonce(nonce uint64, options api.BlockQueryOptions) (*api.Block, error) {
+	if !sbp.isBlockNonceInStorage(nonce) {
+		return nil, errBlockNotFound
+	}
+
 	headerHash, blockBytes, err := sbp.getBlockHashAndBytesByNonce(nonce)
 	if err != nil {
 		return nil, err
@@ -92,6 +97,10 @@ func (sbp *shardAPIBlockProcessor) GetBlockByHash(hash []byte, options api.Block
 	blockHeader, err := process.UnmarshalShardHeader(sbp.marshalizer, blockBytes)
 	if err != nil {
 		return nil, err
+	}
+
+	if !sbp.isBlockNonceInStorage(blockHeader.GetNonce()) {
+		return nil, errBlockNotFound
 	}
 
 	// if genesis block, get the altered block bytes
@@ -171,6 +180,10 @@ func (sbp *shardAPIBlockProcessor) convertShardBlockBytesToAPIBlock(hash []byte,
 	blockHeader, err := process.UnmarshalShardHeader(sbp.marshalizer, blockBytes)
 	if err != nil {
 		return nil, err
+	}
+
+	if !sbp.isBlockNonceInStorage(blockHeader.GetNonce()) {
+		return nil, errBlockNotFound
 	}
 
 	numOfTxs := uint32(0)
