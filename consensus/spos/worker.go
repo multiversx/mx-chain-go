@@ -354,12 +354,23 @@ func (wrk *Worker) ReceivedHeader(headerHandler data.HeaderHandler, _ []byte) {
 		return
 	}
 
+	isHeaderForOtherShard := headerHandler.GetShardID() != wrk.shardCoordinator.SelfId()
+	if isHeaderForOtherShard {
+		log.Trace("ReceivedHeader: received header for other shard",
+			"self shardID", wrk.shardCoordinator.SelfId(),
+			"received shardID", headerHandler.GetShardID(),
+		)
+		return
+	}
+
 	wrk.addFutureHeaderToProcessIfNeeded(headerHandler)
 	wrk.processReceivedHeaderMetricIfNeeded(headerHandler)
-	isHeaderForOtherShard := headerHandler.GetShardID() != wrk.shardCoordinator.SelfId()
 	isHeaderForOtherRound := int64(headerHandler.GetRound()) != wrk.roundHandler.Index()
-	headerCanNotBeProcessed := isHeaderForOtherShard || isHeaderForOtherRound
-	if headerCanNotBeProcessed {
+	if isHeaderForOtherRound {
+		log.Trace("ReceivedHeader: received header for other round",
+			"self round", wrk.roundHandler.Index(),
+			"received round", headerHandler.GetRound(),
+		)
 		return
 	}
 
