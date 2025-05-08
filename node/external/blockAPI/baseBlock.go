@@ -653,11 +653,7 @@ func (bap *baseAPIBlockProcessor) getHeaderProof(
 }
 
 func (bap *baseAPIBlockProcessor) isBlockNonceInStorage(blockNonce uint64) bool {
-	if blockNonce > bap.blockchain.GetCurrentBlockHeader().GetNonce() {
-		return false
-	}
-
-	return true
+	return blockNonce <= bap.blockchain.GetCurrentBlockHeader().GetNonce()
 }
 
 func proofToAPIProof(proof data.HeaderProofHandler) *api.HeaderProof {
