@@ -9,7 +9,7 @@ type baseFullHistoryResolver struct {
 }
 
 func (bfhr *baseFullHistoryResolver) getFromStorage(key []byte, epoch uint32) ([]byte, error) {
-	//we just call the storer to search in the provided epoch. (it will search automatically also in the next epoch)
+	// we just call the storer to search in the provided epoch. (it will search automatically also in the next epoch)
 	buff, err := bfhr.storer.GetFromEpoch(key, epoch)
 	if err != nil {
 		// default to a search first, maximize the chance of getting recent data
