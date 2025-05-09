@@ -62,6 +62,8 @@ type RequestHandler interface {
 	GetNumPeersToQuery(key string) (int, int, error)
 	RequestValidatorInfo(hash []byte)
 	RequestValidatorsInfo(hashes [][]byte)
+	SetEpoch(epoch uint32)
+	RequestEquivalentProofByHash(headerShard uint32, headerHash []byte)
 	IsInterfaceNil() bool
 }
 
