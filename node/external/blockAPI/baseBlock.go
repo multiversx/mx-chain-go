@@ -61,6 +61,7 @@ type baseAPIBlockProcessor struct {
 	scheduledTxsExecutionHandler process.ScheduledTxsExecutionHandler
 	enableEpochsHandler          common.EnableEpochsHandler
 	proofsPool                   dataRetriever.ProofsPool
+	blockchain                   data.ChainHandler
 }
 
 var log = logger.GetOrCreate("node/blockAPI")
@@ -649,6 +650,10 @@ func (bap *baseAPIBlockProcessor) getHeaderProof(
 	err = bap.marshalizer.Unmarshal(proof, proofBytes)
 
 	return proof, err
+}
+
+func (bap *baseAPIBlockProcessor) isBlockNonceInStorage(blockNonce uint64) bool {
+	return blockNonce <= bap.blockchain.GetCurrentBlockHeader().GetNonce()
 }
 
 func proofToAPIProof(proof data.HeaderProofHandler) *api.HeaderProof {

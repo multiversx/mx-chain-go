@@ -41,12 +41,17 @@ func newShardApiBlockProcessor(arg *ArgAPIBlockProcessor, emptyReceiptsHash []by
 			scheduledTxsExecutionHandler: arg.ScheduledTxsExecutionHandler,
 			enableEpochsHandler:          arg.EnableEpochsHandler,
 			proofsPool:                   arg.ProofsPool,
+			blockchain:                   arg.BlockChain,
 		},
 	}
 }
 
 // GetBlockByNonce will return a shard APIBlock by nonce
 func (sbp *shardAPIBlockProcessor) GetBlockByNonce(nonce uint64, options api.BlockQueryOptions) (*api.Block, error) {
+	if !sbp.isBlockNonceInStorage(nonce) {
+		return nil, errBlockNotFound
+	}
+
 	headerHash, blockBytes, err := sbp.getBlockHashAndBytesByNonce(nonce)
 	if err != nil {
 		return nil, err
