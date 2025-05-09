@@ -340,7 +340,7 @@
     RelayedTransactionsV3FixESDTTransferEnableEpoch = 1 # TODO: keep this equal to RelayedTransactionsV3EnableEpoch for mainnet
 
     # AndromedaEnableEpoch represents the epoch when the equivalent messages and fix order for consensus features are enabled
-    AndromedaEnableEpoch = 8 # the chain simulator tests for staking v4 fail if this is set earlier, as they test the transition in epochs 4-7
+    AndromedaEnableEpoch = 4 # the chain simulator tests for staking v4 fail if this is set earlier, as they test the transition in epochs 4-7
 
     # BLSMultiSignerEnableEpoch represents the activation epoch for different types of BLS multi-signers
     BLSMultiSignerEnableEpoch = [

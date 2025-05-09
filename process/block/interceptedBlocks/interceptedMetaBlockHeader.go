@@ -2,6 +2,10 @@ package interceptedBlocks
 
 import (
 	"fmt"
+	"os"
+	"runtime"
+	"runtime/pprof"
+	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data"
@@ -88,21 +92,62 @@ func (imh *InterceptedMetaHeader) HeaderHandler() data.HeaderHandler {
 
 // CheckValidity checks if the received meta header is valid (not nil fields, valid sig and so on)
 func (imh *InterceptedMetaHeader) CheckValidity() error {
-	log.Trace("CheckValidity for header with", "epoch", imh.hdr.GetEpoch(), "hash", logger.DisplayByteSlice(imh.hash))
+	log.Debug("CheckValidity for meta header with", "epoch", imh.hdr.GetEpoch(), "hash", logger.DisplayByteSlice(imh.hash))
+
+	startTime := time.Now()
+
+	runtime.SetMutexProfileFraction(5)
+
+	defer func() {
+		elapsedTime := time.Since(startTime)
+		if elapsedTime > time.Second*2 {
+			timestamp := time.Now().Unix()
+
+			fm_filename := fmt.Sprintf("checkvalidity_mutex_%d.proff", timestamp)
+			fm, err := os.Create(fm_filename)
+			if err != nil {
+				log.Error(err.Error())
+			}
+			defer fm.Close()
+
+			fg_filename := fmt.Sprintf("checkvalidity_goroutines_%d.proff", timestamp)
+			fg, err := os.Create(fg_filename)
+			if err != nil {
+				log.Error(err.Error())
+			}
+			defer fg.Close()
+
+			err = pprof.Lookup("mutex").WriteTo(fm, 0)
+			if err != nil {
+				log.Error("failed to write mutex profiling", "error", err.Error())
+			}
+
+			err = pprof.Lookup("goroutine").WriteTo(fg, 0)
+			if err != nil {
+				log.Error("failed to write mutex profiling", "error", err.Error())
+			}
+		}
+
+		log.Debug("DONE: CheckValidity for meta header with", "epoch", imh.hdr.GetEpoch(), "hash", logger.DisplayByteSlice(imh.hash), "elapsed time", elapsedTime)
+
+		runtime.SetMutexProfileFraction(0)
+	}()
 
 	err := imh.integrity()
 	if err != nil {
+		log.Debug("jail-debug: meta CheckValidity.integrity", "error", err.Error())
 		return err
 	}
 
 	if !imh.validityAttester.CheckBlockAgainstWhitelist(imh) {
 		err = imh.validityAttester.CheckBlockAgainstFinal(imh.HeaderHandler())
 		if err != nil {
+			log.Debug("jail-debug: meta CheckValidity.CheckBlockAgainstFinal", "error", err.Error())
 			return err
 		}
 
 		if imh.isMetaHeaderEpochOutOfRange() {
-			log.Trace("InterceptedMetaHeader.CheckValidity",
+			log.Debug("InterceptedMetaHeader.CheckValidity",
 				"trigger epoch", imh.epochStartTrigger.Epoch(),
 				"metaBlock epoch", imh.hdr.GetEpoch(),
 				"error", process.ErrMetaHeaderEpochOutOfRange)
@@ -113,20 +158,27 @@ func (imh *InterceptedMetaHeader) CheckValidity() error {
 
 	err = imh.validityAttester.CheckBlockAgainstRoundHandler(imh.HeaderHandler())
 	if err != nil {
+		log.Debug("jail-debug: meta CheckValidity.CheckBlockAgainstRoundHandler", "error", err.Error())
 		return err
 	}
 
 	err = imh.sigVerifier.VerifyRandSeedAndLeaderSignature(imh.hdr)
 	if err != nil {
+		log.Debug("jail-debug: meta CheckValidity.VerifyRandSeedAndLeaderSignature", "error", err.Error())
 		return err
 	}
 
 	err = imh.sigVerifier.VerifySignature(imh.hdr)
 	if err != nil {
+		log.Debug("jail-debug: meta CheckValidity.VerifySignature", "error", err.Error())
 		return err
 	}
 
-	return imh.integrityVerifier.Verify(imh.hdr)
+	err = imh.integrityVerifier.Verify(imh.hdr)
+	if err != nil {
+		log.Debug("jail-debug: meta CheckValidity.Verify", "error", err.Error())
+	}
+	return err
 }
 
 func (imh *InterceptedMetaHeader) isMetaHeaderEpochOutOfRange() bool {
