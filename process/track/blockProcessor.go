@@ -455,8 +455,7 @@ func (bp *blockProcessor) requestHeadersIfNothingNewIsReceived(
 	}
 
 	shouldRequestHeaders := bp.roundHandler.Index()-int64(highestRoundInReceivedHeaders) > process.MaxRoundsWithoutNewBlockReceived &&
-		int64(latestValidHeader.GetNonce())-int64(lastNotarizedHeaderNonce) <= process.MaxHeadersToRequestInAdvance &&
-		!bp.isImportDBMode // TODO: consider updating this condition to work for import db as well
+		int64(latestValidHeader.GetNonce())-int64(lastNotarizedHeaderNonce) <= process.MaxHeadersToRequestInAdvance
 	if !shouldRequestHeaders {
 		return
 	}
