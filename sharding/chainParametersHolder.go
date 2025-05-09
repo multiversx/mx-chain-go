@@ -130,7 +130,7 @@ func (c *chainParametersHolder) handleEpochChange(epoch uint32) {
 	}
 
 	c.currentChainParameters = matchingVersionForNewEpoch
-	log.Debug("updated chainParametersHolder current chain parameters",
+	log.Debug("updated chainParametersHolder current chain parameters ",
 		"round duration", matchingVersionForNewEpoch.RoundDuration,
 		"shard consensus group size", matchingVersionForNewEpoch.ShardConsensusGroupSize,
 		"shard min num nodes", matchingVersionForNewEpoch.ShardMinNumNodes,

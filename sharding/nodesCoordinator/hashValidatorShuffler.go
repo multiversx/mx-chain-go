@@ -296,7 +296,7 @@ func shuffleNodes(arg shuffleNodesArg) (*ResUpdateNodes, error) {
 
 	lowWaitingList := shouldDistributeShuffledToWaitingInStakingV4(shuffledNodesCfg)
 	if arg.flagStakingV4Step3 || lowWaitingList {
-		log.Debug("distributing selected nodes from auction to waiting",
+		log.Debug("distributing selected nodes from auction to waiting ",
 			"num auction nodes", len(arg.auction), "num waiting nodes", shuffledNodesCfg.numNewWaiting)
 
 		// Distribute selected validators from AUCTION -> WAITING
@@ -307,7 +307,7 @@ func shuffleNodes(arg shuffleNodesArg) (*ResUpdateNodes, error) {
 	}
 
 	if !arg.flagStakingV4Step2 || lowWaitingList {
-		log.Debug("distributing shuffled out nodes to waiting",
+		log.Debug("distributing shuffled out nodes to waiting ",
 			"num shuffled nodes", shuffledNodesCfg.numShuffled, "num waiting nodes", shuffledNodesCfg.numNewWaiting)
 
 		// Distribute validators from SHUFFLED OUT -> WAITING

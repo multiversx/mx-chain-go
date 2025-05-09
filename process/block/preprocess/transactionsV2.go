@@ -445,7 +445,7 @@ func (txs *transactions) displayProcessingResultsOfScheduledMiniBlocks(
 		log.Debug("scheduled mini blocks from me created", "num", len(miniBlocks))
 	}
 
-	log.Debug("displayProcessingResultsOfScheduledMiniBlocks",
+	log.Debug("displayProcessingResultsOfScheduledMiniBlocks ",
 		"self shard", txs.shardCoordinator.SelfId(),
 		"total gas consumed in self shard", mbInfo.gasInfo.totalGasConsumedInSelfShard)
 

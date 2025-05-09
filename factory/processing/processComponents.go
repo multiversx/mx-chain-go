@@ -694,7 +694,7 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 		return nil, fmt.Errorf("error generating observerBLSPublicKeyBuff, %w", err)
 	} else {
 		log.Debug("generated BLS private key for redundancy handler. This key will be used on heartbeat messages "+
-			"if the node is in backup mode and the main node is active", "hex public key", observerBLSPublicKeyBuff)
+			"if the node is in backup mode and the main node is active ", "hex public key", observerBLSPublicKeyBuff)
 	}
 
 	maxRoundsOfInactivity := int(pcf.prefConfigs.Preferences.RedundancyLevel) * pcf.config.Redundancy.MaxRoundsOfInactivityAccepted
