@@ -593,6 +593,10 @@ func (t *trigger) receivedMetaBlock(headerHandler data.HeaderHandler, metaBlockH
 	if t.enableEpochsHandler.IsFlagEnabledInEpoch(common.AndromedaFlag, headerHandler.GetEpoch()) {
 		proof, err := t.proofsPool.GetProof(headerHandler.GetShardID(), metaBlockHash)
 		if err != nil {
+			if common.IsEpochChangeBlockForFlagActivation(headerHandler, t.enableEpochsHandler, common.AndromedaFlag) {
+				t.requestHandler.SetEpoch(headerHandler.GetEpoch())
+				t.requestHandler.RequestEquivalentProofByHash(headerHandler.GetShardID(), metaBlockHash)
+			}
 			return
 		}
 
