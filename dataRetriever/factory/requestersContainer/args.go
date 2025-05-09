@@ -3,6 +3,7 @@ package requesterscontainer
 import (
 	"github.com/multiversx/mx-chain-core-go/data/typeConverters"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/p2p"
@@ -23,4 +24,5 @@ type FactoryArgs struct {
 	FullArchivePreferredPeersHolder p2p.PreferredPeersHolderHandler
 	PeersRatingHandler              dataRetriever.PeersRatingHandler
 	SizeCheckDelta                  uint32
+	EnableEpochsHandler             common.EnableEpochsHandler
 }

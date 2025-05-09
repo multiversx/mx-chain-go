@@ -8,6 +8,10 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
+	dataRetrieverMocks "github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/block/bootstrapStorage"
@@ -15,14 +19,13 @@ import (
 	"github.com/multiversx/mx-chain-go/process/sync"
 	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	epochNotifierMock "github.com/multiversx/mx-chain-go/testscommon/epochNotifier"
 	"github.com/multiversx/mx-chain-go/testscommon/genericMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/shardingMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/statusHandler"
 	storageMock "github.com/multiversx/mx-chain-go/testscommon/storage"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 func TestShardStorageBootstrapper_LoadFromStorageShouldWork(t *testing.T) {
@@ -136,6 +139,8 @@ func TestShardStorageBootstrapper_LoadFromStorageShouldWork(t *testing.T) {
 			},
 			ProcessedMiniBlocksTracker: &testscommon.ProcessedMiniBlocksTrackerStub{},
 			AppStatusHandler:           &statusHandler.AppStatusHandlerMock{},
+			EnableEpochsHandler:        &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+			ProofsPool:                 &dataRetrieverMocks.ProofsPoolMock{},
 		},
 	}
 
@@ -153,7 +158,7 @@ func TestShardStorageBootstrapper_LoadFromStorageShouldWork(t *testing.T) {
 }
 
 func TestShardStorageBootstrapper_CleanupNotarizedStorageForHigherNoncesIfExist(t *testing.T) {
-	baseArgs := createMockShardStorageBoostrapperArgs()
+	baseArgs := createMockShardStorageBootstrapperArgs()
 
 	bForceError := true
 	numCalled := 0

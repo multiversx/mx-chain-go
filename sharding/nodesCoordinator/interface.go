@@ -5,6 +5,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 
+	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/epochStart"
 	"github.com/multiversx/mx-chain-go/state"
 )
@@ -22,16 +23,17 @@ type Validator interface {
 type NodesCoordinator interface {
 	NodesCoordinatorHelper
 	PublicKeysSelector
-	ComputeConsensusGroup(randomness []byte, round uint64, shardId uint32, epoch uint32) (validatorsGroup []Validator, err error)
+	ComputeConsensusGroup(randomness []byte, round uint64, shardId uint32, epoch uint32) (leader Validator, validatorsGroup []Validator, err error)
 	GetValidatorWithPublicKey(publicKey []byte) (validator Validator, shardId uint32, err error)
 	LoadState(key []byte) error
 	GetSavedStateKey() []byte
 	ShardIdForEpoch(epoch uint32) (uint32, error)
 	ShuffleOutForEpoch(_ uint32)
 	GetConsensusWhitelistedNodes(epoch uint32) (map[string]struct{}, error)
-	ConsensusGroupSize(uint32) int
+	ConsensusGroupSizeForShardAndEpoch(uint32, uint32) int
 	GetNumTotalEligible() uint64
 	GetWaitingEpochsLeftForPublicKey(publicKey []byte) (uint32, error)
+	GetCachedEpochs() map[uint32]struct{}
 	IsInterfaceNil() bool
 }
 
@@ -46,17 +48,17 @@ type EpochStartEventNotifier interface {
 type PublicKeysSelector interface {
 	GetValidatorsIndexes(publicKeys []string, epoch uint32) ([]uint64, error)
 	GetAllEligibleValidatorsPublicKeys(epoch uint32) (map[uint32][][]byte, error)
+	GetAllEligibleValidatorsPublicKeysForShard(epoch uint32, shardID uint32) ([]string, error)
 	GetAllWaitingValidatorsPublicKeys(epoch uint32) (map[uint32][][]byte, error)
 	GetAllLeavingValidatorsPublicKeys(epoch uint32) (map[uint32][][]byte, error)
 	GetAllShuffledOutValidatorsPublicKeys(epoch uint32) (map[uint32][][]byte, error)
 	GetShuffledOutToAuctionValidatorsPublicKeys(epoch uint32) (map[uint32][][]byte, error)
-	GetConsensusValidatorsPublicKeys(randomness []byte, round uint64, shardId uint32, epoch uint32) ([]string, error)
+	GetConsensusValidatorsPublicKeys(randomness []byte, round uint64, shardId uint32, epoch uint32) (string, []string, error)
 	GetOwnPublicKey() []byte
 }
 
 // NodesShuffler provides shuffling functionality for nodes
 type NodesShuffler interface {
-	UpdateParams(numNodesShard uint32, numNodesMeta uint32, hysteresis float32, adaptivity bool)
 	UpdateNodeLists(args ArgsUpdateNodes) (*ResUpdateNodes, error)
 	IsInterfaceNil() bool
 }
@@ -176,5 +178,13 @@ type EpochNotifier interface {
 	RegisterNotifyHandler(handler vmcommon.EpochSubscriberHandler)
 	CurrentEpoch() uint32
 	CheckEpoch(header data.HeaderHandler)
+	IsInterfaceNil() bool
+}
+
+// ChainParametersHandler defines the actions that need to be done by a component that can handle chain parameters
+type ChainParametersHandler interface {
+	CurrentChainParameters() config.ChainParametersByEpochConfig
+	AllChainParameters() []config.ChainParametersByEpochConfig
+	ChainParametersForEpoch(epoch uint32) (config.ChainParametersByEpochConfig, error)
 	IsInterfaceNil() bool
 }

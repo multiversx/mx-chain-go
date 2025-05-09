@@ -8,6 +8,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/typeConverters"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/factory"
@@ -55,6 +56,10 @@ type CoreComponentsHolderStub struct {
 	HardforkTriggerPubKeyCalled         func() []byte
 	EnableEpochsHandlerCalled           func() common.EnableEpochsHandler
 	RoundNotifierCalled                 func() process.RoundNotifier
+	ChainParametersSubscriberCalled     func() process.ChainParametersSubscriber
+	ChainParametersHandlerCalled        func() process.ChainParametersHandler
+	FieldsSizeCheckerCalled             func() common.FieldsSizeChecker
+	EpochChangeGracePeriodHandlerCalled func() common.EpochChangeGracePeriodHandler
 }
 
 // NewCoreComponentsHolderStubFromRealComponent -
@@ -95,6 +100,10 @@ func NewCoreComponentsHolderStubFromRealComponent(coreComponents factory.CoreCom
 		HardforkTriggerPubKeyCalled:         coreComponents.HardforkTriggerPubKey,
 		EnableEpochsHandlerCalled:           coreComponents.EnableEpochsHandler,
 		RoundNotifierCalled:                 coreComponents.RoundNotifier,
+		ChainParametersHandlerCalled:        coreComponents.ChainParametersHandler,
+		ChainParametersSubscriberCalled:     coreComponents.ChainParametersSubscriber,
+		FieldsSizeCheckerCalled:             coreComponents.FieldsSizeChecker,
+		EpochChangeGracePeriodHandlerCalled: coreComponents.EpochChangeGracePeriodHandler,
 	}
 }
 
@@ -374,6 +383,38 @@ func (stub *CoreComponentsHolderStub) EnableEpochsHandler() common.EnableEpochsH
 func (stub *CoreComponentsHolderStub) RoundNotifier() process.RoundNotifier {
 	if stub.RoundNotifierCalled != nil {
 		return stub.RoundNotifierCalled()
+	}
+	return nil
+}
+
+// ChainParametersSubscriber -
+func (stub *CoreComponentsHolderStub) ChainParametersSubscriber() process.ChainParametersSubscriber {
+	if stub.ChainParametersSubscriberCalled != nil {
+		return stub.ChainParametersSubscriberCalled()
+	}
+	return nil
+}
+
+// ChainParametersHandler -
+func (stub *CoreComponentsHolderStub) ChainParametersHandler() process.ChainParametersHandler {
+	if stub.ChainParametersHandlerCalled != nil {
+		return stub.ChainParametersHandlerCalled()
+	}
+	return nil
+}
+
+// FieldsSizeChecker -
+func (stub *CoreComponentsHolderStub) FieldsSizeChecker() common.FieldsSizeChecker {
+	if stub.FieldsSizeCheckerCalled != nil {
+		return stub.FieldsSizeCheckerCalled()
+	}
+	return nil
+}
+
+// EpochChangeGracePeriodHandler -
+func (stub *CoreComponentsHolderStub) EpochChangeGracePeriodHandler() common.EpochChangeGracePeriodHandler {
+	if stub.EpochChangeGracePeriodHandlerCalled != nil {
+		return stub.EpochChangeGracePeriodHandlerCalled()
 	}
 	return nil
 }

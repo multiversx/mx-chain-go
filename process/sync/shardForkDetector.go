@@ -7,6 +7,8 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
+
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/process"
 )
@@ -24,6 +26,8 @@ func NewShardForkDetector(
 	blackListHandler process.TimeCacher,
 	blockTracker process.BlockTracker,
 	genesisTime int64,
+	enableEpochsHandler common.EnableEpochsHandler,
+	proofsPool process.ProofsPool,
 ) (*shardForkDetector, error) {
 
 	if check.IfNil(roundHandler) {
@@ -35,6 +39,12 @@ func NewShardForkDetector(
 	if check.IfNil(blockTracker) {
 		return nil, process.ErrNilBlockTracker
 	}
+	if check.IfNil(enableEpochsHandler) {
+		return nil, process.ErrNilEnableEpochsHandler
+	}
+	if check.IfNil(proofsPool) {
+		return nil, process.ErrNilProofsPool
+	}
 
 	genesisHdr, _, err := blockTracker.GetSelfNotarizedHeader(core.MetachainShardId, 0)
 	if err != nil {
@@ -42,13 +52,15 @@ func NewShardForkDetector(
 	}
 
 	bfd := &baseForkDetector{
-		roundHandler:     roundHandler,
-		blackListHandler: blackListHandler,
-		genesisTime:      genesisTime,
-		blockTracker:     blockTracker,
-		genesisNonce:     genesisHdr.GetNonce(),
-		genesisRound:     genesisHdr.GetRound(),
-		genesisEpoch:     genesisHdr.GetEpoch(),
+		roundHandler:        roundHandler,
+		blackListHandler:    blackListHandler,
+		genesisTime:         genesisTime,
+		blockTracker:        blockTracker,
+		genesisNonce:        genesisHdr.GetNonce(),
+		genesisRound:        genesisHdr.GetRound(),
+		genesisEpoch:        genesisHdr.GetEpoch(),
+		enableEpochsHandler: enableEpochsHandler,
+		proofsPool:          proofsPool,
 	}
 
 	bfd.headers = make(map[uint64][]*headerInfo)
@@ -100,7 +112,13 @@ func (sfd *shardForkDetector) doJobOnBHProcessed(
 ) {
 	_ = sfd.appendSelfNotarizedHeaders(selfNotarizedHeaders, selfNotarizedHeadersHashes, core.MetachainShardId)
 	sfd.computeFinalCheckpoint()
-	sfd.addCheckpoint(&checkpointInfo{nonce: header.GetNonce(), round: header.GetRound(), hash: headerHash})
+	newCheckpoint := &checkpointInfo{nonce: header.GetNonce(), round: header.GetRound(), hash: headerHash}
+	sfd.addCheckpoint(newCheckpoint)
+	// first shard block with proof does not have increased consensus
+	// so instant finality will only be set after the first block with increased consensus
+	if common.IsFlagEnabledAfterEpochsStartBlock(header, sfd.enableEpochsHandler, common.AndromedaFlag) {
+		sfd.setFinalCheckpoint(newCheckpoint)
+	}
 	sfd.removePastOrInvalidRecords()
 }
 
@@ -136,11 +154,13 @@ func (sfd *shardForkDetector) appendSelfNotarizedHeaders(
 			continue
 		}
 
+		hasProof := sfd.proofsPool.HasProof(selfNotarizedHeaders[i].GetShardID(), selfNotarizedHeadersHashes[i])
 		appended := sfd.append(&headerInfo{
-			nonce: selfNotarizedHeaders[i].GetNonce(),
-			round: selfNotarizedHeaders[i].GetRound(),
-			hash:  selfNotarizedHeadersHashes[i],
-			state: process.BHNotarized,
+			nonce:    selfNotarizedHeaders[i].GetNonce(),
+			round:    selfNotarizedHeaders[i].GetRound(),
+			hash:     selfNotarizedHeadersHashes[i],
+			state:    process.BHNotarized,
+			hasProof: hasProof,
 		})
 		if appended {
 			log.Debug("added self notarized header in fork detector",

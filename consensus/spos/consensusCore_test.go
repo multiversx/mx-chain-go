@@ -3,15 +3,15 @@ package spos_test
 import (
 	"testing"
 
-	"github.com/multiversx/mx-chain-go/consensus/mock"
+	"github.com/stretchr/testify/assert"
+
 	"github.com/multiversx/mx-chain-go/consensus/spos"
 	"github.com/multiversx/mx-chain-go/testscommon/consensus"
 	"github.com/multiversx/mx-chain-go/testscommon/cryptoMocks"
-	"github.com/stretchr/testify/assert"
 )
 
 func createDefaultConsensusCoreArgs() *spos.ConsensusCoreArgs {
-	consensusCoreMock := mock.InitConsensusCore()
+	consensusCoreMock := consensus.InitConsensusCore()
 
 	scheduledProcessor := &consensus.ScheduledProcessorStub{}
 
@@ -38,6 +38,10 @@ func createDefaultConsensusCoreArgs() *spos.ConsensusCoreArgs {
 		MessageSigningHandler:         consensusCoreMock.MessageSigningHandler(),
 		PeerBlacklistHandler:          consensusCoreMock.PeerBlacklistHandler(),
 		SigningHandler:                consensusCoreMock.SigningHandler(),
+		EnableEpochsHandler:           consensusCoreMock.EnableEpochsHandler(),
+		EquivalentProofsPool:          consensusCoreMock.EquivalentProofsPool(),
+		EpochNotifier:                 consensusCoreMock.EpochNotifier(),
+		InvalidSignersCache:           &consensus.InvalidSignersCacheMock{},
 	}
 	return args
 }
@@ -332,6 +336,34 @@ func TestConsensusCore_WithNilPeerBlacklistHandlerShouldFail(t *testing.T) {
 
 	assert.Nil(t, consensusCore)
 	assert.Equal(t, spos.ErrNilPeerBlacklistHandler, err)
+}
+
+func TestConsensusCore_WithNilEnableEpochsHandlerShouldFail(t *testing.T) {
+	t.Parallel()
+
+	args := createDefaultConsensusCoreArgs()
+	args.EnableEpochsHandler = nil
+
+	consensusCore, err := spos.NewConsensusCore(
+		args,
+	)
+
+	assert.Nil(t, consensusCore)
+	assert.Equal(t, spos.ErrNilEnableEpochsHandler, err)
+}
+
+func TestConsensusCore_WithNilEpochStartRegistrationHandlerShouldFail(t *testing.T) {
+	t.Parallel()
+
+	args := createDefaultConsensusCoreArgs()
+	args.EpochStartRegistrationHandler = nil
+
+	consensusCore, err := spos.NewConsensusCore(
+		args,
+	)
+
+	assert.Nil(t, consensusCore)
+	assert.Equal(t, spos.ErrNilEpochStartNotifier, err)
 }
 
 func TestConsensusCore_CreateConsensusCoreShouldWork(t *testing.T) {

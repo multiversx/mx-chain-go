@@ -8,14 +8,15 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	dataBlock "github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/dataRetriever/mock"
 	"github.com/multiversx/mx-chain-go/dataRetriever/provider"
-	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/cache"
 	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
 	storageStubs "github.com/multiversx/mx-chain-go/testscommon/storage"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 func createMockMiniblockProviderArgs(
@@ -37,7 +38,7 @@ func createMockMiniblockProviderArgs(
 				return nil, fmt.Errorf("not found")
 			},
 		},
-		MiniBlockPool: &testscommon.CacherStub{
+		MiniBlockPool: &cache.CacherStub{
 			PeekCalled: func(key []byte) (value interface{}, ok bool) {
 				if isByteSliceInSlice(key, dataPoolExistingHashes) {
 					return &dataBlock.MiniBlock{}, true
@@ -105,7 +106,7 @@ func TestNewMiniBlockProvider_ShouldWork(t *testing.T) {
 	assert.Nil(t, err)
 }
 
-//------- GetMiniBlocksFromPool
+// ------- GetMiniBlocksFromPool
 
 func TestMiniBlockProvider_GetMiniBlocksFromPoolFoundInPoolShouldReturn(t *testing.T) {
 	t.Parallel()
@@ -140,7 +141,7 @@ func TestMiniBlockProvider_GetMiniBlocksFromPoolWrongTypeInPoolShouldNotReturn(t
 
 	hashes := [][]byte{[]byte("hash1"), []byte("hash2")}
 	arg := createMockMiniblockProviderArgs(hashes, nil)
-	arg.MiniBlockPool = &testscommon.CacherStub{
+	arg.MiniBlockPool = &cache.CacherStub{
 		PeekCalled: func(key []byte) (value interface{}, ok bool) {
 			return "not a miniblock", true
 		},
@@ -153,7 +154,7 @@ func TestMiniBlockProvider_GetMiniBlocksFromPoolWrongTypeInPoolShouldNotReturn(t
 	assert.Equal(t, hashes, missingHashes)
 }
 
-//------- GetMiniBlocks
+// ------- GetMiniBlocks
 
 func TestMiniBlockProvider_GetMiniBlocksFoundInPoolShouldReturn(t *testing.T) {
 	t.Parallel()

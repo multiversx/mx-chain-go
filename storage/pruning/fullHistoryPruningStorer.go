@@ -113,7 +113,7 @@ func (fhps *FullHistoryPruningStorer) PutInEpoch(key []byte, data []byte, epoch 
 		return err
 	}
 
-	return fhps.doPutInPersister(key, data, persister)
+	return fhps.doPutInPersister(key, data, persister, epoch)
 }
 
 func (fhps *FullHistoryPruningStorer) searchInEpoch(key []byte, epoch uint32) ([]byte, error) {

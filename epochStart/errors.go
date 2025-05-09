@@ -71,6 +71,9 @@ var ErrNilRequestHandler = errors.New("nil request handler")
 // ErrNilMetaBlocksPool signals that nil metablock pools holder has been provided
 var ErrNilMetaBlocksPool = errors.New("nil metablocks pool")
 
+// ErrNilProofsPool signals that nil proofs pool has been provided
+var ErrNilProofsPool = errors.New("nil proofs pool")
+
 // ErrNilValidatorInfoProcessor signals that a nil validator info processor has been provided
 var ErrNilValidatorInfoProcessor = errors.New("nil validator info processor")
 
@@ -233,6 +236,9 @@ var ErrNilEpochNotifier = errors.New("nil EpochNotifier")
 // ErrNilMetablockProcessor signals that a nil metablock processor was provided
 var ErrNilMetablockProcessor = errors.New("nil metablock processor")
 
+// ErrNilInterceptedDataVerifierFactory signals that a nil intercepted data verifier factory was provided
+var ErrNilInterceptedDataVerifierFactory = errors.New("nil intercepted data verifier factory")
+
 // ErrCouldNotInitDelegationSystemSC signals that delegation system sc init failed
 var ErrCouldNotInitDelegationSystemSC = errors.New("could not init delegation system sc")
 
@@ -346,3 +352,9 @@ var ErrUint32SubtractionOverflow = errors.New("uint32 subtraction overflowed")
 
 // ErrReceivedAuctionValidatorsBeforeStakingV4 signals that an auction node has been provided before enabling staking v4
 var ErrReceivedAuctionValidatorsBeforeStakingV4 = errors.New("auction node has been provided before enabling staking v4")
+
+// ErrNilEquivalentProofsProcessor signals that a nil equivalent proofs processor was provided
+var ErrNilEquivalentProofsProcessor = errors.New("nil equivalent proofs processor")
+
+// ErrNilHeadersDataPool signals that a nil headers pool has been provided
+var ErrNilHeadersDataPool = errors.New("nil headers data pool")

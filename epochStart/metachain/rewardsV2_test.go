@@ -708,7 +708,7 @@ func TestNewRewardsCreatorV2_computeBaseRewardsPerNode(t *testing.T) {
 
 	for shardID := range shardMap {
 		rwd.mapBaseRewardsPerBlockPerValidator[shardID] = big.NewInt(0).Set(baseRewardPerBlock)
-		cnsSize := big.NewInt(0).SetInt64(int64(args.NodesConfigProvider.ConsensusGroupSize(shardID)))
+		cnsSize := big.NewInt(0).SetInt64(int64(args.NodesConfigProvider.ConsensusGroupSizeForShardAndEpoch(shardID, 0)))
 		rwd.mapBaseRewardsPerBlockPerValidator[shardID].Div(rwd.mapBaseRewardsPerBlockPerValidator[shardID], cnsSize)
 	}
 
@@ -1873,8 +1873,8 @@ func createDefaultValidatorInfo(
 	proposerFeesPerNode uint32,
 	nbBlocksPerShard uint32,
 ) state.ShardValidatorsInfoMapHandler {
-	cGrShard := uint32(nodesConfigProvider.ConsensusGroupSize(0))
-	cGrMeta := uint32(nodesConfigProvider.ConsensusGroupSize(core.MetachainShardId))
+	cGrShard := uint32(nodesConfigProvider.ConsensusGroupSizeForShardAndEpoch(0, 0))
+	cGrMeta := uint32(nodesConfigProvider.ConsensusGroupSizeForShardAndEpoch(core.MetachainShardId, 0))
 	nbBlocksSelectedNodeInShard := nbBlocksPerShard * cGrShard / eligibleNodesPerShard
 	nbBlocksSelectedNodeInMeta := nbBlocksPerShard * cGrMeta / eligibleNodesPerShard
 

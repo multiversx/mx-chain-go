@@ -11,8 +11,7 @@ import (
 
 // ArgNodesCoordinator holds all dependencies required by the nodes coordinator in order to create new instances
 type ArgNodesCoordinator struct {
-	ShardConsensusGroupSize         int
-	MetaConsensusGroupSize          int
+	ChainParametersHandler          ChainParametersHandler
 	Marshalizer                     marshal.Marshalizer
 	Hasher                          hashing.Hasher
 	Shuffler                        NodesShuffler

@@ -239,6 +239,9 @@ var ErrNilMiniBlockPool = errors.New("nil mini block pool")
 // ErrNilMetaBlocksPool signals that a nil meta blocks pool was used
 var ErrNilMetaBlocksPool = errors.New("nil meta blocks pool")
 
+// ErrNilProofsPool signals that a nil proofs pool was used
+var ErrNilProofsPool = errors.New("nil proofs pool")
+
 // ErrNilTxProcessor signals that a nil transactions processor was used
 var ErrNilTxProcessor = errors.New("nil transactions processor")
 
@@ -464,6 +467,9 @@ var ErrNilEpochNotifier = errors.New("nil EpochNotifier")
 
 // ErrNilRoundNotifier signals that the provided EpochNotifier is nil
 var ErrNilRoundNotifier = errors.New("nil RoundNotifier")
+
+// ErrNilChainParametersHandler signals that the provided chain parameters handler is nil
+var ErrNilChainParametersHandler = errors.New("nil chain parameters handler")
 
 // ErrInvalidCacheRefreshIntervalInSec signals that the cacheRefreshIntervalInSec is invalid - zero or less
 var ErrInvalidCacheRefreshIntervalInSec = errors.New("invalid cacheRefreshIntervalInSec")
@@ -692,6 +698,9 @@ var ErrNilWhiteListHandler = errors.New("nil whitelist handler")
 
 // ErrNilPreferredPeersHolder signals that preferred peers holder is nil
 var ErrNilPreferredPeersHolder = errors.New("nil preferred peers holder")
+
+// ErrNilInterceptedDataVerifier signals that intercepted data verifier is nil
+var ErrNilInterceptedDataVerifier = errors.New("nil intercepted data verifier")
 
 // ErrMiniBlocksInWrongOrder signals the miniblocks are in wrong order
 var ErrMiniBlocksInWrongOrder = errors.New("miniblocks in wrong order, should have been only from me")
@@ -1089,6 +1098,9 @@ var ErrInvalidExpiryTimespan = errors.New("invalid expiry timespan")
 // ErrNilPeerSignatureHandler signals that a nil peer signature handler was provided
 var ErrNilPeerSignatureHandler = errors.New("nil peer signature handler")
 
+// ErrNilInterceptedDataVerifierFactory signals that a nil intercepted data verifier factory was provided
+var ErrNilInterceptedDataVerifierFactory = errors.New("nil intercepted data verifier factory")
+
 // ErrNilPeerAuthenticationCacher signals that a nil peer authentication cacher was provided
 var ErrNilPeerAuthenticationCacher = errors.New("nil peer authentication cacher")
 
@@ -1133,6 +1145,9 @@ var ErrNilESDTGlobalSettingsHandler = errors.New("nil esdt global settings handl
 
 // ErrNilEnableEpochsHandler signals that a nil enable epochs handler has been provided
 var ErrNilEnableEpochsHandler = errors.New("nil enable epochs handler")
+
+// ErrNilEpochChangeGracePeriodHandler signals that a nil epoch change grace period handler has been provided
+var ErrNilEpochChangeGracePeriodHandler = errors.New("nil epoch change grace period handler")
 
 // ErrNilMultiSignerContainer signals that the given multisigner container is nil
 var ErrNilMultiSignerContainer = errors.New("nil multiSigner container")
@@ -1230,6 +1245,15 @@ var ErrTransferAndExecuteByUserAddressesAreNil = errors.New("transfer and execut
 // ErrRelayedTxV3Disabled signals that relayed tx v3 are disabled
 var ErrRelayedTxV3Disabled = errors.New("relayed tx v3 are disabled")
 
+// ErrMissingConfigurationForEpochZero signals that the provided configuration doesn't include anything for epoch 0
+var ErrMissingConfigurationForEpochZero = errors.New("missing configuration for epoch 0")
+
+// ErrEmptyChainParametersConfiguration signals that an empty chain parameters configuration has been provided
+var ErrEmptyChainParametersConfiguration = errors.New("empty chain parameters configuration")
+
+// ErrNoMatchingConfigForProvidedEpoch signals that there is no matching configuration for the provided epoch
+var ErrNoMatchingConfigForProvidedEpoch = errors.New("no matching configuration")
+
 // ErrGuardedRelayerNotAllowed signals that the provided relayer is guarded
 var ErrGuardedRelayerNotAllowed = errors.New("guarded relayer not allowed")
 
@@ -1241,3 +1265,33 @@ var ErrInvalidRelayedTxV3 = errors.New("invalid relayed transaction")
 
 // ErrProtocolSustainabilityAddressInMetachain signals that protocol sustainability address is in metachain which is not allowed
 var ErrProtocolSustainabilityAddressInMetachain = errors.New("protocol sustainability address in metachain")
+
+// ErrNilHeaderProof signals that a nil header proof has been provided
+var ErrNilHeaderProof = errors.New("nil header proof")
+
+// ErrNilInterceptedDataCache signals that a nil cacher was provided for intercepted data verifier
+var ErrNilInterceptedDataCache = errors.New("nil cache for intercepted data")
+
+// ErrFlagNotActive signals that a flag is not active
+var ErrFlagNotActive = errors.New("flag not active")
+
+// ErrInvalidInterceptedData signals that an invalid data has been intercepted
+var ErrInvalidInterceptedData = errors.New("invalid intercepted data")
+
+// ErrMissingHeaderProof signals that the proof for the header is missing
+var ErrMissingHeaderProof = errors.New("missing header proof")
+
+// ErrInvalidHeaderProof signals that an invalid equivalent proof has been provided
+var ErrInvalidHeaderProof = errors.New("invalid equivalent proof")
+
+// ErrUnexpectedHeaderProof signals that a header proof has been provided unexpectedly
+var ErrUnexpectedHeaderProof = errors.New("unexpected header proof")
+
+// ErrEpochMismatch signals that the epoch do not match
+var ErrEpochMismatch = errors.New("epoch mismatch")
+
+// ErrInvalidRatingsConfig signals that an invalid ratings config has been provided
+var ErrInvalidRatingsConfig = errors.New("invalid ratings config")
+
+// ErrNilKeyRWMutexHandler signals that a nil KeyRWMutexHandler has been provided
+var ErrNilKeyRWMutexHandler = errors.New("nil key rw mutex handler")

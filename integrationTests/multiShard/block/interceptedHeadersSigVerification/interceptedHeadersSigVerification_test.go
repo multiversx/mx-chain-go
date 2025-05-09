@@ -11,8 +11,9 @@ import (
 	"github.com/multiversx/mx-chain-crypto-go"
 	"github.com/multiversx/mx-chain-crypto-go/signing"
 	"github.com/multiversx/mx-chain-crypto-go/signing/mcl"
-	"github.com/multiversx/mx-chain-go/integrationTests"
 	"github.com/stretchr/testify/assert"
+
+	"github.com/multiversx/mx-chain-go/integrationTests"
 )
 
 const broadcastDelay = 2 * time.Second
@@ -57,12 +58,12 @@ func TestInterceptedShardBlockHeaderVerifiedWithCorrectConsensusGroup(t *testing
 	nonce := uint64(1)
 
 	var err error
-	body, header, _, _ := integrationTests.ProposeBlockWithConsensusSignature(0, nodesMap, round, nonce, randomness, 0)
-	header, err = fillHeaderFields(nodesMap[0][0], header, singleSigner)
+	proposeBlockData := integrationTests.ProposeBlockWithConsensusSignature(0, nodesMap, round, nonce, randomness, 0)
+	header, err := fillHeaderFields(proposeBlockData.Leader, proposeBlockData.Header, singleSigner)
 	assert.Nil(t, err)
 
 	pk := nodesMap[0][0].NodeKeys.MainKey.Pk
-	nodesMap[0][0].BroadcastBlock(body, header, pk)
+	nodesMap[0][0].BroadcastBlock(proposeBlockData.Body, header, pk)
 
 	time.Sleep(broadcastDelay)
 
@@ -122,7 +123,7 @@ func TestInterceptedMetaBlockVerifiedWithCorrectConsensusGroup(t *testing.T) {
 	round := uint64(1)
 	nonce := uint64(1)
 
-	body, header, _, _ := integrationTests.ProposeBlockWithConsensusSignature(
+	proposeBlockData := integrationTests.ProposeBlockWithConsensusSignature(
 		core.MetachainShardId,
 		nodesMap,
 		round,
@@ -132,13 +133,13 @@ func TestInterceptedMetaBlockVerifiedWithCorrectConsensusGroup(t *testing.T) {
 	)
 
 	pk := nodesMap[core.MetachainShardId][0].NodeKeys.MainKey.Pk
-	nodesMap[core.MetachainShardId][0].BroadcastBlock(body, header, pk)
+	nodesMap[core.MetachainShardId][0].BroadcastBlock(proposeBlockData.Body, proposeBlockData.Header, pk)
 
 	time.Sleep(broadcastDelay)
 
-	headerBytes, _ := integrationTests.TestMarshalizer.Marshal(header)
+	headerBytes, _ := integrationTests.TestMarshalizer.Marshal(proposeBlockData.Header)
 	headerHash := integrationTests.TestHasher.Compute(string(headerBytes))
-	hmb := header.(*block.MetaBlock)
+	hmb := proposeBlockData.Header.(*block.MetaBlock)
 
 	// all nodes in metachain do not have the block in pool as interceptor does not validate it with a wrong consensus
 	for _, metaNode := range nodesMap[core.MetachainShardId] {
@@ -197,16 +198,16 @@ func TestInterceptedShardBlockHeaderWithLeaderSignatureAndRandSeedChecks(t *test
 	round := uint64(1)
 	nonce := uint64(1)
 
-	body, header, _, consensusNodes := integrationTests.ProposeBlockWithConsensusSignature(0, nodesMap, round, nonce, randomness, 0)
-	nodeToSendFrom := consensusNodes[0]
-	err := header.SetPrevRandSeed(randomness)
+	proposeBlockData := integrationTests.ProposeBlockWithConsensusSignature(0, nodesMap, round, nonce, randomness, 0)
+	nodeToSendFrom := proposeBlockData.Leader
+	err := proposeBlockData.Header.SetPrevRandSeed(randomness)
 	assert.Nil(t, err)
 
-	header, err = fillHeaderFields(nodeToSendFrom, header, singleSigner)
+	header, err := fillHeaderFields(nodeToSendFrom, proposeBlockData.Header, singleSigner)
 	assert.Nil(t, err)
 
 	pk := nodeToSendFrom.NodeKeys.MainKey.Pk
-	nodeToSendFrom.BroadcastBlock(body, header, pk)
+	nodeToSendFrom.BroadcastBlock(proposeBlockData.Body, header, pk)
 
 	time.Sleep(broadcastDelay)
 
@@ -268,14 +269,14 @@ func TestInterceptedShardHeaderBlockWithWrongPreviousRandSeedShouldNotBeAccepted
 	wrongRandomness := []byte("wrong randomness")
 	round := uint64(2)
 	nonce := uint64(2)
-	body, header, _, _ := integrationTests.ProposeBlockWithConsensusSignature(0, nodesMap, round, nonce, wrongRandomness, 0)
+	proposeBlockData := integrationTests.ProposeBlockWithConsensusSignature(0, nodesMap, round, nonce, wrongRandomness, 0)
 
 	pk := nodesMap[0][0].NodeKeys.MainKey.Pk
-	nodesMap[0][0].BroadcastBlock(body, header, pk)
+	nodesMap[0][0].BroadcastBlock(proposeBlockData.Body, proposeBlockData.Header, pk)
 
 	time.Sleep(broadcastDelay)
 
-	headerBytes, _ := integrationTests.TestMarshalizer.Marshal(header)
+	headerBytes, _ := integrationTests.TestMarshalizer.Marshal(proposeBlockData.Header)
 	headerHash := integrationTests.TestHasher.Compute(string(headerBytes))
 
 	// all nodes in metachain have the block header in pool as interceptor validates it
@@ -294,8 +295,11 @@ func TestInterceptedShardHeaderBlockWithWrongPreviousRandSeedShouldNotBeAccepted
 func fillHeaderFields(proposer *integrationTests.TestProcessorNode, hdr data.HeaderHandler, signer crypto.SingleSigner) (data.HeaderHandler, error) {
 	leaderSk := proposer.NodeKeys.MainKey.Sk
 
-	randSeed, _ := signer.Sign(leaderSk, hdr.GetPrevRandSeed())
-	err := hdr.SetRandSeed(randSeed)
+	randSeed, err := signer.Sign(leaderSk, hdr.GetPrevRandSeed())
+	if err != nil {
+		return nil, err
+	}
+	err = hdr.SetRandSeed(randSeed)
 	if err != nil {
 		return nil, err
 	}

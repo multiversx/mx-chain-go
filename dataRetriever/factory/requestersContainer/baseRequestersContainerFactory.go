@@ -36,6 +36,7 @@ type baseRequestersContainerFactory struct {
 	mainPreferredPeersHolder        dataRetriever.PreferredPeersHolderHandler
 	fullArchivePreferredPeersHolder dataRetriever.PreferredPeersHolderHandler
 	peersRatingHandler              dataRetriever.PeersRatingHandler
+	enableEpochsHandler             common.EnableEpochsHandler
 	numCrossShardPeers              int
 	numIntraShardPeers              int
 	numTotalPeers                   int
@@ -343,4 +344,31 @@ func (brcf *baseRequestersContainerFactory) generateValidatorInfoRequester() err
 	}
 
 	return brcf.container.Add(identifierValidatorInfo, requester)
+}
+
+func (brcf *baseRequestersContainerFactory) createEquivalentProofsRequester(
+	topic string,
+	numCrossShardPeers int,
+	numIntraShardPeers int,
+	targetShardID uint32,
+) (dataRetriever.Requester, error) {
+	requestSender, err := brcf.createOneRequestSenderWithSpecifiedNumRequests(
+		topic,
+		EmptyExcludePeersOnTopic,
+		targetShardID,
+		numCrossShardPeers,
+		numIntraShardPeers,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	arg := requesters.ArgEquivalentProofsRequester{
+		ArgBaseRequester: requesters.ArgBaseRequester{
+			RequestSender: requestSender,
+			Marshaller:    brcf.marshaller,
+		},
+		EnableEpochsHandler: brcf.enableEpochsHandler,
+	}
+	return requesters.NewEquivalentProofsRequester(arg)
 }

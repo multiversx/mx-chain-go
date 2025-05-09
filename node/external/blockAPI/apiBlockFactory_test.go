@@ -15,6 +15,7 @@ import (
 	"github.com/multiversx/mx-chain-go/process/txstatus"
 	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/testscommon"
+	dataRetrieverTestCommon "github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
 	"github.com/multiversx/mx-chain-go/testscommon/dblookupext"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/genericMocks"
@@ -25,6 +26,10 @@ import (
 
 func createMockArgsAPIBlockProc() *ArgAPIBlockProcessor {
 	statusComputer, _ := txstatus.NewStatusComputer(0, mock.NewNonceHashConverterMock(), &storageMocks.ChainStorerStub{})
+	chainHandler := &testscommon.ChainHandlerMock{}
+	_ = chainHandler.SetCurrentBlockHeaderAndRootHash(&block.Header{
+		Nonce: 123456,
+	}, []byte("root"))
 
 	return &ArgAPIBlockProcessor{
 		Store:                        &storageMocks.ChainStorerStub{},
@@ -41,6 +46,8 @@ func createMockArgsAPIBlockProc() *ArgAPIBlockProcessor {
 		AccountsRepository:           &state.AccountsRepositoryStub{},
 		ScheduledTxsExecutionHandler: &testscommon.ScheduledTxsExecutionStub{},
 		EnableEpochsHandler:          &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		ProofsPool:                   &dataRetrieverTestCommon.ProofsPoolMock{},
+		BlockChain:                   chainHandler,
 	}
 }
 
@@ -182,6 +189,25 @@ func TestCreateAPIBlockProcessorNilArgs(t *testing.T) {
 
 		_, err := CreateAPIBlockProcessor(arguments)
 		assert.Equal(t, errNilEnableEpochsHandler, err)
+	})
+	t.Run("NilProofsPool", func(t *testing.T) {
+		t.Parallel()
+
+		arguments := createMockArgsAPIBlockProc()
+		arguments.ProofsPool = nil
+
+		_, err := CreateAPIBlockProcessor(arguments)
+		assert.Equal(t, process.ErrNilProofsPool, err)
+	})
+
+	t.Run("NilBlockChain", func(t *testing.T) {
+		t.Parallel()
+
+		arguments := createMockArgsAPIBlockProc()
+		arguments.BlockChain = nil
+
+		_, err := CreateAPIBlockProcessor(arguments)
+		assert.Equal(t, process.ErrNilBlockChain, err)
 	})
 }
 

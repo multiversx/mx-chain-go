@@ -24,10 +24,16 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/typeConverters/uint64ByteSlice"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+	"golang.org/x/exp/slices"
+
 	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/common/graceperiod"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/dataRetriever/blockchain"
+	proofscache "github.com/multiversx/mx-chain-go/dataRetriever/dataPool/proofsCache"
 	"github.com/multiversx/mx-chain-go/process"
 	blproc "github.com/multiversx/mx-chain-go/process/block"
 	"github.com/multiversx/mx-chain-go/process/block/bootstrapStorage"
@@ -40,6 +46,7 @@ import (
 	"github.com/multiversx/mx-chain-go/storage/database"
 	"github.com/multiversx/mx-chain-go/storage/storageunit"
 	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/cache"
 	commonMocks "github.com/multiversx/mx-chain-go/testscommon/common"
 	dataRetrieverMock "github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
 	"github.com/multiversx/mx-chain-go/testscommon/dblookupext"
@@ -55,9 +62,9 @@ import (
 	stateMock "github.com/multiversx/mx-chain-go/testscommon/state"
 	statusHandlerMock "github.com/multiversx/mx-chain-go/testscommon/statusHandler"
 	storageStubs "github.com/multiversx/mx-chain-go/testscommon/storage"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
+
+var expectedErr = errors.New("expected error")
 
 const (
 	busyIdentifier = "busy"
@@ -76,8 +83,9 @@ func createArgBaseProcessor(
 ) blproc.ArgBaseProcessor {
 	nodesCoordinatorInstance := shardingMocks.NewNodesCoordinatorMock()
 	argsHeaderValidator := blproc.ArgsHeaderValidator{
-		Hasher:      &hashingMocks.HasherMock{},
-		Marshalizer: &mock.MarshalizerMock{},
+		Hasher:              &hashingMocks.HasherMock{},
+		Marshalizer:         &mock.MarshalizerMock{},
+		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 	}
 	headerValidator, _ := blproc.NewHeaderValidator(argsHeaderValidator)
 
@@ -140,8 +148,8 @@ func createTestBlockchain() *testscommon.ChainHandlerStub {
 }
 
 func generateTestCache() storage.Cacher {
-	cache, _ := storageunit.NewCache(storageunit.CacheConfig{Type: storageunit.LRUCache, Capacity: 1000, Shards: 1, SizeInBytes: 0})
-	return cache
+	c, _ := storageunit.NewCache(storageunit.CacheConfig{Type: storageunit.LRUCache, Capacity: 1000, Shards: 1, SizeInBytes: 0})
+	return c
 }
 
 func generateTestUnit() storage.Storer {
@@ -160,7 +168,7 @@ func createShardedDataChacherNotifier(
 	return func() dataRetriever.ShardedDataCacherNotifier {
 		return &testscommon.ShardedDataStub{
 			ShardDataStoreCalled: func(id string) (c storage.Cacher) {
-				return &testscommon.CacherStub{
+				return &cache.CacherStub{
 					PeekCalled: func(key []byte) (value interface{}, ok bool) {
 						if reflect.DeepEqual(key, testHash) {
 							return handler, true
@@ -207,7 +215,7 @@ func initDataPool(testHash []byte) *dataRetrieverMock.PoolsHolderStub {
 		UnsignedTransactionsCalled: unsignedTxCalled,
 		RewardTransactionsCalled:   rewardTransactionsCalled,
 		MetaBlocksCalled: func() storage.Cacher {
-			return &testscommon.CacherStub{
+			return &cache.CacherStub{
 				GetCalled: func(key []byte) (value interface{}, ok bool) {
 					if reflect.DeepEqual(key, []byte("tx1_hash")) {
 						return &transaction.Transaction{Nonce: 10}, true
@@ -234,7 +242,7 @@ func initDataPool(testHash []byte) *dataRetrieverMock.PoolsHolderStub {
 			}
 		},
 		MiniBlocksCalled: func() storage.Cacher {
-			cs := testscommon.NewCacherStub()
+			cs := cache.NewCacherStub()
 			cs.RegisterHandlerCalled = func(i func(key []byte, value interface{})) {
 			}
 			cs.GetCalled = func(key []byte) (value interface{}, ok bool) {
@@ -283,6 +291,9 @@ func initDataPool(testHash []byte) *dataRetrieverMock.PoolsHolderStub {
 				return nil
 			}
 			return cs
+		},
+		ProofsCalled: func() dataRetriever.ProofsPool {
+			return proofscache.NewProofsPool(3, 100)
 		},
 	}
 
@@ -379,17 +390,19 @@ func createComponentHolderMocks() (
 	blkc, _ := blockchain.NewBlockChain(&statusHandlerMock.AppStatusHandlerStub{})
 	_ = blkc.SetGenesisHeader(&block.Header{Nonce: 0})
 
+	gracePeriod, _ := graceperiod.NewEpochChangeGracePeriod([]config.EpochChangeGracePeriodByEpoch{{EnableEpoch: 0, GracePeriodInRounds: 1}})
 	coreComponents := &mock.CoreComponentsMock{
-		IntMarsh:                  &mock.MarshalizerMock{},
-		Hash:                      &mock.HasherStub{},
-		UInt64ByteSliceConv:       &mock.Uint64ByteSliceConverterMock{},
-		StatusField:               &statusHandlerMock.AppStatusHandlerStub{},
-		RoundField:                &mock.RoundHandlerMock{},
-		ProcessStatusHandlerField: &testscommon.ProcessStatusHandlerStub{},
-		EpochNotifierField:        &epochNotifier.EpochNotifierStub{},
-		EnableEpochsHandlerField:  enableEpochsHandlerMock.NewEnableEpochsHandlerStub(),
-		RoundNotifierField:        &epochNotifier.RoundNotifierStub{},
-		EnableRoundsHandlerField:  &testscommon.EnableRoundsHandlerStub{},
+		IntMarsh:                           &mock.MarshalizerMock{},
+		Hash:                               &mock.HasherStub{},
+		UInt64ByteSliceConv:                &mock.Uint64ByteSliceConverterMock{},
+		StatusField:                        &statusHandlerMock.AppStatusHandlerStub{},
+		RoundField:                         &mock.RoundHandlerMock{},
+		ProcessStatusHandlerField:          &testscommon.ProcessStatusHandlerStub{},
+		EpochNotifierField:                 &epochNotifier.EpochNotifierStub{},
+		EnableEpochsHandlerField:           enableEpochsHandlerMock.NewEnableEpochsHandlerStub(),
+		RoundNotifierField:                 &epochNotifier.RoundNotifierStub{},
+		EnableRoundsHandlerField:           &testscommon.EnableRoundsHandlerStub{},
+		EpochChangeGracePeriodHandlerField: gracePeriod,
 	}
 
 	dataComponents := &mock.DataComponentsMock{
@@ -776,6 +789,38 @@ func TestCheckProcessorNilParameters(t *testing.T) {
 				return args
 			},
 			expectedErr: process.ErrNilManagedPeersHolder,
+		},
+		{
+			args: func() blproc.ArgBaseProcessor {
+				args := createArgBaseProcessor(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+				args.OutportDataProvider = nil
+				return args
+			},
+			expectedErr: process.ErrNilOutportDataProvider,
+		},
+		{
+			args: func() blproc.ArgBaseProcessor {
+				args := createArgBaseProcessor(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+				args.BlockProcessingCutoffHandler = nil
+				return args
+			},
+			expectedErr: process.ErrNilBlockProcessingCutoffHandler,
+		},
+		{
+			args: func() blproc.ArgBaseProcessor {
+				args := createArgBaseProcessor(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+				args.ManagedPeersHolder = nil
+				return args
+			},
+			expectedErr: process.ErrNilManagedPeersHolder,
+		},
+		{
+			args: func() blproc.ArgBaseProcessor {
+				args := createArgBaseProcessor(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+				args.SentSignaturesTracker = nil
+				return args
+			},
+			expectedErr: process.ErrNilSentSignatureTracker,
 		},
 		{
 			args: func() blproc.ArgBaseProcessor {
@@ -1262,8 +1307,9 @@ func TestBaseProcessor_SaveLastNotarizedHdrShardGood(t *testing.T) {
 
 	sp, _ := blproc.NewShardProcessor(arguments)
 	argsHeaderValidator := blproc.ArgsHeaderValidator{
-		Hasher:      coreComponents.Hasher(),
-		Marshalizer: coreComponents.InternalMarshalizer(),
+		Hasher:              coreComponents.Hasher(),
+		Marshalizer:         coreComponents.InternalMarshalizer(),
+		EnableEpochsHandler: coreComponents.EnableEpochsHandler(),
 	}
 	headerValidator, _ := blproc.NewHeaderValidator(argsHeaderValidator)
 	sp.SetHeaderValidator(headerValidator)
@@ -1296,8 +1342,9 @@ func TestBaseProcessor_SaveLastNotarizedHdrMetaGood(t *testing.T) {
 	sp, _ := blproc.NewShardProcessor(arguments)
 
 	argsHeaderValidator := blproc.ArgsHeaderValidator{
-		Hasher:      coreComponents.Hasher(),
-		Marshalizer: coreComponents.InternalMarshalizer(),
+		Hasher:              coreComponents.Hasher(),
+		Marshalizer:         coreComponents.InternalMarshalizer(),
+		EnableEpochsHandler: coreComponents.EnableEpochsHandler(),
 	}
 	headerValidator, _ := blproc.NewHeaderValidator(argsHeaderValidator)
 	sp.SetHeaderValidator(headerValidator)
@@ -1961,7 +2008,6 @@ func TestBaseProcessor_commitTrieEpochRootHashIfNeeded_GetAllLeaves(t *testing.T
 
 		arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
 
-		expectedErr := errors.New("expected error")
 		arguments.AccountsDB = map[state.AccountsDbIdentifier]state.AccountsAdapter{
 			state.UserAccountsState: &stateMock.AccountsStub{
 				RootHashCalled: func() ([]byte, error) {
@@ -1999,7 +2045,6 @@ func TestBaseProcessor_commitTrieEpochRootHashIfNeeded_GetAllLeaves(t *testing.T
 
 		arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
 
-		expectedErr := errors.New("expected error")
 		arguments.AccountsDB = map[state.AccountsDbIdentifier]state.AccountsAdapter{
 			state.UserAccountsState: &stateMock.AccountsStub{
 				RootHashCalled: func() ([]byte, error) {
@@ -2686,7 +2731,6 @@ func TestBaseProcessor_checkScheduledMiniBlockValidity(t *testing.T) {
 
 		coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
 		coreComponents.EnableEpochsHandlerField = enableEpochsHandlerMock.NewEnableEpochsHandlerStub(common.ScheduledMiniBlocksFlag)
-		expectedErr := errors.New("expected error")
 		coreComponents.IntMarsh = &marshallerMock.MarshalizerStub{
 			MarshalCalled: func(obj interface{}) ([]byte, error) {
 				return nil, expectedErr
@@ -3118,11 +3162,10 @@ func TestBaseProcessor_ConcurrentCallsNonceOfFirstCommittedBlock(t *testing.T) {
 func TestBaseProcessor_CheckSentSignaturesAtCommitTime(t *testing.T) {
 	t.Parallel()
 
-	expectedErr := errors.New("expected error")
 	t.Run("nodes coordinator errors, should return error", func(t *testing.T) {
 		nodesCoordinatorInstance := shardingMocks.NewNodesCoordinatorMock()
-		nodesCoordinatorInstance.ComputeValidatorsGroupCalled = func(randomness []byte, round uint64, shardId uint32, epoch uint32) (validatorsGroup []nodesCoordinator.Validator, err error) {
-			return nil, expectedErr
+		nodesCoordinatorInstance.ComputeValidatorsGroupCalled = func(randomness []byte, round uint64, shardId uint32, epoch uint32) (leader nodesCoordinator.Validator, validatorsGroup []nodesCoordinator.Validator, err error) {
+			return nil, nil, expectedErr
 		}
 
 		arguments := CreateMockArguments(createComponentHolderMocks())
@@ -3134,7 +3177,10 @@ func TestBaseProcessor_CheckSentSignaturesAtCommitTime(t *testing.T) {
 		arguments.NodesCoordinator = nodesCoordinatorInstance
 		bp, _ := blproc.NewShardProcessor(arguments)
 
-		err := bp.CheckSentSignaturesAtCommitTime(&block.Header{})
+		err := bp.CheckSentSignaturesAtCommitTime(&block.Header{
+			RandSeed:     []byte("randSeed"),
+			PrevRandSeed: []byte("prevRandSeed"),
+		})
 		assert.Equal(t, expectedErr, err)
 	})
 	t.Run("should work with bitmap", func(t *testing.T) {
@@ -3143,8 +3189,8 @@ func TestBaseProcessor_CheckSentSignaturesAtCommitTime(t *testing.T) {
 		validator2, _ := nodesCoordinator.NewValidator([]byte("pk2"), 2, 2)
 
 		nodesCoordinatorInstance := shardingMocks.NewNodesCoordinatorMock()
-		nodesCoordinatorInstance.ComputeValidatorsGroupCalled = func(randomness []byte, round uint64, shardId uint32, epoch uint32) (validatorsGroup []nodesCoordinator.Validator, err error) {
-			return []nodesCoordinator.Validator{validator0, validator1, validator2}, nil
+		nodesCoordinatorInstance.ComputeValidatorsGroupCalled = func(randomness []byte, round uint64, shardId uint32, epoch uint32) (leader nodesCoordinator.Validator, validatorsGroup []nodesCoordinator.Validator, err error) {
+			return validator0, []nodesCoordinator.Validator{validator0, validator1, validator2}, nil
 		}
 
 		resetCountersCalled := make([][]byte, 0)
@@ -3158,10 +3204,190 @@ func TestBaseProcessor_CheckSentSignaturesAtCommitTime(t *testing.T) {
 		bp, _ := blproc.NewShardProcessor(arguments)
 
 		err := bp.CheckSentSignaturesAtCommitTime(&block.Header{
+			RandSeed:      []byte("randSeed"),
+			PrevRandSeed:  []byte("prevRandSeed"),
 			PubKeysBitmap: []byte{0b00000101},
 		})
 		assert.Nil(t, err)
 
 		assert.Equal(t, [][]byte{validator0.PubKey(), validator2.PubKey()}, resetCountersCalled)
+	})
+}
+
+func TestBaseProcessor_FilterHeadersWithoutProofs(t *testing.T) {
+	t.Parallel()
+
+	headersForCurrentBlock := map[string]data.HeaderHandler{
+		"hash0": &testscommon.HeaderHandlerStub{
+			EpochField: 12,
+			GetNonceCalled: func() uint64 {
+				return 1
+			},
+			GetShardIDCalled: func() uint32 {
+				return 0
+			},
+		},
+		"hash1": &testscommon.HeaderHandlerStub{
+			EpochField: 12,
+			GetNonceCalled: func() uint64 {
+				return 1
+			},
+			GetShardIDCalled: func() uint32 {
+				return 1
+			},
+		},
+		"hash2": &testscommon.HeaderHandlerStub{
+			EpochField: 12, // no proof for this one, should be marked for deletion
+			GetNonceCalled: func() uint64 {
+				return 2
+			},
+			GetShardIDCalled: func() uint32 {
+				return 0
+			},
+		},
+		"hash3": &testscommon.HeaderHandlerStub{
+			EpochField: 1, // flag not active, for coverage only
+			GetNonceCalled: func() uint64 {
+				return 2
+			},
+			GetShardIDCalled: func() uint32 {
+				return 1
+			},
+		},
+	}
+	coreComp, dataComp, bootstrapComp, statusComp := createComponentHolderMocks()
+	bootstrapComp.Coordinator = &mock.ShardCoordinatorStub{
+		NumberOfShardsCalled: func() uint32 {
+			return 2
+		},
+	}
+	coreComp.EnableEpochsHandlerField = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+		IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
+			return epoch == 12
+		},
+	}
+	dataPool := initDataPool([]byte(""))
+	dataPool.ProofsCalled = func() dataRetriever.ProofsPool {
+		return &dataRetrieverMock.ProofsPoolMock{
+			HasProofCalled: func(shardID uint32, headerHash []byte) bool {
+				return string(headerHash) != "hash2"
+			},
+		}
+	}
+	dataComp.DataPool = dataPool
+	arguments := CreateMockArguments(coreComp, dataComp, bootstrapComp, statusComp)
+	bp, _ := blproc.NewShardProcessor(arguments)
+
+	for hash, header := range headersForCurrentBlock {
+		bp.SetHdrForCurrentBlock([]byte(hash), header, true)
+	}
+
+	// this call should fail because header with nonce 2 from shard 0 (hash2) does not have proof
+	// and there is no other header with the same nonce and proof
+	headersWithProofs, err := bp.FilterHeadersWithoutProofs()
+	require.True(t, errors.Is(err, process.ErrMissingHeaderProof))
+	require.Nil(t, headersWithProofs)
+
+	// add one more header with same nonce as hash2, but this one has proof
+	bp.SetHdrForCurrentBlock(
+		[]byte("hash4"),
+		&testscommon.HeaderHandlerStub{
+			EpochField: 12, // same nonce as above, but this one has proof
+			GetNonceCalled: func() uint64 {
+				return 2
+			},
+			GetShardIDCalled: func() uint32 {
+				return 0
+			},
+		},
+		true,
+	)
+
+	// this call should succeed, as for nonce 2 in shard 0 we have 2 headers, hash2 and hash4, but hash4 has proof
+	headersWithProofs, err = bp.FilterHeadersWithoutProofs()
+	require.NoError(t, err)
+	require.Equal(t, 4, len(headersWithProofs))
+
+	returnedHashes := make([]string, 0, len(headersWithProofs))
+	for hash := range headersWithProofs {
+		returnedHashes = append(returnedHashes, hash)
+	}
+	slices.Sort(returnedHashes)
+
+	expectedSortedHashes := []string{"hash0", "hash1", "hash3", "hash4"}
+	require.Equal(t, expectedSortedHashes, returnedHashes)
+}
+
+func TestBaseProcessor_DisplayHeader(t *testing.T) {
+	t.Parallel()
+
+	t.Run("shard header with proof info", func(t *testing.T) {
+		t.Parallel()
+
+		header := &block.HeaderV2{
+			Header: &block.Header{
+				ChainID:         []byte("1"),
+				Epoch:           2,
+				Round:           3,
+				TimeStamp:       4,
+				Nonce:           5,
+				PrevHash:        []byte("prevHash"),
+				PrevRandSeed:    []byte("prevRandSeed"),
+				RandSeed:        []byte("randSeed"),
+				LeaderSignature: []byte("leaderSig"),
+				RootHash:        []byte("rootHash"),
+				ReceiptsHash:    []byte("receiptsHash"),
+			},
+			ScheduledRootHash:        []byte("schRootHash"),
+			ScheduledAccumulatedFees: big.NewInt(6),
+			ScheduledDeveloperFees:   big.NewInt(7),
+			ScheduledGasProvided:     8,
+			ScheduledGasPenalized:    9,
+			ScheduledGasRefunded:     10,
+		}
+		proof := &block.HeaderProof{
+			PubKeysBitmap:       []byte("bitmap"),
+			AggregatedSignature: []byte("sig"),
+			HeaderHash:          []byte("prevHash"),
+			HeaderEpoch:         2,
+			HeaderNonce:         4,
+			HeaderShardId:       0,
+			HeaderRound:         2,
+			IsStartOfEpoch:      false,
+		}
+
+		lines := blproc.DisplayHeader(header, proof)
+		require.Equal(t, 23, len(lines))
+	})
+	t.Run("meta header with proof info", func(t *testing.T) {
+		t.Parallel()
+
+		header := &block.MetaBlock{
+			Nonce:           5,
+			Epoch:           2,
+			Round:           3,
+			TimeStamp:       4,
+			LeaderSignature: []byte("leaderSig"),
+			PrevHash:        []byte("prevHash"),
+			PrevRandSeed:    []byte("prevRandSeed"),
+			RandSeed:        []byte("randSeed"),
+			RootHash:        []byte("rootHash"),
+			ReceiptsHash:    []byte("receiptsHash"),
+			EpochStart:      block.EpochStart{},
+			ChainID:         []byte("1"),
+		}
+		proof := &block.HeaderProof{
+			PubKeysBitmap:       []byte("bitmap"),
+			AggregatedSignature: []byte("sig"),
+			HeaderHash:          []byte("prevHash"),
+			HeaderEpoch:         2,
+			HeaderNonce:         4,
+			HeaderShardId:       0,
+			HeaderRound:         2,
+			IsStartOfEpoch:      false,
+		}
+
+		lines := blproc.DisplayHeader(header, proof)
+		require.Equal(t, 23, len(lines))
 	})
 }
