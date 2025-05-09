@@ -455,7 +455,8 @@ func (bp *blockProcessor) requestHeadersIfNothingNewIsReceived(
 	}
 
 	shouldRequestHeaders := bp.roundHandler.Index()-int64(highestRoundInReceivedHeaders) > process.MaxRoundsWithoutNewBlockReceived &&
-		int64(latestValidHeader.GetNonce())-int64(lastNotarizedHeaderNonce) <= process.MaxHeadersToRequestInAdvance
+		int64(latestValidHeader.GetNonce())-int64(lastNotarizedHeaderNonce) <= process.MaxHeadersToRequestInAdvance &&
+		!bp.isImportDBMode // TODO: consider updating this condition to work for import db as well
 	if !shouldRequestHeaders {
 		return
 	}
@@ -468,6 +469,13 @@ func (bp *blockProcessor) requestHeadersIfNothingNewIsReceived(
 
 	fromNonce := latestValidHeader.GetNonce()
 	shardID := latestValidHeader.GetShardID()
+	// force the trigger to be activated by removing the start of epoch block on Andromeda activation
+	header, headerHash, err := process.GetMetaHeaderFromPoolWithNonce(fromNonce, bp.headersPool)
+	isHeaderStartOfEpochForAndromedaActivation := err == nil && shardID == common.MetachainShardId &&
+		common.IsEpochChangeBlockForFlagActivation(header, bp.enableEpochsHandler, common.AndromedaFlag)
+	if isHeaderStartOfEpochForAndromedaActivation {
+		bp.headersPool.RemoveHeaderByHash(headerHash)
+	}
 	bp.requestHeaders(shardID, fromNonce)
 }
 
