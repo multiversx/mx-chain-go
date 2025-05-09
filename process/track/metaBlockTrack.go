@@ -149,7 +149,13 @@ func (mbt *metaBlockTrack) removeInvalidShardHeadersDueToEpochChange(
 		for _, headerInfo := range headersInfo {
 			round := headerInfo.Header.GetRound()
 			epoch := headerInfo.Header.GetEpoch()
-			isInvalidHeader := round > metaRoundAttestingEpoch+process.EpochChangeGracePeriod && epoch < metaNewEpoch
+			gracePeriod, err := mbt.epochChangeGracePeriodHandler.GetGracePeriodForEpoch(metaNewEpoch)
+			if err != nil {
+				log.Warn("get grace period for epoch", "error", err.Error())
+				continue
+			}
+
+			isInvalidHeader := round > metaRoundAttestingEpoch+uint64(gracePeriod) && epoch < metaNewEpoch
 			if !isInvalidHeader {
 				newHeadersInfo = append(newHeadersInfo, headerInfo)
 			}

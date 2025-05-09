@@ -31,6 +31,7 @@ type EquivalentProofsPool interface {
 	AddProof(headerProof data.HeaderProofHandler) bool
 	CleanupProofsBehindNonce(shardID uint32, nonce uint64) error
 	GetProof(shardID uint32, headerHash []byte) (data.HeaderProofHandler, error)
+	GetProofByNonce(headerNonce uint64, shardID uint32) (data.HeaderProofHandler, error)
 	HasProof(shardID uint32, headerHash []byte) bool
 	IsInterfaceNil() bool
 }

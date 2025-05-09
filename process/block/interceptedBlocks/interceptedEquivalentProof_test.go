@@ -22,7 +22,6 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
-	"github.com/multiversx/mx-chain-go/testscommon/pool"
 )
 
 var (
@@ -72,24 +71,8 @@ func createMockArgInterceptedEquivalentProof() ArgInterceptedEquivalentProof {
 		HeaderSigVerifier: &consensus.HeaderSigVerifierMock{},
 		Proofs:            &dataRetriever.ProofsPoolMock{},
 		Hasher:            &hashingMocks.HasherMock{},
-		Headers: &pool.HeadersPoolStub{
-			GetHeaderByHashCalled: func(hash []byte) (data.HeaderHandler, error) {
-				return &testscommon.HeaderHandlerStub{
-					EpochField: providedEpoch,
-					RoundField: providedRound,
-					GetNonceCalled: func() uint64 {
-						return providedNonce
-					},
-					GetShardIDCalled: func() uint32 {
-						return providedShard
-					},
-				}, nil
-			},
-		},
-		ProofSizeChecker:   &testscommon.FieldsSizeCheckerMock{},
-		KeyRWMutexHandler:  coreSync.NewKeyRWMutex(),
-		EligibleNodesCache: &testscommon.EligibleNodesCacheMock{},
-		WhiteListHandler:   &testscommon.WhiteListHandlerStub{},
+		ProofSizeChecker:  &testscommon.FieldsSizeCheckerMock{},
+		KeyRWMutexHandler: coreSync.NewKeyRWMutex(),
 	}
 }
 
@@ -151,15 +134,6 @@ func TestNewInterceptedEquivalentProof(t *testing.T) {
 		require.Equal(t, process.ErrNilProofsPool, err)
 		require.Nil(t, iep)
 	})
-	t.Run("nil headers pool should error", func(t *testing.T) {
-		t.Parallel()
-
-		args := createMockArgInterceptedEquivalentProof()
-		args.Headers = nil
-		iep, err := NewInterceptedEquivalentProof(args)
-		require.Equal(t, process.ErrNilHeadersDataPool, err)
-		require.Nil(t, iep)
-	})
 	t.Run("nil Hasher should error", func(t *testing.T) {
 		t.Parallel()
 
@@ -200,24 +174,6 @@ func TestNewInterceptedEquivalentProof(t *testing.T) {
 		require.Equal(t, process.ErrNilKeyRWMutexHandler, err)
 		require.Nil(t, iep)
 	})
-	t.Run("nil EligibleNodesCache should error", func(t *testing.T) {
-		t.Parallel()
-
-		args := createMockArgInterceptedEquivalentProof()
-		args.EligibleNodesCache = nil
-		iep, err := NewInterceptedEquivalentProof(args)
-		require.Equal(t, process.ErrNilEligibleNodesCache, err)
-		require.Nil(t, iep)
-	})
-	t.Run("nil WhiteListHandler should error", func(t *testing.T) {
-		t.Parallel()
-
-		args := createMockArgInterceptedEquivalentProof()
-		args.WhiteListHandler = nil
-		iep, err := NewInterceptedEquivalentProof(args)
-		require.Equal(t, process.ErrNilWhiteListHandler, err)
-		require.Nil(t, iep)
-	})
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
 
@@ -251,22 +207,6 @@ func TestInterceptedEquivalentProof_CheckValidity(t *testing.T) {
 
 		err = iep.CheckValidity()
 		require.Equal(t, ErrInvalidProof, err)
-	})
-	t.Run("node not eligible should error", func(t *testing.T) {
-		t.Parallel()
-
-		args := createMockArgInterceptedEquivalentProof()
-		args.EligibleNodesCache = &testscommon.EligibleNodesCacheMock{
-			IsPeerEligibleCalled: func(pid core.PeerID, shard uint32, epoch uint32) bool {
-				return false
-			},
-		}
-
-		iep, err := NewInterceptedEquivalentProof(args)
-		require.NoError(t, err)
-
-		err = iep.CheckValidity()
-		require.True(t, errors.Is(err, process.ErrInvalidHeaderProof))
 	})
 	t.Run("already exiting proof should error", func(t *testing.T) {
 		t.Parallel()
@@ -424,7 +364,10 @@ func TestInterceptedEquivalentProof_Getters(t *testing.T) {
 
 	require.Equal(t, proof, iep.GetProof()) // pointer testing
 	require.Equal(t, hash, iep.Hash())
-	require.Equal(t, [][]byte{proof.HeaderHash}, iep.Identifiers())
+	require.Equal(t, [][]byte{
+		proof.HeaderHash,
+		[]byte(common.GetEquivalentProofNonceShardKey(proof.HeaderNonce, proof.HeaderShardId)),
+	}, iep.Identifiers())
 	require.Equal(t, interceptedEquivalentProofType, iep.Type())
 	expectedStr := fmt.Sprintf("bitmap=%s, signature=%s, hash=%s, epoch=123, shard=0, nonce=345, round=123456, isEpochStart=false",
 		logger.DisplayByteSlice(proof.PubKeysBitmap),

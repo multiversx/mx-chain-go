@@ -138,6 +138,7 @@ type CoreComponentsHolder interface {
 	EnableEpochsHandler() common.EnableEpochsHandler
 	ChainParametersHandler() process.ChainParametersHandler
 	FieldsSizeChecker() common.FieldsSizeChecker
+	EpochChangeGracePeriodHandler() common.EpochChangeGracePeriodHandler
 	IsInterfaceNil() bool
 }
 

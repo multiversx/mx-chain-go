@@ -209,8 +209,7 @@ func TestSyncWorksInShard_EmptyBlocksNoForks_With_EquivalentProofs(t *testing.T)
 	numNodesPerShard := 3
 
 	enableEpochs := integrationTests.CreateEnableEpochsConfig()
-	enableEpochs.EquivalentMessagesEnableEpoch = uint32(0)
-	enableEpochs.FixedOrderInConsensusEnableEpoch = uint32(0)
+	enableEpochs.AndromedaEnableEpoch = uint32(0)
 
 	nodes := make([]*integrationTests.TestProcessorNode, numNodesPerShard+1)
 	connectableNodes := make([]integrationTests.Connectable, 0)
@@ -261,8 +260,9 @@ func TestSyncWorksInShard_EmptyBlocksNoForks_With_EquivalentProofs(t *testing.T)
 	nonce++
 
 	numRoundsToTest := 5
+
 	for i := 0; i < numRoundsToTest; i++ {
-		integrationTests.ProposeBlock(nodes, leaders, round, nonce)
+		integrationTests.ProposeBlockWithProof(nodes, leaders, round, nonce)
 
 		time.Sleep(integrationTests.SyncDelay)
 
@@ -278,11 +278,8 @@ func TestSyncWorksInShard_EmptyBlocksNoForks_With_EquivalentProofs(t *testing.T)
 		if check.IfNil(nodes[i].BlockChain.GetCurrentBlockHeader()) {
 			assert.Fail(t, fmt.Sprintf("Node with idx %d does not have a current block", i))
 		} else {
-			if i == idxProposerMeta { // metachain node has highest nonce since it's single node and it did not synced the header
-				assert.Equal(t, expectedNonce, nodes[i].BlockChain.GetCurrentBlockHeader().GetNonce())
-			} else { // shard nodes have not managed to sync last header since there is no proof for it; in the complete flow, when nodes will be fully sinced they will get current header directly from consensus, so they will receive the proof for header
-				assert.Equal(t, expectedNonce-1, nodes[i].BlockChain.GetCurrentBlockHeader().GetNonce())
-			}
+			// all nodes must have proofs now
+			assert.Equal(t, expectedNonce, nodes[i].BlockChain.GetCurrentBlockHeader().GetNonce())
 		}
 	}
 }
@@ -298,8 +295,7 @@ func TestSyncMetaAndShard_With_EquivalentProofs(t *testing.T) {
 	numNodesPerShard := 3
 
 	enableEpochs := integrationTests.CreateEnableEpochsConfig()
-	enableEpochs.EquivalentMessagesEnableEpoch = uint32(0)
-	enableEpochs.FixedOrderInConsensusEnableEpoch = uint32(0)
+	enableEpochs.AndromedaEnableEpoch = uint32(0)
 
 	nodes := make([]*integrationTests.TestProcessorNode, 2*numNodesPerShard)
 	leaders := make([]*integrationTests.TestProcessorNode, 0)
@@ -356,7 +352,7 @@ func TestSyncMetaAndShard_With_EquivalentProofs(t *testing.T) {
 
 	numRoundsToTest := 5
 	for i := 0; i < numRoundsToTest; i++ {
-		integrationTests.ProposeBlock(nodes, leaders, round, nonce)
+		integrationTests.ProposeBlockWithProof(nodes, leaders, round, nonce)
 
 		time.Sleep(integrationTests.SyncDelay)
 
@@ -372,11 +368,8 @@ func TestSyncMetaAndShard_With_EquivalentProofs(t *testing.T) {
 		if check.IfNil(nodes[i].BlockChain.GetCurrentBlockHeader()) {
 			assert.Fail(t, fmt.Sprintf("Node with idx %d does not have a current block", i))
 		} else {
-			if i == idxProposerMeta { // metachain node has highest nonce since it's single node and it did not synced the header
-				assert.Equal(t, expectedNonce, nodes[i].BlockChain.GetCurrentBlockHeader().GetNonce())
-			} else { // shard nodes have not managed to sync last header since there is no proof for it; in the complete flow, when nodes will be fully sinced they will get current header directly from consensus, so they will receive the proof for header
-				assert.Equal(t, expectedNonce-1, nodes[i].BlockChain.GetCurrentBlockHeader().GetNonce())
-			}
+			// all nodes must have proofs now
+			assert.Equal(t, expectedNonce, nodes[i].BlockChain.GetCurrentBlockHeader().GetNonce())
 		}
 	}
 }

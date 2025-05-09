@@ -91,6 +91,15 @@ func (sr *subroundSignature) doSignatureJob(ctx context.Context) bool {
 		return false
 	}
 
+	proofAlreadyReceived := sr.EquivalentProofsPool().HasProof(sr.ShardCoordinator().SelfId(), sr.GetData())
+	if proofAlreadyReceived {
+		sr.SetStatus(sr.Current(), spos.SsFinished)
+		log.Debug("step 2: subround has been finished, proof already received",
+			"subround", sr.Name())
+
+		return true
+	}
+
 	isSelfSingleKeyInConsensusGroup := sr.IsNodeInConsensusGroup(sr.SelfPubKey()) && sr.ShouldConsiderSelfKeyInConsensus()
 	if isSelfSingleKeyInConsensusGroup {
 		if !sr.doSignatureJobForSingleKey() {

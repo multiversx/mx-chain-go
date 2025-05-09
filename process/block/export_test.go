@@ -13,6 +13,8 @@ import (
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
 
+	"github.com/multiversx/mx-chain-go/common/graceperiod"
+	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/block/bootstrapStorage"
@@ -79,30 +81,6 @@ func (bp *baseProcessor) FilterHeadersWithoutProofs() (map[string]*hdrInfo, erro
 	return bp.filterHeadersWithoutProofs()
 }
 
-// AddPrevProofIfNeeded -
-func (bp *baseProcessor) AddPrevProofIfNeeded(header data.HeaderHandler) error {
-	return bp.addPrevProofIfNeeded(header)
-}
-
-// WaitAllMissingProofs -
-func (bp *baseProcessor) WaitAllMissingProofs(waitTime time.Duration) error {
-	return bp.waitAllMissingProofs(waitTime)
-}
-
-// RequestNextHeader -
-func (bp *baseProcessor) RequestNextHeader(currentHeaderHash []byte, nonce uint64, shardID uint32) {
-	bp.requestNextHeader(currentHeaderHash, nonce, shardID)
-}
-
-// InitRequestedAttestingNoncesMap -
-func (bp *baseProcessor) InitRequestedAttestingNoncesMap() {
-	bp.mutRequestedAttestingNoncesMap.Lock()
-	bp.requestedAttestingNoncesMap = make(map[string]uint64)
-	bp.mutRequestedAttestingNoncesMap.Unlock()
-
-	bp.allProofsReceived = make(chan bool)
-}
-
 // ReceivedMetaBlock -
 func (sp *shardProcessor) ReceivedMetaBlock(header data.HeaderHandler, metaBlockHash []byte) {
 	sp.receivedMetaBlock(header, metaBlockHash)
@@ -150,18 +128,19 @@ func NewShardProcessorEmptyWith3shards(
 
 	accountsDb := make(map[state.AccountsDbIdentifier]state.AccountsAdapter)
 	accountsDb[state.UserAccountsState] = &stateMock.AccountsStub{}
-
+	gracePeriod, _ := graceperiod.NewEpochChangeGracePeriod([]config.EpochChangeGracePeriodByEpoch{{EnableEpoch: 0, GracePeriodInRounds: 1}})
 	coreComponents := &mock.CoreComponentsMock{
-		IntMarsh:                  &mock.MarshalizerMock{},
-		Hash:                      &hashingMocks.HasherMock{},
-		UInt64ByteSliceConv:       &mock.Uint64ByteSliceConverterMock{},
-		StatusField:               &statusHandlerMock.AppStatusHandlerStub{},
-		RoundField:                &mock.RoundHandlerMock{},
-		ProcessStatusHandlerField: &testscommon.ProcessStatusHandlerStub{},
-		EpochNotifierField:        &epochNotifier.EpochNotifierStub{},
-		EnableEpochsHandlerField:  enableEpochsHandlerMock.NewEnableEpochsHandlerStub(),
-		RoundNotifierField:        &epochNotifier.RoundNotifierStub{},
-		EnableRoundsHandlerField:  &testscommon.EnableRoundsHandlerStub{},
+		IntMarsh:                           &mock.MarshalizerMock{},
+		Hash:                               &hashingMocks.HasherMock{},
+		UInt64ByteSliceConv:                &mock.Uint64ByteSliceConverterMock{},
+		StatusField:                        &statusHandlerMock.AppStatusHandlerStub{},
+		RoundField:                         &mock.RoundHandlerMock{},
+		ProcessStatusHandlerField:          &testscommon.ProcessStatusHandlerStub{},
+		EpochNotifierField:                 &epochNotifier.EpochNotifierStub{},
+		EnableEpochsHandlerField:           enableEpochsHandlerMock.NewEnableEpochsHandlerStub(),
+		RoundNotifierField:                 &epochNotifier.RoundNotifierStub{},
+		EnableRoundsHandlerField:           &testscommon.EnableRoundsHandlerStub{},
+		EpochChangeGracePeriodHandlerField: gracePeriod,
 	}
 	dataComponents := &mock.DataComponentsMock{
 		Storage:    &storageStubs.ChainStorerStub{},
@@ -220,7 +199,7 @@ func NewShardProcessorEmptyWith3shards(
 }
 
 // RequestBlockHeaders -
-func (mp *metaProcessor) RequestBlockHeaders(header *block.MetaBlock) (uint32, uint32) {
+func (mp *metaProcessor) RequestBlockHeaders(header *block.MetaBlock) (uint32, uint32, uint32) {
 	return mp.requestShardHeaders(header)
 }
 
@@ -720,17 +699,12 @@ func (mp *metaProcessor) ChannelReceiveAllHeaders() chan bool {
 }
 
 // ComputeExistingAndRequestMissingShardHeaders -
-func (mp *metaProcessor) ComputeExistingAndRequestMissingShardHeaders(metaBlock *block.MetaBlock) (uint32, uint32) {
+func (mp *metaProcessor) ComputeExistingAndRequestMissingShardHeaders(metaBlock *block.MetaBlock) (uint32, uint32, uint32) {
 	return mp.computeExistingAndRequestMissingShardHeaders(metaBlock)
 }
 
-// CheckProofsForShardDataIfNeeded -
-func (mp *metaProcessor) CheckProofsForShardDataIfNeeded(header *block.MetaBlock, waitTime time.Duration) error {
-	return mp.checkProofsForShardDataIfNeeded(header, waitTime)
-}
-
 // ComputeExistingAndRequestMissingMetaHeaders -
-func (sp *shardProcessor) ComputeExistingAndRequestMissingMetaHeaders(header data.ShardHeaderHandler) (uint32, uint32) {
+func (sp *shardProcessor) ComputeExistingAndRequestMissingMetaHeaders(header data.ShardHeaderHandler) (uint32, uint32, uint32) {
 	return sp.computeExistingAndRequestMissingMetaHeaders(header)
 }
 
@@ -741,7 +715,7 @@ func (sp *shardProcessor) GetHdrForBlock() *hdrForBlock {
 
 // ChannelReceiveAllHeaders -
 func (sp *shardProcessor) ChannelReceiveAllHeaders() chan bool {
-	return sp.chRcvAllMetaHdrs
+	return sp.chRcvAllHdrs
 }
 
 // InitMaps -
@@ -851,6 +825,9 @@ func (hfb *hdrForBlock) GetHdrHashAndInfo() map[string]*HdrInfo {
 }
 
 // DisplayHeader -
-func DisplayHeader(headerHandler data.HeaderHandler) []*display.LineData {
-	return displayHeader(headerHandler)
+func DisplayHeader(
+	headerHandler data.HeaderHandler,
+	headerProof data.HeaderProofHandler,
+) []*display.LineData {
+	return displayHeader(headerHandler, headerProof)
 }

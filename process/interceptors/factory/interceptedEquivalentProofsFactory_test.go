@@ -13,9 +13,7 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/consensus"
 	"github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
-	"github.com/multiversx/mx-chain-go/testscommon/genericMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
-	"github.com/multiversx/mx-chain-go/testscommon/pool"
 )
 
 func createMockArgInterceptedEquivalentProofsFactory() ArgInterceptedEquivalentProofsFactory {
@@ -30,11 +28,7 @@ func createMockArgInterceptedEquivalentProofsFactory() ArgInterceptedEquivalentP
 			HeaderSigVerifier: &consensus.HeaderSigVerifierMock{},
 			NodesCoordinator:  &shardingMocks.NodesCoordinatorStub{},
 		},
-		ProofsPool:       &dataRetriever.ProofsPoolMock{},
-		HeadersPool:      &pool.HeadersPoolStub{},
-		Storage:          &genericMocks.ChainStorerMock{},
-		PeerShardMapper:  &processMock.PeerShardMapperStub{},
-		WhiteListHandler: &testscommon.WhiteListHandlerStub{},
+		ProofsPool: &dataRetriever.ProofsPoolMock{},
 	}
 }
 
@@ -44,14 +38,14 @@ func TestInterceptedEquivalentProofsFactory_IsInterfaceNil(t *testing.T) {
 	var factory *interceptedEquivalentProofsFactory
 	require.True(t, factory.IsInterfaceNil())
 
-	factory, _ = NewInterceptedEquivalentProofsFactory(createMockArgInterceptedEquivalentProofsFactory())
+	factory = NewInterceptedEquivalentProofsFactory(createMockArgInterceptedEquivalentProofsFactory())
 	require.False(t, factory.IsInterfaceNil())
 }
 
 func TestNewInterceptedEquivalentProofsFactory(t *testing.T) {
 	t.Parallel()
 
-	factory, _ := NewInterceptedEquivalentProofsFactory(createMockArgInterceptedEquivalentProofsFactory())
+	factory := NewInterceptedEquivalentProofsFactory(createMockArgInterceptedEquivalentProofsFactory())
 	require.NotNil(t, factory)
 }
 
@@ -59,7 +53,7 @@ func TestInterceptedEquivalentProofsFactory_Create(t *testing.T) {
 	t.Parallel()
 
 	args := createMockArgInterceptedEquivalentProofsFactory()
-	factory, _ := NewInterceptedEquivalentProofsFactory(args)
+	factory := NewInterceptedEquivalentProofsFactory(args)
 	require.NotNil(t, factory)
 
 	providedProof := &block.HeaderProof{

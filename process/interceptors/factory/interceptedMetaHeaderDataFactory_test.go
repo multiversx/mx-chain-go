@@ -10,6 +10,10 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/versioning"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	crypto "github.com/multiversx/mx-chain-crypto-go"
+	"github.com/stretchr/testify/assert"
+
+	"github.com/multiversx/mx-chain-go/common/graceperiod"
+	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/block/interceptedBlocks"
 	"github.com/multiversx/mx-chain-go/process/mock"
@@ -17,13 +21,11 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/consensus"
 	"github.com/multiversx/mx-chain-go/testscommon/cryptoMocks"
-	"github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
 	"github.com/multiversx/mx-chain-go/testscommon/economicsmocks"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/epochNotifier"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/shardingMocks"
-	"github.com/stretchr/testify/assert"
 )
 
 var errSingleSignKeyGenMock = errors.New("errSingleSignKeyGenMock")
@@ -62,6 +64,7 @@ func createMockFeeHandler() process.FeeHandler {
 }
 
 func createMockComponentHolders() (*mock.CoreComponentsMock, *mock.CryptoComponentsMock) {
+	gracePeriod, _ := graceperiod.NewEpochChangeGracePeriod([]config.EpochChangeGracePeriodByEpoch{{EnableEpoch: 0, GracePeriodInRounds: 1}})
 	coreComponents := &mock.CoreComponentsMock{
 		IntMarsh:            &mock.MarshalizerMock{},
 		TxMarsh:             &mock.MarshalizerMock{},
@@ -72,11 +75,12 @@ func createMockComponentHolders() (*mock.CoreComponentsMock, *mock.CryptoCompone
 		ChainIdCalled: func() string {
 			return "chainID"
 		},
-		TxVersionCheckField:        versioning.NewTxVersionChecker(1),
-		EpochNotifierField:         &epochNotifier.EpochNotifierStub{},
-		HardforkTriggerPubKeyField: []byte("provided hardfork pub key"),
-		EnableEpochsHandlerField:   &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
-		FieldsSizeCheckerField:     &testscommon.FieldsSizeCheckerMock{},
+		TxVersionCheckField:                versioning.NewTxVersionChecker(1),
+		EpochNotifierField:                 &epochNotifier.EpochNotifierStub{},
+		HardforkTriggerPubKeyField:         []byte("provided hardfork pub key"),
+		EnableEpochsHandlerField:           &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		FieldsSizeCheckerField:             &testscommon.FieldsSizeCheckerMock{},
+		EpochChangeGracePeriodHandlerField: gracePeriod,
 	}
 	cryptoComponents := &mock.CryptoComponentsMock{
 		BlockSig:          createMockSigner(),
@@ -111,7 +115,6 @@ func createMockArgMetaHeaderFactoryArgument(
 			HeartbeatExpiryTimespanInSec: 30,
 			PeerID:                       "pid",
 		},
-		ProofsPool: &dataRetriever.ProofsPoolMock{},
 	}
 }
 

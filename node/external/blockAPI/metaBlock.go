@@ -2,7 +2,6 @@ package blockAPI
 
 import (
 	"encoding/hex"
-	"github.com/multiversx/mx-chain-core-go/data"
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
@@ -41,12 +40,17 @@ func newMetaApiBlockProcessor(arg *ArgAPIBlockProcessor, emptyReceiptsHash []byt
 			scheduledTxsExecutionHandler: arg.ScheduledTxsExecutionHandler,
 			enableEpochsHandler:          arg.EnableEpochsHandler,
 			proofsPool:                   arg.ProofsPool,
+			blockchain:                   arg.BlockChain,
 		},
 	}
 }
 
 // GetBlockByNonce wil return a meta APIBlock by nonce
 func (mbp *metaAPIBlockProcessor) GetBlockByNonce(nonce uint64, options api.BlockQueryOptions) (*api.Block, error) {
+	if !mbp.isBlockNonceInStorage(nonce) {
+		return nil, errBlockNotFound
+	}
+
 	headerHash, blockBytes, err := mbp.getBlockHashAndBytesByNonce(nonce)
 	if err != nil {
 		return nil, err
@@ -253,27 +257,12 @@ func (mbp *metaAPIBlockProcessor) convertMetaBlockBytesToAPIBlock(hash []byte, b
 	addScheduledInfoInBlock(blockHeader, apiMetaBlock)
 	addStartOfEpochInfoInBlock(blockHeader, apiMetaBlock)
 
-	err = mbp.addProofs(hash, blockHeader, apiMetaBlock, mbp.getHeaderHandler)
+	err = mbp.addProof(hash, blockHeader, apiMetaBlock)
 	if err != nil {
 		return nil, err
 	}
 
 	return apiMetaBlock, nil
-}
-
-func (mbp *metaAPIBlockProcessor) getHeaderHandler(nonce uint64) (data.HeaderHandler, error) {
-	_, blockBytes, err := mbp.getBlockHashAndBytesByNonce(nonce)
-	if err != nil {
-		return nil, err
-	}
-
-	blockHeader := &block.MetaBlock{}
-	err = mbp.marshalizer.Unmarshal(blockHeader, blockBytes)
-	if err != nil {
-		return nil, err
-	}
-
-	return blockHeader, nil
 }
 
 func addStartOfEpochInfoInBlock(metaBlock *block.MetaBlock, apiBlock *api.Block) {

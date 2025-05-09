@@ -14,6 +14,8 @@ import (
 	crypto "github.com/multiversx/mx-chain-crypto-go"
 	mclMultiSig "github.com/multiversx/mx-chain-crypto-go/signing/mcl/multisig"
 	"github.com/multiversx/mx-chain-crypto-go/signing/multisig"
+	wasmConfig "github.com/multiversx/mx-chain-vm-go/config"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/common/enablers"
 	"github.com/multiversx/mx-chain-go/common/forking"
@@ -72,7 +74,6 @@ import (
 	vic "github.com/multiversx/mx-chain-go/testscommon/validatorInfoCacher"
 	"github.com/multiversx/mx-chain-go/vm"
 	"github.com/multiversx/mx-chain-go/vm/systemSmartContracts/defaults"
-	wasmConfig "github.com/multiversx/mx-chain-vm-go/config"
 )
 
 // CreateNodesWithTestFullNode will create a set of nodes with full consensus and processing components
@@ -1011,7 +1012,6 @@ func (tpn *TestFullNode) initBlockProcessor(
 			EpochValidatorInfoCreator:    epochStartValidatorInfo,
 			ValidatorStatisticsProcessor: tpn.ValidatorStatisticsProcessor,
 			EpochSystemSCProcessor:       epochStartSystemSCProcessor,
-			FieldsSizeChecker:            &testscommon.FieldsSizeCheckerMock{},
 		}
 
 		tpn.BlockProcessor, err = block.NewMetaProcessor(arguments)
@@ -1113,7 +1113,6 @@ func (tpn *TestFullNode) initBlockProcessorWithSync(
 				},
 			},
 			EpochSystemSCProcessor: &testscommon.EpochStartSystemSCStub{},
-			FieldsSizeChecker:      &testscommon.FieldsSizeCheckerMock{},
 		}
 
 		tpn.BlockProcessor, err = block.NewMetaProcessor(arguments)
@@ -1137,21 +1136,21 @@ func (tpn *TestFullNode) initBlockProcessorWithSync(
 func (tpn *TestFullNode) initBlockTracker(
 	roundHandler consensus.RoundHandler,
 ) {
-
 	argBaseTracker := track.ArgBaseTracker{
-		Hasher:              TestHasher,
-		HeaderValidator:     tpn.HeaderValidator,
-		Marshalizer:         TestMarshalizer,
-		RequestHandler:      tpn.RequestHandler,
-		RoundHandler:        roundHandler,
-		ShardCoordinator:    tpn.ShardCoordinator,
-		Store:               tpn.Storage,
-		StartHeaders:        tpn.GenesisBlocks,
-		PoolsHolder:         tpn.DataPool,
-		WhitelistHandler:    tpn.WhiteListHandler,
-		FeeHandler:          tpn.EconomicsData,
-		EnableEpochsHandler: tpn.EnableEpochsHandler,
-		ProofsPool:          tpn.DataPool.Proofs(),
+		Hasher:                        TestHasher,
+		HeaderValidator:               tpn.HeaderValidator,
+		Marshalizer:                   TestMarshalizer,
+		RequestHandler:                tpn.RequestHandler,
+		RoundHandler:                  roundHandler,
+		ShardCoordinator:              tpn.ShardCoordinator,
+		Store:                         tpn.Storage,
+		StartHeaders:                  tpn.GenesisBlocks,
+		PoolsHolder:                   tpn.DataPool,
+		WhitelistHandler:              tpn.WhiteListHandler,
+		FeeHandler:                    tpn.EconomicsData,
+		EnableEpochsHandler:           tpn.EnableEpochsHandler,
+		ProofsPool:                    tpn.DataPool.Proofs(),
+		EpochChangeGracePeriodHandler: tpn.EpochChangeGracePeriodHandler,
 	}
 
 	var err error

@@ -185,9 +185,10 @@ func TestShardRequestersContainerFactory_With4ShardsShouldWork(t *testing.T) {
 	numRequesterMetaBlockHeaders := 1
 	numPeerAuthentication := 1
 	numValidatorInfo := 1
+	numEquivalentProofs := 2
 	totalRequesters := numRequesterTxs + numRequesterHeaders + numRequesterMiniBlocks +
 		numRequesterMetaBlockHeaders + numRequesterSCRs + numRequesterRewardTxs +
-		numPeerAuthentication + numValidatorInfo
+		numPeerAuthentication + numValidatorInfo + numEquivalentProofs
 
 	assert.Equal(t, totalRequesters, container.Len())
 }
