@@ -65,7 +65,7 @@ func (pool *headersPool) AddHeader(headerHash []byte, header data.HeaderHandler)
 	added := pool.cache.addHeader(headerHash, header)
 
 	if added {
-		log.Debug("added header to pool", "header shard", header.GetShardID(), "header nonce", header.GetNonce(), "header hash", headerHash)
+		log.Trace("added header to pool", "header shard", header.GetShardID(), "header nonce", header.GetNonce(), "header hash", headerHash)
 		pool.callAddedDataHandlers(header, headerHash)
 	}
 }

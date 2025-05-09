@@ -1,6 +1,7 @@
 package factory
 
 import (
+	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
@@ -41,7 +42,7 @@ func checkInterceptedValidatorInfoDataFactoryArgs(args ArgInterceptedDataFactory
 }
 
 // Create creates instances of InterceptedData by unmarshalling provided buffer
-func (ividf *interceptedValidatorInfoDataFactory) Create(buff []byte) (process.InterceptedData, error) {
+func (ividf *interceptedValidatorInfoDataFactory) Create(buff []byte, _ core.PeerID) (process.InterceptedData, error) {
 	args := peer.ArgInterceptedValidatorInfo{
 		DataBuff:    buff,
 		Marshalizer: ividf.marshaller,

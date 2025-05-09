@@ -27,6 +27,8 @@ type interceptedDataCoreComponentsHolder interface {
 	IsInterfaceNil() bool
 	HardforkTriggerPubKey() []byte
 	EnableEpochsHandler() common.EnableEpochsHandler
+	EpochChangeGracePeriodHandler() common.EpochChangeGracePeriodHandler
+	FieldsSizeChecker() common.FieldsSizeChecker
 }
 
 // interceptedDataCryptoComponentsHolder holds the crypto components required by the intercepted data factory

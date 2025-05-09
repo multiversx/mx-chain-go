@@ -134,6 +134,11 @@ func (dbb *delayedBlockBroadcaster) AlarmExpired(headerHash string) {
 	dbb.alarmExpired(headerHash)
 }
 
+// HeaderAlarmExpired -
+func (dbb *delayedBlockBroadcaster) HeaderAlarmExpired(headerHash string) {
+	dbb.headerAlarmExpired(headerHash)
+}
+
 // GetShardDataFromMetaChainBlock -
 func GetShardDataFromMetaChainBlock(
 	headerHandler data.HeaderHandler,
@@ -166,6 +171,16 @@ func (dbb *delayedBlockBroadcaster) InterceptedMiniBlockData(topic string, hash 
 // InterceptedHeaderData -
 func (dbb *delayedBlockBroadcaster) InterceptedHeaderData(topic string, hash []byte, header interface{}) {
 	dbb.interceptedHeader(topic, hash, header)
+}
+
+// BroadcastBlockData -
+func (dbb *delayedBlockBroadcaster) BroadcastBlockData(
+	miniBlocks map[uint32][]byte,
+	transactions map[string][][]byte,
+	pkBytes []byte,
+	delay time.Duration,
+) {
+	dbb.broadcastBlockData(miniBlocks, transactions, pkBytes, delay)
 }
 
 // NewCommonMessenger will return a new instance of a commonMessenger

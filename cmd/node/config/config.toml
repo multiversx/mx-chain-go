@@ -46,6 +46,12 @@
         { EnableEpoch = 8, RoundDuration = 6000, ShardConsensusGroupSize = 10, ShardMinNumNodes = 10, MetachainConsensusGroupSize = 10, MetachainMinNumNodes = 10, Hysteresis = 0.2, Adaptivity = false }
     ]
 
+    # EpochChangeGracePeriodEnableEpoch represents the configuration of different grace periods for epoch change with their activation epochs
+    EpochChangeGracePeriodByEpoch = [
+        {EnableEpoch = 0, GracePeriodInRounds = 1 },
+        {EnableEpoch = 8, GracePeriodInRounds = 10 }, # Andromeda epoch comes with a longer grace period
+    ]
+
 [HardwareRequirements]
     CPUFlags = ["SSE4", "SSE42"]
 
@@ -187,6 +193,19 @@
         SizeInBytes = 20971520 #20MB
     [MetaBlockStorage.DB]
         FilePath = "MetaBlock"
+        Type = "LvlDBSerial"
+        BatchDelaySeconds = 2
+        MaxBatchSize = 100
+        MaxOpenFiles = 10
+
+[ProofsStorage]
+    [ProofsStorage.Cache]
+        Name = "ProofsStorage"
+        Capacity = 1000
+        Type = "SizeLRU"
+        SizeInBytes = 20971520 #20MB
+    [ProofsStorage.DB]
+        FilePath = "Proofs"
         Type = "LvlDBSerial"
         BatchDelaySeconds = 2
         MaxBatchSize = 100
@@ -373,6 +392,7 @@
 
 [ProofsPoolConfig]
     CleanupNonceDelta = 3
+    BucketSize = 100
 
 [BadBlocksCache]
     Name = "BadBlocksCache"
@@ -681,8 +701,7 @@
         TimeOutForSCExecutionInMilliseconds = 10000 # 10 seconds = 10000 milliseconds
         WasmerSIGSEGVPassthrough            = false # must be false for release
         WasmVMVersions = [
-            { StartEpoch = 0, Version = "v1.4" },
-            { StartEpoch = 1, Version = "v1.5" }, # TODO: set also the RoundActivations.DisableAsyncCallV1 accordingly
+            { StartEpoch = 0, Version = "v1.5" },
         ]
         TransferAndExecuteByUserAddresses = [ # TODO: set real contract addresses for all shards
             "erd1qqqqqqqqqqqqqpgqr46jrxr6r2unaqh75ugd308dwx5vgnhwh47qtvepe3", #shard 0
@@ -693,8 +712,7 @@
         TimeOutForSCExecutionInMilliseconds = 10000 # 10 seconds = 10000 milliseconds
         WasmerSIGSEGVPassthrough            = false # must be false for release
         WasmVMVersions = [
-            { StartEpoch = 0, Version = "v1.4" },
-            { StartEpoch = 1, Version = "v1.5" }, # TODO: set also the RoundActivations.DisableAsyncCallV1 accordingly
+            { StartEpoch = 0, Version = "v1.5" },
         ]
         TransferAndExecuteByUserAddresses = [ # TODO: set real contract addresses for all shards
             "erd1qqqqqqqqqqqqqpgqr46jrxr6r2unaqh75ugd308dwx5vgnhwh47qtvepe3",

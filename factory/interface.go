@@ -137,6 +137,8 @@ type CoreComponentsHolder interface {
 	HardforkTriggerPubKey() []byte
 	EnableEpochsHandler() common.EnableEpochsHandler
 	ChainParametersHandler() process.ChainParametersHandler
+	FieldsSizeChecker() common.FieldsSizeChecker
+	EpochChangeGracePeriodHandler() common.EpochChangeGracePeriodHandler
 	IsInterfaceNil() bool
 }
 
@@ -393,7 +395,7 @@ type ConsensusWorker interface {
 	// RemoveAllReceivedMessagesCalls removes all the functions handlers
 	RemoveAllReceivedMessagesCalls()
 	// ProcessReceivedMessage method redirects the received message to the channel which should handle it
-	ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedPeer core.PeerID, source p2p.MessageHandler) error
+	ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedPeer core.PeerID, source p2p.MessageHandler) ([]byte, error)
 	// Extend does an extension for the subround with subroundId
 	Extend(subroundId int)
 	// GetConsensusStateChangedChannel gets the channel for the consensusStateChanged
@@ -406,6 +408,8 @@ type ConsensusWorker interface {
 	ResetConsensusMessages()
 	// ResetConsensusRoundState resets the state of the consensus round
 	ResetConsensusRoundState()
+	// ResetInvalidSignersCache resets the invalid signers cache
+	ResetInvalidSignersCache()
 	// ReceivedHeader method is a wired method through which worker will receive headers from network
 	ReceivedHeader(headerHandler data.HeaderHandler, headerHash []byte)
 	// ReceivedProof will handle a received proof in consensus worker

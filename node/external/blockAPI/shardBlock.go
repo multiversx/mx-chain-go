@@ -4,7 +4,6 @@ import (
 	"encoding/hex"
 	"time"
 
-	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/alteredAccount"
 	"github.com/multiversx/mx-chain-core-go/data/api"
 	"github.com/multiversx/mx-chain-core-go/data/block"
@@ -57,7 +56,7 @@ func (sbp *shardAPIBlockProcessor) GetBlockByNonce(nonce uint64, options api.Blo
 }
 
 func (sbp *shardAPIBlockProcessor) getBlockHashAndBytesByNonce(nonce uint64) ([]byte, []byte, error) {
-	storerUnit := dataRetriever.ShardHdrNonceHashDataUnit + dataRetriever.UnitType(sbp.selfShardID)
+	storerUnit := dataRetriever.GetHdrNonceHashDataUnit(sbp.selfShardID)
 
 	nonceToByteSlice := sbp.uint64ByteSliceConverter.ToByteSlice(nonce)
 	headerHash, err := sbp.store.Get(storerUnit, nonceToByteSlice)
@@ -109,7 +108,7 @@ func (sbp *shardAPIBlockProcessor) GetBlockByHash(hash []byte, options api.Block
 		return nil, err
 	}
 
-	storerUnit := dataRetriever.ShardHdrNonceHashDataUnit + dataRetriever.UnitType(sbp.selfShardID)
+	storerUnit := dataRetriever.GetHdrNonceHashDataUnit(sbp.selfShardID)
 
 	return sbp.computeStatusAndPutInBlock(blockAPI, storerUnit)
 }
@@ -156,7 +155,7 @@ func (sbp *shardAPIBlockProcessor) getHashAndBlockBytesFromStorerByHash(params a
 }
 
 func (sbp *shardAPIBlockProcessor) getHashAndBlockBytesFromStorerByNonce(params api.GetBlockParameters) ([]byte, []byte, error) {
-	storerUnit := dataRetriever.ShardHdrNonceHashDataUnit + dataRetriever.UnitType(sbp.selfShardID)
+	storerUnit := dataRetriever.GetHdrNonceHashDataUnit(sbp.selfShardID)
 
 	nonceToByteSlice := sbp.uint64ByteSliceConverter.ToByteSlice(params.Nonce)
 	headerHash, err := sbp.store.Get(storerUnit, nonceToByteSlice)
@@ -242,26 +241,12 @@ func (sbp *shardAPIBlockProcessor) convertShardBlockBytesToAPIBlock(hash []byte,
 	}
 
 	addScheduledInfoInBlock(blockHeader, apiBlock)
-	err = sbp.addProofs(hash, blockHeader, apiBlock, sbp.getHeaderHandler)
+	err = sbp.addProof(hash, blockHeader, apiBlock)
 	if err != nil {
 		return nil, err
 	}
 
 	return apiBlock, nil
-}
-
-func (sbp *shardAPIBlockProcessor) getHeaderHandler(nonce uint64) (data.HeaderHandler, error) {
-	_, blockBytes, err := sbp.getBlockHashAndBytesByNonce(nonce)
-	if err != nil {
-		return nil, err
-	}
-
-	blockHeader, err := process.UnmarshalShardHeader(sbp.marshalizer, blockBytes)
-	if err != nil {
-		return nil, err
-	}
-
-	return blockHeader, nil
 }
 
 // IsInterfaceNil returns true if underlying object is nil

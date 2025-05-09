@@ -13,6 +13,7 @@ import (
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/statusHandler"
 	logger "github.com/multiversx/mx-chain-logger-go"
 )
@@ -43,6 +44,8 @@ type ArgsNewEconomicsData struct {
 	Economics           *config.EconomicsConfig
 	EpochNotifier       process.EpochNotifier
 	EnableEpochsHandler common.EnableEpochsHandler
+	PubkeyConverter     core.PubkeyConverter
+	ShardCoordinator    sharding.Coordinator
 }
 
 // NewEconomicsData will create an object with information about economics parameters
@@ -55,6 +58,12 @@ func NewEconomicsData(args ArgsNewEconomicsData) (*economicsData, error) {
 	}
 	if check.IfNil(args.EnableEpochsHandler) {
 		return nil, process.ErrNilEnableEpochsHandler
+	}
+	if check.IfNil(args.PubkeyConverter) {
+		return nil, process.ErrNilPubkeyConverter
+	}
+	if check.IfNil(args.ShardCoordinator) {
+		return nil, process.ErrNilShardCoordinator
 	}
 	err := core.CheckHandlerCompatibility(args.EnableEpochsHandler, []core.EnableEpochFlag{
 		common.GasPriceModifierFlag,
@@ -90,7 +99,7 @@ func NewEconomicsData(args ArgsNewEconomicsData) (*economicsData, error) {
 		return nil, err
 	}
 
-	ed.rewardsConfigHandler, err = newRewardsConfigHandler(args.Economics.RewardsSettings)
+	ed.rewardsConfigHandler, err = newRewardsConfigHandler(args.Economics.RewardsSettings, args.PubkeyConverter, args.ShardCoordinator)
 	if err != nil {
 		return nil, err
 	}
@@ -449,13 +458,13 @@ func (ed *economicsData) ProtocolSustainabilityPercentageInEpoch(epoch uint32) f
 	return ed.getProtocolSustainabilityPercentage(epoch)
 }
 
-// ProtocolSustainabilityAddress returns the protocol sustainability address
+// ProtocolSustainabilityAddress returns the decoded protocol sustainability address
 func (ed *economicsData) ProtocolSustainabilityAddress() string {
 	currentEpoch := ed.enableEpochsHandler.GetCurrentEpoch()
 	return ed.ProtocolSustainabilityAddressInEpoch(currentEpoch)
 }
 
-// ProtocolSustainabilityAddressInEpoch returns the protocol sustainability address in a specific epoch
+// ProtocolSustainabilityAddressInEpoch returns the decoded protocol sustainability address in a specific epoch
 func (ed *economicsData) ProtocolSustainabilityAddressInEpoch(epoch uint32) string {
 	return ed.getProtocolSustainabilityAddress(epoch)
 }

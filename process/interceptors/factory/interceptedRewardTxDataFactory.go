@@ -52,7 +52,7 @@ func NewInterceptedRewardTxDataFactory(argument *ArgInterceptedDataFactory) (*in
 }
 
 // Create creates instances of InterceptedData by unmarshalling provided buffer
-func (irtdf *interceptedRewardTxDataFactory) Create(buff []byte) (process.InterceptedData, error) {
+func (irtdf *interceptedRewardTxDataFactory) Create(buff []byte, _ core.PeerID) (process.InterceptedData, error) {
 	return rewardTransaction.NewInterceptedRewardTransaction(
 		buff,
 		irtdf.protoMarshalizer,

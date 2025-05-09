@@ -5,6 +5,7 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/core/sync"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/hashing"
@@ -15,6 +16,7 @@ import (
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
+	"github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/sharding"
 )
@@ -29,7 +31,8 @@ type ArgInterceptedEquivalentProof struct {
 	ShardCoordinator  sharding.Coordinator
 	HeaderSigVerifier consensus.HeaderSigVerifier
 	Proofs            dataRetriever.ProofsPool
-	Headers           dataRetriever.HeadersPool
+	ProofSizeChecker  common.FieldsSizeChecker
+	KeyRWMutexHandler sync.KeyRWMutexHandler
 }
 
 type interceptedEquivalentProof struct {
@@ -37,10 +40,11 @@ type interceptedEquivalentProof struct {
 	isForCurrentShard bool
 	headerSigVerifier consensus.HeaderSigVerifier
 	proofsPool        dataRetriever.ProofsPool
-	headersPool       dataRetriever.HeadersPool
 	marshaller        marshaling.Marshalizer
 	hasher            hashing.Hasher
 	hash              []byte
+	proofSizeChecker  common.FieldsSizeChecker
+	km                sync.KeyRWMutexHandler
 }
 
 // NewInterceptedEquivalentProof returns a new instance of interceptedEquivalentProof
@@ -62,10 +66,11 @@ func NewInterceptedEquivalentProof(args ArgInterceptedEquivalentProof) (*interce
 		isForCurrentShard: extractIsForCurrentShard(args.ShardCoordinator, equivalentProof),
 		headerSigVerifier: args.HeaderSigVerifier,
 		proofsPool:        args.Proofs,
-		headersPool:       args.Headers,
 		marshaller:        args.Marshaller,
 		hasher:            args.Hasher,
+		proofSizeChecker:  args.ProofSizeChecker,
 		hash:              hash,
+		km:                args.KeyRWMutexHandler,
 	}, nil
 }
 
@@ -85,11 +90,14 @@ func checkArgInterceptedEquivalentProof(args ArgInterceptedEquivalentProof) erro
 	if check.IfNil(args.Proofs) {
 		return process.ErrNilProofsPool
 	}
-	if check.IfNil(args.Headers) {
-		return process.ErrNilHeadersDataPool
-	}
 	if check.IfNil(args.Hasher) {
 		return process.ErrNilHasher
+	}
+	if check.IfNil(args.ProofSizeChecker) {
+		return errors.ErrNilFieldsSizeChecker
+	}
+	if check.IfNil(args.KeyRWMutexHandler) {
+		return process.ErrNilKeyRWMutexHandler
 	}
 
 	return nil
@@ -137,21 +145,32 @@ func (iep *interceptedEquivalentProof) CheckValidity() error {
 		return err
 	}
 
+	headerHash := string(iep.proof.GetHeaderHash())
+	iep.km.Lock(headerHash)
+	defer iep.km.Unlock(headerHash)
+
 	ok := iep.proofsPool.HasProof(iep.proof.GetHeaderShardId(), iep.proof.GetHeaderHash())
 	if ok {
 		return common.ErrAlreadyExistingEquivalentProof
 	}
 
-	// TODO: make sure proof fields (besides ones used to verify signature) should be checked on processing.
+	err = iep.headerSigVerifier.VerifyHeaderProof(iep.proof)
+	if err != nil {
+		return err
+	}
 
-	return iep.headerSigVerifier.VerifyHeaderProof(iep.proof)
+	// also save the proof here in order to complete the flow under mutex lock
+	wasAdded := iep.proofsPool.AddProof(iep.proof)
+	if !wasAdded {
+		// with the current implementation, this should never happen
+		return common.ErrAlreadyExistingEquivalentProof
+	}
+
+	return nil
 }
 
 func (iep *interceptedEquivalentProof) integrity() error {
-	isProofValid := len(iep.proof.AggregatedSignature) > 0 &&
-		len(iep.proof.PubKeysBitmap) > 0 &&
-		len(iep.proof.HeaderHash) > 0
-	if !isProofValid {
+	if !iep.proofSizeChecker.IsProofSizeValid(iep.proof) {
 		return ErrInvalidProof
 	}
 
@@ -180,7 +199,11 @@ func (iep *interceptedEquivalentProof) Type() string {
 
 // Identifiers returns the identifiers used in requests
 func (iep *interceptedEquivalentProof) Identifiers() [][]byte {
-	return [][]byte{iep.proof.HeaderHash}
+	return [][]byte{
+		iep.proof.HeaderHash,
+		// needed for the interceptor, when data is requested by nonce
+		[]byte(common.GetEquivalentProofNonceShardKey(iep.proof.HeaderNonce, iep.proof.HeaderShardId)),
+	}
 }
 
 // String returns the proof's most important fields as string
