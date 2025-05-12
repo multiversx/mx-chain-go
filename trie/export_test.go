@@ -86,11 +86,6 @@ func ExecuteUpdatesFromBatch(tr common.Trie) {
 	_ = pmt.updateTrie()
 }
 
-// KeyBytesToHex -
-func KeyBytesToHex(str []byte) []byte {
-	return keyBytesToHex(str)
-}
-
 // GetBatchManager -
 func GetBatchManager(tr common.Trie) common.TrieBatchManager {
 	return tr.(*patriciaMerkleTrie).batchManager

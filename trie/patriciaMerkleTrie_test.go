@@ -1608,7 +1608,7 @@ func TestPatriciaMerkleTrie_AddBatchedDataToTrie(t *testing.T) {
 
 		bm := trie.GetBatchManager(tr)
 		for i := 0; i < numOperations; i++ {
-			key := trie.KeyBytesToHex([]byte("dog" + strconv.Itoa(i)))
+			key := []byte("dog" + strconv.Itoa(i))
 			val, present := bm.Get(key)
 			assert.True(t, present)
 			if i%2 == 0 {
@@ -1671,7 +1671,7 @@ func TestPatriciaMerkleTrie_AddBatchedDataToTrie(t *testing.T) {
 			assert.Nil(t, err)
 			assert.Equal(t, []byte("reindeer"), val)
 
-			val, found := bm.Get(trie.KeyBytesToHex([]byte("dog" + strconv.Itoa(i))))
+			val, found := bm.Get([]byte("dog" + strconv.Itoa(i)))
 			assert.False(t, found)
 			assert.Nil(t, val)
 		}
@@ -1681,7 +1681,7 @@ func TestPatriciaMerkleTrie_AddBatchedDataToTrie(t *testing.T) {
 			assert.Nil(t, err)
 			assert.Equal(t, []byte("reindeer"), val)
 
-			val, found := bm.Get(trie.KeyBytesToHex([]byte("dog" + strconv.Itoa(i))))
+			val, found := bm.Get([]byte("dog" + strconv.Itoa(i)))
 			assert.True(t, found)
 			assert.Equal(t, []byte("reindeer"), val)
 		}
@@ -1745,7 +1745,7 @@ func TestPatriciaMerkleTrie_AddBatchedDataToTrie(t *testing.T) {
 			assert.Nil(t, err)
 			assert.Equal(t, []byte("reindeer"), val)
 
-			val, found := bm.Get(trie.KeyBytesToHex([]byte("dog" + strconv.Itoa(i))))
+			val, found := bm.Get(keyBuilder.KeyBytesToHex([]byte("dog" + strconv.Itoa(i))))
 			assert.False(t, found)
 			assert.Nil(t, val)
 		}
@@ -1795,7 +1795,7 @@ func TestPatriciaMerkleTrie_Get(t *testing.T) {
 		// check some values are in the batch
 		bm := trie.GetBatchManager(tr)
 		for i := numTrieValues; i < numTrieValues+numBatchValues; i++ {
-			val, found := bm.Get(trie.KeyBytesToHex([]byte("dog" + strconv.Itoa(i))))
+			val, found := bm.Get([]byte("dog" + strconv.Itoa(i)))
 			assert.True(t, found)
 			assert.Equal(t, []byte("reindeer"+strconv.Itoa(i)), val)
 		}
@@ -1834,7 +1834,7 @@ func TestPatriciaMerkleTrie_Get(t *testing.T) {
 		// check some values are in the batch
 		bm := trie.GetBatchManager(tr)
 		for i := numTrieValues; i < numTrieValues+numBatchValues; i++ {
-			val, found := bm.Get(trie.KeyBytesToHex([]byte("dog" + strconv.Itoa(i))))
+			val, found := bm.Get([]byte("dog" + strconv.Itoa(i)))
 			assert.True(t, found)
 			assert.Equal(t, []byte("reindeer"+strconv.Itoa(i)), val)
 		}
