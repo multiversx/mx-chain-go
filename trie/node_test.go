@@ -88,7 +88,6 @@ func TestNode_encodeNodeAndCommitToDBBranchNode(t *testing.T) {
 	encNode, _ := collapsedBn.marsh.Marshal(collapsedBn)
 	encNode = append(encNode, branch)
 	nodeHash := collapsedBn.hasher.Compute(string(encNode))
-	collapsedBn.hash = nodeHash
 
 	_, err := encodeNodeAndCommitToDB(collapsedBn, db)
 	assert.Nil(t, err)
@@ -105,7 +104,6 @@ func TestNode_encodeNodeAndCommitToDBExtensionNode(t *testing.T) {
 	encNode, _ := collapsedEn.marsh.Marshal(collapsedEn)
 	encNode = append(encNode, extension)
 	nodeHash := collapsedEn.hasher.Compute(string(encNode))
-	collapsedEn.hash = nodeHash
 
 	_, err := encodeNodeAndCommitToDB(collapsedEn, db)
 	assert.Nil(t, err)
@@ -122,7 +120,6 @@ func TestNode_encodeNodeAndCommitToDBLeafNode(t *testing.T) {
 	encNode, _ := ln.marsh.Marshal(ln)
 	encNode = append(encNode, leaf)
 	nodeHash := ln.hasher.Compute(string(encNode))
-	ln.hash = nodeHash
 
 	_, err := encodeNodeAndCommitToDB(ln, db)
 	assert.Nil(t, err)
@@ -136,7 +133,6 @@ func TestNode_getNodeFromDBAndDecodeBranchNode(t *testing.T) {
 
 	db := testscommon.NewMemDbMock()
 	bn, collapsedBn := getBnAndCollapsedBn(getTestMarshalizerAndHasher())
-	bn.setHash(getTestGoroutinesManager())
 	bn.commitDirty(0, 5, getTestGoroutinesManager(), hashesCollector.NewDisabledHashesCollector(), db, db)
 
 	encNode, _ := bn.marsh.Marshal(collapsedBn)
@@ -157,7 +153,6 @@ func TestNode_getNodeFromDBAndDecodeExtensionNode(t *testing.T) {
 
 	db := testscommon.NewMemDbMock()
 	en, collapsedEn := getEnAndCollapsedEn()
-	en.setHash(getTestGoroutinesManager())
 	en.commitDirty(0, 5, getTestGoroutinesManager(), hashesCollector.NewDisabledHashesCollector(), db, db)
 
 	encNode, _ := en.marsh.Marshal(collapsedEn)
@@ -178,7 +173,6 @@ func TestNode_getNodeFromDBAndDecodeLeafNode(t *testing.T) {
 
 	db := testscommon.NewMemDbMock()
 	ln := getLn(getTestMarshalizerAndHasher())
-	ln.setHash(getTestGoroutinesManager())
 	ln.commitDirty(0, 5, getTestGoroutinesManager(), hashesCollector.NewDisabledHashesCollector(), db, db)
 
 	encNode, _ := ln.marsh.Marshal(ln)
@@ -191,7 +185,6 @@ func TestNode_getNodeFromDBAndDecodeLeafNode(t *testing.T) {
 
 	ln = getLn(ln.marsh, ln.hasher)
 	ln.dirty = false
-	ln.hash = nodeHash
 	assert.Equal(t, ln, nodeInstance)
 }
 
@@ -202,18 +195,6 @@ func TestNode_concat(t *testing.T) {
 	b := byte(4)
 	ab := []byte{1, 2, 3, 4}
 	assert.Equal(t, ab, concat(a, b))
-}
-
-func TestNode_hasValidHash(t *testing.T) {
-	t.Parallel()
-
-	bn, _ := getBnAndCollapsedBn(getTestMarshalizerAndHasher())
-	ok := hasValidHash(bn)
-	assert.False(t, ok)
-
-	bn.setHash(getTestGoroutinesManager())
-	ok = hasValidHash(bn)
-	assert.True(t, ok)
 }
 
 func TestNode_decodeNodeBranchNode(t *testing.T) {
@@ -375,7 +356,6 @@ func TestGetOldHashesIfNodeIsCollapsed(t *testing.T) {
 	for i := 0; i < nrOfChildren; i++ {
 		root.children[i] = nil
 	}
-	tr.SetNewRootNode(root)
 
 	tr.Update([]byte("dog"), []byte("value of dog"))
 	ExecuteUpdatesFromBatch(tr)
@@ -412,13 +392,12 @@ func TestPatriciaMerkleTrie_GetAllLeavesCollapsedTrie(t *testing.T) {
 	for i := 0; i < nrOfChildren; i++ {
 		root.children[i] = nil
 	}
-	tr.SetNewRootNode(root)
 
 	leavesChannel := &common.TrieIteratorChannels{
 		LeavesChan: make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity),
 		ErrChan:    errChan.NewErrChanWrapper(),
 	}
-	err := tr.GetAllLeavesOnChannel(leavesChannel, context.Background(), tr.GetRootNode().getHash(), keyBuilder.NewKeyBuilder(), parsers.NewMainTrieLeafParser())
+	err := tr.GetAllLeavesOnChannel(leavesChannel, context.Background(), tr.GetRootHash(), keyBuilder.NewKeyBuilder(), parsers.NewMainTrieLeafParser())
 	assert.Nil(t, err)
 	leaves := make(map[string][]byte)
 

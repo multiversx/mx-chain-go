@@ -212,9 +212,8 @@ func TestTrieSync_FoundInStorageShouldNotRequest(t *testing.T) {
 	testMarshalizer, testHasher := getTestMarshalizerAndHasher()
 	bn, _ := getBnAndCollapsedBn(testMarshalizer, testHasher)
 	manager := getTestGoroutinesManager()
-	bn.setHash(manager)
 	require.Nil(t, manager.GetError())
-	rootHash := bn.getHash()
+	rootHash, _ := encodeNodeAndGetHash(bn)
 
 	_, trieStorage := newEmptyTrie()
 	db := testscommon.NewMemDbMock()

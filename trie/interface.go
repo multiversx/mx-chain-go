@@ -18,9 +18,12 @@ type nodeData struct {
 	hexKey      []byte
 }
 
+type nodeWithHash struct {
+	node node
+	hash []byte
+}
+
 type baseTrieNode interface {
-	getHash() []byte
-	setGivenHash([]byte)
 	setDirty(bool)
 	isDirty() bool
 	getMarshalizer() marshal.Marshalizer
@@ -31,18 +34,17 @@ type baseTrieNode interface {
 
 type node interface {
 	baseTrieNode
-	setHash(goRoutinesManager common.TrieGoroutinesManager)
 	getEncodedNode() ([]byte, error)
 	tryGet(key []byte, depth uint32, db common.TrieStorageInteractor) ([]byte, uint32, error)
 	getNext(key []byte, db common.TrieStorageInteractor) (*nodeData, error)
 	insert(newData []core.TrieData, goRoutinesManager common.TrieGoroutinesManager, modifiedHashes common.AtomicBytesSlice, db common.TrieStorageInteractor) node
 	delete(data []core.TrieData, goRoutinesManager common.TrieGoroutinesManager, modifiedHashes common.AtomicBytesSlice, db common.TrieStorageInteractor) (bool, node)
-	reduceNode(pos int, db common.TrieStorageInteractor) (node, bool, error)
+	reduceNode(pos int, hash []byte, db common.TrieStorageInteractor) (node, bool, error)
 	isEmptyOrNil() error
 	print(writer io.Writer, index int, db common.TrieStorageInteractor)
-	getChildren(db common.TrieStorageInteractor) ([]node, error)
+	getChildren(db common.TrieStorageInteractor) ([]nodeWithHash, error)
 	getNodeData(common.KeyBuilder) ([]common.TrieNodeData, error)
-	loadChildren(func([]byte) (node, error)) ([][]byte, []node, error)
+	loadChildren(func([]byte) (node, error)) ([][]byte, []nodeWithHash, error)
 	getAllLeavesOnChannel(chan core.KeyValueHolder, common.KeyBuilder, common.TrieLeafParser, common.TrieStorageInteractor, marshal.Marshalizer, chan struct{}, context.Context) error
 	getNextHashAndKey([]byte) (bool, []byte, []byte)
 	getValue() []byte
@@ -113,8 +115,8 @@ type IdleNodeProvider interface {
 // RootManager is used to manage the root node and hashes related to it
 type RootManager interface {
 	GetRootNode() node
-	SetNewRootNode(newRoot node)
-	SetDataForRootChange(newRoot node, oldRootHash []byte, oldHashes [][]byte)
+	GetRootHash() []byte
+	SetDataForRootChange(rootData RootData)
 	ResetCollectedHashes()
 	GetOldHashes() [][]byte
 	GetOldRootHash() []byte

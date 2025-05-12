@@ -46,13 +46,6 @@ func TestLeafNode_newLeafNode(t *testing.T) {
 	assert.Equal(t, expectedLn, ln)
 }
 
-func TestLeafNode_getHash(t *testing.T) {
-	t.Parallel()
-
-	ln := &leafNode{baseNode: &baseNode{hash: []byte("test hash")}}
-	assert.Equal(t, ln.hash, ln.getHash())
-}
-
 func TestLeafNode_isDirty(t *testing.T) {
 	t.Parallel()
 
@@ -63,35 +56,12 @@ func TestLeafNode_isDirty(t *testing.T) {
 	assert.Equal(t, false, ln.isDirty())
 }
 
-func TestLeafNode_setHash(t *testing.T) {
-	t.Parallel()
-
-	ln := getLn(getTestMarshalizerAndHasher())
-	hash, _ := encodeNodeAndGetHash(ln)
-	manager := getTestGoroutinesManager()
-
-	ln.setHash(manager)
-	assert.Nil(t, manager.GetError())
-	assert.Equal(t, hash, ln.hash)
-}
-
-func TestLeafNode_setGivenHash(t *testing.T) {
-	t.Parallel()
-
-	ln := &leafNode{baseNode: &baseNode{}}
-	expectedHash := []byte("node hash")
-
-	ln.setGivenHash(expectedHash)
-	assert.Equal(t, expectedHash, ln.hash)
-}
-
 func TestLeafNode_commit(t *testing.T) {
 	t.Parallel()
 
 	db := testscommon.NewMemDbMock()
 	ln := getLn(getTestMarshalizerAndHasher())
 	hash, _ := encodeNodeAndGetHash(ln)
-	ln.setHash(getTestGoroutinesManager())
 
 	manager := getTestGoroutinesManager()
 	ln.commitDirty(0, 5, manager, hashesCollector.NewDisabledHashesCollector(), db, db)
@@ -227,7 +197,6 @@ func TestLeafNode_insertInStoredLnAtSameKey(t *testing.T) {
 	db := testscommon.NewMemDbMock()
 	ln := getLn(getTestMarshalizerAndHasher())
 	ln.commitDirty(0, 5, getTestGoroutinesManager(), hashesCollector.NewDisabledHashesCollector(), db, db)
-	lnHash := ln.getHash()
 	data := []core.TrieData{getTrieDataWithDefaultVersion("dog", "dogs")}
 
 	goRoutinesManager := getTestGoroutinesManager()
@@ -235,7 +204,7 @@ func TestLeafNode_insertInStoredLnAtSameKey(t *testing.T) {
 	newNode := ln.insert(data, goRoutinesManager, modifiedHashes, db)
 	assert.NotNil(t, newNode)
 	assert.Nil(t, goRoutinesManager.GetError())
-	assert.Equal(t, [][]byte{lnHash}, modifiedHashes.Get())
+	assert.Equal(t, [][]byte{}, modifiedHashes.Get())
 }
 
 func TestLeafNode_insertInStoredLnAtDifferentKey(t *testing.T) {
@@ -245,7 +214,6 @@ func TestLeafNode_insertInStoredLnAtDifferentKey(t *testing.T) {
 	marsh, hasher := getTestMarshalizerAndHasher()
 	ln, _ := newLeafNode(getTrieDataWithDefaultVersion(string([]byte{1, 2, 3}), "dog"), marsh, hasher)
 	ln.commitDirty(0, 5, getTestGoroutinesManager(), hashesCollector.NewDisabledHashesCollector(), db, db)
-	lnHash := ln.getHash()
 	data := []core.TrieData{getTrieDataWithDefaultVersion(string([]byte{4, 5, 6}), "dogs")}
 
 	goRoutinesManager := getTestGoroutinesManager()
@@ -253,7 +221,7 @@ func TestLeafNode_insertInStoredLnAtDifferentKey(t *testing.T) {
 	newNode := ln.insert(data, goRoutinesManager, modifiedHashes, db)
 	assert.NotNil(t, newNode)
 	assert.Nil(t, goRoutinesManager.GetError())
-	assert.Equal(t, [][]byte{lnHash}, modifiedHashes.Get())
+	assert.Equal(t, [][]byte{}, modifiedHashes.Get())
 }
 
 func TestLeafNode_insertInDirtyLnAtSameKey(t *testing.T) {
@@ -304,7 +272,6 @@ func TestLeafNode_deleteFromStoredLnAtSameKey(t *testing.T) {
 	db := testscommon.NewMemDbMock()
 	ln := getLn(getTestMarshalizerAndHasher())
 	ln.commitDirty(0, 5, getTestGoroutinesManager(), hashesCollector.NewDisabledHashesCollector(), db, db)
-	lnHash := ln.getHash()
 	data := []core.TrieData{{Key: []byte("dog")}}
 
 	goRoutinesManager := getTestGoroutinesManager()
@@ -312,7 +279,7 @@ func TestLeafNode_deleteFromStoredLnAtSameKey(t *testing.T) {
 	dirty, _ := ln.delete(data, goRoutinesManager, modifiedHashes, db)
 	assert.True(t, dirty)
 	assert.Nil(t, goRoutinesManager.GetError())
-	assert.Equal(t, [][]byte{lnHash}, modifiedHashes.Get())
+	assert.Equal(t, [][]byte{}, modifiedHashes.Get())
 }
 
 func TestLeafNode_deleteFromLnAtDifferentKey(t *testing.T) {
@@ -368,7 +335,7 @@ func TestLeafNode_reduceNode(t *testing.T) {
 	expected, _ := newLeafNode(getTrieDataWithDefaultVersion(string([]byte{2, 100, 111, 103}), ""), marsh, hasher)
 	expected.dirty = true
 
-	n, newChildHash, err := ln.reduceNode(2, nil)
+	n, newChildHash, err := ln.reduceNode(2, nil, nil)
 	assert.Equal(t, expected, n)
 	assert.Nil(t, err)
 	assert.True(t, newChildHash)
@@ -408,15 +375,14 @@ func TestLeafNode_loadChildren(t *testing.T) {
 
 	_, hasher := getTestMarshalizerAndHasher()
 	tr := initTrie()
-	nodes, hashes := getEncodedTrieNodesAndHashes(tr)
+	nodes, _ := getEncodedTrieNodesAndHashes(tr)
 	nodesCacher, _ := cache.NewLRUCache(100)
 	for i := range nodes {
 		n, _ := NewInterceptedTrieNode(nodes[i], hasher)
 		nodesCacher.Put(n.hash, n, len(n.GetSerialized()))
 	}
 
-	lnPosition := 5
-	ln := &leafNode{baseNode: &baseNode{hash: hashes[lnPosition]}}
+	ln := &leafNode{baseNode: &baseNode{}}
 	missing, _, err := ln.loadChildren(nil)
 	assert.Nil(t, err)
 	assert.Equal(t, 6, nodesCacher.Len())
@@ -428,12 +394,12 @@ func TestInsertSameNodeShouldNotSetDirtyBnRoot(t *testing.T) {
 
 	tr := initTrie()
 	_ = tr.Commit(hashesCollector.NewDisabledHashesCollector())
-	rootHash := tr.GetRootNode().getHash()
+	rootHash := tr.GetRootHash()
 
 	tr.Update([]byte("dog"), []byte("puppy"))
 	ExecuteUpdatesFromBatch(tr)
 	assert.False(t, tr.GetRootNode().isDirty())
-	assert.Equal(t, rootHash, tr.GetRootNode().getHash())
+	assert.Equal(t, rootHash, tr.GetRootHash())
 	assert.Equal(t, [][]byte{}, tr.GetOldHashes())
 }
 
@@ -444,12 +410,12 @@ func TestInsertSameNodeShouldNotSetDirtyEnRoot(t *testing.T) {
 	tr.Update([]byte("dog"), []byte("puppy"))
 	tr.Update([]byte("log"), []byte("wood"))
 	_ = tr.Commit(hashesCollector.NewDisabledHashesCollector())
-	rootHash := tr.GetRootNode().getHash()
+	rootHash := tr.GetRootHash()
 
 	tr.Update([]byte("dog"), []byte("puppy"))
 	ExecuteUpdatesFromBatch(tr)
 	assert.False(t, tr.GetRootNode().isDirty())
-	assert.Equal(t, rootHash, tr.GetRootNode().getHash())
+	assert.Equal(t, rootHash, tr.GetRootHash())
 	assert.Equal(t, [][]byte{}, tr.GetOldHashes())
 }
 
@@ -459,12 +425,12 @@ func TestInsertSameNodeShouldNotSetDirtyLnRoot(t *testing.T) {
 	tr, _ := newEmptyTrie()
 	tr.Update([]byte("dog"), []byte("puppy"))
 	_ = tr.Commit(hashesCollector.NewDisabledHashesCollector())
-	rootHash := tr.GetRootNode().getHash()
+	rootHash := tr.GetRootHash()
 
 	tr.Update([]byte("dog"), []byte("puppy"))
 	ExecuteUpdatesFromBatch(tr)
 	assert.False(t, tr.GetRootNode().isDirty())
-	assert.Equal(t, rootHash, tr.GetRootNode().getHash())
+	assert.Equal(t, rootHash, tr.GetRootHash())
 	assert.Equal(t, [][]byte{}, tr.GetOldHashes())
 }
 
@@ -473,12 +439,12 @@ func TestLeafNode_deleteDifferentKeyShouldNotModifyTrie(t *testing.T) {
 
 	tr := initTrie()
 	_ = tr.Commit(hashesCollector.NewDisabledHashesCollector())
-	rootHash := tr.GetRootNode().getHash()
+	rootHash := tr.GetRootHash()
 
 	tr.Update([]byte("ddoe"), []byte{})
 	ExecuteUpdatesFromBatch(tr)
 	assert.False(t, tr.GetRootNode().isDirty())
-	assert.Equal(t, rootHash, tr.GetRootNode().getHash())
+	assert.Equal(t, rootHash, tr.GetRootHash())
 	assert.Equal(t, [][]byte{}, tr.GetOldHashes())
 }
 
@@ -557,34 +523,32 @@ func TestLeafNode_SizeInBytes(t *testing.T) {
 
 	value := []byte("value")
 	key := []byte("key")
-	hash := []byte("hash")
 	ln = &leafNode{
 		CollapsedLn: CollapsedLn{
 			Key:   key,
 			Value: value,
 		},
 		baseNode: &baseNode{
-			hash:   hash,
 			dirty:  false,
 			marsh:  nil,
 			hasher: nil,
 		},
 	}
-	assert.Equal(t, len(key)+len(value)+len(hash)+1+2*pointerSizeInBytes, ln.sizeInBytes())
+	assert.Equal(t, len(key)+len(value)+1+2*pointerSizeInBytes, ln.sizeInBytes())
 }
 
 func TestLeafNode_writeNodeOnChannel(t *testing.T) {
 	t.Parallel()
 
 	ln := getLn(getTestMarshalizerAndHasher())
-	ln.setHash(getTestGoroutinesManager())
+	lnHash, _ := encodeNodeAndGetHash(ln)
 	leavesChannel := make(chan core.KeyValueHolder, 2)
 
 	err := writeNodeOnChannel(ln, leavesChannel)
 	assert.Nil(t, err)
 
 	retrievedLn := <-leavesChannel
-	assert.Equal(t, ln.getHash(), retrievedLn.Key())
+	assert.Equal(t, lnHash, retrievedLn.Key())
 	assert.Equal(t, ln.Value, retrievedLn.Value())
 }
 
@@ -684,7 +648,6 @@ func TestLeafNode_insertBatch(t *testing.T) {
 		newData := []core.TrieData{getTrieDataWithDefaultVersion(string([]byte{1, 2, 3, 4, 16}), "dogs")}
 		ln.commitDirty(0, 5, getTestGoroutinesManager(), hashesCollector.NewDisabledHashesCollector(), testscommon.NewMemDbMock(), testscommon.NewMemDbMock())
 		assert.False(t, ln.dirty)
-		originalHash := ln.getHash()
 
 		th, _ := throttler.NewNumGoRoutinesThrottler(5)
 		goRoutinesManager, err := NewGoroutinesManager(th, errChan.NewErrChanWrapper(), make(chan struct{}), "")
@@ -694,7 +657,7 @@ func TestLeafNode_insertBatch(t *testing.T) {
 		newNode := ln.insert(newData, goRoutinesManager, modifiedHashes, nil)
 		assert.Nil(t, goRoutinesManager.GetError())
 		assert.True(t, newNode.isDirty())
-		assert.Equal(t, [][]byte{originalHash}, modifiedHashes.Get())
+		assert.Equal(t, [][]byte{}, modifiedHashes.Get())
 		assert.Equal(t, []byte("dogs"), newNode.(*leafNode).Value)
 	})
 	t.Run("insert in same leaf node same val", func(t *testing.T) {
@@ -730,7 +693,6 @@ func TestLeafNode_insertBatch(t *testing.T) {
 		}
 		ln.commitDirty(0, 5, getTestGoroutinesManager(), hashesCollector.NewDisabledHashesCollector(), testscommon.NewMemDbMock(), testscommon.NewMemDbMock())
 		assert.False(t, ln.dirty)
-		originalHash := ln.getHash()
 
 		th, _ := throttler.NewNumGoRoutinesThrottler(5)
 		goRoutinesManager, err := NewGoroutinesManager(th, errChan.NewErrChanWrapper(), make(chan struct{}), "")
@@ -739,14 +701,15 @@ func TestLeafNode_insertBatch(t *testing.T) {
 		modifiedHashes := common.NewModifiedHashesSlice(initialModifiedHashesCapacity)
 		newNode := ln.insert(newData, goRoutinesManager, modifiedHashes, nil)
 		assert.Nil(t, goRoutinesManager.GetError())
-		assert.Equal(t, [][]byte{originalHash}, modifiedHashes.Get())
+		assert.Equal(t, [][]byte{}, modifiedHashes.Get())
 		bn, ok := newNode.(*branchNode)
 		assert.True(t, ok)
 		assert.Equal(t, []byte("dogs"), bn.children[1].(*leafNode).Value)
 		assert.NotNil(t, []byte("dog"), bn.children[2].(*leafNode).Value)
 		assert.NotNil(t, []byte("dog"), bn.children[3].(*leafNode).Value)
 		assert.True(t, bn.dirty)
-		assert.NotEqual(t, 0, len(bn.hash))
+		bnHash, _ := encodeNodeAndGetHash(bn)
+		assert.NotEqual(t, 0, len(bnHash))
 	})
 	t.Run("extension node at the beginning after insert ", func(t *testing.T) {
 		t.Parallel()
@@ -761,7 +724,6 @@ func TestLeafNode_insertBatch(t *testing.T) {
 		}
 		ln.commitDirty(0, 5, getTestGoroutinesManager(), hashesCollector.NewDisabledHashesCollector(), testscommon.NewMemDbMock(), testscommon.NewMemDbMock())
 		assert.False(t, ln.dirty)
-		originalHash := ln.getHash()
 
 		th, _ := throttler.NewNumGoRoutinesThrottler(5)
 		goRoutinesManager, err := NewGoroutinesManager(th, errChan.NewErrChanWrapper(), make(chan struct{}), "")
@@ -770,12 +732,13 @@ func TestLeafNode_insertBatch(t *testing.T) {
 		modifiedHashes := common.NewModifiedHashesSlice(initialModifiedHashesCapacity)
 		newNode := ln.insert(newData, goRoutinesManager, modifiedHashes, nil)
 		assert.Nil(t, goRoutinesManager.GetError())
-		assert.Equal(t, [][]byte{originalHash}, modifiedHashes.Get())
+		assert.Equal(t, [][]byte{}, modifiedHashes.Get())
 		en, ok := newNode.(*extensionNode)
 		assert.True(t, ok)
 		assert.Equal(t, []byte{1, 2}, en.Key)
 		assert.True(t, en.dirty)
-		assert.NotEqual(t, 0, len(en.hash))
+		enHash, _ := encodeNodeAndGetHash(en)
+		assert.NotEqual(t, 0, len(enHash))
 	})
 }
 
@@ -793,7 +756,6 @@ func TestLeafNode_deleteBatch(t *testing.T) {
 			getTrieDataWithDefaultVersion(string([]byte{3, 2, 3, 4, 16}), ""),
 		}
 		ln.commitDirty(0, 5, getTestGoroutinesManager(), hashesCollector.NewDisabledHashesCollector(), testscommon.NewMemDbMock(), testscommon.NewMemDbMock())
-		originalHash := ln.getHash()
 
 		th, _ := throttler.NewNumGoRoutinesThrottler(5)
 		goRoutinesManager, err := NewGoroutinesManager(th, errChan.NewErrChanWrapper(), make(chan struct{}), "")
@@ -804,7 +766,7 @@ func TestLeafNode_deleteBatch(t *testing.T) {
 		assert.True(t, dirty)
 		assert.Nil(t, goRoutinesManager.GetError())
 		assert.Nil(t, newNode)
-		assert.Equal(t, [][]byte{originalHash}, modifiedHashes.Get())
+		assert.Equal(t, [][]byte{}, modifiedHashes.Get())
 	})
 	t.Run("delete not existing", func(t *testing.T) {
 		t.Parallel()

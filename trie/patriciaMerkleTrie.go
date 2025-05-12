@@ -204,29 +204,31 @@ func (tr *patriciaMerkleTrie) insertBatch(sortedDataForInsertion []core.TrieData
 	}
 
 	rootNode := tr.GetRootNode()
+	oldRootHash := tr.getOldRootHash(rootNode)
+	var changedHashes [][]byte
+
 	if check.IfNil(rootNode) {
 		newRoot, err := newLeafNode(sortedDataForInsertion[0], tr.marshalizer, tr.hasher)
 		if err != nil {
 			return err
 		}
-		newRoot.setHash(tr.goRoutinesManager)
-		err = tr.goRoutinesManager.GetError()
-		if err != nil {
-			return err
-		}
 
 		sortedDataForInsertion = sortedDataForInsertion[1:]
-		if len(sortedDataForInsertion) == 0 {
-			tr.SetNewRootNode(newRoot)
-			return nil
-		}
-
 		rootNode = newRoot
 	}
 
-	var oldRootHash []byte
-	if !rootNode.isDirty() {
-		oldRootHash = rootNode.getHash()
+	if len(sortedDataForInsertion) == 0 {
+		rootHash, err := encodeNodeAndGetHash(rootNode)
+		if err != nil {
+			return err
+		}
+		tr.SetDataForRootChange(RootData{
+			newRoot:     rootNode,
+			newRootHash: rootHash,
+			oldRootHash: oldRootHash,
+			oldHashes:   changedHashes,
+		})
+		return nil
 	}
 
 	err := tr.goRoutinesManager.SetNewErrorChannel(errChan.NewErrChanWrapper())
@@ -246,11 +248,38 @@ func (tr *patriciaMerkleTrie) insertBatch(sortedDataForInsertion []core.TrieData
 		return nil
 	}
 
+	if len(oldRootHash) != 0 {
+		oldHashes.Append([][]byte{oldRootHash})
+	}
+
+	rootHash, err := encodeNodeAndGetHash(newRoot)
+	if err != nil {
+		return err
+	}
+
 	hashes := oldHashes.Get()
-	tr.SetDataForRootChange(newRoot, oldRootHash, hashes)
+	tr.SetDataForRootChange(
+		RootData{
+			newRoot:     newRoot,
+			newRootHash: rootHash,
+			oldRootHash: oldRootHash,
+			oldHashes:   hashes,
+		})
 
 	logArrayWithTrace("oldHashes after insert", "hash", hashes)
 	return nil
+}
+
+func (tr *patriciaMerkleTrie) getOldRootHash(rootNode node) []byte {
+	if check.IfNil(rootNode) {
+		return []byte{}
+	}
+
+	if rootNode.isDirty() {
+		return tr.GetOldRootHash()
+	}
+
+	return tr.GetRootHash()
 }
 
 func (tr *patriciaMerkleTrie) deleteBatch(data []core.TrieData) error {
@@ -263,11 +292,7 @@ func (tr *patriciaMerkleTrie) deleteBatch(data []core.TrieData) error {
 		return nil
 	}
 
-	var oldRootHash []byte
-	if !rootNode.isDirty() {
-		oldRootHash = rootNode.getHash()
-	}
-
+	oldRootHash := tr.getOldRootHash(rootNode)
 	err := tr.goRoutinesManager.SetNewErrorChannel(errChan.NewErrChanWrapper())
 	if err != nil {
 		return err
@@ -275,14 +300,35 @@ func (tr *patriciaMerkleTrie) deleteBatch(data []core.TrieData) error {
 
 	initialSliceCapacity := len(data) * 2 // there are also intermediate nodes that are changed, so we need to collect more hashes
 	modifiedHashes := common.NewModifiedHashesSlice(initialSliceCapacity)
-	_, newRoot := rootNode.delete(data, tr.goRoutinesManager, modifiedHashes, tr.trieStorage)
+	hasBeenModified, newRoot := rootNode.delete(data, tr.goRoutinesManager, modifiedHashes, tr.trieStorage)
 	err = tr.goRoutinesManager.GetError()
 	if err != nil {
 		return err
 	}
+	if !hasBeenModified {
+		return nil
+	}
+
+	rootHash := common.EmptyTrieHash
+	if !check.IfNil(newRoot) {
+		rootHash, err = encodeNodeAndGetHash(newRoot)
+		if err != nil {
+			return err
+		}
+	}
+
+	if len(oldRootHash) != 0 {
+		modifiedHashes.Append([][]byte{oldRootHash})
+	}
 
 	oldHashes := modifiedHashes.Get()
-	tr.SetDataForRootChange(newRoot, oldRootHash, oldHashes)
+	tr.SetDataForRootChange(
+		RootData{
+			newRoot:     newRoot,
+			newRootHash: rootHash,
+			oldRootHash: oldRootHash,
+			oldHashes:   oldHashes,
+		})
 	logArrayWithTrace("oldHashes after delete", "hash", oldHashes)
 
 	return nil
@@ -301,16 +347,12 @@ func (tr *patriciaMerkleTrie) RootHash() ([]byte, error) {
 	tr.updateTrieMutex.Lock()
 	defer tr.updateTrieMutex.Unlock()
 
-	rootNode := tr.GetRootNode()
-	if rootNode == nil {
+	rootHash := tr.GetRootHash()
+	if len(rootHash) == 0 {
 		return common.EmptyTrieHash, nil
 	}
 
-	hash := rootNode.getHash()
-	if len(hash) == 0 {
-		return nil, fmt.Errorf("root hash should not be empty: trie = %v", tr.identifier)
-	}
-	return hash, nil
+	return rootHash, nil
 }
 
 // Commit adds all the dirty nodes to the database
@@ -332,7 +374,7 @@ func (tr *patriciaMerkleTrie) Commit(hashesCollector common.TrieHashesCollector)
 		return nil
 	}
 	if !rootNode.isDirty() {
-		log.Trace("trying to commit clean trie", "root", rootNode.getHash())
+		log.Trace("trying to commit clean trie", "root", tr.GetRootNode())
 
 		tr.ResetCollectedHashes()
 
@@ -341,7 +383,7 @@ func (tr *patriciaMerkleTrie) Commit(hashesCollector common.TrieHashesCollector)
 
 	oldRootHash := tr.GetOldRootHash()
 	if log.GetLevel() == logger.LogTrace {
-		log.Trace("started committing trie", "trie", rootNode.getHash())
+		log.Trace("started committing trie", "trie", tr.GetRootNode())
 	}
 
 	err = tr.goRoutinesManager.SetNewErrorChannel(errChan.NewErrChanWrapper())
@@ -412,7 +454,7 @@ func (tr *patriciaMerkleTrie) recreate(root []byte, identifier string, tsm commo
 	return newTr, nil
 }
 
-// ToString outputs a graphical view of the trie. Mainly used in tests/debugging
+// ToString outputs a graphical view of the trie. Mainly used in tests/kdebugging
 func (tr *patriciaMerkleTrie) ToString() string {
 	tr.trieOperationInProgress.SetValue(true)
 	defer tr.trieOperationInProgress.Reset()
@@ -458,7 +500,12 @@ func (tr *patriciaMerkleTrie) recreateFromDb(rootHash []byte, identifier string,
 		return nil, nil, err
 	}
 
-	newTr.SetNewRootNode(newRoot)
+	newTr.SetDataForRootChange(RootData{
+		newRoot:     newRoot,
+		newRootHash: rootHash,
+		oldRootHash: tr.GetOldRootHash(),
+		oldHashes:   tr.GetOldHashes(),
+	})
 
 	return newTr, newRoot, nil
 }

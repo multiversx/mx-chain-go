@@ -144,3 +144,6 @@ var ErrInvalidTypeConversion = errors.New("invalid type conversion")
 
 // ErrNodeHashIsNotSet signals that the node hash is not set
 var ErrNodeHashIsNotSet = errors.New("node hash is not set")
+
+// ErrInvalidNodeState indicates an erroneous condition where a node's child pointer is set but the child hash is empty.
+var ErrInvalidNodeState = errors.New("invalid node state, child pointer is set but the child hash is empty ")
