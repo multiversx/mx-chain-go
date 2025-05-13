@@ -77,6 +77,8 @@ func (rcns *roundConsensus) ConsensusGroup() []string {
 
 // SetConsensusGroup sets the consensus group ID's
 func (rcns *roundConsensus) SetConsensusGroup(consensusGroup []string) {
+	log.Debug("roundConsensus.SetConsensusGroup")
+
 	rcns.mut.Lock()
 
 	rcns.consensusGroup = consensusGroup
@@ -129,7 +131,7 @@ func (rcns *roundConsensus) SetSelfPubKey(selfPubKey string) {
 // JobDone returns the state of the action done, by the node represented by the key parameter,
 // in subround given by the subroundId parameter
 func (rcns *roundConsensus) JobDone(key string, subroundId int) (bool, error) {
-	log.Debug("roundConsensus.JobDone", "key", key, "subroundId", subroundId)
+	log.Debug("roundConsensus.JobDone?", "key", key, "subroundId", subroundId)
 
 	rcns.mut.RLock()
 	currentRoundState := rcns.validatorRoundStates[key]
@@ -155,6 +157,7 @@ func (rcns *roundConsensus) SetJobDone(key string, subroundId int, value bool) e
 	currentRoundState := rcns.validatorRoundStates[key]
 
 	if currentRoundState == nil {
+		log.Debug("roundConsensus.SetJobDone: exit when currentRoundState is nil")
 		rcns.mut.Unlock()
 		return ErrInvalidKey
 	}

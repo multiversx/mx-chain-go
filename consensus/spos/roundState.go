@@ -22,6 +22,8 @@ func NewRoundState() *roundState {
 
 // JobDone returns the consensus validatorRoundStates of the given subroundId
 func (rstate *roundState) JobDone(subroundId int) bool {
+	log.Debug("roundState.JobDone?", "subroundId")
+
 	rstate.mut.RLock()
 	retcode := rstate.jobDone[subroundId]
 	rstate.mut.RUnlock()
@@ -30,6 +32,8 @@ func (rstate *roundState) JobDone(subroundId int) bool {
 
 // SetJobDone sets the consensus validatorRoundStates of the given subroundId
 func (rstate *roundState) SetJobDone(subroundId int, value bool) {
+	log.Debug("roundState.SetJobDone", "subroundId", subroundId, "value", value)
+
 	rstate.mut.Lock()
 	rstate.jobDone[subroundId] = value
 	rstate.mut.Unlock()
@@ -37,6 +41,8 @@ func (rstate *roundState) SetJobDone(subroundId int, value bool) {
 
 // ResetJobsDone method resets the consensus validatorRoundStates of each subround
 func (rstate *roundState) ResetJobsDone() {
+	log.Debug("roundState.ResetJobsDone")
+
 	rstate.mut.Lock()
 
 	for k := range rstate.jobDone {
