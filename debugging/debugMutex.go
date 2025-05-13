@@ -1,8 +1,9 @@
 package debugging
 
 import (
+	"crypto/rand"
+	"encoding/hex"
 	"fmt"
-	"math/rand"
 	"path/filepath"
 	"runtime"
 	"strconv"
@@ -14,7 +15,6 @@ import (
 
 var log = logger.GetOrCreate("debugging")
 
-const letterBytes = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
 const stackDepth = 3
 
 type DebugMutex struct {
@@ -62,7 +62,7 @@ func (dm *DebugMutex) RUnlock(tag string) {
 
 func (dm *DebugMutex) logAttemptAcquire(what string) string {
 	routine := goid()
-	token := randStringBytes(4)
+	token := createTag()
 	tag := fmt.Sprintf("%d:%s", routine, token)
 	callersSummary := getCallersSummary(3)
 
@@ -88,12 +88,10 @@ func goid() int {
 	return id
 }
 
-func randStringBytes(n int) string {
-	b := make([]byte, n)
-	for i := range b {
-		b[i] = letterBytes[rand.Intn(len(letterBytes))]
-	}
-	return string(b)
+func createTag() string {
+	buffer := make([]byte, 4)
+	_, _ = rand.Read(buffer)
+	return hex.EncodeToString(buffer)
 }
 
 func getCallersSummary(skip int) string {
