@@ -74,6 +74,7 @@ func NewSliceRequester(arg ArgSliceRequester) (*sliceRequester, error) {
 func (sliceReq *sliceRequester) RequestDataFromHash(hash []byte, _ uint32) error {
 	mb, err := sliceReq.storage.Get(hash)
 	if err != nil {
+		log.Error("headerRequester.RequestDataFromHash: could not find hash", "hash", hash, "err", err)
 		sliceReq.signalGracefullyClose()
 		return err
 	}
@@ -124,6 +125,7 @@ func (sliceReq *sliceRequester) RequestDataFromHashArray(hashes [][]byte, _ uint
 	if errFetch != nil {
 		errFetch = fmt.Errorf("RequesterequestByHashArray on topic %s, last error %w from %d encountered errors",
 			sliceReq.responseTopicName, errFetch, errorsFound)
+		log.Error("RequestDataFromHashArray: could not find hashes", "err", errFetch, "topic", sliceReq.responseTopicName)
 		sliceReq.signalGracefullyClose()
 	}
 

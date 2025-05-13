@@ -1141,6 +1141,7 @@ func (boot *baseBootstrap) checkNeedsProofByHash(hash []byte, header data.Header
 	// if header does not exist
 	//		if it has a proof, request the header
 	//		if it does not have the proof, request both and decide when header is received if it truly needed the proof
+	log.Info("checkNeedsProofByHash - radu")
 	_, errGetProof := boot.proofs.GetProof(boot.shardCoordinator.SelfId(), hash)
 	hasProof := errGetProof == nil
 	needsProof := !hasProof

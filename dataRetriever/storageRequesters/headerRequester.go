@@ -87,6 +87,7 @@ func (hdrReq *headerRequester) RequestDataFromHash(hash []byte, _ uint32) error 
 
 	buff, err := hdrReq.hdrStorage.SearchFirst(hash)
 	if err != nil {
+		log.Error("headerRequester.RequestDataFromHash: could not find header", "hash", hash, "err", err, "epoch", metaEpoch)
 		hdrReq.signalGracefullyClose()
 		return err
 	}
@@ -99,6 +100,7 @@ func (hdrReq *headerRequester) RequestDataFromNonce(nonce uint64, epoch uint32) 
 	nonceKey := hdrReq.nonceConverter.ToByteSlice(nonce)
 	hash, err := hdrReq.hdrNoncesStorage.SearchFirst(nonceKey)
 	if err != nil {
+		log.Error("headerRequester.RequestDataFromNonce: could not find header", "nonce", nonce, "err", err, "epoch", epoch)
 		hdrReq.signalGracefullyClose()
 		return err
 	}
@@ -110,6 +112,7 @@ func (hdrReq *headerRequester) RequestDataFromNonce(nonce uint64, epoch uint32) 
 func (hdrReq *headerRequester) RequestDataFromEpoch(identifier []byte) error {
 	buff, err := hdrReq.resolveHeaderFromEpoch(identifier)
 	if err != nil {
+		log.Error("headerRequester.RequestDataFromEpoch: could not find header", "identifier", identifier, "err", err)
 		hdrReq.signalGracefullyClose()
 		return err
 	}
