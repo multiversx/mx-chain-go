@@ -1,19 +1,21 @@
 package spos
 
 import (
-	"sync"
+	"github.com/multiversx/mx-chain-go/debugging"
 )
 
 // roundState defines the data needed by spos to know the state of each node from the current jobDone group,
 // regarding the consensus validatorRoundStates in each subround of the current round
 type roundState struct {
 	jobDone map[int]bool
-	mut     sync.RWMutex
+	mut     *debugging.DebugMutex
 }
 
 // NewRoundState creates a new roundState object
 func NewRoundState() *roundState {
-	rstate := roundState{}
+	rstate := roundState{
+		mut: debugging.NewDebugMutex("roundState.mut"),
+	}
 	rstate.jobDone = make(map[int]bool)
 	return &rstate
 }

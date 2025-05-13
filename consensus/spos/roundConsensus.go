@@ -1,24 +1,25 @@
 package spos
 
 import (
-	"sync"
-
 	"github.com/multiversx/mx-chain-core-go/core/check"
 
 	"github.com/multiversx/mx-chain-go/consensus"
+	"github.com/multiversx/mx-chain-go/debugging"
 )
 
 // roundConsensus defines the data needed by spos to do the consensus in each round
 type roundConsensus struct {
-	eligibleNodes        map[string]struct{}
-	mutEligible          sync.RWMutex
+	eligibleNodes map[string]struct{}
+
 	consensusGroup       []string
 	leader               string
 	consensusGroupSize   int
 	selfPubKey           string
 	validatorRoundStates map[string]*roundState
-	mut                  sync.RWMutex
 	keysHandler          consensus.KeysHandler
+
+	mut         *debugging.DebugMutex
+	mutEligible *debugging.DebugMutex
 }
 
 // NewRoundConsensus creates a new roundConsensus object
@@ -36,9 +37,11 @@ func NewRoundConsensus(
 		eligibleNodes:        eligibleNodes,
 		consensusGroupSize:   consensusGroupSize,
 		selfPubKey:           selfId,
-		mutEligible:          sync.RWMutex{},
 		validatorRoundStates: make(map[string]*roundState),
 		keysHandler:          keysHandler,
+
+		mutEligible: debugging.NewDebugMutex("roundConsensus.mutEligible"),
+		mut:         debugging.NewDebugMutex("roundConsensus.mut"),
 	}, nil
 }
 
@@ -126,6 +129,8 @@ func (rcns *roundConsensus) SetSelfPubKey(selfPubKey string) {
 // JobDone returns the state of the action done, by the node represented by the key parameter,
 // in subround given by the subroundId parameter
 func (rcns *roundConsensus) JobDone(key string, subroundId int) (bool, error) {
+	log.Debug("roundConsensus.JobDone", "key", key, "subroundId", subroundId)
+
 	rcns.mut.RLock()
 	currentRoundState := rcns.validatorRoundStates[key]
 
@@ -143,6 +148,8 @@ func (rcns *roundConsensus) JobDone(key string, subroundId int) (bool, error) {
 // SetJobDone set the state of the action done, by the node represented by the key parameter,
 // in subround given by the subroundId parameter
 func (rcns *roundConsensus) SetJobDone(key string, subroundId int, value bool) error {
+	log.Debug("roundConsensus.SetJobDone", "key", key, "subroundId", subroundId, "value", value)
+
 	rcns.mut.Lock()
 
 	currentRoundState := rcns.validatorRoundStates[key]
@@ -160,11 +167,14 @@ func (rcns *roundConsensus) SetJobDone(key string, subroundId int, value bool) e
 
 // SelfJobDone returns the self state of the action done in subround given by the subroundId parameter
 func (rcns *roundConsensus) SelfJobDone(subroundId int) (bool, error) {
+	log.Debug("roundConsensus.SelfJobDone", "subroundId", subroundId)
 	return rcns.JobDone(rcns.selfPubKey, subroundId)
 }
 
 // IsNodeInConsensusGroup method checks if the node is part of consensus group of the current round
 func (rcns *roundConsensus) IsNodeInConsensusGroup(node string) bool {
+	log.Debug("roundConsensus.IsNodeInConsensusGroup", "node", []byte(node))
+
 	rcns.mut.RLock()
 	defer rcns.mut.RUnlock()
 
@@ -189,6 +199,8 @@ func (rcns *roundConsensus) IsNodeInEligibleList(node string) bool {
 // ComputeSize method returns the number of messages received from the nodes belonging to the current jobDone group
 // related to this subround
 func (rcns *roundConsensus) ComputeSize(subroundId int) int {
+	log.Debug("roundConsensus.ComputeSize", "subroundId", subroundId)
+
 	rcns.mut.RLock()
 	defer rcns.mut.RUnlock()
 
@@ -212,6 +224,8 @@ func (rcns *roundConsensus) ComputeSize(subroundId int) int {
 // ResetRoundState method resets the state of each node from the current jobDone group, regarding the
 // consensus validatorRoundStates
 func (rcns *roundConsensus) ResetRoundState() {
+	log.Debug("roundConsensus.ResetRoundState")
+
 	rcns.mut.Lock()
 
 	var currentRoundState *roundState
