@@ -1,13 +1,14 @@
 package debugging
 
 import (
+	"fmt"
 	"runtime"
 	"sync"
 
 	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
-var log = logger.GetOrCreate("debugMutex")
+var log = logger.GetOrCreate("debugging")
 
 type DebugMutex struct {
 	name  string
@@ -22,28 +23,32 @@ func NewDebugMutex(name string) *DebugMutex {
 
 func (dm *DebugMutex) Lock() {
 	_, file, no, _ := runtime.Caller(1)
-	log.Debug("Lock", "mutex", dm.name, "file", file, "no", no)
+	dm.logOperation("Lock", file, no)
 
 	dm.mutex.Lock()
 }
 
 func (dm *DebugMutex) Unlock() {
 	_, file, no, _ := runtime.Caller(1)
-	log.Debug("Lock", "mutex", dm.name, "file", file, "no", no)
+	dm.logOperation("Unlock", file, no)
 
 	dm.mutex.Unlock()
 }
 
 func (dm *DebugMutex) RLock() {
 	_, file, no, _ := runtime.Caller(1)
-	log.Debug("Lock", "mutex", dm.name, "file", file, "no", no)
+	dm.logOperation("RLock", file, no)
 
 	dm.mutex.RLock()
 }
 
 func (dm *DebugMutex) RUnlock() {
 	_, file, no, _ := runtime.Caller(1)
-	log.Debug("Lock", "mutex", dm.name, "file", file, "no", no)
+	dm.logOperation("RUnlock", file, no)
 
 	dm.mutex.RUnlock()
+}
+
+func (dm *DebugMutex) logOperation(operation string, file string, no int) {
+	log.Debug(fmt.Sprintf("%s.%s", dm.name, operation), "file", file, "no", no)
 }
