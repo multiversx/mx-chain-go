@@ -62,15 +62,15 @@ func (rcns *roundConsensus) SelfConsensusGroupIndex() (int, error) {
 
 // SetEligibleList sets the eligible list ID's
 func (rcns *roundConsensus) SetEligibleList(eligibleList map[string]struct{}) {
-	rcns.mutEligible.Lock()
+	tag := rcns.mutEligible.Lock()
 	rcns.eligibleNodes = eligibleList
-	rcns.mutEligible.Unlock()
+	rcns.mutEligible.Unlock(tag)
 }
 
 // ConsensusGroup returns the consensus group ID's
 func (rcns *roundConsensus) ConsensusGroup() []string {
-	rcns.mut.RLock()
-	defer rcns.mut.RUnlock()
+	tag := rcns.mut.RLock()
+	defer rcns.mut.RUnlock(tag)
 
 	return rcns.consensusGroup
 }
@@ -79,7 +79,7 @@ func (rcns *roundConsensus) ConsensusGroup() []string {
 func (rcns *roundConsensus) SetConsensusGroup(consensusGroup []string) {
 	log.Debug("roundConsensus.SetConsensusGroup")
 
-	rcns.mut.Lock()
+	tag := rcns.mut.Lock()
 
 	rcns.consensusGroup = consensusGroup
 
@@ -89,21 +89,21 @@ func (rcns *roundConsensus) SetConsensusGroup(consensusGroup []string) {
 		rcns.validatorRoundStates[rcns.consensusGroup[i]] = NewRoundState()
 	}
 
-	rcns.mut.Unlock()
+	rcns.mut.Unlock(tag)
 }
 
 // Leader returns the leader for the current consensus
 func (rcns *roundConsensus) Leader() string {
-	rcns.mut.RLock()
-	defer rcns.mut.RUnlock()
+	tag := rcns.mut.RLock()
+	defer rcns.mut.RUnlock(tag)
 
 	return rcns.leader
 }
 
 // SetLeader sets the leader for the current consensus
 func (rcns *roundConsensus) SetLeader(leader string) {
-	rcns.mut.Lock()
-	defer rcns.mut.Unlock()
+	tag := rcns.mut.Lock()
+	defer rcns.mut.Unlock(tag)
 
 	rcns.leader = leader
 }
@@ -133,16 +133,16 @@ func (rcns *roundConsensus) SetSelfPubKey(selfPubKey string) {
 func (rcns *roundConsensus) JobDone(key string, subroundId int) (bool, error) {
 	log.Debug("roundConsensus.JobDone?", "key", key, "subroundId", subroundId)
 
-	rcns.mut.RLock()
+	tag := rcns.mut.RLock()
 	currentRoundState := rcns.validatorRoundStates[key]
 
 	if currentRoundState == nil {
-		rcns.mut.RUnlock()
+		rcns.mut.RUnlock(tag)
 		return false, ErrInvalidKey
 	}
 
 	retcode := currentRoundState.JobDone(subroundId)
-	rcns.mut.RUnlock()
+	rcns.mut.RUnlock(tag)
 
 	return retcode, nil
 }
@@ -152,18 +152,18 @@ func (rcns *roundConsensus) JobDone(key string, subroundId int) (bool, error) {
 func (rcns *roundConsensus) SetJobDone(key string, subroundId int, value bool) error {
 	log.Debug("roundConsensus.SetJobDone", "key", key, "subroundId", subroundId, "value", value)
 
-	rcns.mut.Lock()
+	tag := rcns.mut.Lock()
 
 	currentRoundState := rcns.validatorRoundStates[key]
 
 	if currentRoundState == nil {
 		log.Debug("roundConsensus.SetJobDone: exit when currentRoundState is nil")
-		rcns.mut.Unlock()
+		rcns.mut.Unlock(tag)
 		return ErrInvalidKey
 	}
 
 	currentRoundState.SetJobDone(subroundId, value)
-	rcns.mut.Unlock()
+	rcns.mut.Unlock(tag)
 
 	return nil
 }
@@ -178,8 +178,8 @@ func (rcns *roundConsensus) SelfJobDone(subroundId int) (bool, error) {
 func (rcns *roundConsensus) IsNodeInConsensusGroup(node string) bool {
 	log.Debug("roundConsensus.IsNodeInConsensusGroup", "node", []byte(node))
 
-	rcns.mut.RLock()
-	defer rcns.mut.RUnlock()
+	tag := rcns.mut.RLock()
+	defer rcns.mut.RUnlock(tag)
 
 	for i := 0; i < len(rcns.consensusGroup); i++ {
 		if rcns.consensusGroup[i] == node {
@@ -192,9 +192,9 @@ func (rcns *roundConsensus) IsNodeInConsensusGroup(node string) bool {
 
 // IsNodeInEligibleList method checks if the node is part of the eligible list
 func (rcns *roundConsensus) IsNodeInEligibleList(node string) bool {
-	rcns.mutEligible.RLock()
+	tag := rcns.mutEligible.RLock()
 	_, ok := rcns.eligibleNodes[node]
-	rcns.mutEligible.RUnlock()
+	rcns.mutEligible.RUnlock(tag)
 
 	return ok
 }
@@ -204,8 +204,8 @@ func (rcns *roundConsensus) IsNodeInEligibleList(node string) bool {
 func (rcns *roundConsensus) ComputeSize(subroundId int) int {
 	log.Debug("roundConsensus.ComputeSize", "subroundId", subroundId)
 
-	rcns.mut.RLock()
-	defer rcns.mut.RUnlock()
+	tag := rcns.mut.RLock()
+	defer rcns.mut.RUnlock(tag)
 
 	n := 0
 
@@ -229,7 +229,7 @@ func (rcns *roundConsensus) ComputeSize(subroundId int) int {
 func (rcns *roundConsensus) ResetRoundState() {
 	log.Debug("roundConsensus.ResetRoundState")
 
-	rcns.mut.Lock()
+	tag := rcns.mut.Lock()
 
 	var currentRoundState *roundState
 	for i := 0; i < len(rcns.consensusGroup); i++ {
@@ -242,7 +242,7 @@ func (rcns *roundConsensus) ResetRoundState() {
 		currentRoundState.ResetJobsDone()
 	}
 
-	rcns.mut.Unlock()
+	rcns.mut.Unlock(tag)
 }
 
 // IsMultiKeyInConsensusGroup method checks if one of the nodes which are controlled by this instance
