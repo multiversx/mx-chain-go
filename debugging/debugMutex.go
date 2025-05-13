@@ -2,6 +2,7 @@ package debugging
 
 import (
 	"fmt"
+	"path/filepath"
 	"runtime"
 	"sync"
 
@@ -50,5 +51,6 @@ func (dm *DebugMutex) RUnlock() {
 }
 
 func (dm *DebugMutex) logOperation(operation string, file string, no int) {
-	log.Debug(fmt.Sprintf("%s.%s", dm.name, operation), "file", file, "no", no)
+	file = filepath.Base(file)
+	log.Debug(fmt.Sprintf("%s.%s", dm.name, operation), "caller", fmt.Sprintf("%s:%d", file, no))
 }
