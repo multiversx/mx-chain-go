@@ -14,7 +14,7 @@ type roundState struct {
 // NewRoundState creates a new roundState object
 func NewRoundState() *roundState {
 	rstate := roundState{
-		mut: debugging.NewDebugMutex("roundState.mut"),
+		mut: debugging.NewDebugMutex("RS.mut"),
 	}
 	rstate.jobDone = make(map[int]bool)
 	return &rstate

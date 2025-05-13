@@ -40,8 +40,8 @@ func NewRoundConsensus(
 		validatorRoundStates: make(map[string]*roundState),
 		keysHandler:          keysHandler,
 
-		mutEligible: debugging.NewDebugMutex("roundConsensus.mutEligible"),
-		mut:         debugging.NewDebugMutex("roundConsensus.mut"),
+		mutEligible: debugging.NewDebugMutex("RC.mutEligible"),
+		mut:         debugging.NewDebugMutex("RC.mut"),
 	}, nil
 }
 
