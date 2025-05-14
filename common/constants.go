@@ -735,7 +735,7 @@ const (
 	MetricEGLDInMultiTransferEnableEpoch = "erd_egld_in_multi_transfer_enable_epoch"
 
 	// MetricCheckBuiltInCallOnTransferValueAndFailEnableRound represents the round when check builtincall on transfer value and fail is enabled
-	MetricCheckBuiltInCallOnTransferValueAndFailEnableRound = "erd_CheckBuiltInCallOnTransferValueAndFail_enable_epoch"
+	MetricCheckBuiltInCallOnTransferValueAndFailEnableRound = "erd_checkbuiltincall_ontransfervalueandfail_enable_round"
 
 	// MetricMultiESDTNFTTransferAndExecuteByUserEnableEpoch represents the epoch when enshrined sovereign opcodes are enabled
 	MetricMultiESDTNFTTransferAndExecuteByUserEnableEpoch = "erd_multi_esdt_transfer_execute_by_user_enable_epoch"
