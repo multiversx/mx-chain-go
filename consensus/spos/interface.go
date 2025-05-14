@@ -48,6 +48,7 @@ type ConsensusCoreHandler interface {
 	EnableEpochsHandler() common.EnableEpochsHandler
 	EquivalentProofsPool() consensus.EquivalentProofsPool
 	EpochNotifier() process.EpochNotifier
+	InvalidSignersCache() InvalidSignersCache
 	IsInterfaceNil() bool
 }
 
@@ -86,14 +87,9 @@ type ConsensusService interface {
 	GetMaxMessagesInARoundPerPeer() uint32
 	// GetMaxNumOfMessageTypeAccepted returns the maximum number of accepted consensus message types per round, per public key
 	GetMaxNumOfMessageTypeAccepted(msgType consensus.MessageType) uint32
+	// GetMessageTypeBlockHeader returns the message type for the block header
+	GetMessageTypeBlockHeader() consensus.MessageType
 	// IsInterfaceNil returns true if there is no value under the interface
-	IsInterfaceNil() bool
-}
-
-// SubroundsFactory encapsulates the methods specifically for a subrounds factory type (bls, bn)
-// for different consensus types
-type SubroundsFactory interface {
-	GenerateSubrounds() error
 	IsInterfaceNil() bool
 }
 
@@ -112,7 +108,7 @@ type WorkerHandler interface {
 	// RemoveAllReceivedMessagesCalls removes all the functions handlers
 	RemoveAllReceivedMessagesCalls()
 	// ProcessReceivedMessage method redirects the received message to the channel which should handle it
-	ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedPeer core.PeerID, source p2p.MessageHandler) error
+	ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedPeer core.PeerID, source p2p.MessageHandler) ([]byte, error)
 	// Extend does an extension for the subround with subroundId
 	Extend(subroundId int)
 	// GetConsensusStateChangedChannel gets the channel for the consensusStateChanged
@@ -127,6 +123,8 @@ type WorkerHandler interface {
 	ResetConsensusMessages()
 	// ResetConsensusRoundState resets the consensus round state when transitioning to a different consensus version
 	ResetConsensusRoundState()
+	// ResetInvalidSignersCache resets the invalid signers cache
+	ResetInvalidSignersCache()
 	// IsInterfaceNil returns true if there is no value under the interface
 	IsInterfaceNil() bool
 }
@@ -143,7 +141,6 @@ type HeaderSigVerifier interface {
 	VerifyLeaderSignature(header data.HeaderHandler) error
 	VerifySignature(header data.HeaderHandler) error
 	VerifySignatureForHash(header data.HeaderHandler, hash []byte, pubkeysBitmap []byte, signature []byte) error
-	VerifyHeaderWithProof(header data.HeaderHandler) error
 	VerifyHeaderProof(headerProof data.HeaderProofHandler) error
 	IsInterfaceNil() bool
 }
@@ -264,4 +261,12 @@ type RoundThresholdHandler interface {
 	SetThreshold(subroundId int, threshold int)
 	FallbackThreshold(subroundId int) int
 	SetFallbackThreshold(subroundId int, threshold int)
+}
+
+// InvalidSignersCache encapsulates the methods needed for a invalid signers cache
+type InvalidSignersCache interface {
+	AddInvalidSigners(headerHash []byte, invalidSigners []byte, invalidPublicKeys []string)
+	CheckKnownInvalidSigners(headerHash []byte, invalidSigners []byte) bool
+	Reset()
+	IsInterfaceNil() bool
 }

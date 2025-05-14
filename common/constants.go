@@ -1252,7 +1252,6 @@ const (
 	FixRelayedMoveBalanceToNonPayableSCFlag            core.EnableEpochFlag = "FixRelayedMoveBalanceToNonPayableSCFlag"
 	RelayedTransactionsV3Flag                          core.EnableEpochFlag = "RelayedTransactionsV3Flag"
 	RelayedTransactionsV3FixESDTTransferFlag           core.EnableEpochFlag = "RelayedTransactionsV3FixESDTTransferFlag"
-	EquivalentMessagesFlag                             core.EnableEpochFlag = "EquivalentMessagesFlag"
-	FixedOrderInConsensusFlag                          core.EnableEpochFlag = "FixedOrderInConsensusFlag"
+	AndromedaFlag                                      core.EnableEpochFlag = "AndromedaFlag"
 	// all new flags must be added to createAllFlagsMap method, as part of enableEpochsHandler allFlagsDefined
 )

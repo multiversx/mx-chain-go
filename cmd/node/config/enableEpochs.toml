@@ -6,7 +6,7 @@
     BuiltInFunctionsEnableEpoch = 0
 
     # RelayedTransactionsEnableEpoch represents the epoch when the relayed transactions will be enabled
-    RelayedTransactionsEnableEpoch = 1
+    RelayedTransactionsEnableEpoch = 0
 
     # PenalizedTooMuchGasEnableEpoch represents the epoch when the penalization for using too much gas will be enabled
     PenalizedTooMuchGasEnableEpoch = 0
@@ -76,7 +76,7 @@
     CorrectLastUnjailedEnableEpoch = 1
 
     # RelayedTransactionsV2EnableEpoch represents the epoch when the relayed transactions V2 will be enabled
-    RelayedTransactionsV2EnableEpoch = 1
+    RelayedTransactionsV2EnableEpoch = 0
 
     # UnbondTokensV2EnableEpoch represents the epoch when the new implementation of the unbond tokens function is available
     UnbondTokensV2EnableEpoch = 1
@@ -339,11 +339,8 @@
     # RelayedTransactionsV3FixESDTTransferEnableEpoch represents the epoch when the fix for relayed transactions v3 with esdt transfer will be enabled
     RelayedTransactionsV3FixESDTTransferEnableEpoch = 1 # TODO: keep this equal to RelayedTransactionsV3EnableEpoch for mainnet
 
-    # EquivalentMessagesEnableEpoch represents the epoch when the equivalent messages are enabled
-    EquivalentMessagesEnableEpoch = 8 # the chain simulator tests for staking v4 fail if this is set earlier, as they test the transition in epochs 4-7
-
-    # FixedOrderInConsensusEnableEpoch represents the epoch when the fixed order in consensus is enabled
-    FixedOrderInConsensusEnableEpoch = 8 # the chain simulator tests for staking v4 fail if this is set earlier, as they test the transition in epochs 4-7
+    # AndromedaEnableEpoch represents the epoch when the equivalent messages and fix order for consensus features are enabled
+    AndromedaEnableEpoch = 8 # the chain simulator tests for staking v4 fail if this is set earlier, as they test the transition in epochs 4-7
 
     # BLSMultiSignerEnableEpoch represents the activation epoch for different types of BLS multi-signers
     BLSMultiSignerEnableEpoch = [

@@ -10,6 +10,8 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/common/graceperiod"
+	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/p2p"
 	"github.com/multiversx/mx-chain-go/process"
@@ -698,6 +700,7 @@ func TestShardInterceptorsContainerFactory_With4ShardsShouldWork(t *testing.T) {
 }
 
 func createMockComponentHolders() (*mock.CoreComponentsMock, *mock.CryptoComponentsMock) {
+	gracePeriod, _ := graceperiod.NewEpochChangeGracePeriod([]config.EpochChangeGracePeriodByEpoch{{EnableEpoch: 0, GracePeriodInRounds: 1}})
 	coreComponents := &mock.CoreComponentsMock{
 		IntMarsh:            &mock.MarshalizerMock{},
 		TxMarsh:             &mock.MarshalizerMock{},
@@ -711,10 +714,11 @@ func createMockComponentHolders() (*mock.CoreComponentsMock, *mock.CryptoCompone
 		MinTransactionVersionCalled: func() uint32 {
 			return 1
 		},
-		EpochNotifierField:         &epochNotifier.EpochNotifierStub{},
-		TxVersionCheckField:        versioning.NewTxVersionChecker(1),
-		HardforkTriggerPubKeyField: providedHardforkPubKey,
-		EnableEpochsHandlerField:   &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		EpochNotifierField:                 &epochNotifier.EpochNotifierStub{},
+		TxVersionCheckField:                versioning.NewTxVersionChecker(1),
+		HardforkTriggerPubKeyField:         providedHardforkPubKey,
+		EnableEpochsHandlerField:           &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		EpochChangeGracePeriodHandlerField: gracePeriod,
 	}
 	multiSigner := cryptoMocks.NewMultiSigner()
 	cryptoComponents := &mock.CryptoComponentsMock{
@@ -743,7 +747,7 @@ func getArgumentsShard(
 		Store:                          createShardStore(),
 		DataPool:                       createShardDataPools(),
 		MaxTxNonceDeltaAllowed:         maxTxNonceDeltaAllowed,
-		TxFeeHandler:                   &economicsmocks.EconomicsHandlerStub{},
+		TxFeeHandler:                   &economicsmocks.EconomicsHandlerMock{},
 		BlockBlackList:                 &testscommon.TimeCacheStub{},
 		HeaderSigVerifier:              &consensus.HeaderSigVerifierMock{},
 		HeaderIntegrityVerifier:        &mock.HeaderIntegrityVerifierStub{},

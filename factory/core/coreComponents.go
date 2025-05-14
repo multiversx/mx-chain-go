@@ -19,11 +19,15 @@ import (
 	hasherFactory "github.com/multiversx/mx-chain-core-go/hashing/factory"
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	marshalizerFactory "github.com/multiversx/mx-chain-core-go/marshal/factory"
+	logger "github.com/multiversx/mx-chain-logger-go"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/common/chainparametersnotifier"
 	"github.com/multiversx/mx-chain-go/common/enablers"
 	commonFactory "github.com/multiversx/mx-chain-go/common/factory"
+	"github.com/multiversx/mx-chain-go/common/fieldsChecker"
 	"github.com/multiversx/mx-chain-go/common/forking"
+	"github.com/multiversx/mx-chain-go/common/graceperiod"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/consensus/round"
@@ -39,7 +43,6 @@ import (
 	"github.com/multiversx/mx-chain-go/statusHandler"
 	"github.com/multiversx/mx-chain-go/storage"
 	storageFactory "github.com/multiversx/mx-chain-go/storage/factory"
-	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
 var log = logger.GetOrCreate("factory")
@@ -110,6 +113,8 @@ type coreComponents struct {
 	hardforkTriggerPubKey         []byte
 	enableEpochsHandler           common.EnableEpochsHandler
 	chainParametersHandler        process.ChainParametersHandler
+	fieldsSizeChecker             common.FieldsSizeChecker
+	epochChangeGracePeriodHandler common.EpochChangeGracePeriodHandler
 }
 
 // NewCoreComponentsFactory initializes the factory which is responsible to creating core components
@@ -165,6 +170,11 @@ func (ccf *coreComponentsFactory) Create() (*coreComponents, error) {
 	validatorPubkeyConverter, err := commonFactory.NewPubkeyConverter(ccf.config.ValidatorPubkeyConverter)
 	if err != nil {
 		return nil, fmt.Errorf("%w for AddressPubkeyConverter", err)
+	}
+
+	epochChangeGracePeriodHandler, err := graceperiod.NewEpochChangeGracePeriod(ccf.config.GeneralSettings.EpochChangeGracePeriodByEpoch)
+	if err != nil {
+		return nil, fmt.Errorf("%w for epochChangeGracePeriod", err)
 	}
 
 	pathHandler, err := storageFactory.CreatePathManager(
@@ -261,12 +271,23 @@ func (ccf *coreComponentsFactory) Create() (*coreComponents, error) {
 
 	txVersionChecker := versioning.NewTxVersionChecker(ccf.config.GeneralSettings.MinTransactionVersion)
 
+	// This shard coordinator uses a hardcoded selfId of 0 as it does not know its selfId.
+	// Its main purpose is to validate the rewards config (protocol sustainability address shard against meta),
+	// inside economics data and should not be used for another scope.
+	// The real component will be created later on, as part of bootstrap components.
+	shardCoordinator, err := sharding.NewMultiShardCoordinator(genesisNodesConfig.NumberOfShards(), 0)
+	if err != nil {
+		return nil, err
+	}
+
 	log.Trace("creating economics data components")
 	argsNewEconomicsData := economics.ArgsNewEconomicsData{
 		Economics:           &ccf.economicsConfig,
 		EpochNotifier:       epochNotifier,
 		EnableEpochsHandler: enableEpochsHandler,
 		TxVersionChecker:    txVersionChecker,
+		PubkeyConverter:     addressPubkeyConverter,
+		ShardCoordinator:    shardCoordinator,
 	}
 	economicsData, err := economics.NewEconomicsData(argsNewEconomicsData)
 	if err != nil {
@@ -321,6 +342,11 @@ func (ccf *coreComponentsFactory) Create() (*coreComponents, error) {
 		return nil, err
 	}
 
+	fieldsSizeChecker, err := fieldsChecker.NewFieldsSizeChecker(chainParametersHandler, hasher)
+	if err != nil {
+		return nil, err
+	}
+
 	return &coreComponents{
 		hasher:                        hasher,
 		txSignHasher:                  txSignHasher,
@@ -358,6 +384,8 @@ func (ccf *coreComponentsFactory) Create() (*coreComponents, error) {
 		hardforkTriggerPubKey:         pubKeyBytes,
 		enableEpochsHandler:           enableEpochsHandler,
 		chainParametersHandler:        chainParametersHandler,
+		fieldsSizeChecker:             fieldsSizeChecker,
+		epochChangeGracePeriodHandler: epochChangeGracePeriodHandler,
 	}, nil
 }
 

@@ -1,6 +1,7 @@
 package sync_test
 
 import (
+	"github.com/multiversx/mx-chain-go/testscommon/processMocks"
 	"math"
 	"testing"
 	"time"
@@ -924,7 +925,7 @@ func TestBasicForkDetector_ProbableHighestNonce(t *testing.T) {
 		0,
 		&enableEpochsHandlerMock.EnableEpochsHandlerStub{
 			IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
-				return flag != common.EquivalentMessagesFlag
+				return flag != common.AndromedaFlag
 			},
 		},
 		&dataRetriever.ProofsPoolMock{},
@@ -1338,4 +1339,213 @@ func TestBasicForkDetector_SetFinalToLastCheckpointShouldWork(t *testing.T) {
 
 	assert.Equal(t, uint64(900), bfd.GetHighestFinalBlockNonce())
 	assert.Equal(t, []byte("hash"), bfd.GetHighestFinalBlockHash())
+}
+
+func TestBaseForkDetector_GetNotarizedHeaderHash(t *testing.T) {
+	t.Parallel()
+
+	roundHandlerMock := &mock.RoundHandlerMock{}
+	bfd, _ := sync.NewMetaForkDetector(
+		roundHandlerMock,
+		&testscommon.TimeCacheStub{},
+		&mock.BlockTrackerMock{},
+		0,
+		&enableEpochsHandlerMock.EnableEpochsHandlerStub{
+			IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
+				return flag != common.AndromedaFlag
+			},
+		},
+		&dataRetriever.ProofsPoolMock{},
+	)
+
+	roundHandlerMock.RoundIndex = 10
+	_ = bfd.AddHeader(
+		&block.MetaBlock{PubKeysBitmap: []byte("X"), Nonce: 8, Round: 10},
+		[]byte("hash0"),
+		process.BHReceived,
+		nil,
+		nil)
+
+	roundHandlerMock.RoundIndex = 11
+	_ = bfd.AddHeader(
+		&block.MetaBlock{PubKeysBitmap: []byte("X"), Nonce: 9, Round: 11},
+		[]byte("hash1"),
+		process.BHProcessed,
+		nil,
+		nil)
+
+	roundHandlerMock.RoundIndex = 11
+	_ = bfd.AddHeader(
+		&block.MetaBlock{PubKeysBitmap: []byte("X"), Nonce: 9, Round: 11},
+		[]byte("hash1"),
+		process.BHNotarized,
+		nil,
+		nil)
+
+	hash := bfd.GetNotarizedHeaderHash(7)
+	assert.Nil(t, hash)
+
+	hash = bfd.GetNotarizedHeaderHash(8)
+	assert.Nil(t, hash)
+
+	hash = bfd.GetNotarizedHeaderHash(9)
+	assert.Equal(t, []byte("hash1"), hash)
+}
+
+func TestBaseForkDetector_ReceivedProof(t *testing.T) {
+	t.Parallel()
+
+	roundHandlerMock := &mock.RoundHandlerMock{RoundIndex: 13}
+	enableEpochsHandlerStub := &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+		IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
+			return true
+		},
+	}
+	bfd, _ := sync.NewMetaForkDetector(
+		roundHandlerMock,
+		&testscommon.TimeCacheStub{},
+		&mock.BlockTrackerMock{},
+		0,
+		enableEpochsHandlerStub,
+		&dataRetriever.ProofsPoolMock{},
+	)
+
+	proof := &processMocks.HeaderProofHandlerStub{
+		GetHeaderNonceCalled: func() uint64 {
+			return 10
+		},
+		GetHeaderEpochCalled: func() uint32 {
+			return 1
+		},
+		GetHeaderRoundCalled: func() uint64 {
+			return 12
+		},
+		GetHeaderHashCalled: func() []byte {
+			return []byte("hash1")
+		},
+	}
+	bfd.ReceivedProof(proof)
+
+	hdrInfos := bfd.GetHeaders(10)
+	assert.Len(t, hdrInfos, 1)
+	assert.Equal(t, []byte("hash1"), hdrInfos[0].Hash())
+
+	assert.Equal(t, uint64(10), bfd.ProbableHighestNonce())
+
+	proof2 := &processMocks.HeaderProofHandlerStub{
+		GetHeaderNonceCalled: func() uint64 {
+			return 10
+		},
+		GetHeaderEpochCalled: func() uint32 {
+			return 1
+		},
+		GetHeaderRoundCalled: func() uint64 {
+			return 13
+		},
+		GetHeaderHashCalled: func() []byte {
+			return []byte("hash2")
+		},
+	}
+	bfd.ReceivedProof(proof2)
+
+	hdrInfos2 := bfd.GetHeaders(10)
+	assert.Len(t, hdrInfos2, 2)
+	assert.Equal(t, []byte("hash2"), hdrInfos2[1].Hash())
+
+	assert.Equal(t, uint64(10), bfd.ProbableHighestNonce())
+}
+
+func TestBaseForkDetector_BlockWithoutProofShouldReturnEarly(t *testing.T) {
+	t.Parallel()
+
+	roundHandlerMock := &mock.RoundHandlerMock{}
+	bfd, _ := sync.NewMetaForkDetector(
+		roundHandlerMock,
+		&testscommon.TimeCacheStub{},
+		&mock.BlockTrackerMock{},
+		0,
+		&enableEpochsHandlerMock.EnableEpochsHandlerStub{
+			IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
+				return true
+			},
+		},
+		&dataRetriever.ProofsPoolMock{
+			HasProofCalled: func(shardID uint32, headerHash []byte) bool {
+				return false
+			},
+		},
+	)
+
+	roundHandlerMock.RoundIndex = 10
+	_ = bfd.AddHeader(
+		&block.MetaBlock{PubKeysBitmap: []byte("X"), Nonce: 8, Round: 10},
+		[]byte("hash0"),
+		process.BHReceived,
+		nil,
+		nil)
+	assert.Equal(t, uint64(0), bfd.ProbableHighestNonce())
+
+	roundHandlerMock.RoundIndex = 11
+	_ = bfd.AddHeader(
+		&block.MetaBlock{PubKeysBitmap: []byte("X"), Nonce: 9, Round: 11},
+		[]byte("hash1"),
+		process.BHProcessed,
+		nil,
+		nil)
+	assert.Equal(t, uint64(0), bfd.ProbableHighestNonce())
+}
+
+func TestBaseForkDetector_ReceivedProofForBlockHeaderShouldSetProof(t *testing.T) {
+	t.Parallel()
+
+	bfd, _ := sync.NewShardForkDetector(
+		&mock.RoundHandlerMock{},
+		&testscommon.TimeCacheStub{},
+		&mock.BlockTrackerMock{},
+		0,
+		&enableEpochsHandlerMock.EnableEpochsHandlerStub{
+			IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
+				return true
+			},
+		},
+		&dataRetriever.ProofsPoolMock{},
+	)
+
+	hdrInfo := &sync.HeaderInfo{
+		Epoch:    1,
+		Round:    0,
+		Nonce:    0,
+		Hash:     []byte("hash0"),
+		State:    process.BHProcessed,
+		HasProof: false,
+	}
+	bfd.Append(hdrInfo)
+
+	hdrInfos := bfd.GetHeaders(0)
+	assert.Len(t, hdrInfos, 1)
+	assert.Equal(t, []byte("hash0"), hdrInfos[0].Hash())
+	assert.Equal(t, false, hdrInfos[0].HasProof())
+
+	proof := &processMocks.HeaderProofHandlerStub{
+		GetHeaderEpochCalled: func() uint32 {
+			return 1
+		},
+		GetHeaderRoundCalled: func() uint64 {
+			return 1
+		},
+		GetHeaderNonceCalled: func() uint64 {
+			return 0
+		},
+		GetHeaderHashCalled: func() []byte {
+			return []byte("hash0")
+		},
+	}
+	bfd.ReceivedProof(proof)
+
+	hdrInfos = bfd.GetHeaders(0)
+	assert.Len(t, hdrInfos, 2)
+	assert.Equal(t, []byte("hash0"), hdrInfos[0].Hash())
+	assert.Equal(t, true, hdrInfos[0].HasProof())
+	assert.Equal(t, []byte("hash0"), hdrInfos[1].Hash())
+	assert.Equal(t, true, hdrInfos[1].HasProof())
 }

@@ -69,7 +69,7 @@ func initWorker() spos.WorkerHandler {
 	return sposWorker
 }
 
-func initFactoryWithContainer(container *consensusMock.ConsensusCoreMock) v1.Factory {
+func initFactoryWithContainer(container *spos.ConsensusCore) v1.Factory {
 	worker := initWorker()
 	consensusState := initializers.InitConsensusState()
 
@@ -395,7 +395,7 @@ func TestFactory_NewFactoryNilValidatorGroupSelectorShouldFail(t *testing.T) {
 	consensusState := initializers.InitConsensusState()
 	container := consensusMock.InitConsensusCore()
 	worker := initWorker()
-	container.SetValidatorGroupSelector(nil)
+	container.SetNodesCoordinator(nil)
 
 	fct, err := v1.NewSubroundsFactory(
 		container,
@@ -621,7 +621,7 @@ func TestFactory_GenerateSubroundsShouldWork(t *testing.T) {
 	fct := *initFactoryWithContainer(container)
 	fct.SetOutportHandler(&testscommonOutport.OutportStub{})
 
-	err := fct.GenerateSubrounds()
+	err := fct.GenerateSubrounds(0)
 	assert.Nil(t, err)
 
 	assert.Equal(t, 4, subroundHandlers)
@@ -633,7 +633,7 @@ func TestFactory_GenerateSubroundsNilOutportShouldFail(t *testing.T) {
 	container := consensusMock.InitConsensusCore()
 	fct := *initFactoryWithContainer(container)
 
-	err := fct.GenerateSubrounds()
+	err := fct.GenerateSubrounds(0)
 	assert.Equal(t, outport.ErrNilDriver, err)
 }
 

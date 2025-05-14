@@ -2,8 +2,6 @@ package consensus
 
 import (
 	"github.com/multiversx/mx-chain-core-go/data"
-	"github.com/multiversx/mx-chain-core-go/data/block"
-
 	"github.com/multiversx/mx-chain-go/consensus"
 )
 
@@ -136,7 +134,7 @@ func (bmm *BroadcastMessengerMock) BroadcastHeader(headerhandler data.HeaderHand
 }
 
 // BroadcastEquivalentProof -
-func (bmm *BroadcastMessengerMock) BroadcastEquivalentProof(proof *block.HeaderProof, pkBytes []byte) error {
+func (bmm *BroadcastMessengerMock) BroadcastEquivalentProof(proof data.HeaderProofHandler, pkBytes []byte) error {
 	if bmm.BroadcastEquivalentProofCalled != nil {
 		return bmm.BroadcastEquivalentProofCalled(proof, pkBytes)
 	}

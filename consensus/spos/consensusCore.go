@@ -43,6 +43,7 @@ type ConsensusCore struct {
 	enableEpochsHandler           common.EnableEpochsHandler
 	equivalentProofsPool          consensus.EquivalentProofsPool
 	epochNotifier                 process.EpochNotifier
+	invalidSignersCache           InvalidSignersCache
 }
 
 // ConsensusCoreArgs store all arguments that are needed to create a ConsensusCore object
@@ -72,6 +73,7 @@ type ConsensusCoreArgs struct {
 	EnableEpochsHandler           common.EnableEpochsHandler
 	EquivalentProofsPool          consensus.EquivalentProofsPool
 	EpochNotifier                 process.EpochNotifier
+	InvalidSignersCache           InvalidSignersCache
 }
 
 // NewConsensusCore creates a new ConsensusCore instance
@@ -104,6 +106,7 @@ func NewConsensusCore(
 		enableEpochsHandler:           args.EnableEpochsHandler,
 		equivalentProofsPool:          args.EquivalentProofsPool,
 		epochNotifier:                 args.EpochNotifier,
+		invalidSignersCache:           args.InvalidSignersCache,
 	}
 
 	err := ValidateConsensusCore(consensusCore)
@@ -237,6 +240,141 @@ func (cc *ConsensusCore) EnableEpochsHandler() common.EnableEpochsHandler {
 // EquivalentProofsPool returns the equivalent proofs component
 func (cc *ConsensusCore) EquivalentProofsPool() consensus.EquivalentProofsPool {
 	return cc.equivalentProofsPool
+}
+
+// InvalidSignersCache returns the invalid signers cache component
+func (cc *ConsensusCore) InvalidSignersCache() InvalidSignersCache {
+	return cc.invalidSignersCache
+}
+
+// SetBlockchain sets blockchain handler
+func (cc *ConsensusCore) SetBlockchain(blockChain data.ChainHandler) {
+	cc.blockChain = blockChain
+}
+
+// SetBlockProcessor sets block processor
+func (cc *ConsensusCore) SetBlockProcessor(blockProcessor process.BlockProcessor) {
+	cc.blockProcessor = blockProcessor
+}
+
+// SetBootStrapper sets process bootstrapper
+func (cc *ConsensusCore) SetBootStrapper(bootstrapper process.Bootstrapper) {
+	cc.bootstrapper = bootstrapper
+}
+
+// SetBroadcastMessenger sets broadcast messenger
+func (cc *ConsensusCore) SetBroadcastMessenger(broadcastMessenger consensus.BroadcastMessenger) {
+	cc.broadcastMessenger = broadcastMessenger
+}
+
+// SetChronology sets chronology
+func (cc *ConsensusCore) SetChronology(chronologyHandler consensus.ChronologyHandler) {
+	cc.chronologyHandler = chronologyHandler
+}
+
+// SetHasher sets hasher component
+func (cc *ConsensusCore) SetHasher(hasher hashing.Hasher) {
+	cc.hasher = hasher
+}
+
+// SetMarshalizer sets marshaller component
+func (cc *ConsensusCore) SetMarshalizer(marshalizer marshal.Marshalizer) {
+	cc.marshalizer = marshalizer
+}
+
+// SetMultiSignerContainer sets multi signer container
+func (cc *ConsensusCore) SetMultiSignerContainer(multiSignerContainer cryptoCommon.MultiSignerContainer) {
+	cc.multiSignerContainer = multiSignerContainer
+}
+
+// SetRoundHandler sets round handler
+func (cc *ConsensusCore) SetRoundHandler(roundHandler consensus.RoundHandler) {
+	cc.roundHandler = roundHandler
+}
+
+// SetShardCoordinator set shard coordinator
+func (cc *ConsensusCore) SetShardCoordinator(shardCoordinator sharding.Coordinator) {
+	cc.shardCoordinator = shardCoordinator
+}
+
+// SetSyncTimer sets sync timer
+func (cc *ConsensusCore) SetSyncTimer(syncTimer ntp.SyncTimer) {
+	cc.syncTimer = syncTimer
+}
+
+// SetNodesCoordinator sets nodes coordinaotr
+func (cc *ConsensusCore) SetNodesCoordinator(nodesCoordinator nodesCoordinator.NodesCoordinator) {
+	cc.nodesCoordinator = nodesCoordinator
+}
+
+// SetEpochStartNotifier sets epoch start notifier
+func (cc *ConsensusCore) SetEpochStartNotifier(epochStartNotifier epochStart.RegistrationHandler) {
+	cc.epochStartRegistrationHandler = epochStartNotifier
+}
+
+// SetAntifloodHandler sets antiflood handler
+func (cc *ConsensusCore) SetAntifloodHandler(antifloodHandler consensus.P2PAntifloodHandler) {
+	cc.antifloodHandler = antifloodHandler
+}
+
+// SetPeerHonestyHandler sets peer honesty handler
+func (cc *ConsensusCore) SetPeerHonestyHandler(peerHonestyHandler consensus.PeerHonestyHandler) {
+	cc.peerHonestyHandler = peerHonestyHandler
+}
+
+// SetScheduledProcessor set scheduled processor
+func (cc *ConsensusCore) SetScheduledProcessor(scheduledProcessor consensus.ScheduledProcessor) {
+	cc.scheduledProcessor = scheduledProcessor
+}
+
+// SetPeerBlacklistHandler sets peer blacklist handlerc
+func (cc *ConsensusCore) SetPeerBlacklistHandler(peerBlacklistHandler consensus.PeerBlacklistHandler) {
+	cc.peerBlacklistHandler = peerBlacklistHandler
+}
+
+// SetHeaderSigVerifier sets header sig verifier
+func (cc *ConsensusCore) SetHeaderSigVerifier(headerSigVerifier consensus.HeaderSigVerifier) {
+	cc.headerSigVerifier = headerSigVerifier
+}
+
+// SetFallbackHeaderValidator sets fallback header validaor
+func (cc *ConsensusCore) SetFallbackHeaderValidator(fallbackHeaderValidator consensus.FallbackHeaderValidator) {
+	cc.fallbackHeaderValidator = fallbackHeaderValidator
+}
+
+// SetNodeRedundancyHandler set nodes redundancy handler
+func (cc *ConsensusCore) SetNodeRedundancyHandler(nodeRedundancyHandler consensus.NodeRedundancyHandler) {
+	cc.nodeRedundancyHandler = nodeRedundancyHandler
+}
+
+// SetMessageSigningHandler sets message signing handler
+func (cc *ConsensusCore) SetMessageSigningHandler(messageSigningHandler consensus.P2PSigningHandler) {
+	cc.messageSigningHandler = messageSigningHandler
+}
+
+// SetSigningHandler sets signing handler
+func (cc *ConsensusCore) SetSigningHandler(signingHandler consensus.SigningHandler) {
+	cc.signingHandler = signingHandler
+}
+
+// SetEnableEpochsHandler sets enable eopchs handler
+func (cc *ConsensusCore) SetEnableEpochsHandler(enableEpochsHandler common.EnableEpochsHandler) {
+	cc.enableEpochsHandler = enableEpochsHandler
+}
+
+// SetEquivalentProofsPool sets equivalent proofs pool
+func (cc *ConsensusCore) SetEquivalentProofsPool(proofPool consensus.EquivalentProofsPool) {
+	cc.equivalentProofsPool = proofPool
+}
+
+// SetEpochNotifier sets epoch notifier
+func (cc *ConsensusCore) SetEpochNotifier(epochNotifier process.EpochNotifier) {
+	cc.epochNotifier = epochNotifier
+}
+
+// SetInvalidSignersCache sets the invalid signers cache
+func (cc *ConsensusCore) SetInvalidSignersCache(cache InvalidSignersCache) {
+	cc.invalidSignersCache = cache
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

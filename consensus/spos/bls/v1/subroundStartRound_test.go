@@ -298,7 +298,7 @@ func TestSubroundStartRound_NewSubroundStartRoundNilValidatorGroupSelectorShould
 	ch := make(chan bool, 1)
 
 	sr, _ := defaultSubround(consensusState, ch, container)
-	container.SetValidatorGroupSelector(nil)
+	container.SetNodesCoordinator(nil)
 	srStartRound, err := defaultSubroundStartRoundFromSubround(sr)
 
 	assert.Nil(t, srStartRound)
@@ -425,7 +425,7 @@ func TestSubroundStartRound_InitCurrentRoundShouldReturnFalseWhenGenerateNextCon
 		return nil, nil, err
 	}
 	container := consensusMocks.InitConsensusCore()
-	container.SetValidatorGroupSelector(validatorGroupSelector)
+	container.SetNodesCoordinator(validatorGroupSelector)
 
 	srStartRound := initSubroundStartRoundWithContainer(container)
 
@@ -469,7 +469,7 @@ func TestSubroundStartRound_InitCurrentRoundShouldReturnFalseWhenGetLeaderErr(t 
 	}
 
 	container := consensusMocks.InitConsensusCore()
-	container.SetValidatorGroupSelector(validatorGroupSelector)
+	container.SetNodesCoordinator(validatorGroupSelector)
 
 	srStartRound := initSubroundStartRoundWithContainer(container)
 
@@ -836,7 +836,7 @@ func TestSubroundStartRound_GenerateNextConsensusGroupShouldReturnErr(t *testing
 		return nil, nil, err
 	}
 	container := consensusMocks.InitConsensusCore()
-	container.SetValidatorGroupSelector(validatorGroupSelector)
+	container.SetNodesCoordinator(validatorGroupSelector)
 
 	srStartRound := initSubroundStartRoundWithContainer(container)
 

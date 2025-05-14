@@ -37,7 +37,7 @@ func createTransactionPreprocessor() *transactions {
 		ShardCoordinator:     mock.NewMultiShardsCoordinatorMock(3),
 		Accounts:             &stateMock.AccountsStub{},
 		OnRequestTransaction: requestTransaction,
-		EconomicsFee: &economicsmocks.EconomicsHandlerStub{
+		EconomicsFee: &economicsmocks.EconomicsHandlerMock{
 			MaxGasLimitPerMiniBlockForSafeCrossShardCalled: func() uint64 {
 				return MaxGasLimitPerBlock
 			},

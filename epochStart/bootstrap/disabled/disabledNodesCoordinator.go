@@ -123,6 +123,11 @@ func (n *nodesCoordinator) GetWaitingEpochsLeftForPublicKey(_ []byte) (uint32, e
 	return 0, nil
 }
 
+// GetCachedEpochs returns an empty map
+func (n *nodesCoordinator) GetCachedEpochs() map[uint32]struct{} {
+	return make(map[uint32]struct{})
+}
+
 // IsInterfaceNil -
 func (n *nodesCoordinator) IsInterfaceNil() bool {
 	return n == nil

@@ -563,7 +563,7 @@ func (t *trigger) changeEpochFinalityAttestingRoundIfNeeded(
 }
 
 func (t *trigger) receivedProof(headerProof data.HeaderProofHandler) {
-	if check.IfNilReflect(headerProof) {
+	if check.IfNil(headerProof) {
 		return
 	}
 	if headerProof.GetHeaderShardId() != core.MetachainShardId {
@@ -590,7 +590,7 @@ func (t *trigger) receivedMetaBlock(headerHandler data.HeaderHandler, metaBlockH
 	}
 
 	log.Debug("received meta header in trigger", "header hash", metaBlockHash)
-	if t.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, headerHandler.GetEpoch()) {
+	if t.enableEpochsHandler.IsFlagEnabledInEpoch(common.AndromedaFlag, headerHandler.GetEpoch()) {
 		proof, err := t.proofsPool.GetProof(headerHandler.GetShardID(), metaBlockHash)
 		if err != nil {
 			return
@@ -798,7 +798,7 @@ func (t *trigger) isMetaBlockValid(hash string, metaHdr data.HeaderHandler) bool
 }
 
 func (t *trigger) isMetaBlockFinal(hash string, metaHdr data.HeaderHandler) (bool, uint64) {
-	if !t.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, metaHdr.GetEpoch()) {
+	if !t.enableEpochsHandler.IsFlagEnabledInEpoch(common.AndromedaFlag, metaHdr.GetEpoch()) {
 		return t.isMetaBlockFinalLegacy(hash, metaHdr)
 	}
 

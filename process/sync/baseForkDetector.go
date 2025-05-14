@@ -310,7 +310,7 @@ func (bfd *baseForkDetector) append(hdrInfo *headerInfo) bool {
 }
 
 func (bfd *baseForkDetector) adjustHeadersWithInfo(hInfo *headerInfo) {
-	if !bfd.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, hInfo.epoch) {
+	if !bfd.enableEpochsHandler.IsFlagEnabledInEpoch(common.AndromedaFlag, hInfo.epoch) {
 		return
 	}
 
@@ -744,7 +744,7 @@ func (bfd *baseForkDetector) processReceivedProof(proof data.HeaderProofHandler)
 	probableHighestNonce := bfd.computeProbableHighestNonce()
 	bfd.setProbableHighestNonce(probableHighestNonce)
 
-	log.Debug("forkDetector.processReceivedProof",
+	log.Trace("forkDetector.processReceivedProof",
 		"round", hInfo.round,
 		"nonce", hInfo.nonce,
 		"hash", hInfo.hash,
@@ -764,7 +764,7 @@ func (bfd *baseForkDetector) processReceivedBlock(
 	doJobOnBHProcessed func(data.HeaderHandler, []byte, []data.HeaderHandler, [][]byte),
 ) {
 	hasProof := true // old blocks have consensus proof on them
-	if bfd.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, header.GetEpoch()) {
+	if common.IsProofsFlagEnabledForHeader(bfd.enableEpochsHandler, header) {
 		hasProof = bfd.proofsPool.HasProof(header.GetShardID(), headerHash)
 	}
 	bfd.setHighestNonceReceived(header.GetNonce())

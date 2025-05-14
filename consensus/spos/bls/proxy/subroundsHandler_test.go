@@ -9,6 +9,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	mock2 "github.com/multiversx/mx-chain-go/consensus/mock"
+	"github.com/multiversx/mx-chain-go/consensus/spos"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/bootstrapperStubs"
 	"github.com/multiversx/mx-chain-go/testscommon/common"
@@ -23,7 +24,7 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/statusHandler"
 )
 
-func getDefaultArgumentsSubroundHandler() (*SubroundsHandlerArgs, *consensus.ConsensusCoreMock) {
+func getDefaultArgumentsSubroundHandler() (*SubroundsHandlerArgs, *spos.ConsensusCore) {
 	x := make(chan bool)
 	chronology := &consensus.ChronologyHandlerMock{}
 	epochsEnable := &enableEpochsHandlerMock.EnableEpochsHandlerStub{}
@@ -50,7 +51,7 @@ func getDefaultArgumentsSubroundHandler() (*SubroundsHandlerArgs, *consensus.Con
 		CurrentPid:           "peerID",
 	}
 
-	consensusCore := &consensus.ConsensusCoreMock{}
+	consensusCore := &spos.ConsensusCore{}
 	consensusCore.SetEpochStartNotifier(epochStartNotifier)
 	consensusCore.SetBlockchain(&testscommon.ChainHandlerStub{})
 	consensusCore.SetBlockProcessor(&testscommon.BlockProcessorStub{})
@@ -68,7 +69,7 @@ func getDefaultArgumentsSubroundHandler() (*SubroundsHandlerArgs, *consensus.Con
 	consensusCore.SetRoundHandler(&consensus.RoundHandlerMock{})
 	consensusCore.SetShardCoordinator(&testscommon.ShardsCoordinatorMock{})
 	consensusCore.SetSyncTimer(&testscommon.SyncTimerStub{})
-	consensusCore.SetValidatorGroupSelector(&shardingMocks.NodesCoordinatorMock{})
+	consensusCore.SetNodesCoordinator(&shardingMocks.NodesCoordinatorMock{})
 	consensusCore.SetPeerHonestyHandler(&testscommon.PeerHonestyHandlerStub{})
 	consensusCore.SetHeaderSigVerifier(&consensus.HeaderSigVerifierMock{})
 	consensusCore.SetFallbackHeaderValidator(&testscommon.FallBackHeaderValidatorStub{})
@@ -80,6 +81,7 @@ func getDefaultArgumentsSubroundHandler() (*SubroundsHandlerArgs, *consensus.Con
 	consensusCore.SetEnableEpochsHandler(epochsEnable)
 	consensusCore.SetEquivalentProofsPool(&dataRetriever.ProofsPoolMock{})
 	consensusCore.SetEpochNotifier(epochNotifier)
+	consensusCore.SetInvalidSignersCache(&consensus.InvalidSignersCacheMock{})
 	handlerArgs.ConsensusCoreHandler = consensusCore
 
 	return handlerArgs, consensusCore

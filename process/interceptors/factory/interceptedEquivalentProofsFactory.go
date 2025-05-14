@@ -1,9 +1,12 @@
 package factory
 
 import (
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/sync"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
 
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/process"
@@ -14,9 +17,7 @@ import (
 // ArgInterceptedEquivalentProofsFactory is the DTO used to create a new instance of interceptedEquivalentProofsFactory
 type ArgInterceptedEquivalentProofsFactory struct {
 	ArgInterceptedDataFactory
-	ProofsPool  dataRetriever.ProofsPool
-	HeadersPool dataRetriever.HeadersPool
-	Storage     dataRetriever.StorageService
+	ProofsPool dataRetriever.ProofsPool
 }
 
 type interceptedEquivalentProofsFactory struct {
@@ -24,9 +25,9 @@ type interceptedEquivalentProofsFactory struct {
 	shardCoordinator  sharding.Coordinator
 	headerSigVerifier consensus.HeaderSigVerifier
 	proofsPool        dataRetriever.ProofsPool
-	headersPool       dataRetriever.HeadersPool
-	storage           dataRetriever.StorageService
 	hasher            hashing.Hasher
+	proofSizeChecker  common.FieldsSizeChecker
+	km                sync.KeyRWMutexHandler
 }
 
 // NewInterceptedEquivalentProofsFactory creates a new instance of interceptedEquivalentProofsFactory
@@ -36,22 +37,23 @@ func NewInterceptedEquivalentProofsFactory(args ArgInterceptedEquivalentProofsFa
 		shardCoordinator:  args.ShardCoordinator,
 		headerSigVerifier: args.HeaderSigVerifier,
 		proofsPool:        args.ProofsPool,
-		headersPool:       args.HeadersPool,
-		storage:           args.Storage,
 		hasher:            args.CoreComponents.Hasher(),
+		proofSizeChecker:  args.CoreComponents.FieldsSizeChecker(),
+		km:                sync.NewKeyRWMutex(),
 	}
 }
 
 // Create creates instances of InterceptedData by unmarshalling provided buffer
-func (factory *interceptedEquivalentProofsFactory) Create(buff []byte) (process.InterceptedData, error) {
+func (factory *interceptedEquivalentProofsFactory) Create(buff []byte, _ core.PeerID) (process.InterceptedData, error) {
 	args := interceptedBlocks.ArgInterceptedEquivalentProof{
 		DataBuff:          buff,
 		Marshaller:        factory.marshaller,
 		ShardCoordinator:  factory.shardCoordinator,
 		HeaderSigVerifier: factory.headerSigVerifier,
 		Proofs:            factory.proofsPool,
-		Headers:           factory.headersPool,
 		Hasher:            factory.hasher,
+		ProofSizeChecker:  factory.proofSizeChecker,
+		KeyRWMutexHandler: factory.km,
 	}
 	return interceptedBlocks.NewInterceptedEquivalentProof(args)
 }
