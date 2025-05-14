@@ -764,6 +764,10 @@ func TestChainSimulator_IssueToken_EGLDTicker(t *testing.T) {
 }
 
 func TestScCallTransferValueESDT(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
 	roundDurationInMillis := uint64(6000)
 	roundsPerEpochOpt := core.OptionalUint64{
 		HasValue: true,
