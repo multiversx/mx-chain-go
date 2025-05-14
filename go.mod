@@ -20,7 +20,7 @@ require (
 	github.com/multiversx/mx-chain-scenario-go v1.4.4
 	github.com/multiversx/mx-chain-storage-go v1.0.19
 	github.com/multiversx/mx-chain-vm-common-go v1.5.16
-	github.com/multiversx/mx-chain-vm-go v1.5.38-0.20250514113344-d24aa291656a
+	github.com/multiversx/mx-chain-vm-go v1.5.38-0.20250514115020-3038b356bbb3
 	github.com/multiversx/mx-chain-vm-v1_2-go v1.2.68
 	github.com/multiversx/mx-chain-vm-v1_3-go v1.3.69
 	github.com/multiversx/mx-chain-vm-v1_4-go v1.4.98
@@ -170,6 +170,7 @@ require (
 	go.uber.org/atomic v1.11.0 // indirect
 	go.uber.org/dig v1.17.0 // indirect
 	go.uber.org/fx v1.19.2 // indirect
+	go.uber.org/goleak v1.2.1 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
 	go.uber.org/zap v1.24.0 // indirect
 	golang.org/x/arch v0.8.0 // indirect
