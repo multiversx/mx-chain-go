@@ -1,14 +1,31 @@
 package common
 
 import (
+	"encoding/hex"
 	"fmt"
+	"math/bits"
+	"strconv"
+	"strings"
 
 	"github.com/multiversx/mx-chain-core-go/core"
-	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
-
-	"github.com/multiversx/mx-chain-go/consensus"
+	"github.com/multiversx/mx-chain-go/config"
+	logger "github.com/multiversx/mx-chain-logger-go"
 )
+
+const (
+	keySeparator   = "-"
+	expectedKeyLen = 2
+	hashIndex      = 0
+	shardIndex     = 1
+	nonceIndex     = 0
+)
+
+type chainParametersHandler interface {
+	CurrentChainParameters() config.ChainParametersByEpochConfig
+	ChainParametersForEpoch(epoch uint32) (config.ChainParametersByEpochConfig, error)
+	IsInterfaceNil() bool
+}
 
 // IsValidRelayedTxV3 returns true if the provided transaction is a valid transaction of type relayed v3
 func IsValidRelayedTxV3(tx data.TransactionHandler) bool {
@@ -41,49 +58,11 @@ func IsEpochChangeBlockForFlagActivation(header data.HeaderHandler, enableEpochs
 	return isStartOfEpochBlock && isBlockInActivationEpoch
 }
 
-// IsEpochStartProofForFlagActivation returns true if the provided proof is the proof of the epoch start block on the activation epoch of equivalent messages
-func IsEpochStartProofForFlagActivation(proof consensus.ProofHandler, enableEpochsHandler EnableEpochsHandler) bool {
-	isStartOfEpochProof := proof.GetIsStartOfEpoch()
-	isProofInActivationEpoch := proof.GetHeaderEpoch() == enableEpochsHandler.GetActivationEpoch(EquivalentMessagesFlag)
-
-	return isStartOfEpochProof && isProofInActivationEpoch
-}
-
-// isFlagEnabledAfterEpochsStartBlock returns true if the flag is enabled for the header, but it is not the epoch start block
-func isFlagEnabledAfterEpochsStartBlock(header data.HeaderHandler, enableEpochsHandler EnableEpochsHandler, flag core.EnableEpochFlag) bool {
+// IsFlagEnabledAfterEpochsStartBlock returns true if the flag is enabled for the header, but it is not the epoch start block
+func IsFlagEnabledAfterEpochsStartBlock(header data.HeaderHandler, enableEpochsHandler EnableEpochsHandler, flag core.EnableEpochFlag) bool {
 	isFlagEnabled := enableEpochsHandler.IsFlagEnabledInEpoch(flag, header.GetEpoch())
 	isEpochStartBlock := IsEpochChangeBlockForFlagActivation(header, enableEpochsHandler, flag)
 	return isFlagEnabled && !isEpochStartBlock
-}
-
-// ShouldBlockHavePrevProof returns true if the block should have a proof
-func ShouldBlockHavePrevProof(header data.HeaderHandler, enableEpochsHandler EnableEpochsHandler, flag core.EnableEpochFlag) bool {
-	return isFlagEnabledAfterEpochsStartBlock(header, enableEpochsHandler, flag) && header.GetNonce() > 1
-}
-
-// VerifyProofAgainstHeader verifies the fields on the proof match the ones on the header
-func VerifyProofAgainstHeader(proof data.HeaderProofHandler, header data.HeaderHandler) error {
-	if check.IfNilReflect(proof) {
-		return ErrInvalidHeaderProof
-	}
-
-	if proof.GetHeaderNonce() != header.GetNonce() {
-		return fmt.Errorf("%w, nonce mismatch", ErrInvalidHeaderProof)
-	}
-	if proof.GetHeaderShardId() != header.GetShardID() {
-		return fmt.Errorf("%w, shard id mismatch", ErrInvalidHeaderProof)
-	}
-	if proof.GetHeaderEpoch() != header.GetEpoch() {
-		return fmt.Errorf("%w, epoch mismatch", ErrInvalidHeaderProof)
-	}
-	if proof.GetHeaderRound() != header.GetRound() {
-		return fmt.Errorf("%w, round mismatch", ErrInvalidHeaderProof)
-	}
-	if proof.GetIsStartOfEpoch() != header.IsStartOfEpochBlock() {
-		return fmt.Errorf("%w, is start of epoch mismatch", ErrInvalidHeaderProof)
-	}
-
-	return nil
 }
 
 // GetShardIDs returns a map of shard IDs based on the number of shards
@@ -95,4 +74,131 @@ func GetShardIDs(numShards uint32) map[uint32]struct{} {
 	shardIdentifiers[core.MetachainShardId] = struct{}{}
 
 	return shardIdentifiers
+}
+
+// GetBitmapSize will return expected bitmap size based on provided consensus size
+func GetBitmapSize(
+	consensusSize int,
+) int {
+	expectedBitmapSize := consensusSize / 8
+	if consensusSize%8 != 0 {
+		expectedBitmapSize++
+	}
+
+	return expectedBitmapSize
+}
+
+// IsConsensusBitmapValid checks if the provided keys and bitmap match the consensus requirements
+func IsConsensusBitmapValid(
+	log logger.Logger,
+	consensusPubKeys []string,
+	bitmap []byte,
+	shouldApplyFallbackValidation bool,
+) error {
+	consensusSize := len(consensusPubKeys)
+
+	expectedBitmapSize := GetBitmapSize(consensusSize)
+	if len(bitmap) != expectedBitmapSize {
+		log.Debug("wrong size bitmap",
+			"expected number of bytes", expectedBitmapSize,
+			"actual", len(bitmap))
+		return ErrWrongSizeBitmap
+	}
+
+	numOfOnesInBitmap := 0
+	for index := range bitmap {
+		numOfOnesInBitmap += bits.OnesCount8(bitmap[index])
+	}
+
+	minNumRequiredSignatures := core.GetPBFTThreshold(consensusSize)
+	if shouldApplyFallbackValidation {
+		minNumRequiredSignatures = core.GetPBFTFallbackThreshold(consensusSize)
+		log.Warn("IsConsensusBitmapValid: fallback validation has been applied",
+			"minimum number of signatures required", minNumRequiredSignatures,
+			"actual number of signatures in bitmap", numOfOnesInBitmap,
+		)
+	}
+
+	if numOfOnesInBitmap >= minNumRequiredSignatures {
+		return nil
+	}
+
+	log.Debug("not enough signatures",
+		"minimum expected", minNumRequiredSignatures,
+		"actual", numOfOnesInBitmap)
+
+	return ErrNotEnoughSignatures
+}
+
+// ConsensusGroupSizeForShardAndEpoch returns the consensus group size for a specific shard in a given epoch
+func ConsensusGroupSizeForShardAndEpoch(
+	log logger.Logger,
+	chainParametersHandler chainParametersHandler,
+	shardID uint32,
+	epoch uint32,
+) int {
+	currentChainParameters, err := chainParametersHandler.ChainParametersForEpoch(epoch)
+	if err != nil {
+		log.Warn("ConsensusGroupSizeForShardAndEpoch: could not compute chain params for epoch. "+
+			"Will use the current chain parameters", "epoch", epoch, "error", err)
+		currentChainParameters = chainParametersHandler.CurrentChainParameters()
+	}
+
+	if shardID == core.MetachainShardId {
+		return int(currentChainParameters.MetachainConsensusGroupSize)
+	}
+
+	return int(currentChainParameters.ShardConsensusGroupSize)
+}
+
+// GetEquivalentProofNonceShardKey returns a string key nonce-shardID
+func GetEquivalentProofNonceShardKey(nonce uint64, shardID uint32) string {
+	return fmt.Sprintf("%d%s%d", nonce, keySeparator, shardID)
+}
+
+// GetEquivalentProofHashShardKey returns a string key hash-shardID
+func GetEquivalentProofHashShardKey(hash []byte, shardID uint32) string {
+	return fmt.Sprintf("%s%s%d", hex.EncodeToString(hash), keySeparator, shardID)
+}
+
+// GetHashAndShardFromKey returns the hash and shard from the provided key
+func GetHashAndShardFromKey(hashShardKey []byte) ([]byte, uint32, error) {
+	hashShardKeyStr := string(hashShardKey)
+	result := strings.Split(hashShardKeyStr, keySeparator)
+	if len(result) != expectedKeyLen {
+		return nil, 0, ErrInvalidHashShardKey
+	}
+
+	hash, err := hex.DecodeString(result[hashIndex])
+	if err != nil {
+		return nil, 0, err
+	}
+
+	shard, err := strconv.Atoi(result[shardIndex])
+	if err != nil {
+		return nil, 0, err
+	}
+
+	return hash, uint32(shard), nil
+}
+
+// GetNonceAndShardFromKey returns the nonce and shard from the provided key
+func GetNonceAndShardFromKey(nonceShardKey []byte) (uint64, uint32, error) {
+	nonceShardKeyStr := string(nonceShardKey)
+	result := strings.Split(nonceShardKeyStr, keySeparator)
+	if len(result) != expectedKeyLen {
+		return 0, 0, ErrInvalidNonceShardKey
+	}
+
+	nonce, err := strconv.Atoi(result[nonceIndex])
+	if err != nil {
+		return 0, 0, err
+	}
+
+	shard, err := strconv.Atoi(result[shardIndex])
+	if err != nil {
+		return 0, 0, err
+	}
+
+	return uint64(nonce), uint32(shard), nil
 }

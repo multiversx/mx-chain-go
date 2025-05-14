@@ -568,6 +568,11 @@ func (thn *TestHeartbeatNode) initResolversAndRequesters() {
 		FullArchivePreferredPeersHolder: &p2pmocks.PeersHolderStub{},
 		PeersRatingHandler:              &p2pmocks.PeersRatingHandlerStub{},
 		SizeCheckDelta:                  0,
+		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+			IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
+				return true
+			},
+		},
 	}
 
 	if thn.ShardCoordinator.SelfId() == core.MetachainShardId {
@@ -708,6 +713,7 @@ func (thn *TestHeartbeatNode) initMultiDataInterceptor(topic string, dataFactory
 		interceptors.ArgMultiDataInterceptor{
 			Topic:            topic,
 			Marshalizer:      TestMarshalizer,
+			Hasher:           TestHasher,
 			DataFactory:      dataFactory,
 			Processor:        processor,
 			Throttler:        TestThrottler,

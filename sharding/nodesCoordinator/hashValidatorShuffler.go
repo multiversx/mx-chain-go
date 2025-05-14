@@ -61,11 +61,11 @@ type randHashShuffler struct {
 	// when reinitialization of node in new shard is implemented
 	shuffleBetweenShards bool
 
-	activeNodesConfig       config.MaxNodesChangeConfig
-	availableNodesConfigs   []config.MaxNodesChangeConfig
-	mutShufflerParams       sync.RWMutex
-	validatorDistributor    ValidatorsDistributor
-	enableEpochsHandler     common.EnableEpochsHandler
+	activeNodesConfig         config.MaxNodesChangeConfig
+	availableNodesConfigs     []config.MaxNodesChangeConfig
+	mutShufflerParams         sync.RWMutex
+	validatorDistributor      ValidatorsDistributor
+	enableEpochsHandler       common.EnableEpochsHandler
 	stakingV4Step2EnableEpoch uint32
 	flagStakingV4Step2        atomic.Flag
 	stakingV4Step3EnableEpoch uint32
@@ -122,20 +122,20 @@ func NewHashValidatorsShuffler(args *NodesShufflerArgs) (*randHashShuffler, erro
 
 // UpdateNodeLists shuffles the nodes and returns the lists with the new nodes configuration
 // The function needs to ensure that:
-//      1.  Old eligible nodes list will have up to shuffleOutThreshold percent nodes shuffled out from each shard
-//      2.  The leaving nodes are checked against the eligible nodes and waiting nodes and removed if present from the
-//          pools and leaving nodes list (if remaining nodes can still sustain the shard)
-//      3.  shuffledOutNodes = oldEligibleNodes + waitingListNodes - minNbNodesPerShard (for each shard)
-//      4.  Old waiting nodes list for each shard will be added to the remaining eligible nodes list
-//      5.  The new nodes are equally distributed among the existing shards into waiting lists
-//      6.  The shuffled out nodes are distributed among the existing shards into waiting lists.
-//          We may have three situations:
-//          a)  In case (shuffled out nodes + new nodes) > (nbShards * perShardHysteresis + minNodesPerShard) then
-//              we need to prepare for a split event, so a higher percentage of nodes need to be directed to the shard
-//              that will be split.
-//          b)  In case (shuffled out nodes + new nodes) < (nbShards * perShardHysteresis) then we can immediately
-//              execute the shard merge
-//          c)  No change in the number of shards then nothing extra needs to be done
+//  1. Old eligible nodes list will have up to shuffleOutThreshold percent nodes shuffled out from each shard
+//  2. The leaving nodes are checked against the eligible nodes and waiting nodes and removed if present from the
+//     pools and leaving nodes list (if remaining nodes can still sustain the shard)
+//  3. shuffledOutNodes = oldEligibleNodes + waitingListNodes - minNbNodesPerShard (for each shard)
+//  4. Old waiting nodes list for each shard will be added to the remaining eligible nodes list
+//  5. The new nodes are equally distributed among the existing shards into waiting lists
+//  6. The shuffled out nodes are distributed among the existing shards into waiting lists.
+//     We may have three situations:
+//     a)  In case (shuffled out nodes + new nodes) > (nbShards * perShardHysteresis + minNodesPerShard) then
+//     we need to prepare for a split event, so a higher percentage of nodes need to be directed to the shard
+//     that will be split.
+//     b)  In case (shuffled out nodes + new nodes) < (nbShards * perShardHysteresis) then we can immediately
+//     execute the shard merge
+//     c)  No change in the number of shards then nothing extra needs to be done
 func (rhs *randHashShuffler) UpdateNodeLists(args ArgsUpdateNodes) (*ResUpdateNodes, error) {
 	chainParameters := args.ChainParameters
 

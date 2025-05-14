@@ -770,7 +770,7 @@ func TestConsensusComponentsFactory_Create(t *testing.T) {
 		cnt := 0
 		netwCompStub.MessengerCalled = func() p2p.Messenger {
 			cnt++
-			if cnt > 3 {
+			if cnt > 4 {
 				return nil
 			}
 			return &p2pmocks.MessengerStub{}

@@ -201,15 +201,7 @@ func TestHdrInterceptorProcessor_SaveShouldWork(t *testing.T) {
 	}
 	arg.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
 		IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
-			return flag == common.EquivalentMessagesFlag
-		},
-	}
-
-	wasAddedProofs := false
-	arg.Proofs = &dataRetriever.ProofsPoolMock{
-		AddProofCalled: func(headerProof data.HeaderProofHandler) bool {
-			wasAddedProofs = true
-			return true
+			return flag == common.AndromedaFlag
 		},
 	}
 
@@ -223,7 +215,6 @@ func TestHdrInterceptorProcessor_SaveShouldWork(t *testing.T) {
 
 	assert.Nil(t, err)
 	assert.True(t, wasAddedHeaders)
-	assert.True(t, wasAddedProofs)
 
 	timeout := time.Second * 2
 	select {

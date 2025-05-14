@@ -180,6 +180,21 @@ func (ccf *consensusComponentsFactory) Create() (*consensusComponents, error) {
 		return nil, err
 	}
 
+	p2pSigningHandler, err := ccf.createP2pSigningHandler()
+	if err != nil {
+		return nil, err
+	}
+
+	argsInvalidSignersCacher := spos.ArgInvalidSignersCache{
+		Hasher:         ccf.coreComponents.Hasher(),
+		SigningHandler: p2pSigningHandler,
+		Marshaller:     ccf.coreComponents.InternalMarshalizer(),
+	}
+	invalidSignersCache, err := spos.NewInvalidSignersCache(argsInvalidSignersCacher)
+	if err != nil {
+		return nil, err
+	}
+
 	workerArgs := &spos.WorkerArgs{
 		ConsensusService:         consensusService,
 		BlockChain:               ccf.dataComponents.Blockchain(),
@@ -207,6 +222,7 @@ func (ccf *consensusComponentsFactory) Create() (*consensusComponents, error) {
 		NodeRedundancyHandler:    ccf.processComponents.NodeRedundancyHandler(),
 		PeerBlacklistHandler:     cc.peerBlacklistHandler,
 		EnableEpochsHandler:      ccf.coreComponents.EnableEpochsHandler(),
+		InvalidSignersCache:      invalidSignersCache,
 	}
 
 	cc.worker, err = spos.NewWorker(workerArgs)
@@ -222,11 +238,6 @@ func (ccf *consensusComponentsFactory) Create() (*consensusComponents, error) {
 		ccf.processComponents.ShardCoordinator().SelfId(),
 	)
 	err = ccf.createConsensusTopic(cc)
-	if err != nil {
-		return nil, err
-	}
-
-	p2pSigningHandler, err := ccf.createP2pSigningHandler()
 	if err != nil {
 		return nil, err
 	}
@@ -257,6 +268,7 @@ func (ccf *consensusComponentsFactory) Create() (*consensusComponents, error) {
 		EnableEpochsHandler:           ccf.coreComponents.EnableEpochsHandler(),
 		EquivalentProofsPool:          ccf.dataComponents.Datapool().Proofs(),
 		EpochNotifier:                 ccf.coreComponents.EpochNotifier(),
+		InvalidSignersCache:           invalidSignersCache,
 	}
 
 	consensusDataContainer, err := spos.NewConsensusCore(
@@ -446,6 +458,7 @@ func (ccf *consensusComponentsFactory) createShardBootstrapper() (process.Bootst
 		ProcessedMiniBlocksTracker:   ccf.processComponents.ProcessedMiniBlocksTracker(),
 		AppStatusHandler:             ccf.statusCoreComponents.AppStatusHandler(),
 		EnableEpochsHandler:          ccf.coreComponents.EnableEpochsHandler(),
+		ProofsPool:                   ccf.dataComponents.Datapool().Proofs(),
 	}
 
 	argsShardStorageBootstrapper := storageBootstrap.ArgsShardStorageBootstrapper{
@@ -581,6 +594,7 @@ func (ccf *consensusComponentsFactory) createMetaChainBootstrapper() (process.Bo
 		ProcessedMiniBlocksTracker:   ccf.processComponents.ProcessedMiniBlocksTracker(),
 		AppStatusHandler:             ccf.statusCoreComponents.AppStatusHandler(),
 		EnableEpochsHandler:          ccf.coreComponents.EnableEpochsHandler(),
+		ProofsPool:                   ccf.dataComponents.Datapool().Proofs(),
 	}
 
 	argsMetaStorageBootstrapper := storageBootstrap.ArgsMetaStorageBootstrapper{

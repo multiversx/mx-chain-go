@@ -422,8 +422,7 @@ func (net *TestNetwork) createNodes() {
 		StakingV2EnableEpoch:                 UnreachableEpoch,
 		ScheduledMiniBlocksEnableEpoch:       UnreachableEpoch,
 		MiniBlockPartialExecutionEnableEpoch: UnreachableEpoch,
-		EquivalentMessagesEnableEpoch:        UnreachableEpoch,
-		FixedOrderInConsensusEnableEpoch:     UnreachableEpoch,
+		AndromedaEnableEpoch:                 UnreachableEpoch,
 	}
 
 	net.Nodes = CreateNodesWithEnableEpochs(

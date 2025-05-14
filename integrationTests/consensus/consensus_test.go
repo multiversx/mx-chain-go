@@ -63,7 +63,7 @@ func TestConsensusBLSWithFullProcessing_BeforeEquivalentProofs(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	testConsensusBLSWithFullProcessing(t, integrationTests.UnreachableEpoch)
+	testConsensusBLSWithFullProcessing(t, integrationTests.UnreachableEpoch, 1)
 }
 
 func TestConsensusBLSWithFullProcessing_WithEquivalentProofs(t *testing.T) {
@@ -71,11 +71,18 @@ func TestConsensusBLSWithFullProcessing_WithEquivalentProofs(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	testConsensusBLSWithFullProcessing(t, uint32(0))
+	testConsensusBLSWithFullProcessing(t, uint32(0), 1)
 }
 
-func testConsensusBLSWithFullProcessing(t *testing.T, equivalentProofsActivationEpoch uint32) {
-	numKeysOnEachNode := 1
+func TestConsensusBLSWithFullProcessing_WithEquivalentProofs_MultiKeys(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
+	testConsensusBLSWithFullProcessing(t, uint32(0), 3)
+}
+
+func testConsensusBLSWithFullProcessing(t *testing.T, equivalentProofsActivationEpoch uint32, numKeysOnEachNode int) {
 	numMetaNodes := uint32(2)
 	numNodes := uint32(2)
 	consensusSize := uint32(2 * numKeysOnEachNode)
@@ -89,8 +96,7 @@ func testConsensusBLSWithFullProcessing(t *testing.T, equivalentProofsActivation
 
 	enableEpochsConfig := integrationTests.CreateEnableEpochsConfig()
 
-	enableEpochsConfig.EquivalentMessagesEnableEpoch = equivalentProofsActivationEpoch
-	enableEpochsConfig.FixedOrderInConsensusEnableEpoch = equivalentProofsActivationEpoch
+	enableEpochsConfig.AndromedaEnableEpoch = equivalentProofsActivationEpoch
 
 	fmt.Println("Step 1. Setup nodes...")
 
@@ -402,8 +408,7 @@ func runFullConsensusTest(
 	enableEpochsConfig := integrationTests.CreateEnableEpochsConfig()
 
 	equivalentProofsActivationEpoch := integrationTests.UnreachableEpoch
-	enableEpochsConfig.EquivalentMessagesEnableEpoch = equivalentProofsActivationEpoch
-	enableEpochsConfig.FixedOrderInConsensusEnableEpoch = equivalentProofsActivationEpoch
+	enableEpochsConfig.AndromedaEnableEpoch = equivalentProofsActivationEpoch
 
 	nodes := initNodesAndTest(
 		numMetaNodes,
@@ -462,8 +467,7 @@ func runConsensusWithNotEnoughValidators(t *testing.T, consensusType string) {
 	numInvalid := uint32(2)
 	roundTime := uint64(1000)
 	enableEpochsConfig := integrationTests.CreateEnableEpochsConfig()
-	enableEpochsConfig.EquivalentMessagesEnableEpoch = integrationTests.UnreachableEpoch
-	enableEpochsConfig.FixedOrderInConsensusEnableEpoch = integrationTests.UnreachableEpoch
+	enableEpochsConfig.AndromedaEnableEpoch = integrationTests.UnreachableEpoch
 	nodes := initNodesAndTest(numMetaNodes, numNodes, consensusSize, numInvalid, roundTime, consensusType, 1, enableEpochsConfig)
 
 	defer func() {
