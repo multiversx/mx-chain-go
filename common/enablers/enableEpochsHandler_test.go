@@ -126,6 +126,7 @@ func createEnableEpochsConfig() config.EnableEpochs {
 		RelayedTransactionsV3EnableEpoch:                         109,
 		RelayedTransactionsV3FixESDTTransferEnableEpoch:          110,
 		AndromedaEnableEpoch:                                     111,
+		CheckBuiltInCallOnTransferValueAndFailEnableRound:        112,
 	}
 }
 
@@ -455,6 +456,7 @@ func TestEnableEpochsHandler_GetActivationEpoch(t *testing.T) {
 	require.Equal(t, cfg.RelayedTransactionsV3EnableEpoch, handler.GetActivationEpoch(common.RelayedTransactionsV3Flag))
 	require.Equal(t, cfg.RelayedTransactionsV3FixESDTTransferEnableEpoch, handler.GetActivationEpoch(common.RelayedTransactionsV3FixESDTTransferFlag))
 	require.Equal(t, cfg.AndromedaEnableEpoch, handler.GetActivationEpoch(common.AndromedaFlag))
+	require.Equal(t, cfg.CheckBuiltInCallOnTransferValueAndFailEnableRound, handler.GetActivationEpoch(common.CheckBuiltInCallOnTransferValueAndFailExecutionFlag))
 }
 
 func TestEnableEpochsHandler_IsInterfaceNil(t *testing.T) {
