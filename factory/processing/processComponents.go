@@ -145,7 +145,6 @@ type ProcessComponentsFactoryArgs struct {
 	PrefConfigs            config.Preferences
 	ImportDBConfig         config.ImportDbConfig
 	EconomicsConfig        config.EconomicsConfig
-	TxCacheConfig          config.TxCacheConfig
 	AccountsParser         genesis.AccountsParser
 	SmartContractParser    genesis.InitialSmartContractParser
 	GasSchedule            core.GasScheduleNotifier

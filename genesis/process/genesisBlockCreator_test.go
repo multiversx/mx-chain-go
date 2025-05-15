@@ -192,6 +192,7 @@ func createMockArgument(
 				return &block.Header{}
 			},
 		},
+		TxCacheConfig: config.TxCacheConfig{SelectionGasBandwidthIncreasePercent: 400},
 	}
 
 	arg.ShardCoordinator = &mock.ShardCoordinatorMock{
