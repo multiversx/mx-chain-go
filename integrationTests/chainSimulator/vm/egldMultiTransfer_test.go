@@ -3,7 +3,6 @@ package vm
 import (
 	"encoding/hex"
 	"fmt"
-	"github.com/multiversx/mx-chain-go/node/chainSimulator/dtos"
 	"math/big"
 	"strings"
 	"testing"
@@ -17,6 +16,7 @@ import (
 	"github.com/multiversx/mx-chain-go/node/chainSimulator"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/components/api"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/configs"
+	"github.com/multiversx/mx-chain-go/node/chainSimulator/dtos"
 	"github.com/multiversx/mx-chain-go/vm"
 	"github.com/stretchr/testify/require"
 )
