@@ -145,6 +145,7 @@ type ProcessComponentsFactoryArgs struct {
 	PrefConfigs            config.Preferences
 	ImportDBConfig         config.ImportDbConfig
 	EconomicsConfig        config.EconomicsConfig
+	TxCacheConfig          config.TxCacheConfig
 	AccountsParser         genesis.AccountsParser
 	SmartContractParser    genesis.InitialSmartContractParser
 	GasSchedule            core.GasScheduleNotifier
@@ -928,6 +929,7 @@ func (pcf *processComponentsFactory) generateGenesisHeadersAndApplyInitialBalanc
 		GenesisEpoch:            pcf.config.EpochStartConfig.GenesisEpoch,
 		GenesisNonce:            pcf.genesisNonce,
 		GenesisRound:            pcf.genesisRound,
+		TxCacheConfig:           pcf.config.TxCacheConfig,
 	}
 
 	gbc, err := processGenesis.NewGenesisBlockCreator(arg)

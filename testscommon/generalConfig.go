@@ -136,6 +136,9 @@ func GetGeneralConfig() config.Config {
 			SizeInBytesPerSender: 10000000,
 			Shards:               1,
 		},
+		TxCacheConfig: config.TxCacheConfig{
+			SelectionGasBandwidthIncreasePercent: 400,
+		},
 		UnsignedTransactionDataPool: config.CacheConfig{
 			Capacity:    10000,
 			SizeInBytes: 1000000000,

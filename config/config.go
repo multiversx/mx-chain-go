@@ -13,6 +13,11 @@ type CacheConfig struct {
 	Shards               uint32
 }
 
+// TxCacheConfig will map the tx cache configuration
+type TxCacheConfig struct {
+	SelectionGasBandwidthIncreasePercent uint32
+}
+
 // HeadersPoolConfig will map the headers cache configuration
 type HeadersPoolConfig struct {
 	MaxHeadersPerShard            int
@@ -238,6 +243,7 @@ type Config struct {
 	Redundancy          RedundancyConfig
 
 	InterceptedDataVerifier InterceptedDataVerifierConfig
+	TxCacheConfig           TxCacheConfig
 }
 
 // PeersRatingConfig will hold settings related to peers rating

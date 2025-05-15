@@ -1295,3 +1295,6 @@ var ErrInvalidRatingsConfig = errors.New("invalid ratings config")
 
 // ErrNilKeyRWMutexHandler signals that a nil KeyRWMutexHandler has been provided
 var ErrNilKeyRWMutexHandler = errors.New("nil key rw mutex handler")
+
+// ErrDefaultSelectionGasBandwidthIncreasePercent signals that the SelectionGasBandwidthIncreasePercent from the config is not set
+var ErrDefaultSelectionGasBandwidthIncreasePercent = errors.New("default selection gas bandwidth increase percent zero")
