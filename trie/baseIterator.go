@@ -9,7 +9,7 @@ import (
 type baseIterator struct {
 	currentNode nodeWithHash
 	nextNodes   []nodeWithHash
-	db          common.TrieStorageInteractor
+	trieContext common.TrieContext
 }
 
 // newBaseIterator creates a new instance of trie iterator
@@ -28,9 +28,8 @@ func newBaseIterator(trie common.Trie, rootHash []byte) (*baseIterator, error) {
 		return nil, ErrWrongTypeAssertion
 	}
 
-	trieStorage := trie.GetStorageManager()
 	rootNode := pmt.GetRootNode()
-	nextNodes, err := rootNode.getChildren(trieStorage)
+	nextNodes, err := rootNode.getChildren(pmt.TrieContext)
 	if err != nil {
 		return nil, err
 	}
@@ -40,8 +39,8 @@ func newBaseIterator(trie common.Trie, rootHash []byte) (*baseIterator, error) {
 			node: rootNode,
 			hash: rootHash,
 		},
-		nextNodes: nextNodes,
-		db:        trieStorage,
+		nextNodes:   nextNodes,
+		trieContext: pmt.TrieContext,
 	}, nil
 }
 
@@ -64,12 +63,12 @@ func (it *baseIterator) next() ([]nodeWithHash, error) {
 	}
 
 	it.currentNode = n
-	return it.currentNode.node.getChildren(it.db)
+	return it.currentNode.node.getChildren(it.trieContext)
 }
 
 // MarshalizedNode marshalizes the current node, and then returns the serialized node
 func (it *baseIterator) MarshalizedNode() ([]byte, error) {
-	return it.currentNode.node.getEncodedNode()
+	return it.currentNode.node.getEncodedNode(it.trieContext)
 }
 
 // GetHash returns the current node hash

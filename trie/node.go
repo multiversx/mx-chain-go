@@ -8,8 +8,6 @@ import (
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
-	"github.com/multiversx/mx-chain-core-go/hashing"
-	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/common"
 	logger "github.com/multiversx/mx-chain-logger-go"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
@@ -19,7 +17,8 @@ const (
 	nrOfChildren         = 17
 	firstByte            = 0
 	pointerSizeInBytes   = 8
-	numNodeInnerPointers = 2 // each trie node contains a marshalizer and a hasher
+	mutexSizeInBytes     = 24
+	dirtyFlagSizeInBytes = 1
 	pollingIdleNode      = time.Millisecond
 )
 
@@ -42,41 +41,41 @@ type leafNode struct {
 	*baseNode
 }
 
-func encodeNodeAndGetHash(n node) ([]byte, error) {
-	encNode, err := n.getEncodedNode()
+func encodeNodeAndGetHash(n node, trieCtx common.TrieContext) ([]byte, error) {
+	encNode, err := n.getEncodedNode(trieCtx)
 	if err != nil {
 		return nil, err
 	}
 
-	hash := n.getHasher().Compute(string(encNode))
+	hash := trieCtx.Compute(string(encNode))
 
 	return hash, nil
 }
 
 // encodeNodeAndCommitToDB will encode and save provided node. It returns the node's value in bytes
-func encodeNodeAndCommitToDB(n node, db common.BaseStorer) (int, error) {
-	val, err := n.getEncodedNode()
+func encodeNodeAndCommitToDB(n node, trieCtx common.TrieContext) (int, error) {
+	val, err := n.getEncodedNode(trieCtx)
 	if err != nil {
 		return 0, err
 	}
-	key := n.getHasher().Compute(string(val))
+	key := trieCtx.Compute(string(val))
 
 	// test point encodeNodeAndCommitToDB
 
-	err = db.Put(key, val)
+	err = trieCtx.Put(key, val)
 
 	return len(val), err
 }
 
-func getNodeFromDBAndDecode(n []byte, db common.TrieStorageInteractor, marshalizer marshal.Marshalizer, hasher hashing.Hasher) (node, []byte, error) {
-	encodedNode, err := db.Get(n)
+func getNodeFromDBAndDecode(n []byte, trieCtx common.TrieContext) (node, []byte, error) {
+	encodedNode, err := trieCtx.Get(n)
 	if err != nil {
 		treatLogError(log, err, n)
 
-		return nil, nil, core.NewGetNodeFromDBErrWithKey(n, err, db.GetIdentifier())
+		return nil, nil, core.NewGetNodeFromDBErrWithKey(n, err, trieCtx.GetIdentifier())
 	}
 
-	decodedNode, err := decodeNode(encodedNode, marshalizer, hasher)
+	decodedNode, err := decodeNode(encodedNode, trieCtx)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -106,7 +105,7 @@ func concat(s1 []byte, s2 ...byte) []byte {
 	return r
 }
 
-func decodeNode(encNode []byte, marshalizer marshal.Marshalizer, hasher hashing.Hasher) (node, error) {
+func decodeNode(encNode []byte, trieCtx common.TrieContext) (node, error) {
 	if encNode == nil || len(encNode) < 1 {
 		return nil, ErrInvalidEncoding
 	}
@@ -119,13 +118,10 @@ func decodeNode(encNode []byte, marshalizer marshal.Marshalizer, hasher hashing.
 		return nil, err
 	}
 
-	err = marshalizer.Unmarshal(newNode, encNode)
+	err = trieCtx.Unmarshal(newNode, encNode)
 	if err != nil {
 		return nil, err
 	}
-
-	newNode.setMarshalizer(marshalizer)
-	newNode.setHasher(hasher)
 
 	return newNode, nil
 }
@@ -222,21 +218,20 @@ func saveDirtyNodeToStorage(
 	n node,
 	goRoutinesManager common.TrieGoroutinesManager,
 	hashesCollector common.TrieHashesCollector,
-	targetDb common.BaseStorer,
-	hasher hashing.Hasher,
+	trieCtx common.TrieContext,
 ) bool {
 	n.setDirty(false)
-	encNode, err := n.getEncodedNode()
+	encNode, err := n.getEncodedNode(trieCtx)
 	if err != nil {
 		goRoutinesManager.SetError(err)
 		return false
 	}
-	hash := hasher.Compute(string(encNode))
+	hash := trieCtx.Compute(string(encNode))
 	hashesCollector.AddDirtyHash(hash)
 
 	// test point encodeNodeAndCommitToDB
 
-	err = targetDb.Put(hash, encNode)
+	err = trieCtx.Put(hash, encNode)
 	if err != nil {
 		goRoutinesManager.SetError(err)
 		return false
