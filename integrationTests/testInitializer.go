@@ -867,6 +867,16 @@ func CreateGenesisMetaBlock(
 		HeaderVersionConfigs:    testscommon.GetDefaultHeaderVersionConfig(),
 		HistoryRepository:       &dblookupext.HistoryRepositoryStub{},
 		TxExecutionOrderHandler: &commonMocks.TxExecutionOrderHandlerStub{},
+		TxCacheConfig: config.CacheConfig{
+			Name:                                 "",
+			Type:                                 "",
+			Capacity:                             0,
+			SizePerSender:                        0,
+			SizeInBytes:                          0,
+			SizeInBytesPerSender:                 0,
+			Shards:                               0,
+			SelectionGasBandwidthIncreasePercent: 400,
+		},
 	}
 
 	if shardCoordinator.SelfId() != core.MetachainShardId {
