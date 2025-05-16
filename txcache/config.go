@@ -14,8 +14,6 @@ const maxNumBytesLowerBound = maxNumItemsLowerBound * 1
 const maxNumBytesUpperBound = 1_073_741_824 // one GB
 const maxNumItemsPerSenderLowerBound = 1
 const maxNumBytesPerSenderLowerBound = maxNumItemsPerSenderLowerBound * 1
-
-// this one
 const maxNumBytesPerSenderUpperBound = 33_554_432 // 32 MB
 const numItemsToPreemptivelyEvictLowerBound = uint32(1)
 
