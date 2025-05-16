@@ -25,7 +25,6 @@ var _ process.EndOfEpochEconomics = (*economics)(nil)
 
 const numberOfDaysInYear = 365.0
 const numberOfSecondsInDay = 86400
-const numberOfMillisecondsInDay = numberOfSecondsInDay * 1000
 
 type economics struct {
 	marshalizer           marshal.Marshalizer
