@@ -314,6 +314,7 @@ type ArgTestProcessorNode struct {
 	WithPeersRatingHandler  bool
 	NodeOperationMode       common.NodeOperation
 	Proofs                  dataRetriever.ProofsPool
+	TxCacheConfig           *config.CacheConfig
 }
 
 // TestProcessorNode represents a container type of class used in integration tests
@@ -1135,6 +1136,19 @@ func (tpn *TestProcessorNode) initEconomicsData(economicsConfig *config.Economic
 	}
 	economicsData, _ := economics.NewEconomicsData(argsNewEconomicsData)
 	tpn.EconomicsData = economics.NewTestEconomicsData(economicsData)
+}
+
+func createDefaultCacheConfig() *config.CacheConfig {
+	return &config.CacheConfig{
+		Name:                                 "",
+		Type:                                 "",
+		Capacity:                             0,
+		SizePerSender:                        0,
+		SizeInBytes:                          0,
+		SizeInBytesPerSender:                 0,
+		Shards:                               0,
+		SelectionGasBandwidthIncreasePercent: 400,
+	}
 }
 
 func createDefaultEconomicsConfig() *config.EconomicsConfig {
