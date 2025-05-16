@@ -359,7 +359,8 @@ func (sr *subroundBlock) createHeader() (data.HeaderHandler, error) {
 		return nil, err
 	}
 
-	err = hdr.SetTimeStamp(uint64(sr.RoundHandler().TimeStamp().Unix()))
+	unixTimeStamp := uint64(common.TimeToUnixInEpoch(sr.RoundHandler().TimeStamp(), sr.EnableEpochsHandler(), hdr.GetEpoch()))
+	err = hdr.SetTimeStamp(unixTimeStamp)
 	if err != nil {
 		return nil, err
 	}

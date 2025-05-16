@@ -1,6 +1,7 @@
 package epochProviders
 
 import (
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/dataRetriever/resolvers/epochproviders"
@@ -13,6 +14,7 @@ func CreateCurrentEpochProvider(
 	roundTimeInMilliseconds uint64,
 	startTime int64,
 	isFullArchive bool,
+	enableEpochsHandler common.EnableEpochsHandler,
 ) (dataRetriever.CurrentNetworkEpochProviderHandler, error) {
 	if !isFullArchive {
 		return disabled.NewEpochProvider(), nil

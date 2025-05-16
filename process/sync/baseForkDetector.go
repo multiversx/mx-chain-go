@@ -119,6 +119,7 @@ func (bfd *baseForkDetector) checkBlockBasicValidity(
 	// TODO: This check could be removed when this protection mechanism would be implemented on interceptors side
 	if genesisTimeFromHeader != bfd.genesisTime {
 		process.AddHeaderToBlackList(bfd.blackListHandler, headerHash)
+		log.Error("genesis time missmatch", "genesisTimeFromHeader", genesisTimeFromHeader, "local genesis time", bfd.genesisTime)
 		return ErrGenesisTimeMissmatch
 	}
 	if roundDif < 0 {
@@ -700,7 +701,10 @@ func (bfd *baseForkDetector) cleanupReceivedHeadersHigherThanNonce(nonce uint64)
 }
 
 func (bfd *baseForkDetector) computeGenesisTimeFromHeader(headerHandler data.HeaderHandler) int64 {
-	genesisTime := int64(headerHandler.GetTimeStamp() - (headerHandler.GetRound()-bfd.genesisRound)*uint64(bfd.roundHandler.TimeDuration().Seconds()))
+	roundDurationMs := common.TimeDurationToUnix(bfd.roundHandler.TimeDuration(), bfd.enableEpochsHandler, headerHandler.GetEpoch())
+	roundDifference := int64(headerHandler.GetRound() - bfd.genesisRound)
+	genesisTime := int64(headerHandler.GetTimeStamp()) - roundDifference*roundDurationMs
+
 	return genesisTime
 }
 

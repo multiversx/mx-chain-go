@@ -268,13 +268,14 @@ func (sr *subroundStartRound) indexRoundIfNeeded(pubKeys []string) {
 
 	round := sr.RoundHandler().Index()
 
+	unixTimeStamp := uint64(common.TimeToUnixInEpoch(sr.GetRoundTimeStamp(), sr.EnableEpochsHandler(), epoch))
 	roundInfo := &outportcore.RoundInfo{
 		Round:            uint64(round),
 		SignersIndexes:   make([]uint64, 0),
 		BlockWasProposed: false,
 		ShardId:          shardId,
 		Epoch:            epoch,
-		Timestamp:        uint64(sr.GetRoundTimeStamp().Unix()),
+		Timestamp:        unixTimeStamp,
 	}
 	roundsInfo := &outportcore.RoundsInfo{
 		ShardID:    shardId,

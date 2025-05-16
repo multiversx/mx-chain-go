@@ -193,6 +193,10 @@ func (ccf *coreComponentsFactory) Create() (*coreComponents, error) {
 
 	epochNotifier := forking.NewGenericEpochNotifier()
 	epochStartHandlerWithConfirm := notifier.NewEpochStartSubscriptionHandler()
+	enableEpochsHandler, err := enablers.NewEnableEpochsHandler(ccf.epochConfig.EnableEpochs, epochNotifier)
+	if err != nil {
+		return nil, err
+	}
 
 	chainParametersNotifier := chainparametersnotifier.NewChainParametersNotifier()
 	argsChainParametersHandler := sharding.ArgsChainParametersHolder{
@@ -228,16 +232,17 @@ func (ccf *coreComponentsFactory) Create() (*coreComponents, error) {
 	if genesisNodesConfig.StartTime == 0 {
 		time.Sleep(1000 * time.Millisecond)
 		ntpTime := syncer.CurrentTime()
-		genesisNodesConfig.StartTime = (ntpTime.Unix()/60 + 1) * 60
+		genesisNodesConfig.StartTime = (common.TimeToUnix(ntpTime, enableEpochsHandler)/60 + 1) * 60
 	}
 
-	startTime := time.Unix(genesisNodesConfig.StartTime, 0)
+	genesisEpoch := uint32(0)
+	startTime := common.UnixToTime(genesisNodesConfig.GetStartTime(), enableEpochsHandler, genesisEpoch)
 
 	log.Info("start time",
 		"formatted", startTime.Format("Mon Jan 2 15:04:05 MST 2006"),
-		"seconds", startTime.Unix())
+		"seconds", common.TimeToUnix(startTime, enableEpochsHandler))
 
-	genesisTime := time.Unix(genesisNodesConfig.StartTime, 0)
+	genesisTime := common.UnixToTime(genesisNodesConfig.GetStartTime(), enableEpochsHandler, genesisEpoch)
 	roundHandler, err := round.NewRound(
 		genesisTime,
 		syncer.CurrentTime(),
@@ -258,11 +263,6 @@ func (ccf *coreComponentsFactory) Create() (*coreComponents, error) {
 
 	roundNotifier := forking.NewGenericRoundNotifier()
 	enableRoundsHandler, err := enablers.NewEnableRoundsHandler(ccf.roundConfig, roundNotifier)
-	if err != nil {
-		return nil, err
-	}
-
-	enableEpochsHandler, err := enablers.NewEnableEpochsHandler(ccf.epochConfig.EnableEpochs, epochNotifier)
 	if err != nil {
 		return nil, err
 	}

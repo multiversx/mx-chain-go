@@ -13,6 +13,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/display"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/epochStart"
 	"github.com/multiversx/mx-chain-go/process"
@@ -23,6 +24,7 @@ var _ process.EndOfEpochEconomics = (*economics)(nil)
 
 const numberOfDaysInYear = 365.0
 const numberOfSecondsInDay = 86400
+const numberOfMillisecondsInDay = numberOfSecondsInDay * 1000
 
 type economics struct {
 	marshalizer           marshal.Marshalizer
@@ -36,6 +38,7 @@ type economics struct {
 	genesisTotalSupply    *big.Int
 	economicsDataNotified epochStart.EpochEconomicsDataProvider
 	stakingV2EnableEpoch  uint32
+	enableEpochsHandler   common.EnableEpochsHandler
 }
 
 // ArgsNewEpochEconomics is the argument for the economics constructor
@@ -51,6 +54,7 @@ type ArgsNewEpochEconomics struct {
 	GenesisTotalSupply    *big.Int
 	EconomicsDataNotified epochStart.EpochEconomicsDataProvider
 	StakingV2EnableEpoch  uint32
+	EnableEpochsHandler   common.EnableEpochsHandler
 }
 
 // NewEndOfEpochEconomicsDataCreator creates a new end of epoch economics data creator object
@@ -92,6 +96,7 @@ func NewEndOfEpochEconomicsDataCreator(args ArgsNewEpochEconomics) (*economics, 
 		genesisTotalSupply:    big.NewInt(0).Set(args.GenesisTotalSupply),
 		economicsDataNotified: args.EconomicsDataNotified,
 		stakingV2EnableEpoch:  args.StakingV2EnableEpoch,
+		enableEpochsHandler:   args.EnableEpochsHandler,
 	}
 	log.Debug("economics: enable epoch for staking v2", "epoch", e.stakingV2EnableEpoch)
 
@@ -130,7 +135,7 @@ func (e *economics) ComputeEndOfEpochEconomics(
 	maxBlocksInEpoch := core.MaxUint64(1, roundsPassedInEpoch*uint64(e.shardCoordinator.NumberOfShards()+1))
 	totalNumBlocksInEpoch := e.computeNumOfTotalCreatedBlocks(noncesPerShardPrevEpoch, noncesPerShardCurrEpoch)
 
-	inflationRate := e.computeInflationRate(metaBlock.GetRound())
+	inflationRate := e.computeInflationRate(metaBlock.GetRound(), metaBlock.GetEpoch())
 	rwdPerBlock := e.computeRewardsPerBlock(e.genesisTotalSupply, maxBlocksInEpoch, inflationRate, metaBlock.Epoch)
 	totalRewardsToBeDistributed := big.NewInt(0).Mul(rwdPerBlock, big.NewInt(0).SetUint64(totalNumBlocksInEpoch))
 
@@ -321,8 +326,8 @@ func (e *economics) adjustRewardsPerBlockWithLeaderPercentage(
 }
 
 // compute inflation rate from genesisTotalSupply and economics settings for that year
-func (e *economics) computeInflationRate(currentRound uint64) float64 {
-	roundsPerDay := numberOfSecondsInDay / uint64(e.roundTime.TimeDuration().Seconds())
+func (e *economics) computeInflationRate(currentRound uint64, currentEpoch uint32) float64 {
+	roundsPerDay := common.ComputeRoundsPerDay(e.roundTime.TimeDuration(), e.enableEpochsHandler, currentEpoch)
 	roundsPerYear := numberOfDaysInYear * roundsPerDay
 	yearsIndex := uint32(currentRound/roundsPerYear) + 1
 
@@ -337,7 +342,7 @@ func (e *economics) computeRewardsPerBlock(
 	epoch uint32,
 ) *big.Int {
 
-	inflationRateForEpoch := e.computeInflationForEpoch(inflationRate, maxBlocksInEpoch)
+	inflationRateForEpoch := e.computeInflationForEpoch(inflationRate, maxBlocksInEpoch, epoch)
 
 	rewardsPerBlock := big.NewInt(0).Div(prevTotalSupply, big.NewInt(0).SetUint64(maxBlocksInEpoch))
 	if epoch > e.stakingV2EnableEpoch {
@@ -347,9 +352,13 @@ func (e *economics) computeRewardsPerBlock(
 	return core.GetApproximatePercentageOfValue(rewardsPerBlock, inflationRateForEpoch)
 }
 
-func (e *economics) computeInflationForEpoch(inflationRate float64, maxBlocksInEpoch uint64) float64 {
+func (e *economics) computeInflationForEpoch(
+	inflationRate float64,
+	maxBlocksInEpoch uint64,
+	epoch uint32,
+) float64 {
 	inflationRatePerDay := inflationRate / numberOfDaysInYear
-	roundsPerDay := numberOfSecondsInDay / uint64(e.roundTime.TimeDuration().Seconds())
+	roundsPerDay := common.ComputeRoundsPerDay(e.roundTime.TimeDuration(), e.enableEpochsHandler, epoch)
 	maxBlocksInADay := core.MaxUint64(1, roundsPerDay*uint64(e.shardCoordinator.NumberOfShards()+1))
 
 	inflationRateForEpoch := inflationRatePerDay * (float64(maxBlocksInEpoch) / float64(maxBlocksInADay))
@@ -468,7 +477,7 @@ func (e *economics) checkEconomicsInvariants(
 		actualMaxBlocks = maxPossibleNotarizedBlocks
 	}
 
-	inflationPerEpoch := e.computeInflationForEpoch(inflationRate, actualMaxBlocks)
+	inflationPerEpoch := e.computeInflationForEpoch(inflationRate, actualMaxBlocks, epoch)
 	maxRewardsInEpoch := core.GetIntTrimmedPercentageOfValue(computedEconomics.TotalSupply, inflationPerEpoch)
 	if maxRewardsInEpoch.Cmp(metaBlock.AccumulatedFeesInEpoch) < 0 {
 		maxRewardsInEpoch.Set(metaBlock.AccumulatedFeesInEpoch)

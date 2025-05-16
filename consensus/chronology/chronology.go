@@ -10,7 +10,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/core/closing"
 	"github.com/multiversx/mx-chain-core-go/display"
-	"github.com/multiversx/mx-chain-logger-go"
+	logger "github.com/multiversx/mx-chain-logger-go"
 
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/consensus"
@@ -43,7 +43,8 @@ type chronology struct {
 	appStatusHandler core.AppStatusHandler
 	cancelFunc       func()
 
-	watchdog core.WatchdogTimer
+	watchdog            core.WatchdogTimer
+	enableEpochsHandler common.EnableEpochsHandler
 }
 
 // NewChronology creates a new chronology object
@@ -55,11 +56,12 @@ func NewChronology(arg ArgChronology) (*chronology, error) {
 	}
 
 	chr := chronology{
-		genesisTime:      arg.GenesisTime,
-		roundHandler:     arg.RoundHandler,
-		syncTimer:        arg.SyncTimer,
-		appStatusHandler: arg.AppStatusHandler,
-		watchdog:         arg.Watchdog,
+		genesisTime:         arg.GenesisTime,
+		roundHandler:        arg.RoundHandler,
+		syncTimer:           arg.SyncTimer,
+		appStatusHandler:    arg.AppStatusHandler,
+		watchdog:            arg.Watchdog,
+		enableEpochsHandler: arg.EnableEpochsHandler,
 	}
 
 	chr.subroundId = srBeforeStartRound
@@ -169,7 +171,9 @@ func (chr *chronology) updateRound() {
 
 	if oldRoundIndex != chr.roundHandler.Index() {
 		chr.watchdog.Reset(chronologyAlarmID)
-		msg := fmt.Sprintf("ROUND %d BEGINS (%d)", chr.roundHandler.Index(), chr.roundHandler.TimeStamp().Unix())
+
+		unixTime := common.TimeToUnix(chr.roundHandler.TimeStamp(), chr.enableEpochsHandler)
+		msg := fmt.Sprintf("ROUND %d BEGINS (%d)", chr.roundHandler.Index(), unixTime)
 		log.Debug(display.Headline(msg, chr.syncTimer.FormattedCurrentTime(), "#"))
 		logger.SetCorrelationRound(chr.roundHandler.Index())
 
@@ -188,7 +192,8 @@ func (chr *chronology) initRound() {
 	if hasSubroundsAndGenesisTimePassed {
 		chr.subroundId = chr.subroundHandlers[0].Current()
 		chr.appStatusHandler.SetUInt64Value(common.MetricCurrentRound, uint64(chr.roundHandler.Index()))
-		chr.appStatusHandler.SetUInt64Value(common.MetricCurrentRoundTimestamp, uint64(chr.roundHandler.TimeStamp().Unix()))
+		unixTime := common.TimeToUnix(chr.roundHandler.TimeStamp(), chr.enableEpochsHandler)
+		chr.appStatusHandler.SetUInt64Value(common.MetricCurrentRoundTimestamp, uint64(unixTime))
 	}
 
 	chr.mutSubrounds.RUnlock()

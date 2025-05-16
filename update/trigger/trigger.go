@@ -12,6 +12,7 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data/endProcess"
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/facade"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/update"
@@ -44,6 +45,7 @@ type ArgHardforkTrigger struct {
 	EpochConfirmedNotifier    update.EpochChangeConfirmedNotifier
 	ImportStartHandler        update.ImportStartHandler
 	RoundHandler              update.RoundHandler
+	EnableEpochsHandler       common.EnableEpochsHandler
 }
 
 // trigger implements a hardfork trigger that is able to notify a set list of handlers if this instance gets triggered
@@ -73,6 +75,7 @@ type trigger struct {
 	importStartHandler           update.ImportStartHandler
 	isWithEarlyEndOfEpoch        bool
 	roundHandler                 update.RoundHandler
+	enableEpochsHandler          common.EnableEpochsHandler
 }
 
 // NewTrigger returns the trigger instance
@@ -127,6 +130,7 @@ func NewTrigger(arg ArgHardforkTrigger) (*trigger, error) {
 		chanTriggerReceivedV2: make(chan struct{}, 1), // buffer with one value as there might be async calls
 		importStartHandler:    arg.ImportStartHandler,
 		roundHandler:          arg.RoundHandler,
+		enableEpochsHandler:   arg.EnableEpochsHandler,
 	}
 
 	t.isTriggerSelf = bytes.Equal(arg.TriggerPubKeyBytes, arg.SelfPubKeyBytes)
@@ -137,7 +141,7 @@ func NewTrigger(arg ArgHardforkTrigger) (*trigger, error) {
 }
 
 func (t *trigger) getCurrentUnixTime() int64 {
-	return time.Now().Unix()
+	return common.TimeToUnix(time.Now(), t.enableEpochsHandler)
 }
 
 func (t *trigger) epochConfirmed(epoch uint32) {
