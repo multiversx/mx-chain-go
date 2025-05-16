@@ -1817,7 +1817,10 @@ func (tpn *TestProcessorNode) initInnerProcessors(gasMap map[string]map[string]u
 		scheduledTxsExecutionHandler,
 		processedMiniBlocksTracker,
 		tpn.TxExecutionOrderHandler,
-		config.CacheConfig{SelectionGasBandwidthIncreasePercent: 400},
+		config.CacheConfig{
+			SelectionGasBandwidthIncreasePercent:          400,
+			SelectionGasBandwidthIncreaseScheduledPercent: 260,
+		},
 	)
 	if err != nil {
 		panic(err.Error())
@@ -2089,7 +2092,10 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors(gasMap map[string]map[stri
 		scheduledTxsExecutionHandler,
 		processedMiniBlocksTracker,
 		tpn.TxExecutionOrderHandler,
-		config.CacheConfig{SelectionGasBandwidthIncreasePercent: 400},
+		config.CacheConfig{
+			SelectionGasBandwidthIncreasePercent:          400,
+			SelectionGasBandwidthIncreaseScheduledPercent: 260,
+		},
 	)
 	tpn.PreProcessorsContainer, _ = fact.Create()
 

@@ -421,6 +421,7 @@
     Type = "TxCache"
     Shards = 16
     SelectionGasBandwidthIncreasePercent = 400
+    SelectionGasBandwidthIncreaseScheduledPercent = 260
 
 [TrieNodesChunksDataPool]
     Name = "TrieNodesDataPool"

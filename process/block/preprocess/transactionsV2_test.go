@@ -77,7 +77,10 @@ func createTransactionPreprocessor() *transactions {
 		ScheduledTxsExecutionHandler: &testscommon.ScheduledTxsExecutionStub{},
 		ProcessedMiniBlocksTracker:   &testscommon.ProcessedMiniBlocksTrackerStub{},
 		TxExecutionOrderHandler:      &commonMocks.TxExecutionOrderHandlerStub{},
-		TxCacheConfig:                config.CacheConfig{SelectionGasBandwidthIncreasePercent: 400},
+		TxCacheConfig: config.CacheConfig{
+			SelectionGasBandwidthIncreasePercent:          400,
+			SelectionGasBandwidthIncreaseScheduledPercent: 260,
+		},
 	}
 
 	preprocessor, _ := NewTransactionPreprocessor(txPreProcArgs)

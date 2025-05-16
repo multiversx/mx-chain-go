@@ -518,6 +518,7 @@ func hardForkImport(
 				SizeInBytesPerSender:                 0,
 				Shards:                               0,
 				SelectionGasBandwidthIncreasePercent: 400,
+				SelectionGasBandwidthIncreaseScheduledPercent: 260,
 			},
 		}
 

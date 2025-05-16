@@ -136,6 +136,7 @@ func GetGeneralConfig() config.Config {
 			SizeInBytesPerSender:                 10000000,
 			Shards:                               1,
 			SelectionGasBandwidthIncreasePercent: 400,
+			SelectionGasBandwidthIncreaseScheduledPercent: 260,
 		},
 		UnsignedTransactionDataPool: config.CacheConfig{
 			Capacity:    10000,

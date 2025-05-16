@@ -131,6 +131,10 @@ func NewPreProcessorsContainerFactory(
 		return nil, process.ErrDefaultSelectionGasBandwidthIncreasePercent
 	}
 
+	if txPoolConfig.SelectionGasBandwidthIncreaseScheduledPercent == 0 {
+		return nil, process.ErrDefaultSelectionGasBandwidthIncreaseScheduledPercent
+	}
+
 	return &preProcessorsContainerFactory{
 		shardCoordinator:             shardCoordinator,
 		store:                        store,

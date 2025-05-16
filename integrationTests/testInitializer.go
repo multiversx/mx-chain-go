@@ -758,6 +758,7 @@ func CreateFullGenesisBlocks(
 			SizeInBytesPerSender:                 0,
 			Shards:                               0,
 			SelectionGasBandwidthIncreasePercent: 400,
+			SelectionGasBandwidthIncreaseScheduledPercent: 260,
 		}}
 
 	genesisProcessor, _ := genesisProcess.NewGenesisBlockCreator(argsGenesis)
@@ -885,6 +886,7 @@ func CreateGenesisMetaBlock(
 			SizeInBytesPerSender:                 0,
 			Shards:                               0,
 			SelectionGasBandwidthIncreasePercent: 400,
+			SelectionGasBandwidthIncreaseScheduledPercent: 260,
 		},
 	}
 

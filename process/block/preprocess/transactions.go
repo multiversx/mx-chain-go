@@ -33,9 +33,6 @@ var _ process.PreProcessor = (*transactions)(nil)
 
 var log = logger.GetOrCreate("process/block/preprocess")
 
-// 130% to allow 30% overshooting estimations for scheduled SC calls
-const selectionGasBandwidthIncreaseScheduledPercent = 260
-
 // TODO: increase code coverage with unit test
 
 type transactions struct {
@@ -156,6 +153,10 @@ func NewTransactionPreprocessor(
 
 	if args.TxCacheConfig.SelectionGasBandwidthIncreasePercent == 0 {
 		return nil, process.ErrDefaultSelectionGasBandwidthIncreasePercent
+	}
+
+	if args.TxCacheConfig.SelectionGasBandwidthIncreaseScheduledPercent == 0 {
+		return nil, process.ErrDefaultSelectionGasBandwidthIncreaseScheduledPercent
 	}
 
 	bpp := basePreProcess{
@@ -1018,7 +1019,7 @@ func (txs *transactions) CreateAndProcessMiniBlocks(haveTime func() bool, random
 	gasBandwidth := txs.getRemainingGasPerBlock() * uint64(txs.txPoolConfig.SelectionGasBandwidthIncreasePercent) / 100
 	gasBandwidthForScheduled := uint64(0)
 	if txs.enableEpochsHandler.IsFlagEnabled(common.ScheduledMiniBlocksFlag) {
-		gasBandwidthForScheduled = txs.getRemainingGasPerBlockAsScheduled() * selectionGasBandwidthIncreaseScheduledPercent / 100
+		gasBandwidthForScheduled = txs.getRemainingGasPerBlockAsScheduled() * uint64(txs.txPoolConfig.SelectionGasBandwidthIncreaseScheduledPercent) / 100
 		gasBandwidth += gasBandwidthForScheduled
 	}
 
