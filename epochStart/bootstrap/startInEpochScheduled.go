@@ -297,7 +297,7 @@ func (ses *startInEpochWithScheduledDataSyncer) filterScheduledIntermediateTxs(
 	for txHash, txHandler := range allTxs {
 		if isScheduledIntermediateTx(miniBlocks, scheduledTxHashes, []byte(txHash), txHandler, selfShardID) {
 			scheduledIntermediateTxs[txHash] = txHandler
-			log.Debug("startInEpochWithScheduledDataSyncer.filterScheduledIntermediateTxs",
+			log.Debug("startInEpochWithScheduledDataSyncer.filterScheduledIntermediateTxs ",
 				"intermediate tx hash", []byte(txHash),
 				"intermediate tx nonce", txHandler.GetNonce(),
 				"intermediate tx sender address", txHandler.GetSndAddr(),
@@ -400,7 +400,7 @@ func getScheduledMiniBlocks(
 
 		miniBlock, ok := miniBlocks[string(mbHeader.GetHash())]
 		if !ok {
-			log.Warn("getScheduledMiniBlocks: mini block was not found", "mb hash", mbHeader.GetHash())
+			log.Warn("getScheduledMiniBlocks: mini block was not found", "mbHash", mbHeader.GetHash())
 			continue
 		}
 
@@ -483,7 +483,7 @@ func getMiniBlockAndProcessedIndexes(
 	miniBlockHash := miniBlockHeader.GetHash()
 	miniBlock, ok := miniBlocks[string(miniBlockHash)]
 	if !ok {
-		log.Warn("startInEpochWithScheduledDataSyncer.getMiniBlockAndProcessedIndexes: mini block was not found", "mb hash", miniBlockHash)
+		log.Warn("startInEpochWithScheduledDataSyncer.getMiniBlockAndProcessedIndexes: mini block was not found", "mbHash", miniBlockHash)
 		return nil, nil, nil, true
 	}
 
@@ -492,7 +492,7 @@ func getMiniBlockAndProcessedIndexes(
 
 	if pi.firstIndex > pi.lastIndex {
 		log.Warn("startInEpochWithScheduledDataSyncer.getMiniBlockAndProcessedIndexes: wrong first/last index",
-			"mb hash", miniBlockHash,
+			"mbHash", miniBlockHash,
 			"index of first tx processed", pi.firstIndex,
 			"index of last tx processed", pi.lastIndex,
 			"num txs", len(miniBlock.TxHashes),
@@ -512,7 +512,7 @@ func createScheduledTxsForShardMap(
 	for index := pi.firstIndex; index <= pi.lastIndex; index++ {
 		if index >= int32(len(miniBlock.TxHashes)) {
 			log.Warn("startInEpochWithScheduledDataSyncer.createScheduledTxsForShardMap: index out of bound",
-				"mb hash", miniBlockHash,
+				"mbHash", miniBlockHash,
 				"index", index,
 				"num txs", len(miniBlock.TxHashes),
 			)

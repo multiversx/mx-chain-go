@@ -1023,7 +1023,7 @@ func (bp *baseProcessor) checkScheduledMiniBlocksValidity(headerHandler data.Hea
 		}
 
 		if !bytes.Equal(scheduledMiniBlockHash, headerHandler.GetMiniBlockHeadersHashes()[index]) {
-			log.Debug("baseProcessor.checkScheduledMiniBlocksValidity", "index", index, "scheduled mb hash", scheduledMiniBlockHash, "received mb hash", headerHandler.GetMiniBlockHeadersHashes()[index])
+			log.Debug("baseProcessor.checkScheduledMiniBlocksValidity", "index", index, "scheduledMbHash", scheduledMiniBlockHash, "receivedMbHash", headerHandler.GetMiniBlockHeadersHashes()[index])
 			return process.ErrScheduledMiniBlocksMismatch
 		}
 	}
@@ -1067,7 +1067,7 @@ func (bp *baseProcessor) requestMissingFinalityAttestingHeaders(
 	}
 
 	if requestedHeaders > 0 {
-		log.Debug("requested missing finality attesting headers",
+		log.Debug("requested missing finality attesting headers ",
 			"num headers", requestedHeaders,
 			"shard", shardID)
 	}
@@ -1239,7 +1239,7 @@ func (bp *baseProcessor) getFinalMiniBlocks(header data.HeaderHandler, body *blo
 	for index, miniBlock := range body.MiniBlocks {
 		miniBlockHeader := header.GetMiniBlockHeaderHandlers()[index]
 		if !miniBlockHeader.IsFinal() {
-			log.Debug("shardProcessor.getFinalMiniBlocks: do not remove from pool / broadcast mini block which is not final", "mb hash", miniBlockHeader.GetHash())
+			log.Debug("shardProcessor.getFinalMiniBlocks: do not remove from pool / broadcast mini block which is not final", "mbHash", miniBlockHeader.GetHash())
 			continue
 		}
 
@@ -1605,7 +1605,7 @@ func getLastSelfNotarizedHeaderByItself(chainHandler data.ChainHandler) (data.He
 }
 
 func (bp *baseProcessor) setFinalizedHeaderHashInIndexer(hdrHash []byte) {
-	log.Debug("baseProcessor.setFinalizedHeaderHashInIndexer", "finalized header hash", hdrHash)
+	log.Debug("baseProcessor.setFinalizedHeaderHashInIndexer ", "finalized header hash", hdrHash)
 
 	bp.outportHandler.FinalizedBlock(&outportcore.FinalizedBlock{ShardID: bp.shardCoordinator.SelfId(), HeaderHash: hdrHash})
 }
@@ -2120,7 +2120,7 @@ func (bp *baseProcessor) ProcessScheduledBlock(headerHandler data.HeaderHandler,
 	startTime := time.Now()
 	err = bp.scheduledTxsExecutionHandler.ExecuteAll(haveTime)
 	elapsedTime := time.Since(startTime)
-	log.Debug("elapsed time to execute all scheduled transactions",
+	log.Debug("elapsed time to execute all scheduled transactions ",
 		"time [s]", elapsedTime,
 	)
 	if err != nil {
@@ -2249,8 +2249,8 @@ func (bp *baseProcessor) getIndexOfFirstMiniBlockToBeExecuted(header data.Header
 	for index, miniBlockHeaderHandler := range header.GetMiniBlockHeaderHandlers() {
 		if miniBlockHeaderHandler.GetProcessingType() == int32(block.Processed) {
 			log.Debug("baseProcessor.getIndexOfFirstMiniBlockToBeExecuted: mini block is already executed",
-				"mb hash", miniBlockHeaderHandler.GetHash(),
-				"mb index", index)
+				"mbHash", miniBlockHeaderHandler.GetHash(),
+				"mbIndex", index)
 			continue
 		}
 

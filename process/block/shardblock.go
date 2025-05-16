@@ -256,12 +256,12 @@ func (sp *shardProcessor) ProcessBlock(
 	haveMissingMetaHeaders := requestedMetaHdrs > 0 || requestedFinalityAttestingMetaHdrs > 0 || requestedProofs > 0
 	if haveMissingMetaHeaders {
 		if requestedMetaHdrs > 0 {
-			log.Debug("requested missing meta headers",
+			log.Debug("requested missing meta headers ",
 				"num headers", requestedMetaHdrs,
 			)
 		}
 		if requestedFinalityAttestingMetaHdrs > 0 {
-			log.Debug("requested missing finality attesting meta headers",
+			log.Debug("requested missing finality attesting meta headers ",
 				"num finality meta headers", requestedFinalityAttestingMetaHdrs,
 			)
 		}
@@ -343,7 +343,7 @@ func (sp *shardProcessor) ProcessBlock(
 	startTime := time.Now()
 	err = sp.txCoordinator.ProcessBlockTransaction(header, &block.Body{MiniBlocks: miniBlocks}, haveTime)
 	elapsedTime := time.Since(startTime)
-	log.Debug("elapsed time to process block transaction",
+	log.Debug("elapsed time to process block transaction ",
 		"time [s]", elapsedTime,
 	)
 	if err != nil {
@@ -855,7 +855,7 @@ func (sp *shardProcessor) rollBackProcessedMiniBlocksInfo(headerHandler data.Hea
 		miniBlockHeader := process.GetMiniBlockHeaderWithHash(headerHandler, []byte(miniBlockHash))
 		if miniBlockHeader == nil {
 			log.Warn("shardProcessor.rollBackProcessedMiniBlocksInfo: GetMiniBlockHeaderWithHash",
-				"mb hash", miniBlockHash,
+				"mbHash", miniBlockHash,
 				"error", process.ErrMissingMiniBlockHeader)
 			continue
 		}
@@ -878,10 +878,10 @@ func (sp *shardProcessor) rollBackProcessedMiniBlockInfo(miniBlockHeader data.Mi
 	_, metaBlockHash := sp.processedMiniBlocksTracker.GetProcessedMiniBlockInfo(miniBlockHash)
 	if metaBlockHash == nil {
 		log.Warn("shardProcessor.rollBackProcessedMiniBlockInfo: mini block was not found in ProcessedMiniBlockTracker component",
-			"sender shard", miniBlockHeader.GetSenderShardID(),
-			"receiver shard", miniBlockHeader.GetReceiverShardID(),
+			"senderShard", miniBlockHeader.GetSenderShardID(),
+			"receiverShard", miniBlockHeader.GetReceiverShardID(),
 			"tx count", miniBlockHeader.GetTxCount(),
-			"mb hash", miniBlockHash)
+			"mbHash", miniBlockHash)
 		return
 	}
 
@@ -1687,7 +1687,7 @@ func (sp *shardProcessor) addProcessedCrossMiniBlocksFromHeader(headerHandler da
 
 			miniBlockHeader := process.GetMiniBlockHeaderWithHash(headerHandler, miniBlockHash)
 			if miniBlockHeader == nil {
-				log.Warn("shardProcessor.addProcessedCrossMiniBlocksFromHeader: GetMiniBlockHeaderWithHash", "mb hash", miniBlockHash, "error", process.ErrMissingMiniBlockHeader)
+				log.Warn("shardProcessor.addProcessedCrossMiniBlocksFromHeader: GetMiniBlockHeaderWithHash", "mbHash", miniBlockHash, "error", process.ErrMissingMiniBlockHeader)
 				continue
 			}
 
@@ -2033,7 +2033,7 @@ func (sp *shardProcessor) createAndProcessMiniBlocksDstMe(haveTime func() bool) 
 	sp.hdrsForCurrBlock.mutHdrsForBlock.Lock()
 	for i := 0; i < len(orderedMetaBlocks); i++ {
 		if !createAndProcessInfo.haveTime() && !createAndProcessInfo.haveAdditionalTime() {
-			log.Debug("time is up after putting cross txs with destination to current shard",
+			log.Debug("time is up after putting cross txs with destination to current shard ",
 				"scheduled mode", createAndProcessInfo.scheduledMode,
 				"num txs added", createAndProcessInfo.numTxsAdded,
 			)
@@ -2041,7 +2041,7 @@ func (sp *shardProcessor) createAndProcessMiniBlocksDstMe(haveTime func() bool) 
 		}
 
 		if createAndProcessInfo.numHdrsAdded >= process.MaxMetaHeadersAllowedInOneShardBlock {
-			log.Debug("maximum meta headers allowed to be included in one shard block has been reached",
+			log.Debug("maximum meta headers allowed to be included in one shard block has been reached ",
 				"scheduled mode", createAndProcessInfo.scheduledMode,
 				"meta headers added", createAndProcessInfo.numHdrsAdded,
 			)
@@ -2103,7 +2103,7 @@ func (sp *shardProcessor) createAndProcessMiniBlocksDstMe(haveTime func() bool) 
 			"txs added", len(miniBlock.TxHashes))
 	}
 
-	log.Debug("createAndProcessMiniBlocksDstMe has been finished",
+	log.Debug("createAndProcessMiniBlocksDstMe has been finished ",
 		"num txs added", createAndProcessInfo.numTxsAdded,
 		"num hdrs added", createAndProcessInfo.numHdrsAdded)
 
@@ -2144,7 +2144,7 @@ func (sp *shardProcessor) createMbsAndProcessCrossShardTransactionsDstMe(
 	}
 
 	if !hdrProcessFinished {
-		log.Debug("meta block cannot be fully processed",
+		log.Debug("meta block cannot be fully processed ",
 			"scheduled mode", createAndProcessInfo.scheduledMode,
 			"round", createAndProcessInfo.currMetaHdr.GetRound(),
 			"nonce", createAndProcessInfo.currMetaHdr.GetNonce(),
@@ -2234,7 +2234,7 @@ func (sp *shardProcessor) createMiniBlocks(haveTime func() bool, randomness []by
 		if len(createAndProcessMBsDestMeInfo.miniBlocks) > 0 {
 			miniBlocks = append(miniBlocks, createAndProcessMBsDestMeInfo.miniBlocks...)
 
-			log.Debug("processed miniblocks and txs with destination in self shard",
+			log.Debug("processed miniblocks and txs with destination in self shard ",
 				"num miniblocks", len(createAndProcessMBsDestMeInfo.miniBlocks),
 				"num txs", createAndProcessMBsDestMeInfo.numTxsAdded,
 				"num meta headers", createAndProcessMBsDestMeInfo.numHdrsAdded)
@@ -2268,12 +2268,12 @@ func (sp *shardProcessor) createMiniBlocks(haveTime func() bool, randomness []by
 			numTxs += len(mb.TxHashes)
 		}
 
-		log.Debug("processed miniblocks and txs from self shard",
+		log.Debug("processed miniblocks and txs from self shard ",
 			"num miniblocks", len(mbsFromMe),
 			"num txs", numTxs)
 	}
 
-	log.Debug("creating mini blocks has been finished", "num miniblocks", len(miniBlocks))
+	log.Debug("creating mini blocks has been finished ", "num miniblocks", len(miniBlocks))
 	return &block.Body{MiniBlocks: miniBlocks}, processedMiniBlocksDestMeInfo, nil
 }
 

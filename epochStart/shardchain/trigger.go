@@ -19,7 +19,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/display"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
-	"github.com/multiversx/mx-chain-logger-go"
+	logger "github.com/multiversx/mx-chain-logger-go"
 
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
@@ -613,7 +613,7 @@ func (t *trigger) checkMetaHeaderForEpochTriggerEquivalentProofs(headerHandler d
 	if !ok {
 		return
 	}
-	log.Debug("trigger.checkMetaHeaderForEpochTriggerEquivalentProofs", "metaHdr epoch", metaHdr.GetEpoch(), "metaBlockHash", metaBlockHash)
+	log.Debug("trigger.checkMetaHeaderForEpochTriggerEquivalentProofs", "metaHdrEpoch", metaHdr.GetEpoch(), "metaBlockHash", metaBlockHash)
 	if !t.shouldUpdateTrigger(metaHdr, metaBlockHash) {
 		return
 	}

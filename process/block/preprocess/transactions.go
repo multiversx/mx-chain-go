@@ -526,7 +526,7 @@ func (txs *transactions) processTxsToMe(
 		totalGasConsumedInSelfShard:           totalGasConsumed,
 	}
 
-	log.Debug("transactions.processTxsToMe: before processing",
+	log.Debug("transactions.processTxsToMe: before processing  ",
 		"scheduled mode", scheduledMode,
 		"totalGasConsumedInSelfShard", gasInfo.totalGasConsumedInSelfShard,
 		"total gas provided", txs.gasHandler.TotalGasProvided(),
@@ -535,7 +535,7 @@ func (txs *transactions) processTxsToMe(
 		"total gas penalized", txs.gasHandler.TotalGasPenalized(),
 	)
 	defer func() {
-		log.Debug("transactions.processTxsToMe after processing",
+		log.Debug("transactions.processTxsToMe: after processing  ",
 			"scheduled mode", scheduledMode,
 			"totalGasConsumedInSelfShard", gasInfo.totalGasConsumedInSelfShard,
 			"gasConsumedByMiniBlockInReceiverShard", gasInfo.gasConsumedByMiniBlockInReceiverShard,
@@ -1025,21 +1025,21 @@ func (txs *transactions) CreateAndProcessMiniBlocks(haveTime func() bool, random
 	}
 
 	if len(sortedTxs) == 0 {
-		log.Trace("no transaction found after computeSortedTxs",
+		log.Trace("no transaction found after computeSortedTxs ",
 			"time [s]", elapsedTime,
 		)
 		return make(block.MiniBlockSlice, 0), nil
 	}
 
 	if !haveTime() {
-		log.Debug("time is up after computeSortedTxs",
+		log.Debug("time is up after computeSortedTxs ",
 			"num txs", len(sortedTxs),
 			"time [s]", elapsedTime,
 		)
 		return make(block.MiniBlockSlice, 0), nil
 	}
 
-	log.Debug("elapsed time to computeSortedTxs",
+	log.Debug("elapsed time to computeSortedTxs ",
 		"num txs", len(sortedTxs),
 		"time [s]", elapsedTime,
 	)
@@ -1057,7 +1057,7 @@ func (txs *transactions) CreateAndProcessMiniBlocks(haveTime func() bool, random
 		sortedTxs,
 	)
 	elapsedTime = time.Since(startTime)
-	log.Debug("elapsed time to createAndProcessMiniBlocksFromMe",
+	log.Debug("elapsed time to createAndProcessMiniBlocksFromMe ",
 		"time [s]", elapsedTime,
 	)
 
@@ -1108,7 +1108,7 @@ func (txs *transactions) createAndProcessScheduledMiniBlocksFromMeAsProposer(
 		mapSCTxs,
 	)
 	elapsedTime := time.Since(startTime)
-	log.Debug("elapsed time to createScheduledMiniBlocks",
+	log.Debug("elapsed time to createScheduledMiniBlocks ",
 		"time [s]", elapsedTime,
 	)
 	if err != nil {
@@ -1130,7 +1130,7 @@ func (txs *transactions) createAndProcessMiniBlocksFromMeV1(
 	isMaxBlockSizeReached func(int, int) bool,
 	sortedTxs []*txcache.WrappedTransaction,
 ) (block.MiniBlockSlice, []*txcache.WrappedTransaction, error) {
-	log.Debug("createAndProcessMiniBlocksFromMeV1 has been started")
+	log.Debug("createAndProcessMiniBlocksFromMeV1 has been started ")
 
 	args := miniBlocksBuilderArgs{
 		gasTracker:                txs.gasTracker,
@@ -1191,7 +1191,7 @@ func logCreatedMiniBlocksStats(
 	mbb *miniBlocksBuilder,
 	nbSortedTxs int,
 ) {
-	log.Debug("createAndProcessMiniBlocksFromMeV1",
+	log.Debug("createAndProcessMiniBlocksFromMeV1 ",
 		"self shard", selfShardID,
 		"gas consumed in sender shard", mbb.gasInfo.gasConsumedByMiniBlocksInSenderShard,
 		"total gas consumed in self shard", mbb.gasInfo.totalGasConsumedInSelfShard)
@@ -1205,7 +1205,7 @@ func logCreatedMiniBlocksStats(
 			"txs added", len(miniBlock.TxHashes))
 	}
 
-	log.Debug("createAndProcessMiniBlocksFromMeV1 has been finished",
+	log.Debug("createAndProcessMiniBlocksFromMeV1 has been finished ",
 		"total txs", nbSortedTxs,
 		"num txs added", mbb.stats.numTxsAdded,
 		"num txs bad", mbb.stats.numTxsBad,
@@ -1358,7 +1358,7 @@ func (txs *transactions) splitMiniBlockBasedOnMaxGasLimitIfNeeded(miniBlock *blo
 
 		isGasLimitExceeded := gasLimitInReceiverShard+gasProvidedByTxInReceiverShard > txs.economicsFee.MaxGasLimitPerMiniBlockForSafeCrossShard()
 		if isGasLimitExceeded {
-			log.Debug("transactions.splitMiniBlockIfNeeded: gas limit exceeded",
+			log.Debug("transactions.splitMiniBlockIfNeeded: gas limit exceeded ",
 				"mb type", currentMiniBlock.Type,
 				"sender shard", currentMiniBlock.SenderShardID,
 				"receiver shard", currentMiniBlock.ReceiverShardID,
@@ -1490,7 +1490,7 @@ func (txs *transactions) ProcessMiniBlock(
 		totalGasConsumedInSelfShard:           totalGasConsumed,
 	}
 
-	log.Debug("transactions.ProcessMiniBlock: before processing",
+	log.Debug("transactions.ProcessMiniBlock: before processing ",
 		"scheduled mode", scheduledMode,
 		"totalGasConsumedInSelfShard", gasInfo.totalGasConsumedInSelfShard,
 		"total gas provided", txs.gasHandler.TotalGasProvided(),
@@ -1499,7 +1499,7 @@ func (txs *transactions) ProcessMiniBlock(
 		"total gas penalized", txs.gasHandler.TotalGasPenalized(),
 	)
 	defer func() {
-		log.Debug("transactions.ProcessMiniBlock after processing",
+		log.Debug("transactions.ProcessMiniBlock after processing ",
 			"scheduled mode", scheduledMode,
 			"totalGasConsumedInSelfShard", gasInfo.totalGasConsumedInSelfShard,
 			"gasConsumedByMiniBlockInReceiverShard", gasInfo.gasConsumedByMiniBlockInReceiverShard,
@@ -1569,7 +1569,7 @@ func (txs *transactions) ProcessMiniBlock(
 	numOfNewCrossInterMbs := numOfCrtCrossInterMbs - numOfOldCrossInterMbs
 	numOfNewCrossInterTxs := numOfCrtCrossInterTxs - numOfOldCrossInterTxs
 
-	log.Debug("transactions.ProcessMiniBlock",
+	log.Debug("transactions.ProcessMiniBlock ",
 		"scheduled mode", scheduledMode,
 		"numOfOldCrossInterMbs", numOfOldCrossInterMbs, "numOfOldCrossInterTxs", numOfOldCrossInterTxs,
 		"numOfCrtCrossInterMbs", numOfCrtCrossInterMbs, "numOfCrtCrossInterTxs", numOfCrtCrossInterTxs,

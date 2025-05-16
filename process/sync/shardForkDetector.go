@@ -163,7 +163,7 @@ func (sfd *shardForkDetector) appendSelfNotarizedHeaders(
 			hasProof: hasProof,
 		})
 		if appended {
-			log.Debug("added self notarized header in fork detector",
+			log.Debug("added self notarized header in fork detector ",
 				"notarized by shard", shardID,
 				"round", selfNotarizedHeaders[i].GetRound(),
 				"nonce", selfNotarizedHeaders[i].GetNonce(),

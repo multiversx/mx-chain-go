@@ -42,7 +42,7 @@ func NewGoRoutinesAnalyser(processor debug.GoRoutinesProcessor) (*goRoutinesAnal
 // DumpGoRoutinesToLogWithTypes will print the currently running go routines stats in the log
 func (grd *goRoutinesAnalyser) DumpGoRoutinesToLogWithTypes() {
 	buffer := core.GetRunningGoRoutines(log)
-	log.Debug("GoRoutinesAnalyser - DumpGoRoutinesToLogWithTypes", "goroutines number", runtime.NumGoroutine())
+	log.Debug("GoRoutinesAnalyser - DumpGoRoutinesToLogWithTypes ", "goroutines number", runtime.NumGoroutine())
 
 	newData := grd.goRoutinesProcessor.ProcessGoRoutineBuffer(grd.goRoutinesData, buffer)
 

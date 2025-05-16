@@ -262,18 +262,18 @@ func (ste *scheduledTxsExecution) computeScheduledIntermediateTxs(
 		numScheduledIntermediateTxs += len(intermediateTxsInfo)
 	}
 
-	log.Debug("scheduledTxsExecution.computeScheduledIntermediateTxs", "num of scheduled intermediate txs created", numScheduledIntermediateTxs)
+	log.Debug("scheduledTxsExecution.computeScheduledIntermediateTxs ", "num of scheduled intermediate txs created", numScheduledIntermediateTxs)
 }
 
 func (ste *scheduledTxsExecution) removeInvalidTxsFromScheduledMiniBlocks(intermediateTxsInfo []*intermediateTxInfo) {
-	log.Debug("scheduledTxsExecution.removeInvalidTxsFromScheduledMiniBlocks", "num of invalid txs", len(intermediateTxsInfo))
+	log.Debug("scheduledTxsExecution.removeInvalidTxsFromScheduledMiniBlocks ", "num of invalid txs", len(intermediateTxsInfo))
 
 	numInvalidTxsRemoved := 0
 	for _, interTxInfo := range intermediateTxsInfo {
 		for index, miniBlock := range ste.scheduledMbs {
 			indexOfTxHashInMiniBlock := getIndexOfTxHashInMiniBlock(interTxInfo.txHash, miniBlock)
 			if indexOfTxHashInMiniBlock >= 0 {
-				log.Trace("scheduledTxsExecution.removeInvalidTxsFromScheduledMiniBlocks", "tx hash", interTxInfo.txHash)
+				log.Trace("scheduledTxsExecution.removeInvalidTxsFromScheduledMiniBlocks", "txHash", interTxInfo.txHash)
 				ste.scheduledMbs[index].TxHashes = append(miniBlock.TxHashes[:indexOfTxHashInMiniBlock], miniBlock.TxHashes[indexOfTxHashInMiniBlock+1:]...)
 				numInvalidTxsRemoved++
 				break
@@ -290,7 +290,7 @@ func (ste *scheduledTxsExecution) removeInvalidTxsFromScheduledMiniBlocks(interm
 	}
 	ste.scheduledMbs = resultedScheduledMbs
 
-	log.Debug("scheduledTxsExecution.removeInvalidTxsFromScheduledMiniBlocks", "num of invalid txs removed", numInvalidTxsRemoved)
+	log.Debug("scheduledTxsExecution.removeInvalidTxsFromScheduledMiniBlocks ", "num of invalid txs removed", numInvalidTxsRemoved)
 }
 
 func getIndexOfTxHashInMiniBlock(txHash []byte, miniBlock *block.MiniBlock) int {
@@ -344,7 +344,7 @@ func (ste *scheduledTxsExecution) GetScheduledTxs() []data.TransactionHandler {
 		log.Trace("scheduledTxsExecution.GetScheduledTxs", "sender", scheduledTxs[index].GetSndAddr(), "receiver", scheduledTxs[index].GetRcvAddr())
 	}
 
-	log.Debug("scheduledTxsExecution.GetScheduledTxs", "num of scheduled txs", len(scheduledTxs))
+	log.Debug("scheduledTxsExecution.GetScheduledTxs ", "num of scheduled txs", len(scheduledTxs))
 
 	return scheduledTxs
 }
@@ -364,12 +364,12 @@ func (ste *scheduledTxsExecution) GetScheduledIntermediateTxs() map[block.Type][
 		mapScheduledIntermediateTxs[blockType] = make([]data.TransactionHandler, len(scheduledIntermediateTxs))
 		for index, scheduledIntermediateTx := range scheduledIntermediateTxs {
 			mapScheduledIntermediateTxs[blockType][index] = scheduledIntermediateTx
-			log.Trace("scheduledTxsExecution.GetScheduledIntermediateTxs", "blockType", blockType, "sender", mapScheduledIntermediateTxs[blockType][index].GetSndAddr(), "receiver", mapScheduledIntermediateTxs[blockType][index].GetRcvAddr())
+			log.Trace("scheduledTxsExecution.GetScheduledIntermediateTxs ", "block type", blockType, "sender", mapScheduledIntermediateTxs[blockType][index].GetSndAddr(), "receiver", mapScheduledIntermediateTxs[blockType][index].GetRcvAddr())
 		}
 		numScheduledIntermediateTxs += len(scheduledIntermediateTxs)
 	}
 
-	log.Debug("scheduledTxsExecution.GetScheduledIntermediateTxs", "num of scheduled intermediate txs", numScheduledIntermediateTxs)
+	log.Debug("scheduledTxsExecution.GetScheduledIntermediateTxs ", "num of scheduled intermediate txs", numScheduledIntermediateTxs)
 
 	return mapScheduledIntermediateTxs
 }
@@ -389,7 +389,7 @@ func (ste *scheduledTxsExecution) GetScheduledMiniBlocks() block.MiniBlockSlice 
 		miniBlocks[index] = miniBlock
 	}
 
-	log.Debug("scheduledTxsExecution.GetScheduledMiniBlocks", "num of scheduled mbs", len(miniBlocks))
+	log.Debug("scheduledTxsExecution.GetScheduledMiniBlocks ", "num of scheduled mbs", len(miniBlocks))
 
 	return miniBlocks
 }
@@ -447,7 +447,7 @@ func (ste *scheduledTxsExecution) GetScheduledRootHash() []byte {
 	rootHash := ste.scheduledRootHash
 	ste.mutScheduledTxs.RUnlock()
 
-	log.Debug("scheduledTxsExecution.GetScheduledRootHash", "scheduled root hash", rootHash)
+	log.Debug("scheduledTxsExecution.GetScheduledRootHash ", "scheduled root hash", rootHash)
 
 	return rootHash
 }
@@ -475,7 +475,7 @@ func (ste *scheduledTxsExecution) SetScheduledRootHash(rootHash []byte) {
 	defer ste.mutScheduledTxs.Unlock()
 
 	ste.scheduledRootHash = rootHash
-	log.Debug("scheduledTxsExecution.SetScheduledRootHash", "scheduled root hash", ste.scheduledRootHash)
+	log.Debug("scheduledTxsExecution.SetScheduledRootHash ", "scheduled root hash", ste.scheduledRootHash)
 }
 
 // SetScheduledGasAndFees sets the gas and fees for the scheduled transactions
@@ -511,7 +511,7 @@ func (ste *scheduledTxsExecution) GetScheduledRootHashForHeader(
 		return nil, err
 	}
 
-	log.Debug("scheduledTxsExecution.GetScheduledRootHashForHeader", "header hash", headerHash, "scheduled root hash", scheduledInfo.RootHash)
+	log.Debug("scheduledTxsExecution.GetScheduledRootHashForHeader ", "header hash", headerHash, "scheduled root hash", scheduledInfo.RootHash)
 
 	return scheduledInfo.RootHash, nil
 }
@@ -526,7 +526,7 @@ func (ste *scheduledTxsExecution) GetScheduledRootHashForHeaderWithEpoch(
 		return nil, err
 	}
 
-	log.Debug("scheduledTxsExecution.GetScheduledRootHashForHeaderWithEpoch", "header hash", headerHash, "scheduled root hash", scheduledInfo.RootHash)
+	log.Debug("scheduledTxsExecution.GetScheduledRootHashForHeaderWithEpoch ", "header hash", headerHash, "scheduled root hash", scheduledInfo.RootHash)
 
 	return scheduledInfo.RootHash, nil
 }
@@ -538,7 +538,7 @@ func (ste *scheduledTxsExecution) RollBackToBlock(headerHash []byte) error {
 		return err
 	}
 
-	log.Debug("scheduledTxsExecution.RollBackToBlock",
+	log.Debug("scheduledTxsExecution.RollBackToBlock ",
 		"header hash", headerHash,
 		"scheduled root hash", scheduledInfo.RootHash,
 		"num of scheduled mbs", len(scheduledInfo.MiniBlocks),
@@ -567,7 +567,7 @@ func (ste *scheduledTxsExecution) SaveStateIfNeeded(headerHash []byte) {
 	numScheduledTxs := len(ste.scheduledTxs)
 	ste.mutScheduledTxs.RUnlock()
 
-	log.Debug("scheduledTxsExecution.SaveStateIfNeeded",
+	log.Debug("scheduledTxsExecution.SaveStateIfNeeded ",
 		"header hash", headerHash,
 		"scheduled root hash", scheduledInfo.RootHash,
 		"num of scheduled txs", numScheduledTxs,
@@ -591,7 +591,7 @@ func (ste *scheduledTxsExecution) SaveState(headerHash []byte, scheduledInfo *pr
 		return
 	}
 
-	log.Debug("scheduledTxsExecution.SaveState: Put",
+	log.Debug("scheduledTxsExecution.SaveState: Put ",
 		"header hash", headerHash,
 		"scheduled root hash", scheduledInfo.RootHash,
 		"num of scheduled intermediate txs", getNumScheduledIntermediateTxs(scheduledInfo.IntermediateTxs),
@@ -614,7 +614,7 @@ func (ste *scheduledTxsExecution) getScheduledInfoForHeader(headerHash []byte, e
 
 	defer func() {
 		if err != nil {
-			log.Trace("getScheduledInfoForHeader: given header does not have scheduled txs",
+			log.Trace("getScheduledInfoForHeader: given header does not have scheduled txs ",
 				"header hash", headerHash,
 			)
 		}

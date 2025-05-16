@@ -124,7 +124,7 @@ func (e *epochStartBootstrap) prepareEpochFromStorage() (Parameters, error) {
 	e.trieStorageManagers = trieStorageManagers
 
 	e.shuffledOut = isShuffledOut
-	log.Debug("prepareEpochFromStorage for shuffled out", "initial shard id", e.baseData.shardId, "new shard id", newShardId)
+	log.Debug("prepareEpochFromStorage for shuffled out ", "initial shard id", e.baseData.shardId, "new shard id", newShardId)
 	e.baseData.shardId = newShardId
 
 	err = e.createRequestHandler()

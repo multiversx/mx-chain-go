@@ -782,7 +782,7 @@ func (boot *baseBootstrap) syncBlock() error {
 	startProcessBlockTime := time.Now()
 	err = boot.blockProcessor.ProcessBlock(header, body, haveTime)
 	elapsedTime := time.Since(startProcessBlockTime)
-	log.Debug("elapsed time to process block",
+	log.Debug("elapsed time to process block ",
 		"time [s]", elapsedTime,
 	)
 	if err != nil {
@@ -792,7 +792,7 @@ func (boot *baseBootstrap) syncBlock() error {
 	startProcessScheduledBlockTime := time.Now()
 	err = boot.blockProcessor.ProcessScheduledBlock(header, body, haveTime)
 	elapsedTime = time.Since(startProcessScheduledBlockTime)
-	log.Debug("elapsed time to process scheduled block",
+	log.Debug("elapsed time to process scheduled block ",
 		"time [s]", elapsedTime,
 	)
 	if err != nil {
@@ -805,7 +805,7 @@ func (boot *baseBootstrap) syncBlock() error {
 	if elapsedTime >= common.CommitMaxTime {
 		log.Warn("syncBlock.CommitBlock", "elapsed time", elapsedTime)
 	} else {
-		log.Debug("elapsed time to commit block",
+		log.Debug("elapsed time to commit block ",
 			"time [s]", elapsedTime,
 		)
 	}
