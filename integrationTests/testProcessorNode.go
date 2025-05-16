@@ -1138,19 +1138,6 @@ func (tpn *TestProcessorNode) initEconomicsData(economicsConfig *config.Economic
 	tpn.EconomicsData = economics.NewTestEconomicsData(economicsData)
 }
 
-func createDefaultCacheConfig() *config.CacheConfig {
-	return &config.CacheConfig{
-		Name:                                 "",
-		Type:                                 "",
-		Capacity:                             0,
-		SizePerSender:                        0,
-		SizeInBytes:                          0,
-		SizeInBytesPerSender:                 0,
-		Shards:                               0,
-		SelectionGasBandwidthIncreasePercent: 400,
-	}
-}
-
 func createDefaultEconomicsConfig() *config.EconomicsConfig {
 	maxGasLimitPerBlock := strconv.FormatUint(MaxGasLimitPerBlock, 10)
 	minGasPrice := strconv.FormatUint(MinTxGasPrice, 10)

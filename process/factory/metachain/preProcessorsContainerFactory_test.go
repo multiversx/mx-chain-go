@@ -654,7 +654,7 @@ func TestNewPreProcessorsContainerFactory_DefaultSelectionGasBandwidthIncreasePe
 		&testscommon.ScheduledTxsExecutionStub{},
 		&testscommon.ProcessedMiniBlocksTrackerStub{},
 		&commonMock.TxExecutionOrderHandlerStub{},
-		config.CacheConfig{SelectionGasBandwidthIncreasePercent: 400},
+		config.CacheConfig{SelectionGasBandwidthIncreasePercent: 0},
 	)
 
 	assert.Error(t, err)
