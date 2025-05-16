@@ -14,6 +14,7 @@ import (
 
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/consensus"
+	"github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/ntp"
 )
 
@@ -49,7 +50,6 @@ type chronology struct {
 
 // NewChronology creates a new chronology object
 func NewChronology(arg ArgChronology) (*chronology, error) {
-
 	err := checkNewChronologyParams(arg)
 	if err != nil {
 		return nil, err
@@ -73,7 +73,6 @@ func NewChronology(arg ArgChronology) (*chronology, error) {
 }
 
 func checkNewChronologyParams(arg ArgChronology) error {
-
 	if check.IfNil(arg.RoundHandler) {
 		return ErrNilRoundHandler
 	}
@@ -85,6 +84,9 @@ func checkNewChronologyParams(arg ArgChronology) error {
 	}
 	if check.IfNil(arg.AppStatusHandler) {
 		return ErrNilAppStatusHandler
+	}
+	if check.IfNil(arg.EnableEpochsHandler) {
+		return errors.ErrNilEnableEpochsHandler
 	}
 
 	return nil

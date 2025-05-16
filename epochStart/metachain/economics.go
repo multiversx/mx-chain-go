@@ -16,6 +16,7 @@ import (
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/epochStart"
+	"github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/sharding"
 )
@@ -82,6 +83,9 @@ func NewEndOfEpochEconomicsDataCreator(args ArgsNewEpochEconomics) (*economics, 
 	}
 	if args.GenesisTotalSupply == nil {
 		return nil, epochStart.ErrNilGenesisTotalSupply
+	}
+	if check.IfNil(args.EnableEpochsHandler) {
+		return nil, errors.ErrNilEnableEpochsHandler
 	}
 
 	e := &economics{

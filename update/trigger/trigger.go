@@ -13,6 +13,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data/endProcess"
 	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/facade"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/update"
@@ -112,6 +113,9 @@ func NewTrigger(arg ArgHardforkTrigger) (*trigger, error) {
 	}
 	if check.IfNil(arg.RoundHandler) {
 		return nil, fmt.Errorf("%w in update.NewTrigger", update.ErrNilRoundHandler)
+	}
+	if check.IfNil(arg.EnableEpochsHandler) {
+		return nil, errors.ErrNilEnableEpochsHandler
 	}
 
 	t := &trigger{

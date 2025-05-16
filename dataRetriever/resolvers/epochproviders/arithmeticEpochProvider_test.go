@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -67,6 +68,7 @@ func TestNewArithmeticEpochProvider_ShouldWork(t *testing.T) {
 		RoundsPerEpoch:          2400,
 		RoundTimeInMilliseconds: 6000,
 		StartTime:               time.Now().Unix(),
+		EnableEpochsHandler:     &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 	}
 
 	aep, err := NewArithmeticEpochProvider(arg)
@@ -83,6 +85,7 @@ func TestArithmeticEpochProvider_ComputeEpochAtGenesis(t *testing.T) {
 		RoundsPerEpoch:          2400,
 		RoundTimeInMilliseconds: 6000,
 		StartTime:               1000,
+		EnableEpochsHandler:     &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 	}
 	aep := NewTestArithmeticEpochProvider(arg, getUnixHandler(0))
 	assert.Equal(t, uint32(0), aep.CurrentComputedEpoch())
@@ -122,6 +125,7 @@ func TestArithmeticEpochProvider_EpochConfirmedInvalidTimestamp(t *testing.T) {
 		RoundsPerEpoch:          2400,
 		RoundTimeInMilliseconds: 6000,
 		StartTime:               1000,
+		EnableEpochsHandler:     &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 	}
 	aep := NewTestArithmeticEpochProvider(arg, getUnixHandler(15500))
 	assert.Equal(t, uint32(1), aep.CurrentComputedEpoch())
@@ -138,6 +142,7 @@ func TestArithmeticEpochProvider_EpochConfirmed(t *testing.T) {
 		RoundsPerEpoch:          2400,
 		RoundTimeInMilliseconds: 6000,
 		StartTime:               1000,
+		EnableEpochsHandler:     &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 	}
 	aep := NewTestArithmeticEpochProvider(arg, getUnixHandler(15500))
 	assert.Equal(t, uint32(1), aep.CurrentComputedEpoch())
@@ -156,6 +161,7 @@ func TestArithmeticEpochProvider_EpochIsActiveInNetwork(t *testing.T) {
 		RoundsPerEpoch:          1,
 		RoundTimeInMilliseconds: 1,
 		StartTime:               1,
+		EnableEpochsHandler:     &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 	}
 	aep := NewTestArithmeticEpochProvider(arg, getUnixHandler(1))
 

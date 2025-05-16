@@ -5,7 +5,9 @@ import (
 	"sync"
 	"time"
 
+	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/errors"
 	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
@@ -49,6 +51,10 @@ func NewArithmeticEpochProvider(arg ArgArithmeticEpochProvider) (*arithmeticEpoc
 	if arg.StartTime < 0 {
 		return nil, fmt.Errorf("%w in NewArithmeticEpochProvider", ErrInvalidStartTime)
 	}
+	if check.IfNil(arg.EnableEpochsHandler) {
+		return nil, errors.ErrNilEnableEpochsHandler
+	}
+
 	aep := &arithmeticEpochProvider{
 		headerEpoch:                0,
 		headerTimestampForNewEpoch: uint64(arg.StartTime),

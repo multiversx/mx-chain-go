@@ -24,6 +24,7 @@ func CreateCurrentEpochProvider(
 		RoundsPerEpoch:          uint32(generalConfigs.EpochStartConfig.RoundsPerEpoch),
 		RoundTimeInMilliseconds: roundTimeInMilliseconds,
 		StartTime:               startTime,
+		EnableEpochsHandler:     enableEpochsHandler,
 	}
 
 	return epochproviders.NewArithmeticEpochProvider(arg)
