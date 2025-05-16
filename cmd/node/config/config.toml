@@ -420,8 +420,6 @@
     SizeInBytesPerSender = 12288000 #12MB
     Type = "TxCache"
     Shards = 16
-
-[TxCacheConfig]
     SelectionGasBandwidthIncreasePercent = 400
 
 [TrieNodesChunksDataPool]

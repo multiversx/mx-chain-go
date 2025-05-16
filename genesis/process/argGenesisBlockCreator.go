@@ -78,5 +78,5 @@ type ArgsGenesisBlockCreator struct {
 	// created components
 	importHandler          update.ImportHandler
 	versionedHeaderFactory genesis.VersionedHeaderFactory
-	TxCacheConfig          config.TxCacheConfig
+	TxCacheConfig          config.CacheConfig
 }

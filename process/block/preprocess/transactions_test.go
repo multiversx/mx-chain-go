@@ -241,7 +241,7 @@ func createDefaultTransactionsProcessorArgs() ArgsTransactionPreProcessor {
 		ScheduledTxsExecutionHandler: &testscommon.ScheduledTxsExecutionStub{},
 		ProcessedMiniBlocksTracker:   &testscommon.ProcessedMiniBlocksTrackerStub{},
 		TxExecutionOrderHandler:      &commonMocks.TxExecutionOrderHandlerStub{},
-		TxCacheConfig:                config.TxCacheConfig{SelectionGasBandwidthIncreasePercent: 400},
+		TxCacheConfig:                config.CacheConfig{SelectionGasBandwidthIncreasePercent: 400},
 	}
 }
 

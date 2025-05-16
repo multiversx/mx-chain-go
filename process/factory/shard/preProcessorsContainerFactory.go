@@ -41,7 +41,7 @@ type preProcessorsContainerFactory struct {
 	scheduledTxsExecutionHandler process.ScheduledTxsExecutionHandler
 	processedMiniBlocksTracker   process.ProcessedMiniBlocksTracker
 	txExecutionOrderHandler      common.TxExecutionOrderHandler
-	txCacheConfig                config.TxCacheConfig
+	txPoolConfig                 config.CacheConfig
 }
 
 // NewPreProcessorsContainerFactory is responsible for creating a new preProcessors factory object
@@ -68,7 +68,7 @@ func NewPreProcessorsContainerFactory(
 	scheduledTxsExecutionHandler process.ScheduledTxsExecutionHandler,
 	processedMiniBlocksTracker process.ProcessedMiniBlocksTracker,
 	txExecutionOrderHandler common.TxExecutionOrderHandler,
-	txCacheConfig config.TxCacheConfig,
+	txPoolConfig config.CacheConfig,
 ) (*preProcessorsContainerFactory, error) {
 
 	if check.IfNil(shardCoordinator) {
@@ -137,7 +137,7 @@ func NewPreProcessorsContainerFactory(
 	if check.IfNil(txExecutionOrderHandler) {
 		return nil, process.ErrNilTxExecutionOrderHandler
 	}
-	if txCacheConfig.SelectionGasBandwidthIncreasePercent == 0 {
+	if txPoolConfig.SelectionGasBandwidthIncreasePercent == 0 {
 		return nil, process.ErrDefaultSelectionGasBandwidthIncreasePercent
 	}
 
@@ -164,7 +164,7 @@ func NewPreProcessorsContainerFactory(
 		scheduledTxsExecutionHandler: scheduledTxsExecutionHandler,
 		processedMiniBlocksTracker:   processedMiniBlocksTracker,
 		txExecutionOrderHandler:      txExecutionOrderHandler,
-		txCacheConfig:                txCacheConfig,
+		txPoolConfig:                 txPoolConfig,
 	}, nil
 }
 
@@ -237,7 +237,7 @@ func (ppcm *preProcessorsContainerFactory) createTxPreProcessor() (process.PrePr
 		ScheduledTxsExecutionHandler: ppcm.scheduledTxsExecutionHandler,
 		ProcessedMiniBlocksTracker:   ppcm.processedMiniBlocksTracker,
 		TxExecutionOrderHandler:      ppcm.txExecutionOrderHandler,
-		TxCacheConfig:                ppcm.txCacheConfig,
+		TxCacheConfig:                ppcm.txPoolConfig,
 	}
 
 	txPreprocessor, err := preprocess.NewTransactionPreprocessor(args)

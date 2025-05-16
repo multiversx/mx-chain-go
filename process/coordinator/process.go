@@ -68,7 +68,7 @@ type ArgTransactionCoordinator struct {
 	DoubleTransactionsDetector   process.DoubleTransactionDetector
 	ProcessedMiniBlocksTracker   process.ProcessedMiniBlocksTracker
 	TxExecutionOrderHandler      common.TxExecutionOrderHandler
-	TxCacheConfig                config.TxCacheConfig
+	TxPoolConfig                 config.CacheConfig
 }
 
 type transactionCoordinator struct {

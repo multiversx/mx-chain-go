@@ -482,7 +482,7 @@ func TestShardProcessor_ProcessBlockWithInvalidTransactionShouldErr(t *testing.T
 		&testscommon.ScheduledTxsExecutionStub{},
 		&testscommon.ProcessedMiniBlocksTrackerStub{},
 		&commonMock.TxExecutionOrderHandlerStub{},
-		config.TxCacheConfig{SelectionGasBandwidthIncreasePercent: 400},
+		config.CacheConfig{SelectionGasBandwidthIncreasePercent: 400},
 	)
 	container, _ := factory.Create()
 
@@ -705,7 +705,7 @@ func TestShardProcessor_ProcessBlockWithErrOnProcessBlockTransactionsCallShouldR
 		&testscommon.ScheduledTxsExecutionStub{},
 		&testscommon.ProcessedMiniBlocksTrackerStub{},
 		&commonMock.TxExecutionOrderHandlerStub{},
-		config.TxCacheConfig{SelectionGasBandwidthIncreasePercent: 400},
+		config.CacheConfig{SelectionGasBandwidthIncreasePercent: 400},
 	)
 	container, _ := factory.Create()
 
@@ -2611,7 +2611,7 @@ func TestShardProcessor_MarshalizedDataToBroadcastShouldWork(t *testing.T) {
 		&testscommon.ScheduledTxsExecutionStub{},
 		&testscommon.ProcessedMiniBlocksTrackerStub{},
 		&commonMock.TxExecutionOrderHandlerStub{},
-		config.TxCacheConfig{SelectionGasBandwidthIncreasePercent: 400},
+		config.CacheConfig{SelectionGasBandwidthIncreasePercent: 400},
 	)
 	container, _ := factory.Create()
 
@@ -2721,7 +2721,7 @@ func TestShardProcessor_MarshalizedDataMarshalWithoutSuccess(t *testing.T) {
 		&testscommon.ScheduledTxsExecutionStub{},
 		&testscommon.ProcessedMiniBlocksTrackerStub{},
 		&commonMock.TxExecutionOrderHandlerStub{},
-		config.TxCacheConfig{SelectionGasBandwidthIncreasePercent: 400},
+		config.CacheConfig{SelectionGasBandwidthIncreasePercent: 400},
 	)
 	container, _ := factory.Create()
 
@@ -3123,7 +3123,7 @@ func TestShardProcessor_CreateMiniBlocksShouldWorkWithIntraShardTxs(t *testing.T
 		&testscommon.ScheduledTxsExecutionStub{},
 		&testscommon.ProcessedMiniBlocksTrackerStub{},
 		&commonMock.TxExecutionOrderHandlerStub{},
-		config.TxCacheConfig{SelectionGasBandwidthIncreasePercent: 400},
+		config.CacheConfig{SelectionGasBandwidthIncreasePercent: 400},
 	)
 	container, _ := factory.Create()
 
@@ -3306,7 +3306,7 @@ func TestShardProcessor_RestoreBlockIntoPoolsShouldWork(t *testing.T) {
 		&testscommon.ScheduledTxsExecutionStub{},
 		&testscommon.ProcessedMiniBlocksTrackerStub{},
 		&commonMock.TxExecutionOrderHandlerStub{},
-		config.TxCacheConfig{SelectionGasBandwidthIncreasePercent: 400},
+		config.CacheConfig{SelectionGasBandwidthIncreasePercent: 400},
 	)
 	container, _ := factory.Create()
 

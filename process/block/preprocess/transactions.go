@@ -54,7 +54,7 @@ type transactions struct {
 	emptyAddress                 []byte
 	txTypeHandler                process.TxTypeHandler
 	scheduledTxsExecutionHandler process.ScheduledTxsExecutionHandler
-	txCacheConfig                config.TxCacheConfig
+	txPoolConfig                 config.CacheConfig
 }
 
 // ArgsTransactionPreProcessor holds the arguments to create a txs pre processor
@@ -79,7 +79,7 @@ type ArgsTransactionPreProcessor struct {
 	ScheduledTxsExecutionHandler process.ScheduledTxsExecutionHandler
 	ProcessedMiniBlocksTracker   process.ProcessedMiniBlocksTracker
 	TxExecutionOrderHandler      common.TxExecutionOrderHandler
-	TxCacheConfig                config.TxCacheConfig
+	TxCacheConfig                config.CacheConfig
 }
 
 // NewTransactionPreprocessor creates a new transaction preprocessor object
@@ -185,7 +185,7 @@ func NewTransactionPreprocessor(
 		blockType:                    args.BlockType,
 		txTypeHandler:                args.TxTypeHandler,
 		scheduledTxsExecutionHandler: args.ScheduledTxsExecutionHandler,
-		txCacheConfig:                args.TxCacheConfig,
+		txPoolConfig:                 args.TxCacheConfig,
 	}
 
 	txs.chRcvAllTxs = make(chan bool)
@@ -1015,7 +1015,7 @@ func (txs *transactions) getRemainingGasPerBlockAsScheduled() uint64 {
 func (txs *transactions) CreateAndProcessMiniBlocks(haveTime func() bool, randomness []byte) (block.MiniBlockSlice, error) {
 	startTime := time.Now()
 
-	gasBandwidth := txs.getRemainingGasPerBlock() * uint64(txs.txCacheConfig.SelectionGasBandwidthIncreasePercent) / 100
+	gasBandwidth := txs.getRemainingGasPerBlock() * uint64(txs.txPoolConfig.SelectionGasBandwidthIncreasePercent) / 100
 	gasBandwidthForScheduled := uint64(0)
 	if txs.enableEpochsHandler.IsFlagEnabled(common.ScheduledMiniBlocksFlag) {
 		gasBandwidthForScheduled = txs.getRemainingGasPerBlockAsScheduled() * selectionGasBandwidthIncreaseScheduledPercent / 100
