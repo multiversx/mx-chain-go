@@ -593,6 +593,16 @@ func (adb *AccountsDB) removeCode(baseAcc baseAccountHandler) error {
 	return nil
 }
 
+type dataFetcher interface {
+	FetchAccount(address []byte, newAccount vmcommon.AccountHandler) (UserAccountHandler, error)
+}
+
+var fetcher dataFetcher
+
+func SetDataFetcher(df dataFetcher) {
+	fetcher = df
+}
+
 // LoadAccount fetches the account based on the address. Creates an empty account if the account is missing.
 func (adb *AccountsDB) LoadAccount(address []byte) (vmcommon.AccountHandler, error) {
 	if len(address) == 0 {
@@ -607,7 +617,27 @@ func (adb *AccountsDB) LoadAccount(address []byte) (vmcommon.AccountHandler, err
 		return nil, err
 	}
 	if check.IfNil(acnt) {
-		return adb.accountFactory.CreateAccount(address)
+		if fetcher == nil {
+			return adb.accountFactory.CreateAccount(address)
+		}
+
+		newAccount, errC := adb.accountFactory.CreateAccount(address)
+		if errC != nil {
+			return nil, errC
+		}
+
+		aaacc, errF := fetcher.FetchAccount(address, newAccount)
+		if errF != nil {
+			return nil, errF
+		}
+
+		err = adb.SaveAccount(aaacc)
+		if err != nil {
+			return nil, err
+		}
+		_, err = adb.Commit()
+
+		return aaacc, err
 	}
 
 	baseAcc, ok := acnt.(baseAccountHandler)
@@ -657,7 +687,27 @@ func (adb *AccountsDB) GetExistingAccount(address []byte) (vmcommon.AccountHandl
 		return nil, err
 	}
 	if check.IfNil(acnt) {
-		return nil, ErrAccNotFound
+		if fetcher == nil {
+			return nil, ErrAccNotFound
+		}
+
+		newAccount, errC := adb.accountFactory.CreateAccount(address)
+		if errC != nil {
+			return nil, errC
+		}
+
+		myAccount, errF := fetcher.FetchAccount(address, newAccount)
+		if errF != nil {
+			return nil, errF
+		}
+
+		err = adb.SaveAccount(myAccount)
+		if err != nil {
+			return nil, err
+		}
+		_, err = adb.Commit()
+
+		return myAccount, err
 	}
 
 	baseAcc, ok := acnt.(baseAccountHandler)
