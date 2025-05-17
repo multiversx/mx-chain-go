@@ -37,7 +37,7 @@
         ValidatorDecreaseFactor = -4.0
         ConsecutiveMissedBlocksPenalty = 1.50
     [[ShardChain.RatingStepsByEpoch]]
-        EnableEpoch = 8
+        EnableEpoch = 4
         HoursToMaxRatingFromStartRating = 55
         ProposerValidatorImportance = 1.0
         ProposerDecreaseFactor = -4.0
