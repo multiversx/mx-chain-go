@@ -187,10 +187,6 @@ func (ccf *coreComponentsFactory) Create() (*coreComponents, error) {
 		return nil, err
 	}
 
-	syncer := ntp.NewSyncTime(ccf.config.NTPConfig, nil)
-	syncer.StartSyncingTime()
-	log.Debug("NTP average clock offset", "value", syncer.ClockOffset())
-
 	epochNotifier := forking.NewGenericEpochNotifier()
 	epochStartHandlerWithConfirm := notifier.NewEpochStartSubscriptionHandler()
 	enableEpochsHandler, err := enablers.NewEnableEpochsHandler(ccf.epochConfig.EnableEpochs, epochNotifier)
@@ -220,6 +216,11 @@ func (ccf *coreComponentsFactory) Create() (*coreComponents, error) {
 		return nil, err
 	}
 
+	roundDuration := time.Millisecond * time.Duration(genesisNodesConfig.GetRoundDuration())
+	syncer := ntp.NewSyncTime(ccf.config.NTPConfig, nil, roundDuration)
+	syncer.StartSyncingTime()
+	log.Debug("NTP average clock offset", "value", syncer.ClockOffset())
+
 	startRound := int64(0)
 	if ccf.config.Hardfork.AfterHardFork {
 		log.Debug("changed genesis time after hardfork",
@@ -246,7 +247,7 @@ func (ccf *coreComponentsFactory) Create() (*coreComponents, error) {
 	roundHandler, err := round.NewRound(
 		genesisTime,
 		syncer.CurrentTime(),
-		time.Millisecond*time.Duration(genesisNodesConfig.RoundDuration),
+		roundDuration,
 		syncer,
 		startRound,
 	)

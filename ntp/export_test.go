@@ -7,7 +7,7 @@ import (
 )
 
 // OutOfBoundsDuration -
-const OutOfBoundsDuration = outOfBoundsDuration
+const OutOfBoundsDuration = outOfBoundsRoundDurationPercentage
 
 // Query -
 func (s *syncTime) Query() func(options NTPOptions, hostIndex int) (*ntp.Response, error) {
