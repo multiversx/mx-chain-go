@@ -139,8 +139,5 @@ const MaxGasFeeHigherFactorAccepted = 10
 // TxCacheSelectionGasRequested defines the maximum total gas for transactions that should be selected from the cache.
 const TxCacheSelectionGasRequested = 10_000_000_000
 
-// TxCacheSelectionMaxNumTxs defines the maximum number of transactions that should be selected from the cache.
-const TxCacheSelectionMaxNumTxs = 30_000
-
 // TxCacheSelectionLoopMaximumDuration defines the maximum duration for the loop that selects transactions from the cache.
 const TxCacheSelectionLoopMaximumDuration = 250 * time.Millisecond

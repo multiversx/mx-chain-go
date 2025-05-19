@@ -1820,6 +1820,7 @@ func (tpn *TestProcessorNode) initInnerProcessors(gasMap map[string]map[string]u
 		config.CacheConfig{
 			SelectionGasBandwidthIncreasePercent:          400,
 			SelectionGasBandwidthIncreaseScheduledPercent: 260,
+			TxCacheSelectionMaxNumTxs:                     30000,
 		},
 	)
 	if err != nil {
@@ -2095,6 +2096,7 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors(gasMap map[string]map[stri
 		config.CacheConfig{
 			SelectionGasBandwidthIncreasePercent:          400,
 			SelectionGasBandwidthIncreaseScheduledPercent: 260,
+			TxCacheSelectionMaxNumTxs:                     30000,
 		},
 	)
 	tpn.PreProcessorsContainer, _ = fact.Create()

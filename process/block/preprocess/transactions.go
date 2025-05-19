@@ -159,6 +159,10 @@ func NewTransactionPreprocessor(
 		return nil, process.ErrDefaultSelectionGasBandwidthIncreaseScheduledPercent
 	}
 
+	if args.TxCacheConfig.TxCacheSelectionMaxNumTxs == 0 {
+		return nil, process.ErrDefaultTxCacheSelectionMaxNumTxs
+	}
+
 	bpp := basePreProcess{
 		hasher:      args.Hasher,
 		marshalizer: args.Marshalizer,
@@ -1414,7 +1418,7 @@ func (txs *transactions) computeSortedTxs(
 		return nil, nil, process.ErrNilTxDataPool
 	}
 
-	sortedTransactionsProvider := createSortedTransactionsProvider(txShardPool)
+	sortedTransactionsProvider := createSortedTransactionsProvider(txShardPool, txs.txPoolConfig.TxCacheSelectionMaxNumTxs)
 	log.Debug("computeSortedTxs.GetSortedTransactions")
 
 	session, err := NewSelectionSession(ArgsSelectionSession{

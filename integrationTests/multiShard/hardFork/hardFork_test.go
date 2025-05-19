@@ -519,6 +519,7 @@ func hardForkImport(
 				Shards:                               0,
 				SelectionGasBandwidthIncreasePercent: 400,
 				SelectionGasBandwidthIncreaseScheduledPercent: 260,
+				TxCacheSelectionMaxNumTxs:                     3000,
 			},
 		}
 

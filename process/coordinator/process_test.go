@@ -565,6 +565,7 @@ func createPreProcessorContainer() process.PreProcessorsContainer {
 		config.CacheConfig{
 			SelectionGasBandwidthIncreasePercent:          400,
 			SelectionGasBandwidthIncreaseScheduledPercent: 260,
+			TxCacheSelectionMaxNumTxs:                     30000,
 		},
 	)
 	container, _ := preFactory.Create()
@@ -669,6 +670,7 @@ func createPreProcessorContainerWithDataPool(
 		config.CacheConfig{
 			SelectionGasBandwidthIncreasePercent:          400,
 			SelectionGasBandwidthIncreaseScheduledPercent: 260,
+			TxCacheSelectionMaxNumTxs:                     30000,
 		},
 	)
 	container, _ := preFactory.Create()
@@ -943,6 +945,7 @@ func TestTransactionCoordinator_CreateMbsAndProcessCrossShardTransactions(t *tes
 		config.CacheConfig{
 			SelectionGasBandwidthIncreasePercent:          400,
 			SelectionGasBandwidthIncreaseScheduledPercent: 260,
+			TxCacheSelectionMaxNumTxs:                     30000,
 		},
 	)
 	container, _ := preFactory.Create()
@@ -1134,6 +1137,7 @@ func TestTransactionCoordinator_CreateMbsAndProcessCrossShardTransactionsNilPreP
 		config.CacheConfig{
 			SelectionGasBandwidthIncreasePercent:          400,
 			SelectionGasBandwidthIncreaseScheduledPercent: 260,
+			TxCacheSelectionMaxNumTxs:                     30000,
 		},
 	)
 	container, _ := preFactory.Create()
@@ -1247,6 +1251,7 @@ func TestTransactionCoordinator_CreateMbsAndProcessTransactionsFromMeNothingToPr
 		config.CacheConfig{
 			SelectionGasBandwidthIncreasePercent:          400,
 			SelectionGasBandwidthIncreaseScheduledPercent: 260,
+			TxCacheSelectionMaxNumTxs:                     30000,
 		},
 	)
 	container, _ := preFactory.Create()
@@ -1830,6 +1835,7 @@ func TestTransactionCoordinator_ProcessBlockTransactionProcessTxError(t *testing
 		config.CacheConfig{
 			SelectionGasBandwidthIncreasePercent:          400,
 			SelectionGasBandwidthIncreaseScheduledPercent: 260,
+			TxCacheSelectionMaxNumTxs:                     30000,
 		})
 	container, _ := preFactory.Create()
 
@@ -1960,6 +1966,7 @@ func TestTransactionCoordinator_RequestMiniblocks(t *testing.T) {
 		config.CacheConfig{
 			SelectionGasBandwidthIncreasePercent:          400,
 			SelectionGasBandwidthIncreaseScheduledPercent: 260,
+			TxCacheSelectionMaxNumTxs:                     30000,
 		},
 	)
 	container, _ := preFactory.Create()
@@ -2105,6 +2112,7 @@ func TestShardProcessor_ProcessMiniBlockCompleteWithOkTxsShouldExecuteThemAndNot
 		config.CacheConfig{
 			SelectionGasBandwidthIncreasePercent:          400,
 			SelectionGasBandwidthIncreaseScheduledPercent: 260,
+			TxCacheSelectionMaxNumTxs:                     30000,
 		},
 	)
 	container, _ := preFactory.Create()
@@ -2251,6 +2259,7 @@ func TestShardProcessor_ProcessMiniBlockCompleteWithErrorWhileProcessShouldCallR
 		config.CacheConfig{
 			SelectionGasBandwidthIncreasePercent:          400,
 			SelectionGasBandwidthIncreaseScheduledPercent: 260,
+			TxCacheSelectionMaxNumTxs:                     30000,
 		},
 	)
 	container, _ := preFactory.Create()

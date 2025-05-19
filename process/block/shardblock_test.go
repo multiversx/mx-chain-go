@@ -485,6 +485,7 @@ func TestShardProcessor_ProcessBlockWithInvalidTransactionShouldErr(t *testing.T
 		config.CacheConfig{
 			SelectionGasBandwidthIncreasePercent:          400,
 			SelectionGasBandwidthIncreaseScheduledPercent: 260,
+			TxCacheSelectionMaxNumTxs:                     30000,
 		},
 	)
 	container, _ := factory.Create()
@@ -711,6 +712,7 @@ func TestShardProcessor_ProcessBlockWithErrOnProcessBlockTransactionsCallShouldR
 		config.CacheConfig{
 			SelectionGasBandwidthIncreasePercent:          400,
 			SelectionGasBandwidthIncreaseScheduledPercent: 260,
+			TxCacheSelectionMaxNumTxs:                     30000,
 		})
 	container, _ := factory.Create()
 
@@ -2619,6 +2621,7 @@ func TestShardProcessor_MarshalizedDataToBroadcastShouldWork(t *testing.T) {
 		config.CacheConfig{
 			SelectionGasBandwidthIncreasePercent:          400,
 			SelectionGasBandwidthIncreaseScheduledPercent: 260,
+			TxCacheSelectionMaxNumTxs:                     30000,
 		})
 	container, _ := factory.Create()
 
@@ -2731,6 +2734,7 @@ func TestShardProcessor_MarshalizedDataMarshalWithoutSuccess(t *testing.T) {
 		config.CacheConfig{
 			SelectionGasBandwidthIncreasePercent:          400,
 			SelectionGasBandwidthIncreaseScheduledPercent: 260,
+			TxCacheSelectionMaxNumTxs:                     30000,
 		})
 	container, _ := factory.Create()
 
@@ -3135,6 +3139,7 @@ func TestShardProcessor_CreateMiniBlocksShouldWorkWithIntraShardTxs(t *testing.T
 		config.CacheConfig{
 			SelectionGasBandwidthIncreasePercent:          400,
 			SelectionGasBandwidthIncreaseScheduledPercent: 260,
+			TxCacheSelectionMaxNumTxs:                     30000,
 		})
 	container, _ := factory.Create()
 
@@ -3320,6 +3325,7 @@ func TestShardProcessor_RestoreBlockIntoPoolsShouldWork(t *testing.T) {
 		config.CacheConfig{
 			SelectionGasBandwidthIncreasePercent:          400,
 			SelectionGasBandwidthIncreaseScheduledPercent: 260,
+			TxCacheSelectionMaxNumTxs:                     30000,
 		})
 	container, _ := factory.Create()
 

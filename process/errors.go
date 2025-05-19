@@ -1301,3 +1301,6 @@ var ErrDefaultSelectionGasBandwidthIncreasePercent = errors.New("default selecti
 
 // ErrDefaultSelectionGasBandwidthIncreaseScheduledPercent signals that the SelectionGasBandwidthIncreasePercent from the config is not set
 var ErrDefaultSelectionGasBandwidthIncreaseScheduledPercent = errors.New("default selection gas bandwidth increase scheduled percent zero")
+
+// ErrDefaultTxCacheSelectionMaxNumTxs signals that the TxCacheSelectionMaxNumTxs from the config is not set
+var ErrDefaultTxCacheSelectionMaxNumTxs = errors.New("default tx cache selection max num txs")

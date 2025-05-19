@@ -8,10 +8,10 @@ import (
 
 // TODO: Refactor "transactions.go" to not require the components in this file anymore
 // createSortedTransactionsProvider is a "simple factory" for "SortedTransactionsProvider" objects
-func createSortedTransactionsProvider(cache storage.Cacher) SortedTransactionsProvider {
+func createSortedTransactionsProvider(cache storage.Cacher, txCacheSelectionMaxNumTxs int) SortedTransactionsProvider {
 	txCache, isTxCache := cache.(TxCache)
 	if isTxCache {
-		return newAdapterTxCacheToSortedTransactionsProvider(txCache)
+		return newAdapterTxCacheToSortedTransactionsProvider(txCache, txCacheSelectionMaxNumTxs)
 	}
 
 	log.Error("Could not create a real [SortedTransactionsProvider], will create a disabled one")
@@ -20,12 +20,14 @@ func createSortedTransactionsProvider(cache storage.Cacher) SortedTransactionsPr
 
 // adapterTxCacheToSortedTransactionsProvider adapts a "TxCache" to the "SortedTransactionsProvider" interface
 type adapterTxCacheToSortedTransactionsProvider struct {
-	txCache TxCache
+	txCache                   TxCache
+	txCacheSelectionMaxNumTxs int
 }
 
-func newAdapterTxCacheToSortedTransactionsProvider(txCache TxCache) *adapterTxCacheToSortedTransactionsProvider {
+func newAdapterTxCacheToSortedTransactionsProvider(txCache TxCache, txCacheSelectionMaxNumTxs int) *adapterTxCacheToSortedTransactionsProvider {
 	adapter := &adapterTxCacheToSortedTransactionsProvider{
-		txCache: txCache,
+		txCache:                   txCache,
+		txCacheSelectionMaxNumTxs: txCacheSelectionMaxNumTxs,
 	}
 
 	return adapter
@@ -33,7 +35,7 @@ func newAdapterTxCacheToSortedTransactionsProvider(txCache TxCache) *adapterTxCa
 
 // GetSortedTransactions gets the transactions from the cache
 func (adapter *adapterTxCacheToSortedTransactionsProvider) GetSortedTransactions(session txcache.SelectionSession) []*txcache.WrappedTransaction {
-	txs, _ := adapter.txCache.SelectTransactions(session, process.TxCacheSelectionGasRequested, process.TxCacheSelectionMaxNumTxs, process.TxCacheSelectionLoopMaximumDuration)
+	txs, _ := adapter.txCache.SelectTransactions(session, process.TxCacheSelectionGasRequested, adapter.txCacheSelectionMaxNumTxs, process.TxCacheSelectionLoopMaximumDuration)
 	return txs
 }
 

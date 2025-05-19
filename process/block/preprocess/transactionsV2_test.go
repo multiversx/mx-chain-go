@@ -80,6 +80,7 @@ func createTransactionPreprocessor() *transactions {
 		TxCacheConfig: config.CacheConfig{
 			SelectionGasBandwidthIncreasePercent:          400,
 			SelectionGasBandwidthIncreaseScheduledPercent: 260,
+			TxCacheSelectionMaxNumTxs:                     30000,
 		},
 	}
 

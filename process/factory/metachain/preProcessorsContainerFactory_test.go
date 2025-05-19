@@ -46,6 +46,7 @@ func TestNewPreProcessorsContainerFactory_NilShardCoordinator(t *testing.T) {
 		config.CacheConfig{
 			SelectionGasBandwidthIncreasePercent:          400,
 			SelectionGasBandwidthIncreaseScheduledPercent: 260,
+			TxCacheSelectionMaxNumTxs:                     30000,
 		},
 	)
 
@@ -80,6 +81,7 @@ func TestNewPreProcessorsContainerFactory_NilStore(t *testing.T) {
 		config.CacheConfig{
 			SelectionGasBandwidthIncreasePercent:          400,
 			SelectionGasBandwidthIncreaseScheduledPercent: 260,
+			TxCacheSelectionMaxNumTxs:                     30000,
 		},
 	)
 
@@ -114,6 +116,7 @@ func TestNewPreProcessorsContainerFactory_NilMarshalizer(t *testing.T) {
 		config.CacheConfig{
 			SelectionGasBandwidthIncreasePercent:          400,
 			SelectionGasBandwidthIncreaseScheduledPercent: 260,
+			TxCacheSelectionMaxNumTxs:                     30000,
 		},
 	)
 
@@ -148,6 +151,7 @@ func TestNewPreProcessorsContainerFactory_NilHasher(t *testing.T) {
 		config.CacheConfig{
 			SelectionGasBandwidthIncreasePercent:          400,
 			SelectionGasBandwidthIncreaseScheduledPercent: 260,
+			TxCacheSelectionMaxNumTxs:                     30000,
 		},
 	)
 
@@ -182,6 +186,7 @@ func TestNewPreProcessorsContainerFactory_NilDataPool(t *testing.T) {
 		config.CacheConfig{
 			SelectionGasBandwidthIncreasePercent:          400,
 			SelectionGasBandwidthIncreaseScheduledPercent: 260,
+			TxCacheSelectionMaxNumTxs:                     30000,
 		},
 	)
 
@@ -216,6 +221,7 @@ func TestNewPreProcessorsContainerFactory_NilAccounts(t *testing.T) {
 		config.CacheConfig{
 			SelectionGasBandwidthIncreasePercent:          400,
 			SelectionGasBandwidthIncreaseScheduledPercent: 260,
+			TxCacheSelectionMaxNumTxs:                     30000,
 		},
 	)
 
@@ -250,6 +256,7 @@ func TestNewPreProcessorsContainerFactory_NilFeeHandler(t *testing.T) {
 		config.CacheConfig{
 			SelectionGasBandwidthIncreasePercent:          400,
 			SelectionGasBandwidthIncreaseScheduledPercent: 260,
+			TxCacheSelectionMaxNumTxs:                     30000,
 		},
 	)
 
@@ -284,6 +291,7 @@ func TestNewPreProcessorsContainerFactory_NilTxProcessor(t *testing.T) {
 		config.CacheConfig{
 			SelectionGasBandwidthIncreasePercent:          400,
 			SelectionGasBandwidthIncreaseScheduledPercent: 260,
+			TxCacheSelectionMaxNumTxs:                     30000,
 		},
 	)
 
@@ -318,6 +326,7 @@ func TestNewPreProcessorsContainerFactory_NilRequestHandler(t *testing.T) {
 		config.CacheConfig{
 			SelectionGasBandwidthIncreasePercent:          400,
 			SelectionGasBandwidthIncreaseScheduledPercent: 260,
+			TxCacheSelectionMaxNumTxs:                     30000,
 		},
 	)
 	assert.Equal(t, process.ErrNilRequestHandler, err)
@@ -351,6 +360,7 @@ func TestNewPreProcessorsContainerFactory_NilGasHandler(t *testing.T) {
 		config.CacheConfig{
 			SelectionGasBandwidthIncreasePercent:          400,
 			SelectionGasBandwidthIncreaseScheduledPercent: 260,
+			TxCacheSelectionMaxNumTxs:                     30000,
 		},
 	)
 	assert.Equal(t, process.ErrNilGasHandler, err)
@@ -384,6 +394,7 @@ func TestNewPreProcessorsContainerFactory_NilBlockTracker(t *testing.T) {
 		config.CacheConfig{
 			SelectionGasBandwidthIncreasePercent:          400,
 			SelectionGasBandwidthIncreaseScheduledPercent: 260,
+			TxCacheSelectionMaxNumTxs:                     30000,
 		},
 	)
 	assert.Equal(t, process.ErrNilBlockTracker, err)
@@ -417,6 +428,7 @@ func TestNewPreProcessorsContainerFactory_NilPubkeyConverter(t *testing.T) {
 		config.CacheConfig{
 			SelectionGasBandwidthIncreasePercent:          400,
 			SelectionGasBandwidthIncreaseScheduledPercent: 260,
+			TxCacheSelectionMaxNumTxs:                     30000,
 		},
 	)
 	assert.Equal(t, process.ErrNilPubkeyConverter, err)
@@ -450,6 +462,7 @@ func TestNewPreProcessorsContainerFactory_NilBlockSizeComputationHandler(t *test
 		config.CacheConfig{
 			SelectionGasBandwidthIncreasePercent:          400,
 			SelectionGasBandwidthIncreaseScheduledPercent: 260,
+			TxCacheSelectionMaxNumTxs:                     30000,
 		},
 	)
 	assert.Equal(t, process.ErrNilBlockSizeComputationHandler, err)
@@ -483,6 +496,7 @@ func TestNewPreProcessorsContainerFactory_NilBalanceComputationHandler(t *testin
 		config.CacheConfig{
 			SelectionGasBandwidthIncreasePercent:          400,
 			SelectionGasBandwidthIncreaseScheduledPercent: 260,
+			TxCacheSelectionMaxNumTxs:                     30000,
 		},
 	)
 	assert.Equal(t, process.ErrNilBalanceComputationHandler, err)
@@ -516,6 +530,7 @@ func TestNewPreProcessorsContainerFactory_NilEnableEpochsHandler(t *testing.T) {
 		config.CacheConfig{
 			SelectionGasBandwidthIncreasePercent:          400,
 			SelectionGasBandwidthIncreaseScheduledPercent: 260,
+			TxCacheSelectionMaxNumTxs:                     30000,
 		},
 	)
 	assert.Equal(t, process.ErrNilEnableEpochsHandler, err)
@@ -549,6 +564,7 @@ func TestNewPreProcessorsContainerFactory_NilTxTypeHandler(t *testing.T) {
 		config.CacheConfig{
 			SelectionGasBandwidthIncreasePercent:          400,
 			SelectionGasBandwidthIncreaseScheduledPercent: 260,
+			TxCacheSelectionMaxNumTxs:                     30000,
 		},
 	)
 	assert.Equal(t, process.ErrNilTxTypeHandler, err)
@@ -582,6 +598,7 @@ func TestNewPreProcessorsContainerFactory_NilScheduledTxsExecutionHandler(t *tes
 		config.CacheConfig{
 			SelectionGasBandwidthIncreasePercent:          400,
 			SelectionGasBandwidthIncreaseScheduledPercent: 260,
+			TxCacheSelectionMaxNumTxs:                     30000,
 		},
 	)
 	assert.Equal(t, process.ErrNilScheduledTxsExecutionHandler, err)
@@ -615,6 +632,7 @@ func TestNewPreProcessorsContainerFactory_NilProcessedMiniBlocksTracker(t *testi
 		config.CacheConfig{
 			SelectionGasBandwidthIncreasePercent:          400,
 			SelectionGasBandwidthIncreaseScheduledPercent: 260,
+			TxCacheSelectionMaxNumTxs:                     30000,
 		},
 	)
 	assert.Equal(t, process.ErrNilProcessedMiniBlocksTracker, err)
@@ -648,6 +666,7 @@ func TestNewPreProcessorsContainerFactory_NilTxExecutionOrderHandler(t *testing.
 		config.CacheConfig{
 			SelectionGasBandwidthIncreasePercent:          400,
 			SelectionGasBandwidthIncreaseScheduledPercent: 260,
+			TxCacheSelectionMaxNumTxs:                     30000,
 		},
 	)
 
@@ -682,6 +701,7 @@ func TestNewPreProcessorsContainerFactory(t *testing.T) {
 		config.CacheConfig{
 			SelectionGasBandwidthIncreasePercent:          400,
 			SelectionGasBandwidthIncreaseScheduledPercent: 260,
+			TxCacheSelectionMaxNumTxs:                     30000,
 		},
 	)
 
@@ -757,6 +777,41 @@ func TestNewPreProcessorsContainerFactory_DefaultSelectionGasBandwidthIncreaseSc
 	assert.Nil(t, ppcm)
 }
 
+func TestNewPreProcessorsContainerFactory_DefaultTxCacheSelectionMaxNumTxs(t *testing.T) {
+	t.Parallel()
+
+	ppcm, err := metachain.NewPreProcessorsContainerFactory(
+		mock.NewMultiShardsCoordinatorMock(3),
+		&storageStubs.ChainStorerStub{},
+		&mock.MarshalizerMock{},
+		&hashingMocks.HasherMock{},
+		dataRetrieverMock.NewPoolsHolderMock(),
+		&stateMock.AccountsStub{},
+		&testscommon.RequestHandlerStub{},
+		&testscommon.TxProcessorMock{},
+		&testscommon.SmartContractResultsProcessorMock{},
+		&economicsmocks.EconomicsHandlerMock{},
+		&testscommon.GasHandlerStub{},
+		&mock.BlockTrackerMock{},
+		createMockPubkeyConverter(),
+		&testscommon.BlockSizeComputationStub{},
+		&testscommon.BalanceComputationStub{},
+		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		&testscommon.TxTypeHandlerMock{},
+		&testscommon.ScheduledTxsExecutionStub{},
+		&testscommon.ProcessedMiniBlocksTrackerStub{},
+		&commonMock.TxExecutionOrderHandlerStub{},
+		config.CacheConfig{
+			SelectionGasBandwidthIncreasePercent:          400,
+			SelectionGasBandwidthIncreaseScheduledPercent: 260,
+		},
+	)
+
+	assert.Error(t, err)
+	assert.Equal(t, process.ErrDefaultTxCacheSelectionMaxNumTxs, err)
+	assert.Nil(t, ppcm)
+}
+
 func TestPreProcessorsContainerFactory_CreateErrTxPreproc(t *testing.T) {
 	t.Parallel()
 
@@ -789,6 +844,7 @@ func TestPreProcessorsContainerFactory_CreateErrTxPreproc(t *testing.T) {
 		config.CacheConfig{
 			SelectionGasBandwidthIncreasePercent:          400,
 			SelectionGasBandwidthIncreaseScheduledPercent: 260,
+			TxCacheSelectionMaxNumTxs:                     30000,
 		},
 	)
 
@@ -827,6 +883,7 @@ func TestPreProcessorsContainerFactory_Create(t *testing.T) {
 		config.CacheConfig{
 			SelectionGasBandwidthIncreasePercent:          400,
 			SelectionGasBandwidthIncreaseScheduledPercent: 260,
+			TxCacheSelectionMaxNumTxs:                     30000,
 		},
 	)
 
