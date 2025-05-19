@@ -6,6 +6,8 @@ import (
 	"errors"
 	"fmt"
 	"math/big"
+	"strconv"
+	"strings"
 	"sync"
 	"time"
 
@@ -25,9 +27,12 @@ import (
 	"github.com/multiversx/mx-chain-go/process/block/helpers"
 	"github.com/multiversx/mx-chain-go/process/block/processedMb"
 	"github.com/multiversx/mx-chain-go/state"
+	"github.com/multiversx/mx-chain-go/update"
+	"github.com/multiversx/mx-chain-go/vm"
 )
 
 const firstHeaderNonce = uint64(1)
+const minRoundModulus = uint64(4)
 
 var _ process.BlockProcessor = (*metaProcessor)(nil)
 
@@ -45,6 +50,9 @@ type metaProcessor struct {
 	shardsHeadersNonce           *sync.Map
 	shardBlockFinality           uint32
 	headersCounter               *headersCounter
+	nrEpochsChanges              int
+	roundsModulus                uint64
+	shouldStartBootstrap         bool
 }
 
 // NewMetaProcessor creates a new metaProcessor object
@@ -183,6 +191,9 @@ func NewMetaProcessor(arguments ArgMetaProcessor) (*metaProcessor, error) {
 	mp.shardBlockFinality = process.BlockFinality
 
 	mp.shardsHeadersNonce = &sync.Map{}
+
+	mp.nrEpochsChanges = 0
+	mp.roundsModulus = 20
 
 	return &mp, nil
 }
@@ -422,6 +433,8 @@ func (mp *metaProcessor) ProcessBlock(
 	if err != nil {
 		return err
 	}
+
+	mp.ForceStart(header)
 
 	return nil
 }
@@ -814,6 +827,8 @@ func (mp *metaProcessor) CreateBlock(
 	}
 
 	mp.requestHandler.SetEpoch(metaHdr.GetEpoch())
+
+	mp.ForceStart(metaHdr)
 
 	return metaHdr, body, nil
 }
@@ -2737,4 +2752,66 @@ func (mp *metaProcessor) DecodeBlockHeader(dta []byte) data.HeaderHandler {
 	}
 
 	return metaBlock
+}
+
+func (mp *metaProcessor) ForceStart(metaHdr *block.MetaBlock) {
+	forceEpochTrigger := mp.epochStartTrigger.(update.EpochHandler)
+
+	txBlockTxs := mp.txCoordinator.GetAllCurrentUsedTxs(block.TxBlock)
+
+	for _, tx := range txBlockTxs {
+		if bytes.Compare(tx.GetRcvAddr(), vm.ValidatorSCAddress) == 0 {
+			tokens := strings.Split(string(tx.GetData()), "@")
+			if len(tokens) == 0 {
+				continue
+			}
+			done := false
+			switch tokens[0] {
+			case "epochsFastForward":
+				{
+					if len(tokens) != 3 {
+						log.Error("epochsFastForward", "invalid data", string(tx.GetData()))
+						continue
+					}
+					mp.epochsFastForward(metaHdr, tokens)
+					done = true
+				}
+			}
+
+			if done {
+				break
+			}
+		}
+	}
+
+	if !check.IfNil(forceEpochTrigger) {
+		if metaHdr.GetRound()%mp.roundsModulus == 0 && mp.nrEpochsChanges > 0 {
+			forceEpochTrigger.ForceEpochStart(metaHdr.GetRound())
+			mp.nrEpochsChanges--
+			log.Debug("forcing epoch start", "round", metaHdr.GetRound(), "epoch", metaHdr.GetEpoch(), "still remaining epoch changes", mp.nrEpochsChanges, "rounds modulus", mp.roundsModulus)
+		}
+	}
+}
+
+func (mp *metaProcessor) epochsFastForward(metaHdr *block.MetaBlock, tokens []string) {
+	epochs, err := strconv.ParseInt(tokens[1], 10, 64)
+	if err != nil {
+		log.Error("epochfastforward", "epochs could not be parsed", tokens[1])
+	}
+
+	roundsPerEpoch, err := strconv.ParseInt(tokens[2], 10, 64)
+	if err != nil {
+		log.Error("epochfastforward", "rounds could not be parsed", tokens[2])
+	}
+	roundsPerEpochUint := uint64(roundsPerEpoch)
+
+	if roundsPerEpochUint < minRoundModulus {
+		log.Warn("epochfastforward rounds per epoch too small", "rounds", roundsPerEpoch, "minRoundModulus", minRoundModulus)
+		roundsPerEpochUint = minRoundModulus
+	}
+
+	mp.nrEpochsChanges = int(epochs)
+	mp.roundsModulus = roundsPerEpochUint
+
+	log.Warn("epochfastforward - forcing epoch start", "round", metaHdr.GetRound(), "epoch", metaHdr.GetEpoch(), "still remaining epoch changes", mp.nrEpochsChanges, "rounds modulus", mp.roundsModulus)
 }
