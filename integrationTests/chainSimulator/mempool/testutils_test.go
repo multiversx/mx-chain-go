@@ -26,6 +26,7 @@ var (
 	oneQuarterOfEGLD          = big.NewInt(250000000000000000)
 	durationWaitAfterSendMany = 3000 * time.Millisecond
 	durationWaitAfterSendSome = 300 * time.Millisecond
+	txCacheSelectionMaxNumTxs = 30000
 )
 
 func startChainSimulator(t *testing.T, alterConfigsFunction func(cfg *config.Configs)) testsChainSimulator.ChainSimulator {
@@ -166,7 +167,7 @@ func selectTransactions(t *testing.T, simulator testsChainSimulator.ChainSimulat
 	selectedTransactions, gas := mempool.SelectTransactions(
 		selectionSession,
 		process.TxCacheSelectionGasRequested,
-		process.TxCacheSelectionMaxNumTxs,
+		txCacheSelectionMaxNumTxs,
 		process.TxCacheSelectionLoopMaximumDuration,
 	)
 
