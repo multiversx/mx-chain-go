@@ -383,6 +383,16 @@ func (tsm *trieStorageManager) takeSnapshot(snapshotEntry *snapshotsQueueEntry, 
 		return
 	}
 
+	err = stsm.Put(snapshotEntry.rootHash, rootBytes)
+	if err != nil {
+		snapshotEntry.iteratorChannels.ErrChan.WriteInChanNonBlocking(err)
+		treatSnapshotError(err,
+			"trie storage manager: put takeSnapshot",
+			snapshotEntry.rootHash,
+			snapshotEntry.mainTrieRootHash,
+		)
+	}
+
 	stats := statistics.NewTrieStatistics()
 	err = newRoot.commitSnapshot(stsm, snapshotEntry.iteratorChannels.LeavesChan, snapshotEntry.missingNodesChan, ctx, stats, tsm.idleProvider, rootBytes, rootDepthLevel)
 	if err != nil {

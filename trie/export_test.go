@@ -96,3 +96,8 @@ func SetGoRoutinesManager(tr common.Trie, gm common.TrieGoroutinesManager) {
 	pmt, _ := tr.(*patriciaMerkleTrie)
 	pmt.goRoutinesManager = gm
 }
+
+// GetModifiedHashes -
+func GetModifiedHashes(tr common.Trie) [][]byte {
+	return tr.(*patriciaMerkleTrie).GetOldHashes()
+}

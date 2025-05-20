@@ -19,51 +19,29 @@ func TestNewRootManager(t *testing.T) {
 func TestRootManager_GetRootNode(t *testing.T) {
 	t.Parallel()
 
-	bn := &branchNode{
-		baseNode: &baseNode{
-			hash: []byte{1, 2, 3},
-		},
-	}
+	bn := &branchNode{baseNode: &baseNode{}}
 	rm := NewRootManager()
 	rm.root = bn
 	assert.Equal(t, bn, rm.GetRootNode())
 }
 
-func TestRootManager_SetNewRootNode(t *testing.T) {
-	t.Parallel()
-
-	bn := &branchNode{
-		baseNode: &baseNode{
-			hash: []byte{1, 2, 3},
-		},
-	}
-	rm := NewRootManager()
-	rm.SetNewRootNode(bn)
-	assert.Equal(t, bn, rm.root)
-}
-
 func TestRootManager_SetDataForRootChange(t *testing.T) {
 	t.Parallel()
 
-	bn := &branchNode{
-		baseNode: &baseNode{
-			hash: []byte{1, 2, 3},
-		},
+	rootData := RootData{
+		newRoot:     &branchNode{baseNode: &baseNode{}},
+		newRootHash: []byte("hash"),
+		oldRootHash: []byte{4, 5, 6},
+		oldHashes:   [][]byte{{7, 8, 9}, {10, 11, 12}},
 	}
-	oldRootHash := []byte{4, 5, 6}
-	oldHashes := [][]byte{{7, 8, 9}, {10, 11, 12}}
+
 	rm := NewRootManager()
 
-	rm.SetDataForRootChange(bn, oldRootHash, oldHashes)
-	assert.Equal(t, bn, rm.root)
-	assert.Equal(t, oldRootHash, rm.oldRootHash)
-	assert.Equal(t, oldHashes, rm.oldHashes)
-
-	var newHash []byte
-	rm.SetDataForRootChange(bn, newHash, oldHashes)
-	assert.Equal(t, bn, rm.root)
-	assert.Equal(t, oldRootHash, rm.oldRootHash)
-	assert.Equal(t, append(oldHashes, oldHashes...), rm.oldHashes)
+	rm.SetDataForRootChange(rootData)
+	assert.Equal(t, rootData.newRoot, rm.root)
+	assert.Equal(t, rootData.newRootHash, rm.rootHash)
+	assert.Equal(t, rootData.oldRootHash, rm.oldRootHash)
+	assert.Equal(t, rootData.oldHashes, rm.oldHashes)
 }
 
 func TestRootManager_ResetCollectedHashes(t *testing.T) {
@@ -114,9 +92,15 @@ func TestRootManager_Concurrency(t *testing.T) {
 			case 0:
 				rm.GetRootNode()
 			case 1:
-				rm.SetNewRootNode(&extensionNode{baseNode: &baseNode{dirty: true}})
+				rm.GetRootHash()
 			case 2:
-				rm.SetDataForRootChange(&branchNode{baseNode: &baseNode{dirty: true}}, []byte{1, 2, 3}, [][]byte{{4, 5, 6}})
+				rm.SetDataForRootChange(
+					RootData{
+						newRoot:     &branchNode{baseNode: &baseNode{dirty: true}},
+						newRootHash: []byte("rootHash"),
+						oldRootHash: []byte{1, 2, 3},
+						oldHashes:   [][]byte{{4, 5, 6}},
+					})
 			case 3:
 				rm.ResetCollectedHashes()
 			case 4:

@@ -7,8 +7,8 @@ import (
 )
 
 type baseIterator struct {
-	currentNode node
-	nextNodes   []node
+	currentNode nodeWithHash
+	nextNodes   []nodeWithHash
 	db          common.TrieStorageInteractor
 }
 
@@ -36,9 +36,12 @@ func newBaseIterator(trie common.Trie, rootHash []byte) (*baseIterator, error) {
 	}
 
 	return &baseIterator{
-		currentNode: rootNode,
-		nextNodes:   nextNodes,
-		db:          trieStorage,
+		currentNode: nodeWithHash{
+			node: rootNode,
+			hash: rootHash,
+		},
+		nextNodes: nextNodes,
+		db:        trieStorage,
 	}, nil
 }
 
@@ -48,24 +51,23 @@ func (it *baseIterator) HasNext() bool {
 }
 
 // next moves the iterator to the next node
-func (it *baseIterator) next() ([]node, error) {
+func (it *baseIterator) next() ([]nodeWithHash, error) {
 	n := it.nextNodes[0]
 
-	err := n.isEmptyOrNil()
-	if err != nil {
+	if check.IfNil(n.node) {
 		return nil, ErrNilNode
 	}
 
 	it.currentNode = n
-	return it.currentNode.getChildren(it.db)
+	return it.currentNode.node.getChildren(it.db)
 }
 
 // MarshalizedNode marshalizes the current node, and then returns the serialized node
 func (it *baseIterator) MarshalizedNode() ([]byte, error) {
-	return it.currentNode.getEncodedNode()
+	return it.currentNode.node.getEncodedNode()
 }
 
 // GetHash returns the current node hash
 func (it *baseIterator) GetHash() []byte {
-	return it.currentNode.getHash()
+	return it.currentNode.hash
 }

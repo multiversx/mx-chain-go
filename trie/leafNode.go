@@ -3,7 +3,6 @@ package trie
 import (
 	"bytes"
 	"context"
-	"encoding/hex"
 	"fmt"
 	"io"
 	"math"
@@ -47,18 +46,6 @@ func newLeafNode(
 	}, nil
 }
 
-func (ln *leafNode) setHash(goRoutinesManager common.TrieGoroutinesManager) {
-	if len(ln.hash) != 0 {
-		return
-	}
-	hash, err := encodeNodeAndGetHash(ln)
-	if err != nil {
-		goRoutinesManager.SetError(err)
-		return
-	}
-	ln.hash = hash
-}
-
 func (ln *leafNode) commitDirty(
 	_ byte,
 	_ uint,
@@ -75,7 +62,7 @@ func (ln *leafNode) commitDirty(
 }
 
 func (ln *leafNode) commitSnapshot(
-	db common.TrieStorageInteractor,
+	_ common.TrieStorageInteractor,
 	leavesChan chan core.KeyValueHolder,
 	_ chan []byte,
 	ctx context.Context,
@@ -89,11 +76,6 @@ func (ln *leafNode) commitSnapshot(
 	}
 
 	err := writeNodeOnChannel(ln, leavesChan)
-	if err != nil {
-		return err
-	}
-
-	err = db.Put(ln.hash, nodeBytes)
 	if err != nil {
 		return err
 	}
@@ -112,11 +94,12 @@ func writeNodeOnChannel(ln *leafNode, leavesChan chan core.KeyValueHolder) error
 		return nil
 	}
 
-	if len(ln.hash) == 0 {
-		return ErrNodeHashIsNotSet
+	hash, err := encodeNodeAndGetHash(ln)
+	if err != nil {
+		return err
 	}
 
-	trieLeaf := keyValStorage.NewKeyValStorage(ln.hash, ln.Value)
+	trieLeaf := keyValStorage.NewKeyValStorage(hash, ln.Value)
 	leavesChan <- trieLeaf
 
 	return nil
@@ -160,17 +143,13 @@ func (ln *leafNode) insert(
 	db common.TrieStorageInteractor,
 ) node {
 	if len(newData) == 1 && bytes.Equal(newData[0].Key, ln.Key) {
-		return ln.insertInSameLn(newData[0], modifiedHashes, goRoutinesManager)
+		return ln.insertInSameLn(newData[0])
 	}
 
 	keyMatchLen, _ := getMinKeyMatchLen(newData, ln.Key)
 	bn := ln.insertInNewBn(newData, keyMatchLen, goRoutinesManager, modifiedHashes, db)
 	if !goRoutinesManager.ShouldContinueProcessing() {
 		return nil
-	}
-
-	if !ln.dirty {
-		modifiedHashes.Append([][]byte{ln.hash})
 	}
 
 	if keyMatchLen == 0 {
@@ -182,28 +161,27 @@ func (ln *leafNode) insert(
 		goRoutinesManager.SetError(err)
 		return nil
 	}
-	newEn.ChildHash = bn.getHash()
-	newEn.setHash(goRoutinesManager)
+	childHash, err := encodeNodeAndGetHash(bn)
+	if err != nil {
+		goRoutinesManager.SetError(err)
+		return nil
+	}
+	newEn.ChildHash = childHash
 
 	return newEn
 }
 
-func (ln *leafNode) insertInSameLn(newData core.TrieData, modifiedHashes common.AtomicBytesSlice, goRoutinesManager common.TrieGoroutinesManager) node {
+func (ln *leafNode) insertInSameLn(newData core.TrieData) node {
 	if bytes.Equal(ln.Value, newData.Value) {
 		return nil
 	}
 
-	if !ln.dirty {
-		modifiedHashes.Append([][]byte{ln.hash})
-	}
 	ln.mutex.Lock()
 	defer ln.mutex.Unlock()
 
 	ln.Value = newData.Value
 	ln.Version = uint32(newData.Version)
 	ln.dirty = true
-	ln.hash = nil
-	ln.setHash(goRoutinesManager)
 	return ln
 }
 
@@ -250,23 +228,23 @@ func (ln *leafNode) insertInNewBn(
 		goRoutinesManager.SetError(err)
 		return nil
 	}
-	oldLn.setHash(goRoutinesManager)
+	oldLnHash, err := encodeNodeAndGetHash(oldLn)
+	if err != nil {
+		goRoutinesManager.SetError(err)
+		return nil
+	}
 	bn.children[posForOldLn] = oldLn
-	bn.ChildrenHashes[posForOldLn] = oldLn.hash
+	bn.ChildrenHashes[posForOldLn] = oldLnHash
 	bn.setVersionForChild(lnVersion, posForOldLn)
 
 	trimKeys(newData, keyMatchLen)
-	newNode := bn.insert(newData, goRoutinesManager, modifiedHashes, db)
-	if !check.IfNil(newNode) {
-		newNode.setHash(goRoutinesManager)
-	}
-	return newNode
+	return bn.insert(newData, goRoutinesManager, modifiedHashes, db)
 }
 
 func (ln *leafNode) delete(
 	data []core.TrieData,
 	_ common.TrieGoroutinesManager,
-	modifiedHashes common.AtomicBytesSlice,
+	_ common.AtomicBytesSlice,
 	_ common.TrieStorageInteractor,
 ) (bool, node) {
 	ln.mutex.RLock()
@@ -274,17 +252,13 @@ func (ln *leafNode) delete(
 
 	for _, d := range data {
 		if bytes.Equal(d.Key, ln.Key) {
-			if !ln.dirty {
-				modifiedHashes.Append([][]byte{ln.hash})
-			}
-
 			return true, nil
 		}
 	}
 	return false, ln
 }
 
-func (ln *leafNode) reduceNode(pos int, _ common.TrieStorageInteractor) (node, bool, error) {
+func (ln *leafNode) reduceNode(pos int, _ []byte, _ common.TrieStorageInteractor) (node, bool, error) {
 	k := append([]byte{byte(pos)}, ln.Key...)
 
 	oldLnVersion, err := ln.getVersion()
@@ -331,14 +305,14 @@ func (ln *leafNode) print(writer io.Writer, _ int, _ common.TrieStorageInteracto
 		val += fmt.Sprintf("%d", v)
 	}
 
-	_, _ = fmt.Fprintf(writer, "L: key= %v, (%v) - %v\n", ln.Key, hex.EncodeToString(ln.hash), ln.dirty)
+	_, _ = fmt.Fprintf(writer, "L: key= %v, %v\n", ln.Key, ln.dirty)
 }
 
-func (ln *leafNode) getChildren(_ common.TrieStorageInteractor) ([]node, error) {
+func (ln *leafNode) getChildren(_ common.TrieStorageInteractor) ([]nodeWithHash, error) {
 	return nil, nil
 }
 
-func (ln *leafNode) loadChildren(_ func([]byte) (node, error)) ([][]byte, []node, error) {
+func (ln *leafNode) loadChildren(_ func([]byte) (node, error)) ([][]byte, []nodeWithHash, error) {
 	return nil, nil, nil
 }
 
@@ -404,7 +378,7 @@ func (ln *leafNode) sizeInBytes() int {
 	}
 
 	// hasher + marshalizer  + dirty flag = numNodeInnerPointers * pointerSizeInBytes + 1
-	nodeSize := len(ln.hash) + len(ln.Key) + len(ln.Value) + numNodeInnerPointers*pointerSizeInBytes + 1
+	nodeSize := len(ln.Key) + len(ln.Value) + numNodeInnerPointers*pointerSizeInBytes + 1
 
 	return nodeSize
 }

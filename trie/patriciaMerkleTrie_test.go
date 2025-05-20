@@ -552,6 +552,7 @@ func TestPatriciaMerkleTrie_String(t *testing.T) {
 	tr := initTrie()
 	str := tr.(trieWithToString).ToString()
 	assert.NotEqual(t, 0, len(str))
+	fmt.Println(str)
 
 	tr = emptyTrie()
 	str = tr.(trieWithToString).ToString()
@@ -2084,6 +2085,29 @@ func TestGetNodeDataFromHash(t *testing.T) {
 	assert.Equal(t, uint64(hashSize+keySize), thirdChildData.Size())
 	assert.False(t, thirdChildData.IsLeaf())
 
+}
+
+func TestPatriciaMerkleTrie_CollectModifiedHashse(t *testing.T) {
+	t.Parallel()
+
+	t.Run("collect hashes on insert", func(t *testing.T) {
+		t.Parallel()
+
+		tr := initTrie()
+		assert.Equal(t, 0, len(trie.GetModifiedHashes(tr)))
+		tr.Update([]byte("ddog"), []byte("pup"))
+		trie.ExecuteUpdatesFromBatch(tr)
+		assert.Equal(t, 4, len(trie.GetModifiedHashes(tr)))
+	})
+	t.Run("collect hashes on delete", func(t *testing.T) {
+		t.Parallel()
+
+		tr := initTrie()
+		assert.Equal(t, 0, len(trie.GetModifiedHashes(tr)))
+		tr.Delete([]byte("ddog"))
+		trie.ExecuteUpdatesFromBatch(tr)
+		assert.Equal(t, 5, len(trie.GetModifiedHashes(tr)))
+	})
 }
 
 func BenchmarkPatriciaMerkleTree_Insert(b *testing.B) {

@@ -55,15 +55,11 @@ func encodeNodeAndGetHash(n node) ([]byte, error) {
 
 // encodeNodeAndCommitToDB will encode and save provided node. It returns the node's value in bytes
 func encodeNodeAndCommitToDB(n node, db common.BaseStorer) (int, error) {
-	key := n.getHash()
-	if len(key) == 0 {
-		return 0, ErrNodeHashIsNotSet
-	}
-
 	val, err := n.getEncodedNode()
 	if err != nil {
 		return 0, err
 	}
+	key := n.getHasher().Compute(string(val))
 
 	// test point encodeNodeAndCommitToDB
 
@@ -85,7 +81,6 @@ func getNodeFromDBAndDecode(n []byte, db common.TrieStorageInteractor, marshaliz
 		return nil, nil, err
 	}
 
-	decodedNode.setGivenHash(n)
 	return decodedNode, encodedNode, nil
 }
 
@@ -109,11 +104,6 @@ func concat(s1 []byte, s2 ...byte) []byte {
 	copy(r[len(s1):], s2)
 
 	return r
-}
-
-func hasValidHash(n node) bool {
-	childHash := n.getHash()
-	return len(childHash) != 0
 }
 
 func decodeNode(encNode []byte, marshalizer marshal.Marshalizer, hasher hashing.Hasher) (node, error) {
@@ -242,7 +232,6 @@ func saveDirtyNodeToStorage(
 		return false
 	}
 	hash := hasher.Compute(string(encNode))
-	n.setGivenHash(hash)
 	hashesCollector.AddDirtyHash(hash)
 
 	// test point encodeNodeAndCommitToDB

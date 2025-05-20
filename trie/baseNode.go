@@ -9,24 +9,9 @@ import (
 
 type baseNode struct {
 	mutex  sync.RWMutex
-	hash   []byte
 	dirty  bool
 	marsh  marshal.Marshalizer
 	hasher hashing.Hasher
-}
-
-func (bn *baseNode) getHash() []byte {
-	bn.mutex.RLock()
-	defer bn.mutex.RUnlock()
-
-	return bn.hash
-}
-
-func (bn *baseNode) setGivenHash(hash []byte) {
-	bn.mutex.Lock()
-	defer bn.mutex.Unlock()
-
-	bn.hash = hash
 }
 
 func (bn *baseNode) isDirty() bool {

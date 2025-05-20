@@ -171,7 +171,7 @@ func (ts *trieSyncer) StartSyncing(rootHash []byte, ctx context.Context) error {
 func (ts *trieSyncer) checkIfSynced() (bool, error) {
 	var currentNode node
 	var err error
-	var nextNodes []node
+	var nextNodes []nodeWithHash
 	missingNodes := make(map[string]struct{})
 	currentMissingNodes := make([][]byte, 0)
 	checkedNodes := make(map[string]struct{})
@@ -205,7 +205,7 @@ func (ts *trieSyncer) checkIfSynced() (bool, error) {
 			if err != nil {
 				return false, err
 			}
-			log.Trace("loaded children for node", "hash", currentNode.getHash())
+			log.Trace("loaded children for node", "hash", nodeHash)
 
 			if len(currentMissingNodes) > 0 {
 				hardcapReached := false
@@ -222,7 +222,11 @@ func (ts *trieSyncer) checkIfSynced() (bool, error) {
 					break
 				}
 
-				nextNodes = append(nextNodes, currentNode)
+				nextNodes = append(nextNodes, nodeWithHash{
+					node: currentNode,
+					hash: []byte(nodeHash),
+				})
+
 				_ = ts.addNew(nextNodes)
 				shouldRetryAfterRequest = true
 
@@ -273,17 +277,17 @@ func (ts *trieSyncer) checkIfSynced() (bool, error) {
 }
 
 // adds new elements to needed hash map, lock ts.nodeHashesMutex before calling
-func (ts *trieSyncer) addNew(nextNodes []node) bool {
+func (ts *trieSyncer) addNew(nextNodes []nodeWithHash) bool {
 	newElement := false
 	for _, nextNode := range nextNodes {
-		nextHash := string(nextNode.getHash())
+		nextHash := string(nextNode.hash)
 
 		nodeInfo, ok := ts.nodesForTrie[nextHash]
 		if !ok || !nodeInfo.received {
 			newElement = true
 			ts.trieSyncStatistics.AddNumProcessed(1)
 			ts.nodesForTrie[nextHash] = trieNodeInfo{
-				trieNode: nextNode,
+				trieNode: nextNode.node,
 				received: true,
 			}
 		}
@@ -357,14 +361,7 @@ func trieNode(
 		return nil, err
 	}
 
-	manager := NewDisabledGoroutinesManager()
-	decodedNode.setHash(manager)
-	err = manager.GetError()
-	if err != nil {
-		return nil, err
-	}
 	decodedNode.setDirty(true)
-
 	return decodedNode, nil
 }
 

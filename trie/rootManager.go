@@ -2,21 +2,29 @@ package trie
 
 import (
 	"sync"
-
-	"github.com/multiversx/mx-chain-core-go/core/check"
 )
 
 type rootManager struct {
 	root         node
+	rootHash     []byte
 	oldHashes    [][]byte
 	oldRootHash  []byte
 	mutOperation sync.RWMutex
+}
+
+// RootData holds information about the current and previous root nodes and their respective hashes in the trie.
+type RootData struct {
+	newRoot     node
+	newRootHash []byte
+	oldRootHash []byte
+	oldHashes   [][]byte
 }
 
 // NewRootManager creates a new instance of rootManager. All operations are protected by a mutex
 func NewRootManager() *rootManager {
 	return &rootManager{
 		root:         nil,
+		rootHash:     nil,
 		oldHashes:    make([][]byte, 0),
 		oldRootHash:  make([]byte, 0),
 		mutOperation: sync.RWMutex{},
@@ -31,24 +39,23 @@ func (rm *rootManager) GetRootNode() node {
 	return rm.root
 }
 
-// SetNewRootNode sets the given node as the new root node
-func (rm *rootManager) SetNewRootNode(newRoot node) {
-	rm.mutOperation.Lock()
-	defer rm.mutOperation.Unlock()
+// GetRootHash returns the root hash
+func (rm *rootManager) GetRootHash() []byte {
+	rm.mutOperation.RLock()
+	defer rm.mutOperation.RUnlock()
 
-	rm.root = newRoot
+	return rm.rootHash
 }
 
 // SetDataForRootChange sets the new root node, the old root hash and the old hashes
-func (rm *rootManager) SetDataForRootChange(newRoot node, oldRootHash []byte, oldHashes [][]byte) {
+func (rm *rootManager) SetDataForRootChange(rootData RootData) {
 	rm.mutOperation.Lock()
 	defer rm.mutOperation.Unlock()
 
-	rm.root = newRoot
-	if len(oldRootHash) > 0 {
-		rm.oldRootHash = oldRootHash
-	}
-	rm.oldHashes = append(rm.oldHashes, oldHashes...)
+	rm.root = rootData.newRoot
+	rm.rootHash = rootData.newRootHash
+	rm.oldRootHash = rootData.oldRootHash
+	rm.oldHashes = append(rm.oldHashes, rootData.oldHashes...)
 }
 
 // ResetCollectedHashes resets the old root hash and the old hashes
@@ -72,10 +79,6 @@ func (rm *rootManager) GetOldHashes() [][]byte {
 func (rm *rootManager) GetOldRootHash() []byte {
 	rm.mutOperation.RLock()
 	defer rm.mutOperation.RUnlock()
-
-	if !check.IfNil(rm.root) && !rm.root.isDirty() {
-		return rm.root.getHash()
-	}
 
 	return rm.oldRootHash
 }
