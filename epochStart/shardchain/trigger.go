@@ -650,8 +650,8 @@ func (t *trigger) shouldUpdateTrigger(metaHdr *block.MetaBlock, metaBlockHash []
 		return false
 	}
 
-	isMetaStartOfEpochForCurrentEpoch := metaHdr.Epoch == t.epoch && metaHdr.IsStartOfEpochBlock()
-	if isMetaStartOfEpochForCurrentEpoch {
+	isMetaStartOfEpochForCurrentOrOlderEpoch := metaHdr.Epoch <= t.epoch && metaHdr.IsStartOfEpochBlock()
+	if isMetaStartOfEpochForCurrentOrOlderEpoch {
 		return false
 	}
 
