@@ -2,6 +2,7 @@ package consensus
 
 import (
 	"bytes"
+	"encoding/hex"
 	"fmt"
 	"testing"
 	"time"
