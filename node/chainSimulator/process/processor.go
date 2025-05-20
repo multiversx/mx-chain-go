@@ -8,7 +8,6 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data"
 	dataBlock "github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-go/common"
-	"github.com/multiversx/mx-chain-go/consensus/spos"
 	heartbeatData "github.com/multiversx/mx-chain-go/heartbeat/data"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/configs"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"

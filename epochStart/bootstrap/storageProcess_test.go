@@ -11,8 +11,6 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/data/endProcess"
-	"github.com/stretchr/testify/assert"
-
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/epochStart"
@@ -26,6 +24,8 @@ import (
 	dataRetrieverMock "github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
 	"github.com/multiversx/mx-chain-go/testscommon/economicsmocks"
 	"github.com/multiversx/mx-chain-go/testscommon/genesisMocks"
+	updateMock "github.com/multiversx/mx-chain-go/update/mock"
+	"github.com/stretchr/testify/assert"
 )
 
 func createMockStorageEpochStartBootstrapArgs(
