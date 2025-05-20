@@ -246,6 +246,8 @@ func TestBranchNode_resolveIfCollapsed(t *testing.T) {
 		assert.Nil(t, childHash)
 	})
 	t.Run("node is not collapsed", func(t *testing.T) {
+		t.Parallel()
+		
 		bn, _ := getBnAndCollapsedBn(getTestMarshalizerAndHasher())
 
 		resolved, _ := newLeafNode(getTrieDataWithDefaultVersion("dog", "dog"), bn.marsh, bn.hasher)

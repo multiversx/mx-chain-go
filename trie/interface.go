@@ -12,12 +12,15 @@ import (
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 )
 
+// nodeData is used when computing merkle proofs. It is used as a DTO to avoid multiple storage accesses / serializations
 type nodeData struct {
 	currentNode node
 	encodedNode []byte
 	hexKey      []byte
 }
 
+// nodeWithHash is used as a DTO to avoid multiple hashing / serialization operations.
+// It is used to store the hash of a node along with the node itself
 type nodeWithHash struct {
 	node node
 	hash []byte
