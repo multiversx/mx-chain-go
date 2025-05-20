@@ -73,9 +73,6 @@ const BlockFinality = 1
 // MetaBlockValidity defines the block validity which is when checking a metablock
 const MetaBlockValidity = 1
 
-// EpochChangeGracePeriod defines the allowed round numbers till the shard has to change the epoch
-const EpochChangeGracePeriod = 1
-
 // MaxHeaderRequestsAllowed defines the maximum number of missing cross-shard headers (gaps) which could be requested
 // in one round, when node processes a received block
 const MaxHeaderRequestsAllowed = 20

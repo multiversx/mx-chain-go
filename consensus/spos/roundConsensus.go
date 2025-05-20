@@ -4,6 +4,7 @@ import (
 	"sync"
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
+
 	"github.com/multiversx/mx-chain-go/consensus"
 )
 
@@ -12,6 +13,7 @@ type roundConsensus struct {
 	eligibleNodes        map[string]struct{}
 	mutEligible          sync.RWMutex
 	consensusGroup       []string
+	leader               string
 	consensusGroupSize   int
 	selfPubKey           string
 	validatorRoundStates map[string]*roundState
@@ -64,14 +66,17 @@ func (rcns *roundConsensus) SetEligibleList(eligibleList map[string]struct{}) {
 
 // ConsensusGroup returns the consensus group ID's
 func (rcns *roundConsensus) ConsensusGroup() []string {
+	rcns.mut.RLock()
+	defer rcns.mut.RUnlock()
+
 	return rcns.consensusGroup
 }
 
 // SetConsensusGroup sets the consensus group ID's
 func (rcns *roundConsensus) SetConsensusGroup(consensusGroup []string) {
-	rcns.consensusGroup = consensusGroup
-
 	rcns.mut.Lock()
+
+	rcns.consensusGroup = consensusGroup
 
 	rcns.validatorRoundStates = make(map[string]*roundState)
 
@@ -82,14 +87,30 @@ func (rcns *roundConsensus) SetConsensusGroup(consensusGroup []string) {
 	rcns.mut.Unlock()
 }
 
+// Leader returns the leader for the current consensus
+func (rcns *roundConsensus) Leader() string {
+	rcns.mut.RLock()
+	defer rcns.mut.RUnlock()
+
+	return rcns.leader
+}
+
+// SetLeader sets the leader for the current consensus
+func (rcns *roundConsensus) SetLeader(leader string) {
+	rcns.mut.Lock()
+	defer rcns.mut.Unlock()
+
+	rcns.leader = leader
+}
+
 // ConsensusGroupSize returns the consensus group size
 func (rcns *roundConsensus) ConsensusGroupSize() int {
 	return rcns.consensusGroupSize
 }
 
 // SetConsensusGroupSize sets the consensus group size
-func (rcns *roundConsensus) SetConsensusGroupSize(consensusGroudpSize int) {
-	rcns.consensusGroupSize = consensusGroudpSize
+func (rcns *roundConsensus) SetConsensusGroupSize(consensusGroupSize int) {
+	rcns.consensusGroupSize = consensusGroupSize
 }
 
 // SelfPubKey returns selfPubKey ID
@@ -144,6 +165,9 @@ func (rcns *roundConsensus) SelfJobDone(subroundId int) (bool, error) {
 
 // IsNodeInConsensusGroup method checks if the node is part of consensus group of the current round
 func (rcns *roundConsensus) IsNodeInConsensusGroup(node string) bool {
+	rcns.mut.RLock()
+	defer rcns.mut.RUnlock()
+
 	for i := 0; i < len(rcns.consensusGroup); i++ {
 		if rcns.consensusGroup[i] == node {
 			return true
@@ -205,7 +229,7 @@ func (rcns *roundConsensus) ResetRoundState() {
 // is in consensus group in the current round
 func (rcns *roundConsensus) IsMultiKeyInConsensusGroup() bool {
 	for i := 0; i < len(rcns.consensusGroup); i++ {
-		if rcns.IsKeyManagedByCurrentNode([]byte(rcns.consensusGroup[i])) {
+		if rcns.IsKeyManagedBySelf([]byte(rcns.consensusGroup[i])) {
 			return true
 		}
 	}
@@ -213,12 +237,17 @@ func (rcns *roundConsensus) IsMultiKeyInConsensusGroup() bool {
 	return false
 }
 
-// IsKeyManagedByCurrentNode returns true if the key is managed by the current node
-func (rcns *roundConsensus) IsKeyManagedByCurrentNode(pkBytes []byte) bool {
+// IsKeyManagedBySelf returns true if the key is managed by the current node
+func (rcns *roundConsensus) IsKeyManagedBySelf(pkBytes []byte) bool {
 	return rcns.keysHandler.IsKeyManagedByCurrentNode(pkBytes)
 }
 
 // IncrementRoundsWithoutReceivedMessages increments the number of rounds without received messages on a provided public key
 func (rcns *roundConsensus) IncrementRoundsWithoutReceivedMessages(pkBytes []byte) {
 	rcns.keysHandler.IncrementRoundsWithoutReceivedMessages(pkBytes)
+}
+
+// GetKeysHandler returns the keysHandler instance
+func (rcns *roundConsensus) GetKeysHandler() consensus.KeysHandler {
+	return rcns.keysHandler
 }

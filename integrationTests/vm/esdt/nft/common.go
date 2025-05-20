@@ -8,9 +8,10 @@ import (
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/stretchr/testify/require"
+
 	"github.com/multiversx/mx-chain-go/integrationTests"
 	"github.com/multiversx/mx-chain-go/integrationTests/vm/esdt"
-	"github.com/stretchr/testify/require"
 )
 
 // NftArguments -
@@ -70,7 +71,7 @@ func CheckNftData(
 func PrepareNFTWithRoles(
 	t *testing.T,
 	nodes []*integrationTests.TestProcessorNode,
-	idxProposers []int,
+	leaders []*integrationTests.TestProcessorNode,
 	nftCreator *integrationTests.TestProcessorNode,
 	round *uint64,
 	nonce *uint64,
@@ -82,7 +83,7 @@ func PrepareNFTWithRoles(
 
 	time.Sleep(time.Second)
 	nrRoundsToPropagateMultiShard := 10
-	*nonce, *round = integrationTests.WaitOperationToBeDone(t, nodes, nrRoundsToPropagateMultiShard, *nonce, *round, idxProposers)
+	*nonce, *round = integrationTests.WaitOperationToBeDone(t, leaders, nodes, nrRoundsToPropagateMultiShard, *nonce, *round)
 	time.Sleep(time.Second)
 
 	tokenIdentifier := string(integrationTests.GetTokenIdentifier(nodes, []byte("SFT")))
@@ -91,7 +92,7 @@ func PrepareNFTWithRoles(
 	esdt.SetRoles(nodes, nftCreator.OwnAccount.Address, []byte(tokenIdentifier), roles)
 
 	time.Sleep(time.Second)
-	*nonce, *round = integrationTests.WaitOperationToBeDone(t, nodes, nrRoundsToPropagateMultiShard, *nonce, *round, idxProposers)
+	*nonce, *round = integrationTests.WaitOperationToBeDone(t, leaders, nodes, nrRoundsToPropagateMultiShard, *nonce, *round)
 	time.Sleep(time.Second)
 
 	nftMetaData := NftArguments{
@@ -105,7 +106,7 @@ func PrepareNFTWithRoles(
 	CreateNFT([]byte(tokenIdentifier), nftCreator, nodes, &nftMetaData)
 
 	time.Sleep(time.Second)
-	*nonce, *round = integrationTests.WaitOperationToBeDone(t, nodes, 3, *nonce, *round, idxProposers)
+	*nonce, *round = integrationTests.WaitOperationToBeDone(t, leaders, nodes, 3, *nonce, *round)
 	time.Sleep(time.Second)
 
 	CheckNftData(

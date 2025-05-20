@@ -29,7 +29,14 @@ import (
 	"github.com/multiversx/mx-chain-crypto-go/signing/ed25519"
 	"github.com/multiversx/mx-chain-crypto-go/signing/mcl"
 	"github.com/multiversx/mx-chain-crypto-go/signing/secp256k1"
+	logger "github.com/multiversx/mx-chain-logger-go"
+	wasmConfig "github.com/multiversx/mx-chain-vm-go/config"
+	"github.com/pkg/errors"
+	"github.com/stretchr/testify/assert"
+
 	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/common/enablers"
+	"github.com/multiversx/mx-chain-go/common/forking"
 	"github.com/multiversx/mx-chain-go/common/statistics"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
@@ -79,10 +86,6 @@ import (
 	"github.com/multiversx/mx-chain-go/vm"
 	"github.com/multiversx/mx-chain-go/vm/systemSmartContracts"
 	"github.com/multiversx/mx-chain-go/vm/systemSmartContracts/defaults"
-	logger "github.com/multiversx/mx-chain-logger-go"
-	wasmConfig "github.com/multiversx/mx-chain-vm-go/config"
-	"github.com/pkg/errors"
-	"github.com/stretchr/testify/assert"
 )
 
 // StepDelay is used so that transactions can disseminate properly
@@ -408,6 +411,7 @@ func CreateStore(numOfShards uint32) dataRetriever.StorageService {
 	store.AddStorer(dataRetriever.StatusMetricsUnit, CreateMemUnit())
 	store.AddStorer(dataRetriever.ReceiptsUnit, CreateMemUnit())
 	store.AddStorer(dataRetriever.ScheduledSCRsUnit, CreateMemUnit())
+	store.AddStorer(dataRetriever.ProofsUnit, CreateMemUnit())
 
 	for i := uint32(0); i < numOfShards; i++ {
 		hdrNonceHashDataUnit := dataRetriever.ShardHdrNonceHashDataUnit + dataRetriever.UnitType(i)
@@ -651,7 +655,9 @@ func CreateFullGenesisBlocks(
 	gasSchedule := wasmConfig.MakeGasMapForTests()
 	defaults.FillGasMapInternal(gasSchedule, 1)
 
-	coreComponents := GetDefaultCoreComponents(enableEpochsConfig)
+	genericEpochNotifier := forking.NewGenericEpochNotifier()
+	enableEpochsHandler, _ := enablers.NewEnableEpochsHandler(enableEpochsConfig, genericEpochNotifier)
+	coreComponents := GetDefaultCoreComponents(enableEpochsHandler, genericEpochNotifier)
 	coreComponents.InternalMarshalizerField = TestMarshalizer
 	coreComponents.TxMarshalizerField = TestTxSignMarshalizer
 	coreComponents.HasherField = TestHasher
@@ -775,7 +781,9 @@ func CreateGenesisMetaBlock(
 	gasSchedule := wasmConfig.MakeGasMapForTests()
 	defaults.FillGasMapInternal(gasSchedule, 1)
 
-	coreComponents := GetDefaultCoreComponents(enableEpochsConfig)
+	genericEpochNotifier := forking.NewGenericEpochNotifier()
+	enableEpochsHandler, _ := enablers.NewEnableEpochsHandler(enableEpochsConfig, genericEpochNotifier)
+	coreComponents := GetDefaultCoreComponents(enableEpochsHandler, genericEpochNotifier)
 	coreComponents.InternalMarshalizerField = marshalizer
 	coreComponents.HasherField = hasher
 	coreComponents.Uint64ByteSliceConverterField = uint64Converter
@@ -1146,20 +1154,18 @@ func IncrementAndPrintRound(round uint64) uint64 {
 }
 
 // ProposeBlock proposes a block for every shard
-func ProposeBlock(nodes []*TestProcessorNode, idxProposers []int, round uint64, nonce uint64) {
+func ProposeBlock(nodes []*TestProcessorNode, leaders []*TestProcessorNode, round uint64, nonce uint64) {
 	log.Info("All shards propose blocks...")
 
 	stepDelayAdjustment := StepDelay * time.Duration(1+len(nodes)/3)
 
-	for idx, n := range nodes {
-		if !IsIntInSlice(idx, idxProposers) {
-			continue
-		}
-
+	for _, n := range leaders {
 		body, header, _ := n.ProposeBlock(round, nonce)
 		n.WhiteListBody(nodes, body)
 		pk := n.NodeKeys.MainKey.Pk
 		n.BroadcastBlock(body, header, pk)
+
+		_ = addProofIfNeeded(n, header)
 		n.CommitBlock(body, header)
 	}
 
@@ -1168,17 +1174,74 @@ func ProposeBlock(nodes []*TestProcessorNode, idxProposers []int, round uint64, 
 	log.Info("Proposed block\n" + MakeDisplayTable(nodes))
 }
 
+// ProposeBlockWithProof proposes a block for every shard with custom handling for equivalent proof
+func ProposeBlockWithProof(
+	nodes []*TestProcessorNode,
+	leaders []*TestProcessorNode,
+	round uint64,
+	nonce uint64,
+) {
+	log.Info("All shards propose blocks with proof...")
+
+	stepDelayAdjustment := StepDelay * time.Duration(1+len(nodes)/3)
+
+	for _, n := range leaders {
+		body, header, _ := n.ProposeBlock(round, nonce)
+		n.WhiteListBody(nodes, body)
+		pk := n.NodeKeys.MainKey.Pk
+		n.BroadcastBlock(body, header, pk)
+
+		proof := addProofIfNeeded(n, header)
+		n.CommitBlock(body, header)
+
+		time.Sleep(SyncDelay)
+
+		// cleanup proof from pool before broadcasting so that the interceptor will propagate the proof to the other nodes
+		_ = n.Node.GetDataComponents().Datapool().Proofs().CleanupProofsBehindNonce(n.ShardCoordinator.SelfId(), nonce+4) // default cleanup delta is 3
+
+		n.BroadcastProof(proof, pk)
+
+	}
+
+	log.Info("Delaying for disseminating headers and miniblocks...")
+	time.Sleep(stepDelayAdjustment)
+	log.Info("Proposed block\n" + MakeDisplayTable(nodes))
+}
+
+func addProofIfNeeded(node *TestProcessorNode, header data.HeaderHandler) data.HeaderProofHandler {
+	coreComp := node.Node.GetCoreComponents()
+	if !common.IsProofsFlagEnabledForHeader(coreComp.EnableEpochsHandler(), header) {
+		return nil
+	}
+
+	hash, _ := core.CalculateHash(coreComp.InternalMarshalizer(), coreComp.Hasher(), header)
+	proof := &dataBlock.HeaderProof{
+		PubKeysBitmap:       []byte("bitmap"),
+		AggregatedSignature: []byte("sig"),
+		HeaderHash:          hash,
+		HeaderEpoch:         header.GetEpoch(),
+		HeaderNonce:         header.GetNonce(),
+		HeaderShardId:       header.GetShardID(),
+		HeaderRound:         header.GetRound(),
+		IsStartOfEpoch:      header.IsStartOfEpochBlock(),
+	}
+
+	node.Node.GetDataComponents().Datapool().Proofs().AddProof(proof)
+
+	return proof
+}
+
 // SyncBlock synchronizes the proposed block in all the other shard nodes
 func SyncBlock(
 	t *testing.T,
 	nodes []*TestProcessorNode,
-	idxProposers []int,
+	leaders []*TestProcessorNode,
 	round uint64,
 ) {
 
 	log.Info("All other shard nodes sync the proposed block...")
-	for idx, n := range nodes {
-		if IsIntInSlice(idx, idxProposers) {
+	for _, n := range nodes {
+		if IsNodeInSlice(n, leaders) {
 			continue
 		}
 
@@ -1194,10 +1257,9 @@ func SyncBlock(
 	log.Info("Synchronized block\n" + MakeDisplayTable(nodes))
 }
 
-// IsIntInSlice returns true if idx is found on any position in the provided slice
-func IsIntInSlice(idx int, slice []int) bool {
+func IsNodeInSlice(node *TestProcessorNode, slice []*TestProcessorNode) bool {
 	for _, value := range slice {
-		if value == idx {
+		if value == node {
 			return true
 		}
 	}
@@ -2192,7 +2254,9 @@ func generateValidTx(
 	_ = accnts.SaveAccount(acc)
 	_, _ = accnts.Commit()
 
-	coreComponents := GetDefaultCoreComponents(CreateEnableEpochsConfig())
+	genericEpochNotifier := forking.NewGenericEpochNotifier()
+	enableEpochsHandler, _ := enablers.NewEnableEpochsHandler(CreateEnableEpochsConfig(), genericEpochNotifier)
+	coreComponents := GetDefaultCoreComponents(enableEpochsHandler, genericEpochNotifier)
 	coreComponents.InternalMarshalizerField = TestMarshalizer
 	coreComponents.TxMarshalizerField = TestTxSignMarshalizer
 	coreComponents.VmMarshalizerField = TestMarshalizer
@@ -2244,14 +2308,14 @@ func generateValidTx(
 func ProposeAndSyncOneBlock(
 	t *testing.T,
 	nodes []*TestProcessorNode,
-	idxProposers []int,
+	leaders []*TestProcessorNode,
 	round uint64,
 	nonce uint64,
 ) (uint64, uint64) {
 
 	UpdateRound(nodes, round)
-	ProposeBlock(nodes, idxProposers, round, nonce)
-	SyncBlock(t, nodes, idxProposers, round)
+	ProposeBlock(nodes, leaders, round, nonce)
+	SyncBlock(t, nodes, leaders, round)
 	round = IncrementAndPrintRound(round)
 	nonce++
 
@@ -2422,7 +2486,7 @@ func BootstrapDelay() {
 func SetupSyncNodesOneShardAndMeta(
 	numNodesPerShard int,
 	numNodesMeta int,
-) ([]*TestProcessorNode, []int) {
+) ([]*TestProcessorNode, []*TestProcessorNode) {
 
 	maxShardsLocal := uint32(1)
 	shardId := uint32(0)
@@ -2439,7 +2503,7 @@ func SetupSyncNodesOneShardAndMeta(
 		nodes = append(nodes, shardNode)
 		connectableNodes = append(connectableNodes, shardNode)
 	}
-	idxProposerShard0 := 0
+	leaderShard0 := nodes[0]
 
 	for i := 0; i < numNodesMeta; i++ {
 		metaNode := NewTestProcessorNode(ArgTestProcessorNode{
@@ -2451,13 +2515,13 @@ func SetupSyncNodesOneShardAndMeta(
 		nodes = append(nodes, metaNode)
 		connectableNodes = append(connectableNodes, metaNode)
 	}
-	idxProposerMeta := len(nodes) - 1
+	leaderMeta := nodes[len(nodes)-1]
 
-	idxProposers := []int{idxProposerShard0, idxProposerMeta}
+	leaders := []*TestProcessorNode{leaderShard0, leaderMeta}
 
 	ConnectNodes(connectableNodes)
 
-	return nodes, idxProposers
+	return nodes, leaders
 }
 
 // StartSyncingBlocks starts the syncing process of all the nodes
@@ -2539,14 +2603,14 @@ func UpdateRound(nodes []*TestProcessorNode, round uint64) {
 func ProposeBlocks(
 	nodes []*TestProcessorNode,
 	round *uint64,
-	idxProposers []int,
+	leaders []*TestProcessorNode,
 	nonces []*uint64,
 	numOfRounds int,
 ) {
 
 	for i := 0; i < numOfRounds; i++ {
 		crtRound := atomic.LoadUint64(round)
-		proposeBlocks(nodes, idxProposers, nonces, crtRound)
+		proposeBlocks(nodes, leaders, nonces, crtRound)
 
 		time.Sleep(SyncDelay)
 
@@ -2567,20 +2631,20 @@ func IncrementNonces(nonces []*uint64) {
 
 func proposeBlocks(
 	nodes []*TestProcessorNode,
-	idxProposers []int,
+	leaders []*TestProcessorNode,
 	nonces []*uint64,
 	crtRound uint64,
 ) {
-	for idx, proposer := range idxProposers {
+	for idx, proposer := range leaders {
 		crtNonce := atomic.LoadUint64(nonces[idx])
-		ProposeBlock(nodes, []int{proposer}, crtRound, crtNonce)
+		ProposeBlock(nodes, []*TestProcessorNode{proposer}, crtRound, crtNonce)
 	}
 }
 
 // WaitOperationToBeDone -
-func WaitOperationToBeDone(t *testing.T, nodes []*TestProcessorNode, nrOfRounds int, nonce uint64, round uint64, idxProposers []int) (uint64, uint64) {
+func WaitOperationToBeDone(t *testing.T, leaders []*TestProcessorNode, nodes []*TestProcessorNode, nrOfRounds int, nonce uint64, round uint64) (uint64, uint64) {
 	for i := 0; i < nrOfRounds; i++ {
-		round, nonce = ProposeAndSyncOneBlock(t, nodes, idxProposers, round, nonce)
+		round, nonce = ProposeAndSyncOneBlock(t, nodes, leaders, round, nonce)
 	}
 
 	return nonce, round

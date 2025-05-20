@@ -8,9 +8,10 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/assert"
+
 	"github.com/multiversx/mx-chain-go/integrationTests"
 	"github.com/multiversx/mx-chain-go/process/factory"
-	"github.com/stretchr/testify/assert"
 )
 
 func TestTransaction_TransactionBuiltinFunctionsScenarios(t *testing.T) {
@@ -19,7 +20,7 @@ func TestTransaction_TransactionBuiltinFunctionsScenarios(t *testing.T) {
 	}
 
 	initialBalance := big.NewInt(1000000000000)
-	nodes, idxProposers, players := createGeneralSetupForTxTest(initialBalance)
+	nodes, leaders, players := createGeneralSetupForTxTest(initialBalance)
 	defer func() {
 		for _, n := range nodes {
 			n.Close()
@@ -50,7 +51,7 @@ func TestTransaction_TransactionBuiltinFunctionsScenarios(t *testing.T) {
 	nrRoundsToTest := int64(5)
 
 	for i := int64(0); i < nrRoundsToTest; i++ {
-		round, nonce = integrationTests.ProposeAndSyncOneBlock(t, nodes, idxProposers, round, nonce)
+		round, nonce = integrationTests.ProposeAndSyncOneBlock(t, nodes, leaders, round, nonce)
 		integrationTests.AddSelfNotarizedHeaderByMetachain(nodes)
 
 		time.Sleep(time.Second)
@@ -74,7 +75,7 @@ func TestTransaction_TransactionBuiltinFunctionsScenarios(t *testing.T) {
 	time.Sleep(time.Millisecond)
 
 	for i := int64(0); i < nrRoundsToTest; i++ {
-		round, nonce = integrationTests.ProposeAndSyncOneBlock(t, nodes, idxProposers, round, nonce)
+		round, nonce = integrationTests.ProposeAndSyncOneBlock(t, nodes, leaders, round, nonce)
 		integrationTests.AddSelfNotarizedHeaderByMetachain(nodes)
 
 		time.Sleep(time.Second)
@@ -103,7 +104,7 @@ func TestTransaction_TransactionBuiltinFunctionsScenarios(t *testing.T) {
 	time.Sleep(time.Millisecond)
 
 	for i := int64(0); i < nrRoundsToTest; i++ {
-		round, nonce = integrationTests.ProposeAndSyncOneBlock(t, nodes, idxProposers, round, nonce)
+		round, nonce = integrationTests.ProposeAndSyncOneBlock(t, nodes, leaders, round, nonce)
 		integrationTests.AddSelfNotarizedHeaderByMetachain(nodes)
 		time.Sleep(time.Second)
 	}

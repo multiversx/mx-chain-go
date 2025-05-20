@@ -120,7 +120,7 @@ func (sc *statusComputer) SetStatusIfIsRewardReverted(
 	if selfShardID == core.MetachainShardId {
 		storerUnit = dataRetriever.MetaHdrNonceHashDataUnit
 	} else {
-		storerUnit = dataRetriever.ShardHdrNonceHashDataUnit + dataRetriever.UnitType(selfShardID)
+		storerUnit = dataRetriever.GetHdrNonceHashDataUnit(selfShardID)
 	}
 
 	nonceToByteSlice := sc.uint64ByteSliceConverter.ToByteSlice(headerNonce)

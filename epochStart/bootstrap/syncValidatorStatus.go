@@ -44,6 +44,7 @@ type ArgsNewSyncValidatorStatus struct {
 	RequestHandler                  process.RequestHandler
 	ChanceComputer                  nodesCoordinator.ChanceComputer
 	GenesisNodesConfig              sharding.GenesisNodesSetupHandler
+	ChainParametersHandler          process.ChainParametersHandler
 	NodeShuffler                    nodesCoordinator.NodesShuffler
 	PubKey                          []byte
 	ShardIdAsObserver               uint32
@@ -112,8 +113,7 @@ func NewSyncValidatorStatus(args ArgsNewSyncValidatorStatus) (*syncValidatorStat
 	s.memDB = disabled.CreateMemUnit()
 
 	argsNodesCoordinator := nodesCoordinator.ArgNodesCoordinator{
-		ShardConsensusGroupSize:         int(args.GenesisNodesConfig.GetShardConsensusGroupSize()),
-		MetaConsensusGroupSize:          int(args.GenesisNodesConfig.GetMetaConsensusGroupSize()),
+		ChainParametersHandler:          args.ChainParametersHandler,
 		Marshalizer:                     args.Marshalizer,
 		Hasher:                          args.Hasher,
 		Shuffler:                        args.NodeShuffler,

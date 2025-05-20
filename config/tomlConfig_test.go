@@ -48,6 +48,20 @@ func TestTomlParser(t *testing.T) {
 	}
 
 	cfgExpected := Config{
+		GeneralSettings: GeneralSettingsConfig{
+			ChainParametersByEpoch: []ChainParametersByEpochConfig{
+				{
+					EnableEpoch:                 0,
+					RoundDuration:               4000,
+					ShardMinNumNodes:            4,
+					ShardConsensusGroupSize:     3,
+					MetachainMinNumNodes:        6,
+					MetachainConsensusGroupSize: 5,
+					Hysteresis:                  0.0,
+					Adaptivity:                  false,
+				},
+			},
+		},
 		MiniBlocksStorage: StorageConfig{
 			Cache: CacheConfig{
 				Capacity: uint32(txBlockBodyStorageSize),
@@ -150,6 +164,10 @@ func TestTomlParser(t *testing.T) {
 		},
 	}
 	testString := `
+[GeneralSettings]
+	ChainParametersByEpoch = [
+        { EnableEpoch = 0, RoundDuration = 4000, ShardConsensusGroupSize = 3, ShardMinNumNodes = 4, MetachainConsensusGroupSize = 5, MetachainMinNumNodes = 6, Hysteresis = 0.0, Adaptivity = false }
+    ]
 [MiniBlocksStorage]
     [MiniBlocksStorage.Cache]
         Capacity = ` + strconv.Itoa(txBlockBodyStorageSize) + `
@@ -893,20 +911,26 @@ func TestEnableEpochConfig(t *testing.T) {
 	# RelayedTransactionsV3FixESDTTransferEnableEpoch represents the epoch when the fix for relayed transactions v3 with esdt transfer will be enabled
     RelayedTransactionsV3FixESDTTransferEnableEpoch = 104
 
+	# AndromedaEnableEpoch represents the epoch when the equivalent messages are enabled
+	AndromedaEnableEpoch = 105
+
+    # CheckBuiltInCallOnTransferValueAndFailEnableRound represents the ROUND when the check on transfer value fix is activated
+    CheckBuiltInCallOnTransferValueAndFailEnableRound = 106
+
 	# MaskVMInternalDependenciesErrorsEnableEpoch represents the epoch when the additional internal erorr masking in vm is enabled
-	MaskVMInternalDependenciesErrorsEnableEpoch = 105
+	MaskVMInternalDependenciesErrorsEnableEpoch = 107
 
 	# FixBackTransferOPCODEEnableEpoch represents the epoch when the fix for back transfers opcode will be enabled
-	FixBackTransferOPCODEEnableEpoch = 106
+	FixBackTransferOPCODEEnableEpoch = 108
 
 	# ValidationOnGobDecodeEnableEpoch represents the epoch when validation on GobDecode will be taken into account
-    ValidationOnGobDecodeEnableEpoch = 107
+    ValidationOnGobDecodeEnableEpoch = 109
 
 	# BarnardOpcodesEnableEpoch represents the epoch when Barnard opcodes will be enabled
-	BarnardOpcodesEnableEpoch = 108
+	BarnardOpcodesEnableEpoch = 110
 
     # AutomaticActivationOfNodesDisableEpoch represents the epoch when automatic activation of nodes for validators is disabled
-    AutomaticActivationOfNodesDisableEpoch = 104
+    AutomaticActivationOfNodesDisableEpoch = 111
 
     # MaxNodesChangeEnableEpoch holds configuration for changing the maximum number of nodes and the enabling epoch
     MaxNodesChangeEnableEpoch = [
@@ -1030,11 +1054,13 @@ func TestEnableEpochConfig(t *testing.T) {
 			FixRelayedMoveBalanceToNonPayableSCEnableEpoch:           102,
 			RelayedTransactionsV3EnableEpoch:                         103,
 			RelayedTransactionsV3FixESDTTransferEnableEpoch:          104,
-			MaskVMInternalDependenciesErrorsEnableEpoch:              105,
-			FixBackTransferOPCODEEnableEpoch:                         106,
-			ValidationOnGobDecodeEnableEpoch:                         107,
-			BarnardOpcodesEnableEpoch:                                108,
-			AutomaticActivationOfNodesDisableEpoch:                   104,
+			AndromedaEnableEpoch:                                     105,
+			CheckBuiltInCallOnTransferValueAndFailEnableRound:        106,
+			MaskVMInternalDependenciesErrorsEnableEpoch:              107,
+			FixBackTransferOPCODEEnableEpoch:                         108,
+			ValidationOnGobDecodeEnableEpoch:                         109,
+			BarnardOpcodesEnableEpoch:                                110,
+			AutomaticActivationOfNodesDisableEpoch:                   111,
 			MaxNodesChangeEnableEpoch: []MaxNodesChangeConfig{
 				{
 					EpochEnable:            44,

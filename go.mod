@@ -11,8 +11,10 @@ require (
 	github.com/gizak/termui/v3 v3.1.0
 	github.com/gogo/protobuf v1.3.2
 	github.com/google/gops v0.3.18
-	github.com/gorilla/websocket v1.5.3
-	github.com/klauspost/cpuid/v2 v2.2.9
+	github.com/gorilla/websocket v1.5.0
+	github.com/klauspost/cpuid/v2 v2.2.7
+	github.com/libp2p/go-libp2p v0.28.2
+	github.com/libp2p/go-libp2p-pubsub v0.9.3
 	github.com/mitchellh/mapstructure v1.5.0
 	github.com/multiversx/mx-chain-communication-go v1.1.2-0.20250218164645-1f6964baffbe
 	github.com/multiversx/mx-chain-core-go v1.2.25-0.20250218161123-121084ae9840
@@ -33,6 +35,7 @@ require (
 	github.com/stretchr/testify v1.10.0
 	github.com/urfave/cli v1.22.16
 	golang.org/x/crypto v0.32.0
+	golang.org/x/exp v0.0.0-20230321023759-10a507213a29
 	gopkg.in/go-playground/validator.v8 v8.18.2
 )
 
