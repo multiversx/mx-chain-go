@@ -20,6 +20,7 @@ import (
 	"github.com/multiversx/mx-chain-go/state"
 	disabledState "github.com/multiversx/mx-chain-go/state/disabled"
 	"github.com/multiversx/mx-chain-go/state/factory"
+	"github.com/multiversx/mx-chain-go/state/hashesCollector"
 	"github.com/multiversx/mx-chain-go/state/storagePruningManager/disabled"
 	"github.com/multiversx/mx-chain-go/trie"
 	"github.com/multiversx/mx-chain-go/update"
@@ -314,7 +315,15 @@ func (si *stateImport) getTrie(shardID uint32, accType Type) (common.Trie, error
 		trieStorageManager = si.trieStorageManagers[dataRetriever.PeerAccountsUnit.String()]
 	}
 
-	trieForShard, err := trie.NewTrie(trieStorageManager, si.marshalizer, si.hasher, si.enableEpochsHandler, maxTrieLevelInMemory)
+	trieArgs := trie.TrieArgs{
+		TrieStorage:          trieStorageManager,
+		Marshalizer:          si.marshalizer,
+		Hasher:               si.hasher,
+		EnableEpochsHandler:  si.enableEpochsHandler,
+		MaxTrieLevelInMemory: maxTrieLevelInMemory,
+		Throttler:            trie.NewDisabledTrieGoRoutinesThrottler(),
+	}
+	trieForShard, err := trie.NewTrie(trieArgs)
 	if err != nil {
 		return nil, err
 	}
@@ -346,13 +355,21 @@ func (si *stateImport) importDataTrie(identifier string, shID uint32, keys [][]b
 		return fmt.Errorf("%w wanted a roothash", update.ErrWrongTypeAssertion)
 	}
 
-	dataTrie, err := trie.NewTrie(si.trieStorageManagers[dataRetriever.UserAccountsUnit.String()], si.marshalizer, si.hasher, si.enableEpochsHandler, maxTrieLevelInMemory)
+	trieArgs := trie.TrieArgs{
+		TrieStorage:          si.trieStorageManagers[dataRetriever.UserAccountsUnit.String()],
+		Marshalizer:          si.marshalizer,
+		Hasher:               si.hasher,
+		EnableEpochsHandler:  si.enableEpochsHandler,
+		MaxTrieLevelInMemory: maxTrieLevelInMemory,
+		Throttler:            trie.NewDisabledTrieGoRoutinesThrottler(),
+	}
+	dataTrie, err := trie.NewTrie(trieArgs)
 	if err != nil {
 		return err
 	}
 
 	if common.IsEmptyTrie(originalRootHash) {
-		err = dataTrie.Commit()
+		err = dataTrie.Commit(hashesCollector.NewDisabledHashesCollector())
 		if err != nil {
 			return err
 		}
@@ -377,16 +394,13 @@ func (si *stateImport) importDataTrie(identifier string, shID uint32, keys [][]b
 			break
 		}
 		// TODO this will not work for a partially migrated trie
-		err = dataTrie.Update(address, value)
-		if err != nil {
-			break
-		}
+		dataTrie.Update(address, value)
 	}
 	if err != nil {
 		return fmt.Errorf("%w identifier: %s", err, identifier)
 	}
 
-	err = dataTrie.Commit()
+	err = dataTrie.Commit(hashesCollector.NewDisabledHashesCollector())
 	if err != nil {
 		return err
 	}
@@ -548,8 +562,8 @@ func (si *stateImport) unMarshalAndSaveAccount(
 			"key", hex.EncodeToString(address),
 			"error", err,
 		)
-		err = mainTrie.Update(address, buffer)
-		return err
+		mainTrie.Update(address, buffer)
+		return nil
 	}
 
 	return accountsDB.ImportAccount(account)

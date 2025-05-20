@@ -258,16 +258,16 @@ func (d *depthFirstTrieSyncer) storeTrieNode(element node) error {
 	return nil
 }
 
-func (d *depthFirstTrieSyncer) storeLeaves(children []node) ([]node, error) {
-	childrenNotLeaves := make([]node, 0, len(children))
+func (d *depthFirstTrieSyncer) storeLeaves(children []nodeWithHash) ([]nodeWithHash, error) {
+	childrenNotLeaves := make([]nodeWithHash, 0, len(children))
 	for _, element := range children {
-		_, isLeaf := element.(*leafNode)
+		_, isLeaf := element.node.(*leafNode)
 		if !isLeaf {
 			childrenNotLeaves = append(childrenNotLeaves, element)
 			continue
 		}
 
-		err := d.storeTrieNode(element)
+		err := d.storeTrieNode(element.node)
 		if err != nil {
 			return nil, err
 		}

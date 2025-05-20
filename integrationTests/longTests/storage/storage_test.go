@@ -6,9 +6,11 @@ import (
 	"testing"
 	"time"
 
+	"github.com/multiversx/mx-chain-core-go/core/throttler"
 	"github.com/multiversx/mx-chain-core-go/hashing/blake2b"
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/integrationTests"
+	"github.com/multiversx/mx-chain-go/state/hashesCollector"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/storage"
 	"github.com/multiversx/mx-chain-go/trie"
@@ -117,7 +119,17 @@ func TestWriteContinuouslyInTree(t *testing.T) {
 	trieStorage, _ := trie.CreateTrieStorageManager(storageManagerArgs, options)
 
 	maxTrieLevelInMemory := uint(5)
-	tr, _ := trie.NewTrie(trieStorage, &marshal.JsonMarshalizer{}, blake2b.NewBlake2b(), &enableEpochsHandlerMock.EnableEpochsHandlerStub{}, maxTrieLevelInMemory)
+	thr, _ := throttler.NewNumGoRoutinesThrottler(10)
+	trieArgs := trie.TrieArgs{
+		TrieStorage:          trieStorage,
+		Marshalizer:          &marshal.JsonMarshalizer{},
+		Hasher:               blake2b.NewBlake2b(),
+		EnableEpochsHandler:  &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		MaxTrieLevelInMemory: maxTrieLevelInMemory,
+		Throttler:            thr,
+	}
+
+	tr, _ := trie.NewTrie(trieArgs)
 
 	defer func() {
 		_ = store.DestroyUnit()
@@ -130,14 +142,14 @@ func TestWriteContinuouslyInTree(t *testing.T) {
 		if i%written == 0 {
 			endTime := time.Now()
 			diff := endTime.Sub(startTime)
-			_ = tr.Commit()
+			_ = tr.Commit(hashesCollector.NewDisabledHashesCollector())
 			fmt.Printf("Written %d, total %d in %f s\n", written, i, diff.Seconds())
 			startTime = time.Now()
 		}
 
 		key, val := testStorage.CreateStoredData(uint64(i))
-		err := tr.Update(key, val)
-
+		tr.Update(key, val)
+		_, err := tr.RootHash()
 		assert.Nil(t, err)
 	}
 }

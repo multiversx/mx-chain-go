@@ -1,8 +1,6 @@
 package trie
 
 import (
-	"time"
-
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/common/statistics"
@@ -34,36 +32,6 @@ func (ts *trieSyncer) trieNodeIntercepted(hash []byte, val interface{}) {
 	}
 }
 
-// WaitForOperationToComplete -
-func WaitForOperationToComplete(tsm common.StorageManager) {
-	for tsm.IsPruningBlocked() {
-		time.Sleep(10 * time.Millisecond)
-	}
-}
-
-// CreateSmallTestTrieAndStorageManager -
-func CreateSmallTestTrieAndStorageManager() (*patriciaMerkleTrie, *trieStorageManager) {
-	tr, trieStorage := newEmptyTrie()
-	_ = tr.Update([]byte("doe"), []byte("reindeer"))
-	_ = tr.Update([]byte("dog"), []byte("puppy"))
-	_ = tr.Update([]byte("dogglesworth"), []byte("cat"))
-
-	_ = tr.Commit()
-
-	return tr, trieStorage
-}
-
-// GetDirtyHashes -
-func GetDirtyHashes(tr common.Trie) common.ModifiedHashes {
-	hashes, _ := tr.GetAllHashes()
-	dirtyHashes := make(common.ModifiedHashes)
-	for _, hash := range hashes {
-		dirtyHashes[string(hash)] = struct{}{}
-	}
-
-	return dirtyHashes
-}
-
 // WriteInChanNonBlocking -
 func WriteInChanNonBlocking(errChan chan error, err error) {
 	select {
@@ -89,8 +57,8 @@ func IsTrieStorageManagerInEpoch(tsm common.StorageManager) bool {
 }
 
 // NewBaseIterator -
-func NewBaseIterator(trie common.Trie) (*baseIterator, error) {
-	return newBaseIterator(trie)
+func NewBaseIterator(trie common.Trie, rootHash []byte) (*baseIterator, error) {
+	return newBaseIterator(trie, rootHash)
 }
 
 // GetDefaultTrieStorageManagerParameters -
@@ -110,4 +78,26 @@ func GetDefaultTrieStorageManagerParameters() NewTrieStorageManagerArgs {
 		Identifier:     dataRetriever.UserAccountsUnit.String(),
 		StatsCollector: statistics.NewStateStatistics(),
 	}
+}
+
+// ExecuteUpdatesFromBatch -
+func ExecuteUpdatesFromBatch(tr common.Trie) {
+	pmt, _ := tr.(*patriciaMerkleTrie)
+	_ = pmt.updateTrie()
+}
+
+// GetBatchManager -
+func GetBatchManager(tr common.Trie) common.TrieBatchManager {
+	return tr.(*patriciaMerkleTrie).batchManager
+}
+
+// SetGoRoutinesManager -
+func SetGoRoutinesManager(tr common.Trie, gm common.TrieGoroutinesManager) {
+	pmt, _ := tr.(*patriciaMerkleTrie)
+	pmt.goRoutinesManager = gm
+}
+
+// GetModifiedHashes -
+func GetModifiedHashes(tr common.Trie) [][]byte {
+	return tr.(*patriciaMerkleTrie).GetOldHashes()
 }

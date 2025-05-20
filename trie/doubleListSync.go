@@ -198,7 +198,7 @@ func (d *doubleListTrieSyncer) processMissingHashes() {
 		delete(d.missingHashes, hash)
 		delete(d.requestedHashes, hash)
 
-		d.existingNodes[string(n.getHash())] = n
+		d.existingNodes[hash] = n
 	}
 }
 
@@ -213,7 +213,7 @@ func (d *doubleListTrieSyncer) processExistingNodes() error {
 
 		d.timeoutHandler.ResetWatchdog()
 
-		var children []node
+		var children []nodeWithHash
 		var missingChildrenHashes [][]byte
 		missingChildrenHashes, children, err = element.loadChildren(d.getNode)
 		if err != nil {
@@ -230,7 +230,7 @@ func (d *doubleListTrieSyncer) processExistingNodes() error {
 		delete(d.existingNodes, hash)
 
 		for _, child := range children {
-			d.existingNodes[string(child.getHash())] = child
+			d.existingNodes[string(child.hash)] = child.node
 		}
 
 		for _, missingHash := range missingChildrenHashes {
