@@ -19,7 +19,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/display"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
-	"github.com/multiversx/mx-chain-logger-go"
+	logger "github.com/multiversx/mx-chain-logger-go"
 
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
@@ -655,10 +655,13 @@ func (t *trigger) shouldUpdateTrigger(metaHdr *block.MetaBlock, metaBlockHash []
 		return false
 	}
 
-	if _, ok := t.mapHashHdr[string(metaBlockHash)]; ok {
-		return false
-	}
-	if _, ok := t.mapEpochStartHdrs[string(metaBlockHash)]; ok {
+	_, foundHdrInMap := t.mapHashHdr[string(metaBlockHash)]
+	_, foundHdrInEpochStartMap := t.mapEpochStartHdrs[string(metaBlockHash)]
+
+	finalizedMetaBlockHash, ok := t.mapFinalizedEpochs[metaHdr.Epoch]
+	foundHdrInFinalizedMap := ok && bytes.Equal(metaBlockHash, []byte(finalizedMetaBlockHash))
+
+	if foundHdrInMap && foundHdrInEpochStartMap && foundHdrInFinalizedMap {
 		return false
 	}
 
