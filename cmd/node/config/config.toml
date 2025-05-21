@@ -924,6 +924,28 @@
         BatchDelaySeconds = 2
         MaxBatchSize = 20000
         MaxOpenFiles = 10
+    [[DbLookupExtensions.SupplyCorrections]]
+        ID = "sp1"
+        ShardID = 1
+        BlockNonce = 123456
+        Token = "USDC-c76f1f"
+        Value = "1000"
+        Operation = "add"
+    [[DbLookupExtensions.SupplyCorrections]]
+        ID = "sp2"
+        ShardID = 1
+        BlockNonce = 123456
+        Token = "USDT-f8c08c"
+        Value = "2000"
+        Operation = "add"
+    [[DbLookupExtensions.SupplyCorrections]]
+        ID = "sp3"
+        ShardID = 1
+        BlockNonce = 123456
+        Token = "HTM-f51d55"
+        Value = "3000"
+        Operation = "add"
+
 
 [Logs]
     LogFileLifeSpanInMB = 1024 # 1GB

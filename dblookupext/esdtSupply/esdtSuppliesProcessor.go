@@ -3,6 +3,7 @@
 package esdtSupply
 
 import (
+	"github.com/multiversx/mx-chain-go/config"
 	"sync"
 
 	"github.com/multiversx/mx-chain-core-go/core"
@@ -26,6 +27,8 @@ func NewSuppliesProcessor(
 	marshalizer marshal.Marshalizer,
 	suppliesStorer storage.Storer,
 	logsStorer storage.Storer,
+	supplyCorrections []config.SupplyCorrection,
+	shardID uint32,
 ) (*suppliesProcessor, error) {
 	if check.IfNil(marshalizer) {
 		return nil, core.ErrNilMarshalizer
@@ -39,11 +42,19 @@ func NewSuppliesProcessor(
 
 	logsGet := newLogsGetter(marshalizer, logsStorer)
 	logsProc := newLogsProcessor(marshalizer, suppliesStorer)
+	supplyCorrectionProc := newSupplyCorrectionProcessor(shardID, logsProc)
 
-	return &suppliesProcessor{
+	sp := &suppliesProcessor{
 		logsProc: logsProc,
 		logsGet:  logsGet,
-	}, nil
+	}
+
+	err := supplyCorrectionProc.applySupplyCorrections(supplyCorrections)
+	if err != nil {
+		return nil, err
+	}
+
+	return sp, nil
 }
 
 // ProcessLogs will process the provided logs

@@ -31,16 +31,16 @@ const (
 func TestNewSuppliesProcessor(t *testing.T) {
 	t.Parallel()
 
-	_, err := NewSuppliesProcessor(nil, &storageStubs.StorerStub{}, &storageStubs.StorerStub{})
+	_, err := NewSuppliesProcessor(nil, &storageStubs.StorerStub{}, &storageStubs.StorerStub{}, nil, 0)
 	require.Equal(t, core.ErrNilMarshalizer, err)
 
-	_, err = NewSuppliesProcessor(&marshallerMock.MarshalizerMock{}, nil, &storageStubs.StorerStub{})
+	_, err = NewSuppliesProcessor(&marshallerMock.MarshalizerMock{}, nil, &storageStubs.StorerStub{}, nil, 0)
 	require.Equal(t, core.ErrNilStore, err)
 
-	_, err = NewSuppliesProcessor(&marshallerMock.MarshalizerMock{}, &storageStubs.StorerStub{}, nil)
+	_, err = NewSuppliesProcessor(&marshallerMock.MarshalizerMock{}, &storageStubs.StorerStub{}, nil, nil, 0)
 	require.Equal(t, core.ErrNilStore, err)
 
-	proc, err := NewSuppliesProcessor(&marshallerMock.MarshalizerMock{}, &storageStubs.StorerStub{}, &storageStubs.StorerStub{})
+	proc, err := NewSuppliesProcessor(&marshallerMock.MarshalizerMock{}, &storageStubs.StorerStub{}, &storageStubs.StorerStub{}, nil, 0)
 	require.Nil(t, err)
 	require.NotNil(t, proc)
 	require.False(t, proc.IsInterfaceNil())
@@ -134,7 +134,7 @@ func TestProcessLogsSaveSupply(t *testing.T) {
 		},
 	}
 
-	suppliesProc, err := NewSuppliesProcessor(marshalizer, suppliesStorer, &storageStubs.StorerStub{})
+	suppliesProc, err := NewSuppliesProcessor(marshalizer, suppliesStorer, &storageStubs.StorerStub{}, nil, 0)
 	require.Nil(t, err)
 
 	err = suppliesProc.ProcessLogs(6, logs)
@@ -296,7 +296,7 @@ func TestProcessLogsSaveSupplyShouldUpdateSupplyMintedAndBurned(t *testing.T) {
 		},
 	}
 
-	suppliesProc, err := NewSuppliesProcessor(marshalizer, suppliesStorer, &storageStubs.StorerStub{})
+	suppliesProc, err := NewSuppliesProcessor(marshalizer, suppliesStorer, &storageStubs.StorerStub{}, nil, 0)
 	require.Nil(t, err)
 
 	err = suppliesProc.ProcessLogs(6, logsCreate)
@@ -372,7 +372,7 @@ func TestProcessLogs_RevertChangesShouldWorkForRevertingMinting(t *testing.T) {
 
 	suppliesStorer := genericMocks.NewStorerMockWithErrKeyNotFound(0)
 
-	suppliesProc, err := NewSuppliesProcessor(marshalizer, suppliesStorer, logsStorer)
+	suppliesProc, err := NewSuppliesProcessor(marshalizer, suppliesStorer, logsStorer, nil, 0)
 	require.Nil(t, err)
 
 	err = suppliesProc.ProcessLogs(6, logsMintNoRevert)
@@ -463,7 +463,7 @@ func TestProcessLogs_RevertChangesShouldWorkForRevertingBurning(t *testing.T) {
 
 	suppliesStorer := genericMocks.NewStorerMockWithErrKeyNotFound(0)
 
-	suppliesProc, err := NewSuppliesProcessor(marshalizer, suppliesStorer, logsStorer)
+	suppliesProc, err := NewSuppliesProcessor(marshalizer, suppliesStorer, logsStorer, nil, 0)
 	require.Nil(t, err)
 
 	err = suppliesProc.ProcessLogs(6, logsMintNoRevert)
@@ -535,7 +535,7 @@ func TestSupplyESDT_GetSupply(t *testing.T) {
 			}
 			return nil, errors.New("local err")
 		},
-	}, &storageStubs.StorerStub{})
+	}, &storageStubs.StorerStub{}, nil, 0)
 
 	res, err := proc.GetESDTSupply("my-token")
 	require.Nil(t, err)

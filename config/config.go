@@ -1,6 +1,8 @@
 package config
 
-import p2pConfig "github.com/multiversx/mx-chain-go/p2p/config"
+import (
+	p2pConfig "github.com/multiversx/mx-chain-go/p2p/config"
+)
 
 // CacheConfig will map the cache configuration
 type CacheConfig struct {
@@ -496,6 +498,17 @@ type DbLookupExtensionsConfig struct {
 	ResultsHashesByTxHashStorageConfig StorageConfig
 	ESDTSuppliesStorageConfig          StorageConfig
 	RoundHashStorageConfig             StorageConfig
+	SupplyCorrections                  []SupplyCorrection
+}
+
+// SupplyCorrection holds the configuration for correction of db look extension supply endpoint
+type SupplyCorrection struct {
+	ID         string
+	ShardID    uint32
+	BlockNonce uint64
+	Token      string
+	Value      string
+	Operation  string
 }
 
 // DebugConfig will hold debugging configuration
