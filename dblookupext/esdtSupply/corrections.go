@@ -3,9 +3,10 @@ package esdtSupply
 import (
 	"bytes"
 	"errors"
+	"math/big"
+
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/storage"
-	"math/big"
 )
 
 const (

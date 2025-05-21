@@ -1,13 +1,14 @@
 package esdtSupply
 
 import (
+	"math/big"
+	"testing"
+
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
 	storageStubs "github.com/multiversx/mx-chain-go/testscommon/storage"
 	"github.com/stretchr/testify/require"
-	"math/big"
-	"testing"
 )
 
 func TestSaveCorrectionInfo(t *testing.T) {
