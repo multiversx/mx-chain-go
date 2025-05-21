@@ -349,8 +349,7 @@ func (ln *leafNode) sizeInBytes() int {
 		return 0
 	}
 
-	nodeVersionSizeInBytes := 4
-	nodeSize := len(ln.Key) + len(ln.Value) + nodeVersionSizeInBytes + dirtyFlagSizeInBytes + mutexSizeInBytes
+	nodeSize := len(ln.Key) + len(ln.Value) + versionSizeInBytes + dirtyFlagSizeInBytes + mutexSizeInBytes
 
 	return nodeSize
 }

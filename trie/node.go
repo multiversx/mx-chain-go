@@ -19,6 +19,7 @@ const (
 	pointerSizeInBytes   = 8
 	mutexSizeInBytes     = 24
 	dirtyFlagSizeInBytes = 1
+	versionSizeInBytes   = 4
 	pollingIdleNode      = time.Millisecond
 )
 

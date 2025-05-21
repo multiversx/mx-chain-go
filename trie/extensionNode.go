@@ -682,8 +682,7 @@ func (en *extensionNode) sizeInBytes() int {
 		return 0
 	}
 
-	childVersionSizeInBytes := 4
-	nodeSize := len(en.Key) + len(en.ChildHash) + childVersionSizeInBytes + pointerSizeInBytes + dirtyFlagSizeInBytes + 2*mutexSizeInBytes
+	nodeSize := len(en.Key) + len(en.ChildHash) + versionSizeInBytes + pointerSizeInBytes + dirtyFlagSizeInBytes + 2*mutexSizeInBytes
 
 	return nodeSize
 }
