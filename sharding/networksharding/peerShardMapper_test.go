@@ -9,23 +9,24 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/stretchr/testify/assert"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/p2p"
 	"github.com/multiversx/mx-chain-go/sharding/networksharding"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
-	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/cache"
 	"github.com/multiversx/mx-chain-go/testscommon/p2pmocks"
 	"github.com/multiversx/mx-chain-go/testscommon/shardingMocks"
-	"github.com/stretchr/testify/assert"
 )
 
 // ------- NewPeerShardMapper
 
 func createMockArgumentForPeerShardMapper() networksharding.ArgPeerShardMapper {
 	return networksharding.ArgPeerShardMapper{
-		PeerIdPkCache:         testscommon.NewCacherMock(),
-		FallbackPkShardCache:  testscommon.NewCacherMock(),
-		FallbackPidShardCache: testscommon.NewCacherMock(),
+		PeerIdPkCache:         cache.NewCacherMock(),
+		FallbackPkShardCache:  cache.NewCacherMock(),
+		FallbackPidShardCache: cache.NewCacherMock(),
 		NodesCoordinator:      &shardingMocks.NodesCoordinatorMock{},
 		PreferredPeersHolder:  &p2pmocks.PeersHolderStub{},
 	}

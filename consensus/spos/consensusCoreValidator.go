@@ -1,6 +1,8 @@
 package spos
 
-import "github.com/multiversx/mx-chain-core-go/core/check"
+import (
+	"github.com/multiversx/mx-chain-core-go/core/check"
+)
 
 // ValidateConsensusCore checks for nil all the container objects
 func ValidateConsensusCore(container ConsensusCoreHandler) error {
@@ -73,6 +75,21 @@ func ValidateConsensusCore(container ConsensusCoreHandler) error {
 	}
 	if check.IfNil(container.SigningHandler()) {
 		return ErrNilSigningHandler
+	}
+	if check.IfNil(container.EnableEpochsHandler()) {
+		return ErrNilEnableEpochsHandler
+	}
+	if check.IfNil(container.EquivalentProofsPool()) {
+		return ErrNilEquivalentProofPool
+	}
+	if check.IfNil(container.EpochNotifier()) {
+		return ErrNilEpochNotifier
+	}
+	if check.IfNil(container.EpochStartRegistrationHandler()) {
+		return ErrNilEpochStartNotifier
+	}
+	if check.IfNil(container.InvalidSignersCache()) {
+		return ErrNilInvalidSignersCache
 	}
 
 	return nil

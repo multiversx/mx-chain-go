@@ -204,6 +204,7 @@ func InitConfigMetrics(
 	appStatusHandler.SetUInt64Value(common.MetricFixRelayedMoveBalanceToNonPayableSCEnableEpoch, uint64(enableEpochs.FixRelayedMoveBalanceToNonPayableSCEnableEpoch))
 	appStatusHandler.SetUInt64Value(common.MetricRelayedTransactionsV3EnableEpoch, uint64(enableEpochs.RelayedTransactionsV3EnableEpoch))
 	appStatusHandler.SetUInt64Value(common.MetricRelayedTransactionsV3FixESDTTransferEnableEpoch, uint64(enableEpochs.RelayedTransactionsV3FixESDTTransferEnableEpoch))
+	appStatusHandler.SetUInt64Value(common.MetricCheckBuiltInCallOnTransferValueAndFailEnableRound, uint64(enableEpochs.CheckBuiltInCallOnTransferValueAndFailEnableRound))
 
 	for i, nodesChangeConfig := range enableEpochs.MaxNodesChangeEnableEpoch {
 		epochEnable := fmt.Sprintf("%s%d%s", common.MetricMaxNodesChangeEnableEpoch, i, common.EpochEnableSuffix)
@@ -243,17 +244,17 @@ func InitRatingsMetrics(appStatusHandler core.AppStatusHandler, ratingsConfig co
 	}
 	appStatusHandler.SetUInt64Value(common.MetricRatingsGeneralSelectionChances+"_count", uint64(len(ratingsConfig.General.SelectionChances)))
 
-	appStatusHandler.SetUInt64Value(common.MetricRatingsShardChainHoursToMaxRatingFromStartRating, uint64(ratingsConfig.ShardChain.HoursToMaxRatingFromStartRating))
-	appStatusHandler.SetStringValue(common.MetricRatingsShardChainProposerValidatorImportance, fmt.Sprintf("%f", ratingsConfig.ShardChain.ProposerValidatorImportance))
-	appStatusHandler.SetStringValue(common.MetricRatingsShardChainProposerDecreaseFactor, fmt.Sprintf("%f", ratingsConfig.ShardChain.ProposerDecreaseFactor))
-	appStatusHandler.SetStringValue(common.MetricRatingsShardChainValidatorDecreaseFactor, fmt.Sprintf("%f", ratingsConfig.ShardChain.ValidatorDecreaseFactor))
-	appStatusHandler.SetStringValue(common.MetricRatingsShardChainConsecutiveMissedBlocksPenalty, fmt.Sprintf("%f", ratingsConfig.ShardChain.ConsecutiveMissedBlocksPenalty))
+	appStatusHandler.SetUInt64Value(common.MetricRatingsShardChainHoursToMaxRatingFromStartRating, uint64(ratingsConfig.ShardChain.RatingStepsByEpoch[0].HoursToMaxRatingFromStartRating))
+	appStatusHandler.SetStringValue(common.MetricRatingsShardChainProposerValidatorImportance, fmt.Sprintf("%f", ratingsConfig.ShardChain.RatingStepsByEpoch[0].ProposerValidatorImportance))
+	appStatusHandler.SetStringValue(common.MetricRatingsShardChainProposerDecreaseFactor, fmt.Sprintf("%f", ratingsConfig.ShardChain.RatingStepsByEpoch[0].ProposerDecreaseFactor))
+	appStatusHandler.SetStringValue(common.MetricRatingsShardChainValidatorDecreaseFactor, fmt.Sprintf("%f", ratingsConfig.ShardChain.RatingStepsByEpoch[0].ValidatorDecreaseFactor))
+	appStatusHandler.SetStringValue(common.MetricRatingsShardChainConsecutiveMissedBlocksPenalty, fmt.Sprintf("%f", ratingsConfig.ShardChain.RatingStepsByEpoch[0].ConsecutiveMissedBlocksPenalty))
 
-	appStatusHandler.SetUInt64Value(common.MetricRatingsMetaChainHoursToMaxRatingFromStartRating, uint64(ratingsConfig.MetaChain.HoursToMaxRatingFromStartRating))
-	appStatusHandler.SetStringValue(common.MetricRatingsMetaChainProposerValidatorImportance, fmt.Sprintf("%f", ratingsConfig.MetaChain.ProposerValidatorImportance))
-	appStatusHandler.SetStringValue(common.MetricRatingsMetaChainProposerDecreaseFactor, fmt.Sprintf("%f", ratingsConfig.MetaChain.ProposerDecreaseFactor))
-	appStatusHandler.SetStringValue(common.MetricRatingsMetaChainValidatorDecreaseFactor, fmt.Sprintf("%f", ratingsConfig.MetaChain.ValidatorDecreaseFactor))
-	appStatusHandler.SetStringValue(common.MetricRatingsMetaChainConsecutiveMissedBlocksPenalty, fmt.Sprintf("%f", ratingsConfig.MetaChain.ConsecutiveMissedBlocksPenalty))
+	appStatusHandler.SetUInt64Value(common.MetricRatingsMetaChainHoursToMaxRatingFromStartRating, uint64(ratingsConfig.MetaChain.RatingStepsByEpoch[0].HoursToMaxRatingFromStartRating))
+	appStatusHandler.SetStringValue(common.MetricRatingsMetaChainProposerValidatorImportance, fmt.Sprintf("%f", ratingsConfig.MetaChain.RatingStepsByEpoch[0].ProposerValidatorImportance))
+	appStatusHandler.SetStringValue(common.MetricRatingsMetaChainProposerDecreaseFactor, fmt.Sprintf("%f", ratingsConfig.MetaChain.RatingStepsByEpoch[0].ProposerDecreaseFactor))
+	appStatusHandler.SetStringValue(common.MetricRatingsMetaChainValidatorDecreaseFactor, fmt.Sprintf("%f", ratingsConfig.MetaChain.RatingStepsByEpoch[0].ValidatorDecreaseFactor))
+	appStatusHandler.SetStringValue(common.MetricRatingsMetaChainConsecutiveMissedBlocksPenalty, fmt.Sprintf("%f", ratingsConfig.MetaChain.RatingStepsByEpoch[0].ConsecutiveMissedBlocksPenalty))
 
 	appStatusHandler.SetStringValue(common.MetricRatingsPeerHonestyDecayCoefficient, fmt.Sprintf("%f", ratingsConfig.PeerHonesty.DecayCoefficient))
 	appStatusHandler.SetUInt64Value(common.MetricRatingsPeerHonestyDecayUpdateIntervalInSeconds, uint64(ratingsConfig.PeerHonesty.DecayUpdateIntervalInSeconds))

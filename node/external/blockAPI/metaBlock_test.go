@@ -19,7 +19,9 @@ import (
 	"github.com/multiversx/mx-chain-go/outport/process/alteredaccounts/shared"
 	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/testscommon"
+	dataRetrieverTestsCommon "github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
 	"github.com/multiversx/mx-chain-go/testscommon/dblookupext"
+	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/genericMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/state"
@@ -34,6 +36,11 @@ func createMockMetaAPIProcessor(
 	withHistory bool,
 	withKey bool,
 ) *metaAPIBlockProcessor {
+	chainHandler := &testscommon.ChainHandlerMock{}
+	_ = chainHandler.SetCurrentBlockHeaderAndRootHash(&block.Header{
+		Nonce: 123456,
+	}, []byte("root"))
+
 	return newMetaApiBlockProcessor(&ArgAPIBlockProcessor{
 		APITransactionHandler: &mock.TransactionAPIHandlerStub{},
 		SelfShardID:           core.MetachainShardId,
@@ -63,6 +70,9 @@ func createMockMetaAPIProcessor(
 		AlteredAccountsProvider:      &testscommon.AlteredAccountsProviderStub{},
 		AccountsRepository:           &state.AccountsRepositoryStub{},
 		ScheduledTxsExecutionHandler: &testscommon.ScheduledTxsExecutionStub{},
+		ProofsPool:                   &dataRetrieverTestsCommon.ProofsPoolMock{},
+		EnableEpochsHandler:          enableEpochsHandlerMock.NewEnableEpochsHandlerStubWithNoFlagsDefined(),
+		BlockChain:                   chainHandler,
 	}, nil)
 }
 
@@ -83,6 +93,29 @@ func TestMetaAPIBlockProcessor_GetBlockByHashInvalidHashShouldErr(t *testing.T) 
 	blk, err := metaAPIBlockProcessor.GetBlockByHash([]byte("invalidHash"), api.BlockQueryOptions{})
 	assert.Nil(t, blk)
 	assert.Error(t, err)
+}
+
+func TestMetaAPIBlockProcessor_BlockByNonceNonceTooHighShouldErr(t *testing.T) {
+	t.Parallel()
+
+	epoch := uint32(0)
+	headerHash := []byte("d08089f2ab739520598fd7aeed08c427460fe94f286383047f3f61951afc4e00")
+
+	storerMock := genericMocks.NewStorerMockWithEpoch(epoch)
+
+	blockProc := createMockMetaAPIProcessor(
+		headerHash,
+		storerMock,
+		true,
+		true,
+	)
+	blockProc.blockchain = &testscommon.ChainHandlerMock{}
+	err := blockProc.blockchain.SetCurrentBlockHeaderAndRootHash(&block.MetaBlock{Nonce: 10}, []byte("root"))
+	require.NoError(t, err)
+
+	res, err := blockProc.GetBlockByNonce(11, api.BlockQueryOptions{})
+	require.Nil(t, res)
+	require.Equal(t, errBlockNotFound, err)
 }
 
 func TestMetaAPIBlockProcessor_GetBlockByNonceInvalidNonceShouldErr(t *testing.T) {

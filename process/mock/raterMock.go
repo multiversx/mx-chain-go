@@ -118,7 +118,10 @@ func (rm *RaterMock) GetStartRating() uint32 {
 
 // GetSignedBlocksThreshold -
 func (rm *RaterMock) GetSignedBlocksThreshold() float32 {
-	return rm.GetSignedBlocksThresholdCalled()
+	if rm.GetSignedBlocksThresholdCalled != nil {
+		return rm.GetSignedBlocksThresholdCalled()
+	}
+	return 0.01
 }
 
 // ComputeIncreaseProposer -

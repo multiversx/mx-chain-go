@@ -5,7 +5,7 @@ import (
 )
 
 // SubroundStatus defines the type used to refer the state of the current subround
-type SubroundStatus int
+type SubroundStatus = int
 
 const (
 	// SsNotFinished defines the un-finished state of the subround

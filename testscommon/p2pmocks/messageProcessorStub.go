@@ -7,16 +7,16 @@ import (
 
 // MessageProcessorStub -
 type MessageProcessorStub struct {
-	ProcessReceivedMessageCalled func(message p2p.MessageP2P, fromConnectedPeer core.PeerID, source p2p.MessageHandler) error
+	ProcessReceivedMessageCalled func(message p2p.MessageP2P, fromConnectedPeer core.PeerID, source p2p.MessageHandler) ([]byte, error)
 }
 
 // ProcessReceivedMessage -
-func (stub *MessageProcessorStub) ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedPeer core.PeerID, source p2p.MessageHandler) error {
+func (stub *MessageProcessorStub) ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedPeer core.PeerID, source p2p.MessageHandler) ([]byte, error) {
 	if stub.ProcessReceivedMessageCalled != nil {
 		return stub.ProcessReceivedMessageCalled(message, fromConnectedPeer, source)
 	}
 
-	return nil
+	return nil, nil
 }
 
 // IsInterfaceNil -
