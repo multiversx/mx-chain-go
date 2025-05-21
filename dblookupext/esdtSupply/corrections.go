@@ -92,7 +92,7 @@ func (scp *supplyCorrectionProcessor) shouldApplyCorrection(supplyCorrection con
 		return false, err
 	}
 	if latestProcessedBlockNonce < supplyCorrection.BlockNonce {
-		return true, nil
+		return false, nil
 	}
 
 	storageKey := getSupplyCorrectionKey(supplyCorrection.ID)
