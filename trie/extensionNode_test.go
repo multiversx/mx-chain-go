@@ -700,7 +700,7 @@ func TestExtensionNode_SizeInBytes(t *testing.T) {
 			dirty: false,
 		},
 	}
-	assert.Equal(t, len(collapsed)+len(key)+1+pointerSizeInBytes+4, en.sizeInBytes())
+	assert.Equal(t, len(collapsed)+len(key)+1+pointerSizeInBytes+4+2*mutexSizeInBytes, en.sizeInBytes())
 }
 
 func TestExtensionNode_commitSnapshotContextDone(t *testing.T) {

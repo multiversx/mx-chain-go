@@ -1012,7 +1012,7 @@ func TestBranchNode_SizeInBytes(t *testing.T) {
 			dirty: false,
 		},
 	}
-	assert.Equal(t, len(collapsed1)+len(collapsed2)+1+17*pointerSizeInBytes+len(bn.ChildrenVersion), bn.sizeInBytes())
+	assert.Equal(t, len(collapsed1)+len(collapsed2)+1+17*pointerSizeInBytes+len(bn.ChildrenVersion)+18*mutexSizeInBytes, bn.sizeInBytes())
 }
 
 func TestBranchNode_commitSnapshotContextDone(t *testing.T) {

@@ -489,7 +489,7 @@ func TestLeafNode_SizeInBytes(t *testing.T) {
 			dirty: false,
 		},
 	}
-	assert.Equal(t, len(key)+len(value)+1+4, ln.sizeInBytes())
+	assert.Equal(t, len(key)+len(value)+dirtyFlagSizeInBytes+versionSizeInBytes+mutexSizeInBytes, ln.sizeInBytes())
 }
 
 func TestLeafNode_writeNodeOnChannel(t *testing.T) {
