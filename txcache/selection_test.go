@@ -299,14 +299,15 @@ func TestTxCache_selectTransactionsFromBunches(t *testing.T) {
 
 func TestBenchmarkTxCache_acquireBunchesOfTransactions(t *testing.T) {
 	config := ConfigSourceMe{
-		Name:                        "untitled",
-		NumChunks:                   16,
-		NumBytesThreshold:           1000000000,
-		NumBytesPerSenderThreshold:  maxNumBytesPerSenderUpperBound,
-		CountThreshold:              300001,
-		CountPerSenderThreshold:     math.MaxUint32,
-		EvictionEnabled:             false,
-		NumItemsToPreemptivelyEvict: 1,
+		Name:                           "untitled",
+		NumChunks:                      16,
+		NumBytesThreshold:              1000000000,
+		NumBytesPerSenderThreshold:     maxNumBytesPerSenderUpperBoundTest,
+		CountThreshold:                 300001,
+		CountPerSenderThreshold:        math.MaxUint32,
+		EvictionEnabled:                false,
+		NumItemsToPreemptivelyEvict:    1,
+		MaxNumBytesPerSenderUpperBound: maxNumBytesPerSenderUpperBoundTest,
 	}
 
 	host := txcachemocks.NewMempoolHostMock()
@@ -481,14 +482,15 @@ func TestTxCache_selectTransactionsFromBunches_loopBreaks_whenTakesTooLong(t *te
 
 func TestBenchmarkTxCache_doSelectTransactions(t *testing.T) {
 	config := ConfigSourceMe{
-		Name:                        "untitled",
-		NumChunks:                   16,
-		NumBytesThreshold:           1000000000,
-		NumBytesPerSenderThreshold:  maxNumBytesPerSenderUpperBound,
-		CountThreshold:              300001,
-		CountPerSenderThreshold:     math.MaxUint32,
-		EvictionEnabled:             false,
-		NumItemsToPreemptivelyEvict: 1,
+		Name:                           "untitled",
+		NumChunks:                      16,
+		NumBytesThreshold:              1000000000,
+		NumBytesPerSenderThreshold:     maxNumBytesPerSenderUpperBoundTest,
+		CountThreshold:                 300001,
+		CountPerSenderThreshold:        math.MaxUint32,
+		EvictionEnabled:                false,
+		NumItemsToPreemptivelyEvict:    1,
+		MaxNumBytesPerSenderUpperBound: maxNumBytesPerSenderUpperBoundTest,
 	}
 
 	host := txcachemocks.NewMempoolHostMock()

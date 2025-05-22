@@ -162,6 +162,19 @@ func TestTomlParser(t *testing.T) {
 		Redundancy: RedundancyConfig{
 			MaxRoundsOfInactivityAccepted: 3,
 		},
+		TxDataPool: CacheConfig{
+			Name:                                 "TxDataPool",
+			Type:                                 "TxCache",
+			Capacity:                             600000,
+			SizePerSender:                        5001,
+			SizeInBytes:                          419430400,
+			SizeInBytesPerSender:                 12288000,
+			Shards:                               16,
+			SelectionGasBandwidthIncreasePercent: 400,
+			SelectionGasBandwidthIncreaseScheduledPercent: 260,
+			TxCacheSelectionMaxNumTxs:                     30000,
+			MaxNumBytesPerSenderUpperBound:                33_554_432,
+		},
 	}
 	testString := `
 [GeneralSettings]
@@ -263,6 +276,19 @@ func TestTomlParser(t *testing.T) {
     PeerStatePruningEnabled = true
     MaxStateTrieLevelInMemory = 38
     MaxPeerTrieLevelInMemory = 39
+
+[TxDataPool]
+    Name = "TxDataPool"
+    Capacity = 600000
+    SizePerSender = 5001
+    SizeInBytes = 419430400 
+    SizeInBytesPerSender = 12288000 
+    Type = "TxCache"
+    Shards = 16
+    SelectionGasBandwidthIncreasePercent = 400
+    SelectionGasBandwidthIncreaseScheduledPercent = 260
+    TxCacheSelectionMaxNumTxs = 30000
+    MaxNumBytesPerSenderUpperBound = 33_554_432
 
 [Redundancy]
     # MaxRoundsOfInactivityAccepted defines the number of rounds missed by a main or higher level backup machine before
