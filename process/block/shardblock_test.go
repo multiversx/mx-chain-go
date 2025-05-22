@@ -486,6 +486,7 @@ func TestShardProcessor_ProcessBlockWithInvalidTransactionShouldErr(t *testing.T
 			SelectionGasBandwidthIncreasePercent:          400,
 			SelectionGasBandwidthIncreaseScheduledPercent: 260,
 			TxCacheSelectionMaxNumTxs:                     30000,
+			TxCacheSelectionLoopMaximumDuration:           250,
 		},
 	)
 	container, _ := factory.Create()
@@ -713,6 +714,7 @@ func TestShardProcessor_ProcessBlockWithErrOnProcessBlockTransactionsCallShouldR
 			SelectionGasBandwidthIncreasePercent:          400,
 			SelectionGasBandwidthIncreaseScheduledPercent: 260,
 			TxCacheSelectionMaxNumTxs:                     30000,
+			TxCacheSelectionLoopMaximumDuration:           250,
 		})
 	container, _ := factory.Create()
 
@@ -2622,6 +2624,7 @@ func TestShardProcessor_MarshalizedDataToBroadcastShouldWork(t *testing.T) {
 			SelectionGasBandwidthIncreasePercent:          400,
 			SelectionGasBandwidthIncreaseScheduledPercent: 260,
 			TxCacheSelectionMaxNumTxs:                     30000,
+			TxCacheSelectionLoopMaximumDuration:           250,
 		})
 	container, _ := factory.Create()
 
@@ -2735,6 +2738,7 @@ func TestShardProcessor_MarshalizedDataMarshalWithoutSuccess(t *testing.T) {
 			SelectionGasBandwidthIncreasePercent:          400,
 			SelectionGasBandwidthIncreaseScheduledPercent: 260,
 			TxCacheSelectionMaxNumTxs:                     30000,
+			TxCacheSelectionLoopMaximumDuration:           250,
 		})
 	container, _ := factory.Create()
 
@@ -3140,6 +3144,7 @@ func TestShardProcessor_CreateMiniBlocksShouldWorkWithIntraShardTxs(t *testing.T
 			SelectionGasBandwidthIncreasePercent:          400,
 			SelectionGasBandwidthIncreaseScheduledPercent: 260,
 			TxCacheSelectionMaxNumTxs:                     30000,
+			TxCacheSelectionLoopMaximumDuration:           250,
 		})
 	container, _ := factory.Create()
 
@@ -3326,6 +3331,7 @@ func TestShardProcessor_RestoreBlockIntoPoolsShouldWork(t *testing.T) {
 			SelectionGasBandwidthIncreasePercent:          400,
 			SelectionGasBandwidthIncreaseScheduledPercent: 260,
 			TxCacheSelectionMaxNumTxs:                     30000,
+			TxCacheSelectionLoopMaximumDuration:           250,
 		})
 	container, _ := factory.Create()
 

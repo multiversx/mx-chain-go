@@ -22,6 +22,15 @@ func createMockPubkeyConverter() *testscommon.PubkeyConverterMock {
 	return testscommon.NewPubkeyConverterMock(32)
 }
 
+func createMockCacheConfig() config.CacheConfig {
+	return config.CacheConfig{
+		SelectionGasBandwidthIncreasePercent:          400,
+		SelectionGasBandwidthIncreaseScheduledPercent: 260,
+		TxCacheSelectionMaxNumTxs:                     30000,
+		TxCacheSelectionLoopMaximumDuration:           250,
+	}
+}
+
 func TestNewPreProcessorsContainerFactory_NilShardCoordinator(t *testing.T) {
 	t.Parallel()
 
@@ -48,11 +57,7 @@ func TestNewPreProcessorsContainerFactory_NilShardCoordinator(t *testing.T) {
 		&testscommon.ScheduledTxsExecutionStub{},
 		&testscommon.ProcessedMiniBlocksTrackerStub{},
 		&commonMock.TxExecutionOrderHandlerStub{},
-		config.CacheConfig{
-			SelectionGasBandwidthIncreasePercent:          400,
-			SelectionGasBandwidthIncreaseScheduledPercent: 260,
-			TxCacheSelectionMaxNumTxs:                     30000,
-		})
+		createMockCacheConfig())
 
 	assert.Equal(t, process.ErrNilShardCoordinator, err)
 	assert.Nil(t, ppcm)
@@ -84,11 +89,7 @@ func TestNewPreProcessorsContainerFactory_NilStore(t *testing.T) {
 		&testscommon.ScheduledTxsExecutionStub{},
 		&testscommon.ProcessedMiniBlocksTrackerStub{},
 		&commonMock.TxExecutionOrderHandlerStub{},
-		config.CacheConfig{
-			SelectionGasBandwidthIncreasePercent:          400,
-			SelectionGasBandwidthIncreaseScheduledPercent: 260,
-			TxCacheSelectionMaxNumTxs:                     30000,
-		})
+		createMockCacheConfig())
 
 	assert.Equal(t, process.ErrNilStore, err)
 	assert.Nil(t, ppcm)
@@ -120,11 +121,7 @@ func TestNewPreProcessorsContainerFactory_NilMarshalizer(t *testing.T) {
 		&testscommon.ScheduledTxsExecutionStub{},
 		&testscommon.ProcessedMiniBlocksTrackerStub{},
 		&commonMock.TxExecutionOrderHandlerStub{},
-		config.CacheConfig{
-			SelectionGasBandwidthIncreasePercent:          400,
-			SelectionGasBandwidthIncreaseScheduledPercent: 260,
-			TxCacheSelectionMaxNumTxs:                     30000,
-		})
+		createMockCacheConfig())
 
 	assert.Equal(t, process.ErrNilMarshalizer, err)
 	assert.Nil(t, ppcm)
@@ -156,11 +153,7 @@ func TestNewPreProcessorsContainerFactory_NilHasher(t *testing.T) {
 		&testscommon.ScheduledTxsExecutionStub{},
 		&testscommon.ProcessedMiniBlocksTrackerStub{},
 		&commonMock.TxExecutionOrderHandlerStub{},
-		config.CacheConfig{
-			SelectionGasBandwidthIncreasePercent:          400,
-			SelectionGasBandwidthIncreaseScheduledPercent: 260,
-			TxCacheSelectionMaxNumTxs:                     30000,
-		})
+		createMockCacheConfig())
 
 	assert.Equal(t, process.ErrNilHasher, err)
 	assert.Nil(t, ppcm)
@@ -192,11 +185,7 @@ func TestNewPreProcessorsContainerFactory_NilDataPool(t *testing.T) {
 		&testscommon.ScheduledTxsExecutionStub{},
 		&testscommon.ProcessedMiniBlocksTrackerStub{},
 		&commonMock.TxExecutionOrderHandlerStub{},
-		config.CacheConfig{
-			SelectionGasBandwidthIncreasePercent:          400,
-			SelectionGasBandwidthIncreaseScheduledPercent: 260,
-			TxCacheSelectionMaxNumTxs:                     30000,
-		})
+		createMockCacheConfig())
 
 	assert.Equal(t, process.ErrNilDataPoolHolder, err)
 	assert.Nil(t, ppcm)
@@ -228,11 +217,7 @@ func TestNewPreProcessorsContainerFactory_NilAddrConv(t *testing.T) {
 		&testscommon.ScheduledTxsExecutionStub{},
 		&testscommon.ProcessedMiniBlocksTrackerStub{},
 		&commonMock.TxExecutionOrderHandlerStub{},
-		config.CacheConfig{
-			SelectionGasBandwidthIncreasePercent:          400,
-			SelectionGasBandwidthIncreaseScheduledPercent: 260,
-			TxCacheSelectionMaxNumTxs:                     30000,
-		})
+		createMockCacheConfig())
 
 	assert.Equal(t, process.ErrNilPubkeyConverter, err)
 	assert.Nil(t, ppcm)
@@ -264,11 +249,7 @@ func TestNewPreProcessorsContainerFactory_NilAccounts(t *testing.T) {
 		&testscommon.ScheduledTxsExecutionStub{},
 		&testscommon.ProcessedMiniBlocksTrackerStub{},
 		&commonMock.TxExecutionOrderHandlerStub{},
-		config.CacheConfig{
-			SelectionGasBandwidthIncreasePercent:          400,
-			SelectionGasBandwidthIncreaseScheduledPercent: 260,
-			TxCacheSelectionMaxNumTxs:                     30000,
-		})
+		createMockCacheConfig())
 
 	assert.Equal(t, process.ErrNilAccountsAdapter, err)
 	assert.Nil(t, ppcm)
@@ -300,11 +281,7 @@ func TestNewPreProcessorsContainerFactory_NilTxProcessor(t *testing.T) {
 		&testscommon.ScheduledTxsExecutionStub{},
 		&testscommon.ProcessedMiniBlocksTrackerStub{},
 		&commonMock.TxExecutionOrderHandlerStub{},
-		config.CacheConfig{
-			SelectionGasBandwidthIncreasePercent:          400,
-			SelectionGasBandwidthIncreaseScheduledPercent: 260,
-			TxCacheSelectionMaxNumTxs:                     30000,
-		})
+		createMockCacheConfig())
 
 	assert.Equal(t, process.ErrNilTxProcessor, err)
 	assert.Nil(t, ppcm)
@@ -336,11 +313,7 @@ func TestNewPreProcessorsContainerFactory_NilSCProcessor(t *testing.T) {
 		&testscommon.ScheduledTxsExecutionStub{},
 		&testscommon.ProcessedMiniBlocksTrackerStub{},
 		&commonMock.TxExecutionOrderHandlerStub{},
-		config.CacheConfig{
-			SelectionGasBandwidthIncreasePercent:          400,
-			SelectionGasBandwidthIncreaseScheduledPercent: 260,
-			TxCacheSelectionMaxNumTxs:                     30000,
-		})
+		createMockCacheConfig())
 
 	assert.Equal(t, process.ErrNilSmartContractProcessor, err)
 	assert.Nil(t, ppcm)
@@ -372,11 +345,7 @@ func TestNewPreProcessorsContainerFactory_NilSCR(t *testing.T) {
 		&testscommon.ScheduledTxsExecutionStub{},
 		&testscommon.ProcessedMiniBlocksTrackerStub{},
 		&commonMock.TxExecutionOrderHandlerStub{},
-		config.CacheConfig{
-			SelectionGasBandwidthIncreasePercent:          400,
-			SelectionGasBandwidthIncreaseScheduledPercent: 260,
-			TxCacheSelectionMaxNumTxs:                     30000,
-		})
+		createMockCacheConfig())
 
 	assert.Equal(t, process.ErrNilSmartContractResultProcessor, err)
 	assert.Nil(t, ppcm)
@@ -408,11 +377,7 @@ func TestNewPreProcessorsContainerFactory_NilRewardTxProcessor(t *testing.T) {
 		&testscommon.ScheduledTxsExecutionStub{},
 		&testscommon.ProcessedMiniBlocksTrackerStub{},
 		&commonMock.TxExecutionOrderHandlerStub{},
-		config.CacheConfig{
-			SelectionGasBandwidthIncreasePercent:          400,
-			SelectionGasBandwidthIncreaseScheduledPercent: 260,
-			TxCacheSelectionMaxNumTxs:                     30000,
-		})
+		createMockCacheConfig())
 
 	assert.Equal(t, process.ErrNilRewardsTxProcessor, err)
 	assert.Nil(t, ppcm)
@@ -444,11 +409,7 @@ func TestNewPreProcessorsContainerFactory_NilRequestHandler(t *testing.T) {
 		&testscommon.ScheduledTxsExecutionStub{},
 		&testscommon.ProcessedMiniBlocksTrackerStub{},
 		&commonMock.TxExecutionOrderHandlerStub{},
-		config.CacheConfig{
-			SelectionGasBandwidthIncreasePercent:          400,
-			SelectionGasBandwidthIncreaseScheduledPercent: 260,
-			TxCacheSelectionMaxNumTxs:                     30000,
-		})
+		createMockCacheConfig())
 
 	assert.Equal(t, process.ErrNilRequestHandler, err)
 	assert.Nil(t, ppcm)
@@ -480,11 +441,7 @@ func TestNewPreProcessorsContainerFactory_NilFeeHandler(t *testing.T) {
 		&testscommon.ScheduledTxsExecutionStub{},
 		&testscommon.ProcessedMiniBlocksTrackerStub{},
 		&commonMock.TxExecutionOrderHandlerStub{},
-		config.CacheConfig{
-			SelectionGasBandwidthIncreasePercent:          400,
-			SelectionGasBandwidthIncreaseScheduledPercent: 260,
-			TxCacheSelectionMaxNumTxs:                     30000,
-		})
+		createMockCacheConfig())
 
 	assert.Equal(t, process.ErrNilEconomicsFeeHandler, err)
 	assert.Nil(t, ppcm)
@@ -516,11 +473,7 @@ func TestNewPreProcessorsContainerFactory_NilGasHandler(t *testing.T) {
 		&testscommon.ScheduledTxsExecutionStub{},
 		&testscommon.ProcessedMiniBlocksTrackerStub{},
 		&commonMock.TxExecutionOrderHandlerStub{},
-		config.CacheConfig{
-			SelectionGasBandwidthIncreasePercent:          400,
-			SelectionGasBandwidthIncreaseScheduledPercent: 260,
-			TxCacheSelectionMaxNumTxs:                     30000,
-		})
+		createMockCacheConfig())
 
 	assert.Equal(t, process.ErrNilGasHandler, err)
 	assert.Nil(t, ppcm)
@@ -552,11 +505,7 @@ func TestNewPreProcessorsContainerFactory_NilBlockTracker(t *testing.T) {
 		&testscommon.ScheduledTxsExecutionStub{},
 		&testscommon.ProcessedMiniBlocksTrackerStub{},
 		&commonMock.TxExecutionOrderHandlerStub{},
-		config.CacheConfig{
-			SelectionGasBandwidthIncreasePercent:          400,
-			SelectionGasBandwidthIncreaseScheduledPercent: 260,
-			TxCacheSelectionMaxNumTxs:                     30000,
-		})
+		createMockCacheConfig())
 
 	assert.Equal(t, process.ErrNilBlockTracker, err)
 	assert.Nil(t, ppcm)
@@ -588,11 +537,7 @@ func TestNewPreProcessorsContainerFactory_NilBlockSizeComputationHandler(t *test
 		&testscommon.ScheduledTxsExecutionStub{},
 		&testscommon.ProcessedMiniBlocksTrackerStub{},
 		&commonMock.TxExecutionOrderHandlerStub{},
-		config.CacheConfig{
-			SelectionGasBandwidthIncreasePercent:          400,
-			SelectionGasBandwidthIncreaseScheduledPercent: 260,
-			TxCacheSelectionMaxNumTxs:                     30000,
-		})
+		createMockCacheConfig())
 
 	assert.Equal(t, process.ErrNilBlockSizeComputationHandler, err)
 	assert.Nil(t, ppcm)
@@ -624,11 +569,7 @@ func TestNewPreProcessorsContainerFactory_NilBalanceComputationHandler(t *testin
 		&testscommon.ScheduledTxsExecutionStub{},
 		&testscommon.ProcessedMiniBlocksTrackerStub{},
 		&commonMock.TxExecutionOrderHandlerStub{},
-		config.CacheConfig{
-			SelectionGasBandwidthIncreasePercent:          400,
-			SelectionGasBandwidthIncreaseScheduledPercent: 260,
-			TxCacheSelectionMaxNumTxs:                     30000,
-		})
+		createMockCacheConfig())
 
 	assert.Equal(t, process.ErrNilBalanceComputationHandler, err)
 	assert.Nil(t, ppcm)
@@ -660,11 +601,7 @@ func TestNewPreProcessorsContainerFactory_NilEnableEpochsHandler(t *testing.T) {
 		&testscommon.ScheduledTxsExecutionStub{},
 		&testscommon.ProcessedMiniBlocksTrackerStub{},
 		&commonMock.TxExecutionOrderHandlerStub{},
-		config.CacheConfig{
-			SelectionGasBandwidthIncreasePercent:          400,
-			SelectionGasBandwidthIncreaseScheduledPercent: 260,
-			TxCacheSelectionMaxNumTxs:                     30000,
-		})
+		createMockCacheConfig())
 
 	assert.Equal(t, process.ErrNilEnableEpochsHandler, err)
 	assert.Nil(t, ppcm)
@@ -696,11 +633,7 @@ func TestNewPreProcessorsContainerFactory_NilTxTypeHandler(t *testing.T) {
 		&testscommon.ScheduledTxsExecutionStub{},
 		&testscommon.ProcessedMiniBlocksTrackerStub{},
 		&commonMock.TxExecutionOrderHandlerStub{},
-		config.CacheConfig{
-			SelectionGasBandwidthIncreasePercent:          400,
-			SelectionGasBandwidthIncreaseScheduledPercent: 260,
-			TxCacheSelectionMaxNumTxs:                     30000,
-		})
+		createMockCacheConfig())
 
 	assert.Equal(t, process.ErrNilTxTypeHandler, err)
 	assert.Nil(t, ppcm)
@@ -732,11 +665,7 @@ func TestNewPreProcessorsContainerFactory_NilScheduledTxsExecutionHandler(t *tes
 		nil,
 		&testscommon.ProcessedMiniBlocksTrackerStub{},
 		&commonMock.TxExecutionOrderHandlerStub{},
-		config.CacheConfig{
-			SelectionGasBandwidthIncreasePercent:          400,
-			SelectionGasBandwidthIncreaseScheduledPercent: 260,
-			TxCacheSelectionMaxNumTxs:                     30000,
-		})
+		createMockCacheConfig())
 
 	assert.Equal(t, process.ErrNilScheduledTxsExecutionHandler, err)
 	assert.Nil(t, ppcm)
@@ -768,11 +697,7 @@ func TestNewPreProcessorsContainerFactory_NilProcessedMiniBlocksTracker(t *testi
 		&testscommon.ScheduledTxsExecutionStub{},
 		nil,
 		&commonMock.TxExecutionOrderHandlerStub{},
-		config.CacheConfig{
-			SelectionGasBandwidthIncreasePercent:          400,
-			SelectionGasBandwidthIncreaseScheduledPercent: 260,
-			TxCacheSelectionMaxNumTxs:                     30000,
-		})
+		createMockCacheConfig())
 
 	assert.Equal(t, process.ErrNilProcessedMiniBlocksTracker, err)
 	assert.Nil(t, ppcm)
@@ -804,11 +729,7 @@ func TestNewPreProcessorsContainerFactory_NilTxExecutionOrderHandler(t *testing.
 		&testscommon.ScheduledTxsExecutionStub{},
 		&testscommon.ProcessedMiniBlocksTrackerStub{},
 		nil,
-		config.CacheConfig{
-			SelectionGasBandwidthIncreasePercent:          400,
-			SelectionGasBandwidthIncreaseScheduledPercent: 260,
-			TxCacheSelectionMaxNumTxs:                     30000,
-		})
+		createMockCacheConfig())
 
 	assert.Equal(t, process.ErrNilTxExecutionOrderHandler, err)
 	assert.Nil(t, ppcm)
@@ -840,11 +761,7 @@ func TestNewPreProcessorsContainerFactory(t *testing.T) {
 		&testscommon.ScheduledTxsExecutionStub{},
 		&testscommon.ProcessedMiniBlocksTrackerStub{},
 		&commonMock.TxExecutionOrderHandlerStub{},
-		config.CacheConfig{
-			SelectionGasBandwidthIncreasePercent:          400,
-			SelectionGasBandwidthIncreaseScheduledPercent: 260,
-			TxCacheSelectionMaxNumTxs:                     30000,
-		})
+		createMockCacheConfig())
 
 	assert.Nil(t, err)
 	assert.NotNil(t, ppcm)
@@ -881,11 +798,7 @@ func TestPreProcessorsContainerFactory_CreateErrTxPreproc(t *testing.T) {
 		&testscommon.ScheduledTxsExecutionStub{},
 		&testscommon.ProcessedMiniBlocksTrackerStub{},
 		&commonMock.TxExecutionOrderHandlerStub{},
-		config.CacheConfig{
-			SelectionGasBandwidthIncreasePercent:          400,
-			SelectionGasBandwidthIncreaseScheduledPercent: 260,
-			TxCacheSelectionMaxNumTxs:                     30000,
-		})
+		createMockCacheConfig())
 
 	assert.Nil(t, err)
 	assert.NotNil(t, ppcm)
@@ -928,11 +841,7 @@ func TestPreProcessorsContainerFactory_CreateErrScrPreproc(t *testing.T) {
 		&testscommon.ScheduledTxsExecutionStub{},
 		&testscommon.ProcessedMiniBlocksTrackerStub{},
 		&commonMock.TxExecutionOrderHandlerStub{},
-		config.CacheConfig{
-			SelectionGasBandwidthIncreasePercent:          400,
-			SelectionGasBandwidthIncreaseScheduledPercent: 260,
-			TxCacheSelectionMaxNumTxs:                     30000,
-		})
+		createMockCacheConfig())
 
 	assert.Nil(t, err)
 	assert.NotNil(t, ppcm)
@@ -978,11 +887,7 @@ func TestPreProcessorsContainerFactory_Create(t *testing.T) {
 		&testscommon.ScheduledTxsExecutionStub{},
 		&testscommon.ProcessedMiniBlocksTrackerStub{},
 		&commonMock.TxExecutionOrderHandlerStub{},
-		config.CacheConfig{
-			SelectionGasBandwidthIncreasePercent:          400,
-			SelectionGasBandwidthIncreaseScheduledPercent: 260,
-			TxCacheSelectionMaxNumTxs:                     30000,
-		})
+		createMockCacheConfig())
 
 	assert.Nil(t, err)
 	assert.NotNil(t, ppcm)

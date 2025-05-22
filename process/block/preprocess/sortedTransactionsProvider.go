@@ -1,6 +1,8 @@
 package preprocess
 
 import (
+	"time"
+
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/storage/txcache"
@@ -8,10 +10,10 @@ import (
 
 // TODO: Refactor "transactions.go" to not require the components in this file anymore
 // createSortedTransactionsProvider is a "simple factory" for "SortedTransactionsProvider" objects
-func createSortedTransactionsProvider(cache storage.Cacher, txCacheSelectionMaxNumTxs int) SortedTransactionsProvider {
+func createSortedTransactionsProvider(cache storage.Cacher, txCacheSelectionMaxNumTxs int, txCacheSelectionLoopMaximumDuration int) SortedTransactionsProvider {
 	txCache, isTxCache := cache.(TxCache)
 	if isTxCache {
-		return newAdapterTxCacheToSortedTransactionsProvider(txCache, txCacheSelectionMaxNumTxs)
+		return newAdapterTxCacheToSortedTransactionsProvider(txCache, txCacheSelectionMaxNumTxs, txCacheSelectionLoopMaximumDuration)
 	}
 
 	log.Error("Could not create a real [SortedTransactionsProvider], will create a disabled one")
@@ -20,14 +22,16 @@ func createSortedTransactionsProvider(cache storage.Cacher, txCacheSelectionMaxN
 
 // adapterTxCacheToSortedTransactionsProvider adapts a "TxCache" to the "SortedTransactionsProvider" interface
 type adapterTxCacheToSortedTransactionsProvider struct {
-	txCache                   TxCache
-	txCacheSelectionMaxNumTxs int
+	txCache                             TxCache
+	txCacheSelectionMaxNumTxs           int
+	txCacheSelectionLoopMaximumDuration int
 }
 
-func newAdapterTxCacheToSortedTransactionsProvider(txCache TxCache, txCacheSelectionMaxNumTxs int) *adapterTxCacheToSortedTransactionsProvider {
+func newAdapterTxCacheToSortedTransactionsProvider(txCache TxCache, txCacheSelectionMaxNumTxs int, txCacheSelectionLoopMaximumDuration int) *adapterTxCacheToSortedTransactionsProvider {
 	adapter := &adapterTxCacheToSortedTransactionsProvider{
-		txCache:                   txCache,
-		txCacheSelectionMaxNumTxs: txCacheSelectionMaxNumTxs,
+		txCache:                             txCache,
+		txCacheSelectionMaxNumTxs:           txCacheSelectionMaxNumTxs,
+		txCacheSelectionLoopMaximumDuration: txCacheSelectionLoopMaximumDuration,
 	}
 
 	return adapter
@@ -35,7 +39,7 @@ func newAdapterTxCacheToSortedTransactionsProvider(txCache TxCache, txCacheSelec
 
 // GetSortedTransactions gets the transactions from the cache
 func (adapter *adapterTxCacheToSortedTransactionsProvider) GetSortedTransactions(session txcache.SelectionSession) []*txcache.WrappedTransaction {
-	txs, _ := adapter.txCache.SelectTransactions(session, process.TxCacheSelectionGasRequested, adapter.txCacheSelectionMaxNumTxs, process.TxCacheSelectionLoopMaximumDuration)
+	txs, _ := adapter.txCache.SelectTransactions(session, process.TxCacheSelectionGasRequested, adapter.txCacheSelectionMaxNumTxs, time.Duration(adapter.txCacheSelectionLoopMaximumDuration)*time.Millisecond)
 	return txs
 }
 

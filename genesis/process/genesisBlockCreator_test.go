@@ -196,6 +196,7 @@ func createMockArgument(
 			SelectionGasBandwidthIncreasePercent:          400,
 			SelectionGasBandwidthIncreaseScheduledPercent: 260,
 			TxCacheSelectionMaxNumTxs:                     30000,
+			TxCacheSelectionLoopMaximumDuration:           250,
 		},
 	}
 

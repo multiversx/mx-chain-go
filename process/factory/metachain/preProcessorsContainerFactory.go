@@ -139,6 +139,10 @@ func NewPreProcessorsContainerFactory(
 		return nil, process.ErrBadTxCacheSelectionMaxNumTxs
 	}
 
+	if txPoolConfig.TxCacheSelectionLoopMaximumDuration == 0 {
+		return nil, process.ErrBadTxCacheSelectionLoopMaximumDuration
+	}
+
 	return &preProcessorsContainerFactory{
 		shardCoordinator:             shardCoordinator,
 		store:                        store,

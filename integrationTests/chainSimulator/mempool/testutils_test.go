@@ -22,11 +22,12 @@ import (
 )
 
 var (
-	oneEGLD                   = big.NewInt(1000000000000000000)
-	oneQuarterOfEGLD          = big.NewInt(250000000000000000)
-	durationWaitAfterSendMany = 3000 * time.Millisecond
-	durationWaitAfterSendSome = 300 * time.Millisecond
-	selectionMaxNumTxs        = 30000
+	oneEGLD                      = big.NewInt(1000000000000000000)
+	oneQuarterOfEGLD             = big.NewInt(250000000000000000)
+	durationWaitAfterSendMany    = 3000 * time.Millisecond
+	durationWaitAfterSendSome    = 300 * time.Millisecond
+	selectionMaxNumTxs           = 30000
+	selectionLoopMaximumDuration = 250 * time.Millisecond
 )
 
 func startChainSimulator(t *testing.T, alterConfigsFunction func(cfg *config.Configs)) testsChainSimulator.ChainSimulator {
@@ -168,7 +169,7 @@ func selectTransactions(t *testing.T, simulator testsChainSimulator.ChainSimulat
 		selectionSession,
 		process.TxCacheSelectionGasRequested,
 		selectionMaxNumTxs,
-		process.TxCacheSelectionLoopMaximumDuration,
+		selectionLoopMaximumDuration,
 	)
 
 	return selectedTransactions, gas
