@@ -519,8 +519,10 @@ func hardForkImport(
 				Shards:                               0,
 				SelectionGasBandwidthIncreasePercent: 400,
 				SelectionGasBandwidthIncreaseScheduledPercent: 260,
-				TxCacheSelectionMaxNumTxs:                     3000,
-				TxCacheSelectionLoopMaximumDuration:           250,
+			},
+			SortedTransactionsConfig: config.SortedTransactionsConfig{
+				TxCacheSelectionMaxNumTxs:           30000,
+				TxCacheSelectionLoopMaximumDuration: 250,
 			},
 		}
 
