@@ -456,8 +456,8 @@ const (
 	// per byte to ahead of time prepare per byte
 	MetricAheadOfTimeGasUsageEnableEpoch = "erd_ahead_of_time_gas_usage_enable_epoch"
 
-	// MetricGasPriceModifierEnableEpoch represents the epoch when the gas price modifier in fee computation is enabled
-	MetricGasPriceModifierEnableEpoch = "erd_gas_price_modifier_enable_epoch"
+	// MetricEliminateGasPriceModifierEnableEpoch represents the epoch when the gas price modifier is eliminated
+	MetricEliminateGasPriceModifierEnableEpoch = "erd_eliminate_gas_price_modifier_enable_epoch"
 
 	// MetricRepairCallbackEnableEpoch represents the epoch when the callback repair is activated for smart contract results
 	MetricRepairCallbackEnableEpoch = "erd_repair_callback_enable_epoch"
@@ -763,6 +763,9 @@ const (
 
 	// MetricAutomaticActivationOfNodesDisableEpoch represents the epoch when the automatic activation of nodes is disabled
 	MetricAutomaticActivationOfNodesDisableEpoch = "erd_automatic_activation_of_nodes_disable_epoch"
+
+	// MetricGasPriceModifierEnableEpoch represents the epoch when the gas price modifier in fee computation is enabled
+	MetricGasPriceModifierEnableEpoch = "erd_gas_price_modifier_enable_epoch"
 
 	// MetricMaxNodesChangeEnableEpoch holds configuration for changing the maximum number of nodes and the enabling epoch
 	MetricMaxNodesChangeEnableEpoch = "erd_max_nodes_change_enable_epoch"
@@ -1272,10 +1275,11 @@ const (
 	RelayedTransactionsV3FixESDTTransferFlag            core.EnableEpochFlag = "RelayedTransactionsV3FixESDTTransferFlag"
 	AndromedaFlag                                       core.EnableEpochFlag = "AndromedaFlag"
 	CheckBuiltInCallOnTransferValueAndFailExecutionFlag core.EnableEpochFlag = "CheckBuiltInCallOnTransferValueAndFailExecutionFlag"
-	MaskInternalDependenciesErrorsFlag                 core.EnableEpochFlag = "MaskInternalDependenciesErrorsFlag"
-	FixBackTransferOPCODEFlag                          core.EnableEpochFlag = "FixBackTransferOPCODEFlag"
-	ValidationOnGobDecodeFlag                          core.EnableEpochFlag = "ValidationOnGobDecodeFlag"
-	BarnardOpcodesFlag                                 core.EnableEpochFlag = "BarnardOpcodesFlag"
-	AutomaticActivationOfNodesDisableFlag              core.EnableEpochFlag = "AutomaticActivationOfNodesDisableFlag"
+	MaskInternalDependenciesErrorsFlag                  core.EnableEpochFlag = "MaskInternalDependenciesErrorsFlag"
+	FixBackTransferOPCODEFlag                           core.EnableEpochFlag = "FixBackTransferOPCODEFlag"
+	ValidationOnGobDecodeFlag                           core.EnableEpochFlag = "ValidationOnGobDecodeFlag"
+	BarnardOpcodesFlag                                  core.EnableEpochFlag = "BarnardOpcodesFlag"
+	AutomaticActivationOfNodesDisableFlag               core.EnableEpochFlag = "AutomaticActivationOfNodesDisableFlag"
+	EliminateGasPriceModifierFlag                       core.EnableEpochFlag = "EliminateGasPriceModifierFlag"
 	// all new flags must be added to createAllFlagsMap method, as part of enableEpochsHandler allFlagsDefined
 )

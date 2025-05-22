@@ -211,7 +211,7 @@ func printEnableEpochs(configs *config.Configs) {
 	log.Debug(readEpochFor("staking v4 step 1"), "epoch", enableEpochs.StakingV4Step1EnableEpoch)
 	log.Debug(readEpochFor("staking v4 step 2"), "epoch", enableEpochs.StakingV4Step2EnableEpoch)
 	log.Debug(readEpochFor("staking v4 step 3"), "epoch", enableEpochs.StakingV4Step3EnableEpoch)
-
+	log.Debug(readEpochFor("eliminate gas price modifier"), "epoch", enableEpochs.EliminateGasPriceModifierEnableEpoch)
 	gasSchedule := configs.EpochConfig.GasSchedule
 
 	log.Debug(readEpochFor("gas schedule directories paths"), "epoch", gasSchedule.GasScheduleByEpochs)

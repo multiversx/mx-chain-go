@@ -68,6 +68,7 @@ func NewEconomicsData(args ArgsNewEconomicsData) (*economicsData, error) {
 	err := core.CheckHandlerCompatibility(args.EnableEpochsHandler, []core.EnableEpochFlag{
 		common.GasPriceModifierFlag,
 		common.PenalizedTooMuchGasFlag,
+		common.EliminateGasPriceModifierFlag,
 	})
 	if err != nil {
 		return nil, err
@@ -294,6 +295,10 @@ func (ed *economicsData) ComputeTxFee(tx data.TransactionWithFeeHandler) *big.In
 
 // ComputeTxFeeInEpoch computes the provided transaction's fee in a specific epoch
 func (ed *economicsData) ComputeTxFeeInEpoch(tx data.TransactionWithFeeHandler, epoch uint32) *big.Int {
+	if ed.enableEpochsHandler.IsFlagEnabledInEpoch(common.EliminateGasPriceModifierFlag, epoch) {
+		return core.SafeMul(tx.GetGasLimit(), tx.GetGasPrice())
+	}
+
 	if ed.enableEpochsHandler.IsFlagEnabledInEpoch(common.GasPriceModifierFlag, epoch) {
 		if isSmartContractResult(tx) {
 			return ed.ComputeFeeForProcessingInEpoch(tx, tx.GetGasLimit(), epoch)
@@ -577,20 +582,14 @@ func (ed *economicsData) ComputeTxFeeBasedOnGasUsedInEpoch(tx data.TransactionWi
 		return moveBalanceFee
 	}
 
+	if ed.enableEpochsHandler.IsFlagEnabledInEpoch(common.EliminateGasPriceModifierFlag, epoch) {
+		return core.SafeMul(gasUsed, tx.GetGasPrice())
+	}
+
 	computeFeeForProcessing := ed.ComputeFeeForProcessingInEpoch(tx, gasUsed-moveBalanceGasLimit, epoch)
 	txFee := big.NewInt(0).Add(moveBalanceFee, computeFeeForProcessing)
 
 	return txFee
-}
-
-// EpochConfirmed is called whenever a new epoch is confirmed
-func (ed *economicsData) EpochConfirmed(epoch uint32, _ uint64) {
-	ed.mut.RLock()
-	ed.statusHandler.SetStringValue(common.MetricGasPriceModifier, fmt.Sprintf("%g", ed.GasPriceModifierInEpoch(epoch)))
-	ed.mut.RUnlock()
-
-	ed.updateRewardsConfigMetrics(epoch)
-	ed.updateGasConfigMetrics(epoch)
 }
 
 // ComputeGasLimitBasedOnBalance will compute gas limit for the given transaction based on the balance
@@ -620,7 +619,8 @@ func (ed *economicsData) ComputeGasLimitBasedOnBalanceInEpoch(tx data.Transactio
 		return 0, process.ErrInsufficientFunds
 	}
 
-	if !ed.enableEpochsHandler.IsFlagEnabledInEpoch(common.GasPriceModifierFlag, epoch) {
+	if !ed.enableEpochsHandler.IsFlagEnabledInEpoch(common.GasPriceModifierFlag, epoch) ||
+		ed.enableEpochsHandler.IsFlagEnabledInEpoch(common.EliminateGasPriceModifierFlag, epoch) {
 		gasPriceBig := big.NewInt(0).SetUint64(tx.GetGasPrice())
 		gasLimitBig := big.NewInt(0).Div(balanceWithoutTransferValue, gasPriceBig)
 
@@ -645,6 +645,16 @@ func (ed *economicsData) getExtraGasLimitRelayedTx(txInstance *transaction.Trans
 	}
 
 	return 0
+}
+
+// EpochConfirmed is called whenever a new epoch is confirmed
+func (ed *economicsData) EpochConfirmed(epoch uint32, _ uint64) {
+	ed.mut.RLock()
+	ed.statusHandler.SetStringValue(common.MetricGasPriceModifier, fmt.Sprintf("%g", ed.GasPriceModifierInEpoch(epoch)))
+	ed.mut.RUnlock()
+
+	ed.updateRewardsConfigMetrics(epoch)
+	ed.updateGasConfigMetrics(epoch)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

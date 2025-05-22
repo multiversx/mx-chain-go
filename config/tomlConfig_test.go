@@ -932,6 +932,9 @@ func TestEnableEpochConfig(t *testing.T) {
     # AutomaticActivationOfNodesDisableEpoch represents the epoch when automatic activation of nodes for validators is disabled
     AutomaticActivationOfNodesDisableEpoch = 111
 
+    # EliminateGasPriceModifierEnableEpoch represents the epoch when the gas price modifier is disabled
+    EliminateGasPriceModifierEnableEpoch = 112
+
     # MaxNodesChangeEnableEpoch holds configuration for changing the maximum number of nodes and the enabling epoch
     MaxNodesChangeEnableEpoch = [
         { EpochEnable = 44, MaxNumNodes = 2169, NodesToShufflePerShard = 80 },
@@ -1061,6 +1064,7 @@ func TestEnableEpochConfig(t *testing.T) {
 			ValidationOnGobDecodeEnableEpoch:                         109,
 			BarnardOpcodesEnableEpoch:                                110,
 			AutomaticActivationOfNodesDisableEpoch:                   111,
+			EliminateGasPriceModifierEnableEpoch:                     112,
 			MaxNodesChangeEnableEpoch: []MaxNodesChangeConfig{
 				{
 					EpochEnable:            44,

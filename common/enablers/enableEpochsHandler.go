@@ -835,6 +835,12 @@ func (handler *enableEpochsHandler) createAllFlagsMap() {
 			},
 			activationEpoch: handler.enableEpochsConfig.BarnardOpcodesEnableEpoch,
 		},
+		common.EliminateGasPriceModifierFlag: {
+			isActiveInEpoch: func(epoch uint32) bool {
+				return epoch >= handler.enableEpochsConfig.EliminateGasPriceModifierEnableEpoch
+			},
+			activationEpoch: handler.enableEpochsConfig.EliminateGasPriceModifierEnableEpoch,
+		},
 	}
 }
 

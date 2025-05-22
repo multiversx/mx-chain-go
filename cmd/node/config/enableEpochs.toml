@@ -360,6 +360,9 @@
     # AutomaticActivationOfNodesDisableEpoch represents the epoch when automatic activation of nodes for validators is disabled
     AutomaticActivationOfNodesDisableEpoch = 2
 
+    # EliminateGasPriceModifierEnableEpoch represents the epoch when the gas price modifier is disabled
+    EliminateGasPriceModifierEnableEpoch = 3
+
     # BLSMultiSignerEnableEpoch represents the activation epoch for different types of BLS multi-signers
     BLSMultiSignerEnableEpoch = [
         { EnableEpoch = 0, Type = "no-KOSK" },

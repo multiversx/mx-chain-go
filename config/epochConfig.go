@@ -131,6 +131,7 @@ type EnableEpochs struct {
 	ValidationOnGobDecodeEnableEpoch                         uint32
 	BarnardOpcodesEnableEpoch                                uint32
 	AutomaticActivationOfNodesDisableEpoch                   uint32
+	EliminateGasPriceModifierEnableEpoch                     uint32
 	BLSMultiSignerEnableEpoch                                []MultiSignerConfig
 }
 
