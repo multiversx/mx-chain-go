@@ -29,11 +29,8 @@ import (
 
 func createMockEpochStartTriggerArguments() *ArgsNewMetaEpochStartTrigger {
 	return &ArgsNewMetaEpochStartTrigger{
-		GenesisTime: time.Time{},
-		Settings: &config.EpochStartConfig{
-			MinRoundsBetweenEpochs: 1,
-			RoundsPerEpoch:         2,
-		},
+		GenesisTime:        time.Time{},
+		Settings:           &config.EpochStartConfig{},
 		Epoch:              0,
 		EpochStartNotifier: &mock.EpochStartNotifierStub{},
 		Marshalizer:        &mock.MarshalizerMock{},
@@ -203,8 +200,6 @@ func TestTrigger_ForceEpochStartCloseToNormalEpochStartShouldNotForce(t *testing
 	t.Parallel()
 
 	arguments := createMockEpochStartTriggerArguments()
-	arguments.Settings.MinRoundsBetweenEpochs = 20
-	arguments.Settings.RoundsPerEpoch = 200
 	epochStartTrigger, _ := NewEpochStartTrigger(arguments)
 	epochStartTrigger.currentRound = 20
 

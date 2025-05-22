@@ -239,16 +239,13 @@ func (tcn *TestConsensusNode) initNode(args ArgsTestConsensusNode) {
 		argsNewMetaEpochStart := &metachain.ArgsNewMetaEpochStartTrigger{
 			GenesisTime:        time.Unix(args.StartTime, 0),
 			EpochStartNotifier: notifier.NewEpochStartSubscriptionHandler(),
-			Settings: &config.EpochStartConfig{
-				MinRoundsBetweenEpochs: 1,
-				RoundsPerEpoch:         1000,
-			},
-			Epoch:            0,
-			Storage:          createTestStore(),
-			Marshalizer:      TestMarshalizer,
-			Hasher:           testHasher,
-			AppStatusHandler: &statusHandlerMock.AppStatusHandlerStub{},
-			DataPool:         dataPool,
+			Settings:           &config.EpochStartConfig{},
+			Epoch:              0,
+			Storage:            createTestStore(),
+			Marshalizer:        TestMarshalizer,
+			Hasher:             testHasher,
+			AppStatusHandler:   &statusHandlerMock.AppStatusHandlerStub{},
+			DataPool:           dataPool,
 			ChainParametersHandler: &chainParameters.ChainParametersHandlerStub{
 				CurrentChainParametersCalled: func() config.ChainParametersByEpochConfig {
 					return config.ChainParametersByEpochConfig{

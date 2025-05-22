@@ -233,8 +233,6 @@ func GetGeneralConfig() config.Config {
 // GetEpochStartConfig -
 func GetEpochStartConfig() config.EpochStartConfig {
 	return config.EpochStartConfig{
-		MinRoundsBetweenEpochs:            20,
-		RoundsPerEpoch:                    20,
 		MaxShuffledOutRestartThreshold:    0.2,
 		MinShuffledOutRestartThreshold:    0.1,
 		MinNumConnectedPeersToStart:       2,
