@@ -266,8 +266,7 @@ func NewProcessComponentsFactory(args ProcessComponentsFactoryArgs) (*processCom
 // Create will create and return a struct containing process components
 func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 	currentEpochProvider, err := epochProviders.CreateCurrentEpochProvider(
-		pcf.config,
-		pcf.coreData.GenesisNodesSetup().GetRoundDuration(),
+		pcf.coreData.ChainParametersHandler(),
 		pcf.coreData.GenesisTime().Unix(),
 		pcf.prefConfigs.Preferences.FullArchive,
 	)
