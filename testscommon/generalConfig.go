@@ -137,8 +137,10 @@ func GetGeneralConfig() config.Config {
 			Shards:                               1,
 			SelectionGasBandwidthIncreasePercent: 400,
 			SelectionGasBandwidthIncreaseScheduledPercent: 260,
-			TxCacheSelectionMaxNumTxs:                     30000,
-			TxCacheSelectionLoopMaximumDuration:           250,
+		},
+		SortedTransactions: config.SortedTransactionsConfig{
+			TxCacheSelectionMaxNumTxs:           30000,
+			TxCacheSelectionLoopMaximumDuration: 250,
 		},
 		UnsignedTransactionDataPool: config.CacheConfig{
 			Capacity:    10000,

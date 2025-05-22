@@ -42,6 +42,7 @@ type preProcessorsContainerFactory struct {
 	processedMiniBlocksTracker   process.ProcessedMiniBlocksTracker
 	txExecutionOrderHandler      common.TxExecutionOrderHandler
 	txPoolConfig                 config.CacheConfig
+	sortedTransactionsConfig     config.SortedTransactionsConfig
 }
 
 // NewPreProcessorsContainerFactory is responsible for creating a new preProcessors factory object
@@ -69,6 +70,7 @@ func NewPreProcessorsContainerFactory(
 	processedMiniBlocksTracker process.ProcessedMiniBlocksTracker,
 	txExecutionOrderHandler common.TxExecutionOrderHandler,
 	txPoolConfig config.CacheConfig,
+	sortedTransactionsConfig config.SortedTransactionsConfig,
 ) (*preProcessorsContainerFactory, error) {
 
 	if check.IfNil(shardCoordinator) {
@@ -143,10 +145,10 @@ func NewPreProcessorsContainerFactory(
 	if txPoolConfig.SelectionGasBandwidthIncreaseScheduledPercent == 0 {
 		return nil, process.ErrBadSelectionGasBandwidthIncreaseScheduledPercent
 	}
-	if txPoolConfig.TxCacheSelectionMaxNumTxs == 0 {
+	if sortedTransactionsConfig.TxCacheSelectionMaxNumTxs == 0 {
 		return nil, process.ErrBadTxCacheSelectionMaxNumTxs
 	}
-	if txPoolConfig.TxCacheSelectionLoopMaximumDuration == 0 {
+	if sortedTransactionsConfig.TxCacheSelectionLoopMaximumDuration == 0 {
 		return nil, process.ErrBadTxCacheSelectionLoopMaximumDuration
 	}
 
@@ -174,6 +176,7 @@ func NewPreProcessorsContainerFactory(
 		processedMiniBlocksTracker:   processedMiniBlocksTracker,
 		txExecutionOrderHandler:      txExecutionOrderHandler,
 		txPoolConfig:                 txPoolConfig,
+		sortedTransactionsConfig:     sortedTransactionsConfig,
 	}, nil
 }
 
@@ -247,6 +250,7 @@ func (ppcm *preProcessorsContainerFactory) createTxPreProcessor() (process.PrePr
 		ProcessedMiniBlocksTracker:   ppcm.processedMiniBlocksTracker,
 		TxExecutionOrderHandler:      ppcm.txExecutionOrderHandler,
 		TxPoolConfig:                 ppcm.txPoolConfig,
+		SortedTransactionsConfig:     ppcm.sortedTransactionsConfig,
 	}
 
 	txPreprocessor, err := preprocess.NewTransactionPreprocessor(args)

@@ -162,6 +162,10 @@ func TestTomlParser(t *testing.T) {
 		Redundancy: RedundancyConfig{
 			MaxRoundsOfInactivityAccepted: 3,
 		},
+		SortedTransactions: SortedTransactionsConfig{
+			TxCacheSelectionMaxNumTxs:           30000,
+			TxCacheSelectionLoopMaximumDuration: 250,
+		},
 	}
 	testString := `
 [GeneralSettings]
@@ -213,6 +217,10 @@ func TestTomlParser(t *testing.T) {
 
 [Consensus]
     Type = "` + consensusType + `"
+
+[SortedTransactions]
+    TxCacheSelectionMaxNumTxs = 30000
+    TxCacheSelectionLoopMaximumDuration = 250
 
 [VirtualMachine]
     [VirtualMachine.Execution]

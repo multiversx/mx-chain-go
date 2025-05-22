@@ -13,8 +13,12 @@ type CacheConfig struct {
 	Shards                                        uint32
 	SelectionGasBandwidthIncreasePercent          uint32
 	SelectionGasBandwidthIncreaseScheduledPercent uint32
-	TxCacheSelectionMaxNumTxs                     int
-	TxCacheSelectionLoopMaximumDuration           int
+}
+
+// SortedTransactionsConfig will map the sorted transactions config
+type SortedTransactionsConfig struct {
+	TxCacheSelectionMaxNumTxs           int
+	TxCacheSelectionLoopMaximumDuration int
 }
 
 // HeadersPoolConfig will map the headers cache configuration
@@ -182,6 +186,7 @@ type Config struct {
 	TxBlockBodyDataPool         CacheConfig
 	PeerBlockBodyDataPool       CacheConfig
 	TxDataPool                  CacheConfig
+	SortedTransactions          SortedTransactionsConfig
 	UnsignedTransactionDataPool CacheConfig
 	RewardTransactionDataPool   CacheConfig
 	TrieNodesChunksDataPool     CacheConfig

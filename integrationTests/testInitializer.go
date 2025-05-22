@@ -758,10 +758,12 @@ func CreateFullGenesisBlocks(
 			SizeInBytesPerSender:                 0,
 			Shards:                               0,
 			SelectionGasBandwidthIncreasePercent: 400,
-			SelectionGasBandwidthIncreaseScheduledPercent: 260,
-			TxCacheSelectionMaxNumTxs:                     30000,
-			TxCacheSelectionLoopMaximumDuration:           250,
-		}}
+			SelectionGasBandwidthIncreaseScheduledPercent: 260},
+		SortedTransactionsConfig: config.SortedTransactionsConfig{
+			TxCacheSelectionMaxNumTxs:           30000,
+			TxCacheSelectionLoopMaximumDuration: 250,
+		},
+	}
 
 	genesisProcessor, _ := genesisProcess.NewGenesisBlockCreator(argsGenesis)
 	genesisBlocks, _ := genesisProcessor.CreateGenesisBlocks()
@@ -889,8 +891,10 @@ func CreateGenesisMetaBlock(
 			Shards:                               0,
 			SelectionGasBandwidthIncreasePercent: 400,
 			SelectionGasBandwidthIncreaseScheduledPercent: 260,
-			TxCacheSelectionMaxNumTxs:                     30000,
-			TxCacheSelectionLoopMaximumDuration:           250,
+		},
+		SortedTransactionsConfig: config.SortedTransactionsConfig{
+			TxCacheSelectionMaxNumTxs:           30000,
+			TxCacheSelectionLoopMaximumDuration: 250,
 		},
 	}
 

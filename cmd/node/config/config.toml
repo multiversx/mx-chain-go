@@ -422,6 +422,8 @@
     Shards = 16
     SelectionGasBandwidthIncreasePercent = 400
     SelectionGasBandwidthIncreaseScheduledPercent = 260
+
+[SortedTransactions]
     TxCacheSelectionMaxNumTxs = 30000
     TxCacheSelectionLoopMaximumDuration = 250
 

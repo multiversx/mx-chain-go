@@ -513,6 +513,7 @@ func createProcessorsForMetaGenesisBlock(arg ArgsGenesisBlockCreator, enableEpoc
 		disabledProcessedMiniBlocksTracker,
 		arg.TxExecutionOrderHandler,
 		arg.TxPoolConfig,
+		arg.SortedTransactionsConfig,
 	)
 	if err != nil {
 		return nil, err
