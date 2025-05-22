@@ -429,6 +429,10 @@ func TestPatriciaMerkleTrie_oldRootAndOldHashesAreResetAfterEveryCommit(t *testi
 	assert.Equal(t, 0, len(tr.RootManager.(*rootManager).oldRootHash))
 }
 
+func TestNode_NodeExtension(t *testing.T) {
+	assert.False(t, shouldTestNode(hasherMock, make([]byte, 0)))
+}
+
 func TestSnapshotGetTestPoint(t *testing.T) {
 	t.Parallel()
 
