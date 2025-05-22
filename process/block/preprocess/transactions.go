@@ -76,7 +76,7 @@ type ArgsTransactionPreProcessor struct {
 	ScheduledTxsExecutionHandler process.ScheduledTxsExecutionHandler
 	ProcessedMiniBlocksTracker   process.ProcessedMiniBlocksTracker
 	TxExecutionOrderHandler      common.TxExecutionOrderHandler
-	TxCacheConfig                config.CacheConfig
+	TxPoolConfig                 config.CacheConfig
 }
 
 // NewTransactionPreprocessor creates a new transaction preprocessor object
@@ -151,16 +151,16 @@ func NewTransactionPreprocessor(
 		return nil, process.ErrNilTxExecutionOrderHandler
 	}
 
-	if args.TxCacheConfig.SelectionGasBandwidthIncreasePercent == 0 {
-		return nil, process.ErrDefaultSelectionGasBandwidthIncreasePercent
+	if args.TxPoolConfig.SelectionGasBandwidthIncreasePercent == 0 {
+		return nil, process.ErrBadSelectionGasBandwidthIncreasePercent
 	}
 
-	if args.TxCacheConfig.SelectionGasBandwidthIncreaseScheduledPercent == 0 {
-		return nil, process.ErrDefaultSelectionGasBandwidthIncreaseScheduledPercent
+	if args.TxPoolConfig.SelectionGasBandwidthIncreaseScheduledPercent == 0 {
+		return nil, process.ErrBadSelectionGasBandwidthIncreaseScheduledPercent
 	}
 
-	if args.TxCacheConfig.TxCacheSelectionMaxNumTxs == 0 {
-		return nil, process.ErrDefaultTxCacheSelectionMaxNumTxs
+	if args.TxPoolConfig.TxCacheSelectionMaxNumTxs == 0 {
+		return nil, process.ErrBadTxCacheSelectionMaxNumTxs
 	}
 
 	bpp := basePreProcess{
@@ -190,7 +190,7 @@ func NewTransactionPreprocessor(
 		blockType:                    args.BlockType,
 		txTypeHandler:                args.TxTypeHandler,
 		scheduledTxsExecutionHandler: args.ScheduledTxsExecutionHandler,
-		txPoolConfig:                 args.TxCacheConfig,
+		txPoolConfig:                 args.TxPoolConfig,
 	}
 
 	txs.chRcvAllTxs = make(chan bool)

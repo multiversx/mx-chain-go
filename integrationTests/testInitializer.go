@@ -749,7 +749,7 @@ func CreateFullGenesisBlocks(
 		HeaderVersionConfigs:    testscommon.GetDefaultHeaderVersionConfig(),
 		HistoryRepository:       &dblookupext.HistoryRepositoryStub{},
 		TxExecutionOrderHandler: &commonMocks.TxExecutionOrderHandlerStub{},
-		TxCacheConfig: config.CacheConfig{
+		TxPoolConfig: config.CacheConfig{
 			Name:                                 "",
 			Type:                                 "",
 			Capacity:                             0,
@@ -878,7 +878,7 @@ func CreateGenesisMetaBlock(
 		HeaderVersionConfigs:    testscommon.GetDefaultHeaderVersionConfig(),
 		HistoryRepository:       &dblookupext.HistoryRepositoryStub{},
 		TxExecutionOrderHandler: &commonMocks.TxExecutionOrderHandlerStub{},
-		TxCacheConfig: config.CacheConfig{
+		TxPoolConfig: config.CacheConfig{
 			Name:                                 "",
 			Type:                                 "",
 			Capacity:                             0,

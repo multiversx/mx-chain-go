@@ -67,6 +67,7 @@ type ArgsGenesisBlockCreator struct {
 	RoundConfig             config.RoundConfig
 	EpochConfig             config.EpochConfig
 	HeaderVersionConfigs    config.VersionsConfig
+	TxPoolConfig            config.CacheConfig
 	WorkingDir              string
 	BlockSignKeyGen         crypto.KeyGenerator
 	HistoryRepository       dblookupext.HistoryRepository
@@ -78,5 +79,4 @@ type ArgsGenesisBlockCreator struct {
 	// created components
 	importHandler          update.ImportHandler
 	versionedHeaderFactory genesis.VersionedHeaderFactory
-	TxCacheConfig          config.CacheConfig
 }

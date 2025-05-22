@@ -738,7 +738,7 @@ func TestNewPreProcessorsContainerFactory_DefaultSelectionGasBandwidthIncreasePe
 	)
 
 	assert.Error(t, err)
-	assert.Equal(t, process.ErrDefaultSelectionGasBandwidthIncreasePercent, err)
+	assert.Equal(t, process.ErrBadSelectionGasBandwidthIncreasePercent, err)
 	assert.Nil(t, ppcm)
 }
 
@@ -773,7 +773,7 @@ func TestNewPreProcessorsContainerFactory_DefaultSelectionGasBandwidthIncreaseSc
 	)
 
 	assert.Error(t, err)
-	assert.Equal(t, process.ErrDefaultSelectionGasBandwidthIncreaseScheduledPercent, err)
+	assert.Equal(t, process.ErrBadSelectionGasBandwidthIncreaseScheduledPercent, err)
 	assert.Nil(t, ppcm)
 }
 
@@ -808,7 +808,7 @@ func TestNewPreProcessorsContainerFactory_DefaultTxCacheSelectionMaxNumTxs(t *te
 	)
 
 	assert.Error(t, err)
-	assert.Equal(t, process.ErrDefaultTxCacheSelectionMaxNumTxs, err)
+	assert.Equal(t, process.ErrBadTxCacheSelectionMaxNumTxs, err)
 	assert.Nil(t, ppcm)
 }
 

@@ -1296,11 +1296,11 @@ var ErrInvalidRatingsConfig = errors.New("invalid ratings config")
 // ErrNilKeyRWMutexHandler signals that a nil KeyRWMutexHandler has been provided
 var ErrNilKeyRWMutexHandler = errors.New("nil key rw mutex handler")
 
-// ErrDefaultSelectionGasBandwidthIncreasePercent signals that the SelectionGasBandwidthIncreasePercent from the config is not set
-var ErrDefaultSelectionGasBandwidthIncreasePercent = errors.New("default selection gas bandwidth increase percent zero")
+// ErrBadSelectionGasBandwidthIncreasePercent signals that the SelectionGasBandwidthIncreasePercent from the config is not set
+var ErrBadSelectionGasBandwidthIncreasePercent = errors.New("bad selection gas bandwidth increase percent")
 
-// ErrDefaultSelectionGasBandwidthIncreaseScheduledPercent signals that the SelectionGasBandwidthIncreasePercent from the config is not set
-var ErrDefaultSelectionGasBandwidthIncreaseScheduledPercent = errors.New("default selection gas bandwidth increase scheduled percent zero")
+// ErrBadSelectionGasBandwidthIncreaseScheduledPercent signals that the SelectionGasBandwidthIncreasePercent from the config is not set
+var ErrBadSelectionGasBandwidthIncreaseScheduledPercent = errors.New("bad selection gas bandwidth increase scheduled percent")
 
-// ErrDefaultTxCacheSelectionMaxNumTxs signals that the TxCacheSelectionMaxNumTxs from the config is not set
-var ErrDefaultTxCacheSelectionMaxNumTxs = errors.New("default tx cache selection max num txs")
+// ErrBadTxCacheSelectionMaxNumTxs signals that the TxCacheSelectionMaxNumTxs from the config is not set
+var ErrBadTxCacheSelectionMaxNumTxs = errors.New("bad tx cache selection max num txs")
