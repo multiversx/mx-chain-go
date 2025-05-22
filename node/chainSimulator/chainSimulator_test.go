@@ -204,7 +204,7 @@ func TestSimulator_TriggerChangeOfEpoch(t *testing.T) {
 	require.Equal(t, uint32(4), currentEpoch)
 }
 
-func TestChainSimulator_CheckRounds(t *testing.T) {
+func TestChainSimulator_ChangeRoundsPerEpoch(t *testing.T) {
 	if testing.Short() {
 		t.Skip("this is not a short test")
 	}
@@ -227,12 +227,15 @@ func TestChainSimulator_CheckRounds(t *testing.T) {
 		MinNodesPerShard:       1,
 		MetaChainMinNodes:      1,
 		AlterConfigsFunction: func(cfg *config.Configs) {
+			cfg.GeneralConfig.GeneralSettings.ChainParametersByEpoch[0].EnableEpoch = 0
 			cfg.GeneralConfig.GeneralSettings.ChainParametersByEpoch[0].RoundsPerEpoch = 10
 			cfg.GeneralConfig.GeneralSettings.ChainParametersByEpoch[0].MinRoundsBetweenEpochs = 10
 
+			cfg.GeneralConfig.GeneralSettings.ChainParametersByEpoch[1].EnableEpoch = 3
 			cfg.GeneralConfig.GeneralSettings.ChainParametersByEpoch[1].RoundsPerEpoch = 20
 			cfg.GeneralConfig.GeneralSettings.ChainParametersByEpoch[1].MinRoundsBetweenEpochs = 10
 
+			cfg.GeneralConfig.GeneralSettings.ChainParametersByEpoch[2].EnableEpoch = 5
 			cfg.GeneralConfig.GeneralSettings.ChainParametersByEpoch[2].RoundsPerEpoch = 30
 			cfg.GeneralConfig.GeneralSettings.ChainParametersByEpoch[2].MinRoundsBetweenEpochs = 10
 		},
@@ -240,8 +243,15 @@ func TestChainSimulator_CheckRounds(t *testing.T) {
 	require.Nil(t, err)
 	require.NotNil(t, chainSimulator)
 
-	err = chainSimulator.GenerateBlocks(200)
+	err = chainSimulator.GenerateBlocks(140)
 	require.Nil(t, err)
+
+	// expected epoch after 140 block  = 3 * 10 * 2 x 20 + 2 * 30  = 7
+	expectedEpoch := uint32(7)
+
+	metaNode := chainSimulator.GetNodeHandler(core.MetachainShardId)
+	currentEpoch := metaNode.GetProcessComponents().EpochStartTrigger().Epoch()
+	require.Equal(t, expectedEpoch, currentEpoch)
 
 	defer chainSimulator.Close()
 
