@@ -111,11 +111,12 @@ func newPool() dataRetriever.ShardedDataCacherNotifier {
 	}
 
 	args := txpool.ArgShardedTxPool{
-		Config:         config,
-		TxGasHandler:   txcachemocks.NewTxGasHandlerMock(),
-		Marshalizer:    &marshal.GogoProtoMarshalizer{},
-		NumberOfShards: 2,
-		SelfShardID:    0,
+		Config:                         config,
+		TxGasHandler:                   txcachemocks.NewTxGasHandlerMock(),
+		Marshalizer:                    &marshal.GogoProtoMarshalizer{},
+		NumberOfShards:                 2,
+		SelfShardID:                    0,
+		MaxNumBytesPerSenderUpperBound: dataRetriever.MaxNumBytesPerSenderUpperBoundTest,
 	}
 	pool, err := txpool.NewShardedTxPool(args)
 	if err != nil {

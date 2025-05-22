@@ -9,6 +9,8 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+const maxNumBytesPerSenderUpperBoundTest = 33_554_432 // 32 MB
+
 func TestNewTxCache(t *testing.T) {
 	t.Parallel()
 
@@ -16,13 +18,14 @@ func TestNewTxCache(t *testing.T) {
 		t.Parallel()
 
 		cfg := ConfigSourceMe{
-			Name:                        "test",
-			NumChunks:                   1,
-			NumBytesThreshold:           1000,
-			NumBytesPerSenderThreshold:  100,
-			CountThreshold:              10,
-			CountPerSenderThreshold:     100,
-			NumItemsToPreemptivelyEvict: 1,
+			Name:                           "test",
+			NumChunks:                      1,
+			NumBytesThreshold:              1000,
+			NumBytesPerSenderThreshold:     100,
+			CountThreshold:                 10,
+			CountPerSenderThreshold:        100,
+			NumItemsToPreemptivelyEvict:    1,
+			MaxNumBytesPerSenderUpperBound: maxNumBytesPerSenderUpperBoundTest,
 		}
 
 		cache, err := NewTxCache(cfg, nil)
@@ -33,13 +36,14 @@ func TestNewTxCache(t *testing.T) {
 		t.Parallel()
 
 		cfg := ConfigSourceMe{
-			Name:                        "test",
-			NumChunks:                   1,
-			NumBytesThreshold:           1000,
-			NumBytesPerSenderThreshold:  100,
-			CountThreshold:              10,
-			CountPerSenderThreshold:     100,
-			NumItemsToPreemptivelyEvict: 1,
+			Name:                           "test",
+			NumChunks:                      1,
+			NumBytesThreshold:              1000,
+			NumBytesPerSenderThreshold:     100,
+			CountThreshold:                 10,
+			CountPerSenderThreshold:        100,
+			NumItemsToPreemptivelyEvict:    1,
+			MaxNumBytesPerSenderUpperBound: maxNumBytesPerSenderUpperBoundTest,
 		}
 
 		cache, err := NewTxCache(cfg, txcachemocks.NewMempoolHostMock())

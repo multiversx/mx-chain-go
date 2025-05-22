@@ -34,9 +34,10 @@ func Test_NewShardedTxPool_WhenBadConfig(t *testing.T) {
 			SizeInBytesPerSender: 40960,
 			Shards:               16,
 		},
-		TxGasHandler:   txcachemocks.NewTxGasHandlerMock(),
-		Marshalizer:    &marshal.GogoProtoMarshalizer{},
-		NumberOfShards: 1,
+		TxGasHandler:                   txcachemocks.NewTxGasHandlerMock(),
+		Marshalizer:                    &marshal.GogoProtoMarshalizer{},
+		NumberOfShards:                 1,
+		MaxNumBytesPerSenderUpperBound: dataRetriever.MaxNumBytesPerSenderUpperBoundTest,
 	}
 
 	args := goodArgs
@@ -382,11 +383,12 @@ func Test_routeToCacheUnions(t *testing.T) {
 		Shards:               1,
 	}
 	args := ArgShardedTxPool{
-		Config:         config,
-		TxGasHandler:   txcachemocks.NewTxGasHandlerMock(),
-		Marshalizer:    &marshal.GogoProtoMarshalizer{},
-		NumberOfShards: 4,
-		SelfShardID:    42,
+		Config:                         config,
+		TxGasHandler:                   txcachemocks.NewTxGasHandlerMock(),
+		Marshalizer:                    &marshal.GogoProtoMarshalizer{},
+		NumberOfShards:                 4,
+		SelfShardID:                    42,
+		MaxNumBytesPerSenderUpperBound: dataRetriever.MaxNumBytesPerSenderUpperBoundTest,
 	}
 	pool, _ := NewShardedTxPool(args)
 
@@ -423,11 +425,12 @@ func newTxPoolToTest() (dataRetriever.ShardedDataCacherNotifier, error) {
 		Shards:               1,
 	}
 	args := ArgShardedTxPool{
-		Config:         config,
-		TxGasHandler:   txcachemocks.NewTxGasHandlerMock(),
-		Marshalizer:    &marshal.GogoProtoMarshalizer{},
-		NumberOfShards: 4,
-		SelfShardID:    0,
+		Config:                         config,
+		TxGasHandler:                   txcachemocks.NewTxGasHandlerMock(),
+		Marshalizer:                    &marshal.GogoProtoMarshalizer{},
+		NumberOfShards:                 4,
+		SelfShardID:                    0,
+		MaxNumBytesPerSenderUpperBound: dataRetriever.MaxNumBytesPerSenderUpperBoundTest,
 	}
 	return NewShardedTxPool(args)
 }
