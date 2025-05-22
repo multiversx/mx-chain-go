@@ -12,14 +12,15 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/data/api"
 	"github.com/multiversx/mx-chain-core-go/hashing/keccak"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
 	"github.com/multiversx/mx-chain-go/genesis"
 	"github.com/multiversx/mx-chain-go/integrationTests"
 	"github.com/multiversx/mx-chain-go/integrationTests/multiShard/relayedTx"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/state"
-	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 func TestSCCallingDNSUserNames(t *testing.T) {
@@ -27,7 +28,7 @@ func TestSCCallingDNSUserNames(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	nodes, players, idxProposers := prepareNodesAndPlayers()
+	nodes, players, leaders := prepareNodesAndPlayers()
 	defer func() {
 		for _, n := range nodes {
 			n.Close()
@@ -45,7 +46,7 @@ func TestSCCallingDNSUserNames(t *testing.T) {
 
 	time.Sleep(time.Second)
 	nrRoundsToPropagateMultiShard := 25
-	_, _ = integrationTests.WaitOperationToBeDone(t, nodes, nrRoundsToPropagateMultiShard, nonce, round, idxProposers)
+	_, _ = integrationTests.WaitOperationToBeDone(t, leaders, nodes, nrRoundsToPropagateMultiShard, nonce, round)
 
 	checkUserNamesAreSetCorrectly(t, players, nodes, userNames, sortedDNSAddresses)
 }
@@ -55,7 +56,7 @@ func TestSCCallingDNSUserNamesTwice(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	nodes, players, idxProposers := prepareNodesAndPlayers()
+	nodes, players, leaders := prepareNodesAndPlayers()
 	defer func() {
 		for _, n := range nodes {
 			n.Close()
@@ -73,12 +74,12 @@ func TestSCCallingDNSUserNamesTwice(t *testing.T) {
 
 	time.Sleep(time.Second)
 	nrRoundsToPropagateMultiShard := 15
-	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, nrRoundsToPropagateMultiShard, nonce, round, idxProposers)
+	nonce, round = integrationTests.WaitOperationToBeDone(t, leaders, nodes, nrRoundsToPropagateMultiShard, nonce, round)
 
 	newUserNames := sendRegisterUserNameTxForPlayers(players, nodes, sortedDNSAddresses, dnsRegisterValue)
 
 	time.Sleep(time.Second)
-	_, _ = integrationTests.WaitOperationToBeDone(t, nodes, nrRoundsToPropagateMultiShard, nonce, round, idxProposers)
+	_, _ = integrationTests.WaitOperationToBeDone(t, leaders, nodes, nrRoundsToPropagateMultiShard, nonce, round)
 
 	checkUserNamesAreSetCorrectly(t, players, nodes, userNames, sortedDNSAddresses)
 	checkUserNamesAreDeleted(t, nodes, newUserNames, sortedDNSAddresses)
@@ -89,7 +90,7 @@ func TestDNSandRelayedTxNormal(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	nodes, players, idxProposers := prepareNodesAndPlayers()
+	nodes, players, leaders := prepareNodesAndPlayers()
 	defer func() {
 		for _, n := range nodes {
 			n.Close()
@@ -108,7 +109,7 @@ func TestDNSandRelayedTxNormal(t *testing.T) {
 
 	time.Sleep(time.Second)
 	nrRoundsToPropagateMultiShard := 30
-	_, _ = integrationTests.WaitOperationToBeDone(t, nodes, nrRoundsToPropagateMultiShard, nonce, round, idxProposers)
+	_, _ = integrationTests.WaitOperationToBeDone(t, leaders, nodes, nrRoundsToPropagateMultiShard, nonce, round)
 
 	checkUserNamesAreSetCorrectly(t, players, nodes, userNames, sortedDNSAddresses)
 }
@@ -122,7 +123,7 @@ func createAndMintRelayer(nodes []*integrationTests.TestProcessorNode) *integrat
 	return relayer
 }
 
-func prepareNodesAndPlayers() ([]*integrationTests.TestProcessorNode, []*integrationTests.TestWalletAccount, []int) {
+func prepareNodesAndPlayers() ([]*integrationTests.TestProcessorNode, []*integrationTests.TestWalletAccount, []*integrationTests.TestProcessorNode) {
 	numOfShards := 2
 	nodesPerShard := 1
 	numMetachainNodes := 1
@@ -143,11 +144,11 @@ func prepareNodesAndPlayers() ([]*integrationTests.TestProcessorNode, []*integra
 		node.EconomicsData.SetMaxGasLimitPerBlock(1500000000, 0)
 	}
 
-	idxProposers := make([]int, numOfShards+1)
+	leaders := make([]*integrationTests.TestProcessorNode, numOfShards+1)
 	for i := 0; i < numOfShards; i++ {
-		idxProposers[i] = i * nodesPerShard
+		leaders[i] = nodes[i*nodesPerShard]
 	}
-	idxProposers[numOfShards] = numOfShards * nodesPerShard
+	leaders[numOfShards] = nodes[numOfShards*nodesPerShard]
 
 	integrationTests.DisplayAndStartNodes(nodes)
 
@@ -163,7 +164,7 @@ func prepareNodesAndPlayers() ([]*integrationTests.TestProcessorNode, []*integra
 	integrationTests.MintAllNodes(nodes, initialVal)
 	integrationTests.MintAllPlayers(nodes, players, initialVal)
 
-	return nodes, players, idxProposers
+	return nodes, players, leaders
 }
 
 func getDNSContractsData(node *integrationTests.TestProcessorNode) (*big.Int, []string) {

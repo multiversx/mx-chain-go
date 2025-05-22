@@ -8,17 +8,19 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/data/rewardTx"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/cache"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/genericMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/storage"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 func TestNewValidatorInfoPreprocessor_NilHasherShouldErr(t *testing.T) {
@@ -289,7 +291,7 @@ func TestNewValidatorInfoPreprocessor_RestorePeerBlockIntoPools(t *testing.T) {
 
 	blockBody := &block.Body{}
 	blockBody.MiniBlocks = append(blockBody.MiniBlocks, &mb1)
-	miniBlockPool := testscommon.NewCacherMock()
+	miniBlockPool := cache.NewCacherMock()
 
 	marshalizedMb, _ := marshalizer.Marshal(mb1)
 	mbHash := hasher.Compute(string(marshalizedMb))
@@ -334,7 +336,7 @@ func TestNewValidatorInfoPreprocessor_RestoreOtherBlockTypeIntoPoolsShouldNotRes
 
 	blockBody := &block.Body{}
 	blockBody.MiniBlocks = append(blockBody.MiniBlocks, &mb1)
-	miniBlockPool := testscommon.NewCacherMock()
+	miniBlockPool := cache.NewCacherMock()
 
 	marshalizedMb, _ := marshalizer.Marshal(mb1)
 	mbHash := hasher.Compute(string(marshalizedMb))
@@ -382,7 +384,7 @@ func TestNewValidatorInfoPreprocessor_RemovePeerBlockFromPool(t *testing.T) {
 
 	blockBody := &block.Body{}
 	blockBody.MiniBlocks = append(blockBody.MiniBlocks, &mb1)
-	miniBlockPool := testscommon.NewCacherMock()
+	miniBlockPool := cache.NewCacherMock()
 	miniBlockPool.Put(mbHash, marshalizedMb, len(marshalizedMb))
 
 	foundMb, ok := miniBlockPool.Get(mbHash)
@@ -427,7 +429,7 @@ func TestNewValidatorInfoPreprocessor_RemoveOtherBlockTypeFromPoolShouldNotRemov
 
 	blockBody := &block.Body{}
 	blockBody.MiniBlocks = append(blockBody.MiniBlocks, &mb1)
-	miniBlockPool := testscommon.NewCacherMock()
+	miniBlockPool := cache.NewCacherMock()
 	miniBlockPool.Put(mbHash, marshalizedMb, len(marshalizedMb))
 
 	foundMb, ok := miniBlockPool.Get(mbHash)

@@ -62,20 +62,27 @@ jobs:
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
-            // Get the latest comment
+            // Get all comments
             const comments = await github.rest.issues.listComments({
               owner: context.repo.owner,
               repo: context.repo.repo,
               issue_number: context.issue.number,
             });
 
-            const lastComment = comments.data.pop(); // Get the last comment
+            // Find the last comment that contains 'Run Tests:'
+            let lastTestComment = null;
+            for (let i = comments.data.length - 1; i >= 0; i--) {
+              if (comments.data[i].body.includes('Run Tests:')) {
+                lastTestComment = comments.data[i];
+                break;
+              }
+            }
 
-            if (lastComment && lastComment.body.includes('Run Tests:')) {
-              const body = lastComment.body.trim();
+            if (lastTestComment) {
+              const body = lastTestComment.body.trim();
               core.setOutput('latest_comment', body);
 
-              // Parse the branches from the last comment
+              // Parse the branches from the last test comment
               const simulatorBranchMatch = body.match(/mx-chain-simulator-go:\s*(\S+)/);
               const testingSuiteBranchMatch = body.match(/mx-chain-testing-suite:\s*(\S+)/);
 
@@ -86,8 +93,11 @@ jobs:
               if (testingSuiteBranchMatch) {
                 core.exportVariable('MX_CHAIN_TESTING_SUITE_TARGET_BRANCH', testingSuiteBranchMatch[1]);
               }
+
+              // Log which comment was used for configuration
+              core.info(`Found 'Run Tests:' comment from ${lastTestComment.user.login} at ${lastTestComment.created_at}`);
             } else {
-              core.info('The last comment does not contain "Run Tests:". Skipping branch override.');
+              core.info('No comment containing "Run Tests:" was found. Using default branch settings.');
             }
       
 
@@ -145,6 +155,82 @@ jobs:
           cd mx-chain-simulator-go/cmd/chainsimulator
           go build
           echo "CHAIN_SIMULATOR_BUILD_PATH=$(pwd)" >> $GITHUB_ENV
+
+      - name: Initialize Chain Simulator
+        run: |
+          cd mx-chain-simulator-go/cmd/chainsimulator
+          
+          # Start ChainSimulator with minimal args to initialize configs
+          INIT_LOG_FILE="/tmp/chainsim_init.log"
+          echo "Starting ChainSimulator initialization process..."
+          ./chainsimulator > $INIT_LOG_FILE 2>&1 &
+          INIT_PROCESS_PID=$!
+          
+          # Verify the process is running
+          if ! ps -p $INIT_PROCESS_PID > /dev/null; then
+            echo "Failed to start ChainSimulator process"
+            cat $INIT_LOG_FILE
+            exit 1
+          fi
+          
+          # Wait for the initialization to complete - look for multiple possible success patterns
+          INIT_COMPLETED=false
+          RETRY_COUNT=0
+          MAX_RETRIES=60  # Increase timeout to 60 seconds
+          
+          echo "Waiting for ChainSimulator initialization..."
+          while [ $RETRY_COUNT -lt $MAX_RETRIES ]; do
+            # Check for any of these success patterns
+            if grep -q "starting as observer node" $INIT_LOG_FILE || \
+               grep -q "ChainSimulator started successfully" $INIT_LOG_FILE || \
+               grep -q "initialized the node" $INIT_LOG_FILE || \
+               grep -q "Node is running" $INIT_LOG_FILE; then
+              INIT_COMPLETED=true
+              echo "ChainSimulator initialization completed successfully"
+              break
+            fi
+          
+            # If there's a known fatal error, exit early
+            if grep -q "fatal error" $INIT_LOG_FILE || grep -q "panic:" $INIT_LOG_FILE; then
+              echo "Fatal error detected during initialization:"
+              grep -A 10 -E "fatal error|panic:" $INIT_LOG_FILE
+              break
+            fi
+          
+            # Print progress every 10 seconds
+            if [ $((RETRY_COUNT % 10)) -eq 0 ]; then
+              echo "Still waiting for initialization... ($RETRY_COUNT seconds elapsed)"
+              tail -5 $INIT_LOG_FILE
+            fi
+          
+            RETRY_COUNT=$((RETRY_COUNT+1))
+            sleep 1
+          done
+          
+          # Kill the initialization process - try graceful shutdown first
+          echo "Stopping initialization process (PID: $INIT_PROCESS_PID)..."
+          kill -TERM $INIT_PROCESS_PID 2>/dev/null || true
+          sleep 3
+          
+          # Check if process still exists and force kill if needed
+          if ps -p $INIT_PROCESS_PID > /dev/null 2>&1; then
+            echo "Process still running, forcing kill..."
+            kill -9 $INIT_PROCESS_PID 2>/dev/null || true
+            sleep 1
+          fi
+          
+          if [ "$INIT_COMPLETED" != "true" ]; then
+            echo "ChainSimulator initialization failed after $MAX_RETRIES seconds"
+            echo "Last 20 lines of log:"
+            tail -20 $INIT_LOG_FILE
+            exit 1
+          fi
+          
+          # Create a marker file to indicate successful initialization
+          touch /tmp/chain_simulator_initialized.lock
+          echo "Chain Simulator successfully initialized"
+          
+          echo "Initialization log stored at: $INIT_LOG_FILE"
 
       - name: Checkout mx-chain-testing-suite
         uses: actions/checkout@v4

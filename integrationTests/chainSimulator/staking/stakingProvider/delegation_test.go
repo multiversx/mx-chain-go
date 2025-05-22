@@ -94,6 +94,8 @@ func TestChainSimulator_MakeNewContractFromValidatorData(t *testing.T) {
 				cfg.EpochConfig.EnableEpochs.StakingV4Step3EnableEpoch = 102
 
 				cfg.EpochConfig.EnableEpochs.MaxNodesChangeEnableEpoch[2].EpochEnable = 102
+
+				cfg.EpochConfig.EnableEpochs.AndromedaEnableEpoch = 1
 			},
 		})
 		require.Nil(t, err)
@@ -139,6 +141,8 @@ func TestChainSimulator_MakeNewContractFromValidatorData(t *testing.T) {
 				cfg.EpochConfig.EnableEpochs.StakingV4Step3EnableEpoch = 102
 
 				cfg.EpochConfig.EnableEpochs.MaxNodesChangeEnableEpoch[2].EpochEnable = 102
+
+				cfg.EpochConfig.EnableEpochs.AndromedaEnableEpoch = 1
 			},
 		})
 		require.Nil(t, err)

@@ -6,10 +6,11 @@ import (
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
+	"github.com/stretchr/testify/require"
+
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/configs"
 	"github.com/multiversx/mx-chain-go/storage"
-	"github.com/stretchr/testify/require"
 )
 
 func TestMempoolWithChainSimulator_Selection(t *testing.T) {
@@ -324,7 +325,8 @@ func TestMempoolWithChainSimulator_Eviction(t *testing.T) {
 		Signature: []byte("signature"),
 	})
 
-	time.Sleep(2 * time.Second)
+	// Allow the eviction to complete (even if it's quite fast).
+	time.Sleep(3 * time.Second)
 
 	expectedNumTransactionsInPool := 300_000 + 1 + 1 - int(storage.TxPoolSourceMeNumItemsToPreemptivelyEvict)
 	require.Equal(t, expectedNumTransactionsInPool, getNumTransactionsInPool(simulator, shard))

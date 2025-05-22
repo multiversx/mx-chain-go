@@ -9,12 +9,13 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-crypto-go"
-	"github.com/multiversx/mx-chain-go/integrationTests"
-	"github.com/multiversx/mx-chain-go/integrationTests/multiShard/block"
-	"github.com/multiversx/mx-chain-go/state"
 	logger "github.com/multiversx/mx-chain-logger-go"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/multiversx/mx-chain-go/integrationTests"
+	"github.com/multiversx/mx-chain-go/integrationTests/multiShard/block"
+	"github.com/multiversx/mx-chain-go/state"
 )
 
 var log = logger.GetOrCreate("integrationTests/multishard/block")
@@ -23,14 +24,14 @@ var log = logger.GetOrCreate("integrationTests/multishard/block")
 // A validator from shard 0 receives rewards from shard 1 (where it is assigned) and creates move balance
 // transactions. All other shard peers can and will sync the blocks containing the move balance transactions.
 func TestExecutingTransactionsFromRewardsFundsCrossShard(t *testing.T) {
-	//TODO fix this test
+	// TODO fix this test
 	t.Skip("TODO fix this test")
 
 	if testing.Short() {
 		t.Skip("this is not a short test")
 	}
 
-	//it is important to have all combinations here as to test more edgecases
+	// it is important to have all combinations here as to test more edgecases
 	mapAssignements := map[uint32][]uint32{
 		0:                     {1, 0},
 		1:                     {0, 1},
@@ -73,17 +74,14 @@ func TestExecutingTransactionsFromRewardsFundsCrossShard(t *testing.T) {
 
 	firstNode := nodesMap[senderShardID][0]
 	numBlocksProduced := uint64(13)
-	var consensusNodes map[uint32][]*integrationTests.TestProcessorNode
 	for i := uint64(0); i < numBlocksProduced; i++ {
 		printAccount(firstNode)
 
 		for _, nodes := range nodesMap {
 			integrationTests.UpdateRound(nodes, round)
 		}
-		_, _, consensusNodes = integrationTests.AllShardsProposeBlock(round, nonce, nodesMap)
-
-		indexesProposers := block.GetBlockProposersIndexes(consensusNodes, nodesMap)
-		integrationTests.SyncAllShardsWithRoundBlock(t, nodesMap, indexesProposers, round)
+		proposalData := integrationTests.AllShardsProposeBlock(round, nonce, nodesMap)
+		integrationTests.SyncAllShardsWithRoundBlock(t, proposalData, nodesMap, round)
 		time.Sleep(block.StepDelay)
 
 		round++
@@ -132,7 +130,7 @@ func TestMetaShouldBeAbleToProduceBlockInAVeryHighRoundAndStartOfEpoch(t *testin
 		}
 	}
 
-	//edge case on the epoch change
+	// edge case on the epoch change
 	round := roundsPerEpoch*10 - 1
 	nonce := uint64(1)
 	round = integrationTests.IncrementAndPrintRound(round)
@@ -141,9 +139,8 @@ func TestMetaShouldBeAbleToProduceBlockInAVeryHighRoundAndStartOfEpoch(t *testin
 		integrationTests.UpdateRound(nodes, round)
 	}
 
-	_, _, consensusNodes := integrationTests.AllShardsProposeBlock(round, nonce, nodesMap)
-	indexesProposers := block.GetBlockProposersIndexes(consensusNodes, nodesMap)
-	integrationTests.SyncAllShardsWithRoundBlock(t, nodesMap, indexesProposers, nonce)
+	proposeData := integrationTests.AllShardsProposeBlock(round, nonce, nodesMap)
+	integrationTests.SyncAllShardsWithRoundBlock(t, proposeData, nodesMap, nonce)
 
 	for _, nodes := range nodesMap {
 		for _, node := range nodes {
@@ -163,14 +160,14 @@ func closeNodes(nodesMap map[uint32][]*integrationTests.TestProcessorNode) {
 	}
 }
 
-//nolint
+// nolint
 func checkSameBlockHeight(t *testing.T, nodesMap map[uint32][]*integrationTests.TestProcessorNode) {
 	for _, nodes := range nodesMap {
 		referenceBlock := nodes[0].BlockChain.GetCurrentBlockHeader()
 		for _, n := range nodes {
 			crtBlock := n.BlockChain.GetCurrentBlockHeader()
-			//(crtBlock == nil) != (blkc == nil) actually does a XOR operation between the 2 conditions
-			//as if the reference is nil, the same must be all other nodes. Same if the reference is not nil.
+			// (crtBlock == nil) != (blkc == nil) actually does a XOR operation between the 2 conditions
+			// as if the reference is nil, the same must be all other nodes. Same if the reference is not nil.
 			require.False(t, (referenceBlock == nil) != (crtBlock == nil))
 			if !check.IfNil(referenceBlock) {
 				require.Equal(t, referenceBlock.GetNonce(), crtBlock.GetNonce())
@@ -179,7 +176,7 @@ func checkSameBlockHeight(t *testing.T, nodesMap map[uint32][]*integrationTests.
 	}
 }
 
-//nolint
+// nolint
 func printAccount(node *integrationTests.TestProcessorNode) {
 	accnt, _ := node.AccntState.GetExistingAccount(node.OwnAccount.Address)
 	if check.IfNil(accnt) {

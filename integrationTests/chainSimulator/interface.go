@@ -3,12 +3,11 @@ package chainSimulator
 import (
 	"math/big"
 
-	"github.com/multiversx/mx-chain-go/node/chainSimulator/dtos"
-	"github.com/multiversx/mx-chain-go/node/chainSimulator/process"
-
 	"github.com/multiversx/mx-chain-core-go/data/api"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	crypto "github.com/multiversx/mx-chain-crypto-go"
+	"github.com/multiversx/mx-chain-go/node/chainSimulator/dtos"
+	"github.com/multiversx/mx-chain-go/node/chainSimulator/process"
 )
 
 // ChainSimulator defines the operations for an entity that can simulate operations of a chain

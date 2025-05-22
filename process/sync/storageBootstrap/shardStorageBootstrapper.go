@@ -4,6 +4,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
+
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/block/bootstrapStorage"
@@ -42,6 +43,8 @@ func NewShardStorageBootstrapper(arguments ArgsShardStorageBootstrapper) (*shard
 		epochNotifier:                arguments.EpochNotifier,
 		processedMiniBlocksTracker:   arguments.ProcessedMiniBlocksTracker,
 		appStatusHandler:             arguments.AppStatusHandler,
+		enableEpochsHandler:          arguments.EnableEpochsHandler,
+		proofsPool:                   arguments.ProofsPool,
 	}
 
 	boot := shardStorageBootstrapper{
@@ -49,7 +52,7 @@ func NewShardStorageBootstrapper(arguments ArgsShardStorageBootstrapper) (*shard
 	}
 
 	base.bootstrapper = &boot
-	hdrNonceHashDataUnit := dataRetriever.ShardHdrNonceHashDataUnit + dataRetriever.UnitType(boot.shardCoordinator.SelfId())
+	hdrNonceHashDataUnit := dataRetriever.GetHdrNonceHashDataUnit(boot.shardCoordinator.SelfId())
 	base.headerNonceHashStore, err = boot.store.GetStorer(hdrNonceHashDataUnit)
 	if err != nil {
 		return nil, err
@@ -83,6 +86,11 @@ func (ssb *shardStorageBootstrapper) applyCrossNotarizedHeaders(crossNotarizedHe
 		}
 
 		metaBlock, err := process.GetMetaHeaderFromStorage(crossNotarizedHeader.Hash, ssb.marshalizer, ssb.store)
+		if err != nil {
+			return err
+		}
+
+		err = ssb.getAndApplyProofForHeader(crossNotarizedHeader.Hash, metaBlock)
 		if err != nil {
 			return err
 		}
@@ -248,6 +256,11 @@ func (ssb *shardStorageBootstrapper) applySelfNotarizedHeaders(
 	selfNotarizedHeaders := make([]data.HeaderHandler, len(selfNotarizedHeadersHashes))
 	for index, selfNotarizedHeaderHash := range selfNotarizedHeadersHashes {
 		selfNotarizedHeader, err := ssb.getHeader(selfNotarizedHeaderHash)
+		if err != nil {
+			return nil, nil, err
+		}
+
+		err = ssb.getAndApplyProofForHeader(selfNotarizedHeaderHash, selfNotarizedHeader)
 		if err != nil {
 			return nil, nil, err
 		}

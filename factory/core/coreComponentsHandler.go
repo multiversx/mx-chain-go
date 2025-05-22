@@ -11,6 +11,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/typeConverters"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/errors"
@@ -148,6 +149,12 @@ func (mcc *managedCoreComponents) CheckSubcomponents() error {
 	}
 	if check.IfNil(mcc.enableEpochsHandler) {
 		return errors.ErrNilEnableEpochsHandler
+	}
+	if check.IfNil(mcc.chainParametersHandler) {
+		return errors.ErrNilChainParametersHandler
+	}
+	if check.IfNil(mcc.fieldsSizeChecker) {
+		return errors.ErrNilFieldsSizeChecker
 	}
 	if len(mcc.chainID) == 0 {
 		return errors.ErrInvalidChainID
@@ -485,6 +492,18 @@ func (mcc *managedCoreComponents) RoundNotifier() process.RoundNotifier {
 	return mcc.coreComponents.roundNotifier
 }
 
+// ChainParametersSubscriber returns the chain parameters subscriber
+func (mcc *managedCoreComponents) ChainParametersSubscriber() process.ChainParametersSubscriber {
+	mcc.mutCoreComponents.RLock()
+	defer mcc.mutCoreComponents.RUnlock()
+
+	if mcc.coreComponents == nil {
+		return nil
+	}
+
+	return mcc.coreComponents.chainParametersSubscriber
+}
+
 // EnableRoundsHandler returns the rounds activation handler
 func (mcc *managedCoreComponents) EnableRoundsHandler() process.EnableRoundsHandler {
 	mcc.mutCoreComponents.RLock()
@@ -579,6 +598,42 @@ func (mcc *managedCoreComponents) EnableEpochsHandler() common.EnableEpochsHandl
 	}
 
 	return mcc.coreComponents.enableEpochsHandler
+}
+
+// ChainParametersHandler returns the chain parameters handler
+func (mcc *managedCoreComponents) ChainParametersHandler() process.ChainParametersHandler {
+	mcc.mutCoreComponents.RLock()
+	defer mcc.mutCoreComponents.RUnlock()
+
+	if mcc.coreComponents == nil {
+		return nil
+	}
+
+	return mcc.coreComponents.chainParametersHandler
+}
+
+// FieldsSizeChecker returns the fields size checker component
+func (mcc *managedCoreComponents) FieldsSizeChecker() common.FieldsSizeChecker {
+	mcc.mutCoreComponents.RLock()
+	defer mcc.mutCoreComponents.RUnlock()
+
+	if mcc.coreComponents == nil {
+		return nil
+	}
+
+	return mcc.coreComponents.fieldsSizeChecker
+}
+
+// EpochChangeGracePeriodHandler returns the epoch change grace period handler component
+func (mcc *managedCoreComponents) EpochChangeGracePeriodHandler() common.EpochChangeGracePeriodHandler {
+	mcc.mutCoreComponents.RLock()
+	defer mcc.mutCoreComponents.RUnlock()
+
+	if mcc.coreComponents == nil {
+		return nil
+	}
+
+	return mcc.coreComponents.epochChangeGracePeriodHandler
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

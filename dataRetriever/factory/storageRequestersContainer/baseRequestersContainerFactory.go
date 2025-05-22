@@ -266,3 +266,21 @@ func (brcf *baseRequestersContainerFactory) generateValidatorInfoRequester() err
 
 	return brcf.container.Add(identifierValidatorInfo, validatorInfoRequester)
 }
+
+func (brcf *baseRequestersContainerFactory) createEquivalentProofsRequester(
+	topic string,
+) (dataRetriever.Requester, error) {
+	args := storagerequesters.ArgEquivalentProofsRequester{
+		Messenger:                brcf.messenger,
+		ResponseTopicName:        topic,
+		ManualEpochStartNotifier: brcf.manualEpochStartNotifier,
+		ChanGracefullyClose:      brcf.chanGracefullyClose,
+		DelayBeforeGracefulClose: defaultBeforeGracefulClose,
+		NonceConverter:           brcf.uint64ByteSliceConverter,
+		Storage:                  brcf.store,
+		Marshaller:               brcf.marshalizer,
+		EnableEpochsHandler:      brcf.enableEpochsHandler,
+	}
+
+	return storagerequesters.NewEquivalentProofsRequester(args)
+}

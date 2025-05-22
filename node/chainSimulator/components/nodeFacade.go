@@ -94,7 +94,6 @@ func (node *testOnlyProcessingNode) createFacade(configs config.Configs, apiInte
 		nodePack.WithNetworkComponents(node.NetworkComponentsHolder),
 		nodePack.WithInitialNodesPubKeys(node.CoreComponentsHolder.GenesisNodesSetup().InitialNodesPubKeys()),
 		nodePack.WithRoundDuration(node.CoreComponentsHolder.GenesisNodesSetup().GetRoundDuration()),
-		nodePack.WithConsensusGroupSize(int(node.CoreComponentsHolder.GenesisNodesSetup().GetShardConsensusGroupSize())),
 		nodePack.WithGenesisTime(node.CoreComponentsHolder.GenesisTime()),
 		nodePack.WithConsensusType(configs.GeneralConfig.Consensus.Type),
 		nodePack.WithRequestedItemsHandler(node.ProcessComponentsHolder.RequestedItemsHandler()),

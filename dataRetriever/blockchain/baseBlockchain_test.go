@@ -8,6 +8,8 @@ import (
 )
 
 func TestBaseBlockchain_SetAndGetSetFinalBlockInfo(t *testing.T) {
+	t.Parallel()
+
 	base := &baseBlockChain{
 		appStatusHandler: &mock.AppStatusHandlerStub{},
 		finalBlockInfo:   &blockInfo{},
@@ -26,6 +28,8 @@ func TestBaseBlockchain_SetAndGetSetFinalBlockInfo(t *testing.T) {
 }
 
 func TestBaseBlockchain_SetAndGetSetFinalBlockInfoWorksWithNilValues(t *testing.T) {
+	t.Parallel()
+
 	base := &baseBlockChain{
 		appStatusHandler: &mock.AppStatusHandlerStub{},
 		finalBlockInfo:   &blockInfo{},

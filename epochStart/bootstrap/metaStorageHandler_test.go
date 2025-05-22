@@ -18,6 +18,8 @@ import (
 	"github.com/multiversx/mx-chain-go/process/block/bootstrapStorage"
 	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/testscommon"
+	dataRetrieverMocks "github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
+	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/nodeTypeProviderMock"
 	"github.com/multiversx/mx-chain-go/testscommon/shardingMocks"
@@ -43,6 +45,8 @@ func createStorageHandlerArgs() StorageHandlerArgs {
 		NodeProcessingMode:              common.Normal,
 		StateStatsHandler:               disabled.NewStateStatistics(),
 		RepopulateTokensSupplies:        false,
+		ProofsPool:                      &dataRetrieverMocks.ProofsPoolMock{},
+		EnableEpochsHandler:             &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 	}
 }
 

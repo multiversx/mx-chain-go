@@ -6,6 +6,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	crypto "github.com/multiversx/mx-chain-crypto-go"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/sharding"
@@ -26,6 +27,8 @@ type interceptedDataCoreComponentsHolder interface {
 	IsInterfaceNil() bool
 	HardforkTriggerPubKey() []byte
 	EnableEpochsHandler() common.EnableEpochsHandler
+	EpochChangeGracePeriodHandler() common.EpochChangeGracePeriodHandler
+	FieldsSizeChecker() common.FieldsSizeChecker
 }
 
 // interceptedDataCryptoComponentsHolder holds the crypto components required by the intercepted data factory

@@ -13,7 +13,12 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/atomic"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
 	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/common/graceperiod"
+	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/dataRetriever/blockchain"
 	"github.com/multiversx/mx-chain-go/process"
@@ -36,8 +41,6 @@ import (
 	stateMock "github.com/multiversx/mx-chain-go/testscommon/state"
 	statusHandlerMock "github.com/multiversx/mx-chain-go/testscommon/statusHandler"
 	storageStubs "github.com/multiversx/mx-chain-go/testscommon/storage"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 func createMockComponentHolders() (
@@ -47,18 +50,19 @@ func createMockComponentHolders() (
 	*mock.StatusComponentsMock,
 ) {
 	mdp := initDataPool([]byte("tx_hash"))
-
+	gracePeriod, _ := graceperiod.NewEpochChangeGracePeriod([]config.EpochChangeGracePeriodByEpoch{{EnableEpoch: 0, GracePeriodInRounds: 1}})
 	coreComponents := &mock.CoreComponentsMock{
-		IntMarsh:                  &mock.MarshalizerMock{},
-		Hash:                      &mock.HasherStub{},
-		UInt64ByteSliceConv:       &mock.Uint64ByteSliceConverterMock{},
-		StatusField:               &statusHandlerMock.AppStatusHandlerStub{},
-		RoundField:                &mock.RoundHandlerMock{RoundTimeDuration: time.Second},
-		ProcessStatusHandlerField: &testscommon.ProcessStatusHandlerStub{},
-		EpochNotifierField:        &epochNotifier.EpochNotifierStub{},
-		EnableEpochsHandlerField:  enableEpochsHandlerMock.NewEnableEpochsHandlerStub(),
-		RoundNotifierField:        &epochNotifier.RoundNotifierStub{},
-		EnableRoundsHandlerField:  &testscommon.EnableRoundsHandlerStub{},
+		IntMarsh:                           &mock.MarshalizerMock{},
+		Hash:                               &mock.HasherStub{},
+		UInt64ByteSliceConv:                &mock.Uint64ByteSliceConverterMock{},
+		StatusField:                        &statusHandlerMock.AppStatusHandlerStub{},
+		RoundField:                         &mock.RoundHandlerMock{RoundTimeDuration: time.Second},
+		ProcessStatusHandlerField:          &testscommon.ProcessStatusHandlerStub{},
+		EpochNotifierField:                 &epochNotifier.EpochNotifierStub{},
+		EnableEpochsHandlerField:           enableEpochsHandlerMock.NewEnableEpochsHandlerStub(),
+		RoundNotifierField:                 &epochNotifier.RoundNotifierStub{},
+		EnableRoundsHandlerField:           &testscommon.EnableRoundsHandlerStub{},
+		EpochChangeGracePeriodHandlerField: gracePeriod,
 	}
 
 	dataComponents := &mock.DataComponentsMock{
@@ -91,8 +95,9 @@ func createMockMetaArguments(
 ) blproc.ArgMetaProcessor {
 
 	argsHeaderValidator := blproc.ArgsHeaderValidator{
-		Hasher:      &mock.HasherStub{},
-		Marshalizer: &mock.MarshalizerMock{},
+		Hasher:              &mock.HasherStub{},
+		Marshalizer:         &mock.MarshalizerMock{},
+		EnableEpochsHandler: coreComponents.EnableEpochsHandler(),
 	}
 	headerValidator, _ := blproc.NewHeaderValidator(argsHeaderValidator)
 
@@ -818,10 +823,28 @@ func TestMetaProcessor_RequestFinalMissingHeaderShouldPass(t *testing.T) {
 	mp, _ := blproc.NewMetaProcessor(arguments)
 	mp.AddHdrHashToRequestedList(&block.Header{}, []byte("header_hash"))
 	mp.SetHighestHdrNonceForCurrentBlock(0, 1)
+	mp.SetLastNotarizedHeaderForShard(0, &blproc.LastNotarizedHeaderInfo{
+		Header:                &block.Header{Nonce: 0, ShardID: 0},
+		Hash:                  []byte("header hash"),
+		NotarizedBasedOnProof: false,
+		HasProof:              false,
+	})
 	mp.SetHighestHdrNonceForCurrentBlock(1, 2)
+	mp.SetLastNotarizedHeaderForShard(1, &blproc.LastNotarizedHeaderInfo{
+		Header:                &block.Header{Nonce: 2, ShardID: 1},
+		Hash:                  []byte("header hash"),
+		NotarizedBasedOnProof: false,
+		HasProof:              false,
+	})
 	mp.SetHighestHdrNonceForCurrentBlock(2, 3)
+	mp.SetLastNotarizedHeaderForShard(2, &blproc.LastNotarizedHeaderInfo{
+		Header:                &block.Header{Nonce: 3, ShardID: 2},
+		Hash:                  []byte("header hash"),
+		NotarizedBasedOnProof: false,
+		HasProof:              false,
+	})
 	res := mp.RequestMissingFinalityAttestingShardHeaders()
-	assert.Equal(t, res, uint32(3))
+	assert.Equal(t, uint32(3), res)
 }
 
 // ------- CommitBlock
@@ -1121,7 +1144,7 @@ func TestBlockProc_RequestTransactionFromNetwork(t *testing.T) {
 	}
 
 	header := createMetaBlockHeader()
-	hdrsRequested, _ := mp.RequestBlockHeaders(header)
+	hdrsRequested, _, _ := mp.RequestBlockHeaders(header)
 	assert.Equal(t, uint32(1), hdrsRequested)
 }
 
@@ -1956,8 +1979,9 @@ func TestMetaProcessor_CheckShardHeadersValidity(t *testing.T) {
 	arguments.BlockTracker = mock.NewBlockTrackerMock(bootstrapComponents.ShardCoordinator(), startHeaders)
 
 	argsHeaderValidator := blproc.ArgsHeaderValidator{
-		Hasher:      coreComponents.Hash,
-		Marshalizer: coreComponents.InternalMarshalizer(),
+		Hasher:              coreComponents.Hash,
+		Marshalizer:         coreComponents.InternalMarshalizer(),
+		EnableEpochsHandler: coreComponents.EnableEpochsHandler(),
 	}
 	arguments.HeaderValidator, _ = blproc.NewHeaderValidator(argsHeaderValidator)
 

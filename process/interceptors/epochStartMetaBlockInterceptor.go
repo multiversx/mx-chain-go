@@ -9,6 +9,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+
 	"github.com/multiversx/mx-chain-go/p2p"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/factory"
@@ -56,22 +57,22 @@ func NewEpochStartMetaBlockInterceptor(args ArgsEpochStartMetaBlockInterceptor) 
 }
 
 // ProcessReceivedMessage will handle received messages containing epoch start meta blocks
-func (e *epochStartMetaBlockInterceptor) ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedPeer core.PeerID, _ p2p.MessageHandler) error {
+func (e *epochStartMetaBlockInterceptor) ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedPeer core.PeerID, _ p2p.MessageHandler) ([]byte, error) {
 	var epochStartMb block.MetaBlock
 	err := e.marshalizer.Unmarshal(&epochStartMb, message.Data())
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	mbHash, err := core.CalculateHash(e.marshalizer, e.hasher, epochStartMb)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	if !epochStartMb.IsStartOfEpochBlock() {
 		log.Trace("epochStartMetaBlockInterceptor-ProcessReceivedMessage: received meta block is not of "+
 			"type epoch start meta block", "hash", mbHash)
-		return process.ErrNotEpochStartBlock
+		return nil, process.ErrNotEpochStartBlock
 	}
 
 	log.Trace("received epoch start meta", "epoch", epochStartMb.GetEpoch(), "from peer", fromConnectedPeer.Pretty())
@@ -82,11 +83,11 @@ func (e *epochStartMetaBlockInterceptor) ProcessReceivedMessage(message p2p.Mess
 
 	metaBlock, found := e.checkMaps()
 	if !found {
-		return nil
+		return mbHash, nil
 	}
 
 	e.handleFoundEpochStartMetaBlock(metaBlock)
-	return nil
+	return mbHash, nil
 }
 
 // this func should be called under mutex protection

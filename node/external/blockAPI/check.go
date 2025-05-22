@@ -63,6 +63,13 @@ func checkNilArg(arg *ArgAPIBlockProcessor) error {
 	if check.IfNil(arg.EnableEpochsHandler) {
 		return errNilEnableEpochsHandler
 	}
+	if check.IfNil(arg.ProofsPool) {
+		return process.ErrNilProofsPool
+	}
+	if check.IfNil(arg.BlockChain) {
+		return process.ErrNilBlockChain
+	}
+
 	return core.CheckHandlerCompatibility(arg.EnableEpochsHandler, []core.EnableEpochFlag{
 		common.RefactorPeersMiniBlocksFlag,
 	})

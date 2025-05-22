@@ -8,7 +8,8 @@ import (
 
 // PubkeyConverterMock -
 type PubkeyConverterMock struct {
-	len int
+	len          int
+	DecodeCalled func() ([]byte, error)
 }
 
 // NewPubkeyConverterMock -
@@ -20,6 +21,9 @@ func NewPubkeyConverterMock(addressLen int) *PubkeyConverterMock {
 
 // Decode -
 func (pcm *PubkeyConverterMock) Decode(humanReadable string) ([]byte, error) {
+	if pcm.DecodeCalled != nil {
+		return pcm.DecodeCalled()
+	}
 	return hex.DecodeString(humanReadable)
 }
 

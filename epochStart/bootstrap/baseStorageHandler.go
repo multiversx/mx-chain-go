@@ -37,6 +37,8 @@ type StorageHandlerArgs struct {
 	NodeProcessingMode              common.NodeProcessingMode
 	RepopulateTokensSupplies        bool
 	StateStatsHandler               common.StateStatisticsHandler
+	ProofsPool                      ProofsPool
+	EnableEpochsHandler             common.EnableEpochsHandler
 }
 
 func checkNilArgs(args StorageHandlerArgs) error {
@@ -58,6 +60,13 @@ func checkNilArgs(args StorageHandlerArgs) error {
 	if check.IfNil(args.NodesCoordinatorRegistryFactory) {
 		return nodesCoordinator.ErrNilNodesCoordinatorRegistryFactory
 	}
+	if check.IfNil(args.ProofsPool) {
+		return dataRetriever.ErrNilProofsPool
+	}
+	if check.IfNil(args.EnableEpochsHandler) {
+		return core.ErrNilEnableEpochsHandler
+	}
+
 	return nil
 }
 
@@ -83,6 +92,8 @@ type baseStorageHandler struct {
 	currentEpoch                    uint32
 	uint64Converter                 typeConverters.Uint64ByteSliceConverter
 	nodesCoordinatorRegistryFactory nodesCoordinator.NodesCoordinatorRegistryFactory
+	proofsPool                      ProofsPool
+	enableEpochsHandler             common.EnableEpochsHandler
 }
 
 func (bsh *baseStorageHandler) groupMiniBlocksByShard(miniBlocks map[string]*block.MiniBlock) ([]bootstrapStorage.PendingMiniBlocksInfo, error) {
@@ -101,6 +112,34 @@ func (bsh *baseStorageHandler) groupMiniBlocksByShard(miniBlocks map[string]*blo
 	}
 
 	return sliceToRet, nil
+}
+
+func (bsh *baseStorageHandler) saveProofToStorage(shardID uint32, headerHash []byte, header data.HeaderHandler) error {
+	if !bsh.enableEpochsHandler.IsFlagEnabledInEpoch(common.AndromedaFlag, header.GetEpoch()) {
+		return nil
+	}
+
+	proof, err := bsh.proofsPool.GetProof(shardID, headerHash)
+	if err != nil {
+		return err
+	}
+
+	proofsStorer, err := bsh.storageService.GetStorer(dataRetriever.ProofsUnit)
+	if err != nil {
+		return err
+	}
+
+	marshalledProof, errMarshal := bsh.marshalizer.Marshal(proof)
+	if errMarshal != nil {
+		return errMarshal
+	}
+
+	errPut := proofsStorer.Put(proof.GetHeaderHash(), marshalledProof)
+	if errPut != nil {
+		return errPut
+	}
+
+	return nil
 }
 
 func (bsh *baseStorageHandler) saveNodesCoordinatorRegistry(
@@ -158,6 +197,11 @@ func (bsh *baseStorageHandler) saveMetaHdrToStorage(metaBlock data.HeaderHandler
 		return nil, err
 	}
 
+	err = bsh.saveProofToStorage(core.MetachainShardId, headerHash, metaBlock)
+	if err != nil {
+		return nil, err
+	}
+
 	return headerHash, nil
 }
 
@@ -193,6 +237,11 @@ func (bsh *baseStorageHandler) saveShardHdrToStorage(hdr data.HeaderHandler) ([]
 	}
 
 	err = shardHdrNonceStorage.Put(nonceToByteSlice, headerHash)
+	if err != nil {
+		return nil, err
+	}
+
+	err = bsh.saveProofToStorage(hdr.GetShardID(), headerHash, hdr)
 	if err != nil {
 		return nil, err
 	}

@@ -2,6 +2,7 @@ package blockAPI
 
 import (
 	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-core-go/data/typeConverters"
 	"github.com/multiversx/mx-chain-core-go/hashing"
@@ -31,4 +32,6 @@ type ArgAPIBlockProcessor struct {
 	AccountsRepository           state.AccountsRepository
 	ScheduledTxsExecutionHandler process.ScheduledTxsExecutionHandler
 	EnableEpochsHandler          common.EnableEpochsHandler
+	ProofsPool                   dataRetriever.ProofsPool
+	BlockChain                   data.ChainHandler
 }

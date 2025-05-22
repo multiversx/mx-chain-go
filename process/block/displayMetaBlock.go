@@ -4,10 +4,12 @@ import (
 	"fmt"
 	"sync"
 
+	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/display"
+	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-logger-go"
 )
@@ -70,6 +72,7 @@ func (hc *headersCounter) displayLogInfo(
 	headerHash []byte,
 	numShardHeadersFromPool int,
 	blockTracker process.BlockTracker,
+	dataPool dataRetriever.PoolsHolder,
 ) {
 	if check.IfNil(countersProvider) {
 		log.Warn("programming error in headersCounter.displayLogInfo - nil countersProvider")
@@ -78,7 +81,8 @@ func (hc *headersCounter) displayLogInfo(
 
 	hc.calculateNumOfShardMBHeaders(header)
 
-	dispHeader, dispLines := hc.createDisplayableMetaHeader(header)
+	headerProof, _ := dataPool.Proofs().GetProof(core.MetachainShardId, headerHash)
+	dispHeader, dispLines := hc.createDisplayableMetaHeader(header, headerProof)
 	dispLines = hc.displayTxBlockBody(dispLines, header, body)
 
 	tblString, err := display.CreateTableString(dispHeader, dispLines)
@@ -109,6 +113,7 @@ func (hc *headersCounter) displayLogInfo(
 
 func (hc *headersCounter) createDisplayableMetaHeader(
 	header *block.MetaBlock,
+	headerProof data.HeaderProofHandler,
 ) ([]string, []*display.LineData) {
 
 	tableHeader := []string{"Part", "Parameter", "Value"}
@@ -122,9 +127,9 @@ func (hc *headersCounter) createDisplayableMetaHeader(
 
 	var lines []*display.LineData
 	if header.IsStartOfEpochBlock() {
-		lines = displayEpochStartMetaBlock(header)
+		lines = displayEpochStartMetaBlock(header, headerProof)
 	} else {
-		lines = displayHeader(header)
+		lines = displayHeader(header, headerProof)
 	}
 
 	metaLines := make([]*display.LineData, 0, len(lines)+len(metaLinesHeader))
@@ -145,7 +150,7 @@ func (hc *headersCounter) displayShardInfo(lines []*display.LineData, header *bl
 			"Header hash",
 			logger.DisplayByteSlice(shardData.HeaderHash)}))
 
-		if shardData.ShardMiniBlockHeaders == nil || len(shardData.ShardMiniBlockHeaders) == 0 {
+		if len(shardData.ShardMiniBlockHeaders) == 0 {
 			lines = append(lines, display.NewLineData(false, []string{
 				"", "ShardMiniBlockHeaders", "<EMPTY>"}))
 		}
@@ -197,7 +202,7 @@ func (hc *headersCounter) displayTxBlockBody(
 			miniBlock.SenderShardID,
 			miniBlock.ReceiverShardID)
 
-		if miniBlock.TxHashes == nil || len(miniBlock.TxHashes) == 0 {
+		if len(miniBlock.TxHashes) == 0 {
 			lines = append(lines, display.NewLineData(false, []string{
 				part, "", "<EMPTY>"}))
 		}
@@ -240,8 +245,11 @@ func (hc *headersCounter) getNumShardMBHeadersTotalProcessed() uint64 {
 	return hc.shardMBHeadersTotalProcessed
 }
 
-func displayEpochStartMetaBlock(block *block.MetaBlock) []*display.LineData {
-	lines := displayHeader(block)
+func displayEpochStartMetaBlock(
+	block *block.MetaBlock,
+	headerProof data.HeaderProofHandler,
+) []*display.LineData {
+	lines := displayHeader(block, headerProof)
 	economicsLines := displayEconomicsData(block.EpochStart.Economics)
 	lines = append(lines, economicsLines...)
 

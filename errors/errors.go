@@ -475,6 +475,9 @@ var ErrNilESDTDataStorage = errors.New("nil esdt data storage")
 // ErrNilEnableEpochsHandler signals that a nil enable epochs handler was provided
 var ErrNilEnableEpochsHandler = errors.New("nil enable epochs handler")
 
+// ErrNilChainParametersHandler signals that a nil chain parameters handler was provided
+var ErrNilChainParametersHandler = errors.New("nil chain parameters handler")
+
 // ErrSignerNotSupported signals that a not supported signer was provided
 var ErrSignerNotSupported = errors.New("signer not supported")
 
@@ -598,6 +601,9 @@ var ErrNilSentSignatureTracker = errors.New("nil sent signature tracker")
 
 // ErrNilEpochSystemSCProcessor defines the error for setting a nil EpochSystemSCProcessor
 var ErrNilEpochSystemSCProcessor = errors.New("nil epoch system SC processor")
+
+// ErrNilFieldsSizeChecker signals tat a nil fields size checker has been provided
+var ErrNilFieldsSizeChecker = errors.New("nil fields size checker")
 
 // ErrNilTrieLeavesRetriever defines the error for setting a nil TrieLeavesRetriever
 var ErrNilTrieLeavesRetriever = errors.New("nil trie leaves retriever")

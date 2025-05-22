@@ -1,6 +1,7 @@
 package chainSimulator
 
 import (
+	"github.com/multiversx/mx-chain-core-go/core"
 	chainData "github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-go/api/shared"
 	"github.com/multiversx/mx-chain-go/consensus"
@@ -21,9 +22,12 @@ type NodeHandlerMock struct {
 	GetStateComponentsCalled      func() factory.StateComponentsHolder
 	GetFacadeHandlerCalled        func() shared.FacadeHandler
 	GetStatusCoreComponentsCalled func() factory.StatusCoreComponentsHolder
+	GetNetworkComponentsCalled    func() factory.NetworkComponentsHolder
 	SetKeyValueForAddressCalled   func(addressBytes []byte, state map[string]string) error
 	SetStateForAddressCalled      func(address []byte, state *dtos.AddressState) error
 	RemoveAccountCalled           func(address []byte) error
+	GetBasePeersCalled            func() map[uint32]core.PeerID
+	SetBasePeersCalled            func(basePeers map[uint32]core.PeerID)
 	CloseCalled                   func() error
 }
 
@@ -112,6 +116,14 @@ func (mock *NodeHandlerMock) GetStatusCoreComponents() factory.StatusCoreCompone
 	return nil
 }
 
+// GetNetworkComponents -
+func (mock *NodeHandlerMock) GetNetworkComponents() factory.NetworkComponentsHolder {
+	if mock.GetNetworkComponentsCalled != nil {
+		return mock.GetNetworkComponentsCalled()
+	}
+	return nil
+}
+
 // SetKeyValueForAddress -
 func (mock *NodeHandlerMock) SetKeyValueForAddress(addressBytes []byte, state map[string]string) error {
 	if mock.SetKeyValueForAddressCalled != nil {
@@ -135,6 +147,22 @@ func (mock *NodeHandlerMock) RemoveAccount(address []byte) error {
 	}
 
 	return nil
+}
+
+// GetBasePeers -
+func (mock *NodeHandlerMock) GetBasePeers() map[uint32]core.PeerID {
+	if mock.GetBasePeersCalled != nil {
+		return mock.GetBasePeersCalled()
+	}
+
+	return nil
+}
+
+// SetBasePeers -
+func (mock *NodeHandlerMock) SetBasePeers(basePeers map[uint32]core.PeerID) {
+	if mock.SetBasePeersCalled != nil {
+		mock.SetBasePeersCalled(basePeers)
+	}
 }
 
 // Close -

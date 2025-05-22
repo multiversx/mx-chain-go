@@ -2,6 +2,7 @@ package storagerequesterscontainer
 
 import (
 	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/dataRetriever/factory/containers"
 	storagerequesters "github.com/multiversx/mx-chain-go/dataRetriever/storageRequesters"
@@ -74,6 +75,11 @@ func (srcf *shardRequestersContainerFactory) Create() (dataRetriever.RequestersC
 		return nil, err
 	}
 
+	err = srcf.generateEquivalentProofsRequesters()
+	if err != nil {
+		return nil, err
+	}
+
 	return srcf.container, nil
 }
 
@@ -88,7 +94,7 @@ func (srcf *shardRequestersContainerFactory) generateHeaderRequesters() error {
 		return err
 	}
 
-	hdrNonceHashDataUnit := dataRetriever.ShardHdrNonceHashDataUnit + dataRetriever.UnitType(shardC.SelfId())
+	hdrNonceHashDataUnit := dataRetriever.GetHdrNonceHashDataUnit(shardC.SelfId())
 	hdrNonceStore, err := srcf.store.GetStorer(hdrNonceHashDataUnit)
 	if err != nil {
 		return err
@@ -164,6 +170,34 @@ func (srcf *shardRequestersContainerFactory) generateRewardRequester(
 	keys = append(keys, identifierTx)
 
 	return srcf.container.AddMultiple(keys, requesterSlice)
+}
+
+func (srcf *shardRequestersContainerFactory) generateEquivalentProofsRequesters() error {
+	shardC := srcf.shardCoordinator
+
+	keys := make([]string, 0)
+	requestersSlice := make([]dataRetriever.Requester, 0)
+
+	// should be 2 resolvers on shards, similar as interceptors: self_META + ALL
+	identifier := common.EquivalentProofsTopic + shardC.CommunicationIdentifier(core.MetachainShardId)
+	requester, err := srcf.createEquivalentProofsRequester(identifier)
+	if err != nil {
+		return err
+	}
+
+	requestersSlice = append(requestersSlice, requester)
+	keys = append(keys, identifier)
+
+	identifier = common.EquivalentProofsTopic + core.CommunicationIdentifierBetweenShards(core.MetachainShardId, core.AllShardId)
+	requester, err = srcf.createEquivalentProofsRequester(identifier)
+	if err != nil {
+		return err
+	}
+
+	requestersSlice = append(requestersSlice, requester)
+	keys = append(keys, identifier)
+
+	return srcf.container.AddMultiple(keys, requestersSlice)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

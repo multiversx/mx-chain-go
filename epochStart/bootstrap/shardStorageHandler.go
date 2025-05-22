@@ -65,6 +65,8 @@ func NewShardStorageHandler(args StorageHandlerArgs) (*shardStorageHandler, erro
 		currentEpoch:                    args.CurrentEpoch,
 		uint64Converter:                 args.Uint64Converter,
 		nodesCoordinatorRegistryFactory: args.NodesCoordinatorRegistryFactory,
+		proofsPool:                      args.ProofsPool,
+		enableEpochsHandler:             args.EnableEpochsHandler,
 	}
 
 	return &shardStorageHandler{baseStorageHandler: base}, nil

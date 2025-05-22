@@ -6,6 +6,8 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
+
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/process"
 )
@@ -15,10 +17,12 @@ var _ process.InterceptorProcessor = (*HdrInterceptorProcessor)(nil)
 // HdrInterceptorProcessor is the processor used when intercepting headers
 // (shard headers, meta headers) structs which satisfy HeaderHandler interface.
 type HdrInterceptorProcessor struct {
-	headers            dataRetriever.HeadersPool
-	blackList          process.TimeCacher
-	registeredHandlers []func(topic string, hash []byte, data interface{})
-	mutHandlers        sync.RWMutex
+	headers             dataRetriever.HeadersPool
+	proofs              dataRetriever.ProofsPool
+	blackList           process.TimeCacher
+	enableEpochsHandler common.EnableEpochsHandler
+	registeredHandlers  []func(topic string, hash []byte, data interface{})
+	mutHandlers         sync.RWMutex
 }
 
 // NewHdrInterceptorProcessor creates a new TxInterceptorProcessor instance
@@ -29,14 +33,22 @@ func NewHdrInterceptorProcessor(argument *ArgHdrInterceptorProcessor) (*HdrInter
 	if check.IfNil(argument.Headers) {
 		return nil, process.ErrNilCacher
 	}
+	if check.IfNil(argument.Proofs) {
+		return nil, process.ErrNilProofsPool
+	}
 	if check.IfNil(argument.BlockBlackList) {
 		return nil, process.ErrNilBlackListCacher
 	}
+	if check.IfNil(argument.EnableEpochsHandler) {
+		return nil, process.ErrNilEnableEpochsHandler
+	}
 
 	return &HdrInterceptorProcessor{
-		headers:            argument.Headers,
-		blackList:          argument.BlockBlackList,
-		registeredHandlers: make([]func(topic string, hash []byte, data interface{}), 0),
+		headers:             argument.Headers,
+		proofs:              argument.Proofs,
+		blackList:           argument.BlockBlackList,
+		enableEpochsHandler: argument.EnableEpochsHandler,
+		registeredHandlers:  make([]func(topic string, hash []byte, data interface{}), 0),
 	}, nil
 }
 

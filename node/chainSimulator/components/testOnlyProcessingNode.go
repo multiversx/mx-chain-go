@@ -75,6 +75,8 @@ type testOnlyProcessingNode struct {
 
 	httpServer    shared.UpgradeableHttpServerHandler
 	facadeHandler shared.FacadeHandler
+
+	basePeers map[uint32]core.PeerID
 }
 
 // NewTestOnlyProcessingNode creates a new instance of a node that is able to only process transactions
@@ -316,6 +318,7 @@ func (node *testOnlyProcessingNode) createNodesCoordinator(pref config.Preferenc
 		node.CoreComponentsHolder.EnableEpochsHandler(),
 		node.DataPool.CurrentEpochValidatorInfo(),
 		node.BootstrapComponentsHolder.NodesCoordinatorRegistryFactory(),
+		node.CoreComponentsHolder.ChainParametersHandler(),
 	)
 	if err != nil {
 		return err
@@ -341,6 +344,7 @@ func (node *testOnlyProcessingNode) createBroadcastMessenger() error {
 	}
 
 	node.broadcastMessenger, err = NewInstantBroadcastMessenger(broadcastMessenger, node.BootstrapComponentsHolder.ShardCoordinator())
+
 	return err
 }
 
@@ -392,6 +396,11 @@ func (node *testOnlyProcessingNode) GetFacadeHandler() shared.FacadeHandler {
 // GetStatusCoreComponents will return the status core components
 func (node *testOnlyProcessingNode) GetStatusCoreComponents() factory.StatusCoreComponentsHolder {
 	return node.StatusCoreComponents
+}
+
+// NetworkComponents will return the network components
+func (node *testOnlyProcessingNode) GetNetworkComponents() factory.NetworkComponentsHolder {
+	return node.NetworkComponentsHolder
 }
 
 func (node *testOnlyProcessingNode) collectClosableComponents(apiInterface APIConfigurator) {
@@ -607,6 +616,16 @@ func (node *testOnlyProcessingNode) getUserAccount(address []byte) (state.UserAc
 	}
 
 	return userAccount, nil
+}
+
+// GetBasePeers returns return network messenger ids for base nodes
+func (node *testOnlyProcessingNode) GetBasePeers() map[uint32]core.PeerID {
+	return node.basePeers
+}
+
+// SetBasePeers will set base network messenger id nodes per shard
+func (node *testOnlyProcessingNode) SetBasePeers(basePeers map[uint32]core.PeerID) {
+	node.basePeers = basePeers
 }
 
 // Close will call the Close methods on all inner components

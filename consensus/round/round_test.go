@@ -5,8 +5,11 @@ import (
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
-	"github.com/multiversx/mx-chain-go/consensus/mock"
+	"github.com/stretchr/testify/require"
+
 	"github.com/multiversx/mx-chain-go/consensus/round"
+	consensusMocks "github.com/multiversx/mx-chain-go/testscommon/consensus"
+
 	"github.com/stretchr/testify/assert"
 )
 
@@ -28,7 +31,7 @@ func TestRound_NewRoundShouldWork(t *testing.T) {
 
 	genesisTime := time.Now()
 
-	syncTimerMock := &mock.SyncTimerMock{}
+	syncTimerMock := &consensusMocks.SyncTimerMock{}
 
 	rnd, err := round.NewRound(genesisTime, genesisTime, roundTimeDuration, syncTimerMock, 0)
 
@@ -41,7 +44,7 @@ func TestRound_UpdateRoundShouldNotChangeAnything(t *testing.T) {
 
 	genesisTime := time.Now()
 
-	syncTimerMock := &mock.SyncTimerMock{}
+	syncTimerMock := &consensusMocks.SyncTimerMock{}
 
 	rnd, _ := round.NewRound(genesisTime, genesisTime, roundTimeDuration, syncTimerMock, 0)
 	oldIndex := rnd.Index()
@@ -61,7 +64,7 @@ func TestRound_UpdateRoundShouldAdvanceOneRound(t *testing.T) {
 
 	genesisTime := time.Now()
 
-	syncTimerMock := &mock.SyncTimerMock{}
+	syncTimerMock := &consensusMocks.SyncTimerMock{}
 
 	rnd, _ := round.NewRound(genesisTime, genesisTime, roundTimeDuration, syncTimerMock, 0)
 	oldIndex := rnd.Index()
@@ -76,7 +79,7 @@ func TestRound_IndexShouldReturnFirstIndex(t *testing.T) {
 
 	genesisTime := time.Now()
 
-	syncTimerMock := &mock.SyncTimerMock{}
+	syncTimerMock := &consensusMocks.SyncTimerMock{}
 
 	rnd, _ := round.NewRound(genesisTime, genesisTime, roundTimeDuration, syncTimerMock, 0)
 	rnd.UpdateRound(genesisTime, genesisTime.Add(roundTimeDuration/2))
@@ -90,7 +93,7 @@ func TestRound_TimeStampShouldReturnTimeStampOfTheNextRound(t *testing.T) {
 
 	genesisTime := time.Now()
 
-	syncTimerMock := &mock.SyncTimerMock{}
+	syncTimerMock := &consensusMocks.SyncTimerMock{}
 
 	rnd, _ := round.NewRound(genesisTime, genesisTime, roundTimeDuration, syncTimerMock, 0)
 	rnd.UpdateRound(genesisTime, genesisTime.Add(roundTimeDuration+roundTimeDuration/2))
@@ -104,7 +107,7 @@ func TestRound_TimeDurationShouldReturnTheDurationOfOneRound(t *testing.T) {
 
 	genesisTime := time.Now()
 
-	syncTimerMock := &mock.SyncTimerMock{}
+	syncTimerMock := &consensusMocks.SyncTimerMock{}
 
 	rnd, _ := round.NewRound(genesisTime, genesisTime, roundTimeDuration, syncTimerMock, 0)
 	timeDuration := rnd.TimeDuration()
@@ -117,7 +120,7 @@ func TestRound_RemainingTimeInCurrentRoundShouldReturnPositiveValue(t *testing.T
 
 	genesisTime := time.Unix(0, 0)
 
-	syncTimerMock := &mock.SyncTimerMock{}
+	syncTimerMock := &consensusMocks.SyncTimerMock{}
 
 	timeElapsed := int64(roundTimeDuration - 1)
 
@@ -138,7 +141,7 @@ func TestRound_RemainingTimeInCurrentRoundShouldReturnNegativeValue(t *testing.T
 
 	genesisTime := time.Unix(0, 0)
 
-	syncTimerMock := &mock.SyncTimerMock{}
+	syncTimerMock := &consensusMocks.SyncTimerMock{}
 
 	timeElapsed := int64(roundTimeDuration + 1)
 
@@ -152,4 +155,39 @@ func TestRound_RemainingTimeInCurrentRoundShouldReturnNegativeValue(t *testing.T
 
 	assert.Equal(t, time.Duration(int64(rnd.TimeDuration())-timeElapsed), remainingTime)
 	assert.True(t, remainingTime < 0)
+}
+
+func TestRound_RevertOneRound(t *testing.T) {
+	t.Parallel()
+
+	genesisTime := time.Now()
+
+	syncTimerMock := &consensusMocks.SyncTimerMock{}
+
+	startRound := int64(10)
+	rnd, _ := round.NewRound(genesisTime, genesisTime, roundTimeDuration, syncTimerMock, startRound)
+	index := rnd.Index()
+	require.Equal(t, startRound, index)
+
+	rnd.RevertOneRound()
+	index = rnd.Index()
+	require.Equal(t, startRound-1, index)
+}
+
+func TestRound_BeforeGenesis(t *testing.T) {
+	t.Parallel()
+
+	genesisTime := time.Now()
+
+	syncTimerMock := &consensusMocks.SyncTimerMock{}
+
+	startRound := int64(-1)
+	rnd, _ := round.NewRound(genesisTime, genesisTime, roundTimeDuration, syncTimerMock, startRound)
+	require.True(t, rnd.BeforeGenesis())
+
+	time.Sleep(roundTimeDuration * 2)
+	currentTime := time.Now()
+
+	rnd.UpdateRound(genesisTime, currentTime)
+	require.False(t, rnd.BeforeGenesis())
 }

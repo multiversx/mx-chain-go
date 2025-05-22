@@ -5,10 +5,11 @@ import (
 	"testing"
 	"time"
 
+	logger "github.com/multiversx/mx-chain-logger-go"
+
 	"github.com/multiversx/mx-chain-go/integrationTests"
 	"github.com/multiversx/mx-chain-go/integrationTests/multiShard/endOfEpoch"
 	"github.com/multiversx/mx-chain-go/process/rating"
-	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
 func TestEpochChangeWithNodesShufflingAndRater(t *testing.T) {
@@ -68,16 +69,14 @@ func TestEpochChangeWithNodesShufflingAndRater(t *testing.T) {
 	nonce := uint64(1)
 	nbBlocksToProduce := uint64(20)
 	expectedLastEpoch := uint32(nbBlocksToProduce / roundsPerEpoch)
-	var consensusNodes map[uint32][]*integrationTests.TestProcessorNode
 
 	for i := uint64(0); i < nbBlocksToProduce; i++ {
 		for _, nodes := range nodesMap {
 			integrationTests.UpdateRound(nodes, round)
 		}
 
-		_, _, consensusNodes = integrationTests.AllShardsProposeBlock(round, nonce, nodesMap)
-		indexesProposers := endOfEpoch.GetBlockProposersIndexes(consensusNodes, nodesMap)
-		integrationTests.SyncAllShardsWithRoundBlock(t, nodesMap, indexesProposers, round)
+		proposeData := integrationTests.AllShardsProposeBlock(round, nonce, nodesMap)
+		integrationTests.SyncAllShardsWithRoundBlock(t, proposeData, nodesMap, round)
 		round++
 		nonce++
 
