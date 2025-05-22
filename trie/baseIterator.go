@@ -53,12 +53,7 @@ func (it *baseIterator) HasNext() bool {
 func (it *baseIterator) next() ([]nodeWithHash, error) {
 	n := it.nextNodes[0]
 
-	if n.node == nil {
-		return nil, ErrNilNode
-	}
-
-	err := n.node.isEmptyOrNil()
-	if err != nil {
+	if check.IfNil(n.node) {
 		return nil, ErrNilNode
 	}
 

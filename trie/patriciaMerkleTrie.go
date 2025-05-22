@@ -476,7 +476,7 @@ func (tr *patriciaMerkleTrie) recreate(root []byte, identifier string, tsm commo
 	return newTr, nil
 }
 
-// ToString outputs a graphical view of the trie. Mainly used in tests/kdebugging
+// ToString outputs a graphical view of the trie. Mainly used in tests/debugging
 func (tr *patriciaMerkleTrie) ToString() string {
 	tr.trieOperationInProgress.SetValue(true)
 	defer tr.trieOperationInProgress.Reset()
