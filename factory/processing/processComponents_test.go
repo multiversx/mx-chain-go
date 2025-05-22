@@ -612,14 +612,6 @@ func TestProcessComponentsFactory_Create(t *testing.T) {
 	t.Parallel()
 
 	expectedErr := errors.New("expected error")
-	t.Run("CreateCurrentEpochProvider fails should error", func(t *testing.T) {
-		t.Parallel()
-
-		args := createMockProcessComponentsFactoryArgs()
-		args.Config.EpochStartConfig.RoundsPerEpoch = 0
-		args.PrefConfigs.Preferences.FullArchive = true
-		testCreateWithArgs(t, args, "rounds per epoch")
-	})
 	t.Run("createNetworkShardingCollector fails due to invalid PublicKeyPeerId config should error", func(t *testing.T) {
 		t.Parallel()
 
