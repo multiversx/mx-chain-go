@@ -25,6 +25,7 @@ import (
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/chainParameters"
 	dataRetrieverMock "github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
 	"github.com/multiversx/mx-chain-go/testscommon/stakingcommon"
 	statusHandlerMock "github.com/multiversx/mx-chain-go/testscommon/statusHandler"
@@ -231,6 +232,14 @@ func createEpochStartTrigger(
 		Hasher:             coreComponents.Hasher(),
 		AppStatusHandler:   &statusHandlerMock.AppStatusHandlerStub{},
 		DataPool:           dataRetrieverMock.NewPoolsHolderMock(),
+		ChainParametersHandler: &chainParameters.ChainParametersHandlerStub{
+			CurrentChainParametersCalled: func() config.ChainParametersByEpochConfig {
+				return config.ChainParametersByEpochConfig{
+					RoundsPerEpoch:         10,
+					MinRoundsBetweenEpochs: 10,
+				}
+			},
+		},
 	}
 
 	epochStartTrigger, _ := metachain.NewEpochStartTrigger(argsEpochStart)

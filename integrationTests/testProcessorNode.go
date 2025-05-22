@@ -1326,11 +1326,8 @@ func (tpn *TestProcessorNode) initInterceptors(heartbeatPk string) {
 
 	if tpn.ShardCoordinator.SelfId() == core.MetachainShardId {
 		argsEpochStart := &metachain.ArgsNewMetaEpochStartTrigger{
-			GenesisTime: tpn.RoundHandler.TimeStamp(),
-			Settings: &config.EpochStartConfig{
-				MinRoundsBetweenEpochs: 1000,
-				RoundsPerEpoch:         10000,
-			},
+			GenesisTime:        tpn.RoundHandler.TimeStamp(),
+			Settings:           &config.EpochStartConfig{},
 			Epoch:              0,
 			EpochStartNotifier: tpn.EpochStartNotifier,
 			Storage:            tpn.Storage,
@@ -1338,6 +1335,14 @@ func (tpn *TestProcessorNode) initInterceptors(heartbeatPk string) {
 			Hasher:             TestHasher,
 			AppStatusHandler:   &statusHandlerMock.AppStatusHandlerStub{},
 			DataPool:           tpn.DataPool,
+			ChainParametersHandler: &chainParameters.ChainParametersHandlerStub{
+				CurrentChainParametersCalled: func() config.ChainParametersByEpochConfig {
+					return config.ChainParametersByEpochConfig{
+						RoundsPerEpoch:         10000,
+						MinRoundsBetweenEpochs: 1000,
+					}
+				},
+			},
 		}
 		epochStartTrigger, _ := metachain.NewEpochStartTrigger(argsEpochStart)
 		tpn.EpochStartTrigger = &metachain.TestTrigger{}
@@ -2283,11 +2288,8 @@ func (tpn *TestProcessorNode) initBlockProcessor() {
 	if tpn.ShardCoordinator.SelfId() == core.MetachainShardId {
 		if check.IfNil(tpn.EpochStartTrigger) {
 			argsEpochStart := &metachain.ArgsNewMetaEpochStartTrigger{
-				GenesisTime: argumentsBase.CoreComponents.RoundHandler().TimeStamp(),
-				Settings: &config.EpochStartConfig{
-					MinRoundsBetweenEpochs: 1000,
-					RoundsPerEpoch:         10000,
-				},
+				GenesisTime:        argumentsBase.CoreComponents.RoundHandler().TimeStamp(),
+				Settings:           &config.EpochStartConfig{},
 				Epoch:              0,
 				EpochStartNotifier: tpn.EpochStartNotifier,
 				Storage:            tpn.Storage,
@@ -2295,6 +2297,14 @@ func (tpn *TestProcessorNode) initBlockProcessor() {
 				Hasher:             TestHasher,
 				AppStatusHandler:   &statusHandlerMock.AppStatusHandlerStub{},
 				DataPool:           tpn.DataPool,
+				ChainParametersHandler: &chainParameters.ChainParametersHandlerStub{
+					CurrentChainParametersCalled: func() config.ChainParametersByEpochConfig {
+						return config.ChainParametersByEpochConfig{
+							RoundsPerEpoch:         10000,
+							MinRoundsBetweenEpochs: 1000,
+						}
+					},
+				},
 			}
 			epochStartTrigger, _ := metachain.NewEpochStartTrigger(argsEpochStart)
 			tpn.EpochStartTrigger = &metachain.TestTrigger{}

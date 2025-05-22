@@ -296,7 +296,7 @@ func (e *epochStartBootstrap) isStartInEpochZero() bool {
 	}
 
 	currentRound := e.roundHandler.Index() - e.startRound
-	epochEndPlusGracePeriod := float64(e.generalConfig.EpochStartConfig.RoundsPerEpoch) * (gracePeriodInPercentage + 1.0)
+	epochEndPlusGracePeriod := float64(e.getRoundsPerEpoch()) * (gracePeriodInPercentage + 1.0)
 	log.Debug("IsStartInEpochZero", "currentRound", currentRound, "epochEndRound", epochEndPlusGracePeriod)
 	return float64(currentRound) < epochEndPlusGracePeriod
 }
@@ -519,8 +519,12 @@ func (e *epochStartBootstrap) computeIfCurrentEpochIsSaved() bool {
 
 	roundsSinceEpochStart := computedRound - int64(e.baseData.epochStartRound)
 	log.Debug("epoch start round", "round", e.baseData.epochStartRound, "roundsSinceEpochStart", roundsSinceEpochStart)
-	epochEndPlusGracePeriod := float64(e.generalConfig.EpochStartConfig.RoundsPerEpoch) * (gracePeriodInPercentage + 1.0)
+	epochEndPlusGracePeriod := float64(e.getRoundsPerEpoch()) * (gracePeriodInPercentage + 1.0)
 	return float64(roundsSinceEpochStart) < epochEndPlusGracePeriod
+}
+
+func (e *epochStartBootstrap) getRoundsPerEpoch() int64 {
+	return e.coreComponentsHolder.ChainParametersHandler().CurrentChainParameters().RoundsPerEpoch
 }
 
 func (e *epochStartBootstrap) prepareComponentsToSyncFromNetwork() error {

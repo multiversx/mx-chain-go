@@ -166,6 +166,8 @@ func GetGeneralConfig() config.Config {
 					MetachainMinNumNodes:        1,
 					Hysteresis:                  0,
 					Adaptivity:                  false,
+					RoundsPerEpoch:              20,
+					MinRoundsBetweenEpochs:      10,
 				},
 			},
 			EpochChangeGracePeriodByEpoch: []config.EpochChangeGracePeriodByEpoch{{EnableEpoch: 0, GracePeriodInRounds: 1}},
@@ -233,8 +235,6 @@ func GetGeneralConfig() config.Config {
 // GetEpochStartConfig -
 func GetEpochStartConfig() config.EpochStartConfig {
 	return config.EpochStartConfig{
-		MinRoundsBetweenEpochs:            20,
-		RoundsPerEpoch:                    20,
 		MaxShuffledOutRestartThreshold:    0.2,
 		MinShuffledOutRestartThreshold:    0.1,
 		MinNumConnectedPeersToStart:       2,

@@ -7,6 +7,7 @@ import (
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/dataRetriever/resolvers/epochproviders"
 	"github.com/multiversx/mx-chain-go/dataRetriever/resolvers/epochproviders/disabled"
+	"github.com/multiversx/mx-chain-go/testscommon/chainParameters"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -15,8 +16,7 @@ func TestCreateCurrentEpochProvider_NilCurrentEpochProvider(t *testing.T) {
 	t.Parallel()
 
 	cnep, err := CreateCurrentEpochProvider(
-		config.Config{},
-		0,
+		&chainParameters.ChainParametersHandlerStub{},
 		0,
 		false,
 	)
@@ -28,13 +28,16 @@ func TestCreateCurrentEpochProvider_NilCurrentEpochProvider(t *testing.T) {
 func TestCreateCurrentEpochProvider_ArithmeticEpochProvider(t *testing.T) {
 	t.Parallel()
 
-	cnep, err := CreateCurrentEpochProvider(
-		config.Config{
-			EpochStartConfig: config.EpochStartConfig{
+	chainParameterHandler := &chainParameters.ChainParametersHandlerStub{
+		CurrentChainParametersCalled: func() config.ChainParametersByEpochConfig {
+			return config.ChainParametersByEpochConfig{
 				RoundsPerEpoch: 1,
-			},
+				RoundDuration:  1,
+			}
 		},
-		1,
+	}
+	cnep, err := CreateCurrentEpochProvider(
+		chainParameterHandler,
 		1,
 		true,
 	)
@@ -42,9 +45,8 @@ func TestCreateCurrentEpochProvider_ArithmeticEpochProvider(t *testing.T) {
 
 	aep, _ := epochproviders.NewArithmeticEpochProvider(
 		epochproviders.ArgArithmeticEpochProvider{
-			RoundsPerEpoch:          1,
-			RoundTimeInMilliseconds: 1,
-			StartTime:               1,
+			StartTime:              1,
+			ChainParametersHandler: chainParameterHandler,
 		},
 	)
 	require.False(t, check.IfNil(aep))
