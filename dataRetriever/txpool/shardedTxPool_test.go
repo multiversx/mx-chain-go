@@ -17,6 +17,8 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+const maxNumBytesPerSenderUpperBoundTest = 33_554_432 // 32 MB
+
 func Test_NewShardedTxPool(t *testing.T) {
 	pool, err := newTxPoolToTest()
 
@@ -37,7 +39,7 @@ func Test_NewShardedTxPool_WhenBadConfig(t *testing.T) {
 		TxGasHandler:                   txcachemocks.NewTxGasHandlerMock(),
 		Marshalizer:                    &marshal.GogoProtoMarshalizer{},
 		NumberOfShards:                 1,
-		MaxNumBytesPerSenderUpperBound: dataRetriever.MaxNumBytesPerSenderUpperBoundTest,
+		MaxNumBytesPerSenderUpperBound: maxNumBytesPerSenderUpperBoundTest,
 	}
 
 	args := goodArgs
@@ -388,7 +390,7 @@ func Test_routeToCacheUnions(t *testing.T) {
 		Marshalizer:                    &marshal.GogoProtoMarshalizer{},
 		NumberOfShards:                 4,
 		SelfShardID:                    42,
-		MaxNumBytesPerSenderUpperBound: dataRetriever.MaxNumBytesPerSenderUpperBoundTest,
+		MaxNumBytesPerSenderUpperBound: maxNumBytesPerSenderUpperBoundTest,
 	}
 	pool, _ := NewShardedTxPool(args)
 
@@ -430,7 +432,7 @@ func newTxPoolToTest() (dataRetriever.ShardedDataCacherNotifier, error) {
 		Marshalizer:                    &marshal.GogoProtoMarshalizer{},
 		NumberOfShards:                 4,
 		SelfShardID:                    0,
-		MaxNumBytesPerSenderUpperBound: dataRetriever.MaxNumBytesPerSenderUpperBoundTest,
+		MaxNumBytesPerSenderUpperBound: maxNumBytesPerSenderUpperBoundTest,
 	}
 	return NewShardedTxPool(args)
 }
