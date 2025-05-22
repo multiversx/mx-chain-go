@@ -12,7 +12,6 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/atomic"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/common/errChan"
-	dataMock "github.com/multiversx/mx-chain-go/dataRetriever/mock"
 	"github.com/multiversx/mx-chain-go/state/hashesCollector"
 	"github.com/multiversx/mx-chain-go/state/parsers"
 	"github.com/multiversx/mx-chain-go/testscommon"
@@ -25,17 +24,18 @@ import (
 func TestNode_encodeNodeAndGetHashBranchNode(t *testing.T) {
 	t.Parallel()
 
-	bn, _ := newBranchNode(getTestMarshalizerAndHasher())
+	trieCtx := getTrieContextWithCustomStorage(nil)
+	bn := newBranchNode()
 	encChildren := make([][]byte, nrOfChildren)
 	encChildren[1] = []byte("dog")
 	encChildren[10] = []byte("doge")
 	bn.ChildrenHashes = encChildren
 
-	encNode, _ := bn.marsh.Marshal(bn)
+	encNode, _ := trieCtx.Marshal(bn)
 	encNode = append(encNode, branch)
-	expextedHash := bn.hasher.Compute(string(encNode))
+	expextedHash := trieCtx.Compute(string(encNode))
 
-	hash, err := encodeNodeAndGetHash(bn)
+	hash, err := encodeNodeAndGetHash(bn, trieCtx)
 	assert.Nil(t, err)
 	assert.Equal(t, expextedHash, hash)
 }
@@ -43,24 +43,20 @@ func TestNode_encodeNodeAndGetHashBranchNode(t *testing.T) {
 func TestNode_encodeNodeAndGetHashExtensionNode(t *testing.T) {
 	t.Parallel()
 
-	marsh, hasher := getTestMarshalizerAndHasher()
+	trieCtx := getTrieContextWithCustomStorage(nil)
 	en := &extensionNode{
 		CollapsedEn: CollapsedEn{
 			Key:       []byte{2},
 			ChildHash: []byte("doge"),
 		},
-		baseNode: &baseNode{
-
-			marsh:  marsh,
-			hasher: hasher,
-		},
+		baseNode: &baseNode{},
 	}
 
-	encNode, _ := marsh.Marshal(en)
+	encNode, _ := trieCtx.Marshal(en)
 	encNode = append(encNode, extension)
-	expextedHash := hasher.Compute(string(encNode))
+	expextedHash := trieCtx.Compute(string(encNode))
 
-	hash, err := encodeNodeAndGetHash(en)
+	hash, err := encodeNodeAndGetHash(en, trieCtx)
 	assert.Nil(t, err)
 	assert.Equal(t, expextedHash, hash)
 }
@@ -69,13 +65,13 @@ func TestNode_encodeNodeAndGetHashLeafNode(t *testing.T) {
 	t.Parallel()
 
 	marsh, hasher := getTestMarshalizerAndHasher()
-	ln, _ := newLeafNode(getTrieDataWithDefaultVersion("dog", "dog"), marsh, hasher)
+	ln := newLeafNode(getTrieDataWithDefaultVersion("dog", "dog"))
 
 	encNode, _ := marsh.Marshal(ln)
 	encNode = append(encNode, leaf)
 	expextedHash := hasher.Compute(string(encNode))
 
-	hash, err := encodeNodeAndGetHash(ln)
+	hash, err := encodeNodeAndGetHash(ln, getTrieContextWithCustomStorage(nil))
 	assert.Nil(t, err)
 	assert.Equal(t, expextedHash, hash)
 }
@@ -83,107 +79,107 @@ func TestNode_encodeNodeAndGetHashLeafNode(t *testing.T) {
 func TestNode_encodeNodeAndCommitToDBBranchNode(t *testing.T) {
 	t.Parallel()
 
-	db := testscommon.NewMemDbMock()
-	_, collapsedBn := getBnAndCollapsedBn(getTestMarshalizerAndHasher())
-	encNode, _ := collapsedBn.marsh.Marshal(collapsedBn)
+	trieCtx := getDefaultTrieContext()
+	_, collapsedBn := getBnAndCollapsedBn()
+	encNode, _ := trieCtx.Marshal(collapsedBn)
 	encNode = append(encNode, branch)
-	nodeHash := collapsedBn.hasher.Compute(string(encNode))
+	nodeHash := trieCtx.Compute(string(encNode))
 
-	_, err := encodeNodeAndCommitToDB(collapsedBn, db)
+	_, err := encodeNodeAndCommitToDB(collapsedBn, trieCtx)
 	assert.Nil(t, err)
 
-	val, _ := db.Get(nodeHash)
+	val, _ := trieCtx.Get(nodeHash)
 	assert.Equal(t, encNode, val)
 }
 
 func TestNode_encodeNodeAndCommitToDBExtensionNode(t *testing.T) {
 	t.Parallel()
 
-	db := testscommon.NewMemDbMock()
+	trieCtx := getDefaultTrieContext()
 	_, collapsedEn := getEnAndCollapsedEn()
-	encNode, _ := collapsedEn.marsh.Marshal(collapsedEn)
+	encNode, _ := trieCtx.Marshal(collapsedEn)
 	encNode = append(encNode, extension)
-	nodeHash := collapsedEn.hasher.Compute(string(encNode))
+	nodeHash := trieCtx.Compute(string(encNode))
 
-	_, err := encodeNodeAndCommitToDB(collapsedEn, db)
+	_, err := encodeNodeAndCommitToDB(collapsedEn, trieCtx)
 	assert.Nil(t, err)
 
-	val, _ := db.Get(nodeHash)
+	val, _ := trieCtx.Get(nodeHash)
 	assert.Equal(t, encNode, val)
 }
 
 func TestNode_encodeNodeAndCommitToDBLeafNode(t *testing.T) {
 	t.Parallel()
 
-	db := testscommon.NewMemDbMock()
-	ln := getLn(getTestMarshalizerAndHasher())
-	encNode, _ := ln.marsh.Marshal(ln)
+	trieCtx := getDefaultTrieContext()
+	ln := getLn()
+	encNode, _ := trieCtx.Marshal(ln)
 	encNode = append(encNode, leaf)
-	nodeHash := ln.hasher.Compute(string(encNode))
+	nodeHash := trieCtx.Compute(string(encNode))
 
-	_, err := encodeNodeAndCommitToDB(ln, db)
+	_, err := encodeNodeAndCommitToDB(ln, trieCtx)
 	assert.Nil(t, err)
 
-	val, _ := db.Get(nodeHash)
+	val, _ := trieCtx.Get(nodeHash)
 	assert.Equal(t, encNode, val)
 }
 
 func TestNode_getNodeFromDBAndDecodeBranchNode(t *testing.T) {
 	t.Parallel()
 
-	db := testscommon.NewMemDbMock()
-	bn, collapsedBn := getBnAndCollapsedBn(getTestMarshalizerAndHasher())
-	bn.commitDirty(0, 5, getTestGoroutinesManager(), hashesCollector.NewDisabledHashesCollector(), db, db)
+	trieCtx := getDefaultTrieContext()
+	bn, collapsedBn := getBnAndCollapsedBn()
+	bn.commitDirty(0, 5, getTestGoroutinesManager(), hashesCollector.NewDisabledHashesCollector(), trieCtx)
 
-	encNode, _ := bn.marsh.Marshal(collapsedBn)
+	encNode, _ := trieCtx.Marshal(collapsedBn)
 	encNode = append(encNode, branch)
-	nodeHash := bn.hasher.Compute(string(encNode))
+	nodeHash := trieCtx.Compute(string(encNode))
 
-	nodeInstance, nodeBytes, err := getNodeFromDBAndDecode(nodeHash, db, bn.marsh, bn.hasher)
+	nodeInstance, nodeBytes, err := getNodeFromDBAndDecode(nodeHash, trieCtx)
 	assert.Nil(t, err)
 	assert.Equal(t, encNode, nodeBytes)
 
-	h1, _ := encodeNodeAndGetHash(collapsedBn)
-	h2, _ := encodeNodeAndGetHash(nodeInstance)
+	h1, _ := encodeNodeAndGetHash(collapsedBn, trieCtx)
+	h2, _ := encodeNodeAndGetHash(nodeInstance, trieCtx)
 	assert.Equal(t, h1, h2)
 }
 
 func TestNode_getNodeFromDBAndDecodeExtensionNode(t *testing.T) {
 	t.Parallel()
 
-	db := testscommon.NewMemDbMock()
+	trieCtx := getDefaultTrieContext()
 	en, collapsedEn := getEnAndCollapsedEn()
-	en.commitDirty(0, 5, getTestGoroutinesManager(), hashesCollector.NewDisabledHashesCollector(), db, db)
+	en.commitDirty(0, 5, getTestGoroutinesManager(), hashesCollector.NewDisabledHashesCollector(), trieCtx)
 
-	encNode, _ := en.marsh.Marshal(collapsedEn)
+	encNode, _ := trieCtx.Marshal(collapsedEn)
 	encNode = append(encNode, extension)
-	nodeHash := en.hasher.Compute(string(encNode))
+	nodeHash := trieCtx.Compute(string(encNode))
 
-	nodeInstance, nodeBytes, err := getNodeFromDBAndDecode(nodeHash, db, en.marsh, en.hasher)
+	nodeInstance, nodeBytes, err := getNodeFromDBAndDecode(nodeHash, trieCtx)
 	assert.Nil(t, err)
 	assert.Equal(t, encNode, nodeBytes)
 
-	h1, _ := encodeNodeAndGetHash(collapsedEn)
-	h2, _ := encodeNodeAndGetHash(nodeInstance)
+	h1, _ := encodeNodeAndGetHash(collapsedEn, trieCtx)
+	h2, _ := encodeNodeAndGetHash(nodeInstance, trieCtx)
 	assert.Equal(t, h1, h2)
 }
 
 func TestNode_getNodeFromDBAndDecodeLeafNode(t *testing.T) {
 	t.Parallel()
 
-	db := testscommon.NewMemDbMock()
-	ln := getLn(getTestMarshalizerAndHasher())
-	ln.commitDirty(0, 5, getTestGoroutinesManager(), hashesCollector.NewDisabledHashesCollector(), db, db)
+	trieCtx := getDefaultTrieContext()
+	ln := getLn()
+	ln.commitDirty(0, 5, getTestGoroutinesManager(), hashesCollector.NewDisabledHashesCollector(), trieCtx)
 
-	encNode, _ := ln.marsh.Marshal(ln)
+	encNode, _ := trieCtx.Marshal(ln)
 	encNode = append(encNode, leaf)
-	nodeHash := ln.hasher.Compute(string(encNode))
+	nodeHash := trieCtx.Compute(string(encNode))
 
-	nodeInstance, nodeBytes, err := getNodeFromDBAndDecode(nodeHash, db, ln.marsh, ln.hasher)
+	nodeInstance, nodeBytes, err := getNodeFromDBAndDecode(nodeHash, trieCtx)
 	assert.Nil(t, err)
 	assert.Equal(t, encNode, nodeBytes)
 
-	ln = getLn(ln.marsh, ln.hasher)
+	ln = getLn()
 	ln.dirty = false
 	assert.Equal(t, ln, nodeInstance)
 }
@@ -200,59 +196,63 @@ func TestNode_concat(t *testing.T) {
 func TestNode_decodeNodeBranchNode(t *testing.T) {
 	t.Parallel()
 
-	_, collapsedBn := getBnAndCollapsedBn(getTestMarshalizerAndHasher())
-	encNode, _ := collapsedBn.marsh.Marshal(collapsedBn)
+	trieCtx := getTrieContextWithCustomStorage(nil)
+	_, collapsedBn := getBnAndCollapsedBn()
+	encNode, _ := trieCtx.Marshal(collapsedBn)
 	encNode = append(encNode, branch)
 
-	nodeInstance, err := decodeNode(encNode, collapsedBn.marsh, collapsedBn.hasher)
+	nodeInstance, err := decodeNode(encNode, trieCtx)
 	assert.Nil(t, err)
 
-	h1, _ := encodeNodeAndGetHash(collapsedBn)
-	h2, _ := encodeNodeAndGetHash(nodeInstance)
+	h1, _ := encodeNodeAndGetHash(collapsedBn, trieCtx)
+	h2, _ := encodeNodeAndGetHash(nodeInstance, trieCtx)
 	assert.Equal(t, h1, h2)
 }
 
 func TestNode_decodeNodeExtensionNode(t *testing.T) {
 	t.Parallel()
 
+	trieCtx := getTrieContextWithCustomStorage(nil)
 	_, collapsedEn := getEnAndCollapsedEn()
-	encNode, _ := collapsedEn.marsh.Marshal(collapsedEn)
+	encNode, _ := trieCtx.Marshal(collapsedEn)
 	encNode = append(encNode, extension)
 
-	nodeInstance, err := decodeNode(encNode, collapsedEn.marsh, collapsedEn.hasher)
+	nodeInstance, err := decodeNode(encNode, trieCtx)
 	assert.Nil(t, err)
 
-	h1, _ := encodeNodeAndGetHash(collapsedEn)
-	h2, _ := encodeNodeAndGetHash(nodeInstance)
+	h1, _ := encodeNodeAndGetHash(collapsedEn, trieCtx)
+	h2, _ := encodeNodeAndGetHash(nodeInstance, trieCtx)
 	assert.Equal(t, h1, h2)
 }
 
 func TestNode_decodeNodeLeafNode(t *testing.T) {
 	t.Parallel()
 
-	ln := getLn(getTestMarshalizerAndHasher())
-	encNode, _ := ln.marsh.Marshal(ln)
+	trieCtx := getTrieContextWithCustomStorage(nil)
+	ln := getLn()
+	encNode, _ := trieCtx.Marshal(ln)
 	encNode = append(encNode, leaf)
 
-	nodeInstance, err := decodeNode(encNode, ln.marsh, ln.hasher)
+	nodeInstance, err := decodeNode(encNode, trieCtx)
 	assert.Nil(t, err)
 	ln.dirty = false
 
-	h1, _ := encodeNodeAndGetHash(ln)
-	h2, _ := encodeNodeAndGetHash(nodeInstance)
+	h1, _ := encodeNodeAndGetHash(ln, trieCtx)
+	h2, _ := encodeNodeAndGetHash(nodeInstance, trieCtx)
 	assert.Equal(t, h1, h2)
 }
 
 func TestNode_decodeNodeInvalidNode(t *testing.T) {
 	t.Parallel()
 
-	ln := getLn(getTestMarshalizerAndHasher())
+	trieCtx := getTrieContextWithCustomStorage(nil)
+	ln := getLn()
 	invalidNode := byte(6)
 
-	encNode, _ := ln.marsh.Marshal(ln)
+	encNode, _ := trieCtx.Marshal(ln)
 	encNode = append(encNode, invalidNode)
 
-	nodeInstance, err := decodeNode(encNode, ln.marsh, ln.hasher)
+	nodeInstance, err := decodeNode(encNode, trieCtx)
 	assert.Nil(t, nodeInstance)
 	assert.Equal(t, ErrInvalidNode, err)
 }
@@ -260,10 +260,10 @@ func TestNode_decodeNodeInvalidNode(t *testing.T) {
 func TestNode_decodeNodeInvalidEncoding(t *testing.T) {
 	t.Parallel()
 
-	marsh, hasher := getTestMarshalizerAndHasher()
+	trieCtx := getTrieContextWithCustomStorage(nil)
 	var encNode []byte
 
-	nodeInstance, err := decodeNode(encNode, marsh, hasher)
+	nodeInstance, err := decodeNode(encNode, trieCtx)
 	assert.Nil(t, nodeInstance)
 	assert.Equal(t, ErrInvalidEncoding, err)
 }
@@ -430,27 +430,7 @@ func TestPatriciaMerkleTrie_oldRootAndOldHashesAreResetAfterEveryCommit(t *testi
 }
 
 func TestNode_NodeExtension(t *testing.T) {
-	n := &branchNode{
-		baseNode: &baseNode{
-			hasher: &dataMock.HasherStub{
-				ComputeCalled: func(s string) []byte {
-					return []byte{0, 0, 0, 0}
-				},
-			},
-		},
-	}
-	assert.True(t, shouldTestNode(n, make([]byte, 0)))
-
-	n = &branchNode{
-		baseNode: &baseNode{
-			hasher: &dataMock.HasherStub{
-				ComputeCalled: func(s string) []byte {
-					return []byte{0, 0, 0, 1}
-				},
-			},
-		},
-	}
-	assert.False(t, shouldTestNode(n, make([]byte, 0)))
+	assert.False(t, shouldTestNode(hasherMock, make([]byte, 0)))
 }
 
 func TestSnapshotGetTestPoint(t *testing.T) {

@@ -10,8 +10,6 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/core/keyValStorage"
-	"github.com/multiversx/mx-chain-core-go/hashing"
-	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/trie/keyBuilder"
 	"github.com/multiversx/mx-chain-go/trie/leavesRetriever/trieNodeData"
@@ -22,16 +20,7 @@ var _ = node(&leafNode{})
 
 func newLeafNode(
 	newData core.TrieData,
-	marshalizer marshal.Marshalizer,
-	hasher hashing.Hasher,
-) (*leafNode, error) {
-	if check.IfNil(marshalizer) {
-		return nil, ErrNilMarshalizer
-	}
-	if check.IfNil(hasher) {
-		return nil, ErrNilHasher
-	}
-
+) *leafNode {
 	return &leafNode{
 		CollapsedLn: CollapsedLn{
 			Key:     newData.Key,
@@ -39,11 +28,9 @@ func newLeafNode(
 			Version: uint32(newData.Version),
 		},
 		baseNode: &baseNode{
-			dirty:  true,
-			marsh:  marshalizer,
-			hasher: hasher,
+			dirty: true,
 		},
-	}, nil
+	}
 }
 
 func (ln *leafNode) commitDirty(
@@ -51,18 +38,17 @@ func (ln *leafNode) commitDirty(
 	_ uint,
 	goRoutinesManager common.TrieGoroutinesManager,
 	hashesCollector common.TrieHashesCollector,
-	_ common.TrieStorageInteractor,
-	targetDb common.BaseStorer,
+	trieCtx common.TrieContext,
 ) {
 	if !ln.dirty {
 		return
 	}
 
-	saveDirtyNodeToStorage(ln, goRoutinesManager, hashesCollector, targetDb, ln.hasher)
+	saveDirtyNodeToStorage(ln, goRoutinesManager, hashesCollector, trieCtx)
 }
 
 func (ln *leafNode) commitSnapshot(
-	_ common.TrieStorageInteractor,
+	trieCtx common.TrieContext,
 	leavesChan chan core.KeyValueHolder,
 	_ chan []byte,
 	ctx context.Context,
@@ -75,7 +61,7 @@ func (ln *leafNode) commitSnapshot(
 		return core.ErrContextClosing
 	}
 
-	err := writeNodeOnChannel(ln, leavesChan)
+	err := writeNodeOnChannel(ln, leavesChan, trieCtx)
 	if err != nil {
 		return err
 	}
@@ -89,12 +75,12 @@ func (ln *leafNode) commitSnapshot(
 	return nil
 }
 
-func writeNodeOnChannel(ln *leafNode, leavesChan chan core.KeyValueHolder) error {
+func writeNodeOnChannel(ln *leafNode, leavesChan chan core.KeyValueHolder, trieCtx common.TrieContext) error {
 	if leavesChan == nil {
 		return nil
 	}
 
-	hash, err := encodeNodeAndGetHash(ln)
+	hash, err := encodeNodeAndGetHash(ln, trieCtx)
 	if err != nil {
 		return err
 	}
@@ -105,12 +91,12 @@ func writeNodeOnChannel(ln *leafNode, leavesChan chan core.KeyValueHolder) error
 	return nil
 }
 
-func (ln *leafNode) getEncodedNode() ([]byte, error) {
+func (ln *leafNode) getEncodedNode(trieCtx common.TrieContext) ([]byte, error) {
 	err := ln.isEmptyOrNil()
 	if err != nil {
 		return nil, fmt.Errorf("getEncodedNode error %w", err)
 	}
-	marshaledNode, err := ln.marsh.Marshal(ln)
+	marshaledNode, err := trieCtx.Marshal(ln)
 	if err != nil {
 		return nil, err
 	}
@@ -118,7 +104,7 @@ func (ln *leafNode) getEncodedNode() ([]byte, error) {
 	return marshaledNode, nil
 }
 
-func (ln *leafNode) tryGet(key []byte, currentDepth uint32, _ common.TrieStorageInteractor) (value []byte, maxDepth uint32, err error) {
+func (ln *leafNode) tryGet(key []byte, currentDepth uint32, _ common.TrieContext) (value []byte, maxDepth uint32, err error) {
 	ln.mutex.RLock()
 	defer ln.mutex.RUnlock()
 
@@ -129,7 +115,7 @@ func (ln *leafNode) tryGet(key []byte, currentDepth uint32, _ common.TrieStorage
 	return nil, currentDepth, nil
 }
 
-func (ln *leafNode) getNext(key []byte, _ common.TrieStorageInteractor) (*nodeData, error) {
+func (ln *leafNode) getNext(key []byte, _ common.TrieContext) (*nodeData, error) {
 	if bytes.Equal(key, ln.Key) {
 		return nil, nil
 	}
@@ -140,14 +126,14 @@ func (ln *leafNode) insert(
 	newData []core.TrieData,
 	goRoutinesManager common.TrieGoroutinesManager,
 	modifiedHashes common.AtomicBytesSlice,
-	db common.TrieStorageInteractor,
+	trieCtx common.TrieContext,
 ) node {
 	if len(newData) == 1 && bytes.Equal(newData[0].Key, ln.Key) {
 		return ln.insertInSameLn(newData[0])
 	}
 
 	keyMatchLen, _ := getMinKeyMatchLen(newData, ln.Key)
-	bn := ln.insertInNewBn(newData, keyMatchLen, goRoutinesManager, modifiedHashes, db)
+	bn := ln.insertInNewBn(newData, keyMatchLen, goRoutinesManager, modifiedHashes, trieCtx)
 	if !goRoutinesManager.ShouldContinueProcessing() {
 		return nil
 	}
@@ -156,12 +142,12 @@ func (ln *leafNode) insert(
 		return bn
 	}
 
-	newEn, err := newExtensionNode(ln.Key[:keyMatchLen], bn, ln.marsh, ln.hasher)
+	newEn, err := newExtensionNode(ln.Key[:keyMatchLen], bn)
 	if err != nil {
 		goRoutinesManager.SetError(err)
 		return nil
 	}
-	childHash, err := encodeNodeAndGetHash(bn)
+	childHash, err := encodeNodeAndGetHash(bn, trieCtx)
 	if err != nil {
 		goRoutinesManager.SetError(err)
 		return nil
@@ -196,13 +182,9 @@ func (ln *leafNode) insertInNewBn(
 	keyMatchLen int,
 	goRoutinesManager common.TrieGoroutinesManager,
 	modifiedHashes common.AtomicBytesSlice,
-	db common.TrieStorageInteractor,
+	trieCtx common.TrieContext,
 ) node {
-	bn, err := newBranchNode(ln.marsh, ln.hasher)
-	if err != nil {
-		goRoutinesManager.SetError(err)
-		return nil
-	}
+	bn := newBranchNode()
 
 	lnVersion, err := ln.getVersion()
 	if err != nil {
@@ -223,12 +205,8 @@ func (ln *leafNode) insertInNewBn(
 		Version: lnVersion,
 	}
 
-	oldLn, err := newLeafNode(lnData, ln.marsh, ln.hasher)
-	if err != nil {
-		goRoutinesManager.SetError(err)
-		return nil
-	}
-	oldLnHash, err := encodeNodeAndGetHash(oldLn)
+	oldLn := newLeafNode(lnData)
+	oldLnHash, err := encodeNodeAndGetHash(oldLn, trieCtx)
 	if err != nil {
 		goRoutinesManager.SetError(err)
 		return nil
@@ -238,14 +216,14 @@ func (ln *leafNode) insertInNewBn(
 	bn.setVersionForChild(lnVersion, posForOldLn)
 
 	trimKeys(newData, keyMatchLen)
-	return bn.insert(newData, goRoutinesManager, modifiedHashes, db)
+	return bn.insert(newData, goRoutinesManager, modifiedHashes, trieCtx)
 }
 
 func (ln *leafNode) delete(
 	data []core.TrieData,
 	_ common.TrieGoroutinesManager,
 	_ common.AtomicBytesSlice,
-	_ common.TrieStorageInteractor,
+	_ common.TrieContext,
 ) (bool, node) {
 	ln.mutex.RLock()
 	defer ln.mutex.RUnlock()
@@ -258,7 +236,7 @@ func (ln *leafNode) delete(
 	return false, ln
 }
 
-func (ln *leafNode) reduceNode(pos int, _ []byte, _ common.TrieStorageInteractor) (node, bool, error) {
+func (ln *leafNode) reduceNode(pos int, _ []byte, _ common.TrieContext) (node, bool, error) {
 	k := append([]byte{byte(pos)}, ln.Key...)
 
 	oldLnVersion, err := ln.getVersion()
@@ -272,12 +250,7 @@ func (ln *leafNode) reduceNode(pos int, _ []byte, _ common.TrieStorageInteractor
 		Version: oldLnVersion,
 	}
 
-	newLn, err := newLeafNode(oldLnData, ln.marsh, ln.hasher)
-	if err != nil {
-		return nil, false, err
-	}
-
-	return newLn, true, nil
+	return newLeafNode(oldLnData), true, nil
 }
 
 func (ln *leafNode) isEmptyOrNil() error {
@@ -290,7 +263,7 @@ func (ln *leafNode) isEmptyOrNil() error {
 	return nil
 }
 
-func (ln *leafNode) print(writer io.Writer, _ int, _ common.TrieStorageInteractor) {
+func (ln *leafNode) print(writer io.Writer, _ int, _ common.TrieContext) {
 	if ln == nil {
 		return
 	}
@@ -308,7 +281,7 @@ func (ln *leafNode) print(writer io.Writer, _ int, _ common.TrieStorageInteracto
 	_, _ = fmt.Fprintf(writer, "L: key= %v, %v\n", ln.Key, ln.dirty)
 }
 
-func (ln *leafNode) getChildren(_ common.TrieStorageInteractor) ([]nodeWithHash, error) {
+func (ln *leafNode) getChildren(_ common.TrieContext) ([]nodeWithHash, error) {
 	return nil, nil
 }
 
@@ -320,10 +293,9 @@ func (ln *leafNode) getAllLeavesOnChannel(
 	leavesChannel chan core.KeyValueHolder,
 	keyBuilder common.KeyBuilder,
 	trieLeafParser common.TrieLeafParser,
-	_ common.TrieStorageInteractor,
-	_ marshal.Marshalizer,
 	chanClose chan struct{},
 	ctx context.Context,
+	_ common.TrieContext,
 ) error {
 	err := ln.isEmptyOrNil()
 	if err != nil {
@@ -377,8 +349,7 @@ func (ln *leafNode) sizeInBytes() int {
 		return 0
 	}
 
-	// hasher + marshalizer  + dirty flag = numNodeInnerPointers * pointerSizeInBytes + 1
-	nodeSize := len(ln.Key) + len(ln.Value) + numNodeInnerPointers*pointerSizeInBytes + 1
+	nodeSize := len(ln.Key) + len(ln.Value) + versionSizeInBytes + dirtyFlagSizeInBytes + mutexSizeInBytes
 
 	return nodeSize
 }
@@ -387,7 +358,7 @@ func (ln *leafNode) getValue() []byte {
 	return ln.Value
 }
 
-func (ln *leafNode) collectStats(ts common.TrieStatisticsHandler, depthLevel int, nodeSize uint64, _ common.TrieStorageInteractor) error {
+func (ln *leafNode) collectStats(ts common.TrieStatisticsHandler, depthLevel int, nodeSize uint64, _ common.TrieContext) error {
 	version, err := ln.getVersion()
 	if err != nil {
 		return err
@@ -408,8 +379,8 @@ func (ln *leafNode) getVersion() (core.TrieNodeVersion, error) {
 
 func (ln *leafNode) collectLeavesForMigration(
 	migrationArgs vmcommon.ArgsMigrateDataTrieLeaves,
-	_ common.TrieStorageInteractor,
 	keyBuilder common.KeyBuilder,
+	_ common.TrieContext,
 ) (bool, error) {
 	shouldContinue := migrationArgs.TrieMigrator.ConsumeStorageLoadGas()
 	if !shouldContinue {

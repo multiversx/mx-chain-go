@@ -6,8 +6,6 @@ import (
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
-	"github.com/multiversx/mx-chain-core-go/hashing"
-	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/storage"
 )
@@ -29,9 +27,7 @@ type doubleListTrieSyncer struct {
 	topic                     string
 	rootHash                  []byte
 	waitTimeBetweenChecks     time.Duration
-	marshalizer               marshal.Marshalizer
-	hasher                    hashing.Hasher
-	db                        common.TrieStorageInteractor
+	trieContext               common.TrieContext
 	requestHandler            RequestHandler
 	interceptedNodesCacher    storage.Cacher
 	mutOperation              sync.RWMutex
@@ -61,11 +57,13 @@ func NewDoubleListTrieSyncer(arg ArgTrieSyncer) (*doubleListTrieSyncer, error) {
 	}
 
 	d := &doubleListTrieSyncer{
-		requestHandler:            arg.RequestHandler,
-		interceptedNodesCacher:    arg.InterceptedNodes,
-		db:                        stsm,
-		marshalizer:               arg.Marshalizer,
-		hasher:                    arg.Hasher,
+		requestHandler:         arg.RequestHandler,
+		interceptedNodesCacher: arg.InterceptedNodes,
+		trieContext: &trieContext{
+			StorageManager: stsm,
+			Marshalizer:    arg.Marshalizer,
+			Hasher:         arg.Hasher,
+		},
 		topic:                     arg.Topic,
 		shardId:                   arg.ShardId,
 		waitTimeBetweenChecks:     time.Millisecond * 100,
@@ -204,7 +202,7 @@ func (d *doubleListTrieSyncer) processMissingHashes() {
 
 func (d *doubleListTrieSyncer) processExistingNodes() error {
 	for hash, element := range d.existingNodes {
-		numBytes, err := encodeNodeAndCommitToDB(element, d.db)
+		numBytes, err := encodeNodeAndCommitToDB(element, d.trieContext)
 		if err != nil {
 			return err
 		}
@@ -250,9 +248,7 @@ func (d *doubleListTrieSyncer) getNode(hash []byte) (node, error) {
 		return getNodeFromCacheOrStorage(
 			hash,
 			d.interceptedNodesCacher,
-			d.db,
-			d.marshalizer,
-			d.hasher,
+			d.trieContext,
 		)
 	}
 	return d.getNodeFromCache(hash)
@@ -262,8 +258,7 @@ func (d *doubleListTrieSyncer) getNodeFromCache(hash []byte) (node, error) {
 	return getNodeFromCache(
 		hash,
 		d.interceptedNodesCacher,
-		d.marshalizer,
-		d.hasher,
+		d.trieContext,
 	)
 }
 

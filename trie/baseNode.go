@@ -2,16 +2,11 @@ package trie
 
 import (
 	"sync"
-
-	"github.com/multiversx/mx-chain-core-go/hashing"
-	"github.com/multiversx/mx-chain-core-go/marshal"
 )
 
 type baseNode struct {
-	mutex  sync.RWMutex
-	dirty  bool
-	marsh  marshal.Marshalizer
-	hasher hashing.Hasher
+	mutex sync.RWMutex
+	dirty bool
 }
 
 func (bn *baseNode) isDirty() bool {
@@ -26,20 +21,4 @@ func (bn *baseNode) setDirty(dirty bool) {
 	defer bn.mutex.Unlock()
 
 	bn.dirty = dirty
-}
-
-func (bn *baseNode) getMarshalizer() marshal.Marshalizer {
-	return bn.marsh
-}
-
-func (bn *baseNode) setMarshalizer(marshalizer marshal.Marshalizer) {
-	bn.marsh = marshalizer
-}
-
-func (bn *baseNode) getHasher() hashing.Hasher {
-	return bn.hasher
-}
-
-func (bn *baseNode) setHasher(hasher hashing.Hasher) {
-	bn.hasher = hasher
 }
