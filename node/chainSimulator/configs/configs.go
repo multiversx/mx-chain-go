@@ -125,6 +125,10 @@ func CreateChainSimulatorConfigs(args ArgsChainSimulatorConfigs) (*ArgsConfigsSi
 
 	if args.RoundsPerEpoch.HasValue {
 		configs.GeneralConfig.EpochStartConfig.RoundsPerEpoch = int64(args.RoundsPerEpoch.Value)
+		for idx := 0; idx < len(configs.GeneralConfig.GeneralSettings.ChainParametersByEpoch); idx++ {
+			configs.GeneralConfig.GeneralSettings.ChainParametersByEpoch[idx].RoundsPerEpoch = int64(args.RoundsPerEpoch.Value)
+			configs.GeneralConfig.GeneralSettings.ChainParametersByEpoch[idx].MinRoundsBetweenEpochs = 1
+		}
 	}
 
 	gasScheduleName, err := GetLatestGasScheduleFilename(configs.ConfigurationPathsHolder.GasScheduleDirectoryName)

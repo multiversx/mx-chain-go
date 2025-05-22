@@ -873,16 +873,17 @@ func (pcf *processComponentsFactory) newEpochStartTrigger(requestHandler epochSt
 		}
 
 		argEpochStart := &metachain.ArgsNewMetaEpochStartTrigger{
-			GenesisTime:        time.Unix(pcf.coreData.GenesisNodesSetup().GetStartTime(), 0),
-			Settings:           &pcf.config.EpochStartConfig,
-			Epoch:              pcf.bootstrapComponents.EpochBootstrapParams().Epoch(),
-			EpochStartRound:    genesisHeader.GetRound(),
-			EpochStartNotifier: pcf.coreData.EpochStartNotifierWithConfirm(),
-			Storage:            pcf.data.StorageService(),
-			Marshalizer:        pcf.coreData.InternalMarshalizer(),
-			Hasher:             pcf.coreData.Hasher(),
-			AppStatusHandler:   pcf.statusCoreComponents.AppStatusHandler(),
-			DataPool:           pcf.data.Datapool(),
+			GenesisTime:            time.Unix(pcf.coreData.GenesisNodesSetup().GetStartTime(), 0),
+			Settings:               &pcf.config.EpochStartConfig,
+			Epoch:                  pcf.bootstrapComponents.EpochBootstrapParams().Epoch(),
+			EpochStartRound:        genesisHeader.GetRound(),
+			EpochStartNotifier:     pcf.coreData.EpochStartNotifierWithConfirm(),
+			Storage:                pcf.data.StorageService(),
+			Marshalizer:            pcf.coreData.InternalMarshalizer(),
+			Hasher:                 pcf.coreData.Hasher(),
+			AppStatusHandler:       pcf.statusCoreComponents.AppStatusHandler(),
+			DataPool:               pcf.data.Datapool(),
+			ChainParametersHandler: pcf.coreData.ChainParametersHandler(),
 		}
 
 		return metachain.NewEpochStartTrigger(argEpochStart)

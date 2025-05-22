@@ -646,6 +646,14 @@ func (tfn *TestFullNode) createEpochStartTrigger(startTime int64) TestEpochStart
 			Hasher:           TestHasher,
 			AppStatusHandler: &statusHandlerMock.AppStatusHandlerStub{},
 			DataPool:         tfn.DataPool,
+			ChainParametersHandler: &chainParameters.ChainParametersHandlerStub{
+				CurrentChainParametersCalled: func() config.ChainParametersByEpochConfig {
+					return config.ChainParametersByEpochConfig{
+						RoundsPerEpoch:         1000,
+						MinRoundsBetweenEpochs: 1,
+					}
+				},
+			},
 		}
 		epochStartTrigger, err := metachain.NewEpochStartTrigger(argsNewMetaEpochStart)
 		if err != nil {

@@ -1338,6 +1338,14 @@ func (tpn *TestProcessorNode) initInterceptors(heartbeatPk string) {
 			Hasher:             TestHasher,
 			AppStatusHandler:   &statusHandlerMock.AppStatusHandlerStub{},
 			DataPool:           tpn.DataPool,
+			ChainParametersHandler: &chainParameters.ChainParametersHandlerStub{
+				CurrentChainParametersCalled: func() config.ChainParametersByEpochConfig {
+					return config.ChainParametersByEpochConfig{
+						RoundsPerEpoch:         10000,
+						MinRoundsBetweenEpochs: 1000,
+					}
+				},
+			},
 		}
 		epochStartTrigger, _ := metachain.NewEpochStartTrigger(argsEpochStart)
 		tpn.EpochStartTrigger = &metachain.TestTrigger{}
@@ -2295,6 +2303,14 @@ func (tpn *TestProcessorNode) initBlockProcessor() {
 				Hasher:             TestHasher,
 				AppStatusHandler:   &statusHandlerMock.AppStatusHandlerStub{},
 				DataPool:           tpn.DataPool,
+				ChainParametersHandler: &chainParameters.ChainParametersHandlerStub{
+					CurrentChainParametersCalled: func() config.ChainParametersByEpochConfig {
+						return config.ChainParametersByEpochConfig{
+							RoundsPerEpoch:         10000,
+							MinRoundsBetweenEpochs: 1000,
+						}
+					},
+				},
 			}
 			epochStartTrigger, _ := metachain.NewEpochStartTrigger(argsEpochStart)
 			tpn.EpochStartTrigger = &metachain.TestTrigger{}

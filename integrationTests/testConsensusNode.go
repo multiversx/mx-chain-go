@@ -249,6 +249,14 @@ func (tcn *TestConsensusNode) initNode(args ArgsTestConsensusNode) {
 			Hasher:           testHasher,
 			AppStatusHandler: &statusHandlerMock.AppStatusHandlerStub{},
 			DataPool:         dataPool,
+			ChainParametersHandler: &chainParameters.ChainParametersHandlerStub{
+				CurrentChainParametersCalled: func() config.ChainParametersByEpochConfig {
+					return config.ChainParametersByEpochConfig{
+						RoundsPerEpoch:         1000,
+						MinRoundsBetweenEpochs: 1,
+					}
+				},
+			},
 		}
 		epochStartTrigger, err := metachain.NewEpochStartTrigger(argsNewMetaEpochStart)
 		if err != nil {

@@ -52,6 +52,8 @@ func createArgsCoreComponentsHolder() ArgsCoreComponentsHolder {
 						MetachainMinNumNodes:        1,
 						Hysteresis:                  0,
 						Adaptivity:                  false,
+						RoundsPerEpoch:              200,
+						MinRoundsBetweenEpochs:      20,
 					},
 				},
 				EpochChangeGracePeriodByEpoch: []config.EpochChangeGracePeriodByEpoch{{EnableEpoch: 0, GracePeriodInRounds: 1}},

@@ -7,6 +7,8 @@ import "github.com/multiversx/mx-chain-go/epochStart"
 // Exported functions simplify the reproduction of edge cases
 type TestTrigger struct {
 	*trigger
+	roundsPerEpoch         uint64
+	minRoundsBetweenEpochs uint64
 }
 
 // SetTrigger sets the start of epoch trigger
