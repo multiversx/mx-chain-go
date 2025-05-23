@@ -662,7 +662,7 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 		scheduledTxsExecutionHandler,
 		processedMiniBlocksTracker,
 		pcf.txExecutionOrderHandler,
-		pcf.config.TxDataPool,
+		pcf.config.TransactionsPool,
 		pcf.config.SortedTransactions,
 	)
 	if err != nil {

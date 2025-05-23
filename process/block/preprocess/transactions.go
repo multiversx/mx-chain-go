@@ -51,7 +51,7 @@ type transactions struct {
 	emptyAddress                 []byte
 	txTypeHandler                process.TxTypeHandler
 	scheduledTxsExecutionHandler process.ScheduledTxsExecutionHandler
-	txPoolConfig                 config.CacheConfig
+	txPoolConfig                 config.TransactionsPoolConfig
 	sortedTransactionsConfig     config.SortedTransactionsConfig
 }
 
@@ -77,7 +77,7 @@ type ArgsTransactionPreProcessor struct {
 	ScheduledTxsExecutionHandler process.ScheduledTxsExecutionHandler
 	ProcessedMiniBlocksTracker   process.ProcessedMiniBlocksTracker
 	TxExecutionOrderHandler      common.TxExecutionOrderHandler
-	TxPoolConfig                 config.CacheConfig
+	TxPoolConfig                 config.TransactionsPoolConfig
 	SortedTransactionsConfig     config.SortedTransactionsConfig
 }
 

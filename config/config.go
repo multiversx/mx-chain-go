@@ -4,13 +4,17 @@ import p2pConfig "github.com/multiversx/mx-chain-go/p2p/config"
 
 // CacheConfig will map the cache configuration
 type CacheConfig struct {
-	Name                                          string
-	Type                                          string
-	Capacity                                      uint32
-	SizePerSender                                 uint32
-	SizeInBytes                                   uint64
-	SizeInBytesPerSender                          uint32
-	Shards                                        uint32
+	Name                 string
+	Type                 string
+	Capacity             uint32
+	SizePerSender        uint32
+	SizeInBytes          uint64
+	SizeInBytesPerSender uint32
+	Shards               uint32
+}
+
+// TransactionsPoolConfig will map the transactions pool config
+type TransactionsPoolConfig struct {
 	SelectionGasBandwidthIncreasePercent          uint32
 	SelectionGasBandwidthIncreaseScheduledPercent uint32
 }
@@ -186,6 +190,7 @@ type Config struct {
 	TxBlockBodyDataPool         CacheConfig
 	PeerBlockBodyDataPool       CacheConfig
 	TxDataPool                  CacheConfig
+	TransactionsPool            TransactionsPoolConfig
 	SortedTransactions          SortedTransactionsConfig
 	UnsignedTransactionDataPool CacheConfig
 	RewardTransactionDataPool   CacheConfig

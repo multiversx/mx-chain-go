@@ -19,8 +19,8 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func createMockCacheConfig() config.CacheConfig {
-	return config.CacheConfig{
+func createMockCacheConfig() config.TransactionsPoolConfig {
+	return config.TransactionsPoolConfig{
 		SelectionGasBandwidthIncreasePercent:          400,
 		SelectionGasBandwidthIncreaseScheduledPercent: 260,
 	}
@@ -688,7 +688,7 @@ func TestNewPreProcessorsContainerFactory_ErrBadSelectionGasBandwidthIncreasePer
 		&testscommon.ScheduledTxsExecutionStub{},
 		&testscommon.ProcessedMiniBlocksTrackerStub{},
 		&commonMock.TxExecutionOrderHandlerStub{},
-		config.CacheConfig{SelectionGasBandwidthIncreasePercent: 0},
+		config.TransactionsPoolConfig{SelectionGasBandwidthIncreasePercent: 0},
 		createMockSortedTransactionsConfig(),
 	)
 
@@ -721,7 +721,7 @@ func TestNewPreProcessorsContainerFactory_ErrBadSelectionGasBandwidthIncreaseSch
 		&testscommon.ScheduledTxsExecutionStub{},
 		&testscommon.ProcessedMiniBlocksTrackerStub{},
 		&commonMock.TxExecutionOrderHandlerStub{},
-		config.CacheConfig{
+		config.TransactionsPoolConfig{
 			SelectionGasBandwidthIncreasePercent:          400,
 			SelectionGasBandwidthIncreaseScheduledPercent: 0,
 		},
@@ -757,7 +757,7 @@ func TestNewPreProcessorsContainerFactory_ErrBadTxCacheSelectionMaxNumTxs(t *tes
 		&testscommon.ScheduledTxsExecutionStub{},
 		&testscommon.ProcessedMiniBlocksTrackerStub{},
 		&commonMock.TxExecutionOrderHandlerStub{},
-		config.CacheConfig{
+		config.TransactionsPoolConfig{
 			SelectionGasBandwidthIncreasePercent:          400,
 			SelectionGasBandwidthIncreaseScheduledPercent: 260,
 		},

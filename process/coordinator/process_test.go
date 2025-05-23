@@ -53,8 +53,8 @@ const MaxGasLimitPerBlock = uint64(100000)
 
 var txHash = []byte("tx_hash1")
 
-func createMockCacheConfig() config.CacheConfig {
-	return config.CacheConfig{
+func createMockCacheConfig() config.TransactionsPoolConfig {
+	return config.TransactionsPoolConfig{
 		SelectionGasBandwidthIncreasePercent:          400,
 		SelectionGasBandwidthIncreaseScheduledPercent: 260,
 	}

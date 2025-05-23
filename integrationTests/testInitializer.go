@@ -749,15 +749,8 @@ func CreateFullGenesisBlocks(
 		HeaderVersionConfigs:    testscommon.GetDefaultHeaderVersionConfig(),
 		HistoryRepository:       &dblookupext.HistoryRepositoryStub{},
 		TxExecutionOrderHandler: &commonMocks.TxExecutionOrderHandlerStub{},
-		TxPoolConfig: config.CacheConfig{
-			Name:                                 "",
-			Type:                                 "",
-			Capacity:                             0,
-			SizePerSender:                        0,
-			SizeInBytes:                          0,
-			SizeInBytesPerSender:                 0,
-			Shards:                               0,
-			SelectionGasBandwidthIncreasePercent: 400,
+		TxPoolConfig: config.TransactionsPoolConfig{
+			SelectionGasBandwidthIncreasePercent:          400,
 			SelectionGasBandwidthIncreaseScheduledPercent: 260},
 		SortedTransactionsConfig: config.SortedTransactionsConfig{
 			TxCacheSelectionMaxNumTxs:           30000,
@@ -881,15 +874,8 @@ func CreateGenesisMetaBlock(
 		HeaderVersionConfigs:    testscommon.GetDefaultHeaderVersionConfig(),
 		HistoryRepository:       &dblookupext.HistoryRepositoryStub{},
 		TxExecutionOrderHandler: &commonMocks.TxExecutionOrderHandlerStub{},
-		TxPoolConfig: config.CacheConfig{
-			Name:                                 "",
-			Type:                                 "",
-			Capacity:                             0,
-			SizePerSender:                        0,
-			SizeInBytes:                          0,
-			SizeInBytesPerSender:                 0,
-			Shards:                               0,
-			SelectionGasBandwidthIncreasePercent: 400,
+		TxPoolConfig: config.TransactionsPoolConfig{
+			SelectionGasBandwidthIncreasePercent:          400,
 			SelectionGasBandwidthIncreaseScheduledPercent: 260,
 		},
 		SortedTransactionsConfig: config.SortedTransactionsConfig{

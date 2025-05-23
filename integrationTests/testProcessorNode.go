@@ -1817,7 +1817,7 @@ func (tpn *TestProcessorNode) initInnerProcessors(gasMap map[string]map[string]u
 		scheduledTxsExecutionHandler,
 		processedMiniBlocksTracker,
 		tpn.TxExecutionOrderHandler,
-		config.CacheConfig{
+		config.TransactionsPoolConfig{
 			SelectionGasBandwidthIncreasePercent:          400,
 			SelectionGasBandwidthIncreaseScheduledPercent: 260,
 		},
@@ -2096,7 +2096,7 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors(gasMap map[string]map[stri
 		scheduledTxsExecutionHandler,
 		processedMiniBlocksTracker,
 		tpn.TxExecutionOrderHandler,
-		config.CacheConfig{
+		config.TransactionsPoolConfig{
 			SelectionGasBandwidthIncreasePercent:          400,
 			SelectionGasBandwidthIncreaseScheduledPercent: 260,
 		},

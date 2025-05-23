@@ -39,7 +39,7 @@ type preProcessorsContainerFactory struct {
 	scheduledTxsExecutionHandler process.ScheduledTxsExecutionHandler
 	processedMiniBlocksTracker   process.ProcessedMiniBlocksTracker
 	txExecutionOrderHandler      common.TxExecutionOrderHandler
-	txPoolConfig                 config.CacheConfig
+	txPoolConfig                 config.TransactionsPoolConfig
 	sortedTransactionsConfig     config.SortedTransactionsConfig
 }
 
@@ -65,7 +65,7 @@ func NewPreProcessorsContainerFactory(
 	scheduledTxsExecutionHandler process.ScheduledTxsExecutionHandler,
 	processedMiniBlocksTracker process.ProcessedMiniBlocksTracker,
 	txExecutionOrderHandler common.TxExecutionOrderHandler,
-	txPoolConfig config.CacheConfig,
+	txPoolConfig config.TransactionsPoolConfig,
 	sortedTransactionsConfig config.SortedTransactionsConfig,
 ) (*preProcessorsContainerFactory, error) {
 

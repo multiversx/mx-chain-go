@@ -22,8 +22,8 @@ func createMockPubkeyConverter() *testscommon.PubkeyConverterMock {
 	return testscommon.NewPubkeyConverterMock(32)
 }
 
-func createMockCacheConfig() config.CacheConfig {
-	return config.CacheConfig{
+func createMockCacheConfig() config.TransactionsPoolConfig {
+	return config.TransactionsPoolConfig{
 		SelectionGasBandwidthIncreasePercent:          400,
 		SelectionGasBandwidthIncreaseScheduledPercent: 260,
 	}
