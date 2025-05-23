@@ -164,9 +164,9 @@ func (p *pendingEpochStartShardHeader) receivedHeader(header data.HeaderHandler,
 		return
 	}
 	p.mutPending.Unlock()
+
 	p.updateReceivedHeaderAndProof(header, headerHash)
 	if !bytes.Equal(headerHash, p.epochStartHash) {
-		p.mutPending.Unlock()
 		return
 	}
 
