@@ -928,7 +928,7 @@ func (pcf *processComponentsFactory) generateGenesisHeadersAndApplyInitialBalanc
 		GenesisEpoch:             pcf.config.EpochStartConfig.GenesisEpoch,
 		GenesisNonce:             pcf.genesisNonce,
 		GenesisRound:             pcf.genesisRound,
-		TxPoolConfig:             pcf.config.TxDataPool,
+		TxPoolConfig:             pcf.config.TransactionsPool,
 		SortedTransactionsConfig: pcf.config.SortedTransactions,
 	}
 
