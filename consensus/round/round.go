@@ -6,10 +6,13 @@ import (
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
+	logger "github.com/multiversx/mx-chain-logger-go"
 
 	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/ntp"
 )
+
+var log = logger.GetOrCreate("round")
 
 var _ consensus.RoundHandler = (*round)(nil)
 
@@ -59,6 +62,14 @@ func (rnd *round) UpdateRound(genesisTimeStamp time.Time, currentTimeStamp time.
 		rnd.index = index
 		rnd.timeStamp = genesisTimeStamp.Add(time.Duration((index - rnd.startRound) * rnd.timeDuration.Nanoseconds()))
 	}
+	log.Debug("round.UpdateRound",
+		"genesisTimeStamp", genesisTimeStamp,
+		"currentTimeStamp", currentTimeStamp,
+		"round timestamp", rnd.timeStamp,
+		"round unix milli timestamp", rnd.timeStamp.UnixMilli(),
+		"round index", index,
+		"delta", delta,
+	)
 	rnd.Unlock()
 }
 
@@ -97,6 +108,14 @@ func (rnd *round) RemainingTime(startTime time.Time, maxTime time.Duration) time
 	currentTime := rnd.syncTimer.CurrentTime()
 	elapsedTime := currentTime.Sub(startTime)
 	remainingTime := maxTime - elapsedTime
+
+	log.Debug("round.RemainingTime",
+		"startTime", startTime,
+		"maxTime", maxTime,
+		"currentTime", currentTime,
+		"elapsedTime", elapsedTime,
+		"remainingTime", remainingTime,
+	)
 
 	return remainingTime
 }

@@ -63,7 +63,7 @@ func NewArithmeticEpochProvider(arg ArgArithmeticEpochProvider) (*arithmeticEpoc
 		startTime:                  arg.StartTime,
 	}
 	aep.getUnixHandler = func() int64 {
-		return common.TimeToUnix(time.Now(), arg.EnableEpochsHandler)
+		return common.TimeToUnixTimeStamp(time.Now(), arg.EnableEpochsHandler)
 	}
 	aep.computeCurrentEpoch() //based on the genesis provided data
 
@@ -77,8 +77,19 @@ func (aep *arithmeticEpochProvider) EpochIsActiveInNetwork(epoch uint32) bool {
 
 	subtractWillOverflow := aep.currentComputedEpoch < epoch
 	if subtractWillOverflow {
+		log.Debug("arithmeticEpochProvider.EpochIsActiveInNetwork: subtract will overflow",
+			"currentComputedEpoch", aep.currentComputedEpoch,
+			"provided epoch", epoch,
+		)
+
 		return true
 	}
+
+	log.Debug("arithmeticEpochProvider.EpochIsActiveInNetwork",
+		"currentComputedEpoch", aep.currentComputedEpoch,
+		"provided epoch", epoch,
+		"deltaEpochActive", deltaEpochActive,
+	)
 
 	return aep.currentComputedEpoch-epoch <= deltaEpochActive
 }
@@ -87,6 +98,7 @@ func (aep *arithmeticEpochProvider) EpochIsActiveInNetwork(epoch uint32) bool {
 func (aep *arithmeticEpochProvider) EpochConfirmed(newEpoch uint32, newTimestamp uint64) {
 	isTimestampInvalid := newTimestamp == 0
 	if isTimestampInvalid {
+		log.Warn("arithmeticEpochProvider.EpochConfirmed: invalid timestamp", "newTimestamp", newTimestamp)
 		return
 	}
 
@@ -103,6 +115,10 @@ func (aep *arithmeticEpochProvider) computeCurrentEpoch() {
 
 	if currentTimeStamp < aep.headerTimestampForNewEpoch {
 		aep.currentComputedEpoch = aep.headerEpoch
+		log.Debug("arithmeticEpochProvider.computeCurrentEpoch",
+			"currentTimeStamp", currentTimeStamp,
+			"headerTimestampForNewEpoch", aep.headerTimestampForNewEpoch,
+		)
 		return
 	}
 

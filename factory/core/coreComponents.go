@@ -209,6 +209,11 @@ func (ccf *coreComponentsFactory) Create() (*coreComponents, error) {
 		return nil, err
 	}
 
+	err = common.CheckRoundDuration(chainParametersHandler.CurrentChainParameters().RoundDuration, enableEpochsHandler)
+	if err != nil {
+		return nil, err
+	}
+
 	genesisNodesConfig, err := sharding.NewNodesSetup(
 		ccf.nodesSetupConfig,
 		chainParametersHandler,
@@ -229,20 +234,35 @@ func (ccf *coreComponentsFactory) Create() (*coreComponents, error) {
 		startRound = int64(ccf.config.Hardfork.StartRound)
 	}
 
+	ntpTime := syncer.CurrentTime()
 	if genesisNodesConfig.StartTime == 0 {
 		time.Sleep(1000 * time.Millisecond)
-		ntpTime := syncer.CurrentTime()
-		genesisNodesConfig.StartTime = (common.TimeToUnix(ntpTime, enableEpochsHandler)/60 + 1) * 60
+
+		ntpTime = ntpTime.Add(time.Hour * 1)
+
+		genesisNodesConfig.StartTime = common.TimeToUnixTimeStamp(ntpTime, enableEpochsHandler)
 	}
 
 	genesisEpoch := uint32(0)
 	startTime := common.UnixToTime(genesisNodesConfig.GetStartTime(), enableEpochsHandler, genesisEpoch)
 
+	genesisTime := time.UnixMilli(startTime.UnixMilli())
+	genesisTime = ntpTime
+
 	log.Info("start time",
 		"formatted", startTime.Format("Mon Jan 2 15:04:05 MST 2006"),
-		"seconds", common.TimeToUnix(startTime, enableEpochsHandler))
+		"seconds", common.TimeToUnixTimeStamp(startTime, enableEpochsHandler),
+		"genesisTime", genesisTime,
+		"genesisTimeUnix", genesisTime.Unix(),
+		"genesisTimeUnixMilli", genesisTime.UnixMilli(),
+		"startTime", startTime,
+		"startTimeUnix", startTime.Unix(),
+		"startTimeUnixMilli", startTime.UnixMilli(),
+		"ntpTime", ntpTime,
+		"ntpTimeUnix", ntpTime.Unix(),
+		"ntpTimeUnixMilli", ntpTime.UnixMilli(),
+	)
 
-	genesisTime := common.UnixToTime(genesisNodesConfig.GetStartTime(), enableEpochsHandler, genesisEpoch)
 	roundHandler, err := round.NewRound(
 		genesisTime,
 		syncer.CurrentTime(),

@@ -14,12 +14,16 @@ const (
 )
 
 const (
-	minRoundDurationMS  = 500
+	minRoundDurationMS  = 200
 	minRoundDurationSec = 1
 )
 
-// TimeToUnix returns the time to unix based on current configuration
-func TimeToUnix(
+// TODO: better handling on seconds/milliseconds granularity checks;
+//	evaluate adding separate functions for getting genesis unix timestamps
+//  handle time based on activation epoch in place where it's used
+
+// TimeToUnixTimeStamp returns the time to unix based on current configuration
+func TimeToUnixTimeStamp(
 	t time.Time,
 	enableEpochsHandler EnableEpochsHandler,
 ) int64 {
@@ -30,8 +34,8 @@ func TimeToUnix(
 	return t.Unix()
 }
 
-// TimeToUnixInEpoch returns the time to unix based on current configuration
-func TimeToUnixInEpoch(
+// TimeToUnixTimeStampInEpoch returns the time to unix based on current configuration
+func TimeToUnixTimeStampInEpoch(
 	t time.Time,
 	enableEpochsHandler EnableEpochsHandler,
 	epoch uint32,
@@ -106,7 +110,12 @@ func ComputeRoundsPerDay(
 ) uint64 {
 	unitsInDay := getUnitsPerDay(enableEpochsHandler, epoch)
 
-	return uint64(unitsInDay) / uint64(TimeDurationToUnix(roundTime, enableEpochsHandler, epoch))
+	roundDurationAsUnix := TimeDurationToUnix(roundTime, enableEpochsHandler, epoch)
+	if roundDurationAsUnix == 0 {
+		return 0
+	}
+
+	return uint64(unitsInDay) / uint64(roundDurationAsUnix)
 }
 
 func getUnitsPerDay(
