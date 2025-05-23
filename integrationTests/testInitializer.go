@@ -749,6 +749,13 @@ func CreateFullGenesisBlocks(
 		HeaderVersionConfigs:    testscommon.GetDefaultHeaderVersionConfig(),
 		HistoryRepository:       &dblookupext.HistoryRepositoryStub{},
 		TxExecutionOrderHandler: &commonMocks.TxExecutionOrderHandlerStub{},
+		TxPoolConfig: config.TransactionsPoolConfig{
+			SelectionGasBandwidthIncreasePercent:          400,
+			SelectionGasBandwidthIncreaseScheduledPercent: 260},
+		SortedTransactionsConfig: config.SortedTransactionsConfig{
+			TxCacheSelectionMaxNumTxs:           30000,
+			TxCacheSelectionLoopMaximumDuration: 250,
+		},
 	}
 
 	genesisProcessor, _ := genesisProcess.NewGenesisBlockCreator(argsGenesis)
@@ -867,6 +874,14 @@ func CreateGenesisMetaBlock(
 		HeaderVersionConfigs:    testscommon.GetDefaultHeaderVersionConfig(),
 		HistoryRepository:       &dblookupext.HistoryRepositoryStub{},
 		TxExecutionOrderHandler: &commonMocks.TxExecutionOrderHandlerStub{},
+		TxPoolConfig: config.TransactionsPoolConfig{
+			SelectionGasBandwidthIncreasePercent:          400,
+			SelectionGasBandwidthIncreaseScheduledPercent: 260,
+		},
+		SortedTransactionsConfig: config.SortedTransactionsConfig{
+			TxCacheSelectionMaxNumTxs:           30000,
+			TxCacheSelectionLoopMaximumDuration: 250,
+		},
 	}
 
 	if shardCoordinator.SelfId() != core.MetachainShardId {

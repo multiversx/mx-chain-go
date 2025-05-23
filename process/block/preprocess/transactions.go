@@ -15,6 +15,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/multiversx/mx-chain-go/config"
 	logger "github.com/multiversx/mx-chain-logger-go"
 
 	"github.com/multiversx/mx-chain-go/common"
@@ -31,12 +32,6 @@ var _ process.DataMarshalizer = (*transactions)(nil)
 var _ process.PreProcessor = (*transactions)(nil)
 
 var log = logger.GetOrCreate("process/block/preprocess")
-
-// 200% bandwidth to allow 100% overshooting estimations
-const selectionGasBandwidthIncreasePercent = 400
-
-// 130% to allow 30% overshooting estimations for scheduled SC calls
-const selectionGasBandwidthIncreaseScheduledPercent = 260
 
 // TODO: increase code coverage with unit test
 
@@ -56,6 +51,8 @@ type transactions struct {
 	emptyAddress                 []byte
 	txTypeHandler                process.TxTypeHandler
 	scheduledTxsExecutionHandler process.ScheduledTxsExecutionHandler
+	txPoolConfig                 config.TransactionsPoolConfig
+	sortedTransactionsConfig     config.SortedTransactionsConfig
 }
 
 // ArgsTransactionPreProcessor holds the arguments to create a txs pre processor
@@ -80,6 +77,8 @@ type ArgsTransactionPreProcessor struct {
 	ScheduledTxsExecutionHandler process.ScheduledTxsExecutionHandler
 	ProcessedMiniBlocksTracker   process.ProcessedMiniBlocksTracker
 	TxExecutionOrderHandler      common.TxExecutionOrderHandler
+	TxPoolConfig                 config.TransactionsPoolConfig
+	SortedTransactionsConfig     config.SortedTransactionsConfig
 }
 
 // NewTransactionPreprocessor creates a new transaction preprocessor object
@@ -154,6 +153,22 @@ func NewTransactionPreprocessor(
 		return nil, process.ErrNilTxExecutionOrderHandler
 	}
 
+	if args.TxPoolConfig.SelectionGasBandwidthIncreasePercent == 0 {
+		return nil, process.ErrBadSelectionGasBandwidthIncreasePercent
+	}
+
+	if args.TxPoolConfig.SelectionGasBandwidthIncreaseScheduledPercent == 0 {
+		return nil, process.ErrBadSelectionGasBandwidthIncreaseScheduledPercent
+	}
+
+	if args.SortedTransactionsConfig.TxCacheSelectionMaxNumTxs == 0 {
+		return nil, process.ErrBadTxCacheSelectionMaxNumTxs
+	}
+
+	if args.SortedTransactionsConfig.TxCacheSelectionLoopMaximumDuration == 0 {
+		return nil, process.ErrBadTxCacheSelectionLoopMaximumDuration
+	}
+
 	bpp := basePreProcess{
 		hasher:      args.Hasher,
 		marshalizer: args.Marshalizer,
@@ -181,6 +196,8 @@ func NewTransactionPreprocessor(
 		blockType:                    args.BlockType,
 		txTypeHandler:                args.TxTypeHandler,
 		scheduledTxsExecutionHandler: args.ScheduledTxsExecutionHandler,
+		txPoolConfig:                 args.TxPoolConfig,
+		sortedTransactionsConfig:     args.SortedTransactionsConfig,
 	}
 
 	txs.chRcvAllTxs = make(chan bool)
@@ -1010,10 +1027,10 @@ func (txs *transactions) getRemainingGasPerBlockAsScheduled() uint64 {
 func (txs *transactions) CreateAndProcessMiniBlocks(haveTime func() bool, randomness []byte) (block.MiniBlockSlice, error) {
 	startTime := time.Now()
 
-	gasBandwidth := txs.getRemainingGasPerBlock() * selectionGasBandwidthIncreasePercent / 100
+	gasBandwidth := txs.getRemainingGasPerBlock() * uint64(txs.txPoolConfig.SelectionGasBandwidthIncreasePercent) / 100
 	gasBandwidthForScheduled := uint64(0)
 	if txs.enableEpochsHandler.IsFlagEnabled(common.ScheduledMiniBlocksFlag) {
-		gasBandwidthForScheduled = txs.getRemainingGasPerBlockAsScheduled() * selectionGasBandwidthIncreaseScheduledPercent / 100
+		gasBandwidthForScheduled = txs.getRemainingGasPerBlockAsScheduled() * uint64(txs.txPoolConfig.SelectionGasBandwidthIncreaseScheduledPercent) / 100
 		gasBandwidth += gasBandwidthForScheduled
 	}
 
@@ -1408,7 +1425,7 @@ func (txs *transactions) computeSortedTxs(
 		return nil, nil, process.ErrNilTxDataPool
 	}
 
-	sortedTransactionsProvider := createSortedTransactionsProvider(txShardPool)
+	sortedTransactionsProvider := createSortedTransactionsProvider(txShardPool, txs.sortedTransactionsConfig)
 	log.Debug("computeSortedTxs.GetSortedTransactions")
 
 	session, err := NewSelectionSession(ArgsSelectionSession{

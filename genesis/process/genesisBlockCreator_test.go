@@ -192,6 +192,14 @@ func createMockArgument(
 				return &block.Header{}
 			},
 		},
+		TxPoolConfig: config.TransactionsPoolConfig{
+			SelectionGasBandwidthIncreasePercent:          400,
+			SelectionGasBandwidthIncreaseScheduledPercent: 260,
+		},
+		SortedTransactionsConfig: config.SortedTransactionsConfig{
+			TxCacheSelectionMaxNumTxs:           30000,
+			TxCacheSelectionLoopMaximumDuration: 250,
+		},
 	}
 
 	arg.ShardCoordinator = &mock.ShardCoordinatorMock{

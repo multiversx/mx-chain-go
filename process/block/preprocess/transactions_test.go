@@ -21,6 +21,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/hashing/blake2b"
 	"github.com/multiversx/mx-chain-core-go/hashing/sha256"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/multiversx/mx-chain-go/config"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -240,6 +241,14 @@ func createDefaultTransactionsProcessorArgs() ArgsTransactionPreProcessor {
 		ScheduledTxsExecutionHandler: &testscommon.ScheduledTxsExecutionStub{},
 		ProcessedMiniBlocksTracker:   &testscommon.ProcessedMiniBlocksTrackerStub{},
 		TxExecutionOrderHandler:      &commonMocks.TxExecutionOrderHandlerStub{},
+		TxPoolConfig: config.TransactionsPoolConfig{
+			SelectionGasBandwidthIncreasePercent:          400,
+			SelectionGasBandwidthIncreaseScheduledPercent: 260,
+		},
+		SortedTransactionsConfig: config.SortedTransactionsConfig{
+			TxCacheSelectionMaxNumTxs:           30000,
+			TxCacheSelectionLoopMaximumDuration: 250,
+		},
 	}
 }
 

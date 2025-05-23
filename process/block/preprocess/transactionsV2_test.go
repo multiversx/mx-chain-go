@@ -11,6 +11,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/data/smartContractResult"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
+	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/mock"
 	"github.com/multiversx/mx-chain-go/storage/txcache"
@@ -76,6 +77,14 @@ func createTransactionPreprocessor() *transactions {
 		ScheduledTxsExecutionHandler: &testscommon.ScheduledTxsExecutionStub{},
 		ProcessedMiniBlocksTracker:   &testscommon.ProcessedMiniBlocksTrackerStub{},
 		TxExecutionOrderHandler:      &commonMocks.TxExecutionOrderHandlerStub{},
+		TxPoolConfig: config.TransactionsPoolConfig{
+			SelectionGasBandwidthIncreasePercent:          400,
+			SelectionGasBandwidthIncreaseScheduledPercent: 260,
+		},
+		SortedTransactionsConfig: config.SortedTransactionsConfig{
+			TxCacheSelectionMaxNumTxs:           30000,
+			TxCacheSelectionLoopMaximumDuration: 250,
+		},
 	}
 
 	preprocessor, _ := NewTransactionPreprocessor(txPreProcArgs)
