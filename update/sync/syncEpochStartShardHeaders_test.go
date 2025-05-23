@@ -6,21 +6,28 @@ import (
 	"testing"
 	"time"
 
+	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/stretchr/testify/require"
+
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/testscommon"
+	dataRetrieverMocks "github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
+	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/update"
 	"github.com/multiversx/mx-chain-go/update/mock"
-	"github.com/stretchr/testify/require"
 )
 
 func createMockArgsPendingEpochStartShardHeader() ArgsPendingEpochStartShardHeaderSyncer {
 
 	return ArgsPendingEpochStartShardHeaderSyncer{
-		HeadersPool:    &mock.HeadersCacherStub{},
-		Marshalizer:    &mock.MarshalizerFake{},
-		RequestHandler: &testscommon.RequestHandlerStub{},
+		HeadersPool:         &mock.HeadersCacherStub{},
+		Marshalizer:         &mock.MarshalizerFake{},
+		RequestHandler:      &testscommon.RequestHandlerStub{},
+		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		ProofsPool:          &dataRetrieverMocks.ProofsPoolMock{},
 	}
 }
 
@@ -82,16 +89,14 @@ func TestSyncEpochStartShardHeader_Success(t *testing.T) {
 		Epoch:              epoch,
 		EpochStartMetaHash: []byte("metaHash"),
 	}
-
-	headersPool := &mock.HeadersCacherStub{}
-	args := ArgsPendingEpochStartShardHeaderSyncer{
-		HeadersPool: headersPool,
-		Marshalizer: &mock.MarshalizerFake{},
-		RequestHandler: &testscommon.RequestHandlerStub{
-			RequestShardHeaderByNonceCalled: func(shardID uint32, nonce uint64) {},
-		},
+	proof := &block.HeaderProof{
+		HeaderShardId: shardID,
+		HeaderNonce:   startNonce + 2,
+		HeaderHash:    headerHash,
+		HeaderEpoch:   epoch,
 	}
 
+	args := createPendingEpochStartShardHeaderSyncerArgs()
 	syncer, err := NewPendingEpochStartShardHeaderSyncer(args)
 	require.Nil(t, err)
 
@@ -103,11 +108,20 @@ func TestSyncEpochStartShardHeader_Success(t *testing.T) {
 			Nonce:   startNonce + 1,
 			Epoch:   epoch - 1,
 		}
-		syncer.receivedHeader(h1, []byte("hash1"))
+		h1Hash := []byte("hash1")
+		p1 := &block.HeaderProof{
+			HeaderShardId: shardID,
+			HeaderNonce:   startNonce + 1,
+			HeaderHash:    h1Hash,
+			HeaderEpoch:   epoch - 1,
+		}
+		syncer.receivedHeader(h1, h1Hash)
+		syncer.receivedProof(p1)
 
 		// Wait a bit, then receive epoch start header
 		time.Sleep(100 * time.Millisecond)
 		syncer.receivedHeader(header, headerHash)
+		syncer.receivedProof(proof)
 	}()
 
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
@@ -129,15 +143,7 @@ func TestSyncEpochStartShardHeader_Timeout(t *testing.T) {
 	epoch := uint32(10)
 	startNonce := uint64(100)
 
-	headersPool := &mock.HeadersCacherStub{}
-	args := ArgsPendingEpochStartShardHeaderSyncer{
-		HeadersPool: headersPool,
-		Marshalizer: &mock.MarshalizerFake{},
-		RequestHandler: &testscommon.RequestHandlerStub{
-			RequestShardHeaderByNonceCalled: func(shardID uint32, nonce uint64) {},
-		},
-	}
-
+	args := createPendingEpochStartShardHeaderSyncerArgs()
 	syncer, err := NewPendingEpochStartShardHeaderSyncer(args)
 	require.Nil(t, err)
 
@@ -175,16 +181,14 @@ func TestSyncEpochStartShardHeader_ClearFields(t *testing.T) {
 		Epoch:              epoch,
 		EpochStartMetaHash: []byte("metaHash"),
 	}
-
-	headersPool := &mock.HeadersCacherStub{}
-	args := ArgsPendingEpochStartShardHeaderSyncer{
-		HeadersPool: headersPool,
-		Marshalizer: &mock.MarshalizerFake{},
-		RequestHandler: &testscommon.RequestHandlerStub{
-			RequestShardHeaderByNonceCalled: func(shardID uint32, nonce uint64) {},
-		},
+	proof := &block.HeaderProof{
+		HeaderShardId: shardID,
+		HeaderNonce:   startNonce + 1,
+		HeaderHash:    headerHash,
+		HeaderEpoch:   epoch,
 	}
 
+	args := createPendingEpochStartShardHeaderSyncerArgs()
 	syncer, err := NewPendingEpochStartShardHeaderSyncer(args)
 	require.Nil(t, err)
 
@@ -192,6 +196,7 @@ func TestSyncEpochStartShardHeader_ClearFields(t *testing.T) {
 	go func() {
 		time.Sleep(100 * time.Millisecond)
 		syncer.receivedHeader(header, headerHash)
+		syncer.receivedProof(proof)
 	}()
 
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
@@ -228,16 +233,14 @@ func TestSyncEpochStartShardHeader_DifferentShardIDsShouldNotInterfere(t *testin
 		Epoch:              epoch,
 		EpochStartMetaHash: []byte("metaHash"),
 	}
-
-	headersPool := &mock.HeadersCacherStub{}
-	args := ArgsPendingEpochStartShardHeaderSyncer{
-		HeadersPool: headersPool,
-		Marshalizer: &mock.MarshalizerFake{},
-		RequestHandler: &testscommon.RequestHandlerStub{
-			RequestShardHeaderByNonceCalled: func(shardID uint32, nonce uint64) {},
-		},
+	proof := &block.HeaderProof{
+		HeaderShardId: shardID,
+		HeaderNonce:   startNonce + 2,
+		HeaderHash:    headerHash,
+		HeaderEpoch:   epoch,
 	}
 
+	args := createPendingEpochStartShardHeaderSyncerArgs()
 	syncer, err := NewPendingEpochStartShardHeaderSyncer(args)
 	require.Nil(t, err)
 
@@ -254,6 +257,7 @@ func TestSyncEpochStartShardHeader_DifferentShardIDsShouldNotInterfere(t *testin
 		// Wait and then send correct shard header
 		time.Sleep(100 * time.Millisecond)
 		syncer.receivedHeader(header, headerHash)
+		syncer.receivedProof(proof)
 	}()
 
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
@@ -276,11 +280,18 @@ func TestSyncEpochStartShardHeader_NonEpochStartHeadersShouldTriggerNextAttempt(
 	startNonce := uint64(100)
 
 	headerHash := []byte("epochStartHash")
+	nonEpochStartHeaderHash := []byte("nonEpochStartHash")
 	nonEpochStartHeader := &block.Header{
 		ShardID:            shardID,
 		Nonce:              startNonce + 1,
 		Epoch:              epoch - 1, // not the target epoch
 		EpochStartMetaHash: []byte("ignoreMetaHash"),
+	}
+	nonEpochStartProof := &block.HeaderProof{
+		HeaderShardId: shardID,
+		HeaderNonce:   startNonce + 1,
+		HeaderHash:    []byte("ignoreHash"),
+		HeaderEpoch:   epoch - 1,
 	}
 
 	epochStartHeader := &block.Header{
@@ -289,26 +300,26 @@ func TestSyncEpochStartShardHeader_NonEpochStartHeadersShouldTriggerNextAttempt(
 		Epoch:              epoch,
 		EpochStartMetaHash: []byte("metaHash"),
 	}
-
-	headersPool := &mock.HeadersCacherStub{}
-	args := ArgsPendingEpochStartShardHeaderSyncer{
-		HeadersPool: headersPool,
-		Marshalizer: &mock.MarshalizerFake{},
-		RequestHandler: &testscommon.RequestHandlerStub{
-			RequestShardHeaderByNonceCalled: func(shardID uint32, nonce uint64) {},
-		},
+	epochStartProof := &block.HeaderProof{
+		HeaderShardId: shardID,
+		HeaderNonce:   startNonce + 2,
+		HeaderHash:    headerHash,
+		HeaderEpoch:   epoch,
 	}
 
+	args := createPendingEpochStartShardHeaderSyncerArgs()
 	syncer, err := NewPendingEpochStartShardHeaderSyncer(args)
 	require.Nil(t, err)
 
 	go func() {
 		// first receive non-epoch start header
-		syncer.receivedHeader(nonEpochStartHeader, []byte("nonEpochStartHash"))
+		syncer.receivedHeader(nonEpochStartHeader, nonEpochStartHeaderHash)
+		syncer.receivedProof(nonEpochStartProof)
 
 		// after a small delay, receive epoch start header
 		time.Sleep(100 * time.Millisecond)
 		syncer.receivedHeader(epochStartHeader, headerHash)
+		syncer.receivedProof(epochStartProof)
 	}()
 
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
@@ -337,16 +348,14 @@ func TestSyncEpochStartShardHeader_MultipleGoroutines(t *testing.T) {
 		Epoch:              epoch,
 		EpochStartMetaHash: []byte("methaHash"),
 	}
-
-	headersPool := &mock.HeadersCacherStub{}
-	args := ArgsPendingEpochStartShardHeaderSyncer{
-		HeadersPool: headersPool,
-		Marshalizer: &mock.MarshalizerFake{},
-		RequestHandler: &testscommon.RequestHandlerStub{
-			RequestShardHeaderByNonceCalled: func(shardID uint32, nonce uint64) {},
-		},
+	epochStartProof := &block.HeaderProof{
+		HeaderShardId: shardID,
+		HeaderNonce:   startNonce + 5,
+		HeaderHash:    headerHash,
+		HeaderEpoch:   epoch,
 	}
 
+	args := createPendingEpochStartShardHeaderSyncerArgs()
 	syncer, err := NewPendingEpochStartShardHeaderSyncer(args)
 	require.Nil(t, err)
 
@@ -356,6 +365,7 @@ func TestSyncEpochStartShardHeader_MultipleGoroutines(t *testing.T) {
 	go func() {
 		time.Sleep(200 * time.Millisecond)
 		syncer.receivedHeader(epochStartHeader, headerHash)
+		syncer.receivedProof(epochStartProof)
 	}()
 
 	// Use a wait group to wait for all noise goroutines to complete.
@@ -379,12 +389,20 @@ func TestSyncEpochStartShardHeader_MultipleGoroutines(t *testing.T) {
 			}
 
 			for nonce := startNonce + 1; nonce < startNonce+5; nonce++ {
+				noiseHash := []byte("noiseHash")
 				hdr := &block.Header{
 					ShardID: localShardID,
 					Nonce:   nonce,
 					Epoch:   localEpoch,
 				}
-				syncer.receivedHeader(hdr, []byte("noiseHash"))
+				noiseProof := &block.HeaderProof{
+					HeaderShardId: localShardID,
+					HeaderNonce:   nonce,
+					HeaderHash:    noiseHash,
+					HeaderEpoch:   localEpoch,
+				}
+				syncer.receivedHeader(hdr, noiseHash)
+				syncer.receivedProof(noiseProof)
 				time.Sleep(10 * time.Millisecond) // small delay between headers
 			}
 		}(i)
@@ -412,4 +430,26 @@ func TestPendingEpochStartShardHeader_IsInterfaceNil(t *testing.T) {
 
 	p = &pendingEpochStartShardHeader{}
 	require.False(t, p.IsInterfaceNil())
+}
+
+func createPendingEpochStartShardHeaderSyncerArgs() ArgsPendingEpochStartShardHeaderSyncer {
+	headersPool := &mock.HeadersCacherStub{}
+	proofsPool := &dataRetrieverMocks.ProofsPoolMock{}
+	args := ArgsPendingEpochStartShardHeaderSyncer{
+		HeadersPool: headersPool,
+		Marshalizer: &mock.MarshalizerFake{},
+		RequestHandler: &testscommon.RequestHandlerStub{
+			RequestShardHeaderByNonceCalled: func(shardID uint32, nonce uint64) {},
+		},
+		ProofsPool: proofsPool,
+		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+			IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
+				return flag == common.AndromedaFlag
+			},
+			IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
+				return flag == common.AndromedaFlag
+			},
+		},
+	}
+	return args
 }

@@ -1,6 +1,7 @@
 package sync
 
 import (
+	"bytes"
 	"context"
 	"sync"
 	"time"
@@ -9,10 +10,14 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/update"
 )
+
+// TODO: there is some duplicated code between this syncer and the other syncers in this package that could be refactored
 
 var _ update.PendingEpochStartShardHeaderSyncHandler = (*pendingEpochStartShardHeader)(nil)
 
@@ -22,6 +27,7 @@ type pendingEpochStartShardHeader struct {
 	epochStartHash          []byte
 	latestReceivedHeader    data.HeaderHandler
 	latestReceivedHash      []byte
+	latestReceivedProof     data.HeaderProofHandler
 	targetEpoch             uint32
 	targetShardId           uint32
 	headersPool             dataRetriever.HeadersPool
@@ -32,13 +38,17 @@ type pendingEpochStartShardHeader struct {
 	synced                  bool
 	requestHandler          process.RequestHandler
 	waitTimeBetweenRequests time.Duration
+	enableEpochsHandler     common.EnableEpochsHandler
+	proofsPool              dataRetriever.ProofsPool
 }
 
 // ArgsPendingEpochStartShardHeaderSyncer defines the arguments needed for the sycner
 type ArgsPendingEpochStartShardHeaderSyncer struct {
-	HeadersPool    dataRetriever.HeadersPool
-	Marshalizer    marshal.Marshalizer
-	RequestHandler process.RequestHandler
+	HeadersPool         dataRetriever.HeadersPool
+	ProofsPool          dataRetriever.ProofsPool
+	Marshalizer         marshal.Marshalizer
+	RequestHandler      process.RequestHandler
+	EnableEpochsHandler common.EnableEpochsHandler
 }
 
 // NewPendingEpochStartShardHeaderSyncer creates a syncer for all pending miniblocks
@@ -46,11 +56,17 @@ func NewPendingEpochStartShardHeaderSyncer(args ArgsPendingEpochStartShardHeader
 	if check.IfNil(args.HeadersPool) {
 		return nil, update.ErrNilHeadersPool
 	}
+	if check.IfNil(args.ProofsPool) {
+		return nil, dataRetriever.ErrNilProofsPool
+	}
 	if check.IfNil(args.Marshalizer) {
 		return nil, dataRetriever.ErrNilMarshalizer
 	}
 	if check.IfNil(args.RequestHandler) {
 		return nil, process.ErrNilRequestHandler
+	}
+	if check.IfNil(args.EnableEpochsHandler) {
+		return nil, update.ErrNilEnableEpochsHandler
 	}
 
 	p := &pendingEpochStartShardHeader{
@@ -60,6 +76,7 @@ func NewPendingEpochStartShardHeaderSyncer(args ArgsPendingEpochStartShardHeader
 		targetEpoch:             0,
 		targetShardId:           0,
 		headersPool:             args.HeadersPool,
+		proofsPool:              args.ProofsPool,
 		chReceived:              make(chan bool),
 		chNew:                   make(chan bool),
 		requestHandler:          args.RequestHandler,
@@ -67,9 +84,11 @@ func NewPendingEpochStartShardHeaderSyncer(args ArgsPendingEpochStartShardHeader
 		synced:                  false,
 		marshaller:              args.Marshalizer,
 		waitTimeBetweenRequests: args.RequestHandler.RequestInterval(),
+		enableEpochsHandler:     args.EnableEpochsHandler,
 	}
 
 	p.headersPool.RegisterHandler(p.receivedHeader)
+	p.proofsPool.RegisterHandler(p.receivedProof)
 
 	return p, nil
 }
@@ -77,6 +96,14 @@ func NewPendingEpochStartShardHeaderSyncer(args ArgsPendingEpochStartShardHeader
 // SyncEpochStartShardHeader will sync the epoch start header for a specific shard
 func (p *pendingEpochStartShardHeader) SyncEpochStartShardHeader(shardId uint32, epoch uint32, startNonce uint64, ctx context.Context) error {
 	return p.syncEpochStartShardHeader(shardId, epoch, startNonce, ctx)
+}
+
+func (p *pendingEpochStartShardHeader) hasProof(shardID uint32, hash []byte, epoch uint32) bool {
+	if !p.enableEpochsHandler.IsFlagEnabledInEpoch(common.AndromedaFlag, epoch) {
+		return true
+	}
+
+	return p.proofsPool.HasProof(shardID, hash)
 }
 
 func (p *pendingEpochStartShardHeader) syncEpochStartShardHeader(shardId uint32, epoch uint32, startNonce uint64, ctx context.Context) error {
@@ -94,6 +121,7 @@ func (p *pendingEpochStartShardHeader) syncEpochStartShardHeader(shardId uint32,
 		p.mutPending.Lock()
 		p.stopSyncing = false
 		p.requestHandler.RequestShardHeaderByNonce(shardId, nonce+1)
+		p.requestHandler.RequestEquivalentProofByNonce(shardId, nonce+1)
 		p.mutPending.Unlock()
 
 		select {
@@ -130,7 +158,18 @@ func (p *pendingEpochStartShardHeader) receivedHeader(header data.HeaderHandler,
 
 	p.latestReceivedHash = headerHash
 	p.latestReceivedHeader = header
+	if !p.hasProof(header.GetShardID(), headerHash, header.GetEpoch()) {
+		go p.requestHandler.RequestEquivalentProofByHash(header.GetShardID(), headerHash)
+		p.mutPending.Unlock()
+		return
+	}
+	p.mutPending.Unlock()
 
+	p.updateReceivedHeaderAndProof(header, headerHash)
+}
+
+func (p *pendingEpochStartShardHeader) updateReceivedHeaderAndProof(header data.HeaderHandler, headerHash []byte) {
+	p.mutPending.Lock()
 	if header.GetEpoch() != p.targetEpoch || !header.IsStartOfEpochBlock() {
 		p.mutPending.Unlock()
 		p.chNew <- true
@@ -142,6 +181,25 @@ func (p *pendingEpochStartShardHeader) receivedHeader(header data.HeaderHandler,
 	p.mutPending.Unlock()
 
 	p.chReceived <- true
+}
+
+func (p *pendingEpochStartShardHeader) receivedProof(proof data.HeaderProofHandler) {
+	p.mutPending.Lock()
+	if p.stopSyncing {
+		p.mutPending.Unlock()
+		return
+	}
+	if !check.IfNil(p.latestReceivedProof) && bytes.Equal(proof.GetHeaderHash(), p.latestReceivedProof.GetHeaderHash()) {
+		p.mutPending.Unlock()
+		return
+	}
+	if !bytes.Equal(proof.GetHeaderHash(), p.latestReceivedHash) {
+		p.mutPending.Unlock()
+		return
+	}
+	p.latestReceivedProof = proof
+	p.mutPending.Unlock()
+	p.updateReceivedHeaderAndProof(p.latestReceivedHeader, p.latestReceivedHash)
 }
 
 // GetEpochStartHeader returns the synced epoch start header
