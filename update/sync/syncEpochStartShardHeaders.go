@@ -166,11 +166,6 @@ func (p *pendingEpochStartShardHeader) receivedHeader(header data.HeaderHandler,
 	p.mutPending.Unlock()
 
 	p.updateReceivedHeaderAndProof(header, headerHash)
-	if !bytes.Equal(headerHash, p.epochStartHash) {
-		return
-	}
-
-	p.chReceived <- true
 }
 
 func (p *pendingEpochStartShardHeader) updateReceivedHeaderAndProof(header data.HeaderHandler, headerHash []byte) {
@@ -184,6 +179,8 @@ func (p *pendingEpochStartShardHeader) updateReceivedHeaderAndProof(header data.
 	p.epochStartHash = headerHash
 	p.epochStartHeader = header
 	p.mutPending.Unlock()
+
+	p.chReceived <- true
 }
 
 func (p *pendingEpochStartShardHeader) receivedProof(proof data.HeaderProofHandler) {
@@ -202,13 +199,7 @@ func (p *pendingEpochStartShardHeader) receivedProof(proof data.HeaderProofHandl
 	}
 	p.latestReceivedProof = proof
 	p.mutPending.Unlock()
-
 	p.updateReceivedHeaderAndProof(p.latestReceivedHeader, p.latestReceivedHash)
-	if !bytes.Equal(proof.GetHeaderHash(), p.epochStartHash) {
-		return
-	}
-
-	p.chReceived <- true
 }
 
 // GetEpochStartHeader returns the synced epoch start header
