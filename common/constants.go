@@ -1256,6 +1256,7 @@ const (
 	RelayedTransactionsV3Flag                           core.EnableEpochFlag = "RelayedTransactionsV3Flag"
 	RelayedTransactionsV3FixESDTTransferFlag            core.EnableEpochFlag = "RelayedTransactionsV3FixESDTTransferFlag"
 	AndromedaFlag                                       core.EnableEpochFlag = "AndromedaFlag"
+	SupernovaFlag                                       core.EnableEpochFlag = "SupernovaFlag"
 	CheckBuiltInCallOnTransferValueAndFailExecutionFlag core.EnableEpochFlag = "CheckBuiltInCallOnTransferValueAndFailExecutionFlag"
 	// all new flags must be added to createAllFlagsMap method, as part of enableEpochsHandler allFlagsDefined
 )

@@ -11,7 +11,9 @@ import (
 	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/consensus/chronology"
 	"github.com/multiversx/mx-chain-go/consensus/mock"
+	"github.com/multiversx/mx-chain-go/errors"
 	consensusMocks "github.com/multiversx/mx-chain-go/testscommon/consensus"
+	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	statusHandlerMock "github.com/multiversx/mx-chain-go/testscommon/statusHandler"
 )
 
@@ -74,6 +76,17 @@ func TestChronology_NewChronologyNilAppStatusHandlerShouldFail(t *testing.T) {
 
 	assert.Nil(t, chr)
 	assert.Equal(t, err, chronology.ErrNilAppStatusHandler)
+}
+
+func TestChronology_NewChronologyNilEnableEpochsHandlerShouldFail(t *testing.T) {
+	t.Parallel()
+
+	arg := getDefaultChronologyArg()
+	arg.EnableEpochsHandler = nil
+	chr, err := chronology.NewChronology(arg)
+
+	assert.Nil(t, chr)
+	assert.Equal(t, err, errors.ErrNilEnableEpochsHandler)
 }
 
 func TestChronology_NewChronologyShouldWork(t *testing.T) {
@@ -317,11 +330,12 @@ func TestChronology_CheckIfStatusHandlerWorks(t *testing.T) {
 
 func getDefaultChronologyArg() chronology.ArgChronology {
 	return chronology.ArgChronology{
-		GenesisTime:      time.Now(),
-		RoundHandler:     &consensusMocks.RoundHandlerMock{},
-		SyncTimer:        &consensusMocks.SyncTimerMock{},
-		AppStatusHandler: statusHandlerMock.NewAppStatusHandlerMock(),
-		Watchdog:         &mock.WatchdogMock{},
+		GenesisTime:         time.Now(),
+		RoundHandler:        &consensusMocks.RoundHandlerMock{},
+		SyncTimer:           &consensusMocks.SyncTimerMock{},
+		AppStatusHandler:    statusHandlerMock.NewAppStatusHandlerMock(),
+		Watchdog:            &mock.WatchdogMock{},
+		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 	}
 }
 

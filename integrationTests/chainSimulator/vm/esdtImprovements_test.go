@@ -16,6 +16,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/multiversx/mx-chain-go/config"
+	"github.com/multiversx/mx-chain-go/integrationTests"
 	testsChainSimulator "github.com/multiversx/mx-chain-go/integrationTests/chainSimulator"
 	"github.com/multiversx/mx-chain-go/integrationTests/vm/txsFee"
 	"github.com/multiversx/mx-chain-go/integrationTests/vm/txsFee/utils"
@@ -3175,6 +3176,7 @@ func getTestChainSimulatorWithDynamicNFTEnabled(t *testing.T, baseIssuingCost st
 		NumNodesWaitingListShard: 0,
 		AlterConfigsFunction: func(cfg *config.Configs) {
 			cfg.EpochConfig.EnableEpochs.DynamicESDTEnableEpoch = activationEpochForDynamicNFT
+			cfg.EpochConfig.EnableEpochs.SupernovaEnableEpoch = integrationTests.UnreachableEpoch // TODO: handle supernova activation with transition
 			cfg.SystemSCConfig.ESDTSystemSCConfig.BaseIssuingCost = baseIssuingCost
 		},
 	})

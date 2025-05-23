@@ -901,6 +901,7 @@ func (tpn *TestFullNode) initBlockProcessor(
 			GenesisTotalSupply:    tpn.EconomicsData.GenesisTotalSupply(),
 			EconomicsDataNotified: economicsDataProvider,
 			StakingV2EnableEpoch:  tpn.EnableEpochs.StakingV2EnableEpoch,
+			EnableEpochsHandler:   tpn.EnableEpochsHandler,
 		}
 		epochEconomics, _ := metachain.NewEndOfEpochEconomicsDataCreator(argsEpochEconomics)
 

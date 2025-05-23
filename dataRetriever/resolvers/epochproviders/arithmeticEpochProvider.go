@@ -5,6 +5,9 @@ import (
 	"sync"
 	"time"
 
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/errors"
 	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
@@ -22,6 +25,7 @@ type ArgArithmeticEpochProvider struct {
 	RoundsPerEpoch          uint32
 	RoundTimeInMilliseconds uint64
 	StartTime               int64
+	EnableEpochsHandler     common.EnableEpochsHandler
 }
 
 type arithmeticEpochProvider struct {
@@ -47,6 +51,10 @@ func NewArithmeticEpochProvider(arg ArgArithmeticEpochProvider) (*arithmeticEpoc
 	if arg.StartTime < 0 {
 		return nil, fmt.Errorf("%w in NewArithmeticEpochProvider", ErrInvalidStartTime)
 	}
+	if check.IfNil(arg.EnableEpochsHandler) {
+		return nil, errors.ErrNilEnableEpochsHandler
+	}
+
 	aep := &arithmeticEpochProvider{
 		headerEpoch:                0,
 		headerTimestampForNewEpoch: uint64(arg.StartTime),
@@ -55,7 +63,7 @@ func NewArithmeticEpochProvider(arg ArgArithmeticEpochProvider) (*arithmeticEpoc
 		startTime:                  arg.StartTime,
 	}
 	aep.getUnixHandler = func() int64 {
-		return time.Now().Unix()
+		return common.TimeToUnix(time.Now(), arg.EnableEpochsHandler)
 	}
 	aep.computeCurrentEpoch() //based on the genesis provided data
 
