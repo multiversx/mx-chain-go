@@ -142,9 +142,6 @@ func (chr *chronology) startRounds(ctx context.Context) {
 // startRound calls the current subround, given by the finished tasks in this round
 func (chr *chronology) startRound(ctx context.Context) {
 	if chr.subroundId == srBeforeStartRound {
-		log.Debug("chronology.startRound: before start round",
-			"subroundId", chr.subroundId,
-		)
 		chr.updateRound()
 	}
 
@@ -177,7 +174,7 @@ func (chr *chronology) updateRound() {
 	if oldRoundIndex != chr.roundHandler.Index() {
 		chr.watchdog.Reset(chronologyAlarmID)
 
-		unixTime := common.TimeToUnixTimeStamp(chr.roundHandler.TimeStamp(), chr.enableEpochsHandler)
+		unixTime := common.TimeToUnix(chr.roundHandler.TimeStamp(), chr.enableEpochsHandler)
 		msg := fmt.Sprintf("ROUND %d BEGINS (%d)", chr.roundHandler.Index(), unixTime)
 		log.Debug(display.Headline(msg, chr.syncTimer.FormattedCurrentTime(), "#"))
 		logger.SetCorrelationRound(chr.roundHandler.Index())
@@ -197,7 +194,7 @@ func (chr *chronology) initRound() {
 	if hasSubroundsAndGenesisTimePassed {
 		chr.subroundId = chr.subroundHandlers[0].Current()
 		chr.appStatusHandler.SetUInt64Value(common.MetricCurrentRound, uint64(chr.roundHandler.Index()))
-		unixTime := common.TimeToUnixTimeStamp(chr.roundHandler.TimeStamp(), chr.enableEpochsHandler)
+		unixTime := common.TimeToUnix(chr.roundHandler.TimeStamp(), chr.enableEpochsHandler)
 		chr.appStatusHandler.SetUInt64Value(common.MetricCurrentRoundTimestamp, uint64(unixTime))
 	}
 

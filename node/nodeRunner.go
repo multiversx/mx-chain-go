@@ -1054,7 +1054,7 @@ func (nr *nodeRunner) logInformation(
 		"ShardId", shardIdString,
 		"TotalShards", bootstrapComponents.ShardCoordinator().NumberOfShards(),
 		"AppVersion", nr.configs.FlagsConfig.Version,
-		"GenesisTimeStamp", common.TimeToUnixTimeStamp(coreComponents.GenesisTime(), coreComponents.EnableEpochsHandler()),
+		"GenesisTimeStamp", common.TimeToUnix(coreComponents.GenesisTime(), coreComponents.EnableEpochsHandler()),
 	)
 
 	sessionInfoFileOutput += "\nStarted with parameters:\n"

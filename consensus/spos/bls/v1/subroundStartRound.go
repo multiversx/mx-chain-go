@@ -292,8 +292,7 @@ func (sr *subroundStartRound) indexRoundIfNeeded(pubKeys []string) {
 
 	round := sr.RoundHandler().Index()
 
-	// TODO: not really needed for consensus v1, it can be reverted to use unix in seconds directly
-	unixTimeStamp := uint64(common.TimeToUnixTimeStampInEpoch(sr.GetRoundTimeStamp(), sr.EnableEpochsHandler(), epoch))
+	unixTimeStamp := uint64(common.TimeToUnixInEpoch(sr.GetRoundTimeStamp(), sr.EnableEpochsHandler(), epoch))
 	roundInfo := &outportcore.RoundInfo{
 		Round:            uint64(round),
 		SignersIndexes:   signersIndexes,

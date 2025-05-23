@@ -145,7 +145,7 @@ func NewTrigger(arg ArgHardforkTrigger) (*trigger, error) {
 }
 
 func (t *trigger) getCurrentUnixTime() int64 {
-	return common.TimeToUnixTimeStamp(time.Now(), t.enableEpochsHandler)
+	return common.TimeToUnix(time.Now(), t.enableEpochsHandler)
 }
 
 func (t *trigger) epochConfirmed(epoch uint32) {

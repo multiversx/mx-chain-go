@@ -25,7 +25,7 @@ func TestTimeToUnix(t *testing.T) {
 
 		tt := time.Now()
 
-		res := common.TimeToUnixTimeStamp(tt, enableEpochsHandler)
+		res := common.TimeToUnix(tt, enableEpochsHandler)
 		require.Equal(t, tt.UnixMilli(), res)
 	})
 
@@ -40,7 +40,7 @@ func TestTimeToUnix(t *testing.T) {
 
 		tt := time.Now()
 
-		res := common.TimeToUnixTimeStamp(tt, enableEpochsHandler)
+		res := common.TimeToUnix(tt, enableEpochsHandler)
 		require.Equal(t, tt.Unix(), res)
 	})
 }
