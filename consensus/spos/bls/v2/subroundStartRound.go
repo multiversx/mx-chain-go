@@ -224,18 +224,22 @@ func (sr *subroundStartRound) computeNumManagedKeysInConsensusGroup(pubKeys []st
 	numMultiKeysInConsensusGroup := 0
 	for _, pk := range pubKeys {
 		pkBytes := []byte(pk)
+
+		if sr.IsMultiKeyLeaderInCurrentRound() {
+			sr.IncrementRoundsWithoutReceivedMessages(pkBytes)
+		}
+
 		if sr.IsKeyManagedBySelf(pkBytes) {
 			numMultiKeysInConsensusGroup++
 			log.Trace("in consensus group with multi key",
 				"pk", core.GetTrimmedPk(hex.EncodeToString(pkBytes)))
 		}
-		sr.IncrementRoundsWithoutReceivedMessages(pkBytes)
 	}
 
 	return numMultiKeysInConsensusGroup
 }
 
-func (sr *subroundStartRound) indexRoundIfNeeded(pubKeys []string) {
+func (sr *subroundStartRound) indexRoundIfNeeded(_ []string) {
 	sr.outportMutex.RLock()
 	defer sr.outportMutex.RUnlock()
 

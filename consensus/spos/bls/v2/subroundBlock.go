@@ -519,12 +519,23 @@ func (sr *subroundBlock) receivedBlockHeader(headerHandler data.HeaderHandler) {
 	ctx, cancel := context.WithTimeout(context.Background(), sr.RoundHandler().TimeDuration())
 	defer cancel()
 
-	_ = sr.processReceivedBlock(ctx, int64(headerHandler.GetRound()), []byte(sr.Leader()))
+	blockProcessedWithSuccess := sr.processReceivedBlock(ctx, int64(headerHandler.GetRound()), []byte(sr.Leader()))
 	sr.PeerHonestyHandler().ChangeScore(
 		sr.Leader(),
 		spos.GetConsensusTopicID(sr.ShardCoordinator()),
 		spos.LeaderPeerHonestyIncreaseFactor,
 	)
+
+	pubKeys := sr.ConsensusGroup()
+	if blockProcessedWithSuccess {
+		// increment the number of rounds without received message
+		// at this point, it is certain that the leader is not managed by self and
+		// the block was processed, so signatures are expected from the current managed nodes
+		for _, pk := range pubKeys {
+			pkBytes := []byte(pk)
+			sr.IncrementRoundsWithoutReceivedMessages(pkBytes)
+		}
+	}
 }
 
 // CanProcessReceivedHeader method returns true if the received header can be processed and false otherwise
