@@ -75,6 +75,28 @@ func TestNewPendingEpochStartShardHeaderSyncer_NilRequestHandler(t *testing.T) {
 	require.Nil(t, syncer)
 }
 
+func TestNewPendingEpochStartShardHeaderSyncer_NilProofsPool(t *testing.T) {
+	t.Parallel()
+
+	args := createMockArgsPendingEpochStartShardHeader()
+	args.ProofsPool = nil
+
+	syncer, err := NewPendingEpochStartShardHeaderSyncer(args)
+	require.Equal(t, process.ErrNilProofsPool, err)
+	require.Nil(t, syncer)
+}
+
+func TestNewPendingEpochStartShardHeaderSyncer_NilEnableEpochsHandler(t *testing.T) {
+	t.Parallel()
+
+	args := createMockArgsPendingEpochStartShardHeader()
+	args.EnableEpochsHandler = nil
+
+	syncer, err := NewPendingEpochStartShardHeaderSyncer(args)
+	require.Equal(t, process.ErrNilEnableEpochsHandler, err)
+	require.Nil(t, syncer)
+}
+
 func TestSyncEpochStartShardHeader_Success(t *testing.T) {
 	t.Parallel()
 
@@ -430,6 +452,192 @@ func TestPendingEpochStartShardHeader_IsInterfaceNil(t *testing.T) {
 
 	p = &pendingEpochStartShardHeader{}
 	require.False(t, p.IsInterfaceNil())
+}
+
+func TestSyncEpochStartShardHeader_TwoConsecutiveProofsWithSameHeaderHash(t *testing.T) {
+	t.Parallel()
+
+	shardID := uint32(1)
+	epoch := uint32(10)
+	startNonce := uint64(100)
+
+	nonHeaderHash := []byte("ignoredHash")
+	headerHash := []byte("headerHash")
+
+	nonEpochStartHeader := &block.Header{
+		ShardID:            shardID,
+		Nonce:              startNonce + 2,
+		Epoch:              epoch - 1,
+		EpochStartMetaHash: []byte("ignoreMetaHash"),
+	}
+	nonEpochStartProof := &block.HeaderProof{
+		HeaderShardId: shardID,
+		HeaderNonce:   startNonce + 2,
+		HeaderHash:    nonHeaderHash,
+		HeaderEpoch:   epoch - 1,
+	}
+
+	epochStartHeader := &block.Header{
+		ShardID:            shardID,
+		Nonce:              startNonce + 2,
+		Epoch:              epoch,
+		EpochStartMetaHash: []byte("metaHash"),
+	}
+
+	args := createPendingEpochStartShardHeaderSyncerArgs()
+	syncer, err := NewPendingEpochStartShardHeaderSyncer(args)
+	require.Nil(t, err)
+
+	go func() {
+		// first send the nonEpochStartHeader with the nonEpochStartProof
+		syncer.receivedHeader(nonEpochStartHeader, nonHeaderHash)
+		syncer.receivedProof(nonEpochStartProof)
+
+		// then, send the epochStartHeader also with the nonEpochStartProof
+		syncer.receivedHeader(epochStartHeader, headerHash)
+		syncer.receivedProof(nonEpochStartProof)
+	}()
+
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
+
+	err = syncer.SyncEpochStartShardHeader(shardID, epoch, startNonce, ctx)
+	require.Equal(t, update.ErrTimeIsOut, err)
+
+	_, _, errGet := syncer.GetEpochStartHeader()
+	require.Equal(t, update.ErrNotSynced, errGet)
+}
+
+func TestSyncEpochStartShardHeader_ProofsBeforeHeaderShouldWork(t *testing.T) {
+	t.Parallel()
+
+	shardID := uint32(1)
+	epoch := uint32(10)
+	startNonce := uint64(100)
+
+	headerHash := []byte("epochStartHash")
+
+	epochStartHeader := &block.Header{
+		ShardID:            shardID,
+		Nonce:              startNonce + 2,
+		Epoch:              epoch,
+		EpochStartMetaHash: []byte("metaHash"),
+	}
+	epochStartProof := &block.HeaderProof{
+		HeaderShardId: shardID,
+		HeaderNonce:   startNonce + 2,
+		HeaderHash:    headerHash,
+		HeaderEpoch:   epoch,
+	}
+
+	headersPool := &mock.HeadersCacherStub{}
+	proofsPool := &dataRetrieverMocks.ProofsPoolMock{
+		HasProofCalled: func(shardID uint32, headerHash []byte) bool {
+			return true
+		},
+	}
+	args := ArgsPendingEpochStartShardHeaderSyncer{
+		HeadersPool: headersPool,
+		Marshalizer: &mock.MarshalizerFake{},
+		RequestHandler: &testscommon.RequestHandlerStub{
+			RequestShardHeaderByNonceCalled: func(shardID uint32, nonce uint64) {},
+		},
+		ProofsPool: proofsPool,
+		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+			IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
+				return flag == common.AndromedaFlag
+			},
+			IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
+				return flag == common.AndromedaFlag
+			},
+		},
+	}
+	syncer, err := NewPendingEpochStartShardHeaderSyncer(args)
+	require.Nil(t, err)
+
+	go func() {
+		// first receive proof
+		syncer.receivedProof(epochStartProof)
+		// then receive header
+		syncer.receivedHeader(epochStartHeader, headerHash)
+	}()
+
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
+
+	err = syncer.SyncEpochStartShardHeader(shardID, epoch, startNonce, ctx)
+	require.Nil(t, err)
+
+	h, hHash, errGet := syncer.GetEpochStartHeader()
+	require.Nil(t, errGet)
+	require.Equal(t, epochStartHeader, h)
+	require.Equal(t, headerHash, hHash)
+}
+
+func TestSyncEpochStartShardHeader_ProofsBeforeHeaderShouldWorkWithAnotherFlag(t *testing.T) {
+	t.Parallel()
+
+	shardID := uint32(1)
+	epoch := uint32(10)
+	startNonce := uint64(100)
+
+	headerHash := []byte("epochStartHash")
+
+	epochStartHeader := &block.Header{
+		ShardID:            shardID,
+		Nonce:              startNonce + 2,
+		Epoch:              epoch,
+		EpochStartMetaHash: []byte("metaHash"),
+	}
+	epochStartProof := &block.HeaderProof{
+		HeaderShardId: shardID,
+		HeaderNonce:   startNonce + 2,
+		HeaderHash:    headerHash,
+		HeaderEpoch:   epoch,
+	}
+
+	headersPool := &mock.HeadersCacherStub{}
+	proofsPool := &dataRetrieverMocks.ProofsPoolMock{
+		HasProofCalled: func(shardID uint32, headerHash []byte) bool {
+			return false
+		},
+	}
+	args := ArgsPendingEpochStartShardHeaderSyncer{
+		HeadersPool: headersPool,
+		Marshalizer: &mock.MarshalizerFake{},
+		RequestHandler: &testscommon.RequestHandlerStub{
+			RequestShardHeaderByNonceCalled: func(shardID uint32, nonce uint64) {},
+		},
+		ProofsPool: proofsPool,
+		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+			IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
+				return false
+			},
+			IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
+				return flag == common.AndromedaFlag
+			},
+		},
+	}
+	syncer, err := NewPendingEpochStartShardHeaderSyncer(args)
+	require.Nil(t, err)
+
+	go func() {
+		// first receive proof
+		syncer.receivedProof(epochStartProof)
+		// then receive header
+		syncer.receivedHeader(epochStartHeader, headerHash)
+	}()
+
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
+
+	err = syncer.SyncEpochStartShardHeader(shardID, epoch, startNonce, ctx)
+	require.Nil(t, err)
+
+	h, hHash, errGet := syncer.GetEpochStartHeader()
+	require.Nil(t, errGet)
+	require.Equal(t, epochStartHeader, h)
+	require.Equal(t, headerHash, hHash)
 }
 
 func createPendingEpochStartShardHeaderSyncerArgs() ArgsPendingEpochStartShardHeaderSyncer {
