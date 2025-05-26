@@ -10,6 +10,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/state"
+	"github.com/multiversx/mx-chain-go/state/hashesCollector"
 	"github.com/multiversx/mx-chain-go/trie/storageMarker"
 	"github.com/multiversx/mx-chain-go/update"
 	"github.com/multiversx/mx-chain-go/update/genesis"
@@ -194,7 +195,7 @@ func (st *syncAccountsDBs) tryRecreateTrie(shardId uint32, id string, trieID sta
 	}
 
 	for _, recreatedTrie := range tries {
-		err = recreatedTrie.Commit()
+		err = recreatedTrie.Commit(hashesCollector.NewDisabledHashesCollector())
 		if err != nil {
 			return false
 		}

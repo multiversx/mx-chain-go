@@ -20,7 +20,7 @@ type AccountFactory interface {
 // Updater set a new value for a key, implemented by trie
 type Updater interface {
 	Get(key []byte) ([]byte, uint32, error)
-	Update(key, value []byte) error
+	Update(key, value []byte)
 	IsInterfaceNil() bool
 }
 
@@ -188,7 +188,7 @@ type AtomicBuffer interface {
 
 // StoragePruningManager is used to manage all state pruning operations
 type StoragePruningManager interface {
-	MarkForEviction([]byte, []byte, common.ModifiedHashes, common.ModifiedHashes) error
+	MarkForEviction([]byte, common.TrieHashesCollector) error
 	PruneTrie(rootHash []byte, identifier TriePruningIdentifier, tsm common.StorageManager, handler PruningHandler)
 	CancelPrune(rootHash []byte, identifier TriePruningIdentifier, tsm common.StorageManager)
 	Close() error
@@ -217,7 +217,7 @@ type AccountsAdapterAPI interface {
 type DataTrie interface {
 	common.Trie
 
-	UpdateWithVersion(key []byte, value []byte, version core.TrieNodeVersion) error
+	UpdateWithVersion(key []byte, value []byte, version core.TrieNodeVersion)
 	CollectLeavesForMigration(args vmcommon.ArgsMigrateDataTrieLeaves) error
 }
 

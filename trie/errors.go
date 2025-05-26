@@ -129,3 +129,21 @@ var ErrEmptyInitialIteratorState = errors.New("empty initial iterator state")
 
 // ErrInvalidIteratorState signals that an invalid iterator state was provided
 var ErrInvalidIteratorState = errors.New("invalid iterator state")
+
+// ErrNilThrottler signals that a nil throttler has been provided
+var ErrNilThrottler = errors.New("nil throttler")
+
+// ErrNilBufferedErrChan signals that a nil buffered error channel has been provided
+var ErrNilBufferedErrChan = errors.New("nil buffered error channel")
+
+// ErrNilChanClose signals that a nil chan close has been provided
+var ErrNilChanClose = errors.New("nil chan close")
+
+// ErrInvalidTypeConversion signals that an invalid type conversion has been provided
+var ErrInvalidTypeConversion = errors.New("invalid type conversion")
+
+// ErrNodeHashIsNotSet signals that the node hash is not set
+var ErrNodeHashIsNotSet = errors.New("node hash is not set")
+
+// ErrInvalidNodeState indicates an erroneous condition where a node's child pointer is set but the child hash is empty.
+var ErrInvalidNodeState = errors.New("invalid node state, child pointer is set but the child hash is empty")
