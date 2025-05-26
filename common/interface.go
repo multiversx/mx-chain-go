@@ -7,6 +7,8 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-core-go/hashing"
+	"github.com/multiversx/mx-chain-core-go/marshal"
 	crypto "github.com/multiversx/mx-chain-crypto-go"
 )
 
@@ -441,5 +443,16 @@ type TrieHashesCollector interface {
 	AddObsoleteHashes(oldRootHash []byte, oldHashes [][]byte)
 	GetCollectedData() ([]byte, ModifiedHashes, ModifiedHashes)
 	Clean()
+	IsInterfaceNil() bool
+}
+
+// TrieContext aggregates functionality for marshaling, hashing, and managing trie storage operations.
+type TrieContext interface {
+	marshal.Marshalizer
+	hashing.Hasher
+	StorageManager
+	GetStorage() StorageManager
+	GetMarshaller() marshal.Marshalizer
+	GetHasher() hashing.Hasher
 	IsInterfaceNil() bool
 }

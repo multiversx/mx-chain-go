@@ -162,15 +162,16 @@ func TestNewTrieSyncer(t *testing.T) {
 func TestTrieSync_InterceptedNodeShouldNotBeAddedToNodesForTrieIfNodeReceived(t *testing.T) {
 	t.Parallel()
 
-	testMarshalizer, testHasher := getTestMarshalizerAndHasher()
+	_, testHasher := getTestMarshalizerAndHasher()
+	trieCtx := getTrieContextWithCustomStorage(nil)
 	arg := createMockArgument(time.Second * 10)
 	arg.MaxHardCapForMissingNodes = 500
 
 	ts, err := NewTrieSyncer(arg)
 	require.Nil(t, err)
 
-	bn, collapsedBn := getBnAndCollapsedBn(testMarshalizer, testHasher)
-	encodedNode, err := collapsedBn.getEncodedNode()
+	bn, collapsedBn := getBnAndCollapsedBn()
+	encodedNode, err := collapsedBn.getEncodedNode(trieCtx)
 	assert.Nil(t, err)
 
 	interceptedNode, err := NewInterceptedTrieNode(encodedNode, testHasher)
@@ -210,11 +211,10 @@ func TestTrieSync_FoundInStorageShouldNotRequest(t *testing.T) {
 
 	timeout := time.Second * 200
 	testMarshalizer, testHasher := getTestMarshalizerAndHasher()
-	bn, _ := getBnAndCollapsedBn(testMarshalizer, testHasher)
+
+	bn, _ := getBnAndCollapsedBn()
 	manager := getTestGoroutinesManager()
 	require.Nil(t, manager.GetError())
-	rootHash, _ := encodeNodeAndGetHash(bn)
-
 	_, trieStorage := newEmptyTrie()
 	db := testscommon.NewMemDbMock()
 	trieStorage.mainStorer = &trieMock.SnapshotPruningStorerStub{
@@ -224,9 +224,11 @@ func TestTrieSync_FoundInStorageShouldNotRequest(t *testing.T) {
 		},
 	}
 
-	bn.commitDirty(0, 5, getTestGoroutinesManager(), hashesCollector.NewDisabledHashesCollector(), db, db)
+	trieCtx := getTrieContextWithCustomStorage(trieStorage)
+	rootHash, _ := encodeNodeAndGetHash(bn, trieCtx)
+	bn.commitDirty(0, 5, getTestGoroutinesManager(), hashesCollector.NewDisabledHashesCollector(), trieCtx)
 
-	leaves, err := bn.getChildren(db)
+	leaves, err := bn.getChildren(trieCtx)
 	require.Nil(t, err)
 	numLeaves := len(leaves)
 

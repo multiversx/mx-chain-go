@@ -31,9 +31,7 @@ type trieSyncer struct {
 	rootHash                  []byte
 	nodesForTrie              map[string]trieNodeInfo
 	waitTimeBetweenRequests   time.Duration
-	marshalizer               marshal.Marshalizer
-	hasher                    hashing.Hasher
-	db                        common.TrieStorageInteractor
+	trieContext               common.TrieContext
 	requestHandler            RequestHandler
 	interceptedNodesCacher    storage.Cacher
 	mutOperation              sync.RWMutex
@@ -75,11 +73,13 @@ func NewTrieSyncer(arg ArgTrieSyncer) (*trieSyncer, error) {
 	}
 
 	ts := &trieSyncer{
-		requestHandler:            arg.RequestHandler,
-		interceptedNodesCacher:    arg.InterceptedNodes,
-		db:                        stsm,
-		marshalizer:               arg.Marshalizer,
-		hasher:                    arg.Hasher,
+		requestHandler:         arg.RequestHandler,
+		interceptedNodesCacher: arg.InterceptedNodes,
+		trieContext: &trieContext{
+			StorageManager: stsm,
+			Marshalizer:    arg.Marshalizer,
+			Hasher:         arg.Hasher,
+		},
 		nodesForTrie:              make(map[string]trieNodeInfo),
 		topic:                     arg.Topic,
 		shardId:                   arg.ShardId,
@@ -237,7 +237,7 @@ func (ts *trieSyncer) checkIfSynced() (bool, error) {
 				continue
 			}
 
-			nextNodes, err = currentNode.getChildren(ts.db)
+			nextNodes, err = currentNode.getChildren(ts.trieContext)
 			if err != nil {
 				return false, err
 			}
@@ -248,7 +248,7 @@ func (ts *trieSyncer) checkIfSynced() (bool, error) {
 			delete(ts.nodesForTrie, nodeHash)
 
 			var numBytes int
-			numBytes, err = encodeNodeAndCommitToDB(currentNode, ts.db)
+			numBytes, err = encodeNodeAndCommitToDB(currentNode, ts.trieContext)
 			if err != nil {
 				return false, err
 			}
@@ -305,25 +305,21 @@ func (ts *trieSyncer) getNode(hash []byte) (node, error) {
 	return getNodeFromCacheOrStorage(
 		hash,
 		ts.interceptedNodesCacher,
-		ts.db,
-		ts.marshalizer,
-		ts.hasher,
+		ts.trieContext,
 	)
 }
 
 func getNodeFromCacheOrStorage(
 	hash []byte,
 	interceptedNodesCacher storage.Cacher,
-	db common.TrieStorageInteractor,
-	marshalizer marshal.Marshalizer,
-	hasher hashing.Hasher,
+	trieCtx common.TrieContext,
 ) (node, error) {
-	n, err := getNodeFromCache(hash, interceptedNodesCacher, marshalizer, hasher)
+	n, err := getNodeFromCache(hash, interceptedNodesCacher, trieCtx)
 	if err == nil {
 		return n, nil
 	}
 
-	existingNode, _, err := getNodeFromDBAndDecode(hash, db, marshalizer, hasher)
+	existingNode, _, err := getNodeFromDBAndDecode(hash, trieCtx)
 	if err != nil {
 		return nil, ErrNodeNotFound
 	}
@@ -334,13 +330,12 @@ func getNodeFromCacheOrStorage(
 func getNodeFromCache(
 	hash []byte,
 	interceptedNodesCacher storage.Cacher,
-	marshalizer marshal.Marshalizer,
-	hasher hashing.Hasher,
+	trieCtx common.TrieContext,
 ) (node, error) {
 	n, ok := interceptedNodesCacher.Get(hash)
 	if ok {
 		interceptedNodesCacher.Remove(hash)
-		return trieNode(n, marshalizer, hasher)
+		return trieNode(n, trieCtx)
 	}
 
 	return nil, ErrNodeNotFound
@@ -348,15 +343,14 @@ func getNodeFromCache(
 
 func trieNode(
 	data interface{},
-	marshalizer marshal.Marshalizer,
-	hasher hashing.Hasher,
+	trieCtx common.TrieContext,
 ) (node, error) {
 	n, ok := data.(*InterceptedTrieNode)
 	if !ok {
 		return nil, ErrWrongTypeAssertion
 	}
 
-	decodedNode, err := decodeNode(n.GetSerialized(), marshalizer, hasher)
+	decodedNode, err := decodeNode(n.GetSerialized(), trieCtx)
 	if err != nil {
 		return nil, err
 	}
