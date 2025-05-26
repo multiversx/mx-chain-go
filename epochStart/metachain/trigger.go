@@ -71,7 +71,9 @@ type trigger struct {
 	hasher                      hashing.Hasher
 	appStatusHandler            core.AppStatusHandler
 	validatorInfoPool           epochStart.ValidatorInfoCacher
-	chainParametersHandler      process.ChainParametersHandler
+
+	getRoundsPerEpoch         func() uint64
+	getMinRoundsBetweenEpochs func() uint64
 }
 
 // NewEpochStartTrigger creates a trigger for start of epoch
@@ -135,7 +137,13 @@ func NewEpochStartTrigger(args *ArgsNewMetaEpochStartTrigger) (*trigger, error) 
 		appStatusHandler:            args.AppStatusHandler,
 		nextEpochStartRound:         disabledRoundForForceEpochStart,
 		validatorInfoPool:           args.DataPool.CurrentEpochValidatorInfo(),
-		chainParametersHandler:      args.ChainParametersHandler,
+
+		getRoundsPerEpoch: func() uint64 {
+			return uint64(args.ChainParametersHandler.CurrentChainParameters().RoundsPerEpoch)
+		},
+		getMinRoundsBetweenEpochs: func() uint64 {
+			return uint64(args.ChainParametersHandler.CurrentChainParameters().MinRoundsBetweenEpochs)
+		},
 	}
 
 	err = trig.saveState(trig.triggerStateKey)
@@ -220,13 +228,6 @@ func (t *trigger) Update(round uint64, nonce uint64) {
 		logger.SetCorrelationEpoch(t.epoch)
 		t.nextEpochStartRound = disabledRoundForForceEpochStart
 	}
-}
-
-func (t *trigger) getRoundsPerEpoch() uint64 {
-	return uint64(t.chainParametersHandler.CurrentChainParameters().RoundsPerEpoch)
-}
-func (t *trigger) getMinRoundsBetweenEpochs() uint64 {
-	return uint64(t.chainParametersHandler.CurrentChainParameters().MinRoundsBetweenEpochs)
 }
 
 // SetProcessed sets start of epoch to false and cleans underlying structure
