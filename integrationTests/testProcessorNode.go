@@ -3420,6 +3420,14 @@ func GetDefaultCoreComponents(enableEpochsHandler common.EnableEpochsHandler, ep
 		EnableEpochsHandlerField:           enableEpochsHandler,
 		EpochChangeGracePeriodHandlerField: TestEpochChangeGracePeriod,
 		FieldsSizeCheckerField:             &testscommon.FieldsSizeCheckerMock{},
+		ChainParametersHandlerField: &chainParameters.ChainParametersHandlerStub{
+			CurrentChainParametersCalled: func() config.ChainParametersByEpochConfig {
+				return config.ChainParametersByEpochConfig{
+					RoundsPerEpoch:         200,
+					MinRoundsBetweenEpochs: 10,
+				}
+			},
+		},
 	}
 }
 

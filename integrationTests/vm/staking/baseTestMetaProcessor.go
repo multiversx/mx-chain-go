@@ -221,10 +221,7 @@ func createEpochStartTrigger(
 	storageService dataRetriever.StorageService,
 ) integrationTests.TestEpochStartTrigger {
 	argsEpochStart := &metachain.ArgsNewMetaEpochStartTrigger{
-		Settings: &config.EpochStartConfig{
-			MinRoundsBetweenEpochs: 10,
-			RoundsPerEpoch:         10,
-		},
+		Settings:           &config.EpochStartConfig{},
 		Epoch:              0,
 		EpochStartNotifier: coreComponents.EpochStartNotifierWithConfirm(),
 		Storage:            storageService,

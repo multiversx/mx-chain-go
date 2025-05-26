@@ -153,7 +153,8 @@ func testNodeStartsInEpoch(t *testing.T, shardID uint32, expectedHighestRound ui
 
 	generalConfig := getGeneralConfig()
 	roundDurationMillis := 4000
-	epochDurationMillis := generalConfig.EpochStartConfig.RoundsPerEpoch * int64(roundDurationMillis)
+	numRoundsPerEpoch := nodes[0].Node.GetCoreComponents().ChainParametersHandler().CurrentChainParameters().RoundsPerEpoch
+	epochDurationMillis := numRoundsPerEpoch * int64(roundDurationMillis)
 	prefsConfig := config.PreferencesConfig{
 		FullArchive: false,
 	}
