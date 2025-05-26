@@ -212,6 +212,12 @@ func (sr *subroundStartRound) initCurrentRound() bool {
 		return false
 	}
 
+	isRoundZero := sr.GetRoundIndex() == 0
+	if sr.IsSelfLeader() && isRoundZero {
+		// force main to not wait one signature before proposing
+		sr.SetRoundsSignedToMin()
+	}
+
 	sr.SetStatus(sr.Current(), spos.SsFinished)
 
 	// execute stored messages which were received in this new round but before this initialisation

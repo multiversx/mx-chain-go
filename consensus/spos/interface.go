@@ -245,6 +245,9 @@ type RoundConsensusHandler interface {
 	IsKeyManagedBySelf(pkBytes []byte) bool
 	IncrementRoundsWithoutReceivedMessages(pkBytes []byte)
 	GetKeysHandler() consensus.KeysHandler
+	IncrementRoundsSigned()
+	ShouldProposeBlock() bool
+	SetRoundsSignedToMin()
 	Leader() string
 }
 

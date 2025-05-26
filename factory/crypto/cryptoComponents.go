@@ -204,11 +204,12 @@ func (ccf *cryptoComponentsFactory) Create() (*cryptoComponents, error) {
 	redundancyLevel := int(ccf.prefsConfig.Preferences.RedundancyLevel)
 	maxRoundsOfInactivity := redundancyLevel * ccf.config.Redundancy.MaxRoundsOfInactivityAccepted
 	argsManagedPeersHolder := keysManagement.ArgsManagedPeersHolder{
-		KeyGenerator:          blockSignKeyGen,
-		P2PKeyGenerator:       p2pKeyGenerator,
-		MaxRoundsOfInactivity: maxRoundsOfInactivity,
-		PrefsConfig:           ccf.prefsConfig,
-		P2PKeyConverter:       p2pFactory.NewP2PKeyConverter(),
+		KeyGenerator:                   blockSignKeyGen,
+		P2PKeyGenerator:                p2pKeyGenerator,
+		MaxRoundsOfInactivity:          maxRoundsOfInactivity,
+		PrefsConfig:                    ccf.prefsConfig,
+		P2PKeyConverter:                p2pFactory.NewP2PKeyConverter(),
+		MinRoundsToSignBeforeProposing: ccf.config.Redundancy.MinRoundsToSignBeforeProposing,
 	}
 	managedPeersHolder, err := keysManagement.NewManagedPeersHolder(argsManagedPeersHolder)
 	if err != nil {

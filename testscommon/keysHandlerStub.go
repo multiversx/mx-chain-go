@@ -16,6 +16,9 @@ type KeysHandlerStub struct {
 	IsOriginalPublicKeyOfTheNodeCalled           func(pkBytes []byte) bool
 	ResetRoundsWithoutReceivedMessagesCalled     func(pkBytes []byte, pid core.PeerID)
 	GetRedundancyStepInReasonCalled              func() string
+	IncrementRoundsSignedCalled                  func()
+	ShouldProposeBlockCalled                     func() bool
+	SetRoundsSignedToMinCalled                   func()
 }
 
 // GetHandledPrivateKey -
@@ -84,6 +87,29 @@ func (stub *KeysHandlerStub) GetRedundancyStepInReason() string {
 	}
 
 	return ""
+}
+
+// IncrementRoundsSigned -
+func (stub *KeysHandlerStub) IncrementRoundsSigned() {
+	if stub.IncrementRoundsSignedCalled != nil {
+		stub.IncrementRoundsSignedCalled()
+	}
+}
+
+// ShouldProposeBlock -
+func (stub *KeysHandlerStub) ShouldProposeBlock() bool {
+	if stub.ShouldProposeBlockCalled != nil {
+		return stub.ShouldProposeBlockCalled()
+	}
+
+	return true
+}
+
+// SetRoundsSignedToMin -
+func (stub *KeysHandlerStub) SetRoundsSignedToMin() {
+	if stub.SetRoundsSignedToMinCalled != nil {
+		stub.SetRoundsSignedToMinCalled()
+	}
 }
 
 // IsInterfaceNil -

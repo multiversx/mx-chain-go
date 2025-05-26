@@ -670,7 +670,8 @@ type PoolsCleanersConfig struct {
 
 // RedundancyConfig represents the config options to be used when setting the redundancy configuration
 type RedundancyConfig struct {
-	MaxRoundsOfInactivityAccepted int
+	MaxRoundsOfInactivityAccepted  int
+	MinRoundsToSignBeforeProposing uint64
 }
 
 // ChainParametersByEpochConfig holds chain parameters that are configurable based on epochs

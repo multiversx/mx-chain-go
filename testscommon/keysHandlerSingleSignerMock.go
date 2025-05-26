@@ -72,6 +72,19 @@ func (mock *keysHandlerSingleSignerMock) GetRedundancyStepInReason() string {
 	return ""
 }
 
+// IncrementRoundsSigned -
+func (mock *keysHandlerSingleSignerMock) IncrementRoundsSigned() {
+}
+
+// ShouldProposeBlock -
+func (mock *keysHandlerSingleSignerMock) ShouldProposeBlock() bool {
+	return true
+}
+
+// SetRoundsSignedToMin -
+func (mock *keysHandlerSingleSignerMock) SetRoundsSignedToMin() {
+}
+
 // IsInterfaceNil -
 func (mock *keysHandlerSingleSignerMock) IsInterfaceNil() bool {
 	return mock == nil

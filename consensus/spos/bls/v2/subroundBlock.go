@@ -78,6 +78,12 @@ func (sr *subroundBlock) doBlockJob(ctx context.Context) bool {
 		return false
 	}
 
+	// this check will automatically return true for backups.
+	// if backup should not propose due to an active main, it should have been treated as part of the above check
+	if !sr.ShouldProposeBlock() {
+		return false
+	}
+
 	if sr.RoundHandler().Index() <= sr.getRoundInLastCommittedBlock() {
 		return false
 	}

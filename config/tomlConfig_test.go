@@ -160,7 +160,8 @@ func TestTomlParser(t *testing.T) {
 			MaxPeerTrieLevelInMemory:    39,
 		},
 		Redundancy: RedundancyConfig{
-			MaxRoundsOfInactivityAccepted: 3,
+			MaxRoundsOfInactivityAccepted:  3,
+			MinRoundsToSignBeforeProposing: 2,
 		},
 	}
 	testString := `
@@ -268,6 +269,10 @@ func TestTomlParser(t *testing.T) {
     # MaxRoundsOfInactivityAccepted defines the number of rounds missed by a main or higher level backup machine before
     # the current machine will take over and propose/sign blocks. Used in both single-key and multi-key modes.
     MaxRoundsOfInactivityAccepted = 3
+
+    # MinRoundsToSignBeforeProposing defines the number of self-signed rounds a main node will wait before proposing a block
+    # this only applies for multi-key mode
+    MinRoundsToSignBeforeProposing = 2
 `
 	cfg := Config{}
 

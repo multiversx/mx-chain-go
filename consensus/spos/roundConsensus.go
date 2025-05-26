@@ -247,6 +247,21 @@ func (rcns *roundConsensus) IncrementRoundsWithoutReceivedMessages(pkBytes []byt
 	rcns.keysHandler.IncrementRoundsWithoutReceivedMessages(pkBytes)
 }
 
+// IncrementRoundsSigned increments the number of rounds the current node signed with at least one managed key
+func (rcns *roundConsensus) IncrementRoundsSigned() {
+	rcns.keysHandler.IncrementRoundsSigned()
+}
+
+// ShouldProposeBlock returns true if the machine should propose block or not
+func (rcns *roundConsensus) ShouldProposeBlock() bool {
+	return rcns.keysHandler.ShouldProposeBlock()
+}
+
+// SetRoundsSignedToMin sets the number of rounds signed by the current node to the min value, in order to force proposing
+func (rcns *roundConsensus) SetRoundsSignedToMin() {
+	rcns.keysHandler.SetRoundsSignedToMin()
+}
+
 // GetKeysHandler returns the keysHandler instance
 func (rcns *roundConsensus) GetKeysHandler() consensus.KeysHandler {
 	return rcns.keysHandler

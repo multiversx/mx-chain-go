@@ -1017,6 +1017,48 @@ func TestManagedPeersHolder_GetRedundancyStepInReason(t *testing.T) {
 	})
 }
 
+func TestManagedPeersHolder_IncrementRoundsSigned(t *testing.T) {
+	t.Parallel()
+
+	t.Run("backup machine mode", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockArgsManagedPeersHolder()
+		args.MaxRoundsOfInactivity = 2
+		holder, _ := keysManagement.NewManagedPeersHolder(args)
+		holder.IncrementRoundsSigned()               // coverage only
+		require.True(t, holder.ShouldProposeBlock()) // backup machine
+
+		holder.SetRoundsSignedToMin()                // coverage only
+		require.True(t, holder.ShouldProposeBlock()) // backup machine
+	})
+	t.Run("should increase for main machine", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockArgsManagedPeersHolder()
+		args.MinRoundsToSignBeforeProposing = 2
+		holder, _ := keysManagement.NewManagedPeersHolder(args)
+
+		holder.IncrementRoundsSigned()
+		require.False(t, holder.ShouldProposeBlock())
+		holder.IncrementRoundsSigned()
+		require.True(t, holder.ShouldProposeBlock())
+	})
+}
+
+func TestManagedPeersHolder_SetRoundsSignedToMin(t *testing.T) {
+	t.Parallel()
+
+	args := createMockArgsManagedPeersHolder()
+	args.MinRoundsToSignBeforeProposing = 2
+
+	holder, _ := keysManagement.NewManagedPeersHolder(args)
+	require.False(t, holder.ShouldProposeBlock())
+
+	holder.SetRoundsSignedToMin()
+	require.True(t, holder.ShouldProposeBlock())
+}
+
 func TestManagedPeersHolder_ParallelOperationsShouldNotPanic(t *testing.T) {
 	defer func() {
 		r := recover()
@@ -1068,10 +1110,16 @@ func TestManagedPeersHolder_ParallelOperationsShouldNotPanic(t *testing.T) {
 				holder.SetNextPeerAuthenticationTime(pkBytes0, time.Now())
 			case 14:
 				_ = holder.GetRedundancyStepInReason()
+			case 15:
+				holder.SetRoundsSignedToMin()
+			case 16:
+				holder.IncrementRoundsSigned()
+			case 17:
+				_ = holder.ShouldProposeBlock()
 			}
 
 			wg.Done()
-		}(i % 15)
+		}(i % 18)
 	}
 
 	wg.Wait()

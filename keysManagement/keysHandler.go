@@ -125,6 +125,21 @@ func (handler *keysHandler) GetRedundancyStepInReason() string {
 	return handler.managedPeersHolder.GetRedundancyStepInReason()
 }
 
+// IncrementRoundsSigned increments the number of rounds the current node signed with at least one managed key
+func (handler *keysHandler) IncrementRoundsSigned() {
+	handler.managedPeersHolder.IncrementRoundsSigned()
+}
+
+// ShouldProposeBlock returns true if the machine should propose block or not
+func (handler *keysHandler) ShouldProposeBlock() bool {
+	return handler.managedPeersHolder.ShouldProposeBlock()
+}
+
+// SetRoundsSignedToMin sets the number of rounds signed by the current node to the min value, in order to force proposing
+func (handler *keysHandler) SetRoundsSignedToMin() {
+	handler.managedPeersHolder.SetRoundsSignedToMin()
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (handler *keysHandler) IsInterfaceNil() bool {
 	return handler == nil

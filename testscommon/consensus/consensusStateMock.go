@@ -86,6 +86,9 @@ type ConsensusStateMock struct {
 	FallbackThresholdCalled                      func(subroundId int) int
 	SetFallbackThresholdCalled                   func(subroundId int, threshold int)
 	ResetConsensusRoundStateCalled               func()
+	IncrementRoundsSignedCalled                  func()
+	ShouldProposeBlockCalled                     func() bool
+	SetRoundsSignedToMinCalled                   func()
 }
 
 // AddReceivedHeader -
@@ -651,6 +654,29 @@ func (cnsm *ConsensusStateMock) ConsensusGroupSize() int {
 func (cnsm *ConsensusStateMock) SetThreshold(subroundId int, threshold int) {
 	if cnsm.SetThresholdCalled != nil {
 		cnsm.SetThresholdCalled(subroundId, threshold)
+	}
+}
+
+// IncrementRoundsSigned -
+func (cnsm *ConsensusStateMock) IncrementRoundsSigned() {
+	if cnsm.IncrementRoundsSignedCalled != nil {
+		cnsm.IncrementRoundsSignedCalled()
+	}
+}
+
+// ShouldProposeBlock -
+func (cnsm *ConsensusStateMock) ShouldProposeBlock() bool {
+	if cnsm.ShouldProposeBlockCalled != nil {
+		return cnsm.ShouldProposeBlockCalled()
+	}
+
+	return true
+}
+
+// SetRoundsSignedToMin -
+func (cnsm *ConsensusStateMock) SetRoundsSignedToMin() {
+	if cnsm.SetRoundsSignedToMinCalled != nil {
+		cnsm.SetRoundsSignedToMinCalled()
 	}
 }
 
