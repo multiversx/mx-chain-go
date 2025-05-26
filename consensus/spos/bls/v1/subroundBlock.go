@@ -359,8 +359,7 @@ func (sr *subroundBlock) createHeader() (data.HeaderHandler, error) {
 		return nil, err
 	}
 
-	unixTimeStamp := uint64(common.TimeToUnixInEpoch(sr.RoundHandler().TimeStamp(), sr.EnableEpochsHandler(), hdr.GetEpoch()))
-	err = hdr.SetTimeStamp(unixTimeStamp)
+	err = hdr.SetTimeStamp(sr.getUnixTimestampForHeader(hdr.GetEpoch()))
 	if err != nil {
 		return nil, err
 	}
@@ -381,6 +380,16 @@ func (sr *subroundBlock) createHeader() (data.HeaderHandler, error) {
 	}
 
 	return hdr, nil
+}
+
+func (sr *subroundBlock) getUnixTimestampForHeader(
+	headerEpoch uint32,
+) uint64 {
+	if sr.EnableEpochsHandler().IsFlagEnabledInEpoch(common.SupernovaFlag, headerEpoch) {
+		return uint64(sr.RoundHandler().TimeStamp().UnixMilli())
+	}
+
+	return uint64(sr.RoundHandler().TimeStamp().Unix())
 }
 
 // receivedBlockBodyAndHeader method is called when a block body and a block header is received

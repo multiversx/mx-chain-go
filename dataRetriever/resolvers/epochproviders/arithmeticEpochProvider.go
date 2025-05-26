@@ -37,6 +37,7 @@ type arithmeticEpochProvider struct {
 	roundTimeInMilliseconds    uint64
 	startTime                  int64
 	getUnixHandler             func() int64
+	enableEpochsHandler        common.EnableEpochsHandler
 }
 
 // NewArithmeticEpochProvider returns a new arithmetic epoch provider able to mathematically compute the current network epoch
@@ -61,9 +62,14 @@ func NewArithmeticEpochProvider(arg ArgArithmeticEpochProvider) (*arithmeticEpoc
 		roundsPerEpoch:             arg.RoundsPerEpoch,
 		roundTimeInMilliseconds:    arg.RoundTimeInMilliseconds,
 		startTime:                  arg.StartTime,
+		enableEpochsHandler:        arg.EnableEpochsHandler,
 	}
 	aep.getUnixHandler = func() int64 {
-		return common.TimeToUnix(time.Now(), arg.EnableEpochsHandler)
+		if aep.enableEpochsHandler.IsFlagEnabledInEpoch(common.SupernovaFlag, aep.headerEpoch) {
+			return time.Now().UnixMilli()
+		}
+
+		return time.Now().Unix()
 	}
 	aep.computeCurrentEpoch() //based on the genesis provided data
 

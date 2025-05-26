@@ -289,7 +289,7 @@ func NewEpochStartBootstrap(args ArgsEpochStartBootstrap) (*epochStartBootstrap,
 }
 
 func (e *epochStartBootstrap) isStartInEpochZero() bool {
-	startTime := common.UnixToTime(e.genesisNodesConfig.GetStartTime(), e.enableEpochsHandler, e.startEpoch)
+	startTime := common.GetGenesisStartTimeFromUnixTimestamp(e.genesisNodesConfig.GetStartTime(), e.enableEpochsHandler)
 	isCurrentTimeBeforeGenesis := time.Since(startTime) < 0
 	if isCurrentTimeBeforeGenesis {
 		return true

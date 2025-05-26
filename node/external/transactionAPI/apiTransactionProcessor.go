@@ -520,7 +520,11 @@ func (atp *apiTransactionProcessor) computeTimestampForRound(round uint64) int64
 	secondsSinceGenesis := round * atp.roundDuration
 	timestamp := atp.genesisTime.Add(time.Duration(secondsSinceGenesis) * time.Millisecond)
 
-	return common.TimeToUnix(timestamp, atp.enableEpochsHandler)
+	if atp.enableEpochsHandler.IsFlagEnabled(common.SupernovaFlag) {
+		return timestamp.UnixMilli()
+	}
+
+	return timestamp.Unix()
 }
 
 func (atp *apiTransactionProcessor) lookupHistoricalTransaction(hash []byte, withResults bool) (*transaction.ApiTransactionResult, error) {

@@ -26,6 +26,8 @@ const hardforkGracePeriod = time.Minute * 5
 const epochGracePeriod = 4
 const minTimeToWaitAfterHardforkInMinutes = 2
 const minimumEpochForHarfork = 1
+
+// TODO: update constant for supernova
 const deltaRoundsForForcedEpoch = uint64(10)
 const disabledRoundForForceEpochStart = uint64(math.MaxUint64)
 
@@ -145,7 +147,11 @@ func NewTrigger(arg ArgHardforkTrigger) (*trigger, error) {
 }
 
 func (t *trigger) getCurrentUnixTime() int64 {
-	return common.TimeToUnix(time.Now(), t.enableEpochsHandler)
+	if t.enableEpochsHandler.IsFlagEnabled(common.SupernovaFlag) {
+		return time.Now().UnixMilli()
+	}
+
+	return time.Now().Unix()
 }
 
 func (t *trigger) epochConfirmed(epoch uint32) {

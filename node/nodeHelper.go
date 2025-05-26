@@ -62,7 +62,7 @@ func CreateNode(
 		return nil, err
 	}
 
-	genesisTime := common.UnixToTime(coreComponents.GenesisNodesSetup().GetStartTime(), coreComponents.EnableEpochsHandler(), 0)
+	genesisTime := common.GetGenesisStartTimeFromUnixTimestamp(coreComponents.GenesisNodesSetup().GetStartTime(), coreComponents.EnableEpochsHandler())
 
 	var nd *Node
 	nd, err = NewNode(

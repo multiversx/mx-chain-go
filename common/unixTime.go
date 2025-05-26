@@ -7,6 +7,8 @@ import (
 )
 
 const (
+	genesisEpoch = 0
+
 	// NumberOfSecondsInDay defines the number of seconds in a day
 	NumberOfSecondsInDay = 86400
 	// NumberOfMillisecondsInDay defines the number of milliseconds in a day
@@ -18,55 +20,30 @@ const (
 	minRoundDurationSec = 1
 )
 
-// TimeToUnix returns the time to unix based on current configuration
-func TimeToUnix(
+// GetGenesisUnixTimestampFromStartTime returns genesis unix timestamp based on the
+// provided time
+func GetGenesisUnixTimestampFromStartTime(
 	t time.Time,
 	enableEpochsHandler EnableEpochsHandler,
 ) int64 {
-	if enableEpochsHandler.IsFlagEnabled(SupernovaFlag) {
+	if enableEpochsHandler.IsFlagEnabledInEpoch(SupernovaFlag, genesisEpoch) {
 		return t.UnixMilli()
 	}
 
 	return t.Unix()
 }
 
-// TimeToUnixInEpoch returns the time to unix based on current configuration
-func TimeToUnixInEpoch(
-	t time.Time,
-	enableEpochsHandler EnableEpochsHandler,
-	epoch uint32,
-) int64 {
-	if enableEpochsHandler.IsFlagEnabledInEpoch(SupernovaFlag, epoch) {
-		return t.UnixMilli()
-	}
-
-	return t.Unix()
-}
-
-// UnixToTime converts int64 to time based on current configuration
-func UnixToTime(
+// GetGenesisStartTimeFromUnixTimestamp returns genesis time based on the provided
+// unix timestamp
+func GetGenesisStartTimeFromUnixTimestamp(
 	unixTime int64,
 	enableEpochsHandler EnableEpochsHandler,
-	epoch uint32,
 ) time.Time {
-	if enableEpochsHandler.IsFlagEnabledInEpoch(SupernovaFlag, epoch) {
+	if enableEpochsHandler.IsFlagEnabledInEpoch(SupernovaFlag, genesisEpoch) {
 		return time.UnixMilli(unixTime)
 	}
 
 	return time.Unix(unixTime, 0)
-}
-
-// TimeDurationToUnix converts duration time to unix based on current configuration
-func TimeDurationToUnix(
-	duration time.Duration,
-	enableEpochsHandler EnableEpochsHandler,
-	epoch uint32,
-) int64 {
-	if enableEpochsHandler.IsFlagEnabledInEpoch(SupernovaFlag, epoch) {
-		return duration.Milliseconds()
-	}
-
-	return int64(duration.Seconds())
 }
 
 // CheckRoundDuration checks round duration based on current configuration
@@ -106,7 +83,20 @@ func ComputeRoundsPerDay(
 ) uint64 {
 	unitsInDay := getUnitsPerDay(enableEpochsHandler, epoch)
 
-	return uint64(unitsInDay) / uint64(TimeDurationToUnix(roundTime, enableEpochsHandler, epoch))
+	return uint64(unitsInDay) / uint64(timeDurationToUnix(roundTime, enableEpochsHandler, epoch))
+}
+
+// timeDurationToUnix converts duration time to unix based on current configuration
+func timeDurationToUnix(
+	duration time.Duration,
+	enableEpochsHandler EnableEpochsHandler,
+	epoch uint32,
+) int64 {
+	if enableEpochsHandler.IsFlagEnabledInEpoch(SupernovaFlag, epoch) {
+		return duration.Milliseconds()
+	}
+
+	return int64(duration.Seconds())
 }
 
 func getUnitsPerDay(

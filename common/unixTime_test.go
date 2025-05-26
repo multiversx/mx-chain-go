@@ -18,14 +18,14 @@ func TestTimeToUnix(t *testing.T) {
 		t.Parallel()
 
 		enableEpochsHandler := &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-			IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
-				return flag == common.SupernovaFlag
+			IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
+				return flag == common.SupernovaFlag && epoch == 0
 			},
 		}
 
 		tt := time.Now()
 
-		res := common.TimeToUnix(tt, enableEpochsHandler)
+		res := common.GetGenesisUnixTimestampFromStartTime(tt, enableEpochsHandler)
 		require.Equal(t, tt.UnixMilli(), res)
 	})
 
@@ -40,7 +40,7 @@ func TestTimeToUnix(t *testing.T) {
 
 		tt := time.Now()
 
-		res := common.TimeToUnix(tt, enableEpochsHandler)
+		res := common.GetGenesisUnixTimestampFromStartTime(tt, enableEpochsHandler)
 		require.Equal(t, tt.Unix(), res)
 	})
 }
@@ -48,23 +48,21 @@ func TestTimeToUnix(t *testing.T) {
 func TestTimeToUnixInEpoch(t *testing.T) {
 	t.Parallel()
 
-	expEpoch := uint32(2)
-
 	t.Run("with supernova flag enabled", func(t *testing.T) {
 		t.Parallel()
 
 		enableEpochsHandler := &enableEpochsHandlerMock.EnableEpochsHandlerStub{
 			IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
-				return flag == common.SupernovaFlag && epoch == expEpoch
+				return flag == common.SupernovaFlag && epoch == 0
 			},
 		}
 
 		tt := time.Now().Truncate(time.Millisecond)
 
-		unixTimeStamp := common.TimeToUnixInEpoch(tt, enableEpochsHandler, expEpoch)
+		unixTimeStamp := common.GetGenesisUnixTimestampFromStartTime(tt, enableEpochsHandler)
 		require.Equal(t, tt.UnixMilli(), unixTimeStamp)
 
-		timeFromUnixTimeStamp := common.UnixToTime(unixTimeStamp, enableEpochsHandler, expEpoch)
+		timeFromUnixTimeStamp := common.GetGenesisStartTimeFromUnixTimestamp(unixTimeStamp, enableEpochsHandler)
 		require.Equal(t, tt, timeFromUnixTimeStamp)
 	})
 
@@ -73,16 +71,16 @@ func TestTimeToUnixInEpoch(t *testing.T) {
 
 		enableEpochsHandler := &enableEpochsHandlerMock.EnableEpochsHandlerStub{
 			IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
-				return flag != common.SupernovaFlag && epoch == expEpoch
+				return flag != common.SupernovaFlag && epoch == 0
 			},
 		}
 
 		tt := time.Now().Truncate(time.Second)
 
-		unixTimeStamp := common.TimeToUnixInEpoch(tt, enableEpochsHandler, expEpoch)
+		unixTimeStamp := common.GetGenesisUnixTimestampFromStartTime(tt, enableEpochsHandler)
 		require.Equal(t, tt.Unix(), unixTimeStamp)
 
-		timeFromUnixTimeStamp := common.UnixToTime(unixTimeStamp, enableEpochsHandler, expEpoch)
+		timeFromUnixTimeStamp := common.GetGenesisStartTimeFromUnixTimestamp(unixTimeStamp, enableEpochsHandler)
 		require.Equal(t, tt, timeFromUnixTimeStamp)
 	})
 }
