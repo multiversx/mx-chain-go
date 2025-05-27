@@ -574,7 +574,7 @@ func TestSyncEpochStartShardHeader_ProofsBeforeHeaderShouldWork(t *testing.T) {
 	require.Equal(t, headerHash, hHash)
 }
 
-func TestSyncEpochStartShardHeader_ProofsBeforeHeaderShouldWorkWithAnotherFlag(t *testing.T) {
+func TestSyncEpochStartShardHeader_ShouldWorkWithoutAndromedaActivated(t *testing.T) {
 	t.Parallel()
 
 	shardID := uint32(1)
