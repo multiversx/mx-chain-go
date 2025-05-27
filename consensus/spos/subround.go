@@ -236,7 +236,7 @@ func (sr *Subround) IsSelfInConsensusGroup() bool {
 // IsSelfLeader returns true is the current node is leader is single key or in
 // multi-key mode
 func (sr *Subround) IsSelfLeader() bool {
-	return sr.IsSelfLeaderInCurrentRound() || sr.IsMultiKeyLeaderInCurrentRound()
+	return (sr.IsSelfLeaderInCurrentRound() || sr.IsMultiKeyLeaderInCurrentRound()) && sr.ShouldProposeBlock()
 }
 
 // IsSelfLeaderInCurrentRound method checks if the current node is leader in the current round

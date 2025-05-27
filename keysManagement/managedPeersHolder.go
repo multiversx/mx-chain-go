@@ -308,7 +308,7 @@ func (holder *managedPeersHolder) ShouldProposeBlock() bool {
 
 	holder.mutRoundsSigned.RLock()
 	defer holder.mutRoundsSigned.RUnlock()
-
+	log.Info("ShouldProposeBlock", "roundsSigned", holder.roundsSigned)
 	return holder.roundsSigned >= holder.minRoundsToSignBeforeProposing
 }
 
@@ -364,7 +364,7 @@ func (holder *managedPeersHolder) IsKeyManagedByCurrentNode(pkBytes []byte) bool
 	if pInfo == nil {
 		return false
 	}
-
+	log.Info("IsKeyManagedByCurrentNode")
 	return pInfo.shouldActAsValidator(holder.maxRoundsOfInactivity)
 }
 

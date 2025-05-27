@@ -3,10 +3,13 @@ package common
 import (
 	"errors"
 	"fmt"
+	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
 const minRoundsOfInactivity = 2 // the system does not work as expected with the value of 1
 const roundsOfInactivityForMainMachine = 0
+
+var log = logger.GetOrCreate("redundancy")
 
 var errInvalidValue = errors.New("invalid value")
 
@@ -41,6 +44,7 @@ func IsMainNode(maxRoundsOfInactivity int) bool {
 
 // IncrementRoundsOfInactivity will increment the rounds of inactivity
 func (handler *redundancyHandler) IncrementRoundsOfInactivity() {
+	log.Info("Incrementing rounds of inactivity", "currentRounds", handler.roundsOfInactivity)
 	handler.roundsOfInactivity++
 }
 

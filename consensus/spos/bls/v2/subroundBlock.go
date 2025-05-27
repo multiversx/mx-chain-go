@@ -75,14 +75,16 @@ func checkNewSubroundBlockParams(
 // doBlockJob method does the job of the subround Block
 func (sr *subroundBlock) doBlockJob(ctx context.Context) bool {
 	if !sr.IsSelfLeader() { // is NOT self leader in this round?
+		log.Info("doBlockJob - self is not leader in current round")
 		return false
 	}
 
 	// this check will automatically return true for backups.
 	// if backup should not propose due to an active main, it should have been treated as part of the above check
-	if !sr.ShouldProposeBlock() {
-		return false
-	}
+	//if !sr.ShouldProposeBlock() {
+	//	log.Info("doBlockJob - self should not propose block")
+	//	return false
+	//}
 
 	if sr.RoundHandler().Index() <= sr.getRoundInLastCommittedBlock() {
 		return false

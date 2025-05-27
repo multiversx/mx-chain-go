@@ -216,7 +216,7 @@ func (sr *subroundStartRound) initCurrentRound() bool {
 	currentHeader := sr.Blockchain().GetCurrentBlockHeader()
 	isFirstBlockAfterActivation := !check.IfNil(currentHeader) && currentHeader.GetEpoch() == activationEpoch-1
 	isFirstBlock := check.IfNil(currentHeader)
-	if sr.IsSelfLeader() && (isFirstBlock || isFirstBlockAfterActivation) {
+	if isFirstBlock || isFirstBlockAfterActivation {
 		// force main to not wait one signature before proposing
 		sr.SetRoundsSignedToMin()
 	}
@@ -230,13 +230,12 @@ func (sr *subroundStartRound) initCurrentRound() bool {
 }
 
 func (sr *subroundStartRound) computeNumManagedKeysInConsensusGroup(pubKeys []string) int {
+	log.Info("computing number of managed keys in consensus group", "numKeys", len(pubKeys))
 	numMultiKeysInConsensusGroup := 0
 	for _, pk := range pubKeys {
 		pkBytes := []byte(pk)
-
-		if sr.IsMultiKeyLeaderInCurrentRound() {
-			sr.IncrementRoundsWithoutReceivedMessages(pkBytes)
-		}
+		log.Info("checking if key is managed by self", "pk", core.GetTrimmedPk(hex.EncodeToString(pkBytes)))
+		sr.IncrementRoundsWithoutReceivedMessages(pkBytes)
 
 		if sr.IsKeyManagedBySelf(pkBytes) {
 			numMultiKeysInConsensusGroup++
