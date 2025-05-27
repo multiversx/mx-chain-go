@@ -15,7 +15,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/display"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
-	"github.com/multiversx/mx-chain-logger-go"
+	logger "github.com/multiversx/mx-chain-logger-go"
 
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
@@ -193,6 +193,7 @@ func (t *trigger) ForceEpochStart(round uint64) {
 	log.Debug("set new epoch start round", "round", t.nextEpochStartRound)
 }
 
+// TODO check if this need to be handled differently at transition to new epoch
 func (t *trigger) getRoundsPerEpoch() uint64 {
 	return uint64(t.chainParametersHandler.CurrentChainParameters().RoundsPerEpoch)
 }

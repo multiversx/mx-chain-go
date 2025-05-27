@@ -18,6 +18,17 @@ func getUnixHandler(unix int64) func() int64 {
 	}
 }
 
+func getMockChainParametersHandler() *chainParameters.ChainParametersHandlerStub {
+	return &chainParameters.ChainParametersHandlerStub{
+		CurrentChainParametersCalled: func() config.ChainParametersByEpochConfig {
+			return config.ChainParametersByEpochConfig{
+				RoundsPerEpoch: 2400,
+				RoundDuration:  6000,
+			}
+		},
+	}
+}
+
 func TestNewArithmeticEpochProvider_NilChainParameterHandler(t *testing.T) {
 	t.Parallel()
 
@@ -36,7 +47,7 @@ func TestNewArithmeticEpochProvider_InvalidStartTime(t *testing.T) {
 	t.Parallel()
 
 	arg := ArgArithmeticEpochProvider{
-		ChainParametersHandler: &chainParameters.ChainParametersHandlerStub{},
+		ChainParametersHandler: getMockChainParametersHandler(),
 		StartTime:              -1,
 	}
 
@@ -50,15 +61,8 @@ func TestNewArithmeticEpochProvider_ShouldWork(t *testing.T) {
 	t.Parallel()
 
 	arg := ArgArithmeticEpochProvider{
-		ChainParametersHandler: &chainParameters.ChainParametersHandlerStub{
-			CurrentChainParametersCalled: func() config.ChainParametersByEpochConfig {
-				return config.ChainParametersByEpochConfig{
-					RoundDuration:  6000,
-					RoundsPerEpoch: 2400,
-				}
-			},
-		},
-		StartTime: time.Now().Unix(),
+		ChainParametersHandler: getMockChainParametersHandler(),
+		StartTime:              time.Now().Unix(),
 	}
 
 	aep, err := NewArithmeticEpochProvider(arg)
@@ -72,15 +76,8 @@ func TestArithmeticEpochProvider_ComputeEpochAtGenesis(t *testing.T) {
 	t.Parallel()
 
 	arg := ArgArithmeticEpochProvider{
-		ChainParametersHandler: &chainParameters.ChainParametersHandlerStub{
-			CurrentChainParametersCalled: func() config.ChainParametersByEpochConfig {
-				return config.ChainParametersByEpochConfig{
-					RoundsPerEpoch: 2400,
-					RoundDuration:  6000,
-				}
-			},
-		},
-		StartTime: 1000,
+		ChainParametersHandler: getMockChainParametersHandler(),
+		StartTime:              1000,
 	}
 	aep := NewTestArithmeticEpochProvider(arg, getUnixHandler(0))
 	assert.Equal(t, uint32(0), aep.CurrentComputedEpoch())
@@ -139,15 +136,8 @@ func TestArithmeticEpochProvider_EpochConfirmed(t *testing.T) {
 	t.Parallel()
 
 	arg := ArgArithmeticEpochProvider{
-		ChainParametersHandler: &chainParameters.ChainParametersHandlerStub{
-			CurrentChainParametersCalled: func() config.ChainParametersByEpochConfig {
-				return config.ChainParametersByEpochConfig{
-					RoundsPerEpoch: 2400,
-					RoundDuration:  6000,
-				}
-			},
-		},
-		StartTime: 1000,
+		ChainParametersHandler: getMockChainParametersHandler(),
+		StartTime:              1000,
 	}
 	aep := NewTestArithmeticEpochProvider(arg, getUnixHandler(15500))
 	assert.Equal(t, uint32(1), aep.CurrentComputedEpoch())
@@ -163,15 +153,8 @@ func TestArithmeticEpochProvider_EpochIsActiveInNetwork(t *testing.T) {
 	t.Parallel()
 
 	arg := ArgArithmeticEpochProvider{
-		ChainParametersHandler: &chainParameters.ChainParametersHandlerStub{
-			CurrentChainParametersCalled: func() config.ChainParametersByEpochConfig {
-				return config.ChainParametersByEpochConfig{
-					RoundsPerEpoch: 1,
-					RoundDuration:  1,
-				}
-			},
-		},
-		StartTime: 1,
+		ChainParametersHandler: getMockChainParametersHandler(),
+		StartTime:              1,
 	}
 	aep := NewTestArithmeticEpochProvider(arg, getUnixHandler(1))
 
