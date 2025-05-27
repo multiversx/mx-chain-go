@@ -17,9 +17,10 @@ import (
 var log = logger.GetOrCreate("dblookupext/esdtSupply")
 
 type suppliesProcessor struct {
-	logsProc *logsProcessor
-	logsGet  *logsGetter
-	mutex    sync.Mutex
+	logsProc             *logsProcessor
+	logsGet              *logsGetter
+	supplyCorrectionProc *supplyCorrectionProcessor
+	mutex                sync.Mutex
 }
 
 // NewSuppliesProcessor will create a new instance of the supplies processor
@@ -54,6 +55,8 @@ func NewSuppliesProcessor(
 		return nil, err
 	}
 
+	sp.supplyCorrectionProc = supplyCorrectionProc
+
 	return sp, nil
 }
 
@@ -69,7 +72,12 @@ func (sp *suppliesProcessor) ProcessLogs(blockNonce uint64, logs []*data.LogData
 		}
 	}
 
-	return sp.logsProc.processLogs(blockNonce, logsMap, false)
+	err := sp.logsProc.processLogs(blockNonce, logsMap, false)
+	if err != nil {
+		return err
+	}
+
+	return sp.supplyCorrectionProc.applyLateCorrections(blockNonce)
 }
 
 // RevertChanges will revert supplies changes based on the provided block body

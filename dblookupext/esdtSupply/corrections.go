@@ -14,21 +14,52 @@ const (
 )
 
 type supplyCorrectionProcessor struct {
-	shardID  uint32
-	logsProc *logsProcessor
+	shardID         uint32
+	logsProc        *logsProcessor
+	lateCorrections []config.SupplyCorrection
 }
 
 func newSupplyCorrectionProcessor(shardID uint32, logsProc *logsProcessor) *supplyCorrectionProcessor {
 	return &supplyCorrectionProcessor{
-		shardID:  shardID,
-		logsProc: logsProc,
+		shardID:         shardID,
+		logsProc:        logsProc,
+		lateCorrections: make([]config.SupplyCorrection, 0),
 	}
+}
+
+func (scp *supplyCorrectionProcessor) applyLateCorrections(currentBlockNonce uint64) error {
+	if len(scp.lateCorrections) == 0 {
+		return nil
+	}
+
+	supplies := make(map[string]*SupplyESDT)
+	remainingCorrections := make([]config.SupplyCorrection, 0, len(scp.lateCorrections))
+	for _, supplyCorrection := range scp.lateCorrections {
+		if supplyCorrection.BlockNonce > currentBlockNonce {
+			remainingCorrections = append(remainingCorrections, supplyCorrection)
+			continue
+		}
+
+		err := scp.processSupplyCorrection(supplyCorrection, supplies)
+		if err != nil {
+			return err
+		}
+	}
+
+	scp.lateCorrections = remainingCorrections
+
+	err := scp.logsProc.saveSupplies(supplies)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (scp *supplyCorrectionProcessor) applySupplyCorrections(supplyCorrections []config.SupplyCorrection) error {
 	supplies := make(map[string]*SupplyESDT)
 	for _, supplyCorrection := range supplyCorrections {
-		shouldApply, err := scp.shouldApplyCorrection(supplyCorrection)
+		shouldApply, err := scp.shouldApplyCorrectionAndSaveLateCorrections(supplyCorrection)
 		if err != nil {
 			return err
 		}
@@ -36,36 +67,7 @@ func (scp *supplyCorrectionProcessor) applySupplyCorrections(supplyCorrections [
 			continue
 		}
 
-		tokenSupply, err := scp.logsProc.getESDTSupply([]byte(supplyCorrection.Token))
-		if err != nil {
-			return err
-		}
-
-		// if token supply was recomputed should not apply supply correction
-		if tokenSupply.RecomputedSupply {
-			return nil
-		}
-
-		correctionValue, ok := big.NewInt(0).SetString(supplyCorrection.Value, 10)
-		if !ok {
-			return errors.New("failed to parse supplyCorrection value")
-		}
-
-		switch {
-		case correctionValue.Cmp(big.NewInt(0)) > 0:
-			tokenSupply.Supply.Add(tokenSupply.Supply, correctionValue)
-			tokenSupply.Minted.Add(tokenSupply.Minted, correctionValue)
-
-		case correctionValue.Cmp(big.NewInt(0)) < 0:
-			negCorrectionValue := big.NewInt(0).Neg(correctionValue)
-			tokenSupply.Supply.Add(tokenSupply.Supply, correctionValue)
-			tokenSupply.Burned.Add(tokenSupply.Minted, negCorrectionValue)
-		}
-
-		supplies[supplyCorrection.Token] = tokenSupply
-
-		correction := &Correction{WasApplied: true}
-		err = scp.saveCorrectionInfo(getSupplyCorrectionKey(supplyCorrection.ID), correction)
+		err = scp.processSupplyCorrection(supplyCorrection, supplies)
 		if err != nil {
 			return err
 		}
@@ -79,7 +81,45 @@ func (scp *supplyCorrectionProcessor) applySupplyCorrections(supplyCorrections [
 	return nil
 }
 
-func (scp *supplyCorrectionProcessor) shouldApplyCorrection(supplyCorrection config.SupplyCorrection) (bool, error) {
+func (scp *supplyCorrectionProcessor) processSupplyCorrection(supplyCorrection config.SupplyCorrection, supplies map[string]*SupplyESDT) error {
+	tokenSupply, err := scp.logsProc.getESDTSupply([]byte(supplyCorrection.Token))
+	if err != nil {
+		return err
+	}
+
+	// if token supply was recomputed should not apply supply correction
+	if tokenSupply.RecomputedSupply {
+		return nil
+	}
+
+	correctionValue, ok := big.NewInt(0).SetString(supplyCorrection.Value, 10)
+	if !ok {
+		return errors.New("failed to parse supplyCorrection value")
+	}
+
+	switch {
+	case correctionValue.Cmp(big.NewInt(0)) > 0:
+		tokenSupply.Supply.Add(tokenSupply.Supply, correctionValue)
+		tokenSupply.Minted.Add(tokenSupply.Minted, correctionValue)
+
+	case correctionValue.Cmp(big.NewInt(0)) < 0:
+		negCorrectionValue := big.NewInt(0).Neg(correctionValue)
+		tokenSupply.Supply.Add(tokenSupply.Supply, correctionValue)
+		tokenSupply.Burned.Add(tokenSupply.Minted, negCorrectionValue)
+	}
+
+	supplies[supplyCorrection.Token] = tokenSupply
+
+	correction := &Correction{WasApplied: true}
+	err = scp.saveCorrectionInfo(getSupplyCorrectionKey(supplyCorrection.ID), correction)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (scp *supplyCorrectionProcessor) shouldApplyCorrectionAndSaveLateCorrections(supplyCorrection config.SupplyCorrection) (bool, error) {
 	if supplyCorrection.ShardID != scp.shardID {
 		return false, nil
 	}
@@ -89,6 +129,7 @@ func (scp *supplyCorrectionProcessor) shouldApplyCorrection(supplyCorrection con
 		return false, err
 	}
 	if latestProcessedBlockNonce < supplyCorrection.BlockNonce {
+		scp.lateCorrections = append(scp.lateCorrections, supplyCorrection)
 		return false, nil
 	}
 
