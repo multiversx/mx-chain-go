@@ -213,7 +213,11 @@ func (sr *subroundStartRound) initCurrentRound() bool {
 	}
 
 	isRoundZero := sr.GetRoundIndex() == 0
-	if sr.IsSelfLeader() && isRoundZero {
+	activationEpoch := sr.EnableEpochsHandler().GetActivationEpoch(common.AndromedaFlag)
+	currentHeader := sr.Blockchain().GetCurrentBlockHeader()
+	lastHeaderWasPrevBeforeActivation := currentHeader.GetEpoch() == activationEpoch-1
+	isFirstBlockAfterActivation := !check.IfNil(currentHeader) && lastHeaderWasPrevBeforeActivation
+	if sr.IsSelfLeader() && (isRoundZero || isFirstBlockAfterActivation) {
 		// force main to not wait one signature before proposing
 		sr.SetRoundsSignedToMin()
 	}
