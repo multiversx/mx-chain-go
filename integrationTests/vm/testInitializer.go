@@ -52,7 +52,6 @@ import (
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/storage/storageunit"
-	"github.com/multiversx/mx-chain-go/storage/txcache"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	commonMocks "github.com/multiversx/mx-chain-go/testscommon/common"
 	dataRetrieverMock "github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
@@ -65,6 +64,7 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/shardingMocks"
 	storageStubs "github.com/multiversx/mx-chain-go/testscommon/storage"
 	"github.com/multiversx/mx-chain-go/testscommon/txDataBuilder"
+	txcache2 "github.com/multiversx/mx-chain-go/txcache"
 	"github.com/multiversx/mx-chain-go/vm/systemSmartContracts/defaults"
 	logger "github.com/multiversx/mx-chain-logger-go"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
@@ -466,7 +466,7 @@ func CreateTxProcessorWithOneSCExecutorMockVM(
 		TxLogsProcessor:     &mock.TxLogsProcessorStub{},
 		EnableEpochsHandler: enableEpochsHandler,
 		EnableRoundsHandler: enableRoundsHandler,
-		VMOutputCacher:      txcache.NewDisabledCache(),
+		VMOutputCacher:      txcache2.NewDisabledCache(),
 		WasmVMChangeLocker:  wasmVMChangeLocker,
 	}
 
@@ -889,7 +889,7 @@ func CreateTxProcessorWithOneSCExecutorWithVMs(
 		EnableRoundsHandler: enableRoundsHandler,
 		EnableEpochsHandler: enableEpochsHandler,
 		WasmVMChangeLocker:  wasmVMChangeLocker,
-		VMOutputCacher:      txcache.NewDisabledCache(),
+		VMOutputCacher:      txcache2.NewDisabledCache(),
 	}
 
 	scProcessorProxy, _ := processProxy.NewTestSmartContractProcessorProxy(argsNewSCProcessor, epochNotifierInstance)

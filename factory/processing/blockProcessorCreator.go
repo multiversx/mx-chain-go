@@ -40,7 +40,7 @@ import (
 	"github.com/multiversx/mx-chain-go/process/transaction"
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/state/syncer"
-	"github.com/multiversx/mx-chain-go/storage/txcache"
+	txcache2 "github.com/multiversx/mx-chain-go/txcache"
 	"github.com/multiversx/mx-chain-go/vm"
 	logger "github.com/multiversx/mx-chain-logger-go"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
@@ -260,7 +260,7 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 		BadTxForwarder:      badTxInterim,
 		EnableRoundsHandler: pcf.coreData.EnableRoundsHandler(),
 		EnableEpochsHandler: pcf.coreData.EnableEpochsHandler(),
-		VMOutputCacher:      txcache.NewDisabledCache(),
+		VMOutputCacher:      txcache2.NewDisabledCache(),
 		WasmVMChangeLocker:  wasmVMChangeLocker,
 	}
 
@@ -589,7 +589,7 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 		BadTxForwarder:      badTxForwarder,
 		EnableRoundsHandler: pcf.coreData.EnableRoundsHandler(),
 		EnableEpochsHandler: pcf.coreData.EnableEpochsHandler(),
-		VMOutputCacher:      txcache.NewDisabledCache(),
+		VMOutputCacher:      txcache2.NewDisabledCache(),
 		WasmVMChangeLocker:  wasmVMChangeLocker,
 	}
 
