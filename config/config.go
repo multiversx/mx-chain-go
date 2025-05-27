@@ -508,7 +508,6 @@ type SupplyCorrection struct {
 	BlockNonce uint64
 	Token      string
 	Value      string
-	Operation  string
 }
 
 // DebugConfig will hold debugging configuration

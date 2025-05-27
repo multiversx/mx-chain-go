@@ -10,9 +10,6 @@ import (
 )
 
 const (
-	addOperation      = "add"
-	subtractOperation = "subtract"
-
 	supplyCorrectionPrefix = "supplyCorrection"
 )
 
@@ -54,15 +51,15 @@ func (scp *supplyCorrectionProcessor) applySupplyCorrections(supplyCorrections [
 			return errors.New("failed to parse supplyCorrection value")
 		}
 
-		switch supplyCorrection.Operation {
-		case addOperation:
+		switch {
+		case correctionValue.Cmp(big.NewInt(0)) > 0:
 			tokenSupply.Supply.Add(tokenSupply.Supply, correctionValue)
 			tokenSupply.Minted.Add(tokenSupply.Minted, correctionValue)
 
-		case subtractOperation:
-			correctionValueNegative := big.NewInt(0).Neg(correctionValue)
-			tokenSupply.Supply.Add(tokenSupply.Supply, correctionValueNegative)
-			tokenSupply.Burned.Add(tokenSupply.Minted, correctionValue)
+		case correctionValue.Cmp(big.NewInt(0)) < 0:
+			negCorrectionValue := big.NewInt(0).Neg(correctionValue)
+			tokenSupply.Supply.Add(tokenSupply.Supply, correctionValue)
+			tokenSupply.Burned.Add(tokenSupply.Minted, negCorrectionValue)
 		}
 
 		supplies[supplyCorrection.Token] = tokenSupply
