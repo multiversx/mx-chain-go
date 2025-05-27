@@ -214,8 +214,7 @@ func (sr *subroundStartRound) initCurrentRound() bool {
 
 	activationEpoch := sr.EnableEpochsHandler().GetActivationEpoch(common.AndromedaFlag)
 	currentHeader := sr.Blockchain().GetCurrentBlockHeader()
-	lastHeaderWasPrevBeforeActivation := currentHeader.GetEpoch() == activationEpoch-1
-	isFirstBlockAfterActivation := !check.IfNil(currentHeader) && lastHeaderWasPrevBeforeActivation
+	isFirstBlockAfterActivation := !check.IfNil(currentHeader) && currentHeader.GetEpoch() == activationEpoch-1
 	isFirstBlock := check.IfNil(currentHeader)
 	if sr.IsSelfLeader() && (isFirstBlock || isFirstBlockAfterActivation) {
 		// force main to not wait one signature before proposing
