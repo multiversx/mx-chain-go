@@ -34,8 +34,7 @@ func cloneTrigger(t *trigger) *trigger {
 	rt.appStatusHandler = t.appStatusHandler
 	rt.nextEpochStartRound = t.nextEpochStartRound
 	rt.validatorInfoPool = t.validatorInfoPool
-	rt.getRoundsPerEpoch = t.getRoundsPerEpoch
-	rt.getMinRoundsBetweenEpochs = t.getMinRoundsBetweenEpochs
+	rt.chainParametersHandler = t.chainParametersHandler
 
 	return rt
 }
