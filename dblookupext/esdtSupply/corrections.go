@@ -105,7 +105,7 @@ func (scp *supplyCorrectionProcessor) processSupplyCorrection(supplyCorrection c
 	case correctionValue.Cmp(big.NewInt(0)) < 0:
 		negCorrectionValue := big.NewInt(0).Neg(correctionValue)
 		tokenSupply.Supply.Add(tokenSupply.Supply, correctionValue)
-		tokenSupply.Burned.Add(tokenSupply.Minted, negCorrectionValue)
+		tokenSupply.Burned.Add(tokenSupply.Burned, negCorrectionValue)
 	}
 
 	supplies[supplyCorrection.Token] = tokenSupply

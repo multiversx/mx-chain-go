@@ -255,7 +255,7 @@ func TestApplyLateCorrections(t *testing.T) {
 					err := marshaller.Unmarshal(supply, data)
 					require.Nil(t, err)
 					require.Equal(t, big.NewInt(150), supply.Supply)
-					require.Equal(t, big.NewInt(250), supply.Burned)
+					require.Equal(t, big.NewInt(50), supply.Burned)
 				case "supplyCorrectioncorr1", "supplyCorrectioncorr2":
 					correction := &Correction{}
 					err := marshaller.Unmarshal(correction, data)
