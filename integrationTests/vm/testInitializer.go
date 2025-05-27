@@ -64,7 +64,7 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/shardingMocks"
 	storageStubs "github.com/multiversx/mx-chain-go/testscommon/storage"
 	"github.com/multiversx/mx-chain-go/testscommon/txDataBuilder"
-	txcache2 "github.com/multiversx/mx-chain-go/txcache"
+	"github.com/multiversx/mx-chain-go/txcache"
 	"github.com/multiversx/mx-chain-go/vm/systemSmartContracts/defaults"
 	logger "github.com/multiversx/mx-chain-logger-go"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
@@ -466,7 +466,7 @@ func CreateTxProcessorWithOneSCExecutorMockVM(
 		TxLogsProcessor:     &mock.TxLogsProcessorStub{},
 		EnableEpochsHandler: enableEpochsHandler,
 		EnableRoundsHandler: enableRoundsHandler,
-		VMOutputCacher:      txcache2.NewDisabledCache(),
+		VMOutputCacher:      txcache.NewDisabledCache(),
 		WasmVMChangeLocker:  wasmVMChangeLocker,
 	}
 
@@ -889,7 +889,7 @@ func CreateTxProcessorWithOneSCExecutorWithVMs(
 		EnableRoundsHandler: enableRoundsHandler,
 		EnableEpochsHandler: enableEpochsHandler,
 		WasmVMChangeLocker:  wasmVMChangeLocker,
-		VMOutputCacher:      txcache2.NewDisabledCache(),
+		VMOutputCacher:      txcache.NewDisabledCache(),
 	}
 
 	scProcessorProxy, _ := processProxy.NewTestSmartContractProcessorProxy(argsNewSCProcessor, epochNotifierInstance)

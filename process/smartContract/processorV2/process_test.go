@@ -15,7 +15,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/smartContractResult"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	vmData "github.com/multiversx/mx-chain-core-go/data/vm"
-	txcache2 "github.com/multiversx/mx-chain-go/txcache"
+	"github.com/multiversx/mx-chain-go/txcache"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 	"github.com/multiversx/mx-chain-vm-common-go/builtInFunctions"
 	"github.com/multiversx/mx-chain-vm-common-go/parsers"
@@ -132,7 +132,7 @@ func createMockSmartContractProcessorArguments() scrCommon.ArgsNewSmartContractP
 		},
 		GasSchedule:        testscommon.NewGasScheduleNotifierMock(gasSchedule),
 		WasmVMChangeLocker: &sync.RWMutex{},
-		VMOutputCacher:     txcache2.NewDisabledCache(),
+		VMOutputCacher:     txcache.NewDisabledCache(),
 	}
 }
 
