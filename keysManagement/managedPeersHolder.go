@@ -40,6 +40,7 @@ type managedPeersHolder struct {
 	defaultIdentity                string
 	p2pKeyConverter                p2p.P2PKeyConverter
 	roundsSigned                   uint64
+	mutRoundsSigned                sync.RWMutex
 	minRoundsToSignBeforeProposing uint64
 }
 
@@ -293,7 +294,9 @@ func (holder *managedPeersHolder) IncrementRoundsSigned() {
 		return
 	}
 
+	holder.mutRoundsSigned.Lock()
 	holder.roundsSigned++
+	holder.mutRoundsSigned.Unlock()
 }
 
 // ShouldProposeBlock returns true if the machine should propose block or not
@@ -302,6 +305,9 @@ func (holder *managedPeersHolder) ShouldProposeBlock() bool {
 	if !holder.isMainMachine {
 		return true
 	}
+
+	holder.mutRoundsSigned.RLock()
+	defer holder.mutRoundsSigned.RUnlock()
 
 	return holder.roundsSigned >= holder.minRoundsToSignBeforeProposing
 }
@@ -312,7 +318,9 @@ func (holder *managedPeersHolder) SetRoundsSignedToMin() {
 		return
 	}
 
+	holder.mutRoundsSigned.Lock()
 	holder.roundsSigned = holder.minRoundsToSignBeforeProposing
+	holder.mutRoundsSigned.Unlock()
 }
 
 // GetManagedKeysByCurrentNode returns all keys that should act as validator(main or backup that took over) and will be managed by this node
