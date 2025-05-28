@@ -165,6 +165,7 @@ func TestTomlParser(t *testing.T) {
 		TransactionsPool: TransactionsPoolConfig{
 			SelectionGasBandwidthIncreasePercent:          400,
 			SelectionGasBandwidthIncreaseScheduledPercent: 260,
+			SelectionLoopDurationCheckInterval:            10,
 			MaxNumBytesPerSenderUpperBound:                33_554_432,
 		},
 		SortedTransactions: SortedTransactionsConfig{
@@ -227,6 +228,7 @@ func TestTomlParser(t *testing.T) {
 	SelectionGasBandwidthIncreasePercent = 400
     SelectionGasBandwidthIncreaseScheduledPercent = 260
 	MaxNumBytesPerSenderUpperBound = 33_554_432
+	SelectionLoopDurationCheckInterval = 10
 
 [SortedTransactions]
     TxCacheSelectionMaxNumTxs = 30000

@@ -427,7 +427,6 @@
     MaxNumBytesPerSenderUpperBound = 33_554_432 #32MB
     SelectionLoopDurationCheckInterval = 10
 
-
 [SortedTransactions]
     TxCacheSelectionMaxNumTxs = 30000
     TxCacheSelectionLoopMaximumDuration = 250

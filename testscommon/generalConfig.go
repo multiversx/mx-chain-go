@@ -135,11 +135,11 @@ func GetGeneralConfig() config.Config {
 			SizeInBytes:          1000000000,
 			SizeInBytesPerSender: 10000000,
 			Shards:               1,
-			SelectionLoopDurationCheckInterval:            10,
 		},
 		TransactionsPool: config.TransactionsPoolConfig{
 			SelectionGasBandwidthIncreasePercent:          400,
 			SelectionGasBandwidthIncreaseScheduledPercent: 260,
+			SelectionLoopDurationCheckInterval:            10,
 		},
 		SortedTransactions: config.SortedTransactionsConfig{
 			TxCacheSelectionMaxNumTxs:           30000,
