@@ -1,6 +1,7 @@
 package txcache
 
 import (
+	"fmt"
 	"sort"
 	"time"
 )
@@ -60,7 +61,15 @@ func (txs *transactions) RemoveTxsFromPools(body *block.Body) error {
 
 */
 func (cache *TxCache) Cleanup(session SelectionSession, nonce uint64, maxNum int, selectionLoopMaximumDuration time.Duration) (uint64) {
-
+	logRemove.Debug(
+		"TxCache.Cleanup: begin",
+		"nonce", nonce,
+		"maxNum", maxNum,
+		"selectionLoopMaximumDuration", selectionLoopMaximumDuration,
+		"num bytes", cache.NumBytes(),
+		"num txs", cache.CountTx(),
+		"num senders", cache.CountSenders(),
+	)
 	return cache.RemoveSweepableTxs(session, nonce, maxNum, selectionLoopMaximumDuration)
 }
 
@@ -124,7 +133,7 @@ func (listForSender *txListForSender) removeSweepableTransactionsReturnHashes(ta
 			continue
 		}
 
-		//fmt.Println("Not skipped txNonce:", txNonce, ", targetNonce = ",targetNonce, " txNonceForDuplicateProcessing:", txNonceForDuplicateProcessing)
+		fmt.Println("Not skipped txNonce:", txNonce, ", targetNonce = ",targetNonce, " txNonceForDuplicateProcessing:", txNonceForDuplicateProcessing)
 		nextElement := element.Next()
 		_ = listForSender.items.Remove(element)
 		listForSender.onRemovedListElement(element)

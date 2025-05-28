@@ -184,6 +184,11 @@ type ShardedDataCacherNotifier interface {
 	IsInterfaceNil() bool
 }
 
+type CleanupCapableCacher interface {
+	ShardedDataCacherNotifier
+	MempoolCleanup(session interface{}, nonce uint64, maxNum int, selectionLoopMaximumDuration time.Duration) (uint64, error)
+}
+
 // ShardIdHashMap represents a map for shardId and hash
 type ShardIdHashMap interface {
 	Load(shardId uint32) ([]byte, bool)
