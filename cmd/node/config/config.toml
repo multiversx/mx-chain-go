@@ -420,11 +420,12 @@
     SizeInBytesPerSender = 12288000 #12MB
     Type = "TxCache"
     Shards = 16
-    MaxNumBytesPerSenderUpperBound = 33_554_432 #32MB
 
 [TransactionsPool]
     SelectionGasBandwidthIncreasePercent = 400
     SelectionGasBandwidthIncreaseScheduledPercent = 260
+    MaxNumBytesPerSenderUpperBound = 33_554_432 #32MB
+
 
 [SortedTransactions]
     TxCacheSelectionMaxNumTxs = 30000

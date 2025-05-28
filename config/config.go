@@ -11,13 +11,13 @@ type CacheConfig struct {
 	SizeInBytes          uint64
 	SizeInBytesPerSender uint32
 	Shards               uint32
-	MaxNumBytesPerSenderUpperBound uint32
 }
 
 // TransactionsPoolConfig will map the transactions pool config
 type TransactionsPoolConfig struct {
 	SelectionGasBandwidthIncreasePercent          uint32
 	SelectionGasBandwidthIncreaseScheduledPercent uint32
+	MaxNumBytesPerSenderUpperBound                uint32
 }
 
 // SortedTransactionsConfig will map the sorted transactions config

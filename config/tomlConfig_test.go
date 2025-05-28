@@ -162,19 +162,10 @@ func TestTomlParser(t *testing.T) {
 		Redundancy: RedundancyConfig{
 			MaxRoundsOfInactivityAccepted: 3,
 		},
-		TxDataPool: CacheConfig{
-			Name:                           "TxDataPool",
-			Type:                           "TxCache",
-			Capacity:                       600000,
-			SizePerSender:                  5001,
-			SizeInBytes:                    419430400,
-			SizeInBytesPerSender:           12288000,
-			Shards:                         16,
-			MaxNumBytesPerSenderUpperBound: 33_554_432,
-		},
 		TransactionsPool: TransactionsPoolConfig{
 			SelectionGasBandwidthIncreasePercent:          400,
 			SelectionGasBandwidthIncreaseScheduledPercent: 260,
+			MaxNumBytesPerSenderUpperBound:                33_554_432,
 		},
 		SortedTransactions: SortedTransactionsConfig{
 			TxCacheSelectionMaxNumTxs:           30000,
@@ -235,20 +226,11 @@ func TestTomlParser(t *testing.T) {
 [TransactionsPool]
 	SelectionGasBandwidthIncreasePercent = 400
     SelectionGasBandwidthIncreaseScheduledPercent = 260
+	MaxNumBytesPerSenderUpperBound = 33_554_432
 
 [SortedTransactions]
     TxCacheSelectionMaxNumTxs = 30000
     TxCacheSelectionLoopMaximumDuration = 250
-
-[TxDataPool]
-    Name = "TxDataPool"
-    Capacity = 600000
-    SizePerSender = 5001
-    SizeInBytes = 419430400 #400MB
-    SizeInBytesPerSender = 12288000 #12MB
-    Type = "TxCache"
-    Shards = 16
-    MaxNumBytesPerSenderUpperBound = 33_554_432 #32MB
 
 [VirtualMachine]
     [VirtualMachine.Execution]
