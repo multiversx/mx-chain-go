@@ -420,10 +420,15 @@
     SizeInBytesPerSender = 12288000 #12MB
     Type = "TxCache"
     Shards = 16
+    MaxNumBytesPerSenderUpperBound = 33_554_432 #32MB
+
+[TransactionsPool]
     SelectionGasBandwidthIncreasePercent = 400
     SelectionGasBandwidthIncreaseScheduledPercent = 260
+
+[SortedTransactions]
     TxCacheSelectionMaxNumTxs = 30000
-    MaxNumBytesPerSenderUpperBound = 33_554_432 #32MB
+    TxCacheSelectionLoopMaximumDuration = 250
 
 [TrieNodesChunksDataPool]
     Name = "TrieNodesDataPool"

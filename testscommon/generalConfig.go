@@ -130,14 +130,19 @@ func GetGeneralConfig() config.Config {
 			SnapshotsGoroutineNum: 2,
 		},
 		TxDataPool: config.CacheConfig{
-			Capacity:                             10000,
-			SizePerSender:                        1000,
-			SizeInBytes:                          1000000000,
-			SizeInBytesPerSender:                 10000000,
-			Shards:                               1,
-			SelectionGasBandwidthIncreasePercent: 400,
+			Capacity:             10000,
+			SizePerSender:        1000,
+			SizeInBytes:          1000000000,
+			SizeInBytesPerSender: 10000000,
+			Shards:               1,
+		},
+		TransactionsPool: config.TransactionsPoolConfig{
+			SelectionGasBandwidthIncreasePercent:          400,
 			SelectionGasBandwidthIncreaseScheduledPercent: 260,
-			TxCacheSelectionMaxNumTxs:                     30000,
+		},
+		SortedTransactions: config.SortedTransactionsConfig{
+			TxCacheSelectionMaxNumTxs:           30000,
+			TxCacheSelectionLoopMaximumDuration: 250,
 		},
 		UnsignedTransactionDataPool: config.CacheConfig{
 			Capacity:    10000,

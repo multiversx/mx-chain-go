@@ -162,18 +162,13 @@ func TestTomlParser(t *testing.T) {
 		Redundancy: RedundancyConfig{
 			MaxRoundsOfInactivityAccepted: 3,
 		},
-		TxDataPool: CacheConfig{
-			Name:                                 "TxDataPool",
-			Type:                                 "TxCache",
-			Capacity:                             600000,
-			SizePerSender:                        5001,
-			SizeInBytes:                          419430400,
-			SizeInBytesPerSender:                 12288000,
-			Shards:                               16,
-			SelectionGasBandwidthIncreasePercent: 400,
+		TransactionsPool: TransactionsPoolConfig{
+			SelectionGasBandwidthIncreasePercent:          400,
 			SelectionGasBandwidthIncreaseScheduledPercent: 260,
-			TxCacheSelectionMaxNumTxs:                     30000,
-			MaxNumBytesPerSenderUpperBound:                33_554_432,
+		},
+		SortedTransactions: SortedTransactionsConfig{
+			TxCacheSelectionMaxNumTxs:           30000,
+			TxCacheSelectionLoopMaximumDuration: 250,
 		},
 	}
 	testString := `
@@ -227,6 +222,14 @@ func TestTomlParser(t *testing.T) {
 [Consensus]
     Type = "` + consensusType + `"
 
+[TransactionsPool]
+	SelectionGasBandwidthIncreasePercent = 400
+    SelectionGasBandwidthIncreaseScheduledPercent = 260
+
+[SortedTransactions]
+    TxCacheSelectionMaxNumTxs = 30000
+    TxCacheSelectionLoopMaximumDuration = 250
+
 [VirtualMachine]
     [VirtualMachine.Execution]
         TimeOutForSCExecutionInMilliseconds = 10000 # 10 seconds = 10000 milliseconds
@@ -276,19 +279,6 @@ func TestTomlParser(t *testing.T) {
     PeerStatePruningEnabled = true
     MaxStateTrieLevelInMemory = 38
     MaxPeerTrieLevelInMemory = 39
-
-[TxDataPool]
-    Name = "TxDataPool"
-    Capacity = 600000
-    SizePerSender = 5001
-    SizeInBytes = 419430400 
-    SizeInBytesPerSender = 12288000 
-    Type = "TxCache"
-    Shards = 16
-    SelectionGasBandwidthIncreasePercent = 400
-    SelectionGasBandwidthIncreaseScheduledPercent = 260
-    TxCacheSelectionMaxNumTxs = 30000
-    MaxNumBytesPerSenderUpperBound = 33_554_432
 
 [Redundancy]
     # MaxRoundsOfInactivityAccepted defines the number of rounds missed by a main or higher level backup machine before
