@@ -307,6 +307,8 @@ func (sr *subroundSignature) doSignatureJobForSingleKey() bool {
 		return false
 	}
 
+	sr.IncrementRoundsSigned()
+
 	return sr.completeSignatureSubRound(sr.SelfPubKey())
 }
 
