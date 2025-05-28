@@ -81,7 +81,8 @@ func (sr *subroundBlock) doBlockJob(ctx context.Context) bool {
 	// this check will automatically return true for backups.
 	// if backup should not propose due to an active main, it should have been treated as part of the above check
 	if !sr.ShouldProposeBlock() {
-		return false
+		// return true so the block proposed by the backup will be seen by this main node too
+		return true
 	}
 
 	if sr.RoundHandler().Index() <= sr.getRoundInLastCommittedBlock() {
@@ -469,7 +470,7 @@ func (sr *subroundBlock) receivedBlockHeader(headerHandler data.HeaderHandler) {
 		return
 	}
 
-	isLeader := sr.IsSelfLeader()
+	isLeader := sr.IsSelfLeader() && sr.ShouldProposeBlock()
 	if sr.ConsensusGroup() == nil || isLeader {
 		log.Debug("subroundBlock.receivedBlockHeader - consensus group is nil or is leader")
 		return
@@ -525,23 +526,12 @@ func (sr *subroundBlock) receivedBlockHeader(headerHandler data.HeaderHandler) {
 	ctx, cancel := context.WithTimeout(context.Background(), sr.RoundHandler().TimeDuration())
 	defer cancel()
 
-	blockProcessedWithSuccess := sr.processReceivedBlock(ctx, int64(headerHandler.GetRound()), []byte(sr.Leader()))
+	_ = sr.processReceivedBlock(ctx, int64(headerHandler.GetRound()), []byte(sr.Leader()))
 	sr.PeerHonestyHandler().ChangeScore(
 		sr.Leader(),
 		spos.GetConsensusTopicID(sr.ShardCoordinator()),
 		spos.LeaderPeerHonestyIncreaseFactor,
 	)
-
-	pubKeys := sr.ConsensusGroup()
-	if blockProcessedWithSuccess {
-		// increment the number of rounds without received message
-		// at this point, it is certain that the leader is not managed by self and
-		// the block was processed, so signatures are expected from the current managed nodes
-		for _, pk := range pubKeys {
-			pkBytes := []byte(pk)
-			sr.IncrementRoundsWithoutReceivedMessages(pkBytes)
-		}
-	}
 }
 
 // CanProcessReceivedHeader method returns true if the received header can be processed and false otherwise

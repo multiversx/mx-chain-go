@@ -234,9 +234,7 @@ func (sr *subroundStartRound) computeNumManagedKeysInConsensusGroup(pubKeys []st
 	for _, pk := range pubKeys {
 		pkBytes := []byte(pk)
 
-		if sr.IsMultiKeyLeaderInCurrentRound() {
-			sr.IncrementRoundsWithoutReceivedMessages(pkBytes)
-		}
+		sr.IncrementRoundsWithoutReceivedMessages(pkBytes)
 
 		if sr.IsKeyManagedBySelf(pkBytes) {
 			numMultiKeysInConsensusGroup++
