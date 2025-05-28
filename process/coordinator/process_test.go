@@ -53,6 +53,20 @@ const MaxGasLimitPerBlock = uint64(100000)
 
 var txHash = []byte("tx_hash1")
 
+func createMockCacheConfig() config.TransactionsPoolConfig {
+	return config.TransactionsPoolConfig{
+		SelectionGasBandwidthIncreasePercent:          400,
+		SelectionGasBandwidthIncreaseScheduledPercent: 260,
+	}
+}
+
+func createMockSortedTransactionsConfig() config.SortedTransactionsConfig {
+	return config.SortedTransactionsConfig{
+		TxCacheSelectionMaxNumTxs:           30000,
+		TxCacheSelectionLoopMaximumDuration: 250,
+	}
+}
+
 func FeeHandlerMock() *economicsmocks.EconomicsHandlerMock {
 	return &economicsmocks.EconomicsHandlerMock{
 		ComputeGasLimitCalled: func(tx data.TransactionWithFeeHandler) uint64 {
@@ -562,11 +576,8 @@ func createPreProcessorContainer() process.PreProcessorsContainer {
 		&testscommon.ScheduledTxsExecutionStub{},
 		&testscommon.ProcessedMiniBlocksTrackerStub{},
 		&commonMock.TxExecutionOrderHandlerStub{},
-		config.CacheConfig{
-			SelectionGasBandwidthIncreasePercent:          400,
-			SelectionGasBandwidthIncreaseScheduledPercent: 260,
-			TxCacheSelectionMaxNumTxs:                     30000,
-		},
+		createMockCacheConfig(),
+		createMockSortedTransactionsConfig(),
 	)
 	container, _ := preFactory.Create()
 
@@ -667,11 +678,8 @@ func createPreProcessorContainerWithDataPool(
 		&testscommon.ScheduledTxsExecutionStub{},
 		&testscommon.ProcessedMiniBlocksTrackerStub{},
 		&commonMock.TxExecutionOrderHandlerStub{},
-		config.CacheConfig{
-			SelectionGasBandwidthIncreasePercent:          400,
-			SelectionGasBandwidthIncreaseScheduledPercent: 260,
-			TxCacheSelectionMaxNumTxs:                     30000,
-		},
+		createMockCacheConfig(),
+		createMockSortedTransactionsConfig(),
 	)
 	container, _ := preFactory.Create()
 
@@ -942,11 +950,8 @@ func TestTransactionCoordinator_CreateMbsAndProcessCrossShardTransactions(t *tes
 		&testscommon.ScheduledTxsExecutionStub{},
 		&testscommon.ProcessedMiniBlocksTrackerStub{},
 		&commonMock.TxExecutionOrderHandlerStub{},
-		config.CacheConfig{
-			SelectionGasBandwidthIncreasePercent:          400,
-			SelectionGasBandwidthIncreaseScheduledPercent: 260,
-			TxCacheSelectionMaxNumTxs:                     30000,
-		},
+		createMockCacheConfig(),
+		createMockSortedTransactionsConfig(),
 	)
 	container, _ := preFactory.Create()
 
@@ -1134,11 +1139,8 @@ func TestTransactionCoordinator_CreateMbsAndProcessCrossShardTransactionsNilPreP
 		&testscommon.ScheduledTxsExecutionStub{},
 		&testscommon.ProcessedMiniBlocksTrackerStub{},
 		&commonMock.TxExecutionOrderHandlerStub{},
-		config.CacheConfig{
-			SelectionGasBandwidthIncreasePercent:          400,
-			SelectionGasBandwidthIncreaseScheduledPercent: 260,
-			TxCacheSelectionMaxNumTxs:                     30000,
-		},
+		createMockCacheConfig(),
+		createMockSortedTransactionsConfig(),
 	)
 	container, _ := preFactory.Create()
 
@@ -1248,11 +1250,8 @@ func TestTransactionCoordinator_CreateMbsAndProcessTransactionsFromMeNothingToPr
 		&testscommon.ScheduledTxsExecutionStub{},
 		&testscommon.ProcessedMiniBlocksTrackerStub{},
 		&commonMock.TxExecutionOrderHandlerStub{},
-		config.CacheConfig{
-			SelectionGasBandwidthIncreasePercent:          400,
-			SelectionGasBandwidthIncreaseScheduledPercent: 260,
-			TxCacheSelectionMaxNumTxs:                     30000,
-		},
+		createMockCacheConfig(),
+		createMockSortedTransactionsConfig(),
 	)
 	container, _ := preFactory.Create()
 
@@ -1832,11 +1831,9 @@ func TestTransactionCoordinator_ProcessBlockTransactionProcessTxError(t *testing
 		&testscommon.ScheduledTxsExecutionStub{},
 		&testscommon.ProcessedMiniBlocksTrackerStub{},
 		&commonMock.TxExecutionOrderHandlerStub{},
-		config.CacheConfig{
-			SelectionGasBandwidthIncreasePercent:          400,
-			SelectionGasBandwidthIncreaseScheduledPercent: 260,
-			TxCacheSelectionMaxNumTxs:                     30000,
-		})
+		createMockCacheConfig(),
+		createMockSortedTransactionsConfig(),
+	)
 	container, _ := preFactory.Create()
 
 	argsTransactionCoordinator := createMockTransactionCoordinatorArguments()
@@ -1963,11 +1960,8 @@ func TestTransactionCoordinator_RequestMiniblocks(t *testing.T) {
 		&testscommon.ScheduledTxsExecutionStub{},
 		&testscommon.ProcessedMiniBlocksTrackerStub{},
 		&commonMock.TxExecutionOrderHandlerStub{},
-		config.CacheConfig{
-			SelectionGasBandwidthIncreasePercent:          400,
-			SelectionGasBandwidthIncreaseScheduledPercent: 260,
-			TxCacheSelectionMaxNumTxs:                     30000,
-		},
+		createMockCacheConfig(),
+		createMockSortedTransactionsConfig(),
 	)
 	container, _ := preFactory.Create()
 
@@ -2109,11 +2103,8 @@ func TestShardProcessor_ProcessMiniBlockCompleteWithOkTxsShouldExecuteThemAndNot
 		&testscommon.ScheduledTxsExecutionStub{},
 		&testscommon.ProcessedMiniBlocksTrackerStub{},
 		&commonMock.TxExecutionOrderHandlerStub{},
-		config.CacheConfig{
-			SelectionGasBandwidthIncreasePercent:          400,
-			SelectionGasBandwidthIncreaseScheduledPercent: 260,
-			TxCacheSelectionMaxNumTxs:                     30000,
-		},
+		createMockCacheConfig(),
+		createMockSortedTransactionsConfig(),
 	)
 	container, _ := preFactory.Create()
 
@@ -2256,11 +2247,8 @@ func TestShardProcessor_ProcessMiniBlockCompleteWithErrorWhileProcessShouldCallR
 		&testscommon.ScheduledTxsExecutionStub{},
 		&testscommon.ProcessedMiniBlocksTrackerStub{},
 		&commonMock.TxExecutionOrderHandlerStub{},
-		config.CacheConfig{
-			SelectionGasBandwidthIncreasePercent:          400,
-			SelectionGasBandwidthIncreaseScheduledPercent: 260,
-			TxCacheSelectionMaxNumTxs:                     30000,
-		},
+		createMockCacheConfig(),
+		createMockSortedTransactionsConfig(),
 	)
 	container, _ := preFactory.Create()
 
