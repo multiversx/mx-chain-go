@@ -609,15 +609,16 @@ func newUnconstrainedCacheToTest() *TxCache {
 	host := txcachemocks.NewMempoolHostMock()
 
 	cache, err := NewTxCache(ConfigSourceMe{
-		Name:                           "test",
-		NumChunks:                      16,
-		NumBytesThreshold:              maxNumBytesUpperBound,
-		NumBytesPerSenderThreshold:     maxNumBytesPerSenderUpperBoundTest,
-		CountThreshold:                 math.MaxUint32,
-		CountPerSenderThreshold:        math.MaxUint32,
-		EvictionEnabled:                false,
-		NumItemsToPreemptivelyEvict:    1,
-		MaxNumBytesPerSenderUpperBound: maxNumBytesPerSenderUpperBoundTest,
+		Name:                               "test",
+		NumChunks:                          16,
+		NumBytesThreshold:                  maxNumBytesUpperBound,
+		NumBytesPerSenderThreshold:         maxNumBytesPerSenderUpperBoundTest,
+		CountThreshold:                     math.MaxUint32,
+		CountPerSenderThreshold:            math.MaxUint32,
+		EvictionEnabled:                    false,
+		NumItemsToPreemptivelyEvict:        1,
+		MaxNumBytesPerSenderUpperBound:     maxNumBytesPerSenderUpperBoundTest,
+		SelectionLoopDurationCheckInterval: selectionLoopDurationCheckInterval,
 	}, host)
 	if err != nil {
 		panic(fmt.Sprintf("newUnconstrainedCacheToTest(): %s", err))

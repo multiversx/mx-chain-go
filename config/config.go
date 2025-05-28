@@ -15,6 +15,7 @@ type CacheConfig struct {
 	SelectionGasBandwidthIncreaseScheduledPercent uint32
 	TxCacheSelectionMaxNumTxs                     int
 	MaxNumBytesPerSenderUpperBound                uint32
+	SelectionLoopDurationCheckInterval            uint32
 }
 
 // HeadersPoolConfig will map the headers cache configuration

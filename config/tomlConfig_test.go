@@ -174,6 +174,7 @@ func TestTomlParser(t *testing.T) {
 			SelectionGasBandwidthIncreaseScheduledPercent: 260,
 			TxCacheSelectionMaxNumTxs:                     30000,
 			MaxNumBytesPerSenderUpperBound:                33_554_432,
+			SelectionLoopDurationCheckInterval:            10,
 		},
 	}
 	testString := `
@@ -289,6 +290,7 @@ func TestTomlParser(t *testing.T) {
     SelectionGasBandwidthIncreaseScheduledPercent = 260
     TxCacheSelectionMaxNumTxs = 30000
     MaxNumBytesPerSenderUpperBound = 33_554_432
+	SelectionLoopDurationCheckInterval = 10
 
 [Redundancy]
     # MaxRoundsOfInactivityAccepted defines the number of rounds missed by a main or higher level backup machine before
