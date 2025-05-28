@@ -355,11 +355,12 @@ func (ccf *consensusComponentsFactory) createChronology() (consensus.ChronologyH
 	}
 
 	chronologyArg := chronology.ArgChronology{
-		GenesisTime:      ccf.coreComponents.GenesisTime(),
-		RoundHandler:     ccf.processComponents.RoundHandler(),
-		SyncTimer:        ccf.coreComponents.SyncTimer(),
-		Watchdog:         wd,
-		AppStatusHandler: ccf.statusCoreComponents.AppStatusHandler(),
+		GenesisTime:         ccf.coreComponents.GenesisTime(),
+		RoundHandler:        ccf.processComponents.RoundHandler(),
+		SyncTimer:           ccf.coreComponents.SyncTimer(),
+		Watchdog:            wd,
+		AppStatusHandler:    ccf.statusCoreComponents.AppStatusHandler(),
+		EnableEpochsHandler: ccf.coreComponents.EnableEpochsHandler(),
 	}
 	return chronology.NewChronology(chronologyArg)
 }
