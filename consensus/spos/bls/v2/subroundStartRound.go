@@ -216,7 +216,7 @@ func (sr *subroundStartRound) initCurrentRound() bool {
 	currentHeader := sr.Blockchain().GetCurrentBlockHeader()
 	isFirstBlockAfterActivation := !check.IfNil(currentHeader) && currentHeader.GetEpoch() == activationEpoch-1
 	isFirstBlock := check.IfNil(currentHeader)
-	if isFirstBlock || isFirstBlockAfterActivation {
+	if sr.IsSelfLeader() && (isFirstBlock || isFirstBlockAfterActivation) {
 		// force main to not wait one signature before proposing
 		sr.SetRoundsSignedToMin()
 	}

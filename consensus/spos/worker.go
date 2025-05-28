@@ -724,6 +724,17 @@ func (wrk *Worker) computeRedundancyMetrics() (bool, string) {
 }
 
 func (wrk *Worker) checkSelfState(cnsDta *consensus.Message) error {
+	// if the consensus message has block body or signature and this node should not propose block
+	// it means the block was proposed by its own backup, thus allow the message
+	msgType := consensus.MessageType(cnsDta.MsgType)
+	isMessageWithBlockBody := wrk.consensusService.IsMessageWithBlockBody(msgType)
+	isMessageWithSignature := wrk.consensusService.IsMessageWithSignature(msgType)
+	shouldNotProposeBlockYet := !wrk.consensusState.GetKeysHandler().ShouldProposeBlock()
+	shouldAllowMessageFromSelfBackup := shouldNotProposeBlockYet && (isMessageWithBlockBody || isMessageWithSignature)
+	if shouldAllowMessageFromSelfBackup {
+		return nil
+	}
+
 	isMultiKeyManagedBySelf := wrk.consensusState.keysHandler.IsKeyManagedByCurrentNode(cnsDta.PubKey)
 	if wrk.consensusState.SelfPubKey() == string(cnsDta.PubKey) || isMultiKeyManagedBySelf {
 		return ErrMessageFromItself

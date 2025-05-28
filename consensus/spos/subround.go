@@ -247,6 +247,9 @@ func (sr *Subround) IsSelfLeaderInCurrentRound() bool {
 // GetLeaderStartRoundMessage returns the leader start round message based on single key
 // or multi-key node type
 func (sr *Subround) GetLeaderStartRoundMessage() string {
+	if !sr.ShouldProposeBlock() {
+		return ""
+	}
 	if sr.IsMultiKeyLeaderInCurrentRound() {
 		return multiKeyStartMsg
 	}
