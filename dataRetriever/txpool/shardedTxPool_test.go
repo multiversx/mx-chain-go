@@ -2,6 +2,7 @@ package txpool
 
 import (
 	"fmt"
+	"math"
 	"sync"
 	"sync/atomic"
 	"testing"
@@ -14,6 +15,7 @@ import (
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/storage/storageunit"
 	"github.com/multiversx/mx-chain-go/testscommon/txcachemocks"
+	"github.com/multiversx/mx-chain-go/txcache"
 	"github.com/stretchr/testify/require"
 )
 
@@ -256,6 +258,71 @@ func Test_RemoveSetOfDataFromPool(t *testing.T) {
 	require.Zero(t, cache.Len())
 }
 
+// Test_MempoolCleanup tests the Cleanup method of the txcache.TxCache
+func Test_MempoolCleanup(t *testing.T) {
+	t.Run("with lower nonces", func(t *testing.T) {
+		poolAsInterface, _ := newTxPoolToTest()
+		pool := poolAsInterface.(*shardedTxPool)
+		cache := pool.getTxCache("0").(*txcache.TxCache)
+		session := txcachemocks.NewSelectionSessionMock()
+		session.SetNonce([]byte("alice"), 1)
+		session.SetNonce([]byte("bob"), 42)
+		session.SetNonce([]byte("carol"), 7)
+
+		// Good
+		pool.AddData([]byte("hash-alice-1"), createTx("alice", 1), 0, "0")
+		pool.AddData([]byte("hash-alice-2"), createTx("alice", 2), 0, "0")
+		pool.AddData([]byte("hash-alice-3"), createTx("alice", 3), 0, "0")
+
+		// A few with lower nonce
+		pool.AddData([]byte("hash-bob-42"), createTx("bob", 40), 0, "0")
+		pool.AddData([]byte("hash-bob-43"), createTx("bob", 41), 0, "0")
+		pool.AddData([]byte("hash-bob-44"), createTx("bob", 42), 0, "0")
+
+		// Good
+		pool.AddData([]byte("hash-carol-7"), createTx("carol", 7), 0, "0")
+		pool.AddData([]byte("hash-carol-8"), createTx("carol", 8), 0, "0")
+
+		expectedNumSelected := 1 + 3 + 1 // 1 alice + 3 bob + 1 carol
+		selectionLoopMaximumDuration := time.Millisecond * 100
+		evicted:= cache.Cleanup(session, 7, math.MaxInt, selectionLoopMaximumDuration)
+		require.Equal(t, uint64(expectedNumSelected), evicted)
+	})
+	
+	t.Run("with duplicated nonces", func(t *testing.T) {
+		poolAsInterface, _ := newTxPoolToTest()
+		pool := poolAsInterface.(*shardedTxPool)
+		cache := pool.getTxCache("0").(*txcache.TxCache)
+		session := txcachemocks.NewSelectionSessionMock()
+		session.SetNonce([]byte("alice"), 1)
+
+		pool.AddData([]byte("hash-alice-1"), createTx("alice", 1), 0, "0")
+		pool.AddData([]byte("hash-alice-2"), createTx("alice", 2), 0, "0")
+		pool.AddData([]byte("hash-alice-3"), createTx("alice", 3), 0, "0")
+		pool.AddData([]byte("hash-alice-4"), createPriorityTx("alice", 3), 0, "0")
+		pool.AddData([]byte("hash-alice-5"), createTx("alice", 3), 0, "0")
+		pool.AddData([]byte("hash-alice-6"), createTx("alice", 4), 0, "0")
+
+		// Check that the duplicates are removed
+		selectionLoopMaximumDuration := time.Millisecond * 100
+		evicted:= cache.Cleanup(session, 7, math.MaxInt, selectionLoopMaximumDuration)
+		require.Equal(t, uint64(3), evicted) // nonces 2, 3, 4 with no duplicates
+		
+		// Check that the duplicates were removed based on their lower priority
+		listForAlice := cache.GetTransactionsPoolForSender("alice")
+		require.Equal(t, 3, len(listForAlice))
+		for _, tx := range listForAlice {
+			
+			if tx.Tx.GetNonce() == 3 {
+				require.Equal(t, 50000, int(tx.Tx.GetGasPrice()))
+			} else {
+				require.Equal(t, 20000, int(tx.Tx.GetGasPrice()))
+			}
+		}
+
+	})
+}
+
 func Test_RemoveDataFromAllShards(t *testing.T) {
 	poolAsInterface, _ := newTxPoolToTest()
 	pool := poolAsInterface.(*shardedTxPool)
@@ -404,8 +471,19 @@ func createTx(sender string, nonce uint64) data.TransactionHandler {
 		SndAddr:  []byte(sender),
 		Nonce:    nonce,
 		GasLimit: 50000,
+		GasPrice: 20000,
 	}
 }
+
+func createPriorityTx(sender string, nonce uint64) data.TransactionHandler {
+	return &transaction.Transaction{
+		SndAddr:  []byte(sender),
+		Nonce:    nonce,
+		GasLimit: 50000,
+		GasPrice: 50000,
+	}
+}
+
 
 func waitABit() {
 	time.Sleep(10 * time.Millisecond)
