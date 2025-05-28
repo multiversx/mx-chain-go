@@ -177,7 +177,6 @@ func TestChainSimulator_FromQueueToAuctionList(t *testing.T) {
 		PathToInitialConfig:    defaultPathToInitialConfig,
 		NumOfShards:            numOfShards,
 		GenesisTimestamp:       startTime,
-		SubSecondRound:         true,
 		RoundDurationInMillis:  roundDurationInMillis,
 		RoundsPerEpoch:         roundsPerEpoch,
 		ApiInterface:           api.NewNoApiInterface(),
@@ -289,6 +288,9 @@ func TestJailNodes(t *testing.T) {
 			configs.SetQuickJailRatingConfig(cfg)
 			newNumNodes := cfg.SystemSCConfig.StakingSystemSCConfig.MaxNumberOfNodesForStake + 1
 			configs.SetMaxNumberOfNodesInConfigs(cfg, uint32(newNumNodes), 0, numOfShards)
+
+			// TODO: make chain simulator to work with supernova activated
+			cfg.EpochConfig.EnableEpochs.SupernovaEnableEpoch = integrationTests.UnreachableEpoch
 		},
 	})
 	require.Nil(t, err)
