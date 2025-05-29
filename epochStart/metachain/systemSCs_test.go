@@ -841,6 +841,8 @@ func createFullArgumentsForSystemSCProcessing(enableEpochsConfig config.EnableEp
 		GasSchedule:              gasScheduleNotifier,
 		Counter:                  &testscommon.BlockChainHookCounterStub{},
 		MissingTrieNodesNotifier: &testscommon.MissingTrieNodesNotifierStub{},
+		EpochStartTrigger:        &testscommon.EpochStartTriggerStub{},
+		RoundHandler:             &testscommon.RoundHandlerMock{},
 	}
 
 	defaults.FillGasMapInternal(gasSchedule, 1)
