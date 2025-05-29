@@ -401,7 +401,7 @@ func (txPool *shardedTxPool) getMempool() txCache {
 	return txPool.getTxCache(shard.CacheID)
 }
 
-func (txPool *shardedTxPool) MempoolCleanup(session txcache.SelectionSession, nonce uint64, maxNum int, maxTime time.Duration) bool{
+func (txPool *shardedTxPool) MempoolCleanup(session interface{}, nonce uint64, maxNum int, maxTime time.Duration) bool{
 
 	mempool := txPool.getMempool().(*txcache.TxCache)
 	if mempool == nil {	
@@ -416,7 +416,8 @@ func (txPool *shardedTxPool) MempoolCleanup(session txcache.SelectionSession, no
 		"numBytes", mempool.NumBytes(),
 	)
 	// Perform the cleanup operation on the mempool
-	mempool.Cleanup(session, nonce, maxNum, maxTime)
+	selectionSession := session.(txcache.SelectionSession)
+	mempool.Cleanup(selectionSession, nonce, maxNum, maxTime)
 	log.Debug("shardedTxPool.MempoolCleanup() mempool cleanup completed",
 		"selfShardID", txPool.selfShardID,
 		"numTxs", mempool.CountTx(),

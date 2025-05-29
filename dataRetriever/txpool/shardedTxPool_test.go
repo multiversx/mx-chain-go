@@ -268,7 +268,7 @@ func Test_MempoolCleanup(t *testing.T) {
 		session.SetNonce([]byte("alice"), 1)
 		session.SetNonce([]byte("bob"), 42)
 		session.SetNonce([]byte("carol"), 7)
-
+		
 		// Good
 		pool.AddData([]byte("hash-alice-1"), createTx("alice", 1), 0, "0")
 		pool.AddData([]byte("hash-alice-2"), createTx("alice", 2), 0, "0")
@@ -283,10 +283,12 @@ func Test_MempoolCleanup(t *testing.T) {
 		pool.AddData([]byte("hash-carol-7"), createTx("carol", 7), 0, "0")
 		pool.AddData([]byte("hash-carol-8"), createTx("carol", 8), 0, "0")
 
-		expectedNumSelected := 1 + 3 + 1 // 1 alice + 3 bob + 1 carol
+		expectedNumEvicted := 1 + 3 + 1 // 1 alice + 3 bob + 1 carol
+		expectedNumRemained := 8 - expectedNumEvicted
 		selectionLoopMaximumDuration := time.Millisecond * 100
-		evicted:= cache.Cleanup(session, 7, math.MaxInt, selectionLoopMaximumDuration)
-		require.Equal(t, uint64(expectedNumSelected), evicted)
+
+		pool.MempoolCleanup(session, 7, math.MaxInt, selectionLoopMaximumDuration)
+		require.Equal(t, expectedNumRemained, cache.Len())
 	})
 	
 	t.Run("with duplicated nonces", func(t *testing.T) {

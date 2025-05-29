@@ -647,6 +647,127 @@ func TestTransactionPreprocessor_RemoveBlockDataFromPoolsOK(t *testing.T) {
 	assert.Nil(t, err)
 }
 
+
+func TestMempoolCleanupTriggered(t *testing.T) {
+	t.Parallel()
+
+	var gotNonce uint64
+	var gotMaxNum int
+	mockCalled := false
+	stub := &testscommon.ShardedDataStub{
+		MempoolCleanupCalled: func(_ interface{}, nonce uint64, maxNum int, _ time.Duration) bool {
+			gotNonce = nonce
+			gotMaxNum = maxNum
+			mockCalled = true
+			return true
+		},
+	}
+
+	body := &block.Body{
+		MiniBlocks: []*block.MiniBlock{
+			{
+				SenderShardID:   0,
+				ReceiverShardID: 0,
+				TxHashes:        [][]byte{[]byte("dummy")},
+			},
+		},
+	}
+
+	args := createDefaultTransactionsProcessorArgs()
+	args.TxDataPool = stub
+	args.TxProcessor = &testscommon.TxProcessorMock{
+		ProcessTransactionCalled: func(tx *transaction.Transaction) (vmcommon.ReturnCode, error) {
+			return vmcommon.Ok, nil
+		},
+	}
+	args.BlockSizeComputation = &testscommon.BlockSizeComputationStub{}
+
+	txs, err := NewTransactionPreprocessor(args)
+	require.NoError(t, err)
+
+	_ = txs.RemoveBlockDataFromPools(body, nil)
+
+	assert.True(t, mockCalled)
+	assert.Equal(t, uint64(0), gotNonce) 
+	assert.Equal(t, 30000, gotMaxNum)
+}
+
+
+func TestMempoolCleanup(t *testing.T) {
+	t.Parallel()
+
+	stub := &testscommon.ShardedDataStub{
+		MempoolCleanupCalled: func(_ interface{}, nonce uint64, maxNum int, _ time.Duration) bool {
+			
+			return true
+		},
+	}
+
+	body := &block.Body{
+		MiniBlocks: []*block.MiniBlock{
+			{
+				SenderShardID:   0,
+				ReceiverShardID: 0,
+				TxHashes:        [][]byte{[]byte("dummy")},
+			},
+		},
+	}
+
+	// 3. Setup preprocessor with injected TxDataPool
+	args := createDefaultTransactionsProcessorArgs()
+	args.TxDataPool = stub
+	args.TxProcessor = &testscommon.TxProcessorMock{
+		ProcessTransactionCalled: func(tx *transaction.Transaction) (vmcommon.ReturnCode, error) {
+			return vmcommon.Ok, nil
+		},
+	}
+	args.BlockSizeComputation = &testscommon.BlockSizeComputationStub{}
+	args.Accounts = &stateMock.AccountsStub{
+		GetExistingAccountCalled: func(sender []byte) (vmcommon.AccountHandler, error) {
+			var nonce uint64
+			switch {
+			case bytes.Equal(sender, []byte("alice")):
+				nonce = 1
+			case bytes.Equal(sender, []byte("bob")):
+				nonce = 42
+			case bytes.Equal(sender, []byte("carol")):
+				nonce = 7
+			default:
+				nonce = 0
+			}
+	
+			return &stateMock.UserAccountStub{
+				Nonce:   nonce,
+				Balance: big.NewInt(1_000_000_000_000_000_000),
+			}, nil
+		},
+	}
+
+	sndShardId := uint32(0)
+	dstShardId := uint32(0)
+	strCache := process.ShardCacherIdentifier(sndShardId, dstShardId)
+	txsAdded := []*txcache.WrappedTransaction{
+		{Tx: &transaction.Transaction{Nonce: 1, SndAddr: []byte("alice")}, TxHash: []byte("hash-alice-1")},
+		{Tx: &transaction.Transaction{Nonce: 2, SndAddr: []byte("alice")}, TxHash: []byte("hash-alice-2")},
+		{Tx: &transaction.Transaction{Nonce: 3, SndAddr: []byte("alice")}, TxHash: []byte("hash-alice-3")},
+		{Tx: &transaction.Transaction{Nonce: 40, SndAddr: []byte("bob")}, TxHash: []byte("hash-bob-40")},
+		{Tx: &transaction.Transaction{Nonce: 41, SndAddr: []byte("bob")}, TxHash: []byte("hash-bob-41")},
+		{Tx: &transaction.Transaction{Nonce: 42, SndAddr: []byte("bob")}, TxHash: []byte("hash-bob-42")},
+		{Tx: &transaction.Transaction{Nonce: 7, SndAddr: []byte("carol")}, TxHash: []byte("hash-carol-7")},
+		{Tx: &transaction.Transaction{Nonce: 8, SndAddr: []byte("carol")}, TxHash: []byte("hash-carol-8")},
+	}
+	for _, newTx := range txsAdded {
+		txHash, _ := core.CalculateHash(args.Marshalizer, args.Hasher, newTx)
+		args.TxDataPool.AddData(txHash, newTx, int(newTx.Size), strCache)
+	}
+
+	txs, err := NewTransactionPreprocessor(args)
+	require.NoError(t, err)
+
+	_ = txs.RemoveBlockDataFromPools(body, nil)
+
+}
+
 func TestTransactions_CreateAndProcessMiniBlockCrossShardGasLimitAddAll(t *testing.T) {
 	t.Parallel()
 
