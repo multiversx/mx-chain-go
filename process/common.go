@@ -18,10 +18,11 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/typeConverters"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
-	"github.com/multiversx/mx-chain-go/dataRetriever"
-	"github.com/multiversx/mx-chain-go/state"
 	logger "github.com/multiversx/mx-chain-logger-go"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
+
+	"github.com/multiversx/mx-chain-go/dataRetriever"
+	"github.com/multiversx/mx-chain-go/state"
 )
 
 var log = logger.GetOrCreate("process")
@@ -345,7 +346,7 @@ func GetShardHeaderFromStorageWithNonce(
 		storageService,
 		uint64Converter,
 		marshalizer,
-		dataRetriever.ShardHdrNonceHashDataUnit+dataRetriever.UnitType(shardId))
+		dataRetriever.GetHdrNonceHashDataUnit(shardId))
 	if err != nil {
 		return nil, nil, err
 	}
@@ -772,6 +773,21 @@ func GetSortedStorageUpdates(account *vmcommon.OutputAccount) []*vmcommon.Storag
 	})
 
 	return storageUpdates
+}
+
+// GetHeader tries to get the header from pool first and if not found, searches for it through storer
+func GetHeader(
+	headerHash []byte,
+	headersPool dataRetriever.HeadersPool,
+	headersStorer dataRetriever.StorageService,
+	marshaller marshal.Marshalizer,
+	shardID uint32,
+) (data.HeaderHandler, error) {
+	if shardID == core.MetachainShardId {
+		return GetMetaHeader(headerHash, headersPool, marshaller, headersStorer)
+	}
+
+	return GetShardHeader(headerHash, headersPool, marshaller, headersStorer)
 }
 
 // UnmarshalHeader unmarshalls a block header

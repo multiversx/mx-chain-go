@@ -262,3 +262,12 @@ var ErrNilValidatorInfoStorage = errors.New("nil validator info storage")
 
 // ErrValidatorInfoNotFound signals that no validator info was found
 var ErrValidatorInfoNotFound = errors.New("validator info not found")
+
+// ErrNilProofsPool signals that a nil proofs pool has been provided
+var ErrNilProofsPool = errors.New("nil proofs pool")
+
+// ErrEquivalentProofsNotFound signals that no equivalent proof found
+var ErrEquivalentProofsNotFound = errors.New("equivalent proof not found")
+
+// ErrNilEnableEpochsHandler signals that a nil enable epochs handler has been provided
+var ErrNilEnableEpochsHandler = errors.New("nil enable epochs handler")
