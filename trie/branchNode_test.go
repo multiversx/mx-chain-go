@@ -16,6 +16,7 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
+	"github.com/multiversx/mx-chain-go/trie/keyBuilder"
 	"github.com/multiversx/mx-chain-go/trie/statistics"
 	"github.com/stretchr/testify/assert"
 )
@@ -1502,5 +1503,57 @@ func TestBranchNode_revertChildrenVersionSliceIfNeeded(t *testing.T) {
 
 		bn.revertChildrenVersionSliceIfNeeded()
 		assert.Nil(t, bn.ChildrenVersion)
+	})
+}
+
+func TestBranchNode_getNodeData(t *testing.T) {
+	t.Parallel()
+
+	t.Run("nil node", func(t *testing.T) {
+		t.Parallel()
+
+		var bn *branchNode
+		nodeData, err := bn.getNodeData(keyBuilder.NewDisabledKeyBuilder())
+		assert.Nil(t, nodeData)
+		assert.True(t, errors.Is(err, ErrNilBranchNode))
+	})
+	t.Run("gets data from all non-nil children", func(t *testing.T) {
+		t.Parallel()
+
+		tr := initTrie()
+		_ = tr.Update([]byte("111"), []byte("111"))
+		_ = tr.Update([]byte("aaa"), []byte("aaa"))
+		_ = tr.Commit()
+
+		bn, ok := tr.root.(*branchNode)
+		assert.True(t, ok)
+
+		hashSize := 32
+		keySize := 1
+		kb := keyBuilder.NewKeyBuilder()
+		nodeData, err := bn.getNodeData(kb)
+		assert.Nil(t, err)
+		assert.Equal(t, 3, len(nodeData))
+
+		// branch node as child
+		firstChildData := nodeData[0]
+		assert.Equal(t, uint(1), firstChildData.GetKeyBuilder().Size())
+		assert.Equal(t, bn.EncodedChildren[1], firstChildData.GetData())
+		assert.Equal(t, uint64(hashSize+keySize), firstChildData.Size())
+		assert.False(t, firstChildData.IsLeaf())
+
+		// leaf node as child
+		seconChildData := nodeData[1]
+		assert.Equal(t, uint(1), seconChildData.GetKeyBuilder().Size())
+		assert.Equal(t, bn.EncodedChildren[5], seconChildData.GetData())
+		assert.Equal(t, uint64(hashSize+keySize), seconChildData.Size())
+		assert.False(t, seconChildData.IsLeaf())
+
+		// extension node as child
+		thirdChildData := nodeData[2]
+		assert.Equal(t, uint(1), thirdChildData.GetKeyBuilder().Size())
+		assert.Equal(t, bn.EncodedChildren[7], thirdChildData.GetData())
+		assert.Equal(t, uint64(hashSize+keySize), thirdChildData.Size())
+		assert.False(t, thirdChildData.IsLeaf())
 	})
 }
