@@ -4,6 +4,7 @@ import (
 	"math/big"
 	"time"
 
+	p2p2 "github.com/multiversx/mx-chain-communication-go/p2p"
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/batch"
@@ -1125,6 +1126,7 @@ type WhiteListHandler interface {
 
 // InterceptedDebugger defines an interface for debugging the intercepted data
 type InterceptedDebugger interface {
+	LogReceivedData(data InterceptedData, msg p2p2.MessageP2P)
 	LogReceivedHashes(topic string, hashes [][]byte)
 	LogProcessedHashes(topic string, hashes [][]byte, err error)
 	IsInterfaceNil() bool

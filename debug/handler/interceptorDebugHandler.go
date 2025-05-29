@@ -9,8 +9,14 @@ import (
 	"sync"
 	"time"
 
+	p2p2 "github.com/multiversx/mx-chain-communication-go/p2p"
+	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/debug"
+	"github.com/multiversx/mx-chain-go/epochStart"
+	"github.com/multiversx/mx-chain-go/epochStart/notifier"
+	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/storage/cache"
 	logger "github.com/multiversx/mx-chain-logger-go"
@@ -93,6 +99,7 @@ func displayTime(timestamp int64) string {
 }
 
 type interceptorDebugHandler struct {
+	interceptorTxHandler InterceptorTxDebugHandler
 	cache                storage.Cacher
 	intervalAutoPrint    time.Duration
 	requestsThreshold    int
@@ -118,6 +125,11 @@ func NewInterceptorDebugHandler(config config.InterceptorResolverDebugConfig) (*
 	err = idh.parseConfig(config)
 	if err != nil {
 		return nil, err
+	}
+
+	idh.interceptorTxHandler = NewDisabledInterceptorTxDebug()
+	if config.EnableBroadcastStatistics {
+		idh.interceptorTxHandler = NewInterceptorTxDebug()
 	}
 
 	idh.printEventFunc = idh.printEvent
@@ -417,6 +429,24 @@ func (idh *interceptorDebugHandler) LogSucceededToResolveData(topic string, hash
 	identifier := idh.computeIdentifier(resolveEvent, topic, hash)
 
 	idh.cache.Remove(identifier)
+}
+
+// LogReceivedData will log the received data
+func (idh *interceptorDebugHandler) LogReceivedData(data process.InterceptedData, msg p2p2.MessageP2P) {
+	idh.interceptorTxHandler.Process(data, msg)
+}
+
+// EpochStartEventHandler returns the epoch start event handler
+func (idh *interceptorDebugHandler) EpochStartEventHandler() epochStart.ActionHandler {
+	subscribeHandler := notifier.NewHandlerForEpochStart(
+		func(hdr data.HeaderHandler) {
+			idh.interceptorTxHandler.PrintReceivedTxsBroadcastAndCleanRecords()
+		},
+		func(_ data.HeaderHandler) {},
+		common.EpochTxBroadcastDebug,
+	)
+
+	return subscribeHandler
 }
 
 // Close closes all underlying components

@@ -808,6 +808,7 @@
         Enabled = true
         CacheSize = 10000
         EnablePrint = true
+        EnableBroadcastStatistics = true
         IntervalAutoPrintInSeconds = 20
         NumRequestsThreshold = 9
         NumResolveFailureThreshold = 3

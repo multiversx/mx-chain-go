@@ -1,9 +1,22 @@
 package mock
 
+import (
+	"github.com/multiversx/mx-chain-communication-go/p2p"
+	"github.com/multiversx/mx-chain-go/process"
+)
+
 // InterceptedDebugHandlerStub -
 type InterceptedDebugHandlerStub struct {
 	LogReceivedHashesCalled  func(topic string, hashes [][]byte)
 	LogProcessedHashesCalled func(topic string, hashes [][]byte, err error)
+	LogReceivedDataCalled    func(data process.InterceptedData, msg p2p.MessageP2P)
+}
+
+// LogReceivedData -
+func (idhs *InterceptedDebugHandlerStub) LogReceivedData(data process.InterceptedData, msg p2p.MessageP2P) {
+	if idhs.LogReceivedDataCalled != nil {
+		idhs.LogReceivedDataCalled(data, msg)
+	}
 }
 
 // LogReceivedHashes -

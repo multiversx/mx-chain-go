@@ -1,5 +1,14 @@
 package handler
 
+import (
+	"github.com/multiversx/mx-chain-communication-go/p2p"
+	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/epochStart"
+	"github.com/multiversx/mx-chain-go/epochStart/notifier"
+	"github.com/multiversx/mx-chain-go/process"
+)
+
 type disabledInterceptorDebugHandler struct {
 }
 
@@ -36,6 +45,21 @@ func (didh *disabledInterceptorDebugHandler) LogSucceededToResolveData(_ string,
 // Close returns nil
 func (didh *disabledInterceptorDebugHandler) Close() error {
 	return nil
+}
+
+// LogReceivedData -
+func (didh *disabledInterceptorDebugHandler) LogReceivedData(_ process.InterceptedData, _ p2p.MessageP2P) {
+}
+
+// EpochStartEventHandler -
+func (didh *disabledInterceptorDebugHandler) EpochStartEventHandler() epochStart.ActionHandler {
+	subscribeHandler := notifier.NewHandlerForEpochStart(
+		func(hdr data.HeaderHandler) {},
+		func(_ data.HeaderHandler) {},
+		common.EpochTxBroadcastDebug,
+	)
+
+	return subscribeHandler
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
