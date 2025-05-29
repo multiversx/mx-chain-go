@@ -6,9 +6,10 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/stretchr/testify/assert"
+
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/integrationTests"
-	"github.com/stretchr/testify/assert"
 )
 
 // CreateAndPropagateBlocks -
@@ -18,12 +19,12 @@ func CreateAndPropagateBlocks(
 	currentRound uint64,
 	currentNonce uint64,
 	nodes []*integrationTests.TestProcessorNode,
-	idxProposers []int,
+	leaders []*integrationTests.TestProcessorNode,
 ) (uint64, uint64) {
 	for i := uint64(0); i <= nbRounds; i++ {
 		integrationTests.UpdateRound(nodes, currentRound)
-		integrationTests.ProposeBlock(nodes, idxProposers, currentRound, currentNonce)
-		integrationTests.SyncBlock(t, nodes, idxProposers, currentRound)
+		integrationTests.ProposeBlock(nodes, leaders, currentRound, currentNonce)
+		integrationTests.SyncBlock(t, nodes, leaders, currentRound)
 		currentRound = integrationTests.IncrementAndPrintRound(currentRound)
 		currentNonce++
 	}

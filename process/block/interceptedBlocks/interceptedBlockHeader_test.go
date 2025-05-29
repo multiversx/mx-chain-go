@@ -10,12 +10,18 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data"
 	dataBlock "github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/common/graceperiod"
+	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/block/interceptedBlocks"
 	"github.com/multiversx/mx-chain-go/process/mock"
+	"github.com/multiversx/mx-chain-go/testscommon/consensus"
+	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 var testMarshalizer = &mock.MarshalizerMock{}
@@ -26,14 +32,17 @@ var hdrRound = uint64(67)
 var hdrEpoch = uint32(78)
 
 func createDefaultShardArgument() *interceptedBlocks.ArgInterceptedBlockHeader {
+	gracePeriod, _ := graceperiod.NewEpochChangeGracePeriod([]config.EpochChangeGracePeriodByEpoch{{EnableEpoch: 0, GracePeriodInRounds: 1}})
 	arg := &interceptedBlocks.ArgInterceptedBlockHeader{
-		ShardCoordinator:        mock.NewOneShardCoordinatorMock(),
-		Hasher:                  testHasher,
-		Marshalizer:             testMarshalizer,
-		HeaderSigVerifier:       &mock.HeaderSigVerifierStub{},
-		HeaderIntegrityVerifier: &mock.HeaderIntegrityVerifierStub{},
-		ValidityAttester:        &mock.ValidityAttesterStub{},
-		EpochStartTrigger:       &mock.EpochStartTriggerStub{},
+		ShardCoordinator:              mock.NewOneShardCoordinatorMock(),
+		Hasher:                        testHasher,
+		Marshalizer:                   testMarshalizer,
+		HeaderSigVerifier:             &consensus.HeaderSigVerifierMock{},
+		HeaderIntegrityVerifier:       &mock.HeaderIntegrityVerifierStub{},
+		ValidityAttester:              &mock.ValidityAttesterStub{},
+		EpochStartTrigger:             &mock.EpochStartTriggerStub{},
+		EnableEpochsHandler:           &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		EpochChangeGracePeriodHandler: gracePeriod,
 	}
 
 	hdr := createMockShardHeader()
@@ -43,14 +52,17 @@ func createDefaultShardArgument() *interceptedBlocks.ArgInterceptedBlockHeader {
 }
 
 func createDefaultShardArgumentWithV2Support() *interceptedBlocks.ArgInterceptedBlockHeader {
+	gracePeriod, _ := graceperiod.NewEpochChangeGracePeriod([]config.EpochChangeGracePeriodByEpoch{{EnableEpoch: 0, GracePeriodInRounds: 1}})
 	arg := &interceptedBlocks.ArgInterceptedBlockHeader{
-		ShardCoordinator:        mock.NewOneShardCoordinatorMock(),
-		Hasher:                  testHasher,
-		Marshalizer:             &marshal.GogoProtoMarshalizer{},
-		HeaderSigVerifier:       &mock.HeaderSigVerifierStub{},
-		HeaderIntegrityVerifier: &mock.HeaderIntegrityVerifierStub{},
-		ValidityAttester:        &mock.ValidityAttesterStub{},
-		EpochStartTrigger:       &mock.EpochStartTriggerStub{},
+		ShardCoordinator:              mock.NewOneShardCoordinatorMock(),
+		Hasher:                        testHasher,
+		Marshalizer:                   &marshal.GogoProtoMarshalizer{},
+		HeaderSigVerifier:             &consensus.HeaderSigVerifierMock{},
+		HeaderIntegrityVerifier:       &mock.HeaderIntegrityVerifierStub{},
+		ValidityAttester:              &mock.ValidityAttesterStub{},
+		EpochStartTrigger:             &mock.EpochStartTriggerStub{},
+		EnableEpochsHandler:           &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		EpochChangeGracePeriodHandler: gracePeriod,
 	}
 	hdr := createMockShardHeader()
 	arg.HdrBuff, _ = arg.Marshalizer.Marshal(hdr)
@@ -83,7 +95,7 @@ func createMockShardHeader() *dataBlock.Header {
 	}
 }
 
-//------- TestNewInterceptedHeader
+// ------- TestNewInterceptedHeader
 
 func TestNewInterceptedHeader_NilArgumentShouldErr(t *testing.T) {
 	t.Parallel()
@@ -167,7 +179,7 @@ func TestNewInterceptedHeader_MetachainForThisShardShouldWork(t *testing.T) {
 	assert.True(t, inHdr.IsForCurrentShard())
 }
 
-//------- CheckValidity
+// ------- Verify
 
 func TestInterceptedHeader_CheckValidityNilPubKeyBitmapShouldErr(t *testing.T) {
 	t.Parallel()
@@ -194,7 +206,7 @@ func TestInterceptedHeader_CheckValidityLeaderSignatureNotCorrectShouldErr(t *te
 	expectedErr := errors.New("expected err")
 	buff, _ := marshaller.Marshal(hdr)
 
-	arg.HeaderSigVerifier = &mock.HeaderSigVerifierStub{
+	arg.HeaderSigVerifier = &consensus.HeaderSigVerifierMock{
 		VerifyRandSeedAndLeaderSignatureCalled: func(header data.HeaderHandler) error {
 			return expectedErr
 		},
@@ -224,6 +236,42 @@ func TestInterceptedHeader_CheckValidityLeaderSignatureOkShouldWork(t *testing.T
 
 	err = inHdr.CheckValidity()
 	assert.Nil(t, err)
+}
+
+func TestInterceptedHeader_CheckValidityLeaderSignatureOkWithFlagActiveShouldWork(t *testing.T) {
+	t.Parallel()
+
+	arg := createDefaultShardArgumentWithV2Support()
+	arg.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+		IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
+			return flag == common.AndromedaFlag
+		},
+	}
+	wasVerifySignatureCalled := false
+	arg.HeaderSigVerifier = &consensus.HeaderSigVerifierMock{
+		VerifySignatureCalled: func(header data.HeaderHandler) error {
+			wasVerifySignatureCalled = true
+
+			return nil
+		},
+	}
+	marshaller := arg.Marshalizer
+	hdr := &dataBlock.HeaderV2{
+		Header:                   createMockShardHeader(),
+		ScheduledRootHash:        []byte("root hash"),
+		ScheduledAccumulatedFees: big.NewInt(0),
+		ScheduledDeveloperFees:   big.NewInt(0),
+	}
+	buff, _ := marshaller.Marshal(hdr)
+
+	arg.HdrBuff = buff
+	inHdr, err := interceptedBlocks.NewInterceptedHeader(arg)
+	require.Nil(t, err)
+	require.NotNil(t, inHdr)
+
+	err = inHdr.CheckValidity()
+	assert.Nil(t, err)
+	assert.True(t, wasVerifySignatureCalled)
 }
 
 func TestInterceptedHeader_ErrorInMiniBlockShouldErr(t *testing.T) {
@@ -305,7 +353,7 @@ func TestInterceptedHeader_CheckAgainstFinalHeaderErrorsShouldErr(t *testing.T) 
 	assert.Equal(t, expectedErr, err)
 }
 
-//------- getters
+// ------- getters
 
 func TestInterceptedHeader_Getters(t *testing.T) {
 	t.Parallel()
@@ -318,7 +366,7 @@ func TestInterceptedHeader_Getters(t *testing.T) {
 	assert.Equal(t, hash, inHdr.Hash())
 }
 
-//------- IsInterfaceNil
+// ------- IsInterfaceNil
 
 func TestInterceptedHeader_IsInterfaceNil(t *testing.T) {
 	t.Parallel()

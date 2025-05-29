@@ -19,12 +19,12 @@ type General struct {
 
 // ShardChain will hold RatingSteps for the Shard
 type ShardChain struct {
-	RatingSteps
+	RatingStepsByEpoch []RatingSteps
 }
 
 // MetaChain will hold RatingSteps for the Meta
 type MetaChain struct {
-	RatingSteps
+	RatingStepsByEpoch []RatingSteps
 }
 
 // RatingValue will hold different rating options with increase and decrease steps
@@ -46,6 +46,7 @@ type RatingSteps struct {
 	ProposerDecreaseFactor          float32
 	ValidatorDecreaseFactor         float32
 	ConsecutiveMissedBlocksPenalty  float32
+	EnableEpoch                     uint32
 }
 
 // PeerHonestyConfig holds the parameters for the peer honesty handler

@@ -5,7 +5,7 @@ import (
 	"github.com/multiversx/mx-chain-go/consensus/spos"
 )
 
-// peerMaxMessagesPerSec defines how many messages can be propagated by a pid in a round. The value was chosen by
+// PeerMaxMessagesPerSec defines how many messages can be propagated by a pid in a round. The value was chosen by
 // following the next premises:
 //  1. a leader can propagate as maximum as 3 messages per round: proposed header block + proposed body + final info;
 //  2. due to the fact that a delayed signature of the proposer (from previous round) can be received in the current round
@@ -16,15 +16,15 @@ import (
 //
 // Validators only send one signature message in a round, treating the edge case of a delayed message, will need at most
 // 2 messages per round (which is ok as it is below the set value of 5)
-const peerMaxMessagesPerSec = uint32(6)
+const PeerMaxMessagesPerSec = uint32(6)
 
-// defaultMaxNumOfMessageTypeAccepted represents the maximum number of the same message type accepted in one round to be
+// DefaultMaxNumOfMessageTypeAccepted represents the maximum number of the same message type accepted in one round to be
 // received from the same public key for the default message types
-const defaultMaxNumOfMessageTypeAccepted = uint32(1)
+const DefaultMaxNumOfMessageTypeAccepted = uint32(1)
 
-// maxNumOfMessageTypeSignatureAccepted represents the maximum number of the signature message type accepted in one round to be
+// MaxNumOfMessageTypeSignatureAccepted represents the maximum number of the signature message type accepted in one round to be
 // received from the same public key
-const maxNumOfMessageTypeSignatureAccepted = uint32(2)
+const MaxNumOfMessageTypeSignatureAccepted = uint32(2)
 
 // worker defines the data needed by spos to communicate between nodes which are in the validators group
 type worker struct {
@@ -52,17 +52,17 @@ func (wrk *worker) InitReceivedMessages() map[consensus.MessageType][]*consensus
 
 // GetMaxMessagesInARoundPerPeer returns the maximum number of messages a peer can send per round for BLS
 func (wrk *worker) GetMaxMessagesInARoundPerPeer() uint32 {
-	return peerMaxMessagesPerSec
+	return PeerMaxMessagesPerSec
 }
 
 // GetStringValue gets the name of the messageType
 func (wrk *worker) GetStringValue(messageType consensus.MessageType) string {
-	return getStringValue(messageType)
+	return GetStringValue(messageType)
 }
 
 // GetSubroundName gets the subround name for the subround id provided
 func (wrk *worker) GetSubroundName(subroundId int) string {
-	return getSubroundName(subroundId)
+	return GetSubroundName(subroundId)
 }
 
 // IsMessageWithBlockBodyAndHeader returns if the current messageType is about block body and header
@@ -148,13 +148,18 @@ func (wrk *worker) CanProceed(consensusState *spos.ConsensusState, msgType conse
 	return false
 }
 
+// GetMessageTypeBlockHeader returns the message type for block header
+func (wrk *worker) GetMessageTypeBlockHeader() consensus.MessageType {
+	return MtBlockHeader
+}
+
 // GetMaxNumOfMessageTypeAccepted returns the maximum number of accepted consensus message types per round, per public key
 func (wrk *worker) GetMaxNumOfMessageTypeAccepted(msgType consensus.MessageType) uint32 {
 	if msgType == MtSignature {
-		return maxNumOfMessageTypeSignatureAccepted
+		return MaxNumOfMessageTypeSignatureAccepted
 	}
 
-	return defaultMaxNumOfMessageTypeAccepted
+	return DefaultMaxNumOfMessageTypeAccepted
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

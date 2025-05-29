@@ -6,12 +6,13 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data/block"
-	"github.com/multiversx/mx-chain-go/integrationTests"
-	"github.com/multiversx/mx-chain-go/state"
-	"github.com/multiversx/mx-chain-go/testscommon"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/multiversx/mx-chain-go/integrationTests"
+	"github.com/multiversx/mx-chain-go/state"
+	"github.com/multiversx/mx-chain-go/testscommon"
 )
 
 var (
@@ -55,7 +56,7 @@ func TestDelegationChangeOwnerOnAccountHandler(t *testing.T) {
 		// verify the new owner is still the delegator
 		verifyDelegatorsStake(t, tpn, "getUserActiveStake", [][]byte{newOwner}, userAccount.AddressBytes(), big.NewInt(2000))
 
-		//get the SC delegation account
+		// get the SC delegation account
 		account, err := tpn.AccntState.LoadAccount(scAddress)
 		require.Nil(t, err)
 
@@ -92,7 +93,7 @@ func testDelegationChangeOwnerOnAccountHandler(t *testing.T, epochToTest uint32)
 	changeOwner(t, tpn, firstOwner, newOwner, delegationScAddress)
 	verifyDelegatorsStake(t, tpn, "getUserActiveStake", [][]byte{newOwner}, delegationScAddress, big.NewInt(2000))
 
-	//get the SC delegation account
+	// get the SC delegation account
 	account, err := tpn.AccntState.LoadAccount(delegationScAddress)
 	require.Nil(t, err)
 

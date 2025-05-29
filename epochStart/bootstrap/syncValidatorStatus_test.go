@@ -9,12 +9,17 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/data/endProcess"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/epochStart/mock"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	epochStartMocks "github.com/multiversx/mx-chain-go/testscommon/bootstrapMocks/epochStart"
+	"github.com/multiversx/mx-chain-go/testscommon/cache"
+	"github.com/multiversx/mx-chain-go/testscommon/chainParameters"
 	dataRetrieverMock "github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/genesisMocks"
@@ -22,8 +27,6 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/nodeTypeProviderMock"
 	"github.com/multiversx/mx-chain-go/testscommon/shardingMocks"
 	vic "github.com/multiversx/mx-chain-go/testscommon/validatorInfoCacher"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 const initRating = uint32(50)
@@ -255,16 +258,17 @@ func getSyncValidatorStatusArgs() ArgsNewSyncValidatorStatus {
 	return ArgsNewSyncValidatorStatus{
 		DataPool: &dataRetrieverMock.PoolsHolderStub{
 			MiniBlocksCalled: func() storage.Cacher {
-				return testscommon.NewCacherStub()
+				return cache.NewCacherStub()
 			},
 			CurrEpochValidatorInfoCalled: func() dataRetriever.ValidatorInfoCacher {
 				return &vic.ValidatorInfoCacherStub{}
 			},
 		},
-		Marshalizer:    &mock.MarshalizerMock{},
-		Hasher:         &hashingMocks.HasherMock{},
-		RequestHandler: &testscommon.RequestHandlerStub{},
-		ChanceComputer: &shardingMocks.NodesCoordinatorStub{},
+		Marshalizer:            &mock.MarshalizerMock{},
+		Hasher:                 &hashingMocks.HasherMock{},
+		RequestHandler:         &testscommon.RequestHandlerStub{},
+		ChanceComputer:         &shardingMocks.NodesCoordinatorStub{},
+		ChainParametersHandler: &chainParameters.ChainParametersHandlerStub{},
 		GenesisNodesConfig: &genesisMocks.NodesSetupStub{
 			NumberOfShardsCalled: func() uint32 {
 				return 1

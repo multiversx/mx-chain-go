@@ -11,7 +11,11 @@ type FloodPreventerStub struct {
 
 // IncreaseLoad -
 func (fps *FloodPreventerStub) IncreaseLoad(pid core.PeerID, size uint64) error {
-	return fps.IncreaseLoadCalled(pid, size)
+	if fps.IncreaseLoadCalled != nil {
+		return fps.IncreaseLoadCalled(pid, size)
+	}
+
+	return nil
 }
 
 // ApplyConsensusSize -
