@@ -1186,7 +1186,7 @@ func TestSCQueryService_EpochStartBlockHdrConcurrent(t *testing.T) {
 				BlockHash: []byte(fmt.Sprintf("hash-%d", idx)),
 			}
 
-			_, _, err = qs.ExecuteQuery(&query)
+			_, _, err := qs.ExecuteQuery(&query)
 			require.NoError(t, err)
 		}(i)
 	}
