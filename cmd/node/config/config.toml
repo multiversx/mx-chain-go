@@ -429,8 +429,8 @@
 [SortedTransactions]
     TxCacheSelectionGasRequested = 10_000_000_000
     TxCacheSelectionMaxNumTxs = 30000
-    TxCacheSelectionLoopMaximumDuration = 250
-    SelectionLoopDurationCheckInterval = 10
+    TxCacheSelectionLoopMaximumDuration = 250   # milliseconds
+    SelectionLoopDurationCheckInterval = 10     # milliseconds
 
 [TrieNodesChunksDataPool]
     Name = "TrieNodesDataPool"
