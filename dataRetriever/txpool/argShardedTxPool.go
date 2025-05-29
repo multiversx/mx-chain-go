@@ -50,7 +50,7 @@ func (args *ArgShardedTxPool) verify() error {
 	}
 
 	if args.SelectionLoopDurationCheckInterval == 0 {
-		return fmt.Errorf("%w: SelectionLoopDurationCheckInterval is not valid", dataRetriever.ErrCacheConfigInvalidSharding)
+		return fmt.Errorf("%w: SelectionLoopDurationCheckInterval is not valid", dataRetriever.ErrBadSelectionLoopDurationCheckInterval)
 	}
 
 	return nil
