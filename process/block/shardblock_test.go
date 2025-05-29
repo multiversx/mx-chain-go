@@ -487,6 +487,7 @@ func TestShardProcessor_ProcessBlockWithInvalidTransactionShouldErr(t *testing.T
 			SelectionGasBandwidthIncreaseScheduledPercent: 260,
 		},
 		config.SortedTransactionsConfig{
+			TxCacheSelectionGasRequested:        10_000_000_000,
 			TxCacheSelectionMaxNumTxs:           30000,
 			TxCacheSelectionLoopMaximumDuration: 250,
 		},
@@ -717,6 +718,7 @@ func TestShardProcessor_ProcessBlockWithErrOnProcessBlockTransactionsCallShouldR
 			SelectionGasBandwidthIncreaseScheduledPercent: 260,
 		},
 		config.SortedTransactionsConfig{
+			TxCacheSelectionGasRequested:        10_000_000_000,
 			TxCacheSelectionMaxNumTxs:           30000,
 			TxCacheSelectionLoopMaximumDuration: 250,
 		},
@@ -2630,6 +2632,7 @@ func TestShardProcessor_MarshalizedDataToBroadcastShouldWork(t *testing.T) {
 			SelectionGasBandwidthIncreaseScheduledPercent: 260,
 		},
 		config.SortedTransactionsConfig{
+			TxCacheSelectionGasRequested:        10_000_000_000,
 			TxCacheSelectionMaxNumTxs:           30000,
 			TxCacheSelectionLoopMaximumDuration: 250,
 		},
@@ -2747,6 +2750,7 @@ func TestShardProcessor_MarshalizedDataMarshalWithoutSuccess(t *testing.T) {
 			SelectionGasBandwidthIncreaseScheduledPercent: 260,
 		},
 		config.SortedTransactionsConfig{
+			TxCacheSelectionGasRequested:        10_000_000_000,
 			TxCacheSelectionMaxNumTxs:           30000,
 			TxCacheSelectionLoopMaximumDuration: 250,
 		},
@@ -3156,6 +3160,7 @@ func TestShardProcessor_CreateMiniBlocksShouldWorkWithIntraShardTxs(t *testing.T
 			SelectionGasBandwidthIncreaseScheduledPercent: 260,
 		},
 		config.SortedTransactionsConfig{
+			TxCacheSelectionGasRequested:        10_000_000_000,
 			TxCacheSelectionMaxNumTxs:           30000,
 			TxCacheSelectionLoopMaximumDuration: 250,
 		},
@@ -3346,6 +3351,7 @@ func TestShardProcessor_RestoreBlockIntoPoolsShouldWork(t *testing.T) {
 			SelectionGasBandwidthIncreaseScheduledPercent: 260,
 		},
 		config.SortedTransactionsConfig{
+			TxCacheSelectionGasRequested:        10_000_000_000,
 			TxCacheSelectionMaxNumTxs:           30000,
 			TxCacheSelectionLoopMaximumDuration: 250,
 		},

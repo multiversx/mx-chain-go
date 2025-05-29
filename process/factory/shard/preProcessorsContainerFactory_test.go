@@ -31,6 +31,7 @@ func createMockCacheConfig() config.TransactionsPoolConfig {
 
 func createMockSortedTransactionsConfig() config.SortedTransactionsConfig {
 	return config.SortedTransactionsConfig{
+		TxCacheSelectionGasRequested:        10_000_000_000,
 		TxCacheSelectionMaxNumTxs:           30000,
 		TxCacheSelectionLoopMaximumDuration: 250,
 	}

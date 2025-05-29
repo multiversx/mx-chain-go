@@ -161,6 +161,10 @@ func NewTransactionPreprocessor(
 		return nil, process.ErrBadSelectionGasBandwidthIncreaseScheduledPercent
 	}
 
+	if args.SortedTransactionsConfig.TxCacheSelectionGasRequested == 0 {
+		return nil, process.ErrBadTxCacheSelectionGasRequested
+	}
+
 	if args.SortedTransactionsConfig.TxCacheSelectionMaxNumTxs == 0 {
 		return nil, process.ErrBadTxCacheSelectionMaxNumTxs
 	}

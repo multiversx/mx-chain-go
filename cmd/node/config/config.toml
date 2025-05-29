@@ -428,6 +428,7 @@
     SelectionLoopDurationCheckInterval = 10
 
 [SortedTransactions]
+    TxCacheSelectionGasRequested = 10_000_000_000
     TxCacheSelectionMaxNumTxs = 30000
     TxCacheSelectionLoopMaximumDuration = 250
 

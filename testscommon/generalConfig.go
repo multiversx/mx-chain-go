@@ -142,6 +142,7 @@ func GetGeneralConfig() config.Config {
 			SelectionLoopDurationCheckInterval:            10,
 		},
 		SortedTransactions: config.SortedTransactionsConfig{
+			TxCacheSelectionGasRequested:        10_000_000_000,
 			TxCacheSelectionMaxNumTxs:           30000,
 			TxCacheSelectionLoopMaximumDuration: 250,
 		},

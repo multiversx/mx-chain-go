@@ -169,6 +169,7 @@ func TestTomlParser(t *testing.T) {
 			MaxNumBytesPerSenderUpperBound:                33_554_432,
 		},
 		SortedTransactions: SortedTransactionsConfig{
+			TxCacheSelectionGasRequested:        10_000_000_000,
 			TxCacheSelectionMaxNumTxs:           30000,
 			TxCacheSelectionLoopMaximumDuration: 250,
 		},
@@ -231,6 +232,7 @@ func TestTomlParser(t *testing.T) {
 	SelectionLoopDurationCheckInterval = 10
 
 [SortedTransactions]
+	TxCacheSelectionGasRequested = 10_000_000_000
     TxCacheSelectionMaxNumTxs = 30000
     TxCacheSelectionLoopMaximumDuration = 250
 

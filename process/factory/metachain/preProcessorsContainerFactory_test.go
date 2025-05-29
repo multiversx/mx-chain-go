@@ -28,6 +28,7 @@ func createMockCacheConfig() config.TransactionsPoolConfig {
 
 func createMockSortedTransactionsConfig() config.SortedTransactionsConfig {
 	return config.SortedTransactionsConfig{
+		TxCacheSelectionGasRequested:        10_000_000_000,
 		TxCacheSelectionMaxNumTxs:           30000,
 		TxCacheSelectionLoopMaximumDuration: 250,
 	}
@@ -762,6 +763,7 @@ func TestNewPreProcessorsContainerFactory_ErrBadTxCacheSelectionMaxNumTxs(t *tes
 			SelectionGasBandwidthIncreaseScheduledPercent: 260,
 		},
 		config.SortedTransactionsConfig{
+			TxCacheSelectionGasRequested:        10_000_000_000,
 			TxCacheSelectionMaxNumTxs:           0,
 			TxCacheSelectionLoopMaximumDuration: 0,
 		},
@@ -798,12 +800,47 @@ func TestNewPreProcessorsContainerFactory_ErrBadTxCacheSelectionLoopMaximumDurat
 		&commonMock.TxExecutionOrderHandlerStub{},
 		createMockCacheConfig(),
 		config.SortedTransactionsConfig{
-			TxCacheSelectionMaxNumTxs: 30000,
+			TxCacheSelectionGasRequested: 10_000_000_000,
+			TxCacheSelectionMaxNumTxs:    30000,
 		},
 	)
 
 	assert.Error(t, err)
 	assert.Equal(t, process.ErrBadTxCacheSelectionLoopMaximumDuration, err)
+	assert.Nil(t, ppcm)
+}
+
+func TestNewPreProcessorsContainerFactory_ErrBadTxCacheSelectionGasRequested(t *testing.T) {
+	ppcm, err := metachain.NewPreProcessorsContainerFactory(
+		mock.NewMultiShardsCoordinatorMock(3),
+		&storageStubs.ChainStorerStub{},
+		&mock.MarshalizerMock{},
+		&hashingMocks.HasherMock{},
+		dataRetrieverMock.NewPoolsHolderMock(),
+		&stateMock.AccountsStub{},
+		&testscommon.RequestHandlerStub{},
+		&testscommon.TxProcessorMock{},
+		&testscommon.SmartContractResultsProcessorMock{},
+		&economicsmocks.EconomicsHandlerMock{},
+		&testscommon.GasHandlerStub{},
+		&mock.BlockTrackerMock{},
+		createMockPubkeyConverter(),
+		&testscommon.BlockSizeComputationStub{},
+		&testscommon.BalanceComputationStub{},
+		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		&testscommon.TxTypeHandlerMock{},
+		&testscommon.ScheduledTxsExecutionStub{},
+		&testscommon.ProcessedMiniBlocksTrackerStub{},
+		&commonMock.TxExecutionOrderHandlerStub{},
+		createMockCacheConfig(),
+		config.SortedTransactionsConfig{
+			TxCacheSelectionMaxNumTxs:           30000,
+			TxCacheSelectionLoopMaximumDuration: 250,
+		},
+	)
+
+	assert.Error(t, err)
+	assert.Equal(t, process.ErrBadTxCacheSelectionGasRequested, err)
 	assert.Nil(t, ppcm)
 }
 

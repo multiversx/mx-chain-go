@@ -23,6 +23,7 @@ type TransactionsPoolConfig struct {
 
 // SortedTransactionsConfig will map the sorted transactions config
 type SortedTransactionsConfig struct {
+	TxCacheSelectionGasRequested        uint64
 	TxCacheSelectionMaxNumTxs           int
 	TxCacheSelectionLoopMaximumDuration int
 }

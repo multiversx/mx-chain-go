@@ -4,7 +4,6 @@ import (
 	"time"
 
 	"github.com/multiversx/mx-chain-go/config"
-	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/storage/txcache"
 )
@@ -38,7 +37,7 @@ func newAdapterTxCacheToSortedTransactionsProvider(txCache TxCache, sortedTransa
 
 // GetSortedTransactions gets the transactions from the cache
 func (adapter *adapterTxCacheToSortedTransactionsProvider) GetSortedTransactions(session txcache.SelectionSession) []*txcache.WrappedTransaction {
-	txs, _ := adapter.txCache.SelectTransactions(session, process.TxCacheSelectionGasRequested, adapter.sortedTransactionsConfig.TxCacheSelectionMaxNumTxs, time.Duration(adapter.sortedTransactionsConfig.TxCacheSelectionLoopMaximumDuration)*time.Millisecond)
+	txs, _ := adapter.txCache.SelectTransactions(session, adapter.sortedTransactionsConfig.TxCacheSelectionGasRequested, adapter.sortedTransactionsConfig.TxCacheSelectionMaxNumTxs, time.Duration(adapter.sortedTransactionsConfig.TxCacheSelectionLoopMaximumDuration)*time.Millisecond)
 	return txs
 }
 

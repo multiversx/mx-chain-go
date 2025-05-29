@@ -145,6 +145,9 @@ func NewPreProcessorsContainerFactory(
 	if txPoolConfig.SelectionGasBandwidthIncreaseScheduledPercent == 0 {
 		return nil, process.ErrBadSelectionGasBandwidthIncreaseScheduledPercent
 	}
+	if sortedTransactionsConfig.TxCacheSelectionGasRequested == 0 {
+		return nil, process.ErrBadTxCacheSelectionGasRequested
+	}
 	if sortedTransactionsConfig.TxCacheSelectionMaxNumTxs == 0 {
 		return nil, process.ErrBadTxCacheSelectionMaxNumTxs
 	}

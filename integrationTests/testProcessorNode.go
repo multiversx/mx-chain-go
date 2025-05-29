@@ -1822,6 +1822,7 @@ func (tpn *TestProcessorNode) initInnerProcessors(gasMap map[string]map[string]u
 			SelectionGasBandwidthIncreaseScheduledPercent: 260,
 		},
 		config.SortedTransactionsConfig{
+			TxCacheSelectionGasRequested:        10_000_000_000,
 			TxCacheSelectionMaxNumTxs:           30000,
 			TxCacheSelectionLoopMaximumDuration: 250,
 		},
@@ -2101,6 +2102,7 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors(gasMap map[string]map[stri
 			SelectionGasBandwidthIncreaseScheduledPercent: 260,
 		},
 		config.SortedTransactionsConfig{
+			TxCacheSelectionGasRequested:        10_000_000_000,
 			TxCacheSelectionMaxNumTxs:           30000,
 			TxCacheSelectionLoopMaximumDuration: 250,
 		},

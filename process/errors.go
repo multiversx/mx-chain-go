@@ -1307,3 +1307,6 @@ var ErrBadTxCacheSelectionMaxNumTxs = errors.New("bad tx cache selection max num
 
 // ErrBadTxCacheSelectionLoopMaximumDuration signals that the TxCacheSelectionLoopMaximumDuration from the config is not set
 var ErrBadTxCacheSelectionLoopMaximumDuration = errors.New("bad tx cache selection loop maximum duration")
+
+// ErrBadTxCacheSelectionGasRequested signals that the TxCacheSelectionGasRequested from the config is not set
+var ErrBadTxCacheSelectionGasRequested = errors.New("bad tx cache selection gas requested")
