@@ -102,6 +102,8 @@ func (bdi *baseDataInterceptor) processInterceptedData(data process.InterceptedD
 		"seq no", p2p.MessageOriginatorSeq(msg),
 		"intercepted data", data.String(),
 	)
+
+	bdi.processDebugInterceptedDataSuccess(data, msg)
 	bdi.processDebugInterceptedData(data, err)
 }
 
@@ -110,6 +112,12 @@ func (bdi *baseDataInterceptor) processDebugInterceptedData(interceptedData proc
 
 	bdi.mutDebugHandler.RLock()
 	bdi.debugHandler.LogProcessedHashes(bdi.topic, identifiers, err)
+	bdi.mutDebugHandler.RUnlock()
+}
+
+func (bdi *baseDataInterceptor) processDebugInterceptedDataSuccess(data process.InterceptedData, msg p2p.MessageP2P) {
+	bdi.mutDebugHandler.RLock()
+	bdi.debugHandler.LogReceivedData(data, msg)
 	bdi.mutDebugHandler.RUnlock()
 }
 

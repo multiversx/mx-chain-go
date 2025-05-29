@@ -109,6 +109,7 @@ func CreateNode(
 		processComponents.ResolversContainer(),
 		processComponents.RequestersFinder(),
 		config.Debug.InterceptorResolver,
+		nd.coreComponents.EpochStartNotifierWithConfirm(),
 	)
 	if err != nil {
 		return nil, err

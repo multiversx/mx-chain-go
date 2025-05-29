@@ -25,6 +25,7 @@ func TestCreateInterceptedDebugHandler_NilNodeWrapperShouldErr(t *testing.T) {
 		&dataRetrieverTests.ResolversContainerStub{},
 		&dataRetrieverTests.RequestersContainerStub{},
 		config.InterceptorResolverDebugConfig{},
+		&mock.EpochStartNotifierStub{},
 	)
 
 	assert.Equal(t, ErrNilNodeWrapper, err)
@@ -39,6 +40,7 @@ func TestCreateInterceptedDebugHandler_NilInterceptorsShouldErr(t *testing.T) {
 		&dataRetrieverTests.ResolversContainerStub{},
 		&dataRetrieverTests.RequestersFinderStub{},
 		config.InterceptorResolverDebugConfig{},
+		&mock.EpochStartNotifierStub{},
 	)
 
 	assert.Equal(t, ErrNilInterceptorContainer, err)
@@ -53,6 +55,7 @@ func TestCreateInterceptedDebugHandler_NilResolversShouldErr(t *testing.T) {
 		nil,
 		&dataRetrieverTests.RequestersFinderStub{},
 		config.InterceptorResolverDebugConfig{},
+		&mock.EpochStartNotifierStub{},
 	)
 
 	assert.Equal(t, ErrNilResolverContainer, err)
@@ -67,6 +70,7 @@ func TestCreateInterceptedDebugHandler_NilRequestersShouldErr(t *testing.T) {
 		&dataRetrieverTests.ResolversContainerStub{},
 		nil,
 		config.InterceptorResolverDebugConfig{},
+		&mock.EpochStartNotifierStub{},
 	)
 
 	assert.Equal(t, ErrNilRequestersContainer, err)
@@ -84,6 +88,7 @@ func TestCreateInterceptedDebugHandler_InvalidDebugConfigShouldErr(t *testing.T)
 			Enabled:   true,
 			CacheSize: 0,
 		},
+		&mock.EpochStartNotifierStub{},
 	)
 
 	assert.NotNil(t, err)
@@ -128,6 +133,7 @@ func TestCreateInterceptedDebugHandler_SettingOnInterceptorsErrShouldErr(t *test
 		config.InterceptorResolverDebugConfig{
 			Enabled: false,
 		},
+		&mock.EpochStartNotifierStub{},
 	)
 
 	assert.True(t, errors.Is(err, expectedErr))
@@ -176,6 +182,7 @@ func TestCreateInterceptedDebugHandler_SettingOnResolverErrShouldErr(t *testing.
 		config.InterceptorResolverDebugConfig{
 			Enabled: false,
 		},
+		&mock.EpochStartNotifierStub{},
 	)
 
 	assert.True(t, errors.Is(err, expectedErr))
@@ -220,6 +227,7 @@ func TestCreateInterceptedDebugHandler_ShouldWork(t *testing.T) {
 		config.InterceptorResolverDebugConfig{
 			Enabled: false,
 		},
+		&mock.EpochStartNotifierStub{},
 	)
 
 	assert.Nil(t, err)
