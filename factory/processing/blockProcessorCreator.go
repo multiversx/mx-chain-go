@@ -352,7 +352,7 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 		processedMiniBlocksTracker,
 		pcf.txExecutionOrderHandler,
 		pcf.config.TransactionsPool,
-		pcf.config.SortedTransactions,
+		pcf.config.MempoolSelection,
 	)
 	if err != nil {
 		return nil, err
@@ -663,7 +663,7 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 		processedMiniBlocksTracker,
 		pcf.txExecutionOrderHandler,
 		pcf.config.TransactionsPool,
-		pcf.config.SortedTransactions,
+		pcf.config.MempoolSelection,
 	)
 	if err != nil {
 		return nil, err

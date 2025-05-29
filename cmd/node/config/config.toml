@@ -427,10 +427,10 @@
     MaxNumBytesPerSenderUpperBound = 33_554_432 #32MB
     SelectionLoopDurationCheckInterval = 10
 
-[SortedTransactions]
-    TxCacheSelectionGasRequested = 10_000_000_000
-    TxCacheSelectionMaxNumTxs = 30000
-    TxCacheSelectionLoopMaximumDuration = 250
+[MempoolSelection]
+    SelectionGasRequested = 10_000_000_000
+    SelectionMaxNumTxs = 30000
+    SelectionLoopMaximumDuration = 250
 
 [TrieNodesChunksDataPool]
     Name = "TrieNodesDataPool"

@@ -168,10 +168,10 @@ func TestTomlParser(t *testing.T) {
 			SelectionLoopDurationCheckInterval:            10,
 			MaxNumBytesPerSenderUpperBound:                33_554_432,
 		},
-		SortedTransactions: SortedTransactionsConfig{
-			TxCacheSelectionGasRequested:        10_000_000_000,
-			TxCacheSelectionMaxNumTxs:           30000,
-			TxCacheSelectionLoopMaximumDuration: 250,
+		MempoolSelection: MempoolSelectionConfig{
+			SelectionGasRequested:        10_000_000_000,
+			SelectionMaxNumTxs:           30000,
+			SelectionLoopMaximumDuration: 250,
 		},
 	}
 	testString := `
@@ -227,14 +227,14 @@ func TestTomlParser(t *testing.T) {
 
 [TransactionsPool]
 	SelectionGasBandwidthIncreasePercent = 400
-    SelectionGasBandwidthIncreaseScheduledPercent = 260
+	SelectionGasBandwidthIncreaseScheduledPercent = 260
 	MaxNumBytesPerSenderUpperBound = 33_554_432
 	SelectionLoopDurationCheckInterval = 10
 
-[SortedTransactions]
-	TxCacheSelectionGasRequested = 10_000_000_000
-    TxCacheSelectionMaxNumTxs = 30000
-    TxCacheSelectionLoopMaximumDuration = 250
+[MempoolSelection]
+	SelectionGasRequested = 10_000_000_000
+	SelectionMaxNumTxs = 30000
+	SelectionLoopMaximumDuration = 250
 
 [VirtualMachine]
     [VirtualMachine.Execution]

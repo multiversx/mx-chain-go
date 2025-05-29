@@ -52,7 +52,7 @@ type transactions struct {
 	txTypeHandler                process.TxTypeHandler
 	scheduledTxsExecutionHandler process.ScheduledTxsExecutionHandler
 	txPoolConfig                 config.TransactionsPoolConfig
-	sortedTransactionsConfig     config.SortedTransactionsConfig
+	mempoolSelectionConfig       config.MempoolSelectionConfig
 }
 
 // ArgsTransactionPreProcessor holds the arguments to create a txs pre processor
@@ -78,7 +78,7 @@ type ArgsTransactionPreProcessor struct {
 	ProcessedMiniBlocksTracker   process.ProcessedMiniBlocksTracker
 	TxExecutionOrderHandler      common.TxExecutionOrderHandler
 	TxPoolConfig                 config.TransactionsPoolConfig
-	SortedTransactionsConfig     config.SortedTransactionsConfig
+	MempoolSelectionConfig       config.MempoolSelectionConfig
 }
 
 // NewTransactionPreprocessor creates a new transaction preprocessor object
@@ -161,15 +161,15 @@ func NewTransactionPreprocessor(
 		return nil, process.ErrBadSelectionGasBandwidthIncreaseScheduledPercent
 	}
 
-	if args.SortedTransactionsConfig.TxCacheSelectionGasRequested == 0 {
+	if args.MempoolSelectionConfig.SelectionGasRequested == 0 {
 		return nil, process.ErrBadTxCacheSelectionGasRequested
 	}
 
-	if args.SortedTransactionsConfig.TxCacheSelectionMaxNumTxs == 0 {
+	if args.MempoolSelectionConfig.SelectionMaxNumTxs == 0 {
 		return nil, process.ErrBadTxCacheSelectionMaxNumTxs
 	}
 
-	if args.SortedTransactionsConfig.TxCacheSelectionLoopMaximumDuration == 0 {
+	if args.MempoolSelectionConfig.SelectionLoopMaximumDuration == 0 {
 		return nil, process.ErrBadTxCacheSelectionLoopMaximumDuration
 	}
 
@@ -201,7 +201,7 @@ func NewTransactionPreprocessor(
 		txTypeHandler:                args.TxTypeHandler,
 		scheduledTxsExecutionHandler: args.ScheduledTxsExecutionHandler,
 		txPoolConfig:                 args.TxPoolConfig,
-		sortedTransactionsConfig:     args.SortedTransactionsConfig,
+		mempoolSelectionConfig:       args.MempoolSelectionConfig,
 	}
 
 	txs.chRcvAllTxs = make(chan bool)
@@ -1429,7 +1429,7 @@ func (txs *transactions) computeSortedTxs(
 		return nil, nil, process.ErrNilTxDataPool
 	}
 
-	sortedTransactionsProvider := createSortedTransactionsProvider(txShardPool, txs.sortedTransactionsConfig)
+	sortedTransactionsProvider := createSortedTransactionsProvider(txShardPool, txs.mempoolSelectionConfig)
 	log.Debug("computeSortedTxs.GetSortedTransactions")
 
 	session, err := NewSelectionSession(ArgsSelectionSession{

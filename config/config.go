@@ -21,11 +21,11 @@ type TransactionsPoolConfig struct {
 	SelectionLoopDurationCheckInterval            uint32
 }
 
-// SortedTransactionsConfig will map the sorted transactions config
-type SortedTransactionsConfig struct {
-	TxCacheSelectionGasRequested        uint64
-	TxCacheSelectionMaxNumTxs           int
-	TxCacheSelectionLoopMaximumDuration int
+// MempoolSelectionConfig will map the sorted transactions config
+type MempoolSelectionConfig struct {
+	SelectionGasRequested        uint64
+	SelectionMaxNumTxs           int
+	SelectionLoopMaximumDuration int
 }
 
 // HeadersPoolConfig will map the headers cache configuration
@@ -194,7 +194,7 @@ type Config struct {
 	PeerBlockBodyDataPool       CacheConfig
 	TxDataPool                  CacheConfig
 	TransactionsPool            TransactionsPoolConfig
-	SortedTransactions          SortedTransactionsConfig
+	MempoolSelection            MempoolSelectionConfig
 	UnsignedTransactionDataPool CacheConfig
 	RewardTransactionDataPool   CacheConfig
 	TrieNodesChunksDataPool     CacheConfig

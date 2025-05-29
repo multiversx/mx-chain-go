@@ -196,10 +196,10 @@ func createMockArgument(
 			SelectionGasBandwidthIncreasePercent:          400,
 			SelectionGasBandwidthIncreaseScheduledPercent: 260,
 		},
-		SortedTransactionsConfig: config.SortedTransactionsConfig{
-			TxCacheSelectionGasRequested:        10_000_000_000,
-			TxCacheSelectionMaxNumTxs:           30000,
-			TxCacheSelectionLoopMaximumDuration: 250,
+		MempoolSelection: config.MempoolSelectionConfig{
+			SelectionGasRequested:        10_000_000_000,
+			SelectionMaxNumTxs:           30000,
+			SelectionLoopMaximumDuration: 250,
 		},
 	}
 
