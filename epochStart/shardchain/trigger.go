@@ -19,13 +19,12 @@ import (
 	"github.com/multiversx/mx-chain-core-go/display"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
-	"github.com/multiversx/mx-chain-logger-go"
-
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/epochStart"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/storage"
+	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
 var log = logger.GetOrCreate("epochStart/shardchain")
@@ -1189,6 +1188,32 @@ func (t *trigger) EpochStartMetaHdrHash() []byte {
 	defer t.mutTrigger.RUnlock()
 
 	return t.epochMetaBlockHash
+}
+
+// LastCommitedEpochStartHdr returns the epoch start header
+func (t *trigger) LastCommitedEpochStartHdr() (data.HeaderHandler, error) {
+	t.mutTrigger.RLock()
+	defer t.mutTrigger.RUnlock()
+
+	// marshal + unmarshal deep copy
+	headerBytes, err := t.marshaller.Marshal(t.epochStartShardHeader)
+	if err != nil {
+		return nil, err
+	}
+
+	return process.UnmarshalShardHeader(t.marshaller, headerBytes)
+}
+
+// GetEpochStartHdrFromStorage returns the epoch start header from storage
+func (t *trigger) GetEpochStartHdrFromStorage(epoch uint32) (data.HeaderHandler, error) {
+	epochStartIdentifier := core.EpochStartIdentifier(epoch)
+	shardHdrBuff, err := t.shardHdrStorage.SearchFirst([]byte(epochStartIdentifier))
+	if err != nil {
+		log.Warn("GetEpochStartHdrFromStorage search first", "epoch", epoch, "identifier", epochStartIdentifier, "error", err)
+		return nil, err
+	}
+
+	return process.UnmarshalShardHeader(t.marshaller, shardHdrBuff)
 }
 
 // GetSavedStateKey returns the last saved trigger state key

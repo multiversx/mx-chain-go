@@ -1073,7 +1073,7 @@ func testFixRelayedMoveBalanceWithChainSimulatorScCall(
 		require.NoError(t, err)
 
 		// send relayed tx, fix still not active
-		innerTx = generateTransaction(owner.Bytes, 2, scAddressBytes, big.NewInt(0), txDataAdd, 3000000)
+		innerTx = generateTransaction(owner.Bytes, 2, scAddressBytes, big.NewInt(0), txDataAdd, 1230000)
 		marshalledTx, err = json.Marshal(innerTx)
 		require.NoError(t, err)
 		txData = []byte("relayedTx@" + hex.EncodeToString(marshalledTx))
@@ -1096,7 +1096,7 @@ func testFixRelayedMoveBalanceWithChainSimulatorScCall(
 		require.NoError(t, err)
 
 		// send relayed tx after fix
-		innerTx = generateTransaction(owner.Bytes, 3, scAddressBytes, big.NewInt(0), txDataAdd, 3000000)
+		innerTx = generateTransaction(owner.Bytes, 3, scAddressBytes, big.NewInt(0), txDataAdd, 1500000)
 		marshalledTx, err = json.Marshal(innerTx)
 		require.NoError(t, err)
 		txData = []byte("relayedTx@" + hex.EncodeToString(marshalledTx))
