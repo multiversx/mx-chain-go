@@ -649,15 +649,18 @@ func (t *trigger) shouldUpdateTrigger(metaHdr *block.MetaBlock, metaBlockHash []
 		return false
 	}
 
-	isMetaStartOfEpochForCurrentEpoch := metaHdr.Epoch == t.epoch && metaHdr.IsStartOfEpochBlock()
-	if isMetaStartOfEpochForCurrentEpoch {
+	isMetaStartOfEpochForCurrentOrOlderEpoch := metaHdr.Epoch <= t.epoch && metaHdr.IsStartOfEpochBlock()
+	if isMetaStartOfEpochForCurrentOrOlderEpoch {
 		return false
 	}
 
-	if _, ok := t.mapHashHdr[string(metaBlockHash)]; ok {
-		return false
-	}
-	if _, ok := t.mapEpochStartHdrs[string(metaBlockHash)]; ok {
+	_, foundHdrInMap := t.mapHashHdr[string(metaBlockHash)]
+	_, foundHdrInEpochStartMap := t.mapEpochStartHdrs[string(metaBlockHash)]
+
+	finalizedMetaBlockHash, ok := t.mapFinalizedEpochs[metaHdr.Epoch]
+	foundHdrInFinalizedMap := ok && bytes.Equal(metaBlockHash, []byte(finalizedMetaBlockHash))
+
+	if foundHdrInMap && foundHdrInEpochStartMap && foundHdrInFinalizedMap {
 		return false
 	}
 
