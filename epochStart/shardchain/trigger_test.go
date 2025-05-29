@@ -12,20 +12,22 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/epochStart"
 	"github.com/multiversx/mx-chain-go/epochStart/mock"
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/cache"
 	dataRetrieverMock "github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
 	statusHandlerMock "github.com/multiversx/mx-chain-go/testscommon/statusHandler"
 	storageStubs "github.com/multiversx/mx-chain-go/testscommon/storage"
 	vic "github.com/multiversx/mx-chain-go/testscommon/validatorInfoCacher"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 func createMockShardEpochStartTriggerArguments() *ArgsShardEpochStartTrigger {
@@ -43,10 +45,13 @@ func createMockShardEpochStartTriggerArguments() *ArgsShardEpochStartTrigger {
 				return &mock.HeadersCacherStub{}
 			},
 			MiniBlocksCalled: func() storage.Cacher {
-				return testscommon.NewCacherStub()
+				return cache.NewCacherStub()
 			},
 			CurrEpochValidatorInfoCalled: func() dataRetriever.ValidatorInfoCacher {
 				return &vic.ValidatorInfoCacherStub{}
+			},
+			ProofsCalled: func() dataRetriever.ProofsPool {
+				return &dataRetrieverMock.ProofsPoolMock{}
 			},
 		},
 		Storage: &storageStubs.ChainStorerStub{
@@ -207,7 +212,7 @@ func TestNewEpochStartTrigger_NilHeadersPoolShouldErr(t *testing.T) {
 			return nil
 		},
 		MiniBlocksCalled: func() storage.Cacher {
-			return testscommon.NewCacherStub()
+			return cache.NewCacherStub()
 		},
 	}
 	epochStartTrigger, err := NewEpochStartTrigger(args)
@@ -376,7 +381,7 @@ func TestTrigger_ReceivedHeaderIsEpochStartTrueWithPeerMiniblocks(t *testing.T) 
 			}
 		},
 		MiniBlocksCalled: func() storage.Cacher {
-			return &testscommon.CacherStub{
+			return &cache.CacherStub{
 				GetCalled: func(key []byte) (value interface{}, ok bool) {
 					if bytes.Equal(key, peerMiniBlockHash) {
 						return peerMiniblock, true
@@ -387,6 +392,9 @@ func TestTrigger_ReceivedHeaderIsEpochStartTrueWithPeerMiniblocks(t *testing.T) 
 		},
 		CurrEpochValidatorInfoCalled: func() dataRetriever.ValidatorInfoCacher {
 			return &vic.ValidatorInfoCacherStub{}
+		},
+		ProofsCalled: func() dataRetriever.ProofsPool {
+			return &dataRetrieverMock.ProofsPoolMock{}
 		},
 	}
 	args.Uint64Converter = &mock.Uint64ByteSliceConverterMock{
@@ -718,7 +726,7 @@ func TestTrigger_UpdateMissingValidatorsInfo(t *testing.T) {
 				return &mock.HeadersCacherStub{}
 			},
 			MiniBlocksCalled: func() storage.Cacher {
-				return testscommon.NewCacherStub()
+				return cache.NewCacherStub()
 			},
 			CurrEpochValidatorInfoCalled: func() dataRetriever.ValidatorInfoCacher {
 				return &vic.ValidatorInfoCacherStub{}
@@ -736,6 +744,9 @@ func TestTrigger_UpdateMissingValidatorsInfo(t *testing.T) {
 						return nil, false
 					},
 				}
+			},
+			ProofsCalled: func() dataRetriever.ProofsPool {
+				return &dataRetrieverMock.ProofsPoolMock{}
 			},
 		}
 
@@ -776,4 +787,179 @@ func TestTrigger_AddMissingValidatorsInfo(t *testing.T) {
 	assert.Equal(t, uint32(1), epochStartTrigger.mapMissingValidatorsInfo["b"])
 	assert.Equal(t, uint32(1), epochStartTrigger.mapMissingValidatorsInfo["c"])
 	epochStartTrigger.mutMissingValidatorsInfo.RUnlock()
+}
+
+func TestTrigger_ReceivedProof(t *testing.T) {
+	t.Parallel()
+
+	t.Run("early exits", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockShardEpochStartTriggerArguments()
+		args.DataPool = &dataRetrieverMock.PoolsHolderStub{
+			HeadersCalled: func() dataRetriever.HeadersPool {
+				return &mock.HeadersCacherStub{
+					GetHeaderByHashCalled: func(hash []byte) (data.HeaderHandler, error) {
+						require.Fail(t, "should have not been called")
+						return nil, nil
+					},
+				}
+			},
+		}
+		epochStartTrigger, _ := NewEpochStartTrigger(args)
+
+		// nil proof
+		epochStartTrigger.receivedProof(nil)
+
+		epochStartTrigger.receivedProof(&block.HeaderProof{
+			HeaderShardId: 0, // not meta
+		})
+	})
+	t.Run("GetHeaderByHash error should early exit", func(t *testing.T) {
+		t.Parallel()
+
+		expectedErr := errors.New("expected error")
+		args := createMockShardEpochStartTriggerArguments()
+		args.DataPool = &dataRetrieverMock.PoolsHolderStub{
+			HeadersCalled: func() dataRetriever.HeadersPool {
+				return &mock.HeadersCacherStub{
+					GetHeaderByHashCalled: func(hash []byte) (data.HeaderHandler, error) {
+						return nil, expectedErr
+					},
+				}
+			},
+			MiniBlocksCalled: func() storage.Cacher {
+				return cache.NewCacherStub()
+			},
+			CurrEpochValidatorInfoCalled: func() dataRetriever.ValidatorInfoCacher {
+				return &vic.ValidatorInfoCacherStub{}
+			},
+			ProofsCalled: func() dataRetriever.ProofsPool {
+				return &dataRetrieverMock.ProofsPoolMock{}
+			},
+		}
+		args.EpochStartNotifier = &mock.EpochStartNotifierStub{
+			NotifyEpochChangeConfirmedCalled: func(epoch uint32) {
+				require.Fail(t, "should not have been called")
+			},
+		}
+		epochStartTrigger, _ := NewEpochStartTrigger(args)
+
+		epochStartTrigger.receivedProof(&block.HeaderProof{
+			HeaderShardId: core.MetachainShardId,
+		})
+	})
+	t.Run("not meta block should exit", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockShardEpochStartTriggerArguments()
+		args.DataPool = &dataRetrieverMock.PoolsHolderStub{
+			HeadersCalled: func() dataRetriever.HeadersPool {
+				return &mock.HeadersCacherStub{
+					GetHeaderByHashCalled: func(hash []byte) (data.HeaderHandler, error) {
+						return &block.Header{}, nil
+					},
+				}
+			},
+			MiniBlocksCalled: func() storage.Cacher {
+				return cache.NewCacherStub()
+			},
+			CurrEpochValidatorInfoCalled: func() dataRetriever.ValidatorInfoCacher {
+				return &vic.ValidatorInfoCacherStub{}
+			},
+			ProofsCalled: func() dataRetriever.ProofsPool {
+				return &dataRetrieverMock.ProofsPoolMock{}
+			},
+		}
+		args.EpochStartNotifier = &mock.EpochStartNotifierStub{
+			NotifyEpochChangeConfirmedCalled: func(epoch uint32) {
+				require.Fail(t, "should not have been called")
+			},
+		}
+		epochStartTrigger, _ := NewEpochStartTrigger(args)
+
+		epochStartTrigger.receivedProof(&block.HeaderProof{
+			HeaderShardId: core.MetachainShardId,
+		})
+	})
+	t.Run("should not update trigger should early exit", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockShardEpochStartTriggerArguments()
+		args.DataPool = &dataRetrieverMock.PoolsHolderStub{
+			HeadersCalled: func() dataRetriever.HeadersPool {
+				return &mock.HeadersCacherStub{
+					GetHeaderByHashCalled: func(hash []byte) (data.HeaderHandler, error) {
+						return &block.MetaBlock{}, nil
+					},
+				}
+			},
+			MiniBlocksCalled: func() storage.Cacher {
+				return cache.NewCacherStub()
+			},
+			CurrEpochValidatorInfoCalled: func() dataRetriever.ValidatorInfoCacher {
+				return &vic.ValidatorInfoCacherStub{}
+			},
+			ProofsCalled: func() dataRetriever.ProofsPool {
+				return &dataRetrieverMock.ProofsPoolMock{}
+			},
+		}
+		args.EpochStartNotifier = &mock.EpochStartNotifierStub{
+			NotifyEpochChangeConfirmedCalled: func(epoch uint32) {
+				require.Fail(t, "should not have been called")
+			},
+		}
+		epochStartTrigger, _ := NewEpochStartTrigger(args)
+
+		epochStartTrigger.receivedProof(&block.HeaderProof{
+			HeaderShardId: core.MetachainShardId,
+		})
+	})
+	t.Run("should work and notify", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockShardEpochStartTriggerArguments()
+		args.Validity = 2
+		args.DataPool = &dataRetrieverMock.PoolsHolderStub{
+			HeadersCalled: func() dataRetriever.HeadersPool {
+				return &mock.HeadersCacherStub{
+					GetHeaderByHashCalled: func(hash []byte) (data.HeaderHandler, error) {
+						return &block.MetaBlock{
+							Epoch: 1,
+							Nonce: 3,
+							EpochStart: block.EpochStart{
+								LastFinalizedHeaders: []block.EpochStartShardData{
+									{
+										ShardID: 0,
+									},
+								},
+							},
+						}, nil
+					},
+				}
+			},
+			MiniBlocksCalled: func() storage.Cacher {
+				return cache.NewCacherStub()
+			},
+			CurrEpochValidatorInfoCalled: func() dataRetriever.ValidatorInfoCacher {
+				return &vic.ValidatorInfoCacherStub{}
+			},
+			ProofsCalled: func() dataRetriever.ProofsPool {
+				return &dataRetrieverMock.ProofsPoolMock{}
+			},
+		}
+		wasCalled := false
+		args.EpochStartNotifier = &mock.EpochStartNotifierStub{
+			NotifyEpochChangeConfirmedCalled: func(epoch uint32) {
+				wasCalled = true
+			},
+		}
+		epochStartTrigger, _ := NewEpochStartTrigger(args)
+
+		epochStartTrigger.receivedProof(&block.HeaderProof{
+			HeaderShardId: core.MetachainShardId,
+		})
+
+		require.True(t, wasCalled)
+	})
 }

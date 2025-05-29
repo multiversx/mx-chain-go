@@ -3,6 +3,8 @@ package shard_test
 import (
 	"testing"
 
+	"github.com/stretchr/testify/assert"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/process"
@@ -10,13 +12,13 @@ import (
 	"github.com/multiversx/mx-chain-go/process/mock"
 	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/cache"
 	txExecOrderStub "github.com/multiversx/mx-chain-go/testscommon/common"
 	dataRetrieverMock "github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
 	"github.com/multiversx/mx-chain-go/testscommon/economicsmocks"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
 	storageStubs "github.com/multiversx/mx-chain-go/testscommon/storage"
-	"github.com/stretchr/testify/assert"
 )
 
 func createDataPools() dataRetriever.PoolsHolder {
@@ -28,13 +30,13 @@ func createDataPools() dataRetriever.PoolsHolder {
 		return &mock.HeadersCacherStub{}
 	}
 	pools.MiniBlocksCalled = func() storage.Cacher {
-		return testscommon.NewCacherStub()
+		return cache.NewCacherStub()
 	}
 	pools.PeerChangesBlocksCalled = func() storage.Cacher {
-		return testscommon.NewCacherStub()
+		return cache.NewCacherStub()
 	}
 	pools.MetaBlocksCalled = func() storage.Cacher {
-		return testscommon.NewCacherStub()
+		return cache.NewCacherStub()
 	}
 	pools.UnsignedTransactionsCalled = func() dataRetriever.ShardedDataCacherNotifier {
 		return testscommon.NewShardedDataStub()
@@ -43,7 +45,7 @@ func createDataPools() dataRetriever.PoolsHolder {
 		return testscommon.NewShardedDataStub()
 	}
 	pools.TrieNodesCalled = func() storage.Cacher {
-		return testscommon.NewCacherStub()
+		return cache.NewCacherStub()
 	}
 	pools.CurrBlockTxsCalled = func() dataRetriever.TransactionCacher {
 		return &mock.TxForCurrentBlockStub{}

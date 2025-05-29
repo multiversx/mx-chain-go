@@ -10,11 +10,11 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/stretchr/testify/assert"
+
 	"github.com/multiversx/mx-chain-go/integrationTests"
-	testBlock "github.com/multiversx/mx-chain-go/integrationTests/multiShard/block"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/state"
-	"github.com/stretchr/testify/assert"
 )
 
 func getLeaderPercentage(node *integrationTests.TestProcessorNode, epoch uint32) float64 {
@@ -66,8 +66,6 @@ func TestExecuteBlocksWithTransactionsAndCheckRewards(t *testing.T) {
 	nonce := uint64(1)
 	nbBlocksProduced := 7
 
-	var headers map[uint32]data.HeaderHandler
-	var consensusNodes map[uint32][]*integrationTests.TestProcessorNode
 	mapRewardsForShardAddresses := make(map[string]uint32)
 	mapRewardsForMetachainAddresses := make(map[string]uint32)
 	nbTxsForLeaderAddress := make(map[string]uint32)
@@ -76,21 +74,18 @@ func TestExecuteBlocksWithTransactionsAndCheckRewards(t *testing.T) {
 		for _, nodes := range nodesMap {
 			integrationTests.UpdateRound(nodes, round)
 		}
-		_, headers, consensusNodes = integrationTests.AllShardsProposeBlock(round, nonce, nodesMap)
+		proposeData := integrationTests.AllShardsProposeBlock(round, nonce, nodesMap)
 
-		for shardId := range consensusNodes {
+		for shardId := range proposeData {
 			addrRewards := make([]string, 0)
 			updateExpectedRewards(mapRewardsForShardAddresses, addrRewards)
-			nbTxs := getTransactionsFromHeaderInShard(t, headers, shardId)
+			nbTxs := getTransactionsFromHeaderInShard(t, proposeData[shardId].Header, shardId)
 			if len(addrRewards) > 0 {
 				updateNumberTransactionsProposed(t, nbTxsForLeaderAddress, addrRewards[0], nbTxs)
 			}
 		}
 
-		updateRewardsForMetachain(mapRewardsForMetachainAddresses, consensusNodes[0][0])
-
-		indexesProposers := testBlock.GetBlockProposersIndexes(consensusNodes, nodesMap)
-		integrationTests.SyncAllShardsWithRoundBlock(t, nodesMap, indexesProposers, round)
+		integrationTests.SyncAllShardsWithRoundBlock(t, proposeData, nodesMap, round)
 
 		time.Sleep(integrationTests.StepDelay)
 
@@ -149,18 +144,16 @@ func TestExecuteBlocksWithTransactionsWhichReachedGasLimitAndCheckRewards(t *tes
 	nonce := uint64(1)
 	nbBlocksProduced := 2
 
-	var headers map[uint32]data.HeaderHandler
-	var consensusNodes map[uint32][]*integrationTests.TestProcessorNode
 	mapRewardsForShardAddresses := make(map[string]uint32)
 	nbTxsForLeaderAddress := make(map[string]uint32)
 
 	for i := 0; i < nbBlocksProduced; i++ {
-		_, headers, consensusNodes = integrationTests.AllShardsProposeBlock(round, nonce, nodesMap)
+		proposeData := integrationTests.AllShardsProposeBlock(round, nonce, nodesMap)
 
-		for shardId := range consensusNodes {
+		for shardId := range nodesMap {
 			addrRewards := make([]string, 0)
 			updateExpectedRewards(mapRewardsForShardAddresses, addrRewards)
-			nbTxs := getTransactionsFromHeaderInShard(t, headers, shardId)
+			nbTxs := getTransactionsFromHeaderInShard(t, proposeData[shardId].Header, shardId)
 			if len(addrRewards) > 0 {
 				updateNumberTransactionsProposed(t, nbTxsForLeaderAddress, addrRewards[0], nbTxs)
 			}
@@ -169,8 +162,7 @@ func TestExecuteBlocksWithTransactionsWhichReachedGasLimitAndCheckRewards(t *tes
 		for _, nodes := range nodesMap {
 			integrationTests.UpdateRound(nodes, round)
 		}
-		indexesProposers := testBlock.GetBlockProposersIndexes(consensusNodes, nodesMap)
-		integrationTests.SyncAllShardsWithRoundBlock(t, nodesMap, indexesProposers, round)
+		integrationTests.SyncAllShardsWithRoundBlock(t, proposeData, nodesMap, round)
 		round++
 		nonce++
 	}
@@ -213,15 +205,14 @@ func TestExecuteBlocksWithoutTransactionsAndCheckRewards(t *testing.T) {
 	nonce := uint64(1)
 	nbBlocksProduced := 7
 
-	var consensusNodes map[uint32][]*integrationTests.TestProcessorNode
 	mapRewardsForShardAddresses := make(map[string]uint32)
 	mapRewardsForMetachainAddresses := make(map[string]uint32)
 	nbTxsForLeaderAddress := make(map[string]uint32)
 
 	for i := 0; i < nbBlocksProduced; i++ {
-		_, _, consensusNodes = integrationTests.AllShardsProposeBlock(round, nonce, nodesMap)
+		proposeData := integrationTests.AllShardsProposeBlock(round, nonce, nodesMap)
 
-		for shardId := range consensusNodes {
+		for shardId := range nodesMap {
 			if shardId == core.MetachainShardId {
 				continue
 			}
@@ -231,13 +222,10 @@ func TestExecuteBlocksWithoutTransactionsAndCheckRewards(t *testing.T) {
 			updateExpectedRewards(mapRewardsForShardAddresses, addrRewards)
 		}
 
-		updateRewardsForMetachain(mapRewardsForMetachainAddresses, consensusNodes[0][0])
-
 		for _, nodes := range nodesMap {
 			integrationTests.UpdateRound(nodes, round)
 		}
-		indexesProposers := testBlock.GetBlockProposersIndexes(consensusNodes, nodesMap)
-		integrationTests.SyncAllShardsWithRoundBlock(t, nodesMap, indexesProposers, round)
+		integrationTests.SyncAllShardsWithRoundBlock(t, proposeData, nodesMap, round)
 		round++
 		nonce++
 	}
@@ -248,13 +236,8 @@ func TestExecuteBlocksWithoutTransactionsAndCheckRewards(t *testing.T) {
 	verifyRewardsForMetachain(t, mapRewardsForMetachainAddresses, nodesMap)
 }
 
-func getTransactionsFromHeaderInShard(t *testing.T, headers map[uint32]data.HeaderHandler, shardId uint32) uint32 {
+func getTransactionsFromHeaderInShard(t *testing.T, header data.HeaderHandler, shardId uint32) uint32 {
 	if shardId == core.MetachainShardId {
-		return 0
-	}
-
-	header, ok := headers[shardId]
-	if !ok {
 		return 0
 	}
 
@@ -294,9 +277,6 @@ func updateNumberTransactionsProposed(
 	}
 
 	transactionsForLeader[addressProposer] += nbTransactions
-}
-
-func updateRewardsForMetachain(_ map[string]uint32, _ *integrationTests.TestProcessorNode) {
 }
 
 func verifyRewardsForMetachain(

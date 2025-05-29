@@ -16,6 +16,7 @@ type P2PAntifloodHandlerStub struct {
 	SetDebuggerCalled                  func(debugger process.AntifloodDebugger) error
 	BlacklistPeerCalled                func(peer core.PeerID, reason string, duration time.Duration)
 	IsOriginatorEligibleForTopicCalled func(pid core.PeerID, topic string) error
+	SetConsensusSizeNotifierCalled     func(chainParametersNotifier process.ChainParametersSubscriber, shardID uint32)
 }
 
 // CanProcessMessage -
@@ -73,6 +74,13 @@ func (p2pahs *P2PAntifloodHandlerStub) ResetForTopic(_ string) {
 // SetMaxMessagesForTopic -
 func (p2pahs *P2PAntifloodHandlerStub) SetMaxMessagesForTopic(_ string, _ uint32) {
 
+}
+
+// SetConsensusSizeNotifier -
+func (p2pahs *P2PAntifloodHandlerStub) SetConsensusSizeNotifier(chainParametersNotifier process.ChainParametersSubscriber, shardID uint32) {
+	if p2pahs.SetConsensusSizeNotifierCalled != nil {
+		p2pahs.SetConsensusSizeNotifierCalled(chainParametersNotifier, shardID)
+	}
 }
 
 // SetPeerValidatorMapper -

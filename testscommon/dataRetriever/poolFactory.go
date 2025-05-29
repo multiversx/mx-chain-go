@@ -6,10 +6,12 @@ import (
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/marshal"
+
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/dataRetriever/dataPool"
 	"github.com/multiversx/mx-chain-go/dataRetriever/dataPool/headersCache"
+	proofscache "github.com/multiversx/mx-chain-go/dataRetriever/dataPool/proofsCache"
 	"github.com/multiversx/mx-chain-go/dataRetriever/shardedData"
 	"github.com/multiversx/mx-chain-go/dataRetriever/txpool"
 	"github.com/multiversx/mx-chain-go/storage/cache"
@@ -46,8 +48,7 @@ func CreateTxPool(numShards uint32, selfShard uint32) (dataRetriever.ShardedData
 	)
 }
 
-// CreatePoolsHolder -
-func CreatePoolsHolder(numShards uint32, selfShard uint32) dataRetriever.PoolsHolder {
+func createPoolHolderArgs(numShards uint32, selfShard uint32) dataPool.DataPoolArgs {
 	var err error
 
 	txPool, err := CreateTxPool(numShards, selfShard)
@@ -134,6 +135,8 @@ func CreatePoolsHolder(numShards uint32, selfShard uint32) dataRetriever.PoolsHo
 	})
 	panicIfError("CreatePoolsHolder", err)
 
+	proofsPool := proofscache.NewProofsPool(3, 100)
+
 	currentBlockTransactions := dataPool.NewCurrentBlockTransactionsPool()
 	currentEpochValidatorInfo := dataPool.NewCurrentEpochValidatorInfoPool()
 	dataPoolArgs := dataPool.DataPoolArgs{
@@ -151,9 +154,33 @@ func CreatePoolsHolder(numShards uint32, selfShard uint32) dataRetriever.PoolsHo
 		PeerAuthentications:       peerAuthPool,
 		Heartbeats:                heartbeatPool,
 		ValidatorsInfo:            validatorsInfo,
+		Proofs:                    proofsPool,
 	}
+
+	return dataPoolArgs
+}
+
+// CreatePoolsHolder -
+func CreatePoolsHolder(numShards uint32, selfShard uint32) dataRetriever.PoolsHolder {
+
+	dataPoolArgs := createPoolHolderArgs(numShards, selfShard)
+
 	holder, err := dataPool.NewDataPool(dataPoolArgs)
 	panicIfError("CreatePoolsHolder", err)
+
+	return holder
+}
+
+// CreatePoolsHolderWithProofsPool -
+func CreatePoolsHolderWithProofsPool(
+	numShards uint32, selfShard uint32,
+	proofsPool dataRetriever.ProofsPool,
+) dataRetriever.PoolsHolder {
+	dataPoolArgs := createPoolHolderArgs(numShards, selfShard)
+	dataPoolArgs.Proofs = proofsPool
+
+	holder, err := dataPool.NewDataPool(dataPoolArgs)
+	panicIfError("CreatePoolsHolderWithProofsPool", err)
 
 	return holder
 }
@@ -218,6 +245,8 @@ func CreatePoolsHolderWithTxPool(txPool dataRetriever.ShardedDataCacherNotifier)
 	heartbeatPool, err := storageunit.NewCache(cacherConfig)
 	panicIfError("CreatePoolsHolderWithTxPool", err)
 
+	proofsPool := proofscache.NewProofsPool(3, 100)
+
 	currentBlockTransactions := dataPool.NewCurrentBlockTransactionsPool()
 	currentEpochValidatorInfo := dataPool.NewCurrentEpochValidatorInfoPool()
 	dataPoolArgs := dataPool.DataPoolArgs{
@@ -235,6 +264,7 @@ func CreatePoolsHolderWithTxPool(txPool dataRetriever.ShardedDataCacherNotifier)
 		PeerAuthentications:       peerAuthPool,
 		Heartbeats:                heartbeatPool,
 		ValidatorsInfo:            validatorsInfo,
+		Proofs:                    proofsPool,
 	}
 	holder, err := dataPool.NewDataPool(dataPoolArgs)
 	panicIfError("CreatePoolsHolderWithTxPool", err)

@@ -325,7 +325,7 @@ func (stub *BlockChainHookStub) NumberOfShards() uint32 {
 // SetCurrentHeader -
 func (stub *BlockChainHookStub) SetCurrentHeader(hdr data.HeaderHandler) error {
 	if stub.SetCurrentHeaderCalled != nil {
-		stub.SetCurrentHeaderCalled(hdr)
+		return stub.SetCurrentHeaderCalled(hdr)
 	}
 
 	return nil
