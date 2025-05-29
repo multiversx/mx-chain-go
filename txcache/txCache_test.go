@@ -10,6 +10,7 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/testscommon/txcachemocks"
 	"github.com/multiversx/mx-chain-storage-go/common"
 	"github.com/multiversx/mx-chain-storage-go/types"
@@ -73,7 +74,8 @@ func requireErrorOnNewTxCache(t *testing.T, config ConfigSourceMe, errExpected e
 }
 
 func Test_AddTx(t *testing.T) {
-	cache := newUnconstrainedCacheToTest()
+	mockSortedTransactionsConfig := createMockSortedTransactionsConfig(10_000_000_000, 30000, 250)
+	cache := newUnconstrainedCacheToTest(mockSortedTransactionsConfig)
 
 	tx := createTx([]byte("hash-1"), "alice", 1)
 
@@ -94,7 +96,8 @@ func Test_AddTx(t *testing.T) {
 }
 
 func Test_AddNilTx_DoesNothing(t *testing.T) {
-	cache := newUnconstrainedCacheToTest()
+	mockSortedTransactionsConfig := createMockSortedTransactionsConfig(10_000_000_000, 30000, 250)
+	cache := newUnconstrainedCacheToTest(mockSortedTransactionsConfig)
 
 	txHash := []byte("hash-1")
 
@@ -108,7 +111,8 @@ func Test_AddNilTx_DoesNothing(t *testing.T) {
 }
 
 func Test_AddTx_AppliesSizeConstraintsPerSenderForNumTransactions(t *testing.T) {
-	cache := newCacheToTest(maxNumBytesPerSenderUpperBoundTest, 3)
+	mockSortedTransactionsConfig := createMockSortedTransactionsConfig(10_000_000_000, 30000, 250)
+	cache := newCacheToTest(maxNumBytesPerSenderUpperBoundTest, 3, mockSortedTransactionsConfig)
 
 	cache.AddTx(createTx([]byte("tx-alice-1"), "alice", 1))
 	cache.AddTx(createTx([]byte("tx-alice-2"), "alice", 2))
@@ -126,7 +130,8 @@ func Test_AddTx_AppliesSizeConstraintsPerSenderForNumTransactions(t *testing.T) 
 }
 
 func Test_AddTx_AppliesSizeConstraintsPerSenderForNumBytes(t *testing.T) {
-	cache := newCacheToTest(1024, math.MaxUint32)
+	mockSortedTransactionsConfig := createMockSortedTransactionsConfig(10_000_000_000, 30000, 250)
+	cache := newCacheToTest(1024, math.MaxUint32, mockSortedTransactionsConfig)
 
 	cache.AddTx(createTx([]byte("tx-alice-1"), "alice", 1).withSize(128).withGasLimit(50000))
 	cache.AddTx(createTx([]byte("tx-alice-2"), "alice", 2).withSize(512).withGasLimit(1500000))
@@ -146,7 +151,8 @@ func Test_AddTx_AppliesSizeConstraintsPerSenderForNumBytes(t *testing.T) {
 }
 
 func Test_RemoveByTxHash(t *testing.T) {
-	cache := newUnconstrainedCacheToTest()
+	mockSortedTransactionsConfig := createMockSortedTransactionsConfig(10_000_000_000, 30000, 250)
+	cache := newUnconstrainedCacheToTest(mockSortedTransactionsConfig)
 
 	cache.AddTx(createTx([]byte("hash-1"), "alice", 1))
 	cache.AddTx(createTx([]byte("hash-2"), "alice", 2))
@@ -172,7 +178,8 @@ func Test_RemoveByTxHash(t *testing.T) {
 }
 
 func Test_CountTx_And_Len(t *testing.T) {
-	cache := newUnconstrainedCacheToTest()
+	mockSortedTransactionsConfig := createMockSortedTransactionsConfig(10_000_000_000, 30000, 250)
+	cache := newUnconstrainedCacheToTest(mockSortedTransactionsConfig)
 
 	cache.AddTx(createTx([]byte("hash-1"), "alice", 1))
 	cache.AddTx(createTx([]byte("hash-2"), "alice", 2))
@@ -183,7 +190,8 @@ func Test_CountTx_And_Len(t *testing.T) {
 }
 
 func Test_GetByTxHash_And_Peek_And_Get(t *testing.T) {
-	cache := newUnconstrainedCacheToTest()
+	mockSortedTransactionsConfig := createMockSortedTransactionsConfig(10_000_000_000, 30000, 250)
+	cache := newUnconstrainedCacheToTest(mockSortedTransactionsConfig)
 
 	txHash := []byte("hash-1")
 	tx := createTx(txHash, "alice", 1)
@@ -211,13 +219,16 @@ func Test_GetByTxHash_And_Peek_And_Get(t *testing.T) {
 }
 
 func Test_RemoveByTxHash_WhenMissing(t *testing.T) {
-	cache := newUnconstrainedCacheToTest()
+	mockSortedTransactionsConfig := createMockSortedTransactionsConfig(10_000_000_000, 30000, 250)
+	cache := newUnconstrainedCacheToTest(mockSortedTransactionsConfig)
+
 	removed := cache.RemoveTxByHash([]byte("missing"))
 	require.False(t, removed)
 }
 
 func Test_RemoveByTxHash_RemovesFromByHash_WhenMapsInconsistency(t *testing.T) {
-	cache := newUnconstrainedCacheToTest()
+	mockSortedTransactionsConfig := createMockSortedTransactionsConfig(10_000_000_000, 30000, 250)
+	cache := newUnconstrainedCacheToTest(mockSortedTransactionsConfig)
 
 	txHash := []byte("hash-1")
 	tx := createTx(txHash, "alice", 1)
@@ -231,7 +242,8 @@ func Test_RemoveByTxHash_RemovesFromByHash_WhenMapsInconsistency(t *testing.T) {
 }
 
 func Test_Clear(t *testing.T) {
-	cache := newUnconstrainedCacheToTest()
+	mockSortedTransactionsConfig := createMockSortedTransactionsConfig(10_000_000_000, 30000, 250)
+	cache := newUnconstrainedCacheToTest(mockSortedTransactionsConfig)
 
 	cache.AddTx(createTx([]byte("hash-alice-1"), "alice", 1))
 	cache.AddTx(createTx([]byte("hash-bob-7"), "bob", 7))
@@ -243,7 +255,8 @@ func Test_Clear(t *testing.T) {
 }
 
 func Test_ForEachTransaction(t *testing.T) {
-	cache := newUnconstrainedCacheToTest()
+	mockSortedTransactionsConfig := createMockSortedTransactionsConfig(10_000_000_000, 30000, 250)
+	cache := newUnconstrainedCacheToTest(mockSortedTransactionsConfig)
 
 	cache.AddTx(createTx([]byte("hash-alice-1"), "alice", 1))
 	cache.AddTx(createTx([]byte("hash-bob-7"), "bob", 7))
@@ -256,7 +269,8 @@ func Test_ForEachTransaction(t *testing.T) {
 }
 
 func Test_GetTransactionsPoolForSender(t *testing.T) {
-	cache := newUnconstrainedCacheToTest()
+	mockSortedTransactionsConfig := createMockSortedTransactionsConfig(10_000_000_000, 30000, 250)
+	cache := newUnconstrainedCacheToTest(mockSortedTransactionsConfig)
 
 	txHashes1 := [][]byte{[]byte("hash-1"), []byte("hash-2")}
 	txSender1 := "alice"
@@ -296,7 +310,9 @@ func Test_GetTransactionsPoolForSender(t *testing.T) {
 }
 
 func Test_Keys(t *testing.T) {
-	cache := newUnconstrainedCacheToTest()
+	mockSortedTransactionsConfig := createMockSortedTransactionsConfig(10_000_000_000, 30000, 250)
+
+	cache := newUnconstrainedCacheToTest(mockSortedTransactionsConfig)
 
 	cache.AddTx(createTx([]byte("alice-x"), "alice", 42))
 	cache.AddTx(createTx([]byte("alice-y"), "alice", 43))
@@ -325,6 +341,7 @@ func Test_AddWithEviction_UniformDistributionOfTxsPerSender(t *testing.T) {
 			CountPerSenderThreshold:        math.MaxUint32,
 			NumItemsToPreemptivelyEvict:    1,
 			MaxNumBytesPerSenderUpperBound: maxNumBytesPerSenderUpperBoundTest,
+			SortedTransactionsConfig:       createMockSortedTransactionsConfig(10_000_000_000, 30000, 250),
 		}
 
 		cache, err := NewTxCache(config, host)
@@ -350,6 +367,7 @@ func Test_AddWithEviction_UniformDistributionOfTxsPerSender(t *testing.T) {
 			CountPerSenderThreshold:        math.MaxUint32,
 			NumItemsToPreemptivelyEvict:    3,
 			MaxNumBytesPerSenderUpperBound: maxNumBytesPerSenderUpperBoundTest,
+			SortedTransactionsConfig:       createMockSortedTransactionsConfig(10_000_000_000, 30000, 250),
 		}
 
 		cache, err := NewTxCache(config, host)
@@ -371,6 +389,7 @@ func Test_AddWithEviction_UniformDistributionOfTxsPerSender(t *testing.T) {
 			CountPerSenderThreshold:        math.MaxUint32,
 			NumItemsToPreemptivelyEvict:    2,
 			MaxNumBytesPerSenderUpperBound: maxNumBytesPerSenderUpperBoundTest,
+			SortedTransactionsConfig:       createMockSortedTransactionsConfig(10_000_000_000, 30000, 250),
 		}
 
 		cache, err := NewTxCache(config, host)
@@ -392,6 +411,7 @@ func Test_AddWithEviction_UniformDistributionOfTxsPerSender(t *testing.T) {
 			CountPerSenderThreshold:        math.MaxUint32,
 			NumItemsToPreemptivelyEvict:    1,
 			MaxNumBytesPerSenderUpperBound: maxNumBytesPerSenderUpperBoundTest,
+			SortedTransactionsConfig:       createMockSortedTransactionsConfig(10_000_000_000, 30000, 250),
 		}
 
 		cache, err := NewTxCache(config, host)
@@ -413,6 +433,7 @@ func Test_AddWithEviction_UniformDistributionOfTxsPerSender(t *testing.T) {
 			CountPerSenderThreshold:        math.MaxUint32,
 			NumItemsToPreemptivelyEvict:    10000,
 			MaxNumBytesPerSenderUpperBound: maxNumBytesPerSenderUpperBoundTest,
+			SortedTransactionsConfig:       createMockSortedTransactionsConfig(10_000_000_000, 30000, 250),
 		}
 
 		cache, err := NewTxCache(config, host)
@@ -425,7 +446,8 @@ func Test_AddWithEviction_UniformDistributionOfTxsPerSender(t *testing.T) {
 }
 
 func Test_NotImplementedFunctions(t *testing.T) {
-	cache := newUnconstrainedCacheToTest()
+	mockSortedTxsConfig := createMockSortedTransactionsConfig(10_000_000_000, 30000, 250)
+	cache := newUnconstrainedCacheToTest(mockSortedTxsConfig)
 
 	evicted := cache.Put(nil, nil, 0)
 	require.False(t, evicted)
@@ -441,7 +463,8 @@ func Test_NotImplementedFunctions(t *testing.T) {
 }
 
 func Test_IsInterfaceNil(t *testing.T) {
-	cache := newUnconstrainedCacheToTest()
+	mockSortedTxsConfig := createMockSortedTransactionsConfig(10_000_000_000, math.MaxInt, 250)
+	cache := newUnconstrainedCacheToTest(mockSortedTxsConfig)
 	require.False(t, check.IfNil(cache))
 
 	makeNil := func() types.Cacher {
@@ -453,7 +476,8 @@ func Test_IsInterfaceNil(t *testing.T) {
 }
 
 func TestTxCache_TransactionIsAdded_EvenWhenInternalMapsAreInconsistent(t *testing.T) {
-	cache := newUnconstrainedCacheToTest()
+	mockSortedTxsConfig := createMockSortedTransactionsConfig(10_000_000_000, math.MaxInt, 250)
+	cache := newUnconstrainedCacheToTest(mockSortedTxsConfig)
 
 	// Setup inconsistency: transaction already exists in map by hash, but not in map by sender
 	cache.txByHash.addTx(createTx([]byte("alice-x"), "alice", 42))
@@ -480,7 +504,8 @@ func TestTxCache_TransactionIsAdded_EvenWhenInternalMapsAreInconsistent(t *testi
 }
 
 func TestTxCache_NoCriticalInconsistency_WhenConcurrentAdditionsAndRemovals(t *testing.T) {
-	cache := newUnconstrainedCacheToTest()
+	mockSortedTxsConfig := createMockSortedTransactionsConfig(10_000_000_000, math.MaxInt, 250)
+	cache := newUnconstrainedCacheToTest(mockSortedTxsConfig)
 
 	// A lot of routines concur to add & remove a transaction
 	for try := 0; try < 100; try++ {
@@ -605,20 +630,20 @@ func TestBenchmarkTxCache_addManyTransactionsWithSameNonce(t *testing.T) {
 	// 0.062260s (TestBenchmarkTxCache_addManyTransactionsWithSameNonce/numTransactions_=_5_000_(worst_case))
 }
 
-func newUnconstrainedCacheToTest() *TxCache {
+func newUnconstrainedCacheToTest(sortedTxsConfig config.SortedTransactionsConfig) *TxCache {
 	host := txcachemocks.NewMempoolHostMock()
 
 	cache, err := NewTxCache(ConfigSourceMe{
-		Name:                               "test",
-		NumChunks:                          16,
-		NumBytesThreshold:                  maxNumBytesUpperBound,
-		NumBytesPerSenderThreshold:         maxNumBytesPerSenderUpperBoundTest,
-		CountThreshold:                     math.MaxUint32,
-		CountPerSenderThreshold:            math.MaxUint32,
-		EvictionEnabled:                    false,
-		NumItemsToPreemptivelyEvict:        1,
-		MaxNumBytesPerSenderUpperBound:     maxNumBytesPerSenderUpperBoundTest,
-		SelectionLoopDurationCheckInterval: selectionLoopDurationCheckInterval,
+		Name:                           "test",
+		NumChunks:                      16,
+		NumBytesThreshold:              maxNumBytesUpperBound,
+		NumBytesPerSenderThreshold:     maxNumBytesPerSenderUpperBoundTest,
+		CountThreshold:                 math.MaxUint32,
+		CountPerSenderThreshold:        math.MaxUint32,
+		EvictionEnabled:                false,
+		NumItemsToPreemptivelyEvict:    1,
+		MaxNumBytesPerSenderUpperBound: maxNumBytesPerSenderUpperBoundTest,
+		SortedTransactionsConfig:       sortedTxsConfig,
 	}, host)
 	if err != nil {
 		panic(fmt.Sprintf("newUnconstrainedCacheToTest(): %s", err))
@@ -627,7 +652,7 @@ func newUnconstrainedCacheToTest() *TxCache {
 	return cache
 }
 
-func newCacheToTest(numBytesPerSenderThreshold uint32, countPerSenderThreshold uint32) *TxCache {
+func newCacheToTest(numBytesPerSenderThreshold uint32, countPerSenderThreshold uint32, mockSortedTxsConfig config.SortedTransactionsConfig) *TxCache {
 	host := txcachemocks.NewMempoolHostMock()
 
 	cache, err := NewTxCache(ConfigSourceMe{
@@ -640,6 +665,7 @@ func newCacheToTest(numBytesPerSenderThreshold uint32, countPerSenderThreshold u
 		EvictionEnabled:                false,
 		NumItemsToPreemptivelyEvict:    1,
 		MaxNumBytesPerSenderUpperBound: maxNumBytesPerSenderUpperBoundTest,
+		SortedTransactionsConfig:       mockSortedTxsConfig,
 	}, host)
 	if err != nil {
 		panic(fmt.Sprintf("newCacheToTest(): %s", err))

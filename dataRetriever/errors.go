@@ -272,5 +272,14 @@ var ErrEquivalentProofsNotFound = errors.New("equivalent proof not found")
 // ErrNilEnableEpochsHandler signals that a nil enable epochs handler has been provided
 var ErrNilEnableEpochsHandler = errors.New("nil enable epochs handler")
 
-// ErrSelectionLoopDurationCheckInterval signals a bad SelectionLoopDurationCheckInterval
-var ErrSelectionLoopDurationCheckInterval = errors.New("bad selection loop duration check interval")
+// ErrBadSelectionLoopDurationCheckInterval signals a bad SelectionLoopDurationCheckInterval
+var ErrBadSelectionLoopDurationCheckInterval = errors.New("bad selection loop duration check interval")
+
+// ErrBadTxCacheSelectionMaxNumTxs signals a bad TxCacheSelectionMaxNumTxs config
+var ErrBadTxCacheSelectionMaxNumTxs = errors.New("bad tx cache selection max num txs")
+
+// ErrBadTxCacheSelectionGasRequested signals a bad TxCacheSelectionGasRequested config
+var ErrBadTxCacheSelectionGasRequested = errors.New("bad tx cache selection gas requested")
+
+// ErrBadTxCacheSelectionLoopMaximumDuration signals a bad TxCacheSelectionLoopMaximumDuration config
+var ErrBadTxCacheSelectionLoopMaximumDuration = errors.New("bad tx cache selection loop maximum duration")

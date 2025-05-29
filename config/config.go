@@ -18,7 +18,6 @@ type TransactionsPoolConfig struct {
 	SelectionGasBandwidthIncreasePercent          uint32
 	SelectionGasBandwidthIncreaseScheduledPercent uint32
 	MaxNumBytesPerSenderUpperBound                uint32
-	SelectionLoopDurationCheckInterval            uint32
 }
 
 // SortedTransactionsConfig will map the sorted transactions config
@@ -26,6 +25,7 @@ type SortedTransactionsConfig struct {
 	TxCacheSelectionGasRequested        uint64
 	TxCacheSelectionMaxNumTxs           int
 	TxCacheSelectionLoopMaximumDuration int
+	SelectionLoopDurationCheckInterval  uint32
 }
 
 // HeadersPoolConfig will map the headers cache configuration
