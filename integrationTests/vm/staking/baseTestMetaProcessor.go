@@ -230,11 +230,11 @@ func createEpochStartTrigger(
 		AppStatusHandler:   &statusHandlerMock.AppStatusHandlerStub{},
 		DataPool:           dataRetrieverMock.NewPoolsHolderMock(),
 		ChainParametersHandler: &chainParameters.ChainParametersHandlerStub{
-			CurrentChainParametersCalled: func() config.ChainParametersByEpochConfig {
+			ChainParametersForEpochCalled: func(uint32) (config.ChainParametersByEpochConfig, error) {
 				return config.ChainParametersByEpochConfig{
 					RoundsPerEpoch:         10,
 					MinRoundsBetweenEpochs: 10,
-				}
+				}, nil
 			},
 		},
 	}

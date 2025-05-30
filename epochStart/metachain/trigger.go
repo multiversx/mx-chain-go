@@ -176,14 +176,14 @@ func (t *trigger) ForceEpochStart(round uint64) {
 	defer t.mutTrigger.Unlock()
 
 	t.nextEpochStartRound = round
-	if t.nextEpochStartRound > t.currEpochStartRound+t.getRoundsPerEpoch() {
+	if t.nextEpochStartRound > t.currEpochStartRound+t.getRoundsPerEpoch(t.epoch) {
 		t.nextEpochStartRound = disabledRoundForForceEpochStart
 		log.Debug("can not force epoch start because the resulting round is in the next epoch")
 
 		return
 	}
 
-	minRoundsBetweenEpochs := t.getMinRoundsBetweenEpochs()
+	minRoundsBetweenEpochs := t.getMinRoundsBetweenEpochs(t.epoch)
 	if t.nextEpochStartRound-t.currEpochStartRound < minRoundsBetweenEpochs {
 		t.nextEpochStartRound = t.currEpochStartRound + minRoundsBetweenEpochs
 		log.Debug("can not force epoch start on provided round",
@@ -194,12 +194,24 @@ func (t *trigger) ForceEpochStart(round uint64) {
 }
 
 // TODO check if this need to be handled differently at transition to new epoch
-func (t *trigger) getRoundsPerEpoch() uint64 {
-	return uint64(t.chainParametersHandler.CurrentChainParameters().RoundsPerEpoch)
+func (t *trigger) getRoundsPerEpoch(epoch uint32) uint64 {
+	chainParametersForEpoch, err := t.chainParametersHandler.ChainParametersForEpoch(epoch)
+	if err != nil {
+		log.Warn("could not get rounds per epoch for epoch, returned current chain parameters", "epoch", epoch, "error", err)
+		chainParametersForEpoch = t.chainParametersHandler.CurrentChainParameters()
+	}
+
+	return uint64(chainParametersForEpoch.RoundsPerEpoch)
 }
 
-func (t *trigger) getMinRoundsBetweenEpochs() uint64 {
-	return uint64(t.chainParametersHandler.CurrentChainParameters().MinRoundsBetweenEpochs)
+func (t *trigger) getMinRoundsBetweenEpochs(epoch uint32) uint64 {
+	chainParametersForEpoch, err := t.chainParametersHandler.ChainParametersForEpoch(epoch)
+	if err != nil {
+		log.Warn("could not get min rounds between epoch, returned current chain parameters", "epoch", epoch, "error", err)
+		chainParametersForEpoch = t.chainParametersHandler.CurrentChainParameters()
+	}
+
+	return uint64(chainParametersForEpoch.MinRoundsBetweenEpochs)
 }
 
 // Update processes changes in the trigger
@@ -214,7 +226,7 @@ func (t *trigger) Update(round uint64, nonce uint64) {
 	}
 
 	isZeroEpochEdgeCase := nonce < minimumNonceToStartEpoch
-	isNormalEpochStart := t.currentRound > t.currEpochStartRound+t.getRoundsPerEpoch()
+	isNormalEpochStart := t.currentRound > t.currEpochStartRound+t.getRoundsPerEpoch(t.epoch)
 	isWithEarlyEndOfEpoch := t.currentRound >= t.nextEpochStartRound
 	shouldTriggerEpochStart := (isNormalEpochStart || isWithEarlyEndOfEpoch) && !isZeroEpochEdgeCase
 	if shouldTriggerEpochStart {

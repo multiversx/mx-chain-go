@@ -231,6 +231,7 @@ func TestChainSimulator_ChangeRoundsPerEpoch(t *testing.T) {
 			cfg.GeneralConfig.GeneralSettings.ChainParametersByEpoch[0].RoundsPerEpoch = 10
 			cfg.GeneralConfig.GeneralSettings.ChainParametersByEpoch[0].MinRoundsBetweenEpochs = 10
 
+			cfg.EpochConfig.EnableEpochs.AndromedaEnableEpoch = 3
 			cfg.GeneralConfig.GeneralSettings.ChainParametersByEpoch[1].EnableEpoch = 3
 			cfg.GeneralConfig.GeneralSettings.ChainParametersByEpoch[1].RoundsPerEpoch = 20
 			cfg.GeneralConfig.GeneralSettings.ChainParametersByEpoch[1].MinRoundsBetweenEpochs = 10
@@ -246,7 +247,6 @@ func TestChainSimulator_ChangeRoundsPerEpoch(t *testing.T) {
 	err = chainSimulator.GenerateBlocks(140)
 	require.Nil(t, err)
 
-	// expected epoch after 140 block  = 3 * 10 * 2 x 20 + 2 * 30  = 7
 	expectedEpoch := uint32(7)
 
 	metaNode := chainSimulator.GetNodeHandler(core.MetachainShardId)

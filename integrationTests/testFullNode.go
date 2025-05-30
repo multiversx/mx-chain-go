@@ -644,11 +644,11 @@ func (tfn *TestFullNode) createEpochStartTrigger(startTime int64) TestEpochStart
 			AppStatusHandler:   &statusHandlerMock.AppStatusHandlerStub{},
 			DataPool:           tfn.DataPool,
 			ChainParametersHandler: &chainParameters.ChainParametersHandlerStub{
-				CurrentChainParametersCalled: func() config.ChainParametersByEpochConfig {
+				ChainParametersForEpochCalled: func(uint32) (config.ChainParametersByEpochConfig, error) {
 					return config.ChainParametersByEpochConfig{
 						RoundsPerEpoch:         1000,
 						MinRoundsBetweenEpochs: 1,
-					}
+					}, nil
 				},
 			},
 		}

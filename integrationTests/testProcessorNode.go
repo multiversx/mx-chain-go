@@ -1336,11 +1336,11 @@ func (tpn *TestProcessorNode) initInterceptors(heartbeatPk string) {
 			AppStatusHandler:   &statusHandlerMock.AppStatusHandlerStub{},
 			DataPool:           tpn.DataPool,
 			ChainParametersHandler: &chainParameters.ChainParametersHandlerStub{
-				CurrentChainParametersCalled: func() config.ChainParametersByEpochConfig {
+				ChainParametersForEpochCalled: func(uint32) (config.ChainParametersByEpochConfig, error) {
 					return config.ChainParametersByEpochConfig{
 						RoundsPerEpoch:         10000,
 						MinRoundsBetweenEpochs: 1000,
-					}
+					}, nil
 				},
 			},
 		}
@@ -2298,11 +2298,11 @@ func (tpn *TestProcessorNode) initBlockProcessor() {
 				AppStatusHandler:   &statusHandlerMock.AppStatusHandlerStub{},
 				DataPool:           tpn.DataPool,
 				ChainParametersHandler: &chainParameters.ChainParametersHandlerStub{
-					CurrentChainParametersCalled: func() config.ChainParametersByEpochConfig {
+					ChainParametersForEpochCalled: func(uint32) (config.ChainParametersByEpochConfig, error) {
 						return config.ChainParametersByEpochConfig{
 							RoundsPerEpoch:         10000,
 							MinRoundsBetweenEpochs: 1000,
-						}
+						}, nil
 					},
 				},
 			}
@@ -3426,6 +3426,12 @@ func GetDefaultCoreComponents(enableEpochsHandler common.EnableEpochsHandler, ep
 					RoundsPerEpoch:         200,
 					MinRoundsBetweenEpochs: 10,
 				}
+			},
+			ChainParametersForEpochCalled: func(uint32) (config.ChainParametersByEpochConfig, error) {
+				return config.ChainParametersByEpochConfig{
+					RoundsPerEpoch:         200,
+					MinRoundsBetweenEpochs: 10,
+				}, nil
 			},
 		},
 	}

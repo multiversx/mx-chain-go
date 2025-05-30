@@ -247,11 +247,11 @@ func (tcn *TestConsensusNode) initNode(args ArgsTestConsensusNode) {
 			AppStatusHandler:   &statusHandlerMock.AppStatusHandlerStub{},
 			DataPool:           dataPool,
 			ChainParametersHandler: &chainParameters.ChainParametersHandlerStub{
-				CurrentChainParametersCalled: func() config.ChainParametersByEpochConfig {
+				ChainParametersForEpochCalled: func(uint32) (config.ChainParametersByEpochConfig, error) {
 					return config.ChainParametersByEpochConfig{
 						RoundsPerEpoch:         1000,
 						MinRoundsBetweenEpochs: 1,
-					}
+					}, nil
 				},
 			},
 		}

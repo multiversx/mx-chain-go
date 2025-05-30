@@ -212,11 +212,11 @@ func TestTrigger_ForceEpochStartUnderMinimumBetweenEpochs(t *testing.T) {
 
 	arguments := createMockEpochStartTriggerArguments()
 	arguments.ChainParametersHandler = &chainParameters.ChainParametersHandlerStub{
-		CurrentChainParametersCalled: func() config.ChainParametersByEpochConfig {
+		ChainParametersForEpochCalled: func(uint32) (config.ChainParametersByEpochConfig, error) {
 			return config.ChainParametersByEpochConfig{
 				MinRoundsBetweenEpochs: 20,
 				RoundsPerEpoch:         200,
-			}
+			}, nil
 		},
 	}
 	epochStartTrigger, _ := NewEpochStartTrigger(arguments)
@@ -232,11 +232,11 @@ func TestTrigger_ForceEpochStartShouldOk(t *testing.T) {
 	epoch := uint32(0)
 	arguments := createMockEpochStartTriggerArguments()
 	arguments.ChainParametersHandler = &chainParameters.ChainParametersHandlerStub{
-		CurrentChainParametersCalled: func() config.ChainParametersByEpochConfig {
+		ChainParametersForEpochCalled: func(epoch uint32) (config.ChainParametersByEpochConfig, error) {
 			return config.ChainParametersByEpochConfig{
 				MinRoundsBetweenEpochs: 20,
 				RoundsPerEpoch:         200,
-			}
+			}, nil
 		},
 	}
 
