@@ -427,7 +427,7 @@
     SelectionGasBandwidthIncreasePercent = 400
     SelectionGasBandwidthIncreaseScheduledPercent = 260
     MaxNumBytesPerSenderUpperBound = 33_554_432 #32MB
-
+    SelectionLoopDurationCheckInterval = 10
 
 [TrieNodesChunksDataPool]
     Name = "TrieNodesDataPool"

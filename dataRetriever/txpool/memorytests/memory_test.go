@@ -24,6 +24,7 @@ import (
 // Enable this manually, locally.
 const useMemPprof = false
 const maxNumBytesPerSenderUpperBoundTest = 33_554_432 // 32 MB
+const selectionLoopDurationCheckInterval = 10
 
 // We run all scenarios within a single test so that we minimize memory interferences (of tests running in parallel)
 func TestShardedTxPool_MemoryFootprint(t *testing.T) {
@@ -112,12 +113,13 @@ func newPool() dataRetriever.ShardedDataCacherNotifier {
 	}
 
 	args := txpool.ArgShardedTxPool{
-		Config:                         config,
-		TxGasHandler:                   txcachemocks.NewTxGasHandlerMock(),
-		Marshalizer:                    &marshal.GogoProtoMarshalizer{},
-		NumberOfShards:                 2,
-		SelfShardID:                    0,
-		MaxNumBytesPerSenderUpperBound: maxNumBytesPerSenderUpperBoundTest,
+		Config:                             config,
+		TxGasHandler:                       txcachemocks.NewTxGasHandlerMock(),
+		Marshalizer:                        &marshal.GogoProtoMarshalizer{},
+		NumberOfShards:                     2,
+		SelfShardID:                        0,
+		MaxNumBytesPerSenderUpperBound:     maxNumBytesPerSenderUpperBoundTest,
+		SelectionLoopDurationCheckInterval: selectionLoopDurationCheckInterval,
 	}
 	pool, err := txpool.NewShardedTxPool(args)
 	if err != nil {

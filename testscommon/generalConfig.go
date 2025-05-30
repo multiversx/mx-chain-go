@@ -141,6 +141,7 @@ func GetGeneralConfig() config.Config {
 			SelectionLoopMaximumDuration:                  250,
 			SelectionGasBandwidthIncreasePercent:          400,
 			SelectionGasBandwidthIncreaseScheduledPercent: 260,
+			SelectionLoopDurationCheckInterval:            10,
 		},
 		UnsignedTransactionDataPool: config.CacheConfig{
 			Capacity:    10000,

@@ -18,15 +18,16 @@ const numItemsToPreemptivelyEvictLowerBound = uint32(1)
 
 // ConfigSourceMe holds cache configuration
 type ConfigSourceMe struct {
-	Name                           string
-	NumChunks                      uint32
-	EvictionEnabled                bool
-	NumBytesThreshold              uint32
-	NumBytesPerSenderThreshold     uint32
-	CountThreshold                 uint32
-	CountPerSenderThreshold        uint32
-	NumItemsToPreemptivelyEvict    uint32
-	MaxNumBytesPerSenderUpperBound uint32
+	Name                               string
+	NumChunks                          uint32
+	EvictionEnabled                    bool
+	NumBytesThreshold                  uint32
+	NumBytesPerSenderThreshold         uint32
+	CountThreshold                     uint32
+	CountPerSenderThreshold            uint32
+	NumItemsToPreemptivelyEvict        uint32
+	MaxNumBytesPerSenderUpperBound     uint32
+	SelectionLoopDurationCheckInterval uint32
 }
 
 type senderConstraints struct {
