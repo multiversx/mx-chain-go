@@ -30,6 +30,7 @@ type ManagedPeersHolderStub struct {
 	IncrementRoundsSignedCalled                  func()
 	ShouldProposeBlockCalled                     func() bool
 	SetRoundsSignedToMinCalled                   func()
+	DecrementRoundsSignedCalled                  func()
 }
 
 // AddManagedPeer -
@@ -193,6 +194,13 @@ func (stub *ManagedPeersHolderStub) ShouldProposeBlock() bool {
 func (stub *ManagedPeersHolderStub) SetRoundsSignedToMin() {
 	if stub.SetRoundsSignedToMinCalled != nil {
 		stub.SetRoundsSignedToMinCalled()
+	}
+}
+
+// DecrementRoundsSigned -
+func (stub *ManagedPeersHolderStub) DecrementRoundsSigned() {
+	if stub.DecrementRoundsSignedCalled != nil {
+		stub.DecrementRoundsSignedCalled()
 	}
 }
 

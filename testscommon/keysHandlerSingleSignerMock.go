@@ -85,6 +85,10 @@ func (mock *keysHandlerSingleSignerMock) ShouldProposeBlock() bool {
 func (mock *keysHandlerSingleSignerMock) SetRoundsSignedToMin() {
 }
 
+// DecrementRoundsSigned -
+func (mock *keysHandlerSingleSignerMock) DecrementRoundsSigned() {
+}
+
 // IsInterfaceNil -
 func (mock *keysHandlerSingleSignerMock) IsInterfaceNil() bool {
 	return mock == nil

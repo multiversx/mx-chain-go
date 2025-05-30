@@ -89,6 +89,7 @@ type ConsensusStateMock struct {
 	IncrementRoundsSignedCalled                  func()
 	ShouldProposeBlockCalled                     func() bool
 	SetRoundsSignedToMinCalled                   func()
+	DecrementRoundsSignedCalled                  func()
 }
 
 // AddReceivedHeader -
@@ -677,6 +678,13 @@ func (cnsm *ConsensusStateMock) ShouldProposeBlock() bool {
 func (cnsm *ConsensusStateMock) SetRoundsSignedToMin() {
 	if cnsm.SetRoundsSignedToMinCalled != nil {
 		cnsm.SetRoundsSignedToMinCalled()
+	}
+}
+
+// DecrementRoundsSigned -
+func (cnms *ConsensusStateMock) DecrementRoundsSigned() {
+	if cnms.DecrementRoundsSignedCalled != nil {
+		cnms.DecrementRoundsSignedCalled()
 	}
 }
 

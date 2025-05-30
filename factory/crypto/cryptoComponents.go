@@ -210,6 +210,7 @@ func (ccf *cryptoComponentsFactory) Create() (*cryptoComponents, error) {
 		PrefsConfig:                    ccf.prefsConfig,
 		P2PKeyConverter:                p2pFactory.NewP2PKeyConverter(),
 		MinRoundsToSignBeforeProposing: ccf.config.Redundancy.MinRoundsToSignBeforeProposing,
+		MaxRoundsForConsecutiveSigning: uint64(ccf.config.Redundancy.MaxRoundsOfInactivityAccepted),
 	}
 	managedPeersHolder, err := keysManagement.NewManagedPeersHolder(argsManagedPeersHolder)
 	if err != nil {

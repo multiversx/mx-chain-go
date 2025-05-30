@@ -140,6 +140,11 @@ func (handler *keysHandler) SetRoundsSignedToMin() {
 	handler.managedPeersHolder.SetRoundsSignedToMin()
 }
 
+// DecrementRoundsSigned decrements the number of rounds signed
+func (handler *keysHandler) DecrementRoundsSigned() {
+	handler.managedPeersHolder.DecrementRoundsSigned()
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (handler *keysHandler) IsInterfaceNil() bool {
 	return handler == nil

@@ -206,6 +206,7 @@ type KeysHandler interface {
 	IncrementRoundsSigned()
 	ShouldProposeBlock() bool
 	SetRoundsSignedToMin()
+	DecrementRoundsSigned()
 	IsInterfaceNil() bool
 }
 

@@ -42,6 +42,7 @@ type managedPeersHolder struct {
 	roundsSigned                   uint64
 	mutRoundsSigned                sync.RWMutex
 	minRoundsToSignBeforeProposing uint64
+	maxRoundsForConsecutiveSigning uint64
 }
 
 // ArgsManagedPeersHolder represents the argument for the managed peers holder
@@ -52,6 +53,7 @@ type ArgsManagedPeersHolder struct {
 	PrefsConfig                    config.Preferences
 	P2PKeyConverter                p2p.P2PKeyConverter
 	MinRoundsToSignBeforeProposing uint64
+	MaxRoundsForConsecutiveSigning uint64
 }
 
 // NewManagedPeersHolder creates a new instance of a managed peers holder
@@ -73,6 +75,7 @@ func NewManagedPeersHolder(args ArgsManagedPeersHolder) (*managedPeersHolder, er
 		p2pKeyConverter:                args.P2PKeyConverter,
 		data:                           make(map[string]*peerInfo),
 		minRoundsToSignBeforeProposing: args.MinRoundsToSignBeforeProposing,
+		maxRoundsForConsecutiveSigning: args.MaxRoundsForConsecutiveSigning,
 	}
 
 	holder.providedIdentities, err = holder.createProvidedIdentitiesMap(args.PrefsConfig.NamedIdentity)
@@ -96,6 +99,10 @@ func checkManagedPeersHolderArgs(args ArgsManagedPeersHolder) error {
 	}
 	if check.IfNil(args.P2PKeyConverter) {
 		return fmt.Errorf("%w for args.P2PKeyConverter", ErrNilP2PKeyConverter)
+	}
+	if args.MaxRoundsForConsecutiveSigning < args.MinRoundsToSignBeforeProposing {
+		return fmt.Errorf("%w for rounds without signing, MaxRoundsForConsecutiveSigning=%d should be greater or equal to MinRoundsToSignBeforeProposing=%d",
+			ErrInvalidValue, args.MaxRoundsForConsecutiveSigning, args.MinRoundsToSignBeforeProposing)
 	}
 
 	return nil
@@ -296,6 +303,13 @@ func (holder *managedPeersHolder) IncrementRoundsSigned() {
 
 	holder.mutRoundsSigned.Lock()
 	holder.roundsSigned++
+	if holder.roundsSigned >= holder.maxRoundsForConsecutiveSigning {
+		// if this limit is reached, stop counting
+		// this way, decreasing the rounds signed should allow the main node to propose correctly
+		// when no restart happens, but lots of missed blocks instead
+		holder.roundsSigned = holder.maxRoundsForConsecutiveSigning
+	}
+
 	holder.mutRoundsSigned.Unlock()
 }
 
@@ -321,6 +335,21 @@ func (holder *managedPeersHolder) SetRoundsSignedToMin() {
 	holder.mutRoundsSigned.Lock()
 	holder.roundsSigned = holder.minRoundsToSignBeforeProposing
 	holder.mutRoundsSigned.Unlock()
+}
+
+// DecrementRoundsSigned decrements the number of rounds signed
+func (holder *managedPeersHolder) DecrementRoundsSigned() {
+	if !holder.isMainMachine {
+		return
+	}
+
+	holder.mutRoundsSigned.Lock()
+	defer holder.mutRoundsSigned.Unlock()
+	if holder.roundsSigned == 0 {
+		return
+	}
+
+	holder.roundsSigned--
 }
 
 // GetManagedKeysByCurrentNode returns all keys that should act as validator(main or backup that took over) and will be managed by this node

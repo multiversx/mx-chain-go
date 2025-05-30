@@ -862,6 +862,12 @@ func (wrk *Worker) Extend(subroundId int) {
 		return
 	}
 
+	// if extend is called from subround block/signature, decrement the number of rounds signed by the current node
+	if wrk.consensusService.IsSubroundSignature(subroundId) ||
+		wrk.consensusService.IsSubroundBlock(subroundId) {
+		wrk.consensusState.DecrementRoundsSigned()
+	}
+
 	for wrk.consensusState.ProcessingBlock() {
 		time.Sleep(time.Millisecond)
 	}

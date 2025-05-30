@@ -19,6 +19,7 @@ type KeysHandlerStub struct {
 	IncrementRoundsSignedCalled                  func()
 	ShouldProposeBlockCalled                     func() bool
 	SetRoundsSignedToMinCalled                   func()
+	DecrementRoundsSignedCalled                  func()
 }
 
 // GetHandledPrivateKey -
@@ -109,6 +110,13 @@ func (stub *KeysHandlerStub) ShouldProposeBlock() bool {
 func (stub *KeysHandlerStub) SetRoundsSignedToMin() {
 	if stub.SetRoundsSignedToMinCalled != nil {
 		stub.SetRoundsSignedToMinCalled()
+	}
+}
+
+// DecrementRoundsSigned -
+func (stub *KeysHandlerStub) DecrementRoundsSigned() {
+	if stub.DecrementRoundsSignedCalled != nil {
+		stub.DecrementRoundsSignedCalled()
 	}
 }
 

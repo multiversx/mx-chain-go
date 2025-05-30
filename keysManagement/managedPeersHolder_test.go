@@ -67,6 +67,8 @@ func createMockArgsManagedPeersHolder() keysManagement.ArgsManagedPeersHolder {
 				return pid, nil
 			},
 		},
+		MinRoundsToSignBeforeProposing: 2,
+		MaxRoundsForConsecutiveSigning: 10,
 	}
 }
 
@@ -173,6 +175,16 @@ func TestNewManagedPeersHolder(t *testing.T) {
 		holder, err := keysManagement.NewManagedPeersHolder(args)
 
 		assert.True(t, errors.Is(err, keysManagement.ErrNilP2PKeyConverter))
+		assert.True(t, check.IfNil(holder))
+	})
+	t.Run("invalid MaxRoundsForConsecutiveSigning should error", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockArgsManagedPeersHolder()
+		args.MaxRoundsForConsecutiveSigning = args.MinRoundsToSignBeforeProposing - 1
+		holder, err := keysManagement.NewManagedPeersHolder(args)
+
+		assert.True(t, errors.Is(err, keysManagement.ErrInvalidValue))
 		assert.True(t, check.IfNil(holder))
 	})
 	t.Run("valid arguments should work", func(t *testing.T) {
@@ -1031,6 +1043,8 @@ func TestManagedPeersHolder_IncrementRoundsSigned(t *testing.T) {
 
 		holder.SetRoundsSignedToMin()                // coverage only
 		require.True(t, holder.ShouldProposeBlock()) // backup machine
+
+		holder.DecrementRoundsSigned() // coverage only
 	})
 	t.Run("should increase for main machine", func(t *testing.T) {
 		t.Parallel()
@@ -1043,6 +1057,21 @@ func TestManagedPeersHolder_IncrementRoundsSigned(t *testing.T) {
 		require.False(t, holder.ShouldProposeBlock())
 		holder.IncrementRoundsSigned()
 		require.True(t, holder.ShouldProposeBlock())
+		holder.DecrementRoundsSigned()
+		require.False(t, holder.ShouldProposeBlock())
+
+		for i := uint64(0); i < args.MaxRoundsForConsecutiveSigning+1; i++ {
+			holder.IncrementRoundsSigned()
+			require.True(t, holder.ShouldProposeBlock())
+		}
+
+		for i := uint64(0); i < args.MaxRoundsForConsecutiveSigning-args.MinRoundsToSignBeforeProposing; i++ {
+			holder.DecrementRoundsSigned()
+			require.True(t, holder.ShouldProposeBlock())
+		}
+
+		holder.DecrementRoundsSigned()
+		require.False(t, holder.ShouldProposeBlock())
 	})
 }
 
@@ -1116,10 +1145,12 @@ func TestManagedPeersHolder_ParallelOperationsShouldNotPanic(t *testing.T) {
 				holder.IncrementRoundsSigned()
 			case 17:
 				_ = holder.ShouldProposeBlock()
+			case 18:
+				holder.DecrementRoundsSigned()
 			}
 
 			wg.Done()
-		}(i % 18)
+		}(i % 19)
 	}
 
 	wg.Wait()

@@ -262,6 +262,11 @@ func (rcns *roundConsensus) SetRoundsSignedToMin() {
 	rcns.keysHandler.SetRoundsSignedToMin()
 }
 
+// DecrementRoundsSigned decrements the number of rounds signed
+func (rcns *roundConsensus) DecrementRoundsSigned() {
+	rcns.keysHandler.DecrementRoundsSigned()
+}
+
 // GetKeysHandler returns the keysHandler instance
 func (rcns *roundConsensus) GetKeysHandler() consensus.KeysHandler {
 	return rcns.keysHandler
