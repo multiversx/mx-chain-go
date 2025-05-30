@@ -165,6 +165,7 @@ func TestTomlParser(t *testing.T) {
 		MempoolSelection: MempoolSelectionConfig{
 			SelectionMaxNumTxs:                            30000,
 			SelectionLoopMaximumDuration:                  250,
+			SelectionGasRequested:                         10_000_000_000,
 			SelectionGasBandwidthIncreasePercent:          400,
 			SelectionGasBandwidthIncreaseScheduledPercent: 260,
 			SelectionLoopDurationCheckInterval:            10,
@@ -225,6 +226,7 @@ func TestTomlParser(t *testing.T) {
 [MempoolSelection]
 	SelectionMaxNumTxs = 30000
 	SelectionLoopMaximumDuration = 250
+	SelectionGasRequested = 10_000_000_000
 	SelectionGasBandwidthIncreasePercent = 400
 	SelectionGasBandwidthIncreaseScheduledPercent = 260
 	MaxNumBytesPerSenderUpperBound = 33_554_432

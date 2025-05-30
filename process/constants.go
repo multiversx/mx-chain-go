@@ -134,6 +134,3 @@ const MaxHeadersToWhitelistInAdvance = 300
 // the real gas used, after which the transaction will be considered an attack and all the gas will be consumed and
 // nothing will be refunded to the sender
 const MaxGasFeeHigherFactorAccepted = 10
-
-// TxCacheSelectionGasRequested defines the maximum total gas for transactions that should be selected from the cache.
-const TxCacheSelectionGasRequested = 10_000_000_000

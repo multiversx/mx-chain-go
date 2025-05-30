@@ -244,6 +244,7 @@ func createDefaultTransactionsProcessorArgs() ArgsTransactionPreProcessor {
 		MempoolSelectionConfig: config.MempoolSelectionConfig{
 			SelectionMaxNumTxs:                            30000,
 			SelectionLoopMaximumDuration:                  250,
+			SelectionGasRequested:                         10_000_000_000,
 			SelectionGasBandwidthIncreasePercent:          400,
 			SelectionGasBandwidthIncreaseScheduledPercent: 260,
 		},

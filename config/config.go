@@ -19,6 +19,7 @@ type MempoolSelectionConfig struct {
 	SelectionGasBandwidthIncreaseScheduledPercent uint32
 	SelectionMaxNumTxs                            int
 	SelectionLoopMaximumDuration                  int
+	SelectionGasRequested                         uint64
 	MaxNumBytesPerSenderUpperBound                uint32
 	SelectionLoopDurationCheckInterval            uint32
 }

@@ -14,7 +14,6 @@ import (
 	"github.com/multiversx/mx-chain-go/node/chainSimulator"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/components/api"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/dtos"
-	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/block/preprocess"
 	"github.com/multiversx/mx-chain-go/storage/txcache"
 	"github.com/multiversx/mx-chain-go/testscommon"
@@ -28,6 +27,7 @@ var (
 	durationWaitAfterSendSome    = 300 * time.Millisecond
 	selectionMaxNumTxs           = 30000
 	selectionLoopMaximumDuration = 250 * time.Millisecond
+	selectionGasRequested        = 10_000_000_000
 )
 
 func startChainSimulator(t *testing.T, alterConfigsFunction func(cfg *config.Configs)) testsChainSimulator.ChainSimulator {
@@ -167,7 +167,7 @@ func selectTransactions(t *testing.T, simulator testsChainSimulator.ChainSimulat
 
 	selectedTransactions, gas := mempool.SelectTransactions(
 		selectionSession,
-		process.TxCacheSelectionGasRequested,
+		uint64(selectionGasRequested),
 		selectionMaxNumTxs,
 		selectionLoopMaximumDuration,
 	)

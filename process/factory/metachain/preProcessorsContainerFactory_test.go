@@ -23,6 +23,7 @@ func createMockMempoolSelectionConfig() config.MempoolSelectionConfig {
 	return config.MempoolSelectionConfig{
 		SelectionMaxNumTxs:                            30000,
 		SelectionLoopMaximumDuration:                  250,
+		SelectionGasRequested:                         10_000_000_000,
 		SelectionGasBandwidthIncreasePercent:          400,
 		SelectionGasBandwidthIncreaseScheduledPercent: 260,
 	}
@@ -768,6 +769,7 @@ func TestNewPreProcessorsContainerFactory_ErrBadTxCacheSelectionLoopMaximumDurat
 		config.MempoolSelectionConfig{
 			SelectionGasBandwidthIncreasePercent:          400,
 			SelectionGasBandwidthIncreaseScheduledPercent: 260,
+			SelectionGasRequested:                         10_000_000_000,
 			SelectionMaxNumTxs:                            30000,
 			SelectionLoopMaximumDuration:                  0,
 		},
@@ -775,6 +777,41 @@ func TestNewPreProcessorsContainerFactory_ErrBadTxCacheSelectionLoopMaximumDurat
 
 	assert.Error(t, err)
 	assert.Equal(t, process.ErrBadTxCacheSelectionLoopMaximumDuration, err)
+	assert.Nil(t, ppcm)
+}
+
+func TestNewPreProcessorsContainerFactory_ErrBadTxCacheSelectionGasRequested(t *testing.T) {
+	ppcm, err := metachain.NewPreProcessorsContainerFactory(
+		mock.NewMultiShardsCoordinatorMock(3),
+		&storageStubs.ChainStorerStub{},
+		&mock.MarshalizerMock{},
+		&hashingMocks.HasherMock{},
+		dataRetrieverMock.NewPoolsHolderMock(),
+		&stateMock.AccountsStub{},
+		&testscommon.RequestHandlerStub{},
+		&testscommon.TxProcessorMock{},
+		&testscommon.SmartContractResultsProcessorMock{},
+		&economicsmocks.EconomicsHandlerMock{},
+		&testscommon.GasHandlerStub{},
+		&mock.BlockTrackerMock{},
+		createMockPubkeyConverter(),
+		&testscommon.BlockSizeComputationStub{},
+		&testscommon.BalanceComputationStub{},
+		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		&testscommon.TxTypeHandlerMock{},
+		&testscommon.ScheduledTxsExecutionStub{},
+		&testscommon.ProcessedMiniBlocksTrackerStub{},
+		&commonMock.TxExecutionOrderHandlerStub{},
+		config.MempoolSelectionConfig{
+			SelectionMaxNumTxs:                            30000,
+			SelectionGasBandwidthIncreasePercent:          400,
+			SelectionGasBandwidthIncreaseScheduledPercent: 260,
+			SelectionGasRequested:                         0,
+		},
+	)
+
+	assert.Error(t, err)
+	assert.Equal(t, process.ErrBadTxCacheSelectionGasRequested, err)
 	assert.Nil(t, ppcm)
 }
 
