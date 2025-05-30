@@ -132,7 +132,12 @@ func (listForSender *txListForSender) removeSweepableTransactionsReturnHashes(ta
 			element = element.Next()
 			continue
 		}
-
+		logRemove.Trace("TxCache.removeSweepableTransactionsReturnHashes",
+			"txHash", tx.TxHash,
+			"txNonce", txNonce,
+			"targetNonce", targetNonce,
+			"txNonceForDuplicateProcessing", txNonceForDuplicateProcessing,
+		)
 		fmt.Println("Not skipped txNonce:", txNonce, ", targetNonce = ",targetNonce, " txNonceForDuplicateProcessing:", txNonceForDuplicateProcessing)
 		nextElement := element.Next()
 		_ = listForSender.items.Remove(element)
