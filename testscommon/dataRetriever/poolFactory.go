@@ -40,12 +40,17 @@ func CreateTxPool(numShards uint32, selfShard uint32) (dataRetriever.ShardedData
 				SizeInBytesPerSender: 33_554_432,
 				Shards:               16,
 			},
-			NumberOfShards:                     numShards,
-			SelfShardID:                        selfShard,
-			TxGasHandler:                       txcachemocks.NewTxGasHandlerMock(),
-			Marshalizer:                        &marshal.GogoProtoMarshalizer{},
-			MaxNumBytesPerSenderUpperBound:     33_554_432,
-			SelectionLoopDurationCheckInterval: 10,
+			NumberOfShards: numShards,
+			SelfShardID:    selfShard,
+			TxGasHandler:   txcachemocks.NewTxGasHandlerMock(),
+			Marshalizer:    &marshal.GogoProtoMarshalizer{},
+			MempoolSelectionConfig: config.MempoolSelectionConfig{
+				SelectionGasRequested:              10_000_000_000,
+				SelectionMaxNumTxs:                 30_000,
+				SelectionLoopMaximumDuration:       250,
+				SelectionLoopDurationCheckInterval: 10,
+				MaxNumBytesPerSenderUpperBound:     33_554_432,
+			},
 		},
 	)
 }

@@ -14,16 +14,17 @@ import (
 const maxNumBytesPerSenderUpperBoundTest = 33_554_432 // 32 MB
 
 func TestTxCache_DoEviction_BecauseOfCount(t *testing.T) {
+
 	config := ConfigSourceMe{
-		Name:                           "untitled",
-		NumChunks:                      16,
-		NumBytesThreshold:              maxNumBytesUpperBound,
-		NumBytesPerSenderThreshold:     maxNumBytesPerSenderUpperBoundTest,
-		CountThreshold:                 4,
-		CountPerSenderThreshold:        math.MaxUint32,
-		EvictionEnabled:                true,
-		NumItemsToPreemptivelyEvict:    1,
-		MaxNumBytesPerSenderUpperBound: maxNumBytesPerSenderUpperBoundTest,
+		Name:                        "untitled",
+		NumChunks:                   16,
+		NumBytesThreshold:           maxNumBytesUpperBound,
+		NumBytesPerSenderThreshold:  maxNumBytesPerSenderUpperBoundTest,
+		CountThreshold:              4,
+		CountPerSenderThreshold:     math.MaxUint32,
+		EvictionEnabled:             true,
+		NumItemsToPreemptivelyEvict: 1,
+		MempoolSelectionConfig:      createMockMempoolSelectionConfig(10_000_000_000, 30_000, selectionLoopMaximumDuration),
 	}
 
 	host := txcachemocks.NewMempoolHostMock()
@@ -51,15 +52,15 @@ func TestTxCache_DoEviction_BecauseOfCount(t *testing.T) {
 
 func TestTxCache_DoEviction_BecauseOfSize(t *testing.T) {
 	config := ConfigSourceMe{
-		Name:                           "untitled",
-		NumChunks:                      16,
-		NumBytesThreshold:              1000,
-		NumBytesPerSenderThreshold:     maxNumBytesPerSenderUpperBoundTest,
-		CountThreshold:                 math.MaxUint32,
-		CountPerSenderThreshold:        math.MaxUint32,
-		EvictionEnabled:                true,
-		NumItemsToPreemptivelyEvict:    1,
-		MaxNumBytesPerSenderUpperBound: maxNumBytesPerSenderUpperBoundTest,
+		Name:                        "untitled",
+		NumChunks:                   16,
+		NumBytesThreshold:           1000,
+		NumBytesPerSenderThreshold:  maxNumBytesPerSenderUpperBoundTest,
+		CountThreshold:              math.MaxUint32,
+		CountPerSenderThreshold:     math.MaxUint32,
+		EvictionEnabled:             true,
+		NumItemsToPreemptivelyEvict: 1,
+		MempoolSelectionConfig:      createMockMempoolSelectionConfig(10_000_000_000, 30_000, selectionLoopMaximumDuration),
 	}
 
 	host := txcachemocks.NewMempoolHostMock()
@@ -88,15 +89,15 @@ func TestTxCache_DoEviction_BecauseOfSize(t *testing.T) {
 
 func TestTxCache_DoEviction_DoesNothingWhenAlreadyInProgress(t *testing.T) {
 	config := ConfigSourceMe{
-		Name:                           "untitled",
-		NumChunks:                      1,
-		NumBytesThreshold:              maxNumBytesUpperBound,
-		NumBytesPerSenderThreshold:     maxNumBytesPerSenderUpperBoundTest,
-		CountThreshold:                 4,
-		CountPerSenderThreshold:        math.MaxUint32,
-		EvictionEnabled:                true,
-		NumItemsToPreemptivelyEvict:    1,
-		MaxNumBytesPerSenderUpperBound: maxNumBytesPerSenderUpperBoundTest,
+		Name:                        "untitled",
+		NumChunks:                   1,
+		NumBytesThreshold:           maxNumBytesUpperBound,
+		NumBytesPerSenderThreshold:  maxNumBytesPerSenderUpperBoundTest,
+		CountThreshold:              4,
+		CountPerSenderThreshold:     math.MaxUint32,
+		EvictionEnabled:             true,
+		NumItemsToPreemptivelyEvict: 1,
+		MempoolSelectionConfig:      createMockMempoolSelectionConfig(10_000_000_000, 30_000, selectionLoopMaximumDuration),
 	}
 
 	host := txcachemocks.NewMempoolHostMock()
@@ -129,14 +130,14 @@ func TestTxCache_DoEviction_DoesNothingWhenAlreadyInProgress(t *testing.T) {
 
 func TestBenchmarkTxCache_DoEviction(t *testing.T) {
 	config := ConfigSourceMe{
-		Name:                           "untitled",
-		NumChunks:                      16,
-		NumBytesThreshold:              1000000000,
-		NumBytesPerSenderThreshold:     maxNumBytesPerSenderUpperBoundTest,
-		CountThreshold:                 300000,
-		CountPerSenderThreshold:        math.MaxUint32,
-		NumItemsToPreemptivelyEvict:    50000,
-		MaxNumBytesPerSenderUpperBound: maxNumBytesPerSenderUpperBoundTest,
+		Name:                        "untitled",
+		NumChunks:                   16,
+		NumBytesThreshold:           1000000000,
+		NumBytesPerSenderThreshold:  maxNumBytesPerSenderUpperBoundTest,
+		CountThreshold:              300000,
+		CountPerSenderThreshold:     math.MaxUint32,
+		NumItemsToPreemptivelyEvict: 50000,
+		MempoolSelectionConfig:      createMockMempoolSelectionConfig(10_000_000_000, 30_000, selectionLoopMaximumDuration),
 	}
 
 	host := txcachemocks.NewMempoolHostMock()

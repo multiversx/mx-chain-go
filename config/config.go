@@ -19,9 +19,9 @@ type MempoolSelectionConfig struct {
 	SelectionGasBandwidthIncreaseScheduledPercent uint32
 	SelectionMaxNumTxs                            int
 	SelectionLoopMaximumDuration                  int
+	SelectionLoopDurationCheckInterval            uint32
 	SelectionGasRequested                         uint64
 	MaxNumBytesPerSenderUpperBound                uint32
-	SelectionLoopDurationCheckInterval            uint32
 }
 
 // HeadersPoolConfig will map the headers cache configuration
