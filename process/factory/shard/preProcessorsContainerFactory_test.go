@@ -3,6 +3,7 @@ package shard
 import (
 	"testing"
 
+	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/mock"
@@ -19,6 +20,15 @@ import (
 
 func createMockPubkeyConverter() *testscommon.PubkeyConverterMock {
 	return testscommon.NewPubkeyConverterMock(32)
+}
+
+func createMockMempoolSelectionConfig() config.MempoolSelectionConfig {
+	return config.MempoolSelectionConfig{
+		SelectionMaxNumTxs:                            30000,
+		SelectionLoopMaximumDuration:                  250,
+		SelectionGasBandwidthIncreasePercent:          400,
+		SelectionGasBandwidthIncreaseScheduledPercent: 260,
+	}
 }
 
 func TestNewPreProcessorsContainerFactory_NilShardCoordinator(t *testing.T) {
@@ -47,6 +57,7 @@ func TestNewPreProcessorsContainerFactory_NilShardCoordinator(t *testing.T) {
 		&testscommon.ScheduledTxsExecutionStub{},
 		&testscommon.ProcessedMiniBlocksTrackerStub{},
 		&commonMock.TxExecutionOrderHandlerStub{},
+		createMockMempoolSelectionConfig(),
 	)
 
 	assert.Equal(t, process.ErrNilShardCoordinator, err)
@@ -79,6 +90,7 @@ func TestNewPreProcessorsContainerFactory_NilStore(t *testing.T) {
 		&testscommon.ScheduledTxsExecutionStub{},
 		&testscommon.ProcessedMiniBlocksTrackerStub{},
 		&commonMock.TxExecutionOrderHandlerStub{},
+		createMockMempoolSelectionConfig(),
 	)
 
 	assert.Equal(t, process.ErrNilStore, err)
@@ -111,6 +123,7 @@ func TestNewPreProcessorsContainerFactory_NilMarshalizer(t *testing.T) {
 		&testscommon.ScheduledTxsExecutionStub{},
 		&testscommon.ProcessedMiniBlocksTrackerStub{},
 		&commonMock.TxExecutionOrderHandlerStub{},
+		createMockMempoolSelectionConfig(),
 	)
 
 	assert.Equal(t, process.ErrNilMarshalizer, err)
@@ -143,6 +156,7 @@ func TestNewPreProcessorsContainerFactory_NilHasher(t *testing.T) {
 		&testscommon.ScheduledTxsExecutionStub{},
 		&testscommon.ProcessedMiniBlocksTrackerStub{},
 		&commonMock.TxExecutionOrderHandlerStub{},
+		createMockMempoolSelectionConfig(),
 	)
 
 	assert.Equal(t, process.ErrNilHasher, err)
@@ -175,6 +189,7 @@ func TestNewPreProcessorsContainerFactory_NilDataPool(t *testing.T) {
 		&testscommon.ScheduledTxsExecutionStub{},
 		&testscommon.ProcessedMiniBlocksTrackerStub{},
 		&commonMock.TxExecutionOrderHandlerStub{},
+		createMockMempoolSelectionConfig(),
 	)
 
 	assert.Equal(t, process.ErrNilDataPoolHolder, err)
@@ -207,6 +222,7 @@ func TestNewPreProcessorsContainerFactory_NilAddrConv(t *testing.T) {
 		&testscommon.ScheduledTxsExecutionStub{},
 		&testscommon.ProcessedMiniBlocksTrackerStub{},
 		&commonMock.TxExecutionOrderHandlerStub{},
+		createMockMempoolSelectionConfig(),
 	)
 
 	assert.Equal(t, process.ErrNilPubkeyConverter, err)
@@ -239,6 +255,7 @@ func TestNewPreProcessorsContainerFactory_NilAccounts(t *testing.T) {
 		&testscommon.ScheduledTxsExecutionStub{},
 		&testscommon.ProcessedMiniBlocksTrackerStub{},
 		&commonMock.TxExecutionOrderHandlerStub{},
+		createMockMempoolSelectionConfig(),
 	)
 
 	assert.Equal(t, process.ErrNilAccountsAdapter, err)
@@ -271,6 +288,7 @@ func TestNewPreProcessorsContainerFactory_NilTxProcessor(t *testing.T) {
 		&testscommon.ScheduledTxsExecutionStub{},
 		&testscommon.ProcessedMiniBlocksTrackerStub{},
 		&commonMock.TxExecutionOrderHandlerStub{},
+		createMockMempoolSelectionConfig(),
 	)
 
 	assert.Equal(t, process.ErrNilTxProcessor, err)
@@ -303,6 +321,7 @@ func TestNewPreProcessorsContainerFactory_NilSCProcessor(t *testing.T) {
 		&testscommon.ScheduledTxsExecutionStub{},
 		&testscommon.ProcessedMiniBlocksTrackerStub{},
 		&commonMock.TxExecutionOrderHandlerStub{},
+		createMockMempoolSelectionConfig(),
 	)
 
 	assert.Equal(t, process.ErrNilSmartContractProcessor, err)
@@ -335,6 +354,7 @@ func TestNewPreProcessorsContainerFactory_NilSCR(t *testing.T) {
 		&testscommon.ScheduledTxsExecutionStub{},
 		&testscommon.ProcessedMiniBlocksTrackerStub{},
 		&commonMock.TxExecutionOrderHandlerStub{},
+		createMockMempoolSelectionConfig(),
 	)
 
 	assert.Equal(t, process.ErrNilSmartContractResultProcessor, err)
@@ -367,6 +387,7 @@ func TestNewPreProcessorsContainerFactory_NilRewardTxProcessor(t *testing.T) {
 		&testscommon.ScheduledTxsExecutionStub{},
 		&testscommon.ProcessedMiniBlocksTrackerStub{},
 		&commonMock.TxExecutionOrderHandlerStub{},
+		createMockMempoolSelectionConfig(),
 	)
 
 	assert.Equal(t, process.ErrNilRewardsTxProcessor, err)
@@ -399,6 +420,7 @@ func TestNewPreProcessorsContainerFactory_NilRequestHandler(t *testing.T) {
 		&testscommon.ScheduledTxsExecutionStub{},
 		&testscommon.ProcessedMiniBlocksTrackerStub{},
 		&commonMock.TxExecutionOrderHandlerStub{},
+		createMockMempoolSelectionConfig(),
 	)
 
 	assert.Equal(t, process.ErrNilRequestHandler, err)
@@ -431,6 +453,7 @@ func TestNewPreProcessorsContainerFactory_NilFeeHandler(t *testing.T) {
 		&testscommon.ScheduledTxsExecutionStub{},
 		&testscommon.ProcessedMiniBlocksTrackerStub{},
 		&commonMock.TxExecutionOrderHandlerStub{},
+		createMockMempoolSelectionConfig(),
 	)
 
 	assert.Equal(t, process.ErrNilEconomicsFeeHandler, err)
@@ -463,6 +486,7 @@ func TestNewPreProcessorsContainerFactory_NilGasHandler(t *testing.T) {
 		&testscommon.ScheduledTxsExecutionStub{},
 		&testscommon.ProcessedMiniBlocksTrackerStub{},
 		&commonMock.TxExecutionOrderHandlerStub{},
+		createMockMempoolSelectionConfig(),
 	)
 
 	assert.Equal(t, process.ErrNilGasHandler, err)
@@ -495,6 +519,7 @@ func TestNewPreProcessorsContainerFactory_NilBlockTracker(t *testing.T) {
 		&testscommon.ScheduledTxsExecutionStub{},
 		&testscommon.ProcessedMiniBlocksTrackerStub{},
 		&commonMock.TxExecutionOrderHandlerStub{},
+		createMockMempoolSelectionConfig(),
 	)
 
 	assert.Equal(t, process.ErrNilBlockTracker, err)
@@ -527,6 +552,7 @@ func TestNewPreProcessorsContainerFactory_NilBlockSizeComputationHandler(t *test
 		&testscommon.ScheduledTxsExecutionStub{},
 		&testscommon.ProcessedMiniBlocksTrackerStub{},
 		&commonMock.TxExecutionOrderHandlerStub{},
+		createMockMempoolSelectionConfig(),
 	)
 
 	assert.Equal(t, process.ErrNilBlockSizeComputationHandler, err)
@@ -559,6 +585,7 @@ func TestNewPreProcessorsContainerFactory_NilBalanceComputationHandler(t *testin
 		&testscommon.ScheduledTxsExecutionStub{},
 		&testscommon.ProcessedMiniBlocksTrackerStub{},
 		&commonMock.TxExecutionOrderHandlerStub{},
+		createMockMempoolSelectionConfig(),
 	)
 
 	assert.Equal(t, process.ErrNilBalanceComputationHandler, err)
@@ -591,6 +618,7 @@ func TestNewPreProcessorsContainerFactory_NilEnableEpochsHandler(t *testing.T) {
 		&testscommon.ScheduledTxsExecutionStub{},
 		&testscommon.ProcessedMiniBlocksTrackerStub{},
 		&commonMock.TxExecutionOrderHandlerStub{},
+		createMockMempoolSelectionConfig(),
 	)
 
 	assert.Equal(t, process.ErrNilEnableEpochsHandler, err)
@@ -623,6 +651,7 @@ func TestNewPreProcessorsContainerFactory_NilTxTypeHandler(t *testing.T) {
 		&testscommon.ScheduledTxsExecutionStub{},
 		&testscommon.ProcessedMiniBlocksTrackerStub{},
 		&commonMock.TxExecutionOrderHandlerStub{},
+		createMockMempoolSelectionConfig(),
 	)
 
 	assert.Equal(t, process.ErrNilTxTypeHandler, err)
@@ -655,6 +684,7 @@ func TestNewPreProcessorsContainerFactory_NilScheduledTxsExecutionHandler(t *tes
 		nil,
 		&testscommon.ProcessedMiniBlocksTrackerStub{},
 		&commonMock.TxExecutionOrderHandlerStub{},
+		createMockMempoolSelectionConfig(),
 	)
 
 	assert.Equal(t, process.ErrNilScheduledTxsExecutionHandler, err)
@@ -687,6 +717,7 @@ func TestNewPreProcessorsContainerFactory_NilProcessedMiniBlocksTracker(t *testi
 		&testscommon.ScheduledTxsExecutionStub{},
 		nil,
 		&commonMock.TxExecutionOrderHandlerStub{},
+		createMockMempoolSelectionConfig(),
 	)
 
 	assert.Equal(t, process.ErrNilProcessedMiniBlocksTracker, err)
@@ -719,6 +750,7 @@ func TestNewPreProcessorsContainerFactory_NilTxExecutionOrderHandler(t *testing.
 		&testscommon.ScheduledTxsExecutionStub{},
 		&testscommon.ProcessedMiniBlocksTrackerStub{},
 		nil,
+		createMockMempoolSelectionConfig(),
 	)
 
 	assert.Equal(t, process.ErrNilTxExecutionOrderHandler, err)
@@ -751,6 +783,7 @@ func TestNewPreProcessorsContainerFactory(t *testing.T) {
 		&testscommon.ScheduledTxsExecutionStub{},
 		&testscommon.ProcessedMiniBlocksTrackerStub{},
 		&commonMock.TxExecutionOrderHandlerStub{},
+		createMockMempoolSelectionConfig(),
 	)
 
 	assert.Nil(t, err)
@@ -788,6 +821,7 @@ func TestPreProcessorsContainerFactory_CreateErrTxPreproc(t *testing.T) {
 		&testscommon.ScheduledTxsExecutionStub{},
 		&testscommon.ProcessedMiniBlocksTrackerStub{},
 		&commonMock.TxExecutionOrderHandlerStub{},
+		createMockMempoolSelectionConfig(),
 	)
 
 	assert.Nil(t, err)
@@ -831,6 +865,7 @@ func TestPreProcessorsContainerFactory_CreateErrScrPreproc(t *testing.T) {
 		&testscommon.ScheduledTxsExecutionStub{},
 		&testscommon.ProcessedMiniBlocksTrackerStub{},
 		&commonMock.TxExecutionOrderHandlerStub{},
+		createMockMempoolSelectionConfig(),
 	)
 
 	assert.Nil(t, err)
@@ -877,6 +912,7 @@ func TestPreProcessorsContainerFactory_Create(t *testing.T) {
 		&testscommon.ScheduledTxsExecutionStub{},
 		&testscommon.ProcessedMiniBlocksTrackerStub{},
 		&commonMock.TxExecutionOrderHandlerStub{},
+		createMockMempoolSelectionConfig(),
 	)
 
 	assert.Nil(t, err)

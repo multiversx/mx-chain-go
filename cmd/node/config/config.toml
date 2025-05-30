@@ -421,6 +421,12 @@
     Type = "TxCache"
     Shards = 16
 
+[MempoolSelection]
+    SelectionMaxNumTxs = 30000
+    SelectionLoopMaximumDuration = 250
+    SelectionGasBandwidthIncreasePercent = 400
+    SelectionGasBandwidthIncreaseScheduledPercent = 260
+
 [TrieNodesChunksDataPool]
     Name = "TrieNodesDataPool"
     Capacity = 400

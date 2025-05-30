@@ -136,6 +136,12 @@ func GetGeneralConfig() config.Config {
 			SizeInBytesPerSender: 10000000,
 			Shards:               1,
 		},
+		MempoolSelection: config.MempoolSelectionConfig{
+			SelectionMaxNumTxs:                            30000,
+			SelectionLoopMaximumDuration:                  250,
+			SelectionGasBandwidthIncreasePercent:          400,
+			SelectionGasBandwidthIncreaseScheduledPercent: 260,
+		},
 		UnsignedTransactionDataPool: config.CacheConfig{
 			Capacity:    10000,
 			SizeInBytes: 1000000000,

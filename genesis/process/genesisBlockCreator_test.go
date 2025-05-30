@@ -192,6 +192,12 @@ func createMockArgument(
 				return &block.Header{}
 			},
 		},
+		MempoolSelectionConfig: config.MempoolSelectionConfig{
+			SelectionMaxNumTxs:                            30000,
+			SelectionLoopMaximumDuration:                  250,
+			SelectionGasBandwidthIncreasePercent:          400,
+			SelectionGasBandwidthIncreaseScheduledPercent: 260,
+		},
 	}
 
 	arg.ShardCoordinator = &mock.ShardCoordinatorMock{

@@ -162,6 +162,12 @@ func TestTomlParser(t *testing.T) {
 		Redundancy: RedundancyConfig{
 			MaxRoundsOfInactivityAccepted: 3,
 		},
+		MempoolSelection: MempoolSelectionConfig{
+			SelectionMaxNumTxs:                            30000,
+			SelectionLoopMaximumDuration:                  250,
+			SelectionGasBandwidthIncreasePercent:          400,
+			SelectionGasBandwidthIncreaseScheduledPercent: 260,
+		},
 	}
 	testString := `
 [GeneralSettings]
@@ -213,6 +219,12 @@ func TestTomlParser(t *testing.T) {
 
 [Consensus]
     Type = "` + consensusType + `"
+
+[MempoolSelection]
+	SelectionMaxNumTxs = 30000
+	SelectionLoopMaximumDuration = 250
+	SelectionGasBandwidthIncreasePercent = 400
+	SelectionGasBandwidthIncreaseScheduledPercent = 260
 
 [VirtualMachine]
     [VirtualMachine.Execution]

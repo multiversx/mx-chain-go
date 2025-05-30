@@ -13,6 +13,14 @@ type CacheConfig struct {
 	Shards               uint32
 }
 
+// MempoolSelectionConfig will map the mempool selection config
+type MempoolSelectionConfig struct {
+	SelectionGasBandwidthIncreasePercent          uint32
+	SelectionGasBandwidthIncreaseScheduledPercent uint32
+	SelectionMaxNumTxs                            int
+	SelectionLoopMaximumDuration                  int
+}
+
 // HeadersPoolConfig will map the headers cache configuration
 type HeadersPoolConfig struct {
 	MaxHeadersPerShard            int
@@ -178,6 +186,7 @@ type Config struct {
 	TxBlockBodyDataPool         CacheConfig
 	PeerBlockBodyDataPool       CacheConfig
 	TxDataPool                  CacheConfig
+	MempoolSelection            MempoolSelectionConfig
 	UnsignedTransactionDataPool CacheConfig
 	RewardTransactionDataPool   CacheConfig
 	TrieNodesChunksDataPool     CacheConfig

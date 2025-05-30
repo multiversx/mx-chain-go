@@ -7,6 +7,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/block/preprocess"
@@ -38,6 +39,7 @@ type preProcessorsContainerFactory struct {
 	scheduledTxsExecutionHandler process.ScheduledTxsExecutionHandler
 	processedMiniBlocksTracker   process.ProcessedMiniBlocksTracker
 	txExecutionOrderHandler      common.TxExecutionOrderHandler
+	mempoolSelectionConfig       config.MempoolSelectionConfig
 }
 
 // NewPreProcessorsContainerFactory is responsible for creating a new preProcessors factory object
@@ -62,6 +64,7 @@ func NewPreProcessorsContainerFactory(
 	scheduledTxsExecutionHandler process.ScheduledTxsExecutionHandler,
 	processedMiniBlocksTracker process.ProcessedMiniBlocksTracker,
 	txExecutionOrderHandler common.TxExecutionOrderHandler,
+	mempoolSelectionConfig config.MempoolSelectionConfig,
 ) (*preProcessorsContainerFactory, error) {
 
 	if check.IfNil(shardCoordinator) {
@@ -124,6 +127,18 @@ func NewPreProcessorsContainerFactory(
 	if check.IfNil(txExecutionOrderHandler) {
 		return nil, process.ErrNilTxExecutionOrderHandler
 	}
+	if mempoolSelectionConfig.SelectionGasBandwidthIncreasePercent == 0 {
+		return nil, process.ErrBadSelectionGasBandwidthIncreasePercent
+	}
+	if mempoolSelectionConfig.SelectionGasBandwidthIncreaseScheduledPercent == 0 {
+		return nil, process.ErrBadSelectionGasBandwidthIncreaseScheduledPercent
+	}
+	if mempoolSelectionConfig.SelectionMaxNumTxs == 0 {
+		return nil, process.ErrBadTxCacheSelectionMaxNumTxs
+	}
+	if mempoolSelectionConfig.SelectionLoopMaximumDuration == 0 {
+		return nil, process.ErrBadTxCacheSelectionLoopMaximumDuration
+	}
 
 	return &preProcessorsContainerFactory{
 		shardCoordinator:             shardCoordinator,
@@ -146,6 +161,7 @@ func NewPreProcessorsContainerFactory(
 		scheduledTxsExecutionHandler: scheduledTxsExecutionHandler,
 		processedMiniBlocksTracker:   processedMiniBlocksTracker,
 		txExecutionOrderHandler:      txExecutionOrderHandler,
+		mempoolSelectionConfig:       mempoolSelectionConfig,
 	}, nil
 }
 
@@ -198,6 +214,7 @@ func (ppcm *preProcessorsContainerFactory) createTxPreProcessor() (process.PrePr
 		ScheduledTxsExecutionHandler: ppcm.scheduledTxsExecutionHandler,
 		ProcessedMiniBlocksTracker:   ppcm.processedMiniBlocksTracker,
 		TxExecutionOrderHandler:      ppcm.txExecutionOrderHandler,
+		MempoolSelectionConfig:       ppcm.mempoolSelectionConfig,
 	}
 
 	txPreprocessor, err := preprocess.NewTransactionPreprocessor(args)
