@@ -32,6 +32,8 @@ type EnableEpochs struct {
 	DoubleKeyProtectionEnableEpoch                           uint32
 	ESDTEnableEpoch                                          uint32
 	GovernanceEnableEpoch                                    uint32
+	GovernanceDisableProposeEnableEpoch                      uint32
+	GovernanceFixesEnableEpoch                               uint32
 	DelegationManagerEnableEpoch                             uint32
 	DelegationSmartContractEnableEpoch                       uint32
 	CorrectLastUnjailedEnableEpoch                           uint32
