@@ -83,7 +83,6 @@ func NewShardBootstrap(arguments ArgShardBootstrapper) (*ShardBootstrap, error) 
 
 	base.blockBootstrapper = &boot
 	base.syncStarter = &boot
-	base.getHeaderFromPool = boot.getShardHeaderFromPool
 	base.requestMiniBlocks = boot.requestMiniBlocksFromHeaderWithNonceIfMissing
 
 	// placed in struct fields for performance reasons
@@ -92,7 +91,7 @@ func NewShardBootstrap(arguments ArgShardBootstrapper) (*ShardBootstrap, error) 
 		return nil, err
 	}
 
-	hdrNonceHashDataUnit := dataRetriever.ShardHdrNonceHashDataUnit + dataRetriever.UnitType(boot.shardCoordinator.SelfId())
+	hdrNonceHashDataUnit := dataRetriever.GetHdrNonceHashDataUnit(boot.shardCoordinator.SelfId())
 	base.headerNonceHashStore, err = boot.store.GetStorer(hdrNonceHashDataUnit)
 	if err != nil {
 		return nil, err
@@ -179,74 +178,6 @@ func (boot *ShardBootstrap) Close() error {
 	return boot.baseBootstrap.Close()
 }
 
-// requestHeaderWithNonce method requests a block header from network when it is not found in the pool
-func (boot *ShardBootstrap) requestHeaderWithNonce(nonce uint64) {
-	boot.setRequestedHeaderNonce(&nonce)
-	log.Debug("requesting shard header from network",
-		"nonce", nonce,
-		"probable highest nonce", boot.forkDetector.ProbableHighestNonce(),
-	)
-	boot.requestHandler.RequestShardHeaderByNonce(boot.shardCoordinator.SelfId(), nonce)
-}
-
-// requestHeaderWithHash method requests a block header from network when it is not found in the pool
-func (boot *ShardBootstrap) requestHeaderWithHash(hash []byte) {
-	boot.setRequestedHeaderHash(hash)
-	log.Debug("requesting shard header from network",
-		"hash", hash,
-		"probable highest nonce", boot.forkDetector.ProbableHighestNonce(),
-	)
-	boot.requestHandler.RequestShardHeader(boot.shardCoordinator.SelfId(), hash)
-}
-
-// getHeaderWithNonceRequestingIfMissing method gets the header with a given nonce from pool. If it is not found there, it will
-// be requested from network
-func (boot *ShardBootstrap) getHeaderWithNonceRequestingIfMissing(nonce uint64) (data.HeaderHandler, []byte, error) {
-	hdr, hash, err := process.GetShardHeaderFromPoolWithNonce(
-		nonce,
-		boot.shardCoordinator.SelfId(),
-		boot.headers)
-	if err != nil {
-		_ = core.EmptyChannel(boot.chRcvHdrNonce)
-		boot.requestHeaderWithNonce(nonce)
-		err = boot.waitForHeaderNonce()
-		if err != nil {
-			return nil, nil, err
-		}
-
-		hdr, hash, err = process.GetShardHeaderFromPoolWithNonce(
-			nonce,
-			boot.shardCoordinator.SelfId(),
-			boot.headers)
-		if err != nil {
-			return nil, nil, err
-		}
-	}
-
-	return hdr, hash, nil
-}
-
-// getHeaderWithHashRequestingIfMissing method gets the header with a given hash from pool. If it is not found there,
-// it will be requested from network
-func (boot *ShardBootstrap) getHeaderWithHashRequestingIfMissing(hash []byte) (data.HeaderHandler, error) {
-	hdr, err := process.GetShardHeader(hash, boot.headers, boot.marshalizer, boot.store)
-	if err != nil {
-		_ = core.EmptyChannel(boot.chRcvHdrHash)
-		boot.requestHeaderWithHash(hash)
-		err = boot.waitForHeaderHash()
-		if err != nil {
-			return nil, err
-		}
-
-		hdr, err = process.GetShardHeaderFromPool(hash, boot.headers)
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	return hdr, nil
-}
-
 func (boot *ShardBootstrap) getPrevHeader(
 	header data.HeaderHandler,
 	headerStore storage.Storer,
@@ -278,19 +209,6 @@ func (boot *ShardBootstrap) getCurrHeader() (data.HeaderHandler, error) {
 	}
 
 	return header, nil
-}
-
-func (boot *ShardBootstrap) haveHeaderInPoolWithNonce(nonce uint64) bool {
-	_, _, err := process.GetShardHeaderFromPoolWithNonce(
-		nonce,
-		boot.shardCoordinator.SelfId(),
-		boot.headers)
-
-	return err == nil
-}
-
-func (boot *ShardBootstrap) getShardHeaderFromPool(headerHash []byte) (data.HeaderHandler, error) {
-	return process.GetShardHeaderFromPool(headerHash, boot.headers)
 }
 
 func (boot *ShardBootstrap) requestMiniBlocksFromHeaderWithNonceIfMissing(headerHandler data.HeaderHandler) {
@@ -353,6 +271,10 @@ func (boot *ShardBootstrap) isForkTriggeredByMeta() bool {
 
 func (boot *ShardBootstrap) requestHeaderByNonce(nonce uint64) {
 	boot.requestHandler.RequestShardHeaderByNonce(boot.shardCoordinator.SelfId(), nonce)
+}
+
+func (boot *ShardBootstrap) requestProofByNonce(nonce uint64) {
+	boot.requestHandler.RequestEquivalentProofByNonce(boot.shardCoordinator.SelfId(), nonce)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

@@ -339,11 +339,11 @@
     # RelayedTransactionsV3FixESDTTransferEnableEpoch represents the epoch when the fix for relayed transactions v3 with esdt transfer will be enabled
     RelayedTransactionsV3FixESDTTransferEnableEpoch = 1 # TODO: keep this equal to RelayedTransactionsV3EnableEpoch for mainnet
 
-    # EquivalentMessagesEnableEpoch represents the epoch when the equivalent messages are enabled
-    EquivalentMessagesEnableEpoch = 8 # the chain simulator tests for staking v4 fail if this is set earlier, as they test the transition in epochs 4-7
+    # AndromedaEnableEpoch represents the epoch when the equivalent messages and fix order for consensus features are enabled
+    AndromedaEnableEpoch = 1
 
-    # FixedOrderInConsensusEnableEpoch represents the epoch when the fixed order in consensus is enabled
-    FixedOrderInConsensusEnableEpoch = 8 # the chain simulator tests for staking v4 fail if this is set earlier, as they test the transition in epochs 4-7
+    # CheckBuiltInCallOnTransferValueAndFailEnableRound represents the ROUND when the check on transfer value fix is activated
+    CheckBuiltInCallOnTransferValueAndFailEnableRound = 1
 
     # BLSMultiSignerEnableEpoch represents the activation epoch for different types of BLS multi-signers
     BLSMultiSignerEnableEpoch = [
@@ -365,5 +365,5 @@
 [GasSchedule]
     # GasScheduleByEpochs holds the configuration for the gas schedule that will be applied from specific epochs
     GasScheduleByEpochs = [
-        { StartEpoch = 0, FileName = "gasScheduleV8.toml" },
+        { StartEpoch = 0, FileName = "gasScheduleV9.toml" },
     ]

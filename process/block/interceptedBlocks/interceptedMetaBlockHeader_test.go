@@ -12,11 +12,12 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/multiversx/mx-chain-go/common/graceperiod"
+	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/block/interceptedBlocks"
 	"github.com/multiversx/mx-chain-go/process/mock"
 	"github.com/multiversx/mx-chain-go/sharding"
-	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/consensus"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 )
@@ -27,6 +28,7 @@ func createDefaultMetaArgument() *interceptedBlocks.ArgInterceptedBlockHeader {
 }
 
 func createMetaArgumentWithShardCoordinator(shardCoordinator sharding.Coordinator) *interceptedBlocks.ArgInterceptedBlockHeader {
+	gracePeriod, _ := graceperiod.NewEpochChangeGracePeriod([]config.EpochChangeGracePeriodByEpoch{{EnableEpoch: 0, GracePeriodInRounds: 1}})
 	arg := &interceptedBlocks.ArgInterceptedBlockHeader{
 		ShardCoordinator:        shardCoordinator,
 		Hasher:                  testHasher,
@@ -39,8 +41,8 @@ func createMetaArgumentWithShardCoordinator(shardCoordinator sharding.Coordinato
 				return hdrEpoch
 			},
 		},
-		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
-		FieldsSizeChecker:   &testscommon.FieldsSizeCheckerMock{},
+		EnableEpochsHandler:           &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		EpochChangeGracePeriodHandler: gracePeriod,
 	}
 
 	hdr := createMockMetaHeader()
@@ -73,7 +75,7 @@ func createMockMetaHeader() *dataBlock.MetaBlock {
 	}
 }
 
-//------- TestNewInterceptedHeader
+// ------- TestNewInterceptedHeader
 
 func TestNewInterceptedMetaHeader_NilArgumentShouldErr(t *testing.T) {
 	t.Parallel()
@@ -108,7 +110,7 @@ func TestNewInterceptedMetaHeader_ShouldWork(t *testing.T) {
 	assert.Nil(t, err)
 }
 
-//------- CheckValidity
+// ------- CheckValidity
 
 func TestInterceptedMetaHeader_CheckValidityNilPubKeyBitmapShouldErr(t *testing.T) {
 	t.Parallel()
@@ -198,7 +200,7 @@ func TestInterceptedMetaHeader_CheckAgainstFinalHeaderAttesterFailsShouldErr(t *
 	assert.Equal(t, expectedErr, err)
 }
 
-//------- getters
+// ------- getters
 
 func TestInterceptedMetaHeader_Getters(t *testing.T) {
 	t.Parallel()
@@ -299,7 +301,7 @@ func TestInterceptedMetaHeader_isMetaHeaderEpochOutOfRange(t *testing.T) {
 	})
 }
 
-//------- IsInterfaceNil
+// ------- IsInterfaceNil
 
 func TestInterceptedMetaHeader_IsInterfaceNil(t *testing.T) {
 	t.Parallel()

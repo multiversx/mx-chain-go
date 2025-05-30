@@ -36,6 +36,11 @@ func createMockMetaAPIProcessor(
 	withHistory bool,
 	withKey bool,
 ) *metaAPIBlockProcessor {
+	chainHandler := &testscommon.ChainHandlerMock{}
+	_ = chainHandler.SetCurrentBlockHeaderAndRootHash(&block.Header{
+		Nonce: 123456,
+	}, []byte("root"))
+
 	return newMetaApiBlockProcessor(&ArgAPIBlockProcessor{
 		APITransactionHandler: &mock.TransactionAPIHandlerStub{},
 		SelfShardID:           core.MetachainShardId,
@@ -67,6 +72,7 @@ func createMockMetaAPIProcessor(
 		ScheduledTxsExecutionHandler: &testscommon.ScheduledTxsExecutionStub{},
 		ProofsPool:                   &dataRetrieverTestsCommon.ProofsPoolMock{},
 		EnableEpochsHandler:          enableEpochsHandlerMock.NewEnableEpochsHandlerStubWithNoFlagsDefined(),
+		BlockChain:                   chainHandler,
 	}, nil)
 }
 
@@ -87,6 +93,29 @@ func TestMetaAPIBlockProcessor_GetBlockByHashInvalidHashShouldErr(t *testing.T) 
 	blk, err := metaAPIBlockProcessor.GetBlockByHash([]byte("invalidHash"), api.BlockQueryOptions{})
 	assert.Nil(t, blk)
 	assert.Error(t, err)
+}
+
+func TestMetaAPIBlockProcessor_BlockByNonceNonceTooHighShouldErr(t *testing.T) {
+	t.Parallel()
+
+	epoch := uint32(0)
+	headerHash := []byte("d08089f2ab739520598fd7aeed08c427460fe94f286383047f3f61951afc4e00")
+
+	storerMock := genericMocks.NewStorerMockWithEpoch(epoch)
+
+	blockProc := createMockMetaAPIProcessor(
+		headerHash,
+		storerMock,
+		true,
+		true,
+	)
+	blockProc.blockchain = &testscommon.ChainHandlerMock{}
+	err := blockProc.blockchain.SetCurrentBlockHeaderAndRootHash(&block.MetaBlock{Nonce: 10}, []byte("root"))
+	require.NoError(t, err)
+
+	res, err := blockProc.GetBlockByNonce(11, api.BlockQueryOptions{})
+	require.Nil(t, res)
+	require.Equal(t, errBlockNotFound, err)
 }
 
 func TestMetaAPIBlockProcessor_GetBlockByNonceInvalidNonceShouldErr(t *testing.T) {

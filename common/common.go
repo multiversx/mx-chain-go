@@ -1,12 +1,24 @@
 package common
 
 import (
+	"encoding/hex"
+	"fmt"
 	"math/bits"
+	"strconv"
+	"strings"
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-go/config"
 	logger "github.com/multiversx/mx-chain-logger-go"
+)
+
+const (
+	keySeparator   = "-"
+	expectedKeyLen = 2
+	hashIndex      = 0
+	shardIndex     = 1
+	nonceIndex     = 0
 )
 
 type chainParametersHandler interface {
@@ -46,8 +58,8 @@ func IsEpochChangeBlockForFlagActivation(header data.HeaderHandler, enableEpochs
 	return isStartOfEpochBlock && isBlockInActivationEpoch
 }
 
-// isFlagEnabledAfterEpochsStartBlock returns true if the flag is enabled for the header, but it is not the epoch start block
-func isFlagEnabledAfterEpochsStartBlock(header data.HeaderHandler, enableEpochsHandler EnableEpochsHandler, flag core.EnableEpochFlag) bool {
+// IsFlagEnabledAfterEpochsStartBlock returns true if the flag is enabled for the header, but it is not the epoch start block
+func IsFlagEnabledAfterEpochsStartBlock(header data.HeaderHandler, enableEpochsHandler EnableEpochsHandler, flag core.EnableEpochFlag) bool {
 	isFlagEnabled := enableEpochsHandler.IsFlagEnabledInEpoch(flag, header.GetEpoch())
 	isEpochStartBlock := IsEpochChangeBlockForFlagActivation(header, enableEpochsHandler, flag)
 	return isFlagEnabled && !isEpochStartBlock
@@ -137,4 +149,56 @@ func ConsensusGroupSizeForShardAndEpoch(
 	}
 
 	return int(currentChainParameters.ShardConsensusGroupSize)
+}
+
+// GetEquivalentProofNonceShardKey returns a string key nonce-shardID
+func GetEquivalentProofNonceShardKey(nonce uint64, shardID uint32) string {
+	return fmt.Sprintf("%d%s%d", nonce, keySeparator, shardID)
+}
+
+// GetEquivalentProofHashShardKey returns a string key hash-shardID
+func GetEquivalentProofHashShardKey(hash []byte, shardID uint32) string {
+	return fmt.Sprintf("%s%s%d", hex.EncodeToString(hash), keySeparator, shardID)
+}
+
+// GetHashAndShardFromKey returns the hash and shard from the provided key
+func GetHashAndShardFromKey(hashShardKey []byte) ([]byte, uint32, error) {
+	hashShardKeyStr := string(hashShardKey)
+	result := strings.Split(hashShardKeyStr, keySeparator)
+	if len(result) != expectedKeyLen {
+		return nil, 0, ErrInvalidHashShardKey
+	}
+
+	hash, err := hex.DecodeString(result[hashIndex])
+	if err != nil {
+		return nil, 0, err
+	}
+
+	shard, err := strconv.Atoi(result[shardIndex])
+	if err != nil {
+		return nil, 0, err
+	}
+
+	return hash, uint32(shard), nil
+}
+
+// GetNonceAndShardFromKey returns the nonce and shard from the provided key
+func GetNonceAndShardFromKey(nonceShardKey []byte) (uint64, uint32, error) {
+	nonceShardKeyStr := string(nonceShardKey)
+	result := strings.Split(nonceShardKeyStr, keySeparator)
+	if len(result) != expectedKeyLen {
+		return 0, 0, ErrInvalidNonceShardKey
+	}
+
+	nonce, err := strconv.Atoi(result[nonceIndex])
+	if err != nil {
+		return 0, 0, err
+	}
+
+	shard, err := strconv.Atoi(result[shardIndex])
+	if err != nil {
+		return 0, 0, err
+	}
+
+	return uint64(nonce), uint32(shard), nil
 }

@@ -3,7 +3,6 @@ package common
 import (
 	"fmt"
 
-	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-go/consensus"
@@ -12,14 +11,20 @@ import (
 // IsEpochStartProofForFlagActivation returns true if the provided proof is the proof of the epoch start block on the activation epoch of equivalent messages
 func IsEpochStartProofForFlagActivation(proof consensus.ProofHandler, enableEpochsHandler EnableEpochsHandler) bool {
 	isStartOfEpochProof := proof.GetIsStartOfEpoch()
-	isProofInActivationEpoch := proof.GetHeaderEpoch() == enableEpochsHandler.GetActivationEpoch(EquivalentMessagesFlag)
+	isProofInActivationEpoch := proof.GetHeaderEpoch() == enableEpochsHandler.GetActivationEpoch(AndromedaFlag)
 
 	return isStartOfEpochProof && isProofInActivationEpoch
 }
 
-// ShouldBlockHavePrevProof returns true if the block should have a proof
-func ShouldBlockHavePrevProof(header data.HeaderHandler, enableEpochsHandler EnableEpochsHandler, flag core.EnableEpochFlag) bool {
-	return isFlagEnabledAfterEpochsStartBlock(header, enableEpochsHandler, flag) && header.GetNonce() > 1
+// IsProofsFlagEnabledForHeader returns true if proofs flag has to be enabled for the provided header
+func IsProofsFlagEnabledForHeader(
+	enableEpochsHandler EnableEpochsHandler,
+	header data.HeaderHandler,
+) bool {
+	ifFlagActive := enableEpochsHandler.IsFlagEnabledInEpoch(AndromedaFlag, header.GetEpoch())
+	isGenesisBlock := header.GetNonce() == 0
+
+	return ifFlagActive && !isGenesisBlock
 }
 
 // VerifyProofAgainstHeader verifies the fields on the proof match the ones on the header

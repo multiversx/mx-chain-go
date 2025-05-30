@@ -42,7 +42,7 @@ func (ibp *internalBlockProcessor) GetInternalShardBlockByNonce(format common.Ap
 		return nil, ErrShardOnlyEndpoint
 	}
 
-	storerUnit := dataRetriever.ShardHdrNonceHashDataUnit + dataRetriever.UnitType(ibp.selfShardID)
+	storerUnit := dataRetriever.GetHdrNonceHashDataUnit(ibp.selfShardID)
 
 	nonceToByteSlice := ibp.uint64ByteSliceConverter.ToByteSlice(nonce)
 	headerHash, err := ibp.store.Get(storerUnit, nonceToByteSlice)

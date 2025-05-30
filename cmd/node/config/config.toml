@@ -43,7 +43,13 @@
     # ChainParametersByEpoch defines chain operation configurable values that can be modified based on epochs
     ChainParametersByEpoch = [
         { EnableEpoch = 0, RoundDuration = 6000, ShardConsensusGroupSize = 7, ShardMinNumNodes = 10, MetachainConsensusGroupSize = 10, MetachainMinNumNodes = 10, Hysteresis = 0.2, Adaptivity = false },
-        { EnableEpoch = 8, RoundDuration = 6000, ShardConsensusGroupSize = 10, ShardMinNumNodes = 10, MetachainConsensusGroupSize = 10, MetachainMinNumNodes = 10, Hysteresis = 0.2, Adaptivity = false }
+        { EnableEpoch = 1, RoundDuration = 6000, ShardConsensusGroupSize = 10, ShardMinNumNodes = 10, MetachainConsensusGroupSize = 10, MetachainMinNumNodes = 10, Hysteresis = 0.2, Adaptivity = false }
+    ]
+
+    # EpochChangeGracePeriodEnableEpoch represents the configuration of different grace periods for epoch change with their activation epochs
+    EpochChangeGracePeriodByEpoch = [
+        {EnableEpoch = 0, GracePeriodInRounds = 1 },
+        {EnableEpoch = 1, GracePeriodInRounds = 10 }, # Andromeda epoch comes with a longer grace period
     ]
 
 [HardwareRequirements]
@@ -187,6 +193,19 @@
         SizeInBytes = 20971520 #20MB
     [MetaBlockStorage.DB]
         FilePath = "MetaBlock"
+        Type = "LvlDBSerial"
+        BatchDelaySeconds = 2
+        MaxBatchSize = 100
+        MaxOpenFiles = 10
+
+[ProofsStorage]
+    [ProofsStorage.Cache]
+        Name = "ProofsStorage"
+        Capacity = 1000
+        Type = "SizeLRU"
+        SizeInBytes = 20971520 #20MB
+    [ProofsStorage.DB]
+        FilePath = "Proofs"
         Type = "LvlDBSerial"
         BatchDelaySeconds = 2
         MaxBatchSize = 100
@@ -507,7 +526,7 @@
         IntervalInSeconds = 1
         ReservedPercent   = 20.0
         [Antiflood.FastReacting.PeerMaxInput]
-            BaseMessagesPerInterval  = 140
+            BaseMessagesPerInterval  = 280
             TotalSizePerInterval = 4194304 #4MB/s
             [Antiflood.FastReacting.PeerMaxInput.IncreaseFactor]
                 Threshold = 10 #if consensus size will exceed this value, then
@@ -549,7 +568,7 @@
             PeerBanDurationInSeconds = 3600
 
     [Antiflood.PeerMaxOutput]
-        BaseMessagesPerInterval  = 75
+        BaseMessagesPerInterval  = 150
         TotalSizePerInterval     = 2097152 #2MB/s
 
     [Antiflood.Cache]

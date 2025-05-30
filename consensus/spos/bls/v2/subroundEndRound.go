@@ -897,7 +897,7 @@ func (sr *subroundEndRound) receivedSignature(_ context.Context, cnsDta *consens
 }
 
 func (sr *subroundEndRound) checkReceivedSignatures() bool {
-	isTransitionBlock := check.IfNil(sr.GetHeader().GetPreviousProof())
+	isTransitionBlock := common.IsEpochChangeBlockForFlagActivation(sr.GetHeader(), sr.EnableEpochsHandler(), common.AndromedaFlag)
 
 	threshold := sr.Threshold(bls.SrSignature)
 	if isTransitionBlock {

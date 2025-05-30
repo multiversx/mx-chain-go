@@ -172,7 +172,7 @@ func (odp *outportDataProvider) PrepareOutportSaveBlockData(arg ArgPrepareOutpor
 		},
 	}
 
-	if odp.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, arg.Header.GetEpoch()) {
+	if odp.enableEpochsHandler.IsFlagEnabledInEpoch(common.AndromedaFlag, arg.Header.GetEpoch()) {
 		headerProof, err := odp.proofsPool.GetProof(arg.Header.GetShardID(), arg.HeaderHash)
 		if err != nil {
 			return nil, err
@@ -328,8 +328,8 @@ func (odp *outportDataProvider) getSignersIndexes(header data.HeaderHandler) (st
 	leaderIndex := findLeaderIndex(pubKeys, leader)
 
 	signersIndexes := make([]uint64, 0)
-	// when EquivalentMessages flag is enabled signer indices can be empty because all validators are in consensus group
-	if odp.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, header.GetEpoch()) {
+	// when Andromeda flag is enabled signer indices can be empty because all validators are in consensus group
+	if odp.enableEpochsHandler.IsFlagEnabledInEpoch(common.AndromedaFlag, header.GetEpoch()) {
 		return leader, leaderIndex, signersIndexes, nil
 	}
 

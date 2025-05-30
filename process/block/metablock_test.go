@@ -16,9 +16,9 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/multiversx/mx-chain-go/testscommon/pool"
-
 	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/common/graceperiod"
+	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/dataRetriever/blockchain"
 	"github.com/multiversx/mx-chain-go/process"
@@ -50,18 +50,19 @@ func createMockComponentHolders() (
 	*mock.StatusComponentsMock,
 ) {
 	mdp := initDataPool([]byte("tx_hash"))
-
+	gracePeriod, _ := graceperiod.NewEpochChangeGracePeriod([]config.EpochChangeGracePeriodByEpoch{{EnableEpoch: 0, GracePeriodInRounds: 1}})
 	coreComponents := &mock.CoreComponentsMock{
-		IntMarsh:                  &mock.MarshalizerMock{},
-		Hash:                      &mock.HasherStub{},
-		UInt64ByteSliceConv:       &mock.Uint64ByteSliceConverterMock{},
-		StatusField:               &statusHandlerMock.AppStatusHandlerStub{},
-		RoundField:                &mock.RoundHandlerMock{RoundTimeDuration: time.Second},
-		ProcessStatusHandlerField: &testscommon.ProcessStatusHandlerStub{},
-		EpochNotifierField:        &epochNotifier.EpochNotifierStub{},
-		EnableEpochsHandlerField:  enableEpochsHandlerMock.NewEnableEpochsHandlerStub(),
-		RoundNotifierField:        &epochNotifier.RoundNotifierStub{},
-		EnableRoundsHandlerField:  &testscommon.EnableRoundsHandlerStub{},
+		IntMarsh:                           &mock.MarshalizerMock{},
+		Hash:                               &mock.HasherStub{},
+		UInt64ByteSliceConv:                &mock.Uint64ByteSliceConverterMock{},
+		StatusField:                        &statusHandlerMock.AppStatusHandlerStub{},
+		RoundField:                         &mock.RoundHandlerMock{RoundTimeDuration: time.Second},
+		ProcessStatusHandlerField:          &testscommon.ProcessStatusHandlerStub{},
+		EpochNotifierField:                 &epochNotifier.EpochNotifierStub{},
+		EnableEpochsHandlerField:           enableEpochsHandlerMock.NewEnableEpochsHandlerStub(),
+		RoundNotifierField:                 &epochNotifier.RoundNotifierStub{},
+		EnableRoundsHandlerField:           &testscommon.EnableRoundsHandlerStub{},
+		EpochChangeGracePeriodHandlerField: gracePeriod,
 	}
 
 	dataComponents := &mock.DataComponentsMock{
@@ -164,7 +165,6 @@ func createMockMetaArguments(
 		EpochValidatorInfoCreator:    &testscommon.EpochValidatorInfoCreatorStub{},
 		ValidatorStatisticsProcessor: &testscommon.ValidatorStatisticsProcessorStub{},
 		EpochSystemSCProcessor:       &testscommon.EpochStartSystemSCStub{},
-		FieldsSizeChecker:            &testscommon.FieldsSizeCheckerMock{},
 	}
 	return arguments
 }
@@ -1144,7 +1144,7 @@ func TestBlockProc_RequestTransactionFromNetwork(t *testing.T) {
 	}
 
 	header := createMetaBlockHeader()
-	hdrsRequested, _ := mp.RequestBlockHeaders(header)
+	hdrsRequested, _, _ := mp.RequestBlockHeaders(header)
 	assert.Equal(t, uint32(1), hdrsRequested)
 }
 
@@ -3754,337 +3754,4 @@ func TestMetaProcessor_CrossChecksBlockHeightsMetrics(t *testing.T) {
 	requireInstance.Equal(uint64(37), savedMetrics["erd_cross_check_block_height_0"])
 	requireInstance.Equal(uint64(38), savedMetrics["erd_cross_check_block_height_1"])
 	requireInstance.Equal(uint64(39), savedMetrics["erd_cross_check_block_height_2"])
-}
-
-func TestMetaProcessor_CheckProofsForShardData(t *testing.T) {
-	t.Parallel()
-
-	t.Run("missing shard info should error", func(t *testing.T) {
-		t.Parallel()
-
-		coreComponents, dataComponents, bootstrapComponents, statusComponents := createMockComponentHolders()
-		coreComponents.EnableEpochsHandlerField = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-			IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
-				return true
-			},
-		}
-		arguments := createMockMetaArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
-		mp, _ := blproc.NewMetaProcessor(arguments)
-		require.NotNil(t, mp)
-
-		metaBlock := &block.MetaBlock{
-			Nonce: 2,
-			Epoch: 2,
-			ShardInfo: []block.ShardData{
-				{
-					HeaderHash: []byte("missingHash"),
-				},
-			},
-		}
-
-		err := mp.CheckProofsForShardDataIfNeeded(metaBlock, time.Second)
-		require.True(t, errors.Is(err, process.ErrMissingHeader))
-	})
-	t.Run("GetStorer error should error", func(t *testing.T) {
-		t.Parallel()
-
-		coreComponents, dataComponents, bootstrapComponents, statusComponents := createMockComponentHolders()
-		coreComponents.EnableEpochsHandlerField = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-			IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
-				return epoch > 1
-			},
-			GetActivationEpochCalled: func(flag core.EnableEpochFlag) uint32 {
-				return 2
-			},
-		}
-		dataPool := initDataPool([]byte(""))
-		dataPool.ProofsCalled = func() dataRetriever.ProofsPool {
-			return &dataRetrieverMock.ProofsPoolMock{
-				HasProofCalled: func(shardID uint32, headerHash []byte) bool {
-					return true // happy flow
-				},
-			}
-		}
-		dataComponents.DataPool = dataPool
-		dataComponents.Storage = &storageStubs.ChainStorerStub{
-			GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
-				return nil, expectedErr
-			},
-		}
-		arguments := createMockMetaArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
-		mp, _ := blproc.NewMetaProcessor(arguments)
-		require.NotNil(t, mp)
-
-		metaBlock := &block.MetaBlock{
-			Nonce: 2,
-			Epoch: 2,
-			ShardInfo: []block.ShardData{
-				{
-					HeaderHash: []byte("hash"),
-					Epoch:      3,
-					Nonce:      3,
-				},
-			},
-		}
-
-		mp.SetHdrForCurrentBlock(
-			[]byte("hash"),
-			&testscommon.HeaderHandlerStub{
-				EpochField: 3,
-				GetNonceCalled: func() uint64 {
-					return 3
-				},
-			},
-			true)
-
-		err := mp.CheckProofsForShardDataIfNeeded(metaBlock, time.Second)
-		require.Equal(t, expectedErr, err)
-	})
-	t.Run("GetHeader error should error", func(t *testing.T) {
-		t.Parallel()
-
-		coreComponents, dataComponents, bootstrapComponents, statusComponents := createMockComponentHolders()
-		coreComponents.EnableEpochsHandlerField = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-			IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
-				return epoch > 1
-			},
-			GetActivationEpochCalled: func(flag core.EnableEpochFlag) uint32 {
-				return 2
-			},
-		}
-		dataPool := initDataPool([]byte(""))
-		dataPool.ProofsCalled = func() dataRetriever.ProofsPool {
-			return &dataRetrieverMock.ProofsPoolMock{
-				HasProofCalled: func(shardID uint32, headerHash []byte) bool {
-					return true // happy flow
-				},
-			}
-		}
-		dataPool.HeadersCalled = func() dataRetriever.HeadersPool {
-			return &pool.HeadersPoolStub{
-				GetHeaderByHashCalled: func(hash []byte) (data.HeaderHandler, error) {
-					return nil, expectedErr
-				},
-			}
-		}
-		dataComponents.DataPool = dataPool
-		dataComponents.Storage = &storageStubs.ChainStorerStub{
-			GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
-				return &storageStubs.StorerStub{
-					GetCalled: func(key []byte) ([]byte, error) {
-						return nil, expectedErr
-					},
-				}, nil
-			},
-		}
-		arguments := createMockMetaArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
-		mp, _ := blproc.NewMetaProcessor(arguments)
-		require.NotNil(t, mp)
-
-		metaBlock := &block.MetaBlock{
-			Nonce: 2,
-			Epoch: 2,
-			ShardInfo: []block.ShardData{
-				{
-					HeaderHash: []byte("hash"),
-					Epoch:      3,
-					Nonce:      3,
-				},
-			},
-		}
-
-		mp.SetHdrForCurrentBlock(
-			[]byte("hash"),
-			&testscommon.HeaderHandlerStub{
-				EpochField: 3,
-				GetNonceCalled: func() uint64 {
-					return 3
-				},
-			},
-			true)
-
-		err := mp.CheckProofsForShardDataIfNeeded(metaBlock, time.Second)
-		require.ErrorIs(t, err, process.ErrMissingHeader)
-	})
-	t.Run("proof not matching header should error", func(t *testing.T) {
-		t.Parallel()
-
-		coreComponents, dataComponents, bootstrapComponents, statusComponents := createMockComponentHolders()
-		coreComponents.EnableEpochsHandlerField = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-			IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
-				return epoch > 1
-			},
-			GetActivationEpochCalled: func(flag core.EnableEpochFlag) uint32 {
-				return 2
-			},
-		}
-		dataPool := initDataPool([]byte(""))
-		dataPool.ProofsCalled = func() dataRetriever.ProofsPool {
-			return &dataRetrieverMock.ProofsPoolMock{
-				HasProofCalled: func(shardID uint32, headerHash []byte) bool {
-					return true // happy flow
-				},
-			}
-		}
-		dataPool.HeadersCalled = func() dataRetriever.HeadersPool {
-			return &pool.HeadersPoolStub{
-				GetHeaderByHashCalled: func(hash []byte) (data.HeaderHandler, error) {
-					return &testscommon.HeaderHandlerStub{
-						EpochField: 3,
-						RoundField: 4,
-						GetShardIDCalled: func() uint32 {
-							return 2
-						},
-						GetNonceCalled: func() uint64 {
-							return 2
-						},
-					}, nil
-				},
-			}
-		}
-		dataComponents.DataPool = dataPool
-		dataComponents.Storage = &storageStubs.ChainStorerStub{
-			GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
-				return &storageStubs.StorerStub{}, nil
-			},
-		}
-		arguments := createMockMetaArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
-		mp, _ := blproc.NewMetaProcessor(arguments)
-		require.NotNil(t, mp)
-
-		metaBlock := &block.MetaBlock{
-			Nonce: 2,
-			Epoch: 2,
-			ShardInfo: []block.ShardData{
-				{
-					HeaderHash: []byte("hash"),
-					ShardID:    2,
-					Epoch:      3,
-					Nonce:      3,
-					PreviousShardHeaderProof: &block.HeaderProof{
-						HeaderShardId: 2,
-						HeaderNonce:   2,
-						HeaderEpoch:   3,
-						HeaderRound:   5, // fail here, header's round is 4 @ L3929
-					},
-				},
-			},
-		}
-
-		mp.SetHdrForCurrentBlock(
-			[]byte("hash"),
-			&testscommon.HeaderHandlerStub{
-				EpochField: 3,
-				GetNonceCalled: func() uint64 {
-					return 3
-				},
-			},
-			true)
-
-		err := mp.CheckProofsForShardDataIfNeeded(metaBlock, time.Second)
-		require.True(t, errors.Is(err, common.ErrInvalidHeaderProof))
-	})
-	t.Run("should work, no proof to wait for", func(t *testing.T) {
-		t.Parallel()
-
-		coreComponents, dataComponents, bootstrapComponents, statusComponents := createMockComponentHolders()
-		coreComponents.EnableEpochsHandlerField = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-			IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
-				return epoch > 1
-			},
-			GetActivationEpochCalled: func(flag core.EnableEpochFlag) uint32 {
-				return 2
-			},
-		}
-		dataPool := initDataPool([]byte(""))
-		dataPool.ProofsCalled = func() dataRetriever.ProofsPool {
-			return &dataRetrieverMock.ProofsPoolMock{
-				HasProofCalled: func(shardID uint32, headerHash []byte) bool {
-					return true // happy flow
-				},
-			}
-		}
-		dataPool.HeadersCalled = func() dataRetriever.HeadersPool {
-			return &pool.HeadersPoolStub{
-				GetHeaderByHashCalled: func(hash []byte) (data.HeaderHandler, error) {
-					return &testscommon.HeaderHandlerStub{
-						EpochField: 3,
-						RoundField: 4,
-						GetShardIDCalled: func() uint32 {
-							return 2
-						},
-						GetNonceCalled: func() uint64 {
-							return 2
-						},
-					}, nil
-				},
-			}
-		}
-		dataComponents.DataPool = dataPool
-		dataComponents.Storage = &storageStubs.ChainStorerStub{
-			GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
-				return &storageStubs.StorerStub{}, nil
-			},
-		}
-		arguments := createMockMetaArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
-		mp, _ := blproc.NewMetaProcessor(arguments)
-		require.NotNil(t, mp)
-
-		metaBlock := &block.MetaBlock{
-			Nonce: 2,
-			Epoch: 2,
-			ShardInfo: []block.ShardData{
-				{
-					// flag not active, for coverage only, should continue
-					HeaderHash: []byte("hashSh0"),
-					ShardID:    0,
-					Epoch:      1,
-				},
-				{
-					// header does not have prev proof, for coverage only, should continue
-					HeaderHash: []byte("hashSh1"),
-					ShardID:    1,
-					Epoch:      2,
-				},
-				{
-					// good header with prev proof matching the header returned by the above defined GetHeaderByHashCalled
-					HeaderHash: []byte("hashSh2"),
-					ShardID:    2,
-					Epoch:      3,
-					Nonce:      3,
-					PreviousShardHeaderProof: &block.HeaderProof{
-						HeaderShardId: 2,
-						HeaderNonce:   2,
-						HeaderEpoch:   3,
-						HeaderRound:   4,
-					},
-				},
-			},
-		}
-
-		mp.SetHdrForCurrentBlock(
-			[]byte("hashSh0"),
-			&testscommon.HeaderHandlerStub{
-				EpochField: 1,
-			},
-			true)
-		mp.SetHdrForCurrentBlock(
-			[]byte("hashSh1"),
-			&testscommon.HeaderHandlerStub{
-				EpochField: 2,
-			},
-			true)
-		mp.SetHdrForCurrentBlock(
-			[]byte("hashSh2"),
-			&testscommon.HeaderHandlerStub{
-				EpochField: 3,
-				GetNonceCalled: func() uint64 {
-					return 3
-				},
-			},
-			true)
-
-		err := mp.CheckProofsForShardDataIfNeeded(metaBlock, time.Second)
-		require.NoError(t, err)
-	})
 }
