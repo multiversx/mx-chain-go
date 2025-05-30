@@ -70,7 +70,7 @@ func NewDataPoolFromConfig(args ArgsDataPool) (dataRetriever.PoolsHolder, error)
 		NumberOfShards:                     args.ShardCoordinator.NumberOfShards(),
 		SelfShardID:                        args.ShardCoordinator.SelfId(),
 		MaxNumBytesPerSenderUpperBound:     mainConfig.MempoolSelection.MaxNumBytesPerSenderUpperBound,
-		SelectionLoopDurationCheckInterval: mainConfig.TransactionsPool.SelectionLoopDurationCheckInterval,
+		SelectionLoopDurationCheckInterval: mainConfig.MempoolSelection.SelectionLoopDurationCheckInterval,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("%w while creating the cache for the transactions", err)
