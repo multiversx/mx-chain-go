@@ -11,11 +11,12 @@ import (
 
 // ArgShardedTxPool is the argument for ShardedTxPool's constructor
 type ArgShardedTxPool struct {
-	Config         storageunit.CacheConfig
-	TxGasHandler   txGasHandler
-	Marshalizer    marshal.Marshalizer
-	NumberOfShards uint32
-	SelfShardID    uint32
+	Config                         storageunit.CacheConfig
+	TxGasHandler                   txGasHandler
+	Marshalizer                    marshal.Marshalizer
+	NumberOfShards                 uint32
+	SelfShardID                    uint32
+	MaxNumBytesPerSenderUpperBound uint32
 }
 
 // TODO: Upon further analysis and brainstorming, add some sensible minimum accepted values for the appropriate fields.

@@ -23,6 +23,7 @@ import (
 // useMemPprof dictates whether to save heap profiles when running the test.
 // Enable this manually, locally.
 const useMemPprof = false
+const maxNumBytesPerSenderUpperBoundTest = 33_554_432 // 32 MB
 
 // We run all scenarios within a single test so that we minimize memory interferences (of tests running in parallel)
 func TestShardedTxPool_MemoryFootprint(t *testing.T) {
@@ -111,11 +112,12 @@ func newPool() dataRetriever.ShardedDataCacherNotifier {
 	}
 
 	args := txpool.ArgShardedTxPool{
-		Config:         config,
-		TxGasHandler:   txcachemocks.NewTxGasHandlerMock(),
-		Marshalizer:    &marshal.GogoProtoMarshalizer{},
-		NumberOfShards: 2,
-		SelfShardID:    0,
+		Config:                         config,
+		TxGasHandler:                   txcachemocks.NewTxGasHandlerMock(),
+		Marshalizer:                    &marshal.GogoProtoMarshalizer{},
+		NumberOfShards:                 2,
+		SelfShardID:                    0,
+		MaxNumBytesPerSenderUpperBound: maxNumBytesPerSenderUpperBoundTest,
 	}
 	pool, err := txpool.NewShardedTxPool(args)
 	if err != nil {
