@@ -132,7 +132,9 @@ func (p *pendingEpochStartShardHeader) syncEpochStartShardHeader(shardId uint32,
 			p.mutPending.Unlock()
 			return nil
 		case <-p.chNew:
+			p.mutPending.RLock()
 			nonce = p.latestReceivedHeader.GetNonce()
+			p.mutPending.RUnlock()
 			continue
 		case <-ctx.Done():
 			p.mutPending.Lock()
@@ -198,8 +200,10 @@ func (p *pendingEpochStartShardHeader) receivedProof(proof data.HeaderProofHandl
 		return
 	}
 	p.latestReceivedProof = proof
+	lastReceivedHeader := p.latestReceivedHeader
+	lastReceivedHash := p.latestReceivedHash
 	p.mutPending.Unlock()
-	p.updateReceivedHeaderAndProof(p.latestReceivedHeader, p.latestReceivedHash)
+	p.updateReceivedHeaderAndProof(lastReceivedHeader, lastReceivedHash)
 }
 
 // GetEpochStartHeader returns the synced epoch start header
