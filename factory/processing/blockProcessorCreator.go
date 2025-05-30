@@ -351,7 +351,6 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 		scheduledTxsExecutionHandler,
 		processedMiniBlocksTracker,
 		pcf.txExecutionOrderHandler,
-		pcf.config.TransactionsPool,
 		pcf.config.MempoolSelection,
 	)
 	if err != nil {
@@ -394,7 +393,6 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 		DoubleTransactionsDetector:   doubleTransactionsDetector,
 		ProcessedMiniBlocksTracker:   processedMiniBlocksTracker,
 		TxExecutionOrderHandler:      pcf.txExecutionOrderHandler,
-		TxPoolConfig:                 pcf.config.TransactionsPool,
 	}
 	txCoordinator, err := coordinator.NewTransactionCoordinator(argsTransactionCoordinator)
 	if err != nil {
@@ -662,7 +660,6 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 		scheduledTxsExecutionHandler,
 		processedMiniBlocksTracker,
 		pcf.txExecutionOrderHandler,
-		pcf.config.TransactionsPool,
 		pcf.config.MempoolSelection,
 	)
 	if err != nil {

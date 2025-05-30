@@ -67,8 +67,7 @@ type ArgsGenesisBlockCreator struct {
 	RoundConfig             config.RoundConfig
 	EpochConfig             config.EpochConfig
 	HeaderVersionConfigs    config.VersionsConfig
-	TxPoolConfig            config.TransactionsPoolConfig
-	MempoolSelection        config.MempoolSelectionConfig
+	MempoolSelectionConfig  config.MempoolSelectionConfig
 	WorkingDir              string
 	BlockSignKeyGen         crypto.KeyGenerator
 	HistoryRepository       dblookupext.HistoryRepository

@@ -928,8 +928,7 @@ func (pcf *processComponentsFactory) generateGenesisHeadersAndApplyInitialBalanc
 		GenesisEpoch:            pcf.config.EpochStartConfig.GenesisEpoch,
 		GenesisNonce:            pcf.genesisNonce,
 		GenesisRound:            pcf.genesisRound,
-		TxPoolConfig:            pcf.config.TransactionsPool,
-		MempoolSelection:        pcf.config.MempoolSelection,
+		MempoolSelectionConfig:  pcf.config.MempoolSelection,
 	}
 
 	gbc, err := processGenesis.NewGenesisBlockCreator(arg)

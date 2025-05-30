@@ -51,7 +51,6 @@ type transactions struct {
 	emptyAddress                 []byte
 	txTypeHandler                process.TxTypeHandler
 	scheduledTxsExecutionHandler process.ScheduledTxsExecutionHandler
-	txPoolConfig                 config.TransactionsPoolConfig
 	mempoolSelectionConfig       config.MempoolSelectionConfig
 }
 
@@ -77,7 +76,6 @@ type ArgsTransactionPreProcessor struct {
 	ScheduledTxsExecutionHandler process.ScheduledTxsExecutionHandler
 	ProcessedMiniBlocksTracker   process.ProcessedMiniBlocksTracker
 	TxExecutionOrderHandler      common.TxExecutionOrderHandler
-	TxPoolConfig                 config.TransactionsPoolConfig
 	MempoolSelectionConfig       config.MempoolSelectionConfig
 }
 
@@ -152,23 +150,18 @@ func NewTransactionPreprocessor(
 	if check.IfNil(args.TxExecutionOrderHandler) {
 		return nil, process.ErrNilTxExecutionOrderHandler
 	}
-
-	if args.TxPoolConfig.SelectionGasBandwidthIncreasePercent == 0 {
+	if args.MempoolSelectionConfig.SelectionGasBandwidthIncreasePercent == 0 {
 		return nil, process.ErrBadSelectionGasBandwidthIncreasePercent
 	}
-
-	if args.TxPoolConfig.SelectionGasBandwidthIncreaseScheduledPercent == 0 {
+	if args.MempoolSelectionConfig.SelectionGasBandwidthIncreaseScheduledPercent == 0 {
 		return nil, process.ErrBadSelectionGasBandwidthIncreaseScheduledPercent
 	}
-
-	if args.MempoolSelectionConfig.SelectionGasRequested == 0 {
-		return nil, process.ErrBadTxCacheSelectionGasRequested
-	}
-
 	if args.MempoolSelectionConfig.SelectionMaxNumTxs == 0 {
 		return nil, process.ErrBadTxCacheSelectionMaxNumTxs
 	}
-
+	if args.MempoolSelectionConfig.SelectionGasRequested == 0 {
+		return nil, process.ErrBadTxCacheSelectionGasRequested
+	}
 	if args.MempoolSelectionConfig.SelectionLoopMaximumDuration == 0 {
 		return nil, process.ErrBadTxCacheSelectionLoopMaximumDuration
 	}
@@ -200,7 +193,6 @@ func NewTransactionPreprocessor(
 		blockType:                    args.BlockType,
 		txTypeHandler:                args.TxTypeHandler,
 		scheduledTxsExecutionHandler: args.ScheduledTxsExecutionHandler,
-		txPoolConfig:                 args.TxPoolConfig,
 		mempoolSelectionConfig:       args.MempoolSelectionConfig,
 	}
 
@@ -1031,10 +1023,10 @@ func (txs *transactions) getRemainingGasPerBlockAsScheduled() uint64 {
 func (txs *transactions) CreateAndProcessMiniBlocks(haveTime func() bool, randomness []byte) (block.MiniBlockSlice, error) {
 	startTime := time.Now()
 
-	gasBandwidth := txs.getRemainingGasPerBlock() * uint64(txs.txPoolConfig.SelectionGasBandwidthIncreasePercent) / 100
+	gasBandwidth := txs.getRemainingGasPerBlock() * uint64(txs.mempoolSelectionConfig.SelectionGasBandwidthIncreasePercent) / 100
 	gasBandwidthForScheduled := uint64(0)
 	if txs.enableEpochsHandler.IsFlagEnabled(common.ScheduledMiniBlocksFlag) {
-		gasBandwidthForScheduled = txs.getRemainingGasPerBlockAsScheduled() * uint64(txs.txPoolConfig.SelectionGasBandwidthIncreaseScheduledPercent) / 100
+		gasBandwidthForScheduled = txs.getRemainingGasPerBlockAsScheduled() * uint64(txs.mempoolSelectionConfig.SelectionGasBandwidthIncreaseScheduledPercent) / 100
 		gasBandwidth += gasBandwidthForScheduled
 	}
 
