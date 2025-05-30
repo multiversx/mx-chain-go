@@ -38,15 +38,15 @@ func Test_NewShardedTxPool_WhenBadConfig(t *testing.T) {
 			SizeInBytesPerSender: 40960,
 			Shards:               16,
 		},
-		TxGasHandler:                   txcachemocks.NewTxGasHandlerMock(),
-		Marshalizer:                    &marshal.GogoProtoMarshalizer{},
-		NumberOfShards:                 1,
-		MaxNumBytesPerSenderUpperBound: maxNumBytesPerSenderUpperBoundTest,
-		SortedTransactionsConfig: config.SortedTransactionsConfig{
-			TxCacheSelectionGasRequested:        10_000_000_000,
-			TxCacheSelectionMaxNumTxs:           30_000,
-			TxCacheSelectionLoopMaximumDuration: 250,
-			SelectionLoopDurationCheckInterval:  selectionLoopDurationCheckInterval,
+		TxGasHandler:   txcachemocks.NewTxGasHandlerMock(),
+		Marshalizer:    &marshal.GogoProtoMarshalizer{},
+		NumberOfShards: 1,
+		MempoolSelectionConfig: config.MempoolSelectionConfig{
+			SelectionGasRequested:              10_000_000_000,
+			SelectionMaxNumTxs:                 30_000,
+			SelectionLoopMaximumDuration:       250,
+			SelectionLoopDurationCheckInterval: selectionLoopDurationCheckInterval,
+			MaxNumBytesPerSenderUpperBound:     maxNumBytesPerSenderUpperBoundTest,
 		},
 	}
 
@@ -107,28 +107,35 @@ func Test_NewShardedTxPool_WhenBadConfig(t *testing.T) {
 	require.Errorf(t, err, dataRetriever.ErrCacheConfigInvalidSharding.Error())
 
 	args = goodArgs
-	args.SortedTransactionsConfig.SelectionLoopDurationCheckInterval = 0
+	args.MempoolSelectionConfig.SelectionLoopDurationCheckInterval = 0
 	pool, err = NewShardedTxPool(args)
 	require.Nil(t, pool)
 	require.NotNil(t, err)
 	require.Errorf(t, err, dataRetriever.ErrBadSelectionLoopDurationCheckInterval.Error())
 
 	args = goodArgs
-	args.SortedTransactionsConfig.TxCacheSelectionMaxNumTxs = 0
+	args.MempoolSelectionConfig.SelectionMaxNumTxs = 0
 	pool, err = NewShardedTxPool(args)
 	require.Nil(t, pool)
 	require.NotNil(t, err)
 	require.Errorf(t, err, dataRetriever.ErrBadTxCacheSelectionMaxNumTxs.Error())
 
 	args = goodArgs
-	args.SortedTransactionsConfig.TxCacheSelectionLoopMaximumDuration = 0
+	args.MempoolSelectionConfig.SelectionLoopMaximumDuration = 0
 	pool, err = NewShardedTxPool(args)
 	require.Nil(t, pool)
 	require.NotNil(t, err)
 	require.Errorf(t, err, dataRetriever.ErrBadTxCacheSelectionLoopMaximumDuration.Error())
 
 	args = goodArgs
-	args.SortedTransactionsConfig.TxCacheSelectionGasRequested = 0
+	args.MempoolSelectionConfig.SelectionGasRequested = 0
+	pool, err = NewShardedTxPool(args)
+	require.Nil(t, pool)
+	require.NotNil(t, err)
+	require.Errorf(t, err, dataRetriever.ErrBadTxCacheSelectionGasRequested.Error())
+
+	args = goodArgs
+	args.MempoolSelectionConfig.MaxNumBytesPerSenderUpperBound = 0
 	pool, err = NewShardedTxPool(args)
 	require.Nil(t, pool)
 	require.NotNil(t, err)
@@ -142,11 +149,12 @@ func Test_NewShardedTxPool_ComputesCacheConfig(t *testing.T) {
 		TxGasHandler:   txcachemocks.NewTxGasHandlerMock(),
 		Marshalizer:    &marshal.GogoProtoMarshalizer{},
 		NumberOfShards: 2,
-		SortedTransactionsConfig: config.SortedTransactionsConfig{
-			TxCacheSelectionGasRequested:        10_000_000_000,
-			TxCacheSelectionMaxNumTxs:           30_000,
-			TxCacheSelectionLoopMaximumDuration: 250,
-			SelectionLoopDurationCheckInterval:  selectionLoopDurationCheckInterval,
+		MempoolSelectionConfig: config.MempoolSelectionConfig{
+			SelectionGasRequested:              10_000_000_000,
+			SelectionMaxNumTxs:                 30_000,
+			SelectionLoopMaximumDuration:       250,
+			SelectionLoopDurationCheckInterval: selectionLoopDurationCheckInterval,
+			MaxNumBytesPerSenderUpperBound:     maxNumBytesPerSenderUpperBoundTest,
 		}}
 
 	pool, err := NewShardedTxPool(args)
@@ -426,17 +434,17 @@ func Test_routeToCacheUnions(t *testing.T) {
 		Shards:               1,
 	}
 	args := ArgShardedTxPool{
-		Config:                         cacheConfig,
-		TxGasHandler:                   txcachemocks.NewTxGasHandlerMock(),
-		Marshalizer:                    &marshal.GogoProtoMarshalizer{},
-		NumberOfShards:                 4,
-		SelfShardID:                    42,
-		MaxNumBytesPerSenderUpperBound: maxNumBytesPerSenderUpperBoundTest,
-		SortedTransactionsConfig: config.SortedTransactionsConfig{
-			TxCacheSelectionGasRequested:        10_000_000_000,
-			TxCacheSelectionMaxNumTxs:           30_000,
-			TxCacheSelectionLoopMaximumDuration: 250,
-			SelectionLoopDurationCheckInterval:  selectionLoopDurationCheckInterval,
+		Config:         cacheConfig,
+		TxGasHandler:   txcachemocks.NewTxGasHandlerMock(),
+		Marshalizer:    &marshal.GogoProtoMarshalizer{},
+		NumberOfShards: 4,
+		SelfShardID:    42,
+		MempoolSelectionConfig: config.MempoolSelectionConfig{
+			SelectionGasRequested:              10_000_000_000,
+			SelectionMaxNumTxs:                 30_000,
+			SelectionLoopMaximumDuration:       250,
+			SelectionLoopDurationCheckInterval: selectionLoopDurationCheckInterval,
+			MaxNumBytesPerSenderUpperBound:     maxNumBytesPerSenderUpperBoundTest,
 		}}
 	pool, _ := NewShardedTxPool(args)
 
@@ -473,17 +481,17 @@ func newTxPoolToTest() (dataRetriever.ShardedDataCacherNotifier, error) {
 		Shards:               1,
 	}
 	args := ArgShardedTxPool{
-		Config:                         cacheConfig,
-		TxGasHandler:                   txcachemocks.NewTxGasHandlerMock(),
-		Marshalizer:                    &marshal.GogoProtoMarshalizer{},
-		NumberOfShards:                 4,
-		SelfShardID:                    0,
-		MaxNumBytesPerSenderUpperBound: maxNumBytesPerSenderUpperBoundTest,
-		SortedTransactionsConfig: config.SortedTransactionsConfig{
-			TxCacheSelectionGasRequested:        10_000_000_000,
-			TxCacheSelectionMaxNumTxs:           30_000,
-			TxCacheSelectionLoopMaximumDuration: 250,
-			SelectionLoopDurationCheckInterval:  selectionLoopDurationCheckInterval,
+		Config:         cacheConfig,
+		TxGasHandler:   txcachemocks.NewTxGasHandlerMock(),
+		Marshalizer:    &marshal.GogoProtoMarshalizer{},
+		NumberOfShards: 4,
+		SelfShardID:    0,
+		MempoolSelectionConfig: config.MempoolSelectionConfig{
+			SelectionGasRequested:              10_000_000_000,
+			SelectionMaxNumTxs:                 30_000,
+			SelectionLoopMaximumDuration:       250,
+			SelectionLoopDurationCheckInterval: selectionLoopDurationCheckInterval,
+			MaxNumBytesPerSenderUpperBound:     maxNumBytesPerSenderUpperBoundTest,
 		},
 	}
 	return NewShardedTxPool(args)

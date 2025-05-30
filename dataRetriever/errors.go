@@ -283,3 +283,6 @@ var ErrBadTxCacheSelectionGasRequested = errors.New("bad tx cache selection gas 
 
 // ErrBadTxCacheSelectionLoopMaximumDuration signals a bad TxCacheSelectionLoopMaximumDuration config
 var ErrBadTxCacheSelectionLoopMaximumDuration = errors.New("bad tx cache selection loop maximum duration")
+
+// ErrBadMaxNumBytesPerSenderUpperBound signals a bad MaxNumBytesPerSenderUpperBound config
+var ErrBadMaxNumBytesPerSenderUpperBound = errors.New("bad max number of bytes per sender upper bound")

@@ -10,7 +10,7 @@ import (
 func (cache *TxCache) doSelectTransactions(session SelectionSession) (bunchOfTransactions, uint64) {
 	bunches := cache.acquireBunchesOfTransactions()
 
-	return selectTransactionsFromBunches(session, bunches, cache.config.SortedTransactionsConfig)
+	return selectTransactionsFromBunches(session, bunches, cache.config.MempoolSelectionConfig)
 }
 
 func (cache *TxCache) acquireBunchesOfTransactions() []bunchOfTransactions {
@@ -26,7 +26,7 @@ func (cache *TxCache) acquireBunchesOfTransactions() []bunchOfTransactions {
 
 // Selection tolerates concurrent transaction additions / removals.
 func selectTransactionsFromBunches(session SelectionSession, bunches []bunchOfTransactions,
-	sortedTxsConfig config.SortedTransactionsConfig) (bunchOfTransactions, uint64) {
+	mempoolSelectionConfig config.MempoolSelectionConfig) (bunchOfTransactions, uint64) {
 	selectedTransactions := make(bunchOfTransactions, 0, initialCapacityOfSelectionSlice)
 	sessionWrapper := newSelectionSessionWrapper(session)
 
@@ -54,14 +54,14 @@ func selectTransactionsFromBunches(session SelectionSession, bunches []bunchOfTr
 		item := heap.Pop(transactionsHeap).(*transactionsHeapItem)
 		gasLimit := item.currentTransaction.Tx.GetGasLimit()
 
-		if accumulatedGas+gasLimit > sortedTxsConfig.TxCacheSelectionGasRequested {
+		if accumulatedGas+gasLimit > mempoolSelectionConfig.SelectionGasRequested {
 			break
 		}
-		if len(selectedTransactions) >= sortedTxsConfig.TxCacheSelectionMaxNumTxs {
+		if len(selectedTransactions) >= mempoolSelectionConfig.SelectionMaxNumTxs {
 			break
 		}
-		if len(selectedTransactions)%int(sortedTxsConfig.SelectionLoopDurationCheckInterval) == 0 {
-			if time.Since(selectionLoopStartTime) > time.Duration(sortedTxsConfig.TxCacheSelectionLoopMaximumDuration)*time.Millisecond {
+		if len(selectedTransactions)%int(mempoolSelectionConfig.SelectionLoopDurationCheckInterval) == 0 {
+			if time.Since(selectionLoopStartTime) > time.Duration(mempoolSelectionConfig.SelectionLoopMaximumDuration)*time.Millisecond {
 				logSelect.Debug("TxCache.selectTransactionsFromBunches, selection loop timeout", "duration", time.Since(selectionLoopStartTime))
 				break
 			}

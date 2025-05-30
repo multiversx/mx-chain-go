@@ -423,12 +423,12 @@
 
 [MempoolSelection]
     SelectionMaxNumTxs = 30000
-    SelectionLoopMaximumDuration = 250      #milliseconds
-    SelectionLoopDurationCheckInterval = 10 #milliseconds
+    SelectionLoopMaximumDuration = 250                      #milliseconds
+    SelectionLoopDurationCheckInterval = 10                 #milliseconds
     SelectionGasBandwidthIncreasePercent = 400
     SelectionGasBandwidthIncreaseScheduledPercent = 260
     SelectionGasRequested = 10_000_000_000
-    MaxNumBytesPerSenderUpperBound = 33_554_432 #32MB
+    MaxNumBytesPerSenderUpperBound = 33_554_432             #32MB
 
 [TrieNodesChunksDataPool]
     Name = "TrieNodesDataPool"

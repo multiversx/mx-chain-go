@@ -139,9 +139,11 @@ func GetGeneralConfig() config.Config {
 		MempoolSelection: config.MempoolSelectionConfig{
 			SelectionMaxNumTxs:                            30000,
 			SelectionLoopMaximumDuration:                  250,
+			SelectionLoopDurationCheckInterval:            10,
 			SelectionGasRequested:                         10_000_000_000,
 			SelectionGasBandwidthIncreasePercent:          400,
 			SelectionGasBandwidthIncreaseScheduledPercent: 260,
+			MaxNumBytesPerSenderUpperBound:                33_554_432,
 		},
 		UnsignedTransactionDataPool: config.CacheConfig{
 			Capacity:    10000,

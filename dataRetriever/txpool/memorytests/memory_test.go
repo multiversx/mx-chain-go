@@ -114,17 +114,17 @@ func newPool() dataRetriever.ShardedDataCacherNotifier {
 	}
 
 	args := txpool.ArgShardedTxPool{
-		Config:                         cacheConfig,
-		TxGasHandler:                   txcachemocks.NewTxGasHandlerMock(),
-		Marshalizer:                    &marshal.GogoProtoMarshalizer{},
-		NumberOfShards:                 2,
-		SelfShardID:                    0,
-		MaxNumBytesPerSenderUpperBound: maxNumBytesPerSenderUpperBoundTest,
-		SortedTransactionsConfig: config.SortedTransactionsConfig{
-			TxCacheSelectionGasRequested:        10_000_000_000,
-			TxCacheSelectionMaxNumTxs:           30_000,
-			TxCacheSelectionLoopMaximumDuration: 250,
-			SelectionLoopDurationCheckInterval:  selectionLoopDurationCheckInterval,
+		Config:         cacheConfig,
+		TxGasHandler:   txcachemocks.NewTxGasHandlerMock(),
+		Marshalizer:    &marshal.GogoProtoMarshalizer{},
+		NumberOfShards: 2,
+		SelfShardID:    0,
+		MempoolSelectionConfig: config.MempoolSelectionConfig{
+			SelectionGasRequested:              10_000_000_000,
+			SelectionMaxNumTxs:                 30_000,
+			SelectionLoopMaximumDuration:       250,
+			SelectionLoopDurationCheckInterval: selectionLoopDurationCheckInterval,
+			MaxNumBytesPerSenderUpperBound:     maxNumBytesPerSenderUpperBoundTest,
 		}}
 	pool, err := txpool.NewShardedTxPool(args)
 	if err != nil {

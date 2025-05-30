@@ -12,13 +12,12 @@ import (
 
 // ArgShardedTxPool is the argument for ShardedTxPool's constructor
 type ArgShardedTxPool struct {
-	Config                         storageunit.CacheConfig
-	TxGasHandler                   txGasHandler
-	Marshalizer                    marshal.Marshalizer
-	NumberOfShards                 uint32
-	SelfShardID                    uint32
-	MaxNumBytesPerSenderUpperBound uint32
-	SortedTransactionsConfig       config.MempoolSelectionConfig
+	Config                 storageunit.CacheConfig
+	TxGasHandler           txGasHandler
+	Marshalizer            marshal.Marshalizer
+	NumberOfShards         uint32
+	SelfShardID            uint32
+	MempoolSelectionConfig config.MempoolSelectionConfig
 }
 
 // TODO: Upon further analysis and brainstorming, add some sensible minimum accepted values for the appropriate fields.
@@ -50,19 +49,23 @@ func (args *ArgShardedTxPool) verify() error {
 		return fmt.Errorf("%w: NumberOfShards is not valid", dataRetriever.ErrCacheConfigInvalidSharding)
 	}
 
-	if args.SortedTransactionsConfig.SelectionLoopDurationCheckInterval == 0 {
+	if args.MempoolSelectionConfig.SelectionLoopDurationCheckInterval == 0 {
 		return fmt.Errorf("%w: SelectionLoopDurationCheckInterval is not valid", dataRetriever.ErrBadSelectionLoopDurationCheckInterval)
 	}
 
-	if args.SortedTransactionsConfig.TxCacheSelectionMaxNumTxs == 0 {
+	if args.MempoolSelectionConfig.SelectionMaxNumTxs == 0 {
 		return fmt.Errorf("%w: TxCacheSelectionMaxNumTxs is not valid", dataRetriever.ErrBadTxCacheSelectionMaxNumTxs)
 	}
 
-	if args.SortedTransactionsConfig.TxCacheSelectionGasRequested == 0 {
+	if args.MempoolSelectionConfig.SelectionGasRequested == 0 {
 		return fmt.Errorf("%w: TxCacheSelectionMaxNumTxs is not valid", dataRetriever.ErrBadTxCacheSelectionGasRequested)
 	}
 
-	if args.SortedTransactionsConfig.TxCacheSelectionLoopMaximumDuration == 0 {
+	if args.MempoolSelectionConfig.SelectionLoopMaximumDuration == 0 {
+		return fmt.Errorf("%w: TxCacheSelectionMaxNumTxs is not valid", dataRetriever.ErrBadTxCacheSelectionLoopMaximumDuration)
+	}
+
+	if args.MempoolSelectionConfig.MaxNumBytesPerSenderUpperBound == 0 {
 		return fmt.Errorf("%w: TxCacheSelectionMaxNumTxs is not valid", dataRetriever.ErrBadTxCacheSelectionLoopMaximumDuration)
 	}
 
