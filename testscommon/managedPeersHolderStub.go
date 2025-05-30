@@ -27,6 +27,10 @@ type ManagedPeersHolderStub struct {
 	SetNextPeerAuthenticationTimeCalled          func(pkBytes []byte, nextTime time.Time)
 	IsMultiKeyModeCalled                         func() bool
 	GetRedundancyStepInReasonCalled              func() string
+	IncrementRoundsSignedCalled                  func()
+	ShouldProposeBlockCalled                     func() bool
+	SetRoundsSignedToMinCalled                   func()
+	DecrementRoundsSignedCalled                  func()
 }
 
 // AddManagedPeer -
@@ -168,6 +172,36 @@ func (stub *ManagedPeersHolderStub) GetRedundancyStepInReason() string {
 	}
 
 	return ""
+}
+
+// IncrementRoundsSigned -
+func (stub *ManagedPeersHolderStub) IncrementRoundsSigned() {
+	if stub.IncrementRoundsSignedCalled != nil {
+		stub.IncrementRoundsSignedCalled()
+	}
+}
+
+// ShouldProposeBlock -
+func (stub *ManagedPeersHolderStub) ShouldProposeBlock() bool {
+	if stub.ShouldProposeBlockCalled != nil {
+		return stub.ShouldProposeBlockCalled()
+	}
+
+	return true
+}
+
+// SetRoundsSignedToMin -
+func (stub *ManagedPeersHolderStub) SetRoundsSignedToMin() {
+	if stub.SetRoundsSignedToMinCalled != nil {
+		stub.SetRoundsSignedToMinCalled()
+	}
+}
+
+// DecrementRoundsSigned -
+func (stub *ManagedPeersHolderStub) DecrementRoundsSigned() {
+	if stub.DecrementRoundsSignedCalled != nil {
+		stub.DecrementRoundsSignedCalled()
+	}
 }
 
 // IsInterfaceNil -

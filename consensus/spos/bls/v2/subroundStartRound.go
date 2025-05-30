@@ -212,6 +212,15 @@ func (sr *subroundStartRound) initCurrentRound() bool {
 		return false
 	}
 
+	activationEpoch := sr.EnableEpochsHandler().GetActivationEpoch(common.AndromedaFlag)
+	currentHeader := sr.Blockchain().GetCurrentBlockHeader()
+	isFirstBlockAfterActivation := !check.IfNil(currentHeader) && currentHeader.GetEpoch() == activationEpoch-1
+	isFirstBlock := check.IfNil(currentHeader)
+	if sr.IsSelfLeader() && (isFirstBlock || isFirstBlockAfterActivation) {
+		// force main to not wait one signature before proposing
+		sr.SetRoundsSignedToMin()
+	}
+
 	sr.SetStatus(sr.Current(), spos.SsFinished)
 
 	// execute stored messages which were received in this new round but before this initialisation
@@ -224,18 +233,20 @@ func (sr *subroundStartRound) computeNumManagedKeysInConsensusGroup(pubKeys []st
 	numMultiKeysInConsensusGroup := 0
 	for _, pk := range pubKeys {
 		pkBytes := []byte(pk)
+
+		sr.IncrementRoundsWithoutReceivedMessages(pkBytes)
+
 		if sr.IsKeyManagedBySelf(pkBytes) {
 			numMultiKeysInConsensusGroup++
 			log.Trace("in consensus group with multi key",
 				"pk", core.GetTrimmedPk(hex.EncodeToString(pkBytes)))
 		}
-		sr.IncrementRoundsWithoutReceivedMessages(pkBytes)
 	}
 
 	return numMultiKeysInConsensusGroup
 }
 
-func (sr *subroundStartRound) indexRoundIfNeeded(pubKeys []string) {
+func (sr *subroundStartRound) indexRoundIfNeeded(_ []string) {
 	sr.outportMutex.RLock()
 	defer sr.outportMutex.RUnlock()
 

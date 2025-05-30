@@ -203,6 +203,10 @@ type KeysHandler interface {
 	IsOriginalPublicKeyOfTheNode(pkBytes []byte) bool
 	ResetRoundsWithoutReceivedMessages(pkBytes []byte, pid core.PeerID)
 	GetRedundancyStepInReason() string
+	IncrementRoundsSigned()
+	ShouldProposeBlock() bool
+	SetRoundsSignedToMin()
+	DecrementRoundsSigned()
 	IsInterfaceNil() bool
 }
 
