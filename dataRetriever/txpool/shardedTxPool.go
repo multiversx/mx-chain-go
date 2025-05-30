@@ -1,6 +1,7 @@
 package txpool
 
 import (
+	"fmt"
 	"strconv"
 	"sync"
 	"time"
@@ -402,7 +403,7 @@ func (txPool *shardedTxPool) getMempool() txCache {
 }
 
 func (txPool *shardedTxPool) MempoolCleanup(session interface{}, nonce uint64, maxNum int, maxTime time.Duration) bool{
-
+	fmt.Println("shardedTxPool.MempoolCleanup() called for self shard")
 	mempool := txPool.getMempool().(*txcache.TxCache)
 	if mempool == nil {	
 		log.Error("shardedTxPool.GetMempool() no mempool found for self shard",

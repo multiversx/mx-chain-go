@@ -234,12 +234,15 @@ func (txs *transactions) RemoveBlockDataFromPools(body *block.Body, miniBlockPoo
 	}
 	nonce := uint64(0)
 	
-	txCache, ok := txs.txPool.(dataRetriever.CleanupCapableCacher)
+	_, ok := txs.txPool.(dataRetriever.CleanupCapableCacher)
 	if !ok {
 		fmt.Println("txPool does not implement TxCache interface") 
+		log.Trace("txPool does not implement TxCache interface")
 	} else {
-		txCache.MempoolCleanup(session, nonce, process.TxCacheCleanupMaxNumTxs, process.TxCacheCleanupLoopMaximumDuration)
+		log.Debug("txPool implements TxCache interface, starting cleanup")
+		//txCache.MempoolCleanup(session, nonce, process.TxCacheCleanupMaxNumTxs, process.TxCacheCleanupLoopMaximumDuration)
 	}
+	txs.txPool.MempoolCleanup(session, nonce, process.TxCacheCleanupMaxNumTxs, process.TxCacheCleanupLoopMaximumDuration)
 	return txs.removeBlockDataFromPools(body, miniBlockPool, txs.txPool, txs.isMiniBlockCorrect)
 }
 
