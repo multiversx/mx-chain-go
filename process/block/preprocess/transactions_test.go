@@ -693,109 +693,17 @@ func TestMempoolCleanupTriggered(t *testing.T) {
 }
 
 
-func TestMempoolCleanup1(t *testing.T) {
-	t.Parallel()
-
-	txPool, err := dataRetrieverMock.CreateTxPool(2, 0)
-	require.NoError(t, err)
-
-	body := &block.Body{
-		MiniBlocks: []*block.MiniBlock{
-			{
-				SenderShardID:   0,
-				ReceiverShardID: 0,
-				TxHashes:        [][]byte{[]byte("dummy")},
-			},
-		},
-	}
-
-	args := createDefaultTransactionsProcessorArgs()
-	args.TxDataPool = txPool
-	args.TxProcessor = &testscommon.TxProcessorMock{
-		ProcessTransactionCalled: func(tx *transaction.Transaction) (vmcommon.ReturnCode, error) {
-			return vmcommon.Ok, nil
-		},
-	}
-	args.BlockSizeComputation = &testscommon.BlockSizeComputationStub{}
-	args.Accounts = &stateMock.AccountsStub{
-		GetExistingAccountCalled: func(sender []byte) (vmcommon.AccountHandler, error) {
-			var nonce uint64
-			switch {
-			case bytes.Equal(sender, []byte("alice")):
-				nonce = 1
-			case bytes.Equal(sender, []byte("bob")):
-				nonce = 42
-			case bytes.Equal(sender, []byte("carol")):
-				nonce = 7
-			default:
-				nonce = 0
-			}
-
-			return &stateMock.UserAccountStub{
-				Nonce:   nonce,
-				Balance: big.NewInt(1_000_000_000_000_000_000),
-			}, nil
-		},
-	}
-
-	sndShardId := uint32(0)
-	dstShardId := uint32(0)
-	strCache := process.ShardCacherIdentifier(sndShardId, dstShardId)
-
-	txsAdded := []*txcache.WrappedTransaction{
-		{Tx: &transaction.Transaction{Nonce: 1, SndAddr: []byte("alice")}, TxHash: []byte("hash-alice-1")},
-		{Tx: &transaction.Transaction{Nonce: 2, SndAddr: []byte("alice")}, TxHash: []byte("hash-alice-2")},
-		{Tx: &transaction.Transaction{Nonce: 3, SndAddr: []byte("alice")}, TxHash: []byte("hash-alice-3")},
-		{Tx: &transaction.Transaction{Nonce: 40, SndAddr: []byte("bob")}, TxHash: []byte("hash-bob-40")},
-		{Tx: &transaction.Transaction{Nonce: 41, SndAddr: []byte("bob")}, TxHash: []byte("hash-bob-41")},
-		{Tx: &transaction.Transaction{Nonce: 42, SndAddr: []byte("bob")}, TxHash: []byte("hash-bob-42")},
-		{Tx: &transaction.Transaction{Nonce: 7, SndAddr: []byte("carol")}, TxHash: []byte("hash-carol-7")},
-		{Tx: &transaction.Transaction{Nonce: 8, SndAddr: []byte("carol")}, TxHash: []byte("hash-carol-8")},
-	}
-	for _, newTx := range txsAdded {
-		txHash, _ := core.CalculateHash(args.Marshalizer, args.Hasher, newTx)
-		args.TxDataPool.AddData(txHash, newTx, int(newTx.Size), strCache)
-	}
-
-	txs, err := NewTransactionPreprocessor(args)
-	txs.txPool.GetCounts().GetTotal()
-	require.NoError(t, err)
-
-	_ = txs.RemoveTxsFromPools(body)
-}
-
-
-func Example_sortTransactionsforMempool() {
-	txs := []*txcache.WrappedTransaction{
-		{Tx: &transaction.Transaction{Nonce: 1, SndAddr: []byte("alice")}, TxHash: []byte("hash-alice-1")},
-		{Tx: &transaction.Transaction{Nonce: 2, SndAddr: []byte("alice")}, TxHash: []byte("hash-alice-2")},
-		{Tx: &transaction.Transaction{Nonce: 3, SndAddr: []byte("alice")}, TxHash: []byte("hash-alice-3")},
-		{Tx: &transaction.Transaction{Nonce: 40, SndAddr: []byte("bob")}, TxHash: []byte("hash-bob-40")},
-		{Tx: &transaction.Transaction{Nonce: 41, SndAddr: []byte("bob")}, TxHash: []byte("hash-bob-41")},
-		{Tx: &transaction.Transaction{Nonce: 42, SndAddr: []byte("bob")}, TxHash: []byte("hash-bob-42")},
-		{Tx: &transaction.Transaction{Nonce: 7, SndAddr: []byte("carol")}, TxHash: []byte("hash-carol-7")},
-		{Tx: &transaction.Transaction{Nonce: 8, SndAddr: []byte("carol")}, TxHash: []byte("hash-carol-8")},
-	}
-
-	sortTransactionsBySenderAndNonceLegacy(txs)
-	for _, item := range txs {
-		fmt.Println(item.Tx.GetNonce(), string(item.Tx.GetSndAddr()), string(item.TxHash))
-	}
-
-	// Output:
-	//1 alice hash-alice-1
-	//2 alice hash-alice-2
-	//3 alice hash-alice-3
-	//40 bob hash-bob-40
-	//41 bob hash-bob-41
-	//42 bob hash-bob-42
-	//7 carol hash-carol-7
-	//8 carol hash-carol-8
-}
-
 func TestMempoolCleanup(t *testing.T) {
 	t.Parallel()
 
+	createTx := func(sender string, nonce uint64) *transaction.Transaction {
+		return &transaction.Transaction{
+			SndAddr: []byte(sender),
+			Nonce:   nonce,
+			GasLimit: 1000,
+		}
+	}
+	
 	totalGasProvided := uint64(0)
 	args := createDefaultTransactionsProcessorArgs()
 	args.TxDataPool, _ = dataRetrieverMock.CreateTxPool(2, 0)
@@ -824,7 +732,7 @@ func TestMempoolCleanup(t *testing.T) {
 			var nonce uint64
 			switch {
 			case bytes.Equal(sender, []byte("alice")):
-				nonce = 1
+				nonce = 2
 			case bytes.Equal(sender, []byte("bob")):
 				nonce = 42
 			case bytes.Equal(sender, []byte("carol")):
@@ -846,15 +754,21 @@ func TestMempoolCleanup(t *testing.T) {
 	sndShardId := uint32(0)
 	dstShardId := uint32(0)
 	strCache := process.ShardCacherIdentifier(sndShardId, dstShardId)
-
-	addedTxs := make([]*transaction.Transaction, 0)
-	for i := 0; i < 10; i++ {
-		newTx := &transaction.Transaction{GasLimit: uint64(i), Nonce: 42 + uint64(i), SndAddr: []byte("bob")}
-
-		txHash, _ := core.CalculateHash(args.Marshalizer, args.Hasher, newTx)
-		args.TxDataPool.AddData(txHash, newTx, newTx.Size(), strCache)
-
-		addedTxs = append(addedTxs, newTx)
+	txsToAdd := []*transaction.Transaction{
+		createTx("alice", 1),
+		createTx("alice", 2),
+		createTx("alice", 3),
+		createTx("bob", 40),
+		createTx("bob", 41),
+		createTx("bob", 42),
+		createTx("carol", 7),
+		createTx("carol", 8),
+	}
+	
+	for i, tx := range txsToAdd {
+		hash := []byte(fmt.Sprintf("hash-%d", i))
+		fmt.Println("Adding tx:", tx.GetNonce(), string(tx.GetSndAddr()), string(hash))
+		args.TxDataPool.AddData(hash, tx, 0, strCache)
 	}
 
 	sortedTxsAndHashes, _, _ := txs.computeSortedTxs(sndShardId, dstShardId, MaxGasLimitPerBlock, []byte("randomness"))
@@ -863,10 +777,17 @@ func TestMempoolCleanup(t *testing.T) {
 
 	txHashes := 0
 	for _, miniBlock := range miniBlocks {
+		for _, txHash := range miniBlock.TxHashes {
+			fmt.Printf("MiniBlock TxHash: %x\n", txHash)
+		}
 		txHashes += len(miniBlock.TxHashes)
 	}
+	tx := createTx("carol", 8)
+	hash := []byte(fmt.Sprintf("hash-%d", len(txsToAdd)))
+	fmt.Println("Adding tx:", tx.GetNonce(), string(tx.GetSndAddr()), string(hash))
+		args.TxDataPool.AddData(hash, tx, 0, strCache)
 
-	assert.Equal(t, len(addedTxs), txHashes)
+	assert.Equal(t, len(txsToAdd), txHashes + 3) // 1 for alice, 2 for bob with lower nonce are not selected
 	fmt.Println((len(txs.orderedTxs[strCache])))
 	for _, tx := range txs.orderedTxs[strCache] {
 		t.Logf("tx %d %s %x", tx.GetNonce(), tx.GetSndAddr(), tx.GetData())
@@ -880,7 +801,10 @@ func TestMempoolCleanup(t *testing.T) {
 			},
 		},
 	}
+	assert.Equal(t, 9, int(txs.txPool.GetCounts().GetTotal()))
 	_ = txs.RemoveTxsFromPools(body)
+	expectEvicted := 4 // 1 for alice, 2 for bob with lower nonce, 1 for carol with duplicate nonce
+	assert.Equal(t, 9 - expectEvicted, int(txs.txPool.GetCounts().GetTotal()))
 }
 
 func TestTransactions_CreateAndProcessMiniBlockCrossShardGasLimitAddAll(t *testing.T) {

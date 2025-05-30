@@ -12,7 +12,7 @@ func TestTxCache_AutoClean_Dummy(t *testing.T) {
 	t.Run("with lower nonces", func(t *testing.T) {
 		cache := newUnconstrainedCacheToTest()
 		session := txcachemocks.NewSelectionSessionMock()
-		session.SetNonce([]byte("alice"), 1)
+		session.SetNonce([]byte("alice"), 2)
 		session.SetNonce([]byte("bob"), 42)
 		session.SetNonce([]byte("carol"), 7)
 
@@ -30,9 +30,9 @@ func TestTxCache_AutoClean_Dummy(t *testing.T) {
 		cache.AddTx(createTx([]byte("hash-carol-7"), "carol", 7))
 		cache.AddTx(createTx([]byte("hash-carol-8"), "carol", 8))
 
-		expectedNumSelected := 1 + 3 + 1 // 1 alice + 3 bob + 1 carol
+		expectedNumEvicted := 3 // 2 bob, 1 alice
 		evicted:= cache.Cleanup(session, 7, math.MaxInt, selectionLoopMaximumDuration)
-		require.Equal(t, uint64(expectedNumSelected), evicted)
+		require.Equal(t, uint64(expectedNumEvicted), evicted)
 	})
 
 	t.Run("with duplicated nonces", func(t *testing.T) {
@@ -49,11 +49,11 @@ func TestTxCache_AutoClean_Dummy(t *testing.T) {
 
 		// Check that the duplicates are removed
 		evicted:= cache.Cleanup(session, 7, math.MaxInt, selectionLoopMaximumDuration)
-		require.Equal(t, uint64(3), evicted) // nonces 2, 3, 4 with no duplicates
+		require.Equal(t, uint64(2), evicted) // duplicates for nonce 3
 		
 		// Check that the duplicates were removed based on their lower priority
 		listForAlice, _ := cache.txListBySender.getListForSender("alice")
-		require.Equal(t, 3, listForAlice.items.Len())
+		require.Equal(t, 4, listForAlice.items.Len())
 		for element := listForAlice.items.Front(); element != nil; {
 			tx := element.Value.(*WrappedTransaction)
 			if tx.Tx.GetNonce() == 3 {

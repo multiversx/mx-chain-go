@@ -265,7 +265,7 @@ func Test_MempoolCleanup(t *testing.T) {
 		pool := poolAsInterface.(*shardedTxPool)
 		cache := pool.getTxCache("0").(*txcache.TxCache)
 		session := txcachemocks.NewSelectionSessionMock()
-		session.SetNonce([]byte("alice"), 1)
+		session.SetNonce([]byte("alice"), 2)
 		session.SetNonce([]byte("bob"), 42)
 		session.SetNonce([]byte("carol"), 7)
 		
@@ -283,7 +283,7 @@ func Test_MempoolCleanup(t *testing.T) {
 		pool.AddData([]byte("hash-carol-7"), createTx("carol", 7), 0, "0")
 		pool.AddData([]byte("hash-carol-8"), createTx("carol", 8), 0, "0")
 
-		expectedNumEvicted := 1 + 3 + 1 // 1 alice + 3 bob + 1 carol
+		expectedNumEvicted := 1 + 2  // 1 alice + 2 bob
 		expectedNumRemained := 8 - expectedNumEvicted
 		selectionLoopMaximumDuration := time.Millisecond * 100
 
@@ -308,11 +308,11 @@ func Test_MempoolCleanup(t *testing.T) {
 		// Check that the duplicates are removed
 		selectionLoopMaximumDuration := time.Millisecond * 100
 		evicted:= cache.Cleanup(session, 7, math.MaxInt, selectionLoopMaximumDuration)
-		require.Equal(t, uint64(3), evicted) // nonces 2, 3, 4 with no duplicates
+		require.Equal(t, uint64(2), evicted) // nonce 3 duplicates
 		
 		// Check that the duplicates were removed based on their lower priority
 		listForAlice := cache.GetTransactionsPoolForSender("alice")
-		require.Equal(t, 3, len(listForAlice))
+		require.Equal(t, 4, len(listForAlice))
 		for _, tx := range listForAlice {
 			
 			if tx.Tx.GetNonce() == 3 {

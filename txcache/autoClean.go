@@ -99,7 +99,7 @@ func (cache *TxCache) RemoveSweepableTxs(session SelectionSession, nonce uint64,
 	for _, sender := range senders{
 		sessionWrapper := newSelectionSessionWrapper(session)
 		sender_address := []byte (sender.sender)
-		nonce:= sessionWrapper.getNonce(sender_address)
+		nonce:= sessionWrapper.getNonce(sender_address)-1
 
 		if len(evicted) >= maxNum || time.Since(selectionLoopStartTime) > selectionLoopMaximumDuration{
 			break
@@ -109,7 +109,7 @@ func (cache *TxCache) RemoveSweepableTxs(session SelectionSession, nonce uint64,
 	if len(evicted) > 0 {
 		cache.txByHash.RemoveTxsBulk(evicted)
 	}
-	logRemove.Trace("TxCache.Cleanup", "nonce", nonce, "len(cleaned)", len(evicted), "duration", time.Since(selectionLoopStartTime))
+	logRemove.Debug("TxCache.Cleanup end", "block nonce", nonce, "len(cleaned)", len(evicted), "duration", time.Since(selectionLoopStartTime))
 	return uint64(len(evicted))
 }
 
@@ -132,7 +132,7 @@ func (listForSender *txListForSender) removeSweepableTransactionsReturnHashes(ta
 			element = element.Next()
 			continue
 		}
-		logRemove.Trace("TxCache.removeSweepableTransactionsReturnHashes",
+		logRemove.Debug("TxCache.removeSweepableTransactionsReturnHashes",
 			"txHash", tx.TxHash,
 			"txNonce", txNonce,
 			"targetNonce", targetNonce,
