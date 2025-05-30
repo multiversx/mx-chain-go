@@ -18,7 +18,7 @@ type ArgShardedTxPool struct {
 	NumberOfShards                 uint32
 	SelfShardID                    uint32
 	MaxNumBytesPerSenderUpperBound uint32
-	SortedTransactionsConfig       config.SortedTransactionsConfig
+	SortedTransactionsConfig       config.MempoolSelectionConfig
 }
 
 // TODO: Upon further analysis and brainstorming, add some sensible minimum accepted values for the appropriate fields.

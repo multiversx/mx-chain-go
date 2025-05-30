@@ -39,8 +39,7 @@ type preProcessorsContainerFactory struct {
 	scheduledTxsExecutionHandler process.ScheduledTxsExecutionHandler
 	processedMiniBlocksTracker   process.ProcessedMiniBlocksTracker
 	txExecutionOrderHandler      common.TxExecutionOrderHandler
-	txPoolConfig                 config.TransactionsPoolConfig
-	sortedTransactionsConfig     config.SortedTransactionsConfig
+	mempoolSelectionConfig       config.MempoolSelectionConfig
 }
 
 // NewPreProcessorsContainerFactory is responsible for creating a new preProcessors factory object
@@ -65,8 +64,7 @@ func NewPreProcessorsContainerFactory(
 	scheduledTxsExecutionHandler process.ScheduledTxsExecutionHandler,
 	processedMiniBlocksTracker process.ProcessedMiniBlocksTracker,
 	txExecutionOrderHandler common.TxExecutionOrderHandler,
-	txPoolConfig config.TransactionsPoolConfig,
-	sortedTransactionsConfig config.SortedTransactionsConfig,
+	mempoolSelectionConfig config.MempoolSelectionConfig,
 ) (*preProcessorsContainerFactory, error) {
 
 	if check.IfNil(shardCoordinator) {
@@ -129,23 +127,19 @@ func NewPreProcessorsContainerFactory(
 	if check.IfNil(txExecutionOrderHandler) {
 		return nil, process.ErrNilTxExecutionOrderHandler
 	}
-	if txPoolConfig.SelectionGasBandwidthIncreasePercent == 0 {
+	if mempoolSelectionConfig.SelectionGasBandwidthIncreasePercent == 0 {
 		return nil, process.ErrBadSelectionGasBandwidthIncreasePercent
 	}
-
-	if txPoolConfig.SelectionGasBandwidthIncreaseScheduledPercent == 0 {
+	if mempoolSelectionConfig.SelectionGasBandwidthIncreaseScheduledPercent == 0 {
 		return nil, process.ErrBadSelectionGasBandwidthIncreaseScheduledPercent
 	}
-
-	if sortedTransactionsConfig.TxCacheSelectionGasRequested == 0 {
-		return nil, process.ErrBadTxCacheSelectionGasRequested
-	}
-
-	if sortedTransactionsConfig.TxCacheSelectionMaxNumTxs == 0 {
+	if mempoolSelectionConfig.SelectionMaxNumTxs == 0 {
 		return nil, process.ErrBadTxCacheSelectionMaxNumTxs
 	}
-
-	if sortedTransactionsConfig.TxCacheSelectionLoopMaximumDuration == 0 {
+	if mempoolSelectionConfig.SelectionGasRequested == 0 {
+		return nil, process.ErrBadTxCacheSelectionGasRequested
+	}
+	if mempoolSelectionConfig.SelectionLoopMaximumDuration == 0 {
 		return nil, process.ErrBadTxCacheSelectionLoopMaximumDuration
 	}
 
@@ -170,8 +164,7 @@ func NewPreProcessorsContainerFactory(
 		scheduledTxsExecutionHandler: scheduledTxsExecutionHandler,
 		processedMiniBlocksTracker:   processedMiniBlocksTracker,
 		txExecutionOrderHandler:      txExecutionOrderHandler,
-		txPoolConfig:                 txPoolConfig,
-		sortedTransactionsConfig:     sortedTransactionsConfig,
+		mempoolSelectionConfig:       mempoolSelectionConfig,
 	}, nil
 }
 
@@ -224,8 +217,7 @@ func (ppcm *preProcessorsContainerFactory) createTxPreProcessor() (process.PrePr
 		ScheduledTxsExecutionHandler: ppcm.scheduledTxsExecutionHandler,
 		ProcessedMiniBlocksTracker:   ppcm.processedMiniBlocksTracker,
 		TxExecutionOrderHandler:      ppcm.txExecutionOrderHandler,
-		TxPoolConfig:                 ppcm.txPoolConfig,
-		SortedTransactionsConfig:     ppcm.sortedTransactionsConfig,
+		MempoolSelectionConfig:       ppcm.mempoolSelectionConfig,
 	}
 
 	txPreprocessor, err := preprocess.NewTransactionPreprocessor(args)

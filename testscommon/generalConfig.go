@@ -136,15 +136,12 @@ func GetGeneralConfig() config.Config {
 			SizeInBytesPerSender: 10000000,
 			Shards:               1,
 		},
-		TransactionsPool: config.TransactionsPoolConfig{
+		MempoolSelection: config.MempoolSelectionConfig{
+			SelectionMaxNumTxs:                            30000,
+			SelectionLoopMaximumDuration:                  250,
+			SelectionGasRequested:                         10_000_000_000,
 			SelectionGasBandwidthIncreasePercent:          400,
 			SelectionGasBandwidthIncreaseScheduledPercent: 260,
-		},
-		SortedTransactions: config.SortedTransactionsConfig{
-			TxCacheSelectionGasRequested:        10_000_000_000,
-			TxCacheSelectionMaxNumTxs:           30000,
-			TxCacheSelectionLoopMaximumDuration: 250,
-			SelectionLoopDurationCheckInterval:  10,
 		},
 		UnsignedTransactionDataPool: config.CacheConfig{
 			Capacity:    10000,

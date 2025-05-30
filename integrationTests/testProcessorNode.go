@@ -1817,14 +1817,12 @@ func (tpn *TestProcessorNode) initInnerProcessors(gasMap map[string]map[string]u
 		scheduledTxsExecutionHandler,
 		processedMiniBlocksTracker,
 		tpn.TxExecutionOrderHandler,
-		config.TransactionsPoolConfig{
+		config.MempoolSelectionConfig{
+			SelectionMaxNumTxs:                            30000,
+			SelectionLoopMaximumDuration:                  250,
+			SelectionGasRequested:                         10_000_000_000,
 			SelectionGasBandwidthIncreasePercent:          400,
 			SelectionGasBandwidthIncreaseScheduledPercent: 260,
-		},
-		config.SortedTransactionsConfig{
-			TxCacheSelectionGasRequested:        10_000_000_000,
-			TxCacheSelectionMaxNumTxs:           30000,
-			TxCacheSelectionLoopMaximumDuration: 250,
 		},
 	)
 	if err != nil {
@@ -2097,14 +2095,12 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors(gasMap map[string]map[stri
 		scheduledTxsExecutionHandler,
 		processedMiniBlocksTracker,
 		tpn.TxExecutionOrderHandler,
-		config.TransactionsPoolConfig{
+		config.MempoolSelectionConfig{
+			SelectionMaxNumTxs:                            30000,
+			SelectionLoopMaximumDuration:                  250,
+			SelectionGasRequested:                         10_000_000_000,
 			SelectionGasBandwidthIncreasePercent:          400,
 			SelectionGasBandwidthIncreaseScheduledPercent: 260,
-		},
-		config.SortedTransactionsConfig{
-			TxCacheSelectionGasRequested:        10_000_000_000,
-			TxCacheSelectionMaxNumTxs:           30000,
-			TxCacheSelectionLoopMaximumDuration: 250,
 		},
 	)
 	tpn.PreProcessorsContainer, _ = fact.Create()
