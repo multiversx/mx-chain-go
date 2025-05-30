@@ -69,7 +69,7 @@ func NewDataPoolFromConfig(args ArgsDataPool) (dataRetriever.PoolsHolder, error)
 		Marshalizer:                        args.Marshalizer,
 		NumberOfShards:                     args.ShardCoordinator.NumberOfShards(),
 		SelfShardID:                        args.ShardCoordinator.SelfId(),
-		MaxNumBytesPerSenderUpperBound:     mainConfig.TransactionsPool.MaxNumBytesPerSenderUpperBound,
+		MaxNumBytesPerSenderUpperBound:     mainConfig.MempoolSelection.MaxNumBytesPerSenderUpperBound,
 		SelectionLoopDurationCheckInterval: mainConfig.TransactionsPool.SelectionLoopDurationCheckInterval,
 	})
 	if err != nil {

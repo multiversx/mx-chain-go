@@ -482,13 +482,11 @@ func TestShardProcessor_ProcessBlockWithInvalidTransactionShouldErr(t *testing.T
 		&testscommon.ScheduledTxsExecutionStub{},
 		&testscommon.ProcessedMiniBlocksTrackerStub{},
 		&commonMock.TxExecutionOrderHandlerStub{},
-		config.TransactionsPoolConfig{
+		config.MempoolSelectionConfig{
+			SelectionMaxNumTxs:                            30000,
+			SelectionLoopMaximumDuration:                  250,
 			SelectionGasBandwidthIncreasePercent:          400,
 			SelectionGasBandwidthIncreaseScheduledPercent: 260,
-		},
-		config.SortedTransactionsConfig{
-			TxCacheSelectionMaxNumTxs:           30000,
-			TxCacheSelectionLoopMaximumDuration: 250,
 		},
 	)
 	container, _ := factory.Create()
@@ -712,13 +710,11 @@ func TestShardProcessor_ProcessBlockWithErrOnProcessBlockTransactionsCallShouldR
 		&testscommon.ScheduledTxsExecutionStub{},
 		&testscommon.ProcessedMiniBlocksTrackerStub{},
 		&commonMock.TxExecutionOrderHandlerStub{},
-		config.TransactionsPoolConfig{
+		config.MempoolSelectionConfig{
+			SelectionMaxNumTxs:                            30000,
+			SelectionLoopMaximumDuration:                  250,
 			SelectionGasBandwidthIncreasePercent:          400,
 			SelectionGasBandwidthIncreaseScheduledPercent: 260,
-		},
-		config.SortedTransactionsConfig{
-			TxCacheSelectionMaxNumTxs:           30000,
-			TxCacheSelectionLoopMaximumDuration: 250,
 		},
 	)
 	container, _ := factory.Create()
@@ -2625,13 +2621,11 @@ func TestShardProcessor_MarshalizedDataToBroadcastShouldWork(t *testing.T) {
 		&testscommon.ScheduledTxsExecutionStub{},
 		&testscommon.ProcessedMiniBlocksTrackerStub{},
 		&commonMock.TxExecutionOrderHandlerStub{},
-		config.TransactionsPoolConfig{
+		config.MempoolSelectionConfig{
+			SelectionMaxNumTxs:                            30000,
+			SelectionLoopMaximumDuration:                  250,
 			SelectionGasBandwidthIncreasePercent:          400,
 			SelectionGasBandwidthIncreaseScheduledPercent: 260,
-		},
-		config.SortedTransactionsConfig{
-			TxCacheSelectionMaxNumTxs:           30000,
-			TxCacheSelectionLoopMaximumDuration: 250,
 		},
 	)
 	container, _ := factory.Create()
@@ -2742,13 +2736,11 @@ func TestShardProcessor_MarshalizedDataMarshalWithoutSuccess(t *testing.T) {
 		&testscommon.ScheduledTxsExecutionStub{},
 		&testscommon.ProcessedMiniBlocksTrackerStub{},
 		&commonMock.TxExecutionOrderHandlerStub{},
-		config.TransactionsPoolConfig{
+		config.MempoolSelectionConfig{
+			SelectionMaxNumTxs:                            30000,
+			SelectionLoopMaximumDuration:                  250,
 			SelectionGasBandwidthIncreasePercent:          400,
 			SelectionGasBandwidthIncreaseScheduledPercent: 260,
-		},
-		config.SortedTransactionsConfig{
-			TxCacheSelectionMaxNumTxs:           30000,
-			TxCacheSelectionLoopMaximumDuration: 250,
 		},
 	)
 	container, _ := factory.Create()
@@ -3151,13 +3143,11 @@ func TestShardProcessor_CreateMiniBlocksShouldWorkWithIntraShardTxs(t *testing.T
 		&testscommon.ScheduledTxsExecutionStub{},
 		&testscommon.ProcessedMiniBlocksTrackerStub{},
 		&commonMock.TxExecutionOrderHandlerStub{},
-		config.TransactionsPoolConfig{
+		config.MempoolSelectionConfig{
+			SelectionMaxNumTxs:                            30000,
+			SelectionLoopMaximumDuration:                  250,
 			SelectionGasBandwidthIncreasePercent:          400,
 			SelectionGasBandwidthIncreaseScheduledPercent: 260,
-		},
-		config.SortedTransactionsConfig{
-			TxCacheSelectionMaxNumTxs:           30000,
-			TxCacheSelectionLoopMaximumDuration: 250,
 		},
 	)
 	container, _ := factory.Create()
@@ -3341,13 +3331,11 @@ func TestShardProcessor_RestoreBlockIntoPoolsShouldWork(t *testing.T) {
 		&testscommon.ScheduledTxsExecutionStub{},
 		&testscommon.ProcessedMiniBlocksTrackerStub{},
 		&commonMock.TxExecutionOrderHandlerStub{},
-		config.TransactionsPoolConfig{
+		config.MempoolSelectionConfig{
+			SelectionMaxNumTxs:                            30000,
+			SelectionLoopMaximumDuration:                  250,
 			SelectionGasBandwidthIncreasePercent:          400,
 			SelectionGasBandwidthIncreaseScheduledPercent: 260,
-		},
-		config.SortedTransactionsConfig{
-			TxCacheSelectionMaxNumTxs:           30000,
-			TxCacheSelectionLoopMaximumDuration: 250,
 		},
 	)
 	container, _ := factory.Create()

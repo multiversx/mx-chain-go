@@ -241,13 +241,11 @@ func createDefaultTransactionsProcessorArgs() ArgsTransactionPreProcessor {
 		ScheduledTxsExecutionHandler: &testscommon.ScheduledTxsExecutionStub{},
 		ProcessedMiniBlocksTracker:   &testscommon.ProcessedMiniBlocksTrackerStub{},
 		TxExecutionOrderHandler:      &commonMocks.TxExecutionOrderHandlerStub{},
-		TxPoolConfig: config.TransactionsPoolConfig{
+		MempoolSelectionConfig: config.MempoolSelectionConfig{
+			SelectionMaxNumTxs:                            30000,
+			SelectionLoopMaximumDuration:                  250,
 			SelectionGasBandwidthIncreasePercent:          400,
 			SelectionGasBandwidthIncreaseScheduledPercent: 260,
-		},
-		SortedTransactionsConfig: config.SortedTransactionsConfig{
-			TxCacheSelectionMaxNumTxs:           30000,
-			TxCacheSelectionLoopMaximumDuration: 250,
 		},
 	}
 }
