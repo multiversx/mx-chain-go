@@ -4,6 +4,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/testscommon/txcachemocks"
 	"github.com/multiversx/mx-chain-storage-go/common"
 	"github.com/stretchr/testify/assert"
@@ -18,14 +19,22 @@ func TestNewTxCache(t *testing.T) {
 		t.Parallel()
 
 		cfg := ConfigSourceMe{
-			Name:                           "test",
-			NumChunks:                      1,
-			NumBytesThreshold:              1000,
-			NumBytesPerSenderThreshold:     100,
-			CountThreshold:                 10,
-			CountPerSenderThreshold:        100,
-			NumItemsToPreemptivelyEvict:    1,
-			MaxNumBytesPerSenderUpperBound: maxNumBytesPerSenderUpperBoundTest,
+			Name:                        "test",
+			NumChunks:                   1,
+			NumBytesThreshold:           1000,
+			NumBytesPerSenderThreshold:  100,
+			CountThreshold:              10,
+			CountPerSenderThreshold:     100,
+			NumItemsToPreemptivelyEvict: 1,
+			MempoolSelectionConfig: config.MempoolSelectionConfig{
+				SelectionGasBandwidthIncreasePercent:          400,
+				SelectionGasBandwidthIncreaseScheduledPercent: 260,
+				SelectionMaxNumTxs:                            30000,
+				SelectionLoopMaximumDuration:                  250,
+				SelectionLoopDurationCheckInterval:            10,
+				SelectionGasRequested:                         10_000_000_000,
+				MaxNumBytesPerSenderUpperBound:                maxNumBytesPerSenderUpperBoundTest,
+			},
 		}
 
 		cache, err := NewTxCache(cfg, nil)
@@ -36,15 +45,22 @@ func TestNewTxCache(t *testing.T) {
 		t.Parallel()
 
 		cfg := ConfigSourceMe{
-			Name:                           "test",
-			NumChunks:                      1,
-			NumBytesThreshold:              1000,
-			NumBytesPerSenderThreshold:     100,
-			CountThreshold:                 10,
-			CountPerSenderThreshold:        100,
-			NumItemsToPreemptivelyEvict:    1,
-			MaxNumBytesPerSenderUpperBound: maxNumBytesPerSenderUpperBoundTest,
-		}
+			Name:                        "test",
+			NumChunks:                   1,
+			NumBytesThreshold:           1000,
+			NumBytesPerSenderThreshold:  100,
+			CountThreshold:              10,
+			CountPerSenderThreshold:     100,
+			NumItemsToPreemptivelyEvict: 1,
+			MempoolSelectionConfig: config.MempoolSelectionConfig{
+				SelectionGasBandwidthIncreasePercent:          400,
+				SelectionGasBandwidthIncreaseScheduledPercent: 260,
+				SelectionMaxNumTxs:                            30000,
+				SelectionLoopMaximumDuration:                  250,
+				SelectionLoopDurationCheckInterval:            10,
+				SelectionGasRequested:                         10_000_000_000,
+				MaxNumBytesPerSenderUpperBound:                maxNumBytesPerSenderUpperBoundTest,
+			}}
 
 		cache, err := NewTxCache(cfg, txcachemocks.NewMempoolHostMock())
 		assert.NotNil(t, cache)
