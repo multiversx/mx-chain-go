@@ -685,7 +685,7 @@ func TestMempoolCleanupTriggered(t *testing.T) {
 	txs, err := NewTransactionPreprocessor(args)
 	require.NoError(t, err)
 
-	_ = txs.RemoveBlockDataFromPools(body, nil)
+	_ = txs.RemoveTxsFromPools(body)
 
 	assert.True(t, mockCalled)
 	assert.Equal(t, uint64(0), gotNonce) 
@@ -761,7 +761,7 @@ func TestMempoolCleanup1(t *testing.T) {
 	txs.txPool.GetCounts().GetTotal()
 	require.NoError(t, err)
 
-	_ = txs.RemoveBlockDataFromPools(body, nil)
+	_ = txs.RemoveTxsFromPools(body)
 }
 
 
@@ -880,7 +880,7 @@ func TestMempoolCleanup(t *testing.T) {
 			},
 		},
 	}
-	_ = txs.RemoveBlockDataFromPools(body, nil)
+	_ = txs.RemoveTxsFromPools(body)
 }
 
 func TestTransactions_CreateAndProcessMiniBlockCrossShardGasLimitAddAll(t *testing.T) {

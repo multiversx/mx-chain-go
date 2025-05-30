@@ -225,6 +225,11 @@ func (txs *transactions) IsDataPrepared(requestedTxs int, haveTime func() time.D
 
 // RemoveBlockDataFromPools removes transactions and miniblocks from associated pools
 func (txs *transactions) RemoveBlockDataFromPools(body *block.Body, miniBlockPool storage.Cacher) error {
+	return txs.removeBlockDataFromPools(body, miniBlockPool, txs.txPool, txs.isMiniBlockCorrect)
+}
+
+// RemoveTxsFromPools removes transactions from associated pools
+func (txs *transactions) RemoveTxsFromPools(body *block.Body) error {
 	session, err := NewSelectionSession(ArgsSelectionSession{
 		AccountsAdapter:       txs.accounts,
 		TransactionsProcessor: txs.txProcessor,
@@ -243,11 +248,6 @@ func (txs *transactions) RemoveBlockDataFromPools(body *block.Body, miniBlockPoo
 		//txCache.MempoolCleanup(session, nonce, process.TxCacheCleanupMaxNumTxs, process.TxCacheCleanupLoopMaximumDuration)
 	}
 	txs.txPool.MempoolCleanup(session, nonce, process.TxCacheCleanupMaxNumTxs, process.TxCacheCleanupLoopMaximumDuration)
-	return txs.removeBlockDataFromPools(body, miniBlockPool, txs.txPool, txs.isMiniBlockCorrect)
-}
-
-// RemoveTxsFromPools removes transactions from associated pools
-func (txs *transactions) RemoveTxsFromPools(body *block.Body) error {
 	return txs.removeTxsFromPools(body, txs.txPool, txs.isMiniBlockCorrect)
 }
 
