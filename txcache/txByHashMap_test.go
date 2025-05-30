@@ -2,7 +2,6 @@ package txcache
 
 import (
 	"math/big"
-	"strconv"
 	"sync"
 	"testing"
 
@@ -14,56 +13,29 @@ func Test_newTxByHashMap(t *testing.T) {
 	require.NotNil(t, txByHashmap)
 }
 
-func createMockWrappedTx(txHash []byte) *WrappedTransaction {
-	return &WrappedTransaction{
-		Tx:     nil,
-		TxHash: txHash,
-	}
-}
-
-func createSliceMockWrappedTxs(txHashes [][]byte) []*WrappedTransaction {
-	wrappedTxs := make([]*WrappedTransaction, len(txHashes))
-	for i, txHash := range txHashes {
-		wrappedTxs[i] = createMockWrappedTx(txHash)
-	}
-
-	return wrappedTxs
-}
-
-func createMockTxHashes(numberOfTxs int) [][]byte {
-	txHashes := make([][]byte, numberOfTxs)
-	for i := 0; i < numberOfTxs; i++ {
-		txHashes[i] = []byte("txHash" + strconv.Itoa(i))
-	}
-
-	return txHashes
-}
-
-func addWrappedTxs(txByHash *txByHashMap, wrappedTxs []*WrappedTransaction, numberOfTxs int) {
+func addWrappedTxsConcurrently(txByHash *txByHashMap, wrappedTxs []*WrappedTransaction, numberOfTxs int) {
 	var wg sync.WaitGroup
 	wg.Add(numberOfTxs)
 
 	for _, wrappedTx := range wrappedTxs {
-		wrappedTxCopy := wrappedTx
-		go func() {
+		go func(wrappedTx *WrappedTransaction) {
 			defer wg.Done()
-			txByHash.addTx(wrappedTxCopy)
-		}()
+			txByHash.addTx(wrappedTx)
+		}(wrappedTx)
 	}
 
 	wg.Wait()
 }
 
-func removeWrappedTxs(txByHash *txByHashMap, wrappedTxs []*WrappedTransaction, numberOfTxs int) {
+func removeWrappedTxsConcurrently(txByHash *txByHashMap, wrappedTxs []*WrappedTransaction, numberOfTxs int) {
 	var wg sync.WaitGroup
 	wg.Add(numberOfTxs)
 
 	for _, wrappedTx := range wrappedTxs {
-		wrappedTxCopy := wrappedTx
-		go func() {
+		go func(wrappedTx *WrappedTransaction) {
 			defer wg.Done()
-			txByHash.removeTx(string(wrappedTxCopy.TxHash))
-		}()
+			txByHash.removeTx(string(wrappedTx.TxHash))
+		}(wrappedTx)
 	}
 
 	wg.Wait()
@@ -76,10 +48,6 @@ func checkExistenceOfTxs(t *testing.T, txByHash *txByHashMap, wrappedTxs []*Wrap
 	}
 }
 
-func checkTxFee(t *testing.T, txByHash *WrappedTransaction, expectedFee *big.Int) {
-	require.Equal(t, txByHash.Fee, expectedFee)
-}
-
 func Test_addTx(t *testing.T) {
 	t.Parallel()
 
@@ -89,7 +57,7 @@ func Test_addTx(t *testing.T) {
 	txByHash := newTxByHashMap(1)
 
 	checkExistenceOfTxs(t, txByHash, wrappedTxs, false)
-	addWrappedTxs(txByHash, wrappedTxs, numberOfTxs)
+	addWrappedTxsConcurrently(txByHash, wrappedTxs, numberOfTxs)
 	checkExistenceOfTxs(t, txByHash, wrappedTxs, true)
 }
 
@@ -101,10 +69,10 @@ func Test_removeTx(t *testing.T) {
 	wrappedTxs := createSliceMockWrappedTxs(txHashes)
 	txByHash := newTxByHashMap(1)
 
-	addWrappedTxs(txByHash, wrappedTxs, numberOfTxs)
+	addWrappedTxsConcurrently(txByHash, wrappedTxs, numberOfTxs)
 	checkExistenceOfTxs(t, txByHash, wrappedTxs, true)
 
-	removeWrappedTxs(txByHash, wrappedTxs, numberOfTxs)
+	removeWrappedTxsConcurrently(txByHash, wrappedTxs, numberOfTxs)
 	checkExistenceOfTxs(t, txByHash, wrappedTxs, false)
 
 }
@@ -117,7 +85,7 @@ func Test_RemoveTxsBulk(t *testing.T) {
 	wrappedTxs := createSliceMockWrappedTxs(txHashes)
 	txByHash := newTxByHashMap(1)
 
-	addWrappedTxs(txByHash, wrappedTxs, numberOfTxs)
+	addWrappedTxsConcurrently(txByHash, wrappedTxs, numberOfTxs)
 	checkExistenceOfTxs(t, txByHash, wrappedTxs, true)
 
 	removed := txByHash.RemoveTxsBulk(txHashes)
@@ -134,7 +102,7 @@ func Test_clear(t *testing.T) {
 	wrappedTxs := createSliceMockWrappedTxs(txHashes)
 	txByHash := newTxByHashMap(1)
 
-	addWrappedTxs(txByHash, wrappedTxs, numberOfTxs)
+	addWrappedTxsConcurrently(txByHash, wrappedTxs, numberOfTxs)
 	checkExistenceOfTxs(t, txByHash, wrappedTxs, true)
 
 	txByHash.clear()
@@ -150,18 +118,22 @@ func Test_forEach(t *testing.T) {
 	wrappedTxs := createSliceMockWrappedTxs(txHashes)
 	txByHash := newTxByHashMap(1)
 
-	addWrappedTxs(txByHash, wrappedTxs, numberOfTxs)
+	addWrappedTxsConcurrently(txByHash, wrappedTxs, numberOfTxs)
 	checkExistenceOfTxs(t, txByHash, wrappedTxs, true)
 
+	var expectedFee *big.Int
+
+	expectedFee = nil
 	txByHash.forEach(func(txHash []byte, value *WrappedTransaction) {
-		checkTxFee(t, value, nil)
+		require.Equal(t, value.Fee, expectedFee)
 	})
 
 	txByHash.forEach(func(txHash []byte, value *WrappedTransaction) {
 		value.Fee = big.NewInt(20)
 	})
 
+	expectedFee = big.NewInt(20)
 	txByHash.forEach(func(txHash []byte, value *WrappedTransaction) {
-		checkTxFee(t, value, big.NewInt(20))
+		require.Equal(t, value.Fee, expectedFee)
 	})
 }
