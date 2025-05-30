@@ -190,6 +190,7 @@ func (txv *txValidator) getSenderAccount(interceptedTx process.InterceptedTransa
 	senderAddress := interceptedTx.SenderAddress()
 	accountHandler, err := txv.accounts.GetExistingAccount(senderAddress)
 	if err != nil {
+		log.Warn("err", "err", err)
 		return nil, fmt.Errorf("%w for address %s and shard %d, err: %s",
 			process.ErrAccountNotFound,
 			txv.pubKeyConverter.SilentEncode(senderAddress, log),
