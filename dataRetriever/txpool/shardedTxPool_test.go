@@ -139,7 +139,7 @@ func Test_NewShardedTxPool_WhenBadConfig(t *testing.T) {
 	pool, err = NewShardedTxPool(args)
 	require.Nil(t, pool)
 	require.NotNil(t, err)
-	require.Errorf(t, err, dataRetriever.ErrBadTxCacheSelectionGasRequested.Error())
+	require.Errorf(t, err, dataRetriever.ErrBadMaxNumBytesPerSenderUpperBound.Error())
 }
 
 func Test_NewShardedTxPool_ComputesCacheConfig(t *testing.T) {

@@ -66,7 +66,7 @@ func (args *ArgShardedTxPool) verify() error {
 	}
 
 	if args.MempoolSelectionConfig.MaxNumBytesPerSenderUpperBound == 0 {
-		return fmt.Errorf("%w: TxCacheSelectionMaxNumTxs is not valid", dataRetriever.ErrBadTxCacheSelectionLoopMaximumDuration)
+		return fmt.Errorf("%w: TxCacheSelectionMaxNumTxs is not valid", dataRetriever.ErrBadMaxNumBytesPerSenderUpperBound)
 	}
 
 	return nil
