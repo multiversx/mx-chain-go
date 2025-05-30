@@ -186,8 +186,6 @@ func (s *simulator) createChainHandlers(args ArgsBaseChainSimulator) error {
 
 	log.Info("running the chain simulator with the following parameters",
 		"number of shards (including meta)", args.NumOfShards+1,
-		"round per epoch", outputConfigs.Configs.GeneralConfig.EpochStartConfig.RoundsPerEpoch,
-		"round duration", time.Millisecond*time.Duration(args.RoundDurationInMillis),
 		"genesis timestamp", args.GenesisTimestamp,
 		"original config path", args.PathToInitialConfig,
 		"temporary path", args.TempDir)
