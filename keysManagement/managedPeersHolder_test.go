@@ -1040,11 +1040,14 @@ func TestManagedPeersHolder_IncrementRoundsSigned(t *testing.T) {
 		holder, _ := keysManagement.NewManagedPeersHolder(args)
 		holder.IncrementRoundsSigned()               // coverage only
 		require.True(t, holder.ShouldProposeBlock()) // backup machine
+		require.Zero(t, holder.GetRoundsSigned())
 
 		holder.SetRoundsSignedToMin()                // coverage only
 		require.True(t, holder.ShouldProposeBlock()) // backup machine
+		require.Zero(t, holder.GetRoundsSigned())
 
 		holder.DecrementRoundsSigned() // coverage only
+		require.Zero(t, holder.GetRoundsSigned())
 	})
 	t.Run("should increase for main machine", func(t *testing.T) {
 		t.Parallel()
@@ -1075,7 +1078,7 @@ func TestManagedPeersHolder_IncrementRoundsSigned(t *testing.T) {
 	})
 }
 
-func TestManagedPeersHolder_SetRoundsSignedToMin(t *testing.T) {
+func TestManagedPeersHolder_SetRoundsSignedToMinMainMachine(t *testing.T) {
 	t.Parallel()
 
 	args := createMockArgsManagedPeersHolder()

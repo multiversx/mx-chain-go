@@ -733,11 +733,7 @@ func (wrk *Worker) checkSelfState(cnsDta *consensus.Message) error {
 	shouldAllowMessageFromSelfBackup := shouldNotProposeBlockYet && (isMessageWithBlockBody || isMessageWithSignature)
 	isMultiKeyManagedBySelf := wrk.consensusState.keysHandler.IsKeyManagedByCurrentNode(cnsDta.PubKey)
 	isMessageFromSelfOrManaged := wrk.consensusState.SelfPubKey() == string(cnsDta.PubKey) || isMultiKeyManagedBySelf
-	if shouldAllowMessageFromSelfBackup && isMessageFromSelfOrManaged {
-		return nil
-	}
-
-	if isMessageFromSelfOrManaged {
+	if isMessageFromSelfOrManaged && !shouldAllowMessageFromSelfBackup {
 		return ErrMessageFromItself
 	}
 
@@ -864,8 +860,10 @@ func (wrk *Worker) Extend(subroundId int) {
 	}
 
 	// if extend is called from subround block/signature, decrement the number of rounds signed by the current node
-	if wrk.consensusService.IsSubroundSignature(subroundId) ||
-		wrk.consensusService.IsSubroundBlock(subroundId) {
+	isSubroundBlockOrSignature := wrk.consensusService.IsSubroundSignature(subroundId) ||
+		wrk.consensusService.IsSubroundBlock(subroundId)
+	isRoundCanceled := wrk.consensusState.GetRoundCanceled()
+	if isSubroundBlockOrSignature && isRoundCanceled {
 		wrk.consensusState.DecrementRoundsSigned()
 	}
 
