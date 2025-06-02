@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/multiversx/mx-chain-core-go/data"
+
 	"github.com/multiversx/mx-chain-go/storage"
 )
 
@@ -14,10 +15,10 @@ type blockBootstrapper interface {
 	getBlockBody(headerHandler data.HeaderHandler) (data.BodyHandler, error)
 	getHeaderWithHashRequestingIfMissing(hash []byte) (data.HeaderHandler, error)
 	getHeaderWithNonceRequestingIfMissing(nonce uint64) (data.HeaderHandler, error)
-	haveHeaderInPoolWithNonce(nonce uint64) bool
 	getBlockBodyRequestingIfMissing(headerHandler data.HeaderHandler) (data.BodyHandler, error)
 	isForkTriggeredByMeta() bool
 	requestHeaderByNonce(nonce uint64)
+	requestProofByNonce(nonce uint64)
 }
 
 // syncStarter defines the behavior of component that can start sync-ing blocks

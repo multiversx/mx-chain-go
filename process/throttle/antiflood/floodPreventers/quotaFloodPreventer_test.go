@@ -9,16 +9,18 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
+
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/mock"
-	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/cache"
+
 	"github.com/stretchr/testify/assert"
 )
 
 func createDefaultArgument() ArgQuotaFloodPreventer {
 	return ArgQuotaFloodPreventer{
 		Name:                      "test",
-		Cacher:                    testscommon.NewCacherStub(),
+		Cacher:                    cache.NewCacherStub(),
 		StatusHandlers:            []QuotaStatusHandler{&mock.QuotaStatusHandlerStub{}},
 		BaseMaxNumMessagesPerPeer: minMessages,
 		MaxTotalSizePerPeer:       minTotalSize,
@@ -28,7 +30,7 @@ func createDefaultArgument() ArgQuotaFloodPreventer {
 	}
 }
 
-//------- NewQuotaFloodPreventer
+// ------- NewQuotaFloodPreventer
 
 func TestNewQuotaFloodPreventer_NilCacherShouldErr(t *testing.T) {
 	t.Parallel()
@@ -128,7 +130,7 @@ func TestNewQuotaFloodPreventer_NilListShouldWork(t *testing.T) {
 	assert.Nil(t, err)
 }
 
-//------- IncreaseLoad
+// ------- IncreaseLoad
 
 func TestNewQuotaFloodPreventer_IncreaseLoadIdentifierNotPresentPutQuotaAndReturnTrue(t *testing.T) {
 	t.Parallel()
@@ -136,7 +138,7 @@ func TestNewQuotaFloodPreventer_IncreaseLoadIdentifierNotPresentPutQuotaAndRetur
 	putWasCalled := false
 	size := uint64(minTotalSize * 5)
 	arg := createDefaultArgument()
-	arg.Cacher = &testscommon.CacherStub{
+	arg.Cacher = &cache.CacherStub{
 		GetCalled: func(key []byte) (value interface{}, ok bool) {
 			return nil, false
 		},
@@ -168,7 +170,7 @@ func TestNewQuotaFloodPreventer_IncreaseLoadNotQuotaSavedInCacheShouldPutQuotaAn
 	putWasCalled := false
 	size := uint64(minTotalSize * 5)
 	arg := createDefaultArgument()
-	arg.Cacher = &testscommon.CacherStub{
+	arg.Cacher = &cache.CacherStub{
 		GetCalled: func(key []byte) (value interface{}, ok bool) {
 			return "bad value", true
 		},
@@ -205,7 +207,7 @@ func TestNewQuotaFloodPreventer_IncreaseLoadUnderMaxValuesShouldIncrementAndRetu
 	}
 	size := uint64(minTotalSize * 2)
 	arg := createDefaultArgument()
-	arg.Cacher = &testscommon.CacherStub{
+	arg.Cacher = &cache.CacherStub{
 		GetCalled: func(key []byte) (value interface{}, ok bool) {
 			return existingQuota, true
 		},
@@ -219,7 +221,7 @@ func TestNewQuotaFloodPreventer_IncreaseLoadUnderMaxValuesShouldIncrementAndRetu
 	assert.Nil(t, err)
 }
 
-//------- IncreaseLoad per peer
+// ------- IncreaseLoad per peer
 
 func TestNewQuotaFloodPreventer_IncreaseLoadOverMaxPeerNumMessagesShouldNotPutAndReturnFalse(t *testing.T) {
 	t.Parallel()
@@ -231,7 +233,7 @@ func TestNewQuotaFloodPreventer_IncreaseLoadOverMaxPeerNumMessagesShouldNotPutAn
 		sizeReceivedMessages: existingSize,
 	}
 	arg := createDefaultArgument()
-	arg.Cacher = &testscommon.CacherStub{
+	arg.Cacher = &cache.CacherStub{
 		GetCalled: func(key []byte) (value interface{}, ok bool) {
 			return existingQuota, true
 		},
@@ -260,7 +262,7 @@ func TestNewQuotaFloodPreventer_IncreaseLoadOverMaxPeerSizeShouldNotPutAndReturn
 		sizeReceivedMessages: existingSize,
 	}
 	arg := createDefaultArgument()
-	arg.Cacher = &testscommon.CacherStub{
+	arg.Cacher = &cache.CacherStub{
 		GetCalled: func(key []byte) (value interface{}, ok bool) {
 			return existingQuota, true
 		},
@@ -284,7 +286,7 @@ func TestCountersMap_IncreaseLoadShouldWorkConcurrently(t *testing.T) {
 
 	numIterations := 1000
 	arg := createDefaultArgument()
-	arg.Cacher = testscommon.NewCacherMock()
+	arg.Cacher = cache.NewCacherMock()
 	qfp, _ := NewQuotaFloodPreventer(arg)
 	wg := sync.WaitGroup{}
 	wg.Add(numIterations)
@@ -299,14 +301,14 @@ func TestCountersMap_IncreaseLoadShouldWorkConcurrently(t *testing.T) {
 	wg.Wait()
 }
 
-//------- Reset
+// ------- Reset
 
 func TestCountersMap_ResetShouldCallCacherClear(t *testing.T) {
 	t.Parallel()
 
 	clearCalled := false
 	arg := createDefaultArgument()
-	arg.Cacher = &testscommon.CacherStub{
+	arg.Cacher = &cache.CacherStub{
 		ClearCalled: func() {
 			clearCalled = true
 		},
@@ -324,7 +326,7 @@ func TestCountersMap_ResetShouldCallCacherClear(t *testing.T) {
 func TestCountersMap_ResetShouldCallQuotaStatus(t *testing.T) {
 	t.Parallel()
 
-	cacher := testscommon.NewCacherMock()
+	cacher := cache.NewCacherMock()
 	key1 := core.PeerID("key1")
 	quota1 := &quota{
 		numReceivedMessages:   1,
@@ -391,7 +393,7 @@ func TestCountersMap_IncrementAndResetShouldWorkConcurrently(t *testing.T) {
 
 	numIterations := 1000
 	arg := createDefaultArgument()
-	arg.Cacher = testscommon.NewCacherMock()
+	arg.Cacher = cache.NewCacherMock()
 	qfp, _ := NewQuotaFloodPreventer(arg)
 	wg := sync.WaitGroup{}
 	wg.Add(numIterations + numIterations/10)
@@ -418,7 +420,7 @@ func TestNewQuotaFloodPreventer_IncreaseLoadWithMockCacherShouldWork(t *testing.
 
 	numMessages := uint32(100)
 	arg := createDefaultArgument()
-	arg.Cacher = testscommon.NewCacherMock()
+	arg.Cacher = cache.NewCacherMock()
 	arg.BaseMaxNumMessagesPerPeer = numMessages
 	arg.MaxTotalSizePerPeer = math.MaxUint64
 	arg.PercentReserved = float32(17)
@@ -437,7 +439,7 @@ func TestNewQuotaFloodPreventer_IncreaseLoadWithMockCacherShouldWork(t *testing.
 	}
 }
 
-//------- ApplyConsensusSize
+// ------- ApplyConsensusSize
 
 func TestQuotaFloodPreventer_ApplyConsensusSizeInvalidConsensusSize(t *testing.T) {
 	t.Parallel()
@@ -468,7 +470,7 @@ func TestQuotaFloodPreventer_ApplyConsensusShouldWork(t *testing.T) {
 	t.Parallel()
 
 	arg := createDefaultArgument()
-	arg.Cacher = testscommon.NewCacherMock()
+	arg.Cacher = cache.NewCacherMock()
 	arg.BaseMaxNumMessagesPerPeer = 2000
 	arg.IncreaseThreshold = 1000
 	arg.IncreaseFactor = 0.25

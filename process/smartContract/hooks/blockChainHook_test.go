@@ -16,6 +16,13 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/data/esdt"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
+	vmcommonBuiltInFunctions "github.com/multiversx/mx-chain-vm-common-go/builtInFunctions"
+	"github.com/multiversx/mx-chain-vm-common-go/parsers"
+	"github.com/pkg/errors"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
@@ -27,6 +34,7 @@ import (
 	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/storage/storageunit"
 	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/cache"
 	dataRetrieverMock "github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/epochNotifier"
@@ -34,12 +42,6 @@ import (
 	stateMock "github.com/multiversx/mx-chain-go/testscommon/state"
 	storageStubs "github.com/multiversx/mx-chain-go/testscommon/storage"
 	"github.com/multiversx/mx-chain-go/testscommon/trie"
-	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
-	vmcommonBuiltInFunctions "github.com/multiversx/mx-chain-vm-common-go/builtInFunctions"
-	"github.com/multiversx/mx-chain-vm-common-go/parsers"
-	"github.com/pkg/errors"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 func createMockBlockChainHookArgs() hooks.ArgBlockChainHook {
@@ -1581,7 +1583,7 @@ func TestBlockChainHookImpl_SaveCompiledCode(t *testing.T) {
 		args := createMockBlockChainHookArgs()
 
 		wasCodeSavedInPool := &atomic.Flag{}
-		args.CompiledSCPool = &testscommon.CacherStub{
+		args.CompiledSCPool = &cache.CacherStub{
 			GetCalled: func(key []byte) (value interface{}, ok bool) {
 				require.Equal(t, codeHash, key)
 				return code, true
@@ -1603,7 +1605,7 @@ func TestBlockChainHookImpl_SaveCompiledCode(t *testing.T) {
 		args.NilCompiledSCStore = true
 
 		wasCodeSavedInPool := &atomic.Flag{}
-		args.CompiledSCPool = &testscommon.CacherStub{
+		args.CompiledSCPool = &cache.CacherStub{
 			GetCalled: func(key []byte) (value interface{}, ok bool) {
 				require.Equal(t, codeHash, key)
 				return struct{}{}, true
@@ -1636,7 +1638,7 @@ func TestBlockChainHookImpl_SaveCompiledCode(t *testing.T) {
 			},
 		}
 		wasCodeSavedInPool := &atomic.Flag{}
-		args.CompiledSCPool = &testscommon.CacherStub{
+		args.CompiledSCPool = &cache.CacherStub{
 			GetCalled: func(key []byte) (value interface{}, ok bool) {
 				require.Equal(t, codeHash, key)
 				return nil, false
@@ -1673,7 +1675,7 @@ func TestBlockChainHookImpl_SaveCompiledCode(t *testing.T) {
 			},
 		}
 		args.NilCompiledSCStore = false
-		args.CompiledSCPool = &testscommon.CacherStub{
+		args.CompiledSCPool = &cache.CacherStub{
 			GetCalled: func(key []byte) (value interface{}, ok bool) {
 				require.Equal(t, codeHash, key)
 				return nil, false
@@ -2536,7 +2538,7 @@ func TestBlockChainHookImpl_ClearCompiledCodes(t *testing.T) {
 	args.EnableEpochs.IsPayableBySCEnableEpoch = 11
 
 	clearCalled := 0
-	args.CompiledSCPool = &testscommon.CacherStub{ClearCalled: func() {
+	args.CompiledSCPool = &cache.CacherStub{ClearCalled: func() {
 		clearCalled++
 	}}
 

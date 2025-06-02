@@ -976,7 +976,7 @@ func createFullArgumentsForSystemSCProcessing(enableEpochsConfig config.EnableEp
 		StakingDataProvider:     stakingSCProvider,
 		AuctionListSelector:     als,
 		NodesConfigProvider: &shardingMocks.NodesCoordinatorStub{
-			ConsensusGroupSizeCalled: func(shardID uint32) int {
+			ConsensusGroupSizeCalled: func(shardID uint32, _ uint32) int {
 				if shardID == core.MetachainShardId {
 					return 400
 				}

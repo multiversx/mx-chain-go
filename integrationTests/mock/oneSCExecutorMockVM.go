@@ -22,21 +22,22 @@ const getFunc = "get"
 var variableA = []byte("a")
 
 // OneSCExecutorMockVM contains one hardcoded SC with the following behaviour (written in golang):
-//-------------------------------------
+// -------------------------------------
 // var a int
 //
-// func init(initial int){
-//     a = initial
-// }
+//	func init(initial int){
+//	    a = initial
+//	}
 //
-// func Add(value int){
-//     a += value
-// }
+//	func Add(value int){
+//	    a += value
+//	}
 //
-// func Get() int{
-//     return a
-// }
-//-------------------------------------
+//	func Get() int{
+//	    return a
+//	}
+//
+// -------------------------------------
 type OneSCExecutorMockVM struct {
 	blockchainHook  vmcommon.BlockchainHook
 	hasher          hashing.Hasher

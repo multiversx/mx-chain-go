@@ -7,11 +7,12 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-crypto-go"
+	"github.com/stretchr/testify/assert"
+
 	errorsErd "github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/factory/peerSignatureHandler"
-	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/cache"
 	"github.com/multiversx/mx-chain-go/testscommon/cryptoMocks"
-	"github.com/stretchr/testify/assert"
 )
 
 func TestNewPeerSignatureHandler_NilCacherShouldErr(t *testing.T) {
@@ -31,7 +32,7 @@ func TestNewPeerSignatureHandler_NilSingleSignerShouldErr(t *testing.T) {
 	t.Parallel()
 
 	peerSigHandler, err := peerSignatureHandler.NewPeerSignatureHandler(
-		testscommon.NewCacherMock(),
+		cache.NewCacherMock(),
 		nil,
 		&cryptoMocks.KeyGenStub{},
 	)
@@ -44,7 +45,7 @@ func TestNewPeerSignatureHandler_NilKeyGenShouldErr(t *testing.T) {
 	t.Parallel()
 
 	peerSigHandler, err := peerSignatureHandler.NewPeerSignatureHandler(
-		testscommon.NewCacherMock(),
+		cache.NewCacherMock(),
 		&cryptoMocks.SingleSignerStub{},
 		nil,
 	)
@@ -57,7 +58,7 @@ func TestNewPeerSignatureHandler_OkParamsShouldWork(t *testing.T) {
 	t.Parallel()
 
 	peerSigHandler, err := peerSignatureHandler.NewPeerSignatureHandler(
-		testscommon.NewCacherMock(),
+		cache.NewCacherMock(),
 		&cryptoMocks.SingleSignerStub{},
 		&cryptoMocks.KeyGenStub{},
 	)
@@ -70,7 +71,7 @@ func TestPeerSignatureHandler_VerifyPeerSignatureInvalidPk(t *testing.T) {
 	t.Parallel()
 
 	peerSigHandler, _ := peerSignatureHandler.NewPeerSignatureHandler(
-		testscommon.NewCacherMock(),
+		cache.NewCacherMock(),
 		&cryptoMocks.SingleSignerStub{},
 		&cryptoMocks.KeyGenStub{},
 	)
@@ -83,7 +84,7 @@ func TestPeerSignatureHandler_VerifyPeerSignatureInvalidPID(t *testing.T) {
 	t.Parallel()
 
 	peerSigHandler, _ := peerSignatureHandler.NewPeerSignatureHandler(
-		testscommon.NewCacherMock(),
+		cache.NewCacherMock(),
 		&cryptoMocks.SingleSignerStub{},
 		&cryptoMocks.KeyGenStub{},
 	)
@@ -96,7 +97,7 @@ func TestPeerSignatureHandler_VerifyPeerSignatureInvalidSignature(t *testing.T) 
 	t.Parallel()
 
 	peerSigHandler, _ := peerSignatureHandler.NewPeerSignatureHandler(
-		testscommon.NewCacherMock(),
+		cache.NewCacherMock(),
 		&cryptoMocks.SingleSignerStub{},
 		&cryptoMocks.KeyGenStub{},
 	)
@@ -116,7 +117,7 @@ func TestPeerSignatureHandler_VerifyPeerSignatureCantGetPubKeyBytes(t *testing.T
 	}
 
 	peerSigHandler, _ := peerSignatureHandler.NewPeerSignatureHandler(
-		testscommon.NewCacherMock(),
+		cache.NewCacherMock(),
 		&cryptoMocks.SingleSignerStub{},
 		keyGen,
 	)
@@ -133,7 +134,7 @@ func TestPeerSignatureHandler_VerifyPeerSignatureSigNotFoundInCache(t *testing.T
 	pid := "dummy peer"
 	sig := []byte("signature")
 
-	cache := testscommon.NewCacherMock()
+	cache := cache.NewCacherMock()
 	keyGen := &cryptoMocks.KeyGenStub{
 		PublicKeyFromByteArrayStub: func(b []byte) (crypto.PublicKey, error) {
 			return &cryptoMocks.PublicKeyStub{
@@ -179,7 +180,7 @@ func TestPeerSignatureHandler_VerifyPeerSignatureWrongEntryInCache(t *testing.T)
 	pid := "dummy peer"
 	sig := []byte("signature")
 
-	cache := testscommon.NewCacherMock()
+	cache := cache.NewCacherMock()
 	cache.Put(pk, wrongType, len(wrongType))
 
 	keyGen := &cryptoMocks.KeyGenStub{
@@ -228,7 +229,7 @@ func TestPeerSignatureHandler_VerifyPeerSignatureNewPidAndSig(t *testing.T) {
 	newPid := core.PeerID("new dummy peer")
 	newSig := []byte("new sig")
 
-	cache := testscommon.NewCacherMock()
+	cache := cache.NewCacherMock()
 	keyGen := &cryptoMocks.KeyGenStub{
 		PublicKeyFromByteArrayStub: func(b []byte) (crypto.PublicKey, error) {
 			return &cryptoMocks.PublicKeyStub{
@@ -277,7 +278,7 @@ func TestPeerSignatureHandler_VerifyPeerSignatureDifferentPid(t *testing.T) {
 	sig := []byte("signature")
 	newPid := core.PeerID("new dummy peer")
 
-	cache := testscommon.NewCacherMock()
+	cache := cache.NewCacherMock()
 	keyGen := &cryptoMocks.KeyGenStub{
 		PublicKeyFromByteArrayStub: func(b []byte) (crypto.PublicKey, error) {
 			return &cryptoMocks.PublicKeyStub{
@@ -317,7 +318,7 @@ func TestPeerSignatureHandler_VerifyPeerSignatureDifferentSig(t *testing.T) {
 	sig := []byte("signature")
 	newSig := []byte("new signature")
 
-	cache := testscommon.NewCacherMock()
+	cache := cache.NewCacherMock()
 	keyGen := &cryptoMocks.KeyGenStub{
 		PublicKeyFromByteArrayStub: func(b []byte) (crypto.PublicKey, error) {
 			return &cryptoMocks.PublicKeyStub{
@@ -356,7 +357,7 @@ func TestPeerSignatureHandler_VerifyPeerSignatureGetFromCache(t *testing.T) {
 	pid := core.PeerID("dummy peer")
 	sig := []byte("signature")
 
-	cache := testscommon.NewCacherMock()
+	cache := cache.NewCacherMock()
 	keyGen := &cryptoMocks.KeyGenStub{
 		PublicKeyFromByteArrayStub: func(b []byte) (crypto.PublicKey, error) {
 			return &cryptoMocks.PublicKeyStub{
@@ -399,7 +400,7 @@ func TestPeerSignatureHandler_GetPeerSignatureErrInConvertingPrivateKeyToByteArr
 	pid := []byte("dummy peer")
 
 	peerSigHandler, _ := peerSignatureHandler.NewPeerSignatureHandler(
-		testscommon.NewCacherMock(),
+		cache.NewCacherMock(),
 		&cryptoMocks.SingleSignerStub{},
 		&cryptoMocks.KeyGenStub{},
 	)
@@ -422,7 +423,7 @@ func TestPeerSignatureHandler_GetPeerSignatureNotPresentInCache(t *testing.T) {
 	pid := []byte("dummy peer")
 	sig := []byte("signature")
 
-	cache := testscommon.NewCacherMock()
+	cache := cache.NewCacherMock()
 	singleSigner := &cryptoMocks.SingleSignerStub{
 		SignCalled: func(private crypto.PrivateKey, msg []byte) ([]byte, error) {
 			signCalled = true
@@ -465,7 +466,7 @@ func TestPeerSignatureHandler_GetPeerSignatureWrongEntryInCache(t *testing.T) {
 	sig := []byte("signature")
 	wrongEntry := []byte("wrong entry")
 
-	cache := testscommon.NewCacherMock()
+	cache := cache.NewCacherMock()
 	singleSigner := &cryptoMocks.SingleSignerStub{
 		SignCalled: func(private crypto.PrivateKey, msg []byte) ([]byte, error) {
 			signCalled = true
@@ -511,7 +512,7 @@ func TestPeerSignatureHandler_GetPeerSignatureDifferentPidInCache(t *testing.T) 
 	sig := []byte("signature")
 	newSig := []byte("new signature")
 
-	cache := testscommon.NewCacherMock()
+	cache := cache.NewCacherMock()
 	singleSigner := &cryptoMocks.SingleSignerStub{
 		SignCalled: func(private crypto.PrivateKey, msg []byte) ([]byte, error) {
 			signCalled = true
@@ -555,7 +556,7 @@ func TestPeerSignatureHandler_GetPeerSignatureGetFromCache(t *testing.T) {
 	pid := []byte("dummy peer")
 	sig := []byte("signature")
 
-	cache := testscommon.NewCacherMock()
+	cache := cache.NewCacherMock()
 	singleSigner := &cryptoMocks.SingleSignerStub{
 		SignCalled: func(private crypto.PrivateKey, msg []byte) ([]byte, error) {
 			return nil, nil

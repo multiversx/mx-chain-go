@@ -16,6 +16,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/rewardTx"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/dataRetriever/dataPool"
@@ -56,7 +57,7 @@ type baseRewardsCreator struct {
 	mapBaseRewardsPerBlockPerValidator map[uint32]*big.Int
 	accumulatedRewards                 *big.Int
 	protocolSustainabilityValue        *big.Int
-	flagDelegationSystemSCEnabled      atomic.Flag //nolint
+	flagDelegationSystemSCEnabled      atomic.Flag // nolint
 	userAccountsDB                     state.AccountsAdapter
 	enableEpochsHandler                common.EnableEpochsHandler
 	mutRewardsData                     sync.RWMutex
@@ -441,17 +442,27 @@ func (brc *baseRewardsCreator) addExecutionOrdering(txHashes [][]byte) {
 	}
 }
 
-func (brc *baseRewardsCreator) fillBaseRewardsPerBlockPerNode(baseRewardsPerNode *big.Int) {
+func (brc *baseRewardsCreator) fillBaseRewardsPerBlockPerNode(baseRewardsPerNode *big.Int, epoch uint32) {
 	brc.mapBaseRewardsPerBlockPerValidator = make(map[uint32]*big.Int)
 	for i := uint32(0); i < brc.shardCoordinator.NumberOfShards(); i++ {
-		consensusSize := big.NewInt(int64(brc.nodesConfigProvider.ConsensusGroupSize(i)))
+		consensusSize := big.NewInt(int64(brc.getConsensusGroupSizeForShardAndEpoch(i, epoch)))
 		brc.mapBaseRewardsPerBlockPerValidator[i] = big.NewInt(0).Div(baseRewardsPerNode, consensusSize)
 		log.Debug("baseRewardsPerBlockPerValidator", "shardID", i, "value", brc.mapBaseRewardsPerBlockPerValidator[i].String())
 	}
 
-	consensusSize := big.NewInt(int64(brc.nodesConfigProvider.ConsensusGroupSize(core.MetachainShardId)))
+	consensusSize := big.NewInt(int64(brc.getConsensusGroupSizeForShardAndEpoch(core.MetachainShardId, epoch)))
 	brc.mapBaseRewardsPerBlockPerValidator[core.MetachainShardId] = big.NewInt(0).Div(baseRewardsPerNode, consensusSize)
 	log.Debug("baseRewardsPerBlockPerValidator", "shardID", core.MetachainShardId, "value", brc.mapBaseRewardsPerBlockPerValidator[core.MetachainShardId].String())
+}
+
+func (brc *baseRewardsCreator) getConsensusGroupSizeForShardAndEpoch(shardID uint32, epoch uint32) int {
+	if epoch == 0 {
+		return brc.nodesConfigProvider.ConsensusGroupSizeForShardAndEpoch(shardID, 0)
+	}
+
+	// use previous epoch for fetching the consensus group size, since the epoch start metablock already contains the new epoch
+	epochForConsensusSize := epoch - 1
+	return brc.nodesConfigProvider.ConsensusGroupSizeForShardAndEpoch(shardID, epochForConsensusSize)
 }
 
 func (brc *baseRewardsCreator) verifyCreatedRewardMiniBlocksWithMetaBlock(metaBlock data.HeaderHandler, createdMiniBlocks block.MiniBlockSlice) error {

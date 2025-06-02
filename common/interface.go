@@ -10,6 +10,8 @@ import (
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	crypto "github.com/multiversx/mx-chain-crypto-go"
+
+	"github.com/multiversx/mx-chain-go/config"
 )
 
 // TrieIteratorChannels defines the channels that are being used when iterating the trie nodes
@@ -222,17 +224,19 @@ type StateStatisticsHandler interface {
 	Reset()
 	ResetSnapshot()
 
-	IncrementCache()
+	IncrCache()
 	Cache() uint64
-	IncrementSnapshotCache()
+	IncrSnapshotCache()
 	SnapshotCache() uint64
 
-	IncrementPersister(epoch uint32)
+	IncrPersister(epoch uint32)
 	Persister(epoch uint32) uint64
-	IncrementSnapshotPersister(epoch uint32)
+	IncrWritePersister(epoch uint32)
+	WritePersister(epoch uint32) uint64
+	IncrSnapshotPersister(epoch uint32)
 	SnapshotPersister(epoch uint32) uint64
 
-	IncrementTrie()
+	IncrTrie()
 	Trie() uint64
 
 	ProcessingStats() []string
@@ -370,6 +374,29 @@ type ExecutionOrderGetter interface {
 	GetItems() [][]byte
 	Contains(txHash []byte) bool
 	Len() int
+	IsInterfaceNil() bool
+}
+
+// ChainParametersSubscriptionHandler defines the behavior of a chain parameters subscription handler
+type ChainParametersSubscriptionHandler interface {
+	ChainParametersChanged(chainParameters config.ChainParametersByEpochConfig)
+	IsInterfaceNil() bool
+}
+
+// HeadersPool defines what a headers pool structure can perform
+type HeadersPool interface {
+	GetHeaderByHash(hash []byte) (data.HeaderHandler, error)
+}
+
+// FieldsSizeChecker defines the behavior of a fields size checker common component
+type FieldsSizeChecker interface {
+	IsProofSizeValid(proof data.HeaderProofHandler) bool
+	IsInterfaceNil() bool
+}
+
+// EpochChangeGracePeriodHandler defines the behavior of a component that can return the grace period for a specific epoch
+type EpochChangeGracePeriodHandler interface {
+	GetGracePeriodForEpoch(epoch uint32) (uint32, error)
 	IsInterfaceNil() bool
 }
 

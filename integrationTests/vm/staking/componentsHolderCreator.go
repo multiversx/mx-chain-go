@@ -12,9 +12,11 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/typeConverters/uint64ByteSlice"
 	"github.com/multiversx/mx-chain-core-go/hashing/sha256"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/common/enablers"
 	"github.com/multiversx/mx-chain-go/common/forking"
+	"github.com/multiversx/mx-chain-go/common/graceperiod"
 	"github.com/multiversx/mx-chain-go/common/statistics/disabled"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
@@ -70,10 +72,11 @@ func createCoreComponents() factory.CoreComponentsHolder {
 		StakingV4Step3EnableEpoch:          stakingV4Step3EnableEpoch,
 		GovernanceEnableEpoch:              integrationTests.UnreachableEpoch,
 		RefactorPeersMiniBlocksEnableEpoch: integrationTests.UnreachableEpoch,
+		AndromedaEnableEpoch:               integrationTests.UnreachableEpoch,
 	}
 
 	enableEpochsHandler, _ := enablers.NewEnableEpochsHandler(configEnableEpochs, epochNotifier)
-
+	gracePeriod, _ := graceperiod.NewEpochChangeGracePeriod([]config.EpochChangeGracePeriodByEpoch{{EnableEpoch: 0, GracePeriodInRounds: 1}})
 	return &integrationMocks.CoreComponentsStub{
 		InternalMarshalizerField:           &marshal.GogoProtoMarshalizer{},
 		HasherField:                        sha256.NewSha256(),
@@ -91,6 +94,7 @@ func createCoreComponents() factory.CoreComponentsHolder {
 		EnableEpochsHandlerField:           enableEpochsHandler,
 		EnableRoundsHandlerField:           &testscommon.EnableRoundsHandlerStub{},
 		RoundNotifierField:                 &notifierMocks.RoundNotifierStub{},
+		EpochChangeGracePeriodHandlerField: gracePeriod,
 	}
 }
 

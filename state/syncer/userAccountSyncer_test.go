@@ -4,17 +4,19 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/assert"
+
 	"github.com/multiversx/mx-chain-core-go/core/throttler"
 	"github.com/multiversx/mx-chain-go/dataRetriever/mock"
 	"github.com/multiversx/mx-chain-go/state/hashesCollector"
 	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/cache"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/statusHandler"
 	"github.com/multiversx/mx-chain-go/testscommon/storageManager"
 	"github.com/multiversx/mx-chain-go/trie"
-	"github.com/stretchr/testify/assert"
 )
 
 // TODO add more tests
@@ -26,7 +28,7 @@ func getDefaultBaseAccSyncerArgs() ArgsNewBaseAccountsSyncer {
 		TrieStorageManager:                &storageManager.StorageManagerStub{},
 		RequestHandler:                    &testscommon.RequestHandlerStub{},
 		Timeout:                           time.Second,
-		Cacher:                            testscommon.NewCacherMock(),
+		Cacher:                            cache.NewCacherMock(),
 		UserAccountsSyncStatisticsHandler: &testscommon.SizeSyncStatisticsHandlerStub{},
 		AppStatusHandler:                  &statusHandler.AppStatusHandlerStub{},
 		MaxTrieLevelInMemory:              0,
@@ -106,7 +108,7 @@ func TestUserAccountsSyncer_MissingDataTrieNodeFound(t *testing.T) {
 	rootHash, _ := tr.RootHash()
 	_ = tr.Commit(hashesCollector.NewDisabledHashesCollector())
 
-	args.Cacher = &testscommon.CacherStub{
+	args.Cacher = &cache.CacherStub{
 		GetCalled: func(key []byte) (value interface{}, ok bool) {
 			interceptedNode, _ := trie.NewInterceptedTrieNode(serializedLeafNode, args.Hasher)
 			return interceptedNode, true
