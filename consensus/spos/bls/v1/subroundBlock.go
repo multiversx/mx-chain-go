@@ -364,6 +364,13 @@ func (sr *subroundBlock) createHeader() (data.HeaderHandler, error) {
 		return nil, err
 	}
 
+	if sr.EnableEpochsHandler().IsFlagEnabledInEpoch(common.BarnardOpcodesFlag, hdr.GetEpoch()) {
+		err = hdr.SetTimeStampMs(uint64(sr.RoundHandler().TimeStamp().UnixMilli()))
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	err = hdr.SetPrevRandSeed(prevRandSeed)
 	if err != nil {
 		return nil, err

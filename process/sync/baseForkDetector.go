@@ -122,9 +122,11 @@ func (bfd *baseForkDetector) checkBlockBasicValidity(
 		process.AddHeaderToBlackList(bfd.blackListHandler, headerHash)
 		return ErrGenesisTimeMissmatch
 	}
-	if genesisTimeFromHeaderAsMs != bfd.genesisTime {
-		process.AddHeaderToBlackList(bfd.blackListHandler, headerHash)
-		return ErrGenesisTimeMissmatch
+	if bfd.enableEpochsHandler.IsFlagEnabledInEpoch(common.BarnardOpcodesFlag, header.GetEpoch()) {
+		if genesisTimeFromHeaderAsMs != bfd.genesisTime {
+			process.AddHeaderToBlackList(bfd.blackListHandler, headerHash)
+			return ErrGenesisTimeMissmatch
+		}
 	}
 	if roundDif < 0 {
 		return ErrLowerRoundInBlock
