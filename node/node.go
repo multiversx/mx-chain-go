@@ -1299,7 +1299,7 @@ func prepareEpochStartDataResponse(header data.HeaderHandler) *common.EpochStart
 		Round:         header.GetRound(),
 		Shard:         header.GetShardID(),
 		Timestamp:     int64(time.Duration(header.GetTimeStamp())),
-		TimestampMs:   int64(time.Duration(header.GetTimeStampMs())),
+		TimestampMs:   int64(time.Duration(common.ConvertTimeStampSecToMs(header.GetTimeStamp()))),
 		Epoch:         header.GetEpoch(),
 		PrevBlockHash: hex.EncodeToString(header.GetPrevHash()),
 		StateRootHash: hex.EncodeToString(header.GetRootHash()),

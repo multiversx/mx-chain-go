@@ -401,10 +401,6 @@ func displayHeader(
 			fmt.Sprintf("%d", headerHandler.GetTimeStamp())}),
 		display.NewLineData(false, []string{
 			"",
-			"TimeStampMs",
-			fmt.Sprintf("%d", headerHandler.GetTimeStampMs())}),
-		display.NewLineData(false, []string{
-			"",
 			"Nonce",
 			fmt.Sprintf("%d", headerHandler.GetNonce())}),
 		display.NewLineData(false, []string{

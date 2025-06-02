@@ -110,7 +110,6 @@ func (bfd *baseForkDetector) checkBlockBasicValidity(
 	// TODO: Analyze if the acceptance of some headers which came for the next round could generate some attack vectors
 	nextRound := bfd.roundHandler.Index() + 1
 	genesisTimeFromHeader := bfd.computeGenesisTimeFromHeader(header)
-	genesisTimeFromHeaderAsMs := bfd.computeGenesisTimeAsMsFromHeader(header)
 
 	bfd.blackListHandler.Sweep()
 	if bfd.blackListHandler.Has(string(header.GetPrevHash())) {
@@ -121,12 +120,6 @@ func (bfd *baseForkDetector) checkBlockBasicValidity(
 	if genesisTimeFromHeader != bfd.genesisTime {
 		process.AddHeaderToBlackList(bfd.blackListHandler, headerHash)
 		return ErrGenesisTimeMissmatch
-	}
-	if bfd.enableEpochsHandler.IsFlagEnabledInEpoch(common.BarnardOpcodesFlag, header.GetEpoch()) {
-		if genesisTimeFromHeaderAsMs != bfd.genesisTime {
-			process.AddHeaderToBlackList(bfd.blackListHandler, headerHash)
-			return ErrGenesisTimeMissmatch
-		}
 	}
 	if roundDif < 0 {
 		return ErrLowerRoundInBlock
@@ -708,12 +701,6 @@ func (bfd *baseForkDetector) cleanupReceivedHeadersHigherThanNonce(nonce uint64)
 
 func (bfd *baseForkDetector) computeGenesisTimeFromHeader(headerHandler data.HeaderHandler) int64 {
 	genesisTime := int64(headerHandler.GetTimeStamp() - (headerHandler.GetRound()-bfd.genesisRound)*uint64(bfd.roundHandler.TimeDuration().Seconds()))
-	return genesisTime
-}
-
-func (bfd *baseForkDetector) computeGenesisTimeAsMsFromHeader(headerHandler data.HeaderHandler) int64 {
-	headerTimeStamp := headerHandler.GetTimeStampMs() / 1000
-	genesisTime := int64(headerTimeStamp - (headerHandler.GetRound()-bfd.genesisRound)*uint64(bfd.roundHandler.TimeDuration().Seconds()))
 	return genesisTime
 }
 

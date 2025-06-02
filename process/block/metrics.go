@@ -172,7 +172,7 @@ func indexRoundInfo(
 		ShardId:          shardId,
 		Epoch:            header.GetEpoch(),
 		Timestamp:        uint64(time.Duration(header.GetTimeStamp())),
-		TimestampMs:      uint64(time.Duration(header.GetTimeStampMs())),
+		TimestampMs:      uint64(time.Duration(common.ConvertTimeStampSecToMs(header.GetTimeStamp()))),
 	}
 
 	if check.IfNil(lastHeader) {

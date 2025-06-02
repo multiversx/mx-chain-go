@@ -3357,7 +3357,7 @@ func TestBaseProcessor_DisplayHeader(t *testing.T) {
 		}
 
 		lines := blproc.DisplayHeader(header, proof)
-		require.Equal(t, 24, len(lines))
+		require.Equal(t, 23, len(lines))
 	})
 	t.Run("meta header with proof info", func(t *testing.T) {
 		t.Parallel()
@@ -3388,6 +3388,6 @@ func TestBaseProcessor_DisplayHeader(t *testing.T) {
 		}
 
 		lines := blproc.DisplayHeader(header, proof)
-		require.Equal(t, 24, len(lines))
+		require.Equal(t, 23, len(lines))
 	})
 }

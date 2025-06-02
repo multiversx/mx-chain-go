@@ -241,7 +241,7 @@ func (mbp *metaAPIBlockProcessor) convertMetaBlockBytesToAPIBlock(hash []byte, b
 		AccumulatedFeesInEpoch: blockHeader.AccumulatedFeesInEpoch.String(),
 		DeveloperFeesInEpoch:   blockHeader.DevFeesInEpoch.String(),
 		Timestamp:              time.Duration(blockHeader.GetTimeStamp()),
-		TimestampMs:            time.Duration(blockHeader.GetTimeStampMs()),
+		TimestampMs:            time.Duration(common.ConvertTimeStampSecToMs(blockHeader.GetTimeStamp())),
 		StateRootHash:          hex.EncodeToString(blockHeader.RootHash),
 		Status:                 BlockStatusOnChain,
 		PubKeyBitmap:           hex.EncodeToString(blockHeader.GetPubKeysBitmap()),

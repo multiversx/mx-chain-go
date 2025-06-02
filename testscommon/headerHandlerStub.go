@@ -36,7 +36,6 @@ type HeaderHandlerStub struct {
 	SetPubKeysBitmapCalled                 func(bitmap []byte) error
 	SetChainIDCalled                       func(chainID []byte) error
 	SetTimeStampCalled                     func(timestamp uint64) error
-	SetTimeStampMsCalled                   func(timestamp uint64) error
 	SetRandSeedCalled                      func(seed []byte) error
 	SetSignatureCalled                     func(signature []byte) error
 	SetLeaderSignatureCalled               func(signature []byte) error
@@ -122,11 +121,6 @@ func (hhs *HeaderHandlerStub) GetTimeStamp() uint64 {
 	return hhs.TimestampField
 }
 
-// GetTimeStampMs -
-func (hhs *HeaderHandlerStub) GetTimeStampMs() uint64 {
-	return hhs.TimestampMsField
-}
-
 // GetRootHash -
 func (hhs *HeaderHandlerStub) GetRootHash() []byte {
 	return hhs.GetRootHashCalled()
@@ -206,14 +200,6 @@ func (hhs *HeaderHandlerStub) SetRound(_ uint64) error {
 func (hhs *HeaderHandlerStub) SetTimeStamp(timestamp uint64) error {
 	if hhs.SetTimeStampCalled != nil {
 		return hhs.SetTimeStampCalled(timestamp)
-	}
-	return nil
-}
-
-// SetTimeStampMs -
-func (hhs *HeaderHandlerStub) SetTimeStampMs(timestamp uint64) error {
-	if hhs.SetTimeStampMsCalled != nil {
-		return hhs.SetTimeStampMsCalled(timestamp)
 	}
 	return nil
 }
