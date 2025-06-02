@@ -26,6 +26,9 @@ func TestNewTxCache(t *testing.T) {
 			CountThreshold:              10,
 			CountPerSenderThreshold:     100,
 			NumItemsToPreemptivelyEvict: 1,
+			TxCacheBoundsConfig: config.TxCacheBoundsConfig{
+				MaxNumBytesPerSenderUpperBound: maxNumBytesPerSenderUpperBoundTest,
+			},
 			MempoolSelectionConfig: config.MempoolSelectionConfig{
 				SelectionGasBandwidthIncreasePercent:          400,
 				SelectionGasBandwidthIncreaseScheduledPercent: 260,
@@ -33,7 +36,6 @@ func TestNewTxCache(t *testing.T) {
 				SelectionLoopMaximumDuration:                  250,
 				SelectionLoopDurationCheckInterval:            10,
 				SelectionGasRequested:                         10_000_000_000,
-				MaxNumBytesPerSenderUpperBound:                maxNumBytesPerSenderUpperBoundTest,
 			},
 		}
 
@@ -52,6 +54,9 @@ func TestNewTxCache(t *testing.T) {
 			CountThreshold:              10,
 			CountPerSenderThreshold:     100,
 			NumItemsToPreemptivelyEvict: 1,
+			TxCacheBoundsConfig: config.TxCacheBoundsConfig{
+				MaxNumBytesPerSenderUpperBound: maxNumBytesPerSenderUpperBoundTest,
+			},
 			MempoolSelectionConfig: config.MempoolSelectionConfig{
 				SelectionGasBandwidthIncreasePercent:          400,
 				SelectionGasBandwidthIncreaseScheduledPercent: 260,
@@ -59,7 +64,6 @@ func TestNewTxCache(t *testing.T) {
 				SelectionLoopMaximumDuration:                  250,
 				SelectionLoopDurationCheckInterval:            10,
 				SelectionGasRequested:                         10_000_000_000,
-				MaxNumBytesPerSenderUpperBound:                maxNumBytesPerSenderUpperBoundTest,
 			}}
 
 		cache, err := NewTxCache(cfg, txcachemocks.NewMempoolHostMock())

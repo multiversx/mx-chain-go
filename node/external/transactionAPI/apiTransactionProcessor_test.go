@@ -886,6 +886,9 @@ func TestApiTransactionProcessor_GetTransactionsPoolForSender(t *testing.T) {
 		CountThreshold:              math.MaxUint32,
 		CountPerSenderThreshold:     math.MaxUint32,
 		NumItemsToPreemptivelyEvict: 1,
+		TxCacheBoundsConfig: config.TxCacheBoundsConfig{
+			MaxNumBytesPerSenderUpperBound: 33_554_432,
+		},
 		MempoolSelectionConfig: config.MempoolSelectionConfig{
 			SelectionGasBandwidthIncreasePercent:          400,
 			SelectionGasBandwidthIncreaseScheduledPercent: 260,
@@ -893,7 +896,6 @@ func TestApiTransactionProcessor_GetTransactionsPoolForSender(t *testing.T) {
 			SelectionLoopMaximumDuration:                  250,
 			SelectionLoopDurationCheckInterval:            10,
 			SelectionGasRequested:                         10_000_000_000,
-			MaxNumBytesPerSenderUpperBound:                33_554_432,
 		},
 	}, txcachemocks.NewMempoolHostMock())
 
@@ -912,6 +914,9 @@ func TestApiTransactionProcessor_GetTransactionsPoolForSender(t *testing.T) {
 		CountThreshold:              math.MaxUint32,
 		CountPerSenderThreshold:     math.MaxUint32,
 		NumItemsToPreemptivelyEvict: 1,
+		TxCacheBoundsConfig: config.TxCacheBoundsConfig{
+			MaxNumBytesPerSenderUpperBound: 33_554_432,
+		},
 		MempoolSelectionConfig: config.MempoolSelectionConfig{
 			SelectionGasBandwidthIncreasePercent:          400,
 			SelectionGasBandwidthIncreaseScheduledPercent: 260,
@@ -919,7 +924,6 @@ func TestApiTransactionProcessor_GetTransactionsPoolForSender(t *testing.T) {
 			SelectionLoopMaximumDuration:                  250,
 			SelectionLoopDurationCheckInterval:            10,
 			SelectionGasRequested:                         10_000_000_000,
-			MaxNumBytesPerSenderUpperBound:                33_554_432,
 		}}, txcachemocks.NewMempoolHostMock())
 	txCacheWithMeta.AddTx(createTx(txHash3, sender, 4))
 	txCacheWithMeta.AddTx(createTx(txHash4, sender, 5))
@@ -1006,6 +1010,9 @@ func TestApiTransactionProcessor_GetLastPoolNonceForSender(t *testing.T) {
 		CountThreshold:              math.MaxUint32,
 		CountPerSenderThreshold:     math.MaxUint32,
 		NumItemsToPreemptivelyEvict: 1,
+		TxCacheBoundsConfig: config.TxCacheBoundsConfig{
+			MaxNumBytesPerSenderUpperBound: 33_554_432,
+		},
 		MempoolSelectionConfig: config.MempoolSelectionConfig{
 			SelectionGasBandwidthIncreasePercent:          400,
 			SelectionGasBandwidthIncreaseScheduledPercent: 260,
@@ -1013,7 +1020,6 @@ func TestApiTransactionProcessor_GetLastPoolNonceForSender(t *testing.T) {
 			SelectionLoopMaximumDuration:                  250,
 			SelectionLoopDurationCheckInterval:            10,
 			SelectionGasRequested:                         10_000_000_000,
-			MaxNumBytesPerSenderUpperBound:                33_554_432,
 		}}, txcachemocks.NewMempoolHostMock())
 	txCacheIntraShard.AddTx(createTx(txHash2, sender, 3))
 	txCacheIntraShard.AddTx(createTx(txHash0, sender, 1))
@@ -1066,6 +1072,9 @@ func TestApiTransactionProcessor_GetTransactionsPoolNonceGapsForSender(t *testin
 		CountThreshold:              math.MaxUint32,
 		CountPerSenderThreshold:     math.MaxUint32,
 		NumItemsToPreemptivelyEvict: 1,
+		TxCacheBoundsConfig: config.TxCacheBoundsConfig{
+			MaxNumBytesPerSenderUpperBound: 33_554_432,
+		},
 		MempoolSelectionConfig: config.MempoolSelectionConfig{
 			SelectionGasBandwidthIncreasePercent:          400,
 			SelectionGasBandwidthIncreaseScheduledPercent: 260,
@@ -1073,7 +1082,6 @@ func TestApiTransactionProcessor_GetTransactionsPoolNonceGapsForSender(t *testin
 			SelectionLoopMaximumDuration:                  250,
 			SelectionLoopDurationCheckInterval:            10,
 			SelectionGasRequested:                         10_000_000_000,
-			MaxNumBytesPerSenderUpperBound:                33_554_432,
 		}}, txcachemocks.NewMempoolHostMock())
 
 	require.NoError(t, err)
@@ -1086,6 +1094,9 @@ func TestApiTransactionProcessor_GetTransactionsPoolNonceGapsForSender(t *testin
 		CountThreshold:              math.MaxUint32,
 		CountPerSenderThreshold:     math.MaxUint32,
 		NumItemsToPreemptivelyEvict: 1,
+		TxCacheBoundsConfig: config.TxCacheBoundsConfig{
+			MaxNumBytesPerSenderUpperBound: 33_554_432,
+		},
 		MempoolSelectionConfig: config.MempoolSelectionConfig{
 			SelectionGasBandwidthIncreasePercent:          400,
 			SelectionGasBandwidthIncreaseScheduledPercent: 260,
@@ -1093,7 +1104,6 @@ func TestApiTransactionProcessor_GetTransactionsPoolNonceGapsForSender(t *testin
 			SelectionLoopMaximumDuration:                  250,
 			SelectionLoopDurationCheckInterval:            10,
 			SelectionGasRequested:                         10_000_000_000,
-			MaxNumBytesPerSenderUpperBound:                33_554_432,
 		}}, txcachemocks.NewMempoolHostMock())
 
 	require.NoError(t, err)
