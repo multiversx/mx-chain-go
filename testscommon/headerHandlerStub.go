@@ -12,7 +12,6 @@ type HeaderHandlerStub struct {
 	EpochField                             uint32
 	RoundField                             uint64
 	TimestampField                         uint64
-	TimestampMsField                       uint64
 	BlockBodyTypeInt32Field                int32
 	GetMiniBlockHeadersWithDstCalled       func(destId uint32) map[string]uint32
 	GetOrderedCrossMiniblocksWithDstCalled func(destId uint32) []*data.MiniBlockInfo
