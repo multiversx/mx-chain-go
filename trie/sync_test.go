@@ -3,6 +3,7 @@ package trie
 import (
 	"context"
 	"errors"
+	"github.com/multiversx/mx-chain-go/trie/keyBuilder"
 	"sync"
 	"testing"
 	"time"
@@ -228,7 +229,7 @@ func TestTrieSync_FoundInStorageShouldNotRequest(t *testing.T) {
 
 	trieCtx := getTrieContextWithCustomStorage(trieStorage)
 	rootHash, _ := encodeNodeAndGetHash(bn, trieCtx)
-	bn.commitDirty(0, 5, getTestGoroutinesManager(), hashesCollector.NewDisabledHashesCollector(), trieCtx)
+	bn.commitDirty(0, keyBuilder.NewKeyBuilder(), 5, getTestGoroutinesManager(), hashesCollector.NewDisabledHashesCollector(), trieCtx)
 
 	leaves, err := bn.getChildren(trieCtx)
 	require.Nil(t, err)

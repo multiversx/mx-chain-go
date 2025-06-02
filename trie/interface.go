@@ -24,20 +24,21 @@ type nodeWithHash struct {
 	hash []byte
 }
 
-type baseTrieNode interface {
-	setDirty(bool)
-	isDirty() bool
+type keyData struct {
+	keyRemainder []byte
+	pathKey      []byte
 }
 
 type node interface {
-	baseTrieNode
 	snapshotNode
+	setDirty(bool)
+	isDirty() bool
 	getEncodedNode(trieCtx common.TrieContext) ([]byte, error)
-	tryGet(key []byte, depth uint32, trieCtx common.TrieContext) ([]byte, uint32, error)
+	tryGet(keyData *keyData, depth uint32, trieCtx common.TrieContext) ([]byte, uint32, error)
 	getNext(key []byte, trieCtx common.TrieContext) (*nodeData, error)
-	insert(newData []core.TrieData, goRoutinesManager common.TrieGoroutinesManager, modifiedHashes common.AtomicBytesSlice, trieCtx common.TrieContext) node
-	delete(data []core.TrieData, goRoutinesManager common.TrieGoroutinesManager, modifiedHashes common.AtomicBytesSlice, trieCtx common.TrieContext) (bool, node)
-	reduceNode(pos int, hash []byte, trieCtx common.TrieContext) (node, bool, error)
+	insert(pathKey common.KeyBuilder, newData []core.TrieData, goRoutinesManager common.TrieGoroutinesManager, modifiedHashes common.AtomicBytesSlice, trieCtx common.TrieContext) node
+	delete(pathKey common.KeyBuilder, data []core.TrieData, goRoutinesManager common.TrieGoroutinesManager, modifiedHashes common.AtomicBytesSlice, trieCtx common.TrieContext) (bool, node)
+	reduceNode(pos int, mutexKey string, trieCtx common.TrieContext) (node, bool, error)
 	isEmptyOrNil() error
 	print(writer io.Writer, index int, trieCtx common.TrieContext)
 	getChildren(trieCtx common.TrieContext) ([]nodeWithHash, error)
@@ -49,7 +50,14 @@ type node interface {
 	getVersion() (core.TrieNodeVersion, error)
 	collectLeavesForMigration(migrationArgs vmcommon.ArgsMigrateDataTrieLeaves, keyBuilder common.KeyBuilder, trieCtx common.TrieContext) (bool, error)
 
-	commitDirty(level byte, maxTrieLevelInMemory uint, goRoutinesManager common.TrieGoroutinesManager, hashesCollector common.TrieHashesCollector, trieCtx common.TrieContext)
+	commitDirty(
+		level byte,
+		pathKey common.KeyBuilder,
+		maxTrieLevelInMemory uint,
+		goRoutinesManager common.TrieGoroutinesManager,
+		hashesCollector common.TrieHashesCollector,
+		trieCtx common.TrieContext,
+	)
 
 	sizeInBytes() int
 	collectStats(handler common.TrieStatisticsHandler, depthLevel int, nodeSize uint64, trieCtx common.TrieContext) error
@@ -123,6 +131,7 @@ type RootManager interface {
 	GetRootNode() node
 	GetRootHash() []byte
 	SetDataForRootChange(rootData RootData)
+	GetRootData() RootData
 	ResetCollectedHashes()
 	GetOldHashes() [][]byte
 	GetOldRootHash() []byte

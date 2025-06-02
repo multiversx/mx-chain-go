@@ -34,14 +34,21 @@ func newExtensionNode(key []byte, child node) (*extensionNode, error) {
 			ChildVersion: uint32(childVersion),
 		},
 		child: child,
-		baseNode: &baseNode{
-			dirty: true,
-		},
+		dirty: true,
 	}, nil
+}
+
+func (en *extensionNode) isDirty() bool {
+	return en.dirty
+}
+
+func (en *extensionNode) setDirty(dirty bool) {
+	en.dirty = dirty
 }
 
 func (en *extensionNode) commitDirty(
 	level byte,
+	pathKey common.KeyBuilder,
 	maxTrieLevelInMemory uint,
 	goRoutinesManager common.TrieGoroutinesManager,
 	hashesCollector common.TrieHashesCollector,
@@ -57,17 +64,20 @@ func (en *extensionNode) commitDirty(
 		return
 	}
 
-	en.childMutex.RLock()
+	nodeMutexKey := getMutexKeyFromPath(pathKey)
+	trieCtx.RLock(nodeMutexKey)
+	nodeKey := en.Key
 	child := en.child
-	en.childMutex.RUnlock()
+	childHash := en.ChildHash
+	trieCtx.RUnlock(nodeMutexKey)
 
-	if len(en.ChildHash) == 0 {
+	if len(childHash) == 0 {
 		goRoutinesManager.SetError(ErrInvalidNodeState)
 		return
 	}
 
 	if child != nil {
-		child.commitDirty(level, maxTrieLevelInMemory, goRoutinesManager, hashesCollector, trieCtx)
+		child.commitDirty(level, getChildPathKey(pathKey, nodeKey), maxTrieLevelInMemory, goRoutinesManager, hashesCollector, trieCtx)
 		if !goRoutinesManager.ShouldContinueProcessing() {
 			return
 		}
@@ -81,9 +91,9 @@ func (en *extensionNode) commitDirty(
 	if uint(level) == maxTrieLevelInMemory {
 		log.Trace("collapse extension node on commit")
 
-		en.childMutex.Lock()
+		trieCtx.Lock(nodeMutexKey)
 		en.child = nil
-		en.childMutex.Unlock()
+		trieCtx.Unlock(nodeMutexKey)
 	}
 }
 
@@ -127,10 +137,6 @@ func (en *extensionNode) commitSnapshot(
 }
 
 func (en *extensionNode) getEncodedNode(trieCtx common.TrieContext) ([]byte, error) {
-	err := en.isEmptyOrNil()
-	if err != nil {
-		return nil, fmt.Errorf("getEncodedNode error %w", err)
-	}
 	marshaledNode, err := trieCtx.Marshal(en)
 	if err != nil {
 		return nil, err
@@ -144,9 +150,6 @@ func (en *extensionNode) isCollapsed() bool {
 }
 
 func (en *extensionNode) resolveIfCollapsed(trieCtx common.TrieContext) (node, []byte, error) {
-	en.childMutex.Lock()
-	defer en.childMutex.Unlock()
-
 	if en.isCollapsed() {
 		child, _, err := getNodeFromDBAndDecode(en.ChildHash, trieCtx)
 		if err != nil {
@@ -165,9 +168,9 @@ func (en *extensionNode) resolveIfCollapsed(trieCtx common.TrieContext) (node, [
 
 }
 
-func (en *extensionNode) getChild(key []byte, trieCtx common.TrieContext) (node, []byte, error) {
-	en.mutex.RLock()
-	defer en.mutex.RUnlock()
+func (en *extensionNode) getChild(key []byte, mutexKey string, trieCtx common.TrieContext) (node, []byte, error) {
+	trieCtx.Lock(mutexKey)
+	defer trieCtx.Unlock(mutexKey)
 
 	keyTooShort := len(key) < len(en.Key)
 	if keyTooShort {
@@ -186,8 +189,10 @@ func (en *extensionNode) getChild(key []byte, trieCtx common.TrieContext) (node,
 	return child, key, nil
 }
 
-func (en *extensionNode) tryGet(key []byte, currentDepth uint32, trieCtx common.TrieContext) (value []byte, maxDepth uint32, err error) {
-	child, key, err := en.getChild(key, trieCtx)
+func (en *extensionNode) tryGet(keyData *keyData, currentDepth uint32, trieCtx common.TrieContext) (value []byte, maxDepth uint32, err error) {
+	mutexKey := getMutexKeyFromBytes(keyData.pathKey)
+
+	child, key, err := en.getChild(keyData.keyRemainder, mutexKey, trieCtx)
 	if err != nil {
 		return nil, currentDepth, err
 	}
@@ -195,7 +200,9 @@ func (en *extensionNode) tryGet(key []byte, currentDepth uint32, trieCtx common.
 		return nil, currentDepth, nil
 	}
 
-	return child.tryGet(key, currentDepth+1, trieCtx)
+	keyData.keyRemainder = key
+	keyData.pathKey = append(keyData.pathKey, en.Key...)
+	return child.tryGet(keyData, currentDepth+1, trieCtx)
 }
 
 func (en *extensionNode) getNext(key []byte, trieCtx common.TrieContext) (*nodeData, error) {
@@ -221,12 +228,16 @@ func (en *extensionNode) getNext(key []byte, trieCtx common.TrieContext) (*nodeD
 }
 
 func (en *extensionNode) insert(
+	pathKey common.KeyBuilder,
 	newData []core.TrieData,
 	goRoutinesManager common.TrieGoroutinesManager,
 	modifiedHashes common.AtomicBytesSlice,
 	trieCtx common.TrieContext,
 ) node {
+	mutexKey := getMutexKeyFromPath(pathKey)
+	trieCtx.Lock(mutexKey)
 	childNode, childHash, err := en.resolveIfCollapsed(trieCtx)
+	trieCtx.Unlock(mutexKey)
 	if err != nil {
 		goRoutinesManager.SetError(err)
 		return nil
@@ -242,11 +253,11 @@ func (en *extensionNode) insert(
 	// If the whole key matches, keep this extension node as is
 	// and only update the value.
 	if keyMatchLen == len(en.Key) {
-		return en.insertAtSameKey(newData, childNode, originalChildHash, keyMatchLen, goRoutinesManager, modifiedHashes, trieCtx)
+		return en.insertAtSameKey(newData, childNode, pathKey, originalChildHash, keyMatchLen, goRoutinesManager, modifiedHashes, trieCtx)
 	}
 
 	// Otherwise branch out at the index where they differ.
-	return en.insertInNewBn(newData, childNode, originalChildHash, goRoutinesManager, modifiedHashes, keyMatchLen, index, trieCtx)
+	return en.insertInNewBn(newData, childNode, pathKey, originalChildHash, goRoutinesManager, modifiedHashes, keyMatchLen, index, trieCtx)
 }
 
 func getMinKeyMatchLen(newData []core.TrieData, enKey []byte) (int, int) {
@@ -280,6 +291,7 @@ func removeCommonPrefix(newData []core.TrieData, prefixLen int) error {
 func (en *extensionNode) insertAtSameKey(
 	newData []core.TrieData,
 	child node,
+	pathKey common.KeyBuilder,
 	originalChildHash []byte,
 	keyMatchLen int,
 	goRoutinesManager common.TrieGoroutinesManager,
@@ -289,7 +301,7 @@ func (en *extensionNode) insertAtSameKey(
 	for i := range newData {
 		newData[i].Key = newData[i].Key[keyMatchLen:]
 	}
-	newChild := child.insert(newData, goRoutinesManager, modifiedHashes, trieCtx)
+	newChild := child.insert(getChildPathKey(pathKey, en.Key), newData, goRoutinesManager, modifiedHashes, trieCtx)
 	if !goRoutinesManager.ShouldContinueProcessing() {
 		return newChild
 	}
@@ -321,6 +333,7 @@ func (en *extensionNode) insertAtSameKey(
 func (en *extensionNode) insertInNewBn(
 	newData []core.TrieData,
 	childNode node,
+	pathKey common.KeyBuilder,
 	originalChildHash []byte,
 	goRoutinesManager common.TrieGoroutinesManager,
 	modifiedHashes common.AtomicBytesSlice,
@@ -362,7 +375,7 @@ func (en *extensionNode) insertInNewBn(
 	var newNode node
 	newNode = bn
 	if len(newData) != 0 {
-		newNode = bn.insert(newData, goRoutinesManager, modifiedHashes, trieCtx)
+		newNode = bn.insert(pathKey, newData, goRoutinesManager, modifiedHashes, trieCtx)
 		if !goRoutinesManager.ShouldContinueProcessing() {
 			return nil
 		}
@@ -449,6 +462,7 @@ func (en *extensionNode) getDataWithMatchingPrefix(data []core.TrieData) []core.
 }
 
 func (en *extensionNode) delete(
+	pathKey common.KeyBuilder,
 	data []core.TrieData,
 	goRoutinesManager common.TrieGoroutinesManager,
 	modifiedHashes common.AtomicBytesSlice,
@@ -458,16 +472,22 @@ func (en *extensionNode) delete(
 	if len(dataWithMatchingKey) == 0 {
 		return false, en
 	}
-	childNode, originalChildHash, err := en.resolveIfCollapsed(trieCtx)
+
+	mutexKey := getMutexKeyFromPath(pathKey)
+	trieCtx.Lock(mutexKey)
+	childNode, childHash, err := en.resolveIfCollapsed(trieCtx)
+	trieCtx.Unlock(mutexKey)
 	if err != nil {
 		goRoutinesManager.SetError(err)
 		return false, nil
 	}
-	if childNode.isDirty() {
-		originalChildHash = []byte{}
+
+	var originalChildHash []byte
+	if !childNode.isDirty() {
+		originalChildHash = childHash
 	}
 
-	dirty, newNode := childNode.delete(dataWithMatchingKey, goRoutinesManager, modifiedHashes, trieCtx)
+	dirty, newNode := childNode.delete(getChildPathKey(pathKey, en.Key), dataWithMatchingKey, goRoutinesManager, modifiedHashes, trieCtx)
 	if !goRoutinesManager.ShouldContinueProcessing() {
 		return false, nil
 	}
@@ -520,10 +540,12 @@ func (en *extensionNode) delete(
 	}
 }
 
-func (en *extensionNode) reduceNode(pos int, _ []byte, trieCtx common.TrieContext) (node, bool, error) {
+func (en *extensionNode) reduceNode(pos int, mutexKey string, trieCtx common.TrieContext) (node, bool, error) {
 	k := append([]byte{byte(pos)}, en.Key...)
 
+	trieCtx.Lock(mutexKey)
 	child, childHash, err := en.resolveIfCollapsed(trieCtx)
+	trieCtx.Unlock(mutexKey)
 	if err != nil {
 		return nil, false, err
 	}
@@ -542,8 +564,6 @@ func (en *extensionNode) isEmptyOrNil() error {
 		return ErrNilExtensionNode
 	}
 
-	en.childMutex.RLock()
-	defer en.childMutex.RUnlock()
 	if en.child == nil && len(en.ChildHash) == 0 {
 		return ErrEmptyExtensionNode
 	}
@@ -575,14 +595,9 @@ func (en *extensionNode) print(writer io.Writer, index int, trieCtx common.TrieC
 }
 
 func (en *extensionNode) getChildren(trieCtx common.TrieContext) ([]nodeWithHash, error) {
-	err := en.isEmptyOrNil()
-	if err != nil {
-		return nil, fmt.Errorf("getChildren error %w", err)
-	}
-
 	nextNodes := make([]nodeWithHash, 0)
 
-	childNode, _, err := en.resolveIfCollapsed(trieCtx)
+	childNode, _, err := getNodeFromDBAndDecode(en.ChildHash, trieCtx)
 	if err != nil {
 		return nil, err
 	}
@@ -642,13 +657,13 @@ func (en *extensionNode) getAllLeavesOnChannel(
 		log.Trace("extensionNode.getAllLeavesOnChannel: context done")
 		return nil
 	default:
-		_, _, err = en.resolveIfCollapsed(trieCtx)
+		child, _, err := getNodeFromDBAndDecode(en.ChildHash, trieCtx)
 		if err != nil {
 			return err
 		}
 
 		keyBuilder.BuildKey(en.Key)
-		err = en.child.getAllLeavesOnChannel(
+		return child.getAllLeavesOnChannel(
 			leavesChannel,
 			keyBuilder.ShallowClone(),
 			trieLeafParser,
@@ -656,14 +671,7 @@ func (en *extensionNode) getAllLeavesOnChannel(
 			ctx,
 			trieCtx,
 		)
-		if err != nil {
-			return err
-		}
-
-		en.child = nil
 	}
-
-	return nil
 }
 
 func (en *extensionNode) getNextHashAndKey(key []byte) (bool, []byte, []byte) {
@@ -682,7 +690,7 @@ func (en *extensionNode) sizeInBytes() int {
 		return 0
 	}
 
-	nodeSize := len(en.Key) + len(en.ChildHash) + versionSizeInBytes + pointerSizeInBytes + dirtyFlagSizeInBytes + 2*mutexSizeInBytes
+	nodeSize := len(en.Key) + len(en.ChildHash) + versionSizeInBytes + pointerSizeInBytes + dirtyFlagSizeInBytes
 
 	return nodeSize
 }
@@ -733,7 +741,10 @@ func (en *extensionNode) collectLeavesForMigration(
 		return true, nil
 	}
 
+	mutexKey := getMutexKeyFromPath(keyBuilder)
+	trieCtx.Lock(mutexKey)
 	childNode, _, err := en.resolveIfCollapsed(trieCtx)
+	trieCtx.Unlock(mutexKey)
 	if err != nil {
 		return false, err
 	}

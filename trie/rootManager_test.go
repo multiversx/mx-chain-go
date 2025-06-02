@@ -19,7 +19,7 @@ func TestNewRootManager(t *testing.T) {
 func TestRootManager_GetRootNode(t *testing.T) {
 	t.Parallel()
 
-	bn := &branchNode{baseNode: &baseNode{}}
+	bn := &branchNode{}
 	rm := NewRootManager()
 	rm.root = bn
 	assert.Equal(t, bn, rm.GetRootNode())
@@ -29,8 +29,8 @@ func TestRootManager_SetDataForRootChange(t *testing.T) {
 	t.Parallel()
 
 	rootData := RootData{
-		newRoot:     &branchNode{baseNode: &baseNode{}},
-		newRootHash: []byte("hash"),
+		root:        &branchNode{},
+		rootHash:    []byte("hash"),
 		oldRootHash: []byte{4, 5, 6},
 		oldHashes:   [][]byte{{7, 8, 9}, {10, 11, 12}},
 	}
@@ -38,8 +38,8 @@ func TestRootManager_SetDataForRootChange(t *testing.T) {
 	rm := NewRootManager()
 
 	rm.SetDataForRootChange(rootData)
-	assert.Equal(t, rootData.newRoot, rm.root)
-	assert.Equal(t, rootData.newRootHash, rm.rootHash)
+	assert.Equal(t, rootData.root, rm.root)
+	assert.Equal(t, rootData.rootHash, rm.rootHash)
 	assert.Equal(t, rootData.oldRootHash, rm.oldRootHash)
 	assert.Equal(t, rootData.oldHashes, rm.oldHashes)
 }
@@ -96,8 +96,8 @@ func TestRootManager_Concurrency(t *testing.T) {
 			case 2:
 				rm.SetDataForRootChange(
 					RootData{
-						newRoot:     &branchNode{baseNode: &baseNode{dirty: true}},
-						newRootHash: []byte("rootHash"),
+						root:        &branchNode{dirty: true},
+						rootHash:    []byte("rootHash"),
 						oldRootHash: []byte{1, 2, 3},
 						oldHashes:   [][]byte{{4, 5, 6}},
 					})
