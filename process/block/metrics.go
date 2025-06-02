@@ -194,9 +194,7 @@ func indexRoundInfo(
 		}
 
 		roundTimestamp := uint64(time.Duration(header.GetTimeStamp() - ((currentBlockRound - i) * roundDuration)))
-
-		// TODO: treat properly with milliseconds granularity
-		roundTimestampMs := roundTimestamp * 1000
+		roundTimestampMs := common.ConvertTimeStampSecToMs(roundTimestamp)
 
 		roundInfo = &outportcore.RoundInfo{
 			Round:            i,
