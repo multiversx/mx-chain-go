@@ -421,14 +421,16 @@
     Type = "TxCache"
     Shards = 16
 
+[TxCacheBounds]
+    MaxNumBytesPerSenderUpperBound = 33_554_432             #32MB
+
 [MempoolSelection]
     SelectionMaxNumTxs = 30000
-    SelectionLoopMaximumDuration = 250
+    SelectionLoopMaximumDuration = 250                      #milliseconds
+    SelectionLoopDurationCheckInterval = 10                 #milliseconds
     SelectionGasBandwidthIncreasePercent = 400
     SelectionGasBandwidthIncreaseScheduledPercent = 260
     SelectionGasRequested = 10_000_000_000
-    MaxNumBytesPerSenderUpperBound = 33_554_432 #32MB
-    SelectionLoopDurationCheckInterval = 10
 
 [TrieNodesChunksDataPool]
     Name = "TrieNodesDataPool"

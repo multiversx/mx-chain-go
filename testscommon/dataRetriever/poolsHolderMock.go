@@ -52,11 +52,18 @@ func NewPoolsHolderMock() *PoolsHolderMock {
 				SizeInBytesPerSender: 10000000,
 				Shards:               16,
 			},
-			TxGasHandler:                       txcachemocks.NewTxGasHandlerMock(),
-			Marshalizer:                        &marshal.GogoProtoMarshalizer{},
-			NumberOfShards:                     1,
-			MaxNumBytesPerSenderUpperBound:     33_554_432,
-			SelectionLoopDurationCheckInterval: 10,
+			TxGasHandler:   txcachemocks.NewTxGasHandlerMock(),
+			Marshalizer:    &marshal.GogoProtoMarshalizer{},
+			NumberOfShards: 1,
+			TxCacheBoundsConfig: config.TxCacheBoundsConfig{
+				MaxNumBytesPerSenderUpperBound: 33_554_432,
+			},
+			MempoolSelectionConfig: config.MempoolSelectionConfig{
+				SelectionGasRequested:              10_000_000_000,
+				SelectionMaxNumTxs:                 30_000,
+				SelectionLoopMaximumDuration:       250,
+				SelectionLoopDurationCheckInterval: 10,
+			},
 		},
 	)
 	panicIfError("NewPoolsHolderMock", err)

@@ -21,13 +21,10 @@ import (
 )
 
 var (
-	oneEGLD                      = big.NewInt(1000000000000000000)
-	oneQuarterOfEGLD             = big.NewInt(250000000000000000)
-	durationWaitAfterSendMany    = 3000 * time.Millisecond
-	durationWaitAfterSendSome    = 300 * time.Millisecond
-	selectionMaxNumTxs           = 30000
-	selectionLoopMaximumDuration = 250 * time.Millisecond
-	selectionGasRequested        = 10_000_000_000
+	oneEGLD                   = big.NewInt(1000000000000000000)
+	oneQuarterOfEGLD          = big.NewInt(250000000000000000)
+	durationWaitAfterSendMany = 3000 * time.Millisecond
+	durationWaitAfterSendSome = 300 * time.Millisecond
 )
 
 func startChainSimulator(t *testing.T, alterConfigsFunction func(cfg *config.Configs)) testsChainSimulator.ChainSimulator {
@@ -165,12 +162,7 @@ func selectTransactions(t *testing.T, simulator testsChainSimulator.ChainSimulat
 
 	mempool := poolsHolder.ShardDataStore(shardAsString).(*txcache.TxCache)
 
-	selectedTransactions, gas := mempool.SelectTransactions(
-		selectionSession,
-		uint64(selectionGasRequested),
-		selectionMaxNumTxs,
-		selectionLoopMaximumDuration,
-	)
+	selectedTransactions, gas := mempool.SelectTransactions(selectionSession)
 
 	return selectedTransactions, gas
 }
