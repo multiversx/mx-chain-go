@@ -94,7 +94,7 @@ func treatLogError(logInstance logger.Logger, err error, key []byte) {
 
 func handleStorageInteractorStats(db common.TrieStorageInteractor) {
 	if db != nil {
-		db.GetStateStatsHandler().IncrementTrie()
+		db.GetStateStatsHandler().IncrTrie()
 	}
 }
 
@@ -107,7 +107,7 @@ func concat(s1 []byte, s2 ...byte) []byte {
 }
 
 func decodeNode(encNode []byte, trieCtx common.TrieContext) (node, error) {
-	if encNode == nil || len(encNode) < 1 {
+	if len(encNode) < 1 {
 		return nil, ErrInvalidEncoding
 	}
 

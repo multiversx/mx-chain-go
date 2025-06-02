@@ -27,6 +27,9 @@ func (rndm *RoundHandlerMock) BeforeGenesis() bool {
 	return false
 }
 
+// RevertOneRound -
+func (rndm *RoundHandlerMock) RevertOneRound() {}
+
 // Index -
 func (rndm *RoundHandlerMock) Index() int64 {
 	if rndm.IndexCalled != nil {

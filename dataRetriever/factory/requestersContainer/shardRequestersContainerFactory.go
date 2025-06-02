@@ -42,6 +42,7 @@ func NewShardRequestersContainerFactory(
 		numIntraShardPeers:              int(numIntraShardPeers),
 		numTotalPeers:                   int(args.RequesterConfig.NumTotalPeers),
 		numFullHistoryPeers:             int(args.RequesterConfig.NumFullHistoryPeers),
+		enableEpochsHandler:             args.EnableEpochsHandler,
 	}
 
 	err := base.checkParams()
@@ -80,6 +81,11 @@ func (srcf *shardRequestersContainerFactory) Create() (dataRetriever.RequestersC
 	}
 
 	err = srcf.generateTrieNodesRequesters()
+	if err != nil {
+		return nil, err
+	}
+
+	err = srcf.generateEquivalentProofsRequesters()
 	if err != nil {
 		return nil, err
 	}
@@ -175,6 +181,44 @@ func (srcf *shardRequestersContainerFactory) generateRewardRequester(topic strin
 
 	requestersSlice = append(requestersSlice, requester)
 	keys = append(keys, identifierTx)
+
+	return srcf.container.AddMultiple(keys, requestersSlice)
+}
+
+func (srcf *shardRequestersContainerFactory) generateEquivalentProofsRequesters() error {
+	shardC := srcf.shardCoordinator
+
+	keys := make([]string, 0)
+	requestersSlice := make([]dataRetriever.Requester, 0)
+
+	// should be 2 resolvers on shards, similar as interceptors: self_META + ALL
+	identifier := common.EquivalentProofsTopic + shardC.CommunicationIdentifier(core.MetachainShardId)
+	requester, err := srcf.createEquivalentProofsRequester(
+		identifier,
+		0,
+		srcf.numTotalPeers,
+		shardC.SelfId(),
+	)
+	if err != nil {
+		return err
+	}
+
+	requestersSlice = append(requestersSlice, requester)
+	keys = append(keys, identifier)
+
+	identifier = common.EquivalentProofsTopic + core.CommunicationIdentifierBetweenShards(core.MetachainShardId, core.AllShardId)
+	requester, err = srcf.createEquivalentProofsRequester(
+		identifier,
+		srcf.numCrossShardPeers,
+		srcf.numIntraShardPeers,
+		core.MetachainShardId,
+	)
+	if err != nil {
+		return err
+	}
+
+	requestersSlice = append(requestersSlice, requester)
+	keys = append(keys, identifier)
 
 	return srcf.container.AddMultiple(keys, requestersSlice)
 }

@@ -24,6 +24,10 @@ import (
 	dataTx "github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-core-go/hashing/sha256"
 	crypto "github.com/multiversx/mx-chain-crypto-go"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/common/errChan"
 	"github.com/multiversx/mx-chain-go/common/holders"
@@ -50,9 +54,6 @@ import (
 	stateMock "github.com/multiversx/mx-chain-go/testscommon/state"
 	testStorage "github.com/multiversx/mx-chain-go/testscommon/storage"
 	"github.com/multiversx/mx-chain-go/trie"
-	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 const denomination = "000000000000000000"
@@ -1304,7 +1305,7 @@ func TestRollbackBlockAndCheckThatPruningIsCancelledOnAccountsTrie(t *testing.T)
 	numNodesPerShard := 1
 	numNodesMeta := 1
 
-	nodes, idxProposers := integrationTests.SetupSyncNodesOneShardAndMeta(numNodesPerShard, numNodesMeta)
+	nodes, leaders := integrationTests.SetupSyncNodesOneShardAndMeta(numNodesPerShard, numNodesMeta)
 	defer integrationTests.CloseProcessorNodes(nodes)
 
 	integrationTests.BootstrapDelay()
@@ -1336,7 +1337,7 @@ func TestRollbackBlockAndCheckThatPruningIsCancelledOnAccountsTrie(t *testing.T)
 
 	round = integrationTests.IncrementAndPrintRound(round)
 	nonce++
-	round, nonce = integrationTests.ProposeAndSyncOneBlock(t, nodes, idxProposers, round, nonce)
+	round, nonce = integrationTests.ProposeAndSyncOneBlock(t, nodes, leaders, round, nonce)
 
 	rootHashOfFirstBlock, _ := shardNode.AccntState.RootHash()
 
@@ -1345,7 +1346,7 @@ func TestRollbackBlockAndCheckThatPruningIsCancelledOnAccountsTrie(t *testing.T)
 
 	delayRounds := 10
 	for i := 0; i < delayRounds; i++ {
-		round, nonce = integrationTests.ProposeAndSyncOneBlock(t, nodes, idxProposers, round, nonce)
+		round, nonce = integrationTests.ProposeAndSyncOneBlock(t, nodes, leaders, round, nonce)
 	}
 
 	fmt.Println("Generating transactions...")
@@ -1362,7 +1363,7 @@ func TestRollbackBlockAndCheckThatPruningIsCancelledOnAccountsTrie(t *testing.T)
 	fmt.Println("Delaying for disseminating transactions...")
 	time.Sleep(time.Second * 5)
 
-	round, _ = integrationTests.ProposeAndSyncOneBlock(t, nodes, idxProposers, round, nonce)
+	round, _ = integrationTests.ProposeAndSyncOneBlock(t, nodes, leaders, round, nonce)
 	time.Sleep(time.Second * 5)
 
 	rootHashOfRollbackedBlock, _ := shardNode.AccntState.RootHash()
@@ -1395,7 +1396,7 @@ func TestRollbackBlockAndCheckThatPruningIsCancelledOnAccountsTrie(t *testing.T)
 	integrationTests.ProposeBlocks(
 		nodes,
 		&round,
-		idxProposers,
+		leaders,
 		nonces,
 		numOfRounds,
 	)
@@ -1564,11 +1565,11 @@ func TestStatePruningIsNotBuffered(t *testing.T) {
 	)
 
 	shardNode := nodes[0]
-	idxProposers := make([]int, numOfShards+1)
+	leaders := make([]*integrationTests.TestProcessorNode, numOfShards+1)
 	for i := 0; i < numOfShards; i++ {
-		idxProposers[i] = i * nodesPerShard
+		leaders[i] = nodes[i*nodesPerShard]
 	}
-	idxProposers[numOfShards] = numOfShards * nodesPerShard
+	leaders[numOfShards] = nodes[numOfShards*nodesPerShard]
 
 	integrationTests.DisplayAndStartNodes(nodes)
 
@@ -1588,21 +1589,21 @@ func TestStatePruningIsNotBuffered(t *testing.T) {
 
 	time.Sleep(integrationTests.StepDelay)
 
-	round, nonce = integrationTests.ProposeAndSyncOneBlock(t, nodes, idxProposers, round, nonce)
+	round, nonce = integrationTests.ProposeAndSyncOneBlock(t, nodes, leaders, round, nonce)
 
 	delayRounds := 5
 	for j := 0; j < 8; j++ {
 		// alter the shardNode's state by placing the value0 variable inside it's data trie
 		alterState(t, shardNode, nodes, []byte("key"), []byte("value0"))
 		for i := 0; i < delayRounds; i++ {
-			round, nonce = integrationTests.ProposeAndSyncOneBlock(t, nodes, idxProposers, round, nonce)
+			round, nonce = integrationTests.ProposeAndSyncOneBlock(t, nodes, leaders, round, nonce)
 		}
 		checkTrieCanBeRecreated(t, shardNode)
 
 		// alter the shardNode's state by placing the value1 variable inside it's data trie
 		alterState(t, shardNode, nodes, []byte("key"), []byte("value1"))
 		for i := 0; i < delayRounds; i++ {
-			round, nonce = integrationTests.ProposeAndSyncOneBlock(t, nodes, idxProposers, round, nonce)
+			round, nonce = integrationTests.ProposeAndSyncOneBlock(t, nodes, leaders, round, nonce)
 		}
 		checkTrieCanBeRecreated(t, shardNode)
 	}
@@ -1624,11 +1625,11 @@ func TestStatePruningIsNotBufferedOnConsecutiveBlocks(t *testing.T) {
 	)
 
 	shardNode := nodes[0]
-	idxProposers := make([]int, numOfShards+1)
+	leaders := make([]*integrationTests.TestProcessorNode, numOfShards+1)
 	for i := 0; i < numOfShards; i++ {
-		idxProposers[i] = i * nodesPerShard
+		leaders[i] = nodes[i*nodesPerShard]
 	}
-	idxProposers[numOfShards] = numOfShards * nodesPerShard
+	leaders[numOfShards] = nodes[numOfShards*nodesPerShard]
 
 	integrationTests.DisplayAndStartNodes(nodes)
 
@@ -1648,17 +1649,17 @@ func TestStatePruningIsNotBufferedOnConsecutiveBlocks(t *testing.T) {
 
 	time.Sleep(integrationTests.StepDelay)
 
-	round, nonce = integrationTests.ProposeAndSyncOneBlock(t, nodes, idxProposers, round, nonce)
+	round, nonce = integrationTests.ProposeAndSyncOneBlock(t, nodes, leaders, round, nonce)
 
 	for j := 0; j < 30; j++ {
 		// alter the shardNode's state by placing the value0 variable inside it's data trie
 		alterState(t, shardNode, nodes, []byte("key"), []byte("value0"))
-		round, nonce = integrationTests.ProposeAndSyncOneBlock(t, nodes, idxProposers, round, nonce)
+		round, nonce = integrationTests.ProposeAndSyncOneBlock(t, nodes, leaders, round, nonce)
 		checkTrieCanBeRecreated(t, shardNode)
 
 		// alter the shardNode's state by placing the value1 variable inside it's data trie
 		alterState(t, shardNode, nodes, []byte("key"), []byte("value1"))
-		round, nonce = integrationTests.ProposeAndSyncOneBlock(t, nodes, idxProposers, round, nonce)
+		round, nonce = integrationTests.ProposeAndSyncOneBlock(t, nodes, leaders, round, nonce)
 		checkTrieCanBeRecreated(t, shardNode)
 	}
 }
@@ -1738,11 +1739,11 @@ func TestSnapshotOnEpochChange(t *testing.T) {
 		node.EpochStartTrigger.SetRoundsPerEpoch(roundsPerEpoch)
 	}
 
-	idxProposers := make([]int, numOfShards+1)
+	leaders := make([]*integrationTests.TestProcessorNode, numOfShards+1)
 	for i := 0; i < numOfShards; i++ {
-		idxProposers[i] = i * nodesPerShard
+		leaders[i] = nodes[i*nodesPerShard]
 	}
-	idxProposers[numOfShards] = numOfShards * nodesPerShard
+	leaders[numOfShards] = nodes[numOfShards*nodesPerShard]
 
 	integrationTests.DisplayAndStartNodes(nodes)
 
@@ -1772,7 +1773,7 @@ func TestSnapshotOnEpochChange(t *testing.T) {
 	numRounds := uint32(20)
 	for i := uint64(0); i < uint64(numRounds); i++ {
 
-		round, nonce = integrationTests.ProposeAndSyncOneBlock(t, nodes, idxProposers, round, nonce)
+		round, nonce = integrationTests.ProposeAndSyncOneBlock(t, nodes, leaders, round, nonce)
 
 		for _, node := range nodes {
 			integrationTests.CreateAndSendTransaction(node, nodes, sendValue, receiverAddress, "", integrationTests.AdditionalGasLimit)
@@ -1791,7 +1792,7 @@ func TestSnapshotOnEpochChange(t *testing.T) {
 
 	numDelayRounds := uint32(15)
 	for i := uint64(0); i < uint64(numDelayRounds); i++ {
-		round, nonce = integrationTests.ProposeAndSyncOneBlock(t, nodes, idxProposers, round, nonce)
+		round, nonce = integrationTests.ProposeAndSyncOneBlock(t, nodes, leaders, round, nonce)
 
 		for _, node := range nodes {
 			integrationTests.CreateAndSendTransaction(node, nodes, sendValue, receiverAddress, "", integrationTests.AdditionalGasLimit)
@@ -2435,7 +2436,7 @@ func migrateDataTrieBuiltInFunc(
 	migrationAddress []byte,
 	nonce uint64,
 	round uint64,
-	idxProposers []int,
+	leaders []*integrationTests.TestProcessorNode,
 ) {
 	require.True(t, nodes[shardId].EnableEpochsHandler.IsFlagEnabled(common.AutoBalanceDataTriesFlag))
 	isMigrated := getAddressMigrationStatus(t, nodes[shardId].AccntState, migrationAddress)
@@ -2445,7 +2446,7 @@ func migrateDataTrieBuiltInFunc(
 
 	time.Sleep(time.Second)
 	nrRoundsToPropagate := 5
-	_, _ = integrationTests.WaitOperationToBeDone(t, nodes, nrRoundsToPropagate, nonce, round, idxProposers)
+	_, _ = integrationTests.WaitOperationToBeDone(t, leaders, nodes, nrRoundsToPropagate, nonce, round)
 
 	isMigrated = getAddressMigrationStatus(t, nodes[shardId].AccntState, migrationAddress)
 	require.True(t, isMigrated)
@@ -2455,7 +2456,7 @@ func startNodesAndIssueToken(
 	t *testing.T,
 	numOfShards int,
 	issuerShardId byte,
-) ([]*integrationTests.TestProcessorNode, []int, uint64, uint64) {
+) (leaders []*integrationTests.TestProcessorNode, nodes []*integrationTests.TestProcessorNode, nonce uint64, round uint64) {
 	nodesPerShard := 1
 	numMetachainNodes := 1
 
@@ -2469,9 +2470,10 @@ func startNodesAndIssueToken(
 		StakingV4Step1EnableEpoch:                   integrationTests.UnreachableEpoch,
 		StakingV4Step2EnableEpoch:                   integrationTests.UnreachableEpoch,
 		StakingV4Step3EnableEpoch:                   integrationTests.UnreachableEpoch,
+		AndromedaEnableEpoch:                        integrationTests.UnreachableEpoch,
 		AutoBalanceDataTriesEnableEpoch:             1,
 	}
-	nodes := integrationTests.CreateNodesWithEnableEpochs(
+	nodes = integrationTests.CreateNodesWithEnableEpochs(
 		numOfShards,
 		nodesPerShard,
 		numMetachainNodes,
@@ -2483,19 +2485,19 @@ func startNodesAndIssueToken(
 		node.EpochStartTrigger.SetRoundsPerEpoch(roundsPerEpoch)
 	}
 
-	idxProposers := make([]int, numOfShards+1)
+	leaders = make([]*integrationTests.TestProcessorNode, numOfShards+1)
 	for i := 0; i < numOfShards; i++ {
-		idxProposers[i] = i * nodesPerShard
+		leaders[i] = nodes[i*nodesPerShard]
 	}
-	idxProposers[numOfShards] = numOfShards * nodesPerShard
+	leaders[numOfShards] = nodes[numOfShards*nodesPerShard]
 
 	integrationTests.DisplayAndStartNodes(nodes)
 
 	initialVal := int64(10000000000)
 	integrationTests.MintAllNodes(nodes, big.NewInt(initialVal))
 
-	round := uint64(0)
-	nonce := uint64(0)
+	round = uint64(0)
+	nonce = uint64(0)
 	round = integrationTests.IncrementAndPrintRound(round)
 	nonce++
 
@@ -2506,14 +2508,14 @@ func startNodesAndIssueToken(
 
 	time.Sleep(time.Second)
 	nrRoundsToPropagate := 8
-	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, nrRoundsToPropagate, nonce, round, idxProposers)
+	nonce, round = integrationTests.WaitOperationToBeDone(t, leaders, nodes, nrRoundsToPropagate, nonce, round)
 	time.Sleep(time.Second)
 
 	tokenIdentifier := string(integrationTests.GetTokenIdentifier(nodes, []byte(ticker)))
 
 	esdtCommon.CheckAddressHasTokens(t, nodes[issuerShardId].OwnAccount.Address, nodes, []byte(tokenIdentifier), 0, initialSupply)
 
-	return nodes, idxProposers, nonce, round
+	return nodes, leaders, nonce, round
 }
 
 func getDestAccountAddress(migrationAddress []byte, shardId byte) []byte {

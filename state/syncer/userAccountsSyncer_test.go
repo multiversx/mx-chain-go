@@ -11,6 +11,9 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
 	"github.com/multiversx/mx-chain-go/api/mock"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/common/errChan"
@@ -22,14 +25,13 @@ import (
 	"github.com/multiversx/mx-chain-go/state/parsers"
 	"github.com/multiversx/mx-chain-go/state/syncer"
 	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/cache"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/storageManager"
 	trieMock "github.com/multiversx/mx-chain-go/testscommon/trie"
 	"github.com/multiversx/mx-chain-go/trie"
 	"github.com/multiversx/mx-chain-go/trie/keyBuilder"
 	"github.com/multiversx/mx-chain-go/trie/storageMarker"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 func getDefaultUserAccountsSyncerArgs() syncer.ArgsNewUserAccountsSyncer {
@@ -156,7 +158,7 @@ func TestUserAccountsSyncer_SyncAccounts(t *testing.T) {
 			},
 		}
 
-		cacher := testscommon.NewCacherMock()
+		cacher := cache.NewCacherMock()
 		cacher.Put(key, itn, 0)
 		args.Cacher = cacher
 
@@ -243,7 +245,7 @@ func TestUserAccountsSyncer_SyncAccountDataTries(t *testing.T) {
 			},
 		}
 
-		cacher := testscommon.NewCacherMock()
+		cacher := cache.NewCacherMock()
 		cacher.Put(key, itn, 0)
 		args.Cacher = cacher
 
@@ -306,7 +308,7 @@ func TestUserAccountsSyncer_SyncAccountDataTries(t *testing.T) {
 			},
 		}
 
-		cacher := testscommon.NewCacherMock()
+		cacher := cache.NewCacherMock()
 		cacher.Put(key, itn, 0)
 		args.Cacher = cacher
 
@@ -399,7 +401,7 @@ func TestUserAccountsSyncer_MissingDataTrieNodeFound(t *testing.T) {
 	rootHash, _ := tr.RootHash()
 	_ = tr.Commit(hashesCollector.NewDisabledHashesCollector())
 
-	args.Cacher = &testscommon.CacherStub{
+	args.Cacher = &cache.CacherStub{
 		GetCalled: func(key []byte) (value interface{}, ok bool) {
 			interceptedNode, _ := trie.NewInterceptedTrieNode(serializedLeafNode, args.Hasher)
 			return interceptedNode, true

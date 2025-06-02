@@ -4,6 +4,8 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
+
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/sharding"
 )
@@ -39,6 +41,12 @@ func checkBlockHeaderArgument(arg *ArgInterceptedBlockHeader) error {
 	if check.IfNil(arg.ValidityAttester) {
 		return process.ErrNilValidityAttester
 	}
+	if check.IfNil(arg.EnableEpochsHandler) {
+		return process.ErrNilEnableEpochsHandler
+	}
+	if check.IfNil(arg.EpochChangeGracePeriodHandler) {
+		return process.ErrNilEpochChangeGracePeriodHandler
+	}
 
 	return nil
 }
@@ -63,14 +71,19 @@ func checkMiniblockArgument(arg *ArgInterceptedMiniblock) error {
 	return nil
 }
 
-func checkHeaderHandler(hdr data.HeaderHandler) error {
-	if len(hdr.GetPubKeysBitmap()) == 0 {
+func checkHeaderHandler(
+	hdr data.HeaderHandler,
+	enableEpochsHandler common.EnableEpochsHandler,
+) error {
+	equivalentMessagesEnabled := enableEpochsHandler.IsFlagEnabledInEpoch(common.AndromedaFlag, hdr.GetEpoch())
+
+	if len(hdr.GetPubKeysBitmap()) == 0 && !equivalentMessagesEnabled {
 		return process.ErrNilPubKeysBitmap
 	}
 	if len(hdr.GetPrevHash()) == 0 {
 		return process.ErrNilPreviousBlockHash
 	}
-	if len(hdr.GetSignature()) == 0 {
+	if len(hdr.GetSignature()) == 0 && !equivalentMessagesEnabled {
 		return process.ErrNilSignature
 	}
 	if len(hdr.GetRootHash()) == 0 {
@@ -86,7 +99,14 @@ func checkHeaderHandler(hdr data.HeaderHandler) error {
 	return hdr.CheckFieldsForNil()
 }
 
-func checkMetaShardInfo(shardInfo []data.ShardDataHandler, coordinator sharding.Coordinator) error {
+func checkMetaShardInfo(
+	shardInfo []data.ShardDataHandler,
+	coordinator sharding.Coordinator,
+) error {
+	if coordinator.SelfId() != core.MetachainShardId {
+		return nil
+	}
+
 	for _, sd := range shardInfo {
 		if sd.GetShardID() >= coordinator.NumberOfShards() && sd.GetShardID() != core.MetachainShardId {
 			return process.ErrInvalidShardId

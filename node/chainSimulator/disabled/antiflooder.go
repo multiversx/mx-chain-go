@@ -16,6 +16,10 @@ func NewAntiFlooder() *antiFlooder {
 	return &antiFlooder{}
 }
 
+// SetConsensusSizeNotifier does nothing
+func (a *antiFlooder) SetConsensusSizeNotifier(_ process.ChainParametersSubscriber, _ uint32) {
+}
+
 // CanProcessMessage returns nil
 func (a *antiFlooder) CanProcessMessage(_ p2p.MessageP2P, _ core.PeerID) error {
 	return nil

@@ -13,6 +13,7 @@ import (
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/state/accounts"
 	"github.com/multiversx/mx-chain-go/storage"
+	"github.com/multiversx/mx-chain-go/testscommon/chainParameters"
 	nodesSetupMock "github.com/multiversx/mx-chain-go/testscommon/genesisMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/stakingcommon"
 	"github.com/multiversx/mx-chain-storage-go/lrucache"
@@ -39,10 +40,6 @@ func createNodesCoordinator(
 	maxNodesConfig []config.MaxNodesChangeConfig,
 ) nodesCoordinator.NodesCoordinator {
 	shufflerArgs := &nodesCoordinator.NodesShufflerArgs{
-		NodesShard:           numOfEligibleNodesPerShard,
-		NodesMeta:            numOfMetaNodes,
-		Hysteresis:           hysteresis,
-		Adaptivity:           adaptivity,
 		ShuffleBetweenShards: shuffleBetweenShards,
 		MaxNodesEnableConfig: maxNodesConfig,
 		EnableEpochs: config.EnableEpochs{
@@ -51,11 +48,23 @@ func createNodesCoordinator(
 		},
 		EnableEpochsHandler: coreComponents.EnableEpochsHandler(),
 	}
+
 	nodeShuffler, _ := nodesCoordinator.NewHashValidatorsShuffler(shufflerArgs)
 	cache, _ := lrucache.NewCache(10000)
 	argumentsNodesCoordinator := nodesCoordinator.ArgNodesCoordinator{
-		ShardConsensusGroupSize:         shardConsensusGroupSize,
-		MetaConsensusGroupSize:          metaConsensusGroupSize,
+		ChainParametersHandler: &chainParameters.ChainParametersHandlerStub{
+			ChainParametersForEpochCalled: func(epoch uint32) (config.ChainParametersByEpochConfig, error) {
+				return config.ChainParametersByEpochConfig{
+					RoundDuration:               0,
+					Hysteresis:                  hysteresis,
+					ShardConsensusGroupSize:     uint32(shardConsensusGroupSize),
+					ShardMinNumNodes:            numOfEligibleNodesPerShard,
+					MetachainConsensusGroupSize: uint32(metaConsensusGroupSize),
+					MetachainMinNumNodes:        numOfMetaNodes,
+					Adaptivity:                  adaptivity,
+				}, nil
+			},
+		},
 		Marshalizer:                     coreComponents.InternalMarshalizer(),
 		Hasher:                          coreComponents.Hasher(),
 		ShardIDAsObserver:               core.MetachainShardId,
