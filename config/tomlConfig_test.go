@@ -162,6 +162,9 @@ func TestTomlParser(t *testing.T) {
 		Redundancy: RedundancyConfig{
 			MaxRoundsOfInactivityAccepted: 3,
 		},
+		TxCacheBounds: TxCacheBoundsConfig{
+			MaxNumBytesPerSenderUpperBound: 33_554_432,
+		},
 		MempoolSelection: MempoolSelectionConfig{
 			SelectionMaxNumTxs:                            30000,
 			SelectionLoopMaximumDuration:                  250,
@@ -169,7 +172,6 @@ func TestTomlParser(t *testing.T) {
 			SelectionGasBandwidthIncreasePercent:          400,
 			SelectionGasBandwidthIncreaseScheduledPercent: 260,
 			SelectionLoopDurationCheckInterval:            10,
-			MaxNumBytesPerSenderUpperBound:                33_554_432,
 		},
 	}
 	testString := `
@@ -223,13 +225,15 @@ func TestTomlParser(t *testing.T) {
 [Consensus]
     Type = "` + consensusType + `"
 
+[TxCacheBounds]
+	MaxNumBytesPerSenderUpperBound = 33_554_432
+
 [MempoolSelection]
 	SelectionMaxNumTxs = 30000
 	SelectionLoopMaximumDuration = 250
 	SelectionGasRequested = 10_000_000_000
 	SelectionGasBandwidthIncreasePercent = 400
 	SelectionGasBandwidthIncreaseScheduledPercent = 260
-	MaxNumBytesPerSenderUpperBound = 33_554_432
 	SelectionLoopDurationCheckInterval = 10
 
 [VirtualMachine]

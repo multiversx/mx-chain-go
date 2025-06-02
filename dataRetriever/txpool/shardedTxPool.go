@@ -64,6 +64,7 @@ func NewShardedTxPool(args ArgShardedTxPool) (*shardedTxPool, error) {
 		NumBytesPerSenderThreshold:  args.Config.SizeInBytesPerSender,
 		CountPerSenderThreshold:     args.Config.SizePerSender,
 		NumItemsToPreemptivelyEvict: storage.TxPoolSourceMeNumItemsToPreemptivelyEvict,
+		TxCacheBoundsConfig:         args.TxCacheBoundsConfig,
 		MempoolSelectionConfig:      args.MempoolSelectionConfig,
 	}
 

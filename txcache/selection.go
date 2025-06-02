@@ -47,6 +47,7 @@ func selectTransactionsFromBunches(session SelectionSession, bunches []bunchOfTr
 
 	accumulatedGas := uint64(0)
 	selectionLoopStartTime := time.Now()
+	selectionLoopMaxDuration := time.Duration(mempoolSelectionConfig.SelectionLoopMaximumDuration) * time.Millisecond
 
 	// Select transactions (sorted).
 	for transactionsHeap.Len() > 0 {
@@ -61,7 +62,7 @@ func selectTransactionsFromBunches(session SelectionSession, bunches []bunchOfTr
 			break
 		}
 		if len(selectedTransactions)%int(mempoolSelectionConfig.SelectionLoopDurationCheckInterval) == 0 {
-			if time.Since(selectionLoopStartTime) > time.Duration(mempoolSelectionConfig.SelectionLoopMaximumDuration)*time.Millisecond {
+			if time.Since(selectionLoopStartTime) > selectionLoopMaxDuration {
 				logSelect.Debug("TxCache.selectTransactionsFromBunches, selection loop timeout", "duration", time.Since(selectionLoopStartTime))
 				break
 			}

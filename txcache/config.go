@@ -27,6 +27,7 @@ type ConfigSourceMe struct {
 	CountThreshold              uint32
 	CountPerSenderThreshold     uint32
 	NumItemsToPreemptivelyEvict uint32
+	TxCacheBoundsConfig         config.TxCacheBoundsConfig
 	MempoolSelectionConfig      config.MempoolSelectionConfig
 }
 
@@ -42,7 +43,7 @@ func (config *ConfigSourceMe) verify() error {
 	if config.NumChunks < numChunksLowerBound || config.NumChunks > numChunksUpperBound {
 		return fmt.Errorf("%w: config.NumChunks is invalid", common.ErrInvalidConfig)
 	}
-	if config.NumBytesPerSenderThreshold < maxNumBytesPerSenderLowerBound || config.NumBytesPerSenderThreshold > config.MempoolSelectionConfig.MaxNumBytesPerSenderUpperBound {
+	if config.NumBytesPerSenderThreshold < maxNumBytesPerSenderLowerBound || config.NumBytesPerSenderThreshold > config.TxCacheBoundsConfig.MaxNumBytesPerSenderUpperBound {
 		return fmt.Errorf("%w: config.NumBytesPerSenderThreshold is invalid", common.ErrInvalidConfig)
 	}
 	if config.CountPerSenderThreshold < maxNumItemsPerSenderLowerBound {

@@ -119,12 +119,14 @@ func newPool() dataRetriever.ShardedDataCacherNotifier {
 		Marshalizer:    &marshal.GogoProtoMarshalizer{},
 		NumberOfShards: 2,
 		SelfShardID:    0,
+		TxCacheBoundsConfig: config.TxCacheBoundsConfig{
+			MaxNumBytesPerSenderUpperBound: maxNumBytesPerSenderUpperBoundTest,
+		},
 		MempoolSelectionConfig: config.MempoolSelectionConfig{
 			SelectionGasRequested:              10_000_000_000,
 			SelectionMaxNumTxs:                 30_000,
 			SelectionLoopMaximumDuration:       250,
 			SelectionLoopDurationCheckInterval: selectionLoopDurationCheckInterval,
-			MaxNumBytesPerSenderUpperBound:     maxNumBytesPerSenderUpperBoundTest,
 		}}
 	pool, err := txpool.NewShardedTxPool(args)
 	if err != nil {

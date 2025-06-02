@@ -18,6 +18,7 @@ type ArgShardedTxPool struct {
 	NumberOfShards         uint32
 	SelfShardID            uint32
 	MempoolSelectionConfig config.MempoolSelectionConfig
+	TxCacheBoundsConfig    config.TxCacheBoundsConfig
 }
 
 // TODO: Upon further analysis and brainstorming, add some sensible minimum accepted values for the appropriate fields.
@@ -54,19 +55,19 @@ func (args *ArgShardedTxPool) verify() error {
 	}
 
 	if args.MempoolSelectionConfig.SelectionMaxNumTxs == 0 {
-		return fmt.Errorf("%w: TxCacheSelectionMaxNumTxs is not valid", dataRetriever.ErrBadTxCacheSelectionMaxNumTxs)
+		return fmt.Errorf("%w: SelectionMaxNumTxs is not valid", dataRetriever.ErrBadSelectionMaxNumTxs)
 	}
 
 	if args.MempoolSelectionConfig.SelectionGasRequested == 0 {
-		return fmt.Errorf("%w: TxCacheSelectionMaxNumTxs is not valid", dataRetriever.ErrBadTxCacheSelectionGasRequested)
+		return fmt.Errorf("%w: SelectionGasRequested is not valid", dataRetriever.ErrBadSelectionGasRequested)
 	}
 
 	if args.MempoolSelectionConfig.SelectionLoopMaximumDuration == 0 {
-		return fmt.Errorf("%w: TxCacheSelectionMaxNumTxs is not valid", dataRetriever.ErrBadTxCacheSelectionLoopMaximumDuration)
+		return fmt.Errorf("%w: SelectionLoopMaximumDuration is not valid", dataRetriever.ErrBadSelectionLoopMaximumDuration)
 	}
 
-	if args.MempoolSelectionConfig.MaxNumBytesPerSenderUpperBound == 0 {
-		return fmt.Errorf("%w: TxCacheSelectionMaxNumTxs is not valid", dataRetriever.ErrBadMaxNumBytesPerSenderUpperBound)
+	if args.TxCacheBoundsConfig.MaxNumBytesPerSenderUpperBound == 0 {
+		return fmt.Errorf("%w: MaxNumBytesPerSenderUpperBound is not valid", dataRetriever.ErrBadMaxNumBytesPerSenderUpperBound)
 	}
 
 	return nil

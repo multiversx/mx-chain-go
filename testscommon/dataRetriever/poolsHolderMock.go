@@ -55,12 +55,14 @@ func NewPoolsHolderMock() *PoolsHolderMock {
 			TxGasHandler:   txcachemocks.NewTxGasHandlerMock(),
 			Marshalizer:    &marshal.GogoProtoMarshalizer{},
 			NumberOfShards: 1,
+			TxCacheBoundsConfig: config.TxCacheBoundsConfig{
+				MaxNumBytesPerSenderUpperBound: 33_554_432,
+			},
 			MempoolSelectionConfig: config.MempoolSelectionConfig{
 				SelectionGasRequested:              10_000_000_000,
 				SelectionMaxNumTxs:                 30_000,
 				SelectionLoopMaximumDuration:       250,
 				SelectionLoopDurationCheckInterval: 10,
-				MaxNumBytesPerSenderUpperBound:     33_554_432,
 			},
 		},
 	)
