@@ -172,6 +172,7 @@ func indexRoundInfo(
 		ShardId:          shardId,
 		Epoch:            header.GetEpoch(),
 		Timestamp:        uint64(time.Duration(header.GetTimeStamp())),
+		TimestampMs:      uint64(time.Duration(header.GetTimeStampMs())),
 	}
 
 	if check.IfNil(lastHeader) {
@@ -192,13 +193,19 @@ func indexRoundInfo(
 			continue
 		}
 
+		roundTimestamp := uint64(time.Duration(header.GetTimeStamp() - ((currentBlockRound - i) * roundDuration)))
+
+		// TODO: treat properly with milliseconds granularity
+		roundTimestampMs := roundTimestamp * 1000
+
 		roundInfo = &outportcore.RoundInfo{
 			Round:            i,
 			SignersIndexes:   signersIndexes,
 			BlockWasProposed: false,
 			ShardId:          shardId,
 			Epoch:            header.GetEpoch(),
-			Timestamp:        uint64(time.Duration(header.GetTimeStamp() - ((currentBlockRound - i) * roundDuration))),
+			Timestamp:        roundTimestamp,
+			TimestampMs:      roundTimestampMs,
 		}
 
 		roundsInfo = append(roundsInfo, roundInfo)

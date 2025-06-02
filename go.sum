@@ -57,6 +57,7 @@ github.com/bytedance/sonic/loader v0.1.1/go.mod h1:ncP89zfokxS5LZrJxl5z0UJcsk4M4
 github.com/census-instrumentation/opencensus-proto v0.2.1/go.mod h1:f6KPmirojxKA12rnyqOA5BBL4O983OfeGPqjHWSTneU=
 github.com/cespare/xxhash/v2 v2.3.0 h1:UL815xU9SqsFlibzuggzjXhog7bL6oX9BbNZnL2UFvs=
 github.com/cespare/xxhash/v2 v2.3.0/go.mod h1:VGX0DQ3Q6kWi7AoAeZDth3/j3BFtOZR5XLFGgcrjCOs=
+github.com/chenzhuoyu/base64x v0.0.0-20221115062448-fe3a3abad311/go.mod h1:b583jCggY9gE99b6G5LEC39OIiVsWj+R97kbl5odCEk=
 github.com/chzyer/logex v1.1.10/go.mod h1:+Ywpsq7O8HXn0nuIou7OrIPyXbp3wmkHB+jjWRnGsAI=
 github.com/chzyer/readline v0.0.0-20180603132655-2972be24d48e/go.mod h1:nSuG5e5PlCu98SY8svDHJxuZscDgtXS6KTTbou5AhLI=
 github.com/chzyer/test v0.0.0-20180213035817-a1ea475d72b1/go.mod h1:Q3SI9o4m/ZMnBNeIyt5eFwwo7qiLfzFZmjNmxjkiQlU=
@@ -265,6 +266,7 @@ github.com/jbenet/goprocess v0.1.4/go.mod h1:5yspPrukOVuOLORacaBi858NqyClJPQxYZl
 github.com/jellevandenhooff/dkim v0.0.0-20150330215556-f50fe3d243e1/go.mod h1:E0B/fFc00Y+Rasa88328GlI/XbtyysCtTHZS8h7IrBU=
 github.com/jessevdk/go-flags v0.0.0-20141203071132-1679536dcc89/go.mod h1:4FA24M0QyGHXBuZZK/XkWh8h0e1EYbRYJSGM75WSRxI=
 github.com/jessevdk/go-flags v1.4.0/go.mod h1:4FA24M0QyGHXBuZZK/XkWh8h0e1EYbRYJSGM75WSRxI=
+github.com/jpillora/backoff v1.0.0/go.mod h1:J/6gKK9jxlEcS3zixgDgUAsiuZ7yrSoa/FX5e0EB2j4=
 github.com/jrick/logrotate v1.0.0/go.mod h1:LNinyqDIJnpAur+b8yyulnQw/wDuN1+BYKlTRt3OuAQ=
 github.com/json-iterator/go v1.1.6/go.mod h1:+SdeFBvtyEkXs7REEP0seUULqWtbJapLOCVDaaPEHmU=
 github.com/json-iterator/go v1.1.12 h1:PV8peI4a0ysnczrg+LtxykD8LfKY9ML6u2jnxaEnrnM=
@@ -272,6 +274,7 @@ github.com/json-iterator/go v1.1.12/go.mod h1:e30LSqwooZae/UwlEbR2852Gd8hjQvJoHm
 github.com/jstemmer/go-junit-report v0.0.0-20190106144839-af01ea7f8024/go.mod h1:6v2b51hI/fHJwM22ozAgKL4VKDeJcHhJFhtBdhmNjmU=
 github.com/jtolds/gls v4.20.0+incompatible h1:xdiiI2gbIgH/gLH7ADydsJ1uDOEzR8yvV7C0MuV77Wo=
 github.com/jtolds/gls v4.20.0+incompatible/go.mod h1:QJZ7F/aHp+rZTRtaJ1ow/lLfFfVYBRgL+9YlvaHOwJU=
+github.com/julienschmidt/httprouter v1.3.0/go.mod h1:JR6WtHb+2LUe8TCKY3cZOxFyyO8IZAc4RVcycCCAKdM=
 github.com/keybase/go-ps v0.0.0-20190827175125-91aafc93ba19/go.mod h1:hY+WOq6m2FpbvyrI93sMaypsttvaIL5nhVR92dTMUcQ=
 github.com/kisielk/errcheck v1.2.0/go.mod h1:/BMXB+zMLi60iA8Vv6Ksmxu/1UDYcXs4uQLJ+jE2L00=
 github.com/kisielk/gotool v1.0.0/go.mod h1:XhKaO+MFFWcvkIS/tQcRk01m1F5IRFswLeQ+oQHNcck=
@@ -392,6 +395,18 @@ github.com/multiversx/mx-chain-communication-go v1.2.1-0.20250520083403-3f2bad6d
 github.com/multiversx/mx-chain-communication-go v1.2.1-0.20250520083403-3f2bad6d5476/go.mod h1:99+FW6f7X0Ri5tph+2l2GaDVrdej1do89exkfh7gilE=
 github.com/multiversx/mx-chain-core-go v1.3.2-0.20250520074139-18b645ad397a h1:dhCobNEcBdvutX+0UYF/l86oLVO9iUiUeF3sLFa9qhE=
 github.com/multiversx/mx-chain-core-go v1.3.2-0.20250520074139-18b645ad397a/go.mod h1:IO+vspNan+gT0WOHnJ95uvWygiziHZvfXpff6KnxV7g=
+github.com/multiversx/mx-chain-core-go v1.3.2-0.20250530132055-773440aff733 h1:37dln6oXCCqRcemRWG+RmX4lONIuYvIqDR7+K9vtztw=
+github.com/multiversx/mx-chain-core-go v1.3.2-0.20250530132055-773440aff733/go.mod h1:IO+vspNan+gT0WOHnJ95uvWygiziHZvfXpff6KnxV7g=
+github.com/multiversx/mx-chain-core-go v1.3.2-0.20250530134938-7081b1d69c9e h1:3fvPe+o4YaoPjmBr4GcyNf0ZHwTWGAyW8g/UYfnUDAs=
+github.com/multiversx/mx-chain-core-go v1.3.2-0.20250530134938-7081b1d69c9e/go.mod h1:IO+vspNan+gT0WOHnJ95uvWygiziHZvfXpff6KnxV7g=
+github.com/multiversx/mx-chain-core-go v1.3.2-0.20250530135701-7041f5f136c3 h1:JmXS0et0wDI/ifOGt3mx4D536Ydg0fb9b0en4WR1Tj8=
+github.com/multiversx/mx-chain-core-go v1.3.2-0.20250530135701-7041f5f136c3/go.mod h1:IO+vspNan+gT0WOHnJ95uvWygiziHZvfXpff6KnxV7g=
+github.com/multiversx/mx-chain-core-go v1.3.2-0.20250530140838-6e94e3fb2048 h1:aCmWFwLAbgqsiFNjCCicotOTEyQQNPg4ENZVbSbYu3o=
+github.com/multiversx/mx-chain-core-go v1.3.2-0.20250530140838-6e94e3fb2048/go.mod h1:IO+vspNan+gT0WOHnJ95uvWygiziHZvfXpff6KnxV7g=
+github.com/multiversx/mx-chain-core-go v1.3.2-0.20250530144624-eafce60ad94b h1:6YvXKdV52LffTsgh92N+R8SA0OCSzjrpevwrQXcA7fo=
+github.com/multiversx/mx-chain-core-go v1.3.2-0.20250530144624-eafce60ad94b/go.mod h1:IO+vspNan+gT0WOHnJ95uvWygiziHZvfXpff6KnxV7g=
+github.com/multiversx/mx-chain-core-go v1.3.2-0.20250602085906-55f143cddf0a h1:GKCXyMysXrQVSsZ6vm86geEmSzEDo6Q5I/vJXMwIXB4=
+github.com/multiversx/mx-chain-core-go v1.3.2-0.20250602085906-55f143cddf0a/go.mod h1:IO+vspNan+gT0WOHnJ95uvWygiziHZvfXpff6KnxV7g=
 github.com/multiversx/mx-chain-crypto-go v1.2.13-0.20250520075055-8ab2a164945d h1:NI5uKpkwP5XZu9gtDiWxmbbb07T9hXegPist17WAzY4=
 github.com/multiversx/mx-chain-crypto-go v1.2.13-0.20250520075055-8ab2a164945d/go.mod h1:yekQt4uB5LYXtimbhpdUbnFexjucWrQG/t+AX55bdM8=
 github.com/multiversx/mx-chain-es-indexer-go v1.8.2-0.20250520083544-09915e4d9bae h1:3I8l+SE/unbOhc3QcLmlLX1aCYssDI+oLDavRUw69LY=
@@ -418,6 +433,7 @@ github.com/multiversx/protobuf v1.3.2 h1:RaNkxvGTGbA0lMcnHAN24qE1G1i+Xs5yHA6MDvQ
 github.com/multiversx/protobuf v1.3.2/go.mod h1:SlYgWuQ5SjCEi6WLHjHCa1yvBfUnHcTbrrZtXPKa29o=
 github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 h1:C3w9PqII01/Oq1c1nUAm88MOHcQC9l5mIlSMApZMrHA=
 github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822/go.mod h1:+n7T8mK8HuQTcFwEeznm/DIxMOiR9yIdICNftLE1DvQ=
+github.com/mwitkow/go-conntrack v0.0.0-20190716064945-2f068394615f/go.mod h1:qRWi+5nqEBWmkhHvq77mSJWrCKwh8bxhgT7d/eI7P4U=
 github.com/neelance/astrewrite v0.0.0-20160511093645-99348263ae86/go.mod h1:kHJEU3ofeGjhHklVoIGuVj85JJwZ6kWPaJwCIxgnFmo=
 github.com/neelance/sourcemap v0.0.0-20151028013722-8c68805598ab/go.mod h1:Qr6/a/Q4r9LP1IltGz7tA7iOK1WonHEYhu1HRBA7ZiM=
 github.com/nsf/termbox-go v0.0.0-20190121233118-02980233997d h1:x3S6kxmy49zXVVyhcnrFqxvNVCBPb2KZ9hV2RBdS840=

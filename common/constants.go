@@ -106,6 +106,9 @@ const MetricNonce = "erd_nonce"
 // MetricBlockTimestamp is the metric for monitoring the timestamp of the last synchronized block
 const MetricBlockTimestamp = "erd_block_timestamp"
 
+// MetricBlockTimestampMs is the metric for monitoring the timestamp in milliseconds of the last synchronized block
+const MetricBlockTimestampMs = "erd_block_timestamp_ms"
+
 // MetricProbableHighestNonce is the metric for monitoring the max speculative nonce received by the node by listening on the network
 const MetricProbableHighestNonce = "erd_probable_highest_nonce"
 
@@ -1272,10 +1275,10 @@ const (
 	RelayedTransactionsV3FixESDTTransferFlag            core.EnableEpochFlag = "RelayedTransactionsV3FixESDTTransferFlag"
 	AndromedaFlag                                       core.EnableEpochFlag = "AndromedaFlag"
 	CheckBuiltInCallOnTransferValueAndFailExecutionFlag core.EnableEpochFlag = "CheckBuiltInCallOnTransferValueAndFailExecutionFlag"
-	MaskInternalDependenciesErrorsFlag                 core.EnableEpochFlag = "MaskInternalDependenciesErrorsFlag"
-	FixBackTransferOPCODEFlag                          core.EnableEpochFlag = "FixBackTransferOPCODEFlag"
-	ValidationOnGobDecodeFlag                          core.EnableEpochFlag = "ValidationOnGobDecodeFlag"
-	BarnardOpcodesFlag                                 core.EnableEpochFlag = "BarnardOpcodesFlag"
-	AutomaticActivationOfNodesDisableFlag              core.EnableEpochFlag = "AutomaticActivationOfNodesDisableFlag"
+	MaskInternalDependenciesErrorsFlag                  core.EnableEpochFlag = "MaskInternalDependenciesErrorsFlag"
+	FixBackTransferOPCODEFlag                           core.EnableEpochFlag = "FixBackTransferOPCODEFlag"
+	ValidationOnGobDecodeFlag                           core.EnableEpochFlag = "ValidationOnGobDecodeFlag"
+	BarnardOpcodesFlag                                  core.EnableEpochFlag = "BarnardOpcodesFlag"
+	AutomaticActivationOfNodesDisableFlag               core.EnableEpochFlag = "AutomaticActivationOfNodesDisableFlag"
 	// all new flags must be added to createAllFlagsMap method, as part of enableEpochsHandler allFlagsDefined
 )

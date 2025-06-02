@@ -87,6 +87,18 @@ func (creator *blocksCreator) CreateNewBlock() error {
 		return err
 	}
 
+	if coreComponents.EnableEpochsHandler().IsFlagEnabledInEpoch(common.BarnardOpcodesFlag, epoch) {
+		err = newHeader.SetTimeStampMs(uint64(headerCreationTime.UnixMilli()))
+		if err != nil {
+			return err
+		}
+	}
+
+	err = newHeader.SetTimeStamp(uint64(headerCreationTime.Unix()))
+	if err != nil {
+		return err
+	}
+
 	leader, validators, err := processComponents.NodesCoordinator().ComputeConsensusGroup(prevRandSeed, newHeader.GetRound(), shardID, epoch)
 	if err != nil {
 		return err
