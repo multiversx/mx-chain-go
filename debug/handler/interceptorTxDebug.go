@@ -2,7 +2,6 @@ package handler
 
 import (
 	"encoding/hex"
-	"fmt"
 	"sync"
 	"time"
 
@@ -72,43 +71,18 @@ func getCurrentTimeStampMilli() int64 {
 }
 
 func (id *interceptorTxDebug) PrintReceivedTxsBroadcastAndCleanRecords() {
-	log.Info("Received Transactions Broadcast Information",
-		"table", fmt.Sprintf("\n%s", id.getReceivedTxsBroadcastTable()))
-
-	id.receivedTxsBroadcast = make(map[string]*receivedTxEvent)
-}
-
-func (id *interceptorTxDebug) getReceivedTxsBroadcastTable() string {
-	// Create header with fixed widths
-	header := fmt.Sprintf("%-64s %-25s %-60s  %-60s %-25s %-15s\n",
-		"Hash",
-		"Type",
-		"Originator",
-		"From",
-		"First Received",
-		"Times Received")
-	separator := fmt.Sprintf("%-64s %-25s %-60s %-60s %-25s %-15s\n",
-		"----------------------------------------------------------------",
-		"-------------------------",
-		"----------------------------------------",
-		"----------------------------------------",
-		"-------------------------",
-		"---------------")
-
-	// Create rows with consistent formatting
-	var rows string
+	log.Info("Received Transactions Broadcast Information")
 	for hash, et := range id.receivedTxsBroadcast {
 		et.mutex.Lock()
-		row := fmt.Sprintf("%-64s %-25s %-60s %-60s %-25s %-15d\n",
-			hash,
-			et.txType,
-			et.originator,
-			et.from,
-			time.Unix(0, et.firstTimeReceivedMile*int64(time.Millisecond)).Format("2006-01-02 15:04:05.000"),
-			et.numReceived)
+		log.Debug("broadcast record",
+			"hash", hash,
+			"type", et.txType,
+			"originator", et.originator,
+			"from", et.from,
+			"first received", time.Unix(0, et.firstTimeReceivedMile*int64(time.Millisecond)).Format("2006-01-02 15:04:05.000"),
+			"times received", et.numReceived)
 		et.mutex.Unlock()
-		rows += row
 	}
 
-	return header + separator + rows
+	id.receivedTxsBroadcast = make(map[string]*receivedTxEvent)
 }
