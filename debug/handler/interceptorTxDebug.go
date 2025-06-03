@@ -22,6 +22,7 @@ const (
 type receivedTxEvent struct {
 	mutex                 sync.Mutex
 	from                  string
+	originator            string
 	firstTimeReceivedMile int64
 	numReceived           int
 	txType                string
@@ -38,13 +39,13 @@ func NewInterceptorTxDebug() *interceptorTxDebug {
 	}
 }
 
-func (id *interceptorTxDebug) Process(data process.InterceptedData, msg p2p.MessageP2P) {
+func (id *interceptorTxDebug) Process(data process.InterceptedData, msg p2p.MessageP2P, fromConnectedPeer core.PeerID) {
 	if msg.BroadcastMethod() != p2p2.Broadcast {
 		return
 	}
 
-	isCorrectType := data.Type() != interceptedTx // && data.Type() != interceptedRewardTx && data.Type() != interceptedUnsignedTx
-	if isCorrectType {
+	isCorrectType := data.Type() == interceptedTx // && data.Type() == interceptedRewardTx && data.Type() == interceptedUnsignedTx
+	if !isCorrectType {
 		return
 	}
 
@@ -52,7 +53,8 @@ func (id *interceptorTxDebug) Process(data process.InterceptedData, msg p2p.Mess
 	if !found {
 		hexHash := hex.EncodeToString(data.Hash())
 		id.receivedTxsBroadcast[hexHash] = &receivedTxEvent{
-			from:                  core.PeerID(msg.From()).Pretty(),
+			originator:            core.PeerID(msg.From()).Pretty(),
+			from:                  fromConnectedPeer.Pretty(),
 			numReceived:           1,
 			firstTimeReceivedMile: getCurrentTimeStampMilli(),
 			txType:                data.Type(),
@@ -78,15 +80,17 @@ func (id *interceptorTxDebug) PrintReceivedTxsBroadcastAndCleanRecords() {
 
 func (id *interceptorTxDebug) getReceivedTxsBroadcastTable() string {
 	// Create header with fixed widths
-	header := fmt.Sprintf("%-64s %-25s %-60s %-25s %-15s\n",
+	header := fmt.Sprintf("%-64s %-25s %-60s  %-60s %-25s %-15s\n",
 		"Hash",
 		"Type",
+		"Originator",
 		"From",
 		"First Received",
 		"Times Received")
-	separator := fmt.Sprintf("%-64s %-25s %-60s %-25s %-15s\n",
+	separator := fmt.Sprintf("%-64s %-25s %-60s %-60s %-25s %-15s\n",
 		"----------------------------------------------------------------",
 		"-------------------------",
+		"----------------------------------------",
 		"----------------------------------------",
 		"-------------------------",
 		"---------------")
@@ -95,9 +99,10 @@ func (id *interceptorTxDebug) getReceivedTxsBroadcastTable() string {
 	var rows string
 	for hash, et := range id.receivedTxsBroadcast {
 		et.mutex.Lock()
-		row := fmt.Sprintf("%-64s %-25s %-60s %-25s %-15d\n",
+		row := fmt.Sprintf("%-64s %-25s %-60s %-60s %-25s %-15d\n",
 			hash,
 			et.txType,
+			et.originator,
 			et.from,
 			time.Unix(0, et.firstTimeReceivedMile*int64(time.Millisecond)).Format("2006-01-02 15:04:05.000"),
 			et.numReceived)

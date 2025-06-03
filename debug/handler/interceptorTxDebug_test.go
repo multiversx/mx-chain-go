@@ -11,6 +11,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/p2pmocks"
+	"github.com/stretchr/testify/require"
 )
 
 func TestGetReceivedTxsBroadcastTable_With10Records(t *testing.T) {
@@ -46,15 +47,16 @@ func TestProcessAndVerifyTable(t *testing.T) {
 
 	// Create test data
 	testData := []struct {
-		hash   string
-		txType string
-		from   string
+		hash       string
+		txType     string
+		originator string
+		from       string
 	}{
-		{"hash1", interceptedTx, "peer1"},
-		{"hash2", interceptedTx, "peer2"},
-		{"hash3", interceptedTx, "peer3"},
-		{"hash4", interceptedTx, "peer4"},
-		{"hash5", interceptedTx, "peer5"},
+		{"hash1", interceptedTx, "peer1", "p1"},
+		{"hash2", interceptedTx, "peer2", "p2"},
+		{"hash3", interceptedTx, "peer3", "p3"},
+		{"hash4", interceptedTx, "peer4", "p4"},
+		{"hash5", interceptedTx, "peer5", "p5"},
 	}
 
 	// Process each record
@@ -68,11 +70,15 @@ func TestProcessAndVerifyTable(t *testing.T) {
 			},
 		}
 
+		originator, err := core.NewPeerID(td.originator)
+		require.NoError(t, err)
 		msg := &p2pmocks.P2PMessageMock{
-			FromField:            []byte(td.from),
+			FromField:            []byte(originator),
 			BroadcastMethodField: p2p2.Broadcast,
 		}
-		dbg.Process(&data, msg)
+		from, err := core.NewPeerID(td.from)
+		require.NoError(t, err)
+		dbg.Process(&data, msg, from)
 	}
 
 	// Get the table output
@@ -91,9 +97,14 @@ func TestProcessAndVerifyTable(t *testing.T) {
 			t.Errorf("Expected type %s in table output", td.txType)
 		}
 		// The peer ID is converted to base58 in the table
-		peerID := core.PeerID(td.from).Pretty()
-		if !strings.Contains(table, peerID) {
-			t.Errorf("Expected peer ID %s in table output", peerID)
+		originatorID, _ := core.NewPeerID(td.originator)
+		if !strings.Contains(table, originatorID.Pretty()) {
+			t.Errorf("Expected peer ID %s in table output", originatorID)
+		}
+
+		fromID, _ := core.NewPeerID(td.from)
+		if !strings.Contains(table, fromID.Pretty()) {
+			t.Errorf("Expected peer ID %s in table output", fromID)
 		}
 	}
 

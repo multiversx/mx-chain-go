@@ -2,6 +2,7 @@ package mock
 
 import (
 	"github.com/multiversx/mx-chain-communication-go/p2p"
+	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-go/process"
 )
 
@@ -9,13 +10,13 @@ import (
 type InterceptedDebugHandlerStub struct {
 	LogReceivedHashesCalled  func(topic string, hashes [][]byte)
 	LogProcessedHashesCalled func(topic string, hashes [][]byte, err error)
-	LogReceivedDataCalled    func(data process.InterceptedData, msg p2p.MessageP2P)
+	LogReceivedDataCalled    func(data process.InterceptedData, msg p2p.MessageP2P, fromConnectedPeer core.PeerID)
 }
 
 // LogReceivedData -
-func (idhs *InterceptedDebugHandlerStub) LogReceivedData(data process.InterceptedData, msg p2p.MessageP2P) {
+func (idhs *InterceptedDebugHandlerStub) LogReceivedData(data process.InterceptedData, msg p2p.MessageP2P, fromConnectedPeer core.PeerID) {
 	if idhs.LogReceivedDataCalled != nil {
-		idhs.LogReceivedDataCalled(data, msg)
+		idhs.LogReceivedDataCalled(data, msg, fromConnectedPeer)
 	}
 }
 

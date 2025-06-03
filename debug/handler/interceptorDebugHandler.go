@@ -10,6 +10,7 @@ import (
 	"time"
 
 	p2p2 "github.com/multiversx/mx-chain-communication-go/p2p"
+	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
@@ -432,8 +433,8 @@ func (idh *interceptorDebugHandler) LogSucceededToResolveData(topic string, hash
 }
 
 // LogReceivedData will log the received data
-func (idh *interceptorDebugHandler) LogReceivedData(data process.InterceptedData, msg p2p2.MessageP2P) {
-	idh.interceptorTxHandler.Process(data, msg)
+func (idh *interceptorDebugHandler) LogReceivedData(data process.InterceptedData, msg p2p2.MessageP2P, fromConnectedPeer core.PeerID) {
+	idh.interceptorTxHandler.Process(data, msg, fromConnectedPeer)
 }
 
 // EpochStartEventHandler returns the epoch start event handler

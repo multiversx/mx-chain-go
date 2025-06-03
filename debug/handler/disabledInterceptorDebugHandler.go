@@ -2,6 +2,7 @@ package handler
 
 import (
 	"github.com/multiversx/mx-chain-communication-go/p2p"
+	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/epochStart"
@@ -48,7 +49,7 @@ func (didh *disabledInterceptorDebugHandler) Close() error {
 }
 
 // LogReceivedData -
-func (didh *disabledInterceptorDebugHandler) LogReceivedData(_ process.InterceptedData, _ p2p.MessageP2P) {
+func (didh *disabledInterceptorDebugHandler) LogReceivedData(_ process.InterceptedData, _ p2p.MessageP2P, _ core.PeerID) {
 }
 
 // EpochStartEventHandler -

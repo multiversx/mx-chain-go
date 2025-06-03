@@ -2,6 +2,7 @@ package factory
 
 import (
 	"github.com/multiversx/mx-chain-communication-go/p2p"
+	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-go/epochStart"
 	"github.com/multiversx/mx-chain-go/process"
 )
@@ -14,7 +15,7 @@ type InterceptorDebugHandler interface {
 	LogProcessedHashes(topic string, hashes [][]byte, err error)
 	LogFailedToResolveData(topic string, hash []byte, err error)
 	LogSucceededToResolveData(topic string, hash []byte)
-	LogReceivedData(data process.InterceptedData, msg p2p.MessageP2P)
+	LogReceivedData(data process.InterceptedData, msg p2p.MessageP2P, fromConnectedPeer core.PeerID)
 	Query(topic string) []string
 	Close() error
 	IsInterfaceNil() bool

@@ -1126,7 +1126,7 @@ type WhiteListHandler interface {
 
 // InterceptedDebugger defines an interface for debugging the intercepted data
 type InterceptedDebugger interface {
-	LogReceivedData(data InterceptedData, msg p2p2.MessageP2P)
+	LogReceivedData(data InterceptedData, msg p2p2.MessageP2P, fromConnectedPeer core.PeerID)
 	LogReceivedHashes(topic string, hashes [][]byte)
 	LogProcessedHashes(topic string, hashes [][]byte, err error)
 	IsInterfaceNil() bool
