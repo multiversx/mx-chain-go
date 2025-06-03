@@ -71,10 +71,10 @@ func (n *MiniNetwork) Start() {
 
 // Continue advances processing with a number of rounds
 func (n *MiniNetwork) Continue(t *testing.T, numRounds int) {
-	idxProposers := []int{0, 1}
+	leaders := []*TestProcessorNode{n.Nodes[0], n.Nodes[1]}
 
 	for i := int64(0); i < int64(numRounds); i++ {
-		n.Nonce, n.Round = ProposeAndSyncOneBlock(t, n.Nodes, idxProposers, n.Round, n.Nonce)
+		n.Nonce, n.Round = ProposeAndSyncOneBlock(t, n.Nodes, leaders, n.Round, n.Nonce)
 	}
 }
 

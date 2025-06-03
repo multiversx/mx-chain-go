@@ -9,6 +9,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/typeConverters"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/factory"
@@ -21,41 +22,45 @@ import (
 
 // CoreComponentsMock -
 type CoreComponentsMock struct {
-	IntMarsh                     marshal.Marshalizer
-	TxMarsh                      marshal.Marshalizer
-	VmMarsh                      marshal.Marshalizer
-	Hash                         hashing.Hasher
-	TxSignHasherField            hashing.Hasher
-	UInt64ByteSliceConv          typeConverters.Uint64ByteSliceConverter
-	AddrPubKeyConv               core.PubkeyConverter
-	ValPubKeyConv                core.PubkeyConverter
-	PathHdl                      storage.PathManagerHandler
-	WatchdogTimer                core.WatchdogTimer
-	AlarmSch                     core.TimersScheduler
-	NtpSyncTimer                 ntp.SyncTimer
-	GenesisBlockTime             time.Time
-	ChainIdCalled                func() string
-	MinTransactionVersionCalled  func() uint32
-	mutIntMarshalizer            sync.RWMutex
-	RoundHandlerField            consensus.RoundHandler
-	EconomicsHandler             process.EconomicsDataHandler
-	APIEconomicsHandler          process.EconomicsDataHandler
-	RatingsConfig                process.RatingsInfoHandler
-	RatingHandler                sharding.PeerAccountListAndRatingHandler
-	NodesConfig                  sharding.GenesisNodesSetupHandler
-	Shuffler                     nodesCoordinator.NodesShuffler
-	EpochChangeNotifier          process.EpochNotifier
-	RoundChangeNotifier          process.RoundNotifier
-	EnableRoundsHandlerField     process.EnableRoundsHandler
-	EpochNotifierWithConfirm     factory.EpochStartNotifierWithConfirm
-	TxVersionCheckHandler        process.TxVersionCheckerHandler
-	ChanStopProcess              chan endProcess.ArgEndProcess
-	StartTime                    time.Time
-	NodeTypeProviderField        core.NodeTypeProviderHandler
-	WasmVMChangeLockerInternal   common.Locker
-	ProcessStatusHandlerInternal common.ProcessStatusHandler
-	HardforkTriggerPubKeyField   []byte
-	EnableEpochsHandlerField     common.EnableEpochsHandler
+	IntMarsh                           marshal.Marshalizer
+	TxMarsh                            marshal.Marshalizer
+	VmMarsh                            marshal.Marshalizer
+	Hash                               hashing.Hasher
+	TxSignHasherField                  hashing.Hasher
+	UInt64ByteSliceConv                typeConverters.Uint64ByteSliceConverter
+	AddrPubKeyConv                     core.PubkeyConverter
+	ValPubKeyConv                      core.PubkeyConverter
+	PathHdl                            storage.PathManagerHandler
+	WatchdogTimer                      core.WatchdogTimer
+	AlarmSch                           core.TimersScheduler
+	NtpSyncTimer                       ntp.SyncTimer
+	GenesisBlockTime                   time.Time
+	ChainIdCalled                      func() string
+	MinTransactionVersionCalled        func() uint32
+	mutIntMarshalizer                  sync.RWMutex
+	RoundHandlerField                  consensus.RoundHandler
+	EconomicsHandler                   process.EconomicsDataHandler
+	APIEconomicsHandler                process.EconomicsDataHandler
+	RatingsConfig                      process.RatingsInfoHandler
+	RatingHandler                      sharding.PeerAccountListAndRatingHandler
+	NodesConfig                        sharding.GenesisNodesSetupHandler
+	Shuffler                           nodesCoordinator.NodesShuffler
+	EpochChangeNotifier                process.EpochNotifier
+	RoundChangeNotifier                process.RoundNotifier
+	EnableRoundsHandlerField           process.EnableRoundsHandler
+	EpochNotifierWithConfirm           factory.EpochStartNotifierWithConfirm
+	TxVersionCheckHandler              process.TxVersionCheckerHandler
+	ChanStopProcess                    chan endProcess.ArgEndProcess
+	StartTime                          time.Time
+	NodeTypeProviderField              core.NodeTypeProviderHandler
+	WasmVMChangeLockerInternal         common.Locker
+	ProcessStatusHandlerInternal       common.ProcessStatusHandler
+	HardforkTriggerPubKeyField         []byte
+	EnableEpochsHandlerField           common.EnableEpochsHandler
+	ChainParametersHandlerField        process.ChainParametersHandler
+	ChainParametersSubscriberField     process.ChainParametersSubscriber
+	FieldsSizeCheckerField             common.FieldsSizeChecker
+	EpochChangeGracePeriodHandlerField common.EpochChangeGracePeriodHandler
 }
 
 // InternalMarshalizer -
@@ -244,6 +249,26 @@ func (ccm *CoreComponentsMock) HardforkTriggerPubKey() []byte {
 // EnableEpochsHandler -
 func (ccm *CoreComponentsMock) EnableEpochsHandler() common.EnableEpochsHandler {
 	return ccm.EnableEpochsHandlerField
+}
+
+// ChainParametersHandler -
+func (ccm *CoreComponentsMock) ChainParametersHandler() process.ChainParametersHandler {
+	return ccm.ChainParametersHandlerField
+}
+
+// ChainParametersSubscriber -
+func (ccm *CoreComponentsMock) ChainParametersSubscriber() process.ChainParametersSubscriber {
+	return ccm.ChainParametersSubscriberField
+}
+
+// FieldsSizeChecker -
+func (ccm *CoreComponentsMock) FieldsSizeChecker() common.FieldsSizeChecker {
+	return ccm.FieldsSizeCheckerField
+}
+
+// EpochChangeGracePeriodHandler -
+func (ccm *CoreComponentsMock) EpochChangeGracePeriodHandler() common.EpochChangeGracePeriodHandler {
+	return ccm.EpochChangeGracePeriodHandlerField
 }
 
 // IsInterfaceNil -
