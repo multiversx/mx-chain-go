@@ -2,6 +2,8 @@ package preprocess
 
 import (
 	"bytes"
+	"crypto/sha256"
+	"encoding/binary"
 	"errors"
 	"fmt"
 	"sort"
@@ -237,18 +239,31 @@ func (txs *transactions) RemoveTxsFromPools(body *block.Body) error {
 	if err != nil {
 		return  err
 	}
-	nonce := uint64(0)
-	
+
+	// TODO : maybe move this to a separate function in helpers called ComputeRandomnessForCleanup
+	offset := uint64(0)
+	if len(body.MiniBlocks) != 0 && len(body.MiniBlocks[0].TxHashes) != 0 {
+		firstHash := body.MiniBlocks[0].TxHashes[len(body.MiniBlocks[0].TxHashes)-1]
+		randomness := sha256.Sum256(firstHash)
+		offset = binary.LittleEndian.Uint64(randomness[:8]) % uint64(len(body.MiniBlocks))
+		fmt.Println("offset = ", offset, " len(body.MiniBlocks) = ", len(body.MiniBlocks), " len(body.MiniBlocks[0].TxHashes) = ", len(body.MiniBlocks[0].TxHashes))
+	}
+
+	err = txs.removeTxsFromPools(body, txs.txPool, txs.isMiniBlockCorrect)
+	if err != nil {
+		return  err
+	}
+
 	_, ok := txs.txPool.(dataRetriever.CleanupCapableCacher)
 	if !ok {
 		fmt.Println("txPool does not implement TxCache interface") 
 		log.Trace("txPool does not implement TxCache interface")
 	} else {
 		log.Debug("txPool implements TxCache interface, starting cleanup")
-		//txCache.MempoolCleanup(session, nonce, process.TxCacheCleanupMaxNumTxs, process.TxCacheCleanupLoopMaximumDuration)
 	}
-	txs.txPool.MempoolCleanup(session, nonce, process.TxCacheCleanupMaxNumTxs, process.TxCacheCleanupLoopMaximumDuration)
-	return txs.removeTxsFromPools(body, txs.txPool, txs.isMiniBlockCorrect)
+	txs.txPool.MempoolCleanup(session, offset, process.TxCacheCleanupMaxNumTxs, process.TxCacheCleanupLoopMaximumDuration)
+
+	return err
 }
 
 // RestoreBlockDataIntoPools restores the transactions and miniblocks to associated pools

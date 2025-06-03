@@ -692,18 +692,7 @@ func TestMempoolCleanupTriggered(t *testing.T) {
 	assert.Equal(t, 30000, gotMaxNum)
 }
 
-
-func TestMempoolCleanup(t *testing.T) {
-	t.Parallel()
-
-	createTx := func(sender string, nonce uint64) *transaction.Transaction {
-		return &transaction.Transaction{
-			SndAddr: []byte(sender),
-			Nonce:   nonce,
-			GasLimit: 1000,
-		}
-	}
-	
+func createArgsForMempoolCleanupPreprocessor() ArgsTransactionPreProcessor {
 	totalGasProvided := uint64(0)
 	args := createDefaultTransactionsProcessorArgs()
 	args.TxDataPool, _ = dataRetrieverMock.CreateTxPool(2, 0)
@@ -748,28 +737,28 @@ func TestMempoolCleanup(t *testing.T) {
 		},
 	}
 
+	return args
+}
+
+
+func TestMempoolCleanup_NoTransactionToSelect(t *testing.T) {
+	t.Parallel()
+
+	createTx := func(sender string, nonce uint64) *transaction.Transaction {
+		return &transaction.Transaction{
+			SndAddr: []byte(sender),
+			Nonce:   nonce,
+			GasLimit: 1000,
+		}
+	}
+	
+	args:= createArgsForMempoolCleanupPreprocessor()
 	txs, _ := NewTransactionPreprocessor(args)
 	assert.NotNil(t, txs)
 
 	sndShardId := uint32(0)
 	dstShardId := uint32(0)
 	strCache := process.ShardCacherIdentifier(sndShardId, dstShardId)
-	txsToAdd := []*transaction.Transaction{
-		createTx("alice", 1),
-		createTx("alice", 2),
-		createTx("alice", 3),
-		createTx("bob", 40),
-		createTx("bob", 41),
-		createTx("bob", 42),
-		createTx("carol", 7),
-		createTx("carol", 8),
-	}
-	
-	for i, tx := range txsToAdd {
-		hash := []byte(fmt.Sprintf("hash-%d", i))
-		fmt.Println("Adding tx:", tx.GetNonce(), string(tx.GetSndAddr()), string(hash))
-		args.TxDataPool.AddData(hash, tx, 0, strCache)
-	}
 
 	sortedTxsAndHashes, _, _ := txs.computeSortedTxs(sndShardId, dstShardId, MaxGasLimitPerBlock, []byte("randomness"))
 	miniBlocks, _, err := txs.createAndProcessMiniBlocksFromMeV1(haveTimeTrue, isShardStuckFalse, isMaxBlockSizeReachedFalse, sortedTxsAndHashes)
@@ -782,29 +771,122 @@ func TestMempoolCleanup(t *testing.T) {
 		}
 		txHashes += len(miniBlock.TxHashes)
 	}
-	tx := createTx("carol", 8)
-	hash := []byte(fmt.Sprintf("hash-%d", len(txsToAdd)))
-	fmt.Println("Adding tx:", tx.GetNonce(), string(tx.GetSndAddr()), string(hash))
+	
+	txsToAdd := []*transaction.Transaction{
+		createTx("alice", 1),
+		createTx("alice", 2),
+		createTx("alice", 3),
+		createTx("bob", 40),
+		createTx("bob", 41),
+		createTx("bob", 42),
+		createTx("carol", 7),
+		createTx("carol", 8),
+		createTx("carol", 8),
+	}
+	
+	for i, tx := range txsToAdd {
+		hash := fmt.Appendf(nil, "hash-%d", i)
+		fmt.Println("Adding tx:", tx.GetNonce(), string(tx.GetSndAddr()), string(hash))
 		args.TxDataPool.AddData(hash, tx, 0, strCache)
+	}
 
-	assert.Equal(t, len(txsToAdd), txHashes + 3) // 1 for alice, 2 for bob with lower nonce are not selected
+	assert.Equal(t, len(txsToAdd), 9) 
 	fmt.Println((len(txs.orderedTxs[strCache])))
 	for _, tx := range txs.orderedTxs[strCache] {
 		t.Logf("tx %d %s %x", tx.GetNonce(), tx.GetSndAddr(), tx.GetData())
 	}
 	body := &block.Body{
-		MiniBlocks: []*block.MiniBlock{
-			{
-				SenderShardID:   0,
-				ReceiverShardID: 0,
-				TxHashes:        [][]byte{[]byte("dummy")},
-			},
-		},
+		MiniBlocks: miniBlocks,
 	}
 	assert.Equal(t, 9, int(txs.txPool.GetCounts().GetTotal()))
 	_ = txs.RemoveTxsFromPools(body)
 	expectEvicted := 4 // 1 for alice, 2 for bob with lower nonce, 1 for carol with duplicate nonce
 	assert.Equal(t, 9 - expectEvicted, int(txs.txPool.GetCounts().GetTotal()))
+}
+
+func TestMempoolCleanup(t *testing.T) {
+	t.Parallel()
+
+	createTx := func(sender string, nonce uint64) *transaction.Transaction {
+		return &transaction.Transaction{
+			SndAddr: []byte(sender),
+			Nonce:   nonce,
+			GasLimit: 1000,
+		}
+	}
+	
+	args:= createArgsForMempoolCleanupPreprocessor()
+	txs, _ := NewTransactionPreprocessor(args)
+	assert.NotNil(t, txs)
+
+	sndShardId := uint32(0)
+	dstShardId := uint32(0)
+	strCache := process.ShardCacherIdentifier(sndShardId, dstShardId)
+	
+	txsToAdd := []*transaction.Transaction{
+		createTx("alice", 1),
+		createTx("alice", 2),
+		createTx("alice", 3),
+		createTx("bob", 42),
+		createTx("bob", 43),
+		createTx("carol", 7),
+	}
+	
+	for i, tx := range txsToAdd {
+		hash := fmt.Appendf(nil, "hash-%d", i)
+		args.TxDataPool.AddData(hash, tx, 0, strCache)
+	}
+
+	sortedTxsAndHashes, _, _ := txs.computeSortedTxs(sndShardId, dstShardId, MaxGasLimitPerBlock, []byte("randomness"))
+	miniBlocks, _, err := txs.createAndProcessMiniBlocksFromMeV1(haveTimeTrue, isShardStuckFalse, isMaxBlockSizeReachedFalse, sortedTxsAndHashes)
+	assert.Nil(t, err)
+
+	txHashes := 0
+	fmt.Println("Selected txs:")
+	for _, miniBlock := range miniBlocks {
+		for _, txHash := range miniBlock.TxHashes {
+			fmt.Printf("TxHash: %x (%s)\n", txHash, string(txHash))
+
+		}
+		txHashes += len(miniBlock.TxHashes)
+	}
+	
+	txsToAddAfterMiniblockCreation := []*transaction.Transaction{
+		createTx("alice", 1),
+		createTx("alice", 4),
+		createTx("alice", 4),
+		createTx("bob", 40),
+		createTx("bob", 44),
+		createTx("bob", 44),
+		createTx("carol", 7),
+		createTx("carol", 8),
+		createTx("carol", 8),
+	}
+
+	for i, tx := range txsToAddAfterMiniblockCreation {
+		hash := fmt.Appendf(nil, "hash-%d", i+len(txsToAdd))
+		args.TxDataPool.AddData(hash, tx, 0, strCache)
+	}
+
+	body := &block.Body{
+		MiniBlocks: miniBlocks,
+	}
+	fmt.Println("Before RemoveTxsFromPools:")
+	for _, tx:= range txs.txPool.ShardDataStore(strCache).Keys() {
+		fmt.Println(string(tx))
+	}
+
+	assert.Equal(t, 15, int(txs.txPool.GetCounts().GetTotal()))
+	_ = txs.RemoveTxsFromPools(body)
+
+	fmt.Println("After RemoveTxsFromPools:")
+	for _, tx:= range txs.txPool.ShardDataStore(strCache).Keys() {
+		fmt.Println(string(tx))
+	}
+
+	expectEvictedByRemoveTxsFromPool:= 9 //5 selected, nonce 1, 2 for alice, nonce 42 for bob, nonce 7 for carol
+	expectedEvictedByCleanup := 3 //nonce 4 for alice, nonce 44 for bob, nonce 8 for carol 
+	assert.Equal(t, 15 - expectedEvictedByCleanup - expectEvictedByRemoveTxsFromPool, int(txs.txPool.GetCounts().GetTotal()))
 }
 
 func TestTransactions_CreateAndProcessMiniBlockCrossShardGasLimitAddAll(t *testing.T) {

@@ -48,7 +48,7 @@ func TestTxCache_AutoClean_Dummy(t *testing.T) {
 		cache.AddTx(createTx([]byte("hash-alice-4"), "alice", 4))
 
 		// Check that the duplicates are removed
-		evicted:= cache.Cleanup(session, 7, math.MaxInt, selectionLoopMaximumDuration)
+		evicted:= cache.Cleanup(session, 5, math.MaxInt, selectionLoopMaximumDuration)
 		require.Equal(t, uint64(2), evicted) // duplicates for nonce 3
 		
 		// Check that the duplicates were removed based on their lower priority
