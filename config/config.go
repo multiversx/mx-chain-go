@@ -521,6 +521,7 @@ type HealthServiceConfig struct {
 type InterceptorResolverDebugConfig struct {
 	Enabled                    bool
 	EnablePrint                bool
+	EnableBroadcastStatistics  bool
 	CacheSize                  int
 	IntervalAutoPrintInSeconds int
 	NumRequestsThreshold       int

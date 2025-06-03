@@ -2,7 +2,6 @@ package nodeDebugFactory
 
 import (
 	"fmt"
-
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
@@ -20,6 +19,7 @@ func CreateInterceptedDebugHandler(
 	resolvers dataRetriever.ResolversContainer,
 	requesters dataRetriever.RequestersContainer,
 	config config.InterceptorResolverDebugConfig,
+	epochNotifier process.EpochStartEventNotifier,
 ) error {
 	if check.IfNil(node) {
 		return ErrNilNodeWrapper
@@ -33,11 +33,16 @@ func CreateInterceptedDebugHandler(
 	if check.IfNil(requesters) {
 		return ErrNilRequestersContainer
 	}
+	if check.IfNil(epochNotifier) {
+		return process.ErrNilEpochNotifier
+	}
 
 	debugHandler, err := factory.NewInterceptorDebuggerFactory(config)
 	if err != nil {
 		return err
 	}
+
+	epochNotifier.RegisterHandler(debugHandler.EpochStartEventHandler())
 
 	var errFound error
 	interceptors.Iterate(func(key string, interceptor process.Interceptor) bool {
