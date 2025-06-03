@@ -812,9 +812,17 @@ func TestMempoolCleanup(t *testing.T) {
 			SndAddr: []byte(sender),
 			Nonce:   nonce,
 			GasLimit: 1000,
+			GasPrice: 500,
 		}
 	}
-	
+	createMoreValuableTx := func(sender string, nonce uint64) *transaction.Transaction {
+		return &transaction.Transaction{
+			SndAddr: []byte(sender),
+			Nonce:   nonce,
+			GasLimit: 1000,
+			GasPrice: 1000,
+		}
+	}
 	args:= createArgsForMempoolCleanupPreprocessor()
 	txs, _ := NewTransactionPreprocessor(args)
 	assert.NotNil(t, txs)
@@ -853,14 +861,14 @@ func TestMempoolCleanup(t *testing.T) {
 	
 	txsToAddAfterMiniblockCreation := []*transaction.Transaction{
 		createTx("alice", 1),
-		createTx("alice", 4),
+		createMoreValuableTx("alice", 4),
 		createTx("alice", 4),
 		createTx("bob", 40),
-		createTx("bob", 44),
+		createMoreValuableTx("bob", 44),
 		createTx("bob", 44),
 		createTx("carol", 7),
 		createTx("carol", 8),
-		createTx("carol", 8),
+		createMoreValuableTx("carol", 8),
 	}
 
 	for i, tx := range txsToAddAfterMiniblockCreation {
@@ -880,8 +888,9 @@ func TestMempoolCleanup(t *testing.T) {
 	_ = txs.RemoveTxsFromPools(body)
 
 	fmt.Println("After RemoveTxsFromPools:")
-	for _, tx:= range txs.txPool.ShardDataStore(strCache).Keys() {
-		fmt.Println(string(tx))
+	for _, hash:= range txs.txPool.ShardDataStore(strCache).Keys() {
+		txRemained, _ := txs.txPool.ShardDataStore(strCache).Peek(hash)
+		assert.Equal(t, uint64(1000), txRemained.(*transaction.Transaction).GetGasPrice())
 	}
 
 	expectEvictedByRemoveTxsFromPool:= 9 //5 selected, nonce 1, 2 for alice, nonce 42 for bob, nonce 7 for carol
