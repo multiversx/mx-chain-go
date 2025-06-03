@@ -1,7 +1,9 @@
 package testscommon
 
 import (
+	"fmt"
 	"sync"
+	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core/counting"
 
@@ -13,6 +15,12 @@ import (
 type ShardedDataCacheNotifierMock struct {
 	mutCaches sync.RWMutex
 	caches    map[string]storage.Cacher
+}
+
+// MempoolCleanup implements dataRetriever.ShardedDataCacherNotifier.
+func (mock *ShardedDataCacheNotifierMock) MempoolCleanup(session interface{}, nonce uint64, maxNum int, selectionLoopMaximumDuration time.Duration) bool {
+	fmt.Println("MempoolCleanup called on ShardedDataCacheNotifierMock, but it is not implemented")
+	panic("unimplemented")
 }
 
 // NewShardedDataCacheNotifierMock -
