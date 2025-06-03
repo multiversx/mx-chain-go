@@ -1789,7 +1789,11 @@ func TestBranchNode_concurrency(t *testing.T) {
 		collapsedBn.dirty = false
 
 		newVal := []core.TrieData{
-			{[]byte{3, 13, 15}, []byte("value"), core.NotSpecified},
+			{
+				Key:     []byte{3, 13, 15},
+				Value:   []byte("value"),
+				Version: core.NotSpecified,
+			},
 		}
 		existingChildKey := []byte{2, 100, 111, 103}
 
@@ -1834,7 +1838,11 @@ func TestBranchNode_concurrency(t *testing.T) {
 
 		existingChildKey := []byte{2, 100, 111, 103}
 		newVal := []core.TrieData{
-			{existingChildKey, []byte("value"), core.NotSpecified},
+			{
+				Key:     existingChildKey,
+				Value:   []byte("value"),
+				Version: core.NotSpecified,
+			},
 		}
 
 		startExecution := atomic.Flag{}
@@ -1874,7 +1882,11 @@ func TestBranchNode_concurrency(t *testing.T) {
 
 		existingChildKey := []byte{2, 100, 111, 103}
 		keyToBeRemoved := []core.TrieData{
-			{existingChildKey, nil, core.NotSpecified},
+			{
+				Key:     existingChildKey,
+				Value:   nil,
+				Version: core.NotSpecified,
+			},
 		}
 
 		startExecution := atomic.Flag{}
@@ -1915,7 +1927,11 @@ func TestBranchNode_concurrency(t *testing.T) {
 		collapsedBn.dirty = false
 
 		keyToBeRemoved := []core.TrieData{
-			{[]byte{6, 100, 111, 101}, nil, core.NotSpecified},
+			{
+				Key:     []byte{6, 100, 111, 101},
+				Value:   nil,
+				Version: core.NotSpecified,
+			},
 		}
 		existingChildKey := []byte{2, 100, 111, 103}
 

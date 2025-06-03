@@ -731,7 +731,11 @@ func TestLeafNode_concurrency(t *testing.T) {
 		_ = saveNodeToStorage(ln, trieCtx)
 
 		newVal := []core.TrieData{
-			{leafKey, []byte("value"), core.NotSpecified},
+			{
+				Key:     leafKey,
+				Value:   []byte("value"),
+				Version: core.NotSpecified,
+			},
 		}
 
 		startExecution := atomic.Flag{}
@@ -772,7 +776,11 @@ func TestLeafNode_concurrency(t *testing.T) {
 
 		newDataKey := []byte{3, 4, 5}
 		newVal := []core.TrieData{
-			{newDataKey, []byte("value"), core.NotSpecified},
+			{
+				Key:     newDataKey,
+				Value:   []byte("value"),
+				Version: core.NotSpecified,
+			},
 		}
 
 		startExecution := atomic.Flag{}
@@ -813,7 +821,11 @@ func TestLeafNode_concurrency(t *testing.T) {
 		_ = saveNodeToStorage(ln, trieCtx)
 
 		newVal := []core.TrieData{
-			{leafKey, nil, core.NotSpecified},
+			{
+				Key:     leafKey,
+				Value:   nil,
+				Version: core.NotSpecified,
+			},
 		}
 
 		startExecution := atomic.Flag{}

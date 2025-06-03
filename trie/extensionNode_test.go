@@ -1226,7 +1226,11 @@ func TestExtensionNode_concurrency(t *testing.T) {
 		_ = saveNodeToStorage(en, trieCtx)
 
 		newVal := []core.TrieData{
-			{[]byte{1, 2, 3}, []byte("value"), core.NotSpecified},
+			{
+				Key:     []byte{1, 2, 3},
+				Value:   []byte("value"),
+				Version: core.NotSpecified,
+			},
 		}
 		existingChildKey := []byte{1, 2, 4, 3, 4, 5}
 
@@ -1267,7 +1271,11 @@ func TestExtensionNode_concurrency(t *testing.T) {
 		_ = saveNodeToStorage(en, trieCtx)
 
 		newVal := []core.TrieData{
-			{[]byte{4, 5, 6}, []byte("value"), core.NotSpecified},
+			{
+				Key:     []byte{4, 5, 6},
+				Value:   []byte("value"),
+				Version: core.NotSpecified,
+			},
 		}
 		existingChildKey := []byte{1, 2, 4, 3, 4, 5}
 
@@ -1308,7 +1316,11 @@ func TestExtensionNode_concurrency(t *testing.T) {
 		_ = saveNodeToStorage(en, trieCtx)
 
 		newVal := []core.TrieData{
-			{[]byte{1, 2, 7, 7, 8, 9}, nil, core.NotSpecified},
+			{
+				Key:     []byte{1, 2, 7, 7, 8, 9},
+				Value:   nil,
+				Version: core.NotSpecified,
+			},
 		}
 		existingChildKey := []byte{1, 2, 4, 3, 4, 5}
 
@@ -1350,7 +1362,11 @@ func TestExtensionNode_concurrency(t *testing.T) {
 
 		existingChildKey := []byte{1, 2, 4, 3, 4, 5}
 		newVal := []core.TrieData{
-			{existingChildKey, nil, core.NotSpecified},
+			{
+				Key:     existingChildKey,
+				Value:   nil,
+				Version: core.NotSpecified,
+			},
 		}
 
 		startExecution := atomic.Flag{}
