@@ -394,6 +394,14 @@ func (bh *BlockChainHookImpl) LastTimeStamp() uint64 {
 	return 0
 }
 
+// LastTimeStampMs returns the timeStamp in milliseconds from the last committed block
+func (bh *BlockChainHookImpl) LastTimeStampMs() uint64 {
+	if !check.IfNil(bh.blockChain.GetCurrentBlockHeader()) {
+		return common.ConvertTimeStampSecToMs(bh.blockChain.GetCurrentBlockHeader().GetTimeStamp())
+	}
+	return 0
+}
+
 // LastRandomSeed returns the random seed from the last committed block
 func (bh *BlockChainHookImpl) LastRandomSeed() []byte {
 	if !check.IfNil(bh.blockChain.GetCurrentBlockHeader()) {
@@ -423,7 +431,8 @@ func (bh *BlockChainHookImpl) EpochStartBlockTimeStamp() uint64 {
 	bh.mutEpochStartHdr.RLock()
 	defer bh.mutEpochStartHdr.RUnlock()
 
-	return bh.epochStartHdr.GetTimeStamp()
+	timestampMs := common.ConvertTimeStampSecToMs(bh.epochStartHdr.GetTimeStamp())
+	return timestampMs
 }
 
 // EpochStartBlockNonce returns the nonce of the first block of the current epoch
@@ -474,6 +483,14 @@ func (bh *BlockChainHookImpl) CurrentTimeStamp() uint64 {
 	defer bh.mutCurrentHdr.RUnlock()
 
 	return bh.currentHdr.GetTimeStamp()
+}
+
+// CurrentTimeStampMs return the timestamp in milliseconds from the current block
+func (bh *BlockChainHookImpl) CurrentTimeStampMs() uint64 {
+	bh.mutCurrentHdr.RLock()
+	defer bh.mutCurrentHdr.RUnlock()
+
+	return common.ConvertTimeStampSecToMs(bh.currentHdr.GetTimeStamp())
 }
 
 // CurrentRandomSeed returns the random seed from the current header
