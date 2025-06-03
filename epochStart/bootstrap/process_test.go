@@ -855,7 +855,6 @@ func TestEpochStartBootstrap_BootstrapStartInEpochNotEnabled(t *testing.T) {
 }
 
 func TestEpochStartBootstrap_BootstrapShouldStartBootstrapProcess(t *testing.T) {
-	roundsPerEpoch := int64(100)
 	roundDuration := uint64(60000)
 	coreComp, cryptoComp := createComponentsForEpochStart()
 	args := createMockEpochStartBootstrapArgs(coreComp, cryptoComp)
@@ -865,7 +864,6 @@ func TestEpochStartBootstrap_BootstrapShouldStartBootstrapProcess(t *testing.T) 
 		},
 	}
 	args.GeneralConfig = testscommon.GetGeneralConfig()
-	args.GeneralConfig.EpochStartConfig.RoundsPerEpoch = roundsPerEpoch
 	epochStartProvider, err := NewEpochStartBootstrap(args)
 	require.Nil(t, err)
 

@@ -94,8 +94,6 @@ type EvictionWaitingListConfig struct {
 
 // EpochStartConfig will hold the configuration of EpochStart settings
 type EpochStartConfig struct {
-	MinRoundsBetweenEpochs                      int64
-	RoundsPerEpoch                              int64
 	MinShuffledOutRestartThreshold              float64
 	MaxShuffledOutRestartThreshold              float64
 	MinNumConnectedPeersToStart                 int
@@ -676,6 +674,8 @@ type RedundancyConfig struct {
 // ChainParametersByEpochConfig holds chain parameters that are configurable based on epochs
 type ChainParametersByEpochConfig struct {
 	RoundDuration               uint64
+	RoundsPerEpoch              int64
+	MinRoundsBetweenEpochs      int64
 	Hysteresis                  float32
 	EnableEpoch                 uint32
 	ShardConsensusGroupSize     uint32
