@@ -77,8 +77,12 @@ func (mock *keysHandlerSingleSignerMock) IncrementRoundsSigned() {
 }
 
 // ShouldProposeBlock -
-func (mock *keysHandlerSingleSignerMock) ShouldProposeBlock(_ uint64) bool {
+func (mock *keysHandlerSingleSignerMock) ShouldProposeBlock(_ int64) bool {
 	return true
+}
+
+// SetLastRoundAsParticipant -
+func (mock *keysHandlerSingleSignerMock) SetLastRoundAsParticipant(_ int64) {
 }
 
 // SetRoundsSignedToMin -
