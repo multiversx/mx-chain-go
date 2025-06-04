@@ -1,8 +1,8 @@
 name: Build and smoke test
 
 on:
-  pull_request:
-    branches: [master, rc/*]
+  # pull_request:
+  #   branches: [master, rc/*]
   workflow_dispatch:
 
 jobs:

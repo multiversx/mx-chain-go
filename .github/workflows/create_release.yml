@@ -2,9 +2,9 @@ name: Create release
 
 on:
   push:
-    branches:
-      - master
-      - rc/*
+    # branches:
+    #   - master
+    #   - rc/*
   workflow_dispatch:
 
 permissions:

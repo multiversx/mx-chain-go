@@ -1,11 +1,11 @@
 name: Chain Simulator Build and Integration Test
 
 on:
-  pull_request:
-    branches:
-      - 'main'
-      - 'master'
-      - 'rc/*'
+  # pull_request:
+  #   branches:
+  #     - 'main'
+  #     - 'master'
+  #     - 'rc/*'
   workflow_dispatch:
   issue_comment:
     types: [created]
