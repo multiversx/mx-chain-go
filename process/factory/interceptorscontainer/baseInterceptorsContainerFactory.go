@@ -195,7 +195,10 @@ func (bicf *baseInterceptorsContainerFactory) createTopicAndAssignHandler(
 
 		// TODO[Sorin]: add also a fullArchiveTransactionsMessenger for these requests
 		// not needed yet for poc
+	}
 
+	// do not add transactionTopic on other messenger
+	if strings.Contains(topic, factory.TransactionTopic) {
 		return interceptor, nil
 	}
 
