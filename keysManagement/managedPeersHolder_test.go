@@ -1039,12 +1039,12 @@ func TestManagedPeersHolder_IncrementRoundsSigned(t *testing.T) {
 		args := createMockArgsManagedPeersHolder()
 		args.MaxRoundsOfInactivity = 2
 		holder, _ := keysManagement.NewManagedPeersHolder(args)
-		holder.IncrementRoundsSigned()               // coverage only
-		require.True(t, holder.ShouldProposeBlock()) // backup machine
+		holder.IncrementRoundsSigned()                // coverage only
+		require.True(t, holder.ShouldProposeBlock(0)) // backup machine
 		require.Zero(t, holder.GetRoundsSigned())
 
-		holder.SetRoundsSignedToMin()                // coverage only
-		require.True(t, holder.ShouldProposeBlock()) // backup machine
+		holder.SetRoundsSignedToMin()                 // coverage only
+		require.True(t, holder.ShouldProposeBlock(0)) // backup machine
 		require.Zero(t, holder.GetRoundsSigned())
 
 		holder.DecrementRoundsSigned() // coverage only
@@ -1057,25 +1057,59 @@ func TestManagedPeersHolder_IncrementRoundsSigned(t *testing.T) {
 		args.MinRoundsToSignBeforeProposing = 2
 		holder, _ := keysManagement.NewManagedPeersHolder(args)
 
+		// Round 0
+		currentRound := int64(0)
+		require.False(t, holder.ShouldProposeBlock(currentRound))
 		holder.IncrementRoundsSigned()
-		require.False(t, holder.ShouldProposeBlock())
+		holder.SetLastRoundAsParticipant(currentRound)
+
+		// Round 1
+		currentRound++
+		require.False(t, holder.ShouldProposeBlock(currentRound))
 		holder.IncrementRoundsSigned()
-		require.True(t, holder.ShouldProposeBlock())
+		holder.SetLastRoundAsParticipant(currentRound)
+
+		// Round 2
+		currentRound++
+		require.True(t, holder.ShouldProposeBlock(currentRound)) // signed enough so far
 		holder.DecrementRoundsSigned()
-		require.False(t, holder.ShouldProposeBlock())
+		holder.SetLastRoundAsParticipant(currentRound) // didn't sign but block commited
+
+		// Round 3
+		currentRound++
+		require.False(t, holder.ShouldProposeBlock(currentRound))
+		holder.IncrementRoundsSigned()
+		holder.SetLastRoundAsParticipant(currentRound)
+
+		// Round 4
+		currentRound++
+		require.True(t, holder.ShouldProposeBlock(currentRound)) // signed enough
+		holder.IncrementRoundsSigned()
+		holder.SetLastRoundAsParticipant(currentRound)
+
+		// Round 5
+		currentRound++
+		require.True(t, holder.ShouldProposeBlock(currentRound))
+		holder.IncrementRoundsSigned()
+		holder.SetLastRoundAsParticipant(currentRound)
 
 		for i := uint64(0); i < args.MaxRoundsForConsecutiveSigning+1; i++ {
+			currentRound++
+			require.True(t, holder.ShouldProposeBlock(currentRound))
 			holder.IncrementRoundsSigned()
-			require.True(t, holder.ShouldProposeBlock())
+			holder.SetLastRoundAsParticipant(currentRound)
 		}
 
 		for i := uint64(0); i < args.MaxRoundsForConsecutiveSigning-args.MinRoundsToSignBeforeProposing; i++ {
+			currentRound++
+			require.True(t, holder.ShouldProposeBlock(currentRound))
 			holder.DecrementRoundsSigned()
-			require.True(t, holder.ShouldProposeBlock())
+			holder.SetLastRoundAsParticipant(currentRound)
 		}
 
+		currentRound++
 		holder.DecrementRoundsSigned()
-		require.False(t, holder.ShouldProposeBlock())
+		require.False(t, holder.ShouldProposeBlock(currentRound))
 	})
 }
 
@@ -1086,10 +1120,10 @@ func TestManagedPeersHolder_SetRoundsSignedToMinMainMachine(t *testing.T) {
 	args.MinRoundsToSignBeforeProposing = 2
 
 	holder, _ := keysManagement.NewManagedPeersHolder(args)
-	require.False(t, holder.ShouldProposeBlock())
+	require.False(t, holder.ShouldProposeBlock(5))
 
 	holder.SetRoundsSignedToMin()
-	require.True(t, holder.ShouldProposeBlock())
+	require.True(t, holder.ShouldProposeBlock(5))
 }
 
 func TestManagedPeersHolder_ParallelOperationsShouldNotPanic(t *testing.T) {
@@ -1148,7 +1182,7 @@ func TestManagedPeersHolder_ParallelOperationsShouldNotPanic(t *testing.T) {
 			case 16:
 				holder.IncrementRoundsSigned()
 			case 17:
-				_ = holder.ShouldProposeBlock()
+				_ = holder.ShouldProposeBlock(0)
 			case 18:
 				holder.DecrementRoundsSigned()
 			}
