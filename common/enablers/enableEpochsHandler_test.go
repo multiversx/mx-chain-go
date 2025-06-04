@@ -127,6 +127,7 @@ func createEnableEpochsConfig() config.EnableEpochs {
 		RelayedTransactionsV3FixESDTTransferEnableEpoch:          110,
 		AndromedaEnableEpoch:                                     111,
 		CheckBuiltInCallOnTransferValueAndFailEnableRound:        112,
+		SupernovaEnableEpoch:                                     113,
 	}
 }
 
@@ -330,6 +331,7 @@ func TestEnableEpochsHandler_IsFlagEnabled(t *testing.T) {
 	require.True(t, handler.IsFlagEnabled(common.FixRelayedBaseCostFlag))
 	require.True(t, handler.IsFlagEnabled(common.FixRelayedMoveBalanceToNonPayableSCFlag))
 	require.True(t, handler.IsFlagEnabled(common.AndromedaFlag))
+	require.True(t, handler.IsFlagEnabled(common.SupernovaFlag))
 }
 
 func TestEnableEpochsHandler_GetActivationEpoch(t *testing.T) {
@@ -457,6 +459,7 @@ func TestEnableEpochsHandler_GetActivationEpoch(t *testing.T) {
 	require.Equal(t, cfg.RelayedTransactionsV3FixESDTTransferEnableEpoch, handler.GetActivationEpoch(common.RelayedTransactionsV3FixESDTTransferFlag))
 	require.Equal(t, cfg.AndromedaEnableEpoch, handler.GetActivationEpoch(common.AndromedaFlag))
 	require.Equal(t, cfg.CheckBuiltInCallOnTransferValueAndFailEnableRound, handler.GetActivationEpoch(common.CheckBuiltInCallOnTransferValueAndFailExecutionFlag))
+	require.Equal(t, cfg.SupernovaEnableEpoch, handler.GetActivationEpoch(common.SupernovaFlag))
 }
 
 func TestEnableEpochsHandler_IsInterfaceNil(t *testing.T) {
