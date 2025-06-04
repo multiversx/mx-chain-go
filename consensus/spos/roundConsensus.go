@@ -253,8 +253,13 @@ func (rcns *roundConsensus) IncrementRoundsSigned() {
 }
 
 // ShouldProposeBlock returns true if the machine should propose block or not
-func (rcns *roundConsensus) ShouldProposeBlock() bool {
-	return rcns.keysHandler.ShouldProposeBlock()
+func (rcns *roundConsensus) ShouldProposeBlock(currentRound int64) bool {
+	return rcns.keysHandler.ShouldProposeBlock(currentRound)
+}
+
+// SetLastRoundAsParticipant sets the last round as participant for the current node
+func (rcns *roundConsensus) SetLastRoundAsParticipant(round int64) {
+	rcns.keysHandler.SetLastRoundAsParticipant(round)
 }
 
 // SetRoundsSignedToMin sets the number of rounds signed by the current node to the min value, in order to force proposing

@@ -980,6 +980,9 @@
     # MinRoundsToSignBeforeProposing defines the number of self-signed rounds a main node will wait before proposing a block
     # this only applies for multi-key mode
     MinRoundsToSignBeforeProposing = 2
+    # MaxRoundsAllowedWithNoBlock defines the maximum number of rounds a main node should wait before trying to propose
+    # again after the last signature
+    MaxRoundsAllowedWithNoBlock = 4
 
 [InterceptedDataVerifier]
     CacheSpanInSec = 30

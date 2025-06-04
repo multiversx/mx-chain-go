@@ -87,7 +87,8 @@ type ConsensusStateMock struct {
 	SetFallbackThresholdCalled                   func(subroundId int, threshold int)
 	ResetConsensusRoundStateCalled               func()
 	IncrementRoundsSignedCalled                  func()
-	ShouldProposeBlockCalled                     func() bool
+	ShouldProposeBlockCalled                     func(currentRound int64) bool
+	SetLastRoundAsParticipantCalled              func(round int64)
 	SetRoundsSignedToMinCalled                   func()
 	DecrementRoundsSignedCalled                  func()
 }
@@ -666,12 +667,19 @@ func (cnsm *ConsensusStateMock) IncrementRoundsSigned() {
 }
 
 // ShouldProposeBlock -
-func (cnsm *ConsensusStateMock) ShouldProposeBlock() bool {
+func (cnsm *ConsensusStateMock) ShouldProposeBlock(currentRound int64) bool {
 	if cnsm.ShouldProposeBlockCalled != nil {
-		return cnsm.ShouldProposeBlockCalled()
+		return cnsm.ShouldProposeBlockCalled(currentRound)
 	}
 
 	return true
+}
+
+// SetLastRoundAsParticipant -
+func (cnsm *ConsensusStateMock) SetLastRoundAsParticipant(round int64) {
+	if cnsm.SetLastRoundAsParticipantCalled != nil {
+		cnsm.SetLastRoundAsParticipantCalled(round)
+	}
 }
 
 // SetRoundsSignedToMin -

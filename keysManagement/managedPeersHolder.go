@@ -40,9 +40,11 @@ type managedPeersHolder struct {
 	defaultIdentity                string
 	p2pKeyConverter                p2p.P2PKeyConverter
 	roundsSigned                   uint64
+	lastRoundAsParticipant         int64
 	mutRoundsSigned                sync.RWMutex
 	minRoundsToSignBeforeProposing uint64
 	maxRoundsForConsecutiveSigning uint64
+	maxRoundsAllowedWithNoBlock    uint64
 }
 
 // ArgsManagedPeersHolder represents the argument for the managed peers holder
@@ -54,6 +56,7 @@ type ArgsManagedPeersHolder struct {
 	P2PKeyConverter                p2p.P2PKeyConverter
 	MinRoundsToSignBeforeProposing uint64
 	MaxRoundsForConsecutiveSigning uint64
+	MaxRoundsAllowedWithNoBlock    uint64
 }
 
 // NewManagedPeersHolder creates a new instance of a managed peers holder
@@ -76,6 +79,7 @@ func NewManagedPeersHolder(args ArgsManagedPeersHolder) (*managedPeersHolder, er
 		data:                           make(map[string]*peerInfo),
 		minRoundsToSignBeforeProposing: args.MinRoundsToSignBeforeProposing,
 		maxRoundsForConsecutiveSigning: args.MaxRoundsForConsecutiveSigning,
+		maxRoundsAllowedWithNoBlock:    args.MaxRoundsAllowedWithNoBlock,
 	}
 
 	holder.providedIdentities, err = holder.createProvidedIdentitiesMap(args.PrefsConfig.NamedIdentity)
@@ -315,7 +319,7 @@ func (holder *managedPeersHolder) IncrementRoundsSigned() {
 
 // ShouldProposeBlock returns true if the machine should propose block or not
 // by default, it will return true for backups. Further checks will block this.
-func (holder *managedPeersHolder) ShouldProposeBlock() bool {
+func (holder *managedPeersHolder) ShouldProposeBlock(currentRound int64) bool {
 	if !holder.isMainMachine {
 		return true
 	}
@@ -323,7 +327,29 @@ func (holder *managedPeersHolder) ShouldProposeBlock() bool {
 	holder.mutRoundsSigned.RLock()
 	defer holder.mutRoundsSigned.RUnlock()
 
-	return holder.roundsSigned >= holder.minRoundsToSignBeforeProposing
+	if holder.roundsSigned >= holder.minRoundsToSignBeforeProposing {
+		return true
+	}
+
+	// if no signature was sent, do not allow to propose block as a backup may be active
+	if holder.roundsSigned == 0 {
+		return false
+	}
+
+	// if the current main node didn't sign blocks and enough blocks were missed, try to propose
+	roundsDiff := currentRound - holder.lastRoundAsParticipant
+	return uint64(roundsDiff) >= holder.maxRoundsAllowedWithNoBlock
+}
+
+// SetLastRoundAsParticipant sets the last round as participant for the current node
+func (holder *managedPeersHolder) SetLastRoundAsParticipant(round int64) {
+	if !holder.isMainMachine {
+		return
+	}
+
+	holder.mutRoundsSigned.Lock()
+	holder.lastRoundAsParticipant = round
+	holder.mutRoundsSigned.Unlock()
 }
 
 // SetRoundsSignedToMin sets the number of rounds signed by the current node to the min value, in order to force proposing

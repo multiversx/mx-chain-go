@@ -162,6 +162,7 @@ func TestTomlParser(t *testing.T) {
 		Redundancy: RedundancyConfig{
 			MaxRoundsOfInactivityAccepted:  3,
 			MinRoundsToSignBeforeProposing: 2,
+			MaxRoundsAllowedWithNoBlock:    4,
 		},
 	}
 	testString := `
@@ -273,6 +274,10 @@ func TestTomlParser(t *testing.T) {
     # MinRoundsToSignBeforeProposing defines the number of self-signed rounds a main node will wait before proposing a block
     # this only applies for multi-key mode
     MinRoundsToSignBeforeProposing = 2
+
+	# MaxRoundsAllowedWithNoBlock defines the maximum number of rounds a main node should wait before trying to propose
+    # again after the last signature
+    MaxRoundsAllowedWithNoBlock = 4
 `
 	cfg := Config{}
 

@@ -331,7 +331,8 @@ type ManagedPeersHolder interface {
 	IsMultiKeyMode() bool
 	GetRedundancyStepInReason() string
 	IncrementRoundsSigned()
-	ShouldProposeBlock() bool
+	ShouldProposeBlock(currentRound int64) bool
+	SetLastRoundAsParticipant(round int64)
 	SetRoundsSignedToMin()
 	DecrementRoundsSigned()
 	IsInterfaceNil() bool

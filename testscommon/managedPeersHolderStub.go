@@ -28,7 +28,8 @@ type ManagedPeersHolderStub struct {
 	IsMultiKeyModeCalled                         func() bool
 	GetRedundancyStepInReasonCalled              func() string
 	IncrementRoundsSignedCalled                  func()
-	ShouldProposeBlockCalled                     func() bool
+	ShouldProposeBlockCalled                     func(currentRound int64) bool
+	SetLastRoundAsParticipantCalled              func(round int64)
 	SetRoundsSignedToMinCalled                   func()
 	DecrementRoundsSignedCalled                  func()
 }
@@ -182,12 +183,19 @@ func (stub *ManagedPeersHolderStub) IncrementRoundsSigned() {
 }
 
 // ShouldProposeBlock -
-func (stub *ManagedPeersHolderStub) ShouldProposeBlock() bool {
+func (stub *ManagedPeersHolderStub) ShouldProposeBlock(currentRound int64) bool {
 	if stub.ShouldProposeBlockCalled != nil {
-		return stub.ShouldProposeBlockCalled()
+		return stub.ShouldProposeBlockCalled(currentRound)
 	}
 
 	return true
+}
+
+// SetLastRoundAsParticipant -
+func (stub *ManagedPeersHolderStub) SetLastRoundAsParticipant(round int64) {
+	if stub.SetLastRoundAsParticipantCalled != nil {
+		stub.SetLastRoundAsParticipantCalled(round)
+	}
 }
 
 // SetRoundsSignedToMin -

@@ -729,7 +729,7 @@ func (wrk *Worker) checkSelfState(cnsDta *consensus.Message) error {
 	msgType := consensus.MessageType(cnsDta.MsgType)
 	isMessageWithBlockBody := wrk.consensusService.IsMessageWithBlockBody(msgType)
 	isMessageWithSignature := wrk.consensusService.IsMessageWithSignature(msgType)
-	shouldNotProposeBlockYet := !wrk.consensusState.GetKeysHandler().ShouldProposeBlock()
+	shouldNotProposeBlockYet := !wrk.consensusState.GetKeysHandler().ShouldProposeBlock(wrk.roundHandler.Index())
 	shouldAllowMessageFromSelfBackup := shouldNotProposeBlockYet && (isMessageWithBlockBody || isMessageWithSignature)
 	isMultiKeyManagedBySelf := wrk.consensusState.keysHandler.IsKeyManagedByCurrentNode(cnsDta.PubKey)
 	isMessageFromSelfOrManaged := wrk.consensusState.SelfPubKey() == string(cnsDta.PubKey) || isMultiKeyManagedBySelf

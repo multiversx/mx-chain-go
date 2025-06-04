@@ -17,7 +17,8 @@ type KeysHandlerStub struct {
 	ResetRoundsWithoutReceivedMessagesCalled     func(pkBytes []byte, pid core.PeerID)
 	GetRedundancyStepInReasonCalled              func() string
 	IncrementRoundsSignedCalled                  func()
-	ShouldProposeBlockCalled                     func() bool
+	ShouldProposeBlockCalled                     func(currentRound int64) bool
+	SetLastRoundAsParticipantCalled              func(round int64)
 	SetRoundsSignedToMinCalled                   func()
 	DecrementRoundsSignedCalled                  func()
 }
@@ -98,12 +99,19 @@ func (stub *KeysHandlerStub) IncrementRoundsSigned() {
 }
 
 // ShouldProposeBlock -
-func (stub *KeysHandlerStub) ShouldProposeBlock() bool {
+func (stub *KeysHandlerStub) ShouldProposeBlock(currentRound int64) bool {
 	if stub.ShouldProposeBlockCalled != nil {
-		return stub.ShouldProposeBlockCalled()
+		return stub.ShouldProposeBlockCalled(currentRound)
 	}
 
 	return true
+}
+
+// SetLastRoundAsParticipant -
+func (stub *KeysHandlerStub) SetLastRoundAsParticipant(round int64) {
+	if stub.SetLastRoundAsParticipantCalled != nil {
+		stub.SetLastRoundAsParticipantCalled(round)
+	}
 }
 
 // SetRoundsSignedToMin -

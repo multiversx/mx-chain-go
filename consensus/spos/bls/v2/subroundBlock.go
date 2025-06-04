@@ -80,7 +80,7 @@ func (sr *subroundBlock) doBlockJob(ctx context.Context) bool {
 
 	// this check will automatically return true for backups.
 	// if backup should not propose due to an active main, it should have been treated as part of the above check
-	if !sr.ShouldProposeBlock() {
+	if !sr.ShouldProposeBlock(sr.RoundHandler().Index()) {
 		// return true so the block proposed by the backup will be seen by this main node too
 		return true
 	}
@@ -470,7 +470,7 @@ func (sr *subroundBlock) receivedBlockHeader(headerHandler data.HeaderHandler) {
 		return
 	}
 
-	isLeader := sr.IsSelfLeader() && sr.ShouldProposeBlock()
+	isLeader := sr.IsSelfLeader() && sr.ShouldProposeBlock(sr.RoundHandler().Index())
 	if sr.ConsensusGroup() == nil || isLeader {
 		log.Debug("subroundBlock.receivedBlockHeader - consensus group is nil or is leader")
 		return

@@ -131,8 +131,13 @@ func (handler *keysHandler) IncrementRoundsSigned() {
 }
 
 // ShouldProposeBlock returns true if the machine should propose block or not
-func (handler *keysHandler) ShouldProposeBlock() bool {
-	return handler.managedPeersHolder.ShouldProposeBlock()
+func (handler *keysHandler) ShouldProposeBlock(currentRound int64) bool {
+	return handler.managedPeersHolder.ShouldProposeBlock(currentRound)
+}
+
+// SetLastRoundAsParticipant sets the last round as participant for the current node
+func (handler *keysHandler) SetLastRoundAsParticipant(round int64) {
+	handler.managedPeersHolder.SetLastRoundAsParticipant(round)
 }
 
 // SetRoundsSignedToMin sets the number of rounds signed by the current node to the min value, in order to force proposing

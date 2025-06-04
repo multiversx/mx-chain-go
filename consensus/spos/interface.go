@@ -248,7 +248,8 @@ type RoundConsensusHandler interface {
 	IncrementRoundsWithoutReceivedMessages(pkBytes []byte)
 	GetKeysHandler() consensus.KeysHandler
 	IncrementRoundsSigned()
-	ShouldProposeBlock() bool
+	ShouldProposeBlock(currentRound int64) bool
+	SetLastRoundAsParticipant(round int64)
 	SetRoundsSignedToMin()
 	DecrementRoundsSigned()
 	Leader() string

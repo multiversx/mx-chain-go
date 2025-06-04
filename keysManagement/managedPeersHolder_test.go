@@ -69,6 +69,7 @@ func createMockArgsManagedPeersHolder() keysManagement.ArgsManagedPeersHolder {
 		},
 		MinRoundsToSignBeforeProposing: 2,
 		MaxRoundsForConsecutiveSigning: 10,
+		MaxRoundsAllowedWithNoBlock:    4,
 	}
 }
 
