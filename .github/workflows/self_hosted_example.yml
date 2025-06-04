@@ -1,0 +1,13 @@
+name: Self hosted example
+
+on:
+    pull_request:
+    workflow_dispatch:
+
+jobs:
+    build:
+        runs-on: [self-hosted, linux, x64]
+        steps:
+            - name: Test
+              run: |
+                  echo "Hello, world!"
