@@ -1,4 +1,4 @@
-# P2P config file
+# TransactionsP2P config file
 
 # NodeConfig holds the P2P settings
 [Node]
@@ -52,8 +52,7 @@
     # ProtocolIDs represents the protocols that this node will advertise to other peers
     # To connect to other nodes, those nodes should have at least one common protocol string
     ProtocolIDs = [
-        "/erd/kad/1.0.0",
-        "mvx-main",
+        "mvx-transactions",
     ]
 
     # InitialPeerList represents the list of strings of some known nodes that will bootstrap this node
@@ -92,7 +91,7 @@
 # Gossip holds the configuration for the gossip peering
 # if set to true, default values will be used (recommended)
 [Gossip]
-    UseDefaultConfig = true
-#    OptimalPeersNum = 6
-#    MinimumPeersNum = 5
-#    MaximumPeersNum = 12
+    UseDefaultConfig = false
+    OptimalPeersNum = 15
+    MinimumPeersNum = 12
+    MaximumPeersNum = 20

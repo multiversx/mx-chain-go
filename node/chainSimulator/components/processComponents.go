@@ -301,7 +301,7 @@ func replaceWithCustomProcessSubComponents(
 	argsSyncedTxsSender := ArgsSyncedTxsSender{
 		Marshaller:       processArgs.CoreData.InternalMarshalizer(),
 		ShardCoordinator: processArgs.BootstrapComponents.ShardCoordinator(),
-		NetworkMessenger: processArgs.Network.NetworkMessenger(),
+		NetworkMessenger: processArgs.Network.TransactionsNetworkMessenger(),
 		DataPacker:       dataPacker,
 	}
 

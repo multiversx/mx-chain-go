@@ -113,6 +113,7 @@ func NewShardInterceptorsContainerFactory(
 		shardCoordinator:               args.ShardCoordinator,
 		mainMessenger:                  args.MainMessenger,
 		fullArchiveMessenger:           args.FullArchiveMessenger,
+		transactionsMessenger:          args.TransactionsMessenger,
 		store:                          args.Store,
 		dataPool:                       args.DataPool,
 		nodesCoordinator:               args.NodesCoordinator,

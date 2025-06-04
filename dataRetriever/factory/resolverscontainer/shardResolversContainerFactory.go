@@ -41,6 +41,7 @@ func NewShardResolversContainerFactory(
 		shardCoordinator:                args.ShardCoordinator,
 		mainMessenger:                   args.MainMessenger,
 		fullArchiveMessenger:            args.FullArchiveMessenger,
+		transactionsMessenger:           args.TransactionsMessenger,
 		store:                           args.Store,
 		marshalizer:                     args.Marshalizer,
 		dataPools:                       args.DataPools,

@@ -21,6 +21,7 @@ type CommonInterceptorsContainerFactoryArgs struct {
 	NodesCoordinator               nodesCoordinator.NodesCoordinator
 	MainMessenger                  process.TopicHandler
 	FullArchiveMessenger           process.TopicHandler
+	TransactionsMessenger          process.TopicHandler
 	Store                          dataRetriever.StorageService
 	DataPool                       dataRetriever.PoolsHolder
 	MaxTxNonceDeltaAllowed         int

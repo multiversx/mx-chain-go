@@ -2,6 +2,7 @@ package interceptorscontainer
 
 import (
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
@@ -40,6 +41,7 @@ type baseInterceptorsContainerFactory struct {
 	dataPool                       dataRetriever.PoolsHolder
 	mainMessenger                  process.TopicHandler
 	fullArchiveMessenger           process.TopicHandler
+	transactionsMessenger          process.TopicHandler
 	nodesCoordinator               nodesCoordinator.NodesCoordinator
 	blockBlackList                 process.TimeCacher
 	argInterceptorFactory          *interceptorFactory.ArgInterceptedDataFactory
@@ -185,6 +187,18 @@ func (bicf *baseInterceptorsContainerFactory) createTopicAndAssignHandler(
 	interceptor process.Interceptor,
 	createChannel bool,
 ) (process.Interceptor, error) {
+
+	if strings.Contains(topic, factory.TransactionTopic) {
+		err := createTopicAndAssignHandlerOnMessenger(topic, interceptor, createChannel, bicf.transactionsMessenger)
+		if err != nil {
+			return nil, err
+		}
+
+		// TODO[Sorin]: add also a fullArchiveTransactionsMessenger for these requests
+		// not needed yet for poc
+
+		return interceptor, nil
+	}
 
 	err := createTopicAndAssignHandlerOnMessenger(topic, interceptor, createChannel, bicf.mainMessenger)
 	if err != nil {

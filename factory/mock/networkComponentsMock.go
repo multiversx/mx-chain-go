@@ -8,15 +8,16 @@ import (
 
 // NetworkComponentsMock -
 type NetworkComponentsMock struct {
-	Messenger                        p2p.Messenger
-	InputAntiFlood                   factory.P2PAntifloodHandler
-	OutputAntiFlood                  factory.P2PAntifloodHandler
-	PeerBlackList                    process.PeerBlackListCacher
-	PreferredPeersHolder             factory.PreferredPeersHolderHandler
-	PeersRatingHandlerField          p2p.PeersRatingHandler
-	PeersRatingMonitorField          p2p.PeersRatingMonitor
-	FullArchiveNetworkMessengerField p2p.Messenger
-	FullArchivePreferredPeersHolder  factory.PreferredPeersHolderHandler
+	Messenger                         p2p.Messenger
+	InputAntiFlood                    factory.P2PAntifloodHandler
+	OutputAntiFlood                   factory.P2PAntifloodHandler
+	PeerBlackList                     process.PeerBlackListCacher
+	PreferredPeersHolder              factory.PreferredPeersHolderHandler
+	PeersRatingHandlerField           p2p.PeersRatingHandler
+	PeersRatingMonitorField           p2p.PeersRatingMonitor
+	FullArchiveNetworkMessengerField  p2p.Messenger
+	TransactionsNetworkMessengerField p2p.Messenger
+	FullArchivePreferredPeersHolder   factory.PreferredPeersHolderHandler
 }
 
 // PubKeyCacher -
@@ -87,6 +88,11 @@ func (ncm *NetworkComponentsMock) FullArchiveNetworkMessenger() p2p.Messenger {
 // FullArchivePreferredPeersHolderHandler -
 func (ncm *NetworkComponentsMock) FullArchivePreferredPeersHolderHandler() factory.PreferredPeersHolderHandler {
 	return ncm.FullArchivePreferredPeersHolder
+}
+
+// TransactionsNetworkMessenger -
+func (ncm *NetworkComponentsMock) TransactionsNetworkMessenger() p2p.Messenger {
+	return ncm.TransactionsNetworkMessengerField
 }
 
 // IsInterfaceNil -

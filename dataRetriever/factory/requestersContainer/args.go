@@ -16,6 +16,7 @@ type FactoryArgs struct {
 	ShardCoordinator                sharding.Coordinator
 	MainMessenger                   p2p.Messenger
 	FullArchiveMessenger            p2p.Messenger
+	TransactionsMessenger           p2p.Messenger
 	Marshaller                      marshal.Marshalizer
 	Uint64ByteSliceConverter        typeConverters.Uint64ByteSliceConverter
 	OutputAntifloodHandler          dataRetriever.P2PAntifloodHandler

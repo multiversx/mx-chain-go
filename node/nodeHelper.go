@@ -149,5 +149,20 @@ func createAndAttachPeerDenialEvaluators(
 		return nil, err
 	}
 
+	// TODO[Sorin]: fix this
+	// transactionsPeerDenialEvaluator, err := blackList.NewPeerDenialEvaluator(
+	// 	networkComponents.PeerBlackListHandler(),
+	// 	networkComponents.PubKeyCacher(),
+	// 	processComponents.FullArchivePeerShardMapper(),
+	// )
+	// if err != nil {
+	// 	return nil, err
+	// }
+	//
+	// err = networkComponents.TransactionsNetworkMessenger().SetPeerDenialEvaluator(transactionsPeerDenialEvaluator)
+	// if err != nil {
+	// 	return nil, err
+	// }
+
 	return mainPeerDenialEvaluator, nil
 }

@@ -21,6 +21,9 @@ func checkArguments(args ArgsEpochStartBootstrap) error {
 	if check.IfNil(args.FullArchiveMessenger) {
 		return fmt.Errorf("%s on full archive network: %w", baseErrorMessage, epochStart.ErrNilMessenger)
 	}
+	if check.IfNil(args.TransactionsMessenger) {
+		return fmt.Errorf("%s on transactions network: %w", baseErrorMessage, epochStart.ErrNilMessenger)
+	}
 	if check.IfNil(args.EconomicsData) {
 		return fmt.Errorf("%s: %w", baseErrorMessage, epochStart.ErrNilEconomicsData)
 	}

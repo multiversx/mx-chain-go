@@ -31,6 +31,7 @@ func NewMetaRequestersContainerFactory(
 		shardCoordinator:                args.ShardCoordinator,
 		mainMessenger:                   args.MainMessenger,
 		fullArchiveMessenger:            args.FullArchiveMessenger,
+		transactionsMessenger:           args.TransactionsMessenger,
 		marshaller:                      args.Marshaller,
 		uint64ByteSliceConverter:        args.Uint64ByteSliceConverter,
 		intRandomizer:                   &random.ConcurrentSafeIntRandomizer{},

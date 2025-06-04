@@ -25,7 +25,7 @@ var currentSendingGoRoutines = int32(0)
 var minTxGasPrice = uint64(100)
 var minTxGasLimit = uint64(1000)
 
-//TODO remove this file and adapt integration tests using GenerateAndSendBulkTransactions
+// TODO remove this file and adapt integration tests using GenerateAndSendBulkTransactions
 
 // GenerateAndSendBulkTransactions is a method for generating and propagating a set
 // of transactions to be processed. It is mainly used for demo purposes
@@ -116,7 +116,7 @@ func (n *Node) GenerateAndSendBulkTransactions(
 		whiteList(txs)
 	}
 
-	//the topic identifier is made of the current shard id and sender's shard id
+	// the topic identifier is made of the current shard id and sender's shard id
 	identifier := factory.TransactionTopic + n.processComponents.ShardCoordinator().CommunicationIdentifier(senderShardId)
 
 	packets, err := dataPacker.PackDataInChunks(txsBuff, common.MaxBulkTransactionSize)
@@ -126,7 +126,7 @@ func (n *Node) GenerateAndSendBulkTransactions(
 
 	atomic.AddInt32(&currentSendingGoRoutines, int32(len(packets)))
 	for _, buff := range packets {
-		n.networkComponents.NetworkMessenger().BroadcastOnChannel(
+		n.networkComponents.TransactionsNetworkMessenger().BroadcastOnChannel(
 			txsSender.SendTransactionsPipe,
 			identifier,
 			buff,

@@ -229,6 +229,7 @@ func (tpn *TestFullNode) initTestNodeWithArgs(args ArgTestProcessorNode, fullArg
 	}
 
 	tpn.MainMessenger = CreateMessengerWithNoDiscovery()
+	tpn.TransactionsMessenger = CreateMessengerWithNoDiscovery()
 
 	tpn.StatusMetrics = args.StatusMetrics
 	if check.IfNil(args.StatusMetrics) {
@@ -333,6 +334,7 @@ func (tpn *TestFullNode) initTestNodeWithArgs(args ArgTestProcessorNode, fullArg
 		TestMarshalizer,
 		TestHasher,
 		tpn.MainMessenger,
+		tpn.TransactionsMessenger,
 		tpn.ShardCoordinator,
 		tpn.OwnAccount.PeerSigHandler,
 		tpn.DataPool.Headers(),
@@ -526,7 +528,7 @@ func (tpn *TestFullNode) initNode(
 	processComponents.HistoryRepositoryInternal = tpn.HistoryRepository
 	processComponents.WhiteListHandlerInternal = tpn.WhiteListHandler
 	processComponents.WhiteListerVerifiedTxsInternal = tpn.WhiteListerVerifiedTxs
-	processComponents.TxsSenderHandlerField = createTxsSender(tpn.ShardCoordinator, tpn.MainMessenger)
+	processComponents.TxsSenderHandlerField = createTxsSender(tpn.ShardCoordinator, tpn.TransactionsMessenger)
 	processComponents.HardforkTriggerField = tpn.HardforkTrigger
 	processComponents.ScheduledTxsExecutionHandlerInternal = &testscommon.ScheduledTxsExecutionStub{}
 	processComponents.ProcessedMiniBlocksTrackerInternal = &testscommon.ProcessedMiniBlocksTrackerStub{}
@@ -723,6 +725,7 @@ func (tcn *TestFullNode) initInterceptors(
 		NodesCoordinator:               tcn.NodesCoordinator,
 		MainMessenger:                  tcn.MainMessenger,
 		FullArchiveMessenger:           tcn.FullArchiveMessenger,
+		TransactionsMessenger:          tcn.TransactionsMessenger,
 		Store:                          storage,
 		DataPool:                       tcn.DataPool,
 		MaxTxNonceDeltaAllowed:         common.MaxTxNonceDeltaAllowed,

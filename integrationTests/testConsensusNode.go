@@ -99,6 +99,7 @@ type TestConsensusNode struct {
 	Node                      *node.Node
 	MainMessenger             p2p.Messenger
 	FullArchiveMessenger      p2p.Messenger
+	TransactionsMessenger     p2p.Messenger
 	NodesCoordinator          nodesCoordinator.NodesCoordinator
 	ShardCoordinator          sharding.Coordinator
 	ChainHandler              data.ChainHandler
@@ -211,6 +212,7 @@ func (tcn *TestConsensusNode) initNode(args ArgsTestConsensusNode) {
 	tcn.initNodesCoordinator(args.ConsensusSize, testHasher, epochStartRegistrationHandler, args.EligibleMap, args.WaitingMap, pkBytes, consensusCache)
 	tcn.MainMessenger = CreateMessengerWithNoDiscovery()
 	tcn.FullArchiveMessenger = &p2pmocks.MessengerStub{}
+	tcn.TransactionsMessenger = CreateMessengerWithNoDiscovery()
 	tcn.initBlockChain(testHasher)
 	tcn.initBlockProcessor(tcn.ShardCoordinator.SelfId())
 
@@ -471,6 +473,7 @@ func (tcn *TestConsensusNode) initInterceptors(
 		NodesCoordinator:               tcn.NodesCoordinator,
 		MainMessenger:                  tcn.MainMessenger,
 		FullArchiveMessenger:           tcn.FullArchiveMessenger,
+		TransactionsMessenger:          tcn.TransactionsMessenger,
 		Store:                          storage,
 		DataPool:                       tcn.DataPool,
 		MaxTxNonceDeltaAllowed:         common.MaxTxNonceDeltaAllowed,
@@ -752,6 +755,15 @@ func (tcn *TestConsensusNode) ConnectOnFullArchive(connectable Connectable) erro
 	return tcn.FullArchiveMessenger.ConnectToPeer(connectable.GetMainConnectableAddress())
 }
 
+// ConnectOnTransactions will try to initiate a connection to the provided parameter on the transactions messenger
+func (tcn *TestConsensusNode) ConnectOnTransactions(connectable Connectable) error {
+	if check.IfNil(connectable) {
+		return fmt.Errorf("trying to connect to a nil Connectable parameter")
+	}
+
+	return tcn.TransactionsMessenger.ConnectToPeer(connectable.GetTransactionsConnectableAddress())
+}
+
 // GetMainConnectableAddress returns a non circuit, non windows default connectable p2p address
 func (tcn *TestConsensusNode) GetMainConnectableAddress() string {
 	if tcn == nil {
@@ -768,6 +780,15 @@ func (tcn *TestConsensusNode) GetFullArchiveConnectableAddress() string {
 	}
 
 	return GetConnectableAddress(tcn.FullArchiveMessenger)
+}
+
+// GetTransactionsConnectableAddress returns a non circuit, non windows default connectable p2p address
+func (tcn *TestConsensusNode) GetTransactionsConnectableAddress() string {
+	if tcn == nil {
+		return "nil"
+	}
+
+	return GetConnectableAddress(tcn.TransactionsMessenger)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

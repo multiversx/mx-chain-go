@@ -11,6 +11,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/p2p"
+	"github.com/multiversx/mx-chain-go/process/factory"
 )
 
 var _ dataRetriever.TopicRequestSender = (*topicRequestSender)(nil)
@@ -130,8 +131,7 @@ func (trs *topicRequestSender) SendOnRequestTopic(rd *dataRetriever.RequestData,
 			topicToSendRequest,
 			buff,
 			trs.numFullHistoryPeers,
-			core.FullHistoryPeer.String(),
-			trs.fullArchiveMessenger)
+			core.FullHistoryPeer.String())
 
 		requestedNetworks = append(requestedNetworks, "full archive network")
 	}
@@ -145,8 +145,7 @@ func (trs *topicRequestSender) SendOnRequestTopic(rd *dataRetriever.RequestData,
 			topicToSendRequest,
 			buff,
 			trs.numCrossShardPeers,
-			core.CrossShardPeer.String(),
-			trs.mainMessenger)
+			core.CrossShardPeer.String())
 
 		intraPeers = trs.peerListCreator.IntraShardPeerList()
 		preferredPeer = trs.getPreferredPeer(trs.selfShardId)
@@ -156,8 +155,7 @@ func (trs *topicRequestSender) SendOnRequestTopic(rd *dataRetriever.RequestData,
 			topicToSendRequest,
 			buff,
 			trs.numIntraShardPeers,
-			core.IntraShardPeer.String(),
-			trs.mainMessenger)
+			core.IntraShardPeer.String())
 
 		requestedNetworks = append(requestedNetworks, "main network")
 	}
@@ -176,6 +174,22 @@ func (trs *topicRequestSender) SendOnRequestTopic(rd *dataRetriever.RequestData,
 	}
 
 	return nil
+}
+
+func (trs *topicRequestSender) getMessengerForRequest(peerType string, topic string) p2p.MessageHandler {
+	isFullArchive := peerType == core.FullHistoryPeer.String()
+	isTransactionRequest := strings.Contains(topic, factory.TransactionTopic)
+	if isFullArchive {
+		// TODO[Sorin]: add also a fullArchiveTransactionsMessenger for these requests
+		// not needed yet for poc
+		return trs.fullArchiveMessenger
+	}
+
+	if isTransactionRequest {
+		return trs.transactionsMessenger
+	}
+
+	return trs.mainMessenger
 }
 
 func (trs *topicRequestSender) callDebugHandler(originalHashes [][]byte, numSentIntra int, numSentCross int) {
@@ -201,7 +215,6 @@ func (trs *topicRequestSender) sendOnTopic(
 	buff []byte,
 	maxToSend int,
 	peerType string,
-	messenger p2p.MessageHandler,
 ) int {
 	if len(peerList) == 0 || maxToSend == 0 {
 		return 0
@@ -219,6 +232,8 @@ func (trs *topicRequestSender) sendOnTopic(
 	if shouldSendToPreferredPeer {
 		shuffledIndexes = append([]int{preferredPeerIndex}, shuffledIndexes...)
 	}
+
+	messenger := trs.getMessengerForRequest(peerType, topicToSendRequest)
 
 	for idx := 0; idx < len(shuffledIndexes); idx++ {
 		peer := getPeerID(shuffledIndexes[idx], topRatedPeersList, preferredPeer, peerType, topicToSendRequest, histogramMap)

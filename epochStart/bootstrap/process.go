@@ -99,6 +99,7 @@ type epochStartBootstrap struct {
 	cryptoComponentsHolder     process.CryptoComponentsHolder
 	mainMessenger              p2p.Messenger
 	fullArchiveMessenger       p2p.Messenger
+	transactionsMessenger      p2p.Messenger
 	generalConfig              config.Config
 	prefsConfig                config.PreferencesConfig
 	flagsConfig                config.ContextFlagsConfig
@@ -177,6 +178,7 @@ type ArgsEpochStartBootstrap struct {
 	DestinationShardAsObserver      uint32
 	MainMessenger                   p2p.Messenger
 	FullArchiveMessenger            p2p.Messenger
+	TransactionsMessenger           p2p.Messenger
 	GeneralConfig                   config.Config
 	PrefsConfig                     config.PreferencesConfig
 	FlagsConfig                     config.ContextFlagsConfig
@@ -221,6 +223,7 @@ func NewEpochStartBootstrap(args ArgsEpochStartBootstrap) (*epochStartBootstrap,
 		cryptoComponentsHolder:          args.CryptoComponentsHolder,
 		mainMessenger:                   args.MainMessenger,
 		fullArchiveMessenger:            args.FullArchiveMessenger,
+		transactionsMessenger:           args.TransactionsMessenger,
 		generalConfig:                   args.GeneralConfig,
 		prefsConfig:                     args.PrefsConfig,
 		flagsConfig:                     args.FlagsConfig,
@@ -464,6 +467,12 @@ func (e *epochStartBootstrap) cleanupOnBootstrapFinish() {
 	errMessenger = e.fullArchiveMessenger.UnJoinAllTopics()
 	log.LogIfError(errMessenger)
 
+	errMessenger = e.transactionsMessenger.UnregisterAllMessageProcessors()
+	log.LogIfError(errMessenger)
+
+	errMessenger = e.transactionsMessenger.UnJoinAllTopics()
+	log.LogIfError(errMessenger)
+
 	e.closeTrieNodes()
 }
 
@@ -597,6 +606,7 @@ func (e *epochStartBootstrap) createSyncers() error {
 		ShardCoordinator:               e.shardCoordinator,
 		MainMessenger:                  e.mainMessenger,
 		FullArchiveMessenger:           e.fullArchiveMessenger,
+		TransactionsMessenger:          e.transactionsMessenger,
 		DataPool:                       e.dataPool,
 		WhiteListHandler:               e.whiteListHandler,
 		WhiteListerVerifiedTxs:         e.whiteListerVerifiedTxs,
@@ -1265,6 +1275,7 @@ func (e *epochStartBootstrap) createResolversContainer() error {
 		ShardCoordinator:                    e.shardCoordinator,
 		MainMessenger:                       e.mainMessenger,
 		FullArchiveMessenger:                e.fullArchiveMessenger,
+		TransactionsMessenger:               e.transactionsMessenger,
 		Store:                               storageService,
 		Marshalizer:                         e.coreComponentsHolder.InternalMarshalizer(),
 		DataPools:                           e.dataPool,
@@ -1299,6 +1310,7 @@ func (e *epochStartBootstrap) createRequestHandler() error {
 		ShardCoordinator:                e.shardCoordinator,
 		MainMessenger:                   e.mainMessenger,
 		FullArchiveMessenger:            e.fullArchiveMessenger,
+		TransactionsMessenger:           e.transactionsMessenger,
 		Marshaller:                      e.coreComponentsHolder.InternalMarshalizer(),
 		Uint64ByteSliceConverter:        uint64ByteSlice.NewBigEndianConverter(),
 		OutputAntifloodHandler:          disabled.NewAntiFloodHandler(),

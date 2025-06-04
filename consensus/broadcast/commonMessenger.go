@@ -1,6 +1,7 @@
 package broadcast
 
 import (
+	"fmt"
 	"strings"
 	"time"
 
@@ -27,6 +28,7 @@ type commonMessenger struct {
 	marshalizer             marshal.Marshalizer
 	hasher                  hashing.Hasher
 	messenger               consensus.P2PMessenger
+	transactionsMessenger   consensus.P2PMessenger
 	shardCoordinator        sharding.Coordinator
 	peerSignatureHandler    crypto.PeerSignatureHandler
 	delayedBlockBroadcaster DelayedBroadcaster
@@ -38,6 +40,7 @@ type CommonMessengerArgs struct {
 	Marshalizer                marshal.Marshalizer
 	Hasher                     hashing.Hasher
 	Messenger                  consensus.P2PMessenger
+	TransactionsMessenger      consensus.P2PMessenger
 	ShardCoordinator           sharding.Coordinator
 	PeerSignatureHandler       crypto.PeerSignatureHandler
 	HeadersSubscriber          consensus.HeadersPoolSubscriber
@@ -59,7 +62,10 @@ func checkCommonMessengerNilParameters(
 		return spos.ErrNilHasher
 	}
 	if check.IfNil(args.Messenger) {
-		return spos.ErrNilMessenger
+		return fmt.Errorf("%w for main messenger", spos.ErrNilMessenger)
+	}
+	if check.IfNil(args.TransactionsMessenger) {
+		return fmt.Errorf("%w for transactions messenger", spos.ErrNilMessenger)
 	}
 	if check.IfNil(args.ShardCoordinator) {
 		return spos.ErrNilShardCoordinator
@@ -219,8 +225,13 @@ func (cm *commonMessenger) extractMetaMiniBlocksAndTransactions(
 }
 
 func (cm *commonMessenger) broadcast(topic string, data []byte, pkBytes []byte) {
+	messenger := cm.messenger
+	if strings.Contains(topic, factory.TransactionTopic) {
+		messenger = cm.transactionsMessenger
+	}
+
 	if cm.keysHandler.IsOriginalPublicKeyOfTheNode(pkBytes) {
-		cm.messenger.Broadcast(topic, data)
+		messenger.Broadcast(topic, data)
 		return
 	}
 
@@ -231,7 +242,7 @@ func (cm *commonMessenger) broadcast(topic string, data []byte, pkBytes []byte) 
 		return
 	}
 
-	cm.messenger.BroadcastUsingPrivateKey(topic, data, pid, skBytes)
+	messenger.BroadcastUsingPrivateKey(topic, data, pid, skBytes)
 }
 
 func (cm *commonMessenger) broadcastEquivalentProof(proof data.HeaderProofHandler, pkBytes []byte, topic string) error {

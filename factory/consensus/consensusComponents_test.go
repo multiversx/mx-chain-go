@@ -74,9 +74,10 @@ func createMockConsensusComponentsFactoryArgs() consensusComp.ConsensusComponent
 			EnableEpochsHandlerField: &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 		},
 		NetworkComponents: &testsMocks.NetworkComponentsStub{
-			Messenger:      &p2pmocks.MessengerStub{},
-			InputAntiFlood: &testsMocks.P2PAntifloodHandlerStub{},
-			PeerHonesty:    &testscommon.PeerHonestyHandlerStub{},
+			Messenger:                         &p2pmocks.MessengerStub{},
+			TransactionsNetworkMessengerField: &p2pmocks.MessengerStub{},
+			InputAntiFlood:                    &testsMocks.P2PAntifloodHandlerStub{},
+			PeerHonesty:                       &testscommon.PeerHonestyHandlerStub{},
 		},
 		CryptoComponents: &testsMocks.CryptoComponentsStub{
 			PrivKey:         &cryptoMocks.PrivateKeyStub{},

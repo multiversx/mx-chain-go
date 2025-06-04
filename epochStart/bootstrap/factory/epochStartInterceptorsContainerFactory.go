@@ -32,6 +32,7 @@ type ArgsEpochStartInterceptorContainer struct {
 	ShardCoordinator               sharding.Coordinator
 	MainMessenger                  process.TopicHandler
 	FullArchiveMessenger           process.TopicHandler
+	TransactionsMessenger          process.TopicHandler
 	DataPool                       dataRetriever.PoolsHolder
 	WhiteListHandler               update.WhiteListHandler
 	WhiteListerVerifiedTxs         update.WhiteListHandler
@@ -87,6 +88,7 @@ func NewEpochStartInterceptorsContainer(args ArgsEpochStartInterceptorContainer)
 		NodesCoordinator:               nodesCoordinator,
 		MainMessenger:                  args.MainMessenger,
 		FullArchiveMessenger:           args.FullArchiveMessenger,
+		TransactionsMessenger:          args.TransactionsMessenger,
 		Store:                          storer,
 		DataPool:                       args.DataPool,
 		MaxTxNonceDeltaAllowed:         common.MaxTxNonceDeltaAllowed,

@@ -140,6 +140,7 @@ func createMockEpochStartBootstrapArgs(
 			}},
 		NodesCoordinatorRegistryFactory: &shardingMocks.NodesCoordinatorRegistryFactoryMock{},
 		FullArchiveMessenger:            &p2pmocks.MessengerStub{},
+		TransactionsMessenger:           &p2pmocks.MessengerStub{},
 		GeneralConfig: config.Config{
 			MiniBlocksStorage:               generalCfg.MiniBlocksStorage,
 			PeerBlockBodyStorage:            generalCfg.PeerBlockBodyStorage,

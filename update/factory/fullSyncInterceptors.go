@@ -2,6 +2,7 @@ package factory
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
@@ -38,6 +39,7 @@ type fullSyncInterceptorsContainerFactory struct {
 	dataPool                       dataRetriever.PoolsHolder
 	mainMessenger                  process.TopicHandler
 	fullArchiveMessenger           process.TopicHandler
+	transactionsMessenger          process.TopicHandler
 	nodesCoordinator               nodesCoordinator.NodesCoordinator
 	blockBlackList                 process.TimeCacher
 	argInterceptorFactory          *interceptorFactory.ArgInterceptedDataFactory
@@ -61,6 +63,7 @@ type ArgsNewFullSyncInterceptorsContainerFactory struct {
 	NodesCoordinator                 nodesCoordinator.NodesCoordinator
 	MainMessenger                    process.TopicHandler
 	FullArchiveMessenger             process.TopicHandler
+	TransactionsMessenger            process.TopicHandler
 	Store                            dataRetriever.StorageService
 	DataPool                         dataRetriever.PoolsHolder
 	MaxTxNonceDeltaAllowed           int
@@ -93,6 +96,7 @@ func NewFullSyncInterceptorsContainerFactory(
 		args.DataPool,
 		args.MainMessenger,
 		args.FullArchiveMessenger,
+		args.TransactionsMessenger,
 		args.NodesCoordinator,
 		args.BlockBlackList,
 		args.WhiteListerVerifiedTxs,
@@ -160,6 +164,7 @@ func NewFullSyncInterceptorsContainerFactory(
 		shardCoordinator:       args.ShardCoordinator,
 		mainMessenger:          args.MainMessenger,
 		fullArchiveMessenger:   args.FullArchiveMessenger,
+		transactionsMessenger:  args.TransactionsMessenger,
 		store:                  args.Store,
 		dataPool:               args.DataPool,
 		nodesCoordinator:       args.NodesCoordinator,
@@ -232,6 +237,7 @@ func checkBaseParams(
 	dataPool dataRetriever.PoolsHolder,
 	mainMessenger process.TopicHandler,
 	fullArchiveMessenger process.TopicHandler,
+	transactionsMessenger process.TopicHandler,
 	nodesCoordinator nodesCoordinator.NodesCoordinator,
 	blockBlackList process.TimeCacher,
 	whiteListerVerifiedTxs update.WhiteListHandler,
@@ -284,6 +290,9 @@ func checkBaseParams(
 	}
 	if check.IfNil(fullArchiveMessenger) {
 		return fmt.Errorf("%w on full archive network", process.ErrNilMessenger)
+	}
+	if check.IfNil(transactionsMessenger) {
+		return fmt.Errorf("%w on transactions network", process.ErrNilMessenger)
 	}
 	if check.IfNil(store) {
 		return process.ErrNilStore
@@ -469,6 +478,18 @@ func (ficf *fullSyncInterceptorsContainerFactory) createTopicAndAssignHandler(
 	interceptor process.Interceptor,
 	createChannel bool,
 ) (process.Interceptor, error) {
+
+	if strings.Contains(topic, factory.TransactionTopic) {
+		err := createTopicAndAssignHandlerOnMessenger(topic, interceptor, createChannel, ficf.transactionsMessenger)
+		if err != nil {
+			return nil, err
+		}
+
+		// TODO[Sorin]: add also a fullArchiveTransactionsMessenger for these requests
+		// not needed yet for poc
+
+		return interceptor, nil
+	}
 
 	err := createTopicAndAssignHandlerOnMessenger(topic, interceptor, createChannel, ficf.mainMessenger)
 	if err != nil {

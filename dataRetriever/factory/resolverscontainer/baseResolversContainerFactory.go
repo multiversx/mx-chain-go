@@ -27,6 +27,7 @@ type baseResolversContainerFactory struct {
 	shardCoordinator                sharding.Coordinator
 	mainMessenger                   p2p.Messenger
 	fullArchiveMessenger            p2p.Messenger
+	transactionsMessenger           p2p.Messenger
 	store                           dataRetriever.StorageService
 	marshalizer                     marshal.Marshalizer
 	dataPools                       dataRetriever.PoolsHolder
@@ -53,6 +54,9 @@ func (brcf *baseResolversContainerFactory) checkParams() error {
 	}
 	if check.IfNil(brcf.fullArchiveMessenger) {
 		return fmt.Errorf("%w for full archive network", dataRetriever.ErrNilMessenger)
+	}
+	if check.IfNil(brcf.transactionsMessenger) {
+		return fmt.Errorf("%w for transactions network", dataRetriever.ErrNilMessenger)
 	}
 	if check.IfNil(brcf.store) {
 		return dataRetriever.ErrNilStore
@@ -168,12 +172,7 @@ func (brcf *baseResolversContainerFactory) createTxResolver(
 		return nil, err
 	}
 
-	err = brcf.mainMessenger.RegisterMessageProcessor(resolver.RequestTopic(), common.DefaultResolversIdentifier, resolver)
-	if err != nil {
-		return nil, err
-	}
-
-	err = brcf.fullArchiveMessenger.RegisterMessageProcessor(resolver.RequestTopic(), common.DefaultResolversIdentifier, resolver)
+	err = brcf.transactionsMessenger.RegisterMessageProcessor(resolver.RequestTopic(), common.DefaultResolversIdentifier, resolver)
 	if err != nil {
 		return nil, err
 	}
@@ -318,6 +317,7 @@ func (brcf *baseResolversContainerFactory) createOneResolverSenderWithSpecifiedN
 		ArgBaseTopicSender: topicsender.ArgBaseTopicSender{
 			MainMessenger:                   brcf.mainMessenger,
 			FullArchiveMessenger:            brcf.fullArchiveMessenger,
+			TransactionsMessenger:           brcf.transactionsMessenger,
 			TopicName:                       topic,
 			OutputAntiflooder:               brcf.outputAntifloodHandler,
 			MainPreferredPeersHolder:        brcf.mainPreferredPeersHolder,

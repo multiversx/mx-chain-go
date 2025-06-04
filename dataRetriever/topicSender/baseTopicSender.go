@@ -24,6 +24,7 @@ const (
 type ArgBaseTopicSender struct {
 	MainMessenger                   p2p.Messenger
 	FullArchiveMessenger            p2p.Messenger
+	TransactionsMessenger           p2p.Messenger
 	TopicName                       string
 	OutputAntiflooder               dataRetriever.P2PAntifloodHandler
 	MainPreferredPeersHolder        dataRetriever.PreferredPeersHolderHandler
@@ -34,6 +35,7 @@ type ArgBaseTopicSender struct {
 type baseTopicSender struct {
 	mainMessenger                          p2p.Messenger
 	fullArchiveMessenger                   p2p.Messenger
+	transactionsMessenger                  p2p.Messenger
 	topicName                              string
 	outputAntiflooder                      dataRetriever.P2PAntifloodHandler
 	mutDebugHandler                        sync.RWMutex
@@ -47,6 +49,7 @@ func createBaseTopicSender(args ArgBaseTopicSender) *baseTopicSender {
 	return &baseTopicSender{
 		mainMessenger:                          args.MainMessenger,
 		fullArchiveMessenger:                   args.FullArchiveMessenger,
+		transactionsMessenger:                  args.TransactionsMessenger,
 		topicName:                              args.TopicName,
 		outputAntiflooder:                      args.OutputAntiflooder,
 		debugHandler:                           handler.NewDisabledInterceptorDebugHandler(),
@@ -62,6 +65,9 @@ func checkBaseTopicSenderArgs(args ArgBaseTopicSender) error {
 	}
 	if check.IfNil(args.FullArchiveMessenger) {
 		return fmt.Errorf("%w on full archive network", dataRetriever.ErrNilMessenger)
+	}
+	if check.IfNil(args.TransactionsMessenger) {
+		return fmt.Errorf("%w on transactions network", dataRetriever.ErrNilMessenger)
 	}
 	if check.IfNil(args.OutputAntiflooder) {
 		return dataRetriever.ErrNilAntifloodHandler

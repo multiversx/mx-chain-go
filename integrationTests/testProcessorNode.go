@@ -281,6 +281,8 @@ type Connectable interface {
 	ConnectOnFullArchive(connectable Connectable) error
 	GetMainConnectableAddress() string
 	GetFullArchiveConnectableAddress() string
+	ConnectOnTransactions(connectable Connectable) error
+	GetTransactionsConnectableAddress() string
 	IsInterfaceNil() bool
 }
 
@@ -326,6 +328,7 @@ type TestProcessorNode struct {
 	NodesSetup                 sharding.GenesisNodesSetupHandler
 	MainMessenger              p2p.Messenger
 	FullArchiveMessenger       p2p.Messenger
+	TransactionsMessenger      p2p.Messenger
 	NodeOperationMode          common.NodeOperation
 
 	OwnAccount *TestWalletAccount
@@ -496,6 +499,7 @@ func newBaseTestProcessorNode(args ArgTestProcessorNode) *TestProcessorNode {
 	p2pKey := mock.NewPrivateKeyMock()
 	messenger := CreateMessengerWithNoDiscoveryAndPeersRatingHandler(peersRatingHandler, p2pKey)
 	fullArchiveMessenger := CreateMessengerWithNoDiscoveryAndPeersRatingHandler(peersRatingHandler, p2pKey)
+	transactionsMessenger := CreateMessengerWithNoDiscoveryAndPeersRatingHandler(peersRatingHandler, p2pKey)
 
 	genericEpochNotifier := forking.NewGenericEpochNotifier()
 	epochsConfig := args.EpochsConfig
@@ -521,6 +525,7 @@ func newBaseTestProcessorNode(args ArgTestProcessorNode) *TestProcessorNode {
 		ShardCoordinator:              shardCoordinator,
 		MainMessenger:                 messenger,
 		FullArchiveMessenger:          fullArchiveMessenger,
+		TransactionsMessenger:         transactionsMessenger,
 		NodeOperationMode:             nodeOperationMode,
 		NodesCoordinator:              nodesCoordinatorInstance,
 		ChainID:                       ChainID,
@@ -638,6 +643,24 @@ func (tpn *TestProcessorNode) GetFullArchiveConnectableAddress() string {
 	}
 
 	return GetConnectableAddress(tpn.FullArchiveMessenger)
+}
+
+// ConnectOnTransactions will try to initiate a connection to the provided parameter on the transactions messenger
+func (tpn *TestProcessorNode) ConnectOnTransactions(connectable Connectable) error {
+	if check.IfNil(connectable) {
+		return fmt.Errorf("trying to connect to a nil Connectable parameter")
+	}
+
+	return tpn.TransactionsMessenger.ConnectToPeer(connectable.GetTransactionsConnectableAddress())
+}
+
+// GetTransactionsConnectableAddress returns a non circuit, non windows default connectable p2p address
+func (tpn *TestProcessorNode) GetTransactionsConnectableAddress() string {
+	if tpn == nil {
+		return "nil"
+	}
+
+	return GetConnectableAddress(tpn.TransactionsMessenger)
 }
 
 // Close -
@@ -857,6 +880,7 @@ func (tpn *TestProcessorNode) initTestNodeWithArgs(args ArgTestProcessorNode) {
 		TestMarshalizer,
 		TestHasher,
 		tpn.MainMessenger,
+		tpn.TransactionsMessenger,
 		tpn.ShardCoordinator,
 		tpn.OwnAccount.PeerSigHandler,
 		tpn.DataPool.Headers(),
@@ -1082,6 +1106,7 @@ func (tpn *TestProcessorNode) InitializeProcessors(gasMap map[string]map[string]
 		TestMarshalizer,
 		TestHasher,
 		tpn.MainMessenger,
+		tpn.TransactionsMessenger,
 		tpn.ShardCoordinator,
 		tpn.OwnAccount.PeerSigHandler,
 		tpn.DataPool.Headers(),
@@ -1353,6 +1378,7 @@ func (tpn *TestProcessorNode) initInterceptors(heartbeatPk string) {
 			NodesCoordinator:               tpn.NodesCoordinator,
 			MainMessenger:                  tpn.MainMessenger,
 			FullArchiveMessenger:           tpn.FullArchiveMessenger,
+			TransactionsMessenger:          tpn.TransactionsMessenger,
 			Store:                          tpn.Storage,
 			DataPool:                       tpn.DataPool,
 			MaxTxNonceDeltaAllowed:         common.MaxTxNonceDeltaAllowed,
@@ -1422,6 +1448,7 @@ func (tpn *TestProcessorNode) initInterceptors(heartbeatPk string) {
 			NodesCoordinator:               tpn.NodesCoordinator,
 			MainMessenger:                  tpn.MainMessenger,
 			FullArchiveMessenger:           tpn.FullArchiveMessenger,
+			TransactionsMessenger:          tpn.TransactionsMessenger,
 			Store:                          tpn.Storage,
 			DataPool:                       tpn.DataPool,
 			MaxTxNonceDeltaAllowed:         common.MaxTxNonceDeltaAllowed,
@@ -1499,6 +1526,7 @@ func (tpn *TestProcessorNode) initResolvers() {
 		ShardCoordinator:                    tpn.ShardCoordinator,
 		MainMessenger:                       tpn.MainMessenger,
 		FullArchiveMessenger:                tpn.FullArchiveMessenger,
+		TransactionsMessenger:               tpn.TransactionsMessenger,
 		Store:                               tpn.Storage,
 		Marshalizer:                         TestMarshalizer,
 		DataPools:                           tpn.DataPool,
@@ -1539,6 +1567,7 @@ func (tpn *TestProcessorNode) initRequesters() {
 		ShardCoordinator:                tpn.ShardCoordinator,
 		MainMessenger:                   tpn.MainMessenger,
 		FullArchiveMessenger:            tpn.FullArchiveMessenger,
+		TransactionsMessenger:           tpn.TransactionsMessenger,
 		Marshaller:                      TestMarshaller,
 		Uint64ByteSliceConverter:        TestUint64Converter,
 		OutputAntifloodHandler:          &mock.NilAntifloodHandler{},
@@ -2571,7 +2600,7 @@ func (tpn *TestProcessorNode) initNode() {
 	processComponents.HistoryRepositoryInternal = tpn.HistoryRepository
 	processComponents.WhiteListHandlerInternal = tpn.WhiteListHandler
 	processComponents.WhiteListerVerifiedTxsInternal = tpn.WhiteListerVerifiedTxs
-	processComponents.TxsSenderHandlerField = createTxsSender(tpn.ShardCoordinator, tpn.MainMessenger)
+	processComponents.TxsSenderHandlerField = createTxsSender(tpn.ShardCoordinator, tpn.TransactionsMessenger)
 	processComponents.HardforkTriggerField = tpn.HardforkTrigger
 
 	cryptoComponents := GetDefaultCryptoComponents()
@@ -3228,7 +3257,7 @@ func (tpn *TestProcessorNode) createHeartbeatWithHardforkTrigger() {
 	processComponents.WhiteListerVerifiedTxsInternal = tpn.WhiteListerVerifiedTxs
 	processComponents.WhiteListHandlerInternal = tpn.WhiteListHandler
 	processComponents.HistoryRepositoryInternal = tpn.HistoryRepository
-	processComponents.TxsSenderHandlerField = createTxsSender(tpn.ShardCoordinator, tpn.MainMessenger)
+	processComponents.TxsSenderHandlerField = createTxsSender(tpn.ShardCoordinator, tpn.TransactionsMessenger)
 
 	processComponents.HardforkTriggerField = tpn.HardforkTrigger
 

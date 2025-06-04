@@ -27,6 +27,7 @@ type baseRequestersContainerFactory struct {
 	shardCoordinator                sharding.Coordinator
 	mainMessenger                   p2p.Messenger
 	fullArchiveMessenger            p2p.Messenger
+	transactionsMessenger           p2p.Messenger
 	marshaller                      marshal.Marshalizer
 	uint64ByteSliceConverter        typeConverters.Uint64ByteSliceConverter
 	intRandomizer                   dataRetriever.IntRandomizer
@@ -52,6 +53,9 @@ func (brcf *baseRequestersContainerFactory) checkParams() error {
 	}
 	if check.IfNil(brcf.fullArchiveMessenger) {
 		return fmt.Errorf("%w on full archive network", dataRetriever.ErrNilMessenger)
+	}
+	if check.IfNil(brcf.transactionsMessenger) {
+		return fmt.Errorf("%w on transactions network", dataRetriever.ErrNilMessenger)
 	}
 	if check.IfNil(brcf.marshaller) {
 		return dataRetriever.ErrNilMarshalizer
@@ -279,6 +283,7 @@ func (brcf *baseRequestersContainerFactory) createOneRequestSenderWithSpecifiedN
 		ArgBaseTopicSender: topicsender.ArgBaseTopicSender{
 			MainMessenger:                   brcf.mainMessenger,
 			FullArchiveMessenger:            brcf.fullArchiveMessenger,
+			TransactionsMessenger:           brcf.transactionsMessenger,
 			TopicName:                       topic,
 			OutputAntiflooder:               brcf.outputAntifloodHandler,
 			MainPreferredPeersHolder:        brcf.mainPreferredPeersHolder,
