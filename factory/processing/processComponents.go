@@ -267,8 +267,7 @@ func NewProcessComponentsFactory(args ProcessComponentsFactoryArgs) (*processCom
 func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 	genesisUnixTime := common.GetGenesisUnixTimestampFromStartTime(pcf.coreData.GenesisTime(), pcf.coreData.EnableEpochsHandler())
 	currentEpochProvider, err := epochProviders.CreateCurrentEpochProvider(
-		pcf.config,
-		pcf.coreData.GenesisNodesSetup().GetRoundDuration(),
+		pcf.coreData.ChainParametersHandler(),
 		genesisUnixTime,
 		pcf.prefConfigs.Preferences.FullArchive,
 		pcf.coreData.EnableEpochsHandler(),
@@ -876,16 +875,17 @@ func (pcf *processComponentsFactory) newEpochStartTrigger(requestHandler epochSt
 
 		genesisTime := common.GetGenesisStartTimeFromUnixTimestamp(pcf.coreData.GenesisNodesSetup().GetStartTime(), pcf.coreData.EnableEpochsHandler())
 		argEpochStart := &metachain.ArgsNewMetaEpochStartTrigger{
-			GenesisTime:        genesisTime,
-			Settings:           &pcf.config.EpochStartConfig,
-			Epoch:              pcf.bootstrapComponents.EpochBootstrapParams().Epoch(),
-			EpochStartRound:    genesisHeader.GetRound(),
-			EpochStartNotifier: pcf.coreData.EpochStartNotifierWithConfirm(),
-			Storage:            pcf.data.StorageService(),
-			Marshalizer:        pcf.coreData.InternalMarshalizer(),
-			Hasher:             pcf.coreData.Hasher(),
-			AppStatusHandler:   pcf.statusCoreComponents.AppStatusHandler(),
-			DataPool:           pcf.data.Datapool(),
+			GenesisTime:            genesisTime,
+			Settings:               &pcf.config.EpochStartConfig,
+			Epoch:                  pcf.bootstrapComponents.EpochBootstrapParams().Epoch(),
+			EpochStartRound:        genesisHeader.GetRound(),
+			EpochStartNotifier:     pcf.coreData.EpochStartNotifierWithConfirm(),
+			Storage:                pcf.data.StorageService(),
+			Marshalizer:            pcf.coreData.InternalMarshalizer(),
+			Hasher:                 pcf.coreData.Hasher(),
+			AppStatusHandler:       pcf.statusCoreComponents.AppStatusHandler(),
+			DataPool:               pcf.data.Datapool(),
+			ChainParametersHandler: pcf.coreData.ChainParametersHandler(),
 		}
 
 		return metachain.NewEpochStartTrigger(argEpochStart)
