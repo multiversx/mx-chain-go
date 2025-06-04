@@ -186,7 +186,8 @@ func (bicf *baseInterceptorsContainerFactory) createTopicAndAssignHandler(
 
 	shouldAddInterceptorOnTransactionsNetwork := strings.Contains(topic, factory.TransactionTopic) ||
 		strings.Contains(topic, common.ConnectionTopic) ||
-		strings.Contains(topic, common.HeartbeatV2Topic)
+		strings.Contains(topic, common.HeartbeatV2Topic) ||
+		strings.Contains(topic, common.PeerAuthenticationTopic)
 	if shouldAddInterceptorOnTransactionsNetwork {
 		err := createTopicAndAssignHandlerOnMessenger(topic, interceptor, createChannel, bicf.transactionsMessenger)
 		if err != nil {
