@@ -153,6 +153,9 @@ func (m *managedProcessComponents) CheckSubcomponents() error {
 	if check.IfNil(m.processComponents.fullArchivePeerShardMapper) {
 		return fmt.Errorf("%w for full archive", errors.ErrNilPeerShardMapper)
 	}
+	if check.IfNil(m.processComponents.transactionsPeerShardMapper) {
+		return fmt.Errorf("%w for transactions", errors.ErrNilPeerShardMapper)
+	}
 	if check.IfNil(m.processComponents.fallbackHeaderValidator) {
 		return errors.ErrNilFallbackHeaderValidator
 	}
@@ -470,6 +473,18 @@ func (m *managedProcessComponents) FullArchivePeerShardMapper() process.NetworkS
 	}
 
 	return m.processComponents.fullArchivePeerShardMapper
+}
+
+// TransactionsPeerShardMapper returns the peer to shard mapper of the transactions network
+func (m *managedProcessComponents) TransactionsPeerShardMapper() process.NetworkShardingCollector {
+	m.mutProcessComponents.RLock()
+	defer m.mutProcessComponents.RUnlock()
+
+	if m.processComponents == nil {
+		return nil
+	}
+
+	return m.processComponents.transactionsPeerShardMapper
 }
 
 // FallbackHeaderValidator returns the fallback header validator

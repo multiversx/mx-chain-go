@@ -321,15 +321,16 @@ type ArgTestProcessorNode struct {
 // TestProcessorNode represents a container type of class used in integration tests
 // with all its fields exported
 type TestProcessorNode struct {
-	ShardCoordinator           sharding.Coordinator
-	NodesCoordinator           nodesCoordinator.NodesCoordinator
-	MainPeerShardMapper        process.PeerShardMapper
-	FullArchivePeerShardMapper process.PeerShardMapper
-	NodesSetup                 sharding.GenesisNodesSetupHandler
-	MainMessenger              p2p.Messenger
-	FullArchiveMessenger       p2p.Messenger
-	TransactionsMessenger      p2p.Messenger
-	NodeOperationMode          common.NodeOperation
+	ShardCoordinator            sharding.Coordinator
+	NodesCoordinator            nodesCoordinator.NodesCoordinator
+	MainPeerShardMapper         process.PeerShardMapper
+	FullArchivePeerShardMapper  process.PeerShardMapper
+	TransactionsPeerShardMapper process.PeerShardMapper
+	NodesSetup                  sharding.GenesisNodesSetupHandler
+	MainMessenger               p2p.Messenger
+	FullArchiveMessenger        p2p.Messenger
+	TransactionsMessenger       p2p.Messenger
+	NodeOperationMode           common.NodeOperation
 
 	OwnAccount *TestWalletAccount
 	NodeKeys   *TestNodeKeys
@@ -544,6 +545,7 @@ func newBaseTestProcessorNode(args ArgTestProcessorNode) *TestProcessorNode {
 		PeersRatingHandler:            peersRatingHandler,
 		MainPeerShardMapper:           mock.NewNetworkShardingCollectorMock(),
 		FullArchivePeerShardMapper:    mock.NewNetworkShardingCollectorMock(),
+		TransactionsPeerShardMapper:   mock.NewNetworkShardingCollectorMock(),
 		EnableEpochs:                  *epochsConfig,
 		UseValidVmBlsSigVerifier:      args.WithBLSSigVerifier,
 		StorageBootstrapper:           &mock.StorageBootstrapperMock{},
@@ -1399,7 +1401,6 @@ func (tpn *TestProcessorNode) initInterceptors(heartbeatPk string) {
 			SignaturesHandler:              &processMock.SignaturesHandlerStub{},
 			HeartbeatExpiryTimespanInSec:   30,
 			MainPeerShardMapper:            tpn.MainPeerShardMapper,
-			FullArchivePeerShardMapper:     tpn.FullArchivePeerShardMapper,
 			HardforkTrigger:                tpn.HardforkTrigger,
 			NodeOperationMode:              tpn.NodeOperationMode,
 			InterceptedDataVerifierFactory: interceptorsFactory.NewInterceptedDataVerifierFactory(interceptorDataVerifierArgs),
@@ -1469,7 +1470,6 @@ func (tpn *TestProcessorNode) initInterceptors(heartbeatPk string) {
 			SignaturesHandler:              &processMock.SignaturesHandlerStub{},
 			HeartbeatExpiryTimespanInSec:   30,
 			MainPeerShardMapper:            tpn.MainPeerShardMapper,
-			FullArchivePeerShardMapper:     tpn.FullArchivePeerShardMapper,
 			HardforkTrigger:                tpn.HardforkTrigger,
 			NodeOperationMode:              tpn.NodeOperationMode,
 			InterceptedDataVerifierFactory: interceptorsFactory.NewInterceptedDataVerifierFactory(interceptorDataVerifierArgs),

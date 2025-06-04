@@ -111,6 +111,7 @@ type processComponents struct {
 	headerConstructionValidator      process.HeaderConstructionValidator
 	mainPeerShardMapper              process.NetworkShardingCollector
 	fullArchivePeerShardMapper       process.NetworkShardingCollector
+	transactionsPeerShardMapper      process.NetworkShardingCollector
 	apiTransactionEvaluator          factory.TransactionEvaluator
 	miniBlocksPoolCleaner            process.PoolsCleaner
 	txsPoolCleaner                   process.PoolsCleaner
@@ -309,6 +310,10 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 		return nil, err
 	}
 	fullArchivePeerShardMapper, err := pcf.prepareNetworkShardingCollectorForMessenger(pcf.network.FullArchiveNetworkMessenger())
+	if err != nil {
+		return nil, err
+	}
+	transactionsPeerShardMapper, err := pcf.prepareNetworkShardingCollectorForMessenger(pcf.network.TransactionsNetworkMessenger())
 	if err != nil {
 		return nil, err
 	}
@@ -537,7 +542,6 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 		epochStartTrigger,
 		requestHandler,
 		mainPeerShardMapper,
-		fullArchivePeerShardMapper,
 		hardforkTrigger,
 	)
 	if err != nil {
@@ -754,6 +758,7 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 		headerIntegrityVerifier:          pcf.bootstrapComponents.HeaderIntegrityVerifier(),
 		mainPeerShardMapper:              mainPeerShardMapper,
 		fullArchivePeerShardMapper:       fullArchivePeerShardMapper,
+		transactionsPeerShardMapper:      transactionsPeerShardMapper,
 		apiTransactionEvaluator:          apiTransactionEvaluator,
 		miniBlocksPoolCleaner:            mbsPoolsCleaner,
 		txsPoolCleaner:                   txsPoolsCleaner,
@@ -1516,7 +1521,6 @@ func (pcf *processComponentsFactory) newInterceptorContainerFactory(
 	epochStartTrigger process.EpochStartTriggerHandler,
 	requestHandler process.RequestHandler,
 	mainPeerShardMapper *networksharding.PeerShardMapper,
-	fullArchivePeerShardMapper *networksharding.PeerShardMapper,
 	hardforkTrigger factory.HardforkTrigger,
 ) (process.InterceptorsContainerFactory, process.TimeCacher, error) {
 	nodeOperationMode := common.NormalOperation
@@ -1533,7 +1537,6 @@ func (pcf *processComponentsFactory) newInterceptorContainerFactory(
 			epochStartTrigger,
 			requestHandler,
 			mainPeerShardMapper,
-			fullArchivePeerShardMapper,
 			hardforkTrigger,
 			nodeOperationMode,
 		)
@@ -1546,7 +1549,6 @@ func (pcf *processComponentsFactory) newInterceptorContainerFactory(
 			epochStartTrigger,
 			requestHandler,
 			mainPeerShardMapper,
-			fullArchivePeerShardMapper,
 			hardforkTrigger,
 			nodeOperationMode,
 		)
@@ -1685,7 +1687,6 @@ func (pcf *processComponentsFactory) newShardInterceptorContainerFactory(
 	epochStartTrigger process.EpochStartTriggerHandler,
 	requestHandler process.RequestHandler,
 	mainPeerShardMapper *networksharding.PeerShardMapper,
-	fullArchivePeerShardMapper *networksharding.PeerShardMapper,
 	hardforkTrigger factory.HardforkTrigger,
 	nodeOperationMode common.NodeOperation,
 ) (process.InterceptorsContainerFactory, process.TimeCacher, error) {
@@ -1719,7 +1720,6 @@ func (pcf *processComponentsFactory) newShardInterceptorContainerFactory(
 		SignaturesHandler:              pcf.network.NetworkMessenger(),
 		HeartbeatExpiryTimespanInSec:   pcf.config.HeartbeatV2.HeartbeatExpiryTimespanInSec,
 		MainPeerShardMapper:            mainPeerShardMapper,
-		FullArchivePeerShardMapper:     fullArchivePeerShardMapper,
 		HardforkTrigger:                hardforkTrigger,
 		NodeOperationMode:              nodeOperationMode,
 		InterceptedDataVerifierFactory: pcf.interceptedDataVerifierFactory,
@@ -1740,7 +1740,6 @@ func (pcf *processComponentsFactory) newMetaInterceptorContainerFactory(
 	epochStartTrigger process.EpochStartTriggerHandler,
 	requestHandler process.RequestHandler,
 	mainPeerShardMapper *networksharding.PeerShardMapper,
-	fullArchivePeerShardMapper *networksharding.PeerShardMapper,
 	hardforkTrigger factory.HardforkTrigger,
 	nodeOperationMode common.NodeOperation,
 ) (process.InterceptorsContainerFactory, process.TimeCacher, error) {
@@ -1774,7 +1773,6 @@ func (pcf *processComponentsFactory) newMetaInterceptorContainerFactory(
 		SignaturesHandler:              pcf.network.NetworkMessenger(),
 		HeartbeatExpiryTimespanInSec:   pcf.config.HeartbeatV2.HeartbeatExpiryTimespanInSec,
 		MainPeerShardMapper:            mainPeerShardMapper,
-		FullArchivePeerShardMapper:     fullArchivePeerShardMapper,
 		HardforkTrigger:                hardforkTrigger,
 		NodeOperationMode:              nodeOperationMode,
 		InterceptedDataVerifierFactory: pcf.interceptedDataVerifierFactory,

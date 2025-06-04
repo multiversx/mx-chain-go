@@ -497,6 +497,7 @@ func (thn *TestHeartbeatNode) initSender() {
 	argsSender := sender.ArgSender{
 		MainMessenger:           thn.MainMessenger,
 		FullArchiveMessenger:    thn.FullArchiveMessenger,
+		TransactionsMessenger:   thn.TransactionsMessenger,
 		Marshaller:              TestMarshaller,
 		PeerAuthenticationTopic: common.PeerAuthenticationTopic,
 		HeartbeatTopic:          identifierHeartbeat,

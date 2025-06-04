@@ -83,6 +83,7 @@ type processComponentsHolder struct {
 	headerConstructionValidator      process.HeaderConstructionValidator
 	peerShardMapper                  process.NetworkShardingCollector
 	fullArchivePeerShardMapper       process.NetworkShardingCollector
+	transactionsPeerShardMapper      process.NetworkShardingCollector
 	fallbackHeaderValidator          process.FallbackHeaderValidator
 	apiTransactionEvaluator          factory.TransactionEvaluator
 	whiteListHandler                 process.WhiteListHandler
@@ -266,6 +267,7 @@ func CreateProcessComponents(args ArgsProcessComponentsHolder) (*processComponen
 		headerConstructionValidator:      managedProcessComponents.HeaderConstructionValidator(),
 		peerShardMapper:                  managedProcessComponents.PeerShardMapper(),
 		fullArchivePeerShardMapper:       managedProcessComponents.FullArchivePeerShardMapper(),
+		transactionsPeerShardMapper:      managedProcessComponents.TransactionsPeerShardMapper(),
 		fallbackHeaderValidator:          managedProcessComponents.FallbackHeaderValidator(),
 		apiTransactionEvaluator:          managedProcessComponents.APITransactionEvaluator(),
 		whiteListHandler:                 managedProcessComponents.WhiteListHandler(),
@@ -436,6 +438,11 @@ func (p *processComponentsHolder) PeerShardMapper() process.NetworkShardingColle
 // FullArchivePeerShardMapper will return the full archive peer shard mapper
 func (p *processComponentsHolder) FullArchivePeerShardMapper() process.NetworkShardingCollector {
 	return p.fullArchivePeerShardMapper
+}
+
+// TransactionsPeerShardMapper will return the transactions peer shard mapper
+func (p *processComponentsHolder) TransactionsPeerShardMapper() process.NetworkShardingCollector {
+	return p.transactionsPeerShardMapper
 }
 
 // FallbackHeaderValidator will return the fallback header validator

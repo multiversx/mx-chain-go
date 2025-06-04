@@ -427,18 +427,6 @@ func TestNewShardInterceptorsContainerFactory_NilMainPeerShardMapperShouldErr(t 
 	assert.True(t, errors.Is(err, process.ErrNilPeerShardMapper))
 }
 
-func TestNewShardInterceptorsContainerFactory_NilFullArchivePeerShardMapperShouldErr(t *testing.T) {
-	t.Parallel()
-
-	coreComp, cryptoComp := createMockComponentHolders()
-	args := getArgumentsShard(coreComp, cryptoComp)
-	args.FullArchivePeerShardMapper = nil
-	icf, err := interceptorscontainer.NewShardInterceptorsContainerFactory(args)
-
-	assert.Nil(t, icf)
-	assert.True(t, errors.Is(err, process.ErrNilPeerShardMapper))
-}
-
 func TestNewShardInterceptorsContainerFactory_NilHardforkTriggerShouldErr(t *testing.T) {
 	t.Parallel()
 
@@ -764,7 +752,6 @@ func getArgumentsShard(
 		SignaturesHandler:              &mock.SignaturesHandlerStub{},
 		HeartbeatExpiryTimespanInSec:   30,
 		MainPeerShardMapper:            &p2pmocks.NetworkShardingCollectorStub{},
-		FullArchivePeerShardMapper:     &p2pmocks.NetworkShardingCollectorStub{},
 		HardforkTrigger:                &testscommon.HardforkTriggerStub{},
 		InterceptedDataVerifierFactory: &mock.InterceptedDataVerifierFactoryMock{},
 	}

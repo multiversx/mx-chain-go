@@ -77,7 +77,6 @@ func NewEpochStartInterceptorsContainer(args ArgsEpochStartInterceptorContainer)
 	epochStartTrigger := disabled.NewEpochStartTrigger()
 	// TODO: move the peerShardMapper creation before boostrapComponents
 	peerShardMapper := disabled.NewPeerShardMapper()
-	fullArchivePeerShardMapper := disabled.NewPeerShardMapper()
 	hardforkTrigger := disabledFactory.HardforkTrigger()
 
 	containerFactoryArgs := interceptorscontainer.CommonInterceptorsContainerFactoryArgs{
@@ -109,7 +108,6 @@ func NewEpochStartInterceptorsContainer(args ArgsEpochStartInterceptorContainer)
 		SignaturesHandler:              args.SignaturesHandler,
 		HeartbeatExpiryTimespanInSec:   args.Config.HeartbeatV2.HeartbeatExpiryTimespanInSec,
 		MainPeerShardMapper:            peerShardMapper,
-		FullArchivePeerShardMapper:     fullArchivePeerShardMapper,
 		HardforkTrigger:                hardforkTrigger,
 		NodeOperationMode:              args.NodeOperationMode,
 		InterceptedDataVerifierFactory: args.InterceptedDataVerifierFactory,

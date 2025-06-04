@@ -25,11 +25,12 @@ import (
 )
 
 const (
-	numGoRoutines                   = 100
-	chunksProcessorRequestInterval  = time.Millisecond * 400
-	minTimespanDurationInSec        = int64(1)
-	errorOnMainNetworkString        = "on main network"
-	errorOnFullArchiveNetworkString = "on full archive network"
+	numGoRoutines                    = 100
+	chunksProcessorRequestInterval   = time.Millisecond * 400
+	minTimespanDurationInSec         = int64(1)
+	errorOnMainNetworkString         = "on main network"
+	errorOnFullArchiveNetworkString  = "on full archive network"
+	errorOnTransactionsNetworkString = "on transactions network"
 )
 
 type baseInterceptorsContainerFactory struct {
@@ -54,7 +55,6 @@ type baseInterceptorsContainerFactory struct {
 	hasher                         hashing.Hasher
 	requestHandler                 process.RequestHandler
 	mainPeerShardMapper            process.PeerShardMapper
-	fullArchivePeerShardMapper     process.PeerShardMapper
 	hardforkTrigger                heartbeat.HardforkTrigger
 	nodeOperationMode              common.NodeOperation
 	interceptedDataVerifierFactory process.InterceptedDataVerifierFactory
@@ -78,7 +78,6 @@ func checkBaseParams(
 	preferredPeersHolder process.PreferredPeersHolderHandler,
 	requestHandler process.RequestHandler,
 	mainPeerShardMapper process.PeerShardMapper,
-	fullArchivePeerShardMapper process.PeerShardMapper,
 	hardforkTrigger heartbeat.HardforkTrigger,
 ) error {
 	if check.IfNil(coreComponents) {
@@ -171,9 +170,6 @@ func checkBaseParams(
 	}
 	if check.IfNil(mainPeerShardMapper) {
 		return fmt.Errorf("%w %s", process.ErrNilPeerShardMapper, errorOnMainNetworkString)
-	}
-	if check.IfNil(fullArchivePeerShardMapper) {
-		return fmt.Errorf("%w %s", process.ErrNilPeerShardMapper, errorOnFullArchiveNetworkString)
 	}
 	if check.IfNil(hardforkTrigger) {
 		return process.ErrNilHardforkTrigger

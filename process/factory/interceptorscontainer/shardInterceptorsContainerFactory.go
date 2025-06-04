@@ -42,7 +42,6 @@ func NewShardInterceptorsContainerFactory(
 		args.PreferredPeersHolder,
 		args.RequestHandler,
 		args.MainPeerShardMapper,
-		args.FullArchivePeerShardMapper,
 		args.HardforkTrigger,
 	)
 	if err != nil {
@@ -127,7 +126,6 @@ func NewShardInterceptorsContainerFactory(
 		hasher:                         args.CoreComponents.Hasher(),
 		requestHandler:                 args.RequestHandler,
 		mainPeerShardMapper:            args.MainPeerShardMapper,
-		fullArchivePeerShardMapper:     args.FullArchivePeerShardMapper,
 		hardforkTrigger:                args.HardforkTrigger,
 		nodeOperationMode:              args.NodeOperationMode,
 		interceptedDataVerifierFactory: args.InterceptedDataVerifierFactory,
