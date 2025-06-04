@@ -14,6 +14,7 @@ import (
 type ArgBootstrapSender struct {
 	MainMessenger                      heartbeat.P2PMessenger
 	FullArchiveMessenger               heartbeat.P2PMessenger
+	TransactionsMessenger              heartbeat.P2PMessenger
 	Marshaller                         marshal.Marshalizer
 	HeartbeatTopic                     string
 	HeartbeatTimeBetweenSends          time.Duration
@@ -42,6 +43,7 @@ func NewBootstrapSender(args ArgBootstrapSender) (*bootstrapSender, error) {
 		argBaseSender: argBaseSender{
 			mainMessenger:             args.MainMessenger,
 			fullArchiveMessenger:      args.FullArchiveMessenger,
+			transactionsMessenger:     args.TransactionsMessenger,
 			marshaller:                args.Marshaller,
 			topic:                     args.HeartbeatTopic,
 			timeBetweenSends:          args.HeartbeatTimeBetweenSends,

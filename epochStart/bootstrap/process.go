@@ -1405,6 +1405,7 @@ func (e *epochStartBootstrap) createHeartbeatSender() error {
 	argsHeartbeatSender := sender.ArgBootstrapSender{
 		MainMessenger:                      e.mainMessenger,
 		FullArchiveMessenger:               e.fullArchiveMessenger,
+		TransactionsMessenger:              e.transactionsMessenger,
 		Marshaller:                         e.coreComponentsHolder.InternalMarshalizer(),
 		HeartbeatTopic:                     heartbeatTopic,
 		HeartbeatTimeBetweenSends:          time.Second * time.Duration(heartbeatCfg.HeartbeatTimeBetweenSendsDuringBootstrapInSec),

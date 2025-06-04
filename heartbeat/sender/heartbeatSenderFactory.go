@@ -41,6 +41,7 @@ func createRegularHeartbeatSender(args argHeartbeatSenderFactory) (*heartbeatSen
 		argBaseSender: argBaseSender{
 			mainMessenger:             args.mainMessenger,
 			fullArchiveMessenger:      args.fullArchiveMessenger,
+			transactionsMessenger:     args.transactionsMessenger,
 			marshaller:                args.marshaller,
 			topic:                     args.topic,
 			timeBetweenSends:          args.timeBetweenSends,
@@ -66,6 +67,7 @@ func createMultikeyHeartbeatSender(args argHeartbeatSenderFactory) (*multikeyHea
 		argBaseSender: argBaseSender{
 			mainMessenger:             args.mainMessenger,
 			fullArchiveMessenger:      args.fullArchiveMessenger,
+			transactionsMessenger:     args.transactionsMessenger,
 			marshaller:                args.marshaller,
 			topic:                     args.topic,
 			timeBetweenSends:          args.timeBetweenSends,
