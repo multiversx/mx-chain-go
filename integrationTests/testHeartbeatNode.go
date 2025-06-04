@@ -788,6 +788,7 @@ func (thn *TestHeartbeatNode) initShardSender(tb testing.TB) {
 	args := sender.ArgPeerShardSender{
 		MainMessenger:             thn.MainMessenger,
 		FullArchiveMessenger:      thn.FullArchiveMessenger,
+		TransactionsMessenger:     thn.TransactionsMessenger,
 		Marshaller:                TestMarshaller,
 		ShardCoordinator:          thn.ShardCoordinator,
 		TimeBetweenSends:          5 * time.Second,

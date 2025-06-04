@@ -211,6 +211,7 @@ func (hcf *heartbeatV2ComponentsFactory) Create() (*heartbeatV2Components, error
 	argsPeerShardSender := sender.ArgPeerShardSender{
 		MainMessenger:             hcf.networkComponents.NetworkMessenger(),
 		FullArchiveMessenger:      hcf.networkComponents.FullArchiveNetworkMessenger(),
+		TransactionsMessenger:     hcf.networkComponents.TransactionsNetworkMessenger(),
 		Marshaller:                hcf.coreComponents.InternalMarshalizer(),
 		ShardCoordinator:          hcf.bootstrapComponents.ShardCoordinator(),
 		TimeBetweenSends:          time.Second * time.Duration(cfg.PeerShardTimeBetweenSendsInSec),
@@ -303,6 +304,13 @@ func (hcf *heartbeatV2ComponentsFactory) createTopicsIfNeeded() error {
 	err := createTopicsIfNeededOnMessenger(hcf.networkComponents.NetworkMessenger())
 	if err != nil {
 		return err
+	}
+
+	if !hcf.networkComponents.TransactionsNetworkMessenger().HasTopic(common.HeartbeatV2Topic) {
+		err = hcf.networkComponents.TransactionsNetworkMessenger().CreateTopic(common.HeartbeatV2Topic, true)
+		if err != nil {
+			return err
+		}
 	}
 
 	return createTopicsIfNeededOnMessenger(hcf.networkComponents.FullArchiveNetworkMessenger())
