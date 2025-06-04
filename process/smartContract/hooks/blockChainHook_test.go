@@ -1079,7 +1079,7 @@ func TestBlockChainHookImpl_GettersFromCurrentHeader(t *testing.T) {
 	assert.Equal(t, epochStartRound, bh.EpochStartBlockRound())
 
 	expEpochStartTimestamp := common.ConvertTimeStampSecToMs(epochStartTimestamp)
-	assert.Equal(t, expEpochStartTimestamp, bh.EpochStartBlockTimeStamp())
+	assert.Equal(t, expEpochStartTimestamp, bh.EpochStartBlockTimeStampMs())
 
 	err = bh.SetCurrentHeader(nil)
 	require.Equal(t, hooks.ErrNilCurrentHeader, err)
@@ -1121,7 +1121,7 @@ func TestBlockChainHookImpl_UpdateEpochStartHeaderFromCurrentHeader(t *testing.T
 		assert.Equal(t, epochStartRound, bh.EpochStartBlockRound())
 
 		expEpochStartTimestamp := common.ConvertTimeStampSecToMs(epochStartTimestamp)
-		assert.Equal(t, expEpochStartTimestamp, bh.EpochStartBlockTimeStamp())
+		assert.Equal(t, expEpochStartTimestamp, bh.EpochStartBlockTimeStampMs())
 	})
 
 	t.Run("epoch start header should remain set even if a new non-epoch-start block is set", func(t *testing.T) {
@@ -1172,7 +1172,7 @@ func TestBlockChainHookImpl_UpdateEpochStartHeaderFromCurrentHeader(t *testing.T
 		assert.Equal(t, epochStartRound, bh.EpochStartBlockRound())
 
 		expEpochStartTimestamp := common.ConvertTimeStampSecToMs(epochStartTimestamp)
-		assert.Equal(t, expEpochStartTimestamp, bh.EpochStartBlockTimeStamp())
+		assert.Equal(t, expEpochStartTimestamp, bh.EpochStartBlockTimeStampMs())
 	})
 
 	t.Run("if current header epoch is 0, expect the genesis epoch start block to be set", func(t *testing.T) {
@@ -1207,7 +1207,7 @@ func TestBlockChainHookImpl_UpdateEpochStartHeaderFromCurrentHeader(t *testing.T
 
 		assert.Equal(t, genesisBlock.GetNonce(), bh.EpochStartBlockNonce())
 		assert.Equal(t, genesisBlock.GetRound(), bh.EpochStartBlockRound())
-		assert.Equal(t, genesisBlock.GetTimeStamp(), bh.EpochStartBlockTimeStamp())
+		assert.Equal(t, genesisBlock.GetTimeStamp(), bh.EpochStartBlockTimeStampMs())
 	})
 
 	t.Run("get last commited epoch start block if not set", func(t *testing.T) {
@@ -1261,7 +1261,7 @@ func TestBlockChainHookImpl_UpdateEpochStartHeaderFromCurrentHeader(t *testing.T
 		assert.Equal(t, epochStartRound, bh.EpochStartBlockRound())
 
 		expEpochStartTimestamp := common.ConvertTimeStampSecToMs(epochStartTimestamp)
-		assert.Equal(t, expEpochStartTimestamp, bh.EpochStartBlockTimeStamp())
+		assert.Equal(t, expEpochStartTimestamp, bh.EpochStartBlockTimeStampMs())
 	})
 
 	t.Run("get epoch start header from storage if not found in last commited", func(t *testing.T) {
@@ -1327,7 +1327,7 @@ func TestBlockChainHookImpl_UpdateEpochStartHeaderFromCurrentHeader(t *testing.T
 		assert.Equal(t, epochStartRound, bh.EpochStartBlockRound())
 
 		expEpochStartTimestamp := common.ConvertTimeStampSecToMs(epochStartTimestamp)
-		assert.Equal(t, expEpochStartTimestamp, bh.EpochStartBlockTimeStamp())
+		assert.Equal(t, expEpochStartTimestamp, bh.EpochStartBlockTimeStampMs())
 	})
 }
 
@@ -1359,7 +1359,7 @@ func TestBlockChainHookImpl_GettersFromEpochStartHeader(t *testing.T) {
 
 	assert.Equal(t, epochStartNonce, bh.EpochStartBlockNonce())
 	assert.Equal(t, epochStartRound, bh.EpochStartBlockRound())
-	assert.Equal(t, expEpochStartTimestamp, bh.EpochStartBlockTimeStamp())
+	assert.Equal(t, expEpochStartTimestamp, bh.EpochStartBlockTimeStampMs())
 }
 
 func TestBlockChainHookImpl_GettersFromRoundHandler(t *testing.T) {
@@ -2740,7 +2740,7 @@ func TestBlockChainHookImpl_ConcurrencyTimeOperations(t *testing.T) {
 			case 4:
 				_ = bh.RoundTime()
 			case 5:
-				_ = bh.EpochStartBlockTimeStamp()
+				_ = bh.EpochStartBlockTimeStampMs()
 			}
 
 			wg.Done()

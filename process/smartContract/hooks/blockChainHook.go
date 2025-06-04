@@ -426,8 +426,8 @@ func (bh *BlockChainHookImpl) RoundTime() uint64 {
 	return uint64(roundDuration.Milliseconds())
 }
 
-// EpochStartBlockTimeStamp returns the timestamp of the first block of the current epoch
-func (bh *BlockChainHookImpl) EpochStartBlockTimeStamp() uint64 {
+// EpochStartBlockTimeStampMs returns the timestamp of the first block of the current epoch in milliseconds
+func (bh *BlockChainHookImpl) EpochStartBlockTimeStampMs() uint64 {
 	bh.mutEpochStartHdr.RLock()
 	defer bh.mutEpochStartHdr.RUnlock()
 
