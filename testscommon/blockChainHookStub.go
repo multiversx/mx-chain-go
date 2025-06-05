@@ -16,18 +16,20 @@ type BlockChainHookStub struct {
 	LastNonceCalled                         func() uint64
 	LastRoundCalled                         func() uint64
 	LastTimeStampCalled                     func() uint64
+	LastTimeStampMsCalled                   func() uint64
 	LastRandomSeedCalled                    func() []byte
 	LastEpochCalled                         func() uint32
 	GetStateRootHashCalled                  func() []byte
 	CurrentNonceCalled                      func() uint64
 	CurrentRoundCalled                      func() uint64
 	CurrentTimeStampCalled                  func() uint64
+	CurrentTimeStampMsCalled                func() uint64
 	CurrentRandomSeedCalled                 func() []byte
 	CurrentEpochCalled                      func() uint32
 	RoundTimeCalled                         func() uint64
 	EpochStartBlockNonceCalled              func() uint64
 	EpochStartBlockRoundCalled              func() uint64
-	EpochStartBlockTimeStampCalled          func() uint64
+	EpochStartBlockTimeStampMsCalled        func() uint64
 	ProcessBuiltInFunctionCalled            func(input *vmcommon.ContractCallInput) (*vmcommon.VMOutput, error)
 	GetBuiltinFunctionNamesCalled           func() vmcommon.FunctionNames
 	GetBuiltinFunctionsContainerCalled      func() vmcommon.BuiltInFunctionContainer
@@ -124,6 +126,17 @@ func (stub *BlockChainHookStub) LastTimeStamp() uint64 {
 	return 0
 }
 
+// LastTimeStampMs -
+
+// LastTimeStampMs -
+func (stub *BlockChainHookStub) LastTimeStampMs() uint64 {
+	if stub.LastTimeStampMsCalled != nil {
+		return stub.LastTimeStampMsCalled()
+	}
+
+	return 0
+}
+
 // LastRandomSeed -
 func (stub *BlockChainHookStub) LastRandomSeed() []byte {
 	if stub.LastRandomSeedCalled != nil {
@@ -178,6 +191,15 @@ func (stub *BlockChainHookStub) CurrentTimeStamp() uint64 {
 	return 0
 }
 
+// CurrentTimeStampMs -
+func (stub *BlockChainHookStub) CurrentTimeStampMs() uint64 {
+	if stub.CurrentTimeStampMsCalled != nil {
+		return stub.CurrentTimeStampMsCalled()
+	}
+
+	return 0
+}
+
 // CurrentRandomSeed -
 func (stub *BlockChainHookStub) CurrentRandomSeed() []byte {
 	if stub.CurrentRandomSeedCalled != nil {
@@ -224,9 +246,9 @@ func (stub *BlockChainHookStub) EpochStartBlockRound() uint64 {
 }
 
 // EpochStartBlockTimeStamp -
-func (stub *BlockChainHookStub) EpochStartBlockTimeStamp() uint64 {
-	if stub.EpochStartBlockTimeStampCalled != nil {
-		return stub.EpochStartBlockTimeStampCalled()
+func (stub *BlockChainHookStub) EpochStartBlockTimeStampMs() uint64 {
+	if stub.EpochStartBlockTimeStampMsCalled != nil {
+		return stub.EpochStartBlockTimeStampMsCalled()
 	}
 
 	return 0
