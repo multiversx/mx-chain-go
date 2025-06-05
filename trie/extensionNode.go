@@ -570,7 +570,7 @@ func (en *extensionNode) print(writer io.Writer, index int, trieCtx common.TrieC
 		return
 	}
 
-	_, _, err := en.resolveIfCollapsed(trieCtx)
+	child, _, err := getNodeFromDBAndDecode(en.ChildHash, trieCtx)
 	if err != nil {
 		log.Debug("extension node: print trie err", "error", err, "hash", en.ChildHash)
 	}
@@ -583,10 +583,10 @@ func (en *extensionNode) print(writer io.Writer, index int, trieCtx common.TrieC
 	str := fmt.Sprintf("E: key= %v, child hash: (%v) - %v", en.Key, hex.EncodeToString(en.ChildHash), en.dirty)
 	_, _ = fmt.Fprint(writer, str)
 
-	if en.child == nil {
+	if child == nil {
 		return
 	}
-	en.child.print(writer, index+len(str), trieCtx)
+	child.print(writer, index+len(str), trieCtx)
 }
 
 func (en *extensionNode) getChildren(trieCtx common.TrieContext) ([]nodeWithHash, error) {

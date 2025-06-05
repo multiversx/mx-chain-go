@@ -24,9 +24,14 @@ type nodeWithHash struct {
 	hash []byte
 }
 
+// keyData is used when traversing the trie to reach a certain leaf.
+// At first, keyReminder contains the full key needed to reach the leaf node, and the path key is empty.
+// For each trie node that is traversed, the keyData changes. The path for the already traversed nodes will be
+// subtracted from the keyRemainder, and it will be added to the pathKey. So at all points during the traversal,
+// pathKey + keyReminder = original key.
 type keyData struct {
-	keyRemainder []byte
-	pathKey      []byte
+	keyRemainder []byte // remaining part of a key
+	pathKey      []byte // path traversed in the trie
 }
 
 type node interface {
@@ -39,7 +44,6 @@ type node interface {
 	insert(pathKey common.KeyBuilder, newData []core.TrieData, goRoutinesManager common.TrieGoroutinesManager, modifiedHashes common.AtomicBytesSlice, trieCtx common.TrieContext) node
 	delete(pathKey common.KeyBuilder, data []core.TrieData, goRoutinesManager common.TrieGoroutinesManager, modifiedHashes common.AtomicBytesSlice, trieCtx common.TrieContext) (bool, node)
 	reduceNode(pos int, mutexKey string, trieCtx common.TrieContext) (node, bool, error)
-	isEmptyOrNil() error
 	print(writer io.Writer, index int, trieCtx common.TrieContext)
 	getChildren(trieCtx common.TrieContext) ([]nodeWithHash, error)
 	getNodeData(common.KeyBuilder) ([]common.TrieNodeData, error)

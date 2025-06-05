@@ -185,6 +185,8 @@ func (bn *branchNode) getEncodedNode(trieCtx common.TrieContext) ([]byte, error)
 	return marshaledNode, nil
 }
 
+// resolveIfCollapsed should be called under mutex protection. This can be called without mutex if the caller
+// uses a different trie pointer which does not have other concurrent calls.
 func (bn *branchNode) resolveIfCollapsed(pos byte, trieCtx common.TrieContext) (node, []byte, error) {
 	if childPosOutOfRange(pos) {
 		return nil, nil, ErrChildPosOutOfRange
@@ -666,17 +668,16 @@ func (bn *branchNode) print(writer io.Writer, index int, trieCtx common.TrieCont
 
 	str := fmt.Sprintf("B: %v", bn.dirty)
 	_, _ = fmt.Fprintln(writer, str)
-	for i := 0; i < len(bn.children); i++ {
-		_, _, err := bn.resolveIfCollapsed(byte(i), trieCtx)
+	for i := 0; i < len(bn.ChildrenHashes); i++ {
+		child, _, err := getNodeFromDBAndDecode(bn.ChildrenHashes[i], trieCtx)
 		if err != nil {
 			log.Debug("branch node: print trie err", "error", err, "hash", bn.ChildrenHashes[i])
 		}
 
-		if bn.children[i] == nil {
+		if child == nil {
 			continue
 		}
 
-		child := bn.children[i]
 		for j := 0; j < index+len(str)-1; j++ {
 			_, _ = fmt.Fprint(writer, " ")
 		}

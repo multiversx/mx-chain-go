@@ -239,8 +239,8 @@ func (ln *leafNode) delete(
 	trieCtx common.TrieContext,
 ) (bool, node) {
 	mutexKey := getMutexKeyFromPath(pathKey)
-	trieCtx.Lock(mutexKey)
-	defer trieCtx.Unlock(mutexKey)
+	trieCtx.RLock(mutexKey)
+	defer trieCtx.RUnlock(mutexKey)
 
 	for _, d := range data {
 		if bytes.Equal(d.Key, ln.Key) {

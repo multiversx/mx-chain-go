@@ -491,11 +491,15 @@ func (tr *patriciaMerkleTrie) ToString() string {
 
 	writer := bytes.NewBuffer(make([]byte, 0))
 
-	rootNode := tr.GetRootNode()
-	if rootNode == nil {
+	rootData := tr.GetRootData()
+	if rootData.root == nil || common.IsEmptyTrie(rootData.rootHash) {
 		_, _ = fmt.Fprintln(writer, "*** EMPTY TRIE ***")
 	} else {
-		rootNode.print(writer, 0, tr.TrieContext)
+		newTr, err := tr.recreate(rootData.rootHash, tr.identifier, tr.TrieContext.GetStorage())
+		if err != nil {
+			return err.Error()
+		}
+		newTr.RootManager.GetRootNode().print(writer, 0, tr.TrieContext)
 	}
 
 	return writer.String()
