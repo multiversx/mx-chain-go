@@ -561,12 +561,13 @@ func (tc *transactionCoordinator) processMiniBlocksToMe(
 func (tc *transactionCoordinator) CreateMbsCrossShardDstMe(
 	hdr data.HeaderHandler,
 	processedMiniBlocksInfo map[string]*processedMb.ProcessedMiniBlockInfo,
-) (block.MiniBlockSlice, bool, error) {
+) (block.MiniBlockSlice, uint32, bool, error) {
 	miniBlocks := make(block.MiniBlockSlice, 0)
+	numTransactions := uint32(0)
 	if check.IfNil(hdr) {
 		log.Warn("transactionCoordinator.CreateMbsCrossShardDstMe header is nil")
 
-		return miniBlocks, false, nil
+		return miniBlocks, 0, false, nil
 	}
 	shouldSkipShard := make(map[uint32]bool)
 	// TODO: init the gas estimation per added mbs counter
@@ -633,7 +634,7 @@ func (tc *transactionCoordinator) CreateMbsCrossShardDstMe(
 
 		preproc := tc.getPreProcessor(miniBlock.Type)
 		if check.IfNil(preproc) {
-			return nil, false, fmt.Errorf("%w unknown block type %d", process.ErrNilPreProcessor, miniBlock.Type)
+			return nil, 0, false, fmt.Errorf("%w unknown block type %d", process.ErrNilPreProcessor, miniBlock.Type)
 		}
 
 		// TODO: The method here should be renamed, as it checks which transactions are not available locally (in the node pool)
@@ -658,11 +659,12 @@ func (tc *transactionCoordinator) CreateMbsCrossShardDstMe(
 		)
 
 		miniBlocks = append(miniBlocks, miniBlock)
+		numTransactions += uint32(len(miniBlock.TxHashes))
 	}
 
 	allMiniBlocksAdded := len(miniBlocks) == len(finalCrossMiniBlockInfos)
 
-	return miniBlocks, allMiniBlocksAdded, nil
+	return miniBlocks, numTransactions, allMiniBlocksAdded, nil
 }
 
 // CreateMbsAndProcessCrossShardTransactionsDstMe creates miniblocks and processes cross shard transaction

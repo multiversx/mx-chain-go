@@ -2058,7 +2058,7 @@ func (sp *shardProcessor) getAllMiniBlockDstMeFromMeta(header data.ShardHeaderHa
 func (sp *shardProcessor) selectIncomingMiniBlocksForProposal(
 	haveTime func() bool,
 ) (*createAndProcessMiniBlocksDestMeInfo, error) {
-	log.Debug("createAndProcessMiniBlocksDstMe has been started")
+	log.Debug("selectIncomingMiniBlocksForProposal has been started")
 
 	sw := core.NewStopWatch()
 	sw.Start("ComputeLongestMetaChainFromLastNotarized")
@@ -2143,7 +2143,7 @@ func (sp *shardProcessor) selectIncomingMiniBlocksForProposal(
 		createAndProcessInfo.currProcessedMiniBlocksInfo = sp.processedMiniBlocksTracker.GetProcessedMiniBlocksInfo(createAndProcessInfo.currMetaHdrHash)
 		createAndProcessInfo.hdrAdded = false
 
-		shouldContinue, errCreated := sp.createMbsAndProcessCrossShardTransactionsDstMe(createAndProcessInfo)
+		shouldContinue, errCreated := sp.createMbsCrossShardDstMe(createAndProcessInfo)
 		if errCreated != nil {
 			sp.hdrsForCurrBlock.mutHdrsForBlock.Unlock()
 			return nil, errCreated
@@ -2166,7 +2166,7 @@ func (sp *shardProcessor) selectIncomingMiniBlocksForProposal(
 			"txs added", len(miniBlock.TxHashes))
 	}
 
-	log.Debug("createAndProcessMiniBlocksDstMe has been finished",
+	log.Debug("selectIncomingMiniBlocksForProposal has been finished",
 		"num txs added", createAndProcessInfo.numTxsAdded,
 		"num hdrs added", createAndProcessInfo.numHdrsAdded)
 
@@ -2293,7 +2293,7 @@ func (sp *shardProcessor) createAndProcessMiniBlocksDstMe(haveTime func() bool) 
 func (sp *shardProcessor) createMbsCrossShardDstMe(
 	createAndProcessInfo *createAndProcessMiniBlocksDestMeInfo,
 ) (bool, error) {
-	currMiniBlocksAdded, hdrFinished, errCreate := sp.txCoordinator.CreateMbsCrossShardDstMe(
+	currMiniBlocksAdded, currNumTxsAdded, hdrFinished, errCreate := sp.txCoordinator.CreateMbsCrossShardDstMe(
 		createAndProcessInfo.currMetaHdr,
 		createAndProcessInfo.currProcessedMiniBlocksInfo,
 	)
@@ -2301,12 +2301,27 @@ func (sp *shardProcessor) createMbsCrossShardDstMe(
 		return false, errCreate
 	}
 
+	// all txs processed, add to processed miniblocks
+	createAndProcessInfo.miniBlocks = append(createAndProcessInfo.miniBlocks, currMiniBlocksAdded...)
+	createAndProcessInfo.numTxsAdded += currNumTxsAdded
+
+	if !createAndProcessInfo.hdrAdded && currNumTxsAdded > 0 {
+		// todo: hdrsForCurrBlock needs to become a map of headerHash to headers since proposal will not be async to processing
+		sp.hdrsForCurrBlock.hdrHashAndInfo[string(createAndProcessInfo.currMetaHdrHash)] = &hdrInfo{
+			hdr:         createAndProcessInfo.currMetaHdr,
+			usedInBlock: true,
+		}
+		createAndProcessInfo.numHdrsAdded++
+		createAndProcessInfo.hdrAdded = true
+	}
+
 	if !hdrFinished {
 		log.Debug("meta block cannot be fully processed",
 			"round", createAndProcessInfo.currMetaHdr.GetRound(),
 			"nonce", createAndProcessInfo.currMetaHdr.GetNonce(),
 			"hash", createAndProcessInfo.currMetaHdrHash,
-			"num mbs added", len(currMiniBlocksAdded))
+			"num mbs added", len(currMiniBlocksAdded),
+			"num txs added", currNumTxsAdded)
 
 		return false, nil
 	}
@@ -2387,7 +2402,7 @@ func (sp *shardProcessor) requestMetaHeadersIfNeeded(hdrsAdded uint32, lastMetaH
 }
 
 func (sp *shardProcessor) createProposalMiniBlocks(haveTime func() bool, randomness []byte) (*block.Body, error) {
-	incomingMiniblocks, err := sp.selectIncomingMiniBlocksForProposal()
+	incomingMiniblocks, err := sp.selectIncomingMiniBlocksForProposal(haveTime)
 	if err != nil {
 		return nil, err
 	}
