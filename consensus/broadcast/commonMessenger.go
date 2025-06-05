@@ -226,7 +226,9 @@ func (cm *commonMessenger) extractMetaMiniBlocksAndTransactions(
 
 func (cm *commonMessenger) broadcast(topic string, data []byte, pkBytes []byte) {
 	messenger := cm.messenger
-	if strings.Contains(topic, factory.TransactionTopic) {
+	if strings.Contains(topic, factory.TransactionTopic) ||
+		strings.Contains(topic, factory.RewardsTransactionTopic) ||
+		strings.Contains(topic, factory.UnsignedTransactionTopic) {
 		messenger = cm.transactionsMessenger
 	}
 
