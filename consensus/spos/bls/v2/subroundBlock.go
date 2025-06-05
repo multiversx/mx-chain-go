@@ -78,6 +78,16 @@ func (sr *subroundBlock) doBlockJob(ctx context.Context) bool {
 		return false
 	}
 
+	// this check will automatically return true for backups.
+	// if backup should not propose due to an active main, it should have been treated as part of the above check
+	isFlagActive := sr.EnableEpochsHandler().IsFlagEnabled(common.BarnardOpcodesFlag)
+	if isFlagActive && !sr.ShouldProposeBlock(sr.RoundHandler().Index()) {
+		// return true so the block proposed by the backup will be seen by this main node too
+		log.Debug("current node should not propose block yet")
+
+		return true
+	}
+
 	if sr.RoundHandler().Index() <= sr.getRoundInLastCommittedBlock() {
 		return false
 	}
@@ -463,7 +473,9 @@ func (sr *subroundBlock) receivedBlockHeader(headerHandler data.HeaderHandler) {
 		return
 	}
 
-	isLeader := sr.IsSelfLeader()
+	isFlagActive := sr.EnableEpochsHandler().IsFlagEnabled(common.BarnardOpcodesFlag)
+	shouldProposeBlock := isFlagActive && sr.ShouldProposeBlock(sr.RoundHandler().Index())
+	isLeader := sr.IsSelfLeader() && shouldProposeBlock
 	if sr.ConsensusGroup() == nil || isLeader {
 		log.Debug("subroundBlock.receivedBlockHeader - consensus group is nil or is leader")
 		return

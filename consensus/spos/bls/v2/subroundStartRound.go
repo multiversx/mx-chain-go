@@ -161,6 +161,14 @@ func (sr *subroundStartRound) initCurrentRound() bool {
 		return false
 	}
 
+	isFlagActive := sr.EnableEpochsHandler().IsFlagEnabled(common.BarnardOpcodesFlag)
+	if sr.IsSelfLeader() && !isFlagActive {
+		// set it to min value so leaders will propose by default after upgrade,
+		// basically keeping the same behavior
+		// any Barnard flag could have been used
+		sr.SetRoundsSignedToMin()
+	}
+
 	msg := sr.GetLeaderStartRoundMessage()
 	if len(msg) != 0 {
 		sr.AppStatusHandler().Increment(common.MetricCountLeader)
@@ -224,18 +232,20 @@ func (sr *subroundStartRound) computeNumManagedKeysInConsensusGroup(pubKeys []st
 	numMultiKeysInConsensusGroup := 0
 	for _, pk := range pubKeys {
 		pkBytes := []byte(pk)
+
+		sr.IncrementRoundsWithoutReceivedMessages(pkBytes)
+
 		if sr.IsKeyManagedBySelf(pkBytes) {
 			numMultiKeysInConsensusGroup++
 			log.Trace("in consensus group with multi key",
 				"pk", core.GetTrimmedPk(hex.EncodeToString(pkBytes)))
 		}
-		sr.IncrementRoundsWithoutReceivedMessages(pkBytes)
 	}
 
 	return numMultiKeysInConsensusGroup
 }
 
-func (sr *subroundStartRound) indexRoundIfNeeded(pubKeys []string) {
+func (sr *subroundStartRound) indexRoundIfNeeded(_ []string) {
 	sr.outportMutex.RLock()
 	defer sr.outportMutex.RUnlock()
 
