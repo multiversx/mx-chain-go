@@ -51,7 +51,6 @@ type ArgsChainSimulator struct {
 	Hysteresis                 float32
 	NumNodesWaitingListShard   uint32
 	NumNodesWaitingListMeta    uint32
-	GenesisTimestamp           int64
 	InitialRound               int64
 	InitialEpoch               uint32
 	InitialNonce               uint64
@@ -186,7 +185,6 @@ func (s *simulator) createChainHandlers(args ArgsBaseChainSimulator) error {
 
 	log.Info("running the chain simulator with the following parameters",
 		"number of shards (including meta)", args.NumOfShards+1,
-		"genesis timestamp", args.GenesisTimestamp,
 		"original config path", args.PathToInitialConfig,
 		"temporary path", args.TempDir)
 
@@ -227,7 +225,7 @@ func (s *simulator) addProofs() {
 }
 
 func computeStartTimeBaseOnInitialRound(args ArgsChainSimulator) int64 {
-	return args.GenesisTimestamp + int64(args.RoundDurationInMillis/1000)*args.InitialRound
+	return time.Now().UnixMilli() + int64(args.RoundDurationInMillis/1000)*args.InitialRound
 }
 
 func (s *simulator) createTestNode(
