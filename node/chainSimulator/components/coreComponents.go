@@ -172,26 +172,37 @@ func CreateCoreComponents(args ArgsCoreComponentsHolder) (*coreComponentsHolder,
 		return nil, err
 	}
 
+	instance.epochNotifier = forking.NewGenericEpochNotifier()
+	instance.enableEpochsHandler, err = enablers.NewEnableEpochsHandler(args.EnableEpochsConfig, instance.epochNotifier)
+	if err != nil {
+		return nil, err
+	}
+
 	var nodesSetup config.NodesConfig
 	err = core.LoadJsonFile(&nodesSetup, args.NodesSetupPath)
 	if err != nil {
 		return nil, err
 	}
+
+	if instance.enableEpochsHandler.IsFlagEnabledInEpoch(common.SupernovaFlag, 0) {
+		nodesSetup.StartTime = nodesSetup.StartTime * 1000
+	}
+
 	instance.genesisNodesSetup, err = sharding.NewNodesSetup(nodesSetup, instance.chainParametersHandler, instance.addressPubKeyConverter, instance.validatorPubKeyConverter, args.NumShards)
 	if err != nil {
 		return nil, err
 	}
+
+	log.Debug("chain simulator start time",
+		"startTime", instance.genesisNodesSetup.GetStartTime(),
+		"nodesSetup start time", nodesSetup.StartTime,
+	)
 
 	roundDuration := time.Millisecond * time.Duration(instance.genesisNodesSetup.GetRoundDuration())
 	instance.roundHandler = NewManualRoundHandler(instance.genesisNodesSetup.GetStartTime(), roundDuration, args.InitialRound)
 
 	instance.wasmVMChangeLocker = &sync.RWMutex{}
 	instance.txVersionChecker = versioning.NewTxVersionChecker(args.Config.GeneralSettings.MinTransactionVersion)
-	instance.epochNotifier = forking.NewGenericEpochNotifier()
-	instance.enableEpochsHandler, err = enablers.NewEnableEpochsHandler(args.EnableEpochsConfig, instance.epochNotifier)
-	if err != nil {
-		return nil, err
-	}
 
 	argsEconomicsHandler := economics.ArgsNewEconomicsData{
 		TxVersionChecker:    instance.txVersionChecker,
