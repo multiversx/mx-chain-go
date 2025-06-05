@@ -161,6 +161,14 @@ func (sr *subroundStartRound) initCurrentRound() bool {
 		return false
 	}
 
+	isFlagActive := sr.EnableEpochsHandler().IsFlagEnabled(common.BarnardOpcodesFlag)
+	if sr.IsSelfLeader() && !isFlagActive {
+		// set it to min value so leaders will propose by default after upgrade,
+		// basically keeping the same behavior
+		// any Barnard flag could have been used
+		sr.SetRoundsSignedToMin()
+	}
+
 	msg := sr.GetLeaderStartRoundMessage()
 	if len(msg) != 0 {
 		sr.AppStatusHandler().Increment(common.MetricCountLeader)
@@ -210,15 +218,6 @@ func (sr *subroundStartRound) initCurrentRound() bool {
 		sr.SetRoundCanceled(true)
 
 		return false
-	}
-
-	activationEpoch := sr.EnableEpochsHandler().GetActivationEpoch(common.AndromedaFlag)
-	currentHeader := sr.Blockchain().GetCurrentBlockHeader()
-	isFirstBlockAfterActivation := !check.IfNil(currentHeader) && currentHeader.GetEpoch() == activationEpoch-1
-	isFirstBlock := check.IfNil(currentHeader)
-	if sr.IsSelfLeader() && (isFirstBlock || isFirstBlockAfterActivation) {
-		// force main to not wait one signature before proposing
-		sr.SetRoundsSignedToMin()
 	}
 
 	sr.SetStatus(sr.Current(), spos.SsFinished)

@@ -6,6 +6,7 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-go/common"
 
 	"github.com/multiversx/mx-chain-go/consensus"
 )
@@ -247,7 +248,8 @@ func (sr *Subround) IsSelfLeaderInCurrentRound() bool {
 // GetLeaderStartRoundMessage returns the leader start round message based on single key
 // or multi-key node type
 func (sr *Subround) GetLeaderStartRoundMessage() string {
-	if !sr.ShouldProposeBlock(sr.RoundHandler().Index()) {
+	isFlagActive := sr.EnableEpochsHandler().IsFlagEnabled(common.BarnardOpcodesFlag)
+	if isFlagActive && !sr.ShouldProposeBlock(sr.RoundHandler().Index()) {
 		return ""
 	}
 	if sr.IsMultiKeyLeaderInCurrentRound() {
