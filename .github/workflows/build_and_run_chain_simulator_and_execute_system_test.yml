@@ -289,7 +289,7 @@ jobs:
       - name: Stage report for R2
         run: |
           mkdir -p r2_upload
-          cp reports/index.html r2_upload/index.html
+          cp reports/report.html r2_upload/index.html  # correct source
 
       - name: Upload report to Cloudflare R2
         if: always()
@@ -398,7 +398,6 @@ jobs:
             const commitHash                = process.env.LATEST_COMMIT_HASH;
             const exitCode                  = process.env.PYTEST_EXIT_CODE;
 
-            const suiteCommitHash  = process.env.CURRENT_COMMIT_HASH   || 'N/A';
             const simulatorCommitHash = process.env.SIMULATOR_COMMIT_HASH || 'N/A';
             const simulatorRef     = process.env.SIMULATOR_REF || simulatorTargetBranch;
             const r2Url            = process.env.R2_REPORT_URL || 'N/A';
@@ -419,7 +418,6 @@ jobs:
               - **mx-chain-go Target Branch:** \`${goTargetBranch}\`
               - **mx-chain-simulator-go Target Branch:** \`${simulatorTargetBranch}\`
               - **mx-chain-testing-suite Target Branch:** \`${testingSuiteTargetBranch}\`
-              - **Test Suite Commit Hash:** \`${suiteCommitHash}\`
               - **mx-chain-simulator-go Reference:** \`${simulatorRef}\`
               - **mx-chain-simulator-go Commit Hash:** \`${simulatorCommitHash}\`
 
@@ -441,6 +439,36 @@ jobs:
               repo: repo,
               body: message
             });
+
+      - name: Notify Slack
+        if: always()
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+          R2_REPORT_URL: ${{ env.R2_REPORT_URL }}
+          BRANCH_NAME: ${{ env.BRANCH_NAME }}
+          CURRENT_COMMIT_HASH: ${{ env.CURRENT_COMMIT_HASH }}
+          SIMULATOR_REF: ${{ env.SIMULATOR_REF }}
+          SIMULATOR_COMMIT_HASH: ${{ env.SIMULATOR_COMMIT_HASH }}
+          TS: ${{ env.TS }}
+          PYTEST_EXIT_CODE: ${{ env.PYTEST_EXIT_CODE }}
+        run: |
+          status="❌ FAILED"
+          [ "${PYTEST_EXIT_CODE}" = "0" ] && status="✅ PASSED"
+          repo="${GITHUB_REPOSITORY##*/}"
+          base="${{ github.base_ref }}"
+          
+          msg="*MvX MX-CHAIN-GO ChainSimulator CI – ${status}*\
+          \n• *Report:*  <${R2_REPORT_URL:-N/A}|HTML>\
+          \n• *Repository:*  \`${repo}\`\
+          \n• *Branch:*  \`${BRANCH_NAME}\` → \`${base:-main}\`\
+          \n• *Suite commit:*  \`${CURRENT_COMMIT_HASH}\`\
+          \n• *Simulator:*  \`${SIMULATOR_REF}\`\
+          \n• *Simulator commit:*  \`${SIMULATOR_COMMIT_HASH}\`\
+          \n• *Run at:*  ${TS}"
+          
+          curl -s -X POST -H 'Content-Type: application/json' \
+               -d "{\"text\":\"${msg}\"}" \
+               "$SLACK_WEBHOOK_URL"
 
       - name: Fail job if tests failed
         if: always()
