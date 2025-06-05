@@ -33,6 +33,7 @@ const numGoRoutines = 2000
 type fullSyncInterceptorsContainerFactory struct {
 	mainContainer                  process.InterceptorsContainer
 	fullArchiveContainer           process.InterceptorsContainer
+	transactionsContainer          process.InterceptorsContainer
 	shardCoordinator               sharding.Coordinator
 	accounts                       state.AccountsAdapter
 	store                          dataRetriever.StorageService
@@ -56,31 +57,32 @@ type fullSyncInterceptorsContainerFactory struct {
 
 // ArgsNewFullSyncInterceptorsContainerFactory holds the arguments needed for fullSyncInterceptorsContainerFactory
 type ArgsNewFullSyncInterceptorsContainerFactory struct {
-	CoreComponents                   process.CoreComponentsHolder
-	CryptoComponents                 process.CryptoComponentsHolder
-	Accounts                         state.AccountsAdapter
-	ShardCoordinator                 sharding.Coordinator
-	NodesCoordinator                 nodesCoordinator.NodesCoordinator
-	MainMessenger                    process.TopicHandler
-	FullArchiveMessenger             process.TopicHandler
-	TransactionsMessenger            process.TopicHandler
-	Store                            dataRetriever.StorageService
-	DataPool                         dataRetriever.PoolsHolder
-	MaxTxNonceDeltaAllowed           int
-	TxFeeHandler                     process.FeeHandler
-	BlockBlackList                   process.TimeCacher
-	HeaderSigVerifier                process.InterceptedHeaderSigVerifier
-	HeaderIntegrityVerifier          process.HeaderIntegrityVerifier
-	SizeCheckDelta                   uint32
-	ValidityAttester                 process.ValidityAttester
-	EpochStartTrigger                process.EpochStartTriggerHandler
-	WhiteListHandler                 update.WhiteListHandler
-	WhiteListerVerifiedTxs           update.WhiteListHandler
-	MainInterceptorsContainer        process.InterceptorsContainer
-	FullArchiveInterceptorsContainer process.InterceptorsContainer
-	AntifloodHandler                 process.P2PAntifloodHandler
-	NodeOperationMode                common.NodeOperation
-	InterceptedDataVerifierFactory   process.InterceptedDataVerifierFactory
+	CoreComponents                    process.CoreComponentsHolder
+	CryptoComponents                  process.CryptoComponentsHolder
+	Accounts                          state.AccountsAdapter
+	ShardCoordinator                  sharding.Coordinator
+	NodesCoordinator                  nodesCoordinator.NodesCoordinator
+	MainMessenger                     process.TopicHandler
+	FullArchiveMessenger              process.TopicHandler
+	TransactionsMessenger             process.TopicHandler
+	Store                             dataRetriever.StorageService
+	DataPool                          dataRetriever.PoolsHolder
+	MaxTxNonceDeltaAllowed            int
+	TxFeeHandler                      process.FeeHandler
+	BlockBlackList                    process.TimeCacher
+	HeaderSigVerifier                 process.InterceptedHeaderSigVerifier
+	HeaderIntegrityVerifier           process.HeaderIntegrityVerifier
+	SizeCheckDelta                    uint32
+	ValidityAttester                  process.ValidityAttester
+	EpochStartTrigger                 process.EpochStartTriggerHandler
+	WhiteListHandler                  update.WhiteListHandler
+	WhiteListerVerifiedTxs            update.WhiteListHandler
+	MainInterceptorsContainer         process.InterceptorsContainer
+	FullArchiveInterceptorsContainer  process.InterceptorsContainer
+	TransactionsInterceptorsContainer process.InterceptorsContainer
+	AntifloodHandler                  process.P2PAntifloodHandler
+	NodeOperationMode                 common.NodeOperation
+	InterceptedDataVerifierFactory    process.InterceptedDataVerifierFactory
 }
 
 // NewFullSyncInterceptorsContainerFactory is responsible for creating a new interceptors factory object
@@ -133,6 +135,9 @@ func NewFullSyncInterceptorsContainerFactory(
 	if check.IfNil(args.FullArchiveInterceptorsContainer) {
 		return nil, fmt.Errorf("%w on full archive network", update.ErrNilInterceptorsContainer)
 	}
+	if check.IfNil(args.TransactionsInterceptorsContainer) {
+		return nil, fmt.Errorf("%w on transactions network", update.ErrNilInterceptorsContainer)
+	}
 	if check.IfNil(args.WhiteListHandler) {
 		return nil, update.ErrNilWhiteListHandler
 	}
@@ -160,6 +165,7 @@ func NewFullSyncInterceptorsContainerFactory(
 	icf := &fullSyncInterceptorsContainerFactory{
 		mainContainer:          args.MainInterceptorsContainer,
 		fullArchiveContainer:   args.FullArchiveInterceptorsContainer,
+		transactionsContainer:  args.TransactionsInterceptorsContainer,
 		accounts:               args.Accounts,
 		shardCoordinator:       args.ShardCoordinator,
 		mainMessenger:          args.MainMessenger,
@@ -189,43 +195,48 @@ func NewFullSyncInterceptorsContainerFactory(
 }
 
 // Create returns an interceptor container that will hold all interceptors in the system
-func (ficf *fullSyncInterceptorsContainerFactory) Create() (process.InterceptorsContainer, process.InterceptorsContainer, error) {
+func (ficf *fullSyncInterceptorsContainerFactory) Create() (
+	process.InterceptorsContainer,
+	process.InterceptorsContainer,
+	process.InterceptorsContainer,
+	error,
+) {
 	err := ficf.generateTxInterceptors()
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 
 	err = ficf.generateUnsignedTxsInterceptors()
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 
 	err = ficf.generateRewardTxInterceptors()
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 
 	err = ficf.generateMiniBlocksInterceptors()
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 
 	err = ficf.generateMetachainHeaderInterceptors()
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 
 	err = ficf.generateShardHeaderInterceptors()
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 
 	err = ficf.generateTrieNodesInterceptors()
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 
-	return ficf.mainContainer, ficf.fullArchiveContainer, nil
+	return ficf.mainContainer, ficf.fullArchiveContainer, ficf.transactionsContainer, nil
 }
 
 func checkBaseParams(

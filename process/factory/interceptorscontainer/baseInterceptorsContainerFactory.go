@@ -37,6 +37,7 @@ const (
 type baseInterceptorsContainerFactory struct {
 	mainContainer                  process.InterceptorsContainer
 	fullArchiveContainer           process.InterceptorsContainer
+	transactionsContainer          process.InterceptorsContainer
 	shardCoordinator               sharding.Coordinator
 	accounts                       state.AccountsAdapter
 	store                          dataRetriever.StorageService
@@ -810,7 +811,7 @@ func (bicf *baseInterceptorsContainerFactory) generateHeartbeatInterceptors() er
 		return err
 	}
 
-	err = bicf.mainContainer.Add(identifierHeartbeat, transactionsInterceptor)
+	err = bicf.transactionsContainer.Add(identifierHeartbeat, transactionsInterceptor)
 	if err != nil {
 		return err
 	}
@@ -824,7 +825,7 @@ func (bicf *baseInterceptorsContainerFactory) generateHeartbeatInterceptors() er
 		return err
 	}
 
-	return bicf.mainContainer.Add(identifierHeartbeat, fullArchiveInterceptor)
+	return bicf.fullArchiveContainer.Add(identifierHeartbeat, fullArchiveInterceptor)
 }
 
 func (bicf *baseInterceptorsContainerFactory) createHeartbeatV2Interceptor(
@@ -892,7 +893,7 @@ func (bicf *baseInterceptorsContainerFactory) generatePeerShardInterceptors() er
 		return err
 	}
 
-	err = bicf.mainContainer.Add(identifier, transactionsInterceptor)
+	err = bicf.transactionsContainer.Add(identifier, transactionsInterceptor)
 	if err != nil {
 		return err
 	}
@@ -906,7 +907,7 @@ func (bicf *baseInterceptorsContainerFactory) generatePeerShardInterceptors() er
 		return err
 	}
 
-	return bicf.mainContainer.Add(identifier, fullArchiveInterceptor)
+	return bicf.fullArchiveContainer.Add(identifier, fullArchiveInterceptor)
 }
 
 func (bicf *baseInterceptorsContainerFactory) createPeerShardInterceptor(

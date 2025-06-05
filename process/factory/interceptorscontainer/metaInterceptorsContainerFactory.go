@@ -109,6 +109,7 @@ func NewMetaInterceptorsContainerFactory(
 	base := &baseInterceptorsContainerFactory{
 		mainContainer:                  containers.NewInterceptorsContainer(),
 		fullArchiveContainer:           containers.NewInterceptorsContainer(),
+		transactionsContainer:          containers.NewInterceptorsContainer(),
 		shardCoordinator:               args.ShardCoordinator,
 		mainMessenger:                  args.MainMessenger,
 		fullArchiveMessenger:           args.FullArchiveMessenger,
@@ -148,68 +149,73 @@ func NewMetaInterceptorsContainerFactory(
 }
 
 // Create returns an interceptor container that will hold all interceptors in the system
-func (micf *metaInterceptorsContainerFactory) Create() (process.InterceptorsContainer, process.InterceptorsContainer, error) {
+func (micf *metaInterceptorsContainerFactory) Create() (
+	process.InterceptorsContainer,
+	process.InterceptorsContainer,
+	process.InterceptorsContainer,
+	error,
+) {
 	err := micf.generateMetachainHeaderInterceptors()
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 
 	err = micf.generateShardHeaderInterceptors()
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 
 	err = micf.generateTxInterceptors()
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 
 	err = micf.generateUnsignedTxsInterceptors()
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 
 	err = micf.generateRewardTxInterceptors()
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 
 	err = micf.generateMiniBlocksInterceptors()
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 
 	err = micf.generateTrieNodesInterceptors()
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 
 	err = micf.generatePeerAuthenticationInterceptors()
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 
 	err = micf.generateHeartbeatInterceptors()
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 
 	err = micf.generatePeerShardInterceptors()
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 
 	err = micf.generateValidatorInfoInterceptor()
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 
 	err = micf.generateEquivalentProofsInterceptors()
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 
-	return micf.mainContainer, micf.fullArchiveContainer, nil
+	return micf.mainContainer, micf.fullArchiveContainer, micf.transactionsContainer, nil
 }
 
 // AddShardTrieNodeInterceptors will add the shard trie node interceptors into the existing container

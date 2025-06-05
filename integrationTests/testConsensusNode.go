@@ -96,21 +96,22 @@ type ArgsTestConsensusNode struct {
 
 // TestConsensusNode represents a structure used in integration tests used for consensus tests
 type TestConsensusNode struct {
-	Node                      *node.Node
-	MainMessenger             p2p.Messenger
-	FullArchiveMessenger      p2p.Messenger
-	TransactionsMessenger     p2p.Messenger
-	NodesCoordinator          nodesCoordinator.NodesCoordinator
-	ShardCoordinator          sharding.Coordinator
-	ChainHandler              data.ChainHandler
-	BlockProcessor            *mock.BlockProcessorMock
-	RequestersFinder          dataRetriever.RequestersFinder
-	AccountsDB                *state.AccountsDB
-	NodeKeys                  *TestKeyPair
-	MultiSigner               *cryptoMocks.MultisignerMock
-	MainInterceptorsContainer process.InterceptorsContainer
-	DataPool                  dataRetriever.PoolsHolder
-	RequestHandler            process.RequestHandler
+	Node                              *node.Node
+	MainMessenger                     p2p.Messenger
+	FullArchiveMessenger              p2p.Messenger
+	TransactionsMessenger             p2p.Messenger
+	NodesCoordinator                  nodesCoordinator.NodesCoordinator
+	ShardCoordinator                  sharding.Coordinator
+	ChainHandler                      data.ChainHandler
+	BlockProcessor                    *mock.BlockProcessorMock
+	RequestersFinder                  dataRetriever.RequestersFinder
+	AccountsDB                        *state.AccountsDB
+	NodeKeys                          *TestKeyPair
+	MultiSigner                       *cryptoMocks.MultisignerMock
+	MainInterceptorsContainer         process.InterceptorsContainer
+	TransactionsInterceptorsContainer process.InterceptorsContainer
+	DataPool                          dataRetriever.PoolsHolder
+	RequestHandler                    process.RequestHandler
 }
 
 // NewTestConsensusNode returns a new TestConsensusNode
@@ -405,6 +406,7 @@ func (tcn *TestConsensusNode) initNode(args ArgsTestConsensusNode) {
 
 	tcn.initInterceptors(coreComponents, cryptoComponents, roundHandler, enableEpochsHandler, storage, epochTrigger)
 	processComponents.IntContainer = tcn.MainInterceptorsContainer
+	processComponents.TransactionsIntContainer = tcn.TransactionsInterceptorsContainer
 
 	dataComponents := GetDefaultDataComponents()
 	dataComponents.BlockChain = tcn.ChainHandler
@@ -506,7 +508,7 @@ func (tcn *TestConsensusNode) initInterceptors(
 			fmt.Println(err.Error())
 		}
 
-		tcn.MainInterceptorsContainer, _, err = interceptorContainerFactory.Create()
+		tcn.MainInterceptorsContainer, _, tcn.TransactionsInterceptorsContainer, err = interceptorContainerFactory.Create()
 		if err != nil {
 			log.Debug("interceptor container factory Create", "error", err.Error())
 		}
@@ -541,7 +543,7 @@ func (tcn *TestConsensusNode) initInterceptors(
 			fmt.Println(err.Error())
 		}
 
-		tcn.MainInterceptorsContainer, _, err = interceptorContainerFactory.Create()
+		tcn.MainInterceptorsContainer, _, tcn.TransactionsInterceptorsContainer, err = interceptorContainerFactory.Create()
 		if err != nil {
 			fmt.Println(err.Error())
 		}

@@ -513,10 +513,11 @@ func testCreateShardTopicShouldFail(matchStrToErrOnCreate string, matchStrToErrO
 		}
 		icf, _ := interceptorscontainer.NewShardInterceptorsContainerFactory(args)
 
-		mainContainer, fullArchiveContainer, err := icf.Create()
+		mainContainer, fullArchiveContainer, transactionsContainer, err := icf.Create()
 
 		assert.Nil(t, mainContainer)
 		assert.Nil(t, fullArchiveContainer)
+		assert.Nil(t, transactionsContainer)
 		assert.Equal(t, errExpected, err)
 	}
 }
@@ -575,11 +576,12 @@ func TestShardInterceptorsContainerFactory_CreateShouldWork(t *testing.T) {
 
 	icf, _ := interceptorscontainer.NewShardInterceptorsContainerFactory(args)
 
-	mainContainer, fullArchiveContainer, err := icf.Create()
+	mainContainer, fullArchiveContainer, transactionsContainer, err := icf.Create()
 	require.Nil(t, err)
 
 	assert.NotNil(t, mainContainer)
 	assert.NotNil(t, fullArchiveContainer)
+	assert.NotNil(t, transactionsContainer)
 }
 
 func TestShardInterceptorsContainerFactory_With4ShardsShouldWork(t *testing.T) {
@@ -611,7 +613,7 @@ func TestShardInterceptorsContainerFactory_With4ShardsShouldWork(t *testing.T) {
 
 		icf, _ := interceptorscontainer.NewShardInterceptorsContainerFactory(args)
 
-		mainContainer, fullArchiveContainer, err := icf.Create()
+		mainContainer, fullArchiveContainer, transactionsContainer, err := icf.Create()
 
 		numInterceptorTxs := noOfShards + 1
 		numInterceptorsUnsignedTxs := numInterceptorTxs
@@ -631,7 +633,7 @@ func TestShardInterceptorsContainerFactory_With4ShardsShouldWork(t *testing.T) {
 			numInterceptorEquivalentProofs
 
 		assert.Nil(t, err)
-		assert.Equal(t, totalInterceptors, mainContainer.Len())
+		assert.Equal(t, totalInterceptors, mainContainer.Len()+transactionsContainer.Len())
 		assert.Equal(t, 0, fullArchiveContainer.Len())
 	})
 
@@ -662,7 +664,7 @@ func TestShardInterceptorsContainerFactory_With4ShardsShouldWork(t *testing.T) {
 
 		icf, _ := interceptorscontainer.NewShardInterceptorsContainerFactory(args)
 
-		mainContainer, fullArchiveContainer, err := icf.Create()
+		mainContainer, fullArchiveContainer, transactionsContainer, err := icf.Create()
 
 		numInterceptorTxs := noOfShards + 1
 		numInterceptorsUnsignedTxs := numInterceptorTxs
@@ -682,7 +684,7 @@ func TestShardInterceptorsContainerFactory_With4ShardsShouldWork(t *testing.T) {
 			numInterceptorEquivalentProofs
 
 		assert.Nil(t, err)
-		assert.Equal(t, totalInterceptors, mainContainer.Len())
+		assert.Equal(t, totalInterceptors, mainContainer.Len()+transactionsContainer.Len())
 		assert.Equal(t, totalInterceptors-1, fullArchiveContainer.Len()) // no peerAuthentication needed
 	})
 }

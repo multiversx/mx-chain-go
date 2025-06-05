@@ -552,10 +552,11 @@ func testCreateMetaTopicShouldFail(matchStrToErrOnCreate string, matchStrToErrOn
 		args.InterceptedDataVerifierFactory = &mock.InterceptedDataVerifierFactoryMock{}
 		icf, _ := interceptorscontainer.NewMetaInterceptorsContainerFactory(args)
 
-		mainContainer, fullArchiveConatiner, err := icf.Create()
+		mainContainer, fullArchiveContainer, transactionsContainer, err := icf.Create()
 
 		assert.Nil(t, mainContainer)
-		assert.Nil(t, fullArchiveConatiner)
+		assert.Nil(t, fullArchiveContainer)
+		assert.Nil(t, transactionsContainer)
 		assert.Equal(t, errExpected, err)
 	}
 }
@@ -569,11 +570,12 @@ func TestMetaInterceptorsContainerFactory_CreateShouldWork(t *testing.T) {
 	args.InterceptedDataVerifierFactory = &mock.InterceptedDataVerifierFactoryMock{}
 	icf, _ := interceptorscontainer.NewMetaInterceptorsContainerFactory(args)
 
-	mainContainer, fullArchiveContainer, err := icf.Create()
+	mainContainer, fullArchiveContainer, transactionsContainer, err := icf.Create()
 	require.Nil(t, err)
 
 	assert.NotNil(t, mainContainer)
 	assert.NotNil(t, fullArchiveContainer)
+	assert.NotNil(t, transactionsContainer)
 }
 
 func TestMetaInterceptorsContainerFactory_With4ShardsShouldWork(t *testing.T) {
@@ -604,7 +606,7 @@ func TestMetaInterceptorsContainerFactory_With4ShardsShouldWork(t *testing.T) {
 		icf, err := interceptorscontainer.NewMetaInterceptorsContainerFactory(args)
 		require.Nil(t, err)
 
-		mainContainer, fullArchiveContainer, err := icf.Create()
+		mainContainer, fullArchiveContainer, transactionsContainer, err := icf.Create()
 
 		numInterceptorsMetablock := 1
 		numInterceptorsShardHeadersForMetachain := noOfShards
@@ -624,12 +626,12 @@ func TestMetaInterceptorsContainerFactory_With4ShardsShouldWork(t *testing.T) {
 			numInterceptorsShardValidatorInfoForMetachain + numInterceptorValidatorInfo + numInterceptorsEquivalentProofs
 
 		assert.Nil(t, err)
-		assert.Equal(t, totalInterceptors, mainContainer.Len())
+		assert.Equal(t, totalInterceptors, mainContainer.Len()+transactionsContainer.Len())
 		assert.Equal(t, 0, fullArchiveContainer.Len())
 
 		err = icf.AddShardTrieNodeInterceptors(mainContainer)
 		assert.Nil(t, err)
-		assert.Equal(t, totalInterceptors+noOfShards, mainContainer.Len())
+		assert.Equal(t, totalInterceptors+noOfShards, mainContainer.Len()+transactionsContainer.Len())
 	})
 	t.Run("full archive mode", func(t *testing.T) {
 		t.Parallel()
@@ -656,7 +658,7 @@ func TestMetaInterceptorsContainerFactory_With4ShardsShouldWork(t *testing.T) {
 		icf, err := interceptorscontainer.NewMetaInterceptorsContainerFactory(args)
 		require.Nil(t, err)
 
-		mainContainer, fullArchiveContainer, err := icf.Create()
+		mainContainer, fullArchiveContainer, transactionsContainer, err := icf.Create()
 
 		numInterceptorsMetablock := 1
 		numInterceptorsShardHeadersForMetachain := noOfShards
@@ -676,12 +678,12 @@ func TestMetaInterceptorsContainerFactory_With4ShardsShouldWork(t *testing.T) {
 			numInterceptorsShardValidatorInfoForMetachain + numInterceptorValidatorInfo + numInterceptorsEquivalentProofs
 
 		assert.Nil(t, err)
-		assert.Equal(t, totalInterceptors, mainContainer.Len())
+		assert.Equal(t, totalInterceptors, mainContainer.Len()+transactionsContainer.Len())
 		assert.Equal(t, totalInterceptors-1, fullArchiveContainer.Len()) // no peerAuthentication needed
 
 		err = icf.AddShardTrieNodeInterceptors(mainContainer)
 		assert.Nil(t, err)
-		assert.Equal(t, totalInterceptors+noOfShards, mainContainer.Len())
+		assert.Equal(t, totalInterceptors+noOfShards, mainContainer.Len()+transactionsContainer.Len())
 
 		err = icf.AddShardTrieNodeInterceptors(fullArchiveContainer)
 		assert.Nil(t, err)

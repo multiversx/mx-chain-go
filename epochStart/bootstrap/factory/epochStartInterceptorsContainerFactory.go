@@ -48,21 +48,26 @@ type ArgsEpochStartInterceptorContainer struct {
 }
 
 // NewEpochStartInterceptorsContainer will return a real interceptors container factory, but with many disabled components
-func NewEpochStartInterceptorsContainer(args ArgsEpochStartInterceptorContainer) (process.InterceptorsContainer, process.InterceptorsContainer, error) {
+func NewEpochStartInterceptorsContainer(args ArgsEpochStartInterceptorContainer) (
+	process.InterceptorsContainer,
+	process.InterceptorsContainer,
+	process.InterceptorsContainer,
+	error,
+) {
 	if check.IfNil(args.CoreComponents) {
-		return nil, nil, epochStart.ErrNilCoreComponentsHolder
+		return nil, nil, nil, epochStart.ErrNilCoreComponentsHolder
 	}
 	if check.IfNil(args.CryptoComponents) {
-		return nil, nil, epochStart.ErrNilCryptoComponentsHolder
+		return nil, nil, nil, epochStart.ErrNilCryptoComponentsHolder
 	}
 	if check.IfNil(args.CoreComponents.AddressPubKeyConverter()) {
-		return nil, nil, epochStart.ErrNilPubkeyConverter
+		return nil, nil, nil, epochStart.ErrNilPubkeyConverter
 	}
 
 	cryptoComponents := args.CryptoComponents.Clone().(process.CryptoComponentsHolder)
 	err := cryptoComponents.SetMultiSignerContainer(disabled.NewMultiSignerContainer())
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 
 	nodesCoordinator := disabled.NewNodesCoordinator()
@@ -119,25 +124,25 @@ func NewEpochStartInterceptorsContainer(args ArgsEpochStartInterceptorContainer)
 
 	interceptorsContainerFactory, err := interceptorscontainer.NewMetaInterceptorsContainerFactory(containerFactoryArgs)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 
-	mainContainer, fullArchiveContainer, err := interceptorsContainerFactory.Create()
+	mainContainer, fullArchiveContainer, transactionsContainer, err := interceptorsContainerFactory.Create()
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 
 	err = interceptorsContainerFactory.AddShardTrieNodeInterceptors(mainContainer)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 
 	if args.NodeOperationMode == common.FullArchiveMode {
 		err = interceptorsContainerFactory.AddShardTrieNodeInterceptors(fullArchiveContainer)
 		if err != nil {
-			return nil, nil, err
+			return nil, nil, nil, err
 		}
 	}
 
-	return mainContainer, fullArchiveContainer, nil
+	return mainContainer, fullArchiveContainer, transactionsContainer, nil
 }

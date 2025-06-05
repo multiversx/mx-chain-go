@@ -110,6 +110,7 @@ func NewShardInterceptorsContainerFactory(
 	base := &baseInterceptorsContainerFactory{
 		mainContainer:                  containers.NewInterceptorsContainer(),
 		fullArchiveContainer:           containers.NewInterceptorsContainer(),
+		transactionsContainer:          containers.NewInterceptorsContainer(),
 		accounts:                       args.Accounts,
 		shardCoordinator:               args.ShardCoordinator,
 		mainMessenger:                  args.MainMessenger,
@@ -149,68 +150,73 @@ func NewShardInterceptorsContainerFactory(
 }
 
 // Create returns an interceptor container that will hold all interceptors in the system
-func (sicf *shardInterceptorsContainerFactory) Create() (process.InterceptorsContainer, process.InterceptorsContainer, error) {
+func (sicf *shardInterceptorsContainerFactory) Create() (
+	process.InterceptorsContainer,
+	process.InterceptorsContainer,
+	process.InterceptorsContainer,
+	error,
+) {
 	err := sicf.generateTxInterceptors()
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 
 	err = sicf.generateUnsignedTxsInterceptors()
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 
 	err = sicf.generateRewardTxInterceptor()
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 
 	err = sicf.generateHeaderInterceptors()
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 
 	err = sicf.generateMiniBlocksInterceptors()
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 
 	err = sicf.generateMetachainHeaderInterceptors()
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 
 	err = sicf.generateTrieNodesInterceptors()
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 
 	err = sicf.generatePeerAuthenticationInterceptors()
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 
 	err = sicf.generateHeartbeatInterceptors()
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 
 	err = sicf.generatePeerShardInterceptors()
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 
 	err = sicf.generateValidatorInfoInterceptor()
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 
 	err = sicf.generateEquivalentProofsInterceptor()
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 
-	return sicf.mainContainer, sicf.fullArchiveContainer, nil
+	return sicf.mainContainer, sicf.fullArchiveContainer, sicf.transactionsContainer, nil
 }
 
 func (sicf *shardInterceptorsContainerFactory) generateTrieNodesInterceptors() error {

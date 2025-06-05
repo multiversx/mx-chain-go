@@ -525,6 +525,7 @@ func (tpn *TestFullNode) initNode(
 	processComponents.ShardCoord = tpn.ShardCoordinator
 	processComponents.IntContainer = tpn.MainInterceptorsContainer
 	processComponents.FullArchiveIntContainer = tpn.FullArchiveInterceptorsContainer
+	processComponents.TransactionsIntContainer = tpn.TransactionsInterceptorsContainer
 	processComponents.HistoryRepositoryInternal = tpn.HistoryRepository
 	processComponents.WhiteListHandlerInternal = tpn.WhiteListHandler
 	processComponents.WhiteListerVerifiedTxsInternal = tpn.WhiteListerVerifiedTxs
@@ -758,7 +759,7 @@ func (tcn *TestFullNode) initInterceptors(
 			fmt.Println(err.Error())
 		}
 
-		tcn.MainInterceptorsContainer, _, err = interceptorContainerFactory.Create()
+		tcn.MainInterceptorsContainer, _, tcn.TransactionsInterceptorsContainer, err = interceptorContainerFactory.Create()
 		if err != nil {
 			log.Debug("interceptor container factory Create", "error", err.Error())
 		}
@@ -793,7 +794,7 @@ func (tcn *TestFullNode) initInterceptors(
 			fmt.Println(err.Error())
 		}
 
-		tcn.MainInterceptorsContainer, _, err = interceptorContainerFactory.Create()
+		tcn.MainInterceptorsContainer, _, tcn.TransactionsInterceptorsContainer, err = interceptorContainerFactory.Create()
 		if err != nil {
 			fmt.Println(err.Error())
 		}

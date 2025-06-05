@@ -93,6 +93,9 @@ func (m *managedProcessComponents) CheckSubcomponents() error {
 	if check.IfNil(m.processComponents.fullArchiveInterceptorsContainer) {
 		return fmt.Errorf("%w on full archive network", errors.ErrNilInterceptorsContainer)
 	}
+	if check.IfNil(m.processComponents.transactionsInterceptorsContainer) {
+		return fmt.Errorf("%w on transactions network", errors.ErrNilInterceptorsContainer)
+	}
 	if check.IfNil(m.processComponents.resolversContainer) {
 		return errors.ErrNilResolversContainer
 	}
@@ -233,6 +236,18 @@ func (m *managedProcessComponents) FullArchiveInterceptorsContainer() process.In
 	}
 
 	return m.processComponents.fullArchiveInterceptorsContainer
+}
+
+// TransactionsInterceptorsContainer returns the interceptors container on the transactions network
+func (m *managedProcessComponents) TransactionsInterceptorsContainer() process.InterceptorsContainer {
+	m.mutProcessComponents.RLock()
+	defer m.mutProcessComponents.RUnlock()
+
+	if m.processComponents == nil {
+		return nil
+	}
+
+	return m.processComponents.transactionsInterceptorsContainer
 }
 
 // ResolversContainer returns the resolvers container

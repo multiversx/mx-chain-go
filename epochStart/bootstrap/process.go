@@ -128,20 +128,21 @@ type epochStartBootstrap struct {
 	enableEpochsHandler        common.EnableEpochsHandler
 
 	// created components
-	requestHandler                  process.RequestHandler
-	mainInterceptorContainer        process.InterceptorsContainer
-	fullArchiveInterceptorContainer process.InterceptorsContainer
-	dataPool                        dataRetriever.PoolsHolder
-	miniBlocksSyncer                epochStart.PendingMiniBlocksSyncHandler
-	headersSyncer                   epochStart.HeadersByHashSyncer
-	txSyncerForScheduled            update.TransactionsSyncHandler
-	epochStartMetaBlockSyncer       epochStart.StartOfEpochMetaSyncer
-	nodesConfigHandler              StartOfEpochNodesConfigHandler
-	whiteListHandler                update.WhiteListHandler
-	whiteListerVerifiedTxs          update.WhiteListHandler
-	storageOpenerHandler            storage.UnitOpenerHandler
-	latestStorageDataProvider       storage.LatestStorageDataProviderHandler
-	argumentsParser                 process.ArgumentsParser
+	requestHandler                   process.RequestHandler
+	mainInterceptorContainer         process.InterceptorsContainer
+	fullArchiveInterceptorContainer  process.InterceptorsContainer
+	transactionsInterceptorContainer process.InterceptorsContainer
+	dataPool                         dataRetriever.PoolsHolder
+	miniBlocksSyncer                 epochStart.PendingMiniBlocksSyncHandler
+	headersSyncer                    epochStart.HeadersByHashSyncer
+	txSyncerForScheduled             update.TransactionsSyncHandler
+	epochStartMetaBlockSyncer        epochStart.StartOfEpochMetaSyncer
+	nodesConfigHandler               StartOfEpochNodesConfigHandler
+	whiteListHandler                 update.WhiteListHandler
+	whiteListerVerifiedTxs           update.WhiteListHandler
+	storageOpenerHandler             storage.UnitOpenerHandler
+	latestStorageDataProvider        storage.LatestStorageDataProviderHandler
+	argumentsParser                  process.ArgumentsParser
 
 	dataSyncerFactory               types.ScheduledDataSyncerCreator
 	dataSyncerWithScheduled         types.ScheduledDataSyncer
@@ -412,6 +413,11 @@ func (e *epochStartBootstrap) Bootstrap() (Parameters, error) {
 		if errClose != nil {
 			log.Warn("prepareEpochFromStorage fullArchiveInterceptorContainer.Close()", "error", errClose)
 		}
+
+		errClose = e.transactionsInterceptorContainer.Close()
+		if errClose != nil {
+			log.Warn("prepareEpochFromStorage transactionsInterceptorContainer.Close()", "error", errClose)
+		}
 	}()
 
 	params, err = e.requestAndProcessing()
@@ -618,7 +624,7 @@ func (e *epochStartBootstrap) createSyncers() error {
 		InterceptedDataVerifierFactory: e.interceptedDataVerifierFactory,
 	}
 
-	e.mainInterceptorContainer, e.fullArchiveInterceptorContainer, err = factoryInterceptors.NewEpochStartInterceptorsContainer(args)
+	e.mainInterceptorContainer, e.fullArchiveInterceptorContainer, e.transactionsInterceptorContainer, err = factoryInterceptors.NewEpochStartInterceptorsContainer(args)
 	if err != nil {
 		return err
 	}

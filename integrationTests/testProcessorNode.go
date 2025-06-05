@@ -349,16 +349,17 @@ type TestProcessorNode struct {
 	EconomicsData *economics.TestEconomicsData
 	RatingsData   *rating.RatingsData
 
-	BlockBlackListHandler            process.TimeCacher
-	HeaderValidator                  process.HeaderConstructionValidator
-	BlockTracker                     process.BlockTracker
-	MainInterceptorsContainer        process.InterceptorsContainer
-	FullArchiveInterceptorsContainer process.InterceptorsContainer
-	ResolversContainer               dataRetriever.ResolversContainer
-	RequestersContainer              dataRetriever.RequestersContainer
-	RequestersFinder                 dataRetriever.RequestersFinder
-	RequestHandler                   process.RequestHandler
-	WasmVMChangeLocker               common.Locker
+	BlockBlackListHandler             process.TimeCacher
+	HeaderValidator                   process.HeaderConstructionValidator
+	BlockTracker                      process.BlockTracker
+	MainInterceptorsContainer         process.InterceptorsContainer
+	FullArchiveInterceptorsContainer  process.InterceptorsContainer
+	TransactionsInterceptorsContainer process.InterceptorsContainer
+	ResolversContainer                dataRetriever.ResolversContainer
+	RequestersContainer               dataRetriever.RequestersContainer
+	RequestersFinder                  dataRetriever.RequestersFinder
+	RequestHandler                    process.RequestHandler
+	WasmVMChangeLocker                common.Locker
 
 	InterimProcContainer   process.IntermediateProcessorContainer
 	TxProcessor            process.TransactionProcessor
@@ -1409,7 +1410,7 @@ func (tpn *TestProcessorNode) initInterceptors(heartbeatPk string) {
 		}
 		interceptorContainerFactory, _ := interceptorscontainer.NewMetaInterceptorsContainerFactory(metaInterceptorContainerFactoryArgs)
 
-		tpn.MainInterceptorsContainer, tpn.FullArchiveInterceptorsContainer, err = interceptorContainerFactory.Create()
+		tpn.MainInterceptorsContainer, tpn.FullArchiveInterceptorsContainer, tpn.TransactionsInterceptorsContainer, err = interceptorContainerFactory.Create()
 		if err != nil {
 			log.Debug("interceptor container factory Create", "error", err.Error())
 		}
@@ -1479,7 +1480,7 @@ func (tpn *TestProcessorNode) initInterceptors(heartbeatPk string) {
 
 		interceptorContainerFactory, _ := interceptorscontainer.NewShardInterceptorsContainerFactory(shardIntereptorContainerFactoryArgs)
 
-		tpn.MainInterceptorsContainer, tpn.FullArchiveInterceptorsContainer, err = interceptorContainerFactory.Create()
+		tpn.MainInterceptorsContainer, tpn.FullArchiveInterceptorsContainer, tpn.TransactionsInterceptorsContainer, err = interceptorContainerFactory.Create()
 		if err != nil {
 			fmt.Println(err.Error())
 		}
@@ -2599,6 +2600,7 @@ func (tpn *TestProcessorNode) initNode() {
 	processComponents.ShardCoord = tpn.ShardCoordinator
 	processComponents.IntContainer = tpn.MainInterceptorsContainer
 	processComponents.FullArchiveIntContainer = tpn.FullArchiveInterceptorsContainer
+	processComponents.TransactionsIntContainer = tpn.TransactionsInterceptorsContainer
 	processComponents.HistoryRepositoryInternal = tpn.HistoryRepository
 	processComponents.WhiteListHandlerInternal = tpn.WhiteListHandler
 	processComponents.WhiteListerVerifiedTxsInternal = tpn.WhiteListerVerifiedTxs
@@ -3246,6 +3248,7 @@ func (tpn *TestProcessorNode) createHeartbeatWithHardforkTrigger() {
 	processComponents.ShardCoord = tpn.ShardCoordinator
 	processComponents.IntContainer = tpn.MainInterceptorsContainer
 	processComponents.FullArchiveIntContainer = tpn.FullArchiveInterceptorsContainer
+	processComponents.TransactionsIntContainer = tpn.TransactionsInterceptorsContainer
 	processComponents.ValidatorStatistics = &testscommon.ValidatorStatisticsProcessorStub{
 		GetValidatorInfoForRootHashCalled: func(_ []byte) (state.ShardValidatorsInfoMapHandler, error) {
 			ret := state.NewShardValidatorsInfoMap()
