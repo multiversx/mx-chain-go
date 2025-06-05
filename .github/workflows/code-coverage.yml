@@ -1,11 +1,11 @@
 name: Code-coverage
 
 on:
-  # push:
-  #   branches:
-  #     - master
-  # pull_request:
-  #   branches: [ master, feat/*, rc/* ]
+  push:
+    branches:
+      - master
+  pull_request:
+    branches: [ master, feat/*, rc/* ]
 
   workflow_dispatch:
 
