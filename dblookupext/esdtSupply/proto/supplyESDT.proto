@@ -14,3 +14,8 @@ message SupplyESDT {
   bytes  Minted = 3  [(gogoproto.jsontag) = "minted", (gogoproto.casttypewith) = "math/big.Int;github.com/multiversx/mx-chain-core-go/data.BigIntCaster"];
   bool   RecomputedSupply = 4 [(gogoproto.jsontag) = "recomputedSupply"];
 }
+
+// Correction is used to store information about supply correction
+message Correction {
+    bool WasApplied = 1 [(gogoproto.jsontag) = "wasApplied"];
+}
