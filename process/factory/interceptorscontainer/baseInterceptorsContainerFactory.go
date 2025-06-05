@@ -973,7 +973,7 @@ func (bicf *baseInterceptorsContainerFactory) createPeerShardInterceptor(
 		return nil, err
 	}
 
-	return bicf.createTopicAndAssignHandler(identifier, interceptor, true)
+	return interceptor, nil
 }
 
 func (bicf *baseInterceptorsContainerFactory) generateValidatorInfoInterceptor() error {
