@@ -143,7 +143,9 @@ jobs:
 
       - name: Install rclone
         run: |
-          TS=$(date +'%Y_%^B_%d__%H_%M_%S'); echo "TS=$TS" >> $GITHUB_ENV
+          TS=$(date +'%Y_%^B_%d__%H_%M_%S'); 
+          echo "TS=$TS" >> "$GITHUB_ENV"
+          echo "TIMESTAMP=$TS" >> "$GITHUB_ENV"
           sudo apt-get update -y && sudo apt-get install -y rclone
           mkdir -p ~/.config/rclone
           cat > ~/.config/rclone/rclone.conf <<EOF
@@ -170,6 +172,8 @@ jobs:
       - name: Install Python Dependencies and Update go.mod
         run: |
           cd mx-chain-simulator-go
+          echo "SIMULATOR_REF=$(git symbolic-ref --short HEAD || git describe --tags)" >> $GITHUB_ENV
+          echo "SIMULATOR_COMMIT_HASH=$(git rev-parse HEAD)" >> $GITHUB_ENV
           pip install -r scripts/update-go-mod/requirements.txt
           python scripts/update-go-mod/update-go-mod.py $LATEST_COMMIT_HASH
 
@@ -264,10 +268,12 @@ jobs:
           ref: ${{ env.MX_CHAIN_TESTING_SUITE_TARGET_BRANCH || github.event.pull_request.base.ref }}
           token: ${{ secrets.MVX_TESTER_GH_TOKEN }}
 
-      - name: Install Dependencies
+      - name: Install MX-Chain-Testing-Suite Dependencies
         run: |
           pip install -r mx-chain-testing-suite/requirements.txt
           echo "PYTHONPATH=mx-chain-testing-suite" >> $GITHUB_ENV
+          cd mx-chain-testing-suite
+          echo "CURRENT_COMMIT_HASH=$(git rev-parse HEAD)" >> $GITHUB_ENV
 
 
       - name: Run tests and generate HTML report
@@ -399,7 +405,6 @@ jobs:
             const exitCode                  = process.env.PYTEST_EXIT_CODE;
 
             const simulatorCommitHash = process.env.SIMULATOR_COMMIT_HASH || 'N/A';
-            const simulatorRef     = process.env.SIMULATOR_REF || simulatorTargetBranch;
             const r2Url            = process.env.R2_REPORT_URL || 'N/A';
 
             const issue_number = context.issue.number;
@@ -418,7 +423,6 @@ jobs:
               - **mx-chain-go Target Branch:** \`${goTargetBranch}\`
               - **mx-chain-simulator-go Target Branch:** \`${simulatorTargetBranch}\`
               - **mx-chain-testing-suite Target Branch:** \`${testingSuiteTargetBranch}\`
-              - **mx-chain-simulator-go Reference:** \`${simulatorRef}\`
               - **mx-chain-simulator-go Commit Hash:** \`${simulatorCommitHash}\`
 
               🚀 **Environment Variables:**
@@ -457,13 +461,13 @@ jobs:
           repo="${GITHUB_REPOSITORY##*/}"
           base="${{ github.base_ref }}"
           
-          msg="*MvX MX-CHAIN-GO ChainSimulator CI – ${status}*\
+          msg="*MX-CHAIN-GO* ChainSimulator CI – ${status}*\
           \n• *Report:*  <${R2_REPORT_URL:-N/A}|HTML>\
           \n• *Repository:*  \`${repo}\`\
           \n• *Branch:*  \`${BRANCH_NAME}\` → \`${base:-main}\`\
-          \n• *Suite commit:*  \`${CURRENT_COMMIT_HASH}\`\
-          \n• *Simulator:*  \`${SIMULATOR_REF}\`\
-          \n• *Simulator commit:*  \`${SIMULATOR_COMMIT_HASH}\`\
+          \n• *Testing Suite Commit:*  \`${CURRENT_COMMIT_HASH}\`\
+          \n• *Chain Simulator Branch:*  \`${SIMULATOR_REF}\`\
+          \n• *Chain Simulator Commit:*  \`${process.env.SIMULATOR_COMMIT_HASH}\`
           \n• *Run at:*  ${TS}"
           
           curl -s -X POST -H 'Content-Type: application/json' \
