@@ -14,8 +14,8 @@ type rootManager struct {
 
 // RootData holds information about the current and previous root nodes and their respective hashes in the trie.
 type RootData struct {
-	newRoot     node
-	newRootHash []byte
+	root        node
+	rootHash    []byte
 	oldRootHash []byte
 	oldHashes   [][]byte
 }
@@ -52,10 +52,23 @@ func (rm *rootManager) SetDataForRootChange(rootData RootData) {
 	rm.mutOperation.Lock()
 	defer rm.mutOperation.Unlock()
 
-	rm.root = rootData.newRoot
-	rm.rootHash = rootData.newRootHash
+	rm.root = rootData.root
+	rm.rootHash = rootData.rootHash
 	rm.oldRootHash = rootData.oldRootHash
 	rm.oldHashes = append(rm.oldHashes, rootData.oldHashes...)
+}
+
+// GetRootData returns the collected root data.
+func (rm *rootManager) GetRootData() RootData {
+	rm.mutOperation.RLock()
+	defer rm.mutOperation.RUnlock()
+
+	return RootData{
+		root:        rm.root,
+		rootHash:    rm.rootHash,
+		oldRootHash: rm.oldRootHash,
+		oldHashes:   rm.oldHashes,
+	}
 }
 
 // ResetCollectedHashes resets the old root hash and the old hashes

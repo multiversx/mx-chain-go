@@ -27,14 +27,21 @@ func newLeafNode(
 			Value:   newData.Value,
 			Version: uint32(newData.Version),
 		},
-		baseNode: &baseNode{
-			dirty: true,
-		},
+		dirty: true,
 	}
+}
+
+func (ln *leafNode) isDirty() bool {
+	return ln.dirty
+}
+
+func (ln *leafNode) setDirty(dirty bool) {
+	ln.dirty = dirty
 }
 
 func (ln *leafNode) commitDirty(
 	_ byte,
+	_ common.KeyBuilder,
 	_ uint,
 	goRoutinesManager common.TrieGoroutinesManager,
 	hashesCollector common.TrieHashesCollector,
@@ -92,10 +99,6 @@ func writeNodeOnChannel(ln *leafNode, leavesChan chan core.KeyValueHolder, trieC
 }
 
 func (ln *leafNode) getEncodedNode(trieCtx common.TrieContext) ([]byte, error) {
-	err := ln.isEmptyOrNil()
-	if err != nil {
-		return nil, fmt.Errorf("getEncodedNode error %w", err)
-	}
 	marshaledNode, err := trieCtx.Marshal(ln)
 	if err != nil {
 		return nil, err
@@ -104,11 +107,13 @@ func (ln *leafNode) getEncodedNode(trieCtx common.TrieContext) ([]byte, error) {
 	return marshaledNode, nil
 }
 
-func (ln *leafNode) tryGet(key []byte, currentDepth uint32, _ common.TrieContext) (value []byte, maxDepth uint32, err error) {
-	ln.mutex.RLock()
-	defer ln.mutex.RUnlock()
+func (ln *leafNode) tryGet(keyData *keyData, currentDepth uint32, trieCtx common.TrieContext) (value []byte, maxDepth uint32, err error) {
+	mutexKey := getMutexKeyFromBytes(keyData.pathKey)
 
-	if bytes.Equal(key, ln.Key) {
+	trieCtx.RLock(mutexKey)
+	defer trieCtx.RUnlock(mutexKey)
+
+	if bytes.Equal(keyData.keyRemainder, ln.Key) {
 		return ln.Value, currentDepth, nil
 	}
 
@@ -123,17 +128,33 @@ func (ln *leafNode) getNext(key []byte, _ common.TrieContext) (*nodeData, error)
 }
 
 func (ln *leafNode) insert(
+	pathKey common.KeyBuilder,
 	newData []core.TrieData,
 	goRoutinesManager common.TrieGoroutinesManager,
 	modifiedHashes common.AtomicBytesSlice,
 	trieCtx common.TrieContext,
 ) node {
+	mutexKey := getMutexKeyFromPath(pathKey)
 	if len(newData) == 1 && bytes.Equal(newData[0].Key, ln.Key) {
-		return ln.insertInSameLn(newData[0])
+		return ln.insertInSameLn(newData[0], mutexKey, trieCtx)
 	}
 
-	keyMatchLen, _ := getMinKeyMatchLen(newData, ln.Key)
-	bn := ln.insertInNewBn(newData, keyMatchLen, goRoutinesManager, modifiedHashes, trieCtx)
+	trieCtx.RLock(mutexKey)
+	lnVersion, err := ln.getVersion()
+	if err != nil {
+		trieCtx.RUnlock(mutexKey)
+		goRoutinesManager.SetError(err)
+		return nil
+	}
+	lnData := core.TrieData{
+		Key:     ln.Key,
+		Value:   ln.Value,
+		Version: lnVersion,
+	}
+	trieCtx.RUnlock(mutexKey)
+
+	keyMatchLen, _ := getMinKeyMatchLen(newData, lnData.Key)
+	bn := ln.insertInNewBn(pathKey, newData, lnData, keyMatchLen, goRoutinesManager, modifiedHashes, trieCtx)
 	if !goRoutinesManager.ShouldContinueProcessing() {
 		return nil
 	}
@@ -157,13 +178,13 @@ func (ln *leafNode) insert(
 	return newEn
 }
 
-func (ln *leafNode) insertInSameLn(newData core.TrieData) node {
+func (ln *leafNode) insertInSameLn(newData core.TrieData, mutexKey string, trieCtx common.TrieContext) node {
+	trieCtx.Lock(mutexKey)
+	defer trieCtx.Unlock(mutexKey)
+
 	if bytes.Equal(ln.Value, newData.Value) {
 		return nil
 	}
-
-	ln.mutex.Lock()
-	defer ln.mutex.Unlock()
 
 	ln.Value = newData.Value
 	ln.Version = uint32(newData.Version)
@@ -178,7 +199,9 @@ func trimKeys(data []core.TrieData, keyMatchLen int) {
 }
 
 func (ln *leafNode) insertInNewBn(
+	pathKey common.KeyBuilder,
 	newData []core.TrieData,
+	lnData core.TrieData,
 	keyMatchLen int,
 	goRoutinesManager common.TrieGoroutinesManager,
 	modifiedHashes common.AtomicBytesSlice,
@@ -186,24 +209,13 @@ func (ln *leafNode) insertInNewBn(
 ) node {
 	bn := newBranchNode()
 
-	lnVersion, err := ln.getVersion()
-	if err != nil {
-		goRoutinesManager.SetError(err)
-		return nil
-	}
-
 	var newKeyForOldLn []byte
 	posForOldLn := byte(keyBuilder.HexTerminator)
-	if len(ln.Key) > keyMatchLen {
-		newKeyForOldLn = ln.Key[keyMatchLen+1:]
-		posForOldLn = ln.Key[keyMatchLen]
+	if len(lnData.Key) > keyMatchLen {
+		newKeyForOldLn = lnData.Key[keyMatchLen+1:]
+		posForOldLn = lnData.Key[keyMatchLen]
 	}
-
-	lnData := core.TrieData{
-		Key:     newKeyForOldLn,
-		Value:   ln.Value,
-		Version: lnVersion,
-	}
+	lnData.Key = newKeyForOldLn
 
 	oldLn := newLeafNode(lnData)
 	oldLnHash, err := encodeNodeAndGetHash(oldLn, trieCtx)
@@ -213,20 +225,22 @@ func (ln *leafNode) insertInNewBn(
 	}
 	bn.children[posForOldLn] = oldLn
 	bn.ChildrenHashes[posForOldLn] = oldLnHash
-	bn.setVersionForChild(lnVersion, posForOldLn)
+	bn.setVersionForChild(lnData.Version, posForOldLn)
 
 	trimKeys(newData, keyMatchLen)
-	return bn.insert(newData, goRoutinesManager, modifiedHashes, trieCtx)
+	return bn.insert(pathKey, newData, goRoutinesManager, modifiedHashes, trieCtx)
 }
 
 func (ln *leafNode) delete(
+	pathKey common.KeyBuilder,
 	data []core.TrieData,
 	_ common.TrieGoroutinesManager,
 	_ common.AtomicBytesSlice,
-	_ common.TrieContext,
+	trieCtx common.TrieContext,
 ) (bool, node) {
-	ln.mutex.RLock()
-	defer ln.mutex.RUnlock()
+	mutexKey := getMutexKeyFromPath(pathKey)
+	trieCtx.RLock(mutexKey)
+	defer trieCtx.RUnlock(mutexKey)
 
 	for _, d := range data {
 		if bytes.Equal(d.Key, ln.Key) {
@@ -236,7 +250,7 @@ func (ln *leafNode) delete(
 	return false, ln
 }
 
-func (ln *leafNode) reduceNode(pos int, _ []byte, _ common.TrieContext) (node, bool, error) {
+func (ln *leafNode) reduceNode(pos int, _ string, _ common.TrieContext) (node, bool, error) {
 	k := append([]byte{byte(pos)}, ln.Key...)
 
 	oldLnVersion, err := ln.getVersion()
@@ -349,7 +363,7 @@ func (ln *leafNode) sizeInBytes() int {
 		return 0
 	}
 
-	nodeSize := len(ln.Key) + len(ln.Value) + versionSizeInBytes + dirtyFlagSizeInBytes + mutexSizeInBytes
+	nodeSize := len(ln.Key) + len(ln.Value) + versionSizeInBytes + dirtyFlagSizeInBytes
 
 	return nodeSize
 }

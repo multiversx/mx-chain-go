@@ -997,84 +997,141 @@ func TestPatriciaMerkleTree_GetValueReturnsTrieDepth(t *testing.T) {
 func TestPatriciaMerkleTrie_ConcurrentOperations(t *testing.T) {
 	t.Parallel()
 
-	tr := initTrie()
-	_ = tr.Commit(hashesCollector.NewDisabledHashesCollector())
-	numOperations := 1000
-	wg := sync.WaitGroup{}
-	wg.Add(numOperations)
-	numFunctions := 13
+	t.Run("run all trie operations concurrently", func(t *testing.T) {
+		t.Parallel()
 
-	initialRootHash, _ := tr.RootHash()
+		tr := initTrie()
+		_ = tr.Commit(hashesCollector.NewDisabledHashesCollector())
+		numOperations := 1000
+		wg := sync.WaitGroup{}
+		wg.Add(numOperations)
+		numFunctions := 13
 
-	for i := 0; i < numOperations; i++ {
-		go func(idx int) {
-			time.Sleep(time.Millisecond * 10)
+		initialRootHash, _ := tr.RootHash()
 
-			operation := idx % numFunctions
-			switch operation {
-			case 0:
-				_, _, err := tr.Get([]byte("dog"))
-				assert.Nil(t, err)
-			case 1:
-				tr.Update([]byte("doe"), []byte("alt"))
-			case 2:
-				tr.Delete([]byte("alt"))
-			case 3:
-				_, err := tr.RootHash()
-				assert.Nil(t, err)
-			case 4:
-				err := tr.Commit(hashesCollector.NewDisabledHashesCollector())
-				assert.Nil(t, err)
-			case 5:
-				epoch := core.OptionalUint32{
-					Value:    3,
-					HasValue: true,
+		for i := 0; i < numOperations; i++ {
+			go func(idx int) {
+				time.Sleep(time.Millisecond * 10)
+
+				operation := idx % numFunctions
+				switch operation {
+				case 0:
+					_, _, err := tr.Get([]byte("dog"))
+					assert.Nil(t, err)
+				case 1:
+					tr.Update([]byte("doe"), []byte("alt"))
+				case 2:
+					tr.Delete([]byte("alt"))
+				case 3:
+					_, err := tr.RootHash()
+					assert.Nil(t, err)
+				case 4:
+					err := tr.Commit(hashesCollector.NewDisabledHashesCollector())
+					assert.Nil(t, err)
+				case 5:
+					epoch := core.OptionalUint32{
+						Value:    3,
+						HasValue: true,
+					}
+					rootHashHolder := holders.NewRootHashHolder(initialRootHash, epoch)
+					_, err := tr.Recreate(rootHashHolder, "")
+					assert.Nil(t, err)
+				case 6:
+					_, err := tr.GetSerializedNode(initialRootHash)
+					assert.Nil(t, err)
+				case 7:
+					size1KB := uint64(1024 * 1024)
+					_, _, err := tr.GetSerializedNodes(initialRootHash, size1KB)
+					assert.Nil(t, err)
+				case 8:
+					trieIteratorChannels := &common.TrieIteratorChannels{
+						LeavesChan: make(chan core.KeyValueHolder, 1000),
+						ErrChan:    errChan.NewErrChanWrapper(),
+					}
+
+					err := tr.GetAllLeavesOnChannel(
+						trieIteratorChannels,
+						context.Background(),
+						initialRootHash,
+						keyBuilder.NewKeyBuilder(),
+						parsers.NewMainTrieLeafParser(),
+					)
+					assert.Nil(t, err)
+				case 9:
+					_, _, _ = tr.GetProof(initialRootHash, initialRootHash) // this might error due to concurrent operations that change the roothash
+				case 10:
+					// extremely hard to compute an existing hash due to concurrent changes.
+					_, _ = tr.VerifyProof([]byte("dog"), []byte("puppy"), [][]byte{[]byte("proof1")}) // this might error due to concurrent operations that change the roothash
+				case 11:
+					sm := tr.GetStorageManager()
+					assert.NotNil(t, sm)
+				case 12:
+					trieStatsHandler := tr.(common.TrieStats)
+					_, err := trieStatsHandler.GetTrieStats("address", initialRootHash)
+					assert.Nil(t, err)
+				default:
+					assert.Fail(t, fmt.Sprintf("invalid numFunctions value %d, operation: %d", numFunctions, operation))
 				}
-				rootHashHolder := holders.NewRootHashHolder(initialRootHash, epoch)
-				_, err := tr.Recreate(rootHashHolder, "")
-				assert.Nil(t, err)
-			case 6:
-				_, err := tr.GetSerializedNode(initialRootHash)
-				assert.Nil(t, err)
-			case 7:
-				size1KB := uint64(1024 * 1024)
-				_, _, err := tr.GetSerializedNodes(initialRootHash, size1KB)
-				assert.Nil(t, err)
-			case 8:
-				trieIteratorChannels := &common.TrieIteratorChannels{
-					LeavesChan: make(chan core.KeyValueHolder, 1000),
-					ErrChan:    errChan.NewErrChanWrapper(),
-				}
 
-				err := tr.GetAllLeavesOnChannel(
-					trieIteratorChannels,
-					context.Background(),
-					initialRootHash,
-					keyBuilder.NewKeyBuilder(),
-					parsers.NewMainTrieLeafParser(),
-				)
+				wg.Done()
+			}(i)
+		}
+
+		wg.Wait()
+	})
+
+	t.Run("rootNode changes while retrieving from the trie, check consistency", func(t *testing.T) {
+		t.Parallel()
+
+		tr := emptyTrie()
+		numValsPerBatch := 100
+		numBatches := 1000
+
+		keys := make([][]byte, numValsPerBatch*numBatches)
+
+		for i := 0; i < numValsPerBatch; i++ {
+			key := []byte("dog" + strconv.Itoa(i))
+			tr.Update(key, []byte("reindeer"+strconv.Itoa(i)))
+			keys[i] = key
+		}
+		trie.ExecuteUpdatesFromBatch(tr)
+
+		latestIndex := atomic.Int32{}
+		latestIndex.Store(int32(numValsPerBatch))
+		finishedProcessing := atomic.Bool{}
+		go func() {
+			for !finishedProcessing.Load() {
+				getIndex := rand.Intn(int(latestIndex.Load()))
+				val, _, err := tr.Get(keys[getIndex])
 				assert.Nil(t, err)
-			case 9:
-				_, _, _ = tr.GetProof(initialRootHash, initialRootHash) // this might error due to concurrent operations that change the roothash
-			case 10:
-				// extremely hard to compute an existing hash due to concurrent changes.
-				_, _ = tr.VerifyProof([]byte("dog"), []byte("puppy"), [][]byte{[]byte("proof1")}) // this might error due to concurrent operations that change the roothash
-			case 11:
-				sm := tr.GetStorageManager()
-				assert.NotNil(t, sm)
-			case 12:
-				trieStatsHandler := tr.(common.TrieStats)
-				_, err := trieStatsHandler.GetTrieStats("address", initialRootHash)
-				assert.Nil(t, err)
-			default:
-				assert.Fail(t, fmt.Sprintf("invalid numFunctions value %d, operation: %d", numFunctions, operation))
+				assert.Equal(t, []byte("reindeer"+strconv.Itoa(getIndex)), val)
 			}
+		}()
 
-			wg.Done()
-		}(i)
-	}
+		for i := 1; i < numBatches; i++ {
+			for j := 0; j < numValsPerBatch; j++ {
+				keyIndex := i*numValsPerBatch + j
+				key := []byte("dog" + strconv.Itoa(keyIndex))
+				tr.Update(key, []byte("reindeer"+strconv.Itoa(keyIndex)))
+				keys[keyIndex] = key
+			}
+			trie.ExecuteUpdatesFromBatch(tr)
 
-	wg.Wait()
+			latestIndex.Store(int32((i + 1) * numValsPerBatch))
+		}
+		finishedProcessing.Store(true)
+		rootHash1, err := tr.RootHash()
+		assert.Nil(t, err)
+
+		tr2 := emptyTrie()
+		for i, key := range keys {
+			tr2.Update(key, []byte("reindeer"+strconv.Itoa(i)))
+		}
+		trie.ExecuteUpdatesFromBatch(tr2)
+		rootHash2, err := tr2.RootHash()
+		assert.Nil(t, err)
+		assert.Equal(t, rootHash1, rootHash2)
+	})
 }
 
 func TestPatriciaMerkleTrie_GetSerializedNodesShouldSerializeTheCalls(t *testing.T) {
@@ -1994,63 +2051,6 @@ func TestPatriciaMerkleTrie_RootHash(t *testing.T) {
 
 		setRootHashFinished.Store(true)
 		wg.Wait()
-	})
-}
-
-func TestPatricianMerkleTrie_ConcurrentOperations(t *testing.T) {
-	t.Parallel()
-
-	t.Run("rootNode changes while retrieving from the trie, check consistency", func(t *testing.T) {
-		t.Parallel()
-
-		tr := emptyTrie()
-		numValsPerBatch := 100
-		numBatches := 1000
-
-		keys := make([][]byte, numValsPerBatch*numBatches)
-
-		for i := 0; i < numValsPerBatch; i++ {
-			key := []byte("dog" + strconv.Itoa(i))
-			tr.Update(key, []byte("reindeer"+strconv.Itoa(i)))
-			keys[i] = key
-		}
-		trie.ExecuteUpdatesFromBatch(tr)
-
-		latestIndex := atomic.Int32{}
-		latestIndex.Store(int32(numValsPerBatch))
-		finishedProcessing := atomic.Bool{}
-		go func() {
-			for !finishedProcessing.Load() {
-				getIndex := rand.Intn(int(latestIndex.Load()))
-				val, _, err := tr.Get(keys[getIndex])
-				assert.Nil(t, err)
-				assert.Equal(t, []byte("reindeer"+strconv.Itoa(getIndex)), val)
-			}
-		}()
-
-		for i := 1; i < numBatches; i++ {
-			for j := 0; j < numValsPerBatch; j++ {
-				keyIndex := i*numValsPerBatch + j
-				key := []byte("dog" + strconv.Itoa(keyIndex))
-				tr.Update(key, []byte("reindeer"+strconv.Itoa(keyIndex)))
-				keys[keyIndex] = key
-			}
-			trie.ExecuteUpdatesFromBatch(tr)
-
-			latestIndex.Store(int32((i + 1) * numValsPerBatch))
-		}
-		finishedProcessing.Store(true)
-		rootHash1, err := tr.RootHash()
-		assert.Nil(t, err)
-
-		tr2 := emptyTrie()
-		for i, key := range keys {
-			tr2.Update(key, []byte("reindeer"+strconv.Itoa(i)))
-		}
-		trie.ExecuteUpdatesFromBatch(tr2)
-		rootHash2, err := tr2.RootHash()
-		assert.Nil(t, err)
-		assert.Equal(t, rootHash1, rootHash2)
 	})
 }
 

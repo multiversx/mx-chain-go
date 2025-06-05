@@ -4,7 +4,6 @@ package trie
 import (
 	"context"
 	"runtime/debug"
-	"sync"
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
@@ -17,29 +16,27 @@ const (
 	nrOfChildren         = 17
 	firstByte            = 0
 	pointerSizeInBytes   = 8
-	mutexSizeInBytes     = 24
 	dirtyFlagSizeInBytes = 1
 	versionSizeInBytes   = 4
 	pollingIdleNode      = time.Millisecond
+	rootMutexKey         = "root"
 )
 
 type branchNode struct {
 	CollapsedBn
 	children [nrOfChildren]node
-	*baseNode
-	childrenMutexes [nrOfChildren]sync.RWMutex
+	dirty    bool
 }
 
 type extensionNode struct {
 	CollapsedEn
 	child node
-	*baseNode
-	childMutex sync.RWMutex
+	dirty bool
 }
 
 type leafNode struct {
 	CollapsedLn
-	*baseNode
+	dirty bool
 }
 
 func encodeNodeAndGetHash(n node, trieCtx common.TrieContext) ([]byte, error) {
@@ -130,11 +127,11 @@ func decodeNode(encNode []byte, trieCtx common.TrieContext) (node, error) {
 func getEmptyNodeOfType(t byte) (node, error) {
 	switch t {
 	case extension:
-		return &extensionNode{baseNode: &baseNode{}}, nil
+		return &extensionNode{}, nil
 	case leaf:
-		return &leafNode{baseNode: &baseNode{}}, nil
+		return &leafNode{}, nil
 	case branch:
-		return &branchNode{baseNode: &baseNode{}}, nil
+		return &branchNode{}, nil
 	default:
 		return nil, ErrInvalidNode
 	}
@@ -238,4 +235,26 @@ func saveDirtyNodeToStorage(
 		return false
 	}
 	return true
+}
+
+func getChildPathKey(kb common.KeyBuilder, child []byte) common.KeyBuilder {
+	clonedKeyBuilder := kb.DeepClone()
+	clonedKeyBuilder.BuildKey(child)
+	return clonedKeyBuilder
+}
+
+func getMutexKeyFromPath(kb common.KeyBuilder) string {
+	mutexKey := kb.GetRawKey()
+	if len(mutexKey) == 0 {
+		return rootMutexKey
+	}
+
+	return string(mutexKey)
+}
+
+func getMutexKeyFromBytes(key []byte) string {
+	if len(key) == 0 {
+		return rootMutexKey
+	}
+	return string(key)
 }

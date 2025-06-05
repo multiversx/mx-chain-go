@@ -82,14 +82,10 @@ func TestTrieNodesHandler_replaceParentWithChildren(t *testing.T) {
 
 	roothash := "roothash"
 	hash1 := "hash1"
-	node1 := &leafNode{
-		baseNode: &baseNode{},
-	}
+	node1 := &leafNode{}
 
 	hash2 := "hash2"
-	node2 := &leafNode{
-		baseNode: &baseNode{},
-	}
+	node2 := &leafNode{}
 
 	hash3 := "hash3"
 

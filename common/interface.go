@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/sync"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/hashing"
@@ -477,6 +478,7 @@ type TrieHashesCollector interface {
 type TrieContext interface {
 	marshal.Marshalizer
 	hashing.Hasher
+	sync.KeyRWMutexHandler
 	StorageManager
 	GetStorage() StorageManager
 	GetMarshaller() marshal.Marshalizer
