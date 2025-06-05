@@ -410,11 +410,15 @@ jobs:
             const issue_number = context.issue.number;
             const owner  = context.repo.owner;
             const repo   = context.repo.repo;
-
+            const verdict = exitCode === "0"
+              ? "✅ **Integration Tests passed successfully!**"
+              : "❌ **Integration Tests completed with failures or errors.**";
             let message;
             if (timestamp && branchName) {
               const backupUrl = `https://multiversx.github.io/mx-chain-testing-suite/reports/${branchName}/${timestamp}/index.html`;
               message = `
+              ${verdict}
+            
               📊 **MultiversX Automated Test Report:** [View Report](${r2Url})
 
               🔄 **Build Details:**
@@ -426,12 +430,8 @@ jobs:
               - **mx-chain-simulator-go Commit Hash:** \`${simulatorCommitHash}\`
 
               🚀 **Environment Variables:**
-              - **TIMESTAMP:** \`${timestamp}\`
+              - **TIMESTAMP:** \`${TS}\`
               - **PYTEST_EXIT_CODE:** \`${exitCode}\`
-
-              ${exitCode === "0"
-                ? "✅ **Integration Tests passed successfully!**"
-                : "❌ **Integration Tests completed with failures or errors.**"}
               `;
             } else {
               message = "⚠️ No report was generated due to an error or cancellation of the process.\nPlease checkout GH-Action logs for details.";
@@ -461,14 +461,14 @@ jobs:
           repo="${GITHUB_REPOSITORY##*/}"
           base="${{ github.base_ref }}"
           
-          msg="*MX-CHAIN-GO* ChainSimulator CI – ${status}*\
-          \n• *Report:*  <${R2_REPORT_URL:-N/A}|HTML>\
-          \n• *Repository:*  \`${repo}\`\
-          \n• *Branch:*  \`${BRANCH_NAME}\` → \`${base:-main}\`\
-          \n• *Testing Suite Commit:*  \`${CURRENT_COMMIT_HASH}\`\
-          \n• *Chain Simulator Branch:*  \`${SIMULATOR_REF}\`\
-          \n• *Chain Simulator Commit:*  \`${process.env.SIMULATOR_COMMIT_HASH}\`
-          \n• *Run at:*  ${TS}"
+          msg="*MX-CHAIN-GO ChainSimulator CI – ${status}*\
+          \n• *Report:* <${R2_REPORT_URL:-N/A}|HTML>\
+          \n• *Repository:* \`${repo}\`\
+          \n• *Branch:* \`${BRANCH_NAME}\` → \`${base:-main}\`\
+          \n• *Testing-suite Commit:* \`${CURRENT_COMMIT_HASH}\`\
+          \n• *Chain Simulator Branch:* \`${SIMULATOR_REF}\`\
+          \n• *Chain Simulator Commit:* \`${SIMULATOR_COMMIT_HASH}\`\
+          \n• *Run at:* ${TS}"
           
           curl -s -X POST -H 'Content-Type: application/json' \
                -d "{\"text\":\"${msg}\"}" \
