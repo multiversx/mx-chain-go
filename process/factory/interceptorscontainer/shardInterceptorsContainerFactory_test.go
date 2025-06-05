@@ -752,6 +752,8 @@ func getArgumentsShard(
 		SignaturesHandler:              &mock.SignaturesHandlerStub{},
 		HeartbeatExpiryTimespanInSec:   30,
 		MainPeerShardMapper:            &p2pmocks.NetworkShardingCollectorStub{},
+		FullArchivePeerShardMapper:     &p2pmocks.NetworkShardingCollectorStub{},
+		TransactionsPeerShardMapper:    &p2pmocks.NetworkShardingCollectorStub{},
 		HardforkTrigger:                &testscommon.HardforkTriggerStub{},
 		InterceptedDataVerifierFactory: &mock.InterceptedDataVerifierFactoryMock{},
 	}

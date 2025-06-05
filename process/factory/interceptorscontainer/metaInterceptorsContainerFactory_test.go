@@ -523,9 +523,9 @@ func TestMetaInterceptorsContainerFactory_CreateTopicsAndRegisterFailure(t *test
 
 	testCreateMetaTopicShouldFailOnAllMessenger(t, "generateValidatorInfoInterceptor", common.ValidatorInfoTopic, "")
 
-	testCreateMetaTopicShouldFailOnAllMessenger(t, "generateHeartbeatInterceptor", common.HeartbeatV2Topic, "")
+	testCreateMetaTopicShouldFailOnAllMessenger(t, "generateHeartbeatInterceptors", common.HeartbeatV2Topic, "")
 
-	testCreateMetaTopicShouldFailOnAllMessenger(t, "generatePeerShardInterceptor", common.ConnectionTopic, "")
+	testCreateMetaTopicShouldFailOnAllMessenger(t, "generatePeerShardInterceptors", common.ConnectionTopic, "")
 
 	testCreateMetaTopicShouldFailOnAllMessenger(t, "generateEquivalentProofsInterceptors", common.EquivalentProofsTopic, "")
 
@@ -720,6 +720,8 @@ func getArgumentsMeta(
 		SignaturesHandler:              &mock.SignaturesHandlerStub{},
 		HeartbeatExpiryTimespanInSec:   30,
 		MainPeerShardMapper:            &p2pmocks.NetworkShardingCollectorStub{},
+		FullArchivePeerShardMapper:     &p2pmocks.NetworkShardingCollectorStub{},
+		TransactionsPeerShardMapper:    &p2pmocks.NetworkShardingCollectorStub{},
 		HardforkTrigger:                &testscommon.HardforkTriggerStub{},
 		NodeOperationMode:              common.NormalOperation,
 		InterceptedDataVerifierFactory: &mock.InterceptedDataVerifierFactoryMock{},

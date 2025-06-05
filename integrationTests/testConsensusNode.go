@@ -494,6 +494,8 @@ func (tcn *TestConsensusNode) initInterceptors(
 		SignaturesHandler:              &processMock.SignaturesHandlerStub{},
 		HeartbeatExpiryTimespanInSec:   30,
 		MainPeerShardMapper:            mock.NewNetworkShardingCollectorMock(),
+		FullArchivePeerShardMapper:     mock.NewNetworkShardingCollectorMock(),
+		TransactionsPeerShardMapper:    mock.NewNetworkShardingCollectorMock(),
 		HardforkTrigger:                &testscommon.HardforkTriggerStub{},
 		NodeOperationMode:              common.NormalOperation,
 		InterceptedDataVerifierFactory: interceptorsFactory.NewInterceptedDataVerifierFactory(interceptorDataVerifierArgs),

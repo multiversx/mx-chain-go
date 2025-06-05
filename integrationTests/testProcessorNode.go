@@ -1401,6 +1401,8 @@ func (tpn *TestProcessorNode) initInterceptors(heartbeatPk string) {
 			SignaturesHandler:              &processMock.SignaturesHandlerStub{},
 			HeartbeatExpiryTimespanInSec:   30,
 			MainPeerShardMapper:            tpn.MainPeerShardMapper,
+			FullArchivePeerShardMapper:     tpn.FullArchivePeerShardMapper,
+			TransactionsPeerShardMapper:    tpn.TransactionsPeerShardMapper,
 			HardforkTrigger:                tpn.HardforkTrigger,
 			NodeOperationMode:              tpn.NodeOperationMode,
 			InterceptedDataVerifierFactory: interceptorsFactory.NewInterceptedDataVerifierFactory(interceptorDataVerifierArgs),

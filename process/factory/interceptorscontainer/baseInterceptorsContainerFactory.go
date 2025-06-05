@@ -8,6 +8,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/hashing"
+	"github.com/multiversx/mx-chain-go/storage/disabled"
 
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
@@ -55,6 +56,8 @@ type baseInterceptorsContainerFactory struct {
 	hasher                         hashing.Hasher
 	requestHandler                 process.RequestHandler
 	mainPeerShardMapper            process.PeerShardMapper
+	fullArchivePeerShardMapper     process.PeerShardMapper
+	transactionsPeerShardMapper    process.PeerShardMapper
 	hardforkTrigger                heartbeat.HardforkTrigger
 	nodeOperationMode              common.NodeOperation
 	interceptedDataVerifierFactory process.InterceptedDataVerifierFactory
@@ -78,6 +81,8 @@ func checkBaseParams(
 	preferredPeersHolder process.PreferredPeersHolderHandler,
 	requestHandler process.RequestHandler,
 	mainPeerShardMapper process.PeerShardMapper,
+	fullArchivePeerShardMapper process.PeerShardMapper,
+	transactionsPeerShardMapper process.PeerShardMapper,
 	hardforkTrigger heartbeat.HardforkTrigger,
 ) error {
 	if check.IfNil(coreComponents) {
@@ -170,6 +175,12 @@ func checkBaseParams(
 	}
 	if check.IfNil(mainPeerShardMapper) {
 		return fmt.Errorf("%w %s", process.ErrNilPeerShardMapper, errorOnMainNetworkString)
+	}
+	if check.IfNil(fullArchivePeerShardMapper) {
+		return fmt.Errorf("%w %s", process.ErrNilPeerShardMapper, errorOnFullArchiveNetworkString)
+	}
+	if check.IfNil(transactionsPeerShardMapper) {
+		return fmt.Errorf("%w %s", process.ErrNilPeerShardMapper, errorOnTransactionsNetworkString)
 	}
 	if check.IfNil(hardforkTrigger) {
 		return process.ErrNilHardforkTrigger
@@ -723,7 +734,7 @@ func (bicf *baseInterceptorsContainerFactory) generateUnsignedTxsInterceptors() 
 
 // ------- PeerAuthentication interceptor
 
-func (bicf *baseInterceptorsContainerFactory) generatePeerAuthenticationInterceptor() error {
+func (bicf *baseInterceptorsContainerFactory) generatePeerAuthenticationInterceptors() error {
 	identifierPeerAuthentication := common.PeerAuthenticationTopic
 
 	internalMarshaller := bicf.argInterceptorFactory.CoreComponents.InternalMarshalizer()
@@ -777,16 +788,43 @@ func (bicf *baseInterceptorsContainerFactory) generatePeerAuthenticationIntercep
 
 // ------- Heartbeat interceptor
 
-func (bicf *baseInterceptorsContainerFactory) generateHeartbeatInterceptor() error {
+func (bicf *baseInterceptorsContainerFactory) generateHeartbeatInterceptors() error {
 	shardC := bicf.shardCoordinator
 	identifierHeartbeat := common.HeartbeatV2Topic + shardC.CommunicationIdentifier(shardC.SelfId())
 
-	interceptor, err := bicf.createHeartbeatV2Interceptor(identifierHeartbeat, bicf.dataPool.Heartbeats(), bicf.mainPeerShardMapper)
+	mainInterceptor, err := bicf.createHeartbeatV2Interceptor(identifierHeartbeat, bicf.dataPool.Heartbeats(), bicf.mainPeerShardMapper)
 	if err != nil {
 		return err
 	}
 
-	return bicf.addInterceptorsToContainers([]string{identifierHeartbeat}, []process.Interceptor{interceptor})
+	err = bicf.mainContainer.Add(identifierHeartbeat, mainInterceptor)
+	if err != nil {
+		return err
+	}
+
+	// for transactions interceptor a disabled heartbeat cacher would be needed
+	// no need to store the messages, only needed to update the peer shard mapper
+	disabledHeartbeatCacher := disabled.NewCache()
+	transactionsInterceptor, err := bicf.createHeartbeatV2Interceptor(identifierHeartbeat, disabledHeartbeatCacher, bicf.transactionsPeerShardMapper)
+	if err != nil {
+		return err
+	}
+
+	err = bicf.mainContainer.Add(identifierHeartbeat, transactionsInterceptor)
+	if err != nil {
+		return err
+	}
+
+	if bicf.nodeOperationMode != common.FullArchiveMode {
+		return nil
+	}
+
+	fullArchiveInterceptor, err := bicf.createHeartbeatV2Interceptor(identifierHeartbeat, bicf.dataPool.Heartbeats(), bicf.mainPeerShardMapper)
+	if err != nil {
+		return err
+	}
+
+	return bicf.mainContainer.Add(identifierHeartbeat, fullArchiveInterceptor)
 }
 
 func (bicf *baseInterceptorsContainerFactory) createHeartbeatV2Interceptor(
@@ -836,15 +874,39 @@ func (bicf *baseInterceptorsContainerFactory) createHeartbeatV2Interceptor(
 
 // ------- PeerShard interceptor
 
-func (bicf *baseInterceptorsContainerFactory) generatePeerShardInterceptor() error {
+func (bicf *baseInterceptorsContainerFactory) generatePeerShardInterceptors() error {
 	identifier := common.ConnectionTopic
 
-	interceptor, err := bicf.createPeerShardInterceptor(identifier, bicf.mainPeerShardMapper)
+	mainInterceptor, err := bicf.createPeerShardInterceptor(identifier, bicf.mainPeerShardMapper)
 	if err != nil {
 		return err
 	}
 
-	return bicf.addInterceptorsToContainers([]string{identifier}, []process.Interceptor{interceptor})
+	err = bicf.mainContainer.Add(identifier, mainInterceptor)
+	if err != nil {
+		return err
+	}
+
+	transactionsInterceptor, err := bicf.createPeerShardInterceptor(identifier, bicf.transactionsPeerShardMapper)
+	if err != nil {
+		return err
+	}
+
+	err = bicf.mainContainer.Add(identifier, transactionsInterceptor)
+	if err != nil {
+		return err
+	}
+
+	if bicf.nodeOperationMode != common.FullArchiveMode {
+		return nil
+	}
+
+	fullArchiveInterceptor, err := bicf.createPeerShardInterceptor(identifier, bicf.mainPeerShardMapper)
+	if err != nil {
+		return err
+	}
+
+	return bicf.mainContainer.Add(identifier, fullArchiveInterceptor)
 }
 
 func (bicf *baseInterceptorsContainerFactory) createPeerShardInterceptor(

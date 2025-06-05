@@ -42,6 +42,8 @@ type CommonInterceptorsContainerFactoryArgs struct {
 	SignaturesHandler              process.SignaturesHandler
 	HeartbeatExpiryTimespanInSec   int64
 	MainPeerShardMapper            process.PeerShardMapper
+	FullArchivePeerShardMapper     process.PeerShardMapper
+	TransactionsPeerShardMapper    process.PeerShardMapper
 	HardforkTrigger                heartbeat.HardforkTrigger
 	NodeOperationMode              common.NodeOperation
 	InterceptedDataVerifierFactory process.InterceptedDataVerifierFactory

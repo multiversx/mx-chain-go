@@ -42,6 +42,8 @@ func NewShardInterceptorsContainerFactory(
 		args.PreferredPeersHolder,
 		args.RequestHandler,
 		args.MainPeerShardMapper,
+		args.FullArchivePeerShardMapper,
+		args.TransactionsPeerShardMapper,
 		args.HardforkTrigger,
 	)
 	if err != nil {
@@ -126,6 +128,8 @@ func NewShardInterceptorsContainerFactory(
 		hasher:                         args.CoreComponents.Hasher(),
 		requestHandler:                 args.RequestHandler,
 		mainPeerShardMapper:            args.MainPeerShardMapper,
+		fullArchivePeerShardMapper:     args.FullArchivePeerShardMapper,
+		transactionsPeerShardMapper:    args.TransactionsPeerShardMapper,
 		hardforkTrigger:                args.HardforkTrigger,
 		nodeOperationMode:              args.NodeOperationMode,
 		interceptedDataVerifierFactory: args.InterceptedDataVerifierFactory,
@@ -181,17 +185,17 @@ func (sicf *shardInterceptorsContainerFactory) Create() (process.InterceptorsCon
 		return nil, nil, err
 	}
 
-	err = sicf.generatePeerAuthenticationInterceptor()
+	err = sicf.generatePeerAuthenticationInterceptors()
 	if err != nil {
 		return nil, nil, err
 	}
 
-	err = sicf.generateHeartbeatInterceptor()
+	err = sicf.generateHeartbeatInterceptors()
 	if err != nil {
 		return nil, nil, err
 	}
 
-	err = sicf.generatePeerShardInterceptor()
+	err = sicf.generatePeerShardInterceptors()
 	if err != nil {
 		return nil, nil, err
 	}
