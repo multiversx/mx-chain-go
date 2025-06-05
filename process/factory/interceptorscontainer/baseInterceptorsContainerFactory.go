@@ -732,31 +732,68 @@ func (bicf *baseInterceptorsContainerFactory) generateUnsignedTxsInterceptors() 
 func (bicf *baseInterceptorsContainerFactory) generatePeerAuthenticationInterceptors() error {
 	identifierPeerAuthentication := common.PeerAuthenticationTopic
 
+	mainInterceptor, err := bicf.createPeerAuthenticationInterceptor(identifierPeerAuthentication, bicf.dataPool.PeerAuthentications(), bicf.mainPeerShardMapper)
+	if err != nil {
+		return err
+	}
+
+	err = bicf.mainContainer.Add(identifierPeerAuthentication, mainInterceptor)
+	if err != nil {
+		return err
+	}
+
+	err = createTopicAndAssignHandlerOnMessenger(identifierPeerAuthentication, mainInterceptor, true, bicf.mainMessenger)
+	if err != nil {
+		return err
+	}
+
+	// TODO[Sorin]: update peer authentication requester to work on both networks
+	// for transactions interceptor a disabled peer auth cacher would be needed
+	// no need to store the messages, only needed to update the peer shard mapper
+	disabledPeerAuthCacher := disabled.NewCache()
+	transactionsInterceptor, err := bicf.createPeerAuthenticationInterceptor(identifierPeerAuthentication, disabledPeerAuthCacher, bicf.transactionsPeerShardMapper)
+	if err != nil {
+		return err
+	}
+
+	err = bicf.transactionsContainer.Add(identifierPeerAuthentication, transactionsInterceptor)
+	if err != nil {
+		return err
+	}
+
+	return createTopicAndAssignHandlerOnMessenger(identifierPeerAuthentication, transactionsInterceptor, true, bicf.transactionsMessenger)
+}
+
+func (bicf *baseInterceptorsContainerFactory) createPeerAuthenticationInterceptor(
+	identifier string,
+	peerAuthenticationCacher storage.Cacher,
+	peerShardMapper process.PeerShardMapper,
+) (process.Interceptor, error) {
 	internalMarshaller := bicf.argInterceptorFactory.CoreComponents.InternalMarshalizer()
 	argProcessor := processor.ArgPeerAuthenticationInterceptorProcessor{
-		PeerAuthenticationCacher: bicf.dataPool.PeerAuthentications(),
-		PeerShardMapper:          bicf.mainPeerShardMapper,
+		PeerAuthenticationCacher: peerAuthenticationCacher,
+		PeerShardMapper:          peerShardMapper,
 		Marshaller:               internalMarshaller,
 		HardforkTrigger:          bicf.hardforkTrigger,
 	}
 	peerAuthenticationProcessor, err := processor.NewPeerAuthenticationInterceptorProcessor(argProcessor)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	peerAuthenticationFactory, err := interceptorFactory.NewInterceptedPeerAuthenticationDataFactory(*bicf.argInterceptorFactory)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	interceptedDataVerifier, err := bicf.interceptedDataVerifierFactory.Create(identifierPeerAuthentication)
+	interceptedDataVerifier, err := bicf.interceptedDataVerifierFactory.Create(identifier)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	mdInterceptor, err := interceptors.NewMultiDataInterceptor(
+	interceptor, err := interceptors.NewMultiDataInterceptor(
 		interceptors.ArgMultiDataInterceptor{
-			Topic:                   identifierPeerAuthentication,
+			Topic:                   identifier,
 			Marshalizer:             internalMarshaller,
 			Hasher:                  bicf.argInterceptorFactory.CoreComponents.Hasher(),
 			DataFactory:             peerAuthenticationFactory,
@@ -764,21 +801,16 @@ func (bicf *baseInterceptorsContainerFactory) generatePeerAuthenticationIntercep
 			Throttler:               bicf.globalThrottler,
 			AntifloodHandler:        bicf.antifloodHandler,
 			WhiteListRequest:        bicf.whiteListHandler,
-			PreferredPeersHolder:    bicf.preferredPeersHolder,
+			PreferredPeersHolder:    bicf.preferredPeersHolder, // TODO[Sorin]: use the proper preferredPeersHolder for each network, valid on the entire file
 			CurrentPeerId:           bicf.mainMessenger.ID(),
 			InterceptedDataVerifier: interceptedDataVerifier,
 		},
 	)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	err = createTopicAndAssignHandlerOnMessenger(identifierPeerAuthentication, mdInterceptor, true, bicf.mainMessenger)
-	if err != nil {
-		return err
-	}
-
-	return bicf.mainContainer.Add(identifierPeerAuthentication, mdInterceptor)
+	return interceptor, nil
 }
 
 // ------- Heartbeat interceptor
