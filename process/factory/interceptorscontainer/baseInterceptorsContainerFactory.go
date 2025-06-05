@@ -2,7 +2,6 @@ package interceptorscontainer
 
 import (
 	"fmt"
-	"strings"
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
@@ -195,26 +194,6 @@ func (bicf *baseInterceptorsContainerFactory) createTopicAndAssignHandler(
 	interceptor process.Interceptor,
 	createChannel bool,
 ) (process.Interceptor, error) {
-
-	shouldAddInterceptorOnTransactionsNetwork := strings.Contains(topic, factory.TransactionTopic) ||
-		strings.Contains(topic, common.ConnectionTopic) ||
-		strings.Contains(topic, common.HeartbeatV2Topic) ||
-		strings.Contains(topic, common.PeerAuthenticationTopic)
-	if shouldAddInterceptorOnTransactionsNetwork {
-		err := createTopicAndAssignHandlerOnMessenger(topic, interceptor, createChannel, bicf.transactionsMessenger)
-		if err != nil {
-			return nil, err
-		}
-
-		// TODO[Sorin]: add also a fullArchiveTransactionsMessenger for these requests
-		// not needed yet for poc
-	}
-
-	// do not add transactionTopic on other messenger
-	if strings.Contains(topic, factory.TransactionTopic) {
-		return interceptor, nil
-	}
-
 	err := createTopicAndAssignHandlerOnMessenger(topic, interceptor, createChannel, bicf.mainMessenger)
 	if err != nil {
 		return nil, err
@@ -278,7 +257,7 @@ func (bicf *baseInterceptorsContainerFactory) generateTxInterceptors() error {
 	keys = append(keys, identifierTx)
 	interceptorSlice = append(interceptorSlice, interceptor)
 
-	return bicf.addInterceptorsToContainers(keys, interceptorSlice)
+	return bicf.transactionsContainer.AddMultiple(keys, interceptorSlice)
 }
 
 func (bicf *baseInterceptorsContainerFactory) createOneTxInterceptor(topic string) (process.Interceptor, error) {
@@ -342,7 +321,12 @@ func (bicf *baseInterceptorsContainerFactory) createOneTxInterceptor(topic strin
 		return nil, err
 	}
 
-	return bicf.createTopicAndAssignHandler(topic, interceptor, true)
+	err = createTopicAndAssignHandlerOnMessenger(topic, interceptor, true, bicf.transactionsMessenger)
+	if err != nil {
+		return nil, err
+	}
+
+	return interceptor, nil
 }
 
 func (bicf *baseInterceptorsContainerFactory) createOneUnsignedTxInterceptor(topic string) (process.Interceptor, error) {
@@ -392,7 +376,12 @@ func (bicf *baseInterceptorsContainerFactory) createOneUnsignedTxInterceptor(top
 		return nil, err
 	}
 
-	return bicf.createTopicAndAssignHandler(topic, interceptor, true)
+	err = createTopicAndAssignHandlerOnMessenger(topic, interceptor, true, bicf.transactionsMessenger)
+	if err != nil {
+		return nil, err
+	}
+
+	return interceptor, nil
 }
 
 func (bicf *baseInterceptorsContainerFactory) createOneRewardTxInterceptor(topic string) (process.Interceptor, error) {
@@ -442,7 +431,12 @@ func (bicf *baseInterceptorsContainerFactory) createOneRewardTxInterceptor(topic
 		return nil, err
 	}
 
-	return bicf.createTopicAndAssignHandler(topic, interceptor, true)
+	err = createTopicAndAssignHandlerOnMessenger(topic, interceptor, true, bicf.transactionsMessenger)
+	if err != nil {
+		return nil, err
+	}
+
+	return interceptor, nil
 }
 
 // ------- Hdr interceptor
@@ -730,7 +724,7 @@ func (bicf *baseInterceptorsContainerFactory) generateUnsignedTxsInterceptors() 
 	keys = append(keys, identifierScr)
 	interceptorsSlice = append(interceptorsSlice, interceptor)
 
-	return bicf.addInterceptorsToContainers(keys, interceptorsSlice)
+	return bicf.transactionsContainer.AddMultiple(keys, interceptorsSlice)
 }
 
 // ------- PeerAuthentication interceptor
@@ -803,6 +797,11 @@ func (bicf *baseInterceptorsContainerFactory) generateHeartbeatInterceptors() er
 		return err
 	}
 
+	err = createTopicAndAssignHandlerOnMessenger(identifierHeartbeat, mainInterceptor, true, bicf.mainMessenger)
+	if err != nil {
+		return err
+	}
+
 	// for transactions interceptor a disabled heartbeat cacher would be needed
 	// no need to store the messages, only needed to update the peer shard mapper
 	disabledHeartbeatCacher := disabled.NewCache()
@@ -816,6 +815,11 @@ func (bicf *baseInterceptorsContainerFactory) generateHeartbeatInterceptors() er
 		return err
 	}
 
+	err = createTopicAndAssignHandlerOnMessenger(identifierHeartbeat, transactionsInterceptor, true, bicf.transactionsMessenger)
+	if err != nil {
+		return err
+	}
+
 	if bicf.nodeOperationMode != common.FullArchiveMode {
 		return nil
 	}
@@ -825,7 +829,12 @@ func (bicf *baseInterceptorsContainerFactory) generateHeartbeatInterceptors() er
 		return err
 	}
 
-	return bicf.fullArchiveContainer.Add(identifierHeartbeat, fullArchiveInterceptor)
+	err = bicf.fullArchiveContainer.Add(identifierHeartbeat, fullArchiveInterceptor)
+	if err != nil {
+		return err
+	}
+
+	return createTopicAndAssignHandlerOnMessenger(identifierHeartbeat, fullArchiveInterceptor, true, bicf.fullArchiveMessenger)
 }
 
 func (bicf *baseInterceptorsContainerFactory) createHeartbeatV2Interceptor(
@@ -870,7 +879,7 @@ func (bicf *baseInterceptorsContainerFactory) createHeartbeatV2Interceptor(
 		return nil, err
 	}
 
-	return bicf.createTopicAndAssignHandler(identifier, interceptor, true)
+	return interceptor, nil
 }
 
 // ------- PeerShard interceptor
@@ -888,12 +897,22 @@ func (bicf *baseInterceptorsContainerFactory) generatePeerShardInterceptors() er
 		return err
 	}
 
+	err = createTopicAndAssignHandlerOnMessenger(identifier, mainInterceptor, true, bicf.mainMessenger)
+	if err != nil {
+		return err
+	}
+
 	transactionsInterceptor, err := bicf.createPeerShardInterceptor(identifier, bicf.transactionsPeerShardMapper)
 	if err != nil {
 		return err
 	}
 
 	err = bicf.transactionsContainer.Add(identifier, transactionsInterceptor)
+	if err != nil {
+		return err
+	}
+
+	err = createTopicAndAssignHandlerOnMessenger(identifier, transactionsInterceptor, true, bicf.transactionsMessenger)
 	if err != nil {
 		return err
 	}
@@ -907,7 +926,12 @@ func (bicf *baseInterceptorsContainerFactory) generatePeerShardInterceptors() er
 		return err
 	}
 
-	return bicf.fullArchiveContainer.Add(identifier, fullArchiveInterceptor)
+	err = bicf.fullArchiveContainer.Add(identifier, fullArchiveInterceptor)
+	if err != nil {
+		return err
+	}
+
+	return createTopicAndAssignHandlerOnMessenger(identifier, fullArchiveInterceptor, true, bicf.fullArchiveMessenger)
 }
 
 func (bicf *baseInterceptorsContainerFactory) createPeerShardInterceptor(

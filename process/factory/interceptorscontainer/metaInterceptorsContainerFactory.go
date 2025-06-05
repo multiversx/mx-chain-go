@@ -354,7 +354,7 @@ func (micf *metaInterceptorsContainerFactory) generateRewardTxInterceptors() err
 		interceptorSlice[int(idx)] = interceptor
 	}
 
-	return micf.addInterceptorsToContainers(keys, interceptorSlice)
+	return micf.transactionsContainer.AddMultiple(keys, interceptorSlice)
 }
 
 func (micf *metaInterceptorsContainerFactory) generateEquivalentProofsInterceptors() error {

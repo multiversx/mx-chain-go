@@ -254,7 +254,7 @@ func (sicf *shardInterceptorsContainerFactory) generateRewardTxInterceptor() err
 	keys = append(keys, identifierTx)
 	interceptorSlice = append(interceptorSlice, interceptor)
 
-	return sicf.addInterceptorsToContainers(keys, interceptorSlice)
+	return sicf.transactionsContainer.AddMultiple(keys, interceptorSlice)
 }
 
 func (sicf *shardInterceptorsContainerFactory) generateEquivalentProofsInterceptor() error {
