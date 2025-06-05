@@ -22,9 +22,24 @@ func (dkb *disabledKeyBuilder) GetKey() ([]byte, error) {
 	return []byte{}, nil
 }
 
-// Clone returns a new disabled key builder
-func (dkb *disabledKeyBuilder) Clone() common.KeyBuilder {
+// GetRawKey returns an empty byte array for this implementation
+func (dkb *disabledKeyBuilder) GetRawKey() []byte {
+	return []byte{}
+}
+
+// ShallowClone returns a new disabled key builder
+func (dkb *disabledKeyBuilder) ShallowClone() common.KeyBuilder {
 	return &disabledKeyBuilder{}
+}
+
+// DeepClone returns a new disabled key builder
+func (dkb *disabledKeyBuilder) DeepClone() common.KeyBuilder {
+	return &disabledKeyBuilder{}
+}
+
+// Size returns 0 for this implementation
+func (dkb *disabledKeyBuilder) Size() uint {
+	return 0
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

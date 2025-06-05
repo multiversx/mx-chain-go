@@ -754,7 +754,7 @@ func TestDelayedBlockBroadcaster_SetHeaderForValidator_BroadcastHeaderError(t *t
 		return nil
 	}
 	broadcastHeader := func(header data.HeaderHandler, pk []byte) error {
-		return fmt.Errorf(broadcastError)
+		return errors.New(broadcastError)
 	}
 	broadcastConsensusMessage := func(message *consensus.Message) error {
 		return nil
@@ -1568,11 +1568,11 @@ func TestDelayedBlockBroadcaster_BroadcastBlockDataFailedBroadcast(t *testing.T)
 
 	errMiniBlocks := "mini blocks broadcast error"
 	broadcastMiniBlocks := func(mbData map[uint32][]byte, pk []byte) error {
-		return fmt.Errorf(errMiniBlocks)
+		return errors.New(errMiniBlocks)
 	}
 	errTxs := "transactions broadcast error"
 	broadcastTransactions := func(txData map[string][][]byte, pk []byte) error {
-		return fmt.Errorf(errTxs)
+		return errors.New(errTxs)
 	}
 	broadcastHeader := func(header data.HeaderHandler, pk []byte) error {
 		return nil

@@ -34,6 +34,9 @@ var logQueryService = logger.GetOrCreate("process/smartcontract.queryService")
 // MaxGasLimitPerQuery - each unit is the equivalent of 1 nanosecond processing time
 const MaxGasLimitPerQuery = 300_000_000_000
 
+// EpochStartHdrCacheSize - the size of the cache for the EpochStartHdr
+const EpochStartHdrCacheSize = 5
+
 // SCQueryService can execute Get functions over SC to fetch stored values
 type SCQueryService struct {
 	vmContainer                process.VirtualMachinesContainer
@@ -53,6 +56,7 @@ type SCQueryService struct {
 	hasher                     hashing.Hasher
 	uint64ByteSliceConverter   typeConverters.Uint64ByteSliceConverter
 	isInHistoricalBalancesMode bool
+	epochStartHdrCache         map[uint32]data.HeaderHandler
 }
 
 // ArgsNewSCQueryService defines the arguments needed for the sc query service
@@ -105,6 +109,7 @@ func NewSCQueryService(
 		hasher:                     args.Hasher,
 		uint64ByteSliceConverter:   args.Uint64ByteSliceConverter,
 		isInHistoricalBalancesMode: args.IsInHistoricalBalancesMode,
+		epochStartHdrCache:         make(map[uint32]data.HeaderHandler, EpochStartHdrCacheSize),
 	}, nil
 }
 
@@ -206,7 +211,21 @@ func (service *SCQueryService) executeScCall(query *process.SCQuery, gasPrice ui
 		if err != nil {
 			return nil, nil, err
 		}
-		service.blockChainHook.SetCurrentHeader(blockHeader)
+
+		epochStartHdr, err := service.getEpochStartBlockHdr(blockHeader.GetEpoch())
+		if err != nil {
+			return nil, nil, err
+		}
+
+		err = service.blockChainHook.SetEpochStartHeader(epochStartHdr)
+		if err != nil {
+			return nil, nil, err
+		}
+
+		err = service.blockChainHook.SetCurrentHeader(blockHeader)
+		if err != nil {
+			return nil, nil, err
+		}
 	}
 
 	shouldCheckRootHashChanges := query.SameScState
@@ -315,6 +334,48 @@ func (service *SCQueryService) getBlockHeaderByHash(headerHash []byte) (data.Hea
 		return nil, err
 	}
 
+	return header, nil
+}
+
+func (service *SCQueryService) getEpochStartBlockHdr(epoch uint32) (data.HeaderHandler, error) {
+	shardId := service.shardCoordinator.SelfId()
+
+	if epoch == 0 {
+		return service.mainBlockChain.GetGenesisHeader(), nil
+	}
+
+	if header, ok := service.epochStartHdrCache[epoch]; ok {
+		return header, nil
+	}
+
+	storer, err := service.storageService.GetStorer(dataRetriever.GetHeadersDataUnit(shardId))
+	if err != nil {
+		return nil, err
+	}
+
+	identifier := core.EpochStartIdentifier(epoch)
+	headerBytes, err := storer.GetFromEpoch([]byte(identifier), epoch)
+	if err != nil {
+		return nil, err
+	}
+
+	header, err := process.UnmarshalHeader(shardId, service.marshaller, headerBytes)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(service.epochStartHdrCache) >= EpochStartHdrCacheSize {
+		oldestEpoch := uint32(1<<32 - 1)
+		for e := range service.epochStartHdrCache {
+			if e < oldestEpoch {
+				oldestEpoch = e
+			}
+		}
+
+		delete(service.epochStartHdrCache, oldestEpoch)
+	}
+
+	service.epochStartHdrCache[epoch] = header
 	return header, nil
 }
 
