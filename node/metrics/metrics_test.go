@@ -24,6 +24,7 @@ func TestInitBaseMetrics(t *testing.T) {
 		common.MetricSynchronizedRound,
 		common.MetricNonce,
 		common.MetricBlockTimestamp,
+		common.MetricBlockTimestampMs,
 		common.MetricCountConsensus,
 		common.MetricCountLeader,
 		common.MetricCountAcceptedBlocks,
