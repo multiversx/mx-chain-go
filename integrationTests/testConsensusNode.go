@@ -214,7 +214,8 @@ func (tcn *TestConsensusNode) initNode(args ArgsTestConsensusNode) {
 	tcn.initBlockChain(testHasher)
 	tcn.initBlockProcessor(tcn.ShardCoordinator.SelfId())
 
-	syncer := ntp.NewSyncTime(ntp.NewNTPGoogleConfig(), nil)
+	roundTime := time.Millisecond * time.Duration(args.RoundTime)
+	syncer := ntp.NewSyncTime(ntp.NewNTPGoogleConfig(), nil, roundTime)
 	syncer.StartSyncingTime()
 
 	genericEpochNotifier := forking.NewGenericEpochNotifier()
@@ -227,7 +228,7 @@ func (tcn *TestConsensusNode) initNode(args ArgsTestConsensusNode) {
 	roundHandler, _ := round.NewRound(
 		time.Unix(args.StartTime, 0),
 		syncer.CurrentTime(),
-		time.Millisecond*time.Duration(args.RoundTime),
+		roundTime,
 		syncer,
 		0)
 

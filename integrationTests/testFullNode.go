@@ -239,14 +239,15 @@ func (tpn *TestFullNode) initTestNodeWithArgs(args ArgTestProcessorNode, fullArg
 	tpn.initHeaderValidator()
 	tpn.initRoundHandler()
 
-	syncer := ntp.NewSyncTime(ntp.NewNTPGoogleConfig(), nil)
+	roundTime := time.Millisecond * time.Duration(fullArgs.RoundTime)
+	syncer := ntp.NewSyncTime(ntp.NewNTPGoogleConfig(), nil, roundTime)
 	syncer.StartSyncingTime()
 	tpn.GenesisTimeField = time.Unix(fullArgs.StartTime, 0)
 
 	roundHandler, _ := round.NewRound(
 		tpn.GenesisTimeField,
 		syncer.CurrentTime(),
-		time.Millisecond*time.Duration(fullArgs.RoundTime),
+		roundTime,
 		syncer,
 		0)
 
