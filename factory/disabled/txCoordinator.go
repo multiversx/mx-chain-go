@@ -70,6 +70,14 @@ func (txCoordinator *TxCoordinator) ProcessBlockTransaction(_ data.HeaderHandler
 func (txCoordinator *TxCoordinator) CreateBlockStarted() {
 }
 
+// CreateMbsCrossShardDstMe does nothing as it is disabled
+func (txCoordinator *TxCoordinator) CreateMbsCrossShardDstMe(
+	_ data.HeaderHandler,
+	_ map[string]*processedMb.ProcessedMiniBlockInfo,
+) (block.MiniBlockSlice, bool, error) {
+	return make(block.MiniBlockSlice, 0), false, nil
+}
+
 // CreateMbsAndProcessCrossShardTransactionsDstMe does nothing as it is disabled
 func (txCoordinator *TxCoordinator) CreateMbsAndProcessCrossShardTransactionsDstMe(
 	_ data.HeaderHandler,

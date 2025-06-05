@@ -558,6 +558,113 @@ func (tc *transactionCoordinator) processMiniBlocksToMe(
 	return mbIndex, nil
 }
 
+func (tc *transactionCoordinator) CreateMbsCrossShardDstMe(
+	hdr data.HeaderHandler,
+	processedMiniBlocksInfo map[string]*processedMb.ProcessedMiniBlockInfo,
+) (block.MiniBlockSlice, bool, error) {
+	miniBlocks := make(block.MiniBlockSlice, 0)
+	if check.IfNil(hdr) {
+		log.Warn("transactionCoordinator.CreateMbsCrossShardDstMe header is nil")
+
+		return miniBlocks, false, nil
+	}
+	shouldSkipShard := make(map[uint32]bool)
+	// TODO: init the gas estimation per added mbs counter
+
+	finalCrossMiniBlockInfos := tc.getFinalCrossMiniBlockInfos(hdr.GetOrderedCrossMiniblocksWithDst(tc.shardCoordinator.SelfId()), hdr)
+	defer func() {
+		log.Debug("transactionCoordinator.CreateMbsCrossShardDstMe",
+			"header round", hdr.GetRound(),
+			"header nonce", hdr.GetNonce(),
+			"num mini blocks to be processed", len(finalCrossMiniBlockInfos),
+			"total gas provided", tc.gasHandler.TotalGasProvided()) // todo: the gas handler needs to be separate from
+	}()
+
+	// requests non-blocking the missing miniBlocks and transactions
+	tc.requestMissingMiniBlocksAndTransactions(finalCrossMiniBlockInfos)
+
+	for _, miniBlockInfo := range finalCrossMiniBlockInfos {
+		if tc.blockSizeComputation.IsMaxBlockSizeReached(0, 0) {
+			log.Debug("transactionCoordinator.CreateMbsCrossShardDstMe",
+				"stop creating", "max block size has been reached")
+			break
+		}
+
+		if shouldSkipShard[miniBlockInfo.SenderShardID] {
+			log.Trace("transactionCoordinator.CreateMbsCrossShardDstMe: should skip shard",
+				"sender shard", miniBlockInfo.SenderShardID,
+				"hash", miniBlockInfo.Hash,
+				"round", miniBlockInfo.Round,
+			)
+			continue
+		}
+
+		processedMbInfo := getProcessedMiniBlockInfo(processedMiniBlocksInfo, miniBlockInfo.Hash)
+		if processedMbInfo.FullyProcessed {
+			log.Trace("transactionCoordinator.CreateMbsCrossShardDstMe: mini block already processed",
+				"sender shard", miniBlockInfo.SenderShardID,
+				"hash", miniBlockInfo.Hash,
+				"round", miniBlockInfo.Round,
+			)
+			continue
+		}
+
+		miniVal, _ := tc.miniBlockPool.Peek(miniBlockInfo.Hash)
+		if miniVal == nil {
+			shouldSkipShard[miniBlockInfo.SenderShardID] = true
+			log.Trace("transactionCoordinator.CreateMbsCrossShardDstMe: mini block not found and was skipped",
+				"sender shard", miniBlockInfo.SenderShardID,
+				"hash", miniBlockInfo.Hash,
+				"round", miniBlockInfo.Round,
+			)
+			continue
+		}
+
+		miniBlock, ok := miniVal.(*block.MiniBlock)
+		if !ok {
+			shouldSkipShard[miniBlockInfo.SenderShardID] = true
+			log.Error("transactionCoordinator.CreateMbsCrossShardDstMe: mini block assertion type failed",
+				"sender shard", miniBlockInfo.SenderShardID,
+				"hash", miniBlockInfo.Hash,
+				"round", miniBlockInfo.Round,
+			)
+			continue
+		}
+
+		preproc := tc.getPreProcessor(miniBlock.Type)
+		if check.IfNil(preproc) {
+			return nil, false, fmt.Errorf("%w unknown block type %d", process.ErrNilPreProcessor, miniBlock.Type)
+		}
+
+		// TODO: The method here should be renamed, as it checks which transactions are not available locally (in the node pool)
+		missingTxs := preproc.RequestTransactionsForMiniBlock(miniBlock)
+		if missingTxs > 0 {
+			shouldSkipShard[miniBlockInfo.SenderShardID] = true
+			log.Trace("transactionCoordinator.CreateMbsCrossShardDstMe: transactions not found",
+				"sender shard", miniBlockInfo.SenderShardID,
+				"hash", miniBlockInfo.Hash,
+				"round", miniBlockInfo.Round,
+				"missing txs", missingTxs,
+			)
+			continue
+		}
+		log.Debug("transactionCoordinator.CreateMbsCrossShardDstMe: selected mini block",
+			"sender shard", miniBlockInfo.SenderShardID,
+			"hash", miniBlockInfo.Hash,
+			"type", miniBlock.Type,
+			"round", miniBlockInfo.Round,
+			"num txs", len(miniBlock.TxHashes),
+			"total gas provided", tc.gasHandler.TotalGasProvided(),
+		)
+
+		miniBlocks = append(miniBlocks, miniBlock)
+	}
+
+	allMiniBlocksAdded := len(miniBlocks) == len(finalCrossMiniBlockInfos)
+
+	return miniBlocks, allMiniBlocksAdded, nil
+}
+
 // CreateMbsAndProcessCrossShardTransactionsDstMe creates miniblocks and processes cross shard transaction
 // with destination of current shard
 func (tc *transactionCoordinator) CreateMbsAndProcessCrossShardTransactionsDstMe(

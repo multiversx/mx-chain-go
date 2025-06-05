@@ -162,6 +162,8 @@ type TransactionCoordinator interface {
 	ProcessBlockTransaction(header data.HeaderHandler, body *block.Body, haveTime func() time.Duration) error
 
 	CreateBlockStarted()
+	CreateMbsCrossShardDstMe(header data.HeaderHandler, processedMiniBlocksInfo map[string]*processedMb.ProcessedMiniBlockInfo) (block.MiniBlockSlice, bool, error)
+
 	CreateMbsAndProcessCrossShardTransactionsDstMe(header data.HeaderHandler, processedMiniBlocksInfo map[string]*processedMb.ProcessedMiniBlockInfo, haveTime func() bool, haveAdditionalTime func() bool, scheduledMode bool) (block.MiniBlockSlice, uint32, bool, error)
 	CreateMbsAndProcessTransactionsFromMe(haveTime func() bool, randomness []byte) block.MiniBlockSlice
 	CreatePostProcessMiniBlocks() block.MiniBlockSlice
