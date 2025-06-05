@@ -410,6 +410,7 @@ jobs:
             const issue_number = context.issue.number;
             const owner  = context.repo.owner;
             const repo   = context.repo.repo;
+            const ts = process.env.TS || process.env.TIMESTAMP;
             const verdict = exitCode === "0"
               ? "✅ **Integration Tests passed successfully!**"
               : "❌ **Integration Tests completed with failures or errors.**";
@@ -430,7 +431,7 @@ jobs:
               - **mx-chain-simulator-go Commit Hash:** \`${simulatorCommitHash}\`
 
               🚀 **Environment Variables:**
-              - **TIMESTAMP:** \`${TS}\`
+              - **TIMESTAMP:** \`${ts}\`
               - **PYTEST_EXIT_CODE:** \`${exitCode}\`
               `;
             } else {
