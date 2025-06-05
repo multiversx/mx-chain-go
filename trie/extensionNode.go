@@ -257,7 +257,7 @@ func (en *extensionNode) insert(
 	}
 
 	// Otherwise branch out at the index where they differ.
-	return en.insertInNewBn(newData, childNode, pathKey, originalChildHash, goRoutinesManager, modifiedHashes, keyMatchLen, index, trieCtx)
+	return en.insertInNewBn(newData, childNode, pathKey, goRoutinesManager, modifiedHashes, keyMatchLen, index, trieCtx)
 }
 
 func getMinKeyMatchLen(newData []core.TrieData, enKey []byte) (int, int) {
@@ -334,17 +334,12 @@ func (en *extensionNode) insertInNewBn(
 	newData []core.TrieData,
 	childNode node,
 	pathKey common.KeyBuilder,
-	originalChildHash []byte,
 	goRoutinesManager common.TrieGoroutinesManager,
 	modifiedHashes common.AtomicBytesSlice,
 	keyMatchLen int,
 	index int,
 	trieCtx common.TrieContext,
 ) node {
-	if len(originalChildHash) != 0 {
-		modifiedHashes.Append([][]byte{originalChildHash})
-	}
-
 	bn := newBranchNode()
 	oldChildPos := en.Key[keyMatchLen]
 	newChildPos := newData[index].Key[keyMatchLen]
@@ -413,7 +408,7 @@ func (en *extensionNode) insertOldChildInBn(bn *branchNode, childNode node, oldC
 	bn.setVersionForChild(childVersion, oldChildPos)
 
 	if len(keyReminder) < 1 {
-		bn.children[oldChildPos] = en.child
+		bn.children[oldChildPos] = childNode
 		bn.ChildrenHashes[oldChildPos] = en.ChildHash
 		return
 	}

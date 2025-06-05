@@ -2,6 +2,7 @@ package trie
 
 import (
 	"context"
+	"encoding/hex"
 	"fmt"
 	"io"
 	"sync"
@@ -679,7 +680,7 @@ func (bn *branchNode) print(writer io.Writer, index int, trieCtx common.TrieCont
 		for j := 0; j < index+len(str)-1; j++ {
 			_, _ = fmt.Fprint(writer, " ")
 		}
-		str2 := fmt.Sprintf("+ %d: - hash: %v ", i, bn.ChildrenHashes[i])
+		str2 := fmt.Sprintf("+ %d: - hash: %v ", i, hex.EncodeToString(bn.ChildrenHashes[i]))
 		_, _ = fmt.Fprint(writer, str2)
 		childIndex := index + len(str) - 1 + len(str2)
 		child.print(writer, childIndex, trieCtx)

@@ -334,7 +334,6 @@ func TestExtensionNode_insertInStoredEnDifferentKey(t *testing.T) {
 	en.ChildHash = childHash
 
 	_ = saveNodeToStorage(en, trieCtx)
-	expectedHashes := [][]byte{childHash}
 
 	goRoutinesManager := getTestGoroutinesManager()
 	data := []core.TrieData{getTrieDataWithDefaultVersion(string(nodeKey), "dogs")}
@@ -343,7 +342,7 @@ func TestExtensionNode_insertInStoredEnDifferentKey(t *testing.T) {
 	newNode := en.insert(keyBuilder.NewKeyBuilder(), data, goRoutinesManager, modifiedHashes, trieCtx)
 	assert.NotNil(t, newNode)
 	assert.Nil(t, goRoutinesManager.GetError())
-	assert.True(t, slicesContainSameElements(expectedHashes, modifiedHashes.Get()))
+	assert.Equal(t, 0, len(modifiedHashes.Get()))
 }
 
 func TestExtensionNode_insertInDirtyEnSameKey(t *testing.T) {
@@ -1013,7 +1012,7 @@ func TestExtensionNode_insertInNewBn(t *testing.T) {
 		modifiedHashes := common.NewModifiedHashesSlice(initialModifiedHashesCapacity)
 		newNode := en.insert(keyBuilder.NewKeyBuilder(), data, goRoutinesManager, modifiedHashes, trieCtx)
 		assert.Nil(t, goRoutinesManager.GetError())
-		expectedNumTrieNodesChanged := 1
+		expectedNumTrieNodesChanged := 0
 		assert.Equal(t, expectedNumTrieNodesChanged, len(modifiedHashes.Get()))
 		en, ok := newNode.(*extensionNode)
 		assert.True(t, ok)
@@ -1049,7 +1048,7 @@ func TestExtensionNode_insertInNewBn(t *testing.T) {
 		modifiedHashes := common.NewModifiedHashesSlice(initialModifiedHashesCapacity)
 		newNode := en.insert(keyBuilder.NewKeyBuilder(), data, goRoutinesManager, modifiedHashes, trieCtx)
 		assert.Nil(t, goRoutinesManager.GetError())
-		expectedNumTrieNodesChanged := 1
+		expectedNumTrieNodesChanged := 0
 		assert.Equal(t, expectedNumTrieNodesChanged, len(modifiedHashes.Get()))
 		bn, ok := newNode.(*branchNode)
 		assert.True(t, ok)
@@ -1079,7 +1078,7 @@ func TestExtensionNode_insertInNewBn(t *testing.T) {
 		modifiedHashes := common.NewModifiedHashesSlice(initialModifiedHashesCapacity)
 		newNode := originalEn.insert(keyBuilder.NewKeyBuilder(), data, goRoutinesManager, modifiedHashes, trieCtx)
 		assert.Nil(t, goRoutinesManager.GetError())
-		expectedNumTrieNodesChanged := 1
+		expectedNumTrieNodesChanged := 0
 		assert.Equal(t, expectedNumTrieNodesChanged, len(modifiedHashes.Get()))
 		en, ok := newNode.(*extensionNode)
 		assert.True(t, ok)
@@ -1091,6 +1090,42 @@ func TestExtensionNode_insertInNewBn(t *testing.T) {
 
 		enHash, _ := encodeNodeAndGetHash(en, trieCtx)
 		assert.False(t, bn.children[2].(*branchNode).dirty)
+		assert.Equal(t, originalEn.child, bn.children[2])
+		assert.NotEqual(t, nodeHash, enHash)
+	})
+	t.Run("branch and change an existing value", func(t *testing.T) {
+		t.Parallel()
+
+		originalEn, nodeHash := getEn()
+		manager := getTestGoroutinesManager()
+		trieCtx := getDefaultTrieContext()
+		originalEn.commitDirty(0, keyBuilder.NewKeyBuilder(), 5, manager, hashesCollector.NewDisabledHashesCollector(), trieCtx)
+		assert.Nil(t, manager.GetError())
+
+		data := []core.TrieData{
+			getTrieDataWithDefaultVersion(string([]byte{1, 3, 6, 7, 16}), "dog"),    // new value
+			getTrieDataWithDefaultVersion(string([]byte{1, 2, 4, 3, 4, 5}), "doge"), // this is already in the trie, change val
+		}
+
+		th, _ := throttler.NewNumGoRoutinesThrottler(5)
+		goRoutinesManager, err := NewGoroutinesManager(th, errChan.NewErrChanWrapper(), make(chan struct{}), "")
+		assert.Nil(t, err)
+
+		modifiedHashes := common.NewModifiedHashesSlice(initialModifiedHashesCapacity)
+		newNode := originalEn.insert(keyBuilder.NewKeyBuilder(), data, goRoutinesManager, modifiedHashes, trieCtx)
+		assert.Nil(t, goRoutinesManager.GetError())
+		expectedNumTrieNodesChanged := 2
+		assert.Equal(t, expectedNumTrieNodesChanged, len(modifiedHashes.Get()))
+		en, ok := newNode.(*extensionNode)
+		assert.True(t, ok)
+		assert.True(t, en.dirty)
+
+		bn, ok := en.child.(*branchNode)
+		assert.True(t, ok)
+		assert.True(t, bn.dirty)
+
+		enHash, _ := encodeNodeAndGetHash(en, trieCtx)
+		assert.True(t, bn.children[2].(*branchNode).dirty)
 		assert.Equal(t, originalEn.child, bn.children[2])
 		assert.NotEqual(t, nodeHash, enHash)
 	})
