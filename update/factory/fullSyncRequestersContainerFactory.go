@@ -171,14 +171,15 @@ func (rcf *requestersContainerFactory) createTrieNodesRequester(baseTopic string
 
 	arg := topicsender.ArgTopicRequestSender{
 		ArgBaseTopicSender: topicsender.ArgBaseTopicSender{
-			MainMessenger:                   rcf.mainMessenger,
-			FullArchiveMessenger:            rcf.fullArchiveMessenger,
-			TransactionsMessenger:           rcf.transactionsMessenger,
-			TopicName:                       baseTopic,
-			OutputAntiflooder:               rcf.outputAntifloodHandler,
-			MainPreferredPeersHolder:        disabled.NewPreferredPeersHolder(),
-			FullArchivePreferredPeersHolder: disabled.NewPreferredPeersHolder(),
-			TargetShardId:                   defaultTargetShardID,
+			MainMessenger:                           rcf.mainMessenger,
+			FullArchiveMessenger:                    rcf.fullArchiveMessenger,
+			TransactionsMessenger:                   rcf.transactionsMessenger,
+			TopicName:                               baseTopic,
+			OutputAntiflooder:                       rcf.outputAntifloodHandler,
+			MainPreferredPeersHolder:                disabled.NewPreferredPeersHolder(),
+			FullArchivePreferredPeersHolder:         disabled.NewPreferredPeersHolder(),
+			TransactionsPreferredPeersHolderHandler: disabled.NewPreferredPeersHolder(),
+			TargetShardId:                           defaultTargetShardID,
 		},
 		Marshaller:                  rcf.marshaller,
 		Randomizer:                  rcf.intRandomizer,

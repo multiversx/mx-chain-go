@@ -12,18 +12,19 @@ import (
 
 // FactoryArgs will hold the arguments for RequestersContainerFactory for both shard and meta
 type FactoryArgs struct {
-	RequesterConfig                 config.RequesterConfig
-	ShardCoordinator                sharding.Coordinator
-	MainMessenger                   p2p.Messenger
-	FullArchiveMessenger            p2p.Messenger
-	TransactionsMessenger           p2p.Messenger
-	Marshaller                      marshal.Marshalizer
-	Uint64ByteSliceConverter        typeConverters.Uint64ByteSliceConverter
-	OutputAntifloodHandler          dataRetriever.P2PAntifloodHandler
-	CurrentNetworkEpochProvider     dataRetriever.CurrentNetworkEpochProviderHandler
-	MainPreferredPeersHolder        p2p.PreferredPeersHolderHandler
-	FullArchivePreferredPeersHolder p2p.PreferredPeersHolderHandler
-	PeersRatingHandler              dataRetriever.PeersRatingHandler
-	SizeCheckDelta                  uint32
-	EnableEpochsHandler             common.EnableEpochsHandler
+	RequesterConfig                  config.RequesterConfig
+	ShardCoordinator                 sharding.Coordinator
+	MainMessenger                    p2p.Messenger
+	FullArchiveMessenger             p2p.Messenger
+	TransactionsMessenger            p2p.Messenger
+	Marshaller                       marshal.Marshalizer
+	Uint64ByteSliceConverter         typeConverters.Uint64ByteSliceConverter
+	OutputAntifloodHandler           dataRetriever.P2PAntifloodHandler
+	CurrentNetworkEpochProvider      dataRetriever.CurrentNetworkEpochProviderHandler
+	MainPreferredPeersHolder         p2p.PreferredPeersHolderHandler
+	FullArchivePreferredPeersHolder  p2p.PreferredPeersHolderHandler
+	TransactionsPreferredPeersHolder p2p.PreferredPeersHolderHandler
+	PeersRatingHandler               dataRetriever.PeersRatingHandler
+	SizeCheckDelta                   uint32
+	EnableEpochsHandler              common.EnableEpochsHandler
 }

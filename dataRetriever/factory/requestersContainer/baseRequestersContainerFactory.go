@@ -23,25 +23,26 @@ const EmptyExcludePeersOnTopic = ""
 var log = logger.GetOrCreate("dataRetriever/factory/requesterscontainer")
 
 type baseRequestersContainerFactory struct {
-	container                       dataRetriever.RequestersContainer
-	shardCoordinator                sharding.Coordinator
-	mainMessenger                   p2p.Messenger
-	fullArchiveMessenger            p2p.Messenger
-	transactionsMessenger           p2p.Messenger
-	marshaller                      marshal.Marshalizer
-	uint64ByteSliceConverter        typeConverters.Uint64ByteSliceConverter
-	intRandomizer                   dataRetriever.IntRandomizer
-	outputAntifloodHandler          dataRetriever.P2PAntifloodHandler
-	intraShardTopic                 string
-	currentNetworkEpochProvider     dataRetriever.CurrentNetworkEpochProviderHandler
-	mainPreferredPeersHolder        dataRetriever.PreferredPeersHolderHandler
-	fullArchivePreferredPeersHolder dataRetriever.PreferredPeersHolderHandler
-	peersRatingHandler              dataRetriever.PeersRatingHandler
-	enableEpochsHandler             common.EnableEpochsHandler
-	numCrossShardPeers              int
-	numIntraShardPeers              int
-	numTotalPeers                   int
-	numFullHistoryPeers             int
+	container                        dataRetriever.RequestersContainer
+	shardCoordinator                 sharding.Coordinator
+	mainMessenger                    p2p.Messenger
+	fullArchiveMessenger             p2p.Messenger
+	transactionsMessenger            p2p.Messenger
+	marshaller                       marshal.Marshalizer
+	uint64ByteSliceConverter         typeConverters.Uint64ByteSliceConverter
+	intRandomizer                    dataRetriever.IntRandomizer
+	outputAntifloodHandler           dataRetriever.P2PAntifloodHandler
+	intraShardTopic                  string
+	currentNetworkEpochProvider      dataRetriever.CurrentNetworkEpochProviderHandler
+	mainPreferredPeersHolder         dataRetriever.PreferredPeersHolderHandler
+	fullArchivePreferredPeersHolder  dataRetriever.PreferredPeersHolderHandler
+	transactionsPreferredPeersHolder dataRetriever.PreferredPeersHolderHandler
+	peersRatingHandler               dataRetriever.PeersRatingHandler
+	enableEpochsHandler              common.EnableEpochsHandler
+	numCrossShardPeers               int
+	numIntraShardPeers               int
+	numTotalPeers                    int
+	numFullHistoryPeers              int
 }
 
 func (brcf *baseRequestersContainerFactory) checkParams() error {
@@ -74,6 +75,9 @@ func (brcf *baseRequestersContainerFactory) checkParams() error {
 	}
 	if check.IfNil(brcf.fullArchivePreferredPeersHolder) {
 		return fmt.Errorf("%w on full archive network", dataRetriever.ErrNilPreferredPeersHolder)
+	}
+	if check.IfNil(brcf.transactionsPreferredPeersHolder) {
+		return fmt.Errorf("%w on transactions network", dataRetriever.ErrNilPreferredPeersHolder)
 	}
 	if check.IfNil(brcf.peersRatingHandler) {
 		return dataRetriever.ErrNilPeersRatingHandler
@@ -281,14 +285,15 @@ func (brcf *baseRequestersContainerFactory) createOneRequestSenderWithSpecifiedN
 
 	arg := topicsender.ArgTopicRequestSender{
 		ArgBaseTopicSender: topicsender.ArgBaseTopicSender{
-			MainMessenger:                   brcf.mainMessenger,
-			FullArchiveMessenger:            brcf.fullArchiveMessenger,
-			TransactionsMessenger:           brcf.transactionsMessenger,
-			TopicName:                       topic,
-			OutputAntiflooder:               brcf.outputAntifloodHandler,
-			MainPreferredPeersHolder:        brcf.mainPreferredPeersHolder,
-			FullArchivePreferredPeersHolder: brcf.fullArchivePreferredPeersHolder,
-			TargetShardId:                   targetShardId,
+			MainMessenger:                           brcf.mainMessenger,
+			FullArchiveMessenger:                    brcf.fullArchiveMessenger,
+			TransactionsMessenger:                   brcf.transactionsMessenger,
+			TopicName:                               topic,
+			OutputAntiflooder:                       brcf.outputAntifloodHandler,
+			MainPreferredPeersHolder:                brcf.mainPreferredPeersHolder,
+			FullArchivePreferredPeersHolder:         brcf.fullArchivePreferredPeersHolder,
+			TransactionsPreferredPeersHolderHandler: brcf.transactionsPreferredPeersHolder,
+			TargetShardId:                           targetShardId,
 		},
 		Marshaller:                  brcf.marshaller,
 		Randomizer:                  brcf.intRandomizer,

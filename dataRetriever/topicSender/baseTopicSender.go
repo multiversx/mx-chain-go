@@ -52,12 +52,12 @@ func createBaseTopicSender(args ArgBaseTopicSender) *baseTopicSender {
 		mainMessenger:                           args.MainMessenger,
 		fullArchiveMessenger:                    args.FullArchiveMessenger,
 		transactionsMessenger:                   args.TransactionsMessenger,
-		transactionsPreferredPeersHolderHandler: args.TransactionsPreferredPeersHolderHandler,
 		topicName:                               args.TopicName,
 		outputAntiflooder:                       args.OutputAntiflooder,
 		debugHandler:                            handler.NewDisabledInterceptorDebugHandler(),
 		mainPreferredPeersHolderHandler:         args.MainPreferredPeersHolder,
 		fullArchivePreferredPeersHolderHandler:  args.FullArchivePreferredPeersHolder,
+		transactionsPreferredPeersHolderHandler: args.TransactionsPreferredPeersHolderHandler,
 		targetShardId:                           args.TargetShardId,
 	}
 }

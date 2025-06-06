@@ -12,19 +12,20 @@ import (
 )
 
 type networkComponentsHolder struct {
-	closeHandler                           *closeHandler
-	networkMessenger                       p2p.Messenger
-	inputAntiFloodHandler                  factory.P2PAntifloodHandler
-	outputAntiFloodHandler                 factory.P2PAntifloodHandler
-	pubKeyCacher                           process.TimeCacher
-	peerBlackListHandler                   process.PeerBlackListCacher
-	peerHonestyHandler                     factory.PeerHonestyHandler
-	preferredPeersHolderHandler            factory.PreferredPeersHolderHandler
-	peersRatingHandler                     p2p.PeersRatingHandler
-	peersRatingMonitor                     p2p.PeersRatingMonitor
-	fullArchiveNetworkMessenger            p2p.Messenger
-	transactionMessenger                   p2p.Messenger
-	fullArchivePreferredPeersHolderHandler factory.PreferredPeersHolderHandler
+	closeHandler                            *closeHandler
+	networkMessenger                        p2p.Messenger
+	inputAntiFloodHandler                   factory.P2PAntifloodHandler
+	outputAntiFloodHandler                  factory.P2PAntifloodHandler
+	pubKeyCacher                            process.TimeCacher
+	peerBlackListHandler                    process.PeerBlackListCacher
+	peerHonestyHandler                      factory.PeerHonestyHandler
+	preferredPeersHolderHandler             factory.PreferredPeersHolderHandler
+	peersRatingHandler                      p2p.PeersRatingHandler
+	peersRatingMonitor                      p2p.PeersRatingMonitor
+	fullArchiveNetworkMessenger             p2p.Messenger
+	transactionMessenger                    p2p.Messenger
+	fullArchivePreferredPeersHolderHandler  factory.PreferredPeersHolderHandler
+	transactionsPreferredPeersHolderHandler factory.PreferredPeersHolderHandler
 }
 
 // CreateNetworkComponents creates a new networkComponentsHolder instance
@@ -40,19 +41,20 @@ func CreateNetworkComponents(mainNetwork SyncedBroadcastNetworkHandler, transact
 	}
 
 	instance := &networkComponentsHolder{
-		closeHandler:                           NewCloseHandler(),
-		networkMessenger:                       messenger,
-		inputAntiFloodHandler:                  disabled.NewAntiFlooder(),
-		outputAntiFloodHandler:                 disabled.NewAntiFlooder(),
-		pubKeyCacher:                           &disabledAntiflood.TimeCache{},
-		peerBlackListHandler:                   &disabledAntiflood.PeerBlacklistCacher{},
-		peerHonestyHandler:                     disabled.NewPeerHonesty(),
-		preferredPeersHolderHandler:            disabledFactory.NewPreferredPeersHolder(),
-		peersRatingHandler:                     disabledBootstrap.NewDisabledPeersRatingHandler(),
-		peersRatingMonitor:                     disabled.NewPeersRatingMonitor(),
-		fullArchiveNetworkMessenger:            disabledP2P.NewNetworkMessenger(),
-		fullArchivePreferredPeersHolderHandler: disabledFactory.NewPreferredPeersHolder(),
-		transactionMessenger:                   transactionsMessenger,
+		closeHandler:                            NewCloseHandler(),
+		networkMessenger:                        messenger,
+		inputAntiFloodHandler:                   disabled.NewAntiFlooder(),
+		outputAntiFloodHandler:                  disabled.NewAntiFlooder(),
+		pubKeyCacher:                            &disabledAntiflood.TimeCache{},
+		peerBlackListHandler:                    &disabledAntiflood.PeerBlacklistCacher{},
+		peerHonestyHandler:                      disabled.NewPeerHonesty(),
+		preferredPeersHolderHandler:             disabledFactory.NewPreferredPeersHolder(),
+		peersRatingHandler:                      disabledBootstrap.NewDisabledPeersRatingHandler(),
+		peersRatingMonitor:                      disabled.NewPeersRatingMonitor(),
+		fullArchiveNetworkMessenger:             disabledP2P.NewNetworkMessenger(),
+		fullArchivePreferredPeersHolderHandler:  disabledFactory.NewPreferredPeersHolder(),
+		transactionsPreferredPeersHolderHandler: disabledFactory.NewPreferredPeersHolder(),
+		transactionMessenger:                    transactionsMessenger,
 	}
 
 	instance.collectClosableComponents()
@@ -113,6 +115,11 @@ func (holder *networkComponentsHolder) FullArchiveNetworkMessenger() p2p.Messeng
 // FullArchivePreferredPeersHolderHandler returns the full archive preferred peers holder
 func (holder *networkComponentsHolder) FullArchivePreferredPeersHolderHandler() factory.PreferredPeersHolderHandler {
 	return holder.fullArchivePreferredPeersHolderHandler
+}
+
+// TransactionsPreferredPeersHolderHandler returns the transactions preferred peers holder
+func (holder *networkComponentsHolder) TransactionsPreferredPeersHolderHandler() factory.PreferredPeersHolderHandler {
+	return holder.transactionsPreferredPeersHolderHandler
 }
 
 func (holder *networkComponentsHolder) collectClosableComponents() {

@@ -257,6 +257,7 @@ type NetworkComponentsHolder interface {
 	FullArchiveNetworkMessenger() p2p.Messenger
 	FullArchivePreferredPeersHolderHandler() PreferredPeersHolderHandler
 	TransactionsNetworkMessenger() p2p.Messenger
+	TransactionsPreferredPeersHolderHandler() PreferredPeersHolderHandler
 	IsInterfaceNil() bool
 }
 

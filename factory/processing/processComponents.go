@@ -1438,6 +1438,7 @@ func (pcf *processComponentsFactory) newShardResolverContainerFactory(
 		IsFullHistoryNode:                   pcf.prefConfigs.Preferences.FullArchive,
 		MainPreferredPeersHolder:            pcf.network.PreferredPeersHolderHandler(),
 		FullArchivePreferredPeersHolder:     pcf.network.FullArchivePreferredPeersHolderHandler(),
+		TransactionsPreferredPeersHolder:    pcf.network.TransactionsPreferredPeersHolderHandler(),
 		PayloadValidator:                    payloadValidator,
 	}
 	resolversContainerFactory, err := resolverscontainer.NewShardResolversContainerFactory(resolversContainerFactoryArgs)
@@ -1476,6 +1477,7 @@ func (pcf *processComponentsFactory) newMetaResolverContainerFactory(
 		IsFullHistoryNode:                   pcf.prefConfigs.Preferences.FullArchive,
 		MainPreferredPeersHolder:            pcf.network.PreferredPeersHolderHandler(),
 		FullArchivePreferredPeersHolder:     pcf.network.FullArchivePreferredPeersHolderHandler(),
+		TransactionsPreferredPeersHolder:    pcf.network.TransactionsPreferredPeersHolderHandler(),
 		PayloadValidator:                    payloadValidator,
 	}
 
@@ -1493,20 +1495,21 @@ func (pcf *processComponentsFactory) newRequestersContainerFactory(
 
 	shardCoordinator := pcf.bootstrapComponents.ShardCoordinator()
 	requestersContainerFactoryArgs := requesterscontainer.FactoryArgs{
-		RequesterConfig:                 pcf.config.Requesters,
-		ShardCoordinator:                shardCoordinator,
-		MainMessenger:                   pcf.network.NetworkMessenger(),
-		FullArchiveMessenger:            pcf.network.FullArchiveNetworkMessenger(),
-		TransactionsMessenger:           pcf.network.TransactionsNetworkMessenger(),
-		Marshaller:                      pcf.coreData.InternalMarshalizer(),
-		Uint64ByteSliceConverter:        pcf.coreData.Uint64ByteSliceConverter(),
-		OutputAntifloodHandler:          pcf.network.OutputAntiFloodHandler(),
-		CurrentNetworkEpochProvider:     currentEpochProvider,
-		MainPreferredPeersHolder:        pcf.network.PreferredPeersHolderHandler(),
-		FullArchivePreferredPeersHolder: pcf.network.FullArchivePreferredPeersHolderHandler(),
-		PeersRatingHandler:              pcf.network.PeersRatingHandler(),
-		SizeCheckDelta:                  pcf.config.Marshalizer.SizeCheckDelta,
-		EnableEpochsHandler:             pcf.coreData.EnableEpochsHandler(),
+		RequesterConfig:                  pcf.config.Requesters,
+		ShardCoordinator:                 shardCoordinator,
+		MainMessenger:                    pcf.network.NetworkMessenger(),
+		FullArchiveMessenger:             pcf.network.FullArchiveNetworkMessenger(),
+		TransactionsMessenger:            pcf.network.TransactionsNetworkMessenger(),
+		Marshaller:                       pcf.coreData.InternalMarshalizer(),
+		Uint64ByteSliceConverter:         pcf.coreData.Uint64ByteSliceConverter(),
+		OutputAntifloodHandler:           pcf.network.OutputAntiFloodHandler(),
+		CurrentNetworkEpochProvider:      currentEpochProvider,
+		MainPreferredPeersHolder:         pcf.network.PreferredPeersHolderHandler(),
+		FullArchivePreferredPeersHolder:  pcf.network.FullArchivePreferredPeersHolderHandler(),
+		TransactionsPreferredPeersHolder: pcf.network.TransactionsPreferredPeersHolderHandler(),
+		PeersRatingHandler:               pcf.network.PeersRatingHandler(),
+		SizeCheckDelta:                   pcf.config.Marshalizer.SizeCheckDelta,
+		EnableEpochsHandler:              pcf.coreData.EnableEpochsHandler(),
 	}
 
 	if shardCoordinator.SelfId() < shardCoordinator.NumberOfShards() {

@@ -18,6 +18,7 @@ type NetworkComponentsMock struct {
 	FullArchiveNetworkMessengerField  p2p.Messenger
 	TransactionsNetworkMessengerField p2p.Messenger
 	FullArchivePreferredPeersHolder   factory.PreferredPeersHolderHandler
+	TransactionsPreferredPeersHolder  factory.PreferredPeersHolderHandler
 }
 
 // PubKeyCacher -
@@ -88,6 +89,11 @@ func (ncm *NetworkComponentsMock) FullArchiveNetworkMessenger() p2p.Messenger {
 // FullArchivePreferredPeersHolderHandler -
 func (ncm *NetworkComponentsMock) FullArchivePreferredPeersHolderHandler() factory.PreferredPeersHolderHandler {
 	return ncm.FullArchivePreferredPeersHolder
+}
+
+// TransactionsPreferredPeersHolderHandler -
+func (ncm *NetworkComponentsMock) TransactionsPreferredPeersHolderHandler() factory.PreferredPeersHolderHandler {
+	return ncm.TransactionsPreferredPeersHolder
 }
 
 // TransactionsNetworkMessenger -

@@ -1295,6 +1295,7 @@ func (e *epochStartBootstrap) createResolversContainer() error {
 		OutputAntifloodHandler:              disabled.NewAntiFloodHandler(),
 		MainPreferredPeersHolder:            disabled.NewPreferredPeersHolder(),
 		FullArchivePreferredPeersHolder:     disabled.NewPreferredPeersHolder(),
+		TransactionsPreferredPeersHolder:    disabled.NewPreferredPeersHolder(),
 		PayloadValidator:                    payloadValidator,
 	}
 	resolverFactory, err := resolverscontainer.NewMetaResolversContainerFactory(resolversContainerArgs)
@@ -1312,20 +1313,21 @@ func (e *epochStartBootstrap) createResolversContainer() error {
 
 func (e *epochStartBootstrap) createRequestHandler() error {
 	requestersContainerArgs := requesterscontainer.FactoryArgs{
-		RequesterConfig:                 e.generalConfig.Requesters,
-		ShardCoordinator:                e.shardCoordinator,
-		MainMessenger:                   e.mainMessenger,
-		FullArchiveMessenger:            e.fullArchiveMessenger,
-		TransactionsMessenger:           e.transactionsMessenger,
-		Marshaller:                      e.coreComponentsHolder.InternalMarshalizer(),
-		Uint64ByteSliceConverter:        uint64ByteSlice.NewBigEndianConverter(),
-		OutputAntifloodHandler:          disabled.NewAntiFloodHandler(),
-		CurrentNetworkEpochProvider:     disabled.NewCurrentNetworkEpochProviderHandler(),
-		MainPreferredPeersHolder:        disabled.NewPreferredPeersHolder(),
-		FullArchivePreferredPeersHolder: disabled.NewPreferredPeersHolder(),
-		PeersRatingHandler:              disabled.NewDisabledPeersRatingHandler(),
-		SizeCheckDelta:                  0,
-		EnableEpochsHandler:             e.enableEpochsHandler,
+		RequesterConfig:                  e.generalConfig.Requesters,
+		ShardCoordinator:                 e.shardCoordinator,
+		MainMessenger:                    e.mainMessenger,
+		FullArchiveMessenger:             e.fullArchiveMessenger,
+		TransactionsMessenger:            e.transactionsMessenger,
+		Marshaller:                       e.coreComponentsHolder.InternalMarshalizer(),
+		Uint64ByteSliceConverter:         uint64ByteSlice.NewBigEndianConverter(),
+		OutputAntifloodHandler:           disabled.NewAntiFloodHandler(),
+		CurrentNetworkEpochProvider:      disabled.NewCurrentNetworkEpochProviderHandler(),
+		MainPreferredPeersHolder:         disabled.NewPreferredPeersHolder(),
+		FullArchivePreferredPeersHolder:  disabled.NewPreferredPeersHolder(),
+		TransactionsPreferredPeersHolder: disabled.NewPreferredPeersHolder(),
+		PeersRatingHandler:               disabled.NewDisabledPeersRatingHandler(),
+		SizeCheckDelta:                   0,
+		EnableEpochsHandler:              e.enableEpochsHandler,
 	}
 	requestersFactory, err := requesterscontainer.NewMetaRequestersContainerFactory(requestersContainerArgs)
 	if err != nil {

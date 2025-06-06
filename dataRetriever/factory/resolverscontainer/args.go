@@ -27,6 +27,7 @@ type FactoryArgs struct {
 	OutputAntifloodHandler              dataRetriever.P2PAntifloodHandler
 	MainPreferredPeersHolder            p2p.PreferredPeersHolderHandler
 	FullArchivePreferredPeersHolder     p2p.PreferredPeersHolderHandler
+	TransactionsPreferredPeersHolder    p2p.PreferredPeersHolderHandler
 	SizeCheckDelta                      uint32
 	IsFullHistoryNode                   bool
 	PayloadValidator                    dataRetriever.PeerAuthenticationPayloadValidator

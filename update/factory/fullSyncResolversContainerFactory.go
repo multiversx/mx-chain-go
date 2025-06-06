@@ -158,14 +158,15 @@ func (rcf *resolversContainerFactory) createTrieNodesResolver(baseTopic string, 
 
 	arg := topicsender.ArgTopicResolverSender{
 		ArgBaseTopicSender: topicsender.ArgBaseTopicSender{
-			MainMessenger:                   rcf.mainMessenger,
-			FullArchiveMessenger:            rcf.fullArchiveMessenger,
-			TransactionsMessenger:           rcf.transactionsMessenger,
-			TopicName:                       baseTopic,
-			OutputAntiflooder:               rcf.outputAntifloodHandler,
-			MainPreferredPeersHolder:        disabled.NewPreferredPeersHolder(),
-			FullArchivePreferredPeersHolder: disabled.NewPreferredPeersHolder(),
-			TargetShardId:                   defaultTargetShardID,
+			MainMessenger:                           rcf.mainMessenger,
+			FullArchiveMessenger:                    rcf.fullArchiveMessenger,
+			TransactionsMessenger:                   rcf.transactionsMessenger,
+			TopicName:                               baseTopic,
+			OutputAntiflooder:                       rcf.outputAntifloodHandler,
+			MainPreferredPeersHolder:                disabled.NewPreferredPeersHolder(),
+			FullArchivePreferredPeersHolder:         disabled.NewPreferredPeersHolder(),
+			TransactionsPreferredPeersHolderHandler: disabled.NewPreferredPeersHolder(),
+			TargetShardId:                           defaultTargetShardID,
 		},
 	}
 	resolverSender, err := topicsender.NewTopicResolverSender(arg)

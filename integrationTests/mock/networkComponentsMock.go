@@ -20,6 +20,7 @@ type NetworkComponentsStub struct {
 	FullArchiveNetworkMessengerField  p2p.Messenger
 	TransactionsNetworkMessengerField p2p.Messenger
 	FullArchivePreferredPeersHolder   factory.PreferredPeersHolderHandler
+	TransactionsPreferredPeersHolder  factory.PreferredPeersHolderHandler
 }
 
 // PubKeyCacher -
@@ -93,6 +94,11 @@ func (ncs *NetworkComponentsStub) FullArchiveNetworkMessenger() p2p.Messenger {
 // FullArchivePreferredPeersHolderHandler -
 func (ncs *NetworkComponentsStub) FullArchivePreferredPeersHolderHandler() factory.PreferredPeersHolderHandler {
 	return ncs.FullArchivePreferredPeersHolder
+}
+
+// TransactionsPreferredPeersHolderHandler -
+func (ncs *NetworkComponentsStub) TransactionsPreferredPeersHolderHandler() factory.PreferredPeersHolderHandler {
+	return ncs.TransactionsPreferredPeersHolder
 }
 
 // TransactionsNetworkMessenger -

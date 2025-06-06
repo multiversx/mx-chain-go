@@ -23,26 +23,27 @@ const EmptyExcludePeersOnTopic = ""
 var log = logger.GetOrCreate("dataRetriever/factory/resolverscontainer")
 
 type baseResolversContainerFactory struct {
-	container                       dataRetriever.ResolversContainer
-	shardCoordinator                sharding.Coordinator
-	mainMessenger                   p2p.Messenger
-	fullArchiveMessenger            p2p.Messenger
-	transactionsMessenger           p2p.Messenger
-	store                           dataRetriever.StorageService
-	marshalizer                     marshal.Marshalizer
-	dataPools                       dataRetriever.PoolsHolder
-	uint64ByteSliceConverter        typeConverters.Uint64ByteSliceConverter
-	dataPacker                      dataRetriever.DataPacker
-	triesContainer                  common.TriesHolder
-	inputAntifloodHandler           dataRetriever.P2PAntifloodHandler
-	outputAntifloodHandler          dataRetriever.P2PAntifloodHandler
-	throttler                       dataRetriever.ResolverThrottler
-	trieNodesThrottler              dataRetriever.ResolverThrottler
-	intraShardTopic                 string
-	isFullHistoryNode               bool
-	mainPreferredPeersHolder        dataRetriever.PreferredPeersHolderHandler
-	fullArchivePreferredPeersHolder dataRetriever.PreferredPeersHolderHandler
-	payloadValidator                dataRetriever.PeerAuthenticationPayloadValidator
+	container                        dataRetriever.ResolversContainer
+	shardCoordinator                 sharding.Coordinator
+	mainMessenger                    p2p.Messenger
+	fullArchiveMessenger             p2p.Messenger
+	transactionsMessenger            p2p.Messenger
+	store                            dataRetriever.StorageService
+	marshalizer                      marshal.Marshalizer
+	dataPools                        dataRetriever.PoolsHolder
+	uint64ByteSliceConverter         typeConverters.Uint64ByteSliceConverter
+	dataPacker                       dataRetriever.DataPacker
+	triesContainer                   common.TriesHolder
+	inputAntifloodHandler            dataRetriever.P2PAntifloodHandler
+	outputAntifloodHandler           dataRetriever.P2PAntifloodHandler
+	throttler                        dataRetriever.ResolverThrottler
+	trieNodesThrottler               dataRetriever.ResolverThrottler
+	intraShardTopic                  string
+	isFullHistoryNode                bool
+	mainPreferredPeersHolder         dataRetriever.PreferredPeersHolderHandler
+	fullArchivePreferredPeersHolder  dataRetriever.PreferredPeersHolderHandler
+	transactionsPreferredPeersHolder dataRetriever.PreferredPeersHolderHandler
+	payloadValidator                 dataRetriever.PeerAuthenticationPayloadValidator
 }
 
 func (brcf *baseResolversContainerFactory) checkParams() error {
@@ -93,6 +94,9 @@ func (brcf *baseResolversContainerFactory) checkParams() error {
 	}
 	if check.IfNil(brcf.fullArchivePreferredPeersHolder) {
 		return fmt.Errorf("%w for full archive network", dataRetriever.ErrNilPreferredPeersHolder)
+	}
+	if check.IfNil(brcf.transactionsPreferredPeersHolder) {
+		return fmt.Errorf("%w for transactions network", dataRetriever.ErrNilPreferredPeersHolder)
 	}
 
 	return nil
@@ -315,14 +319,15 @@ func (brcf *baseResolversContainerFactory) createOneResolverSenderWithSpecifiedN
 
 	arg := topicsender.ArgTopicResolverSender{
 		ArgBaseTopicSender: topicsender.ArgBaseTopicSender{
-			MainMessenger:                   brcf.mainMessenger,
-			FullArchiveMessenger:            brcf.fullArchiveMessenger,
-			TransactionsMessenger:           brcf.transactionsMessenger,
-			TopicName:                       topic,
-			OutputAntiflooder:               brcf.outputAntifloodHandler,
-			MainPreferredPeersHolder:        brcf.mainPreferredPeersHolder,
-			FullArchivePreferredPeersHolder: brcf.fullArchivePreferredPeersHolder,
-			TargetShardId:                   targetShardId,
+			MainMessenger:                           brcf.mainMessenger,
+			FullArchiveMessenger:                    brcf.fullArchiveMessenger,
+			TransactionsMessenger:                   brcf.transactionsMessenger,
+			TopicName:                               topic,
+			OutputAntiflooder:                       brcf.outputAntifloodHandler,
+			MainPreferredPeersHolder:                brcf.mainPreferredPeersHolder,
+			FullArchivePreferredPeersHolder:         brcf.fullArchivePreferredPeersHolder,
+			TransactionsPreferredPeersHolderHandler: brcf.transactionsPreferredPeersHolder,
+			TargetShardId:                           targetShardId,
 		},
 	}
 	// TODO instantiate topic sender resolver with the shard IDs for which this resolver is supposed to serve the data
