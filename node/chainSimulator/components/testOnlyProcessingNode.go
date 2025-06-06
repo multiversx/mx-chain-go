@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"github.com/multiversx/mx-chain-go/common/holders"
 	"math/big"
 
 	"github.com/multiversx/mx-chain-go/api/shared"
@@ -30,6 +31,12 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/endProcess"
 )
 
+// TriePathAndRootHash holds the path to the trie storage and the root hash of the trie from storage
+type TriePathAndRootHash struct {
+	TriePath string
+	RootHash string
+}
+
 // ArgsTestOnlyProcessingNode represents the DTO struct for the NewTestOnlyProcessingNode constructor function
 type ArgsTestOnlyProcessingNode struct {
 	Configs      config.Configs
@@ -50,6 +57,7 @@ type ArgsTestOnlyProcessingNode struct {
 	MetaChainConsensusGroupSize uint32
 	RoundDurationInMillis       uint64
 	VmQueryDelayAfterStartInMs  uint64
+	TrieStoragePath             TriePathAndRootHash
 }
 
 type testOnlyProcessingNode struct {
@@ -80,13 +88,17 @@ type testOnlyProcessingNode struct {
 
 // NewTestOnlyProcessingNode creates a new instance of a node that is able to only process transactions
 func NewTestOnlyProcessingNode(args ArgsTestOnlyProcessingNode) (*testOnlyProcessingNode, error) {
+	storageService, err := CreateStorageService(args.NumShards, args.TrieStoragePath, args.Configs.GeneralConfig)
+	if err != nil {
+		return nil, err
+	}
+
 	instance := &testOnlyProcessingNode{
 		ArgumentsParser: smartContract.NewArgumentParser(),
-		StoreService:    CreateStore(args.NumShards),
+		StoreService:    storageService,
 		closeHandler:    NewCloseHandler(),
 	}
 
-	var err error
 	instance.TransactionFeeHandler = postprocess.NewFeeAccumulator()
 
 	instance.CoreComponentsHolder, err = CreateCoreComponents(ArgsCoreComponentsHolder{
@@ -175,6 +187,18 @@ func NewTestOnlyProcessingNode(args ArgsTestOnlyProcessingNode) (*testOnlyProces
 	})
 	if err != nil {
 		return nil, err
+	}
+
+	if args.TrieStoragePath.RootHash != "" {
+		rootHashBytes, errD := hex.DecodeString(args.TrieStoragePath.RootHash)
+		if errD != nil {
+			return nil, errD
+		}
+
+		err = instance.StateComponentsHolder.AccountsAdapter().RecreateTrie(holders.NewDefaultRootHashesHolder(rootHashBytes))
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	instance.DataPool, err = dataRetrieverFactory.NewDataPoolFromConfig(dataRetrieverFactory.ArgsDataPool{
