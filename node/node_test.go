@@ -4243,7 +4243,7 @@ func TestNode_GetProofShouldWork(t *testing.T) {
 	stateComponents.AccountsAPI = &stateMock.AccountsStub{
 		GetTrieCalled: func(_ []byte) (common.Trie, error) {
 			return &trieMock.TrieStub{
-				GetProofCalled: func(key []byte) ([][]byte, []byte, error) {
+				GetProofCalled: func(key []byte, _ []byte) ([][]byte, []byte, error) {
 					assert.Equal(t, trieKey, hex.EncodeToString(key))
 					return proof, value, nil
 				},
@@ -4292,7 +4292,7 @@ func TestNode_getProofErrWhenComputingProof(t *testing.T) {
 	stateComponents.AccountsAPI = &stateMock.AccountsStub{
 		GetTrieCalled: func(_ []byte) (common.Trie, error) {
 			return &trieMock.TrieStub{
-				GetProofCalled: func(_ []byte) ([][]byte, []byte, error) {
+				GetProofCalled: func(_ []byte, _ []byte) ([][]byte, []byte, error) {
 					return nil, nil, expectedErr
 				},
 			}, nil
@@ -4368,7 +4368,7 @@ func TestNode_GetProofDataTrieShouldWork(t *testing.T) {
 	stateComponents.AccountsAPI = &stateMock.AccountsStub{
 		GetTrieCalled: func(_ []byte) (common.Trie, error) {
 			return &trieMock.TrieStub{
-				GetProofCalled: func(key []byte) ([][]byte, []byte, error) {
+				GetProofCalled: func(key []byte, _ []byte) ([][]byte, []byte, error) {
 					if hex.EncodeToString(key) == mainTrieKey {
 						return mainTrieProof, mainTrieValue, nil
 					}

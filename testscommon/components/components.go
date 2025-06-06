@@ -6,6 +6,7 @@ import (
 	"math/big"
 	"testing"
 
+	"github.com/multiversx/mx-chain-core-go/core/throttler"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/data/endProcess"
 	"github.com/multiversx/mx-chain-core-go/data/outport"
@@ -362,8 +363,18 @@ func GetStateFactoryArgs(coreComponents factory.CoreComponentsHolder, statusCore
 	trieStorageManagers[dataRetriever.PeerAccountsUnit.String()] = storageManagerPeer
 
 	triesHolder := state.NewDataTriesHolder()
-	trieUsers, _ := trie.NewTrie(storageManagerUser, coreComponents.InternalMarshalizer(), coreComponents.Hasher(), coreComponents.EnableEpochsHandler(), 5)
-	triePeers, _ := trie.NewTrie(storageManagerPeer, coreComponents.InternalMarshalizer(), coreComponents.Hasher(), coreComponents.EnableEpochsHandler(), 5)
+	th, _ := throttler.NewNumGoRoutinesThrottler(10)
+	trieArgs := trie.TrieArgs{
+		TrieStorage:          storageManagerUser,
+		Marshalizer:          coreComponents.InternalMarshalizer(),
+		Hasher:               coreComponents.Hasher(),
+		EnableEpochsHandler:  coreComponents.EnableEpochsHandler(),
+		MaxTrieLevelInMemory: 5,
+		Throttler:            th,
+	}
+	trieUsers, _ := trie.NewTrie(trieArgs)
+	trieArgs.TrieStorage = storageManagerPeer
+	triePeers, _ := trie.NewTrie(trieArgs)
 	triesHolder.Put([]byte(dataRetriever.UserAccountsUnit.String()), trieUsers)
 	triesHolder.Put([]byte(dataRetriever.PeerAccountsUnit.String()), triePeers)
 

@@ -18,6 +18,8 @@ import (
 	"github.com/multiversx/mx-chain-go/trie"
 )
 
+const syncTrieIdentifier = "base sync main trie"
+
 type baseAccountsSyncer struct {
 	hasher                            hashing.Hasher
 	marshalizer                       marshal.Marshalizer
@@ -217,7 +219,16 @@ func (b *baseAccountsSyncer) GetSyncedTries() map[string]common.Trie {
 	b.mutex.Lock()
 	defer b.mutex.Unlock()
 
-	dataTrie, err := trie.NewTrie(b.trieStorageManager, b.marshalizer, b.hasher, b.enableEpochsHandler, b.maxTrieLevelInMemory)
+	trieArgs := trie.TrieArgs{
+		TrieStorage:          b.trieStorageManager,
+		Marshalizer:          b.marshalizer,
+		Hasher:               b.hasher,
+		EnableEpochsHandler:  b.enableEpochsHandler,
+		MaxTrieLevelInMemory: b.maxTrieLevelInMemory,
+		Throttler:            trie.NewDisabledTrieGoRoutinesThrottler(),
+		Identifier:           syncTrieIdentifier,
+	}
+	dataTrie, err := trie.NewTrie(trieArgs)
 	if err != nil {
 		log.Warn("error creating a new trie in baseAccountsSyncer.GetSyncedTries", "error", err)
 		return make(map[string]common.Trie)
@@ -227,7 +238,7 @@ func (b *baseAccountsSyncer) GetSyncedTries() map[string]common.Trie {
 	clonedMap := make(map[string]common.Trie, len(b.dataTries))
 	for key := range b.dataTries {
 		rootHashHolder := holders.NewDefaultRootHashesHolder([]byte(key))
-		recreatedTrie, err = dataTrie.Recreate(rootHashHolder)
+		recreatedTrie, err = dataTrie.Recreate(rootHashHolder, "base sync data trie")
 		if err != nil {
 			log.Warn("error recreating trie in baseAccountsSyncer.GetSyncedTries",
 				"roothash", []byte(key), "error", err)
