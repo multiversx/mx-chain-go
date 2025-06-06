@@ -134,6 +134,7 @@ func (sender *multikeyHeartbeatSender) execute() error {
 	log.Debug("sending heartbeat message", "key", pkBytes)
 	sender.mainMessenger.Broadcast(sender.topic, buff)
 	sender.fullArchiveMessenger.Broadcast(sender.topic, buff)
+	sender.transactionsMessenger.Broadcast(sender.topic, buff)
 
 	return sender.sendMultiKeysInfo()
 }

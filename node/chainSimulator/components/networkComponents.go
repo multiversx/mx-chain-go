@@ -12,40 +12,49 @@ import (
 )
 
 type networkComponentsHolder struct {
-	closeHandler                           *closeHandler
-	networkMessenger                       p2p.Messenger
-	inputAntiFloodHandler                  factory.P2PAntifloodHandler
-	outputAntiFloodHandler                 factory.P2PAntifloodHandler
-	pubKeyCacher                           process.TimeCacher
-	peerBlackListHandler                   process.PeerBlackListCacher
-	peerHonestyHandler                     factory.PeerHonestyHandler
-	preferredPeersHolderHandler            factory.PreferredPeersHolderHandler
-	peersRatingHandler                     p2p.PeersRatingHandler
-	peersRatingMonitor                     p2p.PeersRatingMonitor
-	fullArchiveNetworkMessenger            p2p.Messenger
-	fullArchivePreferredPeersHolderHandler factory.PreferredPeersHolderHandler
+	closeHandler                            *closeHandler
+	networkMessenger                        p2p.Messenger
+	inputAntiFloodHandler                   factory.P2PAntifloodHandler
+	outputAntiFloodHandler                  factory.P2PAntifloodHandler
+	pubKeyCacher                            process.TimeCacher
+	peerBlackListHandler                    process.PeerBlackListCacher
+	peerHonestyHandler                      factory.PeerHonestyHandler
+	preferredPeersHolderHandler             factory.PreferredPeersHolderHandler
+	peersRatingHandler                      p2p.PeersRatingHandler
+	peersRatingMonitor                      p2p.PeersRatingMonitor
+	fullArchiveNetworkMessenger             p2p.Messenger
+	transactionMessenger                    p2p.Messenger
+	fullArchivePreferredPeersHolderHandler  factory.PreferredPeersHolderHandler
+	transactionsPreferredPeersHolderHandler factory.PreferredPeersHolderHandler
 }
 
 // CreateNetworkComponents creates a new networkComponentsHolder instance
-func CreateNetworkComponents(network SyncedBroadcastNetworkHandler) (*networkComponentsHolder, error) {
-	messenger, err := NewSyncedMessenger(network)
+func CreateNetworkComponents(mainNetwork SyncedBroadcastNetworkHandler, transactionsNetwork SyncedBroadcastNetworkHandler) (*networkComponentsHolder, error) {
+	messenger, err := NewSyncedMessenger(mainNetwork)
+	if err != nil {
+		return nil, err
+	}
+
+	transactionsMessenger, err := NewSyncedMessenger(transactionsNetwork)
 	if err != nil {
 		return nil, err
 	}
 
 	instance := &networkComponentsHolder{
-		closeHandler:                           NewCloseHandler(),
-		networkMessenger:                       messenger,
-		inputAntiFloodHandler:                  disabled.NewAntiFlooder(),
-		outputAntiFloodHandler:                 disabled.NewAntiFlooder(),
-		pubKeyCacher:                           &disabledAntiflood.TimeCache{},
-		peerBlackListHandler:                   &disabledAntiflood.PeerBlacklistCacher{},
-		peerHonestyHandler:                     disabled.NewPeerHonesty(),
-		preferredPeersHolderHandler:            disabledFactory.NewPreferredPeersHolder(),
-		peersRatingHandler:                     disabledBootstrap.NewDisabledPeersRatingHandler(),
-		peersRatingMonitor:                     disabled.NewPeersRatingMonitor(),
-		fullArchiveNetworkMessenger:            disabledP2P.NewNetworkMessenger(),
-		fullArchivePreferredPeersHolderHandler: disabledFactory.NewPreferredPeersHolder(),
+		closeHandler:                            NewCloseHandler(),
+		networkMessenger:                        messenger,
+		inputAntiFloodHandler:                   disabled.NewAntiFlooder(),
+		outputAntiFloodHandler:                  disabled.NewAntiFlooder(),
+		pubKeyCacher:                            &disabledAntiflood.TimeCache{},
+		peerBlackListHandler:                    &disabledAntiflood.PeerBlacklistCacher{},
+		peerHonestyHandler:                      disabled.NewPeerHonesty(),
+		preferredPeersHolderHandler:             disabledFactory.NewPreferredPeersHolder(),
+		peersRatingHandler:                      disabledBootstrap.NewDisabledPeersRatingHandler(),
+		peersRatingMonitor:                      disabled.NewPeersRatingMonitor(),
+		fullArchiveNetworkMessenger:             disabledP2P.NewNetworkMessenger(),
+		fullArchivePreferredPeersHolderHandler:  disabledFactory.NewPreferredPeersHolder(),
+		transactionsPreferredPeersHolderHandler: disabledFactory.NewPreferredPeersHolder(),
+		transactionMessenger:                    transactionsMessenger,
 	}
 
 	instance.collectClosableComponents()
@@ -108,12 +117,23 @@ func (holder *networkComponentsHolder) FullArchivePreferredPeersHolderHandler() 
 	return holder.fullArchivePreferredPeersHolderHandler
 }
 
+// TransactionsPreferredPeersHolderHandler returns the transactions preferred peers holder
+func (holder *networkComponentsHolder) TransactionsPreferredPeersHolderHandler() factory.PreferredPeersHolderHandler {
+	return holder.transactionsPreferredPeersHolderHandler
+}
+
 func (holder *networkComponentsHolder) collectClosableComponents() {
 	holder.closeHandler.AddComponent(holder.networkMessenger)
 	holder.closeHandler.AddComponent(holder.inputAntiFloodHandler)
 	holder.closeHandler.AddComponent(holder.outputAntiFloodHandler)
 	holder.closeHandler.AddComponent(holder.peerHonestyHandler)
 	holder.closeHandler.AddComponent(holder.fullArchiveNetworkMessenger)
+	holder.closeHandler.AddComponent(holder.transactionMessenger)
+}
+
+// TransactionsNetworkMessenger returns the transactions network messenger
+func (holder *networkComponentsHolder) TransactionsNetworkMessenger() p2p.Messenger {
+	return holder.transactionMessenger
 }
 
 // Close will call the Close methods on all inner components

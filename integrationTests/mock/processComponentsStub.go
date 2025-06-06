@@ -22,6 +22,7 @@ type ProcessComponentsStub struct {
 	ShardCoordinatorCalled               func() sharding.Coordinator
 	IntContainer                         process.InterceptorsContainer
 	FullArchiveIntContainer              process.InterceptorsContainer
+	TransactionsIntContainer             process.InterceptorsContainer
 	ResContainer                         dataRetriever.ResolversContainer
 	ReqFinder                            dataRetriever.RequestersFinder
 	RoundHandlerField                    consensus.RoundHandler
@@ -43,6 +44,7 @@ type ProcessComponentsStub struct {
 	HeaderConstructValidator             process.HeaderConstructionValidator
 	MainPeerMapper                       process.NetworkShardingCollector
 	FullArchivePeerMapper                process.NetworkShardingCollector
+	TransactionsPeerMapper               process.NetworkShardingCollector
 	TxCostSimulator                      factory.TransactionEvaluator
 	FallbackHdrValidator                 process.FallbackHeaderValidator
 	WhiteListHandlerInternal             process.WhiteListHandler
@@ -102,6 +104,11 @@ func (pcs *ProcessComponentsStub) InterceptorsContainer() process.InterceptorsCo
 // FullArchiveInterceptorsContainer -
 func (pcs *ProcessComponentsStub) FullArchiveInterceptorsContainer() process.InterceptorsContainer {
 	return pcs.FullArchiveIntContainer
+}
+
+// TransactionsInterceptorsContainer -
+func (pcs *ProcessComponentsStub) TransactionsInterceptorsContainer() process.InterceptorsContainer {
+	return pcs.TransactionsIntContainer
 }
 
 // ResolversContainer -
@@ -205,6 +212,11 @@ func (pcs *ProcessComponentsStub) PeerShardMapper() process.NetworkShardingColle
 // FullArchivePeerShardMapper -
 func (pcs *ProcessComponentsStub) FullArchivePeerShardMapper() process.NetworkShardingCollector {
 	return pcs.FullArchivePeerMapper
+}
+
+// TransactionsPeerShardMapper -
+func (pcs *ProcessComponentsStub) TransactionsPeerShardMapper() process.NetworkShardingCollector {
+	return pcs.TransactionsPeerMapper
 }
 
 // FallbackHeaderValidator -

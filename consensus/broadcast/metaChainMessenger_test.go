@@ -2,6 +2,7 @@ package broadcast_test
 
 import (
 	"bytes"
+	"errors"
 	"sync"
 	"testing"
 	"time"
@@ -30,6 +31,7 @@ var nodePkBytes = []byte("node public key bytes")
 func createDefaultMetaChainArgs() broadcast.MetaChainMessengerArgs {
 	marshalizerMock := &mock.MarshalizerMock{}
 	messengerMock := &p2pmocks.MessengerStub{}
+	transactionsMessengerMock := &p2pmocks.MessengerStub{}
 	shardCoordinatorMock := &mock.ShardCoordinatorMock{}
 	singleSignerMock := &mock.SingleSignerMock{}
 	hasher := &hashingMocks.HasherMock{}
@@ -44,6 +46,7 @@ func createDefaultMetaChainArgs() broadcast.MetaChainMessengerArgs {
 			Marshalizer:                marshalizerMock,
 			Hasher:                     hasher,
 			Messenger:                  messengerMock,
+			TransactionsMessenger:      transactionsMessengerMock,
 			ShardCoordinator:           shardCoordinatorMock,
 			PeerSignatureHandler:       peerSigHandler,
 			HeadersSubscriber:          headersSubscriber,
@@ -72,7 +75,7 @@ func TestMetaChainMessenger_NewMetaChainMessengerNilMessengerShouldFail(t *testi
 	mcm, err := broadcast.NewMetaChainMessenger(args)
 
 	assert.Nil(t, mcm)
-	assert.Equal(t, spos.ErrNilMessenger, err)
+	assert.True(t, errors.Is(err, spos.ErrNilMessenger))
 }
 
 func TestMetaChainMessenger_NewMetaChainMessengerNilShardCoordinatorShouldFail(t *testing.T) {

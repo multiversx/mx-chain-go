@@ -213,6 +213,7 @@ func (bcf *bootstrapComponentsFactory) Create() (*bootstrapComponents, error) {
 		CryptoComponentsHolder:          bcf.cryptoComponents,
 		MainMessenger:                   bcf.networkComponents.NetworkMessenger(),
 		FullArchiveMessenger:            bcf.networkComponents.FullArchiveNetworkMessenger(),
+		TransactionsMessenger:           bcf.networkComponents.TransactionsNetworkMessenger(),
 		GeneralConfig:                   bcf.config,
 		PrefsConfig:                     bcf.prefConfig.Preferences,
 		FlagsConfig:                     bcf.flagsConfig,

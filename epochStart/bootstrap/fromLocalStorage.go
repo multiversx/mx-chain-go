@@ -147,6 +147,10 @@ func (e *epochStartBootstrap) prepareEpochFromStorage() (Parameters, error) {
 		if errClose != nil {
 			log.Warn("prepareEpochFromStorage fullArchiveInterceptorContainer.Close()", "error", errClose)
 		}
+		errClose = e.transactionsInterceptorContainer.Close()
+		if errClose != nil {
+			log.Warn("prepareEpochFromStorage transactionsInterceptorContainer.Close()", "error", errClose)
+		}
 	}()
 
 	e.syncedHeaders, err = e.syncHeadersFrom(e.epochStartMeta)

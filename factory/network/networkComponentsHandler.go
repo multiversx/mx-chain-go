@@ -16,8 +16,9 @@ var _ factory.NetworkComponentsHolder = (*managedNetworkComponents)(nil)
 var _ factory.NetworkComponentsHandler = (*managedNetworkComponents)(nil)
 
 const (
-	errorOnMainNetworkString        = "on main network"
-	errorOnFullArchiveNetworkString = "on full archive network"
+	errorOnMainNetworkString         = "on main network"
+	errorOnFullArchiveNetworkString  = "on full archive network"
+	errorOnTransactionsNetworkString = "on on transactions network"
 )
 
 // managedNetworkComponents creates the data components handler that can create, close and access the data components
@@ -91,6 +92,10 @@ func (mnc *managedNetworkComponents) CheckSubcomponents() error {
 
 	if check.IfNil(mnc.fullArchiveNetworkHolder.netMessenger) {
 		return fmt.Errorf("%w %s", errors.ErrNilMessenger, errorOnFullArchiveNetworkString)
+	}
+
+	if check.IfNil(mnc.transactionsNetworkHolder.netMessenger) {
+		return fmt.Errorf("%w %s", errors.ErrNilMessenger, errorOnTransactionsNetworkString)
 	}
 
 	if check.IfNil(mnc.inputAntifloodHandler) {
@@ -239,6 +244,30 @@ func (mnc *managedNetworkComponents) FullArchivePreferredPeersHolderHandler() fa
 	}
 
 	return mnc.fullArchiveNetworkHolder.preferredPeersHolder
+}
+
+// TransactionsNetworkMessenger returns the p2p messenger of the transactions network
+func (mnc *managedNetworkComponents) TransactionsNetworkMessenger() p2p.Messenger {
+	mnc.mutNetworkComponents.RLock()
+	defer mnc.mutNetworkComponents.RUnlock()
+
+	if mnc.networkComponents == nil {
+		return nil
+	}
+
+	return mnc.transactionsNetworkHolder.netMessenger
+}
+
+// TransactionsPreferredPeersHolderHandler returns the preferred peers holder of the transactions network
+func (mnc *managedNetworkComponents) TransactionsPreferredPeersHolderHandler() factory.PreferredPeersHolderHandler {
+	mnc.mutNetworkComponents.RLock()
+	defer mnc.mutNetworkComponents.RUnlock()
+
+	if mnc.networkComponents == nil {
+		return nil
+	}
+
+	return mnc.transactionsNetworkHolder.preferredPeersHolder
 }
 
 // IsInterfaceNil returns true if the value under the interface is nil

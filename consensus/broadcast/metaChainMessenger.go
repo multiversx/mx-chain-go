@@ -38,6 +38,7 @@ func NewMetaChainMessenger(
 		marshalizer:             args.Marshalizer,
 		hasher:                  args.Hasher,
 		messenger:               args.Messenger,
+		transactionsMessenger:   args.TransactionsMessenger,
 		shardCoordinator:        args.ShardCoordinator,
 		peerSignatureHandler:    args.PeerSignatureHandler,
 		delayedBlockBroadcaster: args.DelayedBroadcaster,

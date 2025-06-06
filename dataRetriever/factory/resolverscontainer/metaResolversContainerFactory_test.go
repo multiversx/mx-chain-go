@@ -330,6 +330,13 @@ func TestMetaResolversContainerFactory_With4ShardsShouldWork(t *testing.T) {
 			return nil
 		},
 	}
+	registerTransactionsCnt := 0
+	args.TransactionsMessenger = &p2pmocks.MessengerStub{
+		RegisterMessageProcessorCalled: func(topic string, identifier string, handler p2p.MessageProcessor) error {
+			registerTransactionsCnt++
+			return nil
+		},
+	}
 	args.ShardCoordinator = shardCoordinator
 	rcf, _ := resolverscontainer.NewMetaResolversContainerFactory(args)
 
@@ -349,8 +356,8 @@ func TestMetaResolversContainerFactory_With4ShardsShouldWork(t *testing.T) {
 		numResolverValidatorInfo + numResolverEquivalentProofs
 
 	assert.Equal(t, totalResolvers, container.Len())
-	assert.Equal(t, totalResolvers, registerMainCnt)
-	assert.Equal(t, totalResolvers, registerFullArchiveCnt)
+	assert.Equal(t, totalResolvers, registerMainCnt+registerTransactionsCnt)
+	assert.Equal(t, totalResolvers, registerFullArchiveCnt+registerTransactionsCnt)
 
 	err := rcf.AddShardTrieNodeResolvers(container)
 	assert.Nil(t, err)
@@ -374,6 +381,7 @@ func getArgumentsMeta() resolverscontainer.FactoryArgs {
 		ShardCoordinator:                    mock.NewOneShardCoordinatorMock(),
 		MainMessenger:                       createStubMessengerForMeta("", ""),
 		FullArchiveMessenger:                createStubMessengerForMeta("", ""),
+		TransactionsMessenger:               createStubMessengerForMeta("", ""),
 		Store:                               createStoreForMeta(),
 		Marshalizer:                         &mock.MarshalizerMock{},
 		DataPools:                           createDataPoolsForMeta(),

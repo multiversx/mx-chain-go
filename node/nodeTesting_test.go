@@ -362,7 +362,7 @@ func TestGenerateAndSendBulkTransactions_ShouldWork(t *testing.T) {
 	stateComponents := getDefaultStateComponents()
 	stateComponents.AccountsAPI = accAdapter
 	networkComponents := getDefaultNetworkComponents()
-	networkComponents.Messenger = mes
+	networkComponents.TransactionsNetworkMessengerField = mes
 
 	n, _ := node.NewNode(
 		node.WithCoreComponents(coreComponents),

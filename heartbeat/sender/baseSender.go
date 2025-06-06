@@ -21,6 +21,7 @@ const maxThresholdBetweenSends = 1.00 // 100%
 type argBaseSender struct {
 	mainMessenger             heartbeat.P2PMessenger
 	fullArchiveMessenger      heartbeat.P2PMessenger
+	transactionsMessenger     heartbeat.P2PMessenger
 	marshaller                marshal.Marshalizer
 	topic                     string
 	timeBetweenSends          time.Duration
@@ -34,6 +35,7 @@ type baseSender struct {
 	timerHandler
 	mainMessenger             heartbeat.P2PMessenger
 	fullArchiveMessenger      heartbeat.P2PMessenger
+	transactionsMessenger     heartbeat.P2PMessenger
 	marshaller                marshal.Marshalizer
 	topic                     string
 	timeBetweenSends          time.Duration
@@ -49,6 +51,7 @@ func createBaseSender(args argBaseSender) baseSender {
 	bs := baseSender{
 		mainMessenger:             args.mainMessenger,
 		fullArchiveMessenger:      args.fullArchiveMessenger,
+		transactionsMessenger:     args.transactionsMessenger,
 		marshaller:                args.marshaller,
 		topic:                     args.topic,
 		timeBetweenSends:          args.timeBetweenSends,
@@ -72,6 +75,9 @@ func checkBaseSenderArgs(args argBaseSender) error {
 	}
 	if check.IfNil(args.fullArchiveMessenger) {
 		return fmt.Errorf("%w for full archive", heartbeat.ErrNilMessenger)
+	}
+	if check.IfNil(args.transactionsMessenger) {
+		return fmt.Errorf("%w for transactions", heartbeat.ErrNilMessenger)
 	}
 	if check.IfNil(args.marshaller) {
 		return heartbeat.ErrNilMarshaller

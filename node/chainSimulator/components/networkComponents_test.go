@@ -12,7 +12,7 @@ func TestCreateNetworkComponents(t *testing.T) {
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
 
-		comp, err := CreateNetworkComponents(NewSyncedBroadcastNetwork())
+		comp, err := CreateNetworkComponents(NewSyncedBroadcastNetwork(), NewSyncedBroadcastNetwork())
 		require.NoError(t, err)
 		require.NotNil(t, comp)
 
@@ -22,7 +22,7 @@ func TestCreateNetworkComponents(t *testing.T) {
 	t.Run("nil network should error", func(t *testing.T) {
 		t.Parallel()
 
-		comp, err := CreateNetworkComponents(nil)
+		comp, err := CreateNetworkComponents(nil, NewSyncedBroadcastNetwork())
 		require.Error(t, err)
 		require.Nil(t, comp)
 	})
@@ -34,7 +34,7 @@ func TestNetworkComponentsHolder_IsInterfaceNil(t *testing.T) {
 	var comp *networkComponentsHolder
 	require.True(t, comp.IsInterfaceNil())
 
-	comp, _ = CreateNetworkComponents(NewSyncedBroadcastNetwork())
+	comp, _ = CreateNetworkComponents(NewSyncedBroadcastNetwork(), NewSyncedBroadcastNetwork())
 	require.False(t, comp.IsInterfaceNil())
 	require.Nil(t, comp.Close())
 }
@@ -42,7 +42,7 @@ func TestNetworkComponentsHolder_IsInterfaceNil(t *testing.T) {
 func TestNetworkComponentsHolder_Getters(t *testing.T) {
 	t.Parallel()
 
-	comp, err := CreateNetworkComponents(NewSyncedBroadcastNetwork())
+	comp, err := CreateNetworkComponents(NewSyncedBroadcastNetwork(), NewSyncedBroadcastNetwork())
 	require.NoError(t, err)
 
 	require.NotNil(t, comp.NetworkMessenger())

@@ -99,6 +99,7 @@ type epochStartBootstrap struct {
 	cryptoComponentsHolder     process.CryptoComponentsHolder
 	mainMessenger              p2p.Messenger
 	fullArchiveMessenger       p2p.Messenger
+	transactionsMessenger      p2p.Messenger
 	generalConfig              config.Config
 	prefsConfig                config.PreferencesConfig
 	flagsConfig                config.ContextFlagsConfig
@@ -127,20 +128,21 @@ type epochStartBootstrap struct {
 	enableEpochsHandler        common.EnableEpochsHandler
 
 	// created components
-	requestHandler                  process.RequestHandler
-	mainInterceptorContainer        process.InterceptorsContainer
-	fullArchiveInterceptorContainer process.InterceptorsContainer
-	dataPool                        dataRetriever.PoolsHolder
-	miniBlocksSyncer                epochStart.PendingMiniBlocksSyncHandler
-	headersSyncer                   epochStart.HeadersByHashSyncer
-	txSyncerForScheduled            update.TransactionsSyncHandler
-	epochStartMetaBlockSyncer       epochStart.StartOfEpochMetaSyncer
-	nodesConfigHandler              StartOfEpochNodesConfigHandler
-	whiteListHandler                update.WhiteListHandler
-	whiteListerVerifiedTxs          update.WhiteListHandler
-	storageOpenerHandler            storage.UnitOpenerHandler
-	latestStorageDataProvider       storage.LatestStorageDataProviderHandler
-	argumentsParser                 process.ArgumentsParser
+	requestHandler                   process.RequestHandler
+	mainInterceptorContainer         process.InterceptorsContainer
+	fullArchiveInterceptorContainer  process.InterceptorsContainer
+	transactionsInterceptorContainer process.InterceptorsContainer
+	dataPool                         dataRetriever.PoolsHolder
+	miniBlocksSyncer                 epochStart.PendingMiniBlocksSyncHandler
+	headersSyncer                    epochStart.HeadersByHashSyncer
+	txSyncerForScheduled             update.TransactionsSyncHandler
+	epochStartMetaBlockSyncer        epochStart.StartOfEpochMetaSyncer
+	nodesConfigHandler               StartOfEpochNodesConfigHandler
+	whiteListHandler                 update.WhiteListHandler
+	whiteListerVerifiedTxs           update.WhiteListHandler
+	storageOpenerHandler             storage.UnitOpenerHandler
+	latestStorageDataProvider        storage.LatestStorageDataProviderHandler
+	argumentsParser                  process.ArgumentsParser
 
 	dataSyncerFactory               types.ScheduledDataSyncerCreator
 	dataSyncerWithScheduled         types.ScheduledDataSyncer
@@ -177,6 +179,7 @@ type ArgsEpochStartBootstrap struct {
 	DestinationShardAsObserver      uint32
 	MainMessenger                   p2p.Messenger
 	FullArchiveMessenger            p2p.Messenger
+	TransactionsMessenger           p2p.Messenger
 	GeneralConfig                   config.Config
 	PrefsConfig                     config.PreferencesConfig
 	FlagsConfig                     config.ContextFlagsConfig
@@ -221,6 +224,7 @@ func NewEpochStartBootstrap(args ArgsEpochStartBootstrap) (*epochStartBootstrap,
 		cryptoComponentsHolder:          args.CryptoComponentsHolder,
 		mainMessenger:                   args.MainMessenger,
 		fullArchiveMessenger:            args.FullArchiveMessenger,
+		transactionsMessenger:           args.TransactionsMessenger,
 		generalConfig:                   args.GeneralConfig,
 		prefsConfig:                     args.PrefsConfig,
 		flagsConfig:                     args.FlagsConfig,
@@ -409,6 +413,11 @@ func (e *epochStartBootstrap) Bootstrap() (Parameters, error) {
 		if errClose != nil {
 			log.Warn("prepareEpochFromStorage fullArchiveInterceptorContainer.Close()", "error", errClose)
 		}
+
+		errClose = e.transactionsInterceptorContainer.Close()
+		if errClose != nil {
+			log.Warn("prepareEpochFromStorage transactionsInterceptorContainer.Close()", "error", errClose)
+		}
 	}()
 
 	params, err = e.requestAndProcessing()
@@ -462,6 +471,12 @@ func (e *epochStartBootstrap) cleanupOnBootstrapFinish() {
 	log.LogIfError(errMessenger)
 
 	errMessenger = e.fullArchiveMessenger.UnJoinAllTopics()
+	log.LogIfError(errMessenger)
+
+	errMessenger = e.transactionsMessenger.UnregisterAllMessageProcessors()
+	log.LogIfError(errMessenger)
+
+	errMessenger = e.transactionsMessenger.UnJoinAllTopics()
 	log.LogIfError(errMessenger)
 
 	e.closeTrieNodes()
@@ -597,6 +612,7 @@ func (e *epochStartBootstrap) createSyncers() error {
 		ShardCoordinator:               e.shardCoordinator,
 		MainMessenger:                  e.mainMessenger,
 		FullArchiveMessenger:           e.fullArchiveMessenger,
+		TransactionsMessenger:          e.transactionsMessenger,
 		DataPool:                       e.dataPool,
 		WhiteListHandler:               e.whiteListHandler,
 		WhiteListerVerifiedTxs:         e.whiteListerVerifiedTxs,
@@ -608,7 +624,7 @@ func (e *epochStartBootstrap) createSyncers() error {
 		InterceptedDataVerifierFactory: e.interceptedDataVerifierFactory,
 	}
 
-	e.mainInterceptorContainer, e.fullArchiveInterceptorContainer, err = factoryInterceptors.NewEpochStartInterceptorsContainer(args)
+	e.mainInterceptorContainer, e.fullArchiveInterceptorContainer, e.transactionsInterceptorContainer, err = factoryInterceptors.NewEpochStartInterceptorsContainer(args)
 	if err != nil {
 		return err
 	}
@@ -1265,6 +1281,7 @@ func (e *epochStartBootstrap) createResolversContainer() error {
 		ShardCoordinator:                    e.shardCoordinator,
 		MainMessenger:                       e.mainMessenger,
 		FullArchiveMessenger:                e.fullArchiveMessenger,
+		TransactionsMessenger:               e.transactionsMessenger,
 		Store:                               storageService,
 		Marshalizer:                         e.coreComponentsHolder.InternalMarshalizer(),
 		DataPools:                           e.dataPool,
@@ -1278,6 +1295,7 @@ func (e *epochStartBootstrap) createResolversContainer() error {
 		OutputAntifloodHandler:              disabled.NewAntiFloodHandler(),
 		MainPreferredPeersHolder:            disabled.NewPreferredPeersHolder(),
 		FullArchivePreferredPeersHolder:     disabled.NewPreferredPeersHolder(),
+		TransactionsPreferredPeersHolder:    disabled.NewPreferredPeersHolder(),
 		PayloadValidator:                    payloadValidator,
 	}
 	resolverFactory, err := resolverscontainer.NewMetaResolversContainerFactory(resolversContainerArgs)
@@ -1295,19 +1313,21 @@ func (e *epochStartBootstrap) createResolversContainer() error {
 
 func (e *epochStartBootstrap) createRequestHandler() error {
 	requestersContainerArgs := requesterscontainer.FactoryArgs{
-		RequesterConfig:                 e.generalConfig.Requesters,
-		ShardCoordinator:                e.shardCoordinator,
-		MainMessenger:                   e.mainMessenger,
-		FullArchiveMessenger:            e.fullArchiveMessenger,
-		Marshaller:                      e.coreComponentsHolder.InternalMarshalizer(),
-		Uint64ByteSliceConverter:        uint64ByteSlice.NewBigEndianConverter(),
-		OutputAntifloodHandler:          disabled.NewAntiFloodHandler(),
-		CurrentNetworkEpochProvider:     disabled.NewCurrentNetworkEpochProviderHandler(),
-		MainPreferredPeersHolder:        disabled.NewPreferredPeersHolder(),
-		FullArchivePreferredPeersHolder: disabled.NewPreferredPeersHolder(),
-		PeersRatingHandler:              disabled.NewDisabledPeersRatingHandler(),
-		SizeCheckDelta:                  0,
-		EnableEpochsHandler:             e.enableEpochsHandler,
+		RequesterConfig:                  e.generalConfig.Requesters,
+		ShardCoordinator:                 e.shardCoordinator,
+		MainMessenger:                    e.mainMessenger,
+		FullArchiveMessenger:             e.fullArchiveMessenger,
+		TransactionsMessenger:            e.transactionsMessenger,
+		Marshaller:                       e.coreComponentsHolder.InternalMarshalizer(),
+		Uint64ByteSliceConverter:         uint64ByteSlice.NewBigEndianConverter(),
+		OutputAntifloodHandler:           disabled.NewAntiFloodHandler(),
+		CurrentNetworkEpochProvider:      disabled.NewCurrentNetworkEpochProviderHandler(),
+		MainPreferredPeersHolder:         disabled.NewPreferredPeersHolder(),
+		FullArchivePreferredPeersHolder:  disabled.NewPreferredPeersHolder(),
+		TransactionsPreferredPeersHolder: disabled.NewPreferredPeersHolder(),
+		PeersRatingHandler:               disabled.NewDisabledPeersRatingHandler(),
+		SizeCheckDelta:                   0,
+		EnableEpochsHandler:              e.enableEpochsHandler,
 	}
 	requestersFactory, err := requesterscontainer.NewMetaRequestersContainerFactory(requestersContainerArgs)
 	if err != nil {
@@ -1393,6 +1413,7 @@ func (e *epochStartBootstrap) createHeartbeatSender() error {
 	argsHeartbeatSender := sender.ArgBootstrapSender{
 		MainMessenger:                      e.mainMessenger,
 		FullArchiveMessenger:               e.fullArchiveMessenger,
+		TransactionsMessenger:              e.transactionsMessenger,
 		Marshaller:                         e.coreComponentsHolder.InternalMarshalizer(),
 		HeartbeatTopic:                     heartbeatTopic,
 		HeartbeatTimeBetweenSends:          time.Second * time.Duration(heartbeatCfg.HeartbeatTimeBetweenSendsDuringBootstrapInSec),

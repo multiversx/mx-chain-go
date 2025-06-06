@@ -105,6 +105,7 @@ type TestHeartbeatNode struct {
 	FullArchivePeerShardMapper           process.NetworkShardingCollector
 	MainMessenger                        p2p.Messenger
 	FullArchiveMessenger                 p2p.Messenger
+	TransactionsMessenger                p2p.Messenger
 	NodeKeys                             *TestNodeKeys
 	DataPool                             dataRetriever.PoolsHolder
 	Sender                               update.Closer
@@ -219,11 +220,14 @@ func NewTestHeartbeatNode(
 		log.Error("error setting the peer shard mapper for the full archive p2p messenger", "error", err)
 	}
 
+	transactionsMessenger := CreateMessengerFromConfigWithPeersRatingHandler(p2pConfig, &p2pmocks.PeersRatingHandlerStub{}, p2pKey)
+
 	thn := &TestHeartbeatNode{
 		ShardCoordinator:             shardCoordinator,
 		NodesCoordinator:             nodesCoordinatorInstance,
 		MainMessenger:                messenger,
 		FullArchiveMessenger:         fullArchiveMessenger,
+		TransactionsMessenger:        transactionsMessenger,
 		PeerSigHandler:               peerSigHandler,
 		MainPeerShardMapper:          peerShardMapper,
 		FullArchivePeerShardMapper:   peerShardMapperFullArch,
@@ -309,11 +313,14 @@ func NewTestHeartbeatNodeWithCoordinator(
 		log.Error("error setting the peer shard mapper for the main p2p messenger", "error", err)
 	}
 
+	transactionsMessenger := CreateMessengerFromConfig(p2pConfig)
+
 	thn := &TestHeartbeatNode{
 		ShardCoordinator:             shardCoordinator,
 		NodesCoordinator:             coordinator,
 		MainMessenger:                messenger,
 		FullArchiveMessenger:         &p2pmocks.MessengerStub{},
+		TransactionsMessenger:        transactionsMessenger,
 		PeerSigHandler:               peerSigHandler,
 		MainPeerShardMapper:          peerShardMapper,
 		FullArchivePeerShardMapper:   &mock.PeerShardMapperStub{},
@@ -490,6 +497,7 @@ func (thn *TestHeartbeatNode) initSender() {
 	argsSender := sender.ArgSender{
 		MainMessenger:           thn.MainMessenger,
 		FullArchiveMessenger:    thn.FullArchiveMessenger,
+		TransactionsMessenger:   thn.TransactionsMessenger,
 		Marshaller:              TestMarshaller,
 		PeerAuthenticationTopic: common.PeerAuthenticationTopic,
 		HeartbeatTopic:          identifierHeartbeat,
@@ -532,6 +540,7 @@ func (thn *TestHeartbeatNode) initResolversAndRequesters() {
 		ShardCoordinator:         thn.ShardCoordinator,
 		MainMessenger:            thn.MainMessenger,
 		FullArchiveMessenger:     thn.FullArchiveMessenger,
+		TransactionsMessenger:    thn.TransactionsMessenger,
 		Store:                    thn.Storage,
 		Marshalizer:              TestMarshaller,
 		DataPools:                thn.DataPool,
@@ -560,6 +569,7 @@ func (thn *TestHeartbeatNode) initResolversAndRequesters() {
 		ShardCoordinator:                thn.ShardCoordinator,
 		MainMessenger:                   thn.MainMessenger,
 		FullArchiveMessenger:            thn.FullArchiveMessenger,
+		TransactionsMessenger:           thn.TransactionsMessenger,
 		Marshaller:                      TestMarshaller,
 		Uint64ByteSliceConverter:        TestUint64Converter,
 		OutputAntifloodHandler:          &mock.NilAntifloodHandler{},
@@ -778,6 +788,7 @@ func (thn *TestHeartbeatNode) initShardSender(tb testing.TB) {
 	args := sender.ArgPeerShardSender{
 		MainMessenger:             thn.MainMessenger,
 		FullArchiveMessenger:      thn.FullArchiveMessenger,
+		TransactionsMessenger:     thn.TransactionsMessenger,
 		Marshaller:                TestMarshaller,
 		ShardCoordinator:          thn.ShardCoordinator,
 		TimeBetweenSends:          5 * time.Second,
@@ -851,6 +862,24 @@ func (thn *TestHeartbeatNode) GetFullArchiveConnectableAddress() string {
 	}
 
 	return GetConnectableAddress(thn.FullArchiveMessenger)
+}
+
+// ConnectOnTransactions will try to initiate a connection to the provided parameter on the transactions messenger
+func (thn *TestHeartbeatNode) ConnectOnTransactions(connectable Connectable) error {
+	if check.IfNil(connectable) {
+		return fmt.Errorf("trying to connect to a nil Connectable parameter")
+	}
+
+	return thn.TransactionsMessenger.ConnectToPeer(connectable.GetTransactionsConnectableAddress())
+}
+
+// GetTransactionsConnectableAddress returns a non circuit, non windows default connectable p2p address
+func (thn *TestHeartbeatNode) GetTransactionsConnectableAddress() string {
+	if thn == nil {
+		return "nil"
+	}
+
+	return GetConnectableAddress(thn.TransactionsMessenger)
 }
 
 // MakeDisplayTableForHeartbeatNodes returns a string containing counters for received messages for all provided test nodes
@@ -972,6 +1001,7 @@ func (thn *TestHeartbeatNode) Close() {
 	_ = thn.FullArchiveMessenger.Close()
 	_ = thn.MainDirectConnectionProcessor.Close()
 	_ = thn.FullArchiveDirectConnectionProcessor.Close()
+	_ = thn.TransactionsMessenger.Close()
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

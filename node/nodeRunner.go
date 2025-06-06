@@ -1144,6 +1144,7 @@ func (nr *nodeRunner) logSessionInformation(
 			configurationPaths.Nodes,
 			configurationPaths.MainP2p,
 			configurationPaths.FullArchiveP2p,
+			configurationPaths.TransactionsP2p,
 			configurationPaths.Preferences,
 			configurationPaths.Ratings,
 			configurationPaths.SystemSC,
@@ -1430,6 +1431,7 @@ func (nr *nodeRunner) CreateManagedNetworkComponents(
 	networkComponentsFactoryArgs := networkComp.NetworkComponentsFactoryArgs{
 		MainP2pConfig:         *nr.configs.MainP2pConfig,
 		FullArchiveP2pConfig:  *nr.configs.FullArchiveP2pConfig,
+		TransactionsP2pConfig: *nr.configs.TransactionsP2PConfig,
 		MainConfig:            *nr.configs.GeneralConfig,
 		RatingsConfig:         *nr.configs.RatingsConfig,
 		StatusHandler:         statusCoreComponents.AppStatusHandler(),

@@ -16,6 +16,7 @@ type FactoryArgs struct {
 	ShardCoordinator                    sharding.Coordinator
 	MainMessenger                       p2p.Messenger
 	FullArchiveMessenger                p2p.Messenger
+	TransactionsMessenger               p2p.Messenger
 	Store                               dataRetriever.StorageService
 	Marshalizer                         marshal.Marshalizer
 	DataPools                           dataRetriever.PoolsHolder
@@ -26,6 +27,7 @@ type FactoryArgs struct {
 	OutputAntifloodHandler              dataRetriever.P2PAntifloodHandler
 	MainPreferredPeersHolder            p2p.PreferredPeersHolderHandler
 	FullArchivePreferredPeersHolder     p2p.PreferredPeersHolderHandler
+	TransactionsPreferredPeersHolder    p2p.PreferredPeersHolderHandler
 	SizeCheckDelta                      uint32
 	IsFullHistoryNode                   bool
 	PayloadValidator                    dataRetriever.PeerAuthenticationPayloadValidator

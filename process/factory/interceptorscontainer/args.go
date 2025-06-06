@@ -21,6 +21,7 @@ type CommonInterceptorsContainerFactoryArgs struct {
 	NodesCoordinator               nodesCoordinator.NodesCoordinator
 	MainMessenger                  process.TopicHandler
 	FullArchiveMessenger           process.TopicHandler
+	TransactionsMessenger          process.TopicHandler
 	Store                          dataRetriever.StorageService
 	DataPool                       dataRetriever.PoolsHolder
 	MaxTxNonceDeltaAllowed         int
@@ -42,6 +43,7 @@ type CommonInterceptorsContainerFactoryArgs struct {
 	HeartbeatExpiryTimespanInSec   int64
 	MainPeerShardMapper            process.PeerShardMapper
 	FullArchivePeerShardMapper     process.PeerShardMapper
+	TransactionsPeerShardMapper    process.PeerShardMapper
 	HardforkTrigger                heartbeat.HardforkTrigger
 	NodeOperationMode              common.NodeOperation
 	InterceptedDataVerifierFactory process.InterceptedDataVerifierFactory

@@ -32,6 +32,7 @@ import (
 type NetworkComponentsFactoryArgs struct {
 	MainP2pConfig         p2pConfig.P2PConfig
 	FullArchiveP2pConfig  p2pConfig.P2PConfig
+	TransactionsP2pConfig p2pConfig.P2PConfig
 	MainConfig            config.Config
 	RatingsConfig         config.RatingsConfig
 	StatusHandler         core.AppStatusHandler
@@ -47,6 +48,7 @@ type NetworkComponentsFactoryArgs struct {
 type networkComponentsFactory struct {
 	mainP2PConfig         p2pConfig.P2PConfig
 	fullArchiveP2PConfig  p2pConfig.P2PConfig
+	transactionsP2PConfig p2pConfig.P2PConfig
 	mainConfig            config.Config
 	ratingsConfig         config.RatingsConfig
 	statusHandler         core.AppStatusHandler
@@ -66,19 +68,20 @@ type networkComponentsHolder struct {
 
 // networkComponents struct holds the network components
 type networkComponents struct {
-	mainNetworkHolder        networkComponentsHolder
-	fullArchiveNetworkHolder networkComponentsHolder
-	peersRatingHandler       p2p.PeersRatingHandler
-	peersRatingMonitor       p2p.PeersRatingMonitor
-	inputAntifloodHandler    factory.P2PAntifloodHandler
-	outputAntifloodHandler   factory.P2PAntifloodHandler
-	pubKeyTimeCacher         process.TimeCacher
-	topicFloodPreventer      process.TopicFloodPreventer
-	floodPreventers          []process.FloodPreventer
-	peerBlackListHandler     process.PeerBlackListCacher
-	antifloodConfig          config.AntifloodConfig
-	peerHonestyHandler       consensus.PeerHonestyHandler
-	closeFunc                context.CancelFunc
+	mainNetworkHolder         networkComponentsHolder
+	fullArchiveNetworkHolder  networkComponentsHolder
+	transactionsNetworkHolder networkComponentsHolder
+	peersRatingHandler        p2p.PeersRatingHandler
+	peersRatingMonitor        p2p.PeersRatingMonitor
+	inputAntifloodHandler     factory.P2PAntifloodHandler
+	outputAntifloodHandler    factory.P2PAntifloodHandler
+	pubKeyTimeCacher          process.TimeCacher
+	topicFloodPreventer       process.TopicFloodPreventer
+	floodPreventers           []process.FloodPreventer
+	peerBlackListHandler      process.PeerBlackListCacher
+	antifloodConfig           config.AntifloodConfig
+	peerHonestyHandler        consensus.PeerHonestyHandler
+	closeFunc                 context.CancelFunc
 }
 
 var log = logger.GetOrCreate("factory")
@@ -106,6 +109,7 @@ func NewNetworkComponentsFactory(
 	return &networkComponentsFactory{
 		mainP2PConfig:         args.MainP2pConfig,
 		fullArchiveP2PConfig:  args.FullArchiveP2pConfig,
+		transactionsP2PConfig: args.TransactionsP2pConfig,
 		ratingsConfig:         args.RatingsConfig,
 		marshalizer:           args.Marshalizer,
 		mainConfig:            args.MainConfig,
@@ -136,6 +140,11 @@ func (ncf *networkComponentsFactory) Create() (*networkComponents, error) {
 		return nil, fmt.Errorf("%w for the full archive network holder", err)
 	}
 
+	transactionsNetworkComp, err := ncf.createTransactionsNetworkHolder(peersRatingHandler)
+	if err != nil {
+		return nil, fmt.Errorf("%w for the transactions network holder", err)
+	}
+
 	ctx, cancelFunc := context.WithCancel(context.Background())
 	defer func() {
 		if err != nil {
@@ -160,20 +169,28 @@ func (ncf *networkComponentsFactory) Create() (*networkComponents, error) {
 		return nil, err
 	}
 
+	err = transactionsNetworkComp.netMessenger.Bootstrap()
+	if err != nil {
+		return nil, err
+	}
+
+	transactionsNetworkComp.netMessenger.WaitForConnections(ncf.bootstrapWaitTime, ncf.transactionsP2PConfig.Node.MinNumPeersToWaitForOnBootstrap)
+
 	return &networkComponents{
-		mainNetworkHolder:        mainNetworkComp,
-		fullArchiveNetworkHolder: fullArchiveNetworkComp,
-		peersRatingHandler:       peersRatingHandler,
-		peersRatingMonitor:       peersRatingMonitor,
-		inputAntifloodHandler:    inputAntifloodHandler,
-		outputAntifloodHandler:   outputAntifloodHandler,
-		pubKeyTimeCacher:         antiFloodComponents.PubKeysCacher,
-		topicFloodPreventer:      antiFloodComponents.TopicPreventer,
-		floodPreventers:          antiFloodComponents.FloodPreventers,
-		peerBlackListHandler:     antiFloodComponents.BlacklistHandler,
-		antifloodConfig:          ncf.mainConfig.Antiflood,
-		peerHonestyHandler:       peerHonestyHandler,
-		closeFunc:                cancelFunc,
+		mainNetworkHolder:         mainNetworkComp,
+		fullArchiveNetworkHolder:  fullArchiveNetworkComp,
+		transactionsNetworkHolder: transactionsNetworkComp,
+		peersRatingHandler:        peersRatingHandler,
+		peersRatingMonitor:        peersRatingMonitor,
+		inputAntifloodHandler:     inputAntifloodHandler,
+		outputAntifloodHandler:    outputAntifloodHandler,
+		pubKeyTimeCacher:          antiFloodComponents.PubKeysCacher,
+		topicFloodPreventer:       antiFloodComponents.TopicPreventer,
+		floodPreventers:           antiFloodComponents.FloodPreventers,
+		peerBlackListHandler:      antiFloodComponents.BlacklistHandler,
+		antifloodConfig:           ncf.mainConfig.Antiflood,
+		peerHonestyHandler:        peerHonestyHandler,
+		closeFunc:                 cancelFunc,
 	}, nil
 }
 
@@ -291,6 +308,11 @@ func (ncf *networkComponentsFactory) createFullArchiveNetworkHolder(peersRatingH
 	return ncf.createNetworkHolder(ncf.fullArchiveP2PConfig, loggerInstance, peersRatingHandler, p2p.FullArchiveNetwork)
 }
 
+func (ncf *networkComponentsFactory) createTransactionsNetworkHolder(peersRatingHandler p2p.PeersRatingHandler) (networkComponentsHolder, error) {
+	loggerInstance := logger.GetOrCreate("transactions/p2p")
+	return ncf.createNetworkHolder(ncf.transactionsP2PConfig, loggerInstance, peersRatingHandler, p2p.TransactionsNetwork)
+}
+
 func (ncf *networkComponentsFactory) createPeersRatingComponents() (p2p.PeersRatingHandler, p2p.PeersRatingMonitor, error) {
 	peersRatingCfg := ncf.mainConfig.PeersRatingConfig
 	topRatedCache, err := cache.NewLRUCache(peersRatingCfg.TopRatedCacheCapacity)
@@ -349,6 +371,12 @@ func (nc *networkComponents) Close() error {
 	if !check.IfNil(fullArchiveNetMessenger) {
 		log.Debug("calling close on the full archive network messenger instance...")
 		log.LogIfError(fullArchiveNetMessenger.Close())
+	}
+
+	transactionsNetMessenger := nc.transactionsNetworkHolder.netMessenger
+	if !check.IfNil(transactionsNetMessenger) {
+		log.Debug("calling close on the transactions network messenger instance...")
+		log.LogIfError(transactionsNetMessenger.Close())
 	}
 
 	return nil

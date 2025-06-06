@@ -41,15 +41,16 @@ func createMockArgsTestOnlyProcessingNode(t *testing.T) ArgsTestOnlyProcessingNo
 		GasScheduleFilename: outputConfigs.GasScheduleFilename,
 		NumShards:           3,
 
-		SyncedBroadcastNetwork:      NewSyncedBroadcastNetwork(),
-		ChanStopNodeProcess:         make(chan endProcess.ArgEndProcess),
-		APIInterface:                api.NewNoApiInterface(),
-		ShardIDStr:                  "0",
-		RoundDurationInMillis:       6000,
-		MinNodesMeta:                1,
-		MinNodesPerShard:            1,
-		ConsensusGroupSize:          1,
-		MetaChainConsensusGroupSize: 1,
+		SyncedBroadcastNetwork:             NewSyncedBroadcastNetwork(),
+		SyncedBroadcastTransactionsNetwork: NewSyncedBroadcastNetwork(),
+		ChanStopNodeProcess:                make(chan endProcess.ArgEndProcess),
+		APIInterface:                       api.NewNoApiInterface(),
+		ShardIDStr:                         "0",
+		RoundDurationInMillis:              6000,
+		MinNodesMeta:                       1,
+		MinNodesPerShard:                   1,
+		ConsensusGroupSize:                 1,
+		MetaChainConsensusGroupSize:        1,
 	}
 }
 

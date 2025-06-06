@@ -6,7 +6,6 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
-
 	"math/big"
 	"sync"
 	"time"
@@ -70,15 +69,16 @@ type ArgsBaseChainSimulator struct {
 }
 
 type simulator struct {
-	chanStopNodeProcess    chan endProcess.ArgEndProcess
-	syncedBroadcastNetwork components.SyncedBroadcastNetworkHandler
-	handlers               []ChainHandler
-	initialWalletKeys      *dtos.InitialWalletKeys
-	initialStakedKeys      map[string]*dtos.BLSKey
-	validatorsPrivateKeys  []crypto.PrivateKey
-	nodes                  map[uint32]process.NodeHandler
-	numOfShards            uint32
-	mutex                  sync.RWMutex
+	chanStopNodeProcess                chan endProcess.ArgEndProcess
+	syncedBroadcastNetwork             components.SyncedBroadcastNetworkHandler
+	syncedBroadcastTransactionsNetwork components.SyncedBroadcastNetworkHandler
+	handlers                           []ChainHandler
+	initialWalletKeys                  *dtos.InitialWalletKeys
+	initialStakedKeys                  map[string]*dtos.BLSKey
+	validatorsPrivateKeys              []crypto.PrivateKey
+	nodes                              map[uint32]process.NodeHandler
+	numOfShards                        uint32
+	mutex                              sync.RWMutex
 }
 
 // NewChainSimulator will create a new instance of simulator
@@ -93,13 +93,14 @@ func NewChainSimulator(args ArgsChainSimulator) (*simulator, error) {
 // NewBaseChainSimulator will create a new instance of simulator
 func NewBaseChainSimulator(args ArgsBaseChainSimulator) (*simulator, error) {
 	instance := &simulator{
-		syncedBroadcastNetwork: components.NewSyncedBroadcastNetwork(),
-		nodes:                  make(map[uint32]process.NodeHandler),
-		handlers:               make([]ChainHandler, 0, args.NumOfShards+1),
-		numOfShards:            args.NumOfShards,
-		chanStopNodeProcess:    make(chan endProcess.ArgEndProcess),
-		mutex:                  sync.RWMutex{},
-		initialStakedKeys:      make(map[string]*dtos.BLSKey),
+		syncedBroadcastNetwork:             components.NewSyncedBroadcastNetwork(),
+		syncedBroadcastTransactionsNetwork: components.NewSyncedBroadcastNetwork(),
+		nodes:                              make(map[uint32]process.NodeHandler),
+		handlers:                           make([]ChainHandler, 0, args.NumOfShards+1),
+		numOfShards:                        args.NumOfShards,
+		chanStopNodeProcess:                make(chan endProcess.ArgEndProcess),
+		mutex:                              sync.RWMutex{},
+		initialStakedKeys:                  make(map[string]*dtos.BLSKey),
 	}
 
 	err := instance.createChainHandlers(args)
@@ -236,22 +237,23 @@ func (s *simulator) createTestNode(
 	outputConfigs configs.ArgsConfigsSimulator, args ArgsBaseChainSimulator, shardIDStr string,
 ) (process.NodeHandler, error) {
 	argsTestOnlyProcessorNode := components.ArgsTestOnlyProcessingNode{
-		Configs:                     outputConfigs.Configs,
-		ChanStopNodeProcess:         s.chanStopNodeProcess,
-		SyncedBroadcastNetwork:      s.syncedBroadcastNetwork,
-		NumShards:                   s.numOfShards,
-		GasScheduleFilename:         outputConfigs.GasScheduleFilename,
-		ShardIDStr:                  shardIDStr,
-		APIInterface:                args.ApiInterface,
-		BypassTxSignatureCheck:      args.BypassTxSignatureCheck,
-		InitialRound:                args.InitialRound,
-		InitialNonce:                args.InitialNonce,
-		MinNodesPerShard:            args.MinNodesPerShard,
-		ConsensusGroupSize:          args.ConsensusGroupSize,
-		MinNodesMeta:                args.MetaChainMinNodes,
-		MetaChainConsensusGroupSize: args.MetaChainConsensusGroupSize,
-		RoundDurationInMillis:       args.RoundDurationInMillis,
-		VmQueryDelayAfterStartInMs:  args.VmQueryDelayAfterStartInMs,
+		Configs:                            outputConfigs.Configs,
+		ChanStopNodeProcess:                s.chanStopNodeProcess,
+		SyncedBroadcastNetwork:             s.syncedBroadcastNetwork,
+		SyncedBroadcastTransactionsNetwork: s.syncedBroadcastTransactionsNetwork,
+		NumShards:                          s.numOfShards,
+		GasScheduleFilename:                outputConfigs.GasScheduleFilename,
+		ShardIDStr:                         shardIDStr,
+		APIInterface:                       args.ApiInterface,
+		BypassTxSignatureCheck:             args.BypassTxSignatureCheck,
+		InitialRound:                       args.InitialRound,
+		InitialNonce:                       args.InitialNonce,
+		MinNodesPerShard:                   args.MinNodesPerShard,
+		ConsensusGroupSize:                 args.ConsensusGroupSize,
+		MinNodesMeta:                       args.MetaChainMinNodes,
+		MetaChainConsensusGroupSize:        args.MetaChainConsensusGroupSize,
+		RoundDurationInMillis:              args.RoundDurationInMillis,
+		VmQueryDelayAfterStartInMs:         args.VmQueryDelayAfterStartInMs,
 	}
 
 	return components.NewTestOnlyProcessingNode(argsTestOnlyProcessorNode)

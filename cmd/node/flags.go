@@ -98,6 +98,13 @@ var (
 			"configurations such as port, target peer count or KadDHT settings",
 		Value: "./config/fullArchiveP2P.toml",
 	}
+	// transactionsP2PConfigurationFile defines a flag for the path to the toml file containing P2P configuration for the transactions network
+	transactionsP2PConfigurationFile = cli.StringFlag{
+		Name: "transactions-p2p-config",
+		Usage: "The `" + filePathPlaceholder + "` for the p2p configuration file for the transactions network. This TOML file contains peer-to-peer " +
+			"configurations such as port, target peer count or KadDHT settings",
+		Value: "./config/transactionsP2P.toml",
+	}
 	// epochConfigurationFile defines a flag for the path to the toml file containing the epoch configuration
 	epochConfigurationFile = cli.StringFlag{
 		Name: "epoch-config",
@@ -424,6 +431,7 @@ func getFlags() []cli.Flag {
 		externalConfigFile,
 		p2pConfigurationFile,
 		fullArchiveP2PConfigurationFile,
+		transactionsP2PConfigurationFile,
 		epochConfigurationFile,
 		roundConfigurationFile,
 		gasScheduleConfigurationDirectory,

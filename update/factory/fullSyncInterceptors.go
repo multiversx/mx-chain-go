@@ -32,12 +32,14 @@ const numGoRoutines = 2000
 type fullSyncInterceptorsContainerFactory struct {
 	mainContainer                  process.InterceptorsContainer
 	fullArchiveContainer           process.InterceptorsContainer
+	transactionsContainer          process.InterceptorsContainer
 	shardCoordinator               sharding.Coordinator
 	accounts                       state.AccountsAdapter
 	store                          dataRetriever.StorageService
 	dataPool                       dataRetriever.PoolsHolder
 	mainMessenger                  process.TopicHandler
 	fullArchiveMessenger           process.TopicHandler
+	transactionsMessenger          process.TopicHandler
 	nodesCoordinator               nodesCoordinator.NodesCoordinator
 	blockBlackList                 process.TimeCacher
 	argInterceptorFactory          *interceptorFactory.ArgInterceptedDataFactory
@@ -54,30 +56,32 @@ type fullSyncInterceptorsContainerFactory struct {
 
 // ArgsNewFullSyncInterceptorsContainerFactory holds the arguments needed for fullSyncInterceptorsContainerFactory
 type ArgsNewFullSyncInterceptorsContainerFactory struct {
-	CoreComponents                   process.CoreComponentsHolder
-	CryptoComponents                 process.CryptoComponentsHolder
-	Accounts                         state.AccountsAdapter
-	ShardCoordinator                 sharding.Coordinator
-	NodesCoordinator                 nodesCoordinator.NodesCoordinator
-	MainMessenger                    process.TopicHandler
-	FullArchiveMessenger             process.TopicHandler
-	Store                            dataRetriever.StorageService
-	DataPool                         dataRetriever.PoolsHolder
-	MaxTxNonceDeltaAllowed           int
-	TxFeeHandler                     process.FeeHandler
-	BlockBlackList                   process.TimeCacher
-	HeaderSigVerifier                process.InterceptedHeaderSigVerifier
-	HeaderIntegrityVerifier          process.HeaderIntegrityVerifier
-	SizeCheckDelta                   uint32
-	ValidityAttester                 process.ValidityAttester
-	EpochStartTrigger                process.EpochStartTriggerHandler
-	WhiteListHandler                 update.WhiteListHandler
-	WhiteListerVerifiedTxs           update.WhiteListHandler
-	MainInterceptorsContainer        process.InterceptorsContainer
-	FullArchiveInterceptorsContainer process.InterceptorsContainer
-	AntifloodHandler                 process.P2PAntifloodHandler
-	NodeOperationMode                common.NodeOperation
-	InterceptedDataVerifierFactory   process.InterceptedDataVerifierFactory
+	CoreComponents                    process.CoreComponentsHolder
+	CryptoComponents                  process.CryptoComponentsHolder
+	Accounts                          state.AccountsAdapter
+	ShardCoordinator                  sharding.Coordinator
+	NodesCoordinator                  nodesCoordinator.NodesCoordinator
+	MainMessenger                     process.TopicHandler
+	FullArchiveMessenger              process.TopicHandler
+	TransactionsMessenger             process.TopicHandler
+	Store                             dataRetriever.StorageService
+	DataPool                          dataRetriever.PoolsHolder
+	MaxTxNonceDeltaAllowed            int
+	TxFeeHandler                      process.FeeHandler
+	BlockBlackList                    process.TimeCacher
+	HeaderSigVerifier                 process.InterceptedHeaderSigVerifier
+	HeaderIntegrityVerifier           process.HeaderIntegrityVerifier
+	SizeCheckDelta                    uint32
+	ValidityAttester                  process.ValidityAttester
+	EpochStartTrigger                 process.EpochStartTriggerHandler
+	WhiteListHandler                  update.WhiteListHandler
+	WhiteListerVerifiedTxs            update.WhiteListHandler
+	MainInterceptorsContainer         process.InterceptorsContainer
+	FullArchiveInterceptorsContainer  process.InterceptorsContainer
+	TransactionsInterceptorsContainer process.InterceptorsContainer
+	AntifloodHandler                  process.P2PAntifloodHandler
+	NodeOperationMode                 common.NodeOperation
+	InterceptedDataVerifierFactory    process.InterceptedDataVerifierFactory
 }
 
 // NewFullSyncInterceptorsContainerFactory is responsible for creating a new interceptors factory object
@@ -93,6 +97,7 @@ func NewFullSyncInterceptorsContainerFactory(
 		args.DataPool,
 		args.MainMessenger,
 		args.FullArchiveMessenger,
+		args.TransactionsMessenger,
 		args.NodesCoordinator,
 		args.BlockBlackList,
 		args.WhiteListerVerifiedTxs,
@@ -129,6 +134,9 @@ func NewFullSyncInterceptorsContainerFactory(
 	if check.IfNil(args.FullArchiveInterceptorsContainer) {
 		return nil, fmt.Errorf("%w on full archive network", update.ErrNilInterceptorsContainer)
 	}
+	if check.IfNil(args.TransactionsInterceptorsContainer) {
+		return nil, fmt.Errorf("%w on transactions network", update.ErrNilInterceptorsContainer)
+	}
 	if check.IfNil(args.WhiteListHandler) {
 		return nil, update.ErrNilWhiteListHandler
 	}
@@ -156,10 +164,12 @@ func NewFullSyncInterceptorsContainerFactory(
 	icf := &fullSyncInterceptorsContainerFactory{
 		mainContainer:          args.MainInterceptorsContainer,
 		fullArchiveContainer:   args.FullArchiveInterceptorsContainer,
+		transactionsContainer:  args.TransactionsInterceptorsContainer,
 		accounts:               args.Accounts,
 		shardCoordinator:       args.ShardCoordinator,
 		mainMessenger:          args.MainMessenger,
 		fullArchiveMessenger:   args.FullArchiveMessenger,
+		transactionsMessenger:  args.TransactionsMessenger,
 		store:                  args.Store,
 		dataPool:               args.DataPool,
 		nodesCoordinator:       args.NodesCoordinator,
@@ -184,43 +194,48 @@ func NewFullSyncInterceptorsContainerFactory(
 }
 
 // Create returns an interceptor container that will hold all interceptors in the system
-func (ficf *fullSyncInterceptorsContainerFactory) Create() (process.InterceptorsContainer, process.InterceptorsContainer, error) {
+func (ficf *fullSyncInterceptorsContainerFactory) Create() (
+	process.InterceptorsContainer,
+	process.InterceptorsContainer,
+	process.InterceptorsContainer,
+	error,
+) {
 	err := ficf.generateTxInterceptors()
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 
 	err = ficf.generateUnsignedTxsInterceptors()
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 
 	err = ficf.generateRewardTxInterceptors()
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 
 	err = ficf.generateMiniBlocksInterceptors()
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 
 	err = ficf.generateMetachainHeaderInterceptors()
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 
 	err = ficf.generateShardHeaderInterceptors()
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 
 	err = ficf.generateTrieNodesInterceptors()
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 
-	return ficf.mainContainer, ficf.fullArchiveContainer, nil
+	return ficf.mainContainer, ficf.fullArchiveContainer, ficf.transactionsContainer, nil
 }
 
 func checkBaseParams(
@@ -232,6 +247,7 @@ func checkBaseParams(
 	dataPool dataRetriever.PoolsHolder,
 	mainMessenger process.TopicHandler,
 	fullArchiveMessenger process.TopicHandler,
+	transactionsMessenger process.TopicHandler,
 	nodesCoordinator nodesCoordinator.NodesCoordinator,
 	blockBlackList process.TimeCacher,
 	whiteListerVerifiedTxs update.WhiteListHandler,
@@ -285,6 +301,9 @@ func checkBaseParams(
 	if check.IfNil(fullArchiveMessenger) {
 		return fmt.Errorf("%w on full archive network", process.ErrNilMessenger)
 	}
+	if check.IfNil(transactionsMessenger) {
+		return fmt.Errorf("%w on transactions network", process.ErrNilMessenger)
+	}
 	if check.IfNil(store) {
 		return process.ErrNilStore
 	}
@@ -307,8 +326,11 @@ func checkBaseParams(
 	return nil
 }
 
-func (ficf *fullSyncInterceptorsContainerFactory) checkIfInterceptorExists(identifier string) bool {
-	_, err := ficf.mainContainer.Get(identifier)
+func (ficf *fullSyncInterceptorsContainerFactory) checkIfInterceptorExistsInContainer(
+	identifier string,
+	container process.InterceptorsContainer,
+) bool {
+	_, err := container.Get(identifier)
 	return err == nil
 }
 
@@ -325,7 +347,7 @@ func (ficf *fullSyncInterceptorsContainerFactory) generateShardHeaderInterceptor
 	// wire up to topics: shardBlocks_0_META, shardBlocks_1_META ...
 	for idx := uint32(0); idx < numShards; idx++ {
 		identifierHeader := factory.ShardBlocksTopic + tmpSC.CommunicationIdentifier(idx)
-		if ficf.checkIfInterceptorExists(identifierHeader) {
+		if ficf.checkIfInterceptorExistsInContainer(identifierHeader, ficf.mainContainer) {
 			continue
 		}
 
@@ -391,7 +413,7 @@ func (ficf *fullSyncInterceptorsContainerFactory) generateUnsignedTxsInterceptor
 
 	for idx := uint32(0); idx < numShards; idx++ {
 		identifierScr := factory.UnsignedTransactionTopic + shardC.CommunicationIdentifier(idx)
-		if ficf.checkIfInterceptorExists(identifierScr) {
+		if ficf.checkIfInterceptorExistsInContainer(identifierScr, ficf.transactionsContainer) {
 			continue
 		}
 
@@ -405,7 +427,7 @@ func (ficf *fullSyncInterceptorsContainerFactory) generateUnsignedTxsInterceptor
 	}
 
 	identifierScr := factory.UnsignedTransactionTopic + shardC.CommunicationIdentifier(core.MetachainShardId)
-	if !ficf.checkIfInterceptorExists(identifierScr) {
+	if !ficf.checkIfInterceptorExistsInContainer(identifierScr, ficf.transactionsContainer) {
 		interceptor, err := ficf.createOneUnsignedTxInterceptor(identifierScr)
 		if err != nil {
 			return err
@@ -415,7 +437,7 @@ func (ficf *fullSyncInterceptorsContainerFactory) generateUnsignedTxsInterceptor
 		interceptorsSlice[numShards] = interceptor
 	}
 
-	return ficf.addInterceptorsToContainers(keys, interceptorsSlice)
+	return ficf.transactionsContainer.AddMultiple(keys, interceptorsSlice)
 }
 
 func (ficf *fullSyncInterceptorsContainerFactory) generateTrieNodesInterceptors() error {
@@ -426,7 +448,7 @@ func (ficf *fullSyncInterceptorsContainerFactory) generateTrieNodesInterceptors(
 
 	for i := uint32(0); i < numShards; i++ {
 		identifierTrieNodes := factory.AccountTrieNodesTopic + core.CommunicationIdentifierBetweenShards(i, core.MetachainShardId)
-		if ficf.checkIfInterceptorExists(identifierTrieNodes) {
+		if ficf.checkIfInterceptorExistsInContainer(identifierTrieNodes, ficf.mainContainer) {
 			continue
 		}
 
@@ -440,7 +462,7 @@ func (ficf *fullSyncInterceptorsContainerFactory) generateTrieNodesInterceptors(
 	}
 
 	identifierTrieNodes := factory.ValidatorTrieNodesTopic + core.CommunicationIdentifierBetweenShards(core.MetachainShardId, core.MetachainShardId)
-	if !ficf.checkIfInterceptorExists(identifierTrieNodes) {
+	if !ficf.checkIfInterceptorExistsInContainer(identifierTrieNodes, ficf.mainContainer) {
 		interceptor, err := ficf.createOneTrieNodesInterceptor(identifierTrieNodes)
 		if err != nil {
 			return err
@@ -451,7 +473,7 @@ func (ficf *fullSyncInterceptorsContainerFactory) generateTrieNodesInterceptors(
 	}
 
 	identifierTrieNodes = factory.AccountTrieNodesTopic + core.CommunicationIdentifierBetweenShards(core.MetachainShardId, core.MetachainShardId)
-	if !ficf.checkIfInterceptorExists(identifierTrieNodes) {
+	if !ficf.checkIfInterceptorExistsInContainer(identifierTrieNodes, ficf.mainContainer) {
 		interceptor, err := ficf.createOneTrieNodesInterceptor(identifierTrieNodes)
 		if err != nil {
 			return err
@@ -469,7 +491,6 @@ func (ficf *fullSyncInterceptorsContainerFactory) createTopicAndAssignHandler(
 	interceptor process.Interceptor,
 	createChannel bool,
 ) (process.Interceptor, error) {
-
 	err := createTopicAndAssignHandlerOnMessenger(topic, interceptor, createChannel, ficf.mainMessenger)
 	if err != nil {
 		return nil, err
@@ -510,7 +531,7 @@ func (ficf *fullSyncInterceptorsContainerFactory) generateTxInterceptors() error
 
 	for idx := uint32(0); idx < numShards; idx++ {
 		identifierTx := factory.TransactionTopic + shardC.CommunicationIdentifier(idx)
-		if ficf.checkIfInterceptorExists(identifierTx) {
+		if ficf.checkIfInterceptorExistsInContainer(identifierTx, ficf.transactionsContainer) {
 			continue
 		}
 
@@ -525,7 +546,7 @@ func (ficf *fullSyncInterceptorsContainerFactory) generateTxInterceptors() error
 
 	// tx interceptor for metachain topic
 	identifierTx := factory.TransactionTopic + shardC.CommunicationIdentifier(core.MetachainShardId)
-	if !ficf.checkIfInterceptorExists(identifierTx) {
+	if !ficf.checkIfInterceptorExistsInContainer(identifierTx, ficf.transactionsContainer) {
 		interceptor, err := ficf.createOneTxInterceptor(identifierTx)
 		if err != nil {
 			return err
@@ -535,7 +556,7 @@ func (ficf *fullSyncInterceptorsContainerFactory) generateTxInterceptors() error
 		interceptorSlice = append(interceptorSlice, interceptor)
 	}
 
-	return ficf.addInterceptorsToContainers(keys, interceptorSlice)
+	return ficf.transactionsContainer.AddMultiple(keys, interceptorSlice)
 }
 
 func (ficf *fullSyncInterceptorsContainerFactory) createOneTxInterceptor(topic string) (process.Interceptor, error) {
@@ -589,7 +610,12 @@ func (ficf *fullSyncInterceptorsContainerFactory) createOneTxInterceptor(topic s
 		return nil, err
 	}
 
-	return ficf.createTopicAndAssignHandler(topic, interceptor, true)
+	err = createTopicAndAssignHandlerOnMessenger(topic, interceptor, true, ficf.transactionsMessenger)
+	if err != nil {
+		return nil, err
+	}
+
+	return interceptor, nil
 }
 
 func (ficf *fullSyncInterceptorsContainerFactory) createOneUnsignedTxInterceptor(topic string) (process.Interceptor, error) {
@@ -631,7 +657,12 @@ func (ficf *fullSyncInterceptorsContainerFactory) createOneUnsignedTxInterceptor
 		return nil, err
 	}
 
-	return ficf.createTopicAndAssignHandler(topic, interceptor, true)
+	err = createTopicAndAssignHandlerOnMessenger(topic, interceptor, true, ficf.transactionsMessenger)
+	if err != nil {
+		return nil, err
+	}
+
+	return interceptor, nil
 }
 
 func (ficf *fullSyncInterceptorsContainerFactory) createOneRewardTxInterceptor(topic string) (process.Interceptor, error) {
@@ -673,7 +704,12 @@ func (ficf *fullSyncInterceptorsContainerFactory) createOneRewardTxInterceptor(t
 		return nil, err
 	}
 
-	return ficf.createTopicAndAssignHandler(topic, interceptor, true)
+	err = createTopicAndAssignHandlerOnMessenger(topic, interceptor, true, ficf.transactionsMessenger)
+	if err != nil {
+		return nil, err
+	}
+
+	return interceptor, nil
 }
 
 func (ficf *fullSyncInterceptorsContainerFactory) generateMiniBlocksInterceptors() error {
@@ -684,7 +720,7 @@ func (ficf *fullSyncInterceptorsContainerFactory) generateMiniBlocksInterceptors
 
 	for idx := uint32(0); idx < numShards; idx++ {
 		identifierMiniBlocks := factory.MiniBlocksTopic + shardC.CommunicationIdentifier(idx)
-		if ficf.checkIfInterceptorExists(identifierMiniBlocks) {
+		if ficf.checkIfInterceptorExistsInContainer(identifierMiniBlocks, ficf.mainContainer) {
 			continue
 		}
 
@@ -698,7 +734,7 @@ func (ficf *fullSyncInterceptorsContainerFactory) generateMiniBlocksInterceptors
 	}
 
 	identifierMiniBlocks := factory.MiniBlocksTopic + shardC.CommunicationIdentifier(core.MetachainShardId)
-	if !ficf.checkIfInterceptorExists(identifierMiniBlocks) {
+	if !ficf.checkIfInterceptorExistsInContainer(identifierMiniBlocks, ficf.mainContainer) {
 		interceptor, err := ficf.createOneMiniBlocksInterceptor(identifierMiniBlocks)
 		if err != nil {
 			return err
@@ -756,7 +792,7 @@ func (ficf *fullSyncInterceptorsContainerFactory) createOneMiniBlocksInterceptor
 
 func (ficf *fullSyncInterceptorsContainerFactory) generateMetachainHeaderInterceptors() error {
 	identifierHdr := factory.MetachainBlocksTopic
-	if ficf.checkIfInterceptorExists(identifierHdr) {
+	if ficf.checkIfInterceptorExistsInContainer(identifierHdr, ficf.mainContainer) {
 		return nil
 	}
 
@@ -861,7 +897,7 @@ func (ficf *fullSyncInterceptorsContainerFactory) generateRewardTxInterceptors()
 
 	for idx := uint32(0); idx < numShards; idx++ {
 		identifierScr := factory.RewardsTransactionTopic + tmpSC.CommunicationIdentifier(idx)
-		if ficf.checkIfInterceptorExists(identifierScr) {
+		if ficf.checkIfInterceptorExistsInContainer(identifierScr, ficf.transactionsContainer) {
 			return nil
 		}
 
@@ -874,7 +910,7 @@ func (ficf *fullSyncInterceptorsContainerFactory) generateRewardTxInterceptors()
 		interceptorSlice[int(idx)] = interceptor
 	}
 
-	return ficf.addInterceptorsToContainers(keys, interceptorSlice)
+	return ficf.transactionsContainer.AddMultiple(keys, interceptorSlice)
 }
 
 func (ficf *fullSyncInterceptorsContainerFactory) addInterceptorsToContainers(keys []string, interceptors []process.Interceptor) error {

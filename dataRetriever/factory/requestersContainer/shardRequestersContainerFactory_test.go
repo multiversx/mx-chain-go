@@ -273,6 +273,7 @@ func getArguments() requesterscontainer.FactoryArgs {
 		ShardCoordinator:                mock.NewOneShardCoordinatorMock(),
 		MainMessenger:                   createMessengerStub(""),
 		FullArchiveMessenger:            createMessengerStub(""),
+		TransactionsMessenger:           createMessengerStub(""),
 		Marshaller:                      &mock.MarshalizerMock{},
 		Uint64ByteSliceConverter:        &mock.Uint64ByteSliceConverterMock{},
 		OutputAntifloodHandler:          &mock.P2PAntifloodHandlerStub{},

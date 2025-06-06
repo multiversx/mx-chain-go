@@ -41,6 +41,7 @@ func TestGetBroadcastMessenger_ShardShouldWork(t *testing.T) {
 	marshalizer := &mock.MarshalizerMock{}
 	hasher := &hashingMocks.HasherMock{}
 	messenger := &p2pmocks.MessengerStub{}
+	transactionsMessenger := &p2pmocks.MessengerStub{}
 	shardCoord := mock.NewMultiShardsCoordinatorMock(3)
 	shardCoord.SelfIDCalled = func() uint32 {
 		return 0
@@ -54,6 +55,7 @@ func TestGetBroadcastMessenger_ShardShouldWork(t *testing.T) {
 		marshalizer,
 		hasher,
 		messenger,
+		transactionsMessenger,
 		shardCoord,
 		peerSigHandler,
 		headersSubscriber,
@@ -72,6 +74,7 @@ func TestGetBroadcastMessenger_MetachainShouldWork(t *testing.T) {
 	marshalizer := &mock.MarshalizerMock{}
 	hasher := &hashingMocks.HasherMock{}
 	messenger := &p2pmocks.MessengerStub{}
+	transactionsMessenger := &p2pmocks.MessengerStub{}
 	shardCoord := mock.NewMultiShardsCoordinatorMock(3)
 	shardCoord.SelfIDCalled = func() uint32 {
 		return core.MetachainShardId
@@ -85,6 +88,7 @@ func TestGetBroadcastMessenger_MetachainShouldWork(t *testing.T) {
 		marshalizer,
 		hasher,
 		messenger,
+		transactionsMessenger,
 		shardCoord,
 		peerSigHandler,
 		headersSubscriber,
@@ -105,6 +109,7 @@ func TestGetBroadcastMessenger_NilShardCoordinatorShouldErr(t *testing.T) {
 	alarmSchedulerStub := &testscommon.AlarmSchedulerStub{}
 
 	bm, err := sposFactory.GetBroadcastMessenger(
+		nil,
 		nil,
 		nil,
 		nil,
@@ -132,6 +137,7 @@ func TestGetBroadcastMessenger_InvalidShardIdShouldErr(t *testing.T) {
 	alarmSchedulerStub := &testscommon.AlarmSchedulerStub{}
 
 	bm, err := sposFactory.GetBroadcastMessenger(
+		nil,
 		nil,
 		nil,
 		nil,

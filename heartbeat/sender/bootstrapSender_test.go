@@ -20,6 +20,7 @@ func createMockBootstrapSenderArgs() ArgBootstrapSender {
 	return ArgBootstrapSender{
 		MainMessenger:                      &p2pmocks.MessengerStub{},
 		FullArchiveMessenger:               &p2pmocks.MessengerStub{},
+		TransactionsMessenger:              &p2pmocks.MessengerStub{},
 		Marshaller:                         &marshallerMock.MarshalizerMock{},
 		HeartbeatTopic:                     "hb-topic",
 		HeartbeatTimeBetweenSends:          time.Second,

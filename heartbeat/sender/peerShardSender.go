@@ -22,6 +22,7 @@ const minDelayBetweenSends = time.Second
 type ArgPeerShardSender struct {
 	MainMessenger             p2p.Messenger
 	FullArchiveMessenger      p2p.Messenger
+	TransactionsMessenger     p2p.Messenger
 	Marshaller                marshal.Marshalizer
 	ShardCoordinator          sharding.Coordinator
 	TimeBetweenSends          time.Duration
@@ -32,6 +33,7 @@ type ArgPeerShardSender struct {
 type peerShardSender struct {
 	mainMessenger             p2p.Messenger
 	fullArchiveMessenger      p2p.Messenger
+	transactionsMessenger     p2p.Messenger
 	marshaller                marshal.Marshalizer
 	shardCoordinator          sharding.Coordinator
 	timeBetweenSends          time.Duration
@@ -50,6 +52,7 @@ func NewPeerShardSender(args ArgPeerShardSender) (*peerShardSender, error) {
 	pss := &peerShardSender{
 		mainMessenger:             args.MainMessenger,
 		fullArchiveMessenger:      args.FullArchiveMessenger,
+		transactionsMessenger:     args.TransactionsMessenger,
 		marshaller:                args.Marshaller,
 		shardCoordinator:          args.ShardCoordinator,
 		timeBetweenSends:          args.TimeBetweenSends,
@@ -71,6 +74,9 @@ func checkArgPeerShardSender(args ArgPeerShardSender) error {
 	}
 	if check.IfNil(args.FullArchiveMessenger) {
 		return fmt.Errorf("%w for full archive", process.ErrNilMessenger)
+	}
+	if check.IfNil(args.TransactionsMessenger) {
+		return fmt.Errorf("%w for transactions", process.ErrNilMessenger)
 	}
 	if check.IfNil(args.Marshaller) {
 		return process.ErrNilMarshalizer
@@ -140,6 +146,7 @@ func (pss *peerShardSender) broadcastShard() {
 	log.Debug("broadcast peer shard", "shard", peerShard.ShardId)
 	pss.mainMessenger.Broadcast(common.ConnectionTopic, peerShardBuff)
 	pss.fullArchiveMessenger.Broadcast(common.ConnectionTopic, peerShardBuff)
+	pss.transactionsMessenger.Broadcast(common.ConnectionTopic, peerShardBuff)
 }
 
 func (pss *peerShardSender) isCurrentNodeValidator() bool {

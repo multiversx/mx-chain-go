@@ -88,3 +88,11 @@
     #               the shard membership of the connected peers
     #   `NilListSharder` will disable conection trimming (sharder is off)
     Type = "ListsSharder"
+
+# Gossip holds the configuration for the gossip peering
+# if set to true, default values will be used (recommended)
+[Gossip]
+    UseDefaultConfig = true
+#    OptimalPeersNum = 6
+#    MinimumPeersNum = 5
+#    MaximumPeersNum = 12

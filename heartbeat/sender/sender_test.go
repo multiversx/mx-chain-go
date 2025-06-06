@@ -23,6 +23,7 @@ func createMockSenderArgs() ArgSender {
 	return ArgSender{
 		MainMessenger:                               &p2pmocks.MessengerStub{},
 		FullArchiveMessenger:                        &p2pmocks.MessengerStub{},
+		TransactionsMessenger:                       &p2pmocks.MessengerStub{},
 		Marshaller:                                  &marshallerMock.MarshalizerMock{},
 		PeerAuthenticationTopic:                     "pa-topic",
 		HeartbeatTopic:                              "hb-topic",

@@ -68,6 +68,7 @@ func createDefaultShardChainArgs() broadcast.ShardChainMessengerArgs {
 	marshalizerMock := &mock.MarshalizerMock{}
 	hasher := &hashingMocks.HasherMock{}
 	messengerMock := &p2pmocks.MessengerStub{}
+	transactionsMessengerMock := &p2pmocks.MessengerStub{}
 	shardCoordinatorMock := &mock.ShardCoordinatorMock{}
 	singleSignerMock := &mock.SingleSignerMock{}
 	headersSubscriber := &pool.HeadersPoolStub{}
@@ -83,6 +84,7 @@ func createDefaultShardChainArgs() broadcast.ShardChainMessengerArgs {
 			Marshalizer:                marshalizerMock,
 			Hasher:                     hasher,
 			Messenger:                  messengerMock,
+			TransactionsMessenger:      transactionsMessengerMock,
 			ShardCoordinator:           shardCoordinatorMock,
 			PeerSignatureHandler:       peerSigHandler,
 			HeadersSubscriber:          headersSubscriber,
@@ -125,7 +127,7 @@ func TestShardChainMessenger_NewShardChainMessengerNilMessengerShouldFail(t *tes
 	scm, err := broadcast.NewShardChainMessenger(args)
 
 	assert.Nil(t, scm)
-	assert.Equal(t, spos.ErrNilMessenger, err)
+	assert.True(t, errors.Is(err, spos.ErrNilMessenger))
 }
 
 func TestShardChainMessenger_NewShardChainMessengerNilShardCoordinatorShouldFail(t *testing.T) {
@@ -373,7 +375,7 @@ func TestShardChainMessenger_BroadcastTransactionsShouldBeCalled(t *testing.T) {
 	}
 
 	args := createDefaultShardChainArgs()
-	args.Messenger = messenger
+	args.TransactionsMessenger = messenger
 	args.KeysHandler = &testscommon.KeysHandlerStub{
 		IsOriginalPublicKeyOfTheNodeCalled: func(pkBytes []byte) bool {
 			return bytes.Equal(pkBytes, nodePkBytes)

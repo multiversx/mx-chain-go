@@ -35,8 +35,9 @@ type ArgsTestOnlyProcessingNode struct {
 	Configs      config.Configs
 	APIInterface APIConfigurator
 
-	ChanStopNodeProcess    chan endProcess.ArgEndProcess
-	SyncedBroadcastNetwork SyncedBroadcastNetworkHandler
+	ChanStopNodeProcess                chan endProcess.ArgEndProcess
+	SyncedBroadcastNetwork             SyncedBroadcastNetworkHandler
+	SyncedBroadcastTransactionsNetwork SyncedBroadcastNetworkHandler
 
 	InitialRound                int64
 	InitialNonce                uint64
@@ -128,7 +129,7 @@ func NewTestOnlyProcessingNode(args ArgsTestOnlyProcessingNode) (*testOnlyProces
 		return nil, err
 	}
 
-	instance.NetworkComponentsHolder, err = CreateNetworkComponents(args.SyncedBroadcastNetwork)
+	instance.NetworkComponentsHolder, err = CreateNetworkComponents(args.SyncedBroadcastNetwork, args.SyncedBroadcastTransactionsNetwork)
 	if err != nil {
 		return nil, err
 	}
@@ -326,6 +327,7 @@ func (node *testOnlyProcessingNode) createBroadcastMessenger() error {
 		node.CoreComponentsHolder.InternalMarshalizer(),
 		node.CoreComponentsHolder.Hasher(),
 		node.NetworkComponentsHolder.NetworkMessenger(),
+		node.NetworkComponentsHolder.TransactionsNetworkMessenger(),
 		node.ProcessComponentsHolder.ShardCoordinator(),
 		node.CryptoComponentsHolder.PeerSignatureHandler(),
 		node.DataComponentsHolder.Datapool().Headers(),

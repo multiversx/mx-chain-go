@@ -20,10 +20,11 @@ import (
 
 func createMockArgBaseTopicSender() topicsender.ArgBaseTopicSender {
 	return topicsender.ArgBaseTopicSender{
-		MainMessenger:        &p2pmocks.MessengerStub{},
-		FullArchiveMessenger: &p2pmocks.MessengerStub{},
-		TopicName:            "topic",
-		OutputAntiflooder:    &mock.P2PAntifloodHandlerStub{},
+		MainMessenger:         &p2pmocks.MessengerStub{},
+		FullArchiveMessenger:  &p2pmocks.MessengerStub{},
+		TransactionsMessenger: &p2pmocks.MessengerStub{},
+		TopicName:             "topic",
+		OutputAntiflooder:     &mock.P2PAntifloodHandlerStub{},
 		MainPreferredPeersHolder: &p2pmocks.PeersHolderStub{
 			GetCalled: func() map[uint32][]core.PeerID {
 				return map[uint32][]core.PeerID{}

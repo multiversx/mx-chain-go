@@ -25,6 +25,7 @@ type resolversContainerFactory struct {
 	shardCoordinator       sharding.Coordinator
 	mainMessenger          p2p.Messenger
 	fullArchiveMessenger   p2p.Messenger
+	transactionsMessenger  p2p.Messenger
 	marshalizer            marshal.Marshalizer
 	dataTrieContainer      common.TriesHolder
 	container              dataRetriever.ResolversContainer
@@ -38,6 +39,7 @@ type ArgsNewResolversContainerFactory struct {
 	ShardCoordinator           sharding.Coordinator
 	MainMessenger              p2p.Messenger
 	FullArchiveMessenger       p2p.Messenger
+	TransactionsMessenger      p2p.Messenger
 	Marshalizer                marshal.Marshalizer
 	DataTrieContainer          common.TriesHolder
 	ExistingResolvers          dataRetriever.ResolversContainer
@@ -57,6 +59,9 @@ func NewResolversContainerFactory(args ArgsNewResolversContainerFactory) (*resol
 	if check.IfNil(args.FullArchiveMessenger) {
 		return nil, fmt.Errorf("%w on full archive network", update.ErrNilMessenger)
 	}
+	if check.IfNil(args.TransactionsMessenger) {
+		return nil, fmt.Errorf("%w on transactions network", update.ErrNilMessenger)
+	}
 	if check.IfNil(args.Marshalizer) {
 		return nil, update.ErrNilMarshalizer
 	}
@@ -75,6 +80,7 @@ func NewResolversContainerFactory(args ArgsNewResolversContainerFactory) (*resol
 		shardCoordinator:       args.ShardCoordinator,
 		mainMessenger:          args.MainMessenger,
 		fullArchiveMessenger:   args.FullArchiveMessenger,
+		transactionsMessenger:  args.TransactionsMessenger,
 		marshalizer:            args.Marshalizer,
 		dataTrieContainer:      args.DataTrieContainer,
 		container:              args.ExistingResolvers,
@@ -152,13 +158,15 @@ func (rcf *resolversContainerFactory) createTrieNodesResolver(baseTopic string, 
 
 	arg := topicsender.ArgTopicResolverSender{
 		ArgBaseTopicSender: topicsender.ArgBaseTopicSender{
-			MainMessenger:                   rcf.mainMessenger,
-			FullArchiveMessenger:            rcf.fullArchiveMessenger,
-			TopicName:                       baseTopic,
-			OutputAntiflooder:               rcf.outputAntifloodHandler,
-			MainPreferredPeersHolder:        disabled.NewPreferredPeersHolder(),
-			FullArchivePreferredPeersHolder: disabled.NewPreferredPeersHolder(),
-			TargetShardId:                   defaultTargetShardID,
+			MainMessenger:                           rcf.mainMessenger,
+			FullArchiveMessenger:                    rcf.fullArchiveMessenger,
+			TransactionsMessenger:                   rcf.transactionsMessenger,
+			TopicName:                               baseTopic,
+			OutputAntiflooder:                       rcf.outputAntifloodHandler,
+			MainPreferredPeersHolder:                disabled.NewPreferredPeersHolder(),
+			FullArchivePreferredPeersHolder:         disabled.NewPreferredPeersHolder(),
+			TransactionsPreferredPeersHolderHandler: disabled.NewPreferredPeersHolder(),
+			TargetShardId:                           defaultTargetShardID,
 		},
 	}
 	resolverSender, err := topicsender.NewTopicResolverSender(arg)
