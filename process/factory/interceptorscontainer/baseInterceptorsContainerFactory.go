@@ -747,7 +747,6 @@ func (bicf *baseInterceptorsContainerFactory) generatePeerAuthenticationIntercep
 		return err
 	}
 
-	// TODO[Sorin]: update peer authentication requester to work on both networks
 	// for transactions interceptor a disabled peer auth cacher would be needed
 	// no need to store the messages, only needed to update the peer shard mapper
 	disabledPeerAuthCacher := disabled.NewCache()

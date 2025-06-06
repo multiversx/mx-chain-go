@@ -2,7 +2,6 @@ package factory
 
 import (
 	"fmt"
-	"strings"
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
@@ -327,8 +326,11 @@ func checkBaseParams(
 	return nil
 }
 
-func (ficf *fullSyncInterceptorsContainerFactory) checkIfInterceptorExists(identifier string) bool {
-	_, err := ficf.mainContainer.Get(identifier)
+func (ficf *fullSyncInterceptorsContainerFactory) checkIfInterceptorExistsInContainer(
+	identifier string,
+	container process.InterceptorsContainer,
+) bool {
+	_, err := container.Get(identifier)
 	return err == nil
 }
 
@@ -345,7 +347,7 @@ func (ficf *fullSyncInterceptorsContainerFactory) generateShardHeaderInterceptor
 	// wire up to topics: shardBlocks_0_META, shardBlocks_1_META ...
 	for idx := uint32(0); idx < numShards; idx++ {
 		identifierHeader := factory.ShardBlocksTopic + tmpSC.CommunicationIdentifier(idx)
-		if ficf.checkIfInterceptorExists(identifierHeader) {
+		if ficf.checkIfInterceptorExistsInContainer(identifierHeader, ficf.mainContainer) {
 			continue
 		}
 
@@ -411,7 +413,7 @@ func (ficf *fullSyncInterceptorsContainerFactory) generateUnsignedTxsInterceptor
 
 	for idx := uint32(0); idx < numShards; idx++ {
 		identifierScr := factory.UnsignedTransactionTopic + shardC.CommunicationIdentifier(idx)
-		if ficf.checkIfInterceptorExists(identifierScr) {
+		if ficf.checkIfInterceptorExistsInContainer(identifierScr, ficf.transactionsContainer) {
 			continue
 		}
 
@@ -425,7 +427,7 @@ func (ficf *fullSyncInterceptorsContainerFactory) generateUnsignedTxsInterceptor
 	}
 
 	identifierScr := factory.UnsignedTransactionTopic + shardC.CommunicationIdentifier(core.MetachainShardId)
-	if !ficf.checkIfInterceptorExists(identifierScr) {
+	if !ficf.checkIfInterceptorExistsInContainer(identifierScr, ficf.transactionsContainer) {
 		interceptor, err := ficf.createOneUnsignedTxInterceptor(identifierScr)
 		if err != nil {
 			return err
@@ -435,7 +437,7 @@ func (ficf *fullSyncInterceptorsContainerFactory) generateUnsignedTxsInterceptor
 		interceptorsSlice[numShards] = interceptor
 	}
 
-	return ficf.addInterceptorsToContainers(keys, interceptorsSlice)
+	return ficf.transactionsContainer.AddMultiple(keys, interceptorsSlice)
 }
 
 func (ficf *fullSyncInterceptorsContainerFactory) generateTrieNodesInterceptors() error {
@@ -446,7 +448,7 @@ func (ficf *fullSyncInterceptorsContainerFactory) generateTrieNodesInterceptors(
 
 	for i := uint32(0); i < numShards; i++ {
 		identifierTrieNodes := factory.AccountTrieNodesTopic + core.CommunicationIdentifierBetweenShards(i, core.MetachainShardId)
-		if ficf.checkIfInterceptorExists(identifierTrieNodes) {
+		if ficf.checkIfInterceptorExistsInContainer(identifierTrieNodes, ficf.mainContainer) {
 			continue
 		}
 
@@ -460,7 +462,7 @@ func (ficf *fullSyncInterceptorsContainerFactory) generateTrieNodesInterceptors(
 	}
 
 	identifierTrieNodes := factory.ValidatorTrieNodesTopic + core.CommunicationIdentifierBetweenShards(core.MetachainShardId, core.MetachainShardId)
-	if !ficf.checkIfInterceptorExists(identifierTrieNodes) {
+	if !ficf.checkIfInterceptorExistsInContainer(identifierTrieNodes, ficf.mainContainer) {
 		interceptor, err := ficf.createOneTrieNodesInterceptor(identifierTrieNodes)
 		if err != nil {
 			return err
@@ -471,7 +473,7 @@ func (ficf *fullSyncInterceptorsContainerFactory) generateTrieNodesInterceptors(
 	}
 
 	identifierTrieNodes = factory.AccountTrieNodesTopic + core.CommunicationIdentifierBetweenShards(core.MetachainShardId, core.MetachainShardId)
-	if !ficf.checkIfInterceptorExists(identifierTrieNodes) {
+	if !ficf.checkIfInterceptorExistsInContainer(identifierTrieNodes, ficf.mainContainer) {
 		interceptor, err := ficf.createOneTrieNodesInterceptor(identifierTrieNodes)
 		if err != nil {
 			return err
@@ -489,19 +491,6 @@ func (ficf *fullSyncInterceptorsContainerFactory) createTopicAndAssignHandler(
 	interceptor process.Interceptor,
 	createChannel bool,
 ) (process.Interceptor, error) {
-
-	if strings.Contains(topic, factory.TransactionTopic) {
-		err := createTopicAndAssignHandlerOnMessenger(topic, interceptor, createChannel, ficf.transactionsMessenger)
-		if err != nil {
-			return nil, err
-		}
-
-		// TODO[Sorin]: add also a fullArchiveTransactionsMessenger for these requests
-		// not needed yet for poc
-
-		return interceptor, nil
-	}
-
 	err := createTopicAndAssignHandlerOnMessenger(topic, interceptor, createChannel, ficf.mainMessenger)
 	if err != nil {
 		return nil, err
@@ -542,7 +531,7 @@ func (ficf *fullSyncInterceptorsContainerFactory) generateTxInterceptors() error
 
 	for idx := uint32(0); idx < numShards; idx++ {
 		identifierTx := factory.TransactionTopic + shardC.CommunicationIdentifier(idx)
-		if ficf.checkIfInterceptorExists(identifierTx) {
+		if ficf.checkIfInterceptorExistsInContainer(identifierTx, ficf.transactionsContainer) {
 			continue
 		}
 
@@ -557,7 +546,7 @@ func (ficf *fullSyncInterceptorsContainerFactory) generateTxInterceptors() error
 
 	// tx interceptor for metachain topic
 	identifierTx := factory.TransactionTopic + shardC.CommunicationIdentifier(core.MetachainShardId)
-	if !ficf.checkIfInterceptorExists(identifierTx) {
+	if !ficf.checkIfInterceptorExistsInContainer(identifierTx, ficf.transactionsContainer) {
 		interceptor, err := ficf.createOneTxInterceptor(identifierTx)
 		if err != nil {
 			return err
@@ -567,7 +556,7 @@ func (ficf *fullSyncInterceptorsContainerFactory) generateTxInterceptors() error
 		interceptorSlice = append(interceptorSlice, interceptor)
 	}
 
-	return ficf.addInterceptorsToContainers(keys, interceptorSlice)
+	return ficf.transactionsContainer.AddMultiple(keys, interceptorSlice)
 }
 
 func (ficf *fullSyncInterceptorsContainerFactory) createOneTxInterceptor(topic string) (process.Interceptor, error) {
@@ -621,7 +610,12 @@ func (ficf *fullSyncInterceptorsContainerFactory) createOneTxInterceptor(topic s
 		return nil, err
 	}
 
-	return ficf.createTopicAndAssignHandler(topic, interceptor, true)
+	err = createTopicAndAssignHandlerOnMessenger(topic, interceptor, true, ficf.transactionsMessenger)
+	if err != nil {
+		return nil, err
+	}
+
+	return interceptor, nil
 }
 
 func (ficf *fullSyncInterceptorsContainerFactory) createOneUnsignedTxInterceptor(topic string) (process.Interceptor, error) {
@@ -663,7 +657,12 @@ func (ficf *fullSyncInterceptorsContainerFactory) createOneUnsignedTxInterceptor
 		return nil, err
 	}
 
-	return ficf.createTopicAndAssignHandler(topic, interceptor, true)
+	err = createTopicAndAssignHandlerOnMessenger(topic, interceptor, true, ficf.transactionsMessenger)
+	if err != nil {
+		return nil, err
+	}
+
+	return interceptor, nil
 }
 
 func (ficf *fullSyncInterceptorsContainerFactory) createOneRewardTxInterceptor(topic string) (process.Interceptor, error) {
@@ -705,7 +704,12 @@ func (ficf *fullSyncInterceptorsContainerFactory) createOneRewardTxInterceptor(t
 		return nil, err
 	}
 
-	return ficf.createTopicAndAssignHandler(topic, interceptor, true)
+	err = createTopicAndAssignHandlerOnMessenger(topic, interceptor, true, ficf.transactionsMessenger)
+	if err != nil {
+		return nil, err
+	}
+
+	return interceptor, nil
 }
 
 func (ficf *fullSyncInterceptorsContainerFactory) generateMiniBlocksInterceptors() error {
@@ -716,7 +720,7 @@ func (ficf *fullSyncInterceptorsContainerFactory) generateMiniBlocksInterceptors
 
 	for idx := uint32(0); idx < numShards; idx++ {
 		identifierMiniBlocks := factory.MiniBlocksTopic + shardC.CommunicationIdentifier(idx)
-		if ficf.checkIfInterceptorExists(identifierMiniBlocks) {
+		if ficf.checkIfInterceptorExistsInContainer(identifierMiniBlocks, ficf.mainContainer) {
 			continue
 		}
 
@@ -730,7 +734,7 @@ func (ficf *fullSyncInterceptorsContainerFactory) generateMiniBlocksInterceptors
 	}
 
 	identifierMiniBlocks := factory.MiniBlocksTopic + shardC.CommunicationIdentifier(core.MetachainShardId)
-	if !ficf.checkIfInterceptorExists(identifierMiniBlocks) {
+	if !ficf.checkIfInterceptorExistsInContainer(identifierMiniBlocks, ficf.mainContainer) {
 		interceptor, err := ficf.createOneMiniBlocksInterceptor(identifierMiniBlocks)
 		if err != nil {
 			return err
@@ -788,7 +792,7 @@ func (ficf *fullSyncInterceptorsContainerFactory) createOneMiniBlocksInterceptor
 
 func (ficf *fullSyncInterceptorsContainerFactory) generateMetachainHeaderInterceptors() error {
 	identifierHdr := factory.MetachainBlocksTopic
-	if ficf.checkIfInterceptorExists(identifierHdr) {
+	if ficf.checkIfInterceptorExistsInContainer(identifierHdr, ficf.mainContainer) {
 		return nil
 	}
 
@@ -893,7 +897,7 @@ func (ficf *fullSyncInterceptorsContainerFactory) generateRewardTxInterceptors()
 
 	for idx := uint32(0); idx < numShards; idx++ {
 		identifierScr := factory.RewardsTransactionTopic + tmpSC.CommunicationIdentifier(idx)
-		if ficf.checkIfInterceptorExists(identifierScr) {
+		if ficf.checkIfInterceptorExistsInContainer(identifierScr, ficf.transactionsContainer) {
 			return nil
 		}
 
@@ -906,7 +910,7 @@ func (ficf *fullSyncInterceptorsContainerFactory) generateRewardTxInterceptors()
 		interceptorSlice[int(idx)] = interceptor
 	}
 
-	return ficf.addInterceptorsToContainers(keys, interceptorSlice)
+	return ficf.transactionsContainer.AddMultiple(keys, interceptorSlice)
 }
 
 func (ficf *fullSyncInterceptorsContainerFactory) addInterceptorsToContainers(keys []string, interceptors []process.Interceptor) error {

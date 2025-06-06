@@ -115,6 +115,10 @@ func (trs *topicRequestSender) SendOnRequestTopic(rd *dataRetriever.RequestData,
 		return err
 	}
 
+	// TODO[Sorin]: fix this method to:
+	// 	1. work with preferred peers on all networks
+	//	2. work for full archive transactions
+
 	topicToSendRequest := trs.topicName + core.TopicRequestSuffix
 
 	var numSentIntra, numSentCross int
@@ -122,7 +126,7 @@ func (trs *topicRequestSender) SendOnRequestTopic(rd *dataRetriever.RequestData,
 	fullHistoryPeers := make([]core.PeerID, 0)
 	requestedNetworks := make([]string, 0)
 	if !trs.currentNetworkEpochProviderHandler.EpochIsActiveInNetwork(rd.Epoch) {
-		preferredPeer := trs.getPreferredFullArchivePeer()
+		preferredPeer := trs.getPreferredPeerOnNetwork(trs.fullArchivePreferredPeersHolderHandler)
 		fullHistoryPeers = trs.fullArchiveMessenger.ConnectedPeers()
 
 		numSentIntra = trs.sendOnTopic(
@@ -294,8 +298,8 @@ func (trs *topicRequestSender) getPreferredPeersInShard(shardID uint32) ([]core.
 	return peers, true
 }
 
-func (trs *topicRequestSender) getPreferredFullArchivePeer() core.PeerID {
-	preferredPeersMap := trs.fullArchivePreferredPeersHolderHandler.Get()
+func (trs *topicRequestSender) getPreferredPeerOnNetwork(preferredPeersHandler dataRetriever.PreferredPeersHolderHandler) core.PeerID {
+	preferredPeersMap := preferredPeersHandler.Get()
 	preferredPeersSlice := mapToSlice(preferredPeersMap)
 
 	if len(preferredPeersSlice) == 0 {

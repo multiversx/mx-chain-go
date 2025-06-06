@@ -22,40 +22,43 @@ const (
 
 // ArgBaseTopicSender is the base DTO used to create a new topic sender instance
 type ArgBaseTopicSender struct {
-	MainMessenger                   p2p.Messenger
-	FullArchiveMessenger            p2p.Messenger
-	TransactionsMessenger           p2p.Messenger
-	TopicName                       string
-	OutputAntiflooder               dataRetriever.P2PAntifloodHandler
-	MainPreferredPeersHolder        dataRetriever.PreferredPeersHolderHandler
-	FullArchivePreferredPeersHolder dataRetriever.PreferredPeersHolderHandler
-	TargetShardId                   uint32
+	MainMessenger                           p2p.Messenger
+	FullArchiveMessenger                    p2p.Messenger
+	TransactionsMessenger                   p2p.Messenger
+	TopicName                               string
+	OutputAntiflooder                       dataRetriever.P2PAntifloodHandler
+	MainPreferredPeersHolder                dataRetriever.PreferredPeersHolderHandler
+	FullArchivePreferredPeersHolder         dataRetriever.PreferredPeersHolderHandler
+	TransactionsPreferredPeersHolderHandler dataRetriever.PreferredPeersHolderHandler
+	TargetShardId                           uint32
 }
 
 type baseTopicSender struct {
-	mainMessenger                          p2p.Messenger
-	fullArchiveMessenger                   p2p.Messenger
-	transactionsMessenger                  p2p.Messenger
-	topicName                              string
-	outputAntiflooder                      dataRetriever.P2PAntifloodHandler
-	mutDebugHandler                        sync.RWMutex
-	debugHandler                           dataRetriever.DebugHandler
-	mainPreferredPeersHolderHandler        dataRetriever.PreferredPeersHolderHandler
-	fullArchivePreferredPeersHolderHandler dataRetriever.PreferredPeersHolderHandler
-	targetShardId                          uint32
+	mainMessenger                           p2p.Messenger
+	fullArchiveMessenger                    p2p.Messenger
+	transactionsMessenger                   p2p.Messenger
+	topicName                               string
+	outputAntiflooder                       dataRetriever.P2PAntifloodHandler
+	mutDebugHandler                         sync.RWMutex
+	debugHandler                            dataRetriever.DebugHandler
+	mainPreferredPeersHolderHandler         dataRetriever.PreferredPeersHolderHandler
+	fullArchivePreferredPeersHolderHandler  dataRetriever.PreferredPeersHolderHandler
+	transactionsPreferredPeersHolderHandler dataRetriever.PreferredPeersHolderHandler
+	targetShardId                           uint32
 }
 
 func createBaseTopicSender(args ArgBaseTopicSender) *baseTopicSender {
 	return &baseTopicSender{
-		mainMessenger:                          args.MainMessenger,
-		fullArchiveMessenger:                   args.FullArchiveMessenger,
-		transactionsMessenger:                  args.TransactionsMessenger,
-		topicName:                              args.TopicName,
-		outputAntiflooder:                      args.OutputAntiflooder,
-		debugHandler:                           handler.NewDisabledInterceptorDebugHandler(),
-		mainPreferredPeersHolderHandler:        args.MainPreferredPeersHolder,
-		fullArchivePreferredPeersHolderHandler: args.FullArchivePreferredPeersHolder,
-		targetShardId:                          args.TargetShardId,
+		mainMessenger:                           args.MainMessenger,
+		fullArchiveMessenger:                    args.FullArchiveMessenger,
+		transactionsMessenger:                   args.TransactionsMessenger,
+		transactionsPreferredPeersHolderHandler: args.TransactionsPreferredPeersHolderHandler,
+		topicName:                               args.TopicName,
+		outputAntiflooder:                       args.OutputAntiflooder,
+		debugHandler:                            handler.NewDisabledInterceptorDebugHandler(),
+		mainPreferredPeersHolderHandler:         args.MainPreferredPeersHolder,
+		fullArchivePreferredPeersHolderHandler:  args.FullArchivePreferredPeersHolder,
+		targetShardId:                           args.TargetShardId,
 	}
 }
 
@@ -78,6 +81,9 @@ func checkBaseTopicSenderArgs(args ArgBaseTopicSender) error {
 	if check.IfNil(args.FullArchivePreferredPeersHolder) {
 		return fmt.Errorf("%w on full archive network", dataRetriever.ErrNilPreferredPeersHolder)
 	}
+	if check.IfNil(args.TransactionsPreferredPeersHolderHandler) {
+		return fmt.Errorf("%w on transactions network", dataRetriever.ErrNilPreferredPeersHolder)
+	}
 	return nil
 }
 
@@ -95,7 +101,8 @@ func (baseSender *baseTopicSender) sendToConnectedPeer(
 
 	isPreferredOnMain := baseSender.mainPreferredPeersHolderHandler.Contains(peer)
 	isPreferredOnFullArchive := baseSender.fullArchivePreferredPeersHolderHandler.Contains(peer)
-	shouldAvoidAntiFloodCheck := isPreferredOnMain || isPreferredOnFullArchive
+	isPreferredOnTransactions := baseSender.transactionsPreferredPeersHolderHandler.Contains(peer)
+	shouldAvoidAntiFloodCheck := isPreferredOnMain || isPreferredOnFullArchive || isPreferredOnTransactions
 	if shouldAvoidAntiFloodCheck {
 		return messenger.SendToConnectedPeer(topic, buff, peer)
 	}
