@@ -12,5 +12,7 @@ jobs:
         runs-on: ubuntu-latest
         steps:
             - name: Trigger automatic auditing
+              env:
+                  GH_TOKEN: ${{ github.token }}
               run: |
                   gh workflow run sample.yml --repo multiversx/mx-auto-audit
