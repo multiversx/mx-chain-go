@@ -13,15 +13,19 @@ type CacheConfig struct {
 	Shards               uint32
 }
 
+// TxCacheBoundsConfig will map the transactions cache bounds config
+type TxCacheBoundsConfig struct {
+	MaxNumBytesPerSenderUpperBound uint32
+}
+
 // MempoolSelectionConfig will map the mempool selection config
 type MempoolSelectionConfig struct {
 	SelectionGasBandwidthIncreasePercent          uint32
 	SelectionGasBandwidthIncreaseScheduledPercent uint32
 	SelectionMaxNumTxs                            int
 	SelectionLoopMaximumDuration                  int
-	SelectionGasRequested                         uint64
-	MaxNumBytesPerSenderUpperBound                uint32
 	SelectionLoopDurationCheckInterval            uint32
+	SelectionGasRequested                         uint64
 }
 
 // HeadersPoolConfig will map the headers cache configuration
@@ -189,6 +193,7 @@ type Config struct {
 	TxBlockBodyDataPool         CacheConfig
 	PeerBlockBodyDataPool       CacheConfig
 	TxDataPool                  CacheConfig
+	TxCacheBounds               TxCacheBoundsConfig
 	MempoolSelection            MempoolSelectionConfig
 	UnsignedTransactionDataPool CacheConfig
 	RewardTransactionDataPool   CacheConfig
