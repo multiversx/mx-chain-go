@@ -1,0 +1,16 @@
+name: Automatic auditing (proxy workflow)
+
+on:
+    pull_request:
+    workflow_dispatch:
+
+permissions:
+    contents: read
+
+jobs:
+    forward-request:
+        runs-on: ubuntu-latest
+        steps:
+            - name: Trigger automatic auditing
+              run: |
+                  gh workflow run sample.yml --repo multiversx/mx-auto-audit
