@@ -3,7 +3,6 @@ package trie
 import (
 	"context"
 	"errors"
-	"github.com/multiversx/mx-chain-go/trie/keyBuilder"
 	"sync"
 	"testing"
 	"time"
@@ -21,6 +20,7 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
 	trieMock "github.com/multiversx/mx-chain-go/testscommon/trie"
+	"github.com/multiversx/mx-chain-go/trie/keyBuilder"
 	"github.com/multiversx/mx-chain-go/trie/statistics"
 )
 
