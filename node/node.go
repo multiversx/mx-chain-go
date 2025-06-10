@@ -679,6 +679,10 @@ func (n *Node) GetAllESDTTokens(address string, options api.AccountQueryOptions,
 			continue
 		}
 
+		if esdtToken.Value.Cmp(big.NewInt(0)) <= 0 {
+			continue
+		}
+
 		if esdtToken.TokenMetaData != nil {
 			esdtTokenCreatorAddr, errEncode := n.coreComponents.AddressPubKeyConverter().Encode(esdtToken.TokenMetaData.Creator)
 			if errEncode != nil {
