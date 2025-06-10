@@ -14,6 +14,8 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+const selectionLoopDurationCheckInterval = 10
+
 func TestTxCache_SelectTransactions_Dummy(t *testing.T) {
 	t.Run("all having same PPU", func(t *testing.T) {
 		cache := newUnconstrainedCacheToTest()
@@ -290,7 +292,7 @@ func TestTxCache_SelectTransactions_WhenTransactionsAddedInReversedNonceOrder(t 
 func TestTxCache_selectTransactionsFromBunches(t *testing.T) {
 	t.Run("empty cache", func(t *testing.T) {
 		session := txcachemocks.NewSelectionSessionMock()
-		selected, accumulatedGas := selectTransactionsFromBunches(session, []bunchOfTransactions{}, 10_000_000_000, math.MaxInt, selectionLoopMaximumDuration)
+		selected, accumulatedGas := selectTransactionsFromBunches(session, []bunchOfTransactions{}, 10_000_000_000, math.MaxInt, selectionLoopMaximumDuration, selectionLoopDurationCheckInterval)
 
 		require.Equal(t, 0, len(selected))
 		require.Equal(t, uint64(0), accumulatedGas)
@@ -408,7 +410,7 @@ func TestBenchmarkTxCache_selectTransactionsFromBunches(t *testing.T) {
 		bunches := createBunchesOfTransactionsWithUniformDistribution(1000, 1000)
 
 		sw.Start(t.Name())
-		selected, accumulatedGas := selectTransactionsFromBunches(session, bunches, 10_000_000_000, math.MaxInt, selectionLoopMaximumDuration)
+		selected, accumulatedGas := selectTransactionsFromBunches(session, bunches, 10_000_000_000, math.MaxInt, selectionLoopMaximumDuration, selectionLoopDurationCheckInterval)
 		sw.Stop(t.Name())
 
 		require.Equal(t, 200000, len(selected))
@@ -420,7 +422,7 @@ func TestBenchmarkTxCache_selectTransactionsFromBunches(t *testing.T) {
 		bunches := createBunchesOfTransactionsWithUniformDistribution(1000, 1000)
 
 		sw.Start(t.Name())
-		selected, accumulatedGas := selectTransactionsFromBunches(session, bunches, 10_000_000_000, math.MaxInt, selectionLoopMaximumDuration)
+		selected, accumulatedGas := selectTransactionsFromBunches(session, bunches, 10_000_000_000, math.MaxInt, selectionLoopMaximumDuration, selectionLoopDurationCheckInterval)
 		sw.Stop(t.Name())
 
 		require.Equal(t, 200000, len(selected))
@@ -432,7 +434,7 @@ func TestBenchmarkTxCache_selectTransactionsFromBunches(t *testing.T) {
 		bunches := createBunchesOfTransactionsWithUniformDistribution(100000, 3)
 
 		sw.Start(t.Name())
-		selected, accumulatedGas := selectTransactionsFromBunches(session, bunches, 10_000_000_000, math.MaxInt, selectionLoopMaximumDuration)
+		selected, accumulatedGas := selectTransactionsFromBunches(session, bunches, 10_000_000_000, math.MaxInt, selectionLoopMaximumDuration, selectionLoopDurationCheckInterval)
 		sw.Stop(t.Name())
 
 		require.Equal(t, 200000, len(selected))
@@ -444,7 +446,7 @@ func TestBenchmarkTxCache_selectTransactionsFromBunches(t *testing.T) {
 		bunches := createBunchesOfTransactionsWithUniformDistribution(300000, 1)
 
 		sw.Start(t.Name())
-		selected, accumulatedGas := selectTransactionsFromBunches(session, bunches, 10_000_000_000, math.MaxInt, selectionLoopMaximumDuration)
+		selected, accumulatedGas := selectTransactionsFromBunches(session, bunches, 10_000_000_000, math.MaxInt, selectionLoopMaximumDuration, selectionLoopDurationCheckInterval)
 		sw.Stop(t.Name())
 
 		require.Equal(t, 200000, len(selected))
@@ -473,7 +475,7 @@ func TestTxCache_selectTransactionsFromBunches_loopBreaks_whenTakesTooLong(t *te
 	t.Run("numSenders = 300000, numTransactions = 1", func(t *testing.T) {
 		session := txcachemocks.NewSelectionSessionMock()
 		bunches := createBunchesOfTransactionsWithUniformDistribution(300000, 1)
-		selected, accumulatedGas := selectTransactionsFromBunches(session, bunches, 10_000_000_000, 50_000, 1*time.Millisecond)
+		selected, accumulatedGas := selectTransactionsFromBunches(session, bunches, 10_000_000_000, 50_000, 1*time.Millisecond, selectionLoopDurationCheckInterval)
 
 		require.Less(t, len(selected), 50_000)
 		require.Less(t, int(accumulatedGas), 10_000_000_000)
@@ -482,15 +484,16 @@ func TestTxCache_selectTransactionsFromBunches_loopBreaks_whenTakesTooLong(t *te
 
 func TestBenchmarkTxCache_doSelectTransactions(t *testing.T) {
 	config := ConfigSourceMe{
-		Name:                           "untitled",
-		NumChunks:                      16,
-		NumBytesThreshold:              1000000000,
-		NumBytesPerSenderThreshold:     maxNumBytesPerSenderUpperBoundTest,
-		CountThreshold:                 300001,
-		CountPerSenderThreshold:        math.MaxUint32,
-		EvictionEnabled:                false,
-		NumItemsToPreemptivelyEvict:    1,
-		MaxNumBytesPerSenderUpperBound: maxNumBytesPerSenderUpperBoundTest,
+		Name:                               "untitled",
+		NumChunks:                          16,
+		NumBytesThreshold:                  1000000000,
+		NumBytesPerSenderThreshold:         maxNumBytesPerSenderUpperBoundTest,
+		CountThreshold:                     300001,
+		CountPerSenderThreshold:            math.MaxUint32,
+		EvictionEnabled:                    false,
+		NumItemsToPreemptivelyEvict:        1,
+		MaxNumBytesPerSenderUpperBound:     maxNumBytesPerSenderUpperBoundTest,
+		SelectionLoopDurationCheckInterval: selectionLoopDurationCheckInterval,
 	}
 
 	host := txcachemocks.NewMempoolHostMock()

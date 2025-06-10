@@ -271,3 +271,6 @@ var ErrEquivalentProofsNotFound = errors.New("equivalent proof not found")
 
 // ErrNilEnableEpochsHandler signals that a nil enable epochs handler has been provided
 var ErrNilEnableEpochsHandler = errors.New("nil enable epochs handler")
+
+// ErrBadSelectionLoopDurationCheckInterval signals a bad SelectionLoopDurationCheckInterval
+var ErrBadSelectionLoopDurationCheckInterval = errors.New("bad selection loop duration check interval")

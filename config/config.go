@@ -20,6 +20,7 @@ type MempoolSelectionConfig struct {
 	SelectionMaxNumTxs                            int
 	SelectionLoopMaximumDuration                  int
 	MaxNumBytesPerSenderUpperBound                uint32
+	SelectionLoopDurationCheckInterval            uint32
 }
 
 // HeadersPoolConfig will map the headers cache configuration
