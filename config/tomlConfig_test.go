@@ -167,6 +167,8 @@ func TestTomlParser(t *testing.T) {
 			SelectionLoopMaximumDuration:                  250,
 			SelectionGasBandwidthIncreasePercent:          400,
 			SelectionGasBandwidthIncreaseScheduledPercent: 260,
+			SelectionLoopDurationCheckInterval:            10,
+			MaxNumBytesPerSenderUpperBound:                33_554_432,
 		},
 	}
 	testString := `
@@ -225,6 +227,8 @@ func TestTomlParser(t *testing.T) {
 	SelectionLoopMaximumDuration = 250
 	SelectionGasBandwidthIncreasePercent = 400
 	SelectionGasBandwidthIncreaseScheduledPercent = 260
+	MaxNumBytesPerSenderUpperBound = 33_554_432
+	SelectionLoopDurationCheckInterval = 10
 
 [VirtualMachine]
     [VirtualMachine.Execution]

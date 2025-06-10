@@ -11,11 +11,13 @@ import (
 
 // ArgShardedTxPool is the argument for ShardedTxPool's constructor
 type ArgShardedTxPool struct {
-	Config         storageunit.CacheConfig
-	TxGasHandler   txGasHandler
-	Marshalizer    marshal.Marshalizer
-	NumberOfShards uint32
-	SelfShardID    uint32
+	Config                             storageunit.CacheConfig
+	TxGasHandler                       txGasHandler
+	Marshalizer                        marshal.Marshalizer
+	NumberOfShards                     uint32
+	SelfShardID                        uint32
+	MaxNumBytesPerSenderUpperBound     uint32
+	SelectionLoopDurationCheckInterval uint32
 }
 
 // TODO: Upon further analysis and brainstorming, add some sensible minimum accepted values for the appropriate fields.
@@ -45,6 +47,10 @@ func (args *ArgShardedTxPool) verify() error {
 	}
 	if args.NumberOfShards == 0 {
 		return fmt.Errorf("%w: NumberOfShards is not valid", dataRetriever.ErrCacheConfigInvalidSharding)
+	}
+
+	if args.SelectionLoopDurationCheckInterval == 0 {
+		return fmt.Errorf("%w: SelectionLoopDurationCheckInterval is not valid", dataRetriever.ErrBadSelectionLoopDurationCheckInterval)
 	}
 
 	return nil

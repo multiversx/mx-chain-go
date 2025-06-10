@@ -8,7 +8,8 @@ import (
 func (cache *TxCache) doSelectTransactions(session SelectionSession, gasRequested uint64, maxNum int, selectionLoopMaximumDuration time.Duration) (bunchOfTransactions, uint64) {
 	bunches := cache.acquireBunchesOfTransactions()
 
-	return selectTransactionsFromBunches(session, bunches, gasRequested, maxNum, selectionLoopMaximumDuration)
+	return selectTransactionsFromBunches(session, bunches, gasRequested,
+		maxNum, selectionLoopMaximumDuration, cache.config.SelectionLoopDurationCheckInterval)
 }
 
 func (cache *TxCache) acquireBunchesOfTransactions() []bunchOfTransactions {
@@ -23,7 +24,9 @@ func (cache *TxCache) acquireBunchesOfTransactions() []bunchOfTransactions {
 }
 
 // Selection tolerates concurrent transaction additions / removals.
-func selectTransactionsFromBunches(session SelectionSession, bunches []bunchOfTransactions, gasRequested uint64, maxNum int, selectionLoopMaximumDuration time.Duration) (bunchOfTransactions, uint64) {
+func selectTransactionsFromBunches(session SelectionSession, bunches []bunchOfTransactions,
+	gasRequested uint64, maxNum int, selectionLoopMaximumDuration time.Duration,
+	selectionLoopDurationCheckInterval uint32) (bunchOfTransactions, uint64) {
 	selectedTransactions := make(bunchOfTransactions, 0, initialCapacityOfSelectionSlice)
 	sessionWrapper := newSelectionSessionWrapper(session)
 
@@ -57,7 +60,7 @@ func selectTransactionsFromBunches(session SelectionSession, bunches []bunchOfTr
 		if len(selectedTransactions) >= maxNum {
 			break
 		}
-		if len(selectedTransactions)%selectionLoopDurationCheckInterval == 0 {
+		if len(selectedTransactions)%int(selectionLoopDurationCheckInterval) == 0 {
 			if time.Since(selectionLoopStartTime) > selectionLoopMaximumDuration {
 				logSelect.Debug("TxCache.selectTransactionsFromBunches, selection loop timeout", "duration", time.Since(selectionLoopStartTime))
 				break

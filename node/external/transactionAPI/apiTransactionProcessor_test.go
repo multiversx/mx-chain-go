@@ -878,13 +878,14 @@ func TestApiTransactionProcessor_GetTransactionsPoolForSender(t *testing.T) {
 	txHash0, txHash1, txHash2 := []byte("txHash0"), []byte("txHash1"), []byte("txHash2")
 	sender := "alice"
 	txCacheIntraShard, err := txcache.NewTxCache(txcache.ConfigSourceMe{
-		Name:                        "test",
-		NumChunks:                   4,
-		NumBytesThreshold:           1_048_576, // 1 MB
-		NumBytesPerSenderThreshold:  1_048_576, // 1 MB
-		CountThreshold:              math.MaxUint32,
-		CountPerSenderThreshold:     math.MaxUint32,
-		NumItemsToPreemptivelyEvict: 1,
+		Name:                           "test",
+		NumChunks:                      4,
+		NumBytesThreshold:              1_048_576, // 1 MB
+		NumBytesPerSenderThreshold:     1_048_576, // 1 MB
+		CountThreshold:                 math.MaxUint32,
+		CountPerSenderThreshold:        math.MaxUint32,
+		NumItemsToPreemptivelyEvict:    1,
+		MaxNumBytesPerSenderUpperBound: 33_554_432,
 	}, txcachemocks.NewMempoolHostMock())
 
 	require.NoError(t, err)
@@ -895,13 +896,14 @@ func TestApiTransactionProcessor_GetTransactionsPoolForSender(t *testing.T) {
 
 	txHash3, txHash4 := []byte("txHash3"), []byte("txHash4")
 	txCacheWithMeta, err := txcache.NewTxCache(txcache.ConfigSourceMe{
-		Name:                        "test-meta",
-		NumChunks:                   4,
-		NumBytesThreshold:           1_048_576, // 1 MB
-		NumBytesPerSenderThreshold:  1_048_576, // 1 MB
-		CountThreshold:              math.MaxUint32,
-		CountPerSenderThreshold:     math.MaxUint32,
-		NumItemsToPreemptivelyEvict: 1,
+		Name:                           "test-meta",
+		NumChunks:                      4,
+		NumBytesThreshold:              1_048_576, // 1 MB
+		NumBytesPerSenderThreshold:     1_048_576, // 1 MB
+		CountThreshold:                 math.MaxUint32,
+		CountPerSenderThreshold:        math.MaxUint32,
+		NumItemsToPreemptivelyEvict:    1,
+		MaxNumBytesPerSenderUpperBound: 33_554_432,
 	}, txcachemocks.NewMempoolHostMock())
 	txCacheWithMeta.AddTx(createTx(txHash3, sender, 4))
 	txCacheWithMeta.AddTx(createTx(txHash4, sender, 5))
@@ -981,13 +983,14 @@ func TestApiTransactionProcessor_GetLastPoolNonceForSender(t *testing.T) {
 	sender := "alice"
 	lastNonce := uint64(10)
 	txCacheIntraShard, _ := txcache.NewTxCache(txcache.ConfigSourceMe{
-		Name:                        "test",
-		NumChunks:                   4,
-		NumBytesThreshold:           1_048_576, // 1 MB
-		NumBytesPerSenderThreshold:  1_048_576, // 1 MB
-		CountThreshold:              math.MaxUint32,
-		CountPerSenderThreshold:     math.MaxUint32,
-		NumItemsToPreemptivelyEvict: 1,
+		Name:                           "test",
+		NumChunks:                      4,
+		NumBytesThreshold:              1_048_576, // 1 MB
+		NumBytesPerSenderThreshold:     1_048_576, // 1 MB
+		CountThreshold:                 math.MaxUint32,
+		CountPerSenderThreshold:        math.MaxUint32,
+		NumItemsToPreemptivelyEvict:    1,
+		MaxNumBytesPerSenderUpperBound: 33_554_432,
 	}, txcachemocks.NewMempoolHostMock())
 	txCacheIntraShard.AddTx(createTx(txHash2, sender, 3))
 	txCacheIntraShard.AddTx(createTx(txHash0, sender, 1))
@@ -1033,25 +1036,27 @@ func TestApiTransactionProcessor_GetTransactionsPoolNonceGapsForSender(t *testin
 	txHash1, txHash2, txHash3, txHash4 := []byte("txHash1"), []byte("txHash2"), []byte("txHash3"), []byte("txHash4")
 	sender := "alice"
 	txCacheIntraShard, err := txcache.NewTxCache(txcache.ConfigSourceMe{
-		Name:                        "test",
-		NumChunks:                   4,
-		NumBytesThreshold:           1_048_576, // 1 MB
-		NumBytesPerSenderThreshold:  1_048_576, // 1 MB
-		CountThreshold:              math.MaxUint32,
-		CountPerSenderThreshold:     math.MaxUint32,
-		NumItemsToPreemptivelyEvict: 1,
+		Name:                           "test",
+		NumChunks:                      4,
+		NumBytesThreshold:              1_048_576, // 1 MB
+		NumBytesPerSenderThreshold:     1_048_576, // 1 MB
+		CountThreshold:                 math.MaxUint32,
+		CountPerSenderThreshold:        math.MaxUint32,
+		NumItemsToPreemptivelyEvict:    1,
+		MaxNumBytesPerSenderUpperBound: 33_554_432,
 	}, txcachemocks.NewMempoolHostMock())
 
 	require.NoError(t, err)
 
 	txCacheWithMeta, err := txcache.NewTxCache(txcache.ConfigSourceMe{
-		Name:                        "test-meta",
-		NumChunks:                   4,
-		NumBytesThreshold:           1_048_576, // 1 MB
-		NumBytesPerSenderThreshold:  1_048_576, // 1 MB
-		CountThreshold:              math.MaxUint32,
-		CountPerSenderThreshold:     math.MaxUint32,
-		NumItemsToPreemptivelyEvict: 1,
+		Name:                           "test-meta",
+		NumChunks:                      4,
+		NumBytesThreshold:              1_048_576, // 1 MB
+		NumBytesPerSenderThreshold:     1_048_576, // 1 MB
+		CountThreshold:                 math.MaxUint32,
+		CountPerSenderThreshold:        math.MaxUint32,
+		NumItemsToPreemptivelyEvict:    1,
+		MaxNumBytesPerSenderUpperBound: 33_554_432,
 	}, txcachemocks.NewMempoolHostMock())
 
 	require.NoError(t, err)

@@ -17,6 +17,9 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+const maxNumBytesPerSenderUpperBoundTest = 33_554_432 // 32 MB
+const selectionLoopDurationCheckInterval = 10
+
 func Test_NewShardedTxPool(t *testing.T) {
 	pool, err := newTxPoolToTest()
 
@@ -34,9 +37,11 @@ func Test_NewShardedTxPool_WhenBadConfig(t *testing.T) {
 			SizeInBytesPerSender: 40960,
 			Shards:               16,
 		},
-		TxGasHandler:   txcachemocks.NewTxGasHandlerMock(),
-		Marshalizer:    &marshal.GogoProtoMarshalizer{},
-		NumberOfShards: 1,
+		TxGasHandler:                       txcachemocks.NewTxGasHandlerMock(),
+		Marshalizer:                        &marshal.GogoProtoMarshalizer{},
+		NumberOfShards:                     1,
+		MaxNumBytesPerSenderUpperBound:     maxNumBytesPerSenderUpperBoundTest,
+		SelectionLoopDurationCheckInterval: selectionLoopDurationCheckInterval,
 	}
 
 	args := goodArgs
@@ -94,15 +99,23 @@ func Test_NewShardedTxPool_WhenBadConfig(t *testing.T) {
 	require.Nil(t, pool)
 	require.NotNil(t, err)
 	require.Errorf(t, err, dataRetriever.ErrCacheConfigInvalidSharding.Error())
+
+	args = goodArgs
+	args.SelectionLoopDurationCheckInterval = 0
+	pool, err = NewShardedTxPool(args)
+	require.Nil(t, pool)
+	require.NotNil(t, err)
+	require.Errorf(t, err, dataRetriever.ErrBadSelectionLoopDurationCheckInterval.Error())
 }
 
 func Test_NewShardedTxPool_ComputesCacheConfig(t *testing.T) {
 	config := storageunit.CacheConfig{SizeInBytes: 419430400, SizeInBytesPerSender: 614400, Capacity: 600000, SizePerSender: 1000, Shards: 1}
 	args := ArgShardedTxPool{
-		Config:         config,
-		TxGasHandler:   txcachemocks.NewTxGasHandlerMock(),
-		Marshalizer:    &marshal.GogoProtoMarshalizer{},
-		NumberOfShards: 2,
+		Config:                             config,
+		TxGasHandler:                       txcachemocks.NewTxGasHandlerMock(),
+		Marshalizer:                        &marshal.GogoProtoMarshalizer{},
+		NumberOfShards:                     2,
+		SelectionLoopDurationCheckInterval: 10,
 	}
 
 	pool, err := NewShardedTxPool(args)
@@ -382,11 +395,13 @@ func Test_routeToCacheUnions(t *testing.T) {
 		Shards:               1,
 	}
 	args := ArgShardedTxPool{
-		Config:         config,
-		TxGasHandler:   txcachemocks.NewTxGasHandlerMock(),
-		Marshalizer:    &marshal.GogoProtoMarshalizer{},
-		NumberOfShards: 4,
-		SelfShardID:    42,
+		Config:                             config,
+		TxGasHandler:                       txcachemocks.NewTxGasHandlerMock(),
+		Marshalizer:                        &marshal.GogoProtoMarshalizer{},
+		NumberOfShards:                     4,
+		SelfShardID:                        42,
+		MaxNumBytesPerSenderUpperBound:     maxNumBytesPerSenderUpperBoundTest,
+		SelectionLoopDurationCheckInterval: selectionLoopDurationCheckInterval,
 	}
 	pool, _ := NewShardedTxPool(args)
 
@@ -423,11 +438,13 @@ func newTxPoolToTest() (dataRetriever.ShardedDataCacherNotifier, error) {
 		Shards:               1,
 	}
 	args := ArgShardedTxPool{
-		Config:         config,
-		TxGasHandler:   txcachemocks.NewTxGasHandlerMock(),
-		Marshalizer:    &marshal.GogoProtoMarshalizer{},
-		NumberOfShards: 4,
-		SelfShardID:    0,
+		Config:                             config,
+		TxGasHandler:                       txcachemocks.NewTxGasHandlerMock(),
+		Marshalizer:                        &marshal.GogoProtoMarshalizer{},
+		NumberOfShards:                     4,
+		SelfShardID:                        0,
+		MaxNumBytesPerSenderUpperBound:     maxNumBytesPerSenderUpperBoundTest,
+		SelectionLoopDurationCheckInterval: selectionLoopDurationCheckInterval,
 	}
 	return NewShardedTxPool(args)
 }
