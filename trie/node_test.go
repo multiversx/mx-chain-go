@@ -49,7 +49,6 @@ func TestNode_encodeNodeAndGetHashExtensionNode(t *testing.T) {
 			Key:       []byte{2},
 			ChildHash: []byte("doge"),
 		},
-		baseNode: &baseNode{},
 	}
 
 	encNode, _ := trieCtx.Marshal(en)
@@ -129,7 +128,7 @@ func TestNode_getNodeFromDBAndDecodeBranchNode(t *testing.T) {
 
 	trieCtx := getDefaultTrieContext()
 	bn, collapsedBn := getBnAndCollapsedBn()
-	bn.commitDirty(0, 5, getTestGoroutinesManager(), hashesCollector.NewDisabledHashesCollector(), trieCtx)
+	_ = saveNodeToStorage(bn, trieCtx)
 
 	encNode, _ := trieCtx.Marshal(collapsedBn)
 	encNode = append(encNode, branch)
@@ -149,7 +148,7 @@ func TestNode_getNodeFromDBAndDecodeExtensionNode(t *testing.T) {
 
 	trieCtx := getDefaultTrieContext()
 	en, collapsedEn := getEnAndCollapsedEn()
-	en.commitDirty(0, 5, getTestGoroutinesManager(), hashesCollector.NewDisabledHashesCollector(), trieCtx)
+	_ = saveNodeToStorage(en, trieCtx)
 
 	encNode, _ := trieCtx.Marshal(collapsedEn)
 	encNode = append(encNode, extension)
@@ -169,7 +168,7 @@ func TestNode_getNodeFromDBAndDecodeLeafNode(t *testing.T) {
 
 	trieCtx := getDefaultTrieContext()
 	ln := getLn()
-	ln.commitDirty(0, 5, getTestGoroutinesManager(), hashesCollector.NewDisabledHashesCollector(), trieCtx)
+	_ = saveNodeToStorage(ln, trieCtx)
 
 	encNode, _ := trieCtx.Marshal(ln)
 	encNode = append(encNode, leaf)

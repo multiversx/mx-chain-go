@@ -24,21 +24,26 @@ type nodeWithHash struct {
 	hash []byte
 }
 
-type baseTrieNode interface {
-	setDirty(bool)
-	isDirty() bool
+// keyData is used when traversing the trie to reach a certain leaf.
+// At first, keyReminder contains the full key needed to reach the leaf node, and the path key is empty.
+// For each trie node that is traversed, the keyData changes. The path for the already traversed nodes will be
+// subtracted from the keyRemainder, and it will be added to the pathKey. So at all points during the traversal,
+// pathKey + keyReminder = original key.
+type keyData struct {
+	keyRemainder []byte // remaining part of a key
+	pathKey      []byte // path traversed in the trie
 }
 
 type node interface {
-	baseTrieNode
 	snapshotNode
+	setDirty(bool)
+	isDirty() bool
 	getEncodedNode(trieCtx common.TrieContext) ([]byte, error)
-	tryGet(key []byte, depth uint32, trieCtx common.TrieContext) ([]byte, uint32, error)
+	tryGet(keyData *keyData, depth uint32, trieCtx common.TrieContext) ([]byte, uint32, error)
 	getNext(key []byte, trieCtx common.TrieContext) (*nodeData, error)
-	insert(newData []core.TrieData, goRoutinesManager common.TrieGoroutinesManager, modifiedHashes common.AtomicBytesSlice, trieCtx common.TrieContext) node
-	delete(data []core.TrieData, goRoutinesManager common.TrieGoroutinesManager, modifiedHashes common.AtomicBytesSlice, trieCtx common.TrieContext) (bool, node)
-	reduceNode(pos int, hash []byte, trieCtx common.TrieContext) (node, bool, error)
-	isEmptyOrNil() error
+	insert(pathKey common.KeyBuilder, newData []core.TrieData, goRoutinesManager common.TrieGoroutinesManager, modifiedHashes common.AtomicBytesSlice, trieCtx common.TrieContext) node
+	delete(pathKey common.KeyBuilder, data []core.TrieData, goRoutinesManager common.TrieGoroutinesManager, modifiedHashes common.AtomicBytesSlice, trieCtx common.TrieContext) (bool, node)
+	reduceNode(pos int, mutexKey string, trieCtx common.TrieContext) (node, bool, error)
 	print(writer io.Writer, index int, trieCtx common.TrieContext)
 	getChildren(trieCtx common.TrieContext) ([]nodeWithHash, error)
 	getNodeData(common.KeyBuilder) ([]common.TrieNodeData, error)
@@ -49,7 +54,14 @@ type node interface {
 	getVersion() (core.TrieNodeVersion, error)
 	collectLeavesForMigration(migrationArgs vmcommon.ArgsMigrateDataTrieLeaves, keyBuilder common.KeyBuilder, trieCtx common.TrieContext) (bool, error)
 
-	commitDirty(level byte, maxTrieLevelInMemory uint, goRoutinesManager common.TrieGoroutinesManager, hashesCollector common.TrieHashesCollector, trieCtx common.TrieContext)
+	commitDirty(
+		level byte,
+		pathKey common.KeyBuilder,
+		maxTrieLevelInMemory uint,
+		goRoutinesManager common.TrieGoroutinesManager,
+		hashesCollector common.TrieHashesCollector,
+		trieCtx common.TrieContext,
+	)
 
 	sizeInBytes() int
 	collectStats(handler common.TrieStatisticsHandler, depthLevel int, nodeSize uint64, trieCtx common.TrieContext) error
@@ -123,6 +135,7 @@ type RootManager interface {
 	GetRootNode() node
 	GetRootHash() []byte
 	SetDataForRootChange(rootData RootData)
+	GetRootData() RootData
 	ResetCollectedHashes()
 	GetOldHashes() [][]byte
 	GetOldRootHash() []byte

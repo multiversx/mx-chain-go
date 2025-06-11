@@ -2,6 +2,7 @@ package trie
 
 import (
 	"context"
+	"encoding/hex"
 	"fmt"
 	"io"
 	"sync"
@@ -17,7 +18,6 @@ import (
 var _ = node(&branchNode{})
 
 func newBranchNode() *branchNode {
-
 	var children [nrOfChildren]node
 	encChildren := make([][]byte, nrOfChildren)
 
@@ -26,10 +26,16 @@ func newBranchNode() *branchNode {
 			ChildrenHashes: encChildren,
 		},
 		children: children,
-		baseNode: &baseNode{
-			dirty: true,
-		},
+		dirty:    true,
 	}
+}
+
+func (bn *branchNode) isDirty() bool {
+	return bn.dirty
+}
+
+func (bn *branchNode) setDirty(dirty bool) {
+	bn.dirty = dirty
 }
 
 func (bn *branchNode) setVersionForChild(version core.TrieNodeVersion, childPos byte) {
@@ -52,6 +58,7 @@ func (bn *branchNode) setVersionForChild(version core.TrieNodeVersion, childPos 
 
 func (bn *branchNode) commitDirty(
 	level byte,
+	pathKey common.KeyBuilder,
 	maxTrieLevelInMemory uint,
 	goRoutinesManager common.TrieGoroutinesManager,
 	hashesCollector common.TrieHashesCollector,
@@ -64,27 +71,30 @@ func (bn *branchNode) commitDirty(
 	}
 
 	waitGroup := sync.WaitGroup{}
+	nodeMutexKey := getMutexKeyFromPath(pathKey)
 
 	for i := 0; i < nrOfChildren; i++ {
 		if !goRoutinesManager.ShouldContinueProcessing() {
 			return
 		}
 
-		bn.childrenMutexes[i].RLock()
+		trieCtx.RLock(nodeMutexKey)
 		child := bn.children[i]
-		bn.childrenMutexes[i].RUnlock()
+		childHash := bn.ChildrenHashes[i]
+		trieCtx.RUnlock(nodeMutexKey)
 
 		if child == nil {
 			continue
 		}
 
-		if len(bn.ChildrenHashes[i]) == 0 {
+		if len(childHash) == 0 {
 			goRoutinesManager.SetError(ErrInvalidNodeState)
 			return
 		}
 
+		childPathKey := getChildPathKey(pathKey, []byte{byte(i)})
 		if !goRoutinesManager.CanStartGoRoutine() {
-			child.commitDirty(level, maxTrieLevelInMemory, goRoutinesManager, hashesCollector, trieCtx)
+			child.commitDirty(level, childPathKey, maxTrieLevelInMemory, goRoutinesManager, hashesCollector, trieCtx)
 			if !goRoutinesManager.ShouldContinueProcessing() {
 				return
 			}
@@ -92,18 +102,17 @@ func (bn *branchNode) commitDirty(
 		}
 
 		waitGroup.Add(1)
-		go func(childPos int) {
+		go func(childPos int, childKey common.KeyBuilder) {
 			defer func() {
 				goRoutinesManager.EndGoRoutineProcessing()
 				waitGroup.Done()
 			}()
 
-			child.commitDirty(level, maxTrieLevelInMemory, goRoutinesManager, hashesCollector, trieCtx)
+			child.commitDirty(level, childKey, maxTrieLevelInMemory, goRoutinesManager, hashesCollector, trieCtx)
 			if !goRoutinesManager.ShouldContinueProcessing() {
 				return
 			}
-		}(i)
-
+		}(i, childPathKey)
 	}
 
 	waitGroup.Wait()
@@ -116,10 +125,10 @@ func (bn *branchNode) commitDirty(
 	if uint(level) == maxTrieLevelInMemory {
 		log.Trace("collapse branch node on commit")
 
-		for i := range bn.children {
-			bn.childrenMutexes[i].Lock()
+		for i := 0; i < nrOfChildren; i++ {
+			trieCtx.Lock(nodeMutexKey)
 			bn.children[i] = nil
-			bn.childrenMutexes[i].Unlock()
+			trieCtx.Unlock(nodeMutexKey)
 		}
 	}
 }
@@ -168,10 +177,6 @@ func (bn *branchNode) commitSnapshot(
 }
 
 func (bn *branchNode) getEncodedNode(trieCtx common.TrieContext) ([]byte, error) {
-	err := bn.isEmptyOrNil()
-	if err != nil {
-		return nil, fmt.Errorf("getEncodedNode error %w", err)
-	}
 	marshaledNode, err := trieCtx.Marshal(bn)
 	if err != nil {
 		return nil, err
@@ -180,13 +185,12 @@ func (bn *branchNode) getEncodedNode(trieCtx common.TrieContext) ([]byte, error)
 	return marshaledNode, nil
 }
 
+// resolveIfCollapsed should be called under mutex protection. This can be called without mutex if the caller
+// uses a different trie pointer which does not have other concurrent calls.
 func (bn *branchNode) resolveIfCollapsed(pos byte, trieCtx common.TrieContext) (node, []byte, error) {
 	if childPosOutOfRange(pos) {
 		return nil, nil, ErrChildPosOutOfRange
 	}
-
-	bn.childrenMutexes[pos].Lock()
-	defer bn.childrenMutexes[pos].Unlock()
 
 	isPosCollapsed := check.IfNil(bn.children[pos]) && len(bn.ChildrenHashes[pos]) != 0
 	if isPosCollapsed {
@@ -206,17 +210,20 @@ func (bn *branchNode) resolveIfCollapsed(pos byte, trieCtx common.TrieContext) (
 	return bn.children[pos], bn.ChildrenHashes[pos], nil
 }
 
-func (bn *branchNode) tryGet(key []byte, currentDepth uint32, trieCtx common.TrieContext) (value []byte, maxDepth uint32, err error) {
-	if len(key) == 0 {
+func (bn *branchNode) tryGet(keyData *keyData, currentDepth uint32, trieCtx common.TrieContext) (value []byte, maxDepth uint32, err error) {
+	if len(keyData.keyRemainder) == 0 {
 		return nil, currentDepth, nil
 	}
-	childPos := key[firstByte]
+	childPos := keyData.keyRemainder[firstByte]
 	if childPosOutOfRange(childPos) {
 		return nil, currentDepth, ErrChildPosOutOfRange
 	}
-	key = key[1:]
+	keyData.keyRemainder = keyData.keyRemainder[1:]
 
+	mutexKey := getMutexKeyFromBytes(keyData.pathKey)
+	trieCtx.Lock(mutexKey)
 	child, _, err := bn.resolveIfCollapsed(childPos, trieCtx)
+	trieCtx.Unlock(mutexKey)
 	if err != nil {
 		return nil, currentDepth, err
 	}
@@ -224,7 +231,8 @@ func (bn *branchNode) tryGet(key []byte, currentDepth uint32, trieCtx common.Tri
 		return nil, currentDepth, nil
 	}
 
-	return child.tryGet(key, currentDepth+1, trieCtx)
+	keyData.pathKey = append(keyData.pathKey, childPos)
+	return child.tryGet(keyData, currentDepth+1, trieCtx)
 }
 
 func (bn *branchNode) getNext(key []byte, trieCtx common.TrieContext) (*nodeData, error) {
@@ -252,6 +260,7 @@ func (bn *branchNode) getNext(key []byte, trieCtx common.TrieContext) (*nodeData
 }
 
 func (bn *branchNode) insert(
+	pathKey common.KeyBuilder,
 	newData []core.TrieData,
 	goRoutinesManager common.TrieGoroutinesManager,
 	modifiedHashes common.AtomicBytesSlice,
@@ -264,7 +273,7 @@ func (bn *branchNode) insert(
 	}
 
 	bnHasBeenModified := &atomic.Flag{}
-	bn.updateNode(dataForInsertion, goRoutinesManager, modifiedHashes, bnHasBeenModified, trieCtx, bn.insertOnChild)
+	bn.updateNode(pathKey, dataForInsertion, goRoutinesManager, modifiedHashes, bnHasBeenModified, trieCtx, bn.insertOnChild)
 	if !goRoutinesManager.ShouldContinueProcessing() {
 		return nil
 	}
@@ -277,12 +286,13 @@ func (bn *branchNode) insert(
 }
 
 func (bn *branchNode) updateNode(
+	pathKey common.KeyBuilder,
 	data [][]core.TrieData,
 	goRoutinesManager common.TrieGoroutinesManager,
 	modifiedHashes common.AtomicBytesSlice,
 	hasBeenModified *atomic.Flag,
 	trieCtx common.TrieContext,
-	updateFunc func([]core.TrieData, int, common.TrieGoroutinesManager, common.AtomicBytesSlice, *atomic.Flag, common.TrieContext),
+	updateFunc func([]core.TrieData, int, common.KeyBuilder, common.TrieGoroutinesManager, common.AtomicBytesSlice, *atomic.Flag, common.TrieContext),
 ) {
 	waitGroup := sync.WaitGroup{}
 
@@ -296,14 +306,14 @@ func (bn *branchNode) updateNode(
 		}
 
 		if !goRoutinesManager.CanStartGoRoutine() {
-			updateFunc(data[childPos], childPos, goRoutinesManager, modifiedHashes, hasBeenModified, trieCtx)
+			updateFunc(data[childPos], childPos, pathKey, goRoutinesManager, modifiedHashes, hasBeenModified, trieCtx)
 
 			continue
 		}
 
 		waitGroup.Add(1)
 		go func(childPos int) {
-			updateFunc(data[childPos], childPos, goRoutinesManager, modifiedHashes, hasBeenModified, trieCtx)
+			updateFunc(data[childPos], childPos, pathKey, goRoutinesManager, modifiedHashes, hasBeenModified, trieCtx)
 
 			goRoutinesManager.EndGoRoutineProcessing()
 			waitGroup.Done()
@@ -316,19 +326,23 @@ func (bn *branchNode) updateNode(
 func (bn *branchNode) insertOnChild(
 	dataForInsertion []core.TrieData,
 	childPos int,
+	pathKey common.KeyBuilder,
 	goRoutinesManager common.TrieGoroutinesManager,
 	modifiedHashes common.AtomicBytesSlice,
 	bnHasBeenModified *atomic.Flag,
 	trieCtx common.TrieContext,
 ) {
+	mutexKey := getMutexKeyFromPath(pathKey)
+	trieCtx.Lock(mutexKey)
 	child, childHash, err := bn.resolveIfCollapsed(byte(childPos), trieCtx)
+	trieCtx.Unlock(mutexKey)
 	if err != nil {
 		goRoutinesManager.SetError(err)
 		return
 	}
 
 	if child == nil {
-		bn.insertOnNilChild(dataForInsertion, byte(childPos), goRoutinesManager, modifiedHashes, bnHasBeenModified, trieCtx)
+		bn.insertOnNilChild(pathKey, dataForInsertion, byte(childPos), goRoutinesManager, modifiedHashes, bnHasBeenModified, trieCtx)
 		return
 	}
 
@@ -337,7 +351,8 @@ func (bn *branchNode) insertOnChild(
 		originalChildHash = childHash
 	}
 
-	newNode := child.insert(dataForInsertion, goRoutinesManager, modifiedHashes, trieCtx)
+	childKeyPath := getChildPathKey(pathKey, []byte{byte(childPos)})
+	newNode := child.insert(childKeyPath, dataForInsertion, goRoutinesManager, modifiedHashes, trieCtx)
 	if check.IfNil(newNode) {
 		return
 	}
@@ -346,7 +361,7 @@ func (bn *branchNode) insertOnChild(
 		modifiedHashes.Append([][]byte{originalChildHash})
 	}
 
-	err = bn.modifyNodeAfterInsert(byte(childPos), newNode, trieCtx)
+	err = bn.modifyNodeAfterInsert(mutexKey, byte(childPos), newNode, trieCtx)
 	if err != nil {
 		goRoutinesManager.SetError(err)
 		return
@@ -394,6 +409,7 @@ func splitDataForChildren(newSortedData []core.TrieData) ([][]core.TrieData, err
 }
 
 func (bn *branchNode) insertOnNilChild(
+	pathKey common.KeyBuilder,
 	newData []core.TrieData,
 	childPos byte,
 	goRoutinesManager common.TrieGoroutinesManager,
@@ -410,13 +426,14 @@ func (bn *branchNode) insertOnNilChild(
 	newNode = newLeafNode(newData[0])
 
 	if len(newData) > 1 {
-		newNode = newNode.insert(newData[1:], goRoutinesManager, modifiedHashes, trieCtx)
+		childPathKey := getChildPathKey(pathKey, []byte{childPos})
+		newNode = newNode.insert(childPathKey, newData[1:], goRoutinesManager, modifiedHashes, trieCtx)
 		if check.IfNil(newNode) {
 			return
 		}
 	}
 
-	err := bn.modifyNodeAfterInsert(childPos, newNode, trieCtx)
+	err := bn.modifyNodeAfterInsert(getMutexKeyFromPath(pathKey), childPos, newNode, trieCtx)
 	if err != nil {
 		goRoutinesManager.SetError(err)
 		return
@@ -426,13 +443,13 @@ func (bn *branchNode) insertOnNilChild(
 }
 
 func (bn *branchNode) modifyNodeAfterInsert(
+	mutexKey string,
 	childPos byte,
 	newNode node,
 	trieCtx common.TrieContext,
 ) error {
-	bn.mutex.Lock()
-	defer bn.mutex.Unlock()
-
+	trieCtx.Lock(mutexKey)
+	defer trieCtx.Unlock(mutexKey)
 	childVersion, err := newNode.getVersion()
 	if err != nil {
 		return err
@@ -443,18 +460,16 @@ func (bn *branchNode) modifyNodeAfterInsert(
 		return err
 	}
 
-	bn.childrenMutexes[childPos].Lock()
 	bn.ChildrenHashes[childPos] = newHashForChild
 	bn.children[childPos] = newNode
-	bn.childrenMutexes[childPos].Unlock()
 
 	bn.setVersionForChild(childVersion, childPos)
 	bn.dirty = true
-
 	return nil
 }
 
 func (bn *branchNode) delete(
+	pathKey common.KeyBuilder,
 	data []core.TrieData,
 	goRoutinesManager common.TrieGoroutinesManager,
 	modifiedHashes common.AtomicBytesSlice,
@@ -468,7 +483,7 @@ func (bn *branchNode) delete(
 
 	hasBeenModified := &atomic.Flag{}
 
-	bn.updateNode(dataForRemoval, goRoutinesManager, modifiedHashes, hasBeenModified, trieCtx, bn.deleteChild)
+	bn.updateNode(pathKey, dataForRemoval, goRoutinesManager, modifiedHashes, hasBeenModified, trieCtx, bn.deleteChild)
 	if !goRoutinesManager.ShouldContinueProcessing() {
 		return false, nil
 	}
@@ -477,16 +492,18 @@ func (bn *branchNode) delete(
 		return false, bn
 	}
 
-	return bn.reduceNodeIfNeeded(goRoutinesManager, modifiedHashes, trieCtx)
+	return bn.reduceNodeIfNeeded(pathKey, goRoutinesManager, modifiedHashes, trieCtx)
 }
 
 func (bn *branchNode) reduceNodeIfNeeded(
+	pathKey common.KeyBuilder,
 	goRoutinesManager common.TrieGoroutinesManager,
 	modifiedHashes common.AtomicBytesSlice,
 	trieCtx common.TrieContext,
 ) (bool, node) {
-	bn.mutex.Lock()
-	defer bn.mutex.Unlock()
+	mutexKey := getMutexKeyFromPath(pathKey)
+	trieCtx.Lock(mutexKey)
+	defer trieCtx.Unlock(mutexKey)
 
 	numChildren, pos := getChildPosition(bn)
 	if numChildren == 0 {
@@ -503,8 +520,9 @@ func (bn *branchNode) reduceNodeIfNeeded(
 		return false, nil
 	}
 
+	childPathKey := getChildPathKey(pathKey, []byte{byte(pos)})
 	var newChildHash bool
-	newNode, newChildHash, err := child.reduceNode(pos, originalChildHash, trieCtx)
+	newNode, newChildHash, err := child.reduceNode(pos, getMutexKeyFromPath(childPathKey), trieCtx)
 	if err != nil {
 		goRoutinesManager.SetError(err)
 		return false, nil
@@ -519,12 +537,16 @@ func (bn *branchNode) reduceNodeIfNeeded(
 func (bn *branchNode) deleteChild(
 	dataForRemoval []core.TrieData,
 	childPos int,
+	pathKey common.KeyBuilder,
 	goRoutinesManager common.TrieGoroutinesManager,
 	modifiedHashes common.AtomicBytesSlice,
 	hasBeenModified *atomic.Flag,
 	trieCtx common.TrieContext,
 ) {
+	mutexKey := getMutexKeyFromPath(pathKey)
+	trieCtx.Lock(mutexKey)
 	child, childHash, err := bn.resolveIfCollapsed(byte(childPos), trieCtx)
+	trieCtx.Unlock(mutexKey)
 	if err != nil {
 		goRoutinesManager.SetError(err)
 		return
@@ -539,12 +561,13 @@ func (bn *branchNode) deleteChild(
 		originalChildHash = childHash
 	}
 
-	dirty, newNode := child.delete(dataForRemoval, goRoutinesManager, modifiedHashes, trieCtx)
+	childPathKey := getChildPathKey(pathKey, []byte{byte(childPos)})
+	dirty, newNode := child.delete(childPathKey, dataForRemoval, goRoutinesManager, modifiedHashes, trieCtx)
 	if !goRoutinesManager.ShouldContinueProcessing() || !dirty {
 		return
 	}
 
-	err = bn.setNewChild(byte(childPos), newNode, trieCtx)
+	err = bn.setNewChild(mutexKey, byte(childPos), newNode, trieCtx)
 	if err != nil {
 		goRoutinesManager.SetError(err)
 		return
@@ -558,21 +581,20 @@ func (bn *branchNode) deleteChild(
 }
 
 func (bn *branchNode) setNewChild(
+	mutexKey string,
 	childPos byte,
 	newNode node,
 	trieCtx common.TrieContext,
 ) error {
-	bn.mutex.Lock()
-	defer bn.mutex.Unlock()
+	trieCtx.Lock(mutexKey)
+	defer trieCtx.Unlock(mutexKey)
 
 	bn.dirty = true
 
 	if check.IfNil(newNode) {
-		bn.childrenMutexes[childPos].Lock()
 		bn.children[childPos] = nil
 		bn.ChildrenHashes[childPos] = nil
 		bn.setVersionForChild(core.NotSpecified, childPos)
-		bn.childrenMutexes[childPos].Unlock()
 		return nil
 	}
 	childVersion, err := newNode.getVersion()
@@ -585,11 +607,9 @@ func (bn *branchNode) setNewChild(
 		return err
 	}
 
-	bn.childrenMutexes[childPos].Lock()
 	bn.children[childPos] = newNode
 	bn.ChildrenHashes[childPos] = newChildHash
 	bn.setVersionForChild(childVersion, childPos)
-	bn.childrenMutexes[childPos].Unlock()
 
 	return nil
 }
@@ -605,8 +625,12 @@ func (bn *branchNode) revertChildrenVersionSliceIfNeeded() {
 	bn.ChildrenVersion = []byte(nil)
 }
 
-func (bn *branchNode) reduceNode(pos int, hash []byte, _ common.TrieContext) (node, bool, error) {
+func (bn *branchNode) reduceNode(pos int, _ string, trieCtx common.TrieContext) (node, bool, error) {
 	newEn, err := newExtensionNode([]byte{byte(pos)}, bn)
+	if err != nil {
+		return nil, false, err
+	}
+	hash, err := encodeNodeAndGetHash(bn, trieCtx)
 	if err != nil {
 		return nil, false, err
 	}
@@ -617,12 +641,10 @@ func (bn *branchNode) reduceNode(pos int, hash []byte, _ common.TrieContext) (no
 
 func getChildPosition(n *branchNode) (numChildren int, childPos int) {
 	for i := 0; i < nrOfChildren; i++ {
-		n.childrenMutexes[i].RLock()
 		if n.children[i] != nil || len(n.ChildrenHashes[i]) != 0 {
 			numChildren++
 			childPos = i
 		}
-		n.childrenMutexes[i].RUnlock()
 	}
 	return
 }
@@ -646,21 +668,20 @@ func (bn *branchNode) print(writer io.Writer, index int, trieCtx common.TrieCont
 
 	str := fmt.Sprintf("B: %v", bn.dirty)
 	_, _ = fmt.Fprintln(writer, str)
-	for i := 0; i < len(bn.children); i++ {
-		_, _, err := bn.resolveIfCollapsed(byte(i), trieCtx)
+	for i := 0; i < len(bn.ChildrenHashes); i++ {
+		child, _, err := getNodeFromDBAndDecode(bn.ChildrenHashes[i], trieCtx)
 		if err != nil {
 			log.Debug("branch node: print trie err", "error", err, "hash", bn.ChildrenHashes[i])
 		}
 
-		if bn.children[i] == nil {
+		if child == nil {
 			continue
 		}
 
-		child := bn.children[i]
 		for j := 0; j < index+len(str)-1; j++ {
 			_, _ = fmt.Fprint(writer, " ")
 		}
-		str2 := fmt.Sprintf("+ %d: - hash: %v ", i, bn.ChildrenHashes[i])
+		str2 := fmt.Sprintf("+ %d: - hash: %v ", i, hex.EncodeToString(bn.ChildrenHashes[i]))
 		_, _ = fmt.Fprint(writer, str2)
 		childIndex := index + len(str) - 1 + len(str2)
 		child.print(writer, childIndex, trieCtx)
@@ -668,21 +689,16 @@ func (bn *branchNode) print(writer io.Writer, index int, trieCtx common.TrieCont
 }
 
 func (bn *branchNode) getChildren(trieCtx common.TrieContext) ([]nodeWithHash, error) {
-	err := bn.isEmptyOrNil()
-	if err != nil {
-		return nil, fmt.Errorf("getChildren error %w", err)
-	}
-
 	nextNodes := make([]nodeWithHash, 0)
 
-	for i := range bn.children {
-		childNode, _, err := bn.resolveIfCollapsed(byte(i), trieCtx)
-		if err != nil {
-			return nil, err
+	for i := range bn.ChildrenHashes {
+		if len(bn.ChildrenHashes[i]) == 0 {
+			continue
 		}
 
-		if check.IfNil(childNode) {
-			continue
+		childNode, _, err := getNodeFromDBAndDecode(bn.ChildrenHashes[i], trieCtx)
+		if err != nil {
+			return nil, err
 		}
 
 		nextNodes = append(nextNodes, nodeWithHash{
@@ -738,7 +754,7 @@ func (bn *branchNode) getAllLeavesOnChannel(
 		return fmt.Errorf("getAllLeavesOnChannel error: %w", err)
 	}
 
-	for i := range bn.children {
+	for i := range bn.ChildrenHashes {
 		select {
 		case <-chanClose:
 			log.Trace("branchNode.getAllLeavesOnChannel interrupted")
@@ -747,18 +763,18 @@ func (bn *branchNode) getAllLeavesOnChannel(
 			log.Trace("branchNode.getAllLeavesOnChannel context done")
 			return nil
 		default:
-			_, _, err = bn.resolveIfCollapsed(byte(i), trieCtx)
+			if len(bn.ChildrenHashes[i]) == 0 {
+				continue
+			}
+
+			child, _, err := getNodeFromDBAndDecode(bn.ChildrenHashes[i], trieCtx)
 			if err != nil {
 				return err
 			}
 
-			if bn.children[i] == nil {
-				continue
-			}
-
 			clonedKeyBuilder := keyBuilder.ShallowClone()
 			clonedKeyBuilder.BuildKey([]byte{byte(i)})
-			err = bn.children[i].getAllLeavesOnChannel(
+			err = child.getAllLeavesOnChannel(
 				leavesChannel,
 				clonedKeyBuilder,
 				trieLeafParser,
@@ -769,8 +785,6 @@ func (bn *branchNode) getAllLeavesOnChannel(
 			if err != nil {
 				return err
 			}
-
-			bn.children[i] = nil
 		}
 	}
 
@@ -799,7 +813,6 @@ func (bn *branchNode) sizeInBytes() int {
 	}
 	nodeSize += len(bn.children) * pointerSizeInBytes
 	nodeSize += len(bn.ChildrenVersion)
-	nodeSize += (len(bn.childrenMutexes) + 1) * mutexSizeInBytes
 
 	return nodeSize
 }
@@ -876,6 +889,10 @@ func (bn *branchNode) collectLeavesForMigration(
 	if !shouldContinue {
 		return false, nil
 	}
+
+	mutexKey := getMutexKeyFromPath(keyBuilder)
+	trieCtx.Lock(mutexKey)
+	defer trieCtx.Unlock(mutexKey)
 
 	shouldMigrateNode, err := shouldMigrateCurrentNode(bn, migrationArgs)
 	if err != nil {

@@ -20,6 +20,7 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
 	trieMock "github.com/multiversx/mx-chain-go/testscommon/trie"
+	"github.com/multiversx/mx-chain-go/trie/keyBuilder"
 	"github.com/multiversx/mx-chain-go/trie/statistics"
 )
 
@@ -228,7 +229,7 @@ func TestTrieSync_FoundInStorageShouldNotRequest(t *testing.T) {
 
 	trieCtx := getTrieContextWithCustomStorage(trieStorage)
 	rootHash, _ := encodeNodeAndGetHash(bn, trieCtx)
-	bn.commitDirty(0, 5, getTestGoroutinesManager(), hashesCollector.NewDisabledHashesCollector(), trieCtx)
+	bn.commitDirty(0, keyBuilder.NewKeyBuilder(), 5, getTestGoroutinesManager(), hashesCollector.NewDisabledHashesCollector(), trieCtx)
 
 	leaves, err := bn.getChildren(trieCtx)
 	require.Nil(t, err)
