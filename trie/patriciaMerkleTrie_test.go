@@ -1008,6 +1008,8 @@ func TestPatriciaMerkleTrie_ConcurrentOperations(t *testing.T) {
 		numFunctions := 13
 
 		initialRootHash, _ := tr.RootHash()
+		proof, val, err := tr.GetProof([]byte("ddog"), initialRootHash)
+		assert.Nil(t, err)
 
 		for i := 0; i < numOperations; i++ {
 			go func(idx int) {
@@ -1058,10 +1060,14 @@ func TestPatriciaMerkleTrie_ConcurrentOperations(t *testing.T) {
 					)
 					assert.Nil(t, err)
 				case 9:
-					_, _, _ = tr.GetProof(initialRootHash, initialRootHash) // this might error due to concurrent operations that change the roothash
+					computedProof, retrievedVal, err := tr.GetProof([]byte("ddog"), initialRootHash)
+					assert.Nil(t, err)
+					assert.Equal(t, val, retrievedVal)
+					assert.Equal(t, proof, computedProof)
 				case 10:
-					// extremely hard to compute an existing hash due to concurrent changes.
-					_, _ = tr.VerifyProof([]byte("dog"), []byte("puppy"), [][]byte{[]byte("proof1")}) // this might error due to concurrent operations that change the roothash
+					ok, err := tr.VerifyProof(initialRootHash, []byte("ddog"), proof)
+					assert.Nil(t, err)
+					assert.True(t, ok)
 				case 11:
 					sm := tr.GetStorageManager()
 					assert.NotNil(t, sm)
