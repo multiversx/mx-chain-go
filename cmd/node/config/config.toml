@@ -43,13 +43,13 @@
     # ChainParametersByEpoch defines chain operation configurable values that can be modified based on epochs
     ChainParametersByEpoch = [
         { EnableEpoch = 0, RoundDuration = 6000, ShardConsensusGroupSize = 7, ShardMinNumNodes = 10, MetachainConsensusGroupSize = 10, MetachainMinNumNodes = 10, Hysteresis = 0.2, Adaptivity = false },
-        { EnableEpoch = 8, RoundDuration = 6000, ShardConsensusGroupSize = 10, ShardMinNumNodes = 10, MetachainConsensusGroupSize = 10, MetachainMinNumNodes = 10, Hysteresis = 0.2, Adaptivity = false }
+        { EnableEpoch = 1, RoundDuration = 6000, ShardConsensusGroupSize = 10, ShardMinNumNodes = 10, MetachainConsensusGroupSize = 10, MetachainMinNumNodes = 10, Hysteresis = 0.2, Adaptivity = false }
     ]
 
     # EpochChangeGracePeriodEnableEpoch represents the configuration of different grace periods for epoch change with their activation epochs
     EpochChangeGracePeriodByEpoch = [
         {EnableEpoch = 0, GracePeriodInRounds = 1 },
-        {EnableEpoch = 8, GracePeriodInRounds = 10 }, # Andromeda epoch comes with a longer grace period
+        {EnableEpoch = 1, GracePeriodInRounds = 10 }, # Andromeda epoch comes with a longer grace period
     ]
 
 [HardwareRequirements]
@@ -421,13 +421,16 @@
     Type = "TxCache"
     Shards = 16
 
+[TxCacheBounds]
+    MaxNumBytesPerSenderUpperBound = 33_554_432             #32MB
+
 [MempoolSelection]
     SelectionMaxNumTxs = 30000
-    SelectionLoopMaximumDuration = 250
+    SelectionLoopMaximumDuration = 250                      #milliseconds
+    SelectionLoopDurationCheckInterval = 10                 #milliseconds
     SelectionGasBandwidthIncreasePercent = 400
     SelectionGasBandwidthIncreaseScheduledPercent = 260
-    MaxNumBytesPerSenderUpperBound = 33_554_432 #32MB
-    SelectionLoopDurationCheckInterval = 10
+    SelectionGasRequested = 10_000_000_000
 
 [TrieNodesChunksDataPool]
     Name = "TrieNodesDataPool"

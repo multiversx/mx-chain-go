@@ -10,7 +10,7 @@ import (
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/storage"
-	"github.com/multiversx/mx-chain-go/storage/txcache"
+	"github.com/multiversx/mx-chain-go/txcache"
 	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
@@ -57,15 +57,15 @@ func NewShardedTxPool(args ArgShardedTxPool) (*shardedTxPool, error) {
 	halfOfCapacity := args.Config.Capacity / 2
 
 	configPrototypeSourceMe := txcache.ConfigSourceMe{
-		NumChunks:                          args.Config.Shards,
-		EvictionEnabled:                    true,
-		NumBytesThreshold:                  uint32(halfOfSizeInBytes),
-		CountThreshold:                     halfOfCapacity,
-		NumBytesPerSenderThreshold:         args.Config.SizeInBytesPerSender,
-		CountPerSenderThreshold:            args.Config.SizePerSender,
-		NumItemsToPreemptivelyEvict:        storage.TxPoolSourceMeNumItemsToPreemptivelyEvict,
-		MaxNumBytesPerSenderUpperBound:     args.MaxNumBytesPerSenderUpperBound,
-		SelectionLoopDurationCheckInterval: args.SelectionLoopDurationCheckInterval,
+		NumChunks:                   args.Config.Shards,
+		EvictionEnabled:             true,
+		NumBytesThreshold:           uint32(halfOfSizeInBytes),
+		CountThreshold:              halfOfCapacity,
+		NumBytesPerSenderThreshold:  args.Config.SizeInBytesPerSender,
+		CountPerSenderThreshold:     args.Config.SizePerSender,
+		NumItemsToPreemptivelyEvict: storage.TxPoolSourceMeNumItemsToPreemptivelyEvict,
+		TxCacheBoundsConfig:         args.TxCacheBoundsConfig,
+		MempoolSelectionConfig:      args.MempoolSelectionConfig,
 	}
 
 	// We do not reserve cross tx cache capacity for [metachain] -> [me] (no transactions), [me] -> me (already reserved above).

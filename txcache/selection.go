@@ -3,13 +3,14 @@ package txcache
 import (
 	"container/heap"
 	"time"
+
+	"github.com/multiversx/mx-chain-go/config"
 )
 
-func (cache *TxCache) doSelectTransactions(session SelectionSession, gasRequested uint64, maxNum int, selectionLoopMaximumDuration time.Duration) (bunchOfTransactions, uint64) {
+func (cache *TxCache) doSelectTransactions(session SelectionSession) (bunchOfTransactions, uint64) {
 	bunches := cache.acquireBunchesOfTransactions()
 
-	return selectTransactionsFromBunches(session, bunches, gasRequested,
-		maxNum, selectionLoopMaximumDuration, cache.config.SelectionLoopDurationCheckInterval)
+	return selectTransactionsFromBunches(session, bunches, cache.config.MempoolSelectionConfig)
 }
 
 func (cache *TxCache) acquireBunchesOfTransactions() []bunchOfTransactions {
@@ -25,8 +26,7 @@ func (cache *TxCache) acquireBunchesOfTransactions() []bunchOfTransactions {
 
 // Selection tolerates concurrent transaction additions / removals.
 func selectTransactionsFromBunches(session SelectionSession, bunches []bunchOfTransactions,
-	gasRequested uint64, maxNum int, selectionLoopMaximumDuration time.Duration,
-	selectionLoopDurationCheckInterval uint32) (bunchOfTransactions, uint64) {
+	mempoolSelectionConfig config.MempoolSelectionConfig) (bunchOfTransactions, uint64) {
 	selectedTransactions := make(bunchOfTransactions, 0, initialCapacityOfSelectionSlice)
 	sessionWrapper := newSelectionSessionWrapper(session)
 
@@ -47,6 +47,7 @@ func selectTransactionsFromBunches(session SelectionSession, bunches []bunchOfTr
 
 	accumulatedGas := uint64(0)
 	selectionLoopStartTime := time.Now()
+	selectionLoopMaxDuration := time.Duration(mempoolSelectionConfig.SelectionLoopMaximumDuration) * time.Millisecond
 
 	// Select transactions (sorted).
 	for transactionsHeap.Len() > 0 {
@@ -54,14 +55,14 @@ func selectTransactionsFromBunches(session SelectionSession, bunches []bunchOfTr
 		item := heap.Pop(transactionsHeap).(*transactionsHeapItem)
 		gasLimit := item.currentTransaction.Tx.GetGasLimit()
 
-		if accumulatedGas+gasLimit > gasRequested {
+		if accumulatedGas+gasLimit > mempoolSelectionConfig.SelectionGasRequested {
 			break
 		}
-		if len(selectedTransactions) >= maxNum {
+		if len(selectedTransactions) >= mempoolSelectionConfig.SelectionMaxNumTxs {
 			break
 		}
-		if len(selectedTransactions)%int(selectionLoopDurationCheckInterval) == 0 {
-			if time.Since(selectionLoopStartTime) > selectionLoopMaximumDuration {
+		if len(selectedTransactions)%int(mempoolSelectionConfig.SelectionLoopDurationCheckInterval) == 0 {
+			if time.Since(selectionLoopStartTime) > selectionLoopMaxDuration {
 				logSelect.Debug("TxCache.selectTransactionsFromBunches, selection loop timeout", "duration", time.Since(selectionLoopStartTime))
 				break
 			}

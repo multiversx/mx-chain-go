@@ -14,20 +14,17 @@ import (
 	"github.com/multiversx/mx-chain-go/node/chainSimulator"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/components/api"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/dtos"
-	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/block/preprocess"
-	"github.com/multiversx/mx-chain-go/storage/txcache"
 	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/txcache"
 	"github.com/stretchr/testify/require"
 )
 
 var (
-	oneEGLD                      = big.NewInt(1000000000000000000)
-	oneQuarterOfEGLD             = big.NewInt(250000000000000000)
-	durationWaitAfterSendMany    = 3000 * time.Millisecond
-	durationWaitAfterSendSome    = 300 * time.Millisecond
-	selectionMaxNumTxs           = 30000
-	selectionLoopMaximumDuration = 250 * time.Millisecond
+	oneEGLD                   = big.NewInt(1000000000000000000)
+	oneQuarterOfEGLD          = big.NewInt(250000000000000000)
+	durationWaitAfterSendMany = 3000 * time.Millisecond
+	durationWaitAfterSendSome = 300 * time.Millisecond
 )
 
 func startChainSimulator(t *testing.T, alterConfigsFunction func(cfg *config.Configs)) testsChainSimulator.ChainSimulator {
@@ -165,12 +162,7 @@ func selectTransactions(t *testing.T, simulator testsChainSimulator.ChainSimulat
 
 	mempool := poolsHolder.ShardDataStore(shardAsString).(*txcache.TxCache)
 
-	selectedTransactions, gas := mempool.SelectTransactions(
-		selectionSession,
-		process.TxCacheSelectionGasRequested,
-		selectionMaxNumTxs,
-		selectionLoopMaximumDuration,
-	)
+	selectedTransactions, gas := mempool.SelectTransactions(selectionSession)
 
 	return selectedTransactions, gas
 }

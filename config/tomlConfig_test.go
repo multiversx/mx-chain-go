@@ -162,13 +162,16 @@ func TestTomlParser(t *testing.T) {
 		Redundancy: RedundancyConfig{
 			MaxRoundsOfInactivityAccepted: 3,
 		},
+		TxCacheBounds: TxCacheBoundsConfig{
+			MaxNumBytesPerSenderUpperBound: 33_554_432,
+		},
 		MempoolSelection: MempoolSelectionConfig{
 			SelectionMaxNumTxs:                            30000,
 			SelectionLoopMaximumDuration:                  250,
+			SelectionGasRequested:                         10_000_000_000,
 			SelectionGasBandwidthIncreasePercent:          400,
 			SelectionGasBandwidthIncreaseScheduledPercent: 260,
 			SelectionLoopDurationCheckInterval:            10,
-			MaxNumBytesPerSenderUpperBound:                33_554_432,
 		},
 	}
 	testString := `
@@ -222,12 +225,15 @@ func TestTomlParser(t *testing.T) {
 [Consensus]
     Type = "` + consensusType + `"
 
+[TxCacheBounds]
+	MaxNumBytesPerSenderUpperBound = 33_554_432
+
 [MempoolSelection]
 	SelectionMaxNumTxs = 30000
 	SelectionLoopMaximumDuration = 250
+	SelectionGasRequested = 10_000_000_000
 	SelectionGasBandwidthIncreasePercent = 400
 	SelectionGasBandwidthIncreaseScheduledPercent = 260
-	MaxNumBytesPerSenderUpperBound = 33_554_432
 	SelectionLoopDurationCheckInterval = 10
 
 [VirtualMachine]
@@ -927,6 +933,9 @@ func TestEnableEpochConfig(t *testing.T) {
 	# AndromedaEnableEpoch represents the epoch when the equivalent messages are enabled
 	AndromedaEnableEpoch = 105
 
+    # CheckBuiltInCallOnTransferValueAndFailEnableRound represents the ROUND when the check on transfer value fix is activated
+    CheckBuiltInCallOnTransferValueAndFailEnableRound = 106
+
     # MaxNodesChangeEnableEpoch holds configuration for changing the maximum number of nodes and the enabling epoch
     MaxNodesChangeEnableEpoch = [
         { EpochEnable = 44, MaxNumNodes = 2169, NodesToShufflePerShard = 80 },
@@ -1050,6 +1059,7 @@ func TestEnableEpochConfig(t *testing.T) {
 			RelayedTransactionsV3EnableEpoch:                         103,
 			RelayedTransactionsV3FixESDTTransferEnableEpoch:          104,
 			AndromedaEnableEpoch:                                     105,
+			CheckBuiltInCallOnTransferValueAndFailEnableRound:        106,
 			MaxNodesChangeEnableEpoch: []MaxNodesChangeConfig{
 				{
 					EpochEnable:            44,

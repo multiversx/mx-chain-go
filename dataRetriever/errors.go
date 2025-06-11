@@ -274,3 +274,15 @@ var ErrNilEnableEpochsHandler = errors.New("nil enable epochs handler")
 
 // ErrBadSelectionLoopDurationCheckInterval signals a bad SelectionLoopDurationCheckInterval
 var ErrBadSelectionLoopDurationCheckInterval = errors.New("bad selection loop duration check interval")
+
+// ErrBadSelectionMaxNumTxs signals a bad TxCacheSelectionMaxNumTxs config
+var ErrBadSelectionMaxNumTxs = errors.New("bad tx cache selection max num txs")
+
+// ErrBadSelectionGasRequested signals a bad TxCacheSelectionGasRequested config
+var ErrBadSelectionGasRequested = errors.New("bad tx cache selection gas requested")
+
+// ErrBadSelectionLoopMaximumDuration signals a bad TxCacheSelectionLoopMaximumDuration config
+var ErrBadSelectionLoopMaximumDuration = errors.New("bad tx cache selection loop maximum duration")
+
+// ErrBadMaxNumBytesPerSenderUpperBound signals a bad MaxNumBytesPerSenderUpperBound config
+var ErrBadMaxNumBytesPerSenderUpperBound = errors.New("bad max number of bytes per sender upper bound")
