@@ -8,10 +8,10 @@ import (
 
 // TODO: Refactor "transactions.go" to not require the components in this file anymore
 // createSortedTransactionsProvider is a "simple factory" for "SortedTransactionsProvider" objects
-func createSortedTransactionsProvider(cache storage.Cacher, mempoolSelectionConfig config.MempoolSelectionConfig) SortedTransactionsProvider {
+func createSortedTransactionsProvider(cache storage.Cacher, selectionConfig config.TxCacheSelectionConfig) SortedTransactionsProvider {
 	txCache, isTxCache := cache.(TxCache)
 	if isTxCache {
-		return newAdapterTxCacheToSortedTransactionsProvider(txCache, mempoolSelectionConfig)
+		return newAdapterTxCacheToSortedTransactionsProvider(txCache, selectionConfig)
 	}
 
 	log.Error("Could not create a real [SortedTransactionsProvider], will create a disabled one")
@@ -20,14 +20,14 @@ func createSortedTransactionsProvider(cache storage.Cacher, mempoolSelectionConf
 
 // adapterTxCacheToSortedTransactionsProvider adapts a "TxCache" to the "SortedTransactionsProvider" interface
 type adapterTxCacheToSortedTransactionsProvider struct {
-	txCache                TxCache
-	mempoolSelectionConfig config.MempoolSelectionConfig
+	txCache         TxCache
+	selectionConfig config.TxCacheSelectionConfig
 }
 
-func newAdapterTxCacheToSortedTransactionsProvider(txCache TxCache, mempoolSelectionConfig config.MempoolSelectionConfig) *adapterTxCacheToSortedTransactionsProvider {
+func newAdapterTxCacheToSortedTransactionsProvider(txCache TxCache, txCacheSelectionConfig config.TxCacheSelectionConfig) *adapterTxCacheToSortedTransactionsProvider {
 	adapter := &adapterTxCacheToSortedTransactionsProvider{
-		txCache:                txCache,
-		mempoolSelectionConfig: mempoolSelectionConfig,
+		txCache:         txCache,
+		selectionConfig: txCacheSelectionConfig,
 	}
 
 	return adapter

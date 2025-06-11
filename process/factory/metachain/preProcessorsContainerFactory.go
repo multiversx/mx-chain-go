@@ -39,7 +39,7 @@ type preProcessorsContainerFactory struct {
 	scheduledTxsExecutionHandler process.ScheduledTxsExecutionHandler
 	processedMiniBlocksTracker   process.ProcessedMiniBlocksTracker
 	txExecutionOrderHandler      common.TxExecutionOrderHandler
-	mempoolSelectionConfig       config.MempoolSelectionConfig
+	txCacheSelectionConfig       config.TxCacheSelectionConfig
 }
 
 // NewPreProcessorsContainerFactory is responsible for creating a new preProcessors factory object
@@ -64,7 +64,7 @@ func NewPreProcessorsContainerFactory(
 	scheduledTxsExecutionHandler process.ScheduledTxsExecutionHandler,
 	processedMiniBlocksTracker process.ProcessedMiniBlocksTracker,
 	txExecutionOrderHandler common.TxExecutionOrderHandler,
-	mempoolSelectionConfig config.MempoolSelectionConfig,
+	txCacheSelectionConfig config.TxCacheSelectionConfig,
 ) (*preProcessorsContainerFactory, error) {
 
 	if check.IfNil(shardCoordinator) {
@@ -127,19 +127,19 @@ func NewPreProcessorsContainerFactory(
 	if check.IfNil(txExecutionOrderHandler) {
 		return nil, process.ErrNilTxExecutionOrderHandler
 	}
-	if mempoolSelectionConfig.SelectionGasBandwidthIncreasePercent == 0 {
+	if txCacheSelectionConfig.SelectionGasBandwidthIncreasePercent == 0 {
 		return nil, process.ErrBadSelectionGasBandwidthIncreasePercent
 	}
-	if mempoolSelectionConfig.SelectionGasBandwidthIncreaseScheduledPercent == 0 {
+	if txCacheSelectionConfig.SelectionGasBandwidthIncreaseScheduledPercent == 0 {
 		return nil, process.ErrBadSelectionGasBandwidthIncreaseScheduledPercent
 	}
-	if mempoolSelectionConfig.SelectionMaxNumTxs == 0 {
+	if txCacheSelectionConfig.SelectionMaxNumTxs == 0 {
 		return nil, process.ErrBadTxCacheSelectionMaxNumTxs
 	}
-	if mempoolSelectionConfig.SelectionGasRequested == 0 {
+	if txCacheSelectionConfig.SelectionGasRequested == 0 {
 		return nil, process.ErrBadTxCacheSelectionGasRequested
 	}
-	if mempoolSelectionConfig.SelectionLoopMaximumDuration == 0 {
+	if txCacheSelectionConfig.SelectionLoopMaximumDuration == 0 {
 		return nil, process.ErrBadTxCacheSelectionLoopMaximumDuration
 	}
 
@@ -164,7 +164,7 @@ func NewPreProcessorsContainerFactory(
 		scheduledTxsExecutionHandler: scheduledTxsExecutionHandler,
 		processedMiniBlocksTracker:   processedMiniBlocksTracker,
 		txExecutionOrderHandler:      txExecutionOrderHandler,
-		mempoolSelectionConfig:       mempoolSelectionConfig,
+		txCacheSelectionConfig:       txCacheSelectionConfig,
 	}, nil
 }
 
@@ -217,7 +217,7 @@ func (ppcm *preProcessorsContainerFactory) createTxPreProcessor() (process.PrePr
 		ScheduledTxsExecutionHandler: ppcm.scheduledTxsExecutionHandler,
 		ProcessedMiniBlocksTracker:   ppcm.processedMiniBlocksTracker,
 		TxExecutionOrderHandler:      ppcm.txExecutionOrderHandler,
-		MempoolSelectionConfig:       ppcm.mempoolSelectionConfig,
+		TxCacheSelectionConfig:       ppcm.txCacheSelectionConfig,
 	}
 
 	txPreprocessor, err := preprocess.NewTransactionPreprocessor(args)

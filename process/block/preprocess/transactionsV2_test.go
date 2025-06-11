@@ -77,7 +77,7 @@ func createTransactionPreprocessor() *transactions {
 		ScheduledTxsExecutionHandler: &testscommon.ScheduledTxsExecutionStub{},
 		ProcessedMiniBlocksTracker:   &testscommon.ProcessedMiniBlocksTrackerStub{},
 		TxExecutionOrderHandler:      &commonMocks.TxExecutionOrderHandlerStub{},
-		MempoolSelectionConfig: config.MempoolSelectionConfig{
+		TxCacheSelectionConfig: config.TxCacheSelectionConfig{
 			SelectionMaxNumTxs:                            30000,
 			SelectionLoopMaximumDuration:                  250,
 			SelectionGasRequested:                         10_000_000_000,

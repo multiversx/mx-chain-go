@@ -165,7 +165,7 @@ func TestTomlParser(t *testing.T) {
 		TxCacheBounds: TxCacheBoundsConfig{
 			MaxNumBytesPerSenderUpperBound: 33_554_432,
 		},
-		MempoolSelection: MempoolSelectionConfig{
+		TxCacheSelection: TxCacheSelectionConfig{
 			SelectionMaxNumTxs:                            30000,
 			SelectionLoopMaximumDuration:                  250,
 			SelectionGasRequested:                         10_000_000_000,
@@ -228,7 +228,7 @@ func TestTomlParser(t *testing.T) {
 [TxCacheBounds]
 	MaxNumBytesPerSenderUpperBound = 33_554_432
 
-[MempoolSelection]
+[TxCacheSelection]
 	SelectionMaxNumTxs = 30000
 	SelectionLoopMaximumDuration = 250
 	SelectionGasRequested = 10_000_000_000

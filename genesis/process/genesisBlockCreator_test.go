@@ -192,7 +192,7 @@ func createMockArgument(
 				return &block.Header{}
 			},
 		},
-		MempoolSelectionConfig: config.MempoolSelectionConfig{
+		TxCacheSelectionConfig: config.TxCacheSelectionConfig{
 			SelectionMaxNumTxs:                            30000,
 			SelectionLoopMaximumDuration:                  250,
 			SelectionGasRequested:                         10_000_000_000,

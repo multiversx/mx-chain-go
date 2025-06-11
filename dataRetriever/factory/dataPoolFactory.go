@@ -69,7 +69,7 @@ func NewDataPoolFromConfig(args ArgsDataPool) (dataRetriever.PoolsHolder, error)
 		Marshalizer:            args.Marshalizer,
 		NumberOfShards:         args.ShardCoordinator.NumberOfShards(),
 		SelfShardID:            args.ShardCoordinator.SelfId(),
-		MempoolSelectionConfig: mainConfig.MempoolSelection,
+		TxCacheSelectionConfig: mainConfig.TxCacheSelection,
 		TxCacheBoundsConfig:    mainConfig.TxCacheBounds,
 	})
 	if err != nil {

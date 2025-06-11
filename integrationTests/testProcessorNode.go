@@ -1823,7 +1823,7 @@ func (tpn *TestProcessorNode) initInnerProcessors(gasMap map[string]map[string]u
 		scheduledTxsExecutionHandler,
 		processedMiniBlocksTracker,
 		tpn.TxExecutionOrderHandler,
-		config.MempoolSelectionConfig{
+		config.TxCacheSelectionConfig{
 			SelectionMaxNumTxs:                            30000,
 			SelectionLoopMaximumDuration:                  250,
 			SelectionGasRequested:                         10_000_000_000,
@@ -2103,7 +2103,7 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors(gasMap map[string]map[stri
 		scheduledTxsExecutionHandler,
 		processedMiniBlocksTracker,
 		tpn.TxExecutionOrderHandler,
-		config.MempoolSelectionConfig{
+		config.TxCacheSelectionConfig{
 			SelectionMaxNumTxs:                            30000,
 			SelectionLoopMaximumDuration:                  250,
 			SelectionGasRequested:                         10_000_000_000,

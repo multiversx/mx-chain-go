@@ -18,8 +18,8 @@ type TxCacheBoundsConfig struct {
 	MaxNumBytesPerSenderUpperBound uint32
 }
 
-// MempoolSelectionConfig will map the mempool selection config
-type MempoolSelectionConfig struct {
+// TxCacheSelectionConfig will map the mempool selection config
+type TxCacheSelectionConfig struct {
 	SelectionGasBandwidthIncreasePercent          uint32
 	SelectionGasBandwidthIncreaseScheduledPercent uint32
 	SelectionMaxNumTxs                            int
@@ -195,7 +195,7 @@ type Config struct {
 	PeerBlockBodyDataPool       CacheConfig
 	TxDataPool                  CacheConfig
 	TxCacheBounds               TxCacheBoundsConfig
-	MempoolSelection            MempoolSelectionConfig
+	TxCacheSelection            TxCacheSelectionConfig
 	UnsignedTransactionDataPool CacheConfig
 	RewardTransactionDataPool   CacheConfig
 	TrieNodesChunksDataPool     CacheConfig

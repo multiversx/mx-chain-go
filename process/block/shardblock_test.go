@@ -482,7 +482,7 @@ func TestShardProcessor_ProcessBlockWithInvalidTransactionShouldErr(t *testing.T
 		&testscommon.ScheduledTxsExecutionStub{},
 		&testscommon.ProcessedMiniBlocksTrackerStub{},
 		&commonMock.TxExecutionOrderHandlerStub{},
-		config.MempoolSelectionConfig{
+		config.TxCacheSelectionConfig{
 			SelectionMaxNumTxs:                            30000,
 			SelectionLoopMaximumDuration:                  250,
 			SelectionGasRequested:                         10_000_000_000,
@@ -711,7 +711,7 @@ func TestShardProcessor_ProcessBlockWithErrOnProcessBlockTransactionsCallShouldR
 		&testscommon.ScheduledTxsExecutionStub{},
 		&testscommon.ProcessedMiniBlocksTrackerStub{},
 		&commonMock.TxExecutionOrderHandlerStub{},
-		config.MempoolSelectionConfig{
+		config.TxCacheSelectionConfig{
 			SelectionMaxNumTxs:                            30000,
 			SelectionLoopMaximumDuration:                  250,
 			SelectionGasRequested:                         10_000_000_000,
@@ -2623,7 +2623,7 @@ func TestShardProcessor_MarshalizedDataToBroadcastShouldWork(t *testing.T) {
 		&testscommon.ScheduledTxsExecutionStub{},
 		&testscommon.ProcessedMiniBlocksTrackerStub{},
 		&commonMock.TxExecutionOrderHandlerStub{},
-		config.MempoolSelectionConfig{
+		config.TxCacheSelectionConfig{
 			SelectionMaxNumTxs:                            30000,
 			SelectionLoopMaximumDuration:                  250,
 			SelectionGasRequested:                         10_000_000_000,
@@ -2739,7 +2739,7 @@ func TestShardProcessor_MarshalizedDataMarshalWithoutSuccess(t *testing.T) {
 		&testscommon.ScheduledTxsExecutionStub{},
 		&testscommon.ProcessedMiniBlocksTrackerStub{},
 		&commonMock.TxExecutionOrderHandlerStub{},
-		config.MempoolSelectionConfig{
+		config.TxCacheSelectionConfig{
 			SelectionMaxNumTxs:                            30000,
 			SelectionLoopMaximumDuration:                  250,
 			SelectionGasRequested:                         10_000_000_000,
@@ -3147,7 +3147,7 @@ func TestShardProcessor_CreateMiniBlocksShouldWorkWithIntraShardTxs(t *testing.T
 		&testscommon.ScheduledTxsExecutionStub{},
 		&testscommon.ProcessedMiniBlocksTrackerStub{},
 		&commonMock.TxExecutionOrderHandlerStub{},
-		config.MempoolSelectionConfig{
+		config.TxCacheSelectionConfig{
 			SelectionMaxNumTxs:                            30000,
 			SelectionLoopMaximumDuration:                  250,
 			SelectionGasRequested:                         10_000_000_000,
@@ -3336,7 +3336,7 @@ func TestShardProcessor_RestoreBlockIntoPoolsShouldWork(t *testing.T) {
 		&testscommon.ScheduledTxsExecutionStub{},
 		&testscommon.ProcessedMiniBlocksTrackerStub{},
 		&commonMock.TxExecutionOrderHandlerStub{},
-		config.MempoolSelectionConfig{
+		config.TxCacheSelectionConfig{
 			SelectionMaxNumTxs:                            30000,
 			SelectionLoopMaximumDuration:                  250,
 			SelectionGasRequested:                         10_000_000_000,

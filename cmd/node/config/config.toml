@@ -424,7 +424,7 @@
 [TxCacheBounds]
     MaxNumBytesPerSenderUpperBound = 33_554_432             #32MB
 
-[MempoolSelection]
+[TxCacheSelection]
     SelectionMaxNumTxs = 30000
     SelectionLoopMaximumDuration = 250                      #milliseconds
     SelectionLoopDurationCheckInterval = 10                 #milliseconds

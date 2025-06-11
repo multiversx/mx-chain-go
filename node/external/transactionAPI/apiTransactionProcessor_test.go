@@ -889,7 +889,7 @@ func TestApiTransactionProcessor_GetTransactionsPoolForSender(t *testing.T) {
 		TxCacheBoundsConfig: config.TxCacheBoundsConfig{
 			MaxNumBytesPerSenderUpperBound: 33_554_432,
 		},
-		MempoolSelectionConfig: config.MempoolSelectionConfig{
+		TxCacheSelectionConfig: config.TxCacheSelectionConfig{
 			SelectionGasBandwidthIncreasePercent:          400,
 			SelectionGasBandwidthIncreaseScheduledPercent: 260,
 			SelectionMaxNumTxs:                            30000,
@@ -917,7 +917,7 @@ func TestApiTransactionProcessor_GetTransactionsPoolForSender(t *testing.T) {
 		TxCacheBoundsConfig: config.TxCacheBoundsConfig{
 			MaxNumBytesPerSenderUpperBound: 33_554_432,
 		},
-		MempoolSelectionConfig: config.MempoolSelectionConfig{
+		TxCacheSelectionConfig: config.TxCacheSelectionConfig{
 			SelectionGasBandwidthIncreasePercent:          400,
 			SelectionGasBandwidthIncreaseScheduledPercent: 260,
 			SelectionMaxNumTxs:                            30000,
@@ -1013,7 +1013,7 @@ func TestApiTransactionProcessor_GetLastPoolNonceForSender(t *testing.T) {
 		TxCacheBoundsConfig: config.TxCacheBoundsConfig{
 			MaxNumBytesPerSenderUpperBound: 33_554_432,
 		},
-		MempoolSelectionConfig: config.MempoolSelectionConfig{
+		TxCacheSelectionConfig: config.TxCacheSelectionConfig{
 			SelectionGasBandwidthIncreasePercent:          400,
 			SelectionGasBandwidthIncreaseScheduledPercent: 260,
 			SelectionMaxNumTxs:                            30000,
@@ -1075,7 +1075,7 @@ func TestApiTransactionProcessor_GetTransactionsPoolNonceGapsForSender(t *testin
 		TxCacheBoundsConfig: config.TxCacheBoundsConfig{
 			MaxNumBytesPerSenderUpperBound: 33_554_432,
 		},
-		MempoolSelectionConfig: config.MempoolSelectionConfig{
+		TxCacheSelectionConfig: config.TxCacheSelectionConfig{
 			SelectionGasBandwidthIncreasePercent:          400,
 			SelectionGasBandwidthIncreaseScheduledPercent: 260,
 			SelectionMaxNumTxs:                            30000,
@@ -1097,7 +1097,7 @@ func TestApiTransactionProcessor_GetTransactionsPoolNonceGapsForSender(t *testin
 		TxCacheBoundsConfig: config.TxCacheBoundsConfig{
 			MaxNumBytesPerSenderUpperBound: 33_554_432,
 		},
-		MempoolSelectionConfig: config.MempoolSelectionConfig{
+		TxCacheSelectionConfig: config.TxCacheSelectionConfig{
 			SelectionGasBandwidthIncreasePercent:          400,
 			SelectionGasBandwidthIncreaseScheduledPercent: 260,
 			SelectionMaxNumTxs:                            30000,

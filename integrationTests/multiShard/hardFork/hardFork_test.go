@@ -509,7 +509,7 @@ func hardForkImport(
 			HeaderVersionConfigs:    testscommon.GetDefaultHeaderVersionConfig(),
 			HistoryRepository:       &dblookupext.HistoryRepositoryStub{},
 			TxExecutionOrderHandler: &commonMocks.TxExecutionOrderHandlerStub{},
-			MempoolSelectionConfig: config.MempoolSelectionConfig{
+			TxCacheSelectionConfig: config.TxCacheSelectionConfig{
 				SelectionMaxNumTxs:                            30000,
 				SelectionLoopMaximumDuration:                  250,
 				SelectionGasRequested:                         10_000_000_000,

@@ -17,7 +17,7 @@ type ArgShardedTxPool struct {
 	Marshalizer            marshal.Marshalizer
 	NumberOfShards         uint32
 	SelfShardID            uint32
-	MempoolSelectionConfig config.MempoolSelectionConfig
+	TxCacheSelectionConfig config.TxCacheSelectionConfig
 	TxCacheBoundsConfig    config.TxCacheBoundsConfig
 }
 
@@ -50,19 +50,19 @@ func (args *ArgShardedTxPool) verify() error {
 		return fmt.Errorf("%w: NumberOfShards is not valid", dataRetriever.ErrCacheConfigInvalidSharding)
 	}
 
-	if args.MempoolSelectionConfig.SelectionLoopDurationCheckInterval == 0 {
+	if args.TxCacheSelectionConfig.SelectionLoopDurationCheckInterval == 0 {
 		return fmt.Errorf("%w: SelectionLoopDurationCheckInterval is not valid", dataRetriever.ErrBadSelectionLoopDurationCheckInterval)
 	}
 
-	if args.MempoolSelectionConfig.SelectionMaxNumTxs == 0 {
+	if args.TxCacheSelectionConfig.SelectionMaxNumTxs == 0 {
 		return fmt.Errorf("%w: SelectionMaxNumTxs is not valid", dataRetriever.ErrBadSelectionMaxNumTxs)
 	}
 
-	if args.MempoolSelectionConfig.SelectionGasRequested == 0 {
+	if args.TxCacheSelectionConfig.SelectionGasRequested == 0 {
 		return fmt.Errorf("%w: SelectionGasRequested is not valid", dataRetriever.ErrBadSelectionGasRequested)
 	}
 
-	if args.MempoolSelectionConfig.SelectionLoopMaximumDuration == 0 {
+	if args.TxCacheSelectionConfig.SelectionLoopMaximumDuration == 0 {
 		return fmt.Errorf("%w: SelectionLoopMaximumDuration is not valid", dataRetriever.ErrBadSelectionLoopMaximumDuration)
 	}
 

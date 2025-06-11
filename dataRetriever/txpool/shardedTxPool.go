@@ -65,7 +65,7 @@ func NewShardedTxPool(args ArgShardedTxPool) (*shardedTxPool, error) {
 		CountPerSenderThreshold:     args.Config.SizePerSender,
 		NumItemsToPreemptivelyEvict: storage.TxPoolSourceMeNumItemsToPreemptivelyEvict,
 		TxCacheBoundsConfig:         args.TxCacheBoundsConfig,
-		MempoolSelectionConfig:      args.MempoolSelectionConfig,
+		TxCacheSelectionConfig:      args.TxCacheSelectionConfig,
 	}
 
 	// We do not reserve cross tx cache capacity for [metachain] -> [me] (no transactions), [me] -> me (already reserved above).

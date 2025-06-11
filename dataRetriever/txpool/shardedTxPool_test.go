@@ -44,7 +44,7 @@ func Test_NewShardedTxPool_WhenBadConfig(t *testing.T) {
 		TxCacheBoundsConfig: config.TxCacheBoundsConfig{
 			MaxNumBytesPerSenderUpperBound: maxNumBytesPerSenderUpperBoundTest,
 		},
-		MempoolSelectionConfig: config.MempoolSelectionConfig{
+		TxCacheSelectionConfig: config.TxCacheSelectionConfig{
 			SelectionGasRequested:              10_000_000_000,
 			SelectionMaxNumTxs:                 30_000,
 			SelectionLoopMaximumDuration:       250,
@@ -109,28 +109,28 @@ func Test_NewShardedTxPool_WhenBadConfig(t *testing.T) {
 	require.Errorf(t, err, dataRetriever.ErrCacheConfigInvalidSharding.Error())
 
 	args = goodArgs
-	args.MempoolSelectionConfig.SelectionLoopDurationCheckInterval = 0
+	args.TxCacheSelectionConfig.SelectionLoopDurationCheckInterval = 0
 	pool, err = NewShardedTxPool(args)
 	require.Nil(t, pool)
 	require.NotNil(t, err)
 	require.Errorf(t, err, dataRetriever.ErrBadSelectionLoopDurationCheckInterval.Error())
 
 	args = goodArgs
-	args.MempoolSelectionConfig.SelectionMaxNumTxs = 0
+	args.TxCacheSelectionConfig.SelectionMaxNumTxs = 0
 	pool, err = NewShardedTxPool(args)
 	require.Nil(t, pool)
 	require.NotNil(t, err)
 	require.Errorf(t, err, dataRetriever.ErrBadSelectionMaxNumTxs.Error())
 
 	args = goodArgs
-	args.MempoolSelectionConfig.SelectionLoopMaximumDuration = 0
+	args.TxCacheSelectionConfig.SelectionLoopMaximumDuration = 0
 	pool, err = NewShardedTxPool(args)
 	require.Nil(t, pool)
 	require.NotNil(t, err)
 	require.Errorf(t, err, dataRetriever.ErrBadSelectionLoopMaximumDuration.Error())
 
 	args = goodArgs
-	args.MempoolSelectionConfig.SelectionGasRequested = 0
+	args.TxCacheSelectionConfig.SelectionGasRequested = 0
 	pool, err = NewShardedTxPool(args)
 	require.Nil(t, pool)
 	require.NotNil(t, err)
@@ -154,7 +154,7 @@ func Test_NewShardedTxPool_ComputesCacheConfig(t *testing.T) {
 		TxCacheBoundsConfig: config.TxCacheBoundsConfig{
 			MaxNumBytesPerSenderUpperBound: maxNumBytesPerSenderUpperBoundTest,
 		},
-		MempoolSelectionConfig: config.MempoolSelectionConfig{
+		TxCacheSelectionConfig: config.TxCacheSelectionConfig{
 			SelectionGasRequested:              10_000_000_000,
 			SelectionMaxNumTxs:                 30_000,
 			SelectionLoopMaximumDuration:       250,
@@ -446,7 +446,7 @@ func Test_routeToCacheUnions(t *testing.T) {
 		TxCacheBoundsConfig: config.TxCacheBoundsConfig{
 			MaxNumBytesPerSenderUpperBound: maxNumBytesPerSenderUpperBoundTest,
 		},
-		MempoolSelectionConfig: config.MempoolSelectionConfig{
+		TxCacheSelectionConfig: config.TxCacheSelectionConfig{
 			SelectionGasRequested:              10_000_000_000,
 			SelectionMaxNumTxs:                 30_000,
 			SelectionLoopMaximumDuration:       250,
@@ -495,7 +495,7 @@ func newTxPoolToTest() (dataRetriever.ShardedDataCacherNotifier, error) {
 		TxCacheBoundsConfig: config.TxCacheBoundsConfig{
 			MaxNumBytesPerSenderUpperBound: maxNumBytesPerSenderUpperBoundTest,
 		},
-		MempoolSelectionConfig: config.MempoolSelectionConfig{
+		TxCacheSelectionConfig: config.TxCacheSelectionConfig{
 			SelectionGasRequested:              10_000_000_000,
 			SelectionMaxNumTxs:                 30_000,
 			SelectionLoopMaximumDuration:       250,

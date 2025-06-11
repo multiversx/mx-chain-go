@@ -122,7 +122,7 @@ func newPool() dataRetriever.ShardedDataCacherNotifier {
 		TxCacheBoundsConfig: config.TxCacheBoundsConfig{
 			MaxNumBytesPerSenderUpperBound: maxNumBytesPerSenderUpperBoundTest,
 		},
-		MempoolSelectionConfig: config.MempoolSelectionConfig{
+		TxCacheSelectionConfig: config.TxCacheSelectionConfig{
 			SelectionGasRequested:              10_000_000_000,
 			SelectionMaxNumTxs:                 30_000,
 			SelectionLoopMaximumDuration:       250,

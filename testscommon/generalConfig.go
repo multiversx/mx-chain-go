@@ -139,7 +139,7 @@ func GetGeneralConfig() config.Config {
 		TxCacheBounds: config.TxCacheBoundsConfig{
 			MaxNumBytesPerSenderUpperBound: 33_554_432,
 		},
-		MempoolSelection: config.MempoolSelectionConfig{
+		TxCacheSelection: config.TxCacheSelectionConfig{
 			SelectionMaxNumTxs:                            30000,
 			SelectionLoopMaximumDuration:                  250,
 			SelectionLoopDurationCheckInterval:            10,
