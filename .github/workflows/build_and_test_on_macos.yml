@@ -5,6 +5,9 @@ on:
     branches: [master, rc/*]
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 jobs:
   build:
     runs-on: [self-hosted, macOS, ARM64]
