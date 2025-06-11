@@ -1,4 +1,4 @@
-name: Build and smoke test
+name: Build and smoke test (on MacOS)
 
 on:
   pull_request:
@@ -7,10 +7,7 @@ on:
 
 jobs:
   build:
-    strategy:
-      matrix:
-        runs-on: [ubuntu-latest, macos-latest]
-    runs-on: ${{ matrix.runs-on }}
+    runs-on: [self-hosted, macOS, ARM64]
     name: Build
     steps:
       - name: Set up Go 1.23.6
@@ -38,11 +35,7 @@ jobs:
           cd ${GITHUB_WORKSPACE}/cmd/logviewer && go build .
           cd ${GITHUB_WORKSPACE}/cmd/termui && go build .
 
-      # On GitHub, we only run the short tests, and we only run them for some OS/ARCH combinations.
+      # On GitHub, we only run the short tests.
       - name: Run tests
         run: |
-          GOOS=$(go env GOOS)
-
-          if [[ "$GOOS" == darwin ]]; then
-            go test -short -v ./...
-          fi
+          go test -short -v ./...
