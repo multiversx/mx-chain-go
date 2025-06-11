@@ -44,6 +44,15 @@ func CreateTxPool(numShards uint32, selfShard uint32) (dataRetriever.ShardedData
 			SelfShardID:    selfShard,
 			TxGasHandler:   txcachemocks.NewTxGasHandlerMock(),
 			Marshalizer:    &marshal.GogoProtoMarshalizer{},
+			TxCacheBoundsConfig: config.TxCacheBoundsConfig{
+				MaxNumBytesPerSenderUpperBound: 33_554_432,
+			},
+			TxCacheSelectionConfig: config.TxCacheSelectionConfig{
+				SelectionGasRequested:              10_000_000_000,
+				SelectionMaxNumTxs:                 30_000,
+				SelectionLoopMaximumDuration:       250,
+				SelectionLoopDurationCheckInterval: 10,
+			},
 		},
 	)
 }

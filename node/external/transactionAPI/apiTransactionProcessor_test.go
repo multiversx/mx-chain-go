@@ -22,6 +22,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/vm"
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/dblookupext"
 	"github.com/multiversx/mx-chain-go/node/mock"
@@ -885,6 +886,17 @@ func TestApiTransactionProcessor_GetTransactionsPoolForSender(t *testing.T) {
 		CountThreshold:              math.MaxUint32,
 		CountPerSenderThreshold:     math.MaxUint32,
 		NumItemsToPreemptivelyEvict: 1,
+		TxCacheBoundsConfig: config.TxCacheBoundsConfig{
+			MaxNumBytesPerSenderUpperBound: 33_554_432,
+		},
+		TxCacheSelectionConfig: config.TxCacheSelectionConfig{
+			SelectionGasBandwidthIncreasePercent:          400,
+			SelectionGasBandwidthIncreaseScheduledPercent: 260,
+			SelectionMaxNumTxs:                            30000,
+			SelectionLoopMaximumDuration:                  250,
+			SelectionLoopDurationCheckInterval:            10,
+			SelectionGasRequested:                         10_000_000_000,
+		},
 	}, txcachemocks.NewMempoolHostMock())
 
 	require.NoError(t, err)
@@ -902,7 +914,17 @@ func TestApiTransactionProcessor_GetTransactionsPoolForSender(t *testing.T) {
 		CountThreshold:              math.MaxUint32,
 		CountPerSenderThreshold:     math.MaxUint32,
 		NumItemsToPreemptivelyEvict: 1,
-	}, txcachemocks.NewMempoolHostMock())
+		TxCacheBoundsConfig: config.TxCacheBoundsConfig{
+			MaxNumBytesPerSenderUpperBound: 33_554_432,
+		},
+		TxCacheSelectionConfig: config.TxCacheSelectionConfig{
+			SelectionGasBandwidthIncreasePercent:          400,
+			SelectionGasBandwidthIncreaseScheduledPercent: 260,
+			SelectionMaxNumTxs:                            30000,
+			SelectionLoopMaximumDuration:                  250,
+			SelectionLoopDurationCheckInterval:            10,
+			SelectionGasRequested:                         10_000_000_000,
+		}}, txcachemocks.NewMempoolHostMock())
 	txCacheWithMeta.AddTx(createTx(txHash3, sender, 4))
 	txCacheWithMeta.AddTx(createTx(txHash4, sender, 5))
 
@@ -988,7 +1010,17 @@ func TestApiTransactionProcessor_GetLastPoolNonceForSender(t *testing.T) {
 		CountThreshold:              math.MaxUint32,
 		CountPerSenderThreshold:     math.MaxUint32,
 		NumItemsToPreemptivelyEvict: 1,
-	}, txcachemocks.NewMempoolHostMock())
+		TxCacheBoundsConfig: config.TxCacheBoundsConfig{
+			MaxNumBytesPerSenderUpperBound: 33_554_432,
+		},
+		TxCacheSelectionConfig: config.TxCacheSelectionConfig{
+			SelectionGasBandwidthIncreasePercent:          400,
+			SelectionGasBandwidthIncreaseScheduledPercent: 260,
+			SelectionMaxNumTxs:                            30000,
+			SelectionLoopMaximumDuration:                  250,
+			SelectionLoopDurationCheckInterval:            10,
+			SelectionGasRequested:                         10_000_000_000,
+		}}, txcachemocks.NewMempoolHostMock())
 	txCacheIntraShard.AddTx(createTx(txHash2, sender, 3))
 	txCacheIntraShard.AddTx(createTx(txHash0, sender, 1))
 	txCacheIntraShard.AddTx(createTx(txHash1, sender, 2))
@@ -1040,7 +1072,17 @@ func TestApiTransactionProcessor_GetTransactionsPoolNonceGapsForSender(t *testin
 		CountThreshold:              math.MaxUint32,
 		CountPerSenderThreshold:     math.MaxUint32,
 		NumItemsToPreemptivelyEvict: 1,
-	}, txcachemocks.NewMempoolHostMock())
+		TxCacheBoundsConfig: config.TxCacheBoundsConfig{
+			MaxNumBytesPerSenderUpperBound: 33_554_432,
+		},
+		TxCacheSelectionConfig: config.TxCacheSelectionConfig{
+			SelectionGasBandwidthIncreasePercent:          400,
+			SelectionGasBandwidthIncreaseScheduledPercent: 260,
+			SelectionMaxNumTxs:                            30000,
+			SelectionLoopMaximumDuration:                  250,
+			SelectionLoopDurationCheckInterval:            10,
+			SelectionGasRequested:                         10_000_000_000,
+		}}, txcachemocks.NewMempoolHostMock())
 
 	require.NoError(t, err)
 
@@ -1052,7 +1094,17 @@ func TestApiTransactionProcessor_GetTransactionsPoolNonceGapsForSender(t *testin
 		CountThreshold:              math.MaxUint32,
 		CountPerSenderThreshold:     math.MaxUint32,
 		NumItemsToPreemptivelyEvict: 1,
-	}, txcachemocks.NewMempoolHostMock())
+		TxCacheBoundsConfig: config.TxCacheBoundsConfig{
+			MaxNumBytesPerSenderUpperBound: 33_554_432,
+		},
+		TxCacheSelectionConfig: config.TxCacheSelectionConfig{
+			SelectionGasBandwidthIncreasePercent:          400,
+			SelectionGasBandwidthIncreaseScheduledPercent: 260,
+			SelectionMaxNumTxs:                            30000,
+			SelectionLoopMaximumDuration:                  250,
+			SelectionLoopDurationCheckInterval:            10,
+			SelectionGasRequested:                         10_000_000_000,
+		}}, txcachemocks.NewMempoolHostMock())
 
 	require.NoError(t, err)
 

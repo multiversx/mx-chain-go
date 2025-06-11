@@ -352,6 +352,7 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 		scheduledTxsExecutionHandler,
 		processedMiniBlocksTracker,
 		pcf.txExecutionOrderHandler,
+		pcf.config.TxCacheSelection,
 	)
 	if err != nil {
 		return nil, err
@@ -661,6 +662,7 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 		scheduledTxsExecutionHandler,
 		processedMiniBlocksTracker,
 		pcf.txExecutionOrderHandler,
+		pcf.config.TxCacheSelection,
 	)
 	if err != nil {
 		return nil, err

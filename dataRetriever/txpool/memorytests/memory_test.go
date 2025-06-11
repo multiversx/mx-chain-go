@@ -13,6 +13,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/dataRetriever/txpool"
 	"github.com/multiversx/mx-chain-go/storage/storageunit"
@@ -23,6 +24,8 @@ import (
 // useMemPprof dictates whether to save heap profiles when running the test.
 // Enable this manually, locally.
 const useMemPprof = false
+const maxNumBytesPerSenderUpperBoundTest = 33_554_432 // 32 MB
+const selectionLoopDurationCheckInterval = 10
 
 // We run all scenarios within a single test so that we minimize memory interferences (of tests running in parallel)
 func TestShardedTxPool_MemoryFootprint(t *testing.T) {
@@ -102,7 +105,7 @@ type memoryAssertion struct {
 }
 
 func newPool() dataRetriever.ShardedDataCacherNotifier {
-	config := storageunit.CacheConfig{
+	cacheConfig := storageunit.CacheConfig{
 		Capacity:             600000,
 		SizePerSender:        60000,
 		SizeInBytes:          400 * core.MegabyteSize,
@@ -111,12 +114,20 @@ func newPool() dataRetriever.ShardedDataCacherNotifier {
 	}
 
 	args := txpool.ArgShardedTxPool{
-		Config:         config,
+		Config:         cacheConfig,
 		TxGasHandler:   txcachemocks.NewTxGasHandlerMock(),
 		Marshalizer:    &marshal.GogoProtoMarshalizer{},
 		NumberOfShards: 2,
 		SelfShardID:    0,
-	}
+		TxCacheBoundsConfig: config.TxCacheBoundsConfig{
+			MaxNumBytesPerSenderUpperBound: maxNumBytesPerSenderUpperBoundTest,
+		},
+		TxCacheSelectionConfig: config.TxCacheSelectionConfig{
+			SelectionGasRequested:              10_000_000_000,
+			SelectionMaxNumTxs:                 30_000,
+			SelectionLoopMaximumDuration:       250,
+			SelectionLoopDurationCheckInterval: selectionLoopDurationCheckInterval,
+		}}
 	pool, err := txpool.NewShardedTxPool(args)
 	if err != nil {
 		panic(fmt.Sprintf("newPool: %s", err))

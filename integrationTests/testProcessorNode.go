@@ -314,6 +314,7 @@ type ArgTestProcessorNode struct {
 	WithPeersRatingHandler  bool
 	NodeOperationMode       common.NodeOperation
 	Proofs                  dataRetriever.ProofsPool
+	TxPoolConfig            *config.CacheConfig
 }
 
 // TestProcessorNode represents a container type of class used in integration tests
@@ -1822,6 +1823,13 @@ func (tpn *TestProcessorNode) initInnerProcessors(gasMap map[string]map[string]u
 		scheduledTxsExecutionHandler,
 		processedMiniBlocksTracker,
 		tpn.TxExecutionOrderHandler,
+		config.TxCacheSelectionConfig{
+			SelectionMaxNumTxs:                            30000,
+			SelectionLoopMaximumDuration:                  250,
+			SelectionGasRequested:                         10_000_000_000,
+			SelectionGasBandwidthIncreasePercent:          400,
+			SelectionGasBandwidthIncreaseScheduledPercent: 260,
+		},
 	)
 	if err != nil {
 		panic(err.Error())
@@ -2095,6 +2103,13 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors(gasMap map[string]map[stri
 		scheduledTxsExecutionHandler,
 		processedMiniBlocksTracker,
 		tpn.TxExecutionOrderHandler,
+		config.TxCacheSelectionConfig{
+			SelectionMaxNumTxs:                            30000,
+			SelectionLoopMaximumDuration:                  250,
+			SelectionGasRequested:                         10_000_000_000,
+			SelectionGasBandwidthIncreasePercent:          400,
+			SelectionGasBandwidthIncreaseScheduledPercent: 260,
+		},
 	)
 	tpn.PreProcessorsContainer, _ = fact.Create()
 
