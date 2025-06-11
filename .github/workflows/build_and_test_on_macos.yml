@@ -1,4 +1,4 @@
-name: Build and smoke test (on MacOS)
+name: Build and run short tests (on MacOS)
 
 on:
   pull_request:
