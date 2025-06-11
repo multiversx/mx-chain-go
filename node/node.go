@@ -679,7 +679,7 @@ func (n *Node) GetAllESDTTokens(address string, options api.AccountQueryOptions,
 			continue
 		}
 
-		if esdtToken.Value.Cmp(big.NewInt(0)) <= 0 {
+		if esdtToken.Value.Sign() <= 0 {
 			continue
 		}
 

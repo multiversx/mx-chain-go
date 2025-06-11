@@ -42,6 +42,7 @@ const (
 	urlParamWithKeys               = "withKeys"
 )
 
+// maxUint64 is represented on 20 characters as a string
 const maxNumCharsForNonceAsString = 20
 
 // addressFacadeHandler defines the methods to be implemented by a facade for handling address requests
@@ -637,7 +638,7 @@ func extractGetESDTNFTDataParams(c *gin.Context) (string, string, *big.Int, api.
 		return "", "", nil, api.AccountQueryOptions{}, errors.ErrNonceInvalid
 	}
 	if len(nonceAsStr) > maxNumCharsForNonceAsString {
-		return "", "", nil, api.AccountQueryOptions{}, fmt.Errorf("%w: nonce too long, num chars %v", errors.ErrNonceInvalid, len(nonceAsStr))
+		return "", "", nil, api.AccountQueryOptions{}, fmt.Errorf("%w: nonce too long, num chars %v, max num chars %v", errors.ErrNonceInvalid, len(nonceAsStr), maxNumCharsForNonceAsString)
 	}
 
 	nonceAsBigInt, okConvert := big.NewInt(0).SetString(nonceAsStr, 10)
