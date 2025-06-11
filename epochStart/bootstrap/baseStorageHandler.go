@@ -223,6 +223,13 @@ func (bsh *baseStorageHandler) saveShardHdrToStorage(hdr data.HeaderHandler) ([]
 		return nil, err
 	}
 
+	if hdr.IsStartOfEpochBlock() {
+		err = shardHdrStorage.Put([]byte(core.EpochStartIdentifier(hdr.GetEpoch())), headerBytes)
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	nonceToByteSlice := bsh.uint64Converter.ToByteSlice(hdr.GetNonce())
 	shardHdrNonceStorage, err := bsh.storageService.GetStorer(dataRetriever.GetHdrNonceHashDataUnit(hdr.GetShardID()))
 	if err != nil {

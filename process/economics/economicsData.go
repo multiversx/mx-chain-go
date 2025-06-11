@@ -409,6 +409,17 @@ func (ed *economicsData) MaxGasLimitPerBlockForSafeCrossShard() uint64 {
 	return ed.MaxGasLimitPerBlockForSafeCrossShardInEpoch(currentEpoch)
 }
 
+// MaxGasHigherFactorAccepted returns maximum gas higher factor accepted
+func (ed *economicsData) MaxGasHigherFactorAccepted() uint64 {
+	currentEpoch := ed.enableEpochsHandler.GetCurrentEpoch()
+	return ed.MaxGasHigherFactorAcceptedInEpoch(currentEpoch)
+}
+
+// MaxGasHigherFactorAcceptedInEpoch returns maximum gas higher factor accepted for epoch
+func (ed *economicsData) MaxGasHigherFactorAcceptedInEpoch(epoch uint32) uint64 {
+	return ed.getGasHigherFactorAccepted(epoch)
+}
+
 // MaxGasLimitPerBlockForSafeCrossShardInEpoch returns maximum gas limit per block for safe cross shard in a specific epoch
 func (ed *economicsData) MaxGasLimitPerBlockForSafeCrossShardInEpoch(epoch uint32) uint64 {
 	return ed.getMaxGasLimitPerBlockForSafeCrossShard(epoch)
