@@ -346,6 +346,11 @@ func (inf *initialNodeFacade) GetKeyValuePairs(_ string, _ api.AccountQueryOptio
 	return nil, api.BlockInfo{}, errNodeStarting
 }
 
+// IterateKeys returns error
+func (inf *initialNodeFacade) IterateKeys(_ string, _ uint, _ [][]byte, _ api.AccountQueryOptions) (map[string]string, [][]byte, api.BlockInfo, error) {
+	return nil, nil, api.BlockInfo{}, errNodeStarting
+}
+
 // GetGuardianData returns error
 func (inf *initialNodeFacade) GetGuardianData(_ string, _ api.AccountQueryOptions) (api.GuardianData, api.BlockInfo, error) {
 	return api.GuardianData{}, api.BlockInfo{}, errNodeStarting

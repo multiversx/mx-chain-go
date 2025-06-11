@@ -3,6 +3,7 @@ package mock
 import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/block"
 )
 
 // EpochStartTriggerStub -
@@ -15,6 +16,8 @@ type EpochStartTriggerStub struct {
 	UpdateCalled                      func(round uint64, nonce uint64)
 	ProcessedCalled                   func(header data.HeaderHandler)
 	EpochStartRoundCalled             func() uint64
+	LastCommitedEpochStartHdrCalled   func() (data.HeaderHandler, error)
+	GetEpochStartHdrFromStorageCalled func(epoch uint32) (data.HeaderHandler, error)
 	EpochFinalityAttestingRoundCalled func() uint64
 	EpochStartMetaHdrHashCalled       func() []byte
 }
@@ -81,6 +84,22 @@ func (e *EpochStartTriggerStub) EpochStartRound() uint64 {
 		return e.EpochStartRoundCalled()
 	}
 	return 0
+}
+
+// LastCommitedEpochStartHdr -
+func (e *EpochStartTriggerStub) LastCommitedEpochStartHdr() (data.HeaderHandler, error) {
+	if e.LastCommitedEpochStartHdrCalled != nil {
+		return e.LastCommitedEpochStartHdrCalled()
+	}
+	return &block.HeaderV2{}, nil
+}
+
+// GetEpochStartHdrFromStorage -
+func (e *EpochStartTriggerStub) GetEpochStartHdrFromStorage(epoch uint32) (data.HeaderHandler, error) {
+	if e.GetEpochStartHdrFromStorageCalled != nil {
+		return e.GetEpochStartHdrFromStorageCalled(epoch)
+	}
+	return &block.HeaderV2{}, nil
 }
 
 // Update -
