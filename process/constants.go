@@ -145,8 +145,8 @@ const TxCacheSelectionMaxNumTxs = 30_000
 // TxCacheSelectionLoopMaximumDuration defines the maximum duration for the loop that selects transactions from the cache.
 const TxCacheSelectionLoopMaximumDuration = 250 * time.Millisecond
 
-// TxCacheSelectionMaxNumTxs defines the maximum number of transactions that should be selected from the cache.
+// TxCacheCleanupMaxNumTxs defines the maximum number of transactions that should be cleaned from the cache.
 const TxCacheCleanupMaxNumTxs = 30_000
 
-// TxCacheSelectionLoopMaximumDuration defines the maximum duration for the loop that selects transactions from the cache.
+// TxCacheCleanupLoopMaximumDuration defines the maximum duration for the loop that cleans transactions from the cache.
 const TxCacheCleanupLoopMaximumDuration = 250 * time.Millisecond

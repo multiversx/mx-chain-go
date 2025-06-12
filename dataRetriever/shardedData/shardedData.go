@@ -41,9 +41,10 @@ type shardedData struct {
 }
 
 // MempoolCleanup implements dataRetriever.ShardedDataCacherNotifier.
-func (sd *shardedData) MempoolCleanup(session interface{}, nonce uint64, maxNum int, selectionLoopMaximumDuration time.Duration) bool {
+func (sd *shardedData) MempoolCleanup(session interface{}, randomness uint64, maxNum int, cleanupLoopMaximumDuration time.Duration) bool {
 	fmt.Println("MempoolCleanup called on ShardedDataCacherNotifier, but it is not implemented")
-	panic("MempoolCleanup unimplemented in ShardedDataCacherNotifier")
+	log.Warn("MempoolCleanup unimplemented in ShardedDataCacherNotifier")
+	return false
 }
 
 type shardStore struct {

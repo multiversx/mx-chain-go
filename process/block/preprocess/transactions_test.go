@@ -766,9 +766,6 @@ func TestMempoolCleanup_NoTransactionToSelect(t *testing.T) {
 
 	txHashes := 0
 	for _, miniBlock := range miniBlocks {
-		for _, txHash := range miniBlock.TxHashes {
-			fmt.Printf("MiniBlock TxHash: %x\n", txHash)
-		}
 		txHashes += len(miniBlock.TxHashes)
 	}
 	
@@ -786,12 +783,10 @@ func TestMempoolCleanup_NoTransactionToSelect(t *testing.T) {
 	
 	for i, tx := range txsToAdd {
 		hash := fmt.Appendf(nil, "hash-%d", i)
-		fmt.Println("Adding tx:", tx.GetNonce(), string(tx.GetSndAddr()), string(hash))
 		args.TxDataPool.AddData(hash, tx, 0, strCache)
 	}
 
 	assert.Equal(t, len(txsToAdd), 9) 
-	fmt.Println((len(txs.orderedTxs[strCache])))
 	for _, tx := range txs.orderedTxs[strCache] {
 		t.Logf("tx %d %s %x", tx.GetNonce(), tx.GetSndAddr(), tx.GetData())
 	}
@@ -850,12 +845,7 @@ func TestMempoolCleanup(t *testing.T) {
 	assert.Nil(t, err)
 
 	txHashes := 0
-	fmt.Println("Selected txs:")
 	for _, miniBlock := range miniBlocks {
-		for _, txHash := range miniBlock.TxHashes {
-			fmt.Printf("TxHash: %x (%s)\n", txHash, string(txHash))
-
-		}
 		txHashes += len(miniBlock.TxHashes)
 	}
 	
@@ -879,15 +869,10 @@ func TestMempoolCleanup(t *testing.T) {
 	body := &block.Body{
 		MiniBlocks: miniBlocks,
 	}
-	fmt.Println("Before RemoveTxsFromPools:")
-	for _, tx:= range txs.txPool.ShardDataStore(strCache).Keys() {
-		fmt.Println(string(tx))
-	}
 
 	assert.Equal(t, 15, int(txs.txPool.GetCounts().GetTotal()))
 	_ = txs.RemoveTxsFromPools(body)
 
-	fmt.Println("After RemoveTxsFromPools:")
 	for _, hash:= range txs.txPool.ShardDataStore(strCache).Keys() {
 		txRemained, _ := txs.txPool.ShardDataStore(strCache).Peek(hash)
 		assert.Equal(t, uint64(1000), txRemained.(*transaction.Transaction).GetGasPrice())

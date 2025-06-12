@@ -1,7 +1,6 @@
 package testscommon
 
 import (
-	"fmt"
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core/counting"
@@ -25,7 +24,7 @@ type ShardedDataStub struct {
 	CreateShardStoreCalled                 func(destCacheID string)
 	GetCountsCalled                        func() counting.CountsWithSize
 	KeysCalled                             func() [][]byte
-	MempoolCleanupCalled                   func(session interface{}, nonce uint64, maxNum int, selectionLoopMaximumDuration time.Duration) bool
+	MempoolCleanupCalled                   func(session interface{}, randomness uint64, maxNum int, cleanupLoopMaximumDuration time.Duration) bool
 }
 
 // NewShardedDataStub -
@@ -135,12 +134,9 @@ func (sd *ShardedDataStub) IsInterfaceNil() bool {
 	return sd == nil
 }
 
-func (sd *ShardedDataStub) MempoolCleanup(session interface{}, nonce uint64, maxNum int, selectionLoopMaximumDuration time.Duration) bool {
+func (sd *ShardedDataStub) MempoolCleanup(session interface{}, randomness uint64, maxNum int, cleanupLoopMaximumDuration time.Duration) bool {
 	if sd.MempoolCleanupCalled != nil {
-		fmt.Println("Warning: MempoolCleanup called on ShardedDataStub, this is not a real implementation")
-		return sd.MempoolCleanupCalled(session, nonce, maxNum, selectionLoopMaximumDuration)
+		return sd.MempoolCleanupCalled(session, randomness, maxNum, cleanupLoopMaximumDuration)
 	}
-	fmt.Println("Warning: MempoolCleanup called on ShardedDataStub without a handler, returning false")
 	return false
 }
-

@@ -1,7 +1,6 @@
 package testscommon
 
 import (
-	"fmt"
 	"sync"
 	"time"
 
@@ -17,9 +16,8 @@ type ShardedDataCacheNotifierMock struct {
 	caches    map[string]storage.Cacher
 }
 
-// MempoolCleanup implements dataRetriever.ShardedDataCacherNotifier.
-func (mock *ShardedDataCacheNotifierMock) MempoolCleanup(session interface{}, nonce uint64, maxNum int, selectionLoopMaximumDuration time.Duration) bool {
-	fmt.Println("MempoolCleanup called on ShardedDataCacheNotifierMock, but it is not implemented")
+// MempoolCleanup -
+func (mock *ShardedDataCacheNotifierMock) MempoolCleanup(session interface{}, randomness uint64, maxNum int, cleanupLoopMaximumDuration time.Duration) bool {
 	panic("unimplemented")
 }
 

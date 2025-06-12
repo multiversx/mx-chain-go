@@ -391,9 +391,6 @@ func (txPool *shardedTxPool) routeToCacheUnions(cacheID string) string {
 }
 
 func (txPool *shardedTxPool) getMempool() txCache {
-	txPool.mutexBackingMap.RLock()
-	defer txPool.mutexBackingMap.RUnlock()
-
 	shard, ok := txPool.backingMap[strconv.Itoa(int(txPool.selfShardID))]
 	if !ok {
 		return nil
@@ -402,27 +399,32 @@ func (txPool *shardedTxPool) getMempool() txCache {
 	return txPool.getTxCache(shard.CacheID)
 }
 
-func (txPool *shardedTxPool) MempoolCleanup(session interface{}, offset uint64, maxNum int, maxTime time.Duration) bool{
+func (txPool *shardedTxPool) MempoolCleanup(session interface{}, randomness uint64, maxNum int, maxTime time.Duration) bool{
 	fmt.Println("shardedTxPool.MempoolCleanup() called for self shard")
 	mempool := txPool.getMempool().(*txcache.TxCache)
+	
 	if mempool == nil {	
 		log.Error("shardedTxPool.GetMempool() no mempool found for self shard",
 			"selfShardID", txPool.selfShardID,
 		)
 		return false
 	}
+	
 	log.Debug("shardedTxPool.MempoolCleanup() starting cleanup",
 		"selfShardID", txPool.selfShardID,
 		"numTxs", mempool.CountTx(),
 		"numBytes", mempool.NumBytes(),
 	)
+	
 	// Perform the cleanup operation on the mempool
 	selectionSession := session.(txcache.SelectionSession)
-	mempool.Cleanup(selectionSession, offset, maxNum, maxTime)
+	mempool.Cleanup(selectionSession, randomness, maxNum, maxTime)
+	
 	log.Debug("shardedTxPool.MempoolCleanup() mempool cleanup completed",
 		"selfShardID", txPool.selfShardID,
 		"numTxs", mempool.CountTx(),
 		"numBytes", mempool.NumBytes(),
 	)
+	
 	return true
 }

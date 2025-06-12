@@ -258,7 +258,6 @@ func Test_RemoveSetOfDataFromPool(t *testing.T) {
 	require.Zero(t, cache.Len())
 }
 
-// Test_MempoolCleanup tests the Cleanup method of the txcache.TxCache
 func Test_MempoolCleanup(t *testing.T) {
 	t.Run("with lower nonces", func(t *testing.T) {
 		poolAsInterface, _ := newTxPoolToTest()
@@ -269,15 +268,15 @@ func Test_MempoolCleanup(t *testing.T) {
 		session.SetNonce([]byte("bob"), 42)
 		session.SetNonce([]byte("carol"), 7)
 		
-		// Good
+		// One lower nonce
 		pool.AddData([]byte("hash-alice-1"), createTx("alice", 1), 0, "0")
 		pool.AddData([]byte("hash-alice-2"), createTx("alice", 2), 0, "0")
 		pool.AddData([]byte("hash-alice-3"), createTx("alice", 3), 0, "0")
 
 		// A few with lower nonce
-		pool.AddData([]byte("hash-bob-42"), createTx("bob", 40), 0, "0")
-		pool.AddData([]byte("hash-bob-43"), createTx("bob", 41), 0, "0")
-		pool.AddData([]byte("hash-bob-44"), createTx("bob", 42), 0, "0")
+		pool.AddData([]byte("hash-bob-40"), createTx("bob", 40), 0, "0")
+		pool.AddData([]byte("hash-bob-41"), createTx("bob", 41), 0, "0")
+		pool.AddData([]byte("hash-bob-42"), createTx("bob", 42), 0, "0")
 
 		// Good
 		pool.AddData([]byte("hash-carol-7"), createTx("carol", 7), 0, "0")
@@ -313,13 +312,18 @@ func Test_MempoolCleanup(t *testing.T) {
 		// Check that the duplicates were removed based on their lower priority
 		listForAlice := cache.GetTransactionsPoolForSender("alice")
 		require.Equal(t, 4, len(listForAlice))
-		for _, tx := range listForAlice {
-			
-			if tx.Tx.GetNonce() == 3 {
-				require.Equal(t, 50000, int(tx.Tx.GetGasPrice()))
-			} else {
-				require.Equal(t, 20000, int(tx.Tx.GetGasPrice()))
-			}
+		
+		expected := map[uint64][]byte{
+			1: []byte("hash-alice-1"),
+			2: []byte("hash-alice-2"),
+			3: []byte("hash-alice-4"),
+			4: []byte("hash-alice-6"),
+		}
+		
+		for _, tx := range(listForAlice) {
+			expectedHash, ok := expected[tx.Tx.GetNonce()]
+			require.True(t, ok, "Unexpected nonce %d", tx.Tx.GetNonce())
+			require.Equal(t, expectedHash, tx.TxHash)
 		}
 
 	})
