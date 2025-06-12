@@ -7,15 +7,15 @@ import (
 
 // StateAccessesCollectorStub represents a mock for the StateAccessesCollector interface
 type StateAccessesCollectorStub struct {
-	AddStateChangeCalled                   func(stateAccess *stateChange.StateAccess)
-	GetAccountChangesCalled                func(oldAccount, account vmcommon.AccountHandler) *stateChange.AccountChanges
-	ResetCalled                            func()
-	AddTxHashToCollectedStateChangesCalled func(txHash []byte)
-	SetIndexToLastStateChangeCalled        func(index int) error
-	RevertToIndexCalled                    func(index int) error
-	GetCollectedAccessesCalled             func() map[string]*stateChange.StateAccesses
-	StoreCalled                            func() error
-	IsInterfaceNilCalled                   func() bool
+	AddStateChangeCalled                    func(stateAccess *stateChange.StateAccess)
+	GetAccountChangesCalled                 func(oldAccount, account vmcommon.AccountHandler) *stateChange.AccountChanges
+	ResetCalled                             func()
+	AddTxHashToCollectedStateAccessesCalled func(txHash []byte)
+	SetIndexToLatestStateAccessesCalled     func(index int) error
+	RevertToIndexCalled                     func(index int) error
+	GetCollectedAccessesCalled              func() map[string]*stateChange.StateAccesses
+	StoreCalled                             func() error
+	IsInterfaceNilCalled                    func() bool
 }
 
 // AddStateAccess -
@@ -40,17 +40,17 @@ func (s *StateAccessesCollectorStub) Reset() {
 	}
 }
 
-// AddTxHashToCollectedStateChanges -
-func (s *StateAccessesCollectorStub) AddTxHashToCollectedStateChanges(txHash []byte) {
-	if s.AddTxHashToCollectedStateChangesCalled != nil {
-		s.AddTxHashToCollectedStateChangesCalled(txHash)
+// AddTxHashToCollectedStateAccesses -
+func (s *StateAccessesCollectorStub) AddTxHashToCollectedStateAccesses(txHash []byte) {
+	if s.AddTxHashToCollectedStateAccessesCalled != nil {
+		s.AddTxHashToCollectedStateAccessesCalled(txHash)
 	}
 }
 
-// SetIndexToLastStateChange -
-func (s *StateAccessesCollectorStub) SetIndexToLastStateChange(index int) error {
-	if s.SetIndexToLastStateChangeCalled != nil {
-		return s.SetIndexToLastStateChangeCalled(index)
+// SetIndexToLatestStateAccesses -
+func (s *StateAccessesCollectorStub) SetIndexToLatestStateAccesses(index int) error {
+	if s.SetIndexToLatestStateAccessesCalled != nil {
+		return s.SetIndexToLatestStateAccessesCalled(index)
 	}
 
 	return nil

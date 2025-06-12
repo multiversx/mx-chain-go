@@ -233,9 +233,9 @@ func (accountsDB *accountsDBApi) GetStackDebugFirstEntry() []byte {
 	return accountsDB.innerAccountsAdapter.GetStackDebugFirstEntry()
 }
 
-// SetTxHashForLatestStateChanges will call the inner accountsAdapter method
-func (accountsDB *accountsDBApi) SetTxHashForLatestStateChanges(txHash []byte) {
-	accountsDB.innerAccountsAdapter.SetTxHashForLatestStateChanges(txHash)
+// SetTxHashForLatestStateAccesses will call the inner accountsAdapter method
+func (accountsDB *accountsDBApi) SetTxHashForLatestStateAccesses(txHash []byte) {
+	accountsDB.innerAccountsAdapter.SetTxHashForLatestStateAccesses(txHash)
 }
 
 // Close will handle the closing of the underlying components

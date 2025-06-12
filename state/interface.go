@@ -91,7 +91,7 @@ type AccountsAdapter interface {
 	GetStackDebugFirstEntry() []byte
 	SetSyncer(syncer AccountsDBSyncer) error
 	StartSnapshotIfNeeded() error
-	SetTxHashForLatestStateChanges(txHash []byte)
+	SetTxHashForLatestStateAccesses(txHash []byte)
 	Close() error
 	IsInterfaceNil() bool
 }
@@ -363,8 +363,8 @@ type StateAccessesCollector interface {
 	Reset()
 	GetCollectedAccesses() map[string]*data.StateAccesses
 	Store() error
-	AddTxHashToCollectedStateChanges(txHash []byte)
-	SetIndexToLastStateChange(index int) error
+	AddTxHashToCollectedStateAccesses(txHash []byte)
+	SetIndexToLatestStateAccesses(index int) error
 	RevertToIndex(index int) error
 	IsInterfaceNil() bool
 }

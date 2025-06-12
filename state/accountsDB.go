@@ -919,7 +919,6 @@ func (adb *AccountsDB) commit() ([]byte, error) {
 	log.Trace("accountsDB.Commit started")
 	adb.entries = make([]JournalEntry, 0)
 
-	// If the StateAccessesCollector is configured in data analysis mode, it will persist the state changes locally
 	err := adb.stateAccessesCollector.Store()
 	if err != nil {
 		return nil, err
@@ -1156,9 +1155,9 @@ func (adb *AccountsDB) journalize(entry JournalEntry) {
 		"entry type", fmt.Sprintf("%T", entry),
 	)
 
-	err := adb.stateAccessesCollector.SetIndexToLastStateChange(len(adb.entries))
+	err := adb.stateAccessesCollector.SetIndexToLatestStateAccesses(len(adb.entries))
 	if err != nil {
-		log.Trace("failed to set index to last state change",
+		log.Trace("failed to set index to latest state accesses",
 			"num journal entries", len(adb.entries),
 			"error", err.Error(),
 		)
@@ -1310,9 +1309,9 @@ func collectStats(
 	log.Debug(strings.Join(trieStats.ToString(), " "))
 }
 
-// SetTxHashForLatestStateChanges will return the state changes since the last call of this method
-func (adb *AccountsDB) SetTxHashForLatestStateChanges(txHash []byte) {
-	adb.stateAccessesCollector.AddTxHashToCollectedStateChanges(txHash)
+// SetTxHashForLatestStateAccesses will return the state changes since the last call of this method
+func (adb *AccountsDB) SetTxHashForLatestStateAccesses(txHash []byte) {
+	adb.stateAccessesCollector.AddTxHashToCollectedStateAccesses(txHash)
 }
 
 // IsSnapshotInProgress returns true if there is a snapshot in progress

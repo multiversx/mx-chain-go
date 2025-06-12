@@ -124,8 +124,8 @@ func (txProc *metaTxProcessor) ProcessTransaction(tx *transaction.Transaction) (
 	)
 
 	defer func() {
-		txProc.accounts.SetTxHashForLatestStateChanges(txHash)
-		log.Debug("SetTxHashForLatestStateChanges", "txHash", txHash)
+		txProc.accounts.SetTxHashForLatestStateAccesses(txHash)
+		log.Debug("SetTxHashForLatestStateAccesses", "txHash", txHash)
 	}()
 
 	err = txProc.checkTxValues(tx, acntSnd, acntDst, false)

@@ -167,9 +167,9 @@ func (r *simulationAccountsDB) GetStackDebugFirstEntry() []byte {
 	return nil
 }
 
-// SetTxHashForLatestStateChanges -
-func (r *simulationAccountsDB) SetTxHashForLatestStateChanges(txHash []byte) {
-	r.originalAccounts.SetTxHashForLatestStateChanges(txHash)
+// SetTxHashForLatestStateAccesses -
+func (r *simulationAccountsDB) SetTxHashForLatestStateAccesses(txHash []byte) {
+	r.originalAccounts.SetTxHashForLatestStateAccesses(txHash)
 }
 
 // Close will handle the closing of the underlying components

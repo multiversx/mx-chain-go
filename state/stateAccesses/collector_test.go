@@ -59,8 +59,8 @@ func TestStateAccessesCollector_AddStateAccess(t *testing.T) {
 		c, _ := NewCollector(disabled.NewDisabledStateAccessesStorer())
 		assert.Equal(t, 0, len(c.stateAccesses))
 
-		numStateChanges := 10
-		for i := 0; i < numStateChanges; i++ {
+		numStateAccesses := 10
+		for i := 0; i < numStateAccesses; i++ {
 			c.AddStateAccess(getWriteStateAccess())
 		}
 		assert.Equal(t, 0, len(c.stateAccesses))
@@ -72,13 +72,13 @@ func TestStateAccessesCollector_AddStateAccess(t *testing.T) {
 		c, _ := NewCollector(disabled.NewDisabledStateAccessesStorer(), WithCollectWrite())
 		assert.Equal(t, 0, len(c.stateAccesses))
 
-		numStateChanges := 10
-		for i := 0; i < numStateChanges; i++ {
+		numStateAccesses := 10
+		for i := 0; i < numStateAccesses; i++ {
 			c.AddStateAccess(getWriteStateAccess())
 		}
 
 		c.AddStateAccess(getReadStateAccess())
-		assert.Equal(t, numStateChanges, len(c.stateAccesses))
+		assert.Equal(t, numStateAccesses, len(c.stateAccesses))
 	})
 
 	t.Run("collect only read", func(t *testing.T) {
@@ -87,13 +87,13 @@ func TestStateAccessesCollector_AddStateAccess(t *testing.T) {
 		c, _ := NewCollector(disabled.NewDisabledStateAccessesStorer(), WithCollectRead())
 		assert.Equal(t, 0, len(c.stateAccesses))
 
-		numStateChanges := 10
-		for i := 0; i < numStateChanges; i++ {
+		numStateAccesses := 10
+		for i := 0; i < numStateAccesses; i++ {
 			c.AddStateAccess(getReadStateAccess())
 		}
 
 		c.AddStateAccess(getWriteStateAccess())
-		assert.Equal(t, numStateChanges, len(c.stateAccesses))
+		assert.Equal(t, numStateAccesses, len(c.stateAccesses))
 	})
 
 	t.Run("collect both read and write", func(t *testing.T) {
@@ -102,44 +102,44 @@ func TestStateAccessesCollector_AddStateAccess(t *testing.T) {
 		c, _ := NewCollector(disabled.NewDisabledStateAccessesStorer(), WithCollectRead(), WithCollectWrite())
 		assert.Equal(t, 0, len(c.stateAccesses))
 
-		numStateChanges := 10
-		for i := 0; i < numStateChanges; i++ {
+		numStateAccesses := 10
+		for i := 0; i < numStateAccesses; i++ {
 			if i%2 == 0 {
 				c.AddStateAccess(getReadStateAccess())
 			} else {
 				c.AddStateAccess(getWriteStateAccess())
 			}
 		}
-		assert.Equal(t, numStateChanges, len(c.stateAccesses))
+		assert.Equal(t, numStateAccesses, len(c.stateAccesses))
 	})
 }
 
-func TestStateAccessesCollector_AddTxHashToCollectedStateChanges(t *testing.T) {
+func TestStateAccessesCollector_AddTxHashToCollectedStateAccesses(t *testing.T) {
 	t.Parallel()
 
 	c, _ := NewCollector(disabled.NewDisabledStateAccessesStorer(), WithCollectWrite())
 	assert.Equal(t, 0, len(c.stateAccesses))
 	assert.Equal(t, 0, len(c.GetCollectedAccesses()))
-	c.AddTxHashToCollectedStateChanges([]byte("txHash0"))
+	c.AddTxHashToCollectedStateAccesses([]byte("txHash0"))
 	assert.Equal(t, 0, len(c.stateAccesses))
 	assert.Equal(t, 0, len(c.GetCollectedAccesses()))
 
-	stateChange := &data.StateAccess{
+	stateAccess := &data.StateAccess{
 		Type:            data.Write,
 		MainTrieKey:     []byte("mainTrieKey"),
 		MainTrieVal:     []byte("mainTrieVal"),
 		DataTrieChanges: []*data.DataTrieChange{{Key: []byte("dataTrieKey"), Val: []byte("dataTrieVal")}},
 	}
-	c.AddStateAccess(stateChange)
-	c.AddTxHashToCollectedStateChanges([]byte("txHash"))
+	c.AddStateAccess(stateAccess)
+	c.AddTxHashToCollectedStateAccesses([]byte("txHash"))
 
 	assert.Equal(t, 1, len(c.stateAccesses))
 	assert.Equal(t, 1, len(c.GetCollectedAccesses()))
 
-	stateChangesForTx := c.GetCollectedAccesses()
-	stateAccesses, ok := stateChangesForTx["txHash"]
+	stateAccessesForTx := c.GetCollectedAccesses()
+	stateAccesses, ok := stateAccessesForTx["txHash"]
 	require.True(t, ok)
-	assert.Equal(t, 1, len(stateChangesForTx))
+	assert.Equal(t, 1, len(stateAccessesForTx))
 	assert.Equal(t, 1, len(stateAccesses.StateAccess))
 
 	sc := stateAccesses.StateAccess[0]
@@ -155,46 +155,46 @@ func TestStateAccessesCollector_RevertToIndex(t *testing.T) {
 		t.Parallel()
 
 		c, _ := NewCollector(disabled.NewDisabledStateAccessesStorer(), WithCollectWrite())
-		numStateChanges := len(c.stateAccesses)
+		numStateAccesses := len(c.stateAccesses)
 
 		err := c.RevertToIndex(-1)
-		require.True(t, errors.Is(err, state.ErrStateChangesIndexOutOfBounds))
+		require.True(t, errors.Is(err, state.ErrStateAccessesIndexOutOfBounds))
 
-		err = c.RevertToIndex(numStateChanges + 1)
+		err = c.RevertToIndex(numStateAccesses + 1)
 		require.Nil(t, err)
 	})
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
 		c, _ := NewCollector(disabled.NewDisabledStateAccessesStorer(), WithCollectWrite())
 
-		numStateChanges := 10
-		for i := 0; i < numStateChanges; i++ {
+		numStateAccesses := 10
+		for i := 0; i < numStateAccesses; i++ {
 			c.AddStateAccess(getWriteStateAccess())
-			err := c.SetIndexToLastStateChange(i)
+			err := c.SetIndexToLatestStateAccesses(i)
 			require.Nil(t, err)
 		}
-		c.AddTxHashToCollectedStateChanges([]byte("txHash1"))
+		c.AddTxHashToCollectedStateAccesses([]byte("txHash1"))
 
-		for i := numStateChanges; i < numStateChanges*2; i++ {
+		for i := numStateAccesses; i < numStateAccesses*2; i++ {
 			c.AddStateAccess(getWriteStateAccess())
-			c.AddTxHashToCollectedStateChanges([]byte("txHash" + fmt.Sprintf("%d", i)))
+			c.AddTxHashToCollectedStateAccesses([]byte("txHash" + fmt.Sprintf("%d", i)))
 		}
-		err := c.SetIndexToLastStateChange(numStateChanges)
+		err := c.SetIndexToLatestStateAccesses(numStateAccesses)
 		require.Nil(t, err)
 
-		assert.Equal(t, numStateChanges*2, len(c.stateAccesses))
+		assert.Equal(t, numStateAccesses*2, len(c.stateAccesses))
 
-		err = c.RevertToIndex(numStateChanges)
+		err = c.RevertToIndex(numStateAccesses)
 		require.Nil(t, err)
-		assert.Equal(t, numStateChanges*2, len(c.stateAccesses))
+		assert.Equal(t, numStateAccesses*2, len(c.stateAccesses))
 
-		err = c.RevertToIndex(numStateChanges - 1)
+		err = c.RevertToIndex(numStateAccesses - 1)
 		require.Nil(t, err)
-		assert.Equal(t, numStateChanges, len(c.stateAccesses))
+		assert.Equal(t, numStateAccesses, len(c.stateAccesses))
 
-		err = c.RevertToIndex(numStateChanges / 2)
+		err = c.RevertToIndex(numStateAccesses / 2)
 		require.Nil(t, err)
-		assert.Equal(t, numStateChanges/2+1, len(c.stateAccesses))
+		assert.Equal(t, numStateAccesses/2+1, len(c.stateAccesses))
 
 		err = c.RevertToIndex(1)
 		require.Nil(t, err)
@@ -206,7 +206,7 @@ func TestStateAccessesCollector_RevertToIndex(t *testing.T) {
 	})
 }
 
-func TestStateAccessesCollector_SetIndexToLastStateChange(t *testing.T) {
+func TestStateAccessesCollector_SetIndexToLatestStateAccesses(t *testing.T) {
 	t.Parallel()
 
 	t.Run("should fail if invalid index", func(t *testing.T) {
@@ -214,11 +214,11 @@ func TestStateAccessesCollector_SetIndexToLastStateChange(t *testing.T) {
 
 		c, _ := NewCollector(disabled.NewDisabledStateAccessesStorer(), WithCollectWrite())
 
-		err := c.SetIndexToLastStateChange(-1)
-		require.True(t, errors.Is(err, state.ErrStateChangesIndexOutOfBounds))
+		err := c.SetIndexToLatestStateAccesses(-1)
+		require.True(t, errors.Is(err, state.ErrStateAccessesIndexOutOfBounds))
 
-		numStateChanges := len(c.stateAccesses)
-		err = c.SetIndexToLastStateChange(numStateChanges + 1)
+		numStateAccesses := len(c.stateAccesses)
+		err = c.SetIndexToLatestStateAccesses(numStateAccesses + 1)
 		require.Nil(t, err)
 	})
 
@@ -227,22 +227,22 @@ func TestStateAccessesCollector_SetIndexToLastStateChange(t *testing.T) {
 
 		c, _ := NewCollector(disabled.NewDisabledStateAccessesStorer(), WithCollectWrite())
 
-		numStateChanges := 10
-		for i := 0; i < numStateChanges; i++ {
+		numStateAccesses := 10
+		for i := 0; i < numStateAccesses; i++ {
 			c.AddStateAccess(getWriteStateAccess())
-			err := c.SetIndexToLastStateChange(i)
+			err := c.SetIndexToLatestStateAccesses(i)
 			require.Nil(t, err)
 		}
-		c.AddTxHashToCollectedStateChanges([]byte("txHash1"))
+		c.AddTxHashToCollectedStateAccesses([]byte("txHash1"))
 
-		for i := numStateChanges; i < numStateChanges*2; i++ {
+		for i := numStateAccesses; i < numStateAccesses*2; i++ {
 			c.AddStateAccess(getWriteStateAccess())
-			c.AddTxHashToCollectedStateChanges([]byte("txHash" + fmt.Sprintf("%d", i)))
+			c.AddTxHashToCollectedStateAccesses([]byte("txHash" + fmt.Sprintf("%d", i)))
 		}
-		err := c.SetIndexToLastStateChange(numStateChanges)
+		err := c.SetIndexToLatestStateAccesses(numStateAccesses)
 		require.Nil(t, err)
 
-		assert.Equal(t, numStateChanges*2, len(c.stateAccesses))
+		assert.Equal(t, numStateAccesses*2, len(c.stateAccesses))
 	})
 }
 
@@ -252,12 +252,12 @@ func TestStateAccessesCollector_Reset(t *testing.T) {
 	c, _ := NewCollector(disabled.NewDisabledStateAccessesStorer(), WithCollectWrite())
 	assert.Equal(t, 0, len(c.stateAccesses))
 
-	numStateChanges := 10
-	for i := 0; i < numStateChanges; i++ {
+	numStateAccesses := 10
+	for i := 0; i < numStateAccesses; i++ {
 		c.AddStateAccess(getWriteStateAccess())
 	}
-	c.AddTxHashToCollectedStateChanges([]byte("txHash"))
-	assert.Equal(t, numStateChanges, len(c.stateAccesses))
+	c.AddTxHashToCollectedStateAccesses([]byte("txHash"))
+	assert.Equal(t, numStateAccesses, len(c.stateAccesses))
 	assert.Equal(t, 1, len(c.GetCollectedAccesses()))
 	assert.Equal(t, 1, len(c.stateAccessesForTxs))
 
@@ -276,8 +276,8 @@ func TestStateAccessesCollector_GetCollectedAccesses(t *testing.T) {
 		c, _ := NewCollector(disabled.NewDisabledStateAccessesStorer(), WithCollectWrite())
 		assert.Equal(t, 0, len(c.stateAccesses))
 
-		numStateChanges := 20
-		for i := 0; i < numStateChanges; i++ {
+		numStateAccesses := 20
+		for i := 0; i < numStateAccesses; i++ {
 			if i%2 == 0 {
 				c.AddStateAccess(&data.StateAccess{
 					MainTrieKey: []byte(strconv.Itoa(i)),
@@ -295,12 +295,12 @@ func TestStateAccessesCollector_GetCollectedAccesses(t *testing.T) {
 			}
 		}
 
-		stateChangesForTx := c.GetCollectedAccesses()
+		stateAccessesForTx := c.GetCollectedAccesses()
 
-		require.Len(t, stateChangesForTx, 1)
-		require.Len(t, stateChangesForTx["hash0"].StateAccess, 10)
+		require.Len(t, stateAccessesForTx, 1)
+		require.Len(t, stateAccessesForTx["hash0"].StateAccess, 10)
 
-		require.Equal(t, stateChangesForTx, map[string]*data.StateAccesses{
+		require.Equal(t, stateAccessesForTx, map[string]*data.StateAccesses{
 			"hash0": {
 				StateAccess: []*data.StateAccess{
 					{MainTrieKey: []byte(strconv.Itoa(0)), Type: data.Write, TxHash: []byte("hash0")},
@@ -324,8 +324,8 @@ func TestStateAccessesCollector_GetCollectedAccesses(t *testing.T) {
 		c, _ := NewCollector(disabled.NewDisabledStateAccessesStorer(), WithCollectRead())
 		assert.Equal(t, 0, len(c.stateAccesses))
 
-		numStateChanges := 20
-		for i := 0; i < numStateChanges; i++ {
+		numStateAccesses := 20
+		for i := 0; i < numStateAccesses; i++ {
 			if i%2 == 0 {
 				c.AddStateAccess(&data.StateAccess{
 					MainTrieKey: []byte(strconv.Itoa(i)),
@@ -343,12 +343,12 @@ func TestStateAccessesCollector_GetCollectedAccesses(t *testing.T) {
 			}
 		}
 
-		stateChangesForTx := c.GetCollectedAccesses()
+		stateAccessesForTx := c.GetCollectedAccesses()
 
-		require.Len(t, stateChangesForTx, 1)
-		require.Len(t, stateChangesForTx["hash1"].StateAccess, 10)
+		require.Len(t, stateAccessesForTx, 1)
+		require.Len(t, stateAccessesForTx["hash1"].StateAccess, 10)
 
-		require.Equal(t, stateChangesForTx, map[string]*data.StateAccesses{
+		require.Equal(t, stateAccessesForTx, map[string]*data.StateAccesses{
 			"hash1": {
 				StateAccess: []*data.StateAccess{
 					{MainTrieKey: []byte(strconv.Itoa(1)), Type: data.Read, TxHash: []byte("hash1")},
@@ -372,8 +372,8 @@ func TestStateAccessesCollector_GetCollectedAccesses(t *testing.T) {
 		c, _ := NewCollector(disabled.NewDisabledStateAccessesStorer(), WithCollectRead(), WithCollectWrite())
 		assert.Equal(t, 0, len(c.stateAccesses))
 
-		numStateChanges := 20
-		for i := 0; i < numStateChanges; i++ {
+		numStateAccesses := 20
+		for i := 0; i < numStateAccesses; i++ {
 			if i%2 == 0 {
 				c.AddStateAccess(&data.StateAccess{
 					MainTrieKey: []byte(strconv.Itoa(i)),
@@ -391,13 +391,13 @@ func TestStateAccessesCollector_GetCollectedAccesses(t *testing.T) {
 			}
 		}
 
-		stateChangesForTx := c.GetCollectedAccesses()
+		stateAccessesForTx := c.GetCollectedAccesses()
 
-		require.Len(t, stateChangesForTx, 2)
-		require.Len(t, stateChangesForTx["hash0"].StateAccess, 10)
-		require.Len(t, stateChangesForTx["hash1"].StateAccess, 10)
+		require.Len(t, stateAccessesForTx, 2)
+		require.Len(t, stateAccessesForTx["hash0"].StateAccess, 10)
+		require.Len(t, stateAccessesForTx["hash1"].StateAccess, 10)
 
-		require.Equal(t, stateChangesForTx, map[string]*data.StateAccesses{
+		require.Equal(t, stateAccessesForTx, map[string]*data.StateAccesses{
 			"hash0": {
 				StateAccess: []*data.StateAccess{
 					{MainTrieKey: []byte(strconv.Itoa(0)), Type: data.Write, TxHash: []byte("hash0")},
@@ -849,11 +849,11 @@ func TestCollector_Store(t *testing.T) {
 		storer, _ := NewStateAccessesStorer(db, &mock.MarshalizerMock{})
 		c, _ := NewCollector(storer, WithCollectWrite())
 
-		numStateChanges := 10
-		for i := 0; i < numStateChanges; i++ {
+		numStateAccesses := 10
+		for i := 0; i < numStateAccesses; i++ {
 			c.AddStateAccess(getWriteStateAccess())
 		}
-		c.AddTxHashToCollectedStateChanges([]byte("txHash1"))
+		c.AddTxHashToCollectedStateAccesses([]byte("txHash1"))
 
 		err := c.Store()
 		require.Nil(t, err)
@@ -866,11 +866,11 @@ func TestCollector_Store(t *testing.T) {
 
 		c, _ := NewCollector(disabled.NewDisabledStateAccessesStorer(), WithCollectWrite())
 
-		numStateChanges := 10
-		for i := 0; i < numStateChanges; i++ {
+		numStateAccesses := 10
+		for i := 0; i < numStateAccesses; i++ {
 			c.AddStateAccess(getWriteStateAccess())
 		}
-		c.AddTxHashToCollectedStateChanges([]byte("txHash1"))
+		c.AddTxHashToCollectedStateAccesses([]byte("txHash1"))
 
 		err := c.Store()
 		require.Nil(t, err)

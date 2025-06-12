@@ -7,7 +7,7 @@ import (
 	"github.com/multiversx/mx-chain-go/state"
 )
 
-// disabledStateAccessesCollector is a state changes collector that does nothing
+// disabledStateAccessesCollector is a state accesses collector that does nothing
 type disabledStateAccessesCollector struct {
 }
 
@@ -29,12 +29,12 @@ func (d *disabledStateAccessesCollector) AddStateAccess(_ *data.StateAccess) {
 func (d *disabledStateAccessesCollector) Reset() {
 }
 
-// AddTxHashToCollectedStateChanges does nothing
-func (d *disabledStateAccessesCollector) AddTxHashToCollectedStateChanges(_ []byte) {
+// AddTxHashToCollectedStateAccesses does nothing
+func (d *disabledStateAccessesCollector) AddTxHashToCollectedStateAccesses(_ []byte) {
 }
 
-// SetIndexToLastStateChange -
-func (d *disabledStateAccessesCollector) SetIndexToLastStateChange(_ int) error {
+// SetIndexToLatestStateAccesses -
+func (d *disabledStateAccessesCollector) SetIndexToLatestStateAccesses(_ int) error {
 	return nil
 }
 

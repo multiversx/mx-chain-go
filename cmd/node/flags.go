@@ -410,7 +410,7 @@ var (
 		Usage: "Boolean option for enabling the /debug/metrics/prometheus route for p2p prometheus metrics",
 	}
 
-	// stateAccessesTypesToCollect defines a flag for collecting specified types of state changes
+	// stateAccessesTypesToCollect defines a flag for collecting specified types of state accesses
 	// If enabled, it will override the configuration
 	stateAccessesTypesToCollect = cli.StringSliceFlag{
 		Name:  "state-accesses-types-to-collect",

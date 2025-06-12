@@ -136,8 +136,8 @@ func (accountsDB *accountsDBApiWithHistory) GetStackDebugFirstEntry() []byte {
 	return nil
 }
 
-// SetTxHashForLatestStateChanges returns nil
-func (accountsDB *accountsDBApiWithHistory) SetTxHashForLatestStateChanges(_ []byte) {
+// SetTxHashForLatestStateAccesses returns nil
+func (accountsDB *accountsDBApiWithHistory) SetTxHashForLatestStateAccesses(_ []byte) {
 }
 
 // Close will handle the closing of the underlying components

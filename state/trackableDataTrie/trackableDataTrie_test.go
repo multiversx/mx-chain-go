@@ -944,7 +944,7 @@ func TestTrackableDataTrie_SaveDirtyData(t *testing.T) {
 		assert.Equal(t, valueWithMetadata, stateChanges[0].Val)
 	})
 
-	t.Run("state changes are ordered deterministically", func(t *testing.T) {
+	t.Run("state accesses are ordered deterministically", func(t *testing.T) {
 		t.Parallel()
 
 		identifier := []byte("identifier")
