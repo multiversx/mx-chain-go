@@ -11,10 +11,7 @@ on:
 
 jobs:
   build:
-    strategy:
-      matrix:
-        runs-on: [ubuntu-latest]
-    runs-on: ${{ matrix.runs-on }}
+    runs-on: [self-hosted, Linux, X64]
     name: Build
     steps:
       - name: Set up Go 1.23.6
