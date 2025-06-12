@@ -19,7 +19,6 @@ const (
 )
 
 type receivedTxEvent struct {
-	mutex                 sync.Mutex
 	from                  string
 	originator            string
 	firstTimeReceivedMile int64
@@ -29,6 +28,7 @@ type receivedTxEvent struct {
 }
 
 type interceptorTxDebug struct {
+	mutex                sync.RWMutex
 	receivedTxsBroadcast map[string]*receivedTxEvent
 }
 
@@ -48,6 +48,9 @@ func (id *interceptorTxDebug) Process(data process.InterceptedData, msg p2p.Mess
 		return
 	}
 
+	id.mutex.Lock()
+	defer id.mutex.Unlock()
+
 	receivedTxE, found := id.receivedTxsBroadcast[string(data.Hash())]
 	if !found {
 		hexHash := hex.EncodeToString(data.Hash())
@@ -61,9 +64,7 @@ func (id *interceptorTxDebug) Process(data process.InterceptedData, msg p2p.Mess
 		return
 	}
 
-	receivedTxE.mutex.Lock()
 	receivedTxE.numReceived++
-	receivedTxE.mutex.Unlock()
 }
 
 func getCurrentTimeStampMilli() int64 {
@@ -72,8 +73,11 @@ func getCurrentTimeStampMilli() int64 {
 
 func (id *interceptorTxDebug) PrintReceivedTxsBroadcastAndCleanRecords() {
 	log.Info("Received Transactions Broadcast Information")
+
+	id.mutex.Lock()
+	defer id.mutex.Unlock()
+
 	for hash, et := range id.receivedTxsBroadcast {
-		et.mutex.Lock()
 		log.Debug("broadcast record",
 			"hash", hash,
 			"type", et.txType,
@@ -81,7 +85,6 @@ func (id *interceptorTxDebug) PrintReceivedTxsBroadcastAndCleanRecords() {
 			"from", et.from,
 			"first received", time.Unix(0, et.firstTimeReceivedMile*int64(time.Millisecond)).Format("2006-01-02 15:04:05.000"),
 			"times received", et.numReceived)
-		et.mutex.Unlock()
 	}
 
 	id.receivedTxsBroadcast = make(map[string]*receivedTxEvent)
