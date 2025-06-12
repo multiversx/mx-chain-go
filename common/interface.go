@@ -280,6 +280,11 @@ type RootHashHolder interface {
 	IsInterfaceNil() bool
 }
 
+// TxSelectionOptions holds transactions selection options (parameters)
+type TxSelectionOptions interface {
+	IsInterfaceNil() bool
+}
+
 // GasScheduleNotifierAPI defines the behavior of the gas schedule notifier components that is used for api
 type GasScheduleNotifierAPI interface {
 	core.GasScheduleNotifier
