@@ -23,6 +23,7 @@ import (
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/dataRetriever/blockchain"
+	epochStart "github.com/multiversx/mx-chain-go/epochStart/bootstrap/disabled"
 	"github.com/multiversx/mx-chain-go/genesis"
 	"github.com/multiversx/mx-chain-go/genesis/process/disabled"
 	"github.com/multiversx/mx-chain-go/process"
@@ -40,7 +41,7 @@ import (
 	syncDisabled "github.com/multiversx/mx-chain-go/process/sync/disabled"
 	processTransaction "github.com/multiversx/mx-chain-go/process/transaction"
 	"github.com/multiversx/mx-chain-go/state/syncer"
-	"github.com/multiversx/mx-chain-go/storage/txcache"
+	"github.com/multiversx/mx-chain-go/txcache"
 	"github.com/multiversx/mx-chain-go/update"
 	hardForkProcess "github.com/multiversx/mx-chain-go/update/process"
 	"github.com/multiversx/mx-chain-go/vm"
@@ -336,6 +337,8 @@ func createProcessorsForMetaGenesisBlock(arg ArgsGenesisBlockCreator, enableEpoc
 		GasSchedule:              arg.GasSchedule,
 		Counter:                  counters.NewDisabledCounter(),
 		MissingTrieNodesNotifier: syncer.NewMissingTrieNodesNotifier(),
+		EpochStartTrigger:        epochStart.NewEpochStartTrigger(),
+		RoundHandler:             &disabled.RoundHandler{},
 	}
 
 	pubKeyVerifier, err := disabled.NewMessageSignVerifier(arg.BlockSignKeyGen)
@@ -512,6 +515,7 @@ func createProcessorsForMetaGenesisBlock(arg ArgsGenesisBlockCreator, enableEpoc
 		disabledScheduledTxsExecutionHandler,
 		disabledProcessedMiniBlocksTracker,
 		arg.TxExecutionOrderHandler,
+		arg.TxCacheSelectionConfig,
 	)
 	if err != nil {
 		return nil, err

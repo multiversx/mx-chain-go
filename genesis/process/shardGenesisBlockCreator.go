@@ -18,6 +18,7 @@ import (
 	"github.com/multiversx/mx-chain-go/common/holders"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/dataRetriever/blockchain"
+	epochStart "github.com/multiversx/mx-chain-go/epochStart/bootstrap/disabled"
 	"github.com/multiversx/mx-chain-go/genesis"
 	"github.com/multiversx/mx-chain-go/genesis/process/disabled"
 	"github.com/multiversx/mx-chain-go/genesis/process/intermediate"
@@ -38,7 +39,7 @@ import (
 	"github.com/multiversx/mx-chain-go/process/transaction"
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/state/syncer"
-	"github.com/multiversx/mx-chain-go/storage/txcache"
+	"github.com/multiversx/mx-chain-go/txcache"
 	"github.com/multiversx/mx-chain-go/update"
 	hardForkProcess "github.com/multiversx/mx-chain-go/update/process"
 	logger "github.com/multiversx/mx-chain-logger-go"
@@ -399,6 +400,8 @@ func createProcessorsForShardGenesisBlock(arg ArgsGenesisBlockCreator, enableEpo
 		GasSchedule:              arg.GasSchedule,
 		Counter:                  counters.NewDisabledCounter(),
 		MissingTrieNodesNotifier: syncer.NewMissingTrieNodesNotifier(),
+		EpochStartTrigger:        epochStart.NewEpochStartTrigger(),
+		RoundHandler:             &disabled.RoundHandler{},
 	}
 	esdtTransferParser, err := parsers.NewESDTTransferParser(arg.Core.InternalMarshalizer())
 	if err != nil {
@@ -600,6 +603,7 @@ func createProcessorsForShardGenesisBlock(arg ArgsGenesisBlockCreator, enableEpo
 		disabledScheduledTxsExecutionHandler,
 		disabledProcessedMiniBlocksTracker,
 		arg.TxExecutionOrderHandler,
+		arg.TxCacheSelectionConfig,
 	)
 	if err != nil {
 		return nil, err

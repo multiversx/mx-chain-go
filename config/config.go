@@ -13,6 +13,21 @@ type CacheConfig struct {
 	Shards               uint32
 }
 
+// TxCacheBoundsConfig will map the transactions cache bounds config
+type TxCacheBoundsConfig struct {
+	MaxNumBytesPerSenderUpperBound uint32
+}
+
+// TxCacheSelectionConfig will map the mempool selection config
+type TxCacheSelectionConfig struct {
+	SelectionGasBandwidthIncreasePercent          uint32
+	SelectionGasBandwidthIncreaseScheduledPercent uint32
+	SelectionMaxNumTxs                            int
+	SelectionLoopMaximumDuration                  int
+	SelectionLoopDurationCheckInterval            uint32
+	SelectionGasRequested                         uint64
+}
+
 // HeadersPoolConfig will map the headers cache configuration
 type HeadersPoolConfig struct {
 	MaxHeadersPerShard            int
@@ -168,16 +183,19 @@ type Config struct {
 	MetaBlockStorage StorageConfig
 	ProofsStorage    StorageConfig
 
-	AccountsTrieStorage      StorageConfig
-	PeerAccountsTrieStorage  StorageConfig
-	EvictionWaitingList      EvictionWaitingListConfig
-	StateTriesConfig         StateTriesConfig
-	TrieStorageManagerConfig TrieStorageManagerConfig
-	BadBlocksCache           CacheConfig
+	AccountsTrieStorage       StorageConfig
+	PeerAccountsTrieStorage   StorageConfig
+	EvictionWaitingList       EvictionWaitingListConfig
+	StateTriesConfig          StateTriesConfig
+	TrieStorageManagerConfig  TrieStorageManagerConfig
+	TrieLeavesRetrieverConfig TrieLeavesRetrieverConfig
+	BadBlocksCache            CacheConfig
 
 	TxBlockBodyDataPool         CacheConfig
 	PeerBlockBodyDataPool       CacheConfig
 	TxDataPool                  CacheConfig
+	TxCacheBounds               TxCacheBoundsConfig
+	TxCacheSelection            TxCacheSelectionConfig
 	UnsignedTransactionDataPool CacheConfig
 	RewardTransactionDataPool   CacheConfig
 	TrieNodesChunksDataPool     CacheConfig
@@ -695,4 +713,10 @@ type IndexBroadcastDelay struct {
 type InterceptedDataVerifierConfig struct {
 	CacheSpanInSec   uint64
 	CacheExpiryInSec uint64
+}
+
+// TrieLeavesRetrieverConfig represents the config options to be used when setting up the trie leaves retriever
+type TrieLeavesRetrieverConfig struct {
+	Enabled        bool
+	MaxSizeInBytes uint64
 }

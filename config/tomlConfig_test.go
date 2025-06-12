@@ -162,6 +162,17 @@ func TestTomlParser(t *testing.T) {
 		Redundancy: RedundancyConfig{
 			MaxRoundsOfInactivityAccepted: 3,
 		},
+		TxCacheBounds: TxCacheBoundsConfig{
+			MaxNumBytesPerSenderUpperBound: 33_554_432,
+		},
+		TxCacheSelection: TxCacheSelectionConfig{
+			SelectionMaxNumTxs:                            30000,
+			SelectionLoopMaximumDuration:                  250,
+			SelectionGasRequested:                         10_000_000_000,
+			SelectionGasBandwidthIncreasePercent:          400,
+			SelectionGasBandwidthIncreaseScheduledPercent: 260,
+			SelectionLoopDurationCheckInterval:            10,
+		},
 	}
 	testString := `
 [GeneralSettings]
@@ -213,6 +224,17 @@ func TestTomlParser(t *testing.T) {
 
 [Consensus]
     Type = "` + consensusType + `"
+
+[TxCacheBounds]
+	MaxNumBytesPerSenderUpperBound = 33_554_432
+
+[TxCacheSelection]
+	SelectionMaxNumTxs = 30000
+	SelectionLoopMaximumDuration = 250
+	SelectionGasRequested = 10_000_000_000
+	SelectionGasBandwidthIncreasePercent = 400
+	SelectionGasBandwidthIncreaseScheduledPercent = 260
+	SelectionLoopDurationCheckInterval = 10
 
 [VirtualMachine]
     [VirtualMachine.Execution]
@@ -289,7 +311,9 @@ func TestTomlEconomicsParser(t *testing.T) {
 	minGasLimit := "18446744073709551615"
 	extraGasLimitGuardedTx := "50000"
 	maxGasPriceSetGuardian := "1234567"
+	maxGasHigherFactorAccepted := "10"
 	protocolSustainabilityAddress := "erd1932eft30w753xyvme8d49qejgkjc09n5e49w4mwdjtm0neld797su0dlxp"
+
 	denomination := 18
 
 	cfgEconomicsExpected := EconomicsConfig{
@@ -317,9 +341,10 @@ func TestTomlEconomicsParser(t *testing.T) {
 		FeeSettings: FeeSettings{
 			GasLimitSettings: []GasLimitSetting{
 				{
-					MaxGasLimitPerBlock:    maxGasLimitPerBlock,
-					MinGasLimit:            minGasLimit,
-					ExtraGasLimitGuardedTx: extraGasLimitGuardedTx,
+					MaxGasLimitPerBlock:        maxGasLimitPerBlock,
+					MinGasLimit:                minGasLimit,
+					ExtraGasLimitGuardedTx:     extraGasLimitGuardedTx,
+					MaxGasHigherFactorAccepted: maxGasHigherFactorAccepted,
 				},
 			},
 			MinGasPrice:            minGasPrice,
@@ -346,7 +371,7 @@ func TestTomlEconomicsParser(t *testing.T) {
     ProtocolSustainabilityAddress = "` + protocolSustainabilityAddress + `"
 
 [FeeSettings]
-    GasLimitSettings = [{EnableEpoch = 0, MaxGasLimitPerBlock = "` + maxGasLimitPerBlock + `", MaxGasLimitPerMiniBlock = "", MaxGasLimitPerMetaBlock = "", MaxGasLimitPerMetaMiniBlock = "", MaxGasLimitPerTx = "", MinGasLimit = "` + minGasLimit + `", ExtraGasLimitGuardedTx = "` + extraGasLimitGuardedTx + `"}] 
+    GasLimitSettings = [{EnableEpoch = 0, MaxGasLimitPerBlock = "` + maxGasLimitPerBlock + `", MaxGasLimitPerMiniBlock = "", MaxGasLimitPerMetaBlock = "", MaxGasLimitPerMetaMiniBlock = "", MaxGasLimitPerTx = "", MinGasLimit = "` + minGasLimit + `", ExtraGasLimitGuardedTx = "` + extraGasLimitGuardedTx + `", MaxGasHigherFactorAccepted = "` + maxGasHigherFactorAccepted + `"}] 
     MinGasPrice = "` + minGasPrice + `"
 	MaxGasPriceSetGuardian = "` + maxGasPriceSetGuardian + `"
 `
@@ -914,6 +939,21 @@ func TestEnableEpochConfig(t *testing.T) {
     # CheckBuiltInCallOnTransferValueAndFailEnableRound represents the ROUND when the check on transfer value fix is activated
     CheckBuiltInCallOnTransferValueAndFailEnableRound = 106
 
+	# MaskVMInternalDependenciesErrorsEnableEpoch represents the epoch when the additional internal erorr masking in vm is enabled
+	MaskVMInternalDependenciesErrorsEnableEpoch = 107
+
+	# FixBackTransferOPCODEEnableEpoch represents the epoch when the fix for back transfers opcode will be enabled
+	FixBackTransferOPCODEEnableEpoch = 108
+
+	# ValidationOnGobDecodeEnableEpoch represents the epoch when validation on GobDecode will be taken into account
+    ValidationOnGobDecodeEnableEpoch = 109
+
+	# BarnardOpcodesEnableEpoch represents the epoch when Barnard opcodes will be enabled
+	BarnardOpcodesEnableEpoch = 110
+
+    # AutomaticActivationOfNodesDisableEpoch represents the epoch when automatic activation of nodes for validators is disabled
+    AutomaticActivationOfNodesDisableEpoch = 111
+
     # MaxNodesChangeEnableEpoch holds configuration for changing the maximum number of nodes and the enabling epoch
     MaxNodesChangeEnableEpoch = [
         { EpochEnable = 44, MaxNumNodes = 2169, NodesToShufflePerShard = 80 },
@@ -1038,6 +1078,11 @@ func TestEnableEpochConfig(t *testing.T) {
 			RelayedTransactionsV3FixESDTTransferEnableEpoch:          104,
 			AndromedaEnableEpoch:                                     105,
 			CheckBuiltInCallOnTransferValueAndFailEnableRound:        106,
+			MaskVMInternalDependenciesErrorsEnableEpoch:              107,
+			FixBackTransferOPCODEEnableEpoch:                         108,
+			ValidationOnGobDecodeEnableEpoch:                         109,
+			BarnardOpcodesEnableEpoch:                                110,
+			AutomaticActivationOfNodesDisableEpoch:                   111,
 			MaxNodesChangeEnableEpoch: []MaxNodesChangeConfig{
 				{
 					EpochEnable:            44,

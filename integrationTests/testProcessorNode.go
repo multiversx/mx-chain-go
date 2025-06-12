@@ -31,6 +31,7 @@ import (
 	ed25519SingleSig "github.com/multiversx/mx-chain-crypto-go/signing/ed25519/singlesig"
 	"github.com/multiversx/mx-chain-crypto-go/signing/mcl"
 	mclsig "github.com/multiversx/mx-chain-crypto-go/signing/mcl/singlesig"
+	"github.com/multiversx/mx-chain-go/txcache"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 	"github.com/multiversx/mx-chain-vm-common-go/parsers"
 	wasmConfig "github.com/multiversx/mx-chain-vm-go/config"
@@ -108,7 +109,6 @@ import (
 	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/storage/cache"
 	"github.com/multiversx/mx-chain-go/storage/storageunit"
-	"github.com/multiversx/mx-chain-go/storage/txcache"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/bootstrapMocks"
 	cacheMocks "github.com/multiversx/mx-chain-go/testscommon/cache"
@@ -314,6 +314,7 @@ type ArgTestProcessorNode struct {
 	WithPeersRatingHandler  bool
 	NodeOperationMode       common.NodeOperation
 	Proofs                  dataRetriever.ProofsPool
+	TxPoolConfig            *config.CacheConfig
 }
 
 // TestProcessorNode represents a container type of class used in integration tests
@@ -549,6 +550,7 @@ func newBaseTestProcessorNode(args ArgTestProcessorNode) *TestProcessorNode {
 		AppStatusHandler:              appStatusHandler,
 		PeersRatingMonitor:            peersRatingMonitor,
 		TxExecutionOrderHandler:       ordering.NewOrderedCollection(),
+		EpochStartTrigger:             &mock.EpochStartTriggerStub{},
 	}
 
 	tpn.NodeKeys = args.NodeKeys
@@ -920,6 +922,8 @@ func (tpn *TestProcessorNode) createFullSCQueryService(gasMap map[string]map[str
 		GasSchedule:              gasSchedule,
 		Counter:                  counters.NewDisabledCounter(),
 		MissingTrieNodesNotifier: &testscommon.MissingTrieNodesNotifierStub{},
+		EpochStartTrigger:        tpn.EpochStartTrigger,
+		RoundHandler:             tpn.RoundHandler,
 	}
 
 	var apiBlockchain data.ChainHandler
@@ -1175,6 +1179,7 @@ func createDefaultEconomicsConfig() *config.EconomicsConfig {
 					MaxGasLimitPerTx:            maxGasLimitPerBlock,
 					MinGasLimit:                 minGasLimit,
 					ExtraGasLimitGuardedTx:      "50000",
+					MaxGasHigherFactorAccepted:  "10",
 				},
 			},
 			MinGasPrice:            minGasPrice,
@@ -1683,6 +1688,8 @@ func (tpn *TestProcessorNode) initInnerProcessors(gasMap map[string]map[string]u
 		GasSchedule:              gasSchedule,
 		Counter:                  counter,
 		MissingTrieNodesNotifier: &testscommon.MissingTrieNodesNotifierStub{},
+		EpochStartTrigger:        tpn.EpochStartTrigger,
+		RoundHandler:             tpn.RoundHandler,
 	}
 
 	maxGasLimitPerBlock := uint64(0xFFFFFFFFFFFFFFFF)
@@ -1816,6 +1823,13 @@ func (tpn *TestProcessorNode) initInnerProcessors(gasMap map[string]map[string]u
 		scheduledTxsExecutionHandler,
 		processedMiniBlocksTracker,
 		tpn.TxExecutionOrderHandler,
+		config.TxCacheSelectionConfig{
+			SelectionMaxNumTxs:                            30000,
+			SelectionLoopMaximumDuration:                  250,
+			SelectionGasRequested:                         10_000_000_000,
+			SelectionGasBandwidthIncreasePercent:          400,
+			SelectionGasBandwidthIncreaseScheduledPercent: 260,
+		},
 	)
 	if err != nil {
 		panic(err.Error())
@@ -1914,6 +1928,8 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors(gasMap map[string]map[stri
 		GasSchedule:              gasSchedule,
 		Counter:                  counters.NewDisabledCounter(),
 		MissingTrieNodesNotifier: &testscommon.MissingTrieNodesNotifierStub{},
+		EpochStartTrigger:        tpn.EpochStartTrigger,
+		RoundHandler:             tpn.RoundHandler,
 	}
 
 	var signVerifier vm.MessageSignVerifier
@@ -2087,6 +2103,13 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors(gasMap map[string]map[stri
 		scheduledTxsExecutionHandler,
 		processedMiniBlocksTracker,
 		tpn.TxExecutionOrderHandler,
+		config.TxCacheSelectionConfig{
+			SelectionMaxNumTxs:                            30000,
+			SelectionLoopMaximumDuration:                  250,
+			SelectionGasRequested:                         10_000_000_000,
+			SelectionGasBandwidthIncreasePercent:          400,
+			SelectionGasBandwidthIncreaseScheduledPercent: 260,
+		},
 	)
 	tpn.PreProcessorsContainer, _ = fact.Create()
 

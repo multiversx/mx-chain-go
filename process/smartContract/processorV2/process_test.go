@@ -15,6 +15,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/smartContractResult"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	vmData "github.com/multiversx/mx-chain-core-go/data/vm"
+	"github.com/multiversx/mx-chain-go/txcache"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 	"github.com/multiversx/mx-chain-vm-common-go/builtInFunctions"
 	"github.com/multiversx/mx-chain-vm-common-go/parsers"
@@ -36,7 +37,6 @@ import (
 	"github.com/multiversx/mx-chain-go/state"
 	stateFactory "github.com/multiversx/mx-chain-go/state/factory"
 	"github.com/multiversx/mx-chain-go/storage/storageunit"
-	"github.com/multiversx/mx-chain-go/storage/txcache"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/economicsmocks"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
@@ -3552,20 +3552,41 @@ func TestScProcessor_penalizeUserIfNeededShouldWork(t *testing.T) {
 func TestScProcessor_isTooMuchGasProvidedShouldWork(t *testing.T) {
 	t.Parallel()
 
+	economicsHandler := &economicsmocks.EconomicsHandlerMock{}
+
 	gasProvided := uint64(100)
-	maxGasToRemain := gasProvided - (gasProvided / process.MaxGasFeeHigherFactorAccepted)
+	maxGasToRemain := gasProvided - (gasProvided / economicsHandler.MaxGasHigherFactorAccepted())
 
-	isTooMuchGas := isTooMuchGasProvided(gasProvided, gasProvided)
+	isTooMuchGas := isTooMuchGasProvided(gasProvided, gasProvided, economicsHandler)
 	assert.False(t, isTooMuchGas)
 
-	isTooMuchGas = isTooMuchGasProvided(gasProvided, maxGasToRemain-1)
+	isTooMuchGas = isTooMuchGasProvided(gasProvided, maxGasToRemain-1, economicsHandler)
 	assert.False(t, isTooMuchGas)
 
-	isTooMuchGas = isTooMuchGasProvided(gasProvided, maxGasToRemain)
+	isTooMuchGas = isTooMuchGasProvided(gasProvided, maxGasToRemain, economicsHandler)
 	assert.False(t, isTooMuchGas)
 
-	isTooMuchGas = isTooMuchGasProvided(gasProvided, maxGasToRemain+1)
+	isTooMuchGas = isTooMuchGasProvided(gasProvided, maxGasToRemain+1, economicsHandler)
 	assert.True(t, isTooMuchGas)
+
+	economicsHandler.MaxGasHigherFactorAcceptedCalled = func() uint64 {
+		return 2
+	}
+
+	maxGasToRemain = gasProvided - (gasProvided / economicsHandler.MaxGasHigherFactorAccepted())
+
+	isTooMuchGas = isTooMuchGasProvided(gasProvided, gasProvided, economicsHandler)
+	assert.False(t, isTooMuchGas)
+
+	isTooMuchGas = isTooMuchGasProvided(gasProvided, maxGasToRemain-1, economicsHandler)
+	assert.False(t, isTooMuchGas)
+
+	isTooMuchGas = isTooMuchGasProvided(gasProvided, maxGasToRemain, economicsHandler)
+	assert.False(t, isTooMuchGas)
+
+	isTooMuchGas = isTooMuchGasProvided(gasProvided, maxGasToRemain+1, economicsHandler)
+	assert.True(t, isTooMuchGas)
+
 }
 
 func TestSCProcessor_createSCRWhenError(t *testing.T) {
@@ -4286,6 +4307,7 @@ func createRealEconomicsDataArgs() *economics.ArgsNewEconomicsData {
 						MaxGasLimitPerTx:            "1500000000",
 						MinGasLimit:                 "50000",
 						ExtraGasLimitGuardedTx:      "50000",
+						MaxGasHigherFactorAccepted:  "10",
 					},
 				},
 				GasPerDataByte:         "1500",
