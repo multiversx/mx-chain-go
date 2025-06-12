@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"math/big"
+	"strconv"
 	"testing"
 
 	data "github.com/multiversx/mx-chain-core-go/data/stateChange"
@@ -279,13 +280,15 @@ func TestStateAccessesCollector_GetCollectedAccesses(t *testing.T) {
 		for i := 0; i < numStateAccesses; i++ {
 			if i%2 == 0 {
 				c.AddStateAccess(&data.StateAccess{
-					Type: data.Write,
+					MainTrieKey: []byte(strconv.Itoa(i)),
+					Type:        data.Write,
 					// distribute evenly based on parity of the index
 					TxHash: []byte(fmt.Sprintf("hash%d", i%2)),
 				})
 			} else {
 				c.AddStateAccess(&data.StateAccess{
-					Type: data.Read,
+					MainTrieKey: []byte(strconv.Itoa(i)),
+					Type:        data.Read,
 					// distribute evenly based on parity of the index
 					TxHash: []byte(fmt.Sprintf("hash%d", i%2)),
 				})
@@ -300,16 +303,16 @@ func TestStateAccessesCollector_GetCollectedAccesses(t *testing.T) {
 		require.Equal(t, stateAccessesForTx, map[string]*data.StateAccesses{
 			"hash0": {
 				StateAccess: []*data.StateAccess{
-					{Type: data.Write, TxHash: []byte("hash0")},
-					{Type: data.Write, TxHash: []byte("hash0")},
-					{Type: data.Write, TxHash: []byte("hash0")},
-					{Type: data.Write, TxHash: []byte("hash0")},
-					{Type: data.Write, TxHash: []byte("hash0")},
-					{Type: data.Write, TxHash: []byte("hash0")},
-					{Type: data.Write, TxHash: []byte("hash0")},
-					{Type: data.Write, TxHash: []byte("hash0")},
-					{Type: data.Write, TxHash: []byte("hash0")},
-					{Type: data.Write, TxHash: []byte("hash0")},
+					{MainTrieKey: []byte(strconv.Itoa(0)), Type: data.Write, TxHash: []byte("hash0")},
+					{MainTrieKey: []byte(strconv.Itoa(2)), Type: data.Write, TxHash: []byte("hash0")},
+					{MainTrieKey: []byte(strconv.Itoa(4)), Type: data.Write, TxHash: []byte("hash0")},
+					{MainTrieKey: []byte(strconv.Itoa(6)), Type: data.Write, TxHash: []byte("hash0")},
+					{MainTrieKey: []byte(strconv.Itoa(8)), Type: data.Write, TxHash: []byte("hash0")},
+					{MainTrieKey: []byte(strconv.Itoa(10)), Type: data.Write, TxHash: []byte("hash0")},
+					{MainTrieKey: []byte(strconv.Itoa(12)), Type: data.Write, TxHash: []byte("hash0")},
+					{MainTrieKey: []byte(strconv.Itoa(14)), Type: data.Write, TxHash: []byte("hash0")},
+					{MainTrieKey: []byte(strconv.Itoa(16)), Type: data.Write, TxHash: []byte("hash0")},
+					{MainTrieKey: []byte(strconv.Itoa(18)), Type: data.Write, TxHash: []byte("hash0")},
 				},
 			},
 		})
@@ -325,13 +328,15 @@ func TestStateAccessesCollector_GetCollectedAccesses(t *testing.T) {
 		for i := 0; i < numStateAccesses; i++ {
 			if i%2 == 0 {
 				c.AddStateAccess(&data.StateAccess{
-					Type: data.Write,
+					MainTrieKey: []byte(strconv.Itoa(i)),
+					Type:        data.Write,
 					// distribute evenly based on parity of the index
 					TxHash: []byte(fmt.Sprintf("hash%d", i%2)),
 				})
 			} else {
 				c.AddStateAccess(&data.StateAccess{
-					Type: data.Read,
+					MainTrieKey: []byte(strconv.Itoa(i)),
+					Type:        data.Read,
 					// distribute evenly based on parity of the index
 					TxHash: []byte(fmt.Sprintf("hash%d", i%2)),
 				})
@@ -346,16 +351,16 @@ func TestStateAccessesCollector_GetCollectedAccesses(t *testing.T) {
 		require.Equal(t, stateAccessesForTx, map[string]*data.StateAccesses{
 			"hash1": {
 				StateAccess: []*data.StateAccess{
-					{Type: data.Read, TxHash: []byte("hash1")},
-					{Type: data.Read, TxHash: []byte("hash1")},
-					{Type: data.Read, TxHash: []byte("hash1")},
-					{Type: data.Read, TxHash: []byte("hash1")},
-					{Type: data.Read, TxHash: []byte("hash1")},
-					{Type: data.Read, TxHash: []byte("hash1")},
-					{Type: data.Read, TxHash: []byte("hash1")},
-					{Type: data.Read, TxHash: []byte("hash1")},
-					{Type: data.Read, TxHash: []byte("hash1")},
-					{Type: data.Read, TxHash: []byte("hash1")},
+					{MainTrieKey: []byte(strconv.Itoa(1)), Type: data.Read, TxHash: []byte("hash1")},
+					{MainTrieKey: []byte(strconv.Itoa(3)), Type: data.Read, TxHash: []byte("hash1")},
+					{MainTrieKey: []byte(strconv.Itoa(5)), Type: data.Read, TxHash: []byte("hash1")},
+					{MainTrieKey: []byte(strconv.Itoa(7)), Type: data.Read, TxHash: []byte("hash1")},
+					{MainTrieKey: []byte(strconv.Itoa(9)), Type: data.Read, TxHash: []byte("hash1")},
+					{MainTrieKey: []byte(strconv.Itoa(11)), Type: data.Read, TxHash: []byte("hash1")},
+					{MainTrieKey: []byte(strconv.Itoa(13)), Type: data.Read, TxHash: []byte("hash1")},
+					{MainTrieKey: []byte(strconv.Itoa(15)), Type: data.Read, TxHash: []byte("hash1")},
+					{MainTrieKey: []byte(strconv.Itoa(17)), Type: data.Read, TxHash: []byte("hash1")},
+					{MainTrieKey: []byte(strconv.Itoa(19)), Type: data.Read, TxHash: []byte("hash1")},
 				},
 			},
 		})
@@ -371,13 +376,15 @@ func TestStateAccessesCollector_GetCollectedAccesses(t *testing.T) {
 		for i := 0; i < numStateAccesses; i++ {
 			if i%2 == 0 {
 				c.AddStateAccess(&data.StateAccess{
-					Type: data.Write,
+					MainTrieKey: []byte(strconv.Itoa(i)),
+					Type:        data.Write,
 					// distribute evenly based on parity of the index
 					TxHash: []byte(fmt.Sprintf("hash%d", i%2)),
 				})
 			} else {
 				c.AddStateAccess(&data.StateAccess{
-					Type: data.Read,
+					MainTrieKey: []byte(strconv.Itoa(i)),
+					Type:        data.Read,
 					// distribute evenly based on parity of the index
 					TxHash: []byte(fmt.Sprintf("hash%d", i%2)),
 				})
@@ -393,30 +400,352 @@ func TestStateAccessesCollector_GetCollectedAccesses(t *testing.T) {
 		require.Equal(t, stateAccessesForTx, map[string]*data.StateAccesses{
 			"hash0": {
 				StateAccess: []*data.StateAccess{
-					{Type: data.Write, TxHash: []byte("hash0")},
-					{Type: data.Write, TxHash: []byte("hash0")},
-					{Type: data.Write, TxHash: []byte("hash0")},
-					{Type: data.Write, TxHash: []byte("hash0")},
-					{Type: data.Write, TxHash: []byte("hash0")},
-					{Type: data.Write, TxHash: []byte("hash0")},
-					{Type: data.Write, TxHash: []byte("hash0")},
-					{Type: data.Write, TxHash: []byte("hash0")},
-					{Type: data.Write, TxHash: []byte("hash0")},
-					{Type: data.Write, TxHash: []byte("hash0")},
+					{MainTrieKey: []byte(strconv.Itoa(0)), Type: data.Write, TxHash: []byte("hash0")},
+					{MainTrieKey: []byte(strconv.Itoa(2)), Type: data.Write, TxHash: []byte("hash0")},
+					{MainTrieKey: []byte(strconv.Itoa(4)), Type: data.Write, TxHash: []byte("hash0")},
+					{MainTrieKey: []byte(strconv.Itoa(6)), Type: data.Write, TxHash: []byte("hash0")},
+					{MainTrieKey: []byte(strconv.Itoa(8)), Type: data.Write, TxHash: []byte("hash0")},
+					{MainTrieKey: []byte(strconv.Itoa(10)), Type: data.Write, TxHash: []byte("hash0")},
+					{MainTrieKey: []byte(strconv.Itoa(12)), Type: data.Write, TxHash: []byte("hash0")},
+					{MainTrieKey: []byte(strconv.Itoa(14)), Type: data.Write, TxHash: []byte("hash0")},
+					{MainTrieKey: []byte(strconv.Itoa(16)), Type: data.Write, TxHash: []byte("hash0")},
+					{MainTrieKey: []byte(strconv.Itoa(18)), Type: data.Write, TxHash: []byte("hash0")},
 				},
 			},
 			"hash1": {
 				StateAccess: []*data.StateAccess{
-					{Type: data.Read, TxHash: []byte("hash1")},
-					{Type: data.Read, TxHash: []byte("hash1")},
-					{Type: data.Read, TxHash: []byte("hash1")},
-					{Type: data.Read, TxHash: []byte("hash1")},
-					{Type: data.Read, TxHash: []byte("hash1")},
-					{Type: data.Read, TxHash: []byte("hash1")},
-					{Type: data.Read, TxHash: []byte("hash1")},
-					{Type: data.Read, TxHash: []byte("hash1")},
-					{Type: data.Read, TxHash: []byte("hash1")},
-					{Type: data.Read, TxHash: []byte("hash1")},
+					{MainTrieKey: []byte(strconv.Itoa(1)), Type: data.Read, TxHash: []byte("hash1")},
+					{MainTrieKey: []byte(strconv.Itoa(3)), Type: data.Read, TxHash: []byte("hash1")},
+					{MainTrieKey: []byte(strconv.Itoa(5)), Type: data.Read, TxHash: []byte("hash1")},
+					{MainTrieKey: []byte(strconv.Itoa(7)), Type: data.Read, TxHash: []byte("hash1")},
+					{MainTrieKey: []byte(strconv.Itoa(9)), Type: data.Read, TxHash: []byte("hash1")},
+					{MainTrieKey: []byte(strconv.Itoa(11)), Type: data.Read, TxHash: []byte("hash1")},
+					{MainTrieKey: []byte(strconv.Itoa(13)), Type: data.Read, TxHash: []byte("hash1")},
+					{MainTrieKey: []byte(strconv.Itoa(15)), Type: data.Read, TxHash: []byte("hash1")},
+					{MainTrieKey: []byte(strconv.Itoa(17)), Type: data.Read, TxHash: []byte("hash1")},
+					{MainTrieKey: []byte(strconv.Itoa(19)), Type: data.Read, TxHash: []byte("hash1")},
+				},
+			},
+		})
+	})
+
+	t.Run("not merging for different accounts", func(t *testing.T) {
+		t.Parallel()
+
+		c, _ := NewCollector(disabled.NewDisabledStateAccessesStorer(), WithCollectRead(), WithCollectWrite())
+		assert.Equal(t, 0, len(c.stateAccesses))
+
+		c.AddStateAccess(&data.StateAccess{
+			Type:        data.Write,
+			TxHash:      []byte("hash"),
+			MainTrieKey: []byte("account1"),
+			MainTrieVal: []byte("mainTrieVal1"),
+		})
+
+		c.AddStateAccess(&data.StateAccess{
+			Type:        data.Read,
+			Index:       0,
+			TxHash:      []byte("hash"),
+			MainTrieKey: []byte("account2"),
+			MainTrieVal: []byte("mainTrieVal2"),
+		})
+
+		stateChangesForTx := c.GetCollectedAccesses()
+
+		require.Len(t, stateChangesForTx, 1)
+		require.Len(t, stateChangesForTx["hash"].StateAccess, 2)
+
+		require.Equal(t, stateChangesForTx, map[string]*data.StateAccesses{
+			"hash": {
+				StateAccess: []*data.StateAccess{
+					{MainTrieKey: []byte("account1"), Type: data.Write, TxHash: []byte("hash"), MainTrieVal: []byte("mainTrieVal1")},
+					{MainTrieKey: []byte("account2"), Type: data.Read, TxHash: []byte("hash"), MainTrieVal: []byte("mainTrieVal2")},
+				},
+			},
+		})
+	})
+
+	t.Run("not merging for different action types", func(t *testing.T) {
+		t.Parallel()
+
+		c, _ := NewCollector(disabled.NewDisabledStateAccessesStorer(), WithCollectRead(), WithCollectWrite())
+		assert.Equal(t, 0, len(c.stateAccesses))
+
+		c.AddStateAccess(&data.StateAccess{
+			Type:        data.Write,
+			TxHash:      []byte("hash"),
+			MainTrieKey: []byte("account1"),
+			MainTrieVal: []byte("mainTrieVal1"),
+		})
+
+		c.AddStateAccess(&data.StateAccess{
+			Type:        data.Read,
+			Index:       0,
+			TxHash:      []byte("hash"),
+			MainTrieKey: []byte("account1"),
+			MainTrieVal: []byte("mainTrieVal2"),
+		})
+
+		stateChangesForTx := c.GetCollectedAccesses()
+
+		require.Len(t, stateChangesForTx, 1)
+		require.Len(t, stateChangesForTx["hash"].StateAccess, 2)
+
+		require.Equal(t, stateChangesForTx, map[string]*data.StateAccesses{
+			"hash": {
+				StateAccess: []*data.StateAccess{
+					{MainTrieKey: []byte("account1"), Type: data.Write, TxHash: []byte("hash"), MainTrieVal: []byte("mainTrieVal1")},
+					{MainTrieKey: []byte("account1"), Type: data.Read, TxHash: []byte("hash"), MainTrieVal: []byte("mainTrieVal2")},
+				},
+			},
+		})
+	})
+
+	t.Run("merging for same action types, last mainTrieVal should remain", func(t *testing.T) {
+		t.Parallel()
+
+		c, _ := NewCollector(disabled.NewDisabledStateAccessesStorer(), WithCollectRead(), WithCollectWrite())
+		assert.Equal(t, 0, len(c.stateAccesses))
+
+		c.AddStateAccess(&data.StateAccess{
+			Type:        data.Write,
+			TxHash:      []byte("hash"),
+			MainTrieKey: []byte("account1"),
+			MainTrieVal: []byte("mainTrieVal1"),
+		})
+
+		c.AddStateAccess(&data.StateAccess{
+			Type:        data.Write,
+			Index:       0,
+			TxHash:      []byte("hash"),
+			MainTrieKey: []byte("account1"),
+			MainTrieVal: []byte("mainTrieVal2"),
+		})
+
+		stateChangesForTx := c.GetCollectedAccesses()
+
+		require.Len(t, stateChangesForTx, 1)
+		require.Len(t, stateChangesForTx["hash"].StateAccess, 1)
+
+		require.Equal(t, stateChangesForTx, map[string]*data.StateAccesses{
+			"hash": {
+				StateAccess: []*data.StateAccess{
+					{
+						MainTrieKey: []byte("account1"), Type: data.Write,
+						TxHash: []byte("hash"), MainTrieVal: []byte("mainTrieVal2"),
+					},
+				},
+			},
+		})
+	})
+
+	t.Run("merging nil account changes should return one account change", func(t *testing.T) {
+		t.Parallel()
+
+		c, _ := NewCollector(disabled.NewDisabledStateAccessesStorer(), WithCollectRead(), WithCollectWrite(), WithAccountChanges())
+		assert.Equal(t, 0, len(c.stateAccesses))
+
+		defaultAccChanges := &data.AccountChanges{
+			Nonce:           false,
+			Balance:         false,
+			CodeHash:        false,
+			RootHash:        false,
+			DeveloperReward: false,
+			OwnerAddress:    false,
+			UserName:        false,
+			CodeMetadata:    false,
+		}
+
+		c.AddStateAccess(&data.StateAccess{
+			Type:           data.Write,
+			TxHash:         []byte("hash"),
+			MainTrieKey:    []byte("account1"),
+			MainTrieVal:    []byte("mainTrieVal1"),
+			AccountChanges: defaultAccChanges,
+		})
+
+		c.AddStateAccess(&data.StateAccess{
+			Type:           data.Write,
+			Index:          0,
+			TxHash:         []byte("hash"),
+			MainTrieKey:    []byte("account1"),
+			MainTrieVal:    []byte("mainTrieVal2"),
+			AccountChanges: nil,
+		})
+
+		stateChangesForTx := c.GetCollectedAccesses()
+
+		require.Len(t, stateChangesForTx, 1)
+		require.Len(t, stateChangesForTx["hash"].StateAccess, 1)
+
+		require.Equal(t, stateChangesForTx, map[string]*data.StateAccesses{
+			"hash": {
+				StateAccess: []*data.StateAccess{
+					{
+						MainTrieKey: []byte("account1"), Type: data.Write,
+						TxHash: []byte("hash"), MainTrieVal: []byte("mainTrieVal2"),
+						AccountChanges: defaultAccChanges,
+					},
+				},
+			},
+		})
+	})
+
+	t.Run("merging not nil account changes should work", func(t *testing.T) {
+		t.Parallel()
+
+		c, _ := NewCollector(disabled.NewDisabledStateAccessesStorer(), WithCollectRead(), WithCollectWrite(), WithAccountChanges())
+		assert.Equal(t, 0, len(c.stateAccesses))
+
+		c.AddStateAccess(&data.StateAccess{
+			Type:        data.Write,
+			TxHash:      []byte("hash"),
+			MainTrieKey: []byte("account1"),
+			MainTrieVal: []byte("mainTrieVal1"),
+			AccountChanges: &data.AccountChanges{
+				Nonce:           false,
+				Balance:         true,
+				CodeHash:        false,
+				RootHash:        true,
+				DeveloperReward: false,
+				OwnerAddress:    true,
+				UserName:        false,
+				CodeMetadata:    true,
+			},
+		})
+
+		c.AddStateAccess(&data.StateAccess{
+			Type:        data.Write,
+			Index:       0,
+			TxHash:      []byte("hash"),
+			MainTrieKey: []byte("account1"),
+			MainTrieVal: []byte("mainTrieVal2"),
+			AccountChanges: &data.AccountChanges{
+				Nonce:           true,
+				Balance:         false,
+				CodeHash:        true,
+				RootHash:        false,
+				DeveloperReward: true,
+				OwnerAddress:    false,
+				UserName:        true,
+				CodeMetadata:    false,
+			},
+		})
+
+		stateChangesForTx := c.GetCollectedAccesses()
+
+		require.Len(t, stateChangesForTx, 1)
+		require.Len(t, stateChangesForTx["hash"].StateAccess, 1)
+
+		require.Equal(t, stateChangesForTx, map[string]*data.StateAccesses{
+			"hash": {
+				StateAccess: []*data.StateAccess{
+					{
+						MainTrieKey: []byte("account1"), Type: data.Write,
+						TxHash: []byte("hash"), MainTrieVal: []byte("mainTrieVal2"),
+						AccountChanges: &data.AccountChanges{
+							Nonce:           true,
+							Balance:         true,
+							CodeHash:        true,
+							RootHash:        true,
+							DeveloperReward: true,
+							OwnerAddress:    true,
+							UserName:        true,
+							CodeMetadata:    true,
+						},
+					},
+				},
+			},
+		})
+	})
+
+	t.Run("merge should work", func(t *testing.T) {
+		t.Parallel()
+
+		c, _ := NewCollector(disabled.NewDisabledStateAccessesStorer(), WithCollectRead(), WithCollectWrite(), WithAccountChanges())
+		assert.Equal(t, 0, len(c.stateAccesses))
+
+		defaultAccChanges := &data.AccountChanges{
+			Nonce:           false,
+			Balance:         false,
+			CodeHash:        false,
+			RootHash:        false,
+			DeveloperReward: false,
+			OwnerAddress:    false,
+			UserName:        false,
+			CodeMetadata:    false,
+		}
+
+		modifiedAccChanges := &data.AccountChanges{
+			Nonce:           false,
+			Balance:         true,
+			CodeHash:        false,
+			RootHash:        true,
+			DeveloperReward: false,
+			OwnerAddress:    true,
+			UserName:        false,
+			CodeMetadata:    true,
+		}
+
+		operations := []uint32{
+			data.NotSet,
+			data.GetCode,
+			data.SaveAccount,
+			data.GetAccount,
+			data.WriteCode,
+			data.RemoveDataTrie,
+			data.GetDataTrieValue,
+		}
+
+		var accChanges *data.AccountChanges
+		numStateChanges := 20
+		for i := 0; i < numStateChanges; i++ {
+			if i%2 == 0 {
+				c.AddStateAccess(&data.StateAccess{
+					MainTrieKey: []byte("key"),
+					Type:        data.Write,
+					// distribute evenly based on parity of the index
+					TxHash:         []byte("txHash"),
+					AccountChanges: defaultAccChanges,
+					MainTrieVal:    []byte(fmt.Sprintf("mainTrieVal%d", i)),
+					Operation:      operations[i%len(operations)],
+				})
+			} else {
+				if i == 19 {
+					accChanges = modifiedAccChanges
+				} else {
+					accChanges = defaultAccChanges
+				}
+				c.AddStateAccess(&data.StateAccess{
+					MainTrieKey: []byte("key"),
+					Type:        data.Read,
+					// distribute evenly based on parity of the index
+					TxHash:         []byte("txHash"),
+					AccountChanges: accChanges,
+					MainTrieVal:    []byte(fmt.Sprintf("mainTrieVal%d", i)),
+				})
+			}
+		}
+
+		stateChangesForTx := c.GetCollectedAccesses()
+
+		require.Len(t, stateChangesForTx, 1)
+		require.Len(t, stateChangesForTx["txHash"].StateAccess, 2)
+
+		require.Equal(t, stateChangesForTx, map[string]*data.StateAccesses{
+			"txHash": {
+				StateAccess: []*data.StateAccess{
+					{
+						MainTrieKey: []byte("key"), Type: data.Write, TxHash: []byte("txHash"),
+						AccountChanges: defaultAccChanges,
+						MainTrieVal:    []byte(fmt.Sprintf("mainTrieVal%d", 18)),
+						Operation:      63,
+					},
+					{
+						MainTrieKey: []byte("key"), Type: data.Read, TxHash: []byte("txHash"),
+						AccountChanges: modifiedAccChanges,
+						MainTrieVal:    []byte(fmt.Sprintf("mainTrieVal%d", 19)),
+					},
 				},
 			},
 		})
