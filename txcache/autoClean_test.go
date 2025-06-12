@@ -11,7 +11,9 @@ import (
 
 func TestTxCache_SenderOrder_Dummy(t *testing.T) {
 	t.Run("shuffle addresses", func(t *testing.T) {
-		cache := newUnconstrainedCacheToTest()
+		selectionConfig := createMockTxCacheSelectionConfig(math.MaxUint64, math.MaxInt, selectionLoopMaximumDuration)
+		boundsConfig := createMockTxBoundsConfig()
+		cache := newUnconstrainedCacheToTest(selectionConfig, boundsConfig)
 
 		//add data into the cache
 		cache.AddTx(createTx([]byte("hash-alice-1"), "alice", 1))
@@ -32,7 +34,10 @@ func TestTxCache_SenderOrder_Dummy(t *testing.T) {
 
 func TestTxCache_AutoClean_Dummy(t *testing.T) {
 	t.Run("with lower nonces", func(t *testing.T) {
-		cache := newUnconstrainedCacheToTest()
+		selectionConfig := createMockTxCacheSelectionConfig(math.MaxUint64, math.MaxInt, selectionLoopMaximumDuration)
+		boundsConfig := createMockTxBoundsConfig()
+		cache := newUnconstrainedCacheToTest(selectionConfig, boundsConfig)
+
 		session := txcachemocks.NewSelectionSessionMock()
 		session.SetNonce([]byte("alice"), 2)
 		session.SetNonce([]byte("bob"), 42)
@@ -58,7 +63,10 @@ func TestTxCache_AutoClean_Dummy(t *testing.T) {
 	})
 
 	t.Run("with duplicated nonces", func(t *testing.T) {
-		cache := newUnconstrainedCacheToTest()
+		selectionConfig := createMockTxCacheSelectionConfig(math.MaxUint64, math.MaxInt, selectionLoopMaximumDuration)
+		boundsConfig := createMockTxBoundsConfig()
+		cache := newUnconstrainedCacheToTest(selectionConfig, boundsConfig)
+
 		session := txcachemocks.NewSelectionSessionMock()
 		session.SetNonce([]byte("alice"), 1)
 
