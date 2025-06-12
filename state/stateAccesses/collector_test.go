@@ -533,7 +533,6 @@ func TestStateAccessesCollector_GetCollectedAccesses(t *testing.T) {
 					{
 						MainTrieKey: []byte("account1"), Type: data.Write,
 						TxHash: []byte("hash"), MainTrieVal: []byte("mainTrieVal2"),
-						DataTrieChanges: make([]*data.DataTrieChange, 0),
 					},
 				},
 			},
@@ -585,8 +584,7 @@ func TestStateAccessesCollector_GetCollectedAccesses(t *testing.T) {
 					{
 						MainTrieKey: []byte("account1"), Type: data.Write,
 						TxHash: []byte("hash"), MainTrieVal: []byte("mainTrieVal2"),
-						DataTrieChanges: make([]*data.DataTrieChange, 0),
-						AccountChanges:  defaultAccChanges,
+						AccountChanges: defaultAccChanges,
 					},
 				},
 			},
@@ -645,7 +643,6 @@ func TestStateAccessesCollector_GetCollectedAccesses(t *testing.T) {
 					{
 						MainTrieKey: []byte("account1"), Type: data.Write,
 						TxHash: []byte("hash"), MainTrieVal: []byte("mainTrieVal2"),
-						DataTrieChanges: make([]*data.DataTrieChange, 0),
 						AccountChanges: &data.AccountChanges{
 							Nonce:           true,
 							Balance:         true,
@@ -740,16 +737,14 @@ func TestStateAccessesCollector_GetCollectedAccesses(t *testing.T) {
 				StateAccess: []*data.StateAccess{
 					{
 						MainTrieKey: []byte("key"), Type: data.Write, TxHash: []byte("txHash"),
-						DataTrieChanges: make([]*data.DataTrieChange, 0),
-						AccountChanges:  defaultAccChanges,
-						MainTrieVal:     []byte(fmt.Sprintf("mainTrieVal%d", 18)),
-						Operation:       63,
+						AccountChanges: defaultAccChanges,
+						MainTrieVal:    []byte(fmt.Sprintf("mainTrieVal%d", 18)),
+						Operation:      63,
 					},
 					{
 						MainTrieKey: []byte("key"), Type: data.Read, TxHash: []byte("txHash"),
-						DataTrieChanges: make([]*data.DataTrieChange, 0),
-						AccountChanges:  modifiedAccChanges,
-						MainTrieVal:     []byte(fmt.Sprintf("mainTrieVal%d", 19)),
+						AccountChanges: modifiedAccChanges,
+						MainTrieVal:    []byte(fmt.Sprintf("mainTrieVal%d", 19)),
 					},
 				},
 			},
