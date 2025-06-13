@@ -41,6 +41,7 @@ type GasLimitSetting struct {
 	MaxGasLimitPerTx            string
 	MinGasLimit                 string
 	ExtraGasLimitGuardedTx      string
+	MaxGasHigherFactorAccepted  string
 }
 
 // FeeSettings will hold economics fee settings

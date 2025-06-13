@@ -11,13 +11,15 @@ func TestKeyBuilder_Clone(t *testing.T) {
 
 	kb := NewKeyBuilder()
 	kb.BuildKey([]byte("dog"))
+	assert.Equal(t, uint(3), kb.Size())
 
-	clonedKb := kb.Clone()
+	clonedKb := kb.ShallowClone()
 	clonedKb.BuildKey([]byte("e"))
 
 	originalKey, _ := kb.GetKey()
 	modifiedKey, _ := clonedKb.GetKey()
 	assert.NotEqual(t, originalKey, modifiedKey)
+	assert.Equal(t, uint(4), clonedKb.Size())
 }
 
 func TestHexToTrieKeyBytes(t *testing.T) {

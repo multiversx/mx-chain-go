@@ -27,27 +27,36 @@ const (
 )
 
 type managedPeersHolder struct {
-	mut                         sync.RWMutex
-	defaultPeerInfoCurrentIndex int
-	providedIdentities          map[string]*peerInfo
-	data                        map[string]*peerInfo
-	pids                        map[core.PeerID]struct{}
-	keyGenerator                crypto.KeyGenerator
-	p2pKeyGenerator             crypto.KeyGenerator
-	isMainMachine               bool
-	maxRoundsOfInactivity       int
-	defaultName                 string
-	defaultIdentity             string
-	p2pKeyConverter             p2p.P2PKeyConverter
+	mut                            sync.RWMutex
+	defaultPeerInfoCurrentIndex    int
+	providedIdentities             map[string]*peerInfo
+	data                           map[string]*peerInfo
+	pids                           map[core.PeerID]struct{}
+	keyGenerator                   crypto.KeyGenerator
+	p2pKeyGenerator                crypto.KeyGenerator
+	isMainMachine                  bool
+	maxRoundsOfInactivity          int
+	defaultName                    string
+	defaultIdentity                string
+	p2pKeyConverter                p2p.P2PKeyConverter
+	roundsSigned                   uint64
+	lastRoundAsParticipant         int64
+	mutRoundsSigned                sync.RWMutex
+	minRoundsToSignBeforeProposing uint64
+	maxRoundsForConsecutiveSigning uint64
+	maxRoundsAllowedWithNoBlock    uint64
 }
 
 // ArgsManagedPeersHolder represents the argument for the managed peers holder
 type ArgsManagedPeersHolder struct {
-	KeyGenerator          crypto.KeyGenerator
-	P2PKeyGenerator       crypto.KeyGenerator
-	MaxRoundsOfInactivity int
-	PrefsConfig           config.Preferences
-	P2PKeyConverter       p2p.P2PKeyConverter
+	KeyGenerator                   crypto.KeyGenerator
+	P2PKeyGenerator                crypto.KeyGenerator
+	MaxRoundsOfInactivity          int
+	PrefsConfig                    config.Preferences
+	P2PKeyConverter                p2p.P2PKeyConverter
+	MinRoundsToSignBeforeProposing uint64
+	MaxRoundsForConsecutiveSigning uint64
+	MaxRoundsAllowedWithNoBlock    uint64
 }
 
 // NewManagedPeersHolder creates a new instance of a managed peers holder
@@ -58,16 +67,19 @@ func NewManagedPeersHolder(args ArgsManagedPeersHolder) (*managedPeersHolder, er
 	}
 
 	holder := &managedPeersHolder{
-		defaultPeerInfoCurrentIndex: 0,
-		pids:                        make(map[core.PeerID]struct{}),
-		keyGenerator:                args.KeyGenerator,
-		p2pKeyGenerator:             args.P2PKeyGenerator,
-		isMainMachine:               common.IsMainNode(args.MaxRoundsOfInactivity),
-		maxRoundsOfInactivity:       args.MaxRoundsOfInactivity,
-		defaultName:                 args.PrefsConfig.Preferences.NodeDisplayName,
-		defaultIdentity:             args.PrefsConfig.Preferences.Identity,
-		p2pKeyConverter:             args.P2PKeyConverter,
-		data:                        make(map[string]*peerInfo),
+		defaultPeerInfoCurrentIndex:    0,
+		pids:                           make(map[core.PeerID]struct{}),
+		keyGenerator:                   args.KeyGenerator,
+		p2pKeyGenerator:                args.P2PKeyGenerator,
+		isMainMachine:                  common.IsMainNode(args.MaxRoundsOfInactivity),
+		maxRoundsOfInactivity:          args.MaxRoundsOfInactivity,
+		defaultName:                    args.PrefsConfig.Preferences.NodeDisplayName,
+		defaultIdentity:                args.PrefsConfig.Preferences.Identity,
+		p2pKeyConverter:                args.P2PKeyConverter,
+		data:                           make(map[string]*peerInfo),
+		minRoundsToSignBeforeProposing: args.MinRoundsToSignBeforeProposing,
+		maxRoundsForConsecutiveSigning: args.MaxRoundsForConsecutiveSigning,
+		maxRoundsAllowedWithNoBlock:    args.MaxRoundsAllowedWithNoBlock,
 	}
 
 	holder.providedIdentities, err = holder.createProvidedIdentitiesMap(args.PrefsConfig.NamedIdentity)
@@ -91,6 +103,10 @@ func checkManagedPeersHolderArgs(args ArgsManagedPeersHolder) error {
 	}
 	if check.IfNil(args.P2PKeyConverter) {
 		return fmt.Errorf("%w for args.P2PKeyConverter", ErrNilP2PKeyConverter)
+	}
+	if args.MaxRoundsForConsecutiveSigning < args.MinRoundsToSignBeforeProposing {
+		return fmt.Errorf("%w for rounds without signing, MaxRoundsForConsecutiveSigning=%d should be greater or equal to MinRoundsToSignBeforeProposing=%d",
+			ErrInvalidValue, args.MaxRoundsForConsecutiveSigning, args.MinRoundsToSignBeforeProposing)
 	}
 
 	return nil
@@ -281,6 +297,85 @@ func (holder *managedPeersHolder) ResetRoundsWithoutReceivedMessages(pkBytes []b
 	}
 
 	pInfo.resetRoundsWithoutReceivedMessages()
+}
+
+// IncrementRoundsSigned increments the number of rounds the current node signed with at least one managed key
+func (holder *managedPeersHolder) IncrementRoundsSigned() {
+	if !holder.isMainMachine {
+		return
+	}
+
+	holder.mutRoundsSigned.Lock()
+	holder.roundsSigned++
+	if holder.roundsSigned >= holder.maxRoundsForConsecutiveSigning {
+		// if this limit is reached, stop counting
+		// this way, decreasing the rounds signed should allow the main node to propose correctly
+		// when no restart happens, but lots of missed blocks instead
+		holder.roundsSigned = holder.maxRoundsForConsecutiveSigning
+	}
+
+	holder.mutRoundsSigned.Unlock()
+}
+
+// ShouldProposeBlock returns true if the machine should propose block or not
+// by default, it will return true for backups. Further checks will block this.
+func (holder *managedPeersHolder) ShouldProposeBlock(currentRound int64) bool {
+	if !holder.isMainMachine {
+		return true
+	}
+
+	holder.mutRoundsSigned.RLock()
+	defer holder.mutRoundsSigned.RUnlock()
+
+	if holder.roundsSigned >= holder.minRoundsToSignBeforeProposing {
+		return true
+	}
+
+	// if no signature was sent, do not allow to propose block as a backup may be active
+	if holder.roundsSigned == 0 {
+		return false
+	}
+
+	// if the current main node didn't sign blocks and enough blocks were missed, try to propose
+	roundsDiff := currentRound - holder.lastRoundAsParticipant
+	return uint64(roundsDiff) >= holder.maxRoundsAllowedWithNoBlock
+}
+
+// SetLastRoundAsParticipant sets the last round as participant for the current node
+func (holder *managedPeersHolder) SetLastRoundAsParticipant(round int64) {
+	if !holder.isMainMachine {
+		return
+	}
+
+	holder.mutRoundsSigned.Lock()
+	holder.lastRoundAsParticipant = round
+	holder.mutRoundsSigned.Unlock()
+}
+
+// SetRoundsSignedToMin sets the number of rounds signed by the current node to the min value, in order to force proposing
+func (holder *managedPeersHolder) SetRoundsSignedToMin() {
+	if !holder.isMainMachine {
+		return
+	}
+
+	holder.mutRoundsSigned.Lock()
+	holder.roundsSigned = holder.minRoundsToSignBeforeProposing
+	holder.mutRoundsSigned.Unlock()
+}
+
+// DecrementRoundsSigned decrements the number of rounds signed
+func (holder *managedPeersHolder) DecrementRoundsSigned() {
+	if !holder.isMainMachine {
+		return
+	}
+
+	holder.mutRoundsSigned.Lock()
+	defer holder.mutRoundsSigned.Unlock()
+	if holder.roundsSigned == 0 {
+		return
+	}
+
+	holder.roundsSigned--
 }
 
 // GetManagedKeysByCurrentNode returns all keys that should act as validator(main or backup that took over) and will be managed by this node
