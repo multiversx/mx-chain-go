@@ -103,7 +103,6 @@ func (bdi *baseDataInterceptor) processInterceptedData(data process.InterceptedD
 		"intercepted data", data.String(),
 	)
 
-	// bdi
 	bdi.processDebugInterceptedDataSuccess(data, msg, fromConnectedPeer)
 	bdi.processDebugInterceptedData(data, err)
 }
