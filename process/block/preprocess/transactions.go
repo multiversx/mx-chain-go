@@ -166,6 +166,9 @@ func NewTransactionPreprocessor(
 	if args.TxCacheSelectionConfig.SelectionLoopMaximumDuration == 0 {
 		return nil, process.ErrBadTxCacheSelectionLoopMaximumDuration
 	}
+	if args.TxCacheSelectionConfig.SelectionLoopDurationCheckInterval == 0 {
+		return nil, process.ErrBadTxCacheSelectionLoopDurationCheckInterval
+	}
 
 	bpp := basePreProcess{
 		hasher:      args.Hasher,
@@ -1437,10 +1440,10 @@ func (txs *transactions) computeSortedTxs(
 	}
 
 	selectionOptions := holders.NewTxSelectionOptions(
-		int(txs.txCacheSelectionConfig.SelectionGasRequested),
-		int(txs.txCacheSelectionConfig.SelectionMaxNumTxs),
-		int(txs.txCacheSelectionConfig.SelectionLoopMaximumDuration),
-		int(txs.txCacheSelectionConfig.SelectionLoopDurationCheckInterval),
+		txs.txCacheSelectionConfig.SelectionGasRequested,
+		txs.txCacheSelectionConfig.SelectionMaxNumTxs,
+		txs.txCacheSelectionConfig.SelectionLoopMaximumDuration,
+		txs.txCacheSelectionConfig.SelectionLoopDurationCheckInterval,
 	)
 
 	sortedTxs, _ := txCache.SelectTransactions(session, selectionOptions)

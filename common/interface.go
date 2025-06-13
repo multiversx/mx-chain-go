@@ -282,6 +282,11 @@ type RootHashHolder interface {
 
 // TxSelectionOptions holds transactions selection options (parameters)
 type TxSelectionOptions interface {
+	GetGasRequested() uint64
+	GetMaxNumTxs() int
+	GetLoopMaximumDuration() int
+	GetLoopDurationCheckInterval() int
+
 	IsInterfaceNil() bool
 }
 

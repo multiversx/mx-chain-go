@@ -1299,17 +1299,20 @@ var ErrInvalidRatingsConfig = errors.New("invalid ratings config")
 // ErrNilKeyRWMutexHandler signals that a nil KeyRWMutexHandler has been provided
 var ErrNilKeyRWMutexHandler = errors.New("nil key rw mutex handler")
 
-// ErrBadSelectionGasBandwidthIncreasePercent signals that the SelectionGasBandwidthIncreasePercent from the config is not set
+// ErrBadSelectionGasBandwidthIncreasePercent signals a bad txcache config
 var ErrBadSelectionGasBandwidthIncreasePercent = errors.New("bad selection gas bandwidth increase percent")
 
-// ErrBadSelectionGasBandwidthIncreaseScheduledPercent signals that the SelectionGasBandwidthIncreasePercent from the config is not set
+// ErrBadSelectionGasBandwidthIncreaseScheduledPercent signals a bad txcache config
 var ErrBadSelectionGasBandwidthIncreaseScheduledPercent = errors.New("bad selection gas bandwidth increase scheduled percent")
 
-// ErrBadTxCacheSelectionMaxNumTxs signals that the SelectionMaxNumTxs from the config is not set
+// ErrBadTxCacheSelectionMaxNumTxs signals a bad txcache config
 var ErrBadTxCacheSelectionMaxNumTxs = errors.New("bad tx cache selection max num txs")
 
-// ErrBadTxCacheSelectionLoopMaximumDuration signals that the SelectionLoopMaximumDuration from the config is not set
+// ErrBadTxCacheSelectionLoopMaximumDuration signals a bad txcache config
 var ErrBadTxCacheSelectionLoopMaximumDuration = errors.New("bad tx cache selection loop maximum duration")
+
+// ErrBadTxCacheSelectionLoopDurationCheckInterval signals a bad txcache config
+var ErrBadTxCacheSelectionLoopDurationCheckInterval = errors.New("bad selection loop duration check interval")
 
 // ErrBadTxCacheSelectionGasRequested signals that the SelectionGasRequested from the config is not set
 var ErrBadTxCacheSelectionGasRequested = errors.New("bad tx cache selection gas requested")
