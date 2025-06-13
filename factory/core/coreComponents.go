@@ -232,18 +232,20 @@ func (ccf *coreComponentsFactory) Create() (*coreComponents, error) {
 
 	if genesisNodesConfig.StartTime == 0 {
 		time.Sleep(1000 * time.Millisecond)
+
 		ntpTime := syncer.CurrentTime()
-		genesisNodesConfig.StartTime = (common.TimeToUnix(ntpTime, enableEpochsHandler)/60 + 1) * 60
+		startTime := ntpTime.Add(1 * time.Minute)
+
+		genesisNodesConfig.StartTime = common.GetGenesisUnixTimestampFromStartTime(startTime, enableEpochsHandler)
 	}
 
-	genesisEpoch := uint32(0)
-	startTime := common.UnixToTime(genesisNodesConfig.GetStartTime(), enableEpochsHandler, genesisEpoch)
+	startTime := common.GetGenesisStartTimeFromUnixTimestamp(genesisNodesConfig.GetStartTime(), enableEpochsHandler)
 
 	log.Info("start time",
 		"formatted", startTime.Format("Mon Jan 2 15:04:05 MST 2006"),
-		"seconds", common.TimeToUnix(startTime, enableEpochsHandler))
+		"unix timestamp", common.GetGenesisUnixTimestampFromStartTime(startTime, enableEpochsHandler))
 
-	genesisTime := common.UnixToTime(genesisNodesConfig.GetStartTime(), enableEpochsHandler, genesisEpoch)
+	genesisTime := common.GetGenesisStartTimeFromUnixTimestamp(genesisNodesConfig.GetStartTime(), enableEpochsHandler)
 	roundHandler, err := round.NewRound(
 		genesisTime,
 		syncer.CurrentTime(),

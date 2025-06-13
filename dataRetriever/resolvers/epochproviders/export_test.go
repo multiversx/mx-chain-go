@@ -5,8 +5,7 @@ func NewTestArithmeticEpochProvider(arg ArgArithmeticEpochProvider, unixHandler 
 	aep := &arithmeticEpochProvider{
 		headerEpoch:                0,
 		headerTimestampForNewEpoch: uint64(arg.StartTime),
-		roundsPerEpoch:             arg.RoundsPerEpoch,
-		roundTimeInMilliseconds:    arg.RoundTimeInMilliseconds,
+		chainParamsHandler:         arg.ChainParametersHandler,
 		startTime:                  arg.StartTime,
 		getUnixHandler:             unixHandler,
 	}

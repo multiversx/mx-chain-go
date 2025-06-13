@@ -637,16 +637,21 @@ func (tfn *TestFullNode) createEpochStartTrigger(startTime int64) TestEpochStart
 		argsNewMetaEpochStart := &metachain.ArgsNewMetaEpochStartTrigger{
 			GenesisTime:        tfn.GenesisTimeField,
 			EpochStartNotifier: notifier.NewEpochStartSubscriptionHandler(),
-			Settings: &config.EpochStartConfig{
-				MinRoundsBetweenEpochs: 1,
-				RoundsPerEpoch:         1000,
+			Settings:           &config.EpochStartConfig{},
+			Epoch:              0,
+			Storage:            createTestStore(),
+			Marshalizer:        TestMarshalizer,
+			Hasher:             TestHasher,
+			AppStatusHandler:   &statusHandlerMock.AppStatusHandlerStub{},
+			DataPool:           tfn.DataPool,
+			ChainParametersHandler: &chainParameters.ChainParametersHandlerStub{
+				ChainParametersForEpochCalled: func(uint32) (config.ChainParametersByEpochConfig, error) {
+					return config.ChainParametersByEpochConfig{
+						RoundsPerEpoch:         1000,
+						MinRoundsBetweenEpochs: 1,
+					}, nil
+				},
 			},
-			Epoch:            0,
-			Storage:          createTestStore(),
-			Marshalizer:      TestMarshalizer,
-			Hasher:           TestHasher,
-			AppStatusHandler: &statusHandlerMock.AppStatusHandlerStub{},
-			DataPool:         tfn.DataPool,
 		}
 		epochStartTrigger, err := metachain.NewEpochStartTrigger(argsNewMetaEpochStart)
 		if err != nil {

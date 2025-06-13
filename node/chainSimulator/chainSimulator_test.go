@@ -204,6 +204,59 @@ func TestSimulator_TriggerChangeOfEpoch(t *testing.T) {
 	require.Equal(t, uint32(4), currentEpoch)
 }
 
+func TestChainSimulator_ChangeRoundsPerEpoch(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
+	startTime := time.Now().Unix()
+	roundDurationInMillis := uint64(6000)
+	roundsPerEpoch := core.OptionalUint64{
+		HasValue: true,
+		Value:    15000,
+	}
+	chainSimulator, err := NewChainSimulator(ArgsChainSimulator{
+		BypassTxSignatureCheck: true,
+		TempDir:                t.TempDir(),
+		PathToInitialConfig:    defaultPathToInitialConfig,
+		NumOfShards:            3,
+		GenesisTimestamp:       startTime,
+		RoundDurationInMillis:  roundDurationInMillis,
+		RoundsPerEpoch:         roundsPerEpoch,
+		ApiInterface:           api.NewNoApiInterface(),
+		MinNodesPerShard:       1,
+		MetaChainMinNodes:      1,
+		AlterConfigsFunction: func(cfg *config.Configs) {
+			cfg.GeneralConfig.GeneralSettings.ChainParametersByEpoch[0].EnableEpoch = 0
+			cfg.GeneralConfig.GeneralSettings.ChainParametersByEpoch[0].RoundsPerEpoch = 10
+			cfg.GeneralConfig.GeneralSettings.ChainParametersByEpoch[0].MinRoundsBetweenEpochs = 10
+
+			cfg.EpochConfig.EnableEpochs.AndromedaEnableEpoch = 3
+			cfg.GeneralConfig.GeneralSettings.ChainParametersByEpoch[1].EnableEpoch = 3
+			cfg.GeneralConfig.GeneralSettings.ChainParametersByEpoch[1].RoundsPerEpoch = 20
+			cfg.GeneralConfig.GeneralSettings.ChainParametersByEpoch[1].MinRoundsBetweenEpochs = 10
+
+			cfg.GeneralConfig.GeneralSettings.ChainParametersByEpoch[2].EnableEpoch = 5
+			cfg.GeneralConfig.GeneralSettings.ChainParametersByEpoch[2].RoundsPerEpoch = 30
+			cfg.GeneralConfig.GeneralSettings.ChainParametersByEpoch[2].MinRoundsBetweenEpochs = 10
+		},
+	})
+	require.Nil(t, err)
+	require.NotNil(t, chainSimulator)
+
+	err = chainSimulator.GenerateBlocks(140)
+	require.Nil(t, err)
+
+	expectedEpoch := uint32(7)
+
+	metaNode := chainSimulator.GetNodeHandler(core.MetachainShardId)
+	currentEpoch := metaNode.GetProcessComponents().EpochStartTrigger().Epoch()
+	require.Equal(t, expectedEpoch, currentEpoch)
+
+	defer chainSimulator.Close()
+
+}
+
 func TestChainSimulator_SetState(t *testing.T) {
 	if testing.Short() {
 		t.Skip("this is not a short test")

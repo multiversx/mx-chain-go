@@ -15,7 +15,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/display"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
-	"github.com/multiversx/mx-chain-logger-go"
+	logger "github.com/multiversx/mx-chain-logger-go"
 
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
@@ -38,16 +38,17 @@ const disabledRoundForForceEpochStart = math.MaxUint64
 
 // ArgsNewMetaEpochStartTrigger defines struct needed to create a new start of epoch trigger
 type ArgsNewMetaEpochStartTrigger struct {
-	GenesisTime        time.Time
-	Settings           *config.EpochStartConfig
-	Epoch              uint32
-	EpochStartRound    uint64
-	EpochStartNotifier epochStart.Notifier
-	Marshalizer        marshal.Marshalizer
-	Hasher             hashing.Hasher
-	Storage            dataRetriever.StorageService
-	AppStatusHandler   core.AppStatusHandler
-	DataPool           dataRetriever.PoolsHolder
+	GenesisTime            time.Time
+	Settings               *config.EpochStartConfig
+	Epoch                  uint32
+	EpochStartRound        uint64
+	EpochStartNotifier     epochStart.Notifier
+	Marshalizer            marshal.Marshalizer
+	Hasher                 hashing.Hasher
+	Storage                dataRetriever.StorageService
+	AppStatusHandler       core.AppStatusHandler
+	DataPool               dataRetriever.PoolsHolder
+	ChainParametersHandler process.ChainParametersHandler
 }
 
 type trigger struct {
@@ -59,8 +60,6 @@ type trigger struct {
 	currEpochStartRound         uint64
 	prevEpochStartRound         uint64
 	nextEpochStartRound         uint64
-	roundsPerEpoch              uint64
-	minRoundsBetweenEpochs      uint64
 	epochStartMetaHash          []byte
 	triggerStateKey             []byte
 	epochStartTime              time.Time
@@ -72,6 +71,7 @@ type trigger struct {
 	hasher                      hashing.Hasher
 	appStatusHandler            core.AppStatusHandler
 	validatorInfoPool           epochStart.ValidatorInfoCacher
+	chainParametersHandler      process.ChainParametersHandler
 }
 
 // NewEpochStartTrigger creates a trigger for start of epoch
@@ -81,15 +81,6 @@ func NewEpochStartTrigger(args *ArgsNewMetaEpochStartTrigger) (*trigger, error) 
 	}
 	if args.Settings == nil {
 		return nil, epochStart.ErrNilEpochStartSettings
-	}
-	if args.Settings.RoundsPerEpoch < 1 {
-		return nil, fmt.Errorf("%w, RoundsPerEpoch < 1", epochStart.ErrInvalidSettingsForEpochStartTrigger)
-	}
-	if args.Settings.MinRoundsBetweenEpochs < 1 {
-		return nil, fmt.Errorf("%w, MinRoundsBetweenEpochs < 1", epochStart.ErrInvalidSettingsForEpochStartTrigger)
-	}
-	if args.Settings.MinRoundsBetweenEpochs > args.Settings.RoundsPerEpoch {
-		return nil, fmt.Errorf("%w, MinRoundsBetweenEpochs > RoundsPerEpoch", epochStart.ErrInvalidSettingsForEpochStartTrigger)
 	}
 	if check.IfNil(args.EpochStartNotifier) {
 		return nil, epochStart.ErrNilEpochStartNotifier
@@ -112,6 +103,9 @@ func NewEpochStartTrigger(args *ArgsNewMetaEpochStartTrigger) (*trigger, error) 
 	if check.IfNil(args.DataPool.CurrentEpochValidatorInfo()) {
 		return nil, epochStart.ErrNilCurrentEpochValidatorsInfoPool
 	}
+	if check.IfNil(args.ChainParametersHandler) {
+		return nil, process.ErrNilChainParametersHandler
+	}
 
 	triggerStorage, err := args.Storage.GetStorer(dataRetriever.BootstrapUnit)
 	if err != nil {
@@ -126,12 +120,10 @@ func NewEpochStartTrigger(args *ArgsNewMetaEpochStartTrigger) (*trigger, error) 
 	trigggerStateKey := common.TriggerRegistryInitialKeyPrefix + fmt.Sprintf("%d", args.Epoch)
 	trig := &trigger{
 		triggerStateKey:             []byte(trigggerStateKey),
-		roundsPerEpoch:              uint64(args.Settings.RoundsPerEpoch),
 		epochStartTime:              args.GenesisTime,
 		currEpochStartRound:         args.EpochStartRound,
 		prevEpochStartRound:         args.EpochStartRound,
 		epoch:                       args.Epoch,
-		minRoundsBetweenEpochs:      uint64(args.Settings.MinRoundsBetweenEpochs),
 		mutTrigger:                  sync.RWMutex{},
 		epochFinalityAttestingRound: args.EpochStartRound,
 		epochStartNotifier:          args.EpochStartNotifier,
@@ -143,6 +135,7 @@ func NewEpochStartTrigger(args *ArgsNewMetaEpochStartTrigger) (*trigger, error) 
 		appStatusHandler:            args.AppStatusHandler,
 		nextEpochStartRound:         disabledRoundForForceEpochStart,
 		validatorInfoPool:           args.DataPool.CurrentEpochValidatorInfo(),
+		chainParametersHandler:      args.ChainParametersHandler,
 	}
 
 	err = trig.saveState(trig.triggerStateKey)
@@ -183,19 +176,42 @@ func (t *trigger) ForceEpochStart(round uint64) {
 	defer t.mutTrigger.Unlock()
 
 	t.nextEpochStartRound = round
-	if t.nextEpochStartRound > t.currEpochStartRound+t.roundsPerEpoch {
+	if t.nextEpochStartRound > t.currEpochStartRound+t.getRoundsPerEpoch(t.epoch) {
 		t.nextEpochStartRound = disabledRoundForForceEpochStart
 		log.Debug("can not force epoch start because the resulting round is in the next epoch")
 
 		return
 	}
-	if t.nextEpochStartRound-t.currEpochStartRound < t.minRoundsBetweenEpochs {
-		t.nextEpochStartRound = t.currEpochStartRound + t.minRoundsBetweenEpochs
+
+	minRoundsBetweenEpochs := t.getMinRoundsBetweenEpochs(t.epoch)
+	if t.nextEpochStartRound-t.currEpochStartRound < minRoundsBetweenEpochs {
+		t.nextEpochStartRound = t.currEpochStartRound + minRoundsBetweenEpochs
 		log.Debug("can not force epoch start on provided round",
 			"provided round", round, "computed round", t.nextEpochStartRound)
 	}
 
 	log.Debug("set new epoch start round", "round", t.nextEpochStartRound)
+}
+
+// TODO check if this need to be handled differently at transition to new epoch
+func (t *trigger) getRoundsPerEpoch(epoch uint32) uint64 {
+	chainParametersForEpoch, err := t.chainParametersHandler.ChainParametersForEpoch(epoch)
+	if err != nil {
+		log.Warn("could not get rounds per epoch for epoch, returned current chain parameters", "epoch", epoch, "error", err)
+		chainParametersForEpoch = t.chainParametersHandler.CurrentChainParameters()
+	}
+
+	return uint64(chainParametersForEpoch.RoundsPerEpoch)
+}
+
+func (t *trigger) getMinRoundsBetweenEpochs(epoch uint32) uint64 {
+	chainParametersForEpoch, err := t.chainParametersHandler.ChainParametersForEpoch(epoch)
+	if err != nil {
+		log.Warn("could not get min rounds between epoch, returned current chain parameters", "epoch", epoch, "error", err)
+		chainParametersForEpoch = t.chainParametersHandler.CurrentChainParameters()
+	}
+
+	return uint64(chainParametersForEpoch.MinRoundsBetweenEpochs)
 }
 
 // Update processes changes in the trigger
@@ -210,7 +226,7 @@ func (t *trigger) Update(round uint64, nonce uint64) {
 	}
 
 	isZeroEpochEdgeCase := nonce < minimumNonceToStartEpoch
-	isNormalEpochStart := t.currentRound > t.currEpochStartRound+t.roundsPerEpoch
+	isNormalEpochStart := t.currentRound > t.currEpochStartRound+t.getRoundsPerEpoch(t.epoch)
 	isWithEarlyEndOfEpoch := t.currentRound >= t.nextEpochStartRound
 	shouldTriggerEpochStart := (isNormalEpochStart || isWithEarlyEndOfEpoch) && !isZeroEpochEdgeCase
 	if shouldTriggerEpochStart {

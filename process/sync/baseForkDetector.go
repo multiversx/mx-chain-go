@@ -700,11 +700,23 @@ func (bfd *baseForkDetector) cleanupReceivedHeadersHigherThanNonce(nonce uint64)
 }
 
 func (bfd *baseForkDetector) computeGenesisTimeFromHeader(headerHandler data.HeaderHandler) int64 {
-	roundDurationMs := common.TimeDurationToUnix(bfd.roundHandler.TimeDuration(), bfd.enableEpochsHandler, headerHandler.GetEpoch())
+	roundDuration := bfd.getRoundDuration(headerHandler.GetEpoch())
 	roundDifference := int64(headerHandler.GetRound() - bfd.genesisRound)
-	genesisTime := int64(headerHandler.GetTimeStamp()) - roundDifference*roundDurationMs
+	genesisTime := int64(headerHandler.GetTimeStamp()) - roundDifference*roundDuration
 
 	return genesisTime
+}
+
+// getRoundDuration returns round duration in seconds or milliseconds based on activation flag
+func (bfd *baseForkDetector) getRoundDuration(
+	headerEpoch uint32,
+) int64 {
+	// TODO: handle activation round at supernova transition
+	if bfd.enableEpochsHandler.IsFlagEnabledInEpoch(common.SupernovaFlag, headerEpoch) {
+		return bfd.roundHandler.TimeDuration().Milliseconds()
+	}
+
+	return int64(bfd.roundHandler.TimeDuration().Seconds())
 }
 
 func (bfd *baseForkDetector) addHeader(

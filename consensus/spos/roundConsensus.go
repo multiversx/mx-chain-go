@@ -189,9 +189,6 @@ func (rcns *roundConsensus) IsNodeInEligibleList(node string) bool {
 // ComputeSize method returns the number of messages received from the nodes belonging to the current jobDone group
 // related to this subround
 func (rcns *roundConsensus) ComputeSize(subroundId int) int {
-	rcns.mut.RLock()
-	defer rcns.mut.RUnlock()
-
 	n := 0
 
 	for i := 0; i < len(rcns.consensusGroup); i++ {

@@ -174,13 +174,21 @@ func (chr *chronology) updateRound() {
 	if oldRoundIndex != chr.roundHandler.Index() {
 		chr.watchdog.Reset(chronologyAlarmID)
 
-		unixTime := common.TimeToUnix(chr.roundHandler.TimeStamp(), chr.enableEpochsHandler)
-		msg := fmt.Sprintf("ROUND %d BEGINS (%d)", chr.roundHandler.Index(), unixTime)
+		msg := fmt.Sprintf("ROUND %d BEGINS (%d)", chr.roundHandler.Index(), chr.getRoundUnixTimeStamp())
 		log.Debug(display.Headline(msg, chr.syncTimer.FormattedCurrentTime(), "#"))
 		logger.SetCorrelationRound(chr.roundHandler.Index())
 
 		chr.initRound()
 	}
+}
+
+func (chr *chronology) getRoundUnixTimeStamp() int64 {
+	// TODO: analyse here activation epoch/round at transition
+	if chr.enableEpochsHandler.IsFlagEnabled(common.SupernovaFlag) {
+		return chr.roundHandler.TimeStamp().UnixMilli()
+	}
+
+	return chr.roundHandler.TimeStamp().Unix()
 }
 
 // initRound is called when a new round begins, and it does the necessary initialization
@@ -194,8 +202,7 @@ func (chr *chronology) initRound() {
 	if hasSubroundsAndGenesisTimePassed {
 		chr.subroundId = chr.subroundHandlers[0].Current()
 		chr.appStatusHandler.SetUInt64Value(common.MetricCurrentRound, uint64(chr.roundHandler.Index()))
-		unixTime := common.TimeToUnix(chr.roundHandler.TimeStamp(), chr.enableEpochsHandler)
-		chr.appStatusHandler.SetUInt64Value(common.MetricCurrentRoundTimestamp, uint64(unixTime))
+		chr.appStatusHandler.SetUInt64Value(common.MetricCurrentRoundTimestamp, uint64(chr.getRoundUnixTimeStamp()))
 	}
 
 	chr.mutSubrounds.RUnlock()

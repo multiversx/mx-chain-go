@@ -369,6 +369,7 @@ func (nr *nodeRunner) executeOneComponentCreationCycle(
 		managedCoreComponents.GenesisNodesSetup(),
 		configs.GeneralConfig.EpochStartConfig,
 		managedCoreComponents.ChanStopNodeProcess(),
+		managedCoreComponents.ChainParametersHandler(),
 	)
 	if err != nil {
 		return true, err
@@ -822,6 +823,8 @@ func (nr *nodeRunner) createMetrics(
 	cryptoComponents mainFactory.CryptoComponentsHolder,
 	bootstrapComponents mainFactory.BootstrapComponentsHolder,
 ) error {
+
+	roundsPerEpoch := coreComponents.ChainParametersHandler().CurrentChainParameters().RoundsPerEpoch
 	err := metrics.InitMetrics(
 		statusCoreComponents.AppStatusHandler(),
 		cryptoComponents.PublicKeyString(),
@@ -830,7 +833,7 @@ func (nr *nodeRunner) createMetrics(
 		coreComponents.GenesisNodesSetup(),
 		nr.configs.FlagsConfig.Version,
 		nr.configs.EconomicsConfig,
-		nr.configs.GeneralConfig.EpochStartConfig.RoundsPerEpoch,
+		roundsPerEpoch,
 		coreComponents.MinTransactionVersion(),
 	)
 
@@ -1054,7 +1057,7 @@ func (nr *nodeRunner) logInformation(
 		"ShardId", shardIdString,
 		"TotalShards", bootstrapComponents.ShardCoordinator().NumberOfShards(),
 		"AppVersion", nr.configs.FlagsConfig.Version,
-		"GenesisTimeStamp", common.TimeToUnix(coreComponents.GenesisTime(), coreComponents.EnableEpochsHandler()),
+		"GenesisTimeStamp", common.GetGenesisUnixTimestampFromStartTime(coreComponents.GenesisTime(), coreComponents.EnableEpochsHandler()),
 	)
 
 	sessionInfoFileOutput += "\nStarted with parameters:\n"

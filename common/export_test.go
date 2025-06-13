@@ -18,3 +18,12 @@ func NewTimeoutHandlerWithHandlerFunc(timeout time.Duration, handler func() time
 
 	return th
 }
+
+// TimeDurationToUnix -
+func TimeDurationToUnix(
+	duration time.Duration,
+	enableEpochsHandler EnableEpochsHandler,
+	epoch uint32,
+) int64 {
+	return timeDurationToUnix(duration, enableEpochsHandler, epoch)
+}
