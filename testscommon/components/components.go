@@ -2,6 +2,7 @@ package components
 
 import (
 	"fmt"
+	"math"
 	"math/big"
 	"testing"
 
@@ -274,7 +275,8 @@ func GetNetworkFactoryArgs() networkComp.NetworkComponentsFactoryArgs {
 				},
 			},
 			ResourceLimiter: p2pConfig.P2PResourceLimiterConfig{
-				Type: p2p.DefaultWithScaleResourceLimiter,
+				Type:          p2p.DefaultWithScaleResourceLimiter,
+				Ipv4ConnLimit: []p2pConfig.ConnLimitConfig{{PrefixLength: 0, ConnCount: math.MaxInt}},
 			},
 		},
 		KadDhtPeerDiscovery: p2pConfig.KadDhtPeerDiscoveryConfig{
@@ -573,7 +575,8 @@ func GetProcessArgs(
 					MinVetoThreshold: 0.5,
 					LostProposalFee:  "1",
 				},
-				OwnerAddress: "erd1vxy22x0fj4zv6hktmydg8vpfh6euv02cz4yg0aaws6rrad5a5awqgqky80",
+				OwnerAddress:                 "erd1vxy22x0fj4zv6hktmydg8vpfh6euv02cz4yg0aaws6rrad5a5awqgqky80",
+				MaxVotingDelayPeriodInEpochs: 30,
 			},
 			StakingSystemSCConfig: config.StakingSystemSCConfig{
 				GenesisNodePrice:                     "2500000000000000000000",
@@ -890,6 +893,9 @@ func FillGasMapMetaChainSystemSCsCosts(value uint64) map[string]uint64 {
 	gasMap["DelegateVote"] = value
 	gasMap["RevokeVote"] = value
 	gasMap["CloseProposal"] = value
+	gasMap["ClearProposal"] = value
+	gasMap["ClaimAccumulatedFees"] = value
+	gasMap["ChangeConfig"] = value
 	gasMap["DelegationOps"] = value
 	gasMap["UnStakeTokens"] = value
 	gasMap["UnBondTokens"] = value

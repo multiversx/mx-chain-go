@@ -45,6 +45,9 @@
     DelegateVote          = 50000000
     RevokeVote            = 50000000
     CloseProposal         = 50000000
+    ClearProposal         = 50000000
+    ClaimAccumulatedFees  = 1000000
+    ChangeConfig          = 50000000
     GetAllNodeStates      = 20000000
     UnstakeTokens         = 5000000
     UnbondTokens          = 5000000
@@ -111,8 +114,13 @@
     SetAsyncContextCallback = 100000
     GetCallbackClosure   = 10000
     GetCodeMetadata      = 10000
+    GetCodeHash          = 10000
     IsBuiltinFunction    = 10000
     IsReservedFunctionName = 10000
+    GetRoundTime    = 10000
+    EpochStartBlockTimeStamp = 10000
+    EpochStartBlockNonce = 10000
+    EpochStartBlockRound = 10000
     
 [EthAPICost]
     UseGas              = 100
@@ -237,6 +245,10 @@
     MBufferSetRandom             = 6000
     MBufferToBigFloat            = 2000
     MBufferFromBigFloat          = 2000
+    MBufferToSmallIntUnsigned = 10000
+    MBufferToSmallIntSigned = 10000
+    MBufferFromSmallIntUnsigned = 10000
+    MBufferFromSmallIntSigned = 10000
 
 [BigFloatAPICost]
     BigFloatNewFromParts = 3000
