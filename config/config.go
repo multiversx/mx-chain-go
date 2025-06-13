@@ -22,10 +22,10 @@ type TxCacheBoundsConfig struct {
 type TxCacheSelectionConfig struct {
 	SelectionGasBandwidthIncreasePercent          uint32
 	SelectionGasBandwidthIncreaseScheduledPercent uint32
+	SelectionGasRequested                         uint64
 	SelectionMaxNumTxs                            int
 	SelectionLoopMaximumDuration                  int
-	SelectionLoopDurationCheckInterval            uint32
-	SelectionGasRequested                         uint64
+	SelectionLoopDurationCheckInterval            int
 }
 
 // HeadersPoolConfig will map the headers cache configuration

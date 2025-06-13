@@ -55,11 +55,12 @@ var txHash = []byte("tx_hash1")
 
 func createMockTxCacheSelectionConfig() config.TxCacheSelectionConfig {
 	return config.TxCacheSelectionConfig{
-		SelectionMaxNumTxs:                            30000,
-		SelectionLoopMaximumDuration:                  250,
-		SelectionGasRequested:                         10_000_000_000,
 		SelectionGasBandwidthIncreasePercent:          400,
 		SelectionGasBandwidthIncreaseScheduledPercent: 260,
+		SelectionGasRequested:                         10_000_000_000,
+		SelectionMaxNumTxs:                            30000,
+		SelectionLoopMaximumDuration:                  250,
+		SelectionLoopDurationCheckInterval:            10,
 	}
 }
 

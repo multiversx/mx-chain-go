@@ -23,7 +23,6 @@ func TestTxCache_DoEviction_BecauseOfCount(t *testing.T) {
 		CountPerSenderThreshold:     math.MaxUint32,
 		EvictionEnabled:             true,
 		NumItemsToPreemptivelyEvict: 1,
-		TxCacheSelectionConfig:      createMockTxCacheSelectionConfig(10_000_000_000, 30_000, selectionLoopMaximumDuration),
 		TxCacheBoundsConfig:         createMockTxBoundsConfig(),
 	}
 
@@ -60,7 +59,6 @@ func TestTxCache_DoEviction_BecauseOfSize(t *testing.T) {
 		CountPerSenderThreshold:     math.MaxUint32,
 		EvictionEnabled:             true,
 		NumItemsToPreemptivelyEvict: 1,
-		TxCacheSelectionConfig:      createMockTxCacheSelectionConfig(10_000_000_000, 30_000, selectionLoopMaximumDuration),
 		TxCacheBoundsConfig:         createMockTxBoundsConfig(),
 	}
 
@@ -98,7 +96,6 @@ func TestTxCache_DoEviction_DoesNothingWhenAlreadyInProgress(t *testing.T) {
 		CountPerSenderThreshold:     math.MaxUint32,
 		EvictionEnabled:             true,
 		NumItemsToPreemptivelyEvict: 1,
-		TxCacheSelectionConfig:      createMockTxCacheSelectionConfig(10_000_000_000, 30_000, selectionLoopMaximumDuration),
 		TxCacheBoundsConfig:         createMockTxBoundsConfig(),
 	}
 
@@ -139,7 +136,6 @@ func TestBenchmarkTxCache_DoEviction(t *testing.T) {
 		CountThreshold:              300000,
 		CountPerSenderThreshold:     math.MaxUint32,
 		NumItemsToPreemptivelyEvict: 50000,
-		TxCacheSelectionConfig:      createMockTxCacheSelectionConfig(10_000_000_000, 30_000, selectionLoopMaximumDuration),
 		TxCacheBoundsConfig:         createMockTxBoundsConfig(),
 	}
 

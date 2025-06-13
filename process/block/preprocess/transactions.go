@@ -15,6 +15,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/multiversx/mx-chain-go/common/holders"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/txcache"
 	logger "github.com/multiversx/mx-chain-logger-go"
@@ -164,6 +165,9 @@ func NewTransactionPreprocessor(
 	}
 	if args.TxCacheSelectionConfig.SelectionLoopMaximumDuration == 0 {
 		return nil, process.ErrBadTxCacheSelectionLoopMaximumDuration
+	}
+	if args.TxCacheSelectionConfig.SelectionLoopDurationCheckInterval == 0 {
+		return nil, process.ErrBadTxCacheSelectionLoopDurationCheckInterval
 	}
 
 	bpp := basePreProcess{
@@ -1414,15 +1418,23 @@ func (txs *transactions) computeSortedTxs(
 	gasBandwidth uint64,
 	randomness []byte,
 ) ([]*txcache.WrappedTransaction, []*txcache.WrappedTransaction, error) {
+	log.Debug("computeSortedTxs",
+		"sndShardId", sndShardId,
+		"dstShardId", dstShardId,
+		"gasBandwidth", gasBandwidth,
+		"randomness", randomness,
+	)
+
 	strCache := process.ShardCacherIdentifier(sndShardId, dstShardId)
 	txShardPool := txs.txPool.ShardDataStore(strCache)
 
 	if check.IfNil(txShardPool) {
 		return nil, nil, process.ErrNilTxDataPool
 	}
-
-	sortedTransactionsProvider := createSortedTransactionsProvider(txShardPool, txs.txCacheSelectionConfig)
-	log.Debug("computeSortedTxs.GetSortedTransactions")
+	txCache, isTxCache := txShardPool.(TxCache)
+	if !isTxCache {
+		return nil, nil, fmt.Errorf("%w: 'txShardPool' should be of type 'TxCache'", process.ErrWrongTypeAssertion)
+	}
 
 	session, err := NewSelectionSession(ArgsSelectionSession{
 		AccountsAdapter:       txs.accounts,
@@ -1432,9 +1444,14 @@ func (txs *transactions) computeSortedTxs(
 		return nil, nil, err
 	}
 
-	sortedTxs := sortedTransactionsProvider.GetSortedTransactions(session)
+	selectionOptions := holders.NewTxSelectionOptions(
+		txs.txCacheSelectionConfig.SelectionGasRequested,
+		txs.txCacheSelectionConfig.SelectionMaxNumTxs,
+		txs.txCacheSelectionConfig.SelectionLoopMaximumDuration,
+		txs.txCacheSelectionConfig.SelectionLoopDurationCheckInterval,
+	)
 
-	// TODO: this could be moved to SortedTransactionsProvider
+	sortedTxs, _ := txCache.SelectTransactions(session, selectionOptions)
 	selectedTxs, remainingTxs := txs.preFilterTransactionsWithMoveBalancePriority(sortedTxs, gasBandwidth)
 	txs.sortTransactionsBySenderAndNonce(selectedTxs, randomness)
 

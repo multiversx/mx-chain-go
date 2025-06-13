@@ -28,7 +28,6 @@ type ConfigSourceMe struct {
 	CountPerSenderThreshold     uint32
 	NumItemsToPreemptivelyEvict uint32
 	TxCacheBoundsConfig         config.TxCacheBoundsConfig
-	TxCacheSelectionConfig      config.TxCacheSelectionConfig
 }
 
 type senderConstraints struct {
