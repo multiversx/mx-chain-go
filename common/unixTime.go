@@ -109,3 +109,10 @@ func getUnitsPerDay(
 
 	return NumberOfSecondsInDay
 }
+
+// RoundToNearestMinute rounds the given time to the nearest minute
+func RoundToNearestMinute(
+	t time.Time,
+) time.Time {
+	return t.Add(1 * time.Minute).Round(time.Minute)
+}

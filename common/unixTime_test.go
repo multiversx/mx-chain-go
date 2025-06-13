@@ -210,3 +210,46 @@ func TestComputeRoundsPerDay(t *testing.T) {
 		require.Equal(t, expNumRounds, numRounds)
 	})
 }
+
+func TestRoundToNearestMinute(t *testing.T) {
+	tests := []struct {
+		name     string
+		input    time.Time
+		expected time.Time
+	}{
+		{
+			name:     "Round up at 30 seconds",
+			input:    time.Date(2025, 6, 13, 16, 8, 30, 0, time.UTC),
+			expected: time.Date(2025, 6, 13, 16, 10, 0, 0, time.UTC), // 16:08:30 + 1m = 16:09:30 -> rounds to 16:10:00
+		},
+		{
+			name:     "Round down at 29 seconds",
+			input:    time.Date(2025, 6, 13, 16, 8, 29, 999999999, time.UTC),
+			expected: time.Date(2025, 6, 13, 16, 9, 0, 0, time.UTC), // 16:08:29.999 + 1m = 16:09:29.999 -> rounds to 16:09:00
+		},
+		{
+			name:     "Exact minute",
+			input:    time.Date(2025, 6, 13, 16, 8, 0, 0, time.UTC),
+			expected: time.Date(2025, 6, 13, 16, 9, 0, 0, time.UTC), // 16:08:00 + 1m = 16:09:00 -> rounds to 16:09:00
+		},
+		{
+			name:     "Round up at 45 seconds",
+			input:    time.Date(2025, 6, 13, 16, 8, 45, 500000000, time.UTC),
+			expected: time.Date(2025, 6, 13, 16, 10, 0, 0, time.UTC), // 16:08:45.5 + 1m = 16:09:45.5 -> rounds to 16:10:00
+		},
+		{
+			name:     "Different timezone",
+			input:    time.Date(2025, 6, 13, 16, 8, 30, 0, time.FixedZone("EST", -5*60*60)),
+			expected: time.Date(2025, 6, 13, 16, 10, 0, 0, time.FixedZone("EST", -5*60*60)), // 16:08:30 + 1m = 16:09:30 -> rounds to 16:10:00
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := common.RoundToNearestMinute(tt.input)
+			if !result.Equal(tt.expected) {
+				t.Errorf("RoundToNearestMinute(%v) = %v; want %v", tt.input, result, tt.expected)
+			}
+		})
+	}
+}

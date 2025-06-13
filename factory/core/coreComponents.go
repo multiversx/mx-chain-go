@@ -232,8 +232,7 @@ func (ccf *coreComponentsFactory) Create() (*coreComponents, error) {
 	if genesisNodesConfig.StartTime == 0 {
 		time.Sleep(1000 * time.Millisecond)
 
-		ntpTime := syncer.CurrentTime()
-		startTime := ntpTime.Add(1 * time.Minute)
+		startTime := common.RoundToNearestMinute(syncer.CurrentTime())
 
 		genesisNodesConfig.StartTime = common.GetGenesisUnixTimestampFromStartTime(startTime, enableEpochsHandler)
 	}
