@@ -231,7 +231,7 @@ func TestProcessInterceptedData_NotValidShouldCallDoneAndNotCallProcessed(t *tes
 	}
 
 	bdi := newBaseDataInterceptorForProcess(processor, &mock.InterceptedDebugHandlerStub{}, "topic")
-	bdi.processInterceptedData(&testscommon.InterceptedDataStub{}, &p2pmocks.P2PMessageMock{})
+	bdi.processInterceptedData(&testscommon.InterceptedDataStub{}, &p2pmocks.P2PMessageMock{}, fromConnectedPeer)
 
 	assert.False(t, processCalled)
 }
@@ -251,7 +251,7 @@ func TestProcessInterceptedData_ValidShouldCallDoneAndCallProcessed(t *testing.T
 	}
 
 	bdi := newBaseDataInterceptorForProcess(processor, &mock.InterceptedDebugHandlerStub{}, "topic")
-	bdi.processInterceptedData(&testscommon.InterceptedDataStub{}, &p2pmocks.P2PMessageMock{})
+	bdi.processInterceptedData(&testscommon.InterceptedDataStub{}, &p2pmocks.P2PMessageMock{}, fromConnectedPeer)
 
 	assert.True(t, processCalled)
 }
@@ -271,7 +271,7 @@ func TestProcessInterceptedData_ProcessErrorShouldCallDone(t *testing.T) {
 	}
 
 	bdi := newBaseDataInterceptorForProcess(processor, &mock.InterceptedDebugHandlerStub{}, "topic")
-	bdi.processInterceptedData(&testscommon.InterceptedDataStub{}, &p2pmocks.P2PMessageMock{})
+	bdi.processInterceptedData(&testscommon.InterceptedDataStub{}, &p2pmocks.P2PMessageMock{}, fromConnectedPeer)
 
 	assert.True(t, processCalled)
 }
