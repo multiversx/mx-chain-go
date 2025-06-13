@@ -265,10 +265,12 @@ func NewProcessComponentsFactory(args ProcessComponentsFactoryArgs) (*processCom
 
 // Create will create and return a struct containing process components
 func (pcf *processComponentsFactory) Create() (*processComponents, error) {
+	genesisUnixTime := common.GetGenesisUnixTimestampFromStartTime(pcf.coreData.GenesisTime(), pcf.coreData.EnableEpochsHandler())
 	currentEpochProvider, err := epochProviders.CreateCurrentEpochProvider(
 		pcf.coreData.ChainParametersHandler(),
-		pcf.coreData.GenesisTime().Unix(),
+		genesisUnixTime,
 		pcf.prefConfigs.Preferences.FullArchive,
+		pcf.coreData.EnableEpochsHandler(),
 	)
 	if err != nil {
 		return nil, err
@@ -871,8 +873,9 @@ func (pcf *processComponentsFactory) newEpochStartTrigger(requestHandler epochSt
 			return nil, errorsMx.ErrGenesisBlockNotInitialized
 		}
 
+		genesisTime := common.GetGenesisStartTimeFromUnixTimestamp(pcf.coreData.GenesisNodesSetup().GetStartTime(), pcf.coreData.EnableEpochsHandler())
 		argEpochStart := &metachain.ArgsNewMetaEpochStartTrigger{
-			GenesisTime:            time.Unix(pcf.coreData.GenesisNodesSetup().GetStartTime(), 0),
+			GenesisTime:            genesisTime,
 			Settings:               &pcf.config.EpochStartConfig,
 			Epoch:                  pcf.bootstrapComponents.EpochBootstrapParams().Epoch(),
 			EpochStartRound:        genesisHeader.GetRound(),
@@ -1910,6 +1913,7 @@ func (pcf *processComponentsFactory) createHardforkTrigger(epochStartTrigger upd
 		CloseAfterExportInMinutes: hardforkConfig.CloseAfterExportInMinutes,
 		ImportStartHandler:        pcf.importStartHandler,
 		RoundHandler:              pcf.coreData.RoundHandler(),
+		EnableEpochsHandler:       pcf.coreData.EnableEpochsHandler(),
 	}
 
 	return trigger.NewTrigger(argTrigger)
