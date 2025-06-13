@@ -286,7 +286,6 @@ type TxSelectionOptions interface {
 	GetMaxNumTxs() int
 	GetLoopMaximumDuration() int
 	GetLoopDurationCheckInterval() int
-
 	IsInterfaceNil() bool
 }
 

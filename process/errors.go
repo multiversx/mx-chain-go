@@ -1305,6 +1305,9 @@ var ErrBadSelectionGasBandwidthIncreasePercent = errors.New("bad selection gas b
 // ErrBadSelectionGasBandwidthIncreaseScheduledPercent signals a bad txcache config
 var ErrBadSelectionGasBandwidthIncreaseScheduledPercent = errors.New("bad selection gas bandwidth increase scheduled percent")
 
+// ErrBadTxCacheSelectionGasRequested signals that the SelectionGasRequested from the config is not set
+var ErrBadTxCacheSelectionGasRequested = errors.New("bad tx cache selection gas requested")
+
 // ErrBadTxCacheSelectionMaxNumTxs signals a bad txcache config
 var ErrBadTxCacheSelectionMaxNumTxs = errors.New("bad tx cache selection max num txs")
 
@@ -1313,6 +1316,3 @@ var ErrBadTxCacheSelectionLoopMaximumDuration = errors.New("bad tx cache selecti
 
 // ErrBadTxCacheSelectionLoopDurationCheckInterval signals a bad txcache config
 var ErrBadTxCacheSelectionLoopDurationCheckInterval = errors.New("bad selection loop duration check interval")
-
-// ErrBadTxCacheSelectionGasRequested signals that the SelectionGasRequested from the config is not set
-var ErrBadTxCacheSelectionGasRequested = errors.New("bad tx cache selection gas requested")
