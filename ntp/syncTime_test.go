@@ -288,7 +288,7 @@ func TestCallQueryShouldNotUpdateOnOutOfBoundValuesPositive(t *testing.T) {
 		},
 		func(options ntp.NTPOptions, hostIndex int) (*beevikNtp.Response, error) {
 			return &beevikNtp.Response{
-				ClockOffset: ntp.OutOfBoundsDuration + time.Nanosecond,
+				ClockOffset: ntp.OutOfBoundsDurationPercentage + time.Nanosecond,
 			}, nil
 		},
 		time.Nanosecond,
@@ -311,7 +311,7 @@ func TestCallQueryShouldNotUpdateOnOutOfBoundValuesNegative(t *testing.T) {
 		},
 		func(options ntp.NTPOptions, hostIndex int) (*beevikNtp.Response, error) {
 			return &beevikNtp.Response{
-				ClockOffset: -ntp.OutOfBoundsDuration - 2*time.Nanosecond,
+				ClockOffset: -ntp.OutOfBoundsDurationPercentage - 2*time.Nanosecond,
 			}, nil
 		},
 		2*time.Nanosecond,
