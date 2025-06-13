@@ -16,7 +16,7 @@ const (
 )
 
 const (
-	minRoundDurationMS  = 500
+	minRoundDurationMS  = 200
 	minRoundDurationSec = 1
 )
 
