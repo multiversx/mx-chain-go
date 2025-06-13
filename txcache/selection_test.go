@@ -336,13 +336,7 @@ func TestTxCache_SelectTransactions_WhenTransactionsAddedInReversedNonceOrder(t 
 func TestTxCache_selectTransactionsFromBunches(t *testing.T) {
 	t.Run("empty cache", func(t *testing.T) {
 		session := txcachemocks.NewSelectionSessionMock()
-		options := holders.NewTxSelectionOptions(
-			10_000_000_000,
-			math.MaxInt,
-			selectionLoopMaximumDuration,
-			selectionLoopDurationCheckInterval,
-		)
-
+		options := createMockTxSelectionOptions(10_000_000_000, math.MaxInt, selectionLoopMaximumDuration)
 		selected, accumulatedGas := selectTransactionsFromBunches(session, []bunchOfTransactions{}, options)
 
 		require.Equal(t, 0, len(selected))
