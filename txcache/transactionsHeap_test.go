@@ -22,6 +22,7 @@ func TestTransactionsHeap_Len(t *testing.T) {
 	require.Equal(t, txHeap.Len(), 1)
 
 	txHeapItem, err = newTransactionsHeapItem(mockBunchOfTransactions[1])
+	require.NoError(t, err)
 	txHeap.Push(txHeapItem)
 	require.Equal(t, txHeap.Len(), 2)
 
