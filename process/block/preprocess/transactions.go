@@ -243,7 +243,28 @@ func (txs *transactions) RemoveBlockDataFromPools(body *block.Body, miniBlockPoo
 
 // RemoveTxsFromPools removes transactions from associated pools
 func (txs *transactions) RemoveTxsFromPools(body *block.Body) error {
-	return txs.removeTxsFromPools(body, txs.txPool, txs.isMiniBlockCorrect)
+	session, err := NewSelectionSession(ArgsSelectionSession{
+		AccountsAdapter:       txs.accounts,
+		TransactionsProcessor: txs.txProcessor,
+	})
+	if err != nil {
+		return  err
+	}
+
+	randomness := helpers.ComputeRandomnessForCleanup(body)
+	
+	err = txs.removeTxsFromPools(body, txs.txPool, txs.isMiniBlockCorrect)
+	if err != nil {
+		return  err
+	}
+
+	_, ok := txs.txPool.(dataRetriever.CleanupCapableCacher)
+	if !ok {
+		log.Warn("txPool does not implement TxCache interface")
+	} 
+	txs.txPool.MempoolCleanup(session, randomness, process.TxCacheCleanupMaxNumTxs, process.TxCacheCleanupLoopMaximumDuration)
+
+	return err
 }
 
 // RestoreBlockDataIntoPools restores the transactions and miniblocks to associated pools

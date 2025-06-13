@@ -3,6 +3,7 @@ package shardedData
 import (
 	"fmt"
 	"sync"
+	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/counting"
@@ -37,6 +38,13 @@ type shardedData struct {
 
 	mutAddedDataHandlers sync.RWMutex
 	addedDataHandlers    []func(key []byte, value interface{})
+}
+
+// MempoolCleanup implements dataRetriever.ShardedDataCacherNotifier.
+func (sd *shardedData) MempoolCleanup(session interface{}, randomness uint64, maxNum int, cleanupLoopMaximumDuration time.Duration) bool {
+	fmt.Println("MempoolCleanup called on ShardedDataCacherNotifier, but it is not implemented")
+	log.Warn("MempoolCleanup unimplemented in ShardedDataCacherNotifier")
+	return false
 }
 
 type shardStore struct {
