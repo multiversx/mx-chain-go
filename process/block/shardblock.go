@@ -1033,8 +1033,7 @@ func (sp *shardProcessor) createBlockBodyProposal(
 		"nonce", shardHdr.GetNonce(),
 	)
 
-	randomness := helpers.ComputeRandomnessForTxSorting(shardHdr, sp.enableEpochsHandler)
-	miniBlocks, err := sp.createProposalMiniBlocks(haveTime, randomness)
+	miniBlocks, err := sp.createProposalMiniBlocks(haveTime)
 	if err != nil {
 		return nil, err
 	}
@@ -2401,18 +2400,77 @@ func (sp *shardProcessor) requestMetaHeadersIfNeeded(hdrsAdded uint32, lastMetaH
 	}
 }
 
-func (sp *shardProcessor) createProposalMiniBlocks(haveTime func() bool, randomness []byte) (*block.Body, error) {
-	incomingMiniblocks, err := sp.selectIncomingMiniBlocksForProposal(haveTime)
+func (sp *shardProcessor) createProposalMiniBlocks(haveTime func() bool) (*block.Body, error) {
+	var miniBlocks block.MiniBlockSlice
+
+	if !haveTime() {
+		log.Debug("shardProcessor.createProposalMiniBlocks", "error", process.ErrTimeIsOut)
+		return &block.Body{MiniBlocks: miniBlocks}, nil
+	}
+	startTime := time.Now()
+	incomingMiniblocksInfo, err := sp.selectIncomingMiniBlocksForProposal(haveTime)
+	if err != nil {
+		return nil, err
+	}
+	elapsedTime := time.Since(startTime)
+	log.Debug("elapsed time to create mbs to me", "time", elapsedTime)
+
+	outgoingTransactions, err := sp.selectOutgoingTransactions(haveTime)
 	if err != nil {
 		return nil, err
 	}
 
-	outgoingTransactions, err := sp.selectOutgoingTransactions(haveTime, randomness)
+	// todo: if partial mbs need to be supported after transition to Supernova, extract the required data (txs range)
+	outgoingTxsMiniBlocks, err := sp.createMiniBlocksFromSelectedTxs(outgoingTransactions)
+	if err != nil {
+		log.Debug("shardProcessor.createProposalMiniBlocks", "error", err.Error())
+		return nil, err
+	}
+
+	// todo: maybe sanitize, removing empty miniBlocks
+	miniBlocks = append(miniBlocks, incomingMiniblocksInfo.miniBlocks...)
+	miniBlocks = append(miniBlocks, outgoingTxsMiniBlocks...)
+
+	return &block.Body{MiniBlocks: miniBlocks}, nil
+}
+
+func (sp *shardProcessor) createMiniBlocksFromSelectedTxs(txHashes [][]byte) (block.MiniBlockSlice, error) {
+	if len(txHashes) == 0 {
+		return nil, nil
+	}
+
+	// no need to create multiple miniblocks from the shard to itself or to other shards before processing
+	// the transactions, so create a single miniBlock
+	return []*block.MiniBlock{{
+		TxHashes:        txHashes,
+		ReceiverShardID: sp.shardCoordinator.SelfId(),
+		SenderShardID:   sp.shardCoordinator.SelfId(),
+		Type:            block.TxBlock,
+		Reserved:        nil,
+	}}, nil
+}
+
+func (sp *shardProcessor) selectOutgoingTransactions(
+	haveTime func() bool,
+) ([][]byte, error) {
+	log.Debug("selectOutgoingTransactions has been started")
+
+	sw := core.NewStopWatch()
+	sw.Start("selectOutgoingTransactions")
+	defer func() {
+		sw.Stop("selectOutgoingTransactions")
+		log.Debug("measurements", sw.GetMeasurements()...)
+	}()
+
+	outgoingTransactions, err := sp.txCoordinator.SelectOutgoingTransactions(haveTime)
 	if err != nil {
 		return nil, err
 	}
 
-	return nil, nil
+	log.Debug("selectOutgoingTransactions has been finished",
+		"num txs", len(outgoingTransactions))
+
+	return outgoingTransactions, nil
 }
 
 func (sp *shardProcessor) createMiniBlocks(haveTime func() bool, randomness []byte) (*block.Body, map[string]*processedMb.ProcessedMiniBlockInfo, error) {
