@@ -6,8 +6,10 @@ on:
       - master
   pull_request:
     branches: [ master, feat/*, rc/* ]
-
   workflow_dispatch:
+
+permissions:
+  contents: read
 
 jobs:
   build:
