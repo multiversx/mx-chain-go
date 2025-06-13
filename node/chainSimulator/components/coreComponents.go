@@ -101,6 +101,7 @@ type ArgsCoreComponentsHolder struct {
 	MinNodesMeta                uint32
 	MetaChainConsensusGroupSize uint32
 	RoundDurationInMs           uint64
+	GenesisTime                 time.Time
 }
 
 // CreateCoreComponents will create a new instance of factory.CoreComponentsHolder
@@ -172,26 +173,47 @@ func CreateCoreComponents(args ArgsCoreComponentsHolder) (*coreComponentsHolder,
 		return nil, err
 	}
 
-	var nodesSetup config.NodesConfig
-	err = core.LoadJsonFile(&nodesSetup, args.NodesSetupPath)
-	if err != nil {
-		return nil, err
-	}
-	instance.genesisNodesSetup, err = sharding.NewNodesSetup(nodesSetup, instance.chainParametersHandler, instance.addressPubKeyConverter, instance.validatorPubKeyConverter, args.NumShards)
-	if err != nil {
-		return nil, err
-	}
-
-	roundDuration := time.Millisecond * time.Duration(instance.genesisNodesSetup.GetRoundDuration())
-	instance.roundHandler = NewManualRoundHandler(instance.genesisNodesSetup.GetStartTime(), roundDuration, args.InitialRound)
-
-	instance.wasmVMChangeLocker = &sync.RWMutex{}
-	instance.txVersionChecker = versioning.NewTxVersionChecker(args.Config.GeneralSettings.MinTransactionVersion)
 	instance.epochNotifier = forking.NewGenericEpochNotifier()
 	instance.enableEpochsHandler, err = enablers.NewEnableEpochsHandler(args.EnableEpochsConfig, instance.epochNotifier)
 	if err != nil {
 		return nil, err
 	}
+
+	var nodesSetup config.NodesConfig
+	err = core.LoadJsonFile(&nodesSetup, args.NodesSetupPath)
+	if err != nil {
+		return nil, err
+	}
+
+	startTime := computeStartTimeBaseOnInitialRound(
+		args.GenesisTime,
+		instance.enableEpochsHandler,
+		args.InitialRound,
+		args.RoundDurationInMs,
+	)
+	if nodesSetup.StartTime == 0 {
+		if instance.enableEpochsHandler.IsFlagEnabledInEpoch(common.SupernovaFlag, 0) {
+			nodesSetup.StartTime = startTime.UnixMilli()
+		} else {
+			nodesSetup.StartTime = startTime.Unix()
+		}
+	}
+
+	instance.genesisNodesSetup, err = sharding.NewNodesSetup(nodesSetup, instance.chainParametersHandler, instance.addressPubKeyConverter, instance.validatorPubKeyConverter, args.NumShards)
+	if err != nil {
+		return nil, err
+	}
+
+	log.Debug("chain simulator start time",
+		"startTime", instance.genesisNodesSetup.GetStartTime(),
+		"nodesSetup start time", nodesSetup.StartTime,
+	)
+
+	roundDuration := time.Millisecond * time.Duration(instance.genesisNodesSetup.GetRoundDuration())
+	instance.roundHandler = NewManualRoundHandler(startTime.UnixMilli(), roundDuration, args.InitialRound)
+
+	instance.wasmVMChangeLocker = &sync.RWMutex{}
+	instance.txVersionChecker = versioning.NewTxVersionChecker(args.Config.GeneralSettings.MinTransactionVersion)
 
 	argsEconomicsHandler := economics.ArgsNewEconomicsData{
 		TxVersionChecker:    instance.txVersionChecker,
@@ -266,6 +288,19 @@ func CreateCoreComponents(args ArgsCoreComponentsHolder) (*coreComponentsHolder,
 	instance.collectClosableComponents()
 
 	return instance, nil
+}
+
+func computeStartTimeBaseOnInitialRound(
+	genesisTime time.Time,
+	enableEpochsHandler common.EnableEpochsHandler,
+	initialRound int64,
+	roundDurationMs uint64,
+) time.Time {
+	if enableEpochsHandler.IsFlagEnabledInEpoch(common.SupernovaFlag, 0) {
+		return genesisTime.Add(time.Millisecond * time.Duration(int64(roundDurationMs)*initialRound))
+	}
+
+	return genesisTime.Add(time.Second * time.Duration(int64(roundDurationMs/1000)*initialRound))
 }
 
 func computeEncodedAddressLen(converter core.PubkeyConverter) (uint32, error) {
