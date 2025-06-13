@@ -1418,7 +1418,12 @@ func (txs *transactions) computeSortedTxs(
 	gasBandwidth uint64,
 	randomness []byte,
 ) ([]*txcache.WrappedTransaction, []*txcache.WrappedTransaction, error) {
-	log.Debug("computeSortedTxs.GetSortedTransactions")
+	log.Debug("computeSortedTxs",
+		"sndShardId", sndShardId,
+		"dstShardId", dstShardId,
+		"gasBandwidth", gasBandwidth,
+		"randomness", randomness,
+	)
 
 	strCache := process.ShardCacherIdentifier(sndShardId, dstShardId)
 	txShardPool := txs.txPool.ShardDataStore(strCache)
