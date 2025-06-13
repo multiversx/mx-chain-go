@@ -996,10 +996,12 @@ func (pcf *processComponentsFactory) indexAndReturnGenesisAccounts() (map[string
 	}
 
 	shardID := pcf.bootstrapComponents.ShardCoordinator().SelfId()
+	blockTimestamp := uint64(pcf.coreData.GenesisNodesSetup().GetStartTime())
 	pcf.statusComponents.OutportHandler().SaveAccounts(&outport.Accounts{
-		ShardID:         shardID,
-		BlockTimestamp:  uint64(pcf.coreData.GenesisNodesSetup().GetStartTime()),
-		AlteredAccounts: genesisAccounts,
+		ShardID:          shardID,
+		BlockTimestamp:   blockTimestamp,
+		AlteredAccounts:  genesisAccounts,
+		BlockTimestampMs: common.ConvertTimeStampSecToMs(blockTimestamp),
 	})
 	return genesisAccounts, nil
 }

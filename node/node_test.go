@@ -4717,7 +4717,10 @@ func TestNode_GetEpochStartDataAPI(t *testing.T) {
 
 	dataComponents := getDefaultDataComponents()
 	blockchain := dataComponents.BlockChain.(*testscommon.ChainHandlerStub)
+
 	timestamp := uint64(778899)
+	expTimeStampMs := common.ConvertTimeStampSecToMs(timestamp)
+
 	shardID := uint32(2)
 	blockchain.GetGenesisHeaderCalled = func() data.HeaderHandler {
 		return &block.Header{
@@ -4751,6 +4754,7 @@ func TestNode_GetEpochStartDataAPI(t *testing.T) {
 			Nonce:             0,
 			Round:             0,
 			Timestamp:         int64(timestamp),
+			TimestampMs:       int64(expTimeStampMs),
 			Epoch:             0,
 			Shard:             shardID,
 			PrevBlockHash:     hex.EncodeToString(prevHash),
@@ -4800,6 +4804,7 @@ func TestNode_GetEpochStartDataAPI(t *testing.T) {
 			Nonce:             nonce,
 			Round:             round,
 			Timestamp:         int64(timestamp),
+			TimestampMs:       int64(expTimeStampMs),
 			Epoch:             epoch,
 			Shard:             core.MetachainShardId,
 			PrevBlockHash:     hex.EncodeToString(prevHash),
@@ -4850,6 +4855,7 @@ func TestNode_GetEpochStartDataAPI(t *testing.T) {
 			Nonce:             nonce,
 			Round:             round,
 			Timestamp:         int64(timestamp),
+			TimestampMs:       int64(expTimeStampMs),
 			Epoch:             epoch,
 			Shard:             shardID,
 			PrevBlockHash:     hex.EncodeToString(prevHash),
