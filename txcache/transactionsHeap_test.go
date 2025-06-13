@@ -24,13 +24,13 @@ func TestTransactionsHeap_Len(t *testing.T) {
 	txHeapItem, err = newTransactionsHeapItem(mockBunchOfTransactions[1])
 	require.NoError(t, err)
 	txHeap.Push(txHeapItem)
-	require.Equal(t, txHeap.Len(), 2)
+	require.Equal(t, 2, txHeap.Len())
 
 	_ = txHeap.Pop()
-	require.Equal(t, txHeap.Len(), 1)
+	require.Equal(t, 1, txHeap.Len())
 
 	_ = txHeap.Pop()
-	require.Equal(t, txHeap.Len(), 0)
+	require.Equal(t, 0, txHeap.Len())
 }
 
 func createMockBunchOfTxsWithSpecificTxHashes(noOfTxsPerBunch int, noOfBunches int) []bunchOfTransactions {
