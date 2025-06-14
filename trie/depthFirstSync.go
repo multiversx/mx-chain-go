@@ -6,8 +6,6 @@ import (
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
-	"github.com/multiversx/mx-chain-core-go/hashing"
-	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/storage"
 )
@@ -19,9 +17,7 @@ type depthFirstTrieSyncer struct {
 	topic                     string
 	rootHash                  []byte
 	waitTimeBetweenChecks     time.Duration
-	marshaller                marshal.Marshalizer
-	hasher                    hashing.Hasher
-	db                        common.TrieStorageInteractor
+	trieContext               common.TrieContext
 	requestHandler            RequestHandler
 	interceptedNodesCacher    storage.Cacher
 	mutOperation              sync.RWMutex
@@ -47,11 +43,13 @@ func NewDepthFirstTrieSyncer(arg ArgTrieSyncer) (*depthFirstTrieSyncer, error) {
 	}
 
 	d := &depthFirstTrieSyncer{
-		requestHandler:            arg.RequestHandler,
-		interceptedNodesCacher:    arg.InterceptedNodes,
-		db:                        stsm,
-		marshaller:                arg.Marshalizer,
-		hasher:                    arg.Hasher,
+		requestHandler:         arg.RequestHandler,
+		interceptedNodesCacher: arg.InterceptedNodes,
+		trieContext: &trieContext{
+			StorageManager: stsm,
+			Marshalizer:    arg.Marshalizer,
+			Hasher:         arg.Hasher,
+		},
 		topic:                     arg.Topic,
 		shardId:                   arg.ShardId,
 		waitTimeBetweenChecks:     time.Millisecond * 100,
@@ -240,7 +238,7 @@ func (d *depthFirstTrieSyncer) processFirstExistingNode() (bool, error) {
 }
 
 func (d *depthFirstTrieSyncer) storeTrieNode(element node) error {
-	numBytes, err := encodeNodeAndCommitToDB(element, d.db)
+	numBytes, err := encodeNodeAndCommitToDB(element, d.trieContext)
 	if err != nil {
 		return err
 	}
@@ -258,16 +256,16 @@ func (d *depthFirstTrieSyncer) storeTrieNode(element node) error {
 	return nil
 }
 
-func (d *depthFirstTrieSyncer) storeLeaves(children []node) ([]node, error) {
-	childrenNotLeaves := make([]node, 0, len(children))
+func (d *depthFirstTrieSyncer) storeLeaves(children []nodeWithHash) ([]nodeWithHash, error) {
+	childrenNotLeaves := make([]nodeWithHash, 0, len(children))
 	for _, element := range children {
-		_, isLeaf := element.(*leafNode)
+		_, isLeaf := element.node.(*leafNode)
 		if !isLeaf {
 			childrenNotLeaves = append(childrenNotLeaves, element)
 			continue
 		}
 
-		err := d.storeTrieNode(element)
+		err := d.storeTrieNode(element.node)
 		if err != nil {
 			return nil, err
 		}
@@ -281,9 +279,7 @@ func (d *depthFirstTrieSyncer) getNode(hash []byte) (node, error) {
 		return getNodeFromCacheOrStorage(
 			hash,
 			d.interceptedNodesCacher,
-			d.db,
-			d.marshaller,
-			d.hasher,
+			d.trieContext,
 		)
 	}
 	return d.getNodeFromCache(hash)
@@ -293,8 +289,7 @@ func (d *depthFirstTrieSyncer) getNodeFromCache(hash []byte) (node, error) {
 	return getNodeFromCache(
 		hash,
 		d.interceptedNodesCacher,
-		d.marshaller,
-		d.hasher,
+		d.trieContext,
 	)
 }
 

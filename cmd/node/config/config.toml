@@ -690,6 +690,7 @@
     PeerStatePruningEnabled = true
     MaxStateTrieLevelInMemory = 5
     MaxPeerTrieLevelInMemory = 5
+    MaxNumGoroutines = 100
     StateStatisticsEnabled = false
 
 [TrieLeavesRetrieverConfig]
