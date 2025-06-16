@@ -186,6 +186,18 @@ func (handler *enableEpochsHandler) createAllFlagsMap() {
 			},
 			activationEpoch: handler.enableEpochsConfig.GovernanceEnableEpoch,
 		},
+		common.GovernanceDisableProposeFlag: {
+			isActiveInEpoch: func(epoch uint32) bool {
+				return epoch >= handler.enableEpochsConfig.GovernanceDisableProposeEnableEpoch
+			},
+			activationEpoch: handler.enableEpochsConfig.GovernanceDisableProposeEnableEpoch,
+		},
+		common.GovernanceFixesFlag: {
+			isActiveInEpoch: func(epoch uint32) bool {
+				return epoch >= handler.enableEpochsConfig.GovernanceFixesEnableEpoch
+			},
+			activationEpoch: handler.enableEpochsConfig.GovernanceFixesEnableEpoch,
+		},
 		common.DelegationManagerFlag: {
 			isActiveInEpoch: func(epoch uint32) bool {
 				return epoch >= handler.enableEpochsConfig.DelegationManagerEnableEpoch
@@ -804,6 +816,36 @@ func (handler *enableEpochsHandler) createAllFlagsMap() {
 				return epoch >= handler.enableEpochsConfig.CheckBuiltInCallOnTransferValueAndFailEnableRound
 			},
 			activationEpoch: handler.enableEpochsConfig.CheckBuiltInCallOnTransferValueAndFailEnableRound,
+		},
+		common.AutomaticActivationOfNodesDisableFlag: {
+			isActiveInEpoch: func(epoch uint32) bool {
+				return epoch >= handler.enableEpochsConfig.AutomaticActivationOfNodesDisableEpoch
+			},
+			activationEpoch: handler.enableEpochsConfig.AutomaticActivationOfNodesDisableEpoch,
+		},
+		common.MaskInternalDependenciesErrorsFlag: {
+			isActiveInEpoch: func(epoch uint32) bool {
+				return epoch >= handler.enableEpochsConfig.MaskVMInternalDependenciesErrorsEnableEpoch
+			},
+			activationEpoch: handler.enableEpochsConfig.MaskVMInternalDependenciesErrorsEnableEpoch,
+		},
+		common.FixBackTransferOPCODEFlag: {
+			isActiveInEpoch: func(epoch uint32) bool {
+				return epoch >= handler.enableEpochsConfig.FixBackTransferOPCODEEnableEpoch
+			},
+			activationEpoch: handler.enableEpochsConfig.FixBackTransferOPCODEEnableEpoch,
+		},
+		common.ValidationOnGobDecodeFlag: {
+			isActiveInEpoch: func(epoch uint32) bool {
+				return epoch >= handler.enableEpochsConfig.ValidationOnGobDecodeEnableEpoch
+			},
+			activationEpoch: handler.enableEpochsConfig.ValidationOnGobDecodeEnableEpoch,
+		},
+		common.BarnardOpcodesFlag: {
+			isActiveInEpoch: func(epoch uint32) bool {
+				return epoch >= handler.enableEpochsConfig.BarnardOpcodesEnableEpoch
+			},
+			activationEpoch: handler.enableEpochsConfig.BarnardOpcodesEnableEpoch,
 		},
 	}
 }
