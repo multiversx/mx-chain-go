@@ -13,6 +13,6 @@ func TestNewTxSelectionOptions(t *testing.T) {
 
 	assert.Equal(t, uint64(10_000_000_000), options.GetGasRequested())
 	assert.Equal(t, 30_000, options.GetMaxNumTxs())
-	assert.Equal(t, 250, options.GetLoopMaximumDuration())
+	assert.Equal(t, 250, options.GetLoopMaximumDurationMs())
 	assert.Equal(t, 10, options.GetLoopDurationCheckInterval())
 }

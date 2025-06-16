@@ -27,8 +27,8 @@ func (options *txSelectionOptions) GetMaxNumTxs() int {
 	return options.maxNumTxs
 }
 
-// GetLoopMaximumDuration returns a selection constraint parameter (related to selection duration)
-func (options *txSelectionOptions) GetLoopMaximumDuration() int {
+// GetLoopMaximumDurationMs returns a selection constraint parameter (related to selection duration)
+func (options *txSelectionOptions) GetLoopMaximumDurationMs() int {
 	return options.loopMaximumDuration
 }
 
