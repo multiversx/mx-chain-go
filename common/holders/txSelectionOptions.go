@@ -3,7 +3,7 @@ package holders
 type txSelectionOptions struct {
 	gasRequested              uint64
 	maxNumTxs                 int
-	loopMaximumDuration       int
+	loopMaximumDurationMs     int
 	loopDurationCheckInterval int
 }
 
@@ -12,7 +12,7 @@ func NewTxSelectionOptions(gasRequested uint64, maxNumTxs int, loopMaximumDurati
 	return &txSelectionOptions{
 		gasRequested:              gasRequested,
 		maxNumTxs:                 maxNumTxs,
-		loopMaximumDuration:       loopMaximumDuration,
+		loopMaximumDurationMs:     loopMaximumDuration,
 		loopDurationCheckInterval: loopDurationCheckInterval,
 	}
 }
@@ -29,7 +29,7 @@ func (options *txSelectionOptions) GetMaxNumTxs() int {
 
 // GetLoopMaximumDurationMs returns a selection constraint parameter (related to selection duration)
 func (options *txSelectionOptions) GetLoopMaximumDurationMs() int {
-	return options.loopMaximumDuration
+	return options.loopMaximumDurationMs
 }
 
 // GetLoopDurationCheckInterval returns a selection constraint parameter (related to selection duration)
