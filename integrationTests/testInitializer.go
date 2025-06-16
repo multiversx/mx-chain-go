@@ -754,11 +754,12 @@ func CreateFullGenesisBlocks(
 		HistoryRepository:       &dblookupext.HistoryRepositoryStub{},
 		TxExecutionOrderHandler: &commonMocks.TxExecutionOrderHandlerStub{},
 		TxCacheSelectionConfig: config.TxCacheSelectionConfig{
-			SelectionMaxNumTxs:                            30000,
-			SelectionLoopMaximumDuration:                  250,
-			SelectionGasRequested:                         10_000_000_000,
 			SelectionGasBandwidthIncreasePercent:          400,
 			SelectionGasBandwidthIncreaseScheduledPercent: 260,
+			SelectionGasRequested:                         10_000_000_000,
+			SelectionMaxNumTxs:                            30000,
+			SelectionLoopMaximumDuration:                  250,
+			SelectionLoopDurationCheckInterval:            10,
 		},
 	}
 
@@ -879,11 +880,12 @@ func CreateGenesisMetaBlock(
 		HistoryRepository:       &dblookupext.HistoryRepositoryStub{},
 		TxExecutionOrderHandler: &commonMocks.TxExecutionOrderHandlerStub{},
 		TxCacheSelectionConfig: config.TxCacheSelectionConfig{
-			SelectionMaxNumTxs:                            30000,
-			SelectionLoopMaximumDuration:                  250,
-			SelectionGasRequested:                         10_000_000_000,
 			SelectionGasBandwidthIncreasePercent:          400,
 			SelectionGasBandwidthIncreaseScheduledPercent: 260,
+			SelectionGasRequested:                         10_000_000_000,
+			SelectionMaxNumTxs:                            30000,
+			SelectionLoopMaximumDuration:                  250,
+			SelectionLoopDurationCheckInterval:            10,
 		},
 	}
 

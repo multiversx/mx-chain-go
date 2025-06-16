@@ -58,8 +58,6 @@ func createMockPubkeyConverter() *testscommon.PubkeyConverterMock {
 	return testscommon.NewPubkeyConverterMock(32)
 }
 
-// ------- NewShardProcessor
-
 func initAccountsMock() *stateMock.AccountsStub {
 	rootHashCalled := func() ([]byte, error) {
 		return []byte("rootHash"), nil
@@ -142,7 +140,16 @@ func CreateMockArgumentsMultiShard(
 	return arguments
 }
 
-// ------- NewBlockProcessor
+func createMockTxCacheSelectionConfig() config.TxCacheSelectionConfig {
+	return config.TxCacheSelectionConfig{
+		SelectionGasBandwidthIncreasePercent:          400,
+		SelectionGasBandwidthIncreaseScheduledPercent: 260,
+		SelectionGasRequested:                         10_000_000_000,
+		SelectionMaxNumTxs:                            30000,
+		SelectionLoopMaximumDuration:                  250,
+		SelectionLoopDurationCheckInterval:            10,
+	}
+}
 
 func TestNewShardProcessor(t *testing.T) {
 	t.Parallel()
@@ -438,7 +445,7 @@ func TestShardProcessor_ProcessBlockWithInvalidTransactionShouldErr(t *testing.T
 		RevertToSnapshotCalled: revertToSnapshot,
 		RootHashCalled:         rootHashCalled,
 	}
-	factory, _ := shard.NewPreProcessorsContainerFactory(
+	factory, err := shard.NewPreProcessorsContainerFactory(
 		mock.NewMultiShardsCoordinatorMock(5),
 		initStore(),
 		marshalizer,
@@ -482,15 +489,12 @@ func TestShardProcessor_ProcessBlockWithInvalidTransactionShouldErr(t *testing.T
 		&testscommon.ScheduledTxsExecutionStub{},
 		&testscommon.ProcessedMiniBlocksTrackerStub{},
 		&commonMock.TxExecutionOrderHandlerStub{},
-		config.TxCacheSelectionConfig{
-			SelectionMaxNumTxs:                            30000,
-			SelectionLoopMaximumDuration:                  250,
-			SelectionGasRequested:                         10_000_000_000,
-			SelectionGasBandwidthIncreasePercent:          400,
-			SelectionGasBandwidthIncreaseScheduledPercent: 260,
-		},
+		createMockTxCacheSelectionConfig(),
 	)
-	container, _ := factory.Create()
+	require.NoError(t, err)
+
+	container, err := factory.Create()
+	require.NoError(t, err)
 
 	argsTransactionCoordinator := createMockTransactionCoordinatorArguments(accounts, tdp, container)
 	argsTransactionCoordinator.GasHandler = &testscommon.GasHandlerStub{
@@ -671,7 +675,7 @@ func TestShardProcessor_ProcessBlockWithErrOnProcessBlockTransactionsCallShouldR
 		RevertToSnapshotCalled: revertToSnapshot,
 		RootHashCalled:         rootHashCalled,
 	}
-	factory, _ := shard.NewPreProcessorsContainerFactory(
+	factory, err := shard.NewPreProcessorsContainerFactory(
 		mock.NewMultiShardsCoordinatorMock(3),
 		store,
 		marshalizer,
@@ -711,15 +715,12 @@ func TestShardProcessor_ProcessBlockWithErrOnProcessBlockTransactionsCallShouldR
 		&testscommon.ScheduledTxsExecutionStub{},
 		&testscommon.ProcessedMiniBlocksTrackerStub{},
 		&commonMock.TxExecutionOrderHandlerStub{},
-		config.TxCacheSelectionConfig{
-			SelectionMaxNumTxs:                            30000,
-			SelectionLoopMaximumDuration:                  250,
-			SelectionGasRequested:                         10_000_000_000,
-			SelectionGasBandwidthIncreasePercent:          400,
-			SelectionGasBandwidthIncreaseScheduledPercent: 260,
-		},
+		createMockTxCacheSelectionConfig(),
 	)
-	container, _ := factory.Create()
+	require.NoError(t, err)
+
+	container, err := factory.Create()
+	require.NoError(t, err)
 
 	totalGasProvided := uint64(0)
 	argsTransactionCoordinator := createMockTransactionCoordinatorArguments(accounts, tdp, container)
@@ -2600,7 +2601,7 @@ func TestShardProcessor_MarshalizedDataToBroadcastShouldWork(t *testing.T) {
 		Fail: false,
 	}
 
-	factory, _ := shard.NewPreProcessorsContainerFactory(
+	factory, err := shard.NewPreProcessorsContainerFactory(
 		mock.NewMultiShardsCoordinatorMock(3),
 		initStore(),
 		marshalizer,
@@ -2623,15 +2624,12 @@ func TestShardProcessor_MarshalizedDataToBroadcastShouldWork(t *testing.T) {
 		&testscommon.ScheduledTxsExecutionStub{},
 		&testscommon.ProcessedMiniBlocksTrackerStub{},
 		&commonMock.TxExecutionOrderHandlerStub{},
-		config.TxCacheSelectionConfig{
-			SelectionMaxNumTxs:                            30000,
-			SelectionLoopMaximumDuration:                  250,
-			SelectionGasRequested:                         10_000_000_000,
-			SelectionGasBandwidthIncreasePercent:          400,
-			SelectionGasBandwidthIncreaseScheduledPercent: 260,
-		},
+		createMockTxCacheSelectionConfig(),
 	)
-	container, _ := factory.Create()
+	require.NoError(t, err)
+
+	container, err := factory.Create()
+	require.NoError(t, err)
 
 	argsTransactionCoordinator := createMockTransactionCoordinatorArguments(initAccountsMock(), tdp, container)
 	tc, err := coordinator.NewTransactionCoordinator(argsTransactionCoordinator)
@@ -2716,7 +2714,7 @@ func TestShardProcessor_MarshalizedDataMarshalWithoutSuccess(t *testing.T) {
 		},
 	}
 
-	factory, _ := shard.NewPreProcessorsContainerFactory(
+	factory, err := shard.NewPreProcessorsContainerFactory(
 		mock.NewMultiShardsCoordinatorMock(3),
 		initStore(),
 		&mock.MarshalizerMock{},
@@ -2739,15 +2737,12 @@ func TestShardProcessor_MarshalizedDataMarshalWithoutSuccess(t *testing.T) {
 		&testscommon.ScheduledTxsExecutionStub{},
 		&testscommon.ProcessedMiniBlocksTrackerStub{},
 		&commonMock.TxExecutionOrderHandlerStub{},
-		config.TxCacheSelectionConfig{
-			SelectionMaxNumTxs:                            30000,
-			SelectionLoopMaximumDuration:                  250,
-			SelectionGasRequested:                         10_000_000_000,
-			SelectionGasBandwidthIncreasePercent:          400,
-			SelectionGasBandwidthIncreaseScheduledPercent: 260,
-		},
+		createMockTxCacheSelectionConfig(),
 	)
-	container, _ := factory.Create()
+	require.NoError(t, err)
+
+	container, err := factory.Create()
+	require.NoError(t, err)
 
 	argsTransactionCoordinator := createMockTransactionCoordinatorArguments(initAccountsMock(), tdp, container)
 	tc, err := coordinator.NewTransactionCoordinator(argsTransactionCoordinator)
@@ -3103,7 +3098,7 @@ func TestShardProcessor_CreateMiniBlocksShouldWorkWithIntraShardTxs(t *testing.T
 	}
 
 	totalGasProvided := uint64(0)
-	factory, _ := shard.NewPreProcessorsContainerFactory(
+	factory, err := shard.NewPreProcessorsContainerFactory(
 		shardCoordinator,
 		initStore(),
 		marshalizer,
@@ -3147,15 +3142,12 @@ func TestShardProcessor_CreateMiniBlocksShouldWorkWithIntraShardTxs(t *testing.T
 		&testscommon.ScheduledTxsExecutionStub{},
 		&testscommon.ProcessedMiniBlocksTrackerStub{},
 		&commonMock.TxExecutionOrderHandlerStub{},
-		config.TxCacheSelectionConfig{
-			SelectionMaxNumTxs:                            30000,
-			SelectionLoopMaximumDuration:                  250,
-			SelectionGasRequested:                         10_000_000_000,
-			SelectionGasBandwidthIncreasePercent:          400,
-			SelectionGasBandwidthIncreaseScheduledPercent: 260,
-		},
+		createMockTxCacheSelectionConfig(),
 	)
-	container, _ := factory.Create()
+	require.NoError(t, err)
+
+	container, err := factory.Create()
+	require.NoError(t, err)
 
 	argsTransactionCoordinator := createMockTransactionCoordinatorArguments(accntAdapter, datapool, container)
 	tc, err := coordinator.NewTransactionCoordinator(argsTransactionCoordinator)
@@ -3313,7 +3305,7 @@ func TestShardProcessor_RestoreBlockIntoPoolsShouldWork(t *testing.T) {
 		},
 	}
 
-	factory, _ := shard.NewPreProcessorsContainerFactory(
+	factory, err := shard.NewPreProcessorsContainerFactory(
 		mock.NewMultiShardsCoordinatorMock(3),
 		store,
 		marshalizerMock,
@@ -3336,15 +3328,12 @@ func TestShardProcessor_RestoreBlockIntoPoolsShouldWork(t *testing.T) {
 		&testscommon.ScheduledTxsExecutionStub{},
 		&testscommon.ProcessedMiniBlocksTrackerStub{},
 		&commonMock.TxExecutionOrderHandlerStub{},
-		config.TxCacheSelectionConfig{
-			SelectionMaxNumTxs:                            30000,
-			SelectionLoopMaximumDuration:                  250,
-			SelectionGasRequested:                         10_000_000_000,
-			SelectionGasBandwidthIncreasePercent:          400,
-			SelectionGasBandwidthIncreaseScheduledPercent: 260,
-		},
+		createMockTxCacheSelectionConfig(),
 	)
-	container, _ := factory.Create()
+	require.NoError(t, err)
+
+	container, err := factory.Create()
+	require.NoError(t, err)
 
 	argsTransactionCoordinator := createMockTransactionCoordinatorArguments(initAccountsMock(), datapool, container)
 	tc, err := coordinator.NewTransactionCoordinator(argsTransactionCoordinator)
