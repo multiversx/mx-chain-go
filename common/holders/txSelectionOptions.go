@@ -22,17 +22,17 @@ func (options *txSelectionOptions) GetGasRequested() uint64 {
 	return options.gasRequested
 }
 
-// GetGasRequested returns a selection constraint parameter (for number of transactions)
+// GetMaxNumTxs returns a selection constraint parameter (for number of transactions)
 func (options *txSelectionOptions) GetMaxNumTxs() int {
 	return options.maxNumTxs
 }
 
-// GetGasRequested returns a selection constraint parameter (related to selection duration)
+// GetLoopMaximumDuration returns a selection constraint parameter (related to selection duration)
 func (options *txSelectionOptions) GetLoopMaximumDuration() int {
 	return options.loopMaximumDuration
 }
 
-// GetGasRequested returns a selection constraint parameter (related to selection duration)
+// GetLoopDurationCheckInterval returns a selection constraint parameter (related to selection duration)
 func (options *txSelectionOptions) GetLoopDurationCheckInterval() int {
 	return options.loopDurationCheckInterval
 }
