@@ -992,6 +992,9 @@ func TestAddressGroup_getESDTNFTData(t *testing.T) {
 	t.Run("invalid nonce should error",
 		testErrorScenario("/address/erd1alice/nft/newToken/nonce/not-int", "GET", nil,
 			formatExpectedErr(apiErrors.ErrGetESDTNFTData, apiErrors.ErrNonceInvalid)))
+	t.Run("nonce too long should error",
+		testErrorScenario("/address/erd1alice/nft/newToken/nonce/1234567489123456789123", "GET", nil,
+			formatExpectedErr(apiErrors.ErrGetESDTNFTData, apiErrors.ErrNonceInvalid)))
 	t.Run("with node fail should err", func(t *testing.T) {
 		t.Parallel()
 

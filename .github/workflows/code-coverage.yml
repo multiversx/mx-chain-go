@@ -6,15 +6,14 @@ on:
       - master
   pull_request:
     branches: [ master, feat/*, rc/* ]
-
   workflow_dispatch:
+
+permissions:
+  contents: read
 
 jobs:
   build:
-    strategy:
-      matrix:
-        runs-on: [ubuntu-latest]
-    runs-on: ${{ matrix.runs-on }}
+    runs-on: [self-hosted, Linux, X64]
     name: Build
     steps:
       - name: Set up Go 1.23.6
@@ -38,4 +37,8 @@ jobs:
           make test-coverage
 
       - name: Upload coverage
-        run: bash <(curl -s https://codecov.io/bash) -f coverage.txt -y codecov.yml
+        uses: codecov/codecov-action@v5
+        with:
+          fail_ci_if_error: true
+          files: coverage.txt
+          token: ${{ secrets.CODECOV_TOKEN }}
