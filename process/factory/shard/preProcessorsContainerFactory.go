@@ -137,24 +137,6 @@ func NewPreProcessorsContainerFactory(
 	if check.IfNil(txExecutionOrderHandler) {
 		return nil, process.ErrNilTxExecutionOrderHandler
 	}
-	if txCacheSelectionConfig.SelectionGasBandwidthIncreasePercent == 0 {
-		return nil, process.ErrBadSelectionGasBandwidthIncreasePercent
-	}
-	if txCacheSelectionConfig.SelectionGasBandwidthIncreaseScheduledPercent == 0 {
-		return nil, process.ErrBadSelectionGasBandwidthIncreaseScheduledPercent
-	}
-	if txCacheSelectionConfig.SelectionMaxNumTxs == 0 {
-		return nil, process.ErrBadTxCacheSelectionMaxNumTxs
-	}
-	if txCacheSelectionConfig.SelectionGasRequested == 0 {
-		return nil, process.ErrBadTxCacheSelectionGasRequested
-	}
-	if txCacheSelectionConfig.SelectionLoopMaximumDuration == 0 {
-		return nil, process.ErrBadTxCacheSelectionLoopMaximumDuration
-	}
-	if txCacheSelectionConfig.SelectionLoopDurationCheckInterval == 0 {
-		return nil, process.ErrBadTxCacheSelectionLoopDurationCheckInterval
-	}
 
 	return &preProcessorsContainerFactory{
 		shardCoordinator:             shardCoordinator,
