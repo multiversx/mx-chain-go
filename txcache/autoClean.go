@@ -44,12 +44,12 @@ func shuffleSendersAddresses(senders []string, randomness uint64) []string {
 	mapSenders := make(map[string]string)
 	var concat []byte
 
-	adressRandomness := make([]byte, 8)
-	binary.LittleEndian.PutUint64(adressRandomness, randomness)
+	addressRandomness := make([]byte, 8)
+	binary.LittleEndian.PutUint64(addressRandomness, randomness)
 	
 	hasher := sha256.NewSha256()
 	for i, v := range senders {
-		concat = append([]byte(v), adressRandomness...)
+		concat = append([]byte(v), addressRandomness...)
 
 		keys[i] = string(hasher.Compute(string(concat)))
 		mapSenders[keys[i]] = v
@@ -77,12 +77,12 @@ func (cache *TxCache) RemoveSweepableTxs(session SelectionSession, randomness ui
 	
 	for _, sender := range senders{
 		senderAddress := []byte (sender.sender)
-		lastCommitedNonce:= sessionWrapper.getNonce(senderAddress) - 1
+		lastCommittedNonce:= sessionWrapper.getNonce(senderAddress) - 1
 
 		if len(evicted) >= maxNum || time.Since(removalLoopStartTime) > removalLoopMaximumDuration{
 			break
 		}
-		evicted = append(evicted, sender.removeSweepableTransactionsReturnHashes(lastCommitedNonce)...)
+		evicted = append(evicted, sender.removeSweepableTransactionsReturnHashes(lastCommittedNonce)...)
 	}
 	
 	if len(evicted) > 0 {
