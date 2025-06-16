@@ -314,6 +314,24 @@ func Test_RemoveSetOfDataFromPool(t *testing.T) {
 	require.Zero(t, cache.Len())
 }
 
+func TestMempoolCleanup_NilMempool(t *testing.T) {
+	t.Run("with nil self shard pool", func(t *testing.T) {
+		poolAsInterface, _ := newTxPoolToTest()
+		txPool := poolAsInterface.(*shardedTxPool)
+		delete(txPool.backingMap, "0")
+
+		session := txcachemocks.NewSelectionSessionMock();
+		selectionLoopMaximumDuration := time.Millisecond * 100
+		
+		require.NotPanics(t, func() {
+			txPool.MempoolCleanup(session, 7, math.MaxInt, selectionLoopMaximumDuration)
+		})
+
+		ok := txPool.MempoolCleanup(session, 7, math.MaxInt, selectionLoopMaximumDuration)
+		require.False(t, ok)
+	})
+}
+
 func Test_MempoolCleanup(t *testing.T) {
 	t.Run("with lower nonces", func(t *testing.T) {
 		poolAsInterface, _ := newTxPoolToTest()

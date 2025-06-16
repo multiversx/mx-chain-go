@@ -403,14 +403,16 @@ func (txPool *shardedTxPool) getMempool() txCache {
 
 func (txPool *shardedTxPool) MempoolCleanup(session interface{}, randomness uint64, maxNum int, maxTime time.Duration) bool{
 	fmt.Println("shardedTxPool.MempoolCleanup() called for self shard")
-	mempool := txPool.getMempool().(*txcache.TxCache)
-	
-	if mempool == nil {	
-		log.Error("shardedTxPool.GetMempool() no mempool found for self shard",
+	cache := txPool.getMempool()
+
+	if cache == nil {
+		log.Error("shardedTxPool.GetMempool() couldn't retrieve mempool for self shard",
 			"selfShardID", txPool.selfShardID,
 		)
 		return false
 	}
+
+	mempool := cache.(*txcache.TxCache)
 	
 	log.Debug("shardedTxPool.MempoolCleanup() starting cleanup",
 		"selfShardID", txPool.selfShardID,
