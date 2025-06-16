@@ -141,7 +141,7 @@ func (psm *PeerShardMapper) getPeerInfoWithNodesCoordinator(pid core.PeerID) (*c
 			ShardID:  0,
 		}, false
 	}
-	c
+
 	pkBuff, ok := pkObj.([]byte)
 	if !ok {
 		log.Warn("PeerShardMapper.getPeerInfoWithNodesCoordinator: the contained element should have been of type []byte")

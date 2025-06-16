@@ -2415,7 +2415,7 @@ func (sp *shardProcessor) createProposalMiniBlocks(haveTime func() bool) (*block
 	elapsedTime := time.Since(startTime)
 	log.Debug("elapsed time to create mbs to me", "time", elapsedTime)
 
-	outgoingTransactions, err := sp.selectOutgoingTransactions(haveTime)
+	outgoingTransactions, err := sp.selectOutgoingTransactions()
 	if err != nil {
 		return nil, err
 	}
@@ -2450,9 +2450,7 @@ func (sp *shardProcessor) createMiniBlocksFromSelectedTxs(txHashes [][]byte) (bl
 	}}, nil
 }
 
-func (sp *shardProcessor) selectOutgoingTransactions(
-	haveTime func() bool,
-) ([][]byte, error) {
+func (sp *shardProcessor) selectOutgoingTransactions() ([][]byte, error) {
 	log.Debug("selectOutgoingTransactions has been started")
 
 	sw := core.NewStopWatch()
@@ -2462,11 +2460,7 @@ func (sp *shardProcessor) selectOutgoingTransactions(
 		log.Debug("measurements", sw.GetMeasurements()...)
 	}()
 
-	outgoingTransactions, err := sp.txCoordinator.SelectOutgoingTransactions(haveTime)
-	if err != nil {
-		return nil, err
-	}
-
+	outgoingTransactions := sp.txCoordinator.SelectOutgoingTransactions()
 	log.Debug("selectOutgoingTransactions has been finished",
 		"num txs", len(outgoingTransactions))
 

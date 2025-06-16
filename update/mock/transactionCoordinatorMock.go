@@ -25,6 +25,7 @@ type TransactionCoordinatorMock struct {
 	CreateMbsCrossShardDstMeCalled                       func(header data.HeaderHandler, processedMiniBlocksInfo map[string]*processedMb.ProcessedMiniBlockInfo) (block.MiniBlockSlice, uint32, bool, error)
 	CreateMbsAndProcessCrossShardTransactionsDstMeCalled func(header data.HeaderHandler, processedMiniBlocksInfo map[string]*processedMb.ProcessedMiniBlockInfo, haveTime func() bool, haveAdditionalTime func() bool, scheduledMode bool) (block.MiniBlockSlice, uint32, bool, error)
 	CreateMbsAndProcessTransactionsFromMeCalled          func(haveTime func() bool) block.MiniBlockSlice
+	SelectOutgoingTransactionsCalled                     func() [][]byte
 	CreateMarshalizedDataCalled                          func(body *block.Body) map[string][][]byte
 	GetCreatedInShardMiniBlocksCalled                    func() []*block.MiniBlock
 	GetAllCurrentUsedTxsCalled                           func(blockType block.Type) map[string]data.TransactionHandler
@@ -161,6 +162,15 @@ func (tcm *TransactionCoordinatorMock) CreateMbsAndProcessCrossShardTransactions
 	}
 
 	return tcm.CreateMbsAndProcessCrossShardTransactionsDstMeCalled(header, processedMiniBlocksInfo, haveTime, haveAdditionalTime, scheduledMode)
+}
+
+// SelectOutgoingTransactions -
+func (tcm *TransactionCoordinatorMock) SelectOutgoingTransactions() [][]byte {
+	if tcm.SelectOutgoingTransactionsCalled == nil {
+		return make([][]byte, 0)
+	}
+
+	return tcm.SelectOutgoingTransactionsCalled()
 }
 
 // CreateMbsAndProcessTransactionsFromMe -

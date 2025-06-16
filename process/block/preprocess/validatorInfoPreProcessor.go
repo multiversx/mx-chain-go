@@ -9,6 +9,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/process"
@@ -238,6 +239,11 @@ func (vip *validatorInfoPreprocessor) RequestBlockTransactions(_ *block.Body) in
 // RequestTransactionsForMiniBlock does nothing
 func (vip *validatorInfoPreprocessor) RequestTransactionsForMiniBlock(_ *block.MiniBlock) int {
 	return 0
+}
+
+// SelectOutgoingTransactions does nothing
+func (vip *validatorInfoPreprocessor) SelectOutgoingTransactions() ([][]byte, error) {
+	return make([][]byte, 0), nil
 }
 
 // CreateAndProcessMiniBlocks does nothing

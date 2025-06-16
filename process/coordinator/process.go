@@ -1004,6 +1004,29 @@ func (tc *transactionCoordinator) revertIfNeeded(createMBDestMeExecutionInfo *cr
 	createMBDestMeExecutionInfo.numTxAdded = 0
 }
 
+// SelectOutgoingTransactions returns transactions originating in the shard, for a block proposal
+func (tc *transactionCoordinator) SelectOutgoingTransactions() [][]byte {
+	txHashes := make([][]byte, 0)
+	var err error
+	for _, blockType := range tc.keysTxPreProcs {
+		txPreProc := tc.getPreProcessor(blockType)
+		if check.IfNil(txPreProc) {
+			log.Warn("transactionCoordinator.SelectOutgoingTransactions: getPreProcessor returned nil for block type", "blockType", blockType)
+			continue
+		}
+
+		txHashes, err = txPreProc.SelectOutgoingTransactions()
+		if err != nil {
+			log.Warn("transactionCoordinator.SelectOutgoingTransactions: SelectOutgoingTransactions returned error", "error", err)
+			continue
+		}
+		txHashes = append(txHashes, txHashes...)
+
+	}
+
+	return txHashes
+}
+
 // CreateMbsAndProcessTransactionsFromMe creates miniblocks and processes transactions from pool
 func (tc *transactionCoordinator) CreateMbsAndProcessTransactionsFromMe(
 	haveTime func() bool,

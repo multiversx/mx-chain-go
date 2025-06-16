@@ -1004,6 +1004,26 @@ func (txs *transactions) getRemainingGasPerBlockAsScheduled() uint64 {
 	return gasBandwidth
 }
 
+// SelectOutgoingTransactions selects outgoing transactions from the transaction pool
+func (txs *transactions) SelectOutgoingTransactions() ([][]byte, error) {
+	// TODO: this needs to be adjusted depending on how fast execution keeps up with the proposal
+	gasBandwidth := txs.economicsFee.MaxGasLimitPerBlock(txs.shardCoordinator.SelfId()) * selectionGasBandwidthIncreasePercent / 100
+	wrappedTxs, err := txs.selectTransactionsFromTxPool(txs.shardCoordinator.SelfId(), txs.shardCoordinator.SelfId(), gasBandwidth)
+	if err != nil {
+		return nil, err
+	}
+
+	return wrappedTxsToTxHashes(wrappedTxs), nil
+}
+
+func wrappedTxsToTxHashes(wrappedTxs []*txcache.WrappedTransaction) [][]byte {
+	txHashes := make([][]byte, 0, len(wrappedTxs))
+	for _, wrappedTx := range wrappedTxs {
+		txHashes = append(txHashes, wrappedTx.TxHash)
+	}
+	return txHashes
+}
+
 // CreateAndProcessMiniBlocks creates miniBlocks from storage and processes the transactions added into the miniblocks
 // as long as it has time
 // TODO: check if possible for transaction pre processor to receive a blockChainHook and use it to get the randomness instead
@@ -1395,19 +1415,19 @@ func createEmptyMiniBlockFromMiniBlock(miniBlock *block.MiniBlock) *block.MiniBl
 	}
 }
 
-func (txs *transactions) computeSortedTxs(
+func (txs *transactions) selectTransactionsFromTxPool(
 	sndShardId uint32,
 	dstShardId uint32,
-	gasBandwidth uint64,
-	randomness []byte,
-) ([]*txcache.WrappedTransaction, []*txcache.WrappedTransaction, error) {
+	gasBandwidth uint64) ([]*txcache.WrappedTransaction, error) {
 	strCache := process.ShardCacherIdentifier(sndShardId, dstShardId)
 	txShardPool := txs.txPool.ShardDataStore(strCache)
 
 	if check.IfNil(txShardPool) {
-		return nil, nil, process.ErrNilTxDataPool
+		return nil, process.ErrNilTxDataPool
 	}
 
+	// TODO: pas the gasBandwidth for the selection, as this could be dynamic
+	_ = gasBandwidth
 	sortedTransactionsProvider := createSortedTransactionsProvider(txShardPool)
 	log.Debug("computeSortedTxs.GetSortedTransactions")
 
@@ -1416,10 +1436,24 @@ func (txs *transactions) computeSortedTxs(
 		TransactionsProcessor: txs.txProcessor,
 	})
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
-	sortedTxs := sortedTransactionsProvider.GetSortedTransactions(session)
+	return sortedTransactionsProvider.GetSortedTransactions(session), nil
+}
+
+func (txs *transactions) computeSortedTxs(
+	sndShardId uint32,
+	dstShardId uint32,
+	gasBandwidth uint64,
+	randomness []byte,
+) ([]*txcache.WrappedTransaction, []*txcache.WrappedTransaction, error) {
+	// TODO: provide the default txpool gas bandwidth on this call instead of the received gasBandwidth, to have
+	// 	the old behavior
+	sortedTxs, err := txs.selectTransactionsFromTxPool(sndShardId, dstShardId, gasBandwidth)
+	if err != nil {
+		return nil, nil, err
+	}
 
 	// TODO: this could be moved to SortedTransactionsProvider
 	selectedTxs, remainingTxs := txs.preFilterTransactionsWithMoveBalancePriority(sortedTxs, gasBandwidth)

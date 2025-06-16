@@ -89,6 +89,11 @@ func (txCoordinator *TxCoordinator) CreateMbsAndProcessCrossShardTransactionsDst
 	return make(block.MiniBlockSlice, 0), 0, false, nil
 }
 
+// SelectOutgoingTransactions does nothing as it is disabled
+func (txCoordinator *TxCoordinator) SelectOutgoingTransactions() [][]byte {
+	return make([][]byte, 0)
+}
+
 // CreateMbsAndProcessTransactionsFromMe does nothing as it is disabled
 func (txCoordinator *TxCoordinator) CreateMbsAndProcessTransactionsFromMe(_ func() bool, _ []byte) block.MiniBlockSlice {
 	return make(block.MiniBlockSlice, 0)
