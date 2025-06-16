@@ -11,11 +11,15 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/storage/storageunit"
 	"github.com/multiversx/mx-chain-go/testscommon/txcachemocks"
 	"github.com/stretchr/testify/require"
 )
+
+const maxNumBytesPerSenderUpperBoundTest = 33_554_432 // 32 MB
+const selectionLoopDurationCheckInterval = 10
 
 func Test_NewShardedTxPool(t *testing.T) {
 	pool, err := newTxPoolToTest()
@@ -37,6 +41,15 @@ func Test_NewShardedTxPool_WhenBadConfig(t *testing.T) {
 		TxGasHandler:   txcachemocks.NewTxGasHandlerMock(),
 		Marshalizer:    &marshal.GogoProtoMarshalizer{},
 		NumberOfShards: 1,
+		TxCacheBoundsConfig: config.TxCacheBoundsConfig{
+			MaxNumBytesPerSenderUpperBound: maxNumBytesPerSenderUpperBoundTest,
+		},
+		TxCacheSelectionConfig: config.TxCacheSelectionConfig{
+			SelectionGasRequested:              10_000_000_000,
+			SelectionMaxNumTxs:                 30_000,
+			SelectionLoopMaximumDuration:       250,
+			SelectionLoopDurationCheckInterval: selectionLoopDurationCheckInterval,
+		},
 	}
 
 	args := goodArgs
@@ -94,16 +107,59 @@ func Test_NewShardedTxPool_WhenBadConfig(t *testing.T) {
 	require.Nil(t, pool)
 	require.NotNil(t, err)
 	require.Errorf(t, err, dataRetriever.ErrCacheConfigInvalidSharding.Error())
+
+	args = goodArgs
+	args.TxCacheSelectionConfig.SelectionLoopDurationCheckInterval = 0
+	pool, err = NewShardedTxPool(args)
+	require.Nil(t, pool)
+	require.NotNil(t, err)
+	require.Errorf(t, err, dataRetriever.ErrBadSelectionLoopDurationCheckInterval.Error())
+
+	args = goodArgs
+	args.TxCacheSelectionConfig.SelectionMaxNumTxs = 0
+	pool, err = NewShardedTxPool(args)
+	require.Nil(t, pool)
+	require.NotNil(t, err)
+	require.Errorf(t, err, dataRetriever.ErrBadSelectionMaxNumTxs.Error())
+
+	args = goodArgs
+	args.TxCacheSelectionConfig.SelectionLoopMaximumDuration = 0
+	pool, err = NewShardedTxPool(args)
+	require.Nil(t, pool)
+	require.NotNil(t, err)
+	require.Errorf(t, err, dataRetriever.ErrBadSelectionLoopMaximumDuration.Error())
+
+	args = goodArgs
+	args.TxCacheSelectionConfig.SelectionGasRequested = 0
+	pool, err = NewShardedTxPool(args)
+	require.Nil(t, pool)
+	require.NotNil(t, err)
+	require.Errorf(t, err, dataRetriever.ErrBadSelectionGasRequested.Error())
+
+	args = goodArgs
+	args.TxCacheBoundsConfig.MaxNumBytesPerSenderUpperBound = 0
+	pool, err = NewShardedTxPool(args)
+	require.Nil(t, pool)
+	require.NotNil(t, err)
+	require.Errorf(t, err, dataRetriever.ErrBadMaxNumBytesPerSenderUpperBound.Error())
 }
 
 func Test_NewShardedTxPool_ComputesCacheConfig(t *testing.T) {
-	config := storageunit.CacheConfig{SizeInBytes: 419430400, SizeInBytesPerSender: 614400, Capacity: 600000, SizePerSender: 1000, Shards: 1}
+	cacheConfig := storageunit.CacheConfig{SizeInBytes: 419430400, SizeInBytesPerSender: 614400, Capacity: 600000, SizePerSender: 1000, Shards: 1}
 	args := ArgShardedTxPool{
-		Config:         config,
+		Config:         cacheConfig,
 		TxGasHandler:   txcachemocks.NewTxGasHandlerMock(),
 		Marshalizer:    &marshal.GogoProtoMarshalizer{},
 		NumberOfShards: 2,
-	}
+		TxCacheBoundsConfig: config.TxCacheBoundsConfig{
+			MaxNumBytesPerSenderUpperBound: maxNumBytesPerSenderUpperBoundTest,
+		},
+		TxCacheSelectionConfig: config.TxCacheSelectionConfig{
+			SelectionGasRequested:              10_000_000_000,
+			SelectionMaxNumTxs:                 30_000,
+			SelectionLoopMaximumDuration:       250,
+			SelectionLoopDurationCheckInterval: selectionLoopDurationCheckInterval,
+		}}
 
 	pool, err := NewShardedTxPool(args)
 	require.Nil(t, err)
@@ -374,7 +430,7 @@ func Test_IsInterfaceNil(t *testing.T) {
 }
 
 func Test_routeToCacheUnions(t *testing.T) {
-	config := storageunit.CacheConfig{
+	cacheConfig := storageunit.CacheConfig{
 		Capacity:             100,
 		SizePerSender:        10,
 		SizeInBytes:          409600,
@@ -382,12 +438,20 @@ func Test_routeToCacheUnions(t *testing.T) {
 		Shards:               1,
 	}
 	args := ArgShardedTxPool{
-		Config:         config,
+		Config:         cacheConfig,
 		TxGasHandler:   txcachemocks.NewTxGasHandlerMock(),
 		Marshalizer:    &marshal.GogoProtoMarshalizer{},
 		NumberOfShards: 4,
 		SelfShardID:    42,
-	}
+		TxCacheBoundsConfig: config.TxCacheBoundsConfig{
+			MaxNumBytesPerSenderUpperBound: maxNumBytesPerSenderUpperBoundTest,
+		},
+		TxCacheSelectionConfig: config.TxCacheSelectionConfig{
+			SelectionGasRequested:              10_000_000_000,
+			SelectionMaxNumTxs:                 30_000,
+			SelectionLoopMaximumDuration:       250,
+			SelectionLoopDurationCheckInterval: selectionLoopDurationCheckInterval,
+		}}
 	pool, _ := NewShardedTxPool(args)
 
 	require.Equal(t, "42", pool.routeToCacheUnions("42"))
@@ -415,7 +479,7 @@ type thisIsNotATransaction struct {
 }
 
 func newTxPoolToTest() (dataRetriever.ShardedDataCacherNotifier, error) {
-	config := storageunit.CacheConfig{
+	cacheConfig := storageunit.CacheConfig{
 		Capacity:             100,
 		SizePerSender:        10,
 		SizeInBytes:          409600,
@@ -423,11 +487,20 @@ func newTxPoolToTest() (dataRetriever.ShardedDataCacherNotifier, error) {
 		Shards:               1,
 	}
 	args := ArgShardedTxPool{
-		Config:         config,
+		Config:         cacheConfig,
 		TxGasHandler:   txcachemocks.NewTxGasHandlerMock(),
 		Marshalizer:    &marshal.GogoProtoMarshalizer{},
 		NumberOfShards: 4,
 		SelfShardID:    0,
+		TxCacheBoundsConfig: config.TxCacheBoundsConfig{
+			MaxNumBytesPerSenderUpperBound: maxNumBytesPerSenderUpperBoundTest,
+		},
+		TxCacheSelectionConfig: config.TxCacheSelectionConfig{
+			SelectionGasRequested:              10_000_000_000,
+			SelectionMaxNumTxs:                 30_000,
+			SelectionLoopMaximumDuration:       250,
+			SelectionLoopDurationCheckInterval: selectionLoopDurationCheckInterval,
+		},
 	}
 	return NewShardedTxPool(args)
 }

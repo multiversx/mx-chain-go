@@ -267,6 +267,7 @@ func CreateEconomicsData() process.EconomicsDataHandler {
 						MaxGasLimitPerTx:            maxGasLimitPerBlock,
 						MinGasLimit:                 minGasLimit,
 						ExtraGasLimitGuardedTx:      maxGasLimitPerBlock,
+						MaxGasHigherFactorAccepted:  "10",
 					},
 				},
 				MinGasPrice:            minGasPrice,

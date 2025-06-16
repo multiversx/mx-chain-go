@@ -540,6 +540,9 @@ var ErrInvalidExtraGasLimitGuardedTx = errors.New("invalid extra gas limit for g
 // ErrInvalidMaxGasPriceSetGuardian signals that an invalid maximum gas price has been provided in the config file
 var ErrInvalidMaxGasPriceSetGuardian = errors.New("invalid maximum gas price for set guardian")
 
+// ErrInvalidMaxGasHigherFactorAccepted signals that an invalid gas factor has been provided in the config file
+var ErrInvalidMaxGasHigherFactorAccepted = errors.New("invalid gas higher factor accepted")
+
 // ErrGuardianSignatureNotExpected signals that the guardian signature is not expected
 var ErrGuardianSignatureNotExpected = errors.New("guardian signature not expected")
 
@@ -1295,3 +1298,18 @@ var ErrInvalidRatingsConfig = errors.New("invalid ratings config")
 
 // ErrNilKeyRWMutexHandler signals that a nil KeyRWMutexHandler has been provided
 var ErrNilKeyRWMutexHandler = errors.New("nil key rw mutex handler")
+
+// ErrBadSelectionGasBandwidthIncreasePercent signals that the SelectionGasBandwidthIncreasePercent from the config is not set
+var ErrBadSelectionGasBandwidthIncreasePercent = errors.New("bad selection gas bandwidth increase percent")
+
+// ErrBadSelectionGasBandwidthIncreaseScheduledPercent signals that the SelectionGasBandwidthIncreasePercent from the config is not set
+var ErrBadSelectionGasBandwidthIncreaseScheduledPercent = errors.New("bad selection gas bandwidth increase scheduled percent")
+
+// ErrBadTxCacheSelectionMaxNumTxs signals that the SelectionMaxNumTxs from the config is not set
+var ErrBadTxCacheSelectionMaxNumTxs = errors.New("bad tx cache selection max num txs")
+
+// ErrBadTxCacheSelectionLoopMaximumDuration signals that the SelectionLoopMaximumDuration from the config is not set
+var ErrBadTxCacheSelectionLoopMaximumDuration = errors.New("bad tx cache selection loop maximum duration")
+
+// ErrBadTxCacheSelectionGasRequested signals that the SelectionGasRequested from the config is not set
+var ErrBadTxCacheSelectionGasRequested = errors.New("bad tx cache selection gas requested")

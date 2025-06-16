@@ -5,17 +5,20 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/storage/storageunit"
 )
 
 // ArgShardedTxPool is the argument for ShardedTxPool's constructor
 type ArgShardedTxPool struct {
-	Config         storageunit.CacheConfig
-	TxGasHandler   txGasHandler
-	Marshalizer    marshal.Marshalizer
-	NumberOfShards uint32
-	SelfShardID    uint32
+	Config                 storageunit.CacheConfig
+	TxGasHandler           txGasHandler
+	Marshalizer            marshal.Marshalizer
+	NumberOfShards         uint32
+	SelfShardID            uint32
+	TxCacheSelectionConfig config.TxCacheSelectionConfig
+	TxCacheBoundsConfig    config.TxCacheBoundsConfig
 }
 
 // TODO: Upon further analysis and brainstorming, add some sensible minimum accepted values for the appropriate fields.
@@ -45,6 +48,26 @@ func (args *ArgShardedTxPool) verify() error {
 	}
 	if args.NumberOfShards == 0 {
 		return fmt.Errorf("%w: NumberOfShards is not valid", dataRetriever.ErrCacheConfigInvalidSharding)
+	}
+
+	if args.TxCacheSelectionConfig.SelectionLoopDurationCheckInterval == 0 {
+		return fmt.Errorf("%w: SelectionLoopDurationCheckInterval is not valid", dataRetriever.ErrBadSelectionLoopDurationCheckInterval)
+	}
+
+	if args.TxCacheSelectionConfig.SelectionMaxNumTxs == 0 {
+		return fmt.Errorf("%w: SelectionMaxNumTxs is not valid", dataRetriever.ErrBadSelectionMaxNumTxs)
+	}
+
+	if args.TxCacheSelectionConfig.SelectionGasRequested == 0 {
+		return fmt.Errorf("%w: SelectionGasRequested is not valid", dataRetriever.ErrBadSelectionGasRequested)
+	}
+
+	if args.TxCacheSelectionConfig.SelectionLoopMaximumDuration == 0 {
+		return fmt.Errorf("%w: SelectionLoopMaximumDuration is not valid", dataRetriever.ErrBadSelectionLoopMaximumDuration)
+	}
+
+	if args.TxCacheBoundsConfig.MaxNumBytesPerSenderUpperBound == 0 {
+		return fmt.Errorf("%w: MaxNumBytesPerSenderUpperBound is not valid", dataRetriever.ErrBadMaxNumBytesPerSenderUpperBound)
 	}
 
 	return nil
