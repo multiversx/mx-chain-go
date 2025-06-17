@@ -17,7 +17,6 @@ type headersQueue struct {
 }
 
 // NewHeadersQueue creates and returns a new instance of headersQueue
-
 func NewHeadersQueue() (*headersQueue, error) {
 	return &headersQueue{
 		headers: make([]data.HeaderHandler, 0),
