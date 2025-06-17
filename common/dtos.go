@@ -42,6 +42,18 @@ type TransactionsPoolNonceGapsForSenderApiResponse struct {
 	Gaps   []NonceGapApiResponse `json:"gaps"`
 }
 
+// TransactionsPPUHistogram is a struct that holds the data to be returned when getting the transactions PPU histogram
+type TransactionsPPUHistogram struct {
+	Bins []TransactionsPPUHistogramBin `json:"bins"`
+}
+
+// TransactionsPPUHistogramBin is a struct that holds the data for a bin of the transactions PPU histogram
+type TransactionsPPUHistogramBin struct {
+	FromPPU  uint64 `json:"from"`
+	ToPPU    uint64 `json:"to"`
+	TotalGas uint64 `json:"gas"`
+}
+
 // DelegationDataAPI will be used when requesting the genesis balances from API
 type DelegationDataAPI struct {
 	Address string `json:"address"`

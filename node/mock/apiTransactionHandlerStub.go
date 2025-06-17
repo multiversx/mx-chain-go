@@ -12,6 +12,7 @@ type TransactionAPIHandlerStub struct {
 	GetTransactionsPoolForSenderCalled          func(sender, fields string) (*common.TransactionsPoolForSenderApiResponse, error)
 	GetLastPoolNonceForSenderCalled             func(sender string) (uint64, error)
 	GetTransactionsPoolNonceGapsForSenderCalled func(sender string, senderAccountNonce uint64) (*common.TransactionsPoolNonceGapsForSenderApiResponse, error)
+	BuildTransactionsPPUHistogramCalled         func() (*common.TransactionsPPUHistogram, error)
 	UnmarshalTransactionCalled                  func(txBytes []byte, txType transaction.TxType) (*transaction.ApiTransactionResult, error)
 	UnmarshalReceiptCalled                      func(receiptBytes []byte) (*transaction.ApiReceipt, error)
 	PopulateComputedFieldsCalled                func(tx *transaction.ApiTransactionResult)
@@ -67,6 +68,15 @@ func (tas *TransactionAPIHandlerStub) GetLastPoolNonceForSender(sender string) (
 func (tas *TransactionAPIHandlerStub) GetTransactionsPoolNonceGapsForSender(sender string, senderAccountNonce uint64) (*common.TransactionsPoolNonceGapsForSenderApiResponse, error) {
 	if tas.GetTransactionsPoolNonceGapsForSenderCalled != nil {
 		return tas.GetTransactionsPoolNonceGapsForSenderCalled(sender, senderAccountNonce)
+	}
+
+	return nil, nil
+}
+
+// BuildTransactionsPPUHistogram -
+func (tas *TransactionAPIHandlerStub) BuildTransactionsPPUHistogram() (*common.TransactionsPPUHistogram, error) {
+	if tas.BuildTransactionsPPUHistogramCalled != nil {
+		return tas.BuildTransactionsPPUHistogramCalled()
 	}
 
 	return nil, nil
