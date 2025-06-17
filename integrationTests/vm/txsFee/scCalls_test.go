@@ -461,9 +461,10 @@ func TestScCallBuyNFT_OneFailedTxAndOneOkTx(t *testing.T) {
 	blockChainHook := testContext.BlockchainHook.(process.BlockChainHookHandler)
 	t.Run("transaction that fails", func(t *testing.T) {
 		utils.CleanAccumulatedIntermediateTransactions(t, testContext)
-		blockChainHook.SetCurrentHeader(&block.Header{
+		err := blockChainHook.SetCurrentHeader(&block.Header{
 			TimeStamp: 1635880560,
 		})
+		require.Nil(t, err)
 
 		txData, errDecode := hex.DecodeString("6275794e6674406338403435353035353465346235333264333433363632333133383336406533")
 		require.Nil(t, errDecode)
@@ -488,9 +489,10 @@ func TestScCallBuyNFT_OneFailedTxAndOneOkTx(t *testing.T) {
 	})
 	t.Run("transaction that succeed", func(t *testing.T) {
 		utils.CleanAccumulatedIntermediateTransactions(t, testContext)
-		blockChainHook.SetCurrentHeader(&block.Header{
+		err := blockChainHook.SetCurrentHeader(&block.Header{
 			TimeStamp: 1635880566, // next timestamp
 		})
+		require.Nil(t, err)
 
 		txData, errDecode := hex.DecodeString("6275794e6674403264403435353035353465346235333264333433363632333133383336403337")
 		require.Nil(t, errDecode)
@@ -534,9 +536,10 @@ func TestScCallBuyNFT_TwoOkTxs(t *testing.T) {
 	blockChainHook := testContext.BlockchainHook.(process.BlockChainHookHandler)
 	t.Run("first transaction that succeed", func(t *testing.T) {
 		utils.CleanAccumulatedIntermediateTransactions(t, testContext)
-		blockChainHook.SetCurrentHeader(&block.Header{
+		err := blockChainHook.SetCurrentHeader(&block.Header{
 			TimeStamp: 1635880566, // next timestamp
 		})
+		require.Nil(t, err)
 
 		txData, errDecode := hex.DecodeString("6275794e6674403264403435353035353465346235333264333433363632333133383336403337")
 		require.Nil(t, errDecode)
@@ -561,9 +564,10 @@ func TestScCallBuyNFT_TwoOkTxs(t *testing.T) {
 	})
 	t.Run("second transaction that succeed", func(t *testing.T) {
 		utils.CleanAccumulatedIntermediateTransactions(t, testContext)
-		blockChainHook.SetCurrentHeader(&block.Header{
+		err := blockChainHook.SetCurrentHeader(&block.Header{
 			TimeStamp: 1635880572, // next timestamp
 		})
+		require.Nil(t, err)
 
 		txData, errDecode := hex.DecodeString("6275794e6674403434403435353035353465346235333264333433363632333133383336403531")
 		require.Nil(t, errDecode)
@@ -609,9 +613,10 @@ func TestScCallDistributeStakingRewards_ShouldWork(t *testing.T) {
 	blockChainHook := testContext.BlockchainHook.(process.BlockChainHookHandler)
 
 	utils.CleanAccumulatedIntermediateTransactions(t, testContext)
-	blockChainHook.SetCurrentHeader(&block.Header{
+	err = blockChainHook.SetCurrentHeader(&block.Header{
 		TimeStamp: 1668430842,
 	})
+	require.Nil(t, err)
 
 	txData, errDecode := hex.DecodeString("646973747269627574655f7374616b696e675f72657761726473")
 	require.Nil(t, errDecode)

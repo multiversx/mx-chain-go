@@ -86,11 +86,11 @@ func NewRatingsData(args RatingsDataArg) (*RatingsData, error) {
 	}
 
 	// avoid any invalid configuration where ratings are not sorted by epoch
-	slices.SortFunc(ratingsConfig.ShardChain.RatingStepsByEpoch, func(a, b config.RatingSteps) bool {
-		return a.EnableEpoch < b.EnableEpoch
+	slices.SortFunc(ratingsConfig.ShardChain.RatingStepsByEpoch, func(a, b config.RatingSteps) int {
+		return int(a.EnableEpoch) - int(b.EnableEpoch)
 	})
-	slices.SortFunc(ratingsConfig.MetaChain.RatingStepsByEpoch, func(a, b config.RatingSteps) bool {
-		return a.EnableEpoch < b.EnableEpoch
+	slices.SortFunc(ratingsConfig.MetaChain.RatingStepsByEpoch, func(a, b config.RatingSteps) int {
+		return int(a.EnableEpoch) - int(b.EnableEpoch)
 	})
 
 	if !checkForEpochZeroConfiguration(args) {
@@ -525,8 +525,8 @@ func getRatingStepsForEpoch(epoch uint32, ratingStepsPerEpoch []config.RatingSte
 }
 
 func getChainParamsForEpoch(epoch uint32, chainParamsList []config.ChainParametersByEpochConfig) (config.ChainParametersByEpochConfig, bool) {
-	slices.SortFunc(chainParamsList, func(a, b config.ChainParametersByEpochConfig) bool {
-		return a.EnableEpoch < b.EnableEpoch
+	slices.SortFunc(chainParamsList, func(a, b config.ChainParametersByEpochConfig) int {
+		return int(a.EnableEpoch) - int(b.EnableEpoch)
 	})
 
 	var chainParams config.ChainParametersByEpochConfig
