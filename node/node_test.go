@@ -1080,6 +1080,21 @@ func TestNode_GetAllESDTTokensShouldReturnEsdtAndFormattedNft(t *testing.T) {
 	nftData := &esdt.ESDigitalToken{Type: uint32(core.NonFungible), Value: big.NewInt(10), TokenMetaData: nftMetaData}
 	marshalledNftData, _ := getMarshalizer().Marshal(nftData)
 
+	dynamicNft := "TCKR-abcdef"
+	dynamicNftNonce := big.NewInt(100)
+	dynamicNftKey := []byte(core.ProtectedKeyPrefix + core.ESDTKeyIdentifier + dynamicNft)
+	dynamicNftKeyWithBytes := append(dynamicNftKey, dynamicNftNonce.Bytes()...)
+	dynamicNftSuffix := append(dynamicNftKeyWithBytes, acc.AddressBytes()...)
+	dynamicNftData := &esdt.ESDigitalToken{
+		Type:  uint32(core.DynamicNFT),
+		Value: big.NewInt(0),
+		TokenMetaData: &esdt.MetaData{
+			Nonce: dynamicNftNonce.Uint64(),
+			URIs:  [][]byte{[]byte("https://example.com/dynamic-nft")},
+		},
+	}
+	marshalledDynamicNftData, _ := getMarshalizer().Marshal(dynamicNftData)
+
 	esdtStorageStub := &testscommon.EsdtStorageHandlerStub{
 		GetESDTNFTTokenOnDestinationWithCustomSystemAccountCalled: func(acnt vmcommon.UserAccountHandler, esdtTokenKey []byte, nonce uint64, _ vmcommon.UserAccountHandler) (*esdt.ESDigitalToken, bool, error) {
 			switch string(esdtTokenKey) {
@@ -1087,6 +1102,8 @@ func TestNode_GetAllESDTTokensShouldReturnEsdtAndFormattedNft(t *testing.T) {
 				return esdtData, false, nil
 			case string(nftKey):
 				return nftData, false, nil
+			case string(dynamicNftKey):
+				return dynamicNftData, false, nil
 			default:
 				return nil, false, nil
 			}
@@ -1103,6 +1120,10 @@ func TestNode_GetAllESDTTokensShouldReturnEsdtAndFormattedNft(t *testing.T) {
 
 					trieLeaf = keyValStorage.NewKeyValStorage(nftKey, append(marshalledNftData, nftSuffix...))
 					leavesChannels.LeavesChan <- trieLeaf
+
+					trieLeaf = keyValStorage.NewKeyValStorage(dynamicNftKey, append(marshalledDynamicNftData, dynamicNftSuffix...))
+					leavesChannels.LeavesChan <- trieLeaf
+
 					wg.Done()
 					close(leavesChannels.LeavesChan)
 					leavesChannels.ErrChan.Close()
@@ -5377,6 +5398,7 @@ func getDefaultProcessComponents() *factoryMock.ProcessComponentsMock {
 		TxsSenderHandlerField:                &txsSenderMock.TxsSenderHandlerMock{},
 		ScheduledTxsExecutionHandlerInternal: &testscommon.ScheduledTxsExecutionStub{},
 		HistoryRepositoryInternal:            &dblookupext.HistoryRepositoryStub{},
+		BlockchainHookField:                  &testscommon.BlockChainHookStub{},
 	}
 }
 
