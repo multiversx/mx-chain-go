@@ -100,7 +100,7 @@ func displayTime(timestamp int64) string {
 }
 
 type interceptorDebugHandler struct {
-	interceptorTxHandler InterceptorTxDebugHandler
+	broadcastDebug       BroadcastDebugHandler
 	cache                storage.Cacher
 	intervalAutoPrint    time.Duration
 	requestsThreshold    int
@@ -128,9 +128,9 @@ func NewInterceptorDebugHandler(config config.InterceptorResolverDebugConfig) (*
 		return nil, err
 	}
 
-	idh.interceptorTxHandler = NewDisabledInterceptorTxDebug()
+	idh.broadcastDebug = NewDisabledBroadcastDebug()
 	if config.BroadcastStatistics.Enabled {
-		idh.interceptorTxHandler = NewInterceptorDebug(config.BroadcastStatistics)
+		idh.broadcastDebug = NewBroadcastDebug(config.BroadcastStatistics)
 	}
 
 	idh.printEventFunc = idh.printEvent
@@ -434,14 +434,14 @@ func (idh *interceptorDebugHandler) LogSucceededToResolveData(topic string, hash
 
 // LogReceivedData will log the received data
 func (idh *interceptorDebugHandler) LogReceivedData(data process.InterceptedData, msg p2p2.MessageP2P, fromConnectedPeer core.PeerID) {
-	idh.interceptorTxHandler.Process(data, msg, fromConnectedPeer)
+	idh.broadcastDebug.Process(data, msg, fromConnectedPeer)
 }
 
 // EpochStartEventHandler returns the epoch start event handler
 func (idh *interceptorDebugHandler) EpochStartEventHandler() epochStart.ActionHandler {
 	subscribeHandler := notifier.NewHandlerForEpochStart(
 		func(hdr data.HeaderHandler) {
-			idh.interceptorTxHandler.PrintReceivedTxsBroadcastAndCleanRecords()
+			idh.broadcastDebug.PrintReceivedTxsBroadcastAndCleanRecords()
 		},
 		func(_ data.HeaderHandler) {},
 		common.EpochTxBroadcastDebug,

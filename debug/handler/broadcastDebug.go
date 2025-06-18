@@ -19,47 +19,47 @@ type receivedEvent struct {
 	numReceived            int
 }
 
-type interceptorDebug struct {
+type broadcastDebugHandler struct {
 	mutex             sync.RWMutex
 	messageTypes      map[string]struct{}
 	receivedBroadcast map[string]map[string]*receivedEvent
 }
 
-// NewInterceptorDebug will create a new instance of *interceptorTxDebug
-func NewInterceptorDebug(config config.BroadcastStatisticsConfig) *interceptorDebug {
+// NewBroadcastDebug will create a new instance of *interceptorTxDebug
+func NewBroadcastDebug(config config.BroadcastStatisticsConfig) *broadcastDebugHandler {
 	messageTypes := make(map[string]struct{})
 	for _, messageType := range config.Messages {
 		messageTypes[messageType] = struct{}{}
 	}
 
-	return &interceptorDebug{
+	return &broadcastDebugHandler{
 		receivedBroadcast: make(map[string]map[string]*receivedEvent),
 		messageTypes:      messageTypes,
 	}
 }
 
 // Process will process the intercept data and add statistics about p2p message
-func (id *interceptorDebug) Process(data process.InterceptedData, msg p2p.MessageP2P, fromConnectedPeer core.PeerID) {
+func (bd *broadcastDebugHandler) Process(data process.InterceptedData, msg p2p.MessageP2P, fromConnectedPeer core.PeerID) {
 	if msg.BroadcastMethod() != p2p2.Broadcast {
 		return
 	}
 
-	id.mutex.Lock()
-	defer id.mutex.Unlock()
+	bd.mutex.Lock()
+	defer bd.mutex.Unlock()
 	messageType := data.Type()
-	if _, ok := id.messageTypes[messageType]; !ok {
+	if _, ok := bd.messageTypes[messageType]; !ok {
 		return
 	}
 
-	_, found := id.receivedBroadcast[messageType]
+	_, found := bd.receivedBroadcast[messageType]
 	if !found {
-		id.receivedBroadcast[messageType] = make(map[string]*receivedEvent)
+		bd.receivedBroadcast[messageType] = make(map[string]*receivedEvent)
 	}
 
 	hexHash := hex.EncodeToString(data.Hash())
-	receivedE, found := id.receivedBroadcast[messageType][hexHash]
+	receivedE, found := bd.receivedBroadcast[messageType][hexHash]
 	if !found {
-		id.receivedBroadcast[messageType][hexHash] = &receivedEvent{
+		bd.receivedBroadcast[messageType][hexHash] = &receivedEvent{
 			originator:             core.PeerID(msg.From()).Pretty(),
 			from:                   fromConnectedPeer.Pretty(),
 			numReceived:            1,
@@ -76,14 +76,14 @@ func getCurrentTimeStampMilli() int64 {
 }
 
 // PrintReceivedTxsBroadcastAndCleanRecords will print information about received transactions from current epoch and clean records
-func (id *interceptorDebug) PrintReceivedTxsBroadcastAndCleanRecords() {
+func (bd *broadcastDebugHandler) PrintReceivedTxsBroadcastAndCleanRecords() {
 	log.Info("Received Transactions Broadcast Information")
 
-	id.mutex.Lock()
-	defer id.mutex.Unlock()
+	bd.mutex.Lock()
+	defer bd.mutex.Unlock()
 
-	for messageType := range id.receivedBroadcast {
-		mapHashEvent := id.receivedBroadcast[messageType]
+	for messageType := range bd.receivedBroadcast {
+		mapHashEvent := bd.receivedBroadcast[messageType]
 		for hash, et := range mapHashEvent {
 			log.Debug("broadcast record",
 				"hash", hash,
@@ -95,5 +95,5 @@ func (id *interceptorDebug) PrintReceivedTxsBroadcastAndCleanRecords() {
 		}
 	}
 
-	id.receivedBroadcast = make(map[string]map[string]*receivedEvent)
+	bd.receivedBroadcast = make(map[string]map[string]*receivedEvent)
 }

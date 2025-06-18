@@ -13,7 +13,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestInterceptorDebug_ProcessMultipleMessageTypes(t *testing.T) {
+func TestBroadcastDebug_ProcessMultipleMessageTypes(t *testing.T) {
 	t.Parallel()
 
 	_ = logger.SetLogLevel("*:DEBUG")
@@ -27,7 +27,7 @@ func TestInterceptorDebug_ProcessMultipleMessageTypes(t *testing.T) {
 		},
 	}
 
-	id := NewInterceptorDebug(cfg)
+	id := NewBroadcastDebug(cfg)
 	require.NotNil(t, id)
 
 	testCases := []struct {
