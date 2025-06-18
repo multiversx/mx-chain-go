@@ -808,14 +808,14 @@
         Enabled = true
         CacheSize = 10000
         EnablePrint = true
-        [Debug.BroadcastStatistics]
-            Enabled = true
-            # "intercepted tx", "intercepted reward tx", "intercepted unsigned tx", "intercepted header", ...
-            Messages = ["intercepted tx"]
         IntervalAutoPrintInSeconds = 20
         NumRequestsThreshold = 9
         NumResolveFailureThreshold = 3
         DebugLineExpiration = 10 #Will remove the debug line after a `DebugLineExpiration` number of prints
+        [Debug.InterceptorResolver.BroadcastStatistics]
+            Enabled = true
+            # "intercepted tx", "intercepted reward tx", "intercepted unsigned tx", "intercepted header", ...
+            Messages = ["intercepted tx"]
     [Debug.Antiflood]
         Enabled = true
         CacheSize = 10000
