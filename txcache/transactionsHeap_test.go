@@ -133,7 +133,6 @@ func TestTransactionsHeap_SortingByTxHashShouldWork(t *testing.T) {
 			currentExpectedTx += 1
 		}
 	})
-
 }
 
 func TestTransactionsHeap_SortingByGasLimitShouldWork(t *testing.T) {
@@ -192,6 +191,69 @@ func TestTransactionsHeap_SortingByGasLimitShouldWork(t *testing.T) {
 		for _, tx := range sortedTxs {
 			require.Equal(t, expectedOrderOfTxs[currentExpectedTx], tx)
 			currentExpectedTx += 1
+		}
+	})
+
+	t.Run("minHeap should return reverse of maxHeap result", func(t *testing.T) {
+		t.Parallel()
+
+		bunchesOfTransactionsMinHeap := make([]bunchOfTransactions, 2)
+		bunchesOfTransactionsMinHeap[0] = []*WrappedTransaction{
+			createTx([]byte(fmt.Sprintf("txHash%d", 0)), fmt.Sprintf("sender%d", 0), 0).withGasLimit(uint64(0)),
+			createTx([]byte(fmt.Sprintf("txHash%d", 2)), fmt.Sprintf("sender%d", 2), 2).withGasLimit(uint64(2)),
+			createTx([]byte(fmt.Sprintf("txHash%d", 4)), fmt.Sprintf("sender%d", 4), 4).withGasLimit(uint64(4)),
+			createTx([]byte(fmt.Sprintf("txHash%d", 6)), fmt.Sprintf("sender%d", 6), 6).withGasLimit(uint64(6)),
+			createTx([]byte(fmt.Sprintf("txHash%d", 8)), fmt.Sprintf("sender%d", 8), 8).withGasLimit(uint64(8)),
+		}
+		bunchesOfTransactionsMinHeap[1] = []*WrappedTransaction{
+			createTx([]byte(fmt.Sprintf("txHash%d", 1)), fmt.Sprintf("sender%d", 1), 1).withGasLimit(uint64(1)),
+			createTx([]byte(fmt.Sprintf("txHash%d", 3)), fmt.Sprintf("sender%d", 3), 3).withGasLimit(uint64(3)),
+			createTx([]byte(fmt.Sprintf("txHash%d", 5)), fmt.Sprintf("sender%d", 5), 5).withGasLimit(uint64(5)),
+			createTx([]byte(fmt.Sprintf("txHash%d", 7)), fmt.Sprintf("sender%d", 7), 7).withGasLimit(uint64(7)),
+			createTx([]byte(fmt.Sprintf("txHash%d", 9)), fmt.Sprintf("sender%d", 9), 9).withGasLimit(uint64(9)),
+		}
+
+		minHeap := newMinTransactionsHeap(2)
+		heap.Init(minHeap)
+
+		for _, bunch := range bunchesOfTransactionsMinHeap {
+			item, err := newTransactionsHeapItem(bunch)
+			require.NoError(t, err)
+
+			heap.Push(minHeap, item)
+		}
+		sortedTxsMinHeap := getSortedTxsFromHeap(minHeap)
+
+		bunchesOfTransactionsMaxHeap := make([]bunchOfTransactions, 2)
+		bunchesOfTransactionsMaxHeap[0] = []*WrappedTransaction{
+			createTx([]byte(fmt.Sprintf("txHash%d", 8)), fmt.Sprintf("sender%d", 8), 8).withGasLimit(uint64(8)),
+			createTx([]byte(fmt.Sprintf("txHash%d", 6)), fmt.Sprintf("sender%d", 6), 6).withGasLimit(uint64(6)),
+			createTx([]byte(fmt.Sprintf("txHash%d", 4)), fmt.Sprintf("sender%d", 4), 4).withGasLimit(uint64(4)),
+			createTx([]byte(fmt.Sprintf("txHash%d", 2)), fmt.Sprintf("sender%d", 2), 2).withGasLimit(uint64(2)),
+			createTx([]byte(fmt.Sprintf("txHash%d", 0)), fmt.Sprintf("sender%d", 0), 0).withGasLimit(uint64(0)),
+		}
+		bunchesOfTransactionsMaxHeap[1] = []*WrappedTransaction{
+			createTx([]byte(fmt.Sprintf("txHash%d", 9)), fmt.Sprintf("sender%d", 9), 9).withGasLimit(uint64(9)),
+			createTx([]byte(fmt.Sprintf("txHash%d", 7)), fmt.Sprintf("sender%d", 7), 7).withGasLimit(uint64(7)),
+			createTx([]byte(fmt.Sprintf("txHash%d", 5)), fmt.Sprintf("sender%d", 5), 5).withGasLimit(uint64(5)),
+			createTx([]byte(fmt.Sprintf("txHash%d", 3)), fmt.Sprintf("sender%d", 3), 3).withGasLimit(uint64(3)),
+			createTx([]byte(fmt.Sprintf("txHash%d", 1)), fmt.Sprintf("sender%d", 1), 1).withGasLimit(uint64(1)),
+		}
+
+		maxHeap := newMaxTransactionsHeap(2)
+		heap.Init(maxHeap)
+
+		for _, bunch := range bunchesOfTransactionsMaxHeap {
+			item, err := newTransactionsHeapItem(bunch)
+			require.NoError(t, err)
+
+			heap.Push(maxHeap, item)
+		}
+
+		sortedTxsMaxHeap := getSortedTxsFromHeap(maxHeap)
+
+		for i, tx := range sortedTxsMinHeap {
+			require.Equal(t, sortedTxsMaxHeap[len(sortedTxsMaxHeap)-i-1], tx)
 		}
 	})
 }
