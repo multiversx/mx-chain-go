@@ -9,7 +9,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
-	"github.com/multiversx/mx-chain-logger-go"
+	logger "github.com/multiversx/mx-chain-logger-go"
 
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/process"
@@ -194,9 +194,19 @@ func (bpp *basePostProcessor) RemoveProcessedResults(key []byte) [][]byte {
 func (bpp *basePostProcessor) removeProcessedResultsAndLinks(key string) ([][]byte, bool) {
 	processedResults, ok := bpp.mapProcessedResult[key]
 	if !ok {
+		log.Trace("addIntermediateTxToResultsForBlock did not find key in mapProcessedResult map",
+			"key", key,
+			"len mapProcessedResult", len(bpp.mapProcessedResult),
+		)
+
 		return nil, ok
 	}
 	delete(bpp.mapProcessedResult, key)
+
+	log.Trace("addIntermediateTxToResultsForBlock",
+		"key", key,
+		"len mapProcessedResult", len(bpp.mapProcessedResult),
+	)
 
 	collectedProcessedResultsKeys := make([][]byte, 0, defaultCapacity)
 	collectedProcessedResultsKeys = append(collectedProcessedResultsKeys, processedResults.results...)
@@ -214,6 +224,11 @@ func (bpp *basePostProcessor) removeProcessedResultsAndLinks(key string) ([][]by
 	// remove link from parentKey
 	parent, ok := bpp.mapProcessedResult[string(processedResults.parentKey)]
 	if ok {
+		log.Trace("addIntermediateTxToResultsForBlock remove link from parent",
+			"key", key,
+			"len parent.childrenKeys", len(parent.childrenKeys),
+		)
+
 		delete(parent.childrenKeys, key)
 	}
 
@@ -334,6 +349,13 @@ func (bpp *basePostProcessor) addIntermediateTxToResultsForBlock(
 	rcvShardID uint32,
 	key []byte,
 ) {
+	log.Trace("addIntermediateTxToResultsForBlock",
+		"key", key,
+		"txHash", txHash,
+		"sndShardID", sndShardID,
+		"rcvShardID", rcvShardID,
+	)
+
 	addScrShardInfo := &txShardInfo{receiverShardID: rcvShardID, senderShardID: sndShardID}
 	scrInfo := &txInfo{tx: txHandler, txShardInfo: addScrShardInfo, index: bpp.index}
 	bpp.index++
@@ -341,6 +363,12 @@ func (bpp *basePostProcessor) addIntermediateTxToResultsForBlock(
 
 	pr, ok := bpp.mapProcessedResult[string(key)]
 	if !ok {
+		log.Trace("addIntermediateTxToResultsForBlock did not find in map",
+			"key", key,
+			"txHash", txHash,
+			"sndShardID", sndShardID,
+			"rcvShardID", rcvShardID,
+		)
 		return
 	}
 
