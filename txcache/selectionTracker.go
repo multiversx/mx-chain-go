@@ -136,7 +136,6 @@ func (st *selectionTracker) updateLatestRootHash(receivedNonce uint64, receivedR
 		st.latestRootHash = receivedRootHash
 		st.latestNonce = receivedNonce
 	}
-	return
 }
 
 func (st *selectionTracker) equalBlocks(trackedBlock1, trackedBlock2 *trackedBlock) bool {

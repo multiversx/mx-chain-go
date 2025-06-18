@@ -230,44 +230,23 @@ func TestSelectionTracker_removeFromTrackedBlocks(t *testing.T) {
 	selTracker, err := NewSelectionTracker(txCache)
 	require.Nil(t, err)
 
+	expectedTrackedBlock := newTrackedBlock(1, []byte("blockHash2"), []byte("rootHash2"), []byte("prevHash2"))
+	// this was only added for linter - will be removed when accountBreadcrumb will be really used
+	expectedTrackedBlock.breadcrumbsByAddress["addr1"] = &accountBreadcrumb{
+		initialNonce:    0,
+		lastNonce:       0,
+		consumedBalance: nil,
+	}
+
 	selTracker.state = []*trackedBlock{
-		{
-			nonce:                0,
-			hash:                 []byte("blockHash1"),
-			rootHash:             []byte("rootHash1"),
-			prevHash:             []byte("prevHash1"),
-			breadcrumbsByAddress: make(map[string]*accountBreadcrumb),
-		},
-		{
-			nonce:                1,
-			hash:                 []byte("blockHash2"),
-			rootHash:             []byte("rootHash2"),
-			prevHash:             []byte("prevHash2"),
-			breadcrumbsByAddress: make(map[string]*accountBreadcrumb),
-		},
-		{
-			nonce:                0,
-			hash:                 []byte("blockHash3"),
-			rootHash:             []byte("rootHash3"),
-			prevHash:             []byte("prevHash1"),
-			breadcrumbsByAddress: make(map[string]*accountBreadcrumb),
-		},
+		newTrackedBlock(0, []byte("blockHash1"), []byte("rootHash1"), []byte("prevHash1")),
+		expectedTrackedBlock,
+		newTrackedBlock(0, []byte("blockHash3"), []byte("rootHash3"), []byte("prevHash1")),
 	}
 
 	require.Equal(t, 3, len(selTracker.state))
-	selTracker.removeFromTrackedBlocks(&trackedBlock{
-		nonce:                0,
-		hash:                 nil,
-		rootHash:             nil,
-		prevHash:             []byte("prevHash1"),
-		breadcrumbsByAddress: make(map[string]*accountBreadcrumb),
-	})
+	selTracker.removeFromTrackedBlocks(newTrackedBlock(0, nil, nil, []byte("prevHash1")))
 	require.Equal(t, 1, len(selTracker.state))
-	require.Equal(t, &trackedBlock{
-		nonce:                1,
-		hash:                 []byte("blockHash2"),
-		rootHash:             []byte("rootHash2"),
-		prevHash:             []byte("prevHash2"),
-		breadcrumbsByAddress: make(map[string]*accountBreadcrumb),
-	}, selTracker.state[0])
+
+	require.Equal(t, expectedTrackedBlock, selTracker.state[0])
 }
