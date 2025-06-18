@@ -808,7 +808,10 @@
         Enabled = true
         CacheSize = 10000
         EnablePrint = true
-        EnableBroadcastStatistics = true
+        [Debug.BroadcastStatistics]
+            Enabled = true
+            # "intercepted tx", "intercepted reward tx", "intercepted unsigned tx", "intercepted header", ...
+            Messages = ["intercepted tx"]
         IntervalAutoPrintInSeconds = 20
         NumRequestsThreshold = 9
         NumResolveFailureThreshold = 3

@@ -521,12 +521,18 @@ type HealthServiceConfig struct {
 type InterceptorResolverDebugConfig struct {
 	Enabled                    bool
 	EnablePrint                bool
-	EnableBroadcastStatistics  bool
 	CacheSize                  int
 	IntervalAutoPrintInSeconds int
 	NumRequestsThreshold       int
 	NumResolveFailureThreshold int
 	DebugLineExpiration        int
+	BroadcastStatistics        BroadcastStatisticsConfig
+}
+
+// BroadcastStatisticsConfig holds configuration for broadcast statistics collection
+type BroadcastStatisticsConfig struct {
+	Enabled  bool
+	Messages []string
 }
 
 // AntifloodDebugConfig will hold the antiflood debug configuration

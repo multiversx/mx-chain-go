@@ -129,8 +129,8 @@ func NewInterceptorDebugHandler(config config.InterceptorResolverDebugConfig) (*
 	}
 
 	idh.interceptorTxHandler = NewDisabledInterceptorTxDebug()
-	if config.EnableBroadcastStatistics {
-		idh.interceptorTxHandler = NewInterceptorTxDebug()
+	if config.BroadcastStatistics.Enabled {
+		idh.interceptorTxHandler = NewInterceptorDebug(config.BroadcastStatistics)
 	}
 
 	idh.printEventFunc = idh.printEvent
