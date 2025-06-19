@@ -15,8 +15,10 @@ type SelectionSessionMock struct {
 
 	NumCallsGetAccountState int
 
-	AccountStateByAddress      map[string]*stateMock.UserAccountStub
-	GetAccountStateCalled      func(address []byte) (state.UserAccountHandler, error)
+	AccountStateByAddress map[string]*stateMock.UserAccountStub
+	GetAccountStateCalled func(address []byte) (state.UserAccountHandler, error)
+	GetRootHashCalled     func() ([]byte, error)
+
 	IsIncorrectlyGuardedCalled func(tx data.TransactionHandler) bool
 }
 
@@ -72,6 +74,14 @@ func (mock *SelectionSessionMock) GetAccountState(address []byte) (state.UserAcc
 	}
 
 	return newDefaultAccountState(), nil
+}
+
+// GetRootHash -
+func (mock *SelectionSessionMock) GetRootHash() ([]byte, error) {
+	if mock.GetRootHashCalled != nil {
+		return mock.GetRootHashCalled()
+	}
+	return nil, nil
 }
 
 // IsIncorrectlyGuarded -

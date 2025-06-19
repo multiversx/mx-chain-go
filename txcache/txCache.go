@@ -108,8 +108,14 @@ func (cache *TxCache) SelectTransactions(session SelectionSession, options commo
 	stopWatch := core.NewStopWatch()
 	stopWatch.Start("selection")
 
+	rootHash, err := session.GetRootHash()
+	if err != nil {
+		return nil, 0
+	}
+
 	logSelect.Debug(
 		"TxCache.SelectTransactions: begin",
+		"current root hash", rootHash,
 		"num bytes", cache.NumBytes(),
 		"num txs", cache.CountTx(),
 		"num senders", cache.CountSenders(),
