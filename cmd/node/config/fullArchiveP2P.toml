@@ -92,7 +92,7 @@
 # SubNetworks holds the configuration for subnetworks
 # currently only transactions live on a separate subnetwork with different gossip configuration
 # default gossip configuration: https://github.com/libp2p/go-libp2p-pubsub/blob/v0.9.3/gossipsub.go#L33
-#[SubNetworks]
-#    Networks = [
-#        {Name = "transactions", PubSub = {OptimalPeersNum = 15, MinimumPeersNum = 12, MaximumPeersNum = 20}, ProtocolIDs = ["mvx-transactions"]},
-#    ]
+[SubNetworks]
+    Networks = [
+        {Name = "transactions", PubSub = {OptimalPeersNum = 15, MinimumPeersNum = 12, MaximumPeersNum = 20}, ProtocolIDs = ["mvx-transactions-full-archive", "mvx-transactions"]},
+    ]
