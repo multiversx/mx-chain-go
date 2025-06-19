@@ -2637,6 +2637,8 @@ func (tpn *TestProcessorNode) initNode() {
 			NumResolveFailureThreshold: 1,
 			DebugLineExpiration:        1000,
 		},
+		tpn.EpochStartNotifier,
+		coreComponents.SyncTimer(),
 	)
 	log.LogIfError(err)
 }
