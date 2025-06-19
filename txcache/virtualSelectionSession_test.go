@@ -12,4 +12,9 @@ func Test_newVirtualSelectionSession(t *testing.T) {
 	session := txcachemocks.NewSelectionSessionMock()
 	vss := newVirtualSelectionSession(session)
 	require.NotNil(t, vss)
+
+	vss.virtualAccountsByAddress["addr1"] = &virtualAccountRecord{
+		initialNonce:   0,
+		initialBalance: nil,
+	}
 }
