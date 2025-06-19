@@ -10,43 +10,45 @@ import (
 )
 
 func createMockedHeaders(numOfHeaders int) []*block.Header {
-	headers := make([]*block.Header, 0)
+	headers := make([]*block.Header, numOfHeaders)
 
 	for i := 0; i < numOfHeaders; i++ {
-		headers = append(headers, &block.Header{
+		headers[i] = &block.Header{
 			Nonce:    uint64(i),
 			PrevHash: []byte(fmt.Sprintf("prevHash%d", i)),
 			RootHash: []byte(fmt.Sprintf("rootHash%d", i)),
-		})
+		}
 	}
 
 	return headers
 }
 
-func proposeBlocks(t *testing.T, numOfBlocks int, selectionTracker *selectionTracker, headers []*block.Header) {
+func proposeBlocksConcurrently(t *testing.T, numOfBlocks int, selectionTracker *selectionTracker, headers []*block.Header) {
 	wg := sync.WaitGroup{}
 	wg.Add(numOfBlocks)
 
 	for i := 0; i < numOfBlocks; i++ {
 		go func(index int) {
-			err := selectionTracker.OnProposedBlock([]byte(fmt.Sprintf("blockHash%d", i)), &block.Body{}, headers[index])
-			require.Nil(t, err)
 			defer wg.Done()
+
+			err := selectionTracker.OnProposedBlock([]byte(fmt.Sprintf("blockHash%d", index)), &block.Body{}, headers[index])
+			require.Nil(t, err)
 		}(i)
 	}
 
 	wg.Wait()
 }
 
-func executeBlocks(t *testing.T, numOfBlocks int, selectionTracker *selectionTracker, headers []*block.Header) {
+func executeBlocksConcurrently(t *testing.T, numOfBlocks int, selectionTracker *selectionTracker, headers []*block.Header) {
 	wg := sync.WaitGroup{}
 	wg.Add(numOfBlocks)
 
 	for i := 0; i < numOfBlocks; i++ {
 		go func(index int) {
+			defer wg.Done()
+
 			err := selectionTracker.OnExecutedBlock(headers[index])
 			require.Nil(t, err)
-			defer wg.Done()
 		}(i)
 	}
 
@@ -59,8 +61,8 @@ func TestNewSelectionTracker(t *testing.T) {
 	t.Run("should error", func(t *testing.T) {
 		t.Parallel()
 
-		selTracker, err := NewSelectionTracker(nil)
-		require.Nil(t, selTracker)
+		tracker, err := NewSelectionTracker(nil)
+		require.Nil(t, tracker)
 		require.Error(t, err)
 	})
 
@@ -77,20 +79,20 @@ func TestSelectionTracker_OnProposedBlockShouldErr(t *testing.T) {
 	t.Parallel()
 
 	txCache := newCacheToTest(maxNumBytesPerSenderUpperBoundTest, 3)
-	selTracker, err := NewSelectionTracker(txCache)
+	tracker, err := NewSelectionTracker(txCache)
 	require.Nil(t, err)
 
 	t.Run("should err nil block hash", func(t *testing.T) {
 		t.Parallel()
 
-		err = selTracker.OnProposedBlock(nil, nil, nil)
+		err = tracker.OnProposedBlock(nil, nil, nil)
 		require.Equal(t, err, errNilBlockHash)
 	})
 
 	t.Run("should err nil header", func(t *testing.T) {
 		t.Parallel()
 
-		err = selTracker.OnProposedBlock([]byte("hash1"), nil, nil)
+		err = tracker.OnProposedBlock([]byte("hash1"), nil, nil)
 		require.Equal(t, err, errNilBlockBody)
 	})
 
@@ -98,7 +100,7 @@ func TestSelectionTracker_OnProposedBlockShouldErr(t *testing.T) {
 		t.Parallel()
 
 		blockBody := block.Body{}
-		err = selTracker.OnProposedBlock([]byte("hash1"), &blockBody, nil)
+		err = tracker.OnProposedBlock([]byte("hash1"), &blockBody, nil)
 		require.Equal(t, err, errNilHeaderHandler)
 	})
 }
@@ -107,12 +109,13 @@ func TestSelectionTracker_OnProposedBlockShouldWork(t *testing.T) {
 	t.Parallel()
 
 	txCache := newCacheToTest(maxNumBytesPerSenderUpperBoundTest, 3)
-	selTracker, err := NewSelectionTracker(txCache)
+	tracker, err := NewSelectionTracker(txCache)
 	require.Nil(t, err)
 
 	numOfBlocks := 20
 	headers := createMockedHeaders(numOfBlocks)
-	proposeBlocks(t, numOfBlocks, selTracker, headers)
+	proposeBlocksConcurrently(t, numOfBlocks, tracker, headers)
+	require.Equal(t, 20, len(tracker.blocks))
 }
 
 func TestSelectionTracker_OnExecutedBlockShouldError(t *testing.T) {
@@ -122,10 +125,10 @@ func TestSelectionTracker_OnExecutedBlockShouldError(t *testing.T) {
 		t.Parallel()
 
 		txCache := newCacheToTest(maxNumBytesPerSenderUpperBoundTest, 3)
-		selectionTracker, err := NewSelectionTracker(txCache)
+		tracker, err := NewSelectionTracker(txCache)
 		require.Nil(t, err)
 
-		err = selectionTracker.OnExecutedBlock(nil)
+		err = tracker.OnExecutedBlock(nil)
 		require.Equal(t, errNilHeaderHandler, err)
 	})
 }
@@ -140,39 +143,13 @@ func TestSelectionTracker_OnExecutedBlockShouldWork(t *testing.T) {
 	numOfBlocks := 20
 	headers := createMockedHeaders(numOfBlocks)
 
-	proposeBlocks(t, numOfBlocks, selTracker, headers)
-	require.Equal(t, numOfBlocks, len(selTracker.state))
+	proposeBlocksConcurrently(t, numOfBlocks, selTracker, headers)
+	require.Equal(t, numOfBlocks, len(selTracker.blocks))
 
-	executeBlocks(t, numOfBlocks, selTracker, headers)
-	require.Equal(t, 0, len(selTracker.state))
+	executeBlocksConcurrently(t, numOfBlocks, selTracker, headers)
+	require.Equal(t, 0, len(selTracker.blocks))
 	require.Equal(t, uint64(19), selTracker.latestNonce)
 	require.Equal(t, []byte("rootHash19"), selTracker.latestRootHash)
-}
-
-func TestSelectionTracker_equalBlocks(t *testing.T) {
-	t.Parallel()
-
-	txCache := newCacheToTest(maxNumBytesPerSenderUpperBoundTest, 3)
-	selTracker, err := NewSelectionTracker(txCache)
-	require.Nil(t, err)
-
-	t.Run("same nonce and same prev hash", func(t *testing.T) {
-		t.Parallel()
-
-		tracedBlock1 := newTrackedBlock(0, []byte("blockHash1"), []byte("blockRootHash1"), []byte("blockPrevHash1"))
-		tracedBlock2 := newTrackedBlock(0, []byte("blockHash1"), []byte("blockRootHash2"), []byte("blockPrevHash1"))
-		equalBlocks := selTracker.equalBlocks(tracedBlock1, tracedBlock2)
-		require.True(t, equalBlocks)
-	})
-
-	t.Run("different nonce", func(t *testing.T) {
-		t.Parallel()
-
-		tracedBlock1 := newTrackedBlock(0, []byte("blockHash1"), []byte("blockRootHash1"), []byte("blockPrevHash1"))
-		tracedBlock2 := newTrackedBlock(1, []byte("blockHash1"), []byte("blockRootHash1"), []byte("blockPrevHash1"))
-		equalBlocks := selTracker.equalBlocks(tracedBlock1, tracedBlock2)
-		require.False(t, equalBlocks)
-	})
 }
 
 func TestSelectionTracker_updateLatestRoothash(t *testing.T) {
@@ -186,22 +163,6 @@ func TestSelectionTracker_updateLatestRoothash(t *testing.T) {
 		require.Nil(t, err)
 
 		selTracker.updateLatestRootHash(1, []byte("rootHash1"))
-		require.Equal(t, uint64(1), selTracker.latestNonce)
-		require.Equal(t, []byte("rootHash1"), selTracker.latestRootHash)
-	})
-
-	t.Run("duplicated roothash", func(t *testing.T) {
-		t.Parallel()
-
-		txCache := newCacheToTest(maxNumBytesPerSenderUpperBoundTest, 3)
-		selTracker, err := NewSelectionTracker(txCache)
-		require.Nil(t, err)
-
-		selTracker.updateLatestRootHash(1, []byte("rootHash1"))
-		require.Equal(t, uint64(1), selTracker.latestNonce)
-		require.Equal(t, []byte("rootHash1"), selTracker.latestRootHash)
-
-		selTracker.updateLatestRootHash(2, []byte("rootHash1"))
 		require.Equal(t, uint64(1), selTracker.latestNonce)
 		require.Equal(t, []byte("rootHash1"), selTracker.latestRootHash)
 	})
@@ -231,22 +192,16 @@ func TestSelectionTracker_removeFromTrackedBlocks(t *testing.T) {
 	require.Nil(t, err)
 
 	expectedTrackedBlock := newTrackedBlock(1, []byte("blockHash2"), []byte("rootHash2"), []byte("prevHash2"))
-	// this was only added for linter - will be removed when accountBreadcrumb will be really used
-	expectedTrackedBlock.breadcrumbsByAddress["addr1"] = &accountBreadcrumb{
-		initialNonce:    0,
-		lastNonce:       0,
-		consumedBalance: nil,
-	}
 
-	selTracker.state = []*trackedBlock{
+	selTracker.blocks = []*trackedBlock{
 		newTrackedBlock(0, []byte("blockHash1"), []byte("rootHash1"), []byte("prevHash1")),
 		expectedTrackedBlock,
 		newTrackedBlock(0, []byte("blockHash3"), []byte("rootHash3"), []byte("prevHash1")),
 	}
 
-	require.Equal(t, 3, len(selTracker.state))
+	require.Equal(t, 3, len(selTracker.blocks))
 	selTracker.removeFromTrackedBlocks(newTrackedBlock(0, nil, nil, []byte("prevHash1")))
-	require.Equal(t, 1, len(selTracker.state))
+	require.Equal(t, 1, len(selTracker.blocks))
 
-	require.Equal(t, expectedTrackedBlock, selTracker.state[0])
+	require.Equal(t, expectedTrackedBlock, selTracker.blocks[0])
 }

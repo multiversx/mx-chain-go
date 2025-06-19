@@ -1,63 +1,35 @@
 package txcache
 
 import (
-	"bytes"
-	"math/big"
 	"sync"
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
-	"github.com/multiversx/mx-chain-core-go/data/block"
 )
 
-type accountBreadcrumb struct {
-	initialNonce    uint64
-	lastNonce       uint64
-	consumedBalance *big.Int
-}
-
-type trackedBlock struct {
-	nonce                uint64
-	hash                 []byte
-	rootHash             []byte
-	prevHash             []byte
-	breadcrumbsByAddress map[string]*accountBreadcrumb
-}
-
+// TODO use a map instead of slice for st.blocks and remove by block hash
 type selectionTracker struct {
-	mutState          sync.RWMutex
-	mutLatestRootHash sync.RWMutex
-	latestNonce       uint64
-	latestRootHash    []byte
-	state             []*trackedBlock
-	txCache           *TxCache
-}
-
-func newTrackedBlock(nonce uint64, blockHash []byte, rootHash []byte, prevHash []byte) *trackedBlock {
-	return &trackedBlock{
-		nonce:                nonce,
-		hash:                 blockHash,
-		rootHash:             rootHash,
-		prevHash:             prevHash,
-		breadcrumbsByAddress: make(map[string]*accountBreadcrumb),
-	}
+	mutTracker     sync.RWMutex
+	latestNonce    uint64
+	latestRootHash []byte
+	blocks         []*trackedBlock
+	txCache        *TxCache
 }
 
 // NewSelectionTracker - creates a new selectionTracker
 func NewSelectionTracker(txCache *TxCache) (*selectionTracker, error) {
-	if txCache == nil {
+	if check.IfNil(txCache) {
 		return nil, errNilTxCache
 	}
 	return &selectionTracker{
-		mutState:          sync.RWMutex{},
-		mutLatestRootHash: sync.RWMutex{},
-		txCache:           txCache,
-		state:             make([]*trackedBlock, 0),
+		mutTracker: sync.RWMutex{},
+		txCache:    txCache,
+		blocks:     make([]*trackedBlock, 0),
 	}, nil
 }
 
 // OnProposedBlock - notifies when a block is proposed and updates the state of the selectionTracker
-func (st *selectionTracker) OnProposedBlock(blockHash []byte, blockBody *block.Body, handler data.HeaderHandler) error {
+func (st *selectionTracker) OnProposedBlock(blockHash []byte, blockBody data.BodyHandler, handler data.HeaderHandler) error {
 	if blockHash == nil {
 		return errNilBlockHash
 	}
@@ -72,16 +44,16 @@ func (st *selectionTracker) OnProposedBlock(blockHash []byte, blockBody *block.B
 	rootHash := handler.GetRootHash()
 	prevHash := handler.GetPrevHash()
 
-	st.mutState.Lock()
-	defer st.mutState.Unlock()
+	st.mutTracker.Lock()
+	defer st.mutTracker.Unlock()
 
-	logSelectionTracker.Info("selectionTracker.OnProposedBlock",
+	log.Debug("selectionTracker.OnProposedBlock",
 		"blockHash", blockHash,
 		"nonce", nonce,
 		"rootHash", rootHash,
 		"prevHash", prevHash)
 
-	st.state = append(st.state, newTrackedBlock(nonce, blockHash, rootHash, prevHash))
+	st.blocks = append(st.blocks, newTrackedBlock(nonce, blockHash, rootHash, prevHash))
 	return nil
 }
 
@@ -96,6 +68,9 @@ func (st *selectionTracker) OnExecutedBlock(handler data.HeaderHandler) error {
 	prevHash := handler.GetPrevHash()
 
 	tempTrackedBlock := newTrackedBlock(nonce, rootHash, nil, prevHash)
+	st.mutTracker.Lock()
+	defer st.mutTracker.Unlock()
+
 	st.removeFromTrackedBlocks(tempTrackedBlock)
 	st.updateLatestRootHash(nonce, rootHash)
 
@@ -103,23 +78,26 @@ func (st *selectionTracker) OnExecutedBlock(handler data.HeaderHandler) error {
 }
 
 func (st *selectionTracker) removeFromTrackedBlocks(searchedBlock *trackedBlock) {
-	st.mutState.Lock()
-	defer st.mutState.Unlock()
-
-	remainedBlocks := make([]*trackedBlock, 0)
-	for i := 0; i < len(st.state); i++ {
-		if !st.equalBlocks(searchedBlock, st.state[i]) {
-			remainedBlocks = append(remainedBlocks, st.state[i])
+	remainingBlocks := make([]*trackedBlock, 0)
+	for _, block := range st.blocks {
+		if !searchedBlock.sameNonce(block) {
+			remainingBlocks = append(remainingBlocks, block)
 		}
 	}
-	st.state = remainedBlocks
+
+	log.Debug("selectionTracker.removeFromTrackedBlocks",
+		"searched block nonce", searchedBlock.nonce,
+		"searched block hash", searchedBlock.hash,
+		"searched block rootHash", searchedBlock.rootHash,
+		"searched block prevHash", searchedBlock.prevHash,
+		"removed blocks", len(st.blocks)-len(remainingBlocks),
+	)
+
+	st.blocks = remainingBlocks
 }
 
 func (st *selectionTracker) updateLatestRootHash(receivedNonce uint64, receivedRootHash []byte) {
-	st.mutLatestRootHash.Lock()
-	defer st.mutLatestRootHash.Unlock()
-
-	logSelectionTracker.Info("selectionTracker.updateLatestRootHash",
+	log.Debug("selectionTracker.updateLatestRootHash",
 		"received root hash", receivedRootHash,
 		"received nonce", receivedNonce)
 
@@ -128,20 +106,9 @@ func (st *selectionTracker) updateLatestRootHash(receivedNonce uint64, receivedR
 		st.latestNonce = receivedNonce
 		return
 	}
-	if bytes.Equal(st.latestRootHash, receivedRootHash) {
-		return
-	}
 
 	if receivedNonce > st.latestNonce {
 		st.latestRootHash = receivedRootHash
 		st.latestNonce = receivedNonce
 	}
-}
-
-func (st *selectionTracker) equalBlocks(trackedBlock1, trackedBlock2 *trackedBlock) bool {
-	if trackedBlock1.nonce != trackedBlock2.nonce || !bytes.Equal(trackedBlock1.prevHash, trackedBlock2.prevHash) {
-		return false
-	}
-
-	return true
 }
