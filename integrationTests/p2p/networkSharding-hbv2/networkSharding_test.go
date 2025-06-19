@@ -35,6 +35,19 @@ func createDefaultConfig() p2pConfig.P2PConfig {
 			InitialPeerList:                  nil,
 			BucketSize:                       100,
 		},
+		SubNetworks: p2pConfig.SubNetworksConfig{
+			Networks: []p2pConfig.SubNetworkConfig{
+				{
+					Name: "transactions",
+					PubSub: p2pConfig.PubSubConfig{
+						OptimalPeersNum: 2,
+						MinimumPeersNum: 1,
+						MaximumPeersNum: 3,
+					},
+					ProtocolIDs: []string{"mvx-transactions"},
+				},
+			},
+		},
 	}
 }
 

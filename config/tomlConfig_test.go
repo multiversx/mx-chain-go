@@ -551,7 +551,15 @@ func TestP2pConfig(t *testing.T) {
     MaxIntraShardObservers = 0
     MaxCrossShardObservers = 0
     MaxSeeders = 0
-    Type = "` + shardingType + `"`
+    Type = "` + shardingType + `"
+
+# SubNetworks holds the configuration for subnetworks
+# currently only transactions live on a separate subnetwork with different gossip configuration
+# default gossip configuration: https://github.com/libp2p/go-libp2p-pubsub/blob/v0.9.3/gossipsub.go#L33
+[SubNetworks]
+    Networks = [
+        {Name = "transactions", PubSub = {OptimalPeersNum = 2, MinimumPeersNum = 1, MaximumPeersNum = 3}, ProtocolIDs = ["mvx-transactions"]},
+    ]`
 
 	expectedCfg := p2pConfig.P2PConfig{
 		Node: p2pConfig.NodeConfig{
@@ -577,6 +585,19 @@ func TestP2pConfig(t *testing.T) {
 		},
 		Sharding: p2pConfig.ShardingConfig{
 			Type: shardingType,
+		},
+		SubNetworks: p2pConfig.SubNetworksConfig{
+			Networks: []p2pConfig.SubNetworkConfig{
+				{
+					Name: "transactions",
+					PubSub: p2pConfig.PubSubConfig{
+						OptimalPeersNum: 2,
+						MinimumPeersNum: 1,
+						MaximumPeersNum: 3,
+					},
+					ProtocolIDs: []string{"mvx-transactions"},
+				},
+			},
 		},
 	}
 	cfg := p2pConfig.P2PConfig{}

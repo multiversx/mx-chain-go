@@ -6,6 +6,7 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/multiversx/mx-chain-go/p2p"
 	"github.com/stretchr/testify/assert"
 
 	"github.com/multiversx/mx-chain-go/common"
@@ -262,7 +263,7 @@ func TestHeartbeatV2Components_Create(t *testing.T) {
 					assert.Fail(t, "should not have been called")
 					return true
 				},
-				CreateTopicCalled: func(name string, createChannelForTopic bool) error {
+				CreateTopicCalled: func(networkType p2p.NetworkType, name string, createChannelForTopic bool) error {
 					if name == common.PeerAuthenticationTopic {
 						return expectedErr
 					}
@@ -289,7 +290,7 @@ func TestHeartbeatV2Components_Create(t *testing.T) {
 				HasTopicCalled: func(name string) bool {
 					return name != common.HeartbeatV2Topic
 				},
-				CreateTopicCalled: func(name string, createChannelForTopic bool) error {
+				CreateTopicCalled: func(networkType p2p.NetworkType, name string, createChannelForTopic bool) error {
 					if name == common.HeartbeatV2Topic {
 						return expectedErr
 					}
@@ -320,7 +321,7 @@ func TestHeartbeatV2Components_Create(t *testing.T) {
 					assert.Fail(t, "should not have been called")
 					return true
 				},
-				CreateTopicCalled: func(name string, createChannelForTopic bool) error {
+				CreateTopicCalled: func(networkType p2p.NetworkType, name string, createChannelForTopic bool) error {
 					if name == common.PeerAuthenticationTopic {
 						return expectedErr
 					}
@@ -347,7 +348,7 @@ func TestHeartbeatV2Components_Create(t *testing.T) {
 				HasTopicCalled: func(name string) bool {
 					return name != common.HeartbeatV2Topic
 				},
-				CreateTopicCalled: func(name string, createChannelForTopic bool) error {
+				CreateTopicCalled: func(networkType p2p.NetworkType, name string, createChannelForTopic bool) error {
 					if name == common.HeartbeatV2Topic {
 						return expectedErr
 					}
@@ -488,13 +489,13 @@ func TestHeartbeatV2Components_Create(t *testing.T) {
 		args := createMockHeartbeatV2ComponentsFactoryArgs()
 		args.NetworkComponents = &testsMocks.NetworkComponentsStub{
 			Messenger: &p2pmocks.MessengerStub{
-				CreateTopicCalled: func(name string, createChannelForTopic bool) error {
+				CreateTopicCalled: func(networkType p2p.NetworkType, name string, createChannelForTopic bool) error {
 					topicsCreated["main"] = append(topicsCreated["main"], name)
 					return nil
 				},
 			},
 			FullArchiveNetworkMessengerField: &p2pmocks.MessengerStub{
-				CreateTopicCalled: func(name string, createChannelForTopic bool) error {
+				CreateTopicCalled: func(networkType p2p.NetworkType, name string, createChannelForTopic bool) error {
 					topicsCreated["full_archive"] = append(topicsCreated["full_archive"], name)
 					return nil
 				},

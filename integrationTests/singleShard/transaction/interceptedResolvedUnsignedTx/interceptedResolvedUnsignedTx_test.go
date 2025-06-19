@@ -11,6 +11,7 @@ import (
 	"github.com/multiversx/mx-chain-go/integrationTests"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/factory"
+	logger "github.com/multiversx/mx-chain-logger-go"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -42,7 +43,7 @@ func TestNode_RequestInterceptUnsignedTransactionWithMessenger(t *testing.T) {
 		nResolver.Close()
 	}()
 
-	//connect messengers together
+	// connect messengers together
 	time.Sleep(time.Second)
 	err := nRequester.ConnectOnMain(nResolver)
 	require.Nil(t, err)
@@ -51,7 +52,7 @@ func TestNode_RequestInterceptUnsignedTransactionWithMessenger(t *testing.T) {
 
 	buffPk1, _ := nRequester.OwnAccount.SkTxSign.GeneratePublic().ToByteArray()
 
-	//Step 1. Generate an unsigned transaction
+	// Step 1. Generate an unsigned transaction
 	scr := &smartContractResult.SmartContractResult{
 		Nonce:      0,
 		Value:      big.NewInt(0),
@@ -66,7 +67,7 @@ func TestNode_RequestInterceptUnsignedTransactionWithMessenger(t *testing.T) {
 	chanDone := make(chan bool)
 	scrHash := integrationTests.TestHasher.Compute(string(scrBuff))
 
-	//step 2. wire up a received handler for requester
+	// step 2. wire up a received handler for requester
 	nRequester.DataPool.UnsignedTransactions().RegisterOnAdded(func(key []byte, value interface{}) {
 		selfId := nRequester.ShardCoordinator.SelfId()
 		scrStored, _ := nRequester.DataPool.UnsignedTransactions().ShardDataStore(
@@ -81,7 +82,7 @@ func TestNode_RequestInterceptUnsignedTransactionWithMessenger(t *testing.T) {
 		assert.Equal(t, scrHash, key)
 	})
 
-	//Step 3. add the unsigned transaction in resolver pool
+	// Step 3. add the unsigned transaction in resolver pool
 	nResolver.DataPool.UnsignedTransactions().AddData(
 		scrHash,
 		scr,
@@ -89,7 +90,7 @@ func TestNode_RequestInterceptUnsignedTransactionWithMessenger(t *testing.T) {
 		process.ShardCacherIdentifier(nResolver.ShardCoordinator.SelfId(), nResolver.ShardCoordinator.SelfId()),
 	)
 
-	//Step 4. request unsigned tx
+	// Step 4. request unsigned tx
 	scrRequester, _ := nRequester.RequestersFinder.IntraShardRequester(factory.UnsignedTransactionTopic)
 	err = scrRequester.RequestDataFromHash(scrHash, 0)
 	assert.Nil(t, err)
