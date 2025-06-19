@@ -194,7 +194,7 @@ func (bpp *basePostProcessor) RemoveProcessedResults(key []byte) [][]byte {
 func (bpp *basePostProcessor) removeProcessedResultsAndLinks(key string) ([][]byte, bool) {
 	processedResults, ok := bpp.mapProcessedResult[key]
 	if !ok {
-		log.Trace("addIntermediateTxToResultsForBlock did not find key in mapProcessedResult map",
+		log.Trace("removeProcessedResultsAndLinks did not find key in mapProcessedResult map",
 			"key", key,
 			"len mapProcessedResult", len(bpp.mapProcessedResult),
 		)
@@ -203,7 +203,7 @@ func (bpp *basePostProcessor) removeProcessedResultsAndLinks(key string) ([][]by
 	}
 	delete(bpp.mapProcessedResult, key)
 
-	log.Trace("addIntermediateTxToResultsForBlock",
+	log.Trace("removeProcessedResultsAndLinks",
 		"key", key,
 		"len mapProcessedResult", len(bpp.mapProcessedResult),
 	)
@@ -224,8 +224,10 @@ func (bpp *basePostProcessor) removeProcessedResultsAndLinks(key string) ([][]by
 	// remove link from parentKey
 	parent, ok := bpp.mapProcessedResult[string(processedResults.parentKey)]
 	if ok {
-		log.Trace("addIntermediateTxToResultsForBlock remove link from parent",
+		log.Trace("removeProcessedResultsAndLinks remove link from parent",
 			"key", key,
+			"perent parent key", parent.parentKey,
+			"processedResult.parentKey", processedResults.parentKey,
 			"len parent.childrenKeys", len(parent.childrenKeys),
 		)
 
@@ -239,6 +241,11 @@ func (bpp *basePostProcessor) removeProcessedResultsAndLinks(key string) ([][]by
 func (bpp *basePostProcessor) InitProcessedResults(key []byte, parentKey []byte) {
 	bpp.mutInterResultsForBlock.Lock()
 	defer bpp.mutInterResultsForBlock.Unlock()
+
+	log.Trace("InitProcessedResults",
+		"key", key,
+		"parent key", parentKey,
+	)
 
 	pr := &processedResult{
 		parentKey:    parentKey,
