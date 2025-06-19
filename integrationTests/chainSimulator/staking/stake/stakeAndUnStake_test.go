@@ -1459,6 +1459,7 @@ func TestChainSimulator_DirectStakingNodes_WithdrawUnstakedInWithdrawEpoch(t *te
 				cfg.EpochConfig.EnableEpochs.StakingV4Step3EnableEpoch = 102
 
 				cfg.EpochConfig.EnableEpochs.MaxNodesChangeEnableEpoch[2].EpochEnable = 102
+				cfg.SystemSCConfig.StakingSystemSCConfig.UnBondPeriodInEpochs = 1
 			},
 		})
 		require.Nil(t, err)
@@ -1489,6 +1490,7 @@ func TestChainSimulator_DirectStakingNodes_WithdrawUnstakedInWithdrawEpoch(t *te
 				cfg.EpochConfig.EnableEpochs.StakingV4Step3EnableEpoch = 4
 
 				cfg.EpochConfig.EnableEpochs.MaxNodesChangeEnableEpoch[2].EpochEnable = 4
+				cfg.SystemSCConfig.StakingSystemSCConfig.UnBondPeriodInEpochs = 1
 			},
 		})
 		require.Nil(t, err)
@@ -1519,6 +1521,7 @@ func TestChainSimulator_DirectStakingNodes_WithdrawUnstakedInWithdrawEpoch(t *te
 				cfg.EpochConfig.EnableEpochs.StakingV4Step3EnableEpoch = 4
 
 				cfg.EpochConfig.EnableEpochs.MaxNodesChangeEnableEpoch[2].EpochEnable = 4
+				cfg.SystemSCConfig.StakingSystemSCConfig.UnBondPeriodInEpochs = 1
 			},
 		})
 		require.Nil(t, err)
@@ -1549,6 +1552,7 @@ func TestChainSimulator_DirectStakingNodes_WithdrawUnstakedInWithdrawEpoch(t *te
 				cfg.EpochConfig.EnableEpochs.StakingV4Step3EnableEpoch = 4
 
 				cfg.EpochConfig.EnableEpochs.MaxNodesChangeEnableEpoch[2].EpochEnable = 4
+				cfg.SystemSCConfig.StakingSystemSCConfig.UnBondPeriodInEpochs = 1
 			},
 		})
 		require.Nil(t, err)
@@ -1884,7 +1888,7 @@ func testChainSimulatorDirectStakedWithdrawUnstakedFundsInBatches(t *testing.T, 
 	require.Nil(t, err)
 	require.NotNil(t, unStakeTx)
 
-	unStakeTxFee, _ := big.NewInt(0).SetString(unStakeTx.Fee, 10)
+	unStakeTxFee1, _ := big.NewInt(0).SetString(unStakeTx.Fee, 10)
 
 	testEpoch := targetEpoch + 1
 	err = cs.GenerateBlocksUntilEpochIsReached(testEpoch)
@@ -1898,6 +1902,8 @@ func testChainSimulatorDirectStakedWithdrawUnstakedFundsInBatches(t *testing.T, 
 	require.Nil(t, err)
 	require.NotNil(t, unStakeTx)
 
+	unStakeTxFee2, _ := big.NewInt(0).SetString(unStakeTx.Fee, 10)
+
 	testEpoch++
 	err = cs.GenerateBlocksUntilEpochIsReached(testEpoch)
 	require.Nil(t, err)
@@ -1909,6 +1915,8 @@ func testChainSimulatorDirectStakedWithdrawUnstakedFundsInBatches(t *testing.T, 
 	unStakeTx, err = cs.SendTxAndGenerateBlockTilTxIsExecuted(txUnStake, staking.MaxNumOfBlockToGenerateWhenExecutingTx)
 	require.Nil(t, err)
 	require.NotNil(t, unStakeTx)
+
+	unStakeTxFee3, _ := big.NewInt(0).SetString(unStakeTx.Fee, 10)
 
 	testEpoch++
 	err = cs.GenerateBlocksUntilEpochIsReached(testEpoch)
@@ -1977,9 +1985,9 @@ func testChainSimulatorDirectStakedWithdrawUnstakedFundsInBatches(t *testing.T, 
 
 	txsFee.Add(txsFee, stakeTxFee)
 	txsFee.Add(txsFee, unBondTxFee)
-	txsFee.Add(txsFee, unStakeTxFee)
-	txsFee.Add(txsFee, unStakeTxFee)
-	txsFee.Add(txsFee, unStakeTxFee)
+	txsFee.Add(txsFee, unStakeTxFee1)
+	txsFee.Add(txsFee, unStakeTxFee2)
+	txsFee.Add(txsFee, unStakeTxFee3)
 
 	balanceAfterUnbonding.Add(balanceAfterUnbonding, txsFee)
 

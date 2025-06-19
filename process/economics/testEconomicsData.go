@@ -68,6 +68,11 @@ func (ted *TestEconomicsData) SetMaxInflationRate(maximumInflation float64) {
 	ted.yearSettings[0].MaximumInflation = maximumInflation
 }
 
+// MaxGasHigherFactorAccepted returns 10
+func (ted *TestEconomicsData) MaxGasHigherFactorAccepted() uint64 {
+	return 10
+}
+
 // SetStatusHandler returns nil
 func (ted *TestEconomicsData) SetStatusHandler(_ core.AppStatusHandler) error {
 	return nil
