@@ -6,6 +6,7 @@ import (
 	"github.com/multiversx/mx-chain-communication-go/p2p"
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-go/config"
+	"github.com/multiversx/mx-chain-go/ntp"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/p2pmocks"
 	logger "github.com/multiversx/mx-chain-logger-go"
@@ -27,7 +28,14 @@ func TestBroadcastDebug_ProcessMultipleMessageTypes(t *testing.T) {
 		},
 	}
 
-	id := NewBroadcastDebug(cfg)
+	syncer := ntp.NewSyncTime(ntp.NewNTPGoogleConfig(), nil)
+	syncer.StartSyncingTime()
+	defer func() {
+		_ = syncer.Close()
+	}()
+
+	id, err := NewBroadcastDebug(cfg, syncer)
+	require.NoError(t, err)
 	require.NotNil(t, id)
 
 	testCases := []struct {
@@ -97,11 +105,12 @@ func TestBroadcastDebug_ProcessMultipleMessageTypes(t *testing.T) {
 
 			assert.Contains(t, id.receivedBroadcast, tc.messageType)
 
-			assert.Contains(t, id.receivedBroadcast[tc.messageType], hexHash)
+			originatorPretty := core.PeerID(tc.originator).Pretty()
+			messageID := computeMapID(hexHash, originatorPretty)
+			assert.Contains(t, id.receivedBroadcast[tc.messageType], messageID)
 
-			ev := id.receivedBroadcast[tc.messageType][hexHash]
+			ev := id.receivedBroadcast[tc.messageType][messageID]
 			assert.Equal(t, fromPeerID.Pretty(), ev.from)
-			assert.Equal(t, core.PeerID(tc.originator).Pretty(), ev.originator)
 			assert.Equal(t, 1, ev.numReceived)
 			assert.Greater(t, ev.firstTimeReceivedMilli, int64(0))
 		})
@@ -127,7 +136,9 @@ func TestBroadcastDebug_ProcessMultipleMessageTypes(t *testing.T) {
 		id.Process(mockData, mockMessage, fromPeerID)
 
 		hexHash := "74785f686173685f31"
-		ev := id.receivedBroadcast["intercepted tx"][hexHash]
+		originatorPretty := core.PeerID(mockMessage.From()).Pretty()
+		messageID := computeMapID(hexHash, originatorPretty)
+		ev := id.receivedBroadcast["intercepted tx"][messageID]
 		assert.Equal(t, 2, ev.numReceived)
 	})
 
@@ -178,4 +189,12 @@ func TestBroadcastDebug_ProcessMultipleMessageTypes(t *testing.T) {
 	})
 
 	id.PrintReceivedTxsBroadcastAndCleanRecords()
+}
+
+func TestIsCross(t *testing.T) {
+	t.Parallel()
+
+	require.True(t, isCross("transactions_0_2"))
+	require.True(t, isCross("transactions_0_3"))
+	require.False(t, isCross("transactions_2"))
 }

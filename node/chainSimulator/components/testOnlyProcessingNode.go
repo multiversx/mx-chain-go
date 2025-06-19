@@ -266,7 +266,7 @@ func NewTestOnlyProcessingNode(args ArgsTestOnlyProcessingNode) (*testOnlyProces
 }
 
 func (node *testOnlyProcessingNode) createInterceptorDebugHandler(configs config.Configs) error {
-	debugHandler, err := handler.NewInterceptorDebugHandler(configs.GeneralConfig.Debug.InterceptorResolver)
+	debugHandler, err := handler.NewInterceptorDebugHandler(configs.GeneralConfig.Debug.InterceptorResolver, node.CoreComponentsHolder.SyncTimer())
 	if err != nil {
 		return err
 	}

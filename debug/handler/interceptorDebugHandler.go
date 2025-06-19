@@ -112,7 +112,7 @@ type interceptorDebugHandler struct {
 }
 
 // NewInterceptorDebugHandler creates a new interceptorDebugHandler able to hold requested-intercepted information
-func NewInterceptorDebugHandler(config config.InterceptorResolverDebugConfig) (*interceptorDebugHandler, error) {
+func NewInterceptorDebugHandler(config config.InterceptorResolverDebugConfig, ntpTime NTPTime) (*interceptorDebugHandler, error) {
 	lruCache, err := cache.NewLRUCache(config.CacheSize)
 	if err != nil {
 		return nil, fmt.Errorf("%w when creating NewInterceptorDebugHandler", err)
@@ -130,7 +130,10 @@ func NewInterceptorDebugHandler(config config.InterceptorResolverDebugConfig) (*
 
 	idh.broadcastDebug = NewDisabledBroadcastDebug()
 	if config.BroadcastStatistics.Enabled {
-		idh.broadcastDebug = NewBroadcastDebug(config.BroadcastStatistics)
+		idh.broadcastDebug, err = NewBroadcastDebug(config.BroadcastStatistics, ntpTime)
+	}
+	if err != nil {
+		return nil, err
 	}
 
 	idh.printEventFunc = idh.printEvent

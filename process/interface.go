@@ -1,6 +1,7 @@
 package process
 
 import (
+	"github.com/multiversx/mx-chain-go/ntp"
 	"math/big"
 	"time"
 
@@ -1248,6 +1249,7 @@ type CoreComponentsHolder interface {
 	ChainParametersHandler() ChainParametersHandler
 	FieldsSizeChecker() common.FieldsSizeChecker
 	EpochChangeGracePeriodHandler() common.EpochChangeGracePeriodHandler
+	SyncTimer() ntp.SyncTimer
 	IsInterfaceNil() bool
 }
 

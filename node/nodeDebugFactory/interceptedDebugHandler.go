@@ -6,6 +6,7 @@ import (
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/debug/factory"
+	"github.com/multiversx/mx-chain-go/ntp"
 	"github.com/multiversx/mx-chain-go/process"
 )
 
@@ -20,6 +21,7 @@ func CreateInterceptedDebugHandler(
 	requesters dataRetriever.RequestersContainer,
 	config config.InterceptorResolverDebugConfig,
 	epochNotifier process.EpochStartEventNotifier,
+	syncTimer ntp.SyncTimer,
 ) error {
 	if check.IfNil(node) {
 		return ErrNilNodeWrapper
@@ -37,7 +39,7 @@ func CreateInterceptedDebugHandler(
 		return process.ErrNilEpochNotifier
 	}
 
-	debugHandler, err := factory.NewInterceptorDebuggerFactory(config)
+	debugHandler, err := factory.NewInterceptorDebuggerFactory(config, syncTimer)
 	if err != nil {
 		return err
 	}

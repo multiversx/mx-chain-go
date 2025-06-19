@@ -2,31 +2,41 @@ package handler
 
 import (
 	"encoding/hex"
+	"fmt"
+	"strings"
 	"sync"
 	"time"
 
 	p2p2 "github.com/multiversx/mx-chain-communication-go/p2p"
 	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/p2p"
 	"github.com/multiversx/mx-chain-go/process"
 )
 
+const separator = "_"
+
 type receivedEvent struct {
 	from                   string
-	originator             string
 	firstTimeReceivedMilli int64
 	numReceived            int
+	isCross                bool
 }
 
 type broadcastDebugHandler struct {
+	ntpTime           NTPTime
 	mutex             sync.RWMutex
 	messageTypes      map[string]struct{}
 	receivedBroadcast map[string]map[string]*receivedEvent
 }
 
 // NewBroadcastDebug will create a new instance of *interceptorTxDebug
-func NewBroadcastDebug(config config.BroadcastStatisticsConfig) *broadcastDebugHandler {
+func NewBroadcastDebug(config config.BroadcastStatisticsConfig, ntpTime NTPTime) (*broadcastDebugHandler, error) {
+	if check.IfNil(ntpTime) {
+		return nil, process.ErrNilSyncTimer
+	}
+
 	messageTypes := make(map[string]struct{})
 	for _, messageType := range config.Messages {
 		messageTypes[messageType] = struct{}{}
@@ -35,7 +45,8 @@ func NewBroadcastDebug(config config.BroadcastStatisticsConfig) *broadcastDebugH
 	return &broadcastDebugHandler{
 		receivedBroadcast: make(map[string]map[string]*receivedEvent),
 		messageTypes:      messageTypes,
-	}
+		ntpTime:           ntpTime,
+	}, nil
 }
 
 // Process will process the intercept data and add statistics about p2p message
@@ -57,13 +68,15 @@ func (bd *broadcastDebugHandler) Process(data process.InterceptedData, msg p2p.M
 	}
 
 	hexHash := hex.EncodeToString(data.Hash())
-	receivedE, found := bd.receivedBroadcast[messageType][hexHash]
+	originatorPretty := core.PeerID(msg.From()).Pretty()
+	mapID := computeMapID(hexHash, originatorPretty)
+	receivedE, found := bd.receivedBroadcast[messageType][mapID]
 	if !found {
-		bd.receivedBroadcast[messageType][hexHash] = &receivedEvent{
-			originator:             core.PeerID(msg.From()).Pretty(),
+		bd.receivedBroadcast[messageType][mapID] = &receivedEvent{
 			from:                   fromConnectedPeer.Pretty(),
 			numReceived:            1,
-			firstTimeReceivedMilli: getCurrentTimeStampMilli(),
+			firstTimeReceivedMilli: bd.getCurrentTimeStampMilli(),
+			isCross:                isCross(msg.Topic()),
 		}
 		return
 	}
@@ -71,29 +84,50 @@ func (bd *broadcastDebugHandler) Process(data process.InterceptedData, msg p2p.M
 	receivedE.numReceived++
 }
 
-func getCurrentTimeStampMilli() int64 {
-	return time.Now().UnixMilli()
+func (bd *broadcastDebugHandler) getCurrentTimeStampMilli() int64 {
+	return bd.ntpTime.CurrentTime().UnixMilli()
 }
 
 // PrintReceivedTxsBroadcastAndCleanRecords will print information about received transactions from current epoch and clean records
 func (bd *broadcastDebugHandler) PrintReceivedTxsBroadcastAndCleanRecords() {
-	log.Info("Received Transactions Broadcast Information")
+	log.Info("Received broadcast information")
 
 	bd.mutex.Lock()
 	defer bd.mutex.Unlock()
 
 	for messageType := range bd.receivedBroadcast {
 		mapHashEvent := bd.receivedBroadcast[messageType]
-		for hash, et := range mapHashEvent {
+		for id, et := range mapHashEvent {
+			hash, originator := getHashAndOriginatorFromID(id)
+
 			log.Debug("broadcast record",
 				"hash", hash,
 				"type", messageType,
-				"originator", et.originator,
+				"originator", originator,
 				"from", et.from,
 				"first received", time.Unix(0, et.firstTimeReceivedMilli*int64(time.Millisecond)).Format("2006-01-02 15:04:05.000"),
-				"times received", et.numReceived)
+				"times received", et.numReceived,
+				"is-cross", et.isCross)
 		}
 	}
 
 	bd.receivedBroadcast = make(map[string]map[string]*receivedEvent)
+}
+
+func isCross(topic string) bool {
+	split := strings.Split(topic, separator)
+
+	if len(split) > 2 {
+		return true
+	}
+	return false
+}
+
+func computeMapID(key1, key2 string) string {
+	return fmt.Sprintf("%s%s%s", key1, separator, key2)
+}
+
+func getHashAndOriginatorFromID(id string) (string, string) {
+	split := strings.Split(id, separator)
+	return split[0], split[1]
 }
