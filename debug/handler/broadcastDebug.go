@@ -117,10 +117,7 @@ func (bd *broadcastDebugHandler) PrintReceivedTxsBroadcastAndCleanRecords() {
 func isCross(topic string) bool {
 	split := strings.Split(topic, separator)
 
-	if len(split) > 2 {
-		return true
-	}
-	return false
+	return len(split) > 2
 }
 
 func computeMapID(key1, key2 string) string {
