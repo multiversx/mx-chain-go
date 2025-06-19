@@ -26,6 +26,7 @@ func TestCreateInterceptedDebugHandler_NilNodeWrapperShouldErr(t *testing.T) {
 		&dataRetrieverTests.RequestersContainerStub{},
 		config.InterceptorResolverDebugConfig{},
 		&mock.EpochStartNotifierStub{},
+		&testscommon.SyncTimerStub{},
 	)
 
 	assert.Equal(t, ErrNilNodeWrapper, err)
@@ -41,6 +42,7 @@ func TestCreateInterceptedDebugHandler_NilInterceptorsShouldErr(t *testing.T) {
 		&dataRetrieverTests.RequestersFinderStub{},
 		config.InterceptorResolverDebugConfig{},
 		&mock.EpochStartNotifierStub{},
+		&testscommon.SyncTimerStub{},
 	)
 
 	assert.Equal(t, ErrNilInterceptorContainer, err)
@@ -56,6 +58,7 @@ func TestCreateInterceptedDebugHandler_NilResolversShouldErr(t *testing.T) {
 		&dataRetrieverTests.RequestersFinderStub{},
 		config.InterceptorResolverDebugConfig{},
 		&mock.EpochStartNotifierStub{},
+		&testscommon.SyncTimerStub{},
 	)
 
 	assert.Equal(t, ErrNilResolverContainer, err)
@@ -71,6 +74,7 @@ func TestCreateInterceptedDebugHandler_NilRequestersShouldErr(t *testing.T) {
 		nil,
 		config.InterceptorResolverDebugConfig{},
 		&mock.EpochStartNotifierStub{},
+		&testscommon.SyncTimerStub{},
 	)
 
 	assert.Equal(t, ErrNilRequestersContainer, err)
@@ -89,6 +93,7 @@ func TestCreateInterceptedDebugHandler_InvalidDebugConfigShouldErr(t *testing.T)
 			CacheSize: 0,
 		},
 		&mock.EpochStartNotifierStub{},
+		&testscommon.SyncTimerStub{},
 	)
 
 	assert.NotNil(t, err)
@@ -134,6 +139,7 @@ func TestCreateInterceptedDebugHandler_SettingOnInterceptorsErrShouldErr(t *test
 			Enabled: false,
 		},
 		&mock.EpochStartNotifierStub{},
+		&testscommon.SyncTimerStub{},
 	)
 
 	assert.True(t, errors.Is(err, expectedErr))
@@ -183,6 +189,7 @@ func TestCreateInterceptedDebugHandler_SettingOnResolverErrShouldErr(t *testing.
 			Enabled: false,
 		},
 		&mock.EpochStartNotifierStub{},
+		&testscommon.SyncTimerStub{},
 	)
 
 	assert.True(t, errors.Is(err, expectedErr))
@@ -228,6 +235,7 @@ func TestCreateInterceptedDebugHandler_ShouldWork(t *testing.T) {
 			Enabled: false,
 		},
 		&mock.EpochStartNotifierStub{},
+		&testscommon.SyncTimerStub{},
 	)
 
 	assert.Nil(t, err)

@@ -595,6 +595,7 @@ func (tpn *TestFullNode) initNode(
 			DebugLineExpiration:        1000,
 		},
 		tpn.EpochStartNotifier,
+		coreComponents.SyncTimer(),
 	)
 	log.LogIfError(err)
 }

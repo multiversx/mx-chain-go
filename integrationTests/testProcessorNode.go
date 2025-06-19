@@ -2638,6 +2638,7 @@ func (tpn *TestProcessorNode) initNode() {
 			DebugLineExpiration:        1000,
 		},
 		tpn.EpochStartNotifier,
+		coreComponents.SyncTimer(),
 	)
 	log.LogIfError(err)
 }
