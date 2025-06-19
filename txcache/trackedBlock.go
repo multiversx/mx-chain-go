@@ -19,9 +19,5 @@ func newTrackedBlock(nonce uint64, blockHash []byte, rootHash []byte, prevHash [
 }
 
 func (st *trackedBlock) sameNonce(trackedBlock1 *trackedBlock) bool {
-	if st.nonce != trackedBlock1.nonce {
-		return false
-	}
-
-	return true
+	return st.nonce == trackedBlock1.nonce
 }
