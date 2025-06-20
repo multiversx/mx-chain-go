@@ -362,8 +362,11 @@ jobs:
             done
             echo "</ul></body></html>" >> index.html
             git add index.html
-            git commit -m "Update Index of Reports" || echo "No changes to commit."
+            if git commit -m "Update Index of Reports"; then
             git push origin gh-pages --force
+          else
+            echo "No changes to commit. Nothing to push."
+          fi
           else
             mkdir -p docs
             cd docs
