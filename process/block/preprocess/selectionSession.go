@@ -97,7 +97,7 @@ func (session *selectionSession) IsIncorrectlyGuarded(tx data.TransactionHandler
 	return errors.Is(err, process.ErrTransactionNotExecutable)
 }
 
-// GetRootHash - returns the current root hash
+// GetRootHash returns the current root hash
 func (session *selectionSession) GetRootHash() ([]byte, error) {
 	return session.accountsAdapter.RootHash()
 }

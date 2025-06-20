@@ -110,6 +110,7 @@ func (cache *TxCache) SelectTransactions(session SelectionSession, options commo
 
 	rootHash, err := session.GetRootHash()
 	if err != nil {
+		log.Error("TxCache.SelectTransactions", "err", err)
 		return nil, 0
 	}
 

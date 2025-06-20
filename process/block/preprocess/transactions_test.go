@@ -1306,9 +1306,6 @@ func TestTransactionPreprocessor_ProcessTxsToMeMissingTrieNode(t *testing.T) {
 
 	args := createDefaultTransactionsProcessorArgs()
 	args.Accounts = &stateMock.AccountsStub{
-		RootHashCalled: func() ([]byte, error) {
-			return []byte("rootHash"), nil
-		},
 		GetExistingAccountCalled: func(_ []byte) (vmcommon.AccountHandler, error) {
 			return nil, missingNodeErr
 		},

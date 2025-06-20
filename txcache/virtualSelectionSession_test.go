@@ -9,6 +9,6 @@ import (
 
 func Test_newVirtualSelectionSession(t *testing.T) {
 	session := txcachemocks.NewSelectionSessionMock()
-	vss := newVirtualSelectionSession(session)
-	require.NotNil(t, vss)
+	virtualSession := newVirtualSelectionSession(session)
+	require.NotNil(t, virtualSession)
 }
