@@ -97,6 +97,11 @@ func (session *selectionSession) IsIncorrectlyGuarded(tx data.TransactionHandler
 	return errors.Is(err, process.ErrTransactionNotExecutable)
 }
 
+// GetRootHash returns the current root hash
+func (session *selectionSession) GetRootHash() ([]byte, error) {
+	return session.accountsAdapter.RootHash()
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (session *selectionSession) IsInterfaceNil() bool {
 	return session == nil

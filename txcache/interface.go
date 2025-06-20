@@ -17,6 +17,7 @@ type MempoolHost interface {
 // SelectionSession provides blockchain information for transaction selection
 type SelectionSession interface {
 	GetAccountState(accountKey []byte) (state.UserAccountHandler, error)
+	GetRootHash() ([]byte, error)
 	IsIncorrectlyGuarded(tx data.TransactionHandler) bool
 	IsInterfaceNil() bool
 }
