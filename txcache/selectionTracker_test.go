@@ -78,12 +78,12 @@ func TestNewSelectionTracker(t *testing.T) {
 func TestSelectionTracker_OnProposedBlockShouldErr(t *testing.T) {
 	t.Parallel()
 
-	txCache := newCacheToTest(maxNumBytesPerSenderUpperBoundTest, 3)
-	tracker, err := NewSelectionTracker(txCache)
-	require.Nil(t, err)
-
 	t.Run("should err nil block hash", func(t *testing.T) {
 		t.Parallel()
+
+		txCache := newCacheToTest(maxNumBytesPerSenderUpperBoundTest, 3)
+		tracker, err := NewSelectionTracker(txCache)
+		require.Nil(t, err)
 
 		err = tracker.OnProposedBlock(nil, nil, nil)
 		require.Equal(t, err, errNilBlockHash)
@@ -92,12 +92,20 @@ func TestSelectionTracker_OnProposedBlockShouldErr(t *testing.T) {
 	t.Run("should err nil header", func(t *testing.T) {
 		t.Parallel()
 
+		txCache := newCacheToTest(maxNumBytesPerSenderUpperBoundTest, 3)
+		tracker, err := NewSelectionTracker(txCache)
+		require.Nil(t, err)
+
 		err = tracker.OnProposedBlock([]byte("hash1"), nil, nil)
 		require.Equal(t, err, errNilBlockBody)
 	})
 
 	t.Run("should err nil header", func(t *testing.T) {
 		t.Parallel()
+
+		txCache := newCacheToTest(maxNumBytesPerSenderUpperBoundTest, 3)
+		tracker, err := NewSelectionTracker(txCache)
+		require.Nil(t, err)
 
 		blockBody := block.Body{}
 		err = tracker.OnProposedBlock([]byte("hash1"), &blockBody, nil)
