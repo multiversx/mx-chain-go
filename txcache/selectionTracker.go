@@ -7,30 +7,25 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data"
 )
 
-// TODO use a map instead of slice for st.blocks and remove by block hash
+// TODO use a map instead of slice for st.blocks
 type selectionTracker struct {
 	mutTracker     sync.RWMutex
 	latestNonce    uint64
 	latestRootHash []byte
 	blocks         []*trackedBlock
-	txCache        *TxCache
 }
 
-// NewSelectionTracker - creates a new selectionTracker
-func NewSelectionTracker(txCache *TxCache) (*selectionTracker, error) {
-	if check.IfNil(txCache) {
-		return nil, errNilTxCache
-	}
+// NewSelectionTracker creates a new selectionTracker
+func NewSelectionTracker() (*selectionTracker, error) {
 	return &selectionTracker{
 		mutTracker: sync.RWMutex{},
-		txCache:    txCache,
 		blocks:     make([]*trackedBlock, 0),
 	}, nil
 }
 
-// OnProposedBlock - notifies when a block is proposed and updates the state of the selectionTracker
+// OnProposedBlock notifies when a block is proposed and updates the state of the selectionTracker
 func (st *selectionTracker) OnProposedBlock(blockHash []byte, blockBody data.BodyHandler, handler data.HeaderHandler) error {
-	if blockHash == nil {
+	if len(blockHash) == 0 {
 		return errNilBlockHash
 	}
 	if check.IfNil(blockBody) {
@@ -57,7 +52,7 @@ func (st *selectionTracker) OnProposedBlock(blockHash []byte, blockBody data.Bod
 	return nil
 }
 
-// OnExecutedBlock - notifies when a block is executed and updates the state of the selectionTracker
+// OnExecutedBlock notifies when a block is executed and updates the state of the selectionTracker
 func (st *selectionTracker) OnExecutedBlock(handler data.HeaderHandler) error {
 	if check.IfNil(handler) {
 		return errNilHeaderHandler
@@ -67,17 +62,17 @@ func (st *selectionTracker) OnExecutedBlock(handler data.HeaderHandler) error {
 	rootHash := handler.GetRootHash()
 	prevHash := handler.GetPrevHash()
 
-	tempTrackedBlock := newTrackedBlock(nonce, rootHash, nil, prevHash)
+	tempTrackedBlock := newTrackedBlock(nonce, nil, rootHash, prevHash)
 	st.mutTracker.Lock()
 	defer st.mutTracker.Unlock()
 
-	st.removeFromTrackedBlocks(tempTrackedBlock)
-	st.updateLatestRootHash(nonce, rootHash)
+	st.removeFromTrackedBlocksNoLock(tempTrackedBlock)
+	st.updateLatestRootHashNoLock(nonce, rootHash)
 
 	return nil
 }
 
-func (st *selectionTracker) removeFromTrackedBlocks(searchedBlock *trackedBlock) {
+func (st *selectionTracker) removeFromTrackedBlocksNoLock(searchedBlock *trackedBlock) {
 	remainingBlocks := make([]*trackedBlock, 0)
 	for _, block := range st.blocks {
 		if !searchedBlock.sameNonce(block) {
@@ -85,7 +80,7 @@ func (st *selectionTracker) removeFromTrackedBlocks(searchedBlock *trackedBlock)
 		}
 	}
 
-	log.Debug("selectionTracker.removeFromTrackedBlocks",
+	log.Debug("selectionTracker.removeFromTrackedBlocksNoLock",
 		"searched block nonce", searchedBlock.nonce,
 		"searched block hash", searchedBlock.hash,
 		"searched block rootHash", searchedBlock.rootHash,
@@ -96,8 +91,8 @@ func (st *selectionTracker) removeFromTrackedBlocks(searchedBlock *trackedBlock)
 	st.blocks = remainingBlocks
 }
 
-func (st *selectionTracker) updateLatestRootHash(receivedNonce uint64, receivedRootHash []byte) {
-	log.Debug("selectionTracker.updateLatestRootHash",
+func (st *selectionTracker) updateLatestRootHashNoLock(receivedNonce uint64, receivedRootHash []byte) {
+	log.Debug("selectionTracker.updateLatestRootHashNoLock",
 		"received root hash", receivedRootHash,
 		"received nonce", receivedNonce)
 
