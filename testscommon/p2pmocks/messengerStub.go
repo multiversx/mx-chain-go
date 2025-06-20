@@ -12,12 +12,12 @@ import (
 type MessengerStub struct {
 	IDCalled                                func() core.PeerID
 	CloseCalled                             func() error
-	CreateTopicCalled                       func(name string, createChannelForTopic bool) error
+	CreateTopicCalled                       func(network p2p.NetworkType, name string, createChannelForTopic bool) error
 	HasTopicCalled                          func(name string) bool
 	HasTopicValidatorCalled                 func(name string) bool
 	BroadcastOnChannelCalled                func(channel string, topic string, buff []byte)
 	BroadcastCalled                         func(topic string, buff []byte)
-	RegisterMessageProcessorCalled          func(topic string, identifier string, handler p2p.MessageProcessor) error
+	RegisterMessageProcessorCalled          func(networkType p2p.NetworkType, topic string, identifier string, handler p2p.MessageProcessor) error
 	BootstrapCalled                         func() error
 	PeerAddressesCalled                     func(pid core.PeerID) []string
 	IsConnectedToTheNetworkCalled           func() bool
@@ -59,9 +59,9 @@ func (ms *MessengerStub) ID() core.PeerID {
 }
 
 // RegisterMessageProcessor -
-func (ms *MessengerStub) RegisterMessageProcessor(topic string, identifier string, handler p2p.MessageProcessor) error {
+func (ms *MessengerStub) RegisterMessageProcessor(networkType p2p.NetworkType, topic string, identifier string, handler p2p.MessageProcessor) error {
 	if ms.RegisterMessageProcessorCalled != nil {
-		return ms.RegisterMessageProcessorCalled(topic, identifier, handler)
+		return ms.RegisterMessageProcessorCalled(networkType, topic, identifier, handler)
 	}
 
 	return nil
@@ -84,9 +84,9 @@ func (ms *MessengerStub) Close() error {
 }
 
 // CreateTopic -
-func (ms *MessengerStub) CreateTopic(name string, createChannelForTopic bool) error {
+func (ms *MessengerStub) CreateTopic(network p2p.NetworkType, name string, createChannelForTopic bool) error {
 	if ms.CreateTopicCalled != nil {
-		return ms.CreateTopicCalled(name, createChannelForTopic)
+		return ms.CreateTopicCalled(network, name, createChannelForTopic)
 	}
 
 	return nil

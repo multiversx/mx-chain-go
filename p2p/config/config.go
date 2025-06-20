@@ -22,3 +22,13 @@ type KadDhtPeerDiscoveryConfig = config.KadDhtPeerDiscoveryConfig
 
 // ShardingConfig will hold the network sharding config settings
 type ShardingConfig = config.ShardingConfig
+
+// SubNetworksConfig holds an array of subnetworks configs
+// all subnetworks will use the same host
+type SubNetworksConfig = config.SubNetworksConfig
+
+// SubNetworkConfig holds a subnetwork config
+type SubNetworkConfig = config.SubNetworkConfig
+
+// PubSubConfig holds the configuration for PubSub
+type PubSubConfig = config.PubSubConfig

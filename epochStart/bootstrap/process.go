@@ -731,7 +731,7 @@ func (e *epochStartBootstrap) requestAndProcessing() (Parameters, error) {
 	log.Debug("start in epoch bootstrap: shardCoordinator", "numOfShards", e.baseData.numberOfShards, "shardId", e.baseData.shardId)
 
 	consensusTopic := common.ConsensusTopic + e.shardCoordinator.CommunicationIdentifier(e.shardCoordinator.SelfId())
-	err = e.mainMessenger.CreateTopic(consensusTopic, true)
+	err = e.mainMessenger.CreateTopic(p2p.MainNetwork, consensusTopic, true)
 	if err != nil {
 		return Parameters{}, err
 	}
@@ -1372,14 +1372,14 @@ func (e *epochStartBootstrap) createHeartbeatSender() error {
 
 	heartbeatTopic := common.HeartbeatV2Topic + e.shardCoordinator.CommunicationIdentifier(e.shardCoordinator.SelfId())
 	if !e.mainMessenger.HasTopic(heartbeatTopic) {
-		err = e.mainMessenger.CreateTopic(heartbeatTopic, true)
+		err = e.mainMessenger.CreateTopic(p2p.MainNetwork, heartbeatTopic, true)
 		if err != nil {
 			return err
 		}
 	}
 
 	if !e.fullArchiveMessenger.HasTopic(heartbeatTopic) {
-		err = e.fullArchiveMessenger.CreateTopic(heartbeatTopic, true)
+		err = e.fullArchiveMessenger.CreateTopic(p2p.FullArchiveNetwork, heartbeatTopic, true)
 		if err != nil {
 			return err
 		}

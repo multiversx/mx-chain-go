@@ -566,8 +566,8 @@ type Interceptor interface {
 // TopicHandler defines the functionality needed by structs to manage topics and message processors
 type TopicHandler interface {
 	HasTopic(name string) bool
-	CreateTopic(name string, createChannelForTopic bool) error
-	RegisterMessageProcessor(topic string, identifier string, handler p2p.MessageProcessor) error
+	CreateTopic(networkType p2p.NetworkType, name string, createChannelForTopic bool) error
+	RegisterMessageProcessor(networkType p2p.NetworkType, topic string, identifier string, handler p2p.MessageProcessor) error
 	ID() core.PeerID
 	IsInterfaceNil() bool
 }

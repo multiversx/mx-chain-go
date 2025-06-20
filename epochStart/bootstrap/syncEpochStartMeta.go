@@ -9,6 +9,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/multiversx/mx-chain-go/p2p"
 
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
@@ -194,26 +195,26 @@ func (e *epochStartMetaSyncer) resetTopicsAndInterceptors() {
 }
 
 func (e *epochStartMetaSyncer) initTopicForEpochStartMetaBlockInterceptor() error {
-	err := e.messenger.CreateTopic(factory.MetachainBlocksTopic, true)
+	err := e.messenger.CreateTopic(p2p.MainNetwork, factory.MetachainBlocksTopic, true)
 	if err != nil {
 		log.Warn("error messenger create topic", "error", err)
 		return err
 	}
 
 	proofsTopic := common.EquivalentProofsTopic + core.CommunicationIdentifierBetweenShards(core.MetachainShardId, core.AllShardId)
-	err = e.messenger.CreateTopic(proofsTopic, true)
+	err = e.messenger.CreateTopic(p2p.MainNetwork, proofsTopic, true)
 	if err != nil {
 		log.Warn("error messenger create topic", "topic", proofsTopic, "error", err)
 		return err
 	}
 
 	e.resetTopicsAndInterceptors()
-	err = e.messenger.RegisterMessageProcessor(factory.MetachainBlocksTopic, common.EpochStartInterceptorsIdentifier, e.singleDataInterceptor)
+	err = e.messenger.RegisterMessageProcessor(p2p.MainNetwork, factory.MetachainBlocksTopic, common.EpochStartInterceptorsIdentifier, e.singleDataInterceptor)
 	if err != nil {
 		return err
 	}
 
-	return e.messenger.RegisterMessageProcessor(proofsTopic, common.EpochStartInterceptorsIdentifier, e.proofsInterceptor)
+	return e.messenger.RegisterMessageProcessor(p2p.MainNetwork, proofsTopic, common.EpochStartInterceptorsIdentifier, e.proofsInterceptor)
 }
 
 // IsInterfaceNil returns true if underlying object is nil

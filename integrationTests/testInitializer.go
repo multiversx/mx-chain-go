@@ -164,6 +164,19 @@ func createP2PConfig(initialPeerList []string) p2pConfig.P2PConfig {
 		Sharding: p2pConfig.ShardingConfig{
 			Type: p2p.NilListSharder,
 		},
+		SubNetworks: p2pConfig.SubNetworksConfig{
+			Networks: []p2pConfig.SubNetworkConfig{
+				{
+					Name: string(p2p.TransactionsNetwork),
+					PubSub: p2pConfig.PubSubConfig{
+						OptimalPeersNum: 2,
+						MinimumPeersNum: 1,
+						MaximumPeersNum: 3,
+					},
+					ProtocolIDs: []string{"mvx-transactions"},
+				},
+			},
+		},
 	}
 }
 
@@ -205,6 +218,7 @@ func CreateMessengerFromConfig(p2pConfig p2pConfig.P2PConfig) p2p.Messenger {
 		P2pSingleSigner:       &mock.SignerMock{},
 		P2pKeyGenerator:       &mock.KeyGenMock{},
 		Logger:                logger.GetOrCreate("tests/p2p"),
+		NetworkType:           p2p.MainNetwork,
 	}
 
 	libP2PMes, err := p2pFactory.NewNetworkMessenger(arg)
@@ -214,7 +228,12 @@ func CreateMessengerFromConfig(p2pConfig p2pConfig.P2PConfig) p2p.Messenger {
 }
 
 // CreateMessengerFromConfigWithPeersRatingHandler creates a new libp2p messenger with provided configuration
-func CreateMessengerFromConfigWithPeersRatingHandler(p2pConfig p2pConfig.P2PConfig, peersRatingHandler p2p.PeersRatingHandler, p2pKey crypto.PrivateKey) p2p.Messenger {
+func CreateMessengerFromConfigWithPeersRatingHandler(
+	p2pConfig p2pConfig.P2PConfig,
+	peersRatingHandler p2p.PeersRatingHandler,
+	p2pKey crypto.PrivateKey,
+	network p2p.NetworkType,
+) p2p.Messenger {
 	arg := p2pFactory.ArgsNetworkMessenger{
 		Marshaller:            TestMarshalizer,
 		P2pConfig:             p2pConfig,
@@ -226,6 +245,7 @@ func CreateMessengerFromConfigWithPeersRatingHandler(p2pConfig p2pConfig.P2PConf
 		P2pSingleSigner:       &mock.SignerMock{},
 		P2pKeyGenerator:       &mock.KeyGenMock{},
 		Logger:                logger.GetOrCreate("tests/p2p"),
+		NetworkType:           network,
 	}
 
 	libP2PMes, err := p2pFactory.NewNetworkMessenger(arg)
@@ -254,6 +274,19 @@ func CreateP2PConfigWithNoDiscovery() p2pConfig.P2PConfig {
 		Sharding: p2pConfig.ShardingConfig{
 			Type: p2p.NilListSharder,
 		},
+		SubNetworks: p2pConfig.SubNetworksConfig{
+			Networks: []p2pConfig.SubNetworkConfig{
+				{
+					Name: string(p2p.TransactionsNetwork),
+					PubSub: p2pConfig.PubSubConfig{
+						OptimalPeersNum: 2,
+						MinimumPeersNum: 1,
+						MaximumPeersNum: 3,
+					},
+					ProtocolIDs: []string{"mvx-transactions"},
+				},
+			},
+		},
 	}
 }
 
@@ -265,7 +298,7 @@ func CreateMessengerWithNoDiscovery() p2p.Messenger {
 }
 
 // CreateMessengerWithNoDiscoveryAndPeersRatingHandler creates a new libp2p messenger with no peer discovery
-func CreateMessengerWithNoDiscoveryAndPeersRatingHandler(peersRatingHanlder p2p.PeersRatingHandler, p2pKey crypto.PrivateKey) p2p.Messenger {
+func CreateMessengerWithNoDiscoveryAndPeersRatingHandler(peersRatingHanlder p2p.PeersRatingHandler, p2pKey crypto.PrivateKey, network p2p.NetworkType) p2p.Messenger {
 	p2pCfg := p2pConfig.P2PConfig{
 		Node: p2pConfig.NodeConfig{
 			Port: "0",
@@ -279,14 +312,28 @@ func CreateMessengerWithNoDiscoveryAndPeersRatingHandler(peersRatingHanlder p2p.
 			},
 		},
 		KadDhtPeerDiscovery: p2pConfig.KadDhtPeerDiscoveryConfig{
-			Enabled: false,
+			Enabled:     false,
+			ProtocolIDs: []string{"dummy"},
 		},
 		Sharding: p2pConfig.ShardingConfig{
 			Type: p2p.NilListSharder,
 		},
+		SubNetworks: p2pConfig.SubNetworksConfig{
+			Networks: []p2pConfig.SubNetworkConfig{
+				{
+					Name: string(p2p.TransactionsNetwork),
+					PubSub: p2pConfig.PubSubConfig{
+						OptimalPeersNum: 2,
+						MinimumPeersNum: 1,
+						MaximumPeersNum: 3,
+					},
+					ProtocolIDs: []string{"mvx-transactions"},
+				},
+			},
+		},
 	}
 
-	return CreateMessengerFromConfigWithPeersRatingHandler(p2pCfg, peersRatingHanlder, p2pKey)
+	return CreateMessengerFromConfigWithPeersRatingHandler(p2pCfg, peersRatingHanlder, p2pKey, network)
 }
 
 // CreateFixedNetworkOf8Peers assembles a network as following:

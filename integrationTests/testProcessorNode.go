@@ -494,8 +494,8 @@ func newBaseTestProcessorNode(args ArgTestProcessorNode) *TestProcessorNode {
 	}
 
 	p2pKey := mock.NewPrivateKeyMock()
-	messenger := CreateMessengerWithNoDiscoveryAndPeersRatingHandler(peersRatingHandler, p2pKey)
-	fullArchiveMessenger := CreateMessengerWithNoDiscoveryAndPeersRatingHandler(peersRatingHandler, p2pKey)
+	messenger := CreateMessengerWithNoDiscoveryAndPeersRatingHandler(peersRatingHandler, p2pKey, p2p.MainNetwork)
+	fullArchiveMessenger := CreateMessengerWithNoDiscoveryAndPeersRatingHandler(peersRatingHandler, p2pKey, p2p.FullArchiveNetwork)
 
 	genericEpochNotifier := forking.NewGenericEpochNotifier()
 	epochsConfig := args.EpochsConfig
@@ -1489,8 +1489,8 @@ func (tpn *TestProcessorNode) initResolvers() {
 	dataPacker, _ := partitioning.NewSimpleDataPacker(TestMarshalizer)
 
 	consensusTopic := common.ConsensusTopic + tpn.ShardCoordinator.CommunicationIdentifier(tpn.ShardCoordinator.SelfId())
-	_ = tpn.MainMessenger.CreateTopic(consensusTopic, true)
-	_ = tpn.FullArchiveMessenger.CreateTopic(consensusTopic, true)
+	_ = tpn.MainMessenger.CreateTopic(p2p.MainNetwork, consensusTopic, true)
+	_ = tpn.FullArchiveMessenger.CreateTopic(p2p.FullArchiveNetwork, consensusTopic, true)
 	payloadValidator, _ := validator.NewPeerAuthenticationPayloadValidator(60)
 	preferredPeersHolder, _ := p2pFactory.NewPeersHolder([]string{})
 	fullArchivePreferredPeersHolder, _ := p2pFactory.NewPeersHolder([]string{})

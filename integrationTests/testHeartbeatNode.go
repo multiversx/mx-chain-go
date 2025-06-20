@@ -21,6 +21,7 @@ import (
 	"github.com/multiversx/mx-chain-crypto-go/signing/mcl"
 	"github.com/multiversx/mx-chain-crypto-go/signing/mcl/singlesig"
 	"github.com/multiversx/mx-chain-crypto-go/signing/secp256k1"
+	processFactory "github.com/multiversx/mx-chain-go/process/factory"
 	"github.com/stretchr/testify/require"
 
 	"github.com/multiversx/mx-chain-go/common"
@@ -179,7 +180,7 @@ func NewTestHeartbeatNode(
 	shardCoordinator, _ := sharding.NewMultiShardCoordinator(maxShards, nodeShardId)
 
 	p2pKey := mock.NewPrivateKeyMock()
-	messenger := CreateMessengerFromConfigWithPeersRatingHandler(p2pConfig, &p2pmocks.PeersRatingHandlerStub{}, p2pKey)
+	messenger := CreateMessengerFromConfigWithPeersRatingHandler(p2pConfig, &p2pmocks.PeersRatingHandlerStub{}, p2pKey, p2p.MainNetwork)
 	pidPk, _ := storageunit.NewCache(storageunit.CacheConfig{Type: storageunit.LRUCache, Capacity: 1000})
 	pkShardId, _ := storageunit.NewCache(storageunit.CacheConfig{Type: storageunit.LRUCache, Capacity: 1000})
 	pidShardId, _ := storageunit.NewCache(storageunit.CacheConfig{Type: storageunit.LRUCache, Capacity: 1000})
@@ -199,7 +200,7 @@ func NewTestHeartbeatNode(
 		log.Error("error setting the peer shard mapper for the main p2p messenger", "error", err)
 	}
 
-	fullArchiveMessenger := CreateMessengerFromConfigWithPeersRatingHandler(p2pConfig, &p2pmocks.PeersRatingHandlerStub{}, p2pKey)
+	fullArchiveMessenger := CreateMessengerFromConfigWithPeersRatingHandler(p2pConfig, &p2pmocks.PeersRatingHandlerStub{}, p2pKey, p2p.FullArchiveNetwork)
 	pidPkFullArch, _ := storageunit.NewCache(storageunit.CacheConfig{Type: storageunit.LRUCache, Capacity: 1000})
 	pkShardIdFullArch, _ := storageunit.NewCache(storageunit.CacheConfig{Type: storageunit.LRUCache, Capacity: 1000})
 	pidShardIdFullArch, _ := storageunit.NewCache(storageunit.CacheConfig{Type: storageunit.LRUCache, Capacity: 1000})
@@ -525,7 +526,7 @@ func (thn *TestHeartbeatNode) initSender() {
 func (thn *TestHeartbeatNode) initResolversAndRequesters() {
 	dataPacker, _ := partitioning.NewSimpleDataPacker(TestMarshaller)
 
-	_ = thn.MainMessenger.CreateTopic(common.ConsensusTopic+thn.ShardCoordinator.CommunicationIdentifier(thn.ShardCoordinator.SelfId()), true)
+	_ = thn.MainMessenger.CreateTopic(p2p.MainNetwork, common.ConsensusTopic+thn.ShardCoordinator.CommunicationIdentifier(thn.ShardCoordinator.SelfId()), true)
 
 	payloadValidator, _ := validator.NewPeerAuthenticationPayloadValidator(thn.heartbeatExpiryTimespanInSec)
 	resolverContainerFactoryArgs := resolverscontainer.FactoryArgs{
@@ -675,7 +676,7 @@ func (thn *TestHeartbeatNode) createHeartbeatInterceptor(argsFactory interceptor
 	hbProcessor, _ := interceptorsProcessor.NewHeartbeatInterceptorProcessor(args)
 	hbFactory, _ := interceptorFactory.NewInterceptedHeartbeatDataFactory(argsFactory)
 	identifierHeartbeat := common.HeartbeatV2Topic + thn.ShardCoordinator.CommunicationIdentifier(thn.ShardCoordinator.SelfId())
-	thn.HeartbeatInterceptor = thn.initSingleDataInterceptor(identifierHeartbeat, hbFactory, hbProcessor, thn.MainMessenger)
+	thn.HeartbeatInterceptor = thn.initSingleDataInterceptor(identifierHeartbeat, hbFactory, hbProcessor, thn.MainMessenger, p2p.MainNetwork)
 }
 
 func (thn *TestHeartbeatNode) createFullArchiveHeartbeatInterceptor(argsFactory interceptorFactory.ArgInterceptedDataFactory) {
@@ -687,7 +688,7 @@ func (thn *TestHeartbeatNode) createFullArchiveHeartbeatInterceptor(argsFactory 
 	hbProcessor, _ := interceptorsProcessor.NewHeartbeatInterceptorProcessor(args)
 	hbFactory, _ := interceptorFactory.NewInterceptedHeartbeatDataFactory(argsFactory)
 	identifierHeartbeat := common.HeartbeatV2Topic + thn.ShardCoordinator.CommunicationIdentifier(thn.ShardCoordinator.SelfId())
-	thn.FullArchiveHeartbeatInterceptor = thn.initSingleDataInterceptor(identifierHeartbeat, hbFactory, hbProcessor, thn.FullArchiveMessenger)
+	thn.FullArchiveHeartbeatInterceptor = thn.initSingleDataInterceptor(identifierHeartbeat, hbFactory, hbProcessor, thn.FullArchiveMessenger, p2p.FullArchiveNetwork)
 }
 
 func (thn *TestHeartbeatNode) createPeerShardInterceptor(argsFactory interceptorFactory.ArgInterceptedDataFactory) {
@@ -696,7 +697,7 @@ func (thn *TestHeartbeatNode) createPeerShardInterceptor(argsFactory interceptor
 	}
 	dciProcessor, _ := interceptorsProcessor.NewPeerShardInterceptorProcessor(args)
 	dciFactory, _ := interceptorFactory.NewInterceptedPeerShardFactory(argsFactory)
-	thn.PeerShardInterceptor = thn.initSingleDataInterceptor(common.ConnectionTopic, dciFactory, dciProcessor, thn.MainMessenger)
+	thn.PeerShardInterceptor = thn.initSingleDataInterceptor(common.ConnectionTopic, dciFactory, dciProcessor, thn.MainMessenger, p2p.MainNetwork)
 }
 
 func (thn *TestHeartbeatNode) createFullArchivePeerShardInterceptor(argsFactory interceptorFactory.ArgInterceptedDataFactory) {
@@ -705,7 +706,7 @@ func (thn *TestHeartbeatNode) createFullArchivePeerShardInterceptor(argsFactory 
 	}
 	dciProcessor, _ := interceptorsProcessor.NewPeerShardInterceptorProcessor(args)
 	dciFactory, _ := interceptorFactory.NewInterceptedPeerShardFactory(argsFactory)
-	thn.FullArchivePeerShardInterceptor = thn.initSingleDataInterceptor(common.ConnectionTopic, dciFactory, dciProcessor, thn.FullArchiveMessenger)
+	thn.FullArchivePeerShardInterceptor = thn.initSingleDataInterceptor(common.ConnectionTopic, dciFactory, dciProcessor, thn.FullArchiveMessenger, p2p.FullArchiveNetwork)
 }
 
 func (thn *TestHeartbeatNode) initMultiDataInterceptor(topic string, dataFactory process.InterceptedDataFactory, processor process.InterceptorProcessor) *interceptors.MultiDataInterceptor {
@@ -729,12 +730,18 @@ func (thn *TestHeartbeatNode) initMultiDataInterceptor(topic string, dataFactory
 		},
 	)
 
-	thn.registerTopicValidator(topic, mdInterceptor, thn.MainMessenger)
+	thn.registerTopicValidator(topic, mdInterceptor, thn.MainMessenger, p2p.MainNetwork)
 
 	return mdInterceptor
 }
 
-func (thn *TestHeartbeatNode) initSingleDataInterceptor(topic string, dataFactory process.InterceptedDataFactory, processor process.InterceptorProcessor, messenger p2p.Messenger) *interceptors.SingleDataInterceptor {
+func (thn *TestHeartbeatNode) initSingleDataInterceptor(
+	topic string,
+	dataFactory process.InterceptedDataFactory,
+	processor process.InterceptorProcessor,
+	messenger p2p.Messenger,
+	network p2p.NetworkType,
+) *interceptors.SingleDataInterceptor {
 	sdInterceptor, _ := interceptors.NewSingleDataInterceptor(
 		interceptors.ArgSingleDataInterceptor{
 			Topic:            topic,
@@ -753,7 +760,7 @@ func (thn *TestHeartbeatNode) initSingleDataInterceptor(topic string, dataFactor
 		},
 	)
 
-	thn.registerTopicValidator(topic, sdInterceptor, messenger)
+	thn.registerTopicValidator(topic, sdInterceptor, messenger, network)
 
 	return sdInterceptor
 }
@@ -796,8 +803,8 @@ func (thn *TestHeartbeatNode) initDirectConnectionProcessor(tb testing.TB) {
 		Messenger:                   thn.MainMessenger,
 		PeerShardMapper:             thn.MainPeerShardMapper,
 		ShardCoordinator:            thn.ShardCoordinator,
-		BaseIntraShardTopic:         ShardTopic,
-		BaseCrossShardTopic:         ShardTopic,
+		BaseIntraShardTopic:         common.HeartbeatV2Topic,
+		BaseCrossShardTopic:         processFactory.MiniBlocksTopic,
 	}
 
 	var err error
@@ -809,8 +816,8 @@ func (thn *TestHeartbeatNode) initDirectConnectionProcessor(tb testing.TB) {
 		Messenger:                   thn.FullArchiveMessenger,
 		PeerShardMapper:             thn.FullArchivePeerShardMapper,
 		ShardCoordinator:            thn.ShardCoordinator,
-		BaseIntraShardTopic:         ShardTopic,
-		BaseCrossShardTopic:         ShardTopic,
+		BaseIntraShardTopic:         common.HeartbeatV2Topic,
+		BaseCrossShardTopic:         processFactory.MiniBlocksTopic,
 	}
 
 	thn.FullArchiveDirectConnectionProcessor, err = processor.NewDirectConnectionProcessor(argsDirectConnectionProcessor)
@@ -901,14 +908,14 @@ func MakeDisplayTableForHeartbeatNodes(nodes map[uint32][]*TestHeartbeatNode) st
 }
 
 // registerTopicValidator registers a message processor instance on the provided topic
-func (thn *TestHeartbeatNode) registerTopicValidator(topic string, processor p2p.MessageProcessor, messenger p2p.Messenger) {
-	err := messenger.CreateTopic(topic, true)
+func (thn *TestHeartbeatNode) registerTopicValidator(topic string, processor p2p.MessageProcessor, messenger p2p.Messenger, network p2p.NetworkType) {
+	err := messenger.CreateTopic(network, topic, true)
 	if err != nil {
 		fmt.Printf("error while creating topic %s: %s\n", topic, err.Error())
 		return
 	}
 
-	err = messenger.RegisterMessageProcessor(topic, "test", processor)
+	err = messenger.RegisterMessageProcessor(network, topic, "test", processor)
 	if err != nil {
 		fmt.Printf("error while registering topic validator %s: %s\n", topic, err.Error())
 		return
@@ -917,14 +924,14 @@ func (thn *TestHeartbeatNode) registerTopicValidator(topic string, processor p2p
 
 // CreateTestInterceptors creates test interceptors that count the number of received messages
 func (thn *TestHeartbeatNode) CreateTestInterceptors() {
-	thn.registerTopicValidator(GlobalTopic, thn.Interceptor, thn.MainMessenger)
+	thn.registerTopicValidator(GlobalTopic, thn.Interceptor, thn.MainMessenger, p2p.MainNetwork)
 
 	metaIdentifier := ShardTopic + thn.ShardCoordinator.CommunicationIdentifier(core.MetachainShardId)
-	thn.registerTopicValidator(metaIdentifier, thn.Interceptor, thn.MainMessenger)
+	thn.registerTopicValidator(metaIdentifier, thn.Interceptor, thn.MainMessenger, p2p.MainNetwork)
 
 	for i := uint32(0); i < thn.ShardCoordinator.NumberOfShards(); i++ {
 		identifier := ShardTopic + thn.ShardCoordinator.CommunicationIdentifier(i)
-		thn.registerTopicValidator(identifier, thn.Interceptor, thn.MainMessenger)
+		thn.registerTopicValidator(identifier, thn.Interceptor, thn.MainMessenger, p2p.MainNetwork)
 	}
 }
 

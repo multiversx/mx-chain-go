@@ -2,11 +2,13 @@ package factory
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/core/throttler"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/multiversx/mx-chain-go/p2p"
 
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
@@ -469,14 +471,20 @@ func (ficf *fullSyncInterceptorsContainerFactory) createTopicAndAssignHandler(
 	interceptor process.Interceptor,
 	createChannel bool,
 ) (process.Interceptor, error) {
+	network := p2p.MainNetwork
+	faNetwork := p2p.FullArchiveNetwork
+	if shouldUseTransactionsNetwork(topic) {
+		network = p2p.TransactionsNetwork
+		faNetwork = p2p.TransactionsNetwork
+	}
 
-	err := createTopicAndAssignHandlerOnMessenger(topic, interceptor, createChannel, ficf.mainMessenger)
+	err := createTopicAndAssignHandlerOnMessenger(topic, interceptor, createChannel, ficf.mainMessenger, network)
 	if err != nil {
 		return nil, err
 	}
 
 	if ficf.nodeOperationMode == common.FullArchiveMode {
-		err = createTopicAndAssignHandlerOnMessenger(topic, interceptor, createChannel, ficf.fullArchiveMessenger)
+		err = createTopicAndAssignHandlerOnMessenger(topic, interceptor, createChannel, ficf.fullArchiveMessenger, faNetwork)
 		if err != nil {
 			return nil, err
 		}
@@ -484,20 +492,26 @@ func (ficf *fullSyncInterceptorsContainerFactory) createTopicAndAssignHandler(
 
 	return interceptor, nil
 }
+func shouldUseTransactionsNetwork(topic string) bool {
+	return strings.Contains(topic, factory.TransactionTopic) ||
+		strings.Contains(topic, factory.UnsignedTransactionTopic) ||
+		strings.Contains(topic, factory.RewardsTransactionTopic)
+}
 
 func createTopicAndAssignHandlerOnMessenger(
 	topic string,
 	interceptor process.Interceptor,
 	createChannel bool,
 	messenger process.TopicHandler,
+	networkType p2p.NetworkType,
 ) error {
 
-	err := messenger.CreateTopic(topic, createChannel)
+	err := messenger.CreateTopic(networkType, topic, createChannel)
 	if err != nil {
 		return err
 	}
 
-	return messenger.RegisterMessageProcessor(topic, common.HardforkInterceptorsIdentifier, interceptor)
+	return messenger.RegisterMessageProcessor(networkType, topic, common.HardforkInterceptorsIdentifier, interceptor)
 }
 
 func (ficf *fullSyncInterceptorsContainerFactory) generateTxInterceptors() error {

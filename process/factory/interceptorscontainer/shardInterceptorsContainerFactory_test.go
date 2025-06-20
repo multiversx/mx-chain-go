@@ -38,7 +38,7 @@ var providedHardforkPubKey = []byte("provided hardfork pub key")
 
 func createShardStubTopicHandler(matchStrToErrOnCreate string, matchStrToErrOnRegister string) process.TopicHandler {
 	return &mock.TopicHandlerStub{
-		CreateTopicCalled: func(name string, createChannelForTopic bool) error {
+		CreateTopicCalled: func(networkType p2p.NetworkType, name string, createChannelForTopic bool) error {
 			if matchStrToErrOnCreate == "" {
 				return nil
 			}
@@ -48,7 +48,7 @@ func createShardStubTopicHandler(matchStrToErrOnCreate string, matchStrToErrOnRe
 
 			return nil
 		},
-		RegisterMessageProcessorCalled: func(topic string, identifier string, handler p2p.MessageProcessor) error {
+		RegisterMessageProcessorCalled: func(networkType p2p.NetworkType, topic string, identifier string, handler p2p.MessageProcessor) error {
 			if matchStrToErrOnRegister == "" {
 				return nil
 			}
@@ -575,10 +575,10 @@ func TestShardInterceptorsContainerFactory_CreateShouldWork(t *testing.T) {
 	coreComp, cryptoComp := createMockComponentHolders()
 	args := getArgumentsShard(coreComp, cryptoComp)
 	args.MainMessenger = &mock.TopicHandlerStub{
-		CreateTopicCalled: func(name string, createChannelForTopic bool) error {
+		CreateTopicCalled: func(networkType p2p.NetworkType, name string, createChannelForTopic bool) error {
 			return nil
 		},
-		RegisterMessageProcessorCalled: func(topic string, identifier string, handler p2p.MessageProcessor) error {
+		RegisterMessageProcessorCalled: func(networkType p2p.NetworkType, topic string, identifier string, handler p2p.MessageProcessor) error {
 			return nil
 		},
 	}

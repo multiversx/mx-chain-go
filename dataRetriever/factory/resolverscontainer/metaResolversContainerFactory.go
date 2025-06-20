@@ -8,6 +8,7 @@ import (
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/dataRetriever/factory/containers"
 	"github.com/multiversx/mx-chain-go/dataRetriever/resolvers"
+	"github.com/multiversx/mx-chain-go/p2p"
 
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/process/factory"
@@ -234,12 +235,12 @@ func (mrcf *metaResolversContainerFactory) createShardHeaderResolver(
 		return nil, err
 	}
 
-	err = mrcf.mainMessenger.RegisterMessageProcessor(resolver.RequestTopic(), common.DefaultResolversIdentifier, resolver)
+	err = mrcf.mainMessenger.RegisterMessageProcessor(p2p.MainNetwork, resolver.RequestTopic(), common.DefaultResolversIdentifier, resolver)
 	if err != nil {
 		return nil, err
 	}
 
-	err = mrcf.fullArchiveMessenger.RegisterMessageProcessor(resolver.RequestTopic(), common.DefaultResolversIdentifier, resolver)
+	err = mrcf.fullArchiveMessenger.RegisterMessageProcessor(p2p.FullArchiveNetwork, resolver.RequestTopic(), common.DefaultResolversIdentifier, resolver)
 	if err != nil {
 		return nil, err
 	}
@@ -297,12 +298,12 @@ func (mrcf *metaResolversContainerFactory) createMetaChainHeaderResolver(
 		return nil, err
 	}
 
-	err = mrcf.mainMessenger.RegisterMessageProcessor(resolver.RequestTopic(), common.DefaultResolversIdentifier, resolver)
+	err = mrcf.mainMessenger.RegisterMessageProcessor(p2p.MainNetwork, resolver.RequestTopic(), common.DefaultResolversIdentifier, resolver)
 	if err != nil {
 		return nil, err
 	}
 
-	err = mrcf.fullArchiveMessenger.RegisterMessageProcessor(resolver.RequestTopic(), common.DefaultResolversIdentifier, resolver)
+	err = mrcf.fullArchiveMessenger.RegisterMessageProcessor(p2p.FullArchiveNetwork, resolver.RequestTopic(), common.DefaultResolversIdentifier, resolver)
 	if err != nil {
 		return nil, err
 	}

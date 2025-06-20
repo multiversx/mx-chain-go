@@ -22,7 +22,7 @@ func (netMes *networkMessenger) Close() error {
 }
 
 // CreateTopic returns nil as it is disabled
-func (netMes *networkMessenger) CreateTopic(_ string, _ bool) error {
+func (netMes *networkMessenger) CreateTopic(_ p2p.NetworkType, _ string, _ bool) error {
 	return nil
 }
 
@@ -32,7 +32,7 @@ func (netMes *networkMessenger) HasTopic(_ string) bool {
 }
 
 // RegisterMessageProcessor returns nil as it is disabled
-func (netMes *networkMessenger) RegisterMessageProcessor(_ string, _ string, _ p2p.MessageProcessor) error {
+func (netMes *networkMessenger) RegisterMessageProcessor(_ p2p.NetworkType, _ string, _ string, _ p2p.MessageProcessor) error {
 	return nil
 }
 
