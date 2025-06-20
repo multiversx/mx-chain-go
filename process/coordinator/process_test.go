@@ -1316,6 +1316,9 @@ func TestTransactionCoordinator_CreateMbsAndProcessTransactionsFromMe(t *testing
 
 	argsTransactionCoordinator := createMockTransactionCoordinatorArguments()
 	argsTransactionCoordinator.Accounts = &stateMock.AccountsStub{
+		RootHashCalled: func() ([]byte, error) {
+			return []byte("rootHash"), nil
+		},
 		GetExistingAccountCalled: func(_ []byte) (vmcommon.AccountHandler, error) {
 			return &stateMock.UserAccountStub{
 				Nonce:   42,
@@ -1363,6 +1366,9 @@ func TestTransactionCoordinator_CreateMbsAndProcessTransactionsFromMeMultipleMin
 
 	argsTransactionCoordinator := createMockTransactionCoordinatorArguments()
 	argsTransactionCoordinator.Accounts = &stateMock.AccountsStub{
+		RootHashCalled: func() ([]byte, error) {
+			return []byte("rootHash"), nil
+		},
 		GetExistingAccountCalled: func(_ []byte) (vmcommon.AccountHandler, error) {
 			return &stateMock.UserAccountStub{
 				Nonce:   0,
@@ -1424,6 +1430,9 @@ func TestTransactionCoordinator_CreateMbsAndProcessTransactionsFromMeMultipleMin
 
 	argsTransactionCoordinator := createMockTransactionCoordinatorArguments()
 	argsTransactionCoordinator.Accounts = &stateMock.AccountsStub{
+		RootHashCalled: func() ([]byte, error) {
+			return []byte("rootHash"), nil
+		},
 		GetExistingAccountCalled: func(_ []byte) (vmcommon.AccountHandler, error) {
 			return &stateMock.UserAccountStub{
 				Nonce:   0,
@@ -1495,6 +1504,9 @@ func TestTransactionCoordinator_CompactAndExpandMiniblocksShouldWork(t *testing.
 
 	argsTransactionCoordinator := createMockTransactionCoordinatorArguments()
 	argsTransactionCoordinator.Accounts = &stateMock.AccountsStub{
+		RootHashCalled: func() ([]byte, error) {
+			return []byte("rootHash"), nil
+		},
 		GetExistingAccountCalled: func(_ []byte) (vmcommon.AccountHandler, error) {
 			return &stateMock.UserAccountStub{
 				Nonce:   0,
@@ -1567,6 +1579,9 @@ func TestTransactionCoordinator_GetAllCurrentUsedTxs(t *testing.T) {
 
 	argsTransactionCoordinator := createMockTransactionCoordinatorArguments()
 	argsTransactionCoordinator.Accounts = &stateMock.AccountsStub{
+		RootHashCalled: func() ([]byte, error) {
+			return []byte("rootHash"), nil
+		},
 		GetExistingAccountCalled: func(_ []byte) (vmcommon.AccountHandler, error) {
 			return &stateMock.UserAccountStub{
 				Nonce:   42,
@@ -2030,6 +2045,9 @@ func TestShardProcessor_ProcessMiniBlockCompleteWithOkTxsShouldExecuteThemAndNot
 	tx3ExecutionResult := uint64(0)
 
 	accounts := &stateMock.AccountsStub{
+		RootHashCalled: func() ([]byte, error) {
+			return []byte("rootHash"), nil
+		},
 		RevertToSnapshotCalled: func(snapshot int) error {
 			assert.Fail(t, "revert should have not been called")
 			return nil
@@ -2178,6 +2196,9 @@ func TestShardProcessor_ProcessMiniBlockCompleteWithErrorWhileProcessShouldCallR
 	revertAccntStateCalled := false
 
 	accounts := &stateMock.AccountsStub{
+		RootHashCalled: func() ([]byte, error) {
+			return []byte("rootHash"), nil
+		},
 		RevertToSnapshotCalled: func(snapshot int) error {
 			if snapshot == currentJournalLen {
 				revertAccntStateCalled = true
