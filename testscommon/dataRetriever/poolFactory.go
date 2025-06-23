@@ -14,8 +14,8 @@ import (
 	"github.com/multiversx/mx-chain-go/dataRetriever/shardedData"
 	"github.com/multiversx/mx-chain-go/dataRetriever/txpool"
 	"github.com/multiversx/mx-chain-go/storage/cache"
-	"github.com/multiversx/mx-chain-go/storage/mock"
 	"github.com/multiversx/mx-chain-go/storage/storageunit"
+	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/txcachemocks"
 	"github.com/multiversx/mx-chain-go/trie/factory"
 )
@@ -85,12 +85,12 @@ func createPoolHolderArgs(numShards uint32, selfShard uint32) dataPool.DataPoolA
 	cacher, err := cache.NewCapacityLRU(10, 10000)
 	panicIfError("CreatePoolsHolder", err)
 
-	persister := &mock.PersisterStub{}
+	db := testscommon.NewMemDbMock()
 	tnf := factory.NewTrieNodeFactory()
 
 	adaptedTrieNodesStorage, err := storageunit.NewStorageCacherAdapter(
 		cacher,
-		persister,
+		db,
 		tnf,
 		&marshal.GogoProtoMarshalizer{},
 	)
