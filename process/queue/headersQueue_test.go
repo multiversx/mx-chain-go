@@ -99,6 +99,8 @@ func TestHeadersQueue_TakeFirstHeaderForProcessing(t *testing.T) {
 }
 
 func TestHeadersQueue_Concurrency(t *testing.T) {
+	t.Parallel()
+
 	hq, _ := NewHeadersQueue()
 	const numGoroutines = 10
 	const headersPerGoroutine = 10
