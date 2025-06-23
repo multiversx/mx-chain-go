@@ -68,8 +68,9 @@ func (bd *broadcastDebugHandler) Process(data process.InterceptedData, msg p2p.M
 	}
 
 	hexHash := hex.EncodeToString(data.Hash())
-	originatorPretty := core.PeerID(msg.From()).Pretty()
-	mapID := computeMapID(hexHash, originatorPretty)
+	originatorPretty := msg.Peer().Pretty()
+	mapID := computeMapID(hexHash, originatorPretty, msg.Topic())
+
 	receivedE, found := bd.receivedBroadcast[messageType][mapID]
 	if !found {
 		bd.receivedBroadcast[messageType][mapID] = &receivedEvent{
@@ -100,7 +101,7 @@ func (bd *broadcastDebugHandler) PrintReceivedTxsBroadcastAndCleanRecords() {
 		for id, et := range mapHashEvent {
 			hash, originator := getHashAndOriginatorFromID(id)
 
-			log.Debug("broadcast record",
+			log.Warn("broadcast record",
 				"hash", hash,
 				"type", messageType,
 				"originator", originator,
@@ -120,8 +121,8 @@ func isCross(topic string) bool {
 	return len(split) > 2
 }
 
-func computeMapID(key1, key2 string) string {
-	return fmt.Sprintf("%s%s%s", key1, separator, key2)
+func computeMapID(key1, key2, key3 string) string {
+	return fmt.Sprintf("%s%s%s%s%s", key1, separator, key2, separator, key3)
 }
 
 func getHashAndOriginatorFromID(id string) (string, string) {
