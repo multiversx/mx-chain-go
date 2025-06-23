@@ -2,6 +2,7 @@ package components
 
 import (
 	"errors"
+	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/components/heartbeat"
 	"math/big"
 	"strings"
@@ -124,7 +125,7 @@ func TestNewTestOnlyProcessingNode(t *testing.T) {
 	t.Run("CreateStateComponents failure should error", func(t *testing.T) {
 		args := createMockArgsTestOnlyProcessingNode(t)
 		args.ShardIDStr = common.MetachainShardName // coverage only
-		args.Configs.GeneralConfig.StateTriesConfig.MaxStateTrieLevelInMemory = 0
+		args.Configs.GeneralConfig.TrieStorageManagerConfig = config.TrieStorageManagerConfig{}
 		node, err := NewTestOnlyProcessingNode(args)
 		require.Error(t, err)
 		require.Nil(t, node)

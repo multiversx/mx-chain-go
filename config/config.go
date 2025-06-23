@@ -328,8 +328,6 @@ type StateTriesConfig struct {
 	SnapshotsEnabled            bool
 	AccountsStatePruningEnabled bool
 	PeerStatePruningEnabled     bool
-	MaxStateTrieLevelInMemory   uint
-	MaxPeerTrieLevelInMemory    uint
 	StateStatisticsEnabled      bool
 }
 

@@ -1873,7 +1873,6 @@ func (pcf *processComponentsFactory) createExportFactoryHandler(
 		ExportTriesStorageConfig:         hardforkConfig.ExportTriesStorageConfig,
 		ExportStateStorageConfig:         hardforkConfig.ExportStateStorageConfig,
 		ExportStateKeysConfig:            hardforkConfig.ExportKeysStorageConfig,
-		MaxTrieLevelInMemory:             pcf.config.StateTriesConfig.MaxStateTrieLevelInMemory,
 		WhiteListHandler:                 pcf.whiteListHandler,
 		WhiteListerVerifiedTxs:           pcf.whiteListerVerifiedTxs,
 		MainInterceptorsContainer:        mainInterceptorsContainer,

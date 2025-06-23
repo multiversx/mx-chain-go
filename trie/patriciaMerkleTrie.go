@@ -43,10 +43,9 @@ type patriciaMerkleTrie struct {
 	trieNodeVersionVerifier core.TrieNodeVersionVerifier
 	mutOperation            sync.RWMutex
 
-	oldHashes            [][]byte
-	oldRoot              []byte
-	maxTrieLevelInMemory uint
-	chanClose            chan struct{}
+	oldHashes [][]byte
+	oldRoot   []byte
+	chanClose chan struct{}
 }
 
 // NewTrie creates a new Patricia Merkle Trie
@@ -55,7 +54,6 @@ func NewTrie(
 	msh marshal.Marshalizer,
 	hsh hashing.Hasher,
 	enableEpochsHandler common.EnableEpochsHandler,
-	maxTrieLevelInMemory uint,
 ) (*patriciaMerkleTrie, error) {
 	if check.IfNil(trieStorage) {
 		return nil, ErrNilTrieStorage
@@ -69,10 +67,6 @@ func NewTrie(
 	if check.IfNil(enableEpochsHandler) {
 		return nil, errors.ErrNilEnableEpochsHandler
 	}
-	if maxTrieLevelInMemory == 0 {
-		return nil, ErrInvalidLevelValue
-	}
-	log.Trace("created new trie", "max trie level in memory", maxTrieLevelInMemory)
 
 	tnvv, err := core.NewTrieNodeVersionVerifier(enableEpochsHandler)
 	if err != nil {
@@ -85,7 +79,6 @@ func NewTrie(
 		hasher:                  hsh,
 		oldHashes:               make([][]byte, 0),
 		oldRoot:                 make([]byte, 0),
-		maxTrieLevelInMemory:    maxTrieLevelInMemory,
 		chanClose:               make(chan struct{}),
 		enableEpochsHandler:     enableEpochsHandler,
 		trieNodeVersionVerifier: tnvv,
@@ -255,7 +248,8 @@ func (tr *patriciaMerkleTrie) Commit() error {
 		log.Trace("started committing trie", "trie", tr.root.getHash())
 	}
 
-	err = tr.root.commitDirty(0, tr.maxTrieLevelInMemory, tr.trieStorage, tr.trieStorage)
+	// TODO remove the maxTrieLevelInMermory parameter
+	err = tr.root.commitDirty(0, 5, tr.trieStorage, tr.trieStorage)
 	if err != nil {
 		return err
 	}
@@ -288,7 +282,6 @@ func (tr *patriciaMerkleTrie) recreate(root []byte, tsm common.StorageManager) (
 			tr.marshalizer,
 			tr.hasher,
 			tr.enableEpochsHandler,
-			tr.maxTrieLevelInMemory,
 		)
 	}
 
@@ -369,7 +362,6 @@ func (tr *patriciaMerkleTrie) recreateFromDb(rootHash []byte, tsm common.Storage
 		tr.marshalizer,
 		tr.hasher,
 		tr.enableEpochsHandler,
-		tr.maxTrieLevelInMemory,
 	)
 	if err != nil {
 		return nil, nil, err

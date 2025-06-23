@@ -75,14 +75,13 @@ func newEmptyTrie() (*patriciaMerkleTrie, *trieStorageManager) {
 	args := GetDefaultTrieStorageManagerParameters()
 	trieStorage, _ := NewTrieStorageManager(args)
 	tr := &patriciaMerkleTrie{
-		trieStorage:          trieStorage,
-		marshalizer:          args.Marshalizer,
-		hasher:               args.Hasher,
-		oldHashes:            make([][]byte, 0),
-		oldRoot:              make([]byte, 0),
-		maxTrieLevelInMemory: 5,
-		chanClose:            make(chan struct{}),
-		enableEpochsHandler:  &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		trieStorage:         trieStorage,
+		marshalizer:         args.Marshalizer,
+		hasher:              args.Hasher,
+		oldHashes:           make([][]byte, 0),
+		oldRoot:             make([]byte, 0),
+		chanClose:           make(chan struct{}),
+		enableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 	}
 
 	return tr, trieStorage
@@ -196,10 +195,9 @@ func TestBranchNode_setRootHash(t *testing.T) {
 
 	trieStorage1, _ := NewTrieStorageManager(GetDefaultTrieStorageManagerParameters())
 	trieStorage2, _ := NewTrieStorageManager(GetDefaultTrieStorageManagerParameters())
-	maxTrieLevelInMemory := uint(5)
 
-	tr1, _ := NewTrie(trieStorage1, marsh, hsh, &enableEpochsHandlerMock.EnableEpochsHandlerStub{}, maxTrieLevelInMemory)
-	tr2, _ := NewTrie(trieStorage2, marsh, hsh, &enableEpochsHandlerMock.EnableEpochsHandlerStub{}, maxTrieLevelInMemory)
+	tr1, _ := NewTrie(trieStorage1, marsh, hsh, &enableEpochsHandlerMock.EnableEpochsHandlerStub{})
+	tr2, _ := NewTrie(trieStorage2, marsh, hsh, &enableEpochsHandlerMock.EnableEpochsHandlerStub{})
 
 	maxIterations := 10000
 	for i := 0; i < maxIterations; i++ {
