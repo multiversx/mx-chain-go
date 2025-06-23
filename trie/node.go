@@ -308,3 +308,8 @@ func shouldMigrateCurrentNode(
 
 	return true, nil
 }
+
+func isLeafNode(n node) bool {
+	_, ok := n.(*leafNode)
+	return ok
+}

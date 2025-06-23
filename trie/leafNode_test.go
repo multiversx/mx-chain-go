@@ -157,7 +157,7 @@ func TestLeafNode_commit(t *testing.T) {
 	hash, _ := encodeNodeAndGetHash(ln)
 	_ = ln.setHash()
 
-	err := ln.commitDirty(0, 5, db, db)
+	err := ln.commitDirty(db, db)
 	assert.Nil(t, err)
 
 	encNode, _ := db.Get(hash)
@@ -172,7 +172,7 @@ func TestLeafNode_commitEmptyNode(t *testing.T) {
 
 	ln := &leafNode{}
 
-	err := ln.commitDirty(0, 5, nil, nil)
+	err := ln.commitDirty(nil, nil)
 	assert.True(t, errors.Is(err, ErrEmptyLeafNode))
 }
 
@@ -181,7 +181,7 @@ func TestLeafNode_commitNilNode(t *testing.T) {
 
 	var ln *leafNode
 
-	err := ln.commitDirty(0, 5, nil, nil)
+	err := ln.commitDirty(nil, nil)
 	assert.True(t, errors.Is(err, ErrNilLeafNode))
 }
 
@@ -356,7 +356,7 @@ func TestLeafNode_insertInStoredLnAtSameKey(t *testing.T) {
 
 	db := testscommon.NewMemDbMock()
 	ln := getLn(getTestMarshalizerAndHasher())
-	_ = ln.commitDirty(0, 5, db, db)
+	_ = ln.commitDirty(db, db)
 	lnHash := ln.getHash()
 
 	newNode, oldHashes, err := ln.insert(getTrieDataWithDefaultVersion("dog", "dogs"), db)
@@ -371,7 +371,7 @@ func TestLeafNode_insertInStoredLnAtDifferentKey(t *testing.T) {
 	db := testscommon.NewMemDbMock()
 	marsh, hasher := getTestMarshalizerAndHasher()
 	ln, _ := newLeafNode(getTrieDataWithDefaultVersion(string([]byte{1, 2, 3}), "dog"), marsh, hasher)
-	_ = ln.commitDirty(0, 5, db, db)
+	_ = ln.commitDirty(db, db)
 	lnHash := ln.getHash()
 
 	newNode, oldHashes, err := ln.insert(getTrieDataWithDefaultVersion(string([]byte{4, 5, 6}), "dogs"), db)
@@ -430,7 +430,7 @@ func TestLeafNode_deleteFromStoredLnAtSameKey(t *testing.T) {
 
 	db := testscommon.NewMemDbMock()
 	ln := getLn(getTestMarshalizerAndHasher())
-	_ = ln.commitDirty(0, 5, db, db)
+	_ = ln.commitDirty(db, db)
 	lnHash := ln.getHash()
 
 	dirty, _, oldHashes, err := ln.delete([]byte("dog"), db)
@@ -444,7 +444,7 @@ func TestLeafNode_deleteFromLnAtDifferentKey(t *testing.T) {
 
 	db := testscommon.NewMemDbMock()
 	ln := getLn(getTestMarshalizerAndHasher())
-	_ = ln.commitDirty(0, 5, db, db)
+	_ = ln.commitDirty(db, db)
 	wrongKey := []byte{1, 2, 3}
 
 	dirty, _, oldHashes, err := ln.delete(wrongKey, db)

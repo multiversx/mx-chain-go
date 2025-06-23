@@ -173,8 +173,7 @@ func (en *extensionNode) hashNode() ([]byte, error) {
 	return encodeNodeAndGetHash(en)
 }
 
-func (en *extensionNode) commitDirty(level byte, maxTrieLevelInMemory uint, originDb common.TrieStorageInteractor, targetDb common.BaseStorer) error {
-	level++
+func (en *extensionNode) commitDirty(originDb common.TrieStorageInteractor, targetDb common.BaseStorer) error {
 	err := en.isEmptyOrNil()
 	if err != nil {
 		return fmt.Errorf("commit error %w", err)
@@ -185,7 +184,7 @@ func (en *extensionNode) commitDirty(level byte, maxTrieLevelInMemory uint, orig
 	}
 
 	if en.child != nil {
-		err = en.child.commitDirty(level, maxTrieLevelInMemory, originDb, targetDb)
+		err = en.child.commitDirty(originDb, targetDb)
 		if err != nil {
 			return err
 		}
@@ -196,17 +195,7 @@ func (en *extensionNode) commitDirty(level byte, maxTrieLevelInMemory uint, orig
 	if err != nil {
 		return err
 	}
-	if uint(level) == maxTrieLevelInMemory {
-		log.Trace("collapse extension node on commit")
 
-		var collapsedEn *extensionNode
-		collapsedEn, err = en.getCollapsedEn()
-		if err != nil {
-			return err
-		}
-
-		*en = *collapsedEn
-	}
 	return nil
 }
 

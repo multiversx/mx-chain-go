@@ -248,13 +248,7 @@ func (tr *patriciaMerkleTrie) Commit() error {
 		log.Trace("started committing trie", "trie", tr.root.getHash())
 	}
 
-	// TODO remove the maxTrieLevelInMermory parameter
-	err = tr.root.commitDirty(0, 5, tr.trieStorage, tr.trieStorage)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return tr.root.commitDirty(tr.trieStorage, tr.trieStorage)
 }
 
 // Recreate returns a new trie, given the options

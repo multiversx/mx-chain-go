@@ -119,7 +119,7 @@ func (ln *leafNode) hashNode() ([]byte, error) {
 	return encodeNodeAndGetHash(ln)
 }
 
-func (ln *leafNode) commitDirty(_ byte, _ uint, _ common.TrieStorageInteractor, targetDb common.BaseStorer) error {
+func (ln *leafNode) commitDirty(_ common.TrieStorageInteractor, targetDb common.BaseStorer) error {
 	err := ln.isEmptyOrNil()
 	if err != nil {
 		return fmt.Errorf("commit error %w", err)

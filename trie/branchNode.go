@@ -251,8 +251,7 @@ func (bn *branchNode) hashNode() ([]byte, error) {
 	return encodeNodeAndGetHash(bn)
 }
 
-func (bn *branchNode) commitDirty(level byte, maxTrieLevelInMemory uint, originDb common.TrieStorageInteractor, targetDb common.BaseStorer) error {
-	level++
+func (bn *branchNode) commitDirty(originDb common.TrieStorageInteractor, targetDb common.BaseStorer) error {
 	err := bn.isEmptyOrNil()
 	if err != nil {
 		return fmt.Errorf("commit error %w", err)
@@ -267,7 +266,7 @@ func (bn *branchNode) commitDirty(level byte, maxTrieLevelInMemory uint, originD
 			continue
 		}
 
-		err = bn.children[i].commitDirty(level, maxTrieLevelInMemory, originDb, targetDb)
+		err = bn.children[i].commitDirty(originDb, targetDb)
 		if err != nil {
 			return err
 		}
@@ -277,17 +276,13 @@ func (bn *branchNode) commitDirty(level byte, maxTrieLevelInMemory uint, originD
 	if err != nil {
 		return err
 	}
-	if uint(level) == maxTrieLevelInMemory {
-		log.Trace("collapse branch node on commit")
 
-		var collapsedBn *branchNode
-		collapsedBn, err = bn.getCollapsedBn()
-		if err != nil {
-			return err
+	for i := range bn.children {
+		if isLeafNode(bn.children[i]) {
+			bn.children[i] = nil
 		}
-
-		*bn = *collapsedBn
 	}
+
 	return nil
 }
 

@@ -242,7 +242,7 @@ func TestExtensionNode_commit(t *testing.T) {
 	hash, _ := encodeNodeAndGetHash(collapsedEn)
 	_ = en.setHash()
 
-	err := en.commitDirty(0, 5, db, db)
+	err := en.commitDirty(db, db)
 	assert.Nil(t, err)
 
 	encNode, _ := db.Get(hash)
@@ -258,7 +258,7 @@ func TestExtensionNode_commitEmptyNode(t *testing.T) {
 
 	en := &extensionNode{}
 
-	err := en.commitDirty(0, 5, nil, nil)
+	err := en.commitDirty(nil, nil)
 	assert.True(t, errors.Is(err, ErrEmptyExtensionNode))
 }
 
@@ -267,7 +267,7 @@ func TestExtensionNode_commitNilNode(t *testing.T) {
 
 	var en *extensionNode
 
-	err := en.commitDirty(0, 5, nil, nil)
+	err := en.commitDirty(nil, nil)
 	assert.True(t, errors.Is(err, ErrNilExtensionNode))
 }
 
@@ -280,7 +280,7 @@ func TestExtensionNode_commitCollapsedNode(t *testing.T) {
 	_ = collapsedEn.setHash()
 
 	collapsedEn.dirty = true
-	err := collapsedEn.commitDirty(0, 5, db, db)
+	err := collapsedEn.commitDirty(db, db)
 	assert.Nil(t, err)
 
 	encNode, _ := db.Get(hash)
@@ -330,7 +330,7 @@ func TestExtensionNode_resolveCollapsed(t *testing.T) {
 	db := testscommon.NewMemDbMock()
 	en, collapsedEn := getEnAndCollapsedEn()
 	_ = en.setHash()
-	_ = en.commitDirty(0, 5, db, db)
+	_ = en.commitDirty(db, db)
 	_, resolved := getBnAndCollapsedBn(en.marsh, en.hasher)
 
 	err := collapsedEn.resolveCollapsed(0, db)
@@ -419,7 +419,7 @@ func TestExtensionNode_tryGetCollapsedNode(t *testing.T) {
 	db := testscommon.NewMemDbMock()
 	en, collapsedEn := getEnAndCollapsedEn()
 	_ = en.setHash()
-	_ = en.commitDirty(0, 5, db, db)
+	_ = en.commitDirty(db, db)
 
 	enKey := []byte{100}
 	bnKey := []byte{2}
@@ -511,7 +511,7 @@ func TestExtensionNode_insertCollapsedNode(t *testing.T) {
 	key := []byte{100, 15, 5, 6}
 
 	_ = en.setHash()
-	_ = en.commitDirty(0, 5, db, db)
+	_ = en.commitDirty(db, db)
 
 	newNode, _, err := collapsedEn.insert(getTrieDataWithDefaultVersion(string(key), "dogs"), db)
 	assert.NotNil(t, newNode)
@@ -529,7 +529,7 @@ func TestExtensionNode_insertInStoredEnSameKey(t *testing.T) {
 	enKey := []byte{100}
 	key := append(enKey, []byte{11, 12}...)
 
-	_ = en.commitDirty(0, 5, db, db)
+	_ = en.commitDirty(db, db)
 	enHash := en.getHash()
 	bn, _, _ := en.getNext(enKey, db)
 	bnHash := bn.getHash()
@@ -550,7 +550,7 @@ func TestExtensionNode_insertInStoredEnDifferentKey(t *testing.T) {
 	en, _ := newExtensionNode(enKey, bn, bn.marsh, bn.hasher)
 	nodeKey := []byte{11, 12}
 
-	_ = en.commitDirty(0, 5, db, db)
+	_ = en.commitDirty(db, db)
 	expectedHashes := [][]byte{en.getHash()}
 
 	newNode, oldHashes, err := en.insert(getTrieDataWithDefaultVersion(string(nodeKey), "dogs"), db)
@@ -630,7 +630,7 @@ func TestExtensionNode_deleteFromStoredEn(t *testing.T) {
 	key = append(key, lnKey...)
 	lnPathKey := key
 
-	_ = en.commitDirty(0, 5, db, db)
+	_ = en.commitDirty(db, db)
 	bn, key, _ := en.getNext(key, db)
 	ln, _, _ := bn.getNext(key, db)
 	expectedHashes := [][]byte{ln.getHash(), bn.getHash(), en.getHash()}
@@ -692,7 +692,7 @@ func TestExtensionNode_deleteCollapsedNode(t *testing.T) {
 	db := testscommon.NewMemDbMock()
 	en, collapsedEn := getEnAndCollapsedEn()
 	_ = en.setHash()
-	_ = en.commitDirty(0, 5, db, db)
+	_ = en.commitDirty(db, db)
 
 	enKey := []byte{100}
 	bnKey := []byte{2}
@@ -777,7 +777,7 @@ func TestExtensionNode_getChildrenCollapsedEn(t *testing.T) {
 
 	db := testscommon.NewMemDbMock()
 	en, collapsedEn := getEnAndCollapsedEn()
-	_ = en.commitDirty(0, 5, db, db)
+	_ = en.commitDirty(db, db)
 
 	children, err := collapsedEn.getChildren(db)
 	assert.Nil(t, err)
@@ -885,20 +885,6 @@ func TestExtensionNode_getMarshalizer(t *testing.T) {
 	assert.Equal(t, marsh, en.getMarshalizer())
 }
 
-func TestExtensionNode_commitCollapsesTrieIfMaxTrieLevelInMemoryIsReached(t *testing.T) {
-	t.Parallel()
-
-	en, collapsedEn := getEnAndCollapsedEn()
-	_ = collapsedEn.setRootHash()
-
-	err := en.commitDirty(0, 1, testscommon.NewMemDbMock(), testscommon.NewMemDbMock())
-	assert.Nil(t, err)
-
-	assert.Equal(t, collapsedEn.EncodedChild, en.EncodedChild)
-	assert.Equal(t, collapsedEn.child, en.child)
-	assert.Equal(t, collapsedEn.hash, en.hash)
-}
-
 func TestExtensionNode_printShouldNotPanicEvenIfNodeIsCollapsed(t *testing.T) {
 	t.Parallel()
 
@@ -907,7 +893,7 @@ func TestExtensionNode_printShouldNotPanicEvenIfNodeIsCollapsed(t *testing.T) {
 
 	db := testscommon.NewMemDbMock()
 	en, collapsedEn := getEnAndCollapsedEn()
-	_ = en.commitDirty(0, 5, db, db)
+	_ = en.commitDirty(db, db)
 	_ = collapsedEn.commitSnapshot(db, nil, nil, context.Background(), statistics.NewTrieStatistics(), &testscommon.ProcessStatusHandlerStub{}, 0)
 
 	en.print(enWriter, 0, db)

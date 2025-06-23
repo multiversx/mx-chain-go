@@ -356,7 +356,7 @@ func TestBranchNode_commit(t *testing.T) {
 	hash, _ := encodeNodeAndGetHash(collapsedBn)
 	_ = bn.setHash()
 
-	err := bn.commitDirty(0, 5, db, db)
+	err := bn.commitDirty(db, db)
 	assert.Nil(t, err)
 
 	encNode, _ := db.Get(hash)
@@ -371,7 +371,7 @@ func TestBranchNode_commitEmptyNode(t *testing.T) {
 
 	bn := emptyDirtyBranchNode()
 
-	err := bn.commitDirty(0, 5, nil, nil)
+	err := bn.commitDirty(nil, nil)
 	assert.True(t, errors.Is(err, ErrEmptyBranchNode))
 }
 
@@ -380,7 +380,7 @@ func TestBranchNode_commitNilNode(t *testing.T) {
 
 	var bn *branchNode
 
-	err := bn.commitDirty(0, 5, nil, nil)
+	err := bn.commitDirty(nil, nil)
 	assert.True(t, errors.Is(err, ErrNilBranchNode))
 }
 
@@ -425,7 +425,7 @@ func TestBranchNode_resolveCollapsed(t *testing.T) {
 	childPos := byte(2)
 
 	_ = bn.setHash()
-	_ = bn.commitDirty(0, 5, db, db)
+	_ = bn.commitDirty(db, db)
 	resolved, _ := newLeafNode(getTrieDataWithDefaultVersion("dog", "dog"), bn.marsh, bn.hasher)
 	resolved.dirty = false
 	resolved.hash = bn.EncodedChildren[childPos]
@@ -530,7 +530,7 @@ func TestBranchNode_tryGetCollapsedNode(t *testing.T) {
 	bn, collapsedBn := getBnAndCollapsedBn(getTestMarshalizerAndHasher())
 
 	_ = bn.setHash()
-	_ = bn.commitDirty(0, 5, db, db)
+	_ = bn.commitDirty(db, db)
 
 	childPos := byte(2)
 	key := append([]byte{childPos}, []byte("dog")...)
@@ -653,7 +653,7 @@ func TestBranchNode_insertCollapsedNode(t *testing.T) {
 	key := append([]byte{childPos}, []byte("dog")...)
 
 	_ = bn.setHash()
-	_ = bn.commitDirty(0, 5, db, db)
+	_ = bn.commitDirty(db, db)
 
 	newBn, _, err := collapsedBn.insert(getTrieDataWithDefaultVersion(string(key), "dogs"), db)
 	assert.NotNil(t, newBn)
@@ -671,10 +671,9 @@ func TestBranchNode_insertInStoredBnOnExistingPos(t *testing.T) {
 	childPos := byte(2)
 	key := append([]byte{childPos}, []byte("dog")...)
 
-	_ = bn.commitDirty(0, 5, db, db)
+	_ = bn.commitDirty(db, db)
 	bnHash := bn.getHash()
-	ln, _, _ := bn.getNext(key, db)
-	lnHash := ln.getHash()
+	lnHash := bn.EncodedChildren[childPos]
 	expectedHashes := [][]byte{lnHash, bnHash}
 
 	newNode, oldHashes, err := bn.insert(getTrieDataWithDefaultVersion(string(key), "dogs"), db)
@@ -691,7 +690,7 @@ func TestBranchNode_insertInStoredBnOnNilPos(t *testing.T) {
 	nilChildPos := byte(11)
 	key := append([]byte{nilChildPos}, []byte("dog")...)
 
-	_ = bn.commitDirty(0, 5, db, db)
+	_ = bn.commitDirty(db, db)
 	bnHash := bn.getHash()
 	expectedHashes := [][]byte{bnHash}
 
@@ -767,10 +766,9 @@ func TestBranchNode_deleteFromStoredBn(t *testing.T) {
 	childPos := byte(2)
 	lnKey := append([]byte{childPos}, []byte("dog")...)
 
-	_ = bn.commitDirty(0, 5, db, db)
+	_ = bn.commitDirty(db, db)
 	bnHash := bn.getHash()
-	ln, _, _ := bn.getNext(lnKey, db)
-	lnHash := ln.getHash()
+	lnHash := bn.EncodedChildren[childPos]
 	expectedHashes := [][]byte{lnHash, bnHash}
 
 	dirty, _, oldHashes, err := bn.delete(lnKey, db)
@@ -849,7 +847,7 @@ func TestBranchNode_deleteCollapsedNode(t *testing.T) {
 	db := testscommon.NewMemDbMock()
 	bn, collapsedBn := getBnAndCollapsedBn(getTestMarshalizerAndHasher())
 	_ = bn.setHash()
-	_ = bn.commitDirty(0, 5, db, db)
+	_ = bn.commitDirty(db, db)
 
 	childPos := byte(2)
 	key := append([]byte{childPos}, []byte("dog")...)
@@ -1186,20 +1184,6 @@ func TestBranchNode_setRootHashCollapsedChildren(t *testing.T) {
 	assert.Nil(t, err)
 }
 
-func TestBranchNode_commitCollapsesTrieIfMaxTrieLevelInMemoryIsReached(t *testing.T) {
-	t.Parallel()
-
-	bn, collapsedBn := getBnAndCollapsedBn(getTestMarshalizerAndHasher())
-	_ = collapsedBn.setRootHash()
-
-	err := bn.commitDirty(0, 1, testscommon.NewMemDbMock(), testscommon.NewMemDbMock())
-	assert.Nil(t, err)
-
-	assert.Equal(t, collapsedBn.EncodedChildren, bn.EncodedChildren)
-	assert.Equal(t, collapsedBn.children, bn.children)
-	assert.Equal(t, collapsedBn.hash, bn.hash)
-}
-
 func TestBranchNode_reduceNodeBnChild(t *testing.T) {
 	t.Parallel()
 
@@ -1236,7 +1220,7 @@ func TestBranchNode_getDirtyHashesFromCleanNode(t *testing.T) {
 
 	db := testscommon.NewMemDbMock()
 	bn, _ := getBnAndCollapsedBn(getTestMarshalizerAndHasher())
-	_ = bn.commitDirty(0, 5, db, db)
+	_ = bn.commitDirty(db, db)
 	dirtyHashes := make(common.ModifiedHashes)
 
 	err := bn.getDirtyHashes(dirtyHashes)
@@ -1554,4 +1538,26 @@ func TestBranchNode_getNodeData(t *testing.T) {
 		assert.Equal(t, uint64(hashSize+keySize), thirdChildData.Size())
 		assert.False(t, thirdChildData.IsLeaf())
 	})
+}
+
+func TestBranchNode_commitCollapsesLeaves(t *testing.T) {
+	t.Parallel()
+
+	tr := initTrie()
+	en := tr.root.(*branchNode).children[7]
+	bn := en.(*extensionNode).child.(*branchNode)
+
+	assert.NotNil(t, tr.root.(*branchNode).children[5])
+	assert.NotNil(t, tr.root.(*branchNode).children[7])
+	assert.NotNil(t, en.(*extensionNode).child)
+	assert.NotNil(t, bn.children[4])
+	assert.NotNil(t, bn.children[16])
+	_ = tr.Commit()
+
+	assert.Nil(t, tr.root.(*branchNode).children[5]) // leaf node is collapsed
+	assert.NotNil(t, tr.root.(*branchNode).children[7])
+	assert.NotNil(t, en.(*extensionNode).child)
+	assert.Nil(t, bn.children[4])  // leaf node is collapsed
+	assert.Nil(t, bn.children[16]) // leaf node is collapsed
+
 }
