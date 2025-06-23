@@ -51,8 +51,8 @@ func (hq *headersQueue) AddFirstMultiple(headers []data.HeaderHandler) error {
 	return nil
 }
 
-// TakeFirstHeaderForProcessing removes and returns the first header from the queue
-func (hq *headersQueue) TakeFirstHeaderForProcessing() (data.HeaderHandler, error) {
+// Pop removes and returns the first header from the queue
+func (hq *headersQueue) Pop() (data.HeaderHandler, error) {
 	hq.mutex.Lock()
 	defer hq.mutex.Unlock()
 

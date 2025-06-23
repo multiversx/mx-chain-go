@@ -18,6 +18,7 @@ func TestNewHeadersQueue(t *testing.T) {
 	require.NotNil(t, hq)
 	require.NotNil(t, hq.headers)
 	require.Equal(t, 0, len(hq.headers))
+	require.False(t, hq.IsInterfaceNil())
 }
 
 func TestHeadersQueue_Add(t *testing.T) {
@@ -76,7 +77,7 @@ func TestHeadersQueue_TakeFirstHeaderForProcessing(t *testing.T) {
 	t.Run("empty queue should return error", func(t *testing.T) {
 		t.Parallel()
 		hq, _ := NewHeadersQueue()
-		header, err := hq.TakeFirstHeaderForProcessing()
+		header, err := hq.Pop()
 		assert.Nil(t, header)
 		assert.Equal(t, ErrNoHeaderForProcessing, err)
 	})
@@ -89,10 +90,58 @@ func TestHeadersQueue_TakeFirstHeaderForProcessing(t *testing.T) {
 		_ = hq.Add(header1)
 		_ = hq.Add(header2)
 
-		firstHeader, err := hq.TakeFirstHeaderForProcessing()
+		firstHeader, err := hq.Pop()
 		assert.Nil(t, err)
 		assert.Equal(t, uint64(1), firstHeader.GetNonce())
 		assert.Equal(t, 1, len(hq.headers))
 		assert.Equal(t, uint64(2), hq.headers[0].GetNonce())
 	})
+}
+
+func TestHeadersQueue_Concurrency(t *testing.T) {
+	hq, _ := NewHeadersQueue()
+	const numGoroutines = 10
+	const headersPerGoroutine = 10
+
+	done := make(chan struct{})
+
+	for i := 0; i < numGoroutines; i++ {
+		go func(gid int) {
+			for j := 0; j < headersPerGoroutine; j++ {
+				h := &block.Header{Nonce: uint64(gid*headersPerGoroutine + j)}
+				_ = hq.Add(h)
+			}
+			done <- struct{}{}
+		}(i)
+	}
+
+	for i := 0; i < numGoroutines; i++ {
+		<-done
+	}
+
+	totalHeaders := numGoroutines * headersPerGoroutine
+
+	results := make(chan uint64, totalHeaders)
+	for i := 0; i < numGoroutines; i++ {
+		go func() {
+			for {
+				h, err := hq.Pop()
+				if err != nil {
+					return
+				}
+				hdr := h.(*block.Header)
+				results <- hdr.Nonce
+			}
+		}()
+	}
+
+	nonces := make(map[uint64]struct{})
+	for i := 0; i < totalHeaders; i++ {
+		n := <-results
+		nonces[n] = struct{}{}
+	}
+
+	_, err := hq.Pop()
+	assert.Equal(t, ErrNoHeaderForProcessing, err)
+	assert.Equal(t, totalHeaders, len(nonces))
 }
