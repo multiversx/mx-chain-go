@@ -752,6 +752,9 @@ func TestTransactions_CreateAndProcessMiniBlockCrossShardGasLimitAddAll(t *testi
 		},
 	}
 	args.Accounts = &stateMock.AccountsStub{
+		RootHashCalled: func() ([]byte, error) {
+			return []byte("rootHash"), nil
+		},
 		GetExistingAccountCalled: func(_ []byte) (vmcommon.AccountHandler, error) {
 			return &stateMock.UserAccountStub{
 				Nonce:   42,
@@ -814,6 +817,9 @@ func TestTransactions_CreateAndProcessMiniBlockCrossShardGasLimitAddAllAsNoSCCal
 		},
 	}
 	args.Accounts = &stateMock.AccountsStub{
+		RootHashCalled: func() ([]byte, error) {
+			return []byte("rootHash"), nil
+		},
 		GetExistingAccountCalled: func(_ []byte) (vmcommon.AccountHandler, error) {
 			return &stateMock.UserAccountStub{
 				Nonce:   42,
@@ -887,6 +893,9 @@ func TestTransactions_CreateAndProcessMiniBlockCrossShardGasLimitAddOnly5asSCCal
 		},
 	}
 	args.Accounts = &stateMock.AccountsStub{
+		RootHashCalled: func() ([]byte, error) {
+			return []byte("rootHash"), nil
+		},
 		GetExistingAccountCalled: func(_ []byte) (vmcommon.AccountHandler, error) {
 			return &stateMock.UserAccountStub{
 				Nonce:   42,

@@ -3082,6 +3082,9 @@ func TestShardProcessor_CreateMiniBlocksShouldWorkWithIntraShardTxs(t *testing.T
 	}
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(3)
 	accntAdapter := &stateMock.AccountsStub{
+		RootHashCalled: func() ([]byte, error) {
+			return []byte("rootHash1"), nil
+		},
 		RevertToSnapshotCalled: func(snapshot int) error {
 			assert.Fail(t, "revert should have not been called")
 			return nil
