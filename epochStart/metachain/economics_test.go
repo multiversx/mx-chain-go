@@ -14,8 +14,10 @@ import (
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/epochStart"
 	"github.com/multiversx/mx-chain-go/epochStart/mock"
+	commonErrors "github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/storage"
+	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
 	storageStubs "github.com/multiversx/mx-chain-go/testscommon/storage"
 	"github.com/stretchr/testify/assert"
@@ -34,6 +36,7 @@ func createMockEpochEconomicsArguments() ArgsNewEpochEconomics {
 		RoundTime:             &mock.RoundTimeDurationHandler{},
 		GenesisTotalSupply:    big.NewInt(2000000),
 		EconomicsDataNotified: NewEpochEconomicsStatistics(),
+		EnableEpochsHandler:   &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 	}
 	return argsNewEpochEconomics
 }
@@ -156,6 +159,17 @@ func TestNewEndOfEpochEconomicsDataCreator_NilRoundTimeDurationHandler(t *testin
 
 	assert.True(t, check.IfNil(eoeedc))
 	assert.Equal(t, epochStart.ErrNilRoundHandler, err)
+}
+
+func TestNewEndOfEpochEconomicsDataCreator_NilEnableEpochsHandler(t *testing.T) {
+	t.Parallel()
+
+	args := getArguments()
+	args.EnableEpochsHandler = nil
+	eoeedc, err := NewEndOfEpochEconomicsDataCreator(args)
+
+	assert.True(t, check.IfNil(eoeedc))
+	assert.Equal(t, commonErrors.ErrNilEnableEpochsHandler, err)
 }
 
 func TestNewEndOfEpochEconomicsDataCreator_ShouldWork(t *testing.T) {
@@ -316,23 +330,25 @@ func TestEconomics_ComputeInflationRate(t *testing.T) {
 	}
 	ec, _ := NewEndOfEpochEconomicsDataCreator(args)
 
-	rate := ec.computeInflationRate(1)
+	epoch := uint32(1)
+
+	rate := ec.computeInflationRate(1, epoch)
 	assert.Nil(t, errFound)
 	assert.Equal(t, rate, year1inflation)
 
-	rate = ec.computeInflationRate(50000)
+	rate = ec.computeInflationRate(50000, epoch)
 	assert.Nil(t, errFound)
 	assert.Equal(t, rate, year1inflation)
 
-	rate = ec.computeInflationRate(7884000)
+	rate = ec.computeInflationRate(7884000, epoch)
 	assert.Nil(t, errFound)
 	assert.Equal(t, rate, year2inflation)
 
-	rate = ec.computeInflationRate(8884000)
+	rate = ec.computeInflationRate(8884000, epoch)
 	assert.Nil(t, errFound)
 	assert.Equal(t, rate, year2inflation)
 
-	rate = ec.computeInflationRate(38884000)
+	rate = ec.computeInflationRate(38884000, epoch)
 	assert.Nil(t, errFound)
 	assert.Equal(t, rate, lateYearInflation)
 }
@@ -1274,7 +1290,7 @@ func TestEconomics_checkEconomicsInvariantsAccumulatedFeesOutOfRange(t *testing.
 	ec, _ := NewEndOfEpochEconomicsDataCreator(args)
 	maxBlocksInEpoch := uint64(300)
 	inflationRate := 0.1
-	inflationPerEpoch := ec.computeInflationForEpoch(inflationRate, maxBlocksInEpoch)
+	inflationPerEpoch := ec.computeInflationForEpoch(inflationRate, maxBlocksInEpoch, 2)
 	computedEconomics, metaBlock := defaultComputedEconomicsAndMetaBlock(totalSupply, inflationPerEpoch)
 	metaBlock.AccumulatedFeesInEpoch = big.NewInt(-1)
 
@@ -1318,7 +1334,7 @@ func TestEconomics_checkEconomicsInvariantsRewardsForProtocolSustainabilityOutOf
 	ec, _ := NewEndOfEpochEconomicsDataCreator(args)
 	maxBlocksInEpoch := uint64(300)
 	inflationRate := 0.1
-	inflationPerEpoch := ec.computeInflationForEpoch(inflationRate, maxBlocksInEpoch)
+	inflationPerEpoch := ec.computeInflationForEpoch(inflationRate, maxBlocksInEpoch, 2)
 	computedEconomics, metaBlock := defaultComputedEconomicsAndMetaBlock(totalSupply, inflationPerEpoch)
 	computedEconomics.RewardsForProtocolSustainability = big.NewInt(-1)
 
@@ -1362,7 +1378,7 @@ func TestEconomics_checkEconomicsInvariantsMintedOutOfRange(t *testing.T) {
 	ec, _ := NewEndOfEpochEconomicsDataCreator(args)
 	maxBlocksInEpoch := uint64(300)
 	inflationRate := 0.1
-	inflationPerEpoch := ec.computeInflationForEpoch(inflationRate, maxBlocksInEpoch)
+	inflationPerEpoch := ec.computeInflationForEpoch(inflationRate, maxBlocksInEpoch, 2)
 	computedEconomics, metaBlock := defaultComputedEconomicsAndMetaBlock(totalSupply, inflationPerEpoch)
 	computedEconomics.TotalNewlyMinted = big.NewInt(-1)
 
@@ -1406,7 +1422,7 @@ func TestEconomics_checkEconomicsInvariantsTotalToDistributeOutOfRange(t *testin
 	ec, _ := NewEndOfEpochEconomicsDataCreator(args)
 	maxBlocksInEpoch := uint64(300)
 	inflationRate := 0.1
-	inflationPerEpoch := ec.computeInflationForEpoch(inflationRate, maxBlocksInEpoch)
+	inflationPerEpoch := ec.computeInflationForEpoch(inflationRate, maxBlocksInEpoch, 2)
 	computedEconomics, metaBlock := defaultComputedEconomicsAndMetaBlock(totalSupply, inflationPerEpoch)
 	computedEconomics.TotalToDistribute = big.NewInt(-1)
 
@@ -1450,7 +1466,7 @@ func TestEconomics_checkEconomicsInvariantsSumRewardsOutOfRange(t *testing.T) {
 	ec, _ := NewEndOfEpochEconomicsDataCreator(args)
 	maxBlocksInEpoch := uint64(300)
 	inflationRate := 0.1
-	inflationPerEpoch := ec.computeInflationForEpoch(inflationRate, maxBlocksInEpoch)
+	inflationPerEpoch := ec.computeInflationForEpoch(inflationRate, maxBlocksInEpoch, 2)
 	computedEconomics, metaBlock := defaultComputedEconomicsAndMetaBlock(totalSupply, inflationPerEpoch)
 	computedEconomics.RewardsPerBlock = big.NewInt(-1)
 
@@ -1494,7 +1510,7 @@ func TestEconomics_checkEconomicsInvariantsV2ReturnsOK(t *testing.T) {
 	ec, _ := NewEndOfEpochEconomicsDataCreator(args)
 	maxBlocksInEpoch := uint64(300)
 	inflationRate := 0.1
-	inflationPerEpoch := ec.computeInflationForEpoch(inflationRate, maxBlocksInEpoch)
+	inflationPerEpoch := ec.computeInflationForEpoch(inflationRate, maxBlocksInEpoch, 2)
 	computedEconomics, metaBlock := defaultComputedEconomicsAndMetaBlock(totalSupply, inflationPerEpoch)
 
 	err := ec.checkEconomicsInvariants(
@@ -1521,7 +1537,7 @@ func TestEconomics_checkEconomicsInvariantsV2ExtraBlocksNotarized(t *testing.T) 
 	maxBlocksInEpoch := uint64(300)
 	inflationRate := 0.1
 	extraBlocksNotarized := uint64(100)
-	actualInflationPerEpochWithCarry := ec.computeInflationForEpoch(inflationRate, maxBlocksInEpoch+extraBlocksNotarized)
+	actualInflationPerEpochWithCarry := ec.computeInflationForEpoch(inflationRate, maxBlocksInEpoch+extraBlocksNotarized, 2)
 	computedEconomics, metaBlock := defaultComputedEconomicsAndMetaBlock(totalSupply, actualInflationPerEpochWithCarry)
 
 	err := ec.checkEconomicsInvariants(
@@ -1723,5 +1739,6 @@ func getArguments() ArgsNewEpochEconomics {
 		RoundTime:             &mock.RoundTimeDurationHandler{},
 		GenesisTotalSupply:    genesisSupply,
 		EconomicsDataNotified: NewEpochEconomicsStatistics(),
+		EnableEpochsHandler:   &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 	}
 }

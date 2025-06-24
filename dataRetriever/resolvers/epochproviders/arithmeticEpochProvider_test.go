@@ -9,6 +9,7 @@ import (
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/testscommon/chainParameters"
+	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -34,6 +35,7 @@ func TestNewArithmeticEpochProvider_NilChainParameterHandler(t *testing.T) {
 
 	arg := ArgArithmeticEpochProvider{
 		ChainParametersHandler: nil,
+		EnableEpochsHandler:    &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 		StartTime:              1,
 	}
 
@@ -63,6 +65,7 @@ func TestNewArithmeticEpochProvider_ShouldWork(t *testing.T) {
 	arg := ArgArithmeticEpochProvider{
 		ChainParametersHandler: getMockChainParametersHandler(),
 		StartTime:              time.Now().Unix(),
+		EnableEpochsHandler:    &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 	}
 
 	aep, err := NewArithmeticEpochProvider(arg)
@@ -78,6 +81,7 @@ func TestArithmeticEpochProvider_ComputeEpochAtGenesis(t *testing.T) {
 	arg := ArgArithmeticEpochProvider{
 		ChainParametersHandler: getMockChainParametersHandler(),
 		StartTime:              1000,
+		EnableEpochsHandler:    &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 	}
 	aep := NewTestArithmeticEpochProvider(arg, getUnixHandler(0))
 	assert.Equal(t, uint32(0), aep.CurrentComputedEpoch())
@@ -122,7 +126,8 @@ func TestArithmeticEpochProvider_EpochConfirmedInvalidTimestamp(t *testing.T) {
 				}
 			},
 		},
-		StartTime: 1000,
+		StartTime:           1000,
+		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 	}
 	aep := NewTestArithmeticEpochProvider(arg, getUnixHandler(15500))
 	assert.Equal(t, uint32(1), aep.CurrentComputedEpoch())
@@ -138,6 +143,7 @@ func TestArithmeticEpochProvider_EpochConfirmed(t *testing.T) {
 	arg := ArgArithmeticEpochProvider{
 		ChainParametersHandler: getMockChainParametersHandler(),
 		StartTime:              1000,
+		EnableEpochsHandler:    &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 	}
 	aep := NewTestArithmeticEpochProvider(arg, getUnixHandler(15500))
 	assert.Equal(t, uint32(1), aep.CurrentComputedEpoch())
@@ -155,6 +161,7 @@ func TestArithmeticEpochProvider_EpochIsActiveInNetwork(t *testing.T) {
 	arg := ArgArithmeticEpochProvider{
 		ChainParametersHandler: getMockChainParametersHandler(),
 		StartTime:              1,
+		EnableEpochsHandler:    &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 	}
 	aep := NewTestArithmeticEpochProvider(arg, getUnixHandler(1))
 

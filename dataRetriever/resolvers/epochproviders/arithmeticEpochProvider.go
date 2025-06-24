@@ -6,6 +6,8 @@ import (
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/process"
 	logger "github.com/multiversx/mx-chain-logger-go"
 )
@@ -23,6 +25,7 @@ var log = logger.GetOrCreate("resolvers/epochproviders")
 type ArgArithmeticEpochProvider struct {
 	ChainParametersHandler process.ChainParametersHandler
 	StartTime              int64
+	EnableEpochsHandler    common.EnableEpochsHandler
 }
 
 type arithmeticEpochProvider struct {
@@ -32,6 +35,7 @@ type arithmeticEpochProvider struct {
 	headerTimestampForNewEpoch uint64
 	startTime                  int64
 	getUnixHandler             func() int64
+	enableEpochsHandler        common.EnableEpochsHandler
 	chainParamsHandler         process.ChainParametersHandler
 }
 
@@ -41,6 +45,9 @@ func NewArithmeticEpochProvider(arg ArgArithmeticEpochProvider) (*arithmeticEpoc
 	if arg.StartTime < 0 {
 		return nil, fmt.Errorf("%w in NewArithmeticEpochProvider", ErrInvalidStartTime)
 	}
+	if check.IfNil(arg.EnableEpochsHandler) {
+		return nil, errors.ErrNilEnableEpochsHandler
+	}
 	if check.IfNil(arg.ChainParametersHandler) {
 		return nil, process.ErrNilChainParametersHandler
 	}
@@ -49,9 +56,14 @@ func NewArithmeticEpochProvider(arg ArgArithmeticEpochProvider) (*arithmeticEpoc
 		headerEpoch:                0,
 		headerTimestampForNewEpoch: uint64(arg.StartTime),
 		startTime:                  arg.StartTime,
+		enableEpochsHandler:        arg.EnableEpochsHandler,
 		chainParamsHandler:         arg.ChainParametersHandler,
 	}
 	aep.getUnixHandler = func() int64 {
+		if aep.enableEpochsHandler.IsFlagEnabledInEpoch(common.SupernovaFlag, aep.headerEpoch) {
+			return time.Now().UnixMilli()
+		}
+
 		return time.Now().Unix()
 	}
 	aep.computeCurrentEpoch() //based on the genesis provided data
