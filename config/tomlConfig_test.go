@@ -935,6 +935,9 @@ func TestEnableEpochConfig(t *testing.T) {
     # CheckBuiltInCallOnTransferValueAndFailEnableRound represents the ROUND when the check on transfer value fix is activated
     CheckBuiltInCallOnTransferValueAndFailEnableRound = 106
 
+    # SupernovaEnableEpoch represents the epoch when sub-second finality will be enabled
+    SupernovaEnableEpoch = 107
+
     # MaxNodesChangeEnableEpoch holds configuration for changing the maximum number of nodes and the enabling epoch
     MaxNodesChangeEnableEpoch = [
         { EpochEnable = 44, MaxNumNodes = 2169, NodesToShufflePerShard = 80 },
@@ -1059,6 +1062,7 @@ func TestEnableEpochConfig(t *testing.T) {
 			RelayedTransactionsV3FixESDTTransferEnableEpoch:          104,
 			AndromedaEnableEpoch:                                     105,
 			CheckBuiltInCallOnTransferValueAndFailEnableRound:        106,
+			SupernovaEnableEpoch:                                     107,
 			MaxNodesChangeEnableEpoch: []MaxNodesChangeConfig{
 				{
 					EpochEnable:            44,
