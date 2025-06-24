@@ -118,6 +118,7 @@ import (
 	dataRetrieverMock "github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
 	dblookupextMock "github.com/multiversx/mx-chain-go/testscommon/dblookupext"
 	"github.com/multiversx/mx-chain-go/testscommon/economicsmocks"
+	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/epochNotifier"
 	testFactory "github.com/multiversx/mx-chain-go/testscommon/factory"
 	"github.com/multiversx/mx-chain-go/testscommon/genesisMocks"
@@ -1326,11 +1327,8 @@ func (tpn *TestProcessorNode) initInterceptors(heartbeatPk string) {
 
 	if tpn.ShardCoordinator.SelfId() == core.MetachainShardId {
 		argsEpochStart := &metachain.ArgsNewMetaEpochStartTrigger{
-			GenesisTime: tpn.RoundHandler.TimeStamp(),
-			Settings: &config.EpochStartConfig{
-				MinRoundsBetweenEpochs: 1000,
-				RoundsPerEpoch:         10000,
-			},
+			GenesisTime:        tpn.RoundHandler.TimeStamp(),
+			Settings:           &config.EpochStartConfig{},
 			Epoch:              0,
 			EpochStartNotifier: tpn.EpochStartNotifier,
 			Storage:            tpn.Storage,
@@ -1338,6 +1336,14 @@ func (tpn *TestProcessorNode) initInterceptors(heartbeatPk string) {
 			Hasher:             TestHasher,
 			AppStatusHandler:   &statusHandlerMock.AppStatusHandlerStub{},
 			DataPool:           tpn.DataPool,
+			ChainParametersHandler: &chainParameters.ChainParametersHandlerStub{
+				ChainParametersForEpochCalled: func(uint32) (config.ChainParametersByEpochConfig, error) {
+					return config.ChainParametersByEpochConfig{
+						RoundsPerEpoch:         10000,
+						MinRoundsBetweenEpochs: 1000,
+					}, nil
+				},
+			},
 		}
 		epochStartTrigger, _ := metachain.NewEpochStartTrigger(argsEpochStart)
 		tpn.EpochStartTrigger = &metachain.TestTrigger{}
@@ -1472,6 +1478,7 @@ func (tpn *TestProcessorNode) createHardforkTrigger(heartbeatPk string) []byte {
 		SelfPubKeyBytes:           pkBytes,
 		ImportStartHandler:        &mock.ImportStartHandlerStub{},
 		RoundHandler:              &mock.RoundHandlerMock{},
+		EnableEpochsHandler:       &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 	}
 
 	var err error
@@ -2283,11 +2290,8 @@ func (tpn *TestProcessorNode) initBlockProcessor() {
 	if tpn.ShardCoordinator.SelfId() == core.MetachainShardId {
 		if check.IfNil(tpn.EpochStartTrigger) {
 			argsEpochStart := &metachain.ArgsNewMetaEpochStartTrigger{
-				GenesisTime: argumentsBase.CoreComponents.RoundHandler().TimeStamp(),
-				Settings: &config.EpochStartConfig{
-					MinRoundsBetweenEpochs: 1000,
-					RoundsPerEpoch:         10000,
-				},
+				GenesisTime:        argumentsBase.CoreComponents.RoundHandler().TimeStamp(),
+				Settings:           &config.EpochStartConfig{},
 				Epoch:              0,
 				EpochStartNotifier: tpn.EpochStartNotifier,
 				Storage:            tpn.Storage,
@@ -2295,6 +2299,14 @@ func (tpn *TestProcessorNode) initBlockProcessor() {
 				Hasher:             TestHasher,
 				AppStatusHandler:   &statusHandlerMock.AppStatusHandlerStub{},
 				DataPool:           tpn.DataPool,
+				ChainParametersHandler: &chainParameters.ChainParametersHandlerStub{
+					ChainParametersForEpochCalled: func(uint32) (config.ChainParametersByEpochConfig, error) {
+						return config.ChainParametersByEpochConfig{
+							RoundsPerEpoch:         10000,
+							MinRoundsBetweenEpochs: 1000,
+						}, nil
+					},
+				},
 			}
 			epochStartTrigger, _ := metachain.NewEpochStartTrigger(argsEpochStart)
 			tpn.EpochStartTrigger = &metachain.TestTrigger{}
@@ -2341,6 +2353,7 @@ func (tpn *TestProcessorNode) initBlockProcessor() {
 			GenesisTotalSupply:    tpn.EconomicsData.GenesisTotalSupply(),
 			EconomicsDataNotified: economicsDataProvider,
 			StakingV2EnableEpoch:  tpn.EnableEpochs.StakingV2EnableEpoch,
+			EnableEpochsHandler:   tpn.EnableEpochsHandler,
 		}
 		epochEconomics, _ := metachain.NewEndOfEpochEconomicsDataCreator(argsEpochEconomics)
 
@@ -3410,6 +3423,20 @@ func GetDefaultCoreComponents(enableEpochsHandler common.EnableEpochsHandler, ep
 		EnableEpochsHandlerField:           enableEpochsHandler,
 		EpochChangeGracePeriodHandlerField: TestEpochChangeGracePeriod,
 		FieldsSizeCheckerField:             &testscommon.FieldsSizeCheckerMock{},
+		ChainParametersHandlerField: &chainParameters.ChainParametersHandlerStub{
+			CurrentChainParametersCalled: func() config.ChainParametersByEpochConfig {
+				return config.ChainParametersByEpochConfig{
+					RoundsPerEpoch:         200,
+					MinRoundsBetweenEpochs: 10,
+				}
+			},
+			ChainParametersForEpochCalled: func(uint32) (config.ChainParametersByEpochConfig, error) {
+				return config.ChainParametersByEpochConfig{
+					RoundsPerEpoch:         200,
+					MinRoundsBetweenEpochs: 10,
+				}, nil
+			},
+		},
 	}
 }
 

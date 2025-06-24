@@ -275,6 +275,7 @@ func (node *testOnlyProcessingNode) createNodesCoordinator(pref config.Preferenc
 		node.CoreComponentsHolder.GenesisNodesSetup(),
 		generalConfig.EpochStartConfig,
 		node.CoreComponentsHolder.ChanStopNodeProcess(),
+		node.CoreComponentsHolder.ChainParametersHandler(),
 	)
 	if err != nil {
 		return err

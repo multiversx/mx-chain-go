@@ -8,6 +8,7 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-go/epochStart"
 
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
@@ -96,6 +97,15 @@ func validateChainParameters(chainParametersConfig []config.ChainParametersByEpo
 		}
 		if chainParameters.MetachainMinNumNodes < chainParameters.MetachainConsensusGroupSize {
 			return fmt.Errorf("%w for chain parameters with index %d", ErrMinNodesPerShardSmallerThanConsensusSize, idx)
+		}
+		if chainParameters.RoundsPerEpoch < 1 {
+			return fmt.Errorf("%w, RoundsPerEpoch < 1", epochStart.ErrInvalidSettingsForEpochStartTrigger)
+		}
+		if chainParameters.MinRoundsBetweenEpochs < 1 {
+			return fmt.Errorf("%w, MinRoundsBetweenEpochs < 1", epochStart.ErrInvalidSettingsForEpochStartTrigger)
+		}
+		if chainParameters.MinRoundsBetweenEpochs > chainParameters.RoundsPerEpoch {
+			return fmt.Errorf("%w, MinRoundsBetweenEpochs > RoundsPerEpoch", epochStart.ErrInvalidSettingsForEpochStartTrigger)
 		}
 	}
 
