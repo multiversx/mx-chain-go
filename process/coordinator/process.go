@@ -1010,13 +1010,13 @@ func createBroadcastTopic(shardC sharding.Coordinator, destShId uint32, mbType b
 
 	switch mbType {
 	case block.TxBlock:
-		baseTopic = factory.TransactionTopic
+		baseTopic = common.TransactionTopic
 	case block.PeerBlock:
 		baseTopic = factory.PeerChBodyTopic
 	case block.SmartContractResultBlock:
-		baseTopic = factory.UnsignedTransactionTopic
+		baseTopic = common.UnsignedTransactionTopic
 	case block.RewardsBlock:
-		baseTopic = factory.RewardsTransactionTopic
+		baseTopic = common.RewardsTransactionTopic
 	default:
 		return "", process.ErrUnknownBlockType
 	}

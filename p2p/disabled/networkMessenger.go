@@ -72,6 +72,11 @@ func (netMes *networkMessenger) UnJoinAllTopics() error {
 	return nil
 }
 
+// UnJoinTopic returns nil as it is disabled
+func (netMes *networkMessenger) UnJoinTopic(_ string) error {
+	return nil
+}
+
 // Bootstrap returns nil as it is disabled
 func (netMes *networkMessenger) Bootstrap() error {
 	return nil

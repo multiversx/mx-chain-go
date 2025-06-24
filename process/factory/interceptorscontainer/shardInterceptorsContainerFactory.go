@@ -236,7 +236,7 @@ func (sicf *shardInterceptorsContainerFactory) generateRewardTxInterceptor() err
 	keys := make([]string, 0)
 	interceptorSlice := make([]process.Interceptor, 0)
 
-	identifierTx := factory.RewardsTransactionTopic + shardC.CommunicationIdentifier(core.MetachainShardId)
+	identifierTx := common.RewardsTransactionTopic + shardC.CommunicationIdentifier(core.MetachainShardId)
 	interceptor, err := sicf.createOneRewardTxInterceptor(identifierTx)
 	if err != nil {
 		return err

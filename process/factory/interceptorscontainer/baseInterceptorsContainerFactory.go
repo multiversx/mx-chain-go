@@ -2,7 +2,6 @@ package interceptorscontainer
 
 import (
 	"fmt"
-	"strings"
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
@@ -189,7 +188,7 @@ func (bicf *baseInterceptorsContainerFactory) createTopicAndAssignHandler(
 ) (process.Interceptor, error) {
 	network := p2p.MainNetwork
 	faNetwork := p2p.FullArchiveNetwork
-	if shouldUseTransactionsNetwork(topic) {
+	if common.ShouldUseTransactionsNetwork(topic, bicf.enableEpochsHandler) {
 		network = p2p.TransactionsNetwork
 		faNetwork = p2p.TransactionsNetwork
 	}
@@ -207,12 +206,6 @@ func (bicf *baseInterceptorsContainerFactory) createTopicAndAssignHandler(
 	}
 
 	return interceptor, nil
-}
-
-func shouldUseTransactionsNetwork(topic string) bool {
-	return strings.Contains(topic, factory.TransactionTopic) ||
-		strings.Contains(topic, factory.UnsignedTransactionTopic) ||
-		strings.Contains(topic, factory.RewardsTransactionTopic)
 }
 
 func createTopicAndAssignHandlerOnMessenger(
@@ -242,7 +235,7 @@ func (bicf *baseInterceptorsContainerFactory) generateTxInterceptors() error {
 	interceptorSlice := make([]process.Interceptor, noOfShards)
 
 	for idx := uint32(0); idx < noOfShards; idx++ {
-		identifierTx := factory.TransactionTopic + shardC.CommunicationIdentifier(idx)
+		identifierTx := common.TransactionTopic + shardC.CommunicationIdentifier(idx)
 
 		interceptor, err := bicf.createOneTxInterceptor(identifierTx)
 		if err != nil {
@@ -254,7 +247,7 @@ func (bicf *baseInterceptorsContainerFactory) generateTxInterceptors() error {
 	}
 
 	// tx interceptor for metachain topic
-	identifierTx := factory.TransactionTopic + shardC.CommunicationIdentifier(core.MetachainShardId)
+	identifierTx := common.TransactionTopic + shardC.CommunicationIdentifier(core.MetachainShardId)
 
 	interceptor, err := bicf.createOneTxInterceptor(identifierTx)
 	if err != nil {
@@ -697,7 +690,7 @@ func (bicf *baseInterceptorsContainerFactory) generateUnsignedTxsInterceptors() 
 	interceptorsSlice := make([]process.Interceptor, noOfShards, noOfShards+1)
 
 	for idx := uint32(0); idx < noOfShards; idx++ {
-		identifierScr := factory.UnsignedTransactionTopic + shardC.CommunicationIdentifier(idx)
+		identifierScr := common.UnsignedTransactionTopic + shardC.CommunicationIdentifier(idx)
 		interceptor, err := bicf.createOneUnsignedTxInterceptor(identifierScr)
 		if err != nil {
 			return err
@@ -707,7 +700,7 @@ func (bicf *baseInterceptorsContainerFactory) generateUnsignedTxsInterceptors() 
 		interceptorsSlice[int(idx)] = interceptor
 	}
 
-	identifierScr := factory.UnsignedTransactionTopic + shardC.CommunicationIdentifier(core.MetachainShardId)
+	identifierScr := common.UnsignedTransactionTopic + shardC.CommunicationIdentifier(core.MetachainShardId)
 	interceptor, err := bicf.createOneUnsignedTxInterceptor(identifierScr)
 	if err != nil {
 		return err

@@ -551,6 +551,7 @@ func (thn *TestHeartbeatNode) initResolversAndRequesters() {
 		MainPreferredPeersHolder:            &p2pmocks.PeersHolderStub{},
 		FullArchivePreferredPeersHolder:     &p2pmocks.PeersHolderStub{},
 		PayloadValidator:                    payloadValidator,
+		EnableEpochsHandler:                 enableEpochsHandlerMock.NewEnableEpochsHandlerStub(),
 	}
 
 	requestersContainerFactoryArgs := requesterscontainer.FactoryArgs{

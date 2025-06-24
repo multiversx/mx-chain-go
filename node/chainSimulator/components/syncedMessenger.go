@@ -244,6 +244,16 @@ func (messenger *syncedMessenger) UnJoinAllTopics() error {
 	return nil
 }
 
+// UnJoinTopic will unjoin the provided topic
+func (messenger *syncedMessenger) UnJoinTopic(topic string) error {
+	messenger.mutOperation.Lock()
+	defer messenger.mutOperation.Unlock()
+
+	delete(messenger.topics, topic)
+
+	return nil
+}
+
 // Bootstrap does nothing and returns nil
 func (messenger *syncedMessenger) Bootstrap() error {
 	return nil

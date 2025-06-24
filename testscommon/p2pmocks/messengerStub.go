@@ -37,6 +37,7 @@ type MessengerStub struct {
 	SetPeerDenialEvaluatorCalled            func(handler p2p.PeerDenialEvaluator) error
 	GetConnectedPeersInfoCalled             func() *p2p.ConnectedPeersInfo
 	UnJoinAllTopicsCalled                   func() error
+	UnJoinTopicCalled                       func(topic string) error
 	PortCalled                              func() int
 	WaitForConnectionsCalled                func(maxWaitingTime time.Duration, minNumOfPeers uint32)
 	SignCalled                              func(payload []byte) ([]byte, error)
@@ -283,6 +284,15 @@ func (ms *MessengerStub) GetConnectedPeersInfo() *p2p.ConnectedPeersInfo {
 func (ms *MessengerStub) UnJoinAllTopics() error {
 	if ms.UnJoinAllTopicsCalled != nil {
 		return ms.UnJoinAllTopicsCalled()
+	}
+
+	return nil
+}
+
+// UnJoinTopic -
+func (ms *MessengerStub) UnJoinTopic(topic string) error {
+	if ms.UnJoinTopicCalled != nil {
+		return ms.UnJoinTopicCalled(topic)
 	}
 
 	return nil

@@ -480,12 +480,12 @@ func TestNewShardInterceptorsContainerFactory_ShouldWorkWithSizeCheck(t *testing
 func TestShardInterceptorsContainerFactory_CreateTopicsAndRegisterFailure(t *testing.T) {
 	t.Parallel()
 
-	testCreateShardTopicShouldFailOnAllMessenger(t, "generateTxInterceptors_create", factory.TransactionTopic, "")
-	testCreateShardTopicShouldFailOnAllMessenger(t, "generateTxInterceptors_register", "", factory.TransactionTopic)
+	testCreateShardTopicShouldFailOnAllMessenger(t, "generateTxInterceptors_create", common.TransactionTopic, "")
+	testCreateShardTopicShouldFailOnAllMessenger(t, "generateTxInterceptors_register", "", common.TransactionTopic)
 
-	testCreateShardTopicShouldFailOnAllMessenger(t, "generateUnsignedTxsInterceptors", factory.UnsignedTransactionTopic, "")
+	testCreateShardTopicShouldFailOnAllMessenger(t, "generateUnsignedTxsInterceptors", common.UnsignedTransactionTopic, "")
 
-	testCreateShardTopicShouldFailOnAllMessenger(t, "generateRewardTxInterceptor", factory.RewardsTransactionTopic, "")
+	testCreateShardTopicShouldFailOnAllMessenger(t, "generateRewardTxInterceptor", common.RewardsTransactionTopic, "")
 
 	testCreateShardTopicShouldFailOnAllMessenger(t, "generateHeaderInterceptors", factory.ShardBlocksTopic, "")
 

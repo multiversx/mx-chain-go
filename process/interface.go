@@ -1438,3 +1438,8 @@ type ProofsPool interface {
 	IsProofInPoolEqualTo(headerProof data.HeaderProofHandler) bool
 	IsInterfaceNil() bool
 }
+
+// EpochChangeTopicsHandler defines a component able to modify topics at epoch change
+type EpochChangeTopicsHandler interface {
+	core.EpochSubscriberHandler
+}

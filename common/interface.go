@@ -399,3 +399,15 @@ type EpochChangeGracePeriodHandler interface {
 	GetGracePeriodForEpoch(epoch uint32) (uint32, error)
 	IsInterfaceNil() bool
 }
+
+// ProofHandler defines the interface for a proof handler
+type ProofHandler interface {
+	GetPubKeysBitmap() []byte
+	GetAggregatedSignature() []byte
+	GetHeaderHash() []byte
+	GetHeaderEpoch() uint32
+	GetHeaderNonce() uint64
+	GetHeaderShardId() uint32
+	GetIsStartOfEpoch() bool
+	IsInterfaceNil() bool
+}

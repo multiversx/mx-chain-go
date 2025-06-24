@@ -29,7 +29,6 @@ import (
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/block/processedMb"
-	"github.com/multiversx/mx-chain-go/process/factory"
 	"github.com/multiversx/mx-chain-go/process/factory/shard"
 	"github.com/multiversx/mx-chain-go/process/mock"
 	"github.com/multiversx/mx-chain-go/state"
@@ -779,7 +778,7 @@ func TestTransactionCoordinator_CreateMarshalizedDataWithTxsAndScr(t *testing.T)
 	assert.Equal(t, 1, len(mrTxs))
 
 	marshalizer := &mock.MarshalizerMock{}
-	topic := factory.UnsignedTransactionTopic + "_0_1"
+	topic := common.UnsignedTransactionTopic + "_0_1"
 	assert.Equal(t, len(scrs), len(mrTxs[topic]))
 	for i := 0; i < len(mrTxs[topic]); i++ {
 		unMrsScr := &smartContractResult.SmartContractResult{}

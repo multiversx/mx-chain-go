@@ -521,11 +521,11 @@ func TestMetaInterceptorsContainerFactory_CreateTopicsAndRegisterFailure(t *test
 
 	testCreateMetaTopicShouldFailOnAllMessenger(t, "generateShardHeaderInterceptors", factory.ShardBlocksTopic, "")
 
-	testCreateMetaTopicShouldFailOnAllMessenger(t, "generateTxInterceptors", factory.TransactionTopic, "")
+	testCreateMetaTopicShouldFailOnAllMessenger(t, "generateTxInterceptors", common.TransactionTopic, "")
 
-	testCreateMetaTopicShouldFailOnAllMessenger(t, "generateUnsignedTxsInterceptors", factory.UnsignedTransactionTopic, "")
+	testCreateMetaTopicShouldFailOnAllMessenger(t, "generateUnsignedTxsInterceptors", common.UnsignedTransactionTopic, "")
 
-	testCreateMetaTopicShouldFailOnAllMessenger(t, "generateRewardTxInterceptors", factory.RewardsTransactionTopic, "")
+	testCreateMetaTopicShouldFailOnAllMessenger(t, "generateRewardTxInterceptors", common.RewardsTransactionTopic, "")
 
 	testCreateMetaTopicShouldFailOnAllMessenger(t, "generateMiniBlocksInterceptors", factory.MiniBlocksTopic, "")
 

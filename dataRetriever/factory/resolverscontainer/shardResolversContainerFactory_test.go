@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/stretchr/testify/assert"
 
 	"github.com/multiversx/mx-chain-go/common"
@@ -279,7 +280,7 @@ func TestShardResolversContainerFactory_CreateRegisterTxFailsOnMainNetworkShould
 	t.Parallel()
 
 	args := getArgumentsShard()
-	args.MainMessenger = createMessengerStubForShard("", factory.TransactionTopic)
+	args.MainMessenger = createMessengerStubForShard("", common.TransactionTopic)
 	rcf, _ := resolverscontainer.NewShardResolversContainerFactory(args)
 
 	container, err := rcf.Create()
@@ -292,7 +293,7 @@ func TestShardResolversContainerFactory_CreateRegisterTxFailsOnFullArchiveNetwor
 	t.Parallel()
 
 	args := getArgumentsShard()
-	args.FullArchiveMessenger = createMessengerStubForShard("", factory.TransactionTopic)
+	args.FullArchiveMessenger = createMessengerStubForShard("", common.TransactionTopic)
 	rcf, _ := resolverscontainer.NewShardResolversContainerFactory(args)
 
 	container, err := rcf.Create()
@@ -496,5 +497,6 @@ func getArgumentsShard() resolverscontainer.FactoryArgs {
 		MainPreferredPeersHolder:            &p2pmocks.PeersHolderStub{},
 		FullArchivePreferredPeersHolder:     &p2pmocks.PeersHolderStub{},
 		PayloadValidator:                    &testscommon.PeerAuthenticationPayloadValidatorStub{},
+		EnableEpochsHandler:                 &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 	}
 }

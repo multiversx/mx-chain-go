@@ -8,10 +8,9 @@ import (
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/data/smartContractResult"
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/integrationTests"
 	"github.com/multiversx/mx-chain-go/process"
-	"github.com/multiversx/mx-chain-go/process/factory"
-	logger "github.com/multiversx/mx-chain-logger-go"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -91,7 +90,7 @@ func TestNode_RequestInterceptUnsignedTransactionWithMessenger(t *testing.T) {
 	)
 
 	// Step 4. request unsigned tx
-	scrRequester, _ := nRequester.RequestersFinder.IntraShardRequester(factory.UnsignedTransactionTopic)
+	scrRequester, _ := nRequester.RequestersFinder.IntraShardRequester(common.UnsignedTransactionTopic)
 	err = scrRequester.RequestDataFromHash(scrHash, 0)
 	assert.Nil(t, err)
 

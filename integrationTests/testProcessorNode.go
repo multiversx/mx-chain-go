@@ -1513,6 +1513,7 @@ func (tpn *TestProcessorNode) initResolvers() {
 		MainPreferredPeersHolder:            preferredPeersHolder,
 		FullArchivePreferredPeersHolder:     fullArchivePreferredPeersHolder,
 		PayloadValidator:                    payloadValidator,
+		EnableEpochsHandler:                 tpn.EnableEpochsHandler,
 	}
 
 	var err error

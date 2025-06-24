@@ -18,7 +18,6 @@ import (
 	"github.com/multiversx/mx-chain-go/integrationTests"
 	"github.com/multiversx/mx-chain-go/p2p"
 	"github.com/multiversx/mx-chain-go/process"
-	"github.com/multiversx/mx-chain-go/process/factory"
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/stretchr/testify/assert"
 )
@@ -46,7 +45,7 @@ func TestNode_GenerateSendInterceptBulkUnsignedTransactionsWithMessenger(t *test
 
 	time.Sleep(integrationTests.P2pBootstrapDelay)
 
-	//set the account's nonce to startingNonce
+	// set the account's nonce to startingNonce
 	_ = n.SetAccountNonce(startingNonce)
 	noOfUnsignedTx := 8000
 
@@ -66,7 +65,7 @@ func TestNode_GenerateSendInterceptBulkUnsignedTransactionsWithMessenger(t *test
 	unsignedtxHashes := make([][]byte, 0)
 	unsignedTransactions := make([]data.TransactionHandler, 0)
 
-	//wire up handler
+	// wire up handler
 	n.DataPool.UnsignedTransactions().RegisterOnAdded(func(key []byte, value interface{}) {
 		mut.Lock()
 		defer mut.Unlock()
@@ -150,8 +149,8 @@ func generateAndSendBulkSmartContractResults(
 		unsigedTxs = append(unsigedTxs, uTxBytes)
 	}
 
-	//the topic identifier is made of the current shard id and sender's shard id
-	identifier := factory.UnsignedTransactionTopic + shardCoordinator.CommunicationIdentifier(shardCoordinator.SelfId())
+	// the topic identifier is made of the current shard id and sender's shard id
+	identifier := common.UnsignedTransactionTopic + shardCoordinator.CommunicationIdentifier(shardCoordinator.SelfId())
 
 	packets, err := dataPacker.PackDataInChunks(unsigedTxs, common.MaxBulkTransactionSize)
 	if err != nil {

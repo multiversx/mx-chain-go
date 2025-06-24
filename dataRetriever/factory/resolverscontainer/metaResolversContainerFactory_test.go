@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/stretchr/testify/assert"
 
 	"github.com/multiversx/mx-chain-go/common"
@@ -388,5 +389,6 @@ func getArgumentsMeta() resolverscontainer.FactoryArgs {
 		MainPreferredPeersHolder:            &p2pmocks.PeersHolderStub{},
 		FullArchivePreferredPeersHolder:     &p2pmocks.PeersHolderStub{},
 		PayloadValidator:                    &testscommon.PeerAuthenticationPayloadValidatorStub{},
+		EnableEpochsHandler:                 &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 	}
 }

@@ -16,12 +16,12 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/batch"
 	scrData "github.com/multiversx/mx-chain-core-go/data/smartContractResult"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	dataRetrieverMock "github.com/multiversx/mx-chain-go/dataRetriever/mock"
 	epochStartMock "github.com/multiversx/mx-chain-go/epochStart/mock"
 	"github.com/multiversx/mx-chain-go/process"
-	"github.com/multiversx/mx-chain-go/process/factory"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/p2pmocks"
@@ -273,7 +273,7 @@ func TestTxsSender_sendFromTxAccumulatorSendOneTxOneSCRExpectOnlyTxToBeSent(t *t
 		BroadcastOnChannelCalled: func(channel string, topic string, buff []byte) {
 			ctBroadCastCalled.Increment()
 			require.Equal(t, SendTransactionsPipe, channel)
-			require.Equal(t, factory.TransactionTopic+communicationIdentifier, topic)
+			require.Equal(t, common.TransactionTopic+communicationIdentifier, topic)
 			require.Equal(t, txChunk, buff)
 		},
 	}
@@ -362,7 +362,7 @@ func TestTxsSender_sendBulkTransactionsSendTwoTxsFailToMarshallOneExpectOnlyOneT
 		BroadcastOnChannelCalled: func(channel string, topic string, buff []byte) {
 			ctBroadCastCalled.Increment()
 			require.Equal(t, SendTransactionsPipe, channel)
-			require.Equal(t, factory.TransactionTopic+communicationIdentifierTx1, topic)
+			require.Equal(t, common.TransactionTopic+communicationIdentifierTx1, topic)
 			require.Equal(t, tx1Chunk, buff)
 		},
 	}

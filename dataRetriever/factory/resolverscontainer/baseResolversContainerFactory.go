@@ -42,6 +42,7 @@ type baseResolversContainerFactory struct {
 	mainPreferredPeersHolder        dataRetriever.PreferredPeersHolderHandler
 	fullArchivePreferredPeersHolder dataRetriever.PreferredPeersHolderHandler
 	payloadValidator                dataRetriever.PeerAuthenticationPayloadValidator
+	enableEpochsHandler             common.EnableEpochsHandler
 }
 
 func (brcf *baseResolversContainerFactory) checkParams() error {
@@ -89,6 +90,9 @@ func (brcf *baseResolversContainerFactory) checkParams() error {
 	}
 	if check.IfNil(brcf.fullArchivePreferredPeersHolder) {
 		return fmt.Errorf("%w for full archive network", dataRetriever.ErrNilPreferredPeersHolder)
+	}
+	if check.IfNil(brcf.enableEpochsHandler) {
+		return dataRetriever.ErrNilEnableEpochsHandler
 	}
 
 	return nil
@@ -168,12 +172,18 @@ func (brcf *baseResolversContainerFactory) createTxResolver(
 		return nil, err
 	}
 
-	err = brcf.mainMessenger.RegisterMessageProcessor(p2p.TransactionsNetwork, resolver.RequestTopic(), common.DefaultResolversIdentifier, resolver)
+	network := p2p.MainNetwork
+	faNetwork := p2p.FullArchiveNetwork
+	if common.ShouldUseTransactionsNetwork(topic, brcf.enableEpochsHandler) {
+		network = p2p.TransactionsNetwork
+		faNetwork = p2p.TransactionsNetwork
+	}
+	err = brcf.mainMessenger.RegisterMessageProcessor(network, resolver.RequestTopic(), common.DefaultResolversIdentifier, resolver)
 	if err != nil {
 		return nil, err
 	}
 
-	err = brcf.fullArchiveMessenger.RegisterMessageProcessor(p2p.TransactionsNetwork, resolver.RequestTopic(), common.DefaultResolversIdentifier, resolver)
+	err = brcf.fullArchiveMessenger.RegisterMessageProcessor(faNetwork, resolver.RequestTopic(), common.DefaultResolversIdentifier, resolver)
 	if err != nil {
 		return nil, err
 	}

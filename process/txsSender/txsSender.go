@@ -14,7 +14,6 @@ import (
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/process"
-	"github.com/multiversx/mx-chain-go/process/factory"
 	"github.com/multiversx/mx-chain-go/storage"
 	logger "github.com/multiversx/mx-chain-logger-go"
 )
@@ -165,7 +164,7 @@ func (ts *txsSender) sendBulkTransactions(txs []*transaction.Transaction) {
 
 func (ts *txsSender) sendBulkTransactionsFromShard(transactions [][]byte, senderShardId uint32) error {
 	// the topic identifier is made of the current shard id and sender's shard id
-	identifier := factory.TransactionTopic + ts.shardCoordinator.CommunicationIdentifier(senderShardId)
+	identifier := common.TransactionTopic + ts.shardCoordinator.CommunicationIdentifier(senderShardId)
 
 	packets, err := ts.dataPacker.PackDataInChunks(transactions, common.MaxBulkTransactionSize)
 	if err != nil {

@@ -58,6 +58,7 @@ func NewMetaResolversContainerFactory(
 		mainPreferredPeersHolder:        args.MainPreferredPeersHolder,
 		fullArchivePreferredPeersHolder: args.FullArchivePreferredPeersHolder,
 		payloadValidator:                args.PayloadValidator,
+		enableEpochsHandler:             args.EnableEpochsHandler,
 	}
 
 	err = base.checkParams()
@@ -86,7 +87,7 @@ func (mrcf *metaResolversContainerFactory) Create() (dataRetriever.ResolversCont
 	}
 
 	err = mrcf.generateTxResolvers(
-		factory.TransactionTopic,
+		common.TransactionTopic,
 		dataRetriever.TransactionUnit,
 		mrcf.dataPools.Transactions(),
 	)
@@ -95,7 +96,7 @@ func (mrcf *metaResolversContainerFactory) Create() (dataRetriever.ResolversCont
 	}
 
 	err = mrcf.generateTxResolvers(
-		factory.UnsignedTransactionTopic,
+		common.UnsignedTransactionTopic,
 		dataRetriever.UnsignedTransactionUnit,
 		mrcf.dataPools.UnsignedTransactions(),
 	)
@@ -104,7 +105,7 @@ func (mrcf *metaResolversContainerFactory) Create() (dataRetriever.ResolversCont
 	}
 
 	err = mrcf.generateRewardsResolvers(
-		factory.RewardsTransactionTopic,
+		common.RewardsTransactionTopic,
 		dataRetriever.RewardTransactionUnit,
 		mrcf.dataPools.RewardTransactions(),
 	)

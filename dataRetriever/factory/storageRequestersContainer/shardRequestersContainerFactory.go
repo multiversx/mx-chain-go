@@ -58,7 +58,7 @@ func (srcf *shardRequestersContainerFactory) Create() (dataRetriever.RequestersC
 	}
 
 	err = srcf.generateRewardRequester(
-		factory.RewardsTransactionTopic,
+		common.RewardsTransactionTopic,
 		dataRetriever.RewardTransactionUnit,
 	)
 	if err != nil {

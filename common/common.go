@@ -202,3 +202,14 @@ func GetNonceAndShardFromKey(nonceShardKey []byte) (uint64, uint32, error) {
 
 	return uint64(nonce), uint32(shard), nil
 }
+
+// ShouldUseTransactionsNetwork returns true if transactions network should be used for transactions
+func ShouldUseTransactionsNetwork(topic string, enableEpochsHandler EnableEpochsHandler) bool {
+	if !enableEpochsHandler.IsFlagEnabled(AndromedaFlag) {
+		return false
+	}
+
+	return strings.Contains(topic, TransactionTopic) ||
+		strings.Contains(topic, UnsignedTransactionTopic) ||
+		strings.Contains(topic, RewardsTransactionTopic)
+}
