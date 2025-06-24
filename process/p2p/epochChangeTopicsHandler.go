@@ -95,8 +95,7 @@ func checkArgEpochChangeTopicsHandler(args ArgEpochChangeTopicsHandler) error {
 
 // EpochConfirmed is called whenever a new epoch is confirmed
 func (handler *epochChangeTopicsHandler) EpochConfirmed(epoch uint32, _ uint64) {
-	// TODO[Sorin]: proper Supernova flag
-	supernovaEpoch := handler.enableEpochsHandler.GetActivationEpoch(common.AndromedaFlag)
+	supernovaEpoch := handler.enableEpochsHandler.GetActivationEpoch(common.SupernovaFlag)
 	if epoch != supernovaEpoch {
 		return
 	}
