@@ -123,22 +123,12 @@ func (handler *epochChangeTopicsHandler) EpochConfirmed(epoch uint32, _ uint64) 
 }
 
 func (handler *epochChangeTopicsHandler) replaceProcessorsForTopic(topic string) error {
-	err := removeTopicFromMessenger(handler.mainMessenger, topic)
-	if err != nil {
-		return err
-	}
-	err = removeTopicFromMessenger(handler.fullArchiveMessenger, topic)
+	err := handler.replaceTxInterceptorsOnTxNetwork(topic)
 	if err != nil {
 		return err
 	}
 
-	// first register interceptors so the topic is created as well
-	err = handler.registerTxInterceptorsOnTxNetwork(topic)
-	if err != nil {
-		return err
-	}
-
-	return handler.registerTxResolversOnTxNetwork(topic)
+	return handler.replaceTxResolversOnTxNetwork(topic)
 }
 
 func removeTopicFromMessenger(messenger p2p.MessageHandler, topic string) error {
@@ -158,7 +148,7 @@ func removeTopicFromMessenger(messenger p2p.MessageHandler, topic string) error 
 	return nil
 }
 
-func (handler *epochChangeTopicsHandler) registerTxResolversOnTxNetwork(
+func (handler *epochChangeTopicsHandler) replaceTxResolversOnTxNetwork(
 	topic string,
 ) error {
 	if topic == common.RewardsTransactionTopic {
@@ -194,11 +184,11 @@ func (handler *epochChangeTopicsHandler) registerTxResolversOnTxNetwork(
 	return nil
 }
 
-func (handler *epochChangeTopicsHandler) registerTxInterceptorsOnTxNetwork(
+func (handler *epochChangeTopicsHandler) replaceTxInterceptorsOnTxNetwork(
 	topic string,
 ) error {
 	if topic == common.RewardsTransactionTopic {
-		return handler.registerRewardTxInterceptorsOnTxNetwork()
+		return handler.replaceRewardTxInterceptorsOnTxNetwork()
 	}
 
 	shardC := handler.shardCoordinator
@@ -206,7 +196,7 @@ func (handler *epochChangeTopicsHandler) registerTxInterceptorsOnTxNetwork(
 	for idx := uint32(0); idx < noOfShards; idx++ {
 		identifierTx := topic + shardC.CommunicationIdentifier(idx)
 
-		err := createTxTopicAndAssignHandlerOnMessenger(
+		err := replaceTxTopicAndAssignHandlerOnMessenger(
 			identifierTx,
 			true,
 			handler.mainMessenger,
@@ -220,7 +210,7 @@ func (handler *epochChangeTopicsHandler) registerTxInterceptorsOnTxNetwork(
 			continue
 		}
 
-		err = createTxTopicAndAssignHandlerOnMessenger(
+		err = replaceTxTopicAndAssignHandlerOnMessenger(
 			identifierTx,
 			true,
 			handler.fullArchiveMessenger,
@@ -232,7 +222,7 @@ func (handler *epochChangeTopicsHandler) registerTxInterceptorsOnTxNetwork(
 	}
 
 	identifierTx := topic + shardC.CommunicationIdentifier(core.MetachainShardId)
-	err := createTxTopicAndAssignHandlerOnMessenger(
+	err := replaceTxTopicAndAssignHandlerOnMessenger(
 		identifierTx,
 		true,
 		handler.mainMessenger,
@@ -246,7 +236,7 @@ func (handler *epochChangeTopicsHandler) registerTxInterceptorsOnTxNetwork(
 		return nil
 	}
 
-	return createTxTopicAndAssignHandlerOnMessenger(
+	return replaceTxTopicAndAssignHandlerOnMessenger(
 		identifierTx,
 		true,
 		handler.fullArchiveMessenger,
@@ -257,13 +247,13 @@ func (handler *epochChangeTopicsHandler) registerTxInterceptorsOnTxNetwork(
 func (handler *epochChangeTopicsHandler) registerRewardTxResolversOnTxNetwork() error {
 	shardC := handler.shardCoordinator
 	if shardC.SelfId() != core.MetachainShardId {
-		return handler.registerShardRewardTxResolversOnTxNetwork()
+		return handler.replaceShardRewardTxResolversOnTxNetwork()
 	}
 
-	return handler.registerMetaRewardTxResolversOnTxNetwork()
+	return handler.replaceMetaRewardTxResolversOnTxNetwork()
 }
 
-func (handler *epochChangeTopicsHandler) registerShardRewardTxResolversOnTxNetwork() error {
+func (handler *epochChangeTopicsHandler) replaceShardRewardTxResolversOnTxNetwork() error {
 	shardC := handler.shardCoordinator
 	topic := common.RewardsTransactionTopic + shardC.CommunicationIdentifier(core.MetachainShardId)
 	oldResolver, err := handler.resolversContainer.Get(topic)
@@ -284,7 +274,7 @@ func (handler *epochChangeTopicsHandler) registerShardRewardTxResolversOnTxNetwo
 	return handler.fullArchiveMessenger.RegisterMessageProcessor(p2p.TransactionsNetwork, resolver.RequestTopic(), common.DefaultResolversIdentifier, resolver)
 }
 
-func (handler *epochChangeTopicsHandler) registerMetaRewardTxResolversOnTxNetwork() error {
+func (handler *epochChangeTopicsHandler) replaceMetaRewardTxResolversOnTxNetwork() error {
 	shardC := handler.shardCoordinator
 	noOfShards := shardC.NumberOfShards()
 	for idx := uint32(0); idx < noOfShards; idx++ {
@@ -314,19 +304,19 @@ func (handler *epochChangeTopicsHandler) registerMetaRewardTxResolversOnTxNetwor
 	return nil
 }
 
-func (handler *epochChangeTopicsHandler) registerRewardTxInterceptorsOnTxNetwork() error {
+func (handler *epochChangeTopicsHandler) replaceRewardTxInterceptorsOnTxNetwork() error {
 	shardC := handler.shardCoordinator
 	if shardC.SelfId() != core.MetachainShardId {
-		return handler.registerShardRewardTxInterceptorsOnTxNetwork()
+		return handler.replaceShardRewardTxInterceptorsOnTxNetwork()
 	}
 
-	return handler.registerMetaRewardTxInterceptorsOnTxNetwork()
+	return handler.replaceMetaRewardTxInterceptorsOnTxNetwork()
 }
 
-func (handler *epochChangeTopicsHandler) registerShardRewardTxInterceptorsOnTxNetwork() error {
+func (handler *epochChangeTopicsHandler) replaceShardRewardTxInterceptorsOnTxNetwork() error {
 	shardC := handler.shardCoordinator
 	topic := common.RewardsTransactionTopic + shardC.CommunicationIdentifier(core.MetachainShardId)
-	err := createTxTopicAndAssignHandlerOnMessenger(
+	err := replaceTxTopicAndAssignHandlerOnMessenger(
 		topic,
 		true,
 		handler.mainMessenger,
@@ -336,7 +326,7 @@ func (handler *epochChangeTopicsHandler) registerShardRewardTxInterceptorsOnTxNe
 		return err
 	}
 
-	return createTxTopicAndAssignHandlerOnMessenger(
+	return replaceTxTopicAndAssignHandlerOnMessenger(
 		topic,
 		true,
 		handler.fullArchiveMessenger,
@@ -344,12 +334,12 @@ func (handler *epochChangeTopicsHandler) registerShardRewardTxInterceptorsOnTxNe
 	)
 }
 
-func (handler *epochChangeTopicsHandler) registerMetaRewardTxInterceptorsOnTxNetwork() error {
+func (handler *epochChangeTopicsHandler) replaceMetaRewardTxInterceptorsOnTxNetwork() error {
 	shardC := handler.shardCoordinator
 	noOfShards := shardC.NumberOfShards()
 	for idx := uint32(0); idx < noOfShards; idx++ {
 		topic := common.RewardsTransactionTopic + shardC.CommunicationIdentifier(idx)
-		err := createTxTopicAndAssignHandlerOnMessenger(
+		err := replaceTxTopicAndAssignHandlerOnMessenger(
 			topic,
 			true,
 			handler.mainMessenger,
@@ -359,7 +349,7 @@ func (handler *epochChangeTopicsHandler) registerMetaRewardTxInterceptorsOnTxNet
 			return err
 		}
 
-		err = createTxTopicAndAssignHandlerOnMessenger(
+		err = replaceTxTopicAndAssignHandlerOnMessenger(
 			topic,
 			true,
 			handler.fullArchiveMessenger,
@@ -373,18 +363,23 @@ func (handler *epochChangeTopicsHandler) registerMetaRewardTxInterceptorsOnTxNet
 	return nil
 }
 
-func createTxTopicAndAssignHandlerOnMessenger(
+func replaceTxTopicAndAssignHandlerOnMessenger(
 	topic string,
 	createChannel bool,
 	messenger p2p.Messenger,
 	container process.InterceptorsContainer,
 ) error {
-	interceptor, err := container.Get(topic)
+	err := removeTopicFromMessenger(messenger, topic)
 	if err != nil {
 		return err
 	}
 
 	err = messenger.CreateTopic(p2p.TransactionsNetwork, topic, createChannel)
+	if err != nil {
+		return err
+	}
+
+	interceptor, err := container.Get(topic)
 	if err != nil {
 		return err
 	}
