@@ -71,7 +71,7 @@ func TestHeadersQueue_AddFirstMultiple(t *testing.T) {
 	})
 }
 
-func TestHeadersQueue_TakeFirstHeaderForProcessing(t *testing.T) {
+func TestHeadersQueue_Pop(t *testing.T) {
 	t.Parallel()
 
 	t.Run("empty queue should return error", func(t *testing.T) {
