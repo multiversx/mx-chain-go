@@ -35,6 +35,7 @@ func TestNewArithmeticEpochProvider_NilChainParameterHandler(t *testing.T) {
 
 	arg := ArgArithmeticEpochProvider{
 		ChainParametersHandler: nil,
+		EnableEpochsHandler:    &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 		StartTime:              1,
 	}
 

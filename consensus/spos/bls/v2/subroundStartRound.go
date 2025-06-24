@@ -274,23 +274,13 @@ func (sr *subroundStartRound) indexRoundIfNeeded(pubKeys []string) {
 		BlockWasProposed: false,
 		ShardId:          shardId,
 		Epoch:            epoch,
-		Timestamp:        sr.getUnixTimestampForHeader(epoch),
+		Timestamp:        sr.GetUnixTimestampForHeader(epoch),
 	}
 	roundsInfo := &outportcore.RoundsInfo{
 		ShardID:    shardId,
 		RoundsInfo: []*outportcore.RoundInfo{roundInfo},
 	}
 	sr.outportHandler.SaveRoundsInfo(roundsInfo)
-}
-
-func (sr *subroundStartRound) getUnixTimestampForHeader(
-	headerEpoch uint32,
-) uint64 {
-	if sr.EnableEpochsHandler().IsFlagEnabledInEpoch(common.SupernovaFlag, headerEpoch) {
-		return uint64(sr.GetRoundTimeStamp().UnixMilli())
-	}
-
-	return uint64(sr.GetRoundTimeStamp().Unix())
 }
 
 func (sr *subroundStartRound) generateNextConsensusGroup(roundIndex int64) error {
