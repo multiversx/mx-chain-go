@@ -256,6 +256,8 @@ type NetworkComponentsHolder interface {
 	PeersRatingMonitor() p2p.PeersRatingMonitor
 	FullArchiveNetworkMessenger() p2p.Messenger
 	FullArchivePreferredPeersHolderHandler() PreferredPeersHolderHandler
+	TransactionsNetworkMessenger() p2p.Messenger
+	TransactionsPreferredPeersHolderHandler() PreferredPeersHolderHandler
 	IsInterfaceNil() bool
 }
 
@@ -278,6 +280,7 @@ type ProcessComponentsHolder interface {
 	ShardCoordinator() sharding.Coordinator
 	InterceptorsContainer() process.InterceptorsContainer
 	FullArchiveInterceptorsContainer() process.InterceptorsContainer
+	TransactionsInterceptorsContainer() process.InterceptorsContainer
 	ResolversContainer() dataRetriever.ResolversContainer
 	RequestersFinder() dataRetriever.RequestersFinder
 	RoundHandler() consensus.RoundHandler
@@ -298,6 +301,7 @@ type ProcessComponentsHolder interface {
 	HeaderConstructionValidator() process.HeaderConstructionValidator
 	PeerShardMapper() process.NetworkShardingCollector
 	FullArchivePeerShardMapper() process.NetworkShardingCollector
+	TransactionsPeerShardMapper() process.NetworkShardingCollector
 	FallbackHeaderValidator() process.FallbackHeaderValidator
 	APITransactionEvaluator() TransactionEvaluator
 	WhiteListHandler() process.WhiteListHandler

@@ -224,6 +224,13 @@ func readConfigs(ctx *cli.Context, log logger.Logger) (*config.Configs, error) {
 	}
 	log.Debug("config", "file", configurationPaths.FullArchiveP2p)
 
+	configurationPaths.TransactionsP2p = ctx.GlobalString(transactionsP2PConfigurationFile.Name)
+	transactionsP2PConfig, err := common.LoadP2PConfig(configurationPaths.TransactionsP2p)
+	if err != nil {
+		return nil, err
+	}
+	log.Debug("config", "file", configurationPaths.TransactionsP2p)
+
 	configurationPaths.Epoch = ctx.GlobalString(epochConfigurationFile.Name)
 	epochConfig, err := common.LoadEpochConfig(configurationPaths.Epoch)
 	if err != nil {
@@ -272,6 +279,7 @@ func readConfigs(ctx *cli.Context, log logger.Logger) (*config.Configs, error) {
 		ExternalConfig:           externalConfig,
 		MainP2pConfig:            mainP2PConfig,
 		FullArchiveP2pConfig:     fullArchiveP2PConfig,
+		TransactionsP2PConfig:    transactionsP2PConfig,
 		ConfigurationPathsHolder: configurationPaths,
 		EpochConfig:              epochConfig,
 		RoundConfig:              roundConfig,

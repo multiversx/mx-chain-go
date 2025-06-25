@@ -158,6 +158,7 @@ func (ccf *consensusComponentsFactory) Create() (*consensusComponents, error) {
 		ccf.coreComponents.InternalMarshalizer(),
 		ccf.coreComponents.Hasher(),
 		ccf.networkComponents.NetworkMessenger(),
+		ccf.networkComponents.TransactionsNetworkMessenger(),
 		ccf.processComponents.ShardCoordinator(),
 		ccf.cryptoComponents.PeerSignatureHandler(),
 		ccf.dataComponents.Datapool().Headers(),

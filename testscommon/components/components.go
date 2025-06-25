@@ -297,6 +297,9 @@ func GetNetworkFactoryArgs() networkComp.NetworkComponentsFactoryArgs {
 		},
 	}
 
+	transactionsP2PCfg := p2pCfg
+	transactionsP2PCfg.KadDhtPeerDiscovery.ProtocolIDs = []string{"mvx-transactions"}
+
 	mainConfig := config.Config{
 		PeerHonesty: config.CacheConfig{
 			Type:     "LRU",
@@ -325,11 +328,12 @@ func GetNetworkFactoryArgs() networkComp.NetworkComponentsFactoryArgs {
 	cryptoCompMock := GetDefaultCryptoComponents()
 
 	return networkComp.NetworkComponentsFactoryArgs{
-		MainP2pConfig:     p2pCfg,
-		NodeOperationMode: common.NormalOperation,
-		MainConfig:        mainConfig,
-		StatusHandler:     appStatusHandler,
-		Marshalizer:       &mock.MarshalizerMock{},
+		MainP2pConfig:         p2pCfg,
+		TransactionsP2pConfig: transactionsP2PCfg,
+		NodeOperationMode:     common.NormalOperation,
+		MainConfig:            mainConfig,
+		StatusHandler:         appStatusHandler,
+		Marshalizer:           &mock.MarshalizerMock{},
 		RatingsConfig: config.RatingsConfig{
 			General:    config.General{},
 			ShardChain: config.ShardChain{},

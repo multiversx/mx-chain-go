@@ -20,6 +20,7 @@ type ProcessComponentsMock struct {
 	ShardCoord                           sharding.Coordinator
 	IntContainer                         process.InterceptorsContainer
 	FullArchiveIntContainer              process.InterceptorsContainer
+	TransactionsIntContainer             process.InterceptorsContainer
 	ResContainer                         dataRetriever.ResolversContainer
 	ReqFinder                            dataRetriever.RequestersFinder
 	RoundHandlerField                    consensus.RoundHandler
@@ -40,6 +41,7 @@ type ProcessComponentsMock struct {
 	HeaderConstructValidator             process.HeaderConstructionValidator
 	MainPeerMapper                       process.NetworkShardingCollector
 	FullArchivePeerMapper                process.NetworkShardingCollector
+	TransactionsPeerMapper               process.NetworkShardingCollector
 	TransactionEvaluator                 factory.TransactionEvaluator
 	FallbackHdrValidator                 process.FallbackHeaderValidator
 	WhiteListHandlerInternal             process.WhiteListHandler
@@ -93,6 +95,11 @@ func (pcm *ProcessComponentsMock) InterceptorsContainer() process.InterceptorsCo
 // FullArchiveInterceptorsContainer -
 func (pcm *ProcessComponentsMock) FullArchiveInterceptorsContainer() process.InterceptorsContainer {
 	return pcm.FullArchiveIntContainer
+}
+
+// TransactionsInterceptorsContainer -
+func (pcm *ProcessComponentsMock) TransactionsInterceptorsContainer() process.InterceptorsContainer {
+	return pcm.TransactionsIntContainer
 }
 
 // ResolversContainer -
@@ -193,6 +200,11 @@ func (pcm *ProcessComponentsMock) PeerShardMapper() process.NetworkShardingColle
 // FullArchivePeerShardMapper -
 func (pcm *ProcessComponentsMock) FullArchivePeerShardMapper() process.NetworkShardingCollector {
 	return pcm.FullArchivePeerMapper
+}
+
+// TransactionsPeerShardMapper -
+func (pcm *ProcessComponentsMock) TransactionsPeerShardMapper() process.NetworkShardingCollector {
+	return pcm.TransactionsPeerMapper
 }
 
 // FallbackHeaderValidator -

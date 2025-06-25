@@ -58,49 +58,51 @@ type ArgsProcessComponentsHolder struct {
 }
 
 type processComponentsHolder struct {
-	receiptsRepository               factory.ReceiptsRepository
-	nodesCoordinator                 nodesCoordinator.NodesCoordinator
-	shardCoordinator                 sharding.Coordinator
-	interceptorsContainer            process.InterceptorsContainer
-	fullArchiveInterceptorsContainer process.InterceptorsContainer
-	resolversContainer               dataRetriever.ResolversContainer
-	requestersFinder                 dataRetriever.RequestersFinder
-	roundHandler                     consensus.RoundHandler
-	epochStartTrigger                epochStart.TriggerHandler
-	epochStartNotifier               factory.EpochStartNotifier
-	forkDetector                     process.ForkDetector
-	blockProcessor                   process.BlockProcessor
-	blackListHandler                 process.TimeCacher
-	bootStorer                       process.BootStorer
-	headerSigVerifier                process.InterceptedHeaderSigVerifier
-	headerIntegrityVerifier          process.HeaderIntegrityVerifier
-	validatorsStatistics             process.ValidatorStatisticsProcessor
-	validatorsProvider               process.ValidatorsProvider
-	blockTracker                     process.BlockTracker
-	pendingMiniBlocksHandler         process.PendingMiniBlocksHandler
-	requestHandler                   process.RequestHandler
-	txLogsProcessor                  process.TransactionLogProcessorDatabase
-	headerConstructionValidator      process.HeaderConstructionValidator
-	peerShardMapper                  process.NetworkShardingCollector
-	fullArchivePeerShardMapper       process.NetworkShardingCollector
-	fallbackHeaderValidator          process.FallbackHeaderValidator
-	apiTransactionEvaluator          factory.TransactionEvaluator
-	whiteListHandler                 process.WhiteListHandler
-	whiteListerVerifiedTxs           process.WhiteListHandler
-	historyRepository                dblookupext.HistoryRepository
-	importStartHandler               update.ImportStartHandler
-	requestedItemsHandler            dataRetriever.RequestedItemsHandler
-	nodeRedundancyHandler            consensus.NodeRedundancyHandler
-	currentEpochProvider             process.CurrentNetworkEpochProviderHandler
-	scheduledTxsExecutionHandler     process.ScheduledTxsExecutionHandler
-	txsSenderHandler                 process.TxsSenderHandler
-	hardforkTrigger                  factory.HardforkTrigger
-	processedMiniBlocksTracker       process.ProcessedMiniBlocksTracker
-	esdtDataStorageHandlerForAPI     vmcommon.ESDTNFTStorageHandler
-	accountsParser                   genesis.AccountsParser
-	sentSignatureTracker             process.SentSignaturesTracker
-	epochStartSystemSCProcessor      process.EpochStartSystemSCProcessor
-	managedProcessComponentsCloser   io.Closer
+	receiptsRepository                factory.ReceiptsRepository
+	nodesCoordinator                  nodesCoordinator.NodesCoordinator
+	shardCoordinator                  sharding.Coordinator
+	interceptorsContainer             process.InterceptorsContainer
+	fullArchiveInterceptorsContainer  process.InterceptorsContainer
+	transactionsInterceptorsContainer process.InterceptorsContainer
+	resolversContainer                dataRetriever.ResolversContainer
+	requestersFinder                  dataRetriever.RequestersFinder
+	roundHandler                      consensus.RoundHandler
+	epochStartTrigger                 epochStart.TriggerHandler
+	epochStartNotifier                factory.EpochStartNotifier
+	forkDetector                      process.ForkDetector
+	blockProcessor                    process.BlockProcessor
+	blackListHandler                  process.TimeCacher
+	bootStorer                        process.BootStorer
+	headerSigVerifier                 process.InterceptedHeaderSigVerifier
+	headerIntegrityVerifier           process.HeaderIntegrityVerifier
+	validatorsStatistics              process.ValidatorStatisticsProcessor
+	validatorsProvider                process.ValidatorsProvider
+	blockTracker                      process.BlockTracker
+	pendingMiniBlocksHandler          process.PendingMiniBlocksHandler
+	requestHandler                    process.RequestHandler
+	txLogsProcessor                   process.TransactionLogProcessorDatabase
+	headerConstructionValidator       process.HeaderConstructionValidator
+	peerShardMapper                   process.NetworkShardingCollector
+	fullArchivePeerShardMapper        process.NetworkShardingCollector
+	transactionsPeerShardMapper       process.NetworkShardingCollector
+	fallbackHeaderValidator           process.FallbackHeaderValidator
+	apiTransactionEvaluator           factory.TransactionEvaluator
+	whiteListHandler                  process.WhiteListHandler
+	whiteListerVerifiedTxs            process.WhiteListHandler
+	historyRepository                 dblookupext.HistoryRepository
+	importStartHandler                update.ImportStartHandler
+	requestedItemsHandler             dataRetriever.RequestedItemsHandler
+	nodeRedundancyHandler             consensus.NodeRedundancyHandler
+	currentEpochProvider              process.CurrentNetworkEpochProviderHandler
+	scheduledTxsExecutionHandler      process.ScheduledTxsExecutionHandler
+	txsSenderHandler                  process.TxsSenderHandler
+	hardforkTrigger                   factory.HardforkTrigger
+	processedMiniBlocksTracker        process.ProcessedMiniBlocksTracker
+	esdtDataStorageHandlerForAPI      vmcommon.ESDTNFTStorageHandler
+	accountsParser                    genesis.AccountsParser
+	sentSignatureTracker              process.SentSignaturesTracker
+	epochStartSystemSCProcessor       process.EpochStartSystemSCProcessor
+	managedProcessComponentsCloser    io.Closer
 }
 
 // CreateProcessComponents will create the process components holder
@@ -241,49 +243,51 @@ func CreateProcessComponents(args ArgsProcessComponentsHolder) (*processComponen
 	}
 
 	instance := &processComponentsHolder{
-		receiptsRepository:               managedProcessComponents.ReceiptsRepository(),
-		nodesCoordinator:                 managedProcessComponents.NodesCoordinator(),
-		shardCoordinator:                 managedProcessComponents.ShardCoordinator(),
-		interceptorsContainer:            managedProcessComponents.InterceptorsContainer(),
-		fullArchiveInterceptorsContainer: managedProcessComponents.FullArchiveInterceptorsContainer(),
-		resolversContainer:               managedProcessComponents.ResolversContainer(),
-		requestersFinder:                 managedProcessComponents.RequestersFinder(),
-		roundHandler:                     managedProcessComponents.RoundHandler(),
-		epochStartTrigger:                managedProcessComponents.EpochStartTrigger(),
-		epochStartNotifier:               managedProcessComponents.EpochStartNotifier(),
-		forkDetector:                     managedProcessComponents.ForkDetector(),
-		blockProcessor:                   managedProcessComponents.BlockProcessor(),
-		blackListHandler:                 managedProcessComponents.BlackListHandler(),
-		bootStorer:                       managedProcessComponents.BootStorer(),
-		headerSigVerifier:                managedProcessComponents.HeaderSigVerifier(),
-		headerIntegrityVerifier:          managedProcessComponents.HeaderIntegrityVerifier(),
-		validatorsStatistics:             managedProcessComponents.ValidatorsStatistics(),
-		validatorsProvider:               managedProcessComponents.ValidatorsProvider(),
-		blockTracker:                     managedProcessComponents.BlockTracker(),
-		pendingMiniBlocksHandler:         managedProcessComponents.PendingMiniBlocksHandler(),
-		requestHandler:                   managedProcessComponents.RequestHandler(),
-		txLogsProcessor:                  managedProcessComponents.TxLogsProcessor(),
-		headerConstructionValidator:      managedProcessComponents.HeaderConstructionValidator(),
-		peerShardMapper:                  managedProcessComponents.PeerShardMapper(),
-		fullArchivePeerShardMapper:       managedProcessComponents.FullArchivePeerShardMapper(),
-		fallbackHeaderValidator:          managedProcessComponents.FallbackHeaderValidator(),
-		apiTransactionEvaluator:          managedProcessComponents.APITransactionEvaluator(),
-		whiteListHandler:                 managedProcessComponents.WhiteListHandler(),
-		whiteListerVerifiedTxs:           managedProcessComponents.WhiteListerVerifiedTxs(),
-		historyRepository:                managedProcessComponents.HistoryRepository(),
-		importStartHandler:               managedProcessComponents.ImportStartHandler(),
-		requestedItemsHandler:            managedProcessComponents.RequestedItemsHandler(),
-		nodeRedundancyHandler:            managedProcessComponents.NodeRedundancyHandler(),
-		currentEpochProvider:             managedProcessComponents.CurrentEpochProvider(),
-		scheduledTxsExecutionHandler:     managedProcessComponents.ScheduledTxsExecutionHandler(),
-		txsSenderHandler:                 managedProcessComponents.TxsSenderHandler(), // warning: this will be replaced
-		hardforkTrigger:                  managedProcessComponents.HardforkTrigger(),
-		processedMiniBlocksTracker:       managedProcessComponents.ProcessedMiniBlocksTracker(),
-		esdtDataStorageHandlerForAPI:     managedProcessComponents.ESDTDataStorageHandlerForAPI(),
-		accountsParser:                   managedProcessComponents.AccountsParser(),
-		sentSignatureTracker:             managedProcessComponents.SentSignaturesTracker(),
-		epochStartSystemSCProcessor:      managedProcessComponents.EpochSystemSCProcessor(),
-		managedProcessComponentsCloser:   managedProcessComponents,
+		receiptsRepository:                managedProcessComponents.ReceiptsRepository(),
+		nodesCoordinator:                  managedProcessComponents.NodesCoordinator(),
+		shardCoordinator:                  managedProcessComponents.ShardCoordinator(),
+		interceptorsContainer:             managedProcessComponents.InterceptorsContainer(),
+		fullArchiveInterceptorsContainer:  managedProcessComponents.FullArchiveInterceptorsContainer(),
+		transactionsInterceptorsContainer: managedProcessComponents.TransactionsInterceptorsContainer(),
+		resolversContainer:                managedProcessComponents.ResolversContainer(),
+		requestersFinder:                  managedProcessComponents.RequestersFinder(),
+		roundHandler:                      managedProcessComponents.RoundHandler(),
+		epochStartTrigger:                 managedProcessComponents.EpochStartTrigger(),
+		epochStartNotifier:                managedProcessComponents.EpochStartNotifier(),
+		forkDetector:                      managedProcessComponents.ForkDetector(),
+		blockProcessor:                    managedProcessComponents.BlockProcessor(),
+		blackListHandler:                  managedProcessComponents.BlackListHandler(),
+		bootStorer:                        managedProcessComponents.BootStorer(),
+		headerSigVerifier:                 managedProcessComponents.HeaderSigVerifier(),
+		headerIntegrityVerifier:           managedProcessComponents.HeaderIntegrityVerifier(),
+		validatorsStatistics:              managedProcessComponents.ValidatorsStatistics(),
+		validatorsProvider:                managedProcessComponents.ValidatorsProvider(),
+		blockTracker:                      managedProcessComponents.BlockTracker(),
+		pendingMiniBlocksHandler:          managedProcessComponents.PendingMiniBlocksHandler(),
+		requestHandler:                    managedProcessComponents.RequestHandler(),
+		txLogsProcessor:                   managedProcessComponents.TxLogsProcessor(),
+		headerConstructionValidator:       managedProcessComponents.HeaderConstructionValidator(),
+		peerShardMapper:                   managedProcessComponents.PeerShardMapper(),
+		fullArchivePeerShardMapper:        managedProcessComponents.FullArchivePeerShardMapper(),
+		transactionsPeerShardMapper:       managedProcessComponents.TransactionsPeerShardMapper(),
+		fallbackHeaderValidator:           managedProcessComponents.FallbackHeaderValidator(),
+		apiTransactionEvaluator:           managedProcessComponents.APITransactionEvaluator(),
+		whiteListHandler:                  managedProcessComponents.WhiteListHandler(),
+		whiteListerVerifiedTxs:            managedProcessComponents.WhiteListerVerifiedTxs(),
+		historyRepository:                 managedProcessComponents.HistoryRepository(),
+		importStartHandler:                managedProcessComponents.ImportStartHandler(),
+		requestedItemsHandler:             managedProcessComponents.RequestedItemsHandler(),
+		nodeRedundancyHandler:             managedProcessComponents.NodeRedundancyHandler(),
+		currentEpochProvider:              managedProcessComponents.CurrentEpochProvider(),
+		scheduledTxsExecutionHandler:      managedProcessComponents.ScheduledTxsExecutionHandler(),
+		txsSenderHandler:                  managedProcessComponents.TxsSenderHandler(), // warning: this will be replaced
+		hardforkTrigger:                   managedProcessComponents.HardforkTrigger(),
+		processedMiniBlocksTracker:        managedProcessComponents.ProcessedMiniBlocksTracker(),
+		esdtDataStorageHandlerForAPI:      managedProcessComponents.ESDTDataStorageHandlerForAPI(),
+		accountsParser:                    managedProcessComponents.AccountsParser(),
+		sentSignatureTracker:              managedProcessComponents.SentSignaturesTracker(),
+		epochStartSystemSCProcessor:       managedProcessComponents.EpochSystemSCProcessor(),
+		managedProcessComponentsCloser:    managedProcessComponents,
 	}
 
 	return replaceWithCustomProcessSubComponents(instance, processArgs)
@@ -301,7 +305,7 @@ func replaceWithCustomProcessSubComponents(
 	argsSyncedTxsSender := ArgsSyncedTxsSender{
 		Marshaller:       processArgs.CoreData.InternalMarshalizer(),
 		ShardCoordinator: processArgs.BootstrapComponents.ShardCoordinator(),
-		NetworkMessenger: processArgs.Network.NetworkMessenger(),
+		NetworkMessenger: processArgs.Network.TransactionsNetworkMessenger(),
 		DataPacker:       dataPacker,
 	}
 
@@ -336,6 +340,11 @@ func (p *processComponentsHolder) InterceptorsContainer() process.InterceptorsCo
 // FullArchiveInterceptorsContainer will return the full archive interceptor container
 func (p *processComponentsHolder) FullArchiveInterceptorsContainer() process.InterceptorsContainer {
 	return p.fullArchiveInterceptorsContainer
+}
+
+// TransactionsInterceptorsContainer will return the transactions interceptor container
+func (p *processComponentsHolder) TransactionsInterceptorsContainer() process.InterceptorsContainer {
+	return p.transactionsInterceptorsContainer
 }
 
 // ResolversContainer will return the resolvers container
@@ -436,6 +445,11 @@ func (p *processComponentsHolder) PeerShardMapper() process.NetworkShardingColle
 // FullArchivePeerShardMapper will return the full archive peer shard mapper
 func (p *processComponentsHolder) FullArchivePeerShardMapper() process.NetworkShardingCollector {
 	return p.fullArchivePeerShardMapper
+}
+
+// TransactionsPeerShardMapper will return the transactions peer shard mapper
+func (p *processComponentsHolder) TransactionsPeerShardMapper() process.NetworkShardingCollector {
+	return p.transactionsPeerShardMapper
 }
 
 // FallbackHeaderValidator will return the fallback header validator

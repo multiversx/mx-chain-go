@@ -229,6 +229,7 @@ func (tpn *TestFullNode) initTestNodeWithArgs(args ArgTestProcessorNode, fullArg
 	}
 
 	tpn.MainMessenger = CreateMessengerWithNoDiscovery()
+	tpn.TransactionsMessenger = CreateMessengerWithNoDiscovery()
 
 	tpn.StatusMetrics = args.StatusMetrics
 	if check.IfNil(args.StatusMetrics) {
@@ -333,6 +334,7 @@ func (tpn *TestFullNode) initTestNodeWithArgs(args ArgTestProcessorNode, fullArg
 		TestMarshalizer,
 		TestHasher,
 		tpn.MainMessenger,
+		tpn.TransactionsMessenger,
 		tpn.ShardCoordinator,
 		tpn.OwnAccount.PeerSigHandler,
 		tpn.DataPool.Headers(),
@@ -523,10 +525,11 @@ func (tpn *TestFullNode) initNode(
 	processComponents.ShardCoord = tpn.ShardCoordinator
 	processComponents.IntContainer = tpn.MainInterceptorsContainer
 	processComponents.FullArchiveIntContainer = tpn.FullArchiveInterceptorsContainer
+	processComponents.TransactionsIntContainer = tpn.TransactionsInterceptorsContainer
 	processComponents.HistoryRepositoryInternal = tpn.HistoryRepository
 	processComponents.WhiteListHandlerInternal = tpn.WhiteListHandler
 	processComponents.WhiteListerVerifiedTxsInternal = tpn.WhiteListerVerifiedTxs
-	processComponents.TxsSenderHandlerField = createTxsSender(tpn.ShardCoordinator, tpn.MainMessenger)
+	processComponents.TxsSenderHandlerField = createTxsSender(tpn.ShardCoordinator, tpn.TransactionsMessenger)
 	processComponents.HardforkTriggerField = tpn.HardforkTrigger
 	processComponents.ScheduledTxsExecutionHandlerInternal = &testscommon.ScheduledTxsExecutionStub{}
 	processComponents.ProcessedMiniBlocksTrackerInternal = &testscommon.ProcessedMiniBlocksTrackerStub{}
@@ -723,6 +726,7 @@ func (tcn *TestFullNode) initInterceptors(
 		NodesCoordinator:               tcn.NodesCoordinator,
 		MainMessenger:                  tcn.MainMessenger,
 		FullArchiveMessenger:           tcn.FullArchiveMessenger,
+		TransactionsMessenger:          tcn.TransactionsMessenger,
 		Store:                          storage,
 		DataPool:                       tcn.DataPool,
 		MaxTxNonceDeltaAllowed:         common.MaxTxNonceDeltaAllowed,
@@ -744,6 +748,7 @@ func (tcn *TestFullNode) initInterceptors(
 		HeartbeatExpiryTimespanInSec:   30,
 		MainPeerShardMapper:            mock.NewNetworkShardingCollectorMock(),
 		FullArchivePeerShardMapper:     mock.NewNetworkShardingCollectorMock(),
+		TransactionsPeerShardMapper:    mock.NewNetworkShardingCollectorMock(),
 		HardforkTrigger:                &testscommon.HardforkTriggerStub{},
 		NodeOperationMode:              common.NormalOperation,
 		InterceptedDataVerifierFactory: interceptorsFactory.NewInterceptedDataVerifierFactory(interceptorDataVerifierArgs),
@@ -754,7 +759,7 @@ func (tcn *TestFullNode) initInterceptors(
 			fmt.Println(err.Error())
 		}
 
-		tcn.MainInterceptorsContainer, _, err = interceptorContainerFactory.Create()
+		tcn.MainInterceptorsContainer, _, tcn.TransactionsInterceptorsContainer, err = interceptorContainerFactory.Create()
 		if err != nil {
 			log.Debug("interceptor container factory Create", "error", err.Error())
 		}
@@ -789,7 +794,7 @@ func (tcn *TestFullNode) initInterceptors(
 			fmt.Println(err.Error())
 		}
 
-		tcn.MainInterceptorsContainer, _, err = interceptorContainerFactory.Create()
+		tcn.MainInterceptorsContainer, _, tcn.TransactionsInterceptorsContainer, err = interceptorContainerFactory.Create()
 		if err != nil {
 			fmt.Println(err.Error())
 		}

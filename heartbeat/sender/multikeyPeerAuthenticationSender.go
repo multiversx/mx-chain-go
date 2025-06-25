@@ -195,6 +195,7 @@ func (sender *multikeyPeerAuthenticationSender) sendData(pkBytes []byte, data []
 		return
 	}
 	sender.mainMessenger.BroadcastUsingPrivateKey(sender.topic, data, pid, p2pSk)
+	sender.transactionsMessenger.BroadcastUsingPrivateKey(sender.topic, data, pid, p2pSk)
 
 	nextTimeToCheck, err := sender.managedPeersHolder.GetNextPeerAuthenticationTime(pkBytes)
 	if err != nil {

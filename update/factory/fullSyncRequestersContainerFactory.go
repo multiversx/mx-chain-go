@@ -29,6 +29,7 @@ type requestersContainerFactory struct {
 	shardCoordinator       sharding.Coordinator
 	mainMessenger          p2p.Messenger
 	fullArchiveMessenger   p2p.Messenger
+	transactionsMessenger  p2p.Messenger
 	marshaller             marshal.Marshalizer
 	intRandomizer          dataRetriever.IntRandomizer
 	container              dataRetriever.RequestersContainer
@@ -41,6 +42,7 @@ type ArgsRequestersContainerFactory struct {
 	ShardCoordinator       sharding.Coordinator
 	MainMessenger          p2p.Messenger
 	FullArchiveMessenger   p2p.Messenger
+	TransactionsMessenger  p2p.Messenger
 	Marshaller             marshal.Marshalizer
 	ExistingRequesters     dataRetriever.RequestersContainer
 	OutputAntifloodHandler dataRetriever.P2PAntifloodHandler
@@ -57,6 +59,9 @@ func NewRequestersContainerFactory(args ArgsRequestersContainerFactory) (*reques
 	}
 	if check.IfNil(args.FullArchiveMessenger) {
 		return nil, fmt.Errorf("%w on full archive network", update.ErrNilMessenger)
+	}
+	if check.IfNil(args.TransactionsMessenger) {
+		return nil, fmt.Errorf("%w on transactions network", update.ErrNilMessenger)
 	}
 	if check.IfNil(args.Marshaller) {
 		return nil, update.ErrNilMarshalizer
@@ -75,6 +80,7 @@ func NewRequestersContainerFactory(args ArgsRequestersContainerFactory) (*reques
 		shardCoordinator:       args.ShardCoordinator,
 		mainMessenger:          args.MainMessenger,
 		fullArchiveMessenger:   args.FullArchiveMessenger,
+		transactionsMessenger:  args.TransactionsMessenger,
 		marshaller:             args.Marshaller,
 		intRandomizer:          &random.ConcurrentSafeIntRandomizer{},
 		container:              args.ExistingRequesters,
@@ -165,13 +171,15 @@ func (rcf *requestersContainerFactory) createTrieNodesRequester(baseTopic string
 
 	arg := topicsender.ArgTopicRequestSender{
 		ArgBaseTopicSender: topicsender.ArgBaseTopicSender{
-			MainMessenger:                   rcf.mainMessenger,
-			FullArchiveMessenger:            rcf.fullArchiveMessenger,
-			TopicName:                       baseTopic,
-			OutputAntiflooder:               rcf.outputAntifloodHandler,
-			MainPreferredPeersHolder:        disabled.NewPreferredPeersHolder(),
-			FullArchivePreferredPeersHolder: disabled.NewPreferredPeersHolder(),
-			TargetShardId:                   defaultTargetShardID,
+			MainMessenger:                           rcf.mainMessenger,
+			FullArchiveMessenger:                    rcf.fullArchiveMessenger,
+			TransactionsMessenger:                   rcf.transactionsMessenger,
+			TopicName:                               baseTopic,
+			OutputAntiflooder:                       rcf.outputAntifloodHandler,
+			MainPreferredPeersHolder:                disabled.NewPreferredPeersHolder(),
+			FullArchivePreferredPeersHolder:         disabled.NewPreferredPeersHolder(),
+			TransactionsPreferredPeersHolderHandler: disabled.NewPreferredPeersHolder(),
+			TargetShardId:                           defaultTargetShardID,
 		},
 		Marshaller:                  rcf.marshaller,
 		Randomizer:                  rcf.intRandomizer,

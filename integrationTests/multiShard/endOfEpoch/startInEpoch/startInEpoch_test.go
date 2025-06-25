@@ -214,6 +214,10 @@ func testNodeStartsInEpoch(t *testing.T, shardID uint32, expectedHighestRound ui
 	time.Sleep(integrationTests.P2pBootstrapDelay)
 	nodeToJoinLate.MainMessenger = messenger
 
+	transactionsMessenger := integrationTests.CreateMessengerWithNoDiscovery()
+	time.Sleep(integrationTests.P2pBootstrapDelay)
+	nodeToJoinLate.TransactionsMessenger = transactionsMessenger
+
 	nodeToJoinLate.FullArchiveMessenger = &p2pmocks.MessengerStub{}
 
 	for _, n := range nodes {
@@ -259,6 +263,7 @@ func testNodeStartsInEpoch(t *testing.T, shardID uint32, expectedHighestRound ui
 		CoreComponentsHolder:            coreComponents,
 		MainMessenger:                   nodeToJoinLate.MainMessenger,
 		FullArchiveMessenger:            nodeToJoinLate.FullArchiveMessenger,
+		TransactionsMessenger:           nodeToJoinLate.TransactionsMessenger,
 		GeneralConfig:                   generalConfig,
 		PrefsConfig: config.PreferencesConfig{
 			FullArchive: false,

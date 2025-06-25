@@ -13,6 +13,9 @@ const MainNetwork NetworkType = "main"
 // FullArchiveNetwork defines the full archive network
 const FullArchiveNetwork NetworkType = "full archive"
 
+// TransactionsNetwork defines the transactions network
+const TransactionsNetwork NetworkType = "transactions"
+
 // ListsSharder is the variant that uses lists
 const ListsSharder = p2p.ListsSharder
 

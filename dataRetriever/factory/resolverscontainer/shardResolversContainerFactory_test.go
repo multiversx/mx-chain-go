@@ -441,6 +441,13 @@ func TestShardResolversContainerFactory_With4ShardsShouldWork(t *testing.T) {
 			return nil
 		},
 	}
+	registerTransactionsCnt := 0
+	args.TransactionsMessenger = &p2pmocks.MessengerStub{
+		RegisterMessageProcessorCalled: func(topic string, identifier string, handler p2p.MessageProcessor) error {
+			registerTransactionsCnt++
+			return nil
+		},
+	}
 	args.ShardCoordinator = shardCoordinator
 	rcf, _ := resolverscontainer.NewShardResolversContainerFactory(args)
 
@@ -461,8 +468,8 @@ func TestShardResolversContainerFactory_With4ShardsShouldWork(t *testing.T) {
 		numResolverEquivalentProofs
 
 	assert.Equal(t, totalResolvers, container.Len())
-	assert.Equal(t, totalResolvers, registerMainCnt)
-	assert.Equal(t, totalResolvers, registerFullArchiveCnt)
+	assert.Equal(t, totalResolvers, registerMainCnt+registerTransactionsCnt)
+	assert.Equal(t, totalResolvers, registerFullArchiveCnt+registerTransactionsCnt)
 }
 
 func TestShardResolversContainerFactory_IsInterfaceNil(t *testing.T) {
@@ -482,6 +489,7 @@ func getArgumentsShard() resolverscontainer.FactoryArgs {
 		ShardCoordinator:                    mock.NewOneShardCoordinatorMock(),
 		MainMessenger:                       createMessengerStubForShard("", ""),
 		FullArchiveMessenger:                createMessengerStubForShard("", ""),
+		TransactionsMessenger:               createMessengerStubForShard("", ""),
 		Store:                               createStoreForShard(),
 		Marshalizer:                         &mock.MarshalizerMock{},
 		DataPools:                           createDataPoolsForShard(),
