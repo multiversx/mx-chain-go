@@ -348,7 +348,7 @@ func replaceTxTopicAndAssignHandlerOnMessenger(
 	messenger p2p.Messenger,
 	container process.InterceptorsContainer,
 ) error {
-	err := removeTopicFromMessenger(messenger, topic)
+	err := removeTopicFromMessenger(messenger, topic, common.DefaultInterceptorsIdentifier)
 	if err != nil {
 		return err
 	}
@@ -371,7 +371,7 @@ func replaceTxTopicResolverAndAssignHandlerOnMessenger(
 	messenger p2p.Messenger,
 	resolver topicResolver,
 ) error {
-	err := removeTopicFromMessenger(messenger, resolver.RequestTopic())
+	err := removeTopicFromMessenger(messenger, resolver.RequestTopic(), common.DefaultResolversIdentifier)
 	if err != nil {
 		return err
 	}
@@ -384,12 +384,16 @@ func replaceTxTopicResolverAndAssignHandlerOnMessenger(
 	return messenger.RegisterMessageProcessor(p2p.TransactionsNetwork, resolver.RequestTopic(), common.DefaultResolversIdentifier, resolver)
 }
 
-func removeTopicFromMessenger(messenger p2p.MessageHandler, topic string) error {
+func removeTopicFromMessenger(
+	messenger p2p.MessageHandler,
+	topic string,
+	identifier string,
+) error {
 	if !messenger.HasTopic(topic) {
 		return nil
 	}
 
-	err := messenger.UnregisterMessageProcessor(topic, common.DefaultInterceptorsIdentifier)
+	err := messenger.UnregisterMessageProcessor(topic, identifier)
 	if err != nil {
 		return err
 	}
