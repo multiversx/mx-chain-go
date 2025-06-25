@@ -42,6 +42,7 @@ type baseResolversContainerFactory struct {
 	mainPreferredPeersHolder        dataRetriever.PreferredPeersHolderHandler
 	fullArchivePreferredPeersHolder dataRetriever.PreferredPeersHolderHandler
 	payloadValidator                dataRetriever.PeerAuthenticationPayloadValidator
+	enableEpochsHandler             common.EnableEpochsHandler
 }
 
 func (brcf *baseResolversContainerFactory) checkParams() error {
@@ -89,6 +90,9 @@ func (brcf *baseResolversContainerFactory) checkParams() error {
 	}
 	if check.IfNil(brcf.fullArchivePreferredPeersHolder) {
 		return fmt.Errorf("%w for full archive network", dataRetriever.ErrNilPreferredPeersHolder)
+	}
+	if check.IfNil(brcf.enableEpochsHandler) {
+		return dataRetriever.ErrNilEnableEpochsHandler
 	}
 
 	return nil
@@ -168,12 +172,18 @@ func (brcf *baseResolversContainerFactory) createTxResolver(
 		return nil, err
 	}
 
-	err = brcf.mainMessenger.RegisterMessageProcessor(resolver.RequestTopic(), common.DefaultResolversIdentifier, resolver)
+	network := p2p.MainNetwork
+	faNetwork := p2p.FullArchiveNetwork
+	if common.ShouldUseTransactionsNetwork(topic, brcf.enableEpochsHandler) {
+		network = p2p.TransactionsNetwork
+		faNetwork = p2p.TransactionsNetwork
+	}
+	err = brcf.mainMessenger.RegisterMessageProcessor(network, resolver.RequestTopic(), common.DefaultResolversIdentifier, resolver)
 	if err != nil {
 		return nil, err
 	}
 
-	err = brcf.fullArchiveMessenger.RegisterMessageProcessor(resolver.RequestTopic(), common.DefaultResolversIdentifier, resolver)
+	err = brcf.fullArchiveMessenger.RegisterMessageProcessor(faNetwork, resolver.RequestTopic(), common.DefaultResolversIdentifier, resolver)
 	if err != nil {
 		return nil, err
 	}
@@ -255,12 +265,12 @@ func (brcf *baseResolversContainerFactory) createMiniBlocksResolver(
 		return nil, err
 	}
 
-	err = brcf.mainMessenger.RegisterMessageProcessor(txBlkResolver.RequestTopic(), common.DefaultResolversIdentifier, txBlkResolver)
+	err = brcf.mainMessenger.RegisterMessageProcessor(p2p.MainNetwork, txBlkResolver.RequestTopic(), common.DefaultResolversIdentifier, txBlkResolver)
 	if err != nil {
 		return nil, err
 	}
 
-	err = brcf.fullArchiveMessenger.RegisterMessageProcessor(txBlkResolver.RequestTopic(), common.DefaultResolversIdentifier, txBlkResolver)
+	err = brcf.fullArchiveMessenger.RegisterMessageProcessor(p2p.FullArchiveNetwork, txBlkResolver.RequestTopic(), common.DefaultResolversIdentifier, txBlkResolver)
 	if err != nil {
 		return nil, err
 	}
@@ -292,12 +302,12 @@ func (brcf *baseResolversContainerFactory) generatePeerAuthenticationResolver() 
 		return err
 	}
 
-	err = brcf.mainMessenger.RegisterMessageProcessor(peerAuthResolver.RequestTopic(), common.DefaultResolversIdentifier, peerAuthResolver)
+	err = brcf.mainMessenger.RegisterMessageProcessor(p2p.MainNetwork, peerAuthResolver.RequestTopic(), common.DefaultResolversIdentifier, peerAuthResolver)
 	if err != nil {
 		return err
 	}
 
-	err = brcf.fullArchiveMessenger.RegisterMessageProcessor(peerAuthResolver.RequestTopic(), common.DefaultResolversIdentifier, peerAuthResolver)
+	err = brcf.fullArchiveMessenger.RegisterMessageProcessor(p2p.FullArchiveNetwork, peerAuthResolver.RequestTopic(), common.DefaultResolversIdentifier, peerAuthResolver)
 	if err != nil {
 		return err
 	}
@@ -364,12 +374,12 @@ func (brcf *baseResolversContainerFactory) createTrieNodesResolver(
 		return nil, err
 	}
 
-	err = brcf.mainMessenger.RegisterMessageProcessor(resolver.RequestTopic(), common.DefaultResolversIdentifier, resolver)
+	err = brcf.mainMessenger.RegisterMessageProcessor(p2p.MainNetwork, resolver.RequestTopic(), common.DefaultResolversIdentifier, resolver)
 	if err != nil {
 		return nil, err
 	}
 
-	err = brcf.fullArchiveMessenger.RegisterMessageProcessor(resolver.RequestTopic(), common.DefaultResolversIdentifier, resolver)
+	err = brcf.fullArchiveMessenger.RegisterMessageProcessor(p2p.FullArchiveNetwork, resolver.RequestTopic(), common.DefaultResolversIdentifier, resolver)
 	if err != nil {
 		return nil, err
 	}
@@ -405,12 +415,12 @@ func (brcf *baseResolversContainerFactory) generateValidatorInfoResolver() error
 		return err
 	}
 
-	err = brcf.mainMessenger.RegisterMessageProcessor(validatorInfoResolver.RequestTopic(), common.DefaultResolversIdentifier, validatorInfoResolver)
+	err = brcf.mainMessenger.RegisterMessageProcessor(p2p.MainNetwork, validatorInfoResolver.RequestTopic(), common.DefaultResolversIdentifier, validatorInfoResolver)
 	if err != nil {
 		return err
 	}
 
-	err = brcf.fullArchiveMessenger.RegisterMessageProcessor(validatorInfoResolver.RequestTopic(), common.DefaultResolversIdentifier, validatorInfoResolver)
+	err = brcf.fullArchiveMessenger.RegisterMessageProcessor(p2p.FullArchiveNetwork, validatorInfoResolver.RequestTopic(), common.DefaultResolversIdentifier, validatorInfoResolver)
 	if err != nil {
 		return err
 	}
@@ -449,12 +459,12 @@ func (brcf *baseResolversContainerFactory) createEquivalentProofsResolver(
 		return nil, err
 	}
 
-	err = brcf.mainMessenger.RegisterMessageProcessor(resolver.RequestTopic(), common.DefaultResolversIdentifier, resolver)
+	err = brcf.mainMessenger.RegisterMessageProcessor(p2p.MainNetwork, resolver.RequestTopic(), common.DefaultResolversIdentifier, resolver)
 	if err != nil {
 		return nil, err
 	}
 
-	err = brcf.fullArchiveMessenger.RegisterMessageProcessor(resolver.RequestTopic(), common.DefaultResolversIdentifier, resolver)
+	err = brcf.fullArchiveMessenger.RegisterMessageProcessor(p2p.FullArchiveNetwork, resolver.RequestTopic(), common.DefaultResolversIdentifier, resolver)
 	if err != nil {
 		return nil, err
 	}

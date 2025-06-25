@@ -234,7 +234,7 @@ func (micf *metaInterceptorsContainerFactory) AddShardTrieNodeInterceptors(conta
 	return container.AddMultiple(keys, trieInterceptors)
 }
 
-//------- Shard header interceptors
+// ------- Shard header interceptors
 
 func (micf *metaInterceptorsContainerFactory) generateShardHeaderInterceptors() error {
 	shardC := micf.shardCoordinator
@@ -242,7 +242,7 @@ func (micf *metaInterceptorsContainerFactory) generateShardHeaderInterceptors() 
 	keys := make([]string, noOfShards)
 	interceptorsSlice := make([]process.Interceptor, noOfShards)
 
-	//wire up to topics: shardBlocks_0_META, shardBlocks_1_META ...
+	// wire up to topics: shardBlocks_0_META, shardBlocks_1_META ...
 	for idx := uint32(0); idx < noOfShards; idx++ {
 		identifierHeader := factory.ShardBlocksTopic + shardC.CommunicationIdentifier(idx)
 		interceptor, err := micf.createOneShardHeaderInterceptor(identifierHeader)
@@ -324,7 +324,7 @@ func (micf *metaInterceptorsContainerFactory) generateTrieNodesInterceptors() er
 	return micf.addInterceptorsToContainers(keys, trieInterceptors)
 }
 
-//------- Reward transactions interceptors
+// ------- Reward transactions interceptors
 
 func (micf *metaInterceptorsContainerFactory) generateRewardTxInterceptors() error {
 	shardC := micf.shardCoordinator
@@ -335,7 +335,7 @@ func (micf *metaInterceptorsContainerFactory) generateRewardTxInterceptors() err
 	interceptorSlice := make([]process.Interceptor, noOfShards)
 
 	for idx := uint32(0); idx < noOfShards; idx++ {
-		identifierScr := factory.RewardsTransactionTopic + shardC.CommunicationIdentifier(idx)
+		identifierScr := common.RewardsTransactionTopic + shardC.CommunicationIdentifier(idx)
 		interceptor, err := micf.createOneRewardTxInterceptor(identifierScr)
 		if err != nil {
 			return err

@@ -7,7 +7,6 @@ import (
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/process"
-	"github.com/multiversx/mx-chain-go/process/factory"
 	"github.com/multiversx/mx-chain-go/sharding"
 )
 
@@ -85,7 +84,7 @@ func (sender *syncedTxsSender) sendBulkTransactions(txs []*transaction.Transacti
 
 func (sender *syncedTxsSender) sendBulkTransactionsFromShard(transactions [][]byte, senderShardId uint32) error {
 	// the topic identifier is made of the current shard id and sender's shard id
-	identifier := factory.TransactionTopic + sender.shardCoordinator.CommunicationIdentifier(senderShardId)
+	identifier := common.TransactionTopic + sender.shardCoordinator.CommunicationIdentifier(senderShardId)
 
 	packets, err := sender.dataPacker.PackDataInChunks(transactions, common.MaxBulkTransactionSize)
 	if err != nil {

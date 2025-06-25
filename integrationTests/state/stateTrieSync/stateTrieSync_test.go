@@ -10,6 +10,7 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/throttler"
+	"github.com/multiversx/mx-chain-go/p2p"
 	logger "github.com/multiversx/mx-chain-logger-go"
 	wasmConfig "github.com/multiversx/mx-chain-vm-go/config"
 	"github.com/stretchr/testify/assert"
@@ -55,7 +56,7 @@ func createTestProcessorNodeAndTrieStorage(
 		TrieStore:            mainStorer,
 		GasScheduleMap:       createTestGasMap(),
 	})
-	_ = node.MainMessenger.CreateTopic(common.ConsensusTopic+node.ShardCoordinator.CommunicationIdentifier(node.ShardCoordinator.SelfId()), true)
+	_ = node.MainMessenger.CreateTopic(p2p.MainNetwork, common.ConsensusTopic+node.ShardCoordinator.CommunicationIdentifier(node.ShardCoordinator.SelfId()), true)
 
 	return node, mainStorer
 }

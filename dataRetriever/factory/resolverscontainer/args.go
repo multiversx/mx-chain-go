@@ -29,4 +29,5 @@ type FactoryArgs struct {
 	SizeCheckDelta                      uint32
 	IsFullHistoryNode                   bool
 	PayloadValidator                    dataRetriever.PeerAuthenticationPayloadValidator
+	EnableEpochsHandler                 common.EnableEpochsHandler
 }

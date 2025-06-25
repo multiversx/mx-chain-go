@@ -10,9 +10,9 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-crypto-go"
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/dataRetriever/requestHandlers"
 	"github.com/multiversx/mx-chain-go/integrationTests"
-	"github.com/multiversx/mx-chain-go/process/factory"
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/stretchr/testify/assert"
 )
@@ -73,8 +73,8 @@ func TestNode_InterceptorBulkTxsSentFromSameShardShouldRemainInSenderShard(t *te
 
 	time.Sleep(time.Second * 10)
 
-	//since there is a slight chance that some transactions get lost (peer to slow, queue full, validators throttling...)
-	//we should get the max transactions received
+	// since there is a slight chance that some transactions get lost (peer to slow, queue full, validators throttling...)
+	// we should get the max transactions received
 	maxTxReceived := int32(0)
 	for _, n := range nodes {
 		txRecv := atomic.LoadInt32(&n.CounterTxRecv)
@@ -86,7 +86,7 @@ func TestNode_InterceptorBulkTxsSentFromSameShardShouldRemainInSenderShard(t *te
 
 	assert.True(t, maxTxReceived > 0)
 
-	//only sender shard (all 3 nodes from shard 0) have the transactions
+	// only sender shard (all 3 nodes from shard 0) have the transactions
 	for _, n := range nodes {
 		if n.ShardCoordinator.SelfId() == 0 {
 			assert.Equal(t, maxTxReceived, atomic.LoadInt32(&n.CounterTxRecv))
@@ -166,15 +166,15 @@ func TestNode_InterceptorBulkTxsSentFromOtherShardShouldBeRoutedInSenderShard(t 
 		integrationTests.MinTransactionVersion,
 	)
 
-	//display, can be removed
+	// display, can be removed
 	for i := 0; i < 10; i++ {
 		time.Sleep(time.Second)
 
 		fmt.Println(integrationTests.MakeDisplayTable(nodes))
 	}
 
-	//since there is a slight chance that some transactions get lost (peer to slow, queue full...)
-	//we should get the max transactions received
+	// since there is a slight chance that some transactions get lost (peer to slow, queue full...)
+	// we should get the max transactions received
 	maxTxReceived := int32(0)
 	for _, n := range nodes {
 		txRecv := atomic.LoadInt32(&n.CounterTxRecv)
@@ -186,7 +186,7 @@ func TestNode_InterceptorBulkTxsSentFromOtherShardShouldBeRoutedInSenderShard(t 
 
 	assert.True(t, maxTxReceived > 0)
 
-	//only sender shard (all 3 nodes from shard firstSkInShard) has the transactions
+	// only sender shard (all 3 nodes from shard firstSkInShard) has the transactions
 	for _, n := range nodes {
 		if n.ShardCoordinator.SelfId() == firstSkInShard {
 			assert.Equal(t, atomic.LoadInt32(&n.CounterTxRecv), maxTxReceived)
@@ -248,7 +248,7 @@ func TestNode_InterceptorBulkTxsSentFromOtherShardShouldBeRoutedInSenderShardAnd
 
 	mutGeneratedTxHashes := sync.Mutex{}
 	generatedTxHashes := make([][]byte, 0)
-	//wire a new hook for generated txs on a node in sender shard to populate tx hashes generated
+	// wire a new hook for generated txs on a node in sender shard to populate tx hashes generated
 	for _, n := range nodes {
 		if n.ShardCoordinator.SelfId() == firstSkInShard {
 			n.DataPool.Transactions().RegisterOnAdded(func(key []byte, value interface{}) {
@@ -292,7 +292,7 @@ func TestNode_InterceptorBulkTxsSentFromOtherShardShouldBeRoutedInSenderShardAnd
 	time.Sleep(time.Second * 10)
 
 	fmt.Println("Request transactions by destination shard nodes...")
-	//periodically compute and request missing transactions
+	// periodically compute and request missing transactions
 	for i := 0; i < 10; i++ {
 		integrationTests.ComputeAndRequestMissingTransactions(nodes, generatedTxHashes, firstSkInShard, shardRequester, randomShard)
 		time.Sleep(time.Second)
@@ -300,8 +300,8 @@ func TestNode_InterceptorBulkTxsSentFromOtherShardShouldBeRoutedInSenderShardAnd
 		fmt.Println(integrationTests.MakeDisplayTable(nodes))
 	}
 
-	//since there is a slight chance that some transactions get lost (peer to slow, queue full...)
-	//we should get the max transactions received
+	// since there is a slight chance that some transactions get lost (peer to slow, queue full...)
+	// we should get the max transactions received
 	maxTxReceived := int32(0)
 	for _, n := range nodes {
 		txRecv := atomic.LoadInt32(&n.CounterTxRecv)
@@ -313,7 +313,7 @@ func TestNode_InterceptorBulkTxsSentFromOtherShardShouldBeRoutedInSenderShardAnd
 
 	assert.True(t, maxTxReceived > 0)
 
-	//only sender and destination shards have the transactions
+	// only sender and destination shards have the transactions
 	for _, n := range nodes {
 		isSenderOrDestinationShard := n.ShardCoordinator.SelfId() == firstSkInShard || n.ShardCoordinator.SelfId() == shardRequester
 
@@ -342,7 +342,7 @@ func TestNode_InMultiShardEnvRequestTxsShouldRequireFromTheOtherShardAndSameShar
 		}
 	}()
 
-	//shard 0, requesters
+	// shard 0, requesters
 	recvTxs := make(map[int]map[string]struct{})
 	mutRecvTxs := sync.Mutex{}
 	connectableNodes := make([]integrationTests.Connectable, 0)
@@ -368,7 +368,7 @@ func TestNode_InMultiShardEnvRequestTxsShouldRequireFromTheOtherShardAndSameShar
 
 	integrationTests.CreateMintingFromAddresses(nodes, txsSndAddr, balanceValue)
 
-	//shard 1, resolvers, same data pool, does not matter
+	// shard 1, resolvers, same data pool, does not matter
 	for i := 0; i < nodesPerShard; i++ {
 		tn := integrationTests.NewTestProcessorNode(integrationTests.ArgTestProcessorNode{
 			MaxShards:            uint32(maxShards),
@@ -393,7 +393,7 @@ func TestNode_InMultiShardEnvRequestTxsShouldRequireFromTheOtherShardAndSameShar
 	fmt.Println("Request nodes start asking the data...")
 	reqShardCoordinator, _ := sharding.NewMultiShardCoordinator(uint32(maxShards), 0)
 	for i := 0; i < nodesPerShard; i++ {
-		requester, _ := nodes[i].RequestersFinder.Get(factory.TransactionTopic + reqShardCoordinator.CommunicationIdentifier(1))
+		requester, _ := nodes[i].RequestersFinder.Get(common.TransactionTopic + reqShardCoordinator.CommunicationIdentifier(1))
 		txRequester, ok := requester.(requestHandlers.HashSliceRequester)
 		assert.True(t, ok)
 

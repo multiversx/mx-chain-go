@@ -295,6 +295,19 @@ func GetNetworkFactoryArgs() networkComp.NetworkComponentsFactoryArgs {
 			MaxSeeders:              2,
 			Type:                    "NilListSharder",
 		},
+		SubNetworks: p2pConfig.SubNetworksConfig{
+			Networks: []p2pConfig.SubNetworkConfig{
+				{
+					Name: string(p2p.TransactionsNetwork),
+					PubSub: p2pConfig.PubSubConfig{
+						OptimalPeersNum: 2,
+						MinimumPeersNum: 1,
+						MaximumPeersNum: 3,
+					},
+					ProtocolIDs: []string{"mvx-transactions"},
+				},
+			},
+		},
 	}
 
 	mainConfig := config.Config{
