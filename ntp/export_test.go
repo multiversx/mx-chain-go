@@ -6,8 +6,8 @@ import (
 	"github.com/beevik/ntp"
 )
 
-// OutOfBoundsDuration -
-const OutOfBoundsDuration = outOfBoundsDuration
+// OutOfBoundsDurationPercentage -
+const OutOfBoundsDurationPercentage = outOfBoundsRoundDurationPercentage
 
 // Query -
 func (s *syncTime) Query() func(options NTPOptions, hostIndex int) (*ntp.Response, error) {
