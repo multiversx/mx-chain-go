@@ -1,8 +1,9 @@
 package executionTrack
 
 import (
-	"github.com/multiversx/mx-chain-core-go/data/block"
 	"sync"
+
+	"github.com/multiversx/mx-chain-core-go/data/block"
 )
 
 type executionResultConfirmed struct {
