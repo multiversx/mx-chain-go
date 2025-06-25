@@ -30,6 +30,7 @@ func (tb *trackedBlock) compileBreadcrumbs(txs []*WrappedTransaction) {
 	}
 }
 
+// TODO add validation when compiling breadcrumb
 func (tb *trackedBlock) compileBreadcrumb(tx *WrappedTransaction) {
 	sender := tx.Tx.GetSndAddr()
 	feePayer := tx.FeePayer
