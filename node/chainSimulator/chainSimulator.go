@@ -51,7 +51,6 @@ type ArgsChainSimulator struct {
 	Hysteresis                 float32
 	NumNodesWaitingListShard   uint32
 	NumNodesWaitingListMeta    uint32
-	GenesisTimestamp           int64
 	InitialRound               int64
 	InitialEpoch               uint32
 	InitialNonce               uint64
@@ -114,7 +113,6 @@ func (s *simulator) createChainHandlers(args ArgsBaseChainSimulator) error {
 	outputConfigs, err := configs.CreateChainSimulatorConfigs(configs.ArgsChainSimulatorConfigs{
 		NumOfShards:                 args.NumOfShards,
 		OriginalConfigsPath:         args.PathToInitialConfig,
-		GenesisTimeStamp:            computeStartTimeBaseOnInitialRound(args.ArgsChainSimulator),
 		RoundDurationInMillis:       args.RoundDurationInMillis,
 		TempDir:                     args.TempDir,
 		MinNodesPerShard:            args.MinNodesPerShard,
@@ -132,13 +130,15 @@ func (s *simulator) createChainHandlers(args ArgsBaseChainSimulator) error {
 		return err
 	}
 
+	genesisTime := time.Now()
+
 	for idx := -1; idx < int(args.NumOfShards); idx++ {
 		shardIDStr := fmt.Sprintf("%d", idx)
 		if idx == -1 {
 			shardIDStr = "metachain"
 		}
 
-		node, errCreate := s.createTestNode(*outputConfigs, args, shardIDStr)
+		node, errCreate := s.createTestNode(*outputConfigs, args, shardIDStr, genesisTime)
 		if errCreate != nil {
 			return errCreate
 		}
@@ -186,7 +186,6 @@ func (s *simulator) createChainHandlers(args ArgsBaseChainSimulator) error {
 
 	log.Info("running the chain simulator with the following parameters",
 		"number of shards (including meta)", args.NumOfShards+1,
-		"genesis timestamp", args.GenesisTimestamp,
 		"original config path", args.PathToInitialConfig,
 		"temporary path", args.TempDir)
 
@@ -226,12 +225,11 @@ func (s *simulator) addProofs() {
 	}
 }
 
-func computeStartTimeBaseOnInitialRound(args ArgsChainSimulator) int64 {
-	return args.GenesisTimestamp + int64(args.RoundDurationInMillis/1000)*args.InitialRound
-}
-
 func (s *simulator) createTestNode(
-	outputConfigs configs.ArgsConfigsSimulator, args ArgsBaseChainSimulator, shardIDStr string,
+	outputConfigs configs.ArgsConfigsSimulator,
+	args ArgsBaseChainSimulator,
+	shardIDStr string,
+	genesisTime time.Time,
 ) (process.NodeHandler, error) {
 	argsTestOnlyProcessorNode := components.ArgsTestOnlyProcessingNode{
 		Configs:                     outputConfigs.Configs,
@@ -250,6 +248,7 @@ func (s *simulator) createTestNode(
 		MetaChainConsensusGroupSize: args.MetaChainConsensusGroupSize,
 		RoundDurationInMillis:       args.RoundDurationInMillis,
 		VmQueryDelayAfterStartInMs:  args.VmQueryDelayAfterStartInMs,
+		GenesisTime:                 genesisTime,
 	}
 
 	return components.NewTestOnlyProcessingNode(argsTestOnlyProcessorNode)

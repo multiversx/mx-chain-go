@@ -77,7 +77,13 @@ func (creator *blocksCreator) CreateNewBlock() error {
 	}
 
 	headerCreationTime := coreComponents.RoundHandler().TimeStamp()
-	err = newHeader.SetTimeStamp(uint64(headerCreationTime.Unix()))
+
+	headerCreationTimeStamp := headerCreationTime.Unix()
+	if coreComponents.EnableEpochsHandler().IsFlagEnabledInEpoch(common.SupernovaFlag, newHeader.GetEpoch()) {
+		headerCreationTimeStamp = headerCreationTime.UnixMilli()
+	}
+
+	err = newHeader.SetTimeStamp(uint64(headerCreationTimeStamp))
 	if err != nil {
 		return err
 	}
