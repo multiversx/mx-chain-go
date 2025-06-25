@@ -236,19 +236,11 @@ func TestSelectionTracker_getTransactionsFromBlock(t *testing.T) {
 					[]byte("txHash1"),
 					[]byte("txHash2"),
 				},
-				ReceiverShardID: 0,
-				SenderShardID:   0,
-				Type:            0,
-				Reserved:        nil,
 			},
 			{
 				TxHashes: [][]byte{
 					[]byte("txHash3"),
 				},
-				ReceiverShardID: 0,
-				SenderShardID:   0,
-				Type:            0,
-				Reserved:        nil,
 			},
 		}}
 
@@ -274,19 +266,11 @@ func TestSelectionTracker_getTransactionsFromBlock(t *testing.T) {
 					[]byte("txHash1"),
 					[]byte("txHash2"),
 				},
-				ReceiverShardID: 0,
-				SenderShardID:   0,
-				Type:            0,
-				Reserved:        nil,
 			},
 			{
 				TxHashes: [][]byte{
 					[]byte("txHash3"),
 				},
-				ReceiverShardID: 0,
-				SenderShardID:   0,
-				Type:            0,
-				Reserved:        nil,
 			},
 		}}
 
