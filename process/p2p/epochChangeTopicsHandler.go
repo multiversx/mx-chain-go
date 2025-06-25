@@ -104,20 +104,17 @@ func (handler *epochChangeTopicsHandler) EpochConfirmed(epoch uint32, _ uint64) 
 
 	err := handler.replaceProcessorsForTopic(common.TransactionTopic)
 	if err != nil {
-		log.Warn("replaceProcessorsForTopic failed", "topic", common.TransactionTopic, "err", err)
-		return
+		log.Warn("replaceProcessorsForTopic failed", "base topic", common.TransactionTopic, "err", err)
 	}
 
 	err = handler.replaceProcessorsForTopic(common.UnsignedTransactionTopic)
 	if err != nil {
-		log.Warn("replaceProcessorsForTopic failed", "topic", common.UnsignedTransactionTopic, "err", err)
-		return
+		log.Warn("replaceProcessorsForTopic failed", "base topic", common.UnsignedTransactionTopic, "err", err)
 	}
 
 	err = handler.replaceProcessorsForTopic(common.RewardsTransactionTopic)
 	if err != nil {
-		log.Warn("replaceProcessorsForTopic failed", "topic", common.RewardsTransactionTopic, "err", err)
-		return
+		log.Warn("replaceProcessorsForTopic failed", "base topic", common.RewardsTransactionTopic, "err", err)
 	}
 }
 
@@ -128,23 +125,6 @@ func (handler *epochChangeTopicsHandler) replaceProcessorsForTopic(topic string)
 	}
 
 	return handler.replaceTxResolversOnTxNetwork(topic)
-}
-
-func removeTopicFromMessenger(messenger p2p.MessageHandler, topic string) error {
-	err := messenger.UnregisterMessageProcessor(topic, common.DefaultInterceptorsIdentifier)
-	if err != nil {
-		return err
-	}
-	err = messenger.UnregisterMessageProcessor(topic, common.HardforkInterceptorsIdentifier)
-	if err != nil {
-		return err
-	}
-	err = messenger.UnJoinTopic(topic)
-	if err != nil {
-		return err
-	}
-
-	return nil
 }
 
 func (handler *epochChangeTopicsHandler) replaceTxResolversOnTxNetwork(
@@ -169,12 +149,12 @@ func (handler *epochChangeTopicsHandler) replaceTxResolversOnTxNetwork(
 			return fmt.Errorf("%w for topic %s", process.ErrCannotCastTxResolver, identifierTx)
 		}
 
-		err = handler.mainMessenger.RegisterMessageProcessor(p2p.TransactionsNetwork, resolver.RequestTopic(), common.DefaultResolversIdentifier, resolver)
+		err = replaceTxTopicResolverAndAssignHandlerOnMessenger(true, handler.mainMessenger, resolver)
 		if err != nil {
 			return err
 		}
 
-		err = handler.fullArchiveMessenger.RegisterMessageProcessor(p2p.TransactionsNetwork, resolver.RequestTopic(), common.DefaultResolversIdentifier, resolver)
+		err = replaceTxTopicResolverAndAssignHandlerOnMessenger(true, handler.fullArchiveMessenger, resolver)
 		if err != nil {
 			return err
 		}
@@ -265,12 +245,12 @@ func (handler *epochChangeTopicsHandler) replaceShardRewardTxResolversOnTxNetwor
 		return fmt.Errorf("%w for topic %s", process.ErrCannotCastTxResolver, topic)
 	}
 
-	err = handler.mainMessenger.RegisterMessageProcessor(p2p.TransactionsNetwork, resolver.RequestTopic(), common.DefaultResolversIdentifier, resolver)
+	err = replaceTxTopicResolverAndAssignHandlerOnMessenger(true, handler.mainMessenger, resolver)
 	if err != nil {
 		return err
 	}
 
-	return handler.fullArchiveMessenger.RegisterMessageProcessor(p2p.TransactionsNetwork, resolver.RequestTopic(), common.DefaultResolversIdentifier, resolver)
+	return replaceTxTopicResolverAndAssignHandlerOnMessenger(true, handler.fullArchiveMessenger, resolver)
 }
 
 func (handler *epochChangeTopicsHandler) replaceMetaRewardTxResolversOnTxNetwork() error {
@@ -289,12 +269,12 @@ func (handler *epochChangeTopicsHandler) replaceMetaRewardTxResolversOnTxNetwork
 			return fmt.Errorf("%w for topic %s", process.ErrCannotCastTxResolver, identifierTx)
 		}
 
-		err = handler.mainMessenger.RegisterMessageProcessor(p2p.TransactionsNetwork, resolver.RequestTopic(), common.DefaultResolversIdentifier, resolver)
+		err = replaceTxTopicResolverAndAssignHandlerOnMessenger(true, handler.mainMessenger, resolver)
 		if err != nil {
 			return err
 		}
 
-		err = handler.fullArchiveMessenger.RegisterMessageProcessor(p2p.TransactionsNetwork, resolver.RequestTopic(), common.DefaultResolversIdentifier, resolver)
+		err = replaceTxTopicResolverAndAssignHandlerOnMessenger(true, handler.fullArchiveMessenger, resolver)
 		if err != nil {
 			return err
 		}
@@ -384,6 +364,37 @@ func replaceTxTopicAndAssignHandlerOnMessenger(
 	}
 
 	return messenger.RegisterMessageProcessor(p2p.TransactionsNetwork, topic, common.DefaultInterceptorsIdentifier, interceptor)
+}
+
+func replaceTxTopicResolverAndAssignHandlerOnMessenger(
+	createChannel bool,
+	messenger p2p.Messenger,
+	resolver topicResolver,
+) error {
+	err := removeTopicFromMessenger(messenger, resolver.RequestTopic())
+	if err != nil {
+		return err
+	}
+
+	err = messenger.CreateTopic(p2p.TransactionsNetwork, resolver.RequestTopic(), createChannel)
+	if err != nil {
+		return err
+	}
+
+	return messenger.RegisterMessageProcessor(p2p.TransactionsNetwork, resolver.RequestTopic(), common.DefaultResolversIdentifier, resolver)
+}
+
+func removeTopicFromMessenger(messenger p2p.MessageHandler, topic string) error {
+	err := messenger.UnregisterMessageProcessor(topic, common.DefaultInterceptorsIdentifier)
+	if err != nil {
+		return err
+	}
+	err = messenger.UnJoinTopic(topic)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
