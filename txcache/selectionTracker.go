@@ -129,13 +129,12 @@ func (st *selectionTracker) getTransactionsFromBlock(blockBody *block.Body) ([]*
 	for _, miniBlock := range miniBlocks {
 		txHashes := miniBlock.GetTxHashes()
 		for _, txHash := range txHashes {
-			tx, ok := st.txCache.Get(txHash)
-			wrappedTxs := tx.(*WrappedTransaction)
+			tx, ok := st.txCache.GetByTxHash(txHash)
 			if !ok {
 				return nil, errNotFoundTx
 			}
 
-			txs = append(txs, wrappedTxs)
+			txs = append(txs, tx)
 		}
 	}
 
