@@ -305,6 +305,10 @@ func (handler *epochChangeTopicsHandler) replaceShardRewardTxInterceptorsOnTxNet
 		return err
 	}
 
+	if !handler.isFullArchive {
+		return nil
+	}
+
 	return replaceTxTopicAndAssignHandlerOnMessenger(
 		topic,
 		true,
@@ -326,6 +330,10 @@ func (handler *epochChangeTopicsHandler) replaceMetaRewardTxInterceptorsOnTxNetw
 		)
 		if err != nil {
 			return err
+		}
+
+		if !handler.isFullArchive {
+			continue
 		}
 
 		err = replaceTxTopicAndAssignHandlerOnMessenger(
@@ -389,14 +397,15 @@ func removeTopicFromMessenger(
 	topic string,
 	identifier string,
 ) error {
-	if !messenger.HasTopic(topic) {
-		return nil
-	}
-
 	err := messenger.UnregisterMessageProcessor(topic, identifier)
 	if err != nil {
 		return err
 	}
+
+	if !messenger.HasTopic(topic) {
+		return nil
+	}
+
 	err = messenger.UnJoinTopic(topic)
 	if err != nil {
 		return err
