@@ -51,15 +51,13 @@ func TestTrackedBlock_getBreadcrumb(t *testing.T) {
 			lastNonce:       nonce,
 			consumedBalance: big.NewInt(0),
 		}
-		breadcrumb := block.getBreadcrumb("addr2", nonce)
 
+		breadcrumb := block.getBreadcrumb("addr2", nonce)
 		require.Equal(t, &expectedBreadcrumb, breadcrumb)
 	})
 
 	t.Run("should return breadcrumb", func(t *testing.T) {
 		t.Parallel()
-
-		block := newTrackedBlock(0, []byte("blockHash1"), []byte("blockRootHash1"), []byte("blockPrevHash1"))
 
 		nonce := uint64(1)
 		expectedBreadcrumb := accountBreadcrumb{
@@ -68,19 +66,18 @@ func TestTrackedBlock_getBreadcrumb(t *testing.T) {
 			consumedBalance: big.NewInt(1),
 		}
 
+		block := newTrackedBlock(0, []byte("blockHash1"), []byte("blockRootHash1"), []byte("blockPrevHash1"))
 		block.breadcrumbsByAddress = map[string]*accountBreadcrumb{
 			"addr1": &expectedBreadcrumb,
 		}
 
 		breadcrumb := block.getBreadcrumb("addr1", nonce)
-
 		require.Equal(t, &expectedBreadcrumb, breadcrumb)
 	})
 }
 
 func equalBreadcrumbs(t *testing.T, breadCrumb1 *accountBreadcrumb, breadCrumb2 *accountBreadcrumb) {
 	require.Equal(t, breadCrumb1.initialNonce, breadCrumb2.initialNonce)
-
 	require.Equal(t, breadCrumb1.lastNonce, breadCrumb2.lastNonce)
 	require.Equal(t, breadCrumb1.consumedBalance, breadCrumb2.consumedBalance)
 }
@@ -90,6 +87,7 @@ func TestTrackedBlock_compileBreadcrumb(t *testing.T) {
 
 	t.Run("sender does not exist in map", func(t *testing.T) {
 		t.Parallel()
+
 		block := newTrackedBlock(0, []byte("blockHash1"), []byte("blockRootHash1"), []byte("blockPrevHash1"))
 
 		txs := []*WrappedTransaction{
@@ -120,6 +118,7 @@ func TestTrackedBlock_compileBreadcrumb(t *testing.T) {
 
 	t.Run("sender exists in map, nil fee payer", func(t *testing.T) {
 		t.Parallel()
+
 		block := newTrackedBlock(0, []byte("blockHash1"), []byte("blockRootHash1"), []byte("blockPrevHash1"))
 		block.breadcrumbsByAddress = map[string]*accountBreadcrumb{
 			"sender1": {
@@ -128,6 +127,7 @@ func TestTrackedBlock_compileBreadcrumb(t *testing.T) {
 				consumedBalance: big.NewInt(5),
 			},
 		}
+
 		txs := []*WrappedTransaction{
 			{
 				Tx: &transaction.Transaction{
@@ -156,6 +156,7 @@ func TestTrackedBlock_compileBreadcrumb(t *testing.T) {
 
 	t.Run("sender exists in map, fee payer does not", func(t *testing.T) {
 		t.Parallel()
+
 		block := newTrackedBlock(0, []byte("blockHash1"), []byte("blockRootHash1"), []byte("blockPrevHash1"))
 		block.breadcrumbsByAddress = map[string]*accountBreadcrumb{
 			"sender1": {
@@ -198,6 +199,7 @@ func TestTrackedBlock_compileBreadcrumb(t *testing.T) {
 
 	t.Run("sender and fee payer existing in map", func(t *testing.T) {
 		t.Parallel()
+
 		block := newTrackedBlock(0, []byte("blockHash1"), []byte("blockRootHash1"), []byte("blockPrevHash1"))
 		block.breadcrumbsByAddress = map[string]*accountBreadcrumb{
 			"sender1": {

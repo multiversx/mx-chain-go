@@ -67,6 +67,8 @@ func TestNewSelectionTracker(t *testing.T) {
 	})
 
 	t.Run("should fail", func(t *testing.T) {
+		t.Parallel()
+
 		tracker, err := NewSelectionTracker(nil)
 		require.Equal(t, errNilTxCache, err)
 		require.Nil(t, tracker)

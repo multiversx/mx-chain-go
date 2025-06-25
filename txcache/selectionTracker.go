@@ -134,8 +134,8 @@ func (st *selectionTracker) getTransactionsFromBlock(blockBody *block.Body) ([]*
 			if !ok {
 				return nil, errNotFoundTx
 			}
-			txs = append(txs, wrappedTxs)
 
+			txs = append(txs, wrappedTxs)
 		}
 	}
 
