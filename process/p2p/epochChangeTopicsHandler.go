@@ -385,6 +385,10 @@ func replaceTxTopicResolverAndAssignHandlerOnMessenger(
 }
 
 func removeTopicFromMessenger(messenger p2p.MessageHandler, topic string) error {
+	if !messenger.HasTopic(topic) {
+		return nil
+	}
+
 	err := messenger.UnregisterMessageProcessor(topic, common.DefaultInterceptorsIdentifier)
 	if err != nil {
 		return err
