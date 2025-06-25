@@ -44,6 +44,7 @@ func TestBroadcastDebug_ProcessMultipleMessageTypes(t *testing.T) {
 		hash        []byte
 		originator  string
 		fromPeer    string
+		topic       string
 	}{
 		{
 			name:        "transaction message",
@@ -51,6 +52,7 @@ func TestBroadcastDebug_ProcessMultipleMessageTypes(t *testing.T) {
 			hash:        []byte("tx_hash_1"),
 			originator:  "originator_peer",
 			fromPeer:    "connected_peer_1",
+			topic:       "topic_1",
 		},
 		{
 			name:        "miniblock message",
@@ -58,6 +60,7 @@ func TestBroadcastDebug_ProcessMultipleMessageTypes(t *testing.T) {
 			hash:        []byte("miniblock_hash_1"),
 			originator:  "originator_peer",
 			fromPeer:    "connected_peer_2",
+			topic:       "topic_1",
 		},
 		{
 			name:        "header message",
@@ -65,6 +68,7 @@ func TestBroadcastDebug_ProcessMultipleMessageTypes(t *testing.T) {
 			hash:        []byte("header_hash_1"),
 			originator:  "originator_peer",
 			fromPeer:    "connected_peer_3",
+			topic:       "topic_1",
 		},
 		{
 			name:        "heartbeat message",
@@ -72,6 +76,7 @@ func TestBroadcastDebug_ProcessMultipleMessageTypes(t *testing.T) {
 			hash:        []byte("heartbeat_hash_1"),
 			originator:  "originator_peer",
 			fromPeer:    "connected_peer_4",
+			topic:       "topic_1",
 		},
 	}
 
@@ -80,6 +85,8 @@ func TestBroadcastDebug_ProcessMultipleMessageTypes(t *testing.T) {
 			mockMessage := &p2pmocks.P2PMessageMock{
 				BroadcastMethodField: p2p.Broadcast,
 				FromField:            []byte(tc.originator),
+				TopicField:           tc.topic,
+				PeerField:            core.PeerID(tc.originator),
 			}
 			mockData := &testscommon.InterceptedDataStub{
 				TypeCalled: func() string {
@@ -106,7 +113,7 @@ func TestBroadcastDebug_ProcessMultipleMessageTypes(t *testing.T) {
 			assert.Contains(t, id.receivedBroadcast, tc.messageType)
 
 			originatorPretty := core.PeerID(tc.originator).Pretty()
-			messageID := computeMapID(hexHash, originatorPretty)
+			messageID := computeMapID(hexHash, originatorPretty, tc.topic)
 			assert.Contains(t, id.receivedBroadcast[tc.messageType], messageID)
 
 			ev := id.receivedBroadcast[tc.messageType][messageID]
@@ -120,6 +127,8 @@ func TestBroadcastDebug_ProcessMultipleMessageTypes(t *testing.T) {
 		mockMessage := &p2pmocks.P2PMessageMock{
 			BroadcastMethodField: p2p.Broadcast,
 			FromField:            []byte("originator_peer"),
+			TopicField:           "topic_1",
+			PeerField:            core.PeerID("originator_peer"),
 		}
 
 		mockData := &testscommon.InterceptedDataStub{
@@ -137,7 +146,7 @@ func TestBroadcastDebug_ProcessMultipleMessageTypes(t *testing.T) {
 
 		hexHash := "74785f686173685f31"
 		originatorPretty := core.PeerID(mockMessage.From()).Pretty()
-		messageID := computeMapID(hexHash, originatorPretty)
+		messageID := computeMapID(hexHash, originatorPretty, "topic_1")
 		ev := id.receivedBroadcast["intercepted tx"][messageID]
 		assert.Equal(t, 2, ev.numReceived)
 	})
