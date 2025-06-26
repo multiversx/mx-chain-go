@@ -101,7 +101,7 @@ func (bd *broadcastDebugHandler) PrintReceivedTxsBroadcastAndCleanRecords() {
 		for id, et := range mapHashEvent {
 			hash, originator := getHashAndOriginatorFromID(id)
 
-			log.Warn("broadcast record",
+			log.Debug("broadcast record",
 				"hash", hash,
 				"type", messageType,
 				"originator", originator,
