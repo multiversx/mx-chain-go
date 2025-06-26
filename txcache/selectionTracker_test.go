@@ -1,11 +1,13 @@
 package txcache
 
 import (
+	"errors"
 	"fmt"
 	"sync"
 	"testing"
 
 	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-go/testscommon/txcachemocks"
 	"github.com/stretchr/testify/require"
 )
 
@@ -308,4 +310,21 @@ func TestSelectionTracker_getChainOfTrackedBlocks(t *testing.T) {
 		returnedChain := selTracker.getChainOfTrackedBlocks([]byte("blockHash6"), 7)
 		require.Equal(t, 1, len(returnedChain))
 	})
+}
+
+func TestSelectionTracker_deriveVirtualSelectionSessionShouldErr(t *testing.T) {
+	t.Parallel()
+
+	selTracker, err := NewSelectionTracker()
+	require.Nil(t, err)
+
+	err = errors.New("expected err")
+
+	mockSelectionSession := txcachemocks.SelectionSessionMock{}
+	mockSelectionSession.GetRootHashCalled = func() ([]byte, error) {
+		return nil, err
+	}
+	virtualSession, returnedErr := selTracker.deriveVirtualSelectionSession(&mockSelectionSession, nil, 0)
+	require.Nil(t, virtualSession)
+	require.Equal(t, err, returnedErr)
 }
