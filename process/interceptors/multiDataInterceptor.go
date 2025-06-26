@@ -201,7 +201,7 @@ func (mdi *MultiDataInterceptor) ProcessReceivedMessage(message p2p.MessageP2P, 
 
 	go func() {
 		for _, interceptedData := range listInterceptedData {
-			mdi.processInterceptedData(interceptedData, message)
+			mdi.processInterceptedData(interceptedData, message, fromConnectedPeer)
 		}
 		mdi.throttler.EndProcessing()
 	}()
