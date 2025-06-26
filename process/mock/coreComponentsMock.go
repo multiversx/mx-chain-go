@@ -7,6 +7,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/typeConverters"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/multiversx/mx-chain-go/ntp"
 
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/consensus"
@@ -45,6 +46,16 @@ type CoreComponentsMock struct {
 	ChainParametersSubscriberField     process.ChainParametersSubscriber
 	FieldsSizeCheckerField             common.FieldsSizeChecker
 	EpochChangeGracePeriodHandlerField common.EpochChangeGracePeriodHandler
+	SyncTimerField                     ntp.SyncTimer
+}
+
+// SyncTimer -
+func (ccm *CoreComponentsMock) SyncTimer() ntp.SyncTimer {
+	if ccm.SyncTimerField != nil {
+		return ccm.SyncTimerField
+	}
+
+	return nil
 }
 
 // ChanStopNodeProcess -
