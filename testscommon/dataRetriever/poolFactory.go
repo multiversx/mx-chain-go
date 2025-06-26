@@ -2,7 +2,6 @@ package dataRetriever
 
 import (
 	"fmt"
-	"os"
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/marshal"
@@ -15,8 +14,8 @@ import (
 	"github.com/multiversx/mx-chain-go/dataRetriever/shardedData"
 	"github.com/multiversx/mx-chain-go/dataRetriever/txpool"
 	"github.com/multiversx/mx-chain-go/storage/cache"
-	storageFactory "github.com/multiversx/mx-chain-go/storage/factory"
 	"github.com/multiversx/mx-chain-go/storage/storageunit"
+	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/txcachemocks"
 	"github.com/multiversx/mx-chain-go/trie/factory"
 )
@@ -84,32 +83,18 @@ func createPoolHolderArgs(numShards uint32, selfShard uint32) dataPool.DataPoolA
 
 	cacherConfig = storageunit.CacheConfig{Capacity: 50000, Type: storageunit.LRUCache}
 	cacher, err := cache.NewCapacityLRU(10, 10000)
-	panicIfError("Create trieSync cacher", err)
+	panicIfError("CreatePoolsHolder", err)
 
-	tempDir, _ := os.MkdirTemp("", "integrationTests")
-
-	dbConfig := config.DBConfig{
-		FilePath:          tempDir,
-		Type:              string(storageunit.LvlDBSerial),
-		BatchDelaySeconds: 4,
-		MaxBatchSize:      10000,
-		MaxOpenFiles:      10,
-	}
-
-	persisterFactory, err := storageFactory.NewPersisterFactory(dbConfig)
-	panicIfError("Create persister factory", err)
-
-	persister, err := persisterFactory.CreateWithRetries(tempDir)
-	panicIfError("Create trieSync DB", err)
+	db := testscommon.NewMemDbMock()
 	tnf := factory.NewTrieNodeFactory()
 
 	adaptedTrieNodesStorage, err := storageunit.NewStorageCacherAdapter(
 		cacher,
-		persister,
+		db,
 		tnf,
 		&marshal.GogoProtoMarshalizer{},
 	)
-	panicIfError("Create AdaptedTrieNodesStorage", err)
+	panicIfError("CreatePoolsHolder", err)
 
 	trieNodesChunks, err := storageunit.NewCache(cacherConfig)
 	panicIfError("CreatePoolsHolder", err)
