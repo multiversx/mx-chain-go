@@ -11,6 +11,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
@@ -412,6 +413,15 @@ func TestExecuteQuery_ShouldReceiveQueryCorrectly(t *testing.T) {
 			GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
 				return &storageStubs.StorerStub{
 					GetFromEpochCalled: func(key []byte, epoch uint32) ([]byte, error) {
+						if string(key) == core.EpochStartIdentifier(epoch) {
+							hdr := &block.Header{
+								RootHash:           []byte("epoch start"),
+								EpochStartMetaHash: []byte("meta"),
+							}
+							buff, _ := argsNewSCQuery.Marshaller.Marshal(hdr)
+							return buff, nil
+						}
+
 						counter++
 						if counter > 2 {
 							return nil, fmt.Errorf("no scheduled")
@@ -469,6 +479,7 @@ func TestExecuteQuery_ShouldReceiveQueryCorrectly(t *testing.T) {
 		}
 
 		_, _, err := target.ExecuteQuery(&query)
+		assert.Nil(t, err)
 		assert.True(t, runWasCalled)
 		assert.True(t, recreateTrieFromEpochWasCalled)
 		assert.False(t, recreateTrieWasCalled)
@@ -974,6 +985,217 @@ func TestSCQueryService_ExecuteQueryShouldIncludeCallerAddressAndValue(t *testin
 	_, _, err := target.ExecuteQuery(&query)
 	require.NoError(t, err)
 	require.True(t, callerAddressAndCallValueAreSet)
+}
+
+func TestSCQueryService_EpochStartBlockHdr(t *testing.T) {
+	t.Parallel()
+
+	targetEpoch := uint32(37)
+
+	epochStartNonce := uint64(42)
+	epochStartRound := uint64(43)
+	epochStartTimeStamp := uint64(44)
+	epochStartHash := []byte("epoch start hash")
+
+	epochStartBlockHdr := &block.Header{
+		Epoch:              targetEpoch,
+		Nonce:              epochStartNonce,
+		Round:              epochStartRound,
+		TimeStamp:          epochStartTimeStamp,
+		EpochStartMetaHash: []byte("meta"),
+	}
+
+	queryNonce := uint64(52)
+	queryRound := uint64(53)
+	queryTimeStamp := uint64(54)
+	queryHash := []byte("query hash")
+
+	queryBlockHdr := &block.Header{
+		Epoch:     targetEpoch,
+		Nonce:     queryNonce,
+		Round:     queryRound,
+		TimeStamp: queryTimeStamp,
+		RootHash:  []byte("root hash"),
+	}
+
+	blocksInStorage := make(map[string]*block.Header)
+	blocksInStorage[string(epochStartHash)] = epochStartBlockHdr
+	blocksInStorage[core.EpochStartIdentifier(targetEpoch)] = epochStartBlockHdr
+	blocksInStorage[string(queryHash)] = queryBlockHdr
+
+	argsNewSCQuery := createMockArgumentsForSCQuery()
+	argsNewSCQuery.Marshaller = &marshallerMock.MarshalizerMock{}
+	argsNewSCQuery.BlockChainHook = &testscommon.BlockChainHookStub{
+		GetAccountsAdapterCalled: func() state.AccountsAdapter {
+			return &stateMocks.AccountsStub{
+				RecreateTrieCalled: func(options common.RootHashHolder) error {
+					return nil
+				},
+			}
+		},
+		SetEpochStartHeaderCalled: func(hdr data.HeaderHandler) error {
+			require.Equal(t, hdr.GetEpoch(), targetEpoch)
+			require.Equal(t, hdr.GetNonce(), epochStartNonce)
+			require.Equal(t, hdr.GetRound(), epochStartRound)
+			require.Equal(t, hdr.GetTimeStamp(), epochStartTimeStamp)
+
+			return nil
+		},
+	}
+
+	argsNewSCQuery.HistoryRepository = &dblookupext.HistoryRepositoryStub{
+		GetEpochByHashCalled: func(hash []byte) (uint32, error) {
+			return targetEpoch, nil
+		},
+	}
+
+	argsNewSCQuery.StorageService = &storageStubs.ChainStorerStub{
+		GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
+			return &storageStubs.StorerStub{
+				GetFromEpochCalled: func(key []byte, epoch uint32) ([]byte, error) {
+					require.Equal(t, epoch, targetEpoch)
+
+					hdr := blocksInStorage[string(key)]
+					buff, _ := argsNewSCQuery.Marshaller.Marshal(hdr)
+					return buff, nil
+				},
+			}, nil
+		},
+	}
+
+	qs, err := NewSCQueryService(argsNewSCQuery)
+	require.NoError(t, err)
+
+	query := process.SCQuery{
+		ScAddress: []byte(DummyScAddress),
+		FuncName:  "function",
+		Arguments: [][]byte{},
+		BlockHash: queryHash,
+	}
+
+	_, _, err = qs.ExecuteQuery(&query)
+	require.NoError(t, err)
+}
+
+func TestSCQueryService_EpochStartBlockHdrConcurrent(t *testing.T) {
+	t.Parallel()
+
+	numOfQueries := 100
+
+	mapsMut := sync.RWMutex{}
+	blocksInStorage := make(map[string]*block.Header)
+	seenEpochStartBlocks := make(map[uint32]bool)
+
+	startEpoch := uint32(10)
+	startNonce := uint64(10)
+	startRound := uint64(10)
+	startTimeStamp := uint64(10)
+
+	for i := 0; i < numOfQueries; i++ {
+		isEpochStart := i%20 == 0
+
+		epoch := startEpoch + uint32(i/20)
+		hash := []byte(fmt.Sprintf("hash-%d", i))
+
+		if isEpochStart {
+			epochStartBlockHdr := &block.Header{
+				Epoch:              epoch,
+				Nonce:              startNonce + uint64(i),
+				Round:              startRound + uint64(i),
+				TimeStamp:          startTimeStamp + uint64(i),
+				EpochStartMetaHash: []byte("meta"),
+			}
+
+			mapsMut.Lock()
+			blocksInStorage[string(hash)] = epochStartBlockHdr
+			blocksInStorage[core.EpochStartIdentifier(epoch)] = epochStartBlockHdr
+			mapsMut.Unlock()
+
+			seenEpochStartBlocks[epoch] = false
+		} else {
+			queryBlockHdr := &block.Header{
+				Epoch:     epoch,
+				Nonce:     startNonce + uint64(i),
+				Round:     startRound + uint64(i),
+				TimeStamp: startTimeStamp + uint64(i),
+				RootHash:  hash,
+			}
+
+			mapsMut.Lock()
+			blocksInStorage[string(hash)] = queryBlockHdr
+			mapsMut.Unlock()
+		}
+	}
+
+	argsNewSCQuery := createMockArgumentsForSCQuery()
+	argsNewSCQuery.Marshaller = &marshallerMock.MarshalizerMock{}
+	argsNewSCQuery.BlockChainHook = &testscommon.BlockChainHookStub{
+		GetAccountsAdapterCalled: func() state.AccountsAdapter {
+			return &stateMocks.AccountsStub{
+				RecreateTrieCalled: func(options common.RootHashHolder) error {
+					return nil
+				},
+			}
+		},
+		SetEpochStartHeaderCalled: func(hdr data.HeaderHandler) error {
+			seenEpochStartBlocks[hdr.GetEpoch()] = true
+			return nil
+		},
+	}
+
+	argsNewSCQuery.HistoryRepository = &dblookupext.HistoryRepositoryStub{
+		GetEpochByHashCalled: func(hash []byte) (uint32, error) {
+			mapsMut.RLock()
+			defer mapsMut.RUnlock()
+
+			storageBlock := blocksInStorage[string(hash)]
+			return storageBlock.GetEpoch(), nil
+		},
+	}
+
+	argsNewSCQuery.StorageService = &storageStubs.ChainStorerStub{
+		GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
+			return &storageStubs.StorerStub{
+				GetFromEpochCalled: func(key []byte, epoch uint32) ([]byte, error) {
+					mapsMut.RLock()
+					defer mapsMut.RUnlock()
+
+					hdr := blocksInStorage[string(key)]
+					require.Equal(t, epoch, hdr.GetEpoch())
+					buff, _ := argsNewSCQuery.Marshaller.Marshal(hdr)
+					return buff, nil
+				},
+			}, nil
+		},
+	}
+
+	qs, err := NewSCQueryService(argsNewSCQuery)
+	require.NoError(t, err)
+
+	wg := sync.WaitGroup{}
+	wg.Add(numOfQueries)
+
+	for i := 0; i < numOfQueries; i++ {
+		go func(idx int) {
+			defer wg.Done()
+
+			query := process.SCQuery{
+				ScAddress: []byte(DummyScAddress),
+				FuncName:  "function",
+				Arguments: [][]byte{},
+				BlockHash: []byte(fmt.Sprintf("hash-%d", idx)),
+			}
+
+			_, _, err := qs.ExecuteQuery(&query)
+			require.NoError(t, err)
+		}(i)
+	}
+
+	wg.Wait()
+
+	for epoch, seen := range seenEpochStartBlocks {
+		require.True(t, seen, "Epoch %d not seen", epoch)
+	}
 }
 
 func TestSCQueryService_ShouldFailIfNodeIsNotSynced(t *testing.T) {

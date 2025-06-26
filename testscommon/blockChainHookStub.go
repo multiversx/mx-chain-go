@@ -16,14 +16,20 @@ type BlockChainHookStub struct {
 	LastNonceCalled                         func() uint64
 	LastRoundCalled                         func() uint64
 	LastTimeStampCalled                     func() uint64
+	LastTimeStampMsCalled                   func() uint64
 	LastRandomSeedCalled                    func() []byte
 	LastEpochCalled                         func() uint32
 	GetStateRootHashCalled                  func() []byte
 	CurrentNonceCalled                      func() uint64
 	CurrentRoundCalled                      func() uint64
 	CurrentTimeStampCalled                  func() uint64
+	CurrentTimeStampMsCalled                func() uint64
 	CurrentRandomSeedCalled                 func() []byte
 	CurrentEpochCalled                      func() uint32
+	RoundTimeCalled                         func() uint64
+	EpochStartBlockNonceCalled              func() uint64
+	EpochStartBlockRoundCalled              func() uint64
+	EpochStartBlockTimeStampMsCalled        func() uint64
 	ProcessBuiltInFunctionCalled            func(input *vmcommon.ContractCallInput) (*vmcommon.VMOutput, error)
 	GetBuiltinFunctionNamesCalled           func() vmcommon.FunctionNames
 	GetBuiltinFunctionsContainerCalled      func() vmcommon.BuiltInFunctionContainer
@@ -40,7 +46,8 @@ type BlockChainHookStub struct {
 	NumberOfShardsCalled                    func() uint32
 	GetSnapshotCalled                       func() int
 	RevertToSnapshotCalled                  func(snapshot int) error
-	SetCurrentHeaderCalled                  func(hdr data.HeaderHandler)
+	SetCurrentHeaderCalled                  func(hdr data.HeaderHandler) error
+	SetEpochStartHeaderCalled               func(hdr data.HeaderHandler) error
 	DeleteCompiledCodeCalled                func(codeHash []byte)
 	SaveNFTMetaDataToSystemAccountCalled    func(tx data.TransactionHandler) error
 	CloseCalled                             func() error
@@ -119,6 +126,17 @@ func (stub *BlockChainHookStub) LastTimeStamp() uint64 {
 	return 0
 }
 
+// LastTimeStampMs -
+
+// LastTimeStampMs -
+func (stub *BlockChainHookStub) LastTimeStampMs() uint64 {
+	if stub.LastTimeStampMsCalled != nil {
+		return stub.LastTimeStampMsCalled()
+	}
+
+	return 0
+}
+
 // LastRandomSeed -
 func (stub *BlockChainHookStub) LastRandomSeed() []byte {
 	if stub.LastRandomSeedCalled != nil {
@@ -173,6 +191,15 @@ func (stub *BlockChainHookStub) CurrentTimeStamp() uint64 {
 	return 0
 }
 
+// CurrentTimeStampMs -
+func (stub *BlockChainHookStub) CurrentTimeStampMs() uint64 {
+	if stub.CurrentTimeStampMsCalled != nil {
+		return stub.CurrentTimeStampMsCalled()
+	}
+
+	return 0
+}
+
 // CurrentRandomSeed -
 func (stub *BlockChainHookStub) CurrentRandomSeed() []byte {
 	if stub.CurrentRandomSeedCalled != nil {
@@ -186,6 +213,42 @@ func (stub *BlockChainHookStub) CurrentRandomSeed() []byte {
 func (stub *BlockChainHookStub) CurrentEpoch() uint32 {
 	if stub.CurrentEpochCalled != nil {
 		return stub.CurrentEpochCalled()
+	}
+
+	return 0
+}
+
+// RoundTime -
+func (stub *BlockChainHookStub) RoundTime() uint64 {
+	if stub.RoundTimeCalled != nil {
+		return stub.RoundTimeCalled()
+	}
+
+	return 0
+}
+
+// EpochStartBlockNonce -
+func (stub *BlockChainHookStub) EpochStartBlockNonce() uint64 {
+	if stub.EpochStartBlockNonceCalled != nil {
+		return stub.EpochStartBlockNonceCalled()
+	}
+
+	return 0
+}
+
+// EpochStartBlockRound -
+func (stub *BlockChainHookStub) EpochStartBlockRound() uint64 {
+	if stub.EpochStartBlockRoundCalled != nil {
+		return stub.EpochStartBlockRoundCalled()
+	}
+
+	return 0
+}
+
+// EpochStartBlockTimeStamp -
+func (stub *BlockChainHookStub) EpochStartBlockTimeStampMs() uint64 {
+	if stub.EpochStartBlockTimeStampMsCalled != nil {
+		return stub.EpochStartBlockTimeStampMsCalled()
 	}
 
 	return 0
@@ -282,10 +345,21 @@ func (stub *BlockChainHookStub) NumberOfShards() uint32 {
 }
 
 // SetCurrentHeader -
-func (stub *BlockChainHookStub) SetCurrentHeader(hdr data.HeaderHandler) {
+func (stub *BlockChainHookStub) SetCurrentHeader(hdr data.HeaderHandler) error {
 	if stub.SetCurrentHeaderCalled != nil {
-		stub.SetCurrentHeaderCalled(hdr)
+		return stub.SetCurrentHeaderCalled(hdr)
 	}
+
+	return nil
+}
+
+// SetEpochStartHeader -
+func (stub *BlockChainHookStub) SetEpochStartHeader(hdr data.HeaderHandler) error {
+	if stub.SetEpochStartHeaderCalled != nil {
+		return stub.SetEpochStartHeaderCalled(hdr)
+	}
+
+	return nil
 }
 
 // SaveCompiledCode -
