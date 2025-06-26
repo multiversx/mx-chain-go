@@ -6,6 +6,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/atomic"
 	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-storage-go/monitoring"
 	"github.com/multiversx/mx-chain-storage-go/types"
 )
@@ -97,8 +98,8 @@ func (cache *TxCache) GetByTxHash(txHash []byte) (*WrappedTransaction, bool) {
 }
 
 // SelectTransactions selects the best transactions to be included in the next miniblock.
-// It returns up to "maxNum" transactions, with total gas <= "gasRequested".
-func (cache *TxCache) SelectTransactions(session SelectionSession) ([]*WrappedTransaction, uint64) {
+// It returns up to "options.maxNumTxs" transactions, with total gas <= "options.gasRequested".
+func (cache *TxCache) SelectTransactions(session SelectionSession, options common.TxSelectionOptions) ([]*WrappedTransaction, uint64) {
 	if check.IfNil(session) {
 		log.Error("TxCache.SelectTransactions", "err", errNilSelectionSession)
 		return nil, 0
@@ -107,14 +108,21 @@ func (cache *TxCache) SelectTransactions(session SelectionSession) ([]*WrappedTr
 	stopWatch := core.NewStopWatch()
 	stopWatch.Start("selection")
 
+	rootHash, err := session.GetRootHash()
+	if err != nil {
+		log.Error("TxCache.SelectTransactions", "err", err)
+		return nil, 0
+	}
+
 	logSelect.Debug(
 		"TxCache.SelectTransactions: begin",
+		"current root hash", rootHash,
 		"num bytes", cache.NumBytes(),
 		"num txs", cache.CountTx(),
 		"num senders", cache.CountSenders(),
 	)
 
-	transactions, accumulatedGas := cache.doSelectTransactions(session)
+	transactions, accumulatedGas := cache.doSelectTransactions(session, options)
 
 	stopWatch.Stop("selection")
 

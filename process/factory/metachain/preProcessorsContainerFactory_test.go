@@ -21,11 +21,12 @@ import (
 
 func createMockTxCacheSelectionConfig() config.TxCacheSelectionConfig {
 	return config.TxCacheSelectionConfig{
-		SelectionMaxNumTxs:                            30000,
-		SelectionLoopMaximumDuration:                  250,
-		SelectionGasRequested:                         10_000_000_000,
 		SelectionGasBandwidthIncreasePercent:          400,
 		SelectionGasBandwidthIncreaseScheduledPercent: 260,
+		SelectionGasRequested:                         10_000_000_000,
+		SelectionMaxNumTxs:                            30000,
+		SelectionLoopMaximumDuration:                  250,
+		SelectionLoopDurationCheckInterval:            10,
 	}
 }
 
@@ -638,181 +639,6 @@ func TestNewPreProcessorsContainerFactory(t *testing.T) {
 	assert.Nil(t, err)
 	assert.NotNil(t, ppcm)
 	assert.False(t, ppcm.IsInterfaceNil())
-}
-
-func TestNewPreProcessorsContainerFactory_ErrBadSelectionGasBandwidthIncreasePercent(t *testing.T) {
-	t.Parallel()
-
-	ppcm, err := metachain.NewPreProcessorsContainerFactory(
-		mock.NewMultiShardsCoordinatorMock(3),
-		&storageStubs.ChainStorerStub{},
-		&mock.MarshalizerMock{},
-		&hashingMocks.HasherMock{},
-		dataRetrieverMock.NewPoolsHolderMock(),
-		&stateMock.AccountsStub{},
-		&testscommon.RequestHandlerStub{},
-		&testscommon.TxProcessorMock{},
-		&testscommon.SmartContractResultsProcessorMock{},
-		&economicsmocks.EconomicsHandlerMock{},
-		&testscommon.GasHandlerStub{},
-		&mock.BlockTrackerMock{},
-		createMockPubkeyConverter(),
-		&testscommon.BlockSizeComputationStub{},
-		&testscommon.BalanceComputationStub{},
-		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
-		&testscommon.TxTypeHandlerMock{},
-		&testscommon.ScheduledTxsExecutionStub{},
-		&testscommon.ProcessedMiniBlocksTrackerStub{},
-		&commonMock.TxExecutionOrderHandlerStub{},
-		config.TxCacheSelectionConfig{SelectionGasBandwidthIncreasePercent: 0},
-	)
-
-	assert.Error(t, err)
-	assert.Equal(t, process.ErrBadSelectionGasBandwidthIncreasePercent, err)
-	assert.Nil(t, ppcm)
-}
-
-func TestNewPreProcessorsContainerFactory_ErrBadSelectionGasBandwidthIncreaseScheduledPercent(t *testing.T) {
-	t.Parallel()
-
-	ppcm, err := metachain.NewPreProcessorsContainerFactory(
-		mock.NewMultiShardsCoordinatorMock(3),
-		&storageStubs.ChainStorerStub{},
-		&mock.MarshalizerMock{},
-		&hashingMocks.HasherMock{},
-		dataRetrieverMock.NewPoolsHolderMock(),
-		&stateMock.AccountsStub{},
-		&testscommon.RequestHandlerStub{},
-		&testscommon.TxProcessorMock{},
-		&testscommon.SmartContractResultsProcessorMock{},
-		&economicsmocks.EconomicsHandlerMock{},
-		&testscommon.GasHandlerStub{},
-		&mock.BlockTrackerMock{},
-		createMockPubkeyConverter(),
-		&testscommon.BlockSizeComputationStub{},
-		&testscommon.BalanceComputationStub{},
-		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
-		&testscommon.TxTypeHandlerMock{},
-		&testscommon.ScheduledTxsExecutionStub{},
-		&testscommon.ProcessedMiniBlocksTrackerStub{},
-		&commonMock.TxExecutionOrderHandlerStub{},
-		config.TxCacheSelectionConfig{
-			SelectionGasBandwidthIncreasePercent:          400,
-			SelectionGasBandwidthIncreaseScheduledPercent: 0,
-		},
-	)
-
-	assert.Error(t, err)
-	assert.Equal(t, process.ErrBadSelectionGasBandwidthIncreaseScheduledPercent, err)
-	assert.Nil(t, ppcm)
-}
-
-func TestNewPreProcessorsContainerFactory_ErrBadTxCacheSelectionMaxNumTxs(t *testing.T) {
-	t.Parallel()
-
-	ppcm, err := metachain.NewPreProcessorsContainerFactory(
-		mock.NewMultiShardsCoordinatorMock(3),
-		&storageStubs.ChainStorerStub{},
-		&mock.MarshalizerMock{},
-		&hashingMocks.HasherMock{},
-		dataRetrieverMock.NewPoolsHolderMock(),
-		&stateMock.AccountsStub{},
-		&testscommon.RequestHandlerStub{},
-		&testscommon.TxProcessorMock{},
-		&testscommon.SmartContractResultsProcessorMock{},
-		&economicsmocks.EconomicsHandlerMock{},
-		&testscommon.GasHandlerStub{},
-		&mock.BlockTrackerMock{},
-		createMockPubkeyConverter(),
-		&testscommon.BlockSizeComputationStub{},
-		&testscommon.BalanceComputationStub{},
-		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
-		&testscommon.TxTypeHandlerMock{},
-		&testscommon.ScheduledTxsExecutionStub{},
-		&testscommon.ProcessedMiniBlocksTrackerStub{},
-		&commonMock.TxExecutionOrderHandlerStub{},
-		config.TxCacheSelectionConfig{
-			SelectionGasBandwidthIncreasePercent:          400,
-			SelectionGasBandwidthIncreaseScheduledPercent: 260,
-		},
-	)
-
-	assert.Error(t, err)
-	assert.Equal(t, process.ErrBadTxCacheSelectionMaxNumTxs, err)
-	assert.Nil(t, ppcm)
-}
-
-func TestNewPreProcessorsContainerFactory_ErrBadTxCacheSelectionLoopMaximumDuration(t *testing.T) {
-	t.Parallel()
-
-	ppcm, err := metachain.NewPreProcessorsContainerFactory(
-		mock.NewMultiShardsCoordinatorMock(3),
-		&storageStubs.ChainStorerStub{},
-		&mock.MarshalizerMock{},
-		&hashingMocks.HasherMock{},
-		dataRetrieverMock.NewPoolsHolderMock(),
-		&stateMock.AccountsStub{},
-		&testscommon.RequestHandlerStub{},
-		&testscommon.TxProcessorMock{},
-		&testscommon.SmartContractResultsProcessorMock{},
-		&economicsmocks.EconomicsHandlerMock{},
-		&testscommon.GasHandlerStub{},
-		&mock.BlockTrackerMock{},
-		createMockPubkeyConverter(),
-		&testscommon.BlockSizeComputationStub{},
-		&testscommon.BalanceComputationStub{},
-		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
-		&testscommon.TxTypeHandlerMock{},
-		&testscommon.ScheduledTxsExecutionStub{},
-		&testscommon.ProcessedMiniBlocksTrackerStub{},
-		&commonMock.TxExecutionOrderHandlerStub{},
-		config.TxCacheSelectionConfig{
-			SelectionGasBandwidthIncreasePercent:          400,
-			SelectionGasBandwidthIncreaseScheduledPercent: 260,
-			SelectionGasRequested:                         10_000_000_000,
-			SelectionMaxNumTxs:                            30000,
-			SelectionLoopMaximumDuration:                  0,
-		},
-	)
-
-	assert.Error(t, err)
-	assert.Equal(t, process.ErrBadTxCacheSelectionLoopMaximumDuration, err)
-	assert.Nil(t, ppcm)
-}
-
-func TestNewPreProcessorsContainerFactory_ErrBadTxCacheSelectionGasRequested(t *testing.T) {
-	ppcm, err := metachain.NewPreProcessorsContainerFactory(
-		mock.NewMultiShardsCoordinatorMock(3),
-		&storageStubs.ChainStorerStub{},
-		&mock.MarshalizerMock{},
-		&hashingMocks.HasherMock{},
-		dataRetrieverMock.NewPoolsHolderMock(),
-		&stateMock.AccountsStub{},
-		&testscommon.RequestHandlerStub{},
-		&testscommon.TxProcessorMock{},
-		&testscommon.SmartContractResultsProcessorMock{},
-		&economicsmocks.EconomicsHandlerMock{},
-		&testscommon.GasHandlerStub{},
-		&mock.BlockTrackerMock{},
-		createMockPubkeyConverter(),
-		&testscommon.BlockSizeComputationStub{},
-		&testscommon.BalanceComputationStub{},
-		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
-		&testscommon.TxTypeHandlerMock{},
-		&testscommon.ScheduledTxsExecutionStub{},
-		&testscommon.ProcessedMiniBlocksTrackerStub{},
-		&commonMock.TxExecutionOrderHandlerStub{},
-		config.TxCacheSelectionConfig{
-			SelectionMaxNumTxs:                            30000,
-			SelectionGasBandwidthIncreasePercent:          400,
-			SelectionGasBandwidthIncreaseScheduledPercent: 260,
-			SelectionGasRequested:                         0,
-		},
-	)
-
-	assert.Error(t, err)
-	assert.Equal(t, process.ErrBadTxCacheSelectionGasRequested, err)
-	assert.Nil(t, ppcm)
 }
 
 func TestPreProcessorsContainerFactory_CreateErrTxPreproc(t *testing.T) {
