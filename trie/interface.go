@@ -27,7 +27,7 @@ type node interface {
 	resolveCollapsed(pos byte, db common.TrieStorageInteractor) error
 	hashNode() ([]byte, error)
 	hashChildren() error
-	tryGet(key []byte, depth uint32, db common.TrieStorageInteractor) ([]byte, uint32, error)
+	tryGet(key []byte, tmc MetricsCollector, db common.TrieStorageInteractor) ([]byte, error)
 	getNext(key []byte, db common.TrieStorageInteractor) (node, []byte, error)
 	insert(newData core.TrieData, db common.TrieStorageInteractor) (node, [][]byte, error)
 	delete(key []byte, db common.TrieStorageInteractor) (bool, node, [][]byte, error)
@@ -110,4 +110,10 @@ type EpochNotifier interface {
 type IdleNodeProvider interface {
 	IsIdle() bool
 	IsInterfaceNil() bool
+}
+
+// MetricsCollector is used to collect metrics about the trie
+type MetricsCollector interface {
+	IncreaseDepth()
+	GetMaxDepth() uint32
 }

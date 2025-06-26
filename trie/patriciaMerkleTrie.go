@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/hex"
 	"fmt"
+	"github.com/multiversx/mx-chain-go/trie/trieMetricsCollector"
 	"sync"
 
 	"github.com/multiversx/mx-chain-core-go/core"
@@ -96,13 +97,14 @@ func (tr *patriciaMerkleTrie) Get(key []byte) ([]byte, uint32, error) {
 	}
 	hexKey := keyBytesToHex(key)
 
-	val, depth, err := tr.root.tryGet(hexKey, rootDepthLevel, tr.trieStorage)
+	tmc := trieMetricsCollector.NewTrieMetricsCollector()
+	val, err := tr.root.tryGet(hexKey, tmc, tr.trieStorage)
 	if err != nil {
 		err = fmt.Errorf("trie get error: %w, for key %v", err, hex.EncodeToString(key))
-		return nil, depth, err
+		return nil, tmc.GetMaxDepth(), err
 	}
 
-	return val, depth, nil
+	return val, tmc.GetMaxDepth(), nil
 }
 
 // Update updates the value at the given key.

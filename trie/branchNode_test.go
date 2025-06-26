@@ -18,6 +18,7 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
 	"github.com/multiversx/mx-chain-go/trie/keyBuilder"
 	"github.com/multiversx/mx-chain-go/trie/statistics"
+	"github.com/multiversx/mx-chain-go/trie/trieMetricsCollector"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -481,10 +482,11 @@ func TestBranchNode_tryGet(t *testing.T) {
 	childPos := byte(2)
 	key := append([]byte{childPos}, []byte("dog")...)
 
-	val, maxDepth, err := bn.tryGet(key, 0, nil)
+	tmc := trieMetricsCollector.NewTrieMetricsCollector()
+	val, err := bn.tryGet(key, tmc, nil)
 	assert.Equal(t, []byte("dog"), val)
 	assert.Nil(t, err)
-	assert.Equal(t, uint32(1), maxDepth)
+	assert.Equal(t, uint32(1), tmc.GetMaxDepth())
 }
 
 func TestBranchNode_tryGetEmptyKey(t *testing.T) {
@@ -493,10 +495,11 @@ func TestBranchNode_tryGetEmptyKey(t *testing.T) {
 	bn, _ := getBnAndCollapsedBn(getTestMarshalizerAndHasher())
 	var key []byte
 
-	val, maxDepth, err := bn.tryGet(key, 0, nil)
+	tmc := trieMetricsCollector.NewTrieMetricsCollector()
+	val, err := bn.tryGet(key, tmc, nil)
 	assert.Nil(t, err)
 	assert.Nil(t, val)
-	assert.Equal(t, uint32(0), maxDepth)
+	assert.Equal(t, uint32(0), tmc.GetMaxDepth())
 }
 
 func TestBranchNode_tryGetChildPosOutOfRange(t *testing.T) {
@@ -505,10 +508,11 @@ func TestBranchNode_tryGetChildPosOutOfRange(t *testing.T) {
 	bn, _ := getBnAndCollapsedBn(getTestMarshalizerAndHasher())
 	key := []byte("dog")
 
-	val, maxDepth, err := bn.tryGet(key, 0, nil)
+	tmc := trieMetricsCollector.NewTrieMetricsCollector()
+	val, err := bn.tryGet(key, tmc, nil)
 	assert.Equal(t, ErrChildPosOutOfRange, err)
 	assert.Nil(t, val)
-	assert.Equal(t, uint32(0), maxDepth)
+	assert.Equal(t, uint32(0), tmc.GetMaxDepth())
 }
 
 func TestBranchNode_tryGetNilChild(t *testing.T) {
@@ -517,10 +521,11 @@ func TestBranchNode_tryGetNilChild(t *testing.T) {
 	bn, _ := getBnAndCollapsedBn(getTestMarshalizerAndHasher())
 	nilChildKey := []byte{3}
 
-	val, maxDepth, err := bn.tryGet(nilChildKey, 0, nil)
+	tmc := trieMetricsCollector.NewTrieMetricsCollector()
+	val, err := bn.tryGet(nilChildKey, tmc, nil)
 	assert.Nil(t, err)
 	assert.Nil(t, val)
-	assert.Equal(t, uint32(0), maxDepth)
+	assert.Equal(t, uint32(0), tmc.GetMaxDepth())
 }
 
 func TestBranchNode_tryGetCollapsedNode(t *testing.T) {
@@ -535,10 +540,11 @@ func TestBranchNode_tryGetCollapsedNode(t *testing.T) {
 	childPos := byte(2)
 	key := append([]byte{childPos}, []byte("dog")...)
 
-	val, maxDepth, err := collapsedBn.tryGet(key, 0, db)
+	tmc := trieMetricsCollector.NewTrieMetricsCollector()
+	val, err := collapsedBn.tryGet(key, tmc, db)
 	assert.Equal(t, []byte("dog"), val)
 	assert.Nil(t, err)
-	assert.Equal(t, uint32(1), maxDepth)
+	assert.Equal(t, uint32(1), tmc.GetMaxDepth())
 }
 
 func TestBranchNode_tryGetEmptyNode(t *testing.T) {
@@ -548,10 +554,11 @@ func TestBranchNode_tryGetEmptyNode(t *testing.T) {
 	childPos := byte(2)
 	key := append([]byte{childPos}, []byte("dog")...)
 
-	val, maxDepth, err := bn.tryGet(key, 0, nil)
+	tmc := trieMetricsCollector.NewTrieMetricsCollector()
+	val, err := bn.tryGet(key, tmc, nil)
 	assert.True(t, errors.Is(err, ErrEmptyBranchNode))
 	assert.Nil(t, val)
-	assert.Equal(t, uint32(0), maxDepth)
+	assert.Equal(t, uint32(0), tmc.GetMaxDepth())
 }
 
 func TestBranchNode_tryGetNilNode(t *testing.T) {
@@ -561,10 +568,11 @@ func TestBranchNode_tryGetNilNode(t *testing.T) {
 	childPos := byte(2)
 	key := append([]byte{childPos}, []byte("dog")...)
 
-	val, maxDepth, err := bn.tryGet(key, 0, nil)
+	tmc := trieMetricsCollector.NewTrieMetricsCollector()
+	val, err := bn.tryGet(key, tmc, nil)
 	assert.True(t, errors.Is(err, ErrNilBranchNode))
 	assert.Nil(t, val)
-	assert.Equal(t, uint32(0), maxDepth)
+	assert.Equal(t, uint32(0), tmc.GetMaxDepth())
 }
 
 func TestBranchNode_getNext(t *testing.T) {
@@ -659,7 +667,7 @@ func TestBranchNode_insertCollapsedNode(t *testing.T) {
 	assert.NotNil(t, newBn)
 	assert.Nil(t, err)
 
-	val, _, _ := newBn.tryGet(key, 0, db)
+	val, _ := newBn.tryGet(key, trieMetricsCollector.NewTrieMetricsCollector(), db)
 	assert.Equal(t, []byte("dogs"), val)
 }
 
@@ -856,7 +864,7 @@ func TestBranchNode_deleteCollapsedNode(t *testing.T) {
 	assert.True(t, dirty)
 	assert.Nil(t, err)
 
-	val, _, err := newBn.tryGet(key, 0, db)
+	val, err := newBn.tryGet(key, trieMetricsCollector.NewTrieMetricsCollector(), db)
 	assert.Nil(t, val)
 	assert.Nil(t, err)
 }

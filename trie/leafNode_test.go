@@ -16,6 +16,7 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
 	"github.com/multiversx/mx-chain-go/trie/keyBuilder"
 	"github.com/multiversx/mx-chain-go/trie/statistics"
+	"github.com/multiversx/mx-chain-go/trie/trieMetricsCollector"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -239,10 +240,11 @@ func TestLeafNode_tryGet(t *testing.T) {
 	ln := getLn(getTestMarshalizerAndHasher())
 	key := []byte("dog")
 
-	val, maxDepth, err := ln.tryGet(key, 0, nil)
+	tmc := trieMetricsCollector.NewTrieMetricsCollector()
+	val, err := ln.tryGet(key, tmc, nil)
 	assert.Equal(t, []byte("dog"), val)
 	assert.Nil(t, err)
-	assert.Equal(t, uint32(0), maxDepth)
+	assert.Equal(t, uint32(0), tmc.GetMaxDepth())
 }
 
 func TestLeafNode_tryGetWrongKey(t *testing.T) {
@@ -251,10 +253,11 @@ func TestLeafNode_tryGetWrongKey(t *testing.T) {
 	ln := getLn(getTestMarshalizerAndHasher())
 	wrongKey := []byte{1, 2, 3}
 
-	val, maxDepth, err := ln.tryGet(wrongKey, 0, nil)
+	tmc := trieMetricsCollector.NewTrieMetricsCollector()
+	val, err := ln.tryGet(wrongKey, tmc, nil)
 	assert.Nil(t, val)
 	assert.Nil(t, err)
-	assert.Equal(t, uint32(0), maxDepth)
+	assert.Equal(t, uint32(0), tmc.GetMaxDepth())
 }
 
 func TestLeafNode_tryGetEmptyNode(t *testing.T) {
@@ -263,10 +266,11 @@ func TestLeafNode_tryGetEmptyNode(t *testing.T) {
 	ln := &leafNode{}
 
 	key := []byte("dog")
-	val, maxDepth, err := ln.tryGet(key, 0, nil)
+	tmc := trieMetricsCollector.NewTrieMetricsCollector()
+	val, err := ln.tryGet(key, tmc, nil)
 	assert.True(t, errors.Is(err, ErrEmptyLeafNode))
 	assert.Nil(t, val)
-	assert.Equal(t, uint32(0), maxDepth)
+	assert.Equal(t, uint32(0), tmc.GetMaxDepth())
 }
 
 func TestLeafNode_tryGetNilNode(t *testing.T) {
@@ -275,10 +279,11 @@ func TestLeafNode_tryGetNilNode(t *testing.T) {
 	var ln *leafNode
 	key := []byte("dog")
 
-	val, maxDepth, err := ln.tryGet(key, 0, nil)
+	tmc := trieMetricsCollector.NewTrieMetricsCollector()
+	val, err := ln.tryGet(key, tmc, nil)
 	assert.True(t, errors.Is(err, ErrNilLeafNode))
 	assert.Nil(t, val)
-	assert.Equal(t, uint32(0), maxDepth)
+	assert.Equal(t, uint32(0), tmc.GetMaxDepth())
 }
 
 func TestLeafNode_getNext(t *testing.T) {
@@ -328,7 +333,7 @@ func TestLeafNode_insertAtSameKey(t *testing.T) {
 	assert.NotNil(t, newNode)
 	assert.Nil(t, err)
 
-	val, _, _ := newNode.tryGet([]byte(key), 0, nil)
+	val, _ := newNode.tryGet([]byte(key), trieMetricsCollector.NewTrieMetricsCollector(), nil)
 	assert.Equal(t, []byte(expectedVal), val)
 }
 
@@ -347,7 +352,7 @@ func TestLeafNode_insertAtDifferentKey(t *testing.T) {
 	assert.NotNil(t, newNode)
 	assert.Nil(t, err)
 
-	val, _, _ := newNode.tryGet(nodeKey, 0, nil)
+	val, _ := newNode.tryGet(nodeKey, trieMetricsCollector.NewTrieMetricsCollector(), nil)
 	assert.Equal(t, nodeVal, val)
 	assert.IsType(t, &branchNode{}, newNode)
 }
