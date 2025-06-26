@@ -202,3 +202,110 @@ func TestSelectionTracker_removeFromTrackedBlocks(t *testing.T) {
 
 	require.Equal(t, expectedTrackedBlock, selTracker.blocks[0])
 }
+
+func TestSelectionTracker_nextBlock(t *testing.T) {
+	t.Parallel()
+
+	t.Run("should return next block", func(t *testing.T) {
+		t.Parallel()
+
+		selTracker, err := NewSelectionTracker()
+		require.Nil(t, err)
+
+		expectedNextBlock := newTrackedBlock(0, []byte("blockHash2"), []byte("rootHash2"), []byte("blockHash1"))
+		selTracker.blocks = []*trackedBlock{
+			newTrackedBlock(0, []byte("blockHash1"), []byte("rootHash1"), []byte("prevHash1")),
+			expectedNextBlock,
+		}
+
+		receivedNextBlock := selTracker.nextBlock([]byte("blockHash1"))
+		require.Equal(t, expectedNextBlock, receivedNextBlock)
+	})
+
+	t.Run("should return nil", func(t *testing.T) {
+		t.Parallel()
+
+		selTracker, err := NewSelectionTracker()
+		require.Nil(t, err)
+
+		expectedNextBlock := newTrackedBlock(0, []byte("blockHash2"), []byte("rootHash2"), []byte("blockHash1"))
+		selTracker.blocks = []*trackedBlock{
+			newTrackedBlock(0, []byte("blockHash1"), []byte("rootHash1"), []byte("prevHash1")),
+			expectedNextBlock,
+		}
+
+		receivedNextBlock := selTracker.nextBlock([]byte("notExistingBlockHash"))
+		require.Nil(t, receivedNextBlock)
+	})
+}
+
+func TestSelectionTracker_getChainOfTrackedBlocks(t *testing.T) {
+	t.Parallel()
+
+	selTracker, err := NewSelectionTracker()
+	require.Nil(t, err)
+
+	// create a slice of tracked block which aren't ordered
+	selTracker.blocks = []*trackedBlock{
+		newTrackedBlock(7, []byte("blockHash8"), []byte("rootHash8"), []byte("blockHash7")),
+		newTrackedBlock(5, []byte("blockHash6"), []byte("rootHash6"), []byte("blockHash5")),
+		newTrackedBlock(1, []byte("blockHash2"), []byte("rootHash2"), []byte("blockHash1")),
+		newTrackedBlock(0, []byte("blockHash1"), []byte("rootHash1"), []byte("prevHash1")),
+		newTrackedBlock(3, []byte("blockHash4"), []byte("rootHash4"), []byte("blockHash3")),
+		newTrackedBlock(2, []byte("blockHash3"), []byte("rootHash3"), []byte("blockHash2")),
+		newTrackedBlock(4, []byte("blockHash5"), []byte("rootHash5"), []byte("blockHash4")),
+		newTrackedBlock(6, []byte("blockHash7"), []byte("rootHash7"), []byte("blockHash6")),
+	}
+
+	t.Run("should return expected tracked blocks and stop before nonce", func(t *testing.T) {
+		t.Parallel()
+
+		expectedTrackedBlockHashes := [][]byte{
+			[]byte("blockHash5"),
+			[]byte("blockHash6"),
+			[]byte("blockHash7"),
+		}
+
+		returnedChain := selTracker.getChainOfTrackedBlocks([]byte("blockHash4"), 7)
+		for i, returnedBlock := range returnedChain {
+			require.Equal(t, returnedBlock.hash, expectedTrackedBlockHashes[i])
+		}
+	})
+
+	t.Run("should return expected tracked blocks and stop because nil block", func(t *testing.T) {
+		t.Parallel()
+
+		expectedTrackedBlockHashes := [][]byte{
+			[]byte("blockHash5"),
+			[]byte("blockHash6"),
+			[]byte("blockHash7"),
+			[]byte("blockHash8"),
+		}
+
+		returnedChain := selTracker.getChainOfTrackedBlocks([]byte("blockHash4"), 12)
+		for i, returnedBlock := range returnedChain {
+			require.Equal(t, returnedBlock.hash, expectedTrackedBlockHashes[i])
+		}
+	})
+
+	t.Run("should return 0 blocks because prevHash not found", func(t *testing.T) {
+		t.Parallel()
+
+		returnedChain := selTracker.getChainOfTrackedBlocks([]byte("blockHashX"), 12)
+		require.Equal(t, 0, len(returnedChain))
+	})
+
+	t.Run("should return 0 blocks because nonce", func(t *testing.T) {
+		t.Parallel()
+
+		returnedChain := selTracker.getChainOfTrackedBlocks([]byte("blockHash6"), 6)
+		require.Equal(t, 0, len(returnedChain))
+	})
+
+	t.Run("should return 1 blocks", func(t *testing.T) {
+		t.Parallel()
+
+		returnedChain := selTracker.getChainOfTrackedBlocks([]byte("blockHash6"), 7)
+		require.Equal(t, 1, len(returnedChain))
+	})
+}

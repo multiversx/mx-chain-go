@@ -1,6 +1,7 @@
 package txcache
 
 import (
+	"bytes"
 	"sync"
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
@@ -106,4 +107,41 @@ func (st *selectionTracker) updateLatestRootHashNoLock(receivedNonce uint64, rec
 		st.latestRootHash = receivedRootHash
 		st.latestNonce = receivedNonce
 	}
+}
+
+func (st *selectionTracker) deriveVirtualSelectionSession(session SelectionSession, latestExecutedBlockHash []byte, currentBlockNonce uint64) (*virtualSelectionSession, error) {
+	rootHash, err := session.GetRootHash()
+	if err != nil {
+		log.Debug("selectionTracker.deriveVirtualSelectionSession",
+			"err", err)
+		return nil, err
+	}
+
+	log.Debug("selectionTracker.deriveVirtualSelectionSession", "rootHash", rootHash)
+
+	_ = st.getChainOfTrackedBlocks(latestExecutedBlockHash, currentBlockNonce)
+
+	return &virtualSelectionSession{}, nil
+}
+
+func (st *selectionTracker) getChainOfTrackedBlocks(latestExecutedBlockHash []byte, currentBlockNonce uint64) []*trackedBlock {
+	chainOfBlocks := make([]*trackedBlock, 0)
+	nextBlock := st.nextBlock(latestExecutedBlockHash)
+	for nextBlock != nil && nextBlock.nonce < currentBlockNonce {
+		chainOfBlocks = append(chainOfBlocks, nextBlock)
+		blockHash := nextBlock.hash
+		nextBlock = st.nextBlock(blockHash)
+	}
+
+	return chainOfBlocks
+}
+
+func (st *selectionTracker) nextBlock(previousHash []byte) *trackedBlock {
+	for _, block := range st.blocks {
+		if bytes.Equal(previousHash, block.prevHash) {
+			return block
+		}
+	}
+
+	return nil
 }
