@@ -19,7 +19,6 @@ import (
 	vmcommonBuiltInFunctions "github.com/multiversx/mx-chain-vm-common-go/builtInFunctions"
 	"github.com/multiversx/mx-chain-vm-common-go/parsers"
 	wasmConfig "github.com/multiversx/mx-chain-vm-go/config"
-	ipcNodePart1p2 "github.com/multiversx/mx-chain-vm-v1_2-go/ipc/nodepart"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -235,35 +234,27 @@ func TestVmContainerFactory_ResolveWasmVMVersion(t *testing.T) {
 		_ = container.Close()
 	}()
 	require.Equal(t, "v1.2", getWasmVMVersion(t, container))
-	require.False(t, isOutOfProcess(t, container))
 
 	epochNotifierInstance.CheckEpoch(makeHeaderHandlerStub(1))
 	require.Equal(t, "v1.2", getWasmVMVersion(t, container))
-	require.False(t, isOutOfProcess(t, container))
 
 	epochNotifierInstance.CheckEpoch(makeHeaderHandlerStub(6))
 	require.Equal(t, "v1.2", getWasmVMVersion(t, container))
-	require.False(t, isOutOfProcess(t, container))
 
 	epochNotifierInstance.CheckEpoch(makeHeaderHandlerStub(10))
 	require.Equal(t, "v1.2", getWasmVMVersion(t, container))
-	require.False(t, isOutOfProcess(t, container))
 
 	epochNotifierInstance.CheckEpoch(makeHeaderHandlerStub(11))
 	require.Equal(t, "v1.2", getWasmVMVersion(t, container))
-	require.False(t, isOutOfProcess(t, container))
 
 	epochNotifierInstance.CheckEpoch(makeHeaderHandlerStub(12))
 	require.Equal(t, "v1.3", getWasmVMVersion(t, container))
-	require.False(t, isOutOfProcess(t, container))
 
 	epochNotifierInstance.CheckEpoch(makeHeaderHandlerStub(13))
 	require.Equal(t, "v1.3", getWasmVMVersion(t, container))
-	require.False(t, isOutOfProcess(t, container))
 
 	epochNotifierInstance.CheckEpoch(makeHeaderHandlerStub(20))
 	require.Equal(t, "v1.4", getWasmVMVersion(t, container))
-	require.False(t, isOutOfProcess(t, container))
 
 	require.Equal(t, numCalled, 1)
 }
@@ -272,15 +263,6 @@ func makeHeaderHandlerStub(epoch uint32) data.HeaderHandler {
 	return &testscommon.HeaderHandlerStub{
 		EpochField: epoch,
 	}
-}
-
-func isOutOfProcess(t testing.TB, container process.VirtualMachinesContainer) bool {
-	vm, err := container.Get(factory.WasmVirtualMachine)
-	require.Nil(t, err)
-	require.NotNil(t, vm)
-
-	_, ok := vm.(*ipcNodePart1p2.VMDriver)
-	return ok
 }
 
 func getWasmVMVersion(t testing.TB, container process.VirtualMachinesContainer) string {

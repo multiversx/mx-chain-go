@@ -11,7 +11,6 @@ import (
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	logger "github.com/multiversx/mx-chain-logger-go"
-	"github.com/multiversx/mx-chain-vm-v1_2-go/ipc/marshaling"
 
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/consensus"
@@ -40,7 +39,7 @@ type interceptedEquivalentProof struct {
 	isForCurrentShard bool
 	headerSigVerifier consensus.HeaderSigVerifier
 	proofsPool        dataRetriever.ProofsPool
-	marshaller        marshaling.Marshalizer
+	marshaller        marshal.Marshalizer
 	hasher            hashing.Hasher
 	hash              []byte
 	proofSizeChecker  common.FieldsSizeChecker

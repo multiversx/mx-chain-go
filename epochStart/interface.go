@@ -23,6 +23,8 @@ type TriggerHandler interface {
 	Update(round uint64, nonce uint64)
 	EpochStartRound() uint64
 	EpochStartMetaHdrHash() []byte
+	LastCommitedEpochStartHdr() (data.HeaderHandler, error)
+	GetEpochStartHdrFromStorage(epoch uint32) (data.HeaderHandler, error)
 	GetSavedStateKey() []byte
 	LoadState(key []byte) error
 	SetProcessed(header data.HeaderHandler, body data.BodyHandler)
@@ -97,6 +99,14 @@ type ValidatorInfoCreator interface {
 type HeadersByHashSyncer interface {
 	SyncMissingHeadersByHash(shardIDs []uint32, headersHashes [][]byte, ctx context.Context) error
 	GetHeaders() (map[string]data.HeaderHandler, error)
+	ClearFields()
+	IsInterfaceNil() bool
+}
+
+// PendingEpochStartShardHeaderSyncer defines the methods to sync pending epoch start shard headers
+type PendingEpochStartShardHeaderSyncer interface {
+	SyncEpochStartShardHeader(shardId uint32, epoch uint32, startNonce uint64, ctx context.Context) error
+	GetEpochStartHeader() (data.HeaderHandler, []byte, error)
 	ClearFields()
 	IsInterfaceNil() bool
 }
