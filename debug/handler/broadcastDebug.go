@@ -7,7 +7,6 @@ import (
 	"sync"
 	"time"
 
-	p2p2 "github.com/multiversx/mx-chain-communication-go/p2p"
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-go/config"
@@ -51,7 +50,7 @@ func NewBroadcastDebug(config config.BroadcastStatisticsConfig, ntpTime NTPTime)
 
 // Process will process the intercept data and add statistics about p2p message
 func (bd *broadcastDebugHandler) Process(data process.InterceptedData, msg p2p.MessageP2P, fromConnectedPeer core.PeerID) {
-	if msg.BroadcastMethod() != p2p2.Broadcast {
+	if msg.BroadcastMethod() != p2p.Broadcast {
 		return
 	}
 
