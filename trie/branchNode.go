@@ -861,12 +861,11 @@ func (bn *branchNode) sizeInBytes() int {
 		return 0
 	}
 
-	// hasher + marshalizer + dirty flag = numNodeInnerPointers * pointerSizeInBytes + 1
-	nodeSize := len(bn.hash) + numNodeInnerPointers*pointerSizeInBytes + 1
+	nodeSize := baseNodeSizeInBytes + bnChildrenPointersSize
 	for _, collapsed := range bn.EncodedChildren {
 		nodeSize += len(collapsed)
 	}
-	nodeSize += len(bn.children) * pointerSizeInBytes
+	nodeSize += len(bn.ChildrenVersion)
 
 	return nodeSize
 }

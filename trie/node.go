@@ -16,13 +16,17 @@ import (
 )
 
 const (
-	nrOfChildren         = 17
-	firstByte            = 0
-	hexTerminator        = 16
-	nibbleMask           = 0x0f
-	pointerSizeInBytes   = 8
-	numNodeInnerPointers = 2 // each trie node contains a marshalizer and a hasher
-	pollingIdleNode      = time.Millisecond
+	nrOfChildren           = 17
+	firstByte              = 0
+	hexTerminator          = 16
+	nibbleMask             = 0x0f
+	pointerSizeInBytes     = 8
+	numNodeInnerPointers   = 2 // each trie node contains a marshalizer and a hasher
+	pollingIdleNode        = time.Millisecond
+	hashSizeInBytes        = 32                                                            // size of the hash in bytes
+	baseNodeSizeInBytes    = hashSizeInBytes + numNodeInnerPointers*pointerSizeInBytes + 1 // 1 for the dirty flag
+	bnChildrenPointersSize = nrOfChildren * pointerSizeInBytes
+	nodeVersionSizeInBytes = 4
 )
 
 type baseNode struct {

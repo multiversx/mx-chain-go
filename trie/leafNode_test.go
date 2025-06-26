@@ -1,6 +1,7 @@
 package trie
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"math"
@@ -689,7 +690,7 @@ func TestLeafNode_SizeInBytes(t *testing.T) {
 
 	value := []byte("value")
 	key := []byte("key")
-	hash := []byte("hash")
+	hash := bytes.Repeat([]byte{1}, 32)
 	ln = &leafNode{
 		CollapsedLn: CollapsedLn{
 			Key:   key,
@@ -702,7 +703,7 @@ func TestLeafNode_SizeInBytes(t *testing.T) {
 			hasher: nil,
 		},
 	}
-	assert.Equal(t, len(key)+len(value)+len(hash)+1+2*pointerSizeInBytes, ln.sizeInBytes())
+	assert.Equal(t, len(key)+len(value)+len(hash)+1+2*pointerSizeInBytes+nodeVersionSizeInBytes, ln.sizeInBytes())
 }
 
 func TestLeafNode_writeNodeOnChannel(t *testing.T) {

@@ -980,7 +980,7 @@ func TestExtensionNode_SizeInBytes(t *testing.T) {
 
 	collapsed := []byte("collapsed")
 	key := []byte("key")
-	hash := []byte("hash")
+	hash := bytes.Repeat([]byte{1}, 32)
 	en = &extensionNode{
 		CollapsedEn: CollapsedEn{
 			Key:          key,
@@ -994,7 +994,7 @@ func TestExtensionNode_SizeInBytes(t *testing.T) {
 			hasher: nil,
 		},
 	}
-	assert.Equal(t, len(collapsed)+len(key)+len(hash)+1+3*pointerSizeInBytes, en.sizeInBytes())
+	assert.Equal(t, len(collapsed)+len(key)+nodeVersionSizeInBytes+len(hash)+1+3*pointerSizeInBytes, en.sizeInBytes())
 }
 
 func TestExtensionNode_commitContextDone(t *testing.T) {

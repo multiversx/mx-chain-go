@@ -485,8 +485,7 @@ func (ln *leafNode) sizeInBytes() int {
 		return 0
 	}
 
-	// hasher + marshalizer  + dirty flag = numNodeInnerPointers * pointerSizeInBytes + 1
-	nodeSize := len(ln.hash) + len(ln.Key) + len(ln.Value) + numNodeInnerPointers*pointerSizeInBytes + 1
+	nodeSize := baseNodeSizeInBytes + len(ln.Key) + len(ln.Value) + nodeVersionSizeInBytes
 
 	return nodeSize
 }

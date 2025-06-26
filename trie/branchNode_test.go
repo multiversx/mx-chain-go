@@ -1292,10 +1292,11 @@ func TestBranchNode_SizeInBytes(t *testing.T) {
 
 	collapsed1 := []byte("collapsed1")
 	collapsed2 := []byte("collapsed2")
-	hash := []byte("hash")
+	hash := bytes.Repeat([]byte{1}, 32)
 	bn = &branchNode{
 		CollapsedBn: CollapsedBn{
 			EncodedChildren: [][]byte{collapsed1, collapsed2},
+			ChildrenVersion: []byte("version"),
 		},
 		children: [17]node{},
 		baseNode: &baseNode{
@@ -1305,7 +1306,7 @@ func TestBranchNode_SizeInBytes(t *testing.T) {
 			hasher: nil,
 		},
 	}
-	assert.Equal(t, len(collapsed1)+len(collapsed2)+len(hash)+1+19*pointerSizeInBytes, bn.sizeInBytes())
+	assert.Equal(t, len(collapsed1)+len(collapsed2)+len(hash)+1+19*pointerSizeInBytes+len(bn.ChildrenVersion), bn.sizeInBytes())
 }
 
 func TestBranchNode_commitContextDone(t *testing.T) {

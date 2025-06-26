@@ -705,8 +705,7 @@ func (en *extensionNode) sizeInBytes() int {
 		return 0
 	}
 
-	// hasher + marshalizer + child + dirty flag = 3 * pointerSizeInBytes + 1
-	nodeSize := len(en.hash) + len(en.Key) + (numNodeInnerPointers+1)*pointerSizeInBytes + 1
+	nodeSize := baseNodeSizeInBytes + len(en.Key) + nodeVersionSizeInBytes + pointerSizeInBytes
 	nodeSize += len(en.EncodedChild)
 
 	return nodeSize
