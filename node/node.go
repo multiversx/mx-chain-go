@@ -315,6 +315,43 @@ func (n *Node) GetKeyValuePairs(address string, options api.AccountQueryOptions,
 	return mapToReturn, blockInfo, nil
 }
 
+type userAccountWithLeavesParser interface {
+	GetLeavesParser() common.TrieLeafParser
+}
+
+// IterateKeys starts from the given iteratorState and returns the next key-value pairs and the new iteratorState
+func (n *Node) IterateKeys(address string, numKeys uint, iteratorState [][]byte, options api.AccountQueryOptions, ctx context.Context) (map[string]string, [][]byte, api.BlockInfo, error) {
+	userAccount, blockInfo, err := n.loadUserAccountHandlerByAddress(address, options)
+	if err != nil {
+		adaptedBlockInfo, isEmptyAccount := extractBlockInfoIfNewAccount(err)
+		if isEmptyAccount {
+			return make(map[string]string), nil, adaptedBlockInfo, nil
+		}
+
+		return nil, nil, api.BlockInfo{}, err
+	}
+
+	if check.IfNil(userAccount.DataTrie()) {
+		return map[string]string{}, nil, blockInfo, nil
+	}
+
+	account, ok := userAccount.(userAccountWithLeavesParser)
+	if !ok {
+		return nil, nil, api.BlockInfo{}, fmt.Errorf("cannot cast user account to userAccountWithLeavesParser")
+	}
+
+	if len(iteratorState) == 0 {
+		iteratorState = append(iteratorState, userAccount.GetRootHash())
+	}
+
+	mapToReturn, newIteratorState, err := n.stateComponents.TrieLeavesRetriever().GetLeaves(int(numKeys), iteratorState, account.GetLeavesParser(), ctx)
+	if err != nil {
+		return nil, nil, api.BlockInfo{}, err
+	}
+
+	return mapToReturn, newIteratorState, blockInfo, nil
+}
+
 func (n *Node) getKeys(userAccount state.UserAccountHandler, ctx context.Context) (map[string]string, error) {
 	chLeaves := &common.TrieIteratorChannels{
 		LeavesChan: make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity),
@@ -639,6 +676,10 @@ func (n *Node) GetAllESDTTokens(address string, options api.AccountQueryOptions,
 		esdtToken, _, err = n.esdtStorageHandler.GetESDTNFTTokenOnDestinationWithCustomSystemAccount(userAccountVmCommon, esdtTokenKey, nonce, systemAccount)
 		if err != nil {
 			log.Warn("cannot get ESDT token", "token name", tokenName, "error", err)
+			continue
+		}
+
+		if esdtToken.Value.Sign() <= 0 {
 			continue
 		}
 
@@ -1261,7 +1302,8 @@ func prepareEpochStartDataResponse(header data.HeaderHandler) *common.EpochStart
 		Nonce:         header.GetNonce(),
 		Round:         header.GetRound(),
 		Shard:         header.GetShardID(),
-		Timestamp:     int64(time.Duration(header.GetTimeStamp())),
+		Timestamp:     int64(header.GetTimeStamp()),
+		TimestampMs:   int64(common.ConvertTimeStampSecToMs(header.GetTimeStamp())),
 		Epoch:         header.GetEpoch(),
 		PrevBlockHash: hex.EncodeToString(header.GetPrevHash()),
 		StateRootHash: hex.EncodeToString(header.GetRootHash()),
