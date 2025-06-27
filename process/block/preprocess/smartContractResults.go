@@ -530,6 +530,11 @@ func (scr *smartContractResults) getAllScrsFromMiniBlock(
 	return smartContractResult.TrimSlicePtr(scResSlice), sliceUtil.TrimSliceSliceByte(txHashes), nil
 }
 
+// SelectOutgoingTransactions returns an empty slice of byte slices, as this preprocessor does not handle outgoing transactions
+func (scr *smartContractResults) SelectOutgoingTransactions() ([][]byte, error) {
+	return make([][]byte, 0), nil
+}
+
 // CreateAndProcessMiniBlocks creates miniblocks from storage and processes the reward transactions added into the miniblocks
 // as long as it has time
 func (scr *smartContractResults) CreateAndProcessMiniBlocks(_ func() bool, _ []byte) (block.MiniBlockSlice, error) {

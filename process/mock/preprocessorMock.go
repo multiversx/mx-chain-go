@@ -5,6 +5,7 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
+
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/storage"
 )
@@ -23,6 +24,7 @@ type PreProcessorMock struct {
 	RequestTransactionsForMiniBlockCalled func(miniBlock *block.MiniBlock) int
 	ProcessMiniBlockCalled                func(miniBlock *block.MiniBlock, haveTime func() bool, haveAdditionalTime func() bool, scheduledMode bool, partialMbExecutionMode bool, indexOfLastTxProcessed int, preProcessorExecutionInfoHandler process.PreProcessorExecutionInfoHandler) ([][]byte, int, bool, error)
 	CreateAndProcessMiniBlocksCalled      func(haveTime func() bool) (block.MiniBlockSlice, error)
+	SelectOutgoingTransactionsCalled      func() ([][]byte, error)
 	GetAllCurrentUsedTxsCalled            func() map[string]data.TransactionHandler
 	AddTxsFromMiniBlocksCalled            func(miniBlocks block.MiniBlockSlice)
 	AddTransactionsCalled                 func(txHandlers []data.TransactionHandler)
@@ -122,6 +124,14 @@ func (ppm *PreProcessorMock) ProcessMiniBlock(
 		return nil, 0, false, nil
 	}
 	return ppm.ProcessMiniBlockCalled(miniBlock, haveTime, haveAdditionalTime, scheduledMode, partialMbExecutionMode, indexOfLastTxProcessed, preProcessorExecutionInfoHandler)
+}
+
+// SelectOutgoingTransactions selects the outgoing transactions
+func (ppm *PreProcessorMock) SelectOutgoingTransactions() ([][]byte, error) {
+	if ppm.SelectOutgoingTransactionsCalled == nil {
+		return nil, nil
+	}
+	return ppm.SelectOutgoingTransactionsCalled()
 }
 
 // CreateAndProcessMiniBlocks creates miniblocks from storage and processes the reward transactions added into the miniblocks
