@@ -1,6 +1,10 @@
 package txcache
 
-import "math/big"
+import (
+	"math/big"
+
+	"github.com/multiversx/mx-chain-core-go/core"
+)
 
 type trackedBlock struct {
 	nonce                uint64
@@ -10,7 +14,10 @@ type trackedBlock struct {
 	breadcrumbsByAddress map[string]*accountBreadcrumb
 }
 
-func newTrackedBlock(nonce uint64, blockHash []byte, rootHash []byte, prevHash []byte) *trackedBlock {
+// TODO create the breadcrumbs directly in the constructor
+func newTrackedBlock(nonce uint64, blockHash []byte, rootHash []byte,
+	prevHash []byte) *trackedBlock {
+
 	return &trackedBlock{
 		nonce:                nonce,
 		hash:                 blockHash,
@@ -34,40 +41,46 @@ func (tb *trackedBlock) compileBreadcrumbs(txs []*WrappedTransaction) {
 func (tb *trackedBlock) compileBreadcrumb(tx *WrappedTransaction) {
 	sender := tx.Tx.GetSndAddr()
 	feePayer := tx.FeePayer
-	nonce := tx.Tx.GetNonce()
+	initialNonce := tx.Tx.GetNonce()
+	latestNonce := tx.Tx.GetNonce()
 
 	// compile for sender
-	senderBreadcrumb := tb.getBreadcrumb(string(sender), nonce)
+	senderBreadcrumb := tb.getOrCreateBreadcrumb(string(sender), core.OptionalUint64{
+		Value:    initialNonce,
+		HasValue: true,
+	})
 	transferredValue := tx.TransferredValue
-	if transferredValue != nil {
-		senderBreadcrumb.consumedBalance.Add(senderBreadcrumb.consumedBalance, transferredValue)
-	}
-	senderBreadcrumb.lastNonce = nonce
+	senderBreadcrumb.updateBreadcrumb(transferredValue, core.OptionalUint64{
+		Value:    latestNonce,
+		HasValue: true,
+	})
 
 	// compile for fee payer
 	if feePayer != nil {
-		feePayerBreadcrumb := tb.getBreadcrumb(string(feePayer), nonce)
+		feePayerBreadcrumb := tb.getOrCreateBreadcrumb(string(feePayer), core.OptionalUint64{
+			Value:    0,
+			HasValue: false,
+		})
 		fee := tx.Fee
-		if fee != nil {
-			feePayerBreadcrumb.consumedBalance.Add(feePayerBreadcrumb.consumedBalance, fee)
-		}
-		feePayerBreadcrumb.lastNonce = nonce
+		feePayerBreadcrumb.updateBreadcrumb(fee, core.OptionalUint64{
+			Value:    0,
+			HasValue: false,
+		})
 	}
 }
 
-func (tb *trackedBlock) getBreadcrumb(address string, nonce uint64) *accountBreadcrumb {
+func (tb *trackedBlock) getOrCreateBreadcrumb(address string, nonce core.OptionalUint64) *accountBreadcrumb {
 	breadCrumb, ok := tb.breadcrumbsByAddress[address]
 	if ok {
 		return breadCrumb
-	} else {
-		breadcrumb := &accountBreadcrumb{
-			initialNonce:    nonce,
-			lastNonce:       nonce,
-			consumedBalance: big.NewInt(0),
-		}
-
-		tb.breadcrumbsByAddress[address] = breadcrumb
-
-		return breadcrumb
 	}
+
+	breadcrumb := &accountBreadcrumb{
+		initialNonce:    nonce,
+		lastNonce:       nonce,
+		consumedBalance: big.NewInt(0),
+	}
+	tb.breadcrumbsByAddress[address] = breadcrumb
+
+	return breadcrumb
 }

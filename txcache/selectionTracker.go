@@ -123,11 +123,15 @@ func (st *selectionTracker) updateLatestRootHashNoLock(receivedNonce uint64, rec
 	}
 }
 
+// TODO compute the size of the slice of txs
+// TODO take the txs from the storage (persister)
 func (st *selectionTracker) getTransactionsFromBlock(blockBody *block.Body) ([]*WrappedTransaction, error) {
 	miniBlocks := blockBody.GetMiniBlocks()
 	txs := make([]*WrappedTransaction, 0)
+
 	for _, miniBlock := range miniBlocks {
 		txHashes := miniBlock.GetTxHashes()
+
 		for _, txHash := range txHashes {
 			tx, ok := st.txCache.GetByTxHash(txHash)
 			if !ok {
