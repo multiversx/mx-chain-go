@@ -109,8 +109,11 @@ func (st *selectionTracker) updateLatestRootHashNoLock(receivedNonce uint64, rec
 	}
 }
 
-func (st *selectionTracker) deriveVirtualSelectionSession(session SelectionSession,
-	latestExecutedBlockHash []byte, currentBlockNonce uint64) (*virtualSelectionSession, error) {
+func (st *selectionTracker) deriveVirtualSelectionSession(
+	session SelectionSession,
+	latestExecutedBlockHash []byte,
+	currentBlockNonce uint64,
+) (*virtualSelectionSession, error) {
 	rootHash, err := session.GetRootHash()
 	if err != nil {
 		log.Debug("selectionTracker.deriveVirtualSelectionSession",
