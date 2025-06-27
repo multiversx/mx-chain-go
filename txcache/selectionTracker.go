@@ -125,19 +125,21 @@ func (st *selectionTracker) deriveVirtualSelectionSession(session SelectionSessi
 	return &virtualSelectionSession{}, nil
 }
 
-func (st *selectionTracker) getChainOfTrackedBlocks(latestExecutedBlockHash []byte, currentBlockNonce uint64) []*trackedBlock {
-	chainOfBlocks := make([]*trackedBlock, 0)
-	nextBlock := st.nextBlock(latestExecutedBlockHash)
-	for nextBlock != nil && nextBlock.nonce < currentBlockNonce {
-		chainOfBlocks = append(chainOfBlocks, nextBlock)
+func (st *selectionTracker) getChainOfTrackedBlocks(latestExecutedBlockHash []byte, beforeNonce uint64) []*trackedBlock {
+	chain := make([]*trackedBlock, 0)
+	nextBlock := st.findNextBlock(latestExecutedBlockHash)
+
+	for nextBlock != nil && nextBlock.nonce < beforeNonce {
+		chain = append(chain, nextBlock)
 		blockHash := nextBlock.hash
-		nextBlock = st.nextBlock(blockHash)
+		nextBlock = st.findNextBlock(blockHash)
 	}
 
-	return chainOfBlocks
+	return chain
 }
 
-func (st *selectionTracker) nextBlock(previousHash []byte) *trackedBlock {
+// TODO solve the case of forks
+func (st *selectionTracker) findNextBlock(previousHash []byte) *trackedBlock {
 	for _, block := range st.blocks {
 		if bytes.Equal(previousHash, block.prevHash) {
 			return block

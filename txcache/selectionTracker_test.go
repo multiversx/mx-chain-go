@@ -124,19 +124,19 @@ func TestSelectionTracker_OnExecutedBlockShouldError(t *testing.T) {
 func TestSelectionTracker_OnExecutedBlockShouldWork(t *testing.T) {
 	t.Parallel()
 
-	selTracker, err := NewSelectionTracker()
+	tracker, err := NewSelectionTracker()
 	require.Nil(t, err)
 
 	numOfBlocks := 20
 	headers := createMockedHeaders(numOfBlocks)
 
-	proposeBlocksConcurrently(t, numOfBlocks, selTracker, headers)
-	require.Equal(t, numOfBlocks, len(selTracker.blocks))
+	proposeBlocksConcurrently(t, numOfBlocks, tracker, headers)
+	require.Equal(t, numOfBlocks, len(tracker.blocks))
 
-	executeBlocksConcurrently(t, numOfBlocks, selTracker, headers)
-	require.Equal(t, 0, len(selTracker.blocks))
-	require.Equal(t, uint64(19), selTracker.latestNonce)
-	require.Equal(t, []byte("rootHash19"), selTracker.latestRootHash)
+	executeBlocksConcurrently(t, numOfBlocks, tracker, headers)
+	require.Equal(t, 0, len(tracker.blocks))
+	require.Equal(t, uint64(19), tracker.latestNonce)
+	require.Equal(t, []byte("rootHash19"), tracker.latestRootHash)
 }
 
 func TestSelectionTracker_updateLatestRoothash(t *testing.T) {
@@ -145,64 +145,64 @@ func TestSelectionTracker_updateLatestRoothash(t *testing.T) {
 	t.Run("latest roothash is nil", func(t *testing.T) {
 		t.Parallel()
 
-		selTracker, err := NewSelectionTracker()
+		tracker, err := NewSelectionTracker()
 		require.Nil(t, err)
 
-		selTracker.updateLatestRootHashNoLock(1, []byte("rootHash1"))
-		require.Equal(t, uint64(1), selTracker.latestNonce)
-		require.Equal(t, []byte("rootHash1"), selTracker.latestRootHash)
+		tracker.updateLatestRootHashNoLock(1, []byte("rootHash1"))
+		require.Equal(t, uint64(1), tracker.latestNonce)
+		require.Equal(t, []byte("rootHash1"), tracker.latestRootHash)
 	})
 
 	t.Run("root hash of block N after root hash of block N+1", func(t *testing.T) {
 		t.Parallel()
 
-		selTracker, err := NewSelectionTracker()
+		tracker, err := NewSelectionTracker()
 		require.Nil(t, err)
 
-		selTracker.updateLatestRootHashNoLock(2, []byte("rootHash2"))
-		require.Equal(t, uint64(2), selTracker.latestNonce)
-		require.Equal(t, []byte("rootHash2"), selTracker.latestRootHash)
+		tracker.updateLatestRootHashNoLock(2, []byte("rootHash2"))
+		require.Equal(t, uint64(2), tracker.latestNonce)
+		require.Equal(t, []byte("rootHash2"), tracker.latestRootHash)
 
-		selTracker.updateLatestRootHashNoLock(1, []byte("rootHash1"))
-		require.Equal(t, uint64(2), selTracker.latestNonce)
-		require.Equal(t, []byte("rootHash2"), selTracker.latestRootHash)
+		tracker.updateLatestRootHashNoLock(1, []byte("rootHash1"))
+		require.Equal(t, uint64(2), tracker.latestNonce)
+		require.Equal(t, []byte("rootHash2"), tracker.latestRootHash)
 	})
 
 	t.Run("root hash of block N + 1 after root hash of block N", func(t *testing.T) {
 		t.Parallel()
 
-		selTracker, err := NewSelectionTracker()
+		tracker, err := NewSelectionTracker()
 		require.Nil(t, err)
 
-		selTracker.updateLatestRootHashNoLock(1, []byte("rootHash1"))
-		require.Equal(t, uint64(1), selTracker.latestNonce)
-		require.Equal(t, []byte("rootHash1"), selTracker.latestRootHash)
+		tracker.updateLatestRootHashNoLock(1, []byte("rootHash1"))
+		require.Equal(t, uint64(1), tracker.latestNonce)
+		require.Equal(t, []byte("rootHash1"), tracker.latestRootHash)
 
-		selTracker.updateLatestRootHashNoLock(2, []byte("rootHash2"))
-		require.Equal(t, uint64(2), selTracker.latestNonce)
-		require.Equal(t, []byte("rootHash2"), selTracker.latestRootHash)
+		tracker.updateLatestRootHashNoLock(2, []byte("rootHash2"))
+		require.Equal(t, uint64(2), tracker.latestNonce)
+		require.Equal(t, []byte("rootHash2"), tracker.latestRootHash)
 	})
 }
 
 func TestSelectionTracker_removeFromTrackedBlocks(t *testing.T) {
 	t.Parallel()
 
-	selTracker, err := NewSelectionTracker()
+	tracker, err := NewSelectionTracker()
 	require.Nil(t, err)
 
 	expectedTrackedBlock := newTrackedBlock(1, []byte("blockHash2"), []byte("rootHash2"), []byte("prevHash2"))
 
-	selTracker.blocks = []*trackedBlock{
+	tracker.blocks = []*trackedBlock{
 		newTrackedBlock(0, []byte("blockHash1"), []byte("rootHash1"), []byte("prevHash1")),
 		expectedTrackedBlock,
 		newTrackedBlock(0, []byte("blockHash3"), []byte("rootHash3"), []byte("prevHash1")),
 	}
 
-	require.Equal(t, 3, len(selTracker.blocks))
-	selTracker.removeFromTrackedBlocksNoLock(newTrackedBlock(0, nil, nil, []byte("prevHash1")))
-	require.Equal(t, 1, len(selTracker.blocks))
+	require.Equal(t, 3, len(tracker.blocks))
+	tracker.removeFromTrackedBlocksNoLock(newTrackedBlock(0, nil, nil, []byte("prevHash1")))
+	require.Equal(t, 1, len(tracker.blocks))
 
-	require.Equal(t, expectedTrackedBlock, selTracker.blocks[0])
+	require.Equal(t, expectedTrackedBlock, tracker.blocks[0])
 }
 
 func TestSelectionTracker_nextBlock(t *testing.T) {
@@ -211,32 +211,32 @@ func TestSelectionTracker_nextBlock(t *testing.T) {
 	t.Run("should return next block", func(t *testing.T) {
 		t.Parallel()
 
-		selTracker, err := NewSelectionTracker()
+		tracker, err := NewSelectionTracker()
 		require.Nil(t, err)
 
 		expectedNextBlock := newTrackedBlock(0, []byte("blockHash2"), []byte("rootHash2"), []byte("blockHash1"))
-		selTracker.blocks = []*trackedBlock{
+		tracker.blocks = []*trackedBlock{
 			newTrackedBlock(0, []byte("blockHash1"), []byte("rootHash1"), []byte("prevHash1")),
 			expectedNextBlock,
 		}
 
-		receivedNextBlock := selTracker.nextBlock([]byte("blockHash1"))
+		receivedNextBlock := tracker.findNextBlock([]byte("blockHash1"))
 		require.Equal(t, expectedNextBlock, receivedNextBlock)
 	})
 
 	t.Run("should return nil", func(t *testing.T) {
 		t.Parallel()
 
-		selTracker, err := NewSelectionTracker()
+		tracker, err := NewSelectionTracker()
 		require.Nil(t, err)
 
 		expectedNextBlock := newTrackedBlock(0, []byte("blockHash2"), []byte("rootHash2"), []byte("blockHash1"))
-		selTracker.blocks = []*trackedBlock{
+		tracker.blocks = []*trackedBlock{
 			newTrackedBlock(0, []byte("blockHash1"), []byte("rootHash1"), []byte("prevHash1")),
 			expectedNextBlock,
 		}
 
-		receivedNextBlock := selTracker.nextBlock([]byte("notExistingBlockHash"))
+		receivedNextBlock := tracker.findNextBlock([]byte("notExistingBlockHash"))
 		require.Nil(t, receivedNextBlock)
 	})
 }
@@ -244,11 +244,11 @@ func TestSelectionTracker_nextBlock(t *testing.T) {
 func TestSelectionTracker_getChainOfTrackedBlocks(t *testing.T) {
 	t.Parallel()
 
-	selTracker, err := NewSelectionTracker()
+	tracker, err := NewSelectionTracker()
 	require.Nil(t, err)
 
 	// create a slice of tracked block which aren't ordered
-	selTracker.blocks = []*trackedBlock{
+	tracker.blocks = []*trackedBlock{
 		newTrackedBlock(7, []byte("blockHash8"), []byte("rootHash8"), []byte("blockHash7")),
 		newTrackedBlock(5, []byte("blockHash6"), []byte("rootHash6"), []byte("blockHash5")),
 		newTrackedBlock(1, []byte("blockHash2"), []byte("rootHash2"), []byte("blockHash1")),
@@ -268,13 +268,13 @@ func TestSelectionTracker_getChainOfTrackedBlocks(t *testing.T) {
 			[]byte("blockHash7"),
 		}
 
-		returnedChain := selTracker.getChainOfTrackedBlocks([]byte("blockHash4"), 7)
-		for i, returnedBlock := range returnedChain {
+		actualChain := tracker.getChainOfTrackedBlocks([]byte("blockHash4"), 7)
+		for i, returnedBlock := range actualChain {
 			require.Equal(t, returnedBlock.hash, expectedTrackedBlockHashes[i])
 		}
 	})
 
-	t.Run("should return expected tracked blocks and stop because nil block", func(t *testing.T) {
+	t.Run("should return expected tracked blocks and stop because of nil block encountered", func(t *testing.T) {
 		t.Parallel()
 
 		expectedTrackedBlockHashes := [][]byte{
@@ -284,8 +284,8 @@ func TestSelectionTracker_getChainOfTrackedBlocks(t *testing.T) {
 			[]byte("blockHash8"),
 		}
 
-		returnedChain := selTracker.getChainOfTrackedBlocks([]byte("blockHash4"), 12)
-		for i, returnedBlock := range returnedChain {
+		actualChain := tracker.getChainOfTrackedBlocks([]byte("blockHash4"), 12)
+		for i, returnedBlock := range actualChain {
 			require.Equal(t, returnedBlock.hash, expectedTrackedBlockHashes[i])
 		}
 	})
@@ -293,38 +293,38 @@ func TestSelectionTracker_getChainOfTrackedBlocks(t *testing.T) {
 	t.Run("should return 0 blocks because prevHash not found", func(t *testing.T) {
 		t.Parallel()
 
-		returnedChain := selTracker.getChainOfTrackedBlocks([]byte("blockHashX"), 12)
-		require.Equal(t, 0, len(returnedChain))
+		actualChain := tracker.getChainOfTrackedBlocks([]byte("blockHashX"), 12)
+		require.Equal(t, 0, len(actualChain))
 	})
 
-	t.Run("should return 0 blocks because nonce", func(t *testing.T) {
+	t.Run("should return 0 blocks because of greater or equal nonce encountered", func(t *testing.T) {
 		t.Parallel()
 
-		returnedChain := selTracker.getChainOfTrackedBlocks([]byte("blockHash6"), 6)
-		require.Equal(t, 0, len(returnedChain))
+		actualChain := tracker.getChainOfTrackedBlocks([]byte("blockHash6"), 6)
+		require.Equal(t, 0, len(actualChain))
 	})
 
-	t.Run("should return 1 blocks", func(t *testing.T) {
+	t.Run("should return 1 block because of greater or equal once encountered", func(t *testing.T) {
 		t.Parallel()
 
-		returnedChain := selTracker.getChainOfTrackedBlocks([]byte("blockHash6"), 7)
-		require.Equal(t, 1, len(returnedChain))
+		actualChain := tracker.getChainOfTrackedBlocks([]byte("blockHash6"), 7)
+		require.Equal(t, 1, len(actualChain))
 	})
 }
 
 func TestSelectionTracker_deriveVirtualSelectionSessionShouldErr(t *testing.T) {
 	t.Parallel()
 
-	selTracker, err := NewSelectionTracker()
+	tracker, err := NewSelectionTracker()
 	require.Nil(t, err)
 
-	err = errors.New("expected err")
+	expectedErr := errors.New("expected err")
 
-	mockSelectionSession := txcachemocks.SelectionSessionMock{}
-	mockSelectionSession.GetRootHashCalled = func() ([]byte, error) {
-		return nil, err
+	session := txcachemocks.SelectionSessionMock{}
+	session.GetRootHashCalled = func() ([]byte, error) {
+		return nil, expectedErr
 	}
-	virtualSession, returnedErr := selTracker.deriveVirtualSelectionSession(&mockSelectionSession, nil, 0)
+	virtualSession, actualErr := tracker.deriveVirtualSelectionSession(&session, nil, 0)
 	require.Nil(t, virtualSession)
-	require.Equal(t, err, returnedErr)
+	require.Equal(t, expectedErr, actualErr)
 }
