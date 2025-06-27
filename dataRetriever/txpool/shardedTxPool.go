@@ -1,8 +1,10 @@
 package txpool
 
 import (
+	"fmt"
 	"strconv"
 	"sync"
+	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/counting"
@@ -387,4 +389,45 @@ func (txPool *shardedTxPool) routeToCacheUnions(cacheID string) string {
 	}
 
 	return cacheID
+}
+
+func (txPool *shardedTxPool) getMempool() txCache {
+	shard, ok := txPool.backingMap[strconv.Itoa(int(txPool.selfShardID))]
+	if !ok {
+		return nil
+	}
+
+	return txPool.getTxCache(shard.CacheID)
+}
+
+func (txPool *shardedTxPool) MempoolCleanup(session interface{}, randomness uint64, maxNum int, maxTime time.Duration) bool{
+	fmt.Println("shardedTxPool.MempoolCleanup() called for self shard")
+	cache := txPool.getMempool()
+
+	if cache == nil {
+		log.Error("shardedTxPool.GetMempool() couldn't retrieve mempool for self shard",
+			"selfShardID", txPool.selfShardID,
+		)
+		return false
+	}
+
+	mempool := cache.(*txcache.TxCache)
+	
+	log.Debug("shardedTxPool.MempoolCleanup() starting cleanup",
+		"selfShardID", txPool.selfShardID,
+		"numTxs", mempool.CountTx(),
+		"numBytes", mempool.NumBytes(),
+	)
+	
+	// Perform the cleanup operation on the mempool
+	selectionSession := session.(txcache.SelectionSession)
+	mempool.Cleanup(selectionSession, randomness, maxNum, maxTime)
+	
+	log.Debug("shardedTxPool.MempoolCleanup() mempool cleanup completed",
+		"selfShardID", txPool.selfShardID,
+		"numTxs", mempool.CountTx(),
+		"numBytes", mempool.NumBytes(),
+	)
+	
+	return true
 }
