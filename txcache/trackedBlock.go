@@ -15,8 +15,12 @@ type trackedBlock struct {
 }
 
 // TODO create the breadcrumbs directly in the constructor
-func newTrackedBlock(nonce uint64, blockHash []byte, rootHash []byte,
-	prevHash []byte) *trackedBlock {
+func newTrackedBlock(
+	nonce uint64,
+	blockHash []byte,
+	rootHash []byte,
+	prevHash []byte,
+) *trackedBlock {
 
 	return &trackedBlock{
 		nonce:                nonce,
