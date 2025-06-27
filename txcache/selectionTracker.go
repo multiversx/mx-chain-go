@@ -107,3 +107,28 @@ func (st *selectionTracker) updateLatestRootHashNoLock(receivedNonce uint64, rec
 		st.latestNonce = receivedNonce
 	}
 }
+
+func (st *selectionTracker) createVirtualSelectionSession(
+	session SelectionSession,
+	chainOfTrackedBlocks []*trackedBlock,
+) (*virtualSelectionSession, error) {
+	virtualAccountsByRecords := make(map[string]*virtualAccountRecord)
+
+	skippedSenders := make(map[string]struct{})
+	sendersInContinuityWithSessionNonce := make(map[string]struct{})
+	accountPreviousBreadcrumb := make(map[string]*accountBreadcrumb)
+
+	for _, tb := range chainOfTrackedBlocks {
+		err := tb.createOrUpdateVirtualRecords(session, skippedSenders,
+			sendersInContinuityWithSessionNonce, accountPreviousBreadcrumb, virtualAccountsByRecords)
+
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return &virtualSelectionSession{
+		session:                  session,
+		virtualAccountsByAddress: virtualAccountsByRecords,
+	}, nil
+}
