@@ -29,29 +29,31 @@ func (breadcrumb *accountBreadcrumb) createOrUpdateVirtualRecord(
 	virtualRecord.updateVirtualRecord(breadcrumb)
 }
 
-func (breadcrumb *accountBreadcrumb) breadCrumbIsContinuous(
+func (breadcrumb *accountBreadcrumb) isContinuous(
 	address string,
 	accountNonce uint64,
 	skippedSenders map[string]struct{},
 	sendersInContinuityWithSessionNonce map[string]struct{},
 	accountPreviousBreadcrumb map[string]*accountBreadcrumb,
 ) bool {
+	if breadcrumb.isRelayer() {
+		return true
+	}
+
 	_, ok := sendersInContinuityWithSessionNonce[address]
 	if !ok && !breadcrumb.verifyContinuityWithSessionNonce(accountNonce) {
 		skippedSenders[address] = struct{}{}
 		return false
 	}
 
-	if !breadcrumb.isRelayer() {
-		accountPreviousBreadcrumb[address] = breadcrumb
-
-		if accountPreviousBreadcrumb[address] != nil &&
-			!breadcrumb.verifyContinuityBetweenAccountBreadcrumbs(accountPreviousBreadcrumb[address]) {
-
-			skippedSenders[address] = struct{}{}
-		}
+	previousBreadcrumb, ok := accountPreviousBreadcrumb[address]
+	if ok &&
+		!breadcrumb.verifyContinuityBetweenAccountBreadcrumbs(previousBreadcrumb) {
+		skippedSenders[address] = struct{}{}
+		return false
 	}
 
+	accountPreviousBreadcrumb[address] = breadcrumb
 	return true
 }
 
@@ -62,7 +64,7 @@ func (breadcrumb *accountBreadcrumb) verifyContinuityBetweenAccountBreadcrumbs(
 }
 
 func (breadcrumb *accountBreadcrumb) verifyContinuityWithSessionNonce(sessionNonce uint64) bool {
-	return !breadcrumb.initialNonce.HasValue || breadcrumb.initialNonce.Value == sessionNonce
+	return breadcrumb.initialNonce.Value == sessionNonce
 }
 
 func (breadcrumb *accountBreadcrumb) isRelayer() bool {

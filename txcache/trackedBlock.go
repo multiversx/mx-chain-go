@@ -40,7 +40,7 @@ func (tb *trackedBlock) createOrUpdateVirtualRecords(
 
 		accountNonce := accountState.GetNonce()
 
-		if !breadcrumb.breadCrumbIsContinuous(address, accountNonce,
+		if !breadcrumb.isContinuous(address, accountNonce,
 			skippedSenders, sendersInContinuityWithSessionNonce, accountPreviousBreadcrumb) {
 			delete(accountPreviousBreadcrumb, address)
 			continue
