@@ -14,7 +14,7 @@ type accountBreadcrumb struct {
 
 func (breadcrumb *accountBreadcrumb) updateBreadcrumb(transferredValue *big.Int, lastNonce core.OptionalUint64) {
 	if transferredValue != nil {
-		breadcrumb.consumedBalance.Add(breadcrumb.consumedBalance, transferredValue)
+		_ = breadcrumb.consumedBalance.Add(breadcrumb.consumedBalance, transferredValue)
 	}
 	if lastNonce.HasValue {
 		breadcrumb.lastNonce = lastNonce
