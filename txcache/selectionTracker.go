@@ -3,8 +3,10 @@ package txcache
 import (
 	"sync"
 
+	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-go/state"
 )
 
 // TODO use a map instead of slice for st.blocks
@@ -105,5 +107,67 @@ func (st *selectionTracker) updateLatestRootHashNoLock(receivedNonce uint64, rec
 	if receivedNonce > st.latestNonce {
 		st.latestRootHash = receivedRootHash
 		st.latestNonce = receivedNonce
+	}
+}
+
+func (st *selectionTracker) createVirtualSelectionSession(session SelectionSession,
+	chainOfTrackedBlocks []*trackedBlock) (*virtualSelectionSession, error) {
+	virtualAccountsByRecords := make(map[string]*virtualAccountRecord)
+
+	for _, tb := range chainOfTrackedBlocks {
+		for address, breadcrumb := range tb.breadcrumbsByAddress {
+			accountState, err := session.GetAccountState([]byte(address))
+			if err != nil {
+				log.Debug("selectionTracker.createVirtualSelectionSession",
+					"err", err)
+				return nil, err
+			}
+
+			st.fromBreadcrumbToVirtualRecord(virtualAccountsByRecords, accountState, address, breadcrumb)
+		}
+	}
+
+	return &virtualSelectionSession{
+		session:                  session,
+		virtualAccountsByAddress: virtualAccountsByRecords,
+	}, nil
+}
+
+func (st *selectionTracker) fromBreadcrumbToVirtualRecord(virtualAccountsByRecords map[string]*virtualAccountRecord,
+	accountState state.UserAccountHandler, address string, breadcrumb *accountBreadcrumb) {
+
+	virtualRecord, ok := virtualAccountsByRecords[address]
+	if !ok {
+		virtualRecord = st.createVirtualRecord(accountState, breadcrumb)
+	}
+
+	st.updateVirtualRecord(virtualRecord, breadcrumb)
+}
+
+func (st *selectionTracker) createVirtualRecord(accountState state.UserAccountHandler,
+	breadcrumb *accountBreadcrumb) *virtualAccountRecord {
+	initialBalance := accountState.GetBalance()
+	virtualRecord := &virtualAccountRecord{
+		initialNonce:   breadcrumb.initialNonce,
+		initialBalance: initialBalance,
+	}
+
+	return virtualRecord
+}
+
+func (st *selectionTracker) updateVirtualRecord(virtualRecord *virtualAccountRecord,
+	breadcrumb *accountBreadcrumb) {
+	_ = virtualRecord.initialBalance.Add(virtualRecord.initialBalance, breadcrumb.consumedBalance)
+
+	if !virtualRecord.initialNonce.HasValue {
+		virtualRecord.initialNonce = breadcrumb.initialNonce
+		return
+	}
+
+	if breadcrumb.initialNonce.HasValue {
+		virtualRecord.initialNonce = core.OptionalUint64{
+			Value:    max(breadcrumb.initialNonce.Value, virtualRecord.initialNonce.Value),
+			HasValue: true,
+		}
 	}
 }
