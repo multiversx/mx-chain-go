@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-go/common"
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	outportcore "github.com/multiversx/mx-chain-core-go/data/outport"
@@ -102,6 +103,7 @@ func prepareBlockData(
 		Body:                 body,
 		IntraShardMiniBlocks: headerBodyData.IntraShardMiniBlocks,
 		HeaderProof:          proof,
+		TimestampMs:          common.ConvertTimeStampSecToMs(headerBodyData.Header.GetTimeStamp()),
 	}, nil
 }
 
