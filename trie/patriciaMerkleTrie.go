@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/hex"
 	"fmt"
+	"github.com/multiversx/mx-chain-go/trie/trieMetricsCollector"
 	"sync"
 
 	"github.com/multiversx/mx-chain-core-go/core"
@@ -43,10 +44,9 @@ type patriciaMerkleTrie struct {
 	trieNodeVersionVerifier core.TrieNodeVersionVerifier
 	mutOperation            sync.RWMutex
 
-	oldHashes            [][]byte
-	oldRoot              []byte
-	maxTrieLevelInMemory uint
-	chanClose            chan struct{}
+	oldHashes [][]byte
+	oldRoot   []byte
+	chanClose chan struct{}
 }
 
 // NewTrie creates a new Patricia Merkle Trie
@@ -55,7 +55,6 @@ func NewTrie(
 	msh marshal.Marshalizer,
 	hsh hashing.Hasher,
 	enableEpochsHandler common.EnableEpochsHandler,
-	maxTrieLevelInMemory uint,
 ) (*patriciaMerkleTrie, error) {
 	if check.IfNil(trieStorage) {
 		return nil, ErrNilTrieStorage
@@ -69,10 +68,6 @@ func NewTrie(
 	if check.IfNil(enableEpochsHandler) {
 		return nil, errors.ErrNilEnableEpochsHandler
 	}
-	if maxTrieLevelInMemory == 0 {
-		return nil, ErrInvalidLevelValue
-	}
-	log.Trace("created new trie", "max trie level in memory", maxTrieLevelInMemory)
 
 	tnvv, err := core.NewTrieNodeVersionVerifier(enableEpochsHandler)
 	if err != nil {
@@ -85,7 +80,6 @@ func NewTrie(
 		hasher:                  hsh,
 		oldHashes:               make([][]byte, 0),
 		oldRoot:                 make([]byte, 0),
-		maxTrieLevelInMemory:    maxTrieLevelInMemory,
 		chanClose:               make(chan struct{}),
 		enableEpochsHandler:     enableEpochsHandler,
 		trieNodeVersionVerifier: tnvv,
@@ -103,13 +97,14 @@ func (tr *patriciaMerkleTrie) Get(key []byte) ([]byte, uint32, error) {
 	}
 	hexKey := keyBytesToHex(key)
 
-	val, depth, err := tr.root.tryGet(hexKey, rootDepthLevel, tr.trieStorage)
+	tmc := trieMetricsCollector.NewTrieMetricsCollector()
+	val, err := tr.root.tryGet(hexKey, tmc, tr.trieStorage)
 	if err != nil {
 		err = fmt.Errorf("trie get error: %w, for key %v", err, hex.EncodeToString(key))
-		return nil, depth, err
+		return nil, tmc.GetMaxDepth(), err
 	}
 
-	return val, depth, nil
+	return val, tmc.GetMaxDepth(), nil
 }
 
 // Update updates the value at the given key.
@@ -255,12 +250,7 @@ func (tr *patriciaMerkleTrie) Commit() error {
 		log.Trace("started committing trie", "trie", tr.root.getHash())
 	}
 
-	err = tr.root.commitDirty(0, tr.maxTrieLevelInMemory, tr.trieStorage, tr.trieStorage)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return tr.root.commitDirty(tr.trieStorage, tr.trieStorage)
 }
 
 // Recreate returns a new trie, given the options
@@ -288,7 +278,6 @@ func (tr *patriciaMerkleTrie) recreate(root []byte, tsm common.StorageManager) (
 			tr.marshalizer,
 			tr.hasher,
 			tr.enableEpochsHandler,
-			tr.maxTrieLevelInMemory,
 		)
 	}
 
@@ -369,7 +358,6 @@ func (tr *patriciaMerkleTrie) recreateFromDb(rootHash []byte, tsm common.Storage
 		tr.marshalizer,
 		tr.hasher,
 		tr.enableEpochsHandler,
-		tr.maxTrieLevelInMemory,
 	)
 	if err != nil {
 		return nil, nil, err

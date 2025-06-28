@@ -173,8 +173,7 @@ func (en *extensionNode) hashNode() ([]byte, error) {
 	return encodeNodeAndGetHash(en)
 }
 
-func (en *extensionNode) commitDirty(level byte, maxTrieLevelInMemory uint, originDb common.TrieStorageInteractor, targetDb common.BaseStorer) error {
-	level++
+func (en *extensionNode) commitDirty(originDb common.TrieStorageInteractor, targetDb common.BaseStorer) error {
 	err := en.isEmptyOrNil()
 	if err != nil {
 		return fmt.Errorf("commit error %w", err)
@@ -185,7 +184,7 @@ func (en *extensionNode) commitDirty(level byte, maxTrieLevelInMemory uint, orig
 	}
 
 	if en.child != nil {
-		err = en.child.commitDirty(level, maxTrieLevelInMemory, originDb, targetDb)
+		err = en.child.commitDirty(originDb, targetDb)
 		if err != nil {
 			return err
 		}
@@ -196,17 +195,7 @@ func (en *extensionNode) commitDirty(level byte, maxTrieLevelInMemory uint, orig
 	if err != nil {
 		return err
 	}
-	if uint(level) == maxTrieLevelInMemory {
-		log.Trace("collapse extension node on commit")
 
-		var collapsedEn *extensionNode
-		collapsedEn, err = en.getCollapsedEn()
-		if err != nil {
-			return err
-		}
-
-		*en = *collapsedEn
-	}
 	return nil
 }
 
@@ -291,26 +280,27 @@ func (en *extensionNode) isPosCollapsed(_ int) bool {
 	return en.isCollapsed()
 }
 
-func (en *extensionNode) tryGet(key []byte, currentDepth uint32, db common.TrieStorageInteractor) (value []byte, maxDepth uint32, err error) {
+func (en *extensionNode) tryGet(key []byte, tmc MetricsCollector, db common.TrieStorageInteractor) (value []byte, err error) {
+	tmc.IncreaseDepth()
 	err = en.isEmptyOrNil()
 	if err != nil {
-		return nil, currentDepth, fmt.Errorf("tryGet error %w", err)
+		return nil, fmt.Errorf("tryGet error %w", err)
 	}
 	keyTooShort := len(key) < len(en.Key)
 	if keyTooShort {
-		return nil, currentDepth, nil
+		return nil, nil
 	}
 	keysDontMatch := !bytes.Equal(en.Key, key[:len(en.Key)])
 	if keysDontMatch {
-		return nil, currentDepth, nil
+		return nil, nil
 	}
 	key = key[len(en.Key):]
 	err = resolveIfCollapsed(en, 0, db)
 	if err != nil {
-		return nil, currentDepth, err
+		return nil, err
 	}
 
-	return en.child.tryGet(key, currentDepth+1, db)
+	return en.child.tryGet(key, tmc, db)
 }
 
 func (en *extensionNode) getNext(key []byte, db common.TrieStorageInteractor) (node, []byte, error) {
@@ -716,8 +706,7 @@ func (en *extensionNode) sizeInBytes() int {
 		return 0
 	}
 
-	// hasher + marshalizer + child + dirty flag = 3 * pointerSizeInBytes + 1
-	nodeSize := len(en.hash) + len(en.Key) + (numNodeInnerPointers+1)*pointerSizeInBytes + 1
+	nodeSize := baseNodeSizeInBytes + len(en.Key) + nodeVersionSizeInBytes + pointerSizeInBytes
 	nodeSize += len(en.EncodedChild)
 
 	return nodeSize

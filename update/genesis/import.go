@@ -27,8 +27,6 @@ import (
 
 var _ update.ImportHandler = (*stateImport)(nil)
 
-const maxTrieLevelInMemory = uint(5)
-
 // ArgsNewStateImport is the arguments structure to create a new state importer
 type ArgsNewStateImport struct {
 	Hasher              hashing.Hasher
@@ -314,7 +312,7 @@ func (si *stateImport) getTrie(shardID uint32, accType Type) (common.Trie, error
 		trieStorageManager = si.trieStorageManagers[dataRetriever.PeerAccountsUnit.String()]
 	}
 
-	trieForShard, err := trie.NewTrie(trieStorageManager, si.marshalizer, si.hasher, si.enableEpochsHandler, maxTrieLevelInMemory)
+	trieForShard, err := trie.NewTrie(trieStorageManager, si.marshalizer, si.hasher, si.enableEpochsHandler)
 	if err != nil {
 		return nil, err
 	}
@@ -346,7 +344,7 @@ func (si *stateImport) importDataTrie(identifier string, shID uint32, keys [][]b
 		return fmt.Errorf("%w wanted a roothash", update.ErrWrongTypeAssertion)
 	}
 
-	dataTrie, err := trie.NewTrie(si.trieStorageManagers[dataRetriever.UserAccountsUnit.String()], si.marshalizer, si.hasher, si.enableEpochsHandler, maxTrieLevelInMemory)
+	dataTrie, err := trie.NewTrie(si.trieStorageManagers[dataRetriever.UserAccountsUnit.String()], si.marshalizer, si.hasher, si.enableEpochsHandler)
 	if err != nil {
 		return err
 	}

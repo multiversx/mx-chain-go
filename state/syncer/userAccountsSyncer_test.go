@@ -111,7 +111,7 @@ func getSerializedTrieNode(
 		},
 	}
 
-	tr, _ := trie.NewTrie(tsm, marshaller, hasher, &enableEpochsHandlerMock.EnableEpochsHandlerStub{}, 5)
+	tr, _ := trie.NewTrie(tsm, marshaller, hasher, &enableEpochsHandlerMock.EnableEpochsHandlerStub{})
 	_ = tr.Update(key, []byte("value"))
 	_ = tr.Commit()
 
@@ -162,7 +162,7 @@ func TestUserAccountsSyncer_SyncAccounts(t *testing.T) {
 	})
 }
 
-func getDefaultTrieParameters() (common.StorageManager, marshal.Marshalizer, hashing.Hasher, common.EnableEpochsHandler, uint) {
+func getDefaultTrieParameters() (common.StorageManager, marshal.Marshalizer, hashing.Hasher, common.EnableEpochsHandler) {
 	marshalizer := &testscommon.ProtobufMarshalizerMock{}
 	hasher := &testscommon.KeccakMock{}
 
@@ -183,9 +183,8 @@ func getDefaultTrieParameters() (common.StorageManager, marshal.Marshalizer, has
 	}
 
 	trieStorageManager, _ := trie.NewTrieStorageManager(args)
-	maxTrieLevelInMemory := uint(1)
 
-	return trieStorageManager, args.Marshalizer, args.Hasher, &enableEpochsHandlerMock.EnableEpochsHandlerStub{}, maxTrieLevelInMemory
+	return trieStorageManager, args.Marshalizer, args.Hasher, &enableEpochsHandlerMock.EnableEpochsHandlerStub{}
 }
 
 func emptyTrie() common.Trie {
@@ -237,7 +236,7 @@ func TestUserAccountsSyncer_SyncAccountDataTries(t *testing.T) {
 		s, err := syncer.NewUserAccountsSyncer(args)
 		require.Nil(t, err)
 
-		_, _ = trie.NewTrie(args.TrieStorageManager, args.Marshalizer, args.Hasher, &enableEpochsHandlerMock.EnableEpochsHandlerStub{}, 5)
+		_, _ = trie.NewTrie(args.TrieStorageManager, args.Marshalizer, args.Hasher, &enableEpochsHandlerMock.EnableEpochsHandlerStub{})
 		tr := emptyTrie()
 
 		account, err := accounts.NewUserAccount(testscommon.TestPubKeyAlice, &trieMock.DataTrieTrackerStub{}, &trieMock.TrieLeafParserStub{})
@@ -294,7 +293,7 @@ func TestUserAccountsSyncer_SyncAccountDataTries(t *testing.T) {
 		s, err := syncer.NewUserAccountsSyncer(args)
 		require.Nil(t, err)
 
-		_, _ = trie.NewTrie(args.TrieStorageManager, args.Marshalizer, args.Hasher, &enableEpochsHandlerMock.EnableEpochsHandlerStub{}, 5)
+		_, _ = trie.NewTrie(args.TrieStorageManager, args.Marshalizer, args.Hasher, &enableEpochsHandlerMock.EnableEpochsHandlerStub{})
 		tr := emptyTrie()
 
 		account, err := accounts.NewUserAccount(testscommon.TestPubKeyAlice, &trieMock.DataTrieTrackerStub{}, &trieMock.TrieLeafParserStub{})
@@ -361,7 +360,7 @@ func TestUserAccountsSyncer_MissingDataTrieNodeFound(t *testing.T) {
 		},
 	}
 
-	tr, _ := trie.NewTrie(tsm, args.Marshalizer, args.Hasher, &enableEpochsHandlerMock.EnableEpochsHandlerStub{}, 5)
+	tr, _ := trie.NewTrie(tsm, args.Marshalizer, args.Hasher, &enableEpochsHandlerMock.EnableEpochsHandlerStub{})
 	key := []byte("key")
 	value := []byte("value")
 	_ = tr.Update(key, value)
