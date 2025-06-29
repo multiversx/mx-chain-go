@@ -16,6 +16,7 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/core/throttler"
 	"github.com/multiversx/mx-chain-core-go/data"
 	dataBlock "github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
@@ -128,6 +129,20 @@ const (
 )
 
 const defaultChancesSelection = 1
+
+// GetTrieArgs returns the trie arguments for the tests
+func GetTrieArgs(trieStorage common.StorageManager) trie.TrieArgs {
+	thr, _ := throttler.NewNumGoRoutinesThrottler(10)
+	maxTrieLevelInMemory := uint(5)
+	return trie.TrieArgs{
+		TrieStorage:          trieStorage,
+		Marshalizer:          TestMarshalizer,
+		Hasher:               TestHasher,
+		EnableEpochsHandler:  &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		MaxTrieLevelInMemory: maxTrieLevelInMemory,
+		Throttler:            thr,
+	}
+}
 
 // GetConnectableAddress returns a non circuit, non windows default connectable address for provided messenger
 func GetConnectableAddress(mes p2p.Messenger) string {
@@ -464,7 +479,9 @@ func CreateAccountsDBWithEnableEpochsHandler(
 	trieStorageManager common.StorageManager,
 	enableEpochsHandler common.EnableEpochsHandler,
 ) (*state.AccountsDB, common.Trie) {
-	tr, _ := trie.NewTrie(trieStorageManager, TestMarshalizer, TestHasher, enableEpochsHandler, maxTrieLevelInMemory)
+	trieArgs := GetTrieArgs(trieStorageManager)
+	trieArgs.EnableEpochsHandler = enableEpochsHandler
+	tr, _ := trie.NewTrie(trieArgs)
 
 	ewlArgs := evictionWaitingList.MemoryEvictionWaitingListArgs{
 		RootHashesSize: 100,
@@ -1092,7 +1109,16 @@ func CreateNewDefaultTrie() common.Trie {
 
 	trieStorage, _ := trie.NewTrieStorageManager(args)
 
-	tr, _ := trie.NewTrie(trieStorage, TestMarshalizer, TestHasher, &enableEpochsHandlerMock.EnableEpochsHandlerStub{}, maxTrieLevelInMemory)
+	thr, _ := throttler.NewNumGoRoutinesThrottler(10)
+	trieArgs := trie.TrieArgs{
+		TrieStorage:          trieStorage,
+		Marshalizer:          TestMarshalizer,
+		Hasher:               TestHasher,
+		EnableEpochsHandler:  &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		MaxTrieLevelInMemory: maxTrieLevelInMemory,
+		Throttler:            thr,
+	}
+	tr, _ := trie.NewTrie(trieArgs)
 	return tr
 }
 

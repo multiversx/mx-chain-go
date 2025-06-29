@@ -5,8 +5,11 @@ import (
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/sync"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-core-go/hashing"
+	"github.com/multiversx/mx-chain-core-go/marshal"
 	crypto "github.com/multiversx/mx-chain-crypto-go"
 
 	"github.com/multiversx/mx-chain-go/config"
@@ -40,20 +43,15 @@ type BufferedErrChan interface {
 // Trie is an interface for Merkle Trees implementations
 type Trie interface {
 	Get(key []byte) ([]byte, uint32, error)
-	Update(key, value []byte) error
-	Delete(key []byte) error
+	Update(key, value []byte)
+	Delete(key []byte)
 	RootHash() ([]byte, error)
-	Commit() error
-	Recreate(options RootHashHolder) (Trie, error)
-	String() string
-	GetObsoleteHashes() [][]byte
-	GetDirtyHashes() (ModifiedHashes, error)
-	GetOldRoot() []byte
+	Commit(collector TrieHashesCollector) error
+	Recreate(options RootHashHolder, identifier string) (Trie, error)
 	GetSerializedNodes([]byte, uint64) ([][]byte, uint64, error)
 	GetSerializedNode([]byte) ([]byte, error)
 	GetAllLeavesOnChannel(allLeavesChan *TrieIteratorChannels, ctx context.Context, rootHash []byte, keyBuilder KeyBuilder, trieLeafParser TrieLeafParser) error
-	GetAllHashes() ([][]byte, error)
-	GetProof(key []byte) ([][]byte, []byte, error)
+	GetProof(key []byte, rootHash []byte) ([][]byte, []byte, error)
 	VerifyProof(rootHash []byte, key []byte, proof [][]byte) (bool, error)
 	GetStorageManager() StorageManager
 	IsMigratedToLatestVersion() (bool, error)
@@ -423,5 +421,67 @@ type DfsIterator interface {
 // it will continue to iterate from the checkpoint.
 type TrieLeavesRetriever interface {
 	GetLeaves(numLeaves int, iteratorState [][]byte, leavesParser TrieLeafParser, ctx context.Context) (map[string]string, [][]byte, error)
+	IsInterfaceNil() bool
+}
+
+// TrieBatcher defines the methods needed for a trie batcher
+type TrieBatcher interface {
+	BatchHandler
+	GetSortedDataForInsertion() []core.TrieData
+	GetSortedDataForRemoval() []core.TrieData
+	IsInterfaceNil() bool
+}
+
+// TrieBatchManager defines the methods needed for managing the trie batch
+type TrieBatchManager interface {
+	BatchHandler
+	MarkTrieUpdateInProgress() (TrieBatcher, error)
+	MarkTrieUpdateCompleted()
+	IsInterfaceNil() bool
+}
+
+// BatchHandler is the interface for the batch handler
+type BatchHandler interface {
+	Add(data core.TrieData)
+	MarkForRemoval(key []byte)
+	Get(key []byte) ([]byte, bool)
+}
+
+// TrieGoroutinesManager defines the methods needed for managing the trie goroutines
+type TrieGoroutinesManager interface {
+	ShouldContinueProcessing() bool
+	CanStartGoRoutine() bool
+	EndGoRoutineProcessing()
+	SetNewErrorChannel(BufferedErrChan) error
+	SetError(err error)
+	GetError() error
+	IsInterfaceNil() bool
+}
+
+// AtomicBytesSlice defines the methods needed for an atomic bytes slice
+type AtomicBytesSlice interface {
+	Append(data [][]byte)
+	Get() [][]byte
+}
+
+// TrieHashesCollector defines the methods needed for collecting trie hashes
+type TrieHashesCollector interface {
+	AddDirtyHash(hash []byte)
+	GetDirtyHashes() ModifiedHashes
+	AddObsoleteHashes(oldRootHash []byte, oldHashes [][]byte)
+	GetCollectedData() ([]byte, ModifiedHashes, ModifiedHashes)
+	Clean()
+	IsInterfaceNil() bool
+}
+
+// TrieContext aggregates functionality for marshaling, hashing, and managing trie storage operations.
+type TrieContext interface {
+	marshal.Marshalizer
+	hashing.Hasher
+	sync.KeyRWMutexHandler
+	StorageManager
+	GetStorage() StorageManager
+	GetMarshaller() marshal.Marshalizer
+	GetHasher() hashing.Hasher
 	IsInterfaceNil() bool
 }

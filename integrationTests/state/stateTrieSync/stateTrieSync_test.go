@@ -23,6 +23,7 @@ import (
 	"github.com/multiversx/mx-chain-go/integrationTests"
 	"github.com/multiversx/mx-chain-go/process/factory"
 	"github.com/multiversx/mx-chain-go/state"
+	"github.com/multiversx/mx-chain-go/state/hashesCollector"
 	"github.com/multiversx/mx-chain-go/state/parsers"
 	"github.com/multiversx/mx-chain-go/state/syncer"
 	"github.com/multiversx/mx-chain-go/storage"
@@ -106,10 +107,10 @@ func testNodeRequestInterceptTrieNodesWithMessenger(t *testing.T, version int) {
 	// we have tested even with the 1000000 value and found out that it worked in a reasonable amount of time ~3.5 minutes
 	numTrieLeaves := 10000
 	for i := 0; i < numTrieLeaves; i++ {
-		_ = resolverTrie.Update([]byte(strconv.Itoa(i)), []byte(strconv.Itoa(i)))
+		resolverTrie.Update([]byte(strconv.Itoa(i)), []byte(strconv.Itoa(i)))
 	}
 
-	_ = resolverTrie.Commit()
+	_ = resolverTrie.Commit(hashesCollector.NewDisabledHashesCollector())
 	rootHash, _ := resolverTrie.RootHash()
 
 	numLeaves := getNumLeaves(t, resolverTrie, rootHash)
@@ -141,7 +142,7 @@ func testNodeRequestInterceptTrieNodesWithMessenger(t *testing.T, version int) {
 	assert.Nil(t, err)
 	cancel()
 
-	requesterTrie, err = requesterTrie.Recreate(holders.NewDefaultRootHashesHolder(rootHash))
+	requesterTrie, err = requesterTrie.Recreate(holders.NewDefaultRootHashesHolder(rootHash), "")
 	require.Nil(t, err)
 
 	newRootHash, _ := requesterTrie.RootHash()
@@ -231,10 +232,10 @@ func testNodeRequestInterceptTrieNodesWithMessengerNotSyncingShouldErr(t *testin
 	// we have tested even with the 1000000 value and found out that it worked in a reasonable amount of time ~3.5 minutes
 	numTrieLeaves := 100000
 	for i := 0; i < numTrieLeaves; i++ {
-		_ = resolverTrie.Update([]byte(strconv.Itoa(i)), []byte(strconv.Itoa(i)))
+		resolverTrie.Update([]byte(strconv.Itoa(i)), []byte(strconv.Itoa(i)))
 	}
 
-	_ = resolverTrie.Commit()
+	_ = resolverTrie.Commit(hashesCollector.NewDisabledHashesCollector())
 	rootHash, _ := resolverTrie.RootHash()
 
 	numLeaves := getNumLeaves(t, resolverTrie, rootHash)
@@ -522,9 +523,26 @@ func testSyncMissingSnapshotNodes(t *testing.T, version int) {
 	checkAllDataTriesAreSynced(t, numDataTrieLeaves, requesterTrie, dataTrieRootHashes)
 }
 
+func GetAllHashes(t *testing.T, tr common.Trie, rootHash []byte) [][]byte {
+	iterator, err := trie.NewDFSIterator(tr, rootHash)
+	require.Nil(t, err)
+
+	hashes := make([][]byte, 0)
+	hashes = append(hashes, iterator.GetHash())
+	for iterator.HasNext() {
+		err = iterator.Next()
+		require.Nil(t, err)
+
+		hashes = append(hashes, iterator.GetHash())
+	}
+
+	return hashes
+}
+
 func copyPartialState(t *testing.T, sourceNode, destinationNode *integrationTests.TestProcessorNode, dataTriesRootHashes [][]byte) {
 	resolverTrie := sourceNode.TrieContainer.Get([]byte(dataRetriever.UserAccountsUnit.String()))
-	hashes, _ := resolverTrie.GetAllHashes()
+	rootHash, _ := resolverTrie.RootHash()
+	hashes := GetAllHashes(t, resolverTrie, rootHash)
 	assert.NotEqual(t, 0, len(hashes))
 
 	hashes = append(hashes, getDataTriesHashes(t, resolverTrie, dataTriesRootHashes)...)
@@ -541,17 +559,15 @@ func copyPartialState(t *testing.T, sourceNode, destinationNode *integrationTest
 		err = destStorage.Put(hash, val)
 		assert.Nil(t, err)
 	}
-
 }
 
 func getDataTriesHashes(t *testing.T, tr common.Trie, dataTriesRootHashes [][]byte) [][]byte {
 	hashes := make([][]byte, 0)
 	for _, rh := range dataTriesRootHashes {
-		dt, err := tr.Recreate(holders.NewDefaultRootHashesHolder(rh))
+		dt, err := tr.Recreate(holders.NewDefaultRootHashesHolder(rh), "")
 		assert.Nil(t, err)
 
-		dtHashes, err := dt.GetAllHashes()
-		assert.Nil(t, err)
+		dtHashes := GetAllHashes(t, dt, rh)
 
 		hashes = append(hashes, dtHashes...)
 	}

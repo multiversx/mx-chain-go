@@ -42,14 +42,14 @@ func (handler *trieNodesHandler) getExistingNode(hash string) (node, bool) {
 	return element, exists
 }
 
-func (handler *trieNodesHandler) replaceParentWithChildren(index int, parentHash string, children []node, missingChildrenHashes [][]byte) {
+func (handler *trieNodesHandler) replaceParentWithChildren(index int, parentHash string, children []nodeWithHash, missingChildrenHashes [][]byte) {
 	delete(handler.existingNodes, parentHash)
 
 	allChildrenHashes := make([]string, 0, len(children)+len(missingChildrenHashes))
 	for _, c := range children {
-		hash := string(c.getHash())
+		hash := string(c.hash)
 		allChildrenHashes = append(allChildrenHashes, hash)
-		handler.existingNodes[hash] = c
+		handler.existingNodes[hash] = c.node
 	}
 	for _, m := range missingChildrenHashes {
 		hash := string(m)
