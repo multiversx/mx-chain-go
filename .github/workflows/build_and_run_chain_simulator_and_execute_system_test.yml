@@ -576,6 +576,7 @@ jobs:
           # Only remove temp files that might be from this job (be very specific)
           rm -f /tmp/chainsim_init.log || true  # Only if we created it without job ID
           rm -f /tmp/chain_simulator_initialized.lock || true  # Only if we created it without job ID
+          rm -rf /tmp/chainsim_logs
           
           # 4. Clean up ONLY our workspace directories
           echo "Cleaning up workspace directories..."
