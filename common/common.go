@@ -203,6 +203,12 @@ func GetNonceAndShardFromKey(nonceShardKey []byte) (uint64, uint32, error) {
 	return uint64(nonce), uint32(shard), nil
 }
 
+// ConvertTimeStampSecToMs will convert unix timestamp from seconds to milliseconds
+// TODO: this has to be handled properly when round timestamp granularity will be changed to milliseconds
+func ConvertTimeStampSecToMs(timeStamp uint64) uint64 {
+	return timeStamp * 1000
+}
+
 // ShouldUseTransactionsNetwork returns true if transactions network should be used for transactions
 func ShouldUseTransactionsNetwork(topic string, enableEpochsHandler EnableEpochsHandler) bool {
 	if !enableEpochsHandler.IsFlagEnabled(SupernovaFlag) {

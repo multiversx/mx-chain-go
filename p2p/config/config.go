@@ -23,6 +23,9 @@ type KadDhtPeerDiscoveryConfig = config.KadDhtPeerDiscoveryConfig
 // ShardingConfig will hold the network sharding config settings
 type ShardingConfig = config.ShardingConfig
 
+// ConnLimitConfig specifies the limit that will be set for an ip on libp2p connection limiter
+type ConnLimitConfig = config.ConnLimitConfig
+
 // SubNetworksConfig holds an array of subnetworks configs
 // all subnetworks will use the same host
 type SubNetworksConfig = config.SubNetworksConfig

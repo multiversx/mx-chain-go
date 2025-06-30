@@ -62,6 +62,7 @@ type EpochStartDataAPI struct {
 	Nonce             uint64 `json:"nonce"`
 	Round             uint64 `json:"round"`
 	Timestamp         int64  `json:"timestamp"`
+	TimestampMs       int64  `json:"timestampMs"`
 	Epoch             uint32 `json:"epoch"`
 	Shard             uint32 `json:"shard"`
 	PrevBlockHash     string `json:"prevBlockHash"`
