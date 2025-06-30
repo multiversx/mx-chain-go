@@ -133,11 +133,8 @@ func (s *simulator) createChainHandlers(args ArgsBaseChainSimulator) error {
 		return err
 	}
 
-<<<<<<< HEAD
 	genesisTime := time.Now()
-=======
 	monitor := heartbeat.NewHeartbeatMonitor()
->>>>>>> feat/sub-second-round
 
 	for idx := -1; idx < int(args.NumOfShards); idx++ {
 		shardIDStr := fmt.Sprintf("%d", idx)
@@ -145,11 +142,7 @@ func (s *simulator) createChainHandlers(args ArgsBaseChainSimulator) error {
 			shardIDStr = "metachain"
 		}
 
-<<<<<<< HEAD
-		node, errCreate := s.createTestNode(*outputConfigs, args, shardIDStr, genesisTime)
-=======
-		node, errCreate := s.createTestNode(*outputConfigs, args, shardIDStr, monitor)
->>>>>>> feat/sub-second-round
+		node, errCreate := s.createTestNode(*outputConfigs, args, shardIDStr, genesisTime, monitor)
 		if errCreate != nil {
 			return errCreate
 		}
@@ -260,14 +253,11 @@ func (s *simulator) addProofs() {
 }
 
 func (s *simulator) createTestNode(
-<<<<<<< HEAD
 	outputConfigs configs.ArgsConfigsSimulator,
 	args ArgsBaseChainSimulator,
 	shardIDStr string,
 	genesisTime time.Time,
-=======
-	outputConfigs configs.ArgsConfigsSimulator, args ArgsBaseChainSimulator, shardIDStr string, monitor factory.HeartbeatV2Monitor,
->>>>>>> feat/sub-second-round
+	monitor factory.HeartbeatV2Monitor,
 ) (process.NodeHandler, error) {
 	argsTestOnlyProcessorNode := components.ArgsTestOnlyProcessingNode{
 		Configs:                     outputConfigs.Configs,
@@ -286,11 +276,8 @@ func (s *simulator) createTestNode(
 		MetaChainConsensusGroupSize: args.MetaChainConsensusGroupSize,
 		RoundDurationInMillis:       args.RoundDurationInMillis,
 		VmQueryDelayAfterStartInMs:  args.VmQueryDelayAfterStartInMs,
-<<<<<<< HEAD
 		GenesisTime:                 genesisTime,
-=======
 		Monitor:                     monitor,
->>>>>>> feat/sub-second-round
 	}
 
 	return components.NewTestOnlyProcessingNode(argsTestOnlyProcessorNode)
