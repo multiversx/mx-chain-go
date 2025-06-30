@@ -42,6 +42,7 @@ func (tb *trackedBlock) compileBreadcrumbs(txs []*WrappedTransaction) {
 }
 
 // TODO add validation when compiling breadcrumb
+// TODO optimize the flow in the case when sender is also fee payer
 func (tb *trackedBlock) compileBreadcrumb(tx *WrappedTransaction) {
 	sender := tx.Tx.GetSndAddr()
 	feePayer := tx.FeePayer
@@ -49,41 +50,50 @@ func (tb *trackedBlock) compileBreadcrumb(tx *WrappedTransaction) {
 	latestNonce := tx.Tx.GetNonce()
 
 	// compile for sender
-	senderBreadcrumb := tb.getOrCreateBreadcrumb(string(sender), core.OptionalUint64{
+	senderBreadcrumb := tb.getOrCreateBreadcrumbWithNonce(string(sender), core.OptionalUint64{
 		Value:    initialNonce,
 		HasValue: true,
 	})
 	transferredValue := tx.TransferredValue
-	senderBreadcrumb.updateBreadcrumb(transferredValue, core.OptionalUint64{
+	senderBreadcrumb.accumulateConsumedBalance(transferredValue)
+	senderBreadcrumb.updateNonce(core.OptionalUint64{
 		Value:    latestNonce,
 		HasValue: true,
 	})
 
 	// compile for fee payer
 	if feePayer != nil {
-		feePayerBreadcrumb := tb.getOrCreateBreadcrumb(string(feePayer), core.OptionalUint64{
-			Value:    0,
-			HasValue: false,
-		})
+		feePayerBreadcrumb := tb.getOrCreateBreadcrumb(string(feePayer))
 		fee := tx.Fee
-		feePayerBreadcrumb.updateBreadcrumb(fee, core.OptionalUint64{
-			Value:    0,
-			HasValue: false,
-		})
+		feePayerBreadcrumb.accumulateConsumedBalance(fee)
 	}
 }
 
-func (tb *trackedBlock) getOrCreateBreadcrumb(address string, nonce core.OptionalUint64) *accountBreadcrumb {
+func (tb *trackedBlock) getOrCreateBreadcrumb(address string) *accountBreadcrumb {
 	breadCrumb, ok := tb.breadcrumbsByAddress[address]
 	if ok {
 		return breadCrumb
 	}
 
-	breadcrumb := &accountBreadcrumb{
-		initialNonce:    nonce,
-		lastNonce:       nonce,
-		consumedBalance: big.NewInt(0),
+	breadcrumb := newAccountBreadcrumb(core.OptionalUint64{
+		Value:    0,
+		HasValue: false,
+	}, core.OptionalUint64{
+		Value:    0,
+		HasValue: false,
+	}, big.NewInt(0))
+	tb.breadcrumbsByAddress[address] = breadcrumb
+
+	return breadcrumb
+}
+
+func (tb *trackedBlock) getOrCreateBreadcrumbWithNonce(address string, nonce core.OptionalUint64) *accountBreadcrumb {
+	breadCrumb, ok := tb.breadcrumbsByAddress[address]
+	if ok {
+		return breadCrumb
 	}
+
+	breadcrumb := newAccountBreadcrumb(nonce, nonce, big.NewInt(0))
 	tb.breadcrumbsByAddress[address] = breadcrumb
 
 	return breadcrumb
