@@ -577,6 +577,7 @@ jobs:
           rm -f /tmp/chainsim_init.log || true  # Only if we created it without job ID
           rm -f /tmp/chain_simulator_initialized.lock || true  # Only if we created it without job ID
           rm -rf /tmp/chainsim_logs
+          find /tmp -type d -name "mx-chainsimulator-*" -exec rm -rf {} \; 2>/dev/null
           
           # 4. Clean up ONLY our workspace directories
           echo "Cleaning up workspace directories..."
