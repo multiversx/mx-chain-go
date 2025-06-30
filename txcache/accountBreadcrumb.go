@@ -40,6 +40,11 @@ func (breadcrumb *accountBreadcrumb) isContinuous(
 
 	_, ok := sendersInContinuityWithSessionNonce[address]
 	if !ok && !breadcrumb.verifyContinuityWithSessionNonce(accountNonce) {
+		log.Debug("accountBreadcrumb.isContinuous",
+			"address", address,
+			"accountNonce", accountNonce,
+			"breadcrumb nonce", breadcrumb.initialNonce,
+			"err", "breadcrumb not continuous with session nonce")
 		return false
 	} else if !ok {
 		sendersInContinuityWithSessionNonce[address] = struct{}{}
@@ -48,6 +53,12 @@ func (breadcrumb *accountBreadcrumb) isContinuous(
 	previousBreadcrumb, ok := accountPreviousBreadcrumb[address]
 	if ok &&
 		!breadcrumb.verifyContinuityBetweenAccountBreadcrumbs(previousBreadcrumb) {
+		log.Debug("accountBreadcrumb.isContinuous",
+			"address", address,
+			"accountNonce", accountNonce,
+			"current breadcrumb nonce", breadcrumb.initialNonce,
+			"previous breadcrumb nonce", previousBreadcrumb.initialNonce,
+			"err", "breadcrumb not continuous with previous breadcrumb")
 		return false
 	}
 
