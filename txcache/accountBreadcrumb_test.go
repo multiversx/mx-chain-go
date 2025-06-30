@@ -236,6 +236,7 @@ func Test_breadCrumbIsContinuous(t *testing.T) {
 		require.True(t, ok)
 
 		actualBreadcrumb, ok := accountPreviousBreadcrumb["alice"]
+		require.True(t, ok)
 		require.Equal(t, &breadcrumbAlice, actualBreadcrumb)
 	})
 
