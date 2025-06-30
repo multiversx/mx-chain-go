@@ -36,7 +36,6 @@ func getCreateArgs() factory.TrieCreateArgs {
 		MainStorer:          testscommon.CreateMemUnit(),
 		PruningEnabled:      false,
 		SnapshotsEnabled:    true,
-		MaxTrieLevelInMem:   5,
 		IdleProvider:        &testscommon.ProcessStatusHandlerStub{},
 		Identifier:          dataRetriever.UserAccountsUnit.String(),
 		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
@@ -138,20 +137,6 @@ func TestTrieCreator_CreateWithNilMainStorerShouldErr(t *testing.T) {
 	require.Nil(t, tr)
 	require.NotNil(t, err)
 	require.True(t, strings.Contains(err.Error(), trie.ErrNilStorer.Error()))
-}
-
-func TestTrieCreator_CreateWithInvalidMaxTrieLevelInMemShouldErr(t *testing.T) {
-	t.Parallel()
-
-	args := getArgs()
-	tf, _ := factory.NewTrieFactory(args)
-
-	createArgs := getCreateArgs()
-	createArgs.MaxTrieLevelInMem = 0
-	_, tr, err := tf.Create(createArgs)
-	require.Nil(t, tr)
-	require.NotNil(t, err)
-	require.Contains(t, err.Error(), trie.ErrInvalidLevelValue.Error())
 }
 
 func TestTrieCreator_CreateTriesComponentsForShardId(t *testing.T) {
