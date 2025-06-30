@@ -45,7 +45,6 @@ const (
 type ArgsChainSimulatorConfigs struct {
 	NumOfShards                 uint32
 	OriginalConfigsPath         string
-	GenesisTimeStamp            int64
 	RoundDurationInMillis       uint64
 	TempDir                     string
 	MinNodesPerShard            uint32
@@ -298,7 +297,6 @@ func generateValidatorsKeyAndUpdateFiles(
 	}
 
 	nodes.RoundDuration = args.RoundDurationInMillis
-	nodes.StartTime = args.GenesisTimeStamp
 
 	nodes.Hysteresis = 0
 

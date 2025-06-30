@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"math/big"
+	"time"
 
 	"github.com/multiversx/mx-chain-go/api/shared"
 	"github.com/multiversx/mx-chain-go/config"
@@ -51,6 +52,7 @@ type ArgsTestOnlyProcessingNode struct {
 	MetaChainConsensusGroupSize uint32
 	RoundDurationInMillis       uint64
 	VmQueryDelayAfterStartInMs  uint64
+	GenesisTime                 time.Time
 }
 
 type testOnlyProcessingNode struct {
@@ -107,6 +109,7 @@ func NewTestOnlyProcessingNode(args ArgsTestOnlyProcessingNode) (*testOnlyProces
 		MetaChainConsensusGroupSize: args.MetaChainConsensusGroupSize,
 		RoundDurationInMs:           args.RoundDurationInMillis,
 		RatingConfig:                *args.Configs.RatingsConfig,
+		GenesisTime:                 args.GenesisTime,
 	})
 	if err != nil {
 		return nil, err
