@@ -318,6 +318,9 @@ func TestBlocksCreator_CreateNewBlock(t *testing.T) {
 						},
 					}
 				},
+				EnableEpochsHandlerCalled: func() common.EnableEpochsHandler {
+					return &enableEpochsHandlerMock.EnableEpochsHandlerStub{}
+				},
 			}
 		}
 		creator, err := chainSimulatorProcess.NewBlocksCreator(nodeHandler)
