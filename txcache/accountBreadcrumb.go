@@ -14,16 +14,15 @@ type accountBreadcrumb struct {
 }
 
 func (breadcrumb *accountBreadcrumb) createOrUpdateVirtualRecord(
-	virtualAccountsByRecords map[string]*virtualAccountRecord,
+	virtualAccountsByAddress map[string]*virtualAccountRecord,
 	accountState state.UserAccountHandler,
 	address string,
 ) {
-
-	virtualRecord, ok := virtualAccountsByRecords[address]
+	virtualRecord, ok := virtualAccountsByAddress[address]
 	if !ok {
 		initialBalance := accountState.GetBalance()
 		virtualRecord = newVirtualAccountRecord(breadcrumb.initialNonce, initialBalance)
-		virtualAccountsByRecords[address] = virtualRecord
+		virtualAccountsByAddress[address] = virtualRecord
 	}
 
 	virtualRecord.updateVirtualRecord(breadcrumb)
@@ -32,7 +31,6 @@ func (breadcrumb *accountBreadcrumb) createOrUpdateVirtualRecord(
 func (breadcrumb *accountBreadcrumb) isContinuous(
 	address string,
 	accountNonce uint64,
-	skippedSenders map[string]struct{},
 	sendersInContinuityWithSessionNonce map[string]struct{},
 	accountPreviousBreadcrumb map[string]*accountBreadcrumb,
 ) bool {
@@ -42,14 +40,14 @@ func (breadcrumb *accountBreadcrumb) isContinuous(
 
 	_, ok := sendersInContinuityWithSessionNonce[address]
 	if !ok && !breadcrumb.verifyContinuityWithSessionNonce(accountNonce) {
-		skippedSenders[address] = struct{}{}
 		return false
+	} else if !ok {
+		sendersInContinuityWithSessionNonce[address] = struct{}{}
 	}
 
 	previousBreadcrumb, ok := accountPreviousBreadcrumb[address]
 	if ok &&
 		!breadcrumb.verifyContinuityBetweenAccountBreadcrumbs(previousBreadcrumb) {
-		skippedSenders[address] = struct{}{}
 		return false
 	}
 

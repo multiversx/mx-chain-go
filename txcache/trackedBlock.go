@@ -23,7 +23,7 @@ func (tb *trackedBlock) createOrUpdateVirtualRecords(
 	skippedSenders map[string]struct{},
 	sendersInContinuityWithSessionNonce map[string]struct{},
 	accountPreviousBreadcrumb map[string]*accountBreadcrumb,
-	virtualAccountsByRecords map[string]*virtualAccountRecord,
+	virtualAccountsByAddress map[string]*virtualAccountRecord,
 ) error {
 	for address, breadcrumb := range tb.breadcrumbsByAddress {
 		_, ok := skippedSenders[address]
@@ -41,12 +41,13 @@ func (tb *trackedBlock) createOrUpdateVirtualRecords(
 		accountNonce := accountState.GetNonce()
 
 		if !breadcrumb.isContinuous(address, accountNonce,
-			skippedSenders, sendersInContinuityWithSessionNonce, accountPreviousBreadcrumb) {
-			delete(accountPreviousBreadcrumb, address)
+			sendersInContinuityWithSessionNonce, accountPreviousBreadcrumb) {
+			skippedSenders[address] = struct{}{}
+			delete(virtualAccountsByAddress, address)
 			continue
 		}
 
-		breadcrumb.createOrUpdateVirtualRecord(virtualAccountsByRecords, accountState, address)
+		breadcrumb.createOrUpdateVirtualRecord(virtualAccountsByAddress, accountState, address)
 	}
 
 	return nil

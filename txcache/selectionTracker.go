@@ -112,7 +112,7 @@ func (st *selectionTracker) createVirtualSelectionSession(
 	session SelectionSession,
 	chainOfTrackedBlocks []*trackedBlock,
 ) (*virtualSelectionSession, error) {
-	virtualAccountsByRecords := make(map[string]*virtualAccountRecord)
+	virtualAccountsByAddress := make(map[string]*virtualAccountRecord)
 
 	skippedSenders := make(map[string]struct{})
 	sendersInContinuityWithSessionNonce := make(map[string]struct{})
@@ -120,7 +120,7 @@ func (st *selectionTracker) createVirtualSelectionSession(
 
 	for _, tb := range chainOfTrackedBlocks {
 		err := tb.createOrUpdateVirtualRecords(session, skippedSenders,
-			sendersInContinuityWithSessionNonce, accountPreviousBreadcrumb, virtualAccountsByRecords)
+			sendersInContinuityWithSessionNonce, accountPreviousBreadcrumb, virtualAccountsByAddress)
 
 		if err != nil {
 			return nil, err
@@ -129,6 +129,6 @@ func (st *selectionTracker) createVirtualSelectionSession(
 
 	return &virtualSelectionSession{
 		session:                  session,
-		virtualAccountsByAddress: virtualAccountsByRecords,
+		virtualAccountsByAddress: virtualAccountsByAddress,
 	}, nil
 }

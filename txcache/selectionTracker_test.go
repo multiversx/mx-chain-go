@@ -2,10 +2,15 @@ package txcache
 
 import (
 	"fmt"
+	"math/big"
 	"sync"
 	"testing"
 
+	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-go/state"
+	stateMock "github.com/multiversx/mx-chain-go/testscommon/state"
+	"github.com/multiversx/mx-chain-go/testscommon/txcachemocks"
 	"github.com/stretchr/testify/require"
 )
 
@@ -201,4 +206,103 @@ func TestSelectionTracker_removeFromTrackedBlocks(t *testing.T) {
 	require.Equal(t, 1, len(selTracker.blocks))
 
 	require.Equal(t, expectedTrackedBlock, selTracker.blocks[0])
+}
+
+func TestSelectionTracker_createVirtualSelectionSession(t *testing.T) {
+	t.Parallel()
+
+	t.Run("should work", func(t *testing.T) {
+		sessionMock := txcachemocks.SelectionSessionMock{
+			GetAccountStateCalled: func(address []byte) (state.UserAccountHandler, error) {
+				return &stateMock.StateUserAccountHandlerStub{
+					GetBalanceCalled: func() *big.Int {
+						return big.NewInt(2)
+					},
+					GetNonceCalled: func() uint64 {
+						return 2
+					},
+				}, nil
+			},
+		}
+
+		trackedBlocks := []*trackedBlock{
+			{
+				breadcrumbsByAddress: map[string]*accountBreadcrumb{
+					"alice": {
+						initialNonce: core.OptionalUint64{
+							Value:    2,
+							HasValue: true,
+						},
+						lastNonce: core.OptionalUint64{
+							Value:    2,
+							HasValue: true,
+						},
+						consumedBalance: big.NewInt(2),
+					},
+					"bob": {
+						initialNonce: core.OptionalUint64{
+							Value:    2,
+							HasValue: true,
+						},
+						lastNonce: core.OptionalUint64{
+							Value:    3,
+							HasValue: true,
+						},
+						consumedBalance: big.NewInt(3),
+					},
+				},
+			},
+			{
+				breadcrumbsByAddress: map[string]*accountBreadcrumb{
+					// carol's virtual record will not be saved because the initialNonce is != session nonce
+					"carol": {
+						initialNonce: core.OptionalUint64{
+							Value:    10,
+							HasValue: true,
+						},
+						lastNonce: core.OptionalUint64{
+							Value:    11,
+							HasValue: true,
+						},
+						consumedBalance: big.NewInt(2),
+					},
+					"bob": {
+						initialNonce: core.OptionalUint64{
+							Value:    4,
+							HasValue: true,
+						},
+						lastNonce: core.OptionalUint64{
+							Value:    5,
+							HasValue: true,
+						},
+						consumedBalance: big.NewInt(3),
+					},
+				},
+			},
+		}
+
+		tracker, err := NewSelectionTracker()
+		require.Nil(t, err)
+
+		expectedVirtualAccounts := map[string]*virtualAccountRecord{
+			"alice": {
+				initialNonce: core.OptionalUint64{
+					Value:    2,
+					HasValue: true,
+				},
+				initialBalance: big.NewInt(4),
+			},
+			"bob": {
+				initialNonce: core.OptionalUint64{
+					Value:    4,
+					HasValue: true,
+				},
+				initialBalance: big.NewInt(8),
+			},
+		}
+		virtualSession, err := tracker.createVirtualSelectionSession(&sessionMock, trackedBlocks)
+		require.Nil(t, err)
+		require.Equal(t, expectedVirtualAccounts, virtualSession.virtualAccountsByAddress)
+	})
+
 }
