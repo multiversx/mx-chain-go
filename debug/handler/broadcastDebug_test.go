@@ -37,6 +37,7 @@ func TestBroadcastDebug_ProcessMultipleMessageTypes(t *testing.T) {
 	id, err := NewBroadcastDebug(cfg, syncer)
 	require.NoError(t, err)
 	require.NotNil(t, id)
+	require.False(t, id.IsInterfaceNil())
 
 	testCases := []struct {
 		name        string

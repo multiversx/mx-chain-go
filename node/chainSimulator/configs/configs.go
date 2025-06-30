@@ -76,8 +76,6 @@ func CreateChainSimulatorConfigs(args ArgsChainSimulatorConfigs) (*ArgsConfigsSi
 	}
 
 	configs.GeneralConfig.GeneralSettings.ChainID = ChainID
-	configs.GeneralConfig.Debug.InterceptorResolver.Enabled = true
-	configs.GeneralConfig.Debug.InterceptorResolver.BroadcastStatistics.Enabled = true
 
 	// empty genesis smart contracts file
 	err = os.WriteFile(configs.ConfigurationPathsHolder.SmartContracts, []byte("[]"), os.ModePerm)

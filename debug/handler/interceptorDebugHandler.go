@@ -131,9 +131,9 @@ func NewInterceptorDebugHandler(config config.InterceptorResolverDebugConfig, nt
 	idh.broadcastDebug = NewDisabledBroadcastDebug()
 	if config.BroadcastStatistics.Enabled {
 		idh.broadcastDebug, err = NewBroadcastDebug(config.BroadcastStatistics, ntpTime)
-	}
-	if err != nil {
-		return nil, err
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	idh.printEventFunc = idh.printEvent

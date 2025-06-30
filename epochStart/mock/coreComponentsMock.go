@@ -47,9 +47,6 @@ type CoreComponentsMock struct {
 
 // SyncTimer -
 func (ccm *CoreComponentsMock) SyncTimer() ntp.SyncTimer {
-	ccm.mutCore.RLock()
-	defer ccm.mutCore.RUnlock()
-
 	return &testscommon.SyncTimerStub{}
 }
 

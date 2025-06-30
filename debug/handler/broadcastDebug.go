@@ -128,3 +128,8 @@ func getHashAndOriginatorFromID(id string) (string, string) {
 	split := strings.Split(id, separator)
 	return split[0], split[1]
 }
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (bd *broadcastDebugHandler) IsInterfaceNil() bool {
+	return bd == nil
+}
