@@ -43,6 +43,7 @@ type epochChangeTopicsHandler struct {
 	mainInterceptorsContainer        process.InterceptorsContainer
 	fullArchiveInterceptorsContainer process.InterceptorsContainer
 	isFullArchive                    bool
+	topicsMoved                      bool
 }
 
 // NewEpochChangeTopicsHandler creates a new instance of epochChangeTopicsHandler
@@ -95,8 +96,12 @@ func checkArgEpochChangeTopicsHandler(args ArgEpochChangeTopicsHandler) error {
 
 // EpochConfirmed is called whenever a new epoch is confirmed
 func (handler *epochChangeTopicsHandler) EpochConfirmed(epoch uint32, _ uint64) {
+	if handler.topicsMoved {
+		return
+	}
+
 	supernovaEpoch := handler.enableEpochsHandler.GetActivationEpoch(common.SupernovaFlag)
-	if epoch != supernovaEpoch {
+	if epoch < supernovaEpoch {
 		return
 	}
 
@@ -116,6 +121,8 @@ func (handler *epochChangeTopicsHandler) EpochConfirmed(epoch uint32, _ uint64) 
 	if err != nil {
 		log.Warn("replaceProcessorsForTopic failed", "base topic", common.RewardsTransactionTopic, "err", err)
 	}
+
+	handler.topicsMoved = true
 }
 
 func (handler *epochChangeTopicsHandler) replaceProcessorsForTopic(topic string) error {
