@@ -66,6 +66,7 @@ func feeSettingsDummy(gasModifier float64) config.FeeSettings {
 				MaxGasLimitPerTx:            "100000",
 				MinGasLimit:                 "500",
 				ExtraGasLimitGuardedTx:      "50000",
+				MaxGasHigherFactorAccepted:  "10",
 			},
 		},
 		MinGasPrice:            "18446744073709551615",
@@ -86,6 +87,7 @@ func feeSettingsReal() config.FeeSettings {
 				MaxGasLimitPerTx:            "1500000000",
 				MinGasLimit:                 "50000",
 				ExtraGasLimitGuardedTx:      "50000",
+				MaxGasHigherFactorAccepted:  "10",
 			},
 		},
 		MinGasPrice:            "1000000000",
@@ -397,6 +399,36 @@ func TestNewEconomicsData_InvalidExtraGasLimitGuardedTxShouldErr(t *testing.T) {
 		_, err := economics.NewEconomicsData(args)
 		assert.True(t, errors.Is(err, process.ErrInvalidExtraGasLimitGuardedTx))
 	}
+}
+
+func TestNewEconomicsData_InvalidMaxGasHigherFactorAccepted(t *testing.T) {
+	t.Parallel()
+
+	args := createArgsForEconomicsData(1)
+	badExtraMaxGasHigherFactorAccepted := []string{
+		"-1",
+		"-100000000000000000000",
+		"badValue",
+		"",
+		"#########",
+		"11112S",
+		"1111O0000",
+		"10ERD",
+	}
+
+	for _, gasLimitGuardedTx := range badExtraMaxGasHigherFactorAccepted {
+		args.Economics.FeeSettings.GasLimitSettings[0].MaxGasHigherFactorAccepted = gasLimitGuardedTx
+		_, err := economics.NewEconomicsData(args)
+		assert.True(t, errors.Is(err, process.ErrInvalidMaxGasHigherFactorAccepted))
+	}
+
+	args.Economics.FeeSettings.GasLimitSettings[0].MaxGasHigherFactorAccepted = "0"
+	_, err := economics.NewEconomicsData(args)
+	assert.True(t, errors.Is(err, process.ErrInvalidMaxGasHigherFactorAccepted))
+
+	args.Economics.FeeSettings.GasLimitSettings[0].MaxGasHigherFactorAccepted = "2"
+	_, err = economics.NewEconomicsData(args)
+	assert.Nil(t, err)
 }
 
 func TestNewEconomicsData_MaxGasLimitPerBlockLowerThanMinGasLimitShouldErr(t *testing.T) {
@@ -781,6 +813,7 @@ func TestEconomicsData_ConfirmedGasLimitSettingsChangeOrderedConfigs(t *testing.
 			MaxGasLimitPerTx:            "1500000000",
 			MinGasLimit:                 "50000",
 			ExtraGasLimitGuardedTx:      "50000",
+			MaxGasHigherFactorAccepted:  "10",
 		},
 		{
 			EnableEpoch:                 2,
@@ -791,6 +824,7 @@ func TestEconomicsData_ConfirmedGasLimitSettingsChangeOrderedConfigs(t *testing.
 			MaxGasLimitPerTx:            "500000000",
 			MinGasLimit:                 "50000",
 			ExtraGasLimitGuardedTx:      "50000",
+			MaxGasHigherFactorAccepted:  "10",
 		},
 	}
 
@@ -865,6 +899,7 @@ func TestEconomicsData_ConfirmedGasLimitSettingsChangeUnOrderedConfigs(t *testin
 			MaxGasLimitPerTx:            "500000000",
 			MinGasLimit:                 "50000",
 			ExtraGasLimitGuardedTx:      "50000",
+			MaxGasHigherFactorAccepted:  "10",
 		},
 		{
 			EnableEpoch:                 0,
@@ -875,6 +910,7 @@ func TestEconomicsData_ConfirmedGasLimitSettingsChangeUnOrderedConfigs(t *testin
 			MaxGasLimitPerTx:            "1500000000",
 			MinGasLimit:                 "50000",
 			ExtraGasLimitGuardedTx:      "50000",
+			MaxGasHigherFactorAccepted:  "10",
 		},
 	}
 

@@ -24,7 +24,8 @@ func (stub *ChainHandlerStub) GetGenesisHeader() data.HeaderHandler {
 	if stub.GetGenesisHeaderCalled != nil {
 		return stub.GetGenesisHeaderCalled()
 	}
-	return nil
+
+	return &HeaderHandlerStub{}
 }
 
 // SetGenesisHeader -
