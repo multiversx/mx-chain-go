@@ -123,3 +123,9 @@ var ErrNilTrieLeafParser = errors.New("nil trie leaf parser")
 
 // ErrInvalidNodeVersion signals that an invalid node version has been provided
 var ErrInvalidNodeVersion = errors.New("invalid node version provided")
+
+// ErrEmptyInitialIteratorState signals that an empty initial iterator state was provided
+var ErrEmptyInitialIteratorState = errors.New("empty initial iterator state")
+
+// ErrInvalidIteratorState signals that an invalid iterator state was provided
+var ErrInvalidIteratorState = errors.New("invalid iterator state")

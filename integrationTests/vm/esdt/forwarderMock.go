@@ -69,7 +69,9 @@ func SyncMultiTransferMock(instanceMock *mock.InstanceMock, config interface{}) 
 			big.NewInt(0),
 			[]byte(callData.Function()),
 			scAddress,
-			callData.ElementsAsBytes())
+			callData.ElementsAsBytes(),
+			true,
+		)
 
 		return instance
 	})

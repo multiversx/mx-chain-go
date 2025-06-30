@@ -8,7 +8,7 @@ import (
 // SnapshotPruningStorerStub -
 type SnapshotPruningStorerStub struct {
 	*testscommon.MemDbMock
-	GetFromOldEpochsWithoutAddingToCacheCalled func(key []byte) ([]byte, core.OptionalUint32, error)
+	GetFromOldEpochsWithoutAddingToCacheCalled func(key []byte, maxEpochToSearchFrom uint32) ([]byte, core.OptionalUint32, error)
 	GetFromLastEpochCalled                     func(key []byte) ([]byte, error)
 	GetFromCurrentEpochCalled                  func(key []byte) ([]byte, error)
 	GetFromEpochCalled                         func(key []byte, epoch uint32) ([]byte, error)
@@ -21,9 +21,9 @@ type SnapshotPruningStorerStub struct {
 }
 
 // GetFromOldEpochsWithoutAddingToCache -
-func (spss *SnapshotPruningStorerStub) GetFromOldEpochsWithoutAddingToCache(key []byte) ([]byte, core.OptionalUint32, error) {
+func (spss *SnapshotPruningStorerStub) GetFromOldEpochsWithoutAddingToCache(key []byte, maxEpochToSearchFrom uint32) ([]byte, core.OptionalUint32, error) {
 	if spss.GetFromOldEpochsWithoutAddingToCacheCalled != nil {
-		return spss.GetFromOldEpochsWithoutAddingToCacheCalled(key)
+		return spss.GetFromOldEpochsWithoutAddingToCacheCalled(key, maxEpochToSearchFrom)
 	}
 
 	return nil, core.OptionalUint32{}, nil
