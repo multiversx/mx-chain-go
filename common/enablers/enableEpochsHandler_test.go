@@ -129,15 +129,12 @@ func createEnableEpochsConfig() config.EnableEpochs {
 		RelayedTransactionsV3FixESDTTransferEnableEpoch:          110,
 		AndromedaEnableEpoch:                                     111,
 		CheckBuiltInCallOnTransferValueAndFailEnableRound:        112,
-<<<<<<< HEAD
-=======
 		MaskVMInternalDependenciesErrorsEnableEpoch:              113,
 		FixBackTransferOPCODEEnableEpoch:                         114,
 		ValidationOnGobDecodeEnableEpoch:                         115,
 		BarnardOpcodesEnableEpoch:                                116,
 		AutomaticActivationOfNodesDisableEpoch:                   117,
->>>>>>> rc/supernova
-		SupernovaEnableEpoch:                                     113,
+		SupernovaEnableEpoch:                                     118,
 	}
 }
 
@@ -343,10 +340,7 @@ func TestEnableEpochsHandler_IsFlagEnabled(t *testing.T) {
 	require.True(t, handler.IsFlagEnabled(common.FixRelayedBaseCostFlag))
 	require.True(t, handler.IsFlagEnabled(common.FixRelayedMoveBalanceToNonPayableSCFlag))
 	require.True(t, handler.IsFlagEnabled(common.AndromedaFlag))
-<<<<<<< HEAD
-=======
 	require.True(t, handler.IsFlagEnabled(common.DynamicESDTFlag))
->>>>>>> rc/supernova
 	require.True(t, handler.IsFlagEnabled(common.SupernovaFlag))
 }
 
@@ -477,14 +471,11 @@ func TestEnableEpochsHandler_GetActivationEpoch(t *testing.T) {
 	require.Equal(t, cfg.RelayedTransactionsV3FixESDTTransferEnableEpoch, handler.GetActivationEpoch(common.RelayedTransactionsV3FixESDTTransferFlag))
 	require.Equal(t, cfg.AndromedaEnableEpoch, handler.GetActivationEpoch(common.AndromedaFlag))
 	require.Equal(t, cfg.CheckBuiltInCallOnTransferValueAndFailEnableRound, handler.GetActivationEpoch(common.CheckBuiltInCallOnTransferValueAndFailExecutionFlag))
-<<<<<<< HEAD
-=======
 	require.Equal(t, cfg.MaskVMInternalDependenciesErrorsEnableEpoch, handler.GetActivationEpoch(common.MaskInternalDependenciesErrorsFlag))
 	require.Equal(t, cfg.FixBackTransferOPCODEEnableEpoch, handler.GetActivationEpoch(common.FixBackTransferOPCODEFlag))
 	require.Equal(t, cfg.ValidationOnGobDecodeEnableEpoch, handler.GetActivationEpoch(common.ValidationOnGobDecodeFlag))
 	require.Equal(t, cfg.BarnardOpcodesEnableEpoch, handler.GetActivationEpoch(common.BarnardOpcodesFlag))
 	require.Equal(t, cfg.AutomaticActivationOfNodesDisableEpoch, handler.GetActivationEpoch(common.AutomaticActivationOfNodesDisableFlag))
->>>>>>> rc/supernova
 	require.Equal(t, cfg.SupernovaEnableEpoch, handler.GetActivationEpoch(common.SupernovaFlag))
 }
 

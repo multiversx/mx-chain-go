@@ -923,8 +923,6 @@ func TestEnableEpochConfig(t *testing.T) {
     # CheckBuiltInCallOnTransferValueAndFailEnableRound represents the ROUND when the check on transfer value fix is activated
     CheckBuiltInCallOnTransferValueAndFailEnableRound = 106
 
-<<<<<<< HEAD
-=======
 	# MaskVMInternalDependenciesErrorsEnableEpoch represents the epoch when the additional internal erorr masking in vm is enabled
 	MaskVMInternalDependenciesErrorsEnableEpoch = 107
 
@@ -940,9 +938,8 @@ func TestEnableEpochConfig(t *testing.T) {
     # AutomaticActivationOfNodesDisableEpoch represents the epoch when automatic activation of nodes for validators is disabled
     AutomaticActivationOfNodesDisableEpoch = 111
 
->>>>>>> rc/supernova
     # SupernovaEnableEpoch represents the epoch when sub-second finality will be enabled
-    SupernovaEnableEpoch = 107
+    SupernovaEnableEpoch = 112
 
     # MaxNodesChangeEnableEpoch holds configuration for changing the maximum number of nodes and the enabling epoch
     MaxNodesChangeEnableEpoch = [
@@ -1070,15 +1067,12 @@ func TestEnableEpochConfig(t *testing.T) {
 			RelayedTransactionsV3FixESDTTransferEnableEpoch:          104,
 			AndromedaEnableEpoch:                                     105,
 			CheckBuiltInCallOnTransferValueAndFailEnableRound:        106,
-<<<<<<< HEAD
-=======
 			MaskVMInternalDependenciesErrorsEnableEpoch:              107,
 			FixBackTransferOPCODEEnableEpoch:                         108,
 			ValidationOnGobDecodeEnableEpoch:                         109,
 			BarnardOpcodesEnableEpoch:                                110,
 			AutomaticActivationOfNodesDisableEpoch:                   111,
->>>>>>> rc/supernova
-			SupernovaEnableEpoch:                                     107,
+			SupernovaEnableEpoch:                                     112,
 			MaxNodesChangeEnableEpoch: []MaxNodesChangeConfig{
 				{
 					EpochEnable:            44,
