@@ -550,6 +550,7 @@ func newBaseTestProcessorNode(args ArgTestProcessorNode) *TestProcessorNode {
 		AppStatusHandler:              appStatusHandler,
 		PeersRatingMonitor:            peersRatingMonitor,
 		TxExecutionOrderHandler:       ordering.NewOrderedCollection(),
+		EpochStartTrigger:             &mock.EpochStartTriggerStub{},
 	}
 
 	tpn.NodeKeys = args.NodeKeys
@@ -921,6 +922,8 @@ func (tpn *TestProcessorNode) createFullSCQueryService(gasMap map[string]map[str
 		GasSchedule:              gasSchedule,
 		Counter:                  counters.NewDisabledCounter(),
 		MissingTrieNodesNotifier: &testscommon.MissingTrieNodesNotifierStub{},
+		EpochStartTrigger:        tpn.EpochStartTrigger,
+		RoundHandler:             tpn.RoundHandler,
 	}
 
 	var apiBlockchain data.ChainHandler
@@ -961,7 +964,8 @@ func (tpn *TestProcessorNode) createFullSCQueryService(gasMap map[string]map[str
 						MinVetoThreshold: 0.5,
 						LostProposalFee:  "1",
 					},
-					OwnerAddress: DelegationManagerConfigChangeAddress,
+					OwnerAddress:                 DelegationManagerConfigChangeAddress,
+					MaxVotingDelayPeriodInEpochs: 30,
 				},
 				StakingSystemSCConfig: config.StakingSystemSCConfig{
 					GenesisNodePrice:                     "1000",
@@ -1176,6 +1180,7 @@ func createDefaultEconomicsConfig() *config.EconomicsConfig {
 					MaxGasLimitPerTx:            maxGasLimitPerBlock,
 					MinGasLimit:                 minGasLimit,
 					ExtraGasLimitGuardedTx:      "50000",
+					MaxGasHigherFactorAccepted:  "10",
 				},
 			},
 			MinGasPrice:            minGasPrice,
@@ -1690,6 +1695,8 @@ func (tpn *TestProcessorNode) initInnerProcessors(gasMap map[string]map[string]u
 		GasSchedule:              gasSchedule,
 		Counter:                  counter,
 		MissingTrieNodesNotifier: &testscommon.MissingTrieNodesNotifierStub{},
+		EpochStartTrigger:        tpn.EpochStartTrigger,
+		RoundHandler:             tpn.RoundHandler,
 	}
 
 	maxGasLimitPerBlock := uint64(0xFFFFFFFFFFFFFFFF)
@@ -1921,6 +1928,8 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors(gasMap map[string]map[stri
 		GasSchedule:              gasSchedule,
 		Counter:                  counters.NewDisabledCounter(),
 		MissingTrieNodesNotifier: &testscommon.MissingTrieNodesNotifierStub{},
+		EpochStartTrigger:        tpn.EpochStartTrigger,
+		RoundHandler:             tpn.RoundHandler,
 	}
 
 	var signVerifier vm.MessageSignVerifier
@@ -1958,7 +1967,8 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors(gasMap map[string]map[stri
 					MinVetoThreshold: 0.5,
 					LostProposalFee:  "1",
 				},
-				OwnerAddress: DelegationManagerConfigChangeAddress,
+				OwnerAddress:                 DelegationManagerConfigChangeAddress,
+				MaxVotingDelayPeriodInEpochs: 30,
 			},
 			StakingSystemSCConfig: config.StakingSystemSCConfig{
 				GenesisNodePrice:                     "1000",
@@ -3337,6 +3347,8 @@ func CreateEnableEpochsConfig() config.EnableEpochs {
 		DoubleKeyProtectionEnableEpoch:                    0,
 		ESDTEnableEpoch:                                   UnreachableEpoch,
 		GovernanceEnableEpoch:                             UnreachableEpoch,
+		GovernanceDisableProposeEnableEpoch:               UnreachableEpoch,
+		GovernanceFixesEnableEpoch:                        UnreachableEpoch,
 		DelegationManagerEnableEpoch:                      UnreachableEpoch,
 		DelegationSmartContractEnableEpoch:                UnreachableEpoch,
 		CorrectLastUnjailedEnableEpoch:                    UnreachableEpoch,

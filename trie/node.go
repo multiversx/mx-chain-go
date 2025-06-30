@@ -180,7 +180,7 @@ func hasValidHash(n node) (bool, error) {
 }
 
 func decodeNode(encNode []byte, marshalizer marshal.Marshalizer, hasher hashing.Hasher) (node, error) {
-	if encNode == nil || len(encNode) < 1 {
+	if len(encNode) < 1 {
 		return nil, ErrInvalidEncoding
 	}
 

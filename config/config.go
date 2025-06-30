@@ -166,12 +166,13 @@ type Config struct {
 	MetaBlockStorage StorageConfig
 	ProofsStorage    StorageConfig
 
-	AccountsTrieStorage      StorageConfig
-	PeerAccountsTrieStorage  StorageConfig
-	EvictionWaitingList      EvictionWaitingListConfig
-	StateTriesConfig         StateTriesConfig
-	TrieStorageManagerConfig TrieStorageManagerConfig
-	BadBlocksCache           CacheConfig
+	AccountsTrieStorage       StorageConfig
+	PeerAccountsTrieStorage   StorageConfig
+	EvictionWaitingList       EvictionWaitingListConfig
+	StateTriesConfig          StateTriesConfig
+	TrieStorageManagerConfig  TrieStorageManagerConfig
+	TrieLeavesRetrieverConfig TrieLeavesRetrieverConfig
+	BadBlocksCache            CacheConfig
 
 	TxBlockBodyDataPool         CacheConfig
 	PeerBlockBodyDataPool       CacheConfig
@@ -695,4 +696,10 @@ type IndexBroadcastDelay struct {
 type InterceptedDataVerifierConfig struct {
 	CacheSpanInSec   uint64
 	CacheExpiryInSec uint64
+}
+
+// TrieLeavesRetrieverConfig represents the config options to be used when setting up the trie leaves retriever
+type TrieLeavesRetrieverConfig struct {
+	Enabled        bool
+	MaxSizeInBytes uint64
 }
