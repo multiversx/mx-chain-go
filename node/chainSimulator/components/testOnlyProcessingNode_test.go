@@ -2,6 +2,7 @@ package components
 
 import (
 	"errors"
+	"github.com/multiversx/mx-chain-go/node/chainSimulator/components/heartbeat"
 	"math/big"
 	"strings"
 	"testing"
@@ -43,6 +44,7 @@ func createMockArgsTestOnlyProcessingNode(t *testing.T) ArgsTestOnlyProcessingNo
 		SyncedBroadcastNetwork:      NewSyncedBroadcastNetwork(),
 		ChanStopNodeProcess:         make(chan endProcess.ArgEndProcess),
 		APIInterface:                api.NewNoApiInterface(),
+		Monitor:                     heartbeat.NewHeartbeatMonitor(),
 		ShardIDStr:                  "0",
 		RoundDurationInMillis:       6000,
 		MinNodesMeta:                1,

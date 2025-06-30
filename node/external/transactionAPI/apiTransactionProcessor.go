@@ -527,6 +527,17 @@ func (atp *apiTransactionProcessor) computeTimestampForRound(round uint64) int64
 	return timestamp.Unix()
 }
 
+func (atp *apiTransactionProcessor) computeTimestampForRoundAsMs(round uint64) int64 {
+	if round == 0 {
+		return 0
+	}
+
+	secondsSinceGenesis := round * atp.roundDuration
+	timestamp := atp.genesisTime.Add(time.Duration(secondsSinceGenesis) * time.Millisecond)
+
+	return timestamp.UnixMilli()
+}
+
 func (atp *apiTransactionProcessor) lookupHistoricalTransaction(hash []byte, withResults bool) (*transaction.ApiTransactionResult, error) {
 	miniblockMetadata, err := atp.historyRepository.GetMiniblockMetadataByTxHash(hash)
 	if err != nil {
@@ -554,6 +565,7 @@ func (atp *apiTransactionProcessor) lookupHistoricalTransaction(hash []byte, wit
 
 	putMiniblockFieldsInTransaction(tx, miniblockMetadata)
 	tx.Timestamp = atp.computeTimestampForRound(tx.Round)
+	tx.TimestampMs = atp.computeTimestampForRoundAsMs(tx.Round)
 	statusComputer, err := txstatus.NewStatusComputer(atp.shardCoordinator.SelfId(), atp.uint64ByteSliceConverter, atp.storageService)
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", ErrNilStatusComputer.Error(), err)
@@ -611,6 +623,7 @@ func (atp *apiTransactionProcessor) getTransactionFromStorage(hash []byte) (*tra
 	}
 
 	tx.Timestamp = atp.computeTimestampForRound(tx.Round)
+	tx.TimestampMs = atp.computeTimestampForRoundAsMs(tx.Round)
 
 	// TODO: take care of this when integrating the adaptivity
 	statusComputer, err := txstatus.NewStatusComputer(atp.shardCoordinator.SelfId(), atp.uint64ByteSliceConverter, atp.storageService)

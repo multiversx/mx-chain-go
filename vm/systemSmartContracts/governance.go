@@ -1,10 +1,11 @@
-//go:generate protoc -I=. -I=$GOPATH/src -I=$GOPATH/src/github.com/gogo/protobuf/protobuf  --gogoslick_out=. governance.proto
+//go:generate protoc -I=. -I=$GOPATH/src -I=$GOPATH/src/github.com/gogo/protobuf/protobuf --gogoslick_out=. governance.proto
 package systemSmartContracts
 
 import (
 	"bytes"
 	"fmt"
 	"math/big"
+	"strconv"
 	"sync"
 
 	"github.com/multiversx/mx-chain-core-go/core"
@@ -19,6 +20,7 @@ import (
 
 const governanceConfigKey = "governanceConfig"
 const accumulatedFeeKey = "accumulatedFee"
+const lastEndedNonceKey = "lastEndedNonce"
 const noncePrefix = "n_"
 const proposalPrefix = "p_"
 const yesString = "yes"
@@ -26,37 +28,39 @@ const noString = "no"
 const vetoString = "veto"
 const abstainString = "abstain"
 const commitHashLength = 40
-const maxPercentage = float64(10000.0)
+const maxPercentage = float32(10000.0)
 
 // ArgsNewGovernanceContract defines the arguments needed for the on-chain governance contract
 type ArgsNewGovernanceContract struct {
-	Eei                    vm.SystemEI
-	GasCost                vm.GasCost
-	GovernanceConfig       config.GovernanceSystemSCConfig
-	Marshalizer            marshal.Marshalizer
-	Hasher                 hashing.Hasher
-	GovernanceSCAddress    []byte
-	DelegationMgrSCAddress []byte
-	ValidatorSCAddress     []byte
-	OwnerAddress           []byte
-	UnBondPeriodInEpochs   uint32
-	EnableEpochsHandler    common.EnableEpochsHandler
+	Eei                          vm.SystemEI
+	GasCost                      vm.GasCost
+	GovernanceConfig             config.GovernanceSystemSCConfig
+	Marshalizer                  marshal.Marshalizer
+	Hasher                       hashing.Hasher
+	GovernanceSCAddress          []byte
+	DelegationMgrSCAddress       []byte
+	ValidatorSCAddress           []byte
+	OwnerAddress                 []byte
+	UnBondPeriodInEpochs         uint32
+	MaxVotingDelayPeriodInEpochs uint32
+	EnableEpochsHandler          common.EnableEpochsHandler
 }
 
 type governanceContract struct {
-	eei                    vm.SystemEI
-	gasCost                vm.GasCost
-	baseProposalCost       *big.Int
-	ownerAddress           []byte
-	governanceSCAddress    []byte
-	delegationMgrSCAddress []byte
-	validatorSCAddress     []byte
-	marshalizer            marshal.Marshalizer
-	hasher                 hashing.Hasher
-	governanceConfig       config.GovernanceSystemSCConfig
-	unBondPeriodInEpochs   uint32
-	enableEpochsHandler    common.EnableEpochsHandler
-	mutExecution           sync.RWMutex
+	eei                          vm.SystemEI
+	gasCost                      vm.GasCost
+	baseProposalCost             *big.Int
+	ownerAddress                 []byte
+	governanceSCAddress          []byte
+	delegationMgrSCAddress       []byte
+	validatorSCAddress           []byte
+	marshalizer                  marshal.Marshalizer
+	hasher                       hashing.Hasher
+	governanceConfig             config.GovernanceSystemSCConfig
+	unBondPeriodInEpochs         uint32
+	maxVotingDelayPeriodInEpochs uint32
+	enableEpochsHandler          common.EnableEpochsHandler
+	mutExecution                 sync.RWMutex
 }
 
 // NewGovernanceContract creates a new governance smart contract
@@ -99,18 +103,19 @@ func NewGovernanceContract(args ArgsNewGovernanceContract) (*governanceContract,
 	}
 
 	g := &governanceContract{
-		eei:                    args.Eei,
-		gasCost:                args.GasCost,
-		baseProposalCost:       baseProposalCost,
-		ownerAddress:           args.OwnerAddress,
-		governanceSCAddress:    args.GovernanceSCAddress,
-		delegationMgrSCAddress: args.DelegationMgrSCAddress,
-		validatorSCAddress:     args.ValidatorSCAddress,
-		marshalizer:            args.Marshalizer,
-		hasher:                 args.Hasher,
-		governanceConfig:       args.GovernanceConfig,
-		enableEpochsHandler:    args.EnableEpochsHandler,
-		unBondPeriodInEpochs:   args.UnBondPeriodInEpochs,
+		eei:                          args.Eei,
+		gasCost:                      args.GasCost,
+		baseProposalCost:             baseProposalCost,
+		ownerAddress:                 args.OwnerAddress,
+		governanceSCAddress:          args.GovernanceSCAddress,
+		delegationMgrSCAddress:       args.DelegationMgrSCAddress,
+		validatorSCAddress:           args.ValidatorSCAddress,
+		marshalizer:                  args.Marshalizer,
+		hasher:                       args.Hasher,
+		governanceConfig:             args.GovernanceConfig,
+		enableEpochsHandler:          args.EnableEpochsHandler,
+		unBondPeriodInEpochs:         args.UnBondPeriodInEpochs,
+		maxVotingDelayPeriodInEpochs: args.MaxVotingDelayPeriodInEpochs,
 	}
 
 	return g, nil
@@ -151,12 +156,12 @@ func (g *governanceContract) Execute(args *vmcommon.ContractCallInput) vmcommon.
 		return g.changeConfig(args)
 	case "closeProposal":
 		return g.closeProposal(args)
+	case "clearEndedProposals":
+		return g.clearEndedProposals(args)
 	case "viewVotingPower":
 		return g.viewVotingPower(args)
 	case "viewConfig":
 		return g.viewConfig(args)
-	case "viewUserVoteHistory":
-		return g.viewUserVoteHistory(args)
 	case "viewDelegatedVoteInfo":
 		return g.viewDelegatedVoteInfo(args)
 	case "viewProposal":
@@ -227,6 +232,11 @@ func (g *governanceContract) changeConfig(args *vmcommon.ContractCallInput) vmco
 		g.eei.AddReturnMessage("changeConfig needs 5 arguments")
 		return vmcommon.UserError
 	}
+	err := g.eei.UseGas(g.gasCost.MetaChainSystemSCsCost.ChangeConfig)
+	if err != nil {
+		g.eei.AddReturnMessage("not enough gas")
+		return vmcommon.OutOfGas
+	}
 
 	proposalFee, okConvert := big.NewInt(0).SetString(string(args.Arguments[0]), conversionBase)
 	if !okConvert || proposalFee.Cmp(zero) <= 0 {
@@ -284,6 +294,10 @@ func (g *governanceContract) changeConfig(args *vmcommon.ContractCallInput) vmco
 
 // proposal creates a new proposal from passed arguments
 func (g *governanceContract) proposal(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+	if g.enableEpochsHandler.IsFlagEnabled(common.GovernanceDisableProposeFlag) && !g.enableEpochsHandler.IsFlagEnabled(common.GovernanceFixesFlag) {
+		g.eei.AddReturnMessage("proposing is disabled")
+		return vmcommon.UserError
+	}
 	err := g.eei.UseGas(g.gasCost.MetaChainSystemSCsCost.Proposal)
 	if err != nil {
 		g.eei.AddReturnMessage("not enough gas")
@@ -398,7 +412,8 @@ func (g *governanceContract) vote(args *vmcommon.ContractCallInput) vmcommon.Ret
 		string(args.Arguments[1]),
 		totalVotingPower,
 		totalStake,
-		true)
+		true,
+		nil)
 	if err != nil {
 		g.eei.AddReturnMessage(err.Error())
 		return vmcommon.UserError
@@ -465,7 +480,8 @@ func (g *governanceContract) delegateVote(args *vmcommon.ContractCallInput) vmco
 		string(args.Arguments[1]),
 		votePower,
 		userStake,
-		false)
+		false,
+		args.CallerAddr)
 	if err != nil {
 		g.eei.AddReturnMessage(err.Error())
 		return vmcommon.UserError
@@ -524,9 +540,11 @@ func (g *governanceContract) addUserVote(
 	totalVotingPower *big.Int,
 	totalStake *big.Int,
 	direct bool,
+	scAddress []byte,
 ) error {
 	nonce := big.NewInt(0).SetBytes(nonceAsBytes)
-	err := g.updateUserVoteList(address, nonce.Uint64(), direct)
+	//TODO: remove extra struct & methods for V2 if no V1 proposal exists
+	err := g.updateUserVoteListV2(address, nonce.Uint64(), direct, scAddress)
 	if err != nil {
 		return err
 	}
@@ -545,25 +563,60 @@ func (g *governanceContract) addUserVote(
 	return g.saveGeneralProposal(proposal.CommitHash, proposal)
 }
 
-func (g *governanceContract) updateUserVoteList(address []byte, nonce uint64, direct bool) error {
-	userVoteList, err := g.getUserVotes(address)
+func (g *governanceContract) updateUserVoteListV1(address []byte, nonce uint64, direct bool) error {
+	userVoteList, err := g.getUserVotesV1(address)
 	if err != nil {
 		return err
 	}
 
-	if direct {
-		userVoteList.Direct, err = addNewNonce(userVoteList.Direct, nonce)
-		if err != nil {
-			return err
-		}
-	} else {
-		userVoteList.Delegated, err = addNewNonce(userVoteList.Delegated, nonce)
-		if err != nil {
-			return err
-		}
+	err = g.updateUserVotesV1(userVoteList, nonce, direct)
+	if err != nil {
+		return err
 	}
 
-	return g.saveUserVotes(address, userVoteList)
+	return g.saveUserVotesV1(address, userVoteList)
+}
+
+func (g *governanceContract) updateUserVoteListV2(address []byte, nonce uint64, direct bool, scAddress []byte) error {
+	if !g.enableEpochsHandler.IsFlagEnabled(common.GovernanceFixesFlag) {
+		return g.updateUserVoteListV1(address, nonce, direct)
+	}
+	userVoteList, err := g.getUserVotesV2(address)
+	if err != nil {
+		return err
+	}
+
+	err = g.updateUserVotesV2(userVoteList, nonce, direct, scAddress)
+	if err != nil {
+		return err
+	}
+
+	lastEndedNonce := g.getLastEndedNonce()
+	g.clearUserVotesForList(userVoteList, lastEndedNonce)
+
+	return g.saveUserVotesV2(address, userVoteList)
+}
+
+func (g *governanceContract) updateUserVotesV1(userVoteList *OngoingVotedList, nonce uint64, direct bool) error {
+	var err error
+	if direct {
+		userVoteList.Direct, err = addNewNonce(userVoteList.Direct, nonce)
+		return err
+	}
+
+	userVoteList.Delegated, err = addNewNonce(userVoteList.Delegated, nonce)
+	return err
+}
+
+func (g *governanceContract) updateUserVotesV2(userVoteList *OngoingVotedListV2, nonce uint64, direct bool, scAddress []byte) error {
+	var err error
+	if direct {
+		userVoteList.Direct, err = addNewNonce(userVoteList.Direct, nonce)
+		return err
+	}
+
+	userVoteList.DelegatedWithAddress, err = addNewNonceV2(userVoteList.DelegatedWithAddress, scAddress, nonce)
+	return err
 }
 
 func addNewNonce(nonceList []uint64, newNonce uint64) ([]uint64, error) {
@@ -574,6 +627,20 @@ func addNewNonce(nonceList []uint64, newNonce uint64) ([]uint64, error) {
 	}
 
 	nonceList = append(nonceList, newNonce)
+	return nonceList, nil
+}
+
+func addNewNonceV2(nonceList []*DelegatedWithAddress, newDelegatedAddress []byte, newNonce uint64) ([]*DelegatedWithAddress, error) {
+	for _, delegatedStruct := range nonceList {
+		if newNonce == delegatedStruct.Nonce && bytes.Equal(delegatedStruct.DelegatedAddress, newDelegatedAddress) {
+			return nil, vm.ErrDoubleVote
+		}
+	}
+
+	nonceList = append(nonceList, &DelegatedWithAddress{
+		Nonce:            newNonce,
+		DelegatedAddress: newDelegatedAddress,
+	})
 	return nonceList, nil
 }
 
@@ -612,13 +679,13 @@ func (g *governanceContract) closeProposal(args *vmcommon.ContractCallInput) vmc
 		g.eei.AddReturnMessage("proposal is already closed, do nothing")
 		return vmcommon.UserError
 	}
-	if !bytes.Equal(generalProposal.IssuerAddress, args.CallerAddr) {
+	if !g.enableEpochsHandler.IsFlagEnabled(common.GovernanceFixesFlag) && !bytes.Equal(generalProposal.IssuerAddress, args.CallerAddr) {
 		g.eei.AddReturnMessage("only the issuer can close the proposal")
 		return vmcommon.UserError
 	}
 
-	currentEpoch := g.eei.BlockChainHook().CurrentEpoch()
-	if uint64(currentEpoch) <= generalProposal.EndVoteEpoch {
+	currentEpoch := uint64(g.eei.BlockChainHook().CurrentEpoch())
+	if g.cannotClose(currentEpoch, generalProposal) {
 		g.eei.AddReturnMessage(fmt.Sprintf("proposal can be closed only after epoch %d", generalProposal.EndVoteEpoch))
 		return vmcommon.UserError
 	}
@@ -630,11 +697,7 @@ func (g *governanceContract) closeProposal(args *vmcommon.ContractCallInput) vmc
 		return vmcommon.UserError
 	}
 
-	generalProposal.Passed = g.computeEndResults(generalProposal, baseConfig)
-	if err != nil {
-		g.eei.AddReturnMessage("computeEndResults error " + err.Error())
-		return vmcommon.UserError
-	}
+	generalProposal.Passed = g.computeEndResults(currentEpoch, generalProposal, baseConfig)
 
 	err = g.saveGeneralProposal(generalProposal.CommitHash, generalProposal)
 	if err != nil {
@@ -648,16 +711,91 @@ func (g *governanceContract) closeProposal(args *vmcommon.ContractCallInput) vmc
 		g.addToAccumulatedFees(baseConfig.LostProposalFee)
 	}
 
-	g.eei.Transfer(args.CallerAddr, args.RecipientAddr, tokensToReturn, nil, 0)
+	g.eei.Transfer(generalProposal.IssuerAddress, args.RecipientAddr, tokensToReturn, nil, 0)
 
 	logEntry := &vmcommon.LogEntry{
 		Identifier: []byte(args.Function),
-		Address:    args.CallerAddr,
+		Address:    generalProposal.IssuerAddress,
 		Topics:     [][]byte{generalProposal.CommitHash, boolToSlice(generalProposal.Passed)},
 	}
 	g.eei.AddLogEntry(logEntry)
 
+	if !g.enableEpochsHandler.IsFlagEnabled(common.GovernanceFixesFlag) {
+		return vmcommon.Ok
+	}
+
+	g.processLastEndedNonce()
 	return vmcommon.Ok
+}
+
+func (g *governanceContract) cannotClose(currentEpoch uint64, proposal *GeneralProposal) bool {
+	if !g.enableEpochsHandler.IsFlagEnabled(common.GovernanceFixesFlag) {
+		return currentEpoch <= proposal.EndVoteEpoch
+	}
+
+	voteStarted := currentEpoch >= proposal.StartVoteEpoch
+	voteEnded := currentEpoch > proposal.EndVoteEpoch
+
+	return voteStarted && !voteEnded
+}
+
+func (g *governanceContract) clearEndedProposals(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+	if args.CallValue.Cmp(zero) != 0 {
+		g.eei.AddReturnMessage("clearEndedProposals callValue expected to be 0")
+		return vmcommon.UserError
+	}
+
+	numAddresses := uint64(len(args.Arguments))
+	perAddressGas := g.gasCost.MetaChainSystemSCsCost.ClearProposal
+	baseGas := g.gasCost.MetaChainSystemSCsCost.ClearProposal
+	err := g.eei.UseGas(numAddresses*perAddressGas + baseGas)
+	if err != nil {
+		g.eei.AddReturnMessage("not enough gas")
+		return vmcommon.OutOfGas
+	}
+
+	lastEndedNonce := g.getLastEndedNonce()
+	for i := uint64(0); i < numAddresses; i++ {
+		voter := args.Arguments[i]
+		if len(voter) != len(args.CallerAddr) {
+			g.eei.AddReturnMessage("invalid delegator address")
+			return vmcommon.UserError
+		}
+		err = g.clearUserVotes(voter, lastEndedNonce)
+		if err != nil {
+			g.eei.AddReturnMessage(err.Error())
+			return vmcommon.UserError
+		}
+
+	}
+	return vmcommon.Ok
+}
+
+func (g *governanceContract) clearUserVotesForList(userVoteList *OngoingVotedListV2, lastEndedNonce uint64) {
+	filteredDirect := make([]uint64, 0)
+	for _, direct := range userVoteList.Direct {
+		if direct > lastEndedNonce {
+			filteredDirect = append(filteredDirect, direct)
+		}
+	}
+	userVoteList.Direct = filteredDirect
+
+	filteredDelegated := make([]*DelegatedWithAddress, 0)
+	for _, delegated := range userVoteList.DelegatedWithAddress {
+		if delegated.Nonce > lastEndedNonce {
+			filteredDelegated = append(filteredDelegated, delegated)
+		}
+	}
+	userVoteList.DelegatedWithAddress = filteredDelegated
+}
+
+func (g *governanceContract) clearUserVotes(address []byte, lastEndedNonce uint64) error {
+	userVoteList, err := g.getUserVotesV2(address)
+	if err != nil {
+		return err
+	}
+	g.clearUserVotesForList(userVoteList, lastEndedNonce)
+	return g.saveUserVotesV2(address, userVoteList)
 }
 
 func (g *governanceContract) getAccumulatedFees() *big.Int {
@@ -688,7 +826,7 @@ func (g *governanceContract) claimAccumulatedFees(args *vmcommon.ContractCallInp
 		g.eei.AddReturnMessage("can be called only by owner")
 		return vmcommon.UserError
 	}
-	err := g.eei.UseGas(g.gasCost.MetaChainSystemSCsCost.CloseProposal)
+	err := g.eei.UseGas(g.gasCost.MetaChainSystemSCsCost.ClaimAccumulatedFees)
 	if err != nil {
 		g.eei.AddReturnMessage("not enough gas")
 		return vmcommon.OutOfGas
@@ -739,47 +877,12 @@ func (g *governanceContract) viewConfig(args *vmcommon.ContractCallInput) vmcomm
 	}
 
 	g.eei.Finish([]byte(gConfig.ProposalFee.String()))
-	g.eei.Finish([]byte(big.NewFloat(float64(gConfig.MinQuorum)).String()))
-	g.eei.Finish([]byte(big.NewFloat(float64(gConfig.MinPassThreshold)).String()))
-	g.eei.Finish([]byte(big.NewFloat(float64(gConfig.MinVetoThreshold)).String()))
+	g.eei.Finish([]byte(fmt.Sprintf("%.4f", gConfig.MinQuorum)))
+	g.eei.Finish([]byte(fmt.Sprintf("%.4f", gConfig.MinPassThreshold)))
+	g.eei.Finish([]byte(fmt.Sprintf("%.4f", gConfig.MinVetoThreshold)))
 	g.eei.Finish([]byte(big.NewInt(int64(gConfig.LastProposalNonce)).String()))
 
 	return vmcommon.Ok
-}
-
-func (g *governanceContract) viewUserVoteHistory(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
-	err := g.checkViewFuncArguments(args, 1)
-	if err != nil {
-		g.eei.AddReturnMessage(err.Error())
-		return vmcommon.UserError
-	}
-
-	userVotes, err := g.getUserVotes(args.Arguments[0])
-	if err != nil {
-		g.eei.AddReturnMessage(err.Error())
-		return vmcommon.UserError
-	}
-
-	g.finishWithIntValue(len(userVotes.Delegated)) // first we send the number of delegated nonces and afterward the nonces
-	for _, val := range userVotes.Delegated {
-		g.finishWithIntValue(int(val))
-	}
-
-	g.finishWithIntValue(len(userVotes.Direct)) // then we send the number of direct nonces and afterward the nonces
-	for _, val := range userVotes.Direct {
-		g.finishWithIntValue(int(val))
-	}
-
-	return vmcommon.Ok
-}
-
-func (g *governanceContract) finishWithIntValue(value int) {
-	if value == 0 {
-		g.eei.Finish([]byte{0})
-		return
-	}
-
-	g.eei.Finish(big.NewInt(int64(value)).Bytes())
 }
 
 func (g *governanceContract) viewProposal(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
@@ -922,27 +1025,39 @@ func (g *governanceContract) getTotalStakeInSystem() *big.Int {
 	return g.eei.GetBalance(g.validatorSCAddress)
 }
 
+func getPercentageValue(value *big.Int, percentage float32) *big.Int {
+	percentageStr := fmt.Sprintf("%.4f", percentage)
+	percentageFloat, _ := strconv.ParseFloat(percentageStr, 64)
+	return core.GetIntTrimmedPercentageOfValue(value, percentageFloat)
+}
+
 // computeEndResults computes if a proposal has passed or not based on votes accumulated
-func (g *governanceContract) computeEndResults(proposal *GeneralProposal, baseConfig *GovernanceConfigV2) bool {
+func (g *governanceContract) computeEndResults(currentEpoch uint64, proposal *GeneralProposal, baseConfig *GovernanceConfigV2) bool {
+	voteStarted := currentEpoch >= proposal.StartVoteEpoch
+	if g.enableEpochsHandler.IsFlagEnabled(common.GovernanceFixesFlag) && !voteStarted {
+		g.eei.Finish([]byte("Proposal closed before voting started"))
+		return true
+	}
+
 	totalVotes := big.NewInt(0).Add(proposal.Yes, proposal.No)
 	totalVotes.Add(totalVotes, proposal.Veto)
 	totalVotes.Add(totalVotes, proposal.Abstain)
 
 	totalStake := g.getTotalStakeInSystem()
-	minQuorumOutOfStake := core.GetIntTrimmedPercentageOfValue(totalStake, float64(baseConfig.MinQuorum))
+	minQuorumOutOfStake := getPercentageValue(totalStake, baseConfig.MinQuorum)
 
 	if totalVotes.Cmp(minQuorumOutOfStake) == -1 {
 		g.eei.Finish([]byte("Proposal did not reach minQuorum"))
 		return false
 	}
 
-	minVetoOfTotalVotes := core.GetIntTrimmedPercentageOfValue(totalVotes, float64(baseConfig.MinVetoThreshold))
+	minVetoOfTotalVotes := getPercentageValue(totalVotes, baseConfig.MinVetoThreshold)
 	if proposal.Veto.Cmp(minVetoOfTotalVotes) >= 0 {
 		g.eei.Finish([]byte("Proposal vetoed"))
 		return false
 	}
 
-	minPassOfTotalVotes := core.GetIntTrimmedPercentageOfValue(totalVotes, float64(baseConfig.MinPassThreshold))
+	minPassOfTotalVotes := getPercentageValue(totalVotes, baseConfig.MinPassThreshold)
 	if proposal.Yes.Cmp(minPassOfTotalVotes) >= 0 && proposal.Yes.Cmp(proposal.No) > 0 {
 		g.eei.Finish([]byte("Proposal passed"))
 		return true
@@ -1001,7 +1116,7 @@ func (g *governanceContract) getTotalStake(validatorAddress []byte) (*big.Int, e
 	return validatorData.TotalStakeValue, nil
 }
 
-func (g *governanceContract) saveUserVotes(address []byte, votedList *OngoingVotedList) error {
+func (g *governanceContract) saveUserVotesV1(address []byte, votedList *OngoingVotedList) error {
 	marshaledData, err := g.marshalizer.Marshal(votedList)
 	if err != nil {
 		return err
@@ -1011,7 +1126,17 @@ func (g *governanceContract) saveUserVotes(address []byte, votedList *OngoingVot
 	return nil
 }
 
-func (g *governanceContract) getUserVotes(address []byte) (*OngoingVotedList, error) {
+func (g *governanceContract) saveUserVotesV2(address []byte, votedList *OngoingVotedListV2) error {
+	marshaledData, err := g.marshalizer.Marshal(votedList)
+	if err != nil {
+		return err
+	}
+	g.eei.SetStorage(address, marshaledData)
+
+	return nil
+}
+
+func (g *governanceContract) getUserVotesV1(address []byte) (*OngoingVotedList, error) {
 	onGoingList := &OngoingVotedList{
 		Direct:    make([]uint64, 0),
 		Delegated: make([]uint64, 0),
@@ -1027,6 +1152,25 @@ func (g *governanceContract) getUserVotes(address []byte) (*OngoingVotedList, er
 	}
 
 	return onGoingList, nil
+}
+
+// getUserVotesV2 returns the ongoing voted list for a user
+// if the user has v1 ongoing list, it will be converted to v2, dropping Delegate field
+func (g *governanceContract) getUserVotesV2(address []byte) (*OngoingVotedListV2, error) {
+	onGoingListV2 := &OngoingVotedListV2{
+		Direct:               make([]uint64, 0),
+		DelegatedWithAddress: make([]*DelegatedWithAddress, 0),
+	}
+	marshaledData := g.eei.GetStorage(address)
+	if len(marshaledData) == 0 {
+		return onGoingListV2, nil
+	}
+
+	err := g.marshalizer.Unmarshal(onGoingListV2, marshaledData)
+	if err != nil {
+		return nil, err
+	}
+	return onGoingListV2, nil
 }
 
 func (g *governanceContract) getDelegatedContractInfo(scAddress []byte, reference []byte) (*DelegatedSCVoteInfo, error) {
@@ -1163,18 +1307,21 @@ func (g *governanceContract) proposalExists(reference []byte) bool {
 
 // startEndEpochFromArguments converts the nonce string arguments to uint64
 func (g *governanceContract) startEndEpochFromArguments(argStart []byte, argEnd []byte) (uint64, uint64, error) {
-	startVoteEpoch := big.NewInt(0).SetBytes(argStart)
-	endVoteEpoch := big.NewInt(0).SetBytes(argEnd)
+	startVoteEpoch := big.NewInt(0).SetBytes(argStart).Uint64()
+	endVoteEpoch := big.NewInt(0).SetBytes(argEnd).Uint64()
 
 	currentEpoch := uint64(g.eei.BlockChainHook().CurrentEpoch())
-	if currentEpoch > startVoteEpoch.Uint64() || startVoteEpoch.Uint64() > endVoteEpoch.Uint64() {
+	if currentEpoch > startVoteEpoch || startVoteEpoch > endVoteEpoch {
 		return 0, 0, vm.ErrInvalidStartEndVoteEpoch
 	}
-	if endVoteEpoch.Uint64()-startVoteEpoch.Uint64() >= uint64(g.unBondPeriodInEpochs) {
+	if endVoteEpoch-startVoteEpoch >= uint64(g.unBondPeriodInEpochs) {
+		return 0, 0, vm.ErrInvalidStartEndVoteEpoch
+	}
+	if g.enableEpochsHandler.IsFlagEnabled(common.GovernanceFixesFlag) && startVoteEpoch-currentEpoch >= uint64(g.maxVotingDelayPeriodInEpochs) {
 		return 0, 0, vm.ErrInvalidStartEndVoteEpoch
 	}
 
-	return startVoteEpoch.Uint64(), endVoteEpoch.Uint64(), nil
+	return startVoteEpoch, endVoteEpoch, nil
 }
 
 // convertV2Config converts the passed config file to the correct V2 typed GovernanceConfig
@@ -1211,17 +1358,44 @@ func (g *governanceContract) convertV2Config(config config.GovernanceSystemSCCon
 	}, nil
 }
 
+func (g *governanceContract) processLastEndedNonce() {
+	lastEndedNonce := g.getLastEndedNonce()
+	currentEpoch := g.eei.BlockChainHook().CurrentEpoch()
+
+	maxNoncesToCheck := uint64(1000)
+	nonceFound := big.NewInt(int64(lastEndedNonce))
+	for nonce := lastEndedNonce + 1; nonce < lastEndedNonce+maxNoncesToCheck; nonce++ {
+		nonceBig := big.NewInt(int64(nonce))
+		proposal, err := g.getProposalFromNonce(nonceBig)
+		if err != nil || proposal.EndVoteEpoch >= uint64(currentEpoch) {
+			nonceFound = nonceBig.Sub(nonceBig, big.NewInt(1))
+			break
+		}
+	}
+
+	g.eei.SetStorage([]byte(lastEndedNonceKey), nonceFound.Bytes())
+}
+
+func (g *governanceContract) getLastEndedNonce() uint64 {
+	marshaledData := g.eei.GetStorage([]byte(lastEndedNonceKey))
+	if len(marshaledData) == 0 {
+		return 0
+	}
+
+	return big.NewInt(0).SetBytes(marshaledData).Uint64()
+}
+
 func convertDecimalToPercentage(arg []byte) (float32, error) {
 	value, okConvert := big.NewInt(0).SetString(string(arg), conversionBase)
 	if !okConvert {
 		return 0.0, vm.ErrIncorrectConfig
 	}
 
-	valAsFloat := float64(value.Uint64()) / maxPercentage
-	if valAsFloat < 0.001 || valAsFloat > 1.0 {
+	valAsFloat := float32(value.Uint64()) / maxPercentage
+	if valAsFloat < 0.0001 || valAsFloat > 1.0 {
 		return 0.0, vm.ErrIncorrectConfig
 	}
-	return float32(valAsFloat), nil
+	return valAsFloat, nil
 }
 
 // CanUseContract returns true if contract is enabled
