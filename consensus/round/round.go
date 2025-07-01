@@ -20,14 +20,14 @@ var _ consensus.RoundHandler = (*round)(nil)
 
 // round defines the data needed by the roundHandler
 type round struct {
-	index           int64         // represents the index of the round in the current chronology (current time - genesis time) / round duration
-	timeStamp       time.Time     // represents the start time of the round in the current chronology genesis time + round index * round duration
-	newTimeStamp    time.Duration // time duration between genesis and the time duration change
-	timeDuration    time.Duration // represents the duration of the round in current chronology
-	newTimeDuration time.Duration // represents the duration of the round in current chronology
-	syncTimer       ntp.SyncTimer
-	startRound      int64
-	newStartRound   int64
+	index               int64         // represents the index of the round in the current chronology (current time - genesis time) / round duration
+	timeStamp           time.Time     // represents the start time of the round in the current chronology genesis time + round index * round duration
+	newGenesisTimeStamp time.Time     // time duration between genesis and the time duration change
+	timeDuration        time.Duration // represents the duration of the round in current chronology
+	newTimeDuration     time.Duration // represents the duration of the round in current chronology
+	syncTimer           ntp.SyncTimer
+	startRound          int64
+	newStartRound       int64
 
 	*sync.RWMutex
 
@@ -53,12 +53,14 @@ func NewRound(
 	}
 
 	newStartRound := int64(enableRoundsHandler.SupernovaActivationRound())
+	newGenesisTimeStamp := genesisTimeStamp.Add(time.Duration(newStartRound * roundTimeDuration.Nanoseconds()))
+	newTimeDuration := time.Duration(4000) * time.Millisecond
 
 	rnd := round{
 		timeDuration:        roundTimeDuration,
-		newTimeDuration:     roundTimeDuration,
+		newTimeDuration:     newTimeDuration,
 		timeStamp:           genesisTimeStamp,
-		newTimeStamp:        time.Duration(0),
+		newGenesisTimeStamp: newGenesisTimeStamp,
 		syncTimer:           syncTimer,
 		startRound:          startRound,
 		newStartRound:       newStartRound,
@@ -91,8 +93,7 @@ func (rnd *round) UpdateRound(genesisTimeStamp time.Time, currentTimeStamp time.
 		return
 	}
 
-	indexBaseTimeStamp := genesisTimeStamp.Add(rnd.newTimeStamp)
-	delta := currentTimeStamp.Sub(indexBaseTimeStamp).Nanoseconds()
+	delta := currentTimeStamp.Sub(rnd.newGenesisTimeStamp).Nanoseconds()
 
 	startRound := rnd.startRound + rnd.newStartRound
 
@@ -101,14 +102,13 @@ func (rnd *round) UpdateRound(genesisTimeStamp time.Time, currentTimeStamp time.
 	rnd.Lock()
 	if rnd.index != index {
 		rnd.index = index
-		rnd.timeStamp = indexBaseTimeStamp.Add(time.Duration((index - startRound) * rnd.getTimeDuration().Nanoseconds()))
+		rnd.timeStamp = rnd.newGenesisTimeStamp.Add(time.Duration((index - startRound) * rnd.getTimeDuration().Nanoseconds()))
 	}
 	rnd.Unlock()
 
 	log.Trace("UpdateRound",
-		"indexBaseTimeStamp milli", indexBaseTimeStamp.UnixMilli(),
 		"index", index,
-		"newTimeStamp milli", rnd.newTimeStamp.Milliseconds(),
+		"newGenesisTimeStamp milli", rnd.newGenesisTimeStamp.UnixMilli(),
 		"rnd.timeStamp unix milli", rnd.timeStamp.UnixMilli(),
 	)
 }
@@ -180,31 +180,9 @@ func (rnd *round) getTimeDuration() time.Duration {
 
 // SetTimeDuration sets the duration of the round
 func (rnd *round) SetTimeDuration(timeDuration time.Duration) {
-	rnd.Lock()
-	defer rnd.Unlock()
-
-	log.Debug("round.SetTimeDuration",
-		"oldTimeDuration", rnd.timeDuration,
-		"newTimeDuration", timeDuration,
-	)
-
-	rnd.newTimeDuration = timeDuration
-
 }
 
 func (rnd *round) SetNewTimeStamp(genesisTimeStamp time.Time, currentTimeStamp time.Time) {
-	rnd.Lock()
-	defer rnd.Unlock()
-
-	indexBaseTimeStamp := currentTimeStamp.Sub(genesisTimeStamp)
-	rnd.newTimeStamp = indexBaseTimeStamp
-
-	log.Debug("round.SetNewTimeStamp",
-		"indexBaseTimeStamp", indexBaseTimeStamp,
-		"newTimeStamp", rnd.newTimeStamp,
-	)
-
-	rnd.newStartRound = rnd.index // set current round as the new start round
 }
 
 // RemainingTime returns the remaining time in the current round given by the current time, round start time and
@@ -218,16 +196,18 @@ func (rnd *round) RemainingTime(startTime time.Time, maxTime time.Duration) time
 }
 
 // RevertOneRound reverts the round index and time stamp by one round, used in case of a transition to new consensus
+// TODO: handle revert for supernova new timestamp field
 func (rnd *round) RevertOneRound() {
 	rnd.Lock()
-	// rnd.index--
-	// rnd.timeStamp = rnd.timeStamp.Add(-rnd.getTimeDuration())
-	index := rnd.index - 1
-	timeStamp := rnd.timeStamp.Add(-rnd.getTimeDuration())
+
+	rnd.index--
+	rnd.timeStamp = rnd.timeStamp.Add(-rnd.getTimeDuration())
+	// index := rnd.index - 1
+	// timeStamp := rnd.timeStamp.Add(-rnd.getTimeDuration())
 
 	log.Debug("RevertOneRound fake",
-		"index", index,
-		"timeStamp milli", timeStamp.UnixMilli(),
+		"index", rnd.index,
+		"timeStamp milli", rnd.timeStamp.UnixMilli(),
 	)
 
 	rnd.Unlock()
