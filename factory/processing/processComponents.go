@@ -1802,7 +1802,10 @@ func (pcf *processComponentsFactory) newForkDetector(
 			blockTracker,
 			pcf.coreData.GenesisNodesSetup().GetStartTime(),
 			pcf.coreData.EnableEpochsHandler(),
-			pcf.data.Datapool().Proofs())
+			pcf.coreData.EnableRoundsHandler(),
+			pcf.data.Datapool().Proofs(),
+			pcf.coreData.ChainParametersHandler(),
+		)
 	}
 	if shardCoordinator.SelfId() == core.MetachainShardId {
 		return sync.NewMetaForkDetector(
@@ -1811,7 +1814,10 @@ func (pcf *processComponentsFactory) newForkDetector(
 			blockTracker,
 			pcf.coreData.GenesisNodesSetup().GetStartTime(),
 			pcf.coreData.EnableEpochsHandler(),
-			pcf.data.Datapool().Proofs())
+			pcf.coreData.EnableRoundsHandler(),
+			pcf.data.Datapool().Proofs(),
+			pcf.coreData.ChainParametersHandler(),
+		)
 	}
 
 	return nil, errors.New("could not create fork detector")

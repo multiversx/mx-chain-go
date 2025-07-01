@@ -32,6 +32,7 @@ import (
 	"github.com/multiversx/mx-chain-go/storage/storageunit"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/cache"
+	"github.com/multiversx/mx-chain-go/testscommon/chainParameters"
 	dataRetrieverMock "github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
 	"github.com/multiversx/mx-chain-go/testscommon/dblookupext"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
@@ -191,6 +192,7 @@ func initRoundHandler() consensus.RoundHandler {
 		100*time.Millisecond,
 		&mock.SyncTimerMock{},
 		0,
+		&testscommon.EnableRoundsHandlerStub{},
 	)
 
 	return rnd
@@ -607,6 +609,7 @@ func TestBootstrap_ShouldReturnTimeIsOutWhenMissingHeader(t *testing.T) {
 		100*time.Millisecond,
 		&mock.SyncTimerMock{},
 		0,
+		&testscommon.EnableRoundsHandlerStub{},
 	)
 	args.BlockProcessor = createBlockProcessor(args.ChainHandler)
 
@@ -668,6 +671,7 @@ func TestBootstrap_ShouldReturnTimeIsOutWhenMissingBody(t *testing.T) {
 		100*time.Millisecond,
 		&mock.SyncTimerMock{},
 		0,
+		&testscommon.EnableRoundsHandlerStub{},
 	)
 
 	bs, _ := sync.NewShardBootstrap(args)
@@ -808,6 +812,7 @@ func TestBootstrap_SyncShouldSyncOneBlock(t *testing.T) {
 		100*time.Millisecond,
 		&mock.SyncTimerMock{},
 		0,
+		&testscommon.EnableRoundsHandlerStub{},
 	)
 
 	bs, _ := sync.NewShardBootstrap(args)
@@ -897,6 +902,7 @@ func TestBootstrap_ShouldReturnNilErr(t *testing.T) {
 		100*time.Millisecond,
 		&mock.SyncTimerMock{},
 		0,
+		&testscommon.EnableRoundsHandlerStub{},
 	)
 
 	bs, _ := sync.NewShardBootstrap(args)
@@ -989,6 +995,7 @@ func TestBootstrap_SyncBlockShouldReturnErrorWhenProcessBlockFailed(t *testing.T
 		100*time.Millisecond,
 		&mock.SyncTimerMock{},
 		0,
+		&testscommon.EnableRoundsHandlerStub{},
 	)
 
 	bs, _ := sync.NewShardBootstrap(args)
@@ -1038,6 +1045,7 @@ func TestBootstrap_GetNodeStateShouldReturnNotSynchronizedWhenCurrentBlockIsNilA
 		100*time.Millisecond,
 		&mock.SyncTimerMock{},
 		0,
+		&testscommon.EnableRoundsHandlerStub{},
 	)
 
 	bs, _ := sync.NewShardBootstrap(args)
@@ -1108,6 +1116,7 @@ func TestBootstrap_GetNodeStateShouldReturnNotSynchronizedWhenNodeIsNotSynced(t 
 		100*time.Millisecond,
 		&mock.SyncTimerMock{},
 		0,
+		&testscommon.EnableRoundsHandlerStub{},
 	)
 
 	bs, _ := sync.NewShardBootstrap(args)
@@ -1169,7 +1178,9 @@ func TestBootstrap_GetNodeStateShouldReturnNotSynchronizedWhenForkIsDetectedAndI
 		&mock.BlockTrackerMock{},
 		0,
 		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		&testscommon.EnableRoundsHandlerStub{},
 		&dataRetrieverMock.ProofsPoolMock{},
+		&chainParameters.ChainParametersHandlerStub{},
 	)
 
 	bs, _ := sync.NewShardBootstrap(args)
@@ -1246,7 +1257,9 @@ func TestBootstrap_GetNodeStateShouldReturnSynchronizedWhenForkIsDetectedAndItRe
 		&mock.BlockTrackerMock{},
 		0,
 		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		&testscommon.EnableRoundsHandlerStub{},
 		&dataRetrieverMock.ProofsPoolMock{},
+		&chainParameters.ChainParametersHandlerStub{},
 	)
 
 	bs, _ := sync.NewShardBootstrap(args)
@@ -2207,6 +2220,7 @@ func TestShardBootstrap_SyncBlockGetNodeDBErrorShouldSync(t *testing.T) {
 		100*time.Millisecond,
 		&mock.SyncTimerMock{},
 		0,
+		&testscommon.EnableRoundsHandlerStub{},
 	)
 
 	syncCalled := false
@@ -2268,6 +2282,7 @@ func TestShardBootstrap_SyncBlock_WithEquivalentProofs(t *testing.T) {
 			100*time.Millisecond,
 			&mock.SyncTimerMock{},
 			0,
+			&testscommon.EnableRoundsHandlerStub{},
 		)
 		args.BlockProcessor = createBlockProcessor(args.ChainHandler)
 
@@ -2326,6 +2341,7 @@ func TestShardBootstrap_SyncBlock_WithEquivalentProofs(t *testing.T) {
 			100*time.Millisecond,
 			&mock.SyncTimerMock{},
 			0,
+			&testscommon.EnableRoundsHandlerStub{},
 		)
 		args.BlockProcessor = createBlockProcessor(args.ChainHandler)
 
@@ -2428,6 +2444,7 @@ func TestShardBootstrap_SyncBlock_WithEquivalentProofs(t *testing.T) {
 			100*time.Millisecond,
 			&mock.SyncTimerMock{},
 			0,
+			&testscommon.EnableRoundsHandlerStub{},
 		)
 		args.BlockProcessor = createBlockProcessor(args.ChainHandler)
 

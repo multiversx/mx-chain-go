@@ -205,6 +205,12 @@ func (ccf *coreComponentsFactory) Create() (*coreComponents, error) {
 		return nil, err
 	}
 
+	roundNotifier := forking.NewGenericRoundNotifier()
+	enableRoundsHandler, err := enablers.NewEnableRoundsHandler(ccf.roundConfig, roundNotifier)
+	if err != nil {
+		return nil, err
+	}
+
 	genesisNodesConfig, err := sharding.NewNodesSetup(
 		ccf.nodesSetupConfig,
 		chainParametersHandler,
@@ -251,6 +257,7 @@ func (ccf *coreComponentsFactory) Create() (*coreComponents, error) {
 		roundDuration,
 		syncer,
 		startRound,
+		enableRoundsHandler,
 	)
 	if err != nil {
 		return nil, err
@@ -259,12 +266,6 @@ func (ccf *coreComponentsFactory) Create() (*coreComponents, error) {
 	alarmScheduler := alarm.NewAlarmScheduler()
 	// TODO: disable watchdog if block processing cutoff is enabled
 	watchdogTimer, err := watchdog.NewWatchdog(alarmScheduler, ccf.chanStopNodeProcess, log)
-	if err != nil {
-		return nil, err
-	}
-
-	roundNotifier := forking.NewGenericRoundNotifier()
-	enableRoundsHandler, err := enablers.NewEnableRoundsHandler(ccf.roundConfig, roundNotifier)
 	if err != nil {
 		return nil, err
 	}

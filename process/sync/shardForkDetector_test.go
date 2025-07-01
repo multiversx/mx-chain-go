@@ -10,6 +10,7 @@ import (
 	"github.com/multiversx/mx-chain-go/process/mock"
 	"github.com/multiversx/mx-chain-go/process/sync"
 	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/chainParameters"
 	dataRetrieverMock "github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 
@@ -25,7 +26,9 @@ func TestNewShardForkDetector_NilRoundHandlerShouldErr(t *testing.T) {
 		&mock.BlockTrackerMock{},
 		0,
 		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		&testscommon.EnableRoundsHandlerStub{},
 		&dataRetrieverMock.ProofsPoolMock{},
+		&chainParameters.ChainParametersHandlerStub{},
 	)
 	assert.True(t, check.IfNil(sfd))
 	assert.Equal(t, process.ErrNilRoundHandler, err)
@@ -40,7 +43,9 @@ func TestNewShardForkDetector_NilBlackListShouldErr(t *testing.T) {
 		&mock.BlockTrackerMock{},
 		0,
 		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		&testscommon.EnableRoundsHandlerStub{},
 		&dataRetrieverMock.ProofsPoolMock{},
+		&chainParameters.ChainParametersHandlerStub{},
 	)
 	assert.True(t, check.IfNil(sfd))
 	assert.Equal(t, process.ErrNilBlackListCacher, err)
@@ -55,7 +60,9 @@ func TestNewShardForkDetector_NilBlockTrackerShouldErr(t *testing.T) {
 		nil,
 		0,
 		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		&testscommon.EnableRoundsHandlerStub{},
 		&dataRetrieverMock.ProofsPoolMock{},
+		&chainParameters.ChainParametersHandlerStub{},
 	)
 	assert.True(t, check.IfNil(sfd))
 	assert.Equal(t, process.ErrNilBlockTracker, err)
@@ -70,7 +77,9 @@ func TestNewShardForkDetector_NilEnableEpochsHandlerShouldErr(t *testing.T) {
 		&mock.BlockTrackerMock{},
 		0,
 		nil,
+		&testscommon.EnableRoundsHandlerStub{},
 		&dataRetrieverMock.ProofsPoolMock{},
+		&chainParameters.ChainParametersHandlerStub{},
 	)
 	assert.True(t, check.IfNil(sfd))
 	assert.Equal(t, process.ErrNilEnableEpochsHandler, err)
@@ -85,7 +94,9 @@ func TestNewShardForkDetector_NilProofsPoolShouldErr(t *testing.T) {
 		&mock.BlockTrackerMock{},
 		0,
 		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		&testscommon.EnableRoundsHandlerStub{},
 		nil,
+		&chainParameters.ChainParametersHandlerStub{},
 	)
 	assert.True(t, check.IfNil(sfd))
 	assert.Equal(t, process.ErrNilProofsPool, err)
@@ -100,7 +111,9 @@ func TestNewShardForkDetector_OkParamsShouldWork(t *testing.T) {
 		&mock.BlockTrackerMock{},
 		0,
 		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		&testscommon.EnableRoundsHandlerStub{},
 		&dataRetrieverMock.ProofsPoolMock{},
+		&chainParameters.ChainParametersHandlerStub{},
 	)
 	assert.Nil(t, err)
 	assert.False(t, check.IfNil(sfd))
@@ -121,7 +134,9 @@ func TestShardForkDetector_AddHeaderNilHeaderShouldErr(t *testing.T) {
 		&mock.BlockTrackerMock{},
 		0,
 		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		&testscommon.EnableRoundsHandlerStub{},
 		&dataRetrieverMock.ProofsPoolMock{},
+		&chainParameters.ChainParametersHandlerStub{},
 	)
 	err := bfd.AddHeader(nil, make([]byte, 0), process.BHProcessed, nil, nil)
 	assert.Equal(t, sync.ErrNilHeader, err)
@@ -137,7 +152,9 @@ func TestShardForkDetector_AddHeaderNilHashShouldErr(t *testing.T) {
 		&mock.BlockTrackerMock{},
 		0,
 		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		&testscommon.EnableRoundsHandlerStub{},
 		&dataRetrieverMock.ProofsPoolMock{},
+		&chainParameters.ChainParametersHandlerStub{},
 	)
 	err := bfd.AddHeader(&block.Header{}, nil, process.BHProcessed, nil, nil)
 	assert.Equal(t, sync.ErrNilHash, err)
@@ -155,7 +172,9 @@ func TestShardForkDetector_AddHeaderNotPresentShouldWork(t *testing.T) {
 		&mock.BlockTrackerMock{},
 		0,
 		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		&testscommon.EnableRoundsHandlerStub{},
 		&dataRetrieverMock.ProofsPoolMock{},
+		&chainParameters.ChainParametersHandlerStub{},
 	)
 	err := bfd.AddHeader(hdr, hash, process.BHProcessed, nil, nil)
 	assert.Nil(t, err)
@@ -179,7 +198,9 @@ func TestShardForkDetector_AddHeaderPresentShouldAppend(t *testing.T) {
 		&mock.BlockTrackerMock{},
 		0,
 		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		&testscommon.EnableRoundsHandlerStub{},
 		&dataRetrieverMock.ProofsPoolMock{},
+		&chainParameters.ChainParametersHandlerStub{},
 	)
 	_ = bfd.AddHeader(hdr1, hash1, process.BHProcessed, nil, nil)
 	err := bfd.AddHeader(hdr2, hash2, process.BHProcessed, nil, nil)
@@ -203,7 +224,9 @@ func TestShardForkDetector_AddHeaderWithProcessedBlockShouldSetCheckpoint(t *tes
 		&mock.BlockTrackerMock{},
 		0,
 		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		&testscommon.EnableRoundsHandlerStub{},
 		&dataRetrieverMock.ProofsPoolMock{},
+		&chainParameters.ChainParametersHandlerStub{},
 	)
 	_ = bfd.AddHeader(hdr1, hash1, process.BHProcessed, nil, nil)
 	assert.Equal(t, hdr1.Nonce, bfd.LastCheckpointNonce())
@@ -222,7 +245,9 @@ func TestShardForkDetector_AddHeaderPresentShouldNotRewriteState(t *testing.T) {
 		&mock.BlockTrackerMock{},
 		0,
 		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		&testscommon.EnableRoundsHandlerStub{},
 		&dataRetrieverMock.ProofsPoolMock{},
+		&chainParameters.ChainParametersHandlerStub{},
 	)
 	_ = bfd.AddHeader(hdr1, hash, process.BHReceived, nil, nil)
 	err := bfd.AddHeader(hdr2, hash, process.BHProcessed, nil, nil)
@@ -245,7 +270,9 @@ func TestShardForkDetector_AddHeaderHigherNonceThanRoundShouldErr(t *testing.T) 
 		&mock.BlockTrackerMock{},
 		0,
 		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		&testscommon.EnableRoundsHandlerStub{},
 		&dataRetrieverMock.ProofsPoolMock{},
+		&chainParameters.ChainParametersHandlerStub{},
 	)
 	err := bfd.AddHeader(
 		&block.Header{Nonce: 1, Round: 0, PubKeysBitmap: []byte("X")}, []byte("hash1"), process.BHProcessed, nil, nil)

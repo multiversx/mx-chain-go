@@ -3,6 +3,7 @@ package sync
 import (
 	"bytes"
 	"math"
+	"runtime/debug"
 	"sync"
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
@@ -11,6 +12,7 @@ import (
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/sharding"
 )
 
 type headerInfo struct {
@@ -46,16 +48,18 @@ type baseForkDetector struct {
 	fork       forkInfo
 	mutFork    sync.RWMutex
 
-	blackListHandler    process.TimeCacher
-	genesisTime         int64
-	blockTracker        process.BlockTracker
-	forkDetector        forkDetector
-	genesisNonce        uint64
-	genesisRound        uint64
-	maxForkHeaderEpoch  uint32
-	genesisEpoch        uint32
-	enableEpochsHandler common.EnableEpochsHandler
-	proofsPool          process.ProofsPool
+	blackListHandler       process.TimeCacher
+	genesisTime            int64
+	blockTracker           process.BlockTracker
+	forkDetector           forkDetector
+	genesisNonce           uint64
+	genesisRound           uint64
+	maxForkHeaderEpoch     uint32
+	genesisEpoch           uint32
+	enableEpochsHandler    common.EnableEpochsHandler
+	enableRoundsHandler    common.EnableRoundsHandler
+	proofsPool             process.ProofsPool
+	chainParametersHandler sharding.ChainParametersHandler
 }
 
 // SetRollBackNonce sets the nonce where the chain should roll back
@@ -118,6 +122,13 @@ func (bfd *baseForkDetector) checkBlockBasicValidity(
 	}
 	// TODO: This check could be removed when this protection mechanism would be implemented on interceptors side
 	if genesisTimeFromHeader != bfd.genesisTime {
+		log.Error("genesis time missmatch",
+			"genesisTimeFromHeader", genesisTimeFromHeader,
+			"localGenesisTime", bfd.genesisTime,
+			"header timestamp", header.GetTimeStamp(),
+			"error", ErrGenesisTimeMissmatch,
+		)
+
 		process.AddHeaderToBlackList(bfd.blackListHandler, headerHash)
 		return ErrGenesisTimeMissmatch
 	}
@@ -699,12 +710,123 @@ func (bfd *baseForkDetector) cleanupReceivedHeadersHigherThanNonce(nonce uint64)
 	bfd.mutHeaders.Unlock()
 }
 
-func (bfd *baseForkDetector) computeGenesisTimeFromHeader(headerHandler data.HeaderHandler) int64 {
-	roundDuration := bfd.getRoundDuration(headerHandler.GetEpoch())
-	roundDifference := int64(headerHandler.GetRound() - bfd.genesisRound)
-	genesisTime := int64(headerHandler.GetTimeStamp()) - roundDifference*roundDuration
+// func (bfd *baseForkDetector) computeGenesisTimeFromHeader(headerHandler data.HeaderHandler) int64 {
+// 	// we have to calculate genesis time as seconds up to supernova activation, and after that we have to consider it by milliseconds
 
-	return genesisTime
+// 	roundDuration := bfd.getRoundDuration(headerHandler.GetEpoch())
+// 	roundDifference := int64(headerHandler.GetRound() - bfd.genesisRound)
+// 	genesisTime := int64(headerHandler.GetTimeStamp()) - roundDifference*roundDuration
+
+// 	return genesisTime
+// }
+
+func (bfd *baseForkDetector) computeGenesisTimeFromHeader(headerHandler data.HeaderHandler) int64 {
+	// we have to calculate genesis time as seconds up to supernova activation, and after that we have to consider it by milliseconds
+
+	supernovaInEpochActivated := bfd.enableEpochsHandler.IsFlagEnabledInEpoch(common.SupernovaFlag, headerHandler.GetEpoch())
+	supernovaInRoundActivated := bfd.enableRoundsHandler.SupernovaEnableRoundEnabled()
+
+	log.Debug("computeGenesisTimeFromHeader",
+		"headerEpoch", headerHandler.GetEpoch(),
+		"supernovaInEpochActivated", supernovaInEpochActivated,
+		"supernovaInRoundActivated", supernovaInRoundActivated,
+	)
+
+	// case 1:
+	//	- supernova epoch not activated
+	// 	- will return legacy genesis time calculation
+	if !supernovaInEpochActivated {
+		roundDuration := int64(bfd.roundHandler.TimeDuration().Seconds())
+		roundDifference := int64(headerHandler.GetRound() - bfd.genesisRound)
+		genesisTime := int64(headerHandler.GetTimeStamp()) - roundDifference*roundDuration
+
+		log.Debug("computeGenesisTimeFromHeader: case 1",
+			"headerRound", headerHandler.GetRound(),
+			"header timestamp", headerHandler.GetTimeStamp(),
+			"roundDifference", roundDifference,
+			"roundDuration", roundDuration,
+		)
+
+		return genesisTime
+	}
+
+	// case 2:
+	//	- supernova epoch activated
+	//	- supernova round not activated
+	if supernovaInEpochActivated && !supernovaInRoundActivated {
+		roundDuration := int64(bfd.roundHandler.TimeDuration().Milliseconds())
+		roundDifference := int64(headerHandler.GetRound() - bfd.genesisRound)
+		genesisTime := int64(headerHandler.GetTimeStamp()) - roundDifference*roundDuration
+
+		log.Debug("computeGenesisTimeFromHeader: case 2",
+			"headerRound", headerHandler.GetRound(),
+			"header timestamp", headerHandler.GetTimeStamp(),
+			"roundDifference", roundDifference,
+			"roundDuration", roundDuration,
+			"genesisTime before shrink", genesisTime,
+		)
+
+		debug.PrintStack()
+
+		genesisTime /= 1000
+
+		return genesisTime
+	}
+
+	// case 2:
+	//	- supernova epoch activated
+	//	- supernova not activated
+	//	- need to calculate 2 intervals
+	if supernovaInEpochActivated && supernovaInRoundActivated {
+		activationEpoch := bfd.enableEpochsHandler.GetActivationEpoch(common.SupernovaFlag)
+		activationRound := bfd.enableRoundsHandler.SupernovaActivationRound()
+
+		// first interval: compute genesis time interval before supernova
+		chainParamsBeforeSupernova, err := bfd.chainParametersHandler.ChainParametersForEpoch(activationEpoch - 1)
+		if err != nil {
+			log.Warn("failed to get chain parameters before supernova", "error", err)
+			return 0
+		}
+		roundDurationBeforeSupernova := chainParamsBeforeSupernova.RoundDuration // as milliseconds
+
+		roundsDifferenceUpToSupernova := int64(activationRound - bfd.genesisRound)
+		supernovaActivationGenesisTime := int64(roundsDifferenceUpToSupernova) * int64(roundDurationBeforeSupernova)
+
+		// seconds interval: compute genesis time interval as milliseconds
+
+		// current round duration as milliseconds, since we have supernova fully activated
+		roundDuration := bfd.roundHandler.TimeDuration().Milliseconds()
+
+		roundDifferenceTillSupernova := int64(headerHandler.GetRound()) - int64(roundsDifferenceUpToSupernova)
+		if roundDifferenceTillSupernova < 0 {
+			log.Warn("current round lower than supernova activation round",
+				"current round", headerHandler.GetRound(),
+				"supernova activationRound", activationRound,
+				"roundsDifferenceUpToSupernova", roundsDifferenceUpToSupernova,
+			)
+			return 0
+		}
+
+		// handler intervals
+		calculatedSupernovaActivationGenesisTime := int64(headerHandler.GetTimeStamp()) - roundDifferenceTillSupernova*roundDuration
+
+		genesisTime := calculatedSupernovaActivationGenesisTime - supernovaActivationGenesisTime
+
+		log.Debug("computeGenesisTimeFromHeader",
+			"headerRound", headerHandler.GetRound(),
+			"header timestamp", headerHandler.GetTimeStamp(),
+			"roundsDifferenceUpToSupernova", roundsDifferenceUpToSupernova,
+			"roundDifferenceTillSupernova", roundDifferenceTillSupernova,
+			"roundDuration", roundDuration,
+			"genesisTime before shrink", genesisTime,
+		)
+
+		return genesisTime
+	}
+
+	log.Warn("should NOT arrive here")
+
+	return 0
 }
 
 // getRoundDuration returns round duration in seconds or milliseconds based on activation flag
@@ -782,16 +904,20 @@ func (bfd *baseForkDetector) processReceivedBlock(
 	if common.IsProofsFlagEnabledForHeader(bfd.enableEpochsHandler, header) {
 		hasProof = bfd.proofsPool.HasProof(header.GetShardID(), headerHash)
 	}
+	// if bfd.enableEpochsHandler.GetActivationEpoch(common.SupernovaFlag) == header.GetEpoch() && header.IsStartOfEpochBlock() {
+	// 	log.Debug("processReceivedBlock: setting hasProof = true for supernova activation block")
+	// 	hasProof = true
+	// }
 	bfd.setHighestNonceReceived(header.GetNonce())
 
 	if state == process.BHProposed || !hasProof {
-		log.Trace("forkDetector.processReceivedBlock: block is proposed or has no proof", "state", state, "has proof", hasProof)
+		log.Debug("forkDetector.processReceivedBlock: block is proposed or has no proof", "state", state, "has proof", hasProof)
 		return
 	}
 
 	isHeaderReceivedTooLate := bfd.isHeaderReceivedTooLate(header, state, process.BlockFinality)
 	if isHeaderReceivedTooLate {
-		log.Trace("forkDetector.processReceivedBlock: block is received too late", "initial state", state)
+		log.Debug("forkDetector.processReceivedBlock: block is received too late", "initial state", state)
 		state = process.BHReceivedTooLate
 	}
 
@@ -805,7 +931,7 @@ func (bfd *baseForkDetector) processReceivedBlock(
 	}
 
 	if !bfd.append(hInfo) {
-		log.Trace("forkDetector.processReceivedBlock: header not appended", "nonce", hInfo.nonce, "hash", hInfo.hash)
+		log.Debug("forkDetector.processReceivedBlock: header not appended", "nonce", hInfo.nonce, "hash", hInfo.hash)
 		return
 	}
 

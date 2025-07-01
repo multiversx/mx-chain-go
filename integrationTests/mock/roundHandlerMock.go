@@ -48,6 +48,13 @@ func (mock *RoundHandlerMock) TimeDuration() time.Duration {
 	return mock.TimeDurationField
 }
 
+// SetTimeDuration -
+func (mock *RoundHandlerMock) SetTimeDuration(timeDuration time.Duration) {
+}
+
+func (mock *RoundHandlerMock) SetNewTimeStamp(genesisTimeStamp time.Time, currentTimeStamp time.Time) {
+}
+
 // RemainingTime -
 func (mock *RoundHandlerMock) RemainingTime(_ time.Time, _ time.Duration) time.Duration {
 	return mock.RemainingTimeField

@@ -11,6 +11,7 @@ import (
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/sharding"
 )
 
 var _ process.ForkDetector = (*shardForkDetector)(nil)
@@ -27,7 +28,9 @@ func NewShardForkDetector(
 	blockTracker process.BlockTracker,
 	genesisTime int64,
 	enableEpochsHandler common.EnableEpochsHandler,
+	enableRoundsHandler common.EnableRoundsHandler,
 	proofsPool process.ProofsPool,
+	chainParametersHandler sharding.ChainParametersHandler,
 ) (*shardForkDetector, error) {
 
 	if check.IfNil(roundHandler) {
@@ -52,15 +55,17 @@ func NewShardForkDetector(
 	}
 
 	bfd := &baseForkDetector{
-		roundHandler:        roundHandler,
-		blackListHandler:    blackListHandler,
-		genesisTime:         genesisTime,
-		blockTracker:        blockTracker,
-		genesisNonce:        genesisHdr.GetNonce(),
-		genesisRound:        genesisHdr.GetRound(),
-		genesisEpoch:        genesisHdr.GetEpoch(),
-		enableEpochsHandler: enableEpochsHandler,
-		proofsPool:          proofsPool,
+		roundHandler:           roundHandler,
+		blackListHandler:       blackListHandler,
+		genesisTime:            genesisTime,
+		blockTracker:           blockTracker,
+		genesisNonce:           genesisHdr.GetNonce(),
+		genesisRound:           genesisHdr.GetRound(),
+		genesisEpoch:           genesisHdr.GetEpoch(),
+		enableEpochsHandler:    enableEpochsHandler,
+		enableRoundsHandler:    enableRoundsHandler,
+		proofsPool:             proofsPool,
+		chainParametersHandler: chainParametersHandler,
 	}
 
 	bfd.headers = make(map[uint64][]*headerInfo)
