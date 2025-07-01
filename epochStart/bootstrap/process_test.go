@@ -979,6 +979,7 @@ func TestCreateSyncers(t *testing.T) {
 	args := createMockEpochStartBootstrapArgs(coreComp, cryptoComp)
 
 	epochStartProvider, _ := NewEpochStartBootstrap(args)
+	epochStartProvider.epochStartMeta = &block.MetaBlock{}
 	epochStartProvider.shardCoordinator = mock.NewMultipleShardsCoordinatorMock()
 	epochStartProvider.dataPool = &dataRetrieverMock.PoolsHolderStub{
 		HeadersCalled: func() dataRetriever.HeadersPool {
@@ -2493,6 +2494,7 @@ func TestSyncSetGuardianTransaction(t *testing.T) {
 	args := createMockEpochStartBootstrapArgs(coreComp, cryptoComp)
 
 	epochStartProvider, _ := NewEpochStartBootstrap(args)
+	epochStartProvider.epochStartMeta = &block.MetaBlock{}
 	epochStartProvider.shardCoordinator = mock.NewMultipleShardsCoordinatorMock()
 	transactions := testscommon.NewShardedDataCacheNotifierMock()
 	epochStartProvider.dataPool = &dataRetrieverMock.PoolsHolderStub{

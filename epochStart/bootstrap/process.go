@@ -14,6 +14,8 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/data/typeConverters/uint64ByteSlice"
+	disabledFactory "github.com/multiversx/mx-chain-go/dataRetriever/factory/containers/disabled"
+	processP2P "github.com/multiversx/mx-chain-go/process/p2p"
 	logger "github.com/multiversx/mx-chain-logger-go"
 
 	"github.com/multiversx/mx-chain-go/process/interceptors/processor"
@@ -613,6 +615,24 @@ func (e *epochStartBootstrap) createSyncers() error {
 	if err != nil {
 		return err
 	}
+
+	argsEpochChangeTopicsHandler := processP2P.ArgEpochChangeTopicsHandler{
+		MainMessenger:                    e.mainMessenger,
+		FullArchiveMessenger:             e.fullArchiveMessenger,
+		EnableEpochsHandler:              e.enableEpochsHandler,
+		EpochNotifier:                    e.coreComponentsHolder.EpochNotifier(),
+		ShardCoordinator:                 e.shardCoordinator,
+		ResolversContainer:               disabledFactory.NewDisabledResolversContainer(),
+		MainInterceptorsContainer:        e.mainInterceptorContainer,
+		FullArchiveInterceptorsContainer: e.fullArchiveInterceptorContainer,
+		IsFullArchive:                    e.nodeOperationMode == common.FullArchiveMode,
+	}
+	epochChangeTopicsHandler, err := processP2P.NewEpochChangeTopicsHandler(argsEpochChangeTopicsHandler)
+	if err != nil {
+		return err
+	}
+	// force moving the interceptors on the new subnetwork if needed
+	epochChangeTopicsHandler.EpochConfirmed(e.epochStartMeta.GetEpoch(), e.epochStartMeta.GetTimeStamp())
 
 	syncMiniBlocksArgs := updateSync.ArgsNewPendingMiniBlocksSyncer{
 		Storage:        disabled.CreateMemUnit(),
