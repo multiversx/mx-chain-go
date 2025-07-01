@@ -14,7 +14,8 @@ const (
 	conversionBase    = 10
 	bitConversionSize = 64
 
-	disableAsyncCallV1 = "DisableAsyncCallV1"
+	disableAsyncCallV1   = "DisableAsyncCallV1"
+	supernovaEnableRound = "SupernovaEnableRound"
 )
 
 type enableRoundsHandler struct {
@@ -28,9 +29,15 @@ func NewEnableRoundsHandler(args config.RoundConfig, roundNotifier process.Round
 		return nil, err
 	}
 
+	supernovaEnableRound, err := getRoundConfig(args, supernovaEnableRound)
+	if err != nil {
+		return nil, err
+	}
+
 	handler := &enableRoundsHandler{
 		roundFlagsHolder: &roundFlagsHolder{
-			disableAsyncCallV1: disableAsyncCallV1,
+			disableAsyncCallV1:   disableAsyncCallV1,
+			supernovaEnableRound: supernovaEnableRound,
 		},
 	}
 
@@ -65,6 +72,7 @@ func getRoundConfig(args config.RoundConfig, configName string) (*roundFlag, err
 // RoundConfirmed is called whenever a new round is confirmed
 func (handler *enableRoundsHandler) RoundConfirmed(round uint64, timestamp uint64) {
 	handler.disableAsyncCallV1.SetValue(handler.disableAsyncCallV1.round <= round)
+	handler.supernovaEnableRound.SetValue(handler.supernovaEnableRound.round <= round)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

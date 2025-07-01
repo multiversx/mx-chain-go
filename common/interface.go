@@ -310,6 +310,15 @@ type EnableEpochsHandler interface {
 	IsInterfaceNil() bool
 }
 
+type EnableRoundsHandler interface {
+	RoundConfirmed(round uint64, timestamp uint64)
+	IsDisableAsyncCallV1Enabled() bool
+	SupernovaEnableRoundEnabled() bool
+	SupernovaActivationRound() uint64
+
+	IsInterfaceNil() bool
+}
+
 // ManagedPeersHolder defines the operations of an entity that holds managed identities for a node
 type ManagedPeersHolder interface {
 	AddManagedPeer(privateKeyBytes []byte) error
