@@ -31,7 +31,8 @@ const chronologyAlarmID = "chronology"
 
 // chronology defines the data needed by the chronology
 type chronology struct {
-	genesisTime time.Time
+	genesisTime    time.Time
+	newGenesisTime time.Duration
 
 	roundHandler consensus.RoundHandler
 	syncTimer    ntp.SyncTimer
@@ -46,6 +47,7 @@ type chronology struct {
 
 	watchdog            core.WatchdogTimer
 	enableEpochsHandler common.EnableEpochsHandler
+	enableRoundsHandler common.EnableRoundsHandler
 }
 
 // NewChronology creates a new chronology object
@@ -226,6 +228,16 @@ func (chr *chronology) loadSubroundHandler(subroundId int) consensus.SubroundHan
 	}
 
 	return chr.subroundHandlers[index]
+}
+
+func (chr *chronology) SetRoundTimeDuration(timeDuration time.Duration) {
+	chr.roundHandler.SetTimeDuration(timeDuration)
+
+	chr.SetNewTimeStamp(chr.genesisTime, chr.syncTimer.CurrentTime())
+}
+
+func (chr *chronology) SetNewTimeStamp(genesisTimeStamp time.Time, currentTimeStamp time.Time) {
+	chr.roundHandler.SetNewTimeStamp(genesisTimeStamp, currentTimeStamp)
 }
 
 // Close will close the endless running go routine
