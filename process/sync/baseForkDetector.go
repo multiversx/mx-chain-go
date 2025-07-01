@@ -821,6 +821,8 @@ func (bfd *baseForkDetector) computeGenesisTimeFromHeader(headerHandler data.Hea
 			"genesisTime before shrink", genesisTime,
 		)
 
+		genesisTime /= 1000
+
 		return genesisTime
 	}
 
