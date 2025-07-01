@@ -8,12 +8,12 @@ import (
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/hashing"
 )
 
 const faultyChance = 1000000
 
-func shouldTestNode(n node, key []byte) bool {
-	hasher := n.getHasher()
+func shouldTestNode(hasher hashing.Hasher, key []byte) bool {
 	randomness := string(key) + core.GetAnonymizedMachineID("") + fmt.Sprintf("%d", time.Now().UnixNano())
 	buff := hasher.Compute(randomness)
 	checkVal := binary.BigEndian.Uint32(buff)
