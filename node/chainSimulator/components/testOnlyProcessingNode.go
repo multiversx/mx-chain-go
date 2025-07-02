@@ -14,6 +14,7 @@ import (
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/dataRetriever/blockchain"
 	dataRetrieverFactory "github.com/multiversx/mx-chain-go/dataRetriever/factory"
+	"github.com/multiversx/mx-chain-go/debug/handler"
 	"github.com/multiversx/mx-chain-go/facade"
 	"github.com/multiversx/mx-chain-go/factory"
 	bootstrapComp "github.com/multiversx/mx-chain-go/factory/bootstrap"
@@ -37,6 +38,7 @@ type ArgsTestOnlyProcessingNode struct {
 
 	ChanStopNodeProcess    chan endProcess.ArgEndProcess
 	SyncedBroadcastNetwork SyncedBroadcastNetworkHandler
+	Monitor                factory.HeartbeatV2Monitor
 
 	InitialRound                int64
 	InitialNonce                uint64
@@ -150,7 +152,8 @@ func NewTestOnlyProcessingNode(args ArgsTestOnlyProcessingNode) (*testOnlyProces
 	}
 
 	selfShardID := instance.GetShardCoordinator().SelfId()
-	instance.StatusComponentsHolder, err = CreateStatusComponents(
+
+	statusComponentsH, err := CreateStatusComponents(
 		selfShardID,
 		instance.StatusCoreComponents.AppStatusHandler(),
 		args.Configs.GeneralConfig.GeneralSettings.StatusPollingIntervalSec,
@@ -160,6 +163,8 @@ func NewTestOnlyProcessingNode(args ArgsTestOnlyProcessingNode) (*testOnlyProces
 	if err != nil {
 		return nil, err
 	}
+
+	instance.StatusComponentsHolder = statusComponentsH
 
 	err = instance.createBlockChain(selfShardID)
 	if err != nil {
@@ -192,6 +197,8 @@ func NewTestOnlyProcessingNode(args ArgsTestOnlyProcessingNode) (*testOnlyProces
 	if err != nil {
 		return nil, err
 	}
+
+	statusComponentsH.SetNodesCoordinator(instance.NodesCoordinator)
 
 	instance.DataComponentsHolder, err = CreateDataComponents(ArgsDataComponentsHolder{
 		Chain:              instance.ChainHandler,
@@ -244,7 +251,7 @@ func NewTestOnlyProcessingNode(args ArgsTestOnlyProcessingNode) (*testOnlyProces
 		return nil, err
 	}
 
-	err = instance.createFacade(args.Configs, args.APIInterface, args.VmQueryDelayAfterStartInMs)
+	err = instance.createFacade(args.Configs, args.APIInterface, args.VmQueryDelayAfterStartInMs, args.Monitor)
 	if err != nil {
 		return nil, err
 	}
@@ -254,9 +261,39 @@ func NewTestOnlyProcessingNode(args ArgsTestOnlyProcessingNode) (*testOnlyProces
 		return nil, err
 	}
 
+	err = instance.createInterceptorDebugHandler(args.Configs)
+	if err != nil {
+		return nil, err
+	}
+
 	instance.collectClosableComponents(args.APIInterface)
 
 	return instance, nil
+}
+
+func (node *testOnlyProcessingNode) createInterceptorDebugHandler(configs config.Configs) error {
+	debugHandler, err := handler.NewInterceptorDebugHandler(configs.GeneralConfig.Debug.InterceptorResolver, node.CoreComponentsHolder.SyncTimer())
+	if err != nil {
+		return err
+	}
+
+	node.CoreComponentsHolder.EpochStartNotifierWithConfirm().RegisterHandler(debugHandler.EpochStartEventHandler())
+
+	var errFound error
+	node.ProcessComponentsHolder.InterceptorsContainer().Iterate(func(key string, interceptor process.Interceptor) bool {
+		err = interceptor.SetInterceptedDebugHandler(debugHandler)
+		if err != nil {
+			errFound = err
+			return false
+		}
+
+		return true
+	})
+	if errFound != nil {
+		return fmt.Errorf("%w while setting up debugger on interceptors", errFound)
+	}
+
+	return nil
 }
 
 func (node *testOnlyProcessingNode) createBlockChain(selfShardID uint32) error {

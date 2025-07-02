@@ -135,6 +135,7 @@ type processComponents struct {
 	sentSignaturesTracker            process.SentSignaturesTracker
 	epochSystemSCProcessor           process.EpochStartSystemSCProcessor
 	interceptedDataVerifierFactory   process.InterceptedDataVerifierFactory
+	epochStartTriggerHanlder         epochStart.TriggerHandler
 }
 
 // ProcessComponentsFactoryArgs holds the arguments needed to create a process components factory
@@ -724,7 +725,7 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 		return nil, err
 	}
 
-	apiTransactionEvaluator, vmFactoryForTxSimulate, err := pcf.createAPITransactionEvaluator()
+	apiTransactionEvaluator, vmFactoryForTxSimulate, err := pcf.createAPITransactionEvaluator(epochStartTrigger)
 	if err != nil {
 		return nil, fmt.Errorf("%w when assembling components for the transactions simulator processor", err)
 	}
@@ -778,6 +779,7 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 		receiptsRepository:               receiptsRepository,
 		sentSignaturesTracker:            sentSignaturesTracker,
 		interceptedDataVerifierFactory:   pcf.interceptedDataVerifierFactory,
+		epochStartTriggerHanlder:         epochStartTrigger,
 	}, nil
 }
 
@@ -994,10 +996,12 @@ func (pcf *processComponentsFactory) indexAndReturnGenesisAccounts() (map[string
 	}
 
 	shardID := pcf.bootstrapComponents.ShardCoordinator().SelfId()
+	blockTimestamp := uint64(pcf.coreData.GenesisNodesSetup().GetStartTime())
 	pcf.statusComponents.OutportHandler().SaveAccounts(&outport.Accounts{
-		ShardID:         shardID,
-		BlockTimestamp:  uint64(pcf.coreData.GenesisNodesSetup().GetStartTime()),
-		AlteredAccounts: genesisAccounts,
+		ShardID:          shardID,
+		BlockTimestamp:   blockTimestamp,
+		AlteredAccounts:  genesisAccounts,
+		BlockTimestampMs: common.ConvertTimeStampSecToMs(blockTimestamp),
 	})
 	return genesisAccounts, nil
 }

@@ -3,7 +3,7 @@
     MinStakeValue = "100000000000000000000" #100 eGLD
     MinUnstakeTokensValue = "10000000000000000000" #10eGLD
     UnBondPeriod = 250
-    UnBondPeriodInEpochs = 1
+    UnBondPeriodInEpochs = 3
     MinStepValue = "100000000000000000000"
     NumRoundsWithoutBleed = 100
     MaximumPercentageToBleed = 0.5
@@ -20,6 +20,7 @@
 
 [GovernanceSystemSCConfig]
     OwnerAddress = "erd1vxy22x0fj4zv6hktmydg8vpfh6euv02cz4yg0aaws6rrad5a5awqgqky80" #should use a multisign contract instead of a wallet address
+    MaxVotingDelayPeriodInEpochs = 30
     [GovernanceSystemSCConfig.V1]
         NumNodes           = 500
         ProposalCost       = "5000000000000000000" #5 eGLD

@@ -27,7 +27,7 @@ import (
 	datafield "github.com/multiversx/mx-chain-vm-common-go/parsers/dataField"
 )
 
-func (pcf *processComponentsFactory) createAPITransactionEvaluator() (factory.TransactionEvaluator, process.VirtualMachinesContainerFactory, error) {
+func (pcf *processComponentsFactory) createAPITransactionEvaluator(epochStartTrigger process.EpochStartTriggerHandler) (factory.TransactionEvaluator, process.VirtualMachinesContainerFactory, error) {
 	simulationAccountsDB, err := transactionEvaluator.NewSimulationAccountsDB(pcf.state.AccountsAdapterAPI())
 	if err != nil {
 		return nil, nil, err
@@ -47,7 +47,7 @@ func (pcf *processComponentsFactory) createAPITransactionEvaluator() (factory.Tr
 		return nil, nil, err
 	}
 
-	txSimulatorProcessorArgs, vmContainerFactory, txTypeHandler, err := pcf.createArgsTxSimulatorProcessor(simulationAccountsDB, vmOutputCacher, txLogsProcessor)
+	txSimulatorProcessorArgs, vmContainerFactory, txTypeHandler, err := pcf.createArgsTxSimulatorProcessor(simulationAccountsDB, vmOutputCacher, txLogsProcessor, epochStartTrigger)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -89,12 +89,13 @@ func (pcf *processComponentsFactory) createArgsTxSimulatorProcessor(
 	accountsAdapter state.AccountsAdapter,
 	vmOutputCacher storage.Cacher,
 	txLogsProcessor process.TransactionLogProcessor,
+	epochStartTrigger process.EpochStartTriggerHandler,
 ) (transactionEvaluator.ArgsTxSimulator, process.VirtualMachinesContainerFactory, process.TxTypeHandler, error) {
 	shardID := pcf.bootstrapComponents.ShardCoordinator().SelfId()
 	if shardID == core.MetachainShardId {
-		return pcf.createArgsTxSimulatorProcessorForMeta(accountsAdapter, vmOutputCacher, txLogsProcessor)
+		return pcf.createArgsTxSimulatorProcessorForMeta(accountsAdapter, vmOutputCacher, txLogsProcessor, epochStartTrigger)
 	} else {
-		return pcf.createArgsTxSimulatorProcessorShard(accountsAdapter, vmOutputCacher, txLogsProcessor)
+		return pcf.createArgsTxSimulatorProcessorShard(accountsAdapter, vmOutputCacher, txLogsProcessor, epochStartTrigger)
 	}
 }
 
@@ -102,6 +103,7 @@ func (pcf *processComponentsFactory) createArgsTxSimulatorProcessorForMeta(
 	accountsAdapter state.AccountsAdapter,
 	vmOutputCacher storage.Cacher,
 	txLogsProcessor process.TransactionLogProcessor,
+	epochStartTrigger process.EpochStartTriggerHandler,
 ) (transactionEvaluator.ArgsTxSimulator, process.VirtualMachinesContainerFactory, process.TxTypeHandler, error) {
 	args := transactionEvaluator.ArgsTxSimulator{}
 
@@ -137,6 +139,7 @@ func (pcf *processComponentsFactory) createArgsTxSimulatorProcessorForMeta(
 		pcf.config.SmartContractsStorageSimulate,
 		builtInFuncFactory.NFTStorageHandler(),
 		builtInFuncFactory.ESDTGlobalSettingsHandler(),
+		epochStartTrigger,
 	)
 	if err != nil {
 		return args, nil, nil, err
@@ -249,6 +252,7 @@ func (pcf *processComponentsFactory) createArgsTxSimulatorProcessorShard(
 	accountsAdapter state.AccountsAdapter,
 	vmOutputCacher storage.Cacher,
 	txLogsProcessor process.TransactionLogProcessor,
+	epochStartTrigger process.EpochStartTriggerHandler,
 ) (transactionEvaluator.ArgsTxSimulator, process.VirtualMachinesContainerFactory, process.TxTypeHandler, error) {
 	args := transactionEvaluator.ArgsTxSimulator{}
 
@@ -299,6 +303,7 @@ func (pcf *processComponentsFactory) createArgsTxSimulatorProcessorShard(
 		smartContractStorageSimulate,
 		builtInFuncFactory.NFTStorageHandler(),
 		builtInFuncFactory.ESDTGlobalSettingsHandler(),
+		epochStartTrigger,
 	)
 	if err != nil {
 		return args, nil, nil, err
