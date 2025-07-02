@@ -145,7 +145,7 @@ func (sdi *SingleDataInterceptor) ProcessReceivedMessage(message p2p.MessageP2P,
 	}
 
 	go func() {
-		sdi.processInterceptedData(interceptedData, message)
+		sdi.processInterceptedData(interceptedData, message, fromConnectedPeer)
 		sdi.throttler.EndProcessing()
 	}()
 
