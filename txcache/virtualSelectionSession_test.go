@@ -231,3 +231,26 @@ func Test_detectWillFeeExceedBalance(t *testing.T) {
 		require.False(t, actualRes)
 	})
 }
+
+func Test_isIncorrectlyGuarded(t *testing.T) {
+	t.Parallel()
+
+	t.Run("should return not correctly guarded", func(t *testing.T) {
+		t.Parallel()
+
+		sessionMock := txcachemocks.SelectionSessionMock{
+			GetAccountStateCalled: func(address []byte) (state.UserAccountHandler, error) {
+				return &stateMock.StateUserAccountHandlerStub{
+					IsGuardedCalled: func() bool {
+						return false
+					},
+				}, nil
+			},
+		}
+
+		virtualSession := newVirtualSelectionSession(&sessionMock)
+
+		actualRes := virtualSession.isIncorrectlyGuarded(nil)
+		require.False(t, actualRes)
+	})
+}
