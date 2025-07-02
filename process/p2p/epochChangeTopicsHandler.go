@@ -33,7 +33,6 @@ type ArgEpochChangeTopicsHandler struct {
 	IsFullArchive                    bool
 }
 
-// TODO[Sorin]: add unittests
 type epochChangeTopicsHandler struct {
 	mainMessenger                    p2p.Messenger
 	fullArchiveMessenger             p2p.Messenger
@@ -161,6 +160,10 @@ func (handler *epochChangeTopicsHandler) replaceTxResolversOnTxNetwork(
 			return err
 		}
 
+		if !handler.isFullArchive {
+			continue
+		}
+
 		err = replaceTxTopicResolverAndAssignHandlerOnMessenger(true, handler.fullArchiveMessenger, resolver)
 		if err != nil {
 			return err
@@ -257,6 +260,10 @@ func (handler *epochChangeTopicsHandler) replaceShardRewardTxResolversOnTxNetwor
 		return err
 	}
 
+	if !handler.isFullArchive {
+		return nil
+	}
+
 	return replaceTxTopicResolverAndAssignHandlerOnMessenger(true, handler.fullArchiveMessenger, resolver)
 }
 
@@ -279,6 +286,10 @@ func (handler *epochChangeTopicsHandler) replaceMetaRewardTxResolversOnTxNetwork
 		err = replaceTxTopicResolverAndAssignHandlerOnMessenger(true, handler.mainMessenger, resolver)
 		if err != nil {
 			return err
+		}
+
+		if !handler.isFullArchive {
+			continue
 		}
 
 		err = replaceTxTopicResolverAndAssignHandlerOnMessenger(true, handler.fullArchiveMessenger, resolver)
