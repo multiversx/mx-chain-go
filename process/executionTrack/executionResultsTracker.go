@@ -1,74 +1,138 @@
 package executionTrack
 
 import (
+	"encoding/hex"
+	"errors"
+	"fmt"
+	"github.com/multiversx/mx-chain-core-go/data"
+	"sort"
 	"sync"
 
 	"github.com/multiversx/mx-chain-core-go/data/block"
 )
 
-type executionResultConfirmed struct {
-	executionResult *block.ExecutionResult
-	confirmed       bool
+// ArgsExecutionResultsTracker holds all the components needed to create a new instance of executionResultsTracker
+type ArgsExecutionResultsTracker struct {
 }
 
 type executionResultsTracker struct {
-	mutex            sync.RWMutex
-	executionResults map[string]*executionResultConfirmed
+	lastNotarizedNonce     uint64
+	mutex                  sync.RWMutex
+	executionResultsByHash map[string]*block.ExecutionResult
+	nonceHashes            *nonceHashes
 }
 
 // NewExecutionResultsTracker will create a new instance of *executionResultsTracker
-func NewExecutionResultsTracker() (*executionResultsTracker, error) {
+func NewExecutionResultsTracker(_ ArgsExecutionResultsTracker) (*executionResultsTracker, error) {
 	return &executionResultsTracker{
-		executionResults: make(map[string]*executionResultConfirmed),
+		executionResultsByHash: make(map[string]*block.ExecutionResult),
+		nonceHashes:            newNonceHashes(),
 	}, nil
 }
 
 // AddExecutionResult will add the provided execution result in tracker
 // It will return true if the execution result was added in the tracker
-func (est *executionResultsTracker) AddExecutionResult(executionResult *block.ExecutionResult) bool {
+func (est *executionResultsTracker) AddExecutionResult(executionResult *block.ExecutionResult) error {
 	if executionResult == nil {
-		return false
+		return ErrNilExecutionResult
 	}
 
 	est.mutex.Lock()
 	defer est.mutex.Unlock()
-	est.executionResults[string(executionResult.HeaderHash)] = &executionResultConfirmed{
-		executionResult: executionResult,
+	if est.lastNotarizedNonce >= executionResult.Nonce {
+		return fmt.Errorf("execution results nonce(%d) is lower then last notarized nonce(%d)", executionResult.Nonce, est.lastNotarizedNonce)
 	}
 
-	return true
-}
-
-// ConfirmExecutionResult will mark as confirmed the execution results that belongs to the provided hash
-func (est *executionResultsTracker) ConfirmExecutionResult(headerHash []byte) error {
-	est.mutex.Lock()
-	defer est.mutex.Unlock()
-
-	executionResult, found := est.executionResults[string(headerHash)]
-	if !found {
-		return ErrCannotFindExecutionResult
-	}
-
-	executionResult.confirmed = true
+	est.executionResultsByHash[string(executionResult.HeaderHash)] = executionResult
+	est.nonceHashes.addNonceHash(executionResult.Nonce, string(executionResult.HeaderHash))
 
 	return nil
 }
 
-// PopConfirmedExecutionResults will pop from the tracker all the confirmed execution results
-func (est *executionResultsTracker) PopConfirmedExecutionResults() ([]*block.ExecutionResult, error) {
-	confirmedExecutionResults := make([]*block.ExecutionResult, 0)
+func (est *executionResultsTracker) cleanExecutionResultsWithSameNonce(nonce uint64, confirmedHash string) {
+	hashes := est.nonceHashes.popDifferentHashes(nonce, confirmedHash)
+	for _, hash := range hashes {
+		delete(est.executionResultsByHash, hash)
+	}
+}
+
+// GetPendingExecutionResults will return the pending execution results
+func (est *executionResultsTracker) GetPendingExecutionResults() ([]*block.ExecutionResult, error) {
+	executionResults := make([]*block.ExecutionResult, 0)
 	est.mutex.Lock()
 	defer est.mutex.Unlock()
 
-	for hash, executionResult := range est.executionResults {
-		if !executionResult.confirmed {
-			continue
-		}
-		confirmedExecutionResults = append(confirmedExecutionResults, executionResult.executionResult)
-		delete(est.executionResults, hash)
+	for _, executionResult := range est.executionResultsByHash {
+		executionResults = append(executionResults, executionResult)
 	}
 
-	return confirmedExecutionResults, nil
+	if len(executionResults) == 0 {
+		return executionResults, nil
+	}
+
+	sort.Slice(executionResults, func(i, j int) bool {
+		if executionResults[i].Nonce < executionResults[j].Nonce {
+			return true
+		}
+		return false
+	})
+
+	firstElementHasCorrectNonce := executionResults[0].Nonce+1 == est.lastNotarizedNonce
+	if !firstElementHasCorrectNonce {
+		return nil, errors.New("confirmed execution results have different nonces")
+	}
+
+	for idx := 0; idx < len(executionResults)-1; idx++ {
+		hasConsecutiveNonces := executionResults[idx].Nonce+1 == executionResults[idx+1].Nonce
+		if !hasConsecutiveNonces {
+			return nil, errors.New("confirmed execution results have different nonces")
+		}
+	}
+
+	return executionResults, nil
+}
+
+// GetExecutionResultByHash will return the execution results by hash
+func (est *executionResultsTracker) GetExecutionResultByHash(hash []byte) (*block.ExecutionResult, error) {
+	est.mutex.RLock()
+	defer est.mutex.RUnlock()
+
+	result, found := est.executionResultsByHash[string(hash)]
+	if !found {
+		return nil, errors.New("cannot find execution results by provided hash	")
+	}
+
+	return result, nil
+}
+
+// GetExecutionResultByNonce will return the execution results by nonce
+func (est *executionResultsTracker) GetExecutionResultByNonce(nonce uint64) ([]*block.ExecutionResult, error) {
+	executionResults := make([]*block.ExecutionResult, 0)
+
+	est.mutex.RLock()
+	defer est.mutex.RUnlock()
+
+	hashes := est.nonceHashes.getNonceHashes(nonce)
+	for _, hash := range hashes {
+		result, found := est.executionResultsByHash[hash]
+		if !found {
+			return nil, fmt.Errorf("cannot find execution results by provided hash: %s", hex.EncodeToString([]byte(hash)))
+		}
+
+		executionResults = append(executionResults, result)
+	}
+
+	return executionResults, nil
+}
+
+// CleanConfirmedExecutionResults will clean the confirmed execution results
+func (est *executionResultsTracker) CleanConfirmedExecutionResults(headerHash []byte, header data.HeaderHandler) error {
+	est.mutex.Lock()
+	defer est.mutex.Unlock()
+
+	// extend header
+
+	return nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
