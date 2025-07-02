@@ -173,3 +173,61 @@ func Test_getNonce(t *testing.T) {
 		require.Equal(t, expErr, err)
 	})
 }
+
+func Test_detectWillFeeExceedBalance(t *testing.T) {
+	t.Parallel()
+
+	t.Run("should exceed balance", func(t *testing.T) {
+		t.Parallel()
+
+		sessionMock := txcachemocks.SelectionSessionMock{}
+		virtualSession := newVirtualSelectionSession(&sessionMock)
+
+		aliceRecord := virtualAccountRecord{
+			initialNonce: core.OptionalUint64{
+				Value:    3,
+				HasValue: true,
+			},
+			initialBalance:  big.NewInt(2),
+			consumedBalance: big.NewInt(1),
+		}
+		virtualSession.virtualAccountsByAddress = map[string]*virtualAccountRecord{
+			"alice": &aliceRecord,
+		}
+
+		tx := WrappedTransaction{
+			Fee:      big.NewInt(2),
+			FeePayer: []byte("alice"),
+		}
+
+		actualRes := virtualSession.detectWillFeeExceedBalance(&tx)
+		require.True(t, actualRes)
+	})
+
+	t.Run("should not exceed balance", func(t *testing.T) {
+		t.Parallel()
+
+		sessionMock := txcachemocks.SelectionSessionMock{}
+		virtualSession := newVirtualSelectionSession(&sessionMock)
+
+		aliceRecord := virtualAccountRecord{
+			initialNonce: core.OptionalUint64{
+				Value:    3,
+				HasValue: true,
+			},
+			initialBalance:  big.NewInt(5),
+			consumedBalance: big.NewInt(1),
+		}
+		virtualSession.virtualAccountsByAddress = map[string]*virtualAccountRecord{
+			"alice": &aliceRecord,
+		}
+
+		tx := WrappedTransaction{
+			Fee:      big.NewInt(2),
+			FeePayer: []byte("alice"),
+		}
+
+		actualRes := virtualSession.detectWillFeeExceedBalance(&tx)
+		require.False(t, actualRes)
+	})
+}
