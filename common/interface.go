@@ -434,3 +434,11 @@ type TrieLeavesRetriever interface {
 	GetLeaves(numLeaves int, iteratorState [][]byte, leavesParser TrieLeafParser, ctx context.Context) (map[string]string, [][]byte, error)
 	IsInterfaceNil() bool
 }
+
+// ChainParametersHandler defines the actions that need to be done by a component that can handle chain parameters
+type ChainParametersHandler interface {
+	CurrentChainParameters() config.ChainParametersByEpochConfig
+	AllChainParameters() []config.ChainParametersByEpochConfig
+	ChainParametersForEpoch(epoch uint32) (config.ChainParametersByEpochConfig, error)
+	IsInterfaceNil() bool
+}

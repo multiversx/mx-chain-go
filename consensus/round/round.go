@@ -20,27 +20,32 @@ var _ consensus.RoundHandler = (*round)(nil)
 
 // round defines the data needed by the roundHandler
 type round struct {
-	index               int64         // represents the index of the round in the current chronology (current time - genesis time) / round duration
-	timeStamp           time.Time     // represents the start time of the round in the current chronology genesis time + round index * round duration
-	newGenesisTimeStamp time.Time     // time duration between genesis and the time duration change
-	timeDuration        time.Duration // represents the duration of the round in current chronology
-	newTimeDuration     time.Duration // represents the duration of the round in current chronology
-	syncTimer           ntp.SyncTimer
-	startRound          int64
-	newStartRound       int64
+	index                     int64         // represents the index of the round in the current chronology (current time - genesis time) / round duration
+	timeStamp                 time.Time     // represents the start time of the round in the current chronology genesis time + round index * round duration
+	supernovaGenesisTimeStamp time.Time     // time duration between genesis and the time duration change
+	timeDuration              time.Duration // represents the duration of the round in current chronology
+	supernovaTimeDuration     time.Duration
+	syncTimer                 ntp.SyncTimer
+	startRound                int64
+	supernovaStartRound       int64
 
 	*sync.RWMutex
 
+	enableEpochsHandler common.EnableEpochsHandler
 	enableRoundsHandler common.EnableRoundsHandler
 }
 
 // NewRound defines a new round object
 func NewRound(
 	genesisTimeStamp time.Time,
+	supernovaGenesisTimeStamp time.Time,
 	currentTimeStamp time.Time,
 	roundTimeDuration time.Duration,
+	supernovaTimeDuration time.Duration,
 	syncTimer ntp.SyncTimer,
 	startRound int64,
+	supernovaStartRound int64,
+	enableEpochsHandler common.EnableEpochsHandler,
 	enableRoundsHandler common.EnableRoundsHandler,
 ) (*round, error) {
 	log.Debug("creating round handler..")
@@ -48,24 +53,24 @@ func NewRound(
 	if check.IfNil(syncTimer) {
 		return nil, ErrNilSyncTimer
 	}
+	if check.IfNil(enableEpochsHandler) {
+		return nil, errors.ErrNilEnableEpochsHandler
+	}
 	if check.IfNil(enableRoundsHandler) {
 		return nil, errors.ErrNilEnableRoundsHandler
 	}
 
-	newStartRound := int64(enableRoundsHandler.SupernovaActivationRound())
-	newGenesisTimeStamp := genesisTimeStamp.Add(time.Duration(newStartRound * roundTimeDuration.Nanoseconds()))
-	newTimeDuration := time.Duration(4000) * time.Millisecond
-
 	rnd := round{
-		timeDuration:        roundTimeDuration,
-		newTimeDuration:     newTimeDuration,
-		timeStamp:           genesisTimeStamp,
-		newGenesisTimeStamp: newGenesisTimeStamp,
-		syncTimer:           syncTimer,
-		startRound:          startRound,
-		newStartRound:       newStartRound,
-		RWMutex:             &sync.RWMutex{},
-		enableRoundsHandler: enableRoundsHandler,
+		timeDuration:              roundTimeDuration,
+		supernovaTimeDuration:     supernovaTimeDuration,
+		timeStamp:                 genesisTimeStamp,
+		supernovaGenesisTimeStamp: supernovaGenesisTimeStamp,
+		syncTimer:                 syncTimer,
+		startRound:                startRound,
+		supernovaStartRound:       supernovaStartRound,
+		RWMutex:                   &sync.RWMutex{},
+		enableEpochsHandler:       enableEpochsHandler,
+		enableRoundsHandler:       enableRoundsHandler,
 	}
 	rnd.UpdateRound(genesisTimeStamp, currentTimeStamp)
 
@@ -93,22 +98,22 @@ func (rnd *round) UpdateRound(genesisTimeStamp time.Time, currentTimeStamp time.
 		return
 	}
 
-	delta := currentTimeStamp.Sub(rnd.newGenesisTimeStamp).Nanoseconds()
+	delta := currentTimeStamp.Sub(rnd.supernovaGenesisTimeStamp).Nanoseconds()
 
-	startRound := rnd.startRound + rnd.newStartRound
+	startRound := rnd.startRound + rnd.supernovaStartRound
 
 	index := int64(math.Floor(float64(delta)/float64(rnd.getTimeDuration().Nanoseconds()))) + startRound
 
 	rnd.Lock()
 	if rnd.index != index {
 		rnd.index = index
-		rnd.timeStamp = rnd.newGenesisTimeStamp.Add(time.Duration((index - startRound) * rnd.getTimeDuration().Nanoseconds()))
+		rnd.timeStamp = rnd.supernovaGenesisTimeStamp.Add(time.Duration((index - startRound) * rnd.getTimeDuration().Nanoseconds()))
 	}
 	rnd.Unlock()
 
 	log.Trace("UpdateRound",
 		"index", index,
-		"newGenesisTimeStamp milli", rnd.newGenesisTimeStamp.UnixMilli(),
+		"newGenesisTimeStamp milli", rnd.supernovaGenesisTimeStamp.UnixMilli(),
 		"rnd.timeStamp unix milli", rnd.timeStamp.UnixMilli(),
 	)
 }
@@ -171,8 +176,8 @@ func (rnd *round) TimeDuration() time.Duration {
 
 // this should be called under mutex protection
 func (rnd *round) getTimeDuration() time.Duration {
-	if rnd.enableRoundsHandler.SupernovaEnableRoundEnabled() {
-		return rnd.newTimeDuration
+	if common.IsSupernovaRoundActivated(rnd.enableEpochsHandler, rnd.enableRoundsHandler) {
+		return rnd.supernovaTimeDuration
 	}
 
 	return rnd.timeDuration
