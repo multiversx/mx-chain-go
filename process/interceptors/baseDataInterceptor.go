@@ -64,7 +64,9 @@ func (bdi *baseDataInterceptor) isMessageFromSelfToSelf(fromConnectedPeer core.P
 		fromConnectedPeer == bdi.currentPeerId
 }
 
-func (bdi *baseDataInterceptor) processInterceptedData(data process.InterceptedData, msg p2p.MessageP2P) {
+func (bdi *baseDataInterceptor) processInterceptedData(data process.InterceptedData, msg p2p.MessageP2P, fromConnectedPeer core.PeerID) {
+	bdi.processDebugInterceptedDataSuccess(data, msg, fromConnectedPeer)
+
 	err := bdi.processor.Validate(data, msg.Peer())
 	if err != nil {
 		log.Trace("intercepted data is not valid",
@@ -102,6 +104,7 @@ func (bdi *baseDataInterceptor) processInterceptedData(data process.InterceptedD
 		"seq no", p2p.MessageOriginatorSeq(msg),
 		"intercepted data", data.String(),
 	)
+
 	bdi.processDebugInterceptedData(data, err)
 }
 
@@ -110,6 +113,12 @@ func (bdi *baseDataInterceptor) processDebugInterceptedData(interceptedData proc
 
 	bdi.mutDebugHandler.RLock()
 	bdi.debugHandler.LogProcessedHashes(bdi.topic, identifiers, err)
+	bdi.mutDebugHandler.RUnlock()
+}
+
+func (bdi *baseDataInterceptor) processDebugInterceptedDataSuccess(data process.InterceptedData, msg p2p.MessageP2P, fromConnectedPeer core.PeerID) {
+	bdi.mutDebugHandler.RLock()
+	bdi.debugHandler.LogReceivedData(data, msg, fromConnectedPeer)
 	bdi.mutDebugHandler.RUnlock()
 }
 
