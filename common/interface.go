@@ -425,3 +425,15 @@ type TrieLeavesRetriever interface {
 	GetLeaves(numLeaves int, iteratorState [][]byte, leavesParser TrieLeafParser, ctx context.Context) (map[string]string, [][]byte, error)
 	IsInterfaceNil() bool
 }
+
+// ProofHandler defines the interface for a proof handler
+type ProofHandler interface {
+	GetPubKeysBitmap() []byte
+	GetAggregatedSignature() []byte
+	GetHeaderHash() []byte
+	GetHeaderEpoch() uint32
+	GetHeaderNonce() uint64
+	GetHeaderShardId() uint32
+	GetIsStartOfEpoch() bool
+	IsInterfaceNil() bool
+}

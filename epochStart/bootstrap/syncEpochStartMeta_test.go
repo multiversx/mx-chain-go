@@ -76,7 +76,7 @@ func TestEpochStartMetaSyncer_SyncEpochStartMetaRegisterMessengerProcessorFailsS
 
 	args := getEpochStartSyncerArgs()
 	messenger := &p2pmocks.MessengerStub{
-		RegisterMessageProcessorCalled: func(_ string, _ string, _ p2p.MessageProcessor) error {
+		RegisterMessageProcessorCalled: func(_ p2p.NetworkType, _ string, _ string, _ p2p.MessageProcessor) error {
 			return expectedErr
 		},
 	}

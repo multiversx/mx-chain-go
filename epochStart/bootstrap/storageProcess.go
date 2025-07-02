@@ -11,6 +11,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/data/endProcess"
+	"github.com/multiversx/mx-chain-go/p2p"
 	"github.com/multiversx/mx-chain-go/process/interceptors/processor"
 
 	"github.com/multiversx/mx-chain-go/common"
@@ -335,7 +336,7 @@ func (sesb *storageEpochStartBootstrap) requestAndProcessFromStorage() (Paramete
 	log.Debug("start in epoch bootstrap: shardCoordinator", "numOfShards", sesb.baseData.numberOfShards, "shardId", sesb.baseData.shardId)
 
 	consensusTopic := common.ConsensusTopic + sesb.shardCoordinator.CommunicationIdentifier(sesb.shardCoordinator.SelfId())
-	err = sesb.mainMessenger.CreateTopic(consensusTopic, true)
+	err = sesb.mainMessenger.CreateTopic(p2p.MainNetwork, consensusTopic, true)
 	if err != nil {
 		return Parameters{}, err
 	}

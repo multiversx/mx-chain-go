@@ -25,3 +25,13 @@ type ShardingConfig = config.ShardingConfig
 
 // ConnLimitConfig specifies the limit that will be set for an ip on libp2p connection limiter
 type ConnLimitConfig = config.ConnLimitConfig
+
+// SubNetworksConfig holds an array of subnetworks configs
+// all subnetworks will use the same host
+type SubNetworksConfig = config.SubNetworksConfig
+
+// SubNetworkConfig holds a subnetwork config
+type SubNetworkConfig = config.SubNetworkConfig
+
+// PubSubConfig holds the configuration for PubSub
+type PubSubConfig = config.PubSubConfig

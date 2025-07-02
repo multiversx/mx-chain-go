@@ -208,3 +208,14 @@ func GetNonceAndShardFromKey(nonceShardKey []byte) (uint64, uint32, error) {
 func ConvertTimeStampSecToMs(timeStamp uint64) uint64 {
 	return timeStamp * 1000
 }
+
+// ShouldUseTransactionsNetwork returns true if transactions network should be used for transactions
+func ShouldUseTransactionsNetwork(topic string, enableEpochsHandler EnableEpochsHandler) bool {
+	if !enableEpochsHandler.IsFlagEnabled(SupernovaFlag) {
+		return false
+	}
+
+	return strings.Contains(topic, TransactionTopic) ||
+		strings.Contains(topic, UnsignedTransactionTopic) ||
+		strings.Contains(topic, RewardsTransactionTopic)
+}

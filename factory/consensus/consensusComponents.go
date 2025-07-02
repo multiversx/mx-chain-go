@@ -9,6 +9,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/throttler"
 	"github.com/multiversx/mx-chain-core-go/core/watchdog"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/multiversx/mx-chain-go/p2p"
 	logger "github.com/multiversx/mx-chain-logger-go"
 	"github.com/multiversx/mx-chain-storage-go/timecache"
 
@@ -672,13 +673,13 @@ func (ccf *consensusComponentsFactory) createConsensusTopic(cc *consensusCompone
 
 	cc.consensusTopic = common.ConsensusTopic + shardCoordinator.CommunicationIdentifier(shardCoordinator.SelfId())
 	if !ccf.networkComponents.NetworkMessenger().HasTopic(cc.consensusTopic) {
-		err := ccf.networkComponents.NetworkMessenger().CreateTopic(cc.consensusTopic, true)
+		err := ccf.networkComponents.NetworkMessenger().CreateTopic(p2p.MainNetwork, cc.consensusTopic, true)
 		if err != nil {
 			return err
 		}
 	}
 
-	return ccf.networkComponents.NetworkMessenger().RegisterMessageProcessor(cc.consensusTopic, common.DefaultInterceptorsIdentifier, cc.worker)
+	return ccf.networkComponents.NetworkMessenger().RegisterMessageProcessor(p2p.MainNetwork, cc.consensusTopic, common.DefaultInterceptorsIdentifier, cc.worker)
 }
 
 func (ccf *consensusComponentsFactory) createPeerBlacklistHandler() (consensus.PeerBlacklistHandler, error) {

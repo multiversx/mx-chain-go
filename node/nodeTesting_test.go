@@ -16,7 +16,6 @@ import (
 	"github.com/multiversx/mx-chain-go/node"
 	"github.com/multiversx/mx-chain-go/node/mock"
 	factoryMock "github.com/multiversx/mx-chain-go/node/mock/factory"
-	"github.com/multiversx/mx-chain-go/process/factory"
 	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/cryptoMocks"
@@ -308,7 +307,7 @@ func TestGenerateAndSendBulkTransactions_ShouldWork(t *testing.T) {
 
 	mes := &p2pmocks.MessengerStub{
 		BroadcastOnChannelCalled: func(pipe string, topic string, buff []byte) {
-			identifier := factory.TransactionTopic + shardCoordinator.CommunicationIdentifier(shardCoordinator.SelfId())
+			identifier := common.TransactionTopic + shardCoordinator.CommunicationIdentifier(shardCoordinator.SelfId())
 
 			if topic == identifier {
 				// handler to capture sent data
