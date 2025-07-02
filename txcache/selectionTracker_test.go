@@ -290,14 +290,16 @@ func TestSelectionTracker_createVirtualSelectionSession(t *testing.T) {
 					Value:    2,
 					HasValue: true,
 				},
-				initialBalance: big.NewInt(4),
+				initialBalance:  big.NewInt(2),
+				consumedBalance: big.NewInt(2),
 			},
 			"bob": {
 				initialNonce: core.OptionalUint64{
 					Value:    4,
 					HasValue: true,
 				},
-				initialBalance: big.NewInt(8),
+				initialBalance:  big.NewInt(2),
+				consumedBalance: big.NewInt(6),
 			},
 		}
 		virtualSession, err := tracker.createVirtualSelectionSession(&sessionMock, trackedBlocks)

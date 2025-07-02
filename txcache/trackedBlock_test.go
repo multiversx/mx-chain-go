@@ -133,7 +133,8 @@ func TestTrackedBlock_createOrUpdateVirtualRecords(t *testing.T) {
 		virtualRecord, ok := virtualAccountsByAddress["bob"]
 		require.True(t, ok)
 		require.Equal(t, core.OptionalUint64{Value: 2, HasValue: true}, virtualRecord.initialNonce)
-		require.Equal(t, big.NewInt(5), virtualRecord.initialBalance)
+		require.Equal(t, big.NewInt(2), virtualRecord.initialBalance)
+		require.Equal(t, big.NewInt(3), virtualRecord.consumedBalance)
 
 		_, ok = virtualAccountsByAddress["alice"]
 		require.False(t, ok)

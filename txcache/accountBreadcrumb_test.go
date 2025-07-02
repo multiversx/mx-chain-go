@@ -352,7 +352,8 @@ func Test_createOrUpdateVirtualRecord(t *testing.T) {
 			Value:    1,
 			HasValue: true,
 		},
-		initialBalance: big.NewInt(5),
+		initialBalance:  big.NewInt(2),
+		consumedBalance: big.NewInt(3),
 	}
 	breadcrumbBob.createOrUpdateVirtualRecord(virtualAccountsByAddress, &userAccountMock, address)
 

@@ -12,19 +12,21 @@ type virtualSelectionSession struct {
 }
 
 type virtualAccountRecord struct {
-	initialNonce   core.OptionalUint64
-	initialBalance *big.Int
+	initialNonce    core.OptionalUint64
+	initialBalance  *big.Int
+	consumedBalance *big.Int
 }
 
 func newVirtualAccountRecord(initialNonce core.OptionalUint64, initialBalance *big.Int) *virtualAccountRecord {
 	return &virtualAccountRecord{
-		initialNonce:   initialNonce,
-		initialBalance: initialBalance,
+		initialNonce:    initialNonce,
+		initialBalance:  initialBalance,
+		consumedBalance: big.NewInt(0),
 	}
 }
 
 func (virtualRecord *virtualAccountRecord) updateVirtualRecord(breadcrumb *accountBreadcrumb) {
-	_ = virtualRecord.initialBalance.Add(virtualRecord.initialBalance, breadcrumb.consumedBalance)
+	_ = virtualRecord.consumedBalance.Add(virtualRecord.consumedBalance, breadcrumb.consumedBalance)
 
 	if !virtualRecord.initialNonce.HasValue {
 		virtualRecord.initialNonce = breadcrumb.initialNonce

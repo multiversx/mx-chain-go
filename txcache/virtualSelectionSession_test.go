@@ -35,13 +35,14 @@ func Test_updateVirtualRecord(t *testing.T) {
 				Value:    4,
 				HasValue: true,
 			},
-			consumedBalance: big.NewInt(2),
+			consumedBalance: big.NewInt(3),
 		}
 
 		virtualRecord.updateVirtualRecord(&breadcrumb)
 
 		require.Equal(t, virtualRecord.initialNonce, breadcrumb.initialNonce)
-		require.Equal(t, virtualRecord.initialBalance, big.NewInt(4))
+		require.Equal(t, virtualRecord.initialBalance, big.NewInt(2))
+		require.Equal(t, virtualRecord.consumedBalance, big.NewInt(3))
 	})
 
 	t.Run("virtual record doesn't have value for nonce", func(t *testing.T) {
@@ -65,6 +66,7 @@ func Test_updateVirtualRecord(t *testing.T) {
 		virtualRecord.updateVirtualRecord(&breadcrumb)
 
 		require.Equal(t, virtualRecord.initialNonce, breadcrumb.initialNonce)
-		require.Equal(t, virtualRecord.initialBalance, big.NewInt(4))
+		require.Equal(t, virtualRecord.initialBalance, big.NewInt(2))
+		require.Equal(t, virtualRecord.consumedBalance, big.NewInt(2))
 	})
 }
