@@ -234,7 +234,8 @@ func TestSelectionTracker_nextBlock(t *testing.T) {
 	t.Run("should return next block", func(t *testing.T) {
 		t.Parallel()
 
-		tracker, err := NewSelectionTracker()
+		txCache := newCacheToTest(maxNumBytesPerSenderUpperBoundTest, 3)
+		tracker, err := NewSelectionTracker(txCache)
 		require.Nil(t, err)
 
 		expectedNextBlock := newTrackedBlock(0, []byte("blockHash2"), []byte("rootHash2"), []byte("blockHash1"))
@@ -250,7 +251,8 @@ func TestSelectionTracker_nextBlock(t *testing.T) {
 	t.Run("should return nil", func(t *testing.T) {
 		t.Parallel()
 
-		tracker, err := NewSelectionTracker()
+		txCache := newCacheToTest(maxNumBytesPerSenderUpperBoundTest, 3)
+		tracker, err := NewSelectionTracker(txCache)
 		require.Nil(t, err)
 
 		expectedNextBlock := newTrackedBlock(0, []byte("blockHash2"), []byte("rootHash2"), []byte("blockHash1"))
@@ -267,7 +269,8 @@ func TestSelectionTracker_nextBlock(t *testing.T) {
 func TestSelectionTracker_getChainOfTrackedBlocks(t *testing.T) {
 	t.Parallel()
 
-	tracker, err := NewSelectionTracker()
+	txCache := newCacheToTest(maxNumBytesPerSenderUpperBoundTest, 3)
+	tracker, err := NewSelectionTracker(txCache)
 	require.Nil(t, err)
 
 	// create a slice of tracked block which aren't ordered
@@ -338,7 +341,8 @@ func TestSelectionTracker_getChainOfTrackedBlocks(t *testing.T) {
 func TestSelectionTracker_deriveVirtualSelectionSessionShouldErr(t *testing.T) {
 	t.Parallel()
 
-	tracker, err := NewSelectionTracker()
+	txCache := newCacheToTest(maxNumBytesPerSenderUpperBoundTest, 3)
+	tracker, err := NewSelectionTracker(txCache)
 	require.Nil(t, err)
 
 	expectedErr := errors.New("expected err")
