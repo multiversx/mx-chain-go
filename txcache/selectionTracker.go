@@ -6,6 +6,7 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/block"
 )
 
 // TODO use a map instead of slice for st.blocks
@@ -14,18 +15,23 @@ type selectionTracker struct {
 	latestNonce    uint64
 	latestRootHash []byte
 	blocks         []*trackedBlock
+	txCache        *TxCache
 }
 
 // NewSelectionTracker creates a new selectionTracker
-func NewSelectionTracker() (*selectionTracker, error) {
+func NewSelectionTracker(txCache *TxCache) (*selectionTracker, error) {
+	if check.IfNil(txCache) {
+		return nil, errNilTxCache
+	}
 	return &selectionTracker{
 		mutTracker: sync.RWMutex{},
 		blocks:     make([]*trackedBlock, 0),
+		txCache:    txCache,
 	}, nil
 }
 
 // OnProposedBlock notifies when a block is proposed and updates the state of the selectionTracker
-func (st *selectionTracker) OnProposedBlock(blockHash []byte, blockBody data.BodyHandler, handler data.HeaderHandler) error {
+func (st *selectionTracker) OnProposedBlock(blockHash []byte, blockBody *block.Body, handler data.HeaderHandler) error {
 	if len(blockHash) == 0 {
 		return errNilBlockHash
 	}
@@ -49,7 +55,16 @@ func (st *selectionTracker) OnProposedBlock(blockHash []byte, blockBody data.Bod
 		"rootHash", rootHash,
 		"prevHash", prevHash)
 
-	st.blocks = append(st.blocks, newTrackedBlock(nonce, blockHash, rootHash, prevHash))
+	txs, err := st.getTransactionsFromBlock(blockBody)
+	if err != nil {
+		log.Debug("selectionTracker.OnProposedBlock: error getting transactions from block", "err", err)
+		return err
+	}
+
+	tBlock := newTrackedBlock(nonce, blockHash, rootHash, prevHash)
+	tBlock.compileBreadcrumbs(txs)
+	st.blocks = append(st.blocks, tBlock)
+
 	return nil
 }
 
@@ -108,6 +123,29 @@ func (st *selectionTracker) updateLatestRootHashNoLock(receivedNonce uint64, rec
 		st.latestNonce = receivedNonce
 	}
 }
+
+// TODO compute the size of the slice of txs
+// TODO take the txs from the storage (persister)
+func (st *selectionTracker) getTransactionsFromBlock(blockBody *block.Body) ([]*WrappedTransaction, error) {
+	miniBlocks := blockBody.GetMiniBlocks()
+	txs := make([]*WrappedTransaction, 0)
+
+	for _, miniBlock := range miniBlocks {
+		txHashes := miniBlock.GetTxHashes()
+
+		for _, txHash := range txHashes {
+			tx, ok := st.txCache.GetByTxHash(txHash)
+			if !ok {
+				return nil, errNotFoundTx
+			}
+
+			txs = append(txs, tx)
+		}
+	}
+
+	return txs, nil
+}
+
 
 func (st *selectionTracker) deriveVirtualSelectionSession(
 	session SelectionSession,
