@@ -26,6 +26,7 @@ func NewMetaForkDetector(
 	blackListHandler process.TimeCacher,
 	blockTracker process.BlockTracker,
 	genesisTime int64,
+	supernovaGenesisTime int64,
 	enableEpochsHandler common.EnableEpochsHandler,
 	enableRoundsHandler common.EnableRoundsHandler,
 	proofsPool process.ProofsPool,
