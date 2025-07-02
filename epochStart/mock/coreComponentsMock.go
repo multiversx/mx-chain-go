@@ -1,6 +1,8 @@
 package mock
 
 import (
+	"github.com/multiversx/mx-chain-go/ntp"
+	"github.com/multiversx/mx-chain-go/testscommon"
 	"sync"
 
 	"github.com/multiversx/mx-chain-core-go/core"
@@ -41,6 +43,11 @@ type CoreComponentsMock struct {
 	FieldsSizeCheckerField             common.FieldsSizeChecker
 	EpochChangeGracePeriodHandlerField common.EpochChangeGracePeriodHandler
 	mutCore                            sync.RWMutex
+}
+
+// SyncTimer -
+func (ccm *CoreComponentsMock) SyncTimer() ntp.SyncTimer {
+	return &testscommon.SyncTimerStub{}
 }
 
 // ChanStopNodeProcess -
