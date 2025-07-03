@@ -31,6 +31,42 @@ func newTrackedBlock(
 	}
 }
 
+func (tb *trackedBlock) createOrUpdateVirtualRecords(
+	session SelectionSession,
+	skippedSenders map[string]struct{},
+	sendersInContinuityWithSessionNonce map[string]struct{},
+	accountPreviousBreadcrumb map[string]*accountBreadcrumb,
+	virtualAccountsByAddress map[string]*virtualAccountRecord,
+) error {
+	for address, breadcrumb := range tb.breadcrumbsByAddress {
+		_, ok := skippedSenders[address]
+		if ok {
+			continue
+		}
+
+		// TODO make sure that the accounts which don't yet exist are properly handled
+		accountState, err := session.GetAccountState([]byte(address))
+		if err != nil {
+			log.Debug("trackedBlock.createOrUpdateVirtualRecords",
+				"err", err)
+			return err
+		}
+
+		accountNonce := accountState.GetNonce()
+
+		if !breadcrumb.isContinuous(address, accountNonce,
+			sendersInContinuityWithSessionNonce, accountPreviousBreadcrumb) {
+			skippedSenders[address] = struct{}{}
+			delete(virtualAccountsByAddress, address)
+			continue
+		}
+
+		breadcrumb.createOrUpdateVirtualRecord(virtualAccountsByAddress, accountState, address)
+	}
+
+	return nil
+}
+
 func (tb *trackedBlock) sameNonce(trackedBlock1 *trackedBlock) bool {
 	return tb.nonce == trackedBlock1.nonce
 }

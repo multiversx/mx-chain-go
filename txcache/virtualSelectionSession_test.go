@@ -8,6 +8,8 @@ import (
 )
 
 func Test_newVirtualSelectionSession(t *testing.T) {
+	t.Parallel()
+
 	session := txcachemocks.NewSelectionSessionMock()
 	virtualSession := newVirtualSelectionSession(session)
 	require.NotNil(t, virtualSession)
