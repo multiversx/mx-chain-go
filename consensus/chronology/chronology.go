@@ -31,8 +31,7 @@ const chronologyAlarmID = "chronology"
 
 // chronology defines the data needed by the chronology
 type chronology struct {
-	genesisTime    time.Time
-	newGenesisTime time.Duration
+	genesisTime time.Time
 
 	roundHandler consensus.RoundHandler
 	syncTimer    ntp.SyncTimer
@@ -47,7 +46,6 @@ type chronology struct {
 
 	watchdog            core.WatchdogTimer
 	enableEpochsHandler common.EnableEpochsHandler
-	enableRoundsHandler common.EnableRoundsHandler
 }
 
 // NewChronology creates a new chronology object
