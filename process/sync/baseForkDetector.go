@@ -3,7 +3,6 @@ package sync
 import (
 	"bytes"
 	"math"
-	"runtime/debug"
 	"sync"
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
@@ -721,13 +720,6 @@ func (bfd *baseForkDetector) checkGenesisTimeForHeader(headerHandler data.Header
 		roundDifference := int64(headerHandler.GetRound() - bfd.genesisRound)
 		genesisTime := int64(headerHandler.GetTimeStamp()) - roundDifference*roundDuration
 
-		log.Debug("computeGenesisTimeFromHeader: case 1",
-			"headerRound", headerHandler.GetRound(),
-			"header timestamp", headerHandler.GetTimeStamp(),
-			"roundDifference", roundDifference,
-			"roundDuration", roundDuration,
-		)
-
 		if genesisTime != bfd.genesisTime {
 			return ErrGenesisTimeMissmatch
 		}
@@ -742,16 +734,6 @@ func (bfd *baseForkDetector) checkGenesisTimeForHeader(headerHandler data.Header
 		roundDuration := int64(bfd.roundHandler.TimeDuration().Milliseconds())
 		roundDifference := int64(headerHandler.GetRound() - bfd.genesisRound)
 		genesisTime := int64(headerHandler.GetTimeStamp()) - roundDifference*roundDuration
-
-		log.Debug("computeGenesisTimeFromHeader: case 2",
-			"headerRound", headerHandler.GetRound(),
-			"header timestamp", headerHandler.GetTimeStamp(),
-			"roundDifference", roundDifference,
-			"roundDuration", roundDuration,
-			"genesisTime before shrink", genesisTime,
-		)
-
-		debug.PrintStack()
 
 		genesisTime /= 1000
 
@@ -781,17 +763,7 @@ func (bfd *baseForkDetector) checkGenesisTimeForHeader(headerHandler data.Header
 			return ErrGenesisTimeMissmatch
 		}
 
-		// handler intervals
 		genesisTime := int64(headerHandler.GetTimeStamp()) - roundDifference*roundDuration
-
-		log.Debug("computeGenesisTimeFromHeader",
-			"headerRound", headerHandler.GetRound(),
-			"header timestamp", headerHandler.GetTimeStamp(),
-			"roundDifferenceTillSupernova", roundDifference,
-			"roundDuration", roundDuration,
-			"genesisTime before shrink", genesisTime,
-		)
-
 		if genesisTime != bfd.supernovaGenesisTime {
 			return ErrGenesisTimeMissmatch
 		}
