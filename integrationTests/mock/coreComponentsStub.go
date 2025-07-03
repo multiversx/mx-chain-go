@@ -49,6 +49,7 @@ type CoreComponentsStub struct {
 	EpochStartNotifierWithConfirmField factory.EpochStartNotifierWithConfirm
 	ChanStopNodeProcessField           chan endProcess.ArgEndProcess
 	GenesisTimeField                   time.Time
+	SupernovaGenesisTimeField          time.Time
 	TxVersionCheckField                process.TxVersionCheckerHandler
 	NodeTypeProviderField              core.NodeTypeProviderHandler
 	WasmVMChangeLockerInternal         common.Locker
@@ -155,6 +156,11 @@ func (ccs *CoreComponentsStub) EpochStartNotifierWithConfirm() factory.EpochStar
 // GenesisTime -
 func (ccs *CoreComponentsStub) GenesisTime() time.Time {
 	return ccs.GenesisTimeField
+}
+
+// SupernovaGenesisTime -
+func (ccs *CoreComponentsStub) SupernovaGenesisTime() time.Time {
+	return ccs.SupernovaGenesisTimeField
 }
 
 // InternalMarshalizer -

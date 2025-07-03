@@ -270,18 +270,19 @@ func (ccf *coreComponentsFactory) Create() (*coreComponents, error) {
 		)
 	}
 
-	roundHandler, err := round.NewRound(
-		genesisTime,
-		supernovaGenesisTime,
-		syncer.CurrentTime(),
-		roundDuration,
-		supernovaRoundDuration,
-		syncer,
-		startRound,
-		supernovaStartRound,
-		enableEpochsHandler,
-		enableRoundsHandler,
-	)
+	roundArgs := round.ArgsRound{
+		GenesisTimeStamp:          genesisTime,
+		SupernovaGenesisTimeStamp: supernovaGenesisTime,
+		CurrentTimeStamp:          syncer.CurrentTime(),
+		RoundTimeDuration:         roundDuration,
+		SupernovaTimeDuration:     supernovaRoundDuration,
+		SyncTimer:                 syncer,
+		StartRound:                startRound,
+		SupernovaStartRound:       supernovaStartRound,
+		EnableEpochsHandler:       enableEpochsHandler,
+		EnableRoundsHandler:       enableRoundsHandler,
+	}
+	roundHandler, err := round.NewRound(roundArgs)
 	if err != nil {
 		return nil, err
 	}

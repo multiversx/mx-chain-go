@@ -1805,7 +1805,6 @@ func (pcf *processComponentsFactory) newForkDetector(
 			pcf.coreData.EnableEpochsHandler(),
 			pcf.coreData.EnableRoundsHandler(),
 			pcf.data.Datapool().Proofs(),
-			pcf.coreData.ChainParametersHandler(),
 		)
 	}
 	if shardCoordinator.SelfId() == core.MetachainShardId {
@@ -1818,7 +1817,6 @@ func (pcf *processComponentsFactory) newForkDetector(
 			pcf.coreData.EnableEpochsHandler(),
 			pcf.coreData.EnableRoundsHandler(),
 			pcf.data.Datapool().Proofs(),
-			pcf.coreData.ChainParametersHandler(),
 		)
 	}
 

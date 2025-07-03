@@ -67,6 +67,7 @@ type coreComponentsHolder struct {
 	epochStartNotifierWithConfirm factory.EpochStartNotifierWithConfirm
 	chanStopNodeProcess           chan endProcess.ArgEndProcess
 	genesisTime                   time.Time
+	supernovaGenesisTime          time.Time
 	chainID                       string
 	minTransactionVersion         uint32
 	txVersionChecker              process.TxVersionCheckerHandler
@@ -102,6 +103,7 @@ type ArgsCoreComponentsHolder struct {
 	MetaChainConsensusGroupSize uint32
 	RoundDurationInMs           uint64
 	GenesisTime                 time.Time
+	SupernovaGenesisTime        time.Time
 }
 
 // CreateCoreComponents will create a new instance of factory.CoreComponentsHolder
@@ -263,6 +265,7 @@ func CreateCoreComponents(args ArgsCoreComponentsHolder) (*coreComponentsHolder,
 
 	instance.chanStopNodeProcess = args.ChanStopNodeProcess
 	instance.genesisTime = time.Unix(instance.genesisNodesSetup.GetStartTime(), 0)
+	instance.supernovaGenesisTime = time.Unix(instance.genesisNodesSetup.GetStartTime(), 0)
 	instance.chainID = args.Config.GeneralSettings.ChainID
 	instance.minTransactionVersion = args.Config.GeneralSettings.MinTransactionVersion
 	instance.encodedAddressLen, err = computeEncodedAddressLen(instance.addressPubKeyConverter)
@@ -442,6 +445,11 @@ func (c *coreComponentsHolder) ChanStopNodeProcess() chan endProcess.ArgEndProce
 // GenesisTime will return the genesis time
 func (c *coreComponentsHolder) GenesisTime() time.Time {
 	return c.genesisTime
+}
+
+// SupernovaGenesisTime will return the genesis time
+func (c *coreComponentsHolder) SupernovaGenesisTime() time.Time {
+	return c.supernovaGenesisTime
 }
 
 // ChainID will return the chain id

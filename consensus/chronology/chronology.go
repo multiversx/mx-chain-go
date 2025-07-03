@@ -230,16 +230,6 @@ func (chr *chronology) loadSubroundHandler(subroundId int) consensus.SubroundHan
 	return chr.subroundHandlers[index]
 }
 
-func (chr *chronology) SetRoundTimeDuration(timeDuration time.Duration) {
-	chr.roundHandler.SetTimeDuration(timeDuration)
-
-	chr.SetNewTimeStamp(chr.genesisTime, chr.syncTimer.CurrentTime())
-}
-
-func (chr *chronology) SetNewTimeStamp(genesisTimeStamp time.Time, currentTimeStamp time.Time) {
-	chr.roundHandler.SetNewTimeStamp(genesisTimeStamp, currentTimeStamp)
-}
-
 // Close will close the endless running go routine
 func (chr *chronology) Close() error {
 	if chr.cancelFunc != nil {

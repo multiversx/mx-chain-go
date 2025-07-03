@@ -12,7 +12,6 @@ import (
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/process"
-	"github.com/multiversx/mx-chain-go/sharding"
 )
 
 type headerInfo struct {
@@ -48,19 +47,18 @@ type baseForkDetector struct {
 	fork       forkInfo
 	mutFork    sync.RWMutex
 
-	blackListHandler       process.TimeCacher
-	genesisTime            int64
-	supernovaGenesisTime   int64
-	blockTracker           process.BlockTracker
-	forkDetector           forkDetector
-	genesisNonce           uint64
-	genesisRound           uint64
-	maxForkHeaderEpoch     uint32
-	genesisEpoch           uint32
-	enableEpochsHandler    common.EnableEpochsHandler
-	enableRoundsHandler    common.EnableRoundsHandler
-	proofsPool             process.ProofsPool
-	chainParametersHandler sharding.ChainParametersHandler
+	blackListHandler     process.TimeCacher
+	genesisTime          int64
+	supernovaGenesisTime int64
+	blockTracker         process.BlockTracker
+	forkDetector         forkDetector
+	genesisNonce         uint64
+	genesisRound         uint64
+	maxForkHeaderEpoch   uint32
+	genesisEpoch         uint32
+	enableEpochsHandler  common.EnableEpochsHandler
+	enableRoundsHandler  common.EnableRoundsHandler
+	proofsPool           process.ProofsPool
 }
 
 // SetRollBackNonce sets the nonce where the chain should roll back
@@ -711,27 +709,9 @@ func (bfd *baseForkDetector) cleanupReceivedHeadersHigherThanNonce(nonce uint64)
 	bfd.mutHeaders.Unlock()
 }
 
-// func (bfd *baseForkDetector) computeGenesisTimeFromHeader(headerHandler data.HeaderHandler) int64 {
-// 	// we have to calculate genesis time as seconds up to supernova activation, and after that we have to consider it by milliseconds
-
-// 	roundDuration := bfd.getRoundDuration(headerHandler.GetEpoch())
-// 	roundDifference := int64(headerHandler.GetRound() - bfd.genesisRound)
-// 	genesisTime := int64(headerHandler.GetTimeStamp()) - roundDifference*roundDuration
-
-// 	return genesisTime
-// }
-
 func (bfd *baseForkDetector) checkGenesisTimeForHeader(headerHandler data.HeaderHandler) error {
-	// we have to calculate genesis time as seconds up to supernova activation, and after that we have to consider it by milliseconds
-
 	supernovaInEpochActivated := bfd.enableEpochsHandler.IsFlagEnabledInEpoch(common.SupernovaFlag, headerHandler.GetEpoch())
 	supernovaInRoundActivated := bfd.enableRoundsHandler.SupernovaEnableRoundEnabled()
-
-	log.Debug("computeGenesisTimeFromHeader",
-		"headerEpoch", headerHandler.GetEpoch(),
-		"supernovaInEpochActivated", supernovaInEpochActivated,
-		"supernovaInRoundActivated", supernovaInRoundActivated,
-	)
 
 	// case 1:
 	//	- supernova epoch not activated
@@ -818,8 +798,6 @@ func (bfd *baseForkDetector) checkGenesisTimeForHeader(headerHandler data.Header
 
 		return nil
 	}
-
-	log.Warn("should NOT arrive here")
 
 	return ErrGenesisTimeMissmatch
 }

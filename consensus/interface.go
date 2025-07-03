@@ -22,8 +22,6 @@ type RoundHandler interface {
 	UpdateRound(time.Time, time.Time)
 	TimeStamp() time.Time
 	TimeDuration() time.Duration
-	SetTimeDuration(timeDuration time.Duration)
-	SetNewTimeStamp(genesisTimeStamp time.Time, currentTimeStamp time.Time)
 	RemainingTime(startTime time.Time, maxTime time.Duration) time.Duration
 	IsInterfaceNil() bool
 }
@@ -63,8 +61,6 @@ type ChronologyHandler interface {
 	RemoveAllSubrounds()
 	// StartRounds starts rounds in a sequential manner, one after the other
 	StartRounds()
-	SetRoundTimeDuration(timeDuration time.Duration)
-	SetNewTimeStamp(genesisTimeStamp time.Time, currentTimeStamp time.Time)
 	IsInterfaceNil() bool
 }
 
