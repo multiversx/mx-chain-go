@@ -253,6 +253,8 @@ func (sr *subroundEndRound) commitBlock() error {
 		return err
 	}
 
+	sr.SetLastRoundAsParticipant(sr.RoundHandler().Index())
+
 	return nil
 }
 
