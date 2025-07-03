@@ -1,6 +1,7 @@
 package txcache
 
 import (
+	"bytes"
 	"sync"
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
@@ -143,4 +144,48 @@ func (st *selectionTracker) getTransactionsFromBlock(blockBody *block.Body) ([]*
 	}
 
 	return txs, nil
+}
+
+
+func (st *selectionTracker) deriveVirtualSelectionSession(
+	session SelectionSession,
+	latestExecutedBlockHash []byte,
+	currentBlockNonce uint64,
+) (*virtualSelectionSession, error) {
+	rootHash, err := session.GetRootHash()
+	if err != nil {
+		log.Debug("selectionTracker.deriveVirtualSelectionSession",
+			"err", err)
+		return nil, err
+	}
+
+	log.Debug("selectionTracker.deriveVirtualSelectionSession", "rootHash", rootHash)
+
+	_ = st.getChainOfTrackedBlocks(latestExecutedBlockHash, currentBlockNonce)
+
+	return &virtualSelectionSession{}, nil
+}
+
+func (st *selectionTracker) getChainOfTrackedBlocks(latestExecutedBlockHash []byte, beforeNonce uint64) []*trackedBlock {
+	chain := make([]*trackedBlock, 0)
+	nextBlock := st.findNextBlock(latestExecutedBlockHash)
+
+	for nextBlock != nil && nextBlock.nonce < beforeNonce {
+		chain = append(chain, nextBlock)
+		blockHash := nextBlock.hash
+		nextBlock = st.findNextBlock(blockHash)
+	}
+
+	return chain
+}
+
+// TODO solve the case of forks
+func (st *selectionTracker) findNextBlock(previousHash []byte) *trackedBlock {
+	for _, block := range st.blocks {
+		if bytes.Equal(previousHash, block.prevHash) {
+			return block
+		}
+	}
+
+	return nil
 }
