@@ -189,6 +189,7 @@ func (st *selectionTracker) findNextBlock(previousHash []byte) *trackedBlock {
 	return nil
 }
 
+// TODO use a virtual selection session provider
 func (st *selectionTracker) createVirtualSelectionSession(
 	session SelectionSession,
 	chainOfTrackedBlocks []*trackedBlock,
@@ -208,8 +209,7 @@ func (st *selectionTracker) createVirtualSelectionSession(
 		}
 	}
 
-	return &virtualSelectionSession{
-		session:                  session,
-		virtualAccountsByAddress: virtualAccountsByAddress,
-	}, nil
+	virtualSession := newVirtualSelectionSession(session)
+	virtualSession.virtualAccountsByAddress = virtualAccountsByAddress
+	return virtualSession, nil
 }

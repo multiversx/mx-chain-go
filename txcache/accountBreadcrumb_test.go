@@ -27,7 +27,7 @@ func Test_isRelayer(t *testing.T) {
 			consumedBalance: nil,
 		}
 
-		actualRes := breadcrumb.isRelayer()
+		actualRes := breadcrumb.hasUnkownNonce()
 		require.True(t, actualRes)
 	})
 
@@ -46,7 +46,7 @@ func Test_isRelayer(t *testing.T) {
 			consumedBalance: nil,
 		}
 
-		actualRes := breadcrumb.isRelayer()
+		actualRes := breadcrumb.hasUnkownNonce()
 		require.False(t, actualRes)
 	})
 }

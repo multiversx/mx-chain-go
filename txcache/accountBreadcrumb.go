@@ -55,13 +55,14 @@ func (breadcrumb *accountBreadcrumb) createOrUpdateVirtualRecord(
 	virtualRecord.updateVirtualRecord(breadcrumb)
 }
 
+// TODO rename in case of adding a virtual selection session provider
 func (breadcrumb *accountBreadcrumb) isContinuous(
 	address string,
 	accountNonce uint64,
 	sendersInContinuityWithSessionNonce map[string]struct{},
 	accountPreviousBreadcrumb map[string]*accountBreadcrumb,
 ) bool {
-	if breadcrumb.isRelayer() {
+	if breadcrumb.hasUnkownNonce() {
 		return true
 	}
 
@@ -103,6 +104,6 @@ func (breadcrumb *accountBreadcrumb) verifyContinuityWithSessionNonce(sessionNon
 	return breadcrumb.initialNonce.Value == sessionNonce
 }
 
-func (breadcrumb *accountBreadcrumb) isRelayer() bool {
+func (breadcrumb *accountBreadcrumb) hasUnkownNonce() bool {
 	return !breadcrumb.initialNonce.HasValue && !breadcrumb.lastNonce.HasValue
 }

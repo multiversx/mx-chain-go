@@ -44,9 +44,10 @@ func (tb *trackedBlock) createOrUpdateVirtualRecords(
 			continue
 		}
 
+		// TODO make sure that the accounts which don't yet exist are properly handled
 		accountState, err := session.GetAccountState([]byte(address))
 		if err != nil {
-			log.Debug("selectionTracker.createVirtualSelectionSession",
+			log.Debug("trackedBlock.createOrUpdateVirtualRecords",
 				"err", err)
 			return err
 		}
