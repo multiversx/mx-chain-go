@@ -12,20 +12,6 @@ type virtualSelectionSession struct {
 	virtualAccountsByAddress map[string]*virtualAccountRecord
 }
 
-type virtualAccountRecord struct {
-	initialNonce    core.OptionalUint64
-	initialBalance  *big.Int
-	consumedBalance *big.Int
-}
-
-func newVirtualAccountRecord(initialNonce core.OptionalUint64, initialBalance *big.Int) *virtualAccountRecord {
-	return &virtualAccountRecord{
-		initialNonce:    initialNonce,
-		initialBalance:  initialBalance,
-		consumedBalance: big.NewInt(0),
-	}
-}
-
 func newVirtualSelectionSession(session SelectionSession) *virtualSelectionSession {
 	return &virtualSelectionSession{
 		session:                  session,
