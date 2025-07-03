@@ -41,7 +41,7 @@ func Test_getVirtualRecord(t *testing.T) {
 			"alice": &expectedRecord,
 		}
 
-		actualRecord, err := virtualSession.getVirtualRecord([]byte("alice"))
+		actualRecord, err := virtualSession.getRecord([]byte("alice"))
 		require.NoError(t, err)
 		require.Equal(t, &expectedRecord, actualRecord)
 	})
@@ -71,7 +71,7 @@ func Test_getVirtualRecord(t *testing.T) {
 			initialBalance:  big.NewInt(2),
 			consumedBalance: big.NewInt(0),
 		}
-		actualRecord, err := virtualSession.getVirtualRecord([]byte("alice"))
+		actualRecord, err := virtualSession.getRecord([]byte("alice"))
 
 		require.NoError(t, err)
 		require.Equal(t, expectedRecord.initialNonce, actualRecord.initialNonce)
@@ -90,7 +90,7 @@ func Test_getVirtualRecord(t *testing.T) {
 		}
 		virtualSession := newVirtualSelectionSession(&sessionMock)
 
-		actualRecord, err := virtualSession.getVirtualRecord([]byte("alice"))
+		actualRecord, err := virtualSession.getRecord([]byte("alice"))
 		require.Nil(t, actualRecord)
 		require.Equal(t, expErr, err)
 

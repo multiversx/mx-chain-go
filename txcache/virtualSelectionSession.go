@@ -19,7 +19,7 @@ func newVirtualSelectionSession(session SelectionSession) *virtualSelectionSessi
 	}
 }
 
-func (virtualSession *virtualSelectionSession) getVirtualRecord(address []byte) (*virtualAccountRecord, error) {
+func (virtualSession *virtualSelectionSession) getRecord(address []byte) (*virtualAccountRecord, error) {
 	virtualRecord, ok := virtualSession.virtualAccountsByAddress[string(address)]
 	if ok {
 		return virtualRecord, nil
@@ -27,11 +27,12 @@ func (virtualSession *virtualSelectionSession) getVirtualRecord(address []byte) 
 
 	account, err := virtualSession.session.GetAccountState(address)
 	if err != nil {
-		log.Debug("virtualSelectionSession.getNonce",
+		log.Debug("virtualSelectionSession.getRecord",
 			"address", address,
 			"err", err)
 		return nil, err
 	}
+
 	initialNonce := account.GetNonce()
 	initialBalance := account.GetBalance()
 
@@ -45,7 +46,7 @@ func (virtualSession *virtualSelectionSession) getVirtualRecord(address []byte) 
 }
 
 func (virtualSession *virtualSelectionSession) getNonce(address []byte) (uint64, error) {
-	account, err := virtualSession.getVirtualRecord(address)
+	account, err := virtualSession.getRecord(address)
 	if err != nil {
 		log.Debug("virtualSelectionSession.getNonce",
 			"address", address,
@@ -64,7 +65,7 @@ func (virtualSession *virtualSelectionSession) detectWillFeeExceedBalance(tx *Wr
 
 	// Here, we are not interested into an eventual transfer of value (we only check if there's enough balance to pay the transaction fee).
 	feePayer := tx.FeePayer
-	feePayerRecord, err := virtualSession.getVirtualRecord(feePayer)
+	feePayerRecord, err := virtualSession.getRecord(feePayer)
 	if err != nil {
 		log.Debug("virtualSelectionSession.detectWillFeeExceedBalance",
 			"err", err)
