@@ -134,7 +134,7 @@ func createEnableEpochsConfig() config.EnableEpochs {
 		ValidationOnGobDecodeEnableEpoch:                         115,
 		BarnardOpcodesEnableEpoch:                                116,
 		AutomaticActivationOfNodesDisableEpoch:                   117,
-		SupernovaEnableEpoch:                                     113,
+		SupernovaEnableEpoch:                                     118,
 	}
 }
 

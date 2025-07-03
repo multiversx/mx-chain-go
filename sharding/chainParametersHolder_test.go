@@ -31,6 +31,8 @@ func TestNewChainParametersHolder(t *testing.T) {
 					RoundDuration:               4000,
 					Hysteresis:                  0.2,
 					Adaptivity:                  false,
+					RoundsPerEpoch:              20,
+					MinRoundsBetweenEpochs:      10,
 				},
 			},
 			ChainParametersNotifier: &commonmocks.ChainParametersNotifierStub{},
@@ -162,7 +164,7 @@ func TestChainParametersHolder_EpochStartActionShouldCallTheNotifier(t *testing.
 			receivedValues = append(receivedValues, params.ShardConsensusGroupSize)
 		},
 	}
-	paramsHolder, _ := NewChainParametersHolder(ArgsChainParametersHolder{
+	paramsHolder, err := NewChainParametersHolder(ArgsChainParametersHolder{
 		ChainParameters: []config.ChainParametersByEpochConfig{
 			{
 				EnableEpoch:                 0,
@@ -170,6 +172,8 @@ func TestChainParametersHolder_EpochStartActionShouldCallTheNotifier(t *testing.
 				ShardMinNumNodes:            7,
 				MetachainConsensusGroupSize: 7,
 				MetachainMinNumNodes:        7,
+				RoundsPerEpoch:              20,
+				MinRoundsBetweenEpochs:      10,
 			},
 			{
 				EnableEpoch:                 5,
@@ -177,11 +181,14 @@ func TestChainParametersHolder_EpochStartActionShouldCallTheNotifier(t *testing.
 				ShardMinNumNodes:            38,
 				MetachainConsensusGroupSize: 7,
 				MetachainMinNumNodes:        7,
+				RoundsPerEpoch:              20,
+				MinRoundsBetweenEpochs:      10,
 			},
 		},
 		EpochStartEventNotifier: &mock.EpochStartNotifierStub{},
 		ChainParametersNotifier: notifier,
 	})
+	require.NoError(t, err)
 
 	paramsHolder.EpochStartAction(&block.MetaBlock{Epoch: 5})
 	require.Equal(t, []uint32{5, 37}, receivedValues)
@@ -200,14 +207,17 @@ func TestChainParametersHolder_ChainParametersForEpoch(t *testing.T) {
 				ShardMinNumNodes:            7,
 				MetachainConsensusGroupSize: 7,
 				MetachainMinNumNodes:        7,
+				RoundsPerEpoch:              20,
+				MinRoundsBetweenEpochs:      10,
 			},
 		}
 
-		paramsHolder, _ := NewChainParametersHolder(ArgsChainParametersHolder{
+		paramsHolder, err := NewChainParametersHolder(ArgsChainParametersHolder{
 			ChainParameters:         params,
 			EpochStartEventNotifier: &mock.EpochStartNotifierStub{},
 			ChainParametersNotifier: &commonmocks.ChainParametersNotifierStub{},
 		})
+		require.NoError(t, err)
 
 		res, _ := paramsHolder.ChainParametersForEpoch(0)
 		require.Equal(t, uint32(5), res.ShardConsensusGroupSize)
@@ -232,6 +242,8 @@ func TestChainParametersHolder_ChainParametersForEpoch(t *testing.T) {
 				ShardMinNumNodes:            7,
 				MetachainConsensusGroupSize: 7,
 				MetachainMinNumNodes:        7,
+				RoundsPerEpoch:              20,
+				MinRoundsBetweenEpochs:      10,
 			},
 			{
 				EnableEpoch:                 10,
@@ -239,6 +251,8 @@ func TestChainParametersHolder_ChainParametersForEpoch(t *testing.T) {
 				ShardMinNumNodes:            70,
 				MetachainConsensusGroupSize: 70,
 				MetachainMinNumNodes:        70,
+				RoundsPerEpoch:              20,
+				MinRoundsBetweenEpochs:      10,
 			},
 			{
 				EnableEpoch:                 100,
@@ -246,14 +260,17 @@ func TestChainParametersHolder_ChainParametersForEpoch(t *testing.T) {
 				ShardMinNumNodes:            700,
 				MetachainConsensusGroupSize: 700,
 				MetachainMinNumNodes:        700,
+				RoundsPerEpoch:              20,
+				MinRoundsBetweenEpochs:      10,
 			},
 		}
 
-		paramsHolder, _ := NewChainParametersHolder(ArgsChainParametersHolder{
+		paramsHolder, err := NewChainParametersHolder(ArgsChainParametersHolder{
 			ChainParameters:         params,
 			EpochStartEventNotifier: &mock.EpochStartNotifierStub{},
 			ChainParametersNotifier: &commonmocks.ChainParametersNotifierStub{},
 		})
+		require.NoError(t, err)
 
 		for i := 0; i < 200; i++ {
 			res, _ := paramsHolder.ChainParametersForEpoch(uint32(i))
@@ -281,6 +298,8 @@ func TestChainParametersHolder_CurrentChainParameters(t *testing.T) {
 			ShardMinNumNodes:            7,
 			MetachainConsensusGroupSize: 7,
 			MetachainMinNumNodes:        7,
+			RoundsPerEpoch:              20,
+			MinRoundsBetweenEpochs:      10,
 		},
 		{
 			EnableEpoch:                 10,
@@ -288,14 +307,17 @@ func TestChainParametersHolder_CurrentChainParameters(t *testing.T) {
 			ShardMinNumNodes:            70,
 			MetachainConsensusGroupSize: 70,
 			MetachainMinNumNodes:        70,
+			RoundsPerEpoch:              20,
+			MinRoundsBetweenEpochs:      10,
 		},
 	}
 
-	paramsHolder, _ := NewChainParametersHolder(ArgsChainParametersHolder{
+	paramsHolder, err := NewChainParametersHolder(ArgsChainParametersHolder{
 		ChainParameters:         params,
 		EpochStartEventNotifier: &mock.EpochStartNotifierStub{},
 		ChainParametersNotifier: &commonmocks.ChainParametersNotifierStub{},
 	})
+	require.NoError(t, err)
 
 	paramsHolder.EpochStartAction(&block.MetaBlock{Epoch: 0})
 	require.Equal(t, uint32(5), paramsHolder.CurrentChainParameters().ShardConsensusGroupSize)
@@ -320,6 +342,8 @@ func TestChainParametersHolder_AllChainParameters(t *testing.T) {
 			ShardMinNumNodes:            7,
 			MetachainConsensusGroupSize: 7,
 			MetachainMinNumNodes:        7,
+			RoundsPerEpoch:              20,
+			MinRoundsBetweenEpochs:      10,
 		},
 		{
 			EnableEpoch:                 10,
@@ -327,14 +351,17 @@ func TestChainParametersHolder_AllChainParameters(t *testing.T) {
 			ShardMinNumNodes:            70,
 			MetachainConsensusGroupSize: 70,
 			MetachainMinNumNodes:        70,
+			RoundsPerEpoch:              20,
+			MinRoundsBetweenEpochs:      10,
 		},
 	}
 
-	paramsHolder, _ := NewChainParametersHolder(ArgsChainParametersHolder{
+	paramsHolder, err := NewChainParametersHolder(ArgsChainParametersHolder{
 		ChainParameters:         params,
 		EpochStartEventNotifier: &mock.EpochStartNotifierStub{},
 		ChainParametersNotifier: &commonmocks.ChainParametersNotifierStub{},
 	})
+	require.NoError(t, err)
 
 	returnedAllChainsParameters := paramsHolder.AllChainParameters()
 	require.Equal(t, params, returnedAllChainsParameters)
@@ -346,6 +373,8 @@ func TestChainParametersHolder_ConcurrentOperations(t *testing.T) {
 	for i := uint32(0); i <= 100; i += 5 {
 		chainParams = append(chainParams, config.ChainParametersByEpochConfig{
 			RoundDuration:               4000,
+			RoundsPerEpoch:              200,
+			MinRoundsBetweenEpochs:      20,
 			Hysteresis:                  0.2,
 			EnableEpoch:                 i,
 			ShardConsensusGroupSize:     i*10 + 1,
@@ -356,11 +385,12 @@ func TestChainParametersHolder_ConcurrentOperations(t *testing.T) {
 		})
 	}
 
-	paramsHolder, _ := NewChainParametersHolder(ArgsChainParametersHolder{
+	paramsHolder, err := NewChainParametersHolder(ArgsChainParametersHolder{
 		ChainParameters:         chainParams,
 		EpochStartEventNotifier: &mock.EpochStartNotifierStub{},
 		ChainParametersNotifier: &commonmocks.ChainParametersNotifierStub{},
 	})
+	require.NoError(t, err)
 
 	numOperations := 500
 	wg := sync.WaitGroup{}
