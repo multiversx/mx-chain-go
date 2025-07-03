@@ -74,7 +74,9 @@ func (breadcrumb *accountBreadcrumb) isContinuous(
 			"breadcrumb nonce", breadcrumb.initialNonce)
 		return false
 	}
-	sendersInContinuityWithSessionNonce[address] = struct{}{}
+	if !ok {
+		sendersInContinuityWithSessionNonce[address] = struct{}{}
+	}
 
 	previousBreadcrumb := accountPreviousBreadcrumb[address]
 	continuousBreadcrumbs := breadcrumb.verifyContinuityBetweenAccountBreadcrumbs(previousBreadcrumb)
