@@ -11,19 +11,15 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/block"
 )
 
-// ArgsExecutionResultsTracker holds all the components needed to create a new instance of executionResultsTracker
-type ArgsExecutionResultsTracker struct {
-}
-
 type executionResultsTracker struct {
-	lastNotarizedNonce     uint64
+	lastNotarizedResult    *block.ExecutionResult
 	mutex                  sync.RWMutex
 	executionResultsByHash map[string]*block.ExecutionResult
 	nonceHashes            *nonceHashes
 }
 
 // NewExecutionResultsTracker will create a new instance of *executionResultsTracker
-func NewExecutionResultsTracker(_ ArgsExecutionResultsTracker) (*executionResultsTracker, error) {
+func NewExecutionResultsTracker() (*executionResultsTracker, error) {
 	return &executionResultsTracker{
 		executionResultsByHash: make(map[string]*block.ExecutionResult),
 		nonceHashes:            newNonceHashes(),
@@ -39,21 +35,14 @@ func (est *executionResultsTracker) AddExecutionResult(executionResult *block.Ex
 
 	est.mutex.Lock()
 	defer est.mutex.Unlock()
-	if est.lastNotarizedNonce >= executionResult.Nonce {
-		return fmt.Errorf("execution results nonce(%d) is lower then last notarized nonce(%d)", executionResult.Nonce, est.lastNotarizedNonce)
+	if est.lastNotarizedResult.Nonce >= executionResult.Nonce {
+		return fmt.Errorf("execution results nonce(%d) is lower then last notarized nonce(%d)", executionResult.Nonce, est.lastNotarizedResult.Nonce)
 	}
 
 	est.executionResultsByHash[string(executionResult.HeaderHash)] = executionResult
 	est.nonceHashes.addNonceHash(executionResult.Nonce, string(executionResult.HeaderHash))
 
 	return nil
-}
-
-func (est *executionResultsTracker) cleanExecutionResultsWithSameNonce(nonce uint64, confirmedHash string) {
-	hashes := est.nonceHashes.popDifferentHashes(nonce, confirmedHash)
-	for _, hash := range hashes {
-		delete(est.executionResultsByHash, hash)
-	}
 }
 
 // GetPendingExecutionResults will return the pending execution results
@@ -77,7 +66,7 @@ func (est *executionResultsTracker) GetPendingExecutionResults() ([]*block.Execu
 		return false
 	})
 
-	firstElementHasCorrectNonce := executionResults[0].Nonce+1 == est.lastNotarizedNonce
+	firstElementHasCorrectNonce := executionResults[0].Nonce == est.lastNotarizedResult.Nonce+1
 	if !firstElementHasCorrectNonce {
 		return nil, errors.New("confirmed execution results have different nonces")
 	}
@@ -130,7 +119,17 @@ func (est *executionResultsTracker) CleanConfirmedExecutionResults(headerHash []
 	est.mutex.Lock()
 	defer est.mutex.Unlock()
 
-	// extend header
+	headerExecutionResults := make([]*block.ExecutionResult, 0) // TODO get from header
+	if len(headerExecutionResults) == 0 {
+		return nil
+	}
+
+	for _, executionResult := range headerExecutionResults {
+		delete(est.executionResultsByHash, string(executionResult.HeaderHash))
+		est.nonceHashes.removeByNonce(executionResult.Nonce)
+	}
+
+	est.lastNotarizedResult = headerExecutionResults[len(headerExecutionResults)-1]
 
 	return nil
 }
