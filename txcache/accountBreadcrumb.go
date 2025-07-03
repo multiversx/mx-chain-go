@@ -66,26 +66,24 @@ func (breadcrumb *accountBreadcrumb) isContinuous(
 	}
 
 	_, ok := sendersInContinuityWithSessionNonce[address]
-	if !ok && !breadcrumb.verifyContinuityWithSessionNonce(accountNonce) {
-		log.Debug("accountBreadcrumb.isContinuous",
+	continuousWithSessionNonce := breadcrumb.verifyContinuityWithSessionNonce(accountNonce)
+	if !ok && !continuousWithSessionNonce {
+		log.Debug("accountBreadcrumb.isContinuous breadcrumb not continuous with session nonce",
 			"address", address,
 			"accountNonce", accountNonce,
-			"breadcrumb nonce", breadcrumb.initialNonce,
-			"err", "breadcrumb not continuous with session nonce")
+			"breadcrumb nonce", breadcrumb.initialNonce)
 		return false
-	} else if !ok {
-		sendersInContinuityWithSessionNonce[address] = struct{}{}
 	}
+	sendersInContinuityWithSessionNonce[address] = struct{}{}
 
-	previousBreadcrumb, ok := accountPreviousBreadcrumb[address]
-	if ok &&
-		!breadcrumb.verifyContinuityBetweenAccountBreadcrumbs(previousBreadcrumb) {
-		log.Debug("accountBreadcrumb.isContinuous",
+	previousBreadcrumb, _ := accountPreviousBreadcrumb[address]
+	continuousBreadcrumbs := breadcrumb.verifyContinuityBetweenAccountBreadcrumbs(previousBreadcrumb)
+	if !continuousBreadcrumbs {
+		log.Debug("accountBreadcrumb.isContinuous breadcrumb not continuous with previous breadcrumb",
 			"address", address,
 			"accountNonce", accountNonce,
 			"current breadcrumb nonce", breadcrumb.initialNonce,
-			"previous breadcrumb nonce", previousBreadcrumb.initialNonce,
-			"err", "breadcrumb not continuous with previous breadcrumb")
+			"previous breadcrumb nonce", previousBreadcrumb.initialNonce)
 		return false
 	}
 
@@ -96,7 +94,7 @@ func (breadcrumb *accountBreadcrumb) isContinuous(
 func (breadcrumb *accountBreadcrumb) verifyContinuityBetweenAccountBreadcrumbs(
 	previousBreadcrumbAsSender *accountBreadcrumb,
 ) bool {
-	return previousBreadcrumbAsSender.lastNonce.Value+1 == breadcrumb.initialNonce.Value
+	return previousBreadcrumbAsSender == nil || previousBreadcrumbAsSender.lastNonce.Value+1 == breadcrumb.initialNonce.Value
 }
 
 func (breadcrumb *accountBreadcrumb) verifyContinuityWithSessionNonce(sessionNonce uint64) bool {
@@ -104,9 +102,5 @@ func (breadcrumb *accountBreadcrumb) verifyContinuityWithSessionNonce(sessionNon
 }
 
 func (breadcrumb *accountBreadcrumb) isRelayer() bool {
-	if !breadcrumb.initialNonce.HasValue && !breadcrumb.lastNonce.HasValue {
-		return true
-	}
-
-	return false
+	return !breadcrumb.initialNonce.HasValue && !breadcrumb.lastNonce.HasValue
 }
