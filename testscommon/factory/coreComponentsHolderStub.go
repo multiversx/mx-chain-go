@@ -46,6 +46,7 @@ type CoreComponentsHolderStub struct {
 	EpochStartNotifierWithConfirmCalled func() factory.EpochStartNotifierWithConfirm
 	ChanStopNodeProcessCalled           func() chan endProcess.ArgEndProcess
 	GenesisTimeCalled                   func() time.Time
+	SupernovaGenesisTimeCalled          func() time.Time
 	ChainIDCalled                       func() string
 	MinTransactionVersionCalled         func() uint32
 	TxVersionCheckerCalled              func() process.TxVersionCheckerHandler
@@ -305,6 +306,14 @@ func (stub *CoreComponentsHolderStub) GenesisTime() time.Time {
 		return stub.GenesisTimeCalled()
 	}
 	return time.Unix(0, 0)
+}
+
+// SupernovaGenesisTime -
+func (stub *CoreComponentsHolderStub) SupernovaGenesisTime() time.Time {
+	if stub.SupernovaGenesisTimeCalled != nil {
+		return stub.SupernovaGenesisTimeCalled()
+	}
+	return time.UnixMilli(0)
 }
 
 // ChainID -

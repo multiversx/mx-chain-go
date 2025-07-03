@@ -10,7 +10,7 @@ func GetDefaultRoundsConfig() config.RoundConfig {
 				Round: "18446744073709551615",
 			},
 			"SupernovaEnableRound": {
-				Round: "18446744073709551615",
+				Round: "9999999",
 			},
 		},
 	}

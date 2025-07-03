@@ -140,6 +140,11 @@ func (ccm *CoreComponentsMock) GenesisTime() time.Time {
 	return ccm.GenesisBlockTime
 }
 
+// SupernovaGenesisTime -
+func (ccm *CoreComponentsMock) SupernovaGenesisTime() time.Time {
+	return ccm.GenesisBlockTime
+}
+
 // ChainID -
 func (ccm *CoreComponentsMock) ChainID() string {
 	if ccm.ChainIdCalled != nil {
