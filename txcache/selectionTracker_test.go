@@ -1,11 +1,13 @@
 package txcache
 
 import (
+	"errors"
 	"fmt"
 	"sync"
 	"testing"
 
 	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-go/testscommon/txcachemocks"
 	"github.com/stretchr/testify/require"
 )
 
@@ -58,8 +60,21 @@ func executeBlocksConcurrently(t *testing.T, numOfBlocks int, selectionTracker *
 func TestNewSelectionTracker(t *testing.T) {
 	t.Parallel()
 
-	_, err := NewSelectionTracker()
-	require.Nil(t, err)
+	t.Run("should work", func(t *testing.T) {
+		t.Parallel()
+
+		txCache := newCacheToTest(maxNumBytesPerSenderUpperBoundTest, 3)
+		_, err := NewSelectionTracker(txCache)
+		require.Nil(t, err)
+	})
+
+	t.Run("should fail", func(t *testing.T) {
+		t.Parallel()
+
+		tracker, err := NewSelectionTracker(nil)
+		require.Equal(t, errNilTxCache, err)
+		require.Nil(t, tracker)
+	})
 }
 
 func TestSelectionTracker_OnProposedBlockShouldErr(t *testing.T) {
@@ -68,7 +83,8 @@ func TestSelectionTracker_OnProposedBlockShouldErr(t *testing.T) {
 	t.Run("should err nil block hash", func(t *testing.T) {
 		t.Parallel()
 
-		tracker, err := NewSelectionTracker()
+		txCache := newCacheToTest(maxNumBytesPerSenderUpperBoundTest, 3)
+		tracker, err := NewSelectionTracker(txCache)
 		require.Nil(t, err)
 
 		err = tracker.OnProposedBlock(nil, nil, nil)
@@ -78,7 +94,8 @@ func TestSelectionTracker_OnProposedBlockShouldErr(t *testing.T) {
 	t.Run("should err nil header", func(t *testing.T) {
 		t.Parallel()
 
-		tracker, err := NewSelectionTracker()
+		txCache := newCacheToTest(maxNumBytesPerSenderUpperBoundTest, 3)
+		tracker, err := NewSelectionTracker(txCache)
 		require.Nil(t, err)
 
 		err = tracker.OnProposedBlock([]byte("hash1"), nil, nil)
@@ -88,7 +105,8 @@ func TestSelectionTracker_OnProposedBlockShouldErr(t *testing.T) {
 	t.Run("should err nil header", func(t *testing.T) {
 		t.Parallel()
 
-		tracker, err := NewSelectionTracker()
+		txCache := newCacheToTest(maxNumBytesPerSenderUpperBoundTest, 3)
+		tracker, err := NewSelectionTracker(txCache)
 		require.Nil(t, err)
 
 		blockBody := block.Body{}
@@ -100,7 +118,8 @@ func TestSelectionTracker_OnProposedBlockShouldErr(t *testing.T) {
 func TestSelectionTracker_OnProposedBlockShouldWork(t *testing.T) {
 	t.Parallel()
 
-	tracker, err := NewSelectionTracker()
+	txCache := newCacheToTest(maxNumBytesPerSenderUpperBoundTest, 3)
+	tracker, err := NewSelectionTracker(txCache)
 	require.Nil(t, err)
 
 	numOfBlocks := 20
@@ -112,7 +131,8 @@ func TestSelectionTracker_OnProposedBlockShouldWork(t *testing.T) {
 func TestSelectionTracker_OnExecutedBlockShouldError(t *testing.T) {
 	t.Parallel()
 
-	tracker, err := NewSelectionTracker()
+	txCache := newCacheToTest(maxNumBytesPerSenderUpperBoundTest, 3)
+	tracker, err := NewSelectionTracker(txCache)
 	require.Nil(t, err)
 
 	err = tracker.OnExecutedBlock(nil)
@@ -122,19 +142,20 @@ func TestSelectionTracker_OnExecutedBlockShouldError(t *testing.T) {
 func TestSelectionTracker_OnExecutedBlockShouldWork(t *testing.T) {
 	t.Parallel()
 
-	selTracker, err := NewSelectionTracker()
+	txCache := newCacheToTest(maxNumBytesPerSenderUpperBoundTest, 3)
+	tracker, err := NewSelectionTracker(txCache)
 	require.Nil(t, err)
 
 	numOfBlocks := 20
 	headers := createMockedHeaders(numOfBlocks)
 
-	proposeBlocksConcurrently(t, numOfBlocks, selTracker, headers)
-	require.Equal(t, numOfBlocks, len(selTracker.blocks))
+	proposeBlocksConcurrently(t, numOfBlocks, tracker, headers)
+	require.Equal(t, numOfBlocks, len(tracker.blocks))
 
-	executeBlocksConcurrently(t, numOfBlocks, selTracker, headers)
-	require.Equal(t, 0, len(selTracker.blocks))
-	require.Equal(t, uint64(19), selTracker.latestNonce)
-	require.Equal(t, []byte("rootHash19"), selTracker.latestRootHash)
+	executeBlocksConcurrently(t, numOfBlocks, tracker, headers)
+	require.Equal(t, 0, len(tracker.blocks))
+	require.Equal(t, uint64(19), tracker.latestNonce)
+	require.Equal(t, []byte("rootHash19"), tracker.latestRootHash)
 }
 
 func TestSelectionTracker_updateLatestRoothash(t *testing.T) {
@@ -143,62 +164,258 @@ func TestSelectionTracker_updateLatestRoothash(t *testing.T) {
 	t.Run("latest roothash is nil", func(t *testing.T) {
 		t.Parallel()
 
-		selTracker, err := NewSelectionTracker()
+		txCache := newCacheToTest(maxNumBytesPerSenderUpperBoundTest, 3)
+		tracker, err := NewSelectionTracker(txCache)
 		require.Nil(t, err)
 
-		selTracker.updateLatestRootHashNoLock(1, []byte("rootHash1"))
-		require.Equal(t, uint64(1), selTracker.latestNonce)
-		require.Equal(t, []byte("rootHash1"), selTracker.latestRootHash)
+		tracker.updateLatestRootHashNoLock(1, []byte("rootHash1"))
+		require.Equal(t, uint64(1), tracker.latestNonce)
+		require.Equal(t, []byte("rootHash1"), tracker.latestRootHash)
 	})
 
 	t.Run("root hash of block N after root hash of block N+1", func(t *testing.T) {
 		t.Parallel()
 
-		selTracker, err := NewSelectionTracker()
+		txCache := newCacheToTest(maxNumBytesPerSenderUpperBoundTest, 3)
+		tracker, err := NewSelectionTracker(txCache)
 		require.Nil(t, err)
 
-		selTracker.updateLatestRootHashNoLock(2, []byte("rootHash2"))
-		require.Equal(t, uint64(2), selTracker.latestNonce)
-		require.Equal(t, []byte("rootHash2"), selTracker.latestRootHash)
+		tracker.updateLatestRootHashNoLock(2, []byte("rootHash2"))
+		require.Equal(t, uint64(2), tracker.latestNonce)
+		require.Equal(t, []byte("rootHash2"), tracker.latestRootHash)
 
-		selTracker.updateLatestRootHashNoLock(1, []byte("rootHash1"))
-		require.Equal(t, uint64(2), selTracker.latestNonce)
-		require.Equal(t, []byte("rootHash2"), selTracker.latestRootHash)
+		tracker.updateLatestRootHashNoLock(1, []byte("rootHash1"))
+		require.Equal(t, uint64(2), tracker.latestNonce)
+		require.Equal(t, []byte("rootHash2"), tracker.latestRootHash)
 	})
 
 	t.Run("root hash of block N + 1 after root hash of block N", func(t *testing.T) {
 		t.Parallel()
 
-		selTracker, err := NewSelectionTracker()
+		txCache := newCacheToTest(maxNumBytesPerSenderUpperBoundTest, 3)
+		tracker, err := NewSelectionTracker(txCache)
 		require.Nil(t, err)
 
-		selTracker.updateLatestRootHashNoLock(1, []byte("rootHash1"))
-		require.Equal(t, uint64(1), selTracker.latestNonce)
-		require.Equal(t, []byte("rootHash1"), selTracker.latestRootHash)
+		tracker.updateLatestRootHashNoLock(1, []byte("rootHash1"))
+		require.Equal(t, uint64(1), tracker.latestNonce)
+		require.Equal(t, []byte("rootHash1"), tracker.latestRootHash)
 
-		selTracker.updateLatestRootHashNoLock(2, []byte("rootHash2"))
-		require.Equal(t, uint64(2), selTracker.latestNonce)
-		require.Equal(t, []byte("rootHash2"), selTracker.latestRootHash)
+		tracker.updateLatestRootHashNoLock(2, []byte("rootHash2"))
+		require.Equal(t, uint64(2), tracker.latestNonce)
+		require.Equal(t, []byte("rootHash2"), tracker.latestRootHash)
 	})
 }
 
 func TestSelectionTracker_removeFromTrackedBlocks(t *testing.T) {
 	t.Parallel()
 
-	selTracker, err := NewSelectionTracker()
+	txCache := newCacheToTest(maxNumBytesPerSenderUpperBoundTest, 3)
+	tracker, err := NewSelectionTracker(txCache)
 	require.Nil(t, err)
 
 	expectedTrackedBlock := newTrackedBlock(1, []byte("blockHash2"), []byte("rootHash2"), []byte("prevHash2"))
 
-	selTracker.blocks = []*trackedBlock{
+	tracker.blocks = []*trackedBlock{
 		newTrackedBlock(0, []byte("blockHash1"), []byte("rootHash1"), []byte("prevHash1")),
 		expectedTrackedBlock,
 		newTrackedBlock(0, []byte("blockHash3"), []byte("rootHash3"), []byte("prevHash1")),
 	}
 
-	require.Equal(t, 3, len(selTracker.blocks))
-	selTracker.removeFromTrackedBlocksNoLock(newTrackedBlock(0, nil, nil, []byte("prevHash1")))
-	require.Equal(t, 1, len(selTracker.blocks))
+	require.Equal(t, 3, len(tracker.blocks))
+	tracker.removeFromTrackedBlocksNoLock(newTrackedBlock(0, nil, nil, []byte("prevHash1")))
+	require.Equal(t, 1, len(tracker.blocks))
 
-	require.Equal(t, expectedTrackedBlock, selTracker.blocks[0])
+	require.Equal(t, expectedTrackedBlock, tracker.blocks[0])
+}
+
+func TestSelectionTracker_nextBlock(t *testing.T) {
+	t.Parallel()
+
+	t.Run("should return next block", func(t *testing.T) {
+		t.Parallel()
+
+		txCache := newCacheToTest(maxNumBytesPerSenderUpperBoundTest, 3)
+		tracker, err := NewSelectionTracker(txCache)
+		require.Nil(t, err)
+
+		expectedNextBlock := newTrackedBlock(0, []byte("blockHash2"), []byte("rootHash2"), []byte("blockHash1"))
+		tracker.blocks = []*trackedBlock{
+			newTrackedBlock(0, []byte("blockHash1"), []byte("rootHash1"), []byte("prevHash1")),
+			expectedNextBlock,
+		}
+
+		receivedNextBlock := tracker.findNextBlock([]byte("blockHash1"))
+		require.Equal(t, expectedNextBlock, receivedNextBlock)
+	})
+
+	t.Run("should return nil", func(t *testing.T) {
+		t.Parallel()
+
+		txCache := newCacheToTest(maxNumBytesPerSenderUpperBoundTest, 3)
+		tracker, err := NewSelectionTracker(txCache)
+		require.Nil(t, err)
+
+		expectedNextBlock := newTrackedBlock(0, []byte("blockHash2"), []byte("rootHash2"), []byte("blockHash1"))
+		tracker.blocks = []*trackedBlock{
+			newTrackedBlock(0, []byte("blockHash1"), []byte("rootHash1"), []byte("prevHash1")),
+			expectedNextBlock,
+		}
+
+		receivedNextBlock := tracker.findNextBlock([]byte("notExistingBlockHash"))
+		require.Nil(t, receivedNextBlock)
+	})
+}
+
+func TestSelectionTracker_getChainOfTrackedBlocks(t *testing.T) {
+	t.Parallel()
+
+	txCache := newCacheToTest(maxNumBytesPerSenderUpperBoundTest, 3)
+	tracker, err := NewSelectionTracker(txCache)
+	require.Nil(t, err)
+
+	// create a slice of tracked block which aren't ordered
+	tracker.blocks = []*trackedBlock{
+		newTrackedBlock(7, []byte("blockHash8"), []byte("rootHash8"), []byte("blockHash7")),
+		newTrackedBlock(5, []byte("blockHash6"), []byte("rootHash6"), []byte("blockHash5")),
+		newTrackedBlock(1, []byte("blockHash2"), []byte("rootHash2"), []byte("blockHash1")),
+		newTrackedBlock(0, []byte("blockHash1"), []byte("rootHash1"), []byte("prevHash1")),
+		newTrackedBlock(3, []byte("blockHash4"), []byte("rootHash4"), []byte("blockHash3")),
+		newTrackedBlock(2, []byte("blockHash3"), []byte("rootHash3"), []byte("blockHash2")),
+		newTrackedBlock(4, []byte("blockHash5"), []byte("rootHash5"), []byte("blockHash4")),
+		newTrackedBlock(6, []byte("blockHash7"), []byte("rootHash7"), []byte("blockHash6")),
+	}
+
+	t.Run("should return expected tracked blocks and stop before nonce", func(t *testing.T) {
+		t.Parallel()
+
+		expectedTrackedBlockHashes := [][]byte{
+			[]byte("blockHash5"),
+			[]byte("blockHash6"),
+			[]byte("blockHash7"),
+		}
+
+		actualChain := tracker.getChainOfTrackedBlocks([]byte("blockHash4"), 7)
+		for i, returnedBlock := range actualChain {
+			require.Equal(t, returnedBlock.hash, expectedTrackedBlockHashes[i])
+		}
+	})
+
+	t.Run("should return expected tracked blocks and stop because of nil block encountered", func(t *testing.T) {
+		t.Parallel()
+
+		expectedTrackedBlockHashes := [][]byte{
+			[]byte("blockHash5"),
+			[]byte("blockHash6"),
+			[]byte("blockHash7"),
+			[]byte("blockHash8"),
+		}
+
+		actualChain := tracker.getChainOfTrackedBlocks([]byte("blockHash4"), 12)
+		for i, returnedBlock := range actualChain {
+			require.Equal(t, returnedBlock.hash, expectedTrackedBlockHashes[i])
+		}
+	})
+
+	t.Run("should return 0 blocks because prevHash not found", func(t *testing.T) {
+		t.Parallel()
+
+		actualChain := tracker.getChainOfTrackedBlocks([]byte("blockHashX"), 12)
+		require.Equal(t, 0, len(actualChain))
+	})
+
+	t.Run("should return 0 blocks because of greater or equal nonce encountered", func(t *testing.T) {
+		t.Parallel()
+
+		actualChain := tracker.getChainOfTrackedBlocks([]byte("blockHash6"), 6)
+		require.Equal(t, 0, len(actualChain))
+	})
+
+	t.Run("should return 1 block because of greater or equal once encountered", func(t *testing.T) {
+		t.Parallel()
+
+		actualChain := tracker.getChainOfTrackedBlocks([]byte("blockHash6"), 7)
+		require.Equal(t, 1, len(actualChain))
+	})
+}
+
+func TestSelectionTracker_deriveVirtualSelectionSessionShouldErr(t *testing.T) {
+	t.Parallel()
+
+	txCache := newCacheToTest(maxNumBytesPerSenderUpperBoundTest, 3)
+	tracker, err := NewSelectionTracker(txCache)
+	require.Nil(t, err)
+
+	expectedErr := errors.New("expected err")
+
+	session := txcachemocks.SelectionSessionMock{}
+	session.GetRootHashCalled = func() ([]byte, error) {
+		return nil, expectedErr
+	}
+	virtualSession, actualErr := tracker.deriveVirtualSelectionSession(&session, nil, 0)
+	require.Nil(t, virtualSession)
+	require.Equal(t, expectedErr, actualErr)
+}
+
+func TestSelectionTracker_getTransactionsFromBlock(t *testing.T) {
+	t.Parallel()
+
+	t.Run("should work", func(t *testing.T) {
+		blockBody := block.Body{MiniBlocks: []*block.MiniBlock{
+			{
+				TxHashes: [][]byte{
+					[]byte("txHash1"),
+					[]byte("txHash2"),
+				},
+			},
+			{
+				TxHashes: [][]byte{
+					[]byte("txHash3"),
+				},
+			},
+		}}
+
+		txCache := newCacheToTest(maxNumBytesPerSenderUpperBoundTest, 3)
+		txCache.txByHash = newTxByHashMap(1)
+
+		txCache.txByHash.addTx(createTx([]byte("txHash1"), "alice", 1))
+		txCache.txByHash.addTx(createTx([]byte("txHash2"), "alice", 2))
+		txCache.txByHash.addTx(createTx([]byte("txHash3"), "alice", 3))
+
+		selTracker, err := NewSelectionTracker(txCache)
+		require.Nil(t, err)
+
+		txs, err := selTracker.getTransactionsFromBlock(&blockBody)
+		require.Nil(t, err)
+		require.Equal(t, 3, len(txs))
+	})
+
+	t.Run("should fail", func(t *testing.T) {
+		blockBody := block.Body{MiniBlocks: []*block.MiniBlock{
+			{
+				TxHashes: [][]byte{
+					[]byte("txHash1"),
+					[]byte("txHash2"),
+				},
+			},
+			{
+				TxHashes: [][]byte{
+					[]byte("txHash3"),
+				},
+			},
+		}}
+
+		txCache := newCacheToTest(maxNumBytesPerSenderUpperBoundTest, 3)
+		txCache.txByHash = newTxByHashMap(1)
+
+		txCache.txByHash.addTx(createTx([]byte("txHash1"), "alice", 1))
+		txCache.txByHash.addTx(createTx([]byte("txHash2"), "alice", 2))
+
+		selTracker, err := NewSelectionTracker(txCache)
+		require.Nil(t, err)
+
+		txs, err := selTracker.getTransactionsFromBlock(&blockBody)
+		require.Nil(t, txs)
+		require.Equal(t, errNotFoundTx, err)
+	})
+
 }
