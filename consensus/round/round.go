@@ -113,16 +113,6 @@ func (rnd *round) updateRoundLegacy(genesisTimeStamp time.Time, currentTimeStamp
 		rnd.index = index
 		rnd.timeStamp = genesisTimeStamp.Add(time.Duration((index - rnd.startRound) * rnd.getTimeDuration().Nanoseconds()))
 	}
-
-	// log.Debug("updateRoundLegacy",
-	// 	"delta", delta,
-	// 	"genesisTimeStamp.UnixMilli", genesisTimeStamp.UnixMilli(),
-	// 	"genesisTimeStamp.Unix", genesisTimeStamp.Unix(),
-	// 	"currentTimeStamp.UnixMilli", currentTimeStamp.UnixMilli(),
-	// 	"currentTimeStamp.Unix", currentTimeStamp.Unix(),
-	// 	"index", index,
-	// )
-
 	rnd.Unlock()
 
 }
@@ -179,19 +169,11 @@ func (rnd *round) RemainingTime(startTime time.Time, maxTime time.Duration) time
 }
 
 // RevertOneRound reverts the round index and time stamp by one round, used in case of a transition to new consensus
-// TODO: handle revert for supernova new timestamp field
 func (rnd *round) RevertOneRound() {
 	rnd.Lock()
 
 	rnd.index--
 	rnd.timeStamp = rnd.timeStamp.Add(-rnd.getTimeDuration())
-	// index := rnd.index - 1
-	// timeStamp := rnd.timeStamp.Add(-rnd.getTimeDuration())
-
-	log.Debug("RevertOneRound fake",
-		"index", rnd.index,
-		"timeStamp milli", rnd.timeStamp.UnixMilli(),
-	)
 
 	rnd.Unlock()
 }

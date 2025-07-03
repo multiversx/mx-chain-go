@@ -60,13 +60,6 @@ func (handler *manualRoundHandler) TimeDuration() time.Duration {
 	return handler.roundDuration
 }
 
-func (handler *manualRoundHandler) SetTimeDuration(timeDuration time.Duration) {
-	handler.roundDuration = timeDuration
-}
-
-func (handler *manualRoundHandler) SetNewTimeStamp(genesisTimeStamp time.Time, currentTimeStamp time.Time) {
-}
-
 // RemainingTime returns the max time as the start time is not taken into account
 func (handler *manualRoundHandler) RemainingTime(_ time.Time, maxTime time.Duration) time.Duration {
 	return maxTime

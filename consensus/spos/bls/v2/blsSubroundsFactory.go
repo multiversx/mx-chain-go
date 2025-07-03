@@ -111,13 +111,8 @@ func (fct *factory) SetOutportHandler(driver outport.OutportHandler) {
 func (fct *factory) GenerateSubrounds(epoch uint32) error {
 	fct.initConsensusThreshold(epoch)
 	fct.consensusCore.Chronology().RemoveAllSubrounds()
-
-	log.Debug("factory.GenerateSubrounds: chronology remove all subrounds")
-
 	fct.worker.RemoveAllReceivedMessagesCalls()
 	fct.worker.RemoveAllReceivedHeaderHandlers()
-
-	log.Debug("factory.GenerateSubrounds: removed all messages and headers")
 
 	err := fct.generateStartRoundSubround()
 	if err != nil {

@@ -45,13 +45,6 @@ func (rndm *RoundHandlerMock) TimeDuration() time.Duration {
 	return 4000 * time.Millisecond
 }
 
-// SetTimeDuration -
-func (rndm *RoundHandlerMock) SetTimeDuration(timeDuration time.Duration) {
-}
-
-func (rndm *RoundHandlerMock) SetNewTimeStamp(genesisTimeStamp time.Time, currentTimeStamp time.Time) {
-}
-
 // TimeStamp -
 func (rndm *RoundHandlerMock) TimeStamp() time.Time {
 	if rndm.TimeStampCalled != nil {

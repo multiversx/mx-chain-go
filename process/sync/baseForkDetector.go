@@ -877,20 +877,16 @@ func (bfd *baseForkDetector) processReceivedBlock(
 	if common.IsProofsFlagEnabledForHeader(bfd.enableEpochsHandler, header) {
 		hasProof = bfd.proofsPool.HasProof(header.GetShardID(), headerHash)
 	}
-	// if bfd.enableEpochsHandler.GetActivationEpoch(common.SupernovaFlag) == header.GetEpoch() && header.IsStartOfEpochBlock() {
-	// 	log.Debug("processReceivedBlock: setting hasProof = true for supernova activation block")
-	// 	hasProof = true
-	// }
 	bfd.setHighestNonceReceived(header.GetNonce())
 
 	if state == process.BHProposed || !hasProof {
-		log.Debug("forkDetector.processReceivedBlock: block is proposed or has no proof", "state", state, "has proof", hasProof)
+		log.Trace("forkDetector.processReceivedBlock: block is proposed or has no proof", "state", state, "has proof", hasProof)
 		return
 	}
 
 	isHeaderReceivedTooLate := bfd.isHeaderReceivedTooLate(header, state, process.BlockFinality)
 	if isHeaderReceivedTooLate {
-		log.Debug("forkDetector.processReceivedBlock: block is received too late", "initial state", state)
+		log.Trace("forkDetector.processReceivedBlock: block is received too late", "initial state", state)
 		state = process.BHReceivedTooLate
 	}
 
@@ -904,7 +900,7 @@ func (bfd *baseForkDetector) processReceivedBlock(
 	}
 
 	if !bfd.append(hInfo) {
-		log.Debug("forkDetector.processReceivedBlock: header not appended", "nonce", hInfo.nonce, "hash", hInfo.hash)
+		log.Trace("forkDetector.processReceivedBlock: header not appended", "nonce", hInfo.nonce, "hash", hInfo.hash)
 		return
 	}
 

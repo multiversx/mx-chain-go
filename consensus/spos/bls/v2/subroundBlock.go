@@ -281,8 +281,6 @@ func (sr *subroundBlock) sendBlockHeader(
 
 	log.Debug("step 1: block header has been sent",
 		"nonce", headerHandler.GetNonce(),
-		"epoch", headerHandler.GetEpoch(),
-		"timeStamp", headerHandler.GetTimeStamp(),
 		"hash", headerHash,
 	)
 
@@ -515,8 +513,6 @@ func (sr *subroundBlock) receivedBlockHeader(headerHandler data.HeaderHandler) {
 
 	log.Debug("step 1: block header has been received",
 		"nonce", sr.GetHeader().GetNonce(),
-		"epoch", headerHandler.GetEpoch(),
-		"timeStamp", headerHandler.GetTimeStamp(),
 		"hash", sr.GetData())
 
 	sr.AddReceivedHeader(headerHandler)

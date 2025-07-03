@@ -146,44 +146,8 @@ func (s *SubroundsHandler) initSubroundsForEpoch(epoch uint32) error {
 	var err error
 	var fct subroundsFactory
 
-	log.Debug("initSubroundsForEpoch called", "epoch", epoch)
-
-	// if s.enableEpochsHandler.IsFlagEnabledInEpoch(common.SupernovaFlag, epoch) {
-	// 	if s.currentConsensusType == consensusV3 {
-	// 		log.Debug("SubroundsHandler.initSubroundsForEpoch: consensus already set",
-	// 			"consensusType", consensusV3,
-	// 			"epoch", epoch,
-	// 		)
-	// 		return nil
-	// 	}
-
-	// 	log.Debug("SubroundsHandler.initSubroundsForEpoch: CUSTOM supernova handling", "epoch", epoch)
-
-	// 	s.currentConsensusType = consensusV3
-
-	// 	// // TODO: get new round time duration from config
-	// 	// newRoundDuration := time.Duration(6000) * time.Millisecond
-
-	// 	// s.chronology.SetRoundTimeDuration(newRoundDuration)
-
-	// 	fct, err = v2.NewSubroundsFactory(
-	// 		s.consensusCoreHandler,
-	// 		s.consensusState,
-	// 		s.worker,
-	// 		s.chainID,
-	// 		s.currentPid,
-	// 		s.appStatusHandler,
-	// 		s.sentSignatureTracker,
-	// 		s.signatureThrottler,
-	// 		s.outportHandler,
-	// 	)
-
 	if s.enableEpochsHandler.IsFlagEnabledInEpoch(common.AndromedaFlag, epoch) {
 		if s.currentConsensusType == consensusV2 {
-			log.Trace("SubroundsHandler.initSubroundsForEpoch: consensus already set",
-				"consensusType", consensusV2,
-				"epoch", epoch,
-			)
 			return nil
 		}
 
@@ -201,10 +165,6 @@ func (s *SubroundsHandler) initSubroundsForEpoch(epoch uint32) error {
 		)
 	} else {
 		if s.currentConsensusType == consensusV1 {
-			log.Trace("SubroundsHandler.initSubroundsForEpoch: consensus already set",
-				"consensusType", consensusV1,
-				"epoch", epoch,
-			)
 			return nil
 		}
 
@@ -236,7 +196,6 @@ func (s *SubroundsHandler) initSubroundsForEpoch(epoch uint32) error {
 
 	log.Debug("SubroundsHandler.initSubroundsForEpoch: reset consensus round state")
 	s.worker.ResetConsensusRoundState()
-
 	s.chronology.StartRounds()
 
 	return nil

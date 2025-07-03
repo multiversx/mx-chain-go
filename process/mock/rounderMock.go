@@ -37,12 +37,6 @@ func (rndm *RoundHandlerMock) TimeDuration() time.Duration {
 	return rndm.RoundTimeDuration
 }
 
-func (rndm *RoundHandlerMock) SetTimeDuration(timeDuration time.Duration) {
-}
-
-func (rndm *RoundHandlerMock) SetNewTimeStamp(genesisTimeStamp time.Time, currentTimeStamp time.Time) {
-}
-
 // TimeStamp -
 func (rndm *RoundHandlerMock) TimeStamp() time.Time {
 	return rndm.RoundTimeStamp
