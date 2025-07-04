@@ -310,10 +310,11 @@ type EnableEpochsHandler interface {
 	IsInterfaceNil() bool
 }
 
+// EnableRoundsHandler defines the operations of an entity that manages round activation flags
 type EnableRoundsHandler interface {
 	RoundConfirmed(round uint64, timestamp uint64)
 	IsDisableAsyncCallV1Enabled() bool
-	SupernovaEnableRoundEnabled() bool
+	IsSupernovaEnabled() bool
 	SupernovaActivationRound() uint64
 
 	IsInterfaceNil() bool

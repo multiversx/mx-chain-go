@@ -1,8 +1,6 @@
 package consensus
 
 import (
-	"time"
-
 	"github.com/multiversx/mx-chain-go/consensus"
 )
 
@@ -46,12 +44,6 @@ func (chrm *ChronologyHandlerMock) StartRounds() {
 // Close -
 func (chrm *ChronologyHandlerMock) Close() error {
 	return nil
-}
-
-func (chrm *ChronologyHandlerMock) SetRoundTimeDuration(timeDuration time.Duration) {
-}
-
-func (chrm *ChronologyHandlerMock) SetNewTimeStamp(genesisTimeStamp time.Time, currentTimeStamp time.Time) {
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

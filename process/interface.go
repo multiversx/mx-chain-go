@@ -1205,7 +1205,7 @@ type RoundNotifier interface {
 type EnableRoundsHandler interface {
 	RoundConfirmed(round uint64, timestamp uint64)
 	IsDisableAsyncCallV1Enabled() bool
-	SupernovaEnableRoundEnabled() bool
+	IsSupernovaEnabled() bool
 	SupernovaActivationRound() uint64
 
 	IsInterfaceNil() bool

@@ -68,7 +68,6 @@ const (
 	consensusNone consensusStateMachineType = iota
 	consensusV1
 	consensusV2
-	consensusV3
 )
 
 // NewSubroundsHandler creates a new SubroundsHandler object

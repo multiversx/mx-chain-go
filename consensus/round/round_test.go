@@ -93,7 +93,7 @@ func TestRound_UpdateRoundShouldAdvanceOneRound(t *testing.T) {
 			},
 		}
 		args.EnableRoundsHandler = &testscommon.EnableRoundsHandlerStub{
-			SupernovaEnableRoundEnabledCalled: func() bool {
+			IsSupernovaEnabledCalled: func() bool {
 				return false
 			},
 		}
@@ -120,7 +120,7 @@ func TestRound_UpdateRoundShouldAdvanceOneRound(t *testing.T) {
 			},
 		}
 		args.EnableRoundsHandler = &testscommon.EnableRoundsHandlerStub{
-			SupernovaEnableRoundEnabledCalled: func() bool {
+			IsSupernovaEnabledCalled: func() bool {
 				return true
 			},
 		}
@@ -227,7 +227,7 @@ func TestRound_UpdateRoundWithTimeDurationChange(t *testing.T) {
 			},
 		}
 		args.EnableRoundsHandler = &testscommon.EnableRoundsHandlerStub{
-			SupernovaEnableRoundEnabledCalled: func() bool {
+			IsSupernovaEnabledCalled: func() bool {
 				return flag.IsSet()
 			},
 		}

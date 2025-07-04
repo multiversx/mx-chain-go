@@ -966,16 +966,6 @@ func (sp *shardProcessor) CreateBlock(
 	return shardHdr, finalBody, nil
 }
 
-func (sp *shardProcessor) GetUnixTimestampForHeader(
-	headerEpoch uint32,
-) uint64 {
-	if sp.enableEpochsHandler.IsFlagEnabledInEpoch(common.SupernovaFlag, headerEpoch) {
-		return uint64(sp.roundHandler.TimeStamp().UnixMilli())
-	}
-
-	return uint64(sp.roundHandler.TimeStamp().Unix())
-}
-
 // createBlockBody creates a list of miniblocks by filling them with transactions out of the transactions pools
 // as long as the transactions limit for the block has not been reached and there is still time to add transactions
 func (sp *shardProcessor) createBlockBody(shardHdr data.HeaderHandler, haveTime func() bool) (*block.Body, map[string]*processedMb.ProcessedMiniBlockInfo, error) {

@@ -1329,7 +1329,7 @@ func TestBaseForkDetector_ComputeGenesisTimeFromHeader(t *testing.T) {
 				},
 			},
 			&testscommon.EnableRoundsHandlerStub{
-				SupernovaEnableRoundEnabledCalled: func() bool {
+				IsSupernovaEnabledCalled: func() bool {
 					return false
 				},
 			},
@@ -1375,7 +1375,7 @@ func TestBaseForkDetector_ComputeGenesisTimeFromHeader(t *testing.T) {
 				},
 			},
 			&testscommon.EnableRoundsHandlerStub{
-				SupernovaEnableRoundEnabledCalled: func() bool {
+				IsSupernovaEnabledCalled: func() bool {
 					return true
 				},
 				SupernovaActivationRoundCalled: func() uint64 {

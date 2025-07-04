@@ -2358,11 +2358,6 @@ func (mp *metaProcessor) applyBodyToHeader(metaHdr data.MetaHeaderHandler, bodyH
 		return nil, err
 	}
 
-	err = metaHdr.SetTimeStamp(mp.GetUnixTimestampForHeader(metaHdr.GetEpoch()))
-	if err != nil {
-		return nil, err
-	}
-
 	err = metaHdr.SetShardInfoHandlers(shardInfo)
 	if err != nil {
 		return nil, err
@@ -2458,16 +2453,6 @@ func (mp *metaProcessor) applyBodyToHeader(metaHdr data.MetaHeaderHandler, bodyH
 	mp.blockSizeThrottler.Add(metaHdr.GetRound(), uint32(len(marshalizedBody)))
 
 	return body, nil
-}
-
-func (mp *metaProcessor) GetUnixTimestampForHeader(
-	headerEpoch uint32,
-) uint64 {
-	if mp.enableEpochsHandler.IsFlagEnabledInEpoch(common.SupernovaFlag, headerEpoch) {
-		return uint64(mp.roundHandler.TimeStamp().UnixMilli())
-	}
-
-	return uint64(mp.roundHandler.TimeStamp().Unix())
 }
 
 func (mp *metaProcessor) prepareBlockHeaderInternalMapForValidatorProcessor() {

@@ -85,6 +85,23 @@ func TestNewMetaForkDetector_NilEnableEpochsHandlerShouldErr(t *testing.T) {
 	assert.Equal(t, process.ErrNilEnableEpochsHandler, err)
 }
 
+func TestNewMetaForkDetector_NilEnableRoundsHandlerShouldErr(t *testing.T) {
+	t.Parallel()
+
+	sfd, err := sync.NewMetaForkDetector(
+		&mock.RoundHandlerMock{},
+		&testscommon.TimeCacheStub{},
+		&mock.BlockTrackerMock{},
+		0,
+		0,
+		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		nil,
+		&dataRetriever.ProofsPoolMock{},
+	)
+	assert.True(t, check.IfNil(sfd))
+	assert.Equal(t, process.ErrNilEnableRoundsHandler, err)
+}
+
 func TestNewMetaForkDetector_NilProofsPoolShouldErr(t *testing.T) {
 	t.Parallel()
 

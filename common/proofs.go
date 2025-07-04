@@ -66,8 +66,8 @@ func GetEpochForConsensus(proof data.HeaderProofHandler) uint32 {
 }
 
 // IsSupernovaRoundActivated returns true if supernova epoch and
-// round si activated. Supernova activation round should be
-// considered only if epoch activation has beed already reached.
+// round is activated. Supernova activation round should be
+// considered only if epoch activation has been already reached.
 // This should be used from the point of view of the current
 // node's chronology, not for a specific header
 func IsSupernovaRoundActivated(
@@ -78,9 +78,5 @@ func IsSupernovaRoundActivated(
 		return false
 	}
 
-	if !enableRoundsHandler.SupernovaEnableRoundEnabled() {
-		return false
-	}
-
-	return true
+	return enableRoundsHandler.IsSupernovaEnabled()
 }

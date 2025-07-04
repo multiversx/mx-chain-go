@@ -44,6 +44,9 @@ func NewShardForkDetector(
 	if check.IfNil(enableEpochsHandler) {
 		return nil, process.ErrNilEnableEpochsHandler
 	}
+	if check.IfNil(enableRoundsHandler) {
+		return nil, process.ErrNilEnableRoundsHandler
+	}
 	if check.IfNil(proofsPool) {
 		return nil, process.ErrNilProofsPool
 	}

@@ -10,8 +10,8 @@ func (holder *roundFlagsHolder) IsDisableAsyncCallV1Enabled() bool {
 	return holder.disableAsyncCallV1.IsSet()
 }
 
-// SupernovaEnableRoundEnabled returns true for the round where supernova will be enabled
-func (holder *roundFlagsHolder) SupernovaEnableRoundEnabled() bool {
+// IsSupernovaEnabled returns true for the round where supernova will be enabled
+func (holder *roundFlagsHolder) IsSupernovaEnabled() bool {
 	return holder.supernovaEnableRound.IsSet()
 }
 
