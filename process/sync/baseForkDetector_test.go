@@ -1325,7 +1325,7 @@ func TestBaseForkDetector_ComputeGenesisTimeFromHeader(t *testing.T) {
 			0,
 			&enableEpochsHandlerMock.EnableEpochsHandlerStub{
 				IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
-					return flag == common.SupernovaFlag
+					return flag == common.SupernovaFlag && epoch > 0
 				},
 			},
 			&testscommon.EnableRoundsHandlerStub{
@@ -1336,7 +1336,13 @@ func TestBaseForkDetector_ComputeGenesisTimeFromHeader(t *testing.T) {
 			&dataRetriever.ProofsPoolMock{},
 		)
 
-		hdr1 := &block.Header{Nonce: 1, Round: hdrRound, PubKeysBitmap: []byte("X"), TimeStamp: hdrTimeStamp}
+		hdr1 := &block.Header{
+			Nonce:         1,
+			Round:         hdrRound,
+			Epoch:         1,
+			PubKeysBitmap: []byte("X"),
+			TimeStamp:     hdrTimeStamp,
+		}
 
 		err := bfd.CheckGenesisTimeForHeader(hdr1)
 		assert.Nil(t, err)

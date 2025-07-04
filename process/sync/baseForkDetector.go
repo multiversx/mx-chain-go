@@ -708,67 +708,99 @@ func (bfd *baseForkDetector) cleanupReceivedHeadersHigherThanNonce(nonce uint64)
 	bfd.mutHeaders.Unlock()
 }
 
+func (bfd *baseForkDetector) checkGenesisTimeForHeaderBeforeSupernova(
+	headerHandler data.HeaderHandler,
+) error {
+	roundDuration := int64(bfd.roundHandler.TimeDuration().Seconds())
+	roundDifference := int64(headerHandler.GetRound() - bfd.genesisRound)
+	genesisTime := int64(headerHandler.GetTimeStamp()) - roundDifference*roundDuration
+
+	if genesisTime != bfd.genesisTime {
+		return ErrGenesisTimeMissmatch
+	}
+
+	return nil
+}
+
+func (bfd *baseForkDetector) checkGenesisTimeForHeaderAfterSupernovaWithoutRoundActivation(
+	headerHandler data.HeaderHandler,
+) error {
+	roundDuration := int64(bfd.roundHandler.TimeDuration().Milliseconds())
+	roundDifference := int64(headerHandler.GetRound() - bfd.genesisRound)
+	genesisTime := int64(headerHandler.GetTimeStamp()) - roundDifference*roundDuration
+
+	log.Trace("getGenesisTimeForHeaderAfterSupernovaWithoutRoundActivation",
+		"roundDuration", roundDuration,
+		"roundDifference", roundDifference,
+		"calculated genesisTime", genesisTime,
+		"genesisTime", bfd.genesisTime,
+	)
+
+	// if supernova is activated from genesis (epoch zero) this reduction is not needed since
+	// genesisTime from config will be directly as milliseconds; otherwise it has to be
+	// reduced to seconds granularity, in this specific interval (when supernova epoch is
+	// activated but supernova round is not yet activated)
+	supernovaActivatedInEpochZero := bfd.enableEpochsHandler.IsFlagEnabledInEpoch(common.SupernovaFlag, 0)
+	if !supernovaActivatedInEpochZero {
+		genesisTime /= 1000
+	}
+
+	if genesisTime != bfd.genesisTime {
+		return ErrGenesisTimeMissmatch
+	}
+
+	return nil
+}
+
+func (bfd *baseForkDetector) checkGenesisTimeForHeaderAfterSupernovaWithRoundActivation(
+	headerHandler data.HeaderHandler,
+) error {
+	activationRound := bfd.enableRoundsHandler.SupernovaActivationRound()
+
+	// current round duration as milliseconds, since we have supernova fully activated
+	roundDuration := bfd.roundHandler.TimeDuration().Milliseconds()
+
+	roundDifference := int64(headerHandler.GetRound()) - int64(activationRound)
+	if roundDifference < 0 {
+		log.Warn("current round lower than supernova activation round",
+			"current round", headerHandler.GetRound(),
+			"supernova activationRound", activationRound,
+		)
+
+		return ErrGenesisTimeMissmatch
+	}
+
+	genesisTime := int64(headerHandler.GetTimeStamp()) - roundDifference*roundDuration
+
+	log.Trace("getGenesisTimeForHeaderAfterSupernovaWithRoundActivation",
+		"activationRound", activationRound,
+		"roundDuration", roundDuration,
+		"roundDifference", roundDifference,
+		"genesisTime", genesisTime,
+		"supernovaGenesisTime", bfd.supernovaGenesisTime,
+	)
+
+	if genesisTime != bfd.supernovaGenesisTime {
+		return ErrGenesisTimeMissmatch
+	}
+
+	return nil
+}
+
 func (bfd *baseForkDetector) checkGenesisTimeForHeader(headerHandler data.HeaderHandler) error {
 	supernovaInEpochActivated := bfd.enableEpochsHandler.IsFlagEnabledInEpoch(common.SupernovaFlag, headerHandler.GetEpoch())
 	supernovaInRoundActivated := bfd.enableRoundsHandler.SupernovaEnableRoundEnabled()
 
-	// case 1:
-	//	- supernova epoch not activated
-	// 	- will return legacy genesis time calculation
 	if !supernovaInEpochActivated {
-		roundDuration := int64(bfd.roundHandler.TimeDuration().Seconds())
-		roundDifference := int64(headerHandler.GetRound() - bfd.genesisRound)
-		genesisTime := int64(headerHandler.GetTimeStamp()) - roundDifference*roundDuration
-
-		if genesisTime != bfd.genesisTime {
-			return ErrGenesisTimeMissmatch
-		}
-
-		return nil
+		return bfd.checkGenesisTimeForHeaderBeforeSupernova(headerHandler)
 	}
 
-	// case 2:
-	//	- supernova epoch activated
-	//	- supernova round not activated
 	if supernovaInEpochActivated && !supernovaInRoundActivated {
-		roundDuration := int64(bfd.roundHandler.TimeDuration().Milliseconds())
-		roundDifference := int64(headerHandler.GetRound() - bfd.genesisRound)
-		genesisTime := int64(headerHandler.GetTimeStamp()) - roundDifference*roundDuration
-
-		genesisTime /= 1000
-
-		if genesisTime != bfd.genesisTime {
-			return ErrGenesisTimeMissmatch
-		}
-
-		return nil
+		return bfd.checkGenesisTimeForHeaderAfterSupernovaWithoutRoundActivation(headerHandler)
 	}
 
-	// case 2:
-	//	- supernova epoch activated
-	//	- supernova not activated
-	//	- need to calculate 2 intervals
 	if supernovaInEpochActivated && supernovaInRoundActivated {
-		activationRound := bfd.enableRoundsHandler.SupernovaActivationRound()
-
-		// current round duration as milliseconds, since we have supernova fully activated
-		roundDuration := bfd.roundHandler.TimeDuration().Milliseconds()
-
-		roundDifference := int64(headerHandler.GetRound()) - int64(activationRound)
-		if roundDifference < 0 {
-			log.Warn("current round lower than supernova activation round",
-				"current round", headerHandler.GetRound(),
-				"supernova activationRound", activationRound,
-			)
-			return ErrGenesisTimeMissmatch
-		}
-
-		genesisTime := int64(headerHandler.GetTimeStamp()) - roundDifference*roundDuration
-		if genesisTime != bfd.supernovaGenesisTime {
-			return ErrGenesisTimeMissmatch
-		}
-
-		return nil
+		return bfd.checkGenesisTimeForHeaderAfterSupernovaWithRoundActivation(headerHandler)
 	}
 
 	return ErrGenesisTimeMissmatch
