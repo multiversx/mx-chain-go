@@ -773,6 +773,9 @@ const (
 	// MetricCryptoOpcodesV2EnableEpoch represents the epoch when crypto opcodes v2 feature is enabled
 	MetricCryptoOpcodesV2EnableEpoch = "erd_crypto_opcodes_v2_enable_epoch"
 
+	// MetricRelayedTransactionsV1V2DisableEpoch represents the epoch when relayed transactions v1 and v2 are disabled
+	MetricRelayedTransactionsV1V2DisableEpoch = "erd_relayed_transactions_v1_v2_disable_epoch"
+
 	// MetricEpochEnable represents the epoch when the max nodes change configuration is applied
 	MetricEpochEnable = "erd_epoch_enable"
 
@@ -1171,8 +1174,8 @@ const (
 	ESDTFlag                                            core.EnableEpochFlag = "ESDTFlag"
 	ESDTFlagInSpecificEpochOnly                         core.EnableEpochFlag = "ESDTFlagInSpecificEpochOnly"
 	GovernanceFlag                                      core.EnableEpochFlag = "GovernanceFlag"
-	GovernanceDisableProposeFlag                       core.EnableEpochFlag = "GovernanceDisableProposeFlag"
-	GovernanceFixesFlag                                core.EnableEpochFlag = "GovernanceFixesFlag"
+	GovernanceDisableProposeFlag                        core.EnableEpochFlag = "GovernanceDisableProposeFlag"
+	GovernanceFixesFlag                                 core.EnableEpochFlag = "GovernanceFixesFlag"
 	GovernanceFlagInSpecificEpochOnly                   core.EnableEpochFlag = "GovernanceFlagInSpecificEpochOnly"
 	DelegationManagerFlag                               core.EnableEpochFlag = "DelegationManagerFlag"
 	DelegationSmartContractFlag                         core.EnableEpochFlag = "DelegationSmartContractFlag"
@@ -1282,5 +1285,6 @@ const (
 	ValidationOnGobDecodeFlag                           core.EnableEpochFlag = "ValidationOnGobDecodeFlag"
 	BarnardOpcodesFlag                                  core.EnableEpochFlag = "BarnardOpcodesFlag"
 	AutomaticActivationOfNodesDisableFlag               core.EnableEpochFlag = "AutomaticActivationOfNodesDisableFlag"
+	RelayedTransactionsV1V2DisableFlag                  core.EnableEpochFlag = "RelayedTransactionsV1V2DisableFlag"
 	// all new flags must be added to createAllFlagsMap method, as part of enableEpochsHandler allFlagsDefined
 )
