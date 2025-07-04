@@ -223,13 +223,13 @@ func (ccf *coreComponentsFactory) Create() (*coreComponents, error) {
 		return nil, err
 	}
 
-	roundDuration := time.Millisecond * time.Duration(genesisNodesConfig.GetRoundDuration())
-	supernovaRoundDuration, err := getSupernovaTimeDuration(enableEpochsHandler, chainParametersHandler)
+	genesisRoundDuration := time.Millisecond * time.Duration(genesisNodesConfig.GetRoundDuration())
+	supernovaRoundDuration, err := getSupernovaRoundDuration(enableEpochsHandler, chainParametersHandler)
 	if err != nil {
 		return nil, err
 	}
 
-	syncer := ntp.NewSyncTime(ccf.config.NTPConfig, nil, roundDuration)
+	syncer := ntp.NewSyncTime(ccf.config.NTPConfig, nil, genesisRoundDuration)
 	syncer.StartSyncingTime()
 	log.Debug("NTP average clock offset", "value", syncer.ClockOffset())
 
@@ -255,7 +255,7 @@ func (ccf *coreComponentsFactory) Create() (*coreComponents, error) {
 	startTime := common.GetGenesisStartTimeFromUnixTimestamp(genesisNodesConfig.GetStartTime(), enableEpochsHandler)
 
 	genesisTime := common.GetGenesisStartTimeFromUnixTimestamp(genesisNodesConfig.GetStartTime(), enableEpochsHandler)
-	supernovaGenesisTime := genesisTime.Add(time.Duration(supernovaStartRound * roundDuration.Nanoseconds()))
+	supernovaGenesisTime := genesisTime.Add(time.Duration(supernovaStartRound * genesisRoundDuration.Nanoseconds()))
 
 	if supernovaGenesisTime.Compare(genesisTime) < 0 {
 		return nil, fmt.Errorf("supernovaGenesisTime %d lower then genesisTime %d",
@@ -268,7 +268,7 @@ func (ccf *coreComponentsFactory) Create() (*coreComponents, error) {
 		"formatted", startTime.Format("Mon Jan 2 15:04:05 MST 2006"),
 		"unix timestamp", common.GetGenesisUnixTimestampFromStartTime(startTime, enableEpochsHandler),
 		"supernova unix timestamp", common.GetGenesisUnixTimestampFromStartTime(supernovaGenesisTime, enableEpochsHandler),
-		"round duration", roundDuration,
+		"round duration", genesisRoundDuration,
 		"supernova round duration", supernovaRoundDuration,
 	)
 
@@ -276,7 +276,7 @@ func (ccf *coreComponentsFactory) Create() (*coreComponents, error) {
 		GenesisTimeStamp:          genesisTime,
 		SupernovaGenesisTimeStamp: supernovaGenesisTime,
 		CurrentTimeStamp:          syncer.CurrentTime(),
-		RoundTimeDuration:         roundDuration,
+		RoundTimeDuration:         genesisRoundDuration,
 		SupernovaTimeDuration:     supernovaRoundDuration,
 		SyncTimer:                 syncer,
 		StartRound:                startRound,
@@ -419,7 +419,7 @@ func (ccf *coreComponentsFactory) Create() (*coreComponents, error) {
 	}, nil
 }
 
-func getSupernovaTimeDuration(
+func getSupernovaRoundDuration(
 	enableEpochsHandler common.EnableEpochsHandler,
 	chainParametersHandler common.ChainParametersHandler,
 ) (time.Duration, error) {

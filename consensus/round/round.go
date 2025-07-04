@@ -85,36 +85,28 @@ func NewRound(args ArgsRound) (*round, error) {
 // UpdateRound updates the index and the time stamp of the round depending on the genesis time and the current time given
 func (rnd *round) UpdateRound(genesisTimeStamp time.Time, currentTimeStamp time.Time) {
 	if !common.IsSupernovaRoundActivated(rnd.enableEpochsHandler, rnd.enableRoundsHandler) {
-		rnd.updateRoundLegacy(genesisTimeStamp, currentTimeStamp)
+		rnd.updateRound(genesisTimeStamp, currentTimeStamp, rnd.startRound)
 		return
 	}
 
-	delta := currentTimeStamp.Sub(rnd.supernovaGenesisTimeStamp).Nanoseconds()
+	rnd.updateRound(rnd.supernovaGenesisTimeStamp, currentTimeStamp, rnd.supernovaStartRound)
+}
 
-	startRound := rnd.startRound + rnd.supernovaStartRound
+func (rnd *round) updateRound(
+	genesisTimeStamp time.Time,
+	currentTimeStamp time.Time,
+	startRound int64,
+) {
+	delta := currentTimeStamp.Sub(genesisTimeStamp).Nanoseconds()
 
 	index := int64(math.Floor(float64(delta)/float64(rnd.getTimeDuration().Nanoseconds()))) + startRound
 
 	rnd.Lock()
 	if rnd.index != index {
 		rnd.index = index
-		rnd.timeStamp = rnd.supernovaGenesisTimeStamp.Add(time.Duration((index - startRound) * rnd.getTimeDuration().Nanoseconds()))
+		rnd.timeStamp = genesisTimeStamp.Add(time.Duration((index - startRound) * rnd.getTimeDuration().Nanoseconds()))
 	}
 	rnd.Unlock()
-}
-
-func (rnd *round) updateRoundLegacy(genesisTimeStamp time.Time, currentTimeStamp time.Time) {
-	delta := currentTimeStamp.Sub(genesisTimeStamp).Nanoseconds()
-
-	index := int64(math.Floor(float64(delta)/float64(rnd.getTimeDuration().Nanoseconds()))) + rnd.startRound
-
-	rnd.Lock()
-	if rnd.index != index {
-		rnd.index = index
-		rnd.timeStamp = genesisTimeStamp.Add(time.Duration((index - rnd.startRound) * rnd.getTimeDuration().Nanoseconds()))
-	}
-	rnd.Unlock()
-
 }
 
 // Index returns the index of the round in current epoch
