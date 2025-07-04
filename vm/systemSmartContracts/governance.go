@@ -1047,7 +1047,7 @@ func (g *governanceContract) computeEndResults(currentEpoch uint64, proposal *Ge
 	voteStarted := currentEpoch >= proposal.StartVoteEpoch
 	if g.enableEpochsHandler.IsFlagEnabled(common.GovernanceFixesFlag) && !voteStarted {
 		g.eei.Finish([]byte("Proposal closed before voting started"))
-		return true
+		return false
 	}
 
 	totalVotes := big.NewInt(0).Add(proposal.Yes, proposal.No)

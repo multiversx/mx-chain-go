@@ -2332,7 +2332,7 @@ func TestComputeEndResults(t *testing.T) {
 		StartVoteEpoch: startVoteEpoch,
 	}
 	passed := gsc.computeEndResults(startVoteEpoch-1, closedBeforeStart, baseConfig)
-	require.True(t, passed)
+	require.False(t, passed)
 	require.Equal(t, "Proposal closed before voting started", retMessage)
 	require.False(t, closedBeforeStart.Passed)
 
