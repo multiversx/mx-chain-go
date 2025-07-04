@@ -81,17 +81,59 @@ func TestRound_UpdateRoundShouldNotChangeAnything(t *testing.T) {
 func TestRound_UpdateRoundShouldAdvanceOneRound(t *testing.T) {
 	t.Parallel()
 
-	genesisTime := time.Now()
+	t.Run("before supernova", func(t *testing.T) {
+		t.Parallel()
 
-	args := createDefaultRoundArgs()
-	args.GenesisTimeStamp = genesisTime
+		genesisTime := time.Now()
 
-	rnd, _ := round.NewRound(args)
-	oldIndex := rnd.Index()
-	rnd.UpdateRound(genesisTime, genesisTime.Add(roundTimeDuration))
-	newIndex := rnd.Index()
+		args := createDefaultRoundArgs()
+		args.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+			IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
+				return flag != common.SupernovaFlag
+			},
+		}
+		args.EnableRoundsHandler = &testscommon.EnableRoundsHandlerStub{
+			SupernovaEnableRoundEnabledCalled: func() bool {
+				return false
+			},
+		}
 
-	assert.Equal(t, oldIndex, newIndex-1)
+		args.GenesisTimeStamp = genesisTime
+
+		rnd, _ := round.NewRound(args)
+		oldIndex := rnd.Index()
+		rnd.UpdateRound(genesisTime, genesisTime.Add(roundTimeDuration))
+		newIndex := rnd.Index()
+
+		assert.Equal(t, oldIndex, newIndex-1)
+	})
+
+	t.Run("after supernova", func(t *testing.T) {
+		t.Parallel()
+
+		genesisTime := time.Now()
+
+		args := createDefaultRoundArgs()
+		args.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+			IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
+				return flag == common.SupernovaFlag
+			},
+		}
+		args.EnableRoundsHandler = &testscommon.EnableRoundsHandlerStub{
+			SupernovaEnableRoundEnabledCalled: func() bool {
+				return true
+			},
+		}
+
+		args.SupernovaGenesisTimeStamp = genesisTime
+
+		rnd, _ := round.NewRound(args)
+		oldIndex := rnd.Index()
+		rnd.UpdateRound(genesisTime, genesisTime.Add(roundTimeDuration))
+		newIndex := rnd.Index()
+
+		assert.Equal(t, oldIndex, newIndex-1)
+	})
 }
 
 func TestRound_IndexShouldReturnFirstIndex(t *testing.T) {

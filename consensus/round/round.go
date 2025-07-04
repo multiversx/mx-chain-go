@@ -84,7 +84,7 @@ func NewRound(args ArgsRound) (*round, error) {
 
 // UpdateRound updates the index and the time stamp of the round depending on the genesis time and the current time given
 func (rnd *round) UpdateRound(genesisTimeStamp time.Time, currentTimeStamp time.Time) {
-	if !rnd.enableRoundsHandler.SupernovaEnableRoundEnabled() {
+	if !common.IsSupernovaRoundActivated(rnd.enableEpochsHandler, rnd.enableRoundsHandler) {
 		rnd.updateRoundLegacy(genesisTimeStamp, currentTimeStamp)
 		return
 	}
