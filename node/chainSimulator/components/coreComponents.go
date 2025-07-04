@@ -265,7 +265,7 @@ func CreateCoreComponents(args ArgsCoreComponentsHolder) (*coreComponentsHolder,
 
 	instance.chanStopNodeProcess = args.ChanStopNodeProcess
 	instance.genesisTime = time.Unix(instance.genesisNodesSetup.GetStartTime(), 0)
-	instance.supernovaGenesisTime = time.Unix(instance.genesisNodesSetup.GetStartTime(), 0)
+	instance.supernovaGenesisTime = time.UnixMilli(instance.genesisNodesSetup.GetStartTime())
 	instance.chainID = args.Config.GeneralSettings.ChainID
 	instance.minTransactionVersion = args.Config.GeneralSettings.MinTransactionVersion
 	instance.encodedAddressLen, err = computeEncodedAddressLen(instance.addressPubKeyConverter)

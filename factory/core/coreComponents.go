@@ -254,21 +254,23 @@ func (ccf *coreComponentsFactory) Create() (*coreComponents, error) {
 
 	startTime := common.GetGenesisStartTimeFromUnixTimestamp(genesisNodesConfig.GetStartTime(), enableEpochsHandler)
 
-	log.Info("start time",
-		"formatted", startTime.Format("Mon Jan 2 15:04:05 MST 2006"),
-		"unix timestamp", common.GetGenesisUnixTimestampFromStartTime(startTime, enableEpochsHandler),
-		"round duration", roundDuration,
-		"supernova round duration", supernovaRoundDuration,
-	)
-
 	genesisTime := common.GetGenesisStartTimeFromUnixTimestamp(genesisNodesConfig.GetStartTime(), enableEpochsHandler)
 	supernovaGenesisTime := genesisTime.Add(time.Duration(supernovaStartRound * roundDuration.Nanoseconds()))
+
 	if supernovaGenesisTime.Compare(genesisTime) < 0 {
 		return nil, fmt.Errorf("supernovaGenesisTime %d lower then genesisTime %d",
 			supernovaGenesisTime.UnixMilli(),
 			genesisTime.UnixMilli(),
 		)
 	}
+
+	log.Info("start time",
+		"formatted", startTime.Format("Mon Jan 2 15:04:05 MST 2006"),
+		"unix timestamp", common.GetGenesisUnixTimestampFromStartTime(startTime, enableEpochsHandler),
+		"supernova unix timestamp", common.GetGenesisUnixTimestampFromStartTime(supernovaGenesisTime, enableEpochsHandler),
+		"round duration", roundDuration,
+		"supernova round duration", supernovaRoundDuration,
+	)
 
 	roundArgs := round.ArgsRound{
 		GenesisTimeStamp:          genesisTime,

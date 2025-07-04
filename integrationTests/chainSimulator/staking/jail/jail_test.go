@@ -279,14 +279,13 @@ func TestJailNodes(t *testing.T) {
 			newNumNodes := cfg.SystemSCConfig.StakingSystemSCConfig.MaxNumberOfNodesForStake + 1
 			configs.SetMaxNumberOfNodesInConfigs(cfg, uint32(newNumNodes), 0, numOfShards)
 
-			// TODO: handle supernova activation
-			cfg.EpochConfig.EnableEpochs.SupernovaEnableEpoch = 9999999
+			cfg.EpochConfig.EnableEpochs.SupernovaEnableEpoch = 0
 			cfg.RoundConfig.RoundActivations = map[string]config.ActivationRoundByName{
 				"DisableAsyncCallV1": {
 					Round: "9999999",
 				},
 				"SupernovaEnableRound": {
-					Round: "9999999",
+					Round: "0",
 				},
 			}
 		},
