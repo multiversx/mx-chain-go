@@ -25,7 +25,9 @@ func NewMetaForkDetector(
 	blackListHandler process.TimeCacher,
 	blockTracker process.BlockTracker,
 	genesisTime int64,
+	supernovaGenesisTime int64,
 	enableEpochsHandler common.EnableEpochsHandler,
+	enableRoundsHandler common.EnableRoundsHandler,
 	proofsPool process.ProofsPool,
 ) (*metaForkDetector, error) {
 
@@ -40,6 +42,9 @@ func NewMetaForkDetector(
 	}
 	if check.IfNil(enableEpochsHandler) {
 		return nil, process.ErrNilEnableEpochsHandler
+	}
+	if check.IfNil(enableRoundsHandler) {
+		return nil, process.ErrNilEnableRoundsHandler
 	}
 	if check.IfNil(proofsPool) {
 		return nil, process.ErrNilProofsPool
@@ -59,6 +64,7 @@ func NewMetaForkDetector(
 		genesisRound:        genesisHdr.GetRound(),
 		genesisEpoch:        genesisHdr.GetEpoch(),
 		enableEpochsHandler: enableEpochsHandler,
+		enableRoundsHandler: enableRoundsHandler,
 		proofsPool:          proofsPool,
 	}
 

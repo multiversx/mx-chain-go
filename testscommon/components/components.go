@@ -115,6 +115,9 @@ func GetCoreArgs() coreComp.CoreComponentsFactoryArgs {
 				"DisableAsyncCallV1": {
 					Round: "18446744073709551615",
 				},
+				"SupernovaEnableRound": {
+					Round: "9999999",
+				},
 			},
 		},
 	}

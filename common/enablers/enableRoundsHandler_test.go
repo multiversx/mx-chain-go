@@ -54,6 +54,10 @@ func TestNewEnableRoundsHandler(t *testing.T) {
 					Round:   "0",
 					Options: []string{"string 1", "string 2"},
 				},
+				supernovaEnableRound: {
+					Round:   "0",
+					Options: []string{"string 1", "string 2"},
+				},
 			},
 		}
 
@@ -69,6 +73,10 @@ func TestNewEnableRoundsHandler(t *testing.T) {
 			RoundActivations: map[string]config.ActivationRoundByName{
 				disableAsyncCallV1: {
 					Round:   "445",
+					Options: nil,
+				},
+				supernovaEnableRound: {
+					Round:   "555",
 					Options: nil,
 				},
 			},
@@ -93,6 +101,10 @@ func TestFlagsHolder_DisableAsyncCallV1Enabled(t *testing.T) {
 					Round:   "0",
 					Options: nil,
 				},
+				supernovaEnableRound: {
+					Round:   "0",
+					Options: nil,
+				},
 			},
 		}
 
@@ -112,6 +124,10 @@ func TestFlagsHolder_DisableAsyncCallV1Enabled(t *testing.T) {
 			RoundActivations: map[string]config.ActivationRoundByName{
 				disableAsyncCallV1: {
 					Round:   "1",
+					Options: nil,
+				},
+				supernovaEnableRound: {
+					Round:   "2",
 					Options: nil,
 				},
 			},

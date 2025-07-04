@@ -281,7 +281,8 @@ func (sr *subroundBlock) sendBlockHeader(
 
 	log.Debug("step 1: block header has been sent",
 		"nonce", headerHandler.GetNonce(),
-		"hash", headerHash)
+		"hash", headerHash,
+	)
 
 	sr.SetData(headerHash)
 	sr.SetHeader(headerHandler)
