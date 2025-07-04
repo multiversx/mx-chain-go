@@ -2035,7 +2035,7 @@ func TestGovernanceContract_ViewConfig(t *testing.T) {
 	retCode = gsc.Execute(callInput)
 	require.Equal(t, vmcommon.Ok, retCode)
 
-	require.Equal(t, []string{"10", "0.4000", "0.4000", "0.4000", "10"}, returnedValues)
+	require.Equal(t, []string{"10", "1", "0.4000", "0.4000", "0.4000", "10"}, returnedValues)
 }
 
 func TestGovernanceContract_ViewProposal(t *testing.T) {

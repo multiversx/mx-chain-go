@@ -887,9 +887,10 @@ func (g *governanceContract) viewConfig(args *vmcommon.ContractCallInput) vmcomm
 	}
 
 	g.eei.Finish([]byte(gConfig.ProposalFee.String()))
+	g.eei.Finish([]byte(gConfig.LostProposalFee.String()))
 	g.eei.Finish([]byte(fmt.Sprintf("%.4f", gConfig.MinQuorum)))
-	g.eei.Finish([]byte(fmt.Sprintf("%.4f", gConfig.MinPassThreshold)))
 	g.eei.Finish([]byte(fmt.Sprintf("%.4f", gConfig.MinVetoThreshold)))
+	g.eei.Finish([]byte(fmt.Sprintf("%.4f", gConfig.MinPassThreshold)))
 	g.eei.Finish([]byte(big.NewInt(int64(gConfig.LastProposalNonce)).String()))
 
 	return vmcommon.Ok
