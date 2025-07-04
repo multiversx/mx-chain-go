@@ -213,6 +213,7 @@ func printEnableEpochs(configs *config.Configs) {
 	log.Debug(readEpochFor("staking v4 step 1"), "epoch", enableEpochs.StakingV4Step1EnableEpoch)
 	log.Debug(readEpochFor("staking v4 step 2"), "epoch", enableEpochs.StakingV4Step2EnableEpoch)
 	log.Debug(readEpochFor("staking v4 step 3"), "epoch", enableEpochs.StakingV4Step3EnableEpoch)
+	log.Debug(readEpochFor("disable relayed transactions v1 v2"), "epoch", enableEpochs.RelayedTransactionsV1V2DisableEpoch)
 
 	gasSchedule := configs.EpochConfig.GasSchedule
 
