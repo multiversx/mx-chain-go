@@ -87,7 +87,7 @@ func isSCRWithRefundNoTx(scr *smartContractResult.SmartContractResult) bool {
 	return ok && differentHash && hasRefund
 }
 
-func (tep *transactionsFeeProcessor) isRelayedTx(tx *transactionWithResults, epoch uint32) bool {
+func (tep *transactionsFeeProcessor) isRelayedTxV1V2(tx *transactionWithResults, epoch uint32) bool {
 	if tep.enableEpochsHandler.IsFlagEnabledInEpoch(common.RelayedTransactionsV1V2DisableFlag, epoch) {
 		return false
 	}

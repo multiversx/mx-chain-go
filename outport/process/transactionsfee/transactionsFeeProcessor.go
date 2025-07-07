@@ -128,7 +128,7 @@ func (tep *transactionsFeeProcessor) prepareNormalTxs(transactionsAndScrs *trans
 		feeInfo.SetFee(fee)
 		feeInfo.SetInitialPaidFee(initialPaidFee)
 
-		isRelayed := tep.isRelayedTx(txWithResult, epoch)
+		isRelayed := tep.isRelayedTxV1V2(txWithResult, epoch)
 		isFeeFixActive := tep.enableEpochsHandler.IsFlagEnabledInEpoch(common.FixRelayedBaseCostFlag, epoch)
 		isRelayedBeforeFix := isRelayed && !isFeeFixActive
 		if isRelayedBeforeFix || tep.isESDTOperationWithSCCall(txHandler) {
