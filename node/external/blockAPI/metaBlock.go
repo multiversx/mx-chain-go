@@ -227,10 +227,7 @@ func (mbp *metaAPIBlockProcessor) convertMetaBlockBytesToAPIBlock(hash []byte, b
 	}
 
 	timestamp := blockHeader.GetTimeStamp()
-	timestampMs := int64(common.ConvertTimeStampSecToMs(timestamp))
-	if common.IsSupernovaRoundActivated(mbp.enableEpochsHandler, mbp.enableRoundsHandler) {
-		timestampMs = int64(timestamp)
-	}
+	timestampMs := common.GetTimestampMs(timestamp, mbp.enableEpochsHandler, mbp.enableRoundsHandler)
 
 	apiMetaBlock := &api.Block{
 		Nonce:                  blockHeader.Nonce,

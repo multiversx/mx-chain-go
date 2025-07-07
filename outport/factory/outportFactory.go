@@ -4,12 +4,10 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/multiversx/mx-chain-core-go/core/check"
 	outportcore "github.com/multiversx/mx-chain-core-go/data/outport"
 	indexerFactory "github.com/multiversx/mx-chain-es-indexer-go/process/factory"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/outport"
-	"github.com/multiversx/mx-chain-go/process"
 )
 
 // OutportFactoryArgs holds the factory arguments of different outport drivers
@@ -110,12 +108,6 @@ func createAndSubscribeEventNotifierIfNeeded(
 func checkArguments(args *OutportFactoryArgs) error {
 	if args == nil {
 		return outport.ErrNilArgsOutportFactory
-	}
-	if check.IfNil(args.EnableEpochsHandler) {
-		return process.ErrNilEnableEpochsHandler
-	}
-	if check.IfNil(args.EnableRoundsHandler) {
-		return process.ErrNilEnableRoundsHandler
 	}
 
 	return nil

@@ -407,10 +407,7 @@ func (bh *BlockChainHookImpl) LastTimeStampMs() uint64 {
 	}
 
 	timestamp := bh.blockChain.GetCurrentBlockHeader().GetTimeStamp()
-	timestampMs := common.ConvertTimeStampSecToMs(timestamp)
-	if common.IsSupernovaRoundActivated(bh.enableEpochsHandler, bh.enableRoundsHandler) {
-		timestampMs = timestamp
-	}
+	timestampMs := common.GetTimestampMs(timestamp, bh.enableEpochsHandler, bh.enableRoundsHandler)
 
 	return timestampMs
 }
@@ -444,10 +441,7 @@ func (bh *BlockChainHookImpl) EpochStartBlockTimeStampMs() uint64 {
 	defer bh.mutEpochStartHdr.RUnlock()
 
 	timestamp := bh.epochStartHdr.GetTimeStamp()
-	timestampMs := common.ConvertTimeStampSecToMs(timestamp)
-	if common.IsSupernovaRoundActivated(bh.enableEpochsHandler, bh.enableRoundsHandler) {
-		timestampMs = timestamp
-	}
+	timestampMs := common.GetTimestampMs(timestamp, bh.enableEpochsHandler, bh.enableRoundsHandler)
 
 	return timestampMs
 }
@@ -508,10 +502,7 @@ func (bh *BlockChainHookImpl) CurrentTimeStampMs() uint64 {
 	defer bh.mutCurrentHdr.RUnlock()
 
 	timestamp := bh.currentHdr.GetTimeStamp()
-	timestampMs := common.ConvertTimeStampSecToMs(timestamp)
-	if common.IsSupernovaRoundActivated(bh.enableEpochsHandler, bh.enableRoundsHandler) {
-		timestampMs = timestamp
-	}
+	timestampMs := common.GetTimestampMs(timestamp, bh.enableEpochsHandler, bh.enableRoundsHandler)
 
 	return timestampMs
 }

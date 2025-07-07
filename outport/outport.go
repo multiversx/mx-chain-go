@@ -8,6 +8,7 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/process"
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	outportcore "github.com/multiversx/mx-chain-core-go/data/outport"
@@ -41,6 +42,12 @@ func NewOutport(
 ) (*outport, error) {
 	if retrialInterval < minimumRetrialInterval {
 		return nil, fmt.Errorf("%w, provided: %d, minimum: %d", ErrInvalidRetrialInterval, retrialInterval, minimumRetrialInterval)
+	}
+	if check.IfNil(enableEpochsHandler) {
+		return nil, process.ErrNilEnableEpochsHandler
+	}
+	if check.IfNil(enableRoundsHandler) {
+		return nil, process.ErrNilEnableRoundsHandler
 	}
 
 	return &outport{
@@ -105,10 +112,7 @@ func (o *outport) prepareBlockData(
 	}
 
 	timestamp := headerBodyData.Header.GetTimeStamp()
-	timestampMs := common.ConvertTimeStampSecToMs(timestamp)
-	if common.IsSupernovaRoundActivated(o.enableEpochsHandler, o.enableRoundsHandler) {
-		timestampMs = timestamp
-	}
+	timestampMs := common.GetTimestampMs(timestamp, o.enableEpochsHandler, o.enableRoundsHandler)
 
 	return &outportcore.BlockData{
 		ShardID:              headerBodyData.Header.GetShardID(),

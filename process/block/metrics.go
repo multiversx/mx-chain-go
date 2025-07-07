@@ -167,10 +167,7 @@ func indexRoundInfo(
 	enableRoundsHandler common.EnableRoundsHandler,
 ) {
 	timestamp := header.GetTimeStamp()
-	timestampMs := int64(common.ConvertTimeStampSecToMs(timestamp))
-	if common.IsSupernovaRoundActivated(enableEpochsHandler, enableRoundsHandler) {
-		timestampMs = int64(timestamp)
-	}
+	timestampMs := common.GetTimestampMs(timestamp, enableEpochsHandler, enableRoundsHandler)
 
 	roundInfo := &outportcore.RoundInfo{
 		Round:            header.GetRound(),
@@ -178,8 +175,8 @@ func indexRoundInfo(
 		BlockWasProposed: true,
 		ShardId:          shardId,
 		Epoch:            header.GetEpoch(),
-		Timestamp:        uint64(timestamp),
-		TimestampMs:      uint64(timestampMs),
+		Timestamp:        timestamp,
+		TimestampMs:      timestampMs,
 	}
 
 	if check.IfNil(lastHeader) {

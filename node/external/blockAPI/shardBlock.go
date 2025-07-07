@@ -221,10 +221,7 @@ func (sbp *shardAPIBlockProcessor) convertShardBlockBytesToAPIBlock(hash []byte,
 	statusFilters.ApplyStatusFilters(miniblocks)
 
 	timestamp := blockHeader.GetTimeStamp()
-	timestampMs := int64(common.ConvertTimeStampSecToMs(timestamp))
-	if common.IsSupernovaRoundActivated(sbp.enableEpochsHandler, sbp.enableRoundsHandler) {
-		timestampMs = int64(timestamp)
-	}
+	timestampMs := common.GetTimestampMs(timestamp, sbp.enableEpochsHandler, sbp.enableRoundsHandler)
 
 	apiBlock := &api.Block{
 		Nonce:           blockHeader.GetNonce(),

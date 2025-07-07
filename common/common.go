@@ -207,3 +207,17 @@ func GetNonceAndShardFromKey(nonceShardKey []byte) (uint64, uint32, error) {
 func ConvertTimeStampSecToMs(timeStamp uint64) uint64 {
 	return timeStamp * 1000
 }
+
+// GetTimestampMs will return timestamp as milliseconds based on supernova round activation
+func GetTimestampMs(
+	timestamp uint64,
+	enableEpochsHandler EnableEpochsHandler,
+	enableRoundsHandler EnableRoundsHandler,
+) uint64 {
+	timestampMs := ConvertTimeStampSecToMs(timestamp)
+	if IsSupernovaRoundActivated(enableEpochsHandler, enableRoundsHandler) {
+		timestampMs = timestamp
+	}
+
+	return timestampMs
+}

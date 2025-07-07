@@ -1299,10 +1299,7 @@ func (n *Node) getMetaFirstNonceOfEpoch(epoch uint32) (*common.EpochStartDataAPI
 
 func (n *Node) prepareEpochStartDataResponse(header data.HeaderHandler) *common.EpochStartDataAPI {
 	timestamp := header.GetTimeStamp()
-	timestampMs := int64(common.ConvertTimeStampSecToMs(timestamp))
-	if common.IsSupernovaRoundActivated(n.coreComponents.EnableEpochsHandler(), n.coreComponents.EnableRoundsHandler()) {
-		timestampMs = int64(timestamp)
-	}
+	timestampMs := common.GetTimestampMs(timestamp, n.coreComponents.EnableEpochsHandler(), n.coreComponents.EnableRoundsHandler())
 
 	response := &common.EpochStartDataAPI{
 		Nonce:         header.GetNonce(),

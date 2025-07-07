@@ -1001,11 +1001,7 @@ func (pcf *processComponentsFactory) indexAndReturnGenesisAccounts() (map[string
 	shardID := pcf.bootstrapComponents.ShardCoordinator().SelfId()
 
 	blockTimestamp := uint64(pcf.coreData.GenesisNodesSetup().GetStartTime())
-
-	blockTimestampMs := common.ConvertTimeStampSecToMs(blockTimestamp)
-	if common.IsSupernovaRoundActivated(pcf.coreData.EnableEpochsHandler(), pcf.coreData.EnableRoundsHandler()) {
-		blockTimestampMs = blockTimestamp
-	}
+	blockTimestampMs := common.GetTimestampMs(blockTimestamp, pcf.coreData.EnableEpochsHandler(), pcf.coreData.EnableRoundsHandler())
 
 	pcf.statusComponents.OutportHandler().SaveAccounts(&outport.Accounts{
 		ShardID:          shardID,
