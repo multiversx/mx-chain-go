@@ -67,7 +67,7 @@ type ArgBlockChainHook struct {
 	Counter                  BlockChainHookCounter
 	MissingTrieNodesNotifier common.MissingTrieNodesNotifier
 	EpochStartTrigger        EpochStartTriggerHandler
-	RoundHandler             RoundHandler // TODO: @laurci - this needs to be replaced when changing the round duration
+	RoundHandler             RoundHandler
 }
 
 // BlockChainHookImpl is a wrapper over AccountsAdapter that satisfy vmcommon.BlockchainHook interface
@@ -87,7 +87,7 @@ type BlockChainHookImpl struct {
 	enableRoundsHandler   common.EnableRoundsHandler
 	counter               BlockChainHookCounter
 	epochStartTrigger     EpochStartTriggerHandler
-	roundHandler          RoundHandler // TODO: @laurci - this needs to be replaced when changing the round duration
+	roundHandler          RoundHandler
 
 	mutCurrentHdr sync.RWMutex
 	currentHdr    data.HeaderHandler
@@ -133,6 +133,7 @@ func NewBlockChainHookImpl(
 		nftStorageHandler:        args.NFTStorageHandler,
 		globalSettingsHandler:    args.GlobalSettingsHandler,
 		enableEpochsHandler:      args.EnableEpochsHandler,
+		enableRoundsHandler:      args.EnableRoundsHandler,
 		gasSchedule:              args.GasSchedule,
 		counter:                  args.Counter,
 		missingTrieNodesNotifier: args.MissingTrieNodesNotifier,
@@ -432,7 +433,6 @@ func (bh *BlockChainHookImpl) LastEpoch() uint32 {
 
 // RoundTime returns the duration of a round
 func (bh *BlockChainHookImpl) RoundTime() uint64 {
-	// TODO: @laurci - this needs to be replaced when changing the round duration
 	roundDuration := bh.roundHandler.TimeDuration()
 
 	return uint64(roundDuration.Milliseconds())
