@@ -39,6 +39,7 @@ func newShardApiBlockProcessor(arg *ArgAPIBlockProcessor, emptyReceiptsHash []by
 			accountsRepository:           arg.AccountsRepository,
 			scheduledTxsExecutionHandler: arg.ScheduledTxsExecutionHandler,
 			enableEpochsHandler:          arg.EnableEpochsHandler,
+			enableRoundsHandler:          arg.EnableRoundsHandler,
 			proofsPool:                   arg.ProofsPool,
 			blockchain:                   arg.BlockChain,
 		},
@@ -219,6 +220,12 @@ func (sbp *shardAPIBlockProcessor) convertShardBlockBytesToAPIBlock(hash []byte,
 	statusFilters := filters.NewStatusFilters(sbp.selfShardID)
 	statusFilters.ApplyStatusFilters(miniblocks)
 
+	timestamp := blockHeader.GetTimeStamp()
+	timestampMs := int64(common.ConvertTimeStampSecToMs(timestamp))
+	if common.IsSupernovaRoundActivated(sbp.enableEpochsHandler, sbp.enableRoundsHandler) {
+		timestampMs = int64(timestamp)
+	}
+
 	apiBlock := &api.Block{
 		Nonce:           blockHeader.GetNonce(),
 		Round:           blockHeader.GetRound(),
@@ -230,8 +237,8 @@ func (sbp *shardAPIBlockProcessor) convertShardBlockBytesToAPIBlock(hash []byte,
 		MiniBlocks:      miniblocks,
 		AccumulatedFees: blockHeader.GetAccumulatedFees().String(),
 		DeveloperFees:   blockHeader.GetDeveloperFees().String(),
-		Timestamp:       int64(blockHeader.GetTimeStamp()),
-		TimestampMs:     int64(common.ConvertTimeStampSecToMs(blockHeader.GetTimeStamp())),
+		Timestamp:       int64(timestamp),
+		TimestampMs:     int64(timestampMs),
 		Status:          BlockStatusOnChain,
 		StateRootHash:   hex.EncodeToString(blockHeader.GetRootHash()),
 		PubKeyBitmap:    hex.EncodeToString(blockHeader.GetPubKeysBitmap()),

@@ -20,30 +20,39 @@ const maxTimeForDriverCall = time.Second * 30
 const minimumRetrialInterval = time.Millisecond * 10
 
 type outport struct {
-	mutex             sync.RWMutex
-	drivers           []Driver
-	retrialInterval   time.Duration
-	chanClose         chan struct{}
-	logHandler        func(logLevel logger.LogLevel, message string, args ...interface{})
-	timeForDriverCall time.Duration
-	messageCounter    uint64
-	config            outportcore.OutportConfig
+	mutex               sync.RWMutex
+	drivers             []Driver
+	retrialInterval     time.Duration
+	chanClose           chan struct{}
+	logHandler          func(logLevel logger.LogLevel, message string, args ...interface{})
+	timeForDriverCall   time.Duration
+	messageCounter      uint64
+	config              outportcore.OutportConfig
+	enableEpochsHandler common.EnableEpochsHandler
+	enableRoundsHandler common.EnableRoundsHandler
 }
 
 // NewOutport will create a new instance of proxy
-func NewOutport(retrialInterval time.Duration, cfg outportcore.OutportConfig) (*outport, error) {
+func NewOutport(
+	retrialInterval time.Duration,
+	cfg outportcore.OutportConfig,
+	enableEpochsHandler common.EnableEpochsHandler,
+	enableRoundsHandler common.EnableRoundsHandler,
+) (*outport, error) {
 	if retrialInterval < minimumRetrialInterval {
 		return nil, fmt.Errorf("%w, provided: %d, minimum: %d", ErrInvalidRetrialInterval, retrialInterval, minimumRetrialInterval)
 	}
 
 	return &outport{
-		drivers:           make([]Driver, 0),
-		mutex:             sync.RWMutex{},
-		retrialInterval:   retrialInterval,
-		chanClose:         make(chan struct{}),
-		logHandler:        log.Log,
-		timeForDriverCall: maxTimeForDriverCall,
-		config:            cfg,
+		drivers:             make([]Driver, 0),
+		mutex:               sync.RWMutex{},
+		retrialInterval:     retrialInterval,
+		chanClose:           make(chan struct{}),
+		logHandler:          log.Log,
+		timeForDriverCall:   maxTimeForDriverCall,
+		config:              cfg,
+		enableEpochsHandler: enableEpochsHandler,
+		enableRoundsHandler: enableRoundsHandler,
 	}, nil
 }
 
@@ -57,7 +66,7 @@ func (o *outport) SaveBlock(args *outportcore.OutportBlockWithHeaderAndBody) err
 	}
 
 	for _, driver := range o.drivers {
-		blockData, err := prepareBlockData(args.HeaderDataWithBody, driver)
+		blockData, err := o.prepareBlockData(args.HeaderDataWithBody, driver)
 		if err != nil {
 			return err
 		}
@@ -69,7 +78,7 @@ func (o *outport) SaveBlock(args *outportcore.OutportBlockWithHeaderAndBody) err
 	return nil
 }
 
-func prepareBlockData(
+func (o *outport) prepareBlockData(
 	headerBodyData *outportcore.HeaderDataWithBody,
 	driver Driver,
 ) (*outportcore.BlockData, error) {
@@ -95,6 +104,12 @@ func prepareBlockData(
 		}
 	}
 
+	timestamp := headerBodyData.Header.GetTimeStamp()
+	timestampMs := common.ConvertTimeStampSecToMs(timestamp)
+	if common.IsSupernovaRoundActivated(o.enableEpochsHandler, o.enableRoundsHandler) {
+		timestampMs = timestamp
+	}
+
 	return &outportcore.BlockData{
 		ShardID:              headerBodyData.Header.GetShardID(),
 		HeaderBytes:          headerBytes,
@@ -103,7 +118,7 @@ func prepareBlockData(
 		Body:                 body,
 		IntraShardMiniBlocks: headerBodyData.IntraShardMiniBlocks,
 		HeaderProof:          proof,
-		TimestampMs:          common.ConvertTimeStampSecToMs(headerBodyData.Header.GetTimeStamp()),
+		TimestampMs:          timestampMs,
 	}, nil
 }
 
@@ -167,7 +182,7 @@ func (o *outport) RevertIndexedBlock(headerDataWithBody *outportcore.HeaderDataW
 	defer o.mutex.RUnlock()
 
 	for _, driver := range o.drivers {
-		blockData, err := prepareBlockData(headerDataWithBody, driver)
+		blockData, err := o.prepareBlockData(headerDataWithBody, driver)
 		if err != nil {
 			return err
 		}

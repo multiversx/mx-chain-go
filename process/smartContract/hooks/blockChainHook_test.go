@@ -66,6 +66,7 @@ func createMockBlockChainHookArgs() hooks.ArgBlockChainHook {
 		CompiledSCPool:        datapool.SmartContracts(),
 		EpochNotifier:         &epochNotifier.EpochNotifierStub{},
 		EnableEpochsHandler:   enableEpochsHandlerMock.NewEnableEpochsHandlerStub(),
+		EnableRoundsHandler:   &testscommon.EnableRoundsHandlerStub{},
 		NilCompiledSCStore:    true,
 		EnableEpochs: config.EnableEpochs{
 			DoNotReturnOldBlockInBlockchainHookEnableEpoch: math.MaxUint32,
@@ -204,6 +205,14 @@ func TestNewBlockChainHookImpl(t *testing.T) {
 				return args
 			},
 			expectedErr: process.ErrNilEnableEpochsHandler,
+		},
+		{
+			args: func() hooks.ArgBlockChainHook {
+				args := createMockBlockChainHookArgs()
+				args.EnableRoundsHandler = nil
+				return args
+			},
+			expectedErr: process.ErrNilEnableRoundsHandler,
 		},
 		{
 			args: func() hooks.ArgBlockChainHook {

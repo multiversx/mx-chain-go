@@ -220,7 +220,7 @@ func mustDoGenesisProcess(arg ArgsGenesisBlockCreator) bool {
 }
 
 func (gbc *genesisBlockCreator) createEmptyGenesisBlocks() (map[uint32]data.HeaderHandler, error) {
-	err := gbc.computeDNSAddresses(createGenesisConfig(gbc.arg.EpochConfig.EnableEpochs))
+	err := gbc.computeDNSAddresses(createGenesisConfig(gbc.arg.EpochConfig.EnableEpochs), gbc.arg.RoundConfig)
 	if err != nil {
 		return nil, err
 	}
@@ -267,7 +267,7 @@ func (gbc *genesisBlockCreator) CreateGenesisBlocks() (map[uint32]data.HeaderHan
 			return nil, err
 		}
 
-		err = gbc.computeDNSAddresses(gbc.arg.EpochConfig.EnableEpochs)
+		err = gbc.computeDNSAddresses(gbc.arg.EpochConfig.EnableEpochs, gbc.arg.RoundConfig)
 		if err != nil {
 			return nil, err
 		}
@@ -405,7 +405,10 @@ func (gbc *genesisBlockCreator) createHeaders(
 }
 
 // in case of hardfork initial smart contracts deployment is not called as they are all imported from previous state
-func (gbc *genesisBlockCreator) computeDNSAddresses(enableEpochsConfig config.EnableEpochs) error {
+func (gbc *genesisBlockCreator) computeDNSAddresses(
+	enableEpochsConfig config.EnableEpochs,
+	enableRoundsConfig config.RoundConfig,
+) error {
 	var dnsSC genesis.InitialSmartContractHandler
 	for _, sc := range gbc.arg.SmartContractParser.InitialSmartContracts() {
 		if sc.GetType() == genesis.DNSType {
@@ -428,6 +431,12 @@ func (gbc *genesisBlockCreator) computeDNSAddresses(enableEpochsConfig config.En
 	}
 	epochNotifier.CheckEpoch(temporaryMetaHeader)
 
+	roundNotifier := forking.NewGenericRoundNotifier()
+	enableRoundsHandler, err := enablers.NewEnableRoundsHandler(enableRoundsConfig, roundNotifier)
+	if err != nil {
+		return err
+	}
+
 	builtInFuncs := vmcommonBuiltInFunctions.NewBuiltInFunctionContainer()
 	argsHook := hooks.ArgBlockChainHook{
 		Accounts:                 gbc.arg.Accounts,
@@ -444,6 +453,7 @@ func (gbc *genesisBlockCreator) computeDNSAddresses(enableEpochsConfig config.En
 		CompiledSCPool:           gbc.arg.Data.Datapool().SmartContracts(),
 		EpochNotifier:            epochNotifier,
 		EnableEpochsHandler:      enableEpochsHandler,
+		EnableRoundsHandler:      enableRoundsHandler,
 		NilCompiledSCStore:       true,
 		GasSchedule:              gbc.arg.GasSchedule,
 		Counter:                  counters.NewDisabledCounter(),

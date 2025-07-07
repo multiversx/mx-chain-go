@@ -164,15 +164,22 @@ func indexRoundInfo(
 	lastHeader data.HeaderHandler,
 	signersIndexes []uint64,
 	enableEpochsHandler common.EnableEpochsHandler,
+	enableRoundsHandler common.EnableRoundsHandler,
 ) {
+	timestamp := header.GetTimeStamp()
+	timestampMs := int64(common.ConvertTimeStampSecToMs(timestamp))
+	if common.IsSupernovaRoundActivated(enableEpochsHandler, enableRoundsHandler) {
+		timestampMs = int64(timestamp)
+	}
+
 	roundInfo := &outportcore.RoundInfo{
 		Round:            header.GetRound(),
 		SignersIndexes:   signersIndexes,
 		BlockWasProposed: true,
 		ShardId:          shardId,
 		Epoch:            header.GetEpoch(),
-		Timestamp:        uint64(time.Duration(header.GetTimeStamp())),
-		TimestampMs:      uint64(time.Duration(common.ConvertTimeStampSecToMs(header.GetTimeStamp()))),
+		Timestamp:        uint64(timestamp),
+		TimestampMs:      uint64(timestampMs),
 	}
 
 	if check.IfNil(lastHeader) {
@@ -182,6 +189,8 @@ func indexRoundInfo(
 
 	lastBlockRound := lastHeader.GetRound()
 	currentBlockRound := header.GetRound()
+
+	// TODO: evaluate more if this handling (based on current header and last header) is needed with one-short finality from andromeda
 	roundDuration := calculateRoundDuration(lastHeader.GetTimeStamp(), header.GetTimeStamp(), lastBlockRound, currentBlockRound)
 
 	roundsInfo := make([]*outportcore.RoundInfo, 0)

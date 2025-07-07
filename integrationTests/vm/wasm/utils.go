@@ -299,6 +299,7 @@ func (context *TestContext) initVMAndBlockchainHook() {
 		CompiledSCPool:        datapool.SmartContracts(),
 		EpochNotifier:         context.EpochNotifier,
 		EnableEpochsHandler:   context.EnableEpochsHandler,
+		EnableRoundsHandler:   context.EnableRoundsHandler,
 		NilCompiledSCStore:    true,
 		ConfigSCStorage: config.StorageConfig{
 			Cache: config.CacheConfig{

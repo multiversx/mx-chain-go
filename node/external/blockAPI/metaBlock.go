@@ -38,6 +38,7 @@ func newMetaApiBlockProcessor(arg *ArgAPIBlockProcessor, emptyReceiptsHash []byt
 			accountsRepository:           arg.AccountsRepository,
 			scheduledTxsExecutionHandler: arg.ScheduledTxsExecutionHandler,
 			enableEpochsHandler:          arg.EnableEpochsHandler,
+			enableRoundsHandler:          arg.EnableRoundsHandler,
 			proofsPool:                   arg.ProofsPool,
 			blockchain:                   arg.BlockChain,
 		},
@@ -225,6 +226,12 @@ func (mbp *metaAPIBlockProcessor) convertMetaBlockBytesToAPIBlock(hash []byte, b
 		notarizedBlocks = append(notarizedBlocks, notarizedBlock)
 	}
 
+	timestamp := blockHeader.GetTimeStamp()
+	timestampMs := int64(common.ConvertTimeStampSecToMs(timestamp))
+	if common.IsSupernovaRoundActivated(mbp.enableEpochsHandler, mbp.enableRoundsHandler) {
+		timestampMs = int64(timestamp)
+	}
+
 	apiMetaBlock := &api.Block{
 		Nonce:                  blockHeader.Nonce,
 		Round:                  blockHeader.Round,
@@ -239,8 +246,8 @@ func (mbp *metaAPIBlockProcessor) convertMetaBlockBytesToAPIBlock(hash []byte, b
 		DeveloperFees:          blockHeader.DeveloperFees.String(),
 		AccumulatedFeesInEpoch: blockHeader.AccumulatedFeesInEpoch.String(),
 		DeveloperFeesInEpoch:   blockHeader.DevFeesInEpoch.String(),
-		Timestamp:              int64(blockHeader.GetTimeStamp()),
-		TimestampMs:            int64(common.ConvertTimeStampSecToMs(blockHeader.GetTimeStamp())),
+		Timestamp:              int64(timestamp),
+		TimestampMs:            int64(timestampMs),
 		StateRootHash:          hex.EncodeToString(blockHeader.RootHash),
 		Status:                 BlockStatusOnChain,
 		PubKeyBitmap:           hex.EncodeToString(blockHeader.GetPubKeysBitmap()),

@@ -60,6 +60,7 @@ type ArgBlockChainHook struct {
 	EnableEpochs             config.EnableEpochs
 	EpochNotifier            vmcommon.EpochNotifier
 	EnableEpochsHandler      common.EnableEpochsHandler
+	EnableRoundsHandler      common.EnableRoundsHandler
 	WorkingDir               string
 	NilCompiledSCStore       bool
 	GasSchedule              core.GasScheduleNotifier
@@ -83,6 +84,7 @@ type BlockChainHookImpl struct {
 	nftStorageHandler     vmcommon.SimpleESDTNFTStorageHandler
 	globalSettingsHandler vmcommon.ESDTGlobalSettingsHandler
 	enableEpochsHandler   common.EnableEpochsHandler
+	enableRoundsHandler   common.EnableRoundsHandler
 	counter               BlockChainHookCounter
 	epochStartTrigger     EpochStartTriggerHandler
 	roundHandler          RoundHandler // TODO: @laurci - this needs to be replaced when changing the round duration
@@ -209,6 +211,9 @@ func checkForNil(args ArgBlockChainHook) error {
 	}
 	if check.IfNil(args.EnableEpochsHandler) {
 		return process.ErrNilEnableEpochsHandler
+	}
+	if check.IfNil(args.EnableRoundsHandler) {
+		return process.ErrNilEnableRoundsHandler
 	}
 	err := core.CheckHandlerCompatibility(args.EnableEpochsHandler, []core.EnableEpochFlag{
 		common.PayableBySCFlag,
@@ -396,10 +401,17 @@ func (bh *BlockChainHookImpl) LastTimeStamp() uint64 {
 
 // LastTimeStampMs returns the timeStamp in milliseconds from the last committed block
 func (bh *BlockChainHookImpl) LastTimeStampMs() uint64 {
-	if !check.IfNil(bh.blockChain.GetCurrentBlockHeader()) {
-		return common.ConvertTimeStampSecToMs(bh.blockChain.GetCurrentBlockHeader().GetTimeStamp())
+	if check.IfNil(bh.blockChain.GetCurrentBlockHeader()) {
+		return 0
 	}
-	return 0
+
+	timestamp := bh.blockChain.GetCurrentBlockHeader().GetTimeStamp()
+	timestampMs := common.ConvertTimeStampSecToMs(timestamp)
+	if common.IsSupernovaRoundActivated(bh.enableEpochsHandler, bh.enableRoundsHandler) {
+		timestampMs = timestamp
+	}
+
+	return timestampMs
 }
 
 // LastRandomSeed returns the random seed from the last committed block
@@ -431,7 +443,12 @@ func (bh *BlockChainHookImpl) EpochStartBlockTimeStampMs() uint64 {
 	bh.mutEpochStartHdr.RLock()
 	defer bh.mutEpochStartHdr.RUnlock()
 
-	timestampMs := common.ConvertTimeStampSecToMs(bh.epochStartHdr.GetTimeStamp())
+	timestamp := bh.epochStartHdr.GetTimeStamp()
+	timestampMs := common.ConvertTimeStampSecToMs(timestamp)
+	if common.IsSupernovaRoundActivated(bh.enableEpochsHandler, bh.enableRoundsHandler) {
+		timestampMs = timestamp
+	}
+
 	return timestampMs
 }
 
@@ -490,7 +507,13 @@ func (bh *BlockChainHookImpl) CurrentTimeStampMs() uint64 {
 	bh.mutCurrentHdr.RLock()
 	defer bh.mutCurrentHdr.RUnlock()
 
-	return common.ConvertTimeStampSecToMs(bh.currentHdr.GetTimeStamp())
+	timestamp := bh.currentHdr.GetTimeStamp()
+	timestampMs := common.ConvertTimeStampSecToMs(timestamp)
+	if common.IsSupernovaRoundActivated(bh.enableEpochsHandler, bh.enableRoundsHandler) {
+		timestampMs = timestamp
+	}
+
+	return timestampMs
 }
 
 // CurrentRandomSeed returns the random seed from the current header

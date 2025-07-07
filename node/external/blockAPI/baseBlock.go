@@ -60,6 +60,7 @@ type baseAPIBlockProcessor struct {
 	accountsRepository           state.AccountsRepository
 	scheduledTxsExecutionHandler process.ScheduledTxsExecutionHandler
 	enableEpochsHandler          common.EnableEpochsHandler
+	enableRoundsHandler          common.EnableRoundsHandler
 	proofsPool                   dataRetriever.ProofsPool
 	blockchain                   data.ChainHandler
 }

@@ -174,6 +174,7 @@ func createBlockChainHook(
 		GlobalSettingsHandler:    &vmcommonMock.GlobalSettingsHandlerStub{},
 		NilCompiledSCStore:       true,
 		EnableEpochsHandler:      coreComponents.EnableEpochsHandler(),
+		EnableRoundsHandler:      coreComponents.EnableRoundsHandler(),
 		GasSchedule:              gasScheduleNotifier,
 		Counter:                  counters.NewDisabledCounter(),
 		MissingTrieNodesNotifier: &testscommon.MissingTrieNodesNotifierStub{},

@@ -29,6 +29,17 @@ const srBeforeStartRound = -1
 const numRoundsToWaitBeforeSignalingChronologyStuck = 10
 const chronologyAlarmID = "chronology"
 
+// ArgChronology holds all dependencies required by the chronology component
+type ArgChronology struct {
+	GenesisTime         time.Time
+	RoundHandler        consensus.RoundHandler
+	SyncTimer           ntp.SyncTimer
+	Watchdog            core.WatchdogTimer
+	AppStatusHandler    core.AppStatusHandler
+	EnableEpochsHandler common.EnableEpochsHandler
+	EnableRoundsHandler common.EnableRoundsHandler
+}
+
 // chronology defines the data needed by the chronology
 type chronology struct {
 	genesisTime time.Time
@@ -46,6 +57,7 @@ type chronology struct {
 
 	watchdog            core.WatchdogTimer
 	enableEpochsHandler common.EnableEpochsHandler
+	enableRoundsHandler common.EnableRoundsHandler
 }
 
 // NewChronology creates a new chronology object
@@ -62,6 +74,7 @@ func NewChronology(arg ArgChronology) (*chronology, error) {
 		appStatusHandler:    arg.AppStatusHandler,
 		watchdog:            arg.Watchdog,
 		enableEpochsHandler: arg.EnableEpochsHandler,
+		enableRoundsHandler: arg.EnableRoundsHandler,
 	}
 
 	chr.subroundId = srBeforeStartRound
@@ -87,6 +100,9 @@ func checkNewChronologyParams(arg ArgChronology) error {
 	}
 	if check.IfNil(arg.EnableEpochsHandler) {
 		return errors.ErrNilEnableEpochsHandler
+	}
+	if check.IfNil(arg.EnableRoundsHandler) {
+		return errors.ErrNilEnableRoundsHandler
 	}
 
 	return nil
@@ -201,8 +217,16 @@ func (chr *chronology) initRound() {
 
 	if hasSubroundsAndGenesisTimePassed {
 		chr.subroundId = chr.subroundHandlers[0].Current()
-		chr.appStatusHandler.SetUInt64Value(common.MetricCurrentRound, uint64(chr.roundHandler.Index()))
+
+		roundIndex := uint64(chr.roundHandler.Index())
+		chr.appStatusHandler.SetUInt64Value(common.MetricCurrentRound, roundIndex)
 		chr.appStatusHandler.SetUInt64Value(common.MetricCurrentRoundTimestamp, uint64(chr.getRoundUnixTimeStamp()))
+
+		if chr.enableEpochsHandler.IsFlagEnabled(common.SupernovaFlag) &&
+			chr.enableRoundsHandler.SupernovaActivationRound() == roundIndex {
+			chr.appStatusHandler.SetUInt64Value(common.MetricRoundDuration, uint64(chr.roundHandler.TimeDuration().Milliseconds()))
+		}
+
 	}
 
 	chr.mutSubrounds.RUnlock()
