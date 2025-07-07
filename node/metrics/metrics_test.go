@@ -350,7 +350,7 @@ func TestInitConfigMetrics(t *testing.T) {
 		"erd_validation_on_gobdecode_enable_epoch":                             uint32(112),
 		"erd_barnard_opcodes_enable_epoch":                                     uint32(113),
 		"erd_automatic_activation_of_nodes_disable_epoch":                      uint32(114),
-		"erd_fix_get_balance_enable_epoch":                                     uint32(113),
+		"erd_fix_get_balance_enable_epoch":                                     uint32(115),
 		"erd_max_nodes_change_enable_epoch":                                    nil,
 		"erd_total_supply":                                                     "12345",
 		"erd_hysteresis":                                                       "0.100000",
