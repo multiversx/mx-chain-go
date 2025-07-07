@@ -826,7 +826,7 @@ func (nr *nodeRunner) createMetrics(
 	bootstrapComponents mainFactory.BootstrapComponentsHolder,
 ) error {
 
-	roundsPerEpoch := coreComponents.ChainParametersHandler().CurrentChainParameters().RoundsPerEpoch
+	currentChainParameters := coreComponents.ChainParametersHandler().CurrentChainParameters()
 	err := metrics.InitMetrics(
 		statusCoreComponents.AppStatusHandler(),
 		cryptoComponents.PublicKeyString(),
