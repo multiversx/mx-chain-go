@@ -8,6 +8,9 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
+	"github.com/stretchr/testify/require"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	dataComp "github.com/multiversx/mx-chain-go/factory/data"
@@ -26,8 +29,6 @@ import (
 	storageManager "github.com/multiversx/mx-chain-go/testscommon/storage"
 	trieMock "github.com/multiversx/mx-chain-go/testscommon/trie"
 	"github.com/multiversx/mx-chain-go/trie"
-	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
-	"github.com/stretchr/testify/require"
 )
 
 func Test_newBlockProcessorCreatorForShard(t *testing.T) {
@@ -102,9 +103,10 @@ func Test_newBlockProcessorCreatorForMeta(t *testing.T) {
 	trieStorageManagers[dataRetriever.PeerAccountsUnit.String()] = storageManagerPeer
 
 	argsAccCreator := factoryState.ArgsAccountCreator{
-		Hasher:              coreComponents.Hasher(),
-		Marshaller:          coreComponents.InternalMarshalizer(),
-		EnableEpochsHandler: coreComponents.EnableEpochsHandler(),
+		Hasher:                 coreComponents.Hasher(),
+		Marshaller:             coreComponents.InternalMarshalizer(),
+		EnableEpochsHandler:    coreComponents.EnableEpochsHandler(),
+		StateAccessesCollector: &stateMock.StateAccessesCollectorStub{},
 	}
 	accCreator, _ := factoryState.NewAccountCreator(argsAccCreator)
 
@@ -205,13 +207,14 @@ func createAccountAdapter(
 	}
 
 	args := state.ArgsAccountsDB{
-		Trie:                  tr,
-		Hasher:                hasher,
-		Marshaller:            marshaller,
-		AccountFactory:        accountFactory,
-		StoragePruningManager: disabled.NewDisabledStoragePruningManager(),
-		AddressConverter:      &testscommon.PubkeyConverterMock{},
-		SnapshotsManager:      disabledState.NewDisabledSnapshotsManager(),
+		Trie:                   tr,
+		Hasher:                 hasher,
+		Marshaller:             marshaller,
+		AccountFactory:         accountFactory,
+		StoragePruningManager:  disabled.NewDisabledStoragePruningManager(),
+		AddressConverter:       &testscommon.PubkeyConverterMock{},
+		SnapshotsManager:       disabledState.NewDisabledSnapshotsManager(),
+		StateAccessesCollector: disabledState.NewDisabledStateAccessesCollector(),
 	}
 	adb, err := state.NewAccountsDB(args)
 	if err != nil {
