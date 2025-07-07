@@ -835,7 +835,7 @@ func (nr *nodeRunner) createMetrics(
 		coreComponents.GenesisNodesSetup(),
 		nr.configs.FlagsConfig.Version,
 		nr.configs.EconomicsConfig,
-		roundsPerEpoch,
+		currentChainParameters,
 		coreComponents.MinTransactionVersion(),
 	)
 
