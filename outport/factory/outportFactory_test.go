@@ -153,6 +153,8 @@ func TestCreateOutport_SubscribeMultipleHostDrivers(t *testing.T) {
 				},
 			},
 		},
+		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		EnableRoundsHandler: &testscommon.EnableRoundsHandlerStub{},
 	}
 
 	outPort, err := factory.CreateOutport(args)
@@ -186,6 +188,8 @@ func TestCreateAndSubscribeDriversShouldReturnError(t *testing.T) {
 				},
 			},
 		},
+		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		EnableRoundsHandler: &testscommon.EnableRoundsHandlerStub{},
 	}
 
 	outPort, err := factory.CreateOutport(args)

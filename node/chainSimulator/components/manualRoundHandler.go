@@ -3,13 +3,9 @@ package components
 import (
 	"sync/atomic"
 	"time"
-
-	"github.com/multiversx/mx-chain-go/consensus"
-	"github.com/multiversx/mx-chain-go/consensus/round"
 )
 
 type manualRoundHandler struct {
-	consensus.RoundHandler
 	index            int64
 	genesisTimeStamp int64
 	roundDuration    time.Duration
@@ -18,20 +14,6 @@ type manualRoundHandler struct {
 
 // NewManualRoundHandler returns a manual round handler instance
 func NewManualRoundHandler(genesisTimeStamp int64, roundDuration time.Duration, initialRound int64) *manualRoundHandler {
-	roundArgs := round.ArgsRound{
-		GenesisTimeStamp:          genesisTimeStamp,
-		SupernovaGenesisTimeStamp: genesisTimeStamp,
-		CurrentTimeStamp:          genesisTimeStamp, // not used here
-		RoundTimeDuration:         roundDuration,
-		SupernovaTimeDuration:     0,
-		SyncTimer:                 nil,
-		StartRound:                0,
-		SupernovaStartRound:       0,
-		EnableEpochsHandler:       nil,
-		EnableRoundsHandler:       nil,
-	}
-	roundHandler, err := round.NewRound()
-
 	return &manualRoundHandler{
 		genesisTimeStamp: genesisTimeStamp,
 		roundDuration:    roundDuration,
@@ -76,6 +58,13 @@ func (handler *manualRoundHandler) TimeStamp() time.Time {
 // TimeDuration returns the provided time duration for this instance
 func (handler *manualRoundHandler) TimeDuration() time.Duration {
 	return handler.roundDuration
+}
+
+func (handler *manualRoundHandler) SetTimeDuration(timeDuration time.Duration) {
+	handler.roundDuration = timeDuration
+}
+
+func (handler *manualRoundHandler) SetNewTimeStamp(genesisTimeStamp time.Time, currentTimeStamp time.Time) {
 }
 
 // RemainingTime returns the max time as the start time is not taken into account

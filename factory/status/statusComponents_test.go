@@ -54,6 +54,7 @@ func createMockStatusComponentsFactoryArgs() statusComp.StatusComponentsFactoryA
 			},
 			EpochChangeNotifier:      &epochNotifier.EpochNotifierStub{},
 			EnableEpochsHandlerField: &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+			EnableRoundsHandlerField: &testscommon.EnableRoundsHandlerStub{},
 		},
 		StatusCoreComponents: &factory.StatusCoreComponentsStub{
 			AppStatusHandlerField:  &statusHandler.AppStatusHandlerStub{},
