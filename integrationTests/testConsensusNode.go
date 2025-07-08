@@ -214,15 +214,15 @@ func (tcn *TestConsensusNode) initNode(args ArgsTestConsensusNode) {
 	tcn.initBlockChain(testHasher)
 	tcn.initBlockProcessor(tcn.ShardCoordinator.SelfId())
 
+	roundTime := time.Millisecond * time.Duration(args.RoundTime)
+	syncer := ntp.NewSyncTime(ntp.NewNTPGoogleConfig(), nil, roundTime)
+	syncer.StartSyncingTime()
+
 	genericEpochNotifier := forking.NewGenericEpochNotifier()
 
 	epochsConfig := GetDefaultEnableEpochsConfig()
 	enableEpochsHandler, _ := enablers.NewEnableEpochsHandler(*epochsConfig, genericEpochNotifier)
 	enableRoundsHandler := &testscommon.EnableRoundsHandlerStub{}
-
-	roundTime := time.Millisecond * time.Duration(args.RoundTime)
-	syncer, _ := ntp.NewSyncTime(ntp.NewNTPGoogleConfig(), nil, roundTime, roundTime, enableEpochsHandler, enableRoundsHandler)
-	syncer.StartSyncingTime()
 
 	storage := CreateStore(tcn.ShardCoordinator.NumberOfShards())
 

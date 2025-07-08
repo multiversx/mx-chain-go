@@ -229,19 +229,7 @@ func (ccf *coreComponentsFactory) Create() (*coreComponents, error) {
 		return nil, err
 	}
 
-	syncTimeArgs := ntp.SyncTimeArgs{
-		NtpConfig:              ccf.config.NTPConfig,
-		CustomQueryFunc:        nil,
-		RoundDuration:          genesisRoundDuration,
-		SupernovaRoundDuration: supernovaRoundDuration,
-		EnableEpochsHandler:    enableEpochsHandler,
-		EnableRoundsHandler:    enableRoundsHandler,
-	}
-	syncer, err := ntp.NewSyncTime(syncTimeArgs)
-	if err != nil {
-		return nil, err
-	}
-
+	syncer := ntp.NewSyncTime(ccf.config.NTPConfig, nil, genesisRoundDuration)
 	syncer.StartSyncingTime()
 	log.Debug("NTP average clock offset", "value", syncer.ClockOffset())
 
