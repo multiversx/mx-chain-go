@@ -11,7 +11,10 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
+	commonErrors "github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/ntp"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
@@ -109,6 +112,29 @@ func TestNewSyncTime(t *testing.T) {
 		st, err := ntp.NewSyncTime(createDefaultSyncTimeArgs())
 		require.Nil(t, err)
 		require.NotNil(t, st)
+		require.False(t, st.IsInterfaceNil())
+	})
+
+	t.Run("nil enable epochs handler", func(t *testing.T) {
+		t.Parallel()
+
+		args := createDefaultSyncTimeArgs()
+		args.EnableEpochsHandler = nil
+
+		st, err := ntp.NewSyncTime(args)
+		require.Nil(t, st)
+		require.Equal(t, commonErrors.ErrNilEnableEpochsHandler, err)
+	})
+
+	t.Run("nil enable rounds handler", func(t *testing.T) {
+		t.Parallel()
+
+		args := createDefaultSyncTimeArgs()
+		args.EnableRoundsHandler = nil
+
+		st, err := ntp.NewSyncTime(args)
+		require.Nil(t, st)
+		require.Equal(t, commonErrors.ErrNilEnableRoundsHandler, err)
 	})
 }
 
@@ -347,49 +373,127 @@ func TestGetSleepTime(t *testing.T) {
 func TestCallQueryShouldNotUpdateOnOutOfBoundValuesPositive(t *testing.T) {
 	t.Parallel()
 
-	args := createDefaultSyncTimeArgs()
-	args.NtpConfig = config.NTPConfig{
-		SyncPeriodSeconds: 3600,
-		Hosts:             []string{"host1"},
-	}
-	args.CustomQueryFunc = func(options ntp.NTPOptions, hostIndex int) (*beevikNtp.Response, error) {
-		return &beevikNtp.Response{
-			ClockOffset: ntp.OutOfBoundsDurationPercentage + time.Nanosecond,
-		}, nil
-	}
-	args.RoundDuration = time.Nanosecond
+	t.Run("before supernova", func(t *testing.T) {
+		t.Parallel()
 
-	st, _ := ntp.NewSyncTime(args)
+		args := createDefaultSyncTimeArgs()
+		args.NtpConfig = config.NTPConfig{
+			SyncPeriodSeconds: 3600,
+			Hosts:             []string{"host1"},
+		}
+		args.CustomQueryFunc = func(options ntp.NTPOptions, hostIndex int) (*beevikNtp.Response, error) {
+			return &beevikNtp.Response{
+				ClockOffset: ntp.OutOfBoundsDurationPercentage + time.Nanosecond,
+			}, nil
+		}
+		args.RoundDuration = time.Nanosecond
 
-	currentValue := time.Microsecond
-	st.SetClockOffset(currentValue)
-	st.Sync()
+		st, _ := ntp.NewSyncTime(args)
 
-	assert.Equal(t, currentValue, st.ClockOffset())
+		currentValue := time.Microsecond
+		st.SetClockOffset(currentValue)
+		st.Sync()
+
+		assert.Equal(t, currentValue, st.ClockOffset())
+	})
+
+	t.Run("after supernova", func(t *testing.T) {
+		t.Parallel()
+
+		args := createDefaultSyncTimeArgs()
+		args.NtpConfig = config.NTPConfig{
+			SyncPeriodSeconds: 3600,
+			Hosts:             []string{"host1"},
+		}
+		args.CustomQueryFunc = func(options ntp.NTPOptions, hostIndex int) (*beevikNtp.Response, error) {
+			return &beevikNtp.Response{
+				ClockOffset: ntp.OutOfBoundsDurationPercentage + time.Nanosecond,
+			}, nil
+		}
+		args.SupernovaRoundDuration = time.Nanosecond
+
+		args.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+			IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
+				return flag == common.SupernovaFlag
+			},
+		}
+		args.EnableRoundsHandler = &testscommon.EnableRoundsHandlerStub{
+			IsSupernovaEnabledCalled: func() bool {
+				return true
+			},
+		}
+
+		st, _ := ntp.NewSyncTime(args)
+
+		currentValue := time.Microsecond
+		st.SetClockOffset(currentValue)
+		st.Sync()
+
+		assert.Equal(t, currentValue, st.ClockOffset())
+	})
 }
 
 func TestCallQueryShouldNotUpdateOnOutOfBoundValuesNegative(t *testing.T) {
 	t.Parallel()
 
-	args := createDefaultSyncTimeArgs()
-	args.NtpConfig = config.NTPConfig{
-		SyncPeriodSeconds: 3600,
-		Hosts:             []string{"host1"},
-	}
-	args.CustomQueryFunc = func(options ntp.NTPOptions, hostIndex int) (*beevikNtp.Response, error) {
-		return &beevikNtp.Response{
-			ClockOffset: ntp.OutOfBoundsDurationPercentage + 2*time.Nanosecond,
-		}, nil
-	}
-	args.RoundDuration = 2 * time.Nanosecond
+	t.Run("before supernova", func(t *testing.T) {
+		t.Parallel()
 
-	st, _ := ntp.NewSyncTime(args)
+		args := createDefaultSyncTimeArgs()
+		args.NtpConfig = config.NTPConfig{
+			SyncPeriodSeconds: 3600,
+			Hosts:             []string{"host1"},
+		}
+		args.CustomQueryFunc = func(options ntp.NTPOptions, hostIndex int) (*beevikNtp.Response, error) {
+			return &beevikNtp.Response{
+				ClockOffset: ntp.OutOfBoundsDurationPercentage + 2*time.Nanosecond,
+			}, nil
+		}
+		args.RoundDuration = 2 * time.Nanosecond
 
-	currentValue := time.Microsecond
-	st.SetClockOffset(currentValue)
-	st.Sync()
+		st, _ := ntp.NewSyncTime(args)
 
-	assert.Equal(t, currentValue, st.ClockOffset())
+		currentValue := time.Microsecond
+		st.SetClockOffset(currentValue)
+		st.Sync()
+
+		assert.Equal(t, currentValue, st.ClockOffset())
+	})
+
+	t.Run("after supernova", func(t *testing.T) {
+		t.Parallel()
+
+		args := createDefaultSyncTimeArgs()
+		args.NtpConfig = config.NTPConfig{
+			SyncPeriodSeconds: 3600,
+			Hosts:             []string{"host1"},
+		}
+		args.CustomQueryFunc = func(options ntp.NTPOptions, hostIndex int) (*beevikNtp.Response, error) {
+			return &beevikNtp.Response{
+				ClockOffset: ntp.OutOfBoundsDurationPercentage + 2*time.Nanosecond,
+			}, nil
+		}
+		args.SupernovaRoundDuration = 2 * time.Nanosecond
+
+		args.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+			IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
+				return flag == common.SupernovaFlag
+			},
+		}
+		args.EnableRoundsHandler = &testscommon.EnableRoundsHandlerStub{
+			IsSupernovaEnabledCalled: func() bool {
+				return true
+			},
+		}
+
+		st, _ := ntp.NewSyncTime(args)
+
+		currentValue := time.Microsecond
+		st.SetClockOffset(currentValue)
+		st.Sync()
+
+		assert.Equal(t, currentValue, st.ClockOffset())
+	})
 }
 
 // On local machine, seems like average query time is ~35ms, e.g.:
