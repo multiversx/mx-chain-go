@@ -369,6 +369,9 @@
     # AutomaticActivationOfNodesDisableEpoch represents the epoch when automatic activation of nodes for validators is disabled
     AutomaticActivationOfNodesDisableEpoch = 2
 
+    # DeveloperRewardsFromAllFeesEnableEpoch represents the epoch when developer rewards is calculated from the complete fees
+    DeveloperRewardsFromAllFeesEnableEpoch = 3
+
     # BLSMultiSignerEnableEpoch represents the activation epoch for different types of BLS multi-signers
     BLSMultiSignerEnableEpoch = [
         { EnableEpoch = 0, Type = "no-KOSK" },

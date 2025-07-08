@@ -221,6 +221,7 @@ func TestInitConfigMetrics(t *testing.T) {
 			BarnardOpcodesEnableEpoch:                                113,
 			AutomaticActivationOfNodesDisableEpoch:                   114,
 			FixGetBalanceEnableEpoch:                                 115,
+			DeveloperRewardsFromAllFeesEnableEpoch:                   116,
 			MaxNodesChangeEnableEpoch: []config.MaxNodesChangeConfig{
 				{
 					EpochEnable:            0,
@@ -351,6 +352,7 @@ func TestInitConfigMetrics(t *testing.T) {
 		"erd_barnard_opcodes_enable_epoch":                                     uint32(113),
 		"erd_automatic_activation_of_nodes_disable_epoch":                      uint32(114),
 		"erd_fix_get_balance_enable_epoch":                                     uint32(115),
+		"erd_developer_rewards_from_all_fees_enable_epoch":                     uint32(116),
 		"erd_max_nodes_change_enable_epoch":                                    nil,
 		"erd_total_supply":                                                     "12345",
 		"erd_hysteresis":                                                       "0.100000",

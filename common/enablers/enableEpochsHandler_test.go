@@ -475,6 +475,7 @@ func TestEnableEpochsHandler_GetActivationEpoch(t *testing.T) {
 	require.Equal(t, cfg.BarnardOpcodesEnableEpoch, handler.GetActivationEpoch(common.BarnardOpcodesFlag))
 	require.Equal(t, cfg.AutomaticActivationOfNodesDisableEpoch, handler.GetActivationEpoch(common.AutomaticActivationOfNodesDisableFlag))
 	require.Equal(t, cfg.FixGetBalanceEnableEpoch, handler.GetActivationEpoch(common.FixGetBalanceFlag))
+	require.Equal(t, cfg.DeveloperRewardsFromAllFeesEnableEpoch, handler.GetActivationEpoch(common.DeveloperRewardsFromAllFeesFlag))
 }
 
 func TestEnableEpochsHandler_IsInterfaceNil(t *testing.T) {

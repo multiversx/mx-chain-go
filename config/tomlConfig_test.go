@@ -941,6 +941,9 @@ func TestEnableEpochConfig(t *testing.T) {
     # FixGetBalanceEnableEpoch represents the epoch when Barnard opcodes will be enabled
     FixGetBalanceEnableEpoch = 112
 
+    # DeveloperRewardsFromAllFeesEnableEpoch represents the epoch when developer rewards is calculated from the complete fees
+    DeveloperRewardsFromAllFeesEnableEpoch = 113
+
     # MaxNodesChangeEnableEpoch holds configuration for changing the maximum number of nodes and the enabling epoch
     MaxNodesChangeEnableEpoch = [
         { EpochEnable = 44, MaxNumNodes = 2169, NodesToShufflePerShard = 80 },
@@ -1073,6 +1076,7 @@ func TestEnableEpochConfig(t *testing.T) {
 			BarnardOpcodesEnableEpoch:                                110,
 			AutomaticActivationOfNodesDisableEpoch:                   111,
 			FixGetBalanceEnableEpoch:                                 112,
+			DeveloperRewardsFromAllFeesEnableEpoch:                   113,
 			MaxNodesChangeEnableEpoch: []MaxNodesChangeConfig{
 				{
 					EpochEnable:            44,

@@ -770,6 +770,9 @@ const (
 	// MetricAutomaticActivationOfNodesDisableEpoch represents the epoch when the automatic activation of nodes is disabled
 	MetricAutomaticActivationOfNodesDisableEpoch = "erd_automatic_activation_of_nodes_disable_epoch"
 
+	// MetricDeveloperRewardsFromAllFeesEnableEpoch represents the epoch when developer rewards are computed from the full fee
+	MetricDeveloperRewardsFromAllFeesEnableEpoch = "erd_developer_rewards_from_all_fees_enable_epoch"
+
 	// MetricMaxNodesChangeEnableEpoch holds configuration for changing the maximum number of nodes and the enabling epoch
 	MetricMaxNodesChangeEnableEpoch = "erd_max_nodes_change_enable_epoch"
 
@@ -1286,5 +1289,6 @@ const (
 	BarnardOpcodesFlag                                  core.EnableEpochFlag = "BarnardOpcodesFlag"
 	AutomaticActivationOfNodesDisableFlag               core.EnableEpochFlag = "AutomaticActivationOfNodesDisableFlag"
 	FixGetBalanceFlag                                   core.EnableEpochFlag = "FixGetBalanceFlag"
+	DeveloperRewardsFromAllFeesFlag                     core.EnableEpochFlag = "DeveloperRewardsFromAllFeesFlag"
 	// all new flags must be added to createAllFlagsMap method, as part of enableEpochsHandler allFlagsDefined
 )

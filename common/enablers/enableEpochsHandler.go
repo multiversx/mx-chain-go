@@ -853,6 +853,12 @@ func (handler *enableEpochsHandler) createAllFlagsMap() {
 			},
 			activationEpoch: handler.enableEpochsConfig.FixGetBalanceEnableEpoch,
 		},
+		common.DeveloperRewardsFromAllFeesFlag: {
+			isActiveInEpoch: func(epoch uint32) bool {
+				return epoch >= handler.enableEpochsConfig.DeveloperRewardsFromAllFeesEnableEpoch
+			},
+			activationEpoch: handler.enableEpochsConfig.DeveloperRewardsFromAllFeesEnableEpoch,
+		},
 	}
 }
 
