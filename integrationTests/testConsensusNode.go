@@ -221,7 +221,16 @@ func (tcn *TestConsensusNode) initNode(args ArgsTestConsensusNode) {
 	enableRoundsHandler := &testscommon.EnableRoundsHandlerStub{}
 
 	roundTime := time.Millisecond * time.Duration(args.RoundTime)
-	syncer, _ := ntp.NewSyncTime(ntp.NewNTPGoogleConfig(), nil, roundTime, roundTime, enableEpochsHandler, enableRoundsHandler)
+
+	syncTimeArgs := ntp.SyncTimeArgs{
+		NtpConfig:              ntp.NewNTPGoogleConfig(),
+		CustomQueryFunc:        nil,
+		RoundDuration:          roundTime,
+		SupernovaRoundDuration: roundTime,
+		EnableEpochsHandler:    enableEpochsHandler,
+		EnableRoundsHandler:    enableRoundsHandler,
+	}
+	syncer, _ := ntp.NewSyncTime(syncTimeArgs)
 	syncer.StartSyncingTime()
 
 	storage := CreateStore(tcn.ShardCoordinator.NumberOfShards())
