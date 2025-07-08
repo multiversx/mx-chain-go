@@ -240,7 +240,7 @@ func (tpn *TestFullNode) initTestNodeWithArgs(args ArgTestProcessorNode, fullArg
 	tpn.initRoundHandler()
 
 	roundTime := time.Millisecond * time.Duration(fullArgs.RoundTime)
-	syncer := ntp.NewSyncTime(ntp.NewNTPGoogleConfig(), nil, roundTime)
+	syncer, _ := ntp.NewSyncTime(ntp.NewNTPGoogleConfig(), nil, roundTime, roundTime, tpn.EnableEpochsHandler, tpn.EnableRoundsHandler)
 	syncer.StartSyncingTime()
 	tpn.GenesisTimeField = time.Unix(fullArgs.StartTime, 0)
 
