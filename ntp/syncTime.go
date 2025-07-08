@@ -12,10 +12,13 @@ import (
 
 	"github.com/beevik/ntp"
 	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/core/closing"
-	"github.com/multiversx/mx-chain-logger-go"
+	logger "github.com/multiversx/mx-chain-logger-go"
 
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
+	"github.com/multiversx/mx-chain-go/errors"
 )
 
 var _ SyncTimer = (*syncTime)(nil)
@@ -48,39 +51,55 @@ const outOfBoundsRoundDurationPercentage = 20 // 20% * roundDuration
 // allowed for an NTP query. If a query takes longer than this limit, its response will be disregarded.
 const maxAllowedNTPQueryResponseTimeMS = 200
 
-// NTPOptions defines configuration options for a NTP query
-type NTPOptions struct {
-	Hosts        []string
-	Version      int
-	LocalAddress string
-	Timeout      time.Duration
-	Port         int
+// SyncTimeArgs defines the arguments needed to create a time syncer component
+type SyncTimeArgs struct {
+	NtpConfig              config.NTPConfig
+	CustomQueryFunc        func(options NTPOptions, hostIndex int) (*ntp.Response, error)
+	RoundDuration          time.Duration
+	SupernovaRoundDuration time.Duration
+	EnableEpochsHandler    common.EnableEpochsHandler
+	EnableRoundsHandler    common.EnableRoundsHandler
 }
 
-// NewNTPGoogleConfig creates an NTPConfig object that configures NTP to use a predefined list of hosts. This is useful
-// for tests, for example, to avoid loading a configuration file just to have a NTPConfig
-func NewNTPGoogleConfig() config.NTPConfig {
-	return config.NTPConfig{
-		Hosts:               []string{"time.google.com", "time.cloudflare.com", "time.apple.com", "time.windows.com"},
-		Port:                123,
-		Version:             0,
-		TimeoutMilliseconds: 100,
-		SyncPeriodSeconds:   3600,
-	}
+// syncTime defines an object for time synchronization
+type syncTime struct {
+	mut                    sync.RWMutex
+	clockOffset            time.Duration
+	syncPeriod             time.Duration
+	ntpOptions             NTPOptions
+	query                  func(options NTPOptions, hostIndex int) (*ntp.Response, error)
+	cancelFunc             func()
+	genesisRoundDuration   time.Duration
+	supernovaRoundDuration time.Duration
+	enableEpochsHandler    common.EnableEpochsHandler
+	enableRoundsHandler    common.EnableRoundsHandler
 }
 
-// NewNTPOptions creates a new NTPOptions object
-func NewNTPOptions(ntpConfig config.NTPConfig) NTPOptions {
-	ntpConfig.TimeoutMilliseconds = core.MaxInt(minTimeout, ntpConfig.TimeoutMilliseconds)
-	timeout := time.Duration(ntpConfig.TimeoutMilliseconds) * time.Millisecond
-
-	return NTPOptions{
-		Hosts:        ntpConfig.Hosts,
-		Port:         ntpConfig.Port,
-		Version:      ntpConfig.Version,
-		LocalAddress: "",
-		Timeout:      timeout,
+// NewSyncTime creates a syncTime object. The customQueryFunc argument allows the caller to set a different NTP-querying
+// callback, if desired. If set to nil, then the default queryNTP is used
+func NewSyncTime(args SyncTimeArgs) (*syncTime, error) {
+	if check.IfNil(args.EnableEpochsHandler) {
+		return nil, errors.ErrNilEnableEpochsHandler
 	}
+	if check.IfNil(args.EnableRoundsHandler) {
+		return nil, errors.ErrNilEnableRoundsHandler
+	}
+
+	queryFunc := args.CustomQueryFunc
+	if queryFunc == nil {
+		queryFunc = queryNTP
+	}
+
+	return &syncTime{
+		clockOffset:            0,
+		syncPeriod:             time.Duration(args.NtpConfig.SyncPeriodSeconds) * time.Second,
+		query:                  queryFunc,
+		ntpOptions:             NewNTPOptions(args.NtpConfig),
+		genesisRoundDuration:   args.RoundDuration,
+		supernovaRoundDuration: args.SupernovaRoundDuration,
+		enableEpochsHandler:    args.EnableEpochsHandler,
+		enableRoundsHandler:    args.EnableRoundsHandler,
+	}, nil
 }
 
 // queryNTP wraps beevikntp.QueryWithOptions, in order to use NTPOptions, which contains both Host and Port, unlike
@@ -98,40 +117,6 @@ func queryNTP(options NTPOptions, hostIndex int) (*ntp.Response, error) {
 	}
 
 	return ntp.QueryWithOptions(options.Hosts[hostIndex], queryOptions)
-}
-
-// syncTime defines an object for time synchronization
-type syncTime struct {
-	mut           sync.RWMutex
-	clockOffset   time.Duration
-	syncPeriod    time.Duration
-	ntpOptions    NTPOptions
-	query         func(options NTPOptions, hostIndex int) (*ntp.Response, error)
-	cancelFunc    func()
-	roundDuration time.Duration
-}
-
-// NewSyncTime creates a syncTime object. The customQueryFunc argument allows the caller to set a different NTP-querying
-// callback, if desired. If set to nil, then the default queryNTP is used
-func NewSyncTime(
-	ntpConfig config.NTPConfig,
-	customQueryFunc func(options NTPOptions, hostIndex int) (*ntp.Response, error),
-	roundDuration time.Duration,
-) *syncTime {
-	queryFunc := customQueryFunc
-	if queryFunc == nil {
-		queryFunc = queryNTP
-	}
-
-	s := syncTime{
-		clockOffset:   0,
-		syncPeriod:    time.Duration(ntpConfig.SyncPeriodSeconds) * time.Second,
-		query:         queryFunc,
-		ntpOptions:    NewNTPOptions(ntpConfig),
-		roundDuration: roundDuration,
-	}
-
-	return &s
 }
 
 // StartSyncingTime method does the time synchronization at every syncPeriod time elapsed. This method should be started on go
@@ -165,6 +150,14 @@ func (s *syncTime) getSleepTime() time.Duration {
 
 	offset := randBigInt.Int64() - maxOffset
 	return s.syncPeriod + time.Duration(offset)
+}
+
+func (s *syncTime) getRoundDuration() time.Duration {
+	if common.IsSupernovaRoundActivated(s.enableEpochsHandler, s.enableRoundsHandler) {
+		return s.supernovaRoundDuration
+	}
+
+	return s.genesisRoundDuration
 }
 
 // sync method does the time synchronization and sets the harmonic mean offset difference between local time
@@ -219,14 +212,14 @@ func (s *syncTime) sync() {
 	clockOffsetsWithoutEdges := s.getClockOffsetsWithoutEdges(clockOffsets)
 	clockOffsetHarmonicMean := s.getHarmonicMean(clockOffsetsWithoutEdges)
 
-	thresholdOutOfBonds := s.roundDuration * time.Duration(outOfBoundsRoundDurationPercentage) / time.Duration(100)
+	thresholdOutOfBonds := s.getRoundDuration() * time.Duration(outOfBoundsRoundDurationPercentage) / time.Duration(100)
 	isOutOfBounds := core.AbsDuration(clockOffsetHarmonicMean) > thresholdOutOfBonds
 	if isOutOfBounds {
 		log.Error("syncTime.sync: clock offset is out of expected bounds",
 			"clock offset harmonic mean", clockOffsetHarmonicMean,
 			"thresholdOutOfBonds", thresholdOutOfBonds,
 			"outOfBoundsRoundDurationPercentage", outOfBoundsRoundDurationPercentage,
-			"roundDuration", s.roundDuration,
+			"roundDuration", s.getRoundDuration(),
 		)
 
 		return
