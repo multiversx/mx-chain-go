@@ -46,7 +46,6 @@ func createMockArgsAPIBlockProc() *ArgAPIBlockProcessor {
 		AccountsRepository:           &state.AccountsRepositoryStub{},
 		ScheduledTxsExecutionHandler: &testscommon.ScheduledTxsExecutionStub{},
 		EnableEpochsHandler:          &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
-		EnableRoundsHandler:          &testscommon.EnableRoundsHandlerStub{},
 		ProofsPool:                   &dataRetrieverTestCommon.ProofsPoolMock{},
 		BlockChain:                   chainHandler,
 	}
@@ -190,16 +189,6 @@ func TestCreateAPIBlockProcessorNilArgs(t *testing.T) {
 
 		_, err := CreateAPIBlockProcessor(arguments)
 		assert.Equal(t, errNilEnableEpochsHandler, err)
-	})
-
-	t.Run("NilEnableRoundsHandler", func(t *testing.T) {
-		t.Parallel()
-
-		arguments := createMockArgsAPIBlockProc()
-		arguments.EnableRoundsHandler = nil
-
-		_, err := CreateAPIBlockProcessor(arguments)
-		assert.Equal(t, process.ErrNilEnableRoundsHandler, err)
 	})
 
 	t.Run("NilProofsPool", func(t *testing.T) {

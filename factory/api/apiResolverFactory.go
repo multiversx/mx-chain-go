@@ -407,7 +407,6 @@ func createScQueryElement(
 		WorkingDir:               args.workingDir,
 		EpochNotifier:            args.coreComponents.EpochNotifier(),
 		EnableEpochsHandler:      args.coreComponents.EnableEpochsHandler(),
-		EnableRoundsHandler:      args.coreComponents.EnableRoundsHandler(),
 		NilCompiledSCStore:       true,
 		GasSchedule:              args.gasScheduleNotifier,
 		Counter:                  counters.NewDisabledCounter(),
@@ -734,7 +733,6 @@ func createAPIBlockProcessorArgs(args *ApiResolverArgs, apiTransactionHandler ex
 		AccountsRepository:           args.StateComponents.AccountsRepository(),
 		ScheduledTxsExecutionHandler: args.ProcessComponents.ScheduledTxsExecutionHandler(),
 		EnableEpochsHandler:          args.CoreComponents.EnableEpochsHandler(),
-		EnableRoundsHandler:          args.CoreComponents.EnableRoundsHandler(),
 		ProofsPool:                   args.DataComponents.Datapool().Proofs(),
 		BlockChain:                   args.DataComponents.Blockchain(),
 	}

@@ -38,7 +38,6 @@ func newMetaApiBlockProcessor(arg *ArgAPIBlockProcessor, emptyReceiptsHash []byt
 			accountsRepository:           arg.AccountsRepository,
 			scheduledTxsExecutionHandler: arg.ScheduledTxsExecutionHandler,
 			enableEpochsHandler:          arg.EnableEpochsHandler,
-			enableRoundsHandler:          arg.EnableRoundsHandler,
 			proofsPool:                   arg.ProofsPool,
 			blockchain:                   arg.BlockChain,
 		},
@@ -226,8 +225,7 @@ func (mbp *metaAPIBlockProcessor) convertMetaBlockBytesToAPIBlock(hash []byte, b
 		notarizedBlocks = append(notarizedBlocks, notarizedBlock)
 	}
 
-	timestamp := blockHeader.GetTimeStamp()
-	timestampMs := common.GetTimestampMs(timestamp, mbp.enableEpochsHandler, mbp.enableRoundsHandler)
+	timestampSec, timestampMs := common.GetHeaderTimestamps(blockHeader, mbp.enableEpochsHandler)
 
 	apiMetaBlock := &api.Block{
 		Nonce:                  blockHeader.Nonce,
@@ -243,7 +241,7 @@ func (mbp *metaAPIBlockProcessor) convertMetaBlockBytesToAPIBlock(hash []byte, b
 		DeveloperFees:          blockHeader.DeveloperFees.String(),
 		AccumulatedFeesInEpoch: blockHeader.AccumulatedFeesInEpoch.String(),
 		DeveloperFeesInEpoch:   blockHeader.DevFeesInEpoch.String(),
-		Timestamp:              int64(timestamp),
+		Timestamp:              int64(timestampSec),
 		TimestampMs:            int64(timestampMs),
 		StateRootHash:          hex.EncodeToString(blockHeader.RootHash),
 		Status:                 BlockStatusOnChain,

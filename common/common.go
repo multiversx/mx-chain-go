@@ -208,16 +208,28 @@ func ConvertTimeStampSecToMs(timeStamp uint64) uint64 {
 	return timeStamp * 1000
 }
 
-// GetTimestampMs will return timestamp as milliseconds based on supernova round activation
-func GetTimestampMs(
-	timestamp uint64,
+func convertTimeStampMsToSec(timeStamp uint64) uint64 {
+	return timeStamp / 1000
+}
+
+// GetHeaderTimestamps will return timestamps as seconds and milliseconds based on supernova round activation
+func GetHeaderTimestamps(
+	header data.HeaderHandler,
 	enableEpochsHandler EnableEpochsHandler,
-	enableRoundsHandler EnableRoundsHandler,
-) uint64 {
-	timestampMs := ConvertTimeStampSecToMs(timestamp)
-	if IsSupernovaRoundActivated(enableEpochsHandler, enableRoundsHandler) {
-		timestampMs = timestamp
+) (uint64, uint64) {
+	headerTimestamp := header.GetTimeStamp()
+
+	timestampSec := headerTimestamp
+	timestampMs := headerTimestamp
+
+	if !enableEpochsHandler.IsFlagEnabledInEpoch(SupernovaFlag, header.GetEpoch()) {
+		timestampMs = ConvertTimeStampSecToMs(headerTimestamp)
+		return timestampSec, timestampMs
 	}
 
-	return timestampMs
+	// reduce block timestamp (which now comes as milliseconds) to seconds to keep backwards compatibility
+	// from now on timestampMs will be used for milliseconds granularity
+	timestampSec = convertTimeStampMsToSec(headerTimestamp)
+
+	return timestampSec, timestampMs
 }

@@ -39,7 +39,6 @@ func newShardApiBlockProcessor(arg *ArgAPIBlockProcessor, emptyReceiptsHash []by
 			accountsRepository:           arg.AccountsRepository,
 			scheduledTxsExecutionHandler: arg.ScheduledTxsExecutionHandler,
 			enableEpochsHandler:          arg.EnableEpochsHandler,
-			enableRoundsHandler:          arg.EnableRoundsHandler,
 			proofsPool:                   arg.ProofsPool,
 			blockchain:                   arg.BlockChain,
 		},
@@ -220,8 +219,7 @@ func (sbp *shardAPIBlockProcessor) convertShardBlockBytesToAPIBlock(hash []byte,
 	statusFilters := filters.NewStatusFilters(sbp.selfShardID)
 	statusFilters.ApplyStatusFilters(miniblocks)
 
-	timestamp := blockHeader.GetTimeStamp()
-	timestampMs := common.GetTimestampMs(timestamp, sbp.enableEpochsHandler, sbp.enableRoundsHandler)
+	timestampSec, timestampMs := common.GetHeaderTimestamps(blockHeader, sbp.enableEpochsHandler)
 
 	apiBlock := &api.Block{
 		Nonce:           blockHeader.GetNonce(),
@@ -234,7 +232,7 @@ func (sbp *shardAPIBlockProcessor) convertShardBlockBytesToAPIBlock(hash []byte,
 		MiniBlocks:      miniblocks,
 		AccumulatedFees: blockHeader.GetAccumulatedFees().String(),
 		DeveloperFees:   blockHeader.GetDeveloperFees().String(),
-		Timestamp:       int64(timestamp),
+		Timestamp:       int64(timestampSec),
 		TimestampMs:     int64(timestampMs),
 		Status:          BlockStatusOnChain,
 		StateRootHash:   hex.EncodeToString(blockHeader.GetRootHash()),

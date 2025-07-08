@@ -66,7 +66,6 @@ func createMockBlockChainHookArgs() hooks.ArgBlockChainHook {
 		CompiledSCPool:        datapool.SmartContracts(),
 		EpochNotifier:         &epochNotifier.EpochNotifierStub{},
 		EnableEpochsHandler:   enableEpochsHandlerMock.NewEnableEpochsHandlerStub(),
-		EnableRoundsHandler:   &testscommon.EnableRoundsHandlerStub{},
 		NilCompiledSCStore:    true,
 		EnableEpochs: config.EnableEpochs{
 			DoNotReturnOldBlockInBlockchainHookEnableEpoch: math.MaxUint32,
@@ -205,14 +204,6 @@ func TestNewBlockChainHookImpl(t *testing.T) {
 				return args
 			},
 			expectedErr: process.ErrNilEnableEpochsHandler,
-		},
-		{
-			args: func() hooks.ArgBlockChainHook {
-				args := createMockBlockChainHookArgs()
-				args.EnableRoundsHandler = nil
-				return args
-			},
-			expectedErr: process.ErrNilEnableRoundsHandler,
 		},
 		{
 			args: func() hooks.ArgBlockChainHook {
@@ -2694,13 +2685,8 @@ func TestBlockChainHookImpl_CurrentTimeStampMs(t *testing.T) {
 
 		args := createMockBlockChainHookArgs()
 		args.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-			IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
+			IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
 				return flag != common.SupernovaFlag
-			},
-		}
-		args.EnableRoundsHandler = &testscommon.EnableRoundsHandlerStub{
-			IsSupernovaEnabledCalled: func() bool {
-				return false
 			},
 		}
 		bh, _ := hooks.NewBlockChainHookImpl(args)
@@ -2725,13 +2711,8 @@ func TestBlockChainHookImpl_CurrentTimeStampMs(t *testing.T) {
 
 		args := createMockBlockChainHookArgs()
 		args.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-			IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
+			IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
 				return flag == common.SupernovaFlag
-			},
-		}
-		args.EnableRoundsHandler = &testscommon.EnableRoundsHandlerStub{
-			IsSupernovaEnabledCalled: func() bool {
-				return true
 			},
 		}
 		bh, _ := hooks.NewBlockChainHookImpl(args)
@@ -2746,10 +2727,10 @@ func TestBlockChainHookImpl_CurrentTimeStampMs(t *testing.T) {
 func TestBlockChainHookImpl_LastTimeStampMs(t *testing.T) {
 	t.Parallel()
 
-	timestamp := uint64(1234)
-
 	t.Run("before supernova activated", func(t *testing.T) {
 		t.Parallel()
+
+		timestamp := uint64(1234)
 
 		hdr := &block.Header{
 			TimeStamp: timestamp,
@@ -2764,11 +2745,6 @@ func TestBlockChainHookImpl_LastTimeStampMs(t *testing.T) {
 		args.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
 			IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
 				return flag != common.SupernovaFlag
-			},
-		}
-		args.EnableRoundsHandler = &testscommon.EnableRoundsHandlerStub{
-			IsSupernovaEnabledCalled: func() bool {
-				return false
 			},
 		}
 
@@ -2795,13 +2771,8 @@ func TestBlockChainHookImpl_LastTimeStampMs(t *testing.T) {
 			},
 		}
 		args.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-			IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
+			IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
 				return flag == common.SupernovaFlag
-			},
-		}
-		args.EnableRoundsHandler = &testscommon.EnableRoundsHandlerStub{
-			IsSupernovaEnabledCalled: func() bool {
-				return true
 			},
 		}
 
@@ -2834,13 +2805,8 @@ func TestBlockChainHookImpl_EpochStartBlockTimeStampMs(t *testing.T) {
 
 		args := createMockBlockChainHookArgs()
 		args.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-			IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
+			IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
 				return flag != common.SupernovaFlag
-			},
-		}
-		args.EnableRoundsHandler = &testscommon.EnableRoundsHandlerStub{
-			IsSupernovaEnabledCalled: func() bool {
-				return false
 			},
 		}
 
@@ -2875,13 +2841,8 @@ func TestBlockChainHookImpl_EpochStartBlockTimeStampMs(t *testing.T) {
 
 		args := createMockBlockChainHookArgs()
 		args.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-			IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
+			IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
 				return flag == common.SupernovaFlag
-			},
-		}
-		args.EnableRoundsHandler = &testscommon.EnableRoundsHandlerStub{
-			IsSupernovaEnabledCalled: func() bool {
-				return true
 			},
 		}
 

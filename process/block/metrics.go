@@ -164,10 +164,8 @@ func indexRoundInfo(
 	lastHeader data.HeaderHandler,
 	signersIndexes []uint64,
 	enableEpochsHandler common.EnableEpochsHandler,
-	enableRoundsHandler common.EnableRoundsHandler,
 ) {
-	timestamp := header.GetTimeStamp()
-	timestampMs := common.GetTimestampMs(timestamp, enableEpochsHandler, enableRoundsHandler)
+	timestampSec, timestampMs := common.GetHeaderTimestamps(header, enableEpochsHandler)
 
 	roundInfo := &outportcore.RoundInfo{
 		Round:            header.GetRound(),
@@ -175,7 +173,7 @@ func indexRoundInfo(
 		BlockWasProposed: true,
 		ShardId:          shardId,
 		Epoch:            header.GetEpoch(),
-		Timestamp:        timestamp,
+		Timestamp:        timestampSec,
 		TimestampMs:      timestampMs,
 	}
 

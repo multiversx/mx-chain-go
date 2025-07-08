@@ -336,6 +336,10 @@ func InitMetrics(
 	appStatusHandler.SetUInt64Value(common.MetricNumNodesPerShard, uint64(nodesConfig.MinNumberOfShardNodes()))
 	appStatusHandler.SetUInt64Value(common.MetricNumMetachainNodes, uint64(nodesConfig.MinNumberOfMetaNodes()))
 	appStatusHandler.SetUInt64Value(common.MetricStartTime, uint64(nodesConfig.GetStartTime()))
+
+	log.Debug("InitMetrics: setting round duration",
+		"round", currentChainParameters.RoundDuration,
+	)
 	appStatusHandler.SetUInt64Value(common.MetricRoundDuration, currentChainParameters.RoundDuration)
 	appStatusHandler.SetUInt64Value(common.MetricMinTransactionVersion, uint64(minTransactionVersion))
 

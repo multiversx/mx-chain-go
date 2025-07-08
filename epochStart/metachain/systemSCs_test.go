@@ -837,7 +837,6 @@ func createFullArgumentsForSystemSCProcessing(enableEpochsConfig config.EnableEp
 		CompiledSCPool:           testDataPool.SmartContracts(),
 		EpochNotifier:            en,
 		EnableEpochsHandler:      enableEpochsHandler,
-		EnableRoundsHandler:      &testscommon.EnableRoundsHandlerStub{},
 		NilCompiledSCStore:       true,
 		GasSchedule:              gasScheduleNotifier,
 		Counter:                  &testscommon.BlockChainHookCounterStub{},

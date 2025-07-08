@@ -63,9 +63,6 @@ func checkNilArg(arg *ArgAPIBlockProcessor) error {
 	if check.IfNil(arg.EnableEpochsHandler) {
 		return errNilEnableEpochsHandler
 	}
-	if check.IfNil(arg.EnableRoundsHandler) {
-		return process.ErrNilEnableRoundsHandler
-	}
 	if check.IfNil(arg.ProofsPool) {
 		return process.ErrNilProofsPool
 	}

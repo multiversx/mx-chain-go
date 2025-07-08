@@ -111,8 +111,7 @@ func (o *outport) prepareBlockData(
 		}
 	}
 
-	timestamp := headerBodyData.Header.GetTimeStamp()
-	timestampMs := common.GetTimestampMs(timestamp, o.enableEpochsHandler, o.enableRoundsHandler)
+	_, timestampMs := common.GetHeaderTimestamps(headerBodyData.Header, o.enableEpochsHandler)
 
 	return &outportcore.BlockData{
 		ShardID:              headerBodyData.Header.GetShardID(),

@@ -259,3 +259,45 @@ func TestConsesusGroupSizeForShardAndEpoch(t *testing.T) {
 		require.Equal(t, int(groupSize), size)
 	})
 }
+
+func TestGetHeaderTimestamps(t *testing.T) {
+	t.Parallel()
+
+	t.Run("before supernova epoch activation", func(t *testing.T) {
+		t.Parallel()
+
+		header := &block.Header{
+			Epoch:     2,
+			TimeStamp: 123,
+		}
+
+		enableEpochsHandler := &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+			IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
+				return flag != common.SupernovaFlag
+			},
+		}
+
+		timestampSec, timestampMs := common.GetHeaderTimestamps(header, enableEpochsHandler)
+		require.Equal(t, uint64(123), timestampSec)
+		require.Equal(t, uint64(123000), timestampMs)
+	})
+
+	t.Run("after supernova epoch activation", func(t *testing.T) {
+		t.Parallel()
+
+		header := &block.Header{
+			Epoch:     2,
+			TimeStamp: 1234567, // as milliseconds
+		}
+
+		enableEpochsHandler := &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+			IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
+				return flag == common.SupernovaFlag
+			},
+		}
+
+		timestampSec, timestampMs := common.GetHeaderTimestamps(header, enableEpochsHandler)
+		require.Equal(t, uint64(1234), timestampSec)
+		require.Equal(t, uint64(1234567), timestampMs)
+	})
+}

@@ -60,7 +60,6 @@ type ArgBlockChainHook struct {
 	EnableEpochs             config.EnableEpochs
 	EpochNotifier            vmcommon.EpochNotifier
 	EnableEpochsHandler      common.EnableEpochsHandler
-	EnableRoundsHandler      common.EnableRoundsHandler
 	WorkingDir               string
 	NilCompiledSCStore       bool
 	GasSchedule              core.GasScheduleNotifier
@@ -84,7 +83,6 @@ type BlockChainHookImpl struct {
 	nftStorageHandler     vmcommon.SimpleESDTNFTStorageHandler
 	globalSettingsHandler vmcommon.ESDTGlobalSettingsHandler
 	enableEpochsHandler   common.EnableEpochsHandler
-	enableRoundsHandler   common.EnableRoundsHandler
 	counter               BlockChainHookCounter
 	epochStartTrigger     EpochStartTriggerHandler
 	roundHandler          RoundHandler
@@ -133,7 +131,6 @@ func NewBlockChainHookImpl(
 		nftStorageHandler:        args.NFTStorageHandler,
 		globalSettingsHandler:    args.GlobalSettingsHandler,
 		enableEpochsHandler:      args.EnableEpochsHandler,
-		enableRoundsHandler:      args.EnableRoundsHandler,
 		gasSchedule:              args.GasSchedule,
 		counter:                  args.Counter,
 		missingTrieNodesNotifier: args.MissingTrieNodesNotifier,
@@ -212,9 +209,6 @@ func checkForNil(args ArgBlockChainHook) error {
 	}
 	if check.IfNil(args.EnableEpochsHandler) {
 		return process.ErrNilEnableEpochsHandler
-	}
-	if check.IfNil(args.EnableRoundsHandler) {
-		return process.ErrNilEnableRoundsHandler
 	}
 	err := core.CheckHandlerCompatibility(args.EnableEpochsHandler, []core.EnableEpochFlag{
 		common.PayableBySCFlag,
@@ -406,8 +400,7 @@ func (bh *BlockChainHookImpl) LastTimeStampMs() uint64 {
 		return 0
 	}
 
-	timestamp := bh.blockChain.GetCurrentBlockHeader().GetTimeStamp()
-	timestampMs := common.GetTimestampMs(timestamp, bh.enableEpochsHandler, bh.enableRoundsHandler)
+	_, timestampMs := common.GetHeaderTimestamps(bh.blockChain.GetCurrentBlockHeader(), bh.enableEpochsHandler)
 
 	return timestampMs
 }
@@ -440,8 +433,7 @@ func (bh *BlockChainHookImpl) EpochStartBlockTimeStampMs() uint64 {
 	bh.mutEpochStartHdr.RLock()
 	defer bh.mutEpochStartHdr.RUnlock()
 
-	timestamp := bh.epochStartHdr.GetTimeStamp()
-	timestampMs := common.GetTimestampMs(timestamp, bh.enableEpochsHandler, bh.enableRoundsHandler)
+	_, timestampMs := common.GetHeaderTimestamps(bh.epochStartHdr, bh.enableEpochsHandler)
 
 	return timestampMs
 }
@@ -501,8 +493,7 @@ func (bh *BlockChainHookImpl) CurrentTimeStampMs() uint64 {
 	bh.mutCurrentHdr.RLock()
 	defer bh.mutCurrentHdr.RUnlock()
 
-	timestamp := bh.currentHdr.GetTimeStamp()
-	timestampMs := common.GetTimestampMs(timestamp, bh.enableEpochsHandler, bh.enableRoundsHandler)
+	_, timestampMs := common.GetHeaderTimestamps(bh.currentHdr, bh.enableEpochsHandler)
 
 	return timestampMs
 }

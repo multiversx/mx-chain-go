@@ -396,7 +396,6 @@ func createProcessorsForShardGenesisBlock(arg ArgsGenesisBlockCreator, enableEpo
 		CompiledSCPool:           arg.Data.Datapool().SmartContracts(),
 		EpochNotifier:            epochNotifier,
 		EnableEpochsHandler:      enableEpochsHandler,
-		EnableRoundsHandler:      enableRoundsHandler,
 		NilCompiledSCStore:       true,
 		GasSchedule:              arg.GasSchedule,
 		Counter:                  counters.NewDisabledCounter(),
