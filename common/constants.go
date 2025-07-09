@@ -761,6 +761,9 @@ const (
 	// MetricBarnardOpcodesEnableEpoch represents the epoch when Barnard opcodes will be enabled
 	MetricBarnardOpcodesEnableEpoch = "erd_barnard_opcodes_enable_epoch"
 
+	// MetricFixGetBalanceEnableEpoch represents the epoch when get balance opcode fix is enabled
+	MetricFixGetBalanceEnableEpoch = "erd_fix_get_balance_enable_epoch"
+
 	// MetricValidationOnGobDecodeEnableEpoch represents the epoch when validation on GobDecode will be taken into account
 	MetricValidationOnGobDecodeEnableEpoch = "erd_validation_on_gobdecode_enable_epoch"
 
@@ -1285,6 +1288,7 @@ const (
 	ValidationOnGobDecodeFlag                           core.EnableEpochFlag = "ValidationOnGobDecodeFlag"
 	BarnardOpcodesFlag                                  core.EnableEpochFlag = "BarnardOpcodesFlag"
 	AutomaticActivationOfNodesDisableFlag               core.EnableEpochFlag = "AutomaticActivationOfNodesDisableFlag"
+	FixGetBalanceFlag                                   core.EnableEpochFlag = "FixGetBalanceFlag"
 	RelayedTransactionsV1V2DisableFlag                  core.EnableEpochFlag = "RelayedTransactionsV1V2DisableFlag"
 	// all new flags must be added to createAllFlagsMap method, as part of enableEpochsHandler allFlagsDefined
 )
