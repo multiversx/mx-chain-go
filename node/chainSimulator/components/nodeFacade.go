@@ -162,7 +162,7 @@ func (node *testOnlyProcessingNode) createHttpServer(configs config.Configs) err
 }
 
 func (node *testOnlyProcessingNode) createMetrics(configs config.Configs) error {
-	roundsPerEpoch := node.CoreComponentsHolder.ChainParametersHandler().CurrentChainParameters().MinRoundsBetweenEpochs
+	currentChainParameters := node.CoreComponentsHolder.ChainParametersHandler().CurrentChainParameters()
 	err := metrics.InitMetrics(
 		node.StatusCoreComponents.AppStatusHandler(),
 		node.CryptoComponentsHolder.PublicKeyString(),
@@ -171,7 +171,7 @@ func (node *testOnlyProcessingNode) createMetrics(configs config.Configs) error 
 		node.CoreComponentsHolder.GenesisNodesSetup(),
 		configs.FlagsConfig.Version,
 		configs.EconomicsConfig,
-		roundsPerEpoch,
+		currentChainParameters,
 		node.CoreComponentsHolder.MinTransactionVersion(),
 	)
 

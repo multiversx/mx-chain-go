@@ -72,6 +72,7 @@ func createMockConsensusComponentsFactoryArgs() consensusComp.ConsensusComponent
 			EpochChangeNotifier:      &epochNotifier.EpochNotifierStub{},
 			StartTime:                time.Time{},
 			EnableEpochsHandlerField: &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+			EnableRoundsHandlerField: &testscommon.EnableRoundsHandlerStub{},
 		},
 		NetworkComponents: &testsMocks.NetworkComponentsStub{
 			Messenger:      &p2pmocks.MessengerStub{},
