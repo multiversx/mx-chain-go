@@ -31,6 +31,7 @@ func InitBaseMetrics(appStatusHandler core.AppStatusHandler) error {
 	appStatusHandler.SetUInt64Value(common.MetricSynchronizedRound, initUint)
 	appStatusHandler.SetUInt64Value(common.MetricNonce, initUint)
 	appStatusHandler.SetUInt64Value(common.MetricBlockTimestamp, initUint)
+	appStatusHandler.SetUInt64Value(common.MetricBlockTimestampMs, initUint)
 	appStatusHandler.SetUInt64Value(common.MetricCountConsensus, initUint)
 	appStatusHandler.SetUInt64Value(common.MetricCountLeader, initUint)
 	appStatusHandler.SetUInt64Value(common.MetricCountAcceptedBlocks, initUint)
@@ -205,6 +206,12 @@ func InitConfigMetrics(
 	appStatusHandler.SetUInt64Value(common.MetricRelayedTransactionsV3EnableEpoch, uint64(enableEpochs.RelayedTransactionsV3EnableEpoch))
 	appStatusHandler.SetUInt64Value(common.MetricRelayedTransactionsV3FixESDTTransferEnableEpoch, uint64(enableEpochs.RelayedTransactionsV3FixESDTTransferEnableEpoch))
 	appStatusHandler.SetUInt64Value(common.MetricCheckBuiltInCallOnTransferValueAndFailEnableRound, uint64(enableEpochs.CheckBuiltInCallOnTransferValueAndFailEnableRound))
+	appStatusHandler.SetUInt64Value(common.MetricMaskVMInternalDependenciesErrorsEnableEpoch, uint64(enableEpochs.MaskVMInternalDependenciesErrorsEnableEpoch))
+	appStatusHandler.SetUInt64Value(common.MetricFixBackTransferOPCODEEnableEpoch, uint64(enableEpochs.FixBackTransferOPCODEEnableEpoch))
+	appStatusHandler.SetUInt64Value(common.MetricValidationOnGobDecodeEnableEpoch, uint64(enableEpochs.ValidationOnGobDecodeEnableEpoch))
+	appStatusHandler.SetUInt64Value(common.MetricBarnardOpcodesEnableEpoch, uint64(enableEpochs.BarnardOpcodesEnableEpoch))
+	appStatusHandler.SetUInt64Value(common.MetricAutomaticActivationOfNodesDisableEpoch, uint64(enableEpochs.AutomaticActivationOfNodesDisableEpoch))
+	appStatusHandler.SetUInt64Value(common.MetricFixGetBalanceEnableEpoch, uint64(enableEpochs.FixGetBalanceEnableEpoch))
 
 	for i, nodesChangeConfig := range enableEpochs.MaxNodesChangeEnableEpoch {
 		epochEnable := fmt.Sprintf("%s%d%s", common.MetricMaxNodesChangeEnableEpoch, i, common.EpochEnableSuffix)

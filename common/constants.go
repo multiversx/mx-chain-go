@@ -106,6 +106,9 @@ const MetricNonce = "erd_nonce"
 // MetricBlockTimestamp is the metric for monitoring the timestamp of the last synchronized block
 const MetricBlockTimestamp = "erd_block_timestamp"
 
+// MetricBlockTimestampMs is the metric for monitoring the timestamp in milliseconds of the last synchronized block
+const MetricBlockTimestampMs = "erd_block_timestamp_ms"
+
 // MetricProbableHighestNonce is the metric for monitoring the max speculative nonce received by the node by listening on the network
 const MetricProbableHighestNonce = "erd_probable_highest_nonce"
 
@@ -749,6 +752,24 @@ const (
 	// MetricRelayedTransactionsV3FixESDTTransferEnableEpoch represents the epoch when the fix for relayed transactions v3 with esdt transfer are enabled
 	MetricRelayedTransactionsV3FixESDTTransferEnableEpoch = "erd_relayed_transactions_v3_fix_esdt_transfer_enable_epoch"
 
+	// MetricMaskVMInternalDependenciesErrorsEnableEpoch represents the epoch when the additional internal erorr masking in vm is enabled
+	MetricMaskVMInternalDependenciesErrorsEnableEpoch = "erd_mask_vm_internal_dependencies_errors_enable_epoch"
+
+	// MetricFixBackTransferOPCODEEnableEpoch represents the epoch when the fix for back transfers opcode will be enabled
+	MetricFixBackTransferOPCODEEnableEpoch = "erd_fix_back_transfer_opcode_enable_epoch"
+
+	// MetricBarnardOpcodesEnableEpoch represents the epoch when Barnard opcodes will be enabled
+	MetricBarnardOpcodesEnableEpoch = "erd_barnard_opcodes_enable_epoch"
+
+	// MetricFixGetBalanceEnableEpoch represents the epoch when get balance opcode fix is enabled
+	MetricFixGetBalanceEnableEpoch = "erd_fix_get_balance_enable_epoch"
+
+	// MetricValidationOnGobDecodeEnableEpoch represents the epoch when validation on GobDecode will be taken into account
+	MetricValidationOnGobDecodeEnableEpoch = "erd_validation_on_gobdecode_enable_epoch"
+
+	// MetricAutomaticActivationOfNodesDisableEpoch represents the epoch when the automatic activation of nodes is disabled
+	MetricAutomaticActivationOfNodesDisableEpoch = "erd_automatic_activation_of_nodes_disable_epoch"
+
 	// MetricMaxNodesChangeEnableEpoch holds configuration for changing the maximum number of nodes and the enabling epoch
 	MetricMaxNodesChangeEnableEpoch = "erd_max_nodes_change_enable_epoch"
 
@@ -1153,6 +1174,8 @@ const (
 	ESDTFlag                                            core.EnableEpochFlag = "ESDTFlag"
 	ESDTFlagInSpecificEpochOnly                         core.EnableEpochFlag = "ESDTFlagInSpecificEpochOnly"
 	GovernanceFlag                                      core.EnableEpochFlag = "GovernanceFlag"
+	GovernanceDisableProposeFlag                        core.EnableEpochFlag = "GovernanceDisableProposeFlag"
+	GovernanceFixesFlag                                 core.EnableEpochFlag = "GovernanceFixesFlag"
 	GovernanceFlagInSpecificEpochOnly                   core.EnableEpochFlag = "GovernanceFlagInSpecificEpochOnly"
 	DelegationManagerFlag                               core.EnableEpochFlag = "DelegationManagerFlag"
 	DelegationSmartContractFlag                         core.EnableEpochFlag = "DelegationSmartContractFlag"
@@ -1257,5 +1280,11 @@ const (
 	RelayedTransactionsV3FixESDTTransferFlag            core.EnableEpochFlag = "RelayedTransactionsV3FixESDTTransferFlag"
 	AndromedaFlag                                       core.EnableEpochFlag = "AndromedaFlag"
 	CheckBuiltInCallOnTransferValueAndFailExecutionFlag core.EnableEpochFlag = "CheckBuiltInCallOnTransferValueAndFailExecutionFlag"
+	MaskInternalDependenciesErrorsFlag                  core.EnableEpochFlag = "MaskInternalDependenciesErrorsFlag"
+	FixBackTransferOPCODEFlag                           core.EnableEpochFlag = "FixBackTransferOPCODEFlag"
+	ValidationOnGobDecodeFlag                           core.EnableEpochFlag = "ValidationOnGobDecodeFlag"
+	BarnardOpcodesFlag                                  core.EnableEpochFlag = "BarnardOpcodesFlag"
+	AutomaticActivationOfNodesDisableFlag               core.EnableEpochFlag = "AutomaticActivationOfNodesDisableFlag"
+	FixGetBalanceFlag                                   core.EnableEpochFlag = "FixGetBalanceFlag"
 	// all new flags must be added to createAllFlagsMap method, as part of enableEpochsHandler allFlagsDefined
 )

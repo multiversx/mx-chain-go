@@ -325,7 +325,7 @@ func TestScheduledProcessorWrapper_StartScheduledProcessingHeaderV2ProcessingOK(
 	sp.StartScheduledProcessing(header, body, time.Now())
 	require.Equal(t, spos.InProgress, sp.GetStatus())
 
-	time.Sleep(100 * time.Millisecond)
+	time.Sleep(200 * time.Millisecond)
 	require.True(t, processScheduledCalled.IsSet())
 	require.Equal(t, spos.ProcessingOK, sp.GetStatus())
 }

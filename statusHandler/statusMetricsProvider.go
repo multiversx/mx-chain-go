@@ -383,6 +383,13 @@ func (sm *statusMetrics) EnableEpochsMetrics() (map[string]interface{}, error) {
 	enableEpochsMetrics[common.MetricRelayedTransactionsV3EnableEpoch] = sm.uint64Metrics[common.MetricRelayedTransactionsV3EnableEpoch]
 	enableEpochsMetrics[common.MetricRelayedTransactionsV3FixESDTTransferEnableEpoch] = sm.uint64Metrics[common.MetricRelayedTransactionsV3FixESDTTransferEnableEpoch]
 	enableEpochsMetrics[common.MetricCheckBuiltInCallOnTransferValueAndFailEnableRound] = sm.uint64Metrics[common.MetricCheckBuiltInCallOnTransferValueAndFailEnableRound]
+	enableEpochsMetrics[common.MetricMaskVMInternalDependenciesErrorsEnableEpoch] = sm.uint64Metrics[common.MetricMaskVMInternalDependenciesErrorsEnableEpoch]
+	enableEpochsMetrics[common.MetricFixBackTransferOPCODEEnableEpoch] = sm.uint64Metrics[common.MetricFixBackTransferOPCODEEnableEpoch]
+	enableEpochsMetrics[common.MetricValidationOnGobDecodeEnableEpoch] = sm.uint64Metrics[common.MetricValidationOnGobDecodeEnableEpoch]
+	enableEpochsMetrics[common.MetricBarnardOpcodesEnableEpoch] = sm.uint64Metrics[common.MetricBarnardOpcodesEnableEpoch]
+	enableEpochsMetrics[common.MetricAutomaticActivationOfNodesDisableEpoch] = sm.uint64Metrics[common.MetricAutomaticActivationOfNodesDisableEpoch]
+	enableEpochsMetrics[common.MetricFixGetBalanceEnableEpoch] = sm.uint64Metrics[common.MetricFixGetBalanceEnableEpoch]
+
 	numNodesChangeConfig := sm.uint64Metrics[common.MetricMaxNodesChangeEnableEpoch+"_count"]
 
 	nodesChangeConfig := make([]map[string]interface{}, 0)
@@ -427,6 +434,7 @@ func (sm *statusMetrics) saveUint64NetworkMetricsInMap(networkMetrics map[string
 	nonceAtEpochStart := sm.uint64Metrics[common.MetricNonceAtEpochStart]
 	networkMetrics[common.MetricNonce] = currentNonce
 	networkMetrics[common.MetricBlockTimestamp] = sm.uint64Metrics[common.MetricBlockTimestamp]
+	networkMetrics[common.MetricBlockTimestampMs] = sm.uint64Metrics[common.MetricBlockTimestampMs]
 	networkMetrics[common.MetricHighestFinalBlock] = sm.uint64Metrics[common.MetricHighestFinalBlock]
 	networkMetrics[common.MetricCurrentRound] = currentRound
 	networkMetrics[common.MetricRoundAtEpochStart] = roundNumberAtEpochStart
