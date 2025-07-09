@@ -110,6 +110,7 @@ func NewTestOnlyProcessingNode(args ArgsTestOnlyProcessingNode) (*testOnlyProces
 		RoundDurationInMs:           args.RoundDurationInMillis,
 		RatingConfig:                *args.Configs.RatingsConfig,
 		GenesisTime:                 args.GenesisTime,
+		SupernovaGenesisTime:        args.GenesisTime,
 	})
 	if err != nil {
 		return nil, err

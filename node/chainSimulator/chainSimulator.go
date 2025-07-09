@@ -54,6 +54,7 @@ type ArgsChainSimulator struct {
 	Hysteresis                 float32
 	NumNodesWaitingListShard   uint32
 	NumNodesWaitingListMeta    uint32
+	GenesisTimestamp           int64
 	InitialRound               int64
 	InitialEpoch               uint32
 	InitialNonce               uint64

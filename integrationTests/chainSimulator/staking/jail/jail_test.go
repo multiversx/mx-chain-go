@@ -280,6 +280,14 @@ func TestJailNodes(t *testing.T) {
 			configs.SetMaxNumberOfNodesInConfigs(cfg, uint32(newNumNodes), 0, numOfShards)
 
 			cfg.EpochConfig.EnableEpochs.SupernovaEnableEpoch = 0
+			cfg.RoundConfig.RoundActivations = map[string]config.ActivationRoundByName{
+				"DisableAsyncCallV1": {
+					Round: "9999999",
+				},
+				"SupernovaEnableRound": {
+					Round: "0",
+				},
+			}
 		},
 	})
 	require.Nil(t, err)

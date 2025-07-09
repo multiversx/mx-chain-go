@@ -2240,7 +2240,9 @@ func (tpn *TestProcessorNode) initBlockProcessor() {
 			tpn.BlockBlackListHandler,
 			tpn.BlockTracker,
 			tpn.NodesSetup.GetStartTime(),
+			tpn.NodesSetup.GetStartTime()*1000,
 			tpn.EnableEpochsHandler,
+			tpn.EnableRoundsHandler,
 			tpn.DataPool.Proofs())
 	} else {
 		tpn.ForkDetector, _ = processSync.NewMetaForkDetector(
@@ -2248,7 +2250,9 @@ func (tpn *TestProcessorNode) initBlockProcessor() {
 			tpn.BlockBlackListHandler,
 			tpn.BlockTracker,
 			tpn.NodesSetup.GetStartTime(),
+			tpn.NodesSetup.GetStartTime()*1000,
 			tpn.EnableEpochsHandler,
+			tpn.EnableRoundsHandler,
 			tpn.DataPool.Proofs())
 	}
 
@@ -3428,6 +3432,7 @@ func GetDefaultCoreComponents(enableEpochsHandler common.EnableEpochsHandler, ep
 		RaterField:                         &testscommon.RaterMock{},
 		GenesisNodesSetupField:             &genesisMocks.NodesSetupStub{},
 		GenesisTimeField:                   time.Time{},
+		SupernovaGenesisTimeField:          time.Time{},
 		EpochNotifierField:                 epochNotifier,
 		EnableRoundsHandlerField:           &testscommon.EnableRoundsHandlerStub{},
 		TxVersionCheckField:                versioning.NewTxVersionChecker(MinTransactionVersion),
@@ -3733,6 +3738,9 @@ func GetDefaultRoundsConfig() config.RoundConfig {
 		RoundActivations: map[string]config.ActivationRoundByName{
 			"DisableAsyncCallV1": {
 				Round: "18446744073709551615",
+			},
+			"SupernovaEnableRound": {
+				Round: "9999999",
 			},
 		},
 	}

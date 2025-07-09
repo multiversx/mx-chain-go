@@ -25,7 +25,9 @@ func TestNewMetaForkDetector_NilRoundHandlerShouldErr(t *testing.T) {
 		&testscommon.TimeCacheStub{},
 		&mock.BlockTrackerMock{},
 		0,
+		0,
 		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		&testscommon.EnableRoundsHandlerStub{},
 		&dataRetriever.ProofsPoolMock{},
 	)
 	assert.True(t, check.IfNil(sfd))
@@ -40,7 +42,9 @@ func TestNewMetaForkDetector_NilBlackListShouldErr(t *testing.T) {
 		nil,
 		&mock.BlockTrackerMock{},
 		0,
+		0,
 		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		&testscommon.EnableRoundsHandlerStub{},
 		&dataRetriever.ProofsPoolMock{},
 	)
 	assert.True(t, check.IfNil(sfd))
@@ -55,7 +59,9 @@ func TestNewMetaForkDetector_NilBlockTrackerShouldErr(t *testing.T) {
 		&testscommon.TimeCacheStub{},
 		nil,
 		0,
+		0,
 		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		&testscommon.EnableRoundsHandlerStub{},
 		&dataRetriever.ProofsPoolMock{},
 	)
 	assert.True(t, check.IfNil(sfd))
@@ -70,11 +76,30 @@ func TestNewMetaForkDetector_NilEnableEpochsHandlerShouldErr(t *testing.T) {
 		&testscommon.TimeCacheStub{},
 		&mock.BlockTrackerMock{},
 		0,
+		0,
 		nil,
+		&testscommon.EnableRoundsHandlerStub{},
 		&dataRetriever.ProofsPoolMock{},
 	)
 	assert.True(t, check.IfNil(sfd))
 	assert.Equal(t, process.ErrNilEnableEpochsHandler, err)
+}
+
+func TestNewMetaForkDetector_NilEnableRoundsHandlerShouldErr(t *testing.T) {
+	t.Parallel()
+
+	sfd, err := sync.NewMetaForkDetector(
+		&mock.RoundHandlerMock{},
+		&testscommon.TimeCacheStub{},
+		&mock.BlockTrackerMock{},
+		0,
+		0,
+		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		nil,
+		&dataRetriever.ProofsPoolMock{},
+	)
+	assert.True(t, check.IfNil(sfd))
+	assert.Equal(t, process.ErrNilEnableRoundsHandler, err)
 }
 
 func TestNewMetaForkDetector_NilProofsPoolShouldErr(t *testing.T) {
@@ -85,7 +110,9 @@ func TestNewMetaForkDetector_NilProofsPoolShouldErr(t *testing.T) {
 		&testscommon.TimeCacheStub{},
 		&mock.BlockTrackerMock{},
 		0,
+		0,
 		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		&testscommon.EnableRoundsHandlerStub{},
 		nil,
 	)
 	assert.True(t, check.IfNil(sfd))
@@ -100,7 +127,9 @@ func TestNewMetaForkDetector_OkParamsShouldWork(t *testing.T) {
 		&testscommon.TimeCacheStub{},
 		&mock.BlockTrackerMock{},
 		0,
+		0,
 		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		&testscommon.EnableRoundsHandlerStub{},
 		&dataRetriever.ProofsPoolMock{},
 	)
 	assert.Nil(t, err)
@@ -121,7 +150,9 @@ func TestMetaForkDetector_AddHeaderNilHeaderShouldErr(t *testing.T) {
 		&testscommon.TimeCacheStub{},
 		&mock.BlockTrackerMock{},
 		0,
+		0,
 		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		&testscommon.EnableRoundsHandlerStub{},
 		&dataRetriever.ProofsPoolMock{},
 	)
 	err := bfd.AddHeader(nil, make([]byte, 0), process.BHProcessed, nil, nil)
@@ -137,7 +168,9 @@ func TestMetaForkDetector_AddHeaderNilHashShouldErr(t *testing.T) {
 		&testscommon.TimeCacheStub{},
 		&mock.BlockTrackerMock{},
 		0,
+		0,
 		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		&testscommon.EnableRoundsHandlerStub{},
 		&dataRetriever.ProofsPoolMock{},
 	)
 	err := bfd.AddHeader(&block.Header{}, nil, process.BHProcessed, nil, nil)
@@ -155,7 +188,9 @@ func TestMetaForkDetector_AddHeaderNotPresentShouldWork(t *testing.T) {
 		&testscommon.TimeCacheStub{},
 		&mock.BlockTrackerMock{},
 		0,
+		0,
 		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		&testscommon.EnableRoundsHandlerStub{},
 		&dataRetriever.ProofsPoolMock{},
 	)
 
@@ -180,7 +215,9 @@ func TestMetaForkDetector_AddHeaderPresentShouldAppend(t *testing.T) {
 		&testscommon.TimeCacheStub{},
 		&mock.BlockTrackerMock{},
 		0,
+		0,
 		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		&testscommon.EnableRoundsHandlerStub{},
 		&dataRetriever.ProofsPoolMock{},
 	)
 
@@ -205,7 +242,9 @@ func TestMetaForkDetector_AddHeaderWithProcessedBlockShouldSetCheckpoint(t *test
 		&testscommon.TimeCacheStub{},
 		&mock.BlockTrackerMock{},
 		0,
+		0,
 		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		&testscommon.EnableRoundsHandlerStub{},
 		&dataRetriever.ProofsPoolMock{},
 	)
 	_ = bfd.AddHeader(hdr1, hash1, process.BHProcessed, nil, nil)
@@ -223,11 +262,13 @@ func TestMetaForkDetector_AddHeaderWithProcessedBlockAndFlagShouldSetCheckpoint(
 		&testscommon.TimeCacheStub{},
 		&mock.BlockTrackerMock{},
 		0,
+		0,
 		&enableEpochsHandlerMock.EnableEpochsHandlerStub{
 			IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
 				return true
 			},
 		},
+		&testscommon.EnableRoundsHandlerStub{},
 		&dataRetriever.ProofsPoolMock{
 			HasProofCalled: func(shardID uint32, headerHash []byte) bool {
 				return true
@@ -250,7 +291,9 @@ func TestMetaForkDetector_AddHeaderPresentShouldNotRewriteState(t *testing.T) {
 		&testscommon.TimeCacheStub{},
 		&mock.BlockTrackerMock{},
 		0,
+		0,
 		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		&testscommon.EnableRoundsHandlerStub{},
 		&dataRetriever.ProofsPoolMock{},
 	)
 
@@ -274,7 +317,9 @@ func TestMetaForkDetector_AddHeaderHigherNonceThanRoundShouldErr(t *testing.T) {
 		&testscommon.TimeCacheStub{},
 		&mock.BlockTrackerMock{},
 		0,
+		0,
 		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		&testscommon.EnableRoundsHandlerStub{},
 		&dataRetriever.ProofsPoolMock{},
 	)
 	err := bfd.AddHeader(

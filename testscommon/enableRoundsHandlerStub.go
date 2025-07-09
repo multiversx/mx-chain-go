@@ -3,6 +3,9 @@ package testscommon
 // EnableRoundsHandlerStub -
 type EnableRoundsHandlerStub struct {
 	IsDisableAsyncCallV1EnabledCalled func() bool
+	RoundConfirmedCalled              func(round uint64, timestamp uint64)
+	IsSupernovaEnabledCalled          func() bool
+	SupernovaActivationRoundCalled    func() uint64
 }
 
 // IsDisableAsyncCallV1Enabled -
@@ -12,6 +15,31 @@ func (stub *EnableRoundsHandlerStub) IsDisableAsyncCallV1Enabled() bool {
 	}
 
 	return false
+}
+
+// RoundConfirmed -
+func (stub *EnableRoundsHandlerStub) RoundConfirmed(round uint64, timestamp uint64) {
+	if stub.RoundConfirmedCalled != nil {
+		stub.RoundConfirmedCalled(round, timestamp)
+	}
+}
+
+// IsSupernovaEnabled -
+func (stub *EnableRoundsHandlerStub) IsSupernovaEnabled() bool {
+	if stub.IsSupernovaEnabledCalled != nil {
+		return stub.IsSupernovaEnabledCalled()
+	}
+
+	return false
+}
+
+// SupernovaActivationRound -
+func (stub *EnableRoundsHandlerStub) SupernovaActivationRound() uint64 {
+	if stub.SupernovaActivationRoundCalled != nil {
+		return stub.SupernovaActivationRoundCalled()
+	}
+
+	return 0
 }
 
 // IsInterfaceNil -

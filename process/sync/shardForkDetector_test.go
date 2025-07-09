@@ -24,7 +24,9 @@ func TestNewShardForkDetector_NilRoundHandlerShouldErr(t *testing.T) {
 		&testscommon.TimeCacheStub{},
 		&mock.BlockTrackerMock{},
 		0,
+		0,
 		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		&testscommon.EnableRoundsHandlerStub{},
 		&dataRetrieverMock.ProofsPoolMock{},
 	)
 	assert.True(t, check.IfNil(sfd))
@@ -39,7 +41,9 @@ func TestNewShardForkDetector_NilBlackListShouldErr(t *testing.T) {
 		nil,
 		&mock.BlockTrackerMock{},
 		0,
+		0,
 		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		&testscommon.EnableRoundsHandlerStub{},
 		&dataRetrieverMock.ProofsPoolMock{},
 	)
 	assert.True(t, check.IfNil(sfd))
@@ -54,7 +58,9 @@ func TestNewShardForkDetector_NilBlockTrackerShouldErr(t *testing.T) {
 		&testscommon.TimeCacheStub{},
 		nil,
 		0,
+		0,
 		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		&testscommon.EnableRoundsHandlerStub{},
 		&dataRetrieverMock.ProofsPoolMock{},
 	)
 	assert.True(t, check.IfNil(sfd))
@@ -69,11 +75,30 @@ func TestNewShardForkDetector_NilEnableEpochsHandlerShouldErr(t *testing.T) {
 		&testscommon.TimeCacheStub{},
 		&mock.BlockTrackerMock{},
 		0,
+		0,
 		nil,
+		&testscommon.EnableRoundsHandlerStub{},
 		&dataRetrieverMock.ProofsPoolMock{},
 	)
 	assert.True(t, check.IfNil(sfd))
 	assert.Equal(t, process.ErrNilEnableEpochsHandler, err)
+}
+
+func TestNewShardForkDetector_NilEnableRoundsHandlerShouldErr(t *testing.T) {
+	t.Parallel()
+
+	sfd, err := sync.NewShardForkDetector(
+		&mock.RoundHandlerMock{},
+		&testscommon.TimeCacheStub{},
+		&mock.BlockTrackerMock{},
+		0,
+		0,
+		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		nil,
+		&dataRetrieverMock.ProofsPoolMock{},
+	)
+	assert.True(t, check.IfNil(sfd))
+	assert.Equal(t, process.ErrNilEnableRoundsHandler, err)
 }
 
 func TestNewShardForkDetector_NilProofsPoolShouldErr(t *testing.T) {
@@ -84,7 +109,9 @@ func TestNewShardForkDetector_NilProofsPoolShouldErr(t *testing.T) {
 		&testscommon.TimeCacheStub{},
 		&mock.BlockTrackerMock{},
 		0,
+		0,
 		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		&testscommon.EnableRoundsHandlerStub{},
 		nil,
 	)
 	assert.True(t, check.IfNil(sfd))
@@ -99,7 +126,9 @@ func TestNewShardForkDetector_OkParamsShouldWork(t *testing.T) {
 		&testscommon.TimeCacheStub{},
 		&mock.BlockTrackerMock{},
 		0,
+		0,
 		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		&testscommon.EnableRoundsHandlerStub{},
 		&dataRetrieverMock.ProofsPoolMock{},
 	)
 	assert.Nil(t, err)
@@ -120,7 +149,9 @@ func TestShardForkDetector_AddHeaderNilHeaderShouldErr(t *testing.T) {
 		&testscommon.TimeCacheStub{},
 		&mock.BlockTrackerMock{},
 		0,
+		0,
 		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		&testscommon.EnableRoundsHandlerStub{},
 		&dataRetrieverMock.ProofsPoolMock{},
 	)
 	err := bfd.AddHeader(nil, make([]byte, 0), process.BHProcessed, nil, nil)
@@ -136,7 +167,9 @@ func TestShardForkDetector_AddHeaderNilHashShouldErr(t *testing.T) {
 		&testscommon.TimeCacheStub{},
 		&mock.BlockTrackerMock{},
 		0,
+		0,
 		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		&testscommon.EnableRoundsHandlerStub{},
 		&dataRetrieverMock.ProofsPoolMock{},
 	)
 	err := bfd.AddHeader(&block.Header{}, nil, process.BHProcessed, nil, nil)
@@ -154,7 +187,9 @@ func TestShardForkDetector_AddHeaderNotPresentShouldWork(t *testing.T) {
 		&testscommon.TimeCacheStub{},
 		&mock.BlockTrackerMock{},
 		0,
+		0,
 		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		&testscommon.EnableRoundsHandlerStub{},
 		&dataRetrieverMock.ProofsPoolMock{},
 	)
 	err := bfd.AddHeader(hdr, hash, process.BHProcessed, nil, nil)
@@ -178,7 +213,9 @@ func TestShardForkDetector_AddHeaderPresentShouldAppend(t *testing.T) {
 		&testscommon.TimeCacheStub{},
 		&mock.BlockTrackerMock{},
 		0,
+		0,
 		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		&testscommon.EnableRoundsHandlerStub{},
 		&dataRetrieverMock.ProofsPoolMock{},
 	)
 	_ = bfd.AddHeader(hdr1, hash1, process.BHProcessed, nil, nil)
@@ -202,7 +239,9 @@ func TestShardForkDetector_AddHeaderWithProcessedBlockShouldSetCheckpoint(t *tes
 		&testscommon.TimeCacheStub{},
 		&mock.BlockTrackerMock{},
 		0,
+		0,
 		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		&testscommon.EnableRoundsHandlerStub{},
 		&dataRetrieverMock.ProofsPoolMock{},
 	)
 	_ = bfd.AddHeader(hdr1, hash1, process.BHProcessed, nil, nil)
@@ -221,7 +260,9 @@ func TestShardForkDetector_AddHeaderPresentShouldNotRewriteState(t *testing.T) {
 		&testscommon.TimeCacheStub{},
 		&mock.BlockTrackerMock{},
 		0,
+		0,
 		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		&testscommon.EnableRoundsHandlerStub{},
 		&dataRetrieverMock.ProofsPoolMock{},
 	)
 	_ = bfd.AddHeader(hdr1, hash, process.BHReceived, nil, nil)
@@ -244,7 +285,9 @@ func TestShardForkDetector_AddHeaderHigherNonceThanRoundShouldErr(t *testing.T) 
 		&testscommon.TimeCacheStub{},
 		&mock.BlockTrackerMock{},
 		0,
+		0,
 		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		&testscommon.EnableRoundsHandlerStub{},
 		&dataRetrieverMock.ProofsPoolMock{},
 	)
 	err := bfd.AddHeader(

@@ -98,6 +98,7 @@ type coreComponents struct {
 	nodesShuffler                 nodesCoordinator.NodesShuffler
 	txVersionChecker              process.TxVersionCheckerHandler
 	genesisTime                   time.Time
+	supernovaGenesisTime          time.Time
 	chainID                       string
 	minTransactionVersion         uint32
 	epochNotifier                 process.EpochNotifier
@@ -205,6 +206,12 @@ func (ccf *coreComponentsFactory) Create() (*coreComponents, error) {
 		return nil, err
 	}
 
+	roundNotifier := forking.NewGenericRoundNotifier()
+	enableRoundsHandler, err := enablers.NewEnableRoundsHandler(ccf.roundConfig, roundNotifier)
+	if err != nil {
+		return nil, err
+	}
+
 	genesisNodesConfig, err := sharding.NewNodesSetup(
 		ccf.nodesSetupConfig,
 		chainParametersHandler,
@@ -216,12 +223,19 @@ func (ccf *coreComponentsFactory) Create() (*coreComponents, error) {
 		return nil, err
 	}
 
-	roundDuration := time.Millisecond * time.Duration(genesisNodesConfig.GetRoundDuration())
-	syncer := ntp.NewSyncTime(ccf.config.NTPConfig, nil, roundDuration)
+	genesisRoundDuration := time.Millisecond * time.Duration(genesisNodesConfig.GetRoundDuration())
+	supernovaRoundDuration, err := getSupernovaRoundDuration(enableEpochsHandler, chainParametersHandler)
+	if err != nil {
+		return nil, err
+	}
+
+	syncer := ntp.NewSyncTime(ccf.config.NTPConfig, nil, genesisRoundDuration)
 	syncer.StartSyncingTime()
 	log.Debug("NTP average clock offset", "value", syncer.ClockOffset())
 
 	startRound := int64(0)
+	supernovaStartRound := int64(enableRoundsHandler.SupernovaActivationRound())
+
 	if ccf.config.Hardfork.AfterHardFork {
 		log.Debug("changed genesis time after hardfork",
 			"old genesis time", genesisNodesConfig.StartTime,
@@ -240,18 +254,37 @@ func (ccf *coreComponentsFactory) Create() (*coreComponents, error) {
 
 	startTime := common.GetGenesisStartTimeFromUnixTimestamp(genesisNodesConfig.GetStartTime(), enableEpochsHandler)
 
+	genesisTime := common.GetGenesisStartTimeFromUnixTimestamp(genesisNodesConfig.GetStartTime(), enableEpochsHandler)
+	supernovaGenesisTime := genesisTime.Add(time.Duration(supernovaStartRound * genesisRoundDuration.Nanoseconds()))
+
+	if supernovaGenesisTime.Compare(genesisTime) < 0 {
+		return nil, fmt.Errorf("supernovaGenesisTime %d lower then genesisTime %d",
+			supernovaGenesisTime.UnixMilli(),
+			genesisTime.UnixMilli(),
+		)
+	}
+
 	log.Info("start time",
 		"formatted", startTime.Format("Mon Jan 2 15:04:05 MST 2006"),
-		"unix timestamp", common.GetGenesisUnixTimestampFromStartTime(startTime, enableEpochsHandler))
-
-	genesisTime := common.GetGenesisStartTimeFromUnixTimestamp(genesisNodesConfig.GetStartTime(), enableEpochsHandler)
-	roundHandler, err := round.NewRound(
-		genesisTime,
-		syncer.CurrentTime(),
-		roundDuration,
-		syncer,
-		startRound,
+		"unix timestamp", common.GetGenesisUnixTimestampFromStartTime(startTime, enableEpochsHandler),
+		"supernova unix timestamp", common.GetGenesisUnixTimestampFromStartTime(supernovaGenesisTime, enableEpochsHandler),
+		"round duration", genesisRoundDuration,
+		"supernova round duration", supernovaRoundDuration,
 	)
+
+	roundArgs := round.ArgsRound{
+		GenesisTimeStamp:          genesisTime,
+		SupernovaGenesisTimeStamp: supernovaGenesisTime,
+		CurrentTimeStamp:          syncer.CurrentTime(),
+		RoundTimeDuration:         genesisRoundDuration,
+		SupernovaTimeDuration:     supernovaRoundDuration,
+		SyncTimer:                 syncer,
+		StartRound:                startRound,
+		SupernovaStartRound:       supernovaStartRound,
+		EnableEpochsHandler:       enableEpochsHandler,
+		EnableRoundsHandler:       enableRoundsHandler,
+	}
+	roundHandler, err := round.NewRound(roundArgs)
 	if err != nil {
 		return nil, err
 	}
@@ -259,12 +292,6 @@ func (ccf *coreComponentsFactory) Create() (*coreComponents, error) {
 	alarmScheduler := alarm.NewAlarmScheduler()
 	// TODO: disable watchdog if block processing cutoff is enabled
 	watchdogTimer, err := watchdog.NewWatchdog(alarmScheduler, ccf.chanStopNodeProcess, log)
-	if err != nil {
-		return nil, err
-	}
-
-	roundNotifier := forking.NewGenericRoundNotifier()
-	enableRoundsHandler, err := enablers.NewEnableRoundsHandler(ccf.roundConfig, roundNotifier)
 	if err != nil {
 		return nil, err
 	}
@@ -371,6 +398,7 @@ func (ccf *coreComponentsFactory) Create() (*coreComponents, error) {
 		nodesShuffler:                 nodesShuffler,
 		txVersionChecker:              txVersionChecker,
 		genesisTime:                   genesisTime,
+		supernovaGenesisTime:          supernovaGenesisTime,
 		chainID:                       ccf.config.GeneralSettings.ChainID,
 		minTransactionVersion:         ccf.config.GeneralSettings.MinTransactionVersion,
 		epochNotifier:                 epochNotifier,
@@ -389,6 +417,19 @@ func (ccf *coreComponentsFactory) Create() (*coreComponents, error) {
 		fieldsSizeChecker:             fieldsSizeChecker,
 		epochChangeGracePeriodHandler: epochChangeGracePeriodHandler,
 	}, nil
+}
+
+func getSupernovaRoundDuration(
+	enableEpochsHandler common.EnableEpochsHandler,
+	chainParametersHandler common.ChainParametersHandler,
+) (time.Duration, error) {
+	activationEpoch := enableEpochsHandler.GetActivationEpoch(common.SupernovaFlag)
+	chainParams, err := chainParametersHandler.ChainParametersForEpoch(activationEpoch)
+	if err != nil {
+		return 0, err
+	}
+
+	return time.Duration(chainParams.RoundDuration) * time.Millisecond, nil
 }
 
 // Close closes all underlying components

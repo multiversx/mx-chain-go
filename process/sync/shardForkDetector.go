@@ -26,7 +26,9 @@ func NewShardForkDetector(
 	blackListHandler process.TimeCacher,
 	blockTracker process.BlockTracker,
 	genesisTime int64,
+	supernovaGenesisTime int64,
 	enableEpochsHandler common.EnableEpochsHandler,
+	enableRoundsHandler common.EnableRoundsHandler,
 	proofsPool process.ProofsPool,
 ) (*shardForkDetector, error) {
 
@@ -42,6 +44,9 @@ func NewShardForkDetector(
 	if check.IfNil(enableEpochsHandler) {
 		return nil, process.ErrNilEnableEpochsHandler
 	}
+	if check.IfNil(enableRoundsHandler) {
+		return nil, process.ErrNilEnableRoundsHandler
+	}
 	if check.IfNil(proofsPool) {
 		return nil, process.ErrNilProofsPool
 	}
@@ -52,15 +57,17 @@ func NewShardForkDetector(
 	}
 
 	bfd := &baseForkDetector{
-		roundHandler:        roundHandler,
-		blackListHandler:    blackListHandler,
-		genesisTime:         genesisTime,
-		blockTracker:        blockTracker,
-		genesisNonce:        genesisHdr.GetNonce(),
-		genesisRound:        genesisHdr.GetRound(),
-		genesisEpoch:        genesisHdr.GetEpoch(),
-		enableEpochsHandler: enableEpochsHandler,
-		proofsPool:          proofsPool,
+		roundHandler:         roundHandler,
+		blackListHandler:     blackListHandler,
+		genesisTime:          genesisTime,
+		supernovaGenesisTime: supernovaGenesisTime,
+		blockTracker:         blockTracker,
+		genesisNonce:         genesisHdr.GetNonce(),
+		genesisRound:         genesisHdr.GetRound(),
+		genesisEpoch:         genesisHdr.GetEpoch(),
+		enableEpochsHandler:  enableEpochsHandler,
+		enableRoundsHandler:  enableRoundsHandler,
+		proofsPool:           proofsPool,
 	}
 
 	bfd.headers = make(map[uint64][]*headerInfo)
