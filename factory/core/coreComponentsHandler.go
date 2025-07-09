@@ -372,6 +372,18 @@ func (mcc *managedCoreComponents) GenesisTime() time.Time {
 	return mcc.coreComponents.genesisTime
 }
 
+// SupernovaGenesisTime returns the time for supernova round activation
+func (mcc *managedCoreComponents) SupernovaGenesisTime() time.Time {
+	mcc.mutCoreComponents.RLock()
+	defer mcc.mutCoreComponents.RUnlock()
+
+	if mcc.coreComponents == nil {
+		return time.Time{}
+	}
+
+	return mcc.coreComponents.supernovaGenesisTime
+}
+
 // Watchdog returns the minimum watchdog
 func (mcc *managedCoreComponents) Watchdog() core.WatchdogTimer {
 	mcc.mutCoreComponents.RLock()

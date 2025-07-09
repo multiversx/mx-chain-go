@@ -266,11 +266,12 @@ func NewProcessComponentsFactory(args ProcessComponentsFactoryArgs) (*processCom
 
 // Create will create and return a struct containing process components
 func (pcf *processComponentsFactory) Create() (*processComponents, error) {
+	genesisUnixTime := common.GetGenesisUnixTimestampFromStartTime(pcf.coreData.GenesisTime(), pcf.coreData.EnableEpochsHandler())
 	currentEpochProvider, err := epochProviders.CreateCurrentEpochProvider(
-		pcf.config,
-		pcf.coreData.GenesisNodesSetup().GetRoundDuration(),
-		pcf.coreData.GenesisTime().Unix(),
+		pcf.coreData.ChainParametersHandler(),
+		genesisUnixTime,
 		pcf.prefConfigs.Preferences.FullArchive,
+		pcf.coreData.EnableEpochsHandler(),
 	)
 	if err != nil {
 		return nil, err
@@ -874,17 +875,19 @@ func (pcf *processComponentsFactory) newEpochStartTrigger(requestHandler epochSt
 			return nil, errorsMx.ErrGenesisBlockNotInitialized
 		}
 
+		genesisTime := common.GetGenesisStartTimeFromUnixTimestamp(pcf.coreData.GenesisNodesSetup().GetStartTime(), pcf.coreData.EnableEpochsHandler())
 		argEpochStart := &metachain.ArgsNewMetaEpochStartTrigger{
-			GenesisTime:        time.Unix(pcf.coreData.GenesisNodesSetup().GetStartTime(), 0),
-			Settings:           &pcf.config.EpochStartConfig,
-			Epoch:              pcf.bootstrapComponents.EpochBootstrapParams().Epoch(),
-			EpochStartRound:    genesisHeader.GetRound(),
-			EpochStartNotifier: pcf.coreData.EpochStartNotifierWithConfirm(),
-			Storage:            pcf.data.StorageService(),
-			Marshalizer:        pcf.coreData.InternalMarshalizer(),
-			Hasher:             pcf.coreData.Hasher(),
-			AppStatusHandler:   pcf.statusCoreComponents.AppStatusHandler(),
-			DataPool:           pcf.data.Datapool(),
+			GenesisTime:            genesisTime,
+			Settings:               &pcf.config.EpochStartConfig,
+			Epoch:                  pcf.bootstrapComponents.EpochBootstrapParams().Epoch(),
+			EpochStartRound:        genesisHeader.GetRound(),
+			EpochStartNotifier:     pcf.coreData.EpochStartNotifierWithConfirm(),
+			Storage:                pcf.data.StorageService(),
+			Marshalizer:            pcf.coreData.InternalMarshalizer(),
+			Hasher:                 pcf.coreData.Hasher(),
+			AppStatusHandler:       pcf.statusCoreComponents.AppStatusHandler(),
+			DataPool:               pcf.data.Datapool(),
+			ChainParametersHandler: pcf.coreData.ChainParametersHandler(),
 		}
 
 		return metachain.NewEpochStartTrigger(argEpochStart)
@@ -1798,8 +1801,11 @@ func (pcf *processComponentsFactory) newForkDetector(
 			headerBlackList,
 			blockTracker,
 			pcf.coreData.GenesisNodesSetup().GetStartTime(),
+			pcf.coreData.SupernovaGenesisTime().UnixMilli(),
 			pcf.coreData.EnableEpochsHandler(),
-			pcf.data.Datapool().Proofs())
+			pcf.coreData.EnableRoundsHandler(),
+			pcf.data.Datapool().Proofs(),
+		)
 	}
 	if shardCoordinator.SelfId() == core.MetachainShardId {
 		return sync.NewMetaForkDetector(
@@ -1807,8 +1813,11 @@ func (pcf *processComponentsFactory) newForkDetector(
 			headerBlackList,
 			blockTracker,
 			pcf.coreData.GenesisNodesSetup().GetStartTime(),
+			pcf.coreData.SupernovaGenesisTime().UnixMilli(),
 			pcf.coreData.EnableEpochsHandler(),
-			pcf.data.Datapool().Proofs())
+			pcf.coreData.EnableRoundsHandler(),
+			pcf.data.Datapool().Proofs(),
+		)
 	}
 
 	return nil, errors.New("could not create fork detector")
@@ -1914,6 +1923,7 @@ func (pcf *processComponentsFactory) createHardforkTrigger(epochStartTrigger upd
 		CloseAfterExportInMinutes: hardforkConfig.CloseAfterExportInMinutes,
 		ImportStartHandler:        pcf.importStartHandler,
 		RoundHandler:              pcf.coreData.RoundHandler(),
+		EnableEpochsHandler:       pcf.coreData.EnableEpochsHandler(),
 	}
 
 	return trigger.NewTrigger(argTrigger)

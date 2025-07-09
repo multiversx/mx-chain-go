@@ -156,6 +156,11 @@ func (ccm *CoreComponentsMock) GenesisTime() time.Time {
 	return ccm.StartTime
 }
 
+// SupernovaGenesisTime -
+func (ccm *CoreComponentsMock) SupernovaGenesisTime() time.Time {
+	return ccm.StartTime
+}
+
 // InternalMarshalizer -
 func (ccm *CoreComponentsMock) InternalMarshalizer() marshal.Marshalizer {
 	return ccm.IntMarsh

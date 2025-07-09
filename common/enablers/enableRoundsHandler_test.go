@@ -54,6 +54,10 @@ func TestNewEnableRoundsHandler(t *testing.T) {
 					Round:   "0",
 					Options: []string{"string 1", "string 2"},
 				},
+				supernovaEnableRound: {
+					Round:   "0",
+					Options: []string{"string 1", "string 2"},
+				},
 			},
 		}
 
@@ -71,6 +75,10 @@ func TestNewEnableRoundsHandler(t *testing.T) {
 					Round:   "445",
 					Options: nil,
 				},
+				supernovaEnableRound: {
+					Round:   "555",
+					Options: nil,
+				},
 			},
 		}
 
@@ -81,7 +89,7 @@ func TestNewEnableRoundsHandler(t *testing.T) {
 	})
 }
 
-func TestFlagsHolder_DisableAsyncCallV1Enabled(t *testing.T) {
+func TestFlagsHolder_FlagChecks(t *testing.T) {
 	t.Parallel()
 
 	t.Run("should work: config round 0", func(t *testing.T) {
@@ -93,17 +101,24 @@ func TestFlagsHolder_DisableAsyncCallV1Enabled(t *testing.T) {
 					Round:   "0",
 					Options: nil,
 				},
+				supernovaEnableRound: {
+					Round:   "0",
+					Options: nil,
+				},
 			},
 		}
 
 		handler, _ := NewEnableRoundsHandler(cfg, &epochNotifier.RoundNotifierStub{})
 		assert.True(t, handler.IsDisableAsyncCallV1Enabled()) // check round not called
+		assert.True(t, handler.IsSupernovaEnabled())
 
 		handler.RoundConfirmed(0, 0)
 		assert.True(t, handler.IsDisableAsyncCallV1Enabled())
+		assert.True(t, handler.IsSupernovaEnabled())
 
 		handler.RoundConfirmed(1, 0)
 		assert.True(t, handler.IsDisableAsyncCallV1Enabled())
+		assert.True(t, handler.IsSupernovaEnabled())
 	})
 	t.Run("should work: config round 1", func(t *testing.T) {
 		t.Parallel()
@@ -114,24 +129,34 @@ func TestFlagsHolder_DisableAsyncCallV1Enabled(t *testing.T) {
 					Round:   "1",
 					Options: nil,
 				},
+				supernovaEnableRound: {
+					Round:   "2",
+					Options: nil,
+				},
 			},
 		}
 
 		handler, _ := NewEnableRoundsHandler(cfg, &epochNotifier.RoundNotifierStub{})
 		assert.False(t, handler.IsDisableAsyncCallV1Enabled()) // check round not called
+		assert.False(t, handler.IsSupernovaEnabled())
 		handler.RoundConfirmed(0, 0)
 		assert.False(t, handler.IsDisableAsyncCallV1Enabled())
+		assert.False(t, handler.IsSupernovaEnabled())
 
 		handler.RoundConfirmed(1, 0)
 		assert.True(t, handler.IsDisableAsyncCallV1Enabled())
+		assert.False(t, handler.IsSupernovaEnabled())
 
 		handler.RoundConfirmed(2, 0)
 		assert.True(t, handler.IsDisableAsyncCallV1Enabled())
+		assert.True(t, handler.IsSupernovaEnabled())
 
 		handler.RoundConfirmed(0, 0)
 		assert.False(t, handler.IsDisableAsyncCallV1Enabled())
+		assert.False(t, handler.IsSupernovaEnabled())
 
 		handler.RoundConfirmed(2, 0)
 		assert.True(t, handler.IsDisableAsyncCallV1Enabled())
+		assert.True(t, handler.IsSupernovaEnabled())
 	})
 }

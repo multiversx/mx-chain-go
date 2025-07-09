@@ -13,6 +13,7 @@ import (
 	testsMocks "github.com/multiversx/mx-chain-go/integrationTests/mock"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	componentsMock "github.com/multiversx/mx-chain-go/testscommon/components"
+	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/epochNotifier"
 	"github.com/multiversx/mx-chain-go/testscommon/factory"
 	"github.com/multiversx/mx-chain-go/testscommon/genesisMocks"
@@ -51,7 +52,8 @@ func createMockStatusComponentsFactoryArgs() statusComp.StatusComponentsFactoryA
 					return 1000
 				},
 			},
-			EpochChangeNotifier: &epochNotifier.EpochNotifierStub{},
+			EpochChangeNotifier:      &epochNotifier.EpochNotifierStub{},
+			EnableEpochsHandlerField: &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 		},
 		StatusCoreComponents: &factory.StatusCoreComponentsStub{
 			AppStatusHandlerField:  &statusHandler.AppStatusHandlerStub{},
@@ -169,6 +171,7 @@ func TestStatusComponentsFactory_Create(t *testing.T) {
 					return 0
 				},
 			},
+			EnableEpochsHandlerField: &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 		}
 		scf, _ := statusComp.NewStatusComponentsFactory(args)
 		require.NotNil(t, scf)

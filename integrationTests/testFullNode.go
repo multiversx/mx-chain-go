@@ -239,16 +239,24 @@ func (tpn *TestFullNode) initTestNodeWithArgs(args ArgTestProcessorNode, fullArg
 	tpn.initHeaderValidator()
 	tpn.initRoundHandler()
 
-	syncer := ntp.NewSyncTime(ntp.NewNTPGoogleConfig(), nil)
+	roundTime := time.Millisecond * time.Duration(fullArgs.RoundTime)
+	syncer := ntp.NewSyncTime(ntp.NewNTPGoogleConfig(), nil, roundTime)
 	syncer.StartSyncingTime()
 	tpn.GenesisTimeField = time.Unix(fullArgs.StartTime, 0)
 
-	roundHandler, _ := round.NewRound(
-		tpn.GenesisTimeField,
-		syncer.CurrentTime(),
-		time.Millisecond*time.Duration(fullArgs.RoundTime),
-		syncer,
-		0)
+	roundArgs := round.ArgsRound{
+		GenesisTimeStamp:          tpn.GenesisTimeField,
+		SupernovaGenesisTimeStamp: tpn.GenesisTimeField,
+		CurrentTimeStamp:          syncer.CurrentTime(),
+		RoundTimeDuration:         roundTime,
+		SupernovaTimeDuration:     roundTime,
+		SyncTimer:                 syncer,
+		StartRound:                0,
+		SupernovaStartRound:       0,
+		EnableEpochsHandler:       tpn.EnableEpochsHandler,
+		EnableRoundsHandler:       tpn.EnableRoundsHandler,
+	}
+	roundHandler, _ := round.NewRound(roundArgs)
 
 	tpn.NetworkShardingCollector = mock.NewNetworkShardingCollectorMock()
 	if check.IfNil(tpn.EpochNotifier) {
@@ -613,7 +621,9 @@ func (tfn *TestFullNode) createForkDetector(
 			tfn.BlockBlackListHandler,
 			tfn.BlockTracker,
 			tfn.GenesisTimeField.Unix(),
+			tfn.GenesisTimeField.UnixMilli(),
 			tfn.EnableEpochsHandler,
+			tfn.EnableRoundsHandler,
 			tfn.DataPool.Proofs())
 	} else {
 		forkDetector, err = processSync.NewMetaForkDetector(
@@ -621,7 +631,9 @@ func (tfn *TestFullNode) createForkDetector(
 			tfn.BlockBlackListHandler,
 			tfn.BlockTracker,
 			tfn.GenesisTimeField.Unix(),
+			tfn.GenesisTimeField.UnixMilli(),
 			tfn.EnableEpochsHandler,
+			tfn.EnableRoundsHandler,
 			tfn.DataPool.Proofs())
 	}
 	if err != nil {
@@ -638,16 +650,21 @@ func (tfn *TestFullNode) createEpochStartTrigger(startTime int64) TestEpochStart
 		argsNewMetaEpochStart := &metachain.ArgsNewMetaEpochStartTrigger{
 			GenesisTime:        tfn.GenesisTimeField,
 			EpochStartNotifier: notifier.NewEpochStartSubscriptionHandler(),
-			Settings: &config.EpochStartConfig{
-				MinRoundsBetweenEpochs: 1,
-				RoundsPerEpoch:         1000,
+			Settings:           &config.EpochStartConfig{},
+			Epoch:              0,
+			Storage:            createTestStore(),
+			Marshalizer:        TestMarshalizer,
+			Hasher:             TestHasher,
+			AppStatusHandler:   &statusHandlerMock.AppStatusHandlerStub{},
+			DataPool:           tfn.DataPool,
+			ChainParametersHandler: &chainParameters.ChainParametersHandlerStub{
+				ChainParametersForEpochCalled: func(uint32) (config.ChainParametersByEpochConfig, error) {
+					return config.ChainParametersByEpochConfig{
+						RoundsPerEpoch:         1000,
+						MinRoundsBetweenEpochs: 1,
+					}, nil
+				},
 			},
-			Epoch:            0,
-			Storage:          createTestStore(),
-			Marshalizer:      TestMarshalizer,
-			Hasher:           TestHasher,
-			AppStatusHandler: &statusHandlerMock.AppStatusHandlerStub{},
-			DataPool:         tfn.DataPool,
 		}
 		epochStartTrigger, err := metachain.NewEpochStartTrigger(argsNewMetaEpochStart)
 		if err != nil {
@@ -903,6 +920,7 @@ func (tpn *TestFullNode) initBlockProcessor(
 			GenesisTotalSupply:    tpn.EconomicsData.GenesisTotalSupply(),
 			EconomicsDataNotified: economicsDataProvider,
 			StakingV2EnableEpoch:  tpn.EnableEpochs.StakingV2EnableEpoch,
+			EnableEpochsHandler:   tpn.EnableEpochsHandler,
 		}
 		epochEconomics, _ := metachain.NewEndOfEpochEconomicsDataCreator(argsEpochEconomics)
 

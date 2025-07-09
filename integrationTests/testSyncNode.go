@@ -113,7 +113,9 @@ func (tpn *TestProcessorNode) initBlockProcessorWithSync() {
 			tpn.BlockBlackListHandler,
 			tpn.BlockTracker,
 			0,
+			0,
 			tpn.EnableEpochsHandler,
+			tpn.EnableRoundsHandler,
 			tpn.DataPool.Proofs())
 		argumentsBase.ForkDetector = tpn.ForkDetector
 		argumentsBase.TxCoordinator = &mock.TransactionCoordinatorMock{}
@@ -140,7 +142,9 @@ func (tpn *TestProcessorNode) initBlockProcessorWithSync() {
 			tpn.BlockBlackListHandler,
 			tpn.BlockTracker,
 			0,
+			0,
 			tpn.EnableEpochsHandler,
+			tpn.EnableRoundsHandler,
 			tpn.DataPool.Proofs())
 		argumentsBase.ForkDetector = tpn.ForkDetector
 		argumentsBase.BlockChainHook = tpn.BlockchainHook

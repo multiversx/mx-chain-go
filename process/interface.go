@@ -1205,7 +1205,11 @@ type RoundNotifier interface {
 
 // EnableRoundsHandler is an interface which can be queried to check for round activation features/fixes
 type EnableRoundsHandler interface {
+	RoundConfirmed(round uint64, timestamp uint64)
 	IsDisableAsyncCallV1Enabled() bool
+	IsSupernovaEnabled() bool
+	SupernovaActivationRound() uint64
+
 	IsInterfaceNil() bool
 }
 

@@ -127,6 +127,7 @@ type CoreComponentsHolder interface {
 	EpochStartNotifierWithConfirm() EpochStartNotifierWithConfirm
 	ChanStopNodeProcess() chan endProcess.ArgEndProcess
 	GenesisTime() time.Time
+	SupernovaGenesisTime() time.Time
 	ChainID() string
 	MinTransactionVersion() uint32
 	TxVersionChecker() process.TxVersionCheckerHandler
