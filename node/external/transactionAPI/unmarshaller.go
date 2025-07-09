@@ -10,6 +10,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/smartContractResult"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/sharding"
 )
 
@@ -18,6 +19,7 @@ type txUnmarshaller struct {
 	addressPubKeyConverter core.PubkeyConverter
 	marshalizer            marshal.Marshalizer
 	dataFieldParser        DataFieldParser
+	enableEpochsHandler    core.EnableEpochsHandler
 }
 
 func newTransactionUnmarshaller(
@@ -25,12 +27,14 @@ func newTransactionUnmarshaller(
 	addressPubKeyConverter core.PubkeyConverter,
 	dataFieldParser DataFieldParser,
 	shardCoordinator sharding.Coordinator,
+	enableEpochsHandler core.EnableEpochsHandler,
 ) *txUnmarshaller {
 	return &txUnmarshaller{
 		marshalizer:            marshalizer,
 		addressPubKeyConverter: addressPubKeyConverter,
 		dataFieldParser:        dataFieldParser,
 		shardCoordinator:       shardCoordinator,
+		enableEpochsHandler:    enableEpochsHandler,
 	}
 }
 
@@ -106,6 +110,16 @@ func (tu *txUnmarshaller) unmarshalTransaction(txBytes []byte, txType transactio
 	hasValidRelayerSignature := len(apiTx.RelayerSignature) == len(apiTx.Signature) && len(apiTx.RelayerSignature) > 0
 	isRelayedV3 := hasValidRelayer && hasValidRelayerSignature
 	apiTx.IsRelayed = res.IsRelayed || isRelayedV3
+
+	if res.IsRelayed && tu.enableEpochsHandler.IsFlagEnabledInEpoch(common.RelayedTransactionsV1V2DisableFlag, apiTx.Epoch) {
+		// will be treated as move balance, so reset some fields
+		apiTx.IsRelayed = false
+		apiTx.Function = ""
+		apiTx.RelayerAddress = ""
+		apiTx.RelayerSignature = ""
+		apiTx.Receivers = []string{}
+		apiTx.ReceiversShardIDs = []uint32{}
+	}
 
 	return apiTx, nil
 }
