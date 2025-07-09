@@ -11,3 +11,7 @@
     [RoundActivations.DisableAsyncCallV1]
         Options = []
         Round = "0"
+
+    [RoundActivations.SupernovaEnableRound]
+        Options = []
+        Round = "240"
