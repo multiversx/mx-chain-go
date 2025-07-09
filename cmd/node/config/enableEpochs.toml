@@ -363,6 +363,9 @@
     # BarnardOpcodesEnableEpoch represents the epoch when Barnard opcodes will be enabled
     BarnardOpcodesEnableEpoch = 2
 
+    # FixGetBalanceEnableEpoch represents the epoch when Barnard opcodes will be enabled
+    FixGetBalanceEnableEpoch = 2
+
     # AutomaticActivationOfNodesDisableEpoch represents the epoch when automatic activation of nodes for validators is disabled
     AutomaticActivationOfNodesDisableEpoch = 2
 
