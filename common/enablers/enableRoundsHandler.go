@@ -2,10 +2,12 @@ package enablers
 
 import (
 	"fmt"
+	"runtime/debug"
 	"strconv"
 	"strings"
+	"sync"
 
-	"github.com/multiversx/mx-chain-core-go/core/atomic"
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/process"
 )
@@ -13,32 +15,32 @@ import (
 const (
 	conversionBase    = 10
 	bitConversionSize = 64
-
-	disableAsyncCallV1   = "DisableAsyncCallV1"
-	supernovaEnableRound = "SupernovaEnableRound"
 )
 
+type roundFlag struct {
+	round   uint64
+	options []string
+}
+
+type flagEnabledInRound = func(round uint64) bool
+
+type roundflagHandler struct {
+	isActiveInRound flagEnabledInRound
+	activationRound uint64
+}
+
 type enableRoundsHandler struct {
-	*roundFlagsHolder
+	allFlagsDefined map[common.EnableRoundFlag]roundflagHandler
+	currentRound    uint64
+	roundMut        sync.RWMutex
 }
 
 // NewEnableRoundsHandler creates a new enable rounds handler instance
-func NewEnableRoundsHandler(args config.RoundConfig, roundNotifier process.RoundNotifier) (*enableRoundsHandler, error) {
-	disableAsyncCallV1, err := getRoundConfig(args, disableAsyncCallV1)
+func NewEnableRoundsHandler(roundsConfig config.RoundConfig, roundNotifier process.RoundNotifier) (*enableRoundsHandler, error) {
+	handler := &enableRoundsHandler{}
+	err := handler.createAllFlagsMap(roundsConfig)
 	if err != nil {
 		return nil, err
-	}
-
-	supernovaEnableRound, err := getRoundConfig(args, supernovaEnableRound)
-	if err != nil {
-		return nil, err
-	}
-
-	handler := &enableRoundsHandler{
-		roundFlagsHolder: &roundFlagsHolder{
-			disableAsyncCallV1:   disableAsyncCallV1,
-			supernovaEnableRound: supernovaEnableRound,
-		},
 	}
 
 	roundNotifier.RegisterNotifyHandler(handler)
@@ -63,16 +65,109 @@ func getRoundConfig(args config.RoundConfig, configName string) (*roundFlag, err
 		"options", fmt.Sprintf("[%s]", strings.Join(activationRound.Options, ", ")))
 
 	return &roundFlag{
-		Flag:    &atomic.Flag{},
 		round:   round,
 		options: activationRound.Options,
 	}, nil
 }
 
+func (handler *enableRoundsHandler) createAllFlagsMap(conf config.RoundConfig) error {
+	disableAsyncCallV1, err := getRoundConfig(conf, string(common.DisableAsyncCallV1Flag))
+	if err != nil {
+		return err
+	}
+
+	supernovaEnableRound, err := getRoundConfig(conf, string(common.SupernovaRoundFlag))
+	if err != nil {
+		return err
+	}
+
+	handler.allFlagsDefined = map[common.EnableRoundFlag]roundflagHandler{
+		common.DisableAsyncCallV1Flag: {
+			isActiveInRound: func(round uint64) bool {
+				return round >= disableAsyncCallV1.round
+			},
+			activationRound: disableAsyncCallV1.round,
+		},
+		common.SupernovaRoundFlag: {
+			isActiveInRound: func(round uint64) bool {
+				return round >= supernovaEnableRound.round
+			},
+			activationRound: supernovaEnableRound.round,
+		},
+	}
+
+	return nil
+}
+
 // RoundConfirmed is called whenever a new round is confirmed
-func (handler *enableRoundsHandler) RoundConfirmed(round uint64, timestamp uint64) {
-	handler.disableAsyncCallV1.SetValue(handler.disableAsyncCallV1.round <= round)
-	handler.supernovaEnableRound.SetValue(handler.supernovaEnableRound.round <= round)
+func (handler *enableRoundsHandler) RoundConfirmed(round uint64, _ uint64) {
+	handler.roundMut.Lock()
+	handler.currentRound = round
+	handler.roundMut.Unlock()
+}
+
+// GetCurrentRound returns the current round
+func (handler *enableRoundsHandler) GetCurrentRound() uint64 {
+	handler.roundMut.RLock()
+	currentRound := handler.currentRound
+	handler.roundMut.RUnlock()
+
+	return currentRound
+}
+
+// IsFlagEnabled returns true if the provided flag is enabled in the current round
+func (handler *enableRoundsHandler) IsFlagDefined(flag common.EnableRoundFlag) bool {
+	_, found := handler.allFlagsDefined[flag]
+	if found {
+		return true
+	}
+
+	log.Error("flag is not defined",
+		"flag", flag,
+		"stack trace", string(debug.Stack()),
+	)
+
+	return false
+}
+
+// IsFlagEnabled returns true if the provided flag is enabled in the current round
+func (handler *enableRoundsHandler) IsFlagEnabled(flag common.EnableRoundFlag) bool {
+	handler.roundMut.RLock()
+	currentRound := handler.currentRound
+	handler.roundMut.RUnlock()
+
+	return handler.IsFlagEnabledInRound(flag, currentRound)
+}
+
+// IsFlagEnabledInRound returns true if the provided flag is enabled in the provided round
+func (handler *enableRoundsHandler) IsFlagEnabledInRound(flag common.EnableRoundFlag, round uint64) bool {
+	fh, found := handler.allFlagsDefined[flag]
+	if !found {
+		log.Warn("IsFlagEnabledInRound: got unknown flag",
+			"flag", flag,
+			"round", round,
+			"stack trace", string(debug.Stack()),
+		)
+
+		return false
+	}
+
+	return fh.isActiveInRound(round)
+}
+
+// GetActivationRound returns the activation round of the provided flag
+func (handler *enableRoundsHandler) GetActivationRound(flag common.EnableRoundFlag) uint64 {
+	fh, found := handler.allFlagsDefined[flag]
+	if !found {
+		log.Warn("IsFlagEnabledInRound: got unknown flag",
+			"flag", flag,
+			"stack trace", string(debug.Stack()),
+		)
+
+		return 0
+	}
+
+	return fh.activationRound
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
