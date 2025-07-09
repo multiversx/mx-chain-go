@@ -219,7 +219,10 @@ func (sbp *shardAPIBlockProcessor) convertShardBlockBytesToAPIBlock(hash []byte,
 	statusFilters := filters.NewStatusFilters(sbp.selfShardID)
 	statusFilters.ApplyStatusFilters(miniblocks)
 
-	timestampSec, timestampMs := common.GetHeaderTimestamps(blockHeader, sbp.enableEpochsHandler)
+	timestampSec, timestampMs, err := common.GetHeaderTimestamps(blockHeader, sbp.enableEpochsHandler)
+	if err != nil {
+		return nil, err
+	}
 
 	apiBlock := &api.Block{
 		Nonce:           blockHeader.GetNonce(),

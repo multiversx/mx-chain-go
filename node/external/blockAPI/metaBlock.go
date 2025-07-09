@@ -225,7 +225,10 @@ func (mbp *metaAPIBlockProcessor) convertMetaBlockBytesToAPIBlock(hash []byte, b
 		notarizedBlocks = append(notarizedBlocks, notarizedBlock)
 	}
 
-	timestampSec, timestampMs := common.GetHeaderTimestamps(blockHeader, mbp.enableEpochsHandler)
+	timestampSec, timestampMs, err := common.GetHeaderTimestamps(blockHeader, mbp.enableEpochsHandler)
+	if err != nil {
+		return nil, err
+	}
 
 	apiMetaBlock := &api.Block{
 		Nonce:                  blockHeader.Nonce,

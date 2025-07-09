@@ -8,8 +8,10 @@ import (
 	"strings"
 
 	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-go/config"
+	"github.com/multiversx/mx-chain-go/errors"
 	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
@@ -216,7 +218,14 @@ func convertTimeStampMsToSec(timeStamp uint64) uint64 {
 func GetHeaderTimestamps(
 	header data.HeaderHandler,
 	enableEpochsHandler EnableEpochsHandler,
-) (uint64, uint64) {
+) (uint64, uint64, error) {
+	if check.IfNil(header) {
+		return 0, 0, ErrNilHeaderHandler
+	}
+	if check.IfNil(enableEpochsHandler) {
+		return 0, 0, errors.ErrNilEnableEpochsHandler
+	}
+
 	headerTimestamp := header.GetTimeStamp()
 
 	timestampSec := headerTimestamp
@@ -224,12 +233,12 @@ func GetHeaderTimestamps(
 
 	if !enableEpochsHandler.IsFlagEnabledInEpoch(SupernovaFlag, header.GetEpoch()) {
 		timestampMs = ConvertTimeStampSecToMs(headerTimestamp)
-		return timestampSec, timestampMs
+		return timestampSec, timestampMs, nil
 	}
 
 	// reduce block timestamp (which now comes as milliseconds) to seconds to keep backwards compatibility
 	// from now on timestampMs will be used for milliseconds granularity
 	timestampSec = convertTimeStampMsToSec(headerTimestamp)
 
-	return timestampSec, timestampMs
+	return timestampSec, timestampMs, nil
 }

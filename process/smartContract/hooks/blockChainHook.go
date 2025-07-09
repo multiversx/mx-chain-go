@@ -400,7 +400,7 @@ func (bh *BlockChainHookImpl) LastTimeStampMs() uint64 {
 		return 0
 	}
 
-	_, timestampMs := common.GetHeaderTimestamps(bh.blockChain.GetCurrentBlockHeader(), bh.enableEpochsHandler)
+	_, timestampMs, _ := common.GetHeaderTimestamps(bh.blockChain.GetCurrentBlockHeader(), bh.enableEpochsHandler)
 
 	return timestampMs
 }
@@ -433,7 +433,7 @@ func (bh *BlockChainHookImpl) EpochStartBlockTimeStampMs() uint64 {
 	bh.mutEpochStartHdr.RLock()
 	defer bh.mutEpochStartHdr.RUnlock()
 
-	_, timestampMs := common.GetHeaderTimestamps(bh.epochStartHdr, bh.enableEpochsHandler)
+	_, timestampMs, _ := common.GetHeaderTimestamps(bh.epochStartHdr, bh.enableEpochsHandler)
 
 	return timestampMs
 }
@@ -493,7 +493,7 @@ func (bh *BlockChainHookImpl) CurrentTimeStampMs() uint64 {
 	bh.mutCurrentHdr.RLock()
 	defer bh.mutCurrentHdr.RUnlock()
 
-	_, timestampMs := common.GetHeaderTimestamps(bh.currentHdr, bh.enableEpochsHandler)
+	_, timestampMs, _ := common.GetHeaderTimestamps(bh.currentHdr, bh.enableEpochsHandler)
 
 	return timestampMs
 }

@@ -1298,7 +1298,7 @@ func (n *Node) getMetaFirstNonceOfEpoch(epoch uint32) (*common.EpochStartDataAPI
 }
 
 func (n *Node) prepareEpochStartDataResponse(header data.HeaderHandler) *common.EpochStartDataAPI {
-	timestampSec, timestampMs := common.GetHeaderTimestamps(header, n.coreComponents.EnableEpochsHandler())
+	timestampSec, timestampMs, _ := common.GetHeaderTimestamps(header, n.coreComponents.EnableEpochsHandler())
 
 	response := &common.EpochStartDataAPI{
 		Nonce:         header.GetNonce(),

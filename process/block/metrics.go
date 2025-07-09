@@ -165,7 +165,11 @@ func indexRoundInfo(
 	signersIndexes []uint64,
 	enableEpochsHandler common.EnableEpochsHandler,
 ) {
-	timestampSec, timestampMs := common.GetHeaderTimestamps(header, enableEpochsHandler)
+	timestampSec, timestampMs, err := common.GetHeaderTimestamps(header, enableEpochsHandler)
+	if err != nil {
+		log.Warn("failed to get header timestamps", "error", err)
+		return
+	}
 
 	roundInfo := &outportcore.RoundInfo{
 		Round:            header.GetRound(),
