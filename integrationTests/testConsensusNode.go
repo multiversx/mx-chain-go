@@ -395,6 +395,7 @@ func (tcn *TestConsensusNode) initNode(args ArgsTestConsensusNode) {
 		enableEpochsHandler,
 		enableRoundsHandler,
 		dataPool.Proofs(),
+		coreComponents.ChainParametersHandler(),
 	)
 
 	processComponents := GetDefaultProcessComponents()

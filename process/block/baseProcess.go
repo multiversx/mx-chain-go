@@ -110,7 +110,7 @@ type baseProcessor struct {
 	epochNotifier                 process.EpochNotifier
 	enableEpochsHandler           common.EnableEpochsHandler
 	roundNotifier                 process.RoundNotifier
-	enableRoundsHandler           process.EnableRoundsHandler
+	enableRoundsHandler           common.EnableRoundsHandler
 	vmContainerFactory            process.VirtualMachinesContainerFactory
 	vmContainer                   process.VirtualMachinesContainer
 	gasConsumedProvider           gasConsumedProvider
