@@ -14,6 +14,7 @@ import (
 	"github.com/multiversx/mx-chain-go/integrationTests/vm"
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/state"
+	"github.com/multiversx/mx-chain-go/state/hashesCollector"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 	"github.com/stretchr/testify/require"
 )
@@ -23,7 +24,7 @@ type statsCollector interface {
 }
 
 type dataTrie interface {
-	UpdateWithVersion(key []byte, value []byte, version core.TrieNodeVersion) error
+	UpdateWithVersion(key []byte, value []byte, version core.TrieNodeVersion)
 }
 
 func TestMigrateDataTrieBuiltInFunc(t *testing.T) {
@@ -108,7 +109,7 @@ func TestMigrateDataTrieBuiltInFunc(t *testing.T) {
 		migrateDataTrie(t, testContext, sndAddr, gasPrice, gasLimit, vmcommon.Ok)
 		testGasConsumed(t, testContext, gasLimit, 20000)
 
-		err = dtr.Commit()
+		err = dtr.Commit(hashesCollector.NewDisabledHashesCollector())
 		require.Nil(t, err)
 
 		rootHash, err = dtr.RootHash()
@@ -160,7 +161,7 @@ func TestMigrateDataTrieBuiltInFunc(t *testing.T) {
 			migrateDataTrie(t, testContext, sndAddr, gasPrice, gasLimit, vmcommon.Ok)
 			numMigrateDataTrieCalls++
 
-			err = dtr.Commit()
+			err = dtr.Commit(hashesCollector.NewDisabledHashesCollector())
 			require.Nil(t, err)
 
 			rootHash, err = dtr.RootHash()
@@ -182,6 +183,8 @@ func TestMigrateDataTrieBuiltInFunc(t *testing.T) {
 		require.Equal(t, uint64(numLeaves), dts.GetLeavesMigrationStats()[core.AutoBalanceEnabled])
 
 		err = testContext.Accounts.SaveAccount(acc)
+		require.Nil(t, err)
+		_, err = testContext.Accounts.Commit()
 		require.Nil(t, err)
 
 		acc = getAccount(t, testContext, sndAddr)
@@ -214,8 +217,7 @@ func generateDataTrie(
 	for i := 1; i < numLeaves; i++ {
 		key := keyGenerator(i)
 		value := getValWithAppendedData(key, key, accAddr)
-		err := tr.UpdateWithVersion(key, value, core.NotSpecified)
-		require.Nil(t, err)
+		tr.UpdateWithVersion(key, value, core.NotSpecified)
 
 		keys[i] = key
 	}
