@@ -1266,7 +1266,7 @@ func (g *governanceContract) saveGeneralProposal(reference []byte, generalPropos
 	return nil
 }
 
-// getValidProposal returns a proposal from storage if it exists, or it is still valid/in-progress
+// getValidProposal returns a proposal from storage if it exists and it is still valid/in-progress
 func (g *governanceContract) getValidProposal(nonce *big.Int) (*GeneralProposal, error) {
 	proposal, err := g.getProposalFromNonce(nonce)
 	if err != nil {
@@ -1279,6 +1279,10 @@ func (g *governanceContract) getValidProposal(nonce *big.Int) (*GeneralProposal,
 	}
 
 	if currentEpoch > proposal.EndVoteEpoch {
+		return nil, vm.ErrVotedForAnExpiredProposal
+	}
+
+	if proposal.Closed {
 		return nil, vm.ErrVotedForAnExpiredProposal
 	}
 
