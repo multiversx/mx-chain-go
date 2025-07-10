@@ -121,12 +121,6 @@ func (bfd *baseForkDetector) checkBlockBasicValidity(
 
 	err := bfd.checkGenesisTimeForHeader(header)
 	if err != nil {
-		log.Error("genesis time missmatch",
-			"localGenesisTime", bfd.genesisTime,
-			"header timestamp", header.GetTimeStamp(),
-			"error", err,
-		)
-
 		process.AddHeaderToBlackList(bfd.blackListHandler, headerHash)
 		return ErrGenesisTimeMissmatch
 	}
@@ -716,6 +710,12 @@ func (bfd *baseForkDetector) checkGenesisTimeForHeaderBeforeSupernova(
 	genesisTime := int64(headerHandler.GetTimeStamp()) - roundDifference*roundDuration
 
 	if genesisTime != bfd.genesisTime {
+		log.Error("checkGenesisTimeForHeaderBeforeSupernova: genesis time missmatch",
+			"localGenesisTime", bfd.genesisTime,
+			"calculatedGenesisTime", genesisTime,
+			"header timestamp", headerHandler.GetTimeStamp(),
+		)
+
 		return ErrGenesisTimeMissmatch
 	}
 
@@ -746,6 +746,11 @@ func (bfd *baseForkDetector) checkGenesisTimeForHeaderAfterSupernovaWithoutRound
 	}
 
 	if genesisTime != bfd.genesisTime {
+		log.Error("checkGenesisTimeForHeaderAfterSupernovaWithoutRoundActivation: genesis time missmatch",
+			"localGenesisTime", bfd.genesisTime,
+			"calculatedGenesisTime", genesisTime,
+			"header timestamp", headerHandler.GetTimeStamp(),
+		)
 		return ErrGenesisTimeMissmatch
 	}
 
@@ -758,6 +763,7 @@ func (bfd *baseForkDetector) checkGenesisTimeForHeaderAfterSupernovaWithRoundAct
 	activationRound := bfd.enableRoundsHandler.GetActivationRound(common.SupernovaRoundFlag)
 
 	// current round duration as milliseconds, since we have supernova fully activated
+	// if bfd.enableRoundsHandler.GetCurrentRound() >= bfd.enableRoundsHandler.GetActivationRound(common.SupernovaRoundFlag) {
 	roundDuration := bfd.roundHandler.TimeDuration().Milliseconds()
 
 	roundDifference := int64(headerHandler.GetRound()) - int64(activationRound)
@@ -781,6 +787,14 @@ func (bfd *baseForkDetector) checkGenesisTimeForHeaderAfterSupernovaWithRoundAct
 	)
 
 	if genesisTime != bfd.supernovaGenesisTime {
+		log.Error("checkGenesisTimeForHeaderAfterSupernovaWithRoundActivation: genesis time missmatch",
+			"localGenesisTime", bfd.supernovaGenesisTime,
+			"calculatedGenesisTime", genesisTime,
+			"header timestamp", headerHandler.GetTimeStamp(),
+			"roundDuration ms", roundDuration,
+			"enableRoundsHandler current round", bfd.enableRoundsHandler.GetCurrentRound(),
+			"enableEpochsHandler current epoch", bfd.enableEpochsHandler.GetCurrentEpoch(),
+		)
 		return ErrGenesisTimeMissmatch
 	}
 
@@ -789,7 +803,12 @@ func (bfd *baseForkDetector) checkGenesisTimeForHeaderAfterSupernovaWithRoundAct
 
 func (bfd *baseForkDetector) checkGenesisTimeForHeader(headerHandler data.HeaderHandler) error {
 	supernovaInEpochActivated := bfd.enableEpochsHandler.IsFlagEnabledInEpoch(common.SupernovaFlag, headerHandler.GetEpoch())
-	supernovaInRoundActivated := bfd.enableRoundsHandler.IsFlagEnabled(common.SupernovaRoundFlag)
+	supernovaInRoundActivated := bfd.enableRoundsHandler.IsFlagEnabledInRound(common.SupernovaRoundFlag, headerHandler.GetRound())
+
+	log.Debug("checkGenesisTimeForHeader",
+		"supernovaInEpochActivated", supernovaInEpochActivated, "epoch", headerHandler.GetEpoch(),
+		"supernovaInRoundActivated", supernovaInRoundActivated, "runda", headerHandler.GetRound(),
+	)
 
 	if !supernovaInEpochActivated {
 		return bfd.checkGenesisTimeForHeaderBeforeSupernova(headerHandler)
