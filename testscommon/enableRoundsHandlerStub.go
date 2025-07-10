@@ -1,48 +1,60 @@
 package testscommon
 
+import "github.com/multiversx/mx-chain-go/common"
+
 // EnableRoundsHandlerStub -
 type EnableRoundsHandlerStub struct {
-	IsDisableAsyncCallV1EnabledCalled func() bool
-	RoundConfirmedCalled              func(round uint64, timestamp uint64)
-	IsSupernovaEnabledCalled          func() bool
-	SupernovaActivationRoundCalled    func() uint64
-}
-
-// IsDisableAsyncCallV1Enabled -
-func (stub *EnableRoundsHandlerStub) IsDisableAsyncCallV1Enabled() bool {
-	if stub.IsDisableAsyncCallV1EnabledCalled != nil {
-		return stub.IsDisableAsyncCallV1EnabledCalled()
-	}
-
-	return false
+	RoundConfirmedCalled       func(round uint64, timestamp uint64)
+	IsFlagDefinedCalled        func(flag common.EnableRoundFlag) bool
+	IsFlagEnabledCalled        func(flag common.EnableRoundFlag) bool
+	IsFlagEnabledInRoundCalled func(flag common.EnableRoundFlag, round uint64) bool
+	GetActivationRoundCalled   func(flag common.EnableRoundFlag) uint64
 }
 
 // RoundConfirmed -
-func (stub *EnableRoundsHandlerStub) RoundConfirmed(round uint64, timestamp uint64) {
-	if stub.RoundConfirmedCalled != nil {
-		stub.RoundConfirmedCalled(round, timestamp)
+func (e *EnableRoundsHandlerStub) RoundConfirmed(round uint64, timestamp uint64) {
+	if e.RoundConfirmedCalled != nil {
+		e.RoundConfirmedCalled(round, timestamp)
 	}
 }
 
-// IsSupernovaEnabled -
-func (stub *EnableRoundsHandlerStub) IsSupernovaEnabled() bool {
-	if stub.IsSupernovaEnabledCalled != nil {
-		return stub.IsSupernovaEnabledCalled()
+// IsFlagDefined -
+func (e *EnableRoundsHandlerStub) IsFlagDefined(flag common.EnableRoundFlag) bool {
+	if e.IsFlagDefinedCalled != nil {
+		return e.IsFlagDefinedCalled(flag)
 	}
 
 	return false
 }
 
-// SupernovaActivationRound -
-func (stub *EnableRoundsHandlerStub) SupernovaActivationRound() uint64 {
-	if stub.SupernovaActivationRoundCalled != nil {
-		return stub.SupernovaActivationRoundCalled()
+// IsFlagEnabled -
+func (e *EnableRoundsHandlerStub) IsFlagEnabled(flag common.EnableRoundFlag) bool {
+	if e.IsFlagEnabledCalled != nil {
+		return e.IsFlagEnabledCalled(flag)
+	}
+
+	return false
+}
+
+// IsFlagEnabledInRound -
+func (e *EnableRoundsHandlerStub) IsFlagEnabledInRound(flag common.EnableRoundFlag, round uint64) bool {
+	if e.IsFlagEnabledInRoundCalled != nil {
+		return e.IsFlagEnabledInRoundCalled(flag, round)
+	}
+
+	return false
+}
+
+// GetActivationRound -
+func (e *EnableRoundsHandlerStub) GetActivationRound(flag common.EnableRoundFlag) uint64 {
+	if e.GetActivationRoundCalled != nil {
+		return e.GetActivationRoundCalled(flag)
 	}
 
 	return 0
 }
 
 // IsInterfaceNil -
-func (stub *EnableRoundsHandlerStub) IsInterfaceNil() bool {
-	return stub == nil
+func (e *EnableRoundsHandlerStub) IsInterfaceNil() bool {
+	return e == nil
 }

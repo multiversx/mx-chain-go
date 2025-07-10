@@ -517,7 +517,7 @@ func (mcc *managedCoreComponents) ChainParametersSubscriber() process.ChainParam
 }
 
 // EnableRoundsHandler returns the rounds activation handler
-func (mcc *managedCoreComponents) EnableRoundsHandler() process.EnableRoundsHandler {
+func (mcc *managedCoreComponents) EnableRoundsHandler() common.EnableRoundsHandler {
 	mcc.mutCoreComponents.RLock()
 	defer mcc.mutCoreComponents.RUnlock()
 

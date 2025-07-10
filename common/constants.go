@@ -1171,8 +1171,8 @@ const (
 	ESDTFlag                                            core.EnableEpochFlag = "ESDTFlag"
 	ESDTFlagInSpecificEpochOnly                         core.EnableEpochFlag = "ESDTFlagInSpecificEpochOnly"
 	GovernanceFlag                                      core.EnableEpochFlag = "GovernanceFlag"
-	GovernanceDisableProposeFlag                       core.EnableEpochFlag = "GovernanceDisableProposeFlag"
-	GovernanceFixesFlag                                core.EnableEpochFlag = "GovernanceFixesFlag"
+	GovernanceDisableProposeFlag                        core.EnableEpochFlag = "GovernanceDisableProposeFlag"
+	GovernanceFixesFlag                                 core.EnableEpochFlag = "GovernanceFixesFlag"
 	GovernanceFlagInSpecificEpochOnly                   core.EnableEpochFlag = "GovernanceFlagInSpecificEpochOnly"
 	DelegationManagerFlag                               core.EnableEpochFlag = "DelegationManagerFlag"
 	DelegationSmartContractFlag                         core.EnableEpochFlag = "DelegationSmartContractFlag"
@@ -1284,4 +1284,13 @@ const (
 	BarnardOpcodesFlag                                  core.EnableEpochFlag = "BarnardOpcodesFlag"
 	AutomaticActivationOfNodesDisableFlag               core.EnableEpochFlag = "AutomaticActivationOfNodesDisableFlag"
 	// all new flags must be added to createAllFlagsMap method, as part of enableEpochsHandler allFlagsDefined
+)
+
+// EnableRoundFlag defines a flag specific to the enableRounds config
+type EnableRoundFlag string
+
+// EnableRound flag definitions
+const (
+	DisableAsyncCallV1Flag EnableRoundFlag = "DisableAsyncCallV1"
+	SupernovaRoundFlag     EnableRoundFlag = "SupernovaEnableRound"
 )

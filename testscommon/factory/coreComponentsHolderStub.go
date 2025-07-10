@@ -42,7 +42,7 @@ type CoreComponentsHolderStub struct {
 	GenesisNodesSetupCalled             func() sharding.GenesisNodesSetupHandler
 	NodesShufflerCalled                 func() nodesCoordinator.NodesShuffler
 	EpochNotifierCalled                 func() process.EpochNotifier
-	EnableRoundsHandlerCalled           func() process.EnableRoundsHandler
+	EnableRoundsHandlerCalled           func() common.EnableRoundsHandler
 	EpochStartNotifierWithConfirmCalled func() factory.EpochStartNotifierWithConfirm
 	ChanStopNodeProcessCalled           func() chan endProcess.ArgEndProcess
 	GenesisTimeCalled                   func() time.Time
@@ -277,7 +277,7 @@ func (stub *CoreComponentsHolderStub) EpochNotifier() process.EpochNotifier {
 }
 
 // EnableRoundsHandler -
-func (stub *CoreComponentsHolderStub) EnableRoundsHandler() process.EnableRoundsHandler {
+func (stub *CoreComponentsHolderStub) EnableRoundsHandler() common.EnableRoundsHandler {
 	if stub.EnableRoundsHandlerCalled != nil {
 		return stub.EnableRoundsHandlerCalled()
 	}

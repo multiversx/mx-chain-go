@@ -1201,16 +1201,6 @@ type RoundNotifier interface {
 	IsInterfaceNil() bool
 }
 
-// EnableRoundsHandler is an interface which can be queried to check for round activation features/fixes
-type EnableRoundsHandler interface {
-	RoundConfirmed(round uint64, timestamp uint64)
-	IsDisableAsyncCallV1Enabled() bool
-	IsSupernovaEnabled() bool
-	SupernovaActivationRound() uint64
-
-	IsInterfaceNil() bool
-}
-
 // ESDTPauseHandler provides IsPaused function for an ESDT token
 type ESDTPauseHandler interface {
 	IsPaused(token []byte) bool
