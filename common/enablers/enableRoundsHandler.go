@@ -24,13 +24,13 @@ type roundFlag struct {
 
 type flagEnabledInRound = func(round uint64) bool
 
-type roundflagHandler struct {
+type roundFlagHandler struct {
 	isActiveInRound flagEnabledInRound
 	activationRound uint64
 }
 
 type enableRoundsHandler struct {
-	allFlagsDefined map[common.EnableRoundFlag]roundflagHandler
+	allFlagsDefined map[common.EnableRoundFlag]roundFlagHandler
 	currentRound    uint64
 	roundMut        sync.RWMutex
 }
@@ -73,15 +73,15 @@ func getRoundConfig(args config.RoundConfig, configName string) (*roundFlag, err
 func (handler *enableRoundsHandler) createAllFlagsMap(conf config.RoundConfig) error {
 	disableAsyncCallV1, err := getRoundConfig(conf, string(common.DisableAsyncCallV1Flag))
 	if err != nil {
-		return err
+		return fmt.Errorf("%w while trying to get round config for %s", err, string(common.DisableAsyncCallV1Flag))
 	}
 
 	supernovaEnableRound, err := getRoundConfig(conf, string(common.SupernovaRoundFlag))
 	if err != nil {
-		return err
+		return fmt.Errorf("%w while trying to get round config for %s", err, string(common.SupernovaRoundFlag))
 	}
 
-	handler.allFlagsDefined = map[common.EnableRoundFlag]roundflagHandler{
+	handler.allFlagsDefined = map[common.EnableRoundFlag]roundFlagHandler{
 		common.DisableAsyncCallV1Flag: {
 			isActiveInRound: func(round uint64) bool {
 				return round >= disableAsyncCallV1.round
@@ -122,7 +122,7 @@ func (handler *enableRoundsHandler) IsFlagDefined(flag common.EnableRoundFlag) b
 		return true
 	}
 
-	log.Error("flag is not defined",
+	log.Warn("flag is not defined",
 		"flag", flag,
 		"stack trace", string(debug.Stack()),
 	)
@@ -159,7 +159,7 @@ func (handler *enableRoundsHandler) IsFlagEnabledInRound(flag common.EnableRound
 func (handler *enableRoundsHandler) GetActivationRound(flag common.EnableRoundFlag) uint64 {
 	fh, found := handler.allFlagsDefined[flag]
 	if !found {
-		log.Warn("IsFlagEnabledInRound: got unknown flag",
+		log.Warn("GetActivationRound: got unknown flag",
 			"flag", flag,
 			"stack trace", string(debug.Stack()),
 		)
