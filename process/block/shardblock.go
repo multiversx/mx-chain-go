@@ -1209,21 +1209,21 @@ func (sp *shardProcessor) CommitBlock(
 	txShardPool := sp.dataPool.Transactions().ShardDataStore(strCache)
 
 	if check.IfNil(txShardPool) {
-		return process.ErrNilTxDataPool
+		log.Debug("shardProcessor.CommitBlock", "err", err)
 	}
 	txCache, isTxCache := txShardPool.(preprocess.TxCache)
-	if !isTxCache {
-		return fmt.Errorf("%w: 'txShardPool' should be of type 'TxCache'", process.ErrWrongTypeAssertion)
-	}
+	if isTxCache {
+		err = txCache.OnProposedBlock(headerHash, body, header)
+		if err != nil {
+			log.Debug("shardProcessor.CommitBlock", "err", err)
+		}
 
-	err = txCache.OnProposedBlock(headerHash, body, header)
-	if err != nil {
-		log.Debug("shardProcessor.CommitBlock", "err", err)
-	}
-
-	err = txCache.OnExecutedBlock(header)
-	if err != nil {
-		log.Debug("shardProcessor.CommitBlock", "err", err)
+		err = txCache.OnExecutedBlock(header)
+		if err != nil {
+			log.Debug("shardProcessor.CommitBlock", "err", err)
+		}
+	} else {
+		log.Debug("shardProcessor.CommitBlock", "err", "%w: 'txShardPool' should be of type 'TxCache'", process.ErrWrongTypeAssertion)
 	}
 
 	errNotCritical = sp.removeTxsFromPools(header, body)
