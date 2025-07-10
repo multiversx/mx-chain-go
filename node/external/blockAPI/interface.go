@@ -11,7 +11,7 @@ import (
 
 // APITransactionHandler defines what a transaction handler should do
 type APITransactionHandler interface {
-	UnmarshalTransaction(txBytes []byte, txType transaction.TxType) (*transaction.ApiTransactionResult, error)
+	UnmarshalTransaction(txBytes []byte, txType transaction.TxType, epoch uint32) (*transaction.ApiTransactionResult, error)
 	UnmarshalReceipt(receiptBytes []byte) (*transaction.ApiReceipt, error)
 	PopulateComputedFields(tx *transaction.ApiTransactionResult)
 	IsInterfaceNil() bool

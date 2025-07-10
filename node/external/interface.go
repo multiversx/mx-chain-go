@@ -66,7 +66,7 @@ type APITransactionHandler interface {
 	GetTransactionsPoolForSender(sender, fields string) (*common.TransactionsPoolForSenderApiResponse, error)
 	GetLastPoolNonceForSender(sender string) (uint64, error)
 	GetTransactionsPoolNonceGapsForSender(sender string, senderAccountNonce uint64) (*common.TransactionsPoolNonceGapsForSenderApiResponse, error)
-	UnmarshalTransaction(txBytes []byte, txType transaction.TxType) (*transaction.ApiTransactionResult, error)
+	UnmarshalTransaction(txBytes []byte, txType transaction.TxType, epoch uint32) (*transaction.ApiTransactionResult, error)
 	PopulateComputedFields(tx *transaction.ApiTransactionResult)
 	UnmarshalReceipt(receiptBytes []byte) (*transaction.ApiReceipt, error)
 	IsInterfaceNil() bool

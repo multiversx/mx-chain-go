@@ -55,7 +55,11 @@ func (tu *txUnmarshaller) unmarshalReceipt(receiptBytes []byte) (*transaction.Ap
 	}, nil
 }
 
-func (tu *txUnmarshaller) unmarshalTransaction(txBytes []byte, txType transaction.TxType) (*transaction.ApiTransactionResult, error) {
+func (tu *txUnmarshaller) unmarshalTransaction(
+	txBytes []byte,
+	txType transaction.TxType,
+	txEpoch uint32,
+) (*transaction.ApiTransactionResult, error) {
 	var apiTx *transaction.ApiTransactionResult
 	var err error
 
@@ -111,7 +115,7 @@ func (tu *txUnmarshaller) unmarshalTransaction(txBytes []byte, txType transactio
 	isRelayedV3 := hasValidRelayer && hasValidRelayerSignature
 	apiTx.IsRelayed = res.IsRelayed || isRelayedV3
 
-	if res.IsRelayed && tu.enableEpochsHandler.IsFlagEnabledInEpoch(common.RelayedTransactionsV1V2DisableFlag, apiTx.Epoch) {
+	if res.IsRelayed && tu.enableEpochsHandler.IsFlagEnabledInEpoch(common.RelayedTransactionsV1V2DisableFlag, txEpoch) {
 		// will be treated as move balance, so reset some fields
 		apiTx.IsRelayed = false
 		apiTx.Function = ""
