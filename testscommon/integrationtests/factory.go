@@ -29,9 +29,6 @@ var TestMarshalizer = &marshal.GogoProtoMarshalizer{}
 // TestHasher -
 var TestHasher = sha256.NewSha256()
 
-// MaxTrieLevelInMemory -
-const MaxTrieLevelInMemory = uint(5)
-
 // CreateMemUnit -
 func CreateMemUnit() storage.Storer {
 	capacity := uint32(10)
@@ -100,7 +97,7 @@ func CreateAccountsDB(db storage.Storer, enableEpochs common.EnableEpochsHandler
 
 	trieStorage, _ := trie.NewTrieStorageManager(args)
 
-	tr, _ := trie.NewTrie(trieStorage, TestMarshalizer, TestHasher, enableEpochs, MaxTrieLevelInMemory)
+	tr, _ := trie.NewTrie(trieStorage, TestMarshalizer, TestHasher, enableEpochs)
 	spm, _ := storagePruningManager.NewStoragePruningManager(ewl, 10)
 
 	argsAccCreator := accountFactory.ArgsAccountCreator{
