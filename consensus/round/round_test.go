@@ -99,6 +99,7 @@ func TestRound_UpdateRoundShouldAdvanceOneRound(t *testing.T) {
 		}
 
 		args.GenesisTimeStamp = genesisTime
+		args.SupernovaGenesisTimeStamp = genesisTime.Add(10 * roundTimeDuration)
 
 		rnd, _ := round.NewRound(args)
 		oldIndex := rnd.Index()
@@ -158,6 +159,7 @@ func TestRound_TimeStampShouldReturnTimeStampOfTheNextRound(t *testing.T) {
 
 	args := createDefaultRoundArgs()
 	args.GenesisTimeStamp = genesisTime
+	args.SupernovaGenesisTimeStamp = genesisTime.Add(10 * roundTimeDuration)
 
 	rnd, _ := round.NewRound(args)
 	rnd.UpdateRound(genesisTime, genesisTime.Add(roundTimeDuration+roundTimeDuration/2))
@@ -176,6 +178,7 @@ func TestRound_UpdateRoundWithTimeDurationChange(t *testing.T) {
 
 		args := createDefaultRoundArgs()
 		args.GenesisTimeStamp = genesisTime
+		args.SupernovaGenesisTimeStamp = genesisTime.Add(10 * roundTimeDuration)
 
 		rnd, _ := round.NewRound(args)
 

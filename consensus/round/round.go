@@ -84,28 +84,67 @@ func NewRound(args ArgsRound) (*round, error) {
 
 // UpdateRound updates the index and the time stamp of the round depending on the genesis time and the current time given
 func (rnd *round) UpdateRound(genesisTimeStamp time.Time, currentTimeStamp time.Time) {
-	if !common.IsSupernovaRoundActivated(rnd.enableEpochsHandler, rnd.enableRoundsHandler) {
-		rnd.updateRound(genesisTimeStamp, currentTimeStamp, rnd.startRound)
-		return
+	baseTimeStamp := rnd.supernovaGenesisTimeStamp
+	roundDuration := rnd.supernovaTimeDuration
+	startRound := rnd.supernovaStartRound
+
+	supernovaActivated := rnd.isSupernovaActivated(currentTimeStamp)
+
+	if !supernovaActivated {
+		baseTimeStamp = genesisTimeStamp
+		roundDuration = rnd.timeDuration
+		startRound = rnd.startRound
 	}
 
-	rnd.updateRound(rnd.supernovaGenesisTimeStamp, currentTimeStamp, rnd.supernovaStartRound)
+	rnd.updateRound(baseTimeStamp, currentTimeStamp, startRound, roundDuration)
+}
+
+func (rnd *round) isSupernovaActivated(currentTimeStamp time.Time) bool {
+	log.Debug("isSupernovaActivated",
+		"enableEpochsHandler: epoch", rnd.enableEpochsHandler.GetCurrentEpoch(),
+		"enableRoundsHandler: round", rnd.enableRoundsHandler.GetCurrentRound(),
+	)
+
+	supernovaActivated := common.IsSupernovaRoundActivated(rnd.enableEpochsHandler, rnd.enableRoundsHandler)
+
+	currentTimeAfterSupernova := currentTimeStamp.UnixMilli() > rnd.supernovaGenesisTimeStamp.UnixMilli()
+	defaultEpoch := rnd.enableEpochsHandler.GetCurrentEpoch() == 0
+	defaultRound := rnd.enableRoundsHandler.GetCurrentRound() == 0
+
+	if currentTimeAfterSupernova && (defaultEpoch || defaultRound) {
+		log.Debug("UpdateRound: force set supernovaActivated")
+		supernovaActivated = true
+	}
+
+	return supernovaActivated
 }
 
 func (rnd *round) updateRound(
 	genesisTimeStamp time.Time,
 	currentTimeStamp time.Time,
 	startRound int64,
+	roundDuration time.Duration,
 ) {
 	delta := currentTimeStamp.Sub(genesisTimeStamp).Nanoseconds()
 
-	index := int64(math.Floor(float64(delta)/float64(rnd.getTimeDuration().Nanoseconds()))) + startRound
+	index := int64(math.Floor(float64(delta)/float64(roundDuration.Nanoseconds()))) + startRound
 
 	rnd.Lock()
 	if rnd.index != index {
 		rnd.index = index
-		rnd.timeStamp = genesisTimeStamp.Add(time.Duration((index - startRound) * rnd.getTimeDuration().Nanoseconds()))
+		rnd.timeStamp = genesisTimeStamp.Add(time.Duration((index - startRound) * roundDuration.Nanoseconds()))
 	}
+
+	log.Debug("updateRound",
+		"supernova epoch activated", rnd.enableEpochsHandler.IsFlagEnabled(common.SupernovaFlag),
+		"supernova round activated", rnd.enableRoundsHandler.IsFlagEnabled(common.SupernovaRoundFlag),
+		"genesisTimeStamp", genesisTimeStamp.UnixMilli(),
+		"currentTimeStamp", currentTimeStamp.UnixMilli(),
+		"index", rnd.index,
+		"delta", delta,
+		"timestamp ms", rnd.timeStamp.UnixMilli(),
+	)
+
 	rnd.Unlock()
 }
 
