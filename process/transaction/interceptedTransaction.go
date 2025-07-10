@@ -227,14 +227,18 @@ func (inTx *InterceptedTransaction) checkRecursiveRelayed(userTx *transaction.Tr
 		return nil
 	}
 
-	if isRelayedTx(funcName) {
+	if inTx.isRelayedTx(funcName) {
 		return process.ErrRecursiveRelayedTxIsNotAllowed
 	}
 
 	return nil
 }
 
-func isRelayedTx(funcName string) bool {
+func (inTx *InterceptedTransaction) isRelayedTx(funcName string) bool {
+	if inTx.enableEpochsHandler.IsFlagEnabled(common.RelayedTransactionsV1V2DisableFlag) {
+		return false
+	}
+
 	return core.RelayedTransaction == funcName ||
 		core.RelayedTransactionV2 == funcName
 }
@@ -281,6 +285,10 @@ func (inTx *InterceptedTransaction) verifyIfRelayedTxV3(tx *transaction.Transact
 }
 
 func (inTx *InterceptedTransaction) verifyIfRelayedTxV2(tx *transaction.Transaction) error {
+	if inTx.enableEpochsHandler.IsFlagEnabled(common.RelayedTransactionsV1V2DisableFlag) {
+		return nil
+	}
+
 	funcName, userTxArgs, err := inTx.argsParser.ParseCallData(string(tx.Data))
 	if err != nil {
 		return nil
@@ -298,6 +306,10 @@ func (inTx *InterceptedTransaction) verifyIfRelayedTxV2(tx *transaction.Transact
 }
 
 func (inTx *InterceptedTransaction) verifyIfRelayedTx(tx *transaction.Transaction) error {
+	if inTx.enableEpochsHandler.IsFlagEnabled(common.RelayedTransactionsV1V2DisableFlag) {
+		return nil
+	}
+
 	funcName, userTxArgs, err := inTx.argsParser.ParseCallData(string(tx.Data))
 	if err != nil {
 		return nil
