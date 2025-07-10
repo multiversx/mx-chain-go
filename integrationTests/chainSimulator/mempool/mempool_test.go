@@ -251,6 +251,153 @@ func TestMempoolWithChainSimulator_Selection_WhenInsufficientBalanceForFee_WithR
 	require.Equal(t, bob.Bytes, selectedTransactions[2].Tx.GetSndAddr())
 }
 
+func TestMempoolWithChainSimulator_Selection_WhenInitialGap(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
+	numSenders := 2
+	shard := 0
+
+	simulator := startChainSimulator(t, func(cfg *config.Configs) {})
+	defer simulator.Close()
+
+	err := simulator.GenerateBlocksUntilEpochIsReached(2)
+	require.NoError(t, err)
+
+	participants := createParticipants(t, simulator, numSenders)
+	noncesTracker := newNoncesTracker()
+
+	alice := participants.sendersByShard[shard][0]
+	bob := participants.sendersByShard[shard][1]
+	relayer := participants.relayerByShard[shard]
+	receiver := participants.receiverByShard[shard]
+
+	transactions := make([]*transaction.Transaction, 0)
+
+	// Transfer from Alice (relayed) with wrong nonce
+	transactions = append(transactions, &transaction.Transaction{
+		Nonce:            1,
+		Value:            oneQuarterOfEGLD,
+		SndAddr:          alice.Bytes,
+		RcvAddr:          receiver.Bytes,
+		RelayerAddr:      relayer.Bytes,
+		Data:             []byte{},
+		GasLimit:         100_000,
+		GasPrice:         1_000_000_003,
+		ChainID:          []byte(configs.ChainID),
+		Version:          2,
+		Signature:        []byte("signature"),
+		RelayerSignature: []byte("signature"),
+	})
+
+	// Transfer from Bob (relayed)
+	transactions = append(transactions, &transaction.Transaction{
+		Nonce:            noncesTracker.getThenIncrementNonce(bob),
+		Value:            oneQuarterOfEGLD,
+		SndAddr:          bob.Bytes,
+		RcvAddr:          receiver.Bytes,
+		RelayerAddr:      relayer.Bytes,
+		Data:             []byte{},
+		GasLimit:         100_000,
+		GasPrice:         1_000_000_002,
+		ChainID:          []byte(configs.ChainID),
+		Version:          2,
+		Signature:        []byte("signature"),
+		RelayerSignature: []byte("signature"),
+	})
+
+	sendTransactions(t, simulator, transactions)
+	time.Sleep(durationWaitAfterSendSome)
+	require.Equal(t, 2, getNumTransactionsInPool(simulator, shard))
+
+	selectedTransactions, _ := selectTransactions(t, simulator, shard)
+	require.Equal(t, 1, len(selectedTransactions))
+	require.Equal(t, bob.Bytes, selectedTransactions[0].Tx.GetSndAddr())
+}
+
+func TestMempoolWithChainSimulator_Selection_WhenMiddleGap(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
+	numSenders := 2
+	shard := 0
+
+	simulator := startChainSimulator(t, func(cfg *config.Configs) {})
+	defer simulator.Close()
+
+	err := simulator.GenerateBlocksUntilEpochIsReached(2)
+	require.NoError(t, err)
+
+	participants := createParticipants(t, simulator, numSenders)
+	noncesTracker := newNoncesTracker()
+
+	alice := participants.sendersByShard[shard][0]
+	bob := participants.sendersByShard[shard][1]
+	relayer := participants.relayerByShard[shard]
+	receiver := participants.receiverByShard[shard]
+
+	transactions := make([]*transaction.Transaction, 0)
+
+	// Transfer from Alice (relayed)
+	transactions = append(transactions, &transaction.Transaction{
+		Nonce:            noncesTracker.getThenIncrementNonce(alice),
+		Value:            oneQuarterOfEGLD,
+		SndAddr:          alice.Bytes,
+		RcvAddr:          receiver.Bytes,
+		RelayerAddr:      relayer.Bytes,
+		Data:             []byte{},
+		GasLimit:         100_000,
+		GasPrice:         1_000_000_003,
+		ChainID:          []byte(configs.ChainID),
+		Version:          2,
+		Signature:        []byte("signature"),
+		RelayerSignature: []byte("signature"),
+	})
+
+	// Another transfer from Alice (relayed) which is not following the last nonce
+	transactions = append(transactions, &transaction.Transaction{
+		Nonce:            100,
+		Value:            oneQuarterOfEGLD,
+		SndAddr:          alice.Bytes,
+		RcvAddr:          receiver.Bytes,
+		RelayerAddr:      relayer.Bytes,
+		Data:             []byte{},
+		GasLimit:         100_000,
+		GasPrice:         1_000_000_003,
+		ChainID:          []byte(configs.ChainID),
+		Version:          2,
+		Signature:        []byte("signature"),
+		RelayerSignature: []byte("signature"),
+	})
+
+	// Transfer from Bob (relayed)
+	transactions = append(transactions, &transaction.Transaction{
+		Nonce:            noncesTracker.getThenIncrementNonce(bob),
+		Value:            oneQuarterOfEGLD,
+		SndAddr:          bob.Bytes,
+		RcvAddr:          receiver.Bytes,
+		RelayerAddr:      relayer.Bytes,
+		Data:             []byte{},
+		GasLimit:         100_000,
+		GasPrice:         1_000_000_002,
+		ChainID:          []byte(configs.ChainID),
+		Version:          2,
+		Signature:        []byte("signature"),
+		RelayerSignature: []byte("signature"),
+	})
+
+	sendTransactions(t, simulator, transactions)
+	time.Sleep(durationWaitAfterSendSome)
+	require.Equal(t, 3, getNumTransactionsInPool(simulator, shard))
+
+	selectedTransactions, _ := selectTransactions(t, simulator, shard)
+	require.Equal(t, 2, len(selectedTransactions))
+	require.Equal(t, alice.Bytes, selectedTransactions[0].Tx.GetSndAddr())
+	require.Equal(t, bob.Bytes, selectedTransactions[1].Tx.GetSndAddr())
+}
+
 func TestMempoolWithChainSimulator_Eviction(t *testing.T) {
 	if testing.Short() {
 		t.Skip("this is not a short test")
