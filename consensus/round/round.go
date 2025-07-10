@@ -100,11 +100,6 @@ func (rnd *round) UpdateRound(genesisTimeStamp time.Time, currentTimeStamp time.
 }
 
 func (rnd *round) isSupernovaActivated(currentTimeStamp time.Time) bool {
-	log.Debug("isSupernovaActivated",
-		"enableEpochsHandler: epoch", rnd.enableEpochsHandler.GetCurrentEpoch(),
-		"enableRoundsHandler: round", rnd.enableRoundsHandler.GetCurrentRound(),
-	)
-
 	supernovaActivated := common.IsSupernovaRoundActivated(rnd.enableEpochsHandler, rnd.enableRoundsHandler)
 
 	currentTimeAfterSupernova := currentTimeStamp.UnixMilli() > rnd.supernovaGenesisTimeStamp.UnixMilli()
@@ -112,7 +107,11 @@ func (rnd *round) isSupernovaActivated(currentTimeStamp time.Time) bool {
 	defaultRound := rnd.enableRoundsHandler.GetCurrentRound() == 0
 
 	if currentTimeAfterSupernova && (defaultEpoch || defaultRound) {
-		log.Debug("UpdateRound: force set supernovaActivated")
+		log.Debug("isSupernovaActivated: force set supernovaActivated",
+			"currentTimeAfterSupernova", currentTimeAfterSupernova,
+			"enableEpochsHandler current epoch", rnd.enableEpochsHandler.GetCurrentEpoch(),
+			"enableRoundsHandler current round", rnd.enableRoundsHandler.GetCurrentRound(),
+		)
 		supernovaActivated = true
 	}
 
@@ -134,17 +133,6 @@ func (rnd *round) updateRound(
 		rnd.index = index
 		rnd.timeStamp = genesisTimeStamp.Add(time.Duration((index - startRound) * roundDuration.Nanoseconds()))
 	}
-
-	log.Debug("updateRound",
-		"supernova epoch activated", rnd.enableEpochsHandler.IsFlagEnabled(common.SupernovaFlag),
-		"supernova round activated", rnd.enableRoundsHandler.IsFlagEnabled(common.SupernovaRoundFlag),
-		"genesisTimeStamp", genesisTimeStamp.UnixMilli(),
-		"currentTimeStamp", currentTimeStamp.UnixMilli(),
-		"index", rnd.index,
-		"delta", delta,
-		"timestamp ms", rnd.timeStamp.UnixMilli(),
-	)
-
 	rnd.Unlock()
 }
 
@@ -182,6 +170,7 @@ func (rnd *round) TimeDuration() time.Duration {
 
 // this should be called under mutex protection
 func (rnd *round) getTimeDuration() time.Duration {
+	// TODO: analysize adding here also forced activation based on current timestamp
 	if common.IsSupernovaRoundActivated(rnd.enableEpochsHandler, rnd.enableRoundsHandler) {
 		return rnd.supernovaTimeDuration
 	}
