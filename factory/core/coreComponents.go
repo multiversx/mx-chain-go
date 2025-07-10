@@ -104,7 +104,7 @@ type coreComponents struct {
 	epochNotifier                 process.EpochNotifier
 	roundNotifier                 process.RoundNotifier
 	chainParametersSubscriber     process.ChainParametersSubscriber
-	enableRoundsHandler           process.EnableRoundsHandler
+	enableRoundsHandler           common.EnableRoundsHandler
 	epochStartNotifierWithConfirm factory.EpochStartNotifierWithConfirm
 	chanStopNodeProcess           chan endProcess.ArgEndProcess
 	nodeTypeProvider              core.NodeTypeProviderHandler
@@ -234,7 +234,7 @@ func (ccf *coreComponentsFactory) Create() (*coreComponents, error) {
 	log.Debug("NTP average clock offset", "value", syncer.ClockOffset())
 
 	startRound := int64(0)
-	supernovaStartRound := int64(enableRoundsHandler.SupernovaActivationRound())
+	supernovaStartRound := int64(enableRoundsHandler.GetActivationRound(common.SupernovaRoundFlag))
 
 	if ccf.config.Hardfork.AfterHardFork {
 		log.Debug("changed genesis time after hardfork",

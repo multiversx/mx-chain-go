@@ -422,7 +422,7 @@ type TestProcessorNode struct {
 	EpochNotifier                 process.EpochNotifier
 	RoundNotifier                 process.RoundNotifier
 	EnableEpochs                  config.EnableEpochs
-	EnableRoundsHandler           process.EnableRoundsHandler
+	EnableRoundsHandler           common.EnableRoundsHandler
 	EnableEpochsHandler           common.EnableEpochsHandler
 	EpochChangeGracePeriodHandler common.EpochChangeGracePeriodHandler
 	UseValidVmBlsSigVerifier      bool
@@ -2243,7 +2243,9 @@ func (tpn *TestProcessorNode) initBlockProcessor() {
 			tpn.NodesSetup.GetStartTime()*1000,
 			tpn.EnableEpochsHandler,
 			tpn.EnableRoundsHandler,
-			tpn.DataPool.Proofs())
+			tpn.DataPool.Proofs(),
+			coreComponents.ChainParametersHandler(),
+		)
 	} else {
 		tpn.ForkDetector, _ = processSync.NewMetaForkDetector(
 			tpn.RoundHandler,
@@ -2253,7 +2255,9 @@ func (tpn *TestProcessorNode) initBlockProcessor() {
 			tpn.NodesSetup.GetStartTime()*1000,
 			tpn.EnableEpochsHandler,
 			tpn.EnableRoundsHandler,
-			tpn.DataPool.Proofs())
+			tpn.DataPool.Proofs(),
+			coreComponents.ChainParametersHandler(),
+		)
 	}
 
 	bootstrapComponents := getDefaultBootstrapComponents(tpn.ShardCoordinator, tpn.EnableEpochsHandler)

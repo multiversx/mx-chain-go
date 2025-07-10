@@ -18,6 +18,7 @@ import (
 	"github.com/multiversx/mx-chain-go/process/sync"
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/chainParameters"
 	"github.com/multiversx/mx-chain-go/testscommon/dblookupext"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/factory"
@@ -116,7 +117,9 @@ func (tpn *TestProcessorNode) initBlockProcessorWithSync() {
 			0,
 			tpn.EnableEpochsHandler,
 			tpn.EnableRoundsHandler,
-			tpn.DataPool.Proofs())
+			tpn.DataPool.Proofs(),
+			&chainParameters.ChainParametersHandlerStub{},
+		)
 		argumentsBase.ForkDetector = tpn.ForkDetector
 		argumentsBase.TxCoordinator = &mock.TransactionCoordinatorMock{}
 		arguments := block.ArgMetaProcessor{
@@ -145,7 +148,9 @@ func (tpn *TestProcessorNode) initBlockProcessorWithSync() {
 			0,
 			tpn.EnableEpochsHandler,
 			tpn.EnableRoundsHandler,
-			tpn.DataPool.Proofs())
+			tpn.DataPool.Proofs(),
+			&chainParameters.ChainParametersHandlerStub{},
+		)
 		argumentsBase.ForkDetector = tpn.ForkDetector
 		argumentsBase.BlockChainHook = tpn.BlockchainHook
 		argumentsBase.TxCoordinator = tpn.TxCoordinator

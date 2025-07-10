@@ -11,6 +11,7 @@ import (
 
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/consensus/round"
+	"github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	consensusMocks "github.com/multiversx/mx-chain-go/testscommon/consensus"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
@@ -36,25 +37,51 @@ func createDefaultRoundArgs() round.ArgsRound {
 	}
 }
 
-func TestRound_NewRoundShouldErrNilSyncTimer(t *testing.T) {
+func TestRound_NewRound(t *testing.T) {
 	t.Parallel()
 
-	args := createDefaultRoundArgs()
-	args.SyncTimer = nil
-	rnd, err := round.NewRound(args)
+	t.Run("nil sync timer", func(t *testing.T) {
+		t.Parallel()
 
-	assert.Nil(t, rnd)
-	assert.Equal(t, round.ErrNilSyncTimer, err)
-}
+		args := createDefaultRoundArgs()
+		args.SyncTimer = nil
+		rnd, err := round.NewRound(args)
 
-func TestRound_NewRoundShouldWork(t *testing.T) {
-	t.Parallel()
+		assert.Nil(t, rnd)
+		assert.Equal(t, round.ErrNilSyncTimer, err)
+	})
 
-	args := createDefaultRoundArgs()
-	rnd, err := round.NewRound(args)
+	t.Run("nil enable epochs handler", func(t *testing.T) {
+		t.Parallel()
 
-	assert.Nil(t, err)
-	assert.False(t, check.IfNil(rnd))
+		args := createDefaultRoundArgs()
+		args.EnableEpochsHandler = nil
+		rnd, err := round.NewRound(args)
+
+		assert.Nil(t, rnd)
+		assert.Equal(t, errors.ErrNilEnableEpochsHandler, err)
+	})
+
+	t.Run("nil enable rounds handler", func(t *testing.T) {
+		t.Parallel()
+
+		args := createDefaultRoundArgs()
+		args.EnableRoundsHandler = nil
+		rnd, err := round.NewRound(args)
+
+		assert.Nil(t, rnd)
+		assert.Equal(t, errors.ErrNilEnableRoundsHandler, err)
+	})
+
+	t.Run("should work", func(t *testing.T) {
+		t.Parallel()
+
+		args := createDefaultRoundArgs()
+		rnd, err := round.NewRound(args)
+
+		assert.Nil(t, err)
+		assert.False(t, check.IfNil(rnd))
+	})
 }
 
 func TestRound_UpdateRoundShouldNotChangeAnything(t *testing.T) {
@@ -93,12 +120,13 @@ func TestRound_UpdateRoundShouldAdvanceOneRound(t *testing.T) {
 			},
 		}
 		args.EnableRoundsHandler = &testscommon.EnableRoundsHandlerStub{
-			IsSupernovaEnabledCalled: func() bool {
-				return false
+			IsFlagEnabledCalled: func(flag common.EnableRoundFlag) bool {
+				return flag != common.SupernovaRoundFlag
 			},
 		}
 
 		args.GenesisTimeStamp = genesisTime
+		args.SupernovaGenesisTimeStamp = genesisTime.Add(10 * roundTimeDuration)
 
 		rnd, _ := round.NewRound(args)
 		oldIndex := rnd.Index()
@@ -120,8 +148,8 @@ func TestRound_UpdateRoundShouldAdvanceOneRound(t *testing.T) {
 			},
 		}
 		args.EnableRoundsHandler = &testscommon.EnableRoundsHandlerStub{
-			IsSupernovaEnabledCalled: func() bool {
-				return true
+			IsFlagEnabledCalled: func(flag common.EnableRoundFlag) bool {
+				return flag == common.SupernovaRoundFlag
 			},
 		}
 
@@ -158,6 +186,7 @@ func TestRound_TimeStampShouldReturnTimeStampOfTheNextRound(t *testing.T) {
 
 	args := createDefaultRoundArgs()
 	args.GenesisTimeStamp = genesisTime
+	args.SupernovaGenesisTimeStamp = genesisTime.Add(10 * roundTimeDuration)
 
 	rnd, _ := round.NewRound(args)
 	rnd.UpdateRound(genesisTime, genesisTime.Add(roundTimeDuration+roundTimeDuration/2))
@@ -176,6 +205,7 @@ func TestRound_UpdateRoundWithTimeDurationChange(t *testing.T) {
 
 		args := createDefaultRoundArgs()
 		args.GenesisTimeStamp = genesisTime
+		args.SupernovaGenesisTimeStamp = genesisTime.Add(10 * roundTimeDuration)
 
 		rnd, _ := round.NewRound(args)
 
@@ -227,7 +257,7 @@ func TestRound_UpdateRoundWithTimeDurationChange(t *testing.T) {
 			},
 		}
 		args.EnableRoundsHandler = &testscommon.EnableRoundsHandlerStub{
-			IsSupernovaEnabledCalled: func() bool {
+			IsFlagEnabledCalled: func(_ common.EnableRoundFlag) bool {
 				return flag.IsSet()
 			},
 		}

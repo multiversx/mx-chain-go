@@ -78,5 +78,5 @@ func IsSupernovaRoundActivated(
 		return false
 	}
 
-	return enableRoundsHandler.IsSupernovaEnabled()
+	return enableRoundsHandler.IsFlagEnabled(SupernovaRoundFlag)
 }
