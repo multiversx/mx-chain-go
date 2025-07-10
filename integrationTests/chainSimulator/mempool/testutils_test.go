@@ -15,6 +15,7 @@ import (
 	"github.com/multiversx/mx-chain-go/node/chainSimulator"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/components/api"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/dtos"
+	"github.com/multiversx/mx-chain-go/process/block/globals"
 	"github.com/multiversx/mx-chain-go/process/block/preprocess"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/txcache"
@@ -169,7 +170,7 @@ func selectTransactions(t *testing.T, simulator testsChainSimulator.ChainSimulat
 	)
 
 	mempool := poolsHolder.ShardDataStore(shardAsString).(*txcache.TxCache)
-	selectedTransactions, gas := mempool.SelectTransactions(selectionSession, options)
+	selectedTransactions, gas := mempool.SelectTransactions(selectionSession, options, globals.LatestExecutedBlockHash, globals.CurrentBlockNonce)
 	return selectedTransactions, gas
 }
 

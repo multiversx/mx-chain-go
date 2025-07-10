@@ -13,6 +13,8 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/data/headerVersionData"
+	"github.com/multiversx/mx-chain-go/process/block/globals"
+	"github.com/multiversx/mx-chain-go/process/block/preprocess"
 	logger "github.com/multiversx/mx-chain-logger-go"
 
 	"github.com/multiversx/mx-chain-go/common"
@@ -1199,6 +1201,30 @@ func (sp *shardProcessor) CommitBlock(
 	sp.blockSizeThrottler.Succeed(header.GetRound())
 
 	sp.displayPoolsInfo()
+
+	globals.LatestExecutedBlockHash = headerHash
+	globals.CurrentBlockNonce = header.GetNonce()
+
+	strCache := process.ShardCacherIdentifier(sp.shardCoordinator.SelfId(), sp.shardCoordinator.SelfId())
+	txShardPool := sp.dataPool.Transactions().ShardDataStore(strCache)
+
+	if check.IfNil(txShardPool) {
+		return process.ErrNilTxDataPool
+	}
+	txCache, isTxCache := txShardPool.(preprocess.TxCache)
+	if !isTxCache {
+		return fmt.Errorf("%w: 'txShardPool' should be of type 'TxCache'", process.ErrWrongTypeAssertion)
+	}
+
+	err = txCache.OnProposedBlock(headerHash, body, header)
+	if err != nil {
+		log.Debug("shardProcessor.CommitBlock", "err", err)
+	}
+
+	err = txCache.OnExecutedBlock(header)
+	if err != nil {
+		log.Debug("shardProcessor.CommitBlock", "err", err)
+	}
 
 	errNotCritical = sp.removeTxsFromPools(header, body)
 	if errNotCritical != nil {

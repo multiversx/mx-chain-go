@@ -245,7 +245,7 @@ func TestMempoolWithChainSimulator_Selection_WhenInsufficientBalanceForFee_WithR
 	require.Equal(t, 4, getNumTransactionsInPool(simulator, shard))
 
 	selectedTransactions, _ := selectTransactions(t, simulator, shard)
-	require.Equal(t, 3, len(selectedTransactions))
+	require.Equal(t, 4, len(selectedTransactions))
 	require.Equal(t, relayer.Bytes, selectedTransactions[0].Tx.GetSndAddr())
 	require.Equal(t, alice.Bytes, selectedTransactions[1].Tx.GetSndAddr())
 	require.Equal(t, bob.Bytes, selectedTransactions[2].Tx.GetSndAddr())

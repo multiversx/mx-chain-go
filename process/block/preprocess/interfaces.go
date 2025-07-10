@@ -11,7 +11,7 @@ import (
 
 // TxCache defines the functionality for the transactions cache
 type TxCache interface {
-	SelectTransactions(session txcache.SelectionSession, options common.TxSelectionOptions) ([]*txcache.WrappedTransaction, uint64)
+	SelectTransactions(session txcache.SelectionSession, options common.TxSelectionOptions, latestExecutedBlockHash []byte, currentBlockNonce uint64) ([]*txcache.WrappedTransaction, uint64)
 	OnProposedBlock(blockHash []byte, blockBody *block.Body, handler data.HeaderHandler) error
 	OnExecutedBlock(handler data.HeaderHandler) error
 	IsInterfaceNil() bool

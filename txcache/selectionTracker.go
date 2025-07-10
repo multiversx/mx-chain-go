@@ -161,10 +161,14 @@ func (st *selectionTracker) deriveVirtualSelectionSession(
 	log.Debug("selectionTracker.deriveVirtualSelectionSession", "rootHash", rootHash)
 
 	trackedBlocks := st.getChainOfTrackedBlocks(latestExecutedBlockHash, currentBlockNonce)
+	log.Debug("selectionTracker.deriveVirtualSelectionSession",
+		"len(trackedBlocks)", len(trackedBlocks))
+
 	virtualSession, err := st.createVirtualSelectionSession(session, trackedBlocks)
 	if err != nil {
 		return nil, err
 	}
+
 	return virtualSession, nil
 }
 
