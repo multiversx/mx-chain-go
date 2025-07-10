@@ -422,7 +422,7 @@ type TestProcessorNode struct {
 	EpochNotifier                 process.EpochNotifier
 	RoundNotifier                 process.RoundNotifier
 	EnableEpochs                  config.EnableEpochs
-	EnableRoundsHandler           process.EnableRoundsHandler
+	EnableRoundsHandler           common.EnableRoundsHandler
 	EnableEpochsHandler           common.EnableEpochsHandler
 	EpochChangeGracePeriodHandler common.EpochChangeGracePeriodHandler
 	UseValidVmBlsSigVerifier      bool

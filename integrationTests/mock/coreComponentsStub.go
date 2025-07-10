@@ -45,7 +45,7 @@ type CoreComponentsStub struct {
 	NodesShufflerField                 nodesCoordinator.NodesShuffler
 	EpochNotifierField                 process.EpochNotifier
 	RoundNotifierField                 process.RoundNotifier
-	EnableRoundsHandlerField           process.EnableRoundsHandler
+	EnableRoundsHandlerField           common.EnableRoundsHandler
 	EpochStartNotifierWithConfirmField factory.EpochStartNotifierWithConfirm
 	ChanStopNodeProcessField           chan endProcess.ArgEndProcess
 	GenesisTimeField                   time.Time
@@ -144,7 +144,7 @@ func (ccs *CoreComponentsStub) RoundNotifier() process.RoundNotifier {
 }
 
 // EnableRoundsHandler -
-func (ccs *CoreComponentsStub) EnableRoundsHandler() process.EnableRoundsHandler {
+func (ccs *CoreComponentsStub) EnableRoundsHandler() common.EnableRoundsHandler {
 	return ccs.EnableRoundsHandlerField
 }
 
