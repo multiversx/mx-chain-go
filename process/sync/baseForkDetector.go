@@ -46,18 +46,19 @@ type baseForkDetector struct {
 	fork       forkInfo
 	mutFork    sync.RWMutex
 
-	blackListHandler     process.TimeCacher
-	genesisTime          int64
-	supernovaGenesisTime int64
-	blockTracker         process.BlockTracker
-	forkDetector         forkDetector
-	genesisNonce         uint64
-	genesisRound         uint64
-	maxForkHeaderEpoch   uint32
-	genesisEpoch         uint32
-	enableEpochsHandler  common.EnableEpochsHandler
-	enableRoundsHandler  common.EnableRoundsHandler
-	proofsPool           process.ProofsPool
+	blackListHandler       process.TimeCacher
+	genesisTime            int64
+	supernovaGenesisTime   int64
+	blockTracker           process.BlockTracker
+	forkDetector           forkDetector
+	genesisNonce           uint64
+	genesisRound           uint64
+	maxForkHeaderEpoch     uint32
+	genesisEpoch           uint32
+	enableEpochsHandler    common.EnableEpochsHandler
+	enableRoundsHandler    common.EnableRoundsHandler
+	proofsPool             process.ProofsPool
+	chainParametersHandler common.ChainParametersHandler
 }
 
 // SetRollBackNonce sets the nonce where the chain should roll back
@@ -762,9 +763,11 @@ func (bfd *baseForkDetector) checkGenesisTimeForHeaderAfterSupernovaWithRoundAct
 ) error {
 	activationRound := bfd.enableRoundsHandler.GetActivationRound(common.SupernovaRoundFlag)
 
-	// current round duration as milliseconds, since we have supernova fully activated
-	// if bfd.enableRoundsHandler.GetCurrentRound() >= bfd.enableRoundsHandler.GetActivationRound(common.SupernovaRoundFlag) {
-	roundDuration := bfd.roundHandler.TimeDuration().Milliseconds()
+	chainParams, err := bfd.chainParametersHandler.ChainParametersForEpoch(headerHandler.GetEpoch())
+	if err != nil {
+		return err
+	}
+	roundDuration := int64(chainParams.RoundDuration)
 
 	roundDifference := int64(headerHandler.GetRound()) - int64(activationRound)
 	if roundDifference < 0 {

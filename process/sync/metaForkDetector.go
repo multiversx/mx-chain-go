@@ -29,8 +29,8 @@ func NewMetaForkDetector(
 	enableEpochsHandler common.EnableEpochsHandler,
 	enableRoundsHandler common.EnableRoundsHandler,
 	proofsPool process.ProofsPool,
+	chainParametersHandler common.ChainParametersHandler,
 ) (*metaForkDetector, error) {
-
 	if check.IfNil(roundHandler) {
 		return nil, process.ErrNilRoundHandler
 	}
@@ -49,6 +49,9 @@ func NewMetaForkDetector(
 	if check.IfNil(proofsPool) {
 		return nil, process.ErrNilProofsPool
 	}
+	if check.IfNil(chainParametersHandler) {
+		return nil, process.ErrNilChainParametersHandler
+	}
 
 	genesisHdr, _, err := blockTracker.GetSelfNotarizedHeader(core.MetachainShardId, 0)
 	if err != nil {
@@ -56,16 +59,17 @@ func NewMetaForkDetector(
 	}
 
 	bfd := &baseForkDetector{
-		roundHandler:        roundHandler,
-		blackListHandler:    blackListHandler,
-		genesisTime:         genesisTime,
-		blockTracker:        blockTracker,
-		genesisNonce:        genesisHdr.GetNonce(),
-		genesisRound:        genesisHdr.GetRound(),
-		genesisEpoch:        genesisHdr.GetEpoch(),
-		enableEpochsHandler: enableEpochsHandler,
-		enableRoundsHandler: enableRoundsHandler,
-		proofsPool:          proofsPool,
+		roundHandler:           roundHandler,
+		blackListHandler:       blackListHandler,
+		genesisTime:            genesisTime,
+		blockTracker:           blockTracker,
+		genesisNonce:           genesisHdr.GetNonce(),
+		genesisRound:           genesisHdr.GetRound(),
+		genesisEpoch:           genesisHdr.GetEpoch(),
+		enableEpochsHandler:    enableEpochsHandler,
+		enableRoundsHandler:    enableRoundsHandler,
+		proofsPool:             proofsPool,
+		chainParametersHandler: chainParametersHandler,
 	}
 
 	bfd.headers = make(map[uint64][]*headerInfo)
