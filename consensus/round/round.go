@@ -101,6 +101,9 @@ func (rnd *round) UpdateRound(genesisTimeStamp time.Time, currentTimeStamp time.
 
 func (rnd *round) isSupernovaActivated(currentTimeStamp time.Time) bool {
 	supernovaActivated := common.IsSupernovaRoundActivated(rnd.enableEpochsHandler, rnd.enableRoundsHandler)
+	if supernovaActivated {
+		return supernovaActivated
+	}
 
 	currentTimeAfterSupernova := currentTimeStamp.UnixMilli() > rnd.supernovaGenesisTimeStamp.UnixMilli()
 	defaultEpoch := rnd.enableEpochsHandler.GetCurrentEpoch() == 0
