@@ -826,8 +826,12 @@ func (nr *nodeRunner) createMetrics(
 	bootstrapComponents mainFactory.BootstrapComponentsHolder,
 ) error {
 
-	currentChainParameters := coreComponents.ChainParametersHandler().CurrentChainParameters()
-	err := metrics.InitMetrics(
+	chainParameters, err := coreComponents.ChainParametersHandler().ChainParametersForEpoch(bootstrapComponents.EpochBootstrapParams().Epoch())
+	if err != nil {
+		return err
+	}
+
+	err = metrics.InitMetrics(
 		statusCoreComponents.AppStatusHandler(),
 		cryptoComponents.PublicKeyString(),
 		bootstrapComponents.NodeType(),
@@ -835,7 +839,7 @@ func (nr *nodeRunner) createMetrics(
 		coreComponents.GenesisNodesSetup(),
 		nr.configs.FlagsConfig.Version,
 		nr.configs.EconomicsConfig,
-		currentChainParameters,
+		chainParameters,
 		coreComponents.MinTransactionVersion(),
 	)
 
