@@ -622,7 +622,9 @@ func (tfn *TestFullNode) createForkDetector(
 			tfn.GenesisTimeField.UnixMilli(),
 			tfn.EnableEpochsHandler,
 			tfn.EnableRoundsHandler,
-			tfn.DataPool.Proofs())
+			tfn.DataPool.Proofs(),
+			&chainParameters.ChainParametersHandlerStub{},
+		)
 	} else {
 		forkDetector, err = processSync.NewMetaForkDetector(
 			roundHandler,
@@ -632,7 +634,9 @@ func (tfn *TestFullNode) createForkDetector(
 			tfn.GenesisTimeField.UnixMilli(),
 			tfn.EnableEpochsHandler,
 			tfn.EnableRoundsHandler,
-			tfn.DataPool.Proofs())
+			tfn.DataPool.Proofs(),
+			&chainParameters.ChainParametersHandlerStub{},
+		)
 	}
 	if err != nil {
 		log.Error("error creating fork detector", "error", err)

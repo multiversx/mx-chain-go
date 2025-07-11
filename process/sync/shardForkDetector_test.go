@@ -2,18 +2,25 @@ package sync_test
 
 import (
 	"testing"
+	"time"
 
+	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/mock"
 	"github.com/multiversx/mx-chain-go/process/sync"
 	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/chainParameters"
+	"github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
 	dataRetrieverMock "github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestNewShardForkDetector_NilRoundHandlerShouldErr(t *testing.T) {
@@ -28,6 +35,7 @@ func TestNewShardForkDetector_NilRoundHandlerShouldErr(t *testing.T) {
 		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 		&testscommon.EnableRoundsHandlerStub{},
 		&dataRetrieverMock.ProofsPoolMock{},
+		&chainParameters.ChainParametersHandlerStub{},
 	)
 	assert.True(t, check.IfNil(sfd))
 	assert.Equal(t, process.ErrNilRoundHandler, err)
@@ -45,6 +53,7 @@ func TestNewShardForkDetector_NilBlackListShouldErr(t *testing.T) {
 		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 		&testscommon.EnableRoundsHandlerStub{},
 		&dataRetrieverMock.ProofsPoolMock{},
+		&chainParameters.ChainParametersHandlerStub{},
 	)
 	assert.True(t, check.IfNil(sfd))
 	assert.Equal(t, process.ErrNilBlackListCacher, err)
@@ -62,6 +71,7 @@ func TestNewShardForkDetector_NilBlockTrackerShouldErr(t *testing.T) {
 		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 		&testscommon.EnableRoundsHandlerStub{},
 		&dataRetrieverMock.ProofsPoolMock{},
+		&chainParameters.ChainParametersHandlerStub{},
 	)
 	assert.True(t, check.IfNil(sfd))
 	assert.Equal(t, process.ErrNilBlockTracker, err)
@@ -79,6 +89,7 @@ func TestNewShardForkDetector_NilEnableEpochsHandlerShouldErr(t *testing.T) {
 		nil,
 		&testscommon.EnableRoundsHandlerStub{},
 		&dataRetrieverMock.ProofsPoolMock{},
+		&chainParameters.ChainParametersHandlerStub{},
 	)
 	assert.True(t, check.IfNil(sfd))
 	assert.Equal(t, process.ErrNilEnableEpochsHandler, err)
@@ -96,6 +107,7 @@ func TestNewShardForkDetector_NilEnableRoundsHandlerShouldErr(t *testing.T) {
 		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 		nil,
 		&dataRetrieverMock.ProofsPoolMock{},
+		&chainParameters.ChainParametersHandlerStub{},
 	)
 	assert.True(t, check.IfNil(sfd))
 	assert.Equal(t, process.ErrNilEnableRoundsHandler, err)
@@ -113,6 +125,7 @@ func TestNewShardForkDetector_NilProofsPoolShouldErr(t *testing.T) {
 		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 		&testscommon.EnableRoundsHandlerStub{},
 		nil,
+		&chainParameters.ChainParametersHandlerStub{},
 	)
 	assert.True(t, check.IfNil(sfd))
 	assert.Equal(t, process.ErrNilProofsPool, err)
@@ -130,6 +143,7 @@ func TestNewShardForkDetector_OkParamsShouldWork(t *testing.T) {
 		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 		&testscommon.EnableRoundsHandlerStub{},
 		&dataRetrieverMock.ProofsPoolMock{},
+		&chainParameters.ChainParametersHandlerStub{},
 	)
 	assert.Nil(t, err)
 	assert.False(t, check.IfNil(sfd))
@@ -153,6 +167,7 @@ func TestShardForkDetector_AddHeaderNilHeaderShouldErr(t *testing.T) {
 		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 		&testscommon.EnableRoundsHandlerStub{},
 		&dataRetrieverMock.ProofsPoolMock{},
+		&chainParameters.ChainParametersHandlerStub{},
 	)
 	err := bfd.AddHeader(nil, make([]byte, 0), process.BHProcessed, nil, nil)
 	assert.Equal(t, sync.ErrNilHeader, err)
@@ -171,6 +186,7 @@ func TestShardForkDetector_AddHeaderNilHashShouldErr(t *testing.T) {
 		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 		&testscommon.EnableRoundsHandlerStub{},
 		&dataRetrieverMock.ProofsPoolMock{},
+		&chainParameters.ChainParametersHandlerStub{},
 	)
 	err := bfd.AddHeader(&block.Header{}, nil, process.BHProcessed, nil, nil)
 	assert.Equal(t, sync.ErrNilHash, err)
@@ -191,6 +207,7 @@ func TestShardForkDetector_AddHeaderNotPresentShouldWork(t *testing.T) {
 		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 		&testscommon.EnableRoundsHandlerStub{},
 		&dataRetrieverMock.ProofsPoolMock{},
+		&chainParameters.ChainParametersHandlerStub{},
 	)
 	err := bfd.AddHeader(hdr, hash, process.BHProcessed, nil, nil)
 	assert.Nil(t, err)
@@ -217,6 +234,7 @@ func TestShardForkDetector_AddHeaderPresentShouldAppend(t *testing.T) {
 		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 		&testscommon.EnableRoundsHandlerStub{},
 		&dataRetrieverMock.ProofsPoolMock{},
+		&chainParameters.ChainParametersHandlerStub{},
 	)
 	_ = bfd.AddHeader(hdr1, hash1, process.BHProcessed, nil, nil)
 	err := bfd.AddHeader(hdr2, hash2, process.BHProcessed, nil, nil)
@@ -243,6 +261,7 @@ func TestShardForkDetector_AddHeaderWithProcessedBlockShouldSetCheckpoint(t *tes
 		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 		&testscommon.EnableRoundsHandlerStub{},
 		&dataRetrieverMock.ProofsPoolMock{},
+		&chainParameters.ChainParametersHandlerStub{},
 	)
 	_ = bfd.AddHeader(hdr1, hash1, process.BHProcessed, nil, nil)
 	assert.Equal(t, hdr1.Nonce, bfd.LastCheckpointNonce())
@@ -264,6 +283,7 @@ func TestShardForkDetector_AddHeaderPresentShouldNotRewriteState(t *testing.T) {
 		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 		&testscommon.EnableRoundsHandlerStub{},
 		&dataRetrieverMock.ProofsPoolMock{},
+		&chainParameters.ChainParametersHandlerStub{},
 	)
 	_ = bfd.AddHeader(hdr1, hash, process.BHReceived, nil, nil)
 	err := bfd.AddHeader(hdr2, hash, process.BHProcessed, nil, nil)
@@ -289,8 +309,139 @@ func TestShardForkDetector_AddHeaderHigherNonceThanRoundShouldErr(t *testing.T) 
 		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 		&testscommon.EnableRoundsHandlerStub{},
 		&dataRetrieverMock.ProofsPoolMock{},
+		&chainParameters.ChainParametersHandlerStub{},
 	)
 	err := bfd.AddHeader(
 		&block.Header{Nonce: 1, Round: 0, PubKeysBitmap: []byte("X")}, []byte("hash1"), process.BHProcessed, nil, nil)
 	assert.Equal(t, sync.ErrHigherNonceInBlock, err)
+}
+
+func TestShardForkDetector_ComputeGenesisTimeFromHeader(t *testing.T) {
+	t.Parallel()
+
+	t.Run("legacy genesis time calculation", func(t *testing.T) {
+		t.Parallel()
+
+		roundDuration := uint64(100)
+		roundHandlerMock := &mock.RoundHandlerMock{
+			RoundTimeDuration: time.Duration(roundDuration) * time.Second,
+		}
+
+		genesisTime := int64(9000)
+		hdrTimeStamp := uint64(10000)
+		hdrRound := uint64(10)
+		bfd, _ := sync.NewShardForkDetector(
+			roundHandlerMock,
+			&testscommon.TimeCacheStub{},
+			&mock.BlockTrackerMock{},
+			genesisTime,
+			0,
+			&enableEpochsHandlerMock.EnableEpochsHandlerStub{
+				IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
+					return flag != common.SupernovaFlag
+				},
+			},
+			&testscommon.EnableRoundsHandlerStub{},
+			&dataRetriever.ProofsPoolMock{},
+			&chainParameters.ChainParametersHandlerStub{},
+		)
+
+		hdr1 := &block.Header{Nonce: 1, Round: hdrRound, PubKeysBitmap: []byte("X"), TimeStamp: hdrTimeStamp}
+
+		err := bfd.CheckGenesisTimeForHeader(hdr1)
+		require.Nil(t, err)
+	})
+
+	t.Run("supernova activated in epoch but not in round", func(t *testing.T) {
+		t.Parallel()
+
+		roundDuration := uint64(100)
+		roundHandlerMock := &mock.RoundHandlerMock{
+			RoundTimeDuration: time.Duration(roundDuration) * time.Second,
+		}
+
+		genesisTime := int64(9000)
+		hdrTimeStamp := uint64(10000000) // as milliseconds
+		hdrRound := uint64(10)
+		bfd, _ := sync.NewShardForkDetector(
+			roundHandlerMock,
+			&testscommon.TimeCacheStub{},
+			&mock.BlockTrackerMock{},
+			genesisTime,
+			0,
+			&enableEpochsHandlerMock.EnableEpochsHandlerStub{
+				IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
+					return flag == common.SupernovaFlag && epoch > 0
+				},
+			},
+			&testscommon.EnableRoundsHandlerStub{
+				IsFlagEnabledCalled: func(flag common.EnableRoundFlag) bool {
+					return flag != common.SupernovaRoundFlag
+				},
+			},
+			&dataRetriever.ProofsPoolMock{},
+			&chainParameters.ChainParametersHandlerStub{},
+		)
+
+		hdr1 := &block.Header{
+			Nonce:         1,
+			Round:         hdrRound,
+			Epoch:         1,
+			PubKeysBitmap: []byte("X"),
+			TimeStamp:     hdrTimeStamp,
+		}
+
+		err := bfd.CheckGenesisTimeForHeader(hdr1)
+		assert.Nil(t, err)
+	})
+
+	t.Run("supernova activated in epoch and round", func(t *testing.T) {
+		t.Parallel()
+
+		roundDuration := uint64(1000)
+		roundHandlerMock := &mock.RoundHandlerMock{
+			RoundTimeDuration: time.Duration(roundDuration) * time.Millisecond,
+		}
+
+		genesisTime := int64(900)
+		supernovaGenesisTime := int64(90000)
+		hdrTimeStamp := uint64(100000) // as milliseconds
+
+		hdrRound := uint64(20)
+		supernovaActivationRound := uint64(10)
+
+		bfd, _ := sync.NewShardForkDetector(
+			roundHandlerMock,
+			&testscommon.TimeCacheStub{},
+			&mock.BlockTrackerMock{},
+			genesisTime,
+			supernovaGenesisTime,
+			&enableEpochsHandlerMock.EnableEpochsHandlerStub{
+				IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
+					return flag == common.SupernovaFlag
+				},
+			},
+			&testscommon.EnableRoundsHandlerStub{
+				IsFlagEnabledInRoundCalled: func(flag common.EnableRoundFlag, round uint64) bool {
+					return flag == common.SupernovaRoundFlag
+				},
+				GetActivationRoundCalled: func(flag common.EnableRoundFlag) uint64 {
+					return supernovaActivationRound
+				},
+			},
+			&dataRetriever.ProofsPoolMock{},
+			&chainParameters.ChainParametersHandlerStub{
+				ChainParametersForEpochCalled: func(epoch uint32) (config.ChainParametersByEpochConfig, error) {
+					return config.ChainParametersByEpochConfig{
+						RoundDuration: roundDuration,
+					}, nil
+				},
+			},
+		)
+
+		hdr1 := &block.Header{Nonce: 1, Round: hdrRound, PubKeysBitmap: []byte("X"), TimeStamp: hdrTimeStamp}
+
+		err := bfd.CheckGenesisTimeForHeader(hdr1)
+		require.Nil(t, err)
+	})
 }
