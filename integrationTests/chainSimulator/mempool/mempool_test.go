@@ -245,6 +245,13 @@ func TestMempoolWithChainSimulator_Selection_WhenInsufficientBalanceForFee_WithR
 	require.Equal(t, 4, getNumTransactionsInPool(simulator, shard))
 
 	selectedTransactions, _ := selectTransactions(t, simulator, shard)
+	// !!!!!!!!
+	// This was modified because there isn't any real integration of Selection Tracker.
+	// Before we had the consumedBalance for each account record.
+	// At the moment, we don't have real params for deriveVirtualSelectionSession, which means that:
+	// we have 0 blocks in our return of chainOfTrackedBlocks and we dont have virtual records - we always use the account state from non-virtual session
+	// TODO Should be re-check after real supernova. See MX-17033
+	// !!!!!!!!
 	require.Equal(t, 4, len(selectedTransactions))
 	require.Equal(t, relayer.Bytes, selectedTransactions[0].Tx.GetSndAddr())
 	require.Equal(t, alice.Bytes, selectedTransactions[1].Tx.GetSndAddr())

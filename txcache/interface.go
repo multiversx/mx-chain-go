@@ -25,6 +25,7 @@ type SelectionSession interface {
 // ForEachTransaction is an iterator callback
 type ForEachTransaction func(txHash []byte, value *WrappedTransaction)
 
+// CacheForTracker provides the TxCache methods used in SelectionTracker
 type CacheForTracker interface {
 	GetByTxHash(txHash []byte) (*WrappedTransaction, bool)
 	IsInterfaceNil() bool

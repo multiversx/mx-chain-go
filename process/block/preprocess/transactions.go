@@ -17,7 +17,6 @@ import (
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/common/holders"
 	"github.com/multiversx/mx-chain-go/config"
-	"github.com/multiversx/mx-chain-go/process/block/globals"
 	"github.com/multiversx/mx-chain-go/txcache"
 	logger "github.com/multiversx/mx-chain-logger-go"
 
@@ -1452,7 +1451,7 @@ func (txs *transactions) computeSortedTxs(
 		txs.txCacheSelectionConfig.SelectionLoopDurationCheckInterval,
 	)
 
-	sortedTxs, _ := txCache.SelectTransactions(session, selectionOptions, globals.LatestExecutedBlockHash, globals.CurrentBlockNonce)
+	sortedTxs, _ := txCache.SelectTransactions(session, selectionOptions)
 	selectedTxs, remainingTxs := txs.preFilterTransactionsWithMoveBalancePriority(sortedTxs, gasBandwidth)
 	txs.sortTransactionsBySenderAndNonce(selectedTxs, randomness)
 

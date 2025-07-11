@@ -256,7 +256,7 @@ func Test_isIncorrectlyGuarded(t *testing.T) {
 	})
 }
 
-func TestBenchmarkSelectionSessionWrapper_getNonce(t *testing.T) {
+func TestBenchmarkVirtualSelectionSession_getNonce(t *testing.T) {
 	sw := core.NewStopWatch()
 
 	t.Run("numAccounts = 300, numTransactionsPerAccount = 100", func(t *testing.T) {
@@ -349,14 +349,14 @@ func TestBenchmarkSelectionSessionWrapper_getNonce(t *testing.T) {
 
 	// (1)
 	// Vendor ID:                GenuineIntel
-	//   Model name:             11th Gen Intel(R) Core(TM) i7-1165G7 @ 2.80GHz
+	//   Model name:             13th Gen Intel(R) Core(TM) i7-13700H
 	//     CPU family:           6
-	//     Model:                140
+	//     Model:                186
 	//     Thread(s) per core:   2
-	//     Core(s) per socket:   4
+	//     Core(s) per socket:   14
 	//
-	// Session wrapper operations should have a negligible (or small) impact on the performance!
-	// 0.000826s (TestBenchmarkSelectionSessionWrapper_getNonce/_numAccounts_=_300,_numTransactionsPerAccount=_100)
-	// 0.003263s (TestBenchmarkSelectionSessionWrapper_getNonce/_numAccounts_=_10_000,_numTransactionsPerAccount=_3)
-	// 0.010291s (TestBenchmarkSelectionSessionWrapper_getNonce/_numAccounts_=_30_000,_numTransactionsPerAccount=_1)
+	// VirtualSelectionSession operations should have a negligible (or small) impact on the performance!
+	// 0.017192s (TestBenchmarkVirtualSelectionSession_getNonce/_numAccounts_=_300,_numTransactionsPerAccount=_100)
+	// 0.014339s (TestBenchmarkVirtualSelectionSession_getNonce/_numAccounts_=_10_000,_numTransactionsPerAccount=_3)
+	// 0.016068s (TestBenchmarkVirtualSelectionSession_getNonce/_numAccounts_=_30_000,_numTransactionsPerAccount=_1)
 }

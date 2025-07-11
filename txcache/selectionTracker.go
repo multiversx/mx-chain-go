@@ -164,12 +164,7 @@ func (st *selectionTracker) deriveVirtualSelectionSession(
 	log.Debug("selectionTracker.deriveVirtualSelectionSession",
 		"len(trackedBlocks)", len(trackedBlocks))
 
-	virtualSession, err := st.createVirtualSelectionSession(session, trackedBlocks)
-	if err != nil {
-		return nil, err
-	}
-
-	return virtualSession, nil
+	return st.createVirtualSelectionSession(session, trackedBlocks)
 }
 
 func (st *selectionTracker) getChainOfTrackedBlocks(latestExecutedBlockHash []byte, beforeNonce uint64) []*trackedBlock {

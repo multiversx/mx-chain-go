@@ -108,7 +108,7 @@ func (cache *TxCache) GetByTxHash(txHash []byte) (*WrappedTransaction, bool) {
 
 // SelectTransactions selects the best transactions to be included in the next miniblock.
 // It returns up to "options.maxNumTxs" transactions, with total gas <= "options.gasRequested".
-func (cache *TxCache) SelectTransactions(session SelectionSession, options common.TxSelectionOptions, latestExecutedBlockHash []byte, currentBlockNonce uint64) ([]*WrappedTransaction, uint64) {
+func (cache *TxCache) SelectTransactions(session SelectionSession, options common.TxSelectionOptions) ([]*WrappedTransaction, uint64) {
 	if check.IfNil(session) {
 		log.Error("TxCache.SelectTransactions", "err", errNilSelectionSession)
 		return nil, 0
@@ -131,7 +131,7 @@ func (cache *TxCache) SelectTransactions(session SelectionSession, options commo
 		"num senders", cache.CountSenders(),
 	)
 
-	virtualSession, err := cache.tracker.deriveVirtualSelectionSession(session, latestExecutedBlockHash, currentBlockNonce)
+	virtualSession, err := cache.tracker.deriveVirtualSelectionSession(session, nil, 0)
 	if err != nil {
 		log.Error("TxCache.SelectTransactions", "err", err)
 		return nil, 0
@@ -153,10 +153,12 @@ func (cache *TxCache) SelectTransactions(session SelectionSession, options commo
 	return transactions, accumulatedGas
 }
 
+// OnProposedBlock calls the OnProposedBlock method from SelectionTracker
 func (cache *TxCache) OnProposedBlock(blockHash []byte, blockBody *block.Body, handler data.HeaderHandler) error {
 	return cache.tracker.OnProposedBlock(blockHash, blockBody, handler)
 }
 
+// OnExecutedBlock calls the OnExecutedBlock method from SelectionTracker
 func (cache *TxCache) OnExecutedBlock(handler data.HeaderHandler) error {
 	return cache.tracker.OnExecutedBlock(handler)
 }
