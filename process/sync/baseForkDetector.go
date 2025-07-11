@@ -790,7 +790,7 @@ func (bfd *baseForkDetector) checkGenesisTimeForHeaderAfterSupernovaWithRoundAct
 	)
 
 	if genesisTime != bfd.supernovaGenesisTime {
-		log.Error("checkGenesisTimeForHeaderAfterSupernovaWithRoundActivation: genesis time missmatch",
+		log.Error("checkGenesisTimeForHeaderAfterSupernovaWithRoundActivation: genesis time mismatch",
 			"localGenesisTime", bfd.supernovaGenesisTime,
 			"calculatedGenesisTime", genesisTime,
 			"header timestamp", headerHandler.GetTimeStamp(),
