@@ -7,10 +7,10 @@ import (
 	"github.com/multiversx/mx-chain-go/common"
 )
 
-func (cache *TxCache) doSelectTransactions(session SelectionSession, options common.TxSelectionOptions) (bunchOfTransactions, uint64) {
+func (cache *TxCache) doSelectTransactions(virtualSession *virtualSelectionSession, options common.TxSelectionOptions) (bunchOfTransactions, uint64) {
 	bunches := cache.acquireBunchesOfTransactions()
 
-	return selectTransactionsFromBunches(session, bunches, options)
+	return selectTransactionsFromBunches(virtualSession, bunches, options)
 }
 
 func (cache *TxCache) acquireBunchesOfTransactions() []bunchOfTransactions {
@@ -26,7 +26,7 @@ func (cache *TxCache) acquireBunchesOfTransactions() []bunchOfTransactions {
 
 // Selection tolerates concurrent transaction additions / removals.
 func selectTransactionsFromBunches(
-	session SelectionSession,
+	virtualSession *virtualSelectionSession,
 	bunches []bunchOfTransactions,
 	options common.TxSelectionOptions,
 ) (bunchOfTransactions, uint64) {
@@ -44,7 +44,6 @@ func selectTransactionsFromBunches(
 	)
 
 	selectedTransactions := make(bunchOfTransactions, 0, initialCapacityOfSelectionSlice)
-	sessionWrapper := newSelectionSessionWrapper(session)
 
 	// Items popped from the heap are added to "selectedTransactions".
 	transactionsHeap := newMaxTransactionsHeap(len(bunches))
@@ -83,19 +82,18 @@ func selectTransactionsFromBunches(
 			}
 		}
 
-		shouldSkipSender := detectSkippableSender(sessionWrapper, item)
+		shouldSkipSender := detectSkippableSender(virtualSession, item)
 		if shouldSkipSender {
 			// Item was popped from the heap, but not used downstream.
 			// Therefore, the sender is completely ignored (from now on) in the current selection session.
 			continue
 		}
 
-		shouldSkipTransaction := detectSkippableTransaction(sessionWrapper, item)
+		shouldSkipTransaction := detectSkippableTransaction(virtualSession, item)
 		if !shouldSkipTransaction {
 			accumulatedGas += gasLimit
 			selectedTransaction := item.selectCurrentTransaction()
 			selectedTransactions = append(selectedTransactions, selectedTransaction)
-			sessionWrapper.accumulateConsumedBalance(selectedTransaction)
 		}
 
 		// If there are more transactions in the same bunch (same sender as the popped item),
@@ -111,29 +109,37 @@ func selectTransactionsFromBunches(
 
 // Note (future micro-optimization): we can merge "detectSkippableSender()" and "detectSkippableTransaction()" into a single function,
 // any share the result of "sessionWrapper.getNonce()".
-func detectSkippableSender(sessionWrapper *selectionSessionWrapper, item *transactionsHeapItem) bool {
-	nonce := sessionWrapper.getNonce(item.sender)
-
+func detectSkippableSender(virtualSession *virtualSelectionSession, item *transactionsHeapItem) bool {
+	nonce, err := virtualSession.getNonce(item.sender)
+	if err != nil {
+		log.Debug("detectSkippableSender",
+			"err", err)
+		return false
+	}
 	if item.detectInitialGap(nonce) {
 		return true
 	}
 	if item.detectMiddleGap() {
 		return true
 	}
-	if sessionWrapper.detectWillFeeExceedBalance(item.currentTransaction) {
+	if virtualSession.detectWillFeeExceedBalance(item.currentTransaction) {
 		return true
 	}
 
 	return false
 }
 
-func detectSkippableTransaction(sessionWrapper *selectionSessionWrapper, item *transactionsHeapItem) bool {
-	nonce := sessionWrapper.getNonce(item.sender)
-
+func detectSkippableTransaction(virtualSession *virtualSelectionSession, item *transactionsHeapItem) bool {
+	nonce, err := virtualSession.getNonce(item.sender)
+	if err != nil {
+		log.Debug("detectSkippableTransaction",
+			"err", err)
+		return false
+	}
 	if item.detectLowerNonce(nonce) {
 		return true
 	}
-	if item.detectIncorrectlyGuarded(sessionWrapper) {
+	if item.detectIncorrectlyGuarded(virtualSession) {
 		return true
 	}
 	if item.detectNonceDuplicate() {
