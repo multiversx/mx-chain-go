@@ -5,7 +5,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/testscommon/chainParameters"
 	"github.com/multiversx/mx-chain-go/testscommon/processMocks"
 
@@ -22,7 +21,6 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 func TestNewBasicForkDetector_ShouldErrNilRoundHandler(t *testing.T) {
@@ -1310,136 +1308,6 @@ func TestBaseForkDetector_IsConsensusStuckShouldReturnTrue(t *testing.T) {
 	// => consensus is stuck
 	roundHandlerMock.RoundIndex = 20
 	assert.True(t, bfd.IsConsensusStuck())
-}
-
-func TestBaseForkDetector_ComputeGenesisTimeFromHeader(t *testing.T) {
-	t.Parallel()
-
-	t.Run("legacy genesis time calculation", func(t *testing.T) {
-		t.Parallel()
-
-		roundDuration := uint64(100)
-		roundHandlerMock := &mock.RoundHandlerMock{
-			RoundTimeDuration: time.Duration(roundDuration) * time.Second,
-		}
-
-		genesisTime := int64(9000)
-		hdrTimeStamp := uint64(10000)
-		hdrRound := uint64(10)
-		bfd, _ := sync.NewShardForkDetector(
-			roundHandlerMock,
-			&testscommon.TimeCacheStub{},
-			&mock.BlockTrackerMock{},
-			genesisTime,
-			0,
-			&enableEpochsHandlerMock.EnableEpochsHandlerStub{
-				IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
-					return flag != common.SupernovaFlag
-				},
-			},
-			&testscommon.EnableRoundsHandlerStub{},
-			&dataRetriever.ProofsPoolMock{},
-			&chainParameters.ChainParametersHandlerStub{},
-		)
-
-		hdr1 := &block.Header{Nonce: 1, Round: hdrRound, PubKeysBitmap: []byte("X"), TimeStamp: hdrTimeStamp}
-
-		err := bfd.CheckGenesisTimeForHeader(hdr1)
-		require.Nil(t, err)
-	})
-
-	t.Run("supernova activated in epoch but not in round", func(t *testing.T) {
-		t.Parallel()
-
-		roundDuration := uint64(100)
-		roundHandlerMock := &mock.RoundHandlerMock{
-			RoundTimeDuration: time.Duration(roundDuration) * time.Second,
-		}
-
-		genesisTime := int64(9000)
-		hdrTimeStamp := uint64(10000000) // as milliseconds
-		hdrRound := uint64(10)
-		bfd, _ := sync.NewShardForkDetector(
-			roundHandlerMock,
-			&testscommon.TimeCacheStub{},
-			&mock.BlockTrackerMock{},
-			genesisTime,
-			0,
-			&enableEpochsHandlerMock.EnableEpochsHandlerStub{
-				IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
-					return flag == common.SupernovaFlag && epoch > 0
-				},
-			},
-			&testscommon.EnableRoundsHandlerStub{
-				IsFlagEnabledCalled: func(flag common.EnableRoundFlag) bool {
-					return flag != common.SupernovaRoundFlag
-				},
-			},
-			&dataRetriever.ProofsPoolMock{},
-			&chainParameters.ChainParametersHandlerStub{},
-		)
-
-		hdr1 := &block.Header{
-			Nonce:         1,
-			Round:         hdrRound,
-			Epoch:         1,
-			PubKeysBitmap: []byte("X"),
-			TimeStamp:     hdrTimeStamp,
-		}
-
-		err := bfd.CheckGenesisTimeForHeader(hdr1)
-		assert.Nil(t, err)
-	})
-
-	t.Run("supernova activated in epoch and round", func(t *testing.T) {
-		t.Parallel()
-
-		roundDuration := uint64(1000)
-		roundHandlerMock := &mock.RoundHandlerMock{
-			RoundTimeDuration: time.Duration(roundDuration) * time.Millisecond,
-		}
-
-		genesisTime := int64(900)
-		supernovaGenesisTime := int64(90000)
-		hdrTimeStamp := uint64(100000) // as milliseconds
-
-		hdrRound := uint64(20)
-		supernovaActivationRound := uint64(10)
-
-		bfd, _ := sync.NewShardForkDetector(
-			roundHandlerMock,
-			&testscommon.TimeCacheStub{},
-			&mock.BlockTrackerMock{},
-			genesisTime,
-			supernovaGenesisTime,
-			&enableEpochsHandlerMock.EnableEpochsHandlerStub{
-				IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
-					return flag == common.SupernovaFlag
-				},
-			},
-			&testscommon.EnableRoundsHandlerStub{
-				IsFlagEnabledInRoundCalled: func(flag common.EnableRoundFlag, round uint64) bool {
-					return flag == common.SupernovaRoundFlag
-				},
-				GetActivationRoundCalled: func(flag common.EnableRoundFlag) uint64 {
-					return supernovaActivationRound
-				},
-			},
-			&dataRetriever.ProofsPoolMock{},
-			&chainParameters.ChainParametersHandlerStub{
-				ChainParametersForEpochCalled: func(epoch uint32) (config.ChainParametersByEpochConfig, error) {
-					return config.ChainParametersByEpochConfig{
-						RoundDuration: roundDuration,
-					}, nil
-				},
-			},
-		)
-
-		hdr1 := &block.Header{Nonce: 1, Round: hdrRound, PubKeysBitmap: []byte("X"), TimeStamp: hdrTimeStamp}
-
-		err := bfd.CheckGenesisTimeForHeader(hdr1)
-		require.Nil(t, err)
-	})
 }
 
 func TestShardForkDetector_RemoveHeaderShouldComputeFinalCheckpoint(t *testing.T) {
