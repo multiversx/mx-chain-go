@@ -22,18 +22,19 @@ import (
 )
 
 const (
-	sendTransactionEndpoint          = "/transaction/send"
-	simulateTransactionEndpoint      = "/transaction/simulate"
-	sendMultipleTransactionsEndpoint = "/transaction/send-multiple"
-	getTransactionEndpoint           = "/transaction/:hash"
-	getScrsByTxHashEndpoint          = "/transaction/scrs-by-tx-hash/:txhash"
-	sendTransactionPath              = "/send"
-	simulateTransactionPath          = "/simulate"
-	costPath                         = "/cost"
-	sendMultiplePath                 = "/send-multiple"
-	getTransactionPath               = "/:txhash"
-	getScrsByTxHashPath              = "/scrs-by-tx-hash/:txhash"
-	getTransactionsPool              = "/pool"
+	sendTransactionEndpoint           = "/transaction/send"
+	simulateTransactionEndpoint       = "/transaction/simulate"
+	sendMultipleTransactionsEndpoint  = "/transaction/send-multiple"
+	getTransactionEndpoint            = "/transaction/:hash"
+	getScrsByTxHashEndpoint           = "/transaction/scrs-by-tx-hash/:txhash"
+	sendTransactionPath               = "/send"
+	simulateTransactionPath           = "/simulate"
+	costPath                          = "/cost"
+	sendMultiplePath                  = "/send-multiple"
+	getTransactionPath                = "/:txhash"
+	getScrsByTxHashPath               = "/scrs-by-tx-hash/:txhash"
+	getTransactionsPoolPath           = "/pool"
+	buildTransactionsPPUHistogramPath = "/pool/ppu-histogram"
 
 	queryParamWithResults    = "withResults"
 	queryParamCheckSignature = "checkSignature"
@@ -57,6 +58,7 @@ type transactionFacadeHandler interface {
 	GetTransactionsPoolForSender(sender, fields string) (*common.TransactionsPoolForSenderApiResponse, error)
 	GetLastPoolNonceForSender(sender string) (uint64, error)
 	GetTransactionsPoolNonceGapsForSender(sender string) (*common.TransactionsPoolNonceGapsForSenderApiResponse, error)
+	BuildTransactionsPPUHistogram() (*common.TransactionsPPUHistogram, error)
 	ComputeTransactionGasLimit(tx *transaction.Transaction) (*transaction.CostResponse, error)
 	EncodeAddressPubkey(pk []byte) (string, error)
 	GetThrottlerForEndpoint(endpoint string) (core.Throttler, bool)
@@ -109,9 +111,20 @@ func NewTransactionGroup(facade transactionFacadeHandler) (*transactionGroup, er
 			Handler: tg.computeTransactionGasLimit,
 		},
 		{
-			Path:    getTransactionsPool,
+			Path:    getTransactionsPoolPath,
 			Method:  http.MethodGet,
 			Handler: tg.getTransactionsPool,
+			AdditionalMiddlewares: []shared.AdditionalMiddleware{
+				{
+					Middleware: middleware.CreateEndpointThrottlerFromFacade(getTransactionPath, facade),
+					Position:   shared.Before,
+				},
+			},
+		},
+		{
+			Path:    buildTransactionsPPUHistogramPath,
+			Method:  http.MethodPost,
+			Handler: tg.buildTransactionsPPUHistogram,
 			AdditionalMiddlewares: []shared.AdditionalMiddleware{
 				{
 					Middleware: middleware.CreateEndpointThrottlerFromFacade(getTransactionPath, facade),
@@ -712,6 +725,31 @@ func (tg *transactionGroup) getTransactionsPoolNonceGapsForSender(sender string,
 		http.StatusOK,
 		shared.GenericAPIResponse{
 			Data:  gin.H{"nonceGaps": gaps},
+			Error: "",
+			Code:  shared.ReturnCodeSuccess,
+		},
+	)
+}
+
+// buildTransactionsPPUHistogram builds the PPU histogram for transactions in the pool
+func (tg *transactionGroup) buildTransactionsPPUHistogram(c *gin.Context) {
+	histogram, err := tg.getFacade().BuildTransactionsPPUHistogram()
+	if err != nil {
+		c.JSON(
+			http.StatusInternalServerError,
+			shared.GenericAPIResponse{
+				Data:  nil,
+				Error: err.Error(),
+				Code:  shared.ReturnCodeInternalError,
+			},
+		)
+		return
+	}
+
+	c.JSON(
+		http.StatusOK,
+		shared.GenericAPIResponse{
+			Data:  gin.H{"histogram": histogram},
 			Error: "",
 			Code:  shared.ReturnCodeSuccess,
 		},
