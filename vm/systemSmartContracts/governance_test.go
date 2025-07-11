@@ -1167,8 +1167,28 @@ func TestGovernanceContract_DelegateVoteMoreErrors(t *testing.T) {
 	require.Equal(t, vmcommon.UserError, retCode)
 	require.True(t, strings.Contains(eei.GetReturnMessage(), "double vote is not allowed"))
 
+	callInput.Arguments[0] = []byte("01")
+	retCode = gsc.Execute(callInput)
+	require.Equal(t, vmcommon.UserError, retCode)
+	require.True(t, strings.Contains(eei.GetReturnMessage(), "double vote is not allowed"))
+
 	addStakeAndDelegationForAddress(gsc, vm.FirstDelegationSCAddress)
 	callInput.CallerAddr = vm.FirstDelegationSCAddress
+	retCode = gsc.Execute(callInput)
+	require.Equal(t, vmcommon.UserError, retCode)
+	require.True(t, strings.Contains(eei.GetReturnMessage(), "double vote is not allowed"))
+
+	callInput.Arguments[0] = []byte("01")
+	retCode = gsc.Execute(callInput)
+	require.Equal(t, vmcommon.UserError, retCode)
+	require.True(t, strings.Contains(eei.GetReturnMessage(), "double vote is not allowed"))
+
+	callInput.Arguments[0] = []byte("001")
+	retCode = gsc.Execute(callInput)
+	require.Equal(t, vmcommon.UserError, retCode)
+	require.True(t, strings.Contains(eei.GetReturnMessage(), "double vote is not allowed"))
+
+	callInput.Arguments[0] = []byte("0001")
 	retCode = gsc.Execute(callInput)
 	require.Equal(t, vmcommon.UserError, retCode)
 	require.True(t, strings.Contains(eei.GetReturnMessage(), "double vote is not allowed"))

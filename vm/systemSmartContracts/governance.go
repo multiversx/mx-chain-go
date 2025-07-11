@@ -403,7 +403,7 @@ func (g *governanceContract) vote(args *vmcommon.ContractCallInput) vmcommon.Ret
 	}
 
 	voterAddress := args.CallerAddr
-	proposalToVote := args.Arguments[0]
+	proposalToVote := big.NewInt(0).SetBytes(args.Arguments[0]).Bytes()
 	totalStake, totalVotingPower, err := g.computeTotalStakeAndVotingPower(voterAddress)
 	if err != nil {
 		g.eei.AddReturnMessage(err.Error())
@@ -463,7 +463,7 @@ func (g *governanceContract) delegateVote(args *vmcommon.ContractCallInput) vmco
 		return vmcommon.UserError
 	}
 
-	proposalToVote := args.Arguments[0]
+	proposalToVote := big.NewInt(0).SetBytes(args.Arguments[0]).Bytes()
 	userStake := big.NewInt(0).SetBytes(args.Arguments[3])
 
 	scDelegatedVoteInfo, votePower, err := g.computeDelegatedVotePower(args.CallerAddr, proposalToVote, userStake)
