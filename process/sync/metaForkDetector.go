@@ -62,6 +62,7 @@ func NewMetaForkDetector(
 		roundHandler:           roundHandler,
 		blackListHandler:       blackListHandler,
 		genesisTime:            genesisTime,
+		supernovaGenesisTime:   supernovaGenesisTime,
 		blockTracker:           blockTracker,
 		genesisNonce:           genesisHdr.GetNonce(),
 		genesisRound:           genesisHdr.GetRound(),
