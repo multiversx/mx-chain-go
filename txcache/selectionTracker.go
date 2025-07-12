@@ -164,7 +164,8 @@ func (st *selectionTracker) deriveVirtualSelectionSession(
 	log.Debug("selectionTracker.deriveVirtualSelectionSession",
 		"len(trackedBlocks)", len(trackedBlocks))
 
-	return st.createVirtualSelectionSession(session, trackedBlocks)
+	provider := newVirtualSessionProvider(session)
+	return provider.createVirtualSelectionSession(trackedBlocks)
 }
 
 func (st *selectionTracker) getChainOfTrackedBlocks(latestExecutedBlockHash []byte, beforeNonce uint64) []*trackedBlock {
@@ -189,29 +190,4 @@ func (st *selectionTracker) findNextBlock(previousHash []byte) *trackedBlock {
 	}
 
 	return nil
-}
-
-// TODO use a virtual selection session provider
-func (st *selectionTracker) createVirtualSelectionSession(
-	session SelectionSession,
-	chainOfTrackedBlocks []*trackedBlock,
-) (*virtualSelectionSession, error) {
-	virtualAccountsByAddress := make(map[string]*virtualAccountRecord)
-
-	skippedSenders := make(map[string]struct{})
-	sendersInContinuityWithSessionNonce := make(map[string]struct{})
-	accountPreviousBreadcrumb := make(map[string]*accountBreadcrumb)
-
-	for _, tb := range chainOfTrackedBlocks {
-		err := tb.createOrUpdateVirtualRecords(session, skippedSenders,
-			sendersInContinuityWithSessionNonce, accountPreviousBreadcrumb, virtualAccountsByAddress)
-
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	virtualSession := newVirtualSelectionSession(session)
-	virtualSession.virtualAccountsByAddress = virtualAccountsByAddress
-	return virtualSession, nil
 }
