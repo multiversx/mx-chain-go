@@ -6,8 +6,8 @@ import (
 	"testing"
 
 	"github.com/multiversx/mx-chain-core-go/core"
-	state2 "github.com/multiversx/mx-chain-go/state"
-	"github.com/multiversx/mx-chain-go/testscommon/state"
+	"github.com/multiversx/mx-chain-go/state"
+	testscommonState "github.com/multiversx/mx-chain-go/testscommon/state"
 	"github.com/multiversx/mx-chain-go/testscommon/txcachemocks"
 	"github.com/stretchr/testify/require"
 )
@@ -15,7 +15,7 @@ import (
 func Test_handleAccountBreadcrumb(t *testing.T) {
 	t.Parallel()
 
-	userAccountMock := state.StateUserAccountHandlerStub{
+	userAccountMock := testscommonState.StateUserAccountHandlerStub{
 		GetBalanceCalled: func() *big.Int {
 			return big.NewInt(2)
 		},
@@ -44,8 +44,8 @@ func Test_handleAccountBreadcrumb(t *testing.T) {
 	}
 
 	sessionMock := txcachemocks.SelectionSessionMock{
-		GetAccountStateCalled: func(address []byte) (state2.UserAccountHandler, error) {
-			return &state.StateUserAccountHandlerStub{
+		GetAccountStateCalled: func(address []byte) (state.UserAccountHandler, error) {
+			return &testscommonState.StateUserAccountHandlerStub{
 				GetBalanceCalled: func() *big.Int {
 					return big.NewInt(2)
 				},
@@ -68,8 +68,8 @@ func Test_createVirtualSelectionSession(t *testing.T) {
 
 	t.Run("should work", func(t *testing.T) {
 		sessionMock := txcachemocks.SelectionSessionMock{
-			GetAccountStateCalled: func(address []byte) (state2.UserAccountHandler, error) {
-				return &state.StateUserAccountHandlerStub{
+			GetAccountStateCalled: func(address []byte) (state.UserAccountHandler, error) {
+				return &testscommonState.StateUserAccountHandlerStub{
 					GetBalanceCalled: func() *big.Int {
 						return big.NewInt(2)
 					},
@@ -195,7 +195,7 @@ func Test_handleTrackedBlock(t *testing.T) {
 
 		expErr := errors.New("error")
 		sessionMock := txcachemocks.SelectionSessionMock{
-			GetAccountStateCalled: func(address []byte) (state2.UserAccountHandler, error) {
+			GetAccountStateCalled: func(address []byte) (state.UserAccountHandler, error) {
 				return nil, expErr
 			},
 		}
@@ -235,8 +235,8 @@ func Test_handleTrackedBlock(t *testing.T) {
 		}
 
 		sessionMock := txcachemocks.SelectionSessionMock{
-			GetAccountStateCalled: func(address []byte) (state2.UserAccountHandler, error) {
-				return &state.StateUserAccountHandlerStub{
+			GetAccountStateCalled: func(address []byte) (state.UserAccountHandler, error) {
+				return &testscommonState.StateUserAccountHandlerStub{
 					GetBalanceCalled: func() *big.Int {
 						return big.NewInt(2)
 					},
@@ -302,8 +302,8 @@ func Test_handleTrackedBlock(t *testing.T) {
 		}
 
 		sessionMock := txcachemocks.SelectionSessionMock{
-			GetAccountStateCalled: func(address []byte) (state2.UserAccountHandler, error) {
-				return &state.StateUserAccountHandlerStub{
+			GetAccountStateCalled: func(address []byte) (state.UserAccountHandler, error) {
+				return &testscommonState.StateUserAccountHandlerStub{
 					GetBalanceCalled: func() *big.Int {
 						return big.NewInt(2)
 					},
