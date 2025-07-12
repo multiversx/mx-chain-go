@@ -30,7 +30,7 @@ func (provider *virtualSessionProvider) handleTrackedBlock(tb *trackedBlock) err
 		// TODO make sure that the accounts which don't yet exist are properly handled
 		accountState, err := provider.session.GetAccountState([]byte(address))
 		if err != nil {
-			log.Debug("trackedBlock.createOrUpdateVirtualRecords",
+			log.Debug("virtualSessionProvider.handleTrackedBlock",
 				"err", err)
 			return err
 		}
@@ -76,7 +76,7 @@ func (provider *virtualSessionProvider) continuousBreadcrumb(
 	_, ok := provider.sendersInContinuityWithSessionNonce[address]
 	continuousWithSessionNonce := breadcrumb.verifyContinuityWithSessionNonce(accountNonce)
 	if !ok && !continuousWithSessionNonce {
-		log.Debug("accountBreadcrumb.isContinuous breadcrumb not continuous with session nonce",
+		log.Debug("virtualSessionProvider.continuousBreadcrumb breadcrumb not continuous with session nonce",
 			"address", address,
 			"accountNonce", accountNonce,
 			"breadcrumb nonce", breadcrumb.initialNonce)
@@ -89,7 +89,7 @@ func (provider *virtualSessionProvider) continuousBreadcrumb(
 	previousBreadcrumb := provider.accountPreviousBreadcrumb[address]
 	continuousBreadcrumbs := breadcrumb.verifyContinuityBetweenAccountBreadcrumbs(previousBreadcrumb)
 	if !continuousBreadcrumbs {
-		log.Debug("accountBreadcrumb.isContinuous breadcrumb not continuous with previous breadcrumb",
+		log.Debug("virtualSessionProvider.continuousBreadcrumb breadcrumb not continuous with previous breadcrumb",
 			"address", address,
 			"accountNonce", accountNonce,
 			"current breadcrumb nonce", breadcrumb.initialNonce,
