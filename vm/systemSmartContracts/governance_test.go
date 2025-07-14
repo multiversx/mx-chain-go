@@ -343,6 +343,7 @@ func TestGovernanceContract_ChangeConfig(t *testing.T) {
 	t.Parallel()
 
 	args := createMockGovernanceArgs()
+	errorMsg := ""
 	args.Eei = &mock.SystemEIStub{
 		BlockChainHookCalled: func() vm.BlockchainHook {
 			return &mock.BlockChainHookStub{
@@ -362,6 +363,9 @@ func TestGovernanceContract_ChangeConfig(t *testing.T) {
 
 			return nil
 		},
+		AddReturnMessageCalled: func(msg string) {
+			errorMsg = msg
+		},
 	}
 
 	gsc, _ := NewGovernanceContract(args)
@@ -371,14 +375,18 @@ func TestGovernanceContract_ChangeConfig(t *testing.T) {
 		[]byte("1"),
 		[]byte("10"),
 		[]byte("10"),
-		[]byte("15"),
+		[]byte("5001"),
 	}
 	initInput := createVMInput(zero, "initV2", vm.GovernanceSCAddress, vm.GovernanceSCAddress, nil)
 	_ = gsc.Execute(initInput)
 	callInput := createVMInput(zero, "changeConfig", args.OwnerAddress, vm.GovernanceSCAddress, callInputArgs)
 	retCode := gsc.Execute(callInput)
-
 	require.Equal(t, vmcommon.Ok, retCode)
+
+	callInputArgs[4] = []byte("300")
+	retCode = gsc.Execute(callInput)
+	require.Equal(t, vmcommon.UserError, retCode)
+	require.Equal(t, errorMsg, "min pass should be higher than 50%")
 }
 
 func TestGovernanceContract_ChangeConfigOutOfGas(t *testing.T) {
@@ -391,7 +399,7 @@ func TestGovernanceContract_ChangeConfigOutOfGas(t *testing.T) {
 		[]byte("1"),
 		[]byte("10"),
 		[]byte("10"),
-		[]byte("15"),
+		[]byte("5001"),
 	}
 	callInput := createVMInput(zero, "changeConfig", gsc.ownerAddress, vm.GovernanceSCAddress, callInputArgs)
 
@@ -698,7 +706,7 @@ func TestGovernanceContract_ChangeConfigGetConfigErr(t *testing.T) {
 		[]byte("1"),
 		[]byte("10"),
 		[]byte("10"),
-		[]byte("10"),
+		[]byte("5001"),
 	}
 	callInput := createVMInput(zero, "changeConfig", args.OwnerAddress, vm.GovernanceSCAddress, callInputArgs)
 	retCode := gsc.Execute(callInput)
@@ -1521,10 +1529,11 @@ func TestGovernanceContract_CloseProposalCallerNotIssuer(t *testing.T) {
 			}
 			if bytes.Equal(key, append([]byte(proposalPrefix), proposalIdentifier...)) {
 				proposalBytes, _ := args.Marshalizer.Marshal(&GeneralProposal{
-					Yes:          big.NewInt(10),
-					No:           big.NewInt(10),
-					Veto:         big.NewInt(10),
-					EndVoteEpoch: 10,
+					Yes:            big.NewInt(10),
+					No:             big.NewInt(10),
+					Veto:           big.NewInt(10),
+					EndVoteEpoch:   10,
+					StartVoteEpoch: 5,
 				})
 				return proposalBytes
 			}
@@ -1547,6 +1556,13 @@ func TestGovernanceContract_CloseProposalCallerNotIssuer(t *testing.T) {
 
 	require.Equal(t, vmcommon.UserError, retCode)
 	require.Contains(t, retMessage, errSubstr)
+
+	gsc.enableEpochsHandler = enableEpochsHandlerMock.NewEnableEpochsHandlerStub(common.GovernanceFlag, common.GovernanceDisableProposeFlag, common.GovernanceFixesFlag)
+
+	retCode = gsc.Execute(callInput)
+
+	require.Equal(t, vmcommon.UserError, retCode)
+	require.Contains(t, retMessage, "only the issuer can close the proposal before start vote epoch")
 }
 
 func TestGovernanceContract_CloseProposalComputeResultsErr(t *testing.T) {
@@ -2019,7 +2035,7 @@ func TestGovernanceContract_ViewConfig(t *testing.T) {
 	retCode = gsc.Execute(callInput)
 	require.Equal(t, vmcommon.Ok, retCode)
 
-	require.Equal(t, []string{"10", "0.4000", "0.4000", "0.4000", "10"}, returnedValues)
+	require.Equal(t, []string{"10", "1", "0.4000", "0.4000", "0.4000", "10"}, returnedValues)
 }
 
 func TestGovernanceContract_ViewProposal(t *testing.T) {
@@ -2316,7 +2332,7 @@ func TestComputeEndResults(t *testing.T) {
 		StartVoteEpoch: startVoteEpoch,
 	}
 	passed := gsc.computeEndResults(startVoteEpoch-1, closedBeforeStart, baseConfig)
-	require.True(t, passed)
+	require.False(t, passed)
 	require.Equal(t, "Proposal closed before voting started", retMessage)
 	require.False(t, closedBeforeStart.Passed)
 
