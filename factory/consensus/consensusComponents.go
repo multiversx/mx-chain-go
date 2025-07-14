@@ -361,6 +361,7 @@ func (ccf *consensusComponentsFactory) createChronology() (consensus.ChronologyH
 		Watchdog:            wd,
 		AppStatusHandler:    ccf.statusCoreComponents.AppStatusHandler(),
 		EnableEpochsHandler: ccf.coreComponents.EnableEpochsHandler(),
+		EnableRoundsHandler: ccf.coreComponents.EnableRoundsHandler(),
 	}
 	return chronology.NewChronology(chronologyArg)
 }

@@ -826,7 +826,7 @@ func (nr *nodeRunner) createMetrics(
 	bootstrapComponents mainFactory.BootstrapComponentsHolder,
 ) error {
 
-	roundsPerEpoch := coreComponents.ChainParametersHandler().CurrentChainParameters().RoundsPerEpoch
+	currentChainParameters := coreComponents.ChainParametersHandler().CurrentChainParameters()
 	err := metrics.InitMetrics(
 		statusCoreComponents.AppStatusHandler(),
 		cryptoComponents.PublicKeyString(),
@@ -835,7 +835,7 @@ func (nr *nodeRunner) createMetrics(
 		coreComponents.GenesisNodesSetup(),
 		nr.configs.FlagsConfig.Version,
 		nr.configs.EconomicsConfig,
-		roundsPerEpoch,
+		currentChainParameters,
 		coreComponents.MinTransactionVersion(),
 	)
 

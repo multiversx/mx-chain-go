@@ -12,6 +12,7 @@ import (
 	"github.com/multiversx/mx-chain-go/consensus/chronology"
 	"github.com/multiversx/mx-chain-go/consensus/mock"
 	"github.com/multiversx/mx-chain-go/errors"
+	"github.com/multiversx/mx-chain-go/testscommon"
 	consensusMocks "github.com/multiversx/mx-chain-go/testscommon/consensus"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	statusHandlerMock "github.com/multiversx/mx-chain-go/testscommon/statusHandler"
@@ -87,6 +88,17 @@ func TestChronology_NewChronologyNilEnableEpochsHandlerShouldFail(t *testing.T) 
 
 	assert.Nil(t, chr)
 	assert.Equal(t, err, errors.ErrNilEnableEpochsHandler)
+}
+
+func TestChronology_NewChronologyNilEnableRoundsHandlerShouldFail(t *testing.T) {
+	t.Parallel()
+
+	arg := getDefaultChronologyArg()
+	arg.EnableRoundsHandler = nil
+	chr, err := chronology.NewChronology(arg)
+
+	assert.Nil(t, chr)
+	assert.Equal(t, err, errors.ErrNilEnableRoundsHandler)
 }
 
 func TestChronology_NewChronologyShouldWork(t *testing.T) {
@@ -336,6 +348,7 @@ func getDefaultChronologyArg() chronology.ArgChronology {
 		AppStatusHandler:    statusHandlerMock.NewAppStatusHandlerMock(),
 		Watchdog:            &mock.WatchdogMock{},
 		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		EnableRoundsHandler: &testscommon.EnableRoundsHandlerStub{},
 	}
 }
 

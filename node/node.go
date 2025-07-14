@@ -1246,7 +1246,7 @@ func (n *Node) GetEpochStartDataAPI(epoch uint32) (*common.EpochStartDataAPI, er
 	if epoch == 0 {
 		// for the first epoch, epoch start identifier isn't committed. Therefore, return the genesis info
 		genesisHeader := n.dataComponents.Blockchain().GetGenesisHeader()
-		return prepareEpochStartDataResponse(genesisHeader), nil
+		return n.prepareEpochStartDataResponse(genesisHeader), nil
 	}
 
 	if n.bootstrapComponents.ShardCoordinator().SelfId() == core.MetachainShardId {
@@ -1273,7 +1273,7 @@ func (n *Node) getShardFirstNonceOfEpoch(epoch uint32) (*common.EpochStartDataAP
 		return nil, err
 	}
 
-	return prepareEpochStartDataResponse(header), nil
+	return n.prepareEpochStartDataResponse(header), nil
 }
 
 func (n *Node) getMetaFirstNonceOfEpoch(epoch uint32) (*common.EpochStartDataAPI, error) {
@@ -1294,16 +1294,18 @@ func (n *Node) getMetaFirstNonceOfEpoch(epoch uint32) (*common.EpochStartDataAPI
 		return nil, err
 	}
 
-	return prepareEpochStartDataResponse(&metaBlock), nil
+	return n.prepareEpochStartDataResponse(&metaBlock), nil
 }
 
-func prepareEpochStartDataResponse(header data.HeaderHandler) *common.EpochStartDataAPI {
+func (n *Node) prepareEpochStartDataResponse(header data.HeaderHandler) *common.EpochStartDataAPI {
+	timestampSec, timestampMs, _ := common.GetHeaderTimestamps(header, n.coreComponents.EnableEpochsHandler())
+
 	response := &common.EpochStartDataAPI{
 		Nonce:         header.GetNonce(),
 		Round:         header.GetRound(),
 		Shard:         header.GetShardID(),
-		Timestamp:     int64(header.GetTimeStamp()),
-		TimestampMs:   int64(common.ConvertTimeStampSecToMs(header.GetTimeStamp())),
+		Timestamp:     int64(timestampSec),
+		TimestampMs:   int64(timestampMs),
 		Epoch:         header.GetEpoch(),
 		PrevBlockHash: hex.EncodeToString(header.GetPrevHash()),
 		StateRootHash: hex.EncodeToString(header.GetRootHash()),
