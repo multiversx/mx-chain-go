@@ -5,7 +5,6 @@ import (
 	"context"
 	"encoding/hex"
 	"fmt"
-	"github.com/multiversx/mx-chain-go/trie/trieMetricsCollector"
 	"sync"
 
 	"github.com/multiversx/mx-chain-core-go/core"
@@ -20,6 +19,7 @@ import (
 	"github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/trie/keyBuilder"
 	"github.com/multiversx/mx-chain-go/trie/statistics"
+	"github.com/multiversx/mx-chain-go/trie/trieMetricsCollector"
 )
 
 var log = logger.GetOrCreate("trie")
@@ -98,6 +98,7 @@ func (tr *patriciaMerkleTrie) Get(key []byte) ([]byte, uint32, error) {
 
 	tmc := trieMetricsCollector.NewTrieMetricsCollector()
 	val, err := tr.root.tryGet(hexKey, tmc, tr.trieStorage)
+	tr.addSizeInMemory(tmc.GetSizeLoadedInMem())
 	if err != nil {
 		err = fmt.Errorf("trie get error: %w, for key %v", err, hex.EncodeToString(key))
 		return nil, tmc.GetMaxDepth(), err
@@ -386,6 +387,7 @@ func (tr *patriciaMerkleTrie) recreateFromDb(rootHash []byte, tsm common.Storage
 
 	newRoot.setGivenHash(rootHash)
 	newTr.root = newRoot
+	newTr.addSizeInMemory(newRoot.sizeInBytes())
 
 	return newTr, newRoot, nil
 }
