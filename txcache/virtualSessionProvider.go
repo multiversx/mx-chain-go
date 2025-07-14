@@ -20,6 +20,23 @@ func newVirtualSessionProvider(session SelectionSession) *virtualSessionProvider
 	}
 }
 
+func (provider *virtualSessionProvider) createVirtualSelectionSession(
+	chainOfTrackedBlocks []*trackedBlock,
+) (*virtualSelectionSession, error) {
+
+	for _, tb := range chainOfTrackedBlocks {
+		err := provider.handleTrackedBlock(tb)
+
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	virtualSession := newVirtualSelectionSession(provider.session)
+	virtualSession.virtualAccountsByAddress = provider.virtualAccountsByAddress
+	return virtualSession, nil
+}
+
 func (provider *virtualSessionProvider) handleTrackedBlock(tb *trackedBlock) error {
 	for address, breadcrumb := range tb.breadcrumbsByAddress {
 		_, ok := provider.skippedSenders[address]
@@ -47,21 +64,6 @@ func (provider *virtualSessionProvider) handleTrackedBlock(tb *trackedBlock) err
 	}
 
 	return nil
-}
-
-func (provider *virtualSessionProvider) handleAccountBreadcrumb(
-	breadcrumb *accountBreadcrumb,
-	accountState state.UserAccountHandler,
-	address string,
-) {
-	virtualRecord, ok := provider.virtualAccountsByAddress[address]
-	if !ok {
-		initialBalance := accountState.GetBalance()
-		virtualRecord = newVirtualAccountRecord(breadcrumb.initialNonce, initialBalance)
-		provider.virtualAccountsByAddress[address] = virtualRecord
-	}
-
-	virtualRecord.updateVirtualRecord(breadcrumb)
 }
 
 func (provider *virtualSessionProvider) continuousBreadcrumb(
@@ -101,19 +103,17 @@ func (provider *virtualSessionProvider) continuousBreadcrumb(
 	return true
 }
 
-func (provider *virtualSessionProvider) createVirtualSelectionSession(
-	chainOfTrackedBlocks []*trackedBlock,
-) (*virtualSelectionSession, error) {
-
-	for _, tb := range chainOfTrackedBlocks {
-		err := provider.handleTrackedBlock(tb)
-
-		if err != nil {
-			return nil, err
-		}
+func (provider *virtualSessionProvider) handleAccountBreadcrumb(
+	breadcrumb *accountBreadcrumb,
+	accountState state.UserAccountHandler,
+	address string,
+) {
+	virtualRecord, ok := provider.virtualAccountsByAddress[address]
+	if !ok {
+		initialBalance := accountState.GetBalance()
+		virtualRecord = newVirtualAccountRecord(breadcrumb.initialNonce, initialBalance)
+		provider.virtualAccountsByAddress[address] = virtualRecord
 	}
 
-	virtualSession := newVirtualSelectionSession(provider.session)
-	virtualSession.virtualAccountsByAddress = provider.virtualAccountsByAddress
-	return virtualSession, nil
+	virtualRecord.updateVirtualRecord(breadcrumb)
 }
