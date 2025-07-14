@@ -8,8 +8,7 @@ func NewDisabledTrieMetricsCollector() *disabledTrieMetricsCollector {
 }
 
 // SetDepth is a no-op for the disabled metrics collector
-func (d *disabledTrieMetricsCollector) SetDepth(depth uint32) {
-
+func (d *disabledTrieMetricsCollector) SetDepth(_ uint32) {
 }
 
 // GetMaxDepth returns 0 for the disabled metrics collector
