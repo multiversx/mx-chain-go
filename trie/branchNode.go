@@ -278,6 +278,7 @@ func (bn *branchNode) commitDirty(originDb common.TrieStorageInteractor, targetD
 	}
 
 	for i := range bn.children {
+		// TODO: do not collapse if maxSizeInMem is not reached
 		if isLeafNode(bn.children[i]) {
 			tmc.AddSizeLoadedInMem(-bn.children[i].sizeInBytes())
 			bn.children[i] = nil
