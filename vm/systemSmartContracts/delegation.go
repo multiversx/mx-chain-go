@@ -353,7 +353,7 @@ func (d *delegation) initDelegationStructures(
 		UnBondPeriodInEpochs:        d.unBondPeriodInEpochs,
 		CheckCapOnReDelegateRewards: true,
 	}
-
+	log.Error("what", "w", dConfig)
 	err := d.saveDelegationContractConfig(dConfig)
 	if err != nil {
 		d.eei.AddReturnMessage(err.Error())

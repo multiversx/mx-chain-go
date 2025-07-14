@@ -2133,11 +2133,9 @@ func testChainSimulatorCreateNewDelegationContractAndUnStakeUnBond(t *testing.T,
 	txCreateDelegationContract := chainSimulatorIntegrationTests.GenerateTransaction(validatorOwner.Bytes, 0, vm.DelegationManagerSCAddress, staking.InitialDelegationValue,
 		"createNewDelegationContract@@",
 		gasLimitForDelegationContractCreationOperation)
-	_ = logger.SetLogLevel("process:TRACE")
 	createDelegationContractTx, err := cs.SendTxAndGenerateBlockTilTxIsExecuted(txCreateDelegationContract, staking.MaxNumOfBlockToGenerateWhenExecutingTx)
 	require.Nil(t, err)
 	require.NotNil(t, createDelegationContractTx)
-	_ = logger.SetLogLevel("*:INFO")
 
 	// Check delegation contract creation was successful
 	data := createDelegationContractTx.SmartContractResults[0].Data
