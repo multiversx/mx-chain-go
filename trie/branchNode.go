@@ -872,9 +872,13 @@ func (bn *branchNode) sizeInBytes() int {
 	}
 
 	nodeSize := baseNodeSizeInBytes + bnChildrenPointersSize
-	for _, collapsed := range bn.EncodedChildren {
-		nodeSize += len(collapsed)
+	numChildren := 0
+	for i := range bn.EncodedChildren {
+		if bn.children[i] != nil || len(bn.EncodedChildren[i]) != 0 {
+			numChildren++
+		}
 	}
+	nodeSize += numChildren * hashSizeInBytes
 	nodeSize += len(bn.ChildrenVersion)
 
 	return nodeSize

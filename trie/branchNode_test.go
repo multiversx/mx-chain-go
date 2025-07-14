@@ -1378,7 +1378,8 @@ func TestBranchNode_SizeInBytes(t *testing.T) {
 			hasher: nil,
 		},
 	}
-	assert.Equal(t, len(collapsed1)+len(collapsed2)+len(hash)+1+19*pointerSizeInBytes+len(bn.ChildrenVersion), bn.sizeInBytes())
+	numChildren := 2
+	assert.Equal(t, numChildren*hashSizeInBytes+len(hash)+1+19*pointerSizeInBytes+len(bn.ChildrenVersion), bn.sizeInBytes())
 }
 
 func TestBranchNode_commitContextDone(t *testing.T) {

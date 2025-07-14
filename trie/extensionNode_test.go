@@ -765,7 +765,7 @@ func TestExtensionNode_deleteCollapsedNode(t *testing.T) {
 	dirty, newNode, _, err := collapsedEn.delete(key, tmc, db)
 	assert.True(t, dirty)
 	assert.Nil(t, err)
-	assert.Equal(t, collapsedEn.child.sizeInBytes()-hashSizeInBytes, tmc.GetSizeLoadedInMem())
+	assert.Equal(t, collapsedEn.child.sizeInBytes(), tmc.GetSizeLoadedInMem())
 
 	val, _ = newNode.tryGet(key, trieMetricsCollector.NewTrieMetricsCollector(), db)
 	assert.Nil(t, val)
@@ -1056,7 +1056,7 @@ func TestExtensionNode_SizeInBytes(t *testing.T) {
 			hasher: nil,
 		},
 	}
-	assert.Equal(t, len(collapsed)+len(key)+nodeVersionSizeInBytes+len(hash)+1+3*pointerSizeInBytes, en.sizeInBytes())
+	assert.Equal(t, hashSizeInBytes+len(key)+nodeVersionSizeInBytes+len(hash)+1+3*pointerSizeInBytes, en.sizeInBytes())
 }
 
 func TestExtensionNode_commitContextDone(t *testing.T) {
