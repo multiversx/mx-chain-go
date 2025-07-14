@@ -26,7 +26,6 @@ func (provider *virtualSessionProvider) createVirtualSelectionSession(
 
 	for _, tb := range chainOfTrackedBlocks {
 		err := provider.handleTrackedBlock(tb)
-
 		if err != nil {
 			return nil, err
 		}
