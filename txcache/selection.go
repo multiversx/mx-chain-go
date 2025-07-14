@@ -112,8 +112,7 @@ func selectTransactionsFromBunches(
 func detectSkippableSender(virtualSession *virtualSelectionSession, item *transactionsHeapItem) bool {
 	nonce, err := virtualSession.getNonce(item.sender)
 	if err != nil {
-		log.Debug("detectSkippableSender",
-			"err", err)
+		log.Debug("detectSkippableSender", "err", err)
 		return false
 	}
 	if item.detectInitialGap(nonce) {
@@ -132,8 +131,7 @@ func detectSkippableSender(virtualSession *virtualSelectionSession, item *transa
 func detectSkippableTransaction(virtualSession *virtualSelectionSession, item *transactionsHeapItem) bool {
 	nonce, err := virtualSession.getNonce(item.sender)
 	if err != nil {
-		log.Debug("detectSkippableTransaction",
-			"err", err)
+		log.Debug("detectSkippableTransaction", "err", err)
 		return false
 	}
 	if item.detectLowerNonce(nonce) {
