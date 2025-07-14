@@ -96,5 +96,5 @@
 # default gossip configuration: https://github.com/libp2p/go-libp2p-pubsub/blob/v0.9.3/gossipsub.go#L33
 [SubNetworks]
     Networks = [
-        {Name = "transactions", PubSub = {OptimalPeersNum = 15, MinimumPeersNum = 12, MaximumPeersNum = 20}, ProtocolIDs = ["mvx-transactions-full-archive", "mvx-transactions"]},
+        {Name = "transactions", PubSub = {OptimalPeersNum = 10, MinimumPeersNum = 8, MaximumPeersNum = 12}, ProtocolIDs = ["mvx-transactions-full-archive", "mvx-transactions"]},
     ]
