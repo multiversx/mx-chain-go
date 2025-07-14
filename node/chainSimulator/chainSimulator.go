@@ -2,7 +2,6 @@ package chainSimulator
 
 import (
 	"bytes"
-	"crypto/rand"
 	"encoding/hex"
 	"errors"
 	"fmt"
@@ -458,9 +457,7 @@ func generateWalletAddressFromBuffer(converter core.PubkeyConverter, buff []byte
 }
 
 func generateAddress(len int) []byte {
-	buff := make([]byte, len)
-	_, _ = rand.Read(buff)
-
+	buff := bytes.Repeat([]byte("1"), len)
 	return buff
 }
 
