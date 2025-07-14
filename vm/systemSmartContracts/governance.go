@@ -1315,7 +1315,7 @@ func (g *governanceContract) getValidProposal(nonce *big.Int) (*GeneralProposal,
 		return nil, vm.ErrVotedForAnExpiredProposal
 	}
 
-	if proposal.Closed {
+	if proposal.Closed && g.enableEpochsHandler.IsFlagEnabled(common.GovernanceFixesFlag) {
 		return nil, vm.ErrVotedForAnExpiredProposal
 	}
 
