@@ -411,6 +411,10 @@ func (g *governanceContract) vote(args *vmcommon.ContractCallInput) vmcommon.Ret
 
 	voterAddress := args.CallerAddr
 	proposalToVote := big.NewInt(0).SetBytes(args.Arguments[0]).Bytes()
+	if !g.enableEpochsHandler.IsFlagEnabled(common.GovernanceFixesFlag) {
+		proposalToVote = args.Arguments[0]
+	}
+
 	totalStake, totalVotingPower, err := g.computeTotalStakeAndVotingPower(voterAddress)
 	if err != nil {
 		g.eei.AddReturnMessage(err.Error())
@@ -475,6 +479,10 @@ func (g *governanceContract) delegateVote(args *vmcommon.ContractCallInput) vmco
 	}
 
 	proposalToVote := big.NewInt(0).SetBytes(args.Arguments[0]).Bytes()
+	if !g.enableEpochsHandler.IsFlagEnabled(common.GovernanceFixesFlag) {
+		proposalToVote = args.Arguments[0]
+	}
+
 	if g.enableEpochsHandler.IsFlagEnabled(common.GovernanceFixesFlag) && len(args.Arguments[3]) > 18 {
 		g.eei.AddReturnMessage("too long argument for user stake")
 		return vmcommon.UserError
