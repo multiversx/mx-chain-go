@@ -15,11 +15,11 @@ type selectionTracker struct {
 	latestNonce    uint64
 	latestRootHash []byte
 	blocks         []*trackedBlock
-	txCache        *TxCache
+	txCache        txCacheForSelectionTracker
 }
 
 // NewSelectionTracker creates a new selectionTracker
-func NewSelectionTracker(txCache *TxCache) (*selectionTracker, error) {
+func NewSelectionTracker(txCache txCacheForSelectionTracker) (*selectionTracker, error) {
 	if check.IfNil(txCache) {
 		return nil, errNilTxCache
 	}
@@ -160,9 +160,11 @@ func (st *selectionTracker) deriveVirtualSelectionSession(
 
 	log.Debug("selectionTracker.deriveVirtualSelectionSession", "rootHash", rootHash)
 
-	_ = st.getChainOfTrackedBlocks(latestExecutedBlockHash, currentBlockNonce)
+	trackedBlocks := st.getChainOfTrackedBlocks(latestExecutedBlockHash, currentBlockNonce)
+	log.Debug("selectionTracker.deriveVirtualSelectionSession",
+		"len(trackedBlocks)", len(trackedBlocks))
 
-	return &virtualSelectionSession{}, nil
+	return st.createVirtualSelectionSession(session, trackedBlocks)
 }
 
 func (st *selectionTracker) getChainOfTrackedBlocks(latestExecutedBlockHash []byte, beforeNonce uint64) []*trackedBlock {

@@ -336,8 +336,9 @@ func TestTxCache_SelectTransactions_WhenTransactionsAddedInReversedNonceOrder(t 
 func TestTxCache_selectTransactionsFromBunches(t *testing.T) {
 	t.Run("empty cache", func(t *testing.T) {
 		session := txcachemocks.NewSelectionSessionMock()
+		virtualSession := newVirtualSelectionSession(session)
 		options := createMockTxSelectionOptions(10_000_000_000, math.MaxInt, selectionLoopMaximumDuration)
-		selected, accumulatedGas := selectTransactionsFromBunches(session, []bunchOfTransactions{}, options)
+		selected, accumulatedGas := selectTransactionsFromBunches(virtualSession, []bunchOfTransactions{}, options)
 
 		require.Equal(t, 0, len(selected))
 		require.Equal(t, uint64(0), accumulatedGas)
@@ -453,10 +454,11 @@ func TestBenchmarkTxCache_selectTransactionsFromBunches(t *testing.T) {
 	t.Run("numSenders = 1000, numTransactions = 1000", func(t *testing.T) {
 		options := createMockTxSelectionOptions(10_000_000_000, math.MaxInt, selectionLoopMaximumDuration)
 		session := txcachemocks.NewSelectionSessionMock()
+		virtualSession := newVirtualSelectionSession(session)
 		bunches := createBunchesOfTransactionsWithUniformDistribution(1000, 1000)
 
 		sw.Start(t.Name())
-		selected, accumulatedGas := selectTransactionsFromBunches(session, bunches, options)
+		selected, accumulatedGas := selectTransactionsFromBunches(virtualSession, bunches, options)
 		sw.Stop(t.Name())
 
 		require.Equal(t, 200000, len(selected))
@@ -466,10 +468,11 @@ func TestBenchmarkTxCache_selectTransactionsFromBunches(t *testing.T) {
 	t.Run("numSenders = 10000, numTransactions = 100", func(t *testing.T) {
 		options := createMockTxSelectionOptions(10_000_000_000, math.MaxInt, selectionLoopMaximumDuration)
 		session := txcachemocks.NewSelectionSessionMock()
+		virtualSession := newVirtualSelectionSession(session)
 		bunches := createBunchesOfTransactionsWithUniformDistribution(1000, 1000)
 
 		sw.Start(t.Name())
-		selected, accumulatedGas := selectTransactionsFromBunches(session, bunches, options)
+		selected, accumulatedGas := selectTransactionsFromBunches(virtualSession, bunches, options)
 		sw.Stop(t.Name())
 
 		require.Equal(t, 200000, len(selected))
@@ -479,10 +482,11 @@ func TestBenchmarkTxCache_selectTransactionsFromBunches(t *testing.T) {
 	t.Run("numSenders = 100000, numTransactions = 3", func(t *testing.T) {
 		options := createMockTxSelectionOptions(10_000_000_000, math.MaxInt, selectionLoopMaximumDuration)
 		session := txcachemocks.NewSelectionSessionMock()
+		virtualSession := newVirtualSelectionSession(session)
 		bunches := createBunchesOfTransactionsWithUniformDistribution(100000, 3)
 
 		sw.Start(t.Name())
-		selected, accumulatedGas := selectTransactionsFromBunches(session, bunches, options)
+		selected, accumulatedGas := selectTransactionsFromBunches(virtualSession, bunches, options)
 		sw.Stop(t.Name())
 
 		require.Equal(t, 200000, len(selected))
@@ -492,10 +496,12 @@ func TestBenchmarkTxCache_selectTransactionsFromBunches(t *testing.T) {
 	t.Run("numSenders = 300000, numTransactions = 1", func(t *testing.T) {
 		options := createMockTxSelectionOptions(10_000_000_000, math.MaxInt, selectionLoopMaximumDuration)
 		session := txcachemocks.NewSelectionSessionMock()
+		virtualSession := newVirtualSelectionSession(session)
+
 		bunches := createBunchesOfTransactionsWithUniformDistribution(300000, 1)
 
 		sw.Start(t.Name())
-		selected, accumulatedGas := selectTransactionsFromBunches(session, bunches, options)
+		selected, accumulatedGas := selectTransactionsFromBunches(virtualSession, bunches, options)
 		sw.Stop(t.Name())
 
 		require.Equal(t, 200000, len(selected))
@@ -523,9 +529,10 @@ func TestBenchmarkTxCache_selectTransactionsFromBunches(t *testing.T) {
 func TestTxCache_selectTransactionsFromBunches_loopBreaks_whenTakesTooLong(t *testing.T) {
 	t.Run("numSenders = 300000, numTransactions = 1", func(t *testing.T) {
 		session := txcachemocks.NewSelectionSessionMock()
+		virtualSession := newVirtualSelectionSession(session)
 		options := createMockTxSelectionOptions(10_000_000_000, 50_000, 1)
 		bunches := createBunchesOfTransactionsWithUniformDistribution(300000, 1)
-		selected, accumulatedGas := selectTransactionsFromBunches(session, bunches, options)
+		selected, accumulatedGas := selectTransactionsFromBunches(virtualSession, bunches, options)
 
 		require.Less(t, len(selected), 50_000)
 		require.Less(t, int(accumulatedGas), 10_000_000_000)

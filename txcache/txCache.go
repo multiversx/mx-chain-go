@@ -6,6 +6,8 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/atomic"
 	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-storage-go/monitoring"
 	"github.com/multiversx/mx-chain-storage-go/types"
@@ -23,6 +25,7 @@ type TxCache struct {
 	evictionMutex        sync.Mutex
 	isEvictionInProgress atomic.Flag
 	mutTxOperation       sync.Mutex
+	tracker              *selectionTracker
 }
 
 // NewTxCache creates a new transaction cache
@@ -49,6 +52,12 @@ func NewTxCache(config ConfigSourceMe, host MempoolHost) (*TxCache, error) {
 		config:         config,
 		host:           host,
 	}
+
+	tracker, err := NewSelectionTracker(txCache)
+	if err != nil {
+		return nil, err
+	}
+	txCache.tracker = tracker
 
 	return txCache, nil
 }
@@ -122,7 +131,12 @@ func (cache *TxCache) SelectTransactions(session SelectionSession, options commo
 		"num senders", cache.CountSenders(),
 	)
 
-	transactions, accumulatedGas := cache.doSelectTransactions(session, options)
+	virtualSession, err := cache.tracker.deriveVirtualSelectionSession(session, nil, 0)
+	if err != nil {
+		log.Error("TxCache.SelectTransactions: could not derive virtual selection session", "err", err)
+		return nil, 0
+	}
+	transactions, accumulatedGas := cache.doSelectTransactions(virtualSession, options)
 
 	stopWatch.Stop("selection")
 
@@ -137,6 +151,16 @@ func (cache *TxCache) SelectTransactions(session SelectionSession, options commo
 	go displaySelectionOutcome(logSelect, "selection", transactions)
 
 	return transactions, accumulatedGas
+}
+
+// OnProposedBlock calls the OnProposedBlock method from SelectionTracker
+func (cache *TxCache) OnProposedBlock(blockHash []byte, blockBody *block.Body, handler data.HeaderHandler) error {
+	return cache.tracker.OnProposedBlock(blockHash, blockBody, handler)
+}
+
+// OnExecutedBlock calls the OnExecutedBlock method from SelectionTracker
+func (cache *TxCache) OnExecutedBlock(handler data.HeaderHandler) error {
+	return cache.tracker.OnExecutedBlock(handler)
 }
 
 func (cache *TxCache) getSenders() []*txListForSender {
