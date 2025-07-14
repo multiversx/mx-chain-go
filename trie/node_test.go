@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/multiversx/mx-chain-go/trie/trieMetricsCollector"
 	"strings"
 	"testing"
 	"time"
@@ -165,7 +166,7 @@ func TestNode_getNodeFromDBAndDecodeBranchNode(t *testing.T) {
 
 	db := testscommon.NewMemDbMock()
 	bn, collapsedBn := getBnAndCollapsedBn(getTestMarshalizerAndHasher())
-	_ = bn.commitDirty(db, db)
+	_ = bn.commitDirty(db, db, dtmc)
 
 	encNode, _ := bn.marsh.Marshal(collapsedBn)
 	encNode = append(encNode, branch)
@@ -184,7 +185,7 @@ func TestNode_getNodeFromDBAndDecodeExtensionNode(t *testing.T) {
 
 	db := testscommon.NewMemDbMock()
 	en, collapsedEn := getEnAndCollapsedEn()
-	_ = en.commitDirty(db, db)
+	_ = en.commitDirty(db, db, dtmc)
 
 	encNode, _ := en.marsh.Marshal(collapsedEn)
 	encNode = append(encNode, extension)
@@ -203,7 +204,7 @@ func TestNode_getNodeFromDBAndDecodeLeafNode(t *testing.T) {
 
 	db := testscommon.NewMemDbMock()
 	ln := getLn(getTestMarshalizerAndHasher())
-	_ = ln.commitDirty(db, db)
+	_ = ln.commitDirty(db, db, dtmc)
 
 	encNode, _ := ln.marsh.Marshal(ln)
 	encNode = append(encNode, leaf)
@@ -223,11 +224,13 @@ func TestNode_resolveIfCollapsedBranchNode(t *testing.T) {
 	db := testscommon.NewMemDbMock()
 	bn, collapsedBn := getBnAndCollapsedBn(getTestMarshalizerAndHasher())
 	childPos := byte(2)
-	_ = bn.commitDirty(db, db)
+	_ = bn.commitDirty(db, db, dtmc)
 
-	err := resolveIfCollapsed(collapsedBn, childPos, db)
+	tmc := trieMetricsCollector.NewTrieMetricsCollector()
+	err := resolveIfCollapsed(collapsedBn, childPos, tmc, db)
 	assert.Nil(t, err)
 	assert.False(t, collapsedBn.isCollapsed())
+	assert.Equal(t, collapsedBn.children[childPos].sizeInBytes(), tmc.GetSizeLoadedInMem())
 }
 
 func TestNode_resolveIfCollapsedExtensionNode(t *testing.T) {
@@ -235,11 +238,13 @@ func TestNode_resolveIfCollapsedExtensionNode(t *testing.T) {
 
 	db := testscommon.NewMemDbMock()
 	en, collapsedEn := getEnAndCollapsedEn()
-	_ = en.commitDirty(db, db)
+	_ = en.commitDirty(db, db, dtmc)
 
-	err := resolveIfCollapsed(collapsedEn, 0, db)
+	tmc := trieMetricsCollector.NewTrieMetricsCollector()
+	err := resolveIfCollapsed(collapsedEn, 0, tmc, db)
 	assert.Nil(t, err)
 	assert.False(t, collapsedEn.isCollapsed())
+	assert.Equal(t, collapsedEn.child.sizeInBytes(), tmc.GetSizeLoadedInMem())
 }
 
 func TestNode_resolveIfCollapsedLeafNode(t *testing.T) {
@@ -247,11 +252,13 @@ func TestNode_resolveIfCollapsedLeafNode(t *testing.T) {
 
 	db := testscommon.NewMemDbMock()
 	ln := getLn(getTestMarshalizerAndHasher())
-	_ = ln.commitDirty(db, db)
+	_ = ln.commitDirty(db, db, dtmc)
 
-	err := resolveIfCollapsed(ln, 0, db)
+	tmc := trieMetricsCollector.NewTrieMetricsCollector()
+	err := resolveIfCollapsed(ln, 0, tmc, db)
 	assert.Nil(t, err)
 	assert.False(t, ln.isCollapsed())
+	assert.Equal(t, 0, tmc.GetSizeLoadedInMem())
 }
 
 func TestNode_resolveIfCollapsedNilNode(t *testing.T) {
@@ -259,7 +266,7 @@ func TestNode_resolveIfCollapsedNilNode(t *testing.T) {
 
 	var nodeInstance *extensionNode
 
-	err := resolveIfCollapsed(nodeInstance, 0, nil)
+	err := resolveIfCollapsed(nodeInstance, 0, nil, nil)
 	assert.Equal(t, ErrNilExtensionNode, err)
 }
 

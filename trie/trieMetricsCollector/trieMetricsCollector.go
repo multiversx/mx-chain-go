@@ -2,23 +2,37 @@ package trieMetricsCollector
 
 type trieMetricsCollector struct {
 	maxDepth        int
-	sizeLoadedInMem uint64
+	sizeLoadedInMem int
 }
 
 // NewTrieMetricsCollector creates a new instance of trieMetricsCollector
 func NewTrieMetricsCollector() *trieMetricsCollector {
 	return &trieMetricsCollector{
-		// initial maxDepth is set to -1 because the root is on level 0, and for every node that is traversed IncreaseDepth() is called.
-		// When the rootNode is traversed, maxDepth will be increased, so the root will be on level 0
-		maxDepth:        -1,
+		maxDepth:        0,
 		sizeLoadedInMem: 0,
 	}
 }
 
-func (tmc *trieMetricsCollector) IncreaseDepth() {
-	tmc.maxDepth++
+// SetDepth increases the maxDepth with one
+func (tmc *trieMetricsCollector) SetDepth(depth uint32) {
+	if depth < uint32(tmc.maxDepth) {
+		return
+	}
+
+	tmc.maxDepth = int(depth)
 }
 
+// GetMaxDepth returns the collected maxDepth
 func (tmc *trieMetricsCollector) GetMaxDepth() uint32 {
 	return uint32(tmc.maxDepth)
+}
+
+// AddSizeLoadedInMem adds the size of the loaded data in memory to the collector
+func (tmc *trieMetricsCollector) AddSizeLoadedInMem(size int) {
+	tmc.sizeLoadedInMem += size
+}
+
+// GetSizeLoadedInMem returns the total size of data loaded in memory
+func (tmc *trieMetricsCollector) GetSizeLoadedInMem() int {
+	return tmc.sizeLoadedInMem
 }

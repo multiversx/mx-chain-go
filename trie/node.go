@@ -140,7 +140,7 @@ func treatLogError(logInstance logger.Logger, err error, key []byte) {
 	logInstance.Trace(core.GetNodeFromDBErrorString, "error", err, "key", key, "stack trace", string(debug.Stack()))
 }
 
-func resolveIfCollapsed(n node, pos byte, db common.TrieStorageInteractor) error {
+func resolveIfCollapsed(n node, pos byte, tmc MetricsCollector, db common.TrieStorageInteractor) error {
 	err := n.isEmptyOrNil()
 	if err != nil {
 		return err
@@ -151,7 +151,7 @@ func resolveIfCollapsed(n node, pos byte, db common.TrieStorageInteractor) error
 		return nil
 	}
 
-	return n.resolveCollapsed(pos, db)
+	return n.resolveCollapsed(pos, tmc, db)
 }
 
 func handleStorageInteractorStats(db common.TrieStorageInteractor) {
