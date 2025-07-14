@@ -1538,6 +1538,53 @@ func TestGetNodeDataFromHash(t *testing.T) {
 
 }
 
+func TestPatriciaMerkleTree_SizeInMemory(t *testing.T) {
+	t.Parallel()
+
+	tr := emptyTrie()
+	assert.Equal(t, 0, tr.SizeInMemory())
+	addDefaultDataToTrie(tr)
+
+	assert.Equal(t, 779, tr.SizeInMemory()) // 3 leaves + 2 branch nodes + 1 extension node
+	err := tr.Commit()
+	assert.Nil(t, err)
+	assert.Equal(t, 596, tr.SizeInMemory()) // leaves are collapsed
+
+	err = tr.Delete([]byte("dog"))
+	assert.Nil(t, err)
+	assert.Equal(t, 313, tr.SizeInMemory()) // 1 branch node + 2 leaves
+
+	err = tr.Commit()
+	assert.Nil(t, err)
+	assert.Equal(t, 249, tr.SizeInMemory()) // collapse leaf
+
+	err = tr.Update([]byte("dog"), []byte("puppy"))
+	assert.Nil(t, err)
+	assert.Equal(t, 712, tr.SizeInMemory())
+
+	rootHash, err := tr.RootHash()
+	assert.Nil(t, err)
+	newTrie, err := tr.Recreate(holders.NewDefaultRootHashesHolder(rootHash))
+	assert.Nil(t, err)
+	assert.Equal(t, 249, newTrie.SizeInMemory()) // only root node is in memory
+
+	val, depth, err := newTrie.Get([]byte("dog"))
+	assert.Nil(t, err)
+	assert.Equal(t, []byte("puppy"), val)
+	assert.Equal(t, uint32(3), depth)
+	assert.Equal(t, 654, newTrie.SizeInMemory())
+
+	val, depth, err = newTrie.Get([]byte("dog"))
+	assert.Nil(t, err)
+	assert.Equal(t, []byte("puppy"), val)
+	assert.Equal(t, uint32(3), depth)
+	assert.Equal(t, 654, newTrie.SizeInMemory())
+
+	err = tr.Delete([]byte("doe")) // delete collapsed node
+	assert.Nil(t, err)
+	assert.Equal(t, 464, tr.SizeInMemory())
+}
+
 func BenchmarkPatriciaMerkleTree_Insert(b *testing.B) {
 	tr := emptyTrie()
 	hsh := keccak.NewKeccak()

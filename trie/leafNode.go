@@ -345,8 +345,9 @@ func (ln *leafNode) delete(key []byte, tmc MetricsCollector, _ common.TrieStorag
 	return false, ln, [][]byte{}, nil
 }
 
-func (ln *leafNode) reduceNode(pos int) (node, bool, error) {
-	k := append([]byte{byte(pos)}, ln.Key...)
+func (ln *leafNode) reduceNode(pos int, tmc MetricsCollector) (node, bool, error) {
+	extraKey := []byte{byte(pos)}
+	k := append(extraKey, ln.Key...)
 
 	oldLnVersion, err := ln.getVersion()
 	if err != nil {
@@ -363,6 +364,7 @@ func (ln *leafNode) reduceNode(pos int) (node, bool, error) {
 	if err != nil {
 		return nil, false, err
 	}
+	tmc.AddSizeLoadedInMem(len(extraKey))
 
 	return newLn, true, nil
 }

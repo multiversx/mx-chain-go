@@ -937,10 +937,8 @@ func TestBranchNode_deleteAndReduceBn(t *testing.T) {
 	bn.children = children
 	bn.EncodedChildren[firstChildPos], _ = encodeNodeAndGetHash(children[firstChildPos])
 	bn.EncodedChildren[secondChildPos], _ = encodeNodeAndGetHash(children[secondChildPos])
-
-	expectedNodeAfterDelete, _ := newLeafNode(getTrieDataWithDefaultVersion("dog", "dog"), bn.marsh, bn.hasher)
-	expectedNodeAfterDelete.Key = append([]byte{firstChildPos}, expectedNodeAfterDelete.Key...)
-	expectedSizeInMem := expectedNodeAfterDelete.sizeInBytes() - bn.children[secondChildPos].sizeInBytes() - bn.sizeInBytes()
+	extraLeafData := 1
+	expectedSizeInMem := -bn.children[secondChildPos].sizeInBytes() - bn.sizeInBytes() + extraLeafData
 
 	key := append([]byte{firstChildPos}, []byte("dog")...)
 	ln, _ := newLeafNode(getTrieDataWithDefaultVersion(string(key), "dog"), bn.marsh, bn.hasher)
@@ -966,7 +964,7 @@ func TestBranchNode_reduceNode(t *testing.T) {
 	key := append([]byte{childPos}, []byte("dog")...)
 	ln, _ := newLeafNode(getTrieDataWithDefaultVersion(string(key), "dog"), bn.marsh, bn.hasher)
 
-	n, newChildHash, err := bn.children[childPos].reduceNode(int(childPos))
+	n, newChildHash, err := bn.children[childPos].reduceNode(int(childPos), dtmc)
 	assert.Equal(t, ln, n)
 	assert.Nil(t, err)
 	assert.True(t, newChildHash)
@@ -1264,7 +1262,7 @@ func TestBranchNode_reduceNodeBnChild(t *testing.T) {
 	pos := 5
 	expectedNode, _ := newExtensionNode([]byte{byte(pos)}, en.child, marsh, hasher)
 
-	newNode, newChildHash, err := en.child.reduceNode(pos)
+	newNode, newChildHash, err := en.child.reduceNode(pos, dtmc)
 	assert.Nil(t, err)
 	assert.Equal(t, expectedNode, newNode)
 	assert.False(t, newChildHash)

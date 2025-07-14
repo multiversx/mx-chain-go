@@ -57,6 +57,7 @@ type Trie interface {
 	VerifyProof(rootHash []byte, key []byte, proof [][]byte) (bool, error)
 	GetStorageManager() StorageManager
 	IsMigratedToLatestVersion() (bool, error)
+	SizeInMemory() int
 	Close() error
 	IsInterfaceNil() bool
 }

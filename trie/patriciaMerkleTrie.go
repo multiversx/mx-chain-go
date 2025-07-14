@@ -740,6 +740,11 @@ func GetNodeDataFromHash(hash []byte, keyBuilder common.KeyBuilder, db common.Tr
 	return n.getNodeData(keyBuilder)
 }
 
+// SizeInMemory returns the size in memory of the trie
+func (tr *patriciaMerkleTrie) SizeInMemory() int {
+	return tr.sizeInMemory
+}
+
 // Close stops all the active goroutines started by the trie
 func (tr *patriciaMerkleTrie) Close() error {
 	tr.mutOperation.Lock()

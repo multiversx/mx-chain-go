@@ -561,7 +561,6 @@ func (bn *branchNode) delete(key []byte, tmc MetricsCollector, db common.TrieSto
 	numChildren, pos := getChildPosition(bn)
 
 	if numChildren == 1 {
-		originalSize := bn.sizeInBytes()
 		err = resolveIfCollapsed(bn, byte(pos), tmc, db)
 		if err != nil {
 			return false, nil, emptyHashes, err
@@ -573,7 +572,7 @@ func (bn *branchNode) delete(key []byte, tmc MetricsCollector, db common.TrieSto
 		}
 
 		var newChildHash bool
-		newNode, newChildHash, err = bn.children[pos].reduceNode(pos)
+		newNode, newChildHash, err = bn.children[pos].reduceNode(pos, tmc)
 		if err != nil {
 			return false, nil, emptyHashes, err
 		}
@@ -582,7 +581,7 @@ func (bn *branchNode) delete(key []byte, tmc MetricsCollector, db common.TrieSto
 			oldHashes = append(oldHashes, bn.children[pos].getHash())
 		}
 
-		addSizeDiff(tmc, newNode.sizeInBytes(), originalSize)
+		tmc.AddSizeLoadedInMem(-bn.sizeInBytes())
 		return true, newNode, oldHashes, nil
 	}
 
@@ -622,11 +621,12 @@ func (bn *branchNode) revertChildrenVersionSliceIfNeeded() {
 	bn.ChildrenVersion = []byte(nil)
 }
 
-func (bn *branchNode) reduceNode(pos int) (node, bool, error) {
+func (bn *branchNode) reduceNode(pos int, tmc MetricsCollector) (node, bool, error) {
 	newEn, err := newExtensionNode([]byte{byte(pos)}, bn, bn.marsh, bn.hasher)
 	if err != nil {
 		return nil, false, err
 	}
+	tmc.AddSizeLoadedInMem(newEn.sizeInBytes())
 
 	return newEn, false, nil
 }

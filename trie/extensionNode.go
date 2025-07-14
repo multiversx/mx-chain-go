@@ -474,7 +474,6 @@ func (en *extensionNode) delete(key []byte, tmc MetricsCollector, db common.Trie
 		return false, nil, emptyHashes, err
 	}
 
-	originalSize := en.sizeInBytes()
 	dirty, newNode, oldHashes, err := en.child.delete(key[len(en.Key):], tmc, db)
 	if !dirty || err != nil {
 		return false, en, emptyHashes, err
@@ -484,6 +483,7 @@ func (en *extensionNode) delete(key []byte, tmc MetricsCollector, db common.Trie
 		oldHashes = append(oldHashes, en.hash)
 	}
 
+	tmc.AddSizeLoadedInMem(-en.sizeInBytes())
 	switch newNode := newNode.(type) {
 	case *leafNode:
 		newLeafData := core.TrieData{
@@ -495,7 +495,7 @@ func (en *extensionNode) delete(key []byte, tmc MetricsCollector, db common.Trie
 		if err != nil {
 			return false, nil, emptyHashes, err
 		}
-		addSizeDiff(tmc, n.sizeInBytes(), originalSize)
+		tmc.AddSizeLoadedInMem(len(en.Key))
 
 		return true, n, oldHashes, nil
 	case *extensionNode:
@@ -503,7 +503,7 @@ func (en *extensionNode) delete(key []byte, tmc MetricsCollector, db common.Trie
 		if err != nil {
 			return false, nil, emptyHashes, err
 		}
-		addSizeDiff(tmc, n.sizeInBytes(), originalSize)
+		tmc.AddSizeLoadedInMem(len(en.Key))
 
 		return true, n, oldHashes, nil
 	case *branchNode:
@@ -511,7 +511,7 @@ func (en *extensionNode) delete(key []byte, tmc MetricsCollector, db common.Trie
 		if err != nil {
 			return false, nil, emptyHashes, err
 		}
-		addSizeDiff(tmc, n.sizeInBytes(), originalSize)
+		tmc.AddSizeLoadedInMem(n.sizeInBytes())
 
 		return true, n, oldHashes, nil
 	case nil:
@@ -522,13 +522,15 @@ func (en *extensionNode) delete(key []byte, tmc MetricsCollector, db common.Trie
 	}
 }
 
-func (en *extensionNode) reduceNode(pos int) (node, bool, error) {
-	k := append([]byte{byte(pos)}, en.Key...)
+func (en *extensionNode) reduceNode(pos int, tmc MetricsCollector) (node, bool, error) {
+	extraKey := []byte{byte(pos)}
+	k := append(extraKey, en.Key...)
 
 	newEn, err := newExtensionNode(k, en.child, en.marsh, en.hasher)
 	if err != nil {
 		return nil, false, err
 	}
+	tmc.AddSizeLoadedInMem(len(extraKey))
 
 	return newEn, true, nil
 }

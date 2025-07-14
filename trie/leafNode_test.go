@@ -504,7 +504,7 @@ func TestLeafNode_reduceNode(t *testing.T) {
 	expected, _ := newLeafNode(getTrieDataWithDefaultVersion(string([]byte{2, 100, 111, 103}), ""), marsh, hasher)
 	expected.dirty = true
 
-	n, newChildHash, err := ln.reduceNode(2)
+	n, newChildHash, err := ln.reduceNode(2, dtmc)
 	assert.Equal(t, expected, n)
 	assert.Nil(t, err)
 	assert.True(t, newChildHash)

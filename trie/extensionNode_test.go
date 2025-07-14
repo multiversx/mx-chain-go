@@ -783,7 +783,7 @@ func TestExtensionNode_reduceNode(t *testing.T) {
 	expected.hasher = en.hasher
 	expected.child = en.child
 
-	n, newChildPos, err := en.reduceNode(2)
+	n, newChildPos, err := en.reduceNode(2, dtmc)
 	assert.Equal(t, expected, n)
 	assert.Nil(t, err)
 	assert.True(t, newChildPos)

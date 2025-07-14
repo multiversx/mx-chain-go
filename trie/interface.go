@@ -31,7 +31,7 @@ type node interface {
 	getNext(key []byte, tmc MetricsCollector, db common.TrieStorageInteractor) (node, []byte, error)
 	insert(newData core.TrieData, tmc MetricsCollector, db common.TrieStorageInteractor) (node, [][]byte, error)
 	delete(key []byte, tmc MetricsCollector, db common.TrieStorageInteractor) (bool, node, [][]byte, error)
-	reduceNode(pos int) (node, bool, error)
+	reduceNode(pos int, tmc MetricsCollector) (node, bool, error)
 	isEmptyOrNil() error
 	print(writer io.Writer, index int, tmc MetricsCollector, db common.TrieStorageInteractor)
 	getDirtyHashes(common.ModifiedHashes) error
