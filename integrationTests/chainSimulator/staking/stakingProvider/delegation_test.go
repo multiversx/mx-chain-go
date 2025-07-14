@@ -2106,6 +2106,7 @@ func TestChainSimulator_CreateDelegationContractAndWithdraw(t *testing.T) {
 			cfg.EpochConfig.EnableEpochs.StakingV4Step1EnableEpoch = 2
 			cfg.EpochConfig.EnableEpochs.StakingV4Step2EnableEpoch = 3
 			cfg.EpochConfig.EnableEpochs.StakingV4Step3EnableEpoch = 4
+			cfg.EpochConfig.EnableEpochs.AutomaticActivationOfNodesDisableEpoch = 999
 
 			cfg.EpochConfig.EnableEpochs.MaxNodesChangeEnableEpoch[2].EpochEnable = 4
 			cfg.SystemSCConfig.StakingSystemSCConfig.NodeLimitPercentage = 1
@@ -2130,9 +2131,8 @@ func testChainSimulatorCreateNewDelegationContractAndUnStakeUnBond(t *testing.T,
 	err = cs.GenerateBlocks(1)
 	require.Nil(t, err)
 
-	maxDelegationCap := big.NewInt(0).Mul(chainSimulatorIntegrationTests.OneEGLD, big.NewInt(9999999999))
 	txCreateDelegationContract := chainSimulatorIntegrationTests.GenerateTransaction(validatorOwner.Bytes, 0, vm.DelegationManagerSCAddress, staking.InitialDelegationValue,
-		fmt.Sprintf("createNewDelegationContract@%s@%s", hex.EncodeToString(maxDelegationCap.Bytes()), hexServiceFee),
+		"createNewDelegationContract@@",
 		gasLimitForDelegationContractCreationOperation)
 	createDelegationContractTx, err := cs.SendTxAndGenerateBlockTilTxIsExecuted(txCreateDelegationContract, staking.MaxNumOfBlockToGenerateWhenExecutingTx)
 	require.Nil(t, err)
