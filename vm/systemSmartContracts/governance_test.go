@@ -1168,6 +1168,11 @@ func TestGovernanceContract_DelegateVoteMoreErrors(t *testing.T) {
 	require.Equal(t, vmcommon.UserError, retCode)
 	require.True(t, strings.Contains(eei.GetReturnMessage(), "double vote is not allowed"))
 
+	callInput.Arguments[3] = []byte("0156464564645646846846456121684641")
+	retCode = gsc.Execute(callInput)
+	require.Equal(t, vmcommon.UserError, retCode)
+	require.True(t, strings.Contains(eei.GetReturnMessage(), "too long argument for user stake"))
+
 	callInput.Arguments[0] = []byte("01")
 	retCode = gsc.Execute(callInput)
 	require.Equal(t, vmcommon.UserError, retCode)
