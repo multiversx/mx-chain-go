@@ -15,11 +15,11 @@ type selectionTracker struct {
 	latestNonce    uint64
 	latestRootHash []byte
 	blocks         []*trackedBlock
-	txCache        CacheForTracker
+	txCache        txCacheForSelectionTracker
 }
 
 // NewSelectionTracker creates a new selectionTracker
-func NewSelectionTracker(txCache CacheForTracker) (*selectionTracker, error) {
+func NewSelectionTracker(txCache txCacheForSelectionTracker) (*selectionTracker, error) {
 	if check.IfNil(txCache) {
 		return nil, errNilTxCache
 	}

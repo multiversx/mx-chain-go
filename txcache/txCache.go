@@ -133,7 +133,7 @@ func (cache *TxCache) SelectTransactions(session SelectionSession, options commo
 
 	virtualSession, err := cache.tracker.deriveVirtualSelectionSession(session, nil, 0)
 	if err != nil {
-		log.Error("TxCache.SelectTransactions", "err", err)
+		log.Error("TxCache.SelectTransactions: could not derive virtual selection session", "err", err)
 		return nil, 0
 	}
 	transactions, accumulatedGas := cache.doSelectTransactions(virtualSession, options)
