@@ -16,6 +16,7 @@ import (
 	"github.com/multiversx/mx-chain-go/epochStart"
 	"github.com/multiversx/mx-chain-go/epochStart/mock"
 	"github.com/multiversx/mx-chain-go/process"
+	processMock "github.com/multiversx/mx-chain-go/process/mock"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/testscommon"
@@ -23,6 +24,7 @@ import (
 	dataRetrieverMock "github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
 	"github.com/multiversx/mx-chain-go/testscommon/economicsmocks"
 	"github.com/multiversx/mx-chain-go/testscommon/genesisMocks"
+	updateMock "github.com/multiversx/mx-chain-go/update/mock"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -88,7 +90,7 @@ func TestStorageEpochStartBootstrap_BootstrapFromGenesis(t *testing.T) {
 	roundDuration := uint64(60000)
 	coreComp, cryptoComp := createComponentsForEpochStart()
 	args := createMockStorageEpochStartBootstrapArgs(coreComp, cryptoComp)
-	args.EconomicsData = &economicsmocks.EconomicsHandlerStub{
+	args.EconomicsData = &economicsmocks.EconomicsHandlerMock{
 		MinGasPriceCalled: func() uint64 {
 			return 1
 		},
@@ -112,7 +114,7 @@ func TestStorageEpochStartBootstrap_BootstrapMetablockNotFound(t *testing.T) {
 	roundDuration := uint64(6000)
 	coreComp, cryptoComp := createComponentsForEpochStart()
 	args := createMockStorageEpochStartBootstrapArgs(coreComp, cryptoComp)
-	args.EconomicsData = &economicsmocks.EconomicsHandlerStub{
+	args.EconomicsData = &economicsmocks.EconomicsHandlerMock{
 		MinGasPriceCalled: func() uint64 {
 			return 1
 		},
@@ -127,6 +129,7 @@ func TestStorageEpochStartBootstrap_BootstrapMetablockNotFound(t *testing.T) {
 	}
 	args.GeneralConfig = testscommon.GetGeneralConfig()
 	args.GeneralConfig.EpochStartConfig.RoundsPerEpoch = roundsPerEpoch
+	args.InterceptedDataVerifierFactory = &processMock.InterceptedDataVerifierFactoryMock{}
 	sesb, _ := NewStorageEpochStartBootstrap(args)
 
 	params, err := sesb.Bootstrap()
@@ -216,6 +219,13 @@ func testRequestAndProcessFromStorageByShardId(t *testing.T, shardId uint32) {
 			}, nil
 		},
 	}
+
+	sesb.epochStartShardHeaderSyncer = &updateMock.PendingEpochStartShardHeaderStub{
+		GetEpochStartHeaderCalled: func() (data.HeaderHandler, []byte, error) {
+			return &block.HeaderV2{}, []byte("epoch-start-hash"), nil
+		},
+	}
+
 	sesb.miniBlocksSyncer = &epochStartMocks.PendingMiniBlockSyncHandlerStub{}
 
 	params, err := sesb.requestAndProcessFromStorage()

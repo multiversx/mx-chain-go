@@ -6,6 +6,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
+
 	"github.com/multiversx/mx-chain-go/process"
 )
 
@@ -46,6 +47,12 @@ func NewMetaBlockTrack(arguments ArgMetaTracker) (*metaBlockTrack, error) {
 		SelfNotarizedHeadersNotifier:          bbt.selfNotarizedHeadersNotifier,
 		FinalMetachainHeadersNotifier:         bbt.finalMetachainHeadersNotifier,
 		RoundHandler:                          arguments.RoundHandler,
+		EnableEpochsHandler:                   arguments.EnableEpochsHandler,
+		ProofsPool:                            arguments.ProofsPool,
+		Marshaller:                            arguments.Marshalizer,
+		Hasher:                                arguments.Hasher,
+		HeadersPool:                           arguments.PoolsHolder.Headers(),
+		IsImportDBMode:                        arguments.IsImportDBMode,
 	}
 
 	blockProcessorObject, err := NewBlockProcessor(argBlockProcessor)
@@ -56,6 +63,7 @@ func NewMetaBlockTrack(arguments ArgMetaTracker) (*metaBlockTrack, error) {
 	mbt.blockProcessor = blockProcessorObject
 	mbt.headers = make(map[uint32]map[uint64][]*HeaderInfo)
 	mbt.headersPool.RegisterHandler(mbt.receivedHeader)
+	mbt.proofsPool.RegisterHandler(mbt.receivedProof)
 	mbt.headersPool.Clear()
 
 	return &mbt, nil
@@ -141,7 +149,13 @@ func (mbt *metaBlockTrack) removeInvalidShardHeadersDueToEpochChange(
 		for _, headerInfo := range headersInfo {
 			round := headerInfo.Header.GetRound()
 			epoch := headerInfo.Header.GetEpoch()
-			isInvalidHeader := round > metaRoundAttestingEpoch+process.EpochChangeGracePeriod && epoch < metaNewEpoch
+			gracePeriod, err := mbt.epochChangeGracePeriodHandler.GetGracePeriodForEpoch(metaNewEpoch)
+			if err != nil {
+				log.Warn("get grace period for epoch", "error", err.Error())
+				continue
+			}
+
+			isInvalidHeader := round > metaRoundAttestingEpoch+uint64(gracePeriod) && epoch < metaNewEpoch
 			if !isInvalidHeader {
 				newHeadersInfo = append(newHeadersInfo, headerInfo)
 			}

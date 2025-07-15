@@ -8,7 +8,8 @@ import (
 	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/storage/mock"
 	"github.com/multiversx/mx-chain-go/storage/pruning"
-	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/cache"
+
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -44,7 +45,7 @@ func TestTriePruningStorer_GetFromOldEpochsWithoutCacheSearchesOnlyOldEpochsAndR
 
 	args := getDefaultArgs()
 	ps, _ := pruning.NewTriePruningStorer(args)
-	cacher := testscommon.NewCacherMock()
+	cacher := cache.NewCacherMock()
 	ps.SetCacher(cacher)
 
 	testKey1 := []byte("key1")
@@ -63,13 +64,13 @@ func TestTriePruningStorer_GetFromOldEpochsWithoutCacheSearchesOnlyOldEpochsAndR
 	assert.Nil(t, err)
 	assert.Equal(t, 0, len(cacher.Keys()))
 
-	res, epoch, err := ps.GetFromOldEpochsWithoutAddingToCache(testKey1)
+	res, epoch, err := ps.GetFromOldEpochsWithoutAddingToCache(testKey1, 10)
 	assert.Equal(t, testVal1, res)
 	assert.Nil(t, err)
 	assert.True(t, epoch.HasValue)
 	assert.Equal(t, uint32(0), epoch.Value)
 
-	res, epoch, err = ps.GetFromOldEpochsWithoutAddingToCache(testKey2)
+	res, epoch, err = ps.GetFromOldEpochsWithoutAddingToCache(testKey2, 10)
 	assert.Nil(t, res)
 	assert.NotNil(t, err)
 	assert.False(t, epoch.HasValue)
@@ -81,7 +82,7 @@ func TestTriePruningStorer_GetFromOldEpochsWithCache(t *testing.T) {
 
 	args := getDefaultArgs()
 	ps, _ := pruning.NewTriePruningStorer(args)
-	cacher := testscommon.NewCacherMock()
+	cacher := cache.NewCacherMock()
 	ps.SetCacher(cacher)
 
 	testKey1 := []byte("key1")
@@ -94,7 +95,7 @@ func TestTriePruningStorer_GetFromOldEpochsWithCache(t *testing.T) {
 	assert.Nil(t, err)
 	ps.SetEpochForPutOperation(1)
 
-	res, epoch, err := ps.GetFromOldEpochsWithoutAddingToCache(testKey1)
+	res, epoch, err := ps.GetFromOldEpochsWithoutAddingToCache(testKey1, 10)
 	assert.Equal(t, testVal1, res)
 	assert.Nil(t, err)
 	assert.False(t, epoch.HasValue)
@@ -116,7 +117,7 @@ func TestTriePruningStorer_GetFromOldEpochsWithoutCacheLessActivePersisters(t *t
 	assert.Equal(t, 1, ps.GetNumActivePersisters())
 	_ = ps.ChangeEpochSimple(1)
 
-	val, _, err := ps.GetFromOldEpochsWithoutAddingToCache(testKey1)
+	val, _, err := ps.GetFromOldEpochsWithoutAddingToCache(testKey1, 10)
 	assert.Nil(t, err)
 	assert.Equal(t, testVal1, val)
 }
@@ -139,7 +140,7 @@ func TestTriePruningStorer_GetFromOldEpochsWithoutCacheMoreActivePersisters(t *t
 	_ = ps.ChangeEpochSimple(2)
 	_ = ps.ChangeEpochSimple(3)
 
-	val, _, err := ps.GetFromOldEpochsWithoutAddingToCache(testKey1)
+	val, _, err := ps.GetFromOldEpochsWithoutAddingToCache(testKey1, 10)
 	assert.Nil(t, err)
 	assert.Equal(t, testVal1, val)
 }
@@ -175,7 +176,7 @@ func TestTriePruningStorer_GetFromOldEpochsWithoutCacheAllPersistersClosed(t *te
 	_ = ps.ChangeEpochSimple(3)
 	_ = ps.Close()
 
-	val, _, err := ps.GetFromOldEpochsWithoutAddingToCache([]byte("key"))
+	val, _, err := ps.GetFromOldEpochsWithoutAddingToCache([]byte("key"), 10)
 	assert.Nil(t, val)
 	assert.Equal(t, storage.ErrDBIsClosed, err)
 }
@@ -185,7 +186,7 @@ func TestTriePruningStorer_GetFromOldEpochsWithoutCacheDoesNotSearchInCurrentSto
 
 	args := getDefaultArgs()
 	ps, _ := pruning.NewTriePruningStorer(args)
-	cacher := testscommon.NewCacherStub()
+	cacher := cache.NewCacherStub()
 	cacher.PutCalled = func(_ []byte, _ interface{}, _ int) bool {
 		require.Fail(t, "this should not be called")
 		return false
@@ -198,7 +199,7 @@ func TestTriePruningStorer_GetFromOldEpochsWithoutCacheDoesNotSearchInCurrentSto
 	assert.Nil(t, err)
 	ps.ClearCache()
 
-	res, _, err := ps.GetFromOldEpochsWithoutAddingToCache(testKey1)
+	res, _, err := ps.GetFromOldEpochsWithoutAddingToCache(testKey1, 10)
 	assert.Nil(t, res)
 	assert.NotNil(t, err)
 	assert.True(t, strings.Contains(err.Error(), "not found"))
@@ -209,7 +210,7 @@ func TestTriePruningStorer_GetFromLastEpochSearchesOnlyLastEpoch(t *testing.T) {
 
 	args := getDefaultArgs()
 	ps, _ := pruning.NewTriePruningStorer(args)
-	cacher := testscommon.NewCacherMock()
+	cacher := cache.NewCacherMock()
 	ps.SetCacher(cacher)
 
 	testKey1 := []byte("key1")
@@ -258,7 +259,7 @@ func TestTriePruningStorer_GetFromCurrentEpochSearchesOnlyCurrentEpoch(t *testin
 
 	args := getDefaultArgs()
 	ps, _ := pruning.NewTriePruningStorer(args)
-	cacher := testscommon.NewCacherMock()
+	cacher := cache.NewCacherMock()
 	ps.SetCacher(cacher)
 
 	testKey1 := []byte("key1")

@@ -2,7 +2,6 @@ package blockAPI
 
 import (
 	"encoding/hex"
-	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data/alteredAccount"
@@ -39,18 +38,33 @@ func newMetaApiBlockProcessor(arg *ArgAPIBlockProcessor, emptyReceiptsHash []byt
 			accountsRepository:           arg.AccountsRepository,
 			scheduledTxsExecutionHandler: arg.ScheduledTxsExecutionHandler,
 			enableEpochsHandler:          arg.EnableEpochsHandler,
+			proofsPool:                   arg.ProofsPool,
+			blockchain:                   arg.BlockChain,
 		},
 	}
 }
 
 // GetBlockByNonce wil return a meta APIBlock by nonce
 func (mbp *metaAPIBlockProcessor) GetBlockByNonce(nonce uint64, options api.BlockQueryOptions) (*api.Block, error) {
+	if !mbp.isBlockNonceInStorage(nonce) {
+		return nil, errBlockNotFound
+	}
+
+	headerHash, blockBytes, err := mbp.getBlockHashAndBytesByNonce(nonce)
+	if err != nil {
+		return nil, err
+	}
+
+	return mbp.convertMetaBlockBytesToAPIBlock(headerHash, blockBytes, options)
+}
+
+func (mbp *metaAPIBlockProcessor) getBlockHashAndBytesByNonce(nonce uint64) ([]byte, []byte, error) {
 	storerUnit := dataRetriever.MetaHdrNonceHashDataUnit
 
 	nonceToByteSlice := mbp.uint64ByteSliceConverter.ToByteSlice(nonce)
 	headerHash, err := mbp.store.Get(storerUnit, nonceToByteSlice)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	// if genesis block, get the nonce key corresponding to the altered block
@@ -60,15 +74,15 @@ func (mbp *metaAPIBlockProcessor) GetBlockByNonce(nonce uint64, options api.Bloc
 
 	alteredHeaderHash, err := mbp.store.Get(storerUnit, nonceToByteSlice)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	blockBytes, err := mbp.getFromStorer(dataRetriever.MetaBlockUnit, alteredHeaderHash)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
-	return mbp.convertMetaBlockBytesToAPIBlock(headerHash, blockBytes, options)
+	return headerHash, blockBytes, nil
 }
 
 // GetBlockByHash will return a meta APIBlock by hash
@@ -225,7 +239,8 @@ func (mbp *metaAPIBlockProcessor) convertMetaBlockBytesToAPIBlock(hash []byte, b
 		DeveloperFees:          blockHeader.DeveloperFees.String(),
 		AccumulatedFeesInEpoch: blockHeader.AccumulatedFeesInEpoch.String(),
 		DeveloperFeesInEpoch:   blockHeader.DevFeesInEpoch.String(),
-		Timestamp:              time.Duration(blockHeader.GetTimeStamp()),
+		Timestamp:              int64(blockHeader.GetTimeStamp()),
+		TimestampMs:            int64(common.ConvertTimeStampSecToMs(blockHeader.GetTimeStamp())),
 		StateRootHash:          hex.EncodeToString(blockHeader.RootHash),
 		Status:                 BlockStatusOnChain,
 		PubKeyBitmap:           hex.EncodeToString(blockHeader.GetPubKeysBitmap()),
@@ -241,6 +256,11 @@ func (mbp *metaAPIBlockProcessor) convertMetaBlockBytesToAPIBlock(hash []byte, b
 
 	addScheduledInfoInBlock(blockHeader, apiMetaBlock)
 	addStartOfEpochInfoInBlock(blockHeader, apiMetaBlock)
+
+	err = mbp.addProof(hash, blockHeader, apiMetaBlock)
+	if err != nil {
+		return nil, err
+	}
 
 	return apiMetaBlock, nil
 }

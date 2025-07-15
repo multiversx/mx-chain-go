@@ -21,6 +21,10 @@ import (
 	"github.com/multiversx/mx-chain-core-go/hashing/blake2b"
 	"github.com/multiversx/mx-chain-core-go/hashing/sha256"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/process"
@@ -29,6 +33,7 @@ import (
 	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/storage/txcache"
 	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/cache"
 	commonMocks "github.com/multiversx/mx-chain-go/testscommon/common"
 	dataRetrieverMock "github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
 	"github.com/multiversx/mx-chain-go/testscommon/economicsmocks"
@@ -39,9 +44,6 @@ import (
 	stateMock "github.com/multiversx/mx-chain-go/testscommon/state"
 	storageStubs "github.com/multiversx/mx-chain-go/testscommon/storage"
 	"github.com/multiversx/mx-chain-go/vm"
-	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 const MaxGasLimitPerBlock = uint64(100000)
@@ -52,15 +54,15 @@ type txInfoHolder struct {
 	tx   *transaction.Transaction
 }
 
-func feeHandlerMock() *economicsmocks.EconomicsHandlerStub {
-	return &economicsmocks.EconomicsHandlerStub{
+func feeHandlerMock() *economicsmocks.EconomicsHandlerMock {
+	return &economicsmocks.EconomicsHandlerMock{
 		ComputeGasLimitCalled: func(tx data.TransactionWithFeeHandler) uint64 {
 			return 0
 		},
 		MaxGasLimitPerBlockCalled: func(_ uint32) uint64 {
 			return MaxGasLimitPerBlock
 		},
-		MaxGasLimitPerMiniBlockCalled: func() uint64 {
+		MaxGasLimitPerMiniBlockCalled: func(shardID uint32) uint64 {
 			return MaxGasLimitPerBlock
 		},
 		MaxGasLimitPerBlockForSafeCrossShardCalled: func() uint64 {
@@ -78,7 +80,7 @@ func feeHandlerMock() *economicsmocks.EconomicsHandlerStub {
 func shardedDataCacherNotifier() dataRetriever.ShardedDataCacherNotifier {
 	return &testscommon.ShardedDataStub{
 		ShardDataStoreCalled: func(id string) (c storage.Cacher) {
-			return &testscommon.CacherStub{
+			return &cache.CacherStub{
 				PeekCalled: func(key []byte) (value interface{}, ok bool) {
 					if reflect.DeepEqual(key, []byte("tx1_hash")) {
 						return &smartContractResult.SmartContractResult{Nonce: 10}, true
@@ -123,7 +125,7 @@ func initDataPool() *dataRetrieverMock.PoolsHolderStub {
 		RewardTransactionsCalled: func() dataRetriever.ShardedDataCacherNotifier {
 			return &testscommon.ShardedDataStub{
 				ShardDataStoreCalled: func(id string) (c storage.Cacher) {
-					return &testscommon.CacherStub{
+					return &cache.CacherStub{
 						PeekCalled: func(key []byte) (value interface{}, ok bool) {
 							if reflect.DeepEqual(key, []byte("tx1_hash")) {
 								return &rewardTx.RewardTx{Value: big.NewInt(100)}, true
@@ -155,7 +157,7 @@ func initDataPool() *dataRetrieverMock.PoolsHolderStub {
 			}
 		},
 		MetaBlocksCalled: func() storage.Cacher {
-			return &testscommon.CacherStub{
+			return &cache.CacherStub{
 				GetCalled: func(key []byte) (value interface{}, ok bool) {
 					if reflect.DeepEqual(key, []byte("tx1_hash")) {
 						return &transaction.Transaction{Nonce: 10}, true
@@ -178,7 +180,7 @@ func initDataPool() *dataRetrieverMock.PoolsHolderStub {
 			}
 		},
 		MiniBlocksCalled: func() storage.Cacher {
-			cs := testscommon.NewCacherStub()
+			cs := cache.NewCacherStub()
 			cs.RegisterHandlerCalled = func(i func(key []byte, value interface{})) {
 			}
 			cs.GetCalled = func(key []byte) (value interface{}, ok bool) {
@@ -522,7 +524,7 @@ func TestTransactionPreprocessor_ReceivedTransactionShouldEraseRequested(t *test
 
 	shardedDataStub := &testscommon.ShardedDataStub{
 		ShardDataStoreCalled: func(cacheId string) (c storage.Cacher) {
-			return &testscommon.CacherStub{
+			return &cache.CacherStub{
 				PeekCalled: func(key []byte) (value interface{}, ok bool) {
 					return &transaction.Transaction{}, true
 				},
@@ -1248,7 +1250,7 @@ func TestTransactionsPreprocessor_ProcessMiniBlockShouldWork(t *testing.T) {
 		TransactionsCalled: func() dataRetriever.ShardedDataCacherNotifier {
 			return &testscommon.ShardedDataStub{
 				ShardDataStoreCalled: func(id string) (c storage.Cacher) {
-					return &testscommon.CacherStub{
+					return &cache.CacherStub{
 						PeekCalled: func(key []byte) (value interface{}, ok bool) {
 							if reflect.DeepEqual(key, []byte("tx_hash1")) {
 								return &transaction.Transaction{Nonce: 10}, true
@@ -1334,7 +1336,7 @@ func TestTransactionsPreprocessor_ProcessMiniBlockShouldErrMaxGasLimitUsedForDes
 		TransactionsCalled: func() dataRetriever.ShardedDataCacherNotifier {
 			return &testscommon.ShardedDataStub{
 				ShardDataStoreCalled: func(id string) (c storage.Cacher) {
-					return &testscommon.CacherStub{
+					return &cache.CacherStub{
 						PeekCalled: func(key []byte) (value interface{}, ok bool) {
 							if reflect.DeepEqual(key, []byte("tx_hash1")) {
 								return &transaction.Transaction{}, true
@@ -1398,7 +1400,7 @@ func TestTransactionsPreprocessor_ComputeGasProvidedShouldWork(t *testing.T) {
 	txGasLimitInSender := maxGasLimit + 1
 	txGasLimitInReceiver := maxGasLimit
 	args := createDefaultTransactionsProcessorArgs()
-	args.EconomicsFee = &economicsmocks.EconomicsHandlerStub{
+	args.EconomicsFee = &economicsmocks.EconomicsHandlerMock{
 		MaxGasLimitPerBlockCalled: func(_ uint32) uint64 {
 			return maxGasLimit
 		},
@@ -1444,7 +1446,7 @@ func TestTransactionsPreprocessor_SplitMiniBlocksIfNeededShouldWork(t *testing.T
 	args := createDefaultTransactionsProcessorArgs()
 	enableEpochsHandlerStub := enableEpochsHandlerMock.NewEnableEpochsHandlerStub()
 	args.EnableEpochsHandler = enableEpochsHandlerStub
-	args.EconomicsFee = &economicsmocks.EconomicsHandlerStub{
+	args.EconomicsFee = &economicsmocks.EconomicsHandlerMock{
 		MaxGasLimitPerMiniBlockForSafeCrossShardCalled: func() uint64 {
 			return gasLimitPerMiniBlock
 		},
@@ -1512,7 +1514,7 @@ func TestTransactionsPreProcessor_preFilterTransactionsNoBandwidth(t *testing.T)
 			return txHandler.GetGasLimit(), txHandler.GetGasLimit(), nil
 		},
 	}
-	economicsFee := &economicsmocks.EconomicsHandlerStub{
+	economicsFee := &economicsmocks.EconomicsHandlerMock{
 		MinGasLimitCalled: func() uint64 {
 			return 10
 		},
@@ -1562,7 +1564,7 @@ func TestTransactionsPreProcessor_preFilterTransactionsLimitedBandwidthMultipleT
 			return txHandler.GetGasLimit(), txHandler.GetGasLimit(), nil
 		},
 	}
-	economicsFee := &economicsmocks.EconomicsHandlerStub{
+	economicsFee := &economicsmocks.EconomicsHandlerMock{
 		MinGasLimitCalled: func() uint64 {
 			return 10
 		},
@@ -1623,7 +1625,7 @@ func TestTransactionsPreProcessor_preFilterTransactionsLimitedBandwidthMultipleT
 			return txHandler.GetGasLimit(), txHandler.GetGasLimit(), nil
 		},
 	}
-	economicsFee := &economicsmocks.EconomicsHandlerStub{
+	economicsFee := &economicsmocks.EconomicsHandlerMock{
 		MinGasLimitCalled: func() uint64 {
 			return 10
 		},
@@ -1692,7 +1694,7 @@ func TestTransactionsPreProcessor_preFilterTransactionsHighBandwidth(t *testing.
 			return txHandler.GetGasLimit(), txHandler.GetGasLimit(), nil
 		},
 	}
-	economicsFee := &economicsmocks.EconomicsHandlerStub{
+	economicsFee := &economicsmocks.EconomicsHandlerMock{
 		MinGasLimitCalled: func() uint64 {
 			return 10
 		},
@@ -1752,7 +1754,7 @@ func TestTransactionsPreProcessor_getRemainingGasPerBlock(t *testing.T) {
 			return totalGasProvided
 		},
 	}
-	economicsFee := &economicsmocks.EconomicsHandlerStub{
+	economicsFee := &economicsmocks.EconomicsHandlerMock{
 		MaxGasLimitPerBlockCalled: func(shardID uint32) uint64 {
 			return maxGasPerBlock
 		},
@@ -1782,7 +1784,7 @@ func TestTransactionsPreProcessor_getRemainingGasPerBlockAsScheduled(t *testing.
 			return totalGasProvided
 		},
 	}
-	economicsFee := &economicsmocks.EconomicsHandlerStub{
+	economicsFee := &economicsmocks.EconomicsHandlerMock{
 		MaxGasLimitPerBlockCalled: func(shardID uint32) uint64 {
 			return maxGasPerBlock
 		},
@@ -2046,7 +2048,7 @@ func TestTransactions_RestoreBlockDataIntoPools(t *testing.T) {
 	args.Store = genericMocks.NewChainStorerMock(0)
 	txs, _ := NewTransactionPreprocessor(args)
 
-	mbPool := testscommon.NewCacherMock()
+	mbPool := cache.NewCacherMock()
 
 	body, allTxs := createMockBlockBody()
 	storer, _ := args.Store.GetStorer(dataRetriever.TransactionUnit)

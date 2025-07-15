@@ -93,28 +93,6 @@ func TestNewRewardsCreator_NilMarshalizer(t *testing.T) {
 	assert.Equal(t, epochStart.ErrNilMarshalizer, err)
 }
 
-func TestNewRewardsCreator_EmptyProtocolSustainabilityAddress(t *testing.T) {
-	t.Parallel()
-
-	args := getRewardsArguments()
-	args.ProtocolSustainabilityAddress = ""
-
-	rwd, err := NewRewardsCreator(args)
-	assert.True(t, check.IfNil(rwd))
-	assert.Equal(t, epochStart.ErrNilProtocolSustainabilityAddress, err)
-}
-
-func TestNewRewardsCreator_InvalidProtocolSustainabilityAddress(t *testing.T) {
-	t.Parallel()
-
-	args := getRewardsArguments()
-	args.ProtocolSustainabilityAddress = "xyz" // not a hex string
-
-	rwd, err := NewRewardsCreator(args)
-	assert.True(t, check.IfNil(rwd))
-	assert.NotNil(t, err)
-}
-
 func TestNewRewardsCreator_OkValsShouldWork(t *testing.T) {
 	t.Parallel()
 
@@ -207,7 +185,7 @@ func TestRewardsCreator_VerifyRewardsMiniBlocksRewardsMbNumDoesNotMatch(t *testi
 	protocolSustainabilityRewardTx := rewardTx.RewardTx{
 		Round:   0,
 		Value:   big.NewInt(50),
-		RcvAddr: []byte{17},
+		RcvAddr: []byte("11"),
 		Epoch:   0,
 	}
 	mb.EpochStart.Economics.RewardsForProtocolSustainability.Set(protocolSustainabilityRewardTx.Value)
@@ -253,7 +231,7 @@ func TestRewardsCreator_adjustProtocolSustainabilityRewardsPositiveValue(t *test
 	require.NotNil(t, rwd)
 
 	initialProtRewardValue := big.NewInt(1000000)
-	protRwAddr, _ := args.PubkeyConverter.Decode(args.ProtocolSustainabilityAddress)
+	protRwAddr, _ := args.PubkeyConverter.Decode(args.RewardsHandler.ProtocolSustainabilityAddressInEpoch(0))
 	protRwTx := &rewardTx.RewardTx{
 		Round:   100,
 		Value:   big.NewInt(0).Set(initialProtRewardValue),
@@ -284,7 +262,7 @@ func TestRewardsCreator_adjustProtocolSustainabilityRewardsNegValueShouldWork(t 
 	require.NotNil(t, rwd)
 
 	initialProtRewardValue := big.NewInt(10)
-	protRwAddr, _ := args.PubkeyConverter.Decode(args.ProtocolSustainabilityAddress)
+	protRwAddr, _ := args.PubkeyConverter.Decode(args.RewardsHandler.ProtocolSustainabilityAddressInEpoch(0))
 	protRwTx := &rewardTx.RewardTx{
 		Round:   100,
 		Value:   big.NewInt(0).Set(initialProtRewardValue),
@@ -317,7 +295,7 @@ func TestRewardsCreator_adjustProtocolSustainabilityRewardsInitialNegativeValue(
 	require.NotNil(t, rwd)
 
 	initialProtRewardValue := big.NewInt(-100)
-	protRwAddr, _ := args.PubkeyConverter.Decode(args.ProtocolSustainabilityAddress)
+	protRwAddr, _ := args.PubkeyConverter.Decode(args.RewardsHandler.ProtocolSustainabilityAddressInEpoch(0))
 	protRwTx := &rewardTx.RewardTx{
 		Round:   100,
 		Value:   big.NewInt(0).Set(initialProtRewardValue),
@@ -356,7 +334,7 @@ func TestRewardsCreator_VerifyRewardsMiniBlocksShouldWork(t *testing.T) {
 	protocolSustainabilityRewardTx := rewardTx.RewardTx{
 		Round:   0,
 		Value:   big.NewInt(50),
-		RcvAddr: []byte{17},
+		RcvAddr: []byte("11"),
 		Epoch:   0,
 	}
 	commRwdTxHash, _ := core.CalculateHash(&marshal.JsonMarshalizer{}, &hashingMocks.HasherMock{}, protocolSustainabilityRewardTx)
@@ -424,7 +402,7 @@ func TestRewardsCreator_VerifyRewardsMiniBlocksShouldWorkEvenIfNotAllShardsHaveR
 	protocolSustainabilityRewardTx := rewardTx.RewardTx{
 		Round:   0,
 		Value:   big.NewInt(50),
-		RcvAddr: []byte{17},
+		RcvAddr: []byte("11"),
 		Epoch:   0,
 	}
 	commRwdTxHash, _ := core.CalculateHash(&marshal.JsonMarshalizer{}, &hashingMocks.HasherMock{}, protocolSustainabilityRewardTx)
@@ -607,7 +585,7 @@ func TestRewardsCreator_addValidatorRewardsToMiniBlocks(t *testing.T) {
 		LeaderSuccess:   1,
 	})
 
-	rwdc.fillBaseRewardsPerBlockPerNode(mb.EpochStart.Economics.RewardsPerBlock)
+	rwdc.fillBaseRewardsPerBlockPerNode(mb.EpochStart.Economics.RewardsPerBlock, 0)
 	err := rwdc.addValidatorRewardsToMiniBlocks(valInfo, mb, miniBlocks, &rewardTx.RewardTx{})
 	assert.Nil(t, err)
 	assert.Equal(t, cloneMb, miniBlocks[0])
@@ -618,7 +596,7 @@ func TestRewardsCreator_ProtocolRewardsForValidatorFromMultipleShards(t *testing
 
 	args := getRewardsArguments()
 	args.NodesConfigProvider = &shardingMocks.NodesCoordinatorStub{
-		ConsensusGroupSizeCalled: func(shardID uint32) int {
+		ConsensusGroupSizeCalled: func(shardID uint32, _ uint32) int {
 			if shardID == core.MetachainShardId {
 				return 400
 			}
@@ -648,15 +626,15 @@ func TestRewardsCreator_ProtocolRewardsForValidatorFromMultipleShards(t *testing
 		LeaderSuccess:              1,
 	})
 
-	rwdc.fillBaseRewardsPerBlockPerNode(mb.EpochStart.Economics.RewardsPerBlock)
+	rwdc.fillBaseRewardsPerBlockPerNode(mb.EpochStart.Economics.RewardsPerBlock, 0)
 	rwdInfoData := rwdc.computeValidatorInfoPerRewardAddress(valInfo, &rewardTx.RewardTx{}, 0)
 	assert.Equal(t, 1, len(rwdInfoData))
 	rwdInfo := rwdInfoData[pubkey]
 	assert.Equal(t, rwdInfo.address, pubkey)
 
 	assert.Equal(t, rwdInfo.accumulatedFees.Cmp(big.NewInt(200)), 0)
-	protocolRewards := uint64(valInfo.GetShardValidatorsInfoMap()[0][0].GetNumSelectedInSuccessBlocks()) * (mb.EpochStart.Economics.RewardsPerBlock.Uint64() / uint64(args.NodesConfigProvider.ConsensusGroupSize(0)))
-	protocolRewards += uint64(valInfo.GetShardValidatorsInfoMap()[core.MetachainShardId][0].GetNumSelectedInSuccessBlocks()) * (mb.EpochStart.Economics.RewardsPerBlock.Uint64() / uint64(args.NodesConfigProvider.ConsensusGroupSize(core.MetachainShardId)))
+	protocolRewards := uint64(valInfo.GetShardValidatorsInfoMap()[0][0].GetNumSelectedInSuccessBlocks()) * (mb.EpochStart.Economics.RewardsPerBlock.Uint64() / uint64(args.NodesConfigProvider.ConsensusGroupSizeForShardAndEpoch(0, 0)))
+	protocolRewards += uint64(valInfo.GetShardValidatorsInfoMap()[core.MetachainShardId][0].GetNumSelectedInSuccessBlocks()) * (mb.EpochStart.Economics.RewardsPerBlock.Uint64() / uint64(args.NodesConfigProvider.ConsensusGroupSizeForShardAndEpoch(core.MetachainShardId, 0)))
 	assert.Equal(t, rwdInfo.rewardsFromProtocol.Uint64(), protocolRewards)
 }
 
@@ -671,7 +649,7 @@ func TestRewardsCreator_CreateProtocolSustainabilityRewardTransaction(t *testing
 	expectedRewardTx := &rewardTx.RewardTx{
 		Round:   0,
 		Value:   big.NewInt(50),
-		RcvAddr: []byte{17},
+		RcvAddr: []byte("11"),
 		Epoch:   0,
 	}
 
@@ -702,7 +680,7 @@ func TestRewardsCreator_AddProtocolSustainabilityRewardToMiniBlocks(t *testing.T
 	expectedRewardTx := &rewardTx.RewardTx{
 		Round:   0,
 		Value:   big.NewInt(50),
-		RcvAddr: []byte{17},
+		RcvAddr: []byte("11"),
 		Epoch:   0,
 	}
 	expectedRwdTxHash, _ := core.CalculateHash(&marshal.JsonMarshalizer{}, &hashingMocks.HasherMock{}, expectedRewardTx)

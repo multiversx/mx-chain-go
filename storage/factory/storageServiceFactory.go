@@ -235,6 +235,16 @@ func (psf *StorageServiceFactory) createAndAddBaseStorageUnits(
 	}
 	store.AddStorer(dataRetriever.MetaBlockUnit, metaBlockUnit)
 
+	proofsUnitArgs, err := psf.createPruningStorerArgs(psf.generalConfig.ProofsStorage, disabledCustomDatabaseRemover)
+	if err != nil {
+		return err
+	}
+	proofsUnit, err := psf.createPruningPersister(proofsUnitArgs)
+	if err != nil {
+		return fmt.Errorf("%w for ProofsStorage", err)
+	}
+	store.AddStorer(dataRetriever.ProofsUnit, proofsUnit)
+
 	metaHdrHashNonceUnit, err := psf.createStaticStorageUnit(psf.generalConfig.MetaHdrNonceHashStorage, shardID, emptyDBPathSuffix)
 	if err != nil {
 		return fmt.Errorf("%w for MetaHdrNonceHashStorage", err)
@@ -350,7 +360,7 @@ func (psf *StorageServiceFactory) CreateForShard() (dataRetriever.StorageService
 	}
 	store.AddStorer(dataRetriever.PeerChangesUnit, peerBlockUnit)
 
-	hdrNonceHashDataUnit := dataRetriever.ShardHdrNonceHashDataUnit + dataRetriever.UnitType(psf.shardCoordinator.SelfId())
+	hdrNonceHashDataUnit := dataRetriever.GetHdrNonceHashDataUnit(psf.shardCoordinator.SelfId())
 	store.AddStorer(hdrNonceHashDataUnit, shardHdrHashNonceUnit)
 
 	err = psf.setUpDbLookupExtensions(store)
@@ -404,7 +414,7 @@ func (psf *StorageServiceFactory) CreateForMeta() (dataRetriever.StorageService,
 	store.AddStorer(dataRetriever.PeerAccountsUnit, peerAccountsUnit)
 
 	for i := uint32(0); i < psf.shardCoordinator.NumberOfShards(); i++ {
-		hdrNonceHashDataUnit := dataRetriever.ShardHdrNonceHashDataUnit + dataRetriever.UnitType(i)
+		hdrNonceHashDataUnit := dataRetriever.GetHdrNonceHashDataUnit(i)
 		store.AddStorer(hdrNonceHashDataUnit, shardHdrHashNonceUnits[i])
 	}
 

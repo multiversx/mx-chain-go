@@ -24,6 +24,7 @@ func TestInitBaseMetrics(t *testing.T) {
 		common.MetricSynchronizedRound,
 		common.MetricNonce,
 		common.MetricBlockTimestamp,
+		common.MetricBlockTimestampMs,
 		common.MetricCountConsensus,
 		common.MetricCountLeader,
 		common.MetricCountAcceptedBlocks,
@@ -212,6 +213,14 @@ func TestInitConfigMetrics(t *testing.T) {
 			MultiESDTNFTTransferAndExecuteByUserEnableEpoch:          105,
 			FixRelayedMoveBalanceToNonPayableSCEnableEpoch:           106,
 			RelayedTransactionsV3EnableEpoch:                         107,
+			RelayedTransactionsV3FixESDTTransferEnableEpoch:          108,
+			CheckBuiltInCallOnTransferValueAndFailEnableRound:        109,
+			MaskVMInternalDependenciesErrorsEnableEpoch:              110,
+			FixBackTransferOPCODEEnableEpoch:                         111,
+			ValidationOnGobDecodeEnableEpoch:                         112,
+			BarnardOpcodesEnableEpoch:                                113,
+			AutomaticActivationOfNodesDisableEpoch:                   114,
+			FixGetBalanceEnableEpoch:                                 115,
 			MaxNodesChangeEnableEpoch: []config.MaxNodesChangeConfig{
 				{
 					EpochEnable:            0,
@@ -334,6 +343,14 @@ func TestInitConfigMetrics(t *testing.T) {
 		"erd_multi_esdt_transfer_execute_by_user_enable_epoch":                 uint32(105),
 		"erd_fix_relayed_move_balance_to_non_payable_sc_enable_epoch":          uint32(106),
 		"erd_relayed_transactions_v3_enable_epoch":                             uint32(107),
+		"erd_relayed_transactions_v3_fix_esdt_transfer_enable_epoch":           uint32(108),
+		"erd_checkbuiltincall_ontransfervalueandfail_enable_round":             uint32(109),
+		"erd_mask_vm_internal_dependencies_errors_enable_epoch":                uint32(110),
+		"erd_fix_back_transfer_opcode_enable_epoch":                            uint32(111),
+		"erd_validation_on_gobdecode_enable_epoch":                             uint32(112),
+		"erd_barnard_opcodes_enable_epoch":                                     uint32(113),
+		"erd_automatic_activation_of_nodes_disable_epoch":                      uint32(114),
+		"erd_fix_get_balance_enable_epoch":                                     uint32(115),
 		"erd_max_nodes_change_enable_epoch":                                    nil,
 		"erd_total_supply":                                                     "12345",
 		"erd_hysteresis":                                                       "0.100000",
@@ -416,21 +433,25 @@ func TestInitRatingsMetrics(t *testing.T) {
 			},
 		},
 		ShardChain: config.ShardChain{
-			RatingSteps: config.RatingSteps{
-				HoursToMaxRatingFromStartRating: 10,
-				ProposerValidatorImportance:     0.1,
-				ProposerDecreaseFactor:          0.1,
-				ValidatorDecreaseFactor:         0.1,
-				ConsecutiveMissedBlocksPenalty:  0.1,
+			RatingStepsByEpoch: []config.RatingSteps{
+				{
+					HoursToMaxRatingFromStartRating: 10,
+					ProposerValidatorImportance:     0.1,
+					ProposerDecreaseFactor:          0.1,
+					ValidatorDecreaseFactor:         0.1,
+					ConsecutiveMissedBlocksPenalty:  0.1,
+				},
 			},
 		},
 		MetaChain: config.MetaChain{
-			RatingSteps: config.RatingSteps{
-				HoursToMaxRatingFromStartRating: 10,
-				ProposerValidatorImportance:     0.1,
-				ProposerDecreaseFactor:          0.1,
-				ValidatorDecreaseFactor:         0.1,
-				ConsecutiveMissedBlocksPenalty:  0.1,
+			RatingStepsByEpoch: []config.RatingSteps{
+				{
+					HoursToMaxRatingFromStartRating: 10,
+					ProposerValidatorImportance:     0.1,
+					ProposerDecreaseFactor:          0.1,
+					ValidatorDecreaseFactor:         0.1,
+					ConsecutiveMissedBlocksPenalty:  0.1,
+				},
 			},
 		},
 		PeerHonesty: config.PeerHonestyConfig{

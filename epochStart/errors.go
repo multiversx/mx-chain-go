@@ -62,9 +62,6 @@ var ErrNilHeaderValidator = errors.New("nil header validator")
 // ErrNilDataPoolsHolder signals that nil data pools holder has been provided
 var ErrNilDataPoolsHolder = errors.New("nil data pools holder")
 
-// ErrNilProtocolSustainabilityAddress signals that a nil protocol sustainability address was provided
-var ErrNilProtocolSustainabilityAddress = errors.New("nil protocol sustainability address")
-
 // ErrNilStorageService signals that a nil storage service has been provided
 var ErrNilStorageService = errors.New("nil storage service")
 
@@ -73,6 +70,9 @@ var ErrNilRequestHandler = errors.New("nil request handler")
 
 // ErrNilMetaBlocksPool signals that nil metablock pools holder has been provided
 var ErrNilMetaBlocksPool = errors.New("nil metablocks pool")
+
+// ErrNilProofsPool signals that nil proofs pool has been provided
+var ErrNilProofsPool = errors.New("nil proofs pool")
 
 // ErrNilValidatorInfoProcessor signals that a nil validator info processor has been provided
 var ErrNilValidatorInfoProcessor = errors.New("nil validator info processor")
@@ -203,9 +203,6 @@ var ErrNotEnoughNumOfPeersToConsiderBlockValid = errors.New("not enough num of p
 // ErrNilArgumentsParser signals that nil arguments parser was provided
 var ErrNilArgumentsParser = errors.New("nil arguments parsers")
 
-// ErrProtocolSustainabilityAddressInMetachain signals that protocol sustainability address is in metachain which is not allowed
-var ErrProtocolSustainabilityAddressInMetachain = errors.New("protocol sustainability address in metachain")
-
 // ErrNilGenesisTotalSupply signals that nil genesis total supply has been provided
 var ErrNilGenesisTotalSupply = errors.New("nil genesis total supply")
 
@@ -238,6 +235,9 @@ var ErrNilEpochNotifier = errors.New("nil EpochNotifier")
 
 // ErrNilMetablockProcessor signals that a nil metablock processor was provided
 var ErrNilMetablockProcessor = errors.New("nil metablock processor")
+
+// ErrNilInterceptedDataVerifierFactory signals that a nil intercepted data verifier factory was provided
+var ErrNilInterceptedDataVerifierFactory = errors.New("nil intercepted data verifier factory")
 
 // ErrCouldNotInitDelegationSystemSC signals that delegation system sc init failed
 var ErrCouldNotInitDelegationSystemSC = errors.New("could not init delegation system sc")
@@ -352,3 +352,9 @@ var ErrUint32SubtractionOverflow = errors.New("uint32 subtraction overflowed")
 
 // ErrReceivedAuctionValidatorsBeforeStakingV4 signals that an auction node has been provided before enabling staking v4
 var ErrReceivedAuctionValidatorsBeforeStakingV4 = errors.New("auction node has been provided before enabling staking v4")
+
+// ErrNilEquivalentProofsProcessor signals that a nil equivalent proofs processor was provided
+var ErrNilEquivalentProofsProcessor = errors.New("nil equivalent proofs processor")
+
+// ErrNilHeadersDataPool signals that a nil headers pool has been provided
+var ErrNilHeadersDataPool = errors.New("nil headers data pool")

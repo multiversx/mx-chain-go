@@ -3,6 +3,7 @@ package storageBootstrap
 import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
+
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/block/bootstrapStorage"
@@ -41,6 +42,8 @@ func NewMetaStorageBootstrapper(arguments ArgsMetaStorageBootstrapper) (*metaSto
 		epochNotifier:                arguments.EpochNotifier,
 		processedMiniBlocksTracker:   arguments.ProcessedMiniBlocksTracker,
 		appStatusHandler:             arguments.AppStatusHandler,
+		enableEpochsHandler:          arguments.EnableEpochsHandler,
+		proofsPool:                   arguments.ProofsPool,
 	}
 
 	boot := metaStorageBootstrapper{
@@ -70,6 +73,11 @@ func (msb *metaStorageBootstrapper) IsInterfaceNil() bool {
 func (msb *metaStorageBootstrapper) applyCrossNotarizedHeaders(crossNotarizedHeaders []bootstrapStorage.BootstrapHeaderInfo) error {
 	for _, crossNotarizedHeader := range crossNotarizedHeaders {
 		header, err := process.GetShardHeaderFromStorage(crossNotarizedHeader.Hash, msb.marshalizer, msb.store)
+		if err != nil {
+			return err
+		}
+
+		err = msb.getAndApplyProofForHeader(crossNotarizedHeader.Hash, header)
 		if err != nil {
 			return err
 		}
@@ -124,7 +132,7 @@ func (msb *metaStorageBootstrapper) cleanupNotarizedStorage(metaBlockHash []byte
 			"nonce", shardHeader.GetNonce(),
 			"hash", shardHeaderHash)
 
-		hdrNonceHashDataUnit := dataRetriever.ShardHdrNonceHashDataUnit + dataRetriever.UnitType(shardHeader.GetShardID())
+		hdrNonceHashDataUnit := dataRetriever.GetHdrNonceHashDataUnit(shardHeader.GetShardID())
 		storer, err := msb.store.GetStorer(hdrNonceHashDataUnit)
 		if err != nil {
 			log.Debug("could not get storage unit",
@@ -154,6 +162,11 @@ func (msb *metaStorageBootstrapper) applySelfNotarizedHeaders(
 
 	for _, bootstrapHeaderInfo := range bootstrapHeadersInfo {
 		selfNotarizedHeader, err := msb.getHeader(bootstrapHeaderInfo.Hash)
+		if err != nil {
+			return nil, nil, err
+		}
+
+		err = msb.getAndApplyProofForHeader(bootstrapHeaderInfo.Hash, selfNotarizedHeader)
 		if err != nil {
 			return nil, nil, err
 		}

@@ -5,9 +5,10 @@ import (
 	"sync"
 
 	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-logger-go"
+
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
-	"github.com/multiversx/mx-chain-logger-go"
 )
 
 var log = logger.GetOrCreate("dataRetriever/headersCache")
@@ -64,6 +65,7 @@ func (pool *headersPool) AddHeader(headerHash []byte, header data.HeaderHandler)
 	added := pool.cache.addHeader(headerHash, header)
 
 	if added {
+		log.Trace("added header to pool", "header shard", header.GetShardID(), "header nonce", header.GetNonce(), "header hash", headerHash)
 		pool.callAddedDataHandlers(header, headerHash)
 	}
 }

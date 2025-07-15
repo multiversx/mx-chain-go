@@ -38,6 +38,8 @@ type HeaderHandlerStub struct {
 	SetRandSeedCalled                      func(seed []byte) error
 	SetSignatureCalled                     func(signature []byte) error
 	SetLeaderSignatureCalled               func(signature []byte) error
+	GetShardIDCalled                       func() uint32
+	SetRootHashCalled                      func(hash []byte) error
 }
 
 // GetAccumulatedFees -
@@ -89,6 +91,9 @@ func (hhs *HeaderHandlerStub) ShallowClone() data.HeaderHandler {
 
 // GetShardID -
 func (hhs *HeaderHandlerStub) GetShardID() uint32 {
+	if hhs.GetShardIDCalled != nil {
+		return hhs.GetShardIDCalled()
+	}
 	return 1
 }
 
@@ -199,8 +204,11 @@ func (hhs *HeaderHandlerStub) SetTimeStamp(timestamp uint64) error {
 }
 
 // SetRootHash -
-func (hhs *HeaderHandlerStub) SetRootHash(_ []byte) error {
-	panic("implement me")
+func (hhs *HeaderHandlerStub) SetRootHash(hash []byte) error {
+	if hhs.SetRootHashCalled != nil {
+		return hhs.SetRootHashCalled(hash)
+	}
+	return nil
 }
 
 // SetPrevHash -

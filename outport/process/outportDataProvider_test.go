@@ -18,6 +18,7 @@ import (
 	"github.com/multiversx/mx-chain-go/outport/process/transactionsfee"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	commonMocks "github.com/multiversx/mx-chain-go/testscommon/common"
+	"github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/genericMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
@@ -47,6 +48,8 @@ func createArgOutportDataProvider() ArgOutportDataProvider {
 		ExecutionOrderHandler:    &commonMocks.TxExecutionOrderHandlerStub{},
 		Marshaller:               &marshallerMock.MarshalizerMock{},
 		Hasher:                   &hashingMocks.HasherMock{},
+		ProofsPool:               &dataRetriever.ProofsPoolMock{},
+		EnableEpochsHandler:      enableEpochsHandlerMock.NewEnableEpochsHandlerStubWithNoFlagsDefined(),
 		StateAccessesCollector:   &state.StateAccessesCollectorStub{},
 	}
 }
@@ -87,8 +90,8 @@ func TestPrepareOutportSaveBlockData(t *testing.T) {
 
 	arg := createArgOutportDataProvider()
 	arg.NodesCoordinator = &shardingMocks.NodesCoordinatorMock{
-		GetValidatorsPublicKeysCalled: func(randomness []byte, round uint64, shardId uint32, epoch uint32) ([]string, error) {
-			return nil, nil
+		GetValidatorsPublicKeysCalled: func(randomness []byte, round uint64, shardId uint32, epoch uint32) (string, []string, error) {
+			return "", nil, nil
 		},
 		GetValidatorsIndexesCalled: func(publicKeys []string, epoch uint32) ([]uint64, error) {
 			return []uint64{0, 1}, nil
@@ -131,8 +134,8 @@ func TestOutportDataProvider_GetIntraShardMiniBlocks(t *testing.T) {
 
 	arg := createArgOutportDataProvider()
 	arg.NodesCoordinator = &shardingMocks.NodesCoordinatorMock{
-		GetValidatorsPublicKeysCalled: func(randomness []byte, round uint64, shardId uint32, epoch uint32) ([]string, error) {
-			return nil, nil
+		GetValidatorsPublicKeysCalled: func(randomness []byte, round uint64, shardId uint32, epoch uint32) (string, []string, error) {
+			return "", nil, nil
 		},
 		GetValidatorsIndexesCalled: func(publicKeys []string, epoch uint32) ([]uint64, error) {
 			return []uint64{0, 1}, nil
@@ -568,6 +571,22 @@ func Test_collectExecutedTxHashes(t *testing.T) {
 		require.Nil(t, err)
 		require.Equal(t, 100, len(collectedTxs))
 	})
+}
+
+func TestFindLeaderIndex(t *testing.T) {
+	t.Parallel()
+
+	leaderKey := "a"
+	keys := []string{"a", "b", "c", "d", "e", "f", "g"}
+	require.Equal(t, uint64(0), findLeaderIndex(keys, leaderKey))
+
+	leaderKey = "g"
+	keys = []string{"a", "b", "c", "d", "e", "f", "g"}
+	require.Equal(t, uint64(6), findLeaderIndex(keys, leaderKey))
+
+	leaderKey = "notFound"
+	keys = []string{"a", "b", "c", "d", "e", "f", "g"}
+	require.Equal(t, uint64(0), findLeaderIndex(keys, leaderKey))
 }
 
 func createMbsAndMbHeaders(numPairs int, numTxsPerMb int) ([]*block.MiniBlock, []block.MiniBlockHeader) {

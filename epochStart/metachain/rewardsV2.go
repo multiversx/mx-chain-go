@@ -107,7 +107,7 @@ func (rc *rewardsCreatorV2) CreateRewardsMiniBlocks(
 		return nil, err
 	}
 
-	nodesRewardInfo, dustFromRewardsPerNode := rc.computeRewardsPerNode(validatorsInfo)
+	nodesRewardInfo, dustFromRewardsPerNode := rc.computeRewardsPerNode(validatorsInfo, metaBlock.GetEpoch())
 	log.Debug("arithmetic difference from dust rewards per node", "value", dustFromRewardsPerNode)
 
 	dust, err := rc.addValidatorRewardsToMiniBlocks(metaBlock, miniBlocks, nodesRewardInfo)
@@ -264,6 +264,7 @@ func (rc *rewardsCreatorV2) IsInterfaceNil() bool {
 
 func (rc *rewardsCreatorV2) computeRewardsPerNode(
 	validatorsInfo state.ShardValidatorsInfoMapHandler,
+	epoch uint32,
 ) (map[uint32][]*nodeRewardsData, *big.Int) {
 
 	var baseRewardsPerBlock *big.Int
@@ -274,7 +275,7 @@ func (rc *rewardsCreatorV2) computeRewardsPerNode(
 	totalStakeEligible := rc.stakingDataProvider.GetTotalStakeEligibleNodes()
 	totalTopUpEligible := rc.stakingDataProvider.GetTotalTopUpStakeEligibleNodes()
 	remainingToBeDistributed := rc.economicsDataProvider.RewardsToBeDistributedForBlocks()
-	topUpRewards := rc.computeTopUpRewards(remainingToBeDistributed, totalTopUpEligible)
+	topUpRewards := rc.computeTopUpRewards(remainingToBeDistributed, totalTopUpEligible, epoch)
 	baseRewards := big.NewInt(0).Sub(remainingToBeDistributed, topUpRewards)
 	nbBlocks := big.NewInt(int64(rc.economicsDataProvider.NumberOfBlocks()))
 	if nbBlocks.Cmp(zero) <= 0 {
@@ -289,7 +290,7 @@ func (rc *rewardsCreatorV2) computeRewardsPerNode(
 		"baseRewards", baseRewards.String(),
 		"topUpRewards", topUpRewards.String())
 
-	rc.fillBaseRewardsPerBlockPerNode(baseRewardsPerBlock)
+	rc.fillBaseRewardsPerBlockPerNode(baseRewardsPerBlock, epoch)
 
 	accumulatedDust := big.NewInt(0)
 	dust := rc.computeBaseRewardsPerNode(nodesRewardInfo, baseRewards)
@@ -379,7 +380,7 @@ func (rc *rewardsCreatorV2) computeTopUpRewardsPerNode(
 // x is the cumulative top-up stake value for eligible nodes
 // p is the cumulative eligible stake where rewards per day reach 1/2 of k (includes topUp for the eligible nodes)
 // pi is the mathematical constant pi = 3.1415...
-func (rc *rewardsCreatorV2) computeTopUpRewards(totalToDistribute *big.Int, totalTopUpEligible *big.Int) *big.Int {
+func (rc *rewardsCreatorV2) computeTopUpRewards(totalToDistribute *big.Int, totalTopUpEligible *big.Int, epoch uint32) *big.Int {
 	if totalToDistribute.Cmp(zero) <= 0 || totalTopUpEligible.Cmp(zero) <= 0 {
 		return big.NewInt(0)
 	}
@@ -388,15 +389,15 @@ func (rc *rewardsCreatorV2) computeTopUpRewards(totalToDistribute *big.Int, tota
 	log.Debug("computeTopUpRewards", "totalTopUpEligible", totalTopUpEligible.String())
 
 	// k = c * economics.TotalToDistribute, c = top-up reward factor (constant)
-	k := core.GetIntTrimmedPercentageOfValue(totalToDistribute, rc.rewardsHandler.RewardsTopUpFactor())
-	log.Debug("computeTopUpRewards", "topUpFactor", rc.rewardsHandler.RewardsTopUpFactor())
+	k := core.GetIntTrimmedPercentageOfValue(totalToDistribute, rc.rewardsHandler.RewardsTopUpFactorInEpoch(epoch))
+	log.Debug("computeTopUpRewards", "topUpFactor", rc.rewardsHandler.RewardsTopUpFactorInEpoch(epoch))
 	log.Debug("computeTopUpRewards", "k", k.String())
 
 	// p is the cumulative eligible stake where rewards per day reach 1/2 of k (constant)
 	// x/p - argument for atan
 	totalTopUpEligibleFloat := big.NewFloat(0).SetInt(totalTopUpEligible)
-	topUpGradientPointFloat := big.NewFloat(0).SetInt(rc.rewardsHandler.RewardsTopUpGradientPoint())
-	log.Debug("computeTopUpRewards", "topUpGradientPoint", rc.rewardsHandler.RewardsTopUpGradientPoint().String())
+	topUpGradientPointFloat := big.NewFloat(0).SetInt(rc.rewardsHandler.RewardsTopUpGradientPointInEpoch(epoch))
+	log.Debug("computeTopUpRewards", "topUpGradientPoint", rc.rewardsHandler.RewardsTopUpGradientPointInEpoch(epoch).String())
 
 	floatArg, _ := big.NewFloat(0).Quo(totalTopUpEligibleFloat, topUpGradientPointFloat).Float64()
 	log.Debug("computeTopUpRewards", "x/p", floatArg)

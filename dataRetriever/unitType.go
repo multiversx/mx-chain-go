@@ -41,7 +41,7 @@ const (
 	TrieEpochRootHashUnit UnitType = 17
 	// ESDTSuppliesUnit is the ESDT supplies storage unit identifier
 	ESDTSuppliesUnit UnitType = 18
-	// RoundHdrHashDataUnit is the round- block header hash storage data unit identifier
+	// RoundHdrHashDataUnit is the round-block header hash storage data unit identifier
 	RoundHdrHashDataUnit UnitType = 19
 	// UserAccountsUnit is the user accounts storage unit identifier
 	UserAccountsUnit UnitType = 20
@@ -49,8 +49,10 @@ const (
 	PeerAccountsUnit UnitType = 21
 	// ScheduledSCRsUnit is the scheduled SCRs storage unit identifier
 	ScheduledSCRsUnit UnitType = 22
+	// ProofsUnit is the header proofs unit identifier
+	ProofsUnit UnitType = 23
 	// StateAccessesUnit is the state accesses storage unit identifier
-	StateAccessesUnit UnitType = 23
+	StateAccessesUnit UnitType = 24
 
 	// ShardHdrNonceHashDataUnit is the header nonce-hash pair data unit identifier
 	//TODO: Add only unit types lower than 100
@@ -112,9 +114,10 @@ func (ut UnitType) String() string {
 		return "PeerAccountsUnit"
 	case ScheduledSCRsUnit:
 		return "ScheduledSCRsUnit"
+	case ProofsUnit:
+		return "ProofsUnit"
 	case StateAccessesUnit:
 		return "StateAccessesUnit"
-
 	}
 
 	if ut < ShardHdrNonceHashDataUnit {

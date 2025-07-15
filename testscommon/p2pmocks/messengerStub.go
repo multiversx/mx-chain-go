@@ -44,7 +44,7 @@ type MessengerStub struct {
 	BroadcastUsingPrivateKeyCalled          func(topic string, buff []byte, pid core.PeerID, skBytes []byte)
 	BroadcastOnChannelUsingPrivateKeyCalled func(channel string, topic string, buff []byte, pid core.PeerID, skBytes []byte)
 	SignUsingPrivateKeyCalled               func(skBytes []byte, payload []byte) ([]byte, error)
-	ProcessReceivedMessageCalled            func(message p2p.MessageP2P, fromConnectedPeer core.PeerID, source p2p.MessageHandler) error
+	ProcessReceivedMessageCalled            func(message p2p.MessageP2P, fromConnectedPeer core.PeerID, source p2p.MessageHandler) ([]byte, error)
 	SetDebuggerCalled                       func(debugger p2p.Debugger) error
 	HasCompatibleProtocolIDCalled           func(address string) bool
 }
@@ -346,11 +346,11 @@ func (ms *MessengerStub) SignUsingPrivateKey(skBytes []byte, payload []byte) ([]
 }
 
 // ProcessReceivedMessage -
-func (ms *MessengerStub) ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedPeer core.PeerID, source p2p.MessageHandler) error {
+func (ms *MessengerStub) ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedPeer core.PeerID, source p2p.MessageHandler) ([]byte, error) {
 	if ms.ProcessReceivedMessageCalled != nil {
 		return ms.ProcessReceivedMessageCalled(message, fromConnectedPeer, source)
 	}
-	return nil
+	return nil, nil
 }
 
 // SetDebugger -

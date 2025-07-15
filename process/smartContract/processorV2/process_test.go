@@ -111,7 +111,7 @@ func createMockSmartContractProcessorArguments() scrCommon.ArgsNewSmartContractP
 		BadTxForwarder:   &mock.IntermediateTransactionHandlerMock{},
 		TxFeeHandler:     &mock.FeeAccumulatorStub{},
 		TxLogsProcessor:  &mock.TxLogsProcessorStub{},
-		EconomicsFee: &economicsmocks.EconomicsHandlerStub{
+		EconomicsFee: &economicsmocks.EconomicsHandlerMock{
 			DeveloperPercentageCalled: func() float64 {
 				return 0.0
 			},
@@ -1014,7 +1014,7 @@ func TestScProcessor_DeploySmartContractEconomicsFeeValidateFails(t *testing.T) 
 	arguments.VmContainer = vm
 	arguments.ArgsParser = argParser
 
-	arguments.EconomicsFee = &economicsmocks.EconomicsHandlerStub{
+	arguments.EconomicsFee = &economicsmocks.EconomicsHandlerMock{
 		CheckValidityTxValuesCalled: func(tx data.TransactionWithFeeHandler) error {
 			return expectedError
 		},
@@ -1228,7 +1228,7 @@ func TestScProcessor_DeploySmartContractUpdateDeveloperRewardsFails(t *testing.T
 	arguments.VmContainer = vm
 	arguments.ArgsParser = argParser
 	arguments.AccountsDB = accntState
-	economicsFee := &economicsmocks.EconomicsHandlerStub{
+	economicsFee := &economicsmocks.EconomicsHandlerMock{
 		DeveloperPercentageCalled: func() float64 {
 			return 0.0
 		},
@@ -2001,7 +2001,7 @@ func TestScProcessor_InitializeVMInputFromTx_ShouldErrNotEnoughGas(t *testing.T)
 	arguments := createMockSmartContractProcessorArguments()
 	arguments.VmContainer = vm
 	arguments.ArgsParser = argParser
-	arguments.EconomicsFee = &economicsmocks.EconomicsHandlerStub{
+	arguments.EconomicsFee = &economicsmocks.EconomicsHandlerMock{
 		ComputeGasLimitCalled: func(tx data.TransactionWithFeeHandler) uint64 {
 			return 1000
 		},
@@ -2379,7 +2379,7 @@ func TestScProcessor_ProcessSCPaymentAccNotInShardShouldNotReturnError(t *testin
 	tx.GasPrice = 10
 	tx.GasLimit = 10
 
-	err = sc.processSCPayment(tx, nil)
+	err = sc.processSCPayment(tx, nil, nil)
 	require.Nil(t, err)
 }
 
@@ -2387,7 +2387,7 @@ func TestScProcessor_ProcessSCPaymentNotEnoughBalance(t *testing.T) {
 	t.Parallel()
 
 	arguments := createMockSmartContractProcessorArguments()
-	arguments.EconomicsFee = &economicsmocks.EconomicsHandlerStub{
+	arguments.EconomicsFee = &economicsmocks.EconomicsHandlerMock{
 		ComputeTxFeeCalled: func(tx data.TransactionWithFeeHandler) *big.Int {
 			return core.SafeMul(tx.GetGasPrice(), tx.GetGasLimit())
 		}}
@@ -2410,9 +2410,118 @@ func TestScProcessor_ProcessSCPaymentNotEnoughBalance(t *testing.T) {
 
 	currBalance := acntSrc.GetBalance().Uint64()
 
-	err = sc.processSCPayment(tx, acntSrc)
+	err = sc.processSCPayment(tx, acntSrc, nil)
 	require.Equal(t, process.ErrInsufficientFunds, err)
 	require.Equal(t, currBalance, acntSrc.GetBalance().Uint64())
+}
+
+func TestScProcessor_ProcessSCPaymentWithFeePayer(t *testing.T) {
+	t.Parallel()
+
+	snd := []byte("SRC")
+	acntSrc := createAccount(snd)
+	rcv := []byte("DST")
+	acntRcv := createAccount(rcv)
+	rel := []byte("REL")
+	acntRel := createAccount(rel)
+
+	arguments := createMockSmartContractProcessorArguments()
+	arguments.EnableEpochsHandler = enableEpochsHandlerMock.NewEnableEpochsHandlerStub(common.RelayedTransactionsV3FixESDTTransferFlag)
+	loadAccountCnt := 0
+	arguments.AccountsDB = &stateMock.AccountsStub{
+		LoadAccountCalled: func(address []byte) (handler vmcommon.AccountHandler, e error) {
+			loadAccountCnt++
+			if bytes.Equal(address, rel) {
+				return acntRel, nil
+			}
+
+			if bytes.Equal(address, snd) {
+				require.Fail(t, "should never load again for this test")
+				return acntSrc, nil
+			}
+			if bytes.Equal(address, rcv) {
+				require.Fail(t, "should never load again for this test")
+				return acntRcv, nil
+			}
+
+			return &stateMock.AccountWrapMock{
+				Balance: big.NewInt(0),
+			}, errors.New("account not found")
+		},
+	}
+	sc, err := NewSmartContractProcessorV2(arguments)
+
+	require.NotNil(t, sc)
+	require.Nil(t, err)
+
+	tx := &transaction.Transaction{}
+	tx.Nonce = 0
+	tx.SndAddr = snd
+	tx.RcvAddr = rcv
+	tx.RelayerAddr = rel
+
+	tx.Value = big.NewInt(0)
+	tx.GasPrice = 10
+	tx.GasLimit = 10
+
+	t.Run("fee payer is sender", func(t *testing.T) {
+		txLocal := *tx
+		txLocal.SndAddr = snd
+		txLocal.RcvAddr = rcv
+		txLocal.RelayerAddr = snd
+
+		totalFee := big.NewInt(0)
+		totalFee = totalFee.Mul(big.NewInt(int64(txLocal.GetGasLimit())), big.NewInt(int64(txLocal.GetGasPrice())))
+
+		_ = acntSrc.AddToBalance(totalFee)
+
+		currBalance := acntSrc.GetBalance().Uint64()
+		modifiedBalance := currBalance - txLocal.GasLimit*txLocal.GasLimit
+
+		err = sc.processSCPayment(&txLocal, acntSrc, acntRcv)
+		require.Nil(t, err)
+		require.Equal(t, modifiedBalance, acntSrc.GetBalance().Uint64())
+		require.Equal(t, uint64(0), acntRcv.GetBalance().Uint64())
+		require.Equal(t, 0, loadAccountCnt)
+	})
+	t.Run("fee payer is receiver", func(t *testing.T) {
+		txLocal := *tx
+		txLocal.SndAddr = snd
+		txLocal.RcvAddr = rcv
+		txLocal.RelayerAddr = rcv
+
+		totalFee := big.NewInt(0)
+		totalFee = totalFee.Mul(big.NewInt(int64(txLocal.GetGasLimit())), big.NewInt(int64(txLocal.GetGasPrice())))
+
+		_ = acntRcv.AddToBalance(totalFee)
+
+		currBalance := acntRcv.GetBalance().Uint64()
+		modifiedBalance := currBalance - txLocal.GasLimit*txLocal.GasLimit
+
+		err = sc.processSCPayment(&txLocal, acntSrc, acntRcv)
+		require.Nil(t, err)
+		require.Equal(t, modifiedBalance, acntRcv.GetBalance().Uint64())
+		require.Equal(t, uint64(0), acntSrc.GetBalance().Uint64())
+		require.Equal(t, 0, loadAccountCnt)
+	})
+	t.Run("fee payer is different", func(t *testing.T) {
+		txLocal := *tx
+
+		totalFee := big.NewInt(0)
+		totalFee = totalFee.Mul(big.NewInt(int64(txLocal.GetGasLimit())), big.NewInt(int64(txLocal.GetGasPrice())))
+
+		_ = acntRel.AddToBalance(totalFee)
+
+		currBalance := acntRel.GetBalance().Uint64()
+		modifiedBalance := currBalance - txLocal.GasLimit*txLocal.GasLimit
+
+		err = sc.processSCPayment(&txLocal, acntSrc, acntRcv)
+		require.Nil(t, err)
+		require.Equal(t, modifiedBalance, acntRel.GetBalance().Uint64())
+		require.Equal(t, uint64(0), acntSrc.GetBalance().Uint64())
+		require.Equal(t, uint64(0), acntRcv.GetBalance().Uint64())
+		require.Equal(t, 1, loadAccountCnt)
+	})
 }
 
 func TestScProcessor_ProcessSCPayment(t *testing.T) {
@@ -2437,7 +2546,7 @@ func TestScProcessor_ProcessSCPayment(t *testing.T) {
 	currBalance := acntSrc.GetBalance().Uint64()
 	modifiedBalance := currBalance - tx.Value.Uint64() - tx.GasLimit*tx.GasLimit
 
-	err = sc.processSCPayment(tx, acntSrc)
+	err = sc.processSCPayment(tx, acntSrc, nil)
 	require.Nil(t, err)
 	require.Equal(t, modifiedBalance, acntSrc.GetBalance().Uint64())
 }
@@ -2448,7 +2557,7 @@ func TestScProcessor_ProcessSCPaymentWithNewFlags(t *testing.T) {
 	txFee := big.NewInt(25)
 
 	arguments := createMockSmartContractProcessorArguments()
-	arguments.EconomicsFee = &economicsmocks.EconomicsHandlerStub{
+	arguments.EconomicsFee = &economicsmocks.EconomicsHandlerMock{
 		DeveloperPercentageCalled: func() float64 {
 			return 0.0
 		},
@@ -2476,7 +2585,7 @@ func TestScProcessor_ProcessSCPaymentWithNewFlags(t *testing.T) {
 	acntSrc, _ := createAccounts(tx)
 	currBalance := acntSrc.GetBalance().Uint64()
 	modifiedBalance := currBalance - tx.Value.Uint64() - txFee.Uint64()
-	err = sc.processSCPayment(tx, acntSrc)
+	err = sc.processSCPayment(tx, acntSrc, nil)
 	require.Nil(t, err)
 	require.Equal(t, modifiedBalance, acntSrc.GetBalance().Uint64())
 }
@@ -3444,20 +3553,41 @@ func TestScProcessor_penalizeUserIfNeededShouldWork(t *testing.T) {
 func TestScProcessor_isTooMuchGasProvidedShouldWork(t *testing.T) {
 	t.Parallel()
 
+	economicsHandler := &economicsmocks.EconomicsHandlerMock{}
+
 	gasProvided := uint64(100)
-	maxGasToRemain := gasProvided - (gasProvided / process.MaxGasFeeHigherFactorAccepted)
+	maxGasToRemain := gasProvided - (gasProvided / economicsHandler.MaxGasHigherFactorAccepted())
 
-	isTooMuchGas := isTooMuchGasProvided(gasProvided, gasProvided)
+	isTooMuchGas := isTooMuchGasProvided(gasProvided, gasProvided, economicsHandler)
 	assert.False(t, isTooMuchGas)
 
-	isTooMuchGas = isTooMuchGasProvided(gasProvided, maxGasToRemain-1)
+	isTooMuchGas = isTooMuchGasProvided(gasProvided, maxGasToRemain-1, economicsHandler)
 	assert.False(t, isTooMuchGas)
 
-	isTooMuchGas = isTooMuchGasProvided(gasProvided, maxGasToRemain)
+	isTooMuchGas = isTooMuchGasProvided(gasProvided, maxGasToRemain, economicsHandler)
 	assert.False(t, isTooMuchGas)
 
-	isTooMuchGas = isTooMuchGasProvided(gasProvided, maxGasToRemain+1)
+	isTooMuchGas = isTooMuchGasProvided(gasProvided, maxGasToRemain+1, economicsHandler)
 	assert.True(t, isTooMuchGas)
+
+	economicsHandler.MaxGasHigherFactorAcceptedCalled = func() uint64 {
+		return 2
+	}
+
+	maxGasToRemain = gasProvided - (gasProvided / economicsHandler.MaxGasHigherFactorAccepted())
+
+	isTooMuchGas = isTooMuchGasProvided(gasProvided, gasProvided, economicsHandler)
+	assert.False(t, isTooMuchGas)
+
+	isTooMuchGas = isTooMuchGasProvided(gasProvided, maxGasToRemain-1, economicsHandler)
+	assert.False(t, isTooMuchGas)
+
+	isTooMuchGas = isTooMuchGasProvided(gasProvided, maxGasToRemain, economicsHandler)
+	assert.False(t, isTooMuchGas)
+
+	isTooMuchGas = isTooMuchGasProvided(gasProvided, maxGasToRemain+1, economicsHandler)
+	assert.True(t, isTooMuchGas)
+
 }
 
 func TestSCProcessor_createSCRWhenError(t *testing.T) {
@@ -3635,7 +3765,7 @@ func TestSmartContractProcessor_computeTotalConsumedFeeAndDevRwd(t *testing.T) {
 	shardCoordinator := &mock.CoordinatorStub{ComputeIdCalled: func(address []byte) uint32 {
 		return 0
 	}}
-	feeHandler := &economicsmocks.EconomicsHandlerStub{
+	feeHandler := &economicsmocks.EconomicsHandlerMock{
 		ComputeGasLimitCalled: func(tx data.TransactionWithFeeHandler) uint64 {
 			return 0
 		},
@@ -3840,7 +3970,7 @@ func TestScProcessor_CreateRefundForRelayerFromAnotherShard(t *testing.T) {
 			return 0
 		}}
 	arguments.ShardCoordinator = shardCoordinator
-	arguments.EconomicsFee = &economicsmocks.EconomicsHandlerStub{
+	arguments.EconomicsFee = &economicsmocks.EconomicsHandlerMock{
 		ComputeFeeForProcessingCalled: func(tx data.TransactionWithFeeHandler, gasToUse uint64) *big.Int {
 			return big.NewInt(100)
 		}}
@@ -3931,7 +4061,7 @@ func TestProcessIfErrorCheckBackwardsCompatibilityProcessTransactionFeeCalledSho
 			return 0
 		}}
 	arguments.ShardCoordinator = shardCoordinator
-	arguments.EconomicsFee = &economicsmocks.EconomicsHandlerStub{
+	arguments.EconomicsFee = &economicsmocks.EconomicsHandlerMock{
 		ComputeFeeForProcessingCalled: func(tx data.TransactionWithFeeHandler, gasToUse uint64) *big.Int {
 			return big.NewInt(100)
 		},
@@ -3970,7 +4100,7 @@ func TestProcessIfErrorCheckBackwardsCompatibilityProcessTransactionFeeCalledSho
 			return 0
 		}}
 	arguments.ShardCoordinator = shardCoordinator
-	arguments.EconomicsFee = &economicsmocks.EconomicsHandlerStub{
+	arguments.EconomicsFee = &economicsmocks.EconomicsHandlerMock{
 		ComputeFeeForProcessingCalled: func(tx data.TransactionWithFeeHandler, gasToUse uint64) *big.Int {
 			return big.NewInt(100)
 		},
@@ -4178,6 +4308,7 @@ func createRealEconomicsDataArgs() *economics.ArgsNewEconomicsData {
 						MaxGasLimitPerTx:            "1500000000",
 						MinGasLimit:                 "50000",
 						ExtraGasLimitGuardedTx:      "50000",
+						MaxGasHigherFactorAccepted:  "10",
 					},
 				},
 				GasPerDataByte:         "1500",
@@ -4193,6 +4324,8 @@ func createRealEconomicsDataArgs() *economics.ArgsNewEconomicsData {
 			},
 		},
 		TxVersionChecker: &testscommon.TxVersionCheckerStub{},
+		PubkeyConverter:  &testscommon.PubkeyConverterStub{},
+		ShardCoordinator: &testscommon.ShardsCoordinatorMock{},
 	}
 }
 
