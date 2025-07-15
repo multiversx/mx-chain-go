@@ -32,6 +32,8 @@ type EnableEpochs struct {
 	DoubleKeyProtectionEnableEpoch                           uint32
 	ESDTEnableEpoch                                          uint32
 	GovernanceEnableEpoch                                    uint32
+	GovernanceDisableProposeEnableEpoch                      uint32
+	GovernanceFixesEnableEpoch                               uint32
 	DelegationManagerEnableEpoch                             uint32
 	DelegationSmartContractEnableEpoch                       uint32
 	CorrectLastUnjailedEnableEpoch                           uint32
@@ -130,6 +132,7 @@ type EnableEpochs struct {
 	FixBackTransferOPCODEEnableEpoch                         uint32
 	ValidationOnGobDecodeEnableEpoch                         uint32
 	BarnardOpcodesEnableEpoch                                uint32
+	FixGetBalanceEnableEpoch                                 uint32
 	AutomaticActivationOfNodesDisableEpoch                   uint32
 	BLSMultiSignerEnableEpoch                                []MultiSignerConfig
 }

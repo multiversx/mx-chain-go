@@ -166,11 +166,11 @@ func TestTomlParser(t *testing.T) {
 			MaxNumBytesPerSenderUpperBound: 33_554_432,
 		},
 		TxCacheSelection: TxCacheSelectionConfig{
-			SelectionMaxNumTxs:                            30000,
-			SelectionLoopMaximumDuration:                  250,
-			SelectionGasRequested:                         10_000_000_000,
 			SelectionGasBandwidthIncreasePercent:          400,
 			SelectionGasBandwidthIncreaseScheduledPercent: 260,
+			SelectionGasRequested:                         10_000_000_000,
+			SelectionMaxNumTxs:                            30000,
+			SelectionLoopMaximumDuration:                  250,
 			SelectionLoopDurationCheckInterval:            10,
 		},
 	}
@@ -680,6 +680,12 @@ func TestEnableEpochConfig(t *testing.T) {
     # GovernanceEnableEpoch represents the epoch when governance is enabled
     GovernanceEnableEpoch = 21
 
+    # GovernanceDisableProposeEnableEpoch represents the epoch when governance disable proposal is enabled
+    GovernanceDisableProposeEnableEpoch = 22
+
+    # GovernanceFixesEnableEpoch represents the epoch when governance fixes are enabled
+    GovernanceFixesEnableEpoch = 23
+
     # DelegationManagerEnableEpoch represents the epoch when the delegation manager is enabled
     # epoch should not be 0
     DelegationManagerEnableEpoch = 22
@@ -954,6 +960,9 @@ func TestEnableEpochConfig(t *testing.T) {
     # AutomaticActivationOfNodesDisableEpoch represents the epoch when automatic activation of nodes for validators is disabled
     AutomaticActivationOfNodesDisableEpoch = 111
 
+    # FixGetBalanceEnableEpoch represents the epoch when Barnard opcodes will be enabled
+    FixGetBalanceEnableEpoch = 112
+
     # MaxNodesChangeEnableEpoch holds configuration for changing the maximum number of nodes and the enabling epoch
     MaxNodesChangeEnableEpoch = [
         { EpochEnable = 44, MaxNumNodes = 2169, NodesToShufflePerShard = 80 },
@@ -995,6 +1004,8 @@ func TestEnableEpochConfig(t *testing.T) {
 			DoubleKeyProtectionEnableEpoch:                           19,
 			ESDTEnableEpoch:                                          20,
 			GovernanceEnableEpoch:                                    21,
+			GovernanceDisableProposeEnableEpoch:                      22,
+			GovernanceFixesEnableEpoch:                               23,
 			DelegationManagerEnableEpoch:                             22,
 			DelegationSmartContractEnableEpoch:                       23,
 			CorrectLastUnjailedEnableEpoch:                           24,
@@ -1083,6 +1094,7 @@ func TestEnableEpochConfig(t *testing.T) {
 			ValidationOnGobDecodeEnableEpoch:                         109,
 			BarnardOpcodesEnableEpoch:                                110,
 			AutomaticActivationOfNodesDisableEpoch:                   111,
+			FixGetBalanceEnableEpoch:                                 112,
 			MaxNodesChangeEnableEpoch: []MaxNodesChangeConfig{
 				{
 					EpochEnable:            44,

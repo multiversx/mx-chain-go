@@ -98,8 +98,8 @@ func (item *transactionsHeapItem) detectLowerNonce(senderNonce uint64) bool {
 	return isLowerNonce
 }
 
-func (item *transactionsHeapItem) detectIncorrectlyGuarded(sessionWrapper *selectionSessionWrapper) bool {
-	isIncorrectlyGuarded := sessionWrapper.isIncorrectlyGuarded(item.currentTransaction.Tx)
+func (item *transactionsHeapItem) detectIncorrectlyGuarded(virtualSession *virtualSelectionSession) bool {
+	isIncorrectlyGuarded := virtualSession.isIncorrectlyGuarded(item.currentTransaction.Tx)
 	if isIncorrectlyGuarded {
 		logSelect.Trace("transactionsHeapItem.detectIncorrectlyGuarded",
 			"tx", item.currentTransaction.TxHash,

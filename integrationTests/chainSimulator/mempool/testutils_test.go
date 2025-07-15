@@ -9,6 +9,7 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
+	"github.com/multiversx/mx-chain-go/common/holders"
 	"github.com/multiversx/mx-chain-go/config"
 	testsChainSimulator "github.com/multiversx/mx-chain-go/integrationTests/chainSimulator"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator"
@@ -160,10 +161,15 @@ func selectTransactions(t *testing.T, simulator testsChainSimulator.ChainSimulat
 	})
 	require.NoError(t, err)
 
+	options := holders.NewTxSelectionOptions(
+		10_000_000_000,
+		30_000,
+		250,
+		10,
+	)
+
 	mempool := poolsHolder.ShardDataStore(shardAsString).(*txcache.TxCache)
-
-	selectedTransactions, gas := mempool.SelectTransactions(selectionSession)
-
+	selectedTransactions, gas := mempool.SelectTransactions(selectionSession, options)
 	return selectedTransactions, gas
 }
 

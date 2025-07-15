@@ -58,12 +58,6 @@ func NewPoolsHolderMock() *PoolsHolderMock {
 			TxCacheBoundsConfig: config.TxCacheBoundsConfig{
 				MaxNumBytesPerSenderUpperBound: 33_554_432,
 			},
-			TxCacheSelectionConfig: config.TxCacheSelectionConfig{
-				SelectionGasRequested:              10_000_000_000,
-				SelectionMaxNumTxs:                 30_000,
-				SelectionLoopMaximumDuration:       250,
-				SelectionLoopDurationCheckInterval: 10,
-			},
 		},
 	)
 	panicIfError("NewPoolsHolderMock", err)
