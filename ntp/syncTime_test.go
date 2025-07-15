@@ -15,8 +15,6 @@ import (
 	"github.com/multiversx/mx-chain-go/ntp"
 )
 
-const outOfBoundsRoundDurationPercentage = 20
-
 var responseMock1 *beevikNtp.Response
 var failNtpMock1 = false
 var responseMock2 *beevikNtp.Response
@@ -291,7 +289,7 @@ func TestCallQueryShouldNotUpdateOnOutOfBoundValuesPositive(t *testing.T) {
 		},
 		func(options ntp.NTPOptions, hostIndex int) (*beevikNtp.Response, error) {
 			return &beevikNtp.Response{
-				ClockOffset: outOfBoundsRoundDurationPercentage + time.Millisecond,
+				ClockOffset: 1 + time.Millisecond,
 			}, nil
 		},
 	)
@@ -314,7 +312,7 @@ func TestCallQueryShouldNotUpdateOnOutOfBoundValuesNegative(t *testing.T) {
 		},
 		func(options ntp.NTPOptions, hostIndex int) (*beevikNtp.Response, error) {
 			return &beevikNtp.Response{
-				ClockOffset: -outOfBoundsRoundDurationPercentage - 2*time.Millisecond,
+				ClockOffset: -2 - 2*time.Millisecond,
 			}, nil
 		},
 	)
