@@ -1,6 +1,7 @@
 package txcache
 
 import (
+	"bytes"
 	"encoding/binary"
 	"sort"
 	"time"
@@ -9,27 +10,25 @@ import (
 )
 
 // Cleanup simulates a selection and removes not-executable transactions. Initial implementation: lower and duplicate nonces
-func (cache *TxCache) Cleanup(session SelectionSession, randomness uint64, maxNum int, removalLoopMaximumDuration time.Duration) (uint64) {
+func (cache *TxCache) Cleanup(session SelectionSession, randomness uint64, maxNum int, removalLoopMaximumDurationMs time.Duration) (uint64) {
 	logRemove.Debug(
 		"TxCache.Cleanup: begin",
 		"randomness", randomness,
 		"maxNum", maxNum,
-		"removalLoopMaximumDuration", removalLoopMaximumDuration,
+		"removalLoopMaximumDuration", removalLoopMaximumDurationMs,
 		"num bytes", cache.NumBytes(),
 		"num txs", cache.CountTx(),
 		"num senders", cache.CountSenders(),
 	)
-	return cache.RemoveSweepableTxs(session, randomness, maxNum, removalLoopMaximumDuration)
+	return cache.RemoveSweepableTxs(session, randomness, maxNum, removalLoopMaximumDurationMs)
 }
 
-func (cache *TxCache) getOrderedSenders(randomness uint64) []*txListForSender {
+func (cache *TxCache) getDeterministicallyShuffledSenders(randomness uint64) []*txListForSender {
 	senders := make([]*txListForSender, 0, cache.txListBySender.counter.Get())
-	sender_addresses := cache.txListBySender.backingMap.Keys()
-	sort.Slice(sender_addresses, func(i, j int) bool {
-		return sender_addresses[i] < sender_addresses[j]
-	})
+	senderAddresses := cache.txListBySender.backingMap.Keys()
 	
-	for _, sender := range shuffleSendersAddresses(sender_addresses,randomness) {
+	shuffledSenderAdresses:= shuffleSendersAddresses(senderAddresses, randomness)
+	for _, sender := range shuffledSenderAdresses {
 		listForSender, ok := cache.txListBySender.backingMap.Get(sender)
 		if ok {
 			senders = append(senders, listForSender.(*txListForSender))
@@ -39,31 +38,44 @@ func (cache *TxCache) getOrderedSenders(randomness uint64) []*txListForSender {
 	return senders
 }
 
-func shuffleSendersAddresses(senders []string, randomness uint64) []string {
-	keys := make([]string, len(senders))
-	mapSenders := make(map[string]string)
-	var concat []byte
+type addressShufflingItem struct {  
+    address      string  
+    shufflingKey []byte  
+}  
 
-	addressRandomness := make([]byte, 8)
-	binary.LittleEndian.PutUint64(addressRandomness, randomness)
-	
-	hasher := sha256.NewSha256()
-	for i, v := range senders {
-		concat = append([]byte(v), addressRandomness...)
+func shuffleSendersAddresses(senders []string, randomness uint64) []string {  
+    randomnessAsBytes := make([]byte, 8)  
+    binary.LittleEndian.PutUint64(randomnessAsBytes, randomness)  
 
-		keys[i] = string(hasher.Compute(string(concat)))
-		mapSenders[keys[i]] = v
-	}
+    hasher := sha256.NewSha256()  
+    items := make([]*addressShufflingItem, 0, len(senders))  
+    shuffledAddresses := make([]string, len(senders))  
 
-	sort.Strings(keys)
+    for _, address := range senders {  
+        addressWithRandomness := append([]byte(address), randomnessAsBytes...)  
+        shufflingKey := hasher.Compute(string(addressWithRandomness))  
 
-	result := make([]string, len(senders))
-	for i := 0; i < len(senders); i++ {
-		result[i] = mapSenders[keys[i]]
-	}
+        items = append(items, &addressShufflingItem{  
+            address:      address,  
+            shufflingKey: shufflingKey,  
+        })  
+    }  
 
-	return result
-}
+    // Deterministic shuffling.  
+	sort.Slice(items, func(i, j int) bool {
+		cmp := bytes.Compare(items[i].shufflingKey, items[j].shufflingKey)
+		if cmp != 0 {
+			return cmp > 0
+		}
+		return items[i].address > items[j].address
+	})
+
+    for i := 0; i < len(senders); i++ {  
+        shuffledAddresses[i] = items[i].address  
+    }  
+
+    return shuffledAddresses  
+} 
 
 func (cache *TxCache) RemoveSweepableTxs(session SelectionSession, randomness uint64, maxNum int, removalLoopMaximumDuration time.Duration) uint64 {
 	cache.mutTxOperation.Lock()
@@ -73,7 +85,7 @@ func (cache *TxCache) RemoveSweepableTxs(session SelectionSession, randomness ui
 	evicted := make([][] byte, 0, cache.txByHash.counter.Get())
 
 	sessionWrapper := newSelectionSessionWrapper(session)
-	senders := cache.getOrderedSenders(randomness)
+	senders := cache.getDeterministicallyShuffledSenders(randomness)
 	
 	for _, sender := range senders{
 		senderAddress := []byte (sender.sender)
@@ -89,7 +101,7 @@ func (cache *TxCache) RemoveSweepableTxs(session SelectionSession, randomness ui
 		cache.txByHash.RemoveTxsBulk(evicted)
 	}
 	
-	logRemove.Debug("TxCache.Cleanup end", "randomness", randomness, "len(cleaned)", len(evicted), "duration", time.Since(removalLoopStartTime))
+	logRemove.Debug("TxCache.RemoveSweepableTxs end", "randomness", randomness, "len(evicted)", len(evicted), "duration", time.Since(removalLoopStartTime))
 	
 	return uint64(len(evicted))
 }
@@ -120,7 +132,7 @@ func (listForSender *txListForSender) removeSweepableTransactionsReturnHashes(ta
 		logRemove.Debug("TxCache.removeSweepableTransactionsReturnHashes",
 			"txHash", tx.TxHash,
 			"txNonce", txNonce,
-			"lastCommitedTxNonce", targetNonce,
+			"targetNonce", targetNonce,
 			"txNonceForDuplicateProcessing", txNonceForDuplicateProcessing,
 		)
 		

@@ -20,7 +20,7 @@ func getMockBody(hash []byte, numtxsPerPool int) *block.Body{
 			txHashes = append(txHashes, fmt.Appendf(nil, "hash-%d-%d", i, j))
 		}
 		
-		if(i==0){
+		if(i == 0) {
 			txHashes = append(txHashes, hash)
 		}
 		

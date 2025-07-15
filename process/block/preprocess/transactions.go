@@ -262,7 +262,7 @@ func (txs *transactions) RemoveTxsFromPools(body *block.Body) error {
 	if !ok {
 		log.Warn("txPool does not implement TxCache interface")
 	} 
-	txs.txPool.MempoolCleanup(session, randomness, process.TxCacheCleanupMaxNumTxs, process.TxCacheCleanupLoopMaximumDuration)
+	txs.txPool.CleanupSelfShardTxCache(session, randomness, process.TxCacheCleanupMaxNumTxs, process.TxCacheCleanupLoopMaximumDuration)
 
 	return err
 }

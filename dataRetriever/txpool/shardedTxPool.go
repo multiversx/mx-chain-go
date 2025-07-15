@@ -1,7 +1,6 @@
 package txpool
 
 import (
-	"fmt"
 	"strconv"
 	"sync"
 	"time"
@@ -392,42 +391,30 @@ func (txPool *shardedTxPool) routeToCacheUnions(cacheID string) string {
 	return cacheID
 }
 
-func (txPool *shardedTxPool) getMempool() txCache {
-	shard, ok := txPool.backingMap[strconv.Itoa(int(txPool.selfShardID))]
-	if !ok {
-		return nil
-	}
+func (txPool *shardedTxPool) getSelfShardTxCache() txCache {
 
-	return txPool.getTxCache(shard.CacheID)
+	return txPool.getTxCache(strconv.Itoa(int(txPool.selfShardID)))
 }
 
-func (txPool *shardedTxPool) MempoolCleanup(session interface{}, randomness uint64, maxNum int, maxTime time.Duration) bool{
-	fmt.Println("shardedTxPool.MempoolCleanup() called for self shard")
-	cache := txPool.getMempool()
+func (txPool *shardedTxPool) CleanupSelfShardTxCache(session interface{}, randomness uint64, maxNum int, maxTime time.Duration) bool{
+	cache := txPool.getSelfShardTxCache()
 
-	if cache == nil {
-		log.Error("shardedTxPool.GetMempool() couldn't retrieve mempool for self shard",
-			"selfShardID", txPool.selfShardID,
-		)
-		return false
-	}
-
-	mempool := cache.(*txcache.TxCache)
+	selfShardTxCache := cache.(*txcache.TxCache)
 	
-	log.Debug("shardedTxPool.MempoolCleanup() starting cleanup",
+	log.Debug("shardedTxPool.CleanupSelfShardTxCache() starting cleanup",
 		"selfShardID", txPool.selfShardID,
-		"numTxs", mempool.CountTx(),
-		"numBytes", mempool.NumBytes(),
+		"numTxs", selfShardTxCache.CountTx(),
+		"numBytes", selfShardTxCache.NumBytes(),
 	)
 	
 	// Perform the cleanup operation on the mempool
 	selectionSession := session.(txcache.SelectionSession)
-	mempool.Cleanup(selectionSession, randomness, maxNum, maxTime)
+	selfShardTxCache.Cleanup(selectionSession, randomness, maxNum, maxTime)
 	
-	log.Debug("shardedTxPool.MempoolCleanup() mempool cleanup completed",
+	log.Debug("shardedTxPool.CleanupSelfShardTxCache() self shard cache cleanup completed",
 		"selfShardID", txPool.selfShardID,
-		"numTxs", mempool.CountTx(),
-		"numBytes", mempool.NumBytes(),
+		"numTxs", selfShardTxCache.CountTx(),
+		"numBytes", selfShardTxCache.NumBytes(),
 	)
 	
 	return true

@@ -16,8 +16,8 @@ type ShardedDataCacheNotifierMock struct {
 	caches    map[string]storage.Cacher
 }
 
-// MempoolCleanup -
-func (mock *ShardedDataCacheNotifierMock) MempoolCleanup(session interface{}, randomness uint64, maxNum int, cleanupLoopMaximumDuration time.Duration) bool {
+// CleanupSelfShardTxCache -
+func (mock *ShardedDataCacheNotifierMock) CleanupSelfShardTxCache(session interface{}, randomness uint64, maxNum int, cleanupLoopMaximumDuration time.Duration) bool {
 	panic("unimplemented")
 }
 

@@ -656,14 +656,14 @@ func TestTransactionPreprocessor_RemoveBlockDataFromPoolsOK(t *testing.T) {
 }
 
 
-func TestMempoolCleanupTriggered(t *testing.T) {
+func TestCleanupSelfShardTxCacheTriggered(t *testing.T) {
 	t.Parallel()
 
 	var gotNonce uint64
 	var gotMaxNum int
 	mockCalled := false
 	stub := &testscommon.ShardedDataStub{
-		MempoolCleanupCalled: func(_ interface{}, nonce uint64, maxNum int, _ time.Duration) bool {
+		CleanupSelfShardTxCacheCalled: func(_ interface{}, nonce uint64, maxNum int, _ time.Duration) bool {
 			gotNonce = nonce
 			gotMaxNum = maxNum
 			mockCalled = true
@@ -700,7 +700,7 @@ func TestMempoolCleanupTriggered(t *testing.T) {
 	assert.Equal(t, 30000, gotMaxNum)
 }
 
-func createArgsForMempoolCleanupPreprocessor() ArgsTransactionPreProcessor {
+func createArgsForCleanupSelfShardTxCachePreprocessor() ArgsTransactionPreProcessor {
 	totalGasProvided := uint64(0)
 	args := createDefaultTransactionsProcessorArgs()
 	args.TxDataPool, _ = dataRetrieverMock.CreateTxPool(2, 0)
@@ -749,7 +749,7 @@ func createArgsForMempoolCleanupPreprocessor() ArgsTransactionPreProcessor {
 }
 
 
-func TestMempoolCleanup_NoTransactionToSelect(t *testing.T) {
+func TestCleanupSelfShardTxCache_NoTransactionToSelect(t *testing.T) {
 	t.Parallel()
 
 	createTx := func(sender string, nonce uint64) *transaction.Transaction {
@@ -760,7 +760,7 @@ func TestMempoolCleanup_NoTransactionToSelect(t *testing.T) {
 		}
 	}
 	
-	args:= createArgsForMempoolCleanupPreprocessor()
+	args:= createArgsForCleanupSelfShardTxCachePreprocessor()
 	txs, _ := NewTransactionPreprocessor(args)
 	assert.NotNil(t, txs)
 
@@ -807,7 +807,7 @@ func TestMempoolCleanup_NoTransactionToSelect(t *testing.T) {
 	assert.Equal(t, 9 - expectEvicted, int(txs.txPool.GetCounts().GetTotal()))
 }
 
-func TestMempoolCleanup(t *testing.T) {
+func TestCleanupSelfShardTxCache(t *testing.T) {
 	t.Parallel()
 
 	createTx := func(sender string, nonce uint64) *transaction.Transaction {
@@ -826,7 +826,7 @@ func TestMempoolCleanup(t *testing.T) {
 			GasPrice: 1000,
 		}
 	}
-	args:= createArgsForMempoolCleanupPreprocessor()
+	args:= createArgsForCleanupSelfShardTxCachePreprocessor()
 	txs, _ := NewTransactionPreprocessor(args)
 	assert.NotNil(t, txs)
 

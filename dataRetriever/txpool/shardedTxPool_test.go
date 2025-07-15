@@ -314,7 +314,7 @@ func Test_RemoveSetOfDataFromPool(t *testing.T) {
 	require.Zero(t, cache.Len())
 }
 
-func TestMempoolCleanup_NilMempool(t *testing.T) {
+func TestCleanupSelfShardTxCache_NilMempool(t *testing.T) {
 	t.Run("with nil self shard pool", func(t *testing.T) {
 		poolAsInterface, _ := newTxPoolToTest()
 		txPool := poolAsInterface.(*shardedTxPool)
@@ -324,15 +324,16 @@ func TestMempoolCleanup_NilMempool(t *testing.T) {
 		selectionLoopMaximumDuration := time.Millisecond * 100
 		
 		require.NotPanics(t, func() {
-			txPool.MempoolCleanup(session, 7, math.MaxInt, selectionLoopMaximumDuration)
+			txPool.CleanupSelfShardTxCache(session, 7, math.MaxInt, selectionLoopMaximumDuration)
 		})
 
-		ok := txPool.MempoolCleanup(session, 7, math.MaxInt, selectionLoopMaximumDuration)
-		require.False(t, ok)
+		ok := txPool.CleanupSelfShardTxCache(session, 7, math.MaxInt, selectionLoopMaximumDuration)
+		t.Logf("shardedTxPool.CleanupSelfShardTxCache() starting cleanup %d", txPool.selfShardID)
+		require.True(t, ok)
 	})
 }
 
-func Test_MempoolCleanup(t *testing.T) {
+func Test_CleanupSelfShardTxCache(t *testing.T) {
 	t.Run("with lower nonces", func(t *testing.T) {
 		poolAsInterface, _ := newTxPoolToTest()
 		pool := poolAsInterface.(*shardedTxPool)
@@ -360,7 +361,7 @@ func Test_MempoolCleanup(t *testing.T) {
 		expectedNumRemained := 8 - expectedNumEvicted
 		selectionLoopMaximumDuration := time.Millisecond * 100
 
-		pool.MempoolCleanup(session, 7, math.MaxInt, selectionLoopMaximumDuration)
+		pool.CleanupSelfShardTxCache(session, 7, math.MaxInt, selectionLoopMaximumDuration)
 		require.Equal(t, expectedNumRemained, cache.Len())
 	})
 	
