@@ -84,12 +84,13 @@ func (cache *TxCache) RemoveSweepableTxs(session SelectionSession, randomness ui
 	removalLoopStartTime := time.Now()
 	evicted := make([][] byte, 0, cache.txByHash.counter.Get())
 
-	sessionWrapper := newSelectionSessionWrapper(session)
+	sessionWrapper := newVirtualSelectionSession(session)
 	senders := cache.getDeterministicallyShuffledSenders(randomness)
 	
 	for _, sender := range senders{
 		senderAddress := []byte (sender.sender)
-		lastCommittedNonce:= sessionWrapper.getNonce(senderAddress) - 1
+		lastCommittedNonce, _:= sessionWrapper.getNonce(senderAddress)
+		lastCommittedNonce -= 1 // we want to remove transactions with nonces < lastCommittedNonce
 
 		if len(evicted) >= maxNum || time.Since(removalLoopStartTime) > removalLoopMaximumDuration{
 			break

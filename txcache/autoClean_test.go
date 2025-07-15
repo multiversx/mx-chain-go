@@ -11,9 +11,9 @@ import (
 
 func TestTxCache_ShuffleSendersAddresses_Dummy(t *testing.T) {
 	
-	selectionConfig := createMockTxCacheSelectionConfig(math.MaxUint64, math.MaxInt, selectionLoopMaximumDuration)
+	//selectionConfig := createMockTxCacheSelectionConfig(math.MaxUint64, math.MaxInt, selectionLoopMaximumDuration)
 	boundsConfig := createMockTxBoundsConfig()
-	cache := newUnconstrainedCacheToTest(selectionConfig, boundsConfig)
+	cache := newUnconstrainedCacheToTest(boundsConfig)
 
 	// add data into the cache
 	cache.AddTx(createTx([]byte("hash-alice-1"), "alice", 1))
@@ -41,9 +41,9 @@ func TestTxCache_ShuffleSendersAddresses_Dummy(t *testing.T) {
 }
 
 func TestTxCache_GetDeterministicallyShuffledSenders_Dummy(t *testing.T) {
-		selectionConfig := createMockTxCacheSelectionConfig(math.MaxUint64, math.MaxInt, selectionLoopMaximumDuration)
+		//selectionConfig := createMockTxCacheSelectionConfig(math.MaxUint64, math.MaxInt, selectionLoopMaximumDuration)
 		boundsConfig := createMockTxBoundsConfig()
-		cache := newUnconstrainedCacheToTest(selectionConfig, boundsConfig)
+		cache := newUnconstrainedCacheToTest(boundsConfig)
 
 		// add data into the cache
 		cache.AddTx(createTx([]byte("hash-alice-1"), "alice", 1))
@@ -168,9 +168,9 @@ func Test_RemoveSweepableTransactionsReturnHashes_Dummy(t *testing.T) {
 
 func TestTxCache_AutoClean_Dummy(t *testing.T) {
 	t.Run("with lower nonces", func(t *testing.T) {
-		selectionConfig := createMockTxCacheSelectionConfig(math.MaxUint64, math.MaxInt, selectionLoopMaximumDuration)
+		//selectionConfig := createMockTxCacheSelectionConfig(math.MaxUint64, math.MaxInt, selectionLoopMaximumDuration)
 		boundsConfig := createMockTxBoundsConfig()
-		cache := newUnconstrainedCacheToTest(selectionConfig, boundsConfig)
+		cache := newUnconstrainedCacheToTest(boundsConfig)
 
 		session := txcachemocks.NewSelectionSessionMock()
 		session.SetNonce([]byte("alice"), 2)
@@ -197,9 +197,9 @@ func TestTxCache_AutoClean_Dummy(t *testing.T) {
 	})
 
 	t.Run("with duplicated nonces", func(t *testing.T) {
-		selectionConfig := createMockTxCacheSelectionConfig(math.MaxUint64, math.MaxInt, selectionLoopMaximumDuration)
+		//selectionConfig := createMockTxCacheSelectionConfig(math.MaxUint64, math.MaxInt, selectionLoopMaximumDuration)
 		boundsConfig := createMockTxBoundsConfig()
-		cache := newUnconstrainedCacheToTest(selectionConfig, boundsConfig)
+		cache := newUnconstrainedCacheToTest(boundsConfig)
 
 		session := txcachemocks.NewSelectionSessionMock()
 		session.SetNonce([]byte("alice"), 1)
