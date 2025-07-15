@@ -244,7 +244,7 @@ func (g *governanceContract) changeConfig(args *vmcommon.ContractCallInput) vmco
 		return vmcommon.UserError
 	}
 	lostProposalFee, okConvert := big.NewInt(0).SetString(string(args.Arguments[1]), conversionBase)
-	if !okConvert || proposalFee.Cmp(zero) <= 0 {
+	if !okConvert || lostProposalFee.Cmp(zero) <= 0 {
 		g.eei.AddReturnMessage("changeConfig second argument is incorrectly formatted")
 		return vmcommon.UserError
 	}
@@ -267,6 +267,10 @@ func (g *governanceContract) changeConfig(args *vmcommon.ContractCallInput) vmco
 	minPass, err := convertDecimalToPercentage(args.Arguments[4])
 	if err != nil {
 		g.eei.AddReturnMessage(err.Error() + " minPass")
+		return vmcommon.UserError
+	}
+	if minPass < 0.5 {
+		g.eei.AddReturnMessage("min pass should be higher than 50%")
 		return vmcommon.UserError
 	}
 
@@ -679,12 +683,18 @@ func (g *governanceContract) closeProposal(args *vmcommon.ContractCallInput) vmc
 		g.eei.AddReturnMessage("proposal is already closed, do nothing")
 		return vmcommon.UserError
 	}
-	if !g.enableEpochsHandler.IsFlagEnabled(common.GovernanceFixesFlag) && !bytes.Equal(generalProposal.IssuerAddress, args.CallerAddr) {
+	isCallerTheIssuer := bytes.Equal(generalProposal.IssuerAddress, args.CallerAddr)
+	if !g.enableEpochsHandler.IsFlagEnabled(common.GovernanceFixesFlag) && !isCallerTheIssuer {
 		g.eei.AddReturnMessage("only the issuer can close the proposal")
 		return vmcommon.UserError
 	}
 
 	currentEpoch := uint64(g.eei.BlockChainHook().CurrentEpoch())
+	if !isCallerTheIssuer && currentEpoch < generalProposal.StartVoteEpoch {
+		g.eei.AddReturnMessage("only the issuer can close the proposal before start vote epoch")
+		return vmcommon.UserError
+	}
+
 	if g.cannotClose(currentEpoch, generalProposal) {
 		g.eei.AddReturnMessage(fmt.Sprintf("proposal can be closed only after epoch %d", generalProposal.EndVoteEpoch))
 		return vmcommon.UserError
@@ -877,9 +887,10 @@ func (g *governanceContract) viewConfig(args *vmcommon.ContractCallInput) vmcomm
 	}
 
 	g.eei.Finish([]byte(gConfig.ProposalFee.String()))
+	g.eei.Finish([]byte(gConfig.LostProposalFee.String()))
 	g.eei.Finish([]byte(fmt.Sprintf("%.4f", gConfig.MinQuorum)))
-	g.eei.Finish([]byte(fmt.Sprintf("%.4f", gConfig.MinPassThreshold)))
 	g.eei.Finish([]byte(fmt.Sprintf("%.4f", gConfig.MinVetoThreshold)))
+	g.eei.Finish([]byte(fmt.Sprintf("%.4f", gConfig.MinPassThreshold)))
 	g.eei.Finish([]byte(big.NewInt(int64(gConfig.LastProposalNonce)).String()))
 
 	return vmcommon.Ok
@@ -1036,7 +1047,7 @@ func (g *governanceContract) computeEndResults(currentEpoch uint64, proposal *Ge
 	voteStarted := currentEpoch >= proposal.StartVoteEpoch
 	if g.enableEpochsHandler.IsFlagEnabled(common.GovernanceFixesFlag) && !voteStarted {
 		g.eei.Finish([]byte("Proposal closed before voting started"))
-		return true
+		return false
 	}
 
 	totalVotes := big.NewInt(0).Add(proposal.Yes, proposal.No)
@@ -1255,7 +1266,7 @@ func (g *governanceContract) saveGeneralProposal(reference []byte, generalPropos
 	return nil
 }
 
-// getValidProposal returns a proposal from storage if it exists, or it is still valid/in-progress
+// getValidProposal returns a proposal from storage if it exists and it is still valid/in-progress
 func (g *governanceContract) getValidProposal(nonce *big.Int) (*GeneralProposal, error) {
 	proposal, err := g.getProposalFromNonce(nonce)
 	if err != nil {
@@ -1268,6 +1279,10 @@ func (g *governanceContract) getValidProposal(nonce *big.Int) (*GeneralProposal,
 	}
 
 	if currentEpoch > proposal.EndVoteEpoch {
+		return nil, vm.ErrVotedForAnExpiredProposal
+	}
+
+	if proposal.Closed {
 		return nil, vm.ErrVotedForAnExpiredProposal
 	}
 
