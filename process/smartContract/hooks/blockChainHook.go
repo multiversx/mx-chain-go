@@ -290,6 +290,7 @@ func (bh *BlockChainHookImpl) GetStorageData(accountAddress []byte, index []byte
 	}
 
 	value, trieDepth, err := userAcc.AccountDataHandler().RetrieveValue(index)
+
 	messages := []interface{}{
 		"address", accountAddress,
 		"rootHash", userAcc.GetRootHash(),

@@ -229,6 +229,18 @@ func (msc *managedStateComponents) TrieLeavesRetriever() common.TrieLeavesRetrie
 	return msc.stateComponents.trieLeavesRetriever
 }
 
+// StateAccessesCollector returns the state accesses collector
+func (msc *managedStateComponents) StateAccessesCollector() state.StateAccessesCollector {
+	msc.mutStateComponents.RLock()
+	defer msc.mutStateComponents.RUnlock()
+
+	if msc.stateComponents == nil {
+		return nil
+	}
+
+	return msc.stateComponents.stateAccessesCollector
+}
+
 // IsInterfaceNil returns true if the interface is nil
 func (msc *managedStateComponents) IsInterfaceNil() bool {
 	return msc == nil

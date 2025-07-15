@@ -201,9 +201,10 @@ func createMockArgument(
 	}
 
 	argsAccCreator := factoryState.ArgsAccountCreator{
-		Hasher:              &hashingMocks.HasherMock{},
-		Marshaller:          &mock.MarshalizerMock{},
-		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		Hasher:                 &hashingMocks.HasherMock{},
+		Marshaller:             &mock.MarshalizerMock{},
+		EnableEpochsHandler:    &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		StateAccessesCollector: &stateMock.StateAccessesCollectorStub{},
 	}
 	accCreator, err := factoryState.NewAccountCreator(argsAccCreator)
 	require.Nil(t, err)
