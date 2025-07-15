@@ -57,6 +57,37 @@ func (virtualSession *virtualSelectionSession) getNonce(address []byte) (uint64,
 	return account.initialNonce.Value, nil
 }
 
+func (virtualSession *virtualSelectionSession) accumulateConsumedBalance(tx *WrappedTransaction) error {
+	sender := tx.Tx.GetSndAddr()
+	feePayer := tx.FeePayer
+
+	senderRecord, err := virtualSession.getRecord(sender)
+	if err != nil {
+		log.Warn("virtualSelectionSession.accumulateConsumedBalance",
+			"err", err)
+		return err
+	}
+
+	feePayerRecord, err := virtualSession.getRecord(feePayer)
+	if err != nil {
+		log.Warn("virtualSelectionSession.accumulateConsumedBalance",
+			"err", err)
+		return err
+	}
+
+	transferredValue := tx.TransferredValue
+	if transferredValue != nil {
+		senderRecord.consumedBalance.Add(senderRecord.consumedBalance, transferredValue)
+	}
+
+	fee := tx.Fee
+	if fee != nil {
+		feePayerRecord.consumedBalance.Add(feePayerRecord.consumedBalance, fee)
+	}
+
+	return nil
+}
+
 func (virtualSession *virtualSelectionSession) detectWillFeeExceedBalance(tx *WrappedTransaction) bool {
 	fee := tx.Fee
 	if fee == nil {

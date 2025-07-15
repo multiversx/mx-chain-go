@@ -492,169 +492,7 @@ func TestMempoolWithChainSimulator_Eviction(t *testing.T) {
 	require.Equal(t, expectedNumTransactionsInPool, getNumTransactionsInPool(simulator, shard))
 }
 
-func Test_Selection(t *testing.T) {
-	t.Parallel()
-
-	host := txcachemocks.NewMempoolHostMock()
-	txcache, err := txcache2.NewTxCache(txcache2.ConfigSourceMe{
-		Name:                        "test",
-		NumChunks:                   16,
-		NumBytesThreshold:           maxNumBytesUpperBound,
-		NumBytesPerSenderThreshold:  maxNumBytesPerSenderUpperBoundTest,
-		CountThreshold:              math.MaxUint32,
-		CountPerSenderThreshold:     math.MaxUint32,
-		EvictionEnabled:             false,
-		NumItemsToPreemptivelyEvict: 1,
-		TxCacheBoundsConfig: config.TxCacheBoundsConfig{
-			MaxNumBytesPerSenderUpperBound: maxNumBytesPerSenderUpperBoundTest,
-		},
-	}, host)
-
-	require.Nil(t, err)
-	require.NotNil(t, txcache)
-
-	selectionSession := createMockSelectionSession(map[string]*accountInfo{
-		"alice": {
-			balance: oneQuarterOfEGLD,
-			nonce:   0,
-		},
-		"bob": {
-			balance: oneQuarterOfEGLD,
-			nonce:   0,
-		},
-		"carol": {
-			balance: oneQuarterOfEGLD,
-			nonce:   0,
-		},
-		"receiver": {
-			balance: big.NewInt(0),
-			nonce:   0,
-		},
-		"relayer": {
-			balance: big.NewInt(1000000000000000000),
-			nonce:   0,
-		},
-	})
-	options := holders.NewTxSelectionOptions(
-		10_000_000_000,
-		2,
-		250,
-		10,
-	)
-
-	// Consume most of relayer's balance. Keep an amount that is enough for the fee of two simple transfer transactions.
-	currentRelayerBalance := int64(1000000000000000000)
-	feeForTransfer := int64(50_000 * 1_000_000_004)
-	feeForRelayingTransactionsOfAliceAndBob := int64(100_000*1_000_000_003 + 100_000*1_000_000_002)
-
-	transactions := make([]*transaction.Transaction, 0)
-
-	transactions = append(transactions, &transaction.Transaction{
-		Nonce:     0,
-		Value:     big.NewInt(currentRelayerBalance - feeForTransfer - feeForRelayingTransactionsOfAliceAndBob),
-		SndAddr:   []byte("relayer"),
-		RcvAddr:   []byte("receiver"),
-		Data:      []byte{},
-		GasLimit:  50_000,
-		GasPrice:  1_000_000_004,
-		ChainID:   []byte(configs.ChainID),
-		Version:   2,
-		Signature: []byte("signature"),
-	})
-
-	// Transfer from Alice (relayed)
-	transactions = append(transactions, &transaction.Transaction{
-		Nonce:            0,
-		Value:            oneQuarterOfEGLD,
-		SndAddr:          []byte("alice"),
-		RcvAddr:          []byte("receiver"),
-		RelayerAddr:      []byte("relayer"),
-		Data:             []byte{},
-		GasLimit:         100_000,
-		GasPrice:         1_000_000_003,
-		ChainID:          []byte(configs.ChainID),
-		Version:          2,
-		Signature:        []byte("signature"),
-		RelayerSignature: []byte("signature"),
-	})
-
-	// Transfer from Bob (relayed)
-	transactions = append(transactions, &transaction.Transaction{
-		Nonce:            0,
-		Value:            oneQuarterOfEGLD,
-		SndAddr:          []byte("bob"),
-		RcvAddr:          []byte("receiver"),
-		RelayerAddr:      []byte("relayer"),
-		Data:             []byte{},
-		GasLimit:         100_000,
-		GasPrice:         1_000_000_002,
-		ChainID:          []byte(configs.ChainID),
-		Version:          2,
-		Signature:        []byte("signature"),
-		RelayerSignature: []byte("signature"),
-	})
-
-	// Transfer from Carol (relayed) - this one should not be selected due to insufficient balance (of the relayer)
-	transactions = append(transactions, &transaction.Transaction{
-		Nonce:            0,
-		Value:            oneQuarterOfEGLD,
-		SndAddr:          []byte("carol"),
-		RcvAddr:          []byte("receiver"),
-		RelayerAddr:      []byte("relayer"),
-		Data:             []byte{},
-		GasLimit:         100_000,
-		GasPrice:         1_000_000_001,
-		ChainID:          []byte(configs.ChainID),
-		Version:          2,
-		Signature:        []byte("signature"),
-		RelayerSignature: []byte("signature"),
-	})
-
-	txHashes := make([][]byte, 0)
-	for i, tx := range transactions {
-		txHash := []byte(fmt.Sprintf("txHash%d", i))
-		txHashes = append(txHashes, txHash)
-		txcache.AddTx(&txcache2.WrappedTransaction{
-			Tx:               tx,
-			TxHash:           txHash,
-			SenderShardID:    0,
-			ReceiverShardID:  0,
-			Size:             0,
-			Fee:              big.NewInt(int64(tx.GasLimit * tx.GasPrice)),
-			PricePerUnit:     0,
-			TransferredValue: tx.Value,
-			FeePayer:         tx.RelayerAddr,
-		})
-	}
-
-	blockBody := block.Body{MiniBlocks: []*block.MiniBlock{
-		{
-			TxHashes: txHashes[:len(txHashes)/2],
-		},
-	}}
-
-	require.Equal(t, txcache.CountTx(), uint64(4))
-
-	blockchainInfo := holders.NewBlockchainInfo([]byte("blockHash0"), 1)
-	selectedTransactions, _ := txcache.SelectTransactions(selectionSession, options, blockchainInfo)
-	require.Equal(t, 2, len(selectedTransactions))
-	require.Equal(t, "relayer", string(selectedTransactions[0].Tx.GetSndAddr()))
-	require.Equal(t, "alice", string(selectedTransactions[1].Tx.GetSndAddr()))
-
-	err = txcache.OnProposedBlock([]byte("blockHash1"), &blockBody, &block.Header{
-		Nonce:    0,
-		PrevHash: []byte("blockHash0"),
-		RootHash: []byte(fmt.Sprintf("rootHash%d", 0)),
-	})
-	require.Nil(t, err)
-
-	selectedTransactions, _ = txcache.SelectTransactions(selectionSession, options, blockchainInfo)
-	require.Equal(t, 2, len(selectedTransactions))
-	require.Equal(t, "bob", string(selectedTransactions[0].Tx.GetSndAddr()))
-	require.Equal(t, "carol", string(selectedTransactions[1].Tx.GetSndAddr()))
-}
-
-func Test_Selection_ShouldNotSelectSameTransactions(t *testing.T) {
+func Test_Selection_ShouldNotSelectSameTransactionsWithSameSender(t *testing.T) {
 	t.Parallel()
 
 	host := txcachemocks.NewMempoolHostMock()
@@ -686,68 +524,33 @@ func Test_Selection_ShouldNotSelectSameTransactions(t *testing.T) {
 		},
 	})
 
+	maxNumTxs := 2
 	options := holders.NewTxSelectionOptions(
 		10_000_000_000,
-		2,
+		maxNumTxs,
 		250,
 		10,
 	)
 
-	transactions := make([]*transaction.Transaction, 0)
+	poolTxs := maxNumTxs * 2
+	transactions := make([]*transaction.Transaction, 0, poolTxs)
+	nonceTracker := newNoncesTracker()
+	for i := 0; i < poolTxs; i++ {
+		transactions = append(transactions, &transaction.Transaction{
+			Nonce:     nonceTracker.getThenIncrementNonceByStringAddress("alice"),
+			Value:     oneQuarterOfEGLD,
+			SndAddr:   []byte("alice"),
+			RcvAddr:   []byte("receiver"),
+			Data:      []byte{},
+			GasLimit:  50_000,
+			GasPrice:  1_000_000_000,
+			ChainID:   []byte(configs.ChainID),
+			Version:   2,
+			Signature: []byte("signature"),
+		})
+	}
 
-	transactions = append(transactions, &transaction.Transaction{
-		Nonce:     0,
-		Value:     oneQuarterOfEGLD,
-		SndAddr:   []byte("alice"),
-		RcvAddr:   []byte("receiver"),
-		Data:      []byte{},
-		GasLimit:  50_000,
-		GasPrice:  1_000_000_000,
-		ChainID:   []byte(configs.ChainID),
-		Version:   2,
-		Signature: []byte("signature"),
-	})
-
-	transactions = append(transactions, &transaction.Transaction{
-		Nonce:     1,
-		Value:     oneQuarterOfEGLD,
-		SndAddr:   []byte("alice"),
-		RcvAddr:   []byte("receiver"),
-		Data:      []byte{},
-		GasLimit:  50_000,
-		GasPrice:  1_000_000_000,
-		ChainID:   []byte(configs.ChainID),
-		Version:   2,
-		Signature: []byte("signature"),
-	})
-
-	transactions = append(transactions, &transaction.Transaction{
-		Nonce:     2,
-		Value:     oneQuarterOfEGLD,
-		SndAddr:   []byte("alice"),
-		RcvAddr:   []byte("receiver"),
-		Data:      []byte{},
-		GasLimit:  50_000,
-		GasPrice:  1_000_000_000,
-		ChainID:   []byte(configs.ChainID),
-		Version:   2,
-		Signature: []byte("signature"),
-	})
-
-	transactions = append(transactions, &transaction.Transaction{
-		Nonce:     3,
-		Value:     oneQuarterOfEGLD,
-		SndAddr:   []byte("alice"),
-		RcvAddr:   []byte("receiver"),
-		Data:      []byte{},
-		GasLimit:  50_000,
-		GasPrice:  1_000_000_000,
-		ChainID:   []byte(configs.ChainID),
-		Version:   2,
-		Signature: []byte("signature"),
-	})
-
-	txHashes := make([][]byte, 0)
+	txHashes := make([][]byte, 0, len(transactions))
 	for i, tx := range transactions {
 		txHash := []byte(fmt.Sprintf("txHash%d", i))
 		txHashes = append(txHashes, txHash)
@@ -1031,7 +834,7 @@ func Test_Selection_ShouldNotSelectSameTransactionsWithManyTransactions(t *testi
 		proposedTxs = append(proposedTxs, tx.TxHash)
 	}
 
-	// propose those txs in order to create the breadcrumbs used vor the virtual records
+	// propose those txs in order to track them (create the breadcrumbs used for the virtual records)
 	proposedBlock1 := block.Body{MiniBlocks: []*block.MiniBlock{
 		{
 			TxHashes: proposedTxs,
@@ -1073,7 +876,7 @@ func Test_Selection_ShouldNotSelectSameTransactionsWithManyTransactions(t *testi
 	require.Equal(t, 0, len(selectedTransactions))
 }
 
-func Test_Selection_ShouldNotSelectSameTransactionsWithManyTransactionsAndExecutedBlockNotify(t *testing.T) {
+func Test_Selection_ShouldNotSelectSameTransactionsWithManyTransactionsAndExecutedBlockNotification(t *testing.T) {
 	t.Parallel()
 
 	host := txcachemocks.NewMempoolHostMock()
@@ -1166,7 +969,7 @@ func Test_Selection_ShouldNotSelectSameTransactionsWithManyTransactionsAndExecut
 	selectedTransactions, _ := txcache.SelectTransactions(selectionSession, options, defaultBlockchainInfo)
 	require.Equal(t, numTxsPerSender, len(selectedTransactions))
 
-	// propose those txs in order to create the breadcrumbs used vor the virtual records
+	// propose those txs in order to track them (create the breadcrumbs used for the virtual records)
 	proposedTxs := make([][]byte, 0, len(selectedTransactions))
 	for _, tx := range selectedTransactions {
 		proposedTxs = append(proposedTxs, tx.TxHash)
@@ -1228,4 +1031,344 @@ func Test_Selection_ShouldNotSelectSameTransactionsWithManyTransactionsAndExecut
 	for _, tx := range proposedTxs {
 		require.True(t, txcache.RemoveTxByHash(tx))
 	}
+}
+
+func Test_SelectionWhenFeeExceedsBalanceWhenMaxNumTxsEquals3(t *testing.T) {
+	t.Parallel()
+
+	host := txcachemocks.NewMempoolHostMock()
+	txcache, err := txcache2.NewTxCache(txcache2.ConfigSourceMe{
+		Name:                        "test",
+		NumChunks:                   16,
+		NumBytesThreshold:           maxNumBytesUpperBound,
+		NumBytesPerSenderThreshold:  maxNumBytesPerSenderUpperBoundTest,
+		CountThreshold:              math.MaxUint32,
+		CountPerSenderThreshold:     math.MaxUint32,
+		EvictionEnabled:             false,
+		NumItemsToPreemptivelyEvict: 1,
+		TxCacheBoundsConfig: config.TxCacheBoundsConfig{
+			MaxNumBytesPerSenderUpperBound: maxNumBytesPerSenderUpperBoundTest,
+		},
+	}, host)
+
+	require.Nil(t, err)
+	require.NotNil(t, txcache)
+
+	selectionSession := createMockSelectionSession(map[string]*accountInfo{
+		"alice": {
+			balance: oneQuarterOfEGLD,
+			nonce:   0,
+		},
+		"bob": {
+			balance: oneQuarterOfEGLD,
+			nonce:   0,
+		},
+		"carol": {
+			balance: oneQuarterOfEGLD,
+			nonce:   0,
+		},
+		"receiver": {
+			balance: big.NewInt(0),
+			nonce:   0,
+		},
+		"relayer": {
+			balance: big.NewInt(1000000000000000000),
+			nonce:   0,
+		},
+	})
+	options := holders.NewTxSelectionOptions(
+		10_000_000_000,
+		3,
+		250,
+		10,
+	)
+
+	// Consume most of relayer's balance. Keep an amount that is enough for the fee of two simple transfer transactions.
+	currentRelayerBalance := int64(1000000000000000000)
+	feeForTransfer := int64(50_000 * 1_000_000_004)
+	feeForRelayingTransactionsOfAliceAndBob := int64(100_000*1_000_000_003 + 100_000*1_000_000_002)
+
+	transactions := make([]*transaction.Transaction, 0)
+
+	transactions = append(transactions, &transaction.Transaction{
+		Nonce:     0,
+		Value:     big.NewInt(currentRelayerBalance - feeForTransfer - feeForRelayingTransactionsOfAliceAndBob),
+		SndAddr:   []byte("relayer"),
+		RcvAddr:   []byte("receiver"),
+		Data:      []byte{},
+		GasLimit:  50_000,
+		GasPrice:  1_000_000_004,
+		ChainID:   []byte(configs.ChainID),
+		Version:   2,
+		Signature: []byte("signature"),
+	})
+
+	// Transfer from Alice (relayed)
+	transactions = append(transactions, &transaction.Transaction{
+		Nonce:            0,
+		Value:            oneQuarterOfEGLD,
+		SndAddr:          []byte("alice"),
+		RcvAddr:          []byte("receiver"),
+		RelayerAddr:      []byte("relayer"),
+		Data:             []byte{},
+		GasLimit:         100_000,
+		GasPrice:         1_000_000_003,
+		ChainID:          []byte(configs.ChainID),
+		Version:          2,
+		Signature:        []byte("signature"),
+		RelayerSignature: []byte("signature"),
+	})
+
+	// Transfer from Bob (relayed)
+	transactions = append(transactions, &transaction.Transaction{
+		Nonce:            0,
+		Value:            oneQuarterOfEGLD,
+		SndAddr:          []byte("bob"),
+		RcvAddr:          []byte("receiver"),
+		RelayerAddr:      []byte("relayer"),
+		Data:             []byte{},
+		GasLimit:         100_000,
+		GasPrice:         1_000_000_002,
+		ChainID:          []byte(configs.ChainID),
+		Version:          2,
+		Signature:        []byte("signature"),
+		RelayerSignature: []byte("signature"),
+	})
+
+	// Transfer from Carol (relayed) - this one should not be selected due to insufficient balance (of the relayer)
+	transactions = append(transactions, &transaction.Transaction{
+		Nonce:            0,
+		Value:            oneQuarterOfEGLD,
+		SndAddr:          []byte("carol"),
+		RcvAddr:          []byte("receiver"),
+		RelayerAddr:      []byte("relayer"),
+		Data:             []byte{},
+		GasLimit:         100_000,
+		GasPrice:         1_000_000_001,
+		ChainID:          []byte(configs.ChainID),
+		Version:          2,
+		Signature:        []byte("signature"),
+		RelayerSignature: []byte("signature"),
+	})
+
+	txHashes := make([][]byte, 0)
+	for i, tx := range transactions {
+		txHash := []byte(fmt.Sprintf("txHash%d", i))
+		txHashes = append(txHashes, txHash)
+		txcache.AddTx(&txcache2.WrappedTransaction{
+			Tx:               tx,
+			TxHash:           txHash,
+			SenderShardID:    0,
+			ReceiverShardID:  0,
+			Size:             0,
+			Fee:              big.NewInt(int64(tx.GasLimit * tx.GasPrice)),
+			PricePerUnit:     0,
+			TransferredValue: tx.Value,
+			FeePayer:         tx.RelayerAddr,
+		})
+	}
+
+	require.Equal(t, txcache.CountTx(), uint64(4))
+
+	// do the first selection: first 3 transactions should be returned
+	blockchainInfo := holders.NewBlockchainInfo([]byte("blockHash0"), 1)
+	selectedTransactions, _ := txcache.SelectTransactions(selectionSession, options, blockchainInfo)
+	require.Equal(t, 3, len(selectedTransactions))
+	require.Equal(t, "relayer", string(selectedTransactions[0].Tx.GetSndAddr()))
+	require.Equal(t, "alice", string(selectedTransactions[1].Tx.GetSndAddr()))
+	require.Equal(t, "bob", string(selectedTransactions[2].Tx.GetSndAddr()))
+
+	// extract the tx hashes from the selected transactions
+	proposedTxs := make([][]byte, 0, len(selectedTransactions))
+	for _, tx := range selectedTransactions {
+		proposedTxs = append(proposedTxs, tx.TxHash)
+	}
+
+	// propose those txs in order to track them (create the breadcrumbs used for the virtual records)
+	proposedBlock1 := block.Body{MiniBlocks: []*block.MiniBlock{
+		{
+			TxHashes: proposedTxs,
+		},
+	}}
+
+	err = txcache.OnProposedBlock([]byte("blockHash1"), &proposedBlock1, &block.Header{
+		Nonce:    0,
+		PrevHash: []byte("blockHash0"),
+		RootHash: []byte(fmt.Sprintf("rootHash%d", 0)),
+	})
+	require.Nil(t, err)
+
+	// do the second selection, last tx should not be returned (relayer has insufficient balance)
+	selectedTransactions, _ = txcache.SelectTransactions(selectionSession, options, blockchainInfo)
+	require.Equal(t, 0, len(selectedTransactions))
+}
+
+func Test_SelectionWhenFeeExceedsBalanceWhenMaxNumTxsEquals2(t *testing.T) {
+	t.Parallel()
+
+	host := txcachemocks.NewMempoolHostMock()
+	txcache, err := txcache2.NewTxCache(txcache2.ConfigSourceMe{
+		Name:                        "test",
+		NumChunks:                   16,
+		NumBytesThreshold:           maxNumBytesUpperBound,
+		NumBytesPerSenderThreshold:  maxNumBytesPerSenderUpperBoundTest,
+		CountThreshold:              math.MaxUint32,
+		CountPerSenderThreshold:     math.MaxUint32,
+		EvictionEnabled:             false,
+		NumItemsToPreemptivelyEvict: 1,
+		TxCacheBoundsConfig: config.TxCacheBoundsConfig{
+			MaxNumBytesPerSenderUpperBound: maxNumBytesPerSenderUpperBoundTest,
+		},
+	}, host)
+
+	require.Nil(t, err)
+	require.NotNil(t, txcache)
+
+	selectionSession := createMockSelectionSession(map[string]*accountInfo{
+		"alice": {
+			balance: oneQuarterOfEGLD,
+			nonce:   0,
+		},
+		"bob": {
+			balance: oneQuarterOfEGLD,
+			nonce:   0,
+		},
+		"carol": {
+			balance: oneQuarterOfEGLD,
+			nonce:   0,
+		},
+		"receiver": {
+			balance: big.NewInt(0),
+			nonce:   0,
+		},
+		"relayer": {
+			balance: big.NewInt(1000000000000000000),
+			nonce:   0,
+		},
+	})
+	options := holders.NewTxSelectionOptions(
+		10_000_000_000,
+		2,
+		250,
+		10,
+	)
+
+	// Consume most of relayer's balance. Keep an amount that is enough for the fee of two simple transfer transactions.
+	currentRelayerBalance := int64(1000000000000000000)
+	feeForTransfer := int64(50_000 * 1_000_000_004)
+	feeForRelayingTransactionsOfAliceAndBob := int64(100_000*1_000_000_003 + 100_000*1_000_000_002)
+
+	transactions := make([]*transaction.Transaction, 0)
+
+	transactions = append(transactions, &transaction.Transaction{
+		Nonce:     0,
+		Value:     big.NewInt(currentRelayerBalance - feeForTransfer - feeForRelayingTransactionsOfAliceAndBob),
+		SndAddr:   []byte("relayer"),
+		RcvAddr:   []byte("receiver"),
+		Data:      []byte{},
+		GasLimit:  50_000,
+		GasPrice:  1_000_000_004,
+		ChainID:   []byte(configs.ChainID),
+		Version:   2,
+		Signature: []byte("signature"),
+	})
+
+	// Transfer from Alice (relayed)
+	transactions = append(transactions, &transaction.Transaction{
+		Nonce:            0,
+		Value:            oneQuarterOfEGLD,
+		SndAddr:          []byte("alice"),
+		RcvAddr:          []byte("receiver"),
+		RelayerAddr:      []byte("relayer"),
+		Data:             []byte{},
+		GasLimit:         100_000,
+		GasPrice:         1_000_000_003,
+		ChainID:          []byte(configs.ChainID),
+		Version:          2,
+		Signature:        []byte("signature"),
+		RelayerSignature: []byte("signature"),
+	})
+
+	// Transfer from Bob (relayed)
+	transactions = append(transactions, &transaction.Transaction{
+		Nonce:            0,
+		Value:            oneQuarterOfEGLD,
+		SndAddr:          []byte("bob"),
+		RcvAddr:          []byte("receiver"),
+		RelayerAddr:      []byte("relayer"),
+		Data:             []byte{},
+		GasLimit:         100_000,
+		GasPrice:         1_000_000_002,
+		ChainID:          []byte(configs.ChainID),
+		Version:          2,
+		Signature:        []byte("signature"),
+		RelayerSignature: []byte("signature"),
+	})
+
+	// Transfer from Carol (relayed) - this one should not be selected due to insufficient balance (of the relayer)
+	transactions = append(transactions, &transaction.Transaction{
+		Nonce:            0,
+		Value:            oneQuarterOfEGLD,
+		SndAddr:          []byte("carol"),
+		RcvAddr:          []byte("receiver"),
+		RelayerAddr:      []byte("relayer"),
+		Data:             []byte{},
+		GasLimit:         100_000,
+		GasPrice:         1_000_000_001,
+		ChainID:          []byte(configs.ChainID),
+		Version:          2,
+		Signature:        []byte("signature"),
+		RelayerSignature: []byte("signature"),
+	})
+
+	txHashes := make([][]byte, 0)
+	for i, tx := range transactions {
+		txHash := []byte(fmt.Sprintf("txHash%d", i))
+		txHashes = append(txHashes, txHash)
+		txcache.AddTx(&txcache2.WrappedTransaction{
+			Tx:               tx,
+			TxHash:           txHash,
+			SenderShardID:    0,
+			ReceiverShardID:  0,
+			Size:             0,
+			Fee:              big.NewInt(int64(tx.GasLimit * tx.GasPrice)),
+			PricePerUnit:     0,
+			TransferredValue: tx.Value,
+			FeePayer:         tx.RelayerAddr,
+		})
+	}
+
+	require.Equal(t, txcache.CountTx(), uint64(4))
+
+	// do the first selection: first 3 transactions should be returned
+	blockchainInfo := holders.NewBlockchainInfo([]byte("blockHash0"), 1)
+	selectedTransactions, _ := txcache.SelectTransactions(selectionSession, options, blockchainInfo)
+	require.Equal(t, 2, len(selectedTransactions))
+	require.Equal(t, "relayer", string(selectedTransactions[0].Tx.GetSndAddr()))
+	require.Equal(t, "alice", string(selectedTransactions[1].Tx.GetSndAddr()))
+
+	// extract the tx hashes from the selected transactions
+	proposedTxs := make([][]byte, 0, len(selectedTransactions))
+	for _, tx := range selectedTransactions {
+		proposedTxs = append(proposedTxs, tx.TxHash)
+	}
+
+	// propose those txs in order to track them (create the breadcrumbs used for the virtual records)
+	proposedBlock1 := block.Body{MiniBlocks: []*block.MiniBlock{
+		{
+			TxHashes: proposedTxs,
+		},
+	}}
+
+	err = txcache.OnProposedBlock([]byte("blockHash1"), &proposedBlock1, &block.Header{
+		Nonce:    0,
+		PrevHash: []byte("blockHash0"),
+		RootHash: []byte(fmt.Sprintf("rootHash%d", 0)),
+	})
+	require.Nil(t, err)
+
+	// do the second selection, last tx should not be returned (relayer has insufficient balance)
+	selectedTransactions, _ = txcache.SelectTransactions(selectionSession, options, blockchainInfo)
+	require.Equal(t, 1, len(selectedTransactions))
+	require.Equal(t, "bob", string(selectedTransactions[0].Tx.GetSndAddr()))
 }

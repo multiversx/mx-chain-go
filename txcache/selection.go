@@ -94,6 +94,10 @@ func selectTransactionsFromBunches(
 			accumulatedGas += gasLimit
 			selectedTransaction := item.selectCurrentTransaction()
 			selectedTransactions = append(selectedTransactions, selectedTransaction)
+			err := virtualSession.accumulateConsumedBalance(selectedTransaction)
+			if err != nil {
+				break
+			}
 		}
 
 		// If there are more transactions in the same bunch (same sender as the popped item),
