@@ -7,6 +7,7 @@ import (
 	"math/big"
 	"path"
 	"reflect"
+	"runtime/debug"
 	"sync"
 	"time"
 
@@ -64,6 +65,8 @@ type ArgBlockChainHook struct {
 	GasSchedule              core.GasScheduleNotifier
 	Counter                  BlockChainHookCounter
 	MissingTrieNodesNotifier common.MissingTrieNodesNotifier
+	EpochStartTrigger        EpochStartTriggerHandler
+	RoundHandler             RoundHandler // TODO: @laurci - this needs to be replaced when changing the round duration
 }
 
 // BlockChainHookImpl is a wrapper over AccountsAdapter that satisfy vmcommon.BlockchainHook interface
@@ -81,9 +84,14 @@ type BlockChainHookImpl struct {
 	globalSettingsHandler vmcommon.ESDTGlobalSettingsHandler
 	enableEpochsHandler   common.EnableEpochsHandler
 	counter               BlockChainHookCounter
+	epochStartTrigger     EpochStartTriggerHandler
+	roundHandler          RoundHandler // TODO: @laurci - this needs to be replaced when changing the round duration
 
 	mutCurrentHdr sync.RWMutex
 	currentHdr    data.HeaderHandler
+
+	mutEpochStartHdr sync.RWMutex
+	epochStartHdr    data.HeaderHandler
 
 	compiledScPool     storage.Cacher
 	compiledScStorage  storage.Storer
@@ -126,6 +134,8 @@ func NewBlockChainHookImpl(
 		gasSchedule:              args.GasSchedule,
 		counter:                  args.Counter,
 		missingTrieNodesNotifier: args.MissingTrieNodesNotifier,
+		epochStartTrigger:        args.EpochStartTrigger,
+		roundHandler:             args.RoundHandler,
 	}
 
 	err = blockChainHookImpl.makeCompiledSCStorage()
@@ -135,6 +145,7 @@ func NewBlockChainHookImpl(
 
 	blockChainHookImpl.ClearCompiledCodes()
 	blockChainHookImpl.currentHdr = &block.Header{}
+	blockChainHookImpl.epochStartHdr = &block.Header{}
 	blockChainHookImpl.mapActivationEpochs = createMapActivationEpochs(&args.EnableEpochs)
 	blockChainHookImpl.vmContainer = containers.NewVirtualMachinesContainer()
 
@@ -216,6 +227,12 @@ func checkForNil(args ArgBlockChainHook) error {
 	}
 	if check.IfNil(args.MissingTrieNodesNotifier) {
 		return ErrNilMissingTrieNodesNotifier
+	}
+	if check.IfNil(args.EpochStartTrigger) {
+		return ErrNilEpochStartTriggerHandler
+	}
+	if check.IfNil(args.RoundHandler) {
+		return ErrNilRoundHandler
 	}
 	return nil
 }
@@ -378,6 +395,14 @@ func (bh *BlockChainHookImpl) LastTimeStamp() uint64 {
 	return 0
 }
 
+// LastTimeStampMs returns the timeStamp in milliseconds from the last committed block
+func (bh *BlockChainHookImpl) LastTimeStampMs() uint64 {
+	if !check.IfNil(bh.blockChain.GetCurrentBlockHeader()) {
+		return common.ConvertTimeStampSecToMs(bh.blockChain.GetCurrentBlockHeader().GetTimeStamp())
+	}
+	return 0
+}
+
 // LastRandomSeed returns the random seed from the last committed block
 func (bh *BlockChainHookImpl) LastRandomSeed() []byte {
 	if !check.IfNil(bh.blockChain.GetCurrentBlockHeader()) {
@@ -392,6 +417,39 @@ func (bh *BlockChainHookImpl) LastEpoch() uint32 {
 		return bh.blockChain.GetCurrentBlockHeader().GetEpoch()
 	}
 	return 0
+}
+
+// RoundTime returns the duration of a round
+func (bh *BlockChainHookImpl) RoundTime() uint64 {
+	// TODO: @laurci - this needs to be replaced when changing the round duration
+	roundDuration := bh.roundHandler.TimeDuration()
+
+	return uint64(roundDuration.Milliseconds())
+}
+
+// EpochStartBlockTimeStampMs returns the timestamp of the first block of the current epoch in milliseconds
+func (bh *BlockChainHookImpl) EpochStartBlockTimeStampMs() uint64 {
+	bh.mutEpochStartHdr.RLock()
+	defer bh.mutEpochStartHdr.RUnlock()
+
+	timestampMs := common.ConvertTimeStampSecToMs(bh.epochStartHdr.GetTimeStamp())
+	return timestampMs
+}
+
+// EpochStartBlockNonce returns the nonce of the first block of the current epoch
+func (bh *BlockChainHookImpl) EpochStartBlockNonce() uint64 {
+	bh.mutEpochStartHdr.RLock()
+	defer bh.mutEpochStartHdr.RUnlock()
+
+	return bh.epochStartHdr.GetNonce()
+}
+
+// EpochStartBlockRound returns the round of the first block of the current epoch
+func (bh *BlockChainHookImpl) EpochStartBlockRound() uint64 {
+	bh.mutEpochStartHdr.RLock()
+	defer bh.mutEpochStartHdr.RUnlock()
+
+	return bh.epochStartHdr.GetRound()
 }
 
 // GetStateRootHash returns the state root hash from the last committed block
@@ -426,6 +484,14 @@ func (bh *BlockChainHookImpl) CurrentTimeStamp() uint64 {
 	defer bh.mutCurrentHdr.RUnlock()
 
 	return bh.currentHdr.GetTimeStamp()
+}
+
+// CurrentTimeStampMs return the timestamp in milliseconds from the current block
+func (bh *BlockChainHookImpl) CurrentTimeStampMs() uint64 {
+	bh.mutCurrentHdr.RLock()
+	defer bh.mutCurrentHdr.RUnlock()
+
+	return common.ConvertTimeStampSecToMs(bh.currentHdr.GetTimeStamp())
 }
 
 // CurrentRandomSeed returns the random seed from the current header
@@ -748,14 +814,84 @@ func createSuffixMask(creatorAddress []byte) []byte {
 }
 
 // SetCurrentHeader sets current header to be used by smart contracts
-func (bh *BlockChainHookImpl) SetCurrentHeader(hdr data.HeaderHandler) {
+func (bh *BlockChainHookImpl) SetCurrentHeader(hdr data.HeaderHandler) error {
 	if check.IfNil(hdr) {
-		return
+		return ErrNilCurrentHeader
 	}
 
 	bh.mutCurrentHdr.Lock()
+	defer bh.mutCurrentHdr.Unlock()
+
+	err := bh.updateEpochStartHeaderFromCurrentHeader(hdr)
+	if err != nil {
+		return err
+	}
+
 	bh.currentHdr = hdr
-	bh.mutCurrentHdr.Unlock()
+	return nil
+}
+
+func (bh *BlockChainHookImpl) updateEpochStartHeaderFromCurrentHeader(hdr data.HeaderHandler) error {
+	bh.mutEpochStartHdr.Lock()
+	defer bh.mutEpochStartHdr.Unlock()
+
+	if hdr.IsStartOfEpochBlock() {
+		bh.epochStartHdr = hdr
+		return nil
+	}
+
+	if hdr.GetEpoch() == 0 {
+		bh.epochStartHdr = bh.blockChain.GetGenesisHeader()
+		return nil
+	}
+
+	if bh.epochStartHdr.GetEpoch() == hdr.GetEpoch() {
+		return nil
+	}
+
+	epochStartHdr, err := bh.epochStartTrigger.LastCommitedEpochStartHdr()
+	if err != nil {
+		log.Warn("BlockChainHookImpl.updateEpochStartHeaderFromCurrentHeader: epochStartTrigger.LastCommitedEpochStartHdr", "error", err)
+		return err
+	}
+
+	if check.IfNil(epochStartHdr) {
+		log.Warn("BlockChainHookImpl.updateEpochStartHeaderFromCurrentHeader: epochStartHdr is nil")
+		return ErrNilLastCommitedEpochStartHdr
+	}
+
+	if epochStartHdr.GetEpoch() != hdr.GetEpoch() {
+		log.Debug("BlockChainHookImpl.updateEpochStartHeaderFromCurrentHeader: epochStartHdr.GetEpoch() != hdr.GetEpoch()", "epochStartHdr", epochStartHdr.GetEpoch(), "hdr", hdr.GetEpoch())
+
+		epochStartHdr, err = bh.epochStartTrigger.GetEpochStartHdrFromStorage(hdr.GetEpoch())
+		if err != nil {
+			log.Warn("BlockChainHookImpl.updateEpochStartHeaderFromCurrentHeader: epochStartTrigger.GetEpochStartHdrFromStorage", "error", err, "stack trace", string(debug.Stack()))
+			return err
+		}
+
+		if check.IfNil(epochStartHdr) {
+			log.Warn("BlockChainHookImpl.updateEpochStartHeaderFromCurrentHeader: epochStartHdr from storage is nil")
+			return ErrNilLastCommitedEpochStartHdr
+		}
+	}
+
+	bh.epochStartHdr = epochStartHdr
+
+	return nil
+}
+
+// SetEpochStartHeader sets the epoch start header to be used by smart contracts
+func (bh *BlockChainHookImpl) SetEpochStartHeader(header data.HeaderHandler) error {
+	bh.mutEpochStartHdr.Lock()
+	defer bh.mutEpochStartHdr.Unlock()
+
+	if check.IfNil(header) {
+		return ErrNilEpochStartHeader
+	}
+
+	bh.epochStartHdr = header
+
+	return nil
 }
 
 // SaveCompiledCode saves the compiled code to cache and storage

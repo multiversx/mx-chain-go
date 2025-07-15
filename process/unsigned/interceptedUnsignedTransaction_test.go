@@ -11,13 +11,14 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data/smartContractResult"
+	logger "github.com/multiversx/mx-chain-logger-go"
+	"github.com/stretchr/testify/assert"
+
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/mock"
 	"github.com/multiversx/mx-chain-go/process/unsigned"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
-	logger "github.com/multiversx/mx-chain-logger-go"
-	"github.com/stretchr/testify/assert"
 )
 
 var senderShard = uint32(2)
@@ -170,7 +171,7 @@ func TestNewInterceptedUnsignedTransaction_ShouldWork(t *testing.T) {
 	assert.Nil(t, err)
 }
 
-// ------- CheckValidity
+// ------- Verify
 
 func TestInterceptedUnsignedTransaction_CheckValidityNilTxHashShouldErr(t *testing.T) {
 	t.Parallel()

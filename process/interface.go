@@ -25,6 +25,7 @@ import (
 
 	"github.com/multiversx/mx-chain-go/common"
 	cryptoCommon "github.com/multiversx/mx-chain-go/common/crypto"
+	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/epochStart"
 	"github.com/multiversx/mx-chain-go/p2p"
 	"github.com/multiversx/mx-chain-go/process/block/bootstrapStorage"
@@ -116,7 +117,7 @@ type HdrValidatorHandler interface {
 
 // InterceptedDataFactory can create new instances of InterceptedData
 type InterceptedDataFactory interface {
-	Create(buff []byte) (InterceptedData, error)
+	Create(buff []byte, messageOriginator core.PeerID) (InterceptedData, error)
 	IsInterfaceNil() bool
 }
 
@@ -383,7 +384,9 @@ type ForkDetector interface {
 	RestoreToGenesis()
 	GetNotarizedHeaderHash(nonce uint64) []byte
 	ResetProbableHighestNonce()
+	AddCheckpoint(nonce uint64, round uint64, hash []byte)
 	SetFinalToLastCheckpoint()
+	ReceivedProof(proof data.HeaderProofHandler)
 	IsInterfaceNil() bool
 }
 
@@ -470,6 +473,8 @@ type EpochStartTriggerHandler interface {
 	Epoch() uint32
 	MetaEpoch() uint32
 	EpochStartRound() uint64
+	LastCommitedEpochStartHdr() (data.HeaderHandler, error)
+	GetEpochStartHdrFromStorage(epoch uint32) (data.HeaderHandler, error)
 	SetProcessed(header data.HeaderHandler, body data.BodyHandler)
 	RevertStateToBlock(header data.HeaderHandler) error
 	EpochStartMetaHdrHash() []byte
@@ -505,14 +510,20 @@ type BlockChainHookHandler interface {
 	LastNonce() uint64
 	LastRound() uint64
 	LastTimeStamp() uint64
+	LastTimeStampMs() uint64
 	LastRandomSeed() []byte
 	LastEpoch() uint32
 	GetStateRootHash() []byte
 	CurrentNonce() uint64
 	CurrentRound() uint64
 	CurrentTimeStamp() uint64
+	CurrentTimeStampMs() uint64
 	CurrentRandomSeed() []byte
 	CurrentEpoch() uint32
+	RoundTime() uint64
+	EpochStartBlockNonce() uint64
+	EpochStartBlockRound() uint64
+	EpochStartBlockTimeStampMs() uint64
 	NewAddress(creatorAddress []byte, creatorNonce uint64, vmType []byte) ([]byte, error)
 	ProcessBuiltInFunction(input *vmcommon.ContractCallInput) (*vmcommon.VMOutput, error)
 	SaveNFTMetaDataToSystemAccount(tx data.TransactionHandler) error
@@ -525,7 +536,8 @@ type BlockChainHookHandler interface {
 	IsPaused(tokenID []byte) bool
 	IsLimitedTransfer(tokenID []byte) bool
 	NumberOfShards() uint32
-	SetCurrentHeader(hdr data.HeaderHandler)
+	SetCurrentHeader(hdr data.HeaderHandler) error
+	SetEpochStartHeader(hdr data.HeaderHandler) error
 	SaveCompiledCode(codeHash []byte, code []byte)
 	GetCompiledCode(codeHash []byte) (bool, []byte)
 	IsPayable(sndAddress []byte, recvAddress []byte) (bool, error)
@@ -553,7 +565,7 @@ type BlockChainHookWithAccountsAdapter interface {
 // Interceptor defines what a data interceptor should do
 // It should also adhere to the p2p.MessageProcessor interface so it can wire to a p2p.Messenger
 type Interceptor interface {
-	ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedPeer core.PeerID, source p2p.MessageHandler) error
+	ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedPeer core.PeerID, source p2p.MessageHandler) ([]byte, error)
 	SetInterceptedDebugHandler(handler InterceptedDebugger) error
 	RegisterHandler(handler func(topic string, hash []byte, data interface{}))
 	Close() error
@@ -603,6 +615,8 @@ type RequestHandler interface {
 	RequestPeerAuthenticationsByHashes(destShardID uint32, hashes [][]byte)
 	RequestValidatorInfo(hash []byte)
 	RequestValidatorsInfo(hashes [][]byte)
+	RequestEquivalentProofByHash(headerShard uint32, headerHash []byte)
+	RequestEquivalentProofByNonce(headerShard uint32, headerNonce uint64)
 	IsInterfaceNil() bool
 }
 
@@ -655,6 +669,12 @@ type rewardsHandler interface {
 	MaxInflationRate(year uint32) float64
 	RewardsTopUpGradientPoint() *big.Int
 	RewardsTopUpFactor() float64
+	LeaderPercentageInEpoch(epoch uint32) float64
+	DeveloperPercentageInEpoch(epoch uint32) float64
+	ProtocolSustainabilityPercentageInEpoch(epoch uint32) float64
+	ProtocolSustainabilityAddressInEpoch(epoch uint32) string
+	RewardsTopUpGradientPointInEpoch(epoch uint32) *big.Int
+	RewardsTopUpFactorInEpoch(epoch uint32) float64
 }
 
 // RewardsHandler will return information about rewards
@@ -701,6 +721,7 @@ type feeHandler interface {
 	ComputeGasLimitInEpoch(tx data.TransactionWithFeeHandler, epoch uint32) uint64
 	ComputeGasUsedAndFeeBasedOnRefundValueInEpoch(tx data.TransactionWithFeeHandler, refundValue *big.Int, epoch uint32) (uint64, *big.Int)
 	ComputeTxFeeBasedOnGasUsedInEpoch(tx data.TransactionWithFeeHandler, gasUsed uint64, epoch uint32) *big.Int
+	MaxGasHigherFactorAccepted() uint64
 }
 
 // TxGasHandler handles a transaction gas and gas cost
@@ -850,6 +871,8 @@ type InterceptedHeaderSigVerifier interface {
 	VerifyRandSeed(header data.HeaderHandler) error
 	VerifyLeaderSignature(header data.HeaderHandler) error
 	VerifySignature(header data.HeaderHandler) error
+	VerifySignatureForHash(header data.HeaderHandler, hash []byte, pubkeysBitmap []byte, signature []byte) error
+	VerifyHeaderProof(headerProof data.HeaderProofHandler) error
 	IsInterfaceNil() bool
 }
 
@@ -913,12 +936,18 @@ type TopicFloodPreventer interface {
 	IsInterfaceNil() bool
 }
 
+// ChainParametersSubscriber is the interface that can be used to subscribe for chain parameters changes
+type ChainParametersSubscriber interface {
+	RegisterNotifyHandler(handler common.ChainParametersSubscriptionHandler)
+	IsInterfaceNil() bool
+}
+
 // P2PAntifloodHandler defines the behavior of a component able to signal that the system is too busy (or flooded) processing
 // p2p messages
 type P2PAntifloodHandler interface {
 	CanProcessMessage(message p2p.MessageP2P, fromConnectedPeer core.PeerID) error
 	CanProcessMessagesOnTopic(pid core.PeerID, topic string, numMessages uint32, totalSize uint64, sequence []byte) error
-	ApplyConsensusSize(size int)
+	SetConsensusSizeNotifier(chainParametersNotifier ChainParametersSubscriber, shardID uint32)
 	SetDebugger(debugger AntifloodDebugger) error
 	BlacklistPeer(peer core.PeerID, reason string, duration time.Duration)
 	IsOriginatorEligibleForTopic(pid core.PeerID, topic string) error
@@ -1035,6 +1064,7 @@ type RatingsInfoHandler interface {
 	MetaChainRatingsStepHandler() RatingsStepHandler
 	ShardChainRatingsStepHandler() RatingsStepHandler
 	SelectionChances() []SelectionChance
+	SetStatusHandler(handler core.AppStatusHandler) error
 	IsInterfaceNil() bool
 }
 
@@ -1045,6 +1075,36 @@ type RatingsStepHandler interface {
 	ValidatorIncreaseRatingStep() int32
 	ValidatorDecreaseRatingStep() int32
 	ConsecutiveMissedBlocksPenalty() float32
+}
+
+// NodesSetupHandler returns the nodes' configuration
+type NodesSetupHandler interface {
+	AllInitialNodes() []nodesCoordinator.GenesisNodeInfoHandler
+	InitialNodesPubKeys() map[uint32][]string
+	GetShardIDForPubKey(pubkey []byte) (uint32, error)
+	InitialEligibleNodesPubKeysForShard(shardId uint32) ([]string, error)
+	InitialNodesInfoForShard(shardId uint32) ([]nodesCoordinator.GenesisNodeInfoHandler, []nodesCoordinator.GenesisNodeInfoHandler, error)
+	InitialNodesInfo() (map[uint32][]nodesCoordinator.GenesisNodeInfoHandler, map[uint32][]nodesCoordinator.GenesisNodeInfoHandler)
+	GetStartTime() int64
+	GetRoundDuration() uint64
+	GetShardConsensusGroupSize() uint32
+	GetMetaConsensusGroupSize() uint32
+	NumberOfShards() uint32
+	MinNumberOfNodes() uint32
+	MinNumberOfShardNodes() uint32
+	MinNumberOfMetaNodes() uint32
+	GetHysteresis() float32
+	GetAdaptivity() bool
+	MinNumberOfNodesWithHysteresis() uint32
+	IsInterfaceNil() bool
+}
+
+// ChainParametersHandler defines the actions that need to be done by a component that can handle chain parameters
+type ChainParametersHandler interface {
+	CurrentChainParameters() config.ChainParametersByEpochConfig
+	AllChainParameters() []config.ChainParametersByEpochConfig
+	ChainParametersForEpoch(epoch uint32) (config.ChainParametersByEpochConfig, error)
+	IsInterfaceNil() bool
 }
 
 // ValidatorInfoSyncer defines the method needed for validatorInfoProcessing
@@ -1118,6 +1178,7 @@ type EpochStartEventNotifier interface {
 type NodesCoordinator interface {
 	GetValidatorWithPublicKey(publicKey []byte) (validator nodesCoordinator.Validator, shardId uint32, err error)
 	GetAllEligibleValidatorsPublicKeys(epoch uint32) (map[uint32][][]byte, error)
+	GetAllEligibleValidatorsPublicKeysForShard(epoch uint32, shardID uint32) ([]string, error)
 	GetAllWaitingValidatorsPublicKeys(epoch uint32) (map[uint32][][]byte, error)
 	GetAllLeavingValidatorsPublicKeys(epoch uint32) (map[uint32][][]byte, error)
 	IsInterfaceNil() bool
@@ -1166,6 +1227,7 @@ type PayableHandler interface {
 
 // FallbackHeaderValidator defines the behaviour of a component able to signal when a fallback header validation could be applied
 type FallbackHeaderValidator interface {
+	ShouldApplyFallbackValidationForHeaderWith(shardID uint32, startOfEpochBlock bool, round uint64, prevHeaderHash []byte) bool
 	ShouldApplyFallbackValidation(headerHandler data.HeaderHandler) bool
 	IsInterfaceNil() bool
 }
@@ -1186,11 +1248,15 @@ type CoreComponentsHolder interface {
 	TxVersionChecker() TxVersionCheckerHandler
 	GenesisNodesSetup() sharding.GenesisNodesSetupHandler
 	EpochNotifier() EpochNotifier
+	ChainParametersSubscriber() ChainParametersSubscriber
 	ChanStopNodeProcess() chan endProcess.ArgEndProcess
 	NodeTypeProvider() core.NodeTypeProviderHandler
 	ProcessStatusHandler() common.ProcessStatusHandler
 	HardforkTriggerPubKey() []byte
 	EnableEpochsHandler() common.EnableEpochsHandler
+	ChainParametersHandler() ChainParametersHandler
+	FieldsSizeChecker() common.FieldsSizeChecker
+	EpochChangeGracePeriodHandler() common.EpochChangeGracePeriodHandler
 	IsInterfaceNil() bool
 }
 
@@ -1359,5 +1425,26 @@ type SentSignaturesTracker interface {
 	StartRound()
 	SignatureSent(pkBytes []byte)
 	ResetCountersForManagedBlockSigner(signerPk []byte)
+	IsInterfaceNil() bool
+}
+
+// InterceptedDataVerifier defines a component able to verify intercepted data validity
+type InterceptedDataVerifier interface {
+	Verify(interceptedData InterceptedData) error
+	IsInterfaceNil() bool
+}
+
+// InterceptedDataVerifierFactory defines a component that is able to create intercepted data verifiers
+type InterceptedDataVerifierFactory interface {
+	Create(topic string) (InterceptedDataVerifier, error)
+	Close() error
+	IsInterfaceNil() bool
+}
+
+// ProofsPool defines the behaviour of a proofs pool components
+type ProofsPool interface {
+	AddProof(headerProof data.HeaderProofHandler) bool
+	HasProof(shardID uint32, headerHash []byte) bool
+	IsProofInPoolEqualTo(headerProof data.HeaderProofHandler) bool
 	IsInterfaceNil() bool
 }

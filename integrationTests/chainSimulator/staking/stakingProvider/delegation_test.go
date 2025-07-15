@@ -34,7 +34,7 @@ import (
 var log = logger.GetOrCreate("stakingProvider")
 
 const gasLimitForConvertOperation = 510_000_000
-const gasLimitForDelegationContractCreationOperation = 500_000_000
+const gasLimitForDelegationContractCreationOperation = 100_000_000
 const gasLimitForAddNodesOperation = 500_000_000
 const gasLimitForUndelegateOperation = 500_000_000
 const gasLimitForMergeOperation = 600_000_000
@@ -94,6 +94,8 @@ func TestChainSimulator_MakeNewContractFromValidatorData(t *testing.T) {
 				cfg.EpochConfig.EnableEpochs.StakingV4Step3EnableEpoch = 102
 
 				cfg.EpochConfig.EnableEpochs.MaxNodesChangeEnableEpoch[2].EpochEnable = 102
+
+				cfg.EpochConfig.EnableEpochs.AndromedaEnableEpoch = 1
 			},
 		})
 		require.Nil(t, err)
@@ -139,6 +141,8 @@ func TestChainSimulator_MakeNewContractFromValidatorData(t *testing.T) {
 				cfg.EpochConfig.EnableEpochs.StakingV4Step3EnableEpoch = 102
 
 				cfg.EpochConfig.EnableEpochs.MaxNodesChangeEnableEpoch[2].EpochEnable = 102
+
+				cfg.EpochConfig.EnableEpochs.AndromedaEnableEpoch = 1
 			},
 		})
 		require.Nil(t, err)

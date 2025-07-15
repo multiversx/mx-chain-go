@@ -12,14 +12,16 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-core-go/data/typeConverters"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/mock"
 	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/cache"
 	storageStubs "github.com/multiversx/mx-chain-go/testscommon/storage"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 func TestGetShardHeaderShouldErrNilCacher(t *testing.T) {
@@ -1800,7 +1802,7 @@ func TestGetTransactionHandlerShouldGetTransactionFromPool(t *testing.T) {
 	storageService := &storageStubs.ChainStorerStub{}
 	shardedDataCacherNotifier := &testscommon.ShardedDataStub{
 		ShardDataStoreCalled: func(cacheId string) (c storage.Cacher) {
-			return &testscommon.CacherStub{
+			return &cache.CacherStub{
 				PeekCalled: func(key []byte) (value interface{}, ok bool) {
 					return txFromPool, true
 				},
@@ -1843,7 +1845,7 @@ func TestGetTransactionHandlerShouldGetTransactionFromStorage(t *testing.T) {
 	}
 	shardedDataCacherNotifier := &testscommon.ShardedDataStub{
 		ShardDataStoreCalled: func(cacheId string) (c storage.Cacher) {
-			return &testscommon.CacherStub{
+			return &cache.CacherStub{
 				PeekCalled: func(key []byte) (value interface{}, ok bool) {
 					return nil, false
 				},
@@ -1871,7 +1873,7 @@ func TestGetTransactionHandlerFromPool_Errors(t *testing.T) {
 
 	shardedDataCacherNotifier := testscommon.NewShardedDataStub()
 	shardedDataCacherNotifier.ShardDataStoreCalled = func(cacheID string) storage.Cacher {
-		return testscommon.NewCacherMock()
+		return cache.NewCacherMock()
 	}
 
 	t.Run("nil sharded cache", func(t *testing.T) {
@@ -1922,7 +1924,7 @@ func TestGetTransactionHandlerFromPoolShouldErrTxNotFound(t *testing.T) {
 
 	shardedDataCacherNotifier := &testscommon.ShardedDataStub{
 		ShardDataStoreCalled: func(cacheId string) (c storage.Cacher) {
-			return &testscommon.CacherStub{
+			return &cache.CacherStub{
 				PeekCalled: func(key []byte) (value interface{}, ok bool) {
 					return nil, false
 				},
@@ -1948,7 +1950,7 @@ func TestGetTransactionHandlerFromPoolShouldErrInvalidTxInPool(t *testing.T) {
 
 	shardedDataCacherNotifier := &testscommon.ShardedDataStub{
 		ShardDataStoreCalled: func(cacheId string) (c storage.Cacher) {
-			return &testscommon.CacherStub{
+			return &cache.CacherStub{
 				PeekCalled: func(key []byte) (value interface{}, ok bool) {
 					return nil, true
 				},
@@ -1975,7 +1977,7 @@ func TestGetTransactionHandlerFromPoolShouldWorkWithPeek(t *testing.T) {
 
 	shardedDataCacherNotifier := &testscommon.ShardedDataStub{
 		ShardDataStoreCalled: func(cacheId string) (c storage.Cacher) {
-			return &testscommon.CacherStub{
+			return &cache.CacherStub{
 				PeekCalled: func(key []byte) (value interface{}, ok bool) {
 					return txFromPool, true
 				},
@@ -2026,7 +2028,7 @@ func TestGetTransactionHandlerFromPoolShouldWorkWithPeekFallbackToSearchFirst(t 
 	peekCalled := false
 	shardedDataCacherNotifier := &testscommon.ShardedDataStub{
 		ShardDataStoreCalled: func(cacheId string) (c storage.Cacher) {
-			return &testscommon.CacherStub{
+			return &cache.CacherStub{
 				PeekCalled: func(key []byte) (value interface{}, ok bool) {
 					peekCalled = true
 					return nil, false

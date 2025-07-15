@@ -42,10 +42,11 @@ func createArgs() (config.Configs, factory.CoreComponentsHolder) {
 	}
 
 	return cfg, &mock.CoreComponentsMock{
-		EconomicsHandler:    &economicsmocks.EconomicsHandlerStub{},
+		EconomicsHandler:    &economicsmocks.EconomicsHandlerMock{},
 		IntMarsh:            &testscommon.MarshallerStub{},
 		UInt64ByteSliceConv: &mockTests.Uint64ByteSliceConverterMock{},
 		NodesConfig:         &genesisMocks.NodesSetupStub{},
+		RatingsConfig:       &testscommon.RatingsInfoMock{},
 	}
 }
 

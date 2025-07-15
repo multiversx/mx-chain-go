@@ -2,12 +2,17 @@ package components
 
 import (
 	"fmt"
+	"math"
 	"math/big"
 	"testing"
 
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/data/endProcess"
 	"github.com/multiversx/mx-chain-core-go/data/outport"
+	logger "github.com/multiversx/mx-chain-logger-go"
+	wasmConfig "github.com/multiversx/mx-chain-vm-go/config"
+	"github.com/stretchr/testify/require"
+
 	"github.com/multiversx/mx-chain-go/common"
 	commonFactory "github.com/multiversx/mx-chain-go/common/factory"
 	"github.com/multiversx/mx-chain-go/config"
@@ -41,9 +46,6 @@ import (
 	statusHandlerMock "github.com/multiversx/mx-chain-go/testscommon/statusHandler"
 	"github.com/multiversx/mx-chain-go/testscommon/storage"
 	"github.com/multiversx/mx-chain-go/trie"
-	logger "github.com/multiversx/mx-chain-logger-go"
-	wasmConfig "github.com/multiversx/mx-chain-vm-go/config"
-	"github.com/stretchr/testify/require"
 )
 
 var log = logger.GetOrCreate("componentsMock")
@@ -77,9 +79,25 @@ func GetCoreArgs() coreComp.CoreComponentsFactoryArgs {
 		ConfigPathsHolder: config.ConfigurationPathsHolder{
 			GasScheduleDirectoryName: "../../cmd/node/config/gasSchedules",
 		},
-		RatingsConfig:       CreateDummyRatingsConfig(),
-		EconomicsConfig:     CreateDummyEconomicsConfig(),
-		NodesFilename:       "../mock/testdata/nodesSetupMock.json",
+		RatingsConfig:   CreateDummyRatingsConfig(),
+		EconomicsConfig: CreateDummyEconomicsConfig(),
+		NodesConfig: config.NodesConfig{
+			StartTime: 0,
+			InitialNodes: []*config.InitialNodeConfig{
+				{
+					PubKey:  "227a5a5ec0c58171b7f4ee9ecc304ea7b176fb626741a25c967add76d6cd361d6995929f9b60a96237381091cefb1b061225e5bb930b40494a5ac9d7524fd67dfe478e5ccd80f17b093cff5722025761fb0217c39dbd5ae45e01eb5a3113be93",
+					Address: "erd1ulhw20j7jvgfgak5p05kv667k5k9f320sgef5ayxkt9784ql0zssrzyhjp",
+				},
+				{
+					PubKey:  "ef9522d654bc08ebf2725468f41a693aa7f3cf1cb93922cff1c8c81fba78274016010916f4a7e5b0855c430a724a2d0b3acd1fe8e61e37273a17d58faa8c0d3ef6b883a33ec648950469a1e9757b978d9ae662a019068a401cff56eea059fd08",
+					Address: "erd17c4fs6mz2aa2hcvva2jfxdsrdknu4220496jmswer9njznt22eds0rxlr4",
+				},
+				{
+					PubKey:  "e91ab494cedd4da346f47aaa1a3e792bea24fb9f6cc40d3546bc4ca36749b8bfb0164e40dbad2195a76ee0fd7fb7da075ecbf1b35a2ac20638d53ea5520644f8c16952225c48304bb202867e2d71d396bff5a5971f345bcfe32c7b6b0ca34c84",
+					Address: "erd10d2gufxesrp8g409tzxljlaefhs0rsgjle3l7nq38de59txxt8csj54cd3",
+				},
+			},
+		},
 		WorkingDirectory:    "home",
 		ChanStopNodeProcess: make(chan endProcess.ArgEndProcess),
 		EpochConfig: config.EpochConfig{
@@ -257,7 +275,8 @@ func GetNetworkFactoryArgs() networkComp.NetworkComponentsFactoryArgs {
 				},
 			},
 			ResourceLimiter: p2pConfig.P2PResourceLimiterConfig{
-				Type: p2p.DefaultWithScaleResourceLimiter,
+				Type:          p2p.DefaultWithScaleResourceLimiter,
+				Ipv4ConnLimit: []p2pConfig.ConnLimitConfig{{PrefixLength: 0, ConnCount: math.MaxInt}},
 			},
 		},
 		KadDhtPeerDiscovery: p2pConfig.KadDhtPeerDiscoveryConfig{
@@ -556,7 +575,8 @@ func GetProcessArgs(
 					MinVetoThreshold: 0.5,
 					LostProposalFee:  "1",
 				},
-				OwnerAddress: "erd1vxy22x0fj4zv6hktmydg8vpfh6euv02cz4yg0aaws6rrad5a5awqgqky80",
+				OwnerAddress:                 "erd1vxy22x0fj4zv6hktmydg8vpfh6euv02cz4yg0aaws6rrad5a5awqgqky80",
+				MaxVotingDelayPeriodInEpochs: 30,
 			},
 			StakingSystemSCConfig: config.StakingSystemSCConfig{
 				GenesisNodePrice:                     "2500000000000000000000",
@@ -873,6 +893,9 @@ func FillGasMapMetaChainSystemSCsCosts(value uint64) map[string]uint64 {
 	gasMap["DelegateVote"] = value
 	gasMap["RevokeVote"] = value
 	gasMap["CloseProposal"] = value
+	gasMap["ClearProposal"] = value
+	gasMap["ClaimAccumulatedFees"] = value
+	gasMap["ChangeConfig"] = value
 	gasMap["DelegationOps"] = value
 	gasMap["UnStakeTokens"] = value
 	gasMap["UnBondTokens"] = value

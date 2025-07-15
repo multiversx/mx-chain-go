@@ -10,6 +10,7 @@ import (
 	"github.com/multiversx/mx-chain-go/process"
 	economicsHandler "github.com/multiversx/mx-chain-go/process/economics"
 	"github.com/multiversx/mx-chain-go/state"
+	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/epochNotifier"
 	"github.com/multiversx/mx-chain-go/vm"
@@ -266,6 +267,7 @@ func CreateEconomicsData() process.EconomicsDataHandler {
 						MaxGasLimitPerTx:            maxGasLimitPerBlock,
 						MinGasLimit:                 minGasLimit,
 						ExtraGasLimitGuardedTx:      maxGasLimitPerBlock,
+						MaxGasHigherFactorAccepted:  "10",
 					},
 				},
 				MinGasPrice:            minGasPrice,
@@ -277,6 +279,8 @@ func CreateEconomicsData() process.EconomicsDataHandler {
 		EpochNotifier:       &epochNotifier.EpochNotifierStub{},
 		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 		TxVersionChecker:    &disabled.TxVersionChecker{},
+		PubkeyConverter:     &testscommon.PubkeyConverterStub{},
+		ShardCoordinator:    &testscommon.ShardsCoordinatorMock{},
 	}
 	economicsData, _ := economicsHandler.NewEconomicsData(argsNewEconomicsData)
 	return economicsData

@@ -19,6 +19,12 @@ type HeadersPoolConfig struct {
 	NumElementsToRemoveOnEviction int
 }
 
+// ProofsPoolConfig will map the proofs cache configuration
+type ProofsPoolConfig struct {
+	CleanupNonceDelta uint64
+	BucketSize        int
+}
+
 // DBConfig will map the database configuration
 type DBConfig struct {
 	FilePath            string
@@ -161,14 +167,16 @@ type Config struct {
 
 	BootstrapStorage StorageConfig
 	MetaBlockStorage StorageConfig
+	ProofsStorage    StorageConfig
 
-	AccountsTrieStorage          StorageConfig
-	PeerAccountsTrieStorage      StorageConfig
-	EvictionWaitingList          EvictionWaitingListConfig
-	StateTriesConfig             StateTriesConfig
+	AccountsTrieStorage      StorageConfig
+	PeerAccountsTrieStorage  StorageConfig
+	EvictionWaitingList      EvictionWaitingListConfig
+	StateTriesConfig         StateTriesConfig
 	StateAccessesCollectorConfig StateAccessesCollectorConfig
-	TrieStorageManagerConfig     TrieStorageManagerConfig
-	BadBlocksCache               CacheConfig
+	TrieStorageManagerConfig TrieStorageManagerConfig
+	TrieLeavesRetrieverConfig TrieLeavesRetrieverConfig
+	BadBlocksCache           CacheConfig
 
 	TxBlockBodyDataPool         CacheConfig
 	PeerBlockBodyDataPool       CacheConfig
@@ -210,6 +218,7 @@ type Config struct {
 
 	NTPConfig               NTPConfig
 	HeadersPoolConfig       HeadersPoolConfig
+	ProofsPoolConfig        ProofsPoolConfig
 	BlockSizeThrottleConfig BlockSizeThrottleConfig
 	VirtualMachine          VirtualMachineServicesConfig
 	BuiltInFunctions        BuiltInFunctionsConfig
@@ -230,6 +239,8 @@ type Config struct {
 	PeersRatingConfig   PeersRatingConfig
 	PoolsCleanersConfig PoolsCleanersConfig
 	Redundancy          RedundancyConfig
+
+	InterceptedDataVerifier InterceptedDataVerifierConfig
 }
 
 // PeersRatingConfig will hold settings related to peers rating
@@ -280,6 +291,12 @@ type MultiSignerConfig struct {
 	Type        string
 }
 
+// EpochChangeGracePeriodByEpoch defines a config tuple for the epoch change grace period
+type EpochChangeGracePeriodByEpoch struct {
+	EnableEpoch         uint32
+	GracePeriodInRounds uint32
+}
+
 // GeneralSettingsConfig will hold the general settings for a node
 type GeneralSettingsConfig struct {
 	StatusPollingIntervalSec             int
@@ -292,6 +309,8 @@ type GeneralSettingsConfig struct {
 	GenesisMaxNumberOfShards             uint32
 	SyncProcessTimeInMillis              uint32
 	SetGuardianEpochsDelay               uint32
+	ChainParametersByEpoch               []ChainParametersByEpochConfig
+	EpochChangeGracePeriodByEpoch        []EpochChangeGracePeriodByEpoch
 }
 
 // HardwareRequirementsConfig will hold the hardware requirements config
@@ -600,6 +619,20 @@ type Configs struct {
 	ConfigurationPathsHolder *ConfigurationPathsHolder
 	EpochConfig              *EpochConfig
 	RoundConfig              *RoundConfig
+	NodesConfig              *NodesConfig
+}
+
+// NodesConfig is the data transfer object used to map the nodes' configuration in regard to the genesis nodes setup
+type NodesConfig struct {
+	StartTime    int64                `json:"startTime"`
+	InitialNodes []*InitialNodeConfig `json:"initialNodes"`
+}
+
+// InitialNodeConfig holds data about a genesis node
+type InitialNodeConfig struct {
+	PubKey        string `json:"pubkey"`
+	Address       string `json:"address"`
+	InitialRating uint32 `json:"initialRating"`
 }
 
 // ConfigurationPathsHolder holds all configuration filenames and configuration paths used to start the node
@@ -648,4 +681,34 @@ type PoolsCleanersConfig struct {
 // RedundancyConfig represents the config options to be used when setting the redundancy configuration
 type RedundancyConfig struct {
 	MaxRoundsOfInactivityAccepted int
+}
+
+// ChainParametersByEpochConfig holds chain parameters that are configurable based on epochs
+type ChainParametersByEpochConfig struct {
+	RoundDuration               uint64
+	Hysteresis                  float32
+	EnableEpoch                 uint32
+	ShardConsensusGroupSize     uint32
+	ShardMinNumNodes            uint32
+	MetachainConsensusGroupSize uint32
+	MetachainMinNumNodes        uint32
+	Adaptivity                  bool
+}
+
+// IndexBroadcastDelay holds a pair of starting consensus index and the delay the nodes should wait before broadcasting final info
+type IndexBroadcastDelay struct {
+	EndIndex            int
+	DelayInMilliseconds uint64
+}
+
+// InterceptedDataVerifierConfig holds the configuration for the intercepted data verifier
+type InterceptedDataVerifierConfig struct {
+	CacheSpanInSec   uint64
+	CacheExpiryInSec uint64
+}
+
+// TrieLeavesRetrieverConfig represents the config options to be used when setting up the trie leaves retriever
+type TrieLeavesRetrieverConfig struct {
+	Enabled        bool
+	MaxSizeInBytes uint64
 }

@@ -49,7 +49,7 @@ func GetDefaultCoreComponents() *mock.CoreComponentsMock {
 		AlarmSch:                 &testscommon.AlarmSchedulerStub{},
 		NtpSyncTimer:             &testscommon.SyncTimerStub{},
 		RoundHandlerField:        &testscommon.RoundHandlerMock{},
-		EconomicsHandler:         &economicsmocks.EconomicsHandlerStub{},
+		EconomicsHandler:         &economicsmocks.EconomicsHandlerMock{},
 		RatingsConfig:            &testscommon.RatingsInfoMock{},
 		RatingHandler:            &testscommon.RaterMock{},
 		NodesConfig:              &genesisMocks.NodesSetupStub{},
@@ -133,7 +133,7 @@ func GetDefaultProcessComponents(shardCoordinator sharding.Coordinator) *mock.Pr
 		BlockProcess:             &testscommon.BlockProcessorStub{},
 		BlackListHdl:             &testscommon.TimeCacheStub{},
 		BootSore:                 &mock.BootstrapStorerMock{},
-		HeaderSigVerif:           &mock.HeaderSigVerifierStub{},
+		HeaderSigVerif:           &consensus.HeaderSigVerifierMock{},
 		HeaderIntegrVerif:        &mock.HeaderIntegrityVerifierStub{},
 		ValidatorStatistics:      &testscommon.ValidatorStatisticsProcessorStub{},
 		ValidatorProvider:        &stakingcommon.ValidatorsProviderStub{},
@@ -157,5 +157,6 @@ func GetDefaultProcessComponents(shardCoordinator sharding.Coordinator) *mock.Pr
 			},
 		},
 		HardforkTriggerField: &testscommon.HardforkTriggerStub{},
+		BlockchainHookField:  &testscommon.BlockChainHookStub{},
 	}
 }

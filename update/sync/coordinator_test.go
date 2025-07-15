@@ -11,18 +11,20 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	dataTransaction "github.com/multiversx/mx-chain-core-go/data/transaction"
+	"github.com/stretchr/testify/require"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/cache"
 	stateMock "github.com/multiversx/mx-chain-go/testscommon/state"
 	storageStubs "github.com/multiversx/mx-chain-go/testscommon/storage"
 	"github.com/multiversx/mx-chain-go/testscommon/syncer"
 	trieMock "github.com/multiversx/mx-chain-go/testscommon/trie"
 	"github.com/multiversx/mx-chain-go/update"
 	"github.com/multiversx/mx-chain-go/update/mock"
-	"github.com/stretchr/testify/require"
 )
 
 func createHeaderSyncHandler(retErr bool) update.HeaderSyncHandler {
@@ -71,7 +73,7 @@ func createPendingMiniBlocksSyncHandler() update.EpochStartPendingMiniBlocksSync
 	mb := &block.MiniBlock{TxHashes: [][]byte{txHash}}
 	args := ArgsNewPendingMiniBlocksSyncer{
 		Storage: &storageStubs.StorerStub{},
-		Cache: &testscommon.CacherStub{
+		Cache: &cache.CacherStub{
 			RegisterHandlerCalled: func(f func(key []byte, val interface{})) {},
 			PeekCalled: func(key []byte) (value interface{}, ok bool) {
 				return mb, true

@@ -7,9 +7,10 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
+
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/state"
-	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 )
 
 // TriggerHandler defines the functionalities for an start of epoch trigger
@@ -22,6 +23,8 @@ type TriggerHandler interface {
 	Update(round uint64, nonce uint64)
 	EpochStartRound() uint64
 	EpochStartMetaHdrHash() []byte
+	LastCommitedEpochStartHdr() (data.HeaderHandler, error)
+	GetEpochStartHdrFromStorage(epoch uint32) (data.HeaderHandler, error)
 	GetSavedStateKey() []byte
 	LoadState(key []byte) error
 	SetProcessed(header data.HeaderHandler, body data.BodyHandler)
@@ -100,6 +103,14 @@ type HeadersByHashSyncer interface {
 	IsInterfaceNil() bool
 }
 
+// PendingEpochStartShardHeaderSyncer defines the methods to sync pending epoch start shard headers
+type PendingEpochStartShardHeaderSyncer interface {
+	SyncEpochStartShardHeader(shardId uint32, epoch uint32, startNonce uint64, ctx context.Context) error
+	GetEpochStartHeader() (data.HeaderHandler, []byte, error)
+	ClearFields()
+	IsInterfaceNil() bool
+}
+
 // PendingMiniBlocksSyncHandler defines the methods to sync all pending miniblocks
 type PendingMiniBlocksSyncHandler interface {
 	SyncPendingMiniBlocks(miniBlockHeaders []data.MiniBlockHeaderHandler, ctx context.Context) error
@@ -116,7 +127,7 @@ type StartOfEpochMetaSyncer interface {
 
 // NodesConfigProvider will provide the necessary information for start in epoch economics block creation
 type NodesConfigProvider interface {
-	ConsensusGroupSize(shardID uint32) int
+	ConsensusGroupSizeForShardAndEpoch(shardID uint32, epoch uint32) int
 	IsInterfaceNil() bool
 }
 

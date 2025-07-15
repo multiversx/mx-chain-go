@@ -93,6 +93,9 @@ func (msc *managedStateComponents) CheckSubcomponents() error {
 	if check.IfNil(msc.missingTrieNodesNotifier) {
 		return errors.ErrNilMissingTrieNodesNotifier
 	}
+	if check.IfNil(msc.trieLeavesRetriever) {
+		return errors.ErrNilTrieLeavesRetriever
+	}
 
 	return nil
 }
@@ -212,6 +215,18 @@ func (msc *managedStateComponents) MissingTrieNodesNotifier() common.MissingTrie
 	}
 
 	return msc.stateComponents.missingTrieNodesNotifier
+}
+
+// TrieLeavesRetriever returns the trie leaves retriever
+func (msc *managedStateComponents) TrieLeavesRetriever() common.TrieLeavesRetriever {
+	msc.mutStateComponents.RLock()
+	defer msc.mutStateComponents.RUnlock()
+
+	if msc.stateComponents == nil {
+		return nil
+	}
+
+	return msc.stateComponents.trieLeavesRetriever
 }
 
 // StateAccessesCollector returns the state accesses collector

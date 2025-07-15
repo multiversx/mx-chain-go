@@ -12,6 +12,9 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data/esdt"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
+	logger "github.com/multiversx/mx-chain-logger-go"
+	"github.com/stretchr/testify/require"
+
 	"github.com/multiversx/mx-chain-go/config"
 	testsChainSimulator "github.com/multiversx/mx-chain-go/integrationTests/chainSimulator"
 	"github.com/multiversx/mx-chain-go/integrationTests/vm/txsFee"
@@ -23,8 +26,6 @@ import (
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/vm"
-	logger "github.com/multiversx/mx-chain-logger-go"
-	"github.com/stretchr/testify/require"
 )
 
 const (
@@ -3868,7 +3869,9 @@ func TestChainSimulator_CheckRolesWhichHasToBeSingular(t *testing.T) {
 }
 
 func TestChainSimulator_metaESDT_mergeMetaDataFromMultipleUpdates(t *testing.T) {
-	t.Parallel()
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
 
 	baseIssuingCost := "1000"
 	cs, _ := getTestChainSimulatorWithDynamicNFTEnabled(t, baseIssuingCost)
@@ -4237,7 +4240,9 @@ func transferSpecialRoleToAddr(
 }
 
 func TestChainSimulator_dynamicNFT_mergeMetaDataFromMultipleUpdates(t *testing.T) {
-	t.Parallel()
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
 
 	baseIssuingCost := "1000"
 	cs, _ := getTestChainSimulatorWithDynamicNFTEnabled(t, baseIssuingCost)
@@ -4385,7 +4390,9 @@ func TestChainSimulator_dynamicNFT_mergeMetaDataFromMultipleUpdates(t *testing.T
 }
 
 func TestChainSimulator_dynamicNFT_changeMetaDataForOneNFTShouldNotChangeOtherNonces(t *testing.T) {
-	t.Parallel()
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
 
 	baseIssuingCost := "1000"
 	cs, _ := getTestChainSimulatorWithDynamicNFTEnabled(t, baseIssuingCost)
@@ -4498,7 +4505,9 @@ func TestChainSimulator_dynamicNFT_changeMetaDataForOneNFTShouldNotChangeOtherNo
 }
 
 func TestChainSimulator_dynamicNFT_updateBeforeCreateOnSameAccountShouldOverwrite(t *testing.T) {
-	t.Parallel()
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
 
 	baseIssuingCost := "1000"
 	cs, _ := getTestChainSimulatorWithDynamicNFTEnabled(t, baseIssuingCost)
@@ -4595,7 +4604,9 @@ func TestChainSimulator_dynamicNFT_updateBeforeCreateOnSameAccountShouldOverwrit
 }
 
 func TestChainSimulator_dynamicNFT_updateBeforeCreateOnDifferentAccountsShouldMergeMetaDataWhenTransferred(t *testing.T) {
-	t.Parallel()
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
 
 	baseIssuingCost := "1000"
 	cs, _ := getTestChainSimulatorWithDynamicNFTEnabled(t, baseIssuingCost)

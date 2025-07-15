@@ -6,6 +6,8 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
+
+	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 )
 
@@ -58,20 +60,11 @@ func (ni *nodeInfo) IsInterfaceNil() bool {
 
 // NodesSetup hold data for decoded data from json file
 type NodesSetup struct {
-	StartTime          int64  `json:"startTime"`
-	RoundDuration      uint64 `json:"roundDuration"`
-	ConsensusGroupSize uint32 `json:"consensusGroupSize"`
-	MinNodesPerShard   uint32 `json:"minNodesPerShard"`
+	NodesSetupDTO
 
-	MetaChainConsensusGroupSize uint32  `json:"metaChainConsensusGroupSize"`
-	MetaChainMinNodes           uint32  `json:"metaChainMinNodes"`
-	Hysteresis                  float32 `json:"hysteresis"`
-	Adaptivity                  bool    `json:"adaptivity"`
-
-	InitialNodes []*InitialNode `json:"initialNodes"`
-
+	genesisChainParameters   config.ChainParametersByEpochConfig
 	genesisMaxNumShards      uint32
-	nrOfShards               uint32
+	numberOfShards           uint32
 	nrOfNodes                uint32
 	nrOfMetaChainNodes       uint32
 	eligible                 map[uint32][]nodesCoordinator.GenesisNodeInfoHandler
@@ -82,31 +75,54 @@ type NodesSetup struct {
 
 // NewNodesSetup creates a new decoded nodes structure from json config file
 func NewNodesSetup(
-	nodesFilePath string,
+	nodesConfig config.NodesConfig,
+	chainParametersProvider ChainParametersHandler,
 	addressPubkeyConverter core.PubkeyConverter,
 	validatorPubkeyConverter core.PubkeyConverter,
 	genesisMaxNumShards uint32,
 ) (*NodesSetup, error) {
-
 	if check.IfNil(addressPubkeyConverter) {
 		return nil, fmt.Errorf("%w for addressPubkeyConverter", ErrNilPubkeyConverter)
 	}
 	if check.IfNil(validatorPubkeyConverter) {
 		return nil, fmt.Errorf("%w for validatorPubkeyConverter", ErrNilPubkeyConverter)
 	}
+	if check.IfNil(chainParametersProvider) {
+		return nil, ErrNilChainParametersProvider
+	}
 	if genesisMaxNumShards < 1 {
 		return nil, fmt.Errorf("%w for genesisMaxNumShards", ErrInvalidMaximumNumberOfShards)
+	}
+
+	genesisParams, err := chainParametersProvider.ChainParametersForEpoch(0)
+	if err != nil {
+		return nil, fmt.Errorf("NewNodesSetup: %w while fetching parameters for epoch 0", err)
 	}
 
 	nodes := &NodesSetup{
 		addressPubkeyConverter:   addressPubkeyConverter,
 		validatorPubkeyConverter: validatorPubkeyConverter,
 		genesisMaxNumShards:      genesisMaxNumShards,
+		genesisChainParameters:   genesisParams,
 	}
 
-	err := core.LoadJsonFile(nodes, nodesFilePath)
-	if err != nil {
-		return nil, err
+	initialNodes := make([]*InitialNode, 0, len(nodesConfig.InitialNodes))
+	for _, item := range nodesConfig.InitialNodes {
+		initialNodes = append(initialNodes, &InitialNode{
+			PubKey:        item.PubKey,
+			Address:       item.Address,
+			InitialRating: item.InitialRating,
+			nodeInfo:      nodeInfo{},
+		})
+	}
+
+	genesisChainParameters := nodes.genesisChainParameters
+	nodes.NodesSetupDTO = NodesSetupDTO{
+		StartTime:     nodesConfig.StartTime,
+		RoundDuration: genesisChainParameters.RoundDuration,
+		Hysteresis:    genesisChainParameters.Hysteresis,
+		Adaptivity:    genesisChainParameters.Adaptivity,
+		InitialNodes:  initialNodes,
 	}
 
 	err = nodes.processConfig()
@@ -160,34 +176,31 @@ func (ns *NodesSetup) processConfig() error {
 		ns.nrOfNodes++
 	}
 
-	if ns.ConsensusGroupSize < 1 {
+	if ns.genesisChainParameters.ShardConsensusGroupSize < 1 {
 		return ErrNegativeOrZeroConsensusGroupSize
 	}
-	if ns.MinNodesPerShard < ns.ConsensusGroupSize {
+	if ns.genesisChainParameters.ShardMinNumNodes < ns.genesisChainParameters.ShardConsensusGroupSize {
 		return ErrMinNodesPerShardSmallerThanConsensusSize
 	}
-	if ns.nrOfNodes < ns.MinNodesPerShard {
+	if ns.nrOfNodes < ns.genesisChainParameters.ShardMinNumNodes {
 		return ErrNodesSizeSmallerThanMinNoOfNodes
 	}
-
-	if ns.MetaChainConsensusGroupSize < 1 {
+	if ns.genesisChainParameters.MetachainMinNumNodes < 1 {
 		return ErrNegativeOrZeroConsensusGroupSize
 	}
-	if ns.MetaChainMinNodes < ns.MetaChainConsensusGroupSize {
+	if ns.genesisChainParameters.MetachainMinNumNodes < ns.genesisChainParameters.MetachainConsensusGroupSize {
 		return ErrMinNodesPerShardSmallerThanConsensusSize
 	}
-
-	totalMinNodes := ns.MetaChainMinNodes + ns.MinNodesPerShard
+	totalMinNodes := ns.genesisChainParameters.MetachainMinNumNodes + ns.genesisChainParameters.ShardMinNumNodes
 	if ns.nrOfNodes < totalMinNodes {
 		return ErrNodesSizeSmallerThanMinNoOfNodes
 	}
-
 	return nil
 }
 
 func (ns *NodesSetup) processMetaChainAssigment() {
 	ns.nrOfMetaChainNodes = 0
-	for id := uint32(0); id < ns.MetaChainMinNodes; id++ {
+	for id := uint32(0); id < ns.genesisChainParameters.MetachainMinNumNodes; id++ {
 		if ns.InitialNodes[id].pubKey != nil {
 			ns.InitialNodes[id].assignedShard = core.MetachainShardId
 			ns.InitialNodes[id].eligible = true
@@ -195,13 +208,13 @@ func (ns *NodesSetup) processMetaChainAssigment() {
 		}
 	}
 
-	hystMeta := uint32(float32(ns.MetaChainMinNodes) * ns.Hysteresis)
-	hystShard := uint32(float32(ns.MinNodesPerShard) * ns.Hysteresis)
+	hystMeta := uint32(float32(ns.genesisChainParameters.MetachainMinNumNodes) * ns.Hysteresis)
+	hystShard := uint32(float32(ns.genesisChainParameters.ShardMinNumNodes) * ns.Hysteresis)
 
-	ns.nrOfShards = (ns.nrOfNodes - ns.nrOfMetaChainNodes - hystMeta) / (ns.MinNodesPerShard + hystShard)
+	ns.numberOfShards = (ns.nrOfNodes - ns.nrOfMetaChainNodes - hystMeta) / (ns.genesisChainParameters.ShardMinNumNodes + hystShard)
 
-	if ns.nrOfShards > ns.genesisMaxNumShards {
-		ns.nrOfShards = ns.genesisMaxNumShards
+	if ns.numberOfShards > ns.genesisMaxNumShards {
+		ns.numberOfShards = ns.genesisMaxNumShards
 	}
 }
 
@@ -209,8 +222,8 @@ func (ns *NodesSetup) processShardAssignment() {
 	// initial implementation - as there is no other info than public key, we allocate first nodes in FIFO order to shards
 	currentShard := uint32(0)
 	countSetNodes := ns.nrOfMetaChainNodes
-	for ; currentShard < ns.nrOfShards; currentShard++ {
-		for id := countSetNodes; id < ns.nrOfMetaChainNodes+(currentShard+1)*ns.MinNodesPerShard; id++ {
+	for ; currentShard < ns.numberOfShards; currentShard++ {
+		for id := countSetNodes; id < ns.nrOfMetaChainNodes+(currentShard+1)*ns.genesisChainParameters.ShardMinNumNodes; id++ {
 			// consider only nodes with valid public key
 			if ns.InitialNodes[id].pubKey != nil {
 				ns.InitialNodes[id].assignedShard = currentShard
@@ -223,8 +236,8 @@ func (ns *NodesSetup) processShardAssignment() {
 	// allocate the rest to waiting lists
 	currentShard = 0
 	for i := countSetNodes; i < ns.nrOfNodes; i++ {
-		currentShard = (currentShard + 1) % (ns.nrOfShards + 1)
-		if currentShard == ns.nrOfShards {
+		currentShard = (currentShard + 1) % (ns.numberOfShards + 1)
+		if currentShard == ns.numberOfShards {
 			currentShard = core.MetachainShardId
 		}
 
@@ -236,7 +249,7 @@ func (ns *NodesSetup) processShardAssignment() {
 }
 
 func (ns *NodesSetup) createInitialNodesInfo() {
-	nrOfShardAndMeta := ns.nrOfShards + 1
+	nrOfShardAndMeta := ns.numberOfShards + 1
 
 	ns.eligible = make(map[uint32][]nodesCoordinator.GenesisNodeInfoHandler, nrOfShardAndMeta)
 	ns.waiting = make(map[uint32][]nodesCoordinator.GenesisNodeInfoHandler, nrOfShardAndMeta)
@@ -320,22 +333,22 @@ func (ns *NodesSetup) InitialNodesInfoForShard(shardId uint32) ([]nodesCoordinat
 
 // NumberOfShards returns the calculated number of shards
 func (ns *NodesSetup) NumberOfShards() uint32 {
-	return ns.nrOfShards
+	return ns.numberOfShards
 }
 
 // MinNumberOfNodes returns the minimum number of nodes
 func (ns *NodesSetup) MinNumberOfNodes() uint32 {
-	return ns.nrOfShards*ns.MinNodesPerShard + ns.MetaChainMinNodes
+	return ns.numberOfShards*ns.genesisChainParameters.ShardMinNumNodes + ns.genesisChainParameters.MetachainMinNumNodes
 }
 
 // MinShardHysteresisNodes returns the minimum number of hysteresis nodes per shard
 func (ns *NodesSetup) MinShardHysteresisNodes() uint32 {
-	return uint32(float32(ns.MinNodesPerShard) * ns.Hysteresis)
+	return uint32(float32(ns.genesisChainParameters.ShardMinNumNodes) * ns.Hysteresis)
 }
 
 // MinMetaHysteresisNodes returns the minimum number of hysteresis nodes in metachain
 func (ns *NodesSetup) MinMetaHysteresisNodes() uint32 {
-	return uint32(float32(ns.MetaChainMinNodes) * ns.Hysteresis)
+	return uint32(float32(ns.genesisChainParameters.MetachainMinNumNodes) * ns.Hysteresis)
 }
 
 // MinNumberOfNodesWithHysteresis returns the minimum number of nodes with hysteresis
@@ -344,17 +357,17 @@ func (ns *NodesSetup) MinNumberOfNodesWithHysteresis() uint32 {
 	hystNodesShard := ns.MinShardHysteresisNodes()
 	minNumberOfNodes := ns.MinNumberOfNodes()
 
-	return minNumberOfNodes + hystNodesMeta + ns.nrOfShards*hystNodesShard
+	return minNumberOfNodes + hystNodesMeta + ns.numberOfShards*hystNodesShard
 }
 
 // MinNumberOfShardNodes returns the minimum number of nodes per shard
 func (ns *NodesSetup) MinNumberOfShardNodes() uint32 {
-	return ns.MinNodesPerShard
+	return ns.genesisChainParameters.ShardMinNumNodes
 }
 
 // MinNumberOfMetaNodes returns the minimum number of nodes in metachain
 func (ns *NodesSetup) MinNumberOfMetaNodes() uint32 {
-	return ns.MetaChainMinNodes
+	return ns.genesisChainParameters.MetachainMinNumNodes
 }
 
 // GetHysteresis returns the hysteresis value
@@ -389,12 +402,30 @@ func (ns *NodesSetup) GetRoundDuration() uint64 {
 
 // GetShardConsensusGroupSize returns the shard consensus group size
 func (ns *NodesSetup) GetShardConsensusGroupSize() uint32 {
-	return ns.ConsensusGroupSize
+	return ns.genesisChainParameters.ShardConsensusGroupSize
 }
 
 // GetMetaConsensusGroupSize returns the metachain consensus group size
 func (ns *NodesSetup) GetMetaConsensusGroupSize() uint32 {
-	return ns.MetaChainConsensusGroupSize
+	return ns.genesisChainParameters.MetachainConsensusGroupSize
+}
+
+// ExportNodesConfig will create and return the nodes' configuration
+func (ns *NodesSetup) ExportNodesConfig() config.NodesConfig {
+	initialNodes := ns.InitialNodes
+	initialNodesToExport := make([]*config.InitialNodeConfig, 0, len(initialNodes))
+	for _, item := range initialNodes {
+		initialNodesToExport = append(initialNodesToExport, &config.InitialNodeConfig{
+			PubKey:        item.PubKey,
+			Address:       item.Address,
+			InitialRating: item.InitialRating,
+		})
+	}
+
+	return config.NodesConfig{
+		StartTime:    ns.StartTime,
+		InitialNodes: initialNodesToExport,
+	}
 }
 
 // IsInterfaceNil returns true if underlying object is nil

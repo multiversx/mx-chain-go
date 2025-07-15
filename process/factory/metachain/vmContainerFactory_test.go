@@ -29,7 +29,7 @@ func createVmContainerMockArgument(gasSchedule core.GasScheduleNotifier) ArgsNew
 	return ArgsNewVMContainerFactory{
 		BlockChainHook:      &testscommon.BlockChainHookStub{},
 		PubkeyConv:          testscommon.NewPubkeyConverterMock(32),
-		Economics:           &economicsmocks.EconomicsHandlerStub{},
+		Economics:           &economicsmocks.EconomicsHandlerMock{},
 		MessageSignVerifier: &mock.MessageSignVerifierMock{},
 		GasSchedule:         gasSchedule,
 		NodesConfigProvider: &mock.NodesConfigProviderStub{},
@@ -312,6 +312,7 @@ func TestVmContainerFactory_Create(t *testing.T) {
 						MaxGasLimitPerTx:            "10000000000",
 						MinGasLimit:                 "10",
 						ExtraGasLimitGuardedTx:      "50000",
+						MaxGasHigherFactorAccepted:  "10",
 					},
 				},
 				MinGasPrice:            "10",
@@ -323,6 +324,8 @@ func TestVmContainerFactory_Create(t *testing.T) {
 		EpochNotifier:       &epochNotifier.EpochNotifierStub{},
 		EnableEpochsHandler: enableEpochsHandlerMock.NewEnableEpochsHandlerStub(),
 		TxVersionChecker:    &testscommon.TxVersionCheckerStub{},
+		PubkeyConverter:     &testscommon.PubkeyConverterStub{},
+		ShardCoordinator:    &testscommon.ShardsCoordinatorMock{},
 	}
 	economicsData, _ := economics.NewEconomicsData(argsNewEconomicsData)
 
@@ -351,7 +354,8 @@ func TestVmContainerFactory_Create(t *testing.T) {
 					MinVetoThreshold: 0.5,
 					LostProposalFee:  "1",
 				},
-				OwnerAddress: "3132333435363738393031323334353637383930313233343536373839303234",
+				OwnerAddress:                 "3132333435363738393031323334353637383930313233343536373839303234",
+				MaxVotingDelayPeriodInEpochs: 30,
 			},
 			StakingSystemSCConfig: config.StakingSystemSCConfig{
 				GenesisNodePrice:                     "1000",
@@ -457,6 +461,9 @@ func FillGasMapMetaChainSystemSCsCosts(value uint64) map[string]uint64 {
 	gasMap["DelegateVote"] = value
 	gasMap["RevokeVote"] = value
 	gasMap["CloseProposal"] = value
+	gasMap["ClearProposal"] = value
+	gasMap["ClaimAccumulatedFees"] = value
+	gasMap["ChangeConfig"] = value
 	gasMap["DelegationOps"] = value
 	gasMap["UnStakeTokens"] = value
 	gasMap["UnBondTokens"] = value

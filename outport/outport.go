@@ -6,6 +6,9 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-go/common"
+
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	outportcore "github.com/multiversx/mx-chain-core-go/data/outport"
 	logger "github.com/multiversx/mx-chain-logger-go"
@@ -84,6 +87,14 @@ func prepareBlockData(
 		return nil, err
 	}
 
+	var proof *block.HeaderProof
+	if !check.IfNil(headerBodyData.HeaderProof) {
+		proof, err = outportcore.GetHeaderProof(headerBodyData.HeaderProof)
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	return &outportcore.BlockData{
 		ShardID:              headerBodyData.Header.GetShardID(),
 		HeaderBytes:          headerBytes,
@@ -91,6 +102,8 @@ func prepareBlockData(
 		HeaderHash:           headerBodyData.HeaderHash,
 		Body:                 body,
 		IntraShardMiniBlocks: headerBodyData.IntraShardMiniBlocks,
+		HeaderProof:          proof,
+		TimestampMs:          common.ConvertTimeStampSecToMs(headerBodyData.Header.GetTimeStamp()),
 	}, nil
 }
 
