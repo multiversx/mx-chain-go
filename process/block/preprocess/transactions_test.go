@@ -794,8 +794,11 @@ func createArgsForCleanupSelfShardTxCachePreprocessor() ArgsTransactionPreProces
 			return 0
 		},
 	}
-
+	
 	args.Accounts = &stateMock.AccountsStub{
+		RootHashCalled: func() ([]byte, error) {
+			return []byte("rootHash"), nil
+		},
 		GetExistingAccountCalled: func(sender []byte) (vmcommon.AccountHandler, error) {
 			var nonce uint64
 			switch {
@@ -823,7 +826,6 @@ func createArgsForCleanupSelfShardTxCachePreprocessor() ArgsTransactionPreProces
 func TestCleanupSelfShardTxCache_NoTransactionToSelect(t *testing.T) {
 	t.Parallel()
 
-	t.Log("creating test transactions...")
 	createTx := func(sender string, nonce uint64) *transaction.Transaction {
 		return &transaction.Transaction{
 			SndAddr:  []byte(sender),
@@ -832,7 +834,6 @@ func TestCleanupSelfShardTxCache_NoTransactionToSelect(t *testing.T) {
 		}
 	}
 
-	t.Log("creating args and tx processor...")
 	args := createArgsForCleanupSelfShardTxCachePreprocessor()
 	txs, _ := NewTransactionPreprocessor(args)
 	assert.NotNil(t, txs)
@@ -841,10 +842,8 @@ func TestCleanupSelfShardTxCache_NoTransactionToSelect(t *testing.T) {
 	dstShardId := uint32(0)
 	strCache := process.ShardCacherIdentifier(sndShardId, dstShardId)
 
-	t.Log("calling computeSortedTxs...")
 	sortedTxsAndHashes, _, _ := txs.computeSortedTxs(sndShardId, dstShardId, MaxGasLimitPerBlock, []byte("randomness"))
 
-	t.Log("calling createAndProcessMiniBlocksFromMeV1...")
 	miniBlocks, _, err := txs.createAndProcessMiniBlocksFromMeV1(haveTimeTrue, isShardStuckFalse, isMaxBlockSizeReachedFalse, sortedTxsAndHashes)
 	t.Logf("createAndProcessMiniBlocksFromMeV1 returned with err = %v", err)
 	assert.Nil(t, err)
@@ -853,7 +852,6 @@ func TestCleanupSelfShardTxCache_NoTransactionToSelect(t *testing.T) {
 	for _, miniBlock := range miniBlocks {
 		txHashes += len(miniBlock.TxHashes)
 	}
-	t.Logf("number of tx hashes in miniBlocks: %d", txHashes)
 
 	txsToAdd := []*transaction.Transaction{
 		createTx("alice", 1),
@@ -866,32 +864,23 @@ func TestCleanupSelfShardTxCache_NoTransactionToSelect(t *testing.T) {
 		createTx("carol", 8),
 		createTx("carol", 8),
 	}
-	t.Log("adding txs to TxDataPool...")
+
 	for i, tx := range txsToAdd {
 		hash := fmt.Appendf(nil, "hash-%d", i)
 		args.TxDataPool.AddData(hash, tx, 0, strCache)
 	}
 
 	assert.Equal(t, len(txsToAdd), 9)
-
-	t.Log("printing ordered txs...")
-	for _, tx := range txs.orderedTxs[strCache] {
-		t.Logf("tx nonce=%d sender=%s data=%x", tx.GetNonce(), tx.GetSndAddr(), tx.GetData())
-	}
+	assert.Equal(t, 9, int(txs.txPool.GetCounts().GetTotal()))
 
 	body := &block.Body{
 		MiniBlocks: miniBlocks,
 	}
-	t.Log("checking tx count before RemoveTxsFromPools...")
-	assert.Equal(t, 9, int(txs.txPool.GetCounts().GetTotal()))
-
-	t.Log("calling RemoveTxsFromPools...")
 	_ = txs.RemoveTxsFromPools(body)
 
-	t.Log("checking final tx count after eviction...")
 	expectEvicted := 4
 	actual := int(txs.txPool.GetCounts().GetTotal())
-	t.Logf("expected %d evicted, actual pool size: %d", expectEvicted, actual)
+	t.Logf("expected %d evicted, remaining pool size: %d", expectEvicted, actual)
 	assert.Equal(t, 9-expectEvicted, actual)
 }
 

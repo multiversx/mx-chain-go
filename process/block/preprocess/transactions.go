@@ -247,17 +247,13 @@ func (txs *transactions) RemoveBlockDataFromPools(body *block.Body, miniBlockPoo
 
 // RemoveTxsFromPools removes transactions from associated pools
 func (txs *transactions) RemoveTxsFromPools(body *block.Body) error {
-	fmt.Println("removing txs from pools")
 	session, err := NewSelectionSession(ArgsSelectionSession{
 		AccountsAdapter:       txs.accounts,
 		TransactionsProcessor: txs.txProcessor,
 	})
 	if err != nil {
-		fmt.Println("error creating selection session for txs cleanup", err)
 		return  err
-	} else {
-		fmt.Println("selection session created for txs cleanup")
-	}
+	} 
 
 	randomness := helpers.ComputeRandomnessForCleanup(body)
 	
@@ -268,11 +264,8 @@ func (txs *transactions) RemoveTxsFromPools(body *block.Body) error {
 
 	_, ok := txs.txPool.(dataRetriever.CleanupCapableCacher)
 	if !ok {
-		fmt.Print("txPool does not implement CleanupCapableCacher interface, skipping cleanup\n")
 		log.Warn("txPool does not implement TxCache interface")
-	} else {
-		fmt.Print("all ok. txPool implements CleanupCapableCacher interface\n")
-	}
+	} 
 	txs.txPool.CleanupSelfShardTxCache(session, randomness, process.TxCacheCleanupMaxNumTxs, process.TxCacheCleanupLoopMaximumDuration)
  
 	return err
@@ -1453,22 +1446,14 @@ func (txs *transactions) computeSortedTxs(
 		"randomness", randomness,
 	)
 
-	// TODO remove debugging println
 	strCache := process.ShardCacherIdentifier(sndShardId, dstShardId)
-	fmt.Println("strCache", strCache)
 	txShardPool := txs.txPool.ShardDataStore(strCache)
-	fmt.Println("txShardPool", txShardPool)
-	fmt.Printf("actual type of txShardPool: %T\n", txShardPool)  // 👈 Add this
-
 
 	if check.IfNil(txShardPool) {
-		fmt.Println("txShardPool is nil")
 		return nil, nil, process.ErrNilTxDataPool
 	}
 	txCache, isTxCache := txShardPool.(TxCache)
-	fmt.Println("isTxCache", isTxCache)
 	if !isTxCache {
-		fmt.Println("txShardPool is not TxCache")
 		return nil, nil, fmt.Errorf("%w: 'txShardPool' should be of type 'TxCache'", process.ErrWrongTypeAssertion)
 	}
 
@@ -1476,7 +1461,6 @@ func (txs *transactions) computeSortedTxs(
 		AccountsAdapter:       txs.accounts,
 		TransactionsProcessor: txs.txProcessor,
 	})
-	fmt.Println("session", session, "err", err)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -1487,14 +1471,10 @@ func (txs *transactions) computeSortedTxs(
 		txs.txCacheSelectionConfig.SelectionLoopMaximumDuration,
 		txs.txCacheSelectionConfig.SelectionLoopDurationCheckInterval,
 	)
-	fmt.Println("selectionOptions", selectionOptions)
 
 	sortedTxs, _ := txCache.SelectTransactions(session, selectionOptions)
-	fmt.Println("sortedTxs", sortedTxs)
 	selectedTxs, remainingTxs := txs.preFilterTransactionsWithMoveBalancePriority(sortedTxs, gasBandwidth)
-	fmt.Println("selectedTxs", selectedTxs, "remainingTxs", remainingTxs)
 	txs.sortTransactionsBySenderAndNonce(selectedTxs, randomness)
-	fmt.Println("sortedTxs after sorting", sortedTxs)
 
 	return selectedTxs, remainingTxs, nil
 }
