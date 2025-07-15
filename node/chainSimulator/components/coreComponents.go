@@ -62,7 +62,7 @@ type coreComponentsHolder struct {
 	genesisNodesSetup             sharding.GenesisNodesSetupHandler
 	nodesShuffler                 nodesCoordinator.NodesShuffler
 	epochNotifier                 process.EpochNotifier
-	enableRoundsHandler           process.EnableRoundsHandler
+	enableRoundsHandler           common.EnableRoundsHandler
 	roundNotifier                 process.RoundNotifier
 	epochStartNotifierWithConfirm factory.EpochStartNotifierWithConfirm
 	chanStopNodeProcess           chan endProcess.ArgEndProcess
@@ -423,7 +423,7 @@ func (c *coreComponentsHolder) EpochNotifier() process.EpochNotifier {
 }
 
 // EnableRoundsHandler will return the enable rounds handler
-func (c *coreComponentsHolder) EnableRoundsHandler() process.EnableRoundsHandler {
+func (c *coreComponentsHolder) EnableRoundsHandler() common.EnableRoundsHandler {
 	return c.enableRoundsHandler
 }
 

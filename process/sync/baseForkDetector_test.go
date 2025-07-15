@@ -1329,8 +1329,8 @@ func TestBaseForkDetector_ComputeGenesisTimeFromHeader(t *testing.T) {
 				},
 			},
 			&testscommon.EnableRoundsHandlerStub{
-				IsSupernovaEnabledCalled: func() bool {
-					return false
+				IsFlagEnabledCalled: func(flag common.EnableRoundFlag) bool {
+					return flag != common.SupernovaRoundFlag
 				},
 			},
 			&dataRetriever.ProofsPoolMock{},
@@ -1375,10 +1375,10 @@ func TestBaseForkDetector_ComputeGenesisTimeFromHeader(t *testing.T) {
 				},
 			},
 			&testscommon.EnableRoundsHandlerStub{
-				IsSupernovaEnabledCalled: func() bool {
-					return true
+				IsFlagEnabledCalled: func(flag common.EnableRoundFlag) bool {
+					return flag == common.SupernovaRoundFlag
 				},
-				SupernovaActivationRoundCalled: func() uint64 {
+				GetActivationRoundCalled: func(flag common.EnableRoundFlag) uint64 {
 					return supernovaActivationRound
 				},
 			},
