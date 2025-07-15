@@ -97,7 +97,6 @@ func TestHandleErrorInDoSync(t *testing.T) {
 	st.Sync()
 
 	assert.Equal(t, st.ClockOffset(), time.Duration(1234))
-
 }
 
 func TestValueInDoSync(t *testing.T) {

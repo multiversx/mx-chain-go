@@ -40,10 +40,6 @@ const maxOffsetPercent = 0.2
 // minTimeout represents the minimum time in milliseconds to wait for a response from a host after a NTP request
 const minTimeout = 100
 
-// outOfBoundsRoundDurationPercentage specifies the percentage of the round duration
-// that determines the allowable clock offset beyond the defined limits.
-const outOfBoundsRoundDurationPercentage = 20 // 20% * roundDuration
-
 // maxAllowedNTPQueryResponseTimeMS specifies the maximum duration (in milliseconds)
 // allowed for an NTP query. If a query takes longer than this limit, its response will be disregarded.
 const maxAllowedNTPQueryResponseTimeMS = 200
@@ -223,7 +219,7 @@ func (s *syncTime) sync() {
 	if isOutOfBounds {
 		log.Error("syncTime.sync: clock offset is out of expected bounds",
 			"clock offset harmonic mean", clockOffsetHarmonicMean,
-			"thresholdOutOfBonds", s.outOfBoundsThreshold,
+			"outOfBoundsThreshold", s.outOfBoundsThreshold,
 		)
 
 		return
