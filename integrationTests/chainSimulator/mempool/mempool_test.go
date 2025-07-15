@@ -1151,10 +1151,8 @@ func Test_SelectionWhenFeeExceedsBalanceWhenMaxNumTxsEquals3(t *testing.T) {
 		RelayerSignature: []byte("signature"),
 	})
 
-	txHashes := make([][]byte, 0)
 	for i, tx := range transactions {
 		txHash := []byte(fmt.Sprintf("txHash%d", i))
-		txHashes = append(txHashes, txHash)
 		txcache.AddTx(&txcache2.WrappedTransaction{
 			Tx:               tx,
 			TxHash:           txHash,
@@ -1321,10 +1319,8 @@ func Test_SelectionWhenFeeExceedsBalanceWhenMaxNumTxsEquals2(t *testing.T) {
 		RelayerSignature: []byte("signature"),
 	})
 
-	txHashes := make([][]byte, 0)
 	for i, tx := range transactions {
 		txHash := []byte(fmt.Sprintf("txHash%d", i))
-		txHashes = append(txHashes, txHash)
 		txcache.AddTx(&txcache2.WrappedTransaction{
 			Tx:               tx,
 			TxHash:           txHash,
