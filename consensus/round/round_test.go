@@ -291,15 +291,45 @@ func TestRound_UpdateRoundWithTimeDurationChange(t *testing.T) {
 func TestRound_TimeDurationShouldReturnTheDurationOfOneRound(t *testing.T) {
 	t.Parallel()
 
-	genesisTime := time.Now()
+	t.Run("before supernova", func(t *testing.T) {
+		t.Parallel()
 
-	args := createDefaultRoundArgs()
-	args.GenesisTimeStamp = genesisTime
+		genesisTime := time.Now()
 
-	rnd, _ := round.NewRound(args)
-	timeDuration := rnd.TimeDuration()
+		args := createDefaultRoundArgs()
+		args.GenesisTimeStamp = genesisTime
 
-	assert.Equal(t, roundTimeDuration, timeDuration)
+		rnd, _ := round.NewRound(args)
+		timeDuration := rnd.TimeDuration()
+
+		assert.Equal(t, roundTimeDuration, timeDuration)
+	})
+
+	t.Run("after supernova", func(t *testing.T) {
+		t.Parallel()
+
+		genesisTime := time.Now()
+
+		args := createDefaultRoundArgs()
+		args.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+			IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
+				return flag == common.SupernovaFlag
+			},
+		}
+		args.EnableRoundsHandler = &testscommon.EnableRoundsHandlerStub{
+			IsFlagEnabledInRoundCalled: func(flag common.EnableRoundFlag, round uint64) bool {
+				return flag == common.SupernovaRoundFlag
+			},
+		}
+
+		args.SupernovaGenesisTimeStamp = genesisTime
+		args.SupernovaTimeDuration = roundTimeDuration
+
+		rnd, _ := round.NewRound(args)
+		timeDuration := rnd.TimeDuration()
+
+		assert.Equal(t, roundTimeDuration, timeDuration)
+	})
 }
 
 func TestRound_RemainingTimeInCurrentRoundShouldReturnPositiveValue(t *testing.T) {

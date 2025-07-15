@@ -99,8 +99,16 @@ func (rnd *round) UpdateRound(genesisTimeStamp time.Time, currentTimeStamp time.
 	rnd.updateRound(baseTimeStamp, currentTimeStamp, startRound, roundDuration)
 }
 
+func (rnd *round) isSupernovaRoundActivated() bool {
+	if !rnd.enableEpochsHandler.IsFlagEnabled(common.SupernovaFlag) {
+		return false
+	}
+
+	return rnd.enableRoundsHandler.IsFlagEnabledInRound(common.SupernovaRoundFlag, uint64(rnd.index))
+}
+
 func (rnd *round) isSupernovaActivated(currentTimeStamp time.Time) bool {
-	supernovaActivated := common.IsSupernovaRoundActivated(rnd.enableEpochsHandler, rnd.enableRoundsHandler)
+	supernovaActivated := rnd.isSupernovaRoundActivated()
 	if supernovaActivated {
 		return supernovaActivated
 	}
@@ -173,8 +181,7 @@ func (rnd *round) TimeDuration() time.Duration {
 
 // this should be called under mutex protection
 func (rnd *round) getTimeDuration() time.Duration {
-	// TODO: analysize adding here also forced activation based on current timestamp
-	if common.IsSupernovaRoundActivated(rnd.enableEpochsHandler, rnd.enableRoundsHandler) {
+	if rnd.isSupernovaRoundActivated() {
 		return rnd.supernovaTimeDuration
 	}
 
