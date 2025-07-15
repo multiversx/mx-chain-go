@@ -1004,10 +1004,8 @@ func Test_Selection_ShouldNotSelectSameTransactionsWithManyTransactions(t *testi
 	}
 
 	// save the txHashes
-	txHashes := make([][]byte, 0)
 	for i, tx := range transactions {
 		txHash := []byte(fmt.Sprintf("txHash%d", i))
-		txHashes = append(txHashes, txHash)
 		txcache.AddTx(&txcache2.WrappedTransaction{
 			Tx:               tx,
 			TxHash:           txHash,
@@ -1197,6 +1195,7 @@ func Test_Selection_ShouldNotSelectSameTransactionsWithManyTransactionsAndExecut
 		PrevHash: []byte("blockHash0"),
 		RootHash: []byte(fmt.Sprintf("rootHash%d", 0)),
 	})
+	require.Nil(t, err)
 
 	// remove the executed txs from the pool
 	for _, tx := range proposedTxs {
