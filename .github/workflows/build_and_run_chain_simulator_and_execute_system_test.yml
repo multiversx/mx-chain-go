@@ -22,17 +22,22 @@ jobs:
       (github.event_name == 'issue_comment' && contains(github.event.comment.body, 'Run Tests:')) ||
       github.event_name == 'workflow_dispatch'
 
-    strategy:
-      matrix:
-        #TODO Include Macos support later on
-        runs-on: [ubuntu-latest]
-    runs-on: ${{ matrix.runs-on }}
+    runs-on: [self-hosted, Linux, X64]
     env:
       BRANCH_NAME: ${{ github.head_ref || github.ref_name }}
       TARGET_BRANCH: ""
       MX_CHAIN_GO_TARGET_BRANCH: ""
       MX_CHAIN_SIMULATOR_TARGET_BRANCH: ""
       MX_CHAIN_TESTING_SUITE_TARGET_BRANCH: ""
+
+      CF_R2_ACCESS_KEY: ${{ secrets.CF_R2_ACCESS_KEY }}
+      CF_R2_SECRET_KEY: ${{ secrets.CF_R2_SECRET_KEY }}
+      CF_R2_ENDPOINT:    ${{ secrets.CF_R2_ENDPOINT }}
+
+      REPORT_BUCKET:  mx-chain-go-testing-reports
+      REPORT_BASE_URL: https://mx-chain-go-testing-reports.multiversx.com
+
+      SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
 
     steps:
       - name: Determine Target Branches
@@ -108,10 +113,10 @@ jobs:
           echo "mx-chain-simulator-go target branch: ${{ env.MX_CHAIN_SIMULATOR_TARGET_BRANCH }}"
           echo "mx-chain-testing-suite target branch: ${{ env.MX_CHAIN_TESTING_SUITE_TARGET_BRANCH }}"
 
-      - name: Set up Go 1.20.7
-        uses: actions/setup-go@v3
+      - name: Set up Go 1.23.6
+        uses: actions/setup-go@v5
         with:
-          go-version: 1.20.7
+          go-version: 1.23.6
         id: go
 
       - name: Checkout mx-chain-go
@@ -132,6 +137,22 @@ jobs:
           echo "LATEST_COMMIT_HASH=${latest_commit_hash}" >> $GITHUB_ENV
           echo "Latest commit hash: ${latest_commit_hash}"
 
+      - name: Install rclone
+        run: |
+          TS=$(date +'%Y_%^B_%d__%H_%M_%S'); 
+          echo "TS=$TS" >> "$GITHUB_ENV"
+          echo "TIMESTAMP=$TS" >> "$GITHUB_ENV"
+          sudo apt-get update -y && sudo apt-get install -y rclone
+          mkdir -p ~/.config/rclone
+          cat > ~/.config/rclone/rclone.conf <<EOF
+          [r2]
+          type = s3
+          provider = Cloudflare
+          access_key_id = ${CF_R2_ACCESS_KEY}
+          secret_access_key = ${CF_R2_SECRET_KEY}
+          endpoint = ${CF_R2_ENDPOINT}
+          EOF
+
       - name: Checkout mx-chain-simulator-go
         uses: actions/checkout@v4
         with:
@@ -147,6 +168,8 @@ jobs:
       - name: Install Python Dependencies and Update go.mod
         run: |
           cd mx-chain-simulator-go
+          echo "SIMULATOR_REF=$(git symbolic-ref --short HEAD || git describe --tags)" >> $GITHUB_ENV
+          echo "SIMULATOR_COMMIT_HASH=$(git rev-parse HEAD)" >> $GITHUB_ENV
           pip install -r scripts/update-go-mod/requirements.txt
           python scripts/update-go-mod/update-go-mod.py $LATEST_COMMIT_HASH
 
@@ -241,10 +264,12 @@ jobs:
           ref: ${{ env.MX_CHAIN_TESTING_SUITE_TARGET_BRANCH || github.event.pull_request.base.ref }}
           token: ${{ secrets.MVX_TESTER_GH_TOKEN }}
 
-      - name: Install Dependencies
+      - name: Install MX-Chain-Testing-Suite Dependencies
         run: |
           pip install -r mx-chain-testing-suite/requirements.txt
           echo "PYTHONPATH=mx-chain-testing-suite" >> $GITHUB_ENV
+          cd mx-chain-testing-suite
+          echo "CURRENT_COMMIT_HASH=$(git rev-parse HEAD)" >> $GITHUB_ENV
 
 
       - name: Run tests and generate HTML report
@@ -262,6 +287,19 @@ jobs:
           else
             echo "Report not found."
           fi
+          
+      - name: Stage report for R2
+        run: |
+          mkdir -p r2_upload
+          cp reports/report.html r2_upload/index.html  # correct source
+
+      - name: Upload report to Cloudflare R2
+        if: always()
+        run: |
+          branch="${{ env.BRANCH_NAME }}"
+          target="reports/chain-simulator/${branch}/${TS}"
+          rclone copy r2_upload/ "r2:${REPORT_BUCKET}/${target}"
+          echo "R2_REPORT_URL=${REPORT_BASE_URL}/${target}/index.html" >> $GITHUB_ENV          
 
       - name: Upload test report
         if: always()
@@ -346,42 +384,54 @@ jobs:
           MX_CHAIN_TESTING_SUITE_TARGET_BRANCH: ${{ env.MX_CHAIN_TESTING_SUITE_TARGET_BRANCH }}
           LATEST_COMMIT_HASH: ${{ env.LATEST_COMMIT_HASH }}
           PYTEST_EXIT_CODE: ${{ env.PYTEST_EXIT_CODE }}
-
+          CURRENT_COMMIT_HASH:   ${{ env.CURRENT_COMMIT_HASH }}
+          SIMULATOR_COMMIT_HASH: ${{ env.SIMULATOR_COMMIT_HASH }}
+          SIMULATOR_REF:         ${{ env.SIMULATOR_REF }}
+          R2_REPORT_URL:         ${{ env.R2_REPORT_URL }}
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
-            const timestamp = process.env.TIMESTAMP;
-            const branchName = process.env.BRANCH_NAME;
-            const currentBranch = process.env.CURRENT_BRANCH;
-            const goTargetBranch = process.env.MX_CHAIN_GO_TARGET_BRANCH;
-            const simulatorTargetBranch = process.env.MX_CHAIN_SIMULATOR_TARGET_BRANCH;
-            const testingSuiteTargetBranch = process.env.MX_CHAIN_TESTING_SUITE_TARGET_BRANCH;
-            const commitHash = process.env.LATEST_COMMIT_HASH;
-            const exitCode = process.env.PYTEST_EXIT_CODE;
-            const issue_number = context.issue.number;
-            const owner = context.repo.owner;
-            const repo = context.repo.repo;
-            let message;
+            const timestamp                 = process.env.TIMESTAMP;
+            const branchName                = process.env.BRANCH_NAME;
+            const currentBranch             = process.env.CURRENT_BRANCH;
+            const goTargetBranch            = process.env.MX_CHAIN_GO_TARGET_BRANCH;
+            const simulatorTargetBranch     = process.env.MX_CHAIN_SIMULATOR_TARGET_BRANCH;
+            const testingSuiteTargetBranch  = process.env.MX_CHAIN_TESTING_SUITE_TARGET_BRANCH;
+            const commitHash                = process.env.LATEST_COMMIT_HASH;
+            const exitCode                  = process.env.PYTEST_EXIT_CODE;
 
-            if (timestamp && branchName && timestamp !== "" && branchName !== "") {
-              const reportUrl = `https://multiversx.github.io/mx-chain-testing-suite/reports/${branchName}/${timestamp}/index.html`;
+            const simulatorCommitHash = process.env.SIMULATOR_COMMIT_HASH || 'N/A';
+            const r2Url            = process.env.R2_REPORT_URL || 'N/A';
+
+            const issue_number = context.issue.number;
+            const owner  = context.repo.owner;
+            const repo   = context.repo.repo;
+            const ts = process.env.TS || process.env.TIMESTAMP;
+            const verdict = exitCode === "0"
+              ? "✅ **Integration Tests passed successfully!**"
+              : "❌ **Integration Tests completed with failures or errors.**";
+            let message;
+            if (timestamp && branchName) {
+              const backupUrl = `https://multiversx.github.io/mx-chain-testing-suite/reports/${branchName}/${timestamp}/index.html`;
               message = `
-              📊 **MultiversX Automated Test Report:** [View Report](${reportUrl})
+              ${verdict}
             
+              📊 **MultiversX Automated Test Report:** [View Report](${r2Url})
+
               🔄 **Build Details:**
               - **mx-chain-go Commit Hash:** \`${commitHash}\`
               - **Current Branch:** \`${currentBranch}\`
               - **mx-chain-go Target Branch:** \`${goTargetBranch}\`
               - **mx-chain-simulator-go Target Branch:** \`${simulatorTargetBranch}\`
               - **mx-chain-testing-suite Target Branch:** \`${testingSuiteTargetBranch}\`
-            
+              - **mx-chain-simulator-go Commit Hash:** \`${simulatorCommitHash}\`
+
               🚀 **Environment Variables:**
-            - **TIMESTAMP:** \`${timestamp}\`
-            - **PYTEST_EXIT_CODE:** \`${exitCode}\`
-              🎉 **MultiversX CI/CD Workflow Complete!**
+              - **TIMESTAMP:** \`${ts}\`
+              - **PYTEST_EXIT_CODE:** \`${exitCode}\`
               `;
             } else {
-              message = "⚠️ No report was generated due to an error or cancellation of the process.\nPlease checkout gh action logs for details";
+              message = "⚠️ No report was generated due to an error or cancellation of the process.\nPlease checkout GH-Action logs for details.";
             }
 
             github.rest.issues.createComment({
@@ -390,6 +440,36 @@ jobs:
               repo: repo,
               body: message
             });
+
+      - name: Notify Slack
+        if: always()
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+          R2_REPORT_URL: ${{ env.R2_REPORT_URL }}
+          BRANCH_NAME: ${{ env.BRANCH_NAME }}
+          CURRENT_COMMIT_HASH: ${{ env.CURRENT_COMMIT_HASH }}
+          SIMULATOR_REF: ${{ env.SIMULATOR_REF }}
+          SIMULATOR_COMMIT_HASH: ${{ env.SIMULATOR_COMMIT_HASH }}
+          TS: ${{ env.TS }}
+          PYTEST_EXIT_CODE: ${{ env.PYTEST_EXIT_CODE }}
+        run: |
+          status="❌ FAILED"
+          [ "${PYTEST_EXIT_CODE}" = "0" ] && status="✅ PASSED"
+          repo="${GITHUB_REPOSITORY##*/}"
+          base="${{ github.base_ref }}"
+          
+          msg="*MX-CHAIN-GO ChainSimulator CI – ${status}*\
+          \n• *Report:* <${R2_REPORT_URL:-N/A}|HTML>\
+          \n• *Repository:* \`${repo}\`\
+          \n• *Branch:* \`${BRANCH_NAME}\` → \`${base:-main}\`\
+          \n• *Testing-suite Commit:* \`${CURRENT_COMMIT_HASH}\`\
+          \n• *Chain Simulator Branch:* \`${SIMULATOR_REF}\`\
+          \n• *Chain Simulator Commit:* \`${SIMULATOR_COMMIT_HASH}\`\
+          \n• *Run at:* ${TS}"
+          
+          curl -s -X POST -H 'Content-Type: application/json' \
+               -d "{\"text\":\"${msg}\"}" \
+               "$SLACK_WEBHOOK_URL"
 
       - name: Fail job if tests failed
         if: always()
