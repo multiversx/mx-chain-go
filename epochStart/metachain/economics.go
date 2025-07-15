@@ -39,6 +39,8 @@ type economics struct {
 	economicsDataNotified epochStart.EpochEconomicsDataProvider
 	stakingV2EnableEpoch  uint32
 	enableEpochsHandler   common.EnableEpochsHandler
+	enableRoundsHandler   common.EnableRoundsHandler
+	chainParamsHandler    common.ChainParametersHandler
 }
 
 // ArgsNewEpochEconomics is the argument for the economics constructor
@@ -55,6 +57,8 @@ type ArgsNewEpochEconomics struct {
 	EconomicsDataNotified epochStart.EpochEconomicsDataProvider
 	StakingV2EnableEpoch  uint32
 	EnableEpochsHandler   common.EnableEpochsHandler
+	EnableRoundsHandler   common.EnableRoundsHandler
+	ChainParamsHandler    common.ChainParametersHandler
 }
 
 // NewEndOfEpochEconomicsDataCreator creates a new end of epoch economics data creator object
@@ -86,6 +90,12 @@ func NewEndOfEpochEconomicsDataCreator(args ArgsNewEpochEconomics) (*economics, 
 	if check.IfNil(args.EnableEpochsHandler) {
 		return nil, errors.ErrNilEnableEpochsHandler
 	}
+	if check.IfNil(args.EnableRoundsHandler) {
+		return nil, errors.ErrNilEnableRoundsHandler
+	}
+	if check.IfNil(args.ChainParamsHandler) {
+		return nil, errors.ErrNilChainParametersHandler
+	}
 
 	e := &economics{
 		marshalizer:           args.Marshalizer,
@@ -100,6 +110,8 @@ func NewEndOfEpochEconomicsDataCreator(args ArgsNewEpochEconomics) (*economics, 
 		economicsDataNotified: args.EconomicsDataNotified,
 		stakingV2EnableEpoch:  args.StakingV2EnableEpoch,
 		enableEpochsHandler:   args.EnableEpochsHandler,
+		enableRoundsHandler:   args.EnableRoundsHandler,
+		chainParamsHandler:    args.ChainParamsHandler,
 	}
 	log.Debug("economics: enable epoch for staking v2", "epoch", e.stakingV2EnableEpoch)
 
@@ -138,7 +150,11 @@ func (e *economics) ComputeEndOfEpochEconomics(
 	maxBlocksInEpoch := core.MaxUint64(1, roundsPassedInEpoch*uint64(e.shardCoordinator.NumberOfShards()+1))
 	totalNumBlocksInEpoch := e.computeNumOfTotalCreatedBlocks(noncesPerShardPrevEpoch, noncesPerShardCurrEpoch)
 
-	inflationRate := e.computeInflationRate(metaBlock.GetRound(), metaBlock.GetEpoch())
+	inflationRate, err := e.computeInflationRate(metaBlock.GetRound(), metaBlock.GetEpoch())
+	if err != nil {
+		return nil, err
+	}
+
 	rwdPerBlock := e.computeRewardsPerBlock(e.genesisTotalSupply, maxBlocksInEpoch, inflationRate, metaBlock.Epoch)
 	totalRewardsToBeDistributed := big.NewInt(0).Mul(rwdPerBlock, big.NewInt(0).SetUint64(totalNumBlocksInEpoch))
 
@@ -329,12 +345,86 @@ func (e *economics) adjustRewardsPerBlockWithLeaderPercentage(
 }
 
 // compute inflation rate from genesisTotalSupply and economics settings for that year
-func (e *economics) computeInflationRate(currentRound uint64, currentEpoch uint32) float64 {
+func (e *economics) computeInflationRateLegacy(currentRound uint64, currentEpoch uint32) (float64, error) {
 	roundsPerDay := common.ComputeRoundsPerDay(e.roundTime.TimeDuration(), e.enableEpochsHandler, currentEpoch)
+
 	roundsPerYear := numberOfDaysInYear * roundsPerDay
 	yearsIndex := uint32(currentRound/roundsPerYear) + 1
 
-	return e.rewardsHandler.MaxInflationRate(yearsIndex)
+	return e.rewardsHandler.MaxInflationRate(yearsIndex), nil
+}
+
+func (e *economics) computeInflationRate(currentRound uint64, currentEpoch uint32) (float64, error) {
+	supernovaInEpochActivated := e.enableEpochsHandler.IsFlagEnabledInEpoch(common.SupernovaFlag, currentEpoch)
+	supernovaActivationEpoch := e.enableEpochsHandler.GetActivationEpoch(common.SupernovaFlag)
+
+	supernovaActivationYear := supernovaActivationEpoch/uint32(numberOfDaysInYear) + 1
+	currentYear := currentEpoch/uint32(numberOfDaysInYear) + 1
+
+	if !supernovaInEpochActivated {
+		return e.computeInflationRateLegacy(currentRound, currentEpoch)
+	}
+
+	if currentYear == supernovaActivationYear {
+		return e.computeInflationRateInSupernovaYear(currentYear)
+	}
+
+	return e.computeInflationRateAfterSupernovaYear(currentRound, currentEpoch, supernovaActivationYear)
+}
+
+func (e *economics) computeInflationRateInSupernovaYear(currentYear uint32) (float64, error) {
+	log.Error("computeInflationRateInSupernovaYear",
+		"currentYear", currentYear,
+	)
+	return e.rewardsHandler.MaxInflationRate(currentYear), nil
+}
+
+func (e *economics) computeInflationRateAfterSupernovaYear(
+	currentRound uint64,
+	currentEpoch uint32,
+	supernovaActivationYear uint32,
+) (float64, error) {
+	log.Error("computeInflationRateAfterSupernovaYear",
+		"currentEpoch", currentEpoch,
+		"currentRound", currentRound,
+		"supernovaActivationYear", supernovaActivationYear,
+	)
+
+	supernovaActivationRound := e.enableRoundsHandler.GetActivationRound(common.SupernovaRoundFlag)
+
+	roundsPerDay := common.ComputeRoundsPerDay(e.roundTime.TimeDuration(), e.enableEpochsHandler, currentEpoch)
+
+	roundsPerYear := numberOfDaysInYear * roundsPerDay
+
+	yearsIndex := uint32((currentRound-supernovaActivationRound)/roundsPerYear) + supernovaActivationYear
+
+	log.Error("computeInflationRate",
+		"roundsPerYear", roundsPerYear,
+		"yearsIndex", yearsIndex,
+	)
+
+	return e.rewardsHandler.MaxInflationRate(yearsIndex), nil
+}
+
+func (e *economics) computeRoundsChangeRatio(currentEpoch uint32) (float64, error) {
+	roundsChangeRatio := float64(1)
+
+	roundsDurationFirstEpoch, err := e.chainParamsHandler.ChainParametersForEpoch(0)
+	if err != nil {
+		return roundsChangeRatio, err
+	}
+	if roundsDurationFirstEpoch.RoundDuration <= 0 {
+		return roundsChangeRatio, fmt.Errorf("invalid round duration")
+	}
+
+	roundsDurationCurrentEpoch, err := e.chainParamsHandler.ChainParametersForEpoch(currentEpoch)
+	if err != nil {
+		return roundsChangeRatio, err
+	}
+
+	roundsChangeRatio = float64(roundsDurationCurrentEpoch.RoundDuration) / float64(roundsDurationFirstEpoch.RoundDuration)
+
+	return roundsChangeRatio, nil
 }
 
 // compute rewards per block from according to inflation rate and total supply from previous block and maxBlocksPerEpoch
