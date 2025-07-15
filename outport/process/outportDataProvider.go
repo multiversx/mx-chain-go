@@ -177,6 +177,8 @@ func (odp *outportDataProvider) PrepareOutportSaveBlockData(arg ArgPrepareOutpor
 		},
 	}
 
+	log.Debug("num state accesses", "num", len(outportBlock.OutportBlock.StateAccesses))
+
 	if odp.enableEpochsHandler.IsFlagEnabledInEpoch(common.AndromedaFlag, arg.Header.GetEpoch()) {
 		headerProof, err := odp.proofsPool.GetProof(arg.Header.GetShardID(), arg.HeaderHash)
 		if err != nil {

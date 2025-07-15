@@ -86,7 +86,9 @@ func (c *collector) Reset() {
 
 // GetCollectedAccesses will return the collected state accesses
 func (c *collector) GetCollectedAccesses() map[string]*data.StateAccesses {
-	return c.getStateAccessesForTxs()
+	acc := c.getStateAccessesForTxs()
+	logCollectedStateAccesses("state accesses for txs", acc)
+	return acc
 }
 
 func (c *collector) getStateAccessesForTxs() map[string]*data.StateAccesses {
