@@ -13,7 +13,7 @@ import (
 	"github.com/beevik/ntp"
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/closing"
-	"github.com/multiversx/mx-chain-logger-go"
+	logger "github.com/multiversx/mx-chain-logger-go"
 
 	"github.com/multiversx/mx-chain-go/config"
 )
@@ -61,11 +61,12 @@ type NTPOptions struct {
 // for tests, for example, to avoid loading a configuration file just to have a NTPConfig
 func NewNTPGoogleConfig() config.NTPConfig {
 	return config.NTPConfig{
-		Hosts:               []string{"time.google.com", "time.cloudflare.com", "time.apple.com", "time.windows.com"},
-		Port:                123,
-		Version:             0,
-		TimeoutMilliseconds: 100,
-		SyncPeriodSeconds:   3600,
+		Hosts:                []string{"time.google.com", "time.cloudflare.com", "time.apple.com", "time.windows.com"},
+		Port:                 123,
+		Version:              0,
+		TimeoutMilliseconds:  100,
+		SyncPeriodSeconds:    3600,
+		OutOfBoundsThreshold: 120,
 	}
 }
 
@@ -102,13 +103,13 @@ func queryNTP(options NTPOptions, hostIndex int) (*ntp.Response, error) {
 
 // syncTime defines an object for time synchronization
 type syncTime struct {
-	mut           sync.RWMutex
-	clockOffset   time.Duration
-	syncPeriod    time.Duration
-	ntpOptions    NTPOptions
-	query         func(options NTPOptions, hostIndex int) (*ntp.Response, error)
-	cancelFunc    func()
-	roundDuration time.Duration
+	mut                  sync.RWMutex
+	clockOffset          time.Duration
+	syncPeriod           time.Duration
+	ntpOptions           NTPOptions
+	query                func(options NTPOptions, hostIndex int) (*ntp.Response, error)
+	cancelFunc           func()
+	outOfBoundsThreshold time.Duration
 }
 
 // NewSyncTime creates a syncTime object. The customQueryFunc argument allows the caller to set a different NTP-querying
@@ -116,7 +117,6 @@ type syncTime struct {
 func NewSyncTime(
 	ntpConfig config.NTPConfig,
 	customQueryFunc func(options NTPOptions, hostIndex int) (*ntp.Response, error),
-	roundDuration time.Duration,
 ) *syncTime {
 	queryFunc := customQueryFunc
 	if queryFunc == nil {
@@ -124,11 +124,11 @@ func NewSyncTime(
 	}
 
 	s := syncTime{
-		clockOffset:   0,
-		syncPeriod:    time.Duration(ntpConfig.SyncPeriodSeconds) * time.Second,
-		query:         queryFunc,
-		ntpOptions:    NewNTPOptions(ntpConfig),
-		roundDuration: roundDuration,
+		clockOffset:          0,
+		syncPeriod:           time.Duration(ntpConfig.SyncPeriodSeconds) * time.Second,
+		query:                queryFunc,
+		ntpOptions:           NewNTPOptions(ntpConfig),
+		outOfBoundsThreshold: time.Duration(ntpConfig.OutOfBoundsThreshold) * time.Millisecond,
 	}
 
 	return &s
@@ -219,14 +219,11 @@ func (s *syncTime) sync() {
 	clockOffsetsWithoutEdges := s.getClockOffsetsWithoutEdges(clockOffsets)
 	clockOffsetHarmonicMean := s.getHarmonicMean(clockOffsetsWithoutEdges)
 
-	thresholdOutOfBonds := s.roundDuration * time.Duration(outOfBoundsRoundDurationPercentage) / time.Duration(100)
-	isOutOfBounds := core.AbsDuration(clockOffsetHarmonicMean) > thresholdOutOfBonds
+	isOutOfBounds := core.AbsDuration(clockOffsetHarmonicMean) > time.Duration(s.outOfBoundsThreshold)
 	if isOutOfBounds {
 		log.Error("syncTime.sync: clock offset is out of expected bounds",
 			"clock offset harmonic mean", clockOffsetHarmonicMean,
-			"thresholdOutOfBonds", thresholdOutOfBonds,
-			"outOfBoundsRoundDurationPercentage", outOfBoundsRoundDurationPercentage,
-			"roundDuration", s.roundDuration,
+			"thresholdOutOfBonds", s.outOfBoundsThreshold,
 		)
 
 		return

@@ -215,7 +215,7 @@ func (tcn *TestConsensusNode) initNode(args ArgsTestConsensusNode) {
 	tcn.initBlockProcessor(tcn.ShardCoordinator.SelfId())
 
 	roundTime := time.Millisecond * time.Duration(args.RoundTime)
-	syncer := ntp.NewSyncTime(ntp.NewNTPGoogleConfig(), nil, roundTime)
+	syncer := ntp.NewSyncTime(ntp.NewNTPGoogleConfig(), nil)
 	syncer.StartSyncingTime()
 
 	genericEpochNotifier := forking.NewGenericEpochNotifier()
