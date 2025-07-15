@@ -36,7 +36,7 @@ func Test_handleAccountBreadcrumb(t *testing.T) {
 
 	expectedVirtualRecord := &virtualAccountRecord{
 		initialNonce: core.OptionalUint64{
-			Value:    1,
+			Value:    3,
 			HasValue: true,
 		},
 		initialBalance:  big.NewInt(2),
@@ -139,7 +139,7 @@ func Test_createVirtualSelectionSession(t *testing.T) {
 		expectedVirtualAccounts := map[string]*virtualAccountRecord{
 			"alice": {
 				initialNonce: core.OptionalUint64{
-					Value:    2,
+					Value:    3,
 					HasValue: true,
 				},
 				initialBalance:  big.NewInt(2),
@@ -147,7 +147,7 @@ func Test_createVirtualSelectionSession(t *testing.T) {
 			},
 			"bob": {
 				initialNonce: core.OptionalUint64{
-					Value:    4,
+					Value:    6,
 					HasValue: true,
 				},
 				initialBalance:  big.NewInt(2),
@@ -261,7 +261,7 @@ func Test_handleTrackedBlock(t *testing.T) {
 
 		virtualRecord, ok := provider.virtualAccountsByAddress["bob"]
 		require.True(t, ok)
-		require.Equal(t, core.OptionalUint64{Value: 2, HasValue: true}, virtualRecord.initialNonce)
+		require.Equal(t, core.OptionalUint64{Value: 4, HasValue: true}, virtualRecord.initialNonce)
 		require.Equal(t, big.NewInt(2), virtualRecord.initialBalance)
 		require.Equal(t, big.NewInt(3), virtualRecord.consumedBalance)
 
@@ -320,7 +320,7 @@ func Test_handleTrackedBlock(t *testing.T) {
 		virtualAccountsByAddress := map[string]*virtualAccountRecord{
 			"bob": {
 				initialNonce: core.OptionalUint64{
-					Value:    2,
+					Value:    6,
 					HasValue: true,
 				},
 				initialBalance: big.NewInt(5),

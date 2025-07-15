@@ -16,6 +16,8 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+var defaultBlockchainInfo = holders.NewBlockchainInfo(nil, 0)
+
 func createMockTxSelectionOptions(gasRequested uint64, maxNumTxs int, loopMaximumDuration int) common.TxSelectionOptions {
 	return holders.NewTxSelectionOptions(
 		gasRequested,
@@ -50,7 +52,7 @@ func TestTxCache_SelectTransactions_Dummy(t *testing.T) {
 		cache.AddTx(createTx([]byte("hash-bob-5"), "bob", 5))
 		cache.AddTx(createTx([]byte("hash-carol-1"), "carol", 1))
 
-		selected, accumulatedGas := cache.SelectTransactions(session, options)
+		selected, accumulatedGas := cache.SelectTransactions(session, options, defaultBlockchainInfo)
 		require.Len(t, selected, 8)
 		require.Equal(t, 400000, int(accumulatedGas))
 
@@ -79,7 +81,7 @@ func TestTxCache_SelectTransactions_Dummy(t *testing.T) {
 		cache.AddTx(createTx([]byte("hash-bob-5"), "bob", 5).withGasPrice(50))
 		cache.AddTx(createTx([]byte("hash-carol-3"), "carol", 3).withGasPrice(75))
 
-		selected, accumulatedGas := cache.SelectTransactions(session, options)
+		selected, accumulatedGas := cache.SelectTransactions(session, options, defaultBlockchainInfo)
 		require.Len(t, selected, 3)
 		require.Equal(t, 150000, int(accumulatedGas))
 
@@ -110,7 +112,7 @@ func TestTxCache_SelectTransactionsWithBandwidth_Dummy(t *testing.T) {
 		cache.AddTx(createTx([]byte("hash-bob-5"), "bob", 5).withGasLimit(50000))
 		cache.AddTx(createTx([]byte("hash-carol-1"), "carol", 1).withGasLimit(50000))
 
-		selected, accumulatedGas := cache.SelectTransactions(session, options)
+		selected, accumulatedGas := cache.SelectTransactions(session, options, defaultBlockchainInfo)
 		require.Len(t, selected, 5)
 		require.Equal(t, 750000, int(accumulatedGas))
 
@@ -146,7 +148,7 @@ func TestTxCache_SelectTransactions_HandlesNotExecutableTransactions(t *testing.
 		cache.AddTx(createTx([]byte("hash-carol-10"), "carol", 10)) // gap
 		cache.AddTx(createTx([]byte("hash-carol-11"), "carol", 11))
 
-		sorted, accumulatedGas := cache.SelectTransactions(session, options)
+		sorted, accumulatedGas := cache.SelectTransactions(session, options, defaultBlockchainInfo)
 		expectedNumSelected := 3 + 1 + 2 // 3 alice + 1 bob + 2 carol
 		require.Len(t, sorted, expectedNumSelected)
 		require.Equal(t, 300000, int(accumulatedGas))
@@ -176,7 +178,7 @@ func TestTxCache_SelectTransactions_HandlesNotExecutableTransactions(t *testing.
 		cache.AddTx(createTx([]byte("hash-carol-7"), "carol", 7))
 		cache.AddTx(createTx([]byte("hash-carol-8"), "carol", 8))
 
-		sorted, accumulatedGas := cache.SelectTransactions(session, options)
+		sorted, accumulatedGas := cache.SelectTransactions(session, options, defaultBlockchainInfo)
 		expectedNumSelected := 3 + 0 + 2 // 3 alice + 0 bob + 2 carol
 		require.Len(t, sorted, expectedNumSelected)
 		require.Equal(t, 250000, int(accumulatedGas))
@@ -206,7 +208,7 @@ func TestTxCache_SelectTransactions_HandlesNotExecutableTransactions(t *testing.
 		cache.AddTx(createTx([]byte("hash-carol-7"), "carol", 7))
 		cache.AddTx(createTx([]byte("hash-carol-8"), "carol", 8))
 
-		sorted, accumulatedGas := cache.SelectTransactions(session, options)
+		sorted, accumulatedGas := cache.SelectTransactions(session, options, defaultBlockchainInfo)
 		expectedNumSelected := 3 + 1 + 2 // 3 alice + 1 bob + 2 carol
 		require.Len(t, sorted, expectedNumSelected)
 		require.Equal(t, 300000, int(accumulatedGas))
@@ -227,7 +229,7 @@ func TestTxCache_SelectTransactions_HandlesNotExecutableTransactions(t *testing.
 		cache.AddTx(createTx([]byte("hash-alice-3c"), "alice", 3))
 		cache.AddTx(createTx([]byte("hash-alice-4"), "alice", 4))
 
-		sorted, accumulatedGas := cache.SelectTransactions(session, options)
+		sorted, accumulatedGas := cache.SelectTransactions(session, options, defaultBlockchainInfo)
 		require.Len(t, sorted, 4)
 		require.Equal(t, 200000, int(accumulatedGas))
 
@@ -258,7 +260,7 @@ func TestTxCache_SelectTransactions_HandlesNotExecutableTransactions(t *testing.
 		cache.AddTx(createTx([]byte("hash-bob-43"), "bob", 41))
 		cache.AddTx(createTx([]byte("hash-bob-44"), "bob", 42))
 
-		sorted, accumulatedGas := cache.SelectTransactions(session, options)
+		sorted, accumulatedGas := cache.SelectTransactions(session, options, defaultBlockchainInfo)
 		expectedNumSelected := 3 + 1 // 3 alice + 1 bob
 		require.Len(t, sorted, expectedNumSelected)
 		require.Equal(t, 200000, int(accumulatedGas))
@@ -282,7 +284,7 @@ func TestTxCache_SelectTransactions_HandlesNotExecutableTransactions(t *testing.
 		cache.AddTx(createTx([]byte("hash-bob-43a"), "bob", 43).withData([]byte("z")).withGasLimit(100000))
 		cache.AddTx(createTx([]byte("hash-bob-43b"), "bob", 43).withData([]byte("t")).withGasLimit(100000))
 
-		sorted, accumulatedGas := cache.SelectTransactions(session, options)
+		sorted, accumulatedGas := cache.SelectTransactions(session, options, defaultBlockchainInfo)
 		require.Len(t, sorted, 3)
 		require.Equal(t, 300000, int(accumulatedGas))
 
@@ -316,7 +318,7 @@ func TestTxCache_SelectTransactions_WhenTransactionsAddedInReversedNonceOrder(t 
 
 	require.Equal(t, uint64(nTotalTransactions), cache.CountTx())
 
-	sorted, accumulatedGas := cache.SelectTransactions(session, options)
+	sorted, accumulatedGas := cache.SelectTransactions(session, options, defaultBlockchainInfo)
 	require.Len(t, sorted, nTotalTransactions)
 	require.Equal(t, 5_000_000_000, int(accumulatedGas))
 
@@ -567,7 +569,7 @@ func TestBenchmarkTxCache_doSelectTransactions(t *testing.T) {
 		require.Equal(t, 1000000, int(cache.CountTx()))
 
 		sw.Start(t.Name())
-		selected, accumulatedGas := cache.SelectTransactions(session, options)
+		selected, accumulatedGas := cache.SelectTransactions(session, options, defaultBlockchainInfo)
 		sw.Stop(t.Name())
 
 		require.Equal(t, 30_000, len(selected))
@@ -583,7 +585,7 @@ func TestBenchmarkTxCache_doSelectTransactions(t *testing.T) {
 		require.Equal(t, 100000, int(cache.CountTx()))
 
 		sw.Start(t.Name())
-		selected, accumulatedGas := cache.SelectTransactions(session, options)
+		selected, accumulatedGas := cache.SelectTransactions(session, options, defaultBlockchainInfo)
 		sw.Stop(t.Name())
 
 		require.Equal(t, 30_000, len(selected))
@@ -599,7 +601,7 @@ func TestBenchmarkTxCache_doSelectTransactions(t *testing.T) {
 		require.Equal(t, 100000, int(cache.CountTx()))
 
 		sw.Start(t.Name())
-		selected, accumulatedGas := cache.SelectTransactions(session, options)
+		selected, accumulatedGas := cache.SelectTransactions(session, options, defaultBlockchainInfo)
 		sw.Stop(t.Name())
 
 		require.Equal(t, 30_000, len(selected))
@@ -615,7 +617,7 @@ func TestBenchmarkTxCache_doSelectTransactions(t *testing.T) {
 		require.Equal(t, 300000, int(cache.CountTx()))
 
 		sw.Start(t.Name())
-		selected, accumulatedGas := cache.SelectTransactions(session, options)
+		selected, accumulatedGas := cache.SelectTransactions(session, options, defaultBlockchainInfo)
 		sw.Stop(t.Name())
 
 		require.Equal(t, 30_000, len(selected))
