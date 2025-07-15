@@ -13,6 +13,7 @@ import (
 
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/ntp"
+	"github.com/multiversx/mx-chain-go/testscommon"
 )
 
 var responseMock1 *beevikNtp.Response
@@ -164,7 +165,7 @@ func TestCallQueryShouldWork(t *testing.T) {
 	t.Skip("rework this test as to not rely on the internet connection")
 	t.Parallel()
 
-	ntpConfig := ntp.NewNTPGoogleConfig()
+	ntpConfig := testscommon.NewNTPGoogleConfig()
 	ntpOptions := ntp.NewNTPOptions(ntpConfig)
 	st := ntp.NewSyncTime(ntpConfig, nil)
 	query := st.Query()
@@ -333,7 +334,7 @@ func TestCallQueryShouldWorkMeasurements(t *testing.T) {
 	t.Skip("use this test only for local benchmarks, not for remote tests, since it relies on internet connection")
 	t.Parallel()
 
-	ntpConfig := ntp.NewNTPGoogleConfig()
+	ntpConfig := testscommon.NewNTPGoogleConfig()
 	ntpOptions := ntp.NewNTPOptions(ntpConfig)
 	st := ntp.NewSyncTime(ntpConfig, nil)
 

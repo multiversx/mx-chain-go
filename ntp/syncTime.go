@@ -53,19 +53,6 @@ type NTPOptions struct {
 	Port         int
 }
 
-// NewNTPGoogleConfig creates an NTPConfig object that configures NTP to use a predefined list of hosts. This is useful
-// for tests, for example, to avoid loading a configuration file just to have a NTPConfig
-func NewNTPGoogleConfig() config.NTPConfig {
-	return config.NTPConfig{
-		Hosts:                []string{"time.google.com", "time.cloudflare.com", "time.apple.com", "time.windows.com"},
-		Port:                 123,
-		Version:              0,
-		TimeoutMilliseconds:  100,
-		SyncPeriodSeconds:    3600,
-		OutOfBoundsThreshold: 120,
-	}
-}
-
 // NewNTPOptions creates a new NTPOptions object
 func NewNTPOptions(ntpConfig config.NTPConfig) NTPOptions {
 	ntpConfig.TimeoutMilliseconds = core.MaxInt(minTimeout, ntpConfig.TimeoutMilliseconds)
