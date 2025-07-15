@@ -240,6 +240,7 @@ func CreateNodesShuffleOut(
 	nodesConfig sharding.GenesisNodesSetupHandler,
 	epochConfig config.EpochStartConfig,
 	chanStopNodeProcess chan endProcess.ArgEndProcess,
+	chainParametersHandler process.ChainParametersHandler,
 ) (factory.ShuffleOutCloser, error) {
 
 	if check.IfNil(nodesConfig) {
@@ -255,7 +256,8 @@ func CreateNodesShuffleOut(
 		return nil, fmt.Errorf("invalid min threshold for shuffled out handler")
 	}
 
-	epochDuration := int64(nodesConfig.GetRoundDuration()) * epochConfig.RoundsPerEpoch
+	roundsPerEpoch := chainParametersHandler.CurrentChainParameters().RoundsPerEpoch
+	epochDuration := int64(nodesConfig.GetRoundDuration()) * roundsPerEpoch
 	minDurationBeforeStopProcess := int64(minThresholdEpochDuration * float64(epochDuration))
 	maxDurationBeforeStopProcess := int64(maxThresholdEpochDuration * float64(epochDuration))
 

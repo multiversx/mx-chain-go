@@ -281,7 +281,7 @@ func InitMetrics(
 	nodesConfig sharding.GenesisNodesSetupHandler,
 	version string,
 	economicsConfig *config.EconomicsConfig,
-	roundsPerEpoch int64,
+	currentChainParameters config.ChainParametersByEpochConfig,
 	minTransactionVersion uint32,
 ) error {
 	if check.IfNil(appStatusHandler) {
@@ -320,7 +320,7 @@ func InitMetrics(
 	appStatusHandler.SetStringValue(common.MetricNodeType, string(nodeType))
 	appStatusHandler.SetUInt64Value(common.MetricRoundTime, roundDuration/millisecondsInSecond)
 	appStatusHandler.SetStringValue(common.MetricAppVersion, version)
-	appStatusHandler.SetUInt64Value(common.MetricRoundsPerEpoch, uint64(roundsPerEpoch))
+	appStatusHandler.SetUInt64Value(common.MetricRoundsPerEpoch, uint64(currentChainParameters.RoundsPerEpoch))
 	appStatusHandler.SetStringValue(common.MetricCrossCheckBlockHeight, "0")
 	for i := uint32(0); i < shardCoordinator.NumberOfShards(); i++ {
 		key := fmt.Sprintf("%s_%d", common.MetricCrossCheckBlockHeight, i)
@@ -336,7 +336,7 @@ func InitMetrics(
 	appStatusHandler.SetUInt64Value(common.MetricNumNodesPerShard, uint64(nodesConfig.MinNumberOfShardNodes()))
 	appStatusHandler.SetUInt64Value(common.MetricNumMetachainNodes, uint64(nodesConfig.MinNumberOfMetaNodes()))
 	appStatusHandler.SetUInt64Value(common.MetricStartTime, uint64(nodesConfig.GetStartTime()))
-	appStatusHandler.SetUInt64Value(common.MetricRoundDuration, nodesConfig.GetRoundDuration())
+	appStatusHandler.SetUInt64Value(common.MetricRoundDuration, currentChainParameters.RoundDuration)
 	appStatusHandler.SetUInt64Value(common.MetricMinTransactionVersion, uint64(minTransactionVersion))
 
 	var consensusGroupSize uint32

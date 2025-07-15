@@ -939,7 +939,7 @@ func TestEnableEpochConfig(t *testing.T) {
     AutomaticActivationOfNodesDisableEpoch = 111
 
     # SupernovaEnableEpoch represents the epoch when sub-second finality will be enabled
-    SupernovaEnableEpoch = 107
+    SupernovaEnableEpoch = 112
 
     # MaxNodesChangeEnableEpoch holds configuration for changing the maximum number of nodes and the enabling epoch
     MaxNodesChangeEnableEpoch = [
@@ -1072,7 +1072,7 @@ func TestEnableEpochConfig(t *testing.T) {
 			ValidationOnGobDecodeEnableEpoch:                         109,
 			BarnardOpcodesEnableEpoch:                                110,
 			AutomaticActivationOfNodesDisableEpoch:                   111,
-			SupernovaEnableEpoch:                                     107,
+			SupernovaEnableEpoch:                                     112,
 			MaxNodesChangeEnableEpoch: []MaxNodesChangeConfig{
 				{
 					EpochEnable:            44,
@@ -1113,6 +1113,38 @@ func TestEnableEpochConfig(t *testing.T) {
 		},
 	}
 	cfg := EpochConfig{}
+
+	err := toml.Unmarshal([]byte(testString), &cfg)
+
+	assert.Nil(t, err)
+	assert.Equal(t, expectedCfg, cfg)
+}
+
+func TestEnableRoundsConfig(t *testing.T) {
+	testString := `
+[RoundActivations]
+    [RoundActivations.DisableAsyncCallV1]
+        Options = []
+        Round = "0"
+
+    [RoundActivations.SupernovaEnableRound]
+        Options = []
+        Round = "75"
+`
+
+	expectedCfg := RoundConfig{
+		RoundActivations: map[string]ActivationRoundByName{
+			"DisableAsyncCallV1": {
+				Round:   "0",
+				Options: []string{},
+			},
+			"SupernovaEnableRound": {
+				Round:   "75",
+				Options: []string{},
+			},
+		},
+	}
+	cfg := RoundConfig{}
 
 	err := toml.Unmarshal([]byte(testString), &cfg)
 

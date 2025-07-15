@@ -214,22 +214,31 @@ func (tcn *TestConsensusNode) initNode(args ArgsTestConsensusNode) {
 	tcn.initBlockChain(testHasher)
 	tcn.initBlockProcessor(tcn.ShardCoordinator.SelfId())
 
-	syncer := ntp.NewSyncTime(ntp.NewNTPGoogleConfig(), nil)
+	roundTime := time.Millisecond * time.Duration(args.RoundTime)
+	syncer := ntp.NewSyncTime(testscommon.NewNTPGoogleConfig(), nil)
 	syncer.StartSyncingTime()
 
 	genericEpochNotifier := forking.NewGenericEpochNotifier()
 
 	epochsConfig := GetDefaultEnableEpochsConfig()
 	enableEpochsHandler, _ := enablers.NewEnableEpochsHandler(*epochsConfig, genericEpochNotifier)
+	enableRoundsHandler := &testscommon.EnableRoundsHandlerStub{}
 
 	storage := CreateStore(tcn.ShardCoordinator.NumberOfShards())
 
-	roundHandler, _ := round.NewRound(
-		time.Unix(args.StartTime, 0),
-		syncer.CurrentTime(),
-		time.Millisecond*time.Duration(args.RoundTime),
-		syncer,
-		0)
+	roundArgs := round.ArgsRound{
+		GenesisTimeStamp:          time.Unix(args.StartTime, 0),
+		SupernovaGenesisTimeStamp: time.Unix(args.StartTime, 0),
+		CurrentTimeStamp:          syncer.CurrentTime(),
+		RoundTimeDuration:         roundTime,
+		SupernovaTimeDuration:     roundTime,
+		SyncTimer:                 syncer,
+		StartRound:                0,
+		SupernovaStartRound:       0,
+		EnableEpochsHandler:       enableEpochsHandler,
+		EnableRoundsHandler:       enableRoundsHandler,
+	}
+	roundHandler, _ := round.NewRound(roundArgs)
 
 	dataPool := dataRetrieverMock.CreatePoolsHolder(1, 0)
 	tcn.DataPool = dataPool
@@ -239,16 +248,21 @@ func (tcn *TestConsensusNode) initNode(args ArgsTestConsensusNode) {
 		argsNewMetaEpochStart := &metachain.ArgsNewMetaEpochStartTrigger{
 			GenesisTime:        time.Unix(args.StartTime, 0),
 			EpochStartNotifier: notifier.NewEpochStartSubscriptionHandler(),
-			Settings: &config.EpochStartConfig{
-				MinRoundsBetweenEpochs: 1,
-				RoundsPerEpoch:         1000,
+			Settings:           &config.EpochStartConfig{},
+			Epoch:              0,
+			Storage:            createTestStore(),
+			Marshalizer:        TestMarshalizer,
+			Hasher:             testHasher,
+			AppStatusHandler:   &statusHandlerMock.AppStatusHandlerStub{},
+			DataPool:           dataPool,
+			ChainParametersHandler: &chainParameters.ChainParametersHandlerStub{
+				ChainParametersForEpochCalled: func(uint32) (config.ChainParametersByEpochConfig, error) {
+					return config.ChainParametersByEpochConfig{
+						RoundsPerEpoch:         1000,
+						MinRoundsBetweenEpochs: 1,
+					}, nil
+				},
 			},
-			Epoch:            0,
-			Storage:          createTestStore(),
-			Marshalizer:      TestMarshalizer,
-			Hasher:           testHasher,
-			AppStatusHandler: &statusHandlerMock.AppStatusHandlerStub{},
-			DataPool:         dataPool,
 		}
 		epochStartTrigger, err := metachain.NewEpochStartTrigger(argsNewMetaEpochStart)
 		if err != nil {
@@ -377,7 +391,9 @@ func (tcn *TestConsensusNode) initNode(args ArgsTestConsensusNode) {
 		cache.NewTimeCache(time.Second),
 		&mock.BlockTrackerStub{},
 		args.StartTime,
+		args.StartTime*1000,
 		enableEpochsHandler,
+		enableRoundsHandler,
 		dataPool.Proofs(),
 	)
 
