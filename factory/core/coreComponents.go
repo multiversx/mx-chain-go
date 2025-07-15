@@ -229,7 +229,7 @@ func (ccf *coreComponentsFactory) Create() (*coreComponents, error) {
 		return nil, err
 	}
 
-	syncer := ntp.NewSyncTime(ccf.config.NTPConfig, nil, genesisRoundDuration)
+	syncer := ntp.NewSyncTime(ccf.config.NTPConfig, nil)
 	syncer.StartSyncingTime()
 	log.Debug("NTP average clock offset", "value", syncer.ClockOffset())
 

@@ -13,7 +13,7 @@ import (
 	"github.com/beevik/ntp"
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/closing"
-	"github.com/multiversx/mx-chain-logger-go"
+	logger "github.com/multiversx/mx-chain-logger-go"
 
 	"github.com/multiversx/mx-chain-go/config"
 )
@@ -40,10 +40,6 @@ const maxOffsetPercent = 0.2
 // minTimeout represents the minimum time in milliseconds to wait for a response from a host after a NTP request
 const minTimeout = 100
 
-// outOfBoundsRoundDurationPercentage specifies the percentage of the round duration
-// that determines the allowable clock offset beyond the defined limits.
-const outOfBoundsRoundDurationPercentage = 20 // 20% * roundDuration
-
 // maxAllowedNTPQueryResponseTimeMS specifies the maximum duration (in milliseconds)
 // allowed for an NTP query. If a query takes longer than this limit, its response will be disregarded.
 const maxAllowedNTPQueryResponseTimeMS = 200
@@ -55,18 +51,6 @@ type NTPOptions struct {
 	LocalAddress string
 	Timeout      time.Duration
 	Port         int
-}
-
-// NewNTPGoogleConfig creates an NTPConfig object that configures NTP to use a predefined list of hosts. This is useful
-// for tests, for example, to avoid loading a configuration file just to have a NTPConfig
-func NewNTPGoogleConfig() config.NTPConfig {
-	return config.NTPConfig{
-		Hosts:               []string{"time.google.com", "time.cloudflare.com", "time.apple.com", "time.windows.com"},
-		Port:                123,
-		Version:             0,
-		TimeoutMilliseconds: 100,
-		SyncPeriodSeconds:   3600,
-	}
 }
 
 // NewNTPOptions creates a new NTPOptions object
@@ -102,13 +86,13 @@ func queryNTP(options NTPOptions, hostIndex int) (*ntp.Response, error) {
 
 // syncTime defines an object for time synchronization
 type syncTime struct {
-	mut           sync.RWMutex
-	clockOffset   time.Duration
-	syncPeriod    time.Duration
-	ntpOptions    NTPOptions
-	query         func(options NTPOptions, hostIndex int) (*ntp.Response, error)
-	cancelFunc    func()
-	roundDuration time.Duration
+	mut                  sync.RWMutex
+	clockOffset          time.Duration
+	syncPeriod           time.Duration
+	ntpOptions           NTPOptions
+	query                func(options NTPOptions, hostIndex int) (*ntp.Response, error)
+	cancelFunc           func()
+	outOfBoundsThreshold time.Duration
 }
 
 // NewSyncTime creates a syncTime object. The customQueryFunc argument allows the caller to set a different NTP-querying
@@ -116,7 +100,6 @@ type syncTime struct {
 func NewSyncTime(
 	ntpConfig config.NTPConfig,
 	customQueryFunc func(options NTPOptions, hostIndex int) (*ntp.Response, error),
-	roundDuration time.Duration,
 ) *syncTime {
 	queryFunc := customQueryFunc
 	if queryFunc == nil {
@@ -124,11 +107,11 @@ func NewSyncTime(
 	}
 
 	s := syncTime{
-		clockOffset:   0,
-		syncPeriod:    time.Duration(ntpConfig.SyncPeriodSeconds) * time.Second,
-		query:         queryFunc,
-		ntpOptions:    NewNTPOptions(ntpConfig),
-		roundDuration: roundDuration,
+		clockOffset:          0,
+		syncPeriod:           time.Duration(ntpConfig.SyncPeriodSeconds) * time.Second,
+		query:                queryFunc,
+		ntpOptions:           NewNTPOptions(ntpConfig),
+		outOfBoundsThreshold: time.Duration(ntpConfig.OutOfBoundsThreshold) * time.Millisecond,
 	}
 
 	return &s
@@ -219,14 +202,11 @@ func (s *syncTime) sync() {
 	clockOffsetsWithoutEdges := s.getClockOffsetsWithoutEdges(clockOffsets)
 	clockOffsetHarmonicMean := s.getHarmonicMean(clockOffsetsWithoutEdges)
 
-	thresholdOutOfBonds := s.roundDuration * time.Duration(outOfBoundsRoundDurationPercentage) / time.Duration(100)
-	isOutOfBounds := core.AbsDuration(clockOffsetHarmonicMean) > thresholdOutOfBonds
+	isOutOfBounds := core.AbsDuration(clockOffsetHarmonicMean) > time.Duration(s.outOfBoundsThreshold)
 	if isOutOfBounds {
 		log.Error("syncTime.sync: clock offset is out of expected bounds",
 			"clock offset harmonic mean", clockOffsetHarmonicMean,
-			"thresholdOutOfBonds", thresholdOutOfBonds,
-			"outOfBoundsRoundDurationPercentage", outOfBoundsRoundDurationPercentage,
-			"roundDuration", s.roundDuration,
+			"outOfBoundsThreshold", s.outOfBoundsThreshold,
 		)
 
 		return
