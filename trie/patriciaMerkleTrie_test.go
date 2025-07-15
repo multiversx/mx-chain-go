@@ -44,18 +44,17 @@ func emptyTrie() common.Trie {
 }
 
 func emptyTrieWithCustomEnableEpochsHandler(handler common.EnableEpochsHandler) common.Trie {
-	storage, marshaller, hasher, _, maxTrieLevelInMem := getDefaultTrieParameters()
+	storage, marshaller, hasher, _ := getDefaultTrieParameters()
 
-	tr, _ := trie.NewTrie(storage, marshaller, hasher, handler, maxTrieLevelInMem)
+	tr, _ := trie.NewTrie(storage, marshaller, hasher, handler)
 	return tr
 }
 
-func getDefaultTrieParameters() (common.StorageManager, marshal.Marshalizer, hashing.Hasher, common.EnableEpochsHandler, uint) {
+func getDefaultTrieParameters() (common.StorageManager, marshal.Marshalizer, hashing.Hasher, common.EnableEpochsHandler) {
 	args := trie.GetDefaultTrieStorageManagerParameters()
 	trieStorageManager, _ := trie.NewTrieStorageManager(args)
-	maxTrieLevelInMemory := uint(1)
 
-	return trieStorageManager, args.Marshalizer, args.Hasher, &enableEpochsHandlerMock.EnableEpochsHandlerStub{}, maxTrieLevelInMemory
+	return trieStorageManager, args.Marshalizer, args.Hasher, &enableEpochsHandlerMock.EnableEpochsHandlerStub{}
 }
 
 func initTrieMultipleValues(nr int) (common.Trie, [][]byte) {
@@ -88,8 +87,8 @@ func addDefaultDataToTrie(tr common.Trie) {
 func TestNewTrieWithNilTrieStorage(t *testing.T) {
 	t.Parallel()
 
-	_, marshalizer, hasher, enableEpochsHandler, maxTrieLevelInMemory := getDefaultTrieParameters()
-	tr, err := trie.NewTrie(nil, marshalizer, hasher, enableEpochsHandler, maxTrieLevelInMemory)
+	_, marshalizer, hasher, enableEpochsHandler := getDefaultTrieParameters()
+	tr, err := trie.NewTrie(nil, marshalizer, hasher, enableEpochsHandler)
 
 	assert.Nil(t, tr)
 	assert.Equal(t, trie.ErrNilTrieStorage, err)
@@ -98,8 +97,8 @@ func TestNewTrieWithNilTrieStorage(t *testing.T) {
 func TestNewTrieWithNilMarshalizer(t *testing.T) {
 	t.Parallel()
 
-	trieStorage, _, hasher, enableEpochsHandler, maxTrieLevelInMemory := getDefaultTrieParameters()
-	tr, err := trie.NewTrie(trieStorage, nil, hasher, enableEpochsHandler, maxTrieLevelInMemory)
+	trieStorage, _, hasher, enableEpochsHandler := getDefaultTrieParameters()
+	tr, err := trie.NewTrie(trieStorage, nil, hasher, enableEpochsHandler)
 
 	assert.Nil(t, tr)
 	assert.Equal(t, trie.ErrNilMarshalizer, err)
@@ -108,8 +107,8 @@ func TestNewTrieWithNilMarshalizer(t *testing.T) {
 func TestNewTrieWithNilHasher(t *testing.T) {
 	t.Parallel()
 
-	trieStorage, marshalizer, _, enableEpochsHandler, maxTrieLevelInMemory := getDefaultTrieParameters()
-	tr, err := trie.NewTrie(trieStorage, marshalizer, nil, enableEpochsHandler, maxTrieLevelInMemory)
+	trieStorage, marshalizer, _, enableEpochsHandler := getDefaultTrieParameters()
+	tr, err := trie.NewTrie(trieStorage, marshalizer, nil, enableEpochsHandler)
 
 	assert.Nil(t, tr)
 	assert.Equal(t, trie.ErrNilHasher, err)
@@ -118,21 +117,11 @@ func TestNewTrieWithNilHasher(t *testing.T) {
 func TestNewTrieWithNilEnableEpochsHandler(t *testing.T) {
 	t.Parallel()
 
-	trieStorage, marshalizer, hasher, _, maxTrieLevelInMemory := getDefaultTrieParameters()
-	tr, err := trie.NewTrie(trieStorage, marshalizer, hasher, nil, maxTrieLevelInMemory)
+	trieStorage, marshalizer, hasher, _ := getDefaultTrieParameters()
+	tr, err := trie.NewTrie(trieStorage, marshalizer, hasher, nil)
 
 	assert.Nil(t, tr)
 	assert.Equal(t, errorsCommon.ErrNilEnableEpochsHandler, err)
-}
-
-func TestNewTrieWithInvalidMaxTrieLevelInMemory(t *testing.T) {
-	t.Parallel()
-
-	trieStorage, marshalizer, hasher, enableEpochsHandler, _ := getDefaultTrieParameters()
-	tr, err := trie.NewTrie(trieStorage, marshalizer, hasher, enableEpochsHandler, 0)
-
-	assert.Nil(t, tr)
-	assert.Equal(t, trie.ErrInvalidLevelValue, err)
 }
 
 func TestPatriciaMerkleTree_Get(t *testing.T) {
@@ -1062,7 +1051,7 @@ func TestPatriciaMerkleTrie_GetSerializedNodesShouldSerializeTheCalls(t *testing
 		},
 	}
 
-	tr, _ := trie.NewTrie(testTrieStorageManager, args.Marshalizer, args.Hasher, &enableEpochsHandlerMock.EnableEpochsHandlerStub{}, 5)
+	tr, _ := trie.NewTrie(testTrieStorageManager, args.Marshalizer, args.Hasher, &enableEpochsHandlerMock.EnableEpochsHandlerStub{})
 	numGoRoutines := 100
 	wg := sync.WaitGroup{}
 	wg.Add(numGoRoutines)
@@ -1484,13 +1473,13 @@ func TestPatriciaMerkleTrie_IsMigrated(t *testing.T) {
 	t.Run("not migrated", func(t *testing.T) {
 		t.Parallel()
 
-		tsm, marshaller, hasher, _, maxTrieInMem := getDefaultTrieParameters()
+		tsm, marshaller, hasher, _ := getDefaultTrieParameters()
 		enableEpochs := &enableEpochsHandlerMock.EnableEpochsHandlerStub{
 			IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
 				return flag == common.AutoBalanceDataTriesFlag
 			},
 		}
-		tr, _ := trie.NewTrie(tsm, marshaller, hasher, enableEpochs, maxTrieInMem)
+		tr, _ := trie.NewTrie(tsm, marshaller, hasher, enableEpochs)
 
 		_ = tr.Update([]byte("dog"), []byte("reindeer"))
 		isMigrated, err := tr.IsMigratedToLatestVersion()
@@ -1501,13 +1490,13 @@ func TestPatriciaMerkleTrie_IsMigrated(t *testing.T) {
 	t.Run("migrated", func(t *testing.T) {
 		t.Parallel()
 
-		tsm, marshaller, hasher, _, maxTrieInMem := getDefaultTrieParameters()
+		tsm, marshaller, hasher, _ := getDefaultTrieParameters()
 		enableEpochs := &enableEpochsHandlerMock.EnableEpochsHandlerStub{
 			IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
 				return flag == common.AutoBalanceDataTriesFlag
 			},
 		}
-		tr, _ := trie.NewTrie(tsm, marshaller, hasher, enableEpochs, maxTrieInMem)
+		tr, _ := trie.NewTrie(tsm, marshaller, hasher, enableEpochs)
 
 		_ = tr.UpdateWithVersion([]byte("dog"), []byte("reindeer"), core.AutoBalanceEnabled)
 		isMigrated, err := tr.IsMigratedToLatestVersion()
@@ -1547,6 +1536,53 @@ func TestGetNodeDataFromHash(t *testing.T) {
 	assert.Equal(t, uint64(hashSize+keySize), thirdChildData.Size())
 	assert.False(t, thirdChildData.IsLeaf())
 
+}
+
+func TestPatriciaMerkleTree_SizeInMemory(t *testing.T) {
+	t.Parallel()
+
+	tr := emptyTrie()
+	assert.Equal(t, 0, tr.SizeInMemory())
+	addDefaultDataToTrie(tr)
+
+	assert.Equal(t, 779, tr.SizeInMemory()) // 3 leaves + 2 branch nodes + 1 extension node
+	err := tr.Commit()
+	assert.Nil(t, err)
+	assert.Equal(t, 596, tr.SizeInMemory()) // leaves are collapsed
+
+	err = tr.Delete([]byte("dog"))
+	assert.Nil(t, err)
+	assert.Equal(t, 313, tr.SizeInMemory()) // 1 branch node + 2 leaves
+
+	err = tr.Commit()
+	assert.Nil(t, err)
+	assert.Equal(t, 249, tr.SizeInMemory()) // collapse leaf
+
+	err = tr.Update([]byte("dog"), []byte("puppy"))
+	assert.Nil(t, err)
+	assert.Equal(t, 712, tr.SizeInMemory())
+
+	rootHash, err := tr.RootHash()
+	assert.Nil(t, err)
+	newTrie, err := tr.Recreate(holders.NewDefaultRootHashesHolder(rootHash))
+	assert.Nil(t, err)
+	assert.Equal(t, 249, newTrie.SizeInMemory()) // only root node is in memory
+
+	val, depth, err := newTrie.Get([]byte("dog"))
+	assert.Nil(t, err)
+	assert.Equal(t, []byte("puppy"), val)
+	assert.Equal(t, uint32(3), depth)
+	assert.Equal(t, 654, newTrie.SizeInMemory())
+
+	val, depth, err = newTrie.Get([]byte("dog"))
+	assert.Nil(t, err)
+	assert.Equal(t, []byte("puppy"), val)
+	assert.Equal(t, uint32(3), depth)
+	assert.Equal(t, 654, newTrie.SizeInMemory())
+
+	err = tr.Delete([]byte("doe")) // delete collapsed node
+	assert.Nil(t, err)
+	assert.Equal(t, 464, tr.SizeInMemory())
 }
 
 func BenchmarkPatriciaMerkleTree_Insert(b *testing.B) {

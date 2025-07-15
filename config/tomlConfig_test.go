@@ -156,8 +156,6 @@ func TestTomlParser(t *testing.T) {
 			SnapshotsEnabled:            true,
 			AccountsStatePruningEnabled: true,
 			PeerStatePruningEnabled:     true,
-			MaxStateTrieLevelInMemory:   38,
-			MaxPeerTrieLevelInMemory:    39,
 		},
 		Redundancy: RedundancyConfig{
 			MaxRoundsOfInactivityAccepted: 3,
@@ -261,8 +259,6 @@ func TestTomlParser(t *testing.T) {
     SnapshotsEnabled = true
     AccountsStatePruningEnabled = true
     PeerStatePruningEnabled = true
-    MaxStateTrieLevelInMemory = 38
-    MaxPeerTrieLevelInMemory = 39
 
 [Redundancy]
     # MaxRoundsOfInactivityAccepted defines the number of rounds missed by a main or higher level backup machine before

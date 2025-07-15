@@ -531,7 +531,6 @@ func (ccf *consensusComponentsFactory) createArgsBaseAccountsSyncer(trieStorageM
 		RequestHandler:                    ccf.processComponents.RequestHandler(),
 		Timeout:                           common.TimeoutGettingTrieNodes,
 		Cacher:                            ccf.dataComponents.Datapool().TrieNodes(),
-		MaxTrieLevelInMemory:              ccf.config.StateTriesConfig.MaxStateTrieLevelInMemory,
 		MaxHardCapForMissingNodes:         ccf.config.TrieSync.MaxHardCapForMissingNodes,
 		TrieSyncerVersion:                 ccf.config.TrieSync.TrieSyncerVersion,
 		CheckNodesOnDisk:                  ccf.config.TrieSync.CheckNodesOnDisk,
