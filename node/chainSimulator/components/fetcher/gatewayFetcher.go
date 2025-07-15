@@ -99,6 +99,11 @@ func (df *dataFetcher) FetchAccount(address []byte, newAccount vmcommon.AccountH
 	userAccount.SetCode(codeBytes)
 	userAccount.SetCodeHash(accountFromGateway.CodeHash)
 	userAccount.SetCodeMetadata(accountFromGateway.CodeMetadata)
+	if accountFromGateway.OwnerAddress != "" {
+		ownerBytes, _ := df.addressConverter.Decode(accountFromGateway.OwnerAddress)
+
+		userAccount.SetOwnerAddress(ownerBytes)
+	}
 
 	err = userAccount.SaveKeyValue([]byte(dummyKey), []byte(dummyKey))
 	if err != nil {
