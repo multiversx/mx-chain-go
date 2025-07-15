@@ -13,34 +13,6 @@ import (
 	"github.com/multiversx/mx-chain-go/process"
 )
 
-// MiniBlocksSelectionSession defines the interface for a session that manages the selection of mini blocks
-type MiniBlocksSelectionSession interface {
-	// GetMiniBlockHeaderHandlers returns the mini block header handlers
-	GetMiniBlockHeaderHandlers() []data.MiniBlockHeaderHandler
-	// GetMiniBlocks returns the mini blocks
-	GetMiniBlocks() block.MiniBlockSlice
-	// GetReferencedMetaBlockHashes returns the hashes of the referenced meta blocks
-	GetReferencedMetaBlockHashes() [][]byte
-	// AddReferencedMetaBlock adds a meta block and its hash to the session
-	AddReferencedMetaBlock(metaBlock data.HeaderHandler, metaBlockHash []byte)
-	// GetReferencedMetaBlocks returns the referenced meta blocks
-	GetReferencedMetaBlocks() []data.HeaderHandler
-	// GetLastMetaBlock returns the last meta block
-	GetLastMetaBlock() data.HeaderHandler
-	// GetGasProvided returns the gas provided for the mini blocks
-	GetGasProvided() uint64
-	// GetNumTxsAdded returns the number of transactions added to the mini blocks
-	GetNumTxsAdded() uint32
-	// AddMiniBlocksAndHashes adds a slice of mini blocks and their hashes to the session
-	AddMiniBlocksAndHashes(miniBlocksAndHashes []block.MiniblockAndHash) error
-	// CreateAndAddMiniBlockFromTransactions adds a mini block created from transactions to the session
-	CreateAndAddMiniBlockFromTransactions(txHashes [][]byte) error
-	// ResetSelectionSession resets the selection session
-	ResetSelectionSession()
-	// IsInterfaceNil checks if the interface is nil
-	IsInterfaceNil() bool
-}
-
 type miniBlocksSelectionConfig struct {
 	shardID    uint32
 	marshaller marshal.Marshalizer
@@ -261,6 +233,7 @@ func (s *miniBlocksSelectionSession) AddMiniBlocksAndHashes(miniBlocksAndHashes 
 	return nil
 }
 
+// CreateAndAddMiniBlockFromTransactions creates a mini block from the provided transaction hashes
 func (s *miniBlocksSelectionSession) CreateAndAddMiniBlockFromTransactions(txHashes [][]byte) error {
 	if len(txHashes) == 0 {
 		return nil
