@@ -1,2 +1,6 @@
 ignore:
-  - "**/*.pb.go"       # wildcards accepted
+    - "**/*.pb.go"
+    - "integrationTests/**"
+    - "testscommon/**"
+    - "**/mock/**"
+    - "**/disabled*.go"
