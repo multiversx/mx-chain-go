@@ -74,8 +74,8 @@ func (txCoordinator *TxCoordinator) CreateBlockStarted() {
 func (txCoordinator *TxCoordinator) CreateMbsCrossShardDstMe(
 	_ data.HeaderHandler,
 	_ map[string]*processedMb.ProcessedMiniBlockInfo,
-) (block.MiniBlockSlice, uint32, bool, error) {
-	return make(block.MiniBlockSlice, 0), 0, false, nil
+) ([]block.MiniblockAndHash, uint32, bool, error) {
+	return make([]block.MiniblockAndHash, 0), 0, false, nil
 }
 
 // CreateMbsAndProcessCrossShardTransactionsDstMe does nothing as it is disabled
