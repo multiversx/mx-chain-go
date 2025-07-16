@@ -232,10 +232,13 @@ func (g *governanceContract) changeConfig(args *vmcommon.ContractCallInput) vmco
 		g.eei.AddReturnMessage("changeConfig needs 5 arguments")
 		return vmcommon.UserError
 	}
-	err := g.eei.UseGas(g.gasCost.MetaChainSystemSCsCost.ChangeConfig)
-	if err != nil {
-		g.eei.AddReturnMessage("not enough gas")
-		return vmcommon.OutOfGas
+
+	if g.enableEpochsHandler.IsFlagEnabled(common.GovernanceFixesFlag) {
+		err := g.eei.UseGas(g.gasCost.MetaChainSystemSCsCost.ChangeConfig)
+		if err != nil {
+			g.eei.AddReturnMessage("not enough gas")
+			return vmcommon.OutOfGas
+		}
 	}
 
 	proposalFee, okConvert := big.NewInt(0).SetString(string(args.Arguments[0]), conversionBase)
@@ -244,7 +247,7 @@ func (g *governanceContract) changeConfig(args *vmcommon.ContractCallInput) vmco
 		return vmcommon.UserError
 	}
 	lostProposalFee, okConvert := big.NewInt(0).SetString(string(args.Arguments[1]), conversionBase)
-	if !okConvert || proposalFee.Cmp(zero) <= 0 {
+	if !okConvert || lostProposalFee.Cmp(zero) <= 0 {
 		g.eei.AddReturnMessage("changeConfig second argument is incorrectly formatted")
 		return vmcommon.UserError
 	}
@@ -267,6 +270,10 @@ func (g *governanceContract) changeConfig(args *vmcommon.ContractCallInput) vmco
 	minPass, err := convertDecimalToPercentage(args.Arguments[4])
 	if err != nil {
 		g.eei.AddReturnMessage(err.Error() + " minPass")
+		return vmcommon.UserError
+	}
+	if g.enableEpochsHandler.IsFlagEnabled(common.GovernanceFixesFlag) && minPass < 0.5 {
+		g.eei.AddReturnMessage("min pass should be higher than 50%")
 		return vmcommon.UserError
 	}
 
@@ -380,6 +387,10 @@ func (g *governanceContract) proposal(args *vmcommon.ContractCallInput) vmcommon
 //	args.Arguments[0] - reference - nonce as string
 //	args.Arguments[1] - vote option (yes, no, veto, abstain)
 func (g *governanceContract) vote(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+	if g.enableEpochsHandler.IsFlagEnabled(common.GovernanceDisableProposeFlag) && !g.enableEpochsHandler.IsFlagEnabled(common.GovernanceFixesFlag) {
+		g.eei.AddReturnMessage("governance module is disabled")
+		return vmcommon.UserError
+	}
 	if args.CallValue.Cmp(zero) != 0 {
 		g.eei.AddReturnMessage("function is not payable")
 		return vmcommon.UserError
@@ -399,7 +410,11 @@ func (g *governanceContract) vote(args *vmcommon.ContractCallInput) vmcommon.Ret
 	}
 
 	voterAddress := args.CallerAddr
-	proposalToVote := args.Arguments[0]
+	proposalToVote := big.NewInt(0).SetBytes(args.Arguments[0]).Bytes()
+	if !g.enableEpochsHandler.IsFlagEnabled(common.GovernanceFixesFlag) {
+		proposalToVote = args.Arguments[0]
+	}
+
 	totalStake, totalVotingPower, err := g.computeTotalStakeAndVotingPower(voterAddress)
 	if err != nil {
 		g.eei.AddReturnMessage(err.Error())
@@ -436,6 +451,10 @@ func (g *governanceContract) vote(args *vmcommon.ContractCallInput) vmcommon.Ret
 //	args.Arguments[2] - delegatedTo
 //	args.Arguments[3] - balance to vote
 func (g *governanceContract) delegateVote(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+	if g.enableEpochsHandler.IsFlagEnabled(common.GovernanceDisableProposeFlag) && !g.enableEpochsHandler.IsFlagEnabled(common.GovernanceFixesFlag) {
+		g.eei.AddReturnMessage("governance module is disabled")
+		return vmcommon.UserError
+	}
 	if len(args.Arguments) != 4 {
 		g.eei.AddReturnMessage("invalid number of arguments")
 		return vmcommon.UserError
@@ -459,9 +478,17 @@ func (g *governanceContract) delegateVote(args *vmcommon.ContractCallInput) vmco
 		return vmcommon.UserError
 	}
 
-	proposalToVote := args.Arguments[0]
-	userStake := big.NewInt(0).SetBytes(args.Arguments[3])
+	proposalToVote := big.NewInt(0).SetBytes(args.Arguments[0]).Bytes()
+	if !g.enableEpochsHandler.IsFlagEnabled(common.GovernanceFixesFlag) {
+		proposalToVote = args.Arguments[0]
+	}
 
+	if g.enableEpochsHandler.IsFlagEnabled(common.GovernanceFixesFlag) && len(args.Arguments[3]) > 18 {
+		g.eei.AddReturnMessage("too long argument for user stake")
+		return vmcommon.UserError
+	}
+
+	userStake := big.NewInt(0).SetBytes(args.Arguments[3])
 	scDelegatedVoteInfo, votePower, err := g.computeDelegatedVotePower(args.CallerAddr, proposalToVote, userStake)
 	if err != nil {
 		g.eei.AddReturnMessage(err.Error())
@@ -505,6 +532,11 @@ func (g *governanceContract) computeDelegatedVotePower(
 	scVoteInfo, err := g.getDelegatedContractInfo(scAddress, reference)
 	if err != nil {
 		return nil, nil, err
+	}
+
+	if g.enableEpochsHandler.IsFlagEnabled(common.GovernanceFixesFlag) &&
+		scVoteInfo.TotalStake.Cmp(zero) == 0 {
+		return nil, nil, vm.ErrDivisionByZero
 	}
 
 	totalPower := big.NewInt(0).Set(scVoteInfo.TotalPower)
@@ -679,12 +711,18 @@ func (g *governanceContract) closeProposal(args *vmcommon.ContractCallInput) vmc
 		g.eei.AddReturnMessage("proposal is already closed, do nothing")
 		return vmcommon.UserError
 	}
-	if !g.enableEpochsHandler.IsFlagEnabled(common.GovernanceFixesFlag) && !bytes.Equal(generalProposal.IssuerAddress, args.CallerAddr) {
+	isCallerTheIssuer := bytes.Equal(generalProposal.IssuerAddress, args.CallerAddr)
+	if !g.enableEpochsHandler.IsFlagEnabled(common.GovernanceFixesFlag) && !isCallerTheIssuer {
 		g.eei.AddReturnMessage("only the issuer can close the proposal")
 		return vmcommon.UserError
 	}
 
 	currentEpoch := uint64(g.eei.BlockChainHook().CurrentEpoch())
+	if !isCallerTheIssuer && currentEpoch < generalProposal.StartVoteEpoch {
+		g.eei.AddReturnMessage("only the issuer can close the proposal before start vote epoch")
+		return vmcommon.UserError
+	}
+
 	if g.cannotClose(currentEpoch, generalProposal) {
 		g.eei.AddReturnMessage(fmt.Sprintf("proposal can be closed only after epoch %d", generalProposal.EndVoteEpoch))
 		return vmcommon.UserError
@@ -740,6 +778,11 @@ func (g *governanceContract) cannotClose(currentEpoch uint64, proposal *GeneralP
 }
 
 func (g *governanceContract) clearEndedProposals(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+	if !g.enableEpochsHandler.IsFlagEnabled(common.GovernanceFixesFlag) {
+		g.eei.AddReturnMessage("invalid method to call")
+		return vmcommon.FunctionNotFound
+	}
+
 	if args.CallValue.Cmp(zero) != 0 {
 		g.eei.AddReturnMessage("clearEndedProposals callValue expected to be 0")
 		return vmcommon.UserError
@@ -877,9 +920,10 @@ func (g *governanceContract) viewConfig(args *vmcommon.ContractCallInput) vmcomm
 	}
 
 	g.eei.Finish([]byte(gConfig.ProposalFee.String()))
+	g.eei.Finish([]byte(gConfig.LostProposalFee.String()))
 	g.eei.Finish([]byte(fmt.Sprintf("%.4f", gConfig.MinQuorum)))
-	g.eei.Finish([]byte(fmt.Sprintf("%.4f", gConfig.MinPassThreshold)))
 	g.eei.Finish([]byte(fmt.Sprintf("%.4f", gConfig.MinVetoThreshold)))
+	g.eei.Finish([]byte(fmt.Sprintf("%.4f", gConfig.MinPassThreshold)))
 	g.eei.Finish([]byte(big.NewInt(int64(gConfig.LastProposalNonce)).String()))
 
 	return vmcommon.Ok
@@ -1036,7 +1080,7 @@ func (g *governanceContract) computeEndResults(currentEpoch uint64, proposal *Ge
 	voteStarted := currentEpoch >= proposal.StartVoteEpoch
 	if g.enableEpochsHandler.IsFlagEnabled(common.GovernanceFixesFlag) && !voteStarted {
 		g.eei.Finish([]byte("Proposal closed before voting started"))
-		return true
+		return false
 	}
 
 	totalVotes := big.NewInt(0).Add(proposal.Yes, proposal.No)
@@ -1255,7 +1299,7 @@ func (g *governanceContract) saveGeneralProposal(reference []byte, generalPropos
 	return nil
 }
 
-// getValidProposal returns a proposal from storage if it exists, or it is still valid/in-progress
+// getValidProposal returns a proposal from storage if it exists and it is still valid/in-progress
 func (g *governanceContract) getValidProposal(nonce *big.Int) (*GeneralProposal, error) {
 	proposal, err := g.getProposalFromNonce(nonce)
 	if err != nil {
@@ -1268,6 +1312,10 @@ func (g *governanceContract) getValidProposal(nonce *big.Int) (*GeneralProposal,
 	}
 
 	if currentEpoch > proposal.EndVoteEpoch {
+		return nil, vm.ErrVotedForAnExpiredProposal
+	}
+
+	if proposal.Closed && g.enableEpochsHandler.IsFlagEnabled(common.GovernanceFixesFlag) {
 		return nil, vm.ErrVotedForAnExpiredProposal
 	}
 
