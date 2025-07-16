@@ -27,6 +27,7 @@ import (
 	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/cache"
+	"github.com/multiversx/mx-chain-go/testscommon/chainParameters"
 	dataRetrieverMock "github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
 	"github.com/multiversx/mx-chain-go/testscommon/dblookupext"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
@@ -505,7 +506,6 @@ func createDefaultRoundArgs() round.ArgsRound {
 		SyncTimer:                 &mock.SyncTimerMock{},
 		StartRound:                0,
 		SupernovaStartRound:       0,
-		EnableEpochsHandler:       &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 		EnableRoundsHandler:       &testscommon.EnableRoundsHandlerStub{},
 	}
 }
@@ -972,6 +972,7 @@ func TestMetaBootstrap_GetNodeStateShouldReturnNotSynchronizedWhenForkIsDetected
 		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 		&testscommon.EnableRoundsHandlerStub{},
 		&dataRetrieverMock.ProofsPoolMock{},
+		&chainParameters.ChainParametersHandlerStub{},
 	)
 
 	bs, _ := sync.NewMetaBootstrap(args)
@@ -1041,6 +1042,7 @@ func TestMetaBootstrap_GetNodeStateShouldReturnSynchronizedWhenForkIsDetectedAnd
 		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 		&testscommon.EnableRoundsHandlerStub{},
 		&dataRetrieverMock.ProofsPoolMock{},
+		&chainParameters.ChainParametersHandlerStub{},
 	)
 
 	bs, _ := sync.NewMetaBootstrap(args)

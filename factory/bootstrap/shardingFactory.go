@@ -257,7 +257,8 @@ func CreateNodesShuffleOut(
 	}
 
 	roundsPerEpoch := chainParametersHandler.CurrentChainParameters().RoundsPerEpoch
-	epochDuration := int64(nodesConfig.GetRoundDuration()) * roundsPerEpoch
+	roundDuration := chainParametersHandler.CurrentChainParameters().RoundDuration
+	epochDuration := int64(roundDuration) * roundsPerEpoch
 	minDurationBeforeStopProcess := int64(minThresholdEpochDuration * float64(epochDuration))
 	maxDurationBeforeStopProcess := int64(maxThresholdEpochDuration * float64(epochDuration))
 

@@ -433,6 +433,7 @@ type TestProcessorNode struct {
 	HardforkTrigger         node.HardforkTrigger
 	AppStatusHandler        core.AppStatusHandler
 	StatusMetrics           external.StatusMetricsHandler
+	ChainParametersHandler  common.ChainParametersHandler
 }
 
 // CreatePkBytes creates 'numShards' public key-like byte slices
@@ -2243,7 +2244,9 @@ func (tpn *TestProcessorNode) initBlockProcessor() {
 			tpn.NodesSetup.GetStartTime()*1000,
 			tpn.EnableEpochsHandler,
 			tpn.EnableRoundsHandler,
-			tpn.DataPool.Proofs())
+			tpn.DataPool.Proofs(),
+			coreComponents.ChainParametersHandler(),
+		)
 	} else {
 		tpn.ForkDetector, _ = processSync.NewMetaForkDetector(
 			tpn.RoundHandler,
@@ -2253,7 +2256,9 @@ func (tpn *TestProcessorNode) initBlockProcessor() {
 			tpn.NodesSetup.GetStartTime()*1000,
 			tpn.EnableEpochsHandler,
 			tpn.EnableRoundsHandler,
-			tpn.DataPool.Proofs())
+			tpn.DataPool.Proofs(),
+			coreComponents.ChainParametersHandler(),
+		)
 	}
 
 	bootstrapComponents := getDefaultBootstrapComponents(tpn.ShardCoordinator, tpn.EnableEpochsHandler)

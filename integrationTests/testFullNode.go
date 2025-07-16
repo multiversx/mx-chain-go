@@ -190,14 +190,7 @@ func (tfn *TestFullNode) initNodesCoordinator(
 	cache storage.Cacher,
 ) {
 	argumentsNodesCoordinator := nodesCoordinator.ArgNodesCoordinator{
-		ChainParametersHandler: &chainParameters.ChainParametersHandlerStub{
-			ChainParametersForEpochCalled: func(_ uint32) (config.ChainParametersByEpochConfig, error) {
-				return config.ChainParametersByEpochConfig{
-					ShardConsensusGroupSize:     uint32(consensusSize),
-					MetachainConsensusGroupSize: uint32(consensusSize),
-				}, nil
-			},
-		},
+		ChainParametersHandler:          tfn.ChainParametersHandler,
 		Marshalizer:                     TestMarshalizer,
 		Hasher:                          hasher,
 		Shuffler:                        &shardingMocks.NodeShufflerMock{},
@@ -253,7 +246,6 @@ func (tpn *TestFullNode) initTestNodeWithArgs(args ArgTestProcessorNode, fullArg
 		SyncTimer:                 syncer,
 		StartRound:                0,
 		SupernovaStartRound:       0,
-		EnableEpochsHandler:       tpn.EnableEpochsHandler,
 		EnableRoundsHandler:       tpn.EnableRoundsHandler,
 	}
 	roundHandler, _ := round.NewRound(roundArgs)
@@ -267,6 +259,17 @@ func (tpn *TestFullNode) initTestNodeWithArgs(args ArgTestProcessorNode, fullArg
 		tpn.initAccountDBsWithPruningStorer()
 	} else {
 		tpn.initAccountDBs(args.TrieStore)
+	}
+
+	tpn.ChainParametersHandler = &chainParameters.ChainParametersHandlerStub{
+		ChainParametersForEpochCalled: func(_ uint32) (config.ChainParametersByEpochConfig, error) {
+			return config.ChainParametersByEpochConfig{
+				ShardConsensusGroupSize:     uint32(fullArgs.ConsensusSize),
+				MetachainConsensusGroupSize: uint32(fullArgs.ConsensusSize),
+				RoundsPerEpoch:              1000,
+				MinRoundsBetweenEpochs:      1,
+			}, nil
+		},
 	}
 
 	economicsConfig := args.EconomicsConfig
@@ -622,7 +625,9 @@ func (tfn *TestFullNode) createForkDetector(
 			tfn.GenesisTimeField.UnixMilli(),
 			tfn.EnableEpochsHandler,
 			tfn.EnableRoundsHandler,
-			tfn.DataPool.Proofs())
+			tfn.DataPool.Proofs(),
+			tfn.ChainParametersHandler,
+		)
 	} else {
 		forkDetector, err = processSync.NewMetaForkDetector(
 			roundHandler,
@@ -632,7 +637,9 @@ func (tfn *TestFullNode) createForkDetector(
 			tfn.GenesisTimeField.UnixMilli(),
 			tfn.EnableEpochsHandler,
 			tfn.EnableRoundsHandler,
-			tfn.DataPool.Proofs())
+			tfn.DataPool.Proofs(),
+			tfn.ChainParametersHandler,
+		)
 	}
 	if err != nil {
 		log.Error("error creating fork detector", "error", err)
@@ -646,23 +653,16 @@ func (tfn *TestFullNode) createEpochStartTrigger(startTime int64) TestEpochStart
 	var epochTrigger TestEpochStartTrigger
 	if tfn.ShardCoordinator.SelfId() == core.MetachainShardId {
 		argsNewMetaEpochStart := &metachain.ArgsNewMetaEpochStartTrigger{
-			GenesisTime:        tfn.GenesisTimeField,
-			EpochStartNotifier: notifier.NewEpochStartSubscriptionHandler(),
-			Settings:           &config.EpochStartConfig{},
-			Epoch:              0,
-			Storage:            createTestStore(),
-			Marshalizer:        TestMarshalizer,
-			Hasher:             TestHasher,
-			AppStatusHandler:   &statusHandlerMock.AppStatusHandlerStub{},
-			DataPool:           tfn.DataPool,
-			ChainParametersHandler: &chainParameters.ChainParametersHandlerStub{
-				ChainParametersForEpochCalled: func(uint32) (config.ChainParametersByEpochConfig, error) {
-					return config.ChainParametersByEpochConfig{
-						RoundsPerEpoch:         1000,
-						MinRoundsBetweenEpochs: 1,
-					}, nil
-				},
-			},
+			GenesisTime:            tfn.GenesisTimeField,
+			EpochStartNotifier:     notifier.NewEpochStartSubscriptionHandler(),
+			Settings:               &config.EpochStartConfig{},
+			Epoch:                  0,
+			Storage:                createTestStore(),
+			Marshalizer:            TestMarshalizer,
+			Hasher:                 TestHasher,
+			AppStatusHandler:       &statusHandlerMock.AppStatusHandlerStub{},
+			DataPool:               tfn.DataPool,
+			ChainParametersHandler: tfn.ChainParametersHandler,
 		}
 		epochStartTrigger, err := metachain.NewEpochStartTrigger(argsNewMetaEpochStart)
 		if err != nil {
