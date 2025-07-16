@@ -761,6 +761,9 @@ const (
 	// MetricBarnardOpcodesEnableEpoch represents the epoch when Barnard opcodes will be enabled
 	MetricBarnardOpcodesEnableEpoch = "erd_barnard_opcodes_enable_epoch"
 
+	// MetricFixGetBalanceEnableEpoch represents the epoch when get balance opcode fix is enabled
+	MetricFixGetBalanceEnableEpoch = "erd_fix_get_balance_enable_epoch"
+
 	// MetricValidationOnGobDecodeEnableEpoch represents the epoch when validation on GobDecode will be taken into account
 	MetricValidationOnGobDecodeEnableEpoch = "erd_validation_on_gobdecode_enable_epoch"
 
@@ -1173,8 +1176,8 @@ const (
 	ESDTFlag                                            core.EnableEpochFlag = "ESDTFlag"
 	ESDTFlagInSpecificEpochOnly                         core.EnableEpochFlag = "ESDTFlagInSpecificEpochOnly"
 	GovernanceFlag                                      core.EnableEpochFlag = "GovernanceFlag"
-	GovernanceDisableProposeFlag                       core.EnableEpochFlag = "GovernanceDisableProposeFlag"
-	GovernanceFixesFlag                                core.EnableEpochFlag = "GovernanceFixesFlag"
+	GovernanceDisableProposeFlag                        core.EnableEpochFlag = "GovernanceDisableProposeFlag"
+	GovernanceFixesFlag                                 core.EnableEpochFlag = "GovernanceFixesFlag"
 	GovernanceFlagInSpecificEpochOnly                   core.EnableEpochFlag = "GovernanceFlagInSpecificEpochOnly"
 	DelegationManagerFlag                               core.EnableEpochFlag = "DelegationManagerFlag"
 	DelegationSmartContractFlag                         core.EnableEpochFlag = "DelegationSmartContractFlag"
@@ -1285,5 +1288,6 @@ const (
 	ValidationOnGobDecodeFlag                           core.EnableEpochFlag = "ValidationOnGobDecodeFlag"
 	BarnardOpcodesFlag                                  core.EnableEpochFlag = "BarnardOpcodesFlag"
 	AutomaticActivationOfNodesDisableFlag               core.EnableEpochFlag = "AutomaticActivationOfNodesDisableFlag"
+	FixGetBalanceFlag                                   core.EnableEpochFlag = "FixGetBalanceFlag"
 	// all new flags must be added to createAllFlagsMap method, as part of enableEpochsHandler allFlagsDefined
 )
