@@ -433,6 +433,7 @@ type TestProcessorNode struct {
 	HardforkTrigger         node.HardforkTrigger
 	AppStatusHandler        core.AppStatusHandler
 	StatusMetrics           external.StatusMetricsHandler
+	ChainParametersHandler  common.ChainParametersHandler
 }
 
 // CreatePkBytes creates 'numShards' public key-like byte slices
