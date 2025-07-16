@@ -35,14 +35,16 @@ func (virtualSession *virtualSelectionSession) getRecord(address []byte) (*virtu
 
 	initialNonce := account.GetNonce()
 	initialBalance := account.GetBalance()
-
-	return newVirtualAccountRecord(
+	virtualRecord = newVirtualAccountRecord(
 		core.OptionalUint64{
 			Value:    initialNonce,
 			HasValue: true,
 		},
 		initialBalance,
-	), nil
+	)
+
+	virtualSession.virtualAccountsByAddress[string(address)] = virtualRecord
+	return virtualRecord, nil
 }
 
 func (virtualSession *virtualSelectionSession) getNonce(address []byte) (uint64, error) {
