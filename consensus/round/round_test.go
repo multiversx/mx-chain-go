@@ -77,6 +77,7 @@ func TestRound_UpdateRoundShouldNotChangeAnything(t *testing.T) {
 
 	args := createDefaultRoundArgs()
 	args.GenesisTimeStamp = genesisTime
+	args.SupernovaGenesisTimeStamp = genesisTime.Add(10 * roundTimeDuration)
 
 	rnd, _ := round.NewRound(args)
 	oldIndex := rnd.Index()
@@ -415,6 +416,7 @@ func TestRound_RevertOneRound(t *testing.T) {
 
 	args := createDefaultRoundArgs()
 	args.GenesisTimeStamp = genesisTime
+	args.SupernovaGenesisTimeStamp = genesisTime.Add(10 * roundTimeDuration)
 	args.SyncTimer = syncTimerMock
 	args.StartRound = startRound
 
@@ -437,6 +439,7 @@ func TestRound_BeforeGenesis(t *testing.T) {
 	startRound := int64(-1)
 	args := createDefaultRoundArgs()
 	args.GenesisTimeStamp = genesisTime
+	args.SupernovaGenesisTimeStamp = genesisTime.Add(10 * roundTimeDuration)
 	args.SyncTimer = syncTimerMock
 	args.StartRound = startRound
 
