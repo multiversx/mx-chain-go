@@ -102,7 +102,7 @@ func TestRound_UpdateRoundShouldAdvanceOneRound(t *testing.T) {
 
 		args := createDefaultRoundArgs()
 		args.EnableRoundsHandler = &testscommon.EnableRoundsHandlerStub{
-			IsFlagEnabledCalled: func(flag common.EnableRoundFlag) bool {
+			IsFlagEnabledInRoundCalled: func(flag common.EnableRoundFlag, round uint64) bool {
 				return flag != common.SupernovaRoundFlag
 			},
 		}
@@ -123,28 +123,6 @@ func TestRound_UpdateRoundShouldAdvanceOneRound(t *testing.T) {
 
 		genesisTime := time.Now()
 
-		args := createDefaultRoundArgs()
-		args.EnableRoundsHandler = &testscommon.EnableRoundsHandlerStub{
-			IsFlagEnabledCalled: func(flag common.EnableRoundFlag) bool {
-				return flag == common.SupernovaRoundFlag
-			},
-		}
-
-		args.SupernovaGenesisTimeStamp = genesisTime
-
-		rnd, _ := round.NewRound(args)
-		oldIndex := rnd.Index()
-		rnd.UpdateRound(genesisTime, genesisTime.Add(roundTimeDuration))
-		newIndex := rnd.Index()
-
-		assert.Equal(t, oldIndex, newIndex-1)
-	})
-
-	t.Run("after supernova, without flag activated, but after supernova genesis time", func(t *testing.T) {
-		t.Parallel()
-
-		genesisTime := time.Now()
-
 		roundDuration := 10 * time.Millisecond
 
 		supernovaRoundDuration := 5 * time.Millisecond
@@ -154,7 +132,11 @@ func TestRound_UpdateRoundShouldAdvanceOneRound(t *testing.T) {
 		args := createDefaultRoundArgs()
 		args.RoundTimeDuration = roundDuration
 		args.SupernovaTimeDuration = supernovaRoundDuration
-		args.EnableRoundsHandler = &testscommon.EnableRoundsHandlerStub{}
+		args.EnableRoundsHandler = &testscommon.EnableRoundsHandlerStub{
+			IsFlagEnabledInRoundCalled: func(flag common.EnableRoundFlag, round uint64) bool {
+				return flag == common.SupernovaRoundFlag && round >= uint64(supernovaStartRond)
+			},
+		}
 
 		args.SupernovaStartRound = supernovaStartRond
 		args.GenesisTimeStamp = genesisTime
@@ -170,6 +152,7 @@ func TestRound_UpdateRoundShouldAdvanceOneRound(t *testing.T) {
 
 		index0 := rnd.Index()
 		timestamp0 := rnd.TimeStamp()
+		assert.Equal(t, roundDuration, rnd.TimeDuration())
 
 		rnd.UpdateRound(genesisTime, supernovaGenesisTime)
 
@@ -178,6 +161,7 @@ func TestRound_UpdateRoundShouldAdvanceOneRound(t *testing.T) {
 
 		diffTime := timestamp1.Sub(timestamp0)
 
+		assert.Equal(t, supernovaRoundDuration, rnd.TimeDuration())
 		assert.Equal(t, index0, index1-1)
 		assert.Equal(t, int64(5), index1)
 		assert.Equal(t, roundDuration, diffTime)
@@ -189,9 +173,84 @@ func TestRound_UpdateRoundShouldAdvanceOneRound(t *testing.T) {
 
 		diffTime2 := timestamp2.Sub(timestamp1)
 
+		assert.Equal(t, supernovaRoundDuration, rnd.TimeDuration())
 		assert.Equal(t, index1, index2-1)
 		assert.Equal(t, int64(6), index2)
 		assert.Equal(t, supernovaRoundDuration, diffTime2)
+	})
+
+	t.Run("after supernova, without flag activated at start, but in supernova genesis time", func(t *testing.T) {
+		t.Parallel()
+
+		genesisTime := time.Now()
+
+		roundDuration := 10 * time.Millisecond
+
+		supernovaRoundDuration := 5 * time.Millisecond
+		supernovaStartRond := int64(5)
+		supernovaGenesisTime := genesisTime.Add(time.Duration(supernovaStartRond) * roundDuration)
+
+		args := createDefaultRoundArgs()
+		args.RoundTimeDuration = roundDuration
+		args.SupernovaTimeDuration = supernovaRoundDuration
+		args.EnableRoundsHandler = &testscommon.EnableRoundsHandlerStub{
+			IsFlagEnabledInRoundCalled: func(flag common.EnableRoundFlag, round uint64) bool {
+				return flag == common.SupernovaRoundFlag && round >= uint64(supernovaStartRond)
+			},
+		}
+
+		args.SupernovaStartRound = supernovaStartRond
+		args.GenesisTimeStamp = genesisTime
+		args.SupernovaGenesisTimeStamp = supernovaGenesisTime
+
+		args.CurrentTimeStamp = supernovaGenesisTime
+
+		rnd, _ := round.NewRound(args)
+
+		assert.Equal(t, supernovaGenesisTime.UnixMilli(), rnd.TimeStamp().UnixMilli())
+		index0 := rnd.Index()
+		assert.Equal(t, supernovaRoundDuration, rnd.TimeDuration())
+		assert.Equal(t, int64(5), index0)
+	})
+
+	t.Run("after supernova, without flag activated at start, but after supernova genesis time", func(t *testing.T) {
+		t.Parallel()
+
+		genesisTime := time.Now()
+
+		roundDuration := 10 * time.Millisecond
+
+		supernovaRoundDuration := 5 * time.Millisecond
+		supernovaStartRond := int64(5)
+		supernovaGenesisTime := genesisTime.Add(time.Duration(supernovaStartRond) * roundDuration)
+
+		args := createDefaultRoundArgs()
+		args.RoundTimeDuration = roundDuration
+		args.SupernovaTimeDuration = supernovaRoundDuration
+		args.EnableRoundsHandler = &testscommon.EnableRoundsHandlerStub{
+			IsFlagEnabledInRoundCalled: func(flag common.EnableRoundFlag, round uint64) bool {
+				return flag == common.SupernovaRoundFlag && round >= uint64(supernovaStartRond)
+			},
+		}
+
+		args.SupernovaStartRound = supernovaStartRond
+		args.GenesisTimeStamp = genesisTime
+		args.SupernovaGenesisTimeStamp = supernovaGenesisTime
+
+		currentTime := supernovaGenesisTime.Add(supernovaRoundDuration)
+		args.CurrentTimeStamp = currentTime
+
+		rnd, _ := round.NewRound(args)
+
+		assert.Equal(t, supernovaRoundDuration, rnd.TimeDuration())
+		assert.Equal(t, int64(6), rnd.Index())
+		assert.Equal(t, currentTime.UnixMilli(), rnd.TimeStamp().UnixMilli())
+
+		rnd.UpdateRound(genesisTime, supernovaGenesisTime.Add(2*supernovaRoundDuration))
+
+		assert.Equal(t, supernovaRoundDuration, rnd.TimeDuration())
+		assert.Equal(t, int64(7), rnd.Index())
+		assert.Equal(t, currentTime.Add(supernovaRoundDuration).UnixMilli(), rnd.TimeStamp().UnixMilli())
 	})
 }
 
