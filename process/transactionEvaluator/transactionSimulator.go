@@ -35,6 +35,7 @@ type ArgsTxSimulator struct {
 	Marshalizer               marshal.Marshalizer
 	DataFieldParser           DataFieldParser
 	BlockChainHook            process.BlockChainHookHandler
+	SCRProcessor              process.SmartContractResultProcessor
 }
 
 type refundHandler interface {
@@ -44,6 +45,7 @@ type refundHandler interface {
 type transactionSimulator struct {
 	mutOperation           sync.Mutex
 	txProcessor            TransactionProcessor
+	scrProcessor           process.SmartContractResultProcessor
 	intermProcContainer    process.IntermediateProcessorContainer
 	addressPubKeyConverter core.PubkeyConverter
 	shardCoordinator       sharding.Coordinator
@@ -84,6 +86,9 @@ func NewTransactionSimulator(args ArgsTxSimulator) (*transactionSimulator, error
 	if check.IfNil(args.BlockChainHook) {
 		return nil, process.ErrNilBlockChainHook
 	}
+	if check.IfNil(args.SCRProcessor) {
+		return nil, process.ErrNilSmartContractResultProcessor
+	}
 
 	return &transactionSimulator{
 		txProcessor:            args.TransactionProcessor,
@@ -96,7 +101,52 @@ func NewTransactionSimulator(args ArgsTxSimulator) (*transactionSimulator, error
 		refundDetector:         transactionAPI.NewRefundDetector(),
 		dataFieldParser:        args.DataFieldParser,
 		blockChainHook:         args.BlockChainHook,
+		scrProcessor:           args.SCRProcessor,
 	}, nil
+}
+
+func (ts *transactionSimulator) ProcessSCR(scr *smartContractResult.SmartContractResult, currentHeader data.HeaderHandler) (*txSimData.SimulationResultsWithVMOutput, error) {
+	ts.mutOperation.Lock()
+	defer ts.mutOperation.Unlock()
+
+	txStatus := transaction.TxStatusPending
+	failReason := ""
+
+	err := ts.blockChainHook.SetCurrentHeader(currentHeader)
+	if err != nil {
+		return nil, err
+	}
+
+	retCode, err := ts.scrProcessor.ProcessSmartContractResult(scr)
+	if err != nil {
+		failReason = err.Error()
+		txStatus = transaction.TxStatusFail
+	} else {
+		if retCode == vmcommon.Ok {
+			txStatus = transaction.TxStatusSuccess
+		}
+	}
+
+	results := &txSimData.SimulationResultsWithVMOutput{
+		SimulationResults: transaction.SimulationResults{
+			Status:     txStatus,
+			FailReason: failReason,
+		},
+	}
+
+	err = ts.addIntermediateTxsToResult(results)
+	if err != nil {
+		return nil, err
+	}
+
+	vmOutput, ok := ts.getVMOutputOfTx(scr)
+	if ok {
+		results.VMOutput = vmOutput
+	}
+
+	ts.addLogsFromVmOutput(results, vmOutput)
+
+	return results, nil
 }
 
 // ProcessTx will process the transaction in a special environment, where state-writing is not allowed
@@ -163,7 +213,7 @@ func (ts *transactionSimulator) addLogsFromVmOutput(results *txSimData.Simulatio
 	}
 }
 
-func (ts *transactionSimulator) getVMOutputOfTx(tx *transaction.Transaction) (*vmcommon.VMOutput, bool) {
+func (ts *transactionSimulator) getVMOutputOfTx(tx data.TransactionHandler) (*vmcommon.VMOutput, bool) {
 	txHash, err := core.CalculateHash(ts.marshalizer, ts.hasher, tx)
 	if err != nil {
 		return nil, false

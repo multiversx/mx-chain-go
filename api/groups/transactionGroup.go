@@ -11,6 +11,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/data/smartContractResult"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-go/api/errors"
 	"github.com/multiversx/mx-chain-go/api/middleware"
@@ -24,11 +25,13 @@ import (
 const (
 	sendTransactionEndpoint          = "/transaction/send"
 	simulateTransactionEndpoint      = "/transaction/simulate"
+	simulateSCRCostEndpoint          = "/transaction/cost-src"
 	sendMultipleTransactionsEndpoint = "/transaction/send-multiple"
 	getTransactionEndpoint           = "/transaction/:hash"
 	getScrsByTxHashEndpoint          = "/transaction/scrs-by-tx-hash/:txhash"
 	sendTransactionPath              = "/send"
 	simulateTransactionPath          = "/simulate"
+	simulateSCRCostPath              = "/cost-scr"
 	costPath                         = "/cost"
 	sendMultiplePath                 = "/send-multiple"
 	getTransactionPath               = "/:txhash"
@@ -51,6 +54,7 @@ type transactionFacadeHandler interface {
 	ValidateTransactionForSimulation(tx *transaction.Transaction, checkSignature bool) error
 	SendBulkTransactions([]*transaction.Transaction) (uint64, error)
 	SimulateTransactionExecution(tx *transaction.Transaction) (*txSimData.SimulationResultsWithVMOutput, error)
+	SimulateSCRExecutionCost(scr *smartContractResult.SmartContractResult) (*transaction.CostResponse, error)
 	GetTransaction(hash string, withResults bool) (*transaction.ApiTransactionResult, error)
 	GetSCRsByTxHash(txHash string, scrHash string) ([]*transaction.ApiSmartContractResult, error)
 	GetTransactionsPool(fields string) (*common.TransactionsPoolAPIResponse, error)
@@ -99,6 +103,17 @@ func NewTransactionGroup(facade transactionFacadeHandler) (*transactionGroup, er
 			AdditionalMiddlewares: []shared.AdditionalMiddleware{
 				{
 					Middleware: middleware.CreateEndpointThrottlerFromFacade(simulateTransactionEndpoint, facade),
+					Position:   shared.Before,
+				},
+			},
+		},
+		{
+			Path:    simulateSCRCostPath,
+			Method:  http.MethodPost,
+			Handler: tg.simulateSCR,
+			AdditionalMiddlewares: []shared.AdditionalMiddleware{
+				{
+					Middleware: middleware.CreateEndpointThrottlerFromFacade(simulateSCRCostEndpoint, facade),
 					Position:   shared.Before,
 				},
 			},
@@ -166,6 +181,46 @@ type TxResponse struct {
 	BlockNumber uint64 `json:"blockNumber"`
 	BlockHash   string `json:"blockHash"`
 	Timestamp   uint64 `json:"timestamp"`
+}
+
+func (tg *transactionGroup) simulateSCR(c *gin.Context) {
+	var scr = smartContractResult.SmartContractResult{}
+	err := c.ShouldBindJSON(&scr)
+	if err != nil {
+		c.JSON(
+			http.StatusBadRequest,
+			shared.GenericAPIResponse{
+				Data:  nil,
+				Error: fmt.Sprintf("%s: %s", errors.ErrValidation.Error(), err.Error()),
+				Code:  shared.ReturnCodeRequestError,
+			},
+		)
+		return
+	}
+
+	start := time.Now()
+	executionResults, err := tg.getFacade().SimulateSCRExecutionCost(&scr)
+	logging.LogAPIActionDurationIfNeeded(start, "API call: SimulateTransactionExecution")
+	if err != nil {
+		c.JSON(
+			http.StatusInternalServerError,
+			shared.GenericAPIResponse{
+				Data:  nil,
+				Error: err.Error(),
+				Code:  shared.ReturnCodeInternalError,
+			},
+		)
+		return
+	}
+
+	c.JSON(
+		http.StatusOK,
+		shared.GenericAPIResponse{
+			Data:  executionResults,
+			Error: "",
+			Code:  shared.ReturnCodeSuccess,
+		},
+	)
 }
 
 // simulateTransaction will receive a transaction from the client and will simulate its execution and return the results

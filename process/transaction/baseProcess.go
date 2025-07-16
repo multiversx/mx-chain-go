@@ -363,6 +363,7 @@ func (txProc *baseTxProcessor) CheckSetGuardianExecutable(tx data.TransactionHan
 	return nil
 }
 
+// TODO set Guardian address == add some integration tests
 func (txProc *baseTxProcessor) checkGuardedAccountUnguardedTxPermission(tx *transaction.Transaction, account state.UserAccountHandler) error {
 	err := txProc.checkOperationAllowedToBypassGuardian(tx)
 	if err != nil {
