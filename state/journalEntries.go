@@ -85,21 +85,12 @@ func (jea *journalEntryCode) revertNewCodeEntry() error {
 	}
 
 	if newCodeEntry.NumReferences <= 1 {
-		err = jea.trie.Update(jea.newCodeHash, nil)
-		if err != nil {
-			return err
-		}
-
+		jea.trie.Update(jea.newCodeHash, nil)
 		return nil
 	}
 
 	newCodeEntry.NumReferences--
-	err = saveCodeEntry(jea.newCodeHash, newCodeEntry, jea.trie, jea.marshalizer)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return saveCodeEntry(jea.newCodeHash, newCodeEntry, jea.trie, jea.marshalizer)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
@@ -156,7 +147,8 @@ func NewJournalEntryAccountCreation(address []byte, updater Updater) (*journalEn
 
 // Revert applies undo operation
 func (jea *journalEntryAccountCreation) Revert() (vmcommon.AccountHandler, error) {
-	return nil, jea.updater.Update(jea.address, nil)
+	jea.updater.Update(jea.address, nil)
+	return nil, nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
@@ -194,10 +186,7 @@ func (jedtu *journalEntryDataTrieUpdates) Revert() (vmcommon.AccountHandler, err
 	}
 
 	for _, trieUpdate := range jedtu.trieUpdates {
-		err := trie.UpdateWithVersion(trieUpdate.Key, trieUpdate.Value, trieUpdate.Version)
-		if err != nil {
-			return nil, err
-		}
+		trie.UpdateWithVersion(trieUpdate.Key, trieUpdate.Value, trieUpdate.Version)
 
 		log.Trace("revert data trie update",
 			"key", trieUpdate.Key,

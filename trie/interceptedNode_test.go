@@ -7,6 +7,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/state/hashesCollector"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/trie"
 	"github.com/stretchr/testify/assert"
@@ -14,29 +15,29 @@ import (
 
 func getDefaultInterceptedTrieNodeParameters() ([]byte, hashing.Hasher) {
 	tr := initTrie()
+	_ = tr.Commit(hashesCollector.NewDisabledHashesCollector())
 	nodes, _ := getEncodedTrieNodesAndHashes(tr)
 
 	return nodes[0], &testscommon.KeccakMock{}
 }
 
 func getEncodedTrieNodesAndHashes(tr common.Trie) ([][]byte, [][]byte) {
-	it, _ := trie.NewDFSIterator(tr)
+	rootHash, _ := tr.RootHash()
+	it, _ := trie.NewDFSIterator(tr, rootHash)
 	encNode, _ := it.MarshalizedNode()
 
 	nodes := make([][]byte, 0)
 	nodes = append(nodes, encNode)
 
 	hashes := make([][]byte, 0)
-	hash, _ := it.GetHash()
-	hashes = append(hashes, hash)
+	hashes = append(hashes, it.GetHash())
 
 	for it.HasNext() {
 		_ = it.Next()
 		encNode, _ = it.MarshalizedNode()
 
 		nodes = append(nodes, encNode)
-		hash, _ = it.GetHash()
-		hashes = append(hashes, hash)
+		hashes = append(hashes, it.GetHash())
 	}
 
 	return nodes, hashes

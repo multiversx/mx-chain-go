@@ -11,8 +11,8 @@ import (
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/common/errChan"
 	"github.com/multiversx/mx-chain-go/integrationTests"
+	"github.com/multiversx/mx-chain-go/state/hashesCollector"
 	"github.com/multiversx/mx-chain-go/state/parsers"
-	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/goroutines"
 	"github.com/multiversx/mx-chain-go/testscommon/storage"
 	"github.com/multiversx/mx-chain-go/trie"
@@ -23,12 +23,12 @@ import (
 func TestPatriciaMerkleTrie_Close(t *testing.T) {
 	numLeavesToAdd := 200
 	trieStorage, _ := integrationTests.CreateTrieStorageManager(integrationTests.CreateMemUnit())
-	tr, _ := trie.NewTrie(trieStorage, integrationTests.TestMarshalizer, integrationTests.TestHasher, &enableEpochsHandlerMock.EnableEpochsHandlerStub{}, 5)
+	tr, _ := trie.NewTrie(integrationTests.GetTrieArgs(trieStorage))
 
 	for i := 0; i < numLeavesToAdd; i++ {
-		_ = tr.Update([]byte(strconv.Itoa(i)), []byte(strconv.Itoa(i)))
+		tr.Update([]byte(strconv.Itoa(i)), []byte(strconv.Itoa(i)))
 	}
-	_ = tr.Commit()
+	_ = tr.Commit(hashesCollector.NewDisabledHashesCollector())
 	time.Sleep(time.Second * 2) // allow the commit go routines to finish completely as to not alter the further counters
 
 	gc := goroutines.NewGoCounter(goroutines.TestsRelevantGoRoutines)
@@ -69,8 +69,8 @@ func TestPatriciaMerkleTrie_Close(t *testing.T) {
 	err = leavesChannel1.ErrChan.ReadFromChanNonBlocking()
 	assert.Nil(t, err)
 
-	_ = tr.Update([]byte("god"), []byte("puppy"))
-	_ = tr.Commit()
+	tr.Update([]byte("god"), []byte("puppy"))
+	_ = tr.Commit(hashesCollector.NewDisabledHashesCollector())
 
 	rootHash, _ = tr.RootHash()
 	leavesChannel1 = &common.TrieIteratorChannels{
@@ -90,8 +90,8 @@ func TestPatriciaMerkleTrie_Close(t *testing.T) {
 	err = leavesChannel1.ErrChan.ReadFromChanNonBlocking()
 	assert.Nil(t, err)
 
-	_ = tr.Update([]byte("eggod"), []byte("cat"))
-	_ = tr.Commit()
+	tr.Update([]byte("eggod"), []byte("cat"))
+	_ = tr.Commit(hashesCollector.NewDisabledHashesCollector())
 
 	rootHash, _ = tr.RootHash()
 	leavesChannel2 := &common.TrieIteratorChannels{

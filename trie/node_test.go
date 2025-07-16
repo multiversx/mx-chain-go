@@ -12,7 +12,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/atomic"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/common/errChan"
-	dataMock "github.com/multiversx/mx-chain-go/dataRetriever/mock"
+	"github.com/multiversx/mx-chain-go/state/hashesCollector"
 	"github.com/multiversx/mx-chain-go/state/parsers"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/trie/keyBuilder"
@@ -21,53 +21,21 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestNode_hashChildrenAndNodeBranchNode(t *testing.T) {
-	t.Parallel()
-
-	bn, collapsedBn := getBnAndCollapsedBn(getTestMarshalizerAndHasher())
-	expectedNodeHash, _ := encodeNodeAndGetHash(collapsedBn)
-
-	hash, err := hashChildrenAndNode(bn)
-	assert.Nil(t, err)
-	assert.Equal(t, expectedNodeHash, hash)
-}
-
-func TestNode_hashChildrenAndNodeExtensionNode(t *testing.T) {
-	t.Parallel()
-
-	en, collapsedEn := getEnAndCollapsedEn()
-	expectedNodeHash, _ := encodeNodeAndGetHash(collapsedEn)
-
-	hash, err := hashChildrenAndNode(en)
-	assert.Nil(t, err)
-	assert.Equal(t, expectedNodeHash, hash)
-}
-
-func TestNode_hashChildrenAndNodeLeafNode(t *testing.T) {
-	t.Parallel()
-
-	ln := getLn(getTestMarshalizerAndHasher())
-	expectedNodeHash, _ := encodeNodeAndGetHash(ln)
-
-	hash, err := hashChildrenAndNode(ln)
-	assert.Nil(t, err)
-	assert.Equal(t, expectedNodeHash, hash)
-}
-
 func TestNode_encodeNodeAndGetHashBranchNode(t *testing.T) {
 	t.Parallel()
 
-	bn, _ := newBranchNode(getTestMarshalizerAndHasher())
+	trieCtx := getTrieContextWithCustomStorage(nil)
+	bn := newBranchNode()
 	encChildren := make([][]byte, nrOfChildren)
 	encChildren[1] = []byte("dog")
 	encChildren[10] = []byte("doge")
-	bn.EncodedChildren = encChildren
+	bn.ChildrenHashes = encChildren
 
-	encNode, _ := bn.marsh.Marshal(bn)
+	encNode, _ := trieCtx.Marshal(bn)
 	encNode = append(encNode, branch)
-	expextedHash := bn.hasher.Compute(string(encNode))
+	expextedHash := trieCtx.Compute(string(encNode))
 
-	hash, err := encodeNodeAndGetHash(bn)
+	hash, err := encodeNodeAndGetHash(bn, trieCtx)
 	assert.Nil(t, err)
 	assert.Equal(t, expextedHash, hash)
 }
@@ -75,24 +43,19 @@ func TestNode_encodeNodeAndGetHashBranchNode(t *testing.T) {
 func TestNode_encodeNodeAndGetHashExtensionNode(t *testing.T) {
 	t.Parallel()
 
-	marsh, hasher := getTestMarshalizerAndHasher()
+	trieCtx := getTrieContextWithCustomStorage(nil)
 	en := &extensionNode{
 		CollapsedEn: CollapsedEn{
-			Key:          []byte{2},
-			EncodedChild: []byte("doge"),
-		},
-		baseNode: &baseNode{
-
-			marsh:  marsh,
-			hasher: hasher,
+			Key:       []byte{2},
+			ChildHash: []byte("doge"),
 		},
 	}
 
-	encNode, _ := marsh.Marshal(en)
+	encNode, _ := trieCtx.Marshal(en)
 	encNode = append(encNode, extension)
-	expextedHash := hasher.Compute(string(encNode))
+	expextedHash := trieCtx.Compute(string(encNode))
 
-	hash, err := encodeNodeAndGetHash(en)
+	hash, err := encodeNodeAndGetHash(en, trieCtx)
 	assert.Nil(t, err)
 	assert.Equal(t, expextedHash, hash)
 }
@@ -101,13 +64,13 @@ func TestNode_encodeNodeAndGetHashLeafNode(t *testing.T) {
 	t.Parallel()
 
 	marsh, hasher := getTestMarshalizerAndHasher()
-	ln, _ := newLeafNode(getTrieDataWithDefaultVersion("dog", "dog"), marsh, hasher)
+	ln := newLeafNode(getTrieDataWithDefaultVersion("dog", "dog"))
 
 	encNode, _ := marsh.Marshal(ln)
 	encNode = append(encNode, leaf)
 	expextedHash := hasher.Compute(string(encNode))
 
-	hash, err := encodeNodeAndGetHash(ln)
+	hash, err := encodeNodeAndGetHash(ln, getTrieContextWithCustomStorage(nil))
 	assert.Nil(t, err)
 	assert.Equal(t, expextedHash, hash)
 }
@@ -115,152 +78,109 @@ func TestNode_encodeNodeAndGetHashLeafNode(t *testing.T) {
 func TestNode_encodeNodeAndCommitToDBBranchNode(t *testing.T) {
 	t.Parallel()
 
-	db := testscommon.NewMemDbMock()
-	_, collapsedBn := getBnAndCollapsedBn(getTestMarshalizerAndHasher())
-	encNode, _ := collapsedBn.marsh.Marshal(collapsedBn)
+	trieCtx := getDefaultTrieContext()
+	_, collapsedBn := getBnAndCollapsedBn()
+	encNode, _ := trieCtx.Marshal(collapsedBn)
 	encNode = append(encNode, branch)
-	nodeHash := collapsedBn.hasher.Compute(string(encNode))
+	nodeHash := trieCtx.Compute(string(encNode))
 
-	_, err := encodeNodeAndCommitToDB(collapsedBn, db)
+	_, err := encodeNodeAndCommitToDB(collapsedBn, trieCtx)
 	assert.Nil(t, err)
 
-	val, _ := db.Get(nodeHash)
+	val, _ := trieCtx.Get(nodeHash)
 	assert.Equal(t, encNode, val)
 }
 
 func TestNode_encodeNodeAndCommitToDBExtensionNode(t *testing.T) {
 	t.Parallel()
 
-	db := testscommon.NewMemDbMock()
+	trieCtx := getDefaultTrieContext()
 	_, collapsedEn := getEnAndCollapsedEn()
-	encNode, _ := collapsedEn.marsh.Marshal(collapsedEn)
+	encNode, _ := trieCtx.Marshal(collapsedEn)
 	encNode = append(encNode, extension)
-	nodeHash := collapsedEn.hasher.Compute(string(encNode))
+	nodeHash := trieCtx.Compute(string(encNode))
 
-	_, err := encodeNodeAndCommitToDB(collapsedEn, db)
+	_, err := encodeNodeAndCommitToDB(collapsedEn, trieCtx)
 	assert.Nil(t, err)
 
-	val, _ := db.Get(nodeHash)
+	val, _ := trieCtx.Get(nodeHash)
 	assert.Equal(t, encNode, val)
 }
 
 func TestNode_encodeNodeAndCommitToDBLeafNode(t *testing.T) {
 	t.Parallel()
 
-	db := testscommon.NewMemDbMock()
-	ln := getLn(getTestMarshalizerAndHasher())
-	encNode, _ := ln.marsh.Marshal(ln)
+	trieCtx := getDefaultTrieContext()
+	ln := getLn()
+	encNode, _ := trieCtx.Marshal(ln)
 	encNode = append(encNode, leaf)
-	nodeHash := ln.hasher.Compute(string(encNode))
+	nodeHash := trieCtx.Compute(string(encNode))
 
-	_, err := encodeNodeAndCommitToDB(ln, db)
+	_, err := encodeNodeAndCommitToDB(ln, trieCtx)
 	assert.Nil(t, err)
 
-	val, _ := db.Get(nodeHash)
+	val, _ := trieCtx.Get(nodeHash)
 	assert.Equal(t, encNode, val)
 }
 
 func TestNode_getNodeFromDBAndDecodeBranchNode(t *testing.T) {
 	t.Parallel()
 
-	db := testscommon.NewMemDbMock()
-	bn, collapsedBn := getBnAndCollapsedBn(getTestMarshalizerAndHasher())
-	_ = bn.commitDirty(0, 5, db, db)
+	trieCtx := getDefaultTrieContext()
+	bn, collapsedBn := getBnAndCollapsedBn()
+	_ = saveNodeToStorage(bn, trieCtx)
 
-	encNode, _ := bn.marsh.Marshal(collapsedBn)
+	encNode, _ := trieCtx.Marshal(collapsedBn)
 	encNode = append(encNode, branch)
-	nodeHash := bn.hasher.Compute(string(encNode))
+	nodeHash := trieCtx.Compute(string(encNode))
 
-	nodeInstance, err := getNodeFromDBAndDecode(nodeHash, db, bn.marsh, bn.hasher)
+	nodeInstance, nodeBytes, err := getNodeFromDBAndDecode(nodeHash, trieCtx)
 	assert.Nil(t, err)
+	assert.Equal(t, encNode, nodeBytes)
 
-	h1, _ := encodeNodeAndGetHash(collapsedBn)
-	h2, _ := encodeNodeAndGetHash(nodeInstance)
+	h1, _ := encodeNodeAndGetHash(collapsedBn, trieCtx)
+	h2, _ := encodeNodeAndGetHash(nodeInstance, trieCtx)
 	assert.Equal(t, h1, h2)
 }
 
 func TestNode_getNodeFromDBAndDecodeExtensionNode(t *testing.T) {
 	t.Parallel()
 
-	db := testscommon.NewMemDbMock()
+	trieCtx := getDefaultTrieContext()
 	en, collapsedEn := getEnAndCollapsedEn()
-	_ = en.commitDirty(0, 5, db, db)
+	_ = saveNodeToStorage(en, trieCtx)
 
-	encNode, _ := en.marsh.Marshal(collapsedEn)
+	encNode, _ := trieCtx.Marshal(collapsedEn)
 	encNode = append(encNode, extension)
-	nodeHash := en.hasher.Compute(string(encNode))
+	nodeHash := trieCtx.Compute(string(encNode))
 
-	nodeInstance, err := getNodeFromDBAndDecode(nodeHash, db, en.marsh, en.hasher)
+	nodeInstance, nodeBytes, err := getNodeFromDBAndDecode(nodeHash, trieCtx)
 	assert.Nil(t, err)
+	assert.Equal(t, encNode, nodeBytes)
 
-	h1, _ := encodeNodeAndGetHash(collapsedEn)
-	h2, _ := encodeNodeAndGetHash(nodeInstance)
+	h1, _ := encodeNodeAndGetHash(collapsedEn, trieCtx)
+	h2, _ := encodeNodeAndGetHash(nodeInstance, trieCtx)
 	assert.Equal(t, h1, h2)
 }
 
 func TestNode_getNodeFromDBAndDecodeLeafNode(t *testing.T) {
 	t.Parallel()
 
-	db := testscommon.NewMemDbMock()
-	ln := getLn(getTestMarshalizerAndHasher())
-	_ = ln.commitDirty(0, 5, db, db)
+	trieCtx := getDefaultTrieContext()
+	ln := getLn()
+	_ = saveNodeToStorage(ln, trieCtx)
 
-	encNode, _ := ln.marsh.Marshal(ln)
+	encNode, _ := trieCtx.Marshal(ln)
 	encNode = append(encNode, leaf)
-	nodeHash := ln.hasher.Compute(string(encNode))
+	nodeHash := trieCtx.Compute(string(encNode))
 
-	nodeInstance, err := getNodeFromDBAndDecode(nodeHash, db, ln.marsh, ln.hasher)
+	nodeInstance, nodeBytes, err := getNodeFromDBAndDecode(nodeHash, trieCtx)
 	assert.Nil(t, err)
+	assert.Equal(t, encNode, nodeBytes)
 
-	ln = getLn(ln.marsh, ln.hasher)
+	ln = getLn()
 	ln.dirty = false
 	assert.Equal(t, ln, nodeInstance)
-}
-
-func TestNode_resolveIfCollapsedBranchNode(t *testing.T) {
-	t.Parallel()
-
-	db := testscommon.NewMemDbMock()
-	bn, collapsedBn := getBnAndCollapsedBn(getTestMarshalizerAndHasher())
-	childPos := byte(2)
-	_ = bn.commitDirty(0, 5, db, db)
-
-	err := resolveIfCollapsed(collapsedBn, childPos, db)
-	assert.Nil(t, err)
-	assert.False(t, collapsedBn.isCollapsed())
-}
-
-func TestNode_resolveIfCollapsedExtensionNode(t *testing.T) {
-	t.Parallel()
-
-	db := testscommon.NewMemDbMock()
-	en, collapsedEn := getEnAndCollapsedEn()
-	_ = en.commitDirty(0, 5, db, db)
-
-	err := resolveIfCollapsed(collapsedEn, 0, db)
-	assert.Nil(t, err)
-	assert.False(t, collapsedEn.isCollapsed())
-}
-
-func TestNode_resolveIfCollapsedLeafNode(t *testing.T) {
-	t.Parallel()
-
-	db := testscommon.NewMemDbMock()
-	ln := getLn(getTestMarshalizerAndHasher())
-	_ = ln.commitDirty(0, 5, db, db)
-
-	err := resolveIfCollapsed(ln, 0, db)
-	assert.Nil(t, err)
-	assert.False(t, ln.isCollapsed())
-}
-
-func TestNode_resolveIfCollapsedNilNode(t *testing.T) {
-	t.Parallel()
-
-	var nodeInstance *extensionNode
-
-	err := resolveIfCollapsed(nodeInstance, 0, nil)
-	assert.Equal(t, ErrNilExtensionNode, err)
 }
 
 func TestNode_concat(t *testing.T) {
@@ -272,87 +192,66 @@ func TestNode_concat(t *testing.T) {
 	assert.Equal(t, ab, concat(a, b))
 }
 
-func TestNode_hasValidHash(t *testing.T) {
-	t.Parallel()
-
-	bn, _ := getBnAndCollapsedBn(getTestMarshalizerAndHasher())
-	ok, err := hasValidHash(bn)
-	assert.Nil(t, err)
-	assert.False(t, ok)
-
-	_ = bn.setHash()
-	bn.dirty = false
-
-	ok, err = hasValidHash(bn)
-	assert.Nil(t, err)
-	assert.True(t, ok)
-}
-
-func TestNode_hasValidHashNilNode(t *testing.T) {
-	t.Parallel()
-
-	var nodeInstance *branchNode
-	ok, err := hasValidHash(nodeInstance)
-	assert.Equal(t, ErrNilBranchNode, err)
-	assert.False(t, ok)
-}
-
 func TestNode_decodeNodeBranchNode(t *testing.T) {
 	t.Parallel()
 
-	_, collapsedBn := getBnAndCollapsedBn(getTestMarshalizerAndHasher())
-	encNode, _ := collapsedBn.marsh.Marshal(collapsedBn)
+	trieCtx := getTrieContextWithCustomStorage(nil)
+	_, collapsedBn := getBnAndCollapsedBn()
+	encNode, _ := trieCtx.Marshal(collapsedBn)
 	encNode = append(encNode, branch)
 
-	nodeInstance, err := decodeNode(encNode, collapsedBn.marsh, collapsedBn.hasher)
+	nodeInstance, err := decodeNode(encNode, trieCtx)
 	assert.Nil(t, err)
 
-	h1, _ := encodeNodeAndGetHash(collapsedBn)
-	h2, _ := encodeNodeAndGetHash(nodeInstance)
+	h1, _ := encodeNodeAndGetHash(collapsedBn, trieCtx)
+	h2, _ := encodeNodeAndGetHash(nodeInstance, trieCtx)
 	assert.Equal(t, h1, h2)
 }
 
 func TestNode_decodeNodeExtensionNode(t *testing.T) {
 	t.Parallel()
 
+	trieCtx := getTrieContextWithCustomStorage(nil)
 	_, collapsedEn := getEnAndCollapsedEn()
-	encNode, _ := collapsedEn.marsh.Marshal(collapsedEn)
+	encNode, _ := trieCtx.Marshal(collapsedEn)
 	encNode = append(encNode, extension)
 
-	nodeInstance, err := decodeNode(encNode, collapsedEn.marsh, collapsedEn.hasher)
+	nodeInstance, err := decodeNode(encNode, trieCtx)
 	assert.Nil(t, err)
 
-	h1, _ := encodeNodeAndGetHash(collapsedEn)
-	h2, _ := encodeNodeAndGetHash(nodeInstance)
+	h1, _ := encodeNodeAndGetHash(collapsedEn, trieCtx)
+	h2, _ := encodeNodeAndGetHash(nodeInstance, trieCtx)
 	assert.Equal(t, h1, h2)
 }
 
 func TestNode_decodeNodeLeafNode(t *testing.T) {
 	t.Parallel()
 
-	ln := getLn(getTestMarshalizerAndHasher())
-	encNode, _ := ln.marsh.Marshal(ln)
+	trieCtx := getTrieContextWithCustomStorage(nil)
+	ln := getLn()
+	encNode, _ := trieCtx.Marshal(ln)
 	encNode = append(encNode, leaf)
 
-	nodeInstance, err := decodeNode(encNode, ln.marsh, ln.hasher)
+	nodeInstance, err := decodeNode(encNode, trieCtx)
 	assert.Nil(t, err)
 	ln.dirty = false
 
-	h1, _ := encodeNodeAndGetHash(ln)
-	h2, _ := encodeNodeAndGetHash(nodeInstance)
+	h1, _ := encodeNodeAndGetHash(ln, trieCtx)
+	h2, _ := encodeNodeAndGetHash(nodeInstance, trieCtx)
 	assert.Equal(t, h1, h2)
 }
 
 func TestNode_decodeNodeInvalidNode(t *testing.T) {
 	t.Parallel()
 
-	ln := getLn(getTestMarshalizerAndHasher())
+	trieCtx := getTrieContextWithCustomStorage(nil)
+	ln := getLn()
 	invalidNode := byte(6)
 
-	encNode, _ := ln.marsh.Marshal(ln)
+	encNode, _ := trieCtx.Marshal(ln)
 	encNode = append(encNode, invalidNode)
 
-	nodeInstance, err := decodeNode(encNode, ln.marsh, ln.hasher)
+	nodeInstance, err := decodeNode(encNode, trieCtx)
 	assert.Nil(t, nodeInstance)
 	assert.Equal(t, ErrInvalidNode, err)
 }
@@ -360,10 +259,10 @@ func TestNode_decodeNodeInvalidNode(t *testing.T) {
 func TestNode_decodeNodeInvalidEncoding(t *testing.T) {
 	t.Parallel()
 
-	marsh, hasher := getTestMarshalizerAndHasher()
+	trieCtx := getTrieContextWithCustomStorage(nil)
 	var encNode []byte
 
-	nodeInstance, err := decodeNode(encNode, marsh, hasher)
+	nodeInstance, err := decodeNode(encNode, trieCtx)
 	assert.Nil(t, nodeInstance)
 	assert.Equal(t, ErrInvalidEncoding, err)
 }
@@ -421,7 +320,7 @@ func TestKeyBytesToHex(t *testing.T) {
 	}
 
 	for i := range test {
-		assert.Equal(t, test[i].hex, keyBytesToHex(test[i].key))
+		assert.Equal(t, test[i].hex, keyBuilder.KeyBytesToHex(test[i].key))
 	}
 }
 
@@ -450,84 +349,54 @@ func TestGetOldHashesIfNodeIsCollapsed(t *testing.T) {
 	t.Parallel()
 
 	tr := initTrie()
-	_ = tr.Commit()
+	_ = tr.Commit(hashesCollector.NewDisabledHashesCollector())
 
-	root, _ := tr.root.(*branchNode)
+	root, _ := tr.GetRootNode().(*branchNode)
 	for i := 0; i < nrOfChildren; i++ {
 		root.children[i] = nil
 	}
-	tr.root = root
 
-	_ = tr.Update([]byte("dog"), []byte("value of dog"))
+	tr.Update([]byte("dog"), []byte("value of dog"))
+	ExecuteUpdatesFromBatch(tr)
 
-	assert.Equal(t, 4, len(tr.oldHashes))
+	assert.Equal(t, 4, len(tr.GetOldHashes()))
 }
 
 func TestClearOldHashesAndOldRootOnCommit(t *testing.T) {
 	t.Parallel()
 
 	tr := initTrie()
-	_ = tr.Commit()
+	_ = tr.Commit(hashesCollector.NewDisabledHashesCollector())
 	root, _ := tr.RootHash()
 
-	_ = tr.Update([]byte("dog"), []byte("value of dog"))
+	tr.Update([]byte("dog"), []byte("value of dog"))
+	ExecuteUpdatesFromBatch(tr)
 
-	assert.Equal(t, 4, len(tr.oldHashes))
-	assert.Equal(t, root, tr.oldRoot)
+	assert.Equal(t, 4, len(tr.GetOldHashes()))
+	assert.Equal(t, root, tr.GetOldRootHash())
 
-	_ = tr.Commit()
+	_ = tr.Commit(hashesCollector.NewDisabledHashesCollector())
 
-	assert.Equal(t, 0, len(tr.oldHashes))
-	assert.Equal(t, 0, len(tr.oldRoot))
-}
-
-func TestTrieGetObsoleteHashes(t *testing.T) {
-	t.Parallel()
-
-	tr := initTrie()
-	_ = tr.Commit()
-
-	_ = tr.Update([]byte("doeee"), []byte("value of doeee"))
-
-	assert.NotEqual(t, 0, len(tr.oldHashes))
-	assert.NotEqual(t, 0, len(tr.oldRoot))
-
-	expectedHashes := tr.oldHashes
-	hashes := tr.GetObsoleteHashes()
-	assert.Equal(t, expectedHashes, hashes)
-}
-
-func TestNode_getDirtyHashes(t *testing.T) {
-	t.Parallel()
-
-	tr := initTrie()
-
-	_ = tr.root.setRootHash()
-	hashes := make(map[string]struct{})
-	err := tr.root.getDirtyHashes(hashes)
-
-	assert.Nil(t, err)
-	assert.NotNil(t, hashes)
-	assert.Equal(t, 6, len(hashes))
+	assert.Equal(t, 0, len(tr.GetOldHashes()))
+	assert.Equal(t, 0, len(tr.RootManager.(*rootManager).oldRootHash))
 }
 
 func TestPatriciaMerkleTrie_GetAllLeavesCollapsedTrie(t *testing.T) {
 	t.Parallel()
 
 	tr := initTrie()
-	_ = tr.Commit()
+	_ = tr.Commit(hashesCollector.NewDisabledHashesCollector())
 
-	root, _ := tr.root.(*branchNode)
+	root, _ := tr.GetRootNode().(*branchNode)
 	for i := 0; i < nrOfChildren; i++ {
 		root.children[i] = nil
 	}
-	tr.root = root
 
 	leavesChannel := &common.TrieIteratorChannels{
 		LeavesChan: make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity),
 		ErrChan:    errChan.NewErrChanWrapper(),
 	}
-	err := tr.GetAllLeavesOnChannel(leavesChannel, context.Background(), tr.root.getHash(), keyBuilder.NewKeyBuilder(), parsers.NewMainTrieLeafParser())
+	err := tr.GetAllLeavesOnChannel(leavesChannel, context.Background(), tr.GetRootHash(), keyBuilder.NewKeyBuilder(), parsers.NewMainTrieLeafParser())
 	assert.Nil(t, err)
 	leaves := make(map[string][]byte)
 
@@ -544,43 +413,23 @@ func TestPatriciaMerkleTrie_GetAllLeavesCollapsedTrie(t *testing.T) {
 	assert.Equal(t, []byte("cat"), leaves["ddog"])
 }
 
-func TestPatriciaMerkleTrie_oldRootAndoldHashesAreResetAfterEveryCommit(t *testing.T) {
+func TestPatriciaMerkleTrie_oldRootAndOldHashesAreResetAfterEveryCommit(t *testing.T) {
 	t.Parallel()
 
 	tr := initTrie()
-	_ = tr.Commit()
+	_ = tr.Commit(hashesCollector.NewDisabledHashesCollector())
 
-	_ = tr.Update([]byte("doe"), []byte("deer"))
-	_ = tr.Update([]byte("doe"), []byte("reindeer"))
+	tr.Update([]byte("doe"), []byte("deer"))
+	tr.Update([]byte("doe"), []byte("reindeer"))
 
-	err := tr.Commit()
+	err := tr.Commit(hashesCollector.NewDisabledHashesCollector())
 	assert.Nil(t, err)
-	assert.Equal(t, 0, len(tr.oldHashes))
-	assert.Equal(t, 0, len(tr.oldRoot))
+	assert.Equal(t, 0, len(tr.GetOldHashes()))
+	assert.Equal(t, 0, len(tr.RootManager.(*rootManager).oldRootHash))
 }
 
 func TestNode_NodeExtension(t *testing.T) {
-	n := &branchNode{
-		baseNode: &baseNode{
-			hasher: &dataMock.HasherStub{
-				ComputeCalled: func(s string) []byte {
-					return []byte{0, 0, 0, 0}
-				},
-			},
-		},
-	}
-	assert.True(t, shouldTestNode(n, make([]byte, 0)))
-
-	n = &branchNode{
-		baseNode: &baseNode{
-			hasher: &dataMock.HasherStub{
-				ComputeCalled: func(s string) []byte {
-					return []byte{0, 0, 0, 1}
-				},
-			},
-		},
-	}
-	assert.False(t, shouldTestNode(n, make([]byte, 0)))
+	assert.False(t, shouldTestNode(hasherMock, make([]byte, 0)))
 }
 
 func TestSnapshotGetTestPoint(t *testing.T) {
@@ -689,13 +538,15 @@ func TestNodesVersion_insertInLn(t *testing.T) {
 
 		tr, _ := newEmptyTrie()
 
-		_ = tr.UpdateWithVersion([]byte("aaa"), []byte("aaa"), core.NotSpecified)
-		ln, ok := tr.root.(*leafNode)
+		tr.UpdateWithVersion([]byte("aaa"), []byte("aaa"), core.NotSpecified)
+		ExecuteUpdatesFromBatch(tr)
+		ln, ok := tr.GetRootNode().(*leafNode)
 		assert.True(t, ok)
 		version, _ := ln.getVersion()
 		assert.Equal(t, core.NotSpecified, version)
 
-		_ = tr.UpdateWithVersion([]byte("aaa"), []byte("aab"), core.AutoBalanceEnabled)
+		tr.UpdateWithVersion([]byte("aaa"), []byte("aab"), core.AutoBalanceEnabled)
+		ExecuteUpdatesFromBatch(tr)
 		version, _ = ln.getVersion()
 		assert.Equal(t, core.AutoBalanceEnabled, version)
 	})
@@ -705,17 +556,19 @@ func TestNodesVersion_insertInLn(t *testing.T) {
 
 		tr, _ := newEmptyTrie()
 
-		_ = tr.UpdateWithVersion([]byte("aaa"), []byte("aaa"), core.NotSpecified)
-		_ = tr.UpdateWithVersion([]byte("bbb"), []byte("bbb"), core.AutoBalanceEnabled)
-		bn, ok := tr.root.(*branchNode)
+		tr.UpdateWithVersion([]byte("aaa"), []byte("aaa"), core.NotSpecified)
+		tr.UpdateWithVersion([]byte("bbb"), []byte("bbb"), core.AutoBalanceEnabled)
+		ExecuteUpdatesFromBatch(tr)
+		bn, ok := tr.GetRootNode().(*branchNode)
 		assert.True(t, ok)
 		version, _ := bn.getVersion()
 		assert.Equal(t, core.NotSpecified, version)
 
 		tr, _ = newEmptyTrie()
-		_ = tr.UpdateWithVersion([]byte("aaa"), []byte("aaa"), core.AutoBalanceEnabled)
-		_ = tr.UpdateWithVersion([]byte("bbb"), []byte("bbb"), core.AutoBalanceEnabled)
-		bn, ok = tr.root.(*branchNode)
+		tr.UpdateWithVersion([]byte("aaa"), []byte("aaa"), core.AutoBalanceEnabled)
+		tr.UpdateWithVersion([]byte("bbb"), []byte("bbb"), core.AutoBalanceEnabled)
+		ExecuteUpdatesFromBatch(tr)
+		bn, ok = tr.GetRootNode().(*branchNode)
 		assert.True(t, ok)
 		version, _ = bn.getVersion()
 		assert.Equal(t, core.AutoBalanceEnabled, version)
@@ -726,17 +579,19 @@ func TestNodesVersion_insertInLn(t *testing.T) {
 
 		tr, _ := newEmptyTrie()
 
-		_ = tr.UpdateWithVersion([]byte("aaa"), []byte("aaa"), core.NotSpecified)
-		_ = tr.UpdateWithVersion([]byte("baa"), []byte("baa"), core.AutoBalanceEnabled)
-		en, ok := tr.root.(*extensionNode)
+		tr.UpdateWithVersion([]byte("aaa"), []byte("aaa"), core.NotSpecified)
+		tr.UpdateWithVersion([]byte("baa"), []byte("baa"), core.AutoBalanceEnabled)
+		ExecuteUpdatesFromBatch(tr)
+		en, ok := tr.GetRootNode().(*extensionNode)
 		assert.True(t, ok)
 		version, _ := en.getVersion()
 		assert.Equal(t, core.NotSpecified, version)
 
 		tr, _ = newEmptyTrie()
-		_ = tr.UpdateWithVersion([]byte("aaa"), []byte("aaa"), core.AutoBalanceEnabled)
-		_ = tr.UpdateWithVersion([]byte("baa"), []byte("baa"), core.AutoBalanceEnabled)
-		en, ok = tr.root.(*extensionNode)
+		tr.UpdateWithVersion([]byte("aaa"), []byte("aaa"), core.AutoBalanceEnabled)
+		tr.UpdateWithVersion([]byte("baa"), []byte("baa"), core.AutoBalanceEnabled)
+		ExecuteUpdatesFromBatch(tr)
+		en, ok = tr.GetRootNode().(*extensionNode)
 		assert.True(t, ok)
 		version, _ = en.getVersion()
 		assert.Equal(t, core.AutoBalanceEnabled, version)
@@ -751,21 +606,24 @@ func TestNodesVersion_insertInEn(t *testing.T) {
 		t.Parallel()
 
 		tr, _ := newEmptyTrie()
-		_ = tr.UpdateWithVersion([]byte("aaa"), []byte("baa"), core.NotSpecified)
-		_ = tr.UpdateWithVersion([]byte("baa"), []byte("baa"), core.AutoBalanceEnabled)
-		en, ok := tr.root.(*extensionNode)
+		tr.UpdateWithVersion([]byte("aaa"), []byte("baa"), core.NotSpecified)
+		tr.UpdateWithVersion([]byte("baa"), []byte("baa"), core.AutoBalanceEnabled)
+		ExecuteUpdatesFromBatch(tr)
+		en, ok := tr.GetRootNode().(*extensionNode)
 		assert.True(t, ok)
 		version, _ := en.getVersion()
 		assert.Equal(t, core.NotSpecified, version)
 
-		_ = tr.UpdateWithVersion([]byte("aaa"), []byte("aaa"), core.AutoBalanceEnabled)
-		en, ok = tr.root.(*extensionNode)
+		tr.UpdateWithVersion([]byte("aaa"), []byte("aaa"), core.AutoBalanceEnabled)
+		ExecuteUpdatesFromBatch(tr)
+		en, ok = tr.GetRootNode().(*extensionNode)
 		assert.True(t, ok)
 		version, _ = en.getVersion()
 		assert.Equal(t, core.AutoBalanceEnabled, version)
 
-		_ = tr.UpdateWithVersion([]byte("aaa"), []byte("baa"), core.NotSpecified)
-		en, ok = tr.root.(*extensionNode)
+		tr.UpdateWithVersion([]byte("aaa"), []byte("baa"), core.NotSpecified)
+		ExecuteUpdatesFromBatch(tr)
+		en, ok = tr.GetRootNode().(*extensionNode)
 		assert.True(t, ok)
 		version, _ = en.getVersion()
 		assert.Equal(t, core.NotSpecified, version)
@@ -775,15 +633,17 @@ func TestNodesVersion_insertInEn(t *testing.T) {
 		t.Parallel()
 
 		tr, _ := newEmptyTrie()
-		_ = tr.UpdateWithVersion([]byte("aaa"), []byte("aaa"), core.AutoBalanceEnabled)
-		_ = tr.UpdateWithVersion([]byte("qqq"), []byte("qqq"), core.AutoBalanceEnabled)
-		en, ok := tr.root.(*extensionNode)
+		tr.UpdateWithVersion([]byte("aaa"), []byte("aaa"), core.AutoBalanceEnabled)
+		tr.UpdateWithVersion([]byte("qqq"), []byte("qqq"), core.AutoBalanceEnabled)
+		ExecuteUpdatesFromBatch(tr)
+		en, ok := tr.GetRootNode().(*extensionNode)
 		assert.True(t, ok)
 		version, _ := en.getVersion()
 		assert.Equal(t, core.AutoBalanceEnabled, version)
 
-		_ = tr.UpdateWithVersion([]byte("zzz"), []byte("zzz"), core.NotSpecified)
-		bn, ok := tr.root.(*branchNode)
+		tr.UpdateWithVersion([]byte("zzz"), []byte("zzz"), core.NotSpecified)
+		ExecuteUpdatesFromBatch(tr)
+		bn, ok := tr.GetRootNode().(*branchNode)
 		assert.True(t, ok)
 		version, _ = bn.getVersion()
 		assert.Equal(t, core.NotSpecified, version)
@@ -793,15 +653,17 @@ func TestNodesVersion_insertInEn(t *testing.T) {
 		t.Parallel()
 
 		tr, _ := newEmptyTrie()
-		_ = tr.UpdateWithVersion([]byte("aaa"), []byte("aaa"), core.AutoBalanceEnabled)
-		_ = tr.UpdateWithVersion([]byte("qqq"), []byte("qqq"), core.AutoBalanceEnabled)
-		en, ok := tr.root.(*extensionNode)
+		tr.UpdateWithVersion([]byte("aaa"), []byte("aaa"), core.AutoBalanceEnabled)
+		tr.UpdateWithVersion([]byte("qqq"), []byte("qqq"), core.AutoBalanceEnabled)
+		ExecuteUpdatesFromBatch(tr)
+		en, ok := tr.GetRootNode().(*extensionNode)
 		assert.True(t, ok)
 		version, _ := en.getVersion()
 		assert.Equal(t, core.AutoBalanceEnabled, version)
 
-		_ = tr.UpdateWithVersion([]byte("zzz"), []byte("zzz"), core.AutoBalanceEnabled)
-		bn, ok := tr.root.(*branchNode)
+		tr.UpdateWithVersion([]byte("zzz"), []byte("zzz"), core.AutoBalanceEnabled)
+		ExecuteUpdatesFromBatch(tr)
+		bn, ok := tr.GetRootNode().(*branchNode)
 		assert.True(t, ok)
 		version, _ = bn.getVersion()
 		assert.Equal(t, core.AutoBalanceEnabled, version)
@@ -811,15 +673,17 @@ func TestNodesVersion_insertInEn(t *testing.T) {
 		t.Parallel()
 
 		tr, _ := newEmptyTrie()
-		_ = tr.UpdateWithVersion([]byte("aaa"), []byte("aaa"), core.AutoBalanceEnabled)
-		_ = tr.UpdateWithVersion([]byte("baa"), []byte("baa"), core.AutoBalanceEnabled)
-		en, ok := tr.root.(*extensionNode)
+		tr.UpdateWithVersion([]byte("aaa"), []byte("aaa"), core.AutoBalanceEnabled)
+		tr.UpdateWithVersion([]byte("baa"), []byte("baa"), core.AutoBalanceEnabled)
+		ExecuteUpdatesFromBatch(tr)
+		en, ok := tr.GetRootNode().(*extensionNode)
 		assert.True(t, ok)
 		version, _ := en.getVersion()
 		assert.Equal(t, core.AutoBalanceEnabled, version)
 
-		_ = tr.UpdateWithVersion([]byte("zzz"), []byte("zzz"), core.NotSpecified)
-		bn, ok := tr.root.(*branchNode)
+		tr.UpdateWithVersion([]byte("zzz"), []byte("zzz"), core.NotSpecified)
+		ExecuteUpdatesFromBatch(tr)
+		bn, ok := tr.GetRootNode().(*branchNode)
 		assert.True(t, ok)
 		version, _ = bn.getVersion()
 		assert.Equal(t, core.NotSpecified, version)
@@ -829,15 +693,17 @@ func TestNodesVersion_insertInEn(t *testing.T) {
 		t.Parallel()
 
 		tr, _ := newEmptyTrie()
-		_ = tr.UpdateWithVersion([]byte("aaa"), []byte("aaa"), core.AutoBalanceEnabled)
-		_ = tr.UpdateWithVersion([]byte("baa"), []byte("baa"), core.AutoBalanceEnabled)
-		en, ok := tr.root.(*extensionNode)
+		tr.UpdateWithVersion([]byte("aaa"), []byte("aaa"), core.AutoBalanceEnabled)
+		tr.UpdateWithVersion([]byte("baa"), []byte("baa"), core.AutoBalanceEnabled)
+		ExecuteUpdatesFromBatch(tr)
+		en, ok := tr.GetRootNode().(*extensionNode)
 		assert.True(t, ok)
 		version, _ := en.getVersion()
 		assert.Equal(t, core.AutoBalanceEnabled, version)
 
-		_ = tr.UpdateWithVersion([]byte("zzz"), []byte("zzz"), core.AutoBalanceEnabled)
-		bn, ok := tr.root.(*branchNode)
+		tr.UpdateWithVersion([]byte("zzz"), []byte("zzz"), core.AutoBalanceEnabled)
+		ExecuteUpdatesFromBatch(tr)
+		bn, ok := tr.GetRootNode().(*branchNode)
 		assert.True(t, ok)
 		version, _ = bn.getVersion()
 		assert.Equal(t, core.AutoBalanceEnabled, version)
@@ -847,15 +713,17 @@ func TestNodesVersion_insertInEn(t *testing.T) {
 		t.Parallel()
 
 		tr, _ := newEmptyTrie()
-		_ = tr.UpdateWithVersion([]byte("aaa"), []byte("aaa"), core.AutoBalanceEnabled)
-		_ = tr.UpdateWithVersion([]byte("baa"), []byte("baa"), core.AutoBalanceEnabled)
-		en, ok := tr.root.(*extensionNode)
+		tr.UpdateWithVersion([]byte("aaa"), []byte("aaa"), core.AutoBalanceEnabled)
+		tr.UpdateWithVersion([]byte("baa"), []byte("baa"), core.AutoBalanceEnabled)
+		ExecuteUpdatesFromBatch(tr)
+		en, ok := tr.GetRootNode().(*extensionNode)
 		assert.True(t, ok)
 		version, _ := en.getVersion()
 		assert.Equal(t, core.AutoBalanceEnabled, version)
 
-		_ = tr.UpdateWithVersion([]byte("bba"), []byte("bba"), core.NotSpecified)
-		en, ok = tr.root.(*extensionNode)
+		tr.UpdateWithVersion([]byte("bba"), []byte("bba"), core.NotSpecified)
+		ExecuteUpdatesFromBatch(tr)
+		en, ok = tr.GetRootNode().(*extensionNode)
 		assert.True(t, ok)
 		version, _ = en.getVersion()
 		assert.Equal(t, core.NotSpecified, version)
@@ -865,15 +733,17 @@ func TestNodesVersion_insertInEn(t *testing.T) {
 		t.Parallel()
 
 		tr, _ := newEmptyTrie()
-		_ = tr.UpdateWithVersion([]byte("aaa"), []byte("aaa"), core.AutoBalanceEnabled)
-		_ = tr.UpdateWithVersion([]byte("baa"), []byte("baa"), core.AutoBalanceEnabled)
-		en, ok := tr.root.(*extensionNode)
+		tr.UpdateWithVersion([]byte("aaa"), []byte("aaa"), core.AutoBalanceEnabled)
+		tr.UpdateWithVersion([]byte("baa"), []byte("baa"), core.AutoBalanceEnabled)
+		ExecuteUpdatesFromBatch(tr)
+		en, ok := tr.GetRootNode().(*extensionNode)
 		assert.True(t, ok)
 		version, _ := en.getVersion()
 		assert.Equal(t, core.AutoBalanceEnabled, version)
 
-		_ = tr.UpdateWithVersion([]byte("bba"), []byte("bba"), core.AutoBalanceEnabled)
-		en, ok = tr.root.(*extensionNode)
+		tr.UpdateWithVersion([]byte("bba"), []byte("bba"), core.AutoBalanceEnabled)
+		ExecuteUpdatesFromBatch(tr)
+		en, ok = tr.GetRootNode().(*extensionNode)
 		assert.True(t, ok)
 		version, _ = en.getVersion()
 		assert.Equal(t, core.AutoBalanceEnabled, version)
@@ -888,14 +758,16 @@ func TestNodesVersion_insertInBn(t *testing.T) {
 
 		tr, _ := newEmptyTrie()
 
-		_ = tr.UpdateWithVersion([]byte("aaa"), []byte("aaa"), core.AutoBalanceEnabled)
-		_ = tr.UpdateWithVersion([]byte("bbb"), []byte("bbb"), core.AutoBalanceEnabled)
-		bn, ok := tr.root.(*branchNode)
+		tr.UpdateWithVersion([]byte("aaa"), []byte("aaa"), core.AutoBalanceEnabled)
+		tr.UpdateWithVersion([]byte("bbb"), []byte("bbb"), core.AutoBalanceEnabled)
+		ExecuteUpdatesFromBatch(tr)
+		bn, ok := tr.GetRootNode().(*branchNode)
 		assert.True(t, ok)
 		version, _ := bn.getVersion()
 		assert.Equal(t, core.AutoBalanceEnabled, version)
 
-		_ = tr.UpdateWithVersion([]byte("ccc"), []byte("ccc"), core.AutoBalanceEnabled)
+		tr.UpdateWithVersion([]byte("ccc"), []byte("ccc"), core.AutoBalanceEnabled)
+		ExecuteUpdatesFromBatch(tr)
 		version, _ = bn.getVersion()
 		assert.Equal(t, core.AutoBalanceEnabled, version)
 	})
@@ -905,14 +777,16 @@ func TestNodesVersion_insertInBn(t *testing.T) {
 
 		tr, _ := newEmptyTrie()
 
-		_ = tr.UpdateWithVersion([]byte("aaa"), []byte("aaa"), core.AutoBalanceEnabled)
-		_ = tr.UpdateWithVersion([]byte("bbb"), []byte("bbb"), core.AutoBalanceEnabled)
-		bn, ok := tr.root.(*branchNode)
+		tr.UpdateWithVersion([]byte("aaa"), []byte("aaa"), core.AutoBalanceEnabled)
+		tr.UpdateWithVersion([]byte("bbb"), []byte("bbb"), core.AutoBalanceEnabled)
+		ExecuteUpdatesFromBatch(tr)
+		bn, ok := tr.GetRootNode().(*branchNode)
 		assert.True(t, ok)
 		version, _ := bn.getVersion()
 		assert.Equal(t, core.AutoBalanceEnabled, version)
 
-		_ = tr.UpdateWithVersion([]byte("ccc"), []byte("ccc"), core.NotSpecified)
+		tr.UpdateWithVersion([]byte("ccc"), []byte("ccc"), core.NotSpecified)
+		ExecuteUpdatesFromBatch(tr)
 		version, _ = bn.getVersion()
 		assert.Equal(t, core.NotSpecified, version)
 	})
@@ -922,14 +796,16 @@ func TestNodesVersion_insertInBn(t *testing.T) {
 
 		tr, _ := newEmptyTrie()
 
-		_ = tr.UpdateWithVersion([]byte("aaa"), []byte("aaa"), core.AutoBalanceEnabled)
-		_ = tr.UpdateWithVersion([]byte("bbb"), []byte("bbb"), core.AutoBalanceEnabled)
-		bn, ok := tr.root.(*branchNode)
+		tr.UpdateWithVersion([]byte("aaa"), []byte("aaa"), core.AutoBalanceEnabled)
+		tr.UpdateWithVersion([]byte("bbb"), []byte("bbb"), core.AutoBalanceEnabled)
+		ExecuteUpdatesFromBatch(tr)
+		bn, ok := tr.GetRootNode().(*branchNode)
 		assert.True(t, ok)
 		version, _ := bn.getVersion()
 		assert.Equal(t, core.AutoBalanceEnabled, version)
 
-		_ = tr.UpdateWithVersion([]byte("aaa"), []byte("aab"), core.AutoBalanceEnabled)
+		tr.UpdateWithVersion([]byte("aaa"), []byte("aab"), core.AutoBalanceEnabled)
+		ExecuteUpdatesFromBatch(tr)
 		version, _ = bn.getVersion()
 		assert.Equal(t, core.AutoBalanceEnabled, version)
 	})
@@ -939,14 +815,16 @@ func TestNodesVersion_insertInBn(t *testing.T) {
 
 		tr, _ := newEmptyTrie()
 
-		_ = tr.UpdateWithVersion([]byte("aaa"), []byte("aaa"), core.NotSpecified)
-		_ = tr.UpdateWithVersion([]byte("bbb"), []byte("bbb"), core.AutoBalanceEnabled)
-		bn, ok := tr.root.(*branchNode)
+		tr.UpdateWithVersion([]byte("aaa"), []byte("aaa"), core.NotSpecified)
+		tr.UpdateWithVersion([]byte("bbb"), []byte("bbb"), core.AutoBalanceEnabled)
+		ExecuteUpdatesFromBatch(tr)
+		bn, ok := tr.GetRootNode().(*branchNode)
 		assert.True(t, ok)
 		version, _ := bn.getVersion()
 		assert.Equal(t, core.NotSpecified, version)
 
-		_ = tr.UpdateWithVersion([]byte("aaa"), []byte("aab"), core.AutoBalanceEnabled)
+		tr.UpdateWithVersion([]byte("aaa"), []byte("aab"), core.AutoBalanceEnabled)
+		ExecuteUpdatesFromBatch(tr)
 		version, _ = bn.getVersion()
 		assert.Equal(t, core.AutoBalanceEnabled, version)
 	})
@@ -959,15 +837,17 @@ func TestNodesVersion_deleteFromEn(t *testing.T) {
 		t.Parallel()
 
 		tr, _ := newEmptyTrie()
-		_ = tr.UpdateWithVersion([]byte("aaa"), []byte("baa"), core.NotSpecified)
-		_ = tr.UpdateWithVersion([]byte("baa"), []byte("baa"), core.AutoBalanceEnabled)
-		en, ok := tr.root.(*extensionNode)
+		tr.UpdateWithVersion([]byte("aaa"), []byte("baa"), core.NotSpecified)
+		tr.UpdateWithVersion([]byte("baa"), []byte("baa"), core.AutoBalanceEnabled)
+		ExecuteUpdatesFromBatch(tr)
+		en, ok := tr.GetRootNode().(*extensionNode)
 		assert.True(t, ok)
 		version, _ := en.getVersion()
 		assert.Equal(t, core.NotSpecified, version)
 
-		_ = tr.Delete([]byte("aaa"))
-		ln, ok := tr.root.(*leafNode)
+		tr.Delete([]byte("aaa"))
+		ExecuteUpdatesFromBatch(tr)
+		ln, ok := tr.GetRootNode().(*leafNode)
 		assert.True(t, ok)
 		version, _ = ln.getVersion()
 		assert.Equal(t, core.AutoBalanceEnabled, version)
@@ -977,15 +857,17 @@ func TestNodesVersion_deleteFromEn(t *testing.T) {
 		t.Parallel()
 
 		tr, _ := newEmptyTrie()
-		_ = tr.UpdateWithVersion([]byte("aaa"), []byte("baa"), core.NotSpecified)
-		_ = tr.UpdateWithVersion([]byte("baa"), []byte("baa"), core.AutoBalanceEnabled)
-		en, ok := tr.root.(*extensionNode)
+		tr.UpdateWithVersion([]byte("aaa"), []byte("baa"), core.NotSpecified)
+		tr.UpdateWithVersion([]byte("baa"), []byte("baa"), core.AutoBalanceEnabled)
+		ExecuteUpdatesFromBatch(tr)
+		en, ok := tr.GetRootNode().(*extensionNode)
 		assert.True(t, ok)
 		version, _ := en.getVersion()
 		assert.Equal(t, core.NotSpecified, version)
 
-		_ = tr.Delete([]byte("baa"))
-		ln, ok := tr.root.(*leafNode)
+		tr.Delete([]byte("baa"))
+		ExecuteUpdatesFromBatch(tr)
+		ln, ok := tr.GetRootNode().(*leafNode)
 		assert.True(t, ok)
 		version, _ = ln.getVersion()
 		assert.Equal(t, core.NotSpecified, version)
@@ -995,16 +877,18 @@ func TestNodesVersion_deleteFromEn(t *testing.T) {
 		t.Parallel()
 
 		tr, _ := newEmptyTrie()
-		_ = tr.UpdateWithVersion([]byte("aaa"), []byte("baa"), core.AutoBalanceEnabled)
-		_ = tr.UpdateWithVersion([]byte("baa"), []byte("baa"), core.AutoBalanceEnabled)
-		_ = tr.UpdateWithVersion([]byte("zza"), []byte("zza"), core.AutoBalanceEnabled)
-		en, ok := tr.root.(*extensionNode)
+		tr.UpdateWithVersion([]byte("aaa"), []byte("baa"), core.AutoBalanceEnabled)
+		tr.UpdateWithVersion([]byte("baa"), []byte("baa"), core.AutoBalanceEnabled)
+		tr.UpdateWithVersion([]byte("zza"), []byte("zza"), core.AutoBalanceEnabled)
+		ExecuteUpdatesFromBatch(tr)
+		en, ok := tr.GetRootNode().(*extensionNode)
 		assert.True(t, ok)
 		version, _ := en.getVersion()
 		assert.Equal(t, core.AutoBalanceEnabled, version)
 
-		_ = tr.Delete([]byte("zza"))
-		en, ok = tr.root.(*extensionNode)
+		tr.Delete([]byte("zza"))
+		ExecuteUpdatesFromBatch(tr)
+		en, ok = tr.GetRootNode().(*extensionNode)
 		assert.True(t, ok)
 		version, _ = en.getVersion()
 		assert.Equal(t, core.AutoBalanceEnabled, version)
@@ -1014,16 +898,18 @@ func TestNodesVersion_deleteFromEn(t *testing.T) {
 		t.Parallel()
 
 		tr, _ := newEmptyTrie()
-		_ = tr.UpdateWithVersion([]byte("aaa"), []byte("baa"), core.AutoBalanceEnabled)
-		_ = tr.UpdateWithVersion([]byte("baa"), []byte("baa"), core.AutoBalanceEnabled)
-		_ = tr.UpdateWithVersion([]byte("zza"), []byte("zza"), core.NotSpecified)
-		en, ok := tr.root.(*extensionNode)
+		tr.UpdateWithVersion([]byte("aaa"), []byte("baa"), core.AutoBalanceEnabled)
+		tr.UpdateWithVersion([]byte("baa"), []byte("baa"), core.AutoBalanceEnabled)
+		tr.UpdateWithVersion([]byte("zza"), []byte("zza"), core.NotSpecified)
+		ExecuteUpdatesFromBatch(tr)
+		en, ok := tr.GetRootNode().(*extensionNode)
 		assert.True(t, ok)
 		version, _ := en.getVersion()
 		assert.Equal(t, core.NotSpecified, version)
 
-		_ = tr.Delete([]byte("zza"))
-		en, ok = tr.root.(*extensionNode)
+		tr.Delete([]byte("zza"))
+		ExecuteUpdatesFromBatch(tr)
+		en, ok = tr.GetRootNode().(*extensionNode)
 		assert.True(t, ok)
 		version, _ = en.getVersion()
 		assert.Equal(t, core.AutoBalanceEnabled, version)
@@ -1033,16 +919,18 @@ func TestNodesVersion_deleteFromEn(t *testing.T) {
 		t.Parallel()
 
 		tr, _ := newEmptyTrie()
-		_ = tr.UpdateWithVersion([]byte("aaa"), []byte("baa"), core.AutoBalanceEnabled)
-		_ = tr.UpdateWithVersion([]byte("baa"), []byte("baa"), core.AutoBalanceEnabled)
-		_ = tr.UpdateWithVersion([]byte("bba"), []byte("baa"), core.AutoBalanceEnabled)
-		en, ok := tr.root.(*extensionNode)
+		tr.UpdateWithVersion([]byte("aaa"), []byte("baa"), core.AutoBalanceEnabled)
+		tr.UpdateWithVersion([]byte("baa"), []byte("baa"), core.AutoBalanceEnabled)
+		tr.UpdateWithVersion([]byte("bba"), []byte("baa"), core.AutoBalanceEnabled)
+		ExecuteUpdatesFromBatch(tr)
+		en, ok := tr.GetRootNode().(*extensionNode)
 		assert.True(t, ok)
 		version, _ := en.getVersion()
 		assert.Equal(t, core.AutoBalanceEnabled, version)
 
-		_ = tr.Delete([]byte("aaa"))
-		bn, ok := tr.root.(*extensionNode)
+		tr.Delete([]byte("aaa"))
+		ExecuteUpdatesFromBatch(tr)
+		bn, ok := tr.GetRootNode().(*extensionNode)
 		assert.True(t, ok)
 		version, _ = bn.getVersion()
 		assert.Equal(t, core.AutoBalanceEnabled, version)
@@ -1052,16 +940,18 @@ func TestNodesVersion_deleteFromEn(t *testing.T) {
 		t.Parallel()
 
 		tr, _ := newEmptyTrie()
-		_ = tr.UpdateWithVersion([]byte("aaa"), []byte("baa"), core.NotSpecified)
-		_ = tr.UpdateWithVersion([]byte("baa"), []byte("baa"), core.AutoBalanceEnabled)
-		_ = tr.UpdateWithVersion([]byte("bba"), []byte("baa"), core.AutoBalanceEnabled)
-		en, ok := tr.root.(*extensionNode)
+		tr.UpdateWithVersion([]byte("aaa"), []byte("baa"), core.NotSpecified)
+		tr.UpdateWithVersion([]byte("baa"), []byte("baa"), core.AutoBalanceEnabled)
+		tr.UpdateWithVersion([]byte("bba"), []byte("baa"), core.AutoBalanceEnabled)
+		ExecuteUpdatesFromBatch(tr)
+		en, ok := tr.GetRootNode().(*extensionNode)
 		assert.True(t, ok)
 		version, _ := en.getVersion()
 		assert.Equal(t, core.NotSpecified, version)
 
-		_ = tr.Delete([]byte("aaa"))
-		bn, ok := tr.root.(*extensionNode)
+		tr.Delete([]byte("aaa"))
+		ExecuteUpdatesFromBatch(tr)
+		bn, ok := tr.GetRootNode().(*extensionNode)
 		assert.True(t, ok)
 		version, _ = bn.getVersion()
 		assert.Equal(t, core.AutoBalanceEnabled, version)
@@ -1075,16 +965,18 @@ func TestNodesVersion_deleteFromBn(t *testing.T) {
 		t.Parallel()
 
 		tr, _ := newEmptyTrie()
-		_ = tr.UpdateWithVersion([]byte("aaa"), []byte("aaa"), core.AutoBalanceEnabled)
-		_ = tr.UpdateWithVersion([]byte("bbb"), []byte("bbb"), core.AutoBalanceEnabled)
-		_ = tr.UpdateWithVersion([]byte("ccc"), []byte("ccc"), core.AutoBalanceEnabled)
-		bn, ok := tr.root.(*branchNode)
+		tr.UpdateWithVersion([]byte("aaa"), []byte("aaa"), core.AutoBalanceEnabled)
+		tr.UpdateWithVersion([]byte("bbb"), []byte("bbb"), core.AutoBalanceEnabled)
+		tr.UpdateWithVersion([]byte("ccc"), []byte("ccc"), core.AutoBalanceEnabled)
+		ExecuteUpdatesFromBatch(tr)
+		bn, ok := tr.GetRootNode().(*branchNode)
 		assert.True(t, ok)
 		version, _ := bn.getVersion()
 		assert.Equal(t, core.AutoBalanceEnabled, version)
 
-		_ = tr.Delete([]byte("aaa"))
-		bn, ok = tr.root.(*branchNode)
+		tr.Delete([]byte("aaa"))
+		ExecuteUpdatesFromBatch(tr)
+		bn, ok = tr.GetRootNode().(*branchNode)
 		assert.True(t, ok)
 		version, _ = bn.getVersion()
 		assert.Equal(t, core.AutoBalanceEnabled, version)
@@ -1094,16 +986,18 @@ func TestNodesVersion_deleteFromBn(t *testing.T) {
 		t.Parallel()
 
 		tr, _ := newEmptyTrie()
-		_ = tr.UpdateWithVersion([]byte("aaa"), []byte("aaa"), core.NotSpecified)
-		_ = tr.UpdateWithVersion([]byte("bbb"), []byte("bbb"), core.AutoBalanceEnabled)
-		_ = tr.UpdateWithVersion([]byte("ccc"), []byte("ccc"), core.AutoBalanceEnabled)
-		bn, ok := tr.root.(*branchNode)
+		tr.UpdateWithVersion([]byte("aaa"), []byte("aaa"), core.NotSpecified)
+		tr.UpdateWithVersion([]byte("bbb"), []byte("bbb"), core.AutoBalanceEnabled)
+		tr.UpdateWithVersion([]byte("ccc"), []byte("ccc"), core.AutoBalanceEnabled)
+		ExecuteUpdatesFromBatch(tr)
+		bn, ok := tr.GetRootNode().(*branchNode)
 		assert.True(t, ok)
 		version, _ := bn.getVersion()
 		assert.Equal(t, core.NotSpecified, version)
 
-		_ = tr.Delete([]byte("aaa"))
-		bn, ok = tr.root.(*branchNode)
+		tr.Delete([]byte("aaa"))
+		ExecuteUpdatesFromBatch(tr)
+		bn, ok = tr.GetRootNode().(*branchNode)
 		assert.True(t, ok)
 		version, _ = bn.getVersion()
 		assert.Equal(t, core.AutoBalanceEnabled, version)
@@ -1113,16 +1007,18 @@ func TestNodesVersion_deleteFromBn(t *testing.T) {
 		t.Parallel()
 
 		tr, _ := newEmptyTrie()
-		_ = tr.UpdateWithVersion([]byte("aaa"), []byte("aaa"), core.AutoBalanceEnabled)
-		_ = tr.UpdateWithVersion([]byte("qqq"), []byte("bbb"), core.AutoBalanceEnabled)
-		_ = tr.UpdateWithVersion([]byte("zzz"), []byte("ccc"), core.NotSpecified)
-		bn, ok := tr.root.(*branchNode)
+		tr.UpdateWithVersion([]byte("aaa"), []byte("aaa"), core.AutoBalanceEnabled)
+		tr.UpdateWithVersion([]byte("qqq"), []byte("bbb"), core.AutoBalanceEnabled)
+		tr.UpdateWithVersion([]byte("zzz"), []byte("ccc"), core.NotSpecified)
+		ExecuteUpdatesFromBatch(tr)
+		bn, ok := tr.GetRootNode().(*branchNode)
 		assert.True(t, ok)
 		version, _ := bn.getVersion()
 		assert.Equal(t, core.NotSpecified, version)
 
-		_ = tr.Delete([]byte("zzz"))
-		en, ok := tr.root.(*extensionNode)
+		tr.Delete([]byte("zzz"))
+		ExecuteUpdatesFromBatch(tr)
+		en, ok := tr.GetRootNode().(*extensionNode)
 		assert.True(t, ok)
 		version, _ = en.getVersion()
 		assert.Equal(t, core.AutoBalanceEnabled, version)
@@ -1132,16 +1028,18 @@ func TestNodesVersion_deleteFromBn(t *testing.T) {
 		t.Parallel()
 
 		tr, _ := newEmptyTrie()
-		_ = tr.UpdateWithVersion([]byte("aaa"), []byte("aaa"), core.AutoBalanceEnabled)
-		_ = tr.UpdateWithVersion([]byte("bba"), []byte("bbb"), core.AutoBalanceEnabled)
-		_ = tr.UpdateWithVersion([]byte("zzz"), []byte("ccc"), core.NotSpecified)
-		bn, ok := tr.root.(*branchNode)
+		tr.UpdateWithVersion([]byte("aaa"), []byte("aaa"), core.AutoBalanceEnabled)
+		tr.UpdateWithVersion([]byte("bba"), []byte("bbb"), core.AutoBalanceEnabled)
+		tr.UpdateWithVersion([]byte("zzz"), []byte("ccc"), core.NotSpecified)
+		ExecuteUpdatesFromBatch(tr)
+		bn, ok := tr.GetRootNode().(*branchNode)
 		assert.True(t, ok)
 		version, _ := bn.getVersion()
 		assert.Equal(t, core.NotSpecified, version)
 
-		_ = tr.Delete([]byte("zzz"))
-		en, ok := tr.root.(*extensionNode)
+		tr.Delete([]byte("zzz"))
+		ExecuteUpdatesFromBatch(tr)
+		en, ok := tr.GetRootNode().(*extensionNode)
 		assert.True(t, ok)
 		version, _ = en.getVersion()
 		assert.Equal(t, core.AutoBalanceEnabled, version)
@@ -1151,15 +1049,17 @@ func TestNodesVersion_deleteFromBn(t *testing.T) {
 		t.Parallel()
 
 		tr, _ := newEmptyTrie()
-		_ = tr.UpdateWithVersion([]byte("aaa"), []byte("aaa"), core.NotSpecified)
-		_ = tr.UpdateWithVersion([]byte("bbb"), []byte("bbb"), core.AutoBalanceEnabled)
-		bn, ok := tr.root.(*branchNode)
+		tr.UpdateWithVersion([]byte("aaa"), []byte("aaa"), core.NotSpecified)
+		tr.UpdateWithVersion([]byte("bbb"), []byte("bbb"), core.AutoBalanceEnabled)
+		ExecuteUpdatesFromBatch(tr)
+		bn, ok := tr.GetRootNode().(*branchNode)
 		assert.True(t, ok)
 		version, _ := bn.getVersion()
 		assert.Equal(t, core.NotSpecified, version)
 
-		_ = tr.Delete([]byte("aaa"))
-		ln, ok := tr.root.(*leafNode)
+		tr.Delete([]byte("aaa"))
+		ExecuteUpdatesFromBatch(tr)
+		ln, ok := tr.GetRootNode().(*leafNode)
 		assert.True(t, ok)
 		version, _ = ln.getVersion()
 		assert.Equal(t, core.AutoBalanceEnabled, version)

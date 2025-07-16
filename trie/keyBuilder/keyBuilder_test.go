@@ -49,3 +49,20 @@ func TestHexToTrieKeyBytesInvalidLength(t *testing.T) {
 	assert.Nil(t, key)
 	assert.Equal(t, ErrInvalidLength, err)
 }
+
+func TestKeyBytesToHex(t *testing.T) {
+	t.Parallel()
+
+	t.Run("empty string", func(t *testing.T) {
+		t.Parallel()
+
+		assert.Equal(t, []byte{16}, KeyBytesToHex(nil))
+	})
+	t.Run("convert to hex and reverse", func(t *testing.T) {
+		t.Parallel()
+
+		key := "dog"
+		expected := []byte{7, 6, 15, 6, 4, 6, 16}
+		assert.Equal(t, expected, KeyBytesToHex([]byte(key)))
+	})
+}

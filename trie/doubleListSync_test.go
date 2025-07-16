@@ -10,8 +10,10 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/core/throttler"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/common/holders"
+	"github.com/multiversx/mx-chain-go/state/hashesCollector"
 	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/storage/storageunit"
 	"github.com/multiversx/mx-chain-go/testscommon"
@@ -34,10 +36,22 @@ func createTrieStorageManager(store storage.Storer) (common.StorageManager, stor
 	return tsm, store
 }
 
+func getTrieArgs(tsm common.StorageManager) TrieArgs {
+	th, _ := throttler.NewNumGoRoutinesThrottler(10)
+	return TrieArgs{
+		TrieStorage:          tsm,
+		Marshalizer:          marshalizer,
+		Hasher:               hasherMock,
+		EnableEpochsHandler:  &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		MaxTrieLevelInMemory: 6,
+		Throttler:            th,
+	}
+}
+
 func createInMemoryTrie() (common.Trie, storage.Storer) {
 	memUnit := testscommon.CreateMemUnit()
 	tsm, _ := createTrieStorageManager(memUnit)
-	tr, _ := NewTrie(tsm, marshalizer, hasherMock, &enableEpochsHandlerMock.EnableEpochsHandlerStub{}, 6)
+	tr, _ := NewTrie(getTrieArgs(tsm))
 
 	return tr, memUnit
 }
@@ -50,7 +64,7 @@ func createInMemoryTrieFromDB(db storage.Persister) (common.Trie, storage.Storer
 	unit, _ := storageunit.NewStorageUnit(cache, db)
 
 	tsm, _ := createTrieStorageManager(unit)
-	tr, _ := NewTrie(tsm, marshalizer, hasherMock, &enableEpochsHandlerMock.EnableEpochsHandlerStub{}, 6)
+	tr, _ := NewTrie(getTrieArgs(tsm))
 
 	return tr, unit
 }
@@ -59,8 +73,9 @@ func addDataToTrie(numKeysValues int, tr common.Trie) {
 	for i := 0; i < numKeysValues; i++ {
 		keyVal := hasherMock.Compute(fmt.Sprintf("%d", i))
 
-		_ = tr.Update(keyVal, keyVal)
+		tr.Update(keyVal, keyVal)
 	}
+	ExecuteUpdatesFromBatch(tr)
 }
 
 func createRequesterResolver(completeTrie common.Trie, interceptedNodes storage.Cacher, exceptionHashes [][]byte) RequestHandler {
@@ -151,7 +166,7 @@ func TestDoubleListTrieSyncer_StartSyncingCanTimeout(t *testing.T) {
 	numKeysValues := 10
 	trSource, _ := createInMemoryTrie()
 	addDataToTrie(numKeysValues, trSource)
-	_ = trSource.Commit()
+	_ = trSource.Commit(hashesCollector.NewDisabledHashesCollector())
 	roothash, _ := trSource.RootHash()
 	log.Info("source trie", "root hash", roothash)
 
@@ -169,7 +184,7 @@ func TestDoubleListTrieSyncer_StartSyncingTimeoutNoNodesReceived(t *testing.T) {
 	numKeysValues := 10
 	trSource, _ := createInMemoryTrie()
 	addDataToTrie(numKeysValues, trSource)
-	_ = trSource.Commit()
+	_ = trSource.Commit(hashesCollector.NewDisabledHashesCollector())
 	roothash, _ := trSource.RootHash()
 	log.Info("source trie", "root hash", roothash)
 
@@ -185,7 +200,7 @@ func TestDoubleListTrieSyncer_StartSyncingNewTrieShouldWork(t *testing.T) {
 	numKeysValues := 100
 	trSource, _ := createInMemoryTrie()
 	addDataToTrie(numKeysValues, trSource)
-	_ = trSource.Commit()
+	_ = trSource.Commit(hashesCollector.NewDisabledHashesCollector())
 	roothash, _ := trSource.RootHash()
 	log.Info("source trie", "root hash", roothash)
 
@@ -202,7 +217,7 @@ func TestDoubleListTrieSyncer_StartSyncingNewTrieShouldWork(t *testing.T) {
 	tsm, _ := arg.DB.(*trieStorageManager)
 	db, _ := tsm.mainStorer.(storage.Persister)
 	trie, _ := createInMemoryTrieFromDB(db)
-	trie, _ = trie.Recreate(holders.NewDefaultRootHashesHolder(roothash))
+	trie, _ = trie.Recreate(holders.NewDefaultRootHashesHolder(roothash), "")
 	require.False(t, check.IfNil(trie))
 
 	var val []byte
@@ -246,7 +261,7 @@ func TestDoubleListTrieSyncer_StartSyncingPartiallyFilledTrieShouldWork(t *testi
 	numKeysValues := 100
 	trSource, memUnitSource := createInMemoryTrie()
 	addDataToTrie(numKeysValues, trSource)
-	_ = trSource.Commit()
+	_ = trSource.Commit(hashesCollector.NewDisabledHashesCollector())
 	roothash, _ := trSource.RootHash()
 	log.Info("source trie", "root hash", roothash)
 
@@ -279,7 +294,7 @@ func TestDoubleListTrieSyncer_StartSyncingPartiallyFilledTrieShouldWork(t *testi
 	tsm, _ := arg.DB.(*trieStorageManager)
 	db, _ := tsm.mainStorer.(storage.Persister)
 	trie, _ := createInMemoryTrieFromDB(db)
-	trie, _ = trie.Recreate(holders.NewDefaultRootHashesHolder(roothash))
+	trie, _ = trie.Recreate(holders.NewDefaultRootHashesHolder(roothash), "")
 	require.False(t, check.IfNil(trie))
 
 	var val []byte

@@ -59,7 +59,7 @@ func TestTrieNodesHandler_jobDone(t *testing.T) {
 	handler.processMissingHashWasFound(&leafNode{}, roothash)
 	assert.False(t, handler.jobDone())
 
-	handler.replaceParentWithChildren(0, roothash, make([]node, 0), make([][]byte, 0))
+	handler.replaceParentWithChildren(0, roothash, make([]nodeWithHash, 0), make([][]byte, 0))
 	assert.True(t, handler.jobDone())
 }
 
@@ -82,16 +82,10 @@ func TestTrieNodesHandler_replaceParentWithChildren(t *testing.T) {
 
 	roothash := "roothash"
 	hash1 := "hash1"
-	node1 := &leafNode{
-		baseNode: &baseNode{},
-	}
-	node1.setGivenHash([]byte(hash1))
+	node1 := &leafNode{}
 
 	hash2 := "hash2"
-	node2 := &leafNode{
-		baseNode: &baseNode{},
-	}
-	node2.setGivenHash([]byte(hash2))
+	node2 := &leafNode{}
 
 	hash3 := "hash3"
 
@@ -101,7 +95,11 @@ func TestTrieNodesHandler_replaceParentWithChildren(t *testing.T) {
 	handler.addInitialRootHash(roothash)
 	handler.processMissingHashWasFound(&leafNode{}, roothash)
 
-	handler.replaceParentWithChildren(0, roothash, []node{node1, node2}, [][]byte{[]byte(hash3)})
+	nodes := []nodeWithHash{
+		{node1, []byte(hash1)},
+		{node2, []byte(hash2)},
+	}
+	handler.replaceParentWithChildren(0, roothash, nodes, [][]byte{[]byte(hash3)})
 
 	t.Run("test the initial roothash is deleted", func(t *testing.T) {
 		assert.False(t, handler.hashIsMissing(roothash))

@@ -127,7 +127,7 @@ func createSyncTrieState(retErr bool) update.EpochStartTriesSyncHandler {
 		RecreateAllTriesCalled: func(rootHash []byte) (map[string]common.Trie, error) {
 			tries := make(map[string]common.Trie)
 			tries[string(rootHash)] = &trieMock.TrieStub{
-				CommitCalled: func() error {
+				CommitCalled: func(_ common.TrieHashesCollector) error {
 					if retErr {
 						return errors.New("err")
 					}
@@ -142,7 +142,7 @@ func createSyncTrieState(retErr bool) update.EpochStartTriesSyncHandler {
 		RecreateAllTriesCalled: func(rootHash []byte) (map[string]common.Trie, error) {
 			tries := make(map[string]common.Trie)
 			tries[string(rootHash)] = &trieMock.TrieStub{
-				CommitCalled: func() error {
+				CommitCalled: func(_ common.TrieHashesCollector) error {
 					if retErr {
 						return errors.New("err")
 					}

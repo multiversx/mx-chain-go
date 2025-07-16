@@ -372,7 +372,12 @@ func (tsm *trieStorageManager) takeSnapshot(snapshotEntry *snapshotsQueueEntry, 
 		return
 	}
 
-	newRoot, err := newSnapshotNode(stsm, msh, hsh, snapshotEntry.rootHash, snapshotEntry.missingNodesChan)
+	trieCtx := &trieContext{
+		StorageManager: stsm,
+		Marshalizer:    msh,
+		Hasher:         hsh,
+	}
+	newRoot, rootBytes, err := newSnapshotNode(trieCtx, snapshotEntry.rootHash, snapshotEntry.missingNodesChan)
 	if err != nil {
 		snapshotEntry.iteratorChannels.ErrChan.WriteInChanNonBlocking(err)
 		treatSnapshotError(err,
@@ -383,8 +388,18 @@ func (tsm *trieStorageManager) takeSnapshot(snapshotEntry *snapshotsQueueEntry, 
 		return
 	}
 
+	err = stsm.Put(snapshotEntry.rootHash, rootBytes)
+	if err != nil {
+		snapshotEntry.iteratorChannels.ErrChan.WriteInChanNonBlocking(err)
+		treatSnapshotError(err,
+			"trie storage manager: put takeSnapshot",
+			snapshotEntry.rootHash,
+			snapshotEntry.mainTrieRootHash,
+		)
+	}
+
 	stats := statistics.NewTrieStatistics()
-	err = newRoot.commitSnapshot(stsm, snapshotEntry.iteratorChannels.LeavesChan, snapshotEntry.missingNodesChan, ctx, stats, tsm.idleProvider, rootDepthLevel)
+	err = newRoot.commitSnapshot(trieCtx, snapshotEntry.iteratorChannels.LeavesChan, snapshotEntry.missingNodesChan, ctx, stats, tsm.idleProvider, rootBytes, rootDepthLevel)
 	if err != nil {
 		snapshotEntry.iteratorChannels.ErrChan.WriteInChanNonBlocking(err)
 		treatSnapshotError(err,
@@ -417,19 +432,17 @@ func treatSnapshotError(err error, message string, rootHash []byte, mainTrieRoot
 }
 
 func newSnapshotNode(
-	db common.TrieStorageInteractor,
-	msh marshal.Marshalizer,
-	hsh hashing.Hasher,
+	trieCtx common.TrieContext,
 	rootHash []byte,
 	missingNodesCh chan []byte,
-) (snapshotNode, error) {
-	newRoot, err := getNodeFromDBAndDecode(rootHash, db, msh, hsh)
+) (snapshotNode, []byte, error) {
+	newRoot, rootBytes, err := getNodeFromDBAndDecode(rootHash, trieCtx)
 	_, _ = treatCommitSnapshotError(err, rootHash, missingNodesCh)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
-	return newRoot, nil
+	return newRoot, rootBytes, nil
 }
 
 // IsPruningEnabled returns true if the trie pruning is enabled

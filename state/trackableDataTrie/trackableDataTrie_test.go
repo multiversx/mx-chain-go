@@ -87,9 +87,8 @@ func TestTrackableDataTrie_SaveKeyValue(t *testing.T) {
 		keyExpected := []byte("key")
 		value := []byte("value")
 		trie := &trieMock.TrieStub{
-			UpdateCalled: func(key, value []byte) error {
+			UpdateCalled: func(key, value []byte) {
 				assert.Fail(t, "should not have saved directly in the trie")
-				return nil
 			},
 			GetCalled: func(key []byte) ([]byte, uint32, error) {
 				assert.Fail(t, "should not have saved directly in the trie")
@@ -230,9 +229,6 @@ func TestTrackableDataTrie_RetrieveValue(t *testing.T) {
 		marshaller := &marshallerMock.MarshalizerMock{}
 
 		trie := &trieMock.TrieStub{
-			UpdateCalled: func(key, value []byte) error {
-				return nil
-			},
 			GetCalled: func(key []byte) ([]byte, uint32, error) {
 				if bytes.Equal(key, hasher.Compute(string(expectedKey))) {
 					serializedVal, _ := marshaller.Marshal(&dataTrieValue.TrieLeafData{
@@ -287,9 +283,6 @@ func TestTrackableDataTrie_RetrieveValue(t *testing.T) {
 		marshaller := &marshallerMock.MarshalizerMock{}
 
 		trie := &trieMock.TrieStub{
-			UpdateCalled: func(key, value []byte) error {
-				return nil
-			},
 			GetCalled: func(key []byte) ([]byte, uint32, error) {
 				return nil, 0, nil
 			},
@@ -322,9 +315,6 @@ func TestTrackableDataTrie_RetrieveValue(t *testing.T) {
 		marshaller := &marshallerMock.MarshalizerMock{}
 
 		trie := &trieMock.TrieStub{
-			UpdateCalled: func(key, value []byte) error {
-				return nil
-			},
 			GetCalled: func(key []byte) ([]byte, uint32, error) {
 				return nil, 0, nil
 			},
@@ -367,14 +357,11 @@ func TestTrackableDataTrie_SaveDirtyData(t *testing.T) {
 
 		recreateCalled := false
 		trie := &trieMock.TrieStub{
-			RecreateCalled: func(root common.RootHashHolder) (common.Trie, error) {
+			RecreateCalled: func(root common.RootHashHolder, _ string) (common.Trie, error) {
 				recreateCalled = true
 				return &trieMock.TrieStub{
 					GetCalled: func(_ []byte) ([]byte, uint32, error) {
 						return nil, 0, nil
-					},
-					UpdateWithVersionCalled: func(_, _ []byte, _ core.TrieNodeVersion) error {
-						return nil
 					},
 				}, nil
 			},
@@ -418,16 +405,14 @@ func TestTrackableDataTrie_SaveDirtyData(t *testing.T) {
 				}
 				return nil, 0, nil
 			},
-			UpdateWithVersionCalled: func(key, value []byte, version core.TrieNodeVersion) error {
+			UpdateWithVersionCalled: func(key, value []byte, version core.TrieNodeVersion) {
 				assert.Equal(t, hasher.Compute(string(expectedKey)), key)
 				assert.Equal(t, serializedTrieVal, value)
 				updateCalled = true
-				return nil
 			},
-			DeleteCalled: func(key []byte) error {
+			DeleteCalled: func(key []byte) {
 				assert.Equal(t, expectedKey, key)
 				deleteCalled = true
-				return nil
 			},
 		}
 
@@ -470,15 +455,13 @@ func TestTrackableDataTrie_SaveDirtyData(t *testing.T) {
 				}
 				return nil, 0, nil
 			},
-			UpdateWithVersionCalled: func(key, value []byte, version core.TrieNodeVersion) error {
+			UpdateWithVersionCalled: func(key, value []byte, version core.TrieNodeVersion) {
 				assert.Equal(t, expectedKey, key)
 				assert.Equal(t, expectedVal, value)
 				updateCalled = true
-				return nil
 			},
-			DeleteCalled: func(key []byte) error {
+			DeleteCalled: func(key []byte) {
 				assert.Fail(t, "this should not have been called")
-				return nil
 			},
 		}
 
@@ -531,15 +514,13 @@ func TestTrackableDataTrie_SaveDirtyData(t *testing.T) {
 				}
 				return nil, 0, nil
 			},
-			UpdateWithVersionCalled: func(key, value []byte, version core.TrieNodeVersion) error {
+			UpdateWithVersionCalled: func(key, value []byte, version core.TrieNodeVersion) {
 				assert.Equal(t, hasher.Compute(string(expectedKey)), key)
 				assert.Equal(t, serializedNewTrieVal, value)
 				updateCalled = true
-				return nil
 			},
-			DeleteCalled: func(key []byte) error {
+			DeleteCalled: func(key []byte) {
 				assert.Fail(t, "this delete should not have been called")
-				return nil
 			},
 		}
 
@@ -581,15 +562,13 @@ func TestTrackableDataTrie_SaveDirtyData(t *testing.T) {
 			GetCalled: func(key []byte) ([]byte, uint32, error) {
 				return nil, 0, nil
 			},
-			UpdateWithVersionCalled: func(key, value []byte, version core.TrieNodeVersion) error {
+			UpdateWithVersionCalled: func(key, value []byte, version core.TrieNodeVersion) {
 				assert.Equal(t, hasher.Compute(string(expectedKey)), key)
 				assert.Equal(t, serializedNewTrieVal, value)
 				updateCalled = true
-				return nil
 			},
-			DeleteCalled: func(key []byte) error {
+			DeleteCalled: func(key []byte) {
 				assert.Fail(t, "this delete should not have been called")
-				return nil
 			},
 		}
 
@@ -620,9 +599,6 @@ func TestTrackableDataTrie_SaveDirtyData(t *testing.T) {
 			GetCalled: func(key []byte) ([]byte, uint32, error) {
 				return nil, 0, nil
 			},
-			UpdateWithVersionCalled: func(key, value []byte, version core.TrieNodeVersion) error {
-				return nil
-			},
 		}
 
 		tdt, _ := trackableDataTrie.NewTrackableDataTrie([]byte("identifier"), &hashingMocks.HasherMock{}, &marshallerMock.MarshalizerMock{}, &enableEpochsHandlerMock.EnableEpochsHandlerStub{})
@@ -643,10 +619,9 @@ func TestTrackableDataTrie_SaveDirtyData(t *testing.T) {
 			GetCalled: func(key []byte) ([]byte, uint32, error) {
 				return []byte("value"), 0, nil
 			},
-			DeleteCalled: func(key []byte) error {
+			DeleteCalled: func(key []byte) {
 				assert.Equal(t, expectedKey, key)
 				updateCalled = true
-				return nil
 			},
 		}
 
@@ -669,10 +644,9 @@ func TestTrackableDataTrie_SaveDirtyData(t *testing.T) {
 			GetCalled: func(key []byte) ([]byte, uint32, error) {
 				return nil, 0, nil
 			},
-			DeleteCalled: func(key []byte) error {
+			DeleteCalled: func(key []byte) {
 				assert.Equal(t, expectedKey, key)
 				deleteCalled = true
-				return nil
 			},
 		}
 
@@ -700,10 +674,9 @@ func TestTrackableDataTrie_SaveDirtyData(t *testing.T) {
 
 				return nil, 0, nil
 			},
-			DeleteCalled: func(key []byte) error {
+			DeleteCalled: func(key []byte) {
 				assert.Equal(t, hasher.Compute(string(expectedKey)), key)
 				deleteCalled = true
-				return nil
 			},
 		}
 
@@ -735,10 +708,9 @@ func TestTrackableDataTrie_SaveDirtyData(t *testing.T) {
 
 				return nil, 0, nil
 			},
-			DeleteCalled: func(key []byte) error {
+			DeleteCalled: func(key []byte) {
 				assert.Equal(t, expectedKey, key)
 				deleteCalled++
-				return nil
 			},
 		}
 
@@ -773,15 +745,13 @@ func TestTrackableDataTrie_SaveDirtyData(t *testing.T) {
 			GetCalled: func(key []byte) ([]byte, uint32, error) {
 				return nil, 0, nil
 			},
-			UpdateWithVersionCalled: func(key, value []byte, version core.TrieNodeVersion) error {
+			UpdateWithVersionCalled: func(key, value []byte, version core.TrieNodeVersion) {
 				assert.Equal(t, expectedKey, key)
 				assert.Equal(t, valueWithMetadata, value)
 				updateCalled = true
-				return nil
 			},
-			DeleteCalled: func(key []byte) error {
+			DeleteCalled: func(key []byte) {
 				assert.Fail(t, "this delete should not have been called")
-				return nil
 			},
 		}
 

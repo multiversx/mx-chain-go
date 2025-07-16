@@ -64,9 +64,8 @@ func TestJournalEntryCode_OldHashIsNilAndNewHashIsNotNil(t *testing.T) {
 			serializedCodeEntry, err := marshalizer.Marshal(codeEntry)
 			return serializedCodeEntry, 0, err
 		},
-		UpdateCalled: func(key, value []byte) error {
+		UpdateCalled: func(key, value []byte) {
 			updateCalled = true
-			return nil
 		},
 	}
 	entry, _ := state.NewJournalEntryCode(
@@ -134,34 +133,16 @@ func TestNewJournalEntryAccountCreation_OkParams(t *testing.T) {
 	assert.False(t, check.IfNil(entry))
 }
 
-func TestJournalEntryAccountCreation_RevertErr(t *testing.T) {
-	t.Parallel()
-
-	updateErr := errors.New("update error")
-	address := []byte("address")
-	ts := &trieMock.TrieStub{
-		UpdateCalled: func(key, value []byte) error {
-			return updateErr
-		},
-	}
-	entry, _ := state.NewJournalEntryAccountCreation(address, ts)
-
-	acc, err := entry.Revert()
-	assert.Equal(t, updateErr, err)
-	assert.Nil(t, acc)
-}
-
 func TestJournalEntryAccountCreation_RevertUpdatesTheTrie(t *testing.T) {
 	t.Parallel()
 
 	updateCalled := false
 	address := []byte("address")
 	ts := &trieMock.TrieStub{
-		UpdateCalled: func(key, value []byte) error {
+		UpdateCalled: func(key, value []byte) {
 			assert.Equal(t, address, key)
 			assert.Nil(t, value)
 			updateCalled = true
-			return nil
 		},
 	}
 	entry, _ := state.NewJournalEntryAccountCreation(address, ts)
@@ -215,33 +196,6 @@ func TestNewJournalEntryDataTrieUpdates_OkValsShouldWork(t *testing.T) {
 	assert.False(t, check.IfNil(entry))
 }
 
-func TestJournalEntryDataTrieUpdates_RevertFailsWhenUpdateFails(t *testing.T) {
-	t.Parallel()
-
-	expectedErr := errors.New("error")
-
-	trieUpdates := make([]core.TrieData, 0)
-	trieUpdates = append(trieUpdates, core.TrieData{
-		Key:     []byte("a"),
-		Value:   []byte("b"),
-		Version: 0,
-	})
-	accnt := stateMock.NewAccountWrapMock(nil)
-
-	tr := &trieMock.TrieStub{
-		UpdateWithVersionCalled: func(key, value []byte, version core.TrieNodeVersion) error {
-			return expectedErr
-		},
-	}
-
-	accnt.SetDataTrie(tr)
-	entry, _ := state.NewJournalEntryDataTrieUpdates(trieUpdates, accnt)
-
-	acc, err := entry.Revert()
-	assert.Nil(t, acc)
-	assert.Equal(t, expectedErr, err)
-}
-
 func TestJournalEntryDataTrieUpdates_RevertFailsWhenAccountRootFails(t *testing.T) {
 	t.Parallel()
 
@@ -256,9 +210,6 @@ func TestJournalEntryDataTrieUpdates_RevertFailsWhenAccountRootFails(t *testing.
 	accnt := stateMock.NewAccountWrapMock(nil)
 
 	tr := &trieMock.TrieStub{
-		UpdateWithVersionCalled: func(key, value []byte, version core.TrieNodeVersion) error {
-			return nil
-		},
 		RootCalled: func() ([]byte, error) {
 			return nil, expectedErr
 		},
@@ -287,9 +238,8 @@ func TestJournalEntryDataTrieUpdates_RevertShouldWork(t *testing.T) {
 	accnt := stateMock.NewAccountWrapMock(nil)
 
 	tr := &trieMock.TrieStub{
-		UpdateWithVersionCalled: func(key, value []byte, version core.TrieNodeVersion) error {
+		UpdateWithVersionCalled: func(key, value []byte, version core.TrieNodeVersion) {
 			updateWasCalled = true
-			return nil
 		},
 		RootCalled: func() ([]byte, error) {
 			rootWasCalled = true

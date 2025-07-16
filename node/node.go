@@ -1574,7 +1574,7 @@ func (n *Node) getProof(rootHash []byte, key []byte) (*common.GetProofResponse, 
 		return nil, err
 	}
 
-	computedProof, value, err := tr.GetProof(key)
+	computedProof, value, err := tr.GetProof(key, rootHash)
 	if err != nil {
 		return nil, err
 	}

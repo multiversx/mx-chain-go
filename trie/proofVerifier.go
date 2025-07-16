@@ -21,8 +21,10 @@ func NewMerkleProofVerifier(marshalizer marshal.Marshalizer, hasher hashing.Hash
 
 	return &merkleProofVerifier{
 		trie: &patriciaMerkleTrie{
-			marshalizer: marshalizer,
-			hasher:      hasher,
+			TrieContext: &trieContext{
+				Marshalizer: marshalizer,
+				Hasher:      hasher,
+			},
 		},
 	}, nil
 }

@@ -5,6 +5,7 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/nodetype"
+	"github.com/multiversx/mx-chain-core-go/core/throttler"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/data/endProcess"
@@ -197,13 +198,16 @@ func createAccountsDB(
 	accountFactory state.AccountFactory,
 	trieStorageManager common.StorageManager,
 ) *state.AccountsDB {
-	tr, _ := trie.NewTrie(
-		trieStorageManager,
-		coreComponents.InternalMarshalizer(),
-		coreComponents.Hasher(),
-		coreComponents.EnableEpochsHandler(),
-		5,
-	)
+	th, _ := throttler.NewNumGoRoutinesThrottler(10)
+	trieArgs := trie.TrieArgs{
+		TrieStorage:          trieStorageManager,
+		Marshalizer:          coreComponents.InternalMarshalizer(),
+		Hasher:               coreComponents.Hasher(),
+		EnableEpochsHandler:  coreComponents.EnableEpochsHandler(),
+		MaxTrieLevelInMemory: 5,
+		Throttler:            th,
+	}
+	tr, _ := trie.NewTrie(trieArgs)
 
 	argsEvictionWaitingList := evictionWaitingList.MemoryEvictionWaitingListArgs{
 		RootHashesSize: 10,

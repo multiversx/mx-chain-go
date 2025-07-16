@@ -18,6 +18,7 @@ import (
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/common/errChan"
 	"github.com/multiversx/mx-chain-go/common/holders"
+	"github.com/multiversx/mx-chain-go/state/hashesCollector"
 	"github.com/multiversx/mx-chain-go/state/parsers"
 	"github.com/multiversx/mx-chain-go/trie/keyBuilder"
 	"github.com/multiversx/mx-chain-go/trie/statistics"
@@ -72,17 +73,17 @@ type snapshotInfo struct {
 
 // AccountsDB is the struct used for accessing accounts. This struct is concurrent safe.
 type AccountsDB struct {
-	mainTrie               common.Trie
-	hasher                 hashing.Hasher
-	marshaller             marshal.Marshalizer
-	accountFactory         AccountFactory
-	storagePruningManager  StoragePruningManager
-	obsoleteDataTrieHashes map[string][][]byte
-	snapshotsManger        SnapshotsManager
+	mainTrie              common.Trie
+	hasher                hashing.Hasher
+	marshaller            marshal.Marshalizer
+	accountFactory        AccountFactory
+	storagePruningManager StoragePruningManager
+	snapshotsManger       SnapshotsManager
 
-	lastRootHash []byte
-	dataTries    common.TriesHolder
-	entries      []JournalEntry
+	lastRootHash    []byte
+	dataTries       common.TriesHolder
+	entries         []JournalEntry
+	hashesCollector common.TrieHashesCollector
 
 	mutOp                sync.RWMutex
 	loadCodeMeasurements *loadingMeasurements
@@ -116,21 +117,29 @@ func NewAccountsDB(args ArgsAccountsDB) (*AccountsDB, error) {
 
 func createAccountsDb(args ArgsAccountsDB) *AccountsDB {
 	return &AccountsDB{
-		mainTrie:               args.Trie,
-		hasher:                 args.Hasher,
-		marshaller:             args.Marshaller,
-		accountFactory:         args.AccountFactory,
-		storagePruningManager:  args.StoragePruningManager,
-		entries:                make([]JournalEntry, 0),
-		mutOp:                  sync.RWMutex{},
-		dataTries:              NewDataTriesHolder(),
-		obsoleteDataTrieHashes: make(map[string][][]byte),
+		mainTrie:              args.Trie,
+		hasher:                args.Hasher,
+		marshaller:            args.Marshaller,
+		accountFactory:        args.AccountFactory,
+		storagePruningManager: args.StoragePruningManager,
+		entries:               make([]JournalEntry, 0),
+		mutOp:                 sync.RWMutex{},
+		dataTries:             NewDataTriesHolder(),
 		loadCodeMeasurements: &loadingMeasurements{
 			identifier: "load code",
 		},
 		addressConverter: args.AddressConverter,
 		snapshotsManger:  args.SnapshotsManager,
+		hashesCollector:  createTrieHashesCollector(args.Trie),
 	}
+}
+
+func createTrieHashesCollector(mainTrie common.Trie) common.TrieHashesCollector {
+	if mainTrie.GetStorageManager().IsPruningEnabled() {
+		return hashesCollector.NewDataTrieHashesCollector()
+	}
+
+	return hashesCollector.NewDisabledHashesCollector()
 }
 
 func checkArgsAccountsDB(args ArgsAccountsDB) error {
@@ -340,11 +349,7 @@ func (adb *AccountsDB) updateOldCodeEntry(oldCodeHash []byte) (*CodeEntry, error
 	}
 
 	if oldCodeEntry.NumReferences <= 1 {
-		err = adb.mainTrie.Delete(oldCodeHash)
-		if err != nil {
-			return nil, err
-		}
-
+		adb.mainTrie.Delete(oldCodeHash)
 		return unmodifiedOldCodeEntry, nil
 	}
 
@@ -407,11 +412,7 @@ func saveCodeEntry(codeHash []byte, entry *CodeEntry, trie Updater, marshalizer 
 		return err
 	}
 
-	err = trie.Update(codeHash, codeEntry)
-	if err != nil {
-		return err
-	}
-
+	trie.Update(codeHash, codeEntry)
 	return nil
 }
 
@@ -432,7 +433,7 @@ func (adb *AccountsDB) loadDataTrieConcurrentSafe(accountHandler baseAccountHand
 	}
 
 	rootHashHolder := holders.NewDefaultRootHashesHolder(accountHandler.GetRootHash())
-	dataTrie, err := mainTrie.Recreate(rootHashHolder)
+	dataTrie, err := mainTrie.Recreate(rootHashHolder, hex.EncodeToString(accountHandler.AddressBytes()))
 	if err != nil {
 		return fmt.Errorf("trie was not found for hash, rootHash = %s, err = %w", hex.EncodeToString(accountHandler.GetRootHash()), err)
 	}
@@ -490,7 +491,8 @@ func (adb *AccountsDB) saveAccountToTrie(accountHandler vmcommon.AccountHandler,
 		return err
 	}
 
-	return mainTrie.Update(accountHandler.AddressBytes(), buff)
+	mainTrie.Update(accountHandler.AddressBytes(), buff)
+	return nil
 }
 
 // RemoveAccount removes the account data from underlying trie.
@@ -522,12 +524,10 @@ func (adb *AccountsDB) RemoveAccount(address []byte) error {
 	if err != nil {
 		return err
 	}
+	log.Trace("accountsDB.RemoveAccount", "address", address)
 
-	log.Trace("accountsDB.RemoveAccount",
-		"address", hex.EncodeToString(address),
-	)
-
-	return adb.mainTrie.Delete(address)
+	adb.mainTrie.Delete(address)
+	return nil
 }
 
 func (adb *AccountsDB) removeCodeAndDataTrie(acnt vmcommon.AccountHandler) error {
@@ -536,45 +536,9 @@ func (adb *AccountsDB) removeCodeAndDataTrie(acnt vmcommon.AccountHandler) error
 		return nil
 	}
 
-	err := adb.removeCode(baseAcc)
-	if err != nil {
-		return err
-	}
-
-	err = adb.removeDataTrie(baseAcc)
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (adb *AccountsDB) removeDataTrie(baseAcc baseAccountHandler) error {
-	rootHash := baseAcc.GetRootHash()
-	if len(rootHash) == 0 {
-		return nil
-	}
-
-	rootHashHolder := holders.NewDefaultRootHashesHolder(rootHash)
-	dataTrie, err := adb.mainTrie.Recreate(rootHashHolder)
-	if err != nil {
-		return err
-	}
-
-	hashes, err := dataTrie.GetAllHashes()
-	if err != nil {
-		return err
-	}
-
-	adb.obsoleteDataTrieHashes[string(rootHash)] = hashes
-
-	entry, err := NewJournalEntryDataTrieRemove(rootHash, adb.obsoleteDataTrieHashes)
-	if err != nil {
-		return err
-	}
-	adb.journalize(entry)
-
-	return nil
+	// TODO find a method to remove the data trie and mark all the removed hashes for pruning.
+	// There can be a lot of hashes to be removed, so take into consideration the mem usage and the time needed to remove them.
+	return adb.removeCode(baseAcc)
 }
 
 func (adb *AccountsDB) removeCode(baseAcc baseAccountHandler) error {
@@ -813,25 +777,27 @@ func (adb *AccountsDB) Commit() ([]byte, error) {
 }
 
 func (adb *AccountsDB) commit() ([]byte, error) {
+	defer adb.hashesCollector.Clean()
 	log.Trace("accountsDB.Commit started")
 	adb.entries = make([]JournalEntry, 0)
 
-	oldHashes := make(common.ModifiedHashes)
-	newHashes := make(common.ModifiedHashes)
 	// Step 1. commit all data tries
 	dataTries := adb.dataTries.GetAll()
 	for i := 0; i < len(dataTries); i++ {
-		err := adb.commitTrie(dataTries[i], oldHashes, newHashes)
+		err := dataTries[i].Commit(adb.hashesCollector)
 		if err != nil {
 			return nil, err
 		}
 	}
 	adb.dataTries.Reset()
 
-	oldRoot := adb.mainTrie.GetOldRoot()
-
 	// Step 2. commit main trie
-	err := adb.commitTrie(adb.mainTrie, oldHashes, newHashes)
+	hc, err := hashesCollector.NewHashesCollector(adb.hashesCollector)
+	if err != nil {
+		return nil, err
+	}
+
+	err = adb.mainTrie.Commit(hc)
 	if err != nil {
 		return nil, err
 	}
@@ -842,13 +808,12 @@ func (adb *AccountsDB) commit() ([]byte, error) {
 		return nil, err
 	}
 
-	err = adb.markForEviction(oldRoot, newRoot, oldHashes, newHashes)
+	err = adb.markForEviction(newRoot, hc)
 	if err != nil {
 		return nil, err
 	}
 
 	adb.lastRootHash = newRoot
-	adb.obsoleteDataTrieHashes = make(map[string][][]byte)
 
 	log.Trace("accountsDB.Commit ended", "root hash", newRoot)
 
@@ -858,42 +823,14 @@ func (adb *AccountsDB) commit() ([]byte, error) {
 }
 
 func (adb *AccountsDB) markForEviction(
-	oldRoot []byte,
 	newRoot []byte,
-	oldHashes common.ModifiedHashes,
-	newHashes common.ModifiedHashes,
+	collector common.TrieHashesCollector,
 ) error {
 	if !adb.mainTrie.GetStorageManager().IsPruningEnabled() {
 		return nil
 	}
 
-	for _, hashes := range adb.obsoleteDataTrieHashes {
-		for _, hash := range hashes {
-			oldHashes[string(hash)] = struct{}{}
-		}
-	}
-
-	return adb.storagePruningManager.MarkForEviction(oldRoot, newRoot, oldHashes, newHashes)
-}
-
-func (adb *AccountsDB) commitTrie(tr common.Trie, oldHashes common.ModifiedHashes, newHashes common.ModifiedHashes) error {
-	if adb.mainTrie.GetStorageManager().IsPruningEnabled() {
-		oldTrieHashes := tr.GetObsoleteHashes()
-		newTrieHashes, err := tr.GetDirtyHashes()
-		if err != nil {
-			return err
-		}
-
-		for _, hash := range oldTrieHashes {
-			oldHashes[string(hash)] = struct{}{}
-		}
-
-		for hash := range newTrieHashes {
-			newHashes[hash] = struct{}{}
-		}
-	}
-
-	return tr.Commit()
+	return adb.storagePruningManager.MarkForEviction(newRoot, collector)
 }
 
 // RootHash returns the main trie's root hash
@@ -927,10 +864,9 @@ func (adb *AccountsDB) recreateTrie(options common.RootHashHolder) error {
 		log.Trace("accountsDB.RecreateTrie ended")
 	}()
 
-	adb.obsoleteDataTrieHashes = make(map[string][][]byte)
 	adb.dataTries.Reset()
 	adb.entries = make([]JournalEntry, 0)
-	newTrie, err := adb.mainTrie.Recreate(options)
+	newTrie, err := adb.mainTrie.Recreate(options, string(common.MainTrie))
 	if err != nil {
 		return err
 	}
@@ -977,7 +913,7 @@ func (adb *AccountsDB) RecreateAllTries(rootHash []byte) (map[string]common.Trie
 		userAccountRootHash := userAccount.GetRootHash()
 		if len(userAccountRootHash) > 0 {
 			rootHashHolder := holders.NewDefaultRootHashesHolder(userAccountRootHash)
-			dataTrie, errRecreate := mainTrie.Recreate(rootHashHolder)
+			dataTrie, errRecreate := mainTrie.Recreate(rootHashHolder, "")
 			if errRecreate != nil {
 				return nil, errRecreate
 			}
@@ -1016,7 +952,7 @@ func getUserAccountFromBytes(accountFactory AccountFactory, marshaller marshal.M
 
 func (adb *AccountsDB) recreateMainTrie(rootHash []byte) (map[string]common.Trie, error) {
 	rootHashHolder := holders.NewDefaultRootHashesHolder(rootHash)
-	recreatedTrie, err := adb.getMainTrie().Recreate(rootHashHolder)
+	recreatedTrie, err := adb.getMainTrie().Recreate(rootHashHolder, string(common.MainTrie))
 	if err != nil {
 		return nil, err
 	}
@@ -1030,7 +966,7 @@ func (adb *AccountsDB) recreateMainTrie(rootHash []byte) (map[string]common.Trie
 // GetTrie returns the trie that has the given rootHash
 func (adb *AccountsDB) GetTrie(rootHash []byte) (common.Trie, error) {
 	rootHashHolder := holders.NewDefaultRootHashesHolder(rootHash)
-	return adb.getMainTrie().Recreate(rootHashHolder)
+	return adb.getMainTrie().Recreate(rootHashHolder, "")
 }
 
 // Journalize adds a new object to entries list.

@@ -7,6 +7,7 @@ import (
 	"math"
 	"testing"
 
+	"github.com/multiversx/mx-chain-go/state/hashesCollector"
 	"github.com/multiversx/mx-chain-go/state/parsers"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
@@ -217,10 +218,10 @@ func TestDfsIterator_GetIteratorState(t *testing.T) {
 	t.Parallel()
 
 	tr := trieTest.GetNewTrie()
-	_ = tr.Update([]byte("doe"), []byte("reindeer"))
-	_ = tr.Update([]byte("dog"), []byte("puppy"))
-	_ = tr.Update([]byte("ddog"), []byte("cat"))
-	_ = tr.Commit()
+	tr.Update([]byte("doe"), []byte("reindeer"))
+	tr.Update([]byte("dog"), []byte("puppy"))
+	tr.Update([]byte("ddog"), []byte("cat"))
+	_ = tr.Commit(hashesCollector.NewDisabledHashesCollector())
 	rootHash, _ := tr.RootHash()
 	_, marshaller, hasher := trieTest.GetDefaultTrieParameters()
 

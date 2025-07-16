@@ -1,7 +1,9 @@
 package factory
 
 import (
+	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/core/throttler"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/common"
@@ -22,6 +24,7 @@ type TrieCreateArgs struct {
 	Identifier          string
 	EnableEpochsHandler common.EnableEpochsHandler
 	StatsCollector      common.StateStatisticsHandler
+	NumGoRoutines       uint
 }
 
 type trieCreator struct {
@@ -78,12 +81,35 @@ func (tc *trieCreator) Create(args TrieCreateArgs) (common.StorageManager, commo
 		return nil, nil, err
 	}
 
-	newTrie, err := trie.NewTrie(trieStorage, tc.marshalizer, tc.hasher, args.EnableEpochsHandler, args.MaxTrieLevelInMem)
+	goRoutinesThrottler, err := getGoRoutinesThrottler(args.NumGoRoutines)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	trArgs := trie.TrieArgs{
+		TrieStorage:          trieStorage,
+		Marshalizer:          tc.marshalizer,
+		Hasher:               tc.hasher,
+		EnableEpochsHandler:  args.EnableEpochsHandler,
+		MaxTrieLevelInMemory: args.MaxTrieLevelInMem,
+		Throttler:            goRoutinesThrottler,
+		Identifier:           string(common.MainTrie) + args.Identifier,
+	}
+
+	newTrie, err := trie.NewTrie(trArgs)
 	if err != nil {
 		return nil, nil, err
 	}
 
 	return trieStorage, newTrie, nil
+}
+
+func getGoRoutinesThrottler(numGoroutines uint) (core.Throttler, error) {
+	if numGoroutines == 0 {
+		return trie.NewDisabledTrieGoRoutinesThrottler(), nil
+	}
+
+	return throttler.NewNumGoRoutinesThrottler(int32(numGoroutines))
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
@@ -123,6 +149,7 @@ func CreateTriesComponentsForShardId(
 		Identifier:          dataRetriever.UserAccountsUnit.String(),
 		EnableEpochsHandler: coreComponentsHolder.EnableEpochsHandler(),
 		StatsCollector:      stateStatsHandler,
+		NumGoRoutines:       generalConfig.StateTriesConfig.MaxNumGoroutines,
 	}
 	userStorageManager, userAccountTrie, err := trFactory.Create(args)
 	if err != nil {
@@ -149,6 +176,7 @@ func CreateTriesComponentsForShardId(
 		Identifier:          dataRetriever.PeerAccountsUnit.String(),
 		EnableEpochsHandler: coreComponentsHolder.EnableEpochsHandler(),
 		StatsCollector:      stateStatsHandler,
+		NumGoRoutines:       generalConfig.StateTriesConfig.MaxNumGoroutines,
 	}
 	peerStorageManager, peerAccountsTrie, err := trFactory.Create(args)
 	if err != nil {

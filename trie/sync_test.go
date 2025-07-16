@@ -14,11 +14,13 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/state/hashesCollector"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/cache"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
 	trieMock "github.com/multiversx/mx-chain-go/testscommon/trie"
+	"github.com/multiversx/mx-chain-go/trie/keyBuilder"
 	"github.com/multiversx/mx-chain-go/trie/statistics"
 )
 
@@ -163,15 +165,16 @@ func TestNewTrieSyncer(t *testing.T) {
 func TestTrieSync_InterceptedNodeShouldNotBeAddedToNodesForTrieIfNodeReceived(t *testing.T) {
 	t.Parallel()
 
-	testMarshalizer, testHasher := getTestMarshalizerAndHasher()
+	_, testHasher := getTestMarshalizerAndHasher()
+	trieCtx := getTrieContextWithCustomStorage(nil)
 	arg := createMockArgument(time.Second * 10)
 	arg.MaxHardCapForMissingNodes = 500
 
 	ts, err := NewTrieSyncer(arg)
 	require.Nil(t, err)
 
-	bn, collapsedBn := getBnAndCollapsedBn(testMarshalizer, testHasher)
-	encodedNode, err := collapsedBn.getEncodedNode()
+	bn, collapsedBn := getBnAndCollapsedBn()
+	encodedNode, err := collapsedBn.getEncodedNode(trieCtx)
 	assert.Nil(t, err)
 
 	interceptedNode, err := NewInterceptedTrieNode(encodedNode, testHasher)
@@ -211,11 +214,10 @@ func TestTrieSync_FoundInStorageShouldNotRequest(t *testing.T) {
 
 	timeout := time.Second * 200
 	testMarshalizer, testHasher := getTestMarshalizerAndHasher()
-	bn, _ := getBnAndCollapsedBn(testMarshalizer, testHasher)
-	err := bn.setHash()
-	require.Nil(t, err)
-	rootHash := bn.getHash()
 
+	bn, _ := getBnAndCollapsedBn()
+	manager := getTestGoroutinesManager()
+	require.Nil(t, manager.GetError())
 	_, trieStorage := newEmptyTrie()
 	db := testscommon.NewMemDbMock()
 	trieStorage.mainStorer = &trieMock.SnapshotPruningStorerStub{
@@ -225,10 +227,11 @@ func TestTrieSync_FoundInStorageShouldNotRequest(t *testing.T) {
 		},
 	}
 
-	err = bn.commitSnapshot(db, nil, nil, context.Background(), statistics.NewTrieStatistics(), &testscommon.ProcessStatusHandlerStub{}, 0)
-	require.Nil(t, err)
+	trieCtx := getTrieContextWithCustomStorage(trieStorage)
+	rootHash, _ := encodeNodeAndGetHash(bn, trieCtx)
+	bn.commitDirty(0, keyBuilder.NewKeyBuilder(), 5, getTestGoroutinesManager(), hashesCollector.NewDisabledHashesCollector(), trieCtx)
 
-	leaves, err := bn.getChildren(db)
+	leaves, err := bn.getChildren(trieCtx)
 	require.Nil(t, err)
 	numLeaves := len(leaves)
 

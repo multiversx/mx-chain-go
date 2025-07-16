@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/throttler"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
@@ -20,6 +21,7 @@ import (
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/state/accounts"
+	"github.com/multiversx/mx-chain-go/state/hashesCollector"
 	"github.com/multiversx/mx-chain-go/state/parsers"
 	"github.com/multiversx/mx-chain-go/state/syncer"
 	"github.com/multiversx/mx-chain-go/testscommon"
@@ -111,9 +113,15 @@ func getSerializedTrieNode(
 		},
 	}
 
-	tr, _ := trie.NewTrie(tsm, marshaller, hasher, &enableEpochsHandlerMock.EnableEpochsHandlerStub{}, 5)
-	_ = tr.Update(key, []byte("value"))
-	_ = tr.Commit()
+	trieArgs := getDefaultTrieParameters()
+	trieArgs.TrieStorage = tsm
+	trieArgs.MaxTrieLevelInMemory = 5
+	trieArgs.Marshalizer = marshaller
+	trieArgs.Hasher = hasher
+
+	tr, _ := trie.NewTrie(trieArgs)
+	tr.Update(key, []byte("value"))
+	_ = tr.Commit(hashesCollector.NewDisabledHashesCollector())
 
 	return serializedLeafNode
 }
@@ -162,7 +170,7 @@ func TestUserAccountsSyncer_SyncAccounts(t *testing.T) {
 	})
 }
 
-func getDefaultTrieParameters() (common.StorageManager, marshal.Marshalizer, hashing.Hasher, common.EnableEpochsHandler, uint) {
+func getDefaultTrieParameters() trie.TrieArgs {
 	marshalizer := &testscommon.ProtobufMarshalizerMock{}
 	hasher := &testscommon.KeccakMock{}
 
@@ -184,8 +192,15 @@ func getDefaultTrieParameters() (common.StorageManager, marshal.Marshalizer, has
 
 	trieStorageManager, _ := trie.NewTrieStorageManager(args)
 	maxTrieLevelInMemory := uint(1)
-
-	return trieStorageManager, args.Marshalizer, args.Hasher, &enableEpochsHandlerMock.EnableEpochsHandlerStub{}, maxTrieLevelInMemory
+	th, _ := throttler.NewNumGoRoutinesThrottler(10)
+	return trie.TrieArgs{
+		TrieStorage:          trieStorageManager,
+		Marshalizer:          args.Marshalizer,
+		Hasher:               args.Hasher,
+		EnableEpochsHandler:  &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		MaxTrieLevelInMemory: maxTrieLevelInMemory,
+		Throttler:            th,
+	}
 }
 
 func emptyTrie() common.Trie {
@@ -237,7 +252,13 @@ func TestUserAccountsSyncer_SyncAccountDataTries(t *testing.T) {
 		s, err := syncer.NewUserAccountsSyncer(args)
 		require.Nil(t, err)
 
-		_, _ = trie.NewTrie(args.TrieStorageManager, args.Marshalizer, args.Hasher, &enableEpochsHandlerMock.EnableEpochsHandlerStub{}, 5)
+		trieArgs := getDefaultTrieParameters()
+		trieArgs.TrieStorage = args.TrieStorageManager
+		trieArgs.MaxTrieLevelInMemory = 5
+		trieArgs.Marshalizer = args.Marshalizer
+		trieArgs.Hasher = args.Hasher
+
+		_, _ = trie.NewTrie(trieArgs)
 		tr := emptyTrie()
 
 		account, err := accounts.NewUserAccount(testscommon.TestPubKeyAlice, &trieMock.DataTrieTrackerStub{}, &trieMock.TrieLeafParserStub{})
@@ -247,10 +268,10 @@ func TestUserAccountsSyncer_SyncAccountDataTries(t *testing.T) {
 		accountBytes, err := args.Marshalizer.Marshal(account)
 		require.Nil(t, err)
 
-		_ = tr.Update([]byte("doe"), []byte("reindeer"))
-		_ = tr.Update([]byte("dog"), []byte("puppy"))
-		_ = tr.Update([]byte("ddog"), accountBytes)
-		_ = tr.Commit()
+		tr.Update([]byte("doe"), []byte("reindeer"))
+		tr.Update([]byte("dog"), []byte("puppy"))
+		tr.Update([]byte("ddog"), accountBytes)
+		_ = tr.Commit(hashesCollector.NewDisabledHashesCollector())
 
 		leavesChannels := &common.TrieIteratorChannels{
 			LeavesChan: make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity),
@@ -294,7 +315,13 @@ func TestUserAccountsSyncer_SyncAccountDataTries(t *testing.T) {
 		s, err := syncer.NewUserAccountsSyncer(args)
 		require.Nil(t, err)
 
-		_, _ = trie.NewTrie(args.TrieStorageManager, args.Marshalizer, args.Hasher, &enableEpochsHandlerMock.EnableEpochsHandlerStub{}, 5)
+		trieArgs := getDefaultTrieParameters()
+		trieArgs.TrieStorage = args.TrieStorageManager
+		trieArgs.MaxTrieLevelInMemory = 5
+		trieArgs.Marshalizer = args.Marshalizer
+		trieArgs.Hasher = args.Hasher
+
+		_, _ = trie.NewTrie(trieArgs)
 		tr := emptyTrie()
 
 		account, err := accounts.NewUserAccount(testscommon.TestPubKeyAlice, &trieMock.DataTrieTrackerStub{}, &trieMock.TrieLeafParserStub{})
@@ -304,10 +331,10 @@ func TestUserAccountsSyncer_SyncAccountDataTries(t *testing.T) {
 		accountBytes, err := args.Marshalizer.Marshal(account)
 		require.Nil(t, err)
 
-		_ = tr.Update([]byte("doe"), []byte("reindeer"))
-		_ = tr.Update([]byte("dog"), []byte("puppy"))
-		_ = tr.Update([]byte("ddog"), accountBytes)
-		_ = tr.Commit()
+		tr.Update([]byte("doe"), []byte("reindeer"))
+		tr.Update([]byte("dog"), []byte("puppy"))
+		tr.Update([]byte("ddog"), accountBytes)
+		_ = tr.Commit(hashesCollector.NewDisabledHashesCollector())
 
 		leavesChannels := &common.TrieIteratorChannels{
 			LeavesChan: make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity),
@@ -361,12 +388,18 @@ func TestUserAccountsSyncer_MissingDataTrieNodeFound(t *testing.T) {
 		},
 	}
 
-	tr, _ := trie.NewTrie(tsm, args.Marshalizer, args.Hasher, &enableEpochsHandlerMock.EnableEpochsHandlerStub{}, 5)
+	trieArgs := getDefaultTrieParameters()
+	trieArgs.TrieStorage = tsm
+	trieArgs.MaxTrieLevelInMemory = 5
+	trieArgs.Marshalizer = args.Marshalizer
+	trieArgs.Hasher = args.Hasher
+
+	tr, _ := trie.NewTrie(trieArgs)
 	key := []byte("key")
 	value := []byte("value")
-	_ = tr.Update(key, value)
+	tr.Update(key, value)
 	rootHash, _ := tr.RootHash()
-	_ = tr.Commit()
+	_ = tr.Commit(hashesCollector.NewDisabledHashesCollector())
 
 	args.Cacher = &cache.CacherStub{
 		GetCalled: func(key []byte) (value interface{}, ok bool) {
