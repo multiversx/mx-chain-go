@@ -682,6 +682,9 @@
     TimeoutMilliseconds = 100
     SyncPeriodSeconds = 3600
     Version = 0  # Setting 0 means 'use default value'
+    # OutOfBoundsThreshold defines the threshold in milliseconds for checking out of bound
+    # limit in ntp syncer
+    OutOfBoundsThreshold = 120
 
 [StateTriesConfig]
     SnapshotsEnabled = true

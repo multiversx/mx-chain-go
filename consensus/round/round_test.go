@@ -4,7 +4,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/atomic"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/stretchr/testify/require"
@@ -14,7 +13,6 @@ import (
 	"github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	consensusMocks "github.com/multiversx/mx-chain-go/testscommon/consensus"
-	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -32,7 +30,6 @@ func createDefaultRoundArgs() round.ArgsRound {
 		SyncTimer:                 &consensusMocks.SyncTimerMock{},
 		StartRound:                0,
 		SupernovaStartRound:       0,
-		EnableEpochsHandler:       &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 		EnableRoundsHandler:       &testscommon.EnableRoundsHandlerStub{},
 	}
 }
@@ -49,17 +46,6 @@ func TestRound_NewRound(t *testing.T) {
 
 		assert.Nil(t, rnd)
 		assert.Equal(t, round.ErrNilSyncTimer, err)
-	})
-
-	t.Run("nil enable epochs handler", func(t *testing.T) {
-		t.Parallel()
-
-		args := createDefaultRoundArgs()
-		args.EnableEpochsHandler = nil
-		rnd, err := round.NewRound(args)
-
-		assert.Nil(t, rnd)
-		assert.Equal(t, errors.ErrNilEnableEpochsHandler, err)
 	})
 
 	t.Run("nil enable rounds handler", func(t *testing.T) {
@@ -91,6 +77,7 @@ func TestRound_UpdateRoundShouldNotChangeAnything(t *testing.T) {
 
 	args := createDefaultRoundArgs()
 	args.GenesisTimeStamp = genesisTime
+	args.SupernovaGenesisTimeStamp = genesisTime.Add(10 * roundTimeDuration)
 
 	rnd, _ := round.NewRound(args)
 	oldIndex := rnd.Index()
@@ -114,13 +101,8 @@ func TestRound_UpdateRoundShouldAdvanceOneRound(t *testing.T) {
 		genesisTime := time.Now()
 
 		args := createDefaultRoundArgs()
-		args.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-			IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
-				return flag != common.SupernovaFlag
-			},
-		}
 		args.EnableRoundsHandler = &testscommon.EnableRoundsHandlerStub{
-			IsFlagEnabledCalled: func(flag common.EnableRoundFlag) bool {
+			IsFlagEnabledInRoundCalled: func(flag common.EnableRoundFlag, round uint64) bool {
 				return flag != common.SupernovaRoundFlag
 			},
 		}
@@ -136,31 +118,139 @@ func TestRound_UpdateRoundShouldAdvanceOneRound(t *testing.T) {
 		assert.Equal(t, oldIndex, newIndex-1)
 	})
 
-	t.Run("after supernova", func(t *testing.T) {
+	t.Run("after supernova, with flag activated", func(t *testing.T) {
 		t.Parallel()
 
 		genesisTime := time.Now()
 
+		roundDuration := 10 * time.Millisecond
+
+		supernovaRoundDuration := 5 * time.Millisecond
+		supernovaStartRond := int64(5)
+		supernovaGenesisTime := genesisTime.Add(time.Duration(supernovaStartRond) * roundDuration)
+
 		args := createDefaultRoundArgs()
-		args.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-			IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
-				return flag == common.SupernovaFlag
-			},
-		}
+		args.RoundTimeDuration = roundDuration
+		args.SupernovaTimeDuration = supernovaRoundDuration
 		args.EnableRoundsHandler = &testscommon.EnableRoundsHandlerStub{
-			IsFlagEnabledCalled: func(flag common.EnableRoundFlag) bool {
-				return flag == common.SupernovaRoundFlag
+			IsFlagEnabledInRoundCalled: func(flag common.EnableRoundFlag, round uint64) bool {
+				return flag == common.SupernovaRoundFlag && round >= uint64(supernovaStartRond)
 			},
 		}
 
-		args.SupernovaGenesisTimeStamp = genesisTime
+		args.SupernovaStartRound = supernovaStartRond
+		args.GenesisTimeStamp = genesisTime
+
+		args.SupernovaGenesisTimeStamp = genesisTime.Add(5 * roundDuration)
 
 		rnd, _ := round.NewRound(args)
-		oldIndex := rnd.Index()
-		rnd.UpdateRound(genesisTime, genesisTime.Add(roundTimeDuration))
-		newIndex := rnd.Index()
 
-		assert.Equal(t, oldIndex, newIndex-1)
+		rnd.UpdateRound(genesisTime, genesisTime.Add(roundTimeDuration))
+		rnd.UpdateRound(genesisTime, genesisTime.Add(2*roundTimeDuration))
+		rnd.UpdateRound(genesisTime, genesisTime.Add(3*roundTimeDuration))
+		rnd.UpdateRound(genesisTime, genesisTime.Add(4*roundTimeDuration))
+
+		index0 := rnd.Index()
+		timestamp0 := rnd.TimeStamp()
+		assert.Equal(t, roundDuration, rnd.TimeDuration())
+
+		rnd.UpdateRound(genesisTime, supernovaGenesisTime)
+
+		index1 := rnd.Index()
+		timestamp1 := rnd.TimeStamp()
+
+		diffTime := timestamp1.Sub(timestamp0)
+
+		assert.Equal(t, supernovaRoundDuration, rnd.TimeDuration())
+		assert.Equal(t, index0, index1-1)
+		assert.Equal(t, int64(5), index1)
+		assert.Equal(t, roundDuration, diffTime)
+
+		rnd.UpdateRound(genesisTime, supernovaGenesisTime.Add(supernovaRoundDuration))
+
+		index2 := rnd.Index()
+		timestamp2 := rnd.TimeStamp()
+
+		diffTime2 := timestamp2.Sub(timestamp1)
+
+		assert.Equal(t, supernovaRoundDuration, rnd.TimeDuration())
+		assert.Equal(t, index1, index2-1)
+		assert.Equal(t, int64(6), index2)
+		assert.Equal(t, supernovaRoundDuration, diffTime2)
+	})
+
+	t.Run("after supernova, without flag activated at start, but in supernova genesis time", func(t *testing.T) {
+		t.Parallel()
+
+		genesisTime := time.Now()
+
+		roundDuration := 10 * time.Millisecond
+
+		supernovaRoundDuration := 5 * time.Millisecond
+		supernovaStartRond := int64(5)
+		supernovaGenesisTime := genesisTime.Add(time.Duration(supernovaStartRond) * roundDuration)
+
+		args := createDefaultRoundArgs()
+		args.RoundTimeDuration = roundDuration
+		args.SupernovaTimeDuration = supernovaRoundDuration
+		args.EnableRoundsHandler = &testscommon.EnableRoundsHandlerStub{
+			IsFlagEnabledInRoundCalled: func(flag common.EnableRoundFlag, round uint64) bool {
+				return flag == common.SupernovaRoundFlag && round >= uint64(supernovaStartRond)
+			},
+		}
+
+		args.SupernovaStartRound = supernovaStartRond
+		args.GenesisTimeStamp = genesisTime
+		args.SupernovaGenesisTimeStamp = supernovaGenesisTime
+
+		args.CurrentTimeStamp = supernovaGenesisTime
+
+		rnd, _ := round.NewRound(args)
+
+		assert.Equal(t, supernovaGenesisTime.UnixMilli(), rnd.TimeStamp().UnixMilli())
+		index0 := rnd.Index()
+		assert.Equal(t, supernovaRoundDuration, rnd.TimeDuration())
+		assert.Equal(t, int64(5), index0)
+	})
+
+	t.Run("after supernova, without flag activated at start, but after supernova genesis time", func(t *testing.T) {
+		t.Parallel()
+
+		genesisTime := time.Now()
+
+		roundDuration := 10 * time.Millisecond
+
+		supernovaRoundDuration := 5 * time.Millisecond
+		supernovaStartRond := int64(5)
+		supernovaGenesisTime := genesisTime.Add(time.Duration(supernovaStartRond) * roundDuration)
+
+		args := createDefaultRoundArgs()
+		args.RoundTimeDuration = roundDuration
+		args.SupernovaTimeDuration = supernovaRoundDuration
+		args.EnableRoundsHandler = &testscommon.EnableRoundsHandlerStub{
+			IsFlagEnabledInRoundCalled: func(flag common.EnableRoundFlag, round uint64) bool {
+				return flag == common.SupernovaRoundFlag && round >= uint64(supernovaStartRond)
+			},
+		}
+
+		args.SupernovaStartRound = supernovaStartRond
+		args.GenesisTimeStamp = genesisTime
+		args.SupernovaGenesisTimeStamp = supernovaGenesisTime
+
+		currentTime := supernovaGenesisTime.Add(supernovaRoundDuration)
+		args.CurrentTimeStamp = currentTime
+
+		rnd, _ := round.NewRound(args)
+
+		assert.Equal(t, supernovaRoundDuration, rnd.TimeDuration())
+		assert.Equal(t, int64(6), rnd.Index())
+		assert.Equal(t, currentTime.UnixMilli(), rnd.TimeStamp().UnixMilli())
+
+		rnd.UpdateRound(genesisTime, supernovaGenesisTime.Add(2*supernovaRoundDuration))
+
+		assert.Equal(t, supernovaRoundDuration, rnd.TimeDuration())
+		assert.Equal(t, int64(7), rnd.Index())
+		assert.Equal(t, currentTime.Add(supernovaRoundDuration).UnixMilli(), rnd.TimeStamp().UnixMilli())
 	})
 }
 
@@ -251,11 +341,6 @@ func TestRound_UpdateRoundWithTimeDurationChange(t *testing.T) {
 		args.StartRound = 0
 		args.SupernovaStartRound = 2
 
-		args.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-			IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
-				return flag == common.SupernovaFlag
-			},
-		}
 		args.EnableRoundsHandler = &testscommon.EnableRoundsHandlerStub{
 			IsFlagEnabledCalled: func(_ common.EnableRoundFlag) bool {
 				return flag.IsSet()
@@ -291,15 +376,40 @@ func TestRound_UpdateRoundWithTimeDurationChange(t *testing.T) {
 func TestRound_TimeDurationShouldReturnTheDurationOfOneRound(t *testing.T) {
 	t.Parallel()
 
-	genesisTime := time.Now()
+	t.Run("before supernova", func(t *testing.T) {
+		t.Parallel()
 
-	args := createDefaultRoundArgs()
-	args.GenesisTimeStamp = genesisTime
+		genesisTime := time.Now()
 
-	rnd, _ := round.NewRound(args)
-	timeDuration := rnd.TimeDuration()
+		args := createDefaultRoundArgs()
+		args.GenesisTimeStamp = genesisTime
 
-	assert.Equal(t, roundTimeDuration, timeDuration)
+		rnd, _ := round.NewRound(args)
+		timeDuration := rnd.TimeDuration()
+
+		assert.Equal(t, roundTimeDuration, timeDuration)
+	})
+
+	t.Run("after supernova", func(t *testing.T) {
+		t.Parallel()
+
+		genesisTime := time.Now()
+
+		args := createDefaultRoundArgs()
+		args.EnableRoundsHandler = &testscommon.EnableRoundsHandlerStub{
+			IsFlagEnabledInRoundCalled: func(flag common.EnableRoundFlag, round uint64) bool {
+				return flag == common.SupernovaRoundFlag
+			},
+		}
+
+		args.SupernovaGenesisTimeStamp = genesisTime
+		args.SupernovaTimeDuration = roundTimeDuration
+
+		rnd, _ := round.NewRound(args)
+		timeDuration := rnd.TimeDuration()
+
+		assert.Equal(t, roundTimeDuration, timeDuration)
+	})
 }
 
 func TestRound_RemainingTimeInCurrentRoundShouldReturnPositiveValue(t *testing.T) {
@@ -365,6 +475,7 @@ func TestRound_RevertOneRound(t *testing.T) {
 
 	args := createDefaultRoundArgs()
 	args.GenesisTimeStamp = genesisTime
+	args.SupernovaGenesisTimeStamp = genesisTime.Add(10 * roundTimeDuration)
 	args.SyncTimer = syncTimerMock
 	args.StartRound = startRound
 
@@ -387,6 +498,7 @@ func TestRound_BeforeGenesis(t *testing.T) {
 	startRound := int64(-1)
 	args := createDefaultRoundArgs()
 	args.GenesisTimeStamp = genesisTime
+	args.SupernovaGenesisTimeStamp = genesisTime.Add(10 * roundTimeDuration)
 	args.SyncTimer = syncTimerMock
 	args.StartRound = startRound
 
