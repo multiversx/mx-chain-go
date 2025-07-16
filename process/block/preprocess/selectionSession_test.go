@@ -75,15 +75,37 @@ func TestSelectionSession_GetAccountState(t *testing.T) {
 
 	state, err := session.GetAccountState([]byte("alice"))
 	require.NoError(t, err)
-	require.Equal(t, uint64(42), state.Nonce)
+	require.Equal(t, uint64(42), state.GetNonce())
 
 	state, err = session.GetAccountState([]byte("bob"))
 	require.NoError(t, err)
-	require.Equal(t, uint64(7), state.Nonce)
+	require.Equal(t, uint64(7), state.GetNonce())
 
 	state, err = session.GetAccountState([]byte("carol"))
 	require.ErrorContains(t, err, "account not found: carol")
 	require.Nil(t, state)
+}
+
+func TestSelectionSession_GetRootHash(t *testing.T) {
+	t.Parallel()
+
+	processor := &testscommon.TxProcessorStub{}
+	accounts := &stateMock.AccountsStub{}
+
+	accounts.RootHashCalled = func() ([]byte, error) {
+		return []byte("rootHash1"), nil
+	}
+
+	session, err := NewSelectionSession(ArgsSelectionSession{
+		AccountsAdapter:       accounts,
+		TransactionsProcessor: processor,
+	})
+	require.NoError(t, err)
+	require.NotNil(t, session)
+
+	rootHash, err := session.GetRootHash()
+	require.NoError(t, err)
+	require.Equal(t, []byte("rootHash1"), rootHash)
 }
 
 func TestSelectionSession_IsIncorrectlyGuarded(t *testing.T) {
