@@ -578,8 +578,12 @@ func TestInitMetrics(t *testing.T) {
 	}
 	roundsPerEpoch := int64(200)
 	currentChainParameters := config.ChainParametersByEpochConfig{
-		RoundsPerEpoch: roundsPerEpoch,
-		RoundDuration:  6000,
+		RoundsPerEpoch:              roundsPerEpoch,
+		RoundDuration:               6000,
+		ShardMinNumNodes:            uint32(402),
+		MetachainMinNumNodes:        uint32(401),
+		ShardConsensusGroupSize:     uint32(63),
+		MetachainConsensusGroupSize: uint32(400),
 	}
 	minTransactionVersion := uint32(1)
 
@@ -631,7 +635,7 @@ func TestInitMetrics(t *testing.T) {
 			common.MetricShardId:                      uint64(shardCoordinator.SelfId()),
 			common.MetricNumShardsWithoutMetachain:    uint64(shardCoordinator.NoShards),
 			common.MetricNodeType:                     string(nodeType),
-			common.MetricRoundTime:                    uint64(6),
+			common.MetricRoundTime:                    uint64(6000),
 			common.MetricAppVersion:                   version,
 			common.MetricRoundsPerEpoch:               uint64(roundsPerEpoch),
 			common.MetricCrossCheckBlockHeight:        "0",
@@ -685,7 +689,7 @@ func TestInitMetrics(t *testing.T) {
 			common.MetricShardId:                      uint64(localShardCoordinator.SelfId()),
 			common.MetricNumShardsWithoutMetachain:    uint64(localShardCoordinator.NoShards),
 			common.MetricNodeType:                     string(nodeType),
-			common.MetricRoundTime:                    uint64(6),
+			common.MetricRoundTime:                    uint64(6000),
 			common.MetricAppVersion:                   version,
 			common.MetricRoundsPerEpoch:               uint64(roundsPerEpoch),
 			common.MetricCrossCheckBlockHeight:        "0",

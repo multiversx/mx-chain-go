@@ -29,6 +29,7 @@ func (cpm *chainParamsMetricsHandler) ChainParametersChanged(chainParameters con
 	cpm.appStatusHandler.SetUInt64Value(common.MetricMetaConsensusGroupSize, uint64(chainParameters.MetachainConsensusGroupSize))
 	cpm.appStatusHandler.SetUInt64Value(common.MetricNumNodesPerShard, uint64(chainParameters.ShardMinNumNodes))
 	cpm.appStatusHandler.SetUInt64Value(common.MetricNumMetachainNodes, uint64(chainParameters.MetachainMinNumNodes))
+	cpm.appStatusHandler.SetUInt64Value(common.MetricRoundDuration, uint64(chainParameters.RoundDuration))
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
