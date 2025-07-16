@@ -506,7 +506,6 @@ func createDefaultRoundArgs() round.ArgsRound {
 		SyncTimer:                 &mock.SyncTimerMock{},
 		StartRound:                0,
 		SupernovaStartRound:       0,
-		EnableEpochsHandler:       &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 		EnableRoundsHandler:       &testscommon.EnableRoundsHandlerStub{},
 	}
 }

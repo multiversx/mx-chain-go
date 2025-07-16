@@ -28,7 +28,6 @@ type ArgsRound struct {
 	SyncTimer                 ntp.SyncTimer
 	StartRound                int64
 	SupernovaStartRound       int64
-	EnableEpochsHandler       common.EnableEpochsHandler
 	EnableRoundsHandler       common.EnableRoundsHandler
 }
 
@@ -45,7 +44,6 @@ type round struct {
 
 	*sync.RWMutex
 
-	enableEpochsHandler common.EnableEpochsHandler
 	enableRoundsHandler common.EnableRoundsHandler
 }
 
@@ -55,9 +53,6 @@ func NewRound(args ArgsRound) (*round, error) {
 
 	if check.IfNil(args.SyncTimer) {
 		return nil, ErrNilSyncTimer
-	}
-	if check.IfNil(args.EnableEpochsHandler) {
-		return nil, errors.ErrNilEnableEpochsHandler
 	}
 	if check.IfNil(args.EnableRoundsHandler) {
 		return nil, errors.ErrNilEnableRoundsHandler
@@ -72,7 +67,6 @@ func NewRound(args ArgsRound) (*round, error) {
 		startRound:                args.StartRound,
 		supernovaStartRound:       args.SupernovaStartRound,
 		RWMutex:                   &sync.RWMutex{},
-		enableEpochsHandler:       args.EnableEpochsHandler,
 		enableRoundsHandler:       args.EnableRoundsHandler,
 	}
 	rnd.UpdateRound(args.GenesisTimeStamp, args.CurrentTimeStamp)
@@ -100,10 +94,6 @@ func (rnd *round) UpdateRound(genesisTimeStamp time.Time, currentTimeStamp time.
 }
 
 func (rnd *round) isSupernovaRoundActivated() bool {
-	if !rnd.enableEpochsHandler.IsFlagEnabled(common.SupernovaFlag) {
-		return false
-	}
-
 	return rnd.enableRoundsHandler.IsFlagEnabledInRound(common.SupernovaRoundFlag, uint64(rnd.index))
 }
 
@@ -114,14 +104,10 @@ func (rnd *round) isSupernovaActivated(currentTimeStamp time.Time) bool {
 	}
 
 	currentTimeAfterSupernova := currentTimeStamp.UnixMilli() > rnd.supernovaGenesisTimeStamp.UnixMilli()
-	defaultEpoch := rnd.enableEpochsHandler.GetCurrentEpoch() == 0
-	defaultRound := rnd.enableRoundsHandler.GetCurrentRound() == 0
 
-	if currentTimeAfterSupernova && (defaultEpoch || defaultRound) {
+	if currentTimeAfterSupernova {
 		log.Debug("isSupernovaActivated: force set supernovaActivated",
 			"currentTimeAfterSupernova", currentTimeAfterSupernova,
-			"enableEpochsHandler current epoch", rnd.enableEpochsHandler.GetCurrentEpoch(),
-			"enableRoundsHandler current round", rnd.enableRoundsHandler.GetCurrentRound(),
 		)
 		supernovaActivated = true
 	}

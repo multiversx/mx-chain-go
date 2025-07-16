@@ -281,7 +281,6 @@ func (ccf *coreComponentsFactory) Create() (*coreComponents, error) {
 		SyncTimer:                 syncer,
 		StartRound:                startRound,
 		SupernovaStartRound:       supernovaStartRound,
-		EnableEpochsHandler:       enableEpochsHandler,
 		EnableRoundsHandler:       enableRoundsHandler,
 	}
 	roundHandler, err := round.NewRound(roundArgs)

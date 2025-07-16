@@ -246,7 +246,6 @@ func (tpn *TestFullNode) initTestNodeWithArgs(args ArgTestProcessorNode, fullArg
 		SyncTimer:                 syncer,
 		StartRound:                0,
 		SupernovaStartRound:       0,
-		EnableEpochsHandler:       tpn.EnableEpochsHandler,
 		EnableRoundsHandler:       tpn.EnableRoundsHandler,
 	}
 	roundHandler, _ := round.NewRound(roundArgs)

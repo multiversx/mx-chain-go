@@ -247,7 +247,6 @@ func (tcn *TestConsensusNode) initNode(args ArgsTestConsensusNode) {
 		SyncTimer:                 syncer,
 		StartRound:                0,
 		SupernovaStartRound:       0,
-		EnableEpochsHandler:       enableEpochsHandler,
 		EnableRoundsHandler:       enableRoundsHandler,
 	}
 	roundHandler, _ := round.NewRound(roundArgs)
