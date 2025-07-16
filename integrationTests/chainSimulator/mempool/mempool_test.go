@@ -513,6 +513,7 @@ func Test_Selection_ShouldNotSelectSameTransactionsWithSameSender(t *testing.T) 
 	require.Nil(t, err)
 	require.NotNil(t, txcache)
 
+	// create the non-virtual selection session, assure we have enough balance
 	selectionSession := createMockSelectionSession(map[string]*accountInfo{
 		"alice": {
 			balance: oneEGLD,
@@ -575,11 +576,13 @@ func Test_Selection_ShouldNotSelectSameTransactionsWithSameSender(t *testing.T) 
 
 	require.Equal(t, txcache.CountTx(), uint64(4))
 
+	// do the first selection, first two txs should be returned
 	selectedTransactions, _ := txcache.SelectTransactions(selectionSession, options, defaultBlockchainInfo)
 	require.Equal(t, 2, len(selectedTransactions))
 	require.Equal(t, "txHash0", string(selectedTransactions[0].TxHash))
 	require.Equal(t, "txHash1", string(selectedTransactions[1].TxHash))
 
+	// propose the block
 	err = txcache.OnProposedBlock([]byte("blockHash1"), &blockBody, &block.Header{
 		Nonce:    0,
 		PrevHash: []byte("blockHash0"),
@@ -615,6 +618,7 @@ func Test_Selection_ShouldNotSelectSameTransactionsWithDifferentSenders(t *testi
 	require.Nil(t, err)
 	require.NotNil(t, txcache)
 
+	// assure we have enough balance for each account
 	selectionSession := createMockSelectionSession(map[string]*accountInfo{
 		"alice": {
 			balance: oneEGLD,
@@ -722,6 +726,7 @@ func Test_Selection_ShouldNotSelectSameTransactionsWithDifferentSenders(t *testi
 	require.Equal(t, "txHash0", string(selectedTransactions[0].TxHash))
 	require.Equal(t, "txHash1", string(selectedTransactions[1].TxHash))
 
+	// propose the selected transactions
 	err = txcache.OnProposedBlock([]byte("blockHash1"), &blockBody, &block.Header{
 		Nonce:    0,
 		PrevHash: []byte("blockHash0"),
@@ -858,7 +863,6 @@ func Test_Selection_ShouldNotSelectSameTransactionsWithManyTransactions(t *testi
 	}
 
 	// propose the second block
-
 	proposedBlock2 := block.Body{MiniBlocks: []*block.MiniBlock{
 		{
 			TxHashes: proposedTxs,
@@ -1018,13 +1022,14 @@ func Test_Selection_ShouldNotSelectSameTransactionsWithManyTransactionsAndExecut
 	}}
 
 	err = txcache.OnProposedBlock([]byte("blockHash2"), &proposedBlock2, &block.Header{
-		Nonce:    0,
+		Nonce:    1,
 		PrevHash: []byte("blockHash1"),
 		RootHash: []byte(fmt.Sprintf("rootHash%d", 1)),
 	})
 	require.Nil(t, err)
 
-	// no transaction should be returned
+	blockchainInfo = holders.NewBlockchainInfo([]byte("blockHash1"), 2)
+	// no transactions should be returned
 	selectedTransactions, _ = txcache.SelectTransactions(selectionSession, options, blockchainInfo)
 	require.Equal(t, 0, len(selectedTransactions))
 
@@ -1033,7 +1038,7 @@ func Test_Selection_ShouldNotSelectSameTransactionsWithManyTransactionsAndExecut
 	}
 }
 
-func Test_SelectionWhenFeeExceedsBalanceWhenMaxNumTxsEquals3(t *testing.T) {
+func Test_SelectionWhenFeeExceedsBalanceWithMax3TxsSelected(t *testing.T) {
 	t.Parallel()
 
 	host := txcachemocks.NewMempoolHostMock()
@@ -1201,7 +1206,7 @@ func Test_SelectionWhenFeeExceedsBalanceWhenMaxNumTxsEquals3(t *testing.T) {
 	require.Equal(t, 0, len(selectedTransactions))
 }
 
-func Test_SelectionWhenFeeExceedsBalanceWhenMaxNumTxsEquals2(t *testing.T) {
+func Test_SelectionWhenFeeExceedsBalanceWithMax2TxsSelected(t *testing.T) {
 	t.Parallel()
 
 	host := txcachemocks.NewMempoolHostMock()
