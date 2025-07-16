@@ -27,3 +27,13 @@ func TestBlockchainInfo_GetValues(t *testing.T) {
 		require.Equal(t, "blockHash0", string(chainInfo.GetLatestExecutedBlockHash()))
 	})
 }
+
+func TestBlockchainInfo_IsInterfaceNil(t *testing.T) {
+	t.Parallel()
+
+	var chainInfo *blockchainInfo
+	require.True(t, chainInfo.IsInterfaceNil())
+
+	chainInfo = NewBlockchainInfo(nil, 0)
+	require.False(t, chainInfo.IsInterfaceNil())
+}
