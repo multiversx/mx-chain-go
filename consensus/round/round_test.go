@@ -117,7 +117,7 @@ func TestRound_UpdateRoundShouldAdvanceOneRound(t *testing.T) {
 		assert.Equal(t, oldIndex, newIndex-1)
 	})
 
-	t.Run("after supernova", func(t *testing.T) {
+	t.Run("after supernova, with flag activated", func(t *testing.T) {
 		t.Parallel()
 
 		genesisTime := time.Now()
@@ -137,6 +137,60 @@ func TestRound_UpdateRoundShouldAdvanceOneRound(t *testing.T) {
 		newIndex := rnd.Index()
 
 		assert.Equal(t, oldIndex, newIndex-1)
+	})
+
+	t.Run("after supernova, without flag activated, but after supernova genesis time", func(t *testing.T) {
+		t.Parallel()
+
+		genesisTime := time.Now()
+
+		roundDuration := 10 * time.Millisecond
+
+		supernovaRoundDuration := 5 * time.Millisecond
+		supernovaStartRond := int64(5)
+		supernovaGenesisTime := genesisTime.Add(time.Duration(supernovaStartRond) * roundDuration)
+
+		args := createDefaultRoundArgs()
+		args.RoundTimeDuration = roundDuration
+		args.SupernovaTimeDuration = supernovaRoundDuration
+		args.EnableRoundsHandler = &testscommon.EnableRoundsHandlerStub{}
+
+		args.SupernovaStartRound = supernovaStartRond
+		args.GenesisTimeStamp = genesisTime
+
+		args.SupernovaGenesisTimeStamp = genesisTime.Add(5 * roundDuration)
+
+		rnd, _ := round.NewRound(args)
+
+		rnd.UpdateRound(genesisTime, genesisTime.Add(roundTimeDuration))
+		rnd.UpdateRound(genesisTime, genesisTime.Add(2*roundTimeDuration))
+		rnd.UpdateRound(genesisTime, genesisTime.Add(3*roundTimeDuration))
+		rnd.UpdateRound(genesisTime, genesisTime.Add(4*roundTimeDuration))
+
+		index0 := rnd.Index()
+		timestamp0 := rnd.TimeStamp()
+
+		rnd.UpdateRound(genesisTime, supernovaGenesisTime)
+
+		index1 := rnd.Index()
+		timestamp1 := rnd.TimeStamp()
+
+		diffTime := timestamp1.Sub(timestamp0)
+
+		assert.Equal(t, index0, index1-1)
+		assert.Equal(t, int64(5), index1)
+		assert.Equal(t, roundDuration, diffTime)
+
+		rnd.UpdateRound(genesisTime, supernovaGenesisTime.Add(supernovaRoundDuration))
+
+		index2 := rnd.Index()
+		timestamp2 := rnd.TimeStamp()
+
+		diffTime2 := timestamp2.Sub(timestamp1)
+
+		assert.Equal(t, index1, index2-1)
+		assert.Equal(t, int64(6), index2)
+		assert.Equal(t, supernovaRoundDuration, diffTime2)
 	})
 }
 

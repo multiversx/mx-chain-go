@@ -103,7 +103,7 @@ func (rnd *round) isSupernovaActivated(currentTimeStamp time.Time) bool {
 		return supernovaActivated
 	}
 
-	currentTimeAfterSupernova := currentTimeStamp.UnixMilli() > rnd.supernovaGenesisTimeStamp.UnixMilli()
+	currentTimeAfterSupernova := currentTimeStamp.UnixMilli() >= rnd.supernovaGenesisTimeStamp.UnixMilli()
 
 	if currentTimeAfterSupernova {
 		log.Debug("isSupernovaActivated: force set supernovaActivated",
