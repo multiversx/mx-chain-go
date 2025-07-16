@@ -222,6 +222,7 @@ func Test_accumulateConsumedBalance(t *testing.T) {
 		require.Equal(t, "0", virtualRecord1.consumedBalance.String())
 
 		virtualRecord2, err := virtualSession.getRecord([]byte("b"))
+		require.NoError(t, err)
 		require.Equal(t, "100000000000000", virtualRecord2.consumedBalance.String())
 
 		err = virtualSession.accumulateConsumedBalance(b)
