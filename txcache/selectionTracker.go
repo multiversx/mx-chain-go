@@ -61,8 +61,7 @@ func (st *selectionTracker) OnProposedBlock(blockHash []byte, blockBody *block.B
 		return err
 	}
 
-	tBlock := newTrackedBlock(nonce, blockHash, rootHash, prevHash)
-	tBlock.compileBreadcrumbs(txs)
+	tBlock := newTrackedBlock(nonce, blockHash, rootHash, prevHash, txs)
 	st.blocks = append(st.blocks, tBlock)
 
 	return nil
@@ -78,7 +77,7 @@ func (st *selectionTracker) OnExecutedBlock(handler data.HeaderHandler) error {
 	rootHash := handler.GetRootHash()
 	prevHash := handler.GetPrevHash()
 
-	tempTrackedBlock := newTrackedBlock(nonce, nil, rootHash, prevHash)
+	tempTrackedBlock := newTrackedBlock(nonce, nil, rootHash, prevHash, nil)
 	st.mutTracker.Lock()
 	defer st.mutTracker.Unlock()
 
@@ -124,11 +123,10 @@ func (st *selectionTracker) updateLatestRootHashNoLock(receivedNonce uint64, rec
 	}
 }
 
-// TODO compute the size of the slice of txs
-// TODO take the txs from the storage (persister)
 func (st *selectionTracker) getTransactionsFromBlock(blockBody *block.Body) ([]*WrappedTransaction, error) {
 	miniBlocks := blockBody.GetMiniBlocks()
-	txs := make([]*WrappedTransaction, 0)
+	numberOfTxs := st.computeNumberOfTxsInMiniBlocks(miniBlocks)
+	txs := make([]*WrappedTransaction, 0, numberOfTxs)
 
 	for _, miniBlock := range miniBlocks {
 		txHashes := miniBlock.GetTxHashes()
@@ -144,6 +142,15 @@ func (st *selectionTracker) getTransactionsFromBlock(blockBody *block.Body) ([]*
 	}
 
 	return txs, nil
+}
+
+func (st *selectionTracker) computeNumberOfTxsInMiniBlocks(miniBlocks []*block.MiniBlock) int {
+	numberOfTxs := 0
+	for _, miniBlock := range miniBlocks {
+		numberOfTxs += len(miniBlock.GetTxHashes())
+	}
+
+	return numberOfTxs
 }
 
 func (st *selectionTracker) deriveVirtualSelectionSession(

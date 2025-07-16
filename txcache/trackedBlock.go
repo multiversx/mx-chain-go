@@ -14,21 +14,24 @@ type trackedBlock struct {
 	breadcrumbsByAddress map[string]*accountBreadcrumb
 }
 
-// TODO create the breadcrumbs directly in the constructor
 func newTrackedBlock(
 	nonce uint64,
 	blockHash []byte,
 	rootHash []byte,
 	prevHash []byte,
+	txs []*WrappedTransaction,
 ) *trackedBlock {
 
-	return &trackedBlock{
+	tb := &trackedBlock{
 		nonce:                nonce,
 		hash:                 blockHash,
 		rootHash:             rootHash,
 		prevHash:             prevHash,
 		breadcrumbsByAddress: make(map[string]*accountBreadcrumb),
 	}
+	tb.compileBreadcrumbs(txs)
+
+	return tb
 }
 
 func (tb *trackedBlock) sameNonce(trackedBlock1 *trackedBlock) bool {
