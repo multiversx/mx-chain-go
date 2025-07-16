@@ -65,14 +65,16 @@ func (virtualSession *virtualSelectionSession) accumulateConsumedBalance(tx *Wra
 
 	senderRecord, err := virtualSession.getRecord(sender)
 	if err != nil {
-		log.Warn("virtualSelectionSession.accumulateConsumedBalance",
+		log.Warn("accumulateConsumedBalance.getRecord sender",
+			"sender", sender,
 			"err", err)
 		return err
 	}
 
 	feePayerRecord, err := virtualSession.getRecord(feePayer)
 	if err != nil {
-		log.Warn("virtualSelectionSession.accumulateConsumedBalance",
+		log.Warn("accumulateConsumedBalance.getRecord feePayer",
+			"feePayer", feePayer,
 			"err", err)
 		return err
 	}

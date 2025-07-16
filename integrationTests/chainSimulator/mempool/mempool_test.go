@@ -11,7 +11,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-go/common/holders"
 	"github.com/multiversx/mx-chain-go/testscommon/txcachemocks"
-	txcache2 "github.com/multiversx/mx-chain-go/txcache"
+	"github.com/multiversx/mx-chain-go/txcache"
 	"github.com/stretchr/testify/require"
 
 	"github.com/multiversx/mx-chain-go/config"
@@ -491,7 +491,7 @@ func Test_Selection_ShouldNotSelectSameTransactionsWithSameSender(t *testing.T) 
 	t.Parallel()
 
 	host := txcachemocks.NewMempoolHostMock()
-	txcache, err := txcache2.NewTxCache(txcache2.ConfigSourceMe{
+	txpool, err := txcache.NewTxCache(txcache.ConfigSourceMe{
 		Name:                        "test",
 		NumChunks:                   16,
 		NumBytesThreshold:           maxNumBytesUpperBound,
@@ -506,7 +506,7 @@ func Test_Selection_ShouldNotSelectSameTransactionsWithSameSender(t *testing.T) 
 	}, host)
 
 	require.Nil(t, err)
-	require.NotNil(t, txcache)
+	require.NotNil(t, txpool)
 
 	// create the non-virtual selection session, assure we have enough balance
 	selectionSession := createMockSelectionSession(map[string]*accountInfo{
@@ -529,10 +529,11 @@ func Test_Selection_ShouldNotSelectSameTransactionsWithSameSender(t *testing.T) 
 	)
 
 	poolTxs := maxNumTxs * 2
-	transactions := make([]*transaction.Transaction, 0, poolTxs)
+	txHashes := make([][]byte, 0, poolTxs)
+
 	nonceTracker := newNoncesTracker()
 	for i := 0; i < poolTxs; i++ {
-		transactions = append(transactions, &transaction.Transaction{
+		tx := &transaction.Transaction{
 			Nonce:     nonceTracker.getThenIncrementNonceByStringAddress("alice"),
 			Value:     oneQuarterOfEGLD,
 			SndAddr:   []byte("alice"),
@@ -543,14 +544,10 @@ func Test_Selection_ShouldNotSelectSameTransactionsWithSameSender(t *testing.T) 
 			ChainID:   []byte(configs.ChainID),
 			Version:   2,
 			Signature: []byte("signature"),
-		})
-	}
+		}
 
-	txHashes := make([][]byte, 0, len(transactions))
-	for i, tx := range transactions {
 		txHash := []byte(fmt.Sprintf("txHash%d", i))
-		txHashes = append(txHashes, txHash)
-		txcache.AddTx(&txcache2.WrappedTransaction{
+		txpool.AddTx(&txcache.WrappedTransaction{
 			Tx:               tx,
 			TxHash:           txHash,
 			SenderShardID:    0,
@@ -561,6 +558,8 @@ func Test_Selection_ShouldNotSelectSameTransactionsWithSameSender(t *testing.T) 
 			TransferredValue: tx.Value,
 			FeePayer:         tx.SndAddr,
 		})
+
+		txHashes = append(txHashes, txHash)
 	}
 
 	blockBody := block.Body{MiniBlocks: []*block.MiniBlock{
@@ -569,16 +568,16 @@ func Test_Selection_ShouldNotSelectSameTransactionsWithSameSender(t *testing.T) 
 		},
 	}}
 
-	require.Equal(t, txcache.CountTx(), uint64(4))
+	require.Equal(t, txpool.CountTx(), uint64(4))
 
 	// do the first selection, first two txs should be returned
-	selectedTransactions, _ := txcache.SelectTransactions(selectionSession, options, defaultBlockchainInfo)
+	selectedTransactions, _ := txpool.SelectTransactions(selectionSession, options, defaultBlockchainInfo)
 	require.Equal(t, 2, len(selectedTransactions))
 	require.Equal(t, "txHash0", string(selectedTransactions[0].TxHash))
 	require.Equal(t, "txHash1", string(selectedTransactions[1].TxHash))
 
 	// propose the block
-	err = txcache.OnProposedBlock([]byte("blockHash1"), &blockBody, &block.Header{
+	err = txpool.OnProposedBlock([]byte("blockHash1"), &blockBody, &block.Header{
 		Nonce:    0,
 		PrevHash: []byte("blockHash0"),
 		RootHash: []byte(fmt.Sprintf("rootHash%d", 0)),
@@ -586,7 +585,7 @@ func Test_Selection_ShouldNotSelectSameTransactionsWithSameSender(t *testing.T) 
 	require.Nil(t, err)
 
 	blockchainInfo := holders.NewBlockchainInfo([]byte("blockHash0"), 1)
-	selectedTransactions, _ = txcache.SelectTransactions(selectionSession, options, blockchainInfo)
+	selectedTransactions, _ = txpool.SelectTransactions(selectionSession, options, blockchainInfo)
 	require.Equal(t, 2, len(selectedTransactions))
 	require.Equal(t, "txHash2", string(selectedTransactions[0].TxHash))
 	require.Equal(t, "txHash3", string(selectedTransactions[1].TxHash))
@@ -596,7 +595,7 @@ func Test_Selection_ShouldNotSelectSameTransactionsWithDifferentSenders(t *testi
 	t.Parallel()
 
 	host := txcachemocks.NewMempoolHostMock()
-	txcache, err := txcache2.NewTxCache(txcache2.ConfigSourceMe{
+	txpool, err := txcache.NewTxCache(txcache.ConfigSourceMe{
 		Name:                        "test",
 		NumChunks:                   16,
 		NumBytesThreshold:           maxNumBytesUpperBound,
@@ -611,7 +610,7 @@ func Test_Selection_ShouldNotSelectSameTransactionsWithDifferentSenders(t *testi
 	}, host)
 
 	require.Nil(t, err)
-	require.NotNil(t, txcache)
+	require.NotNil(t, txpool)
 
 	// assure we have enough balance for each account
 	selectionSession := createMockSelectionSession(map[string]*accountInfo{
@@ -695,7 +694,7 @@ func Test_Selection_ShouldNotSelectSameTransactionsWithDifferentSenders(t *testi
 	for i, tx := range transactions {
 		txHash := []byte(fmt.Sprintf("txHash%d", i))
 		txHashes = append(txHashes, txHash)
-		txcache.AddTx(&txcache2.WrappedTransaction{
+		txpool.AddTx(&txcache.WrappedTransaction{
 			Tx:               tx,
 			TxHash:           txHash,
 			SenderShardID:    0,
@@ -714,15 +713,15 @@ func Test_Selection_ShouldNotSelectSameTransactionsWithDifferentSenders(t *testi
 		},
 	}}
 
-	require.Equal(t, txcache.CountTx(), uint64(4))
+	require.Equal(t, txpool.CountTx(), uint64(4))
 
-	selectedTransactions, _ := txcache.SelectTransactions(selectionSession, options, defaultBlockchainInfo)
+	selectedTransactions, _ := txpool.SelectTransactions(selectionSession, options, defaultBlockchainInfo)
 	require.Equal(t, 2, len(selectedTransactions))
 	require.Equal(t, "txHash0", string(selectedTransactions[0].TxHash))
 	require.Equal(t, "txHash1", string(selectedTransactions[1].TxHash))
 
 	// propose the selected transactions
-	err = txcache.OnProposedBlock([]byte("blockHash1"), &blockBody, &block.Header{
+	err = txpool.OnProposedBlock([]byte("blockHash1"), &blockBody, &block.Header{
 		Nonce:    0,
 		PrevHash: []byte("blockHash0"),
 		RootHash: []byte(fmt.Sprintf("rootHash%d", 0)),
@@ -730,7 +729,7 @@ func Test_Selection_ShouldNotSelectSameTransactionsWithDifferentSenders(t *testi
 	require.Nil(t, err)
 
 	blockchainInfo := holders.NewBlockchainInfo([]byte("blockHash0"), 1)
-	selectedTransactions, _ = txcache.SelectTransactions(selectionSession, options, blockchainInfo)
+	selectedTransactions, _ = txpool.SelectTransactions(selectionSession, options, blockchainInfo)
 	require.Equal(t, 2, len(selectedTransactions))
 	require.Equal(t, "txHash2", string(selectedTransactions[0].TxHash))
 	require.Equal(t, "txHash3", string(selectedTransactions[1].TxHash))
@@ -740,7 +739,7 @@ func Test_Selection_ShouldNotSelectSameTransactionsWithManyTransactions(t *testi
 	t.Parallel()
 
 	host := txcachemocks.NewMempoolHostMock()
-	txcache, err := txcache2.NewTxCache(txcache2.ConfigSourceMe{
+	txpool, err := txcache.NewTxCache(txcache.ConfigSourceMe{
 		Name:                        "test",
 		NumChunks:                   16,
 		NumBytesThreshold:           maxNumBytesUpperBound,
@@ -755,7 +754,7 @@ func Test_Selection_ShouldNotSelectSameTransactionsWithManyTransactions(t *testi
 	}, host)
 
 	require.Nil(t, err)
-	require.NotNil(t, txcache)
+	require.NotNil(t, txpool)
 
 	numTxsPerSender := 30_000
 	initialAmount := big.NewInt(int64(numTxsPerSender) * 50_000 * 1_000_000_000)
@@ -784,14 +783,12 @@ func Test_Selection_ShouldNotSelectSameTransactionsWithManyTransactions(t *testi
 	)
 
 	numTxs := numTxsPerSender * len(senders)
-	transactions := make([]*transaction.Transaction, 0, numTxs)
-
 	nonceTracker := newNoncesTracker()
 
-	// create numTxs transactions
+	// create numTxs transactions and save them to txpool
 	for i := 0; i < numTxsPerSender; i++ {
 		for j := 0; j < len(senders); j++ {
-			transactions = append(transactions, &transaction.Transaction{
+			tx := &transaction.Transaction{
 				Nonce:     nonceTracker.getThenIncrementNonceByStringAddress(senders[j]),
 				Value:     big.NewInt(0),
 				SndAddr:   []byte(senders[j]),
@@ -802,30 +799,26 @@ func Test_Selection_ShouldNotSelectSameTransactionsWithManyTransactions(t *testi
 				ChainID:   []byte(configs.ChainID),
 				Version:   2,
 				Signature: []byte("signature"),
+			}
+			txHash := []byte(fmt.Sprintf("txHash%d", i*len(senders)+j))
+			txpool.AddTx(&txcache.WrappedTransaction{
+				Tx:               tx,
+				TxHash:           txHash,
+				SenderShardID:    0,
+				ReceiverShardID:  0,
+				Size:             0,
+				Fee:              big.NewInt(int64(tx.GasLimit * tx.GasPrice)),
+				PricePerUnit:     0,
+				TransferredValue: tx.Value,
+				FeePayer:         tx.SndAddr,
 			})
 		}
 	}
 
-	// save the txHashes
-	for i, tx := range transactions {
-		txHash := []byte(fmt.Sprintf("txHash%d", i))
-		txcache.AddTx(&txcache2.WrappedTransaction{
-			Tx:               tx,
-			TxHash:           txHash,
-			SenderShardID:    0,
-			ReceiverShardID:  0,
-			Size:             0,
-			Fee:              big.NewInt(int64(tx.GasLimit * tx.GasPrice)),
-			PricePerUnit:     0,
-			TransferredValue: tx.Value,
-			FeePayer:         tx.SndAddr,
-		})
-	}
-
-	require.Equal(t, txcache.CountTx(), uint64(numTxs))
+	require.Equal(t, txpool.CountTx(), uint64(numTxs))
 
 	// do the first selections
-	selectedTransactions, _ := txcache.SelectTransactions(selectionSession, options, defaultBlockchainInfo)
+	selectedTransactions, _ := txpool.SelectTransactions(selectionSession, options, defaultBlockchainInfo)
 	require.Equal(t, numTxsPerSender, len(selectedTransactions))
 
 	// extract the tx hashes from the selected transactions
@@ -840,7 +833,7 @@ func Test_Selection_ShouldNotSelectSameTransactionsWithManyTransactions(t *testi
 			TxHashes: proposedTxs,
 		},
 	}}
-	err = txcache.OnProposedBlock([]byte("blockHash1"), &proposedBlock1, &block.Header{
+	err = txpool.OnProposedBlock([]byte("blockHash1"), &proposedBlock1, &block.Header{
 		Nonce:    0,
 		PrevHash: []byte("blockHash0"),
 		RootHash: []byte(fmt.Sprintf("rootHash%d", 0)),
@@ -849,7 +842,7 @@ func Test_Selection_ShouldNotSelectSameTransactionsWithManyTransactions(t *testi
 
 	// do the second selection (the rest of the transactions should be selected)
 	blockchainInfo := holders.NewBlockchainInfo([]byte("blockHash0"), 1)
-	selectedTransactions, _ = txcache.SelectTransactions(selectionSession, options, blockchainInfo)
+	selectedTransactions, _ = txpool.SelectTransactions(selectionSession, options, blockchainInfo)
 	require.Equal(t, numTxsPerSender, len(selectedTransactions))
 
 	proposedTxs = make([][]byte, 0, len(selectedTransactions))
@@ -863,7 +856,7 @@ func Test_Selection_ShouldNotSelectSameTransactionsWithManyTransactions(t *testi
 			TxHashes: proposedTxs,
 		},
 	}}
-	err = txcache.OnProposedBlock([]byte("blockHash2"), &proposedBlock2, &block.Header{
+	err = txpool.OnProposedBlock([]byte("blockHash2"), &proposedBlock2, &block.Header{
 		Nonce:    0,
 		PrevHash: []byte("blockHash1"),
 		RootHash: []byte(fmt.Sprintf("rootHash%d", 1)),
@@ -871,7 +864,7 @@ func Test_Selection_ShouldNotSelectSameTransactionsWithManyTransactions(t *testi
 	require.Nil(t, err)
 
 	// do the last selection (no tx should be returned)
-	selectedTransactions, _ = txcache.SelectTransactions(selectionSession, options, blockchainInfo)
+	selectedTransactions, _ = txpool.SelectTransactions(selectionSession, options, blockchainInfo)
 	require.Equal(t, 0, len(selectedTransactions))
 }
 
@@ -879,7 +872,7 @@ func Test_Selection_ShouldNotSelectSameTransactionsWithManyTransactionsAndExecut
 	t.Parallel()
 
 	host := txcachemocks.NewMempoolHostMock()
-	txcache, err := txcache2.NewTxCache(txcache2.ConfigSourceMe{
+	txpool, err := txcache.NewTxCache(txcache.ConfigSourceMe{
 		Name:                        "test",
 		NumChunks:                   16,
 		NumBytesThreshold:           maxNumBytesUpperBound,
@@ -894,7 +887,7 @@ func Test_Selection_ShouldNotSelectSameTransactionsWithManyTransactionsAndExecut
 	}, host)
 
 	require.Nil(t, err)
-	require.NotNil(t, txcache)
+	require.NotNil(t, txpool)
 
 	// set the number of transactions that we want for each sender
 	numTxsPerSender := 30_000
@@ -927,11 +920,11 @@ func Test_Selection_ShouldNotSelectSameTransactionsWithManyTransactionsAndExecut
 
 	nonceTracker := newNoncesTracker()
 
+	// create txs and add them to txpool
 	numTxs := numTxsPerSender * len(senders)
-	transactions := make([]*transaction.Transaction, 0, numTxs)
 	for i := 0; i < numTxsPerSender; i++ {
 		for j := 0; j < len(senders); j++ {
-			transactions = append(transactions, &transaction.Transaction{
+			tx := &transaction.Transaction{
 				Nonce:     nonceTracker.getThenIncrementNonceByStringAddress(senders[j]),
 				Value:     big.NewInt(0),
 				SndAddr:   []byte(senders[j]),
@@ -941,31 +934,27 @@ func Test_Selection_ShouldNotSelectSameTransactionsWithManyTransactionsAndExecut
 				GasPrice:  1_000_000_000,
 				ChainID:   []byte(configs.ChainID),
 				Version:   2,
-				Signature: []byte("signature"),
+				Signature: []byte("signature")}
+
+			txHash := []byte(fmt.Sprintf("txHash%d", i*len(senders)+j))
+			txpool.AddTx(&txcache.WrappedTransaction{
+				Tx:               tx,
+				TxHash:           txHash,
+				SenderShardID:    0,
+				ReceiverShardID:  0,
+				Size:             0,
+				Fee:              big.NewInt(int64(tx.GasLimit * tx.GasPrice)),
+				PricePerUnit:     0,
+				TransferredValue: tx.Value,
+				FeePayer:         tx.SndAddr,
 			})
 		}
 	}
 
-	// add the transactions to the pool
-	for i, tx := range transactions {
-		txHash := []byte(fmt.Sprintf("txHash%d", i))
-		txcache.AddTx(&txcache2.WrappedTransaction{
-			Tx:               tx,
-			TxHash:           txHash,
-			SenderShardID:    0,
-			ReceiverShardID:  0,
-			Size:             0,
-			Fee:              big.NewInt(int64(tx.GasLimit * tx.GasPrice)),
-			PricePerUnit:     0,
-			TransferredValue: tx.Value,
-			FeePayer:         tx.SndAddr,
-		})
-	}
-
-	require.Equal(t, txcache.CountTx(), uint64(numTxs))
+	require.Equal(t, txpool.CountTx(), uint64(numTxs))
 
 	// do the first selection
-	selectedTransactions, _ := txcache.SelectTransactions(selectionSession, options, defaultBlockchainInfo)
+	selectedTransactions, _ := txpool.SelectTransactions(selectionSession, options, defaultBlockchainInfo)
 	require.Equal(t, numTxsPerSender, len(selectedTransactions))
 
 	// propose those txs in order to track them (create the breadcrumbs used for the virtual records)
@@ -979,7 +968,7 @@ func Test_Selection_ShouldNotSelectSameTransactionsWithManyTransactionsAndExecut
 			TxHashes: proposedTxs,
 		},
 	}}
-	err = txcache.OnProposedBlock([]byte("blockHash1"), &proposedBlock1, &block.Header{
+	err = txpool.OnProposedBlock([]byte("blockHash1"), &proposedBlock1, &block.Header{
 		Nonce:    0,
 		PrevHash: []byte("blockHash0"),
 		RootHash: []byte(fmt.Sprintf("rootHash%d", 0)),
@@ -988,11 +977,11 @@ func Test_Selection_ShouldNotSelectSameTransactionsWithManyTransactionsAndExecut
 
 	// do the second selection (the rest of the transactions should be selected)
 	blockchainInfo := holders.NewBlockchainInfo([]byte("blockHash0"), 1)
-	selectedTransactions, _ = txcache.SelectTransactions(selectionSession, options, blockchainInfo)
+	selectedTransactions, _ = txpool.SelectTransactions(selectionSession, options, blockchainInfo)
 	require.Equal(t, numTxsPerSender, len(selectedTransactions))
 
 	// execute the first proposed block
-	err = txcache.OnExecutedBlock(&block.Header{
+	err = txpool.OnExecutedBlock(&block.Header{
 		Nonce:    0,
 		PrevHash: []byte("blockHash0"),
 		RootHash: []byte(fmt.Sprintf("rootHash%d", 0)),
@@ -1001,7 +990,7 @@ func Test_Selection_ShouldNotSelectSameTransactionsWithManyTransactionsAndExecut
 
 	// remove the executed txs from the pool
 	for _, tx := range proposedTxs {
-		require.True(t, txcache.RemoveTxByHash(tx))
+		require.True(t, txpool.RemoveTxByHash(tx))
 	}
 
 	// propose the second block
@@ -1016,7 +1005,7 @@ func Test_Selection_ShouldNotSelectSameTransactionsWithManyTransactionsAndExecut
 		},
 	}}
 
-	err = txcache.OnProposedBlock([]byte("blockHash2"), &proposedBlock2, &block.Header{
+	err = txpool.OnProposedBlock([]byte("blockHash2"), &proposedBlock2, &block.Header{
 		Nonce:    1,
 		PrevHash: []byte("blockHash1"),
 		RootHash: []byte(fmt.Sprintf("rootHash%d", 1)),
@@ -1025,11 +1014,11 @@ func Test_Selection_ShouldNotSelectSameTransactionsWithManyTransactionsAndExecut
 
 	blockchainInfo = holders.NewBlockchainInfo([]byte("blockHash1"), 2)
 	// no transactions should be returned
-	selectedTransactions, _ = txcache.SelectTransactions(selectionSession, options, blockchainInfo)
+	selectedTransactions, _ = txpool.SelectTransactions(selectionSession, options, blockchainInfo)
 	require.Equal(t, 0, len(selectedTransactions))
 
 	for _, tx := range proposedTxs {
-		require.True(t, txcache.RemoveTxByHash(tx))
+		require.True(t, txpool.RemoveTxByHash(tx))
 	}
 }
 
@@ -1037,7 +1026,7 @@ func Test_SelectionWhenFeeExceedsBalanceWithMax3TxsSelected(t *testing.T) {
 	t.Parallel()
 
 	host := txcachemocks.NewMempoolHostMock()
-	txcache, err := txcache2.NewTxCache(txcache2.ConfigSourceMe{
+	txpool, err := txcache.NewTxCache(txcache.ConfigSourceMe{
 		Name:                        "test",
 		NumChunks:                   16,
 		NumBytesThreshold:           maxNumBytesUpperBound,
@@ -1052,7 +1041,7 @@ func Test_SelectionWhenFeeExceedsBalanceWithMax3TxsSelected(t *testing.T) {
 	}, host)
 
 	require.Nil(t, err)
-	require.NotNil(t, txcache)
+	require.NotNil(t, txpool)
 
 	selectionSession := createMockSelectionSession(map[string]*accountInfo{
 		"alice": {
@@ -1153,7 +1142,7 @@ func Test_SelectionWhenFeeExceedsBalanceWithMax3TxsSelected(t *testing.T) {
 
 	for i, tx := range transactions {
 		txHash := []byte(fmt.Sprintf("txHash%d", i))
-		txcache.AddTx(&txcache2.WrappedTransaction{
+		txpool.AddTx(&txcache.WrappedTransaction{
 			Tx:               tx,
 			TxHash:           txHash,
 			SenderShardID:    0,
@@ -1166,11 +1155,11 @@ func Test_SelectionWhenFeeExceedsBalanceWithMax3TxsSelected(t *testing.T) {
 		})
 	}
 
-	require.Equal(t, txcache.CountTx(), uint64(4))
+	require.Equal(t, txpool.CountTx(), uint64(4))
 
 	// do the first selection: first 3 transactions should be returned
 	blockchainInfo := holders.NewBlockchainInfo([]byte("blockHash0"), 1)
-	selectedTransactions, _ := txcache.SelectTransactions(selectionSession, options, blockchainInfo)
+	selectedTransactions, _ := txpool.SelectTransactions(selectionSession, options, blockchainInfo)
 	require.Equal(t, 3, len(selectedTransactions))
 	require.Equal(t, "relayer", string(selectedTransactions[0].Tx.GetSndAddr()))
 	require.Equal(t, "alice", string(selectedTransactions[1].Tx.GetSndAddr()))
@@ -1189,7 +1178,7 @@ func Test_SelectionWhenFeeExceedsBalanceWithMax3TxsSelected(t *testing.T) {
 		},
 	}}
 
-	err = txcache.OnProposedBlock([]byte("blockHash1"), &proposedBlock1, &block.Header{
+	err = txpool.OnProposedBlock([]byte("blockHash1"), &proposedBlock1, &block.Header{
 		Nonce:    0,
 		PrevHash: []byte("blockHash0"),
 		RootHash: []byte(fmt.Sprintf("rootHash%d", 0)),
@@ -1197,7 +1186,7 @@ func Test_SelectionWhenFeeExceedsBalanceWithMax3TxsSelected(t *testing.T) {
 	require.Nil(t, err)
 
 	// do the second selection, last tx should not be returned (relayer has insufficient balance)
-	selectedTransactions, _ = txcache.SelectTransactions(selectionSession, options, blockchainInfo)
+	selectedTransactions, _ = txpool.SelectTransactions(selectionSession, options, blockchainInfo)
 	require.Equal(t, 0, len(selectedTransactions))
 }
 
@@ -1205,7 +1194,7 @@ func Test_SelectionWhenFeeExceedsBalanceWithMax2TxsSelected(t *testing.T) {
 	t.Parallel()
 
 	host := txcachemocks.NewMempoolHostMock()
-	txcache, err := txcache2.NewTxCache(txcache2.ConfigSourceMe{
+	txpool, err := txcache.NewTxCache(txcache.ConfigSourceMe{
 		Name:                        "test",
 		NumChunks:                   16,
 		NumBytesThreshold:           maxNumBytesUpperBound,
@@ -1220,7 +1209,7 @@ func Test_SelectionWhenFeeExceedsBalanceWithMax2TxsSelected(t *testing.T) {
 	}, host)
 
 	require.Nil(t, err)
-	require.NotNil(t, txcache)
+	require.NotNil(t, txpool)
 
 	selectionSession := createMockSelectionSession(map[string]*accountInfo{
 		"alice": {
@@ -1321,7 +1310,7 @@ func Test_SelectionWhenFeeExceedsBalanceWithMax2TxsSelected(t *testing.T) {
 
 	for i, tx := range transactions {
 		txHash := []byte(fmt.Sprintf("txHash%d", i))
-		txcache.AddTx(&txcache2.WrappedTransaction{
+		txpool.AddTx(&txcache.WrappedTransaction{
 			Tx:               tx,
 			TxHash:           txHash,
 			SenderShardID:    0,
@@ -1334,11 +1323,11 @@ func Test_SelectionWhenFeeExceedsBalanceWithMax2TxsSelected(t *testing.T) {
 		})
 	}
 
-	require.Equal(t, txcache.CountTx(), uint64(4))
+	require.Equal(t, txpool.CountTx(), uint64(4))
 
 	// do the first selection: first 3 transactions should be returned
 	blockchainInfo := holders.NewBlockchainInfo([]byte("blockHash0"), 1)
-	selectedTransactions, _ := txcache.SelectTransactions(selectionSession, options, blockchainInfo)
+	selectedTransactions, _ := txpool.SelectTransactions(selectionSession, options, blockchainInfo)
 	require.Equal(t, 2, len(selectedTransactions))
 	require.Equal(t, "relayer", string(selectedTransactions[0].Tx.GetSndAddr()))
 	require.Equal(t, "alice", string(selectedTransactions[1].Tx.GetSndAddr()))
@@ -1356,7 +1345,7 @@ func Test_SelectionWhenFeeExceedsBalanceWithMax2TxsSelected(t *testing.T) {
 		},
 	}}
 
-	err = txcache.OnProposedBlock([]byte("blockHash1"), &proposedBlock1, &block.Header{
+	err = txpool.OnProposedBlock([]byte("blockHash1"), &proposedBlock1, &block.Header{
 		Nonce:    0,
 		PrevHash: []byte("blockHash0"),
 		RootHash: []byte(fmt.Sprintf("rootHash%d", 0)),
@@ -1364,7 +1353,7 @@ func Test_SelectionWhenFeeExceedsBalanceWithMax2TxsSelected(t *testing.T) {
 	require.Nil(t, err)
 
 	// do the second selection, last tx should not be returned (relayer has insufficient balance)
-	selectedTransactions, _ = txcache.SelectTransactions(selectionSession, options, blockchainInfo)
+	selectedTransactions, _ = txpool.SelectTransactions(selectionSession, options, blockchainInfo)
 	require.Equal(t, 1, len(selectedTransactions))
 	require.Equal(t, "bob", string(selectedTransactions[0].Tx.GetSndAddr()))
 }
