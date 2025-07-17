@@ -308,6 +308,7 @@ func (nf *nodeFacade) SimulateTransactionExecution(tx *transaction.Transaction) 
 	return nf.apiResolver.SimulateTransactionExecution(tx)
 }
 
+// SimulateSCRExecutionCost will simulate a smart contract results and will return the gas cost
 func (nf *nodeFacade) SimulateSCRExecutionCost(scr *smartContractResult.SmartContractResult) (*transaction.CostResponse, error) {
 	return nf.apiResolver.SimulateSCRExecutionCost(scr)
 }

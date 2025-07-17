@@ -25,7 +25,7 @@ import (
 const (
 	sendTransactionEndpoint          = "/transaction/send"
 	simulateTransactionEndpoint      = "/transaction/simulate"
-	simulateSCRCostEndpoint          = "/transaction/cost-src"
+	simulateSCRCostEndpoint          = "/transaction/cost-scr"
 	sendMultipleTransactionsEndpoint = "/transaction/send-multiple"
 	getTransactionEndpoint           = "/transaction/:hash"
 	getScrsByTxHashEndpoint          = "/transaction/scrs-by-tx-hash/:txhash"

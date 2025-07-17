@@ -105,6 +105,7 @@ func NewTransactionSimulator(args ArgsTxSimulator) (*transactionSimulator, error
 	}, nil
 }
 
+// ProcessSCR will process the smart contract results in a special environment, where state-writing is not allowed
 func (ts *transactionSimulator) ProcessSCR(scr *smartContractResult.SmartContractResult, currentHeader data.HeaderHandler) (*txSimData.SimulationResultsWithVMOutput, error) {
 	ts.mutOperation.Lock()
 	defer ts.mutOperation.Unlock()

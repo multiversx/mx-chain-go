@@ -57,7 +57,7 @@ type ApiResolverStub struct {
 
 // SimulateSCRExecutionCost -
 func (ars *ApiResolverStub) SimulateSCRExecutionCost(scr *smartContractResult.SmartContractResult) (*transaction.CostResponse, error) {
-	if ars.SimulateSCRExecutionCostCalled == nil {
+	if ars.SimulateSCRExecutionCostCalled != nil {
 		return ars.SimulateSCRExecutionCostCalled(scr)
 	}
 
