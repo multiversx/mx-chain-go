@@ -2,18 +2,22 @@ package mempool
 
 import (
 	"encoding/hex"
+	"fmt"
 	"math/big"
+	"math/rand"
 	"strconv"
 	"testing"
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-go/common/holders"
 	"github.com/multiversx/mx-chain-go/config"
 	testsChainSimulator "github.com/multiversx/mx-chain-go/integrationTests/chainSimulator"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/components/api"
+	"github.com/multiversx/mx-chain-go/node/chainSimulator/configs"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/dtos"
 	"github.com/multiversx/mx-chain-go/process/block/preprocess"
 	"github.com/multiversx/mx-chain-go/state"
@@ -214,7 +218,7 @@ func getTransaction(t *testing.T, simulator testsChainSimulator.ChainSimulator, 
 	return transaction
 }
 
-func createMockSelectionSession(accounts map[string]*accountInfo) *txcachemocks.SelectionSessionMock {
+func createMockSelectionSessionWithSpecificAccountInfo(accounts map[string]*accountInfo) *txcachemocks.SelectionSessionMock {
 	sessionMock := txcachemocks.SelectionSessionMock{
 		GetAccountStateCalled: func(address []byte) (state.UserAccountHandler, error) {
 			return &stateMock.StateUserAccountHandlerStub{
@@ -229,4 +233,102 @@ func createMockSelectionSession(accounts map[string]*accountInfo) *txcachemocks.
 	}
 
 	return &sessionMock
+}
+
+func createProposedBlock(selectedTransactions []*txcache.WrappedTransaction) *block.Body {
+	// extract the tx hashes from the selected transactions
+	proposedTxs := make([][]byte, 0, len(selectedTransactions))
+	for _, tx := range selectedTransactions {
+		proposedTxs = append(proposedTxs, tx.TxHash)
+	}
+
+	// propose those txs in order to track them (create the breadcrumbs used for the virtual records)
+	return &block.Body{MiniBlocks: []*block.MiniBlock{
+		{
+			TxHashes: proposedTxs,
+		},
+	}}
+}
+
+func createDefaultSelectionSessionMock(initialAmountPerAccount int64) *txcachemocks.SelectionSessionMock {
+	sessionMock := txcachemocks.SelectionSessionMock{
+		GetAccountStateCalled: func(address []byte) (state.UserAccountHandler, error) {
+			return &stateMock.StateUserAccountHandlerStub{
+				GetBalanceCalled: func() *big.Int {
+					return big.NewInt(initialAmountPerAccount)
+				},
+				GetNonceCalled: func() uint64 {
+					return 0
+				},
+			}, nil
+		},
+	}
+
+	return &sessionMock
+}
+
+func createDefaultSelectionSessionMockWithBigInt(initialAmountPerAccount *big.Int) *txcachemocks.SelectionSessionMock {
+	sessionMock := txcachemocks.SelectionSessionMock{
+		GetAccountStateCalled: func(address []byte) (state.UserAccountHandler, error) {
+			return &stateMock.StateUserAccountHandlerStub{
+				GetBalanceCalled: func() *big.Int {
+					return initialAmountPerAccount
+				},
+				GetNonceCalled: func() uint64 {
+					return 0
+				},
+			}, nil
+		},
+	}
+
+	return &sessionMock
+}
+
+func createFakeAddresses(numAddresses int) []string {
+	base := "sender"
+	addresses := make([]string, numAddresses)
+	for i := 0; i < numAddresses; i++ {
+		addresses[i] = fmt.Sprintf("%s:%d", base, i)
+	}
+
+	return addresses
+}
+
+func createRandomTx(nonceTracker *noncesTracker, accounts []string) *transaction.Transaction {
+	sender := rand.Intn(len(accounts))
+	receiver := rand.Intn(len(accounts))
+	for sender == receiver {
+		receiver = rand.Intn(len(accounts))
+	}
+
+	return &transaction.Transaction{
+		Nonce:     nonceTracker.getThenIncrementNonceByStringAddress(accounts[sender]),
+		Value:     big.NewInt(1),
+		SndAddr:   []byte(accounts[sender]),
+		RcvAddr:   []byte(accounts[receiver]),
+		Data:      []byte{},
+		GasLimit:  50_000,
+		GasPrice:  1_000_000_000,
+		ChainID:   []byte(configs.ChainID),
+		Version:   2,
+		Signature: []byte("signature")}
+}
+
+func createRandomTxs(txpool *txcache.TxCache, numTxs int, nonceTracker *noncesTracker, accounts []string) {
+	for i := 0; i < numTxs; i++ {
+		tx := createRandomTx(nonceTracker, accounts)
+		txHash := []byte(fmt.Sprintf("txHash%d", i))
+		wtx := &txcache.WrappedTransaction{
+			Tx:               tx,
+			TxHash:           txHash,
+			SenderShardID:    0,
+			ReceiverShardID:  0,
+			Size:             0,
+			Fee:              big.NewInt(int64(tx.GasLimit * tx.GasPrice)),
+			PricePerUnit:     0,
+			TransferredValue: tx.Value,
+			FeePayer:         tx.SndAddr,
+		}
+		txpool.AddTx(wtx)
+	}
 }
