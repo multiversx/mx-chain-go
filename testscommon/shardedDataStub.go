@@ -24,7 +24,7 @@ type ShardedDataStub struct {
 	CreateShardStoreCalled                 func(destCacheID string)
 	GetCountsCalled                        func() counting.CountsWithSize
 	KeysCalled                             func() [][]byte
-	CleanupSelfShardTxCacheCalled                   func(session interface{}, randomness uint64, maxNum int, cleanupLoopMaximumDuration time.Duration) bool
+	CleanupSelfShardTxCacheCalled          func(session interface{}, randomness uint64, maxNum int, cleanupLoopMaximumDuration time.Duration) bool
 }
 
 // NewShardedDataStub -
@@ -134,6 +134,7 @@ func (sd *ShardedDataStub) IsInterfaceNil() bool {
 	return sd == nil
 }
 
+// CleanupSelfShardTxCache -
 func (sd *ShardedDataStub) CleanupSelfShardTxCache(session interface{}, randomness uint64, maxNum int, cleanupLoopMaximumDuration time.Duration) bool {
 	if sd.CleanupSelfShardTxCacheCalled != nil {
 		return sd.CleanupSelfShardTxCacheCalled(session, randomness, maxNum, cleanupLoopMaximumDuration)

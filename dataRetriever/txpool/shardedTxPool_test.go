@@ -282,13 +282,13 @@ func TestCleanupSelfShardTxCache_NilMempool(t *testing.T) {
 		delete(txPool.backingMap, "0")
 
 		session := txcachemocks.NewSelectionSessionMock();
-		selectionLoopMaximumDuration := time.Millisecond * 100
+		cleanupLoopMaximumDuration := time.Millisecond * 100
 		
 		require.NotPanics(t, func() {
-			txPool.CleanupSelfShardTxCache(session, 7, math.MaxInt, selectionLoopMaximumDuration)
+			txPool.CleanupSelfShardTxCache(session, 7, math.MaxInt, cleanupLoopMaximumDuration)
 		})
 
-		ok := txPool.CleanupSelfShardTxCache(session, 7, math.MaxInt, selectionLoopMaximumDuration)
+		ok := txPool.CleanupSelfShardTxCache(session, 7, math.MaxInt, cleanupLoopMaximumDuration)
 		t.Logf("shardedTxPool.CleanupSelfShardTxCache() starting cleanup %d", txPool.selfShardID)
 		require.True(t, ok)
 	})
@@ -361,7 +361,6 @@ func Test_CleanupSelfShardTxCache(t *testing.T) {
 			require.True(t, ok, "Unexpected nonce %d", tx.Tx.GetNonce())
 			require.Equal(t, expectedHash, tx.TxHash)
 		}
-
 	})
 }
 

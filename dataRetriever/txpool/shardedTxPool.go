@@ -391,7 +391,6 @@ func (txPool *shardedTxPool) routeToCacheUnions(cacheID string) string {
 }
 
 func (txPool *shardedTxPool) getSelfShardTxCache() txCache {
-
 	return txPool.getTxCache(strconv.Itoa(int(txPool.selfShardID)))
 }
 

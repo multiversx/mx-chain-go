@@ -254,8 +254,6 @@ func (txs *transactions) RemoveTxsFromPools(body *block.Body) error {
 	if err != nil {
 		return  err
 	} 
-
-	randomness := helpers.ComputeRandomnessForCleanup(body)
 	
 	err = txs.removeTxsFromPools(body, txs.txPool, txs.isMiniBlockCorrect)
 	if err != nil {
@@ -266,6 +264,8 @@ func (txs *transactions) RemoveTxsFromPools(body *block.Body) error {
 	if !ok {
 		log.Warn("txPool does not implement TxCache interface")
 	} 
+
+	randomness := helpers.ComputeRandomnessForCleanup(body)
 	txs.txPool.CleanupSelfShardTxCache(session, randomness, process.TxCacheCleanupMaxNumTxs, process.TxCacheCleanupLoopMaximumDuration)
  
 	return err

@@ -42,7 +42,6 @@ type shardedData struct {
 
 // CleanupSelfShardTxCache implements dataRetriever.ShardedDataCacherNotifier.
 func (sd *shardedData) CleanupSelfShardTxCache(session interface{}, randomness uint64, maxNum int, cleanupLoopMaximumDuration time.Duration) bool {
-	fmt.Println("CleanupSelfShardTxCache called on ShardedDataCacherNotifier, but it is not implemented")
 	log.Warn("CleanupSelfShardTxCache unimplemented in ShardedDataCacherNotifier")
 	return false
 }

@@ -136,7 +136,7 @@ const MaxHeadersToWhitelistInAdvance = 300
 // nothing will be refunded to the sender
 const MaxGasFeeHigherFactorAccepted = 10
 
-// TxCacheCleanupMaxNumTxs defines the maximum number of transactions that should be cleaned from the cache.
+// TxCacheCleanupMaxNumTxs defines the maximum number of transactions that should be cleaned from the cache in one go.
 const TxCacheCleanupMaxNumTxs = 30_000
 
 // TxCacheCleanupLoopMaximumDuration defines the maximum duration for the loop that cleans transactions from the cache.

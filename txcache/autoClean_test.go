@@ -41,7 +41,6 @@ func TestTxCache_ShuffleSendersAddresses_Dummy(t *testing.T) {
 }
 
 func TestTxCache_GetDeterministicallyShuffledSenders_Dummy(t *testing.T) {
-		//selectionConfig := createMockTxCacheSelectionConfig(math.MaxUint64, math.MaxInt, selectionLoopMaximumDuration)
 		boundsConfig := createMockTxBoundsConfig()
 		cache := newUnconstrainedCacheToTest(boundsConfig)
 
@@ -152,7 +151,6 @@ func Test_RemoveSweepableTransactionsReturnHashes_Dummy(t *testing.T) {
 		list.AddTx(createTx([]byte("l"), ".", 6).withGasPrice(2.5 * oneBillion))
 	
 	
-
 		hashesBeforeEviction := list.getTxHashesAsStrings()
 		require.Equal(t, []string{"a", "d", "e", "b", "c", "f", "k", "h", "j", "g", "l", "i"}, hashesBeforeEviction)
 		
@@ -168,7 +166,6 @@ func Test_RemoveSweepableTransactionsReturnHashes_Dummy(t *testing.T) {
 
 func TestTxCache_AutoClean_Dummy(t *testing.T) {
 	t.Run("with lower nonces", func(t *testing.T) {
-		//selectionConfig := createMockTxCacheSelectionConfig(math.MaxUint64, math.MaxInt, selectionLoopMaximumDuration)
 		boundsConfig := createMockTxBoundsConfig()
 		cache := newUnconstrainedCacheToTest(boundsConfig)
 
@@ -197,7 +194,6 @@ func TestTxCache_AutoClean_Dummy(t *testing.T) {
 	})
 
 	t.Run("with duplicated nonces", func(t *testing.T) {
-		//selectionConfig := createMockTxCacheSelectionConfig(math.MaxUint64, math.MaxInt, selectionLoopMaximumDuration)
 		boundsConfig := createMockTxBoundsConfig()
 		cache := newUnconstrainedCacheToTest(boundsConfig)
 
@@ -235,4 +231,3 @@ func TestTxCache_AutoClean_Dummy(t *testing.T) {
 
 	})
 }
-

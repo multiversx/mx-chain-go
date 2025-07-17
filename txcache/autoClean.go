@@ -10,17 +10,17 @@ import (
 )
 
 // Cleanup simulates a selection and removes not-executable transactions. Initial implementation: lower and duplicate nonces
-func (cache *TxCache) Cleanup(session SelectionSession, randomness uint64, maxNum int, removalLoopMaximumDurationMs time.Duration) (uint64) {
+func (cache *TxCache) Cleanup(session SelectionSession, randomness uint64, maxNum int, cleanupLoopMaximumDurationMs time.Duration) (uint64) {
 	logRemove.Debug(
 		"TxCache.Cleanup: begin",
 		"randomness", randomness,
 		"maxNum", maxNum,
-		"removalLoopMaximumDuration", removalLoopMaximumDurationMs,
+		"cleanupLoopMaximumDuration", cleanupLoopMaximumDurationMs,
 		"num bytes", cache.NumBytes(),
 		"num txs", cache.CountTx(),
 		"num senders", cache.CountSenders(),
 	)
-	return cache.RemoveSweepableTxs(session, randomness, maxNum, removalLoopMaximumDurationMs)
+	return cache.RemoveSweepableTxs(session, randomness, maxNum, cleanupLoopMaximumDurationMs)
 }
 
 func (cache *TxCache) getDeterministicallyShuffledSenders(randomness uint64) []*txListForSender {
@@ -30,7 +30,7 @@ func (cache *TxCache) getDeterministicallyShuffledSenders(randomness uint64) []*
 	shuffledSenderAdresses:= shuffleSendersAddresses(senderAddresses, randomness)
 	for _, sender := range shuffledSenderAdresses {
 		listForSender, ok := cache.txListBySender.backingMap.Get(sender)
-		if ok {
+		if ok{
 			senders = append(senders, listForSender.(*txListForSender))
 		}
 	}
@@ -64,6 +64,7 @@ func shuffleSendersAddresses(senders []string, randomness uint64) []string {
     // Deterministic shuffling.  
 	sort.Slice(items, func(i, j int) bool {
 		cmp := bytes.Compare(items[i].shufflingKey, items[j].shufflingKey)
+		
 		if cmp != 0 {
 			return cmp > 0
 		}
@@ -77,11 +78,11 @@ func shuffleSendersAddresses(senders []string, randomness uint64) []string {
     return shuffledAddresses  
 } 
 
-func (cache *TxCache) RemoveSweepableTxs(session SelectionSession, randomness uint64, maxNum int, removalLoopMaximumDuration time.Duration) uint64 {
+func (cache *TxCache) RemoveSweepableTxs(session SelectionSession, randomness uint64, maxNum int, cleanupLoopMaximumDurationMs time.Duration) uint64 {
 	cache.mutTxOperation.Lock()
 	defer cache.mutTxOperation.Unlock()
 	
-	removalLoopStartTime := time.Now()
+	cleanupLoopStartTime := time.Now()
 	evicted := make([][] byte, 0, cache.txByHash.counter.Get())
 
 	sessionWrapper := newVirtualSelectionSession(session)
@@ -89,10 +90,12 @@ func (cache *TxCache) RemoveSweepableTxs(session SelectionSession, randomness ui
 	
 	for _, sender := range senders{
 		senderAddress := []byte (sender.sender)
+		
 		lastCommittedNonce, _:= sessionWrapper.getNonce(senderAddress)
-		lastCommittedNonce -= 1 // we want to remove transactions with nonces < lastCommittedNonce
+		// we want to remove transactions with nonces < lastCommittedNonce
+		lastCommittedNonce -= 1
 
-		if len(evicted) >= maxNum || time.Since(removalLoopStartTime) > removalLoopMaximumDuration{
+		if len(evicted) >= maxNum || time.Since(cleanupLoopStartTime) > cleanupLoopMaximumDurationMs{
 			break
 		}
 		evicted = append(evicted, sender.removeSweepableTransactionsReturnHashes(lastCommittedNonce)...)
@@ -102,7 +105,7 @@ func (cache *TxCache) RemoveSweepableTxs(session SelectionSession, randomness ui
 		cache.txByHash.RemoveTxsBulk(evicted)
 	}
 	
-	logRemove.Debug("TxCache.RemoveSweepableTxs end", "randomness", randomness, "len(evicted)", len(evicted), "duration", time.Since(removalLoopStartTime))
+	logRemove.Debug("TxCache.RemoveSweepableTxs end", "randomness", randomness, "len(evicted)", len(evicted), "duration", time.Since(cleanupLoopStartTime))
 	
 	return uint64(len(evicted))
 }
