@@ -3,7 +3,6 @@ package v2
 import (
 	"bytes"
 	"context"
-	"fmt"
 	"sync"
 	"time"
 
@@ -531,20 +530,16 @@ func (sr *subroundBlock) receivedBlockHeader(headerHandler data.HeaderHandler) {
 		spos.LeaderPeerHonestyIncreaseFactor,
 	)
 
-	fmt.Println((headerHandler.GetShardID()))
 	if headerHandler.GetShardID() == common.MetachainShardId {
 		header, ok:= headerHandler.(*block.MetaBlock) 
 		if ok {
-		   	//log.Debug("proposed header", "header", dumpJsonHeader)
 			jsonMarshalizer := &marshal.JsonMarshalizer{}
 		   	jsonBytes, err := jsonMarshalizer.Marshal(header)
 			if err != nil {
-				log.Debug("could not marshal MetaBlock", "err", err)
+				log.Debug("Could not marshal header", "err", err)
 			} else {
-				log.Debug("Proposed header (metablock)", "header", string(jsonBytes))
+				log.Debug("Proposed header received", "header", string(jsonBytes))
 			}
-		} else {
-			log.Debug("could not cast header to MetaBlock", "type", fmt.Sprintf("%T", headerHandler))
 		}
 	} else {
 		header, ok := headerHandler.(*block.HeaderV2)
@@ -552,13 +547,11 @@ func (sr *subroundBlock) receivedBlockHeader(headerHandler data.HeaderHandler) {
 			jsonMarshalizer := &marshal.JsonMarshalizer{}
 				jsonBytes, err := jsonMarshalizer.Marshal(header)
 			if err != nil {
-				log.Debug("could not marshal Header", "err", err)
+				log.Debug("Could not marshal Header", "err", err)
 			} else {
-				log.Debug("Proposed header (metablock)", "header", string(jsonBytes))
+				log.Debug("Proposed header received", "header", string(jsonBytes))
 			}
-	 	} else {
-			log.Debug("could not cast header to HeaderV2", "type", fmt.Sprintf("%T", headerHandler))
-		}
+	 	} 
 	}
 }
 
