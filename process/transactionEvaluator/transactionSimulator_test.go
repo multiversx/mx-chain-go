@@ -149,7 +149,7 @@ func TestTransactionSimulator_getVMOutputComputeHashFails(t *testing.T) {
 	ts, _ := NewTransactionSimulator(args)
 	require.False(t, ts.IsInterfaceNil())
 
-	_, ok := ts.getVMOutputOfTx(nil)
+	_, ok := ts.getVMOutput(nil)
 	require.False(t, ok)
 }
 
@@ -166,14 +166,14 @@ func TestTransactionSimulator_getVMOutput(t *testing.T) {
 	require.False(t, ts.IsInterfaceNil())
 
 	// cannot find vm output in cacher
-	_, ok := ts.getVMOutputOfTx(&transaction.Transaction{})
+	_, ok := ts.getVMOutput(&transaction.Transaction{})
 	require.False(t, ok)
 
 	// wrong data in cacher
 	tx := &transaction.Transaction{}
 	txHash, _ := core.CalculateHash(args.Marshalizer, args.Hasher, tx)
 	args.VMOutputCacher.Put(txHash, 1, 0)
-	_, ok = ts.getVMOutputOfTx(tx)
+	_, ok = ts.getVMOutput(tx)
 	require.False(t, ok)
 }
 
