@@ -79,3 +79,11 @@ func (handler *keysHandler) PublicKeyBytes() []byte {
 func (handler *keysHandler) Pid() core.PeerID {
 	return handler.pid
 }
+
+// GetRoundsSigned -
+func (holder *managedPeersHolder) GetRoundsSigned() uint64 {
+	holder.mutRoundsSigned.RLock()
+	defer holder.mutRoundsSigned.RUnlock()
+
+	return holder.roundsSigned
+}
