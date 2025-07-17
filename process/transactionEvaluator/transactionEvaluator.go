@@ -159,30 +159,7 @@ func (ate *apiTransactionEvaluator) SimulateSCRExecutionCost(scr *smartContractR
 		return costResponse, nil
 	}
 
-	returnMessageFromVMOutput := ""
-	if res.VMOutput != nil {
-		returnMessageFromVMOutput = res.VMOutput.ReturnMessage
-	}
-
-	if res.FailReason != "" {
-		costResponse.ReturnMessage = fmt.Sprintf("%s: %s", res.FailReason, returnMessageFromVMOutput)
-		return costResponse, nil
-	}
-
-	if res.VMOutput == nil {
-		costResponse.ReturnMessage = process.ErrNilVMOutput.Error()
-		return costResponse, nil
-	}
-
-	costResponse.SmartContractResults = res.ScResults
-	costResponse.Logs = res.Logs
-	if res.VMOutput.ReturnCode == vmcommon.Ok {
-		costResponse.GasUnits = ate.computeGasUnitsBasedOnVMOutput(scr, res.VMOutput)
-		return costResponse, nil
-	}
-
-	costResponse.ReturnMessage = fmt.Sprintf("%s: %s", res.VMOutput.ReturnCode.String(), returnMessageFromVMOutput)
-	return costResponse, nil
+	return ate.prepareCostResponse(res, scr)
 }
 
 func (ate *apiTransactionEvaluator) simulateTransactionCost(tx *transaction.Transaction, txType process.TransactionType) (*transaction.CostResponse, error) {
@@ -206,6 +183,11 @@ func (ate *apiTransactionEvaluator) simulateTransactionCost(tx *transaction.Tran
 
 	}
 
+	return ate.prepareCostResponse(res, tx)
+}
+
+func (ate *apiTransactionEvaluator) prepareCostResponse(res *txSimData.SimulationResultsWithVMOutput, txHandler data.TransactionHandler) (*transaction.CostResponse, error) {
+	costResponse := &transaction.CostResponse{}
 	returnMessageFromVMOutput := ""
 	if res.VMOutput != nil {
 		returnMessageFromVMOutput = res.VMOutput.ReturnMessage
@@ -224,7 +206,7 @@ func (ate *apiTransactionEvaluator) simulateTransactionCost(tx *transaction.Tran
 	costResponse.SmartContractResults = res.ScResults
 	costResponse.Logs = res.Logs
 	if res.VMOutput.ReturnCode == vmcommon.Ok {
-		costResponse.GasUnits = ate.computeGasUnitsBasedOnVMOutput(tx, res.VMOutput)
+		costResponse.GasUnits = ate.computeGasUnitsBasedOnVMOutput(txHandler, res.VMOutput)
 		return costResponse, nil
 	}
 

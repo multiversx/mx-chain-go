@@ -109,7 +109,7 @@ func (ts *transactionSimulator) ProcessSCR(scr *smartContractResult.SmartContrac
 	ts.mutOperation.Lock()
 	defer ts.mutOperation.Unlock()
 
-	txStatus := transaction.TxStatusPending
+	txStatus := transaction.TxStatusSuccess
 	failReason := ""
 
 	err := ts.blockChainHook.SetCurrentHeader(currentHeader)
@@ -127,26 +127,7 @@ func (ts *transactionSimulator) ProcessSCR(scr *smartContractResult.SmartContrac
 		}
 	}
 
-	results := &txSimData.SimulationResultsWithVMOutput{
-		SimulationResults: transaction.SimulationResults{
-			Status:     txStatus,
-			FailReason: failReason,
-		},
-	}
-
-	err = ts.addIntermediateTxsToResult(results)
-	if err != nil {
-		return nil, err
-	}
-
-	vmOutput, ok := ts.getVMOutput(scr)
-	if ok {
-		results.VMOutput = vmOutput
-	}
-
-	ts.addLogsFromVmOutput(results, vmOutput)
-
-	return results, nil
+	return ts.prepareOutput(scr, txStatus, failReason)
 }
 
 // ProcessTx will process the transaction in a special environment, where state-writing is not allowed
@@ -172,6 +153,10 @@ func (ts *transactionSimulator) ProcessTx(tx *transaction.Transaction, currentHe
 		}
 	}
 
+	return ts.prepareOutput(tx, txStatus, failReason)
+}
+
+func (ts *transactionSimulator) prepareOutput(txHandler data.TransactionHandler, txStatus transaction.TxStatus, failReason string) (*txSimData.SimulationResultsWithVMOutput, error) {
 	results := &txSimData.SimulationResultsWithVMOutput{
 		SimulationResults: transaction.SimulationResults{
 			Status:     txStatus,
@@ -179,12 +164,12 @@ func (ts *transactionSimulator) ProcessTx(tx *transaction.Transaction, currentHe
 		},
 	}
 
-	err = ts.addIntermediateTxsToResult(results)
+	err := ts.addIntermediateTxsToResult(results)
 	if err != nil {
 		return nil, err
 	}
 
-	vmOutput, ok := ts.getVMOutput(tx)
+	vmOutput, ok := ts.getVMOutput(txHandler)
 	if ok {
 		results.VMOutput = vmOutput
 	}

@@ -15,7 +15,7 @@ type TransactionSimulatorStub struct {
 
 // ProcessSCR -
 func (tss *TransactionSimulatorStub) ProcessSCR(scr *smartContractResult.SmartContractResult, currentHeader data.HeaderHandler) (*txSimData.SimulationResultsWithVMOutput, error) {
-	if tss.ProcessTxCalled != nil {
+	if tss.ProcessSCRCalled != nil {
 		return tss.ProcessSCRCalled(scr, currentHeader)
 	}
 	return nil, nil

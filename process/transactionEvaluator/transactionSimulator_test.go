@@ -104,6 +104,15 @@ func TestNewTransactionSimulator(t *testing.T) {
 			exError: ErrNilCacher,
 		},
 		{
+			name: "NilSCRProcessor",
+			argsFunc: func() ArgsTxSimulator {
+				args := getTxSimulatorArgs()
+				args.SCRProcessor = nil
+				return args
+			},
+			exError: process.ErrNilSmartContractResultProcessor,
+		},
+		{
 			name: "Ok",
 			argsFunc: func() ArgsTxSimulator {
 				args := getTxSimulatorArgs()
@@ -135,6 +144,24 @@ func TestTransactionSimulator_ProcessTxProcessingErrShouldSignal(t *testing.T) {
 	ts, _ := NewTransactionSimulator(args)
 
 	results, err := ts.ProcessTx(&transaction.Transaction{Nonce: 37}, &block.Header{})
+	require.NoError(t, err)
+	require.Equal(t, expErr.Error(), results.FailReason)
+}
+
+func TestTransactionSimulator_ProcessSCR(t *testing.T) {
+	t.Parallel()
+
+	expRetCode := vmcommon.Ok
+	expErr := errors.New("scr failed")
+	args := getTxSimulatorArgs()
+	args.SCRProcessor = &testscommon.SCProcessorMock{
+		ProcessSmartContractResultCalled: func(scr *smartContractResult.SmartContractResult) (vmcommon.ReturnCode, error) {
+			return expRetCode, expErr
+		},
+	}
+	ts, _ := NewTransactionSimulator(args)
+
+	results, err := ts.ProcessSCR(&smartContractResult.SmartContractResult{Nonce: 37}, &block.Header{})
 	require.NoError(t, err)
 	require.Equal(t, expErr.Error(), results.FailReason)
 }
