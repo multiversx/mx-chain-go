@@ -427,25 +427,6 @@ func TestBenchmark_OnProposedWithManyTxsAndSenders(t *testing.T) {
 	for name, measurement := range sw.GetMeasurementsMap() {
 		fmt.Printf("%fs (%s)\n", measurement, name)
 	}
-
-	// (1)
-	// Vendor ID:                GenuineIntel
-	//   Model name:             13th Gen Intel(R) Core(TM) i7-13700H
-	//     CPU family:           6
-	//     Model:                186
-	//     Thread(s) per core:   2
-	//     Core(s) per socket:   14
-	//
-
-	// 0.006654s (TestBenchmark_OnProposedWithManyTxsAndSenders/30_000_txs_with_10_addresses)
-	// 0.008395s (TestBenchmark_OnProposedWithManyTxsAndSenders/30_000_txs_with_100_addresses)
-	// 0.007358s (TestBenchmark_OnProposedWithManyTxsAndSenders/30_000_txs_with_1000_addresses)
-	// 0.017164s (TestBenchmark_OnProposedWithManyTxsAndSenders/30_000_txs_with_10_000_addresses)
-
-	// 0.016959s (TestBenchmark_OnProposedWithManyTxsAndSenders/60_000_txs_with_10_addresses)
-	// 0.019727s (TestBenchmark_OnProposedWithManyTxsAndSenders/60_000_txs_with_100_addresses)
-	// 0.025110s (TestBenchmark_OnProposedWithManyTxsAndSenders/60_000_txs_with_1000_addresses)
-	// 0.026893s (TestBenchmark_OnProposedWithManyTxsAndSenders/60_000_txs_with_10_000_addresses)
 }
 
 // benchmark for the selection of txs
@@ -694,21 +675,6 @@ func TestBenchmark_FirstSelectionWithManyTxsAndSenders(t *testing.T) {
 	for name, measurement := range sw.GetMeasurementsMap() {
 		fmt.Printf("%fs (%s)\n", measurement, name)
 	}
-
-	// (1)
-	// Vendor ID:                GenuineIntel
-	//   Model name:             13th Gen Intel(R) Core(TM) i7-13700H
-	//     CPU family:           6
-	//     Model:                186
-	//     Thread(s) per core:   2
-	//     Core(s) per socket:   14
-	//
-	// 0.024594s (TestBenchmark_SelectionWithManyTxsAndSenders/15_000_txs_with_10_000_addresses)
-	// 0.043228s (TestBenchmark_SelectionWithManyTxsAndSenders/30_000_txs_with_10_000_addresses)
-	// 0.081093s (TestBenchmark_SelectionWithManyTxsAndSenders/60_000_txs_with_10_000_addresses)
-	// 0.107394s (TestBenchmark_SelectionWithManyTxsAndSenders/90_000_txs_with_10_000_addresses)
-	// 0.122278s (TestBenchmark_SelectionWithManyTxsAndSenders/100_000_txs_with_10_000_addresses)
-	// 1.177650s (TestBenchmark_SelectionWithManyTxsAndSenders/1_000_000_txs_with_10_000_addresses)
 }
 
 // benchmark for the selection of txs
@@ -1101,19 +1067,4 @@ func TestBenchmark_SecondSelectionWithManyTxsAndSenders(t *testing.T) {
 	for name, measurement := range sw.GetMeasurementsMap() {
 		fmt.Printf("%fs (%s)\n", measurement, name)
 	}
-
-	// (1)
-	// Vendor ID:                GenuineIntel
-	//   Model name:             13th Gen Intel(R) Core(TM) i7-13700H
-	//     CPU family:           6
-	//     Model:                186
-	//     Thread(s) per core:   2
-	//     Core(s) per socket:   14
-	//
-	// 0.040347s (TestBenchmark_SecondSelectionWithManyTxsAndSenders/15_000_txs_with_10_000_addresses)
-	// 0.071081s (TestBenchmark_SecondSelectionWithManyTxsAndSenders/30_000_txs_with_10_000_addresses)
-	// 0.148189s (TestBenchmark_SecondSelectionWithManyTxsAndSenders/60_000_txs_with_10_000_addresses)
-	// 0.211526s (TestBenchmark_SecondSelectionWithManyTxsAndSenders/90_000_txs_with_10_000_addresses)
-	// 0.227855s (TestBenchmark_SecondSelectionWithManyTxsAndSenders/100_000_txs_with_10_000_addresses)
-	// 2.250175s (TestBenchmark_SecondSelectionWithManyTxsAndSenders/1_000_000_txs_with_10_000_addresses)
 }
