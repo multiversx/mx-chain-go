@@ -102,7 +102,7 @@ func (virtualSession *virtualSelectionSession) detectWillFeeExceedBalance(tx *Wr
 	feePayer := tx.FeePayer
 	feePayerRecord, err := virtualSession.getRecord(feePayer)
 	if err != nil {
-		log.Warn("virtualSelectionSession.detectWillFeeExceedBalance",
+		log.Debug("virtualSelectionSession.detectWillFeeExceedBalance",
 			"err", err)
 		return false
 	}

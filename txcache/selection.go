@@ -95,6 +95,7 @@ func selectTransactionsFromBunches(
 			selectedTransaction := item.selectCurrentTransaction()
 			selectedTransactions = append(selectedTransactions, selectedTransaction)
 			err := virtualSession.accumulateConsumedBalance(selectedTransaction)
+			// TODO don't break the the selection loop.
 			if err != nil {
 				break
 			}
