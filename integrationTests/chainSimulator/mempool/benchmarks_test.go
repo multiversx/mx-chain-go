@@ -35,6 +35,10 @@ var (
 
 // benchmark for the creation of breadcrumbs (which are created whit each proposed block)
 func TestBenchmark_OnProposedWithManyTxsAndSenders(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
 	sw := core.NewStopWatch()
 
 	t.Run("30_000 txs with 10_000 addresses", func(t *testing.T) {
@@ -447,6 +451,9 @@ func TestBenchmark_OnProposedWithManyTxsAndSenders(t *testing.T) {
 // benchmark for the selection of txs
 func TestBenchmark_FirstSelectionWithManyTxsAndSenders(t *testing.T) {
 	sw := core.NewStopWatch()
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
 
 	t.Run("15_000 txs with 10_000 addresses", func(t *testing.T) {
 		numTxs := 30_000
@@ -706,6 +713,9 @@ func TestBenchmark_FirstSelectionWithManyTxsAndSenders(t *testing.T) {
 
 // benchmark for the selection of txs
 func TestBenchmark_SecondSelectionWithManyTxsAndSenders(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
 	sw := core.NewStopWatch()
 
 	t.Run("15_000 txs with 10_000 addresses", func(t *testing.T) {
@@ -742,6 +752,7 @@ func TestBenchmark_SecondSelectionWithManyTxsAndSenders(t *testing.T) {
 		require.Equal(t, numTxsToBeSelected, len(selectedTransactions))
 
 		proposedBlock := createProposedBlock(selectedTransactions)
+		// propose those txs in order to track them (create the breadcrumbs used for the virtual records)
 		err = txpool.OnProposedBlock([]byte("blockHash1"), proposedBlock, &block.Header{
 			Nonce:    0,
 			PrevHash: []byte("blockHash0"),
@@ -803,6 +814,7 @@ func TestBenchmark_SecondSelectionWithManyTxsAndSenders(t *testing.T) {
 		require.Equal(t, numTxsToBeSelected, len(selectedTransactions))
 
 		proposedBlock := createProposedBlock(selectedTransactions)
+		// propose those txs in order to track them (create the breadcrumbs used for the virtual records)
 		err = txpool.OnProposedBlock([]byte("blockHash1"), proposedBlock, &block.Header{
 			Nonce:    0,
 			PrevHash: []byte("blockHash0"),
@@ -864,6 +876,7 @@ func TestBenchmark_SecondSelectionWithManyTxsAndSenders(t *testing.T) {
 		require.Equal(t, numTxsToBeSelected, len(selectedTransactions))
 
 		proposedBlock := createProposedBlock(selectedTransactions)
+		// propose those txs in order to track them (create the breadcrumbs used for the virtual records)
 		err = txpool.OnProposedBlock([]byte("blockHash1"), proposedBlock, &block.Header{
 			Nonce:    0,
 			PrevHash: []byte("blockHash0"),
@@ -925,6 +938,7 @@ func TestBenchmark_SecondSelectionWithManyTxsAndSenders(t *testing.T) {
 		require.Equal(t, numTxsToBeSelected, len(selectedTransactions))
 
 		proposedBlock := createProposedBlock(selectedTransactions)
+		// propose those txs in order to track them (create the breadcrumbs used for the virtual records)
 		err = txpool.OnProposedBlock([]byte("blockHash1"), proposedBlock, &block.Header{
 			Nonce:    0,
 			PrevHash: []byte("blockHash0"),
@@ -990,6 +1004,7 @@ func TestBenchmark_SecondSelectionWithManyTxsAndSenders(t *testing.T) {
 		require.Equal(t, numTxsToBeSelected, len(selectedTransactions))
 
 		proposedBlock := createProposedBlock(selectedTransactions)
+		// propose those txs in order to track them (create the breadcrumbs used for the virtual records)
 		err = txpool.OnProposedBlock([]byte("blockHash1"), proposedBlock, &block.Header{
 			Nonce:    0,
 			PrevHash: []byte("blockHash0"),
@@ -1055,6 +1070,7 @@ func TestBenchmark_SecondSelectionWithManyTxsAndSenders(t *testing.T) {
 		require.Equal(t, numTxsToBeSelected, len(selectedTransactions))
 
 		proposedBlock := createProposedBlock(selectedTransactions)
+		// propose those txs in order to track them (create the breadcrumbs used for the virtual records)
 		err = txpool.OnProposedBlock([]byte("blockHash1"), proposedBlock, &block.Header{
 			Nonce:    0,
 			PrevHash: []byte("blockHash0"),

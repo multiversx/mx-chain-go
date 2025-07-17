@@ -242,7 +242,6 @@ func createProposedBlock(selectedTransactions []*txcache.WrappedTransaction) *bl
 		proposedTxs = append(proposedTxs, tx.TxHash)
 	}
 
-	// propose those txs in order to track them (create the breadcrumbs used for the virtual records)
 	return &block.Body{MiniBlocks: []*block.MiniBlock{
 		{
 			TxHashes: proposedTxs,
