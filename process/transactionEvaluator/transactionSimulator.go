@@ -139,7 +139,7 @@ func (ts *transactionSimulator) ProcessSCR(scr *smartContractResult.SmartContrac
 		return nil, err
 	}
 
-	vmOutput, ok := ts.getVMOutputOfTx(scr)
+	vmOutput, ok := ts.getVMOutput(scr)
 	if ok {
 		results.VMOutput = vmOutput
 	}
@@ -184,7 +184,7 @@ func (ts *transactionSimulator) ProcessTx(tx *transaction.Transaction, currentHe
 		return nil, err
 	}
 
-	vmOutput, ok := ts.getVMOutputOfTx(tx)
+	vmOutput, ok := ts.getVMOutput(tx)
 	if ok {
 		results.VMOutput = vmOutput
 	}
@@ -213,7 +213,7 @@ func (ts *transactionSimulator) addLogsFromVmOutput(results *txSimData.Simulatio
 	}
 }
 
-func (ts *transactionSimulator) getVMOutputOfTx(tx data.TransactionHandler) (*vmcommon.VMOutput, bool) {
+func (ts *transactionSimulator) getVMOutput(tx data.TransactionHandler) (*vmcommon.VMOutput, bool) {
 	txHash, err := core.CalculateHash(ts.marshalizer, ts.hasher, tx)
 	if err != nil {
 		return nil, false

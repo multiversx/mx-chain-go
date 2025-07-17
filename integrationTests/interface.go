@@ -1,6 +1,7 @@
 package integrationTests
 
 import (
+	"github.com/multiversx/mx-chain-core-go/data/smartContractResult"
 	"math/big"
 
 	"github.com/multiversx/mx-chain-core-go/core"
@@ -92,6 +93,7 @@ type Facade interface {
 	ValidateTransactionForSimulation(tx *transaction.Transaction, bypassSignature bool) error
 	SendBulkTransactions([]*transaction.Transaction) (uint64, error)
 	SimulateTransactionExecution(tx *transaction.Transaction) (*txSimData.SimulationResultsWithVMOutput, error)
+	SimulateSCRExecutionCost(scr *smartContractResult.SmartContractResult) (*transaction.CostResponse, error)
 	GetTransaction(hash string, withResults bool) (*transaction.ApiTransactionResult, error)
 	ComputeTransactionGasLimit(tx *transaction.Transaction) (*transaction.CostResponse, error)
 	EncodeAddressPubkey(pk []byte) (string, error)

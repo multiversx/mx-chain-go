@@ -246,6 +246,7 @@ func getTxSimulatorArgs() ArgsTxSimulator {
 		Hasher:                    &hashingMocks.HasherMock{},
 		DataFieldParser:           dataFieldParser,
 		BlockChainHook:            &testscommon.BlockChainHookStub{},
+		SCRProcessor:              &testscommon.SCProcessorMock{},
 	}
 }
 
