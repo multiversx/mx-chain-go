@@ -1,8 +1,11 @@
 package interceptors
 
 import (
+	"errors"
+
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/core/sync"
+	"github.com/multiversx/mx-chain-go/common"
 
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/storage"
@@ -54,7 +57,7 @@ func (idv *interceptedDataVerifier) Verify(interceptedData process.InterceptedDa
 
 	err := interceptedData.CheckValidity()
 	if err != nil {
-		log.Debug("Intercepted data is invalid", "hash", interceptedData.Hash(), "err", err)
+		logInterceptedDataCheckValidityErr(interceptedData, err)
 		// TODO: investigate to selectively add as invalid intercepted data only when data is indeed invalid instead of missing
 		// idv.cache.Put(interceptedData.Hash(), invalidInterceptedData, interceptedDataStatusBytesSize)
 		return process.ErrInvalidInterceptedData
@@ -62,6 +65,14 @@ func (idv *interceptedDataVerifier) Verify(interceptedData process.InterceptedDa
 
 	idv.cache.Put(interceptedData.Hash(), validInterceptedData, interceptedDataStatusBytesSize)
 	return nil
+}
+
+func logInterceptedDataCheckValidityErr(interceptedData process.InterceptedData, err error) {
+	if errors.Is(err, common.ErrAlreadyExistingEquivalentProof) {
+		log.Trace("Intercepted data is invalid", "hash", interceptedData.Hash(), "err", err)
+	}
+
+	log.Debug("Intercepted data is invalid", "hash", interceptedData.Hash(), "err", err)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
