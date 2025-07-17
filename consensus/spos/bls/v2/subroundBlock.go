@@ -3,12 +3,15 @@ package v2
 import (
 	"bytes"
 	"context"
+	"fmt"
 	"sync"
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-core-go/marshal"
 
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/consensus"
@@ -449,11 +452,13 @@ func (sr *subroundBlock) getLeaderForHeader(headerHandler data.HeaderHandler) ([
 
 func (sr *subroundBlock) receivedBlockHeader(headerHandler data.HeaderHandler) {
 	if check.IfNil(headerHandler) {
+		log.Debug("subroundBlock.receivedBlockHeader - header is nil")
 		return
 	}
 
 	log.Debug("subroundBlock.receivedBlockHeader", "nonce", headerHandler.GetNonce(), "round", headerHandler.GetRound())
 	if headerHandler.CheckFieldsForNil() != nil {
+		log.Debug("subroundBlock.receivedBlockHeader - header fields are nil")
 		return
 	}
 
@@ -525,6 +530,36 @@ func (sr *subroundBlock) receivedBlockHeader(headerHandler data.HeaderHandler) {
 		spos.GetConsensusTopicID(sr.ShardCoordinator()),
 		spos.LeaderPeerHonestyIncreaseFactor,
 	)
+
+	fmt.Println((headerHandler.GetShardID()))
+	if headerHandler.GetShardID() == common.MetachainShardId {
+		header, ok:= headerHandler.(*block.MetaBlock) 
+		if ok {
+		   	//log.Debug("proposed header", "header", dumpJsonHeader)
+			jsonMarshalizer := &marshal.JsonMarshalizer{}
+		   	jsonBytes, err := jsonMarshalizer.Marshal(header)
+			if err != nil {
+				log.Debug("could not marshal MetaBlock", "err", err)
+			} else {
+				log.Debug("Proposed header (metablock)", "header", string(jsonBytes))
+			}
+		} else {
+			log.Debug("could not cast header to MetaBlock", "type", fmt.Sprintf("%T", headerHandler))
+		}
+	} else {
+		header, ok := headerHandler.(*block.HeaderV2)
+		if ok {
+			jsonMarshalizer := &marshal.JsonMarshalizer{}
+				jsonBytes, err := jsonMarshalizer.Marshal(header)
+			if err != nil {
+				log.Debug("could not marshal Header", "err", err)
+			} else {
+				log.Debug("Proposed header (metablock)", "header", string(jsonBytes))
+			}
+	 	} else {
+			log.Debug("could not cast header to HeaderV2", "type", fmt.Sprintf("%T", headerHandler))
+		}
+	}
 }
 
 // CanProcessReceivedHeader method returns true if the received header can be processed and false otherwise
