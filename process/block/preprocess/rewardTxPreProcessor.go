@@ -449,6 +449,11 @@ func (rtp *rewardTxPreprocessor) getAllRewardTxsFromMiniBlock(
 	return rewardTxs, txHashes, nil
 }
 
+// SelectOutgoingTransactions does nothing as rewards transactions are created by meta chain
+func (rtp *rewardTxPreprocessor) SelectOutgoingTransactions() ([][]byte, error) {
+	return make([][]byte, 0), nil
+}
+
 // CreateAndProcessMiniBlocks creates miniblocks from storage and processes the reward transactions added into the miniblocks
 // as long as it has time
 func (rtp *rewardTxPreprocessor) CreateAndProcessMiniBlocks(
