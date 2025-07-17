@@ -175,6 +175,69 @@ func Test_getNonce(t *testing.T) {
 	})
 }
 
+func Test_accumulateConsumedBalance(t *testing.T) {
+	host := txcachemocks.NewMempoolHostMock()
+
+	t.Run("when sender is fee payer", func(t *testing.T) {
+		session := txcachemocks.NewSelectionSessionMock()
+		virtualSession := newVirtualSelectionSession(session)
+
+		a := createTx([]byte("a-7"), "a", 7)
+		b := createTx([]byte("a-8"), "a", 8).withValue(oneQuintillionBig)
+
+		a.precomputeFields(host)
+		b.precomputeFields(host)
+
+		err := virtualSession.accumulateConsumedBalance(a)
+		require.NoError(t, err)
+
+		virtualRecord1, err := virtualSession.getRecord([]byte("a"))
+		require.NoError(t, err)
+		require.Equal(t, "50000000000000", virtualRecord1.consumedBalance.String())
+
+		err = virtualSession.accumulateConsumedBalance(b)
+		require.NoError(t, err)
+
+		virtualRecord2, err := virtualSession.getRecord([]byte("a"))
+		require.NoError(t, err)
+		require.Equal(t, "1000100000000000000", virtualRecord2.consumedBalance.String())
+
+	})
+
+	t.Run("when relayer is fee payer", func(t *testing.T) {
+		session := txcachemocks.NewSelectionSessionMock()
+		virtualSession := newVirtualSelectionSession(session)
+
+		a := createTx([]byte("a-7"), "a", 7).withRelayer([]byte("b")).withGasLimit(100_000)
+		b := createTx([]byte("a-8"), "a", 8).withValue(oneQuintillionBig).withRelayer([]byte("b")).withGasLimit(100_000)
+
+		a.precomputeFields(host)
+		b.precomputeFields(host)
+
+		err := virtualSession.accumulateConsumedBalance(a)
+		require.NoError(t, err)
+
+		virtualRecord1, err := virtualSession.getRecord([]byte("a"))
+		require.NoError(t, err)
+		require.Equal(t, "0", virtualRecord1.consumedBalance.String())
+
+		virtualRecord2, err := virtualSession.getRecord([]byte("b"))
+		require.NoError(t, err)
+		require.Equal(t, "100000000000000", virtualRecord2.consumedBalance.String())
+
+		err = virtualSession.accumulateConsumedBalance(b)
+		require.NoError(t, err)
+
+		virtualRecord1, err = virtualSession.getRecord([]byte("a"))
+		require.NoError(t, err)
+		require.Equal(t, "1000000000000000000", virtualRecord1.consumedBalance.String())
+
+		virtualRecord2, err = virtualSession.getRecord([]byte("b"))
+		require.NoError(t, err)
+		require.Equal(t, "200000000000000", virtualRecord2.consumedBalance.String())
+	})
+}
+
 func Test_detectWillFeeExceedBalance(t *testing.T) {
 	t.Parallel()
 
@@ -284,7 +347,7 @@ func TestBenchmarkVirtualSelectionSession_getNonce(t *testing.T) {
 
 		sw.Stop(t.Name())
 
-		require.Equal(t, numAccounts*numCallsGetNoncePerAccount, session.NumCallsGetAccountState)
+		require.Equal(t, numAccounts, session.NumCallsGetAccountState)
 	})
 
 	t.Run("numAccounts = 10_000, numTransactionsPerAccount = 3", func(t *testing.T) {
@@ -312,7 +375,7 @@ func TestBenchmarkVirtualSelectionSession_getNonce(t *testing.T) {
 
 		sw.Stop(t.Name())
 
-		require.Equal(t, numAccounts*numCallsGetNoncePerAccount, session.NumCallsGetAccountState)
+		require.Equal(t, numAccounts, session.NumCallsGetAccountState)
 	})
 
 	t.Run("numAccounts = 30_000, numTransactionsPerAccount = 1", func(t *testing.T) {
@@ -340,7 +403,7 @@ func TestBenchmarkVirtualSelectionSession_getNonce(t *testing.T) {
 
 		sw.Stop(t.Name())
 
-		require.Equal(t, numAccounts*numCallsGetNoncePerAccount, session.NumCallsGetAccountState)
+		require.Equal(t, numAccounts, session.NumCallsGetAccountState)
 	})
 
 	for name, measurement := range sw.GetMeasurementsMap() {
@@ -356,7 +419,7 @@ func TestBenchmarkVirtualSelectionSession_getNonce(t *testing.T) {
 	//     Core(s) per socket:   14
 	//
 	// VirtualSelectionSession operations should have a negligible (or small) impact on the performance!
-	// 0.017192s (TestBenchmarkVirtualSelectionSession_getNonce/_numAccounts_=_300,_numTransactionsPerAccount=_100)
-	// 0.014339s (TestBenchmarkVirtualSelectionSession_getNonce/_numAccounts_=_10_000,_numTransactionsPerAccount=_3)
-	// 0.016068s (TestBenchmarkVirtualSelectionSession_getNonce/_numAccounts_=_30_000,_numTransactionsPerAccount=_1)
+	// 0.011032s (TestBenchmarkVirtualSelectionSession_getNonce/_numAccounts_=_300,_numTransactionsPerAccount=_100)
+	// 0.017172s (TestBenchmarkVirtualSelectionSession_getNonce/_numAccounts_=_10_000,_numTransactionsPerAccount=_3)
+	// 0.019611s (TestBenchmarkVirtualSelectionSession_getNonce/_numAccounts_=_30_000,_numTransactionsPerAccount=_1)
 }
