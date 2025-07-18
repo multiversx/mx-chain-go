@@ -20,17 +20,17 @@ func newVirtualAccountRecord(initialNonce core.OptionalUint64, initialBalance *b
 	}
 }
 
+// TODO refactor this path, split into more functions
 func (virtualRecord *virtualAccountRecord) updateVirtualRecord(breadcrumb *accountBreadcrumb) {
 	_ = virtualRecord.consumedBalance.Add(virtualRecord.consumedBalance, breadcrumb.consumedBalance)
 
 	if !virtualRecord.initialNonce.HasValue {
-		virtualRecord.initialNonce = breadcrumb.initialNonce
-		return
+		virtualRecord.initialNonce = breadcrumb.lastNonce
 	}
 
 	if breadcrumb.initialNonce.HasValue {
 		virtualRecord.initialNonce = core.OptionalUint64{
-			Value:    max(breadcrumb.initialNonce.Value, virtualRecord.initialNonce.Value),
+			Value:    max(breadcrumb.lastNonce.Value, virtualRecord.initialNonce.Value) + 1,
 			HasValue: true,
 		}
 	}

@@ -16,7 +16,10 @@ import (
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/components/api"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/dtos"
 	"github.com/multiversx/mx-chain-go/process/block/preprocess"
+	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/testscommon"
+	stateMock "github.com/multiversx/mx-chain-go/testscommon/state"
+	"github.com/multiversx/mx-chain-go/testscommon/txcachemocks"
 	"github.com/multiversx/mx-chain-go/txcache"
 	"github.com/stretchr/testify/require"
 )
@@ -26,7 +29,16 @@ var (
 	oneQuarterOfEGLD          = big.NewInt(250000000000000000)
 	durationWaitAfterSendMany = 3000 * time.Millisecond
 	durationWaitAfterSendSome = 300 * time.Millisecond
+	defaultBlockchainInfo     = holders.NewBlockchainInfo(nil, 0)
 )
+
+const maxNumBytesUpperBound = 1_073_741_824           // one GB
+const maxNumBytesPerSenderUpperBoundTest = 33_554_432 // 32 MB
+
+type accountInfo struct {
+	balance *big.Int
+	nonce   uint64
+}
 
 func startChainSimulator(t *testing.T, alterConfigsFunction func(cfg *config.Configs)) testsChainSimulator.ChainSimulator {
 	simulator, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
@@ -121,6 +133,16 @@ func (tracker *noncesTracker) getThenIncrementNonce(address dtos.WalletAddress) 
 	return nonce
 }
 
+func (tracker *noncesTracker) getThenIncrementNonceByStringAddress(address string) uint64 {
+	nonce, ok := tracker.nonceByAddress[address]
+	if !ok {
+		tracker.nonceByAddress[address] = 0
+	}
+
+	tracker.nonceByAddress[address]++
+	return nonce
+}
+
 func sendTransactions(t *testing.T, simulator testsChainSimulator.ChainSimulator, transactions []*transaction.Transaction) {
 	transactionsBySenderShard := make(map[int][]*transaction.Transaction)
 	shardCoordinator := simulator.GetNodeHandler(0).GetShardCoordinator()
@@ -169,7 +191,7 @@ func selectTransactions(t *testing.T, simulator testsChainSimulator.ChainSimulat
 	)
 
 	mempool := poolsHolder.ShardDataStore(shardAsString).(*txcache.TxCache)
-	selectedTransactions, gas := mempool.SelectTransactions(selectionSession, options)
+	selectedTransactions, gas := mempool.SelectTransactions(selectionSession, options, defaultBlockchainInfo)
 	return selectedTransactions, gas
 }
 
@@ -190,4 +212,21 @@ func getTransaction(t *testing.T, simulator testsChainSimulator.ChainSimulator, 
 	transaction, err := simulator.GetNodeHandler(uint32(shard)).GetFacadeHandler().GetTransaction(hashAsHex, true)
 	require.NoError(t, err)
 	return transaction
+}
+
+func createMockSelectionSession(accounts map[string]*accountInfo) *txcachemocks.SelectionSessionMock {
+	sessionMock := txcachemocks.SelectionSessionMock{
+		GetAccountStateCalled: func(address []byte) (state.UserAccountHandler, error) {
+			return &stateMock.StateUserAccountHandlerStub{
+				GetBalanceCalled: func() *big.Int {
+					return accounts[string(address)].balance
+				},
+				GetNonceCalled: func() uint64 {
+					return accounts[string(address)].nonce
+				},
+			}, nil
+		},
+	}
+
+	return &sessionMock
 }

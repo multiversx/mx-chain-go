@@ -108,7 +108,11 @@ func (cache *TxCache) GetByTxHash(txHash []byte) (*WrappedTransaction, bool) {
 
 // SelectTransactions selects the best transactions to be included in the next miniblock.
 // It returns up to "options.maxNumTxs" transactions, with total gas <= "options.gasRequested".
-func (cache *TxCache) SelectTransactions(session SelectionSession, options common.TxSelectionOptions) ([]*WrappedTransaction, uint64) {
+func (cache *TxCache) SelectTransactions(
+	session SelectionSession,
+	options common.TxSelectionOptions,
+	blockchainInfo common.BlockchainInfo,
+) ([]*WrappedTransaction, uint64) {
 	if check.IfNil(session) {
 		log.Error("TxCache.SelectTransactions", "err", errNilSelectionSession)
 		return nil, 0
@@ -131,7 +135,11 @@ func (cache *TxCache) SelectTransactions(session SelectionSession, options commo
 		"num senders", cache.CountSenders(),
 	)
 
-	virtualSession, err := cache.tracker.deriveVirtualSelectionSession(session, nil, 0)
+	virtualSession, err := cache.tracker.deriveVirtualSelectionSession(
+		session,
+		blockchainInfo.GetLatestExecutedBlockHash(),
+		blockchainInfo.GetCurrentNonce(),
+	)
 	if err != nil {
 		log.Error("TxCache.SelectTransactions: could not derive virtual selection session", "err", err)
 		return nil, 0
