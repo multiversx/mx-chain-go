@@ -1585,3 +1585,252 @@ func TestBenchmark_SecondSelection10kTransactionsAndVariableNumberOfAddresses(t 
 		fmt.Printf("%fs (%s)\n", measurement, name)
 	}
 }
+
+// worst case scenario: 100k addresses
+func TestBenchmark_FirstSelection10KTransactionAndVariableNumOfTxsInPool(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+	sw := core.NewStopWatch()
+	numTxsToBeSelected := 10_000
+
+	t.Run("10_000 txs out of 10_000 in pool with 100_000 addresses", func(t *testing.T) {
+		numTxs := 10_000
+		numAddresses := 100_000
+		// create some fake address for each account
+		accounts := createFakeAddresses(numAddresses)
+
+		host := txcachemocks.NewMempoolHostMock()
+		txpool, err := txcache.NewTxCache(configSourceMe, host)
+
+		require.Nil(t, err)
+		require.NotNil(t, txpool)
+
+		// assuming the scenario when we always have the same sender, assure we have enough balance for fees and transfers
+		initialAmount := int64(numTxs*50_000*1_000_000_000 + numTxs*transferredValue)
+
+		selectionSession := createDefaultSelectionSessionMock(initialAmount)
+		options := holders.NewTxSelectionOptions(
+			10_000_000_000,
+			numTxsToBeSelected,
+			selectionLoopMaximumDuration,
+			10,
+		)
+
+		nonceTracker := newNoncesTracker()
+		// create numTxs random transactions
+		createRandomTxs(txpool, numTxs, nonceTracker, accounts)
+
+		require.Equal(t, numTxs, int(txpool.CountTx()))
+
+		blockchainInfo := holders.NewBlockchainInfo([]byte("blockHash0"), 1)
+
+		sw.Start(t.Name())
+		selectedTransactions, _ := txpool.SelectTransactions(selectionSession, options, blockchainInfo)
+		sw.Stop(t.Name())
+
+		require.Equal(t, numTxsToBeSelected, len(selectedTransactions))
+	})
+
+	t.Run("10_000 txs out of 100_000 in pool with 100_000 addresses", func(t *testing.T) {
+		numTxs := 100_000
+		numAddresses := 100_000
+		// create some fake address for each account
+		accounts := createFakeAddresses(numAddresses)
+
+		host := txcachemocks.NewMempoolHostMock()
+		txpool, err := txcache.NewTxCache(configSourceMe, host)
+
+		require.Nil(t, err)
+		require.NotNil(t, txpool)
+
+		// assuming the scenario when we always have the same sender, assure we have enough balance for fees and transfers
+		initialAmount := int64(numTxs*50_000*1_000_000_000 + numTxs*transferredValue)
+
+		selectionSession := createDefaultSelectionSessionMock(initialAmount)
+		options := holders.NewTxSelectionOptions(
+			10_000_000_000,
+			numTxsToBeSelected,
+			selectionLoopMaximumDuration,
+			10,
+		)
+
+		nonceTracker := newNoncesTracker()
+		// create numTxs random transactions
+		createRandomTxs(txpool, numTxs, nonceTracker, accounts)
+
+		require.Equal(t, numTxs, int(txpool.CountTx()))
+
+		blockchainInfo := holders.NewBlockchainInfo([]byte("blockHash0"), 1)
+
+		sw.Start(t.Name())
+		selectedTransactions, _ := txpool.SelectTransactions(selectionSession, options, blockchainInfo)
+		sw.Stop(t.Name())
+
+		require.Equal(t, numTxsToBeSelected, len(selectedTransactions))
+	})
+
+	t.Run("10_000 txs out of 1_000_000 in pool with 100_000 addresses", func(t *testing.T) {
+		numTxs := 1_000_000
+		numAddresses := 100_000
+		// create some fake address for each account
+		accounts := createFakeAddresses(numAddresses)
+
+		host := txcachemocks.NewMempoolHostMock()
+		txpool, err := txcache.NewTxCache(configSourceMe, host)
+
+		require.Nil(t, err)
+		require.NotNil(t, txpool)
+
+		// assuming the scenario when we always have the same sender, assure we have enough balance for fees and transfers
+		initialAmount := big.NewInt(0)
+		numTxsAsBigInt := big.NewInt(int64(numTxs))
+
+		_ = initialAmount.Mul(numTxsAsBigInt, big.NewInt(int64(50_000*1_000_000_000)))
+		_ = initialAmount.Add(initialAmount, big.NewInt(int64(numTxs*transferredValue)))
+
+		selectionSession := createDefaultSelectionSessionMockWithBigInt(initialAmount)
+		options := holders.NewTxSelectionOptions(
+			10_000_000_000,
+			numTxsToBeSelected,
+			selectionLoopMaximumDuration*10,
+			10,
+		)
+
+		nonceTracker := newNoncesTracker()
+		// create numTxs random transactions
+		createRandomTxs(txpool, numTxs, nonceTracker, accounts)
+
+		require.Equal(t, numTxs, int(txpool.CountTx()))
+
+		blockchainInfo := holders.NewBlockchainInfo([]byte("blockHash0"), 1)
+
+		sw.Start(t.Name())
+		selectedTransactions, _ := txpool.SelectTransactions(selectionSession, options, blockchainInfo)
+		sw.Stop(t.Name())
+
+		require.Equal(t, numTxsToBeSelected, len(selectedTransactions))
+	})
+
+	for name, measurement := range sw.GetMeasurementsMap() {
+		fmt.Printf("%fs (%s)\n", measurement, name)
+	}
+}
+
+func TestBenchmark_SecondSelection10KTransactionAndVariableNumOfTxsInPool(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+	sw := core.NewStopWatch()
+	numTxsToBeSelected := 10_000
+
+	t.Run("10_000 txs out of 100_000 in pool with 100_000 addresses", func(t *testing.T) {
+		// create some fake address for each account
+		numTxs := 100_000
+		numAddresses := 100_000
+		accounts := createFakeAddresses(numAddresses)
+
+		host := txcachemocks.NewMempoolHostMock()
+		txpool, err := txcache.NewTxCache(configSourceMe, host)
+
+		require.Nil(t, err)
+		require.NotNil(t, txpool)
+
+		// assuming the scenario when we always have the same sender, assure we have enough balance for fees and transfers
+		initialAmount := int64(numTxs*50_000*1_000_000_000 + numTxs*transferredValue)
+
+		selectionSession := createDefaultSelectionSessionMock(initialAmount)
+		options := holders.NewTxSelectionOptions(
+			10_000_000_000,
+			numTxsToBeSelected,
+			selectionLoopMaximumDuration,
+			10,
+		)
+
+		nonceTracker := newNoncesTracker()
+		// create numTxs random transactions
+		createRandomTxs(txpool, numTxs, nonceTracker, accounts)
+
+		require.Equal(t, numTxs, int(txpool.CountTx()))
+
+		blockchainInfo := holders.NewBlockchainInfo([]byte("blockHash0"), 1)
+		selectedTransactions, _ := txpool.SelectTransactions(selectionSession, options, blockchainInfo)
+		require.Equal(t, numTxsToBeSelected, len(selectedTransactions))
+
+		proposedBlock := createProposedBlock(selectedTransactions)
+		// propose those txs in order to track them (create the breadcrumbs used for the virtual records)
+		err = txpool.OnProposedBlock([]byte("blockHash1"), proposedBlock, &block.Header{
+			Nonce:    0,
+			PrevHash: []byte("blockHash0"),
+			RootHash: []byte(fmt.Sprintf("rootHash%d", 0)),
+		})
+
+		require.Nil(t, err)
+
+		// measure the time for the second selection (now we use the breadcrumbs to create the virtual records)
+		sw.Start(t.Name())
+		selectedTransactions, _ = txpool.SelectTransactions(selectionSession, options, blockchainInfo)
+		sw.Stop(t.Name())
+
+		require.Equal(t, numTxsToBeSelected, len(selectedTransactions))
+	})
+
+	t.Run("10_000 txs out of 1_000_000 in pool with 100_000 addresses", func(t *testing.T) {
+		// create some fake address for each account
+		numTxs := 1_000_000
+		numAddresses := 100_000
+		accounts := createFakeAddresses(numAddresses)
+
+		host := txcachemocks.NewMempoolHostMock()
+		txpool, err := txcache.NewTxCache(configSourceMe, host)
+
+		require.Nil(t, err)
+		require.NotNil(t, txpool)
+
+		// assuming the scenario when we always have the same sender, assure we have enough balance for fees and transfers
+		initialAmount := big.NewInt(0)
+		numTxsAsBigInt := big.NewInt(int64(numTxs))
+
+		_ = initialAmount.Mul(numTxsAsBigInt, big.NewInt(int64(50_000*1_000_000_000)))
+		_ = initialAmount.Add(initialAmount, big.NewInt(int64(numTxs*transferredValue)))
+
+		selectionSession := createDefaultSelectionSessionMockWithBigInt(initialAmount)
+		options := holders.NewTxSelectionOptions(
+			10_000_000_000,
+			numTxsToBeSelected,
+			selectionLoopMaximumDuration,
+			10,
+		)
+
+		nonceTracker := newNoncesTracker()
+		// create numTxs random transactions
+		createRandomTxs(txpool, numTxs, nonceTracker, accounts)
+
+		require.Equal(t, numTxs, int(txpool.CountTx()))
+
+		blockchainInfo := holders.NewBlockchainInfo([]byte("blockHash0"), 1)
+		selectedTransactions, _ := txpool.SelectTransactions(selectionSession, options, blockchainInfo)
+		require.Equal(t, numTxsToBeSelected, len(selectedTransactions))
+
+		proposedBlock := createProposedBlock(selectedTransactions)
+		// propose those txs in order to track them (create the breadcrumbs used for the virtual records)
+		err = txpool.OnProposedBlock([]byte("blockHash1"), proposedBlock, &block.Header{
+			Nonce:    0,
+			PrevHash: []byte("blockHash0"),
+			RootHash: []byte(fmt.Sprintf("rootHash%d", 0)),
+		})
+
+		require.Nil(t, err)
+
+		// measure the time for the second selection (now we use the breadcrumbs to create the virtual records)
+		sw.Start(t.Name())
+		selectedTransactions, _ = txpool.SelectTransactions(selectionSession, options, blockchainInfo)
+		sw.Stop(t.Name())
+
+		require.Equal(t, numTxsToBeSelected, len(selectedTransactions))
+	})
+
+	for name, measurement := range sw.GetMeasurementsMap() {
+		fmt.Printf("%fs (%s)\n", measurement, name)
+	}
+}
