@@ -9,6 +9,8 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-core-go/marshal"
 
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/consensus"
@@ -286,6 +288,27 @@ func (sr *subroundBlock) sendBlockHeader(
 	sr.SetData(headerHash)
 	sr.SetHeader(headerHandler)
 
+	if headerHandler.GetShardID() == common.MetachainShardId {
+		header, ok:= headerHandler.(*block.MetaBlock) 
+		if ok {
+			jsonMarshalizer := &marshal.JsonMarshalizer{}
+		   	jsonBytes, err := jsonMarshalizer.Marshal(header)
+			if err == nil {
+				log.Debug("Proposed header sent", "header", string(jsonBytes))
+			}
+		}
+
+	} else {
+		header, ok := headerHandler.(*block.HeaderV2)
+		if ok {
+			jsonMarshalizer := &marshal.JsonMarshalizer{}
+				jsonBytes, err := jsonMarshalizer.Marshal(header)
+			if err == nil {
+				log.Debug("Proposed header sent", "header", string(jsonBytes))
+			}
+	 	} 
+	}
+	
 	return true
 }
 
@@ -449,11 +472,13 @@ func (sr *subroundBlock) getLeaderForHeader(headerHandler data.HeaderHandler) ([
 
 func (sr *subroundBlock) receivedBlockHeader(headerHandler data.HeaderHandler) {
 	if check.IfNil(headerHandler) {
+		log.Debug("subroundBlock.receivedBlockHeader - header is nil")
 		return
 	}
 
 	log.Debug("subroundBlock.receivedBlockHeader", "nonce", headerHandler.GetNonce(), "round", headerHandler.GetRound())
 	if headerHandler.CheckFieldsForNil() != nil {
+		log.Debug("subroundBlock.receivedBlockHeader - header fields are nil")
 		return
 	}
 
@@ -525,6 +550,26 @@ func (sr *subroundBlock) receivedBlockHeader(headerHandler data.HeaderHandler) {
 		spos.GetConsensusTopicID(sr.ShardCoordinator()),
 		spos.LeaderPeerHonestyIncreaseFactor,
 	)
+
+	if headerHandler.GetShardID() == common.MetachainShardId {
+		header, ok:= headerHandler.(*block.MetaBlock) 
+		if ok {
+			jsonMarshalizer := &marshal.JsonMarshalizer{}
+		   	jsonBytes, err := jsonMarshalizer.Marshal(header)
+			if err == nil {
+				log.Debug("Proposed header received", "header", string(jsonBytes))
+			}
+		}
+	} else {
+		header, ok := headerHandler.(*block.HeaderV2)
+		if ok {
+			jsonMarshalizer := &marshal.JsonMarshalizer{}
+				jsonBytes, err := jsonMarshalizer.Marshal(header)
+			if err == nil {
+				log.Debug("Proposed header received", "header", string(jsonBytes))
+			}
+	 	} 
+	}
 }
 
 // CanProcessReceivedHeader method returns true if the received header can be processed and false otherwise
