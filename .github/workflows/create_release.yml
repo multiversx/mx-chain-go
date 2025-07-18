@@ -72,23 +72,23 @@ jobs:
 
           if [[ "$GOOS" == linux && "$GOARCH" == amd64 ]]; then
             cp --verbose --no-preserve=mode,ownership ${VM_GO_DIR}/wasmer2/libvmexeccapi.so ${BUILD_DIR}/libvmexeccapi.so
-            cp --verbose --no-preserve=mode,ownership ${VM_GO_DIR}/wasmer/libwasmer_linux_amd64.so ${BUILD_DIR}/libwasmer_linux_amd64.so
+            cp --verbose --no-preserve=mode,ownership ${VM_GO_DIR}/wasmer2/libwasmer_linux_amd64.so ${BUILD_DIR}/libwasmer_linux_amd64.so
           fi
 
           # Actually, there's no runner for this combination (as of March 2024).
           if [[ "$GOOS" == linux && "$GOARCH" == arm64 ]]; then
             cp --verbose --no-preserve=mode,ownership ${VM_GO_DIR}/wasmer2/libvmexeccapi_arm.so ${BUILD_DIR}/libvmexeccapi_arm.so
-            cp --verbose --no-preserve=mode,ownership ${VM_GO_DIR}/wasmer/libwasmer_linux_arm64_shim.so ${BUILD_DIR}/libwasmer_linux_arm64_shim.so
+            cp --verbose --no-preserve=mode,ownership ${VM_GO_DIR}/wasmer2/libwasmer_linux_arm64_shim.so ${BUILD_DIR}/libwasmer_linux_arm64_shim.so
           fi
 
           if [[ "$GOOS" == darwin && "$GOARCH" == amd64 ]]; then
             cp -v ${VM_GO_DIR}/wasmer2/libvmexeccapi.dylib ${BUILD_DIR}/libvmexeccapi.dylib
-            cp -v ${VM_GO_DIR}/wasmer/libwasmer_darwin_amd64.dylib ${BUILD_DIR}/libwasmer_darwin_amd64.dylib
+            cp -v ${VM_GO_DIR}/wasmer2/libwasmer_darwin_amd64.dylib ${BUILD_DIR}/libwasmer_darwin_amd64.dylib
           fi
 
           if [[ "$GOOS" == darwin && "$GOARCH" == arm64 ]]; then
             cp -v ${VM_GO_DIR}/wasmer2/libvmexeccapi_arm.dylib ${BUILD_DIR}/libvmexeccapi_arm.dylib
-            cp -v ${VM_GO_DIR}/wasmer/libwasmer_darwin_arm64_shim.dylib ${BUILD_DIR}/libwasmer_darwin_arm64_shim.dylib
+            cp -v ${VM_GO_DIR}/wasmer2/libwasmer_darwin_arm64_shim.dylib ${BUILD_DIR}/libwasmer_darwin_arm64_shim.dylib
           fi
 
           if [[ "$GOOS" == linux ]]; then
