@@ -210,6 +210,11 @@ func (a *userAccount) AccountDataHandler() vmcommon.AccountDataHandler {
 	return a.dataTrieInteractor
 }
 
+// GetLeavesParser returns the leaves parser
+func (a *userAccount) GetLeavesParser() common.TrieLeafParser {
+	return a.dataTrieLeafParser
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (a *userAccount) IsInterfaceNil() bool {
 	return a == nil
