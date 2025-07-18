@@ -70,6 +70,7 @@ func (idv *interceptedDataVerifier) Verify(interceptedData process.InterceptedDa
 func logInterceptedDataCheckValidityErr(interceptedData process.InterceptedData, err error) {
 	if errors.Is(err, common.ErrAlreadyExistingEquivalentProof) {
 		log.Trace("Intercepted data is invalid", "hash", interceptedData.Hash(), "err", err)
+		return
 	}
 
 	log.Debug("Intercepted data is invalid", "hash", interceptedData.Hash(), "err", err)
