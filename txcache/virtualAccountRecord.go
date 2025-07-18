@@ -24,14 +24,28 @@ func newVirtualAccountRecord(initialNonce core.OptionalUint64, initialBalance *b
 func (virtualRecord *virtualAccountRecord) updateVirtualRecord(breadcrumb *accountBreadcrumb) {
 	_ = virtualRecord.consumedBalance.Add(virtualRecord.consumedBalance, breadcrumb.consumedBalance)
 
-	if !virtualRecord.initialNonce.HasValue {
-		virtualRecord.initialNonce = breadcrumb.lastNonce
+	if !breadcrumb.lastNonce.HasValue {
+		return
 	}
 
-	if breadcrumb.initialNonce.HasValue {
-		virtualRecord.initialNonce = core.OptionalUint64{
-			Value:    max(breadcrumb.lastNonce.Value, virtualRecord.initialNonce.Value) + 1,
-			HasValue: true,
-		}
+	if !virtualRecord.initialNonce.HasValue {
+		virtualRecord.setInitialNonce(breadcrumb)
+		return
+	}
+
+	virtualRecord.updateInitialNonce(breadcrumb)
+}
+
+func (virtualRecord *virtualAccountRecord) setInitialNonce(breadcrumb *accountBreadcrumb) {
+	virtualRecord.initialNonce = core.OptionalUint64{
+		Value:    breadcrumb.lastNonce.Value + 1,
+		HasValue: true,
+	}
+}
+
+func (virtualRecord *virtualAccountRecord) updateInitialNonce(breadcrumb *accountBreadcrumb) {
+	virtualRecord.initialNonce = core.OptionalUint64{
+		Value:    max(breadcrumb.lastNonce.Value, virtualRecord.initialNonce.Value) + 1,
+		HasValue: true,
 	}
 }

@@ -9,9 +9,33 @@ import (
 )
 
 func Test_updateVirtualRecord(t *testing.T) {
-	t.Parallel()
+	t.Run("breadcrumb doesn't have last nonce", func(t *testing.T) {
+		t.Parallel()
+
+		breadcrumb := accountBreadcrumb{
+			initialNonce: core.OptionalUint64{
+				Value:    3,
+				HasValue: false,
+			},
+			lastNonce: core.OptionalUint64{
+				Value:    4,
+				HasValue: false,
+			},
+			consumedBalance: big.NewInt(3),
+		}
+
+		virtualRecord := newVirtualAccountRecord(core.OptionalUint64{
+			Value:    1,
+			HasValue: true,
+		}, big.NewInt(2))
+
+		virtualRecord.updateVirtualRecord(&breadcrumb)
+		require.Equal(t, uint64(1), virtualRecord.initialNonce.Value)
+	})
 
 	t.Run("virtual record has value for nonce", func(t *testing.T) {
+		t.Parallel()
+
 		virtualRecord := newVirtualAccountRecord(core.OptionalUint64{
 			Value:    1,
 			HasValue: true,
@@ -37,6 +61,8 @@ func Test_updateVirtualRecord(t *testing.T) {
 	})
 
 	t.Run("virtual record doesn't have value for nonce", func(t *testing.T) {
+		t.Parallel()
+
 		virtualRecord := newVirtualAccountRecord(core.OptionalUint64{
 			Value:    1,
 			HasValue: false,
