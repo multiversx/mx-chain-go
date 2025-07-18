@@ -1043,8 +1043,6 @@ func TestSubroundBlock_CreateHeaderNotNilCurrentHeader(t *testing.T) {
 }
 
 func TestSubroundBlock_CreateHeaderMultipleMiniBlocks(t *testing.T) {
-	logger.SetLogLevel("*:DEBUG")
-
 	mbHeaders := []block.MiniBlockHeader{
 		{Hash: []byte("mb1"), SenderShardID: 1, ReceiverShardID: 1},
 		{Hash: []byte("mb2"), SenderShardID: 1, ReceiverShardID: 2},
@@ -1314,7 +1312,7 @@ func TestSubroundBlock_ReceivedBlockHeader(t *testing.T) {
 
 
 func prepareLoggingSubroundTest(header data.HeaderHandler, isMeta bool) v2.SubroundBlock {
-	logger.SetLogLevel("*:DEBUG")
+	_ = logger.SetLogLevel("*:DEBUG")
 	container := consensusMocks.InitConsensusCore()
 	if isMeta {
 		container.SetShardCoordinator(&processMock.CoordinatorStub{
@@ -1332,9 +1330,9 @@ func prepareLoggingSubroundTest(header data.HeaderHandler, isMeta bool) v2.Subro
 		GetCurrentBlockHeaderCalled:     func() data.HeaderHandler { return &block.HeaderV2{Header: prevHeader} },
 	})
 
-	header.SetNonce(prevHeader.GetNonce() + 1)
-	header.SetPrevHash(prevHash)
-	header.SetPrevRandSeed(prevHeader.GetRandSeed())
+	_ = header.SetNonce(prevHeader.GetNonce() + 1)
+	_ = header.SetPrevHash(prevHash)
+	_ = header.SetPrevRandSeed(prevHeader.GetRandSeed())
 
 	if isMeta {
 		_ = header.(data.MetaHeaderHandler).SetShardID(common.MetachainShardId)
