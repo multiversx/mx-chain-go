@@ -1320,182 +1320,83 @@ func TestSubroundBlock_ReceivedBlockHeader(t *testing.T) {
 	sr.ReceivedBlockHeader(headerForCurrentConsensus)
 }
 
-func TestSubroundBlock_SendBlockHeaderLogging(t *testing.T) {
-	t.Parallel()
 
+func prepareLoggingSubroundTest(header data.HeaderHandler, isMeta bool) (v2.SubroundBlock, *bytes.Buffer) {
 	var buf bytes.Buffer
 	redirect_loggerToBuffer(&buf)
-	
-	t.Run("with HeaderV2", func(t *testing.T) {
-		t.Parallel()
+	logger.SetLogLevel("*:DEBUG")
 
-		logger.SetLogLevel("*:DEBUG")
+	container := consensusMocks.InitConsensusCore()
+	if isMeta {
+		container.SetShardCoordinator(&processMock.CoordinatorStub{
+			SelfIdCalled: func() uint32 { return uint32(common.MetachainShardId) },
+			CommunicationIdentifierCalled: func(uint32) string { return "meta-comm-id" },
+		})
+	}
 
-		container := consensusMocks.InitConsensusCore()
-		sr := initSubroundBlock(nil, container, &statusHandler.AppStatusHandlerStub{})
+	sr := initSubroundBlock(nil, container, &statusHandler.AppStatusHandlerStub{})
 
-		prevHash := []byte("prev hash")
-		prevHeader := createDefaultHeader()
-		blockchain := &testscommon.ChainHandlerStub{
-			GetCurrentBlockHeaderHashCalled: func() []byte {
-				return prevHash
-			},
-			GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
-				return &block.HeaderV2{Header: prevHeader}
-			},
-		}
-		container.SetBlockchain(blockchain)
+	prevHash := []byte("prev hash")
+	prevHeader := createDefaultHeader()
+	container.SetBlockchain(&testscommon.ChainHandlerStub{
+		GetCurrentBlockHeaderHashCalled: func() []byte { return prevHash },
+		GetCurrentBlockHeaderCalled:     func() data.HeaderHandler { return &block.HeaderV2{Header: prevHeader} },
+	})
 
-		headerV2 := &block.HeaderV2{}
-		err := json.Unmarshal([]byte(createJsonForHeaderV2()), headerV2)
-		require.NoError(t, err)
+	header.SetNonce(prevHeader.GetNonce() + 1)
+	header.SetPrevHash(prevHash)
+	header.SetPrevRandSeed(prevHeader.GetRandSeed())
 
-		headerV2.SetNonce(prevHeader.GetNonce() + 1)
-		headerV2.SetPrevHash(prevHash)
-		headerV2.SetPrevRandSeed(prevHeader.GetRandSeed())
+	if isMeta {
+		header.(data.MetaHeaderHandler).SetShardID(common.MetachainShardId)
+	}
 
-		sr.SetData(nil)
-		container.SetMarshalizer(&testscommon.MarshallerStub{})
-		marshalizedHeader, _ := sr.Marshalizer().Marshal(headerV2)
+	sr.SetData(nil)
+	container.SetMarshalizer(&testscommon.MarshallerStub{})
 
-		sr.SendBlockHeader(headerV2, marshalizedHeader)
+	return sr, &buf
+}
+
+func TestSubroundBlock_HeaderLogging(t *testing.T) {
+	t.Run("send with HeaderV2", func(t *testing.T) {
+		header := &block.HeaderV2{}
+		require.NoError(t, json.Unmarshal([]byte(createJsonForHeaderV2()), header))
+		sr, buf := prepareLoggingSubroundTest(header, false)
+
+		marshalizedHeader, _ := sr.Marshalizer().Marshal(header)
+		sr.SendBlockHeader(header, marshalizedHeader)
 		require.Contains(t, buf.String(), "Proposed header sent")
 	})
 
-	t.Run("MetaBlock", func(t *testing.T) {
-		t.Parallel()
+	t.Run("send with MetaBlock", func(t *testing.T) {
+		meta := &block.MetaBlock{}
+		require.NoError(t, json.Unmarshal([]byte(createJsonForMetaBlock()), meta))
+		sr, buf := prepareLoggingSubroundTest(meta, true)
 
-		logger.SetLogLevel("*:DEBUG")
-
-		container := consensusMocks.InitConsensusCore()
-		container.SetShardCoordinator(&processMock.CoordinatorStub{
-			SelfIdCalled: func() uint32 {
-				return uint32(common.MetachainShardId)
-			},
-			CommunicationIdentifierCalled: func(destShardID uint32) string {
-				return "meta-comm-id"
-			},
-		})
-
-		sr := initSubroundBlock(nil, container, &statusHandler.AppStatusHandlerStub{})
-
-		prevHash := []byte("prev hash")
-		prevHeader := createDefaultHeader()
-		blockchain := &testscommon.ChainHandlerStub{
-			GetCurrentBlockHeaderHashCalled: func() []byte {
-				return prevHash
-			},
-			GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
-				return &block.HeaderV2{Header: prevHeader}
-			},
-		}
-		container.SetBlockchain(blockchain)
-
-		metaHeader := &block.MetaBlock{}
-		err := json.Unmarshal([]byte(createJsonForMetaBlock()), metaHeader)
-		require.NoError(t, err)
-
-		metaHeader.SetNonce(prevHeader.GetNonce() + 1)
-		metaHeader.SetPrevHash(prevHash)
-		metaHeader.SetPrevRandSeed(prevHeader.GetRandSeed())
-		metaHeader.SetShardID(common.MetachainShardId)
-
-		sr.SetData(nil)
-		container.SetMarshalizer(&testscommon.MarshallerStub{})
-		marshalizedHeader, _ := sr.Marshalizer().Marshal(metaHeader)
-
-		sr.SendBlockHeader(metaHeader, marshalizedHeader)
+		marshalizedHeader, _ := sr.Marshalizer().Marshal(meta)
+		sr.SendBlockHeader(meta, marshalizedHeader)
 		require.Contains(t, buf.String(), "Proposed header sent")
 	})
-}
 
+	t.Run("receive with HeaderV2", func(t *testing.T) {
+		header := &block.HeaderV2{}
+		require.NoError(t, json.Unmarshal([]byte(createJsonForHeaderV2()), header))
+		sr, buf := prepareLoggingSubroundTest(header, false)
 
-func TestSubroundBlock_ReceivedBlockHeaderLogging(t *testing.T) {
-	t.Parallel()
-
-	var buf bytes.Buffer
-	redirect_loggerToBuffer(&buf)
-	
-	t.Run("with HeaderV2", func(t *testing.T) {
-		t.Parallel()
-
-		logger.SetLogLevel("*:DEBUG")
-
-		container := consensusMocks.InitConsensusCore()
-		sr := initSubroundBlock(nil, container, &statusHandler.AppStatusHandlerStub{})
-
-		prevHash := []byte("prev hash")
-		prevHeader := createDefaultHeader()
-		blockchain := &testscommon.ChainHandlerStub{
-			GetCurrentBlockHeaderHashCalled: func() []byte {
-				return prevHash
-			},
-			GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
-				return &block.HeaderV2{Header: prevHeader}
-			},
-		}
-		container.SetBlockchain(blockchain)
-
-		headerV2 := &block.HeaderV2{}
-		err := json.Unmarshal([]byte(createJsonForHeaderV2()), headerV2)
-		require.NoError(t, err)
-
-		headerV2.SetNonce(prevHeader.GetNonce() + 1)
-		headerV2.SetPrevHash(prevHash)
-		headerV2.SetPrevRandSeed(prevHeader.GetRandSeed())
-
-		sr.SetData(nil)
-		container.SetMarshalizer(&testscommon.MarshallerStub{})
-
-		sr.ReceivedBlockHeader(headerV2)
+		sr.ReceivedBlockHeader(header)
 		require.Contains(t, buf.String(), "Proposed header received")
 	})
 
-	t.Run("with MetaBlock", func(t *testing.T) {
-		t.Parallel()
+	t.Run("receive with MetaBlock", func(t *testing.T) {
+		meta := &block.MetaBlock{}
+		require.NoError(t, json.Unmarshal([]byte(createJsonForMetaBlock()), meta))
+		sr, buf := prepareLoggingSubroundTest(meta, true)
 
-		logger.SetLogLevel("*:DEBUG")
-
-		container := consensusMocks.InitConsensusCore()
-		container.SetShardCoordinator(&processMock.CoordinatorStub{
-			SelfIdCalled: func() uint32 {
-				return uint32(common.MetachainShardId)
-			},
-			CommunicationIdentifierCalled: func(destShardID uint32) string {
-				return "meta-comm-id"
-			},
-		})
-
-		sr := initSubroundBlock(nil, container, &statusHandler.AppStatusHandlerStub{})
-
-		prevHash := []byte("prev hash")
-		prevHeader := createDefaultHeader()
-		blockchain := &testscommon.ChainHandlerStub{
-			GetCurrentBlockHeaderHashCalled: func() []byte {
-				return prevHash
-			},
-			GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
-				return &block.HeaderV2{Header: prevHeader}
-			},
-		}
-		container.SetBlockchain(blockchain)
-
-		metaHeader := &block.MetaBlock{}
-		err := json.Unmarshal([]byte(createJsonForMetaBlock()), metaHeader)
-		require.NoError(t, err)
-
-		metaHeader.SetNonce(prevHeader.GetNonce() + 1)
-		metaHeader.SetPrevHash(prevHash)
-		metaHeader.SetPrevRandSeed(prevHeader.GetRandSeed())
-		metaHeader.SetShardID(common.MetachainShardId)
-
-		sr.SetData(nil)
-		container.SetMarshalizer(&testscommon.MarshallerStub{})
-
-		sr.ReceivedBlockHeader(metaHeader)
+		sr.ReceivedBlockHeader(meta)
 		require.Contains(t, buf.String(), "Proposed header received")
 	})
 }
+
 
 func TestSubroundBlock_GetLeaderForHeader(t *testing.T) {
 	t.Parallel()
