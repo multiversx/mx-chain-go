@@ -7,14 +7,25 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+func TestNewExecutionResultsTracker(t *testing.T) {
+	t.Parallel()
+
+	tracker, err := NewExecutionResultsTracker()
+	require.NoError(t, err)
+	require.False(t, tracker.IsInterfaceNil())
+}
+
 func TestAddExecutionResult(t *testing.T) {
 	t.Parallel()
 
 	tracker, _ := NewExecutionResultsTracker()
 	tracker.lastNotarizedResult = &block.ExecutionResult{Nonce: 10}
 
+	err := tracker.AddExecutionResult(nil)
+	require.Equal(t, ErrNilExecutionResult, err)
+
 	execResult := &block.ExecutionResult{HeaderHash: []byte("hash1"), Nonce: 11}
-	err := tracker.AddExecutionResult(execResult)
+	err = tracker.AddExecutionResult(execResult)
 	require.NoError(t, err)
 
 	stored, found := tracker.executionResultsByHash[string(execResult.HeaderHash)]
@@ -78,15 +89,38 @@ func TestGetPendingExecutionResultsByNonce(t *testing.T) {
 	t.Parallel()
 
 	tracker, _ := NewExecutionResultsTracker()
-	tracker.lastNotarizedResult = &block.ExecutionResult{Nonce: 9}
 
 	res1 := &block.ExecutionResult{HeaderHash: []byte("h1"), Nonce: 10}
-	_ = tracker.AddExecutionResult(res1)
+	err := tracker.AddExecutionResult(res1)
+	require.Equal(t, ErrNilLastNotarizedExecutionResult, err)
+
+	tracker.lastNotarizedResult = &block.ExecutionResult{Nonce: 9}
+
+	err = tracker.AddExecutionResult(res1)
+	require.NoError(t, err)
+
 	res2 := &block.ExecutionResult{HeaderHash: []byte("h2"), Nonce: 10}
 	_ = tracker.AddExecutionResult(res2)
 
-	res, err := tracker.GetExecutionResultByNonce(10)
+	results, err := tracker.GetExecutionResultsByNonce(10)
 	require.NoError(t, err)
-	require.Equal(t, res1, res[0])
-	require.Equal(t, res2, res[1])
+
+	require.True(t, res1.Equal(results[0]) || res1.Equal(results[1]))
+	require.True(t, res2.Equal(results[0]) || res2.Equal(results[1]))
+}
+
+func TestSetLastNotarizedResult(t *testing.T) {
+	t.Parallel()
+
+	tracker, _ := NewExecutionResultsTracker()
+
+	err := tracker.SetLastNotarizedResult(nil)
+	require.Equal(t, ErrNilExecutionResult, err)
+
+	execResult := &block.ExecutionResult{
+		Nonce: 10,
+	}
+	err = tracker.SetLastNotarizedResult(execResult)
+	require.NoError(t, err)
+	require.Equal(t, execResult, tracker.lastNotarizedResult)
 }

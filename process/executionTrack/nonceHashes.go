@@ -33,23 +33,6 @@ func (nh *nonceHashes) getNonceHashes(nonce uint64) []string {
 	return hashes
 }
 
-func (nh *nonceHashes) popDifferentHashes(nonce uint64, currentHash string) []string {
-	hashesMap, found := nh.nonceHashesMap[nonce]
-	if !found {
-		return make([]string, 0)
-	}
-
-	hashes := make([]string, 0)
-	for hash := range hashesMap {
-		if hash != currentHash {
-			hashes = append(hashes, hash)
-			delete(hashesMap, hash)
-		}
-	}
-
-	return hashes
-}
-
 func (nh *nonceHashes) removeByNonce(nonce uint64) {
 	delete(nh.nonceHashesMap, nonce)
 }

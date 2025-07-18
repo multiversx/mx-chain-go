@@ -35,8 +35,12 @@ func (est *executionResultsTracker) AddExecutionResult(executionResult *block.Ex
 
 	est.mutex.Lock()
 	defer est.mutex.Unlock()
+	if est.lastNotarizedResult == nil {
+		return ErrNilLastNotarizedExecutionResult
+	}
+
 	if est.lastNotarizedResult.Nonce >= executionResult.Nonce {
-		return fmt.Errorf("execution results nonce(%d) is lower then last notarized nonce(%d)", executionResult.Nonce, est.lastNotarizedResult.Nonce)
+		return fmt.Errorf("execution results nonce(%d) is lower than last notarized nonce(%d)", executionResult.Nonce, est.lastNotarizedResult.Nonce)
 	}
 
 	est.executionResultsByHash[string(executionResult.HeaderHash)] = executionResult
@@ -60,21 +64,18 @@ func (est *executionResultsTracker) GetPendingExecutionResults() ([]*block.Execu
 	}
 
 	sort.Slice(executionResults, func(i, j int) bool {
-		if executionResults[i].Nonce < executionResults[j].Nonce {
-			return true
-		}
-		return false
+		return executionResults[i].Nonce < executionResults[j].Nonce
 	})
 
 	firstElementHasCorrectNonce := executionResults[0].Nonce == est.lastNotarizedResult.Nonce+1
 	if !firstElementHasCorrectNonce {
-		return nil, errors.New("confirmed execution results have different nonces")
+		return nil, ErrDifferentNoncesConfirmedExecutionResults
 	}
 
 	for idx := 0; idx < len(executionResults)-1; idx++ {
 		hasConsecutiveNonces := executionResults[idx].Nonce+1 == executionResults[idx+1].Nonce
 		if !hasConsecutiveNonces {
-			return nil, errors.New("confirmed execution results have different nonces")
+			return nil, ErrDifferentNoncesConfirmedExecutionResults
 		}
 	}
 
@@ -94,8 +95,8 @@ func (est *executionResultsTracker) GetExecutionResultByHash(hash []byte) (*bloc
 	return result, nil
 }
 
-// GetExecutionResultByNonce will return the execution results by nonce
-func (est *executionResultsTracker) GetExecutionResultByNonce(nonce uint64) ([]*block.ExecutionResult, error) {
+// GetExecutionResultsByNonce will return the execution results by nonce
+func (est *executionResultsTracker) GetExecutionResultsByNonce(nonce uint64) ([]*block.ExecutionResult, error) {
 	executionResults := make([]*block.ExecutionResult, 0)
 
 	est.mutex.RLock()
@@ -105,7 +106,7 @@ func (est *executionResultsTracker) GetExecutionResultByNonce(nonce uint64) ([]*
 	for _, hash := range hashes {
 		result, found := est.executionResultsByHash[hash]
 		if !found {
-			return nil, fmt.Errorf("cannot find execution results by provided hash: %s", hex.EncodeToString([]byte(hash)))
+			return nil, fmt.Errorf("%w with hash: '%s'", ErrCannotFindExecutionResult, hash)
 		}
 
 		executionResults = append(executionResults, result)
@@ -115,6 +116,7 @@ func (est *executionResultsTracker) GetExecutionResultByNonce(nonce uint64) ([]*
 }
 
 // CleanConfirmedExecutionResults will clean the confirmed execution results
+// TODO add unit tests when new header structure is available
 func (est *executionResultsTracker) CleanConfirmedExecutionResults(headerHash []byte, header data.HeaderHandler) error {
 	est.mutex.Lock()
 	defer est.mutex.Unlock()
@@ -124,12 +126,35 @@ func (est *executionResultsTracker) CleanConfirmedExecutionResults(headerHash []
 		return nil
 	}
 
-	for _, executionResult := range headerExecutionResults {
-		delete(est.executionResultsByHash, string(executionResult.HeaderHash))
-		est.nonceHashes.removeByNonce(executionResult.Nonce)
+	for _, executionResultFromHeader := range headerExecutionResults {
+		executionResultFromTracker, found := est.executionResultsByHash[string(executionResultFromHeader.HeaderHash)]
+		if !found {
+			return fmt.Errorf("%w with for header hash %s", ErrCannotFindExecutionResult, hex.EncodeToString(executionResultFromHeader.HeaderHash))
+		}
+
+		areEqual := executionResultFromTracker.Equal(executionResultFromHeader)
+		if !areEqual {
+			return fmt.Errorf("$%w for header hash", ErrDifferentExecutionResults)
+		}
+
+		delete(est.executionResultsByHash, string(executionResultFromHeader.HeaderHash))
+		est.nonceHashes.removeByNonce(executionResultFromHeader.Nonce)
 	}
 
 	est.lastNotarizedResult = headerExecutionResults[len(headerExecutionResults)-1]
+
+	return nil
+}
+
+// SetLastNotarizedResult will set the last notarized execution result
+func (est *executionResultsTracker) SetLastNotarizedResult(executionResult *block.ExecutionResult) error {
+	if executionResult == nil {
+		return ErrNilExecutionResult
+	}
+
+	est.mutex.Lock()
+	est.lastNotarizedResult = executionResult
+	est.mutex.Unlock()
 
 	return nil
 }
