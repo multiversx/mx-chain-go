@@ -49,8 +49,8 @@ jobs:
           BUILD_DIR=${GITHUB_WORKSPACE}/build
           VM_GO_VERSION=$(cat go.mod | grep mx-chain-vm-go | sort -n | tail -n -1| awk -F '/' '{print$3}'| sed 's/ /@/g')
           VM_GO_DIR=${GOPATH}/pkg/mod/github.com/multiversx/${VM_GO_VERSION}
-          VM_14_VERSION=$(cat go.mod | grep mx-chain-vm-v | sort -n | tail -n -1| awk -F '/' '{print$3}'| sed 's/ /@/g')
-          VM_14_DIR=${GOPATH}/pkg/mod/github.com/multiversx/${VM_14_VERSION}
+          LEGACY_VM_VERSION=$(cat go.mod | grep mx-chain-vm-v | sort -n | tail -n -1| awk -F '/' '{print$3}'| sed 's/ /@/g')
+          LEGACY_VM_DIR=${GOPATH}/pkg/mod/github.com/multiversx/${LEGACY_VM_VERSION}
 
           echo "GOOS=${GOOS}" >> $GITHUB_ENV
           echo "GOARCH=${GOARCH}" >> $GITHUB_ENV
@@ -58,7 +58,7 @@ jobs:
           echo "BUILD_DIR=${BUILD_DIR}" >> $GITHUB_ENV
           echo "VM_GO_VERSION=${VM_GO_VERSION}" >> $GITHUB_ENV
           echo "VM_GO_DIR=${VM_GO_DIR}" >> $GITHUB_ENV
-          echo "VM_14_DIR=${VM_14_DIR}" >> $GITHUB_ENV
+          echo "LEGACY_VM_DIR=${LEGACY_VM_DIR}" >> $GITHUB_ENV
 
       - name: Build
         run: |
@@ -75,23 +75,23 @@ jobs:
 
           if [[ "$GOOS" == linux && "$GOARCH" == amd64 ]]; then
             cp --verbose --no-preserve=mode,ownership ${VM_GO_DIR}/wasmer2/libvmexeccapi.so ${BUILD_DIR}/libvmexeccapi.so
-            cp --verbose --no-preserve=mode,ownership ${VM_14_DIR}/wasmer/libwasmer_linux_amd64.so ${BUILD_DIR}/libwasmer_linux_amd64.so
+            cp --verbose --no-preserve=mode,ownership ${LEGACY_VM_DIR}/wasmer/libwasmer_linux_amd64.so ${BUILD_DIR}/libwasmer_linux_amd64.so
           fi
 
           # Actually, there's no runner for this combination (as of March 2024).
           if [[ "$GOOS" == linux && "$GOARCH" == arm64 ]]; then
             cp --verbose --no-preserve=mode,ownership ${VM_GO_DIR}/wasmer2/libvmexeccapi_arm.so ${BUILD_DIR}/libvmexeccapi_arm.so
-            cp --verbose --no-preserve=mode,ownership ${VM_14_DIR}/wasmer/libwasmer_linux_arm64_shim.so ${BUILD_DIR}/libwasmer_linux_arm64_shim.so
+            cp --verbose --no-preserve=mode,ownership ${LEGACY_VM_DIR}/wasmer/libwasmer_linux_arm64_shim.so ${BUILD_DIR}/libwasmer_linux_arm64_shim.so
           fi
 
           if [[ "$GOOS" == darwin && "$GOARCH" == amd64 ]]; then
             cp -v ${VM_GO_DIR}/wasmer2/libvmexeccapi.dylib ${BUILD_DIR}/libvmexeccapi.dylib
-            cp -v ${VM_14_DIR}/wasmer/libwasmer_darwin_amd64.dylib ${BUILD_DIR}/libwasmer_darwin_amd64.dylib
+            cp -v ${LEGACY_VM_DIR}/wasmer/libwasmer_darwin_amd64.dylib ${BUILD_DIR}/libwasmer_darwin_amd64.dylib
           fi
 
           if [[ "$GOOS" == darwin && "$GOARCH" == arm64 ]]; then
             cp -v ${VM_GO_DIR}/wasmer2/libvmexeccapi_arm.dylib ${BUILD_DIR}/libvmexeccapi_arm.dylib
-            cp -v ${VM_14_DIR}/wasmer/libwasmer_darwin_arm64_shim.dylib ${BUILD_DIR}/libwasmer_darwin_arm64_shim.dylib
+            cp -v ${LEGACY_VM_DIR}/wasmer/libwasmer_darwin_arm64_shim.dylib ${BUILD_DIR}/libwasmer_darwin_arm64_shim.dylib
           fi
 
           if [[ "$GOOS" == linux ]]; then
