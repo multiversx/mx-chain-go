@@ -97,7 +97,8 @@ func selectTransactionsFromBunches(
 			err := virtualSession.accumulateConsumedBalance(selectedTransaction)
 			if err != nil {
 				log.Warn("TxCache.selectTransactionsFromBunches error when accumulating consumed balance",
-					"err", err)
+					"err", err,
+					"txHash", selectedTransaction.TxHash)
 			}
 		}
 
