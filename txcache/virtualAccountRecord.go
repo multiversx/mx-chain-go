@@ -20,7 +20,6 @@ func newVirtualAccountRecord(initialNonce core.OptionalUint64, initialBalance *b
 	}
 }
 
-// TODO refactor this path, split into more functions
 func (virtualRecord *virtualAccountRecord) updateVirtualRecord(breadcrumb *accountBreadcrumb) {
 	_ = virtualRecord.consumedBalance.Add(virtualRecord.consumedBalance, breadcrumb.consumedBalance)
 
