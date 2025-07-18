@@ -741,6 +741,7 @@ func TestBenchmark_SecondSelectionWithManyTxsAndSenders(t *testing.T) {
 			PrevHash: []byte("blockHash1"),
 			RootHash: []byte(fmt.Sprintf("rootHash%d", 0)),
 		})
+		require.Nil(t, err)
 
 		selectedTransactions, _ = txpool.SelectTransactions(selectionSession, options, blockchainInfo)
 		require.Equal(t, 0, len(selectedTransactions))
@@ -803,6 +804,7 @@ func TestBenchmark_SecondSelectionWithManyTxsAndSenders(t *testing.T) {
 			PrevHash: []byte("blockHash1"),
 			RootHash: []byte(fmt.Sprintf("rootHash%d", 0)),
 		})
+		require.Nil(t, err)
 
 		selectedTransactions, _ = txpool.SelectTransactions(selectionSession, options, blockchainInfo)
 		require.Equal(t, 0, len(selectedTransactions))
@@ -865,6 +867,7 @@ func TestBenchmark_SecondSelectionWithManyTxsAndSenders(t *testing.T) {
 			PrevHash: []byte("blockHash1"),
 			RootHash: []byte(fmt.Sprintf("rootHash%d", 0)),
 		})
+		require.Nil(t, err)
 
 		selectedTransactions, _ = txpool.SelectTransactions(selectionSession, options, blockchainInfo)
 		require.Equal(t, 0, len(selectedTransactions))
@@ -927,6 +930,7 @@ func TestBenchmark_SecondSelectionWithManyTxsAndSenders(t *testing.T) {
 			PrevHash: []byte("blockHash1"),
 			RootHash: []byte(fmt.Sprintf("rootHash%d", 0)),
 		})
+		require.Nil(t, err)
 
 		selectedTransactions, _ = txpool.SelectTransactions(selectionSession, options, blockchainInfo)
 		require.Equal(t, 0, len(selectedTransactions))
@@ -976,7 +980,6 @@ func TestBenchmark_SecondSelectionWithManyTxsAndSenders(t *testing.T) {
 			PrevHash: []byte("blockHash0"),
 			RootHash: []byte(fmt.Sprintf("rootHash%d", 0)),
 		})
-
 		require.Nil(t, err)
 
 		// measure the time for the second selection (now we use the breadcrumbs to create the virtual records)
@@ -993,6 +996,7 @@ func TestBenchmark_SecondSelectionWithManyTxsAndSenders(t *testing.T) {
 			PrevHash: []byte("blockHash1"),
 			RootHash: []byte(fmt.Sprintf("rootHash%d", 0)),
 		})
+		require.Nil(t, err)
 
 		selectedTransactions, _ = txpool.SelectTransactions(selectionSession, options, blockchainInfo)
 		require.Equal(t, 0, len(selectedTransactions))
@@ -1042,7 +1046,6 @@ func TestBenchmark_SecondSelectionWithManyTxsAndSenders(t *testing.T) {
 			PrevHash: []byte("blockHash0"),
 			RootHash: []byte(fmt.Sprintf("rootHash%d", 0)),
 		})
-
 		require.Nil(t, err)
 
 		// measure the time for the second selection (now we use the breadcrumbs to create the virtual records)
@@ -1059,6 +1062,7 @@ func TestBenchmark_SecondSelectionWithManyTxsAndSenders(t *testing.T) {
 			PrevHash: []byte("blockHash1"),
 			RootHash: []byte(fmt.Sprintf("rootHash%d", 0)),
 		})
+		require.Nil(t, err)
 
 		selectedTransactions, _ = txpool.SelectTransactions(selectionSession, options, blockchainInfo)
 		require.Equal(t, 0, len(selectedTransactions))
@@ -1315,7 +1319,6 @@ func TestBenchmark_SecondSelection10kTransactionsAndVariableNumberOfAddresses(t 
 			PrevHash: []byte("blockHash0"),
 			RootHash: []byte(fmt.Sprintf("rootHash%d", 0)),
 		})
-
 		require.Nil(t, err)
 
 		// measure the time for the second selection (now we use the breadcrumbs to create the virtual records)
@@ -1332,6 +1335,7 @@ func TestBenchmark_SecondSelection10kTransactionsAndVariableNumberOfAddresses(t 
 			PrevHash: []byte("blockHash1"),
 			RootHash: []byte(fmt.Sprintf("rootHash%d", 0)),
 		})
+		require.Nil(t, err)
 
 		selectedTransactions, _ = txpool.SelectTransactions(selectionSession, options, blockchainInfo)
 		require.Equal(t, 0, len(selectedTransactions))
@@ -1376,7 +1380,6 @@ func TestBenchmark_SecondSelection10kTransactionsAndVariableNumberOfAddresses(t 
 			PrevHash: []byte("blockHash0"),
 			RootHash: []byte(fmt.Sprintf("rootHash%d", 0)),
 		})
-
 		require.Nil(t, err)
 
 		// measure the time for the second selection (now we use the breadcrumbs to create the virtual records)
@@ -1393,6 +1396,7 @@ func TestBenchmark_SecondSelection10kTransactionsAndVariableNumberOfAddresses(t 
 			PrevHash: []byte("blockHash1"),
 			RootHash: []byte(fmt.Sprintf("rootHash%d", 0)),
 		})
+		require.Nil(t, err)
 
 		selectedTransactions, _ = txpool.SelectTransactions(selectionSession, options, blockchainInfo)
 		require.Equal(t, 0, len(selectedTransactions))
@@ -1437,6 +1441,7 @@ func TestBenchmark_SecondSelection10kTransactionsAndVariableNumberOfAddresses(t 
 			PrevHash: []byte("blockHash0"),
 			RootHash: []byte(fmt.Sprintf("rootHash%d", 0)),
 		})
+		require.Nil(t, err)
 
 		require.Nil(t, err)
 
@@ -1454,6 +1459,7 @@ func TestBenchmark_SecondSelection10kTransactionsAndVariableNumberOfAddresses(t 
 			PrevHash: []byte("blockHash1"),
 			RootHash: []byte(fmt.Sprintf("rootHash%d", 0)),
 		})
+		require.Nil(t, err)
 
 		selectedTransactions, _ = txpool.SelectTransactions(selectionSession, options, blockchainInfo)
 		require.Equal(t, 0, len(selectedTransactions))
@@ -1498,7 +1504,6 @@ func TestBenchmark_SecondSelection10kTransactionsAndVariableNumberOfAddresses(t 
 			PrevHash: []byte("blockHash0"),
 			RootHash: []byte(fmt.Sprintf("rootHash%d", 0)),
 		})
-
 		require.Nil(t, err)
 
 		// measure the time for the second selection (now we use the breadcrumbs to create the virtual records)
@@ -1515,6 +1520,7 @@ func TestBenchmark_SecondSelection10kTransactionsAndVariableNumberOfAddresses(t 
 			PrevHash: []byte("blockHash1"),
 			RootHash: []byte(fmt.Sprintf("rootHash%d", 0)),
 		})
+		require.Nil(t, err)
 
 		selectedTransactions, _ = txpool.SelectTransactions(selectionSession, options, blockchainInfo)
 		require.Equal(t, 0, len(selectedTransactions))
@@ -1559,7 +1565,6 @@ func TestBenchmark_SecondSelection10kTransactionsAndVariableNumberOfAddresses(t 
 			PrevHash: []byte("blockHash0"),
 			RootHash: []byte(fmt.Sprintf("rootHash%d", 0)),
 		})
-
 		require.Nil(t, err)
 
 		// measure the time for the second selection (now we use the breadcrumbs to create the virtual records)
@@ -1576,6 +1581,7 @@ func TestBenchmark_SecondSelection10kTransactionsAndVariableNumberOfAddresses(t 
 			PrevHash: []byte("blockHash1"),
 			RootHash: []byte(fmt.Sprintf("rootHash%d", 0)),
 		})
+		require.Nil(t, err)
 
 		selectedTransactions, _ = txpool.SelectTransactions(selectionSession, options, blockchainInfo)
 		require.Equal(t, 0, len(selectedTransactions))
@@ -1764,7 +1770,6 @@ func TestBenchmark_SecondSelection10KTransactionAndVariableNumOfTxsInPool(t *tes
 			PrevHash: []byte("blockHash0"),
 			RootHash: []byte(fmt.Sprintf("rootHash%d", 0)),
 		})
-
 		require.Nil(t, err)
 
 		// measure the time for the second selection (now we use the breadcrumbs to create the virtual records)
@@ -1819,7 +1824,6 @@ func TestBenchmark_SecondSelection10KTransactionAndVariableNumOfTxsInPool(t *tes
 			PrevHash: []byte("blockHash0"),
 			RootHash: []byte(fmt.Sprintf("rootHash%d", 0)),
 		})
-
 		require.Nil(t, err)
 
 		// measure the time for the second selection (now we use the breadcrumbs to create the virtual records)
