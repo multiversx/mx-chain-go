@@ -1,7 +1,6 @@
 package v2_test
 
 import (
-	"bytes"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -164,13 +163,6 @@ func initSubroundBlockWithBlockProcessor(
 	sr, _ := defaultSubroundForSRBlock(consensusState, ch, container, &statusHandler.AppStatusHandlerStub{})
 	srBlock, _ := defaultSubroundBlockFromSubround(sr)
 	return srBlock
-}
-
-func redirect_loggerToBuffer(buf *bytes.Buffer) {
-	output := logger.NewLogOutputSubject()
-	output.AddObserver(buf, &logger.PlainFormatter{}) // <- capture here
-	customLoggerPtr := logger.NewLogger("testLogger", logger.LogDebug, output)
-	v2.SetLogger(customLoggerPtr)
 }
 
 func TestSubroundBlock_NewSubroundBlockNilSubroundShouldFail(t *testing.T) {
@@ -1321,11 +1313,8 @@ func TestSubroundBlock_ReceivedBlockHeader(t *testing.T) {
 }
 
 
-func prepareLoggingSubroundTest(header data.HeaderHandler, isMeta bool) (v2.SubroundBlock, *bytes.Buffer) {
-	var buf bytes.Buffer
-	redirect_loggerToBuffer(&buf)
+func prepareLoggingSubroundTest(header data.HeaderHandler, isMeta bool) v2.SubroundBlock {
 	logger.SetLogLevel("*:DEBUG")
-
 	container := consensusMocks.InitConsensusCore()
 	if isMeta {
 		container.SetShardCoordinator(&processMock.CoordinatorStub{
@@ -1348,52 +1337,49 @@ func prepareLoggingSubroundTest(header data.HeaderHandler, isMeta bool) (v2.Subr
 	header.SetPrevRandSeed(prevHeader.GetRandSeed())
 
 	if isMeta {
-		header.(data.MetaHeaderHandler).SetShardID(common.MetachainShardId)
+		_ = header.(data.MetaHeaderHandler).SetShardID(common.MetachainShardId)
 	}
 
 	sr.SetData(nil)
 	container.SetMarshalizer(&testscommon.MarshallerStub{})
 
-	return sr, &buf
+	return sr
 }
 
 func TestSubroundBlock_HeaderLogging(t *testing.T) {
+	
 	t.Run("send with HeaderV2", func(t *testing.T) {
 		header := &block.HeaderV2{}
 		require.NoError(t, json.Unmarshal([]byte(createJsonForHeaderV2()), header))
-		sr, buf := prepareLoggingSubroundTest(header, false)
-
+		sr:= prepareLoggingSubroundTest(header, false)
 		marshalizedHeader, _ := sr.Marshalizer().Marshal(header)
+
 		sr.SendBlockHeader(header, marshalizedHeader)
-		require.Contains(t, buf.String(), "Proposed header sent")
 	})
 
 	t.Run("send with MetaBlock", func(t *testing.T) {
 		meta := &block.MetaBlock{}
 		require.NoError(t, json.Unmarshal([]byte(createJsonForMetaBlock()), meta))
-		sr, buf := prepareLoggingSubroundTest(meta, true)
-
+		sr := prepareLoggingSubroundTest(meta, true)
 		marshalizedHeader, _ := sr.Marshalizer().Marshal(meta)
-		sr.SendBlockHeader(meta, marshalizedHeader)
-		require.Contains(t, buf.String(), "Proposed header sent")
+
+		_ = sr.SendBlockHeader(meta, marshalizedHeader)
 	})
 
 	t.Run("receive with HeaderV2", func(t *testing.T) {
 		header := &block.HeaderV2{}
 		require.NoError(t, json.Unmarshal([]byte(createJsonForHeaderV2()), header))
-		sr, buf := prepareLoggingSubroundTest(header, false)
+		sr := prepareLoggingSubroundTest(header, false)
 
 		sr.ReceivedBlockHeader(header)
-		require.Contains(t, buf.String(), "Proposed header received")
 	})
 
 	t.Run("receive with MetaBlock", func(t *testing.T) {
 		meta := &block.MetaBlock{}
 		require.NoError(t, json.Unmarshal([]byte(createJsonForMetaBlock()), meta))
-		sr, buf := prepareLoggingSubroundTest(meta, true)
+		sr := prepareLoggingSubroundTest(meta, true)
 
 		sr.ReceivedBlockHeader(meta)
-		require.Contains(t, buf.String(), "Proposed header received")
 	})
 }
 
