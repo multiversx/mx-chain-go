@@ -509,7 +509,7 @@ func Test_Selection_ShouldNotSelectSameTransactionsWithSameSender(t *testing.T) 
 	require.NotNil(t, txpool)
 
 	// create the non-virtual selection session, assure we have enough balance
-	selectionSession := createMockSelectionSession(map[string]*accountInfo{
+	selectionSession := createMockSelectionSessionWithSpecificAccountInfo(map[string]*accountInfo{
 		"alice": {
 			balance: oneEGLD,
 			nonce:   0,
@@ -614,7 +614,7 @@ func Test_Selection_ShouldNotSelectSameTransactionsWithDifferentSenders(t *testi
 	require.NotNil(t, txpool)
 
 	// assure we have enough balance for each account
-	selectionSession := createMockSelectionSession(map[string]*accountInfo{
+	selectionSession := createMockSelectionSessionWithSpecificAccountInfo(map[string]*accountInfo{
 		"alice": {
 			balance: oneEGLD,
 			nonce:   0,
@@ -762,7 +762,7 @@ func Test_Selection_ShouldNotSelectSameTransactionsWithManyTransactions(t *testi
 	initialAmount := big.NewInt(int64(numTxsPerSender) * 50_000 * 1_000_000_000)
 
 	senders := []string{"alice", "bob"}
-	selectionSession := createMockSelectionSession(map[string]*accountInfo{
+	selectionSession := createMockSelectionSessionWithSpecificAccountInfo(map[string]*accountInfo{
 		"alice": {
 			balance: initialAmount,
 			nonce:   0,
@@ -898,7 +898,7 @@ func Test_Selection_ShouldNotSelectSameTransactionsWithManyTransactionsAndExecut
 
 	// mock the non-virtual selection session
 	senders := []string{"alice", "bob"}
-	selectionSession := createMockSelectionSession(map[string]*accountInfo{
+	selectionSession := createMockSelectionSessionWithSpecificAccountInfo(map[string]*accountInfo{
 		"alice": {
 			balance: initialAmount,
 			nonce:   0,
@@ -1045,7 +1045,7 @@ func Test_SelectionWhenFeeExceedsBalanceWithMax3TxsSelected(t *testing.T) {
 	require.Nil(t, err)
 	require.NotNil(t, txpool)
 
-	selectionSession := createMockSelectionSession(map[string]*accountInfo{
+	selectionSession := createMockSelectionSessionWithSpecificAccountInfo(map[string]*accountInfo{
 		"alice": {
 			balance: oneQuarterOfEGLD,
 			nonce:   0,
@@ -1213,7 +1213,7 @@ func Test_SelectionWhenFeeExceedsBalanceWithMax2TxsSelected(t *testing.T) {
 	require.Nil(t, err)
 	require.NotNil(t, txpool)
 
-	selectionSession := createMockSelectionSession(map[string]*accountInfo{
+	selectionSession := createMockSelectionSessionWithSpecificAccountInfo(map[string]*accountInfo{
 		"alice": {
 			balance: oneQuarterOfEGLD,
 			nonce:   0,
