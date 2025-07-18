@@ -2,6 +2,7 @@ package transactionEvaluator
 
 import (
 	"encoding/hex"
+	"errors"
 	"sync"
 
 	"github.com/multiversx/mx-chain-core-go/core"
@@ -107,57 +108,49 @@ func NewTransactionSimulator(args ArgsTxSimulator) (*transactionSimulator, error
 
 // ProcessSCR will process the smart contract results in a special environment, where state-writing is not allowed
 func (ts *transactionSimulator) ProcessSCR(scr *smartContractResult.SmartContractResult, currentHeader data.HeaderHandler) (*txSimData.SimulationResultsWithVMOutput, error) {
-	ts.mutOperation.Lock()
-	defer ts.mutOperation.Unlock()
-
-	txStatus := transaction.TxStatusSuccess
-	failReason := ""
-
-	err := ts.blockChainHook.SetCurrentHeader(currentHeader)
-	if err != nil {
-		return nil, err
-	}
-
-	retCode, err := ts.scrProcessor.ProcessSmartContractResult(scr)
-	if err != nil {
-		failReason = err.Error()
-		txStatus = transaction.TxStatusFail
-	} else {
-		if retCode == vmcommon.Ok {
-			txStatus = transaction.TxStatusSuccess
-		}
-	}
-
-	return ts.prepareOutput(scr, txStatus, failReason)
+	return ts.process(scr, currentHeader)
 }
 
 // ProcessTx will process the transaction in a special environment, where state-writing is not allowed
 func (ts *transactionSimulator) ProcessTx(tx *transaction.Transaction, currentHeader data.HeaderHandler) (*txSimData.SimulationResultsWithVMOutput, error) {
+	return ts.process(tx, currentHeader)
+}
+
+func (ts *transactionSimulator) process(txHandler data.TransactionHandler, currentHeader data.HeaderHandler) (*txSimData.SimulationResultsWithVMOutput, error) {
 	ts.mutOperation.Lock()
 	defer ts.mutOperation.Unlock()
-
-	txStatus := transaction.TxStatusPending
-	failReason := ""
 
 	err := ts.blockChainHook.SetCurrentHeader(currentHeader)
 	if err != nil {
 		return nil, err
 	}
 
-	retCode, err := ts.txProcessor.ProcessTransaction(tx)
-	if err != nil {
-		failReason = err.Error()
-		txStatus = transaction.TxStatusFail
-	} else {
-		if retCode == vmcommon.Ok {
-			txStatus = transaction.TxStatusSuccess
-		}
+	var retCode vmcommon.ReturnCode
+
+	switch tx := txHandler.(type) {
+	case *transaction.Transaction:
+		retCode, err = ts.txProcessor.ProcessTransaction(tx)
+	case *smartContractResult.SmartContractResult:
+		retCode, err = ts.scrProcessor.ProcessSmartContractResult(tx)
+	default:
+		return nil, errors.New("unknown type")
 	}
 
-	return ts.prepareOutput(tx, txStatus, failReason)
+	return ts.prepareOutput(txHandler, retCode, err)
 }
 
-func (ts *transactionSimulator) prepareOutput(txHandler data.TransactionHandler, txStatus transaction.TxStatus, failReason string) (*txSimData.SimulationResultsWithVMOutput, error) {
+func (ts *transactionSimulator) prepareOutput(txHandler data.TransactionHandler, retCode vmcommon.ReturnCode, err error) (*txSimData.SimulationResultsWithVMOutput, error) {
+	txStatus := transaction.TxStatusSuccess
+	failReason := ""
+
+	if err != nil {
+		txStatus = transaction.TxStatusFail
+		failReason = err.Error()
+	} else if retCode != vmcommon.Ok {
+		txStatus = transaction.TxStatusFail
+		failReason = retCode.String()
+	}
+
 	results := &txSimData.SimulationResultsWithVMOutput{
 		SimulationResults: transaction.SimulationResults{
 			Status:     txStatus,
@@ -165,7 +158,7 @@ func (ts *transactionSimulator) prepareOutput(txHandler data.TransactionHandler,
 		},
 	}
 
-	err := ts.addIntermediateTxsToResult(results)
+	err = ts.addIntermediateTxsToResult(results)
 	if err != nil {
 		return nil, err
 	}
