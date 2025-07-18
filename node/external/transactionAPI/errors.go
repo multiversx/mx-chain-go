@@ -29,6 +29,9 @@ var ErrNilDataFieldParser = errors.New("nil data field parser")
 // ErrCannotRetrieveTransactions signals that transactions cannot be retrieved
 var ErrCannotRetrieveTransactions = errors.New("transactions cannot be retrieved")
 
+// ErrCannotBuildTransactionsPPUHistogram signals that the transactions PPU histogram cannot be built
+var ErrCannotBuildTransactionsPPUHistogram = errors.New("transactions PPU histogram cannot be built")
+
 // ErrInvalidAddress signals that the address is invalid
 var ErrInvalidAddress = errors.New("invalid address")
 

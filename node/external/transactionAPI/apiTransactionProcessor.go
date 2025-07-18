@@ -492,6 +492,22 @@ func (atp *apiTransactionProcessor) appendGapFromAccountNonceIfNeeded(
 	}
 }
 
+// BuildTransactionsPPUHistogram builds and returns the transactions PPU histogram
+func (atp *apiTransactionProcessor) BuildTransactionsPPUHistogram() (*common.TransactionsPPUHistogram, error) {
+	selfShard := atp.shardCoordinator.SelfId()
+
+	// We are only interested into the "source is me" cache.
+	// Below, calling "ShardCacherIdentifier(selfShard, selfShard)" actually means "source is me" (workaround).
+	cacheId := process.ShardCacherIdentifier(selfShard, selfShard)
+	cache := atp.dataPool.Transactions().ShardDataStore(cacheId)
+	txCache, ok := cache.(*txcache.TxCache)
+	if !ok {
+		return nil, fmt.Errorf("%w, cache has unexpected type: %T", ErrCannotRetrieveTransactions, cache)
+	}
+
+	return txCache.BuildTransactionsPPUHistogram()
+}
+
 func (atp *apiTransactionProcessor) optionallyGetTransactionFromPool(hash []byte) *transaction.ApiTransactionResult {
 	txObj, txType, found := atp.getTxObjFromDataPool(hash)
 	if !found {
