@@ -382,11 +382,11 @@ func TestSelectionTracker_computeNumberOfTxsInMiniBlocks(t *testing.T) {
 		}}
 
 		txCache := newCacheToTest(maxNumBytesPerSenderUpperBoundTest, 3)
-		selTracker, err := NewSelectionTracker(txCache)
+		tracker, err := NewSelectionTracker(txCache)
 		require.Nil(t, err)
 
-		actualRes := selTracker.computeNumberOfTxsInMiniBlocks(blockBody.MiniBlocks)
-		require.Equal(t, 6, actualRes)
+		actualResult := tracker.computeNumberOfTxsInMiniBlocks(blockBody.MiniBlocks)
+		require.Equal(t, 6, actualResult)
 	})
 }
 
