@@ -6,11 +6,6 @@ import (
 
 var log logger.Logger = logger.GetOrCreate("consensus/spos/bls/v2")
 
-// SetLogger allows overriding the default logger, useful for tests.
-func SetLogger(newLogger logger.Logger) {
-	log = newLogger
-}
-
 // waitingAllSigsMaxTimeThreshold specifies the max allocated time for waiting all signatures from the total time of the subround signature
 const waitingAllSigsMaxTimeThreshold = 0.5
 

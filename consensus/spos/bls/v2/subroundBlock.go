@@ -293,9 +293,7 @@ func (sr *subroundBlock) sendBlockHeader(
 		if ok {
 			jsonMarshalizer := &marshal.JsonMarshalizer{}
 		   	jsonBytes, err := jsonMarshalizer.Marshal(header)
-			if err != nil {
-				log.Debug("Could not marshal header", "err", err)
-			} else {
+			if err == nil {
 				log.Debug("Proposed header sent", "header", string(jsonBytes))
 			}
 		}
@@ -305,9 +303,7 @@ func (sr *subroundBlock) sendBlockHeader(
 		if ok {
 			jsonMarshalizer := &marshal.JsonMarshalizer{}
 				jsonBytes, err := jsonMarshalizer.Marshal(header)
-			if err != nil {
-				log.Debug("Could not marshal Header", "err", err)
-			} else {
+			if err == nil {
 				log.Debug("Proposed header sent", "header", string(jsonBytes))
 			}
 	 	} 
@@ -560,9 +556,7 @@ func (sr *subroundBlock) receivedBlockHeader(headerHandler data.HeaderHandler) {
 		if ok {
 			jsonMarshalizer := &marshal.JsonMarshalizer{}
 		   	jsonBytes, err := jsonMarshalizer.Marshal(header)
-			if err != nil {
-				log.Debug("Could not marshal header", "err", err)
-			} else {
+			if err == nil {
 				log.Debug("Proposed header received", "header", string(jsonBytes))
 			}
 		}
@@ -571,9 +565,7 @@ func (sr *subroundBlock) receivedBlockHeader(headerHandler data.HeaderHandler) {
 		if ok {
 			jsonMarshalizer := &marshal.JsonMarshalizer{}
 				jsonBytes, err := jsonMarshalizer.Marshal(header)
-			if err != nil {
-				log.Debug("Could not marshal Header", "err", err)
-			} else {
+			if err == nil {
 				log.Debug("Proposed header received", "header", string(jsonBytes))
 			}
 	 	} 
