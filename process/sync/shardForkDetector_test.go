@@ -1,6 +1,7 @@
 package sync_test
 
 import (
+	"errors"
 	"testing"
 
 	"github.com/multiversx/mx-chain-core-go/core"
@@ -355,6 +356,40 @@ func TestShardForkDetector_ComputeGenesisTimeFromHeader(t *testing.T) {
 		require.Nil(t, err)
 	})
 
+	t.Run("legacy genesis time calculation, should fail if not able to get round duration", func(t *testing.T) {
+		t.Parallel()
+
+		expErr := errors.New("expected err")
+
+		genesisTime := int64(9000)
+		hdrTimeStamp := uint64(10000)
+		hdrRound := uint64(10)
+		bfd, _ := sync.NewMetaForkDetector(
+			&mock.RoundHandlerMock{},
+			&testscommon.TimeCacheStub{},
+			&mock.BlockTrackerMock{},
+			genesisTime,
+			0,
+			&enableEpochsHandlerMock.EnableEpochsHandlerStub{
+				IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
+					return flag != common.SupernovaFlag
+				},
+			},
+			&testscommon.EnableRoundsHandlerStub{},
+			&dataRetriever.ProofsPoolMock{},
+			&chainParameters.ChainParametersHandlerStub{
+				ChainParametersForEpochCalled: func(epoch uint32) (config.ChainParametersByEpochConfig, error) {
+					return config.ChainParametersByEpochConfig{}, expErr
+				},
+			},
+		)
+
+		hdr1 := &block.Header{Nonce: 1, Round: hdrRound, PubKeysBitmap: []byte("X"), TimeStamp: hdrTimeStamp}
+
+		err := bfd.CheckGenesisTimeForHeader(hdr1)
+		require.Equal(t, expErr, err)
+	})
+
 	t.Run("supernova activated in epoch but not in round", func(t *testing.T) {
 		t.Parallel()
 
@@ -400,6 +435,44 @@ func TestShardForkDetector_ComputeGenesisTimeFromHeader(t *testing.T) {
 
 		err := bfd.CheckGenesisTimeForHeader(hdr1)
 		assert.Nil(t, err)
+	})
+
+	t.Run("supernova activated in epoch but not in round, should fail if not able to get round duration", func(t *testing.T) {
+		t.Parallel()
+
+		expErr := errors.New("expected err")
+
+		genesisTime := int64(9000)
+		hdrTimeStamp := uint64(10000)
+		hdrRound := uint64(10)
+		bfd, _ := sync.NewShardForkDetector(
+			&mock.RoundHandlerMock{},
+			&testscommon.TimeCacheStub{},
+			&mock.BlockTrackerMock{},
+			genesisTime,
+			0,
+			&enableEpochsHandlerMock.EnableEpochsHandlerStub{
+				IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
+					return flag == common.SupernovaFlag && epoch > 0
+				},
+			},
+			&testscommon.EnableRoundsHandlerStub{
+				IsFlagEnabledCalled: func(flag common.EnableRoundFlag) bool {
+					return flag != common.SupernovaRoundFlag
+				},
+			},
+			&dataRetriever.ProofsPoolMock{},
+			&chainParameters.ChainParametersHandlerStub{
+				ChainParametersForEpochCalled: func(epoch uint32) (config.ChainParametersByEpochConfig, error) {
+					return config.ChainParametersByEpochConfig{}, expErr
+				},
+			},
+		)
+
+		hdr1 := &block.Header{Nonce: 1, Round: hdrRound, Epoch: 2, PubKeysBitmap: []byte("X"), TimeStamp: hdrTimeStamp}
+
+		err := bfd.CheckGenesisTimeForHeader(hdr1)
+		require.Equal(t, expErr, err)
 	})
 
 	t.Run("supernova activated in epoch and round", func(t *testing.T) {
