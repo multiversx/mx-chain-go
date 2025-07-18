@@ -11,6 +11,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-core-go/data/smartContractResult"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/mock"
@@ -179,6 +180,38 @@ func TestComputeTransactionGasLimit_MoveBalanceInvalidNonceShouldStillComputeCos
 
 	tx := &transaction.Transaction{}
 	cost, err := tce.ComputeTransactionGasLimit(tx)
+	require.Nil(t, err)
+	require.Equal(t, consumedGasUnits, cost.GasUnits)
+}
+
+func TestSimulateSCRCost(t *testing.T) {
+	t.Parallel()
+
+	consumedGasUnits := uint64(4000)
+	args := createArgs()
+	args.TxTypeHandler = &testscommon.TxTypeHandlerMock{
+		ComputeTransactionTypeCalled: func(tx data.TransactionHandler) (process.TransactionType, process.TransactionType, bool) {
+			return process.BuiltInFunctionCall, process.BuiltInFunctionCall, false
+		},
+	}
+
+	args.TxSimulator = &mock.TransactionSimulatorStub{
+		ProcessSCRCalled: func(tx *smartContractResult.SmartContractResult, currentHeader data.HeaderHandler) (*txSimData.SimulationResultsWithVMOutput, error) {
+			return &txSimData.SimulationResultsWithVMOutput{
+				VMOutput: &vmcommon.VMOutput{
+					ReturnCode:   vmcommon.Ok,
+					GasRemaining: 1000,
+				},
+			}, nil
+		},
+	}
+
+	tce, _ := NewAPITransactionEvaluator(args)
+
+	scr := &smartContractResult.SmartContractResult{
+		GasLimit: 5000,
+	}
+	cost, err := tce.SimulateSCRExecutionCost(scr)
 	require.Nil(t, err)
 	require.Equal(t, consumedGasUnits, cost.GasUnits)
 }

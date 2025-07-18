@@ -9,6 +9,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/alteredAccount"
 	"github.com/multiversx/mx-chain-core-go/data/api"
 	"github.com/multiversx/mx-chain-core-go/data/esdt"
+	"github.com/multiversx/mx-chain-core-go/data/smartContractResult"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-core-go/data/validator"
 	"github.com/multiversx/mx-chain-core-go/data/vm"
@@ -168,6 +169,11 @@ func (inf *initialNodeFacade) SendBulkTransactions(_ []*transaction.Transaction)
 
 // SimulateTransactionExecution returns nil and error
 func (inf *initialNodeFacade) SimulateTransactionExecution(_ *transaction.Transaction) (*txSimData.SimulationResultsWithVMOutput, error) {
+	return nil, errNodeStarting
+}
+
+// SimulateSCRExecutionCost returns nil and error
+func (inf *initialNodeFacade) SimulateSCRExecutionCost(_ *smartContractResult.SmartContractResult) (*transaction.CostResponse, error) {
 	return nil, errNodeStarting
 }
 
