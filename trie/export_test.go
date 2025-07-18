@@ -82,7 +82,7 @@ func IsBaseTrieStorageManager(tsm common.StorageManager) bool {
 	return ok
 }
 
-// IsInEpochTrieStorageManager -
+// IsTrieStorageManagerInEpoch -
 func IsTrieStorageManagerInEpoch(tsm common.StorageManager) bool {
 	_, ok := tsm.(*trieStorageManagerInEpoch)
 	return ok
