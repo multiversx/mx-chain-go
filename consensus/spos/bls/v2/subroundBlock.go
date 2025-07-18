@@ -288,10 +288,7 @@ func (sr *subroundBlock) sendBlockHeader(
 	sr.SetData(headerHash)
 	sr.SetHeader(headerHandler)
 
-	log.Debug("Proposed header sent (marshalledHeader)", "header", string(marshalledHeader))
-
 	if headerHandler.GetShardID() == common.MetachainShardId {
-		log.Debug("Proposed header is a meta block")
 		header, ok:= headerHandler.(*block.MetaBlock) 
 		if ok {
 			jsonMarshalizer := &marshal.JsonMarshalizer{}
@@ -302,8 +299,8 @@ func (sr *subroundBlock) sendBlockHeader(
 				log.Debug("Proposed header sent", "header", string(jsonBytes))
 			}
 		}
+
 	} else {
-		log.Debug("Proposed header is a regular block")
 		header, ok := headerHandler.(*block.HeaderV2)
 		if ok {
 			jsonMarshalizer := &marshal.JsonMarshalizer{}
@@ -311,7 +308,7 @@ func (sr *subroundBlock) sendBlockHeader(
 			if err != nil {
 				log.Debug("Could not marshal Header", "err", err)
 			} else {
-				log.Debug("Proposed header received", "header", string(jsonBytes))
+				log.Debug("Proposed header sent", "header", string(jsonBytes))
 			}
 	 	} 
 	}
