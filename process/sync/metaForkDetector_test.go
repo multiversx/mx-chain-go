@@ -1,8 +1,8 @@
 package sync_test
 
 import (
+	"errors"
 	"testing"
-	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data/block"
@@ -359,9 +359,7 @@ func TestMetaForkDetector_ComputeGenesisTimeFromHeader(t *testing.T) {
 		t.Parallel()
 
 		roundDuration := uint64(100)
-		roundHandlerMock := &mock.RoundHandlerMock{
-			RoundTimeDuration: time.Duration(roundDuration) * time.Second,
-		}
+		roundHandlerMock := &mock.RoundHandlerMock{}
 
 		genesisTime := int64(9000)
 		hdrTimeStamp := uint64(10000)
@@ -379,7 +377,13 @@ func TestMetaForkDetector_ComputeGenesisTimeFromHeader(t *testing.T) {
 			},
 			&testscommon.EnableRoundsHandlerStub{},
 			&dataRetriever.ProofsPoolMock{},
-			&chainParameters.ChainParametersHandlerStub{},
+			&chainParameters.ChainParametersHandlerStub{
+				ChainParametersForEpochCalled: func(epoch uint32) (config.ChainParametersByEpochConfig, error) {
+					return config.ChainParametersByEpochConfig{
+						RoundDuration: roundDuration * 1000,
+					}, nil
+				},
+			},
 		)
 
 		hdr1 := &block.Header{Nonce: 1, Round: hdrRound, PubKeysBitmap: []byte("X"), TimeStamp: hdrTimeStamp}
@@ -388,13 +392,45 @@ func TestMetaForkDetector_ComputeGenesisTimeFromHeader(t *testing.T) {
 		require.Nil(t, err)
 	})
 
+	t.Run("legacy genesis time calculation, should fail if not able to get round duration", func(t *testing.T) {
+		t.Parallel()
+
+		expErr := errors.New("expected err")
+
+		genesisTime := int64(9000)
+		hdrTimeStamp := uint64(10000)
+		hdrRound := uint64(10)
+		bfd, _ := sync.NewMetaForkDetector(
+			&mock.RoundHandlerMock{},
+			&testscommon.TimeCacheStub{},
+			&mock.BlockTrackerMock{},
+			genesisTime,
+			0,
+			&enableEpochsHandlerMock.EnableEpochsHandlerStub{
+				IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
+					return flag != common.SupernovaFlag
+				},
+			},
+			&testscommon.EnableRoundsHandlerStub{},
+			&dataRetriever.ProofsPoolMock{},
+			&chainParameters.ChainParametersHandlerStub{
+				ChainParametersForEpochCalled: func(epoch uint32) (config.ChainParametersByEpochConfig, error) {
+					return config.ChainParametersByEpochConfig{}, expErr
+				},
+			},
+		)
+
+		hdr1 := &block.Header{Nonce: 1, Round: hdrRound, PubKeysBitmap: []byte("X"), TimeStamp: hdrTimeStamp}
+
+		err := bfd.CheckGenesisTimeForHeader(hdr1)
+		require.Equal(t, expErr, err)
+	})
+
 	t.Run("supernova activated in epoch but not in round", func(t *testing.T) {
 		t.Parallel()
 
 		roundDuration := uint64(100)
-		roundHandlerMock := &mock.RoundHandlerMock{
-			RoundTimeDuration: time.Duration(roundDuration) * time.Second,
-		}
+		roundHandlerMock := &mock.RoundHandlerMock{}
 
 		genesisTime := int64(9000)
 		hdrTimeStamp := uint64(10000000) // as milliseconds
@@ -416,7 +452,13 @@ func TestMetaForkDetector_ComputeGenesisTimeFromHeader(t *testing.T) {
 				},
 			},
 			&dataRetriever.ProofsPoolMock{},
-			&chainParameters.ChainParametersHandlerStub{},
+			&chainParameters.ChainParametersHandlerStub{
+				ChainParametersForEpochCalled: func(epoch uint32) (config.ChainParametersByEpochConfig, error) {
+					return config.ChainParametersByEpochConfig{
+						RoundDuration: roundDuration * 1000,
+					}, nil
+				},
+			},
 		)
 
 		hdr1 := &block.Header{
@@ -431,13 +473,49 @@ func TestMetaForkDetector_ComputeGenesisTimeFromHeader(t *testing.T) {
 		assert.Nil(t, err)
 	})
 
+	t.Run("supernova activated in epoch but not in round, should fail if not able to get round duration", func(t *testing.T) {
+		t.Parallel()
+
+		expErr := errors.New("expected err")
+
+		genesisTime := int64(9000)
+		hdrTimeStamp := uint64(10000)
+		hdrRound := uint64(10)
+		bfd, _ := sync.NewMetaForkDetector(
+			&mock.RoundHandlerMock{},
+			&testscommon.TimeCacheStub{},
+			&mock.BlockTrackerMock{},
+			genesisTime,
+			0,
+			&enableEpochsHandlerMock.EnableEpochsHandlerStub{
+				IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
+					return flag == common.SupernovaFlag && epoch > 0
+				},
+			},
+			&testscommon.EnableRoundsHandlerStub{
+				IsFlagEnabledCalled: func(flag common.EnableRoundFlag) bool {
+					return flag != common.SupernovaRoundFlag
+				},
+			},
+			&dataRetriever.ProofsPoolMock{},
+			&chainParameters.ChainParametersHandlerStub{
+				ChainParametersForEpochCalled: func(epoch uint32) (config.ChainParametersByEpochConfig, error) {
+					return config.ChainParametersByEpochConfig{}, expErr
+				},
+			},
+		)
+
+		hdr1 := &block.Header{Nonce: 1, Round: hdrRound, Epoch: 2, PubKeysBitmap: []byte("X"), TimeStamp: hdrTimeStamp}
+
+		err := bfd.CheckGenesisTimeForHeader(hdr1)
+		require.Equal(t, expErr, err)
+	})
+
 	t.Run("supernova activated in epoch and round", func(t *testing.T) {
 		t.Parallel()
 
 		roundDuration := uint64(1000)
-		roundHandlerMock := &mock.RoundHandlerMock{
-			RoundTimeDuration: time.Duration(roundDuration) * time.Millisecond,
-		}
+		roundHandlerMock := &mock.RoundHandlerMock{}
 
 		genesisTime := int64(900)
 		supernovaGenesisTime := int64(90000)
