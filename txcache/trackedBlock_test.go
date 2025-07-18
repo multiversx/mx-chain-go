@@ -21,8 +21,8 @@ func TestTrackedBlock_sameNonce(t *testing.T) {
 	t.Run("same nonce and same prev hash", func(t *testing.T) {
 		t.Parallel()
 
-		trackedBlock1 := newTrackedBlock(0, []byte("blockHash1"), []byte("blockRootHash1"), []byte("blockPrevHash1"))
-		trackedBlock2 := newTrackedBlock(0, []byte("blockHash1"), []byte("blockRootHash2"), []byte("blockPrevHash1"))
+		trackedBlock1 := newTrackedBlock(0, []byte("blockHash1"), []byte("blockRootHash1"), []byte("blockPrevHash1"), nil)
+		trackedBlock2 := newTrackedBlock(0, []byte("blockHash1"), []byte("blockRootHash2"), []byte("blockPrevHash1"), nil)
 		equalBlocks := trackedBlock1.sameNonce(trackedBlock2)
 		require.True(t, equalBlocks)
 	})
@@ -30,8 +30,8 @@ func TestTrackedBlock_sameNonce(t *testing.T) {
 	t.Run("different nonce", func(t *testing.T) {
 		t.Parallel()
 
-		trackedBlock1 := newTrackedBlock(0, []byte("blockHash1"), []byte("blockRootHash1"), []byte("blockPrevHash1"))
-		trackedBlock2 := newTrackedBlock(1, []byte("blockHash1"), []byte("blockRootHash1"), []byte("blockPrevHash1"))
+		trackedBlock1 := newTrackedBlock(0, []byte("blockHash1"), []byte("blockRootHash1"), []byte("blockPrevHash1"), nil)
+		trackedBlock2 := newTrackedBlock(1, []byte("blockHash1"), []byte("blockRootHash1"), []byte("blockPrevHash1"), nil)
 		equalBlocks := trackedBlock1.sameNonce(trackedBlock2)
 		require.False(t, equalBlocks)
 	})
@@ -43,7 +43,7 @@ func TestTrackedBlock_getBreadcrumb(t *testing.T) {
 	t.Run("should return new breadcrumb", func(t *testing.T) {
 		t.Parallel()
 
-		block := newTrackedBlock(0, []byte("blockHash1"), []byte("blockRootHash1"), []byte("blockPrevHash1"))
+		block := newTrackedBlock(0, []byte("blockHash1"), []byte("blockRootHash1"), []byte("blockPrevHash1"), nil)
 		block.breadcrumbsByAddress = map[string]*accountBreadcrumb{
 			"alice": newAccountBreadcrumb(core.OptionalUint64{
 				Value:    0,
@@ -73,7 +73,7 @@ func TestTrackedBlock_getBreadcrumb(t *testing.T) {
 		}
 		expectedBreadcrumb := newAccountBreadcrumb(nonce, nonce, big.NewInt(1))
 
-		block := newTrackedBlock(0, []byte("blockHash1"), []byte("blockRootHash1"), []byte("blockPrevHash1"))
+		block := newTrackedBlock(0, []byte("blockHash1"), []byte("blockRootHash1"), []byte("blockPrevHash1"), nil)
 		block.breadcrumbsByAddress = map[string]*accountBreadcrumb{
 			"alice": expectedBreadcrumb,
 		}
@@ -89,7 +89,7 @@ func TestTrackedBlock_compileBreadcrumb(t *testing.T) {
 	t.Run("sender does not exist in map", func(t *testing.T) {
 		t.Parallel()
 
-		block := newTrackedBlock(0, []byte("blockHash1"), []byte("blockRootHash1"), []byte("blockPrevHash1"))
+		block := newTrackedBlock(0, []byte("blockHash1"), []byte("blockRootHash1"), []byte("blockPrevHash1"), nil)
 
 		txs := []*WrappedTransaction{
 			{
@@ -126,7 +126,7 @@ func TestTrackedBlock_compileBreadcrumb(t *testing.T) {
 	t.Run("sender exists in map, nil fee payer", func(t *testing.T) {
 		t.Parallel()
 
-		block := newTrackedBlock(0, []byte("blockHash1"), []byte("blockRootHash1"), []byte("blockPrevHash1"))
+		block := newTrackedBlock(0, []byte("blockHash1"), []byte("blockRootHash1"), []byte("blockPrevHash1"), nil)
 		block.breadcrumbsByAddress = map[string]*accountBreadcrumb{
 			"alice": newAccountBreadcrumb(core.OptionalUint64{
 				Value:    1,
@@ -172,7 +172,7 @@ func TestTrackedBlock_compileBreadcrumb(t *testing.T) {
 	t.Run("sender exists in map, fee payer does not", func(t *testing.T) {
 		t.Parallel()
 
-		block := newTrackedBlock(0, []byte("blockHash1"), []byte("blockRootHash1"), []byte("blockPrevHash1"))
+		block := newTrackedBlock(0, []byte("blockHash1"), []byte("blockRootHash1"), []byte("blockPrevHash1"), nil)
 		block.breadcrumbsByAddress = map[string]*accountBreadcrumb{
 			"alice": newAccountBreadcrumb(core.OptionalUint64{
 				Value:    1,
@@ -221,7 +221,7 @@ func TestTrackedBlock_compileBreadcrumb(t *testing.T) {
 	t.Run("sender and fee payer existing in map", func(t *testing.T) {
 		t.Parallel()
 
-		block := newTrackedBlock(0, []byte("blockHash1"), []byte("blockRootHash1"), []byte("blockPrevHash1"))
+		block := newTrackedBlock(0, []byte("blockHash1"), []byte("blockRootHash1"), []byte("blockPrevHash1"), nil)
 		block.breadcrumbsByAddress = map[string]*accountBreadcrumb{
 			"alice": newAccountBreadcrumb(core.OptionalUint64{
 				Value:    1,
