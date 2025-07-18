@@ -2,7 +2,6 @@ package sync_test
 
 import (
 	"testing"
-	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
@@ -323,9 +322,7 @@ func TestShardForkDetector_ComputeGenesisTimeFromHeader(t *testing.T) {
 		t.Parallel()
 
 		roundDuration := uint64(100)
-		roundHandlerMock := &mock.RoundHandlerMock{
-			RoundTimeDuration: time.Duration(roundDuration) * time.Second,
-		}
+		roundHandlerMock := &mock.RoundHandlerMock{}
 
 		genesisTime := int64(9000)
 		hdrTimeStamp := uint64(10000)
@@ -343,7 +340,13 @@ func TestShardForkDetector_ComputeGenesisTimeFromHeader(t *testing.T) {
 			},
 			&testscommon.EnableRoundsHandlerStub{},
 			&dataRetriever.ProofsPoolMock{},
-			&chainParameters.ChainParametersHandlerStub{},
+			&chainParameters.ChainParametersHandlerStub{
+				ChainParametersForEpochCalled: func(epoch uint32) (config.ChainParametersByEpochConfig, error) {
+					return config.ChainParametersByEpochConfig{
+						RoundDuration: roundDuration * 1000,
+					}, nil
+				},
+			},
 		)
 
 		hdr1 := &block.Header{Nonce: 1, Round: hdrRound, PubKeysBitmap: []byte("X"), TimeStamp: hdrTimeStamp}
@@ -356,9 +359,7 @@ func TestShardForkDetector_ComputeGenesisTimeFromHeader(t *testing.T) {
 		t.Parallel()
 
 		roundDuration := uint64(100)
-		roundHandlerMock := &mock.RoundHandlerMock{
-			RoundTimeDuration: time.Duration(roundDuration) * time.Second,
-		}
+		roundHandlerMock := &mock.RoundHandlerMock{}
 
 		genesisTime := int64(9000)
 		hdrTimeStamp := uint64(10000000) // as milliseconds
@@ -380,7 +381,13 @@ func TestShardForkDetector_ComputeGenesisTimeFromHeader(t *testing.T) {
 				},
 			},
 			&dataRetriever.ProofsPoolMock{},
-			&chainParameters.ChainParametersHandlerStub{},
+			&chainParameters.ChainParametersHandlerStub{
+				ChainParametersForEpochCalled: func(epoch uint32) (config.ChainParametersByEpochConfig, error) {
+					return config.ChainParametersByEpochConfig{
+						RoundDuration: roundDuration * 1000,
+					}, nil
+				},
+			},
 		)
 
 		hdr1 := &block.Header{
@@ -399,9 +406,7 @@ func TestShardForkDetector_ComputeGenesisTimeFromHeader(t *testing.T) {
 		t.Parallel()
 
 		roundDuration := uint64(1000)
-		roundHandlerMock := &mock.RoundHandlerMock{
-			RoundTimeDuration: time.Duration(roundDuration) * time.Millisecond,
-		}
+		roundHandlerMock := &mock.RoundHandlerMock{}
 
 		genesisTime := int64(900)
 		supernovaGenesisTime := int64(90000)
