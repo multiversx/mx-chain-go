@@ -200,7 +200,7 @@ func (tg *transactionGroup) simulateSCR(c *gin.Context) {
 
 	start := time.Now()
 	executionResults, err := tg.getFacade().SimulateSCRExecutionCost(&scr)
-	logging.LogAPIActionDurationIfNeeded(start, "API call: SimulateTransactionExecution")
+	logging.LogAPIActionDurationIfNeeded(start, "API call: SimulateSCRExecution")
 	if err != nil {
 		c.JSON(
 			http.StatusInternalServerError,
