@@ -135,6 +135,26 @@ func trySetTheNewValue(value *reflect.Value, newValue interface{}) error {
 
 func trySetSliceValue(value *reflect.Value, newValue interface{}) error {
 	sliceVal := reflect.ValueOf(newValue)
+	
+	// Smart merge only applies to map-based overrides (from TOML config),
+	// not to Go struct overrides which should do complete replacement
+	isMapBasedOverride := false
+	if sliceVal.Len() > 0 {
+		firstItem := sliceVal.Index(0)
+		if firstItem.Kind() == reflect.Interface && !firstItem.IsNil() {
+			elem := firstItem.Elem()
+			if elem.IsValid() && elem.Kind() == reflect.Map {
+				isMapBasedOverride = true
+			}
+		}
+	}
+	
+	// If it's map-based override (from TOML), always use smart merging to preserve unspecified fields
+	if isMapBasedOverride {
+		return tryMergeSliceValue(value, newValue)
+	}
+	
+	// Otherwise, use the original behavior for complete replacement
 	newSlice := reflect.MakeSlice(value.Type(), sliceVal.Len(), sliceVal.Len())
 
 	for i := 0; i < sliceVal.Len(); i++ {
@@ -151,6 +171,55 @@ func trySetSliceValue(value *reflect.Value, newValue interface{}) error {
 
 	value.Set(newSlice)
 
+	return nil
+}
+
+func tryMergeSliceValue(value *reflect.Value, newValue interface{}) error {
+	sliceVal := reflect.ValueOf(newValue)
+	existingSlice := *value
+	
+	// Create a new slice with the maximum length needed
+	maxLen := existingSlice.Len()
+	if sliceVal.Len() > maxLen {
+		maxLen = sliceVal.Len()
+	}
+	newSlice := reflect.MakeSlice(value.Type(), maxLen, maxLen)
+	
+	// Copy existing elements first (for indices that exist in original array)
+	for i := 0; i < existingSlice.Len(); i++ {
+		newSlice.Index(i).Set(existingSlice.Index(i))
+	}
+	
+	// For indices beyond existing array, copy from the last existing element if available
+	// This way new elements inherit sensible defaults rather than zero values
+	if existingSlice.Len() > 0 {
+		lastExistingElement := existingSlice.Index(existingSlice.Len() - 1)
+		for i := existingSlice.Len(); i < maxLen; i++ {
+			// Create a copy of the last existing element
+			newSlice.Index(i).Set(lastExistingElement)
+		}
+	} else {
+		// Fallback to zero values if no existing elements
+		elementType := value.Type().Elem()
+		for i := existingSlice.Len(); i < maxLen; i++ {
+			defaultElement := reflect.New(elementType).Elem()
+			newSlice.Index(i).Set(defaultElement)
+		}
+	}
+	
+	// Now merge override values into the corresponding elements
+	for i := 0; i < sliceVal.Len(); i++ {
+		item := sliceVal.Index(i)
+		targetItem := newSlice.Index(i)
+		
+		// Merge the override map into the existing or copied struct
+		err := trySetTheNewValue(&targetItem, item.Interface())
+		if err != nil {
+			return err
+		}
+	}
+	
+	value.Set(newSlice)
 	return nil
 }
 
