@@ -897,6 +897,8 @@ const (
 	NetStatisticsOrder
 	// OldDatabaseCleanOrder defines the order in which oldDatabaseCleaner component is notified of a start of epoch event
 	OldDatabaseCleanOrder
+	// EpochTxBroadcastDebug defines the order in which epochTxBroadcastDebug is notifier of a start of epoch event
+	EpochTxBroadcastDebug = 9
 )
 
 // NodeState specifies what type of state a node could have
@@ -1279,6 +1281,7 @@ const (
 	RelayedTransactionsV3Flag                           core.EnableEpochFlag = "RelayedTransactionsV3Flag"
 	RelayedTransactionsV3FixESDTTransferFlag            core.EnableEpochFlag = "RelayedTransactionsV3FixESDTTransferFlag"
 	AndromedaFlag                                       core.EnableEpochFlag = "AndromedaFlag"
+	SupernovaFlag                                       core.EnableEpochFlag = "SupernovaFlag"
 	CheckBuiltInCallOnTransferValueAndFailExecutionFlag core.EnableEpochFlag = "CheckBuiltInCallOnTransferValueAndFailExecutionFlag"
 	MaskInternalDependenciesErrorsFlag                  core.EnableEpochFlag = "MaskInternalDependenciesErrorsFlag"
 	FixBackTransferOPCODEFlag                           core.EnableEpochFlag = "FixBackTransferOPCODEFlag"
