@@ -581,7 +581,9 @@ func Test_Selection_ShouldNotSelectSameTransactionsWithSameSender(t *testing.T) 
 		Nonce:    0,
 		PrevHash: []byte("blockHash0"),
 		RootHash: []byte(fmt.Sprintf("rootHash%d", 0)),
-	})
+	},
+		selectionSession,
+		defaultBlockchainInfo)
 	require.Nil(t, err)
 
 	// do the second selection. should not return same txs
@@ -722,11 +724,14 @@ func Test_Selection_ShouldNotSelectSameTransactionsWithDifferentSenders(t *testi
 	require.Equal(t, "txHash1", string(selectedTransactions[1].TxHash))
 
 	// propose the selected transactions
-	err = txpool.OnProposedBlock([]byte("blockHash1"), &blockBody, &block.Header{
-		Nonce:    1,
-		PrevHash: []byte("blockHash0"),
-		RootHash: []byte(fmt.Sprintf("rootHash%d", 0)),
-	})
+	err = txpool.OnProposedBlock([]byte("blockHash1"), &blockBody,
+		&block.Header{
+			Nonce:    1,
+			PrevHash: []byte("blockHash0"),
+			RootHash: []byte(fmt.Sprintf("rootHash%d", 0)),
+		},
+		selectionSession,
+		defaultBlockchainInfo)
 	require.Nil(t, err)
 
 	// do the second selection. should not return same txs
@@ -839,7 +844,9 @@ func Test_Selection_ShouldNotSelectSameTransactionsWithManyTransactions(t *testi
 		Nonce:    1,
 		PrevHash: []byte("blockHash0"),
 		RootHash: []byte(fmt.Sprintf("rootHash%d", 0)),
-	})
+	},
+		selectionSession,
+		defaultBlockchainInfo)
 	require.Nil(t, err)
 
 	// do the second selection (the rest of the transactions should be selected)
@@ -858,11 +865,14 @@ func Test_Selection_ShouldNotSelectSameTransactionsWithManyTransactions(t *testi
 			TxHashes: proposedTxs,
 		},
 	}}
-	err = txpool.OnProposedBlock([]byte("blockHash2"), &proposedBlock2, &block.Header{
-		Nonce:    1,
-		PrevHash: []byte("blockHash1"),
-		RootHash: []byte(fmt.Sprintf("rootHash%d", 1)),
-	})
+	err = txpool.OnProposedBlock([]byte("blockHash2"), &proposedBlock2,
+		&block.Header{
+			Nonce:    1,
+			PrevHash: []byte("blockHash1"),
+			RootHash: []byte(fmt.Sprintf("rootHash%d", 1)),
+		},
+		selectionSession,
+		defaultBlockchainInfo)
 	require.Nil(t, err)
 
 	// do the last selection (no tx should be returned)
@@ -970,11 +980,14 @@ func Test_Selection_ShouldNotSelectSameTransactionsWithManyTransactionsAndExecut
 			TxHashes: proposedTxs,
 		},
 	}}
-	err = txpool.OnProposedBlock([]byte("blockHash1"), &proposedBlock1, &block.Header{
-		Nonce:    1,
-		PrevHash: []byte("blockHash0"),
-		RootHash: []byte(fmt.Sprintf("rootHash%d", 0)),
-	})
+	err = txpool.OnProposedBlock([]byte("blockHash1"), &proposedBlock1,
+		&block.Header{
+			Nonce:    1,
+			PrevHash: []byte("blockHash0"),
+			RootHash: []byte(fmt.Sprintf("rootHash%d", 0)),
+		},
+		selectionSession,
+		defaultBlockchainInfo)
 	require.Nil(t, err)
 
 	// do the second selection (the rest of the transactions should be selected)
@@ -1007,11 +1020,14 @@ func Test_Selection_ShouldNotSelectSameTransactionsWithManyTransactionsAndExecut
 		},
 	}}
 
-	err = txpool.OnProposedBlock([]byte("blockHash2"), &proposedBlock2, &block.Header{
-		Nonce:    2,
-		PrevHash: []byte("blockHash1"),
-		RootHash: []byte(fmt.Sprintf("rootHash%d", 1)),
-	})
+	err = txpool.OnProposedBlock([]byte("blockHash2"), &proposedBlock2,
+		&block.Header{
+			Nonce:    2,
+			PrevHash: []byte("blockHash1"),
+			RootHash: []byte(fmt.Sprintf("rootHash%d", 1)),
+		},
+		selectionSession,
+		defaultBlockchainInfo)
 	require.Nil(t, err)
 
 	blockchainInfo = holders.NewBlockchainInfo([]byte("blockHash1"), 3)
@@ -1180,11 +1196,14 @@ func Test_SelectionWhenFeeExceedsBalanceWithMax3TxsSelected(t *testing.T) {
 		},
 	}}
 
-	err = txpool.OnProposedBlock([]byte("blockHash1"), &proposedBlock1, &block.Header{
-		Nonce:    0,
-		PrevHash: []byte("blockHash0"),
-		RootHash: []byte(fmt.Sprintf("rootHash%d", 0)),
-	})
+	err = txpool.OnProposedBlock([]byte("blockHash1"), &proposedBlock1,
+		&block.Header{
+			Nonce:    0,
+			PrevHash: []byte("blockHash0"),
+			RootHash: []byte(fmt.Sprintf("rootHash%d", 0)),
+		},
+		selectionSession,
+		defaultBlockchainInfo)
 	require.Nil(t, err)
 
 	// do the second selection, last tx should not be returned (relayer has insufficient balance)
@@ -1347,11 +1366,14 @@ func Test_SelectionWhenFeeExceedsBalanceWithMax2TxsSelected(t *testing.T) {
 		},
 	}}
 
-	err = txpool.OnProposedBlock([]byte("blockHash1"), &proposedBlock1, &block.Header{
-		Nonce:    0,
-		PrevHash: []byte("blockHash0"),
-		RootHash: []byte(fmt.Sprintf("rootHash%d", 0)),
-	})
+	err = txpool.OnProposedBlock([]byte("blockHash1"), &proposedBlock1,
+		&block.Header{
+			Nonce:    0,
+			PrevHash: []byte("blockHash0"),
+			RootHash: []byte(fmt.Sprintf("rootHash%d", 0)),
+		},
+		selectionSession,
+		defaultBlockchainInfo)
 	require.Nil(t, err)
 
 	// do the second selection, last tx should not be returned (relayer has insufficient balance)
