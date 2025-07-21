@@ -119,7 +119,7 @@ func detectSkippableSender(virtualSession *virtualSelectionSession, item *transa
 	nonce, err := virtualSession.getNonce(item.sender)
 	if err != nil {
 		log.Debug("detectSkippableSender", "err", err)
-		return false
+		return true
 	}
 	if item.detectInitialGap(nonce) {
 		return true
@@ -138,7 +138,7 @@ func detectSkippableTransaction(virtualSession *virtualSelectionSession, item *t
 	nonce, err := virtualSession.getNonce(item.sender)
 	if err != nil {
 		log.Debug("detectSkippableTransaction", "err", err)
-		return false
+		return true
 	}
 	if item.detectLowerNonce(nonce) {
 		return true
