@@ -3,14 +3,16 @@ package v2
 import (
 	"bytes"
 	"context"
+	"encoding/json"
+	"fmt"
+	"reflect"
+	"strings"
 	"sync"
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
-	"github.com/multiversx/mx-chain-core-go/data/block"
-	"github.com/multiversx/mx-chain-core-go/marshal"
 
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/consensus"
@@ -262,6 +264,56 @@ func (sr *subroundBlock) sendBlockBody(
 	return true
 }
 
+func prettifyValue(val reflect.Value, typ reflect.Type) interface{} {
+    if val.Kind() == reflect.Ptr {
+        val = val.Elem()
+        if !val.IsValid() {
+            return nil
+        }
+        typ = val.Type()
+    }
+
+    if val.Kind() == reflect.Struct {
+        out := make(map[string]interface{})
+        for i := 0; i < val.NumField(); i++ {
+            field := val.Field(i)
+            fieldType := typ.Field(i)
+            name := fieldType.Tag.Get("json")
+            if name == "" {
+                name = fieldType.Name
+            } else {
+                name = strings.Split(name, ",")[0]
+            }
+
+			if fieldType.PkgPath != "" {
+				// unexported field
+				out[name] = "<unexported>"
+				continue
+			}
+
+            if field.Kind() == reflect.Slice && field.Type().Elem().Kind() == reflect.Uint8 {
+                out[name] = fmt.Sprintf("%x", field.Bytes()) //string(field.Bytes())
+            } else {
+                out[name] = prettifyValue(field, field.Type())
+            }
+        }
+        return out
+    }
+
+    return val.Interface()
+}
+
+func PrettifyStruct(x interface{}) (string, error) {
+    val := reflect.ValueOf(x)
+    result := prettifyValue(val, val.Type())
+
+    jsonBytes, err := json.Marshal(result)
+    if err != nil {
+        return "", err
+    }
+    return string(jsonBytes), nil
+}
+
 // sendBlockHeader method sends the proposed block header in the subround Block
 func (sr *subroundBlock) sendBlockHeader(
 	headerHandler data.HeaderHandler,
@@ -288,25 +340,9 @@ func (sr *subroundBlock) sendBlockHeader(
 	sr.SetData(headerHash)
 	sr.SetHeader(headerHandler)
 
-	if headerHandler.GetShardID() == common.MetachainShardId {
-		header, ok:= headerHandler.(*block.MetaBlock) 
-		if ok {
-			jsonMarshalizer := &marshal.JsonMarshalizer{}
-		   	jsonBytes, err := jsonMarshalizer.Marshal(header)
-			if err == nil {
-				log.Debug("Proposed header sent", "header", string(jsonBytes))
-			}
-		}
-
-	} else {
-		header, ok := headerHandler.(*block.HeaderV2)
-		if ok {
-			jsonMarshalizer := &marshal.JsonMarshalizer{}
-				jsonBytes, err := jsonMarshalizer.Marshal(header)
-			if err == nil {
-				log.Debug("Proposed header sent", "header", string(jsonBytes))
-			}
-	 	} 
+	headerOutput, err := PrettifyStruct(headerHandler)
+	if err == nil {
+		log.Debug("Proposed header sent", "header", headerOutput)
 	}
 	
 	return true
@@ -551,24 +587,9 @@ func (sr *subroundBlock) receivedBlockHeader(headerHandler data.HeaderHandler) {
 		spos.LeaderPeerHonestyIncreaseFactor,
 	)
 
-	if headerHandler.GetShardID() == common.MetachainShardId {
-		header, ok:= headerHandler.(*block.MetaBlock) 
-		if ok {
-			jsonMarshalizer := &marshal.JsonMarshalizer{}
-		   	jsonBytes, err := jsonMarshalizer.Marshal(header)
-			if err == nil {
-				log.Debug("Proposed header received", "header", string(jsonBytes))
-			}
-		}
-	} else {
-		header, ok := headerHandler.(*block.HeaderV2)
-		if ok {
-			jsonMarshalizer := &marshal.JsonMarshalizer{}
-				jsonBytes, err := jsonMarshalizer.Marshal(header)
-			if err == nil {
-				log.Debug("Proposed header received", "header", string(jsonBytes))
-			}
-	 	} 
+	headerOutput, err := PrettifyStruct(headerHandler)
+	if err == nil {
+		log.Debug("Proposed header received", "header", headerOutput)
 	}
 }
 
