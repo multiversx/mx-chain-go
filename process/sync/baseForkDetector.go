@@ -712,8 +712,9 @@ func (bfd *baseForkDetector) checkGenesisTimeForHeaderBeforeSupernova(
 	}
 	roundDuration := int64(chainParams.RoundDuration)
 
-	// since it is provided as milliseconds from config, it has to be set as seconds
-	// before supernova is activated
+	// The round duration is provided as milliseconds in the configuration. It needs to be
+	// converted to seconds to ensure correct calculations for genesis time before
+	// supernova activation.
 	roundDuration /= 1000
 
 	roundDifference := int64(headerHandler.GetRound() - bfd.genesisRound)
