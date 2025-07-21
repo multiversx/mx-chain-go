@@ -279,3 +279,6 @@ var ErrWaitingListDisabled = errors.New("waiting list is disabled since staking 
 
 // ErrCannotChangeToDynamic signals that tokenID cannot be change to type dynamic
 var ErrCannotChangeToDynamic = errors.New("cannot change to dynamic because of duplicated roles")
+
+// ErrDivisionByZero signals that tokenID division by zero will happen
+var ErrDivisionByZero = errors.New("division by zero")
