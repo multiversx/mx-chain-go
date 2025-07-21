@@ -942,11 +942,7 @@ func TestEnableEpochConfig(t *testing.T) {
     FixGetBalanceEnableEpoch = 112
 
     # SupernovaEnableEpoch represents the epoch when sub-second finality will be enabled
-<<<<<<< HEAD
-    SupernovaEnableEpoch = 112
-=======
     SupernovaEnableEpoch = 113
->>>>>>> rc/supernova
 
     # MaxNodesChangeEnableEpoch holds configuration for changing the maximum number of nodes and the enabling epoch
     MaxNodesChangeEnableEpoch = [
@@ -1079,12 +1075,8 @@ func TestEnableEpochConfig(t *testing.T) {
 			ValidationOnGobDecodeEnableEpoch:                         109,
 			BarnardOpcodesEnableEpoch:                                110,
 			AutomaticActivationOfNodesDisableEpoch:                   111,
-<<<<<<< HEAD
-			SupernovaEnableEpoch:                                     112,
-=======
 			FixGetBalanceEnableEpoch:                                 112,
 			SupernovaEnableEpoch:                                     113,
->>>>>>> rc/supernova
 			MaxNodesChangeEnableEpoch: []MaxNodesChangeConfig{
 				{
 					EpochEnable:            44,
