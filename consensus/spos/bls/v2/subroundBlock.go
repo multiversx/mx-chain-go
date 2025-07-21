@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"math/big"
 	"reflect"
 	"strings"
 	"sync"
@@ -265,11 +266,36 @@ func (sr *subroundBlock) sendBlockBody(
 }
 
 func prettifyValue(val reflect.Value, typ reflect.Type) interface{} {
+    // Check for big types before unwrapping pointer
+    if val.CanInterface() {
+		switch v := val.Interface().(type) {
+		case *big.Int:
+			if v != nil {
+				return v.String()
+			}
+		case big.Int:
+			return v.String()
+		case *big.Float:
+			if v != nil {
+				return v.Text('g', -1)
+			}
+		case big.Float:
+			return v.Text('g', -1)
+		case *big.Rat:
+			if v != nil {
+				return v.RatString()
+			}
+		case big.Rat:
+			return v.RatString()
+		}
+	}
+	
+    // Unwrap pointer after checking big types
     if val.Kind() == reflect.Ptr {
-        val = val.Elem()
-        if !val.IsValid() {
+        if val.IsNil() {
             return nil
         }
+        val = val.Elem()
         typ = val.Type()
     }
 
@@ -290,7 +316,6 @@ func prettifyValue(val reflect.Value, typ reflect.Type) interface{} {
                 out[name] = "<unexported>"
                 continue
             }
-
             if field.Kind() == reflect.Slice && field.Type().Elem().Kind() == reflect.Uint8 {
                 out[name] = fmt.Sprintf("%x", field.Bytes())
             } else {
@@ -310,6 +335,7 @@ func prettifyValue(val reflect.Value, typ reflect.Type) interface{} {
         return val.Interface()
     }
 }
+
 
 func PrettifyStruct(x interface{}) (string, error) {
     val := reflect.ValueOf(x)
