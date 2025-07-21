@@ -761,6 +761,9 @@ const (
 	// MetricBarnardOpcodesEnableEpoch represents the epoch when Barnard opcodes will be enabled
 	MetricBarnardOpcodesEnableEpoch = "erd_barnard_opcodes_enable_epoch"
 
+	// MetricFixGetBalanceEnableEpoch represents the epoch when get balance opcode fix is enabled
+	MetricFixGetBalanceEnableEpoch = "erd_fix_get_balance_enable_epoch"
+
 	// MetricValidationOnGobDecodeEnableEpoch represents the epoch when validation on GobDecode will be taken into account
 	MetricValidationOnGobDecodeEnableEpoch = "erd_validation_on_gobdecode_enable_epoch"
 
@@ -894,6 +897,8 @@ const (
 	NetStatisticsOrder
 	// OldDatabaseCleanOrder defines the order in which oldDatabaseCleaner component is notified of a start of epoch event
 	OldDatabaseCleanOrder
+	// EpochTxBroadcastDebug defines the order in which epochTxBroadcastDebug is notifier of a start of epoch event
+	EpochTxBroadcastDebug = 9
 )
 
 // NodeState specifies what type of state a node could have
@@ -1283,6 +1288,7 @@ const (
 	ValidationOnGobDecodeFlag                           core.EnableEpochFlag = "ValidationOnGobDecodeFlag"
 	BarnardOpcodesFlag                                  core.EnableEpochFlag = "BarnardOpcodesFlag"
 	AutomaticActivationOfNodesDisableFlag               core.EnableEpochFlag = "AutomaticActivationOfNodesDisableFlag"
+	FixGetBalanceFlag                                   core.EnableEpochFlag = "FixGetBalanceFlag"
 	// all new flags must be added to createAllFlagsMap method, as part of enableEpochsHandler allFlagsDefined
 )
 
