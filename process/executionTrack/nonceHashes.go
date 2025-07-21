@@ -1,5 +1,6 @@
 package executionTrack
 
+// nonceHashes this structure is not concurrent safe
 type nonceHashes struct {
 	nonceHashesMap map[uint64]map[string]struct{}
 }

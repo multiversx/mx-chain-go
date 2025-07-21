@@ -2,7 +2,6 @@ package executionTrack
 
 import (
 	"encoding/hex"
-	"errors"
 	"fmt"
 	"sort"
 	"sync"
@@ -51,9 +50,9 @@ func (est *executionResultsTracker) AddExecutionResult(executionResult *block.Ex
 
 // GetPendingExecutionResults will return the pending execution results
 func (est *executionResultsTracker) GetPendingExecutionResults() ([]*block.ExecutionResult, error) {
-	executionResults := make([]*block.ExecutionResult, 0)
-	est.mutex.Lock()
-	defer est.mutex.Unlock()
+	executionResults := make([]*block.ExecutionResult, 0, len(est.executionResultsByHash))
+	est.mutex.RLock()
+	defer est.mutex.RUnlock()
 
 	for _, executionResult := range est.executionResultsByHash {
 		executionResults = append(executionResults, executionResult)
@@ -89,7 +88,7 @@ func (est *executionResultsTracker) GetExecutionResultByHash(hash []byte) (*bloc
 
 	result, found := est.executionResultsByHash[string(hash)]
 	if !found {
-		return nil, errors.New("cannot find execution results by provided hash	")
+		return nil, fmt.Errorf("%w with hash: '%s'", ErrCannotFindExecutionResult, hex.EncodeToString(hash))
 	}
 
 	return result, nil
@@ -97,16 +96,15 @@ func (est *executionResultsTracker) GetExecutionResultByHash(hash []byte) (*bloc
 
 // GetExecutionResultsByNonce will return the execution results by nonce
 func (est *executionResultsTracker) GetExecutionResultsByNonce(nonce uint64) ([]*block.ExecutionResult, error) {
-	executionResults := make([]*block.ExecutionResult, 0)
-
 	est.mutex.RLock()
 	defer est.mutex.RUnlock()
 
 	hashes := est.nonceHashes.getNonceHashes(nonce)
+	executionResults := make([]*block.ExecutionResult, 0, len(hashes))
 	for _, hash := range hashes {
 		result, found := est.executionResultsByHash[hash]
 		if !found {
-			return nil, fmt.Errorf("%w with hash: '%s'", ErrCannotFindExecutionResult, hash)
+			return nil, fmt.Errorf("%w with hash: '%s'", ErrCannotFindExecutionResult, hex.EncodeToString([]byte(hash)))
 		}
 
 		executionResults = append(executionResults, result)
