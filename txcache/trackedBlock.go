@@ -1,6 +1,7 @@
 package txcache
 
 import (
+	"bytes"
 	"math/big"
 
 	"github.com/multiversx/mx-chain-core-go/core"
@@ -45,7 +46,6 @@ func (tb *trackedBlock) compileBreadcrumbs(txs []*WrappedTransaction) {
 }
 
 // TODO add validation when compiling breadcrumb
-// TODO optimize the flow in the case when sender is also fee payer
 func (tb *trackedBlock) compileBreadcrumb(tx *WrappedTransaction) {
 	sender := tx.Tx.GetSndAddr()
 	feePayer := tx.FeePayer
@@ -65,6 +65,12 @@ func (tb *trackedBlock) compileBreadcrumb(tx *WrappedTransaction) {
 	})
 
 	// compile for fee payer
+	if feePayer != nil && bytes.Equal(sender, feePayer) {
+		fee := tx.Fee
+		senderBreadcrumb.accumulateConsumedBalance(fee)
+		return
+	}
+
 	if feePayer != nil {
 		feePayerBreadcrumb := tb.getOrCreateBreadcrumb(string(feePayer))
 		fee := tx.Fee
