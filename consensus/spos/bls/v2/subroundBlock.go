@@ -273,7 +273,8 @@ func prettifyValue(val reflect.Value, typ reflect.Type) interface{} {
         typ = val.Type()
     }
 
-    if val.Kind() == reflect.Struct || val.Kind() == reflect.Array {
+    switch val.Kind() {
+    case reflect.Struct:
         out := make(map[string]interface{})
         for i := 0; i < val.NumField(); i++ {
             field := val.Field(i)
@@ -285,22 +286,29 @@ func prettifyValue(val reflect.Value, typ reflect.Type) interface{} {
                 name = strings.Split(name, ",")[0]
             }
 
-			if fieldType.PkgPath != "" {
-				// unexported field
-				out[name] = "<unexported>"
-				continue
-			}
+            if fieldType.PkgPath != "" {
+                out[name] = "<unexported>"
+                continue
+            }
 
             if field.Kind() == reflect.Slice && field.Type().Elem().Kind() == reflect.Uint8 {
-                out[name] = fmt.Sprintf("%x", field.Bytes()) //string(field.Bytes())
+                out[name] = fmt.Sprintf("%x", field.Bytes())
             } else {
                 out[name] = prettifyValue(field, field.Type())
             }
         }
         return out
-    }
 
-    return val.Interface()
+    case reflect.Slice, reflect.Array:
+        out := make([]interface{}, val.Len())
+        for i := 0; i < val.Len(); i++ {
+            out[i] = prettifyValue(val.Index(i), val.Index(i).Type())
+        }
+        return out
+
+    default:
+        return val.Interface()
+    }
 }
 
 func PrettifyStruct(x interface{}) (string, error) {
