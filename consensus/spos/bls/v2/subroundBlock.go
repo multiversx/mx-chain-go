@@ -273,7 +273,7 @@ func prettifyValue(val reflect.Value, typ reflect.Type) interface{} {
         typ = val.Type()
     }
 
-    if val.Kind() == reflect.Struct {
+    if val.Kind() == reflect.Struct || val.Kind() == reflect.Array {
         out := make(map[string]interface{})
         for i := 0; i < val.NumField(); i++ {
             field := val.Field(i)
