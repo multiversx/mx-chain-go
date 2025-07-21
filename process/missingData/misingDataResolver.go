@@ -27,6 +27,7 @@ type missingDataResolver struct {
 	requestHandler process.RequestHandler
 }
 
+// NewMissingDataResolver creates a new instance of missingDataResolver.
 func NewMissingDataResolver(headersPool dataRetriever.HeadersPool, proofsPool dataRetriever.ProofsPool, requestHandler process.RequestHandler) (*missingDataResolver, error) {
 	if check.IfNil(headersPool) {
 		return nil, process.ErrNilHeadersDataPool
@@ -173,8 +174,8 @@ func (mdr *missingDataResolver) requestProofIfNeeded(shardID uint32, headerHash 
 	if !added {
 		return
 	}
-	go mdr.requestHandler.RequestEquivalentProofByHash(shardID, headerHash)
 
+	go mdr.requestHandler.RequestEquivalentProofByHash(shardID, headerHash)
 }
 
 // todo: maybe use channels instead of polling
