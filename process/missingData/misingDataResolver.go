@@ -68,7 +68,7 @@ func (mdr *missingDataResolver) RequestMissingMetaHeadersBlocking(
 	return mdr.waitForMissingData(timeout)
 }
 
-func (mdr *missingDataResolver) addMissingHeader(hash []byte) {
+func (mdr *missingDataResolver) addMissingHeader(hash []byte) bool {
 	mdr.mutHeaders.Lock()
 	mdr.missingHeaders[string(hash)] = struct{}{}
 	mdr.mutHeaders.Unlock()
@@ -80,20 +80,24 @@ func (mdr *missingDataResolver) addMissingHeader(hash []byte) {
 		delete(mdr.missingHeaders, string(hash))
 		mdr.mutHeaders.Unlock()
 	}
+
+	return err != nil
 }
 
-func (mdr *missingDataResolver) addMissingProof(shardID uint32, hash []byte) {
+func (mdr *missingDataResolver) addMissingProof(shardID uint32, hash []byte) bool {
 	mdr.mutProofs.Lock()
 	mdr.missingProofs[string(hash)] = struct{}{}
 	mdr.mutProofs.Unlock()
 
 	// avoid missing notifications if the proof just arrived
-	_, err := mdr.proofsPool.GetProof(shardID, hash)
-	if err == nil {
+	hasProof := mdr.proofsPool.HasProof(shardID, hash)
+	if hasProof {
 		mdr.mutProofs.Lock()
 		delete(mdr.missingProofs, string(hash))
 		mdr.mutProofs.Unlock()
 	}
+
+	return !hasProof
 }
 
 func (mdr *missingDataResolver) markHeaderReceived(hash []byte) {
@@ -148,13 +152,16 @@ func (mdr *missingDataResolver) requestHeaderIfNeeded(
 		return
 	}
 
-	mdr.addMissingHeader(headerHash)
+	added := mdr.addMissingHeader(headerHash)
+	if !added {
+		return
+	}
+
 	if shardID == core.MetachainShardId {
 		go mdr.requestHandler.RequestMetaHeader(headerHash)
 	} else {
 		go mdr.requestHandler.RequestShardHeader(shardID, headerHash)
 	}
-
 }
 
 func (mdr *missingDataResolver) requestProofIfNeeded(shardID uint32, headerHash []byte) {
@@ -162,8 +169,12 @@ func (mdr *missingDataResolver) requestProofIfNeeded(shardID uint32, headerHash 
 		return
 	}
 
-	mdr.addMissingProof(shardID, headerHash)
+	added := mdr.addMissingProof(shardID, headerHash)
+	if !added {
+		return
+	}
 	go mdr.requestHandler.RequestEquivalentProofByHash(shardID, headerHash)
+
 }
 
 // todo: maybe use channels instead of polling
