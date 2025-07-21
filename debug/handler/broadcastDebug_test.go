@@ -28,7 +28,7 @@ func TestBroadcastDebug_ProcessMultipleMessageTypes(t *testing.T) {
 		},
 	}
 
-	syncer := ntp.NewSyncTime(ntp.NewNTPGoogleConfig(), nil)
+	syncer := ntp.NewSyncTime(testscommon.NewNTPGoogleConfig(), nil)
 	syncer.StartSyncingTime()
 	defer func() {
 		_ = syncer.Close()
