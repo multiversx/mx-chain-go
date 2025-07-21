@@ -65,17 +65,19 @@ func (tb *trackedBlock) compileBreadcrumb(tx *WrappedTransaction) {
 	})
 
 	// compile for fee payer
-	if feePayer != nil && bytes.Equal(sender, feePayer) {
+	if feePayer == nil {
+		return
+	}
+
+	if bytes.Equal(sender, feePayer) {
 		fee := tx.Fee
 		senderBreadcrumb.accumulateConsumedBalance(fee)
 		return
 	}
 
-	if feePayer != nil {
-		feePayerBreadcrumb := tb.getOrCreateBreadcrumb(string(feePayer))
-		fee := tx.Fee
-		feePayerBreadcrumb.accumulateConsumedBalance(fee)
-	}
+	feePayerBreadcrumb := tb.getOrCreateBreadcrumb(string(feePayer))
+	fee := tx.Fee
+	feePayerBreadcrumb.accumulateConsumedBalance(fee)
 }
 
 func (tb *trackedBlock) getOrCreateBreadcrumb(address string) *accountBreadcrumb {
