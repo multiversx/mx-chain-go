@@ -178,7 +178,7 @@ func (mdr *missingDataResolver) requestProofIfNeeded(shardID uint32, headerHash 
 	go mdr.requestHandler.RequestEquivalentProofByHash(shardID, headerHash)
 }
 
-// todo: maybe use channels instead of polling
+// TODO: maybe use channels instead of polling
 func (mdr *missingDataResolver) waitForMissingData(timeout time.Duration) error {
 	deadline := time.Now().Add(timeout)
 
