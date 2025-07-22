@@ -289,7 +289,7 @@ func prettifyValue(val reflect.Value, typ reflect.Type) interface{} {
 			return v.RatString()
 		}
 	}
-	
+
     // Unwrap pointer after checking big types
     if val.Kind() == reflect.Ptr {
         if val.IsNil() {
@@ -325,11 +325,19 @@ func prettifyValue(val reflect.Value, typ reflect.Type) interface{} {
         return out
 
     case reflect.Slice, reflect.Array:
-        out := make([]interface{}, val.Len())
-        for i := 0; i < val.Len(); i++ {
-            out[i] = prettifyValue(val.Index(i), val.Index(i).Type())
-        }
-        return out
+		if val.Type().Elem().Kind() == reflect.Uint8 {
+			b := make([]byte, val.Len())
+			for i := 0; i < val.Len(); i++ {
+				b[i] = byte(val.Index(i).Uint())
+			}
+			return fmt.Sprintf("%x", b)
+		}
+
+		out := make([]interface{}, val.Len())
+		for i := 0; i < val.Len(); i++ {
+			out[i] = prettifyValue(val.Index(i), val.Index(i).Type())
+		}
+		return out
 
     default:
         return val.Interface()
