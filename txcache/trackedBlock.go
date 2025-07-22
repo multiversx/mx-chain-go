@@ -20,6 +20,7 @@ func newTrackedBlock(
 	rootHash []byte,
 	prevHash []byte,
 	txs []*WrappedTransaction,
+	session SelectionSession,
 ) (*trackedBlock, error) {
 
 	tb := &trackedBlock{
@@ -30,7 +31,7 @@ func newTrackedBlock(
 		breadcrumbsByAddress: make(map[string]*accountBreadcrumb),
 	}
 
-	err := tb.compileBreadcrumbs(txs)
+	err := tb.compileBreadcrumbs(txs, session)
 	if err != nil {
 		return nil, err
 	}
@@ -42,9 +43,9 @@ func (tb *trackedBlock) sameNonce(trackedBlock1 *trackedBlock) bool {
 	return tb.nonce == trackedBlock1.nonce
 }
 
-func (tb *trackedBlock) compileBreadcrumbs(txs []*WrappedTransaction) error {
+func (tb *trackedBlock) compileBreadcrumbs(txs []*WrappedTransaction, session SelectionSession) error {
 	for _, tx := range txs {
-		err := tb.compileBreadcrumb(tx)
+		err := tb.compileBreadcrumb(tx, session)
 		if err != nil {
 			return err
 		}
@@ -55,22 +56,29 @@ func (tb *trackedBlock) compileBreadcrumbs(txs []*WrappedTransaction) error {
 
 // TODO add validation when compiling breadcrumb
 // TODO optimize the flow in the case when sender is also fee payer
-func (tb *trackedBlock) compileBreadcrumb(tx *WrappedTransaction) error {
+func (tb *trackedBlock) compileBreadcrumb(tx *WrappedTransaction, session SelectionSession) error {
 	sender := tx.Tx.GetSndAddr()
 	feePayer := tx.FeePayer
 	initialNonce := tx.Tx.GetNonce()
 	latestNonce := tx.Tx.GetNonce()
 
+	accountState, err := session.GetAccountState(sender)
+	if err != nil {
+		return err
+	}
+
+	initialBalance := accountState.GetBalance()
+
 	// compile for sender
 	senderBreadcrumb := tb.getOrCreateBreadcrumbWithNonce(string(sender), core.OptionalUint64{
 		Value:    initialNonce,
 		HasValue: true,
-	})
+	}, initialBalance)
 
 	transferredValue := tx.TransferredValue
 	senderBreadcrumb.accumulateConsumedBalance(transferredValue)
 
-	err := senderBreadcrumb.updateLastNonce(core.OptionalUint64{
+	err = senderBreadcrumb.updateLastNonce(core.OptionalUint64{
 		Value:    latestNonce,
 		HasValue: true,
 	})
@@ -80,7 +88,7 @@ func (tb *trackedBlock) compileBreadcrumb(tx *WrappedTransaction) error {
 
 	// compile for fee payer
 	if feePayer != nil {
-		feePayerBreadcrumb := tb.getOrCreateBreadcrumb(string(feePayer))
+		feePayerBreadcrumb := tb.getOrCreateBreadcrumb(string(feePayer), initialBalance)
 		fee := tx.Fee
 		feePayerBreadcrumb.accumulateConsumedBalance(fee)
 	}
@@ -88,7 +96,7 @@ func (tb *trackedBlock) compileBreadcrumb(tx *WrappedTransaction) error {
 	return nil
 }
 
-func (tb *trackedBlock) getOrCreateBreadcrumb(address string) *accountBreadcrumb {
+func (tb *trackedBlock) getOrCreateBreadcrumb(address string, initialBalance *big.Int) *accountBreadcrumb {
 	breadCrumb, ok := tb.breadcrumbsByAddress[address]
 	if ok {
 		return breadCrumb
@@ -97,19 +105,22 @@ func (tb *trackedBlock) getOrCreateBreadcrumb(address string) *accountBreadcrumb
 	breadcrumb := newAccountBreadcrumb(core.OptionalUint64{
 		Value:    0,
 		HasValue: false,
-	}, big.NewInt(0))
+	}, initialBalance, big.NewInt(0))
 	tb.breadcrumbsByAddress[address] = breadcrumb
 
 	return breadcrumb
 }
 
-func (tb *trackedBlock) getOrCreateBreadcrumbWithNonce(address string, nonce core.OptionalUint64) *accountBreadcrumb {
+func (tb *trackedBlock) getOrCreateBreadcrumbWithNonce(
+	address string,
+	nonce core.OptionalUint64,
+	initialBalance *big.Int) *accountBreadcrumb {
 	breadCrumb, ok := tb.breadcrumbsByAddress[address]
 	if ok {
 		return breadCrumb
 	}
 
-	breadcrumb := newAccountBreadcrumb(nonce, big.NewInt(0))
+	breadcrumb := newAccountBreadcrumb(nonce, initialBalance, big.NewInt(0))
 	tb.breadcrumbsByAddress[address] = breadcrumb
 
 	return breadcrumb

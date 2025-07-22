@@ -10,6 +10,7 @@ type breadcrumbsValidator struct {
 	skippedSenders                      map[string]struct{}
 	sendersInContinuityWithSessionNonce map[string]struct{}
 	accountPreviousBreadcrumb           map[string]*accountBreadcrumb
+	accountBalanceInfo                  map[string]*virtualAccountRecord
 }
 
 func newBreadcrumbValidator() *breadcrumbsValidator {
@@ -17,6 +18,7 @@ func newBreadcrumbValidator() *breadcrumbsValidator {
 		skippedSenders:                      make(map[string]struct{}),
 		sendersInContinuityWithSessionNonce: make(map[string]struct{}),
 		accountPreviousBreadcrumb:           make(map[string]*accountBreadcrumb),
+		accountBalanceInfo:                  make(map[string]*virtualAccountRecord),
 	}
 }
 
@@ -87,4 +89,19 @@ func (validator *breadcrumbsValidator) continuousWithPreviousBreadcrumb(
 	validator.accountPreviousBreadcrumb[address] = breadcrumb
 
 	return true
+}
+
+func (validator *breadcrumbsValidator) validateBalance(
+	address string,
+	breadcrumb *accountBreadcrumb,
+	accountState state.UserAccountHandler) error {
+	virtualRecord, ok := validator.accountBalanceInfo[address]
+	if !ok {
+		initialBalance := accountState.GetBalance()
+		virtualRecord = newVirtualAccountRecord(breadcrumb.initialNonce, initialBalance)
+		validator.accountBalanceInfo[address] = virtualRecord
+	}
+
+	virtualRecord.accumulateConsumedBalance(breadcrumb)
+	return virtualRecord.validateBalance()
 }

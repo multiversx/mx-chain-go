@@ -22,7 +22,7 @@ func newVirtualAccountRecord(initialNonce core.OptionalUint64, initialBalance *b
 
 // TODO refactor this path, split into more functions
 func (virtualRecord *virtualAccountRecord) updateVirtualRecord(breadcrumb *accountBreadcrumb) {
-	_ = virtualRecord.consumedBalance.Add(virtualRecord.consumedBalance, breadcrumb.consumedBalance)
+	virtualRecord.accumulateConsumedBalance(breadcrumb)
 
 	if !virtualRecord.initialNonce.HasValue {
 		virtualRecord.initialNonce = breadcrumb.lastNonce
@@ -34,4 +34,16 @@ func (virtualRecord *virtualAccountRecord) updateVirtualRecord(breadcrumb *accou
 			HasValue: true,
 		}
 	}
+}
+
+func (virtualRecord *virtualAccountRecord) accumulateConsumedBalance(breadcrumb *accountBreadcrumb) {
+	_ = virtualRecord.consumedBalance.Add(virtualRecord.consumedBalance, breadcrumb.consumedBalance)
+}
+
+func (virtualRecord *virtualAccountRecord) validateBalance() error {
+	if virtualRecord.consumedBalance.Cmp(virtualRecord.initialBalance) > 0 {
+		return errExceedBalance
+	}
+
+	return nil
 }
