@@ -212,90 +212,10 @@ func ConvertTimeStampSecToMs(timeStamp uint64) uint64 {
 	return timeStamp * 1000
 }
 
-// prettifyValue recursively formats a reflect.Value into a more readable format.
-func prettifyValue(val reflect.Value, typ reflect.Type) interface{} {
-	// Check for big types before unwrapping pointer
-	if val.CanInterface() {
-		switch v := val.Interface().(type) {
-		case *big.Int:
-			if v != nil {
-				return v.String()
-			}
-		case big.Int:
-			return v.String()
-		case *big.Float:
-			if v != nil {
-				return v.Text('g', -1)
-			}
-		case big.Float:
-			return v.Text('g', -1)
-		case *big.Rat:
-			if v != nil {
-				return v.RatString()
-			}
-		case big.Rat:
-			return v.RatString()
-		}
-	}
-
-	// Unwrap pointer
-	if val.Kind() == reflect.Ptr {
-		if val.IsNil() {
-			return nil
-		}
-		val = val.Elem()
-		typ = val.Type()
-	}
-
-	switch val.Kind() {
-	case reflect.Struct:
-		out := make(map[string]interface{})
-		for i := 0; i < val.NumField(); i++ {
-			field := val.Field(i)
-			fieldType := typ.Field(i)
-			name := fieldType.Tag.Get("json")
-			if name == "" {
-				name = fieldType.Name
-			} else {
-				name = strings.Split(name, ",")[0]
-			}
-
-			if fieldType.PkgPath != "" {
-				out[name] = "<unexported>"
-				continue
-			}
-			if field.Kind() == reflect.Slice && field.Type().Elem().Kind() == reflect.Uint8 {
-				out[name] = fmt.Sprintf("%x", field.Bytes())
-			} else {
-				out[name] = prettifyValue(field, field.Type())
-			}
-		}
-		return out
-
-	case reflect.Slice, reflect.Array:
-		if val.Type().Elem().Kind() == reflect.Uint8 {
-			b := make([]byte, val.Len())
-			for i := 0; i < val.Len(); i++ {
-				b[i] = byte(val.Index(i).Uint())
-			}
-			return fmt.Sprintf("%x", b)
-		}
-
-		out := make([]interface{}, val.Len())
-		for i := 0; i < val.Len(); i++ {
-			out[i] = prettifyValue(val.Index(i), val.Index(i).Type())
-		}
-		return out
-
-	default:
-		return val.Interface()
-	}
-}
-
 // PrettifyStruct takes a structure like Header and returns a JSON string representation of its structure, converting bytes to hex strings
 func PrettifyStruct(x interface{}) (string, error) {
 	if x == nil {
-		return "", fmt.Errorf("cannot prettify nil value")
+		return "nil", nil
 	}
 
 	val := reflect.ValueOf(x)
@@ -306,4 +226,97 @@ func PrettifyStruct(x interface{}) (string, error) {
 		return "", err
 	}
 	return string(jsonBytes), nil
+}
+
+// prettifyValue recursively formats a reflect.Value into a more readable format.
+func prettifyValue(val reflect.Value, typ reflect.Type) interface{} {
+	if bigValue, isBig := prettifyBigNumbers(val); isBig {
+		return bigValue
+	}
+
+	if val.Kind() == reflect.Ptr {
+		if val.IsNil() {
+			return nil
+		}
+		val = val.Elem()
+		typ = val.Type()
+	}
+
+	switch val.Kind() {
+	case reflect.Struct:
+		return prettifyStructFields(val, typ)
+	case reflect.Slice, reflect.Array:
+		return prettifySliceOrArray(val)
+	default:
+		return val.Interface()
+	}
+}
+
+func prettifyStructFields(val reflect.Value, typ reflect.Type) map[string]interface{} {
+	out := make(map[string]interface{})
+	for i := 0; i < val.NumField(); i++ {
+		field := val.Field(i)
+		fieldType := typ.Field(i)
+
+		name := fieldType.Tag.Get("json")
+		if name == "" {
+			name = fieldType.Name
+		} else {
+			name = strings.Split(name, ",")[0]
+		}
+
+		if fieldType.PkgPath != "" {
+			out[name] = "<unexported>"
+			continue
+		}
+
+		if field.Kind() == reflect.Slice && field.Type().Elem().Kind() == reflect.Uint8 {
+			out[name] = fmt.Sprintf("%x", field.Bytes())
+		} else {
+			out[name] = prettifyValue(field, field.Type())
+		}
+	}
+	return out
+}
+
+func prettifySliceOrArray(val reflect.Value) interface{} {
+	if val.Type().Elem().Kind() == reflect.Uint8 {
+		b := make([]byte, val.Len())
+		for i := 0; i < val.Len(); i++ {
+			b[i] = byte(val.Index(i).Uint())
+		}
+		return fmt.Sprintf("%x", b)
+	}
+
+	out := make([]interface{}, val.Len())
+	for i := 0; i < val.Len(); i++ {
+		out[i] = prettifyValue(val.Index(i), val.Index(i).Type())
+	}
+	return out
+}
+
+func prettifyBigNumbers(val reflect.Value) (string, bool) {
+	if val.CanInterface() {
+		switch v := val.Interface().(type) {
+		case *big.Int:
+			if v != nil {
+				return v.String(), true
+			}
+		case big.Int:
+			return v.String(), true
+		case *big.Float:
+			if v != nil {
+				return v.Text('g', -1), true
+			}
+		case big.Float:
+			return v.Text('g', -1), true
+		case *big.Rat:
+			if v != nil {
+				return v.RatString(), true
+			}
+		case big.Rat:
+			return v.RatString(), true
+		}
+	}
+	return "", false
 }
