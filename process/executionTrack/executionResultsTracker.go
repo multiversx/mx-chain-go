@@ -167,7 +167,6 @@ func (est *executionResultsTracker) cleanConfirmedExecutionResults(headerExecuti
 	lastMatchingHash := est.lastNotarizedResult.HeaderHash
 	for idx, executionResultFromHeader := range headerExecutionResults {
 		if idx > len(pendingExecutionResult)-1 {
-			est.lastExecutedResultHash = lastMatchingHash
 			// missing  execution result
 			return &CleanInfo{
 				CleanResult:             CleanResultNotFound,
