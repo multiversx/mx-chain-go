@@ -326,9 +326,17 @@ func TestEconomics_ComputeInflationRate(t *testing.T) {
 			},
 		}
 
+		roundDuration := 4000
 		args.RoundTime = &mock.RoundTimeDurationHandler{
 			TimeDurationCalled: func() time.Duration {
-				return 4000 * time.Millisecond
+				return time.Duration(roundDuration) * time.Millisecond
+			},
+		}
+		args.ChainParamsHandler = &chainParameters.ChainParametersHandlerStub{
+			ChainParametersForEpochCalled: func(epoch uint32) (config.ChainParametersByEpochConfig, error) {
+				return config.ChainParametersByEpochConfig{
+					RoundDuration: uint64(roundDuration),
+				}, nil
 			},
 		}
 
@@ -388,10 +396,22 @@ func TestEconomics_ComputeInflationRate(t *testing.T) {
 			IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
 				return flag == common.SupernovaFlag && epoch >= activationEpoch
 			},
+			GetActivationEpochCalled: func(flag core.EnableEpochFlag) uint32 {
+				if flag == common.SupernovaFlag {
+					return activationEpoch
+				}
+
+				return 0
+			},
 		}
+
+		supernovaActivationRound := uint64(7884000)
 		args.EnableRoundsHandler = &testscommon.EnableRoundsHandlerStub{
 			IsFlagEnabledInRoundCalled: func(flag common.EnableRoundFlag, round uint64) bool {
-				return flag == common.SupernovaRoundFlag && round > 7884000 // above one year
+				return flag == common.SupernovaRoundFlag && round > supernovaActivationRound // above one year
+			},
+			GetActivationRoundCalled: func(flag common.EnableRoundFlag) uint64 {
+				return supernovaActivationRound
 			},
 		}
 		roundDurationBeforeSupernova := 4000
@@ -404,14 +424,14 @@ func TestEconomics_ComputeInflationRate(t *testing.T) {
 		}
 		args.ChainParamsHandler = &chainParameters.ChainParametersHandlerStub{
 			ChainParametersForEpochCalled: func(epoch uint32) (config.ChainParametersByEpochConfig, error) {
-				if epoch == 0 {
+				if epoch >= activationEpoch {
 					return config.ChainParametersByEpochConfig{
-						RoundDuration: uint64(roundDurationBeforeSupernova),
+						RoundDuration: uint64(roundDurationAfterSupernova),
 					}, nil
 				}
 
 				return config.ChainParametersByEpochConfig{
-					RoundDuration: uint64(roundDurationAfterSupernova),
+					RoundDuration: uint64(roundDurationBeforeSupernova),
 				}, nil
 			},
 		}
@@ -449,11 +469,11 @@ func TestEconomics_ComputeInflationRate(t *testing.T) {
 		assert.Nil(t, errFound)
 		assert.Equal(t, year1inflation, rate)
 
-		rate, _ = ec.computeInflationRate(7884000-1, epoch)
+		rate, _ = ec.computeInflationRate(supernovaActivationRound-1, epoch)
 		assert.Nil(t, errFound)
 		assert.Equal(t, year1inflation, rate)
 
-		rate, _ = ec.computeInflationRate(7884000, epoch)
+		rate, _ = ec.computeInflationRate(supernovaActivationRound, epoch)
 		assert.Nil(t, errFound)
 		assert.Equal(t, year2inflation, rate)
 
@@ -465,11 +485,11 @@ func TestEconomics_ComputeInflationRate(t *testing.T) {
 			},
 		)
 
-		rate, _ = ec.computeInflationRate(8884000, activationEpoch)
+		rate, _ = ec.computeInflationRate(supernovaActivationRound, activationEpoch)
 		assert.Nil(t, errFound)
 		assert.Equal(t, year2inflation, rate)
 
-		rate, _ = ec.computeInflationRate(38884000, activationEpoch)
+		rate, _ = ec.computeInflationRate(supernovaActivationRound*(10+1), activationEpoch+10)
 		assert.Nil(t, errFound)
 		assert.Equal(t, lateYearInflation, rate)
 	})
@@ -677,6 +697,9 @@ func TestEconomics_ComputeInflationRate_WithRealConfigData(t *testing.T) {
 		IsFlagEnabledInRoundCalled: func(flag common.EnableRoundFlag, round uint64) bool {
 			return flag == common.SupernovaRoundFlag && round >= supernovaActivationRound
 		},
+		GetActivationRoundCalled: func(flag common.EnableRoundFlag) uint64 {
+			return supernovaActivationRound
+		},
 	}
 	roundDurationBeforeSupernova := 6000
 	roundDurationAfterSupernova := 600
@@ -688,14 +711,14 @@ func TestEconomics_ComputeInflationRate_WithRealConfigData(t *testing.T) {
 	}
 	args.ChainParamsHandler = &chainParameters.ChainParametersHandlerStub{
 		ChainParametersForEpochCalled: func(epoch uint32) (config.ChainParametersByEpochConfig, error) {
-			if epoch == 0 {
+			if epoch >= supernovaActivationEpoch {
 				return config.ChainParametersByEpochConfig{
-					RoundDuration: uint64(roundDurationBeforeSupernova),
+					RoundDuration: uint64(roundDurationAfterSupernova),
 				}, nil
 			}
 
 			return config.ChainParametersByEpochConfig{
-				RoundDuration: uint64(roundDurationAfterSupernova),
+				RoundDuration: uint64(roundDurationBeforeSupernova),
 			}, nil
 		},
 	}

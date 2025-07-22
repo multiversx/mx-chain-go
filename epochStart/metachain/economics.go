@@ -6,6 +6,7 @@ import (
 	"math/big"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
@@ -356,15 +357,36 @@ func (e *economics) computeInflationRateLegacy(currentRound uint64, currentEpoch
 
 func (e *economics) computeInflationRate(currentRound uint64, currentEpoch uint32) (float64, error) {
 	supernovaInEpochActivated := e.enableEpochsHandler.IsFlagEnabledInEpoch(common.SupernovaFlag, currentEpoch)
-	supernovaActivationEpoch := e.enableEpochsHandler.GetActivationEpoch(common.SupernovaFlag)
-
-	supernovaActivationYear := supernovaActivationEpoch/uint32(numberOfDaysInYear) + 1
-	currentYear := currentEpoch/uint32(numberOfDaysInYear) + 1
-
 	if !supernovaInEpochActivated {
 		return e.computeInflationRateLegacy(currentRound, currentEpoch)
 	}
 
+	supernovaActivationRound := e.enableRoundsHandler.GetActivationRound(common.SupernovaRoundFlag)
+	supernovaActivationEpoch := e.enableEpochsHandler.GetActivationEpoch(common.SupernovaFlag)
+
+	chainParametersUntilSupernova, err := e.chainParamsHandler.ChainParametersForEpoch(supernovaActivationEpoch - 1)
+	if err != nil {
+		return 0, err
+	}
+	roundDuration := chainParametersUntilSupernova.RoundDuration
+	if roundDuration <= 0 {
+		return 0, errors.ErrInvalidRoundDuration
+	}
+
+	roundsPerDay := common.ComputeRoundsPerDay(time.Duration(roundDuration)*time.Millisecond, e.enableEpochsHandler, currentEpoch)
+	roundsPerYear := numberOfDaysInYear * roundsPerDay
+
+	log.Error("computeInflationRate",
+		"roundsPerYear", roundsPerYear,
+		"supernovaActivationRound", supernovaActivationRound,
+		"supernovaActivationEpoch", supernovaActivationEpoch,
+	)
+
+	supernovaActivationYear := uint32(supernovaActivationRound/roundsPerYear) + 1
+
+	currentYear := currentEpoch/uint32(numberOfDaysInYear) + 1
+
+	// this has to be calculated by round not by epoch
 	if currentYear == supernovaActivationYear {
 		return e.computeInflationRateInSupernovaYear(currentYear)
 	}
@@ -398,9 +420,12 @@ func (e *economics) computeInflationRateAfterSupernovaYear(
 
 	yearsIndex := uint32((currentRound-supernovaActivationRound)/roundsPerYear) + supernovaActivationYear
 
-	log.Error("computeInflationRate",
+	log.Error("computeInflationRateAfterSupernovaYear",
 		"roundsPerYear", roundsPerYear,
 		"yearsIndex", yearsIndex,
+		"currentRound", currentRound,
+		"diff", currentRound-supernovaActivationRound,
+		"supernovaActivationYear", supernovaActivationYear,
 	)
 
 	return e.rewardsHandler.MaxInflationRate(yearsIndex), nil
