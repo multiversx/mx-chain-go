@@ -52,6 +52,10 @@ func (gc *gasConsumption) CheckTransactionsForMiniBlock(
 	miniBlockHash []byte,
 	txs []data.TransactionHandler,
 ) (uint32, error) {
+	if len(txs) == 0 {
+		return 0, nil
+	}
+
 	gc.Lock()
 	defer gc.Unlock()
 

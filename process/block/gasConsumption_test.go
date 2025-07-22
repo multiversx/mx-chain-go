@@ -93,9 +93,14 @@ func TestGasConsumption_CheckTransactionsForMiniBlock(t *testing.T) {
 	gc, _ := block.NewGasConsumption(economicsFee, shardCoordinator)
 	require.NotNil(t, gc)
 
+	// empty slice of txs, coverage only
+	lastIndex, err := gc.CheckTransactionsForMiniBlock([]byte("hash"), getTxs(0, 0))
+	require.NoError(t, err)
+	require.Zero(t, lastIndex)
+
 	// gas exceeded per tx
 	txs := getTxs(maxGasLimitPerTx+1, 1)
-	lastIndex, err := gc.CheckTransactionsForMiniBlock([]byte("hash"), txs)
+	lastIndex, err = gc.CheckTransactionsForMiniBlock([]byte("hash"), txs)
 	require.Equal(t, process.ErrInvalidMaxGasLimitPerTx, err)
 	require.Zero(t, lastIndex)
 
