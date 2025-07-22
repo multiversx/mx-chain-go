@@ -1,6 +1,7 @@
 package process
 
 import (
+	"github.com/multiversx/mx-chain-go/ntp"
 	"math/big"
 	"time"
 
@@ -1135,6 +1136,7 @@ type WhiteListHandler interface {
 
 // InterceptedDebugger defines an interface for debugging the intercepted data
 type InterceptedDebugger interface {
+	LogReceivedData(data InterceptedData, msg p2p.MessageP2P, fromConnectedPeer core.PeerID)
 	LogReceivedHashes(topic string, hashes [][]byte)
 	LogProcessedHashes(topic string, hashes [][]byte, err error)
 	IsInterfaceNil() bool
@@ -1251,6 +1253,7 @@ type CoreComponentsHolder interface {
 	ChainParametersHandler() ChainParametersHandler
 	FieldsSizeChecker() common.FieldsSizeChecker
 	EpochChangeGracePeriodHandler() common.EpochChangeGracePeriodHandler
+	SyncTimer() ntp.SyncTimer
 	IsInterfaceNil() bool
 }
 

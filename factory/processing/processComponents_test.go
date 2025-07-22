@@ -37,6 +37,7 @@ import (
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/bootstrapMocks"
+	"github.com/multiversx/mx-chain-go/testscommon/chainParameters"
 	txExecOrderStub "github.com/multiversx/mx-chain-go/testscommon/common"
 	"github.com/multiversx/mx-chain-go/testscommon/components"
 	"github.com/multiversx/mx-chain-go/testscommon/cryptoMocks"
@@ -227,6 +228,7 @@ func createMockProcessComponentsFactoryArgs() processComp.ProcessComponentsFacto
 			RatingsConfig:                      &testscommon.RatingsInfoMock{},
 			PathHdl:                            &testscommon.PathManagerStub{},
 			ProcessStatusHandlerInternal:       &testscommon.ProcessStatusHandlerStub{},
+			ChainParametersHandlerField:        &chainParameters.ChainParametersHandlerStub{},
 		},
 		Crypto: &testsMocks.CryptoComponentsStub{
 			BlKeyGen: &cryptoMocks.KeyGenStub{},

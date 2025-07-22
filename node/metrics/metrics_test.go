@@ -220,6 +220,7 @@ func TestInitConfigMetrics(t *testing.T) {
 			ValidationOnGobDecodeEnableEpoch:                         112,
 			BarnardOpcodesEnableEpoch:                                113,
 			AutomaticActivationOfNodesDisableEpoch:                   114,
+			FixGetBalanceEnableEpoch:                                 115,
 			MaxNodesChangeEnableEpoch: []config.MaxNodesChangeConfig{
 				{
 					EpochEnable:            0,
@@ -349,6 +350,7 @@ func TestInitConfigMetrics(t *testing.T) {
 		"erd_validation_on_gobdecode_enable_epoch":                             uint32(112),
 		"erd_barnard_opcodes_enable_epoch":                                     uint32(113),
 		"erd_automatic_activation_of_nodes_disable_epoch":                      uint32(114),
+		"erd_fix_get_balance_enable_epoch":                                     uint32(115),
 		"erd_max_nodes_change_enable_epoch":                                    nil,
 		"erd_total_supply":                                                     "12345",
 		"erd_hysteresis":                                                       "0.100000",
@@ -578,8 +580,12 @@ func TestInitMetrics(t *testing.T) {
 	}
 	roundsPerEpoch := int64(200)
 	currentChainParameters := config.ChainParametersByEpochConfig{
-		RoundsPerEpoch: roundsPerEpoch,
-		RoundDuration:  6000,
+		RoundsPerEpoch:              roundsPerEpoch,
+		RoundDuration:               6000,
+		ShardMinNumNodes:            uint32(402),
+		MetachainMinNumNodes:        uint32(401),
+		ShardConsensusGroupSize:     uint32(63),
+		MetachainConsensusGroupSize: uint32(400),
 	}
 	minTransactionVersion := uint32(1)
 
@@ -631,7 +637,7 @@ func TestInitMetrics(t *testing.T) {
 			common.MetricShardId:                      uint64(shardCoordinator.SelfId()),
 			common.MetricNumShardsWithoutMetachain:    uint64(shardCoordinator.NoShards),
 			common.MetricNodeType:                     string(nodeType),
-			common.MetricRoundTime:                    uint64(6),
+			common.MetricRoundTime:                    uint64(6000),
 			common.MetricAppVersion:                   version,
 			common.MetricRoundsPerEpoch:               uint64(roundsPerEpoch),
 			common.MetricCrossCheckBlockHeight:        "0",
@@ -685,7 +691,7 @@ func TestInitMetrics(t *testing.T) {
 			common.MetricShardId:                      uint64(localShardCoordinator.SelfId()),
 			common.MetricNumShardsWithoutMetachain:    uint64(localShardCoordinator.NoShards),
 			common.MetricNodeType:                     string(nodeType),
-			common.MetricRoundTime:                    uint64(6),
+			common.MetricRoundTime:                    uint64(6000),
 			common.MetricAppVersion:                   version,
 			common.MetricRoundsPerEpoch:               uint64(roundsPerEpoch),
 			common.MetricCrossCheckBlockHeight:        "0",

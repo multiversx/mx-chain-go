@@ -78,11 +78,12 @@ type ConsensusConfig struct {
 
 // NTPConfig will hold the configuration for NTP queries
 type NTPConfig struct {
-	Hosts               []string
-	Port                int
-	TimeoutMilliseconds int
-	SyncPeriodSeconds   int
-	Version             int
+	Hosts                []string
+	Port                 int
+	TimeoutMilliseconds  int
+	SyncPeriodSeconds    int
+	Version              int
+	OutOfBoundsThreshold int
 }
 
 // EvictionWaitingListConfig will hold the configuration for the EvictionWaitingList
@@ -525,6 +526,13 @@ type InterceptorResolverDebugConfig struct {
 	NumRequestsThreshold       int
 	NumResolveFailureThreshold int
 	DebugLineExpiration        int
+	BroadcastStatistics        BroadcastStatisticsConfig
+}
+
+// BroadcastStatisticsConfig holds configuration for broadcast statistics collection
+type BroadcastStatisticsConfig struct {
+	Enabled  bool
+	Messages []string
 }
 
 // AntifloodDebugConfig will hold the antiflood debug configuration

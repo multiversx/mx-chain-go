@@ -14,7 +14,6 @@ import (
 	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
-const millisecondsInSecond = 1000
 const initUint = uint64(0)
 const initInt = int64(0)
 const initString = ""
@@ -211,6 +210,7 @@ func InitConfigMetrics(
 	appStatusHandler.SetUInt64Value(common.MetricValidationOnGobDecodeEnableEpoch, uint64(enableEpochs.ValidationOnGobDecodeEnableEpoch))
 	appStatusHandler.SetUInt64Value(common.MetricBarnardOpcodesEnableEpoch, uint64(enableEpochs.BarnardOpcodesEnableEpoch))
 	appStatusHandler.SetUInt64Value(common.MetricAutomaticActivationOfNodesDisableEpoch, uint64(enableEpochs.AutomaticActivationOfNodesDisableEpoch))
+	appStatusHandler.SetUInt64Value(common.MetricFixGetBalanceEnableEpoch, uint64(enableEpochs.FixGetBalanceEnableEpoch))
 
 	for i, nodesChangeConfig := range enableEpochs.MaxNodesChangeEnableEpoch {
 		epochEnable := fmt.Sprintf("%s%d%s", common.MetricMaxNodesChangeEnableEpoch, i, common.EpochEnableSuffix)
@@ -281,7 +281,7 @@ func InitMetrics(
 	nodesConfig sharding.GenesisNodesSetupHandler,
 	version string,
 	economicsConfig *config.EconomicsConfig,
-	currentChainParameters config.ChainParametersByEpochConfig,
+	chainParameters config.ChainParametersByEpochConfig,
 	minTransactionVersion uint32,
 ) error {
 	if check.IfNil(appStatusHandler) {
@@ -299,7 +299,7 @@ func InitMetrics(
 
 	shardId := uint64(shardCoordinator.SelfId())
 	numOfShards := uint64(shardCoordinator.NumberOfShards())
-	roundDuration := nodesConfig.GetRoundDuration()
+	roundDuration := chainParameters.RoundDuration
 	isSyncing := uint64(1)
 
 	leaderPercentage := float64(0)
@@ -318,9 +318,9 @@ func InitMetrics(
 	appStatusHandler.SetUInt64Value(common.MetricShardId, shardId)
 	appStatusHandler.SetUInt64Value(common.MetricNumShardsWithoutMetachain, numOfShards)
 	appStatusHandler.SetStringValue(common.MetricNodeType, string(nodeType))
-	appStatusHandler.SetUInt64Value(common.MetricRoundTime, roundDuration/millisecondsInSecond)
+	appStatusHandler.SetUInt64Value(common.MetricRoundTime, roundDuration)
 	appStatusHandler.SetStringValue(common.MetricAppVersion, version)
-	appStatusHandler.SetUInt64Value(common.MetricRoundsPerEpoch, uint64(currentChainParameters.RoundsPerEpoch))
+	appStatusHandler.SetUInt64Value(common.MetricRoundsPerEpoch, uint64(chainParameters.RoundsPerEpoch))
 	appStatusHandler.SetStringValue(common.MetricCrossCheckBlockHeight, "0")
 	for i := uint32(0); i < shardCoordinator.NumberOfShards(); i++ {
 		key := fmt.Sprintf("%s_%d", common.MetricCrossCheckBlockHeight, i)
@@ -331,12 +331,12 @@ func InitMetrics(
 	appStatusHandler.SetStringValue(common.MetricLeaderPercentage, fmt.Sprintf("%f", leaderPercentage))
 	appStatusHandler.SetUInt64Value(common.MetricDenomination, uint64(economicsConfig.GlobalSettings.Denomination))
 
-	appStatusHandler.SetUInt64Value(common.MetricShardConsensusGroupSize, uint64(nodesConfig.GetShardConsensusGroupSize()))
-	appStatusHandler.SetUInt64Value(common.MetricMetaConsensusGroupSize, uint64(nodesConfig.GetMetaConsensusGroupSize()))
-	appStatusHandler.SetUInt64Value(common.MetricNumNodesPerShard, uint64(nodesConfig.MinNumberOfShardNodes()))
-	appStatusHandler.SetUInt64Value(common.MetricNumMetachainNodes, uint64(nodesConfig.MinNumberOfMetaNodes()))
+	appStatusHandler.SetUInt64Value(common.MetricShardConsensusGroupSize, uint64(chainParameters.ShardConsensusGroupSize))
+	appStatusHandler.SetUInt64Value(common.MetricMetaConsensusGroupSize, uint64(chainParameters.MetachainConsensusGroupSize))
+	appStatusHandler.SetUInt64Value(common.MetricNumNodesPerShard, uint64(chainParameters.ShardMinNumNodes))
+	appStatusHandler.SetUInt64Value(common.MetricNumMetachainNodes, uint64(chainParameters.MetachainMinNumNodes))
 	appStatusHandler.SetUInt64Value(common.MetricStartTime, uint64(nodesConfig.GetStartTime()))
-	appStatusHandler.SetUInt64Value(common.MetricRoundDuration, currentChainParameters.RoundDuration)
+	appStatusHandler.SetUInt64Value(common.MetricRoundDuration, roundDuration)
 	appStatusHandler.SetUInt64Value(common.MetricMinTransactionVersion, uint64(minTransactionVersion))
 
 	var consensusGroupSize uint32

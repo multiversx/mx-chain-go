@@ -388,6 +388,7 @@ func (sm *statusMetrics) EnableEpochsMetrics() (map[string]interface{}, error) {
 	enableEpochsMetrics[common.MetricValidationOnGobDecodeEnableEpoch] = sm.uint64Metrics[common.MetricValidationOnGobDecodeEnableEpoch]
 	enableEpochsMetrics[common.MetricBarnardOpcodesEnableEpoch] = sm.uint64Metrics[common.MetricBarnardOpcodesEnableEpoch]
 	enableEpochsMetrics[common.MetricAutomaticActivationOfNodesDisableEpoch] = sm.uint64Metrics[common.MetricAutomaticActivationOfNodesDisableEpoch]
+	enableEpochsMetrics[common.MetricFixGetBalanceEnableEpoch] = sm.uint64Metrics[common.MetricFixGetBalanceEnableEpoch]
 
 	numNodesChangeConfig := sm.uint64Metrics[common.MetricMaxNodesChangeEnableEpoch+"_count"]
 

@@ -110,6 +110,7 @@ type TestConsensusNode struct {
 	MainInterceptorsContainer process.InterceptorsContainer
 	DataPool                  dataRetriever.PoolsHolder
 	RequestHandler            process.RequestHandler
+	ChainParametersHandler    common.ChainParametersHandler
 }
 
 // NewTestConsensusNode returns a new TestConsensusNode
@@ -208,6 +209,17 @@ func (tcn *TestConsensusNode) initNode(args ArgsTestConsensusNode) {
 	consensusCache, _ := cache.NewLRUCache(10000)
 	pkBytes, _ := tcn.NodeKeys.Pk.ToByteArray()
 
+	tcn.ChainParametersHandler = &chainParameters.ChainParametersHandlerStub{
+		ChainParametersForEpochCalled: func(_ uint32) (config.ChainParametersByEpochConfig, error) {
+			return config.ChainParametersByEpochConfig{
+				ShardConsensusGroupSize:     uint32(args.ConsensusSize),
+				MetachainConsensusGroupSize: uint32(args.ConsensusSize),
+				RoundsPerEpoch:              1000,
+				MinRoundsBetweenEpochs:      1,
+			}, nil
+		},
+	}
+
 	tcn.initNodesCoordinator(args.ConsensusSize, testHasher, epochStartRegistrationHandler, args.EligibleMap, args.WaitingMap, pkBytes, consensusCache)
 	tcn.MainMessenger = CreateMessengerWithNoDiscovery()
 	tcn.FullArchiveMessenger = &p2pmocks.MessengerStub{}
@@ -215,7 +227,7 @@ func (tcn *TestConsensusNode) initNode(args ArgsTestConsensusNode) {
 	tcn.initBlockProcessor(tcn.ShardCoordinator.SelfId())
 
 	roundTime := time.Millisecond * time.Duration(args.RoundTime)
-	syncer := ntp.NewSyncTime(ntp.NewNTPGoogleConfig(), nil, roundTime)
+	syncer := ntp.NewSyncTime(testscommon.NewNTPGoogleConfig(), nil)
 	syncer.StartSyncingTime()
 
 	genericEpochNotifier := forking.NewGenericEpochNotifier()
@@ -235,7 +247,6 @@ func (tcn *TestConsensusNode) initNode(args ArgsTestConsensusNode) {
 		SyncTimer:                 syncer,
 		StartRound:                0,
 		SupernovaStartRound:       0,
-		EnableEpochsHandler:       enableEpochsHandler,
 		EnableRoundsHandler:       enableRoundsHandler,
 	}
 	roundHandler, _ := round.NewRound(roundArgs)
@@ -246,23 +257,16 @@ func (tcn *TestConsensusNode) initNode(args ArgsTestConsensusNode) {
 	var epochTrigger TestEpochStartTrigger
 	if tcn.ShardCoordinator.SelfId() == core.MetachainShardId {
 		argsNewMetaEpochStart := &metachain.ArgsNewMetaEpochStartTrigger{
-			GenesisTime:        time.Unix(args.StartTime, 0),
-			EpochStartNotifier: notifier.NewEpochStartSubscriptionHandler(),
-			Settings:           &config.EpochStartConfig{},
-			Epoch:              0,
-			Storage:            createTestStore(),
-			Marshalizer:        TestMarshalizer,
-			Hasher:             testHasher,
-			AppStatusHandler:   &statusHandlerMock.AppStatusHandlerStub{},
-			DataPool:           dataPool,
-			ChainParametersHandler: &chainParameters.ChainParametersHandlerStub{
-				ChainParametersForEpochCalled: func(uint32) (config.ChainParametersByEpochConfig, error) {
-					return config.ChainParametersByEpochConfig{
-						RoundsPerEpoch:         1000,
-						MinRoundsBetweenEpochs: 1,
-					}, nil
-				},
-			},
+			GenesisTime:            time.Unix(args.StartTime, 0),
+			EpochStartNotifier:     notifier.NewEpochStartSubscriptionHandler(),
+			Settings:               &config.EpochStartConfig{},
+			Epoch:                  0,
+			Storage:                createTestStore(),
+			Marshalizer:            TestMarshalizer,
+			Hasher:                 testHasher,
+			AppStatusHandler:       &statusHandlerMock.AppStatusHandlerStub{},
+			DataPool:               dataPool,
+			ChainParametersHandler: tcn.ChainParametersHandler,
 		}
 		epochStartTrigger, err := metachain.NewEpochStartTrigger(argsNewMetaEpochStart)
 		if err != nil {
@@ -395,6 +399,7 @@ func (tcn *TestConsensusNode) initNode(args ArgsTestConsensusNode) {
 		enableEpochsHandler,
 		enableRoundsHandler,
 		dataPool.Proofs(),
+		tcn.ChainParametersHandler,
 	)
 
 	processComponents := GetDefaultProcessComponents()
@@ -570,14 +575,7 @@ func (tcn *TestConsensusNode) initNodesCoordinator(
 	cache storage.Cacher,
 ) {
 	argumentsNodesCoordinator := nodesCoordinator.ArgNodesCoordinator{
-		ChainParametersHandler: &chainParameters.ChainParametersHandlerStub{
-			ChainParametersForEpochCalled: func(_ uint32) (config.ChainParametersByEpochConfig, error) {
-				return config.ChainParametersByEpochConfig{
-					ShardConsensusGroupSize:     uint32(consensusSize),
-					MetachainConsensusGroupSize: uint32(consensusSize),
-				}, nil
-			},
-		},
+		ChainParametersHandler:          tcn.ChainParametersHandler,
 		Marshalizer:                     TestMarshalizer,
 		Hasher:                          hasher,
 		Shuffler:                        &shardingMocks.NodeShufflerMock{},
