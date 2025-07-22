@@ -3,11 +3,6 @@ package v2
 import (
 	"bytes"
 	"context"
-	"encoding/json"
-	"fmt"
-	"math/big"
-	"reflect"
-	"strings"
 	"sync"
 	"time"
 
@@ -265,96 +260,7 @@ func (sr *subroundBlock) sendBlockBody(
 	return true
 }
 
-func prettifyValue(val reflect.Value, typ reflect.Type) interface{} {
-    // Check for big types before unwrapping pointer
-    if val.CanInterface() {
-		switch v := val.Interface().(type) {
-		case *big.Int:
-			if v != nil {
-				return v.String()
-			}
-		case big.Int:
-			return v.String()
-		case *big.Float:
-			if v != nil {
-				return v.Text('g', -1)
-			}
-		case big.Float:
-			return v.Text('g', -1)
-		case *big.Rat:
-			if v != nil {
-				return v.RatString()
-			}
-		case big.Rat:
-			return v.RatString()
-		}
-	}
 
-    // Unwrap pointer after checking big types
-    if val.Kind() == reflect.Ptr {
-        if val.IsNil() {
-            return nil
-        }
-        val = val.Elem()
-        typ = val.Type()
-    }
-
-    switch val.Kind() {
-    case reflect.Struct:
-        out := make(map[string]interface{})
-        for i := 0; i < val.NumField(); i++ {
-            field := val.Field(i)
-            fieldType := typ.Field(i)
-            name := fieldType.Tag.Get("json")
-            if name == "" {
-                name = fieldType.Name
-            } else {
-                name = strings.Split(name, ",")[0]
-            }
-
-            if fieldType.PkgPath != "" {
-                out[name] = "<unexported>"
-                continue
-            }
-            if field.Kind() == reflect.Slice && field.Type().Elem().Kind() == reflect.Uint8 {
-                out[name] = fmt.Sprintf("%x", field.Bytes())
-            } else {
-                out[name] = prettifyValue(field, field.Type())
-            }
-        }
-        return out
-
-    case reflect.Slice, reflect.Array:
-		if val.Type().Elem().Kind() == reflect.Uint8 {
-			b := make([]byte, val.Len())
-			for i := 0; i < val.Len(); i++ {
-				b[i] = byte(val.Index(i).Uint())
-			}
-			return fmt.Sprintf("%x", b)
-		}
-
-		out := make([]interface{}, val.Len())
-		for i := 0; i < val.Len(); i++ {
-			out[i] = prettifyValue(val.Index(i), val.Index(i).Type())
-		}
-		return out
-
-    default:
-        return val.Interface()
-    }
-}
-
-
-func PrettifyStruct(x interface{}) (string, error) {
-    val := reflect.ValueOf(x)
-    result := prettifyValue(val, val.Type())
-
-    jsonBytes, err := json.Marshal(result)
-    if err != nil {
-        return "", err
-    }
-    return string(jsonBytes), nil
-}
 
 // sendBlockHeader method sends the proposed block header in the subround Block
 func (sr *subroundBlock) sendBlockHeader(
@@ -382,11 +288,12 @@ func (sr *subroundBlock) sendBlockHeader(
 	sr.SetData(headerHash)
 	sr.SetHeader(headerHandler)
 
-	headerOutput, err := PrettifyStruct(headerHandler)
+	// log the header output for debugging purposes
+	headerOutput, err := common.PrettifyStruct(headerHandler)
 	if err == nil {
 		log.Debug("Proposed header sent", "header", headerOutput)
 	}
-	
+
 	return true
 }
 
@@ -629,7 +536,8 @@ func (sr *subroundBlock) receivedBlockHeader(headerHandler data.HeaderHandler) {
 		spos.LeaderPeerHonestyIncreaseFactor,
 	)
 
-	headerOutput, err := PrettifyStruct(headerHandler)
+	// log the header output for debugging purposes
+	headerOutput, err := common.PrettifyStruct(headerHandler)
 	if err == nil {
 		log.Debug("Proposed header received", "header", headerOutput)
 	}

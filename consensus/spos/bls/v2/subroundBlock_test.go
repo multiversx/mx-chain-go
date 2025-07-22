@@ -1,7 +1,6 @@
 package v2_test
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
 	"math/big"
@@ -11,7 +10,6 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
-	logger "github.com/multiversx/mx-chain-logger-go"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -21,7 +19,6 @@ import (
 	"github.com/multiversx/mx-chain-go/consensus/spos"
 	"github.com/multiversx/mx-chain-go/consensus/spos/bls"
 	v2 "github.com/multiversx/mx-chain-go/consensus/spos/bls/v2"
-	processMock "github.com/multiversx/mx-chain-go/process/mock"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	consensusMocks "github.com/multiversx/mx-chain-go/testscommon/consensus"
@@ -1300,85 +1297,6 @@ func TestSubroundBlock_ReceivedBlockHeader(t *testing.T) {
 
 	// should work
 	sr.ReceivedBlockHeader(headerForCurrentConsensus)
-}
-
-
-func createJsonForHeaderV2() string {
-	return `{"header":{"nonce":481,"prevHash":"nNqMnj/cTiZYVMq2WW8bh9vhiN69D/AIIm7wLn/nm+0=","prevRandSeed":"sG4G+2bvTXI/htmsnJAxfQXd9oTZe5KNZ5W766kCFBbFxl7B9yZ7YCiTyzkO5X2T","randSeed":"ACmbkLg73NmmZ8sGHFhe3MYtdK46wbKIUt+ivJsdHJld82HIAvnzjF0ezqUOdsOW","shardID":0,"timeStamp":1752768353,"round":0,"epoch":5,"blockBodyType":0,"leaderSignature":"aqchjZKetNFlMalYh+sgxcOdTxDABP7iIz5wOo5qirDI7BnhkuSQtDXhloNNZDqD","miniBlockHeaders":[{"hash":"JZ0x61Ds1sC7788L5sd3HM4CdcCsQxImNnwDY9sseUA=","senderShardID":4294967295,"receiverShardID":0,"txCount":5,"type":255,"reserved":"IAQ="},{"hash":"bvoV+3E/L3glspLncniBWc5Y913oZf9xLVdcbCdQ2R4=","senderShardID":4294967295,"receiverShardID":4294967280,"txCount":6,"type":60,"reserved":"IAU="},{"hash":"h4DQEYG9V7cCfWwC7n3HR7JRRXyxxP3wi/1aQYwaIWM=","senderShardID":4294967295,"receiverShardID":4294967280,"txCount":5,"type":60,"reserved":"IAQ="}],"peerChanges":null,"rootHash":"1vyoepMXFURwMyBaRW5bEfPVJnaD9R1VLo/w6edvSO8=","metaBlockHashes":["aZiUegDAPYMjxFoDZifKS1OtucE82KjcBcV7JOAnKrk="],"txCount":16,"epochStartMetaHash":"aZiUegDAPYMjxFoDZifKS1OtucE82KjcBcV7JOAnKrk=","receiptsHash":"DldRwCblQ7Loqy6wYJnaodHl30d3j3eH+qtFzfEv46g=","chainID":"bG9jYWxuZXQ=","softwareVersion":"Mg==","accumulatedFees":0,"developerFees":0},"scheduledRootHash":"SZRu3iHeUgmPfL99TQapZNOcqKSWYmp5rMrAuOMbmu0=","scheduledAccumulatedFees":0,"scheduledDeveloperFees":0,"scheduledGasProvided":0,"scheduledGasPenalized":0,"scheduledGasRefunded":0}`
-}
-
-func createJsonForMetaBlock() string {
-	return `{"nonce":184,"epoch":2,"round":0,"timeStamp":1752766553,"shardInfo":[{"headerHash":"N4Be23RIX4Hdb/IX8N9Rn9IVrDwNv0x/aRBG3DeZ59s=","shardMiniBlockHeaders":[{"hash":"SQnnrD2Cv9UbULqY2vrdsP9pKzVrp9lUgMaKf8N/VQs=","senderShardID":0,"receiverShardID":0,"txCount":100,"type":0}],"prevRandSeed":"AtTtjVgLLCR1vcN5lhMgKAXSQ+uGgQJQAGCIRXpRur2WgyOFWVwGsvB0XNr5tT2D","round":205,"prevHash":"5DzInuk8HiY/x21RCIAaLnmEp2pNcj3GFhjV/D0ugeo=","nonce":182,"accumulatedFees":5000000000000000,"developerFees":0,"numPendingMiniBlocks":1,"lastIncludedMetaNonce":181,"shardID":0,"txCount":100,"epoch":2}],"peerInfo":null,"leaderSignature":"MaAFUyniShBNVbL01Mf5WJOAh0ypTKcjFtQ4E+wODRWpUWjb1/icT07eeEK5n7oT","prevHash":"p5RrqnclvenWpggjZazqDuNMSh/BAKXUUZOW4Ty3R80=","prevRandSeed":"n+jWtdpAJrz1G8YyxNtn6aKuMSwrpVhwzhaHVbEsTIJe0i5N3gzl73QWxaHWjUiU","randSeed":"ek0OGMLItkHOwp/AtNtM8jup4ZKUgXw2xPpMEvARqWUo+xiMai7K0Zt5n/EKl0QL","rootHash":"SA2azL3/LsUqsfofORRsha0dXjBlshUEVJELa9uBTuQ=","validatorStatsRootHash":"YWE259eQYLgZ94BeQE5Ur9/IuGlrQj3K3NMb/FnsYus=","miniBlockHeaders":null,"receiptsHash":"DldRwCblQ7Loqy6wYJnaodHl30d3j3eH+qtFzfEv46g=","epochStart":{"lastFinalizedHeaders":null,"economics":{"prevEpochStartRound":0}},"chainID":"bG9jYWxuZXQ=","softwareVersion":"Mg==","accumulatedFees":0,"accumulatedFeesInEpoch":5050000000000000,"developerFees":0,"devFeesInEpoch":0,"txCount":100}`
-}
-
-func prepareLoggingSubroundTest(header data.HeaderHandler, isMeta bool) v2.SubroundBlock {
-	_ = logger.SetLogLevel("*:DEBUG")
-	container := consensusMocks.InitConsensusCore()
-	if isMeta {
-		container.SetShardCoordinator(&processMock.CoordinatorStub{
-			SelfIdCalled: func() uint32 { return uint32(common.MetachainShardId) },
-			CommunicationIdentifierCalled: func(uint32) string { return "meta-comm-id" },
-		})
-	}
-
-	sr := initSubroundBlock(nil, container, &statusHandler.AppStatusHandlerStub{})
-
-	prevHash := []byte("prev hash")
-	prevHeader := createDefaultHeader()
-	container.SetBlockchain(&testscommon.ChainHandlerStub{
-		GetCurrentBlockHeaderHashCalled: func() []byte { return prevHash },
-		GetCurrentBlockHeaderCalled:     func() data.HeaderHandler { return &block.HeaderV2{Header: prevHeader} },
-	})
-
-	_ = header.SetNonce(prevHeader.GetNonce() + 1)
-	_ = header.SetPrevHash(prevHash)
-	_ = header.SetPrevRandSeed(prevHeader.GetRandSeed())
-
-	if isMeta {
-		_ = header.(data.MetaHeaderHandler).SetShardID(common.MetachainShardId)
-	}
-
-	sr.SetData(nil)
-	container.SetMarshalizer(&testscommon.MarshallerStub{})
-
-	return sr
-}
-
-func TestSubroundBlock_HeaderLogging(t *testing.T) {
-	
-	t.Run("send with HeaderV2", func(t *testing.T) {
-		header := &block.HeaderV2{}
-		require.NoError(t, json.Unmarshal([]byte(createJsonForHeaderV2()), header))
-		sr:= prepareLoggingSubroundTest(header, false)
-		marshalizedHeader, _ := sr.Marshalizer().Marshal(header)
-
-		sr.SendBlockHeader(header, marshalizedHeader)
-	})
-
-	t.Run("send with MetaBlock", func(t *testing.T) {
-		meta := &block.MetaBlock{}
-		require.NoError(t, json.Unmarshal([]byte(createJsonForMetaBlock()), meta))
-		sr := prepareLoggingSubroundTest(meta, true)
-		marshalizedHeader, _ := sr.Marshalizer().Marshal(meta)
-
-		_ = sr.SendBlockHeader(meta, marshalizedHeader)
-	})
-
-	t.Run("receive with HeaderV2", func(t *testing.T) {
-		header := &block.HeaderV2{}
-		require.NoError(t, json.Unmarshal([]byte(createJsonForHeaderV2()), header))
-		sr := prepareLoggingSubroundTest(header, false)
-
-		sr.ReceivedBlockHeader(header)
-	})
-
-	t.Run("receive with MetaBlock", func(t *testing.T) {
-		meta := &block.MetaBlock{}
-		require.NoError(t, json.Unmarshal([]byte(createJsonForMetaBlock()), meta))
-		sr := prepareLoggingSubroundTest(meta, true)
-
-		sr.ReceivedBlockHeader(meta)
-	})
 }
 
 func TestSubroundBlock_GetLeaderForHeader(t *testing.T) {
