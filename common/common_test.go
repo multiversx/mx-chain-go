@@ -262,21 +262,21 @@ func TestConsesusGroupSizeForShardAndEpoch(t *testing.T) {
 	})
 }
 
-//Structures for testing prettify functions
+// Structures for testing prettify functions
 type Inner struct {
-	Bytes   []byte        `json:"bytes"`
-	Big     *big.Int      `json:"big"`
-	Float   big.Float     `json:"float"`
-	Rat     *big.Rat      `json:"rat"`
-	private string        // unexported
+	Bytes   []byte    `json:"bytes"`
+	Big     *big.Int  `json:"big"`
+	Float   big.Float `json:"float"`
+	Rat     *big.Rat  `json:"rat"`
+	private string    // unexported
 }
 
 type TestStruct struct {
-	InnerVal   Inner          `json:"innerVal"`
-	ByteArray  [4]byte        `json:"byteArray"`
-	IntArray   []int          `json:"intArray"`
-	FloatSlice []*big.Float   `json:"floatSlice"`
-	NilPtr     *big.Int       `json:"nilPtr"`
+	InnerVal   Inner        `json:"innerVal"`
+	ByteArray  [4]byte      `json:"byteArray"`
+	IntArray   []int        `json:"intArray"`
+	FloatSlice []*big.Float `json:"floatSlice"`
+	NilPtr     *big.Int     `json:"nilPtr"`
 }
 
 func TestPrettifyStruct(t *testing.T) {
@@ -306,26 +306,26 @@ func TestPrettifyStruct(t *testing.T) {
 	})
 
 	t.Run("with array of simple struct type", func(t *testing.T) {
-			type testStruct struct {
-				Field1 string
-				Field2 int
-			}
+		type testStruct struct {
+			Field1 string
+			Field2 int
+		}
 
-			ts := &testStruct{
-				Field1: "value1",
-				Field2: 42,
-			}
+		ts := &testStruct{
+			Field1: "value1",
+			Field2: 42,
+		}
 
-			ts1 := &testStruct{
-				Field1: "value2",
-				Field2: 84,
-			}
-			tsArray := []*testStruct{ts, ts1}
-			expected := `[{"Field1":"value1","Field2":42},{"Field1":"value2","Field2":84}]`
-			result, _ := common.PrettifyStruct(tsArray)
+		ts1 := &testStruct{
+			Field1: "value2",
+			Field2: 84,
+		}
+		tsArray := []*testStruct{ts, ts1}
+		expected := `[{"Field1":"value1","Field2":42},{"Field1":"value2","Field2":84}]`
+		result, _ := common.PrettifyStruct(tsArray)
 
-			require.Equal(t, expected, result)
-		})
+		require.Equal(t, expected, result)
+	})
 
 	t.Run("with complex struct type", func(t *testing.T) {
 		t.Parallel()
@@ -343,10 +343,10 @@ func TestPrettifyStruct(t *testing.T) {
 			NilPtr:     nil,
 		}
 
-	out, err := common.PrettifyStruct(v)
-	require.NoError(t, err)
-	expected := `{"byteArray":"74657374","floatSlice":["0.1","0.2"],"innerVal":{"big":"42000000","bytes":"736f6d652d6279746573","float":"123.456","private":"\u003cunexported\u003e","rat":"355/113"},"intArray":[10,20,30],"nilPtr":null}`
-	require.Equal(t, expected, out)
+		out, err := common.PrettifyStruct(v)
+		require.NoError(t, err)
+		expected := `{"byteArray":"74657374","floatSlice":["0.1","0.2"],"innerVal":{"big":"42000000","bytes":"736f6d652d6279746573","float":"123.456","private":"\u003cunexported\u003e","rat":"355/113"},"intArray":[10,20,30],"nilPtr":null}`
+		require.Equal(t, expected, out)
 	})
 
 	t.Run("with minimal headers", func(t *testing.T) {
@@ -363,7 +363,7 @@ func TestPrettifyStruct(t *testing.T) {
 		}
 
 		hdrv2 := &block.HeaderV2{
-			Header: hdr,
+			Header:               hdr,
 			ScheduledGasProvided: 0,
 		}
 		var h data.HeaderHandler

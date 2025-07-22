@@ -260,8 +260,6 @@ func (sr *subroundBlock) sendBlockBody(
 	return true
 }
 
-
-
 // sendBlockHeader method sends the proposed block header in the subround Block
 func (sr *subroundBlock) sendBlockHeader(
 	headerHandler data.HeaderHandler,

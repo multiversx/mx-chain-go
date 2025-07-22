@@ -214,8 +214,8 @@ func ConvertTimeStampSecToMs(timeStamp uint64) uint64 {
 
 // prettifyValue recursively formats a reflect.Value into a more readable format.
 func prettifyValue(val reflect.Value, typ reflect.Type) interface{} {
-    // Check for big types before unwrapping pointer
-    if val.CanInterface() {
+	// Check for big types before unwrapping pointer
+	if val.CanInterface() {
 		switch v := val.Interface().(type) {
 		case *big.Int:
 			if v != nil {
@@ -238,41 +238,41 @@ func prettifyValue(val reflect.Value, typ reflect.Type) interface{} {
 		}
 	}
 
-    // Unwrap pointer
-    if val.Kind() == reflect.Ptr {
-        if val.IsNil() {
-            return nil
-        }
-        val = val.Elem()
-        typ = val.Type()
-    }
+	// Unwrap pointer
+	if val.Kind() == reflect.Ptr {
+		if val.IsNil() {
+			return nil
+		}
+		val = val.Elem()
+		typ = val.Type()
+	}
 
-    switch val.Kind() {
-    case reflect.Struct:
-        out := make(map[string]interface{})
-        for i := 0; i < val.NumField(); i++ {
-            field := val.Field(i)
-            fieldType := typ.Field(i)
-            name := fieldType.Tag.Get("json")
-            if name == "" {
-                name = fieldType.Name
-            } else {
-                name = strings.Split(name, ",")[0]
-            }
+	switch val.Kind() {
+	case reflect.Struct:
+		out := make(map[string]interface{})
+		for i := 0; i < val.NumField(); i++ {
+			field := val.Field(i)
+			fieldType := typ.Field(i)
+			name := fieldType.Tag.Get("json")
+			if name == "" {
+				name = fieldType.Name
+			} else {
+				name = strings.Split(name, ",")[0]
+			}
 
-            if fieldType.PkgPath != "" {
-                out[name] = "<unexported>"
-                continue
-            }
-            if field.Kind() == reflect.Slice && field.Type().Elem().Kind() == reflect.Uint8 {
-                out[name] = fmt.Sprintf("%x", field.Bytes())
-            } else {
-                out[name] = prettifyValue(field, field.Type())
-            }
-        }
-        return out
+			if fieldType.PkgPath != "" {
+				out[name] = "<unexported>"
+				continue
+			}
+			if field.Kind() == reflect.Slice && field.Type().Elem().Kind() == reflect.Uint8 {
+				out[name] = fmt.Sprintf("%x", field.Bytes())
+			} else {
+				out[name] = prettifyValue(field, field.Type())
+			}
+		}
+		return out
 
-    case reflect.Slice, reflect.Array:
+	case reflect.Slice, reflect.Array:
 		if val.Type().Elem().Kind() == reflect.Uint8 {
 			b := make([]byte, val.Len())
 			for i := 0; i < val.Len(); i++ {
@@ -287,9 +287,9 @@ func prettifyValue(val reflect.Value, typ reflect.Type) interface{} {
 		}
 		return out
 
-    default:
-        return val.Interface()
-    }
+	default:
+		return val.Interface()
+	}
 }
 
 // PrettifyStruct takes a structure like Header and returns a JSON string representation of its structure, converting bytes to hex strings
@@ -298,12 +298,12 @@ func PrettifyStruct(x interface{}) (string, error) {
 		return "", fmt.Errorf("cannot prettify nil value")
 	}
 
-    val := reflect.ValueOf(x)
-    result := prettifyValue(val, val.Type())
+	val := reflect.ValueOf(x)
+	result := prettifyValue(val, val.Type())
 
-    jsonBytes, err := json.Marshal(result)
-    if err != nil {
-        return "", err
-    }
-    return string(jsonBytes), nil
+	jsonBytes, err := json.Marshal(result)
+	if err != nil {
+		return "", err
+	}
+	return string(jsonBytes), nil
 }
