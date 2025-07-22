@@ -614,7 +614,7 @@ func TestRound_Concurrency(t *testing.T) {
 
 		args.EnableRoundsHandler = &testscommon.EnableRoundsHandlerStub{
 			IsFlagEnabledInRoundCalled: func(flag common.EnableRoundFlag, round uint64) bool {
-				return flag == common.SupernovaRoundFlag && round >= 0
+				return flag == common.SupernovaRoundFlag && round > 0
 			},
 		}
 
