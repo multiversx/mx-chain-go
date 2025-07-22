@@ -60,6 +60,17 @@ func TestEpochEconomics_NewEndOfEpochEconomicsDataCreatorNilMarshalizer(t *testi
 	require.Equal(t, epochStart.ErrNilMarshalizer, err)
 }
 
+func TestEpochEconomics_NewEndOfEpochEconomicsDataCreatorNilHasher(t *testing.T) {
+	t.Parallel()
+
+	arguments := createMockEpochEconomicsArguments()
+	arguments.Hasher = nil
+
+	esd, err := NewEndOfEpochEconomicsDataCreator(arguments)
+	require.Nil(t, esd)
+	require.Equal(t, epochStart.ErrNilHasher, err)
+}
+
 func TestEpochEconomics_NewEndOfEpochEconomicsDataCreatorNilStore(t *testing.T) {
 	t.Parallel()
 
@@ -169,6 +180,28 @@ func TestNewEndOfEpochEconomicsDataCreator_NilRoundTimeDurationHandler(t *testin
 	assert.Equal(t, epochStart.ErrNilRoundHandler, err)
 }
 
+func TestNewEndOfEpochEconomicsDataCreator_NilEconomicsDataProvider(t *testing.T) {
+	t.Parallel()
+
+	args := getArguments()
+	args.EconomicsDataNotified = nil
+	eoeedc, err := NewEndOfEpochEconomicsDataCreator(args)
+
+	assert.True(t, check.IfNil(eoeedc))
+	assert.Equal(t, epochStart.ErrNilEconomicsDataProvider, err)
+}
+
+func TestNewEndOfEpochEconomicsDataCreator_NilGenesisTotalSupply(t *testing.T) {
+	t.Parallel()
+
+	args := getArguments()
+	args.GenesisTotalSupply = nil
+	eoeedc, err := NewEndOfEpochEconomicsDataCreator(args)
+
+	assert.True(t, check.IfNil(eoeedc))
+	assert.Equal(t, epochStart.ErrNilGenesisTotalSupply, err)
+}
+
 func TestNewEndOfEpochEconomicsDataCreator_NilEnableEpochsHandler(t *testing.T) {
 	t.Parallel()
 
@@ -178,6 +211,28 @@ func TestNewEndOfEpochEconomicsDataCreator_NilEnableEpochsHandler(t *testing.T) 
 
 	assert.True(t, check.IfNil(eoeedc))
 	assert.Equal(t, commonErrors.ErrNilEnableEpochsHandler, err)
+}
+
+func TestNewEndOfEpochEconomicsDataCreator_NilEnableRoundsHandler(t *testing.T) {
+	t.Parallel()
+
+	args := getArguments()
+	args.EnableRoundsHandler = nil
+	eoeedc, err := NewEndOfEpochEconomicsDataCreator(args)
+
+	assert.True(t, check.IfNil(eoeedc))
+	assert.Equal(t, commonErrors.ErrNilEnableRoundsHandler, err)
+}
+
+func TestNewEndOfEpochEconomicsDataCreator_NilChainParametersHandler(t *testing.T) {
+	t.Parallel()
+
+	args := getArguments()
+	args.ChainParamsHandler = nil
+	eoeedc, err := NewEndOfEpochEconomicsDataCreator(args)
+
+	assert.True(t, check.IfNil(eoeedc))
+	assert.Equal(t, commonErrors.ErrNilChainParametersHandler, err)
 }
 
 func TestNewEndOfEpochEconomicsDataCreator_ShouldWork(t *testing.T) {
@@ -405,7 +460,8 @@ func TestEconomics_ComputeInflationRate(t *testing.T) {
 			},
 		}
 
-		supernovaActivationRound := uint64(7884000)
+		roundDurationBeforeSupernova := 4000
+		supernovaActivationRound := uint64(7884000) // rounds of 4s in a day
 		args.EnableRoundsHandler = &testscommon.EnableRoundsHandlerStub{
 			IsFlagEnabledInRoundCalled: func(flag common.EnableRoundFlag, round uint64) bool {
 				return flag == common.SupernovaRoundFlag && round > supernovaActivationRound // above one year
@@ -414,14 +470,8 @@ func TestEconomics_ComputeInflationRate(t *testing.T) {
 				return supernovaActivationRound
 			},
 		}
-		roundDurationBeforeSupernova := 4000
-		roundDurationAfterSupernova := 400
 
-		args.RoundTime = &mock.RoundTimeDurationHandler{
-			TimeDurationCalled: func() time.Duration {
-				return time.Duration(roundDurationBeforeSupernova) * time.Millisecond
-			},
-		}
+		roundDurationAfterSupernova := 400
 		args.ChainParamsHandler = &chainParameters.ChainParametersHandlerStub{
 			ChainParametersForEpochCalled: func(epoch uint32) (config.ChainParametersByEpochConfig, error) {
 				if epoch >= activationEpoch {
@@ -492,6 +542,150 @@ func TestEconomics_ComputeInflationRate(t *testing.T) {
 		rate, _ = ec.computeInflationRate(supernovaActivationRound*(10+1), activationEpoch+10)
 		assert.Nil(t, errFound)
 		assert.Equal(t, lateYearInflation, rate)
+	})
+}
+
+func TestGetSupernovaActivationYear(t *testing.T) {
+	t.Parallel()
+
+	t.Run("error on chain parameters should fail", func(t *testing.T) {
+		t.Parallel()
+
+		expErr := errors.New("expected err")
+
+		args := getArguments()
+
+		activationEpoch := uint32(2)
+		args.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+			IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
+				return flag == common.SupernovaFlag && epoch >= activationEpoch
+			},
+			GetActivationEpochCalled: func(flag core.EnableEpochFlag) uint32 {
+				if flag == common.SupernovaFlag {
+					return activationEpoch
+				}
+
+				return 0
+			},
+		}
+
+		supernovaActivationRound := uint64(7884000) // rounds of 4s in a day
+		args.EnableRoundsHandler = &testscommon.EnableRoundsHandlerStub{
+			IsFlagEnabledInRoundCalled: func(flag common.EnableRoundFlag, round uint64) bool {
+				return flag == common.SupernovaRoundFlag && round > supernovaActivationRound // above one year
+			},
+			GetActivationRoundCalled: func(flag common.EnableRoundFlag) uint64 {
+				return supernovaActivationRound
+			},
+		}
+		args.ChainParamsHandler = &chainParameters.ChainParametersHandlerStub{
+			ChainParametersForEpochCalled: func(epoch uint32) (config.ChainParametersByEpochConfig, error) {
+				return config.ChainParametersByEpochConfig{}, expErr
+			},
+		}
+
+		ec, _ := NewEndOfEpochEconomicsDataCreator(args)
+
+		activationYear, err := ec.getSupernovaActivationYear(2)
+		require.Equal(t, expErr, err)
+		require.Zero(t, activationYear)
+	})
+
+	t.Run("invalid round duration should fail", func(t *testing.T) {
+		t.Parallel()
+
+		args := getArguments()
+
+		activationEpoch := uint32(2)
+		args.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+			IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
+				return flag == common.SupernovaFlag && epoch >= activationEpoch
+			},
+			GetActivationEpochCalled: func(flag core.EnableEpochFlag) uint32 {
+				if flag == common.SupernovaFlag {
+					return activationEpoch
+				}
+
+				return 0
+			},
+		}
+
+		supernovaActivationRound := uint64(7884000) // rounds of 4s in a day
+		args.EnableRoundsHandler = &testscommon.EnableRoundsHandlerStub{
+			IsFlagEnabledInRoundCalled: func(flag common.EnableRoundFlag, round uint64) bool {
+				return flag == common.SupernovaRoundFlag && round > supernovaActivationRound // above one year
+			},
+			GetActivationRoundCalled: func(flag common.EnableRoundFlag) uint64 {
+				return supernovaActivationRound
+			},
+		}
+		args.ChainParamsHandler = &chainParameters.ChainParametersHandlerStub{
+			ChainParametersForEpochCalled: func(epoch uint32) (config.ChainParametersByEpochConfig, error) {
+				return config.ChainParametersByEpochConfig{
+					RoundDuration: 0,
+				}, nil
+			},
+		}
+
+		ec, _ := NewEndOfEpochEconomicsDataCreator(args)
+
+		activationYear, err := ec.getSupernovaActivationYear(2)
+		require.Equal(t, commonErrors.ErrInvalidRoundDuration, err)
+		require.Zero(t, activationYear)
+	})
+
+	t.Run("should work", func(t *testing.T) {
+		t.Parallel()
+
+		args := getArguments()
+
+		activationEpoch := uint32(2)
+		args.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+			IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
+				return flag == common.SupernovaFlag && epoch >= activationEpoch
+			},
+			GetActivationEpochCalled: func(flag core.EnableEpochFlag) uint32 {
+				if flag == common.SupernovaFlag {
+					return activationEpoch
+				}
+
+				return 0
+			},
+		}
+
+		supernovaActivationRound := uint64(7884000) // rounds of 4s in a day
+		args.EnableRoundsHandler = &testscommon.EnableRoundsHandlerStub{
+			IsFlagEnabledInRoundCalled: func(flag common.EnableRoundFlag, round uint64) bool {
+				return flag == common.SupernovaRoundFlag && round > supernovaActivationRound // above one year
+			},
+			GetActivationRoundCalled: func(flag common.EnableRoundFlag) uint64 {
+				return supernovaActivationRound
+			},
+		}
+		roundDurationBeforeSupernova := 4000
+		roundDurationAfterSupernova := 400
+
+		args.ChainParamsHandler = &chainParameters.ChainParametersHandlerStub{
+			ChainParametersForEpochCalled: func(epoch uint32) (config.ChainParametersByEpochConfig, error) {
+				if epoch >= activationEpoch {
+					return config.ChainParametersByEpochConfig{
+						RoundDuration: uint64(roundDurationAfterSupernova),
+					}, nil
+				}
+
+				return config.ChainParametersByEpochConfig{
+					RoundDuration: uint64(roundDurationBeforeSupernova),
+				}, nil
+			},
+		}
+
+		ec, _ := NewEndOfEpochEconomicsDataCreator(args)
+
+		activationYear, err := ec.getSupernovaActivationYear(2)
+		require.Nil(t, err)
+
+		expActivationYear := uint32(2)
+		require.Equal(t, expActivationYear, activationYear)
 	})
 }
 
