@@ -37,6 +37,7 @@ func (breadcrumb *accountBreadcrumb) updateLastNonce(lastNonce core.OptionalUint
 		return nil
 	}
 	if breadcrumb.lastNonce.HasValue && breadcrumb.lastNonce.Value+1 != lastNonce.Value {
+		// validate that we have continuous txs inside the tracked block used for breadcrumbs
 		return errDiscontinuousNonce
 	}
 

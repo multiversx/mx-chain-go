@@ -77,6 +77,7 @@ func (st *selectionTracker) OnProposedBlock(
 	st.blocks = append(st.blocks, tBlock)
 
 	blocksToBeValidated := st.getChainOfTrackedBlocks(blockchainInfo.GetLatestExecutedBlockHash(), blockchainInfo.GetCurrentNonce())
+	// make sure that the proposed block is valid (continuous with the other proposed blocks)
 	return st.validateTrackedBlocks(blocksToBeValidated, session)
 }
 

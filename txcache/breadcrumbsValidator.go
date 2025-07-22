@@ -2,6 +2,10 @@ package txcache
 
 import "github.com/multiversx/mx-chain-go/state"
 
+// breadcrumbsValidator checks that breadcrumbs are continuous
+//
+//	with the session nonce
+//	with the previous breadcrumbs
 type breadcrumbsValidator struct {
 	skippedSenders                      map[string]struct{}
 	sendersInContinuityWithSessionNonce map[string]struct{}
@@ -16,6 +20,7 @@ func newBreadcrumbValidator() *breadcrumbsValidator {
 	}
 }
 
+// continuousBreadcrumb is used when a block is proposed and also when the deriveVirtualSession is called
 func (validator *breadcrumbsValidator) continuousBreadcrumb(
 	address string,
 	breadcrumb *accountBreadcrumb,
