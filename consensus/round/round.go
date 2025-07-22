@@ -93,12 +93,21 @@ func (rnd *round) UpdateRound(genesisTimeStamp time.Time, currentTimeStamp time.
 	rnd.updateRound(baseTimeStamp, currentTimeStamp, startRound, roundDuration)
 }
 
+// this should be called under mutex protection
 func (rnd *round) isSupernovaRoundActivated() bool {
-	return rnd.enableRoundsHandler.IsFlagEnabledInRound(common.SupernovaRoundFlag, uint64(rnd.index))
+	index := rnd.index
+	if index < 0 {
+		return false
+	}
+
+	return rnd.enableRoundsHandler.IsFlagEnabledInRound(common.SupernovaRoundFlag, uint64(index))
 }
 
 func (rnd *round) isSupernovaActivated(currentTimeStamp time.Time) bool {
+	rnd.RLock()
 	supernovaActivated := rnd.isSupernovaRoundActivated()
+	rnd.RUnlock()
+
 	if supernovaActivated {
 		return supernovaActivated
 	}
@@ -130,6 +139,16 @@ func (rnd *round) updateRound(
 		rnd.index = index
 		rnd.timeStamp = genesisTimeStamp.Add(time.Duration((index - startRound) * roundDuration.Nanoseconds()))
 	}
+
+	log.Trace("round.updateRound",
+		"delta", delta,
+		"index", index,
+		"startRound", startRound,
+		"genesisTimeStamp", genesisTimeStamp.UnixMilli(),
+		"rnd.timeStamp", rnd.timeStamp.UnixMilli(),
+		"currentTimeStamp", currentTimeStamp.UnixMilli(),
+	)
+
 	rnd.Unlock()
 }
 
