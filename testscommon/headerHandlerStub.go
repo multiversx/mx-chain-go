@@ -4,8 +4,20 @@ import (
 	"math/big"
 
 	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/data/headerVersionData"
 )
+
+// HeaderHandlerWithExecutionResultsStub -
+type HeaderHandlerWithExecutionResultsStub struct {
+	HeaderHandlerStub
+	GetExecutionResultsCalled func() []*block.ExecutionResult
+}
+
+// GetExecutionResults -
+func (hh *HeaderHandlerWithExecutionResultsStub) GetExecutionResults() []*block.ExecutionResult {
+	return hh.GetExecutionResultsCalled()
+}
 
 // HeaderHandlerStub -
 type HeaderHandlerStub struct {
