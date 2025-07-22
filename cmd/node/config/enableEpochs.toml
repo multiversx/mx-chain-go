@@ -65,10 +65,10 @@
     GovernanceEnableEpoch = 1
 
     # GovernanceDisableProposeEnableEpoch represents the epoch when governance disable proposal is enabled
-    GovernanceDisableProposeEnableEpoch = 6
+    GovernanceDisableProposeEnableEpoch = 1
 
     # GovernanceFixesEnableEpoch represents the epoch when governance fixes are enabled
-    GovernanceFixesEnableEpoch = 7
+    GovernanceFixesEnableEpoch = 1
 
     # DelegationManagerEnableEpoch represents the epoch when the delegation manager is enabled
     # epoch should not be 0
@@ -355,22 +355,22 @@
     CheckBuiltInCallOnTransferValueAndFailEnableRound = 1
 
     # MaskVMInternalDependenciesErrorsEnableEpoch represents the epoch when the additional internal erorr masking in vm is enabled
-    MaskVMInternalDependenciesErrorsEnableEpoch = 2
+    MaskVMInternalDependenciesErrorsEnableEpoch = 1
 
     # FixBackTransferOPCODEEnableEpoch represents the epoch when the fix for back transfers opcode will be enabled
-    FixBackTransferOPCODEEnableEpoch = 2
+    FixBackTransferOPCODEEnableEpoch = 1
 
     # ValidationOnGobDecodeEnableEpoch represents the epoch when validation on GobDecode will be taken into account
-    ValidationOnGobDecodeEnableEpoch = 2
+    ValidationOnGobDecodeEnableEpoch = 1
 
     # BarnardOpcodesEnableEpoch represents the epoch when Barnard opcodes will be enabled
-    BarnardOpcodesEnableEpoch = 2
+    BarnardOpcodesEnableEpoch = 1
 
     # FixGetBalanceEnableEpoch represents the epoch when Barnard opcodes will be enabled
-    FixGetBalanceEnableEpoch = 2
+    FixGetBalanceEnableEpoch = 1
 
     # AutomaticActivationOfNodesDisableEpoch represents the epoch when automatic activation of nodes for validators is disabled
-    AutomaticActivationOfNodesDisableEpoch = 2
+    AutomaticActivationOfNodesDisableEpoch = 1
 
     # BLSMultiSignerEnableEpoch represents the activation epoch for different types of BLS multi-signers
     BLSMultiSignerEnableEpoch = [
