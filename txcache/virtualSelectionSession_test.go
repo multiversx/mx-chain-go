@@ -203,8 +203,10 @@ func Test_getNonce(t *testing.T) {
 				Value:    0,
 				HasValue: false,
 			},
-			initialBalance:  big.NewInt(2),
-			consumedBalance: big.NewInt(3),
+			virtualBalance: &virtualAccountBalance{
+				initialBalance:  big.NewInt(2),
+				consumedBalance: big.NewInt(3),
+			},
 		}
 		virtualSession.virtualAccountsByAddress = map[string]*virtualAccountRecord{
 			"alice": &expectedRecord,
