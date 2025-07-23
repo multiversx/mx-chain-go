@@ -173,6 +173,40 @@ func Test_getNonce(t *testing.T) {
 		_, err := virtualSession.getNonce([]byte("alice"))
 		require.Equal(t, expErr, err)
 	})
+
+	t.Run("should return errNonceNotSet", func(t *testing.T) {
+		t.Parallel()
+
+		sessionMock := txcachemocks.SelectionSessionMock{
+			GetAccountStateCalled: func(address []byte) (state.UserAccountHandler, error) {
+				return &stateMock.StateUserAccountHandlerStub{
+					GetBalanceCalled: func() *big.Int {
+						return big.NewInt(2)
+					},
+					GetNonceCalled: func() uint64 {
+						return 2
+					},
+				}, nil
+			},
+		}
+
+		virtualSession := newVirtualSelectionSession(&sessionMock)
+
+		expectedRecord := virtualAccountRecord{
+			initialNonce: core.OptionalUint64{
+				Value:    0,
+				HasValue: false,
+			},
+			initialBalance:  big.NewInt(2),
+			consumedBalance: big.NewInt(3),
+		}
+		virtualSession.virtualAccountsByAddress = map[string]*virtualAccountRecord{
+			"alice": &expectedRecord,
+		}
+
+		_, err := virtualSession.getNonce([]byte("alice"))
+		require.Equal(t, errNonceNotSet, err)
+	})
 }
 
 func Test_accumulateConsumedBalance(t *testing.T) {

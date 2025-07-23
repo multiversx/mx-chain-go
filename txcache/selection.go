@@ -95,9 +95,10 @@ func selectTransactionsFromBunches(
 			selectedTransaction := item.selectCurrentTransaction()
 			selectedTransactions = append(selectedTransactions, selectedTransaction)
 			err := virtualSession.accumulateConsumedBalance(selectedTransaction)
-			// TODO don't break the the selection loop.
 			if err != nil {
-				break
+				log.Warn("TxCache.selectTransactionsFromBunches error when accumulating consumed balance",
+					"err", err,
+					"txHash", selectedTransaction.TxHash)
 			}
 		}
 
@@ -118,7 +119,7 @@ func detectSkippableSender(virtualSession *virtualSelectionSession, item *transa
 	nonce, err := virtualSession.getNonce(item.sender)
 	if err != nil {
 		log.Debug("detectSkippableSender", "err", err)
-		return false
+		return true
 	}
 	if item.detectInitialGap(nonce) {
 		return true
@@ -137,7 +138,7 @@ func detectSkippableTransaction(virtualSession *virtualSelectionSession, item *t
 	nonce, err := virtualSession.getNonce(item.sender)
 	if err != nil {
 		log.Debug("detectSkippableTransaction", "err", err)
-		return false
+		return true
 	}
 	if item.detectLowerNonce(nonce) {
 		return true
