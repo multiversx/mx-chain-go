@@ -264,4 +264,48 @@ func TestTrackedBlock_compileBreadcrumb(t *testing.T) {
 			requireEqualBreadcrumbs(t, expectedBreadcrumbs[key], block.breadcrumbsByAddress[key])
 		}
 	})
+
+	t.Run("sender and fee payer are equal", func(t *testing.T) {
+		t.Parallel()
+
+		block, err := newTrackedBlock(0, []byte("blockHash1"), []byte("blockRootHash1"), []byte("blockPrevHash1"), nil)
+		require.NoError(t, err)
+		block.breadcrumbsByAddress = map[string]*accountBreadcrumb{
+			"alice": newAccountBreadcrumb(core.OptionalUint64{
+				Value:    1,
+				HasValue: true,
+			}, big.NewInt(5)),
+		}
+		txs := []*WrappedTransaction{
+			{
+				Tx: &transaction.Transaction{
+					SndAddr: []byte("alice"),
+					Nonce:   3,
+				},
+				TransferredValue: big.NewInt(5),
+				FeePayer:         []byte("alice"),
+				Fee:              big.NewInt(2),
+			},
+		}
+
+		err = block.compileBreadcrumbs(txs)
+		require.NoError(t, err)
+
+		aliceBreadcrumb := newAccountBreadcrumb(core.OptionalUint64{
+			Value:    1,
+			HasValue: true,
+		}, big.NewInt(12)) // initial value in breadcrumb + transferredValue + fee
+		aliceBreadcrumb.lastNonce = core.OptionalUint64{Value: 3, HasValue: true}
+
+		expectedBreadcrumbs := map[string]*accountBreadcrumb{
+			"alice": aliceBreadcrumb,
+		}
+
+		for key := range expectedBreadcrumbs {
+			_, ok := block.breadcrumbsByAddress[key]
+			require.True(t, ok)
+			requireEqualBreadcrumbs(t, expectedBreadcrumbs[key], block.breadcrumbsByAddress[key])
+		}
+
+	})
 }
