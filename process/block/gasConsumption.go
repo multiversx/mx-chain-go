@@ -14,6 +14,7 @@ const (
 	// TODO: move these to config
 	percentSplitBlock         = uint64(50) // 50%
 	percentDecreaseLimitsStep = uint64(10) // 10%
+	minPercentLimitsFactor    = uint64(10) // 10%
 )
 
 type gasConsumption struct {
@@ -51,22 +52,28 @@ func NewGasConsumption(
 func (gc *gasConsumption) CheckTransactionsForMiniBlock(
 	miniBlockHash []byte,
 	txs []data.TransactionHandler,
-) (uint32, error) {
+) (int32, error) {
 	if len(txs) == 0 {
-		return 0, nil
+		return -1, nil
 	}
 
 	gc.Lock()
 	defer gc.Unlock()
 
-	lastIndexAdded := uint32(0)
+	lastIndexAdded := int32(-1)
 
 	senderShard := gc.shardCoordinator.ComputeId(txs[0].GetSndAddr())
+
+	gasLeftForShard := gc.getMaxGasLeftForShard(senderShard)
+	if gasLeftForShard <= 0 {
+		return lastIndexAdded, process.ErrMaxGasLimitPerBlockIsReached
+	}
 
 	maxGasLimitPerTx := gc.economicsFee.MaxGasLimitPerTx()
 	maxGasLimitPerMB := gc.maxGasLimitPerMiniBlock(senderShard)
 	gasConsumedByMB := uint64(0)
-	for i := uint32(0); i < uint32(len(txs)); i++ {
+
+	for i := int32(0); i < int32(len(txs)); i++ {
 		tx := txs[i]
 		if tx.GetGasLimit() > maxGasLimitPerTx {
 			return lastIndexAdded, process.ErrInvalidMaxGasLimitPerTx
@@ -77,8 +84,8 @@ func (gc *gasConsumption) CheckTransactionsForMiniBlock(
 			return lastIndexAdded, process.ErrMaxGasLimitPerMiniBlockIsReached
 		}
 
-		gasLeftForShard := gc.getMaxGasLeftForShard(senderShard)
-		if gasLeftForShard <= 0 {
+		gasLeftForShard -= int64(tx.GetGasLimit())
+		if gasLeftForShard < 0 {
 			return lastIndexAdded, process.ErrMaxGasLimitPerBlockIsReached
 		}
 
@@ -106,6 +113,10 @@ func (gc *gasConsumption) DecreaseLimits() {
 
 	decreaseStep := initialLimitsFactor * percentDecreaseLimitsStep / 100
 	gc.limitsFactor = gc.limitsFactor - decreaseStep
+
+	if gc.limitsFactor <= minPercentLimitsFactor {
+		gc.limitsFactor = minPercentLimitsFactor
+	}
 }
 
 // Reset resets the accumulated values to the initial state
