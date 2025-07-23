@@ -394,6 +394,8 @@ func (txPool *shardedTxPool) getSelfShardTxCache() txCache {
 	return txPool.getTxCache(strconv.Itoa(int(txPool.selfShardID)))
 }
 
+// CleanupSelfShardTxCache performs an automatic cleanup of the transaction cache for the node's own shard. 
+// It removes non-executable transactions based on provided time and number constraints.
 func (txPool *shardedTxPool) CleanupSelfShardTxCache(session interface{}, randomness uint64, maxNum int, maxTime time.Duration) bool{
 	cache := txPool.getSelfShardTxCache()
 
