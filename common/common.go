@@ -212,7 +212,8 @@ func ConvertTimeStampSecToMs(timeStamp uint64) uint64 {
 	return timeStamp * 1000
 }
 
-// PrettifyStruct takes a structure like Header and returns a JSON string representation of its structure, converting bytes to hex strings
+// PrettifyStruct returns a JSON string representation of a struct, converting byte slices to hex
+// and formatting big number values into readable strings. Useful for logging or debugging.
 func PrettifyStruct(x interface{}) (string, error) {
 	if x == nil {
 		return "nil", nil
@@ -228,7 +229,8 @@ func PrettifyStruct(x interface{}) (string, error) {
 	return string(jsonBytes), nil
 }
 
-// prettifyValue recursively formats a reflect.Value into a more readable format.
+// prettifyValue recursively converts a reflect.Value into a representation suitable for JSON serialization,
+// handling pointers, slices, structs, and special formatting for big numeric types.
 func prettifyValue(val reflect.Value, typ reflect.Type) interface{} {
 	if bigValue, isBig := prettifyBigNumbers(val); isBig {
 		return bigValue
@@ -270,7 +272,7 @@ func prettifyStructFields(val reflect.Value, typ reflect.Type) map[string]interf
 			continue
 		}
 
-		if field.Kind() == reflect.Slice && field.Type().Elem().Kind() == reflect.Uint8 {
+		if field.Kind() == reflect.Slice && field.Type() == reflect.TypeOf([]byte{}) {
 			out[name] = fmt.Sprintf("%x", field.Bytes())
 		} else {
 			out[name] = prettifyValue(field, field.Type())
