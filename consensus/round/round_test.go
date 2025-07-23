@@ -592,7 +592,7 @@ func TestRound_Concurrency(t *testing.T) {
 				case 5:
 					rnd.UpdateRound(genesisTime, time.Now())
 				default:
-					assert.Fail(t, "should have not beed called")
+					assert.Fail(t, "should have not been called")
 				}
 
 				wg.Done()
@@ -642,7 +642,7 @@ func TestRound_Concurrency(t *testing.T) {
 				case 5:
 					rnd.UpdateRound(genesisTime, time.Now())
 				default:
-					assert.Fail(t, "should have not beed called")
+					assert.Fail(t, "should have not been called")
 				}
 
 				wg.Done()

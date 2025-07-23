@@ -93,9 +93,11 @@ func (rnd *round) UpdateRound(genesisTimeStamp time.Time, currentTimeStamp time.
 	rnd.updateRound(baseTimeStamp, currentTimeStamp, startRound, roundDuration)
 }
 
-// this should be called under mutex protection
 func (rnd *round) isSupernovaRoundActivated() bool {
+	rnd.RLock()
 	index := rnd.index
+	rnd.RUnlock()
+
 	if index < 0 {
 		return false
 	}
@@ -104,10 +106,7 @@ func (rnd *round) isSupernovaRoundActivated() bool {
 }
 
 func (rnd *round) isSupernovaActivated(currentTimeStamp time.Time) bool {
-	rnd.RLock()
 	supernovaActivated := rnd.isSupernovaRoundActivated()
-	rnd.RUnlock()
-
 	if supernovaActivated {
 		return supernovaActivated
 	}
@@ -178,13 +177,9 @@ func (rnd *round) TimeStamp() time.Time {
 
 // TimeDuration returns the duration of the round
 func (rnd *round) TimeDuration() time.Duration {
-	rnd.RLock()
-	defer rnd.RUnlock()
-
 	return rnd.getTimeDuration()
 }
 
-// this should be called under mutex protection
 func (rnd *round) getTimeDuration() time.Duration {
 	if rnd.isSupernovaRoundActivated() {
 		return rnd.supernovaTimeDuration
@@ -205,10 +200,12 @@ func (rnd *round) RemainingTime(startTime time.Time, maxTime time.Duration) time
 
 // RevertOneRound reverts the round index and time stamp by one round, used in case of a transition to new consensus
 func (rnd *round) RevertOneRound() {
+	timeDuration := rnd.getTimeDuration()
+
 	rnd.Lock()
 
 	rnd.index--
-	rnd.timeStamp = rnd.timeStamp.Add(-rnd.getTimeDuration())
+	rnd.timeStamp = rnd.timeStamp.Add(-timeDuration)
 
 	rnd.Unlock()
 }
