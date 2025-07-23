@@ -5,7 +5,10 @@ import (
 	"fmt"
 	"math/big"
 	"math/rand"
+	"os"
+	"runtime/pprof"
 	"strconv"
+	"strings"
 	"testing"
 	"time"
 
@@ -364,18 +367,28 @@ func testOnProposed(t *testing.T, sw *core.StopWatch, numTxs int, numAddresses i
 	require.Equal(t, numTxs, len(selectedTransactions))
 
 	proposedBlock1 := createProposedBlock(selectedTransactions)
-	sw.Start(t.Name())
 
+	// start profiling
+	fileName := strings.ReplaceAll(t.Name(), "/", "_")
+	f, err := os.Create(fmt.Sprintf("TestOnProposed%s.pprof", fileName))
+	require.Nil(t, err)
+	err = pprof.StartCPUProfile(f)
+	require.Nil(t, err)
+
+	sw.Start(t.Name())
 	// measure the time spent
 	err = txpool.OnProposedBlock([]byte("blockHash1"), proposedBlock1, &block.Header{
 		Nonce:    0,
 		PrevHash: []byte("blockHash0"),
 		RootHash: []byte(fmt.Sprintf("rootHash%d", 0)),
 	})
-
 	sw.Stop(t.Name())
-
 	require.Nil(t, err)
+
+	// stop profiling
+	pprof.StopCPUProfile()
+	err = f.Close()
+	require.NoError(t, err)
 }
 
 func testFirstSelection(t *testing.T, sw *core.StopWatch, numTxs int, numTxsToBeSelected, numAddresses int) {
@@ -410,9 +423,21 @@ func testFirstSelection(t *testing.T, sw *core.StopWatch, numTxs int, numTxsToBe
 
 	blockchainInfo := holders.NewBlockchainInfo([]byte("blockHash0"), 1)
 
+	// start profiling
+	fileName := strings.ReplaceAll(t.Name(), "/", "_")
+	f, err := os.Create(fmt.Sprintf("TestOnProposed%s.pprof", fileName))
+	require.Nil(t, err)
+	err = pprof.StartCPUProfile(f)
+	require.Nil(t, err)
+
 	sw.Start(t.Name())
 	selectedTransactions, _ := txpool.SelectTransactions(selectionSession, options, blockchainInfo)
 	sw.Stop(t.Name())
+
+	// stop profiling
+	pprof.StopCPUProfile()
+	err = f.Close()
+	require.NoError(t, err)
 
 	require.Equal(t, numTxsToBeSelected, len(selectedTransactions))
 }
@@ -476,7 +501,20 @@ func testSecondSelection(t *testing.T, sw *core.StopWatch, numTxs int, numTxsToB
 	})
 	require.Nil(t, err)
 
+	// start profiling
+	fileName := strings.ReplaceAll(t.Name(), "/", "_")
+	f, err := os.Create(fmt.Sprintf("TestOnProposed%s.pprof", fileName))
+	require.Nil(t, err)
+	err = pprof.StartCPUProfile(f)
+	require.Nil(t, err)
+
 	selectedTransactions, _ = txpool.SelectTransactions(selectionSession, options, blockchainInfo)
+
+	// stop profiling
+	pprof.StopCPUProfile()
+	err = f.Close()
+	require.NoError(t, err)
+
 	require.Equal(t, 0, len(selectedTransactions))
 }
 
@@ -522,10 +560,22 @@ func testSecondSelectionWithManyTxsInPool(t *testing.T, sw *core.StopWatch, numT
 	})
 	require.Nil(t, err)
 
+	// start profiling
+	fileName := strings.ReplaceAll(t.Name(), "/", "_")
+	f, err := os.Create(fmt.Sprintf("TestOnProposed%s.pprof", fileName))
+	require.Nil(t, err)
+	err = pprof.StartCPUProfile(f)
+	require.Nil(t, err)
+
 	// measure the time for the second selection (now we use the breadcrumbs to create the virtual records)
 	sw.Start(t.Name())
 	selectedTransactions, _ = txpool.SelectTransactions(selectionSession, options, blockchainInfo)
 	sw.Stop(t.Name())
+
+	// stop profiling
+	pprof.StopCPUProfile()
+	err = f.Close()
+	require.NoError(t, err)
 
 	require.Equal(t, numTxsToBeSelected, len(selectedTransactions))
 }
