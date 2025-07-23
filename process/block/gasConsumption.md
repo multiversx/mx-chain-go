@@ -20,11 +20,11 @@ Another feature that must be satisfied is the option to decrease the limits when
 
 ```go
 type GasComputation interface {
-    CheckMiniBlock(
+    CheckIncomingMiniBlock(
         miniBlock data.MiniBlockHeaderHandler,
         transactions []data.TransactionHandler,
     ) error
-    CheckTransactions(transactions []data.TransactionHandler) uint32
+    CheckOutgoingTransactions(transactions []data.TransactionHandler) uint32
     TotalGasConsumed() uint64
     IsBlockFull() bool
     DecreaseMiniBlockLimit()
