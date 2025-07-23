@@ -56,6 +56,13 @@ func (virtualSession *virtualSelectionSession) getNonce(address []byte) (uint64,
 		return 0, err
 	}
 
+	if !account.initialNonce.HasValue {
+		log.Debug("virtualSelectionSession.getNonce",
+			"address", address,
+			"err", errNonceNotSet)
+		return 0, errNonceNotSet
+	}
+
 	return account.initialNonce.Value, nil
 }
 
