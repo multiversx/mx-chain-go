@@ -248,6 +248,11 @@ func (wrappedTx *WrappedTransaction) withValue(value *big.Int) *WrappedTransacti
 	return wrappedTx
 }
 
+func (wrappedTx *WrappedTransaction) withTransferredValue(value *big.Int) *WrappedTransaction {
+	wrappedTx.TransferredValue = value
+	return wrappedTx
+}
+
 func (wrappedTx *WrappedTransaction) withRelayer(relayer []byte) *WrappedTransaction {
 	tx := wrappedTx.Tx.(*transaction.Transaction)
 	tx.RelayerAddr = relayer
