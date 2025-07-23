@@ -39,8 +39,10 @@ func Test_handleAccountBreadcrumb(t *testing.T) {
 			Value:    3,
 			HasValue: true,
 		},
-		initialBalance:  big.NewInt(2),
-		consumedBalance: big.NewInt(3),
+		virtualBalance: &virtualAccountBalance{
+			initialBalance:  big.NewInt(2),
+			consumedBalance: big.NewInt(3),
+		},
 	}
 
 	sessionMock := txcachemocks.SelectionSessionMock{
@@ -142,16 +144,20 @@ func Test_createVirtualSelectionSession(t *testing.T) {
 					Value:    3,
 					HasValue: true,
 				},
-				initialBalance:  big.NewInt(2),
-				consumedBalance: big.NewInt(2),
+				virtualBalance: &virtualAccountBalance{
+					initialBalance:  big.NewInt(2),
+					consumedBalance: big.NewInt(2),
+				},
 			},
 			"bob": {
 				initialNonce: core.OptionalUint64{
 					Value:    6,
 					HasValue: true,
 				},
-				initialBalance:  big.NewInt(2),
-				consumedBalance: big.NewInt(6),
+				virtualBalance: &virtualAccountBalance{
+					initialBalance:  big.NewInt(2),
+					consumedBalance: big.NewInt(6),
+				},
 			},
 		}
 
@@ -264,8 +270,8 @@ func Test_handleTrackedBlock(t *testing.T) {
 		virtualRecord, ok := provider.virtualAccountsByAddress["bob"]
 		require.True(t, ok)
 		require.Equal(t, core.OptionalUint64{Value: 4, HasValue: true}, virtualRecord.initialNonce)
-		require.Equal(t, big.NewInt(2), virtualRecord.initialBalance)
-		require.Equal(t, big.NewInt(3), virtualRecord.consumedBalance)
+		require.Equal(t, big.NewInt(2), virtualRecord.getInitialBalance())
+		require.Equal(t, big.NewInt(3), virtualRecord.getConsumedBalance())
 
 		_, ok = provider.virtualAccountsByAddress["alice"]
 		require.False(t, ok)
@@ -326,7 +332,7 @@ func Test_handleTrackedBlock(t *testing.T) {
 					Value:    6,
 					HasValue: true,
 				},
-				initialBalance: big.NewInt(5),
+				virtualBalance: newVirtualAccountBalance(big.NewInt(5)),
 			},
 		}
 

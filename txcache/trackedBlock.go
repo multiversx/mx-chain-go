@@ -67,13 +67,13 @@ func (tb *trackedBlock) compileBreadcrumb(tx *WrappedTransaction, session Select
 		return err
 	}
 
-	initialBalance := accountState.GetBalance()
+	senderInitialBalance := accountState.GetBalance()
 
 	// compile for sender
 	senderBreadcrumb := tb.getOrCreateBreadcrumbWithNonce(string(sender), core.OptionalUint64{
 		Value:    initialNonce,
 		HasValue: true,
-	}, initialBalance)
+	}, senderInitialBalance)
 
 	transferredValue := tx.TransferredValue
 	senderBreadcrumb.accumulateConsumedBalance(transferredValue)
@@ -88,7 +88,13 @@ func (tb *trackedBlock) compileBreadcrumb(tx *WrappedTransaction, session Select
 
 	// compile for fee payer
 	if feePayer != nil {
-		feePayerBreadcrumb := tb.getOrCreateBreadcrumb(string(feePayer), initialBalance)
+		accountState, err := session.GetAccountState(feePayer)
+		if err != nil {
+			return err
+		}
+
+		feePayerInitialBalance := accountState.GetBalance()
+		feePayerBreadcrumb := tb.getOrCreateBreadcrumb(string(feePayer), feePayerInitialBalance)
 		fee := tx.Fee
 		feePayerBreadcrumb.accumulateConsumedBalance(fee)
 	}

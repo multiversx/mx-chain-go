@@ -118,7 +118,7 @@ func (st *selectionTracker) validateTrackedBlocks(chainOfTrackedBlocks []*tracke
 				return errDiscontinuousBreadcrumbs
 			}
 
-			err = validator.validateBalance(address, breadcrumb, accountState)
+			err = validator.validateBalance(address, breadcrumb)
 			if err != nil {
 				return err
 			}

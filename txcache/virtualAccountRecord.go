@@ -7,22 +7,20 @@ import (
 )
 
 type virtualAccountRecord struct {
-	initialNonce    core.OptionalUint64
-	initialBalance  *big.Int
-	consumedBalance *big.Int
+	initialNonce   core.OptionalUint64
+	virtualBalance *virtualAccountBalance
 }
 
 func newVirtualAccountRecord(initialNonce core.OptionalUint64, initialBalance *big.Int) *virtualAccountRecord {
 	return &virtualAccountRecord{
-		initialNonce:    initialNonce,
-		initialBalance:  initialBalance,
-		consumedBalance: big.NewInt(0),
+		initialNonce:   initialNonce,
+		virtualBalance: newVirtualAccountBalance(initialBalance),
 	}
 }
 
 // TODO refactor this path, split into more functions
 func (virtualRecord *virtualAccountRecord) updateVirtualRecord(breadcrumb *accountBreadcrumb) {
-	virtualRecord.accumulateConsumedBalance(breadcrumb)
+	virtualRecord.virtualBalance.accumulateConsumedBalance(breadcrumb)
 
 	if !virtualRecord.initialNonce.HasValue {
 		virtualRecord.initialNonce = breadcrumb.lastNonce
@@ -36,14 +34,10 @@ func (virtualRecord *virtualAccountRecord) updateVirtualRecord(breadcrumb *accou
 	}
 }
 
-func (virtualRecord *virtualAccountRecord) accumulateConsumedBalance(breadcrumb *accountBreadcrumb) {
-	_ = virtualRecord.consumedBalance.Add(virtualRecord.consumedBalance, breadcrumb.consumedBalance)
+func (virtualRecord *virtualAccountRecord) getInitialBalance() *big.Int {
+	return virtualRecord.virtualBalance.getInitialBalance()
 }
 
-func (virtualRecord *virtualAccountRecord) validateBalance() error {
-	if virtualRecord.consumedBalance.Cmp(virtualRecord.initialBalance) > 0 {
-		return errExceedBalance
-	}
-
-	return nil
+func (virtualRecord *virtualAccountRecord) getConsumedBalance() *big.Int {
+	return virtualRecord.virtualBalance.getConsumedBalance()
 }

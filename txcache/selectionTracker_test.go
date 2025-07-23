@@ -690,6 +690,69 @@ func TestSelectionTracker_validateTrackedBlocks(t *testing.T) {
 		require.Equal(t, errDiscontinuousBreadcrumbs, err)
 	})
 
+	t.Run("should return balance exceeded", func(t *testing.T) {
+		t.Parallel()
+
+		breadcrumbAlice1 := newAccountBreadcrumb(core.OptionalUint64{
+			Value:    0,
+			HasValue: true,
+		}, big.NewInt(5), big.NewInt(6))
+		breadcrumbAlice1.lastNonce = core.OptionalUint64{
+			Value:    4,
+			HasValue: true,
+		}
+
+		breadcrumbAlice2 := newAccountBreadcrumb(core.OptionalUint64{
+			Value:    5,
+			HasValue: true,
+		}, big.NewInt(5), big.NewInt(6))
+		breadcrumbAlice2.lastNonce = core.OptionalUint64{
+			Value:    7,
+			HasValue: true,
+		}
+
+		trackedBlocks := []*trackedBlock{
+			{
+				nonce:    0,
+				hash:     []byte("hash1"),
+				rootHash: []byte("rootHash1"),
+				prevHash: []byte("prevHash1"),
+				breadcrumbsByAddress: map[string]*accountBreadcrumb{
+					"alice": breadcrumbAlice1,
+				},
+			},
+			{
+				nonce:    0,
+				hash:     []byte("hash2"),
+				rootHash: []byte("rootHash2"),
+				prevHash: []byte("prevHash2"),
+				breadcrumbsByAddress: map[string]*accountBreadcrumb{
+					"alice": breadcrumbAlice2,
+				},
+			},
+		}
+
+		mockSelectionSession := txcachemocks.SelectionSessionMock{
+			GetAccountStateCalled: func(address []byte) (state.UserAccountHandler, error) {
+				return &testscommonState.StateUserAccountHandlerStub{
+					GetBalanceCalled: func() *big.Int {
+						return big.NewInt(5)
+					},
+					GetNonceCalled: func() uint64 {
+						return uint64(0)
+					},
+				}, nil
+			},
+		}
+
+		txCache := newCacheToTest(maxNumBytesPerSenderUpperBoundTest, 3)
+		tracker, err := NewSelectionTracker(txCache)
+		require.Nil(t, err)
+
+		err = tracker.validateTrackedBlocks(trackedBlocks, &mockSelectionSession)
+		require.Equal(t, errExceedBalance, err)
+	})
+
 	t.Run("should return nil", func(t *testing.T) {
 		t.Parallel()
 

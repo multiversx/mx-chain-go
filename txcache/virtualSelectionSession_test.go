@@ -35,8 +35,10 @@ func Test_getVirtualRecord(t *testing.T) {
 				Value:    3,
 				HasValue: true,
 			},
-			initialBalance:  big.NewInt(2),
-			consumedBalance: big.NewInt(3),
+			virtualBalance: &virtualAccountBalance{
+				initialBalance:  big.NewInt(2),
+				consumedBalance: big.NewInt(3),
+			},
 		}
 		virtualSession.virtualAccountsByAddress = map[string]*virtualAccountRecord{
 			"alice": &expectedRecord,
@@ -69,15 +71,17 @@ func Test_getVirtualRecord(t *testing.T) {
 				Value:    2,
 				HasValue: true,
 			},
-			initialBalance:  big.NewInt(2),
-			consumedBalance: big.NewInt(0),
+			virtualBalance: &virtualAccountBalance{
+				initialBalance:  big.NewInt(2),
+				consumedBalance: big.NewInt(0),
+			},
 		}
 		actualRecord, err := virtualSession.getRecord([]byte("alice"))
 
 		require.NoError(t, err)
 		require.Equal(t, expectedRecord.initialNonce, actualRecord.initialNonce)
-		require.Equal(t, expectedRecord.initialBalance, actualRecord.initialBalance)
-		require.Equal(t, expectedRecord.consumedBalance, actualRecord.consumedBalance)
+		require.Equal(t, expectedRecord.getInitialBalance(), actualRecord.getInitialBalance())
+		require.Equal(t, expectedRecord.getConsumedBalance(), actualRecord.getConsumedBalance())
 	})
 
 	t.Run("should err", func(t *testing.T) {
@@ -146,8 +150,10 @@ func Test_getNonce(t *testing.T) {
 				Value:    3,
 				HasValue: true,
 			},
-			initialBalance:  big.NewInt(2),
-			consumedBalance: big.NewInt(3),
+			virtualBalance: &virtualAccountBalance{
+				initialBalance:  big.NewInt(2),
+				consumedBalance: big.NewInt(3),
+			},
 		}
 		virtualSession.virtualAccountsByAddress = map[string]*virtualAccountRecord{
 			"alice": &expectedRecord,
@@ -193,14 +199,14 @@ func Test_accumulateConsumedBalance(t *testing.T) {
 
 		virtualRecord1, err := virtualSession.getRecord([]byte("a"))
 		require.NoError(t, err)
-		require.Equal(t, "50000000000000", virtualRecord1.consumedBalance.String())
+		require.Equal(t, "50000000000000", virtualRecord1.getConsumedBalance().String())
 
 		err = virtualSession.accumulateConsumedBalance(b)
 		require.NoError(t, err)
 
 		virtualRecord2, err := virtualSession.getRecord([]byte("a"))
 		require.NoError(t, err)
-		require.Equal(t, "1000100000000000000", virtualRecord2.consumedBalance.String())
+		require.Equal(t, "1000100000000000000", virtualRecord2.getConsumedBalance().String())
 
 	})
 
@@ -219,22 +225,22 @@ func Test_accumulateConsumedBalance(t *testing.T) {
 
 		virtualRecord1, err := virtualSession.getRecord([]byte("a"))
 		require.NoError(t, err)
-		require.Equal(t, "0", virtualRecord1.consumedBalance.String())
+		require.Equal(t, "0", virtualRecord1.getConsumedBalance().String())
 
 		virtualRecord2, err := virtualSession.getRecord([]byte("b"))
 		require.NoError(t, err)
-		require.Equal(t, "100000000000000", virtualRecord2.consumedBalance.String())
+		require.Equal(t, "100000000000000", virtualRecord2.getConsumedBalance().String())
 
 		err = virtualSession.accumulateConsumedBalance(b)
 		require.NoError(t, err)
 
 		virtualRecord1, err = virtualSession.getRecord([]byte("a"))
 		require.NoError(t, err)
-		require.Equal(t, "1000000000000000000", virtualRecord1.consumedBalance.String())
+		require.Equal(t, "1000000000000000000", virtualRecord1.getConsumedBalance().String())
 
 		virtualRecord2, err = virtualSession.getRecord([]byte("b"))
 		require.NoError(t, err)
-		require.Equal(t, "200000000000000", virtualRecord2.consumedBalance.String())
+		require.Equal(t, "200000000000000", virtualRecord2.getConsumedBalance().String())
 	})
 }
 
@@ -252,8 +258,10 @@ func Test_detectWillFeeExceedBalance(t *testing.T) {
 				Value:    3,
 				HasValue: true,
 			},
-			initialBalance:  big.NewInt(2),
-			consumedBalance: big.NewInt(1),
+			virtualBalance: &virtualAccountBalance{
+				initialBalance:  big.NewInt(2),
+				consumedBalance: big.NewInt(1),
+			},
 		}
 		virtualSession.virtualAccountsByAddress = map[string]*virtualAccountRecord{
 			"alice": &aliceRecord,
@@ -279,8 +287,10 @@ func Test_detectWillFeeExceedBalance(t *testing.T) {
 				Value:    3,
 				HasValue: true,
 			},
-			initialBalance:  big.NewInt(5),
-			consumedBalance: big.NewInt(1),
+			virtualBalance: &virtualAccountBalance{
+				initialBalance:  big.NewInt(5),
+				consumedBalance: big.NewInt(1),
+			},
 		}
 		virtualSession.virtualAccountsByAddress = map[string]*virtualAccountRecord{
 			"alice": &aliceRecord,

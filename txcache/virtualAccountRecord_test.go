@@ -32,8 +32,8 @@ func Test_updateVirtualRecord(t *testing.T) {
 		virtualRecord.updateVirtualRecord(&breadcrumb)
 
 		require.Equal(t, core.OptionalUint64{Value: 5, HasValue: true}, virtualRecord.initialNonce)
-		require.Equal(t, big.NewInt(2), virtualRecord.initialBalance)
-		require.Equal(t, big.NewInt(3), virtualRecord.consumedBalance)
+		require.Equal(t, big.NewInt(2), virtualRecord.getInitialBalance())
+		require.Equal(t, big.NewInt(3), virtualRecord.getConsumedBalance())
 	})
 
 	t.Run("virtual record doesn't have value for nonce", func(t *testing.T) {
@@ -57,7 +57,7 @@ func Test_updateVirtualRecord(t *testing.T) {
 		virtualRecord.updateVirtualRecord(&breadcrumb)
 
 		require.Equal(t, core.OptionalUint64{Value: 5, HasValue: true}, virtualRecord.initialNonce)
-		require.Equal(t, big.NewInt(2), virtualRecord.initialBalance)
-		require.Equal(t, big.NewInt(2), virtualRecord.consumedBalance)
+		require.Equal(t, big.NewInt(2), virtualRecord.getInitialBalance())
+		require.Equal(t, big.NewInt(2), virtualRecord.getConsumedBalance())
 	})
 }
