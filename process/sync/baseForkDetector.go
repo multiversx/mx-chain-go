@@ -736,7 +736,8 @@ func (bfd *baseForkDetector) checkGenesisTimeForHeaderBeforeSupernova(
 func (bfd *baseForkDetector) checkGenesisTimeForHeaderAfterSupernovaWithoutRoundActivation(
 	headerHandler data.HeaderHandler,
 ) error {
-	chainParams, err := bfd.chainParametersHandler.ChainParametersForEpoch(headerHandler.GetEpoch())
+	// in this interval, chain parameters has to be taken from the epoch previous to supernova
+	chainParams, err := bfd.chainParametersHandler.ChainParametersForEpoch(headerHandler.GetEpoch() - 1)
 	if err != nil {
 		return err
 	}
