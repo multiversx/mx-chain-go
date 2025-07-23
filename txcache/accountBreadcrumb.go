@@ -34,11 +34,11 @@ func (breadcrumb *accountBreadcrumb) accumulateConsumedBalance(transferredValue 
 
 func (breadcrumb *accountBreadcrumb) updateLastNonce(lastNonce core.OptionalUint64) error {
 	if !lastNonce.HasValue {
-		return nil
+		return errReceivedLastNonceNotSet
 	}
 	if breadcrumb.lastNonce.HasValue && breadcrumb.lastNonce.Value+1 != lastNonce.Value {
-		// validate that we have continuous txs inside the tracked block used for breadcrumbs
-		return errDiscontinuousNonce
+		// validate that we have txs with sequential nonces inside the tracked block used for breadcrumbs
+		return errNonceGap
 	}
 
 	breadcrumb.lastNonce = lastNonce

@@ -12,6 +12,11 @@ type breadcrumbsValidator struct {
 	accountPreviousBreadcrumb           map[string]*accountBreadcrumb
 }
 
+// a validator object is used for the next scenarios:
+//
+// when the creation of the virtual session - deriveVirtualSelectionSession - is called (in the SelectTransactions)
+// when the validation for a proposed block is called (when receiving the OnProposedBlock notification)
+// at the end of those methods it becomes useless
 func newBreadcrumbValidator() *breadcrumbsValidator {
 	return &breadcrumbsValidator{
 		skippedSenders:                      make(map[string]struct{}),
@@ -28,6 +33,10 @@ func (validator *breadcrumbsValidator) continuousBreadcrumb(
 ) bool {
 
 	if breadcrumb.hasUnkownNonce() {
+		// this might occur when an account is only relayer in that specific tracked block
+		// for the relayer we dont have any nonce info
+		// this means that its breadcrumb is continuous
+		log.Debug("breadcrumbsValidator.continuousBreadcrumb breadcrumb has unknown nonce")
 		return true
 	}
 
@@ -51,8 +60,12 @@ func (validator *breadcrumbsValidator) continuousWithSessionNonce(
 ) bool {
 
 	_, ok := validator.sendersInContinuityWithSessionNonce[address]
+	if ok {
+		return true
+	}
+
 	continuousWithSessionNonce := breadcrumb.verifyContinuityWithSessionNonce(accountNonce)
-	if !ok && !continuousWithSessionNonce {
+	if !continuousWithSessionNonce {
 		validator.skippedSenders[address] = struct{}{}
 		log.Debug("virtualSessionProvider.continuousBreadcrumb breadcrumb not continuous with session nonce",
 			"address", address,
@@ -60,9 +73,7 @@ func (validator *breadcrumbsValidator) continuousWithSessionNonce(
 			"breadcrumb nonce", breadcrumb.initialNonce)
 		return false
 	}
-	if !ok {
-		validator.sendersInContinuityWithSessionNonce[address] = struct{}{}
-	}
+	validator.sendersInContinuityWithSessionNonce[address] = struct{}{}
 
 	return true
 }
@@ -87,4 +98,9 @@ func (validator *breadcrumbsValidator) continuousWithPreviousBreadcrumb(
 	validator.accountPreviousBreadcrumb[address] = breadcrumb
 
 	return true
+}
+
+func (validator *breadcrumbsValidator) shouldSkipSender(address string) bool {
+	_, ok := validator.skippedSenders[address]
+	return ok
 }

@@ -32,6 +32,7 @@ func NewSelectionTracker(txCache txCacheForSelectionTracker) (*selectionTracker,
 }
 
 // OnProposedBlock notifies when a block is proposed and updates the state of the selectionTracker
+// TODO the selection session might be unusable in the flow of OnProposed
 func (st *selectionTracker) OnProposedBlock(
 	blockHash []byte,
 	blockBody *block.Body,
@@ -91,7 +92,11 @@ func (st *selectionTracker) OnExecutedBlock(handler data.HeaderHandler) error {
 	rootHash := handler.GetRootHash()
 	prevHash := handler.GetPrevHash()
 
-	tempTrackedBlock, _ := newTrackedBlock(nonce, nil, rootHash, prevHash, nil)
+	tempTrackedBlock, err := newTrackedBlock(nonce, nil, rootHash, prevHash, nil)
+	if err != nil {
+		return err
+	}
+
 	st.mutTracker.Lock()
 	defer st.mutTracker.Unlock()
 
@@ -109,7 +114,7 @@ func (st *selectionTracker) validateTrackedBlocks(chainOfTrackedBlocks []*tracke
 			// TODO make sure that the accounts which don't yet exist are properly handled
 			accountState, err := session.GetAccountState([]byte(address))
 			if err != nil {
-				log.Debug("virtualSessionProvider.handleTrackedBlock",
+				log.Debug("selectionTracker.validateTrackedBlocks",
 					"err", err)
 				return err
 			}

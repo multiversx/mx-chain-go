@@ -583,7 +583,8 @@ func Test_Selection_ShouldNotSelectSameTransactionsWithSameSender(t *testing.T) 
 		RootHash: []byte(fmt.Sprintf("rootHash%d", 0)),
 	},
 		selectionSession,
-		defaultBlockchainInfo)
+		defaultBlockchainInfo,
+	)
 	require.Nil(t, err)
 
 	// do the second selection. should not return same txs
@@ -731,7 +732,8 @@ func Test_Selection_ShouldNotSelectSameTransactionsWithDifferentSenders(t *testi
 			RootHash: []byte(fmt.Sprintf("rootHash%d", 0)),
 		},
 		selectionSession,
-		defaultBlockchainInfo)
+		defaultBlockchainInfo,
+	)
 	require.Nil(t, err)
 
 	// do the second selection. should not return same txs
@@ -846,7 +848,8 @@ func Test_Selection_ShouldNotSelectSameTransactionsWithManyTransactions(t *testi
 		RootHash: []byte(fmt.Sprintf("rootHash%d", 0)),
 	},
 		selectionSession,
-		defaultBlockchainInfo)
+		defaultBlockchainInfo,
+	)
 	require.Nil(t, err)
 
 	// do the second selection (the rest of the transactions should be selected)
@@ -872,7 +875,8 @@ func Test_Selection_ShouldNotSelectSameTransactionsWithManyTransactions(t *testi
 			RootHash: []byte(fmt.Sprintf("rootHash%d", 1)),
 		},
 		selectionSession,
-		defaultBlockchainInfo)
+		defaultBlockchainInfo,
+	)
 	require.Nil(t, err)
 
 	// do the last selection (no tx should be returned)
@@ -987,7 +991,8 @@ func Test_Selection_ShouldNotSelectSameTransactionsWithManyTransactionsAndExecut
 			RootHash: []byte(fmt.Sprintf("rootHash%d", 0)),
 		},
 		selectionSession,
-		defaultBlockchainInfo)
+		defaultBlockchainInfo,
+	)
 	require.Nil(t, err)
 
 	// do the second selection (the rest of the transactions should be selected)
@@ -1027,7 +1032,8 @@ func Test_Selection_ShouldNotSelectSameTransactionsWithManyTransactionsAndExecut
 			RootHash: []byte(fmt.Sprintf("rootHash%d", 1)),
 		},
 		selectionSession,
-		defaultBlockchainInfo)
+		defaultBlockchainInfo,
+	)
 	require.Nil(t, err)
 
 	blockchainInfo = holders.NewBlockchainInfo([]byte("blockHash1"), 3)
@@ -1203,7 +1209,8 @@ func Test_SelectionWhenFeeExceedsBalanceWithMax3TxsSelected(t *testing.T) {
 			RootHash: []byte(fmt.Sprintf("rootHash%d", 0)),
 		},
 		selectionSession,
-		defaultBlockchainInfo)
+		defaultBlockchainInfo,
+	)
 	require.Nil(t, err)
 
 	// do the second selection, last tx should not be returned (relayer has insufficient balance)
@@ -1373,7 +1380,8 @@ func Test_SelectionWhenFeeExceedsBalanceWithMax2TxsSelected(t *testing.T) {
 			RootHash: []byte(fmt.Sprintf("rootHash%d", 0)),
 		},
 		selectionSession,
-		defaultBlockchainInfo)
+		defaultBlockchainInfo,
+	)
 	require.Nil(t, err)
 
 	// do the second selection, last tx should not be returned (relayer has insufficient balance)

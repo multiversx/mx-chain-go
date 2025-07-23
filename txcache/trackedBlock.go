@@ -47,6 +47,7 @@ func (tb *trackedBlock) compileBreadcrumbs(txs []*WrappedTransaction) error {
 	for _, tx := range txs {
 		err := tb.compileBreadcrumb(tx)
 		if err != nil {
+			log.Debug("trackedBlock.compileBreadcrumbs failed", "err", err)
 			return err
 		}
 	}
