@@ -1,6 +1,7 @@
 package round_test
 
 import (
+	"sync"
 	"testing"
 	"time"
 
@@ -491,23 +492,163 @@ func TestRound_RevertOneRound(t *testing.T) {
 func TestRound_BeforeGenesis(t *testing.T) {
 	t.Parallel()
 
-	genesisTime := time.Now()
+	t.Run("without supernova activated", func(t *testing.T) {
+		t.Parallel()
 
-	syncTimerMock := &consensusMocks.SyncTimerMock{}
+		genesisTime := time.Now()
 
-	startRound := int64(-1)
-	args := createDefaultRoundArgs()
-	args.GenesisTimeStamp = genesisTime
-	args.SupernovaGenesisTimeStamp = genesisTime.Add(10 * roundTimeDuration)
-	args.SyncTimer = syncTimerMock
-	args.StartRound = startRound
+		syncTimerMock := &consensusMocks.SyncTimerMock{}
 
-	rnd, _ := round.NewRound(args)
-	require.True(t, rnd.BeforeGenesis())
+		startRound := int64(-1)
+		args := createDefaultRoundArgs()
+		args.GenesisTimeStamp = genesisTime
+		args.SupernovaGenesisTimeStamp = genesisTime.Add(10 * roundTimeDuration)
+		args.SyncTimer = syncTimerMock
+		args.StartRound = startRound
 
-	time.Sleep(roundTimeDuration * 2)
-	currentTime := time.Now()
+		rnd, _ := round.NewRound(args)
+		require.True(t, rnd.BeforeGenesis())
 
-	rnd.UpdateRound(genesisTime, currentTime)
-	require.False(t, rnd.BeforeGenesis())
+		time.Sleep(roundTimeDuration * 2)
+		currentTime := time.Now()
+
+		rnd.UpdateRound(genesisTime, currentTime)
+		require.False(t, rnd.BeforeGenesis())
+	})
+
+	t.Run("with supernova activated", func(t *testing.T) {
+		t.Parallel()
+
+		roundTimeDuration := 10 * time.Millisecond
+		supernovaRoundTimeDuration := 5 * time.Millisecond
+
+		initTime := time.Now()
+		genesisTime := initTime.Add(roundTimeDuration * 20)
+
+		syncTimerMock := &consensusMocks.SyncTimerMock{}
+
+		supernovaStartRound := int64(10)
+
+		startRound := int64(0)
+		args := createDefaultRoundArgs()
+		args.GenesisTimeStamp = genesisTime
+		args.SupernovaGenesisTimeStamp = genesisTime.Add(10 * roundTimeDuration)
+		args.SyncTimer = syncTimerMock
+		args.StartRound = startRound
+		args.RoundTimeDuration = roundTimeDuration
+		args.SupernovaTimeDuration = supernovaRoundTimeDuration
+		args.SupernovaStartRound = supernovaStartRound
+		args.EnableRoundsHandler = &testscommon.EnableRoundsHandlerStub{
+			IsFlagEnabledInRoundCalled: func(flag common.EnableRoundFlag, round uint64) bool {
+				return flag == common.SupernovaRoundFlag && round >= uint64(supernovaStartRound)
+			},
+		}
+
+		rnd, _ := round.NewRound(args)
+		require.True(t, rnd.BeforeGenesis())
+
+		time.Sleep(roundTimeDuration * 10)
+		rnd.UpdateRound(genesisTime, time.Now())
+		require.True(t, rnd.BeforeGenesis())
+
+		time.Sleep(roundTimeDuration * 11)
+		rnd.UpdateRound(genesisTime, time.Now())
+		require.False(t, rnd.BeforeGenesis())
+	})
+}
+
+func TestRound_Concurrency(t *testing.T) {
+	t.Parallel()
+
+	t.Run("before supernova", func(t *testing.T) {
+		t.Parallel()
+
+		genesisTime := time.Now()
+
+		args := createDefaultRoundArgs()
+		args.GenesisTimeStamp = genesisTime
+
+		rnd, err := round.NewRound(args)
+		require.Nil(t, err)
+
+		numOperations := 1000
+
+		wg := sync.WaitGroup{}
+		wg.Add(numOperations)
+
+		for i := 0; i < numOperations; i++ {
+			go func(idx int) {
+				switch idx % 6 {
+				case 0:
+					_ = rnd.BeforeGenesis()
+				case 1:
+					_ = rnd.Index()
+				case 2:
+					_ = rnd.RemainingTime(rnd.TimeStamp(), roundTimeDuration)
+				case 3:
+					rnd.RevertOneRound()
+				case 4:
+					_ = rnd.TimeDuration()
+				case 5:
+					rnd.UpdateRound(genesisTime, time.Now())
+				default:
+					assert.Fail(t, "should have not been called")
+				}
+
+				wg.Done()
+			}(i)
+		}
+
+		wg.Wait()
+	})
+
+	t.Run("after supernova", func(t *testing.T) {
+		t.Parallel()
+
+		genesisTime := time.Now()
+
+		args := createDefaultRoundArgs()
+		args.GenesisTimeStamp = genesisTime
+		args.SupernovaGenesisTimeStamp = genesisTime
+		args.SupernovaStartRound = 0
+
+		args.EnableRoundsHandler = &testscommon.EnableRoundsHandlerStub{
+			IsFlagEnabledInRoundCalled: func(flag common.EnableRoundFlag, round uint64) bool {
+				return flag == common.SupernovaRoundFlag && round > 0
+			},
+		}
+
+		rnd, err := round.NewRound(args)
+		require.Nil(t, err)
+
+		numOperations := 1000
+
+		wg := sync.WaitGroup{}
+		wg.Add(numOperations)
+
+		for i := 0; i < numOperations; i++ {
+			go func(idx int) {
+				switch idx % 6 {
+				case 0:
+					_ = rnd.BeforeGenesis()
+				case 1:
+					_ = rnd.Index()
+				case 2:
+					_ = rnd.RemainingTime(rnd.TimeStamp(), roundTimeDuration)
+				case 3:
+					rnd.RevertOneRound()
+				case 4:
+					_ = rnd.TimeDuration()
+				case 5:
+					rnd.UpdateRound(genesisTime, time.Now())
+				default:
+					assert.Fail(t, "should have not been called")
+				}
+
+				wg.Done()
+			}(i)
+		}
+
+		wg.Wait()
+	})
 }
