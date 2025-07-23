@@ -133,13 +133,6 @@ func (rnd *round) updateRound(
 
 	index := int64(math.Floor(float64(delta)/float64(roundDuration.Nanoseconds()))) + startRound
 
-	log.Debug("round.updateRound",
-		"delta", delta,
-		"index", index,
-		"rnd.timeStamp", rnd.timeStamp.UnixMilli(),
-		"currentTimeStamp", currentTimeStamp.UnixMilli(),
-	)
-
 	rnd.Lock()
 	if rnd.index != index {
 		rnd.index = index
