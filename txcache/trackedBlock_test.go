@@ -268,13 +268,13 @@ func TestTrackedBlock_compileBreadcrumb(t *testing.T) {
 	t.Run("sender and fee payer are equal", func(t *testing.T) {
 		t.Parallel()
 
-		block, err := newTrackedBlock(0, []byte("blockHash1"), []byte("blockRootHash1"), []byte("blockPrevHash1"), nil)
+		block, err := newTrackedBlock(0, []byte("blockHash1"), []byte("blockRootHash1"), []byte("blockPrevHash1"), nil, nil)
 		require.NoError(t, err)
 		block.breadcrumbsByAddress = map[string]*accountBreadcrumb{
 			"alice": newAccountBreadcrumb(core.OptionalUint64{
 				Value:    1,
 				HasValue: true,
-			}, big.NewInt(5)),
+			}, big.NewInt(20), big.NewInt(5)),
 		}
 		txs := []*WrappedTransaction{
 			{
@@ -288,13 +288,13 @@ func TestTrackedBlock_compileBreadcrumb(t *testing.T) {
 			},
 		}
 
-		err = block.compileBreadcrumbs(txs)
+		err = block.compileBreadcrumbs(txs, &defaultSelectionSessionMock)
 		require.NoError(t, err)
 
 		aliceBreadcrumb := newAccountBreadcrumb(core.OptionalUint64{
 			Value:    1,
 			HasValue: true,
-		}, big.NewInt(12)) // initial value in breadcrumb + transferredValue + fee
+		}, big.NewInt(20), big.NewInt(12)) // initial value in breadcrumb + transferredValue + fee
 		aliceBreadcrumb.lastNonce = core.OptionalUint64{Value: 3, HasValue: true}
 
 		expectedBreadcrumbs := map[string]*accountBreadcrumb{

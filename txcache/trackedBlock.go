@@ -103,7 +103,7 @@ func (tb *trackedBlock) compileBreadcrumb(tx *WrappedTransaction, session Select
 	}
 
 	feePayerInitialBalance := accountState.GetBalance()
-	feePayerBreadcrumb := tb.getOrCreateBreadcrumb(string(feePayer))
+	feePayerBreadcrumb := tb.getOrCreateBreadcrumb(string(feePayer), feePayerInitialBalance)
 	fee := tx.Fee
 	feePayerBreadcrumb.accumulateConsumedBalance(fee)
 	return nil
