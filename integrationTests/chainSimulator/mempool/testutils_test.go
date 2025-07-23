@@ -266,7 +266,7 @@ func createDefaultSelectionSessionMock(initialAmountPerAccount int64) *txcachemo
 	return &sessionMock
 }
 
-func createDefaultSelectionSessionMockWithBigInt(initialAmountPerAccount *big.Int) *txcachemocks.SelectionSessionMock {
+func createDefaultSelectionSessionMockWithInitialAmount(initialAmountPerAccount *big.Int) *txcachemocks.SelectionSessionMock {
 	sessionMock := txcachemocks.SelectionSessionMock{
 		GetAccountStateCalled: func(address []byte) (state.UserAccountHandler, error) {
 			return &stateMock.StateUserAccountHandlerStub{
@@ -310,7 +310,8 @@ func createRandomTx(nonceTracker *noncesTracker, accounts []string) *transaction
 		GasPrice:  1_000_000_000,
 		ChainID:   []byte(configs.ChainID),
 		Version:   2,
-		Signature: []byte("signature")}
+		Signature: []byte("signature"),
+	}
 }
 
 func createRandomTxs(txpool *txcache.TxCache, numTxs int, nonceTracker *noncesTracker, accounts []string) {
@@ -354,7 +355,6 @@ func testOnProposed(t *testing.T, sw *core.StopWatch, numTxs int, numAddresses i
 	)
 
 	nonceTracker := newNoncesTracker()
-	// create numTxs random transactions
 	createRandomTxs(txpool, numTxs, nonceTracker, accounts)
 
 	require.Equal(t, numTxs, int(txpool.CountTx()))
@@ -395,7 +395,7 @@ func testFirstSelection(t *testing.T, sw *core.StopWatch, numTxs int, numTxsToBe
 	_ = initialAmount.Mul(numTxsAsBigInt, big.NewInt(int64(50_000*1_000_000_000)))
 	_ = initialAmount.Add(initialAmount, big.NewInt(int64(numTxs*1)))
 
-	selectionSession := createDefaultSelectionSessionMockWithBigInt(initialAmount)
+	selectionSession := createDefaultSelectionSessionMockWithInitialAmount(initialAmount)
 	options := holders.NewTxSelectionOptions(
 		10_000_000_000*10, // in case of 1_000_000 txs
 		numTxsToBeSelected,
@@ -404,7 +404,6 @@ func testFirstSelection(t *testing.T, sw *core.StopWatch, numTxs int, numTxsToBe
 	)
 
 	nonceTracker := newNoncesTracker()
-	// create numTxs random transactions
 	createRandomTxs(txpool, numTxs, nonceTracker, accounts)
 
 	require.Equal(t, numTxs, int(txpool.CountTx()))
@@ -435,7 +434,7 @@ func testSecondSelection(t *testing.T, sw *core.StopWatch, numTxs int, numTxsToB
 	_ = initialAmount.Mul(numTxsAsBigInt, big.NewInt(int64(50_000*1_000_000_000)))
 	_ = initialAmount.Add(initialAmount, big.NewInt(int64(numTxs*transferredValue)))
 
-	selectionSession := createDefaultSelectionSessionMockWithBigInt(initialAmount)
+	selectionSession := createDefaultSelectionSessionMockWithInitialAmount(initialAmount)
 	options := holders.NewTxSelectionOptions(
 		10_000_000_000*10,
 		numTxsToBeSelected,
@@ -444,7 +443,6 @@ func testSecondSelection(t *testing.T, sw *core.StopWatch, numTxs int, numTxsToB
 	)
 
 	nonceTracker := newNoncesTracker()
-	// create numTxs random transactions
 	createRandomTxs(txpool, numTxs, nonceTracker, accounts)
 
 	require.Equal(t, numTxs, int(txpool.CountTx()))
@@ -498,7 +496,7 @@ func testSecondSelectionWithManyTxsInPool(t *testing.T, sw *core.StopWatch, numT
 	_ = initialAmount.Mul(numTxsAsBigInt, big.NewInt(int64(50_000*1_000_000_000)))
 	_ = initialAmount.Add(initialAmount, big.NewInt(int64(numTxs*transferredValue)))
 
-	selectionSession := createDefaultSelectionSessionMockWithBigInt(initialAmount)
+	selectionSession := createDefaultSelectionSessionMockWithInitialAmount(initialAmount)
 	options := holders.NewTxSelectionOptions(
 		10_000_000_000,
 		numTxsToBeSelected,
@@ -507,7 +505,6 @@ func testSecondSelectionWithManyTxsInPool(t *testing.T, sw *core.StopWatch, numT
 	)
 
 	nonceTracker := newNoncesTracker()
-	// create numTxs random transactions
 	createRandomTxs(txpool, numTxs, nonceTracker, accounts)
 
 	require.Equal(t, numTxs, int(txpool.CountTx()))

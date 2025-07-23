@@ -27,7 +27,7 @@ var (
 	}
 )
 
-// benchmark for the creation of breadcrumbs (which are created whit each proposed block)
+// benchmark for the creation of breadcrumbs (which are created with each proposed block)
 func TestBenchmark_OnProposedWithManyTxsAndSenders(t *testing.T) {
 	if testing.Short() {
 		t.Skip("this is not a short test")
