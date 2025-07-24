@@ -1,6 +1,7 @@
 package chronology_test
 
 import (
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -433,10 +434,12 @@ func TestChronology_StartRounds(t *testing.T) {
 			},
 		}
 
-		updateRoundCalled := false
+		updateRoundCalled := &atomic.Bool{}
+		updateRoundCalled.Store(false)
+
 		arg.RoundHandler = &consensusMocks.RoundHandlerMock{
 			UpdateRoundCalled: func(t1, t2 time.Time) {
-				updateRoundCalled = true
+				updateRoundCalled.Store(true)
 			},
 		}
 
@@ -447,7 +450,7 @@ func TestChronology_StartRounds(t *testing.T) {
 
 		time.Sleep(5 * time.Millisecond)
 
-		require.True(t, updateRoundCalled)
+		require.True(t, updateRoundCalled.Load())
 	})
 }
 
