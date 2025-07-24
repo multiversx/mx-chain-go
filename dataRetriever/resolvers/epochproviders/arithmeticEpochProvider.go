@@ -33,7 +33,6 @@ type arithmeticEpochProvider struct {
 	currentComputedEpoch       uint32
 	headerEpoch                uint32
 	headerTimestampForNewEpoch uint64
-	startTime                  int64
 	getUnixHandler             func() int64
 	enableEpochsHandler        common.EnableEpochsHandler
 	chainParamsHandler         process.ChainParametersHandler
@@ -55,7 +54,6 @@ func NewArithmeticEpochProvider(arg ArgArithmeticEpochProvider) (*arithmeticEpoc
 	aep := &arithmeticEpochProvider{
 		headerEpoch:                0,
 		headerTimestampForNewEpoch: uint64(arg.StartTime),
-		startTime:                  arg.StartTime,
 		enableEpochsHandler:        arg.EnableEpochsHandler,
 		chainParamsHandler:         arg.ChainParametersHandler,
 	}
@@ -109,15 +107,26 @@ func (aep *arithmeticEpochProvider) computeCurrentEpoch() {
 
 	currentChainParameters := aep.chainParamsHandler.CurrentChainParameters()
 
-	diffTimeStampInSeconds := currentTimeStamp - aep.headerTimestampForNewEpoch
-	diffTimeStampInMilliseconds := diffTimeStampInSeconds * millisecondsInOneSecond
+	diffTimeStampInMilliseconds := aep.getDiffTimeStampInMilliseconds(currentTimeStamp)
 	diffRounds := diffTimeStampInMilliseconds / currentChainParameters.RoundDuration
 	diffEpochs := diffRounds / uint64(currentChainParameters.RoundsPerEpoch+1)
 
 	aep.currentComputedEpoch = aep.headerEpoch + uint32(diffEpochs)
 
-	log.Debug("arithmeticEpochProvider.computeCurrentEpoch",
-		"computed network epoch", aep.currentComputedEpoch)
+	log.Info("arithmeticEpochProvider.computeCurrentEpoch",
+		"computed network epoch", aep.currentComputedEpoch,
+	)
+}
+
+func (aep *arithmeticEpochProvider) getDiffTimeStampInMilliseconds(currentTimeStamp uint64) uint64 {
+	if aep.enableEpochsHandler.IsFlagEnabledInEpoch(common.SupernovaFlag, aep.headerEpoch) {
+		return currentTimeStamp - aep.headerTimestampForNewEpoch
+	}
+
+	diffTimeStampInSeconds := currentTimeStamp - aep.headerTimestampForNewEpoch
+	diffTimeStampInMilliseconds := diffTimeStampInSeconds * millisecondsInOneSecond
+
+	return diffTimeStampInMilliseconds
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

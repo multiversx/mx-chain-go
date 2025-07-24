@@ -5,8 +5,11 @@ import (
 	"testing"
 	"time"
 
+	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
+	commonErrors "github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/testscommon/chainParameters"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
@@ -45,12 +48,28 @@ func TestNewArithmeticEpochProvider_NilChainParameterHandler(t *testing.T) {
 	assert.True(t, check.IfNil(aep))
 }
 
+func TestNewArithmeticEpochProvider_NilEnableEpochsHandler(t *testing.T) {
+	t.Parallel()
+
+	arg := ArgArithmeticEpochProvider{
+		ChainParametersHandler: getMockChainParametersHandler(),
+		EnableEpochsHandler:    nil,
+		StartTime:              1,
+	}
+
+	aep, err := NewArithmeticEpochProvider(arg)
+
+	assert.True(t, errors.Is(err, commonErrors.ErrNilEnableEpochsHandler))
+	assert.True(t, check.IfNil(aep))
+}
+
 func TestNewArithmeticEpochProvider_InvalidStartTime(t *testing.T) {
 	t.Parallel()
 
 	arg := ArgArithmeticEpochProvider{
 		ChainParametersHandler: getMockChainParametersHandler(),
 		StartTime:              -1,
+		EnableEpochsHandler:    &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 	}
 
 	aep, err := NewArithmeticEpochProvider(arg)
@@ -62,56 +81,134 @@ func TestNewArithmeticEpochProvider_InvalidStartTime(t *testing.T) {
 func TestNewArithmeticEpochProvider_ShouldWork(t *testing.T) {
 	t.Parallel()
 
-	arg := ArgArithmeticEpochProvider{
-		ChainParametersHandler: getMockChainParametersHandler(),
-		StartTime:              time.Now().Unix(),
-		EnableEpochsHandler:    &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
-	}
+	t.Run("before supernova", func(t *testing.T) {
+		t.Parallel()
 
-	aep, err := NewArithmeticEpochProvider(arg)
+		arg := ArgArithmeticEpochProvider{
+			ChainParametersHandler: getMockChainParametersHandler(),
+			StartTime:              time.Now().Unix(),
+			EnableEpochsHandler:    &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		}
 
-	assert.Nil(t, err)
-	assert.False(t, check.IfNil(aep))
-	assert.Equal(t, uint32(0), aep.CurrentComputedEpoch())
+		aep, err := NewArithmeticEpochProvider(arg)
+
+		assert.Nil(t, err)
+		assert.False(t, check.IfNil(aep))
+		assert.Equal(t, uint32(0), aep.CurrentComputedEpoch())
+	})
+
+	t.Run("after supernova", func(t *testing.T) {
+		t.Parallel()
+
+		arg := ArgArithmeticEpochProvider{
+			ChainParametersHandler: getMockChainParametersHandler(),
+			StartTime:              time.Now().UnixMilli(),
+			EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+				IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
+					return flag == common.SupernovaFlag
+				},
+			},
+		}
+
+		aep, err := NewArithmeticEpochProvider(arg)
+
+		assert.Nil(t, err)
+		assert.False(t, check.IfNil(aep))
+		assert.Equal(t, uint32(0), aep.CurrentComputedEpoch())
+	})
 }
 
 func TestArithmeticEpochProvider_ComputeEpochAtGenesis(t *testing.T) {
 	t.Parallel()
 
-	arg := ArgArithmeticEpochProvider{
-		ChainParametersHandler: getMockChainParametersHandler(),
-		StartTime:              1000,
-		EnableEpochsHandler:    &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
-	}
-	aep := NewTestArithmeticEpochProvider(arg, getUnixHandler(0))
-	assert.Equal(t, uint32(0), aep.CurrentComputedEpoch())
+	t.Run("before supernova", func(t *testing.T) {
+		t.Parallel()
 
-	aep = NewTestArithmeticEpochProvider(arg, getUnixHandler(1000))
-	assert.Equal(t, uint32(0), aep.CurrentComputedEpoch())
+		arg := ArgArithmeticEpochProvider{
+			ChainParametersHandler: getMockChainParametersHandler(),
+			StartTime:              1000,
+			EnableEpochsHandler:    &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		}
+		aep := NewTestArithmeticEpochProvider(arg, getUnixHandler(0))
+		assert.Equal(t, uint32(0), aep.CurrentComputedEpoch())
 
-	aep = NewTestArithmeticEpochProvider(arg, getUnixHandler(15400))
-	assert.Equal(t, uint32(0), aep.CurrentComputedEpoch())
+		aep = NewTestArithmeticEpochProvider(arg, getUnixHandler(1000))
+		assert.Equal(t, uint32(0), aep.CurrentComputedEpoch())
 
-	aep = NewTestArithmeticEpochProvider(arg, getUnixHandler(15401))
-	assert.Equal(t, uint32(0), aep.CurrentComputedEpoch())
+		aep = NewTestArithmeticEpochProvider(arg, getUnixHandler(15400))
+		assert.Equal(t, uint32(0), aep.CurrentComputedEpoch())
 
-	aep = NewTestArithmeticEpochProvider(arg, getUnixHandler(15405))
-	assert.Equal(t, uint32(0), aep.CurrentComputedEpoch())
+		aep = NewTestArithmeticEpochProvider(arg, getUnixHandler(15401))
+		assert.Equal(t, uint32(0), aep.CurrentComputedEpoch())
 
-	aep = NewTestArithmeticEpochProvider(arg, getUnixHandler(15406))
-	assert.Equal(t, uint32(1), aep.CurrentComputedEpoch())
+		aep = NewTestArithmeticEpochProvider(arg, getUnixHandler(15405))
+		assert.Equal(t, uint32(0), aep.CurrentComputedEpoch())
 
-	aep = NewTestArithmeticEpochProvider(arg, getUnixHandler(15412))
-	assert.Equal(t, uint32(1), aep.CurrentComputedEpoch())
+		aep = NewTestArithmeticEpochProvider(arg, getUnixHandler(15406))
+		assert.Equal(t, uint32(1), aep.CurrentComputedEpoch())
 
-	aep = NewTestArithmeticEpochProvider(arg, getUnixHandler(29800))
-	assert.Equal(t, uint32(1), aep.CurrentComputedEpoch())
+		aep = NewTestArithmeticEpochProvider(arg, getUnixHandler(15412))
+		assert.Equal(t, uint32(1), aep.CurrentComputedEpoch())
 
-	aep = NewTestArithmeticEpochProvider(arg, getUnixHandler(29806))
-	assert.Equal(t, uint32(1), aep.CurrentComputedEpoch())
+		aep = NewTestArithmeticEpochProvider(arg, getUnixHandler(29800))
+		assert.Equal(t, uint32(1), aep.CurrentComputedEpoch())
 
-	aep = NewTestArithmeticEpochProvider(arg, getUnixHandler(29812))
-	assert.Equal(t, uint32(2), aep.CurrentComputedEpoch())
+		aep = NewTestArithmeticEpochProvider(arg, getUnixHandler(29806))
+		assert.Equal(t, uint32(1), aep.CurrentComputedEpoch())
+
+		aep = NewTestArithmeticEpochProvider(arg, getUnixHandler(29812))
+		assert.Equal(t, uint32(2), aep.CurrentComputedEpoch())
+	})
+
+	t.Run("after supernova", func(t *testing.T) {
+		t.Parallel()
+
+		arg := ArgArithmeticEpochProvider{
+			ChainParametersHandler: &chainParameters.ChainParametersHandlerStub{
+				CurrentChainParametersCalled: func() config.ChainParametersByEpochConfig {
+					return config.ChainParametersByEpochConfig{
+						RoundsPerEpoch: 2400,
+						RoundDuration:  6000,
+					}
+				},
+			},
+			StartTime: 1000 * 1000,
+			EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+				IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
+					return flag == common.SupernovaFlag
+				},
+			},
+		}
+		aep := NewTestArithmeticEpochProvider(arg, getUnixHandler(0))
+		assert.Equal(t, uint32(0), aep.CurrentComputedEpoch())
+
+		aep = NewTestArithmeticEpochProvider(arg, getUnixHandler(1000*1000))
+		assert.Equal(t, uint32(0), aep.CurrentComputedEpoch())
+
+		aep = NewTestArithmeticEpochProvider(arg, getUnixHandler(15400*1000))
+		assert.Equal(t, uint32(0), aep.CurrentComputedEpoch())
+
+		aep = NewTestArithmeticEpochProvider(arg, getUnixHandler(15401*1000))
+		assert.Equal(t, uint32(0), aep.CurrentComputedEpoch())
+
+		aep = NewTestArithmeticEpochProvider(arg, getUnixHandler(15405*1000))
+		assert.Equal(t, uint32(0), aep.CurrentComputedEpoch())
+
+		aep = NewTestArithmeticEpochProvider(arg, getUnixHandler(15406*1000))
+		assert.Equal(t, uint32(1), aep.CurrentComputedEpoch())
+
+		aep = NewTestArithmeticEpochProvider(arg, getUnixHandler(15412*1000))
+		assert.Equal(t, uint32(1), aep.CurrentComputedEpoch())
+
+		aep = NewTestArithmeticEpochProvider(arg, getUnixHandler(29800*1000))
+		assert.Equal(t, uint32(1), aep.CurrentComputedEpoch())
+
+		aep = NewTestArithmeticEpochProvider(arg, getUnixHandler(29806*1000))
+		assert.Equal(t, uint32(1), aep.CurrentComputedEpoch())
+
+		aep = NewTestArithmeticEpochProvider(arg, getUnixHandler(29812*1000))
+		assert.Equal(t, uint32(2), aep.CurrentComputedEpoch())
+	})
 }
 
 func TestArithmeticEpochProvider_EpochConfirmedInvalidTimestamp(t *testing.T) {
@@ -140,19 +237,52 @@ func TestArithmeticEpochProvider_EpochConfirmedInvalidTimestamp(t *testing.T) {
 func TestArithmeticEpochProvider_EpochConfirmed(t *testing.T) {
 	t.Parallel()
 
-	arg := ArgArithmeticEpochProvider{
-		ChainParametersHandler: getMockChainParametersHandler(),
-		StartTime:              1000,
-		EnableEpochsHandler:    &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
-	}
-	aep := NewTestArithmeticEpochProvider(arg, getUnixHandler(15500))
-	assert.Equal(t, uint32(1), aep.CurrentComputedEpoch())
+	t.Run("before supernova", func(t *testing.T) {
+		t.Parallel()
 
-	aep.SetUnixHandler(getUnixHandler(17500))
+		arg := ArgArithmeticEpochProvider{
+			ChainParametersHandler: getMockChainParametersHandler(),
+			StartTime:              1000,
+			EnableEpochsHandler:    &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		}
+		aep := NewTestArithmeticEpochProvider(arg, getUnixHandler(15500))
+		assert.Equal(t, uint32(1), aep.CurrentComputedEpoch())
 
-	aep.EpochConfirmed(1, 3000)
+		aep.SetUnixHandler(getUnixHandler(17500))
 
-	assert.Equal(t, uint32(2), aep.CurrentComputedEpoch())
+		aep.EpochConfirmed(1, 3000)
+
+		assert.Equal(t, uint32(2), aep.CurrentComputedEpoch())
+	})
+
+	t.Run("after supernova", func(t *testing.T) {
+		t.Parallel()
+
+		arg := ArgArithmeticEpochProvider{
+			ChainParametersHandler: &chainParameters.ChainParametersHandlerStub{
+				CurrentChainParametersCalled: func() config.ChainParametersByEpochConfig {
+					return config.ChainParametersByEpochConfig{
+						RoundsPerEpoch: 2400,
+						RoundDuration:  6000,
+					}
+				},
+			},
+			StartTime: 1000 * int64(millisecondsInOneSecond),
+			EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+				IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
+					return flag == common.SupernovaFlag
+				},
+			},
+		}
+		aep := NewTestArithmeticEpochProvider(arg, getUnixHandler(15500*int64(millisecondsInOneSecond)))
+		assert.Equal(t, uint32(1), aep.CurrentComputedEpoch())
+
+		aep.SetUnixHandler(getUnixHandler(17500 * int64(millisecondsInOneSecond)))
+
+		aep.EpochConfirmed(1, 3000*millisecondsInOneSecond)
+
+		assert.Equal(t, uint32(2), aep.CurrentComputedEpoch())
+	})
 }
 
 func TestArithmeticEpochProvider_EpochIsActiveInNetwork(t *testing.T) {

@@ -6,8 +6,8 @@ func NewTestArithmeticEpochProvider(arg ArgArithmeticEpochProvider, unixHandler 
 		headerEpoch:                0,
 		headerTimestampForNewEpoch: uint64(arg.StartTime),
 		chainParamsHandler:         arg.ChainParametersHandler,
-		startTime:                  arg.StartTime,
 		getUnixHandler:             unixHandler,
+		enableEpochsHandler:        arg.EnableEpochsHandler,
 	}
 	aep.computeCurrentEpoch()
 
