@@ -10,6 +10,8 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-go/common/holders"
+	"github.com/multiversx/mx-chain-go/state"
+	testscommonState "github.com/multiversx/mx-chain-go/testscommon/state"
 	"github.com/multiversx/mx-chain-go/testscommon/txcachemocks"
 )
 
@@ -34,6 +36,19 @@ type randomData struct {
 	randomBytes []byte
 	numItems    int
 	itemSize    int
+}
+
+var defaultSelectionSessionMock = txcachemocks.SelectionSessionMock{
+	GetAccountStateCalled: func(address []byte) (state.UserAccountHandler, error) {
+		return &testscommonState.StateUserAccountHandlerStub{
+			GetBalanceCalled: func() *big.Int {
+				return big.NewInt(20)
+			},
+			GetNonceCalled: func() uint64 {
+				return uint64(1)
+			},
+		}, nil
+	},
 }
 
 func newRandomData(numItems int, itemSize int) *randomData {
