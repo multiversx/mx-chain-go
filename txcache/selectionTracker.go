@@ -69,7 +69,7 @@ func (st *selectionTracker) OnProposedBlock(
 		return err
 	}
 
-	tBlock, err := newTrackedBlock(nonce, blockHash, rootHash, prevHash, txs, session)
+	tBlock, err := newTrackedBlock(nonce, blockHash, rootHash, prevHash, txs)
 	if err != nil {
 		log.Debug("selectionTracker.OnProposedBlock: error creating tracked block", "err", err)
 		return err
@@ -92,7 +92,7 @@ func (st *selectionTracker) OnExecutedBlock(handler data.HeaderHandler) error {
 	rootHash := handler.GetRootHash()
 	prevHash := handler.GetPrevHash()
 
-	tempTrackedBlock, err := newTrackedBlock(nonce, nil, rootHash, prevHash, nil, nil)
+	tempTrackedBlock, err := newTrackedBlock(nonce, nil, rootHash, prevHash, nil)
 	if err != nil {
 		return err
 	}
@@ -110,6 +110,16 @@ func (st *selectionTracker) validateTrackedBlocks(chainOfTrackedBlocks []*tracke
 
 	for _, tb := range chainOfTrackedBlocks {
 		for address, breadcrumb := range tb.breadcrumbsByAddress {
+			rootHash, err := session.GetRootHash()
+			if err != nil {
+				log.Debug("selectionTracker.validateTrackedBlocks",
+					"err", err)
+				return err
+			}
+
+			log.Debug("selectionTracker.validateTrackedBlocks",
+				"rootHash", rootHash)
+
 			// TODO make sure that the accounts which don't yet exist are properly handled
 			accountState, err := session.GetAccountState([]byte(address))
 			if err != nil {
@@ -122,7 +132,8 @@ func (st *selectionTracker) validateTrackedBlocks(chainOfTrackedBlocks []*tracke
 				return errDiscontinuousBreadcrumbs
 			}
 
-			err = validator.validateBalance(address, breadcrumb)
+			initialBalance := accountState.GetBalance()
+			err = validator.validateBalance(address, breadcrumb, initialBalance)
 			if err != nil {
 				return err
 			}

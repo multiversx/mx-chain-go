@@ -173,7 +173,7 @@ func Test_handleTrackedBlock(t *testing.T) {
 	t.Parallel()
 
 	t.Run("should err", func(t *testing.T) {
-		tb, err := newTrackedBlock(0, []byte("blockHash1"), []byte("blockRootHash1"), []byte("blockPrevHash1"), nil, nil)
+		tb, err := newTrackedBlock(0, []byte("blockHash1"), []byte("blockRootHash1"), []byte("blockPrevHash1"), nil)
 		require.NoError(t, err)
 		tb.breadcrumbsByAddress = map[string]*accountBreadcrumb{
 			"alice": {
@@ -215,7 +215,7 @@ func Test_handleTrackedBlock(t *testing.T) {
 	t.Run("should skip alice", func(t *testing.T) {
 		t.Parallel()
 
-		tb, err := newTrackedBlock(0, []byte("blockHash1"), []byte("blockRootHash1"), []byte("blockPrevHash1"), nil, nil)
+		tb, err := newTrackedBlock(0, []byte("blockHash1"), []byte("blockRootHash1"), []byte("blockPrevHash1"), nil)
 		require.NoError(t, err)
 		tb.breadcrumbsByAddress = map[string]*accountBreadcrumb{
 			"alice": {
@@ -280,7 +280,7 @@ func Test_handleTrackedBlock(t *testing.T) {
 	t.Run("should delete bob and add it to skipped senders", func(t *testing.T) {
 		t.Parallel()
 
-		tb, err := newTrackedBlock(0, []byte("blockHash1"), []byte("blockRootHash1"), []byte("blockPrevHash1"), nil, nil)
+		tb, err := newTrackedBlock(0, []byte("blockHash1"), []byte("blockRootHash1"), []byte("blockPrevHash1"), nil)
 		require.NoError(t, err)
 		breadcrumb1 := accountBreadcrumb{
 			initialNonce: core.OptionalUint64{

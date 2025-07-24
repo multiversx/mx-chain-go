@@ -408,11 +408,11 @@ func TestSelectionTracker_removeFromTrackedBlocks(t *testing.T) {
 	tracker, err := NewSelectionTracker(txCache)
 	require.Nil(t, err)
 
-	expectedTrackedBlock, _ := newTrackedBlock(1, []byte("blockHash2"), []byte("rootHash2"), []byte("prevHash2"), nil, nil)
-	b1, err := newTrackedBlock(0, []byte("blockHash1"), []byte("rootHash1"), []byte("prevHash1"), nil, nil)
+	expectedTrackedBlock, _ := newTrackedBlock(1, []byte("blockHash2"), []byte("rootHash2"), []byte("prevHash2"), nil)
+	b1, err := newTrackedBlock(0, []byte("blockHash1"), []byte("rootHash1"), []byte("prevHash1"), nil)
 	require.Nil(t, err)
 
-	b2, err := newTrackedBlock(0, []byte("blockHash3"), []byte("rootHash3"), []byte("prevHash1"), nil, nil)
+	b2, err := newTrackedBlock(0, []byte("blockHash3"), []byte("rootHash3"), []byte("prevHash1"), nil)
 	require.Nil(t, err)
 
 	tracker.blocks = []*trackedBlock{
@@ -423,7 +423,7 @@ func TestSelectionTracker_removeFromTrackedBlocks(t *testing.T) {
 
 	require.Equal(t, 3, len(tracker.blocks))
 
-	r, err := newTrackedBlock(0, nil, nil, []byte("prevHash1"), nil, nil)
+	r, err := newTrackedBlock(0, nil, nil, []byte("prevHash1"), nil)
 	require.Nil(t, err)
 
 	tracker.removeFromTrackedBlocksNoLock(r)
@@ -442,9 +442,9 @@ func TestSelectionTracker_nextBlock(t *testing.T) {
 		tracker, err := NewSelectionTracker(txCache)
 		require.Nil(t, err)
 
-		expectedNextBlock, err := newTrackedBlock(0, []byte("blockHash2"), []byte("rootHash2"), []byte("blockHash1"), nil, nil)
+		expectedNextBlock, err := newTrackedBlock(0, []byte("blockHash2"), []byte("rootHash2"), []byte("blockHash1"), nil)
 		require.Nil(t, err)
-		b1, err := newTrackedBlock(0, []byte("blockHash1"), []byte("rootHash1"), []byte("prevHash1"), nil, nil)
+		b1, err := newTrackedBlock(0, []byte("blockHash1"), []byte("rootHash1"), []byte("prevHash1"), nil)
 		require.Nil(t, err)
 
 		tracker.blocks = []*trackedBlock{
@@ -463,9 +463,9 @@ func TestSelectionTracker_nextBlock(t *testing.T) {
 		tracker, err := NewSelectionTracker(txCache)
 		require.Nil(t, err)
 
-		expectedNextBlock, err := newTrackedBlock(0, []byte("blockHash2"), []byte("rootHash2"), []byte("blockHash1"), nil, nil)
+		expectedNextBlock, err := newTrackedBlock(0, []byte("blockHash2"), []byte("rootHash2"), []byte("blockHash1"), nil)
 		require.Nil(t, err)
-		b1, err := newTrackedBlock(0, []byte("blockHash1"), []byte("rootHash1"), []byte("prevHash1"), nil, nil)
+		b1, err := newTrackedBlock(0, []byte("blockHash1"), []byte("rootHash1"), []byte("prevHash1"), nil)
 		require.Nil(t, err)
 		tracker.blocks = []*trackedBlock{
 			b1,
@@ -486,35 +486,35 @@ func TestSelectionTracker_getChainOfTrackedBlocks(t *testing.T) {
 
 	// create a slice of tracked block which aren't ordered
 	tracker.blocks = make([]*trackedBlock, 0)
-	b, err := newTrackedBlock(7, []byte("blockHash8"), []byte("rootHash8"), []byte("blockHash7"), nil, nil)
+	b, err := newTrackedBlock(7, []byte("blockHash8"), []byte("rootHash8"), []byte("blockHash7"), nil)
 	require.Nil(t, err)
 	tracker.blocks = append(tracker.blocks, b)
 
-	b, err = newTrackedBlock(5, []byte("blockHash6"), []byte("rootHash6"), []byte("blockHash5"), nil, nil)
+	b, err = newTrackedBlock(5, []byte("blockHash6"), []byte("rootHash6"), []byte("blockHash5"), nil)
 	require.Nil(t, err)
 	tracker.blocks = append(tracker.blocks, b)
 
-	b, err = newTrackedBlock(1, []byte("blockHash2"), []byte("rootHash2"), []byte("blockHash1"), nil, nil)
+	b, err = newTrackedBlock(1, []byte("blockHash2"), []byte("rootHash2"), []byte("blockHash1"), nil)
 	require.Nil(t, err)
 	tracker.blocks = append(tracker.blocks, b)
 
-	b, err = newTrackedBlock(0, []byte("blockHash1"), []byte("rootHash1"), []byte("prevHash1"), nil, nil)
+	b, err = newTrackedBlock(0, []byte("blockHash1"), []byte("rootHash1"), []byte("prevHash1"), nil)
 	require.Nil(t, err)
 	tracker.blocks = append(tracker.blocks, b)
 
-	b, err = newTrackedBlock(3, []byte("blockHash4"), []byte("rootHash4"), []byte("blockHash3"), nil, nil)
+	b, err = newTrackedBlock(3, []byte("blockHash4"), []byte("rootHash4"), []byte("blockHash3"), nil)
 	require.Nil(t, err)
 	tracker.blocks = append(tracker.blocks, b)
 
-	b, err = newTrackedBlock(2, []byte("blockHash3"), []byte("rootHash3"), []byte("blockHash2"), nil, nil)
+	b, err = newTrackedBlock(2, []byte("blockHash3"), []byte("rootHash3"), []byte("blockHash2"), nil)
 	require.Nil(t, err)
 	tracker.blocks = append(tracker.blocks, b)
 
-	b, err = newTrackedBlock(4, []byte("blockHash5"), []byte("rootHash5"), []byte("blockHash4"), nil, nil)
+	b, err = newTrackedBlock(4, []byte("blockHash5"), []byte("rootHash5"), []byte("blockHash4"), nil)
 	require.Nil(t, err)
 	tracker.blocks = append(tracker.blocks, b)
 
-	b, err = newTrackedBlock(6, []byte("blockHash7"), []byte("rootHash7"), []byte("blockHash6"), nil, nil)
+	b, err = newTrackedBlock(6, []byte("blockHash7"), []byte("rootHash7"), []byte("blockHash6"), nil)
 	require.Nil(t, err)
 	tracker.blocks = append(tracker.blocks, b)
 
@@ -695,7 +695,7 @@ func TestSelectionTracker_validateTrackedBlocks(t *testing.T) {
 		breadcrumbAlice1 := newAccountBreadcrumb(core.OptionalUint64{
 			Value:    0,
 			HasValue: true,
-		}, big.NewInt(3), big.NewInt(1))
+		}, nil)
 		breadcrumbAlice1.lastNonce = core.OptionalUint64{
 			Value:    4,
 			HasValue: true,
@@ -704,7 +704,7 @@ func TestSelectionTracker_validateTrackedBlocks(t *testing.T) {
 		breadcrumbAlice2 := newAccountBreadcrumb(core.OptionalUint64{
 			Value:    6,
 			HasValue: true,
-		}, big.NewInt(3), big.NewInt(1))
+		}, nil)
 		breadcrumbAlice2.lastNonce = core.OptionalUint64{
 			Value:    7,
 			HasValue: true,
@@ -758,7 +758,7 @@ func TestSelectionTracker_validateTrackedBlocks(t *testing.T) {
 		breadcrumbAlice1 := newAccountBreadcrumb(core.OptionalUint64{
 			Value:    0,
 			HasValue: true,
-		}, big.NewInt(5), big.NewInt(6))
+		}, big.NewInt(3))
 		breadcrumbAlice1.lastNonce = core.OptionalUint64{
 			Value:    4,
 			HasValue: true,
@@ -767,7 +767,7 @@ func TestSelectionTracker_validateTrackedBlocks(t *testing.T) {
 		breadcrumbAlice2 := newAccountBreadcrumb(core.OptionalUint64{
 			Value:    5,
 			HasValue: true,
-		}, big.NewInt(5), big.NewInt(6))
+		}, big.NewInt(3))
 		breadcrumbAlice2.lastNonce = core.OptionalUint64{
 			Value:    7,
 			HasValue: true,
@@ -821,7 +821,7 @@ func TestSelectionTracker_validateTrackedBlocks(t *testing.T) {
 		breadcrumbAlice1 := newAccountBreadcrumb(core.OptionalUint64{
 			Value:    0,
 			HasValue: true,
-		}, big.NewInt(1), nil)
+		}, nil)
 		breadcrumbAlice1.lastNonce = core.OptionalUint64{
 			Value:    4,
 			HasValue: true,
@@ -830,7 +830,7 @@ func TestSelectionTracker_validateTrackedBlocks(t *testing.T) {
 		breadcrumbAlice2 := newAccountBreadcrumb(core.OptionalUint64{
 			Value:    5,
 			HasValue: true,
-		}, big.NewInt(1), nil)
+		}, big.NewInt(1))
 		breadcrumbAlice2.lastNonce = core.OptionalUint64{
 			Value:    7,
 			HasValue: true,
@@ -861,7 +861,7 @@ func TestSelectionTracker_validateTrackedBlocks(t *testing.T) {
 			GetAccountStateCalled: func(address []byte) (state.UserAccountHandler, error) {
 				return &testscommonState.StateUserAccountHandlerStub{
 					GetBalanceCalled: func() *big.Int {
-						return big.NewInt(0)
+						return big.NewInt(2)
 					},
 					GetNonceCalled: func() uint64 {
 						return uint64(0)

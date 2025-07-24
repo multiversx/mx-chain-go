@@ -9,13 +9,11 @@ import (
 type accountBreadcrumb struct {
 	initialNonce    core.OptionalUint64
 	lastNonce       core.OptionalUint64
-	initialBalance  *big.Int
 	consumedBalance *big.Int
 }
 
 func newAccountBreadcrumb(
 	initialNonce core.OptionalUint64,
-	initialBalance *big.Int,
 	consumedBalance *big.Int,
 ) *accountBreadcrumb {
 	if consumedBalance == nil {
@@ -24,7 +22,6 @@ func newAccountBreadcrumb(
 	return &accountBreadcrumb{
 		initialNonce:    initialNonce,
 		lastNonce:       core.OptionalUint64{HasValue: false},
-		initialBalance:  initialBalance,
 		consumedBalance: consumedBalance,
 	}
 }

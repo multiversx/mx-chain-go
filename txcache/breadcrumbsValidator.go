@@ -1,6 +1,10 @@
 package txcache
 
-import "github.com/multiversx/mx-chain-go/state"
+import (
+	"math/big"
+
+	"github.com/multiversx/mx-chain-go/state"
+)
 
 // breadcrumbsValidator checks that breadcrumbs are continuous
 //
@@ -109,10 +113,10 @@ func (validator *breadcrumbsValidator) shouldSkipSender(address string) bool {
 
 func (validator *breadcrumbsValidator) validateBalance(
 	address string,
-	breadcrumb *accountBreadcrumb) error {
+	breadcrumb *accountBreadcrumb,
+	initialBalance *big.Int) error {
 	virtualBalance, ok := validator.virtualBalancesByAddress[address]
 	if !ok {
-		initialBalance := breadcrumb.initialBalance
 		virtualBalance = newVirtualAccountBalance(initialBalance)
 		validator.virtualBalancesByAddress[address] = virtualBalance
 	}
