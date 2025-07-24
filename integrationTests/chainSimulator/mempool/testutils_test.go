@@ -34,6 +34,8 @@ var (
 	durationWaitAfterSendMany = 3000 * time.Millisecond
 	durationWaitAfterSendSome = 300 * time.Millisecond
 	defaultBlockchainInfo     = holders.NewBlockchainInfo(nil, 0)
+	gasLimit                  = 50_000
+	gasPrice                  = 1_000_000_000
 )
 
 const maxNumBytesUpperBound = 1_073_741_824           // one GB
@@ -324,7 +326,7 @@ func createRandomTxs(txpool *txcache.TxCache, numTxs int, nonceTracker *noncesTr
 			SenderShardID:    0,
 			ReceiverShardID:  0,
 			Size:             0,
-			Fee:              big.NewInt(int64(tx.GasLimit * tx.GasPrice)),
+			Fee:              core.SafeMul(tx.GasLimit, tx.GasPrice),
 			PricePerUnit:     0,
 			TransferredValue: tx.Value,
 			FeePayer:         tx.SndAddr,
@@ -392,7 +394,7 @@ func testFirstSelection(t *testing.T, sw *core.StopWatch, numTxs int, numTxsToBe
 	initialAmount := big.NewInt(0)
 	numTxsAsBigInt := big.NewInt(int64(numTxs))
 
-	_ = initialAmount.Mul(numTxsAsBigInt, big.NewInt(int64(50_000*1_000_000_000)))
+	_ = initialAmount.Mul(numTxsAsBigInt, big.NewInt(int64(gasLimit*gasPrice)))
 	_ = initialAmount.Add(initialAmount, big.NewInt(int64(numTxs*1)))
 
 	selectionSession := createDefaultSelectionSessionMockWithInitialAmount(initialAmount)
@@ -431,7 +433,7 @@ func testSecondSelection(t *testing.T, sw *core.StopWatch, numTxs int, numTxsToB
 	initialAmount := big.NewInt(0)
 	numTxsAsBigInt := big.NewInt(int64(numTxs))
 
-	_ = initialAmount.Mul(numTxsAsBigInt, big.NewInt(int64(50_000*1_000_000_000)))
+	_ = initialAmount.Mul(numTxsAsBigInt, big.NewInt(int64(gasLimit*gasPrice)))
 	_ = initialAmount.Add(initialAmount, big.NewInt(int64(numTxs*transferredValue)))
 
 	selectionSession := createDefaultSelectionSessionMockWithInitialAmount(initialAmount)
@@ -493,7 +495,7 @@ func testSecondSelectionWithManyTxsInPool(t *testing.T, sw *core.StopWatch, numT
 	initialAmount := big.NewInt(0)
 	numTxsAsBigInt := big.NewInt(int64(numTxs))
 
-	_ = initialAmount.Mul(numTxsAsBigInt, big.NewInt(int64(50_000*1_000_000_000)))
+	_ = initialAmount.Mul(numTxsAsBigInt, big.NewInt(int64(gasLimit*gasPrice)))
 	_ = initialAmount.Add(initialAmount, big.NewInt(int64(numTxs*transferredValue)))
 
 	selectionSession := createDefaultSelectionSessionMockWithInitialAmount(initialAmount)
