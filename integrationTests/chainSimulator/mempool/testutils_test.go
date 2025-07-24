@@ -360,7 +360,10 @@ func testOnProposed(t *testing.T, sw *core.StopWatch, numTxs int, numAddresses i
 		Nonce:    0,
 		PrevHash: []byte("blockHash0"),
 		RootHash: []byte(fmt.Sprintf("rootHash%d", 0)),
-	})
+	},
+		selectionSession,
+		defaultBlockchainInfo,
+	)
 
 	sw.Stop(t.Name())
 
@@ -446,7 +449,10 @@ func testSecondSelection(t *testing.T, sw *core.StopWatch, numTxs int, numTxsToB
 		Nonce:    0,
 		PrevHash: []byte("blockHash0"),
 		RootHash: []byte(fmt.Sprintf("rootHash%d", 0)),
-	})
+	},
+		selectionSession,
+		defaultBlockchainInfo,
+	)
 	require.Nil(t, err)
 
 	// measure the time for the second selection (now we use the breadcrumbs to create the virtual records)
@@ -462,7 +468,10 @@ func testSecondSelection(t *testing.T, sw *core.StopWatch, numTxs int, numTxsToB
 		Nonce:    0,
 		PrevHash: []byte("blockHash1"),
 		RootHash: []byte(fmt.Sprintf("rootHash%d", 0)),
-	})
+	},
+		selectionSession,
+		defaultBlockchainInfo,
+	)
 	require.Nil(t, err)
 
 	selectedTransactions, _ = txpool.SelectTransactions(selectionSession, options, blockchainInfo)
@@ -508,7 +517,10 @@ func testSecondSelectionWithManyTxsInPool(t *testing.T, sw *core.StopWatch, numT
 		Nonce:    0,
 		PrevHash: []byte("blockHash0"),
 		RootHash: []byte(fmt.Sprintf("rootHash%d", 0)),
-	})
+	},
+		selectionSession,
+		defaultBlockchainInfo,
+	)
 	require.Nil(t, err)
 
 	// measure the time for the second selection (now we use the breadcrumbs to create the virtual records)
