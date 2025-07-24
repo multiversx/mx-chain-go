@@ -113,7 +113,7 @@ func (aep *arithmeticEpochProvider) computeCurrentEpoch() {
 
 	aep.currentComputedEpoch = aep.headerEpoch + uint32(diffEpochs)
 
-	log.Info("arithmeticEpochProvider.computeCurrentEpoch",
+	log.Debug("arithmeticEpochProvider.computeCurrentEpoch",
 		"computed network epoch", aep.currentComputedEpoch,
 	)
 }
