@@ -16,8 +16,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-var defaultBlockchainInfo = holders.NewBlockchainInfo(nil, 0)
-
 func createMockTxSelectionOptions(gasRequested uint64, maxNumTxs int, loopMaximumDuration int) common.TxSelectionOptions {
 	return holders.NewTxSelectionOptions(
 		gasRequested,
