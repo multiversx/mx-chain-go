@@ -531,6 +531,9 @@ var ErrMaxGasLimitPerBlockInSelfShardIsReached = errors.New("max gas limit per b
 // ErrMaxGasLimitUsedForDestMeTxsIsReached signals that max gas limit used for dest me txs has been reached
 var ErrMaxGasLimitUsedForDestMeTxsIsReached = errors.New("max gas limit used for dest me txs is reached")
 
+// ErrMaxGasLimitPerTransactionIsReached signals that max gas limit per transactions has been reached
+var ErrMaxGasLimitPerTransactionIsReached = errors.New("max gas limit per transaction is reached")
+
 // ErrMaxGasLimitPerMiniBlockIsReached signals that max gas limit per mini block has been reached
 var ErrMaxGasLimitPerMiniBlockIsReached = errors.New("max gas limit per mini block is reached")
 
@@ -1304,3 +1307,9 @@ var ErrInvalidRatingsConfig = errors.New("invalid ratings config")
 
 // ErrNilKeyRWMutexHandler signals that a nil KeyRWMutexHandler has been provided
 var ErrNilKeyRWMutexHandler = errors.New("nil key rw mutex handler")
+
+// ErrTransactionsAlreadyProcessed signals that transactions were already processed
+var ErrTransactionsAlreadyProcessed = errors.New("transactions already processed")
+
+// ErrMiniBlocksAlreadyProcessed signals that mini blocks were already processed
+var ErrMiniBlocksAlreadyProcessed = errors.New("mini blocks already processed")

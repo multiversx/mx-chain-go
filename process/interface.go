@@ -1,9 +1,10 @@
 package process
 
 import (
-	"github.com/multiversx/mx-chain-go/ntp"
 	"math/big"
 	"time"
+
+	"github.com/multiversx/mx-chain-go/ntp"
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data"
@@ -1449,5 +1450,30 @@ type ProofsPool interface {
 	AddProof(headerProof data.HeaderProofHandler) bool
 	HasProof(shardID uint32, headerHash []byte) bool
 	IsProofInPoolEqualTo(headerProof data.HeaderProofHandler) bool
+	IsInterfaceNil() bool
+}
+
+// GasComputation defines a component able to select the maximum number of outgoing transactions and incoming mini blocks
+// in order to fill the block in respect with the gas limits
+type GasComputation interface {
+	CheckIncomingMiniBlocks(
+		miniBlocks []data.MiniBlockHeaderHandler,
+		transactions map[string][]data.TransactionHandler,
+	) (int, int, error)
+	CheckOutgoingTransactions(transactions []data.TransactionHandler) (int, error)
+	GetLastMiniBlockIndexIncluded() int
+	GetLasTransactionIndexIncluded() int
+	TotalGasConsumed() uint64
+	DecreaseMiniBlockLimit()
+	ResetMiniBlockLimit()
+	DecreaseBlockLimit()
+	ResetBlockLimit()
+	Reset()
+	IsInterfaceNil() bool
+}
+
+// ShardCoordinator defines what a shard state coordinator should hold
+type ShardCoordinator interface {
+	SelfId() uint32
 	IsInterfaceNil() bool
 }
