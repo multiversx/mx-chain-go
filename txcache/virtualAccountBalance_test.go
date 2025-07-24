@@ -10,7 +10,7 @@ import (
 func Test_validateBalance(t *testing.T) {
 	t.Parallel()
 
-	t.Run("should return errExceedBalance", func(t *testing.T) {
+	t.Run("should return errExceededBalance", func(t *testing.T) {
 		t.Parallel()
 
 		record := newVirtualAccountBalance(
@@ -18,7 +18,7 @@ func Test_validateBalance(t *testing.T) {
 		)
 		record.consumedBalance = big.NewInt(3)
 		err := record.validateBalance()
-		require.Equal(t, errExceedBalance, err)
+		require.Equal(t, errExceededBalance, err)
 	})
 
 	t.Run("should work", func(t *testing.T) {

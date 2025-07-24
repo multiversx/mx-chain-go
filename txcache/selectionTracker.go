@@ -118,13 +118,16 @@ func (st *selectionTracker) validateTrackedBlocks(chainOfTrackedBlocks []*tracke
 				return err
 			}
 
+			// validate that a breadcrumb is continuous
 			if !validator.continuousBreadcrumb(address, breadcrumb, accountState) {
 				return errDiscontinuousBreadcrumbs
 			}
 
+			// use its balance to accumulate and validate (make sure is < than initialBalance from the session)
 			initialBalance := accountState.GetBalance()
 			err = validator.validateBalance(address, breadcrumb, initialBalance)
 			if err != nil {
+				// exit at the first failure
 				log.Debug("selectionTracker.validateTrackedBlocks validation failed",
 					"err", err,
 					"address", address,

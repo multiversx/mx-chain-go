@@ -2,11 +2,17 @@ package txcache
 
 import "math/big"
 
+// virtualAccountBalance contains:
+// the initialBalance from the non-virtual session,
+// the consumedBalance accumulated from breadcrumbs.
 type virtualAccountBalance struct {
 	initialBalance  *big.Int
 	consumedBalance *big.Int
 }
 
+// virtualAccountBalance is used in two scenarios:
+// when validating a proposed block (on the OnProposedBlock notification), where we create a virtualBalance for each account;
+// inside a virtual record
 func newVirtualAccountBalance(initialBalance *big.Int) *virtualAccountBalance {
 	return &virtualAccountBalance{
 		initialBalance:  initialBalance,
@@ -14,13 +20,18 @@ func newVirtualAccountBalance(initialBalance *big.Int) *virtualAccountBalance {
 	}
 }
 
+// accumulateConsumedBalance is used in two places:
+// accumulating for the validation of a proposed block
+// accumulating for a virtual record
 func (virtualBalance *virtualAccountBalance) accumulateConsumedBalance(breadcrumb *accountBreadcrumb) {
 	_ = virtualBalance.consumedBalance.Add(virtualBalance.consumedBalance, breadcrumb.consumedBalance)
 }
 
+// validateBalance is used in ONLY one place: the validation of a proposed block
+// this method is NOT used for the virtual records (in deriveVirtualSelectionSession)
 func (virtualBalance *virtualAccountBalance) validateBalance() error {
 	if virtualBalance.consumedBalance.Cmp(virtualBalance.initialBalance) > 0 {
-		return errExceedBalance
+		return errExceededBalance
 	}
 
 	return nil

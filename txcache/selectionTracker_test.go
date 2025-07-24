@@ -212,7 +212,7 @@ func TestSelectionTracker_OnProposedBlockShouldErr(t *testing.T) {
 		require.Equal(t, errDiscontinuousBreadcrumbs, err)
 	})
 
-	t.Run("should return errExceedBalance because of fees", func(t *testing.T) {
+	t.Run("should return errExceededBalance because of fees", func(t *testing.T) {
 		t.Parallel()
 
 		txCache := newCacheToTest(maxNumBytesPerSenderUpperBoundTest, 3)
@@ -271,7 +271,7 @@ func TestSelectionTracker_OnProposedBlockShouldErr(t *testing.T) {
 			PrevHash: []byte(fmt.Sprintf("hash%d", 1)),
 			RootHash: []byte(fmt.Sprintf("rootHash%d", 0)),
 		}, &mockSelectionSession, holders.NewBlockchainInfo([]byte("prevHash0"), 2))
-		require.Equal(t, errExceedBalance, err)
+		require.Equal(t, errExceededBalance, err)
 	})
 
 	t.Run("should return err from selection session", func(t *testing.T) {
@@ -812,7 +812,7 @@ func TestSelectionTracker_validateTrackedBlocks(t *testing.T) {
 		require.Nil(t, err)
 
 		err = tracker.validateTrackedBlocks(trackedBlocks, &mockSelectionSession)
-		require.Equal(t, errExceedBalance, err)
+		require.Equal(t, errExceededBalance, err)
 	})
 
 	t.Run("should return nil", func(t *testing.T) {
