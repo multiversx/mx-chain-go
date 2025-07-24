@@ -114,7 +114,7 @@ func (handler *gasConfigHandler) getMaxGasLimitPerMiniBlock(epoch uint32) uint64
 	return gc.maxGasLimitPerMiniBlock
 }
 
-// getMaxGasLimitPerMiniBlock returns max gas limit per mini block in a specific epoch
+// getGasHigherFactorAccepted returns the maximum gas higher factor accepted for the given epoch
 func (handler *gasConfigHandler) getGasHigherFactorAccepted(epoch uint32) uint64 {
 	gc := handler.getGasConfigForEpoch(epoch)
 	return gc.maxGasHigherFactorAccepted

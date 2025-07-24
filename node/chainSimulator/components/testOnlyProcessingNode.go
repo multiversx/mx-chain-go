@@ -429,7 +429,7 @@ func (node *testOnlyProcessingNode) GetStatusCoreComponents() factory.StatusCore
 	return node.StatusCoreComponents
 }
 
-// NetworkComponents will return the network components
+// GetNetworkComponents will return the network components
 func (node *testOnlyProcessingNode) GetNetworkComponents() factory.NetworkComponentsHolder {
 	return node.NetworkComponentsHolder
 }
