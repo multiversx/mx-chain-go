@@ -244,10 +244,6 @@ func TestBenchmark_SecondSelection10kTransactionsAndVariableNumberOfAddresses(t 
 	numTxsToBeSelected := numTxs / 2
 
 	t.Run("10_000 txs with 10 addresses", func(t *testing.T) {
-		testSecondSelection(t, sw, 10, 5, 2)
-	})
-
-	t.Run("10_000 txs with 10 addresses", func(t *testing.T) {
 		numAddresses := 10
 		testSecondSelection(t, sw, numTxs, numTxsToBeSelected, numAddresses)
 	})
