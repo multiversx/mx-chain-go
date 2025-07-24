@@ -8,30 +8,30 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func getMockBody(hash []byte, numtxsPerPool int) *block.Body{
+func getMockBody(hash []byte, numtxsPerPool int) *block.Body {
 	body := &block.Body{}
 	selfShard := 0
 	numShards := 3
-	
+
 	for i := 0; i < numShards; i++ {
 		txHashes := [][]byte{}
-		
+
 		for j := 0; j < numtxsPerPool; j++ {
 			txHashes = append(txHashes, fmt.Appendf(nil, "hash-%d-%d", i, j))
 		}
-		
-		if(i == 0) {
+
+		if i == 0 {
 			txHashes = append(txHashes, hash)
 		}
-		
+
 		body.MiniBlocks = append(body.MiniBlocks, &block.MiniBlock{
 			SenderShardID:   uint32(selfShard),
 			ReceiverShardID: uint32(i),
 			TxHashes:        txHashes,
 		})
 	}
-	
-	return body		
+
+	return body
 }
 
 func TestComputeRandomnessForTxCleaning(t *testing.T) {

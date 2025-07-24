@@ -10,7 +10,7 @@ import (
 )
 
 // Cleanup simulates a selection and removes not-executable transactions. Initial implementation: lower and duplicate nonces
-func (cache *TxCache) Cleanup(session SelectionSession, randomness uint64, maxNum int, cleanupLoopMaximumDurationMs time.Duration) (uint64) {
+func (cache *TxCache) Cleanup(session SelectionSession, randomness uint64, maxNum int, cleanupLoopMaximumDurationMs time.Duration) uint64 {
 	logRemove.Debug(
 		"TxCache.Cleanup: begin",
 		"randomness", randomness,
@@ -26,87 +26,87 @@ func (cache *TxCache) Cleanup(session SelectionSession, randomness uint64, maxNu
 func (cache *TxCache) getDeterministicallyShuffledSenders(randomness uint64) []*txListForSender {
 	senders := make([]*txListForSender, 0, cache.txListBySender.counter.Get())
 	senderAddresses := cache.txListBySender.backingMap.Keys()
-	
-	shuffledSenderAdresses:= shuffleSendersAddresses(senderAddresses, randomness)
-	for _, sender := range shuffledSenderAdresses {
+
+	shuffledSenderAddresses := shuffleSendersAddresses(senderAddresses, randomness)
+	for _, sender := range shuffledSenderAddresses {
 		listForSender, ok := cache.txListBySender.backingMap.Get(sender)
-		if ok{
+		if ok {
 			senders = append(senders, listForSender.(*txListForSender))
 		}
 	}
-	
+
 	return senders
 }
 
-type addressShufflingItem struct {  
-    address      string  
-    shufflingKey []byte  
-}  
+type addressShufflingItem struct {
+	address      string
+	shufflingKey []byte
+}
 
-func shuffleSendersAddresses(senders []string, randomness uint64) []string {  
-    randomnessAsBytes := make([]byte, 8)  
-    binary.LittleEndian.PutUint64(randomnessAsBytes, randomness)  
+func shuffleSendersAddresses(senders []string, randomness uint64) []string {
+	randomnessAsBytes := make([]byte, 8)
+	binary.LittleEndian.PutUint64(randomnessAsBytes, randomness)
 
-    hasher := sha256.NewSha256()  
-    items := make([]*addressShufflingItem, 0, len(senders))  
-    shuffledAddresses := make([]string, len(senders))  
+	hasher := sha256.NewSha256()
+	items := make([]*addressShufflingItem, 0, len(senders))
+	shuffledAddresses := make([]string, len(senders))
 
-    for _, address := range senders {  
-        addressWithRandomness := append([]byte(address), randomnessAsBytes...)  
-        shufflingKey := hasher.Compute(string(addressWithRandomness))  
+	for _, address := range senders {
+		addressWithRandomness := append([]byte(address), randomnessAsBytes...)
+		shufflingKey := hasher.Compute(string(addressWithRandomness))
 
-        items = append(items, &addressShufflingItem{  
-            address:      address,  
-            shufflingKey: shufflingKey,  
-        })  
-    }  
+		items = append(items, &addressShufflingItem{
+			address:      address,
+			shufflingKey: shufflingKey,
+		})
+	}
 
-    // Deterministic shuffling.  
+	// Deterministic shuffling.
 	sort.Slice(items, func(i, j int) bool {
 		cmp := bytes.Compare(items[i].shufflingKey, items[j].shufflingKey)
-		
+
 		if cmp != 0 {
 			return cmp > 0
 		}
 		return items[i].address > items[j].address
 	})
 
-    for i := 0; i < len(senders); i++ {  
-        shuffledAddresses[i] = items[i].address  
-    }  
+	for i := 0; i < len(senders); i++ {
+		shuffledAddresses[i] = items[i].address
+	}
 
-    return shuffledAddresses  
-} 
+	return shuffledAddresses
+}
 
 func (cache *TxCache) RemoveSweepableTxs(session SelectionSession, randomness uint64, maxNum int, cleanupLoopMaximumDurationMs time.Duration) uint64 {
 	cache.mutTxOperation.Lock()
 	defer cache.mutTxOperation.Unlock()
-	
+
 	cleanupLoopStartTime := time.Now()
-	evicted := make([][] byte, 0, cache.txByHash.counter.Get())
+	evicted := make([][]byte, 0, cache.txByHash.counter.Get())
 
 	virtualSession := newVirtualSelectionSession(session)
 	senders := cache.getDeterministicallyShuffledSenders(randomness)
-	
-	for _, sender := range senders{
-		senderAddress := []byte (sender.sender)
-		
-		lastCommittedNonce, _:= virtualSession.getNonce(senderAddress)
+
+	for _, sender := range senders {
+		senderAddress := []byte(sender.sender)
+
+		lastCommittedNonce, _ := virtualSession.getNonce(senderAddress)
 		// we want to remove transactions with nonces < lastCommittedNonce
 		lastCommittedNonce -= 1
 
-		if len(evicted) >= maxNum || time.Since(cleanupLoopStartTime) > cleanupLoopMaximumDurationMs{
+		if len(evicted) >= maxNum || time.Since(cleanupLoopStartTime) > cleanupLoopMaximumDurationMs {
 			break
 		}
 		evicted = append(evicted, sender.removeSweepableTransactionsReturnHashes(lastCommittedNonce)...)
 	}
-	
+
 	if len(evicted) > 0 {
 		cache.txByHash.RemoveTxsBulk(evicted)
 	}
-	
+
 	logRemove.Debug("TxCache.RemoveSweepableTxs end", "randomness", randomness, "len(evicted)", len(evicted), "duration", time.Since(cleanupLoopStartTime))
-	
+
 	return uint64(len(evicted))
 }
 
@@ -117,29 +117,29 @@ func (listForSender *txListForSender) removeSweepableTransactionsReturnHashes(ta
 	listForSender.mutex.Lock()
 	defer listForSender.mutex.Unlock()
 
-	lastTxNonceForDuplicatesProcessing:= targetNonce
-	
+	lastTxNonceForDuplicatesProcessing := targetNonce
+
 	for element := listForSender.items.Front(); element != nil; {
 		// finds transactions with lower nonces, finds transactions with duplicate nonces
 		tx := element.Value.(*WrappedTransaction)
 		txNonce := tx.Tx.GetNonce()
 
 		// set the current nonce to be checked for duplicate and remember last transaction nonce that has been encountered
-		txNonceForDuplicateProcessing:= lastTxNonceForDuplicatesProcessing
+		txNonceForDuplicateProcessing := lastTxNonceForDuplicatesProcessing
 		lastTxNonceForDuplicatesProcessing = txNonce
 
-		if txNonce > targetNonce && txNonce != txNonceForDuplicateProcessing{
+		if txNonce > targetNonce && txNonce != txNonceForDuplicateProcessing {
 			element = element.Next()
 			continue
 		}
-		
+
 		logRemove.Debug("TxCache.removeSweepableTransactionsReturnHashes",
 			"txHash", tx.TxHash,
 			"txNonce", txNonce,
 			"targetNonce", targetNonce,
 			"txNonceForDuplicateProcessing", txNonceForDuplicateProcessing,
 		)
-		
+
 		nextElement := element.Next()
 		_ = listForSender.items.Remove(element)
 		listForSender.onRemovedListElement(element)
