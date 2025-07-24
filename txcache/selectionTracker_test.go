@@ -121,7 +121,7 @@ func TestSelectionTracker_OnProposedBlockShouldErr(t *testing.T) {
 		require.Equal(t, errNilHeaderHandler, err)
 	})
 
-	t.Run("should return errDiscontinuousNonce", func(t *testing.T) {
+	t.Run("should return errNonceGap", func(t *testing.T) {
 		t.Parallel()
 
 		txCache := newCacheToTest(maxNumBytesPerSenderUpperBoundTest, 3)
@@ -147,7 +147,7 @@ func TestSelectionTracker_OnProposedBlockShouldErr(t *testing.T) {
 			RootHash: []byte(fmt.Sprintf("rootHash%d", 0)),
 		}, &defaultSelectionSessionMock, defaultBlockchainInfo)
 
-		require.Equal(t, errDiscontinuousNonce, err)
+		require.Equal(t, errNonceGap, err)
 	})
 
 	t.Run("should return errDiscontinuousBreadcrumbs", func(t *testing.T) {

@@ -9,6 +9,7 @@ import (
 	"strconv"
 
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
+	"github.com/multiversx/mx-chain-go/common/holders"
 	"github.com/multiversx/mx-chain-go/testscommon/txcachemocks"
 )
 
@@ -26,6 +27,8 @@ const selectionLoopMaximumDuration = 30_000
 
 var randomHashes = newRandomData(math.MaxUint16, hashLength)
 var randomAddresses = newRandomData(math.MaxUint16, addressLength)
+
+var defaultBlockchainInfo = holders.NewBlockchainInfo(nil, 0)
 
 type randomData struct {
 	randomBytes []byte

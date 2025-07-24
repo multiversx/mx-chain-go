@@ -34,7 +34,7 @@ func (provider *virtualSessionProvider) createVirtualSelectionSession(
 
 func (provider *virtualSessionProvider) handleTrackedBlock(tb *trackedBlock) error {
 	for address, breadcrumb := range tb.breadcrumbsByAddress {
-		_, ok := provider.validator.skippedSenders[address]
+		ok := provider.validator.shouldSkipSender(address)
 		if ok {
 			continue
 		}

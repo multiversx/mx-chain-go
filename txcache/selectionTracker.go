@@ -32,6 +32,7 @@ func NewSelectionTracker(txCache txCacheForSelectionTracker) (*selectionTracker,
 }
 
 // OnProposedBlock notifies when a block is proposed and updates the state of the selectionTracker
+// TODO the selection session might be unusable in the flow of OnProposed
 func (st *selectionTracker) OnProposedBlock(
 	blockHash []byte,
 	blockBody *block.Body,
@@ -91,7 +92,10 @@ func (st *selectionTracker) OnExecutedBlock(handler data.HeaderHandler) error {
 	rootHash := handler.GetRootHash()
 	prevHash := handler.GetPrevHash()
 
-	tempTrackedBlock, _ := newTrackedBlock(nonce, nil, rootHash, prevHash, nil, nil)
+	tempTrackedBlock, err := newTrackedBlock(nonce, nil, rootHash, prevHash, nil, nil)
+	if err != nil {
+		return err
+	}
 	st.mutTracker.Lock()
 	defer st.mutTracker.Unlock()
 

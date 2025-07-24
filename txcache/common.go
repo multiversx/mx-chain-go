@@ -1,13 +1,6 @@
 package txcache
 
-import (
-	"math/big"
-
-	"github.com/multiversx/mx-chain-go/common/holders"
-	"github.com/multiversx/mx-chain-go/state"
-	testscommonState "github.com/multiversx/mx-chain-go/testscommon/state"
-	"github.com/multiversx/mx-chain-go/testscommon/txcachemocks"
-)
+import "github.com/multiversx/mx-chain-go/common/holders"
 
 var defaultBlockchainInfo = holders.NewBlockchainInfo(nil, 0)
 

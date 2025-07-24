@@ -52,7 +52,7 @@ func Test_isRelayer(t *testing.T) {
 func Test_updateLastNonce(t *testing.T) {
 	t.Parallel()
 
-	t.Run("should return nil because the received lastNonce does not have value", func(t *testing.T) {
+	t.Run("should receivedLastNonceNotSet the received lastNonce does not have value", func(t *testing.T) {
 		t.Parallel()
 
 		breadcrumb := accountBreadcrumb{
@@ -73,11 +73,11 @@ func Test_updateLastNonce(t *testing.T) {
 		}
 
 		err := breadcrumb.updateLastNonce(receivedLastNonce)
-		require.NoError(t, err)
+		require.Equal(t, errReceivedLastNonceNotSet, err)
 		require.Equal(t, uint64(1), breadcrumb.lastNonce.Value)
 	})
 
-	t.Run("should return discontinuous nonce", func(t *testing.T) {
+	t.Run("should return nonce gap", func(t *testing.T) {
 		t.Parallel()
 
 		breadcrumb := accountBreadcrumb{
@@ -98,10 +98,10 @@ func Test_updateLastNonce(t *testing.T) {
 		}
 
 		err := breadcrumb.updateLastNonce(receivedLastNonce)
-		require.Equal(t, errDiscontinuousNonce, err)
+		require.Equal(t, errNonceGap, err)
 	})
 
-	t.Run("should return discontinuous nonce", func(t *testing.T) {
+	t.Run("should return no err", func(t *testing.T) {
 		t.Parallel()
 
 		breadcrumb := accountBreadcrumb{

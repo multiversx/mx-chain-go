@@ -9,7 +9,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func Test_continousBreadcrumbs(t *testing.T) {
+func Test_continuousBreadcrumbs(t *testing.T) {
 	t.Parallel()
 
 	// when breadcrumb is relayer
