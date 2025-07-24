@@ -3,20 +3,16 @@ package txcache
 import "github.com/multiversx/mx-chain-go/state"
 
 type virtualSessionProvider struct {
-	session                             SelectionSession
-	virtualAccountsByAddress            map[string]*virtualAccountRecord
-	skippedSenders                      map[string]struct{}
-	sendersInContinuityWithSessionNonce map[string]struct{}
-	accountPreviousBreadcrumb           map[string]*accountBreadcrumb
+	session                  SelectionSession
+	validator                *breadcrumbsValidator
+	virtualAccountsByAddress map[string]*virtualAccountRecord
 }
 
 func newVirtualSessionProvider(session SelectionSession) *virtualSessionProvider {
 	return &virtualSessionProvider{
-		session:                             session,
-		virtualAccountsByAddress:            make(map[string]*virtualAccountRecord),
-		skippedSenders:                      make(map[string]struct{}),
-		sendersInContinuityWithSessionNonce: make(map[string]struct{}),
-		accountPreviousBreadcrumb:           make(map[string]*accountBreadcrumb),
+		session:                  session,
+		validator:                newBreadcrumbValidator(),
+		virtualAccountsByAddress: make(map[string]*virtualAccountRecord),
 	}
 }
 
@@ -38,7 +34,7 @@ func (provider *virtualSessionProvider) createVirtualSelectionSession(
 
 func (provider *virtualSessionProvider) handleTrackedBlock(tb *trackedBlock) error {
 	for address, breadcrumb := range tb.breadcrumbsByAddress {
-		_, ok := provider.skippedSenders[address]
+		ok := provider.validator.shouldSkipSender(address)
 		if ok {
 			continue
 		}
@@ -51,10 +47,7 @@ func (provider *virtualSessionProvider) handleTrackedBlock(tb *trackedBlock) err
 			return err
 		}
 
-		accountNonce := accountState.GetNonce()
-
-		if !provider.continuousBreadcrumb(address, breadcrumb, accountNonce) {
-			provider.skippedSenders[address] = struct{}{}
+		if !provider.validator.continuousBreadcrumb(address, breadcrumb, accountState) {
 			delete(provider.virtualAccountsByAddress, address)
 			continue
 		}
@@ -63,43 +56,6 @@ func (provider *virtualSessionProvider) handleTrackedBlock(tb *trackedBlock) err
 	}
 
 	return nil
-}
-
-func (provider *virtualSessionProvider) continuousBreadcrumb(
-	address string,
-	breadcrumb *accountBreadcrumb,
-	accountNonce uint64,
-) bool {
-	if breadcrumb.hasUnkownNonce() {
-		return true
-	}
-
-	_, ok := provider.sendersInContinuityWithSessionNonce[address]
-	continuousWithSessionNonce := breadcrumb.verifyContinuityWithSessionNonce(accountNonce)
-	if !ok && !continuousWithSessionNonce {
-		log.Debug("virtualSessionProvider.continuousBreadcrumb breadcrumb not continuous with session nonce",
-			"address", address,
-			"accountNonce", accountNonce,
-			"breadcrumb nonce", breadcrumb.initialNonce)
-		return false
-	}
-	if !ok {
-		provider.sendersInContinuityWithSessionNonce[address] = struct{}{}
-	}
-
-	previousBreadcrumb := provider.accountPreviousBreadcrumb[address]
-	continuousBreadcrumbs := breadcrumb.verifyContinuityBetweenAccountBreadcrumbs(previousBreadcrumb)
-	if !continuousBreadcrumbs {
-		log.Debug("virtualSessionProvider.continuousBreadcrumb breadcrumb not continuous with previous breadcrumb",
-			"address", address,
-			"accountNonce", accountNonce,
-			"current breadcrumb nonce", breadcrumb.initialNonce,
-			"previous breadcrumb nonce", previousBreadcrumb.initialNonce)
-		return false
-	}
-
-	provider.accountPreviousBreadcrumb[address] = breadcrumb
-	return true
 }
 
 func (provider *virtualSessionProvider) handleAccountBreadcrumb(
