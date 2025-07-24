@@ -251,23 +251,6 @@ func createProposedBlock(selectedTransactions []*txcache.WrappedTransaction) *bl
 	}}
 }
 
-func createDefaultSelectionSessionMock(initialAmountPerAccount int64) *txcachemocks.SelectionSessionMock {
-	sessionMock := txcachemocks.SelectionSessionMock{
-		GetAccountStateCalled: func(address []byte) (state.UserAccountHandler, error) {
-			return &stateMock.StateUserAccountHandlerStub{
-				GetBalanceCalled: func() *big.Int {
-					return big.NewInt(initialAmountPerAccount)
-				},
-				GetNonceCalled: func() uint64 {
-					return 0
-				},
-			}, nil
-		},
-	}
-
-	return &sessionMock
-}
-
 func createDefaultSelectionSessionMockWithInitialAmount(initialAmountPerAccount *big.Int) *txcachemocks.SelectionSessionMock {
 	sessionMock := txcachemocks.SelectionSessionMock{
 		GetAccountStateCalled: func(address []byte) (state.UserAccountHandler, error) {
@@ -345,10 +328,14 @@ func testOnProposed(t *testing.T, sw *core.StopWatch, numTxs int, numAddresses i
 	require.Nil(t, err)
 	require.NotNil(t, txpool)
 
-	// assuming the scenario when we always have the same sender, assure we have enough balance for fees and transfers
-	initialAmount := int64(numTxs*50_000*1_000_000_000 + numTxs*transferredValue)
+	initialAmount := big.NewInt(0)
+	numTxsAsBigInt := big.NewInt(int64(numTxs))
 
-	selectionSession := createDefaultSelectionSessionMock(initialAmount)
+	// assuming the scenario when we always have the same sender, assure we have enough balance for fees and transfers
+	_ = initialAmount.Mul(numTxsAsBigInt, core.SafeMul(uint64(gasLimit), uint64(gasPrice)))
+	_ = initialAmount.Add(initialAmount, core.SafeMul(uint64(numTxs), uint64(transferredValue)))
+
+	selectionSession := createDefaultSelectionSessionMockWithInitialAmount(initialAmount)
 	options := holders.NewTxSelectionOptions(
 		10_000_000_000,
 		numTxs,
@@ -394,8 +381,8 @@ func testFirstSelection(t *testing.T, sw *core.StopWatch, numTxs int, numTxsToBe
 	initialAmount := big.NewInt(0)
 	numTxsAsBigInt := big.NewInt(int64(numTxs))
 
-	_ = initialAmount.Mul(numTxsAsBigInt, big.NewInt(int64(gasLimit*gasPrice)))
-	_ = initialAmount.Add(initialAmount, big.NewInt(int64(numTxs*1)))
+	_ = initialAmount.Mul(numTxsAsBigInt, core.SafeMul(uint64(gasLimit), uint64(gasPrice)))
+	_ = initialAmount.Add(initialAmount, big.NewInt(int64(numTxs)))
 
 	selectionSession := createDefaultSelectionSessionMockWithInitialAmount(initialAmount)
 	options := holders.NewTxSelectionOptions(
@@ -433,8 +420,8 @@ func testSecondSelection(t *testing.T, sw *core.StopWatch, numTxs int, numTxsToB
 	initialAmount := big.NewInt(0)
 	numTxsAsBigInt := big.NewInt(int64(numTxs))
 
-	_ = initialAmount.Mul(numTxsAsBigInt, big.NewInt(int64(gasLimit*gasPrice)))
-	_ = initialAmount.Add(initialAmount, big.NewInt(int64(numTxs*transferredValue)))
+	_ = initialAmount.Mul(numTxsAsBigInt, core.SafeMul(uint64(gasLimit), uint64(gasPrice)))
+	_ = initialAmount.Add(initialAmount, core.SafeMul(uint64(numTxs), uint64(transferredValue)))
 
 	selectionSession := createDefaultSelectionSessionMockWithInitialAmount(initialAmount)
 	options := holders.NewTxSelectionOptions(
@@ -495,8 +482,8 @@ func testSecondSelectionWithManyTxsInPool(t *testing.T, sw *core.StopWatch, numT
 	initialAmount := big.NewInt(0)
 	numTxsAsBigInt := big.NewInt(int64(numTxs))
 
-	_ = initialAmount.Mul(numTxsAsBigInt, big.NewInt(int64(gasLimit*gasPrice)))
-	_ = initialAmount.Add(initialAmount, big.NewInt(int64(numTxs*transferredValue)))
+	_ = initialAmount.Mul(numTxsAsBigInt, core.SafeMul(uint64(gasLimit), uint64(gasPrice)))
+	_ = initialAmount.Add(initialAmount, core.SafeMul(uint64(numTxs), uint64(transferredValue)))
 
 	selectionSession := createDefaultSelectionSessionMockWithInitialAmount(initialAmount)
 	options := holders.NewTxSelectionOptions(
