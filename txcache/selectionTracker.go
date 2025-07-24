@@ -110,16 +110,6 @@ func (st *selectionTracker) validateTrackedBlocks(chainOfTrackedBlocks []*tracke
 
 	for _, tb := range chainOfTrackedBlocks {
 		for address, breadcrumb := range tb.breadcrumbsByAddress {
-			rootHash, err := session.GetRootHash()
-			if err != nil {
-				log.Debug("selectionTracker.validateTrackedBlocks",
-					"err", err)
-				return err
-			}
-
-			log.Debug("selectionTracker.validateTrackedBlocks",
-				"rootHash", rootHash)
-
 			// TODO make sure that the accounts which don't yet exist are properly handled
 			accountState, err := session.GetAccountState([]byte(address))
 			if err != nil {
@@ -135,6 +125,10 @@ func (st *selectionTracker) validateTrackedBlocks(chainOfTrackedBlocks []*tracke
 			initialBalance := accountState.GetBalance()
 			err = validator.validateBalance(address, breadcrumb, initialBalance)
 			if err != nil {
+				log.Debug("selectionTracker.validateTrackedBlocks validation failed",
+					"err", err,
+					"address", address,
+					"rootHash", accountState.GetRootHash())
 				return err
 			}
 		}
