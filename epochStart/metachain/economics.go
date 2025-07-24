@@ -26,6 +26,7 @@ var _ process.EndOfEpochEconomics = (*economics)(nil)
 
 const numberOfDaysInYear = 365.0
 const numberOfSecondsInDay = 86400
+const numberOfMilliSecondsInDay = numberOfSecondsInDay * 1000
 
 type economics struct {
 	marshalizer           marshal.Marshalizer
@@ -461,6 +462,16 @@ func (e *economics) computeInflationForEpoch(
 	maxBlocksInADay := core.MaxUint64(1, roundsPerDay*uint64(e.shardCoordinator.NumberOfShards()+1))
 
 	inflationRateForEpoch := inflationRatePerDay * (float64(maxBlocksInEpoch) / float64(maxBlocksInADay))
+
+	log.Debug("computeInflationForEpoch",
+		"epoch", epoch,
+		"inflationRateForEpoch", inflationRateForEpoch,
+		"inflationRatePerDay", inflationRatePerDay,
+		"inflationRate", inflationRate,
+		"roundsPerDay", roundsPerDay,
+		"maxBlocksInEpoch", maxBlocksInEpoch,
+		"maxBlocksInADay", maxBlocksInADay,
+	)
 
 	return inflationRateForEpoch
 }
