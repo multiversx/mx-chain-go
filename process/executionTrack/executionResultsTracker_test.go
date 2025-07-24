@@ -172,7 +172,7 @@ func TestAddExecutionResultAndCleanDifferentResultsFromHeader(t *testing.T) {
 	require.Equal(t, uint64(11), res.LastMatchingResultNonce)
 	require.Equal(t, []byte("hash1"), tracker.lastExecutedResultHash)
 
-	// check that everything before the missmatch was kept inside tracker
+	// check that everything before the mismatch was kept inside tracker
 	results, err := tracker.GetPendingExecutionResults()
 	require.Nil(t, err)
 	require.Equal(t, 1, len(results))

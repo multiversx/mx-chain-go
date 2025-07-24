@@ -67,7 +67,7 @@ func (est *executionResultsTracker) getLastExecutedResult() (*block.ExecutionRes
 
 	lastExecutedResults, found := est.executionResultsByHash[string(est.lastExecutedResultHash)]
 	if !found {
-		return nil, fmt.Errorf("last executed result not found hash=(%s)", hex.EncodeToString([]byte(est.lastExecutedResultHash)))
+		return nil, fmt.Errorf("last executed result not found hash=(%s)", hex.EncodeToString(est.lastExecutedResultHash))
 	}
 
 	return lastExecutedResults, nil
@@ -180,7 +180,7 @@ func (est *executionResultsTracker) cleanConfirmedExecutionResults(headerExecuti
 		if !areEqual {
 			est.lastExecutedResultHash = lastMatchingHash
 
-			// different execution result should clean everything starting fron this execution result and return CleanResultMismatch
+			// different execution result should clean everything starting from this execution result and return CleanResultMismatch
 			est.cleanExecutionResults(pendingExecutionResult[idx:])
 
 			return &CleanInfo{
