@@ -22,7 +22,7 @@ Another feature that must be satisfied is the option to decrease the limits when
 type GasComputation interface {
     CheckIncomingMiniBlocks(
         miniBlocks   []data.MiniBlockHeaderHandler,
-        transactions []data.TransactionHandler,
+        transactions map[string][]data.TransactionHandler,
     ) (uint32, uint32)
     CheckOutgoingTransactions(transactions []data.TransactionHandler) uint32
     TotalGasConsumed() uint64
@@ -38,13 +38,14 @@ type GasComputation interface {
 
 ### 3. Proposed implementation details
 
-- `CheckIncomingMiniBlocks(miniBlocks []data.MiniBlockHeaderHandler, transactions []data.TransactionHandler) error`
-  - receives a list of incoming mini blocks and the transactions included in them
+- `CheckIncomingMiniBlocks(miniBlocks []data.MiniBlockHeaderHandler, transactions map[string][]data.TransactionHandler) error`
+  - receives a list of incoming mini blocks and the transactions included, grouped by mini block hash
   - iterates through the provided transactions and:
     - checks tx limit
     - computes the total gas in the mini block
     - checks the mini block limit
     - checks if the mini block can be included without reaching the block limit
+    - checks if the total number of provided transactions matches the total number of transactions mentioned in the mini block
   - if `MaxGasLimitPerMiniBlock` is reached, it stores the remaining mini blocks as pending
   - if outgoing transactions are already handled and there is still some space left, it will continue to add the pending mini blocks
   - returns the number of mini blocks included and the number of remaining pending
