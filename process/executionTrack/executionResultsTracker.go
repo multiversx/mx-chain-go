@@ -43,13 +43,13 @@ func (est *executionResultsTracker) AddExecutionResult(executionResult *block.Ex
 		return fmt.Errorf("execution results nonce(%d) is lower than last notarized nonce(%d)", executionResult.Nonce, est.lastNotarizedResult.Nonce)
 	}
 
-	lastExecutedResults, err := est.getLastExecutedResult()
+	lastExecutedResult, err := est.getLastExecutedResult()
 	if err != nil {
 		return err
 	}
 
-	if lastExecutedResults.Nonce != executionResult.Nonce-1 {
-		return fmt.Errorf("execution results nonce(%d) is lower than last executed nonce(%d)", executionResult.Nonce, lastExecutedResults.Nonce)
+	if lastExecutedResult.Nonce != executionResult.Nonce-1 {
+		return fmt.Errorf("execution results nonce(%d) should be equal to the subsequent nonce after last executed(%d)", executionResult.Nonce, lastExecutedResult.Nonce)
 	}
 
 	est.executionResultsByHash[string(executionResult.HeaderHash)] = executionResult
@@ -110,8 +110,8 @@ func (est *executionResultsTracker) getPendingExecutionResults() ([]*block.Execu
 	return executionResults, nil
 }
 
-// GetExecutionResultByHash will return the execution results by hash
-func (est *executionResultsTracker) GetExecutionResultByHash(hash []byte) (*block.ExecutionResult, error) {
+// GetPendingExecutionResultByHash will return the execution results by hash
+func (est *executionResultsTracker) GetPendingExecutionResultByHash(hash []byte) (*block.ExecutionResult, error) {
 	est.mutex.RLock()
 	defer est.mutex.RUnlock()
 
@@ -123,15 +123,15 @@ func (est *executionResultsTracker) GetExecutionResultByHash(hash []byte) (*bloc
 	return result, nil
 }
 
-// GetExecutionResultsByNonce will return the execution results by nonce
-func (est *executionResultsTracker) GetExecutionResultsByNonce(nonce uint64) (*block.ExecutionResult, error) {
+// GetPendingExecutionResultByNonce will return the execution results by nonce
+func (est *executionResultsTracker) GetPendingExecutionResultByNonce(nonce uint64) (*block.ExecutionResult, error) {
 	est.mutex.RLock()
 	defer est.mutex.RUnlock()
 
-	return est.getExecutionResultsByNonce(nonce)
+	return est.getPendingExecutionResultsByNonce(nonce)
 }
 
-func (est *executionResultsTracker) getExecutionResultsByNonce(nonce uint64) (*block.ExecutionResult, error) {
+func (est *executionResultsTracker) getPendingExecutionResultsByNonce(nonce uint64) (*block.ExecutionResult, error) {
 	hash := est.nonceHash.getHashByNonce(nonce)
 	result, found := est.executionResultsByHash[hash]
 	if !found {
@@ -189,11 +189,11 @@ func (est *executionResultsTracker) cleanConfirmedExecutionResults(headerExecuti
 			}, nil
 		}
 
-		est.cleanExecutionResults([]*block.ExecutionResult{executionResultFromHeader})
 		lastMatchingResultNonce = executionResultFromHeader.Nonce
 		lastMatchingHash = executionResultFromHeader.HeaderHash
 	}
 
+	est.cleanExecutionResults(headerExecutionResults)
 	est.lastNotarizedResult = headerExecutionResults[len(headerExecutionResults)-1]
 
 	return &CleanInfo{

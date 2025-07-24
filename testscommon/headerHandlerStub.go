@@ -16,7 +16,11 @@ type HeaderHandlerWithExecutionResultsStub struct {
 
 // GetExecutionResults -
 func (hh *HeaderHandlerWithExecutionResultsStub) GetExecutionResults() []*block.ExecutionResult {
-	return hh.GetExecutionResultsCalled()
+	if hh.GetExecutionResultsCalled != nil {
+		return hh.GetExecutionResultsCalled()
+	}
+
+	return nil
 }
 
 // HeaderHandlerStub -
