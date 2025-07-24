@@ -26,7 +26,9 @@ var log = logger.GetOrCreate("consensus/chronology")
 // srBeforeStartRound defines the state which exist before the start of the round
 const srBeforeStartRound = -1
 
+// TODO: add variables to config
 const numRoundsToWaitBeforeSignalingChronologyStuck = 10
+const numRoundsToWaitBeforeSignalingChronologyStuckSupernova = 100
 const chronologyAlarmID = "chronology"
 
 // ArgChronology holds all dependencies required by the chronology component
@@ -132,6 +134,10 @@ func (chr *chronology) RemoveAllSubrounds() {
 // StartRounds actually starts the chronology and calls the DoWork() method of the subroundHandlers loaded
 func (chr *chronology) StartRounds() {
 	watchdogAlarmDuration := chr.roundHandler.TimeDuration() * numRoundsToWaitBeforeSignalingChronologyStuck
+	if chr.enableEpochsHandler.IsFlagEnabled(common.SupernovaFlag) {
+		watchdogAlarmDuration = chr.roundHandler.TimeDuration() * numRoundsToWaitBeforeSignalingChronologyStuckSupernova
+	}
+
 	chr.watchdog.SetDefault(watchdogAlarmDuration, chronologyAlarmID)
 
 	var ctx context.Context
