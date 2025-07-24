@@ -228,7 +228,7 @@ func (s *miniBlocksSelectionSession) AddMiniBlocksAndHashes(miniBlocksAndHashes 
 	s.miniBlockHeaderHandlers = append(s.miniBlockHeaderHandlers, miniBlockHeaderHandlers...)
 	s.miniBlockHashes = append(s.miniBlockHashes, miniBlockHashes...)
 	s.numTxsAdded += uint32(numTxsAdded)
-	// todo: take care of the gas management
+	// TODO: take care of the gas management
 
 	return nil
 }
@@ -238,6 +238,8 @@ func (s *miniBlocksSelectionSession) CreateAndAddMiniBlockFromTransactions(txHas
 	if len(txHashes) == 0 {
 		return nil
 	}
+
+	// TODO: add estimated gas management
 
 	// no need to create multiple miniblocks from the shard to itself or to other shards before processing
 	// the transactions, so create a single miniBlock
@@ -253,8 +255,6 @@ func (s *miniBlocksSelectionSession) CreateAndAddMiniBlockFromTransactions(txHas
 	if err != nil {
 		return err
 	}
-
-	// todo: add estimated gas management
 
 	return s.AddMiniBlocksAndHashes([]block.MiniblockAndHash{{
 		Miniblock: outgoingMiniBlock,

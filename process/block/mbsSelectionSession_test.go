@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-core-go/marshal/factory"
 	"github.com/stretchr/testify/require"
 
 	"github.com/multiversx/mx-chain-go/process"
@@ -12,22 +13,30 @@ import (
 )
 
 func TestNewMiniBlocksSelectionSession(t *testing.T) {
+	t.Parallel()
+
 	marshaller := &testscommon.MarshallerStub{}
 	hasher := &testscommon.HasherStub{}
 
 	t.Run("nil marshaller should return error", func(t *testing.T) {
+		t.Parallel()
+
 		session, err := newMiniBlocksSelectionSession(1, nil, hasher)
 		require.Nil(t, session)
 		require.Equal(t, process.ErrNilMarshalizer, err)
 	})
 
 	t.Run("nil hasher should return error", func(t *testing.T) {
+		t.Parallel()
+
 		session, err := newMiniBlocksSelectionSession(1, marshaller, nil)
 		require.Nil(t, session)
 		require.Equal(t, process.ErrNilHasher, err)
 	})
 
 	t.Run("should create session successfully", func(t *testing.T) {
+		t.Parallel()
+
 		session, err := newMiniBlocksSelectionSession(1, marshaller, hasher)
 		require.NotNil(t, session)
 		require.NoError(t, err)
@@ -35,6 +44,8 @@ func TestNewMiniBlocksSelectionSession(t *testing.T) {
 }
 
 func TestMiniBlockSelectionSession_ResetSelectionSession(t *testing.T) {
+	t.Parallel()
+
 	session := createDummyFilledSession()
 	session.ResetSelectionSession()
 
@@ -49,6 +60,8 @@ func TestMiniBlockSelectionSession_ResetSelectionSession(t *testing.T) {
 }
 
 func TestMiniBlockSelectionSession_Getters(t *testing.T) {
+	t.Parallel()
+
 	session := createDummyFilledSession()
 
 	require.Len(t, session.GetMiniBlockHeaderHandlers(), 1)
@@ -62,9 +75,13 @@ func TestMiniBlockSelectionSession_Getters(t *testing.T) {
 }
 
 func TestMiniBlockSelectionSession_AddMiniBlocksAndHashes(t *testing.T) {
+	t.Parallel()
+
 	marshaller := &testscommon.MarshallerStub{}
 	hasher := &testscommon.HasherStub{}
 	t.Run("should not add empty mini blocks and hashes", func(t *testing.T) {
+		t.Parallel()
+
 		session, _ := newMiniBlocksSelectionSession(1, marshaller, hasher)
 		err := session.AddMiniBlocksAndHashes(nil)
 
@@ -73,6 +90,8 @@ func TestMiniBlockSelectionSession_AddMiniBlocksAndHashes(t *testing.T) {
 		require.Empty(t, session.GetMiniBlockHashes())
 	})
 	t.Run("should add mini blocks and hashes successfully", func(t *testing.T) {
+		t.Parallel()
+
 		session, _ := newMiniBlocksSelectionSession(1, marshaller, hasher)
 		miniBlock := &block.MiniBlock{}
 		miniBlockHash := []byte("hash")
@@ -89,21 +108,49 @@ func TestMiniBlockSelectionSession_AddMiniBlocksAndHashes(t *testing.T) {
 }
 
 func Test_setProcessingTypeAndConstructionStateForProposalMb(t *testing.T) {
+	t.Parallel()
+
 	t.Run("error on setProcessingType should error", func(t *testing.T) {
+		t.Parallel()
+
 		mbHeaderHandler := &block.MiniBlockHeader{
 			Reserved: []byte("invalid should error"),
 		}
 		err := setProcessingTypeAndConstructionStateForProposalMb(mbHeaderHandler)
 		require.Error(t, err)
 	})
+	t.Run("should set processing type and construction state successfully", func(t *testing.T) {
+		t.Parallel()
+
+		marshaller, err := factory.NewMarshalizer("gogo protobuf")
+		require.Nil(t, err)
+
+		mbReserved := &block.MiniBlockHeaderReserved{}
+		marshalledReserved, err := marshaller.Marshal(mbReserved)
+		require.Nil(t, err)
+
+		mbHeaderHandler := &block.MiniBlockHeader{
+			Reserved: marshalledReserved,
+		}
+
+		err = setProcessingTypeAndConstructionStateForProposalMb(mbHeaderHandler)
+		require.Nil(t, err)
+		require.Equal(t, block.TxBlock, mbHeaderHandler.GetType())
+		require.Equal(t, int32(block.Proposed), mbHeaderHandler.GetConstructionState())
+		require.Equal(t, int32(block.Normal), mbHeaderHandler.GetProcessingType())
+	})
 }
 
 func TestMiniBlockSelectionSession_CreateAndAddMiniBlockFromTransactions(t *testing.T) {
+	t.Parallel()
+
 	tx1Hash := []byte("tx1")
 	tx2Hash := []byte("tx2")
 	marshaller := &testscommon.MarshallerStub{}
 	hasher := &testscommon.HasherStub{}
 	t.Run("should create and add mini block from transactions successfully", func(t *testing.T) {
+		t.Parallel()
+
 		session, _ := newMiniBlocksSelectionSession(1, marshaller, hasher)
 		txHashes := [][]byte{tx1Hash, tx2Hash}
 		err := session.CreateAndAddMiniBlockFromTransactions(txHashes)
@@ -114,6 +161,8 @@ func TestMiniBlockSelectionSession_CreateAndAddMiniBlockFromTransactions(t *test
 	})
 
 	t.Run("should not add mini block for empty transactions", func(t *testing.T) {
+		t.Parallel()
+
 		session, _ := newMiniBlocksSelectionSession(1, marshaller, hasher)
 		err := session.CreateAndAddMiniBlockFromTransactions(nil)
 
@@ -122,6 +171,8 @@ func TestMiniBlockSelectionSession_CreateAndAddMiniBlockFromTransactions(t *test
 		require.Empty(t, session.GetMiniBlockHashes())
 	})
 	t.Run("should not add mini block for empty transactions slice", func(t *testing.T) {
+		t.Parallel()
+
 		session, _ := newMiniBlocksSelectionSession(1, marshaller, hasher)
 		err := session.CreateAndAddMiniBlockFromTransactions([][]byte{})
 
@@ -131,6 +182,8 @@ func TestMiniBlockSelectionSession_CreateAndAddMiniBlockFromTransactions(t *test
 	})
 
 	t.Run("marshalling error should return error", func(t *testing.T) {
+		t.Parallel()
+
 		expectedError := fmt.Errorf("marshalling error")
 		marshaller := &testscommon.MarshallerStub{
 			MarshalCalled: func(_ interface{}) ([]byte, error) {
@@ -147,9 +200,13 @@ func TestMiniBlockSelectionSession_CreateAndAddMiniBlockFromTransactions(t *test
 }
 
 func TestMiniBlocksSelectionSession_AddReferencedMetaBlock(t *testing.T) {
+	t.Parallel()
+
 	marshaller := &testscommon.MarshallerStub{}
 	hasher := &testscommon.HasherStub{}
 	t.Run("should add referenced meta block successfully", func(t *testing.T) {
+		t.Parallel()
+
 		session, _ := newMiniBlocksSelectionSession(1, marshaller, hasher)
 		metaBlock := &block.MetaBlock{Epoch: 1, Round: 1}
 		metaBlockHash := []byte("metaHash")
@@ -161,6 +218,8 @@ func TestMiniBlocksSelectionSession_AddReferencedMetaBlock(t *testing.T) {
 		require.Equal(t, metaBlockHash, session.GetReferencedMetaBlockHashes()[0])
 	})
 	t.Run("should not add nil meta block", func(t *testing.T) {
+		t.Parallel()
+
 		session, _ := newMiniBlocksSelectionSession(1, marshaller, hasher)
 		session.AddReferencedMetaBlock(nil, []byte("metaHash"))
 
@@ -168,6 +227,8 @@ func TestMiniBlocksSelectionSession_AddReferencedMetaBlock(t *testing.T) {
 		require.Empty(t, session.GetReferencedMetaBlockHashes())
 	})
 	t.Run("should not add empty meta block hash", func(t *testing.T) {
+		t.Parallel()
+
 		session, _ := newMiniBlocksSelectionSession(1, marshaller, hasher)
 		metaBlock := &block.MetaBlock{Epoch: 1, Round: 1}
 		session.AddReferencedMetaBlock(metaBlock, nil)
@@ -178,12 +239,18 @@ func TestMiniBlocksSelectionSession_AddReferencedMetaBlock(t *testing.T) {
 }
 
 func TestMiniBlocksSelectionSession_IsInterfaceNil(t *testing.T) {
+	t.Parallel()
+
 	t.Run("should return true if session is nil", func(t *testing.T) {
+		t.Parallel()
+
 		var session *miniBlocksSelectionSession
 		require.True(t, session.IsInterfaceNil())
 	})
 
 	t.Run("should return false if session is not nil", func(t *testing.T) {
+		t.Parallel()
+
 		session := createDummyFilledSession()
 		require.False(t, session.IsInterfaceNil())
 	})
