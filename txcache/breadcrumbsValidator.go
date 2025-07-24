@@ -34,10 +34,10 @@ func (validator *breadcrumbsValidator) continuousBreadcrumb(
 	accountState state.UserAccountHandler,
 ) bool {
 
-	if breadcrumb.hasUnkownNonce() {
-		// this might occur when an account is only relayer in that specific tracked block
-		// for the relayer we dont have any nonce info
-		// this means that its breadcrumb is continuous
+	if breadcrumb.hasUnknownNonce() {
+		// this might occur when an account only acts as a relayer (never sender) in a specific tracked block.
+		// in that case, we don't have any nonce info for the relayer.
+		// as a result, its breadcrumb is treated as continuous.
 		log.Debug("breadcrumbsValidator.continuousBreadcrumb breadcrumb has unknown nonce")
 		return true
 	}

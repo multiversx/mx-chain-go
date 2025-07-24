@@ -25,7 +25,7 @@ func Test_isRelayer(t *testing.T) {
 			consumedBalance: nil,
 		}
 
-		actualRes := breadcrumb.hasUnkownNonce()
+		actualRes := breadcrumb.hasUnknownNonce()
 		require.True(t, actualRes)
 	})
 
@@ -44,7 +44,7 @@ func Test_isRelayer(t *testing.T) {
 			consumedBalance: nil,
 		}
 
-		actualRes := breadcrumb.hasUnkownNonce()
+		actualRes := breadcrumb.hasUnknownNonce()
 		require.False(t, actualRes)
 	})
 }
@@ -52,7 +52,7 @@ func Test_isRelayer(t *testing.T) {
 func Test_updateLastNonce(t *testing.T) {
 	t.Parallel()
 
-	t.Run("should receivedLastNonceNotSet the received lastNonce does not have value", func(t *testing.T) {
+	t.Run("should return receivedLastNonceNotSet the received lastNonce does not have value", func(t *testing.T) {
 		t.Parallel()
 
 		breadcrumb := accountBreadcrumb{

@@ -58,6 +58,6 @@ func (breadcrumb *accountBreadcrumb) verifyContinuityWithSessionNonce(sessionNon
 	return breadcrumb.initialNonce.Value == sessionNonce
 }
 
-func (breadcrumb *accountBreadcrumb) hasUnkownNonce() bool {
+func (breadcrumb *accountBreadcrumb) hasUnknownNonce() bool {
 	return !breadcrumb.initialNonce.HasValue && !breadcrumb.lastNonce.HasValue
 }
