@@ -322,8 +322,6 @@ func createRandomTxs(txpool *txcache.TxCache, numTxs int, nonceTracker *noncesTr
 }
 
 func testOnProposed(t *testing.T, sw *core.StopWatch, numTxs int, numAddresses int) {
-	shouldCreatePprofFiles := initEnvVariables()
-
 	// create some fake address for each account
 	accounts := createFakeAddresses(numAddresses)
 
@@ -359,15 +357,8 @@ func testOnProposed(t *testing.T, sw *core.StopWatch, numTxs int, numAddresses i
 
 	proposedBlock1 := createProposedBlock(selectedTransactions)
 
-	if shouldCreatePprofFiles {
-		// start profiling
-		testName := strings.ReplaceAll(t.Name(), "/", "_")
-		fileName := fmt.Sprintf("%s.pprof", testName)
-		f, err := os.Create(fileName)
-		require.Nil(t, err)
-		err = pprof.StartCPUProfile(f)
-		require.Nil(t, err)
-
+	f := createPprofFiles(t)
+	if f != nil {
 		defer func() {
 			// stop profiling
 			pprof.StopCPUProfile()
@@ -391,8 +382,6 @@ func testOnProposed(t *testing.T, sw *core.StopWatch, numTxs int, numAddresses i
 }
 
 func testFirstSelection(t *testing.T, sw *core.StopWatch, numTxs int, numTxsToBeSelected, numAddresses int) {
-	shouldCreatePprofFiles := initEnvVariables()
-
 	// create some fake address for each account
 	accounts := createFakeAddresses(numAddresses)
 
@@ -424,15 +413,8 @@ func testFirstSelection(t *testing.T, sw *core.StopWatch, numTxs int, numTxsToBe
 
 	blockchainInfo := holders.NewBlockchainInfo([]byte("blockHash0"), 1)
 
-	if shouldCreatePprofFiles {
-		// start profiling
-		testName := strings.ReplaceAll(t.Name(), "/", "_")
-		fileName := fmt.Sprintf("%s.pprof", testName)
-		f, err := os.Create(fileName)
-		require.Nil(t, err)
-		err = pprof.StartCPUProfile(f)
-		require.Nil(t, err)
-
+	f := createPprofFiles(t)
+	if f != nil {
 		defer func() {
 			// stop profiling
 			pprof.StopCPUProfile()
@@ -448,8 +430,6 @@ func testFirstSelection(t *testing.T, sw *core.StopWatch, numTxs int, numTxsToBe
 }
 
 func testSecondSelection(t *testing.T, sw *core.StopWatch, numTxs int, numTxsToBeSelected int, numAddresses int) {
-	shouldCreatePprofFiles := initEnvVariables()
-
 	// create some fake address for each account
 	accounts := createFakeAddresses(numAddresses)
 
@@ -514,22 +494,14 @@ func testSecondSelection(t *testing.T, sw *core.StopWatch, numTxs int, numTxsToB
 	)
 	require.Nil(t, err)
 
-	if shouldCreatePprofFiles {
-		// start profiling
-		testName := strings.ReplaceAll(t.Name(), "/", "_")
-		fileName := fmt.Sprintf("%s.pprof", testName)
-		f, err := os.Create(fileName)
-		require.Nil(t, err)
-		err = pprof.StartCPUProfile(f)
-		require.Nil(t, err)
-
+	f := createPprofFiles(t)
+	if f != nil {
 		defer func() {
 			// stop profiling
 			pprof.StopCPUProfile()
 			err = f.Close()
 			require.NoError(t, err)
 		}()
-
 	}
 
 	selectedTransactions, _ = txpool.SelectTransactions(selectionSession, options, blockchainInfo)
@@ -537,8 +509,6 @@ func testSecondSelection(t *testing.T, sw *core.StopWatch, numTxs int, numTxsToB
 }
 
 func testSecondSelectionWithManyTxsInPool(t *testing.T, sw *core.StopWatch, numTxs int, numTxsToBeSelected int, numAddresses int) {
-	shouldCreatePprofFiles := initEnvVariables()
-
 	accounts := createFakeAddresses(numAddresses)
 
 	host := txcachemocks.NewMempoolHostMock()
@@ -583,15 +553,8 @@ func testSecondSelectionWithManyTxsInPool(t *testing.T, sw *core.StopWatch, numT
 	)
 	require.Nil(t, err)
 
-	if shouldCreatePprofFiles {
-		// start profiling
-		testName := strings.ReplaceAll(t.Name(), "/", "_")
-		fileName := fmt.Sprintf("%s.pprof", testName)
-		f, err := os.Create(fileName)
-		require.Nil(t, err)
-		err = pprof.StartCPUProfile(f)
-		require.Nil(t, err)
-
+	f := createPprofFiles(t)
+	if f != nil {
 		defer func() {
 			// stop profiling
 			pprof.StopCPUProfile()
@@ -613,4 +576,22 @@ func initEnvVariables() bool {
 	shouldCreatePprofFiles := envPprof == "1"
 
 	return shouldCreatePprofFiles
+}
+
+func createPprofFiles(t *testing.T) *os.File {
+	shouldCreatePprofFiles := initEnvVariables()
+	if !shouldCreatePprofFiles {
+		return nil
+	}
+
+	// start profiling
+	testName := strings.ReplaceAll(t.Name(), "/", "_")
+	fileName := fmt.Sprintf("%s.pprof", testName)
+	f, err := os.Create(fileName)
+	require.Nil(t, err)
+
+	err = pprof.StartCPUProfile(f)
+	require.Nil(t, err)
+
+	return f
 }
