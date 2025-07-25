@@ -1475,5 +1475,6 @@ type GasComputation interface {
 // ShardCoordinator defines what a shard state coordinator should hold
 type ShardCoordinator interface {
 	SelfId() uint32
+	ComputeId(address []byte) uint32
 	IsInterfaceNil() bool
 }
