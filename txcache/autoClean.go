@@ -9,7 +9,8 @@ import (
 	"github.com/multiversx/mx-chain-core-go/hashing/sha256"
 )
 
-// Cleanup simulates a selection and removes not-executable transactions. Initial implementation: lower and duplicate nonces
+// Cleanup simulates a selection and removes not-executable transactions. Initial implementation: lower and duplicate
+// TODO Maybe we can think of an alternative fast and simple sort & shuffle at the same time. Maybe we can do a single sorting (in a separate PR).
 func (cache *TxCache) Cleanup(session SelectionSession, randomness uint64, maxNum int, cleanupLoopMaximumDurationMs time.Duration) uint64 {
 	logRemove.Debug(
 		"TxCache.Cleanup: begin",

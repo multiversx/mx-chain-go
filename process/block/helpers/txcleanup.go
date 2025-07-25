@@ -8,6 +8,7 @@ import (
 )
 
 // ComputeRandomnessForCleanup returns the randomness for bad transactions removal
+// TODO Maybe find a simpler solution for randomness calculation
 func ComputeRandomnessForCleanup(body *block.Body) uint64 {
 	randomness := uint64(0)
 

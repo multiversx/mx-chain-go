@@ -246,6 +246,8 @@ func (txs *transactions) RemoveBlockDataFromPools(body *block.Body, miniBlockPoo
 }
 
 // RemoveTxsFromPools removes transactions from associated pools
+// TODO CleanupSelfShardTxCache - Check whether is all right to pass the selection session from here. Maybe find an alternative?
+// TODO CleanupSelfShardTxCache - Maybe find a solution to use block nonce instead of randomness
 func (txs *transactions) RemoveTxsFromPools(body *block.Body) error {
 	session, err := NewSelectionSession(ArgsSelectionSession{
 		AccountsAdapter:       txs.accounts,
