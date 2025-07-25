@@ -1,6 +1,6 @@
 package executionTrack
 
-// nonceHashes this structure is not thread-safe
+// nonceHash this structure is not thread-safe
 type nonceHash struct {
 	nonceHashMap map[uint64]string
 }
