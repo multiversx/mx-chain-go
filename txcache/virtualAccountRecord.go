@@ -18,6 +18,7 @@ func newVirtualAccountRecord(initialNonce core.OptionalUint64, initialBalance *b
 	}
 }
 
+// updateVirtualRecord - updates the virtualBalance of a virtualAccountRecord and handles the nonces
 func (virtualRecord *virtualAccountRecord) updateVirtualRecord(breadcrumb *accountBreadcrumb) {
 	virtualRecord.virtualBalance.accumulateConsumedBalance(breadcrumb)
 

@@ -16,6 +16,19 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+var defaultSelectionSessionMock = txcachemocks.SelectionSessionMock{
+	GetAccountStateCalled: func(address []byte) (state.UserAccountHandler, error) {
+		return &testscommonState.StateUserAccountHandlerStub{
+			GetBalanceCalled: func() *big.Int {
+				return big.NewInt(20)
+			},
+			GetNonceCalled: func() uint64 {
+				return uint64(1)
+			},
+		}, nil
+	},
+}
+
 func createMockedHeaders(numOfHeaders int) []*block.Header {
 	headers := make([]*block.Header, numOfHeaders)
 

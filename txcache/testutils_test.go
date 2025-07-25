@@ -10,8 +10,6 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-go/common/holders"
-	"github.com/multiversx/mx-chain-go/state"
-	testscommonState "github.com/multiversx/mx-chain-go/testscommon/state"
 	"github.com/multiversx/mx-chain-go/testscommon/txcachemocks"
 )
 
@@ -38,19 +36,6 @@ type randomData struct {
 	itemSize    int
 }
 
-var defaultSelectionSessionMock = txcachemocks.SelectionSessionMock{
-	GetAccountStateCalled: func(address []byte) (state.UserAccountHandler, error) {
-		return &testscommonState.StateUserAccountHandlerStub{
-			GetBalanceCalled: func() *big.Int {
-				return big.NewInt(20)
-			},
-			GetNonceCalled: func() uint64 {
-				return uint64(1)
-			},
-		}, nil
-	},
-}
-
 func newRandomData(numItems int, itemSize int) *randomData {
 	randomBytes := make([]byte, numItems*itemSize)
 
@@ -68,12 +53,6 @@ func newRandomData(numItems int, itemSize int) *randomData {
 
 func (data *randomData) getItem(index int) []byte {
 	start := index * data.itemSize
-	end := start + data.itemSize
-	return data.randomBytes[start:end]
-}
-
-func (data *randomData) getTailItem(index int) []byte {
-	start := (data.numItems - 1 - index) * data.itemSize
 	end := start + data.itemSize
 	return data.randomBytes[start:end]
 }

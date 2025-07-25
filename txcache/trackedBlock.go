@@ -112,7 +112,8 @@ func (tb *trackedBlock) getOrCreateBreadcrumb(address string) *accountBreadcrumb
 
 func (tb *trackedBlock) getOrCreateBreadcrumbWithNonce(
 	address string,
-	nonce core.OptionalUint64) *accountBreadcrumb {
+	nonce core.OptionalUint64,
+) *accountBreadcrumb {
 	breadCrumb, ok := tb.breadcrumbsByAddress[address]
 	if ok {
 		return breadCrumb

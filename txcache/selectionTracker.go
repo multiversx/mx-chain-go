@@ -123,6 +123,7 @@ func (st *selectionTracker) validateTrackedBlocks(chainOfTrackedBlocks []*tracke
 				return errDiscontinuousBreadcrumbs
 			}
 
+			// TODO re-brainstorm, validate with more integration tests
 			// use its balance to accumulate and validate (make sure is < than initialBalance from the session)
 			initialBalance := accountState.GetBalance()
 			err = validator.validateBalance(address, breadcrumb, initialBalance)

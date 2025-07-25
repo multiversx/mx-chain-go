@@ -114,7 +114,8 @@ func (validator *breadcrumbsValidator) shouldSkipSender(address string) bool {
 func (validator *breadcrumbsValidator) validateBalance(
 	address string,
 	breadcrumb *accountBreadcrumb,
-	initialBalance *big.Int) error {
+	initialBalance *big.Int,
+) error {
 	virtualBalance, ok := validator.virtualBalancesByAddress[address]
 	if !ok {
 		virtualBalance = newVirtualAccountBalance(initialBalance)
