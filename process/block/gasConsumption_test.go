@@ -256,6 +256,8 @@ func TestGasConsumption_CheckIncomingMiniBlocks(t *testing.T) {
 		require.NoError(t, err)
 		require.Equal(t, 2, pendingMbs)  // 2 pending mini blocks
 		require.Equal(t, 7, lastMbIndex) // last index saved 7
+
+		require.Equal(t, maxGasLimitPerTx*8*5, gc.TotalGasConsumed()) // 8 mbs of 5 txs each
 	})
 	t.Run("should work within limits and continue adding pending txs to fill the block", func(t *testing.T) {
 		t.Parallel()
@@ -284,7 +286,237 @@ func TestGasConsumption_CheckIncomingMiniBlocks(t *testing.T) {
 		require.Equal(t, 4, lastMbIndex) // last index saved 4
 
 		expectedFinalIndex := 54 // 40 added first, then 15 more
-		finalLastTxIndex := gc.GetLasTransactionIndexIncluded()
+		finalLastTxIndex := gc.GetLastTransactionIndexIncluded()
 		require.Equal(t, expectedFinalIndex, finalLastTxIndex)
+
+		require.Equal(t, maxGasLimitPerBlock*2, gc.TotalGasConsumed()) // *2 due to the 200% factor
 	})
+}
+
+func TestGasConsumption_CheckOutgoingTransactions(t *testing.T) {
+	t.Parallel()
+
+	t.Run("transactions selection done should error", func(t *testing.T) {
+		t.Parallel()
+
+		gc, _ := block.NewGasConsumption(getMockArgsGasConsumption())
+		require.NotNil(t, gc)
+
+		lastTxIndex, err := gc.CheckOutgoingTransactions(nil) // coverage only
+		require.NoError(t, err)
+		require.Equal(t, -1, lastTxIndex)
+
+		// first call with dummy data should set isTransactionSelectionDone
+		_, _ = gc.CheckOutgoingTransactions(generateTxs(maxGasLimitPerTx, 1))
+
+		// second call should early exit
+		lastTxIndex, err = gc.CheckOutgoingTransactions(generateTxs(maxGasLimitPerTx, 1))
+		require.Equal(t, process.ErrTransactionsAlreadyProcessed, err)
+		require.Equal(t, -1, lastTxIndex)
+	})
+	t.Run("ComputeGasProvidedByTx fails", func(t *testing.T) {
+		t.Parallel()
+
+		args := getMockArgsGasConsumption()
+		args.GasHandler = &mock.GasHandlerMock{
+			ComputeGasProvidedByTxCalled: func(txSenderShardId uint32, txReceiverSharedId uint32, txHandler data.TransactionHandler) (uint64, uint64, error) {
+				return 0, 0, expectedError
+			},
+		}
+		gc, _ := block.NewGasConsumption(args)
+		require.NotNil(t, gc)
+
+		lastTxIndex, err := gc.CheckOutgoingTransactions(generateTxs(maxGasLimitPerTx, 1))
+		require.Equal(t, expectedError, err)
+		require.Equal(t, -1, lastTxIndex)
+	})
+	t.Run("one tx exceeds the maximum gas limit per tx", func(t *testing.T) {
+		t.Parallel()
+
+		gc, _ := block.NewGasConsumption(getMockArgsGasConsumption())
+		require.NotNil(t, gc)
+
+		lastTxIndex, err := gc.CheckOutgoingTransactions(generateTxs(maxGasLimitPerTx+1, 1))
+		require.Equal(t, process.ErrMaxGasLimitPerTransactionIsReached, err)
+		require.Equal(t, -1, lastTxIndex)
+	})
+	t.Run("should work within limits, no pending mbs", func(t *testing.T) {
+		t.Parallel()
+
+		gc, _ := block.NewGasConsumption(getMockArgsGasConsumption())
+		require.NotNil(t, gc)
+
+		txs := generateTxs(maxGasLimitPerTx, 10)
+		lastTxIndex, err := gc.CheckOutgoingTransactions(txs)
+		require.NoError(t, err)
+		require.Equal(t, len(txs)-1, lastTxIndex)
+
+		require.Equal(t, 10*maxGasLimitPerTx, gc.TotalGasConsumed())
+	})
+	t.Run("should work and save pending txs, no pending mbs", func(t *testing.T) {
+		t.Parallel()
+
+		gc, _ := block.NewGasConsumption(getMockArgsGasConsumption())
+		require.NotNil(t, gc)
+
+		// maxGasLimitPerBlock = 400
+		// half of it * factor (200% by default) will be used for txs
+		// thus 400 is the total max limit for transactions (= 40 txs)
+		txs := generateTxs(maxGasLimitPerTx, 50)
+		lastTxIndex, err := gc.CheckOutgoingTransactions(txs)
+		require.NoError(t, err)
+		require.Equal(t, 39, lastTxIndex)
+
+		require.Equal(t, maxGasLimitPerBlock, gc.TotalGasConsumed()) // all space for txs
+	})
+	t.Run("should work within limits and continue adding pending mini blocks to fill the block", func(t *testing.T) {
+		t.Parallel()
+
+		gc, _ := block.NewGasConsumption(getMockArgsGasConsumption())
+		require.NotNil(t, gc)
+
+		// maxGasLimitPerBlock = 400
+		// half of it * factor (200% by default) will be used for mini blocks
+		// thus 400 is the total max limit for mini blocks
+		// 5 txs in each mb with a gas limit of 10 => gasLimitPerMb = 50
+		// adding 10 mbs will lead to adding 8 and saving 2 as pending
+		mbs := generateMiniBlocks(10, 5)
+		txsInMBs := generateTxsForMiniBlocks(mbs)
+		lastMbIndex, pendingMbs, err := gc.CheckIncomingMiniBlocks(mbs, txsInMBs)
+		require.NoError(t, err)
+		require.Equal(t, 2, pendingMbs)  // 2 pending mini blocks
+		require.Equal(t, 7, lastMbIndex) // last index saved 7
+
+		// maxGasLimitPerBlock = 400
+		// half of it * factor (200% by default) will be used for txs
+		// thus 400 is the total max limit for transactions (= 40 txs)
+		// adding 30 txs will lead to an empty space of 100 worth of gas (enough for 2 more blocks)
+		txs := generateTxs(maxGasLimitPerTx, 30)
+		lastTxIndex, err := gc.CheckOutgoingTransactions(txs)
+		require.NoError(t, err)
+		require.Equal(t, 29, lastTxIndex) // added all
+
+		expectedFinalMBIndex := 9
+		finalLastMBIndex := gc.GetLastMiniBlockIndexIncluded()
+		require.Equal(t, expectedFinalMBIndex, finalLastMBIndex)
+
+		require.Equal(t, maxGasLimitPerBlock*2, gc.TotalGasConsumed()) // *2 due to the 200% factor
+	})
+}
+
+func TestGasConsumption_Reset(t *testing.T) {
+	t.Parallel()
+
+	gc, _ := block.NewGasConsumption(getMockArgsGasConsumption())
+	require.NotNil(t, gc)
+
+	// maxGasLimitPerBlock = 400
+	// half of it * factor (200% by default) will be used for mini blocks
+	// thus 400 is the total max limit for mini blocks
+	// 5 txs in each mb with a gas limit of 10 => gasLimitPerMb = 50
+	// adding 10 mbs will lead to adding 8 and saving 2 as pending
+	mbs := generateMiniBlocks(10, 5)
+	txsInMBs := generateTxsForMiniBlocks(mbs)
+	lastMbIndex, pendingMbs, err := gc.CheckIncomingMiniBlocks(mbs, txsInMBs)
+	require.NoError(t, err)
+	require.Equal(t, 2, pendingMbs)  // 2 pending mini blocks
+	require.Equal(t, 7, lastMbIndex) // last index saved 7
+
+	// maxGasLimitPerBlock = 400
+	// half of it * factor (200% by default) will be used for txs
+	// thus 400 is the total max limit for transactions (= 40 txs)
+	// adding 30 txs will lead to an empty space of 100 worth of gas (enough for 2 more blocks)
+	txs := generateTxs(maxGasLimitPerTx, 30)
+	lastTxIndex, err := gc.CheckOutgoingTransactions(txs)
+	require.NoError(t, err)
+	require.Equal(t, 29, lastTxIndex) // added all
+
+	// call reset, block is full
+	gc.Reset()
+	require.Equal(t, -1, gc.GetLastTransactionIndexIncluded())
+	require.Equal(t, -1, gc.GetLastMiniBlockIndexIncluded())
+
+	// should accept more txs now
+	txs = generateTxs(maxGasLimitPerTx, 30)
+	lastTxIndex, err = gc.CheckOutgoingTransactions(txs)
+	require.NoError(t, err)
+	require.Equal(t, 29, lastTxIndex) // added all
+}
+
+func TestGasConsumption_DecreaseBlockLimit(t *testing.T) {
+	t.Parallel()
+
+	gc, _ := block.NewGasConsumption(getMockArgsGasConsumption())
+	require.NotNil(t, gc)
+
+	// calling a lot of times to reach min limit and simulate possible overflow
+	for i := 0; i < 100; i++ {
+		gc.DecreaseBlockLimit()
+	}
+
+	// mini block limit should be at lowest, 10% of the half configured 400 => 20 (max 2 txs)
+	txs := generateTxs(maxGasLimitPerTx, 3)
+	lastTxIndex, err := gc.CheckOutgoingTransactions(txs)
+	require.NoError(t, err)
+	require.Equal(t, 1, lastTxIndex) // added only 2 txs, one should be pending
+
+	// calling reset should not reset the block limit
+	gc.Reset()
+
+	// adding txs should be allowed again, but within the same limit
+	txs = generateTxs(maxGasLimitPerTx, 3)
+	lastTxIndex, err = gc.CheckOutgoingTransactions(txs)
+	require.NoError(t, err)
+	require.Equal(t, 1, lastTxIndex) // added only 2 txs, one should be pending
+
+	// calling reset should reset the limit
+	gc.ResetBlockLimit()
+	gc.Reset() // required to reset the state
+
+	txs = generateTxs(maxGasLimitPerTx, 30)
+	lastTxIndex, err = gc.CheckOutgoingTransactions(txs)
+	require.NoError(t, err)
+	require.Equal(t, 29, lastTxIndex) // added all
+}
+
+func TestGasConsumption_DecreaseMiniBlockLimit(t *testing.T) {
+	t.Parallel()
+
+	gc, _ := block.NewGasConsumption(getMockArgsGasConsumption())
+	require.NotNil(t, gc)
+
+	// calling a lot of times to reach min limit and simulate possible overflow
+	for i := 0; i < 100; i++ {
+		gc.DecreaseMiniBlockLimit()
+	}
+
+	// mini block limit should be at lowest, 10% of the configured 100 => 10 (1 mb of 1 tx max)
+	mbs := generateMiniBlocks(1, 2)
+	txsInMBs := generateTxsForMiniBlocks(mbs)
+	lastMbIndex, pendingMbs, err := gc.CheckIncomingMiniBlocks(mbs, txsInMBs)
+	require.Equal(t, process.ErrMaxGasLimitPerMiniBlockIsReached, err)
+	require.Zero(t, pendingMbs)       // limit reached, mb is invalid with 2 txs, no pending mb
+	require.Equal(t, -1, lastMbIndex) // nothing added
+
+	// calling reset should not reset the block limit
+	gc.Reset()
+
+	// adding mini blocks should be allowed but within the same limit
+	mbs = generateMiniBlocks(1, 2)
+	txsInMBs = generateTxsForMiniBlocks(mbs)
+	lastMbIndex, pendingMbs, err = gc.CheckIncomingMiniBlocks(mbs, txsInMBs)
+	require.Equal(t, process.ErrMaxGasLimitPerMiniBlockIsReached, err)
+	require.Zero(t, pendingMbs)       // limit reached, mb is invalid with 2 txs, no pending mb
+	require.Equal(t, -1, lastMbIndex) // nothing added
+
+	// calling reset should reset the limit
+	gc.ResetMiniBlockLimit()
+	gc.Reset() // required to reset the state
+
+	mbs = generateMiniBlocks(10, 5)
+	txsInMBs = generateTxsForMiniBlocks(mbs)
+	lastMbIndex, pendingMbs, err = gc.CheckIncomingMiniBlocks(mbs, txsInMBs)
+	require.NoError(t, err)
+	require.Equal(t, 2, pendingMbs)  // 2 pending, back to initial limit
+	require.Equal(t, 7, lastMbIndex) // 8 added, back to inital limit
 }

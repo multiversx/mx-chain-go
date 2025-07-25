@@ -180,7 +180,7 @@ func (gc *gasConsumption) checkIncomingMiniBlock(
 		gasConsumedByOutgoingTransactions := gc.getTotalOutgoingGas()
 		bandwidthForIncomingMiniBlocks += bandwidthForOutgoingTransactions - gasConsumedByOutgoingTransactions
 	}
-	mbsLimitReached := gc.totalGasConsumed[string(incoming)]+gasConsumedByMB > blockGasLimitForOneDirection
+	mbsLimitReached := gc.totalGasConsumed[string(incoming)]+gasConsumedByMB > bandwidthForIncomingMiniBlocks
 	if !mbsLimitReached {
 		// limit not reached, continue
 		// simply increment the lastMiniBlockIndex as this method might be called either from
@@ -292,6 +292,7 @@ func (gc *gasConsumption) checkOutgoingTransaction(
 		gasConsumedByIncomingMiniBlocks := gc.totalGasConsumed[string(incoming)]
 		bandwidthForOutgoingTransactions += bandwidthForIncomingMiniBlocks - gasConsumedByIncomingMiniBlocks
 	}
+	// TODO: double check these limits
 	txsLimitReachedForSelfShard := gc.totalGasConsumed[outgoingSelfKey]+gasConsumedInSenderShard > bandwidthForOutgoingTransactions
 	txsLimitReachedForDestShard := gc.totalGasConsumed[outgoingDestKey]+gasConsumedInReceiverShard > bandwidthForOutgoingTransactions
 	gasConsumedByOutgoingTransactions := gc.getTotalOutgoingGas()
@@ -365,8 +366,8 @@ func (gc *gasConsumption) GetLastMiniBlockIndexIncluded() int {
 	return gc.lastMiniBlockIndex
 }
 
-// GetLasTransactionIndexIncluded returns the last transactions index added
-func (gc *gasConsumption) GetLasTransactionIndexIncluded() int {
+// GetLastTransactionIndexIncluded returns the last transactions index added
+func (gc *gasConsumption) GetLastTransactionIndexIncluded() int {
 	gc.mut.RLock()
 	defer gc.mut.RUnlock()
 
