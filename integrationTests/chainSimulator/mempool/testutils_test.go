@@ -6,6 +6,7 @@ import (
 	"math/big"
 	"math/rand"
 	"os"
+	"os/exec"
 	"runtime/pprof"
 	"strconv"
 	"strings"
@@ -39,6 +40,9 @@ var (
 	defaultBlockchainInfo     = holders.NewBlockchainInfo(nil, 0)
 	gasLimit                  = 50_000
 	gasPrice                  = 1_000_000_000
+
+	// the name of the binary used for png generation form pprof files
+	binaryName = "benchmarksBinary"
 )
 
 const maxNumBytesUpperBound = 1_073_741_824           // one GB
@@ -322,6 +326,8 @@ func createRandomTxs(txpool *txcache.TxCache, numTxs int, nonceTracker *noncesTr
 }
 
 func testOnProposed(t *testing.T, sw *core.StopWatch, numTxs int, numAddresses int) {
+	shouldCreatePprofFiles, shouldCreatePng := initEnvVariables()
+
 	// create some fake address for each account
 	accounts := createFakeAddresses(numAddresses)
 
@@ -357,12 +363,30 @@ func testOnProposed(t *testing.T, sw *core.StopWatch, numTxs int, numAddresses i
 
 	proposedBlock1 := createProposedBlock(selectedTransactions)
 
-	// start profiling
-	fileName := strings.ReplaceAll(t.Name(), "/", "_")
-	f, err := os.Create(fmt.Sprintf("TestOnProposed%s.pprof", fileName))
-	require.Nil(t, err)
-	err = pprof.StartCPUProfile(f)
-	require.Nil(t, err)
+	if shouldCreatePprofFiles {
+		// start profiling
+		testName := strings.ReplaceAll(t.Name(), "/", "_")
+		fileName := fmt.Sprintf("%s.pprof", testName)
+		pngName := fmt.Sprintf("%s.png", testName)
+		f, err := os.Create(fileName)
+		require.Nil(t, err)
+		err = pprof.StartCPUProfile(f)
+		require.Nil(t, err)
+
+		defer func() {
+			// stop profiling
+			pprof.StopCPUProfile()
+			err = f.Close()
+			require.NoError(t, err)
+		}()
+
+		if shouldCreatePng {
+			defer func() {
+				err := generatePNGsFromPprof(fileName, pngName)
+				require.Nil(t, err)
+			}()
+		}
+	}
 
 	sw.Start(t.Name())
 	// measure the time spent
@@ -376,14 +400,11 @@ func testOnProposed(t *testing.T, sw *core.StopWatch, numTxs int, numAddresses i
 	)
 	sw.Stop(t.Name())
 	require.Nil(t, err)
-
-	// stop profiling
-	pprof.StopCPUProfile()
-	err = f.Close()
-	require.NoError(t, err)
 }
 
 func testFirstSelection(t *testing.T, sw *core.StopWatch, numTxs int, numTxsToBeSelected, numAddresses int) {
+	shouldCreatePprofFiles, shouldCreatePng := initEnvVariables()
+
 	// create some fake address for each account
 	accounts := createFakeAddresses(numAddresses)
 
@@ -415,26 +436,40 @@ func testFirstSelection(t *testing.T, sw *core.StopWatch, numTxs int, numTxsToBe
 
 	blockchainInfo := holders.NewBlockchainInfo([]byte("blockHash0"), 1)
 
-	// start profiling
-	fileName := strings.ReplaceAll(t.Name(), "/", "_")
-	f, err := os.Create(fmt.Sprintf("TestOnProposed%s.pprof", fileName))
-	require.Nil(t, err)
-	err = pprof.StartCPUProfile(f)
-	require.Nil(t, err)
+	if shouldCreatePprofFiles {
+		// start profiling
+		testName := strings.ReplaceAll(t.Name(), "/", "_")
+		fileName := fmt.Sprintf("%s.pprof", testName)
+		pngName := fmt.Sprintf("%s.png", testName)
+		f, err := os.Create(fileName)
+		require.Nil(t, err)
+		err = pprof.StartCPUProfile(f)
+		require.Nil(t, err)
+
+		defer func() {
+			// stop profiling
+			pprof.StopCPUProfile()
+			err = f.Close()
+			require.NoError(t, err)
+		}()
+
+		if shouldCreatePng {
+			defer func() {
+				err := generatePNGsFromPprof(fileName, pngName)
+				require.Nil(t, err)
+			}()
+		}
+	}
 
 	sw.Start(t.Name())
 	selectedTransactions, _ := txpool.SelectTransactions(selectionSession, options, blockchainInfo)
 	sw.Stop(t.Name())
-
-	// stop profiling
-	pprof.StopCPUProfile()
-	err = f.Close()
-	require.NoError(t, err)
-
 	require.Equal(t, numTxsToBeSelected, len(selectedTransactions))
 }
 
 func testSecondSelection(t *testing.T, sw *core.StopWatch, numTxs int, numTxsToBeSelected int, numAddresses int) {
+	shouldCreatePprofFiles, shouldCreatePng := initEnvVariables()
+
 	// create some fake address for each account
 	accounts := createFakeAddresses(numAddresses)
 
@@ -499,24 +534,38 @@ func testSecondSelection(t *testing.T, sw *core.StopWatch, numTxs int, numTxsToB
 	)
 	require.Nil(t, err)
 
-	// start profiling
-	fileName := strings.ReplaceAll(t.Name(), "/", "_")
-	f, err := os.Create(fmt.Sprintf("TestOnProposed%s.pprof", fileName))
-	require.Nil(t, err)
-	err = pprof.StartCPUProfile(f)
-	require.Nil(t, err)
+	if shouldCreatePprofFiles {
+		// start profiling
+		testName := strings.ReplaceAll(t.Name(), "/", "_")
+		fileName := fmt.Sprintf("%s.pprof", testName)
+		pngName := fmt.Sprintf("%s.png", testName)
+		f, err := os.Create(fileName)
+		require.Nil(t, err)
+		err = pprof.StartCPUProfile(f)
+		require.Nil(t, err)
+
+		defer func() {
+			// stop profiling
+			pprof.StopCPUProfile()
+			err = f.Close()
+			require.NoError(t, err)
+		}()
+
+		if shouldCreatePng {
+			defer func() {
+				err := generatePNGsFromPprof(fileName, pngName)
+				require.Nil(t, err)
+			}()
+		}
+	}
 
 	selectedTransactions, _ = txpool.SelectTransactions(selectionSession, options, blockchainInfo)
-
-	// stop profiling
-	pprof.StopCPUProfile()
-	err = f.Close()
-	require.NoError(t, err)
-
 	require.Equal(t, 0, len(selectedTransactions))
 }
 
 func testSecondSelectionWithManyTxsInPool(t *testing.T, sw *core.StopWatch, numTxs int, numTxsToBeSelected int, numAddresses int) {
+	shouldCreatePprofFiles, shouldCreatePng := initEnvVariables()
+
 	accounts := createFakeAddresses(numAddresses)
 
 	host := txcachemocks.NewMempoolHostMock()
@@ -561,22 +610,70 @@ func testSecondSelectionWithManyTxsInPool(t *testing.T, sw *core.StopWatch, numT
 	)
 	require.Nil(t, err)
 
-	// start profiling
-	fileName := strings.ReplaceAll(t.Name(), "/", "_")
-	f, err := os.Create(fmt.Sprintf("TestOnProposed%s.pprof", fileName))
-	require.Nil(t, err)
-	err = pprof.StartCPUProfile(f)
-	require.Nil(t, err)
+	if shouldCreatePprofFiles {
+		// start profiling
+		testName := strings.ReplaceAll(t.Name(), "/", "_")
+		fileName := fmt.Sprintf("%s.pprof", testName)
+		pngName := fmt.Sprintf("%s.png", testName)
+		f, err := os.Create(fileName)
+		require.Nil(t, err)
+		err = pprof.StartCPUProfile(f)
+		require.Nil(t, err)
+
+		defer func() {
+			// stop profiling
+			pprof.StopCPUProfile()
+			err = f.Close()
+			require.NoError(t, err)
+		}()
+
+		if shouldCreatePng {
+			defer func() {
+				err := generatePNGsFromPprof(fileName, pngName)
+				require.Nil(t, err)
+			}()
+		}
+	}
 
 	// measure the time for the second selection (now we use the breadcrumbs to create the virtual records)
 	sw.Start(t.Name())
 	selectedTransactions, _ = txpool.SelectTransactions(selectionSession, options, blockchainInfo)
 	sw.Stop(t.Name())
 
-	// stop profiling
-	pprof.StopCPUProfile()
-	err = f.Close()
-	require.NoError(t, err)
-
 	require.Equal(t, numTxsToBeSelected, len(selectedTransactions))
+}
+
+func initEnvVariables() (bool, bool) {
+	envPprof := os.Getenv("PPROF")
+	shouldCreatePprofFiles := envPprof == "1"
+
+	envPng := os.Getenv("PNG")
+	shouldCreatePng := envPng == "1"
+
+	return shouldCreatePprofFiles, shouldCreatePng
+}
+
+func generatePNGsFromPprof(pprofPath string, pngPath string) error {
+	cmd := exec.Command("go", "tool", "pprof", "-png", binaryName, pprofPath)
+	output, err := cmd.Output()
+	if err != nil {
+		return fmt.Errorf("failed to run pprof: %w", err)
+	}
+
+	err = os.WriteFile(pngPath, output, 0644)
+	if err != nil {
+		return fmt.Errorf("failed to write PNG: %w", err)
+	}
+
+	return nil
+
+}
+
+func Test_createTestBinary(t *testing.T) {
+	cmd := exec.Command("go", "test", "-c", "-o", binaryName)
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		fmt.Println("Failed to build the binary: ", string(output))
+	}
+	require.NoError(t, err)
 }
