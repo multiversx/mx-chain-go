@@ -39,9 +39,6 @@ var (
 	defaultBlockchainInfo     = holders.NewBlockchainInfo(nil, 0)
 	gasLimit                  = 50_000
 	gasPrice                  = 1_000_000_000
-
-	// the name of the binary used for png generation form pprof files
-	binaryName = "benchmarksBinary"
 )
 
 const maxNumBytesUpperBound = 1_073_741_824           // one GB
