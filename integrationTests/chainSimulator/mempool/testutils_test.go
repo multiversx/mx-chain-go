@@ -353,8 +353,8 @@ func testOnProposed(t *testing.T, sw *core.StopWatch, numTxs int, numAddresses i
 	require.Equal(t, numTxs, len(selectedTransactions))
 
 	proposedBlock1 := createProposedBlock(selectedTransactions)
-	sw.Start(t.Name())
 
+	sw.Start(t.Name())
 	// measure the time spent
 	err = txpool.OnProposedBlock([]byte("blockHash1"), proposedBlock1, &block.Header{
 		Nonce:    0,
@@ -364,9 +364,7 @@ func testOnProposed(t *testing.T, sw *core.StopWatch, numTxs int, numAddresses i
 		selectionSession,
 		defaultBlockchainInfo,
 	)
-
 	sw.Stop(t.Name())
-
 	require.Nil(t, err)
 }
 
@@ -405,7 +403,6 @@ func testFirstSelection(t *testing.T, sw *core.StopWatch, numTxs int, numTxsToBe
 	sw.Start(t.Name())
 	selectedTransactions, _ := txpool.SelectTransactions(selectionSession, options, blockchainInfo)
 	sw.Stop(t.Name())
-
 	require.Equal(t, numTxsToBeSelected, len(selectedTransactions))
 }
 
