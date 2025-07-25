@@ -206,7 +206,7 @@ func (ate *apiTransactionEvaluator) prepareCostResponse(res *txSimData.Simulatio
 	costResponse.SmartContractResults = res.ScResults
 	costResponse.Logs = res.Logs
 	if res.VMOutput.ReturnCode == vmcommon.Ok {
-		costResponse.GasUnits = ate.computeGasUnitsBasedOnVMOutput(txHandler, res.VMOutput)
+		costResponse.GasUnits = ate.computeGasUnitsBasedOnVMOutput(txHandler, res.VMOutput) + 1
 		return costResponse, nil
 	}
 

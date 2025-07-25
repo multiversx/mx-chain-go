@@ -187,7 +187,7 @@ func TestComputeTransactionGasLimit_MoveBalanceInvalidNonceShouldStillComputeCos
 func TestSimulateSCRCost(t *testing.T) {
 	t.Parallel()
 
-	consumedGasUnits := uint64(4000)
+	consumedGasUnits := uint64(4001)
 	args := createArgs()
 	args.TxTypeHandler = &testscommon.TxTypeHandlerMock{
 		ComputeTransactionTypeCalled: func(tx data.TransactionHandler) (process.TransactionType, process.TransactionType, bool) {
@@ -249,7 +249,7 @@ func TestComputeTransactionGasLimit_BuiltInFunction(t *testing.T) {
 	tx := &transaction.Transaction{}
 	cost, err := tce.ComputeTransactionGasLimit(tx)
 	require.Nil(t, err)
-	require.Equal(t, consumedGasUnits, cost.GasUnits)
+	require.Equal(t, consumedGasUnits+1, cost.GasUnits)
 }
 
 func TestComputeTransactionGasLimit_BuiltInFunctionShouldErr(t *testing.T) {
