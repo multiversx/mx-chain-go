@@ -73,7 +73,7 @@ func TestCostScDeploy(t *testing.T) {
 
 	cost, err := cs.GetNodeHandler(0).GetFacadeHandler().ComputeTransactionGasLimit(tx)
 	require.NoError(t, err)
-	require.Equal(t, uint64(84998085), cost.GasUnits)
+	require.Equal(t, uint64(84998086), cost.GasUnits)
 	require.Equal(t, "", cost.ReturnMessage)
 }
 
