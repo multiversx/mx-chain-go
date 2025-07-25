@@ -40,7 +40,7 @@ func (est *executionResultsTracker) AddExecutionResult(executionResult *block.Ex
 	}
 
 	if est.lastNotarizedResult.Nonce > executionResult.Nonce {
-		return fmt.Errorf("execution results nonce(%d) is lower than last notarized nonce(%d)", executionResult.Nonce, est.lastNotarizedResult.Nonce)
+		return fmt.Errorf("%w nonce(%d) is lower than last notarized nonce(%d)", ErrWrongExecutionResultNonce, executionResult.Nonce, est.lastNotarizedResult.Nonce)
 	}
 
 	lastExecutedResult, err := est.getLastExecutedResult()
@@ -49,7 +49,7 @@ func (est *executionResultsTracker) AddExecutionResult(executionResult *block.Ex
 	}
 
 	if lastExecutedResult.Nonce != executionResult.Nonce-1 {
-		return fmt.Errorf("execution results nonce(%d) should be equal to the subsequent nonce after last executed(%d)", executionResult.Nonce, lastExecutedResult.Nonce)
+		return fmt.Errorf("%w nonce(%d) should be equal to the subsequent nonce after last executed(%d)", ErrWrongExecutionResultNonce, executionResult.Nonce, lastExecutedResult.Nonce)
 	}
 
 	est.executionResultsByHash[string(executionResult.HeaderHash)] = executionResult
@@ -67,7 +67,7 @@ func (est *executionResultsTracker) getLastExecutedResult() (*block.ExecutionRes
 
 	lastExecutedResults, found := est.executionResultsByHash[string(est.lastExecutedResultHash)]
 	if !found {
-		return nil, fmt.Errorf("last executed result not found hash=(%s)", hex.EncodeToString(est.lastExecutedResultHash))
+		return nil, fmt.Errorf("%w hash(%s)", ErrCannotFindExecutionResult, hex.EncodeToString(est.lastExecutedResultHash))
 	}
 
 	return lastExecutedResults, nil

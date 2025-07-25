@@ -60,12 +60,14 @@ func TestAddExecutionResult_AllBranches(t *testing.T) {
 	execResult = &block.ExecutionResult{HeaderHash: []byte("hash2"), Nonce: 9}
 	err = tracker.AddExecutionResult(execResult)
 	require.Error(t, err)
+	require.True(t, errors.Is(err, ErrWrongExecutionResultNonce))
 	require.Contains(t, err.Error(), "is lower than last notarized nonce")
 
 	// 4. lastExecutedResults.Nonce != executionResult.Nonce-1
 	execResult = &block.ExecutionResult{HeaderHash: []byte("hash3"), Nonce: 12}
 	err = tracker.AddExecutionResult(execResult)
 	require.Error(t, err)
+	require.True(t, errors.Is(err, ErrWrongExecutionResultNonce))
 	require.Contains(t, err.Error(), "should be equal to the subsequent nonce after last executed")
 
 	// 6. Success path
@@ -77,7 +79,7 @@ func TestAddExecutionResult_AllBranches(t *testing.T) {
 	tracker.lastExecutedResultHash = []byte("h1")
 	err = tracker.AddExecutionResult(execResult)
 	require.Error(t, err)
-	require.Contains(t, err.Error(), "last executed result not found")
+	require.True(t, errors.Is(err, ErrCannotFindExecutionResult))
 }
 
 func TestAddExecutionResultAndCleanShouldWork(t *testing.T) {

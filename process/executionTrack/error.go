@@ -12,8 +12,8 @@ var (
 	// ErrCannotFindExecutionResult signals that execution result is not found
 	ErrCannotFindExecutionResult = errors.New("cannot find execution result")
 
-	// ErrDifferentExecutionResults signals that the compared execution results are different
-	ErrDifferentExecutionResults = errors.New("different execution results")
+	// ErrWrongExecutionResultNonce signals that the nonce of execution result is wrong
+	ErrWrongExecutionResultNonce = errors.New("wrong execution result nonce")
 
 	// ErrNilLastNotarizedExecutionResult signals that last notarized execution result is nil
 	ErrNilLastNotarizedExecutionResult = errors.New("nil last notarized execution result")
