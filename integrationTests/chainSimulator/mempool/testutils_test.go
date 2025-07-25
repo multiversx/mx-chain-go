@@ -5,10 +5,7 @@ import (
 	"fmt"
 	"math/big"
 	"math/rand"
-	"os"
-	"runtime/pprof"
 	"strconv"
-	"strings"
 	"testing"
 	"time"
 
@@ -357,16 +354,6 @@ func testOnProposed(t *testing.T, sw *core.StopWatch, numTxs int, numAddresses i
 
 	proposedBlock1 := createProposedBlock(selectedTransactions)
 
-	f := createPprofFiles(t)
-	if f != nil {
-		defer func() {
-			// stop profiling
-			pprof.StopCPUProfile()
-			err = f.Close()
-			require.NoError(t, err)
-		}()
-	}
-
 	sw.Start(t.Name())
 	// measure the time spent
 	err = txpool.OnProposedBlock([]byte("blockHash1"), proposedBlock1, &block.Header{
@@ -412,16 +399,6 @@ func testFirstSelection(t *testing.T, sw *core.StopWatch, numTxs int, numTxsToBe
 	require.Equal(t, numTxs, int(txpool.CountTx()))
 
 	blockchainInfo := holders.NewBlockchainInfo([]byte("blockHash0"), 1)
-
-	f := createPprofFiles(t)
-	if f != nil {
-		defer func() {
-			// stop profiling
-			pprof.StopCPUProfile()
-			err = f.Close()
-			require.NoError(t, err)
-		}()
-	}
 
 	sw.Start(t.Name())
 	selectedTransactions, _ := txpool.SelectTransactions(selectionSession, options, blockchainInfo)
@@ -494,16 +471,6 @@ func testSecondSelection(t *testing.T, sw *core.StopWatch, numTxs int, numTxsToB
 	)
 	require.Nil(t, err)
 
-	f := createPprofFiles(t)
-	if f != nil {
-		defer func() {
-			// stop profiling
-			pprof.StopCPUProfile()
-			err = f.Close()
-			require.NoError(t, err)
-		}()
-	}
-
 	selectedTransactions, _ = txpool.SelectTransactions(selectionSession, options, blockchainInfo)
 	require.Equal(t, 0, len(selectedTransactions))
 }
@@ -553,45 +520,10 @@ func testSecondSelectionWithManyTxsInPool(t *testing.T, sw *core.StopWatch, numT
 	)
 	require.Nil(t, err)
 
-	f := createPprofFiles(t)
-	if f != nil {
-		defer func() {
-			// stop profiling
-			pprof.StopCPUProfile()
-			err = f.Close()
-			require.NoError(t, err)
-		}()
-	}
-
 	// measure the time for the second selection (now we use the breadcrumbs to create the virtual records)
 	sw.Start(t.Name())
 	selectedTransactions, _ = txpool.SelectTransactions(selectionSession, options, blockchainInfo)
 	sw.Stop(t.Name())
 
 	require.Equal(t, numTxsToBeSelected, len(selectedTransactions))
-}
-
-func createPprofFiles(t *testing.T) *os.File {
-	shouldCreatePprofFiles := checkEnvVariables()
-	if !shouldCreatePprofFiles {
-		return nil
-	}
-
-	// start profiling
-	testName := strings.ReplaceAll(t.Name(), "/", "_")
-	fileName := fmt.Sprintf("%s.pprof", testName)
-	f, err := os.Create(fileName)
-	require.Nil(t, err)
-
-	err = pprof.StartCPUProfile(f)
-	require.Nil(t, err)
-
-	return f
-}
-
-func checkEnvVariables() bool {
-	envPprof := os.Getenv("PPROF")
-	shouldCreatePprofFiles := envPprof == "1"
-
-	return shouldCreatePprofFiles
 }

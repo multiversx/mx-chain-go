@@ -3,11 +3,15 @@ package mempool
 import (
 	"fmt"
 	"math"
+	"os"
+	"runtime/pprof"
+	"strings"
 	"testing"
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/txcache"
+	"github.com/stretchr/testify/require"
 )
 
 var (
@@ -27,6 +31,35 @@ var (
 	}
 )
 
+func createPprofFiles(t *testing.T) *os.File {
+	shouldCreatePprofFiles := shouldCreatePprofFiles()
+	if !shouldCreatePprofFiles {
+		return nil
+	}
+
+	pprofDir := "./pprof"
+	err := os.MkdirAll(pprofDir, os.ModePerm)
+	require.Nil(t, err)
+
+	testName := strings.ReplaceAll(t.Name(), "/", "_")
+	fileName := fmt.Sprintf("%s/%s.pprof", pprofDir, testName)
+
+	f, err := os.Create(fileName)
+	require.NoError(t, err)
+
+	err = pprof.StartCPUProfile(f)
+	require.NoError(t, err)
+
+	return f
+}
+
+func shouldCreatePprofFiles() bool {
+	envPprof := os.Getenv("PPROF")
+	shouldCreatePprofFiles := envPprof == "1"
+
+	return shouldCreatePprofFiles
+}
+
 // benchmark for the creation of breadcrumbs (which are created with each proposed block)
 func TestBenchmark_OnProposedWithManyTxsAndSenders(t *testing.T) {
 	if testing.Short() {
@@ -38,48 +71,120 @@ func TestBenchmark_OnProposedWithManyTxsAndSenders(t *testing.T) {
 	t.Run("30_000 txs with 10_000 addresses", func(t *testing.T) {
 		numTxs := 30_000
 		numAddresses := 10_000
+
+		f := createPprofFiles(t)
+		if f != nil {
+			defer func() {
+				pprof.StopCPUProfile()
+				err := f.Close()
+				require.NoError(t, err)
+			}()
+		}
 		testOnProposed(t, sw, numTxs, numAddresses)
 	})
 
 	t.Run("30_000 txs with 1000 addresses", func(t *testing.T) {
 		numTxs := 30_000
 		numAddresses := 1000
+
+		f := createPprofFiles(t)
+		if f != nil {
+			defer func() {
+				pprof.StopCPUProfile()
+				err := f.Close()
+				require.NoError(t, err)
+			}()
+		}
 		testOnProposed(t, sw, numTxs, numAddresses)
 	})
 
 	t.Run("30_000 txs with 100 addresses", func(t *testing.T) {
 		numTxs := 30_000
 		numAddresses := 100
+
+		f := createPprofFiles(t)
+		if f != nil {
+			defer func() {
+				pprof.StopCPUProfile()
+				err := f.Close()
+				require.NoError(t, err)
+			}()
+		}
 		testOnProposed(t, sw, numTxs, numAddresses)
 	})
 
 	t.Run("30_000 txs with 10 addresses", func(t *testing.T) {
 		numTxs := 30_000
 		numAddresses := 10
+
+		f := createPprofFiles(t)
+		if f != nil {
+			defer func() {
+				pprof.StopCPUProfile()
+				err := f.Close()
+				require.NoError(t, err)
+			}()
+		}
 		testOnProposed(t, sw, numTxs, numAddresses)
 	})
 
 	t.Run("60_000 txs with 10_000 addresses", func(t *testing.T) {
 		numTxs := 60_000
 		numAddresses := 10_000
+
+		f := createPprofFiles(t)
+		if f != nil {
+			defer func() {
+				pprof.StopCPUProfile()
+				err := f.Close()
+				require.NoError(t, err)
+			}()
+		}
 		testOnProposed(t, sw, numTxs, numAddresses)
 	})
 
 	t.Run("60_000 txs with 1000 addresses", func(t *testing.T) {
 		numTxs := 60_000
 		numAddresses := 1000
+
+		f := createPprofFiles(t)
+		if f != nil {
+			defer func() {
+				pprof.StopCPUProfile()
+				err := f.Close()
+				require.NoError(t, err)
+			}()
+		}
 		testOnProposed(t, sw, numTxs, numAddresses)
 	})
 
 	t.Run("60_000 txs with 100 addresses", func(t *testing.T) {
 		numTxs := 60_000
 		numAddresses := 100
+
+		f := createPprofFiles(t)
+		if f != nil {
+			defer func() {
+				pprof.StopCPUProfile()
+				err := f.Close()
+				require.NoError(t, err)
+			}()
+		}
 		testOnProposed(t, sw, numTxs, numAddresses)
 	})
 
 	t.Run("60_000 txs with 10 addresses", func(t *testing.T) {
 		numTxs := 60_000
 		numAddresses := 10
+
+		f := createPprofFiles(t)
+		if f != nil {
+			defer func() {
+				pprof.StopCPUProfile()
+				err := f.Close()
+				require.NoError(t, err)
+			}()
+		}
 		testOnProposed(t, sw, numTxs, numAddresses)
 	})
 
@@ -99,6 +204,15 @@ func TestBenchmark_FirstSelectionWithManyTxsAndSenders(t *testing.T) {
 		numTxs := 30_000
 		numTxsToBeSelected := numTxs / 2
 		numAddresses := 10_000
+
+		f := createPprofFiles(t)
+		if f != nil {
+			defer func() {
+				pprof.StopCPUProfile()
+				err := f.Close()
+				require.NoError(t, err)
+			}()
+		}
 		testFirstSelection(t, sw, numTxs, numTxsToBeSelected, numAddresses)
 	})
 
@@ -106,6 +220,15 @@ func TestBenchmark_FirstSelectionWithManyTxsAndSenders(t *testing.T) {
 		numTxs := 60_000
 		numTxsToBeSelected := numTxs / 2
 		numAddresses := 10_000
+
+		f := createPprofFiles(t)
+		if f != nil {
+			defer func() {
+				pprof.StopCPUProfile()
+				err := f.Close()
+				require.NoError(t, err)
+			}()
+		}
 		testFirstSelection(t, sw, numTxs, numTxsToBeSelected, numAddresses)
 	})
 
@@ -113,6 +236,15 @@ func TestBenchmark_FirstSelectionWithManyTxsAndSenders(t *testing.T) {
 		numTxs := 120_000
 		numTxsToBeSelected := numTxs / 2
 		numAddresses := 10_000
+
+		f := createPprofFiles(t)
+		if f != nil {
+			defer func() {
+				pprof.StopCPUProfile()
+				err := f.Close()
+				require.NoError(t, err)
+			}()
+		}
 		testFirstSelection(t, sw, numTxs, numTxsToBeSelected, numAddresses)
 	})
 
@@ -120,6 +252,15 @@ func TestBenchmark_FirstSelectionWithManyTxsAndSenders(t *testing.T) {
 		numTxs := 180_000
 		numTxsToBeSelected := numTxs / 2
 		numAddresses := 10_000
+
+		f := createPprofFiles(t)
+		if f != nil {
+			defer func() {
+				pprof.StopCPUProfile()
+				err := f.Close()
+				require.NoError(t, err)
+			}()
+		}
 		testFirstSelection(t, sw, numTxs, numTxsToBeSelected, numAddresses)
 	})
 
@@ -127,6 +268,15 @@ func TestBenchmark_FirstSelectionWithManyTxsAndSenders(t *testing.T) {
 		numTxs := 200_000
 		numTxsToBeSelected := numTxs / 2
 		numAddresses := 10_000
+
+		f := createPprofFiles(t)
+		if f != nil {
+			defer func() {
+				pprof.StopCPUProfile()
+				err := f.Close()
+				require.NoError(t, err)
+			}()
+		}
 		testFirstSelection(t, sw, numTxs, numTxsToBeSelected, numAddresses)
 	})
 
@@ -134,6 +284,15 @@ func TestBenchmark_FirstSelectionWithManyTxsAndSenders(t *testing.T) {
 		numTxs := 2_000_000
 		numTxsToBeSelected := numTxs / 2
 		numAddresses := 10_000
+
+		f := createPprofFiles(t)
+		if f != nil {
+			defer func() {
+				pprof.StopCPUProfile()
+				err := f.Close()
+				require.NoError(t, err)
+			}()
+		}
 		testFirstSelection(t, sw, numTxs, numTxsToBeSelected, numAddresses)
 	})
 
@@ -153,6 +312,15 @@ func TestBenchmark_SecondSelectionWithManyTxsAndSenders(t *testing.T) {
 		numTxs := 30_000
 		numTxsToBeSelected := numTxs / 2
 		numAddresses := 10_000
+
+		f := createPprofFiles(t)
+		if f != nil {
+			defer func() {
+				pprof.StopCPUProfile()
+				err := f.Close()
+				require.NoError(t, err)
+			}()
+		}
 		testSecondSelection(t, sw, numTxs, numTxsToBeSelected, numAddresses)
 	})
 
@@ -160,6 +328,15 @@ func TestBenchmark_SecondSelectionWithManyTxsAndSenders(t *testing.T) {
 		numTxs := 60_000
 		numTxsToBeSelected := numTxs / 2
 		numAddresses := 10_000
+
+		f := createPprofFiles(t)
+		if f != nil {
+			defer func() {
+				pprof.StopCPUProfile()
+				err := f.Close()
+				require.NoError(t, err)
+			}()
+		}
 		testSecondSelection(t, sw, numTxs, numTxsToBeSelected, numAddresses)
 	})
 
@@ -167,6 +344,15 @@ func TestBenchmark_SecondSelectionWithManyTxsAndSenders(t *testing.T) {
 		numTxs := 120_000
 		numTxsToBeSelected := numTxs / 2
 		numAddresses := 10_000
+
+		f := createPprofFiles(t)
+		if f != nil {
+			defer func() {
+				pprof.StopCPUProfile()
+				err := f.Close()
+				require.NoError(t, err)
+			}()
+		}
 		testSecondSelection(t, sw, numTxs, numTxsToBeSelected, numAddresses)
 	})
 
@@ -174,6 +360,15 @@ func TestBenchmark_SecondSelectionWithManyTxsAndSenders(t *testing.T) {
 		numTxs := 180_000
 		numTxsToBeSelected := numTxs / 2
 		numAddresses := 10_000
+
+		f := createPprofFiles(t)
+		if f != nil {
+			defer func() {
+				pprof.StopCPUProfile()
+				err := f.Close()
+				require.NoError(t, err)
+			}()
+		}
 		testSecondSelection(t, sw, numTxs, numTxsToBeSelected, numAddresses)
 	})
 
@@ -181,6 +376,15 @@ func TestBenchmark_SecondSelectionWithManyTxsAndSenders(t *testing.T) {
 		numTxs := 200_000
 		numTxsToBeSelected := numTxs / 2
 		numAddresses := 10_000
+
+		f := createPprofFiles(t)
+		if f != nil {
+			defer func() {
+				pprof.StopCPUProfile()
+				err := f.Close()
+				require.NoError(t, err)
+			}()
+		}
 		testSecondSelection(t, sw, numTxs, numTxsToBeSelected, numAddresses)
 	})
 
@@ -188,6 +392,15 @@ func TestBenchmark_SecondSelectionWithManyTxsAndSenders(t *testing.T) {
 		numTxs := 2_000_000
 		numTxsToBeSelected := numTxs / 2
 		numAddresses := 10_000
+
+		f := createPprofFiles(t)
+		if f != nil {
+			defer func() {
+				pprof.StopCPUProfile()
+				err := f.Close()
+				require.NoError(t, err)
+			}()
+		}
 		testSecondSelection(t, sw, numTxs, numTxsToBeSelected, numAddresses)
 	})
 
@@ -207,26 +420,71 @@ func TestBenchmark_FirstSelectionOf10kTransactionsAndVariableNumberOfAddresses(t
 
 	t.Run("10_000 txs out of 20_000 in pool with 10 addresses", func(t *testing.T) {
 		numAddresses := 10
+
+		f := createPprofFiles(t)
+		if f != nil {
+			defer func() {
+				pprof.StopCPUProfile()
+				err := f.Close()
+				require.NoError(t, err)
+			}()
+		}
 		testFirstSelection(t, sw, numTxs, numTxsToBeSelected, numAddresses)
 	})
 
 	t.Run("10_000 txs out of 20_000 in pool with 100 addresses", func(t *testing.T) {
 		numAddresses := 100
+
+		f := createPprofFiles(t)
+		if f != nil {
+			defer func() {
+				pprof.StopCPUProfile()
+				err := f.Close()
+				require.NoError(t, err)
+			}()
+		}
 		testFirstSelection(t, sw, numTxs, numTxsToBeSelected, numAddresses)
 	})
 
 	t.Run("10_000 txs out of 20_000 in pool with 1000 addresses", func(t *testing.T) {
 		numAddresses := 1000
+
+		f := createPprofFiles(t)
+		if f != nil {
+			defer func() {
+				pprof.StopCPUProfile()
+				err := f.Close()
+				require.NoError(t, err)
+			}()
+		}
 		testFirstSelection(t, sw, numTxs, numTxsToBeSelected, numAddresses)
 	})
 
 	t.Run("10_000 txs out of 20_000 in pool with 10_000 addresses", func(t *testing.T) {
 		numAddresses := 10_000
+
+		f := createPprofFiles(t)
+		if f != nil {
+			defer func() {
+				pprof.StopCPUProfile()
+				err := f.Close()
+				require.NoError(t, err)
+			}()
+		}
 		testFirstSelection(t, sw, numTxs, numTxsToBeSelected, numAddresses)
 	})
 
 	t.Run("10_000 txs out of 20_000 in pool with 100_000 addresses", func(t *testing.T) {
 		numAddresses := 100_000
+
+		f := createPprofFiles(t)
+		if f != nil {
+			defer func() {
+				pprof.StopCPUProfile()
+				err := f.Close()
+				require.NoError(t, err)
+			}()
+		}
 		testFirstSelection(t, sw, numTxs, numTxsToBeSelected, numAddresses)
 	})
 
@@ -245,26 +503,71 @@ func TestBenchmark_SecondSelection10kTransactionsAndVariableNumberOfAddresses(t 
 
 	t.Run("10_000 txs with 10 addresses", func(t *testing.T) {
 		numAddresses := 10
+
+		f := createPprofFiles(t)
+		if f != nil {
+			defer func() {
+				pprof.StopCPUProfile()
+				err := f.Close()
+				require.NoError(t, err)
+			}()
+		}
 		testSecondSelection(t, sw, numTxs, numTxsToBeSelected, numAddresses)
 	})
 
 	t.Run("10_000 txs with 100 addresses", func(t *testing.T) {
 		numAddresses := 100
+
+		f := createPprofFiles(t)
+		if f != nil {
+			defer func() {
+				pprof.StopCPUProfile()
+				err := f.Close()
+				require.NoError(t, err)
+			}()
+		}
 		testSecondSelection(t, sw, numTxs, numTxsToBeSelected, numAddresses)
 	})
 
 	t.Run("10_000 txs with 1000 addresses", func(t *testing.T) {
 		numAddresses := 1000
+
+		f := createPprofFiles(t)
+		if f != nil {
+			defer func() {
+				pprof.StopCPUProfile()
+				err := f.Close()
+				require.NoError(t, err)
+			}()
+		}
 		testSecondSelection(t, sw, numTxs, numTxsToBeSelected, numAddresses)
 	})
 
 	t.Run("10_000 txs with 10_000 addresses", func(t *testing.T) {
 		numAddresses := 10_000
+
+		f := createPprofFiles(t)
+		if f != nil {
+			defer func() {
+				pprof.StopCPUProfile()
+				err := f.Close()
+				require.NoError(t, err)
+			}()
+		}
 		testSecondSelection(t, sw, numTxs, numTxsToBeSelected, numAddresses)
 	})
 
 	t.Run("10_000 txs with 100_000 addresses", func(t *testing.T) {
 		numAddresses := 100_000
+
+		f := createPprofFiles(t)
+		if f != nil {
+			defer func() {
+				pprof.StopCPUProfile()
+				err := f.Close()
+				require.NoError(t, err)
+			}()
+		}
 		testSecondSelection(t, sw, numTxs, numTxsToBeSelected, numAddresses)
 	})
 
@@ -284,18 +587,45 @@ func TestBenchmark_FirstSelection10KTransactionAndVariableNumOfTxsInPool(t *test
 	t.Run("10_000 txs out of 10_000 in pool with 100_000 addresses", func(t *testing.T) {
 		numTxs := 10_000
 		numAddresses := 100_000
+
+		f := createPprofFiles(t)
+		if f != nil {
+			defer func() {
+				pprof.StopCPUProfile()
+				err := f.Close()
+				require.NoError(t, err)
+			}()
+		}
 		testFirstSelection(t, sw, numTxs, numTxsToBeSelected, numAddresses)
 	})
 
 	t.Run("10_000 txs out of 100_000 in pool with 100_000 addresses", func(t *testing.T) {
 		numTxs := 100_000
 		numAddresses := 100_000
+
+		f := createPprofFiles(t)
+		if f != nil {
+			defer func() {
+				pprof.StopCPUProfile()
+				err := f.Close()
+				require.NoError(t, err)
+			}()
+		}
 		testFirstSelection(t, sw, numTxs, numTxsToBeSelected, numAddresses)
 	})
 
 	t.Run("10_000 txs out of 1_000_000 in pool with 100_000 addresses", func(t *testing.T) {
 		numTxs := 1_000_000
 		numAddresses := 100_000
+
+		f := createPprofFiles(t)
+		if f != nil {
+			defer func() {
+				pprof.StopCPUProfile()
+				err := f.Close()
+				require.NoError(t, err)
+			}()
+		}
 		testFirstSelection(t, sw, numTxs, numTxsToBeSelected, numAddresses)
 	})
 
@@ -314,12 +644,30 @@ func TestBenchmark_SecondSelection10KTransactionAndVariableNumOfTxsInPool(t *tes
 	t.Run("10_000 txs out of 100_000 in pool with 100_000 addresses", func(t *testing.T) {
 		numTxs := 100_000
 		numAddresses := 100_000
+
+		f := createPprofFiles(t)
+		if f != nil {
+			defer func() {
+				pprof.StopCPUProfile()
+				err := f.Close()
+				require.NoError(t, err)
+			}()
+		}
 		testSecondSelectionWithManyTxsInPool(t, sw, numTxs, numTxsToBeSelected, numAddresses)
 	})
 
 	t.Run("10_000 txs out of 1_000_000 in pool with 100_000 addresses", func(t *testing.T) {
 		numTxs := 1_000_000
 		numAddresses := 100_000
+
+		f := createPprofFiles(t)
+		if f != nil {
+			defer func() {
+				pprof.StopCPUProfile()
+				err := f.Close()
+				require.NoError(t, err)
+			}()
+		}
 		testSecondSelectionWithManyTxsInPool(t, sw, numTxs, numTxsToBeSelected, numAddresses)
 	})
 
