@@ -86,7 +86,6 @@ func stopProfiling(t *testing.T, f io.Closer) {
 
 // disabledStopProfiling defines a disabled method for stopProfiling
 func disabledStopProfiling(t *testing.T, f io.Closer) {
-	return
 }
 
 // benchmark for the creation of breadcrumbs (which are created with each proposed block)
