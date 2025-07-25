@@ -39,11 +39,11 @@ func (est *executionResultsTracker) AddExecutionResult(executionResult *block.Ex
 		return ErrNilLastNotarizedExecutionResult
 	}
 
-	if est.lastNotarizedResult.Nonce > executionResult.Nonce {
+	if est.lastNotarizedResult.Nonce >= executionResult.Nonce {
 		return fmt.Errorf("%w nonce(%d) is lower than last notarized nonce(%d)", ErrWrongExecutionResultNonce, executionResult.Nonce, est.lastNotarizedResult.Nonce)
 	}
 
-	lastExecutedResult, err := est.getLastExecutedResult()
+	lastExecutedResult, err := est.getLastExecutionResult()
 	if err != nil {
 		return err
 	}
@@ -60,7 +60,7 @@ func (est *executionResultsTracker) AddExecutionResult(executionResult *block.Ex
 	return nil
 }
 
-func (est *executionResultsTracker) getLastExecutedResult() (*block.ExecutionResult, error) {
+func (est *executionResultsTracker) getLastExecutionResult() (*block.ExecutionResult, error) {
 	if bytes.Equal(est.lastExecutedResultHash, est.lastNotarizedResult.HeaderHash) {
 		return est.lastNotarizedResult, nil
 	}

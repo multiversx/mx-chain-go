@@ -42,105 +42,159 @@ func TestSetAndGetLastNotarizedResult(t *testing.T) {
 func TestAddExecutionResult_AllBranches(t *testing.T) {
 	t.Parallel()
 
-	tracker, _ := NewExecutionResultsTracker()
+	t.Run("nil execution result", func(t *testing.T) {
+		t.Parallel()
 
-	// 1. Nil execution result
-	err := tracker.AddExecutionResult(nil)
-	require.ErrorIs(t, err, ErrNilExecutionResult)
+		tracker, _ := NewExecutionResultsTracker()
 
-	// 2. Nil lastNotarizedResult
-	execResult := &block.ExecutionResult{HeaderHash: []byte("hash1"), Nonce: 1}
-	err = tracker.AddExecutionResult(execResult)
-	require.ErrorIs(t, err, ErrNilLastNotarizedExecutionResult)
+		err := tracker.AddExecutionResult(nil)
+		require.ErrorIs(t, err, ErrNilExecutionResult)
+	})
 
-	// Set lastNotarizedResult for further tests
-	tracker.lastNotarizedResult = &block.ExecutionResult{Nonce: 10}
+	t.Run("nil last notarized result", func(t *testing.T) {
+		t.Parallel()
 
-	// 3. executionResult.Nonce < lastNotarizedResult.Nonce
-	execResult = &block.ExecutionResult{HeaderHash: []byte("hash2"), Nonce: 9}
-	err = tracker.AddExecutionResult(execResult)
-	require.Error(t, err)
-	require.True(t, errors.Is(err, ErrWrongExecutionResultNonce))
-	require.Contains(t, err.Error(), "is lower than last notarized nonce")
+		tracker, _ := NewExecutionResultsTracker()
 
-	// 4. lastExecutedResults.Nonce != executionResult.Nonce-1
-	execResult = &block.ExecutionResult{HeaderHash: []byte("hash3"), Nonce: 12}
-	err = tracker.AddExecutionResult(execResult)
-	require.Error(t, err)
-	require.True(t, errors.Is(err, ErrWrongExecutionResultNonce))
-	require.Contains(t, err.Error(), "should be equal to the subsequent nonce after last executed")
+		execResult := &block.ExecutionResult{HeaderHash: []byte("hash1"), Nonce: 1}
+		err := tracker.AddExecutionResult(execResult)
+		require.ErrorIs(t, err, ErrNilLastNotarizedExecutionResult)
+	})
 
-	// 6. Success path
-	execResult = &block.ExecutionResult{HeaderHash: []byte("hash3"), Nonce: 11}
-	err = tracker.AddExecutionResult(execResult)
-	require.Nil(t, err)
+	t.Run("execution result nonce lower than last notarized", func(t *testing.T) {
+		t.Parallel()
 
-	execResult = &block.ExecutionResult{HeaderHash: []byte("hash3"), Nonce: 13}
-	tracker.lastExecutedResultHash = []byte("h1")
-	err = tracker.AddExecutionResult(execResult)
-	require.Error(t, err)
-	require.True(t, errors.Is(err, ErrCannotFindExecutionResult))
+		tracker, _ := NewExecutionResultsTracker()
+		tracker.lastNotarizedResult = &block.ExecutionResult{Nonce: 10}
+
+		execResult := &block.ExecutionResult{HeaderHash: []byte("hash2"), Nonce: 9}
+		err := tracker.AddExecutionResult(execResult)
+		require.Error(t, err)
+		require.True(t, errors.Is(err, ErrWrongExecutionResultNonce))
+		require.Contains(t, err.Error(), "is lower than last notarized nonce")
+	})
+
+	t.Run("execution result nonce not equal to the subsequent nonce after last executed", func(t *testing.T) {
+		t.Parallel()
+
+		tracker, _ := NewExecutionResultsTracker()
+		tracker.lastNotarizedResult = &block.ExecutionResult{Nonce: 10}
+
+		execResult := &block.ExecutionResult{HeaderHash: []byte("hash3"), Nonce: 12}
+		err := tracker.AddExecutionResult(execResult)
+		require.Error(t, err)
+		require.True(t, errors.Is(err, ErrWrongExecutionResultNonce))
+		require.Contains(t, err.Error(), "should be equal to the subsequent nonce after last executed")
+	})
+
+	t.Run("should work", func(t *testing.T) {
+		t.Parallel()
+
+		tracker, _ := NewExecutionResultsTracker()
+		tracker.lastNotarizedResult = &block.ExecutionResult{Nonce: 10}
+
+		execResult := &block.ExecutionResult{HeaderHash: []byte("hash3"), Nonce: 11}
+		err := tracker.AddExecutionResult(execResult)
+		require.Nil(t, err)
+	})
+
+	t.Run("cannot find execution result", func(t *testing.T) {
+		t.Parallel()
+
+		tracker, _ := NewExecutionResultsTracker()
+		tracker.lastNotarizedResult = &block.ExecutionResult{Nonce: 10}
+
+		execResult := &block.ExecutionResult{HeaderHash: []byte("hash3"), Nonce: 13}
+		tracker.lastExecutedResultHash = []byte("h1")
+		err := tracker.AddExecutionResult(execResult)
+		require.Error(t, err)
+		require.True(t, errors.Is(err, ErrCannotFindExecutionResult))
+	})
 }
 
 func TestAddExecutionResultAndCleanShouldWork(t *testing.T) {
 	t.Parallel()
 
-	tracker, _ := NewExecutionResultsTracker()
+	t.Run("header with no execution results", func(t *testing.T) {
+		t.Parallel()
 
-	err := tracker.SetLastNotarizedResult(&block.ExecutionResult{HeaderHash: []byte("hash1"), Nonce: 10})
-	require.Nil(t, err)
+		tracker, _ := NewExecutionResultsTracker()
+		err := tracker.SetLastNotarizedResult(&block.ExecutionResult{HeaderHash: []byte("hash1"), Nonce: 10})
+		require.Nil(t, err)
 
-	executionResults := []*block.ExecutionResult{
-		{
-			HeaderHash: []byte("hash2"), Nonce: 11,
-		},
-		{
-			HeaderHash: []byte("hash3"), Nonce: 12,
-		},
-	}
-
-	err = tracker.AddExecutionResult(executionResults[0])
-	require.Nil(t, err)
-	err = tracker.AddExecutionResult(executionResults[1])
-	require.Nil(t, err)
-
-	header := &testscommon.HeaderHandlerWithExecutionResultsStub{
-		GetExecutionResultsCalled: func() []*block.ExecutionResult {
-			return executionResults
-		},
-	}
-	res, err := tracker.CleanConfirmedExecutionResults(header)
-	require.Nil(t, err)
-	require.Equal(t, CleanResultOK, res.CleanResult)
-	require.Equal(t, uint64(12), res.LastMatchingResultNonce)
-
-	results, err := tracker.GetPendingExecutionResults()
-	require.Nil(t, err)
-	require.Equal(t, 0, len(results))
-
-	header.GetExecutionResultsCalled = func() []*block.ExecutionResult {
-		return nil
-	}
-	res, err = tracker.CleanConfirmedExecutionResults(header)
-	require.Nil(t, err)
-	require.Equal(t, CleanResultOK, res.CleanResult)
-
-	lastNotarizedResult, err := tracker.GetLastNotarizedExecutionResult()
-	require.Nil(t, err)
-	require.Equal(t, lastNotarizedResult.Nonce, res.LastMatchingResultNonce)
-
-	// notarized results from header not found
-	header.GetExecutionResultsCalled = func() []*block.ExecutionResult {
-		return []*block.ExecutionResult{
-			{
-				HeaderHash: []byte("hash22"), Nonce: 22,
+		header := &testscommon.HeaderHandlerWithExecutionResultsStub{
+			GetExecutionResultsCalled: func() []*block.ExecutionResult {
+				return nil
 			},
 		}
-	}
-	res, err = tracker.CleanConfirmedExecutionResults(header)
-	require.Nil(t, err)
-	require.Equal(t, CleanResultNotFound, res.CleanResult)
-	require.Equal(t, uint64(12), res.LastMatchingResultNonce)
+		res, errC := tracker.CleanConfirmedExecutionResults(header)
+		require.Nil(t, errC)
+		require.Equal(t, CleanResultOK, res.CleanResult)
+
+		lastNotarizedResult, errL := tracker.GetLastNotarizedExecutionResult()
+		require.Nil(t, errL)
+		require.Equal(t, lastNotarizedResult.Nonce, res.LastMatchingResultNonce)
+	})
+
+	t.Run("header with 2 execution results", func(t *testing.T) {
+		t.Parallel()
+
+		tracker, _ := NewExecutionResultsTracker()
+		err := tracker.SetLastNotarizedResult(&block.ExecutionResult{HeaderHash: []byte("hash1"), Nonce: 10})
+		require.Nil(t, err)
+
+		executionResults := []*block.ExecutionResult{
+			{
+				HeaderHash: []byte("hash2"), Nonce: 11,
+			},
+			{
+				HeaderHash: []byte("hash3"), Nonce: 12,
+			},
+		}
+
+		header := &testscommon.HeaderHandlerWithExecutionResultsStub{
+			GetExecutionResultsCalled: func() []*block.ExecutionResult {
+				return executionResults
+			},
+		}
+
+		err = tracker.AddExecutionResult(executionResults[0])
+		require.Nil(t, err)
+		err = tracker.AddExecutionResult(executionResults[1])
+		require.Nil(t, err)
+
+		res, errC := tracker.CleanConfirmedExecutionResults(header)
+		require.Nil(t, errC)
+		require.Equal(t, CleanResultOK, res.CleanResult)
+		require.Equal(t, uint64(12), res.LastMatchingResultNonce)
+
+		results, errG := tracker.GetPendingExecutionResults()
+		require.Nil(t, errG)
+		require.Equal(t, 0, len(results))
+	})
+
+	t.Run("clean result not found", func(t *testing.T) {
+		t.Parallel()
+
+		tracker, _ := NewExecutionResultsTracker()
+		err := tracker.SetLastNotarizedResult(&block.ExecutionResult{HeaderHash: []byte("hash1"), Nonce: 10})
+		require.Nil(t, err)
+
+		header := &testscommon.HeaderHandlerWithExecutionResultsStub{
+			GetExecutionResultsCalled: func() []*block.ExecutionResult {
+				return []*block.ExecutionResult{
+					{
+						HeaderHash: []byte("hash22"), Nonce: 22,
+					},
+				}
+			},
+		}
+
+		res, errC := tracker.CleanConfirmedExecutionResults(header)
+		require.Nil(t, errC)
+		require.Equal(t, CleanResultNotFound, res.CleanResult)
+		require.Equal(t, uint64(10), res.LastMatchingResultNonce)
+	})
 }
 
 func TestAddExecutionResultAndCleanDifferentResultsFromHeader(t *testing.T) {
@@ -182,6 +236,8 @@ func TestAddExecutionResultAndCleanDifferentResultsFromHeader(t *testing.T) {
 }
 
 func TestExecutionResultsTracker_GetPendingExecutionResultByHashAndHash(t *testing.T) {
+	t.Parallel()
+
 	tracker, _ := NewExecutionResultsTracker()
 
 	err := tracker.SetLastNotarizedResult(&block.ExecutionResult{HeaderHash: []byte("hash0"), Nonce: 10})
