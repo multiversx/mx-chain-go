@@ -839,18 +839,6 @@ func (bfd *baseForkDetector) checkGenesisTimeForHeader(headerHandler data.Header
 	return bfd.checkGenesisTimeForHeaderAfterSupernovaWithRoundActivation(headerHandler)
 }
 
-// getRoundDuration returns round duration in seconds or milliseconds based on activation flag
-func (bfd *baseForkDetector) getRoundDuration(
-	headerEpoch uint32,
-) int64 {
-	// TODO: handle activation round at supernova transition
-	if bfd.enableEpochsHandler.IsFlagEnabledInEpoch(common.SupernovaFlag, headerEpoch) {
-		return bfd.roundHandler.TimeDuration().Milliseconds()
-	}
-
-	return int64(bfd.roundHandler.TimeDuration().Seconds())
-}
-
 func (bfd *baseForkDetector) addHeader(
 	header data.HeaderHandler,
 	headerHash []byte,
