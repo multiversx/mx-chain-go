@@ -2178,7 +2178,7 @@ func (sp *shardProcessor) requestMetaHeadersIfNeeded(hdrsAdded uint32, lastMetaH
 		"highest nonce", lastMetaHdr.GetNonce(),
 	)
 
-	roundTooOld := sp.roundHandler.Index() > int64(lastMetaHdr.GetRound()+process.MaxRoundsWithoutNewBlockReceived)
+	roundTooOld := sp.roundHandler.Index() > int64(lastMetaHdr.GetRound()+sp.getMaxRoundsWithoutBlockReceived(lastMetaHdr.GetRound()))
 	shouldRequestCrossHeaders := hdrsAdded == 0 && roundTooOld
 	if shouldRequestCrossHeaders {
 		fromNonce := lastMetaHdr.GetNonce() + 1

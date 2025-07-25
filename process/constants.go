@@ -97,7 +97,11 @@ const RoundModulusTriggerWhenSyncIsStuck = 20
 
 // MaxRoundsWithoutCommittedBlock defines the maximum rounds to wait for a new block to be committed,
 // before a special action to be applied
-const MaxRoundsWithoutCommittedBlock = 10
+// TODO: move to config per epoch
+const (
+	MaxRoundsWithoutCommittedBlock          = 10
+	SupernovaMaxRoundsWithoutCommittedBlock = 100
+)
 
 // MinForkRound represents the minimum fork round set by a notarized header received
 const MinForkRound = uint64(0)
@@ -116,7 +120,11 @@ const MaxShardNoncesBehind = 15
 
 // MaxRoundsWithoutNewBlockReceived defines the maximum number of rounds to wait for a new block to be received,
 // before a special action to be applied
-const MaxRoundsWithoutNewBlockReceived = 10
+// TODO: move to config per epoch
+const (
+	MaxRoundsWithoutNewBlockReceived          = 10
+	SupernovaMaxRoundsWithoutNewBlockReceived = 100
+)
 
 // MaxMetaHeadersAllowedInOneShardBlock defines the maximum number of meta headers allowed to be included in one shard block
 const MaxMetaHeadersAllowedInOneShardBlock = 50

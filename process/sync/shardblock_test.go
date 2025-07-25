@@ -223,6 +223,7 @@ func CreateShardBootstrapMockArguments() sync.ArgShardBootstrapper {
 		ProcessWaitTime:              testProcessWaitTime,
 		RepopulateTokensSupplies:     false,
 		EnableEpochsHandler:          &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		EnableRoundsHandler:          &testscommon.EnableRoundsHandlerStub{},
 	}
 
 	argsShardBootstrapper := sync.ArgShardBootstrapper{

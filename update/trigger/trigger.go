@@ -27,8 +27,9 @@ const epochGracePeriod = 4
 const minTimeToWaitAfterHardforkInMinutes = 2
 const minimumEpochForHarfork = 1
 
-// TODO: update constant for supernova
+// TODO: add constants to config
 const deltaRoundsForForcedEpoch = uint64(10)
+const supernovaDeltaRoundsForForcedEpoch = uint64(100)
 const disabledRoundForForceEpochStart = uint64(math.MaxUint64)
 
 var _ facade.HardforkTrigger = (*trigger)(nil)
@@ -201,7 +202,7 @@ func (t *trigger) Trigger(epoch uint32, withEarlyEndOfEpoch bool) error {
 		return update.ErrTriggerNotEnabled
 	}
 
-	round := t.computeHardforkRound(withEarlyEndOfEpoch)
+	round := t.computeHardforkRound(withEarlyEndOfEpoch, epoch)
 	logInfo := []interface{}{
 		"epoch", epoch, "withEarlyEndOfEpoch", withEarlyEndOfEpoch,
 	}
@@ -234,10 +235,12 @@ func (t *trigger) Trigger(epoch uint32, withEarlyEndOfEpoch bool) error {
 	return nil
 }
 
-func (t *trigger) computeHardforkRound(withEarlyEndOfEpoch bool) uint64 {
+func (t *trigger) computeHardforkRound(withEarlyEndOfEpoch bool, epoch uint32) uint64 {
 	if !withEarlyEndOfEpoch {
 		return disabledRoundForForceEpochStart
 	}
+
+	deltaRoundsForForcedEpoch := t.getDeltaRoundsForForceEpoch(epoch)
 
 	currentRound := t.roundHandler.Index()
 	if currentRound < 0 {
@@ -246,6 +249,14 @@ func (t *trigger) computeHardforkRound(withEarlyEndOfEpoch bool) uint64 {
 	}
 
 	return uint64(currentRound) + deltaRoundsForForcedEpoch
+}
+
+func (t *trigger) getDeltaRoundsForForceEpoch(epoch uint32) uint64 {
+	if t.enableEpochsHandler.IsFlagEnabledInEpoch(common.SupernovaFlag, epoch) {
+		return supernovaDeltaRoundsForForcedEpoch
+	}
+
+	return deltaRoundsForForcedEpoch
 }
 
 // computeAndSetTrigger needs to do 2 things atomically: set the original payload and epoch and determine if the trigger

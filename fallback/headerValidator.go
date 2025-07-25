@@ -5,19 +5,24 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/marshal"
-	"github.com/multiversx/mx-chain-logger-go"
+	logger "github.com/multiversx/mx-chain-logger-go"
 
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
+	"github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/process"
 )
+
+// TODO: move constant to config
+const SupernovaMaxRoundsWithoutCommittedStartInEpochBlock = 500
 
 var log = logger.GetOrCreate("fallback")
 
 type fallbackHeaderValidator struct {
-	headersPool    dataRetriever.HeadersPool
-	marshalizer    marshal.Marshalizer
-	storageService dataRetriever.StorageService
+	headersPool         dataRetriever.HeadersPool
+	marshalizer         marshal.Marshalizer
+	storageService      dataRetriever.StorageService
+	enableEpochsHandler common.EnableEpochsHandler
 }
 
 // NewFallbackHeaderValidator creates a new fallbackHeaderValidator object
@@ -25,6 +30,7 @@ func NewFallbackHeaderValidator(
 	headersPool dataRetriever.HeadersPool,
 	marshalizer marshal.Marshalizer,
 	storageService dataRetriever.StorageService,
+	enableEpochsHandler common.EnableEpochsHandler,
 ) (*fallbackHeaderValidator, error) {
 
 	if check.IfNil(headersPool) {
@@ -36,11 +42,15 @@ func NewFallbackHeaderValidator(
 	if check.IfNil(storageService) {
 		return nil, process.ErrNilStorage
 	}
+	if check.IfNil(enableEpochsHandler) {
+		return nil, errors.ErrNilEnableEpochsHandler
+	}
 
 	hv := &fallbackHeaderValidator{
-		headersPool:    headersPool,
-		marshalizer:    marshalizer,
-		storageService: storageService,
+		headersPool:         headersPool,
+		marshalizer:         marshalizer,
+		storageService:      storageService,
+		enableEpochsHandler: enableEpochsHandler,
 	}
 
 	return hv, nil
@@ -61,8 +71,16 @@ func (fhv *fallbackHeaderValidator) ShouldApplyFallbackValidationForHeaderWith(s
 		return false
 	}
 
-	isRoundTooOld := int64(round)-int64(previousHeader.GetRound()) >= common.MaxRoundsWithoutCommittedStartInEpochBlock
+	isRoundTooOld := int64(round)-int64(previousHeader.GetRound()) >= fhv.getMaxRoundsWithoutCommitedStartInEpochBlock()
 	return isRoundTooOld
+}
+
+func (fhv *fallbackHeaderValidator) getMaxRoundsWithoutCommitedStartInEpochBlock() int64 {
+	if fhv.enableEpochsHandler.IsFlagEnabled(common.SupernovaFlag) {
+		return SupernovaMaxRoundsWithoutCommittedStartInEpochBlock
+	}
+
+	return common.MaxRoundsWithoutCommittedStartInEpochBlock
 }
 
 // ShouldApplyFallbackValidation returns if for the given header could be applied fallback validation or not

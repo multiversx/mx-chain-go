@@ -50,6 +50,7 @@ type ArgBaseBootstrapper struct {
 	ProcessWaitTime              time.Duration
 	RepopulateTokensSupplies     bool
 	EnableEpochsHandler          common.EnableEpochsHandler
+	EnableRoundsHandler          common.EnableRoundsHandler
 }
 
 // ArgShardBootstrapper holds all dependencies required by the bootstrap data factory in order to create

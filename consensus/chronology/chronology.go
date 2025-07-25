@@ -205,7 +205,6 @@ func (chr *chronology) updateRound() {
 }
 
 func (chr *chronology) getRoundUnixTimeStamp() int64 {
-	// TODO: analyse here activation epoch/round at transition
 	if chr.enableEpochsHandler.IsFlagEnabled(common.SupernovaFlag) {
 		return chr.roundHandler.TimeStamp().UnixMilli()
 	}

@@ -192,7 +192,6 @@ func (t *trigger) ForceEpochStart(round uint64) {
 	log.Debug("set new epoch start round", "round", t.nextEpochStartRound)
 }
 
-// TODO check if this need to be handled differently at transition to new epoch
 func (t *trigger) getRoundsPerEpoch(epoch uint32) uint64 {
 	chainParametersForEpoch, err := t.chainParametersHandler.ChainParametersForEpoch(epoch)
 	if err != nil {

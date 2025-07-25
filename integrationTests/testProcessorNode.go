@@ -3179,6 +3179,7 @@ func (tpn *TestProcessorNode) initBlockTracker() {
 		WhitelistHandler:              tpn.WhiteListHandler,
 		FeeHandler:                    tpn.EconomicsData,
 		EnableEpochsHandler:           tpn.EnableEpochsHandler,
+		EnableRoundsHandler:           tpn.EnableRoundsHandler,
 		EpochChangeGracePeriodHandler: TestEpochChangeGracePeriod,
 		ProofsPool:                    tpn.DataPool.Proofs(),
 	}
