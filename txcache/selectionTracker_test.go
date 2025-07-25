@@ -16,17 +16,19 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-var defaultSelectionSessionMock = txcachemocks.SelectionSessionMock{
-	GetAccountStateCalled: func(address []byte) (state.UserAccountHandler, error) {
-		return &testscommonState.StateUserAccountHandlerStub{
-			GetBalanceCalled: func() *big.Int {
-				return big.NewInt(20)
-			},
-			GetNonceCalled: func() uint64 {
-				return uint64(1)
-			},
-		}, nil
-	},
+func getSelectionSessionMock() SelectionSession {
+	return &txcachemocks.SelectionSessionMock{
+		GetAccountStateCalled: func(address []byte) (state.UserAccountHandler, error) {
+			return &testscommonState.StateUserAccountHandlerStub{
+				GetBalanceCalled: func() *big.Int {
+					return big.NewInt(20)
+				},
+				GetNonceCalled: func() uint64 {
+					return uint64(1)
+				},
+			}, nil
+		},
+	}
 }
 
 func createMockedHeaders(numOfHeaders int) []*block.Header {
@@ -154,11 +156,13 @@ func TestSelectionTracker_OnProposedBlockShouldErr(t *testing.T) {
 				},
 			},
 		}
+
+		selectionSessionMock := getSelectionSessionMock()
 		err = tracker.OnProposedBlock([]byte("hash1"), &blockBody, &block.Header{
 			Nonce:    uint64(0),
 			PrevHash: []byte(fmt.Sprintf("prevHash%d", 0)),
 			RootHash: []byte(fmt.Sprintf("rootHash%d", 0)),
-		}, &defaultSelectionSessionMock, defaultBlockchainInfo)
+		}, selectionSessionMock, defaultBlockchainInfo)
 
 		require.Equal(t, errNonceGap, err)
 	})
