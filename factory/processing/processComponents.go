@@ -283,6 +283,7 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 		pcf.data.Datapool().Headers(),
 		pcf.coreData.InternalMarshalizer(),
 		pcf.data.StorageService(),
+		pcf.coreData.EnableEpochsHandler(),
 	)
 	if err != nil {
 		return nil, err
@@ -1367,6 +1368,7 @@ func (pcf *processComponentsFactory) newBlockTracker(
 		WhitelistHandler:              pcf.whiteListHandler,
 		FeeHandler:                    pcf.coreData.EconomicsData(),
 		EnableEpochsHandler:           pcf.coreData.EnableEpochsHandler(),
+		EnableRoundsHandler:           pcf.coreData.EnableRoundsHandler(),
 		ProofsPool:                    pcf.data.Datapool().Proofs(),
 		IsImportDBMode:                pcf.importDBConfig.IsImportDBMode,
 		EpochChangeGracePeriodHandler: pcf.coreData.EpochChangeGracePeriodHandler(),
