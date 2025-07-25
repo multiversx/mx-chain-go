@@ -571,15 +571,8 @@ func testSecondSelectionWithManyTxsInPool(t *testing.T, sw *core.StopWatch, numT
 	require.Equal(t, numTxsToBeSelected, len(selectedTransactions))
 }
 
-func initEnvVariables() bool {
-	envPprof := os.Getenv("PPROF")
-	shouldCreatePprofFiles := envPprof == "1"
-
-	return shouldCreatePprofFiles
-}
-
 func createPprofFiles(t *testing.T) *os.File {
-	shouldCreatePprofFiles := initEnvVariables()
+	shouldCreatePprofFiles := checkEnvVariables()
 	if !shouldCreatePprofFiles {
 		return nil
 	}
@@ -594,4 +587,11 @@ func createPprofFiles(t *testing.T) *os.File {
 	require.Nil(t, err)
 
 	return f
+}
+
+func checkEnvVariables() bool {
+	envPprof := os.Getenv("PPROF")
+	shouldCreatePprofFiles := envPprof == "1"
+
+	return shouldCreatePprofFiles
 }
