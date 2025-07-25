@@ -7,21 +7,20 @@ import (
 )
 
 type virtualAccountRecord struct {
-	initialNonce    core.OptionalUint64
-	initialBalance  *big.Int
-	consumedBalance *big.Int
+	initialNonce   core.OptionalUint64
+	virtualBalance *virtualAccountBalance
 }
 
 func newVirtualAccountRecord(initialNonce core.OptionalUint64, initialBalance *big.Int) *virtualAccountRecord {
 	return &virtualAccountRecord{
-		initialNonce:    initialNonce,
-		initialBalance:  initialBalance,
-		consumedBalance: big.NewInt(0),
+		initialNonce:   initialNonce,
+		virtualBalance: newVirtualAccountBalance(initialBalance),
 	}
 }
 
+// updateVirtualRecord updates the virtualBalance of a virtualAccountRecord and handles the nonces
 func (virtualRecord *virtualAccountRecord) updateVirtualRecord(breadcrumb *accountBreadcrumb) {
-	_ = virtualRecord.consumedBalance.Add(virtualRecord.consumedBalance, breadcrumb.consumedBalance)
+	virtualRecord.virtualBalance.accumulateConsumedBalance(breadcrumb)
 
 	if !breadcrumb.lastNonce.HasValue {
 		// in a certain tracked block, we can have breadcrumbs for accounts that are only used as relayers and never as senders
@@ -59,4 +58,12 @@ func (virtualRecord *virtualAccountRecord) updateInitialNonce(breadcrumb *accoun
 		Value:    max(breadcrumb.lastNonce.Value, virtualRecord.initialNonce.Value) + 1,
 		HasValue: true,
 	}
+}
+
+func (virtualRecord *virtualAccountRecord) getInitialBalance() *big.Int {
+	return virtualRecord.virtualBalance.getInitialBalance()
+}
+
+func (virtualRecord *virtualAccountRecord) getConsumedBalance() *big.Int {
+	return virtualRecord.virtualBalance.getConsumedBalance()
 }

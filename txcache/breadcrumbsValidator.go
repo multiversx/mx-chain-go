@@ -1,6 +1,10 @@
 package txcache
 
-import "github.com/multiversx/mx-chain-go/state"
+import (
+	"math/big"
+
+	"github.com/multiversx/mx-chain-go/state"
+)
 
 // breadcrumbsValidator checks that breadcrumbs are continuous
 //
@@ -10,6 +14,7 @@ type breadcrumbsValidator struct {
 	skippedSenders                      map[string]struct{}
 	sendersInContinuityWithSessionNonce map[string]struct{}
 	accountPreviousBreadcrumb           map[string]*accountBreadcrumb
+	virtualBalancesByAddress            map[string]*virtualAccountBalance
 }
 
 // a validator object is used for the next scenarios:
@@ -22,6 +27,7 @@ func newBreadcrumbValidator() *breadcrumbsValidator {
 		skippedSenders:                      make(map[string]struct{}),
 		sendersInContinuityWithSessionNonce: make(map[string]struct{}),
 		accountPreviousBreadcrumb:           make(map[string]*accountBreadcrumb),
+		virtualBalancesByAddress:            make(map[string]*virtualAccountBalance),
 	}
 }
 
@@ -103,4 +109,19 @@ func (validator *breadcrumbsValidator) continuousWithPreviousBreadcrumb(
 func (validator *breadcrumbsValidator) shouldSkipSender(address string) bool {
 	_, ok := validator.skippedSenders[address]
 	return ok
+}
+
+func (validator *breadcrumbsValidator) validateBalance(
+	address string,
+	breadcrumb *accountBreadcrumb,
+	initialBalance *big.Int,
+) error {
+	virtualBalance, ok := validator.virtualBalancesByAddress[address]
+	if !ok {
+		virtualBalance = newVirtualAccountBalance(initialBalance)
+		validator.virtualBalancesByAddress[address] = virtualBalance
+	}
+
+	virtualBalance.accumulateConsumedBalance(breadcrumb)
+	return virtualBalance.validateBalance()
 }

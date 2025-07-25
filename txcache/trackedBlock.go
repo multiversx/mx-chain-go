@@ -2,7 +2,6 @@ package txcache
 
 import (
 	"bytes"
-	"math/big"
 
 	"github.com/multiversx/mx-chain-core-go/core"
 )
@@ -105,19 +104,22 @@ func (tb *trackedBlock) getOrCreateBreadcrumb(address string) *accountBreadcrumb
 	breadcrumb := newAccountBreadcrumb(core.OptionalUint64{
 		Value:    0,
 		HasValue: false,
-	}, big.NewInt(0))
+	}, nil)
 	tb.breadcrumbsByAddress[address] = breadcrumb
 
 	return breadcrumb
 }
 
-func (tb *trackedBlock) getOrCreateBreadcrumbWithNonce(address string, nonce core.OptionalUint64) *accountBreadcrumb {
+func (tb *trackedBlock) getOrCreateBreadcrumbWithNonce(
+	address string,
+	nonce core.OptionalUint64,
+) *accountBreadcrumb {
 	breadCrumb, ok := tb.breadcrumbsByAddress[address]
 	if ok {
 		return breadCrumb
 	}
 
-	breadcrumb := newAccountBreadcrumb(nonce, big.NewInt(0))
+	breadcrumb := newAccountBreadcrumb(nonce, nil)
 	tb.breadcrumbsByAddress[address] = breadcrumb
 
 	return breadcrumb
