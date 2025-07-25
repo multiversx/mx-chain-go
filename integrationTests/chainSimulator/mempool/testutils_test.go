@@ -6,7 +6,6 @@ import (
 	"math/big"
 	"math/rand"
 	"os"
-	"os/exec"
 	"runtime/pprof"
 	"strconv"
 	"strings"
@@ -326,7 +325,7 @@ func createRandomTxs(txpool *txcache.TxCache, numTxs int, nonceTracker *noncesTr
 }
 
 func testOnProposed(t *testing.T, sw *core.StopWatch, numTxs int, numAddresses int) {
-	shouldCreatePprofFiles, shouldCreatePng := initEnvVariables()
+	shouldCreatePprofFiles := initEnvVariables()
 
 	// create some fake address for each account
 	accounts := createFakeAddresses(numAddresses)
@@ -367,7 +366,6 @@ func testOnProposed(t *testing.T, sw *core.StopWatch, numTxs int, numAddresses i
 		// start profiling
 		testName := strings.ReplaceAll(t.Name(), "/", "_")
 		fileName := fmt.Sprintf("%s.pprof", testName)
-		pngName := fmt.Sprintf("%s.png", testName)
 		f, err := os.Create(fileName)
 		require.Nil(t, err)
 		err = pprof.StartCPUProfile(f)
@@ -379,13 +377,6 @@ func testOnProposed(t *testing.T, sw *core.StopWatch, numTxs int, numAddresses i
 			err = f.Close()
 			require.NoError(t, err)
 		}()
-
-		if shouldCreatePng {
-			defer func() {
-				err := generatePNGsFromPprof(fileName, pngName)
-				require.Nil(t, err)
-			}()
-		}
 	}
 
 	sw.Start(t.Name())
@@ -403,7 +394,7 @@ func testOnProposed(t *testing.T, sw *core.StopWatch, numTxs int, numAddresses i
 }
 
 func testFirstSelection(t *testing.T, sw *core.StopWatch, numTxs int, numTxsToBeSelected, numAddresses int) {
-	shouldCreatePprofFiles, shouldCreatePng := initEnvVariables()
+	shouldCreatePprofFiles := initEnvVariables()
 
 	// create some fake address for each account
 	accounts := createFakeAddresses(numAddresses)
@@ -440,7 +431,6 @@ func testFirstSelection(t *testing.T, sw *core.StopWatch, numTxs int, numTxsToBe
 		// start profiling
 		testName := strings.ReplaceAll(t.Name(), "/", "_")
 		fileName := fmt.Sprintf("%s.pprof", testName)
-		pngName := fmt.Sprintf("%s.png", testName)
 		f, err := os.Create(fileName)
 		require.Nil(t, err)
 		err = pprof.StartCPUProfile(f)
@@ -452,13 +442,6 @@ func testFirstSelection(t *testing.T, sw *core.StopWatch, numTxs int, numTxsToBe
 			err = f.Close()
 			require.NoError(t, err)
 		}()
-
-		if shouldCreatePng {
-			defer func() {
-				err := generatePNGsFromPprof(fileName, pngName)
-				require.Nil(t, err)
-			}()
-		}
 	}
 
 	sw.Start(t.Name())
@@ -468,7 +451,7 @@ func testFirstSelection(t *testing.T, sw *core.StopWatch, numTxs int, numTxsToBe
 }
 
 func testSecondSelection(t *testing.T, sw *core.StopWatch, numTxs int, numTxsToBeSelected int, numAddresses int) {
-	shouldCreatePprofFiles, shouldCreatePng := initEnvVariables()
+	shouldCreatePprofFiles := initEnvVariables()
 
 	// create some fake address for each account
 	accounts := createFakeAddresses(numAddresses)
@@ -538,7 +521,6 @@ func testSecondSelection(t *testing.T, sw *core.StopWatch, numTxs int, numTxsToB
 		// start profiling
 		testName := strings.ReplaceAll(t.Name(), "/", "_")
 		fileName := fmt.Sprintf("%s.pprof", testName)
-		pngName := fmt.Sprintf("%s.png", testName)
 		f, err := os.Create(fileName)
 		require.Nil(t, err)
 		err = pprof.StartCPUProfile(f)
@@ -551,12 +533,6 @@ func testSecondSelection(t *testing.T, sw *core.StopWatch, numTxs int, numTxsToB
 			require.NoError(t, err)
 		}()
 
-		if shouldCreatePng {
-			defer func() {
-				err := generatePNGsFromPprof(fileName, pngName)
-				require.Nil(t, err)
-			}()
-		}
 	}
 
 	selectedTransactions, _ = txpool.SelectTransactions(selectionSession, options, blockchainInfo)
@@ -564,7 +540,7 @@ func testSecondSelection(t *testing.T, sw *core.StopWatch, numTxs int, numTxsToB
 }
 
 func testSecondSelectionWithManyTxsInPool(t *testing.T, sw *core.StopWatch, numTxs int, numTxsToBeSelected int, numAddresses int) {
-	shouldCreatePprofFiles, shouldCreatePng := initEnvVariables()
+	shouldCreatePprofFiles := initEnvVariables()
 
 	accounts := createFakeAddresses(numAddresses)
 
@@ -614,7 +590,6 @@ func testSecondSelectionWithManyTxsInPool(t *testing.T, sw *core.StopWatch, numT
 		// start profiling
 		testName := strings.ReplaceAll(t.Name(), "/", "_")
 		fileName := fmt.Sprintf("%s.pprof", testName)
-		pngName := fmt.Sprintf("%s.png", testName)
 		f, err := os.Create(fileName)
 		require.Nil(t, err)
 		err = pprof.StartCPUProfile(f)
@@ -626,13 +601,6 @@ func testSecondSelectionWithManyTxsInPool(t *testing.T, sw *core.StopWatch, numT
 			err = f.Close()
 			require.NoError(t, err)
 		}()
-
-		if shouldCreatePng {
-			defer func() {
-				err := generatePNGsFromPprof(fileName, pngName)
-				require.Nil(t, err)
-			}()
-		}
 	}
 
 	// measure the time for the second selection (now we use the breadcrumbs to create the virtual records)
@@ -643,37 +611,9 @@ func testSecondSelectionWithManyTxsInPool(t *testing.T, sw *core.StopWatch, numT
 	require.Equal(t, numTxsToBeSelected, len(selectedTransactions))
 }
 
-func initEnvVariables() (bool, bool) {
+func initEnvVariables() bool {
 	envPprof := os.Getenv("PPROF")
 	shouldCreatePprofFiles := envPprof == "1"
 
-	envPng := os.Getenv("PNG")
-	shouldCreatePng := envPng == "1"
-
-	return shouldCreatePprofFiles, shouldCreatePng
-}
-
-func generatePNGsFromPprof(pprofPath string, pngPath string) error {
-	cmd := exec.Command("go", "tool", "pprof", "-png", binaryName, pprofPath)
-	output, err := cmd.Output()
-	if err != nil {
-		return fmt.Errorf("failed to run pprof: %w", err)
-	}
-
-	err = os.WriteFile(pngPath, output, 0644)
-	if err != nil {
-		return fmt.Errorf("failed to write PNG: %w", err)
-	}
-
-	return nil
-
-}
-
-func Test_createTestBinary(t *testing.T) {
-	cmd := exec.Command("go", "test", "-c", "-o", binaryName)
-	output, err := cmd.CombinedOutput()
-	if err != nil {
-		fmt.Println("Failed to build the binary: ", string(output))
-	}
-	require.NoError(t, err)
+	return shouldCreatePprofFiles
 }
