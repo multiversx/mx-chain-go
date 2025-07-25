@@ -57,12 +57,6 @@ func (data *randomData) getItem(index int) []byte {
 	return data.randomBytes[start:end]
 }
 
-func (data *randomData) getTailItem(index int) []byte {
-	start := (data.numItems - 1 - index) * data.itemSize
-	end := start + data.itemSize
-	return data.randomBytes[start:end]
-}
-
 func (cache *TxCache) areInternalMapsConsistent() bool {
 	internalMapByHash := cache.txByHash
 	internalMapBySender := cache.txListBySender
@@ -248,6 +242,11 @@ func (wrappedTx *WrappedTransaction) withGasLimit(gasLimit uint64) *WrappedTrans
 func (wrappedTx *WrappedTransaction) withValue(value *big.Int) *WrappedTransaction {
 	tx := wrappedTx.Tx.(*transaction.Transaction)
 	tx.Value = value
+	return wrappedTx
+}
+
+func (wrappedTx *WrappedTransaction) withTransferredValue(value *big.Int) *WrappedTransaction {
+	wrappedTx.TransferredValue = value
 	return wrappedTx
 }
 

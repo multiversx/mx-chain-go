@@ -78,7 +78,7 @@ func (st *selectionTracker) OnProposedBlock(
 	st.blocks = append(st.blocks, tBlock)
 
 	blocksToBeValidated := st.getChainOfTrackedBlocks(blockchainInfo.GetLatestExecutedBlockHash(), blockchainInfo.GetCurrentNonce())
-	// make sure that the proposed block is valid (continuous with the other proposed blocks)
+	// make sure that the proposed block is valid (continuous with the other proposed blocks and no balance issues)
 	return st.validateTrackedBlocks(blocksToBeValidated, session)
 }
 
@@ -96,7 +96,6 @@ func (st *selectionTracker) OnExecutedBlock(handler data.HeaderHandler) error {
 	if err != nil {
 		return err
 	}
-
 	st.mutTracker.Lock()
 	defer st.mutTracker.Unlock()
 
@@ -119,8 +118,22 @@ func (st *selectionTracker) validateTrackedBlocks(chainOfTrackedBlocks []*tracke
 				return err
 			}
 
+			// validate that a breadcrumb is continuous
 			if !validator.continuousBreadcrumb(address, breadcrumb, accountState) {
 				return errDiscontinuousBreadcrumbs
+			}
+
+			// TODO re-brainstorm, validate with more integration tests
+			// use its balance to accumulate and validate (make sure is < than initialBalance from the session)
+			initialBalance := accountState.GetBalance()
+			err = validator.validateBalance(address, breadcrumb, initialBalance)
+			if err != nil {
+				// exit at the first failure
+				log.Debug("selectionTracker.validateTrackedBlocks validation failed",
+					"err", err,
+					"address", address,
+					"rootHash", accountState.GetRootHash())
+				return err
 			}
 		}
 	}
