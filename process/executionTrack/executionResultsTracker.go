@@ -147,6 +147,11 @@ func (est *executionResultsTracker) CleanConfirmedExecutionResults(header Header
 	defer est.mutex.Unlock()
 
 	headerExecutionResults := header.GetExecutionResults()
+
+	return est.cleanConfirmedExecutionResults(headerExecutionResults)
+}
+
+func (est *executionResultsTracker) cleanConfirmedExecutionResults(headerExecutionResults []*block.ExecutionResult) (*CleanInfo, error) {
 	if len(headerExecutionResults) == 0 {
 		return &CleanInfo{
 			CleanResult:             CleanResultOK,
@@ -154,10 +159,6 @@ func (est *executionResultsTracker) CleanConfirmedExecutionResults(header Header
 		}, nil
 	}
 
-	return est.cleanConfirmedExecutionResults(headerExecutionResults)
-}
-
-func (est *executionResultsTracker) cleanConfirmedExecutionResults(headerExecutionResults []*block.ExecutionResult) (*CleanInfo, error) {
 	pendingExecutionResult, err := est.getPendingExecutionResults()
 	if err != nil {
 		return nil, err
