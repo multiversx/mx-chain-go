@@ -2,7 +2,6 @@ package shardingMocks
 
 import (
 	"bytes"
-	"errors"
 	"fmt"
 
 	"github.com/multiversx/mx-chain-core-go/core"
@@ -235,17 +234,8 @@ func (ncm *NodesCoordinatorMock) ComputeConsensusGroup(
 
 	validatorsGroup := make([]nodesCoordinator.Validator, 0)
 
-	shardValidators := ncm.Validators[shardId]
 	for i := uint32(0); i < consensusSize; i++ {
-		if int(i) >= len(shardValidators) {
-			return nil, nil, errors.New("npc.ComputeConsensusGroup - invalid consensus group size")
-		}
-
-		validatorsGroup = append(validatorsGroup, shardValidators[i])
-	}
-
-	if len(validatorsGroup) == 0 {
-		return nil, nil, errors.New("npc.ComputeConsensusGroup - empty validators group")
+		validatorsGroup = append(validatorsGroup, ncm.Validators[shardId][i])
 	}
 
 	return validatorsGroup[0], validatorsGroup, nil
