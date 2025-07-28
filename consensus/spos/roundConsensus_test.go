@@ -350,7 +350,7 @@ func TestRoundsConsensus_Concurrency(t *testing.T) {
 
 	for i := 0; i < numOperations; i++ {
 		go func(idx int) {
-			switch idx % 6 {
+			switch idx % 16 {
 			case 0:
 				_ = rcns.ComputeSize(0)
 			case 1:

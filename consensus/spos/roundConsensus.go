@@ -57,7 +57,7 @@ func (rcns *roundConsensus) ConsensusGroupIndex(pubKey string) (int, error) {
 
 // SelfConsensusGroupIndex returns the index of self public key in current consensus group
 func (rcns *roundConsensus) SelfConsensusGroupIndex() (int, error) {
-	return rcns.ConsensusGroupIndex(rcns.selfPubKey)
+	return rcns.ConsensusGroupIndex(rcns.SelfPubKey())
 }
 
 // SetEligibleList sets the eligible list ID's
@@ -181,7 +181,7 @@ func (rcns *roundConsensus) SetJobDone(key string, subroundId int, value bool) e
 
 // SelfJobDone returns the self state of the action done in subround given by the subroundId parameter
 func (rcns *roundConsensus) SelfJobDone(subroundId int) (bool, error) {
-	return rcns.JobDone(rcns.selfPubKey, subroundId)
+	return rcns.JobDone(rcns.SelfPubKey(), subroundId)
 }
 
 // IsNodeInConsensusGroup method checks if the node is part of consensus group of the current round
