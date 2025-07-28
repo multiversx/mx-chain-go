@@ -44,6 +44,9 @@ func NewRoundConsensus(
 
 // ConsensusGroupIndex returns the index of given public key in the current consensus group
 func (rcns *roundConsensus) ConsensusGroupIndex(pubKey string) (int, error) {
+	rcns.mut.RLock()
+	defer rcns.mut.RUnlock()
+
 	for i, pk := range rcns.consensusGroup {
 		if pk == pubKey {
 			return i, nil
@@ -105,21 +108,33 @@ func (rcns *roundConsensus) SetLeader(leader string) {
 
 // ConsensusGroupSize returns the consensus group size
 func (rcns *roundConsensus) ConsensusGroupSize() int {
+	rcns.mut.RLock()
+	defer rcns.mut.RUnlock()
+
 	return rcns.consensusGroupSize
 }
 
 // SetConsensusGroupSize sets the consensus group size
 func (rcns *roundConsensus) SetConsensusGroupSize(consensusGroupSize int) {
+	rcns.mut.Lock()
+	defer rcns.mut.Unlock()
+
 	rcns.consensusGroupSize = consensusGroupSize
 }
 
 // SelfPubKey returns selfPubKey ID
 func (rcns *roundConsensus) SelfPubKey() string {
+	rcns.mut.RLock()
+	defer rcns.mut.RUnlock()
+
 	return rcns.selfPubKey
 }
 
 // SetSelfPubKey sets selfPubKey ID
 func (rcns *roundConsensus) SetSelfPubKey(selfPubKey string) {
+	rcns.mut.Lock()
+	defer rcns.mut.Unlock()
+
 	rcns.selfPubKey = selfPubKey
 }
 
@@ -127,15 +142,21 @@ func (rcns *roundConsensus) SetSelfPubKey(selfPubKey string) {
 // in subround given by the subroundId parameter
 func (rcns *roundConsensus) JobDone(key string, subroundId int) (bool, error) {
 	rcns.mut.RLock()
+	retCode, err := rcns.jobDone(key, subroundId)
+	rcns.mut.RUnlock()
+
+	return retCode, err
+}
+
+// this should run under mutex
+func (rcns *roundConsensus) jobDone(key string, subroundId int) (bool, error) {
 	currentRoundState := rcns.validatorRoundStates[key]
 
 	if currentRoundState == nil {
-		rcns.mut.RUnlock()
 		return false, ErrInvalidKey
 	}
 
 	retcode := currentRoundState.JobDone(subroundId)
-	rcns.mut.RUnlock()
 
 	return retcode, nil
 }
@@ -189,10 +210,13 @@ func (rcns *roundConsensus) IsNodeInEligibleList(node string) bool {
 // ComputeSize method returns the number of messages received from the nodes belonging to the current jobDone group
 // related to this subround
 func (rcns *roundConsensus) ComputeSize(subroundId int) int {
+	rcns.mut.RLock()
+	defer rcns.mut.RUnlock()
+
 	n := 0
 
 	for i := 0; i < len(rcns.consensusGroup); i++ {
-		isJobDone, err := rcns.JobDone(rcns.consensusGroup[i], subroundId)
+		isJobDone, err := rcns.jobDone(rcns.consensusGroup[i], subroundId)
 		if err != nil {
 			log.Debug("JobDone", "error", err.Error())
 			continue
@@ -228,6 +252,9 @@ func (rcns *roundConsensus) ResetRoundState() {
 // IsMultiKeyInConsensusGroup method checks if one of the nodes which are controlled by this instance
 // is in consensus group in the current round
 func (rcns *roundConsensus) IsMultiKeyInConsensusGroup() bool {
+	rcns.mut.RLock()
+	defer rcns.mut.RUnlock()
+
 	for i := 0; i < len(rcns.consensusGroup); i++ {
 		if rcns.IsKeyManagedBySelf([]byte(rcns.consensusGroup[i])) {
 			return true
