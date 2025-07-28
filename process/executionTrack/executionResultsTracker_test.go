@@ -77,7 +77,7 @@ func TestAddExecutionResult_AllBranches(t *testing.T) {
 		t.Parallel()
 
 		tracker := NewExecutionResultsTracker()
-		tracker.lastNotarizedResult = &block.ExecutionResult{Nonce: 10}
+		_ = tracker.SetLastNotarizedResult(&block.ExecutionResult{Nonce: 10, HeaderHash: []byte("hh")})
 
 		execResult := &block.ExecutionResult{HeaderHash: []byte("hash3"), Nonce: 12}
 		err := tracker.AddExecutionResult(execResult)
@@ -90,7 +90,7 @@ func TestAddExecutionResult_AllBranches(t *testing.T) {
 		t.Parallel()
 
 		tracker := NewExecutionResultsTracker()
-		tracker.lastNotarizedResult = &block.ExecutionResult{Nonce: 10}
+		_ = tracker.SetLastNotarizedResult(&block.ExecutionResult{Nonce: 10, HeaderHash: []byte("hh")})
 
 		execResult := &block.ExecutionResult{HeaderHash: []byte("hash3"), Nonce: 11}
 		err := tracker.AddExecutionResult(execResult)
