@@ -2263,6 +2263,25 @@ func (sp *shardProcessor) createMiniBlocks(haveTime func() bool, randomness []by
 		return &block.Body{MiniBlocks: miniBlocks}, processedMiniBlocksDestMeInfo, nil
 	}
 
+	// Temporarily disable execution of transactions from ME starting with the Supernova release.
+	// This is required to safely transition to the new asynchronous execution mechanism.
+	//
+	// 1. Pause the standard transaction execution flow for a short number of rounds.
+	// 2. Resume miniblock and transaction execution using the new async mechanism.
+
+	isSupernovaEnabled := sp.enableEpochsHandler.IsFlagEnabled(common.SupernovaFlag)
+	asyncExecutionEnabled := false // TODO use flag for async execution
+
+	if isSupernovaEnabled && !asyncExecutionEnabled {
+		interMBs := sp.txCoordinator.CreatePostProcessMiniBlocks()
+		miniBlocks = append(miniBlocks, interMBs...)
+
+		log.Debug("transactions and miniblocks from ME are no longer processed until asynchronous execution is activated.")
+		log.Debug("creating mini blocks has been finished", "num miniblocks", len(miniBlocks))
+
+		return &block.Body{MiniBlocks: miniBlocks}, processedMiniBlocksDestMeInfo, nil
+	}
+
 	startTime = time.Now()
 	mbsFromMe := sp.txCoordinator.CreateMbsAndProcessTransactionsFromMe(haveTime, randomness)
 	elapsedTime = time.Since(startTime)
