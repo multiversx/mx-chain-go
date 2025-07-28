@@ -1467,12 +1467,13 @@ func TestTransactionsPreprocessor_SplitMiniBlocksIfNeededShouldWork(t *testing.T
 	tx4 := transaction.Transaction{Nonce: 3, GasLimit: txGasLimit}
 	tx5 := transaction.Transaction{Nonce: 4, GasLimit: txGasLimit}
 	tx6 := transaction.Transaction{Nonce: 5, GasLimit: txGasLimit}
-	preprocessor.txsForCurrBlock.txHashAndInfo["hash1"] = &txInfo{tx: &tx1}
-	preprocessor.txsForCurrBlock.txHashAndInfo["hash2"] = &txInfo{tx: &tx2}
-	preprocessor.txsForCurrBlock.txHashAndInfo["hash3"] = &txInfo{tx: &tx3}
-	preprocessor.txsForCurrBlock.txHashAndInfo["hash4"] = &txInfo{tx: &tx4}
-	preprocessor.txsForCurrBlock.txHashAndInfo["hash5"] = &txInfo{tx: &tx5}
-	preprocessor.txsForCurrBlock.txHashAndInfo["hash6"] = &txInfo{tx: &tx6}
+	tfb := preprocessor.txsForCurrBlock.(*txsForBlock)
+	tfb.txHashAndInfo["hash1"] = &txInfo{tx: &tx1}
+	tfb.txHashAndInfo["hash2"] = &txInfo{tx: &tx2}
+	tfb.txHashAndInfo["hash3"] = &txInfo{tx: &tx3}
+	tfb.txHashAndInfo["hash4"] = &txInfo{tx: &tx4}
+	tfb.txHashAndInfo["hash5"] = &txInfo{tx: &tx5}
+	tfb.txHashAndInfo["hash6"] = &txInfo{tx: &tx6}
 
 	miniBlocks := make([]*block.MiniBlock, 0)
 
@@ -1867,7 +1868,8 @@ func TestTxsPreprocessor_AddTxsFromMiniBlocksShouldWork(t *testing.T) {
 	}
 
 	txs.AddTxsFromMiniBlocks(mbs)
-	assert.Equal(t, 2, len(txs.txsForCurrBlock.txHashAndInfo))
+	tfb := txs.txsForCurrBlock.(*txsForBlock)
+	assert.Equal(t, 2, len(tfb.txHashAndInfo))
 }
 
 func TestTransactions_AddTransactions(t *testing.T) {
@@ -1887,7 +1889,8 @@ func TestTransactions_AddTransactions(t *testing.T) {
 		}
 		txPreproc, _ := NewTransactionPreprocessor(args)
 		txPreproc.AddTransactions(txs)
-		require.Empty(t, &txPreproc.txsForCurrBlock.txHashAndInfo)
+		tfb := txPreproc.txsForCurrBlock.(*txsForBlock)
+		require.Empty(t, &tfb.txHashAndInfo)
 	})
 
 	t.Run("should add txs", func(t *testing.T) {
@@ -1897,7 +1900,8 @@ func TestTransactions_AddTransactions(t *testing.T) {
 		txs := []data.TransactionHandler{tx1, tx2}
 		txPreproc, _ := NewTransactionPreprocessor(args)
 		txPreproc.AddTransactions(txs)
-		numTxsSaved := len(txPreproc.txsForCurrBlock.txHashAndInfo)
+		tfb := txPreproc.txsForCurrBlock.(*txsForBlock)
+		numTxsSaved := len(tfb.txHashAndInfo)
 		require.Equal(t, 2, numTxsSaved)
 	})
 }

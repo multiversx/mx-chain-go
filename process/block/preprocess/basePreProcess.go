@@ -3,7 +3,6 @@ package preprocess
 import (
 	"bytes"
 	"math/big"
-	"sync"
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
@@ -89,22 +88,6 @@ type createScheduledMiniBlocksInfo struct {
 	mapGasConsumedByMiniBlockInReceiverShard map[uint32]uint64
 	gasInfo                                  gasConsumedInfo
 	senderAddressToSkip                      []byte
-}
-
-type txShardInfo struct {
-	senderShardID   uint32
-	receiverShardID uint32
-}
-
-type txInfo struct {
-	tx data.TransactionHandler
-	*txShardInfo
-}
-
-type txsForBlock struct {
-	missingTxs     int
-	mutTxsForBlock sync.RWMutex
-	txHashAndInfo  map[string]*txInfo
 }
 
 type processedIndexes struct {
@@ -203,13 +186,14 @@ func (bpp *basePreProcess) removeMiniBlocksFromPools(
 	return nil
 }
 
-func (bpp *basePreProcess) createMarshalledData(txHashes [][]byte, forBlock *txsForBlock) ([][]byte, error) {
+func (bpp *basePreProcess) createMarshalledData(txHashes [][]byte, forBlock TxsForBlockHandler) ([][]byte, error) {
+	if check.IfNil(forBlock) {
+		return nil, process.ErrNilTxsForBlockHandler
+	}
+
 	mrsTxs := make([][]byte, 0, len(txHashes))
 	for _, txHash := range txHashes {
-		forBlock.mutTxsForBlock.RLock()
-		txInfoFromMap := forBlock.txHashAndInfo[string(txHash)]
-		forBlock.mutTxsForBlock.RUnlock()
-
+		txInfoFromMap, _ := forBlock.GetTxInfoByHash(txHash)
 		if txInfoFromMap == nil || check.IfNil(txInfoFromMap.tx) {
 			log.Warn("basePreProcess.createMarshalledData: tx not found", "hash", txHash)
 			continue
@@ -231,10 +215,15 @@ func (bpp *basePreProcess) createMarshalledData(txHashes [][]byte, forBlock *txs
 
 func (bpp *basePreProcess) saveTxsToStorage(
 	txHashes [][]byte,
-	forBlock *txsForBlock,
+	forBlock TxsForBlockHandler,
 	store dataRetriever.StorageService,
 	dataUnit dataRetriever.UnitType,
 ) {
+	if check.IfNil(forBlock) {
+		log.Error("basePreProcess.saveTxsToStorage: nil TxsForBlockHandler")
+		return
+	}
+
 	for i := 0; i < len(txHashes); i++ {
 		txHash := txHashes[i]
 		bpp.saveTransactionToStorage(txHash, forBlock, store, dataUnit)
@@ -243,14 +232,16 @@ func (bpp *basePreProcess) saveTxsToStorage(
 
 func (bpp *basePreProcess) saveTransactionToStorage(
 	txHash []byte,
-	forBlock *txsForBlock,
+	forBlock TxsForBlockHandler,
 	store dataRetriever.StorageService,
 	dataUnit dataRetriever.UnitType,
 ) {
-	forBlock.mutTxsForBlock.RLock()
-	txInfoFromMap := forBlock.txHashAndInfo[string(txHash)]
-	forBlock.mutTxsForBlock.RUnlock()
+	if check.IfNil(forBlock) {
+		log.Error("basePreProcess.saveTransactionToStorage: nil TxsForBlockHandler")
+		return
+	}
 
+	txInfoFromMap, _ := forBlock.GetTxInfoByHash(txHash)
 	if txInfoFromMap == nil || txInfoFromMap.tx == nil {
 		log.Warn("basePreProcess.saveTransactionToStorage", "txHash", txHash, "dataUnit", dataUnit, "error", process.ErrMissingTransaction)
 		return
@@ -275,21 +266,16 @@ func (bpp *basePreProcess) saveTransactionToStorage(
 func (bpp *basePreProcess) baseReceivedTransaction(
 	txHash []byte,
 	tx data.TransactionHandler,
-	forBlock *txsForBlock,
+	forBlock TxsForBlockHandler,
 ) bool {
+	if check.IfNil(forBlock) {
+		log.Error("basePreProcess.baseReceivedTransaction: nil TxsForBlockHandler")
+		return false
+	}
 
-	forBlock.mutTxsForBlock.Lock()
-	defer forBlock.mutTxsForBlock.Unlock()
-
-	if forBlock.missingTxs > 0 {
-		txInfoForHash := forBlock.txHashAndInfo[string(txHash)]
-		if txInfoForHash != nil && txInfoForHash.txShardInfo != nil &&
-			(txInfoForHash.tx == nil || txInfoForHash.tx.IsInterfaceNil()) {
-			forBlock.txHashAndInfo[string(txHash)].tx = tx
-			forBlock.missingTxs--
-		}
-
-		return forBlock.missingTxs == 0
+	if forBlock.HasMissingTransactions() {
+		forBlock.ReceivedTransaction(txHash, tx)
+		return !forBlock.HasMissingTransactions()
 	}
 
 	return false
@@ -297,115 +283,18 @@ func (bpp *basePreProcess) baseReceivedTransaction(
 
 func (bpp *basePreProcess) computeExistingAndRequestMissing(
 	body *block.Body,
-	forBlock *txsForBlock,
+	forBlock TxsForBlockHandler,
 	_ chan bool,
 	isMiniBlockCorrect func(block.Type) bool,
 	txPool dataRetriever.ShardedDataCacherNotifier,
 	onRequestTxs func(shardID uint32, txHashes [][]byte),
 ) int {
-
-	if check.IfNil(body) {
+	if check.IfNil(forBlock) {
+		log.Error("basePreProcess.computeExistingAndRequestMissing: nil TxsForBlockHandler")
 		return 0
 	}
 
-	forBlock.mutTxsForBlock.Lock()
-	defer forBlock.mutTxsForBlock.Unlock()
-
-	missingTxsForShard := make(map[uint32][][]byte, bpp.shardCoordinator.NumberOfShards())
-	txHashes := make([][]byte, 0)
-	uniqueTxHashes := make(map[string]struct{})
-	for i := 0; i < len(body.MiniBlocks); i++ {
-		miniBlock := body.MiniBlocks[i]
-		if !isMiniBlockCorrect(miniBlock.Type) {
-			continue
-		}
-
-		txShardInfoObject := &txShardInfo{senderShardID: miniBlock.SenderShardID, receiverShardID: miniBlock.ReceiverShardID}
-		// TODO refactor this section
-		method := process.SearchMethodJustPeek
-		if miniBlock.Type == block.InvalidBlock {
-			method = process.SearchMethodSearchFirst
-		}
-		if miniBlock.Type == block.SmartContractResultBlock {
-			method = process.SearchMethodPeekWithFallbackSearchFirst
-		}
-
-		for j := 0; j < len(miniBlock.TxHashes); j++ {
-			txHash := miniBlock.TxHashes[j]
-
-			_, isAlreadyEvaluated := uniqueTxHashes[string(txHash)]
-			if isAlreadyEvaluated {
-				continue
-			}
-			uniqueTxHashes[string(txHash)] = struct{}{}
-
-			tx, err := process.GetTransactionHandlerFromPool(
-				miniBlock.SenderShardID,
-				miniBlock.ReceiverShardID,
-				txHash,
-				txPool,
-				method)
-
-			if err != nil {
-				txHashes = append(txHashes, txHash)
-				forBlock.missingTxs++
-				log.Trace("missing tx",
-					"miniblock type", miniBlock.Type,
-					"sender", miniBlock.SenderShardID,
-					"receiver", miniBlock.ReceiverShardID,
-					"hash", txHash,
-				)
-				continue
-			}
-
-			forBlock.txHashAndInfo[string(txHash)] = &txInfo{tx: tx, txShardInfo: txShardInfoObject}
-		}
-
-		if len(txHashes) > 0 {
-			bpp.setMissingTxsForShard(miniBlock.SenderShardID, miniBlock.ReceiverShardID, txHashes, forBlock)
-			missingTxsForShard[miniBlock.SenderShardID] = append(missingTxsForShard[miniBlock.SenderShardID], txHashes...)
-		}
-
-		txHashes = make([][]byte, 0)
-	}
-
-	return bpp.requestMissingTxsForShard(missingTxsForShard, onRequestTxs)
-}
-
-// this method should be called only under the mutex protection: forBlock.mutTxsForBlock
-func (bpp *basePreProcess) setMissingTxsForShard(
-	senderShardID uint32,
-	receiverShardID uint32,
-	txHashes [][]byte,
-	forBlock *txsForBlock,
-) {
-	txShardInfoToSet := &txShardInfo{
-		senderShardID:   senderShardID,
-		receiverShardID: receiverShardID,
-	}
-
-	for _, txHash := range txHashes {
-		forBlock.txHashAndInfo[string(txHash)] = &txInfo{
-			tx:          nil,
-			txShardInfo: txShardInfoToSet,
-		}
-	}
-}
-
-// this method should be called only under the mutex protection: forBlock.mutTxsForBlock
-func (bpp *basePreProcess) requestMissingTxsForShard(
-	missingTxsForShard map[uint32][][]byte,
-	onRequestTxs func(shardID uint32, txHashes [][]byte),
-) int {
-	requestedTxs := 0
-	for shardID, txHashes := range missingTxsForShard {
-		requestedTxs += len(txHashes)
-		go func(providedsShardID uint32, providedTxHashes [][]byte) {
-			onRequestTxs(providedsShardID, providedTxHashes)
-		}(shardID, txHashes)
-	}
-
-	return requestedTxs
+	return forBlock.ComputeExistingAndRequestMissing(body, isMiniBlockCorrect, txPool, onRequestTxs)
 }
 
 func (bpp *basePreProcess) saveAccountBalanceForAddress(address []byte) error {

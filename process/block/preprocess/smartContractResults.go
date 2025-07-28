@@ -27,7 +27,7 @@ type smartContractResults struct {
 	*basePreProcess
 	chRcvAllScrs                 chan bool
 	onRequestSmartContractResult func(shardID uint32, txHashes [][]byte)
-	scrForBlock                  txsForBlock
+	scrForBlock                  TxsForBlockHandler
 	scrPool                      dataRetriever.ShardedDataCacherNotifier
 	storage                      dataRetriever.StorageService
 	scrProcessor                 process.SmartContractResultProcessor
@@ -137,7 +137,10 @@ func NewSmartContractResultPreprocessor(
 
 	scr.chRcvAllScrs = make(chan bool)
 	scr.scrPool.RegisterOnAdded(scr.receivedSmartContractResult)
-	scr.scrForBlock.txHashAndInfo = make(map[string]*txInfo)
+	scr.scrForBlock, err = NewTxsForBlock(shardCoordinator)
+	if err != nil {
+		return nil, err
+	}
 
 	return scr, nil
 }
@@ -158,10 +161,8 @@ func (scr *smartContractResults) IsDataPrepared(requestedScrs int, haveTime func
 		log.Debug("requested missing scrs",
 			"num scrs", requestedScrs)
 		err := scr.waitForScrHashes(haveTime())
-		scr.scrForBlock.mutTxsForBlock.Lock()
-		missingScrs := scr.scrForBlock.missingTxs
-		scr.scrForBlock.missingTxs = 0
-		scr.scrForBlock.mutTxsForBlock.Unlock()
+		missingScrs := scr.scrForBlock.GetMissingTxsCount()
+		// TODO: previously the number of missing txs was cleared in scrForBlock - check if this is still needed
 		log.Debug("received missing scrs",
 			"num scrs", requestedScrs-missingScrs)
 		if err != nil {
@@ -315,9 +316,8 @@ func (scr *smartContractResults) ProcessBlockTransactions(
 			}
 
 			txHash := miniBlock.TxHashes[j]
-			scr.scrForBlock.mutTxsForBlock.RLock()
-			txInfoFromMap, ok := scr.scrForBlock.txHashAndInfo[string(txHash)]
-			scr.scrForBlock.mutTxsForBlock.RUnlock()
+
+			txInfoFromMap, ok := scr.scrForBlock.GetTxInfoByHash(txHash)
 			if !ok || check.IfNil(txInfoFromMap.tx) {
 				log.Warn("missing transaction in ProcessBlockTransactions ", "type", miniBlock.Type, "txHash", txHash)
 				return process.ErrMissingTransaction
@@ -380,7 +380,7 @@ func (scr *smartContractResults) SaveTxsToStorage(body *block.Body) error {
 			continue
 		}
 
-		scr.saveTxsToStorage(miniBlock.TxHashes, &scr.scrForBlock, scr.storage, dataRetriever.UnsignedTransactionUnit)
+		scr.saveTxsToStorage(miniBlock.TxHashes, scr.scrForBlock, scr.storage, dataRetriever.UnsignedTransactionUnit)
 	}
 
 	return nil
@@ -395,7 +395,7 @@ func (scr *smartContractResults) receivedSmartContractResult(key []byte, value i
 		return
 	}
 
-	receivedAllMissing := scr.baseReceivedTransaction(key, tx, &scr.scrForBlock)
+	receivedAllMissing := scr.baseReceivedTransaction(key, tx, scr.scrForBlock)
 
 	if receivedAllMissing {
 		scr.chRcvAllScrs <- true
@@ -405,11 +405,7 @@ func (scr *smartContractResults) receivedSmartContractResult(key []byte, value i
 // CreateBlockStarted cleans the local cache map for processed/created smartContractResults at this round
 func (scr *smartContractResults) CreateBlockStarted() {
 	_ = core.EmptyChannel(scr.chRcvAllScrs)
-
-	scr.scrForBlock.mutTxsForBlock.Lock()
-	scr.scrForBlock.missingTxs = 0
-	scr.scrForBlock.txHashAndInfo = make(map[string]*txInfo)
-	scr.scrForBlock.mutTxsForBlock.Unlock()
+	scr.scrForBlock.Reset()
 }
 
 // RequestBlockTransactions request for smartContractResults if missing from a block.Body
@@ -438,7 +434,7 @@ func (scr *smartContractResults) computeExistingAndRequestMissingSCResultsForSha
 
 	numMissingTxsForShard := scr.computeExistingAndRequestMissing(
 		&scrTxs,
-		&scr.scrForBlock,
+		scr.scrForBlock,
 		scr.chRcvAllScrs,
 		scr.isMiniBlockCorrect,
 		scr.scrPool,
@@ -658,13 +654,9 @@ func (scr *smartContractResults) ProcessMiniBlock(
 		return processedTxHashes, txIndex - 1, true, err
 	}
 
-	txShardInfoToSet := &txShardInfo{senderShardID: miniBlock.SenderShardID, receiverShardID: miniBlock.ReceiverShardID}
-
-	scr.scrForBlock.mutTxsForBlock.Lock()
 	for index, txHash := range miniBlockTxHashes {
-		scr.scrForBlock.txHashAndInfo[string(txHash)] = &txInfo{tx: miniBlockScrs[index], txShardInfo: txShardInfoToSet}
+		scr.scrForBlock.AddTransaction(txHash, miniBlockScrs[index], miniBlock.SenderShardID, miniBlock.ReceiverShardID)
 	}
-	scr.scrForBlock.mutTxsForBlock.Unlock()
 
 	scr.blockSizeComputation.AddNumMiniBlocks(1)
 	scr.blockSizeComputation.AddNumTxs(len(miniBlock.TxHashes))
@@ -674,7 +666,7 @@ func (scr *smartContractResults) ProcessMiniBlock(
 
 // CreateMarshalledData marshals smart contract results hashes and saves them into a new structure
 func (scr *smartContractResults) CreateMarshalledData(txHashes [][]byte) ([][]byte, error) {
-	marshalledScrs, err := scr.createMarshalledData(txHashes, &scr.scrForBlock)
+	marshalledScrs, err := scr.createMarshalledData(txHashes, scr.scrForBlock)
 	if err != nil {
 		return nil, err
 	}
@@ -684,14 +676,7 @@ func (scr *smartContractResults) CreateMarshalledData(txHashes [][]byte) ([][]by
 
 // GetAllCurrentUsedTxs returns all the smartContractResults used at current creation / processing
 func (scr *smartContractResults) GetAllCurrentUsedTxs() map[string]data.TransactionHandler {
-	scr.scrForBlock.mutTxsForBlock.RLock()
-	scrsPool := make(map[string]data.TransactionHandler, len(scr.scrForBlock.txHashAndInfo))
-	for txHash, txInfoFromMap := range scr.scrForBlock.txHashAndInfo {
-		scrsPool[txHash] = txInfoFromMap.tx
-	}
-	scr.scrForBlock.mutTxsForBlock.RUnlock()
-
-	return scrsPool
+	return scr.scrForBlock.GetAllCurrentUsedTxs()
 }
 
 // AddTxsFromMiniBlocks does nothing

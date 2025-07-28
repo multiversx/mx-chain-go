@@ -1130,15 +1130,18 @@ func TestScrsPreprocessor_SaveTxsToStorageShouldSaveCorrectly(t *testing.T) {
 	)
 
 	body := &block.Body{}
-	txs.scrForBlock.mutTxsForBlock.Lock()
+
+	scrForBlock := txs.scrForBlock.(*txsForBlock)
+
+	scrForBlock.mutTxsForBlock.Lock()
 	for _, hash := range txHashes {
-		txs.scrForBlock.txHashAndInfo[string(hash)] = &txInfo{
+		scrForBlock.txHashAndInfo[string(hash)] = &txInfo{
 			tx: &smartContractResult.SmartContractResult{
 				Data: hash,
 			},
 		}
 	}
-	txs.scrForBlock.mutTxsForBlock.Unlock()
+	scrForBlock.mutTxsForBlock.Unlock()
 
 	mb1 := &block.MiniBlock{
 		ReceiverShardID: 0,
@@ -1275,13 +1278,11 @@ func TestScrsPreprocessor_ProcessBlockTransactionsShouldWork(t *testing.T) {
 	body.MiniBlocks = append(body.MiniBlocks, &miniblock)
 
 	scrPreproc.AddScrHashToRequestedList([]byte("txHash"))
-	txshardInfo := txShardInfo{0, 0}
 	scr := smartContractResult.SmartContractResult{
 		Nonce: 1,
 		Data:  []byte("tx"),
 	}
-
-	scrPreproc.scrForBlock.txHashAndInfo["txHash"] = &txInfo{&scr, &txshardInfo}
+	scrPreproc.scrForBlock.AddTransaction([]byte("txHash"), &scr, 0, 0)
 
 	err := scrPreproc.ProcessBlockTransactions(&block.Header{MiniBlockHeaders: []block.MiniBlockHeader{{TxCount: 1, Hash: miniblockHash}}}, body, haveTimeTrue)
 
@@ -1339,13 +1340,11 @@ func TestScrsPreprocessor_ProcessBlockTransactionsMissingTrieNode(t *testing.T) 
 	body.MiniBlocks = append(body.MiniBlocks, &miniblock)
 
 	scrPreproc.AddScrHashToRequestedList([]byte("txHash"))
-	txshardInfo := txShardInfo{0, 0}
 	scr := smartContractResult.SmartContractResult{
 		Nonce: 1,
 		Data:  []byte("tx"),
 	}
-
-	scrPreproc.scrForBlock.txHashAndInfo["txHash"] = &txInfo{&scr, &txshardInfo}
+	scrPreproc.scrForBlock.AddTransaction([]byte("txHash"), &scr, 0, 0)
 
 	err := scrPreproc.ProcessBlockTransactions(&block.Header{MiniBlockHeaders: []block.MiniBlockHeader{{TxCount: 1, Hash: miniblockHash}}}, body, haveTimeTrue)
 	assert.Equal(t, missingNodeErr, err)
@@ -1407,13 +1406,12 @@ func TestScrsPreprocessor_ProcessBlockTransactionsShouldErrMaxGasLimitPerBlockIn
 	body.MiniBlocks = append(body.MiniBlocks, &miniblock)
 
 	scrPreproc.AddScrHashToRequestedList([]byte("txHash"))
-	txshardInfo := txShardInfo{0, 0}
 	scr := smartContractResult.SmartContractResult{
 		Nonce: 1,
 		Data:  []byte("tx"),
 	}
 
-	scrPreproc.scrForBlock.txHashAndInfo["txHash"] = &txInfo{&scr, &txshardInfo}
+	scrPreproc.scrForBlock.AddTransaction([]byte("txHash"), &scr, 0, 0)
 
 	err := scrPreproc.ProcessBlockTransactions(&block.Header{MiniBlockHeaders: []block.MiniBlockHeader{{Hash: miniblockHash, TxCount: 1}}}, body, haveTimeTrue)
 	assert.Nil(t, err)
@@ -1659,7 +1657,8 @@ func TestSmartContractResults_CreateBlockStartedShouldEmptyTxHashAndInfo(t *test
 	)
 
 	scr.CreateBlockStarted()
-	assert.Equal(t, 0, len(scr.scrForBlock.txHashAndInfo))
+	scrForBlock := scr.scrForBlock.(*txsForBlock)
+	assert.Equal(t, 0, len(scrForBlock.txHashAndInfo))
 }
 
 func TestSmartContractResults_GetAllCurrentUsedTxs(t *testing.T) {
@@ -1687,12 +1686,11 @@ func TestSmartContractResults_GetAllCurrentUsedTxs(t *testing.T) {
 		&commonTests.TxExecutionOrderHandlerStub{},
 	)
 
-	txshardInfo := txShardInfo{0, 3}
 	scr := smartContractResult.SmartContractResult{
 		Nonce: 1,
 		Data:  []byte("tx"),
 	}
-	scrPreproc.scrForBlock.txHashAndInfo["txHash"] = &txInfo{&scr, &txshardInfo}
+	scrPreproc.scrForBlock.AddTransaction([]byte("txHash"), &scr, 0, 3)
 
 	retMap := scrPreproc.GetAllCurrentUsedTxs()
 	assert.NotNil(t, retMap)

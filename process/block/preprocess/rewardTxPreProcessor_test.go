@@ -969,5 +969,6 @@ func TestRewardTxPreprocessor_CreateBlockStartedShouldCleanMap(t *testing.T) {
 	)
 
 	rtp.CreateBlockStarted()
-	assert.Equal(t, 0, len(rtp.rewardTxsForBlock.txHashAndInfo))
+	rewardsForBlock := rtp.rewardTxsForBlock.(*txsForBlock)
+	assert.Equal(t, 0, len(rewardsForBlock.txHashAndInfo))
 }
