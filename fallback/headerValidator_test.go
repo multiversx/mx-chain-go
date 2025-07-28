@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"testing"
 
-	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
@@ -13,7 +12,7 @@ import (
 	"github.com/multiversx/mx-chain-go/fallback"
 	"github.com/multiversx/mx-chain-go/fallback/mock"
 	"github.com/multiversx/mx-chain-go/process"
-	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
+	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/storage"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
@@ -25,7 +24,7 @@ func TestNewFallbackHeaderValidator_ShouldErrNilHeadersDataPool(t *testing.T) {
 	marshalizer := &mock.MarshalizerStub{}
 	storageService := &storage.ChainStorerStub{}
 
-	fhv, err := fallback.NewFallbackHeaderValidator(nil, marshalizer, storageService, &enableEpochsHandlerMock.EnableEpochsHandlerStub{})
+	fhv, err := fallback.NewFallbackHeaderValidator(nil, marshalizer, storageService, &testscommon.EnableRoundsHandlerStub{})
 	assert.Nil(t, fhv)
 	assert.Equal(t, process.ErrNilHeadersDataPool, err)
 }
@@ -36,7 +35,7 @@ func TestNewFallbackHeaderValidator_ShouldErrNilMarshalizer(t *testing.T) {
 	headersPool := &mock.HeadersCacherStub{}
 	storageService := &storage.ChainStorerStub{}
 
-	fhv, err := fallback.NewFallbackHeaderValidator(headersPool, nil, storageService, &enableEpochsHandlerMock.EnableEpochsHandlerStub{})
+	fhv, err := fallback.NewFallbackHeaderValidator(headersPool, nil, storageService, &testscommon.EnableRoundsHandlerStub{})
 	assert.Nil(t, fhv)
 	assert.Equal(t, process.ErrNilMarshalizer, err)
 }
@@ -47,7 +46,7 @@ func TestNewFallbackHeaderValidator_ShouldErrNilStorage(t *testing.T) {
 	headersPool := &mock.HeadersCacherStub{}
 	marshalizer := &mock.MarshalizerStub{}
 
-	fhv, err := fallback.NewFallbackHeaderValidator(headersPool, marshalizer, nil, &enableEpochsHandlerMock.EnableEpochsHandlerStub{})
+	fhv, err := fallback.NewFallbackHeaderValidator(headersPool, marshalizer, nil, &testscommon.EnableRoundsHandlerStub{})
 	assert.Nil(t, fhv)
 	assert.Equal(t, process.ErrNilStorage, err)
 }
@@ -61,7 +60,7 @@ func TestNewFallbackHeaderValidator_ShouldErrNilEnableEpochsHandler(t *testing.T
 
 	fhv, err := fallback.NewFallbackHeaderValidator(headersPool, marshalizer, storageService, nil)
 	assert.Nil(t, fhv)
-	assert.Equal(t, commonErrors.ErrNilEnableEpochsHandler, err)
+	assert.Equal(t, commonErrors.ErrNilEnableRoundsHandler, err)
 }
 
 func TestNewFallbackHeaderValidator_ShouldWork(t *testing.T) {
@@ -71,7 +70,7 @@ func TestNewFallbackHeaderValidator_ShouldWork(t *testing.T) {
 	marshalizer := &mock.MarshalizerStub{}
 	storageService := &storage.ChainStorerStub{}
 
-	fhv, err := fallback.NewFallbackHeaderValidator(headersPool, marshalizer, storageService, &enableEpochsHandlerMock.EnableEpochsHandlerStub{})
+	fhv, err := fallback.NewFallbackHeaderValidator(headersPool, marshalizer, storageService, &testscommon.EnableRoundsHandlerStub{})
 	assert.False(t, check.IfNil(fhv))
 	assert.Nil(t, err)
 }
@@ -83,7 +82,7 @@ func TestShouldApplyFallbackConsensus_ShouldReturnFalseWhenHeaderIsNil(t *testin
 	marshalizer := &mock.MarshalizerStub{}
 	storageService := &storage.ChainStorerStub{}
 
-	fhv, _ := fallback.NewFallbackHeaderValidator(headersPool, marshalizer, storageService, &enableEpochsHandlerMock.EnableEpochsHandlerStub{})
+	fhv, _ := fallback.NewFallbackHeaderValidator(headersPool, marshalizer, storageService, &testscommon.EnableRoundsHandlerStub{})
 	assert.False(t, fhv.ShouldApplyFallbackValidation(nil))
 }
 
@@ -95,7 +94,7 @@ func TestShouldApplyFallbackConsensus_ShouldReturnFalseWhenIsNotMetachainBlock(t
 	storageService := &storage.ChainStorerStub{}
 	header := &block.Header{}
 
-	fhv, _ := fallback.NewFallbackHeaderValidator(headersPool, marshalizer, storageService, &enableEpochsHandlerMock.EnableEpochsHandlerStub{})
+	fhv, _ := fallback.NewFallbackHeaderValidator(headersPool, marshalizer, storageService, &testscommon.EnableRoundsHandlerStub{})
 	assert.False(t, fhv.ShouldApplyFallbackValidation(header))
 }
 
@@ -107,7 +106,7 @@ func TestShouldApplyFallbackConsensus_ShouldReturnFalseWhenIsNotStartOfEpochMeta
 	storageService := &storage.ChainStorerStub{}
 	metaBlock := &block.MetaBlock{}
 
-	fhv, _ := fallback.NewFallbackHeaderValidator(headersPool, marshalizer, storageService, &enableEpochsHandlerMock.EnableEpochsHandlerStub{})
+	fhv, _ := fallback.NewFallbackHeaderValidator(headersPool, marshalizer, storageService, &testscommon.EnableRoundsHandlerStub{})
 	assert.False(t, fhv.ShouldApplyFallbackValidation(metaBlock))
 }
 
@@ -126,7 +125,7 @@ func TestShouldApplyFallbackConsensus_ShouldReturnFalseWhenPreviousHeaderIsNotFo
 		},
 	}
 
-	fhv, _ := fallback.NewFallbackHeaderValidator(headersPool, marshalizer, storageService, &enableEpochsHandlerMock.EnableEpochsHandlerStub{})
+	fhv, _ := fallback.NewFallbackHeaderValidator(headersPool, marshalizer, storageService, &testscommon.EnableRoundsHandlerStub{})
 	assert.False(t, fhv.ShouldApplyFallbackValidation(metaBlock))
 }
 
@@ -155,7 +154,7 @@ func TestShouldApplyFallbackConsensus_ShouldReturnFalseWhenRoundIsNotTooOld(t *t
 		PrevHash: prevHash,
 	}
 
-	fhv, _ := fallback.NewFallbackHeaderValidator(headersPool, marshalizer, storageService, &enableEpochsHandlerMock.EnableEpochsHandlerStub{})
+	fhv, _ := fallback.NewFallbackHeaderValidator(headersPool, marshalizer, storageService, &testscommon.EnableRoundsHandlerStub{})
 	assert.False(t, fhv.ShouldApplyFallbackValidation(metaBlock))
 }
 
@@ -187,7 +186,7 @@ func TestShouldApplyFallbackConsensus_ShouldReturnTrue(t *testing.T) {
 			PrevHash: prevHash,
 		}
 
-		fhv, _ := fallback.NewFallbackHeaderValidator(headersPool, marshalizer, storageService, &enableEpochsHandlerMock.EnableEpochsHandlerStub{})
+		fhv, _ := fallback.NewFallbackHeaderValidator(headersPool, marshalizer, storageService, &testscommon.EnableRoundsHandlerStub{})
 		assert.True(t, fhv.ShouldApplyFallbackValidation(metaBlock))
 	})
 
@@ -215,13 +214,13 @@ func TestShouldApplyFallbackConsensus_ShouldReturnTrue(t *testing.T) {
 			},
 			PrevHash: prevHash,
 		}
-		enableEpochsHandlerMock := &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-			IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
-				return flag == common.SupernovaFlag
+		enableRoundsHandlerMock := &testscommon.EnableRoundsHandlerStub{
+			IsFlagEnabledInRoundCalled: func(flag common.EnableRoundFlag, round uint64) bool {
+				return flag == common.SupernovaRoundFlag
 			},
 		}
 
-		fhv, _ := fallback.NewFallbackHeaderValidator(headersPool, marshalizer, storageService, enableEpochsHandlerMock)
+		fhv, _ := fallback.NewFallbackHeaderValidator(headersPool, marshalizer, storageService, enableRoundsHandlerMock)
 		assert.True(t, fhv.ShouldApplyFallbackValidation(metaBlock))
 	})
 }

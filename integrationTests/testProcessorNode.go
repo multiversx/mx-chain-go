@@ -1485,6 +1485,7 @@ func (tpn *TestProcessorNode) createHardforkTrigger(heartbeatPk string) []byte {
 		ImportStartHandler:        &mock.ImportStartHandlerStub{},
 		RoundHandler:              &mock.RoundHandlerMock{},
 		EnableEpochsHandler:       &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		EnableRoundsHandler:       &testscommon.EnableRoundsHandlerStub{},
 	}
 
 	var err error
