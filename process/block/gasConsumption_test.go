@@ -37,6 +37,9 @@ func getMockArgsGasConsumption() block.ArgsGasConsumption {
 			MaxGasLimitPerTxCalled: func() uint64 {
 				return maxGasLimitPerTx
 			},
+			MaxGasLimitPerBlockForSafeCrossShardCalled: func() uint64 {
+				return maxGasLimitPerBlock
+			},
 		},
 		ShardCoordinator: &mock.ShardCoordinatorStub{},
 		GasHandler: &mock.GasHandlerMock{
@@ -401,6 +404,43 @@ func TestGasConsumption_CheckOutgoingTransactions(t *testing.T) {
 		require.Equal(t, expectedFinalMBIndex, finalLastMBIndex)
 
 		require.Equal(t, maxGasLimitPerBlock*2, gc.TotalGasConsumed()) // *2 due to the 200% factor
+	})
+	t.Run("should work with multiple destination shards", func(t *testing.T) {
+		t.Parallel()
+
+		cnt := 0
+		args := getMockArgsGasConsumption()
+		args.ShardCoordinator = &mock.ShardCoordinatorStub{
+			ComputeIdCalled: func(address []byte) uint32 {
+				cnt++
+				if cnt < 30 {
+					return 1 // first 40 txs going to shard 1, won't exceed the limit
+				}
+
+				return 0
+			},
+		}
+		args.GasHandler = &mock.GasHandlerMock{
+			ComputeGasProvidedByTxCalled: func(txSenderShardId uint32, txReceiverSharedId uint32, txHandler data.TransactionHandler) (uint64, uint64, error) {
+				if txSenderShardId == txReceiverSharedId {
+					return maxGasLimitPerTx, maxGasLimitPerTx, nil
+				}
+
+				return maxGasLimitPerTx / 2, maxGasLimitPerTx / 2, nil
+			},
+		}
+		gc, _ := block.NewGasConsumption(args)
+		require.NotNil(t, gc)
+
+		// maxGasLimitPerBlock = 400
+		// half of it * factor (200% by default) will be used for txs
+		// thus 400 is the total max limit for transactions (= 40 txs)
+		txs := generateTxs(maxGasLimitPerTx, 50)
+		lastTxIndex, err := gc.CheckOutgoingTransactions(txs)
+		require.NoError(t, err)
+		require.Equal(t, 39, lastTxIndex)
+
+		require.Equal(t, maxGasLimitPerBlock, gc.TotalGasConsumed()) // all space for txs
 	})
 }
 

@@ -294,7 +294,11 @@ func (gc *gasConsumption) checkOutgoingTransaction(
 	}
 	// TODO: double check these limits
 	txsLimitReachedForSelfShard := gc.totalGasConsumed[outgoingSelfKey]+gasConsumedInSenderShard > bandwidthForOutgoingTransactions
-	txsLimitReachedForDestShard := gc.totalGasConsumed[outgoingDestKey]+gasConsumedInReceiverShard > bandwidthForOutgoingTransactions
+	txsLimitReachedForDestShard := false
+	if isCrossShard {
+		bandwidthForOutgoingCrossTransactions := gc.getGasLimitForOneDirection(receiverShard)
+		txsLimitReachedForDestShard = gc.totalGasConsumed[outgoingDestKey]+gasConsumedInReceiverShard > bandwidthForOutgoingCrossTransactions
+	}
 	gasConsumedByOutgoingTransactions := gc.getTotalOutgoingGas()
 	txsLimitReachedForTotalOutgoing := gasConsumedByOutgoingTransactions+gasConsumedInSenderShard > bandwidthForOutgoingTransactions
 	txsLimitReachedInAnyShard := txsLimitReachedForSelfShard || txsLimitReachedForDestShard || txsLimitReachedForTotalOutgoing
