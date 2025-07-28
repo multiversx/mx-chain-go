@@ -65,12 +65,12 @@ func (est *executionResultsTracker) getLastExecutionResult() (*block.ExecutionRe
 		return nil, ErrNilLastNotarizedExecutionResult
 	}
 
-	if bytes.Equal(est.lastExecutedResultHash, est.lastNotarizedResult.HeaderHash) {
-		return est.lastNotarizedResult, nil
-	}
-
 	if est.lastExecutedResultHash == nil {
 		return nil, fmt.Errorf("%w last executed result hash is not set", ErrCannotFindExecutionResult)
+	}
+
+	if bytes.Equal(est.lastExecutedResultHash, est.lastNotarizedResult.HeaderHash) {
+		return est.lastNotarizedResult, nil
 	}
 
 	lastExecutedResults, found := est.executionResultsByHash[string(est.lastExecutedResultHash)]
