@@ -2,7 +2,6 @@ package transactionEvaluator
 
 import (
 	"context"
-	"encoding/hex"
 	"errors"
 	"sync"
 
@@ -194,7 +193,7 @@ func (r *simulationAccountsDB) CleanCache() {
 
 func (r *simulationAccountsDB) addToCache(account vmcommon.AccountHandler) {
 	r.mutex.Lock()
-	r.cachedAccounts[hex.EncodeToString(account.AddressBytes())] = account
+	r.cachedAccounts[string(account.AddressBytes())] = account
 	r.mutex.Unlock()
 }
 
@@ -202,7 +201,7 @@ func (r *simulationAccountsDB) getFromCache(address []byte) (vmcommon.AccountHan
 	r.mutex.RLock()
 	defer r.mutex.RUnlock()
 
-	account, found := r.cachedAccounts[hex.EncodeToString(address)]
+	account, found := r.cachedAccounts[string(address)]
 
 	return account, found
 }
