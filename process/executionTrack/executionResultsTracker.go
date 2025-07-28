@@ -19,11 +19,11 @@ type executionResultsTracker struct {
 }
 
 // NewExecutionResultsTracker will create a new instance of *executionResultsTracker
-func NewExecutionResultsTracker() (*executionResultsTracker, error) {
+func NewExecutionResultsTracker() *executionResultsTracker {
 	return &executionResultsTracker{
 		executionResultsByHash: make(map[string]*block.ExecutionResult),
 		nonceHash:              newNonceHash(),
-	}, nil
+	}
 }
 
 // AddExecutionResult will add the provided execution result in tracker
@@ -61,8 +61,16 @@ func (est *executionResultsTracker) AddExecutionResult(executionResult *block.Ex
 }
 
 func (est *executionResultsTracker) getLastExecutionResult() (*block.ExecutionResult, error) {
+	if est.lastNotarizedResult == nil {
+		return nil, ErrNilLastNotarizedExecutionResult
+	}
+
 	if bytes.Equal(est.lastExecutedResultHash, est.lastNotarizedResult.HeaderHash) {
 		return est.lastNotarizedResult, nil
+	}
+
+	if est.lastExecutedResultHash == nil {
+		return nil, fmt.Errorf("%w last executed result hash is not set", ErrCannotFindExecutionResult)
 	}
 
 	lastExecutedResults, found := est.executionResultsByHash[string(est.lastExecutedResultHash)]
