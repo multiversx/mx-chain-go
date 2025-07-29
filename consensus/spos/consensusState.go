@@ -437,8 +437,8 @@ func (cns *ConsensusState) SetRoundIndex(roundIndex int64) {
 
 // GetRoundTimeStamp returns the time stamp of the current round
 func (cns *ConsensusState) GetRoundTimeStamp() time.Time {
-	cns.mutState.Lock()
-	defer cns.mutState.Unlock()
+	cns.mutState.RLock()
+	defer cns.mutState.RUnlock()
 
 	return cns.roundTimeStamp
 }
@@ -453,8 +453,8 @@ func (cns *ConsensusState) SetRoundTimeStamp(roundTimeStamp time.Time) {
 
 // GetExtendedCalled returns the state of the extended called
 func (cns *ConsensusState) GetExtendedCalled() bool {
-	cns.mutState.Lock()
-	defer cns.mutState.Unlock()
+	cns.mutState.RLock()
+	defer cns.mutState.RUnlock()
 
 	return cns.ExtendedCalled
 }
