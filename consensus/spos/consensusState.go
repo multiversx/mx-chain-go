@@ -34,9 +34,9 @@ type ConsensusState struct {
 	receivedMessagesWithSignature    map[string]p2p.MessageP2P
 	mutReceivedMessagesWithSignature sync.RWMutex
 
-	RoundIndex                  int64
-	RoundTimeStamp              time.Time
-	RoundCanceled               bool
+	roundIndex                  int64
+	roundTimeStamp              time.Time
+	roundCanceled               bool
 	ExtendedCalled              bool
 	WaitingAllSignaturesTimeOut bool
 
@@ -70,9 +70,12 @@ func NewConsensusState(
 
 // ResetConsensusRoundState method resets all the consensus round data (except messages received)
 func (cns *ConsensusState) ResetConsensusRoundState() {
-	cns.RoundCanceled = false
+	cns.mutState.Lock()
+	cns.roundCanceled = false
 	cns.ExtendedCalled = false
 	cns.WaitingAllSignaturesTimeOut = false
+	cns.mutState.Unlock()
+
 	cns.ResetRoundStatus()
 	cns.ResetRoundState()
 }
@@ -405,7 +408,7 @@ func (cns *ConsensusState) GetRoundCanceled() bool {
 	cns.mutState.RLock()
 	defer cns.mutState.RUnlock()
 
-	return cns.RoundCanceled
+	return cns.roundCanceled
 }
 
 // SetRoundCanceled sets the state of the current round
@@ -413,7 +416,7 @@ func (cns *ConsensusState) SetRoundCanceled(roundCanceled bool) {
 	cns.mutState.Lock()
 	defer cns.mutState.Unlock()
 
-	cns.RoundCanceled = roundCanceled
+	cns.roundCanceled = roundCanceled
 }
 
 // GetRoundIndex returns the index of the current round
@@ -421,7 +424,7 @@ func (cns *ConsensusState) GetRoundIndex() int64 {
 	cns.mutState.RLock()
 	defer cns.mutState.RUnlock()
 
-	return cns.RoundIndex
+	return cns.roundIndex
 }
 
 // SetRoundIndex sets the index of the current round
@@ -429,26 +432,38 @@ func (cns *ConsensusState) SetRoundIndex(roundIndex int64) {
 	cns.mutState.Lock()
 	defer cns.mutState.Unlock()
 
-	cns.RoundIndex = roundIndex
+	cns.roundIndex = roundIndex
 }
 
 // GetRoundTimeStamp returns the time stamp of the current round
 func (cns *ConsensusState) GetRoundTimeStamp() time.Time {
-	return cns.RoundTimeStamp
+	cns.mutState.RLock()
+	defer cns.mutState.RUnlock()
+
+	return cns.roundTimeStamp
 }
 
 // SetRoundTimeStamp sets the time stamp of the current round
 func (cns *ConsensusState) SetRoundTimeStamp(roundTimeStamp time.Time) {
-	cns.RoundTimeStamp = roundTimeStamp
+	cns.mutState.Lock()
+	defer cns.mutState.Unlock()
+
+	cns.roundTimeStamp = roundTimeStamp
 }
 
 // GetExtendedCalled returns the state of the extended called
 func (cns *ConsensusState) GetExtendedCalled() bool {
+	cns.mutState.RLock()
+	defer cns.mutState.RUnlock()
+
 	return cns.ExtendedCalled
 }
 
 // SetExtendedCalled sets the state of the extended called
 func (cns *ConsensusState) SetExtendedCalled(extendedCalled bool) {
+	cns.mutState.Lock()
+	defer cns.mutState.Unlock()
+
 	cns.ExtendedCalled = extendedCalled
 }
 
