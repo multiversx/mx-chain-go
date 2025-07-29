@@ -82,13 +82,13 @@ func NewSingleDataInterceptor(arg ArgSingleDataInterceptor) (*SingleDataIntercep
 
 // ProcessReceivedMessage is the callback func from the p2p.Messenger and will be called each time a new message was received
 // (for the topic this validator was registered to)
-func (sdi *SingleDataInterceptor) ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedPeer core.PeerID, _ p2p.MessageHandler) error {
+func (sdi *SingleDataInterceptor) ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedPeer core.PeerID, _ p2p.MessageHandler) ([]byte, error) {
 	err := sdi.preProcessMesage(message, fromConnectedPeer)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	interceptedData, err := sdi.factory.Create(message.Data())
+	interceptedData, err := sdi.factory.Create(message.Data(), message.Peer())
 	if err != nil {
 		sdi.throttler.EndProcessing()
 
@@ -97,7 +97,7 @@ func (sdi *SingleDataInterceptor) ProcessReceivedMessage(message p2p.MessageP2P,
 		sdi.antifloodHandler.BlacklistPeer(message.Peer(), reason, common.InvalidMessageBlacklistDuration)
 		sdi.antifloodHandler.BlacklistPeer(fromConnectedPeer, reason, common.InvalidMessageBlacklistDuration)
 
-		return err
+		return nil, err
 	}
 
 	sdi.receivedDebugInterceptedData(interceptedData)
@@ -114,7 +114,7 @@ func (sdi *SingleDataInterceptor) ProcessReceivedMessage(message p2p.MessageP2P,
 			sdi.antifloodHandler.BlacklistPeer(fromConnectedPeer, reason, common.InvalidMessageBlacklistDuration)
 		}
 
-		return err
+		return nil, err
 	}
 
 	errOriginator := sdi.antifloodHandler.IsOriginatorEligibleForTopic(message.Peer(), sdi.topic)
@@ -124,9 +124,10 @@ func (sdi *SingleDataInterceptor) ProcessReceivedMessage(message p2p.MessageP2P,
 			"originator", p2p.PeerIdToShortString(message.Peer()), "topic",
 			sdi.topic, "err", errOriginator)
 		sdi.throttler.EndProcessing()
-		return errOriginator
+		return nil, errOriginator
 	}
 
+	messageID := interceptedData.Hash()
 	isForCurrentShard := interceptedData.IsForCurrentShard()
 	shouldProcess := isForCurrentShard || isWhiteListed
 	if !shouldProcess {
@@ -140,15 +141,15 @@ func (sdi *SingleDataInterceptor) ProcessReceivedMessage(message p2p.MessageP2P,
 			"is white listed", isWhiteListed,
 		)
 
-		return nil
+		return messageID, nil
 	}
 
 	go func() {
-		sdi.processInterceptedData(interceptedData, message)
+		sdi.processInterceptedData(interceptedData, message, fromConnectedPeer)
 		sdi.throttler.EndProcessing()
 	}()
 
-	return nil
+	return messageID, nil
 }
 
 // RegisterHandler registers a callback function to be notified on received data

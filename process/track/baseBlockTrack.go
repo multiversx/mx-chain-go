@@ -12,7 +12,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
-	"github.com/multiversx/mx-chain-logger-go"
+	logger "github.com/multiversx/mx-chain-logger-go"
 
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
@@ -50,7 +50,8 @@ type baseBlockTrack struct {
 	blockBalancer                         blockBalancerHandler
 	whitelistHandler                      process.WhiteListHandler
 	feeHandler                            process.FeeHandler
-	enableEpochsHandler                   core.EnableEpochsHandler
+	enableEpochsHandler                   common.EnableEpochsHandler
+	epochChangeGracePeriodHandler         common.EpochChangeGracePeriodHandler
 
 	mutHeaders                  sync.RWMutex
 	headers                     map[uint32]map[uint64][]*HeaderInfo
@@ -120,13 +121,14 @@ func createBaseBlockTrack(arguments ArgBaseTracker) (*baseBlockTrack, error) {
 		whitelistHandler:                      arguments.WhitelistHandler,
 		feeHandler:                            arguments.FeeHandler,
 		enableEpochsHandler:                   arguments.EnableEpochsHandler,
+		epochChangeGracePeriodHandler:         arguments.EpochChangeGracePeriodHandler,
 	}
 
 	return bbt, nil
 }
 
 func (bbt *baseBlockTrack) receivedProof(proof data.HeaderProofHandler) {
-	if check.IfNilReflect(proof) {
+	if check.IfNil(proof) {
 		return
 	}
 
@@ -148,17 +150,11 @@ func (bbt *baseBlockTrack) receivedProof(proof data.HeaderProofHandler) {
 }
 
 func (bbt *baseBlockTrack) getHeaderForProof(proof data.HeaderProofHandler) (data.HeaderHandler, error) {
-	headerUnit := dataRetriever.GetHeadersDataUnit(proof.GetHeaderShardId())
-	headersStorer, err := bbt.store.GetStorer(headerUnit)
-	if err != nil {
-		return nil, err
-	}
-
-	return process.GetHeader(proof.GetHeaderHash(), bbt.headersPool, headersStorer, bbt.marshalizer, proof.GetHeaderShardId())
+	return process.GetHeader(proof.GetHeaderHash(), bbt.headersPool, bbt.store, bbt.marshalizer, proof.GetHeaderShardId())
 }
 
 func (bbt *baseBlockTrack) receivedHeader(headerHandler data.HeaderHandler, headerHash []byte) {
-	if bbt.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, headerHandler.GetEpoch()) {
+	if common.IsProofsFlagEnabledForHeader(bbt.enableEpochsHandler, headerHandler) {
 		if !bbt.proofsPool.HasProof(headerHandler.GetShardID(), headerHash) {
 			return
 		}
@@ -839,6 +835,9 @@ func checkTrackerNilParameters(arguments ArgBaseTracker) error {
 	}
 	if check.IfNil(arguments.EnableEpochsHandler) {
 		return process.ErrNilEnableEpochsHandler
+	}
+	if check.IfNil(arguments.EpochChangeGracePeriodHandler) {
+		return process.ErrNilEpochChangeGracePeriodHandler
 	}
 
 	return nil

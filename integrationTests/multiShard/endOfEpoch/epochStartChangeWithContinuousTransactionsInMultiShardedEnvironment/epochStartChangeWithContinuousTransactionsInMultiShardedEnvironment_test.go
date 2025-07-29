@@ -26,8 +26,7 @@ func TestEpochStartChangeWithContinuousTransactionsInMultiShardedEnvironment(t *
 		StakingV4Step1EnableEpoch:            integrationTests.UnreachableEpoch,
 		StakingV4Step2EnableEpoch:            integrationTests.UnreachableEpoch,
 		StakingV4Step3EnableEpoch:            integrationTests.UnreachableEpoch,
-		EquivalentMessagesEnableEpoch:        integrationTests.UnreachableEpoch,
-		FixedOrderInConsensusEnableEpoch:     integrationTests.UnreachableEpoch,
+		AndromedaEnableEpoch:                 integrationTests.UnreachableEpoch,
 	}
 
 	nodes := integrationTests.CreateNodesWithEnableEpochs(

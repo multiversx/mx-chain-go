@@ -32,6 +32,8 @@ type EnableEpochs struct {
 	DoubleKeyProtectionEnableEpoch                           uint32
 	ESDTEnableEpoch                                          uint32
 	GovernanceEnableEpoch                                    uint32
+	GovernanceDisableProposeEnableEpoch                      uint32
+	GovernanceFixesEnableEpoch                               uint32
 	DelegationManagerEnableEpoch                             uint32
 	DelegationSmartContractEnableEpoch                       uint32
 	CorrectLastUnjailedEnableEpoch                           uint32
@@ -124,8 +126,15 @@ type EnableEpochs struct {
 	FixRelayedMoveBalanceToNonPayableSCEnableEpoch           uint32
 	RelayedTransactionsV3EnableEpoch                         uint32
 	RelayedTransactionsV3FixESDTTransferEnableEpoch          uint32
-	EquivalentMessagesEnableEpoch                            uint32
-	FixedOrderInConsensusEnableEpoch                         uint32
+	AndromedaEnableEpoch                                     uint32
+	SupernovaEnableEpoch                                     uint32
+	CheckBuiltInCallOnTransferValueAndFailEnableRound        uint32
+	MaskVMInternalDependenciesErrorsEnableEpoch              uint32
+	FixBackTransferOPCODEEnableEpoch                         uint32
+	ValidationOnGobDecodeEnableEpoch                         uint32
+	BarnardOpcodesEnableEpoch                                uint32
+	FixGetBalanceEnableEpoch                                 uint32
+	AutomaticActivationOfNodesDisableEpoch                   uint32
 	BLSMultiSignerEnableEpoch                                []MultiSignerConfig
 }
 

@@ -5,22 +5,32 @@ import (
 	"math/big"
 	"testing"
 
+	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
 	dataBlock "github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/multiversx/mx-chain-go/common/graceperiod"
+	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/block/interceptedBlocks"
 	"github.com/multiversx/mx-chain-go/process/mock"
+	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/testscommon/consensus"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 )
 
 func createDefaultMetaArgument() *interceptedBlocks.ArgInterceptedBlockHeader {
+	shardCoordinator := mock.NewOneShardCoordinatorMock()
+	return createMetaArgumentWithShardCoordinator(shardCoordinator)
+}
+
+func createMetaArgumentWithShardCoordinator(shardCoordinator sharding.Coordinator) *interceptedBlocks.ArgInterceptedBlockHeader {
+	gracePeriod, _ := graceperiod.NewEpochChangeGracePeriod([]config.EpochChangeGracePeriodByEpoch{{EnableEpoch: 0, GracePeriodInRounds: 1}})
 	arg := &interceptedBlocks.ArgInterceptedBlockHeader{
-		ShardCoordinator:        mock.NewOneShardCoordinatorMock(),
+		ShardCoordinator:        shardCoordinator,
 		Hasher:                  testHasher,
 		Marshalizer:             testMarshalizer,
 		HeaderSigVerifier:       &consensus.HeaderSigVerifierMock{},
@@ -31,7 +41,8 @@ func createDefaultMetaArgument() *interceptedBlocks.ArgInterceptedBlockHeader {
 				return hdrEpoch
 			},
 		},
-		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		EnableEpochsHandler:           &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		EpochChangeGracePeriodHandler: gracePeriod,
 	}
 
 	hdr := createMockMetaHeader()
@@ -64,7 +75,7 @@ func createMockMetaHeader() *dataBlock.MetaBlock {
 	}
 }
 
-//------- TestNewInterceptedHeader
+// ------- TestNewInterceptedHeader
 
 func TestNewInterceptedMetaHeader_NilArgumentShouldErr(t *testing.T) {
 	t.Parallel()
@@ -99,7 +110,7 @@ func TestNewInterceptedMetaHeader_ShouldWork(t *testing.T) {
 	assert.Nil(t, err)
 }
 
-//------- CheckValidity
+// ------- CheckValidity
 
 func TestInterceptedMetaHeader_CheckValidityNilPubKeyBitmapShouldErr(t *testing.T) {
 	t.Parallel()
@@ -132,7 +143,10 @@ func TestInterceptedMetaHeader_ErrorInMiniBlockShouldErr(t *testing.T) {
 	}
 	buff, _ := testMarshalizer.Marshal(hdr)
 
-	arg := createDefaultMetaArgument()
+	shardCoordinator := mock.NewOneShardCoordinatorMock()
+	_ = shardCoordinator.SetSelfId(core.MetachainShardId)
+
+	arg := createMetaArgumentWithShardCoordinator(shardCoordinator)
 	arg.HdrBuff = buff
 	inHdr, _ := interceptedBlocks.NewInterceptedMetaHeader(arg)
 
@@ -186,7 +200,7 @@ func TestInterceptedMetaHeader_CheckAgainstFinalHeaderAttesterFailsShouldErr(t *
 	assert.Equal(t, expectedErr, err)
 }
 
-//------- getters
+// ------- getters
 
 func TestInterceptedMetaHeader_Getters(t *testing.T) {
 	t.Parallel()
@@ -287,7 +301,7 @@ func TestInterceptedMetaHeader_isMetaHeaderEpochOutOfRange(t *testing.T) {
 	})
 }
 
-//------- IsInterfaceNil
+// ------- IsInterfaceNil
 
 func TestInterceptedMetaHeader_IsInterfaceNil(t *testing.T) {
 	t.Parallel()

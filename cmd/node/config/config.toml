@@ -43,7 +43,13 @@
     # ChainParametersByEpoch defines chain operation configurable values that can be modified based on epochs
     ChainParametersByEpoch = [
         { EnableEpoch = 0, RoundDuration = 6000, ShardConsensusGroupSize = 7, ShardMinNumNodes = 10, MetachainConsensusGroupSize = 10, MetachainMinNumNodes = 10, Hysteresis = 0.2, Adaptivity = false },
-        { EnableEpoch = 8, RoundDuration = 6000, ShardConsensusGroupSize = 10, ShardMinNumNodes = 10, MetachainConsensusGroupSize = 10, MetachainMinNumNodes = 10, Hysteresis = 0.2, Adaptivity = false }
+        { EnableEpoch = 1, RoundDuration = 6000, ShardConsensusGroupSize = 10, ShardMinNumNodes = 10, MetachainConsensusGroupSize = 10, MetachainMinNumNodes = 10, Hysteresis = 0.2, Adaptivity = false }
+    ]
+
+    # EpochChangeGracePeriodEnableEpoch represents the configuration of different grace periods for epoch change with their activation epochs
+    EpochChangeGracePeriodByEpoch = [
+        {EnableEpoch = 0, GracePeriodInRounds = 1 },
+        {EnableEpoch = 1, GracePeriodInRounds = 10 }, # Andromeda epoch comes with a longer grace period
     ]
 
 [HardwareRequirements]
@@ -187,6 +193,19 @@
         SizeInBytes = 20971520 #20MB
     [MetaBlockStorage.DB]
         FilePath = "MetaBlock"
+        Type = "LvlDBSerial"
+        BatchDelaySeconds = 2
+        MaxBatchSize = 100
+        MaxOpenFiles = 10
+
+[ProofsStorage]
+    [ProofsStorage.Cache]
+        Name = "ProofsStorage"
+        Capacity = 1000
+        Type = "SizeLRU"
+        SizeInBytes = 20971520 #20MB
+    [ProofsStorage.DB]
+        FilePath = "Proofs"
         Type = "LvlDBSerial"
         BatchDelaySeconds = 2
         MaxBatchSize = 100
@@ -373,6 +392,7 @@
 
 [ProofsPoolConfig]
     CleanupNonceDelta = 3
+    BucketSize = 100
 
 [BadBlocksCache]
     Name = "BadBlocksCache"
@@ -506,7 +526,7 @@
         IntervalInSeconds = 1
         ReservedPercent   = 20.0
         [Antiflood.FastReacting.PeerMaxInput]
-            BaseMessagesPerInterval  = 140
+            BaseMessagesPerInterval  = 280
             TotalSizePerInterval = 4194304 #4MB/s
             [Antiflood.FastReacting.PeerMaxInput.IncreaseFactor]
                 Threshold = 10 #if consensus size will exceed this value, then
@@ -548,7 +568,7 @@
             PeerBanDurationInSeconds = 3600
 
     [Antiflood.PeerMaxOutput]
-        BaseMessagesPerInterval  = 75
+        BaseMessagesPerInterval  = 150
         TotalSizePerInterval     = 2097152 #2MB/s
 
     [Antiflood.Cache]
@@ -672,6 +692,10 @@
     MaxPeerTrieLevelInMemory = 5
     StateStatisticsEnabled = false
 
+[TrieLeavesRetrieverConfig]
+    Enabled = false
+    MaxSizeInBytes = 10485760 #10MB
+
 [BlockSizeThrottleConfig]
     MinSizeInBytes = 104857 # 104857 is 10% from 1MB
     MaxSizeInBytes = 943718 # 943718 is 90% from 1MB
@@ -681,8 +705,7 @@
         TimeOutForSCExecutionInMilliseconds = 10000 # 10 seconds = 10000 milliseconds
         WasmerSIGSEGVPassthrough            = false # must be false for release
         WasmVMVersions = [
-            { StartEpoch = 0, Version = "v1.4" },
-            { StartEpoch = 1, Version = "v1.5" }, # TODO: set also the RoundActivations.DisableAsyncCallV1 accordingly
+            { StartEpoch = 0, Version = "v1.5" },
         ]
         TransferAndExecuteByUserAddresses = [ # TODO: set real contract addresses for all shards
             "erd1qqqqqqqqqqqqqpgqr46jrxr6r2unaqh75ugd308dwx5vgnhwh47qtvepe3", #shard 0
@@ -693,8 +716,7 @@
         TimeOutForSCExecutionInMilliseconds = 10000 # 10 seconds = 10000 milliseconds
         WasmerSIGSEGVPassthrough            = false # must be false for release
         WasmVMVersions = [
-            { StartEpoch = 0, Version = "v1.4" },
-            { StartEpoch = 1, Version = "v1.5" }, # TODO: set also the RoundActivations.DisableAsyncCallV1 accordingly
+            { StartEpoch = 0, Version = "v1.5" },
         ]
         TransferAndExecuteByUserAddresses = [ # TODO: set real contract addresses for all shards
             "erd1qqqqqqqqqqqqqpgqr46jrxr6r2unaqh75ugd308dwx5vgnhwh47qtvepe3",
@@ -794,6 +816,10 @@
         NumRequestsThreshold = 9
         NumResolveFailureThreshold = 3
         DebugLineExpiration = 10 #Will remove the debug line after a `DebugLineExpiration` number of prints
+        [Debug.InterceptorResolver.BroadcastStatistics]
+            Enabled = true
+            # "intercepted tx", "intercepted reward tx", "intercepted unsigned tx", "intercepted header", ...
+            Messages = ["intercepted tx"]
     [Debug.Antiflood]
         Enabled = true
         CacheSize = 10000

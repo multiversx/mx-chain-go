@@ -14,7 +14,6 @@ import (
 	"github.com/multiversx/mx-chain-go/common/factory"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/genesis/data"
-	"github.com/multiversx/mx-chain-go/integrationTests"
 	"github.com/multiversx/mx-chain-go/node"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/dtos"
 	"github.com/multiversx/mx-chain-go/sharding"
@@ -117,7 +116,6 @@ func CreateChainSimulatorConfigs(args ArgsChainSimulatorConfigs) (*ArgsConfigsSi
 
 	// set compatible trie configs
 	configs.GeneralConfig.StateTriesConfig.SnapshotsEnabled = false
-
 	// enable db lookup extension
 	configs.GeneralConfig.DbLookupExtensions.Enabled = true
 
@@ -134,6 +132,24 @@ func CreateChainSimulatorConfigs(args ArgsChainSimulatorConfigs) (*ArgsConfigsSi
 		return nil, err
 	}
 
+	updateConfigsChainParameters(args, configs)
+	node.ApplyArchCustomConfigs(configs)
+
+	if args.AlterConfigsFunction != nil {
+		args.AlterConfigsFunction(configs)
+		// this is needed to keep in sync Andromeda flag and the second entry from chain parameters
+		configs.GeneralConfig.GeneralSettings.ChainParametersByEpoch[1].EnableEpoch = configs.EpochConfig.EnableEpochs.AndromedaEnableEpoch
+	}
+
+	return &ArgsConfigsSimulator{
+		Configs:               *configs,
+		ValidatorsPrivateKeys: privateKeys,
+		GasScheduleFilename:   gasScheduleName,
+		InitialWallets:        initialWallets,
+	}, nil
+}
+
+func updateConfigsChainParameters(args ArgsChainSimulatorConfigs, configs *config.Configs) {
 	for idx := 0; idx < len(configs.GeneralConfig.GeneralSettings.ChainParametersByEpoch); idx++ {
 		configs.GeneralConfig.GeneralSettings.ChainParametersByEpoch[idx].ShardMinNumNodes = args.MinNodesPerShard
 		configs.GeneralConfig.GeneralSettings.ChainParametersByEpoch[idx].MetachainMinNumNodes = args.MetaChainMinNodes
@@ -143,22 +159,9 @@ func CreateChainSimulatorConfigs(args ArgsChainSimulatorConfigs) (*ArgsConfigsSi
 		configs.GeneralConfig.GeneralSettings.ChainParametersByEpoch[idx].Hysteresis = args.Hysteresis
 	}
 
-	// TODO[Sorin]: remove this once all equivalent messages PRs are merged
-	configs.EpochConfig.EnableEpochs.EquivalentMessagesEnableEpoch = integrationTests.UnreachableEpoch
-	configs.EpochConfig.EnableEpochs.FixedOrderInConsensusEnableEpoch = integrationTests.UnreachableEpoch
-
-	node.ApplyArchCustomConfigs(configs)
-
-	if args.AlterConfigsFunction != nil {
-		args.AlterConfigsFunction(configs)
+	if len(configs.GeneralConfig.GeneralSettings.ChainParametersByEpoch) > 1 {
+		configs.GeneralConfig.GeneralSettings.ChainParametersByEpoch[1].ShardConsensusGroupSize = args.MinNodesPerShard
 	}
-
-	return &ArgsConfigsSimulator{
-		Configs:               *configs,
-		ValidatorsPrivateKeys: privateKeys,
-		GasScheduleFilename:   gasScheduleName,
-		InitialWallets:        initialWallets,
-	}, nil
 }
 
 // SetMaxNumberOfNodesInConfigs will correctly set the max number of nodes in configs
@@ -183,10 +186,10 @@ func SetMaxNumberOfNodesInConfigs(cfg *config.Configs, eligibleNodes uint32, wai
 
 // SetQuickJailRatingConfig will set the rating config in a way that leads to rapid jailing of a node
 func SetQuickJailRatingConfig(cfg *config.Configs) {
-	cfg.RatingsConfig.ShardChain.RatingSteps.ConsecutiveMissedBlocksPenalty = 100
-	cfg.RatingsConfig.ShardChain.RatingSteps.HoursToMaxRatingFromStartRating = 1
-	cfg.RatingsConfig.MetaChain.RatingSteps.ConsecutiveMissedBlocksPenalty = 100
-	cfg.RatingsConfig.MetaChain.RatingSteps.HoursToMaxRatingFromStartRating = 1
+	cfg.RatingsConfig.ShardChain.RatingStepsByEpoch[0].ConsecutiveMissedBlocksPenalty = 100
+	cfg.RatingsConfig.ShardChain.RatingStepsByEpoch[0].HoursToMaxRatingFromStartRating = 1
+	cfg.RatingsConfig.MetaChain.RatingStepsByEpoch[0].ConsecutiveMissedBlocksPenalty = 100
+	cfg.RatingsConfig.MetaChain.RatingStepsByEpoch[0].HoursToMaxRatingFromStartRating = 1
 }
 
 // SetStakingV4ActivationEpochs configures activation epochs for Staking V4.

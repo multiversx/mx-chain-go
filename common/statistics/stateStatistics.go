@@ -11,6 +11,7 @@ type stateStatistics struct {
 	numSnapshotCache uint64
 
 	numPersister         map[uint32]uint64
+	numWritePersister    map[uint32]uint64
 	numSnapshotPersister map[uint32]uint64
 	mutPersisters        sync.RWMutex
 
@@ -21,14 +22,9 @@ type stateStatistics struct {
 func NewStateStatistics() *stateStatistics {
 	return &stateStatistics{
 		numPersister:         make(map[uint32]uint64),
+		numWritePersister:    make(map[uint32]uint64),
 		numSnapshotPersister: make(map[uint32]uint64),
 	}
-}
-
-// ResetAll will reset all statistics
-func (ss *stateStatistics) ResetAll() {
-	ss.Reset()
-	ss.ResetSnapshot()
 }
 
 // Reset will reset processing statistics
@@ -37,6 +33,7 @@ func (ss *stateStatistics) Reset() {
 
 	ss.mutPersisters.Lock()
 	ss.numPersister = make(map[uint32]uint64)
+	ss.numWritePersister = make(map[uint32]uint64)
 	ss.mutPersisters.Unlock()
 
 	atomic.StoreUint64(&ss.numTrie, 0)
@@ -51,8 +48,8 @@ func (ss *stateStatistics) ResetSnapshot() {
 	ss.mutPersisters.Unlock()
 }
 
-// IncrementCache will increment cache counter
-func (ss *stateStatistics) IncrementCache() {
+// IncrCache will increment cache counter
+func (ss *stateStatistics) IncrCache() {
 	atomic.AddUint64(&ss.numCache, 1)
 }
 
@@ -61,8 +58,8 @@ func (ss *stateStatistics) Cache() uint64 {
 	return atomic.LoadUint64(&ss.numCache)
 }
 
-// IncrementSnapshotCache will increment snapshot cache counter
-func (ss *stateStatistics) IncrementSnapshotCache() {
+// IncrSnapshotCache will increment snapshot cache counter
+func (ss *stateStatistics) IncrSnapshotCache() {
 	atomic.AddUint64(&ss.numSnapshotCache, 1)
 }
 
@@ -71,8 +68,8 @@ func (ss *stateStatistics) SnapshotCache() uint64 {
 	return atomic.LoadUint64(&ss.numSnapshotCache)
 }
 
-// IncrementPersister will increment persister counter
-func (ss *stateStatistics) IncrementPersister(epoch uint32) {
+// IncrPersister will increment persister counter
+func (ss *stateStatistics) IncrPersister(epoch uint32) {
 	ss.mutPersisters.Lock()
 	defer ss.mutPersisters.Unlock()
 
@@ -87,8 +84,24 @@ func (ss *stateStatistics) Persister(epoch uint32) uint64 {
 	return ss.numPersister[epoch]
 }
 
-// IncrementSnapshotPersister will increment snapshot persister counter
-func (ss *stateStatistics) IncrementSnapshotPersister(epoch uint32) {
+// IncrWritePersister will increment persister write counter
+func (ss *stateStatistics) IncrWritePersister(epoch uint32) {
+	ss.mutPersisters.Lock()
+	defer ss.mutPersisters.Unlock()
+
+	ss.numWritePersister[epoch]++
+}
+
+// WritePersister returns the number of write persister operations
+func (ss *stateStatistics) WritePersister(epoch uint32) uint64 {
+	ss.mutPersisters.RLock()
+	defer ss.mutPersisters.RUnlock()
+
+	return ss.numWritePersister[epoch]
+}
+
+// IncrSnapshotPersister will increment snapshot persister counter
+func (ss *stateStatistics) IncrSnapshotPersister(epoch uint32) {
 	ss.mutPersisters.Lock()
 	defer ss.mutPersisters.Unlock()
 
@@ -103,8 +116,8 @@ func (ss *stateStatistics) SnapshotPersister(epoch uint32) uint64 {
 	return ss.numSnapshotPersister[epoch]
 }
 
-// IncrementTrie will increment trie counter
-func (ss *stateStatistics) IncrementTrie() {
+// IncrTrie will increment trie counter
+func (ss *stateStatistics) IncrTrie() {
 	atomic.AddUint64(&ss.numTrie, 1)
 }
 
@@ -140,6 +153,10 @@ func (ss *stateStatistics) ProcessingStats() []string {
 
 	for epoch, counter := range ss.numPersister {
 		stats = append(stats, fmt.Sprintf("persister epoch = %v op = %v", epoch, counter))
+	}
+
+	for epoch, counter := range ss.numWritePersister {
+		stats = append(stats, fmt.Sprintf("write persister epoch = %v op = %v", epoch, counter))
 	}
 
 	stats = append(stats, fmt.Sprintf("trie op = %v", atomic.LoadUint64(&ss.numTrie)))

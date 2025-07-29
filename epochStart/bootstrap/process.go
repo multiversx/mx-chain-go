@@ -16,6 +16,8 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/typeConverters/uint64ByteSlice"
 	logger "github.com/multiversx/mx-chain-logger-go"
 
+	"github.com/multiversx/mx-chain-go/process/interceptors/processor"
+
 	"github.com/multiversx/mx-chain-go/common"
 	disabledCommon "github.com/multiversx/mx-chain-go/common/disabled"
 	"github.com/multiversx/mx-chain-go/common/ordering"
@@ -131,6 +133,7 @@ type epochStartBootstrap struct {
 	dataPool                        dataRetriever.PoolsHolder
 	miniBlocksSyncer                epochStart.PendingMiniBlocksSyncHandler
 	headersSyncer                   epochStart.HeadersByHashSyncer
+	epochStartShardHeaderSyncer     epochStart.PendingEpochStartShardHeaderSyncer
 	txSyncerForScheduled            update.TransactionsSyncHandler
 	epochStartMetaBlockSyncer       epochStart.StartOfEpochMetaSyncer
 	nodesConfigHandler              StartOfEpochNodesConfigHandler
@@ -557,6 +560,7 @@ func (e *epochStartBootstrap) prepareComponentsToSyncFromNetwork() error {
 		epochStartConfig.MinNumConnectedPeersToStart,
 		epochStartConfig.MinNumOfPeersToConsiderBlockValid,
 		e.enableEpochsHandler,
+		e.dataPool.Proofs(),
 	)
 	if err != nil {
 		return err
@@ -574,6 +578,8 @@ func (e *epochStartBootstrap) prepareComponentsToSyncFromNetwork() error {
 		HeaderIntegrityVerifier:        e.headerIntegrityVerifier,
 		MetaBlockProcessor:             metaBlockProcessor,
 		InterceptedDataVerifierFactory: e.interceptedDataVerifierFactory,
+		ProofsPool:                     e.dataPool.Proofs(),
+		ProofsInterceptorProcessor:     processor.NewEquivalentProofsInterceptorProcessor(),
 	}
 	e.epochStartMetaBlockSyncer, err = NewEpochStartMetaSyncer(argsEpochStartSyncer)
 	if err != nil {
@@ -620,12 +626,26 @@ func (e *epochStartBootstrap) createSyncers() error {
 	}
 
 	syncMissingHeadersArgs := updateSync.ArgsNewMissingHeadersByHashSyncer{
-		Storage:        disabled.CreateMemUnit(),
-		Cache:          e.dataPool.Headers(),
-		Marshalizer:    e.coreComponentsHolder.InternalMarshalizer(),
-		RequestHandler: e.requestHandler,
+		Storage:             disabled.CreateMemUnit(),
+		Cache:               e.dataPool.Headers(),
+		ProofsPool:          e.dataPool.Proofs(),
+		Marshalizer:         e.coreComponentsHolder.InternalMarshalizer(),
+		RequestHandler:      e.requestHandler,
+		EnableEpochsHandler: e.enableEpochsHandler,
 	}
 	e.headersSyncer, err = updateSync.NewMissingheadersByHashSyncer(syncMissingHeadersArgs)
+	if err != nil {
+		return err
+	}
+
+	epochStartShardHeaderSyncerArgs := updateSync.ArgsPendingEpochStartShardHeaderSyncer{
+		HeadersPool:         e.dataPool.Headers(),
+		ProofsPool:          e.dataPool.Proofs(),
+		Marshalizer:         e.coreComponentsHolder.InternalMarshalizer(),
+		RequestHandler:      e.requestHandler,
+		EnableEpochsHandler: e.enableEpochsHandler,
+	}
+	e.epochStartShardHeaderSyncer, err = updateSync.NewPendingEpochStartShardHeaderSyncer(epochStartShardHeaderSyncerArgs)
 	if err != nil {
 		return err
 	}
@@ -648,7 +668,10 @@ func (e *epochStartBootstrap) createSyncers() error {
 func (e *epochStartBootstrap) syncHeadersFrom(meta data.MetaHeaderHandler) (map[string]data.HeaderHandler, error) {
 	hashesToRequest := make([][]byte, 0, len(meta.GetEpochStartHandler().GetLastFinalizedHeaderHandlers())+1)
 	shardIds := make([]uint32, 0, len(meta.GetEpochStartHandler().GetLastFinalizedHeaderHandlers())+1)
-
+	epochStartMetaHash, err := core.CalculateHash(e.coreComponentsHolder.InternalMarshalizer(), e.coreComponentsHolder.Hasher(), meta)
+	if err != nil {
+		return nil, err
+	}
 	for _, epochStartData := range meta.GetEpochStartHandler().GetLastFinalizedHeaderHandlers() {
 		hashesToRequest = append(hashesToRequest, epochStartData.GetHeaderHash())
 		shardIds = append(shardIds, epochStartData.GetShardID())
@@ -659,8 +682,13 @@ func (e *epochStartBootstrap) syncHeadersFrom(meta data.MetaHeaderHandler) (map[
 		shardIds = append(shardIds, core.MetachainShardId)
 	}
 
+	// add the epoch start meta hash to the list to sync its proof
+	// TODO: this can be removed when the proof will be loaded from storage
+	hashesToRequest = append(hashesToRequest, epochStartMetaHash)
+	shardIds = append(shardIds, core.MetachainShardId)
+
 	ctx, cancel := context.WithTimeout(context.Background(), DefaultTimeToWaitForRequestedData)
-	err := e.headersSyncer.SyncMissingHeadersByHash(shardIds, hashesToRequest, ctx)
+	err = e.headersSyncer.SyncMissingHeadersByHash(shardIds, hashesToRequest, ctx)
 	cancel()
 	if err != nil {
 		return nil, err
@@ -817,6 +845,8 @@ func (e *epochStartBootstrap) requestAndProcessForMeta(peerMiniBlocks []*block.M
 		ManagedPeersHolder:              e.cryptoComponentsHolder.ManagedPeersHolder(),
 		NodeProcessingMode:              e.nodeProcessingMode,
 		StateStatsHandler:               e.stateStatsHandler,
+		ProofsPool:                      e.dataPool.Proofs(),
+		EnableEpochsHandler:             e.enableEpochsHandler,
 	}
 	storageHandlerComponent, err := NewMetaStorageHandler(argsStorageHandler)
 	if err != nil {
@@ -910,6 +940,46 @@ func (e *epochStartBootstrap) findSelfShardEpochStartData() (data.EpochStartShar
 	return epochStartData, epochStart.ErrEpochStartDataForShardNotFound
 }
 
+func (e *epochStartBootstrap) findPrevEpochLatestFinalizedBlockForShard() (data.EpochStartShardDataHandler, error) {
+	if check.IfNil(e.prevEpochStartMeta) {
+		return nil, epochStart.ErrEpochStartDataForShardNotFound
+	}
+
+	epochStartHandler := e.prevEpochStartMeta.GetEpochStartHandler()
+	if epochStartHandler == nil {
+		return nil, epochStart.ErrEpochStartDataForShardNotFound
+	}
+
+	lastFinalizedHeaders := epochStartHandler.GetLastFinalizedHeaderHandlers()
+	for _, hdr := range lastFinalizedHeaders {
+		if hdr.GetShardID() == e.shardCoordinator.SelfId() {
+			return hdr, nil
+		}
+	}
+
+	return nil, epochStart.ErrEpochStartDataForShardNotFound
+}
+
+func (e *epochStartBootstrap) syncLatestEpochStartShardBlock(targetEpoch uint32, ctx context.Context) (data.HeaderHandler, []byte, error) {
+	prevEpochLatestFinalizedBlock, err := e.findPrevEpochLatestFinalizedBlockForShard()
+	if err != nil || prevEpochLatestFinalizedBlock == nil {
+		return nil, nil, epochStart.ErrEpochStartDataForShardNotFound
+	}
+
+	e.epochStartShardHeaderSyncer.ClearFields()
+	err = e.epochStartShardHeaderSyncer.SyncEpochStartShardHeader(e.shardCoordinator.SelfId(), targetEpoch, prevEpochLatestFinalizedBlock.GetNonce(), ctx)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	epochStartShardBlock, epochStartShardBlockHash, err := e.epochStartShardHeaderSyncer.GetEpochStartHeader()
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return epochStartShardBlock, epochStartShardBlockHash, nil
+}
+
 func (e *epochStartBootstrap) requestAndProcessForShard(peerMiniBlocks []*block.MiniBlock) error {
 	epochStartData, err := e.findSelfShardEpochStartData()
 	if err != nil {
@@ -963,6 +1033,15 @@ func (e *epochStartBootstrap) requestAndProcessForShard(peerMiniBlocks []*block.
 		return epochStart.ErrWrongTypeAssertion
 	}
 
+	ctx, cancel = context.WithTimeout(context.Background(), DefaultTimeToWaitForRequestedData)
+	epochStartShardBlock, epochStartShardBlockHash, err := e.syncLatestEpochStartShardBlock(epochStartData.GetEpoch(), ctx)
+	cancel()
+	if err != nil {
+		return err
+	}
+
+	e.syncedHeaders[string(epochStartShardBlockHash)] = epochStartShardBlock
+
 	dts, err := e.getDataToSync(
 		epochStartData,
 		shardNotarizedHeader,
@@ -989,6 +1068,8 @@ func (e *epochStartBootstrap) requestAndProcessForShard(peerMiniBlocks []*block.
 		ManagedPeersHolder:              e.cryptoComponentsHolder.ManagedPeersHolder(),
 		NodeProcessingMode:              e.nodeProcessingMode,
 		StateStatsHandler:               e.stateStatsHandler,
+		ProofsPool:                      e.dataPool.Proofs(),
+		EnableEpochsHandler:             e.enableEpochsHandler,
 	}
 	storageHandlerComponent, err := NewShardStorageHandler(argsStorageHandler)
 	if err != nil {
@@ -1288,6 +1369,7 @@ func (e *epochStartBootstrap) createRequestHandler() error {
 		FullArchivePreferredPeersHolder: disabled.NewPreferredPeersHolder(),
 		PeersRatingHandler:              disabled.NewDisabledPeersRatingHandler(),
 		SizeCheckDelta:                  0,
+		EnableEpochsHandler:             e.enableEpochsHandler,
 	}
 	requestersFactory, err := requesterscontainer.NewMetaRequestersContainerFactory(requestersContainerArgs)
 	if err != nil {

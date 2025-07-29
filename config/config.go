@@ -22,6 +22,7 @@ type HeadersPoolConfig struct {
 // ProofsPoolConfig will map the proofs cache configuration
 type ProofsPoolConfig struct {
 	CleanupNonceDelta uint64
+	BucketSize        int
 }
 
 // DBConfig will map the database configuration
@@ -165,13 +166,15 @@ type Config struct {
 
 	BootstrapStorage StorageConfig
 	MetaBlockStorage StorageConfig
+	ProofsStorage    StorageConfig
 
-	AccountsTrieStorage      StorageConfig
-	PeerAccountsTrieStorage  StorageConfig
-	EvictionWaitingList      EvictionWaitingListConfig
-	StateTriesConfig         StateTriesConfig
-	TrieStorageManagerConfig TrieStorageManagerConfig
-	BadBlocksCache           CacheConfig
+	AccountsTrieStorage       StorageConfig
+	PeerAccountsTrieStorage   StorageConfig
+	EvictionWaitingList       EvictionWaitingListConfig
+	StateTriesConfig          StateTriesConfig
+	TrieStorageManagerConfig  TrieStorageManagerConfig
+	TrieLeavesRetrieverConfig TrieLeavesRetrieverConfig
+	BadBlocksCache            CacheConfig
 
 	TxBlockBodyDataPool         CacheConfig
 	PeerBlockBodyDataPool       CacheConfig
@@ -286,6 +289,12 @@ type MultiSignerConfig struct {
 	Type        string
 }
 
+// EpochChangeGracePeriodByEpoch defines a config tuple for the epoch change grace period
+type EpochChangeGracePeriodByEpoch struct {
+	EnableEpoch         uint32
+	GracePeriodInRounds uint32
+}
+
 // GeneralSettingsConfig will hold the general settings for a node
 type GeneralSettingsConfig struct {
 	StatusPollingIntervalSec             int
@@ -299,6 +308,7 @@ type GeneralSettingsConfig struct {
 	SyncProcessTimeInMillis              uint32
 	SetGuardianEpochsDelay               uint32
 	ChainParametersByEpoch               []ChainParametersByEpochConfig
+	EpochChangeGracePeriodByEpoch        []EpochChangeGracePeriodByEpoch
 }
 
 // HardwareRequirementsConfig will hold the hardware requirements config
@@ -517,6 +527,13 @@ type InterceptorResolverDebugConfig struct {
 	NumRequestsThreshold       int
 	NumResolveFailureThreshold int
 	DebugLineExpiration        int
+	BroadcastStatistics        BroadcastStatisticsConfig
+}
+
+// BroadcastStatisticsConfig holds configuration for broadcast statistics collection
+type BroadcastStatisticsConfig struct {
+	Enabled  bool
+	Messages []string
 }
 
 // AntifloodDebugConfig will hold the antiflood debug configuration
@@ -686,4 +703,10 @@ type IndexBroadcastDelay struct {
 type InterceptedDataVerifierConfig struct {
 	CacheSpanInSec   uint64
 	CacheExpiryInSec uint64
+}
+
+// TrieLeavesRetrieverConfig represents the config options to be used when setting up the trie leaves retriever
+type TrieLeavesRetrieverConfig struct {
+	Enabled        bool
+	MaxSizeInBytes uint64
 }

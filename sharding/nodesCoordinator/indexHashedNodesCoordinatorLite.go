@@ -21,9 +21,9 @@ func (ihnc *indexHashedNodesCoordinator) SetNodesConfigFromValidatorsInfo(epoch 
 
 	chainParameters, err := ihnc.chainParametersHandler.ChainParametersForEpoch(epoch)
 	if err != nil {
-		log.Warn("indexHashedNodesCoordinator.SetNodesConfigFromValidatorsInfo: could not compute chain params for epoch. "+
-			"Will use the current chain parameters", "epoch", epoch, "error", err)
+		return err
 	}
+
 	shufflerArgs := ArgsUpdateNodes{
 		ChainParameters:   chainParameters,
 		Eligible:          newNodesConfig.eligibleMap,

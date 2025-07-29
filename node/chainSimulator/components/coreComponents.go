@@ -9,7 +9,9 @@ import (
 	"github.com/multiversx/mx-chain-go/common/chainparametersnotifier"
 	"github.com/multiversx/mx-chain-go/common/enablers"
 	factoryPubKey "github.com/multiversx/mx-chain-go/common/factory"
+	"github.com/multiversx/mx-chain-go/common/fieldsChecker"
 	"github.com/multiversx/mx-chain-go/common/forking"
+	"github.com/multiversx/mx-chain-go/common/graceperiod"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/epochStart/notifier"
@@ -76,6 +78,8 @@ type coreComponentsHolder struct {
 	enableEpochsHandler           common.EnableEpochsHandler
 	chainParametersSubscriber     process.ChainParametersSubscriber
 	chainParametersHandler        process.ChainParametersHandler
+	fieldsSizeChecker             common.FieldsSizeChecker
+	epochChangeGracePeriodHandler common.EpochChangeGracePeriodHandler
 }
 
 // ArgsCoreComponentsHolder will hold arguments needed for the core components holder
@@ -163,6 +167,11 @@ func CreateCoreComponents(args ArgsCoreComponentsHolder) (*coreComponentsHolder,
 		return nil, err
 	}
 
+	instance.epochChangeGracePeriodHandler, err = graceperiod.NewEpochChangeGracePeriod(args.Config.GeneralSettings.EpochChangeGracePeriodByEpoch)
+	if err != nil {
+		return nil, err
+	}
+
 	var nodesSetup config.NodesConfig
 	err = core.LoadJsonFile(&nodesSetup, args.NodesSetupPath)
 	if err != nil {
@@ -184,15 +193,13 @@ func CreateCoreComponents(args ArgsCoreComponentsHolder) (*coreComponentsHolder,
 		return nil, err
 	}
 
-	if err != nil {
-		return nil, err
-	}
-
 	argsEconomicsHandler := economics.ArgsNewEconomicsData{
 		TxVersionChecker:    instance.txVersionChecker,
 		Economics:           &args.EconomicsConfig,
 		EpochNotifier:       instance.epochNotifier,
 		EnableEpochsHandler: instance.enableEpochsHandler,
+		PubkeyConverter:     instance.addressPubKeyConverter,
+		ShardCoordinator:    testscommon.NewMultiShardsCoordinatorMock(instance.genesisNodesSetup.NumberOfShards()),
 	}
 
 	instance.economicsData, err = economics.NewEconomicsData(argsEconomicsHandler)
@@ -249,6 +256,12 @@ func CreateCoreComponents(args ArgsCoreComponentsHolder) (*coreComponentsHolder,
 		return nil, err
 	}
 	instance.hardforkTriggerPubKey = pubKeyBytes
+
+	fchecker, err := fieldsChecker.NewFieldsSizeChecker(instance.chainParametersHandler, hasher)
+	if err != nil {
+		return nil, err
+	}
+	instance.fieldsSizeChecker = fchecker
 
 	instance.collectClosableComponents()
 
@@ -449,6 +462,16 @@ func (c *coreComponentsHolder) ChainParametersSubscriber() process.ChainParamete
 // ChainParametersHandler will return the chain parameters handler
 func (c *coreComponentsHolder) ChainParametersHandler() process.ChainParametersHandler {
 	return c.chainParametersHandler
+}
+
+// FieldsSizeChecker will return the fields size checker component
+func (c *coreComponentsHolder) FieldsSizeChecker() common.FieldsSizeChecker {
+	return c.fieldsSizeChecker
+}
+
+// EpochChangeGracePeriodHandler will return the epoch change grace period handler
+func (c *coreComponentsHolder) EpochChangeGracePeriodHandler() common.EpochChangeGracePeriodHandler {
+	return c.epochChangeGracePeriodHandler
 }
 
 func (c *coreComponentsHolder) collectClosableComponents() {

@@ -3,12 +3,14 @@ package factory
 import (
 	"errors"
 	"fmt"
+	"math/big"
 	"testing"
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/economicsmocks"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
 	"github.com/multiversx/mx-chain-go/vm"
@@ -24,8 +26,12 @@ func createMockNewSystemScFactoryArgs() ArgsNewSystemSCFactory {
 	gasMap = defaults.FillGasMapInternal(gasMap, 1)
 	gasSchedule := testscommon.NewGasScheduleNotifierMock(gasMap)
 	return ArgsNewSystemSCFactory{
-		SystemEI:            &mock.SystemEIStub{},
-		Economics:           &mock.EconomicsHandlerStub{},
+		SystemEI: &mock.SystemEIStub{},
+		Economics: &economicsmocks.EconomicsHandlerMock{
+			GenesisTotalSupplyCalled: func() *big.Int {
+				return big.NewInt(100000000)
+			},
+		},
 		SigVerifier:         &mock.MessageSignVerifierMock{},
 		GasSchedule:         gasSchedule,
 		NodesConfigProvider: &mock.NodesConfigProviderStub{},
@@ -51,7 +57,8 @@ func createMockNewSystemScFactoryArgs() ArgsNewSystemSCFactory {
 					MinVetoThreshold: 0.5,
 					LostProposalFee:  "1",
 				},
-				OwnerAddress: "3132333435363738393031323334353637383930313233343536373839303234",
+				OwnerAddress:                 "3132333435363738393031323334353637383930313233343536373839303234",
+				MaxVotingDelayPeriodInEpochs: 30,
 			},
 			StakingSystemSCConfig: config.StakingSystemSCConfig{
 				GenesisNodePrice:                     "1000",

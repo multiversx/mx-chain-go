@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
+
 	"github.com/multiversx/mx-chain-go/p2p"
 )
 
@@ -176,8 +177,8 @@ func (netMes *networkMessenger) SignUsingPrivateKey(_ []byte, _ []byte) ([]byte,
 }
 
 // ProcessReceivedMessage returns nil as it is disabled
-func (netMes *networkMessenger) ProcessReceivedMessage(_ p2p.MessageP2P, _ core.PeerID, _ p2p.MessageHandler) error {
-	return nil
+func (netMes *networkMessenger) ProcessReceivedMessage(_ p2p.MessageP2P, _ core.PeerID, _ p2p.MessageHandler) ([]byte, error) {
+	return nil, nil
 }
 
 // SetDebugger returns nil as it is disabled

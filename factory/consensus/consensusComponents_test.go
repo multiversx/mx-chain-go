@@ -147,6 +147,7 @@ func createMockConsensusComponentsFactoryArgs() consensusComp.ConsensusComponent
 			HeaderIntegrVerif:                    &mock.HeaderIntegrityVerifierStub{},
 			FallbackHdrValidator:                 &testscommon.FallBackHeaderValidatorStub{},
 			SentSignaturesTrackerInternal:        &testscommon.SentSignatureTrackerStub{},
+			BlockchainHookField:                  &testscommon.BlockChainHookStub{},
 		},
 		StateComponents: &factoryMocks.StateComponentsMock{
 			StorageManagers: map[string]common.StorageManager{
@@ -770,7 +771,7 @@ func TestConsensusComponentsFactory_Create(t *testing.T) {
 		cnt := 0
 		netwCompStub.MessengerCalled = func() p2p.Messenger {
 			cnt++
-			if cnt > 3 {
+			if cnt > 4 {
 				return nil
 			}
 			return &p2pmocks.MessengerStub{}

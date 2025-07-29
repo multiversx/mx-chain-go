@@ -88,7 +88,7 @@ func (imh *InterceptedMetaHeader) HeaderHandler() data.HeaderHandler {
 
 // CheckValidity checks if the received meta header is valid (not nil fields, valid sig and so on)
 func (imh *InterceptedMetaHeader) CheckValidity() error {
-	log.Debug("CheckValidity for header with", "epoch", imh.hdr.GetEpoch(), "hash", logger.DisplayByteSlice(imh.hash))
+	log.Trace("CheckValidity for header with", "epoch", imh.hdr.GetEpoch(), "hash", logger.DisplayByteSlice(imh.hash))
 
 	err := imh.integrity()
 	if err != nil {
@@ -116,32 +116,12 @@ func (imh *InterceptedMetaHeader) CheckValidity() error {
 		return err
 	}
 
-	if imh.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, imh.hdr.GetEpoch()) {
-		return imh.verifySignaturesForEquivalentProofs()
-	}
-
 	err = imh.sigVerifier.VerifyRandSeedAndLeaderSignature(imh.hdr)
 	if err != nil {
 		return err
 	}
 
 	err = imh.sigVerifier.VerifySignature(imh.hdr)
-	if err != nil {
-		return err
-	}
-
-	return imh.integrityVerifier.Verify(imh.hdr)
-}
-
-func (imh *InterceptedMetaHeader) verifySignaturesForEquivalentProofs() error {
-	// for equivalent proofs, we check first the previous proof to make sure we add it to the proofs pool if we are validating the
-	// block after the change of epoch, otherwise we never add the previous proof to proofs pool in sync mode.
-	err := imh.sigVerifier.VerifySignature(imh.hdr)
-	if err != nil {
-		return err
-	}
-
-	err = imh.sigVerifier.VerifyRandSeedAndLeaderSignature(imh.hdr)
 	if err != nil {
 		return err
 	}
@@ -168,7 +148,7 @@ func (imh *InterceptedMetaHeader) integrity() error {
 		return err
 	}
 
-	err = checkMetaShardInfo(imh.hdr.GetShardInfoHandlers(), imh.shardCoordinator, imh.sigVerifier)
+	err = checkMetaShardInfo(imh.hdr.GetShardInfoHandlers(), imh.shardCoordinator)
 	if err != nil {
 		return err
 	}
