@@ -296,7 +296,8 @@ type EpochChangeGracePeriodByEpoch struct {
 
 // GeneralSettingsConfig will hold the general settings for a node
 type GeneralSettingsConfig struct {
-	StatusPollingIntervalSec             int
+	StatusPollingIntervalSec int
+	// TODO: add config per epoch for supernova
 	MaxComputableRounds                  uint64
 	MaxConsecutiveRoundsOfRatingDecrease uint64
 	StartInEpochEnabled                  bool
@@ -361,8 +362,9 @@ type WebServerAntifloodConfig struct {
 type BlackListConfig struct {
 	ThresholdNumMessagesPerInterval uint32
 	ThresholdSizePerInterval        uint64
-	NumFloodingRounds               uint32
-	PeerBanDurationInSeconds        uint32
+	// TODO: add config per epoch for supernova
+	NumFloodingRounds        uint32
+	PeerBanDurationInSeconds uint32
 }
 
 // TopicMaxMessagesConfig will hold the maximum number of messages/sec per topic value
@@ -677,6 +679,7 @@ type PoolsCleanersConfig struct {
 
 // RedundancyConfig represents the config options to be used when setting the redundancy configuration
 type RedundancyConfig struct {
+	// TODO: add config per epoch for supernova
 	MaxRoundsOfInactivityAccepted int
 }
 
