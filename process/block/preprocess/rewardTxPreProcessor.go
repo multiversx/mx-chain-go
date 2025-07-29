@@ -24,12 +24,11 @@ var _ process.PreProcessor = (*rewardTxPreprocessor)(nil)
 
 type rewardTxPreprocessor struct {
 	*basePreProcess
-	chReceivedAllRewardTxs chan bool
-	onRequestRewardTx      func(shardID uint32, txHashes [][]byte)
-	rewardTxsForBlock      TxsForBlockHandler
-	rewardTxPool           dataRetriever.ShardedDataCacherNotifier
-	storage                dataRetriever.StorageService
-	rewardsProcessor       process.RewardTransactionProcessor
+	onRequestRewardTx func(shardID uint32, txHashes [][]byte)
+	rewardTxsForBlock TxsForBlockHandler
+	rewardTxPool      dataRetriever.ShardedDataCacherNotifier
+	storage           dataRetriever.StorageService
+	rewardsProcessor  process.RewardTransactionProcessor
 }
 
 // NewRewardTxPreprocessor creates a new reward transaction preprocessor object
@@ -117,7 +116,6 @@ func NewRewardTxPreprocessor(
 		rewardsProcessor:  rewardProcessor,
 	}
 
-	rtp.chReceivedAllRewardTxs = make(chan bool)
 	rtp.rewardTxPool.RegisterOnAdded(rtp.receivedRewardTransaction)
 	var err error
 	rtp.rewardTxsForBlock, err = NewTxsForBlock(shardCoordinator)
@@ -128,22 +126,12 @@ func NewRewardTxPreprocessor(
 	return rtp, nil
 }
 
-// waitForRewardTxHashes waits for a call whether all the requested smartContractResults appeared
-func (rtp *rewardTxPreprocessor) waitForRewardTxHashes(waitTime time.Duration) error {
-	select {
-	case <-rtp.chReceivedAllRewardTxs:
-		return nil
-	case <-time.After(waitTime):
-		return process.ErrTimeIsOut
-	}
-}
-
 // IsDataPrepared returns non error if all the requested reward transactions arrived and were saved into the pool
 func (rtp *rewardTxPreprocessor) IsDataPrepared(requestedRewardTxs int, haveTime func() time.Duration) error {
 	if requestedRewardTxs > 0 {
 		log.Debug("requested missing reward txs",
 			"num reward txs", requestedRewardTxs)
-		err := rtp.waitForRewardTxHashes(haveTime())
+		err := rtp.rewardTxsForBlock.WaitForRequestedData(haveTime())
 		missingRewardTxs := rtp.rewardTxsForBlock.GetMissingTxsCount()
 		// TODO: previously the number of missing reward txs was cleared in rewardTxsForBlock - check if this is still needed
 		log.Debug("received reward txs",
@@ -321,17 +309,11 @@ func (rtp *rewardTxPreprocessor) receivedRewardTransaction(key []byte, value int
 		return
 	}
 
-	receivedAllMissing := rtp.baseReceivedTransaction(key, tx, rtp.rewardTxsForBlock)
-
-	if receivedAllMissing {
-		rtp.chReceivedAllRewardTxs <- true
-	}
+	rtp.baseReceivedTransaction(key, tx, rtp.rewardTxsForBlock)
 }
 
 // CreateBlockStarted cleans the local cache map for processed/created reward transactions at this round
 func (rtp *rewardTxPreprocessor) CreateBlockStarted() {
-	_ = core.EmptyChannel(rtp.chReceivedAllRewardTxs)
-
 	rtp.rewardTxsForBlock.Reset()
 }
 
@@ -362,7 +344,6 @@ func (rtp *rewardTxPreprocessor) computeExistingAndRequestMissingRewardTxsForSha
 	numMissingTxsForShards := rtp.computeExistingAndRequestMissing(
 		&rewardTxsBody,
 		rtp.rewardTxsForBlock,
-		rtp.chReceivedAllRewardTxs,
 		rtp.isMiniBlockCorrect,
 		rtp.rewardTxPool,
 		rtp.onRequestRewardTx,

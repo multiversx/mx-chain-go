@@ -42,7 +42,6 @@ const selectionGasBandwidthIncreaseScheduledPercent = 260
 
 type transactions struct {
 	*basePreProcess
-	chRcvAllTxs                  chan bool
 	onRequestTransaction         func(shardID uint32, txHashes [][]byte)
 	txsForCurrBlock              TxsForBlockHandler
 	txPool                       dataRetriever.ShardedDataCacherNotifier
@@ -183,7 +182,6 @@ func NewTransactionPreprocessor(
 		scheduledTxsExecutionHandler: args.ScheduledTxsExecutionHandler,
 	}
 
-	txs.chRcvAllTxs = make(chan bool)
 	txs.txPool.RegisterOnAdded(txs.receivedTransaction)
 
 	txs.txsForCurrBlock, err = NewTxsForBlock(args.ShardCoordinator)
@@ -198,21 +196,11 @@ func NewTransactionPreprocessor(
 	return txs, nil
 }
 
-// waitForTxHashes waits for a call whether all the requested transactions appeared
-func (txs *transactions) waitForTxHashes(waitTime time.Duration) error {
-	select {
-	case <-txs.chRcvAllTxs:
-		return nil
-	case <-time.After(waitTime):
-		return process.ErrTimeIsOut
-	}
-}
-
 // IsDataPrepared returns non error if all the requested transactions arrived and were saved into the pool
 func (txs *transactions) IsDataPrepared(requestedTxs int, haveTime func() time.Duration) error {
 	if requestedTxs > 0 {
 		log.Debug("requested missing txs", "num txs", requestedTxs)
-		err := txs.waitForTxHashes(haveTime())
+		err := txs.txsForCurrBlock.WaitForRequestedData(haveTime())
 		missingTxs := txs.txsForCurrBlock.GetMissingTxsCount()
 		// TODO: previously the number of missing txs was cleared in txsForCurrentBlock - check if this is still needed
 		log.Debug("received missing txs", "num txs", requestedTxs-missingTxs, "requested", requestedTxs, "missing", missingTxs)
@@ -766,17 +754,11 @@ func (txs *transactions) receivedTransaction(key []byte, value interface{}) {
 		return
 	}
 
-	receivedAllMissing := txs.baseReceivedTransaction(key, wrappedTx.Tx, txs.txsForCurrBlock)
-
-	if receivedAllMissing {
-		txs.chRcvAllTxs <- true
-	}
+	txs.baseReceivedTransaction(key, wrappedTx.Tx, txs.txsForCurrBlock)
 }
 
 // CreateBlockStarted cleans the local cache map for processed/created transactions at this round
 func (txs *transactions) CreateBlockStarted() {
-	_ = core.EmptyChannel(txs.chRcvAllTxs)
-
 	txs.txsForCurrBlock.Reset()
 	txs.mutOrderedTxs.Lock()
 	txs.orderedTxs = make(map[string][]data.TransactionHandler)
@@ -853,7 +835,6 @@ func (txs *transactions) computeExistingAndRequestMissingTxsForShards(body *bloc
 	numMissingTxsForShard := txs.computeExistingAndRequestMissing(
 		body,
 		txs.txsForCurrBlock,
-		txs.chRcvAllTxs,
 		txs.isMiniBlockCorrect,
 		txs.txPool,
 		txs.onRequestTransaction,

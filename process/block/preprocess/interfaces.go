@@ -68,6 +68,7 @@ type TxsForBlockHandler interface {
 		senderShardID uint32,
 		receiverShardID uint32,
 	)
+	WaitForRequestedData(waitTime time.Duration) error
 	GetTxInfoByHash(hash []byte) (*txInfo, bool)
 	GetAllCurrentUsedTxs() map[string]data.TransactionHandler
 	GetMissingTxsCount() int

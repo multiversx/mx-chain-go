@@ -234,7 +234,6 @@ func (vip *validatorInfoPreprocessor) saveValidatorInfoToStorage(miniBlock *bloc
 
 // CreateBlockStarted cleans the local cache map for processed/created validators info at this round
 func (vip *validatorInfoPreprocessor) CreateBlockStarted() {
-	_ = core.EmptyChannel(vip.chReceivedAllValidatorsInfo)
 	vip.validatorsInfoForBlock.Reset()
 }
 

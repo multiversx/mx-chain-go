@@ -2,7 +2,9 @@ package preprocess
 
 import (
 	"sync"
+	"time"
 
+	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
@@ -30,6 +32,7 @@ type txsForBlock struct {
 	missingTxs       int
 	mutTxsForBlock   sync.RWMutex
 	txHashAndInfo    map[string]*txInfo
+	chRcvAllTxs      chan bool
 }
 
 // NewTxsForBlock creates a new instance of txsForBlock
@@ -38,16 +41,20 @@ func NewTxsForBlock(shardCoordinator sharding.Coordinator) (*txsForBlock, error)
 		return nil, process.ErrNilShardCoordinator
 	}
 	return &txsForBlock{
-		txHashAndInfo:    make(map[string]*txInfo),
 		shardCoordinator: shardCoordinator,
+		missingTxs:       0,
+		mutTxsForBlock:   sync.RWMutex{},
+		txHashAndInfo:    make(map[string]*txInfo),
+		chRcvAllTxs:      make(chan bool),
 	}, nil
 }
 
 // Reset resets the state of txsForBlock, clearing the missing transactions count and the transaction hash map.
 func (tfb *txsForBlock) Reset() {
+	_ = core.EmptyChannel(tfb.chRcvAllTxs)
+
 	tfb.mutTxsForBlock.Lock()
 	defer tfb.mutTxsForBlock.Unlock()
-
 	tfb.missingTxs = 0
 	tfb.txHashAndInfo = make(map[string]*txInfo)
 }
@@ -87,6 +94,12 @@ func (tfb *txsForBlock) ReceivedTransaction(
 			(txInfoForHash.tx == nil || txInfoForHash.tx.IsInterfaceNil()) {
 			tfb.txHashAndInfo[string(txHash)].tx = tx
 			tfb.missingTxs--
+		}
+
+		if tfb.missingTxs == 0 {
+			go func() {
+				tfb.chRcvAllTxs <- true
+			}()
 		}
 	}
 }
@@ -137,7 +150,7 @@ func (tfb *txsForBlock) ComputeExistingAndRequestMissing(
 	defer tfb.mutTxsForBlock.Unlock()
 
 	missingTxsForShard := make(map[uint32][][]byte, tfb.shardCoordinator.NumberOfShards())
-	txHashes := make([][]byte, 0)
+	missingTxHashes := make([][]byte, 0)
 	uniqueTxHashes := make(map[string]struct{})
 	for i := 0; i < len(body.MiniBlocks); i++ {
 		miniBlock := body.MiniBlocks[i]
@@ -172,7 +185,7 @@ func (tfb *txsForBlock) ComputeExistingAndRequestMissing(
 				method)
 
 			if err != nil {
-				txHashes = append(txHashes, txHash)
+				missingTxHashes = append(missingTxHashes, txHash)
 				tfb.missingTxs++
 				log.Trace("missing tx",
 					"miniblock type", miniBlock.Type,
@@ -186,12 +199,12 @@ func (tfb *txsForBlock) ComputeExistingAndRequestMissing(
 			tfb.txHashAndInfo[string(txHash)] = &txInfo{tx: tx, txShardInfo: txShardInfoObject}
 		}
 
-		if len(txHashes) > 0 {
-			tfb.setMissingTxsForShard(miniBlock.SenderShardID, miniBlock.ReceiverShardID, txHashes)
-			missingTxsForShard[miniBlock.SenderShardID] = append(missingTxsForShard[miniBlock.SenderShardID], txHashes...)
+		if len(missingTxHashes) > 0 {
+			tfb.setMissingTxsForShard(miniBlock.SenderShardID, miniBlock.ReceiverShardID, missingTxHashes)
+			missingTxsForShard[miniBlock.SenderShardID] = append(missingTxsForShard[miniBlock.SenderShardID], missingTxHashes...)
 		}
 
-		txHashes = make([][]byte, 0)
+		missingTxHashes = make([][]byte, 0)
 	}
 
 	return tfb.requestMissingTxsForShard(missingTxsForShard, onRequestTxs)
@@ -230,6 +243,21 @@ func (tfb *txsForBlock) requestMissingTxsForShard(
 	}
 
 	return requestedTxs
+}
+
+// WaitForRequestedData waits for the requested data to be received within the specified wait time.
+func (tfb *txsForBlock) WaitForRequestedData(waitTime time.Duration) error {
+	if !tfb.HasMissingTransactions() {
+		core.EmptyChannel(tfb.chRcvAllTxs)
+		return nil
+	}
+
+	select {
+	case <-tfb.chRcvAllTxs:
+		return nil
+	case <-time.After(waitTime):
+		return process.ErrTimeIsOut
+	}
 }
 
 // IsInterfaceNil checks if the txsForBlock instance is nil.

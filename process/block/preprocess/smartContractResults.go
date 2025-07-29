@@ -25,7 +25,6 @@ var _ process.PreProcessor = (*smartContractResults)(nil)
 
 type smartContractResults struct {
 	*basePreProcess
-	chRcvAllScrs                 chan bool
 	onRequestSmartContractResult func(shardID uint32, txHashes [][]byte)
 	scrForBlock                  TxsForBlockHandler
 	scrPool                      dataRetriever.ShardedDataCacherNotifier
@@ -135,7 +134,6 @@ func NewSmartContractResultPreprocessor(
 		scrProcessor:                 scrProcessor,
 	}
 
-	scr.chRcvAllScrs = make(chan bool)
 	scr.scrPool.RegisterOnAdded(scr.receivedSmartContractResult)
 	scr.scrForBlock, err = NewTxsForBlock(shardCoordinator)
 	if err != nil {
@@ -145,22 +143,12 @@ func NewSmartContractResultPreprocessor(
 	return scr, nil
 }
 
-// waitForScrHashes waits for a call whether all the requested smartContractResults appeared
-func (scr *smartContractResults) waitForScrHashes(waitTime time.Duration) error {
-	select {
-	case <-scr.chRcvAllScrs:
-		return nil
-	case <-time.After(waitTime):
-		return process.ErrTimeIsOut
-	}
-}
-
 // IsDataPrepared returns non error if all the requested smartContractResults arrived and were saved into the pool
 func (scr *smartContractResults) IsDataPrepared(requestedScrs int, haveTime func() time.Duration) error {
 	if requestedScrs > 0 {
 		log.Debug("requested missing scrs",
 			"num scrs", requestedScrs)
-		err := scr.waitForScrHashes(haveTime())
+		err := scr.scrForBlock.WaitForRequestedData(haveTime())
 		missingScrs := scr.scrForBlock.GetMissingTxsCount()
 		// TODO: previously the number of missing txs was cleared in scrForBlock - check if this is still needed
 		log.Debug("received missing scrs",
@@ -395,16 +383,11 @@ func (scr *smartContractResults) receivedSmartContractResult(key []byte, value i
 		return
 	}
 
-	receivedAllMissing := scr.baseReceivedTransaction(key, tx, scr.scrForBlock)
-
-	if receivedAllMissing {
-		scr.chRcvAllScrs <- true
-	}
+	scr.baseReceivedTransaction(key, tx, scr.scrForBlock)
 }
 
 // CreateBlockStarted cleans the local cache map for processed/created smartContractResults at this round
 func (scr *smartContractResults) CreateBlockStarted() {
-	_ = core.EmptyChannel(scr.chRcvAllScrs)
 	scr.scrForBlock.Reset()
 }
 
@@ -435,7 +418,6 @@ func (scr *smartContractResults) computeExistingAndRequestMissingSCResultsForSha
 	numMissingTxsForShard := scr.computeExistingAndRequestMissing(
 		&scrTxs,
 		scr.scrForBlock,
-		scr.chRcvAllScrs,
 		scr.isMiniBlockCorrect,
 		scr.scrPool,
 		scr.onRequestSmartContractResult,

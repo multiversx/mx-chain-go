@@ -267,24 +267,20 @@ func (bpp *basePreProcess) baseReceivedTransaction(
 	txHash []byte,
 	tx data.TransactionHandler,
 	forBlock TxsForBlockHandler,
-) bool {
+) {
 	if check.IfNil(forBlock) {
 		log.Error("basePreProcess.baseReceivedTransaction: nil TxsForBlockHandler")
-		return false
+		return
 	}
 
 	if forBlock.HasMissingTransactions() {
 		forBlock.ReceivedTransaction(txHash, tx)
-		return !forBlock.HasMissingTransactions()
 	}
-
-	return false
 }
 
 func (bpp *basePreProcess) computeExistingAndRequestMissing(
 	body *block.Body,
 	forBlock TxsForBlockHandler,
-	_ chan bool,
 	isMiniBlockCorrect func(block.Type) bool,
 	txPool dataRetriever.ShardedDataCacherNotifier,
 	onRequestTxs func(shardID uint32, txHashes [][]byte),

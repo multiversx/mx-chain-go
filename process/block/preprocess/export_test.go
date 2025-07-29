@@ -42,7 +42,8 @@ func (txs *transactions) SetMissingTxs(missingTxs int) {
 }
 
 func (txs *transactions) SetRcvdTxChan() {
-	txs.chRcvAllTxs <- true
+	tfb := txs.txsForCurrBlock.(*txsForBlock)
+	tfb.chRcvAllTxs <- true
 }
 
 func (scr *smartContractResults) AddScrHashToRequestedList(txHash []byte) {
