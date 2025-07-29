@@ -51,6 +51,7 @@
     EpochChangeGracePeriodByEpoch = [
         {EnableEpoch = 0, GracePeriodInRounds = 1 },
         {EnableEpoch = 1, GracePeriodInRounds = 10 }, # Andromeda epoch comes with a longer grace period
+        {EnableEpoch = 2, GracePeriodInRounds = 100 }, # Supernova epoch comes with an even longer grace period due to round duration reduction
     ]
 
 [HardwareRequirements]
@@ -504,6 +505,7 @@
     BadRatedCacheCapacity = 5000
 
 [PoolsCleanersConfig]
+    # TODO: update these (maybe in txpool feat)
     MaxRoundsToKeepUnprocessedMiniBlocks = 300   # max number of rounds unprocessed miniblocks are kept in pool
     MaxRoundsToKeepUnprocessedTransactions = 300 # max number of rounds unprocessed transactions are kept in pool
 
