@@ -16,64 +16,53 @@ type Config struct {
 }
 
 // Decide returns the prefix of `pending` that may be inserted into the block currently being built / verified.
-// `lastNotarised` is nil if genesis.
-// Return value* `allowed` is the count of **leading** entries in `pending` deemed safe. The caller slices `pending[:allowed]` and embeds them.
+// Return value: `allowed` is the count of leading entries in `pending` deemed safe. The caller slices `pending[:allowed]`and embeds them.
 func Decide(cfg Config,
 	lastNotarised *ExecutionResultMeta,
 	pending []ExecutionResultMeta,
 	currentHdrTsNs uint64) (allowed int) {
 	allowed = 0
 
+	// time per gas unit on **minimum‑spec** hardware - 1 ns per gas unit
+	t_gas := uint64(1)
+
 	if len(pending) == 0 {
 		return allowed
 	}
 
 	var tBase uint64
+	// lastNotarised is nil if genesis.
 	if lastNotarised == nil {
-		tBase = cfg.GenesisTimeMs * 1_000_000 // ms → ns
+		tBase = convertMsToNs(cfg.GenesisTimeMs)
 	} else {
-		tBase = lastNotarised.HeaderTimeMs * 1_000_000 // ms → ns
+		tBase = convertMsToNs(lastNotarised.HeaderTimeMs)
 	}
 
-	var estimatedTime uint64 // accumulated execution time in ns (1 gas = 1ns)
+	// accumulated execution time in ns (1 gas = 1ns)
+	var estimatedTime uint64
 	for i, executionResultMeta := range pending {
-		estimatedTime += executionResultMeta.GasUsed
+		estimatedTime += executionResultMeta.GasUsed * t_gas
 
-		// Apply safety margin: et * μ = et * cfg.SafetyMargin / 100
+		// Apply safety margin
 		estimatedTimeWithMargin := estimatedTime * cfg.SafetyMargin / 100
 		tDone := tBase + estimatedTimeWithMargin
 
+		// cannot include current pending item or anything after
 		if tDone > currentHdrTsNs {
-			return i // cannot include this or anything after
+			return i
 		}
 
+		// reached cap, including current pending item
 		if cfg.MaxResultsPerBlock != 0 && uint64(i+1) >= cfg.MaxResultsPerBlock {
-			return i + 1 // reached cap
+			return i + 1
 		}
 	}
 
+	// If we reach here, all pending items are safe to include
 	return len(pending)
 }
 
-/*Return value* `allowed` is the count of **leading** entries in `pending` deemed safe. The caller
-slices `pending[:allowed]` and embeds them.
-
----
-
-## 5. Core Algorithm
-
-```text
-1.  let ET      ← 0                // accumulated execution time (ns)
-2.  let t_base  ← (if lastNotarised == nil
-                    then genesisTimestampMs * 10^6 // convert to ns
-                    else lastNotarised.HeaderTimeMs * 10^6)
-3.  for i, res ∈ pending (in nonce order):
-4.      Δgas    ← res.GasUsed
-5.      ET     += Δgas * T_gas     // 1 ns per gas
-6.      t_done  ← t_base + ET * (1 + μ)
-7.      if t_done > currentHdrTsMs * 10^6: // convert to ns
-8.          return i               // cannot include res and beyond
-9.      if cfg.MaxResultsPerBlock ≠ 0 and i+1 ≥ cfg.MaxResultsPerBlock:
-10.         return i+1
-11. return len(pending)
-*/
+func convertMsToNs(ms uint64) uint64 {
+	// Convert milliseconds to nanoseconds
+	return ms * 1_000_000
+}
