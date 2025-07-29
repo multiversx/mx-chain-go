@@ -146,11 +146,11 @@ func (cns *ConsensusState) IsNodeLeaderInCurrentRound(node string) bool {
 
 // GetLeader method gets the leader of the current round
 func (cns *ConsensusState) GetLeader() (string, error) {
-	if cns.consensusGroup == nil {
+	if cns.ConsensusGroup() == nil {
 		return "", ErrNilConsensusGroup
 	}
 
-	if len(cns.consensusGroup) == 0 {
+	if len(cns.ConsensusGroup()) == 0 {
 		return "", ErrEmptyConsensusGroup
 	}
 
@@ -361,7 +361,7 @@ func (cns *ConsensusState) IsLeaderJobDone(currentSubroundId int) bool {
 // IsMultiKeyJobDone method returns true if all the nodes controlled by this instance finished the current job for
 // the current subround and false otherwise
 func (cns *ConsensusState) IsMultiKeyJobDone(currentSubroundId int) bool {
-	for _, validator := range cns.consensusGroup {
+	for _, validator := range cns.ConsensusGroup() {
 		if !cns.keysHandler.IsKeyManagedByCurrentNode([]byte(validator)) {
 			continue
 		}
