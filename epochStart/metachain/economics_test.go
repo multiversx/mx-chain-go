@@ -511,19 +511,19 @@ func TestEconomics_ComputeInflationRate(t *testing.T) {
 
 		epoch := uint32(1)
 
-		rate, _ := ec.computeInflationRate(1, epoch)
+		rate, _ := ec.computeInflationRate(1, epoch+1)
 		assert.Nil(t, errFound)
 		assert.Equal(t, year1inflation, rate)
 
-		rate, _ = ec.computeInflationRate(50000, epoch)
+		rate, _ = ec.computeInflationRate(50000, epoch+1)
 		assert.Nil(t, errFound)
 		assert.Equal(t, year1inflation, rate)
 
-		rate, _ = ec.computeInflationRate(supernovaActivationRound-1, epoch)
+		rate, _ = ec.computeInflationRate(supernovaActivationRound-1, epoch+1)
 		assert.Nil(t, errFound)
 		assert.Equal(t, year1inflation, rate)
 
-		rate, _ = ec.computeInflationRate(supernovaActivationRound, epoch)
+		rate, _ = ec.computeInflationRate(supernovaActivationRound, epoch+1)
 		assert.Nil(t, errFound)
 		assert.Equal(t, year2inflation, rate)
 
@@ -535,11 +535,11 @@ func TestEconomics_ComputeInflationRate(t *testing.T) {
 			},
 		)
 
-		rate, _ = ec.computeInflationRate(supernovaActivationRound, activationEpoch)
+		rate, _ = ec.computeInflationRate(supernovaActivationRound, activationEpoch+1)
 		assert.Nil(t, errFound)
 		assert.Equal(t, year2inflation, rate)
 
-		rate, _ = ec.computeInflationRate(supernovaActivationRound*(10+1), activationEpoch+10)
+		rate, _ = ec.computeInflationRate(supernovaActivationRound*(10+1), activationEpoch+10+1)
 		assert.Nil(t, errFound)
 		assert.Equal(t, lateYearInflation, rate)
 	})
@@ -586,7 +586,7 @@ func TestGetSupernovaActivationYear(t *testing.T) {
 
 		ec, _ := NewEndOfEpochEconomicsDataCreator(args)
 
-		activationYear, err := ec.getSupernovaActivationYear(2)
+		activationYear, err := ec.getSupernovaActivationYear()
 		require.Equal(t, expErr, err)
 		require.Zero(t, activationYear)
 	})
@@ -629,7 +629,7 @@ func TestGetSupernovaActivationYear(t *testing.T) {
 
 		ec, _ := NewEndOfEpochEconomicsDataCreator(args)
 
-		activationYear, err := ec.getSupernovaActivationYear(2)
+		activationYear, err := ec.getSupernovaActivationYear()
 		require.Equal(t, commonErrors.ErrInvalidRoundDuration, err)
 		require.Zero(t, activationYear)
 	})
@@ -681,7 +681,7 @@ func TestGetSupernovaActivationYear(t *testing.T) {
 
 		ec, _ := NewEndOfEpochEconomicsDataCreator(args)
 
-		activationYear, err := ec.getSupernovaActivationYear(2)
+		activationYear, err := ec.getSupernovaActivationYear()
 		require.Nil(t, err)
 
 		expActivationYear := uint32(2)

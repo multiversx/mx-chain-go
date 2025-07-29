@@ -346,8 +346,8 @@ func (e *economics) adjustRewardsPerBlockWithLeaderPercentage(
 }
 
 // compute inflation rate from genesisTotalSupply and economics settings for that year
-func (e *economics) computeInflationRateLegacy(currentRound uint64, currentEpoch uint32) (float64, error) {
-	roundsPerDay := common.ComputeRoundsPerDay(e.roundTime.TimeDuration(), e.enableEpochsHandler, currentEpoch)
+func (e *economics) computeInflationRateLegacy(currentRound uint64, epoch uint32) (float64, error) {
+	roundsPerDay := common.ComputeRoundsPerDay(e.roundTime.TimeDuration(), e.enableEpochsHandler, epoch)
 
 	roundsPerYear := numberOfDaysInYear * roundsPerDay
 	yearsIndex := uint32(currentRound/roundsPerYear) + 1
@@ -356,13 +356,15 @@ func (e *economics) computeInflationRateLegacy(currentRound uint64, currentEpoch
 }
 
 func (e *economics) computeInflationRate(currentRound uint64, currentEpoch uint32) (float64, error) {
-	supernovaInEpochActivated := e.enableEpochsHandler.IsFlagEnabledInEpoch(common.SupernovaFlag, currentEpoch)
+	prevEpoch := e.getPreviousEpoch(currentEpoch)
+	supernovaInEpochActivated := e.enableEpochsHandler.IsFlagEnabledInEpoch(common.SupernovaFlag, prevEpoch)
+
 	if !supernovaInEpochActivated {
-		return e.computeInflationRateLegacy(currentRound, currentEpoch)
+		return e.computeInflationRateLegacy(currentRound, prevEpoch)
 	}
 
-	currentYear := currentEpoch/uint32(numberOfDaysInYear) + 1
-	supernovaActivationYear, err := e.getSupernovaActivationYear(currentEpoch)
+	currentYear := prevEpoch/uint32(numberOfDaysInYear) + 1
+	supernovaActivationYear, err := e.getSupernovaActivationYear()
 	if err != nil {
 		return 0, err
 	}
@@ -371,22 +373,22 @@ func (e *economics) computeInflationRate(currentRound uint64, currentEpoch uint3
 		return e.computeInflationRateInSupernovaYear(currentYear)
 	}
 
-	return e.computeInflationRateAfterSupernovaYear(currentRound, currentEpoch, supernovaActivationYear)
+	return e.computeInflationRateAfterSupernovaYear(currentRound, prevEpoch, supernovaActivationYear)
 }
 
-func (e *economics) getPrevSupernovaActivationEpoch(supernovaActivationEpoch uint32) uint32 {
-	if supernovaActivationEpoch == 0 {
-		return supernovaActivationEpoch
+func (e *economics) getPreviousEpoch(epoch uint32) uint32 {
+	if epoch == 0 {
+		return epoch
 	}
 
-	return supernovaActivationEpoch - 1
+	return epoch - 1
 }
 
-func (e *economics) getSupernovaActivationYear(currentEpoch uint32) (uint32, error) {
+func (e *economics) getSupernovaActivationYear() (uint32, error) {
 	supernovaActivationRound := e.enableRoundsHandler.GetActivationRound(common.SupernovaRoundFlag)
 	supernovaActivationEpoch := e.enableEpochsHandler.GetActivationEpoch(common.SupernovaFlag)
+	supernovaPrevActivationEpoch := e.getPreviousEpoch(supernovaActivationEpoch)
 
-	supernovaPrevActivationEpoch := e.getPrevSupernovaActivationEpoch(supernovaActivationEpoch)
 	chainParametersUntilSupernova, err := e.chainParamsHandler.ChainParametersForEpoch(supernovaPrevActivationEpoch)
 	if err != nil {
 		return 0, err
