@@ -88,19 +88,21 @@ func (tfb *txsForBlock) ReceivedTransaction(
 	tfb.mutTxsForBlock.Lock()
 	defer tfb.mutTxsForBlock.Unlock()
 
-	if tfb.missingTxs > 0 {
-		txInfoForHash := tfb.txHashAndInfo[string(txHash)]
-		if txInfoForHash != nil && txInfoForHash.txShardInfo != nil &&
-			(txInfoForHash.tx == nil || txInfoForHash.tx.IsInterfaceNil()) {
-			tfb.txHashAndInfo[string(txHash)].tx = tx
-			tfb.missingTxs--
-		}
+	if tfb.missingTxs <= 0 {
+		return
+	}
 
-		if tfb.missingTxs == 0 {
-			go func() {
-				tfb.chRcvAllTxs <- true
-			}()
-		}
+	txInfoForHash := tfb.txHashAndInfo[string(txHash)]
+	if txInfoForHash != nil && txInfoForHash.txShardInfo != nil &&
+		(txInfoForHash.tx == nil || txInfoForHash.tx.IsInterfaceNil()) {
+		tfb.txHashAndInfo[string(txHash)].tx = tx
+		tfb.missingTxs--
+	}
+
+	if tfb.missingTxs == 0 {
+		go func() {
+			tfb.chRcvAllTxs <- true
+		}()
 	}
 }
 
@@ -168,37 +170,8 @@ func (tfb *txsForBlock) ComputeExistingAndRequestMissing(
 			method = process.SearchMethodPeekWithFallbackSearchFirst
 		}
 
-		for j := 0; j < len(miniBlock.TxHashes); j++ {
-			txHash := miniBlock.TxHashes[j]
-
-			_, isAlreadyEvaluated := uniqueTxHashes[string(txHash)]
-			if isAlreadyEvaluated {
-				continue
-			}
-			uniqueTxHashes[string(txHash)] = struct{}{}
-
-			tx, err := process.GetTransactionHandlerFromPool(
-				miniBlock.SenderShardID,
-				miniBlock.ReceiverShardID,
-				txHash,
-				txPool,
-				method)
-
-			if err != nil {
-				missingTxHashes = append(missingTxHashes, txHash)
-				tfb.missingTxs++
-				log.Trace("missing tx",
-					"miniblock type", miniBlock.Type,
-					"sender", miniBlock.SenderShardID,
-					"receiver", miniBlock.ReceiverShardID,
-					"hash", txHash,
-				)
-				continue
-			}
-
-			tfb.txHashAndInfo[string(txHash)] = &txInfo{tx: tx, txShardInfo: txShardInfoObject}
-		}
-
+		missingTxHashesInMiniBlock := tfb.updateExistingAndComputeMissingTxsInMiniBlock(miniBlock, uniqueTxHashes, txPool, method, txShardInfoObject)
+		missingTxHashes = append(missingTxHashes, missingTxHashesInMiniBlock...)
 		if len(missingTxHashes) > 0 {
 			tfb.setMissingTxsForShard(miniBlock.SenderShardID, miniBlock.ReceiverShardID, missingTxHashes)
 			missingTxsForShard[miniBlock.SenderShardID] = append(missingTxsForShard[miniBlock.SenderShardID], missingTxHashes...)
@@ -208,6 +181,48 @@ func (tfb *txsForBlock) ComputeExistingAndRequestMissing(
 	}
 
 	return tfb.requestMissingTxsForShard(missingTxsForShard, onRequestTxs)
+}
+
+func (tfb *txsForBlock) updateExistingAndComputeMissingTxsInMiniBlock(
+	miniBlock *block.MiniBlock,
+	uniqueTxHashes map[string]struct{},
+	txPool dataRetriever.ShardedDataCacherNotifier,
+	method process.ShardedCacheSearchMethod,
+	txShardInfoObject *txShardInfo,
+) [][]byte {
+	missingTxHashes := make([][]byte, 0)
+	for j := 0; j < len(miniBlock.TxHashes); j++ {
+		txHash := miniBlock.TxHashes[j]
+
+		_, isAlreadyEvaluated := uniqueTxHashes[string(txHash)]
+		if isAlreadyEvaluated {
+			continue
+		}
+		uniqueTxHashes[string(txHash)] = struct{}{}
+
+		tx, err := process.GetTransactionHandlerFromPool(
+			miniBlock.SenderShardID,
+			miniBlock.ReceiverShardID,
+			txHash,
+			txPool,
+			method)
+
+		if err != nil {
+			missingTxHashes = append(missingTxHashes, txHash)
+			tfb.missingTxs++
+			log.Trace("missing tx",
+				"miniblock type", miniBlock.Type,
+				"sender", miniBlock.SenderShardID,
+				"receiver", miniBlock.ReceiverShardID,
+				"hash", txHash,
+			)
+			continue
+		}
+
+		tfb.txHashAndInfo[string(txHash)] = &txInfo{tx: tx, txShardInfo: txShardInfoObject}
+	}
+
+	return missingTxHashes
 }
 
 // this method should be called only under the mutex protection: forBlock.mutTxsForBlock

@@ -863,7 +863,10 @@ func TestTransactions_IsDataPrepared_NumMissingTxsGreaterThanZeroTxNotReceivedSh
 	haveTimeShorter := func() time.Duration {
 		return time.Millisecond
 	}
-	err := txs.IsDataPrepared(2, haveTimeShorter)
+
+	txHashesMissing := [][]byte{[]byte("missing_tx_hash"), []byte("missing_tx_hash2")}
+	txs.txsForCurrBlock.(*txsForBlock).missingTxs = len(txHashesMissing)
+	err := txs.IsDataPrepared(len(txHashesMissing), haveTimeShorter)
 	assert.Equal(t, process.ErrTimeIsOut, err)
 }
 

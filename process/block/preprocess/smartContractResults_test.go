@@ -1006,7 +1006,9 @@ func TestScrsPreprocessor_IsDataPreparedErr(t *testing.T) {
 		&commonTests.TxExecutionOrderHandlerStub{},
 	)
 
-	err := txs.IsDataPrepared(1, haveTime)
+	scrHashesMissing := [][]byte{[]byte("missing_scr_hash")}
+	txs.scrForBlock.(*txsForBlock).missingTxs = len(scrHashesMissing)
+	err := txs.IsDataPrepared(len(scrHashesMissing), haveTime)
 
 	assert.Equal(t, process.ErrTimeIsOut, err)
 }
@@ -1038,7 +1040,8 @@ func TestScrsPreprocessor_IsDataPrepared(t *testing.T) {
 
 	go func() {
 		time.Sleep(50 * time.Millisecond)
-		txs.chRcvAllScrs <- true
+		tfb := txs.scrForBlock.(*txsForBlock)
+		tfb.chRcvAllTxs <- true
 	}()
 
 	err := txs.IsDataPrepared(1, haveTime)
