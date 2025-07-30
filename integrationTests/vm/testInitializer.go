@@ -1015,6 +1015,8 @@ func CreateTxProcessorWithOneSCExecutorWithVMs(
 		return nil, err
 	}
 
+	txSimulatorProcessorArgs.SCRProcessor = proxyProcessor
+
 	txSimulatorProcessorArgs.IntermediateProcContainer = interimProcContainer
 
 	txSimulator, err := transactionEvaluator.NewTransactionSimulator(txSimulatorProcessorArgs)
