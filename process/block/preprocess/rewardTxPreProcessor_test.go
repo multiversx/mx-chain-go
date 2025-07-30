@@ -824,7 +824,8 @@ func TestRewardTxPreprocessor_IsDataPreparedShouldErr(t *testing.T) {
 	)
 
 	txHashesMissing := [][]byte{[]byte("missing_tx_hash")}
-	rtp.rewardTxsForBlock.(*txsForBlock).missingTxs = len(txHashesMissing)
+
+	rtp.SetMissingRewardTxs(len(txHashesMissing))
 	err := rtp.IsDataPrepared(len(txHashesMissing), haveTime)
 
 	assert.Equal(t, process.ErrTimeIsOut, err)
@@ -853,8 +854,7 @@ func TestRewardTxPreprocessor_IsDataPrepared(t *testing.T) {
 
 	go func() {
 		time.Sleep(50 * time.Millisecond)
-		rewardsForBlock := rtp.rewardTxsForBlock.(*txsForBlock)
-		rewardsForBlock.missingTxs = 0
+		rtp.SetMissingRewardTxs(0)
 	}()
 
 	err := rtp.IsDataPrepared(1, haveTime)

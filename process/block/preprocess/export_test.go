@@ -79,6 +79,13 @@ func (rtp *rewardTxPreprocessor) AddTxs(txHashes [][]byte, txs []data.Transactio
 	}
 }
 
+func (rtp *rewardTxPreprocessor) SetMissingRewardTxs(missingTxs int) {
+	missingRewards, _ := rtp.rewardTxsForBlock.(*txsForBlock)
+	missingRewards.mutTxsForBlock.Lock()
+	missingRewards.missingTxs = missingTxs
+	missingRewards.mutTxsForBlock.Unlock()
+}
+
 func (bsc *blockSizeComputation) MiniblockSize() uint32 {
 	return bsc.miniblockSize
 }
