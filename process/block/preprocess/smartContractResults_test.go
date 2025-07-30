@@ -1007,7 +1007,7 @@ func TestScrsPreprocessor_IsDataPreparedErr(t *testing.T) {
 	)
 
 	scrHashesMissing := [][]byte{[]byte("missing_scr_hash")}
-	txs.scrForBlock.(*txsForBlock).missingTxs = len(scrHashesMissing)
+	txs.SetMissingScr(len(scrHashesMissing))
 	err := txs.IsDataPrepared(len(scrHashesMissing), haveTime)
 
 	assert.Equal(t, process.ErrTimeIsOut, err)
