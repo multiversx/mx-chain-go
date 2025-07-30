@@ -71,11 +71,11 @@ func (fhv *fallbackHeaderValidator) ShouldApplyFallbackValidationForHeaderWith(s
 		return false
 	}
 
-	isRoundTooOld := int64(round)-int64(previousHeader.GetRound()) >= fhv.getMaxRoundsWithoutCommitedStartInEpochBlock(previousHeader.GetRound())
+	isRoundTooOld := int64(round)-int64(previousHeader.GetRound()) >= fhv.getMaxRoundsWithoutCommittedStartInEpochBlock(previousHeader.GetRound())
 	return isRoundTooOld
 }
 
-func (fhv *fallbackHeaderValidator) getMaxRoundsWithoutCommitedStartInEpochBlock(round uint64) int64 {
+func (fhv *fallbackHeaderValidator) getMaxRoundsWithoutCommittedStartInEpochBlock(round uint64) int64 {
 	if fhv.enableRoundsHandler.IsFlagEnabledInRound(common.SupernovaRoundFlag, round) {
 		return SupernovaMaxRoundsWithoutCommittedStartInEpochBlock
 	}

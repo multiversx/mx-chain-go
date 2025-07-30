@@ -515,7 +515,7 @@ func (e *epochStartBootstrap) computeIfCurrentEpochIsSaved() bool {
 		return false
 	}
 
-	roundGracePeriod := e.getRoundGracePriod()
+	roundGracePeriod := e.getRoundGracePeriod()
 
 	computedRound := e.roundHandler.Index()
 	log.Debug("computed round", "round", computedRound, "lastRound", e.baseData.lastRound)
@@ -530,7 +530,7 @@ func (e *epochStartBootstrap) computeIfCurrentEpochIsSaved() bool {
 	return float64(roundsSinceEpochStart) < epochEndPlusGracePeriod
 }
 
-func (e *epochStartBootstrap) getRoundGracePriod() int64 {
+func (e *epochStartBootstrap) getRoundGracePeriod() int64 {
 	if e.enableEpochsHandler.IsFlagEnabledInEpoch(common.SupernovaFlag, e.baseData.lastEpoch) {
 		return supernovaRoundGracePeriod
 	}
