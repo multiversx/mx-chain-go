@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"sync"
 	"testing"
 
 	"github.com/multiversx/mx-chain-core-go/data"
@@ -615,4 +616,57 @@ func TestGasConsumption_DecreaseMiniBlockLimit(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, 2, pendingMbs)  // 2 pending, back to initial limit
 	require.Equal(t, 7, lastMbIndex) // 8 added, back to inital limit
+}
+
+func TestGasConsumption_ConcurrentOps(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
+	require.NotPanics(t, func() {
+		mbs := generateMiniBlocks(1, 2)
+		txsInMBs := generateTxsForMiniBlocks(mbs)
+
+		txs := generateTxs(maxGasLimitPerTx, 3)
+
+		gc, _ := block.NewGasConsumption(getMockArgsGasConsumption())
+		require.NotNil(t, gc)
+
+		numCalls := 1000
+		wg := sync.WaitGroup{}
+		wg.Add(numCalls)
+
+		for i := 0; i < numCalls; i++ {
+			go func(idx int) {
+				switch idx % 10 {
+				case 0:
+					_, _ = gc.CheckOutgoingTransactions(txs)
+				case 1:
+					_, _, _ = gc.CheckIncomingMiniBlocks(mbs, txsInMBs)
+				case 2:
+					gc.Reset()
+				case 3:
+					gc.DecreaseOutgoingLimit()
+				case 4:
+					gc.DecreaseIncomingLimit()
+				case 5:
+					gc.ResetOutgoingLimit()
+				case 6:
+					gc.ResetIncomingLimit()
+				case 7:
+					gc.GetLastMiniBlockIndexIncluded()
+				case 8:
+					gc.GetLastTransactionIndexIncluded()
+				case 9:
+					gc.TotalGasConsumed()
+				default:
+					require.Fail(t, "should have not been called")
+				}
+
+				wg.Done()
+			}(i)
+		}
+
+		wg.Wait()
+	})
 }
