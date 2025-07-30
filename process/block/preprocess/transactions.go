@@ -843,7 +843,7 @@ func (txs *transactions) computeExistingAndRequestMissingTxsForShards(body *bloc
 	return numMissingTxsForShard
 }
 
-// processAndRemoveBadTransactions processed transactions, if txs are with error it removes them from pool
+// processAndRemoveBadTransaction processed transactions, if txs are with error it removes them from pool
 func (txs *transactions) processAndRemoveBadTransaction(
 	txHash []byte,
 	tx *transaction.Transaction,

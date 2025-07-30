@@ -16,7 +16,7 @@ func NewEmptyPruningStorer() *PruningStorer {
 	}
 }
 
-// AddMockActivePersister -
+// AddMockActivePersisters -
 func (ps *PruningStorer) AddMockActivePersisters(epochs []uint32, ordered bool, withMap bool) {
 	for _, e := range epochs {
 		pd := &persisterData{
