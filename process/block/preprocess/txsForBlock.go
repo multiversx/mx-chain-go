@@ -14,16 +14,16 @@ import (
 	"github.com/multiversx/mx-chain-go/sharding"
 )
 
-// txShardInfo contains information about the sender and receiver shard IDs of a transaction.
-type txShardInfo struct {
-	senderShardID   uint32
-	receiverShardID uint32
+// TxShardInfo contains information about the sender and receiver shard IDs of a transaction.
+type TxShardInfo struct {
+	SenderShardID   uint32
+	ReceiverShardID uint32
 }
 
-// txInfo contains a transaction handler and its associated shard information.
-type txInfo struct {
-	tx data.TransactionHandler
-	*txShardInfo
+// TxInfo contains a transaction handler and its associated shard information.
+type TxInfo struct {
+	Tx data.TransactionHandler
+	*TxShardInfo
 }
 
 // txsForBlock holds the information about the missing and existing transactions required for a block.
@@ -31,7 +31,7 @@ type txsForBlock struct {
 	shardCoordinator sharding.Coordinator
 	missingTxs       int
 	mutTxsForBlock   sync.RWMutex
-	txHashAndInfo    map[string]*txInfo
+	txHashAndInfo    map[string]*TxInfo
 	chRcvAllTxs      chan bool
 }
 
@@ -44,7 +44,7 @@ func NewTxsForBlock(shardCoordinator sharding.Coordinator) (*txsForBlock, error)
 		shardCoordinator: shardCoordinator,
 		missingTxs:       0,
 		mutTxsForBlock:   sync.RWMutex{},
-		txHashAndInfo:    make(map[string]*txInfo),
+		txHashAndInfo:    make(map[string]*TxInfo),
 		chRcvAllTxs:      make(chan bool),
 	}, nil
 }
@@ -56,11 +56,11 @@ func (tfb *txsForBlock) Reset() {
 	tfb.mutTxsForBlock.Lock()
 	defer tfb.mutTxsForBlock.Unlock()
 	tfb.missingTxs = 0
-	tfb.txHashAndInfo = make(map[string]*txInfo)
+	tfb.txHashAndInfo = make(map[string]*TxInfo)
 }
 
 // GetTxInfoByHash retrieves the transaction information by its hash.
-func (tfb *txsForBlock) GetTxInfoByHash(hash []byte) (*txInfo, bool) {
+func (tfb *txsForBlock) GetTxInfoByHash(hash []byte) (*TxInfo, bool) {
 	tfb.mutTxsForBlock.RLock()
 	defer tfb.mutTxsForBlock.RUnlock()
 
@@ -73,7 +73,7 @@ func (tfb *txsForBlock) GetAllCurrentUsedTxs() map[string]data.TransactionHandle
 	tfb.mutTxsForBlock.RLock()
 	txsPool := make(map[string]data.TransactionHandler, len(tfb.txHashAndInfo))
 	for txHash, txInfoFromMap := range tfb.txHashAndInfo {
-		txsPool[txHash] = txInfoFromMap.tx
+		txsPool[txHash] = txInfoFromMap.Tx
 	}
 	tfb.mutTxsForBlock.RUnlock()
 
@@ -93,9 +93,9 @@ func (tfb *txsForBlock) ReceivedTransaction(
 	}
 
 	txInfoForHash := tfb.txHashAndInfo[string(txHash)]
-	if txInfoForHash != nil && txInfoForHash.txShardInfo != nil &&
-		(txInfoForHash.tx == nil || txInfoForHash.tx.IsInterfaceNil()) {
-		tfb.txHashAndInfo[string(txHash)].tx = tx
+	if txInfoForHash != nil && txInfoForHash.TxShardInfo != nil &&
+		(txInfoForHash.Tx == nil || txInfoForHash.Tx.IsInterfaceNil()) {
+		tfb.txHashAndInfo[string(txHash)].Tx = tx
 		tfb.missingTxs--
 	}
 
@@ -116,9 +116,9 @@ func (tfb *txsForBlock) AddTransaction(
 	if check.IfNil(tx) {
 		return
 	}
-	txShardInfoToSet := &txShardInfo{senderShardID: senderShardID, receiverShardID: receiverShardID}
+	txShardInfoToSet := &TxShardInfo{SenderShardID: senderShardID, ReceiverShardID: receiverShardID}
 	tfb.mutTxsForBlock.Lock()
-	tfb.txHashAndInfo[string(txHash)] = &txInfo{tx: tx, txShardInfo: txShardInfoToSet}
+	tfb.txHashAndInfo[string(txHash)] = &TxInfo{Tx: tx, TxShardInfo: txShardInfoToSet}
 	tfb.mutTxsForBlock.Unlock()
 }
 
@@ -160,7 +160,7 @@ func (tfb *txsForBlock) ComputeExistingAndRequestMissing(
 			continue
 		}
 
-		txShardInfoObject := &txShardInfo{senderShardID: miniBlock.SenderShardID, receiverShardID: miniBlock.ReceiverShardID}
+		txShardInfoObject := &TxShardInfo{SenderShardID: miniBlock.SenderShardID, ReceiverShardID: miniBlock.ReceiverShardID}
 		// TODO refactor this section
 		method := process.SearchMethodJustPeek
 		if miniBlock.Type == block.InvalidBlock {
@@ -188,7 +188,7 @@ func (tfb *txsForBlock) updateExistingAndComputeMissingTxsInMiniBlock(
 	uniqueTxHashes map[string]struct{},
 	txPool dataRetriever.ShardedDataCacherNotifier,
 	method process.ShardedCacheSearchMethod,
-	txShardInfoObject *txShardInfo,
+	txShardInfoObject *TxShardInfo,
 ) [][]byte {
 	missingTxHashes := make([][]byte, 0)
 	for j := 0; j < len(miniBlock.TxHashes); j++ {
@@ -219,7 +219,7 @@ func (tfb *txsForBlock) updateExistingAndComputeMissingTxsInMiniBlock(
 			continue
 		}
 
-		tfb.txHashAndInfo[string(txHash)] = &txInfo{tx: tx, txShardInfo: txShardInfoObject}
+		tfb.txHashAndInfo[string(txHash)] = &TxInfo{Tx: tx, TxShardInfo: txShardInfoObject}
 	}
 
 	return missingTxHashes
@@ -231,15 +231,15 @@ func (tfb *txsForBlock) setMissingTxsForShard(
 	receiverShardID uint32,
 	txHashes [][]byte,
 ) {
-	txShardInfoToSet := &txShardInfo{
-		senderShardID:   senderShardID,
-		receiverShardID: receiverShardID,
+	txShardInfoToSet := &TxShardInfo{
+		SenderShardID:   senderShardID,
+		ReceiverShardID: receiverShardID,
 	}
 
 	for _, txHash := range txHashes {
-		tfb.txHashAndInfo[string(txHash)] = &txInfo{
-			tx:          nil,
-			txShardInfo: txShardInfoToSet,
+		tfb.txHashAndInfo[string(txHash)] = &TxInfo{
+			Tx:          nil,
+			TxShardInfo: txShardInfoToSet,
 		}
 	}
 }

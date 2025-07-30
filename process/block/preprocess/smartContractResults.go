@@ -306,12 +306,12 @@ func (scr *smartContractResults) ProcessBlockTransactions(
 			txHash := miniBlock.TxHashes[j]
 
 			txInfoFromMap, ok := scr.scrForBlock.GetTxInfoByHash(txHash)
-			if !ok || check.IfNil(txInfoFromMap.tx) {
+			if !ok || check.IfNil(txInfoFromMap.Tx) {
 				log.Warn("missing transaction in ProcessBlockTransactions ", "type", miniBlock.Type, "txHash", txHash)
 				return process.ErrMissingTransaction
 			}
 
-			currScr, ok := txInfoFromMap.tx.(*smartContractResult.SmartContractResult)
+			currScr, ok := txInfoFromMap.Tx.(*smartContractResult.SmartContractResult)
 			if !ok {
 				return process.ErrWrongTypeAssertion
 			}

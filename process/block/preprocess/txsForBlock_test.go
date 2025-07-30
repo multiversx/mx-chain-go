@@ -36,7 +36,7 @@ func TestTxsForBlock_Reset(t *testing.T) {
 	tfb, _ := NewTxsForBlock(shardCoordinator)
 
 	tfb.missingTxs = 5
-	tfb.txHashAndInfo["hash1"] = &txInfo{}
+	tfb.txHashAndInfo["hash1"] = &TxInfo{}
 	tfb.Reset()
 
 	require.Equal(t, 0, tfb.missingTxs)
@@ -50,7 +50,7 @@ func TestTxsForBlock_GetTxInfoByHash(t *testing.T) {
 	tfb, _ := NewTxsForBlock(shardCoordinator)
 
 	txHash := []byte("hash1")
-	tInfo := &txInfo{}
+	tInfo := &TxInfo{}
 	tfb.txHashAndInfo[string(txHash)] = tInfo
 
 	result, ok := tfb.GetTxInfoByHash(txHash)
@@ -72,7 +72,7 @@ func TestTxsForBlock_ReceivedTransaction(t *testing.T) {
 
 		tfb, _ := NewTxsForBlock(shardCoordinator)
 		txHash := []byte("hash1")
-		tInfo := &txInfo{txShardInfo: &txShardInfo{}}
+		tInfo := &TxInfo{TxShardInfo: &TxShardInfo{}}
 		tfb.txHashAndInfo[string(txHash)] = tInfo
 		tfb.missingTxs = 1
 
@@ -81,7 +81,7 @@ func TestTxsForBlock_ReceivedTransaction(t *testing.T) {
 		}
 		tfb.ReceivedTransaction(txHash, tx)
 		require.True(t, <-tfb.chRcvAllTxs)
-		require.Equal(t, tx, tfb.txHashAndInfo[string(txHash)].tx)
+		require.Equal(t, tx, tfb.txHashAndInfo[string(txHash)].Tx)
 		require.Equal(t, 0, tfb.missingTxs)
 	})
 	t.Run("receive transaction when nothing missing", func(t *testing.T) {
@@ -89,7 +89,7 @@ func TestTxsForBlock_ReceivedTransaction(t *testing.T) {
 
 		tfb, _ := NewTxsForBlock(shardCoordinator)
 		txHash := []byte("hash1")
-		tInfo := &txInfo{txShardInfo: &txShardInfo{}}
+		tInfo := &TxInfo{TxShardInfo: &TxShardInfo{}}
 		tfb.txHashAndInfo[string(txHash)] = tInfo
 		tfb.missingTxs = 0
 
@@ -107,8 +107,8 @@ func TestTxsForBlock_ReceivedTransaction(t *testing.T) {
 		tfb, _ := NewTxsForBlock(shardCoordinator)
 		txHash1 := []byte("hash1")
 		txHash2 := []byte("hash2")
-		tInfo1 := &txInfo{txShardInfo: &txShardInfo{}}
-		tInfo2 := &txInfo{txShardInfo: &txShardInfo{}}
+		tInfo1 := &TxInfo{TxShardInfo: &TxShardInfo{}}
+		tInfo2 := &TxInfo{TxShardInfo: &TxShardInfo{}}
 		tfb.txHashAndInfo[string(txHash1)] = tInfo1
 		tfb.txHashAndInfo[string(txHash2)] = tInfo2
 		tfb.missingTxs = 2
@@ -118,7 +118,7 @@ func TestTxsForBlock_ReceivedTransaction(t *testing.T) {
 		}
 		tfb.ReceivedTransaction(txHash1, tx)
 
-		require.Equal(t, tx, tfb.txHashAndInfo[string(txHash1)].tx)
+		require.Equal(t, tx, tfb.txHashAndInfo[string(txHash1)].Tx)
 		require.Equal(t, 1, tfb.missingTxs)
 	})
 }
@@ -150,9 +150,9 @@ func TestTxsForBlock_AddTransaction(t *testing.T) {
 
 		tInfo, ok := tfb.txHashAndInfo[string(txHash)]
 		require.True(t, ok)
-		require.Equal(t, tx, tInfo.tx)
-		require.Equal(t, uint32(1), tInfo.senderShardID)
-		require.Equal(t, uint32(2), tInfo.receiverShardID)
+		require.Equal(t, tx, tInfo.Tx)
+		require.Equal(t, uint32(1), tInfo.SenderShardID)
+		require.Equal(t, uint32(2), tInfo.ReceiverShardID)
 	})
 }
 
@@ -318,13 +318,13 @@ func TestTxsForBlock_GetAllCurrentUsedTxs(t *testing.T) {
 
 	txHash1 := []byte("hash1")
 	txHash2 := []byte("hash2")
-	tfb.txHashAndInfo[string(txHash1)] = &txInfo{tx: &transaction.Transaction{Nonce: 1}}
-	tfb.txHashAndInfo[string(txHash2)] = &txInfo{tx: &transaction.Transaction{Nonce: 2}}
+	tfb.txHashAndInfo[string(txHash1)] = &TxInfo{Tx: &transaction.Transaction{Nonce: 1}}
+	tfb.txHashAndInfo[string(txHash2)] = &TxInfo{Tx: &transaction.Transaction{Nonce: 2}}
 
 	allTxs := tfb.GetAllCurrentUsedTxs()
 	require.Len(t, allTxs, 2)
-	require.Equal(t, tfb.txHashAndInfo[string(txHash1)].tx, allTxs[string(txHash1)])
-	require.Equal(t, tfb.txHashAndInfo[string(txHash2)].tx, allTxs[string(txHash2)])
+	require.Equal(t, tfb.txHashAndInfo[string(txHash1)].Tx, allTxs[string(txHash1)])
+	require.Equal(t, tfb.txHashAndInfo[string(txHash2)].Tx, allTxs[string(txHash2)])
 }
 
 func TestTxsForBlock_IsInterfaceNil(t *testing.T) {

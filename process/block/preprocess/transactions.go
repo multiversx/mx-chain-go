@@ -437,12 +437,12 @@ func (txs *transactions) computeTxsFromMiniBlock(
 	for i := indexOfFirstTxToBeProcessed; i <= pi.indexOfLastTxProcessedByProposer; i++ {
 		txHash := miniBlock.TxHashes[i]
 		txInfoFromMap, ok := txs.txsForCurrBlock.GetTxInfoByHash(txHash)
-		if !ok || check.IfNil(txInfoFromMap.tx) {
+		if !ok || check.IfNil(txInfoFromMap.Tx) {
 			log.Warn("missing transaction in computeTxsFromMiniBlock", "type", miniBlock.Type, "txHash", txHash)
 			return nil, process.ErrMissingTransaction
 		}
 
-		tx, ok := txInfoFromMap.tx.(*transaction.Transaction)
+		tx, ok := txInfoFromMap.Tx.(*transaction.Transaction)
 		if !ok {
 			return nil, process.ErrWrongTypeAssertion
 		}
@@ -1315,7 +1315,7 @@ func (txs *transactions) splitMiniBlockBasedOnMaxGasLimitIfNeeded(miniBlock *blo
 		_, gasProvidedByTxInReceiverShard, err := txs.computeGasProvidedByTx(
 			miniBlock.SenderShardID,
 			miniBlock.ReceiverShardID,
-			txInfoInstance.tx,
+			txInfoInstance.Tx,
 			txHash)
 		if err != nil {
 			log.Warn("transactions.splitMiniBlockIfNeeded: failed to compute gas consumed by tx", "hash", txHash, "error", err.Error())

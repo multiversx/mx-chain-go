@@ -251,12 +251,12 @@ func (rtp *rewardTxPreprocessor) ProcessBlockTransactions(
 			txHash := miniBlock.TxHashes[j]
 
 			txData, ok := rtp.rewardTxsForBlock.GetTxInfoByHash(txHash)
-			if !ok || check.IfNil(txData.tx) {
+			if !ok || check.IfNil(txData.Tx) {
 				log.Warn("missing rewardsTransaction in ProcessBlockTransactions ", "type", miniBlock.Type, "hash", txHash)
 				return process.ErrMissingTransaction
 			}
 
-			rTx, ok := txData.tx.(*rewardTx.RewardTx)
+			rTx, ok := txData.Tx.(*rewardTx.RewardTx)
 			if !ok {
 				return process.ErrWrongTypeAssertion
 			}

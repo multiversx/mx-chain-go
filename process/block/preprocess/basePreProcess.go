@@ -194,12 +194,12 @@ func (bpp *basePreProcess) createMarshalledData(txHashes [][]byte, forBlock TxsF
 	mrsTxs := make([][]byte, 0, len(txHashes))
 	for _, txHash := range txHashes {
 		txInfoFromMap, _ := forBlock.GetTxInfoByHash(txHash)
-		if txInfoFromMap == nil || check.IfNil(txInfoFromMap.tx) {
+		if txInfoFromMap == nil || check.IfNil(txInfoFromMap.Tx) {
 			log.Warn("basePreProcess.createMarshalledData: tx not found", "hash", txHash)
 			continue
 		}
 
-		txMrs, err := bpp.marshalizer.Marshal(txInfoFromMap.tx)
+		txMrs, err := bpp.marshalizer.Marshal(txInfoFromMap.Tx)
 		if err != nil {
 			return nil, process.ErrMarshalWithoutSuccess
 		}
@@ -242,12 +242,12 @@ func (bpp *basePreProcess) saveTransactionToStorage(
 	}
 
 	txInfoFromMap, _ := forBlock.GetTxInfoByHash(txHash)
-	if txInfoFromMap == nil || txInfoFromMap.tx == nil {
+	if txInfoFromMap == nil || txInfoFromMap.Tx == nil {
 		log.Warn("basePreProcess.saveTransactionToStorage", "txHash", txHash, "dataUnit", dataUnit, "error", process.ErrMissingTransaction)
 		return
 	}
 
-	buff, err := bpp.marshalizer.Marshal(txInfoFromMap.tx)
+	buff, err := bpp.marshalizer.Marshal(txInfoFromMap.Tx)
 	if err != nil {
 		log.Warn("basePreProcess.saveTransactionToStorage: Marshal", "txHash", txHash, "error", err)
 		return

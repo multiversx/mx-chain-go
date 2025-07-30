@@ -19,9 +19,9 @@ func (txs *transactions) AddTxHashToRequestedList(txHash []byte) {
 	defer txsForCurrentBlock.mutTxsForBlock.Unlock()
 
 	if txsForCurrentBlock.txHashAndInfo == nil {
-		txsForCurrentBlock.txHashAndInfo = make(map[string]*txInfo)
+		txsForCurrentBlock.txHashAndInfo = make(map[string]*TxInfo)
 	}
-	txsForCurrentBlock.txHashAndInfo[string(txHash)] = &txInfo{txShardInfo: &txShardInfo{}}
+	txsForCurrentBlock.txHashAndInfo[string(txHash)] = &TxInfo{TxShardInfo: &TxShardInfo{}}
 }
 
 func (txs *transactions) IsTxHashRequested(txHash []byte) bool {
@@ -29,8 +29,8 @@ func (txs *transactions) IsTxHashRequested(txHash []byte) bool {
 	txsForCurrentBlock.mutTxsForBlock.Lock()
 	defer txsForCurrentBlock.mutTxsForBlock.Unlock()
 
-	return txsForCurrentBlock.txHashAndInfo[string(txHash)].tx == nil ||
-		txsForCurrentBlock.txHashAndInfo[string(txHash)].tx.IsInterfaceNil()
+	return txsForCurrentBlock.txHashAndInfo[string(txHash)].Tx == nil ||
+		txsForCurrentBlock.txHashAndInfo[string(txHash)].Tx.IsInterfaceNil()
 }
 
 func (txs *transactions) SetMissingTxs(missingTxs int) {
@@ -52,9 +52,9 @@ func (scr *smartContractResults) AddScrHashToRequestedList(txHash []byte) {
 	defer scrForBlock.mutTxsForBlock.Unlock()
 
 	if scrForBlock.txHashAndInfo == nil {
-		scrForBlock.txHashAndInfo = make(map[string]*txInfo)
+		scrForBlock.txHashAndInfo = make(map[string]*TxInfo)
 	}
-	scrForBlock.txHashAndInfo[string(txHash)] = &txInfo{txShardInfo: &txShardInfo{}}
+	scrForBlock.txHashAndInfo[string(txHash)] = &TxInfo{TxShardInfo: &TxShardInfo{}}
 }
 
 func (scr *smartContractResults) IsScrHashRequested(txHash []byte) bool {
@@ -62,8 +62,8 @@ func (scr *smartContractResults) IsScrHashRequested(txHash []byte) bool {
 	scrForBlock.mutTxsForBlock.Lock()
 	defer scrForBlock.mutTxsForBlock.Unlock()
 
-	return scrForBlock.txHashAndInfo[string(txHash)].tx == nil ||
-		scrForBlock.txHashAndInfo[string(txHash)].tx.IsInterfaceNil()
+	return scrForBlock.txHashAndInfo[string(txHash)].Tx == nil ||
+		scrForBlock.txHashAndInfo[string(txHash)].Tx.IsInterfaceNil()
 }
 
 func (scr *smartContractResults) SetMissingScr(missingTxs int) {
@@ -125,7 +125,7 @@ func (txs *transactions) GetTxInfoForCurrentBlock(txHash []byte) (data.Transacti
 		return nil, 0, 0
 	}
 
-	return txInfo.tx, txInfo.senderShardID, txInfo.receiverShardID
+	return txInfo.Tx, txInfo.SenderShardID, txInfo.ReceiverShardID
 }
 
 func (bc *balanceComputation) GetBalanceOfAddress(address []byte) *big.Int {

@@ -69,7 +69,7 @@ type TxsForBlockHandler interface {
 		receiverShardID uint32,
 	)
 	WaitForRequestedData(waitTime time.Duration) error
-	GetTxInfoByHash(hash []byte) (*txInfo, bool)
+	GetTxInfoByHash(hash []byte) (*TxInfo, bool)
 	GetAllCurrentUsedTxs() map[string]data.TransactionHandler
 	GetMissingTxsCount() int
 	ReceivedTransaction(txHash []byte, tx data.TransactionHandler)
