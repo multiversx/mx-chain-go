@@ -76,6 +76,7 @@ type baseBootstrap struct {
 	blockBootstrapper   blockBootstrapper
 	blackListHandler    process.TimeCacher
 	enableEpochsHandler common.EnableEpochsHandler
+	enableRoundsHandler common.EnableRoundsHandler
 
 	mutHeader     sync.RWMutex
 	headerNonce   *uint64
@@ -490,7 +491,7 @@ func (boot *baseBootstrap) requestHeadersIfSyncIsStuck() {
 	}
 
 	roundDiff := uint64(boot.roundHandler.Index()) - lastSyncedRound
-	if roundDiff <= process.MaxRoundsWithoutNewBlockReceived {
+	if roundDiff <= boot.getMaxRoundsWithoutBlockReceived(lastSyncedRound) {
 		return
 	}
 
@@ -508,6 +509,14 @@ func (boot *baseBootstrap) requestHeadersIfSyncIsStuck() {
 		"probable highest nonce", boot.forkDetector.ProbableHighestNonce())
 
 	boot.requestHeaders(fromNonce, toNonce)
+}
+
+func (boot *baseBootstrap) getMaxRoundsWithoutBlockReceived(round uint64) uint64 {
+	if boot.enableRoundsHandler.IsFlagEnabledInRound(common.SupernovaRoundFlag, round) {
+		return process.SupernovaMaxRoundsWithoutNewBlockReceived
+	}
+
+	return process.MaxRoundsWithoutNewBlockReceived
 }
 
 func (boot *baseBootstrap) removeHeaderFromPools(header data.HeaderHandler) []byte {
@@ -619,6 +628,9 @@ func checkBaseBootstrapParameters(arguments ArgBaseBootstrapper) error {
 	}
 	if check.IfNil(arguments.EnableEpochsHandler) {
 		return process.ErrNilEnableEpochsHandler
+	}
+	if check.IfNil(arguments.EnableRoundsHandler) {
+		return process.ErrNilEnableRoundsHandler
 	}
 
 	return nil

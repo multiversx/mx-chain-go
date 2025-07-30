@@ -2405,3 +2405,11 @@ func (bp *baseProcessor) checkReceivedProofIfAttestingIsNeeded(proof data.Header
 		bp.chRcvAllHdrs <- true
 	}
 }
+
+func (bp *baseProcessor) getMaxRoundsWithoutBlockReceived(round uint64) uint64 {
+	if bp.enableRoundsHandler.IsFlagEnabledInRound(common.SupernovaRoundFlag, round) {
+		return process.SupernovaMaxRoundsWithoutNewBlockReceived
+	}
+
+	return process.MaxRoundsWithoutNewBlockReceived
+}

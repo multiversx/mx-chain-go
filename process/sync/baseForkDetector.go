@@ -643,8 +643,9 @@ func (bfd *baseForkDetector) isConsensusStuck() bool {
 		return false
 	}
 
-	roundsDifference := bfd.roundHandler.Index() - int64(bfd.lastCheckpoint().round)
-	if roundsDifference <= process.MaxRoundsWithoutCommittedBlock {
+	lastCheckpointRound := bfd.lastCheckpoint().round
+	roundsDifference := bfd.roundHandler.Index() - int64(lastCheckpointRound)
+	if roundsDifference <= bfd.getMaxRoundsWithoutCommittedBlock(lastCheckpointRound) {
 		return false
 	}
 
@@ -653,6 +654,14 @@ func (bfd *baseForkDetector) isConsensusStuck() bool {
 	}
 
 	return true
+}
+
+func (bfd *baseForkDetector) getMaxRoundsWithoutCommittedBlock(round uint64) int64 {
+	if bfd.enableRoundsHandler.IsFlagEnabledInRound(common.SupernovaRoundFlag, round) {
+		return process.SupernovaMaxRoundsWithoutCommittedBlock
+	}
+
+	return process.MaxRoundsWithoutCommittedBlock
 }
 
 func (bfd *baseForkDetector) isSyncing() bool {
@@ -837,18 +846,6 @@ func (bfd *baseForkDetector) checkGenesisTimeForHeader(headerHandler data.Header
 	}
 
 	return bfd.checkGenesisTimeForHeaderAfterSupernovaWithRoundActivation(headerHandler)
-}
-
-// getRoundDuration returns round duration in seconds or milliseconds based on activation flag
-func (bfd *baseForkDetector) getRoundDuration(
-	headerEpoch uint32,
-) int64 {
-	// TODO: handle activation round at supernova transition
-	if bfd.enableEpochsHandler.IsFlagEnabledInEpoch(common.SupernovaFlag, headerEpoch) {
-		return bfd.roundHandler.TimeDuration().Milliseconds()
-	}
-
-	return int64(bfd.roundHandler.TimeDuration().Seconds())
 }
 
 func (bfd *baseForkDetector) addHeader(

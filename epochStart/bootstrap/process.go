@@ -65,7 +65,10 @@ const DefaultTimeToWaitForRequestedData = time.Minute
 const timeBetweenRequests = 100 * time.Millisecond
 const maxToRequest = 100
 const gracePeriodInPercentage = float64(0.25)
+
+// TODO: add constants to config
 const roundGracePeriod = 25
+const supernovaRoundGracePeriod = 250
 
 // thresholdForConsideringMetaBlockCorrect represents the percentage (between 0 and 100) of connected peers to send
 // the same meta block in order to consider it correct
@@ -512,6 +515,8 @@ func (e *epochStartBootstrap) computeIfCurrentEpochIsSaved() bool {
 		return false
 	}
 
+	roundGracePeriod := e.getRoundGracePeriod()
+
 	computedRound := e.roundHandler.Index()
 	log.Debug("computed round", "round", computedRound, "lastRound", e.baseData.lastRound)
 	if computedRound-e.baseData.lastRound < roundGracePeriod {
@@ -523,6 +528,14 @@ func (e *epochStartBootstrap) computeIfCurrentEpochIsSaved() bool {
 
 	epochEndPlusGracePeriod := float64(e.getRoundsPerEpoch(e.baseData.lastEpoch)) * (gracePeriodInPercentage + 1.0)
 	return float64(roundsSinceEpochStart) < epochEndPlusGracePeriod
+}
+
+func (e *epochStartBootstrap) getRoundGracePeriod() int64 {
+	if e.enableEpochsHandler.IsFlagEnabledInEpoch(common.SupernovaFlag, e.baseData.lastEpoch) {
+		return supernovaRoundGracePeriod
+	}
+
+	return roundGracePeriod
 }
 
 func (e *epochStartBootstrap) getRoundsPerEpoch(epoch uint32) int64 {

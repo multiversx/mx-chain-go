@@ -27,8 +27,9 @@ const epochGracePeriod = 4
 const minTimeToWaitAfterHardforkInMinutes = 2
 const minimumEpochForHarfork = 1
 
-// TODO: update constant for supernova
+// TODO: add constants to config
 const deltaRoundsForForcedEpoch = uint64(10)
+const supernovaDeltaRoundsForForcedEpoch = uint64(100)
 const disabledRoundForForceEpochStart = uint64(math.MaxUint64)
 
 var _ facade.HardforkTrigger = (*trigger)(nil)
@@ -49,6 +50,7 @@ type ArgHardforkTrigger struct {
 	ImportStartHandler        update.ImportStartHandler
 	RoundHandler              update.RoundHandler
 	EnableEpochsHandler       common.EnableEpochsHandler
+	EnableRoundsHandler       common.EnableRoundsHandler
 }
 
 // trigger implements a hardfork trigger that is able to notify a set list of handlers if this instance gets triggered
@@ -79,6 +81,7 @@ type trigger struct {
 	isWithEarlyEndOfEpoch        bool
 	roundHandler                 update.RoundHandler
 	enableEpochsHandler          common.EnableEpochsHandler
+	enableRoundsHandler          common.EnableRoundsHandler
 }
 
 // NewTrigger returns the trigger instance
@@ -119,6 +122,9 @@ func NewTrigger(arg ArgHardforkTrigger) (*trigger, error) {
 	if check.IfNil(arg.EnableEpochsHandler) {
 		return nil, errors.ErrNilEnableEpochsHandler
 	}
+	if check.IfNil(arg.EnableRoundsHandler) {
+		return nil, errors.ErrNilEnableRoundsHandler
+	}
 
 	t := &trigger{
 		enabled:               arg.Enabled,
@@ -137,6 +143,7 @@ func NewTrigger(arg ArgHardforkTrigger) (*trigger, error) {
 		importStartHandler:    arg.ImportStartHandler,
 		roundHandler:          arg.RoundHandler,
 		enableEpochsHandler:   arg.EnableEpochsHandler,
+		enableRoundsHandler:   arg.EnableRoundsHandler,
 	}
 
 	t.isTriggerSelf = bytes.Equal(arg.TriggerPubKeyBytes, arg.SelfPubKeyBytes)
@@ -245,7 +252,15 @@ func (t *trigger) computeHardforkRound(withEarlyEndOfEpoch bool) uint64 {
 		return deltaRoundsForForcedEpoch
 	}
 
-	return uint64(currentRound) + deltaRoundsForForcedEpoch
+	return uint64(currentRound) + t.getDeltaRoundsForForceEpoch(uint64(currentRound))
+}
+
+func (t *trigger) getDeltaRoundsForForceEpoch(round uint64) uint64 {
+	if t.enableRoundsHandler.IsFlagEnabledInRound(common.SupernovaRoundFlag, round) {
+		return supernovaDeltaRoundsForForcedEpoch
+	}
+
+	return deltaRoundsForForcedEpoch
 }
 
 // computeAndSetTrigger needs to do 2 things atomically: set the original payload and epoch and determine if the trigger
