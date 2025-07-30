@@ -22,10 +22,11 @@ import (
 )
 
 var (
-	oneEGLD                   = big.NewInt(1000000000000000000)
-	oneQuarterOfEGLD          = big.NewInt(250000000000000000)
-	durationWaitAfterSendMany = 3000 * time.Millisecond
-	durationWaitAfterSendSome = 300 * time.Millisecond
+	oneEGLD                      = big.NewInt(1000000000000000000)
+	oneQuarterOfEGLD             = big.NewInt(250000000000000000)
+	durationWaitAfterSendMany    = 5000 * time.Millisecond
+	durationWaitAfterSendSome    = 500 * time.Millisecond
+	selectionLoopMaximumDuration = 500 * time.Millisecond
 )
 
 func startChainSimulator(t *testing.T, alterConfigsFunction func(cfg *config.Configs)) testsChainSimulator.ChainSimulator {
@@ -164,7 +165,7 @@ func selectTransactions(t *testing.T, simulator testsChainSimulator.ChainSimulat
 	options := holders.NewTxSelectionOptions(
 		10_000_000_000,
 		30_000,
-		250,
+		selectionLoopMaximumDuration,
 		10,
 	)
 

@@ -186,6 +186,18 @@ func (handler *enableEpochsHandler) createAllFlagsMap() {
 			},
 			activationEpoch: handler.enableEpochsConfig.GovernanceEnableEpoch,
 		},
+		common.GovernanceDisableProposeFlag: {
+			isActiveInEpoch: func(epoch uint32) bool {
+				return epoch >= handler.enableEpochsConfig.GovernanceDisableProposeEnableEpoch
+			},
+			activationEpoch: handler.enableEpochsConfig.GovernanceDisableProposeEnableEpoch,
+		},
+		common.GovernanceFixesFlag: {
+			isActiveInEpoch: func(epoch uint32) bool {
+				return epoch >= handler.enableEpochsConfig.GovernanceFixesEnableEpoch
+			},
+			activationEpoch: handler.enableEpochsConfig.GovernanceFixesEnableEpoch,
+		},
 		common.DelegationManagerFlag: {
 			isActiveInEpoch: func(epoch uint32) bool {
 				return epoch >= handler.enableEpochsConfig.DelegationManagerEnableEpoch
@@ -798,6 +810,12 @@ func (handler *enableEpochsHandler) createAllFlagsMap() {
 			},
 			activationEpoch: handler.enableEpochsConfig.AndromedaEnableEpoch,
 		},
+		common.SupernovaFlag: {
+			isActiveInEpoch: func(epoch uint32) bool {
+				return epoch >= handler.enableEpochsConfig.SupernovaEnableEpoch
+			},
+			activationEpoch: handler.enableEpochsConfig.SupernovaEnableEpoch,
+		},
 		// TODO: move it to activation round
 		common.CheckBuiltInCallOnTransferValueAndFailExecutionFlag: {
 			isActiveInEpoch: func(epoch uint32) bool {
@@ -834,6 +852,12 @@ func (handler *enableEpochsHandler) createAllFlagsMap() {
 				return epoch >= handler.enableEpochsConfig.BarnardOpcodesEnableEpoch
 			},
 			activationEpoch: handler.enableEpochsConfig.BarnardOpcodesEnableEpoch,
+		},
+		common.FixGetBalanceFlag: {
+			isActiveInEpoch: func(epoch uint32) bool {
+				return epoch >= handler.enableEpochsConfig.FixGetBalanceEnableEpoch
+			},
+			activationEpoch: handler.enableEpochsConfig.FixGetBalanceEnableEpoch,
 		},
 	}
 }

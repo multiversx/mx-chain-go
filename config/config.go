@@ -544,6 +544,13 @@ type InterceptorResolverDebugConfig struct {
 	NumRequestsThreshold       int
 	NumResolveFailureThreshold int
 	DebugLineExpiration        int
+	BroadcastStatistics        BroadcastStatisticsConfig
+}
+
+// BroadcastStatisticsConfig holds configuration for broadcast statistics collection
+type BroadcastStatisticsConfig struct {
+	Enabled  bool
+	Messages []string
 }
 
 // AntifloodDebugConfig will hold the antiflood debug configuration

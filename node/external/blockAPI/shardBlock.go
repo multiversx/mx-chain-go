@@ -2,7 +2,6 @@ package blockAPI
 
 import (
 	"encoding/hex"
-	"time"
 
 	"github.com/multiversx/mx-chain-core-go/data/alteredAccount"
 	"github.com/multiversx/mx-chain-core-go/data/api"
@@ -231,7 +230,8 @@ func (sbp *shardAPIBlockProcessor) convertShardBlockBytesToAPIBlock(hash []byte,
 		MiniBlocks:      miniblocks,
 		AccumulatedFees: blockHeader.GetAccumulatedFees().String(),
 		DeveloperFees:   blockHeader.GetDeveloperFees().String(),
-		Timestamp:       time.Duration(blockHeader.GetTimeStamp()),
+		Timestamp:       int64(blockHeader.GetTimeStamp()),
+		TimestampMs:     int64(common.ConvertTimeStampSecToMs(blockHeader.GetTimeStamp())),
 		Status:          BlockStatusOnChain,
 		StateRootHash:   hex.EncodeToString(blockHeader.GetRootHash()),
 		PubKeyBitmap:    hex.EncodeToString(blockHeader.GetPubKeysBitmap()),

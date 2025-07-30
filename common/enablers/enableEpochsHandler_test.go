@@ -38,6 +38,8 @@ func createEnableEpochsConfig() config.EnableEpochs {
 		DoubleKeyProtectionEnableEpoch:                           19,
 		ESDTEnableEpoch:                                          20,
 		GovernanceEnableEpoch:                                    21,
+		GovernanceDisableProposeEnableEpoch:                      22,
+		GovernanceFixesEnableEpoch:                               23,
 		DelegationManagerEnableEpoch:                             22,
 		DelegationSmartContractEnableEpoch:                       23,
 		CorrectLastUnjailedEnableEpoch:                           24,
@@ -132,6 +134,7 @@ func createEnableEpochsConfig() config.EnableEpochs {
 		ValidationOnGobDecodeEnableEpoch:                         115,
 		BarnardOpcodesEnableEpoch:                                116,
 		AutomaticActivationOfNodesDisableEpoch:                   117,
+		SupernovaEnableEpoch:                                     118,
 	}
 }
 
@@ -241,6 +244,8 @@ func TestEnableEpochsHandler_IsFlagEnabled(t *testing.T) {
 	require.False(t, handler.IsFlagEnabled(common.ESDTFlagInSpecificEpochOnly)) // ==
 	require.True(t, handler.IsFlagEnabled(common.GovernanceFlag))
 	require.False(t, handler.IsFlagEnabled(common.GovernanceFlagInSpecificEpochOnly)) // ==
+	require.True(t, handler.IsFlagEnabled(common.GovernanceDisableProposeFlag))       // ==
+	require.True(t, handler.IsFlagEnabled(common.GovernanceFixesFlag))                // ==
 	require.True(t, handler.IsFlagEnabled(common.DelegationManagerFlag))
 	require.True(t, handler.IsFlagEnabled(common.DelegationSmartContractFlag))
 	require.False(t, handler.IsFlagEnabled(common.DelegationSmartContractFlagInSpecificEpochOnly)) // ==
@@ -336,6 +341,7 @@ func TestEnableEpochsHandler_IsFlagEnabled(t *testing.T) {
 	require.True(t, handler.IsFlagEnabled(common.FixRelayedMoveBalanceToNonPayableSCFlag))
 	require.True(t, handler.IsFlagEnabled(common.AndromedaFlag))
 	require.True(t, handler.IsFlagEnabled(common.DynamicESDTFlag))
+	require.True(t, handler.IsFlagEnabled(common.SupernovaFlag))
 }
 
 func TestEnableEpochsHandler_GetActivationEpoch(t *testing.T) {
@@ -363,6 +369,8 @@ func TestEnableEpochsHandler_GetActivationEpoch(t *testing.T) {
 	require.Equal(t, cfg.DoubleKeyProtectionEnableEpoch, handler.GetActivationEpoch(common.DoubleKeyProtectionFlag))
 	require.Equal(t, cfg.ESDTEnableEpoch, handler.GetActivationEpoch(common.ESDTFlag))
 	require.Equal(t, cfg.GovernanceEnableEpoch, handler.GetActivationEpoch(common.GovernanceFlag))
+	require.Equal(t, cfg.GovernanceDisableProposeEnableEpoch, handler.GetActivationEpoch(common.GovernanceDisableProposeFlag))
+	require.Equal(t, cfg.GovernanceFixesEnableEpoch, handler.GetActivationEpoch(common.GovernanceFixesFlag))
 	require.Equal(t, cfg.DelegationManagerEnableEpoch, handler.GetActivationEpoch(common.DelegationManagerFlag))
 	require.Equal(t, cfg.DelegationSmartContractEnableEpoch, handler.GetActivationEpoch(common.DelegationSmartContractFlag))
 	require.Equal(t, cfg.CorrectLastUnjailedEnableEpoch, handler.GetActivationEpoch(common.CorrectLastUnJailedFlag))
@@ -468,6 +476,8 @@ func TestEnableEpochsHandler_GetActivationEpoch(t *testing.T) {
 	require.Equal(t, cfg.ValidationOnGobDecodeEnableEpoch, handler.GetActivationEpoch(common.ValidationOnGobDecodeFlag))
 	require.Equal(t, cfg.BarnardOpcodesEnableEpoch, handler.GetActivationEpoch(common.BarnardOpcodesFlag))
 	require.Equal(t, cfg.AutomaticActivationOfNodesDisableEpoch, handler.GetActivationEpoch(common.AutomaticActivationOfNodesDisableFlag))
+	require.Equal(t, cfg.FixGetBalanceEnableEpoch, handler.GetActivationEpoch(common.FixGetBalanceFlag))
+	require.Equal(t, cfg.SupernovaEnableEpoch, handler.GetActivationEpoch(common.SupernovaFlag))
 }
 
 func TestEnableEpochsHandler_IsInterfaceNil(t *testing.T) {

@@ -30,3 +30,6 @@ const DefaultWithScaleResourceLimiter = p2p.DefaultWithScaleResourceLimiter
 
 // BroadcastMethod defines the broadcast method of the message
 type BroadcastMethod = p2p.BroadcastMethod
+
+// Broadcast defines a broadcast message
+const Broadcast = p2p.Broadcast
