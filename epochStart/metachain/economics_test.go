@@ -26,6 +26,7 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/epochNotifier"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
 	storageStubs "github.com/multiversx/mx-chain-go/testscommon/storage"
+	logger "github.com/multiversx/mx-chain-logger-go"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -586,7 +587,7 @@ func TestGetSupernovaActivationYear(t *testing.T) {
 
 		ec, _ := NewEndOfEpochEconomicsDataCreator(args)
 
-		activationYear, err := ec.getSupernovaActivationYear()
+		activationYear, _, err := ec.getSupernovaActivationYear(1)
 		require.Equal(t, expErr, err)
 		require.Zero(t, activationYear)
 	})
@@ -629,7 +630,7 @@ func TestGetSupernovaActivationYear(t *testing.T) {
 
 		ec, _ := NewEndOfEpochEconomicsDataCreator(args)
 
-		activationYear, err := ec.getSupernovaActivationYear()
+		activationYear, _, err := ec.getSupernovaActivationYear(1)
 		require.Equal(t, commonErrors.ErrInvalidRoundDuration, err)
 		require.Zero(t, activationYear)
 	})
@@ -681,7 +682,7 @@ func TestGetSupernovaActivationYear(t *testing.T) {
 
 		ec, _ := NewEndOfEpochEconomicsDataCreator(args)
 
-		activationYear, err := ec.getSupernovaActivationYear()
+		activationYear, _, err := ec.getSupernovaActivationYear(1)
 		require.Nil(t, err)
 
 		expActivationYear := uint32(2)
@@ -691,6 +692,8 @@ func TestGetSupernovaActivationYear(t *testing.T) {
 
 func TestEconomics_ComputeInflationRate_WithRealConfigData(t *testing.T) {
 	t.Parallel()
+
+	logger.SetLogLevel("*:TRACE")
 
 	cfg, err := testscommon.CreateTestConfigs(t.TempDir(), "../../cmd/node/config")
 	require.Nil(t, err)
@@ -712,8 +715,10 @@ func TestEconomics_ComputeInflationRate_WithRealConfigData(t *testing.T) {
 	args := getArguments()
 
 	epochsPerYear := uint32(365)
-	roundsPerDay := uint64(14400)    // before supernova
-	roundsPerYear := uint64(5256000) // before supernova
+	roundsPerDay := uint64(14400)          // before supernova
+	roundsPerDayAfter := uint64(144000)    // before supernova
+	roundsPerYear := uint64(5256000)       // before supernova
+	roundsPerYearAfter := uint64(52560000) // before supernova
 
 	supernovaActivationEpoch := uint32(epochsPerYear*5 + 10)
 	supernovaActivationRound := roundsPerYear*5 + 10*roundsPerDay + 1000
@@ -769,7 +774,7 @@ func TestEconomics_ComputeInflationRate_WithRealConfigData(t *testing.T) {
 	rate, _ = ec.computeInflationRate(roundsPerDay+1, 1)
 	assert.Equal(t, cfg.EconomicsConfig.GlobalSettings.YearSettings[0].MaximumInflation, rate)
 
-	rate, _ = ec.computeInflationRate(roundsPerYear+100, 365+1)
+	rate, _ = ec.computeInflationRate(roundsPerYear+100, epochsPerYear+1)
 	assert.Equal(t, cfg.EconomicsConfig.GlobalSettings.YearSettings[1].MaximumInflation, rate)
 
 	ec.SetRoundTimeHandler(
@@ -783,12 +788,22 @@ func TestEconomics_ComputeInflationRate_WithRealConfigData(t *testing.T) {
 	rate, _ = ec.computeInflationRate(supernovaActivationRound+1, supernovaActivationEpoch+1)
 	assert.Equal(t, cfg.EconomicsConfig.GlobalSettings.YearSettings[5].MaximumInflation, rate)
 
+	// we still have ~354 epochs from year 5 (and multiplied by 10 after activation)
+	rate, _ = ec.computeInflationRate(supernovaActivationRound+(roundsPerDayAfter*354), supernovaActivationEpoch+354)
+	assert.Equal(t, cfg.EconomicsConfig.GlobalSettings.YearSettings[5].MaximumInflation, rate)
+
+	rate, _ = ec.computeInflationRate(supernovaActivationRound+(roundsPerDayAfter*355), supernovaActivationEpoch+355)
+	assert.Equal(t, cfg.EconomicsConfig.GlobalSettings.YearSettings[5].MaximumInflation, rate)
+
+	rate, _ = ec.computeInflationRate(supernovaActivationRound+(roundsPerDayAfter*360), supernovaActivationEpoch+360)
+	assert.Equal(t, cfg.EconomicsConfig.GlobalSettings.YearSettings[6].MaximumInflation, rate)
+
 	// with rounds as 600 ms we'll have 10x more rounds per year
-	rate, _ = ec.computeInflationRate(supernovaActivationRound+(roundsPerYear*10), supernovaActivationEpoch+epochsPerYear)
+	rate, _ = ec.computeInflationRate(supernovaActivationRound+(roundsPerYearAfter), supernovaActivationEpoch+epochsPerYear)
 	assert.Equal(t, cfg.EconomicsConfig.GlobalSettings.YearSettings[6].MaximumInflation, rate)
 
 	// next year
-	rate, _ = ec.computeInflationRate(supernovaActivationRound+(2*roundsPerYear*10), supernovaActivationEpoch+epochsPerYear)
+	rate, _ = ec.computeInflationRate(supernovaActivationRound+(2*roundsPerYearAfter), supernovaActivationEpoch+epochsPerYear)
 	assert.Equal(t, cfg.EconomicsConfig.GlobalSettings.YearSettings[7].MaximumInflation, rate)
 }
 

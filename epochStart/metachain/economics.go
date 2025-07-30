@@ -364,7 +364,7 @@ func (e *economics) computeInflationRate(currentRound uint64, currentEpoch uint3
 	}
 
 	currentYear := prevEpoch/uint32(numberOfDaysInYear) + 1
-	supernovaActivationYear, err := e.getSupernovaActivationYear()
+	supernovaActivationYear, supernovaActivationYearLastRound, err := e.getSupernovaActivationYear(currentEpoch)
 	if err != nil {
 		return 0, err
 	}
@@ -373,7 +373,7 @@ func (e *economics) computeInflationRate(currentRound uint64, currentEpoch uint3
 		return e.computeInflationRateInSupernovaYear(currentYear)
 	}
 
-	return e.computeInflationRateAfterSupernovaYear(currentRound, prevEpoch, supernovaActivationYear)
+	return e.computeInflationRateAfterSupernovaYear(currentRound, prevEpoch, supernovaActivationYear, supernovaActivationYearLastRound)
 }
 
 func (e *economics) getPreviousEpoch(epoch uint32) uint32 {
@@ -384,18 +384,20 @@ func (e *economics) getPreviousEpoch(epoch uint32) uint32 {
 	return epoch - 1
 }
 
-func (e *economics) getSupernovaActivationYear() (uint32, error) {
+func (e *economics) getSupernovaActivationYear(
+	currentEpoch uint32,
+) (uint32, uint64, error) {
 	supernovaActivationRound := e.enableRoundsHandler.GetActivationRound(common.SupernovaRoundFlag)
 	supernovaActivationEpoch := e.enableEpochsHandler.GetActivationEpoch(common.SupernovaFlag)
 	supernovaPrevActivationEpoch := e.getPreviousEpoch(supernovaActivationEpoch)
 
 	chainParametersUntilSupernova, err := e.chainParamsHandler.ChainParametersForEpoch(supernovaPrevActivationEpoch)
 	if err != nil {
-		return 0, err
+		return 0, 0, err
 	}
 	roundDuration := chainParametersUntilSupernova.RoundDuration
 	if roundDuration <= 0 {
-		return 0, errors.ErrInvalidRoundDuration
+		return 0, 0, errors.ErrInvalidRoundDuration
 	}
 
 	roundsPerDay := common.ComputeRoundsPerDay(time.Duration(roundDuration)*time.Millisecond, e.enableEpochsHandler, supernovaPrevActivationEpoch)
@@ -403,7 +405,80 @@ func (e *economics) getSupernovaActivationYear() (uint32, error) {
 
 	supernovaActivationYear := uint32(supernovaActivationRound/roundsPerYear) + 1
 
-	return supernovaActivationYear, nil
+	supernovaActivationYearLastRound, err := e.getSupernovaYearLastRound(currentEpoch, supernovaActivationYear, roundsPerYear)
+	if err != nil {
+		return 0, 0, err
+	}
+
+	return supernovaActivationYear, supernovaActivationYearLastRound, nil
+}
+
+func (e *economics) getSupernovaYearLastRound(
+	currentEpoch uint32,
+	supernovaActivationYear uint32,
+	roundsPerYearUntilSupernova uint64,
+) (uint64, error) {
+	supernovaActivationRound := e.enableRoundsHandler.GetActivationRound(common.SupernovaRoundFlag)
+	supernovaActivationEpoch := e.enableEpochsHandler.GetActivationEpoch(common.SupernovaFlag)
+	// supernovaPrevActivationEpoch := e.getPreviousEpoch(supernovaActivationEpoch)
+
+	chainParametersAfterSupernova, err := e.chainParamsHandler.ChainParametersForEpoch(supernovaActivationEpoch)
+	if err != nil {
+		return 0, err
+	}
+	roundDurationAfterSupernova := chainParametersAfterSupernova.RoundDuration
+	if roundDurationAfterSupernova <= 0 {
+		return 0, errors.ErrInvalidRoundDuration
+	}
+
+	// roundsPerDayAfterSupernova := common.ComputeRoundsPerDay(time.Duration(roundsPerDayAfterSupernova)*time.Millisecond, e.enableEpochsHandler, supernovaActivationEpoch)
+
+	//
+	// supernovaActivationYearFirstRound := roundsPerYearUntilSupernova * uint64(supernovaActivationYear-1)
+	// roundsUntilSupernovaInEpoch := supernovaActivationRound - supernovaActivationYearFirstRound
+	supernovaActivationYearLastRoundTmp := roundsPerYearUntilSupernova * uint64(supernovaActivationYear)
+	roundsAfterSupernovaInEpoch := supernovaActivationYearLastRoundTmp - supernovaActivationRound
+
+	roundsChangeRatio, err := e.computeRoundsChangeRatio(currentEpoch)
+	if err != nil {
+		return 0, err
+	}
+
+	supernovaActivationYearLastRound := supernovaActivationRound + roundsAfterSupernovaInEpoch*uint64(roundsChangeRatio)
+
+	log.Trace("getSupernovaYearLastRound",
+		"roundDurationAfterSupernova", roundDurationAfterSupernova,
+		"roundsChangeRatio", roundsChangeRatio,
+		"roundsAfterSupernovaInEpoch", roundsAfterSupernovaInEpoch,
+		"supernovaActivationRound", supernovaActivationRound,
+		"roundsPerYearUntilSupernova", roundsPerYearUntilSupernova,
+	)
+
+	return supernovaActivationYearLastRound, nil
+}
+
+func (e *economics) computeRoundsChangeRatio(currentEpoch uint32) (uint64, error) {
+	roundsChangeRatio := uint64(1)
+
+	supernovaActivationEpoch := e.enableEpochsHandler.GetActivationEpoch(common.SupernovaFlag)
+	supernovaPrevActivationEpoch := e.getPreviousEpoch(supernovaActivationEpoch)
+
+	chainParamsPreSupernova, err := e.chainParamsHandler.ChainParametersForEpoch(supernovaPrevActivationEpoch)
+	if err != nil {
+		return roundsChangeRatio, err
+	}
+	if chainParamsPreSupernova.RoundDuration <= 0 {
+		return roundsChangeRatio, fmt.Errorf("invalid round duration")
+	}
+
+	chainParamsSupernova, err := e.chainParamsHandler.ChainParametersForEpoch(currentEpoch)
+	if err != nil {
+		return roundsChangeRatio, err
+	}
+
+	roundsChangeRatio = uint64(float64(chainParamsSupernova.RoundDuration) / float64(chainParamsPreSupernova.RoundDuration) * 100)
+
+	return roundsChangeRatio, nil
 }
 
 func (e *economics) computeInflationRateInSupernovaYear(currentYear uint32) (float64, error) {
@@ -417,20 +492,25 @@ func (e *economics) computeInflationRateAfterSupernovaYear(
 	currentRound uint64,
 	currentEpoch uint32,
 	supernovaActivationYear uint32,
+	supernovaActivationYearLastRound uint64,
 ) (float64, error) {
-	log.Trace("computeInflationRateAfterSupernovaYear",
-		"currentEpoch", currentEpoch,
-		"currentRound", currentRound,
-		"supernovaActivationYear", supernovaActivationYear,
-	)
-
 	supernovaActivationRound := e.enableRoundsHandler.GetActivationRound(common.SupernovaRoundFlag)
 
 	roundsPerDay := common.ComputeRoundsPerDay(e.roundTime.TimeDuration(), e.enableEpochsHandler, currentEpoch)
 
 	roundsPerYear := numberOfDaysInYear * roundsPerDay
 
-	yearsIndex := uint32((currentRound-supernovaActivationRound)/roundsPerYear) + supernovaActivationYear
+	yearsIndex := uint32((currentRound-supernovaActivationYearLastRound)/roundsPerYear) + supernovaActivationYear + 1
+
+	log.Trace("computeInflationRateAfterSupernovaYear",
+		"currentEpoch", currentEpoch,
+		"currentRound", currentRound,
+		"supernovaActivationYear", supernovaActivationYear,
+		"supernovaActivationYearLastRound", supernovaActivationYearLastRound,
+		"supernovaActivationRound", supernovaActivationRound,
+		"roundsPerYear", roundsPerYear,
+		"roundsPerDay", roundsPerDay,
+	)
 
 	return e.rewardsHandler.MaxInflationRate(yearsIndex), nil
 }
