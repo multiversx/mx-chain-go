@@ -133,6 +133,7 @@ type EnableEpochs struct {
 	FixBackTransferOPCODEEnableEpoch                         uint32
 	ValidationOnGobDecodeEnableEpoch                         uint32
 	BarnardOpcodesEnableEpoch                                uint32
+	FixGetBalanceEnableEpoch                                 uint32
 	AutomaticActivationOfNodesDisableEpoch                   uint32
 	BLSMultiSignerEnableEpoch                                []MultiSignerConfig
 }

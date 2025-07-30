@@ -201,7 +201,7 @@ func (h *headersToSync) SyncUnFinishedMetaHeaders(epoch uint32) error {
 	return nil
 }
 
-// SyncEpochStartMetaHeader syncs and validates an epoch start metaHeader
+// syncEpochStartMetaHeader syncs and validates an epoch start metaHeader
 func (h *headersToSync) syncEpochStartMetaHeader(epoch uint32, waitTime time.Duration) error {
 	defer func() {
 		h.mutMeta.Lock()
