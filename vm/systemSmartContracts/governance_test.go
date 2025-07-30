@@ -60,7 +60,7 @@ func createArgsWithEEI(eei vm.SystemEI) ArgsNewGovernanceContract {
 		OwnerAddress:                 bytes.Repeat([]byte{1}, 32),
 		UnBondPeriodInEpochs:         10,
 		MaxVotingDelayPeriodInEpochs: 30,
-		EnableEpochsHandler:          enableEpochsHandlerMock.NewEnableEpochsHandlerStub(common.GovernanceFlag),
+		EnableEpochsHandler:          enableEpochsHandlerMock.NewEnableEpochsHandlerStub(common.GovernanceFlag, common.GovernanceFixesFlag, common.GovernanceDisableProposeFlag),
 	}
 }
 
@@ -72,7 +72,7 @@ func createEEIWithBlockchainHook(blockchainHook vm.BlockchainHook) vm.ContextHan
 		ValidatorAccountsDB: &stateMock.AccountsStub{},
 		UserAccountsDB:      &stateMock.AccountsStub{},
 		ChanceComputer:      &mock.RaterMock{},
-		EnableEpochsHandler: enableEpochsHandlerMock.NewEnableEpochsHandlerStub(),
+		EnableEpochsHandler: enableEpochsHandlerMock.NewEnableEpochsHandlerStub(common.GovernanceFlag, common.GovernanceFixesFlag, common.GovernanceDisableProposeFlag),
 	})
 	systemSCContainerStub := &mock.SystemSCContainerStub{GetCalled: func(key []byte) (vm.SystemSmartContract, error) {
 		return &mock.SystemSCStub{ExecuteCalled: func(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
@@ -343,6 +343,7 @@ func TestGovernanceContract_ChangeConfig(t *testing.T) {
 	t.Parallel()
 
 	args := createMockGovernanceArgs()
+	errorMsg := ""
 	args.Eei = &mock.SystemEIStub{
 		BlockChainHookCalled: func() vm.BlockchainHook {
 			return &mock.BlockChainHookStub{
@@ -362,6 +363,9 @@ func TestGovernanceContract_ChangeConfig(t *testing.T) {
 
 			return nil
 		},
+		AddReturnMessageCalled: func(msg string) {
+			errorMsg = msg
+		},
 	}
 
 	gsc, _ := NewGovernanceContract(args)
@@ -371,14 +375,18 @@ func TestGovernanceContract_ChangeConfig(t *testing.T) {
 		[]byte("1"),
 		[]byte("10"),
 		[]byte("10"),
-		[]byte("15"),
+		[]byte("5001"),
 	}
 	initInput := createVMInput(zero, "initV2", vm.GovernanceSCAddress, vm.GovernanceSCAddress, nil)
 	_ = gsc.Execute(initInput)
 	callInput := createVMInput(zero, "changeConfig", args.OwnerAddress, vm.GovernanceSCAddress, callInputArgs)
 	retCode := gsc.Execute(callInput)
-
 	require.Equal(t, vmcommon.Ok, retCode)
+
+	callInputArgs[4] = []byte("300")
+	retCode = gsc.Execute(callInput)
+	require.Equal(t, vmcommon.UserError, retCode)
+	require.Equal(t, errorMsg, "min pass should be higher than 50%")
 }
 
 func TestGovernanceContract_ChangeConfigOutOfGas(t *testing.T) {
@@ -391,7 +399,7 @@ func TestGovernanceContract_ChangeConfigOutOfGas(t *testing.T) {
 		[]byte("1"),
 		[]byte("10"),
 		[]byte("10"),
-		[]byte("15"),
+		[]byte("5001"),
 	}
 	callInput := createVMInput(zero, "changeConfig", gsc.ownerAddress, vm.GovernanceSCAddress, callInputArgs)
 
@@ -698,7 +706,7 @@ func TestGovernanceContract_ChangeConfigGetConfigErr(t *testing.T) {
 		[]byte("1"),
 		[]byte("10"),
 		[]byte("10"),
-		[]byte("10"),
+		[]byte("5001"),
 	}
 	callInput := createVMInput(zero, "changeConfig", args.OwnerAddress, vm.GovernanceSCAddress, callInputArgs)
 	retCode := gsc.Execute(callInput)
@@ -812,6 +820,7 @@ func TestGovernanceContract_ProposalInvalidStartEndVoteEpochTooFarV1(t *testing.
 		{byte(50)},
 		{byte(54)},
 	}
+	gsc.enableEpochsHandler = enableEpochsHandlerMock.NewEnableEpochsHandlerStub(common.GovernanceFlag)
 	callInput := createVMInput(big.NewInt(500), "proposal", vm.GovernanceSCAddress, []byte("addr1"), callInputArgs)
 	retCode := gsc.Execute(callInput)
 	require.Equal(t, vmcommon.Ok, retCode)
@@ -848,8 +857,8 @@ func TestGovernanceContract_ProposalOK(t *testing.T) {
 
 	callInputArgs := [][]byte{
 		proposalIdentifier,
-		{byte(50)},
-		{byte(55)},
+		{byte(5)},
+		{byte(8)},
 	}
 	callInput := createVMInput(big.NewInt(500), "proposal", vm.GovernanceSCAddress, []byte("addr1"), callInputArgs)
 	retCode := gsc.Execute(callInput)
@@ -857,7 +866,7 @@ func TestGovernanceContract_ProposalOK(t *testing.T) {
 	require.Equal(t, vmcommon.Ok, retCode)
 	logsEntry := gsc.eei.GetLogs()
 	assert.Equal(t, 1, len(logsEntry))
-	expectedTopics := [][]byte{{1}, proposalIdentifier, {byte(50)}, {byte(55)}}
+	expectedTopics := [][]byte{{1}, proposalIdentifier, {byte(5)}, {byte(8)}}
 	assert.Equal(t, expectedTopics, logsEntry[0].Topics)
 }
 
@@ -1159,8 +1168,33 @@ func TestGovernanceContract_DelegateVoteMoreErrors(t *testing.T) {
 	require.Equal(t, vmcommon.UserError, retCode)
 	require.True(t, strings.Contains(eei.GetReturnMessage(), "double vote is not allowed"))
 
+	callInput.Arguments[3] = []byte("0156464564645646846846456121684641")
+	retCode = gsc.Execute(callInput)
+	require.Equal(t, vmcommon.UserError, retCode)
+	require.True(t, strings.Contains(eei.GetReturnMessage(), "too long argument for user stake"))
+
+	callInput.Arguments[0] = []byte("01")
+	retCode = gsc.Execute(callInput)
+	require.Equal(t, vmcommon.UserError, retCode)
+	require.True(t, strings.Contains(eei.GetReturnMessage(), "double vote is not allowed"))
+
 	addStakeAndDelegationForAddress(gsc, vm.FirstDelegationSCAddress)
 	callInput.CallerAddr = vm.FirstDelegationSCAddress
+	retCode = gsc.Execute(callInput)
+	require.Equal(t, vmcommon.UserError, retCode)
+	require.True(t, strings.Contains(eei.GetReturnMessage(), "double vote is not allowed"))
+
+	callInput.Arguments[0] = []byte("01")
+	retCode = gsc.Execute(callInput)
+	require.Equal(t, vmcommon.UserError, retCode)
+	require.True(t, strings.Contains(eei.GetReturnMessage(), "double vote is not allowed"))
+
+	callInput.Arguments[0] = []byte("001")
+	retCode = gsc.Execute(callInput)
+	require.Equal(t, vmcommon.UserError, retCode)
+	require.True(t, strings.Contains(eei.GetReturnMessage(), "double vote is not allowed"))
+
+	callInput.Arguments[0] = []byte("0001")
 	retCode = gsc.Execute(callInput)
 	require.Equal(t, vmcommon.UserError, retCode)
 	require.True(t, strings.Contains(eei.GetReturnMessage(), "double vote is not allowed"))
@@ -1521,10 +1555,11 @@ func TestGovernanceContract_CloseProposalCallerNotIssuer(t *testing.T) {
 			}
 			if bytes.Equal(key, append([]byte(proposalPrefix), proposalIdentifier...)) {
 				proposalBytes, _ := args.Marshalizer.Marshal(&GeneralProposal{
-					Yes:          big.NewInt(10),
-					No:           big.NewInt(10),
-					Veto:         big.NewInt(10),
-					EndVoteEpoch: 10,
+					Yes:            big.NewInt(10),
+					No:             big.NewInt(10),
+					Veto:           big.NewInt(10),
+					EndVoteEpoch:   10,
+					StartVoteEpoch: 5,
 				})
 				return proposalBytes
 			}
@@ -1547,6 +1582,13 @@ func TestGovernanceContract_CloseProposalCallerNotIssuer(t *testing.T) {
 
 	require.Equal(t, vmcommon.UserError, retCode)
 	require.Contains(t, retMessage, errSubstr)
+
+	gsc.enableEpochsHandler = enableEpochsHandlerMock.NewEnableEpochsHandlerStub(common.GovernanceFlag, common.GovernanceDisableProposeFlag, common.GovernanceFixesFlag)
+
+	retCode = gsc.Execute(callInput)
+
+	require.Equal(t, vmcommon.UserError, retCode)
+	require.Contains(t, retMessage, "only the issuer can close the proposal before start vote epoch")
 }
 
 func TestGovernanceContract_CloseProposalComputeResultsErr(t *testing.T) {
@@ -1717,6 +1759,8 @@ func TestGovernanceContract_CannotClose(t *testing.T) {
 	}
 
 	t.Run("fixes flag disabled, should return false only after end vote epoch", func(t *testing.T) {
+		gsc.enableEpochsHandler = enableEpochsHandlerMock.NewEnableEpochsHandlerStub(common.GovernanceFlag)
+
 		t.Run("current epoch is less than start epoch", func(t *testing.T) {
 			t.Parallel()
 
@@ -2019,7 +2063,7 @@ func TestGovernanceContract_ViewConfig(t *testing.T) {
 	retCode = gsc.Execute(callInput)
 	require.Equal(t, vmcommon.Ok, retCode)
 
-	require.Equal(t, []string{"10", "0.4000", "0.4000", "0.4000", "10"}, returnedValues)
+	require.Equal(t, []string{"10", "1", "0.4000", "0.4000", "0.4000", "10"}, returnedValues)
 }
 
 func TestGovernanceContract_ViewProposal(t *testing.T) {
@@ -2316,7 +2360,7 @@ func TestComputeEndResults(t *testing.T) {
 		StartVoteEpoch: startVoteEpoch,
 	}
 	passed := gsc.computeEndResults(startVoteEpoch-1, closedBeforeStart, baseConfig)
-	require.True(t, passed)
+	require.False(t, passed)
 	require.Equal(t, "Proposal closed before voting started", retMessage)
 	require.False(t, closedBeforeStart.Passed)
 
@@ -2386,14 +2430,14 @@ func TestGovernanceContract_ProposeVoteClose(t *testing.T) {
 
 	callInputArgs := [][]byte{
 		proposalIdentifier,
-		big.NewInt(50).Bytes(),
-		big.NewInt(55).Bytes(),
+		big.NewInt(5).Bytes(),
+		big.NewInt(8).Bytes(),
 	}
 	callInput := createVMInput(big.NewInt(500), "proposal", callerAddress, vm.GovernanceSCAddress, callInputArgs)
 	retCode := gsc.Execute(callInput)
 	require.Equal(t, vmcommon.Ok, retCode)
 
-	currentEpoch := uint32(52)
+	currentEpoch := uint32(7)
 	blockchainHook.CurrentEpochCalled = func() uint32 {
 		return currentEpoch
 	}
@@ -2423,14 +2467,14 @@ func TestGovernanceContract_ProposeClosePayFee(t *testing.T) {
 
 	callInputArgs := [][]byte{
 		proposalIdentifier,
-		big.NewInt(50).Bytes(),
-		big.NewInt(55).Bytes(),
+		big.NewInt(5).Bytes(),
+		big.NewInt(8).Bytes(),
 	}
 	callInput := createVMInput(big.NewInt(500), "proposal", callerAddress, vm.GovernanceSCAddress, callInputArgs)
 	retCode := gsc.Execute(callInput)
 	require.Equal(t, vmcommon.Ok, retCode)
 
-	currentEpoch := uint32(52)
+	currentEpoch := uint32(6)
 	blockchainHook.CurrentEpochCalled = func() uint32 {
 		return currentEpoch
 	}
