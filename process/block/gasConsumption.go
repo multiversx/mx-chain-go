@@ -83,12 +83,12 @@ func (gc *gasConsumption) CheckIncomingMiniBlocks(
 	miniBlocks []data.MiniBlockHeaderHandler,
 	transactions map[string][]data.TransactionHandler,
 ) (int, int, error) {
+	gc.mut.Lock()
+	defer gc.mut.Unlock()
+
 	if len(miniBlocks) == 0 || len(transactions) == 0 {
 		return gc.lastMiniBlockIndex, 0, nil
 	}
-
-	gc.mut.Lock()
-	defer gc.mut.Unlock()
 
 	if gc.isMiniBlockSelectionDone {
 		return initialLastIndex, 0, process.ErrMiniBlocksAlreadyProcessed
