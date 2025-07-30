@@ -35,7 +35,7 @@ var errExpected = errors.New("expected error")
 
 func createMetaStubTopicHandler(matchStrToErrOnCreate string, matchStrToErrOnRegister string) process.TopicHandler {
 	return &mock.TopicHandlerStub{
-		CreateTopicCalled: func(name string, createChannelForTopic bool) error {
+		CreateTopicCalled: func(networkType p2p.NetworkType, name string, createChannelForTopic bool) error {
 			if matchStrToErrOnCreate == "" {
 				return nil
 			}
@@ -46,7 +46,7 @@ func createMetaStubTopicHandler(matchStrToErrOnCreate string, matchStrToErrOnReg
 
 			return nil
 		},
-		RegisterMessageProcessorCalled: func(topic string, identifier string, handler p2p.MessageProcessor) error {
+		RegisterMessageProcessorCalled: func(networkType p2p.NetworkType, topic string, identifier string, handler p2p.MessageProcessor) error {
 			if matchStrToErrOnRegister == "" {
 				return nil
 			}
@@ -521,11 +521,11 @@ func TestMetaInterceptorsContainerFactory_CreateTopicsAndRegisterFailure(t *test
 
 	testCreateMetaTopicShouldFailOnAllMessenger(t, "generateShardHeaderInterceptors", factory.ShardBlocksTopic, "")
 
-	testCreateMetaTopicShouldFailOnAllMessenger(t, "generateTxInterceptors", factory.TransactionTopic, "")
+	testCreateMetaTopicShouldFailOnAllMessenger(t, "generateTxInterceptors", common.TransactionTopic, "")
 
-	testCreateMetaTopicShouldFailOnAllMessenger(t, "generateUnsignedTxsInterceptors", factory.UnsignedTransactionTopic, "")
+	testCreateMetaTopicShouldFailOnAllMessenger(t, "generateUnsignedTxsInterceptors", common.UnsignedTransactionTopic, "")
 
-	testCreateMetaTopicShouldFailOnAllMessenger(t, "generateRewardTxInterceptors", factory.RewardsTransactionTopic, "")
+	testCreateMetaTopicShouldFailOnAllMessenger(t, "generateRewardTxInterceptors", common.RewardsTransactionTopic, "")
 
 	testCreateMetaTopicShouldFailOnAllMessenger(t, "generateMiniBlocksInterceptors", factory.MiniBlocksTopic, "")
 

@@ -22,7 +22,6 @@ import (
 	"github.com/multiversx/mx-chain-go/dataRetriever/dataPool"
 	"github.com/multiversx/mx-chain-go/epochStart"
 	"github.com/multiversx/mx-chain-go/process"
-	"github.com/multiversx/mx-chain-go/process/factory"
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/storage"
@@ -517,7 +516,7 @@ func getMiniBlockWithReceiverShardID(shardId uint32, miniBlocks block.MiniBlockS
 }
 
 func createBroadcastTopic(shardC sharding.Coordinator, destShId uint32) string {
-	transactionTopic := factory.RewardsTransactionTopic + shardC.CommunicationIdentifier(destShId)
+	transactionTopic := common.RewardsTransactionTopic + shardC.CommunicationIdentifier(destShId)
 	return transactionTopic
 }
 

@@ -65,7 +65,7 @@ func (srcf *shardRequestersContainerFactory) Create() (dataRetriever.RequestersC
 		return nil, err
 	}
 
-	err = srcf.generateRewardRequester(factory.RewardsTransactionTopic)
+	err = srcf.generateRewardRequester(common.RewardsTransactionTopic)
 	if err != nil {
 		return nil, err
 	}
@@ -172,7 +172,7 @@ func (srcf *shardRequestersContainerFactory) generateRewardRequester(topic strin
 	requestersSlice := make([]dataRetriever.Requester, 0)
 
 	identifierTx := topic + shardC.CommunicationIdentifier(core.MetachainShardId)
-	excludedPeersOnTopic := factory.TransactionTopic + shardC.CommunicationIdentifier(shardC.SelfId())
+	excludedPeersOnTopic := common.TransactionTopic + shardC.CommunicationIdentifier(shardC.SelfId())
 
 	requester, err := srcf.createTxRequester(identifierTx, excludedPeersOnTopic, core.MetachainShardId, srcf.numCrossShardPeers, srcf.numIntraShardPeers)
 	if err != nil {
