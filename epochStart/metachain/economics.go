@@ -420,7 +420,6 @@ func (e *economics) getSupernovaYearLastRound(
 ) (uint64, error) {
 	supernovaActivationRound := e.enableRoundsHandler.GetActivationRound(common.SupernovaRoundFlag)
 	supernovaActivationEpoch := e.enableEpochsHandler.GetActivationEpoch(common.SupernovaFlag)
-	// supernovaPrevActivationEpoch := e.getPreviousEpoch(supernovaActivationEpoch)
 
 	chainParametersAfterSupernova, err := e.chainParamsHandler.ChainParametersForEpoch(supernovaActivationEpoch)
 	if err != nil {
@@ -431,11 +430,6 @@ func (e *economics) getSupernovaYearLastRound(
 		return 0, errors.ErrInvalidRoundDuration
 	}
 
-	// roundsPerDayAfterSupernova := common.ComputeRoundsPerDay(time.Duration(roundsPerDayAfterSupernova)*time.Millisecond, e.enableEpochsHandler, supernovaActivationEpoch)
-
-	//
-	// supernovaActivationYearFirstRound := roundsPerYearUntilSupernova * uint64(supernovaActivationYear-1)
-	// roundsUntilSupernovaInEpoch := supernovaActivationRound - supernovaActivationYearFirstRound
 	supernovaActivationYearLastRoundTmp := roundsPerYearUntilSupernova * uint64(supernovaActivationYear)
 	roundsAfterSupernovaInEpoch := supernovaActivationYearLastRoundTmp - supernovaActivationRound
 
