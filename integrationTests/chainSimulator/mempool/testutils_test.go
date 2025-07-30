@@ -165,7 +165,7 @@ func selectTransactions(t *testing.T, simulator testsChainSimulator.ChainSimulat
 	options := holders.NewTxSelectionOptions(
 		10_000_000_000,
 		30_000,
-		selectionLoopMaximumDuration,
+		int(selectionLoopMaximumDuration.Milliseconds()),
 		10,
 	)
 
