@@ -1464,10 +1464,12 @@ type GasComputation interface {
 	GetLastMiniBlockIndexIncluded() int
 	GetLastTransactionIndexIncluded() int
 	TotalGasConsumed() uint64
+	DecreaseIncomingLimit()
+	DecreaseOutgoingLimit()
+	ResetIncomingLimit()
+	ResetOutgoingLimit()
 	DecreaseMiniBlockLimit()
 	ResetMiniBlockLimit()
-	DecreaseBlockLimit()
-	ResetBlockLimit()
 	Reset()
 	IsInterfaceNil() bool
 }

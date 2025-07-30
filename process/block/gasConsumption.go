@@ -48,7 +48,9 @@ type gasConsumption struct {
 	isMiniBlockSelectionDone         bool
 	isTransactionSelectionDone       bool
 	miniBlockLimitFactor             uint64
-	blockLimitFactor                 uint64
+	incomingLimitFactor              uint64
+	outgoingLimitFactor              uint64
+	decreaseStep                     uint64
 }
 
 // NewGasConsumption creates a new instance of gasConsumption
@@ -71,9 +73,11 @@ func NewGasConsumption(args ArgsGasConsumption) (*gasConsumption, error) {
 		gasConsumedByMiniBlock:           make(map[string]uint64),
 		transactionsForPendingMiniBlocks: make(map[string][]data.TransactionHandler),
 		miniBlockLimitFactor:             initialLimitsFactor,
-		blockLimitFactor:                 initialLimitsFactor,
+		incomingLimitFactor:              initialLimitsFactor,
+		outgoingLimitFactor:              initialLimitsFactor,
 		lastMiniBlockIndex:               initialLastIndex,
 		lastTransactionIndex:             initialLastIndex,
+		decreaseStep:                     initialLimitsFactor * percentDecreaseLimitsStep / 100,
 	}, nil
 }
 
@@ -94,7 +98,7 @@ func (gc *gasConsumption) CheckIncomingMiniBlocks(
 		return initialLastIndex, 0, process.ErrMiniBlocksAlreadyProcessed
 	}
 
-	blockGasLimitForOneDirection := gc.getGasLimitForOneDirection(gc.shardCoordinator.SelfId())
+	blockGasLimitForOneDirection := gc.getGasLimitForOneDirection(incoming, gc.shardCoordinator.SelfId())
 
 	for i := 0; i < len(miniBlocks); i++ {
 		shouldSavePending, shouldStop, err := gc.checkIncomingMiniBlock(miniBlocks[i], transactions, blockGasLimitForOneDirection)
@@ -176,7 +180,7 @@ func (gc *gasConsumption) checkIncomingMiniBlock(
 	bandwidthForIncomingMiniBlocks := blockGasLimitForOneDirection
 	if gc.isTransactionSelectionDone {
 		// if transactions are already handled, use the space left
-		bandwidthForOutgoingTransactions := gc.getGasLimitForOneDirection(gc.shardCoordinator.SelfId())
+		bandwidthForOutgoingTransactions := gc.getGasLimitForOneDirection(outgoing, gc.shardCoordinator.SelfId())
 		gasConsumedByOutgoingTransactions := gc.getTotalOutgoingGas()
 		bandwidthForIncomingMiniBlocks += bandwidthForOutgoingTransactions - gasConsumedByOutgoingTransactions
 	}
@@ -214,7 +218,7 @@ func (gc *gasConsumption) checkPendingIncomingMiniBlocks() error {
 		return nil
 	}
 
-	blockGasLimitForOneDirection := gc.getGasLimitForOneDirection(gc.shardCoordinator.SelfId())
+	blockGasLimitForOneDirection := gc.getGasLimitForOneDirection(incoming, gc.shardCoordinator.SelfId())
 	for i := 0; i < len(gc.pendingMiniBlocks); i++ {
 		mb := gc.pendingMiniBlocks[i]
 		_, shouldStop, err := gc.checkIncomingMiniBlock(mb, gc.transactionsForPendingMiniBlocks, blockGasLimitForOneDirection)
@@ -285,10 +289,10 @@ func (gc *gasConsumption) checkOutgoingTransaction(
 
 	outgoingSelfKey := getOutgoingKey(senderShard)
 	outgoingDestKey := getOutgoingKey(receiverShard)
-	bandwidthForOutgoingTransactions := gc.getGasLimitForOneDirection(senderShard)
+	bandwidthForOutgoingTransactions := gc.getGasLimitForOneDirection(outgoing, senderShard)
 	if gc.isMiniBlockSelectionDone {
 		// if mini blocks are already handled, use the space left
-		bandwidthForIncomingMiniBlocks := gc.getGasLimitForOneDirection(senderShard)
+		bandwidthForIncomingMiniBlocks := gc.getGasLimitForOneDirection(incoming, senderShard)
 		gasConsumedByIncomingMiniBlocks := gc.totalGasConsumed[string(incoming)]
 		bandwidthForOutgoingTransactions += bandwidthForIncomingMiniBlocks - gasConsumedByIncomingMiniBlocks
 	}
@@ -296,7 +300,7 @@ func (gc *gasConsumption) checkOutgoingTransaction(
 	txsLimitReachedForSelfShard := gc.totalGasConsumed[outgoingSelfKey]+gasConsumedInSenderShard > bandwidthForOutgoingTransactions
 	txsLimitReachedForDestShard := false
 	if isCrossShard {
-		bandwidthForOutgoingCrossTransactions := gc.getGasLimitForOneDirection(receiverShard)
+		bandwidthForOutgoingCrossTransactions := gc.getGasLimitForOneDirection(outgoing, receiverShard)
 		txsLimitReachedForDestShard = gc.totalGasConsumed[outgoingDestKey]+gasConsumedInReceiverShard > bandwidthForOutgoingCrossTransactions
 	}
 	gasConsumedByOutgoingTransactions := gc.getTotalOutgoingGas()
@@ -387,8 +391,7 @@ func (gc *gasConsumption) DecreaseMiniBlockLimit() {
 		return
 	}
 
-	decreaseStep := initialLimitsFactor * percentDecreaseLimitsStep / 100
-	gc.miniBlockLimitFactor = gc.miniBlockLimitFactor - decreaseStep
+	gc.miniBlockLimitFactor = gc.miniBlockLimitFactor - gc.decreaseStep
 
 	if gc.miniBlockLimitFactor <= minPercentLimitsFactor {
 		gc.miniBlockLimitFactor = minPercentLimitsFactor
@@ -403,29 +406,52 @@ func (gc *gasConsumption) ResetMiniBlockLimit() {
 	gc.miniBlockLimitFactor = initialLimitsFactor
 }
 
-// DecreaseBlockLimit reduces the block gas limit by a configured percentage
-func (gc *gasConsumption) DecreaseBlockLimit() {
+// DecreaseIncomingLimit reduces the gas limit for incoming mini blocks by a configured percentage
+func (gc *gasConsumption) DecreaseIncomingLimit() {
 	gc.mut.Lock()
 	defer gc.mut.Unlock()
 
-	if gc.blockLimitFactor == minPercentLimitsFactor {
+	if gc.incomingLimitFactor == minPercentLimitsFactor {
 		return
 	}
 
-	decreaseStep := initialLimitsFactor * percentDecreaseLimitsStep / 100
-	gc.blockLimitFactor = gc.blockLimitFactor - decreaseStep
+	gc.incomingLimitFactor = gc.incomingLimitFactor - gc.decreaseStep
 
-	if gc.blockLimitFactor <= minPercentLimitsFactor {
-		gc.blockLimitFactor = minPercentLimitsFactor
+	if gc.incomingLimitFactor <= minPercentLimitsFactor {
+		gc.incomingLimitFactor = minPercentLimitsFactor
 	}
 }
 
-// ResetBlockLimit resets the block gas limit to its initial value
-func (gc *gasConsumption) ResetBlockLimit() {
+// DecreaseOutgoingLimit reduces the gas limit for outgoing transactions by a configured percentage
+func (gc *gasConsumption) DecreaseOutgoingLimit() {
 	gc.mut.Lock()
 	defer gc.mut.Unlock()
 
-	gc.blockLimitFactor = initialLimitsFactor
+	if gc.outgoingLimitFactor == minPercentLimitsFactor {
+		return
+	}
+
+	gc.outgoingLimitFactor = gc.outgoingLimitFactor - gc.decreaseStep
+
+	if gc.outgoingLimitFactor <= minPercentLimitsFactor {
+		gc.outgoingLimitFactor = minPercentLimitsFactor
+	}
+}
+
+// ResetIncomingLimit resets the gas limit for incoming mini blocks to its initial value
+func (gc *gasConsumption) ResetIncomingLimit() {
+	gc.mut.Lock()
+	defer gc.mut.Unlock()
+
+	gc.incomingLimitFactor = initialLimitsFactor
+}
+
+// ResetOutgoingLimit resets the gas limit for outgoing transactions to its initial value
+func (gc *gasConsumption) ResetOutgoingLimit() {
+	gc.mut.Lock()
+	defer gc.mut.Unlock()
+
+	gc.outgoingLimitFactor = initialLimitsFactor
 }
 
 // Reset clears all gas consumption data except for the limits factors
@@ -444,19 +470,24 @@ func (gc *gasConsumption) Reset() {
 	gc.lastTransactionIndex = initialLastIndex
 }
 
-func (gc *gasConsumption) getGasLimitForOneDirection(shardID uint32) uint64 {
-	totalBlockLimit := gc.maxGasLimitPerBlock(shardID)
+func (gc *gasConsumption) getGasLimitForOneDirection(gasType gasType, shardID uint32) uint64 {
+	totalBlockLimit := gc.maxGasLimitPerBlock(gasType, shardID)
 	return totalBlockLimit * percentSplitBlock / 100
 }
 
 // must be called under mutex protection as it access blockLimitFactor
-func (gc *gasConsumption) maxGasLimitPerBlock(shardID uint32) uint64 {
-	isCrossShard := shardID != gc.shardCoordinator.SelfId()
-	if isCrossShard {
-		return gc.economicsFee.MaxGasLimitPerBlockForSafeCrossShard() * gc.blockLimitFactor / 100
+func (gc *gasConsumption) maxGasLimitPerBlock(gasType gasType, shardID uint32) uint64 {
+	limitFactor := gc.incomingLimitFactor
+	if gasType == outgoing {
+		limitFactor = gc.outgoingLimitFactor
 	}
 
-	return gc.economicsFee.MaxGasLimitPerBlock(shardID) * gc.blockLimitFactor / 100
+	isCrossShard := shardID != gc.shardCoordinator.SelfId()
+	if isCrossShard {
+		return gc.economicsFee.MaxGasLimitPerBlockForSafeCrossShard() * limitFactor / 100
+	}
+
+	return gc.economicsFee.MaxGasLimitPerBlock(shardID) * limitFactor / 100
 }
 
 // must be called under mutex protection as it access miniBlockLimitFactor
