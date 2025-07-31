@@ -401,7 +401,7 @@ func (boot *baseBootstrap) waitForHeaderAndProofByNonce() error {
 	}
 }
 
-// waitForHeaderHash method wait for header with the requested hash to be received
+// waitForHeaderAndProofByHash method wait for header with the requested hash to be received
 func (boot *baseBootstrap) waitForHeaderAndProofByHash() error {
 	select {
 	case <-boot.chRcvHdrHash:
