@@ -828,7 +828,7 @@
         NumResolveFailureThreshold = 3
         DebugLineExpiration = 10 #Will remove the debug line after a `DebugLineExpiration` number of prints
         [Debug.InterceptorResolver.BroadcastStatistics]
-            Enabled = true
+            Enabled = false
             # "intercepted tx", "intercepted reward tx", "intercepted unsigned tx", "intercepted header", ...
             Messages = ["intercepted tx"]
     [Debug.Antiflood]
