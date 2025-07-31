@@ -35,11 +35,11 @@ func TestTxsForBlock_Reset(t *testing.T) {
 	shardCoordinator := &mock.ShardCoordinatorMock{}
 	tfb, _ := NewTxsForBlock(shardCoordinator)
 
-	tfb.missingTxs = 5
+	tfb.numMissingTxs = 5
 	tfb.txHashAndInfo["hash1"] = &TxInfo{}
 	tfb.Reset()
 
-	require.Equal(t, 0, tfb.missingTxs)
+	require.Equal(t, 0, tfb.numMissingTxs)
 	require.Empty(t, tfb.txHashAndInfo)
 }
 
@@ -74,7 +74,7 @@ func TestTxsForBlock_ReceivedTransaction(t *testing.T) {
 		txHash := []byte("hash1")
 		tInfo := &TxInfo{TxShardInfo: &TxShardInfo{}}
 		tfb.txHashAndInfo[string(txHash)] = tInfo
-		tfb.missingTxs = 1
+		tfb.numMissingTxs = 1
 
 		tx := &transaction.Transaction{
 			Nonce: 1,
@@ -82,7 +82,7 @@ func TestTxsForBlock_ReceivedTransaction(t *testing.T) {
 		tfb.ReceivedTransaction(txHash, tx)
 		require.True(t, <-tfb.chRcvAllTxs)
 		require.Equal(t, tx, tfb.txHashAndInfo[string(txHash)].Tx)
-		require.Equal(t, 0, tfb.missingTxs)
+		require.Equal(t, 0, tfb.numMissingTxs)
 	})
 	t.Run("receive transaction when nothing missing", func(t *testing.T) {
 		t.Parallel()
@@ -91,7 +91,7 @@ func TestTxsForBlock_ReceivedTransaction(t *testing.T) {
 		txHash := []byte("hash1")
 		tInfo := &TxInfo{TxShardInfo: &TxShardInfo{}}
 		tfb.txHashAndInfo[string(txHash)] = tInfo
-		tfb.missingTxs = 0
+		tfb.numMissingTxs = 0
 
 		tx := &transaction.Transaction{
 			Nonce: 1,
@@ -99,7 +99,7 @@ func TestTxsForBlock_ReceivedTransaction(t *testing.T) {
 		tfb.ReceivedTransaction(txHash, tx)
 
 		require.Equal(t, tInfo, tfb.txHashAndInfo[string(txHash)])
-		require.Equal(t, 0, tfb.missingTxs)
+		require.Equal(t, 0, tfb.numMissingTxs)
 	})
 	t.Run("receive one of multiple missing transactions", func(t *testing.T) {
 		t.Parallel()
@@ -111,7 +111,7 @@ func TestTxsForBlock_ReceivedTransaction(t *testing.T) {
 		tInfo2 := &TxInfo{TxShardInfo: &TxShardInfo{}}
 		tfb.txHashAndInfo[string(txHash1)] = tInfo1
 		tfb.txHashAndInfo[string(txHash2)] = tInfo2
-		tfb.missingTxs = 2
+		tfb.numMissingTxs = 2
 
 		tx := &transaction.Transaction{
 			Nonce: 1,
@@ -119,7 +119,7 @@ func TestTxsForBlock_ReceivedTransaction(t *testing.T) {
 		tfb.ReceivedTransaction(txHash1, tx)
 
 		require.Equal(t, tx, tfb.txHashAndInfo[string(txHash1)].Tx)
-		require.Equal(t, 1, tfb.missingTxs)
+		require.Equal(t, 1, tfb.numMissingTxs)
 	})
 }
 
@@ -164,10 +164,10 @@ func TestTxsForBlock_HasMissingTransactions(t *testing.T) {
 
 	require.False(t, tfb.HasMissingTransactions())
 
-	tfb.missingTxs = 1
+	tfb.numMissingTxs = 1
 	require.True(t, tfb.HasMissingTransactions())
 
-	tfb.missingTxs = 10
+	tfb.numMissingTxs = 10
 	require.True(t, tfb.HasMissingTransactions())
 }
 
@@ -252,7 +252,7 @@ func TestTxsForBlock_ComputeExistingAndRequestMissing(t *testing.T) {
 
 		missingTxs := tfb.ComputeExistingAndRequestMissing(bodyWithDuplicatedTxs, func(block.Type) bool { return true }, txPool, onRequestTxs)
 		require.Equal(t, 1, missingTxs)
-		require.Equal(t, 1, tfb.missingTxs)
+		require.Equal(t, 1, tfb.numMissingTxs)
 	})
 }
 
@@ -265,7 +265,7 @@ func TestTxsForBlock_WaitForRequestedData(t *testing.T) {
 		shardCoordinator := &mock.ShardCoordinatorMock{}
 		tfb, _ := NewTxsForBlock(shardCoordinator)
 
-		tfb.missingTxs = 0
+		tfb.numMissingTxs = 0
 		err := tfb.WaitForRequestedData(100 * time.Millisecond)
 		require.NoError(t, err)
 	})
@@ -279,7 +279,7 @@ func TestTxsForBlock_WaitForRequestedData(t *testing.T) {
 			tfb.chRcvAllTxs <- true
 		}()
 
-		tfb.missingTxs = 1
+		tfb.numMissingTxs = 1
 		err := tfb.WaitForRequestedData(200 * time.Millisecond)
 		require.NoError(t, err)
 	})
@@ -289,7 +289,7 @@ func TestTxsForBlock_WaitForRequestedData(t *testing.T) {
 		shardCoordinator := &mock.ShardCoordinatorMock{}
 		tfb, _ := NewTxsForBlock(shardCoordinator)
 
-		tfb.missingTxs = 1
+		tfb.numMissingTxs = 1
 		err := tfb.WaitForRequestedData(100 * time.Millisecond)
 		require.Equal(t, process.ErrTimeIsOut, err)
 	})
@@ -303,10 +303,10 @@ func TestTxsForBlock_GetMissingTxsCount(t *testing.T) {
 
 	require.Equal(t, 0, tfb.GetMissingTxsCount())
 
-	tfb.missingTxs = 5
+	tfb.numMissingTxs = 5
 	require.Equal(t, 5, tfb.GetMissingTxsCount())
 
-	tfb.missingTxs = 10
+	tfb.numMissingTxs = 10
 	require.Equal(t, 10, tfb.GetMissingTxsCount())
 }
 

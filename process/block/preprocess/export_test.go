@@ -37,7 +37,7 @@ func (txs *transactions) SetMissingTxs(missingTxs int) {
 	txsForCurrentBlock := txs.txsForCurrBlock.(*txsForBlock)
 
 	txsForCurrentBlock.mutTxsForBlock.Lock()
-	txsForCurrentBlock.missingTxs = missingTxs
+	txsForCurrentBlock.numMissingTxs = missingTxs
 	txsForCurrentBlock.mutTxsForBlock.Unlock()
 }
 
@@ -69,7 +69,7 @@ func (scr *smartContractResults) IsScrHashRequested(txHash []byte) bool {
 func (scr *smartContractResults) SetMissingScr(missingTxs int) {
 	missingScrsForBlock, _ := scr.scrForBlock.(*txsForBlock)
 	missingScrsForBlock.mutTxsForBlock.Lock()
-	missingScrsForBlock.missingTxs = missingTxs
+	missingScrsForBlock.numMissingTxs = missingTxs
 	missingScrsForBlock.mutTxsForBlock.Unlock()
 }
 
@@ -82,7 +82,7 @@ func (rtp *rewardTxPreprocessor) AddTxs(txHashes [][]byte, txs []data.Transactio
 func (rtp *rewardTxPreprocessor) SetMissingRewardTxs(missingTxs int) {
 	missingRewards, _ := rtp.rewardTxsForBlock.(*txsForBlock)
 	missingRewards.mutTxsForBlock.Lock()
-	missingRewards.missingTxs = missingTxs
+	missingRewards.numMissingTxs = missingTxs
 	missingRewards.mutTxsForBlock.Unlock()
 }
 

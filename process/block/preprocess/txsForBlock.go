@@ -29,7 +29,7 @@ type TxInfo struct {
 // txsForBlock holds the information about the missing and existing transactions required for a block.
 type txsForBlock struct {
 	shardCoordinator sharding.Coordinator
-	missingTxs       int
+	numMissingTxs    int
 	mutTxsForBlock   sync.RWMutex
 	txHashAndInfo    map[string]*TxInfo
 	chRcvAllTxs      chan bool
@@ -42,7 +42,7 @@ func NewTxsForBlock(shardCoordinator sharding.Coordinator) (*txsForBlock, error)
 	}
 	return &txsForBlock{
 		shardCoordinator: shardCoordinator,
-		missingTxs:       0,
+		numMissingTxs:    0,
 		mutTxsForBlock:   sync.RWMutex{},
 		txHashAndInfo:    make(map[string]*TxInfo),
 		chRcvAllTxs:      make(chan bool),
@@ -55,7 +55,7 @@ func (tfb *txsForBlock) Reset() {
 
 	tfb.mutTxsForBlock.Lock()
 	defer tfb.mutTxsForBlock.Unlock()
-	tfb.missingTxs = 0
+	tfb.numMissingTxs = 0
 	tfb.txHashAndInfo = make(map[string]*TxInfo)
 }
 
@@ -88,7 +88,7 @@ func (tfb *txsForBlock) ReceivedTransaction(
 	tfb.mutTxsForBlock.Lock()
 	defer tfb.mutTxsForBlock.Unlock()
 
-	if tfb.missingTxs <= 0 {
+	if tfb.numMissingTxs <= 0 {
 		return
 	}
 
@@ -96,10 +96,10 @@ func (tfb *txsForBlock) ReceivedTransaction(
 	if txInfoForHash != nil && txInfoForHash.TxShardInfo != nil &&
 		(txInfoForHash.Tx == nil || txInfoForHash.Tx.IsInterfaceNil()) {
 		tfb.txHashAndInfo[string(txHash)].Tx = tx
-		tfb.missingTxs--
+		tfb.numMissingTxs--
 	}
 
-	if tfb.missingTxs == 0 {
+	if tfb.numMissingTxs == 0 {
 		go func() {
 			tfb.chRcvAllTxs <- true
 		}()
@@ -127,7 +127,7 @@ func (tfb *txsForBlock) HasMissingTransactions() bool {
 	tfb.mutTxsForBlock.RLock()
 	defer tfb.mutTxsForBlock.RUnlock()
 
-	return tfb.missingTxs > 0
+	return tfb.numMissingTxs > 0
 }
 
 // GetMissingTxsCount returns the count of missing transactions in the txsForBlock instance.
@@ -135,9 +135,10 @@ func (tfb *txsForBlock) GetMissingTxsCount() int {
 	tfb.mutTxsForBlock.RLock()
 	defer tfb.mutTxsForBlock.RUnlock()
 
-	return tfb.missingTxs
+	return tfb.numMissingTxs
 }
 
+// ComputeExistingAndRequestMissing processes the block body to compute existing transactions (in the node tx pool) and request missing ones.
 func (tfb *txsForBlock) ComputeExistingAndRequestMissing(
 	body *block.Body,
 	isMiniBlockCorrect func(block.Type) bool,
@@ -209,7 +210,7 @@ func (tfb *txsForBlock) updateExistingAndComputeMissingTxsInMiniBlock(
 
 		if err != nil {
 			missingTxHashes = append(missingTxHashes, txHash)
-			tfb.missingTxs++
+			tfb.numMissingTxs++
 			log.Trace("missing tx",
 				"miniblock type", miniBlock.Type,
 				"sender", miniBlock.SenderShardID,
