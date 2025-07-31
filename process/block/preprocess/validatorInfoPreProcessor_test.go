@@ -34,6 +34,7 @@ func TestNewValidatorInfoPreprocessor_NilHasherShouldErr(t *testing.T) {
 		tdp.ValidatorsInfo(),
 		genericMocks.NewChainStorerMock(0),
 		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		&testscommon.ShardsCoordinatorMock{},
 	)
 
 	assert.Nil(t, rtp)
@@ -51,6 +52,7 @@ func TestNewValidatorInfoPreprocessor_NilMarshalizerShouldErr(t *testing.T) {
 		tdp.ValidatorsInfo(),
 		genericMocks.NewChainStorerMock(0),
 		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		&testscommon.ShardsCoordinatorMock{},
 	)
 
 	assert.Nil(t, rtp)
@@ -68,6 +70,7 @@ func TestNewValidatorInfoPreprocessor_NilBlockSizeComputationHandlerShouldErr(t 
 		tdp.ValidatorsInfo(),
 		genericMocks.NewChainStorerMock(0),
 		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		&testscommon.ShardsCoordinatorMock{},
 	)
 
 	assert.Nil(t, rtp)
@@ -84,6 +87,7 @@ func TestNewValidatorInfoPreprocessor_NilValidatorInfoPoolShouldErr(t *testing.T
 		nil,
 		genericMocks.NewChainStorerMock(0),
 		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		&testscommon.ShardsCoordinatorMock{},
 	)
 
 	assert.Nil(t, rtp)
@@ -101,6 +105,7 @@ func TestNewValidatorInfoPreprocessor_NilStoreShouldErr(t *testing.T) {
 		tdp.ValidatorsInfo(),
 		nil,
 		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		&testscommon.ShardsCoordinatorMock{},
 	)
 
 	assert.Nil(t, rtp)
@@ -118,10 +123,29 @@ func TestNewValidatorInfoPreprocessor_NilEnableEpochHandlerShouldErr(t *testing.
 		tdp.ValidatorsInfo(),
 		genericMocks.NewChainStorerMock(0),
 		nil,
+		&testscommon.ShardsCoordinatorMock{},
 	)
 
 	assert.Nil(t, rtp)
 	assert.Equal(t, process.ErrNilEnableEpochsHandler, err)
+}
+
+func TestNewValidatorInfoPreprocessor_NilShardsCoordinatorMock(t *testing.T) {
+	t.Parallel()
+
+	tdp := initDataPool()
+	rtp, err := NewValidatorInfoPreprocessor(
+		&hashingMocks.HasherMock{},
+		&marshallerMock.MarshalizerMock{},
+		&testscommon.BlockSizeComputationStub{},
+		tdp.ValidatorsInfo(),
+		genericMocks.NewChainStorerMock(0),
+		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		nil,
+	)
+
+	assert.Nil(t, rtp)
+	assert.Equal(t, process.ErrNilShardCoordinator, err)
 }
 
 func TestNewValidatorInfoPreprocessor_InvalidEnableEpochHandlerShouldErr(t *testing.T) {
@@ -135,6 +159,7 @@ func TestNewValidatorInfoPreprocessor_InvalidEnableEpochHandlerShouldErr(t *test
 		tdp.ValidatorsInfo(),
 		genericMocks.NewChainStorerMock(0),
 		enableEpochsHandlerMock.NewEnableEpochsHandlerStubWithNoFlagsDefined(),
+		&testscommon.ShardsCoordinatorMock{},
 	)
 
 	assert.Nil(t, rtp)
@@ -152,6 +177,7 @@ func TestNewValidatorInfoPreprocessor_OkValsShouldWork(t *testing.T) {
 		tdp.ValidatorsInfo(),
 		genericMocks.NewChainStorerMock(0),
 		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		&testscommon.ShardsCoordinatorMock{},
 	)
 	assert.Nil(t, err)
 	assert.NotNil(t, rtp)
@@ -168,6 +194,7 @@ func TestNewValidatorInfoPreprocessor_CreateMarshalizedDataShouldWork(t *testing
 		tdp.ValidatorsInfo(),
 		genericMocks.NewChainStorerMock(0),
 		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		&testscommon.ShardsCoordinatorMock{},
 	)
 
 	hash := make([][]byte, 0)
@@ -188,6 +215,7 @@ func TestNewValidatorInfoPreprocessor_ProcessMiniBlockInvalidMiniBlockTypeShould
 		tdp.ValidatorsInfo(),
 		genericMocks.NewChainStorerMock(0),
 		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		&testscommon.ShardsCoordinatorMock{},
 	)
 
 	txHashes := make([][]byte, 0)
@@ -217,6 +245,7 @@ func TestNewValidatorInfoPreprocessor_ProcessMiniBlockShouldWork(t *testing.T) {
 		tdp.ValidatorsInfo(),
 		genericMocks.NewChainStorerMock(0),
 		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		&testscommon.ShardsCoordinatorMock{},
 	)
 
 	txHashes := make([][]byte, 0)
@@ -246,6 +275,7 @@ func TestNewValidatorInfoPreprocessor_ProcessMiniBlockNotFromMeta(t *testing.T) 
 		tdp.ValidatorsInfo(),
 		genericMocks.NewChainStorerMock(0),
 		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		&testscommon.ShardsCoordinatorMock{},
 	)
 
 	txHashes := make([][]byte, 0)
@@ -279,6 +309,7 @@ func TestNewValidatorInfoPreprocessor_RestorePeerBlockIntoPools(t *testing.T) {
 		tdp.ValidatorsInfo(),
 		genericMocks.NewChainStorerMock(0),
 		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		&testscommon.ShardsCoordinatorMock{},
 	)
 
 	txHashes := [][]byte{[]byte("tx_hash1")}
@@ -324,6 +355,7 @@ func TestNewValidatorInfoPreprocessor_RestoreOtherBlockTypeIntoPoolsShouldNotRes
 		tdp.ValidatorsInfo(),
 		genericMocks.NewChainStorerMock(0),
 		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		&testscommon.ShardsCoordinatorMock{},
 	)
 
 	txHashes := [][]byte{[]byte("tx_hash1")}
@@ -369,6 +401,7 @@ func TestNewValidatorInfoPreprocessor_RemovePeerBlockFromPool(t *testing.T) {
 		tdp.ValidatorsInfo(),
 		genericMocks.NewChainStorerMock(0),
 		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		&testscommon.ShardsCoordinatorMock{},
 	)
 
 	txHashes := [][]byte{[]byte("tx_hash1")}
@@ -414,6 +447,7 @@ func TestNewValidatorInfoPreprocessor_RemoveOtherBlockTypeFromPoolShouldNotRemov
 		tdp.ValidatorsInfo(),
 		genericMocks.NewChainStorerMock(0),
 		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		&testscommon.ShardsCoordinatorMock{},
 	)
 
 	txHashes := [][]byte{[]byte("tx_hash1")}
@@ -467,6 +501,7 @@ func TestNewValidatorInfoPreprocessor_RestoreValidatorsInfo(t *testing.T) {
 			tdp.ValidatorsInfo(),
 			storer,
 			&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+			&testscommon.ShardsCoordinatorMock{},
 		)
 
 		miniBlock := &block.MiniBlock{}
@@ -510,6 +545,7 @@ func TestNewValidatorInfoPreprocessor_RestoreValidatorsInfo(t *testing.T) {
 			tdp.ValidatorsInfo(),
 			storer,
 			&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+			&testscommon.ShardsCoordinatorMock{},
 		)
 
 		miniBlock := &block.MiniBlock{}
@@ -564,6 +600,7 @@ func TestValidatorInfoPreprocessor_SaveTxsToStorageShouldWork(t *testing.T) {
 		tdp.ValidatorsInfo(),
 		storer,
 		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		&testscommon.ShardsCoordinatorMock{},
 	)
 
 	err := vip.SaveTxsToStorage(nil)

@@ -1298,3 +1298,6 @@ var ErrInvalidRatingsConfig = errors.New("invalid ratings config")
 
 // ErrNilKeyRWMutexHandler signals that a nil KeyRWMutexHandler has been provided
 var ErrNilKeyRWMutexHandler = errors.New("nil key rw mutex handler")
+
+// ErrNilTxsForBlockHandler signals that a nil transactions for block handler has been provided
+var ErrNilTxsForBlockHandler = errors.New("nil txs for block handler")
