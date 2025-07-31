@@ -26,6 +26,8 @@ import (
 const (
 	consensusTimeBetweenRounds = time.Second
 	blsConsensusType           = "bls"
+	roundsPerEpoch             = 10
+	roundTime                  = uint64(1000) // 1 second
 )
 
 var (
@@ -63,7 +65,13 @@ func TestConsensusBLSWithFullProcessing_BeforeEquivalentProofs(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	testConsensusBLSWithFullProcessing(t, integrationTests.UnreachableEpoch, 1)
+	enableEpochsConfig := integrationTests.CreateEnableEpochsConfig()
+	enableEpochsConfig.AndromedaEnableEpoch = integrationTests.UnreachableEpoch
+	enableEpochsConfig.SupernovaEnableEpoch = integrationTests.UnreachableEpoch
+	numKeysOnEachNode := 1
+	waitForEpoch := uint32(2)
+
+	testConsensusBLSWithFullProcessing(t, enableEpochsConfig, numKeysOnEachNode, roundsPerEpoch, roundTime, waitForEpoch)
 }
 
 func TestConsensusBLSWithFullProcessing_WithEquivalentProofs(t *testing.T) {
@@ -71,7 +79,27 @@ func TestConsensusBLSWithFullProcessing_WithEquivalentProofs(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	testConsensusBLSWithFullProcessing(t, uint32(0), 1)
+	enableEpochsConfig := integrationTests.CreateEnableEpochsConfig()
+	enableEpochsConfig.AndromedaEnableEpoch = uint32(0)
+	enableEpochsConfig.SupernovaEnableEpoch = integrationTests.UnreachableEpoch
+	numKeysOnEachNode := 1
+	waitForEpoch := uint32(2)
+
+	testConsensusBLSWithFullProcessing(t, enableEpochsConfig, numKeysOnEachNode, roundsPerEpoch, roundTime, waitForEpoch)
+}
+
+func TestConsensusBLSWithFullProcessing_TransitionWithEquivalentProofs(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
+	enableEpochsConfig := integrationTests.CreateEnableEpochsConfig()
+	enableEpochsConfig.AndromedaEnableEpoch = uint32(1)
+	enableEpochsConfig.SupernovaEnableEpoch = integrationTests.UnreachableEpoch
+	numKeysOnEachNode := 1
+	waitForEpoch := uint32(2)
+
+	testConsensusBLSWithFullProcessing(t, enableEpochsConfig, numKeysOnEachNode, roundsPerEpoch, roundTime, waitForEpoch)
 }
 
 func TestConsensusBLSWithFullProcessing_WithEquivalentProofs_MultiKeys(t *testing.T) {
@@ -79,24 +107,32 @@ func TestConsensusBLSWithFullProcessing_WithEquivalentProofs_MultiKeys(t *testin
 		t.Skip("this is not a short test")
 	}
 
-	testConsensusBLSWithFullProcessing(t, uint32(0), 3)
+	enableEpochsConfig := integrationTests.CreateEnableEpochsConfig()
+	enableEpochsConfig.AndromedaEnableEpoch = uint32(0)
+	enableEpochsConfig.SupernovaEnableEpoch = integrationTests.UnreachableEpoch
+	numKeysOnEachNode := 3
+	waitForEpoch := uint32(2)
+
+	testConsensusBLSWithFullProcessing(t, enableEpochsConfig, numKeysOnEachNode, roundsPerEpoch, roundTime, waitForEpoch)
 }
 
-func testConsensusBLSWithFullProcessing(t *testing.T, equivalentProofsActivationEpoch uint32, numKeysOnEachNode int) {
+func testConsensusBLSWithFullProcessing(
+	t *testing.T,
+	enableEpochsConfig config.EnableEpochs,
+	numKeysOnEachNode int,
+	roundsPerEpoch int64,
+	roundTime uint64,
+	waitForEpoch uint32,
+) {
 	numMetaNodes := uint32(2)
 	numNodes := uint32(2)
 	consensusSize := uint32(2 * numKeysOnEachNode)
-	roundTime := uint64(1000)
 
 	log.Info("runFullNodesTest",
 		"numNodes", numNodes,
 		"numKeysOnEachNode", numKeysOnEachNode,
 		"consensusSize", consensusSize,
 	)
-
-	enableEpochsConfig := integrationTests.CreateEnableEpochsConfig()
-
-	enableEpochsConfig.AndromedaEnableEpoch = equivalentProofsActivationEpoch
 
 	fmt.Println("Step 1. Setup nodes...")
 
@@ -108,8 +144,9 @@ func testConsensusBLSWithFullProcessing(t *testing.T, equivalentProofsActivation
 		blsConsensusType,
 		numKeysOnEachNode,
 		enableEpochsConfig,
-		true,
+		roundsPerEpoch,
 	)
+	shard0Node := nodes[0][0]
 
 	for shardID, nodesList := range nodes {
 		for _, n := range nodesList {
@@ -145,7 +182,19 @@ func testConsensusBLSWithFullProcessing(t *testing.T, equivalentProofsActivation
 
 	fmt.Println("Wait for several rounds...")
 
-	time.Sleep(15 * time.Second)
+	epochReached := false
+	for !epochReached {
+		blockHeader := shard0Node.Node.GetDataComponents().Blockchain().GetCurrentBlockHeader()
+		if check.IfNil(blockHeader) {
+			time.Sleep(time.Second)
+			continue
+		}
+		epochReached = blockHeader.GetEpoch() == waitForEpoch
+	}
+
+	fmt.Println("Wait for all nodes to change epoch...")
+
+	time.Sleep(time.Second * 3)
 
 	fmt.Println("Checking shards...")
 
@@ -157,6 +206,7 @@ func testConsensusBLSWithFullProcessing(t *testing.T, equivalentProofsActivation
 					assert.Fail(t, fmt.Sprintf("Node with idx %d does not have a current block", i))
 				} else {
 					assert.GreaterOrEqual(t, n.Node.GetDataComponents().Blockchain().GetCurrentBlockHeader().GetNonce(), expectedNonce)
+					assert.Equal(t, waitForEpoch, n.Node.GetDataComponents().Blockchain().GetCurrentBlockHeader().GetEpoch())
 				}
 			}
 		}

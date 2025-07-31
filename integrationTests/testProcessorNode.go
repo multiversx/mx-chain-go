@@ -658,8 +658,8 @@ func (tpn *TestProcessorNode) initAccountDBsWithPruningStorer() {
 	tpn.AccntState, stateTrie = CreateAccountsDBWithEnableEpochsHandler(UserAccount, trieStorageManager, tpn.EnableEpochsHandler)
 	tpn.TrieContainer.Put([]byte(dataRetriever.UserAccountsUnit.String()), stateTrie)
 
-	var peerTrie common.Trie
-	tpn.PeerState, peerTrie = CreateAccountsDBWithEnableEpochsHandler(ValidatorAccount, trieStorageManager, tpn.EnableEpochsHandler)
+	peerState, peerTrie := CreateAccountsDBWithEnableEpochsHandler(ValidatorAccount, trieStorageManager, tpn.EnableEpochsHandler)
+	tpn.PeerState = &state.PeerAccountsDB{AccountsDB: peerState}
 	tpn.TrieContainer.Put([]byte(dataRetriever.PeerAccountsUnit.String()), peerTrie)
 
 	tpn.TrieStorageManagers = make(map[string]common.StorageManager)
@@ -674,8 +674,8 @@ func (tpn *TestProcessorNode) initAccountDBs(store storage.Storer) {
 	tpn.AccntState, stateTrie = CreateAccountsDBWithEnableEpochsHandler(UserAccount, trieStorageManager, tpn.EnableEpochsHandler)
 	tpn.TrieContainer.Put([]byte(dataRetriever.UserAccountsUnit.String()), stateTrie)
 
-	var peerTrie common.Trie
-	tpn.PeerState, peerTrie = CreateAccountsDBWithEnableEpochsHandler(ValidatorAccount, trieStorageManager, tpn.EnableEpochsHandler)
+	peerState, peerTrie := CreateAccountsDBWithEnableEpochsHandler(ValidatorAccount, trieStorageManager, tpn.EnableEpochsHandler)
+	tpn.PeerState = &state.PeerAccountsDB{AccountsDB: peerState}
 	tpn.TrieContainer.Put([]byte(dataRetriever.PeerAccountsUnit.String()), peerTrie)
 
 	tpn.TrieStorageManagers = make(map[string]common.StorageManager)
@@ -3331,7 +3331,7 @@ func CreateEnableEpochsConfig() config.EnableEpochs {
 		GasPriceModifierEnableEpoch:                       UnreachableEpoch,
 		RepairCallbackEnableEpoch:                         UnreachableEpoch,
 		BlockGasAndFeesReCheckEnableEpoch:                 UnreachableEpoch,
-		StakingV2EnableEpoch:                              UnreachableEpoch,
+		StakingV2EnableEpoch:                              1,
 		StakeEnableEpoch:                                  0,
 		DoubleKeyProtectionEnableEpoch:                    0,
 		ESDTEnableEpoch:                                   UnreachableEpoch,
@@ -3386,6 +3386,7 @@ func CreateEnableEpochsConfig() config.EnableEpochs {
 		FixRelayedBaseCostEnableEpoch:                     UnreachableEpoch,
 		FixRelayedMoveBalanceToNonPayableSCEnableEpoch:    UnreachableEpoch,
 		AndromedaEnableEpoch:                              UnreachableEpoch,
+		SupernovaEnableEpoch:                              UnreachableEpoch,
 	}
 }
 
