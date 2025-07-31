@@ -5,12 +5,13 @@ import (
 	"math/big"
 	"testing"
 
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
+	"github.com/stretchr/testify/require"
+
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/integrationTests"
 	"github.com/multiversx/mx-chain-go/integrationTests/vm"
 	"github.com/multiversx/mx-chain-go/integrationTests/vm/txsFee/utils"
-	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
-	"github.com/stretchr/testify/require"
 )
 
 const (
@@ -353,7 +354,7 @@ func testRelayedMoveBalanceRelayerAndInnerTxReceiverShard0SenderShard1(relayedFi
 		// 100000 - rTxFee(163)*gasPrice(10) - innerTxFee(1000*gasPriceModifier(0.1)) = 98270
 		utils.TestAccount(t, testContextSource.Accounts, relayerAddr, 1, big.NewInt(98270))
 
-		// check inner Tx receiver
+		// check inner tx receiver
 		innerTxSenderAccount, err := testContextSource.Accounts.GetExistingAccount(sndAddr)
 		require.Nil(t, innerTxSenderAccount)
 		require.NotNil(t, err)
@@ -447,7 +448,7 @@ func testMoveBalanceRelayerShard0InnerTxSenderShard1InnerTxReceiverShard2ShouldW
 		// 100000 - rTxFee(164)*gasPrice(10) - innerTxFee(1000*gasPriceModifier(0.1)) = 98270
 		utils.TestAccount(t, testContextRelayer.Accounts, relayerAddr, 1, big.NewInt(98270))
 
-		// check inner Tx receiver
+		// check inner tx receiver
 		innerTxSenderAccount, err := testContextRelayer.Accounts.GetExistingAccount(sndAddr)
 		require.Nil(t, innerTxSenderAccount)
 		require.NotNil(t, err)

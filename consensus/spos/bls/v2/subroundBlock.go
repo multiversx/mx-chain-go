@@ -286,6 +286,12 @@ func (sr *subroundBlock) sendBlockHeader(
 	sr.SetData(headerHash)
 	sr.SetHeader(headerHandler)
 
+	// log the header output for debugging purposes
+	headerOutput, err := common.PrettifyStruct(headerHandler)
+	if err == nil {
+		log.Debug("Proposed header sent", "header", headerOutput)
+	}
+
 	return true
 }
 
@@ -449,11 +455,13 @@ func (sr *subroundBlock) getLeaderForHeader(headerHandler data.HeaderHandler) ([
 
 func (sr *subroundBlock) receivedBlockHeader(headerHandler data.HeaderHandler) {
 	if check.IfNil(headerHandler) {
+		log.Debug("subroundBlock.receivedBlockHeader - header is nil")
 		return
 	}
 
 	log.Debug("subroundBlock.receivedBlockHeader", "nonce", headerHandler.GetNonce(), "round", headerHandler.GetRound())
 	if headerHandler.CheckFieldsForNil() != nil {
+		log.Debug("subroundBlock.receivedBlockHeader - header fields are nil")
 		return
 	}
 
@@ -525,6 +533,12 @@ func (sr *subroundBlock) receivedBlockHeader(headerHandler data.HeaderHandler) {
 		spos.GetConsensusTopicID(sr.ShardCoordinator()),
 		spos.LeaderPeerHonestyIncreaseFactor,
 	)
+
+	// log the header output for debugging purposes
+	headerOutput, err := common.PrettifyStruct(headerHandler)
+	if err == nil {
+		log.Debug("Proposed header received", "header", headerOutput)
+	}
 }
 
 // CanProcessReceivedHeader method returns true if the received header can be processed and false otherwise
