@@ -216,7 +216,7 @@ func createTopicAndAssignHandlerOnMessenger(
 	return messenger.RegisterMessageProcessor(topic, common.DefaultInterceptorsIdentifier, interceptor)
 }
 
-// ------- Tx interceptors
+// ------- tx interceptors
 
 func (bicf *baseInterceptorsContainerFactory) generateTxInterceptors() error {
 	shardC := bicf.shardCoordinator

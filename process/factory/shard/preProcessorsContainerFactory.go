@@ -6,6 +6,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/process"
@@ -289,6 +290,7 @@ func (ppcm *preProcessorsContainerFactory) createValidatorInfoPreProcessor() (pr
 		ppcm.dataPool.ValidatorsInfo(),
 		ppcm.store,
 		ppcm.enableEpochsHandler,
+		ppcm.shardCoordinator,
 	)
 
 	return validatorInfoPreprocessor, err

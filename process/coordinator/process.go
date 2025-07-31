@@ -1317,7 +1317,7 @@ func (tc *transactionCoordinator) receivedMiniBlock(key []byte, value interface{
 	}
 }
 
-// processMiniBlockComplete - all transactions must be processed together, otherwise error
+// processCompleteMiniBlock - all transactions must be processed together, otherwise error
 func (tc *transactionCoordinator) processCompleteMiniBlock(
 	preproc process.PreProcessor,
 	miniBlock *block.MiniBlock,

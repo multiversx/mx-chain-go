@@ -581,7 +581,7 @@ func (sp *shardProcessor) SetNumProcessedObj(numObj uint64) {
 	sp.txCounter.totalTxs = numObj
 }
 
-// checkMetaHeadersValidity - checks if listed metaheaders are valid as construction
+// checkMetaHeadersValidityAndFinality - checks if listed metaheaders are valid as construction
 func (sp *shardProcessor) checkMetaHeadersValidityAndFinality() error {
 	lastCrossNotarizedHeader, _, err := sp.blockTracker.GetLastCrossNotarizedHeader(core.MetachainShardId)
 	if err != nil {
