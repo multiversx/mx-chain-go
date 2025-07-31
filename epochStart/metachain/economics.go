@@ -363,6 +363,13 @@ func (e *economics) computeInflationBeforeSupernova(currentRound uint64, epoch u
 	return e.rewardsHandler.MaxInflationRate(yearsIndex), nil
 }
 
+// max inflation rate year index is calculated considering supernova activation
+//    - before supernova: `currentRound/roundsPerYear`
+//    - in supernova year:
+//        - up to supernova epoch: `currentRound/roundsPerYear` (as before)
+//        - from supernova epoch: determine supernova year last round -> return supernova year until last year round
+//    - after supernova year: determine relative to first round after supernova year
+//        - `(currentRound-firstRoundAfterSupernovaYear)/roundsPerYear` (roundsPerYear x10 after supernova)
 func (e *economics) computeInflationRate(currentRound uint64, currentEpoch uint32) (float64, error) {
 	prevEpoch := e.getPreviousEpoch(currentEpoch)
 	supernovaInEpochActivated := e.enableEpochsHandler.IsFlagEnabledInEpoch(common.SupernovaFlag, prevEpoch)
@@ -376,7 +383,7 @@ func (e *economics) computeInflationRate(currentRound uint64, currentEpoch uint3
 		return 0, err
 	}
 
-	if currentRound < supernovaActivationYearLastRound {
+	if currentRound <= supernovaActivationYearLastRound {
 		log.Trace("computeInflationRateInSupernovaYear",
 			"currentEpoch", currentEpoch,
 			"round", currentRound,
@@ -494,7 +501,9 @@ func (e *economics) computeInflationRateAfterSupernovaYear(
 
 	roundsPerYear := numberOfDaysInYear * roundsPerDay
 
-	yearsIndex := uint32((round-supernovaActivationYearLastRound)/roundsPerYear) + supernovaActivationYear + 1
+	firstRoundAfterSupernovaYear := supernovaActivationYearLastRound + 1
+
+	yearsIndex := uint32((round-firstRoundAfterSupernovaYear)/roundsPerYear) + supernovaActivationYear + 1
 
 	log.Trace("computeInflationRateAfterSupernovaYear",
 		"epoch", epoch,

@@ -26,7 +26,6 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/epochNotifier"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
 	storageStubs "github.com/multiversx/mx-chain-go/testscommon/storage"
-	logger "github.com/multiversx/mx-chain-logger-go"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -693,8 +692,6 @@ func TestGetSupernovaActivationYear(t *testing.T) {
 func TestEconomics_ComputeInflationRate_WithRealConfigData(t *testing.T) {
 	t.Parallel()
 
-	logger.SetLogLevel("*:TRACE")
-
 	cfg, err := testscommon.CreateTestConfigs(t.TempDir(), "../../cmd/node/config")
 	require.Nil(t, err)
 
@@ -818,7 +815,7 @@ func TestEconomics_ComputeInflationRate_WithRealConfigData(t *testing.T) {
 	assert.Equal(t, economicsData.MaxInflationRate(6), rate)
 
 	rate, _ = ec.computeInflationRate(supernovaYearLastRound, supernovaActivationEpoch+354)
-	assert.Equal(t, economicsData.MaxInflationRate(7), rate)
+	assert.Equal(t, economicsData.MaxInflationRate(6), rate)
 
 	// supernovaActivationRound + 355 days (365-10 because supernova was activated in the 10th epoch in year 6) will get max inflation for the next year (year 7)
 	rate, _ = ec.computeInflationRate(supernovaActivationRound+(roundsPerDayAfter*355), supernovaActivationEpoch+355)
@@ -841,22 +838,22 @@ func TestEconomics_ComputeInflationRate_WithRealConfigData(t *testing.T) {
 	assert.Equal(t, economicsData.MaxInflationRate(7), rate)
 
 	rate, _ = ec.computeInflationRate(supernovaYearLastRound+roundsPerYearAfter, supernovaActivationEpoch+epochsPerYear)
-	assert.Equal(t, economicsData.MaxInflationRate(8), rate)
+	assert.Equal(t, economicsData.MaxInflationRate(7), rate)
 
 	rate, _ = ec.computeInflationRate(supernovaYearLastRound+roundsPerYearAfter+1, supernovaActivationEpoch+epochsPerYear)
 	assert.Equal(t, economicsData.MaxInflationRate(8), rate)
 
 	rate, _ = ec.computeInflationRate(supernovaYearLastRound+(2*roundsPerYearAfter), supernovaActivationEpoch+epochsPerYear)
-	assert.Equal(t, economicsData.MaxInflationRate(9), rate)
+	assert.Equal(t, economicsData.MaxInflationRate(8), rate)
 
 	rate, _ = ec.computeInflationRate(supernovaYearLastRound+(2*roundsPerYearAfter)+1, supernovaActivationEpoch+epochsPerYear)
 	assert.Equal(t, economicsData.MaxInflationRate(9), rate)
 
 	rate, _ = ec.computeInflationRate(supernovaYearLastRound+(3*roundsPerYearAfter), supernovaActivationEpoch+epochsPerYear)
-	assert.Equal(t, economicsData.MaxInflationRate(10), rate)
+	assert.Equal(t, economicsData.MaxInflationRate(9), rate)
 
 	rate, _ = ec.computeInflationRate(supernovaYearLastRound+(4*roundsPerYearAfter), supernovaActivationEpoch+epochsPerYear)
-	assert.Equal(t, economicsData.MaxInflationRate(11), rate)
+	assert.Equal(t, economicsData.MaxInflationRate(10), rate)
 
 	rate, _ = ec.computeInflationRate(supernovaYearLastRound+(5*roundsPerYearAfter), supernovaActivationEpoch+epochsPerYear)
 	assert.Equal(t, economicsData.MaxInflationRate(11), rate)
