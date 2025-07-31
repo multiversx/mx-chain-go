@@ -24,9 +24,8 @@ func (e *economics) SetRoundTimeHandler(roundHandler process.RoundTimeDurationHa
 
 // GetSupernovaYearLastRound -
 func (e *economics) GetSupernovaYearLastRound(
-	currentEpoch uint32,
 	supernovaActivationYear uint32,
 	roundsPerYearUntilSupernova uint64,
 ) (uint64, error) {
-	return e.getSupernovaYearLastRound(currentEpoch, supernovaActivationYear, roundsPerYearUntilSupernova)
+	return e.getSupernovaYearLastRound(supernovaActivationYear, roundsPerYearUntilSupernova)
 }
