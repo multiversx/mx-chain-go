@@ -171,20 +171,20 @@ func (tfb *txsForBlock) ComputeExistingAndRequestMissing(
 			method = process.SearchMethodPeekWithFallbackSearchFirst
 		}
 
-		missingTxHashesInMiniBlock := tfb.updateExistingAndComputeMissingTxsInMiniBlock(miniBlock, uniqueTxHashes, txPool, method, txShardInfoObject)
+		missingTxHashesInMiniBlock := tfb.updateExistingAndComputeMissingTxsInMiniBlockNoLock(miniBlock, uniqueTxHashes, txPool, method, txShardInfoObject)
 		missingTxHashes = append(missingTxHashes, missingTxHashesInMiniBlock...)
 		if len(missingTxHashes) > 0 {
-			tfb.setMissingTxsForShard(miniBlock.SenderShardID, miniBlock.ReceiverShardID, missingTxHashes)
+			tfb.setMissingTxsForShardNoLock(miniBlock.SenderShardID, miniBlock.ReceiverShardID, missingTxHashes)
 			missingTxsForShard[miniBlock.SenderShardID] = append(missingTxsForShard[miniBlock.SenderShardID], missingTxHashes...)
 		}
 
 		missingTxHashes = make([][]byte, 0)
 	}
 
-	return tfb.requestMissingTxsForShard(missingTxsForShard, onRequestTxs)
+	return tfb.requestMissingTxsForShardNoLock(missingTxsForShard, onRequestTxs)
 }
 
-func (tfb *txsForBlock) updateExistingAndComputeMissingTxsInMiniBlock(
+func (tfb *txsForBlock) updateExistingAndComputeMissingTxsInMiniBlockNoLock(
 	miniBlock *block.MiniBlock,
 	uniqueTxHashes map[string]struct{},
 	txPool dataRetriever.ShardedDataCacherNotifier,
@@ -227,7 +227,7 @@ func (tfb *txsForBlock) updateExistingAndComputeMissingTxsInMiniBlock(
 }
 
 // this method should be called only under the mutex protection: forBlock.mutTxsForBlock
-func (tfb *txsForBlock) setMissingTxsForShard(
+func (tfb *txsForBlock) setMissingTxsForShardNoLock(
 	senderShardID uint32,
 	receiverShardID uint32,
 	txHashes [][]byte,
@@ -246,7 +246,7 @@ func (tfb *txsForBlock) setMissingTxsForShard(
 }
 
 // this method should be called only under the mutex protection: forBlock.mutTxsForBlock
-func (tfb *txsForBlock) requestMissingTxsForShard(
+func (tfb *txsForBlock) requestMissingTxsForShardNoLock(
 	missingTxsForShard map[uint32][][]byte,
 	onRequestTxs func(shardID uint32, txHashes [][]byte),
 ) int {
