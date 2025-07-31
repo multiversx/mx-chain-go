@@ -37,8 +37,8 @@ type ConsensusState struct {
 	roundIndex                  int64
 	roundTimeStamp              time.Time
 	roundCanceled               bool
-	ExtendedCalled              bool
-	WaitingAllSignaturesTimeOut bool
+	extendedCalled              bool
+	waitingAllSignaturesTimeOut bool
 
 	processingBlock    bool
 	mutProcessingBlock sync.RWMutex
@@ -72,8 +72,8 @@ func NewConsensusState(
 func (cns *ConsensusState) ResetConsensusRoundState() {
 	cns.mutState.Lock()
 	cns.roundCanceled = false
-	cns.ExtendedCalled = false
-	cns.WaitingAllSignaturesTimeOut = false
+	cns.extendedCalled = false
+	cns.waitingAllSignaturesTimeOut = false
 	cns.mutState.Unlock()
 
 	cns.ResetRoundStatus()
@@ -456,7 +456,7 @@ func (cns *ConsensusState) GetExtendedCalled() bool {
 	cns.mutState.RLock()
 	defer cns.mutState.RUnlock()
 
-	return cns.ExtendedCalled
+	return cns.extendedCalled
 }
 
 // SetExtendedCalled sets the state of the extended called
@@ -464,7 +464,7 @@ func (cns *ConsensusState) SetExtendedCalled(extendedCalled bool) {
 	cns.mutState.Lock()
 	defer cns.mutState.Unlock()
 
-	cns.ExtendedCalled = extendedCalled
+	cns.extendedCalled = extendedCalled
 }
 
 // GetBody returns the body of the current round
@@ -504,7 +504,7 @@ func (cns *ConsensusState) GetWaitingAllSignaturesTimeOut() bool {
 	cns.mutState.RLock()
 	defer cns.mutState.RUnlock()
 
-	return cns.WaitingAllSignaturesTimeOut
+	return cns.waitingAllSignaturesTimeOut
 }
 
 // SetWaitingAllSignaturesTimeOut sets the state of the waiting all signatures time out
@@ -512,7 +512,7 @@ func (cns *ConsensusState) SetWaitingAllSignaturesTimeOut(waitingAllSignaturesTi
 	cns.mutState.Lock()
 	defer cns.mutState.Unlock()
 
-	cns.WaitingAllSignaturesTimeOut = waitingAllSignaturesTimeOut
+	cns.waitingAllSignaturesTimeOut = waitingAllSignaturesTimeOut
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

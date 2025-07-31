@@ -50,6 +50,7 @@ type ArgHardforkTrigger struct {
 	ImportStartHandler        update.ImportStartHandler
 	RoundHandler              update.RoundHandler
 	EnableEpochsHandler       common.EnableEpochsHandler
+	EnableRoundsHandler       common.EnableRoundsHandler
 }
 
 // trigger implements a hardfork trigger that is able to notify a set list of handlers if this instance gets triggered
@@ -80,6 +81,7 @@ type trigger struct {
 	isWithEarlyEndOfEpoch        bool
 	roundHandler                 update.RoundHandler
 	enableEpochsHandler          common.EnableEpochsHandler
+	enableRoundsHandler          common.EnableRoundsHandler
 }
 
 // NewTrigger returns the trigger instance
@@ -120,6 +122,9 @@ func NewTrigger(arg ArgHardforkTrigger) (*trigger, error) {
 	if check.IfNil(arg.EnableEpochsHandler) {
 		return nil, errors.ErrNilEnableEpochsHandler
 	}
+	if check.IfNil(arg.EnableRoundsHandler) {
+		return nil, errors.ErrNilEnableRoundsHandler
+	}
 
 	t := &trigger{
 		enabled:               arg.Enabled,
@@ -138,6 +143,7 @@ func NewTrigger(arg ArgHardforkTrigger) (*trigger, error) {
 		importStartHandler:    arg.ImportStartHandler,
 		roundHandler:          arg.RoundHandler,
 		enableEpochsHandler:   arg.EnableEpochsHandler,
+		enableRoundsHandler:   arg.EnableRoundsHandler,
 	}
 
 	t.isTriggerSelf = bytes.Equal(arg.TriggerPubKeyBytes, arg.SelfPubKeyBytes)
@@ -202,7 +208,7 @@ func (t *trigger) Trigger(epoch uint32, withEarlyEndOfEpoch bool) error {
 		return update.ErrTriggerNotEnabled
 	}
 
-	round := t.computeHardforkRound(withEarlyEndOfEpoch, epoch)
+	round := t.computeHardforkRound(withEarlyEndOfEpoch)
 	logInfo := []interface{}{
 		"epoch", epoch, "withEarlyEndOfEpoch", withEarlyEndOfEpoch,
 	}
@@ -235,12 +241,10 @@ func (t *trigger) Trigger(epoch uint32, withEarlyEndOfEpoch bool) error {
 	return nil
 }
 
-func (t *trigger) computeHardforkRound(withEarlyEndOfEpoch bool, epoch uint32) uint64 {
+func (t *trigger) computeHardforkRound(withEarlyEndOfEpoch bool) uint64 {
 	if !withEarlyEndOfEpoch {
 		return disabledRoundForForceEpochStart
 	}
-
-	deltaRoundsForForcedEpoch := t.getDeltaRoundsForForceEpoch(epoch)
 
 	currentRound := t.roundHandler.Index()
 	if currentRound < 0 {
@@ -248,11 +252,11 @@ func (t *trigger) computeHardforkRound(withEarlyEndOfEpoch bool, epoch uint32) u
 		return deltaRoundsForForcedEpoch
 	}
 
-	return uint64(currentRound) + deltaRoundsForForcedEpoch
+	return uint64(currentRound) + t.getDeltaRoundsForForceEpoch(uint64(currentRound))
 }
 
-func (t *trigger) getDeltaRoundsForForceEpoch(epoch uint32) uint64 {
-	if t.enableEpochsHandler.IsFlagEnabledInEpoch(common.SupernovaFlag, epoch) {
+func (t *trigger) getDeltaRoundsForForceEpoch(round uint64) uint64 {
+	if t.enableRoundsHandler.IsFlagEnabledInRound(common.SupernovaRoundFlag, round) {
 		return supernovaDeltaRoundsForForcedEpoch
 	}
 

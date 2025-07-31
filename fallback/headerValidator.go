@@ -22,7 +22,7 @@ type fallbackHeaderValidator struct {
 	headersPool         dataRetriever.HeadersPool
 	marshalizer         marshal.Marshalizer
 	storageService      dataRetriever.StorageService
-	enableEpochsHandler common.EnableEpochsHandler
+	enableRoundsHandler common.EnableRoundsHandler
 }
 
 // NewFallbackHeaderValidator creates a new fallbackHeaderValidator object
@@ -30,7 +30,7 @@ func NewFallbackHeaderValidator(
 	headersPool dataRetriever.HeadersPool,
 	marshalizer marshal.Marshalizer,
 	storageService dataRetriever.StorageService,
-	enableEpochsHandler common.EnableEpochsHandler,
+	enableRoundsHandler common.EnableRoundsHandler,
 ) (*fallbackHeaderValidator, error) {
 
 	if check.IfNil(headersPool) {
@@ -42,15 +42,15 @@ func NewFallbackHeaderValidator(
 	if check.IfNil(storageService) {
 		return nil, process.ErrNilStorage
 	}
-	if check.IfNil(enableEpochsHandler) {
-		return nil, errors.ErrNilEnableEpochsHandler
+	if check.IfNil(enableRoundsHandler) {
+		return nil, errors.ErrNilEnableRoundsHandler
 	}
 
 	hv := &fallbackHeaderValidator{
 		headersPool:         headersPool,
 		marshalizer:         marshalizer,
 		storageService:      storageService,
-		enableEpochsHandler: enableEpochsHandler,
+		enableRoundsHandler: enableRoundsHandler,
 	}
 
 	return hv, nil
@@ -71,12 +71,12 @@ func (fhv *fallbackHeaderValidator) ShouldApplyFallbackValidationForHeaderWith(s
 		return false
 	}
 
-	isRoundTooOld := int64(round)-int64(previousHeader.GetRound()) >= fhv.getMaxRoundsWithoutCommitedStartInEpochBlock()
+	isRoundTooOld := int64(round)-int64(previousHeader.GetRound()) >= fhv.getMaxRoundsWithoutCommittedStartInEpochBlock(previousHeader.GetRound())
 	return isRoundTooOld
 }
 
-func (fhv *fallbackHeaderValidator) getMaxRoundsWithoutCommitedStartInEpochBlock() int64 {
-	if fhv.enableEpochsHandler.IsFlagEnabled(common.SupernovaFlag) {
+func (fhv *fallbackHeaderValidator) getMaxRoundsWithoutCommittedStartInEpochBlock(round uint64) int64 {
+	if fhv.enableRoundsHandler.IsFlagEnabledInRound(common.SupernovaRoundFlag, round) {
 		return SupernovaMaxRoundsWithoutCommittedStartInEpochBlock
 	}
 
