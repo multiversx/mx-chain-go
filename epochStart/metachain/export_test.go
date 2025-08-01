@@ -21,11 +21,3 @@ func (sdp *stakingDataProvider) GetFromCache(key []byte) *ownerStats {
 func (e *economics) SetRoundTimeHandler(roundHandler process.RoundTimeDurationHandler) {
 	e.roundTime = roundHandler
 }
-
-// GetSupernovaYearLastRound -
-func (e *economics) GetSupernovaYearLastRound(
-	supernovaActivationYear uint32,
-	roundsPerYearUntilSupernova uint64,
-) (uint64, error) {
-	return e.getSupernovaYearLastRound(supernovaActivationYear, roundsPerYearUntilSupernova)
-}

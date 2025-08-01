@@ -754,6 +754,7 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 		RoundTime:             pcf.coreData.RoundHandler(),
 		GenesisNonce:          genesisHdr.GetNonce(),
 		GenesisEpoch:          genesisHdr.GetEpoch(),
+		GenesisTimestamp:      genesisHdr.GetTimeStamp(),
 		GenesisTotalSupply:    pcf.coreData.EconomicsData().GenesisTotalSupply(),
 		EconomicsDataNotified: economicsDataProvider,
 		StakingV2EnableEpoch:  pcf.coreData.EnableEpochsHandler().GetActivationEpoch(common.StakingV2Flag),
