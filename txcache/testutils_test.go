@@ -6,7 +6,7 @@ import (
 	"math"
 	"math/big"
 	"math/rand"
-	"time"
+	"strconv"
 
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-go/testscommon/txcachemocks"
@@ -21,8 +21,8 @@ const addressLength = 32
 
 var oneQuintillionBig = big.NewInt(oneQuintillion)
 
-// The GitHub Actions runners are (extremely) slow.
-const selectionLoopMaximumDuration = 30 * time.Second
+// The GitHub Actions runners are (extremely) slow. The variable is expressed in milliseconds.
+const selectionLoopMaximumDuration = 30_000
 
 var randomHashes = newRandomData(math.MaxUint16, hashLength)
 var randomAddresses = newRandomData(math.MaxUint16, addressLength)
@@ -188,6 +188,24 @@ func createTx(hash []byte, sender string, nonce uint64) *WrappedTransaction {
 		TxHash: hash,
 		Size:   int64(estimatedSizeOfBoundedTxFields),
 	}
+}
+
+func createSliceMockWrappedTxs(txHashes [][]byte) []*WrappedTransaction {
+	wrappedTxs := make([]*WrappedTransaction, len(txHashes))
+	for i, txHash := range txHashes {
+		wrappedTxs[i] = createTx(txHash, "sender"+strconv.Itoa(i), uint64(i))
+	}
+
+	return wrappedTxs
+}
+
+func createMockTxHashes(numberOfTxs int) [][]byte {
+	txHashes := make([][]byte, numberOfTxs)
+	for i := 0; i < numberOfTxs; i++ {
+		txHashes[i] = []byte("txHash" + strconv.Itoa(i))
+	}
+
+	return txHashes
 }
 
 func (wrappedTx *WrappedTransaction) withSize(size uint64) *WrappedTransaction {
