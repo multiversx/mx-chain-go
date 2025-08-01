@@ -42,8 +42,6 @@ type economics struct {
 	economicsDataNotified epochStart.EpochEconomicsDataProvider
 	stakingV2EnableEpoch  uint32
 	enableEpochsHandler   common.EnableEpochsHandler
-	enableRoundsHandler   common.EnableRoundsHandler
-	chainParamsHandler    common.ChainParametersHandler
 }
 
 // ArgsNewEpochEconomics is the argument for the economics constructor
