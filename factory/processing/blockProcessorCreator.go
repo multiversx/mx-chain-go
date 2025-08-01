@@ -759,8 +759,6 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 		EconomicsDataNotified: economicsDataProvider,
 		StakingV2EnableEpoch:  pcf.coreData.EnableEpochsHandler().GetActivationEpoch(common.StakingV2Flag),
 		EnableEpochsHandler:   pcf.coreData.EnableEpochsHandler(),
-		EnableRoundsHandler:   pcf.coreData.EnableRoundsHandler(),
-		ChainParamsHandler:    pcf.coreData.ChainParametersHandler(),
 	}
 	epochEconomics, err := metachainEpochStart.NewEndOfEpochEconomicsDataCreator(argsEpochEconomics)
 	if err != nil {

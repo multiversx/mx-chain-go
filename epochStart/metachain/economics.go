@@ -61,8 +61,6 @@ type ArgsNewEpochEconomics struct {
 	EconomicsDataNotified epochStart.EpochEconomicsDataProvider
 	StakingV2EnableEpoch  uint32
 	EnableEpochsHandler   common.EnableEpochsHandler
-	EnableRoundsHandler   common.EnableRoundsHandler
-	ChainParamsHandler    common.ChainParametersHandler
 }
 
 // NewEndOfEpochEconomicsDataCreator creates a new end of epoch economics data creator object
@@ -94,12 +92,6 @@ func NewEndOfEpochEconomicsDataCreator(args ArgsNewEpochEconomics) (*economics, 
 	if check.IfNil(args.EnableEpochsHandler) {
 		return nil, errors.ErrNilEnableEpochsHandler
 	}
-	if check.IfNil(args.EnableRoundsHandler) {
-		return nil, errors.ErrNilEnableRoundsHandler
-	}
-	if check.IfNil(args.ChainParamsHandler) {
-		return nil, errors.ErrNilChainParametersHandler
-	}
 
 	e := &economics{
 		marshalizer:           args.Marshalizer,
@@ -115,8 +107,6 @@ func NewEndOfEpochEconomicsDataCreator(args ArgsNewEpochEconomics) (*economics, 
 		economicsDataNotified: args.EconomicsDataNotified,
 		stakingV2EnableEpoch:  args.StakingV2EnableEpoch,
 		enableEpochsHandler:   args.EnableEpochsHandler,
-		enableRoundsHandler:   args.EnableRoundsHandler,
-		chainParamsHandler:    args.ChainParamsHandler,
 	}
 	log.Debug("economics: enable epoch for staking v2", "epoch", e.stakingV2EnableEpoch)
 
