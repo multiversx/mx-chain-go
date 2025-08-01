@@ -2373,6 +2373,7 @@ func (tpn *TestProcessorNode) initBlockProcessor() {
 			EconomicsDataNotified: economicsDataProvider,
 			StakingV2EnableEpoch:  tpn.EnableEpochs.StakingV2EnableEpoch,
 			EnableEpochsHandler:   tpn.EnableEpochsHandler,
+			ChainParamsHandler:    tpn.ChainParametersHandler,
 		}
 		epochEconomics, _ := metachain.NewEndOfEpochEconomicsDataCreator(argsEpochEconomics)
 

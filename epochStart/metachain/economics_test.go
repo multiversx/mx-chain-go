@@ -12,6 +12,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/epochStart"
 	"github.com/multiversx/mx-chain-go/epochStart/mock"
@@ -20,6 +21,7 @@ import (
 	processEconomics "github.com/multiversx/mx-chain-go/process/economics"
 	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/chainParameters"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/epochNotifier"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
@@ -41,6 +43,7 @@ func createMockEpochEconomicsArguments() ArgsNewEpochEconomics {
 		GenesisTotalSupply:    big.NewInt(2000000),
 		EconomicsDataNotified: NewEpochEconomicsStatistics(),
 		EnableEpochsHandler:   &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		ChainParamsHandler:    &chainParameters.ChainParametersHandlerStub{},
 	}
 	return argsNewEpochEconomics
 }
@@ -207,6 +210,17 @@ func TestNewEndOfEpochEconomicsDataCreator_NilEnableEpochsHandler(t *testing.T) 
 
 	assert.True(t, check.IfNil(eoeedc))
 	assert.Equal(t, commonErrors.ErrNilEnableEpochsHandler, err)
+}
+
+func TestNewEndOfEpochEconomicsDataCreator_NilChainParametersHandler(t *testing.T) {
+	t.Parallel()
+
+	args := getArguments()
+	args.ChainParamsHandler = nil
+	eoeedc, err := NewEndOfEpochEconomicsDataCreator(args)
+
+	assert.True(t, check.IfNil(eoeedc))
+	assert.Equal(t, commonErrors.ErrNilChainParametersHandler, err)
 }
 
 func TestNewEndOfEpochEconomicsDataCreator_ShouldWork(t *testing.T) {
@@ -823,6 +837,15 @@ func TestEconomics_VerifyRewardsPerBlock_DifferentFees(t *testing.T) {
 			return time.Duration(roundDur) * time.Second
 		},
 	}
+
+	args.ChainParamsHandler = &chainParameters.ChainParametersHandlerStub{
+		ChainParametersForEpochCalled: func(epoch uint32) (config.ChainParametersByEpochConfig, error) {
+			return config.ChainParametersByEpochConfig{
+				RoundDuration: 6000,
+			}, nil
+		},
+	}
+
 	newTotalSupply := big.NewInt(0).Add(totalSupply, big.NewInt(0))
 	hdrPrevEpochStart := block.MetaBlock{
 		Round: 0,
@@ -1040,6 +1063,14 @@ func TestEconomics_VerifyRewardsPerBlock_MoreFeesThanInflation(t *testing.T) {
 			return time.Duration(roundDur) * time.Second
 		},
 	}
+	args.ChainParamsHandler = &chainParameters.ChainParametersHandlerStub{
+		ChainParametersForEpochCalled: func(epoch uint32) (config.ChainParametersByEpochConfig, error) {
+			return config.ChainParametersByEpochConfig{
+				RoundDuration: 6000,
+			}, nil
+		},
+	}
+
 	newTotalSupply := big.NewInt(0).Add(totalSupply, big.NewInt(0))
 	hdrPrevEpochStart := block.MetaBlock{
 		Round: 0,
@@ -2006,5 +2037,12 @@ func getArguments() ArgsNewEpochEconomics {
 		GenesisTimestamp:      0,
 		EconomicsDataNotified: NewEpochEconomicsStatistics(),
 		EnableEpochsHandler:   &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		ChainParamsHandler: &chainParameters.ChainParametersHandlerStub{
+			ChainParametersForEpochCalled: func(epoch uint32) (config.ChainParametersByEpochConfig, error) {
+				return config.ChainParametersByEpochConfig{
+					RoundDuration: 4000,
+				}, nil
+			},
+		},
 	}
 }

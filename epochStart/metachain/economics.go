@@ -6,6 +6,7 @@ import (
 	"math/big"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
@@ -42,6 +43,7 @@ type economics struct {
 	economicsDataNotified epochStart.EpochEconomicsDataProvider
 	stakingV2EnableEpoch  uint32
 	enableEpochsHandler   common.EnableEpochsHandler
+	chainParamsHandler    common.ChainParametersHandler
 }
 
 // ArgsNewEpochEconomics is the argument for the economics constructor
@@ -59,6 +61,7 @@ type ArgsNewEpochEconomics struct {
 	EconomicsDataNotified epochStart.EpochEconomicsDataProvider
 	StakingV2EnableEpoch  uint32
 	EnableEpochsHandler   common.EnableEpochsHandler
+	ChainParamsHandler    common.ChainParametersHandler
 }
 
 // NewEndOfEpochEconomicsDataCreator creates a new end of epoch economics data creator object
@@ -90,6 +93,9 @@ func NewEndOfEpochEconomicsDataCreator(args ArgsNewEpochEconomics) (*economics, 
 	if check.IfNil(args.EnableEpochsHandler) {
 		return nil, errors.ErrNilEnableEpochsHandler
 	}
+	if check.IfNil(args.ChainParamsHandler) {
+		return nil, errors.ErrNilChainParametersHandler
+	}
 
 	e := &economics{
 		marshalizer:           args.Marshalizer,
@@ -105,6 +111,7 @@ func NewEndOfEpochEconomicsDataCreator(args ArgsNewEpochEconomics) (*economics, 
 		economicsDataNotified: args.EconomicsDataNotified,
 		stakingV2EnableEpoch:  args.StakingV2EnableEpoch,
 		enableEpochsHandler:   args.EnableEpochsHandler,
+		chainParamsHandler:    args.ChainParamsHandler,
 	}
 	log.Debug("economics: enable epoch for staking v2", "epoch", e.stakingV2EnableEpoch)
 
@@ -401,8 +408,12 @@ func (e *economics) computeInflationForEpoch(
 	maxBlocksInEpoch uint64,
 	epoch uint32,
 ) float64 {
+	prevEpoch := e.getPreviousEpoch(epoch)
+	chainParameters, _ := e.chainParamsHandler.ChainParametersForEpoch(prevEpoch)
+	roundDuration := time.Duration(chainParameters.RoundDuration) * time.Millisecond
+
 	inflationRatePerDay := inflationRate / numberOfDaysInYear
-	roundsPerDay := common.ComputeRoundsPerDay(e.roundTime.TimeDuration(), e.enableEpochsHandler, epoch)
+	roundsPerDay := common.ComputeRoundsPerDay(roundDuration, e.enableEpochsHandler, epoch)
 	maxBlocksInADay := core.MaxUint64(1, roundsPerDay*uint64(e.shardCoordinator.NumberOfShards()+1))
 
 	inflationRateForEpoch := inflationRatePerDay * (float64(maxBlocksInEpoch) / float64(maxBlocksInADay))
