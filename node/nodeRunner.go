@@ -417,6 +417,7 @@ func (nr *nodeRunner) executeOneComponentCreationCycle(
 		nodesCoordinatorInstance,
 		configs.ImportDbConfig.IsImportDBMode,
 		managedCryptoComponents,
+		managedDataComponents,
 	)
 	if err != nil {
 		return true, err
@@ -1092,6 +1093,7 @@ func (nr *nodeRunner) CreateManagedStatusComponents(
 	nodesCoordinator nodesCoordinator.NodesCoordinator,
 	isInImportMode bool,
 	cryptoComponents mainFactory.CryptoComponentsHolder,
+	dataComponents mainFactory.DataComponentsHolder,
 ) (mainFactory.StatusComponentsHandler, error) {
 	statArgs := statusComp.StatusComponentsFactoryArgs{
 		Config:               *nr.configs.GeneralConfig,
@@ -1106,6 +1108,7 @@ func (nr *nodeRunner) CreateManagedStatusComponents(
 		IsInImportMode:       isInImportMode,
 		StatusCoreComponents: managedStatusCoreComponents,
 		CryptoComponents:     cryptoComponents,
+		DataComponents:       dataComponents,
 	}
 
 	statusComponentsFactory, err := statusComp.NewStatusComponentsFactory(statArgs)
