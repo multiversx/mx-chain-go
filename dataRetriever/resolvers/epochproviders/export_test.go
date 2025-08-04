@@ -1,5 +1,7 @@
 package epochproviders
 
+import "github.com/multiversx/mx-chain-go/process"
+
 // NewTestArithmeticEpochProvider -
 func NewTestArithmeticEpochProvider(arg ArgArithmeticEpochProvider, unixHandler func() int64) *arithmeticEpochProvider {
 	aep := &arithmeticEpochProvider{
@@ -36,4 +38,9 @@ func (aep *arithmeticEpochProvider) SetCurrentComputedEpoch(epoch uint32) {
 	defer aep.Unlock()
 
 	aep.currentComputedEpoch = epoch
+}
+
+// SetChainParametersHandler -
+func (aep *arithmeticEpochProvider) SetChainParametersHandler(chainParamsHandler process.ChainParametersHandler) {
+	aep.chainParamsHandler = chainParamsHandler
 }
