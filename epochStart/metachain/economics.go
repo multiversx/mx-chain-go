@@ -369,6 +369,11 @@ func (e *economics) computeInflationRateAfterSupernova(currentTimestampMs uint64
 	// genesisTimestamp has to be converted as unix milliseconds
 	genesisTimestamp := common.ConvertTimeStampSecToMs(e.genesisTimestamp)
 
+	// if supernova is activated from genesis, genesis timestamp has to be as milliseconds
+	if e.enableEpochsHandler.IsFlagEnabledInEpoch(common.SupernovaFlag, 0) {
+		genesisTimestamp = e.genesisTimestamp
+	}
+
 	if currentTimestampMs < genesisTimestamp {
 		return 1 // years index are defined starting from 1
 	}

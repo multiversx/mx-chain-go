@@ -508,6 +508,75 @@ func TestEconomics_ComputeInflationRate(t *testing.T) {
 		assert.Nil(t, errFound)
 		assert.Equal(t, lateYearInflation, rate)
 	})
+
+	t.Run("supernova activated from genesis", func(t *testing.T) {
+		t.Parallel()
+
+		args := getArguments()
+
+		activationEpoch := uint32(0)
+		args.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+			IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
+				return flag == common.SupernovaFlag && epoch >= activationEpoch
+			},
+			GetActivationEpochCalled: func(flag core.EnableEpochFlag) uint32 {
+				if flag == common.SupernovaFlag {
+					return activationEpoch
+				}
+
+				return 0
+			},
+		}
+
+		roundDurationSupernova := 400
+
+		errNotGoodYear := errors.New("not good year")
+		var errFound error
+		year1inflation := 1.0
+		year2inflation := 0.5
+		lateYearInflation := 2.0
+
+		args.RewardsHandler = &mock.RewardsHandlerStub{
+			MaxInflationRateCalled: func(year uint32) float64 {
+				switch year {
+				case 0:
+					errFound = errNotGoodYear
+					return 0.0
+				case 1:
+					return year1inflation
+				case 2:
+					return year2inflation
+				default:
+					return lateYearInflation
+				}
+			},
+		}
+		ec, _ := NewEndOfEpochEconomicsDataCreator(args)
+
+		genesisTimestamp := args.GenesisTimestamp
+
+		epoch := uint32(1)
+
+		rate := ec.computeInflationRate(1, epoch, genesisTimestamp+uint64(roundDurationSupernova))
+		assert.Nil(t, errFound)
+		assert.Equal(t, rate, year1inflation)
+
+		rate = ec.computeInflationRate(50000, epoch, genesisTimestamp+uint64(roundDurationSupernova)*50000)
+		assert.Nil(t, errFound)
+		assert.Equal(t, rate, year1inflation)
+
+		rate = ec.computeInflationRate(7884000, epoch, genesisTimestamp+numberOfMillisecondsInYear)
+		assert.Nil(t, errFound)
+		assert.Equal(t, rate, year2inflation)
+
+		rate = ec.computeInflationRate(8884000, epoch, genesisTimestamp+numberOfMillisecondsInYear)
+		assert.Nil(t, errFound)
+		assert.Equal(t, rate, year2inflation)
+
+		rate = ec.computeInflationRate(38884000, epoch, genesisTimestamp+2*numberOfMillisecondsInYear)
+		assert.Nil(t, errFound)
+		assert.Equal(t, rate, lateYearInflation)
+	})
 }
 
 func TestEconomics_ComputeInflationRate_WithRealConfigData(t *testing.T) {
