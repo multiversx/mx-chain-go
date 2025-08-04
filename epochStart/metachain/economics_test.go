@@ -11,13 +11,19 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/epochStart"
 	"github.com/multiversx/mx-chain-go/epochStart/mock"
 	commonErrors "github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/process"
+	processEconomics "github.com/multiversx/mx-chain-go/process/economics"
 	"github.com/multiversx/mx-chain-go/storage"
+	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/chainParameters"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
+	"github.com/multiversx/mx-chain-go/testscommon/epochNotifier"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
 	storageStubs "github.com/multiversx/mx-chain-go/testscommon/storage"
 	"github.com/stretchr/testify/assert"
@@ -37,6 +43,7 @@ func createMockEpochEconomicsArguments() ArgsNewEpochEconomics {
 		GenesisTotalSupply:    big.NewInt(2000000),
 		EconomicsDataNotified: NewEpochEconomicsStatistics(),
 		EnableEpochsHandler:   &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		ChainParamsHandler:    &chainParameters.ChainParametersHandlerStub{},
 	}
 	return argsNewEpochEconomics
 }
@@ -50,6 +57,17 @@ func TestEpochEconomics_NewEndOfEpochEconomicsDataCreatorNilMarshalizer(t *testi
 	esd, err := NewEndOfEpochEconomicsDataCreator(arguments)
 	require.Nil(t, esd)
 	require.Equal(t, epochStart.ErrNilMarshalizer, err)
+}
+
+func TestEpochEconomics_NewEndOfEpochEconomicsDataCreatorNilHasher(t *testing.T) {
+	t.Parallel()
+
+	arguments := createMockEpochEconomicsArguments()
+	arguments.Hasher = nil
+
+	esd, err := NewEndOfEpochEconomicsDataCreator(arguments)
+	require.Nil(t, esd)
+	require.Equal(t, epochStart.ErrNilHasher, err)
 }
 
 func TestEpochEconomics_NewEndOfEpochEconomicsDataCreatorNilStore(t *testing.T) {
@@ -161,6 +179,28 @@ func TestNewEndOfEpochEconomicsDataCreator_NilRoundTimeDurationHandler(t *testin
 	assert.Equal(t, epochStart.ErrNilRoundHandler, err)
 }
 
+func TestNewEndOfEpochEconomicsDataCreator_NilEconomicsDataProvider(t *testing.T) {
+	t.Parallel()
+
+	args := getArguments()
+	args.EconomicsDataNotified = nil
+	eoeedc, err := NewEndOfEpochEconomicsDataCreator(args)
+
+	assert.True(t, check.IfNil(eoeedc))
+	assert.Equal(t, epochStart.ErrNilEconomicsDataProvider, err)
+}
+
+func TestNewEndOfEpochEconomicsDataCreator_NilGenesisTotalSupply(t *testing.T) {
+	t.Parallel()
+
+	args := getArguments()
+	args.GenesisTotalSupply = nil
+	eoeedc, err := NewEndOfEpochEconomicsDataCreator(args)
+
+	assert.True(t, check.IfNil(eoeedc))
+	assert.Equal(t, epochStart.ErrNilGenesisTotalSupply, err)
+}
+
 func TestNewEndOfEpochEconomicsDataCreator_NilEnableEpochsHandler(t *testing.T) {
 	t.Parallel()
 
@@ -170,6 +210,17 @@ func TestNewEndOfEpochEconomicsDataCreator_NilEnableEpochsHandler(t *testing.T) 
 
 	assert.True(t, check.IfNil(eoeedc))
 	assert.Equal(t, commonErrors.ErrNilEnableEpochsHandler, err)
+}
+
+func TestNewEndOfEpochEconomicsDataCreator_NilChainParametersHandler(t *testing.T) {
+	t.Parallel()
+
+	args := getArguments()
+	args.ChainParamsHandler = nil
+	eoeedc, err := NewEndOfEpochEconomicsDataCreator(args)
+
+	assert.True(t, check.IfNil(eoeedc))
+	assert.Equal(t, commonErrors.ErrNilChainParametersHandler, err)
 }
 
 func TestNewEndOfEpochEconomicsDataCreator_ShouldWork(t *testing.T) {
@@ -306,51 +357,498 @@ func TestEconomics_ComputeEndOfEpochEconomics_NotEpochStartShouldErr(t *testing.
 }
 
 func TestEconomics_ComputeInflationRate(t *testing.T) {
-	args := getArguments()
-	errNotGoodYear := errors.New("not good year")
-	var errFound error
-	year1inflation := 1.0
-	year2inflation := 0.5
-	lateYearInflation := 2.0
+	t.Parallel()
 
-	args.RewardsHandler = &mock.RewardsHandlerStub{
-		MaxInflationRateCalled: func(year uint32) float64 {
-			switch year {
-			case 0:
-				errFound = errNotGoodYear
-				return 0.0
-			case 1:
-				return year1inflation
-			case 2:
-				return year2inflation
-			default:
-				return lateYearInflation
+	t.Run("before supernova", func(t *testing.T) {
+		t.Parallel()
+
+		args := getArguments()
+		args.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+			IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
+				return flag != common.SupernovaFlag
+			},
+		}
+
+		roundDuration := 4000
+		args.RoundTime = &mock.RoundTimeDurationHandler{
+			TimeDurationCalled: func() time.Duration {
+				return time.Duration(roundDuration) * time.Millisecond
+			},
+		}
+
+		errNotGoodYear := errors.New("not good year")
+		var errFound error
+		year1inflation := 1.0
+		year2inflation := 0.5
+		lateYearInflation := 2.0
+
+		args.RewardsHandler = &mock.RewardsHandlerStub{
+			MaxInflationRateCalled: func(year uint32) float64 {
+				switch year {
+				case 0:
+					errFound = errNotGoodYear
+					return 0.0
+				case 1:
+					return year1inflation
+				case 2:
+					return year2inflation
+				default:
+					return lateYearInflation
+				}
+			},
+		}
+
+		genesisTimestamp := args.GenesisTimestamp
+
+		ec, _ := NewEndOfEpochEconomicsDataCreator(args)
+
+		epoch := uint32(1)
+
+		header := &block.MetaBlock{
+			Round:     1,
+			Epoch:     epoch,
+			TimeStamp: genesisTimestamp + uint64(roundDuration),
+		}
+		rate := ec.computeInflationRate(header)
+		assert.Nil(t, errFound)
+		assert.Equal(t, rate, year1inflation)
+
+		header = &block.MetaBlock{
+			Round:     50000,
+			Epoch:     epoch,
+			TimeStamp: genesisTimestamp + uint64(roundDuration)*50000,
+		}
+		rate = ec.computeInflationRate(header)
+		assert.Nil(t, errFound)
+		assert.Equal(t, rate, year1inflation)
+
+		header = &block.MetaBlock{
+			Round:     7884000,
+			Epoch:     epoch,
+			TimeStamp: genesisTimestamp + numberOfMillisecondsInYear,
+		}
+		rate = ec.computeInflationRate(header)
+		assert.Nil(t, errFound)
+		assert.Equal(t, rate, year2inflation)
+
+		header = &block.MetaBlock{
+			Round:     8884000,
+			Epoch:     epoch,
+			TimeStamp: genesisTimestamp + numberOfMillisecondsInYear,
+		}
+		rate = ec.computeInflationRate(header)
+		assert.Nil(t, errFound)
+		assert.Equal(t, rate, year2inflation)
+
+		header = &block.MetaBlock{
+			Round:     38884000,
+			Epoch:     epoch,
+			TimeStamp: genesisTimestamp + 2*numberOfMillisecondsInYear,
+		}
+		rate = ec.computeInflationRate(header)
+		assert.Nil(t, errFound)
+		assert.Equal(t, rate, lateYearInflation)
+	})
+
+	t.Run("after supernova", func(t *testing.T) {
+		t.Parallel()
+
+		args := getArguments()
+
+		activationEpoch := uint32(2)
+		args.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+			IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
+				return flag == common.SupernovaFlag && epoch >= activationEpoch
+			},
+			GetActivationEpochCalled: func(flag core.EnableEpochFlag) uint32 {
+				if flag == common.SupernovaFlag {
+					return activationEpoch
+				}
+
+				return 0
+			},
+		}
+
+		roundDurationBeforeSupernova := 4000
+		supernovaActivationRound := uint64(7884000) // rounds of 4s in a day
+
+		roundDurationAfterSupernova := 400
+
+		errNotGoodYear := errors.New("not good year")
+		var errFound error
+		year1inflation := 1.0
+		year2inflation := 0.5
+		lateYearInflation := 2.0
+
+		args.RewardsHandler = &mock.RewardsHandlerStub{
+			MaxInflationRateCalled: func(year uint32) float64 {
+				switch year {
+				case 0:
+					errFound = errNotGoodYear
+					return 0.0
+				case 1:
+					return year1inflation
+				case 2:
+					return year2inflation
+				default:
+					return lateYearInflation
+				}
+			},
+		}
+		ec, _ := NewEndOfEpochEconomicsDataCreator(args)
+
+		genesisTimestamp := args.GenesisTimestamp
+
+		epoch := uint32(1)
+
+		header := &block.MetaBlock{
+			Round:     1,
+			Epoch:     epoch + 1,
+			TimeStamp: genesisTimestamp + uint64(roundDurationBeforeSupernova),
+		}
+		rate := ec.computeInflationRate(header)
+		assert.Nil(t, errFound)
+		assert.Equal(t, year1inflation, rate)
+
+		header = &block.MetaBlock{
+			Round:     50000,
+			Epoch:     epoch + 1,
+			TimeStamp: genesisTimestamp + uint64(roundDurationBeforeSupernova*50000),
+		}
+		rate = ec.computeInflationRate(header)
+		assert.Nil(t, errFound)
+		assert.Equal(t, year1inflation, rate)
+
+		header = &block.MetaBlock{
+			Round:     supernovaActivationRound - 1,
+			Epoch:     epoch + 1,
+			TimeStamp: genesisTimestamp + uint64(roundDurationBeforeSupernova)*(supernovaActivationRound-uint64(1)),
+		}
+		rate = ec.computeInflationRate(header)
+		assert.Nil(t, errFound)
+		assert.Equal(t, year1inflation, rate)
+
+		header = &block.MetaBlock{
+			Round:     supernovaActivationRound,
+			Epoch:     epoch + 1,
+			TimeStamp: genesisTimestamp + uint64(roundDurationBeforeSupernova)*supernovaActivationRound,
+		}
+		rate = ec.computeInflationRate(header)
+		assert.Nil(t, errFound)
+		assert.Equal(t, year2inflation, rate)
+
+		ec.SetRoundTimeHandler(
+			&mock.RoundTimeDurationHandler{
+				TimeDurationCalled: func() time.Duration {
+					return time.Duration(roundDurationAfterSupernova) * time.Millisecond
+				},
+			},
+		)
+
+		header = &block.MetaBlock{
+			Round:     supernovaActivationRound,
+			Epoch:     activationEpoch + 1,
+			TimeStamp: genesisTimestamp + uint64(roundDurationBeforeSupernova)*supernovaActivationRound,
+		}
+		rate = ec.computeInflationRate(header)
+		assert.Nil(t, errFound)
+		assert.Equal(t, year2inflation, rate)
+
+		header = &block.MetaBlock{
+			Round:     supernovaActivationRound * (10 + 1),
+			Epoch:     activationEpoch + 10 + 1,
+			TimeStamp: genesisTimestamp + 2*numberOfMillisecondsInYear,
+		}
+		rate = ec.computeInflationRate(header)
+		assert.Nil(t, errFound)
+		assert.Equal(t, lateYearInflation, rate)
+	})
+
+	t.Run("supernova activated from genesis", func(t *testing.T) {
+		t.Parallel()
+
+		args := getArguments()
+
+		activationEpoch := uint32(0)
+		args.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+			IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
+				return flag == common.SupernovaFlag && epoch >= activationEpoch
+			},
+			GetActivationEpochCalled: func(flag core.EnableEpochFlag) uint32 {
+				if flag == common.SupernovaFlag {
+					return activationEpoch
+				}
+
+				return 0
+			},
+		}
+
+		roundDurationSupernova := 400
+
+		errNotGoodYear := errors.New("not good year")
+		var errFound error
+		year1inflation := 1.0
+		year2inflation := 0.5
+		lateYearInflation := 2.0
+
+		args.RewardsHandler = &mock.RewardsHandlerStub{
+			MaxInflationRateCalled: func(year uint32) float64 {
+				switch year {
+				case 0:
+					errFound = errNotGoodYear
+					return 0.0
+				case 1:
+					return year1inflation
+				case 2:
+					return year2inflation
+				default:
+					return lateYearInflation
+				}
+			},
+		}
+		ec, _ := NewEndOfEpochEconomicsDataCreator(args)
+
+		genesisTimestamp := args.GenesisTimestamp
+
+		epoch := uint32(1)
+
+		header := &block.MetaBlock{
+			Round:     1,
+			Epoch:     epoch,
+			TimeStamp: genesisTimestamp + uint64(roundDurationSupernova),
+		}
+		rate := ec.computeInflationRate(header)
+		assert.Nil(t, errFound)
+		assert.Equal(t, rate, year1inflation)
+
+		header = &block.MetaBlock{
+			Round:     50000,
+			Epoch:     epoch,
+			TimeStamp: genesisTimestamp + uint64(roundDurationSupernova)*50000,
+		}
+		rate = ec.computeInflationRate(header)
+		assert.Nil(t, errFound)
+		assert.Equal(t, rate, year1inflation)
+
+		header = &block.MetaBlock{
+			Round:     7884000,
+			Epoch:     epoch,
+			TimeStamp: genesisTimestamp + numberOfMillisecondsInYear,
+		}
+		rate = ec.computeInflationRate(header)
+		assert.Nil(t, errFound)
+		assert.Equal(t, rate, year2inflation)
+
+		header = &block.MetaBlock{
+			Round:     8884000,
+			Epoch:     epoch,
+			TimeStamp: genesisTimestamp + numberOfMillisecondsInYear,
+		}
+		rate = ec.computeInflationRate(header)
+		assert.Nil(t, errFound)
+		assert.Equal(t, rate, year2inflation)
+
+		header = &block.MetaBlock{
+			Round:     38884000,
+			Epoch:     epoch,
+			TimeStamp: genesisTimestamp + 2*numberOfMillisecondsInYear,
+		}
+		rate = ec.computeInflationRate(header)
+		assert.Nil(t, errFound)
+		assert.Equal(t, rate, lateYearInflation)
+	})
+}
+
+func TestEconomics_ComputeInflationRate_WithRealConfigData(t *testing.T) {
+	t.Parallel()
+
+	cfg, err := testscommon.CreateTestConfigs(t.TempDir(), "../../cmd/node/config")
+	require.Nil(t, err)
+
+	argsNewEconomicsData := processEconomics.ArgsNewEconomicsData{
+		Economics:     cfg.EconomicsConfig,
+		EpochNotifier: &epochNotifier.EpochNotifierStub{},
+		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+			IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
+				return flag == common.GasPriceModifierFlag
+			},
+		},
+		TxVersionChecker: &testscommon.TxVersionCheckerStub{},
+		PubkeyConverter:  &testscommon.PubkeyConverterStub{},
+		ShardCoordinator: &testscommon.ShardsCoordinatorMock{},
+	}
+	economicsData, _ := processEconomics.NewEconomicsData(argsNewEconomicsData)
+
+	args := getArguments()
+
+	epochsPerYear := uint32(365)
+	roundsPerDay := uint64(14400)
+	roundsPerYear := uint64(epochsPerYear) * roundsPerDay
+
+	supernovaActivationEpoch := uint32(epochsPerYear*5 + 10)
+	supernovaActivationRound := roundsPerYear*5 + 10*roundsPerDay + 50
+
+	args.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+		IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
+			return flag == common.SupernovaFlag && epoch >= supernovaActivationEpoch
+		},
+		GetActivationEpochCalled: func(flag core.EnableEpochFlag) uint32 {
+			if flag == common.SupernovaFlag {
+				return supernovaActivationEpoch
 			}
+
+			return 0
 		},
 	}
+	roundDurationBeforeSupernova := uint64(6000)
+	roundDurationAfterSupernova := uint64(600)
+
+	args.RoundTime = &mock.RoundTimeDurationHandler{
+		TimeDurationCalled: func() time.Duration {
+			return time.Duration(roundDurationBeforeSupernova) * time.Millisecond
+		},
+	}
+
+	args.RewardsHandler = economicsData
 	ec, _ := NewEndOfEpochEconomicsDataCreator(args)
 
-	epoch := uint32(1)
+	genesisTimestamp := args.GenesisTimestamp
 
-	rate := ec.computeInflationRate(1, epoch)
-	assert.Nil(t, errFound)
-	assert.Equal(t, rate, year1inflation)
+	header := &block.MetaBlock{
+		Round:     1,
+		Epoch:     0,
+		TimeStamp: genesisTimestamp + roundDurationBeforeSupernova,
+	}
+	rate := ec.computeInflationRate(header)
+	assert.Equal(t, cfg.EconomicsConfig.GlobalSettings.YearSettings[0].MaximumInflation, rate)
+	assert.Equal(t, economicsData.MaxInflationRate(1), rate)
 
-	rate = ec.computeInflationRate(50000, epoch)
-	assert.Nil(t, errFound)
-	assert.Equal(t, rate, year1inflation)
+	header = &block.MetaBlock{
+		Round:     roundsPerDay + 1,
+		Epoch:     1,
+		TimeStamp: genesisTimestamp + roundDurationBeforeSupernova*(roundsPerDay+1),
+	}
+	rate = ec.computeInflationRate(header)
+	assert.Equal(t, cfg.EconomicsConfig.GlobalSettings.YearSettings[0].MaximumInflation, rate)
+	assert.Equal(t, economicsData.MaxInflationRate(1), rate)
 
-	rate = ec.computeInflationRate(7884000, epoch)
-	assert.Nil(t, errFound)
-	assert.Equal(t, rate, year2inflation)
+	header = &block.MetaBlock{
+		Round:     roundsPerYear + 100,
+		Epoch:     epochsPerYear + 1,
+		TimeStamp: genesisTimestamp + roundDurationBeforeSupernova*(roundsPerDay+100),
+	}
+	rate = ec.computeInflationRate(header)
+	assert.Equal(t, cfg.EconomicsConfig.GlobalSettings.YearSettings[1].MaximumInflation, rate)
+	assert.Equal(t, economicsData.MaxInflationRate(2), rate)
 
-	rate = ec.computeInflationRate(8884000, epoch)
-	assert.Nil(t, errFound)
-	assert.Equal(t, rate, year2inflation)
+	ec.SetRoundTimeHandler(
+		&mock.RoundTimeDurationHandler{
+			TimeDurationCalled: func() time.Duration {
+				return time.Duration(roundDurationAfterSupernova) * time.Millisecond
+			},
+		},
+	)
 
-	rate = ec.computeInflationRate(38884000, epoch)
-	assert.Nil(t, errFound)
-	assert.Equal(t, rate, lateYearInflation)
+	// after supernova activation, round is not used anymore
+	anyRound := uint64(1234)
+
+	header = &block.MetaBlock{
+		Round:     anyRound,
+		Epoch:     supernovaActivationEpoch + 1,
+		TimeStamp: genesisTimestamp + roundDurationBeforeSupernova*(supernovaActivationRound),
+	}
+	rate = ec.computeInflationRate(header)
+	assert.Equal(t, economicsData.MaxInflationRate(6), rate)
+
+	// first time slot in year 7
+	header = &block.MetaBlock{
+		Round:     anyRound,
+		Epoch:     supernovaActivationEpoch + 1,
+		TimeStamp: genesisTimestamp + numberOfMillisecondsInYear*6,
+	}
+	rate = ec.computeInflationRate(header)
+	assert.Equal(t, economicsData.MaxInflationRate(7), rate)
+
+	// last time slot in year 7
+	header = &block.MetaBlock{
+		Round:     anyRound,
+		Epoch:     supernovaActivationEpoch + 1,
+		TimeStamp: genesisTimestamp + numberOfMillisecondsInYear*6 + roundDurationAfterSupernova,
+	}
+	rate = ec.computeInflationRate(header)
+	assert.Equal(t, economicsData.MaxInflationRate(7), rate)
+
+	// first time slot in year 8
+	header = &block.MetaBlock{
+		Round:     anyRound,
+		Epoch:     supernovaActivationEpoch + 1,
+		TimeStamp: genesisTimestamp + numberOfMillisecondsInYear*7,
+	}
+	rate = ec.computeInflationRate(header)
+	assert.Equal(t, economicsData.MaxInflationRate(8), rate)
+
+	// last time slot in year 8
+	header = &block.MetaBlock{
+		Round:     anyRound,
+		Epoch:     supernovaActivationEpoch + 1,
+		TimeStamp: genesisTimestamp + numberOfMillisecondsInYear*7 + roundDurationAfterSupernova,
+	}
+	rate = ec.computeInflationRate(header)
+	assert.Equal(t, economicsData.MaxInflationRate(8), rate)
+
+	// first time slot in year 9
+	header = &block.MetaBlock{
+		Round:     anyRound,
+		Epoch:     supernovaActivationEpoch + 1,
+		TimeStamp: genesisTimestamp + numberOfMillisecondsInYear*8,
+	}
+	rate = ec.computeInflationRate(header)
+	assert.Equal(t, economicsData.MaxInflationRate(9), rate)
+
+	// last time slot in year 9
+	header = &block.MetaBlock{
+		Round:     anyRound,
+		Epoch:     supernovaActivationEpoch + 1,
+		TimeStamp: genesisTimestamp + numberOfMillisecondsInYear*8 + roundDurationAfterSupernova,
+	}
+	rate = ec.computeInflationRate(header)
+	assert.Equal(t, economicsData.MaxInflationRate(9), rate)
+
+	// first time slot in year 10
+	header = &block.MetaBlock{
+		Round:     anyRound,
+		Epoch:     supernovaActivationEpoch + 1,
+		TimeStamp: genesisTimestamp + numberOfMillisecondsInYear*9,
+	}
+	rate = ec.computeInflationRate(header)
+	assert.Equal(t, economicsData.MaxInflationRate(10), rate)
+
+	// last time slot in year 10
+	header = &block.MetaBlock{
+		Round:     anyRound,
+		Epoch:     supernovaActivationEpoch + 1,
+		TimeStamp: genesisTimestamp + numberOfMillisecondsInYear*9 + roundDurationAfterSupernova,
+	}
+	rate = ec.computeInflationRate(header)
+	assert.Equal(t, economicsData.MaxInflationRate(10), rate)
+
+	// first time slot in year 11
+	header = &block.MetaBlock{
+		Round:     anyRound,
+		Epoch:     supernovaActivationEpoch + 1,
+		TimeStamp: genesisTimestamp + numberOfMillisecondsInYear*10,
+	}
+	rate = ec.computeInflationRate(header)
+	assert.Equal(t, economicsData.MaxInflationRate(11), rate)
+
+	// first time slot in year 11
+	header = &block.MetaBlock{
+		Round:     anyRound,
+		Epoch:     supernovaActivationEpoch + 1,
+		TimeStamp: genesisTimestamp + numberOfMillisecondsInYear*11,
+	}
+	rate = ec.computeInflationRate(header)
+	assert.Equal(t, economicsData.MaxInflationRate(11), rate)
 }
 
 func TestEconomics_ComputeEndOfEpochEconomics(t *testing.T) {
@@ -558,6 +1056,15 @@ func TestEconomics_VerifyRewardsPerBlock_DifferentFees(t *testing.T) {
 			return time.Duration(roundDur) * time.Second
 		},
 	}
+
+	args.ChainParamsHandler = &chainParameters.ChainParametersHandlerStub{
+		ChainParametersForEpochCalled: func(epoch uint32) (config.ChainParametersByEpochConfig, error) {
+			return config.ChainParametersByEpochConfig{
+				RoundDuration: 6000,
+			}, nil
+		},
+	}
+
 	newTotalSupply := big.NewInt(0).Add(totalSupply, big.NewInt(0))
 	hdrPrevEpochStart := block.MetaBlock{
 		Round: 0,
@@ -775,6 +1282,14 @@ func TestEconomics_VerifyRewardsPerBlock_MoreFeesThanInflation(t *testing.T) {
 			return time.Duration(roundDur) * time.Second
 		},
 	}
+	args.ChainParamsHandler = &chainParameters.ChainParametersHandlerStub{
+		ChainParametersForEpochCalled: func(epoch uint32) (config.ChainParametersByEpochConfig, error) {
+			return config.ChainParametersByEpochConfig{
+				RoundDuration: 6000,
+			}, nil
+		},
+	}
+
 	newTotalSupply := big.NewInt(0).Add(totalSupply, big.NewInt(0))
 	hdrPrevEpochStart := block.MetaBlock{
 		Round: 0,
@@ -1738,7 +2253,15 @@ func getArguments() ArgsNewEpochEconomics {
 		RewardsHandler:        &mock.RewardsHandlerStub{},
 		RoundTime:             &mock.RoundTimeDurationHandler{},
 		GenesisTotalSupply:    genesisSupply,
+		GenesisTimestamp:      0,
 		EconomicsDataNotified: NewEpochEconomicsStatistics(),
 		EnableEpochsHandler:   &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		ChainParamsHandler: &chainParameters.ChainParametersHandlerStub{
+			ChainParametersForEpochCalled: func(epoch uint32) (config.ChainParametersByEpochConfig, error) {
+				return config.ChainParametersByEpochConfig{
+					RoundDuration: 4000,
+				}, nil
+			},
+		},
 	}
 }
