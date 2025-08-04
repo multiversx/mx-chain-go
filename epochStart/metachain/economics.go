@@ -10,6 +10,7 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/display"
 	"github.com/multiversx/mx-chain-core-go/hashing"
@@ -150,7 +151,7 @@ func (e *economics) ComputeEndOfEpochEconomics(
 	maxBlocksInEpoch := core.MaxUint64(1, roundsPassedInEpoch*uint64(e.shardCoordinator.NumberOfShards()+1))
 	totalNumBlocksInEpoch := e.computeNumOfTotalCreatedBlocks(noncesPerShardPrevEpoch, noncesPerShardCurrEpoch)
 
-	inflationRate := e.computeInflationRate(metaBlock.GetRound(), metaBlock.GetEpoch(), metaBlock.GetTimeStamp())
+	inflationRate := e.computeInflationRate(metaBlock)
 	rwdPerBlock := e.computeRewardsPerBlock(e.genesisTotalSupply, maxBlocksInEpoch, inflationRate, metaBlock.Epoch)
 	totalRewardsToBeDistributed := big.NewInt(0).Mul(rwdPerBlock, big.NewInt(0).SetUint64(totalNumBlocksInEpoch))
 
@@ -351,17 +352,16 @@ func (e *economics) computeInflationBeforeSupernova(currentRound uint64, epoch u
 }
 
 func (e *economics) computeInflationRate(
-	currentRound uint64, currentEpoch uint32,
-	currentTimestamp uint64,
+	metaBlock data.HeaderHandler,
 ) float64 {
-	prevEpoch := e.getPreviousEpoch(currentEpoch)
+	prevEpoch := e.getPreviousEpoch(metaBlock.GetEpoch())
 	supernovaInEpochActivated := e.enableEpochsHandler.IsFlagEnabledInEpoch(common.SupernovaFlag, prevEpoch)
 
 	if !supernovaInEpochActivated {
-		return e.computeInflationBeforeSupernova(currentRound, prevEpoch)
+		return e.computeInflationBeforeSupernova(metaBlock.GetRound(), prevEpoch)
 	}
 
-	return e.computeInflationRateAfterSupernova(currentTimestamp)
+	return e.computeInflationRateAfterSupernova(metaBlock.GetTimeStamp())
 }
 
 // currentTimestamp is defined as unix milliseconds after supernova is activated

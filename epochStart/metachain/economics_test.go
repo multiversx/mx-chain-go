@@ -404,23 +404,48 @@ func TestEconomics_ComputeInflationRate(t *testing.T) {
 
 		epoch := uint32(1)
 
-		rate := ec.computeInflationRate(1, epoch, genesisTimestamp+uint64(roundDuration))
+		header := &block.MetaBlock{
+			Round:     1,
+			Epoch:     epoch,
+			TimeStamp: genesisTimestamp + uint64(roundDuration),
+		}
+		rate := ec.computeInflationRate(header)
 		assert.Nil(t, errFound)
 		assert.Equal(t, rate, year1inflation)
 
-		rate = ec.computeInflationRate(50000, epoch, genesisTimestamp+uint64(roundDuration)*50000)
+		header = &block.MetaBlock{
+			Round:     50000,
+			Epoch:     epoch,
+			TimeStamp: genesisTimestamp + uint64(roundDuration)*50000,
+		}
+		rate = ec.computeInflationRate(header)
 		assert.Nil(t, errFound)
 		assert.Equal(t, rate, year1inflation)
 
-		rate = ec.computeInflationRate(7884000, epoch, genesisTimestamp+numberOfMillisecondsInYear)
+		header = &block.MetaBlock{
+			Round:     7884000,
+			Epoch:     epoch,
+			TimeStamp: genesisTimestamp + numberOfMillisecondsInYear,
+		}
+		rate = ec.computeInflationRate(header)
 		assert.Nil(t, errFound)
 		assert.Equal(t, rate, year2inflation)
 
-		rate = ec.computeInflationRate(8884000, epoch, genesisTimestamp+numberOfMillisecondsInYear)
+		header = &block.MetaBlock{
+			Round:     8884000,
+			Epoch:     epoch,
+			TimeStamp: genesisTimestamp + numberOfMillisecondsInYear,
+		}
+		rate = ec.computeInflationRate(header)
 		assert.Nil(t, errFound)
 		assert.Equal(t, rate, year2inflation)
 
-		rate = ec.computeInflationRate(38884000, epoch, genesisTimestamp+2*numberOfMillisecondsInYear)
+		header = &block.MetaBlock{
+			Round:     38884000,
+			Epoch:     epoch,
+			TimeStamp: genesisTimestamp + 2*numberOfMillisecondsInYear,
+		}
+		rate = ec.computeInflationRate(header)
 		assert.Nil(t, errFound)
 		assert.Equal(t, rate, lateYearInflation)
 	})
@@ -476,19 +501,39 @@ func TestEconomics_ComputeInflationRate(t *testing.T) {
 
 		epoch := uint32(1)
 
-		rate := ec.computeInflationRate(1, epoch+1, genesisTimestamp+uint64(roundDurationBeforeSupernova))
+		header := &block.MetaBlock{
+			Round:     1,
+			Epoch:     epoch + 1,
+			TimeStamp: genesisTimestamp + uint64(roundDurationBeforeSupernova),
+		}
+		rate := ec.computeInflationRate(header)
 		assert.Nil(t, errFound)
 		assert.Equal(t, year1inflation, rate)
 
-		rate = ec.computeInflationRate(50000, epoch+1, genesisTimestamp+uint64(roundDurationBeforeSupernova*50000))
+		header = &block.MetaBlock{
+			Round:     50000,
+			Epoch:     epoch + 1,
+			TimeStamp: genesisTimestamp + uint64(roundDurationBeforeSupernova*50000),
+		}
+		rate = ec.computeInflationRate(header)
 		assert.Nil(t, errFound)
 		assert.Equal(t, year1inflation, rate)
 
-		rate = ec.computeInflationRate(supernovaActivationRound-1, epoch+1, genesisTimestamp+uint64(roundDurationBeforeSupernova)*(supernovaActivationRound-uint64(1)))
+		header = &block.MetaBlock{
+			Round:     supernovaActivationRound - 1,
+			Epoch:     epoch + 1,
+			TimeStamp: genesisTimestamp + uint64(roundDurationBeforeSupernova)*(supernovaActivationRound-uint64(1)),
+		}
+		rate = ec.computeInflationRate(header)
 		assert.Nil(t, errFound)
 		assert.Equal(t, year1inflation, rate)
 
-		rate = ec.computeInflationRate(supernovaActivationRound, epoch+1, genesisTimestamp+uint64(roundDurationBeforeSupernova)*supernovaActivationRound)
+		header = &block.MetaBlock{
+			Round:     supernovaActivationRound,
+			Epoch:     epoch + 1,
+			TimeStamp: genesisTimestamp + uint64(roundDurationBeforeSupernova)*supernovaActivationRound,
+		}
+		rate = ec.computeInflationRate(header)
 		assert.Nil(t, errFound)
 		assert.Equal(t, year2inflation, rate)
 
@@ -500,11 +545,21 @@ func TestEconomics_ComputeInflationRate(t *testing.T) {
 			},
 		)
 
-		rate = ec.computeInflationRate(supernovaActivationRound, activationEpoch+1, genesisTimestamp+uint64(roundDurationBeforeSupernova)*supernovaActivationRound)
+		header = &block.MetaBlock{
+			Round:     supernovaActivationRound,
+			Epoch:     activationEpoch + 1,
+			TimeStamp: genesisTimestamp + uint64(roundDurationBeforeSupernova)*supernovaActivationRound,
+		}
+		rate = ec.computeInflationRate(header)
 		assert.Nil(t, errFound)
 		assert.Equal(t, year2inflation, rate)
 
-		rate = ec.computeInflationRate(supernovaActivationRound*(10+1), activationEpoch+10+1, genesisTimestamp+2*numberOfMillisecondsInYear)
+		header = &block.MetaBlock{
+			Round:     supernovaActivationRound * (10 + 1),
+			Epoch:     activationEpoch + 10 + 1,
+			TimeStamp: genesisTimestamp + 2*numberOfMillisecondsInYear,
+		}
+		rate = ec.computeInflationRate(header)
 		assert.Nil(t, errFound)
 		assert.Equal(t, lateYearInflation, rate)
 	})
@@ -557,23 +612,48 @@ func TestEconomics_ComputeInflationRate(t *testing.T) {
 
 		epoch := uint32(1)
 
-		rate := ec.computeInflationRate(1, epoch, genesisTimestamp+uint64(roundDurationSupernova))
+		header := &block.MetaBlock{
+			Round:     1,
+			Epoch:     epoch,
+			TimeStamp: genesisTimestamp + uint64(roundDurationSupernova),
+		}
+		rate := ec.computeInflationRate(header)
 		assert.Nil(t, errFound)
 		assert.Equal(t, rate, year1inflation)
 
-		rate = ec.computeInflationRate(50000, epoch, genesisTimestamp+uint64(roundDurationSupernova)*50000)
+		header = &block.MetaBlock{
+			Round:     50000,
+			Epoch:     epoch,
+			TimeStamp: genesisTimestamp + uint64(roundDurationSupernova)*50000,
+		}
+		rate = ec.computeInflationRate(header)
 		assert.Nil(t, errFound)
 		assert.Equal(t, rate, year1inflation)
 
-		rate = ec.computeInflationRate(7884000, epoch, genesisTimestamp+numberOfMillisecondsInYear)
+		header = &block.MetaBlock{
+			Round:     7884000,
+			Epoch:     epoch,
+			TimeStamp: genesisTimestamp + numberOfMillisecondsInYear,
+		}
+		rate = ec.computeInflationRate(header)
 		assert.Nil(t, errFound)
 		assert.Equal(t, rate, year2inflation)
 
-		rate = ec.computeInflationRate(8884000, epoch, genesisTimestamp+numberOfMillisecondsInYear)
+		header = &block.MetaBlock{
+			Round:     8884000,
+			Epoch:     epoch,
+			TimeStamp: genesisTimestamp + numberOfMillisecondsInYear,
+		}
+		rate = ec.computeInflationRate(header)
 		assert.Nil(t, errFound)
 		assert.Equal(t, rate, year2inflation)
 
-		rate = ec.computeInflationRate(38884000, epoch, genesisTimestamp+2*numberOfMillisecondsInYear)
+		header = &block.MetaBlock{
+			Round:     38884000,
+			Epoch:     epoch,
+			TimeStamp: genesisTimestamp + 2*numberOfMillisecondsInYear,
+		}
+		rate = ec.computeInflationRate(header)
 		assert.Nil(t, errFound)
 		assert.Equal(t, rate, lateYearInflation)
 	})
@@ -634,15 +714,30 @@ func TestEconomics_ComputeInflationRate_WithRealConfigData(t *testing.T) {
 
 	genesisTimestamp := args.GenesisTimestamp
 
-	rate := ec.computeInflationRate(1, 0, genesisTimestamp+roundDurationBeforeSupernova)
+	header := &block.MetaBlock{
+		Round:     1,
+		Epoch:     0,
+		TimeStamp: genesisTimestamp + roundDurationBeforeSupernova,
+	}
+	rate := ec.computeInflationRate(header)
 	assert.Equal(t, cfg.EconomicsConfig.GlobalSettings.YearSettings[0].MaximumInflation, rate)
 	assert.Equal(t, economicsData.MaxInflationRate(1), rate)
 
-	rate = ec.computeInflationRate(roundsPerDay+1, 1, genesisTimestamp+roundDurationBeforeSupernova*(roundsPerDay+1))
+	header = &block.MetaBlock{
+		Round:     roundsPerDay + 1,
+		Epoch:     1,
+		TimeStamp: genesisTimestamp + roundDurationBeforeSupernova*(roundsPerDay+1),
+	}
+	rate = ec.computeInflationRate(header)
 	assert.Equal(t, cfg.EconomicsConfig.GlobalSettings.YearSettings[0].MaximumInflation, rate)
 	assert.Equal(t, economicsData.MaxInflationRate(1), rate)
 
-	rate = ec.computeInflationRate(roundsPerYear+100, epochsPerYear+1, genesisTimestamp+roundDurationBeforeSupernova*(roundsPerDay+100))
+	header = &block.MetaBlock{
+		Round:     roundsPerYear + 100,
+		Epoch:     epochsPerYear + 1,
+		TimeStamp: genesisTimestamp + roundDurationBeforeSupernova*(roundsPerDay+100),
+	}
+	rate = ec.computeInflationRate(header)
 	assert.Equal(t, cfg.EconomicsConfig.GlobalSettings.YearSettings[1].MaximumInflation, rate)
 	assert.Equal(t, economicsData.MaxInflationRate(2), rate)
 
@@ -657,47 +752,102 @@ func TestEconomics_ComputeInflationRate_WithRealConfigData(t *testing.T) {
 	// after supernova activation, round is not used anymore
 	anyRound := uint64(1234)
 
-	rate = ec.computeInflationRate(anyRound, supernovaActivationEpoch+1, genesisTimestamp+roundDurationBeforeSupernova*(supernovaActivationRound))
+	header = &block.MetaBlock{
+		Round:     anyRound,
+		Epoch:     supernovaActivationEpoch + 1,
+		TimeStamp: genesisTimestamp + roundDurationBeforeSupernova*(supernovaActivationRound),
+	}
+	rate = ec.computeInflationRate(header)
 	assert.Equal(t, economicsData.MaxInflationRate(6), rate)
 
 	// first time slot in year 7
-	rate = ec.computeInflationRate(anyRound, supernovaActivationEpoch+1, genesisTimestamp+numberOfMillisecondsInYear*6)
+	header = &block.MetaBlock{
+		Round:     anyRound,
+		Epoch:     supernovaActivationEpoch + 1,
+		TimeStamp: genesisTimestamp + numberOfMillisecondsInYear*6,
+	}
+	rate = ec.computeInflationRate(header)
 	assert.Equal(t, economicsData.MaxInflationRate(7), rate)
 
 	// last time slot in year 7
-	rate = ec.computeInflationRate(anyRound, supernovaActivationEpoch+1, genesisTimestamp+numberOfMillisecondsInYear*6+roundDurationAfterSupernova)
+	header = &block.MetaBlock{
+		Round:     anyRound,
+		Epoch:     supernovaActivationEpoch + 1,
+		TimeStamp: genesisTimestamp + numberOfMillisecondsInYear*6 + roundDurationAfterSupernova,
+	}
+	rate = ec.computeInflationRate(header)
 	assert.Equal(t, economicsData.MaxInflationRate(7), rate)
 
 	// first time slot in year 8
-	rate = ec.computeInflationRate(anyRound, supernovaActivationEpoch+1, genesisTimestamp+numberOfMillisecondsInYear*7)
+	header = &block.MetaBlock{
+		Round:     anyRound,
+		Epoch:     supernovaActivationEpoch + 1,
+		TimeStamp: genesisTimestamp + numberOfMillisecondsInYear*7,
+	}
+	rate = ec.computeInflationRate(header)
 	assert.Equal(t, economicsData.MaxInflationRate(8), rate)
 
 	// last time slot in year 8
-	rate = ec.computeInflationRate(anyRound, supernovaActivationEpoch+1, genesisTimestamp+numberOfMillisecondsInYear*7+roundDurationAfterSupernova)
+	header = &block.MetaBlock{
+		Round:     anyRound,
+		Epoch:     supernovaActivationEpoch + 1,
+		TimeStamp: genesisTimestamp + numberOfMillisecondsInYear*7 + roundDurationAfterSupernova,
+	}
+	rate = ec.computeInflationRate(header)
 	assert.Equal(t, economicsData.MaxInflationRate(8), rate)
 
 	// first time slot in year 9
-	rate = ec.computeInflationRate(anyRound, supernovaActivationEpoch+1, genesisTimestamp+numberOfMillisecondsInYear*8)
+	header = &block.MetaBlock{
+		Round:     anyRound,
+		Epoch:     supernovaActivationEpoch + 1,
+		TimeStamp: genesisTimestamp + numberOfMillisecondsInYear*8,
+	}
+	rate = ec.computeInflationRate(header)
 	assert.Equal(t, economicsData.MaxInflationRate(9), rate)
 
 	// last time slot in year 9
-	rate = ec.computeInflationRate(anyRound, supernovaActivationEpoch+1, genesisTimestamp+numberOfMillisecondsInYear*8+roundDurationAfterSupernova)
+	header = &block.MetaBlock{
+		Round:     anyRound,
+		Epoch:     supernovaActivationEpoch + 1,
+		TimeStamp: genesisTimestamp + numberOfMillisecondsInYear*8 + roundDurationAfterSupernova,
+	}
+	rate = ec.computeInflationRate(header)
 	assert.Equal(t, economicsData.MaxInflationRate(9), rate)
 
 	// first time slot in year 10
-	rate = ec.computeInflationRate(anyRound, supernovaActivationEpoch+1, genesisTimestamp+numberOfMillisecondsInYear*9)
+	header = &block.MetaBlock{
+		Round:     anyRound,
+		Epoch:     supernovaActivationEpoch + 1,
+		TimeStamp: genesisTimestamp + numberOfMillisecondsInYear*9,
+	}
+	rate = ec.computeInflationRate(header)
 	assert.Equal(t, economicsData.MaxInflationRate(10), rate)
 
 	// last time slot in year 10
-	rate = ec.computeInflationRate(anyRound, supernovaActivationEpoch+1, genesisTimestamp+numberOfMillisecondsInYear*9+roundDurationAfterSupernova)
+	header = &block.MetaBlock{
+		Round:     anyRound,
+		Epoch:     supernovaActivationEpoch + 1,
+		TimeStamp: genesisTimestamp + numberOfMillisecondsInYear*9 + roundDurationAfterSupernova,
+	}
+	rate = ec.computeInflationRate(header)
 	assert.Equal(t, economicsData.MaxInflationRate(10), rate)
 
 	// first time slot in year 11
-	rate = ec.computeInflationRate(anyRound, supernovaActivationEpoch+1, genesisTimestamp+numberOfMillisecondsInYear*10)
+	header = &block.MetaBlock{
+		Round:     anyRound,
+		Epoch:     supernovaActivationEpoch + 1,
+		TimeStamp: genesisTimestamp + numberOfMillisecondsInYear*10,
+	}
+	rate = ec.computeInflationRate(header)
 	assert.Equal(t, economicsData.MaxInflationRate(11), rate)
 
 	// first time slot in year 11
-	rate = ec.computeInflationRate(anyRound, supernovaActivationEpoch+1, genesisTimestamp+numberOfMillisecondsInYear*11)
+	header = &block.MetaBlock{
+		Round:     anyRound,
+		Epoch:     supernovaActivationEpoch + 1,
+		TimeStamp: genesisTimestamp + numberOfMillisecondsInYear*11,
+	}
+	rate = ec.computeInflationRate(header)
 	assert.Equal(t, economicsData.MaxInflationRate(11), rate)
 }
 
