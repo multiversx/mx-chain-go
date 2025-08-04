@@ -678,6 +678,16 @@ func (t *trigger) updateTriggerHeaderData(metaHdr *block.MetaBlock, metaBlockHas
 			wait = 0
 		}
 
+		log.Debug("updateTriggerHeaderData: waiting for late broadcast of mini blocks and transactions",
+			"wait", wait,
+			"roundDifferences", roundDifferences,
+			"epoch", metaHdr.GetEpoch(),
+			"isEpochStartBlock", metaHdr.IsStartOfEpochBlock(),
+		)
+
+		// for wait to zero for this test case
+		wait = 0
+
 		time.Sleep(wait)
 	}
 
