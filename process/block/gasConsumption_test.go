@@ -48,6 +48,8 @@ func getMockArgsGasConsumption() block.ArgsGasConsumption {
 				return txHandler.GetGasLimit(), txHandler.GetGasLimit(), nil
 			},
 		},
+		InitialLimitsFactor:       200,
+		PercentDecreaseLimitsStep: 10,
 	}
 }
 
@@ -111,6 +113,15 @@ func TestNewGasConsumption(t *testing.T) {
 		gc, err := block.NewGasConsumption(args)
 		require.Nil(t, gc)
 		require.Equal(t, process.ErrNilGasHandler, err)
+	})
+	t.Run("invalid initial limits factor should error", func(t *testing.T) {
+		t.Parallel()
+
+		args := getMockArgsGasConsumption()
+		args.InitialLimitsFactor = 5
+		gc, err := block.NewGasConsumption(args)
+		require.Nil(t, gc)
+		require.True(t, errors.Is(err, process.ErrInvalidValue))
 	})
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()

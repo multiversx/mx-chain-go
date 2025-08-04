@@ -14,22 +14,20 @@ import (
 type gasType string
 
 const (
-	incoming gasType = "incoming"
-	outgoing gasType = "outgoing"
-
-	// TODO: move these to config
-	initialLimitsFactor       = uint64(200) // 200%
-	percentSplitBlock         = uint64(50)  // 50%
-	percentDecreaseLimitsStep = uint64(10)  // 10%
-	minPercentLimitsFactor    = uint64(10)  // 10%
-	initialLastIndex          = -1
+	incoming               gasType = "incoming"
+	outgoing               gasType = "outgoing"
+	minPercentLimitsFactor         = uint64(10) // 10%
+	percentSplitBlock              = uint64(50) // 50%
+	initialLastIndex               = -1
 )
 
 // ArgsGasConsumption holds the arguments needed to create a gasConsumption instance
 type ArgsGasConsumption struct {
-	EconomicsFee     process.FeeHandler
-	ShardCoordinator process.ShardCoordinator
-	GasHandler       process.GasHandler
+	EconomicsFee              process.FeeHandler
+	ShardCoordinator          process.ShardCoordinator
+	GasHandler                process.GasHandler
+	InitialLimitsFactor       uint64
+	PercentDecreaseLimitsStep uint64
 }
 
 // gasConsumption implements the GasComputation interface for managing gas limits during block creation
@@ -51,6 +49,8 @@ type gasConsumption struct {
 	incomingLimitFactor              uint64
 	outgoingLimitFactor              uint64
 	decreaseStep                     uint64
+	initialLimitsFactor              uint64
+	percentDecreaseLimitsStep        uint64
 }
 
 // NewGasConsumption creates a new instance of gasConsumption
@@ -64,6 +64,9 @@ func NewGasConsumption(args ArgsGasConsumption) (*gasConsumption, error) {
 	if check.IfNil(args.GasHandler) {
 		return nil, process.ErrNilGasHandler
 	}
+	if args.InitialLimitsFactor <= minPercentLimitsFactor {
+		return nil, fmt.Errorf("%w for InitialLimitsFactor", process.ErrInvalidValue)
+	}
 
 	return &gasConsumption{
 		economicsFee:                     args.EconomicsFee,
@@ -72,12 +75,14 @@ func NewGasConsumption(args ArgsGasConsumption) (*gasConsumption, error) {
 		totalGasConsumed:                 make(map[string]uint64),
 		gasConsumedByMiniBlock:           make(map[string]uint64),
 		transactionsForPendingMiniBlocks: make(map[string][]data.TransactionHandler),
-		miniBlockLimitFactor:             initialLimitsFactor,
-		incomingLimitFactor:              initialLimitsFactor,
-		outgoingLimitFactor:              initialLimitsFactor,
+		miniBlockLimitFactor:             args.InitialLimitsFactor,
+		incomingLimitFactor:              args.InitialLimitsFactor,
+		outgoingLimitFactor:              args.InitialLimitsFactor,
 		lastMiniBlockIndex:               initialLastIndex,
 		lastTransactionIndex:             initialLastIndex,
-		decreaseStep:                     initialLimitsFactor * percentDecreaseLimitsStep / 100,
+		decreaseStep:                     args.InitialLimitsFactor * args.PercentDecreaseLimitsStep / 100,
+		percentDecreaseLimitsStep:        args.PercentDecreaseLimitsStep,
+		initialLimitsFactor:              args.InitialLimitsFactor,
 	}, nil
 }
 
@@ -403,7 +408,7 @@ func (gc *gasConsumption) ResetMiniBlockLimit() {
 	gc.mut.Lock()
 	defer gc.mut.Unlock()
 
-	gc.miniBlockLimitFactor = initialLimitsFactor
+	gc.miniBlockLimitFactor = gc.initialLimitsFactor
 }
 
 // DecreaseIncomingLimit reduces the gas limit for incoming mini blocks by a configured percentage
@@ -443,7 +448,7 @@ func (gc *gasConsumption) ResetIncomingLimit() {
 	gc.mut.Lock()
 	defer gc.mut.Unlock()
 
-	gc.incomingLimitFactor = initialLimitsFactor
+	gc.incomingLimitFactor = gc.initialLimitsFactor
 }
 
 // ResetOutgoingLimit resets the gas limit for outgoing transactions to its initial value
@@ -451,7 +456,7 @@ func (gc *gasConsumption) ResetOutgoingLimit() {
 	gc.mut.Lock()
 	defer gc.mut.Unlock()
 
-	gc.outgoingLimitFactor = initialLimitsFactor
+	gc.outgoingLimitFactor = gc.initialLimitsFactor
 }
 
 // Reset clears all gas consumption data except for the limits factors
