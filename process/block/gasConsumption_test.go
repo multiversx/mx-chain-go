@@ -638,7 +638,7 @@ func TestGasConsumption_ConcurrentOps(t *testing.T) {
 
 		for i := 0; i < numCalls; i++ {
 			go func(idx int) {
-				switch idx % 10 {
+				switch idx % 12 {
 				case 0:
 					_, _ = gc.CheckOutgoingTransactions(txs)
 				case 1:
@@ -659,6 +659,10 @@ func TestGasConsumption_ConcurrentOps(t *testing.T) {
 					gc.GetLastTransactionIndexIncluded()
 				case 9:
 					gc.TotalGasConsumed()
+				case 10:
+					gc.ResetMiniBlockLimit()
+				case 11:
+					gc.DecreaseMiniBlockLimit()
 				default:
 					require.Fail(t, "should have not been called")
 				}

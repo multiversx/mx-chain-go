@@ -537,9 +537,6 @@ var ErrMaxGasLimitPerTransactionIsReached = errors.New("max gas limit per transa
 // ErrMaxGasLimitPerMiniBlockIsReached signals that max gas limit per mini block has been reached
 var ErrMaxGasLimitPerMiniBlockIsReached = errors.New("max gas limit per mini block is reached")
 
-// ErrMaxGasLimitPerBlockIsReached signals that max gas limit per block has been reached
-var ErrMaxGasLimitPerBlockIsReached = errors.New("max gas limit per block is reached")
-
 // ErrInvalidMinimumGasPrice signals that an invalid gas price has been read from config file
 var ErrInvalidMinimumGasPrice = errors.New("invalid minimum gas price")
 
