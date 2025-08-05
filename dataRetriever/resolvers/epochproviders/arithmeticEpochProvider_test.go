@@ -358,6 +358,77 @@ func TestArithmeticEpochProvider_EpochConfirmed(t *testing.T) {
 		aep.EpochConfirmed(supernovaActivationEpoch, 120*uint64(millisecondsInOneSecond))
 		assert.Equal(t, uint32(4), aep.CurrentComputedEpoch())
 	})
+
+}
+
+func TestArithmeticEpochProvider_ComputeCurrentEpoch_WithRealConfigs(t *testing.T) {
+	t.Parallel()
+
+	supernovaActivationEpoch := uint32(2)
+
+	roundsPerEpoch := int64(14400)
+	roundDurationMs := int64(6000)
+	roundDurationS := roundDurationMs / 1000
+
+	firstEpochActivationTime := roundsPerEpoch * int64(roundDurationS)
+	supernovaActivationTime := roundsPerEpoch * 2 * int64(roundDurationS)
+
+	arg := ArgArithmeticEpochProvider{
+		ChainParametersHandler: &chainParameters.ChainParametersHandlerStub{
+			CurrentChainParametersCalled: func() config.ChainParametersByEpochConfig {
+				return config.ChainParametersByEpochConfig{
+					RoundsPerEpoch: roundsPerEpoch,
+					RoundDuration:  uint64(roundDurationMs),
+				}
+			},
+		},
+		StartTime: 0,
+		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+			IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
+				return flag == common.SupernovaFlag && epoch >= supernovaActivationEpoch
+			},
+		},
+	}
+	aep := NewTestArithmeticEpochProvider(arg, getUnixHandler(1000))
+	assert.Equal(t, uint32(0), aep.CurrentComputedEpoch())
+
+	aep.SetUnixHandler(getUnixHandler(firstEpochActivationTime))
+	aep.EpochConfirmed(1, uint64(firstEpochActivationTime))
+	assert.Equal(t, uint32(1), aep.CurrentComputedEpoch())
+
+	aep.SetUnixHandler(getUnixHandler(firstEpochActivationTime*2 + 6))
+	aep.EpochConfirmed(1, uint64(firstEpochActivationTime))
+	assert.Equal(t, uint32(2), aep.CurrentComputedEpoch())
+
+	roundsPerEpochSupernova := uint64(roundsPerEpoch * 10)
+	roundDurationSupernova := uint64(600)
+
+	aep.SetChainParametersHandler(&chainParameters.ChainParametersHandlerStub{
+		CurrentChainParametersCalled: func() config.ChainParametersByEpochConfig {
+			return config.ChainParametersByEpochConfig{
+				RoundsPerEpoch: int64(roundsPerEpochSupernova),
+				RoundDuration:  roundDurationSupernova,
+			}
+		},
+	})
+
+	aep.SetUnixHandler(getUnixHandler(firstEpochActivationTime*2 + 6))
+	aep.EpochConfirmed(supernovaActivationEpoch, uint64(supernovaActivationTime))
+	assert.Equal(t, uint32(2), aep.CurrentComputedEpoch())
+
+	supernovaActivationTimeMs := uint64(supernovaActivationTime) * millisecondsInOneSecond
+
+	aep.SetUnixHandler(getUnixHandler(int64(supernovaActivationTimeMs + roundDurationSupernova*20)))
+	aep.EpochConfirmed(supernovaActivationEpoch, uint64(supernovaActivationTime)*millisecondsInOneSecond)
+	assert.Equal(t, uint32(2), aep.CurrentComputedEpoch())
+
+	aep.SetUnixHandler(getUnixHandler(int64(supernovaActivationTimeMs + roundDurationSupernova*roundsPerEpochSupernova + 600 - 1)))
+	aep.EpochConfirmed(supernovaActivationEpoch, uint64(supernovaActivationTime)*millisecondsInOneSecond)
+	assert.Equal(t, uint32(2), aep.CurrentComputedEpoch())
+
+	aep.SetUnixHandler(getUnixHandler(int64(supernovaActivationTimeMs + roundDurationSupernova*roundsPerEpochSupernova + 600)))
+	aep.EpochConfirmed(supernovaActivationEpoch, uint64(supernovaActivationTime)*millisecondsInOneSecond)
+	assert.Equal(t, uint32(3), aep.CurrentComputedEpoch())
 }
 
 func TestArithmeticEpochProvider_EpochIsActiveInNetwork(t *testing.T) {
