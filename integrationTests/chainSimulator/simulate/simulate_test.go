@@ -3,6 +3,7 @@ package simulate
 import (
 	"encoding/hex"
 	"math/big"
+	"strings"
 	"testing"
 	"time"
 
@@ -13,6 +14,7 @@ import (
 	"github.com/multiversx/mx-chain-go/node/chainSimulator"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/components/api"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/configs"
+	"github.com/multiversx/mx-chain-go/node/chainSimulator/dtos"
 	"github.com/stretchr/testify/require"
 )
 
@@ -162,6 +164,83 @@ func TestSimulateIntraShardTxWithGuardian(t *testing.T) {
 	cost, err = cs.GetNodeHandler(0).GetFacadeHandler().ComputeTransactionGasLimit(esdtTransferTx)
 	require.NoError(t, err)
 	require.Equal(t, "failed transaction, gas consumed: insufficient funds", cost.ReturnMessage)
+}
+
+func TestRelayedV3(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
+	roundDurationInMillis := uint64(6000)
+	roundsPerEpochOpt := core.OptionalUint64{
+		HasValue: true,
+		Value:    20,
+	}
+
+	cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
+		BypassTxSignatureCheck:   true,
+		TempDir:                  t.TempDir(),
+		PathToInitialConfig:      defaultPathToInitialConfig,
+		NumOfShards:              3,
+		GenesisTimestamp:         time.Now().Unix(),
+		RoundDurationInMillis:    roundDurationInMillis,
+		RoundsPerEpoch:           roundsPerEpochOpt,
+		ApiInterface:             api.NewNoApiInterface(),
+		MinNodesPerShard:         3,
+		MetaChainMinNodes:        3,
+		NumNodesWaitingListMeta:  3,
+		NumNodesWaitingListShard: 3,
+		AlterConfigsFunction: func(cfg *config.Configs) {
+			cfg.EpochConfig.EnableEpochs.SCProcessorV2EnableEpoch = 2
+		},
+	})
+	require.NoError(t, err)
+	require.NotNil(t, cs)
+
+	err = cs.ForceChangeOfEpoch()
+	require.NoError(t, err)
+
+	initialBalance := big.NewInt(0).Mul(oneEGLD, big.NewInt(10))
+
+	sender, err := cs.GenerateAndMintWalletAddress(0, big.NewInt(0))
+	require.NoError(t, err)
+
+	err = cs.SetStateMultiple([]*dtos.AddressState{
+		{
+			Address: sender.Bech32,
+			Balance: "0",
+			Pairs: map[string]string{
+				"454c524f4e446573647453484f572d633961633237": "12040002d820",
+			},
+		},
+	})
+	require.NoError(t, err)
+
+	receiver, err := cs.GenerateAndMintWalletAddress(0, big.NewInt(0))
+	require.NoError(t, err)
+
+	relayer, err := cs.GenerateAndMintWalletAddress(0, initialBalance)
+	require.NoError(t, err)
+
+	err = cs.GenerateBlocks(1)
+	require.NoError(t, err)
+
+	dataTx := "ESDTTransfer@53484f572d633961633237@3e80@5061796d656e7420746f20504f5334@317820564f444b41204d495820323530204d4c20782033322e3030202b20317820574849534b59204d495820323530204d4c20782033322e3030202b203178204a4147455220434f4c4120323530204d4c20782033322e3030202b2031782047494e20544f4e494320323530204d4c20782033322e3030202b2031782043554241204c49425245203235304d4c20782033322e3030"
+	tx := generateTransaction(sender.Bytes, 0, receiver.Bytes, big.NewInt(0), dataTx, 0)
+	tx.RelayerAddr = relayer.Bytes
+
+	cost, err := cs.GetNodeHandler(0).GetFacadeHandler().ComputeTransactionGasLimit(tx)
+	require.NoError(t, err)
+	require.Equal(t, uint64(0), cost.GasUnits)
+	require.True(t, strings.Contains(cost.ReturnMessage, "insufficient funds"))
+
+	err = cs.ForceChangeOfEpoch()
+	require.NoError(t, err)
+
+	cost, err = cs.GetNodeHandler(0).GetFacadeHandler().ComputeTransactionGasLimit(tx)
+	require.NoError(t, err)
+	require.Equal(t, uint64(855001), cost.GasUnits)
+	require.Equal(t, "", cost.ReturnMessage)
 }
 
 func generateTransaction(sender []byte, nonce uint64, receiver []byte, value *big.Int, data string, gasLimit uint64) *transaction.Transaction {
