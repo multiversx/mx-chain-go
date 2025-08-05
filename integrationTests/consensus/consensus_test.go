@@ -119,18 +119,6 @@ func TestConsensusBLSWithFullProcessing_TransitionWithEquivalentProofs(t *testin
 		numMoveBalanceTxs: 5000,
 	}
 
-	args := core.ArgCreateFileArgument{
-		Directory:     "/home/beniamin/Desktop/test",
-		Prefix:        "",
-		FileExtension: "log",
-	}
-	file, err := core.CreateFile(args)
-	assert.Nil(t, err)
-	_ = logger.SetLogLevel("*:DEBUG,process:TRACE,vm:TRACE")
-
-	err = logger.AddLogObserver(file, &logger.PlainFormatter{})
-	assert.Nil(t, err)
-
 	testConsensusBLSWithFullProcessing(t, enableEpochsConfig, numKeysOnEachNode, roundsPerEpoch, roundTime, targetEpoch, txs)
 }
 
