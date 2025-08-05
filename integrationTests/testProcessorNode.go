@@ -3318,7 +3318,7 @@ func (tpn *TestProcessorNode) createHeartbeatWithHardforkTrigger() {
 // CreateEnableEpochsConfig creates enable epochs definitions to be used in tests
 func CreateEnableEpochsConfig() config.EnableEpochs {
 	return config.EnableEpochs{
-		SCDeployEnableEpoch:                               UnreachableEpoch,
+		SCDeployEnableEpoch:                               1,
 		BuiltInFunctionsEnableEpoch:                       0,
 		RelayedTransactionsEnableEpoch:                    UnreachableEpoch,
 		PenalizedTooMuchGasEnableEpoch:                    UnreachableEpoch,
