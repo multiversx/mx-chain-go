@@ -181,9 +181,12 @@ func (chr *chronology) startRound(ctx context.Context) {
 	logger.SetCorrelationSubround(sr.Name())
 
 	if !sr.DoWork(ctx, chr.roundHandler) {
+		log.Debug("startRound: DoWork false")
 		chr.subroundId = srBeforeStartRound
 		return
 	}
+
+	log.Debug("startRound: DoWork done")
 
 	chr.subroundId = sr.Next()
 }
@@ -214,6 +217,8 @@ func (chr *chronology) getRoundUnixTimeStamp() int64 {
 
 // initRound is called when a new round begins, and it does the necessary initialization
 func (chr *chronology) initRound() {
+	log.Debug("chronology.initRound: started")
+
 	chr.subroundId = srBeforeStartRound
 
 	chr.mutSubrounds.RLock()
@@ -235,6 +240,8 @@ func (chr *chronology) initRound() {
 	}
 
 	chr.mutSubrounds.RUnlock()
+
+	log.Debug("chronology.initRound: done")
 }
 
 // loadSubroundHandler returns the implementation of SubroundHandler given by the subroundId
