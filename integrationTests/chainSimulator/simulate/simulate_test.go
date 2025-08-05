@@ -3,6 +3,7 @@ package simulate
 import (
 	"encoding/hex"
 	"math/big"
+	"strings"
 	"testing"
 	"time"
 
@@ -190,16 +191,14 @@ func TestRelayedV3(t *testing.T) {
 		NumNodesWaitingListMeta:  3,
 		NumNodesWaitingListShard: 3,
 		AlterConfigsFunction: func(cfg *config.Configs) {
-
+			cfg.EpochConfig.EnableEpochs.SCProcessorV2EnableEpoch = 2
 		},
 	})
 	require.NoError(t, err)
 	require.NotNil(t, cs)
 
-	for idx := 0; idx < 4; idx++ {
-		err = cs.ForceChangeOfEpoch()
-		require.NoError(t, err)
-	}
+	err = cs.ForceChangeOfEpoch()
+	require.NoError(t, err)
 
 	initialBalance := big.NewInt(0).Mul(oneEGLD, big.NewInt(10))
 
@@ -231,6 +230,14 @@ func TestRelayedV3(t *testing.T) {
 	tx.RelayerAddr = relayer.Bytes
 
 	cost, err := cs.GetNodeHandler(0).GetFacadeHandler().ComputeTransactionGasLimit(tx)
+	require.NoError(t, err)
+	require.Equal(t, uint64(0), cost.GasUnits)
+	require.True(t, strings.Contains(cost.ReturnMessage, "insufficient funds"))
+
+	err = cs.ForceChangeOfEpoch()
+	require.NoError(t, err)
+
+	cost, err = cs.GetNodeHandler(0).GetFacadeHandler().ComputeTransactionGasLimit(tx)
 	require.NoError(t, err)
 	require.Equal(t, uint64(855001), cost.GasUnits)
 	require.Equal(t, "", cost.ReturnMessage)
