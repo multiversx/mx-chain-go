@@ -423,6 +423,16 @@ func (e *economics) computeInflationForEpoch(
 
 	inflationRateForEpoch := inflationRatePerDay * (float64(maxBlocksInEpoch) / float64(maxBlocksInADay))
 
+	log.Trace("computeInflationForEpoch",
+		"epoch", epoch,
+		"inflationRateForEpoch", inflationRateForEpoch,
+		"inflationRatePerDay", inflationRatePerDay,
+		"inflationRate", inflationRate,
+		"roundsPerDay", roundsPerDay,
+		"maxBlocksInEpoch", maxBlocksInEpoch,
+		"maxBlocksInADay", maxBlocksInADay,
+	)
+
 	return inflationRateForEpoch
 }
 

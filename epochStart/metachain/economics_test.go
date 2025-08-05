@@ -328,16 +328,44 @@ func TestEconomics_AdjustRewardsPerBlockWithLeaderPercentageAndDevFees(t *testin
 }
 
 func TestEconomics_AdjustRewardsPerBlockWithDeveloperFees(t *testing.T) {
-	args := getArguments()
-	ec, _ := NewEndOfEpochEconomicsDataCreator(args)
+	t.Parallel()
 
-	rwdPerBlock := big.NewInt(0).SetUint64(1000)
-	blocksInEpoch := uint64(100)
-	developerFees := big.NewInt(0).SetUint64(500)
+	t.Run("before supernova", func(t *testing.T) {
+		t.Parallel()
 
-	expectedRwdPerBlock := big.NewInt(995)
-	ec.adjustRewardsPerBlockWithDeveloperFees(rwdPerBlock, developerFees, blocksInEpoch)
-	assert.Equal(t, expectedRwdPerBlock, rwdPerBlock)
+		args := getArguments()
+		ec, _ := NewEndOfEpochEconomicsDataCreator(args)
+
+		rwdPerBlock := big.NewInt(0).SetUint64(1000)
+		blocksInEpoch := uint64(100)
+		developerFees := big.NewInt(0).SetUint64(500)
+
+		expectedRwdPerBlock := big.NewInt(995)
+		ec.adjustRewardsPerBlockWithDeveloperFees(rwdPerBlock, developerFees, blocksInEpoch)
+		assert.Equal(t, expectedRwdPerBlock, rwdPerBlock)
+	})
+
+	t.Run("after supernova", func(t *testing.T) {
+		t.Parallel()
+
+		args := getArguments()
+
+		args.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+			IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
+				return flag == common.SupernovaFlag
+			},
+		}
+
+		ec, _ := NewEndOfEpochEconomicsDataCreator(args)
+
+		rwdPerBlock := big.NewInt(0).SetUint64(1000)
+		blocksInEpoch := uint64(100)
+		developerFees := big.NewInt(0).SetUint64(500)
+
+		expectedRwdPerBlock := big.NewInt(995)
+		ec.adjustRewardsPerBlockWithDeveloperFees(rwdPerBlock, developerFees, blocksInEpoch)
+		assert.Equal(t, expectedRwdPerBlock, rwdPerBlock)
+	})
 }
 
 func TestEconomics_ComputeEndOfEpochEconomics_NotEpochStartShouldErr(t *testing.T) {
@@ -854,178 +882,394 @@ func TestEconomics_ComputeInflationRate_WithRealConfigData(t *testing.T) {
 func TestEconomics_ComputeEndOfEpochEconomics(t *testing.T) {
 	t.Parallel()
 
-	mbPrevStartEpoch := block.MetaBlock{
-		Round: 10,
-		Nonce: 5,
-		EpochStart: block.EpochStart{
-			Economics: block.Economics{
-				TotalSupply:       big.NewInt(100000),
-				TotalToDistribute: big.NewInt(10),
-				TotalNewlyMinted:  big.NewInt(109),
-				RewardsPerBlock:   big.NewInt(10),
-				NodePrice:         big.NewInt(10),
+	t.Run("before supernova", func(t *testing.T) {
+		t.Parallel()
+
+		mbPrevStartEpoch := block.MetaBlock{
+			Round: 10,
+			Nonce: 5,
+			EpochStart: block.EpochStart{
+				Economics: block.Economics{
+					TotalSupply:       big.NewInt(100000),
+					TotalToDistribute: big.NewInt(10),
+					TotalNewlyMinted:  big.NewInt(109),
+					RewardsPerBlock:   big.NewInt(10),
+					NodePrice:         big.NewInt(10),
+				},
 			},
-		},
-	}
+		}
 
-	leaderPercentage := 0.1
-	args := getArguments()
-	args.RewardsHandler = &mock.RewardsHandlerStub{
-		LeaderPercentageInEpochCalled: func(epoch uint32) float64 {
-			return leaderPercentage
-		},
-	}
-	args.Store = &storageStubs.ChainStorerStub{
-		GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
-			return &storageStubs.StorerStub{GetCalled: func(key []byte) ([]byte, error) {
-				hdr := mbPrevStartEpoch
-				hdrBytes, _ := json.Marshal(hdr)
-				return hdrBytes, nil
-			}}, nil
-		},
-	}
-	ec, _ := NewEndOfEpochEconomicsDataCreator(args)
-
-	mb := block.MetaBlock{
-		Round: 15000,
-		EpochStart: block.EpochStart{
-			LastFinalizedHeaders: []block.EpochStartShardData{
-				{ShardID: 0, Round: 2, Nonce: 3},
-				{ShardID: 1, Round: 2, Nonce: 3},
+		leaderPercentage := 0.1
+		args := getArguments()
+		args.RewardsHandler = &mock.RewardsHandlerStub{
+			LeaderPercentageInEpochCalled: func(epoch uint32) float64 {
+				return leaderPercentage
 			},
-			Economics: block.Economics{},
-		},
-		Epoch:                  2,
-		AccumulatedFeesInEpoch: big.NewInt(10000),
-		DevFeesInEpoch:         big.NewInt(0),
-	}
+		}
+		args.Store = &storageStubs.ChainStorerStub{
+			GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
+				return &storageStubs.StorerStub{GetCalled: func(key []byte) ([]byte, error) {
+					hdr := mbPrevStartEpoch
+					hdrBytes, _ := json.Marshal(hdr)
+					return hdrBytes, nil
+				}}, nil
+			},
+		}
+		ec, _ := NewEndOfEpochEconomicsDataCreator(args)
 
-	res, err := ec.ComputeEndOfEpochEconomics(&mb)
-	assert.Nil(t, err)
-	assert.NotNil(t, res)
+		mb := block.MetaBlock{
+			Round: 15000,
+			EpochStart: block.EpochStart{
+				LastFinalizedHeaders: []block.EpochStartShardData{
+					{ShardID: 0, Round: 2, Nonce: 3},
+					{ShardID: 1, Round: 2, Nonce: 3},
+				},
+				Economics: block.Economics{},
+			},
+			Epoch:                  2,
+			AccumulatedFeesInEpoch: big.NewInt(10000),
+			DevFeesInEpoch:         big.NewInt(0),
+		}
 
-	var expectedLeaderFees *big.Int
-	if mb.Epoch > args.StakingV2EnableEpoch {
-		expectedLeaderFees = core.GetIntTrimmedPercentageOfValue(mb.AccumulatedFeesInEpoch, leaderPercentage)
-	} else {
-		expectedLeaderFees = core.GetApproximatePercentageOfValue(mb.AccumulatedFeesInEpoch, leaderPercentage)
-	}
+		res, err := ec.ComputeEndOfEpochEconomics(&mb)
+		assert.Nil(t, err)
+		assert.NotNil(t, res)
 
-	assert.Equal(t, expectedLeaderFees, ec.economicsDataNotified.LeaderFees(), expectedLeaderFees)
+		var expectedLeaderFees *big.Int
+		if mb.Epoch > args.StakingV2EnableEpoch {
+			expectedLeaderFees = core.GetIntTrimmedPercentageOfValue(mb.AccumulatedFeesInEpoch, leaderPercentage)
+		} else {
+			expectedLeaderFees = core.GetApproximatePercentageOfValue(mb.AccumulatedFeesInEpoch, leaderPercentage)
+		}
+
+		assert.Equal(t, expectedLeaderFees, ec.economicsDataNotified.LeaderFees(), expectedLeaderFees)
+	})
+
+	t.Run("after supernova", func(t *testing.T) {
+		t.Parallel()
+
+		mbPrevStartEpoch := block.MetaBlock{
+			Round: 10,
+			Nonce: 5,
+			EpochStart: block.EpochStart{
+				Economics: block.Economics{
+					TotalSupply:       big.NewInt(100000),
+					TotalToDistribute: big.NewInt(10),
+					TotalNewlyMinted:  big.NewInt(109),
+					RewardsPerBlock:   big.NewInt(10),
+					NodePrice:         big.NewInt(10),
+				},
+			},
+		}
+
+		leaderPercentage := 0.1
+		args := getArguments()
+
+		args.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+			IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
+				return flag == common.SupernovaFlag
+			},
+		}
+
+		args.ChainParamsHandler = &chainParameters.ChainParametersHandlerStub{
+			ChainParametersForEpochCalled: func(epoch uint32) (config.ChainParametersByEpochConfig, error) {
+				return config.ChainParametersByEpochConfig{
+					RoundDuration: uint64(600),
+				}, nil
+			},
+		}
+
+		args.RewardsHandler = &mock.RewardsHandlerStub{
+			LeaderPercentageInEpochCalled: func(epoch uint32) float64 {
+				return leaderPercentage
+			},
+		}
+		args.Store = &storageStubs.ChainStorerStub{
+			GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
+				return &storageStubs.StorerStub{GetCalled: func(key []byte) ([]byte, error) {
+					hdr := mbPrevStartEpoch
+					hdrBytes, _ := json.Marshal(hdr)
+					return hdrBytes, nil
+				}}, nil
+			},
+		}
+		ec, _ := NewEndOfEpochEconomicsDataCreator(args)
+
+		mb := block.MetaBlock{
+			Round: 15000,
+			EpochStart: block.EpochStart{
+				LastFinalizedHeaders: []block.EpochStartShardData{
+					{ShardID: 0, Round: 2, Nonce: 3},
+					{ShardID: 1, Round: 2, Nonce: 3},
+				},
+				Economics: block.Economics{},
+			},
+			Epoch:                  2,
+			AccumulatedFeesInEpoch: big.NewInt(10000),
+			DevFeesInEpoch:         big.NewInt(0),
+		}
+
+		res, err := ec.ComputeEndOfEpochEconomics(&mb)
+		assert.Nil(t, err)
+		assert.NotNil(t, res)
+
+		var expectedLeaderFees *big.Int
+		if mb.Epoch > args.StakingV2EnableEpoch {
+			expectedLeaderFees = core.GetIntTrimmedPercentageOfValue(mb.AccumulatedFeesInEpoch, leaderPercentage)
+		} else {
+			expectedLeaderFees = core.GetApproximatePercentageOfValue(mb.AccumulatedFeesInEpoch, leaderPercentage)
+		}
+
+		assert.Equal(t, expectedLeaderFees, ec.economicsDataNotified.LeaderFees(), expectedLeaderFees)
+	})
 }
 
 func TestEconomics_VerifyRewardsPerBlock_DifferentHitRates(t *testing.T) {
 	t.Parallel()
 
-	commAddress := "protocolSustainabilityAddress"
-	totalSupply := big.NewInt(20000000000) // 20B
-	accFeesInEpoch := big.NewInt(0)
-	devFeesInEpoch := big.NewInt(0)
-	roundDur := 4
-	args := getArguments()
-	args.RewardsHandler = &mock.RewardsHandlerStub{
-		MaxInflationRateCalled: func(_ uint32) float64 {
-			return 0.1
-		},
-		ProtocolSustainabilityAddressInEpochCalled: func(epoch uint32) string {
-			return commAddress
-		},
-		ProtocolSustainabilityPercentageInEpochCalled: func(epoch uint32) float64 {
-			return 0.1
-		},
-	}
-	args.RoundTime = &mock.RoundTimeDurationHandler{
-		TimeDurationCalled: func() time.Duration {
-			return time.Duration(roundDur) * time.Second
-		},
-	}
-	newTotalSupply := big.NewInt(0).Add(totalSupply, totalSupply)
-	hdrPrevEpochStart := block.MetaBlock{
-		Round: 0,
-		Nonce: 0,
-		Epoch: 0,
-		EpochStart: block.EpochStart{
-			Economics: block.Economics{
-				TotalSupply:                      newTotalSupply,
-				TotalToDistribute:                big.NewInt(10),
-				TotalNewlyMinted:                 big.NewInt(10),
-				RewardsPerBlock:                  big.NewInt(10),
-				NodePrice:                        big.NewInt(10),
-				RewardsForProtocolSustainability: big.NewInt(10),
+	t.Run("before supernova", func(t *testing.T) {
+		t.Parallel()
+
+		commAddress := "protocolSustainabilityAddress"
+		totalSupply := big.NewInt(20000000000) // 20B
+		accFeesInEpoch := big.NewInt(0)
+		devFeesInEpoch := big.NewInt(0)
+		roundDur := 4
+		args := getArguments()
+
+		args.RewardsHandler = &mock.RewardsHandlerStub{
+			MaxInflationRateCalled: func(_ uint32) float64 {
+				return 0.1
 			},
-			LastFinalizedHeaders: []block.EpochStartShardData{
-				{ShardID: 0, Nonce: 0},
-				{ShardID: 1, Nonce: 0},
+			ProtocolSustainabilityAddressInEpochCalled: func(epoch uint32) string {
+				return commAddress
 			},
-		},
-	}
-	args.Store = &storageStubs.ChainStorerStub{
-		GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
-			// this will be the previous epoch meta block. It has initial 0 values, so it can be considered at genesis
-			return &storageStubs.StorerStub{GetCalled: func(key []byte) ([]byte, error) {
-				hdrBytes, _ := json.Marshal(hdrPrevEpochStart)
-				return hdrBytes, nil
-			}}, nil
-		},
-	}
-	args.GenesisTotalSupply = totalSupply
-	ec, _ := NewEndOfEpochEconomicsDataCreator(args)
-
-	expRwdPerBlock := 84 // based on 0.1 inflation
-
-	numBlocksInEpochSlice := []int{
-		numberOfSecondsInDay / roundDur,       // 100 % hit rate
-		(numberOfSecondsInDay / roundDur) / 2, // 50 % hit rate
-		(numberOfSecondsInDay / roundDur) / 4, // 25 % hit rate
-		(numberOfSecondsInDay / roundDur) / 8, // 12.5 % hit rate
-		1,                                     // only the metablock was committed in that epoch
-		37,                                    // random
-		63,                                    // random
-	}
-
-	hdrPrevEpochStartHash, _ := core.CalculateHash(&mock.MarshalizerMock{}, &hashingMocks.HasherMock{}, hdrPrevEpochStart)
-	for _, numBlocksInEpoch := range numBlocksInEpochSlice {
-		expectedTotalToDistribute := big.NewInt(int64(expRwdPerBlock * numBlocksInEpoch * 3)) // 2 shards + meta
-		expectedTotalNewlyMinted := big.NewInt(0).Sub(expectedTotalToDistribute, accFeesInEpoch)
-		expectedTotalSupply := big.NewInt(0).Add(newTotalSupply, expectedTotalNewlyMinted)
-		expectedProtocolSustainabilityRewards := big.NewInt(0).Div(expectedTotalToDistribute, big.NewInt(10))
-		commRewardPerBlock := big.NewInt(0).Div(expectedProtocolSustainabilityRewards, big.NewInt(int64(numBlocksInEpoch*3)))
-		adjustedRwdPerBlock := big.NewInt(0).Sub(big.NewInt(int64(expRwdPerBlock)), commRewardPerBlock)
-
-		mb := block.MetaBlock{
-			Round: uint64(numBlocksInEpoch),
-			Nonce: uint64(numBlocksInEpoch),
+			ProtocolSustainabilityPercentageInEpochCalled: func(epoch uint32) float64 {
+				return 0.1
+			},
+		}
+		args.RoundTime = &mock.RoundTimeDurationHandler{
+			TimeDurationCalled: func() time.Duration {
+				return time.Duration(roundDur) * time.Second
+			},
+		}
+		newTotalSupply := big.NewInt(0).Add(totalSupply, totalSupply)
+		hdrPrevEpochStart := block.MetaBlock{
+			Round: 0,
+			Nonce: 0,
+			Epoch: 0,
 			EpochStart: block.EpochStart{
-				LastFinalizedHeaders: []block.EpochStartShardData{
-					{ShardID: 0, Round: uint64(numBlocksInEpoch), Nonce: uint64(numBlocksInEpoch)},
-					{ShardID: 1, Round: uint64(numBlocksInEpoch), Nonce: uint64(numBlocksInEpoch)},
-				},
 				Economics: block.Economics{
-					TotalSupply:                      expectedTotalSupply,
-					TotalToDistribute:                expectedTotalToDistribute,
-					TotalNewlyMinted:                 expectedTotalNewlyMinted,
-					RewardsPerBlock:                  adjustedRwdPerBlock,
+					TotalSupply:                      newTotalSupply,
+					TotalToDistribute:                big.NewInt(10),
+					TotalNewlyMinted:                 big.NewInt(10),
+					RewardsPerBlock:                  big.NewInt(10),
 					NodePrice:                        big.NewInt(10),
-					PrevEpochStartHash:               hdrPrevEpochStartHash,
-					RewardsForProtocolSustainability: expectedProtocolSustainabilityRewards,
+					RewardsForProtocolSustainability: big.NewInt(10),
+				},
+				LastFinalizedHeaders: []block.EpochStartShardData{
+					{ShardID: 0, Nonce: 0},
+					{ShardID: 1, Nonce: 0},
 				},
 			},
-			Epoch:                  1,
-			AccumulatedFeesInEpoch: accFeesInEpoch,
-			DevFeesInEpoch:         devFeesInEpoch,
+		}
+		args.Store = &storageStubs.ChainStorerStub{
+			GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
+				// this will be the previous epoch meta block. It has initial 0 values, so it can be considered at genesis
+				return &storageStubs.StorerStub{GetCalled: func(key []byte) ([]byte, error) {
+					hdrBytes, _ := json.Marshal(hdrPrevEpochStart)
+					return hdrBytes, nil
+				}}, nil
+			},
+		}
+		args.GenesisTotalSupply = totalSupply
+		ec, _ := NewEndOfEpochEconomicsDataCreator(args)
+
+		expRwdPerBlock := 84 // based on 0.1 inflation
+
+		numBlocksInEpochSlice := []int{
+			numberOfSecondsInDay / roundDur,       // 100 % hit rate
+			(numberOfSecondsInDay / roundDur) / 2, // 50 % hit rate
+			(numberOfSecondsInDay / roundDur) / 4, // 25 % hit rate
+			(numberOfSecondsInDay / roundDur) / 8, // 12.5 % hit rate
+			1,                                     // only the metablock was committed in that epoch
+			37,                                    // random
+			63,                                    // random
 		}
 
-		computedEconomics, err := ec.ComputeEndOfEpochEconomics(&mb)
-		assert.Nil(t, err)
-		assert.NotNil(t, computedEconomics)
+		hdrPrevEpochStartHash, _ := core.CalculateHash(&mock.MarshalizerMock{}, &hashingMocks.HasherMock{}, hdrPrevEpochStart)
+		for _, numBlocksInEpoch := range numBlocksInEpochSlice {
+			expectedTotalToDistribute := big.NewInt(int64(expRwdPerBlock * numBlocksInEpoch * 3)) // 2 shards + meta
+			expectedTotalNewlyMinted := big.NewInt(0).Sub(expectedTotalToDistribute, accFeesInEpoch)
+			expectedTotalSupply := big.NewInt(0).Add(newTotalSupply, expectedTotalNewlyMinted)
+			expectedProtocolSustainabilityRewards := big.NewInt(0).Div(expectedTotalToDistribute, big.NewInt(10))
+			commRewardPerBlock := big.NewInt(0).Div(expectedProtocolSustainabilityRewards, big.NewInt(int64(numBlocksInEpoch*3)))
+			adjustedRwdPerBlock := big.NewInt(0).Sub(big.NewInt(int64(expRwdPerBlock)), commRewardPerBlock)
 
-		err = ec.VerifyRewardsPerBlock(&mb, expectedProtocolSustainabilityRewards, computedEconomics)
-		assert.Nil(t, err)
+			mb := block.MetaBlock{
+				Round: uint64(numBlocksInEpoch),
+				Nonce: uint64(numBlocksInEpoch),
+				EpochStart: block.EpochStart{
+					LastFinalizedHeaders: []block.EpochStartShardData{
+						{ShardID: 0, Round: uint64(numBlocksInEpoch), Nonce: uint64(numBlocksInEpoch)},
+						{ShardID: 1, Round: uint64(numBlocksInEpoch), Nonce: uint64(numBlocksInEpoch)},
+					},
+					Economics: block.Economics{
+						TotalSupply:                      expectedTotalSupply,
+						TotalToDistribute:                expectedTotalToDistribute,
+						TotalNewlyMinted:                 expectedTotalNewlyMinted,
+						RewardsPerBlock:                  adjustedRwdPerBlock,
+						NodePrice:                        big.NewInt(10),
+						PrevEpochStartHash:               hdrPrevEpochStartHash,
+						RewardsForProtocolSustainability: expectedProtocolSustainabilityRewards,
+					},
+				},
+				Epoch:                  1,
+				AccumulatedFeesInEpoch: accFeesInEpoch,
+				DevFeesInEpoch:         devFeesInEpoch,
+			}
 
-		ecos, err := ec.ComputeEndOfEpochEconomics(&mb)
-		assert.Nil(t, err)
-		assert.True(t, expectedProtocolSustainabilityRewards.Cmp(ecos.RewardsForProtocolSustainability) == 0)
-	}
+			computedEconomics, err := ec.ComputeEndOfEpochEconomics(&mb)
+			assert.Nil(t, err)
+			assert.NotNil(t, computedEconomics)
+
+			err = ec.VerifyRewardsPerBlock(&mb, expectedProtocolSustainabilityRewards, computedEconomics)
+			assert.Nil(t, err)
+
+			ecos, err := ec.ComputeEndOfEpochEconomics(&mb)
+			assert.Nil(t, err)
+			assert.True(t, expectedProtocolSustainabilityRewards.Cmp(ecos.RewardsForProtocolSustainability) == 0)
+		}
+	})
+
+	t.Run("after supernova", func(t *testing.T) {
+		t.Parallel()
+
+		commAddress := "protocolSustainabilityAddress"
+		totalSupply := big.NewInt(20000000000) // 20B
+		accFeesInEpoch := big.NewInt(0)
+		devFeesInEpoch := big.NewInt(0)
+		roundDur := 4000
+		args := getArguments()
+
+		args.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+			IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
+				return flag == common.SupernovaFlag
+			},
+		}
+
+		args.ChainParamsHandler = &chainParameters.ChainParametersHandlerStub{
+			ChainParametersForEpochCalled: func(epoch uint32) (config.ChainParametersByEpochConfig, error) {
+				return config.ChainParametersByEpochConfig{
+					RoundDuration: uint64(roundDur),
+				}, nil
+			},
+		}
+
+		args.RewardsHandler = &mock.RewardsHandlerStub{
+			MaxInflationRateCalled: func(_ uint32) float64 {
+				return 0.1
+			},
+			ProtocolSustainabilityAddressInEpochCalled: func(epoch uint32) string {
+				return commAddress
+			},
+			ProtocolSustainabilityPercentageInEpochCalled: func(epoch uint32) float64 {
+				return 0.1
+			},
+		}
+		args.RoundTime = &mock.RoundTimeDurationHandler{
+			TimeDurationCalled: func() time.Duration {
+				return time.Duration(roundDur) * time.Second
+			},
+		}
+		newTotalSupply := big.NewInt(0).Add(totalSupply, totalSupply)
+		hdrPrevEpochStart := block.MetaBlock{
+			Round: 0,
+			Nonce: 0,
+			Epoch: 0,
+			EpochStart: block.EpochStart{
+				Economics: block.Economics{
+					TotalSupply:                      newTotalSupply,
+					TotalToDistribute:                big.NewInt(10),
+					TotalNewlyMinted:                 big.NewInt(10),
+					RewardsPerBlock:                  big.NewInt(10),
+					NodePrice:                        big.NewInt(10),
+					RewardsForProtocolSustainability: big.NewInt(10),
+				},
+				LastFinalizedHeaders: []block.EpochStartShardData{
+					{ShardID: 0, Nonce: 0},
+					{ShardID: 1, Nonce: 0},
+				},
+			},
+		}
+		args.Store = &storageStubs.ChainStorerStub{
+			GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
+				// this will be the previous epoch meta block. It has initial 0 values, so it can be considered at genesis
+				return &storageStubs.StorerStub{GetCalled: func(key []byte) ([]byte, error) {
+					hdrBytes, _ := json.Marshal(hdrPrevEpochStart)
+					return hdrBytes, nil
+				}}, nil
+			},
+		}
+		args.GenesisTotalSupply = totalSupply
+		ec, _ := NewEndOfEpochEconomicsDataCreator(args)
+
+		expRwdPerBlock := 84 // based on 0.1 inflation
+
+		numBlocksInEpochSlice := []int{
+			numberOfSecondsInDay / roundDur,       // 100 % hit rate
+			(numberOfSecondsInDay / roundDur) / 2, // 50 % hit rate
+			(numberOfSecondsInDay / roundDur) / 4, // 25 % hit rate
+			(numberOfSecondsInDay / roundDur) / 8, // 12.5 % hit rate
+			1,                                     // only the metablock was committed in that epoch
+			37,                                    // random
+			63,                                    // random
+		}
+
+		hdrPrevEpochStartHash, _ := core.CalculateHash(&mock.MarshalizerMock{}, &hashingMocks.HasherMock{}, hdrPrevEpochStart)
+		for _, numBlocksInEpoch := range numBlocksInEpochSlice {
+			expectedTotalToDistribute := big.NewInt(int64(expRwdPerBlock * numBlocksInEpoch * 3)) // 2 shards + meta
+			expectedTotalNewlyMinted := big.NewInt(0).Sub(expectedTotalToDistribute, accFeesInEpoch)
+			expectedTotalSupply := big.NewInt(0).Add(newTotalSupply, expectedTotalNewlyMinted)
+			expectedProtocolSustainabilityRewards := big.NewInt(0).Div(expectedTotalToDistribute, big.NewInt(10))
+			commRewardPerBlock := big.NewInt(0).Div(expectedProtocolSustainabilityRewards, big.NewInt(int64(numBlocksInEpoch*3)))
+			adjustedRwdPerBlock := big.NewInt(0).Sub(big.NewInt(int64(expRwdPerBlock)), commRewardPerBlock)
+
+			mb := block.MetaBlock{
+				Round: uint64(numBlocksInEpoch),
+				Nonce: uint64(numBlocksInEpoch),
+				EpochStart: block.EpochStart{
+					LastFinalizedHeaders: []block.EpochStartShardData{
+						{ShardID: 0, Round: uint64(numBlocksInEpoch), Nonce: uint64(numBlocksInEpoch)},
+						{ShardID: 1, Round: uint64(numBlocksInEpoch), Nonce: uint64(numBlocksInEpoch)},
+					},
+					Economics: block.Economics{
+						TotalSupply:                      expectedTotalSupply,
+						TotalToDistribute:                expectedTotalToDistribute,
+						TotalNewlyMinted:                 expectedTotalNewlyMinted,
+						RewardsPerBlock:                  adjustedRwdPerBlock,
+						NodePrice:                        big.NewInt(10),
+						PrevEpochStartHash:               hdrPrevEpochStartHash,
+						RewardsForProtocolSustainability: expectedProtocolSustainabilityRewards,
+					},
+				},
+				Epoch:                  1,
+				AccumulatedFeesInEpoch: accFeesInEpoch,
+				DevFeesInEpoch:         devFeesInEpoch,
+			}
+
+			computedEconomics, err := ec.ComputeEndOfEpochEconomics(&mb)
+			assert.Nil(t, err)
+			assert.NotNil(t, computedEconomics)
+
+			err = ec.VerifyRewardsPerBlock(&mb, expectedProtocolSustainabilityRewards, computedEconomics)
+			assert.Nil(t, err)
+
+			ecos, err := ec.ComputeEndOfEpochEconomics(&mb)
+			assert.Nil(t, err)
+			assert.True(t, expectedProtocolSustainabilityRewards.Cmp(ecos.RewardsForProtocolSustainability) == 0)
+		}
+	})
 }
 
 func TestEconomics_VerifyRewardsPerBlock_DifferentFees(t *testing.T) {
@@ -1654,6 +1898,25 @@ type testInput struct {
 	devFeesInEpoch         *big.Int
 }
 
+func computeRewardsPerBlockAfterSupernova(
+	totalSupply *big.Int, nbShards, roundDuration, epochDuration uint64, inflationRate float64, stakingV2 bool,
+) *big.Int {
+	roundsPerEpoch := epochDuration / roundDuration
+	inflationPerDay := inflationRate / numberOfDaysInYear
+	roundsPerDay := numberOfMillisecondsInDay / roundDuration
+	maxBlocksInADay := roundsPerDay * (nbShards + 1)
+	maxBlocksPerEpoch := roundsPerEpoch * (nbShards + 1)
+
+	inflationPerEpoch := inflationPerDay * (float64(maxBlocksPerEpoch / maxBlocksInADay))
+
+	rewardsPerBlock := big.NewInt(0).Div(totalSupply, big.NewInt(0).SetUint64(maxBlocksPerEpoch))
+	if stakingV2 {
+		return core.GetIntTrimmedPercentageOfValue(rewardsPerBlock, inflationPerEpoch)
+	} else {
+		return core.GetApproximatePercentageOfValue(rewardsPerBlock, inflationPerEpoch)
+	}
+}
+
 func computeRewardsPerBlock(
 	totalSupply *big.Int, nbShards, roundDuration, epochDuration uint64, inflationRate float64, stakingV2 bool,
 ) *big.Int {
@@ -1676,60 +1939,138 @@ func computeRewardsPerBlock(
 func TestComputeEndOfEpochEconomicsV2(t *testing.T) {
 	t.Parallel()
 
-	totalSupply, _ := big.NewInt(0).SetString("20000000000000000000000000", 10) // 20 Million EGLD
-	nodePrice, _ := big.NewInt(0).SetString("1000000000000000000000", 10)       // 1000 EGLD
-	roundDuration := 4
+	t.Run("before supernova", func(t *testing.T) {
+		t.Parallel()
 
-	stakingV2EnableEpoch := uint32(0)
-	args := createArgsForComputeEndOfEpochEconomics(roundDuration, totalSupply, nodePrice, stakingV2EnableEpoch)
-	ec, _ := NewEndOfEpochEconomicsDataCreator(args)
+		totalSupply, _ := big.NewInt(0).SetString("20000000000000000000000000", 10) // 20 Million EGLD
+		nodePrice, _ := big.NewInt(0).SetString("1000000000000000000000", 10)       // 1000 EGLD
+		roundDuration := 4
 
-	epochDuration := numberOfSecondsInDay
-	roundsPerEpoch := uint64(epochDuration / roundDuration)
+		stakingV2EnableEpoch := uint32(0)
+		args := createArgsForComputeEndOfEpochEconomics(roundDuration, totalSupply, nodePrice, stakingV2EnableEpoch)
+		ec, _ := NewEndOfEpochEconomicsDataCreator(args)
 
-	testInputs := []testInput{
-		{blockPerEpochOneShard: roundsPerEpoch, accumulatedFeesInEpoch: intToEgld(1000), devFeesInEpoch: intToEgld(300)},
-		{blockPerEpochOneShard: roundsPerEpoch / 2, accumulatedFeesInEpoch: intToEgld(1000), devFeesInEpoch: intToEgld(300)},
-		{blockPerEpochOneShard: roundsPerEpoch / 4, accumulatedFeesInEpoch: intToEgld(1000), devFeesInEpoch: intToEgld(300)},
-		{blockPerEpochOneShard: roundsPerEpoch / 8, accumulatedFeesInEpoch: intToEgld(1000), devFeesInEpoch: intToEgld(300)},
-		{blockPerEpochOneShard: roundsPerEpoch / 16, accumulatedFeesInEpoch: intToEgld(1000), devFeesInEpoch: intToEgld(300)},
-		{blockPerEpochOneShard: roundsPerEpoch / 32, accumulatedFeesInEpoch: intToEgld(1000), devFeesInEpoch: intToEgld(300)},
-		{blockPerEpochOneShard: roundsPerEpoch / 64, accumulatedFeesInEpoch: intToEgld(10000000), devFeesInEpoch: intToEgld(100000)},
-		{blockPerEpochOneShard: roundsPerEpoch, accumulatedFeesInEpoch: intToEgld(10000000), devFeesInEpoch: intToEgld(300000)},
-	}
+		epochDuration := numberOfSecondsInDay
+		roundsPerEpoch := uint64(epochDuration / roundDuration)
 
-	var rewardsPerBlock *big.Int
-	metaEpoch := uint32(1)
-	isStakingV2 := metaEpoch > stakingV2EnableEpoch
-	rewardsPerBlock = computeRewardsPerBlock(
-		totalSupply,
-		uint64(args.ShardCoordinator.NumberOfShards()),
-		uint64(roundDuration),
-		uint64(epochDuration),
-		0.1,
-		isStakingV2,
-	)
+		testInputs := []testInput{
+			{blockPerEpochOneShard: roundsPerEpoch, accumulatedFeesInEpoch: intToEgld(1000), devFeesInEpoch: intToEgld(300)},
+			{blockPerEpochOneShard: roundsPerEpoch / 2, accumulatedFeesInEpoch: intToEgld(1000), devFeesInEpoch: intToEgld(300)},
+			{blockPerEpochOneShard: roundsPerEpoch / 4, accumulatedFeesInEpoch: intToEgld(1000), devFeesInEpoch: intToEgld(300)},
+			{blockPerEpochOneShard: roundsPerEpoch / 8, accumulatedFeesInEpoch: intToEgld(1000), devFeesInEpoch: intToEgld(300)},
+			{blockPerEpochOneShard: roundsPerEpoch / 16, accumulatedFeesInEpoch: intToEgld(1000), devFeesInEpoch: intToEgld(300)},
+			{blockPerEpochOneShard: roundsPerEpoch / 32, accumulatedFeesInEpoch: intToEgld(1000), devFeesInEpoch: intToEgld(300)},
+			{blockPerEpochOneShard: roundsPerEpoch / 64, accumulatedFeesInEpoch: intToEgld(10000000), devFeesInEpoch: intToEgld(100000)},
+			{blockPerEpochOneShard: roundsPerEpoch, accumulatedFeesInEpoch: intToEgld(10000000), devFeesInEpoch: intToEgld(300000)},
+		}
 
-	for _, input := range testInputs {
-		meta := &block.MetaBlock{
-			AccumulatedFeesInEpoch: input.accumulatedFeesInEpoch,
-			DevFeesInEpoch:         input.devFeesInEpoch,
-			Epoch:                  metaEpoch,
-			Round:                  roundsPerEpoch,
-			Nonce:                  input.blockPerEpochOneShard,
-			EpochStart: block.EpochStart{
-				LastFinalizedHeaders: []block.EpochStartShardData{
-					{ShardID: 0, Round: roundsPerEpoch, Nonce: input.blockPerEpochOneShard},
-					{ShardID: 1, Round: roundsPerEpoch, Nonce: input.blockPerEpochOneShard},
+		var rewardsPerBlock *big.Int
+		metaEpoch := uint32(1)
+		isStakingV2 := metaEpoch > stakingV2EnableEpoch
+		rewardsPerBlock = computeRewardsPerBlock(
+			totalSupply,
+			uint64(args.ShardCoordinator.NumberOfShards()),
+			uint64(roundDuration),
+			uint64(epochDuration),
+			0.1,
+			isStakingV2,
+		)
+
+		for _, input := range testInputs {
+			meta := &block.MetaBlock{
+				AccumulatedFeesInEpoch: input.accumulatedFeesInEpoch,
+				DevFeesInEpoch:         input.devFeesInEpoch,
+				Epoch:                  metaEpoch,
+				Round:                  roundsPerEpoch,
+				Nonce:                  input.blockPerEpochOneShard,
+				EpochStart: block.EpochStart{
+					LastFinalizedHeaders: []block.EpochStartShardData{
+						{ShardID: 0, Round: roundsPerEpoch, Nonce: input.blockPerEpochOneShard},
+						{ShardID: 1, Round: roundsPerEpoch, Nonce: input.blockPerEpochOneShard},
+					},
 				},
+			}
+
+			economicsBlock, err := ec.ComputeEndOfEpochEconomics(meta)
+			assert.Nil(t, err)
+
+			verifyEconomicsBlock(t, economicsBlock, input, rewardsPerBlock, nodePrice, totalSupply, roundsPerEpoch, args.RewardsHandler, isStakingV2)
+		}
+	})
+
+	t.Run("after supernova", func(t *testing.T) {
+		t.Parallel()
+
+		totalSupply, _ := big.NewInt(0).SetString("20000000000000000000000000", 10) // 20 Million EGLD
+		nodePrice, _ := big.NewInt(0).SetString("1000000000000000000000", 10)       // 1000 EGLD
+		roundDuration := 4000
+
+		stakingV2EnableEpoch := uint32(0)
+		args := createArgsForComputeEndOfEpochEconomics(roundDuration, totalSupply, nodePrice, stakingV2EnableEpoch)
+
+		args.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+			IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
+				return flag == common.SupernovaFlag
 			},
 		}
 
-		economicsBlock, err := ec.ComputeEndOfEpochEconomics(meta)
-		assert.Nil(t, err)
+		args.ChainParamsHandler = &chainParameters.ChainParametersHandlerStub{
+			ChainParametersForEpochCalled: func(epoch uint32) (config.ChainParametersByEpochConfig, error) {
+				return config.ChainParametersByEpochConfig{
+					RoundDuration: uint64(roundDuration),
+				}, nil
+			},
+		}
 
-		verifyEconomicsBlock(t, economicsBlock, input, rewardsPerBlock, nodePrice, totalSupply, roundsPerEpoch, args.RewardsHandler, isStakingV2)
-	}
+		ec, _ := NewEndOfEpochEconomicsDataCreator(args)
+
+		epochDuration := numberOfMillisecondsInDay
+		roundsPerEpoch := uint64(epochDuration / roundDuration)
+
+		testInputs := []testInput{
+			{blockPerEpochOneShard: roundsPerEpoch, accumulatedFeesInEpoch: intToEgld(1000), devFeesInEpoch: intToEgld(300)},
+			{blockPerEpochOneShard: roundsPerEpoch / 2, accumulatedFeesInEpoch: intToEgld(1000), devFeesInEpoch: intToEgld(300)},
+			{blockPerEpochOneShard: roundsPerEpoch / 4, accumulatedFeesInEpoch: intToEgld(1000), devFeesInEpoch: intToEgld(300)},
+			{blockPerEpochOneShard: roundsPerEpoch / 8, accumulatedFeesInEpoch: intToEgld(1000), devFeesInEpoch: intToEgld(300)},
+			{blockPerEpochOneShard: roundsPerEpoch / 16, accumulatedFeesInEpoch: intToEgld(1000), devFeesInEpoch: intToEgld(300)},
+			{blockPerEpochOneShard: roundsPerEpoch / 32, accumulatedFeesInEpoch: intToEgld(1000), devFeesInEpoch: intToEgld(300)},
+			{blockPerEpochOneShard: roundsPerEpoch / 64, accumulatedFeesInEpoch: intToEgld(10000000), devFeesInEpoch: intToEgld(100000)},
+			{blockPerEpochOneShard: roundsPerEpoch, accumulatedFeesInEpoch: intToEgld(10000000), devFeesInEpoch: intToEgld(300000)},
+		}
+
+		var rewardsPerBlock *big.Int
+		metaEpoch := uint32(1) + 1
+		isStakingV2 := metaEpoch > stakingV2EnableEpoch
+		rewardsPerBlock = computeRewardsPerBlockAfterSupernova(
+			totalSupply,
+			uint64(args.ShardCoordinator.NumberOfShards()),
+			uint64(roundDuration),
+			uint64(epochDuration),
+			0.1,
+			isStakingV2,
+		)
+
+		for _, input := range testInputs {
+			meta := &block.MetaBlock{
+				AccumulatedFeesInEpoch: input.accumulatedFeesInEpoch,
+				DevFeesInEpoch:         input.devFeesInEpoch,
+				Epoch:                  metaEpoch,
+				Round:                  roundsPerEpoch,
+				Nonce:                  input.blockPerEpochOneShard,
+				EpochStart: block.EpochStart{
+					LastFinalizedHeaders: []block.EpochStartShardData{
+						{ShardID: 0, Round: roundsPerEpoch, Nonce: input.blockPerEpochOneShard},
+						{ShardID: 1, Round: roundsPerEpoch, Nonce: input.blockPerEpochOneShard},
+					},
+				},
+			}
+
+			economicsBlock, err := ec.ComputeEndOfEpochEconomics(meta)
+			assert.Nil(t, err)
+
+			verifyEconomicsBlock(t, economicsBlock, input, rewardsPerBlock, nodePrice, totalSupply, roundsPerEpoch, args.RewardsHandler, isStakingV2)
+		}
+	})
 }
 
 func TestEconomics_checkEconomicsInvariantsV1ReturnsOK(t *testing.T) {
