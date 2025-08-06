@@ -113,8 +113,8 @@ func (rrh *resolverRequestHandler) getEpoch() uint32 {
 	return rrh.epoch
 }
 
-// RequestTransaction method asks for transactions from the connected peers
-func (rrh *resolverRequestHandler) RequestTransaction(destShardID uint32, txHashes [][]byte) {
+// RequestTransactions method asks for transactions from the connected peers
+func (rrh *resolverRequestHandler) RequestTransactions(destShardID uint32, txHashes [][]byte) {
 	epoch := rrh.getEpoch()
 	rrh.requestByHashes(destShardID, txHashes, factory.TransactionTopic, uniqueTxSuffix, epoch)
 }

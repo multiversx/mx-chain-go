@@ -94,7 +94,7 @@ func (rhs *RequestHandlerStub) RequestShardHeaderByNonce(shardID uint32, nonce u
 }
 
 // RequestTransaction -
-func (rhs *RequestHandlerStub) RequestTransaction(destShardID uint32, txHashes [][]byte) {
+func (rhs *RequestHandlerStub) RequestTransactions(destShardID uint32, txHashes [][]byte) {
 	if rhs.RequestTransactionHandlerCalled == nil {
 		return
 	}
