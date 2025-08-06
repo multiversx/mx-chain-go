@@ -67,7 +67,6 @@ func CreateMetaBootstrapMockArguments() sync.ArgMetaBootstrapper {
 		ChainHandler:                 initBlockchain(),
 		RoundHandler:                 &mock.RoundHandlerMock{},
 		BlockProcessor:               &testscommon.BlockProcessorStub{},
-		WaitTime:                     waitTime,
 		Hasher:                       &hashingMocks.HasherMock{},
 		Marshalizer:                  &mock.MarshalizerMock{},
 		ForkDetector:                 &mock.ForkDetectorMock{},
