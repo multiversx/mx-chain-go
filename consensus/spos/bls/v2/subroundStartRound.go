@@ -96,12 +96,16 @@ func (sr *subroundStartRound) SetOutportHandler(outportHandler outport.OutportHa
 // doStartRoundJob method does the job of the subround StartRound
 func (sr *subroundStartRound) doStartRoundJob(_ context.Context) bool {
 	sr.ResetConsensusState()
+	log.Debug("doStartRoundJob: ResetConsensusState done")
 	sr.SetRoundIndex(sr.RoundHandler().Index())
 	sr.SetRoundTimeStamp(sr.RoundHandler().TimeStamp())
+
+	log.Debug("doStartRoundJob: setRound done")
 	topic := spos.GetConsensusTopicID(sr.ShardCoordinator())
 	sr.GetAntiFloodHandler().ResetForTopic(topic)
 	sr.worker.ResetConsensusMessages()
 	sr.worker.ResetInvalidSignersCache()
+	log.Debug("doStartRoundJob: worker reset done")
 
 	return true
 }
