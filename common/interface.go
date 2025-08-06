@@ -319,6 +319,18 @@ type EnableEpochsHandler interface {
 	IsInterfaceNil() bool
 }
 
+// EnableRoundsHandler defines the operations of an entity that manages round activation flags
+type EnableRoundsHandler interface {
+	RoundConfirmed(round uint64, timestamp uint64)
+	GetCurrentRound() uint64
+	IsFlagDefined(flag EnableRoundFlag) bool
+	IsFlagEnabled(flag EnableRoundFlag) bool
+	IsFlagEnabledInRound(flag EnableRoundFlag, round uint64) bool
+	GetActivationRound(flag EnableRoundFlag) uint64
+
+	IsInterfaceNil() bool
+}
+
 // ManagedPeersHolder defines the operations of an entity that holds managed identities for a node
 type ManagedPeersHolder interface {
 	AddManagedPeer(privateKeyBytes []byte) error
@@ -432,5 +444,13 @@ type DfsIterator interface {
 // it will continue to iterate from the checkpoint.
 type TrieLeavesRetriever interface {
 	GetLeaves(numLeaves int, iteratorState [][]byte, leavesParser TrieLeafParser, ctx context.Context) (map[string]string, [][]byte, error)
+	IsInterfaceNil() bool
+}
+
+// ChainParametersHandler defines the actions that need to be done by a component that can handle chain parameters
+type ChainParametersHandler interface {
+	CurrentChainParameters() config.ChainParametersByEpochConfig
+	AllChainParameters() []config.ChainParametersByEpochConfig
+	ChainParametersForEpoch(epoch uint32) (config.ChainParametersByEpochConfig, error)
 	IsInterfaceNil() bool
 }

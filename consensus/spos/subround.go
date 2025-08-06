@@ -7,6 +7,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/consensus"
 )
 
@@ -255,6 +256,17 @@ func (sr *Subround) GetLeaderStartRoundMessage() string {
 	}
 
 	return ""
+}
+
+// GetUnixTimestampForHeader returns unix timestamp in seconds or milliseconds based on epoch
+func (sr *Subround) GetUnixTimestampForHeader(
+	headerEpoch uint32,
+) uint64 {
+	if sr.EnableEpochsHandler().IsFlagEnabledInEpoch(common.SupernovaFlag, headerEpoch) {
+		return uint64(sr.RoundHandler().TimeStamp().UnixMilli())
+	}
+
+	return uint64(sr.RoundHandler().TimeStamp().Unix())
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

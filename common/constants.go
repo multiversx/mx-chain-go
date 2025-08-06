@@ -1291,3 +1291,12 @@ const (
 	FixGetBalanceFlag                                   core.EnableEpochFlag = "FixGetBalanceFlag"
 	// all new flags must be added to createAllFlagsMap method, as part of enableEpochsHandler allFlagsDefined
 )
+
+// EnableRoundFlag defines a flag specific to the enableRounds config
+type EnableRoundFlag string
+
+// EnableRound flag definitions
+const (
+	DisableAsyncCallV1Flag EnableRoundFlag = "DisableAsyncCallV1"
+	SupernovaRoundFlag     EnableRoundFlag = "SupernovaEnableRound"
+)

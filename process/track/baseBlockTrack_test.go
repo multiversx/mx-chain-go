@@ -150,6 +150,7 @@ func CreateShardTrackerMockArguments() track.ArgShardTracker {
 					return false
 				},
 			},
+			EnableRoundsHandler:           &testscommon.EnableRoundsHandlerStub{},
 			EpochChangeGracePeriodHandler: epochChangeGracePeriod,
 			ProofsPool:                    &dataRetrieverMock.ProofsPoolMock{},
 		},
@@ -203,6 +204,7 @@ func CreateMetaTrackerMockArguments() track.ArgMetaTracker {
 					return false
 				},
 			},
+			EnableRoundsHandler:           &testscommon.EnableRoundsHandlerStub{},
 			EpochChangeGracePeriodHandler: epochChangeGracePeriod,
 			ProofsPool:                    &dataRetrieverMock.ProofsPoolMock{},
 		},

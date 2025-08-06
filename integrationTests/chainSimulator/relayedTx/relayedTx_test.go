@@ -8,7 +8,6 @@ import (
 	"strconv"
 	"strings"
 	"testing"
-	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	apiData "github.com/multiversx/mx-chain-core-go/data/api"
@@ -1280,7 +1279,6 @@ func startChainSimulator(
 		TempDir:                  t.TempDir(),
 		PathToInitialConfig:      defaultPathToInitialConfig,
 		NumOfShards:              3,
-		GenesisTimestamp:         time.Now().Unix(),
 		RoundDurationInMillis:    roundDurationInMillis,
 		RoundsPerEpoch:           roundsPerEpochOpt,
 		ApiInterface:             api.NewNoApiInterface(),

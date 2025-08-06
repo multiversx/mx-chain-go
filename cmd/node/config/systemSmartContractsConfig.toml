@@ -2,11 +2,13 @@
     GenesisNodePrice = "2500000000000000000000" #2.5K eGLD
     MinStakeValue = "100000000000000000000" #100 eGLD
     MinUnstakeTokensValue = "10000000000000000000" #10eGLD
+    # TODO (supernova): add config per epoch
     UnBondPeriod = 250
     UnBondPeriodInEpochs = 3
     MinStepValue = "100000000000000000000"
     NumRoundsWithoutBleed = 100
     MaximumPercentageToBleed = 0.5
+    # TODO (supernova): add config per epoch
     BleedPercentagePerRound = 0.00001
     MaxNumberOfNodesForStake = 64
     UnJailValue = "2500000000000000000" #0.1% of genesis node price

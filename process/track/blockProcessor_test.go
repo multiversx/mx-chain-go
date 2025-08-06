@@ -64,6 +64,7 @@ func CreateBlockProcessorMockArguments() track.ArgBlockProcessor {
 		},
 		RoundHandler:        &mock.RoundHandlerMock{},
 		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		EnableRoundsHandler: &testscommon.EnableRoundsHandlerStub{},
 		ProofsPool:          &dataRetriever.ProofsPoolMock{},
 		Marshaller:          &testscommon.MarshallerStub{},
 		Hasher:              &hashingMocks.HasherMock{},

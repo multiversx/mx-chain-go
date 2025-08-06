@@ -274,9 +274,9 @@ func (bfd *baseForkDetector) AddCheckPoint(round uint64, nonce uint64, hash []by
 	bfd.addCheckpoint(&checkpointInfo{round: round, nonce: nonce, hash: hash})
 }
 
-// ComputeGenesisTimeFromHeader -
-func (bfd *baseForkDetector) ComputeGenesisTimeFromHeader(headerHandler data.HeaderHandler) int64 {
-	return bfd.computeGenesisTimeFromHeader(headerHandler)
+// CheckGenesisTimeForHeader -
+func (bfd *baseForkDetector) CheckGenesisTimeForHeader(headerHandler data.HeaderHandler) error {
+	return bfd.checkGenesisTimeForHeader(headerHandler)
 }
 
 // InitNotarizedMap -
