@@ -27,7 +27,6 @@ type ArgBaseBootstrapper struct {
 	ChainHandler                 data.ChainHandler
 	RoundHandler                 consensus.RoundHandler
 	BlockProcessor               process.BlockProcessor
-	WaitTime                     time.Duration
 	Hasher                       hashing.Hasher
 	Marshalizer                  marshal.Marshalizer
 	ForkDetector                 process.ForkDetector
