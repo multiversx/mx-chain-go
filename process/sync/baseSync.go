@@ -133,6 +133,17 @@ type baseBootstrap struct {
 	repopulateTokensSupplies bool
 }
 
+// TODO: remove this handling after async exec
+func (boot *baseBootstrap) getProcessWaitTime() time.Duration {
+	if boot.enableRoundsHandler.IsFlagEnabled(common.SupernovaRoundFlag) {
+		processWaitTimeMs := boot.processWaitTime.Milliseconds()
+
+		return time.Duration(processWaitTimeMs/10) * time.Millisecond
+	}
+
+	return boot.processWaitTime
+}
+
 // setRequestedHeaderNonce method sets the header nonce requested by the sync mechanism
 func (boot *baseBootstrap) setRequestedHeaderNonce(nonce *uint64) {
 	boot.mutHeader.Lock()
@@ -789,7 +800,7 @@ func (boot *baseBootstrap) syncBlock() error {
 	}
 
 	startTime := time.Now()
-	waitTime := boot.processWaitTime
+	waitTime := boot.getProcessWaitTime()
 	haveTime := func() time.Duration {
 		return waitTime - time.Since(startTime)
 	}
