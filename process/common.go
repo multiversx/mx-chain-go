@@ -791,18 +791,44 @@ func GetHeader(
 }
 
 // UnmarshalHeader unmarshalls a block header
-func UnmarshalHeader(shardId uint32, marshalizer marshal.Marshalizer, headerBuffer []byte) (data.HeaderHandler, error) {
+func UnmarshalHeader(shardId uint32, marshaller marshal.Marshalizer, headerBuffer []byte) (data.HeaderHandler, error) {
 	if shardId == core.MetachainShardId {
-		return UnmarshalMetaHeader(marshalizer, headerBuffer)
+		return UnmarshalMetaHeader(marshaller, headerBuffer)
 	} else {
-		return UnmarshalShardHeader(marshalizer, headerBuffer)
+		return UnmarshalShardHeader(marshaller, headerBuffer)
 	}
 }
 
 // UnmarshalMetaHeader unmarshalls a meta header
-func UnmarshalMetaHeader(marshalizer marshal.Marshalizer, headerBuffer []byte) (data.MetaHeaderHandler, error) {
+func UnmarshalMetaHeader(marshaller marshal.Marshalizer, headerBuffer []byte) (data.MetaHeaderHandler, error) {
+	hdr, err := UnmarshalMetaHeaderV2(marshaller, headerBuffer)
+	if err == nil {
+		return hdr, nil
+	}
+
+	return UnmarshalMetaHeaderV1(marshaller, headerBuffer)
+}
+
+// UnmarshalMetaHeaderV2 unmarshalls a meta header v2
+func UnmarshalMetaHeaderV2(marshaller marshal.Marshalizer, headerBuffer []byte) (data.MetaHeaderHandler, error) {
+	header := &block.MetaBlockV2{}
+	err := marshaller.Unmarshal(header, headerBuffer)
+	if err != nil {
+		return nil, err
+	}
+
+	// this should not be nil for meta header v2
+	if header.GetLastExecutionResult() == nil {
+		return nil, ErrInvalidHeader
+	}
+
+	return header, nil
+}
+
+// UnmarshalMetaHeaderV1 unmarshalls a meta header v1
+func UnmarshalMetaHeaderV1(marshaller marshal.Marshalizer, headerBuffer []byte) (data.MetaHeaderHandler, error) {
 	header := &block.MetaBlock{}
-	err := marshalizer.Unmarshal(header, headerBuffer)
+	err := marshaller.Unmarshal(header, headerBuffer)
 	if err != nil {
 		return nil, err
 	}
@@ -811,14 +837,34 @@ func UnmarshalMetaHeader(marshalizer marshal.Marshalizer, headerBuffer []byte) (
 }
 
 // UnmarshalShardHeader unmarshalls a shard header
-func UnmarshalShardHeader(marshalizer marshal.Marshalizer, hdrBuff []byte) (data.ShardHeaderHandler, error) {
-	hdr, err := UnmarshalShardHeaderV2(marshalizer, hdrBuff)
+func UnmarshalShardHeader(marshaller marshal.Marshalizer, hdrBuff []byte) (data.ShardHeaderHandler, error) {
+	hdr, err := UnmarshalShardHeaderV3(marshaller, hdrBuff)
 	if err == nil {
 		return hdr, nil
 	}
 
-	hdr, err = UnmarshalShardHeaderV1(marshalizer, hdrBuff)
-	return hdr, err
+	hdr, err = UnmarshalShardHeaderV2(marshaller, hdrBuff)
+	if err == nil {
+		return hdr, nil
+	}
+
+	return UnmarshalShardHeaderV1(marshaller, hdrBuff)
+}
+
+// UnmarshalShardHeaderV3 unmarshalls a header with version 3
+func UnmarshalShardHeaderV3(marshaller marshal.Marshalizer, hdrBuff []byte) (data.ShardHeaderHandler, error) {
+	hdrV3 := &block.HeaderV3{}
+	err := marshaller.Unmarshal(hdrV3, hdrBuff)
+	if err != nil {
+		return nil, err
+	}
+
+	// this should not be nil for shard header v3
+	if hdrV3.GetLastExecutionResult() == nil {
+		return nil, ErrInvalidHeader
+	}
+
+	return hdrV3, nil
 }
 
 // UnmarshalShardHeaderV2 unmarshalls a header with version 2
