@@ -19,8 +19,6 @@ import (
 	"github.com/multiversx/mx-chain-go/storage"
 )
 
-var selectionLoopMaximumDuration = 500 // loosen the time constraints for selection integration tests
-
 func TestMempoolWithChainSimulator_Selection(t *testing.T) {
 	if testing.Short() {
 		t.Skip("this is not a short test")
@@ -524,7 +522,7 @@ func Test_Selection_ShouldNotSelectSameTransactionsWithSameSender(t *testing.T) 
 	options := holders.NewTxSelectionOptions(
 		10_000_000_000,
 		maxNumTxs,
-		selectionLoopMaximumDuration,
+		int(selectionLoopMaximumDuration.Milliseconds()),
 		10,
 	)
 
@@ -635,7 +633,7 @@ func Test_Selection_ShouldNotSelectSameTransactionsWithDifferentSenders(t *testi
 	options := holders.NewTxSelectionOptions(
 		10_000_000_000,
 		2,
-		selectionLoopMaximumDuration,
+		int(selectionLoopMaximumDuration.Milliseconds()),
 		10,
 	)
 
@@ -787,7 +785,7 @@ func Test_Selection_ShouldNotSelectSameTransactionsWithManyTransactions(t *testi
 	options := holders.NewTxSelectionOptions(
 		10_000_000_000,
 		numTxsPerSender,
-		selectionLoopMaximumDuration,
+		int(selectionLoopMaximumDuration.Milliseconds()),
 		10,
 	)
 
@@ -930,7 +928,7 @@ func Test_Selection_ShouldNotSelectSameTransactionsWithManyTransactionsAndExecut
 	options := holders.NewTxSelectionOptions(
 		10_000_000_000,
 		numTxsPerSender,
-		selectionLoopMaximumDuration,
+		int(selectionLoopMaximumDuration.Milliseconds()),
 		10,
 	)
 
@@ -1092,7 +1090,7 @@ func Test_SelectionWhenFeeExceedsBalanceWithMax3TxsSelected(t *testing.T) {
 	options := holders.NewTxSelectionOptions(
 		10_000_000_000,
 		3,
-		selectionLoopMaximumDuration,
+		int(selectionLoopMaximumDuration.Milliseconds()),
 		10,
 	)
 
@@ -1264,7 +1262,7 @@ func Test_SelectionWhenFeeExceedsBalanceWithMax2TxsSelected(t *testing.T) {
 	options := holders.NewTxSelectionOptions(
 		10_000_000_000,
 		2,
-		selectionLoopMaximumDuration,
+		int(selectionLoopMaximumDuration.Milliseconds()),
 		10,
 	)
 
