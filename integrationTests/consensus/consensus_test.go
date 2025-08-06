@@ -140,6 +140,78 @@ func TestConsensusBLSWithFullProcessing_WithEquivalentProofs_MultiKeys(t *testin
 	testConsensusBLSWithFullProcessing(t, enableEpochsConfig, numKeysOnEachNode, roundsPerEpoch, roundTime, targetEpoch, txs)
 }
 
+func TestConsensusBLSWithFullProcessing_TransitionToSupernova(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
+	enableEpochsConfig := integrationTests.CreateEnableEpochsConfig()
+	enableEpochsConfig.AndromedaEnableEpoch = uint32(0)
+	enableEpochsConfig.SupernovaEnableEpoch = uint32(1)
+	numKeysOnEachNode := 3
+	targetEpoch := uint32(2)
+	txs := &generatedTxsParams{
+		numScTxs:          0,
+		numMoveBalanceTxs: 0,
+	}
+
+	testConsensusBLSWithFullProcessing(t, enableEpochsConfig, numKeysOnEachNode, roundsPerEpoch, roundTime, targetEpoch, txs)
+}
+
+func TestConsensusBLSWithFullProcessing_AfterSupernova(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
+	enableEpochsConfig := integrationTests.CreateEnableEpochsConfig()
+	enableEpochsConfig.AndromedaEnableEpoch = uint32(0)
+	enableEpochsConfig.SupernovaEnableEpoch = uint32(0)
+	numKeysOnEachNode := 3
+	targetEpoch := uint32(2)
+	txs := &generatedTxsParams{
+		numScTxs:          0,
+		numMoveBalanceTxs: 0,
+	}
+
+	testConsensusBLSWithFullProcessing(t, enableEpochsConfig, numKeysOnEachNode, roundsPerEpoch, roundTime, targetEpoch, txs)
+}
+
+func TestConsensusBLSWithFullProcessing_TransitionToSupernova_HighLoad(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
+	enableEpochsConfig := integrationTests.CreateEnableEpochsConfig()
+	enableEpochsConfig.AndromedaEnableEpoch = uint32(0)
+	enableEpochsConfig.SupernovaEnableEpoch = uint32(1)
+	numKeysOnEachNode := 3
+	targetEpoch := uint32(2)
+	txs := &generatedTxsParams{
+		numScTxs:          500,
+		numMoveBalanceTxs: 10000,
+	}
+
+	testConsensusBLSWithFullProcessing(t, enableEpochsConfig, numKeysOnEachNode, roundsPerEpoch, roundTime, targetEpoch, txs)
+}
+
+func TestConsensusBLSWithFullProcessing_AfterSupernova_HighLoad(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
+	enableEpochsConfig := integrationTests.CreateEnableEpochsConfig()
+	enableEpochsConfig.AndromedaEnableEpoch = uint32(0)
+	enableEpochsConfig.SupernovaEnableEpoch = uint32(0)
+	numKeysOnEachNode := 3
+	targetEpoch := uint32(2)
+	txs := &generatedTxsParams{
+		numScTxs:          500,
+		numMoveBalanceTxs: 10000,
+	}
+
+	testConsensusBLSWithFullProcessing(t, enableEpochsConfig, numKeysOnEachNode, roundsPerEpoch, roundTime, targetEpoch, txs)
+}
+
 func testConsensusBLSWithFullProcessing(
 	t *testing.T,
 	enableEpochsConfig config.EnableEpochs,

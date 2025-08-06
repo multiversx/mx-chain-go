@@ -88,7 +88,6 @@ func CreateNodesWithTestFullNode(
 	enableEpochsConfig config.EnableEpochs,
 	roundsPerEpoch int64,
 ) map[uint32][]*TestFullNode {
-
 	nodes := make(map[uint32][]*TestFullNode, nodesPerShard)
 	cp := CreateCryptoParams(nodesPerShard, numMetaNodes, maxShards, numKeysOnEachNode)
 	keysMap := PubKeysMapFromNodesKeysMap(cp.NodesKeys)
