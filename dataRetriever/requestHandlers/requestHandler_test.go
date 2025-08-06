@@ -9,14 +9,15 @@ import (
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/pkg/errors"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/dataRetriever/mock"
 	"github.com/multiversx/mx-chain-go/storage/cache"
 	dataRetrieverMocks "github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
-	"github.com/pkg/errors"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 var timeoutSendRequests = time.Second * 2
@@ -689,6 +690,40 @@ func TestResolverRequestHandler_RequestMetaHeader(t *testing.T) {
 	})
 }
 
+func TestResolverRequestHandler_RequestMetaHeaderForEpoch(t *testing.T) {
+	t.Parallel()
+	t.Run("should work", func(t *testing.T) {
+		t.Parallel()
+
+		requestEpoch := uint32(1)
+		wasCalled := false
+		mbRequester := &dataRetrieverMocks.HeaderRequesterStub{
+			RequestDataFromHashCalled: func(hash []byte, epoch uint32) error {
+				require.Equal(t, requestEpoch, epoch)
+				wasCalled = true
+				return nil
+			},
+		}
+
+		rrh, _ := NewResolverRequestHandler(
+			&dataRetrieverMocks.RequestersFinderStub{
+				MetaChainRequesterCalled: func(baseTopic string) (requester dataRetriever.Requester, e error) {
+					return mbRequester, nil
+				},
+			},
+			&mock.RequestedItemsHandlerStub{},
+			&mock.WhiteListHandlerStub{},
+			1,
+			0,
+			time.Second,
+		)
+
+		rrh.RequestMetaHeaderForEpoch([]byte("hdrHash"), requestEpoch)
+
+		assert.True(t, wasCalled)
+	})
+}
+
 func TestResolverRequestHandler_RequestShardHeaderByNonce(t *testing.T) {
 	t.Parallel()
 
@@ -939,6 +974,41 @@ func TestResolverRequestHandler_RequestMetaHeaderByNonce(t *testing.T) {
 		)
 
 		rrh.RequestMetaHeaderByNonce(0)
+
+		assert.True(t, wasCalled)
+	})
+}
+
+func TestResolverRequestHandler_RequestMetaHeaderByNonceForEpoch(t *testing.T) {
+	t.Parallel()
+
+	t.Run("should work", func(t *testing.T) {
+		t.Parallel()
+
+		requestEpoch := uint32(1)
+		wasCalled := false
+		hdrRequester := &dataRetrieverMocks.HeaderRequesterStub{
+			RequestDataFromNonceCalled: func(nonce uint64, epoch uint32) error {
+				wasCalled = true
+				require.Equal(t, requestEpoch, epoch)
+				return nil
+			},
+		}
+
+		rrh, _ := NewResolverRequestHandler(
+			&dataRetrieverMocks.RequestersFinderStub{
+				MetaChainRequesterCalled: func(baseTopic string) (requester dataRetriever.Requester, e error) {
+					return hdrRequester, nil
+				},
+			},
+			&mock.RequestedItemsHandlerStub{},
+			&mock.WhiteListHandlerStub{},
+			100,
+			0,
+			time.Second,
+		)
+
+		rrh.RequestMetaHeaderByNonceForEpoch(0, requestEpoch)
 
 		assert.True(t, wasCalled)
 	})
