@@ -29,13 +29,14 @@ import (
 )
 
 var (
-	oneEGLD                   = big.NewInt(1000000000000000000)
-	oneQuarterOfEGLD          = big.NewInt(250000000000000000)
-	durationWaitAfterSendMany = 3000 * time.Millisecond
-	durationWaitAfterSendSome = 300 * time.Millisecond
-	defaultBlockchainInfo     = holders.NewBlockchainInfo(nil, 0)
-	gasLimit                  = 50_000
-	gasPrice                  = 1_000_000_000
+	oneEGLD                      = big.NewInt(1000000000000000000)
+	oneQuarterOfEGLD             = big.NewInt(250000000000000000)
+	durationWaitAfterSendMany    = 5000 * time.Millisecond
+	durationWaitAfterSendSome    = 500 * time.Millisecond
+	selectionLoopMaximumDuration = 500 * time.Millisecond
+	defaultBlockchainInfo        = holders.NewBlockchainInfo(nil, 0)
+	gasLimit                     = 50_000
+	gasPrice                     = 1_000_000_000
 )
 
 const maxNumBytesUpperBound = 1_073_741_824           // one GB
@@ -192,7 +193,7 @@ func selectTransactions(t *testing.T, simulator testsChainSimulator.ChainSimulat
 	options := holders.NewTxSelectionOptions(
 		10_000_000_000,
 		30_000,
-		250,
+		int(selectionLoopMaximumDuration.Milliseconds()),
 		10,
 	)
 
@@ -339,7 +340,7 @@ func testOnProposed(t *testing.T, sw *core.StopWatch, numTxs int, numAddresses i
 	options := holders.NewTxSelectionOptions(
 		10_000_000_000,
 		numTxs,
-		selectionLoopMaximumDuration,
+		int(selectionLoopMaximumDuration.Milliseconds()),
 		10,
 	)
 
@@ -389,7 +390,7 @@ func testFirstSelection(t *testing.T, sw *core.StopWatch, numTxs int, numTxsToBe
 	options := holders.NewTxSelectionOptions(
 		10_000_000_000*10, // in case of 1_000_000 txs
 		numTxsToBeSelected,
-		selectionLoopMaximumDuration*3, // in case of 1_000_000 txs
+		int(selectionLoopMaximumDuration.Milliseconds())*3, // in case of 1_000_000 txs
 		10,
 	)
 
@@ -427,7 +428,7 @@ func testSecondSelection(t *testing.T, sw *core.StopWatch, numTxs int, numTxsToB
 	options := holders.NewTxSelectionOptions(
 		10_000_000_000*10,
 		numTxsToBeSelected,
-		selectionLoopMaximumDuration*10,
+		int(selectionLoopMaximumDuration.Milliseconds())*10,
 		10,
 	)
 
@@ -495,7 +496,7 @@ func testSecondSelectionWithManyTxsInPool(t *testing.T, sw *core.StopWatch, numT
 	options := holders.NewTxSelectionOptions(
 		10_000_000_000,
 		numTxsToBeSelected,
-		selectionLoopMaximumDuration,
+		int(selectionLoopMaximumDuration.Milliseconds()),
 		10,
 	)
 
