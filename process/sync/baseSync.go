@@ -89,7 +89,6 @@ type baseBootstrap struct {
 	statusHandler core.AppStatusHandler
 
 	chStopSync chan bool
-	waitTime   time.Duration
 
 	mutNodeState          sync.RWMutex
 	isNodeSynchronized    bool
@@ -391,12 +390,16 @@ func (boot *baseBootstrap) getEpochOfCurrentBlock() uint32 {
 	return epoch
 }
 
+func (boot *baseBootstrap) getWaitTime() time.Duration {
+	return boot.roundHandler.TimeDuration()
+}
+
 // waitForHeaderAndProofByNonce method wait for header with the requested nonce to be received
 func (boot *baseBootstrap) waitForHeaderAndProofByNonce() error {
 	select {
 	case <-boot.chRcvHdrNonce:
 		return nil
-	case <-time.After(boot.waitTime):
+	case <-time.After(boot.getWaitTime()):
 		return process.ErrTimeIsOut
 	}
 }
@@ -406,7 +409,7 @@ func (boot *baseBootstrap) waitForHeaderAndProofByHash() error {
 	select {
 	case <-boot.chRcvHdrHash:
 		return nil
-	case <-time.After(boot.waitTime):
+	case <-time.After(boot.getWaitTime()):
 		return process.ErrTimeIsOut
 	}
 }
@@ -1529,7 +1532,7 @@ func (boot *baseBootstrap) waitForMiniBlocks() error {
 	select {
 	case <-boot.chRcvMiniBlocks:
 		return nil
-	case <-time.After(boot.waitTime):
+	case <-time.After(boot.getWaitTime()):
 		return process.ErrTimeIsOut
 	}
 }
