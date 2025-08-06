@@ -133,6 +133,7 @@ type baseBootstrap struct {
 	repopulateTokensSupplies bool
 }
 
+// TODO: remove this handling after async exec
 func (boot *baseBootstrap) getProcessWaitTime() time.Duration {
 	if boot.enableRoundsHandler.IsFlagEnabled(common.SupernovaRoundFlag) {
 		processWaitTimeMs := boot.processWaitTime.Milliseconds()
