@@ -479,7 +479,7 @@ func TestMempoolWithChainSimulator_Eviction(t *testing.T) {
 	})
 
 	// Allow the eviction to complete (even if it's quite fast).
-	time.Sleep(3 * time.Second)
+	time.Sleep(5 * time.Second)
 
 	expectedNumTransactionsInPool := 300_000 + 1 + 1 - int(storage.TxPoolSourceMeNumItemsToPreemptivelyEvict)
 	require.Equal(t, expectedNumTransactionsInPool, getNumTransactionsInPool(simulator, shard))

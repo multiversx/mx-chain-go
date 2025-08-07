@@ -31,9 +31,9 @@ import (
 var (
 	oneEGLD                      = big.NewInt(1000000000000000000)
 	oneQuarterOfEGLD             = big.NewInt(250000000000000000)
-	durationWaitAfterSendMany    = 5000 * time.Millisecond
-	durationWaitAfterSendSome    = 500 * time.Millisecond
-	selectionLoopMaximumDuration = 500 * time.Millisecond
+	durationWaitAfterSendMany    = 7500 * time.Millisecond
+	durationWaitAfterSendSome    = 1000 * time.Millisecond
+	selectionLoopMaximumDuration = 1000 * time.Millisecond
 	defaultBlockchainInfo        = holders.NewBlockchainInfo(nil, 0)
 	gasLimit                     = 50_000
 	gasPrice                     = 1_000_000_000

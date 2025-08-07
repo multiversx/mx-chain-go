@@ -5,6 +5,7 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-go/state"
 )
 
 type virtualSelectionSession struct {
@@ -25,26 +26,49 @@ func (virtualSession *virtualSelectionSession) getRecord(address []byte) (*virtu
 		return virtualRecord, nil
 	}
 
-	account, err := virtualSession.session.GetAccountState(address)
+	virtualRecord, err := virtualSession.createAccountRecord(address)
 	if err != nil {
-		log.Debug("virtualSelectionSession.getRecord",
+		log.Debug("virtualSelectionSession.getRecord: error when creating virtual account record",
 			"address", address,
 			"err", err)
 		return nil, err
 	}
 
+	// We handle records corresponding to new (missing) accounts, as well (see "createAccountRecord").
+	virtualSession.virtualAccountsByAddress[string(address)] = virtualRecord
+	return virtualRecord, nil
+}
+
+func (virtualSession *virtualSelectionSession) createAccountRecord(address []byte) (*virtualAccountRecord, error) {
+	account, err := virtualSession.session.GetAccountState(address)
+	if err == state.ErrAccNotFound {
+		// "ErrAccNotFound" is received when the account is new (missing on the blockchain),
+		// or when the account is in a different shard
+		// (though, this second case is not applicable for 'sender' or 'relayer' accounts, in the context of transactions selection).
+		// Most probable scenario: "getRecord" is invoked for the 'sender' of a relayed transaction, where the 'sender' is new (and has no balance).
+		// We simply create an empty record.
+		return newVirtualAccountRecord(
+			core.OptionalUint64{
+				Value:    0,
+				HasValue: true,
+			},
+			big.NewInt(0),
+		), nil
+	}
+	if err != nil {
+		return nil, err
+	}
+
 	initialNonce := account.GetNonce()
 	initialBalance := account.GetBalance()
-	virtualRecord = newVirtualAccountRecord(
+
+	return newVirtualAccountRecord(
 		core.OptionalUint64{
 			Value:    initialNonce,
 			HasValue: true,
 		},
 		initialBalance,
-	)
-
-	virtualSession.virtualAccountsByAddress[string(address)] = virtualRecord
-	return virtualRecord, nil
+	), nil
 }
 
 func (virtualSession *virtualSelectionSession) getNonce(address []byte) (uint64, error) {
