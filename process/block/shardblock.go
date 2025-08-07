@@ -168,6 +168,368 @@ func NewShardProcessor(arguments ArgShardProcessor) (*shardProcessor, error) {
 	return &sp, nil
 }
 
+// VerifyProposedBlock verifies the proposed block. It returns nil if all ok or the specific error
+func (sp *shardProcessor) VerifyProposedBlock(
+	headerHandler data.HeaderHandler,
+	bodyHandler data.BodyHandler,
+	headerHash []byte,
+) error {
+	log.Debug("started verifying proposed block",
+		"epoch", headerHandler.GetEpoch(),
+		"shard", headerHandler.GetShardID(),
+		"round", headerHandler.GetRound(),
+		"nonce", headerHandler.GetNonce(),
+	)
+
+	// TODO: have time should be removed if no longer needed
+	haveTime := func() time.Duration {
+		return time.Second * 10 // this is a dummy value, should be replaced with a real one
+	}
+
+	err := sp.checkBlockValidity(headerHandler, bodyHandler)
+	if err != nil {
+		if errors.Is(err, process.ErrBlockHashDoesNotMatch) {
+			log.Debug("requested missing shard header",
+				"hash", headerHandler.GetPrevHash(),
+				"for shard", headerHandler.GetShardID(),
+			)
+
+			go sp.requestHandler.RequestShardHeaderForEpoch(headerHandler.GetShardID(), headerHandler.GetPrevHash(), headerHandler.GetEpoch())
+		}
+
+		return err
+	}
+
+	// todo: check if the following checks are still required
+	// sp.roundNotifier.CheckRound(headerHandler)
+	// sp.epochNotifier.CheckEpoch(headerHandler)
+
+	header, ok := headerHandler.(data.ShardHeaderHandler)
+	if !ok {
+		return process.ErrWrongTypeAssertion
+	}
+
+	if !header.IsHeaderV3() {
+		return process.ErrInvalidHeader
+	}
+
+	body, ok := bodyHandler.(*block.Body)
+	if !ok {
+		return process.ErrWrongTypeAssertion
+	}
+
+	go getMetricsFromBlockBody(body, sp.marshalizer, sp.appStatusHandler)
+
+	err = sp.checkHeaderBodyCorrelation(header.GetMiniBlockHeaderHandlers(), body)
+	if err != nil {
+		return err
+	}
+
+	err = sp.checkMiniBlocksConstructionState(header)
+	if err != nil {
+		return err
+	}
+
+	err = sp.checkExecutionResultsForHeader(header, headerHash)
+	if err != nil {
+		return err
+	}
+
+	txCounts, rewardCounts, unsignedCounts := sp.txCounter.getPoolCounts(sp.dataPool)
+	log.Debug("total txs in pool", "counts", txCounts.String())
+	log.Debug("total txs in rewards pool", "counts", rewardCounts.String())
+	log.Debug("total txs in unsigned pool", "counts", unsignedCounts.String())
+
+	go getMetricsFromHeader(header, uint64(txCounts.GetTotal()), sp.marshalizer, sp.appStatusHandler)
+
+	// no need to init the block processing context here, because the block is not processed yet
+	// err = sp.createBlockStarted()
+	// if err != nil {
+	// 	return err
+	// }
+
+	// sp.txCoordinator.RequestBlockTransactions(body)
+	// requestedMetaHdrs, requestedFinalityAttestingMetaHdrs, requestedProofs := sp.requestMetaHeaders(header)
+	//
+	// err = sp.txCoordinator.IsDataPreparedForProcessing(haveTime)
+	// if err != nil {
+	// 	return err
+	// }
+	//
+	// haveMissingMetaHeaders := requestedMetaHdrs > 0 || requestedFinalityAttestingMetaHdrs > 0 || requestedProofs > 0
+	// if haveMissingMetaHeaders {
+	// 	if requestedMetaHdrs > 0 {
+	// 		log.Debug("requested missing meta headers",
+	// 			"num headers", requestedMetaHdrs,
+	// 		)
+	// 	}
+	// 	if requestedFinalityAttestingMetaHdrs > 0 {
+	// 		log.Debug("requested missing finality attesting meta headers",
+	// 			"num finality meta headers", requestedFinalityAttestingMetaHdrs,
+	// 		)
+	// 	}
+	// 	if requestedProofs > 0 {
+	// 		log.Debug("requested missing meta header proofs",
+	// 			"num proofs", requestedProofs,
+	// 		)
+	// 	}
+	//
+	// 	err = sp.waitForMetaHdrHashes(haveTime())
+	//
+	// 	sp.hdrsForCurrBlock.mutHdrsForBlock.RLock()
+	// 	missingMetaHdrs := sp.hdrsForCurrBlock.missingHdrs
+	// 	missingProofs := sp.hdrsForCurrBlock.missingProofs
+	// 	sp.hdrsForCurrBlock.mutHdrsForBlock.RUnlock()
+	//
+	// 	sp.hdrsForCurrBlock.resetMissingHdrs()
+	//
+	// 	if requestedMetaHdrs > 0 {
+	// 		log.Debug("received missing meta headers",
+	// 			"num headers", requestedMetaHdrs-missingMetaHdrs,
+	// 		)
+	// 	}
+	//
+	// 	if requestedProofs > 0 {
+	// 		log.Debug("received missing meta header proofs",
+	// 			"num proofs", requestedProofs-missingProofs,
+	// 		)
+	// 	}
+	//
+	// 	if err != nil {
+	// 		return err
+	// 	}
+	// }
+	//
+	// err = sp.requestEpochStartInfo(header, haveTime)
+	// if err != nil {
+	// 	return err
+	// }
+	//
+	// if sp.accountsDB[state.UserAccountsState].JournalLen() != 0 {
+	// 	log.Error("shardProcessor.ProcessBlock first entry", "stack", string(sp.accountsDB[state.UserAccountsState].GetStackDebugFirstEntry()))
+	// 	return process.ErrAccountStateDirty
+	// }
+	//
+	// defer func() {
+	// 	go sp.checkAndRequestIfMetaHeadersMissing()
+	// }()
+	//
+	// err = sp.checkEpochCorrectnessCrossChain()
+	// if err != nil {
+	// 	return err
+	// }
+	//
+	// err = sp.checkEpochCorrectness(header)
+	// if err != nil {
+	// 	return err
+	// }
+	//
+	// err = sp.checkMetaHeadersValidityAndFinality()
+	// if err != nil {
+	// 	return err
+	// }
+	//
+	// err = sp.verifyCrossShardMiniBlockDstMe(header)
+	// if err != nil {
+	// 	return err
+	// }
+	//
+	// err = sp.blockChainHook.SetCurrentHeader(header)
+	// if err != nil {
+	// 	return err
+	// }
+	//
+	// defer func() {
+	// 	if err != nil {
+	// 		sp.RevertCurrentBlock()
+	// 	}
+	// }()
+	//
+	// mbIndex := sp.getIndexOfFirstMiniBlockToBeExecuted(header)
+	// miniBlocks := body.MiniBlocks[mbIndex:]
+	//
+	// startTime := time.Now()
+	// err = sp.txCoordinator.ProcessBlockTransaction(header, &block.Body{MiniBlocks: miniBlocks}, haveTime)
+	// elapsedTime := time.Since(startTime)
+	// log.Debug("elapsed time to process block transaction",
+	// 	"time [s]", elapsedTime,
+	// )
+	// if err != nil {
+	// 	return err
+	// }
+	//
+	// err = sp.txCoordinator.VerifyCreatedBlockTransactions(header, &block.Body{MiniBlocks: miniBlocks})
+	// if err != nil {
+	// 	return err
+	// }
+	//
+	// err = sp.txCoordinator.VerifyCreatedMiniBlocks(header, body)
+	// if err != nil {
+	// 	return err
+	// }
+	//
+	// err = sp.verifyFees(header)
+	// if err != nil {
+	// 	return err
+	// }
+	//
+	// if !sp.verifyStateRoot(header.GetRootHash()) {
+	// 	err = process.ErrRootStateDoesNotMatch
+	// 	return err
+	// }
+	//
+	// err = sp.blockProcessingCutoffHandler.HandleProcessErrorCutoff(header)
+	// if err != nil {
+	// 	return err
+	// }
+	//
+	// return nil
+}
+
+func (sp *shardProcessor) checkMiniBlocksConstructionState(header data.HeaderHandler) error {
+	miniBlockHeaders := header.GetMiniBlockHeaderHandlers()
+	for i := 0; i < len(miniBlockHeaders); i++ {
+		// for Supernova all miniBlocks not part of an execution result need to have construction state Proposed
+		if miniBlockHeaders[i].GetConstructionState() != int32(block.Proposed) {
+			return process.ErrWrongMiniBlockConstructionState
+		}
+	}
+	return nil
+}
+
+func (sp *shardProcessor) checkExecutionResultsForHeader(header data.ShardHeaderHandler, headerHash []byte) error {
+	if !header.IsHeaderV3() {
+		return process.ErrInvalidHeader
+	}
+	if header.GetNonce() < 1 {
+		return nil
+	}
+
+	executionResults := header.GetExecutionResultsHandlers()
+	lastExecutionResultInfo := header.GetLastExecutionResultHandler()
+
+	return sp.checkExecutionResults(executionResults, headerHash, lastExecutionResultInfo)
+}
+
+func (sp *shardProcessor) checkExecutionResults(executionResults []data.ExecutionResultHandler, headerHash []byte, lastExecutionResultInfo data.ShardExecutionResultInfo) error {
+	if check.IfNil(lastExecutionResultInfo) {
+		return process.ErrNilLastExecutionResultHandler
+	}
+
+	prevLastExecutionResultInfo, err := sp.getPrevBlockLastExecutionResult()
+	if err != nil {
+		return err
+	}
+
+	if check.IfNil(prevLastExecutionResultInfo) {
+		return process.ErrNilLastExecutionResultHandler
+	}
+
+	if len(executionResults) == 0 {
+		if !lastExecutionResultInfo.Equal(prevLastExecutionResultInfo) {
+			return process.ErrExecutionResultDoesNotMatch
+		}
+
+		return nil
+	}
+
+	lastExecResult := executionResults[len(executionResults)-1]
+	lastExecResultInfo, err := createLastExecutionResultInfoFromExecutionResult(headerHash, lastExecResult)
+	if err != nil {
+		return err
+	}
+
+	if !lastExecutionResultInfo.Equal(lastExecResultInfo) {
+		return process.ErrExecutionResultDoesNotMatch
+	}
+
+	// todo: take this from the sp.executionResultsTracker
+	var executionResultsTracker ExecutionResultsTracker
+
+	pendingExecutionResults, err := executionResultsTracker.GetPendingExecutionResults()
+	if err != nil {
+		return err
+	}
+
+	if len(pendingExecutionResults) < len(executionResults) {
+		return process.ErrExecutionResultsNumberMismatch
+	}
+
+	for i, er := range executionResults {
+		if !er.Equal(pendingExecutionResults[i]) {
+			return process.ErrExecutionResultMismatch
+		}
+	}
+
+	return nil
+}
+
+func createLastExecutionResultInfoFromExecutionResult(notarizedOnHeaderHash []byte, lastExecResult data.ExecutionResultHandler) (*block.ExecutionResultInfo, error) {
+	if check.IfNil(lastExecResult) {
+		return nil, process.ErrNilExecutionResultHandler
+	}
+
+	return &block.ExecutionResultInfo{
+		NotarizedOnHeaderHash: notarizedOnHeaderHash,
+		ExecutionResult: &block.BaseExecutionResult{
+			HeaderHash:  lastExecResult.GetHeaderHash(),
+			HeaderNonce: lastExecResult.GetHeaderNonce(),
+			HeaderRound: lastExecResult.GetHeaderRound(),
+			RootHash:    lastExecResult.GetRootHash(),
+		},
+	}, nil
+}
+
+func (sp *shardProcessor) getPrevBlockLastExecutionResult() (data.ShardExecutionResultInfo, error) {
+	prevHeader := sp.blockChain.GetCurrentBlockHeader()
+	if check.IfNil(prevHeader) {
+		return nil, process.ErrNilHeaderHandler
+	}
+
+	prevShardHeader, ok := prevHeader.(data.ShardHeaderHandler)
+	if !ok {
+		return nil, process.ErrWrongTypeAssertion
+	}
+
+	if prevShardHeader.IsHeaderV3() {
+		return prevShardHeader.GetLastExecutionResultHandler(), nil
+	}
+
+	prevHeaderHash := prevHeader.GetPrevHash()
+
+	return sp.createLastExecutionResultFromPrevHeader(prevShardHeader, prevHeaderHash)
+}
+
+func (sp *shardProcessor) createLastExecutionResultFromPrevHeader(prevShardHeader data.ShardHeaderHandler, prevShardHeaderHash []byte) (data.ShardExecutionResultInfo, error) {
+	if prevShardHeader.IsHeaderV3() {
+		return nil, process.ErrInvalidHeader
+	}
+	// create a dummy execution result info to be used in the case of Supernova
+	execResult := &block.ExecutionResultInfo{
+		NotarizedOnHeaderHash: prevShardHeaderHash,
+		ExecutionResult: &block.BaseExecutionResult{
+			HeaderHash:  prevShardHeaderHash,
+			HeaderNonce: prevShardHeader.GetNonce(),
+			HeaderRound: prevShardHeader.GetRound(),
+			// there should have been no scheduled transactions, as these were stopped earlier,
+			// so it is ok to use the rootHash
+			RootHash: prevShardHeader.GetRootHash(),
+		},
+	}
+
+	return execResult, nil
+}
+
+// ProcessProposedBlock processes a proposed block. It returns nil if all ok or the specific error
+func (sp *shardProcessor) ProcessProposedBlock(
+	headerHandler data.HeaderHandler,
+	bodyHandler data.BodyHandler,
+	haveTime func() time.Duration,
+) error {
+
+	return nil
+}
+
 // ProcessBlock processes a block. It returns nil if all ok or the specific error
 func (sp *shardProcessor) ProcessBlock(
 	headerHandler data.HeaderHandler,
@@ -918,9 +1280,6 @@ func (sp *shardProcessor) CreateBlockProposal(
 		return nil, nil, err
 	}
 
-	// TODO: the sp.epochNotifier.CheckEpoch(shardHdr) should be called only when processing
-	//  and then it should not have any effect on the creation/verification of a block proposal
-
 	sp.miniBlocksSelectionSession.ResetSelectionSession()
 	err = sp.createBlockBodyProposal(shardHdr, haveTime)
 	if err != nil {
@@ -1047,7 +1406,6 @@ func (sp *shardProcessor) createBlockBodyProposal(
 	shardHdr data.HeaderHandler,
 	haveTime func() bool,
 ) error {
-	// TODO: add logic to adapt capacity based on last added execution results
 	sp.blockSizeThrottler.ComputeCurrentMaxSize()
 
 	log.Debug("started creating block body",
