@@ -47,6 +47,11 @@ func NewSelectionSession(args ArgsSelectionSession) (*selectionSession, error) {
 func (session *selectionSession) GetAccountState(address []byte) (state.UserAccountHandler, error) {
 	account, err := session.getExistingAccount(address)
 	if err != nil {
+		// TODO: brainstorm whether we should move the logic around "ErrAccNotFound",
+		// from "virtualSelectionSession.createAccountRecord()", to this place.
+		// If we do so, we hide (encapsulate) that information (error) within this component:
+		// good on one hand, but, on the other hand, that piece of information (error) might be needed in the "TxCache" at some point
+		// (to take some specific actions).
 		return nil, err
 	}
 
