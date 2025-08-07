@@ -755,6 +755,10 @@ func (f *FacadeStub) P2PPrometheusMetricsEnabled() bool {
 	return false
 }
 
+// IncreaseTimeByRound -
+func (f *FacadeStub) IncreaseTimeByRound(_ uint64) {
+}
+
 // Close -
 func (f *FacadeStub) Close() error {
 	return nil

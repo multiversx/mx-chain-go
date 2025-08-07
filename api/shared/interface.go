@@ -138,5 +138,6 @@ type FacadeHandler interface {
 	GetWaitingEpochsLeftForPublicKey(publicKey string) (uint32, error)
 	GetSCRsByTxHash(txHash string, scrHash string) ([]*transaction.ApiSmartContractResult, error)
 	P2PPrometheusMetricsEnabled() bool
+	IncreaseTimeByRound(round uint64)
 	IsInterfaceNil() bool
 }

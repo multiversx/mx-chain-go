@@ -142,6 +142,12 @@ type CoreComponentsHolder interface {
 	IsInterfaceNil() bool
 }
 
+// CoreComponentsWithIncreaseTimeChan holds the core components
+type CoreComponentsWithIncreaseTimeChan interface {
+	IncreaseTimeChan() chan uint64
+	IsInterfaceNil() bool
+}
+
 // CoreComponentsHandler defines the core components handler actions
 type CoreComponentsHandler interface {
 	ComponentHandler

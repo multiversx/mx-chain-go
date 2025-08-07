@@ -636,6 +636,17 @@ func (mcc *managedCoreComponents) EpochChangeGracePeriodHandler() common.EpochCh
 	return mcc.coreComponents.epochChangeGracePeriodHandler
 }
 
+// IncreaseTimeChan returns the channel used to increase the time in the core components
+func (mcc *managedCoreComponents) IncreaseTimeChan() chan uint64 {
+	defer mcc.mutCoreComponents.RUnlock()
+
+	if mcc.coreComponents == nil {
+		return nil
+	}
+
+	return mcc.coreComponents.increaseTimeChan
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (mcc *managedCoreComponents) IsInterfaceNil() bool {
 	return mcc == nil

@@ -492,6 +492,11 @@ func (nf *nodeFacade) GetEpochStartDataAPI(epoch uint32) (*common.EpochStartData
 	return nf.node.GetEpochStartDataAPI(epoch)
 }
 
+// IncreaseTimeByRound returns epoch start data of the provided epoch
+func (nf *nodeFacade) IncreaseTimeByRound(epoch uint64) {
+	nf.node.IncreaseTimeByRound(epoch)
+}
+
 // GetPeerInfo returns the peer info of a provided pid
 func (nf *nodeFacade) GetPeerInfo(pid string) ([]core.QueryP2PPeerInfo, error) {
 	return nf.node.GetPeerInfo(pid)

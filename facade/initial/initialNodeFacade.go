@@ -466,6 +466,10 @@ func (inf *initialNodeFacade) P2PPrometheusMetricsEnabled() bool {
 	return inf.p2pPrometheusMetricsEnabled
 }
 
+// IncreaseTimeByRound returns epoch start data of the provided epoch
+func (nf *initialNodeFacade) IncreaseTimeByRound(_ uint64) {
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (inf *initialNodeFacade) IsInterfaceNil() bool {
 	return inf == nil

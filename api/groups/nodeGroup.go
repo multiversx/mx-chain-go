@@ -3,6 +3,7 @@ package groups
 import (
 	"fmt"
 	"net/http"
+	"strconv"
 	"sync"
 
 	"github.com/gin-gonic/gin"
@@ -33,6 +34,7 @@ const (
 	eligibleManagedKeys       = "/managed-keys/eligible"
 	waitingManagedKeys        = "/managed-keys/waiting"
 	epochsLeftInWaiting       = "/waiting-epochs-left/:key"
+	increaseTimePath          = "/increase-time/:round"
 )
 
 // nodeFacadeHandler defines the methods to be implemented by a facade for node requests
@@ -41,6 +43,7 @@ type nodeFacadeHandler interface {
 	StatusMetrics() external.StatusMetricsHandler
 	GetQueryHandler(name string) (debug.QueryHandler, error)
 	GetEpochStartDataAPI(epoch uint32) (*common.EpochStartDataAPI, error)
+	IncreaseTimeByRound(epoch uint64)
 	GetPeerInfo(pid string) ([]core.QueryP2PPeerInfo, error)
 	GetConnectedPeersRatingsOnMainNetwork() (string, error)
 	GetManagedKeysCount() int
@@ -150,6 +153,11 @@ func NewNodeGroup(facade nodeFacadeHandler) (*nodeGroup, error) {
 			Path:    epochsLeftInWaiting,
 			Method:  http.MethodGet,
 			Handler: ng.waitingEpochsLeft,
+		},
+		{
+			Path:    increaseTimePath,
+			Method:  http.MethodGet,
+			Handler: ng.increaseTimePath,
 		},
 	}
 	ng.endpoints = endpoints
@@ -477,6 +485,18 @@ func (ng *nodeGroup) waitingEpochsLeft(c *gin.Context) {
 	}
 
 	shared.RespondWithSuccess(c, gin.H{"epochsLeft": epochsLeft})
+}
+
+// waitingEpochsLeft returns the number of epochs left for the public key until it becomes eligible
+func (ng *nodeGroup) increaseTimePath(c *gin.Context) {
+	roundStr := c.Param("round")
+	round, err := strconv.Atoi(roundStr)
+	if err != nil {
+		// ... handle error
+		panic(err)
+	}
+	log.Info("increase time by round", round)
+	ng.getFacade().IncreaseTimeByRound(uint64(round))
 }
 
 func (ng *nodeGroup) getFacade() nodeFacadeHandler {

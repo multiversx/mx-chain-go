@@ -115,6 +115,7 @@ type coreComponents struct {
 	chainParametersHandler        process.ChainParametersHandler
 	fieldsSizeChecker             common.FieldsSizeChecker
 	epochChangeGracePeriodHandler common.EpochChangeGracePeriodHandler
+	increaseTimeChan              chan uint64
 }
 
 // NewCoreComponentsFactory initializes the factory which is responsible to creating core components
@@ -186,10 +187,19 @@ func (ccf *coreComponentsFactory) Create() (*coreComponents, error) {
 	if err != nil {
 		return nil, err
 	}
+	increaseTimeChan := make(chan uint64)
+	var syncer ntp.SyncTimer
+	tm := time.Now()
+	syncer = ntp.NewShadowForkSyncTimer(tm, increaseTimeChan)
+	//syncer := ntp.NewSyncTime(ccf.config.NTPConfig, nil)
 
-	syncer := ntp.NewSyncTime(ccf.config.NTPConfig, nil)
-	syncer.StartSyncingTime()
-	log.Debug("NTP average clock offset", "value", syncer.ClockOffset())
+	//var syncer ntp.SyncTimer
+
+	//syncer = ntp.NewSyncTime(ccf.config.NTPConfig, nil)
+	//syncer.StartSyncingTime()
+
+	//syncer = syncTimer
+	log.Debug("NTP average clock offset", "value", syncer.ClockOffset(), "type", fmt.Sprintf("%T", syncer))
 
 	epochNotifier := forking.NewGenericEpochNotifier()
 	epochStartHandlerWithConfirm := notifier.NewEpochStartSubscriptionHandler()
@@ -247,6 +257,13 @@ func (ccf *coreComponentsFactory) Create() (*coreComponents, error) {
 	)
 	if err != nil {
 		return nil, err
+	}
+
+	syncTimerWithRoundHandler, ok := syncer.(ntp.SyncTimerWithRoundHandler)
+
+	if ok {
+		log.Debug("SyncTimer does implement SyncTimerWithRoundHandler interface")
+		syncTimerWithRoundHandler.SetRoundHandler(roundHandler)
 	}
 
 	alarmScheduler := alarm.NewAlarmScheduler()
@@ -386,6 +403,7 @@ func (ccf *coreComponentsFactory) Create() (*coreComponents, error) {
 		chainParametersHandler:        chainParametersHandler,
 		fieldsSizeChecker:             fieldsSizeChecker,
 		epochChangeGracePeriodHandler: epochChangeGracePeriodHandler,
+		increaseTimeChan:              increaseTimeChan,
 	}, nil
 }
 

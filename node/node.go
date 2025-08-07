@@ -1256,6 +1256,16 @@ func (n *Node) GetEpochStartDataAPI(epoch uint32) (*common.EpochStartDataAPI, er
 	return n.getShardFirstNonceOfEpoch(epoch)
 }
 
+// IncreaseTimeByRound returns epoch start data of a given epoch
+func (n *Node) IncreaseTimeByRound(round uint64) {
+	increaseTimeChanComponent := n.coreComponents.(mainFactory.CoreComponentsWithIncreaseTimeChan)
+	if check.IfNil(increaseTimeChanComponent) {
+		log.Error("IncreaseTimeByRound: increaseTimeChan is nil, cannot increase time by round")
+		return
+	}
+	increaseTimeChanComponent.IncreaseTimeChan() <- round
+}
+
 func (n *Node) getShardFirstNonceOfEpoch(epoch uint32) (*common.EpochStartDataAPI, error) {
 	storer, err := n.dataComponents.StorageService().GetStorer(dataRetriever.BlockHeaderUnit)
 	if err != nil {

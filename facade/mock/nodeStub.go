@@ -299,6 +299,10 @@ func (ns *NodeStub) GetEpochStartDataAPI(epoch uint32) (*common.EpochStartDataAP
 	return &common.EpochStartDataAPI{}, nil
 }
 
+// IncreaseTimeByRound -
+func (ns *NodeStub) IncreaseTimeByRound(_ uint64) {
+}
+
 // GetESDTData -
 func (ns *NodeStub) GetESDTData(address, tokenID string, nonce uint64, options api.AccountQueryOptions) (*esdt.ESDigitalToken, api.BlockInfo, error) {
 	if ns.GetESDTDataCalled != nil {
