@@ -442,7 +442,7 @@ func (adb *AccountsDB) loadDataTrieConcurrentSafe(accountHandler baseAccountHand
 	return nil
 }
 
-// SaveDataTrie is used to save the data trie (not committing it) and to recompute the new Root value
+// saveDataTrie is used to save the data trie (not committing it) and to recompute the new Root value
 // If data is not dirtied, method will not create its JournalEntries to keep track of data modification
 func (adb *AccountsDB) saveDataTrie(accountHandler baseAccountHandler) error {
 	oldValues, err := accountHandler.SaveDirtyData(adb.mainTrie)
@@ -1033,7 +1033,7 @@ func (adb *AccountsDB) GetTrie(rootHash []byte) (common.Trie, error) {
 	return adb.getMainTrie().Recreate(rootHashHolder)
 }
 
-// Journalize adds a new object to entries list.
+// journalize adds a new object to entries list.
 func (adb *AccountsDB) journalize(entry JournalEntry) {
 	if check.IfNil(entry) {
 		return
