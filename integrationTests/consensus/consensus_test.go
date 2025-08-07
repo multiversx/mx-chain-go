@@ -720,7 +720,7 @@ func scTxs(t *testing.T, senderNode *integrationTests.TestFullNode, numTxs int, 
 	require.Nil(t, err)
 
 	scAddress, _ := senderNode.TestProcessorNode.BlockchainHook.NewAddress(senderNode.OwnAccount.Address, senderNode.OwnAccount.Nonce, vmFactory.WasmVirtualMachine)
-	initialSupply := "00" + hex.EncodeToString(big.NewInt(100000000000).Bytes())
+	initialSupply := hex.EncodeToString(big.NewInt(100000000000).Bytes())
 	integrationTests.DeployScTx(nodesList, 0, hex.EncodeToString(scCode), vmFactory.WasmVirtualMachine, initialSupply)
 	time.Sleep(time.Second)
 
