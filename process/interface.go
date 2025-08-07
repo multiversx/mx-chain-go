@@ -603,15 +603,25 @@ type DataPacker interface {
 type RequestHandler interface {
 	SetEpoch(epoch uint32)
 	RequestShardHeader(shardID uint32, hash []byte)
+	RequestShardHeaderForEpoch(shardID uint32, hash []byte, epoch uint32)
 	RequestMetaHeader(hash []byte)
+	RequestMetaHeaderForEpoch(hash []byte, epoch uint32)
 	RequestMetaHeaderByNonce(nonce uint64)
+	RequestMetaHeaderByNonceForEpoch(nonce uint64, epoch uint32)
 	RequestShardHeaderByNonce(shardID uint32, nonce uint64)
+	RequestShardHeaderByNonceForEpoch(shardID uint32, nonce uint64, epoch uint32)
 	RequestTransactions(destShardID uint32, txHashes [][]byte)
+	RequestTransactionsForEpoch(destShardID uint32, txHashes [][]byte, epoch uint32)
 	RequestUnsignedTransactions(destShardID uint32, scrHashes [][]byte)
+	RequestUnsignedTransactionsForEpoch(destShardID uint32, scrHashes [][]byte, epoch uint32)
 	RequestRewardTransactions(destShardID uint32, txHashes [][]byte)
+	RequestRewardTransactionsForEpoch(destShardID uint32, rewardTxHashes [][]byte, epoch uint32)
 	RequestMiniBlock(destShardID uint32, miniblockHash []byte)
+	RequestMiniBlockForEpoch(destShardID uint32, miniblockHash []byte, epoch uint32)
 	RequestMiniBlocks(destShardID uint32, miniblocksHashes [][]byte)
+	RequestMiniBlocksForEpoch(destShardID uint32, miniblocksHashes [][]byte, epoch uint32)
 	RequestTrieNodes(destShardID uint32, hashes [][]byte, topic string)
+	RequestTrieNodesForEpoch(destShardID uint32, hashes [][]byte, topic string, epoch uint32)
 	RequestStartOfEpochMetaBlock(epoch uint32)
 	RequestInterval() time.Duration
 	SetNumPeersToQuery(key string, intra int, cross int) error
@@ -620,9 +630,13 @@ type RequestHandler interface {
 	CreateTrieNodeIdentifier(requestHash []byte, chunkIndex uint32) []byte
 	RequestPeerAuthenticationsByHashes(destShardID uint32, hashes [][]byte)
 	RequestValidatorInfo(hash []byte)
+	RequestValidatorInfoForEpoch(hash []byte, epoch uint32)
 	RequestValidatorsInfo(hashes [][]byte)
+	RequestValidatorsInfoForEpoch(hashes [][]byte, epoch uint32)
 	RequestEquivalentProofByHash(headerShard uint32, headerHash []byte)
+	RequestEquivalentProofByHashForEpoch(headerShard uint32, headerHash []byte, epoch uint32)
 	RequestEquivalentProofByNonce(headerShard uint32, headerNonce uint64)
+	RequestEquivalentProofByNonceForEpoch(headerShard uint32, headerNonce uint64, epoch uint32)
 	IsInterfaceNil() bool
 }
 
