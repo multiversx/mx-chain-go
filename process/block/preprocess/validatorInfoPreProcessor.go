@@ -247,6 +247,11 @@ func (vip *validatorInfoPreprocessor) RequestTransactionsForMiniBlock(_ *block.M
 	return 0
 }
 
+// SelectOutgoingTransactions does nothing
+func (vip *validatorInfoPreprocessor) SelectOutgoingTransactions() ([][]byte, error) {
+	return make([][]byte, 0), nil
+}
+
 // CreateAndProcessMiniBlocks does nothing
 func (vip *validatorInfoPreprocessor) CreateAndProcessMiniBlocks(_ func() bool, _ []byte) (block.MiniBlockSlice, error) {
 	// validatorsInfo are created only by meta
