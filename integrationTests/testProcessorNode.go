@@ -761,6 +761,7 @@ func (tpn *TestProcessorNode) initGenesisBlocks(args ArgTestProcessorNode) {
 		tpn.DataPool,
 		tpn.EconomicsData,
 		tpn.EnableEpochs,
+		tpn.ChainParametersHandler,
 	)
 }
 
@@ -775,9 +776,29 @@ func (tpn *TestProcessorNode) initTestNodeWithArgs(args ArgTestProcessorNode) {
 		args.StatusMetrics = &testscommon.StatusMetricsStub{}
 	}
 
+	roundTime := time.Millisecond * time.Duration(5000)
+
 	tpn.initChainHandler()
 	tpn.initHeaderValidator()
-	tpn.initRoundHandler()
+	tpn.initRoundHandler(roundTime)
+
+	tpn.ChainParametersHandler = &chainParameters.ChainParametersHandlerStub{
+		ChainParametersForEpochCalled: func(_ uint32) (config.ChainParametersByEpochConfig, error) {
+			return config.ChainParametersByEpochConfig{
+				RoundDuration:          uint64(roundTime.Milliseconds()),
+				RoundsPerEpoch:         1000,
+				MinRoundsBetweenEpochs: 1,
+			}, nil
+		},
+		CurrentChainParametersCalled: func() config.ChainParametersByEpochConfig {
+			return config.ChainParametersByEpochConfig{
+				RoundDuration:          uint64(roundTime.Milliseconds()),
+				RoundsPerEpoch:         1000,
+				MinRoundsBetweenEpochs: 1,
+			}
+		},
+	}
+
 	tpn.NetworkShardingCollector = mock.NewNetworkShardingCollectorMock()
 	if check.IfNil(tpn.EpochNotifier) {
 		tpn.EpochStartNotifier = notifier.NewEpochStartSubscriptionHandler()
@@ -1334,23 +1355,16 @@ func (tpn *TestProcessorNode) initInterceptors(heartbeatPk string) {
 
 	if tpn.ShardCoordinator.SelfId() == core.MetachainShardId {
 		argsEpochStart := &metachain.ArgsNewMetaEpochStartTrigger{
-			GenesisTime:        tpn.RoundHandler.TimeStamp(),
-			Settings:           &config.EpochStartConfig{},
-			Epoch:              0,
-			EpochStartNotifier: tpn.EpochStartNotifier,
-			Storage:            tpn.Storage,
-			Marshalizer:        TestMarshalizer,
-			Hasher:             TestHasher,
-			AppStatusHandler:   &statusHandlerMock.AppStatusHandlerStub{},
-			DataPool:           tpn.DataPool,
-			ChainParametersHandler: &chainParameters.ChainParametersHandlerStub{
-				ChainParametersForEpochCalled: func(uint32) (config.ChainParametersByEpochConfig, error) {
-					return config.ChainParametersByEpochConfig{
-						RoundsPerEpoch:         10000,
-						MinRoundsBetweenEpochs: 1000,
-					}, nil
-				},
-			},
+			GenesisTime:            tpn.RoundHandler.TimeStamp(),
+			Settings:               &config.EpochStartConfig{},
+			Epoch:                  0,
+			EpochStartNotifier:     tpn.EpochStartNotifier,
+			Storage:                tpn.Storage,
+			Marshalizer:            TestMarshalizer,
+			Hasher:                 TestHasher,
+			AppStatusHandler:       &statusHandlerMock.AppStatusHandlerStub{},
+			DataPool:               tpn.DataPool,
+			ChainParametersHandler: tpn.ChainParametersHandler,
 		}
 		epochStartTrigger, _ := metachain.NewEpochStartTrigger(argsEpochStart)
 		tpn.EpochStartTrigger = &metachain.TestTrigger{}
@@ -2263,7 +2277,7 @@ func (tpn *TestProcessorNode) initBlockProcessor() {
 			tpn.EnableEpochsHandler,
 			tpn.EnableRoundsHandler,
 			tpn.DataPool.Proofs(),
-			coreComponents.ChainParametersHandler(),
+			tpn.ChainParametersHandler,
 		)
 	} else {
 		tpn.ForkDetector, _ = processSync.NewMetaForkDetector(
@@ -2275,7 +2289,7 @@ func (tpn *TestProcessorNode) initBlockProcessor() {
 			tpn.EnableEpochsHandler,
 			tpn.EnableRoundsHandler,
 			tpn.DataPool.Proofs(),
-			coreComponents.ChainParametersHandler(),
+			tpn.ChainParametersHandler,
 		)
 	}
 
@@ -2854,7 +2868,7 @@ func (tpn *TestProcessorNode) ProposeBlock(
 	}
 
 	genesisRound := tpn.BlockChain.GetGenesisHeader().GetRound()
-	err = blockHeader.SetTimeStamp((round - genesisRound) * uint64(tpn.RoundHandler.TimeDuration().Seconds()))
+	err = blockHeader.SetTimeStamp((round - genesisRound) * uint64(tpn.RoundHandler.TimeDuration().Milliseconds()))
 	if err != nil {
 		log.Warn("blockHeader.SetTimeStamp", "error", err.Error())
 		return nil, nil, nil
@@ -3175,8 +3189,8 @@ func (tpn *TestProcessorNode) MiniBlocksPresent(hashes [][]byte) bool {
 	return true
 }
 
-func (tpn *TestProcessorNode) initRoundHandler() {
-	tpn.RoundHandler = &mock.RoundHandlerMock{TimeDurationField: 5 * time.Second}
+func (tpn *TestProcessorNode) initRoundHandler(roundTime time.Duration) {
+	tpn.RoundHandler = &mock.RoundHandlerMock{TimeDurationField: roundTime}
 }
 
 func (tpn *TestProcessorNode) initRequestedItemsHandler() {
@@ -3431,7 +3445,10 @@ func CreateEnableEpochsConfig() config.EnableEpochs {
 }
 
 // GetDefaultCoreComponents -
-func GetDefaultCoreComponents(enableEpochsHandler common.EnableEpochsHandler, epochNotifier process.EpochNotifier) *mock.CoreComponentsStub {
+func GetDefaultCoreComponents(
+	enableEpochsHandler common.EnableEpochsHandler,
+	epochNotifier process.EpochNotifier,
+) *mock.CoreComponentsStub {
 	return &mock.CoreComponentsStub{
 		InternalMarshalizerField:      TestMarshalizer,
 		TxMarshalizerField:            TestTxSignMarshalizer,
@@ -3466,20 +3483,7 @@ func GetDefaultCoreComponents(enableEpochsHandler common.EnableEpochsHandler, ep
 		EnableEpochsHandlerField:           enableEpochsHandler,
 		EpochChangeGracePeriodHandlerField: TestEpochChangeGracePeriod,
 		FieldsSizeCheckerField:             &testscommon.FieldsSizeCheckerMock{},
-		ChainParametersHandlerField: &chainParameters.ChainParametersHandlerStub{
-			CurrentChainParametersCalled: func() config.ChainParametersByEpochConfig {
-				return config.ChainParametersByEpochConfig{
-					RoundsPerEpoch:         200,
-					MinRoundsBetweenEpochs: 10,
-				}
-			},
-			ChainParametersForEpochCalled: func(uint32) (config.ChainParametersByEpochConfig, error) {
-				return config.ChainParametersByEpochConfig{
-					RoundsPerEpoch:         200,
-					MinRoundsBetweenEpochs: 10,
-				}, nil
-			},
-		},
+		ChainParametersHandlerField:        &chainParameters.ChainParametersHandlerStub{},
 	}
 }
 

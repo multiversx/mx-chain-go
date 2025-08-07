@@ -96,7 +96,7 @@ func CreateNodesWithTestFullNode(
 	waitingMap := make(map[uint32][]nodesCoordinator.Validator)
 	connectableNodes := make(map[uint32][]Connectable, 0)
 
-	startTime := time.Now().Unix()
+	startTime := time.Now().UnixMilli()
 	testHasher := createHasher(consensusType)
 
 	for shardID := range cp.NodesKeys {
@@ -216,6 +216,13 @@ func (tfn *TestFullNode) initNodesCoordinator(
 }
 
 func (tpn *TestFullNode) initTestNodeWithArgs(args ArgTestProcessorNode, fullArgs ArgsTestFullNode) {
+	if tpn.EpochNotifier == nil {
+		tpn.EpochNotifier = forking.NewGenericEpochNotifier()
+	}
+	if tpn.EnableEpochsHandler == nil {
+		tpn.EnableEpochsHandler, _ = enablers.NewEnableEpochsHandler(*args.EpochsConfig, tpn.EpochNotifier)
+	}
+
 	tpn.AppStatusHandler = args.AppStatusHandler
 	if check.IfNil(args.AppStatusHandler) {
 		tpn.AppStatusHandler = TestAppStatusHandler
@@ -230,19 +237,26 @@ func (tpn *TestFullNode) initTestNodeWithArgs(args ArgTestProcessorNode, fullArg
 
 	tpn.initChainHandler()
 	tpn.initHeaderValidator()
-	tpn.initRoundHandler()
 
-	roundTime := time.Millisecond * time.Duration(fullArgs.RoundTime)
+	roundDuration := time.Millisecond * time.Duration(fullArgs.RoundTime)
+
+	tpn.initRoundHandler(roundDuration)
+
 	syncer := ntp.NewSyncTime(testscommon.NewNTPGoogleConfig(), nil)
 	syncer.StartSyncingTime()
-	tpn.GenesisTimeField = time.Unix(fullArgs.StartTime, 0)
+
+	if tpn.EnableEpochsHandler.IsFlagEnabled(common.SupernovaFlag) {
+		tpn.GenesisTimeField = time.UnixMilli(fullArgs.StartTime)
+	} else {
+		tpn.GenesisTimeField = time.Unix(fullArgs.StartTime, 0)
+	}
 
 	roundArgs := round.ArgsRound{
 		GenesisTimeStamp:          tpn.GenesisTimeField,
 		SupernovaGenesisTimeStamp: tpn.GenesisTimeField,
 		CurrentTimeStamp:          syncer.CurrentTime(),
-		RoundTimeDuration:         roundTime,
-		SupernovaTimeDuration:     roundTime,
+		RoundTimeDuration:         roundDuration,
+		SupernovaTimeDuration:     roundDuration,
 		SyncTimer:                 syncer,
 		StartRound:                0,
 		SupernovaStartRound:       0,
@@ -264,11 +278,21 @@ func (tpn *TestFullNode) initTestNodeWithArgs(args ArgTestProcessorNode, fullArg
 	tpn.ChainParametersHandler = &chainParameters.ChainParametersHandlerStub{
 		ChainParametersForEpochCalled: func(_ uint32) (config.ChainParametersByEpochConfig, error) {
 			return config.ChainParametersByEpochConfig{
+				RoundDuration:               uint64(roundDuration.Microseconds()),
 				ShardConsensusGroupSize:     uint32(fullArgs.ConsensusSize),
 				MetachainConsensusGroupSize: uint32(fullArgs.ConsensusSize),
 				RoundsPerEpoch:              1000,
 				MinRoundsBetweenEpochs:      1,
 			}, nil
+		},
+		CurrentChainParametersCalled: func() config.ChainParametersByEpochConfig {
+			return config.ChainParametersByEpochConfig{
+				RoundDuration:               uint64(roundDuration.Microseconds()),
+				ShardConsensusGroupSize:     uint32(fullArgs.ConsensusSize),
+				MetachainConsensusGroupSize: uint32(fullArgs.ConsensusSize),
+				RoundsPerEpoch:              1000,
+				MinRoundsBetweenEpochs:      1,
+			}
 		},
 	}
 
@@ -405,7 +429,7 @@ func (tpn *TestFullNode) initNode(
 		tpn.EnableEpochsHandler, _ = enablers.NewEnableEpochsHandler(CreateEnableEpochsConfig(), tpn.EpochNotifier)
 	}
 
-	epochTrigger := tpn.createEpochStartTrigger(args.StartTime)
+	epochTrigger := tpn.createEpochStartTrigger()
 	tpn.EpochStartTrigger = epochTrigger
 
 	strPk := ""
@@ -463,7 +487,7 @@ func (tpn *TestFullNode) initNode(
 	bootstrapComponents := getDefaultBootstrapComponents(tpn.ShardCoordinator, tpn.EnableEpochsHandler)
 
 	tpn.BlockBlackListHandler = cache.NewTimeCache(TimeSpanForBadHeaders)
-	tpn.ForkDetector = tpn.createForkDetector(args.StartTime, roundHandler)
+	tpn.ForkDetector = tpn.createForkDetector(roundHandler)
 
 	argsKeysHolder := keysManagement.ArgsManagedPeersHolder{
 		KeyGenerator:          args.KeyGen,
@@ -612,7 +636,6 @@ func (tpn *TestFullNode) initNode(
 }
 
 func (tfn *TestFullNode) createForkDetector(
-	startTime int64,
 	roundHandler consensus.RoundHandler,
 ) process.ForkDetector {
 	var err error
@@ -651,7 +674,7 @@ func (tfn *TestFullNode) createForkDetector(
 	return forkDetector
 }
 
-func (tfn *TestFullNode) createEpochStartTrigger(startTime int64) TestEpochStartTrigger {
+func (tfn *TestFullNode) createEpochStartTrigger() TestEpochStartTrigger {
 	var epochTrigger TestEpochStartTrigger
 	if tfn.ShardCoordinator.SelfId() == core.MetachainShardId {
 		argsNewMetaEpochStart := &metachain.ArgsNewMetaEpochStartTrigger{
