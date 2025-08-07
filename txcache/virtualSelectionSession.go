@@ -41,22 +41,21 @@ func (virtualSession *virtualSelectionSession) getRecord(address []byte) (*virtu
 
 func (virtualSession *virtualSelectionSession) createAccountRecord(address []byte) (*virtualAccountRecord, error) {
 	account, err := virtualSession.session.GetAccountState(address)
+	if err == state.ErrAccNotFound {
+		// "ErrAccNotFound" is received when the account is new (missing on the blockchain),
+		// or when the account is in a different shard
+		// (though, this second case is not applicable for 'sender' or 'relayer' accounts, in the context of transactions selection).
+		// Most probable scenario: "getRecord" is invoked for the 'sender' of a relayed transaction, where the 'sender' is new (and has no balance).
+		// We simply create an empty record.
+		return newVirtualAccountRecord(
+			core.OptionalUint64{
+				Value:    0,
+				HasValue: true,
+			},
+			big.NewInt(0),
+		), nil
+	}
 	if err != nil {
-		if err == state.ErrAccNotFound {
-			// "ErrAccNotFound" is received when the account is new (missing on the blockchain),
-			// or when the account is in a different shard
-			// (though, this second case is not applicable for 'sender' or 'relayer' accounts, in the context of transactions selection).
-			// Most probable scenario: "getRecord" is invoked for the 'sender' of a relayed transaction, where the 'sender' is new (and has no balance).
-			// We simply create an empty record.
-			return newVirtualAccountRecord(
-				core.OptionalUint64{
-					Value:    0,
-					HasValue: true,
-				},
-				big.NewInt(0),
-			), nil
-		}
-
 		return nil, err
 	}
 
