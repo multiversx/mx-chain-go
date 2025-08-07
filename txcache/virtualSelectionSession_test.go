@@ -84,6 +84,23 @@ func Test_getVirtualRecord(t *testing.T) {
 		require.Equal(t, expectedRecord.getConsumedBalance(), actualRecord.getConsumedBalance())
 	})
 
+	t.Run("should create empty record when account does not exist", func(t *testing.T) {
+		t.Parallel()
+
+		sessionMock := txcachemocks.SelectionSessionMock{
+			GetAccountStateCalled: func(address []byte) (state.UserAccountHandler, error) {
+				return nil, state.ErrAccNotFound
+			},
+		}
+		virtualSession := newVirtualSelectionSession(&sessionMock)
+
+		actualRecord, err := virtualSession.getRecord([]byte("alice"))
+		require.NoError(t, err)
+		require.Equal(t, core.OptionalUint64{Value: 0, HasValue: true}, actualRecord.initialNonce)
+		require.Equal(t, big.NewInt(0), actualRecord.getInitialBalance())
+		require.Equal(t, big.NewInt(0), actualRecord.getConsumedBalance())
+	})
+
 	t.Run("should err", func(t *testing.T) {
 		t.Parallel()
 
@@ -98,7 +115,6 @@ func Test_getVirtualRecord(t *testing.T) {
 		actualRecord, err := virtualSession.getRecord([]byte("alice"))
 		require.Nil(t, actualRecord)
 		require.Equal(t, expErr, err)
-
 	})
 }
 
