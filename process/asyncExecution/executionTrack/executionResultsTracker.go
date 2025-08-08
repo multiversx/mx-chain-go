@@ -8,7 +8,10 @@ import (
 	"sync"
 
 	"github.com/multiversx/mx-chain-core-go/data"
+	logger "github.com/multiversx/mx-chain-logger-go"
 )
+
+var log = logger.GetOrCreate("process/asyncExecution/executionTrack")
 
 type executionResultsTracker struct {
 	lastNotarizedResult    data.ExecutionResultHandler
@@ -16,6 +19,7 @@ type executionResultsTracker struct {
 	executionResultsByHash map[string]data.ExecutionResultHandler
 	nonceHash              *nonceHash
 	lastExecutedResultHash []byte
+	hashToRemoveOnAdd      []byte
 }
 
 // NewExecutionResultsTracker will create a new instance of *executionResultsTracker
@@ -39,6 +43,13 @@ func (est *executionResultsTracker) AddExecutionResult(executionResult data.Exec
 		return ErrNilLastNotarizedExecutionResult
 	}
 
+	shouldIgnoreExecutionResult := bytes.Equal(est.hashToRemoveOnAdd, executionResult.GetHeaderHash())
+	if shouldIgnoreExecutionResult {
+		est.hashToRemoveOnAdd = nil
+		log.Debug("est.AddExecutionResult ignored execution result", "hash", hex.EncodeToString(executionResult.GetHeaderHash()))
+		return nil
+	}
+
 	if est.lastNotarizedResult.GetHeaderNonce() >= executionResult.GetHeaderNonce() {
 		return fmt.Errorf("%w nonce(%d) is lower than last notarized nonce(%d)", ErrWrongExecutionResultNonce, executionResult.GetHeaderNonce(), est.lastNotarizedResult.GetHeaderNonce())
 	}
@@ -48,7 +59,10 @@ func (est *executionResultsTracker) AddExecutionResult(executionResult data.Exec
 		return err
 	}
 
-	if lastExecutedResult.GetHeaderNonce() != executionResult.GetHeaderNonce()-1 {
+	last := lastExecutedResult.GetHeaderNonce()
+	current := executionResult.GetHeaderNonce()
+	isNextOrSameNonce := current == last || current == last+1
+	if !isNextOrSameNonce {
 		return fmt.Errorf("%w nonce(%d) should be equal to the subsequent nonce after last executed(%d)", ErrWrongExecutionResultNonce, executionResult.GetHeaderNonce(), lastExecutedResult.GetHeaderNonce())
 	}
 
@@ -243,6 +257,35 @@ func (est *executionResultsTracker) SetLastNotarizedResult(executionResult data.
 	est.lastExecutedResultHash = executionResult.GetHeaderHash()
 	est.mutex.Unlock()
 
+	return nil
+}
+
+// RemoveByHash will remove the execution result by header hash
+func (est *executionResultsTracker) RemoveByHash(hash []byte) error {
+	est.mutex.Lock()
+	defer est.mutex.Unlock()
+
+	executionResult, found := est.executionResultsByHash[string(hash)]
+	if !found {
+		est.hashToRemoveOnAdd = hash
+		return nil
+	}
+
+	delete(est.executionResultsByHash, string(hash))
+	est.nonceHash.removeByNonce(executionResult.GetHeaderNonce())
+
+	pendingExecutionResult, err := est.getPendingExecutionResults()
+	if err != nil {
+		return err
+	}
+
+	if len(pendingExecutionResult) == 0 {
+		// set last execution result with last notarized
+		est.lastExecutedResultHash = est.lastNotarizedResult.GetHeaderHash()
+		return nil
+	}
+
+	est.lastExecutedResultHash = pendingExecutionResult[len(pendingExecutionResult)-1].GetHeaderHash()
 	return nil
 }
 
