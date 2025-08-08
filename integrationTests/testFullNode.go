@@ -278,7 +278,7 @@ func (tpn *TestFullNode) initTestNodeWithArgs(args ArgTestProcessorNode, fullArg
 	tpn.ChainParametersHandler = &chainParameters.ChainParametersHandlerStub{
 		ChainParametersForEpochCalled: func(_ uint32) (config.ChainParametersByEpochConfig, error) {
 			return config.ChainParametersByEpochConfig{
-				RoundDuration:               uint64(roundDuration.Microseconds()),
+				RoundDuration:               uint64(roundDuration.Milliseconds()),
 				ShardConsensusGroupSize:     uint32(fullArgs.ConsensusSize),
 				MetachainConsensusGroupSize: uint32(fullArgs.ConsensusSize),
 				RoundsPerEpoch:              1000,
@@ -287,7 +287,7 @@ func (tpn *TestFullNode) initTestNodeWithArgs(args ArgTestProcessorNode, fullArg
 		},
 		CurrentChainParametersCalled: func() config.ChainParametersByEpochConfig {
 			return config.ChainParametersByEpochConfig{
-				RoundDuration:               uint64(roundDuration.Microseconds()),
+				RoundDuration:               uint64(roundDuration.Milliseconds()),
 				ShardConsensusGroupSize:     uint32(fullArgs.ConsensusSize),
 				MetachainConsensusGroupSize: uint32(fullArgs.ConsensusSize),
 				RoundsPerEpoch:              1000,
