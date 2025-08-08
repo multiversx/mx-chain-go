@@ -129,10 +129,10 @@ func (cache *TxCache) SelectTransactions(
 
 	logSelect.Debug(
 		"TxCache.SelectTransactions: begin",
-		"current root hash", rootHash,
-		"num bytes", cache.NumBytes(),
 		"num txs", cache.CountTx(),
 		"num senders", cache.CountSenders(),
+		"num bytes", cache.NumBytes(),
+		"current root hash", rootHash,
 	)
 
 	virtualSession, err := cache.tracker.deriveVirtualSelectionSession(session, blockchainInfo)
