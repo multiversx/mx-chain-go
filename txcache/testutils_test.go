@@ -9,6 +9,7 @@ import (
 	"strconv"
 
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
+	"github.com/multiversx/mx-chain-go/common/holders"
 	"github.com/multiversx/mx-chain-go/testscommon/txcachemocks"
 )
 
@@ -26,6 +27,8 @@ const selectionLoopMaximumDuration = 30_000
 
 var randomHashes = newRandomData(math.MaxUint16, hashLength)
 var randomAddresses = newRandomData(math.MaxUint16, addressLength)
+
+var defaultBlockchainInfo = holders.NewBlockchainInfo(nil, 0)
 
 type randomData struct {
 	randomBytes []byte
@@ -50,12 +53,6 @@ func newRandomData(numItems int, itemSize int) *randomData {
 
 func (data *randomData) getItem(index int) []byte {
 	start := index * data.itemSize
-	end := start + data.itemSize
-	return data.randomBytes[start:end]
-}
-
-func (data *randomData) getTailItem(index int) []byte {
-	start := (data.numItems - 1 - index) * data.itemSize
 	end := start + data.itemSize
 	return data.randomBytes[start:end]
 }
@@ -245,6 +242,11 @@ func (wrappedTx *WrappedTransaction) withGasLimit(gasLimit uint64) *WrappedTrans
 func (wrappedTx *WrappedTransaction) withValue(value *big.Int) *WrappedTransaction {
 	tx := wrappedTx.Tx.(*transaction.Transaction)
 	tx.Value = value
+	return wrappedTx
+}
+
+func (wrappedTx *WrappedTransaction) withTransferredValue(value *big.Int) *WrappedTransaction {
+	wrappedTx.TransferredValue = value
 	return wrappedTx
 }
 

@@ -6,6 +6,8 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/atomic"
 	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-storage-go/monitoring"
 	"github.com/multiversx/mx-chain-storage-go/types"
@@ -23,6 +25,7 @@ type TxCache struct {
 	evictionMutex        sync.Mutex
 	isEvictionInProgress atomic.Flag
 	mutTxOperation       sync.Mutex
+	tracker              *selectionTracker
 }
 
 // NewTxCache creates a new transaction cache
@@ -49,6 +52,12 @@ func NewTxCache(config ConfigSourceMe, host MempoolHost) (*TxCache, error) {
 		config:         config,
 		host:           host,
 	}
+
+	tracker, err := NewSelectionTracker(txCache)
+	if err != nil {
+		return nil, err
+	}
+	txCache.tracker = tracker
 
 	return txCache, nil
 }
@@ -99,7 +108,11 @@ func (cache *TxCache) GetByTxHash(txHash []byte) (*WrappedTransaction, bool) {
 
 // SelectTransactions selects the best transactions to be included in the next miniblock.
 // It returns up to "options.maxNumTxs" transactions, with total gas <= "options.gasRequested".
-func (cache *TxCache) SelectTransactions(session SelectionSession, options common.TxSelectionOptions) ([]*WrappedTransaction, uint64) {
+func (cache *TxCache) SelectTransactions(
+	session SelectionSession,
+	options common.TxSelectionOptions,
+	blockchainInfo common.BlockchainInfo,
+) ([]*WrappedTransaction, uint64) {
 	if check.IfNil(session) {
 		log.Error("TxCache.SelectTransactions", "err", errNilSelectionSession)
 		return nil, 0
@@ -108,14 +121,26 @@ func (cache *TxCache) SelectTransactions(session SelectionSession, options commo
 	stopWatch := core.NewStopWatch()
 	stopWatch.Start("selection")
 
+	rootHash, err := session.GetRootHash()
+	if err != nil {
+		log.Error("TxCache.SelectTransactions", "err", err)
+		return nil, 0
+	}
+
 	logSelect.Debug(
 		"TxCache.SelectTransactions: begin",
-		"num bytes", cache.NumBytes(),
 		"num txs", cache.CountTx(),
 		"num senders", cache.CountSenders(),
+		"num bytes", cache.NumBytes(),
+		"current root hash", rootHash,
 	)
 
-	transactions, accumulatedGas := cache.doSelectTransactions(session, options)
+	virtualSession, err := cache.tracker.deriveVirtualSelectionSession(session, blockchainInfo)
+	if err != nil {
+		log.Error("TxCache.SelectTransactions: could not derive virtual selection session", "err", err)
+		return nil, 0
+	}
+	transactions, accumulatedGas := cache.doSelectTransactions(virtualSession, options)
 
 	stopWatch.Stop("selection")
 
@@ -130,6 +155,21 @@ func (cache *TxCache) SelectTransactions(session SelectionSession, options commo
 	go displaySelectionOutcome(logSelect, "selection", transactions)
 
 	return transactions, accumulatedGas
+}
+
+// OnProposedBlock calls the OnProposedBlock method from SelectionTracker
+func (cache *TxCache) OnProposedBlock(
+	blockHash []byte,
+	blockBody *block.Body,
+	handler data.HeaderHandler,
+	session SelectionSession,
+	defaultBlockchainInfo common.BlockchainInfo) error {
+	return cache.tracker.OnProposedBlock(blockHash, blockBody, handler, session, defaultBlockchainInfo)
+}
+
+// OnExecutedBlock calls the OnExecutedBlock method from SelectionTracker
+func (cache *TxCache) OnExecutedBlock(handler data.HeaderHandler) error {
+	return cache.tracker.OnExecutedBlock(handler)
 }
 
 func (cache *TxCache) getSenders() []*txListForSender {
