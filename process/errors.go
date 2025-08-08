@@ -1301,3 +1301,18 @@ var ErrNilKeyRWMutexHandler = errors.New("nil key rw mutex handler")
 
 // ErrNilTxsForBlockHandler signals that a nil transactions for block handler has been provided
 var ErrNilTxsForBlockHandler = errors.New("nil txs for block handler")
+
+// ErrNilLastExecutionResultHandler signals that a nil last execution result handler has been provided
+var ErrNilLastExecutionResultHandler = errors.New("nil last execution result handler")
+
+// ErrExecutionResultMismatch signals that the execution result does not match the expected one
+var ErrExecutionResultMismatch = errors.New("execution result mismatch")
+
+// ErrNilExecutionResultHandler signals that a nil execution result handler has been provided
+var ErrNilExecutionResultHandler = errors.New("nil execution result handler")
+
+// ErrExecutionResultDoesNotMatch signals that the execution result does not match the expected one
+var ErrExecutionResultDoesNotMatch = errors.New("execution result does not match")
+
+// ErrExecutionResultsNumberMismatch signals that the number of execution results does not match the expected one
+var ErrExecutionResultsNumberMismatch = errors.New("execution results number mismatch")
