@@ -1820,7 +1820,7 @@ func (sp *shardProcessor) receivedMetaBlock(headerHandler data.HeaderHandler, me
 
 	sp.mutHdrsForBlock.Lock()
 
-	missingHdrs, missingProofs, missingFinalityAttestingHdrs := sp.hdrsForCurrBlock.GetMisingData()
+	missingHdrs, _, missingFinalityAttestingHdrs := sp.hdrsForCurrBlock.GetMisingData()
 	haveMissingMetaHeaders := missingHdrs > 0 || missingFinalityAttestingHdrs > 0
 	if haveMissingMetaHeaders {
 		hdrInfoForHash, found := sp.hdrsForCurrBlock.GetHeaderInfo(string(metaBlockHash))
@@ -1841,7 +1841,7 @@ func (sp *shardProcessor) receivedMetaBlock(headerHandler data.HeaderHandler, me
 			}
 		}
 
-		missingHdrs, missingProofs, missingFinalityAttestingHdrs = sp.hdrsForCurrBlock.GetMisingData()
+		missingHdrs, _, missingFinalityAttestingHdrs = sp.hdrsForCurrBlock.GetMisingData()
 		if missingHdrs == 0 {
 			sp.checkFinalityRequestingMissing(metaBlock)
 
@@ -1850,6 +1850,7 @@ func (sp *shardProcessor) receivedMetaBlock(headerHandler data.HeaderHandler, me
 			}
 		}
 
+		var missingProofs uint32
 		missingHdrs, missingProofs, missingFinalityAttestingHdrs = sp.hdrsForCurrBlock.GetMisingData()
 		sp.mutHdrsForBlock.Unlock()
 

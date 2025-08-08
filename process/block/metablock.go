@@ -2016,7 +2016,7 @@ func (mp *metaProcessor) receivedShardHeader(headerHandler data.HeaderHandler, s
 
 	mp.mutHdrsForBlock.Lock()
 
-	missingHdrs, missingProofs, missingFinalityAttestingHdrs := mp.hdrsForCurrBlock.GetMisingData()
+	missingHdrs, _, missingFinalityAttestingHdrs := mp.hdrsForCurrBlock.GetMisingData()
 	haveMissingShardHeaders := missingHdrs > 0 || missingFinalityAttestingHdrs > 0
 	if haveMissingShardHeaders {
 		hdrInfoForHash, found := mp.hdrsForCurrBlock.GetHeaderInfo(string(shardHeaderHash))
@@ -2047,6 +2047,7 @@ func (mp *metaProcessor) receivedShardHeader(headerHandler data.HeaderHandler, s
 			}
 		}
 
+		var missingProofs uint32
 		missingHdrs, missingProofs, missingFinalityAttestingHdrs = mp.hdrsForCurrBlock.GetMisingData()
 		mp.mutHdrsForBlock.Unlock()
 

@@ -220,11 +220,6 @@ func (mp *metaProcessor) AddHdrHashToRequestedList(hdr data.HeaderHandler, hdrHa
 	mp.mutHdrsForBlock.Lock()
 	defer mp.mutHdrsForBlock.Unlock()
 
-	hdrHashAndInfo := mp.hdrsForCurrBlock.GetHeadersInfoMap()
-	if hdrHashAndInfo == nil {
-		hdrHashAndInfo = make(map[string]headerForBlock.HeaderInfo)
-	}
-
 	mp.hdrsForCurrBlock.AddHeaderInfo(string(hdrHash), headerForBlock.NewHeaderInfo(hdr, true, false, false))
 	mp.hdrsForCurrBlock.IncreaseMissingHeaders()
 }
