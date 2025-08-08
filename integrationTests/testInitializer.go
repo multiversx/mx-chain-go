@@ -610,6 +610,7 @@ func CreateGenesisBlocks(
 	dataPool dataRetriever.PoolsHolder,
 	economics process.EconomicsDataHandler,
 	enableEpochsConfig config.EnableEpochs,
+	chainParametersHandler common.ChainParametersHandler,
 ) map[uint32]data.HeaderHandler {
 
 	genesisBlocks := make(map[uint32]data.HeaderHandler)
@@ -632,6 +633,7 @@ func CreateGenesisBlocks(
 		dataPool,
 		economics,
 		enableEpochsConfig,
+		chainParametersHandler,
 	)
 
 	return genesisBlocks
@@ -786,6 +788,7 @@ func CreateGenesisMetaBlock(
 	dataPool dataRetriever.PoolsHolder,
 	economics process.EconomicsDataHandler,
 	enableEpochsConfig config.EnableEpochs,
+	chainParametersHandler common.ChainParametersHandler,
 ) data.MetaHeaderHandler {
 	gasSchedule := wasmConfig.MakeGasMapForTests()
 	defaults.FillGasMapInternal(gasSchedule, 1)
@@ -1427,6 +1430,8 @@ func createNodesWithEpochsConfig(
 	nodes := make([]*TestProcessorNode, numOfShards*nodesPerShard+numMetaChainNodes)
 	connectableNodes := make([]Connectable, len(nodes))
 
+	defaultRoundsConfig := testscommon.GetDefaultRoundsConfig()
+
 	idx := 0
 	for shardId := uint32(0); shardId < uint32(numOfShards); shardId++ {
 		for j := 0; j < nodesPerShard; j++ {
@@ -1435,6 +1440,7 @@ func createNodesWithEpochsConfig(
 				NodeShardId:          shardId,
 				TxSignPrivKeyShardId: shardId,
 				EpochsConfig:         enableEpochsConfig,
+				RoundsConfig:         &defaultRoundsConfig,
 			})
 			nodes[idx] = n
 			connectableNodes[idx] = n
