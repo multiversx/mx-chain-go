@@ -1319,3 +1319,6 @@ var ErrExecutionResultsNumberMismatch = errors.New("execution results number mis
 
 // ErrNilExecutionResultsTracker signals that a nil execution results tracker has been provided
 var ErrNilExecutionResultsTracker = errors.New("nil execution results tracker")
+
+// ErrNilNotarizedOnHeaderHash signals that a nil notarized on header hash has been provided
+var ErrNilNotarizedOnHeaderHash = errors.New("nil notarized on header hash")

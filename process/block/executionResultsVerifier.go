@@ -134,6 +134,9 @@ func (erc *executionResultsVerifier) createLastExecutionResultFromPrevHeader(pre
 }
 
 func createLastExecutionResultInfoFromExecutionResult(notarizedOnHeaderHash []byte, lastExecResult data.ExecutionResultHandler) (*block.ExecutionResultInfo, error) {
+	if len(notarizedOnHeaderHash) == 0 {
+		return nil, process.ErrNilNotarizedOnHeaderHash
+	}
 	if check.IfNil(lastExecResult) {
 		return nil, process.ErrNilExecutionResultHandler
 	}
