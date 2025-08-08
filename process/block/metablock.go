@@ -1037,6 +1037,8 @@ func (mp *metaProcessor) createMiniBlocks(
 		)
 	}
 
+	// TODO: check if execution should be stopped on Metachain, since there is no scheduled or partial execution
+
 	mbsFromMe := mp.txCoordinator.CreateMbsAndProcessTransactionsFromMe(haveTime, randomness)
 	if len(mbsFromMe) > 0 {
 		miniBlocks = append(miniBlocks, mbsFromMe...)
