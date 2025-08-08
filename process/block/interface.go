@@ -35,4 +35,5 @@ type ExecutionResultsTracker interface {
 	GetPendingExecutionResultByNonce(nonce uint64) (data.ExecutionResultHandler, error)
 	GetLastNotarizedExecutionResult() (data.ExecutionResultHandler, error)
 	SetLastNotarizedResult(executionResult data.ExecutionResultHandler) error
+	IsInterfaceNil() bool
 }

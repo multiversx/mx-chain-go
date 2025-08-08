@@ -1316,3 +1316,6 @@ var ErrExecutionResultDoesNotMatch = errors.New("execution result does not match
 
 // ErrExecutionResultsNumberMismatch signals that the number of execution results does not match the expected one
 var ErrExecutionResultsNumberMismatch = errors.New("execution results number mismatch")
+
+// ErrNilExecutionResultsTracker signals that a nil execution results tracker has been provided
+var ErrNilExecutionResultsTracker = errors.New("nil execution results tracker")
