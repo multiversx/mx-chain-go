@@ -1468,8 +1468,6 @@ type GasComputation interface {
 	DecreaseOutgoingLimit()
 	ResetIncomingLimit()
 	ResetOutgoingLimit()
-	DecreaseMiniBlockLimit()
-	ResetMiniBlockLimit()
 	Reset()
 	IsInterfaceNil() bool
 }

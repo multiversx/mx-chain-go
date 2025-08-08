@@ -587,48 +587,6 @@ func TestGasConsumption_DecreaseIncomingLimit(t *testing.T) {
 	require.Zero(t, 0, pendingMBs)   // added all
 }
 
-func TestGasConsumption_DecreaseMiniBlockLimit(t *testing.T) {
-	t.Parallel()
-
-	gc, _ := block.NewGasConsumption(getMockArgsGasConsumption())
-	require.NotNil(t, gc)
-
-	// calling a lot of times to reach min limit and simulate possible overflow
-	for i := 0; i < 100; i++ {
-		gc.DecreaseMiniBlockLimit()
-	}
-
-	// mini block limit should be at lowest, 10% of the configured 100 => 10 (1 mb of 1 tx max)
-	mbs := generateMiniBlocks(1, 2)
-	txsInMBs := generateTxsForMiniBlocks(mbs)
-	lastMbIndex, pendingMbs, err := gc.CheckIncomingMiniBlocks(mbs, txsInMBs)
-	require.Equal(t, process.ErrMaxGasLimitPerMiniBlockIsReached, err)
-	require.Zero(t, pendingMbs)       // limit reached, mb is invalid with 2 txs, no pending mb
-	require.Equal(t, -1, lastMbIndex) // nothing added
-
-	// calling reset should not reset the block limit
-	gc.Reset()
-
-	// adding mini blocks should be allowed but within the same limit
-	mbs = generateMiniBlocks(1, 2)
-	txsInMBs = generateTxsForMiniBlocks(mbs)
-	lastMbIndex, pendingMbs, err = gc.CheckIncomingMiniBlocks(mbs, txsInMBs)
-	require.Equal(t, process.ErrMaxGasLimitPerMiniBlockIsReached, err)
-	require.Zero(t, pendingMbs)       // limit reached, mb is invalid with 2 txs, no pending mb
-	require.Equal(t, -1, lastMbIndex) // nothing added
-
-	// calling reset should reset the limit
-	gc.ResetMiniBlockLimit()
-	gc.Reset() // required to reset the state
-
-	mbs = generateMiniBlocks(10, 5)
-	txsInMBs = generateTxsForMiniBlocks(mbs)
-	lastMbIndex, pendingMbs, err = gc.CheckIncomingMiniBlocks(mbs, txsInMBs)
-	require.NoError(t, err)
-	require.Equal(t, 2, pendingMbs)  // 2 pending, back to initial limit
-	require.Equal(t, 7, lastMbIndex) // 8 added, back to inital limit
-}
-
 func TestGasConsumption_ConcurrentOps(t *testing.T) {
 	if testing.Short() {
 		t.Skip("this is not a short test")
@@ -649,7 +607,7 @@ func TestGasConsumption_ConcurrentOps(t *testing.T) {
 
 		for i := 0; i < numCalls; i++ {
 			go func(idx int) {
-				switch idx % 12 {
+				switch idx % 10 {
 				case 0:
 					_, _ = gc.CheckOutgoingTransactions(txs)
 				case 1:
@@ -670,10 +628,6 @@ func TestGasConsumption_ConcurrentOps(t *testing.T) {
 					gc.GetLastTransactionIndexIncluded()
 				case 9:
 					gc.TotalGasConsumed()
-				case 10:
-					gc.ResetMiniBlockLimit()
-				case 11:
-					gc.DecreaseMiniBlockLimit()
 				default:
 					require.Fail(t, "should have not been called")
 				}
