@@ -3442,6 +3442,7 @@ func CreateEnableEpochsConfig() config.EnableEpochs {
 		FixRelayedBaseCostEnableEpoch:                     UnreachableEpoch,
 		FixRelayedMoveBalanceToNonPayableSCEnableEpoch:    UnreachableEpoch,
 		AndromedaEnableEpoch:                              UnreachableEpoch,
+		SupernovaEnableEpoch:                              UnreachableEpoch,
 	}
 }
 
