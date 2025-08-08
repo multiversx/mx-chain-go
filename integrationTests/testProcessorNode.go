@@ -1303,7 +1303,7 @@ func CreateRatingsData() *rating.RatingsData {
 		Config:                    ratingsConfig,
 		ChainParametersHolder:     &chainParameters.ChainParametersHolderMock{},
 		EpochNotifier:             &epochNotifier.EpochNotifierStub{},
-		RoundDurationMilliseconds: 6000,
+		RoundDurationMilliseconds: 5000,
 	}
 
 	ratingsData, _ := rating.NewRatingsData(ratingDataArgs)
@@ -2261,6 +2261,7 @@ func (tpn *TestProcessorNode) initBlockProcessor() {
 	coreComponents.RoundHandlerField = tpn.RoundHandler
 	coreComponents.EconomicsDataField = tpn.EconomicsData
 	coreComponents.RoundNotifierField = tpn.RoundNotifier
+	coreComponents.ChainParametersHandlerField = tpn.ChainParametersHandler
 
 	dataComponents := GetDefaultDataComponents()
 	dataComponents.Store = tpn.Storage
@@ -2341,23 +2342,16 @@ func (tpn *TestProcessorNode) initBlockProcessor() {
 	if tpn.ShardCoordinator.SelfId() == core.MetachainShardId {
 		if check.IfNil(tpn.EpochStartTrigger) {
 			argsEpochStart := &metachain.ArgsNewMetaEpochStartTrigger{
-				GenesisTime:        argumentsBase.CoreComponents.RoundHandler().TimeStamp(),
-				Settings:           &config.EpochStartConfig{},
-				Epoch:              0,
-				EpochStartNotifier: tpn.EpochStartNotifier,
-				Storage:            tpn.Storage,
-				Marshalizer:        TestMarshalizer,
-				Hasher:             TestHasher,
-				AppStatusHandler:   &statusHandlerMock.AppStatusHandlerStub{},
-				DataPool:           tpn.DataPool,
-				ChainParametersHandler: &chainParameters.ChainParametersHandlerStub{
-					ChainParametersForEpochCalled: func(uint32) (config.ChainParametersByEpochConfig, error) {
-						return config.ChainParametersByEpochConfig{
-							RoundsPerEpoch:         10000,
-							MinRoundsBetweenEpochs: 1000,
-						}, nil
-					},
-				},
+				GenesisTime:            argumentsBase.CoreComponents.RoundHandler().TimeStamp(),
+				Settings:               &config.EpochStartConfig{},
+				Epoch:                  0,
+				EpochStartNotifier:     tpn.EpochStartNotifier,
+				Storage:                tpn.Storage,
+				Marshalizer:            TestMarshalizer,
+				Hasher:                 TestHasher,
+				AppStatusHandler:       &statusHandlerMock.AppStatusHandlerStub{},
+				DataPool:               tpn.DataPool,
+				ChainParametersHandler: tpn.ChainParametersHandler,
 			}
 			epochStartTrigger, _ := metachain.NewEpochStartTrigger(argsEpochStart)
 			tpn.EpochStartTrigger = &metachain.TestTrigger{}
@@ -2615,6 +2609,8 @@ func (tpn *TestProcessorNode) initNode() {
 	hardforkPubKeyBytes, _ := coreComponents.ValidatorPubKeyConverterField.Decode(hardforkPubKey)
 	coreComponents.HardforkTriggerPubKeyField = hardforkPubKeyBytes
 
+	coreComponents.ChainParametersHandlerField = tpn.ChainParametersHandler
+
 	dataComponents := GetDefaultDataComponents()
 	dataComponents.BlockChain = tpn.BlockChain
 	dataComponents.DataPool = tpn.DataPool
@@ -2868,7 +2864,12 @@ func (tpn *TestProcessorNode) ProposeBlock(
 	}
 
 	genesisRound := tpn.BlockChain.GetGenesisHeader().GetRound()
-	err = blockHeader.SetTimeStamp((round - genesisRound) * uint64(tpn.RoundHandler.TimeDuration().Milliseconds()))
+
+	if tpn.EnableRoundsHandler.IsFlagEnabledInRound(common.SupernovaRoundFlag, round) {
+		err = blockHeader.SetTimeStamp((round - genesisRound) * uint64(tpn.RoundHandler.TimeDuration().Milliseconds()))
+	} else {
+		err = blockHeader.SetTimeStamp((round - genesisRound) * uint64(tpn.RoundHandler.TimeDuration().Seconds()))
+	}
 	if err != nil {
 		log.Warn("blockHeader.SetTimeStamp", "error", err.Error())
 		return nil, nil, nil
@@ -3759,6 +3760,7 @@ func GetDefaultEnableEpochsConfig() *config.EnableEpochs {
 		StakingV4Step2EnableEpoch:                       UnreachableEpoch,
 		StakingV4Step3EnableEpoch:                       UnreachableEpoch,
 		AndromedaEnableEpoch:                            UnreachableEpoch,
+		SupernovaEnableEpoch:                            UnreachableEpoch,
 	}
 }
 
