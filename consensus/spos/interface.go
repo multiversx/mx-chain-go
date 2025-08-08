@@ -83,6 +83,8 @@ type ConsensusService interface {
 	IsSubroundSignature(int) bool
 	// IsSubroundStartRound returns if the current subround is about start round
 	IsSubroundStartRound(int) bool
+	// IsSubroundBlock returns if the current subround is about block
+	IsSubroundBlock(subroundId int) bool
 	// GetMaxMessagesInARoundPerPeer returns the maximum number of messages a peer can send per round
 	GetMaxMessagesInARoundPerPeer() uint32
 	// GetMaxNumOfMessageTypeAccepted returns the maximum number of accepted consensus message types per round, per public key
@@ -245,6 +247,11 @@ type RoundConsensusHandler interface {
 	IsKeyManagedBySelf(pkBytes []byte) bool
 	IncrementRoundsWithoutReceivedMessages(pkBytes []byte)
 	GetKeysHandler() consensus.KeysHandler
+	IncrementRoundsSigned()
+	ShouldProposeBlock(currentRound int64) bool
+	SetLastRoundAsParticipant(round int64)
+	SetRoundsSignedToMin()
+	DecrementRoundsSigned()
 	Leader() string
 }
 
