@@ -2,6 +2,7 @@ package processMocks
 
 import "github.com/multiversx/mx-chain-core-go/data"
 
+// BlockProcessorStub -
 type BlockProcessorStub struct {
 	ProcessBlockCalled func(handler data.HeaderHandler, body data.BodyHandler) (data.ExecutionResultHandler, error)
 }

@@ -43,6 +43,8 @@ func NewHeadersExecutor(args ArgsHeadersExecutor) (*headersExecutor, error) {
 	}, nil
 }
 
+// StartExecution starts a goroutine to continuously process blocks from the queue
+// and add their results to the execution tracker until cancelled or closed.
 func (he *headersExecutor) StartExecution() {
 	ctx, cancelFunc := context.WithCancel(context.Background())
 	he.cancelFunc = cancelFunc
@@ -83,7 +85,9 @@ func (he *headersExecutor) process(pair queue.HeaderBodyPair) {
 // Close will close the blocks execution look
 func (he *headersExecutor) Close() error {
 	he.blocksQueue.Close()
-	he.cancelFunc()
+	if he.cancelFunc != nil {
+		he.cancelFunc()
+	}
 
 	return nil
 }

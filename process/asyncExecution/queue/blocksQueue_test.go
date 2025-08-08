@@ -47,41 +47,22 @@ func TestHeadersQueue_Add(t *testing.T) {
 		assert.Nil(t, err)
 		assert.Equal(t, 1, len(hq.headerBodyPairs))
 	})
-}
 
-func TestHeadersQueue_AddFirstMultiple(t *testing.T) {
-	t.Parallel()
-
-	t.Run("empty slice should not modify queue", func(t *testing.T) {
+	t.Run("add headers with same nonce", func(t *testing.T) {
 		t.Parallel()
 		hq, _ := NewBlocksQueue()
-		err := hq.AddFirstMultiple(nil)
+		header := &block.Header{Nonce: 1, Round: 1}
+		err := hq.AddOrReplace(HeaderBodyPair{Header: header, Body: &block.Body{}})
 		assert.Nil(t, err)
-		assert.Equal(t, 0, len(hq.headerBodyPairs))
-	})
+		assert.Equal(t, 1, len(hq.headerBodyPairs))
+		assert.Equal(t, uint64(1), hq.headerBodyPairs[0].Header.GetRound())
 
-	t.Run("multiple headers should be added at beginning", func(t *testing.T) {
-		t.Parallel()
-		hq, _ := NewBlocksQueue()
-		firstPair := HeaderBodyPair{Header: &block.Header{Nonce: 1}, Body: &block.Body{}}
-		_ = hq.AddOrReplace(firstPair)
-
-		newHeaders := []HeaderBodyPair{
-			{
-				Header: &block.Header{Nonce: 2},
-				Body:   &block.Body{},
-			},
-			{
-				Header: &block.Header{Nonce: 3},
-				Body:   &block.Body{},
-			},
-		}
-		err := hq.AddFirstMultiple(newHeaders)
+		header = &block.Header{Nonce: 1, Round: 2}
+		err = hq.AddOrReplace(HeaderBodyPair{Header: header, Body: &block.Body{}})
 		assert.Nil(t, err)
-		assert.Equal(t, 3, len(hq.headerBodyPairs))
-		assert.Equal(t, uint64(2), hq.headerBodyPairs[0].Header.GetNonce())
-		assert.Equal(t, uint64(3), hq.headerBodyPairs[1].Header.GetNonce())
-		assert.Equal(t, uint64(1), hq.headerBodyPairs[2].Header.GetNonce())
+		assert.Equal(t, 1, len(hq.headerBodyPairs))
+		assert.Equal(t, uint64(2), hq.headerBodyPairs[0].Header.GetRound())
+
 	})
 }
 

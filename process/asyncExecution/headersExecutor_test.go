@@ -55,25 +55,29 @@ func TestNewHeadersExecutor(t *testing.T) {
 		require.NoError(t, err)
 		require.NotNil(t, executor)
 		require.False(t, executor.IsInterfaceNil())
+
+		err = executor.Close()
+		require.NoError(t, err)
 	})
 }
 
 func TestHeadersExecutor_StartAndClose(t *testing.T) {
 	t.Parallel()
 
-	calledCount := 0
+	calledProcessBlock := 0
+	calledAddExecutionResult := 0
 	args := createMockArgs()
 	blocksQueue, _ := queue.NewBlocksQueue()
 	args.BlocksQueue = blocksQueue
 	args.BlockProcessor = &processMocks.BlockProcessorStub{
 		ProcessBlockCalled: func(handler data.HeaderHandler, body data.BodyHandler) (data.ExecutionResultHandler, error) {
-			calledCount++
+			calledProcessBlock++
 			return nil, nil
 		},
 	}
 	args.ExecutionTracker = &processMocks.ExecutionTrackerStub{
 		AddExecutionResultCalled: func(executionResult data.ExecutionResultHandler) error {
-			calledCount++
+			calledAddExecutionResult++
 			return nil
 		},
 	}
@@ -93,6 +97,7 @@ func TestHeadersExecutor_StartAndClose(t *testing.T) {
 
 	err = executor.Close()
 	require.NoError(t, err)
-	require.Equal(t, 2, calledCount)
+	require.Equal(t, 1, calledProcessBlock)
+	require.Equal(t, 1, calledAddExecutionResult)
 
 }

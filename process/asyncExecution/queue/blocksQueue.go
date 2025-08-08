@@ -11,7 +11,7 @@ import (
 
 var log = logger.GetOrCreate("process/asyncExecution/queue")
 
-// mutex represents a thread-safe queue for storing and processing blockchain headers
+// blocksQueue represents a thread-safe queue for storing and processing blockchain headers.
 // It provides methods to add headers at the end or beginning of the queue and retrieve them
 // for processing in a FIFO (First In, First Out) manner
 type blocksQueue struct {
@@ -56,23 +56,6 @@ func (hq *blocksQueue) AddOrReplace(pair HeaderBodyPair) error {
 	} else {
 		hq.headerBodyPairs = append(hq.headerBodyPairs, pair)
 	}
-
-	hq.cond.Signal()
-
-	return nil
-}
-
-// AddFirstMultiple adds multiple headers at the beginning of the queue
-// TODO should I remove this method
-func (hq *blocksQueue) AddFirstMultiple(pairs []HeaderBodyPair) error {
-	if len(pairs) == 0 {
-		return nil
-	}
-
-	hq.mutex.Lock()
-	defer hq.mutex.Unlock()
-
-	hq.headerBodyPairs = append(pairs, hq.headerBodyPairs...)
 
 	hq.cond.Signal()
 
