@@ -1204,7 +1204,7 @@ func (sp *shardProcessor) CommitBlock(
 	if errNotCritical != nil {
 		log.Debug("removeTxsFromPools", "error", errNotCritical.Error())
 	}
-
+	
 	sp.cleanupPools(headerHandler)
 
 	sp.blockProcessingCutoffHandler.HandlePauseCutoff(header)
