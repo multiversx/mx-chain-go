@@ -1793,7 +1793,7 @@ func (txs *transactions) prefilterTransactions(
 
 	log.Debug("preFilterTransactions estimation",
 		"initialTxs", len(initialTxs),
-		"gasCost initialTxs", initialTxsGasEstimation,
+		"gasCostOfInitialTxs", initialTxsGasEstimation,
 		"additionalTxs", len(additionalTxs),
 		"gasCostEstimation", gasEstimation,
 		"selected", len(selectedTxs),
