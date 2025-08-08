@@ -2389,7 +2389,7 @@ func (bp *baseProcessor) checkReceivedProofIfAttestingIsNeeded(proof data.Header
 	bp.hdrsForCurrBlock.SetHasProof(hashStr)
 	bp.hdrsForCurrBlock.DecreaseMissingProofs()
 
-	missingMetaHdrs, missingProofs, missingFinalityAttestingMetaHdrs := bp.hdrsForCurrBlock.GetMisingData()
+	missingMetaHdrs, missingProofs, missingFinalityAttestingMetaHdrs := bp.hdrsForCurrBlock.GetMissingData()
 	bp.mutHdrsForBlock.Unlock()
 
 	allMissingMetaHeadersReceived := missingMetaHdrs == 0 && missingFinalityAttestingMetaHdrs == 0 && missingProofs == 0

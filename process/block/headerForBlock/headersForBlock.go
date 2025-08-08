@@ -63,8 +63,8 @@ func (hfb *headersForBlock) AddHeaderInfo(hash string, headerInfo HeaderInfo) {
 	hfb.hdrHashAndInfo[hash] = headerInfo
 }
 
-// GetMisingData returns the missing headers and proofs
-func (hfb *headersForBlock) GetMisingData() (uint32, uint32, uint32) {
+// GetMissingData returns the missing headers and proofs
+func (hfb *headersForBlock) GetMissingData() (uint32, uint32, uint32) {
 	hfb.mutHdrsForBlock.RLock()
 	defer hfb.mutHdrsForBlock.RUnlock()
 

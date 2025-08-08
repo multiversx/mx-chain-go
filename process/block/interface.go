@@ -30,7 +30,7 @@ type receiptsRepository interface {
 // HeadersForBlock defines a component able to hold headers for a block
 type HeadersForBlock interface {
 	AddHeaderInfo(hash string, headerInfo headerForBlock.HeaderInfo)
-	GetMisingData() (uint32, uint32, uint32)
+	GetMissingData() (uint32, uint32, uint32)
 	GetHeadersInfoMap() map[string]headerForBlock.HeaderInfo
 	GetHeadersMap() map[string]data.HeaderHandler
 	GetHeaderInfo(hash string) (headerForBlock.HeaderInfo, bool)

@@ -202,7 +202,7 @@ func NewShardProcessorEmptyWith3shards(
 // RequestBlockHeaders -
 func (mp *metaProcessor) RequestBlockHeaders(header *block.MetaBlock) (uint32, uint32, uint32) {
 	mp.requestShardHeaders(header)
-	return mp.hdrsForCurrBlock.GetMisingData()
+	return mp.hdrsForCurrBlock.GetMissingData()
 }
 
 // ReceivedShardHeader -
@@ -672,13 +672,13 @@ func (mp *metaProcessor) ChannelReceiveAllHeaders() chan bool {
 // ComputeExistingAndRequestMissingShardHeaders -
 func (mp *metaProcessor) ComputeExistingAndRequestMissingShardHeaders(metaBlock *block.MetaBlock) (uint32, uint32, uint32) {
 	mp.computeExistingAndRequestMissingShardHeaders(metaBlock)
-	return mp.hdrsForCurrBlock.GetMisingData()
+	return mp.hdrsForCurrBlock.GetMissingData()
 }
 
 // ComputeExistingAndRequestMissingMetaHeaders -
 func (sp *shardProcessor) ComputeExistingAndRequestMissingMetaHeaders(header data.ShardHeaderHandler) (uint32, uint32, uint32) {
 	sp.computeExistingAndRequestMissingMetaHeaders(header)
-	return sp.hdrsForCurrBlock.GetMisingData()
+	return sp.hdrsForCurrBlock.GetMissingData()
 }
 
 // GetHdrForBlock -

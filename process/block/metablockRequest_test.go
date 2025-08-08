@@ -53,7 +53,7 @@ func TestMetaProcessor_computeExistingAndRequestMissingShardHeaders(t *testing.T
 		numMissing, missingProofs, numAttestationMissing := mp.ComputeExistingAndRequestMissingShardHeaders(metaBlock)
 		time.Sleep(100 * time.Millisecond)
 		require.Equal(t, uint32(2), numMissing)
-		missingHdrs, _, missingAttesting := headersForBlock.GetMisingData()
+		missingHdrs, _, missingAttesting := headersForBlock.GetMissingData()
 		require.Equal(t, uint32(2), missingHdrs)
 		// before receiving all missing headers referenced in metaBlock, the number of missing attestations is not updated
 		require.Equal(t, uint32(0), numAttestationMissing)
@@ -93,7 +93,7 @@ func TestMetaProcessor_computeExistingAndRequestMissingShardHeaders(t *testing.T
 		headersForBlock := mp.GetHdrForBlock()
 		require.Equal(t, uint32(1), numMissing)
 
-		missingHdrs, _, missingAttesting := headersForBlock.GetMisingData()
+		missingHdrs, _, missingAttesting := headersForBlock.GetMissingData()
 		require.Equal(t, uint32(1), missingHdrs)
 		// before receiving all missing headers referenced in metaBlock, the number of missing attestations is not updated
 		require.Equal(t, uint32(0), numAttestationMissing)
@@ -133,7 +133,7 @@ func TestMetaProcessor_computeExistingAndRequestMissingShardHeaders(t *testing.T
 		time.Sleep(100 * time.Millisecond)
 		headersForBlock := mp.GetHdrForBlock()
 		require.Equal(t, uint32(0), numMissing)
-		missingHdrs, _, missingAttesting := headersForBlock.GetMisingData()
+		missingHdrs, _, missingAttesting := headersForBlock.GetMissingData()
 		require.Equal(t, uint32(0), missingHdrs)
 		require.Equal(t, uint32(2), numAttestationMissing)
 		require.Equal(t, uint32(0), missingProofs)
@@ -173,7 +173,7 @@ func TestMetaProcessor_computeExistingAndRequestMissingShardHeaders(t *testing.T
 		time.Sleep(100 * time.Millisecond)
 		headersForBlock := mp.GetHdrForBlock()
 		require.Equal(t, uint32(0), numMissing)
-		missingHdrs, _, missingAttesting := headersForBlock.GetMisingData()
+		missingHdrs, _, missingAttesting := headersForBlock.GetMissingData()
 		require.Equal(t, uint32(0), missingHdrs)
 		require.Equal(t, uint32(1), numAttestationMissing)
 		require.Equal(t, uint32(0), missingProofs)
@@ -214,7 +214,7 @@ func TestMetaProcessor_computeExistingAndRequestMissingShardHeaders(t *testing.T
 		time.Sleep(100 * time.Millisecond)
 		headersForBlock := mp.GetHdrForBlock()
 		require.Equal(t, uint32(0), numMissing)
-		missingHdrs, _, missingAttesting := headersForBlock.GetMisingData()
+		missingHdrs, _, missingAttesting := headersForBlock.GetMissingData()
 		require.Equal(t, uint32(0), missingHdrs)
 		require.Equal(t, uint32(0), numAttestationMissing)
 		require.Equal(t, uint32(0), missingProofs)
@@ -261,7 +261,7 @@ func TestMetaProcessor_receivedShardHeader(t *testing.T) {
 		require.Nil(t, err)
 		require.NotNil(t, mp)
 		require.Equal(t, uint32(1), numCalls.Load())
-		_, _, missingAttesting := hdrsForBlock.GetMisingData()
+		_, _, missingAttesting := hdrsForBlock.GetMissingData()
 		require.Equal(t, uint32(1), missingAttesting)
 	})
 
@@ -299,7 +299,7 @@ func TestMetaProcessor_receivedShardHeader(t *testing.T) {
 		// not yet requested attestation blocks as still missing one header
 		require.Equal(t, uint32(0), numCalls.Load())
 		// not yet computed
-		_, _, missingAttesting := hdrsForBlock.GetMisingData()
+		_, _, missingAttesting := hdrsForBlock.GetMissingData()
 		require.Equal(t, uint32(0), missingAttesting)
 	})
 	t.Run("all needed shard attestation headers received", func(t *testing.T) {
@@ -344,7 +344,7 @@ func TestMetaProcessor_receivedShardHeader(t *testing.T) {
 		require.Nil(t, err)
 		require.NotNil(t, mp)
 		require.Equal(t, uint32(1), numCalls.Load())
-		_, _, missingAttesting := hdrsForBlock.GetMisingData()
+		_, _, missingAttesting := hdrsForBlock.GetMissingData()
 		require.Equal(t, uint32(1), missingAttesting)
 
 		// needs to be done before receiving the last header otherwise it will
@@ -358,7 +358,7 @@ func TestMetaProcessor_receivedShardHeader(t *testing.T) {
 		wg.Wait()
 
 		require.Equal(t, uint32(1), numCalls.Load())
-		_, _, missingAttesting = hdrsForBlock.GetMisingData()
+		_, _, missingAttesting = hdrsForBlock.GetMissingData()
 		require.Equal(t, uint32(0), missingAttesting)
 	})
 	t.Run("all needed shard attestation headers received, when multiple shards headers missing", func(t *testing.T) {
@@ -407,7 +407,7 @@ func TestMetaProcessor_receivedShardHeader(t *testing.T) {
 		// the attestation header for shard 0 is not requested as the attestation header for shard 1 is missing
 		// TODO: refactor request logic to request missing attestation headers as soon as possible
 		require.Equal(t, uint32(0), numCalls.Load())
-		_, _, missingAttesting := hdrsForBlock.GetMisingData()
+		_, _, missingAttesting := hdrsForBlock.GetMissingData()
 		require.Equal(t, uint32(0), missingAttesting)
 
 		// receive the missing header for shard 1
@@ -418,7 +418,7 @@ func TestMetaProcessor_receivedShardHeader(t *testing.T) {
 		require.Nil(t, err)
 		require.NotNil(t, mp)
 		require.Equal(t, uint32(2), numCalls.Load())
-		_, _, missingAttesting = hdrsForBlock.GetMisingData()
+		_, _, missingAttesting = hdrsForBlock.GetMissingData()
 		require.Equal(t, uint32(2), missingAttesting)
 
 		// needs to be done before receiving the last header otherwise it will
@@ -437,7 +437,7 @@ func TestMetaProcessor_receivedShardHeader(t *testing.T) {
 		// the receive of an attestation header, if not the last one, will trigger a new request of missing attestation headers
 		// TODO: refactor request logic to not request recently already requested headers
 		require.Equal(t, uint32(3), numCalls.Load())
-		_, _, missingAttesting = hdrsForBlock.GetMisingData()
+		_, _, missingAttesting = hdrsForBlock.GetMissingData()
 		require.Equal(t, uint32(0), missingAttesting)
 	})
 }

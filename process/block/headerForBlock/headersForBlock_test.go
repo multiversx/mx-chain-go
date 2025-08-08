@@ -29,7 +29,7 @@ func TestHeadersForBlock_Reset(t *testing.T) {
 	hfb.Reset()
 
 	// Check if all counters are reset
-	missingHdrs, missingFinalityHdrs, missingProofs := hfb.GetMisingData()
+	missingHdrs, missingFinalityHdrs, missingProofs := hfb.GetMissingData()
 	require.Equal(t, uint32(0), missingHdrs)
 	require.Equal(t, uint32(0), missingFinalityHdrs)
 	require.Equal(t, uint32(0), missingProofs)
@@ -127,7 +127,7 @@ func TestHeadersForBlock_CounterOperations(t *testing.T) {
 	hfb.DecreaseMissingProofs()
 
 	// Verify all counters
-	missingHdrs, missingProofs, missingFinalityHdrs := hfb.GetMisingData()
+	missingHdrs, missingProofs, missingFinalityHdrs := hfb.GetMissingData()
 	require.Equal(t, uint32(1), missingHdrs)
 	require.Equal(t, uint32(5), missingFinalityHdrs)
 	require.Equal(t, uint32(1), missingProofs)
