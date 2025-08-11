@@ -41,6 +41,7 @@ func initNodesWithTestSigner(
 		enableEpochsConfig,
 		integrationTests.GetSupernovaRoundsConfig(),
 		false,
+		100,
 	)
 
 	time.Sleep(p2pBootstrapDelay)
