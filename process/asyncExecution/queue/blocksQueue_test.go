@@ -151,7 +151,7 @@ func TestHeadersQueue_Concurrency(t *testing.T) {
 		hq.Close()
 	}()
 
-	// pop wil return false and empty a pair after close
+	// pop will return false and empty a pair after close
 	res, ok := hq.Pop()
 	require.Nil(t, res.Header)
 	require.Nil(t, res.Body)

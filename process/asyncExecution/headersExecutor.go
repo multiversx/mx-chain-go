@@ -82,7 +82,7 @@ func (he *headersExecutor) process(pair queue.HeaderBodyPair) {
 	}
 }
 
-// Close will close the blocks execution look
+// Close will close the blocks execution loop
 func (he *headersExecutor) Close() error {
 	he.blocksQueue.Close()
 	if he.cancelFunc != nil {
