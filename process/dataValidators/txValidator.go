@@ -26,6 +26,7 @@ type txValidator struct {
 	whiteListHandler     process.WhiteListHandler
 	pubKeyConverter      core.PubkeyConverter
 	txVersionChecker     process.TxVersionCheckerHandler
+	enableEpochsHandler  core.EnableEpochsHandler
 	maxNonceDeltaAllowed int
 }
 
@@ -36,6 +37,7 @@ func NewTxValidator(
 	whiteListHandler process.WhiteListHandler,
 	pubKeyConverter core.PubkeyConverter,
 	txVersionChecker process.TxVersionCheckerHandler,
+	enableEpochsHandler core.EnableEpochsHandler,
 	maxNonceDeltaAllowed int,
 ) (*txValidator, error) {
 	if check.IfNil(accounts) {
@@ -53,6 +55,9 @@ func NewTxValidator(
 	if check.IfNil(txVersionChecker) {
 		return nil, process.ErrNilTransactionVersionChecker
 	}
+	if check.IfNil(enableEpochsHandler) {
+		return nil, process.ErrNilEnableEpochsHandler
+	}
 
 	return &txValidator{
 		accounts:             accounts,
@@ -61,6 +66,7 @@ func NewTxValidator(
 		maxNonceDeltaAllowed: maxNonceDeltaAllowed,
 		pubKeyConverter:      pubKeyConverter,
 		txVersionChecker:     txVersionChecker,
+		enableEpochsHandler:  enableEpochsHandler,
 	}, nil
 }
 
@@ -81,7 +87,7 @@ func (txv *txValidator) CheckTxValidity(interceptedTx process.InterceptedTransac
 	// only if the transaction is not guarded
 	isRelayedV3 := common.IsRelayedTxV3(interceptedTx.Transaction())
 	hasValue := hasTxValue(interceptedTx)
-	isGuardedTx := txv.isGuardedTx(interceptedTx.Transaction())
+	isGuardedTx := txv.isGuardedTxBeforeSupernova(interceptedTx.Transaction())
 	shouldAllowMissingSenderAccount := isRelayedV3 && !hasValue && !isGuardedTx
 	accountHandler, err := txv.getSenderAccount(interceptedTx)
 	if err != nil && !shouldAllowMissingSenderAccount {
@@ -91,7 +97,11 @@ func (txv *txValidator) CheckTxValidity(interceptedTx process.InterceptedTransac
 	return txv.checkAccount(interceptedTx, accountHandler)
 }
 
-func (txv *txValidator) isGuardedTx(tx data.TransactionHandler) bool {
+func (txv *txValidator) isGuardedTxBeforeSupernova(tx data.TransactionHandler) bool {
+	if !txv.enableEpochsHandler.IsFlagEnabled(common.SupernovaFlag) {
+		return false
+	}
+
 	txPtr, ok := tx.(*transaction.Transaction)
 	if !ok {
 		return false

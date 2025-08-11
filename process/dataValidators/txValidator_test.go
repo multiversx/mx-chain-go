@@ -7,14 +7,17 @@ import (
 	"strconv"
 	"testing"
 
+	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/dataValidators"
 	"github.com/multiversx/mx-chain-go/process/mock"
 	"github.com/multiversx/mx-chain-go/state/accounts"
 	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	stateMock "github.com/multiversx/mx-chain-go/testscommon/state"
 	"github.com/multiversx/mx-chain-go/testscommon/trie"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
@@ -86,6 +89,7 @@ func TestNewTxValidator_NilAccountsShouldErr(t *testing.T) {
 		&testscommon.WhiteListHandlerStub{},
 		testscommon.NewPubkeyConverterMock(32),
 		&testscommon.TxVersionCheckerStub{},
+		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 		maxNonceDeltaAllowed,
 	)
 
@@ -104,6 +108,7 @@ func TestNewTxValidator_NilShardCoordinatorShouldErr(t *testing.T) {
 		&testscommon.WhiteListHandlerStub{},
 		testscommon.NewPubkeyConverterMock(32),
 		&testscommon.TxVersionCheckerStub{},
+		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 		maxNonceDeltaAllowed,
 	)
 
@@ -123,6 +128,7 @@ func TestTxValidator_NewValidatorNilWhiteListHandlerShouldErr(t *testing.T) {
 		nil,
 		testscommon.NewPubkeyConverterMock(32),
 		&testscommon.TxVersionCheckerStub{},
+		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 		maxNonceDeltaAllowed,
 	)
 
@@ -142,6 +148,7 @@ func TestNewTxValidator_NilPubkeyConverterShouldErr(t *testing.T) {
 		&testscommon.WhiteListHandlerStub{},
 		nil,
 		&testscommon.TxVersionCheckerStub{},
+		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 		maxNonceDeltaAllowed,
 	)
 
@@ -161,10 +168,30 @@ func TestNewTxValidator_NilTxVersionCheckerShouldErr(t *testing.T) {
 		&testscommon.WhiteListHandlerStub{},
 		testscommon.NewPubkeyConverterMock(32),
 		nil,
+		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 		maxNonceDeltaAllowed,
 	)
 	assert.Nil(t, txValidator)
 	assert.True(t, errors.Is(err, process.ErrNilTransactionVersionChecker))
+}
+
+func TestNewTxValidator_NilEnableEpochsHandlerShouldErr(t *testing.T) {
+	t.Parallel()
+
+	adb := getAccAdapter(0, big.NewInt(0))
+	shardCoordinator := createMockCoordinator("_", 0)
+	maxNonceDeltaAllowed := 100
+	txValidator, err := dataValidators.NewTxValidator(
+		adb,
+		shardCoordinator,
+		&testscommon.WhiteListHandlerStub{},
+		testscommon.NewPubkeyConverterMock(32),
+		&testscommon.TxVersionCheckerStub{},
+		nil,
+		maxNonceDeltaAllowed,
+	)
+	assert.Nil(t, txValidator)
+	assert.True(t, errors.Is(err, process.ErrNilEnableEpochsHandler))
 }
 
 func TestNewTxValidator_ShouldWork(t *testing.T) {
@@ -179,6 +206,7 @@ func TestNewTxValidator_ShouldWork(t *testing.T) {
 		&testscommon.WhiteListHandlerStub{},
 		testscommon.NewPubkeyConverterMock(32),
 		&testscommon.TxVersionCheckerStub{},
+		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 		maxNonceDeltaAllowed,
 	)
 
@@ -202,6 +230,7 @@ func TestTxValidator_CheckTxValidityTxCrossShardShouldWork(t *testing.T) {
 		&testscommon.WhiteListHandlerStub{},
 		testscommon.NewPubkeyConverterMock(32),
 		&testscommon.TxVersionCheckerStub{},
+		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 		maxNonceDeltaAllowed,
 	)
 	assert.Nil(t, err)
@@ -228,6 +257,7 @@ func TestTxValidator_CheckTxValidityAccountNonceIsGreaterThanTxNonceShouldReturn
 		&testscommon.WhiteListHandlerStub{},
 		testscommon.NewPubkeyConverterMock(32),
 		&testscommon.TxVersionCheckerStub{},
+		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 		maxNonceDeltaAllowed,
 	)
 	assert.Nil(t, err)
@@ -255,6 +285,7 @@ func TestTxValidator_CheckTxValidityTxNonceIsTooHigh(t *testing.T) {
 		&testscommon.WhiteListHandlerStub{},
 		testscommon.NewPubkeyConverterMock(32),
 		&testscommon.TxVersionCheckerStub{},
+		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 		maxNonceDeltaAllowed,
 	)
 	assert.Nil(t, err)
@@ -298,6 +329,7 @@ func TestTxValidator_CheckTxValidityAccountBalanceIsLessThanTxTotalValueShouldRe
 			&testscommon.WhiteListHandlerStub{},
 			testscommon.NewPubkeyConverterMock(32),
 			&testscommon.TxVersionCheckerStub{},
+			&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 			maxNonceDeltaAllowed,
 		)
 		assert.Nil(t, err)
@@ -344,6 +376,7 @@ func TestTxValidator_CheckTxValidityAccountBalanceIsLessThanTxTotalValueShouldRe
 			&testscommon.WhiteListHandlerStub{},
 			testscommon.NewPubkeyConverterMock(32),
 			&testscommon.TxVersionCheckerStub{},
+			&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 			maxNonceDeltaAllowed,
 		)
 		assert.Nil(t, err)
@@ -405,6 +438,7 @@ func TestTxValidator_CheckTxValidityRelayedV3(t *testing.T) {
 			&testscommon.WhiteListHandlerStub{},
 			testscommon.NewPubkeyConverterMock(32),
 			&testscommon.TxVersionCheckerStub{},
+			&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 			maxNonceDeltaAllowed,
 		)
 		assert.Nil(t, err)
@@ -464,6 +498,11 @@ func TestTxValidator_CheckTxValidityRelayedV3(t *testing.T) {
 					return true
 				},
 			},
+			&enableEpochsHandlerMock.EnableEpochsHandlerStub{
+				IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
+					return flag == common.SupernovaFlag
+				},
+			},
 			maxNonceDeltaAllowed,
 		)
 		assert.Nil(t, err)
@@ -504,6 +543,7 @@ func TestTxValidator_CheckTxValidityAccountNotExitsShouldReturnFalse(t *testing.
 		&testscommon.WhiteListHandlerStub{},
 		testscommon.NewPubkeyConverterMock(32),
 		&testscommon.TxVersionCheckerStub{},
+		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 		maxNonceDeltaAllowed,
 	)
 
@@ -534,6 +574,7 @@ func TestTxValidator_CheckTxValidityAccountNotExitsButWhiteListedShouldReturnTru
 		},
 		testscommon.NewPubkeyConverterMock(32),
 		&testscommon.TxVersionCheckerStub{},
+		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 		maxNonceDeltaAllowed,
 	)
 
@@ -569,6 +610,7 @@ func TestTxValidator_CheckTxValidityWrongAccountTypeShouldReturnFalse(t *testing
 		&testscommon.WhiteListHandlerStub{},
 		testscommon.NewPubkeyConverterMock(32),
 		&testscommon.TxVersionCheckerStub{},
+		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 		maxNonceDeltaAllowed,
 	)
 
@@ -594,6 +636,7 @@ func TestTxValidator_CheckTxValidityTxIsOkShouldReturnTrue(t *testing.T) {
 		&testscommon.WhiteListHandlerStub{},
 		testscommon.NewPubkeyConverterMock(32),
 		&testscommon.TxVersionCheckerStub{},
+		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 		maxNonceDeltaAllowed,
 	)
 
@@ -652,6 +695,7 @@ func TestTxValidator_IsInterfaceNil(t *testing.T) {
 		&testscommon.WhiteListHandlerStub{},
 		testscommon.NewPubkeyConverterMock(32),
 		&testscommon.TxVersionCheckerStub{},
+		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 		100,
 	)
 	_ = txValidator
