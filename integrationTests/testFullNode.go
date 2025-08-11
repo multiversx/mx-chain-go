@@ -85,6 +85,7 @@ func CreateNodesWithTestFullNode(
 	consensusType string,
 	numKeysOnEachNode int,
 	enableEpochsConfig config.EnableEpochs,
+	roundsConfig config.RoundConfig,
 	withSync bool,
 ) map[uint32][]*TestFullNode {
 
@@ -111,6 +112,7 @@ func CreateNodesWithTestFullNode(
 					TxSignPrivKeyShardId: 0,
 					WithSync:             withSync,
 					EpochsConfig:         &enableEpochsConfig,
+					RoundsConfig:         &roundsConfig,
 					NodeKeys:             keysPair,
 				},
 				ShardID:       shardID,

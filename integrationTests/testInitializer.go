@@ -1421,16 +1421,42 @@ func CreateNodesWithEnableEpochsConfig(
 	return createNodesWithEpochsConfig(numOfShards, nodesPerShard, numMetaChainNodes, enableEpochsConfig)
 }
 
+// CreateNodesWithEnableConfigs -
+func CreateNodesWithEnableConfigs(
+	numOfShards int,
+	nodesPerShard int,
+	numMetaChainNodes int,
+	enableEpochsConfig *config.EnableEpochs,
+	enableRoundsConfig *config.RoundConfig,
+) []*TestProcessorNode {
+	return createNodesWithEnableConfigs(numOfShards, nodesPerShard, numMetaChainNodes, enableEpochsConfig, enableRoundsConfig)
+}
+
 func createNodesWithEpochsConfig(
 	numOfShards int,
 	nodesPerShard int,
 	numMetaChainNodes int,
 	enableEpochsConfig *config.EnableEpochs,
 ) []*TestProcessorNode {
+	defaultRoundsConfig := testscommon.GetDefaultRoundsConfig()
+	return createNodesWithEnableConfigs(
+		numOfShards,
+		nodesPerShard,
+		numMetaChainNodes,
+		enableEpochsConfig,
+		&defaultRoundsConfig,
+	)
+}
+
+func createNodesWithEnableConfigs(
+	numOfShards int,
+	nodesPerShard int,
+	numMetaChainNodes int,
+	enableEpochsConfig *config.EnableEpochs,
+	enableRoundsConfig *config.RoundConfig,
+) []*TestProcessorNode {
 	nodes := make([]*TestProcessorNode, numOfShards*nodesPerShard+numMetaChainNodes)
 	connectableNodes := make([]Connectable, len(nodes))
-
-	defaultRoundsConfig := testscommon.GetDefaultRoundsConfig()
 
 	idx := 0
 	for shardId := uint32(0); shardId < uint32(numOfShards); shardId++ {
@@ -1440,7 +1466,7 @@ func createNodesWithEpochsConfig(
 				NodeShardId:          shardId,
 				TxSignPrivKeyShardId: shardId,
 				EpochsConfig:         enableEpochsConfig,
-				RoundsConfig:         &defaultRoundsConfig,
+				RoundsConfig:         enableRoundsConfig,
 			})
 			nodes[idx] = n
 			connectableNodes[idx] = n
@@ -1454,6 +1480,7 @@ func createNodesWithEpochsConfig(
 			NodeShardId:          core.MetachainShardId,
 			TxSignPrivKeyShardId: 0,
 			EpochsConfig:         enableEpochsConfig,
+			RoundsConfig:         enableRoundsConfig,
 		})
 		idx = i + numOfShards*nodesPerShard
 		nodes[idx] = metaNode
