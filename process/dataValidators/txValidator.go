@@ -87,7 +87,7 @@ func (txv *txValidator) CheckTxValidity(interceptedTx process.InterceptedTransac
 	// only if the transaction is not guarded
 	isRelayedV3 := common.IsRelayedTxV3(interceptedTx.Transaction())
 	hasValue := hasTxValue(interceptedTx)
-	isGuardedTx := txv.isGuardedTxBeforeSupernova(interceptedTx.Transaction())
+	isGuardedTx := txv.isGuardedTxAfterSupernova(interceptedTx.Transaction())
 	shouldAllowMissingSenderAccount := isRelayedV3 && !hasValue && !isGuardedTx
 	accountHandler, err := txv.getSenderAccount(interceptedTx)
 	if err != nil && !shouldAllowMissingSenderAccount {
@@ -97,7 +97,7 @@ func (txv *txValidator) CheckTxValidity(interceptedTx process.InterceptedTransac
 	return txv.checkAccount(interceptedTx, accountHandler)
 }
 
-func (txv *txValidator) isGuardedTxBeforeSupernova(tx data.TransactionHandler) bool {
+func (txv *txValidator) isGuardedTxAfterSupernova(tx data.TransactionHandler) bool {
 	if !txv.enableEpochsHandler.IsFlagEnabled(common.SupernovaFlag) {
 		return false
 	}
