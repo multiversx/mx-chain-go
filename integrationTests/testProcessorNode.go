@@ -776,7 +776,7 @@ func (tpn *TestProcessorNode) initTestNodeWithArgs(args ArgTestProcessorNode) {
 		args.StatusMetrics = &testscommon.StatusMetricsStub{}
 	}
 
-	roundTime := time.Millisecond * time.Duration(1000)
+	roundTime := time.Millisecond * time.Duration(5000)
 
 	tpn.initChainHandler()
 	tpn.initHeaderValidator()

@@ -1492,12 +1492,31 @@ func createNodesWithEnableConfigs(
 	return nodes
 }
 
+// CreateNodesWithEnableEpochsAndEnableRounds
+func CreateNodesWithEnableEpochsAndEnableRounds(
+	numOfShards int,
+	nodesPerShard int,
+	numMetaChainNodes int,
+	epochConfig config.EnableEpochs,
+	roundConfig config.RoundConfig,
+) []*TestProcessorNode {
+	return CreateNodesWithEnableEpochsAndVmConfigWithRoundsConfig(
+		numOfShards,
+		nodesPerShard,
+		numMetaChainNodes,
+		epochConfig,
+		roundConfig,
+		nil,
+	)
+}
+
 // CreateNodesWithEnableEpochs creates multiple nodes with custom epoch config
 func CreateNodesWithEnableEpochs(
 	numOfShards int,
 	nodesPerShard int,
 	numMetaChainNodes int,
 	epochConfig config.EnableEpochs,
+	roundConfig config.RoundConfig,
 ) []*TestProcessorNode {
 	return CreateNodesWithEnableEpochsAndVmConfig(numOfShards, nodesPerShard, numMetaChainNodes, epochConfig, nil)
 }
