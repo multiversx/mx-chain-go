@@ -1313,3 +1313,6 @@ var ErrTransactionsAlreadyProcessed = errors.New("transactions already processed
 
 // ErrMiniBlocksAlreadyProcessed signals that mini blocks were already processed
 var ErrMiniBlocksAlreadyProcessed = errors.New("mini blocks already processed")
+
+// ErrInvalidMaxNonceDifference signals that an invalid max nonce difference has been provided
+var ErrInvalidMaxNonceDifference = errors.New("invalid max nonce difference")
