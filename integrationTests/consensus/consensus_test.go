@@ -231,14 +231,6 @@ func testConsensusBLSWithFullProcessing(
 		"consensusSize", consensusSize,
 	)
 
-<<<<<<< HEAD
-	enableEpochsConfig := integrationTests.CreateEnableEpochsConfig()
-
-	enableEpochsConfig.AndromedaEnableEpoch = equivalentProofsActivationEpoch
-	enableEpochsConfig.SupernovaEnableEpoch = 0
-
-=======
->>>>>>> rc/supernova
 	fmt.Println("Step 1. Setup nodes...")
 
 	nodes := integrationTests.CreateNodesWithTestFullNode(
@@ -249,12 +241,9 @@ func testConsensusBLSWithFullProcessing(
 		blsConsensusType,
 		numKeysOnEachNode,
 		enableEpochsConfig,
-<<<<<<< HEAD
 		integrationTests.GetSupernovaRoundsConfig(),
 		true,
-=======
 		roundsPerEpoch,
->>>>>>> rc/supernova
 	)
 	shard0Node := nodes[0][0]
 

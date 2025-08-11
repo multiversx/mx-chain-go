@@ -21,11 +21,7 @@ import (
 	"github.com/multiversx/mx-chain-go/epochStart"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/storage"
-<<<<<<< HEAD
 	logger "github.com/multiversx/mx-chain-logger-go"
-=======
-	"github.com/multiversx/mx-chain-logger-go"
->>>>>>> rc/supernova
 )
 
 var log = logger.GetOrCreate("epochStart/metachain")

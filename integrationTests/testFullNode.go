@@ -86,12 +86,9 @@ func CreateNodesWithTestFullNode(
 	consensusType string,
 	numKeysOnEachNode int,
 	enableEpochsConfig config.EnableEpochs,
-<<<<<<< HEAD
 	roundsConfig config.RoundConfig,
 	withSync bool,
-=======
 	roundsPerEpoch int64,
->>>>>>> rc/supernova
 ) map[uint32][]*TestFullNode {
 	nodes := make(map[uint32][]*TestFullNode, nodesPerShard)
 	cp := CreateCryptoParams(nodesPerShard, numMetaNodes, maxShards, numKeysOnEachNode)
@@ -101,12 +98,16 @@ func CreateNodesWithTestFullNode(
 	waitingMap := make(map[uint32][]nodesCoordinator.Validator)
 	connectableNodes := make([]Connectable, 0)
 
-	startTime := time.Now().UnixMilli()
 	testHasher := createHasher(consensusType)
 
 	nodesSetup := &genesisMocks.NodesSetupStub{InitialNodesInfoCalled: func() (m map[uint32][]nodesCoordinator.GenesisNodeInfoHandler, m2 map[uint32][]nodesCoordinator.GenesisNodeInfoHandler) {
 		return validatorsMap, map[uint32][]nodesCoordinator.GenesisNodeInfoHandler{}
 	}}
+
+	startTime := time.Now().UnixMilli()
+	if enableEpochsConfig.SupernovaEnableEpoch > 0 {
+		startTime = time.Now().Unix()
+	}
 
 	for shardID := range cp.NodesKeys {
 		for _, keysPair := range cp.NodesKeys[shardID] {
@@ -291,7 +292,7 @@ func (tpn *TestFullNode) initTestNodeWithArgs(args ArgTestProcessorNode, fullArg
 				RoundDuration:               uint64(roundDuration.Milliseconds()),
 				ShardConsensusGroupSize:     uint32(fullArgs.ConsensusSize),
 				MetachainConsensusGroupSize: uint32(fullArgs.ConsensusSize),
-				RoundsPerEpoch:              1000,
+				RoundsPerEpoch:              fullArgs.RoundsPerEpoch,
 				MinRoundsBetweenEpochs:      1,
 			}, nil
 		},
@@ -300,7 +301,7 @@ func (tpn *TestFullNode) initTestNodeWithArgs(args ArgTestProcessorNode, fullArg
 				RoundDuration:               uint64(roundDuration.Milliseconds()),
 				ShardConsensusGroupSize:     uint32(fullArgs.ConsensusSize),
 				MetachainConsensusGroupSize: uint32(fullArgs.ConsensusSize),
-				RoundsPerEpoch:              1000,
+				RoundsPerEpoch:              fullArgs.RoundsPerEpoch,
 				MinRoundsBetweenEpochs:      1,
 			}
 		},
@@ -439,11 +440,7 @@ func (tpn *TestFullNode) initNode(
 		tpn.EnableEpochsHandler, _ = enablers.NewEnableEpochsHandler(CreateEnableEpochsConfig(), tpn.EpochNotifier)
 	}
 
-<<<<<<< HEAD
 	epochTrigger := tpn.createEpochStartTrigger()
-=======
-	epochTrigger := tpn.createEpochStartTrigger(args.RoundsPerEpoch)
->>>>>>> rc/supernova
 	tpn.EpochStartTrigger = epochTrigger
 
 	strPk := ""
@@ -688,39 +685,20 @@ func (tfn *TestFullNode) createForkDetector(
 	return forkDetector
 }
 
-<<<<<<< HEAD
 func (tfn *TestFullNode) createEpochStartTrigger() TestEpochStartTrigger {
 	var epochTrigger TestEpochStartTrigger
 	if tfn.ShardCoordinator.SelfId() == core.MetachainShardId {
 		argsNewMetaEpochStart := &metachain.ArgsNewMetaEpochStartTrigger{
 			GenesisTime:            tfn.GenesisTimeField,
-			EpochStartNotifier:     notifier.NewEpochStartSubscriptionHandler(),
+			EpochStartNotifier:     tfn.EpochStartNotifier,
 			Settings:               &config.EpochStartConfig{},
 			Epoch:                  0,
-			Storage:                createTestStore(),
+			Storage:                tfn.Storage,
 			Marshalizer:            TestMarshalizer,
 			Hasher:                 TestHasher,
 			AppStatusHandler:       &statusHandlerMock.AppStatusHandlerStub{},
 			DataPool:               tfn.DataPool,
 			ChainParametersHandler: tfn.ChainParametersHandler,
-=======
-func (tfn *TestFullNode) createEpochStartTrigger(roundsPerEpoch int64) TestEpochStartTrigger {
-	var epochTrigger TestEpochStartTrigger
-	if tfn.ShardCoordinator.SelfId() == core.MetachainShardId {
-		argsNewMetaEpochStart := &metachain.ArgsNewMetaEpochStartTrigger{
-			GenesisTime:        tfn.GenesisTimeField,
-			EpochStartNotifier: tfn.EpochStartNotifier,
-			Settings: &config.EpochStartConfig{
-				MinRoundsBetweenEpochs: 1,
-				RoundsPerEpoch:         roundsPerEpoch,
-			},
-			Epoch:            0,
-			Storage:          tfn.Storage,
-			Marshalizer:      TestMarshalizer,
-			Hasher:           TestHasher,
-			AppStatusHandler: &statusHandlerMock.AppStatusHandlerStub{},
-			DataPool:         tfn.DataPool,
->>>>>>> rc/supernova
 		}
 		epochStartTrigger, err := metachain.NewEpochStartTrigger(argsNewMetaEpochStart)
 		if err != nil {
