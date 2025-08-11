@@ -1516,7 +1516,6 @@ func CreateNodesWithEnableEpochs(
 	nodesPerShard int,
 	numMetaChainNodes int,
 	epochConfig config.EnableEpochs,
-	roundConfig config.RoundConfig,
 ) []*TestProcessorNode {
 	return CreateNodesWithEnableEpochsAndVmConfig(numOfShards, nodesPerShard, numMetaChainNodes, epochConfig, nil)
 }
