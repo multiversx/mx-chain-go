@@ -81,18 +81,23 @@ func (txv *txValidator) CheckTxValidity(interceptedTx process.InterceptedTransac
 	// only if the transaction is not guarded
 	isRelayedV3 := common.IsRelayedTxV3(interceptedTx.Transaction())
 	hasValue := hasTxValue(interceptedTx)
-	isTxGuarded := false
-	txPtr, ok := interceptedTx.Transaction().(*transaction.Transaction)
-	if ok {
-		isTxGuarded = txv.txVersionChecker.IsGuardedTransaction(txPtr)
-	}
-	shouldAllowMissingSenderAccount := isRelayedV3 && !hasValue && !isTxGuarded
+	isGuardedTx := txv.isGuardedTx(interceptedTx.Transaction())
+	shouldAllowMissingSenderAccount := isRelayedV3 && !hasValue && !isGuardedTx
 	accountHandler, err := txv.getSenderAccount(interceptedTx)
 	if err != nil && !shouldAllowMissingSenderAccount {
 		return err
 	}
 
 	return txv.checkAccount(interceptedTx, accountHandler)
+}
+
+func (txv *txValidator) isGuardedTx(tx data.TransactionHandler) bool {
+	txPtr, ok := tx.(*transaction.Transaction)
+	if !ok {
+		return false
+	}
+
+	return txv.txVersionChecker.IsGuardedTransaction(txPtr)
 }
 
 func hasTxValue(interceptedTx process.InterceptedTransactionHandler) bool {
