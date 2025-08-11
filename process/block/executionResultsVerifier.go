@@ -146,6 +146,10 @@ func createLastExecutionResultFromPrevHeader(prevHeader data.HeaderHandler, prev
 	}
 
 	if prevHeader.GetShardID() != core.MetachainShardId {
+		if _, ok := prevHeader.(*block.HeaderV2); !ok {
+			return nil, process.ErrWrongTypeAssertion
+		}
+
 		return &block.ExecutionResultInfo{
 			NotarizedOnHeaderHash: prevHeaderHash,
 			ExecutionResult: &block.BaseExecutionResult{
@@ -172,7 +176,7 @@ func createLastExecutionResultFromPrevHeader(prevHeader data.HeaderHandler, prev
 				RootHash:    prevMetaHeader.GetRootHash(),
 			},
 			ValidatorStatsRootHash: prevMetaHeader.GetValidatorStatsRootHash(),
-			AccumulatedFeesInEpoch: prevMetaHeader.GetDevFeesInEpoch(),
+			AccumulatedFeesInEpoch: prevMetaHeader.GetAccumulatedFeesInEpoch(),
 			DevFeesInEpoch:         prevMetaHeader.GetDevFeesInEpoch(),
 		},
 	}, nil
@@ -187,6 +191,10 @@ func createLastExecutionResultInfoFromExecutionResult(notarizedOnHeaderHash []by
 	}
 
 	if shardID != core.MetachainShardId {
+		if _, ok := lastExecResult.(*block.ExecutionResult); !ok {
+			return nil, process.ErrWrongTypeAssertion
+		}
+
 		return &block.ExecutionResultInfo{
 			NotarizedOnHeaderHash: notarizedOnHeaderHash,
 			ExecutionResult: &block.BaseExecutionResult{
@@ -197,7 +205,8 @@ func createLastExecutionResultInfoFromExecutionResult(notarizedOnHeaderHash []by
 			},
 		}, nil
 	}
-	lastMetaExecResult, ok := lastExecResult.(*block.BaseMetaExecutionResult)
+
+	lastMetaExecResult, ok := lastExecResult.(*block.MetaExecutionResult)
 	if !ok {
 		return nil, process.ErrWrongTypeAssertion
 	}
