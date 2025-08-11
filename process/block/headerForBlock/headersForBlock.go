@@ -238,3 +238,8 @@ func (hfb *headersForBlock) SetMissingFinalityAttestingHeaders(missing uint32) {
 	defer hfb.mutHdrsForBlock.Unlock()
 	hfb.missingFinalityAttestingHdrs = missing
 }
+
+// IsInterfaceNil returns true if underlying object is nil
+func (hfb *headersForBlock) IsInterfaceNil() bool {
+	return hfb == nil
+}

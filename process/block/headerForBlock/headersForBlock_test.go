@@ -15,6 +15,13 @@ func TestNewHeadersForBlock(t *testing.T) {
 	require.NotNil(t, hfb)
 }
 
+func TestHeadersForBlock_IsInterfaceNil(t *testing.T) {
+	t.Parallel()
+
+	hfb := headerForBlock.NewHeadersForBlock()
+	require.False(t, hfb.IsInterfaceNil())
+}
+
 func TestHeadersForBlock_Reset(t *testing.T) {
 	t.Parallel()
 

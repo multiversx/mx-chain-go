@@ -51,4 +51,5 @@ type HeadersForBlock interface {
 	SetMissingFinalityAttestingHeaders(missing uint32)
 	Reset()
 	ResetMissingHeaders()
+	IsInterfaceNil() bool
 }
