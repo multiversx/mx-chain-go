@@ -6,6 +6,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/sharding"
@@ -77,9 +78,15 @@ func (txv *txValidator) CheckTxValidity(interceptedTx process.InterceptedTransac
 	}
 
 	// for relayed v3, we allow sender accounts that do not exist
+	// only if the transaction is not guarded
 	isRelayedV3 := common.IsRelayedTxV3(interceptedTx.Transaction())
 	hasValue := hasTxValue(interceptedTx)
-	shouldAllowMissingSenderAccount := isRelayedV3 && !hasValue
+	isTxGuarded := false
+	txPtr, ok := interceptedTx.Transaction().(*transaction.Transaction)
+	if ok {
+		isTxGuarded = txv.txVersionChecker.IsGuardedTransaction(txPtr)
+	}
+	shouldAllowMissingSenderAccount := isRelayedV3 && !hasValue && !isTxGuarded
 	accountHandler, err := txv.getSenderAccount(interceptedTx)
 	if err != nil && !shouldAllowMissingSenderAccount {
 		return err
