@@ -409,8 +409,8 @@ func TestMempoolWithChainSimulator_Eviction(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	numSenders := 4
-	numTransactionsPerSender := 1
+	numSenders := 10000
+	numTransactionsPerSender := 30
 	shard := 0
 
 	simulator := startChainSimulator(t, func(cfg *config.Configs) {})
@@ -445,13 +445,13 @@ func TestMempoolWithChainSimulator_Eviction(t *testing.T) {
 
 	sendTransactions(t, simulator, transactions)
 	time.Sleep(durationWaitAfterSendMany)
-	require.Equal(t, 4, getNumTransactionsInPool(simulator, shard))
+	require.Equal(t, 300_000, getNumTransactionsInPool(simulator, shard))
 
 	// Send one more transaction (fill up the mempool)
 	sendTransaction(t, simulator, &transaction.Transaction{
 		Nonce:     42,
 		Value:     oneEGLD,
-		SndAddr:   participants.sendersByShard[shard][0].Bytes,
+		SndAddr:   participants.sendersByShard[shard][7].Bytes,
 		RcvAddr:   participants.receiverByShard[shard].Bytes,
 		Data:      []byte{},
 		GasLimit:  50000,
@@ -462,13 +462,13 @@ func TestMempoolWithChainSimulator_Eviction(t *testing.T) {
 	})
 
 	time.Sleep(durationWaitAfterSendSome)
-	require.Equal(t, 5, getNumTransactionsInPool(simulator, shard))
+	require.Equal(t, 300_001, getNumTransactionsInPool(simulator, shard))
 
 	// Send one more transaction to trigger eviction
 	sendTransaction(t, simulator, &transaction.Transaction{
 		Nonce:     42,
 		Value:     oneEGLD,
-		SndAddr:   participants.sendersByShard[shard][0].Bytes,
+		SndAddr:   participants.sendersByShard[shard][7].Bytes,
 		RcvAddr:   participants.receiverByShard[shard].Bytes,
 		Data:      []byte{},
 		GasLimit:  50000,
@@ -481,7 +481,7 @@ func TestMempoolWithChainSimulator_Eviction(t *testing.T) {
 	// Allow the eviction to complete (even if it's quite fast).
 	time.Sleep(5 * time.Second)
 
-	expectedNumTransactionsInPool := 4 + 1 + 1 - int(storage.TxPoolSourceMeNumItemsToPreemptivelyEvict)
+	expectedNumTransactionsInPool := 300_000 + 1 + 1 - int(storage.TxPoolSourceMeNumItemsToPreemptivelyEvict)
 	require.Equal(t, expectedNumTransactionsInPool, getNumTransactionsInPool(simulator, shard))
 }
 

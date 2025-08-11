@@ -32,7 +32,7 @@ const DefaultStaticDbString = "Static"
 const DefaultShardString = "Shard"
 
 // TxPoolSourceMeNumItemsToPreemptivelyEvict is a configuration of the eviction algorithm
-const TxPoolSourceMeNumItemsToPreemptivelyEvict = uint32(1)
+const TxPoolSourceMeNumItemsToPreemptivelyEvict = uint32(50000)
 
 // TxPoolDestinationMeNumItemsToPreemptivelyEvict is a configuration of the eviction algorithm
 const TxPoolDestinationMeNumItemsToPreemptivelyEvict = uint32(1000)

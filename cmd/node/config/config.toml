@@ -414,7 +414,7 @@
 
 [TxDataPool]
     Name = "TxDataPool"
-    Capacity = 8
+    Capacity = 600000
     SizePerSender = 5001
     SizeInBytes = 419430400 #400MB
     SizeInBytesPerSender = 12288000 #12MB

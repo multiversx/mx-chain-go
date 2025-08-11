@@ -29,12 +29,6 @@ func (txMap *txByHashMap) addTx(tx *WrappedTransaction) bool {
 		txMap.numBytes.Add(tx.Size)
 	}
 
-	logAdd.Warn("txByHashMap.addTx",
-		"added", added,
-		"txHash", tx.TxHash,
-		"txNonce", tx.Tx.GetNonce(),
-	)
-
 	return added
 }
 
@@ -54,12 +48,6 @@ func (txMap *txByHashMap) removeTx(txHash string) (*WrappedTransaction, bool) {
 		txMap.counter.Decrement()
 		txMap.numBytes.Subtract(tx.Size)
 	}
-
-	logAdd.Warn("txByHashMap.removeTx",
-		"removed", removed,
-		"txHash", tx.TxHash,
-		"txNonce", tx.Tx.GetNonce(),
-	)
 
 	return tx, true
 }
