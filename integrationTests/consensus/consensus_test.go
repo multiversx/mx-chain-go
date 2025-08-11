@@ -97,6 +97,7 @@ func testConsensusBLSWithFullProcessing(t *testing.T, equivalentProofsActivation
 	enableEpochsConfig := integrationTests.CreateEnableEpochsConfig()
 
 	enableEpochsConfig.AndromedaEnableEpoch = equivalentProofsActivationEpoch
+	enableEpochsConfig.SupernovaEnableEpoch = 0
 
 	fmt.Println("Step 1. Setup nodes...")
 
@@ -108,6 +109,7 @@ func testConsensusBLSWithFullProcessing(t *testing.T, equivalentProofsActivation
 		blsConsensusType,
 		numKeysOnEachNode,
 		enableEpochsConfig,
+		integrationTests.GetSupernovaRoundsConfig(),
 		true,
 	)
 

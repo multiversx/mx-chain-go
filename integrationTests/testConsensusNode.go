@@ -209,6 +209,8 @@ func (tcn *TestConsensusNode) initNode(args ArgsTestConsensusNode) {
 	consensusCache, _ := cache.NewLRUCache(10000)
 	pkBytes, _ := tcn.NodeKeys.Pk.ToByteArray()
 
+	roundTime := time.Millisecond * time.Duration(args.RoundTime)
+
 	tcn.ChainParametersHandler = &chainParameters.ChainParametersHandlerStub{
 		ChainParametersForEpochCalled: func(_ uint32) (config.ChainParametersByEpochConfig, error) {
 			return config.ChainParametersByEpochConfig{
@@ -226,7 +228,6 @@ func (tcn *TestConsensusNode) initNode(args ArgsTestConsensusNode) {
 	tcn.initBlockChain(testHasher)
 	tcn.initBlockProcessor(tcn.ShardCoordinator.SelfId())
 
-	roundTime := time.Millisecond * time.Duration(args.RoundTime)
 	syncer := ntp.NewSyncTime(testscommon.NewNTPGoogleConfig(), nil)
 	syncer.StartSyncingTime()
 
@@ -240,7 +241,7 @@ func (tcn *TestConsensusNode) initNode(args ArgsTestConsensusNode) {
 
 	roundArgs := round.ArgsRound{
 		GenesisTimeStamp:          time.Unix(args.StartTime, 0),
-		SupernovaGenesisTimeStamp: time.Unix(args.StartTime, 0),
+		SupernovaGenesisTimeStamp: time.UnixMilli(args.StartTime),
 		CurrentTimeStamp:          syncer.CurrentTime(),
 		RoundTimeDuration:         roundTime,
 		SupernovaTimeDuration:     roundTime,
