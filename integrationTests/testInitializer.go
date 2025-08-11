@@ -412,6 +412,7 @@ func CreateStore(numOfShards uint32) dataRetriever.StorageService {
 	store.AddStorer(dataRetriever.ReceiptsUnit, CreateMemUnit())
 	store.AddStorer(dataRetriever.ScheduledSCRsUnit, CreateMemUnit())
 	store.AddStorer(dataRetriever.ProofsUnit, CreateMemUnit())
+	store.AddStorer(dataRetriever.TrieEpochRootHashUnit, CreateMemUnit())
 
 	for i := uint32(0); i < numOfShards; i++ {
 		hdrNonceHashDataUnit := dataRetriever.ShardHdrNonceHashDataUnit + dataRetriever.UnitType(i)
@@ -485,6 +486,7 @@ func CreateAccountsDBWithEnableEpochsHandler(
 		LastSnapshotMarker:   lastSnapshotMarker.NewLastSnapshotMarker(),
 		StateStatsHandler:    statistics.NewStateStatistics(),
 	})
+	_ = snapshotsManager.SetSyncer(&mock.AccountsDBSyncerStub{})
 
 	args := state.ArgsAccountsDB{
 		Trie:                  tr,

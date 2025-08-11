@@ -39,8 +39,12 @@ func initNodesWithTestSigner(
 		consensusType,
 		1,
 		enableEpochsConfig,
+<<<<<<< HEAD
 		integrationTests.GetSupernovaRoundsConfig(),
 		false,
+=======
+		100,
+>>>>>>> rc/supernova
 	)
 
 	time.Sleep(p2pBootstrapDelay)
