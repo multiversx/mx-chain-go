@@ -70,7 +70,7 @@ func (erc *executionResultsVerifier) verifyExecutionResults(
 
 	for i, er := range executionResults {
 		if !er.Equal(pendingExecutionResults[i]) {
-			return process.ErrExecutionResultMismatch
+			return process.ErrExecutionResultDoesNotMatch
 		}
 	}
 
