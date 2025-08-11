@@ -3,6 +3,7 @@ package block
 import (
 	"fmt"
 
+	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
@@ -31,7 +32,13 @@ func NewExecutionResultsVerifier(blockChain data.ChainHandler, executionResultsT
 }
 
 // VerifyHeaderExecutionResults checks the execution results of a shard header
-func (erc *executionResultsVerifier) VerifyHeaderExecutionResults(header data.ShardHeaderHandler, headerHash []byte) error {
+func (erc *executionResultsVerifier) VerifyHeaderExecutionResults(header data.HeaderHandler, headerHash []byte) error {
+	if check.IfNil(header) {
+		return process.ErrNilHeaderHandler
+	}
+	if len(headerHash) == 0 {
+		return process.ErrInvalidHash
+	}
 	if !header.IsHeaderV3() {
 		return process.ErrInvalidHeader
 	}
@@ -39,44 +46,19 @@ func (erc *executionResultsVerifier) VerifyHeaderExecutionResults(header data.Sh
 		return nil
 	}
 
-	executionResults := header.GetExecutionResultsHandlers()
-	lastExecutionResultInfo := header.GetLastExecutionResultHandler()
-
-	return erc.verifyExecutionResults(executionResults, headerHash, lastExecutionResultInfo)
+	return erc.verifyExecutionResults(headerHash, header)
 }
 
-func (erc *executionResultsVerifier) verifyExecutionResults(executionResults []data.ExecutionResultHandler, headerHash []byte, lastExecutionResultInfo data.ShardExecutionResultInfo) error {
-	if check.IfNil(lastExecutionResultInfo) {
-		return fmt.Errorf("%w: for current block", process.ErrNilLastExecutionResultHandler)
-	}
-
-	prevLastExecutionResultInfo, err := erc.getPrevBlockLastExecutionResult()
+func (erc *executionResultsVerifier) verifyExecutionResults(
+	headerHash []byte,
+	header data.HeaderHandler,
+) error {
+	err := erc.verifyLastExecutionResultInfoMatchesLastExecutionResult(headerHash, header)
 	if err != nil {
 		return err
 	}
 
-	if check.IfNil(prevLastExecutionResultInfo) {
-		return fmt.Errorf("%w: for previous block", process.ErrNilLastExecutionResultHandler)
-	}
-
-	if len(executionResults) == 0 {
-		if !lastExecutionResultInfo.Equal(prevLastExecutionResultInfo) {
-			return process.ErrExecutionResultDoesNotMatch
-		}
-
-		return nil
-	}
-
-	lastExecResult := executionResults[len(executionResults)-1]
-	lastExecResultInfo, err := createLastExecutionResultInfoFromExecutionResult(headerHash, lastExecResult)
-	if err != nil {
-		return err
-	}
-
-	if !lastExecutionResultInfo.Equal(lastExecResultInfo) {
-		return process.ErrExecutionResultDoesNotMatch
-	}
-
+	executionResults := header.GetExecutionResultsHandlers()
 	pendingExecutionResults, err := erc.executionResultsTracker.GetPendingExecutionResults()
 	if err != nil {
 		return err
@@ -95,45 +77,108 @@ func (erc *executionResultsVerifier) verifyExecutionResults(executionResults []d
 	return nil
 }
 
-func (erc *executionResultsVerifier) getPrevBlockLastExecutionResult() (data.ShardExecutionResultInfo, error) {
+func (erc *executionResultsVerifier) verifyLastExecutionResultInfoMatchesLastExecutionResult(
+	headerHash []byte,
+	header data.HeaderHandler,
+) error {
+	executionResults := header.GetExecutionResultsHandlers()
+	lastExecutionResultInfo := header.GetLastExecutionResultHandler()
+	shardID := header.GetShardID()
+	if check.IfNil(lastExecutionResultInfo) {
+		return fmt.Errorf("%w: for current block", process.ErrNilLastExecutionResultHandler)
+	}
+
+	// if no execution results are present, we only check if the last execution result info matches the previous reported one
+	if len(executionResults) == 0 {
+		return erc.checkLastExecutionResultInfoAgainstPrevBlock(lastExecutionResultInfo)
+	}
+
+	lastExecResult := executionResults[len(executionResults)-1]
+	lastExecResultInfo, err := createLastExecutionResultInfoFromExecutionResult(headerHash, lastExecResult, shardID)
+	if err != nil {
+		return err
+	}
+
+	if !lastExecutionResultInfo.Equal(lastExecResultInfo) {
+		return process.ErrExecutionResultDoesNotMatch
+	}
+
+	return nil
+}
+
+func (erc *executionResultsVerifier) checkLastExecutionResultInfoAgainstPrevBlock(lastExecutionResultInfo data.LastExecutionResultHandler) error {
+	prevLastExecutionResultInfo, err := erc.getPrevBlockLastExecutionResult()
+	if err != nil {
+		return err
+	}
+
+	if check.IfNil(prevLastExecutionResultInfo) {
+		return fmt.Errorf("%w: for previous block", process.ErrNilLastExecutionResultHandler)
+	}
+	if !lastExecutionResultInfo.Equal(prevLastExecutionResultInfo) {
+		return process.ErrExecutionResultDoesNotMatch
+	}
+
+	return nil
+}
+
+func (erc *executionResultsVerifier) getPrevBlockLastExecutionResult() (data.LastExecutionResultHandler, error) {
 	prevHeader := erc.blockChain.GetCurrentBlockHeader()
 	if check.IfNil(prevHeader) {
 		return nil, process.ErrNilHeaderHandler
 	}
 
-	prevShardHeader, ok := prevHeader.(data.ShardHeaderHandler)
-	if !ok {
-		return nil, process.ErrWrongTypeAssertion
-	}
-
-	if prevShardHeader.IsHeaderV3() {
-		return prevShardHeader.GetLastExecutionResultHandler(), nil
+	if prevHeader.IsHeaderV3() {
+		return prevHeader.GetLastExecutionResultHandler(), nil
 	}
 
 	prevHeaderHash := prevHeader.GetPrevHash()
 
-	return erc.createLastExecutionResultFromPrevHeader(prevShardHeader, prevHeaderHash)
+	return createLastExecutionResultFromPrevHeader(prevHeader, prevHeaderHash)
 }
 
-func (erc *executionResultsVerifier) createLastExecutionResultFromPrevHeader(prevShardHeader data.ShardHeaderHandler, prevShardHeaderHash []byte) (data.ShardExecutionResultInfo, error) {
-	if prevShardHeader.IsHeaderV3() {
-		return nil, process.ErrInvalidHeader
+func createLastExecutionResultFromPrevHeader(prevHeader data.HeaderHandler, prevHeaderHash []byte) (data.LastExecutionResultHandler, error) {
+	if check.IfNil(prevHeader) {
+		return nil, process.ErrNilBlockHeader
 	}
-	// create a dummy execution result info to be used in the case of Supernova
-	execResult := &block.ExecutionResultInfo{
-		NotarizedOnHeaderHash: prevShardHeaderHash,
-		ExecutionResult: &block.BaseExecutionResult{
-			HeaderHash:  prevShardHeaderHash,
-			HeaderNonce: prevShardHeader.GetNonce(),
-			HeaderRound: prevShardHeader.GetRound(),
-			RootHash:    prevShardHeader.GetRootHash(),
+	if len(prevHeaderHash) == 0 {
+		return nil, process.ErrInvalidHash
+	}
+
+	if prevHeader.GetShardID() != core.MetachainShardId {
+		return &block.ExecutionResultInfo{
+			NotarizedOnHeaderHash: prevHeaderHash,
+			ExecutionResult: &block.BaseExecutionResult{
+				HeaderHash:  prevHeaderHash,
+				HeaderNonce: prevHeader.GetNonce(),
+				HeaderRound: prevHeader.GetRound(),
+				RootHash:    prevHeader.GetRootHash(),
+			},
+		}, nil
+	}
+
+	prevMetaHeader, ok := prevHeader.(*block.MetaBlock)
+	if !ok {
+		return nil, process.ErrWrongTypeAssertion
+	}
+
+	return &block.MetaExecutionResultInfo{
+		NotarizedOnHeaderHash: prevHeaderHash,
+		ExecutionResult: &block.BaseMetaExecutionResult{
+			BaseExecutionResult: &block.BaseExecutionResult{
+				HeaderHash:  prevHeaderHash,
+				HeaderNonce: prevMetaHeader.GetNonce(),
+				HeaderRound: prevMetaHeader.GetRound(),
+				RootHash:    prevMetaHeader.GetRootHash(),
+			},
+			ValidatorStatsRootHash: prevMetaHeader.GetValidatorStatsRootHash(),
+			AccumulatedFeesInEpoch: prevMetaHeader.GetDevFeesInEpoch(),
+			DevFeesInEpoch:         prevMetaHeader.GetDevFeesInEpoch(),
 		},
-	}
-
-	return execResult, nil
+	}, nil
 }
 
-func createLastExecutionResultInfoFromExecutionResult(notarizedOnHeaderHash []byte, lastExecResult data.ExecutionResultHandler) (*block.ExecutionResultInfo, error) {
+func createLastExecutionResultInfoFromExecutionResult(notarizedOnHeaderHash []byte, lastExecResult data.BaseExecutionResultHandler, shardID uint32) (data.LastExecutionResultHandler, error) {
 	if len(notarizedOnHeaderHash) == 0 {
 		return nil, process.ErrNilNotarizedOnHeaderHash
 	}
@@ -141,13 +186,34 @@ func createLastExecutionResultInfoFromExecutionResult(notarizedOnHeaderHash []by
 		return nil, process.ErrNilExecutionResultHandler
 	}
 
-	return &block.ExecutionResultInfo{
+	if shardID != core.MetachainShardId {
+		return &block.ExecutionResultInfo{
+			NotarizedOnHeaderHash: notarizedOnHeaderHash,
+			ExecutionResult: &block.BaseExecutionResult{
+				HeaderHash:  lastExecResult.GetHeaderHash(),
+				HeaderNonce: lastExecResult.GetHeaderNonce(),
+				HeaderRound: lastExecResult.GetHeaderRound(),
+				RootHash:    lastExecResult.GetRootHash(),
+			},
+		}, nil
+	}
+	lastMetaExecResult, ok := lastExecResult.(*block.BaseMetaExecutionResult)
+	if !ok {
+		return nil, process.ErrWrongTypeAssertion
+	}
+
+	return &block.MetaExecutionResultInfo{
 		NotarizedOnHeaderHash: notarizedOnHeaderHash,
-		ExecutionResult: &block.BaseExecutionResult{
-			HeaderHash:  lastExecResult.GetHeaderHash(),
-			HeaderNonce: lastExecResult.GetHeaderNonce(),
-			HeaderRound: lastExecResult.GetHeaderRound(),
-			RootHash:    lastExecResult.GetRootHash(),
+		ExecutionResult: &block.BaseMetaExecutionResult{
+			BaseExecutionResult: &block.BaseExecutionResult{
+				HeaderHash:  lastMetaExecResult.GetHeaderHash(),
+				HeaderNonce: lastMetaExecResult.GetHeaderNonce(),
+				HeaderRound: lastMetaExecResult.GetHeaderRound(),
+				RootHash:    lastMetaExecResult.GetRootHash(),
+			},
+			ValidatorStatsRootHash: lastMetaExecResult.GetValidatorStatsRootHash(),
+			AccumulatedFeesInEpoch: lastMetaExecResult.GetAccumulatedFeesInEpoch(),
+			DevFeesInEpoch:         lastMetaExecResult.GetDevFeesInEpoch(),
 		},
 	}, nil
 }

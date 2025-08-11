@@ -2322,7 +2322,7 @@ func TestUnmarshalHeader(t *testing.T) {
 	shardHeaderV2 := &block.HeaderV2{Header: &block.Header{Nonce: 43, EpochStartMetaHash: []byte{0xaa, 0xbb}}}
 	shardHeaderV3 := &block.HeaderV3{Nonce: 44, LastExecutionResult: &block.ExecutionResultInfo{NotarizedOnHeaderHash: []byte("hash")}}
 	metaHeader := &block.MetaBlock{Nonce: 7, ValidatorStatsRootHash: []byte{0xcc, 0xdd}}
-	metaHeaderV2 := &block.MetaBlockV3{Nonce: 8, LastExecutionResult: &block.MetaExecutionResultInfo{NotarizedAtHeaderHash: []byte("hash")}}
+	metaHeaderV2 := &block.MetaBlockV3{Nonce: 8, LastExecutionResult: &block.MetaExecutionResultInfo{NotarizedOnHeaderHash: []byte("hash")}}
 
 	shardHeaderV1Buffer, _ := marshalizer.Marshal(shardHeaderV1)
 	shardHeaderV2Buffer, _ := marshalizer.Marshal(shardHeaderV2)

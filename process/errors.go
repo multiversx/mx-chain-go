@@ -1322,3 +1322,6 @@ var ErrNilExecutionResultsTracker = errors.New("nil execution results tracker")
 
 // ErrNilNotarizedOnHeaderHash signals that a nil notarized on header hash has been provided
 var ErrNilNotarizedOnHeaderHash = errors.New("nil notarized on header hash")
+
+// ErrInvalidHash signals that an invalid hash has been provided
+var ErrInvalidHash = errors.New("invalid hash")
