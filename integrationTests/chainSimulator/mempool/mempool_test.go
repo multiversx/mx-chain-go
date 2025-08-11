@@ -466,7 +466,7 @@ func TestMempoolWithChainSimulator_Eviction(t *testing.T) {
 
 	// Send one more transaction to trigger eviction
 	sendTransaction(t, simulator, &transaction.Transaction{
-		Nonce:     42,
+		Nonce:     43,
 		Value:     oneEGLD,
 		SndAddr:   participants.sendersByShard[shard][7].Bytes,
 		RcvAddr:   participants.receiverByShard[shard].Bytes,
