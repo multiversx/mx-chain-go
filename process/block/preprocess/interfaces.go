@@ -3,13 +3,18 @@ package preprocess
 import (
 	"math/big"
 
+	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/txcache"
 )
 
 // TxCache defines the functionality for the transactions cache
+// TODO the selection session might be unusable in the flow of OnProposed
 type TxCache interface {
-	SelectTransactions(session txcache.SelectionSession, options common.TxSelectionOptions) ([]*txcache.WrappedTransaction, uint64)
+	SelectTransactions(session txcache.SelectionSession, options common.TxSelectionOptions, blockchainInfo common.BlockchainInfo) ([]*txcache.WrappedTransaction, uint64)
+	OnProposedBlock(blockHash []byte, blockBody *block.Body, handler data.HeaderHandler, session txcache.SelectionSession, defaultBlockchainInfo common.BlockchainInfo) error
+	OnExecutedBlock(handler data.HeaderHandler) error
 	IsInterfaceNil() bool
 }
 
