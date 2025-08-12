@@ -327,7 +327,7 @@ func (ln *leafNode) insertInNewBn(newData core.TrieData, keyMatchLen int, tmc Me
 	bn.children[newChildPos] = newLnNewChildPos
 	bn.setVersionForChild(newData.Version, newChildPos)
 	newSize += newLnNewChildPos.sizeInBytes()
-	addSizeDiff(tmc, newSize, originalSize)
+	tmc.AddSizeLoadedInMem(newSize - originalSize)
 
 	return bn, nil
 }

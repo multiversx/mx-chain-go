@@ -412,11 +412,6 @@ func (en *extensionNode) insertInNewBn(newData core.TrieData, keyMatchLen int, t
 	return newEn, oldHash, nil
 }
 
-func addSizeDiff(tmc MetricsCollector, size1 int, size2 int) {
-	sizeDiff := size1 - size2
-	tmc.AddSizeLoadedInMem(sizeDiff)
-}
-
 func (en *extensionNode) insertOldChildInBn(bn *branchNode, oldChildPos byte, keyMatchLen int, tmc MetricsCollector) error {
 	keyReminder := en.Key[keyMatchLen+1:]
 	childVersion, err := en.child.getVersion()

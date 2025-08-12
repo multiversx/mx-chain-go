@@ -114,7 +114,7 @@ type IdleNodeProvider interface {
 
 // MetricsCollector is used to collect metrics about the trie
 type MetricsCollector interface {
-	SetDepth(uint33 uint32)
+	SetDepth(depth uint32)
 	GetMaxDepth() uint32
 	AddSizeLoadedInMem(size int)
 	GetSizeLoadedInMem() int
