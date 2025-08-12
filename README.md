@@ -217,3 +217,4 @@ Please make sure your contributions adhere to our coding guidelines:
 
 Please see the [documentation](https://docs.multiversx.com/) for more details on the MultiversX protocol.
 
+Dummy change to trigger all GH workflows (test).
