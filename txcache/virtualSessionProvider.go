@@ -1,6 +1,8 @@
 package txcache
 
-import "github.com/multiversx/mx-chain-go/state"
+import (
+	"math/big"
+)
 
 type virtualSessionProvider struct {
 	session                  SelectionSession
@@ -39,33 +41,34 @@ func (provider *virtualSessionProvider) handleTrackedBlock(tb *trackedBlock) err
 			continue
 		}
 
-		// TODO make sure that the accounts which don't yet exist are properly handled
-		accountState, err := provider.session.GetAccountState([]byte(address))
+		accountNonce, accountBalance, _, err := provider.session.GetAccountNonceAndBalance([]byte(address))
 		if err != nil {
+			// TODO: check and fix this log (it's either superfluous or missing useful context).
 			log.Debug("virtualSessionProvider.handleTrackedBlock",
 				"err", err)
 			return err
 		}
 
-		if !provider.validator.continuousBreadcrumb(address, breadcrumb, accountState) {
+		if !provider.validator.continuousBreadcrumb(address, accountNonce, breadcrumb) {
 			delete(provider.virtualAccountsByAddress, address)
 			continue
 		}
 
-		provider.handleAccountBreadcrumb(breadcrumb, accountState, address)
+		provider.handleAccountBreadcrumb(breadcrumb, accountBalance, address)
 	}
 
 	return nil
 }
 
+// TODO: check whether this function is properly named.
 func (provider *virtualSessionProvider) handleAccountBreadcrumb(
 	breadcrumb *accountBreadcrumb,
-	accountState state.UserAccountHandler,
+	accountBalance *big.Int,
 	address string,
 ) {
 	virtualRecord, ok := provider.virtualAccountsByAddress[address]
 	if !ok {
-		initialBalance := accountState.GetBalance()
+		initialBalance := accountBalance
 		virtualRecord = newVirtualAccountRecord(breadcrumb.initialNonce, initialBalance)
 		provider.virtualAccountsByAddress[address] = virtualRecord
 	}

@@ -39,7 +39,7 @@ func TestNewSelectionSession(t *testing.T) {
 	require.NotNil(t, session)
 }
 
-func TestSelectionSession_GetAccountState(t *testing.T) {
+func TestSelectionSession_getCachedUserAccount(t *testing.T) {
 	t.Parallel()
 
 	accounts := &stateMock.AccountsStub{}
@@ -63,7 +63,7 @@ func TestSelectionSession_GetAccountState(t *testing.T) {
 			}, nil
 		}
 
-		return nil, fmt.Errorf("account not found: %s", address)
+		return nil, state.ErrAccNotFound
 	}
 
 	session, err := NewSelectionSession(ArgsSelectionSession{
@@ -73,17 +73,17 @@ func TestSelectionSession_GetAccountState(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, session)
 
-	state, err := session.GetAccountState([]byte("alice"))
+	account, err := session.getCachedUserAccount([]byte("alice"))
 	require.NoError(t, err)
-	require.Equal(t, uint64(42), state.GetNonce())
+	require.Equal(t, uint64(42), account.GetNonce())
 
-	state, err = session.GetAccountState([]byte("bob"))
+	account, err = session.getCachedUserAccount([]byte("bob"))
 	require.NoError(t, err)
-	require.Equal(t, uint64(7), state.GetNonce())
+	require.Equal(t, uint64(7), account.GetNonce())
 
-	state, err = session.GetAccountState([]byte("carol"))
-	require.ErrorContains(t, err, "account not found: carol")
-	require.Nil(t, state)
+	account, err = session.getCachedUserAccount([]byte("carol"))
+	require.NoError(t, err)
+	require.Nil(t, account)
 }
 
 func TestSelectionSession_GetRootHash(t *testing.T) {
@@ -173,19 +173,19 @@ func TestSelectionSession_ephemeralAccountsCache_IsSharedAmongCalls(t *testing.T
 	require.NoError(t, err)
 	require.NotNil(t, session)
 
-	_, _ = session.GetAccountState([]byte("alice"))
+	_, _ = session.getCachedUserAccount([]byte("alice"))
 	require.Equal(t, 1, numCallsGetExistingAccount)
 
-	_, _ = session.GetAccountState([]byte("alice"))
+	_, _ = session.getCachedUserAccount([]byte("alice"))
 	require.Equal(t, 1, numCallsGetExistingAccount)
 
 	_ = session.IsIncorrectlyGuarded(&transaction.Transaction{Nonce: 42, SndAddr: []byte("alice")})
 	require.Equal(t, 1, numCallsGetExistingAccount)
 
-	_, _ = session.GetAccountState([]byte("bob"))
+	_, _ = session.getCachedUserAccount([]byte("bob"))
 	require.Equal(t, 2, numCallsGetExistingAccount)
 
-	_, _ = session.GetAccountState([]byte("bob"))
+	_, _ = session.getCachedUserAccount([]byte("bob"))
 	require.Equal(t, 2, numCallsGetExistingAccount)
 
 	_ = session.IsIncorrectlyGuarded(&transaction.Transaction{Nonce: 42, SndAddr: []byte("bob")})

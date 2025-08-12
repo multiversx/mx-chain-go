@@ -1,11 +1,9 @@
 package txcache
 
 import (
-	"math/big"
 	"testing"
 
 	"github.com/multiversx/mx-chain-core-go/core"
-	testscommonState "github.com/multiversx/mx-chain-go/testscommon/state"
 	"github.com/stretchr/testify/require"
 )
 
@@ -30,7 +28,7 @@ func Test_continuousBreadcrumbs(t *testing.T) {
 
 		validator := newBreadcrumbValidator()
 
-		actualRes := validator.continuousBreadcrumb("bob", &breadcrumb, nil)
+		actualRes := validator.continuousBreadcrumb("bob", 0, &breadcrumb)
 		require.True(t, actualRes)
 	})
 
@@ -70,18 +68,9 @@ func Test_continuousBreadcrumbs(t *testing.T) {
 			consumedBalance: nil,
 		}
 
-		mockAccountState := &testscommonState.StateUserAccountHandlerStub{
-			GetBalanceCalled: func() *big.Int {
-				return big.NewInt(2)
-			},
-			GetNonceCalled: func() uint64 {
-				return 1
-			},
-		}
-
 		validator := newBreadcrumbValidator()
 
-		actualRes := validator.continuousBreadcrumb("alice", &breadcrumbAlice, mockAccountState)
+		actualRes := validator.continuousBreadcrumb("alice", 1, &breadcrumbAlice)
 		require.True(t, actualRes)
 
 		_, ok := validator.sendersInContinuityWithSessionNonce["alice"]

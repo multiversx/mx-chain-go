@@ -2,13 +2,13 @@ package preprocess
 
 import (
 	"errors"
+	"math/big"
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/state"
-	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 )
 
 type selectionSession struct {
@@ -17,7 +17,8 @@ type selectionSession struct {
 
 	// Cache of accounts, held in the scope of a single selection session.
 	// Not concurrency-safe, but never accessed concurrently.
-	ephemeralAccountsCache map[string]vmcommon.AccountHandler
+	// Entries for new (uknown) accounts are "nil" values.
+	ephemeralAccountsCache map[string]state.UserAccountHandler
 }
 
 // ArgsSelectionSession holds the arguments for creating a new selection session.
@@ -38,20 +39,51 @@ func NewSelectionSession(args ArgsSelectionSession) (*selectionSession, error) {
 	return &selectionSession{
 		accountsAdapter:        args.AccountsAdapter,
 		transactionsProcessor:  args.TransactionsProcessor,
-		ephemeralAccountsCache: make(map[string]vmcommon.AccountHandler),
+		ephemeralAccountsCache: make(map[string]state.UserAccountHandler),
 	}, nil
 }
 
-// GetAccountState returns the state of an account.
-// Will be called by mempool during transaction selection.
-func (session *selectionSession) GetAccountState(address []byte) (state.UserAccountHandler, error) {
-	account, err := session.getExistingAccount(address)
+// GetAccountNonceAndBalance returns nonce and balance of an account.
+// Will be called by the transactions pool, during transactions selection.
+func (session *selectionSession) GetAccountNonceAndBalance(address []byte) (uint64, *big.Int, bool, error) {
+	account, err := session.getCachedUserAccount(address)
 	if err != nil {
-		// TODO: brainstorm whether we should move the logic around "ErrAccNotFound",
-		// from "virtualSelectionSession.createAccountRecord()", to this place.
-		// If we do so, we hide (encapsulate) that information (error) within this component:
-		// good on one hand, but, on the other hand, that piece of information (error) might be needed in the "TxCache" at some point
-		// (to take some specific actions).
+		// Unexpected failure.
+		return 0, nil, false, err
+	}
+	if check.IfNil(account) {
+		// New (unknown) account.
+		return 0, big.NewInt(0), false, nil
+	}
+
+	return account.GetNonce(), account.GetBalance(), true, nil
+}
+
+func (session *selectionSession) getCachedUserAccount(address []byte) (state.UserAccountHandler, error) {
+	account, ok := session.ephemeralAccountsCache[string(address)]
+	if ok {
+		// Existing or new (unknown) account, previously-cached.
+		return account, nil
+	}
+
+	account, err := session.getExistingAccountTypedAsUserAccount(address)
+	if err != nil && err != state.ErrAccNotFound {
+		// Unexpected failure (error different from "ErrAccNotFound").
+		// Account won't be cached.
+		return nil, err
+	}
+
+	// Existing account or new (unknown), we'll cache it (actual object or nil).
+	session.ephemeralAccountsCache[string(address)] = account
+
+	// Generally speaking, this isn't a good pattern: returning both nil (for unknown accounts), and a nil error.
+	// However, this is a non-exported method, which should only be called with care, within this struct only.
+	return account, nil
+}
+
+func (session *selectionSession) getExistingAccountTypedAsUserAccount(address []byte) (state.UserAccountHandler, error) {
+	account, err := session.accountsAdapter.GetExistingAccount(address)
+	if err != nil {
 		return nil, err
 	}
 
@@ -63,34 +95,16 @@ func (session *selectionSession) GetAccountState(address []byte) (state.UserAcco
 	return userAccount, nil
 }
 
-func (session *selectionSession) getExistingAccount(address []byte) (vmcommon.AccountHandler, error) {
-	account, ok := session.ephemeralAccountsCache[string(address)]
-	if ok {
-		return account, nil
-	}
-
-	account, err := session.accountsAdapter.GetExistingAccount(address)
-	if err != nil {
-		return nil, err
-	}
-
-	session.ephemeralAccountsCache[string(address)] = account
-	return account, nil
-}
-
 // IsIncorrectlyGuarded checks if a transaction is incorrectly guarded (not executable).
 // Will be called by mempool during transaction selection.
 func (session *selectionSession) IsIncorrectlyGuarded(tx data.TransactionHandler) bool {
 	address := tx.GetSndAddr()
-	account, err := session.getExistingAccount(address)
-	if err != nil {
+	account, err := session.getCachedUserAccount(address)
+	if err != nil || check.IfNil(account) {
+		// Unexpected failure.
+		// In case of any error, we assume the transaction is "correctly guarded".
+		// This includes the error "ErrAccNotFound", when the account is obviously not guarded: this special case is denied by interceptors beforehand.
 		return false
-	}
-
-	userAccount, ok := account.(state.UserAccountHandler)
-	if !ok {
-		// On this branch, we are (approximately) mirroring the behavior of "transactionsProcessor.VerifyGuardian()".
-		return true
 	}
 
 	txTyped, ok := tx.(*transaction.Transaction)
@@ -98,7 +112,7 @@ func (session *selectionSession) IsIncorrectlyGuarded(tx data.TransactionHandler
 		return false
 	}
 
-	err = session.transactionsProcessor.VerifyGuardian(txTyped, userAccount)
+	err = session.transactionsProcessor.VerifyGuardian(txTyped, account)
 	return errors.Is(err, process.ErrTransactionNotExecutable)
 }
 

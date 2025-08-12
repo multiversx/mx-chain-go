@@ -110,29 +110,27 @@ func (st *selectionTracker) validateTrackedBlocks(chainOfTrackedBlocks []*tracke
 
 	for _, tb := range chainOfTrackedBlocks {
 		for address, breadcrumb := range tb.breadcrumbsByAddress {
-			// TODO make sure that the accounts which don't yet exist are properly handled
-			accountState, err := session.GetAccountState([]byte(address))
+			initialNonce, initialBalance, _, err := session.GetAccountNonceAndBalance([]byte(address))
 			if err != nil {
-				log.Debug("selectionTracker.validateTrackedBlocks",
-					"err", err)
+				// TODO: Maybe add more context to this error?
+				log.Debug("selectionTracker.validateTrackedBlocks", "err", err)
 				return err
 			}
 
-			// validate that a breadcrumb is continuous
-			if !validator.continuousBreadcrumb(address, breadcrumb, accountState) {
+			if !validator.continuousBreadcrumb(address, initialNonce, breadcrumb) {
+				// TODO: Check why there's a log below, but none here.
 				return errDiscontinuousBreadcrumbs
 			}
 
 			// TODO re-brainstorm, validate with more integration tests
 			// use its balance to accumulate and validate (make sure is < than initialBalance from the session)
-			initialBalance := accountState.GetBalance()
-			err = validator.validateBalance(address, breadcrumb, initialBalance)
+			err = validator.validateBalance(address, initialBalance, breadcrumb)
 			if err != nil {
 				// exit at the first failure
 				log.Debug("selectionTracker.validateTrackedBlocks validation failed",
 					"err", err,
 					"address", address,
-					"rootHash", accountState.GetRootHash())
+					"rootHash", tb.rootHash)
 				return err
 			}
 		}
