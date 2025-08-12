@@ -1,0 +1,34 @@
+name: Experiment with cleanup
+
+on:
+    pull_request:
+
+permissions:
+    contents: read
+
+jobs:
+    build:
+        runs-on: [self-hosted]
+        name: Example
+        steps:
+            - name: Set up Go 1.23.6
+              uses: actions/setup-go@v5
+              with:
+                  go-version: 1.23.6
+                  cache: false
+              id: go
+
+            - name: Check out code into the Go module directory
+              uses: actions/checkout@v4
+
+            - name: Get dependencies
+              run: |
+                  go get -v -t -d ./...
+                  if [ -f Gopkg.toml ]; then
+                    curl https://raw.githubusercontent.com/golang/dep/master/install.sh | sh
+                    dep ensure
+                  fi
+
+            - name: Sleep
+              run: |
+                  sleep 60
