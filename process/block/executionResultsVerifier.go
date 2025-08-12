@@ -107,6 +107,9 @@ func (erc *executionResultsVerifier) verifyLastExecutionResultInfoMatchesLastExe
 }
 
 func (erc *executionResultsVerifier) checkLastExecutionResultInfoAgainstPrevBlock(lastExecutionResultInfo data.LastExecutionResultHandler) error {
+	if check.IfNil(lastExecutionResultInfo) {
+		return process.ErrNilLastExecutionResultHandler
+	}
 	prevLastExecutionResultInfo, err := erc.getPrevBlockLastExecutionResult()
 	if err != nil {
 		return err
@@ -132,7 +135,7 @@ func (erc *executionResultsVerifier) getPrevBlockLastExecutionResult() (data.Las
 		return prevHeader.GetLastExecutionResultHandler(), nil
 	}
 
-	prevHeaderHash := prevHeader.GetPrevHash()
+	prevHeaderHash := erc.blockChain.GetCurrentBlockHeaderHash()
 
 	return createLastExecutionResultFromPrevHeader(prevHeader, prevHeaderHash)
 }
