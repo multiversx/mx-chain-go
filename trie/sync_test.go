@@ -3,6 +3,7 @@ package trie
 import (
 	"context"
 	"errors"
+
 	"sync"
 	"testing"
 	"time"
@@ -20,6 +21,7 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
 	trieMock "github.com/multiversx/mx-chain-go/testscommon/trie"
 	"github.com/multiversx/mx-chain-go/trie/statistics"
+	"github.com/multiversx/mx-chain-go/trie/trieMetricsCollector"
 )
 
 func createMockArgument(timeout time.Duration) ArgTrieSyncer {
@@ -225,10 +227,10 @@ func TestTrieSync_FoundInStorageShouldNotRequest(t *testing.T) {
 		},
 	}
 
-	err = bn.commitSnapshot(db, nil, nil, context.Background(), statistics.NewTrieStatistics(), &testscommon.ProcessStatusHandlerStub{}, 0)
+	err = bn.commitSnapshot(db, nil, nil, context.Background(), statistics.NewTrieStatistics(), &testscommon.ProcessStatusHandlerStub{}, trieMetricsCollector.NewDisabledTrieMetricsCollector())
 	require.Nil(t, err)
 
-	leaves, err := bn.getChildren(db)
+	leaves, err := bn.getChildren(trieMetricsCollector.NewDisabledTrieMetricsCollector(), db)
 	require.Nil(t, err)
 	numLeaves := len(leaves)
 

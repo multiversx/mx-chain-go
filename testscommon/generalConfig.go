@@ -121,8 +121,6 @@ func GetGeneralConfig() config.Config {
 			SnapshotsEnabled:            true,
 			AccountsStatePruningEnabled: false,
 			PeerStatePruningEnabled:     false,
-			MaxStateTrieLevelInMemory:   5,
-			MaxPeerTrieLevelInMemory:    5,
 		},
 		TrieStorageManagerConfig: config.TrieStorageManagerConfig{
 			PruningBufferLen:      1000,
