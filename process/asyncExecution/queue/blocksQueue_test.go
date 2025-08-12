@@ -165,3 +165,19 @@ func TestHeadersQueue_Concurrency(t *testing.T) {
 	require.False(t, ok)
 
 }
+
+func TestMultipleAddOrReplaceShouldNotBlock(t *testing.T) {
+	t.Parallel()
+
+	hq, _ := NewBlocksQueue()
+
+	for i := 0; i < 10; i++ {
+		pair := HeaderBodyPair{Header: &block.Header{Nonce: uint64(i)}, Body: &block.Body{}}
+		err := hq.AddOrReplace(pair)
+		require.Nil(t, err)
+	}
+
+	res, ok := hq.Pop()
+	require.True(t, ok)
+	require.Equal(t, uint64(0), res.Header.GetNonce())
+}
