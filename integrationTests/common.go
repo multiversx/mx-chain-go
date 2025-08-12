@@ -1,6 +1,7 @@
 package integrationTests
 
 import (
+	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/testscommon/stakingcommon"
@@ -35,4 +36,18 @@ func ProcessSCOutputAccounts(vmOutput *vmcommon.VMOutput, accountsDB state.Accou
 	}
 
 	return nil
+}
+
+// GetSupernovaRoundsConfig -
+func GetSupernovaRoundsConfig() config.RoundConfig {
+	return config.RoundConfig{
+		RoundActivations: map[string]config.ActivationRoundByName{
+			"DisableAsyncCallV1": {
+				Round: "9999999",
+			},
+			"SupernovaEnableRound": {
+				Round: "0",
+			},
+		},
+	}
 }

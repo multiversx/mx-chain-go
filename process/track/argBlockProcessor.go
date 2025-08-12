@@ -25,6 +25,7 @@ type ArgBlockProcessor struct {
 	FinalMetachainHeadersNotifier         blockNotifierHandler
 	RoundHandler                          process.RoundHandler
 	EnableEpochsHandler                   common.EnableEpochsHandler
+	EnableRoundsHandler                   common.EnableRoundsHandler
 	ProofsPool                            process.ProofsPool
 	Marshaller                            marshal.Marshalizer
 	Hasher                                hashing.Hasher

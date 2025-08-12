@@ -405,7 +405,9 @@ func (gbc *genesisBlockCreator) createHeaders(
 }
 
 // in case of hardfork initial smart contracts deployment is not called as they are all imported from previous state
-func (gbc *genesisBlockCreator) computeDNSAddresses(enableEpochsConfig config.EnableEpochs) error {
+func (gbc *genesisBlockCreator) computeDNSAddresses(
+	enableEpochsConfig config.EnableEpochs,
+) error {
 	var dnsSC genesis.InitialSmartContractHandler
 	for _, sc := range gbc.arg.SmartContractParser.InitialSmartContracts() {
 		if sc.GetType() == genesis.DNSType {

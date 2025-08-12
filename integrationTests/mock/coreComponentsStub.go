@@ -45,10 +45,11 @@ type CoreComponentsStub struct {
 	NodesShufflerField                 nodesCoordinator.NodesShuffler
 	EpochNotifierField                 process.EpochNotifier
 	RoundNotifierField                 process.RoundNotifier
-	EnableRoundsHandlerField           process.EnableRoundsHandler
+	EnableRoundsHandlerField           common.EnableRoundsHandler
 	EpochStartNotifierWithConfirmField factory.EpochStartNotifierWithConfirm
 	ChanStopNodeProcessField           chan endProcess.ArgEndProcess
 	GenesisTimeField                   time.Time
+	SupernovaGenesisTimeField          time.Time
 	TxVersionCheckField                process.TxVersionCheckerHandler
 	NodeTypeProviderField              core.NodeTypeProviderHandler
 	WasmVMChangeLockerInternal         common.Locker
@@ -143,7 +144,7 @@ func (ccs *CoreComponentsStub) RoundNotifier() process.RoundNotifier {
 }
 
 // EnableRoundsHandler -
-func (ccs *CoreComponentsStub) EnableRoundsHandler() process.EnableRoundsHandler {
+func (ccs *CoreComponentsStub) EnableRoundsHandler() common.EnableRoundsHandler {
 	return ccs.EnableRoundsHandlerField
 }
 
@@ -155,6 +156,11 @@ func (ccs *CoreComponentsStub) EpochStartNotifierWithConfirm() factory.EpochStar
 // GenesisTime -
 func (ccs *CoreComponentsStub) GenesisTime() time.Time {
 	return ccs.GenesisTimeField
+}
+
+// SupernovaGenesisTime -
+func (ccs *CoreComponentsStub) SupernovaGenesisTime() time.Time {
+	return ccs.SupernovaGenesisTimeField
 }
 
 // InternalMarshalizer -

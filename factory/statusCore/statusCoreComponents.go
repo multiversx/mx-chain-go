@@ -97,6 +97,12 @@ func (sccf *statusCoreComponentsFactory) Create() (*statusCoreComponents, error)
 		return nil, err
 	}
 
+	chainParamsMetricsHandler, err := statusHandler.NewChainParamsMetricsHandler(appStatusHandler)
+	if err != nil {
+		return nil, err
+	}
+	sccf.coreComp.ChainParametersSubscriber().RegisterNotifyHandler(chainParamsMetricsHandler)
+
 	stateStatsHandler := sccf.createStateStatsHandler()
 
 	ssc := &statusCoreComponents{

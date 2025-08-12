@@ -34,7 +34,7 @@ type CoreComponentsMock struct {
 	EpochNotifierField                 process.EpochNotifier
 	EnableEpochsHandlerField           common.EnableEpochsHandler
 	RoundNotifierField                 process.RoundNotifier
-	EnableRoundsHandlerField           process.EnableRoundsHandler
+	EnableRoundsHandlerField           common.EnableRoundsHandler
 	RoundField                         consensus.RoundHandler
 	StatusField                        core.AppStatusHandler
 	ChanStopNode                       chan endProcess.ArgEndProcess
@@ -163,7 +163,7 @@ func (ccm *CoreComponentsMock) RoundNotifier() process.RoundNotifier {
 }
 
 // EnableRoundsHandler -
-func (ccm *CoreComponentsMock) EnableRoundsHandler() process.EnableRoundsHandler {
+func (ccm *CoreComponentsMock) EnableRoundsHandler() common.EnableRoundsHandler {
 	return ccm.EnableRoundsHandlerField
 }
 

@@ -93,11 +93,12 @@ type ConsensusConfig struct {
 
 // NTPConfig will hold the configuration for NTP queries
 type NTPConfig struct {
-	Hosts               []string
-	Port                int
-	TimeoutMilliseconds int
-	SyncPeriodSeconds   int
-	Version             int
+	Hosts                []string
+	Port                 int
+	TimeoutMilliseconds  int
+	SyncPeriodSeconds    int
+	Version              int
+	OutOfBoundsThreshold int
 }
 
 // EvictionWaitingListConfig will hold the configuration for the EvictionWaitingList
@@ -109,8 +110,6 @@ type EvictionWaitingListConfig struct {
 
 // EpochStartConfig will hold the configuration of EpochStart settings
 type EpochStartConfig struct {
-	MinRoundsBetweenEpochs                      int64
-	RoundsPerEpoch                              int64
 	MinShuffledOutRestartThreshold              float64
 	MaxShuffledOutRestartThreshold              float64
 	MinNumConnectedPeersToStart                 int
@@ -314,7 +313,8 @@ type EpochChangeGracePeriodByEpoch struct {
 
 // GeneralSettingsConfig will hold the general settings for a node
 type GeneralSettingsConfig struct {
-	StatusPollingIntervalSec             int
+	StatusPollingIntervalSec int
+	// TODO: add config per epoch for supernova
 	MaxComputableRounds                  uint64
 	MaxConsecutiveRoundsOfRatingDecrease uint64
 	StartInEpochEnabled                  bool
@@ -379,8 +379,9 @@ type WebServerAntifloodConfig struct {
 type BlackListConfig struct {
 	ThresholdNumMessagesPerInterval uint32
 	ThresholdSizePerInterval        uint64
-	NumFloodingRounds               uint32
-	PeerBanDurationInSeconds        uint32
+	// TODO: add config per epoch for supernova
+	NumFloodingRounds        uint32
+	PeerBanDurationInSeconds uint32
 }
 
 // TopicMaxMessagesConfig will hold the maximum number of messages/sec per topic value
@@ -695,12 +696,15 @@ type PoolsCleanersConfig struct {
 
 // RedundancyConfig represents the config options to be used when setting the redundancy configuration
 type RedundancyConfig struct {
+	// TODO: add config per epoch for supernova
 	MaxRoundsOfInactivityAccepted int
 }
 
 // ChainParametersByEpochConfig holds chain parameters that are configurable based on epochs
 type ChainParametersByEpochConfig struct {
 	RoundDuration               uint64
+	RoundsPerEpoch              int64
+	MinRoundsBetweenEpochs      int64
 	Hysteresis                  float32
 	EnableEpoch                 uint32
 	ShardConsensusGroupSize     uint32
