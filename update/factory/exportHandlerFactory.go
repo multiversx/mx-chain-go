@@ -280,7 +280,7 @@ func (e *exportHandlerFactory) Create() (update.ExportHandler, error) {
 	}
 
 	// TODO reuse the debugger when the one used for regular resolvers & interceptors will be moved inside the status components
-	debugger, errNotCritical := factory.NewInterceptorDebuggerFactory(e.interceptorDebugConfig)
+	debugger, errNotCritical := factory.NewInterceptorDebuggerFactory(e.interceptorDebugConfig, e.coreComponents.SyncTimer())
 	if errNotCritical != nil {
 		log.Warn("error creating hardfork debugger", "error", errNotCritical)
 	}
