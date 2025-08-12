@@ -8,6 +8,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/alteredAccount"
 	"github.com/multiversx/mx-chain-core-go/data/api"
 	"github.com/multiversx/mx-chain-core-go/data/esdt"
+	"github.com/multiversx/mx-chain-core-go/data/smartContractResult"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-core-go/data/validator"
 	"github.com/multiversx/mx-chain-core-go/data/vm"
@@ -74,6 +75,7 @@ type FacadeHandler interface {
 	GetESDTsWithRole(address string, role string, options api.AccountQueryOptions) ([]string, api.BlockInfo, error)
 	GetAllESDTTokens(address string, options api.AccountQueryOptions) (map[string]*esdt.ESDigitalToken, api.BlockInfo, error)
 	GetKeyValuePairs(address string, options api.AccountQueryOptions) (map[string]string, api.BlockInfo, error)
+	IterateKeys(address string, numKeys uint, iteratorState [][]byte, options api.AccountQueryOptions) (map[string]string, [][]byte, api.BlockInfo, error)
 	GetGuardianData(address string, options api.AccountQueryOptions) (api.GuardianData, api.BlockInfo, error)
 	GetBlockByHash(hash string, options api.BlockQueryOptions) (*api.Block, error)
 	GetBlockByNonce(nonce uint64, options api.BlockQueryOptions) (*api.Block, error)
@@ -111,6 +113,7 @@ type FacadeHandler interface {
 	ValidateTransactionForSimulation(tx *transaction.Transaction, checkSignature bool) error
 	SendBulkTransactions([]*transaction.Transaction) (uint64, error)
 	SimulateTransactionExecution(tx *transaction.Transaction) (*txSimData.SimulationResultsWithVMOutput, error)
+	SimulateSCRExecutionCost(scr *smartContractResult.SmartContractResult) (*transaction.CostResponse, error)
 	GetTransaction(hash string, withResults bool) (*transaction.ApiTransactionResult, error)
 	ComputeTransactionGasLimit(tx *transaction.Transaction) (*transaction.CostResponse, error)
 	EncodeAddressPubkey(pk []byte) (string, error)

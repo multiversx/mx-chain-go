@@ -2,6 +2,7 @@ package transactionEvaluator
 
 import (
 	"encoding/hex"
+	"errors"
 	"sync"
 
 	"github.com/multiversx/mx-chain-core-go/core"
@@ -35,6 +36,7 @@ type ArgsTxSimulator struct {
 	Marshalizer               marshal.Marshalizer
 	DataFieldParser           DataFieldParser
 	BlockChainHook            process.BlockChainHookHandler
+	SCRProcessor              process.SmartContractResultProcessor
 }
 
 type refundHandler interface {
@@ -44,6 +46,7 @@ type refundHandler interface {
 type transactionSimulator struct {
 	mutOperation           sync.Mutex
 	txProcessor            TransactionProcessor
+	scrProcessor           process.SmartContractResultProcessor
 	intermProcContainer    process.IntermediateProcessorContainer
 	addressPubKeyConverter core.PubkeyConverter
 	shardCoordinator       sharding.Coordinator
@@ -84,6 +87,9 @@ func NewTransactionSimulator(args ArgsTxSimulator) (*transactionSimulator, error
 	if check.IfNil(args.BlockChainHook) {
 		return nil, process.ErrNilBlockChainHook
 	}
+	if check.IfNil(args.SCRProcessor) {
+		return nil, process.ErrNilSmartContractResultProcessor
+	}
 
 	return &transactionSimulator{
 		txProcessor:            args.TransactionProcessor,
@@ -96,27 +102,53 @@ func NewTransactionSimulator(args ArgsTxSimulator) (*transactionSimulator, error
 		refundDetector:         transactionAPI.NewRefundDetector(),
 		dataFieldParser:        args.DataFieldParser,
 		blockChainHook:         args.BlockChainHook,
+		scrProcessor:           args.SCRProcessor,
 	}, nil
+}
+
+// ProcessSCR will process the smart contract results in a special environment, where state-writing is not allowed
+func (ts *transactionSimulator) ProcessSCR(scr *smartContractResult.SmartContractResult, currentHeader data.HeaderHandler) (*txSimData.SimulationResultsWithVMOutput, error) {
+	return ts.process(scr, currentHeader)
 }
 
 // ProcessTx will process the transaction in a special environment, where state-writing is not allowed
 func (ts *transactionSimulator) ProcessTx(tx *transaction.Transaction, currentHeader data.HeaderHandler) (*txSimData.SimulationResultsWithVMOutput, error) {
+	return ts.process(tx, currentHeader)
+}
+
+func (ts *transactionSimulator) process(txHandler data.TransactionHandler, currentHeader data.HeaderHandler) (*txSimData.SimulationResultsWithVMOutput, error) {
 	ts.mutOperation.Lock()
 	defer ts.mutOperation.Unlock()
 
-	txStatus := transaction.TxStatusPending
+	err := ts.blockChainHook.SetCurrentHeader(currentHeader)
+	if err != nil {
+		return nil, err
+	}
+
+	var retCode vmcommon.ReturnCode
+
+	switch tx := txHandler.(type) {
+	case *transaction.Transaction:
+		retCode, err = ts.txProcessor.ProcessTransaction(tx)
+	case *smartContractResult.SmartContractResult:
+		retCode, err = ts.scrProcessor.ProcessSmartContractResult(tx)
+	default:
+		return nil, errors.New("unknown type")
+	}
+
+	return ts.prepareOutput(txHandler, retCode, err)
+}
+
+func (ts *transactionSimulator) prepareOutput(txHandler data.TransactionHandler, retCode vmcommon.ReturnCode, err error) (*txSimData.SimulationResultsWithVMOutput, error) {
+	txStatus := transaction.TxStatusSuccess
 	failReason := ""
 
-	ts.blockChainHook.SetCurrentHeader(currentHeader)
-
-	retCode, err := ts.txProcessor.ProcessTransaction(tx)
 	if err != nil {
-		failReason = err.Error()
 		txStatus = transaction.TxStatusFail
-	} else {
-		if retCode == vmcommon.Ok {
-			txStatus = transaction.TxStatusSuccess
-		}
+		failReason = err.Error()
+	} else if retCode != vmcommon.Ok {
+		txStatus = transaction.TxStatusFail
+		failReason = retCode.String()
 	}
 
 	results := &txSimData.SimulationResultsWithVMOutput{
@@ -131,7 +163,7 @@ func (ts *transactionSimulator) ProcessTx(tx *transaction.Transaction, currentHe
 		return nil, err
 	}
 
-	vmOutput, ok := ts.getVMOutputOfTx(tx)
+	vmOutput, ok := ts.getVMOutput(txHandler)
 	if ok {
 		results.VMOutput = vmOutput
 	}
@@ -160,7 +192,7 @@ func (ts *transactionSimulator) addLogsFromVmOutput(results *txSimData.Simulatio
 	}
 }
 
-func (ts *transactionSimulator) getVMOutputOfTx(tx *transaction.Transaction) (*vmcommon.VMOutput, bool) {
+func (ts *transactionSimulator) getVMOutput(tx data.TransactionHandler) (*vmcommon.VMOutput, bool) {
 	txHash, err := core.CalculateHash(ts.marshalizer, ts.hasher, tx)
 	if err != nil {
 		return nil, false

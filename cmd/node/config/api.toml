@@ -79,6 +79,9 @@
         # /address/:address/keys will return all the key-value pairs of a given account
         { Name = "/:address/keys", Open = true },
 
+        # address/iterate-keys will return the given num of key-value pairs for the given account. The iteration will start from the given starting state
+        { Name = "/iterate-keys", Open = true },
+
         # /address/:address/key/:key will return the value of a key for a given account
         { Name = "/:address/key/:key", Open = true },
 
@@ -210,6 +213,9 @@
 
         # /transaction/cost will receive a single transaction in JSON format and will return the estimated cost of it
         { Name = "/cost", Open = true },
+
+        # /transaction/cost-scr will receive a single smart contract result in JSON format and will return the estimated cost of it
+        { Name = "/cost-scr", Open = true },
 
         # /transaction/pool will return the hashes of the transactions that are currently in the pool
         # /transaction/pool?fields=sender,receiver,gaslimit,gasprice will return hashes and all the optional fields mentioned that are currently in the pool

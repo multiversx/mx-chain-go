@@ -44,7 +44,7 @@ const (
 	guardAccountCost                        = 250_000
 	extraGasLimitForGuarded                 = minGasLimit
 	extraGasESDTTransfer                    = 250000
-	extraGasMultiESDTTransferPerToken       = 1100000
+	extraGasMultiESDTTransfer               = 500000
 	egldTicker                              = "EGLD-000000"
 )
 
@@ -336,7 +336,7 @@ func testRelayedV3ScCall(
 
 		// send relayed tx
 		txDataAdd := "add@" + hex.EncodeToString(big.NewInt(1).Bytes())
-		gasLimit := uint64(3000000)
+		gasLimit := uint64(2000000)
 		relayedTx := generateRelayedV3Transaction(sender.Bytes, 0, scAddressBytes, relayer.Bytes, big.NewInt(0), txDataAdd, gasLimit)
 
 		result, err := cs.SendTxAndGenerateBlockTilTxIsExecuted(relayedTx, maxNumOfBlocksToGenerateWhenExecutingTx)
@@ -655,7 +655,7 @@ func testRelayedV3MultiESDTTransferWithEGLD(
 				hex.EncodeToString(sender.Bytes) + "@02@" +
 				hex.EncodeToString([]byte(ticker)) + "@00@" + hex.EncodeToString(transferValue.Bytes()) + "@" +
 				hex.EncodeToString([]byte(egldTicker)) + "@00@" + hex.EncodeToString(egldTransferValue.Bytes())
-			gasLimit := minGasLimit + len(txDataTransfer)*1500 + extraGasMultiESDTTransferPerToken*2
+			gasLimit := minGasLimit + len(txDataTransfer)*1500 + extraGasMultiESDTTransfer
 			ownerNonce := getNonce(t, cs, owner)
 
 			esdtTransferTx := generateTransaction(owner.Bytes, ownerNonce, owner.Bytes, big.NewInt(0), txDataTransfer, uint64(gasLimit))
@@ -677,7 +677,7 @@ func testRelayedV3MultiESDTTransferWithEGLD(
 			hex.EncodeToString(receiver.Bytes) + "@02@" +
 			hex.EncodeToString([]byte(ticker)) + "@00@" + hex.EncodeToString(transferValue.Bytes()) + "@" +
 			hex.EncodeToString([]byte(egldTicker)) + "@00@" + hex.EncodeToString(egldTransferValue.Bytes())
-		gasLimit := minGasLimit*2 + len(txDataTransfer)*1500 + extraGasMultiESDTTransferPerToken*2
+		gasLimit := minGasLimit*2 + len(txDataTransfer)*1500 + extraGasMultiESDTTransfer
 		senderNonce := getNonce(t, cs, sender)
 		relayedTx := generateRelayedV3Transaction(sender.Bytes, senderNonce, sender.Bytes, relayer.Bytes, big.NewInt(0), txDataTransfer, uint64(gasLimit))
 
@@ -1017,8 +1017,8 @@ func TestFixRelayedMoveBalanceWithChainSimulator(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	expectedFeeScCallBefore := "827294920000000"
-	expectedFeeScCallAfter := "885704920000000"
+	expectedFeeScCallBefore := "827295420000000"
+	expectedFeeScCallAfter := "885705420000000"
 	t.Run("sc call", testFixRelayedMoveBalanceWithChainSimulatorScCall(expectedFeeScCallBefore, expectedFeeScCallAfter))
 
 	expectedFeeMoveBalanceBefore := "809500000000000" // 506 * 1500 + 50000 + 500
@@ -1073,7 +1073,7 @@ func testFixRelayedMoveBalanceWithChainSimulatorScCall(
 		require.NoError(t, err)
 
 		// send relayed tx, fix still not active
-		innerTx = generateTransaction(owner.Bytes, 2, scAddressBytes, big.NewInt(0), txDataAdd, 3000000)
+		innerTx = generateTransaction(owner.Bytes, 2, scAddressBytes, big.NewInt(0), txDataAdd, 1230000)
 		marshalledTx, err = json.Marshal(innerTx)
 		require.NoError(t, err)
 		txData = []byte("relayedTx@" + hex.EncodeToString(marshalledTx))
@@ -1096,7 +1096,7 @@ func testFixRelayedMoveBalanceWithChainSimulatorScCall(
 		require.NoError(t, err)
 
 		// send relayed tx after fix
-		innerTx = generateTransaction(owner.Bytes, 3, scAddressBytes, big.NewInt(0), txDataAdd, 3000000)
+		innerTx = generateTransaction(owner.Bytes, 3, scAddressBytes, big.NewInt(0), txDataAdd, 1500000)
 		marshalledTx, err = json.Marshal(innerTx)
 		require.NoError(t, err)
 		txData = []byte("relayedTx@" + hex.EncodeToString(marshalledTx))
