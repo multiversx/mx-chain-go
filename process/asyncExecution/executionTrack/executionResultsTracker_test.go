@@ -371,3 +371,76 @@ func TestExecutionResultsTracker_GetPendingExecutionResultByHashAndHash(t *testi
 	require.Nil(t, err)
 	require.Equal(t, executionResult1, res)
 }
+
+func TestExecutionResultsTracker_RemoveByHash(t *testing.T) {
+
+	t.Run("remove header should update the last executed hash to last notarized", func(t *testing.T) {
+		tracker := NewExecutionResultsTracker()
+
+		lastNotarizedHash := []byte("hash0")
+		err := tracker.SetLastNotarizedResult(&block.ExecutionResult{
+			BaseExecutionResult: &block.BaseExecutionResult{
+				HeaderHash:  lastNotarizedHash,
+				HeaderNonce: 10,
+			},
+		})
+		require.Nil(t, err)
+
+		headerHash := []byte("hash1")
+		executionResult1 := &block.ExecutionResult{
+			BaseExecutionResult: &block.BaseExecutionResult{
+				HeaderHash:  []byte("hash1"),
+				HeaderNonce: 11,
+			},
+		}
+		err = tracker.AddExecutionResult(executionResult1)
+		require.Nil(t, err)
+
+		require.Equal(t, headerHash, tracker.lastExecutedResultHash)
+
+		pending, err := tracker.GetPendingExecutionResults()
+		require.Nil(t, err)
+		require.Equal(t, 1, len(pending))
+		execResult := pending[0].(*block.ExecutionResult)
+		require.Equal(t, executionResult1, execResult)
+
+		err = tracker.RemoveByHash(headerHash)
+		require.Nil(t, err)
+
+		pending, err = tracker.GetPendingExecutionResults()
+		require.Nil(t, err)
+		require.Equal(t, 0, len(pending))
+		require.Equal(t, lastNotarizedHash, tracker.lastExecutedResultHash)
+	})
+
+	t.Run("remove header not found should skip execution result at add", func(t *testing.T) {
+		tracker := NewExecutionResultsTracker()
+
+		lastNotarizedHash := []byte("hash0")
+		err := tracker.SetLastNotarizedResult(&block.ExecutionResult{
+			BaseExecutionResult: &block.BaseExecutionResult{
+				HeaderHash:  lastNotarizedHash,
+				HeaderNonce: 10,
+			},
+		})
+		require.Nil(t, err)
+
+		headerHash := []byte("hash1")
+		err = tracker.RemoveByHash(headerHash)
+		require.Nil(t, err)
+
+		executionResult1 := &block.ExecutionResult{
+			BaseExecutionResult: &block.BaseExecutionResult{
+				HeaderHash:  headerHash,
+				HeaderNonce: 11,
+			},
+		}
+		err = tracker.AddExecutionResult(executionResult1)
+		require.Nil(t, err)
+
+		pending, err := tracker.GetPendingExecutionResults()
+		require.Nil(t, err)
+		require.Equal(t, 0, len(pending))
+		require.Equal(t, lastNotarizedHash, tracker.lastExecutedResultHash)
+	})
+}
