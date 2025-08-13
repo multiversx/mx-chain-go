@@ -5,6 +5,7 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-go/state"
 )
 
 type virtualSelectionSession struct {
@@ -25,26 +26,49 @@ func (virtualSession *virtualSelectionSession) getRecord(address []byte) (*virtu
 		return virtualRecord, nil
 	}
 
-	account, err := virtualSession.session.GetAccountState(address)
+	virtualRecord, err := virtualSession.createAccountRecord(address)
 	if err != nil {
-		log.Debug("virtualSelectionSession.getRecord",
+		log.Debug("virtualSelectionSession.getRecord: error when creating virtual account record",
 			"address", address,
 			"err", err)
 		return nil, err
 	}
 
+	// We handle records corresponding to new (missing) accounts, as well (see "createAccountRecord").
+	virtualSession.virtualAccountsByAddress[string(address)] = virtualRecord
+	return virtualRecord, nil
+}
+
+func (virtualSession *virtualSelectionSession) createAccountRecord(address []byte) (*virtualAccountRecord, error) {
+	account, err := virtualSession.session.GetAccountState(address)
+	if err == state.ErrAccNotFound {
+		// "ErrAccNotFound" is received when the account is new (missing on the blockchain),
+		// or when the account is in a different shard
+		// (though, this second case is not applicable for 'sender' or 'relayer' accounts, in the context of transactions selection).
+		// Most probable scenario: "getRecord" is invoked for the 'sender' of a relayed transaction, where the 'sender' is new (and has no balance).
+		// We simply create an empty record.
+		return newVirtualAccountRecord(
+			core.OptionalUint64{
+				Value:    0,
+				HasValue: true,
+			},
+			big.NewInt(0),
+		), nil
+	}
+	if err != nil {
+		return nil, err
+	}
+
 	initialNonce := account.GetNonce()
 	initialBalance := account.GetBalance()
-	virtualRecord = newVirtualAccountRecord(
+
+	return newVirtualAccountRecord(
 		core.OptionalUint64{
 			Value:    initialNonce,
 			HasValue: true,
 		},
 		initialBalance,
-	)
-
-	virtualSession.virtualAccountsByAddress[string(address)] = virtualRecord
-	return virtualRecord, nil
+	), nil
 }
 
 func (virtualSession *virtualSelectionSession) getNonce(address []byte) (uint64, error) {
@@ -54,6 +78,13 @@ func (virtualSession *virtualSelectionSession) getNonce(address []byte) (uint64,
 			"address", address,
 			"err", err)
 		return 0, err
+	}
+
+	if !account.initialNonce.HasValue {
+		log.Debug("virtualSelectionSession.getNonce",
+			"address", address,
+			"err", errNonceNotSet)
+		return 0, errNonceNotSet
 	}
 
 	return account.initialNonce.Value, nil
@@ -81,12 +112,14 @@ func (virtualSession *virtualSelectionSession) accumulateConsumedBalance(tx *Wra
 
 	transferredValue := tx.TransferredValue
 	if transferredValue != nil {
-		senderRecord.consumedBalance.Add(senderRecord.consumedBalance, transferredValue)
+		consumedBalance := senderRecord.getConsumedBalance()
+		consumedBalance.Add(consumedBalance, transferredValue)
 	}
 
 	fee := tx.Fee
 	if fee != nil {
-		feePayerRecord.consumedBalance.Add(feePayerRecord.consumedBalance, fee)
+		consumedBalance := feePayerRecord.getConsumedBalance()
+		consumedBalance.Add(consumedBalance, fee)
 	}
 
 	return nil
@@ -107,16 +140,17 @@ func (virtualSession *virtualSelectionSession) detectWillFeeExceedBalance(tx *Wr
 		return false
 	}
 
-	futureConsumedBalance := new(big.Int).Add(feePayerRecord.consumedBalance, fee)
-	feePayerBalance := feePayerRecord.initialBalance
+	consumedBalance := feePayerRecord.getConsumedBalance()
+	futureConsumedBalance := new(big.Int).Add(consumedBalance, fee)
+	feePayerBalance := feePayerRecord.getInitialBalance()
 
 	willFeeExceedBalance := futureConsumedBalance.Cmp(feePayerBalance) > 0
 	if willFeeExceedBalance {
 		logSelect.Trace("virtualSelectionSession.detectWillFeeExceedBalance",
 			"tx", tx.TxHash,
 			"feePayer", feePayer,
-			"initialBalance", feePayerRecord.initialBalance,
-			"consumedBalance", feePayerRecord.consumedBalance,
+			"initialBalance", feePayerBalance,
+			"consumedBalance", consumedBalance,
 		)
 	}
 

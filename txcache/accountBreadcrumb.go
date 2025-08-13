@@ -14,7 +14,6 @@ type accountBreadcrumb struct {
 
 func newAccountBreadcrumb(
 	initialNonce core.OptionalUint64,
-	lastNonce core.OptionalUint64,
 	consumedBalance *big.Int,
 ) *accountBreadcrumb {
 	if consumedBalance == nil {
@@ -22,7 +21,7 @@ func newAccountBreadcrumb(
 	}
 	return &accountBreadcrumb{
 		initialNonce:    initialNonce,
-		lastNonce:       lastNonce,
+		lastNonce:       core.OptionalUint64{HasValue: false},
 		consumedBalance: consumedBalance,
 	}
 }
@@ -33,10 +32,17 @@ func (breadcrumb *accountBreadcrumb) accumulateConsumedBalance(transferredValue 
 	}
 }
 
-func (breadcrumb *accountBreadcrumb) updateNonce(lastNonce core.OptionalUint64) {
-	if lastNonce.HasValue {
-		breadcrumb.lastNonce = lastNonce
+func (breadcrumb *accountBreadcrumb) updateLastNonce(lastNonce core.OptionalUint64) error {
+	if !lastNonce.HasValue {
+		return errReceivedLastNonceNotSet
 	}
+	if breadcrumb.lastNonce.HasValue && breadcrumb.lastNonce.Value+1 != lastNonce.Value {
+		// validate that we have txs with sequential nonces inside the tracked block used for breadcrumbs
+		return errNonceGap
+	}
+
+	breadcrumb.lastNonce = lastNonce
+	return nil
 }
 
 func (breadcrumb *accountBreadcrumb) verifyContinuityBetweenAccountBreadcrumbs(
@@ -49,6 +55,6 @@ func (breadcrumb *accountBreadcrumb) verifyContinuityWithSessionNonce(sessionNon
 	return breadcrumb.initialNonce.Value == sessionNonce
 }
 
-func (breadcrumb *accountBreadcrumb) hasUnkownNonce() bool {
+func (breadcrumb *accountBreadcrumb) hasUnknownNonce() bool {
 	return !breadcrumb.initialNonce.HasValue && !breadcrumb.lastNonce.HasValue
 }

@@ -963,6 +963,9 @@ func TestEnableEpochConfig(t *testing.T) {
     # FixGetBalanceEnableEpoch represents the epoch when Barnard opcodes will be enabled
     FixGetBalanceEnableEpoch = 112
 
+    # SupernovaEnableEpoch represents the epoch when sub-second finality will be enabled
+    SupernovaEnableEpoch = 113
+
     # MaxNodesChangeEnableEpoch holds configuration for changing the maximum number of nodes and the enabling epoch
     MaxNodesChangeEnableEpoch = [
         { EpochEnable = 44, MaxNumNodes = 2169, NodesToShufflePerShard = 80 },
@@ -1095,6 +1098,7 @@ func TestEnableEpochConfig(t *testing.T) {
 			BarnardOpcodesEnableEpoch:                                110,
 			AutomaticActivationOfNodesDisableEpoch:                   111,
 			FixGetBalanceEnableEpoch:                                 112,
+			SupernovaEnableEpoch:                                     113,
 			MaxNodesChangeEnableEpoch: []MaxNodesChangeConfig{
 				{
 					EpochEnable:            44,

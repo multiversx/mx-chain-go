@@ -129,17 +129,13 @@ func (cache *TxCache) SelectTransactions(
 
 	logSelect.Debug(
 		"TxCache.SelectTransactions: begin",
-		"current root hash", rootHash,
-		"num bytes", cache.NumBytes(),
 		"num txs", cache.CountTx(),
 		"num senders", cache.CountSenders(),
+		"num bytes", cache.NumBytes(),
+		"current root hash", rootHash,
 	)
 
-	virtualSession, err := cache.tracker.deriveVirtualSelectionSession(
-		session,
-		blockchainInfo.GetLatestExecutedBlockHash(),
-		blockchainInfo.GetCurrentNonce(),
-	)
+	virtualSession, err := cache.tracker.deriveVirtualSelectionSession(session, blockchainInfo)
 	if err != nil {
 		log.Error("TxCache.SelectTransactions: could not derive virtual selection session", "err", err)
 		return nil, 0
@@ -162,8 +158,13 @@ func (cache *TxCache) SelectTransactions(
 }
 
 // OnProposedBlock calls the OnProposedBlock method from SelectionTracker
-func (cache *TxCache) OnProposedBlock(blockHash []byte, blockBody *block.Body, handler data.HeaderHandler) error {
-	return cache.tracker.OnProposedBlock(blockHash, blockBody, handler)
+func (cache *TxCache) OnProposedBlock(
+	blockHash []byte,
+	blockBody *block.Body,
+	handler data.HeaderHandler,
+	session SelectionSession,
+	defaultBlockchainInfo common.BlockchainInfo) error {
+	return cache.tracker.OnProposedBlock(blockHash, blockBody, handler, session, defaultBlockchainInfo)
 }
 
 // OnExecutedBlock calls the OnExecutedBlock method from SelectionTracker

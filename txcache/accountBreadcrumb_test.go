@@ -25,7 +25,7 @@ func Test_isRelayer(t *testing.T) {
 			consumedBalance: nil,
 		}
 
-		actualRes := breadcrumb.hasUnkownNonce()
+		actualRes := breadcrumb.hasUnknownNonce()
 		require.True(t, actualRes)
 	})
 
@@ -44,8 +44,86 @@ func Test_isRelayer(t *testing.T) {
 			consumedBalance: nil,
 		}
 
-		actualRes := breadcrumb.hasUnkownNonce()
+		actualRes := breadcrumb.hasUnknownNonce()
 		require.False(t, actualRes)
+	})
+}
+
+func Test_updateLastNonce(t *testing.T) {
+	t.Parallel()
+
+	t.Run("should return receivedLastNonceNotSet the received lastNonce does not have value", func(t *testing.T) {
+		t.Parallel()
+
+		breadcrumb := accountBreadcrumb{
+			initialNonce: core.OptionalUint64{
+				Value:    0,
+				HasValue: false,
+			},
+			lastNonce: core.OptionalUint64{
+				Value:    1,
+				HasValue: true,
+			},
+			consumedBalance: nil,
+		}
+
+		receivedLastNonce := core.OptionalUint64{
+			Value:    3,
+			HasValue: false,
+		}
+
+		err := breadcrumb.updateLastNonce(receivedLastNonce)
+		require.Equal(t, errReceivedLastNonceNotSet, err)
+		require.Equal(t, uint64(1), breadcrumb.lastNonce.Value)
+	})
+
+	t.Run("should return nonce gap", func(t *testing.T) {
+		t.Parallel()
+
+		breadcrumb := accountBreadcrumb{
+			initialNonce: core.OptionalUint64{
+				Value:    0,
+				HasValue: true,
+			},
+			lastNonce: core.OptionalUint64{
+				Value:    3,
+				HasValue: true,
+			},
+			consumedBalance: nil,
+		}
+
+		receivedLastNonce := core.OptionalUint64{
+			Value:    5,
+			HasValue: true,
+		}
+
+		err := breadcrumb.updateLastNonce(receivedLastNonce)
+		require.Equal(t, errNonceGap, err)
+	})
+
+	t.Run("should return no err", func(t *testing.T) {
+		t.Parallel()
+
+		breadcrumb := accountBreadcrumb{
+			initialNonce: core.OptionalUint64{
+				Value:    0,
+				HasValue: true,
+			},
+			lastNonce: core.OptionalUint64{
+				Value:    3,
+				HasValue: true,
+			},
+			consumedBalance: nil,
+		}
+
+		receivedLastNonce := core.OptionalUint64{
+			Value:    4,
+			HasValue: true,
+		}
+
+		err := breadcrumb.updateLastNonce(receivedLastNonce)
+		require.Nil(t, err)
+		require.Equal(t, uint64(4), breadcrumb.lastNonce.Value)
 	})
 }
 

@@ -19,8 +19,6 @@ import (
 	"github.com/multiversx/mx-chain-go/storage"
 )
 
-var selectionLoopMaximumDuration = 500 // loosen the time constraints for selection integration tests
-
 func TestMempoolWithChainSimulator_Selection(t *testing.T) {
 	if testing.Short() {
 		t.Skip("this is not a short test")
@@ -481,7 +479,7 @@ func TestMempoolWithChainSimulator_Eviction(t *testing.T) {
 	})
 
 	// Allow the eviction to complete (even if it's quite fast).
-	time.Sleep(3 * time.Second)
+	time.Sleep(5 * time.Second)
 
 	expectedNumTransactionsInPool := 300_000 + 1 + 1 - int(storage.TxPoolSourceMeNumItemsToPreemptivelyEvict)
 	require.Equal(t, expectedNumTransactionsInPool, getNumTransactionsInPool(simulator, shard))
@@ -509,7 +507,7 @@ func Test_Selection_ShouldNotSelectSameTransactionsWithSameSender(t *testing.T) 
 	require.NotNil(t, txpool)
 
 	// create the non-virtual selection session, assure we have enough balance
-	selectionSession := createMockSelectionSession(map[string]*accountInfo{
+	selectionSession := createMockSelectionSessionWithSpecificAccountInfo(map[string]*accountInfo{
 		"alice": {
 			balance: oneEGLD,
 			nonce:   0,
@@ -524,7 +522,7 @@ func Test_Selection_ShouldNotSelectSameTransactionsWithSameSender(t *testing.T) 
 	options := holders.NewTxSelectionOptions(
 		10_000_000_000,
 		maxNumTxs,
-		selectionLoopMaximumDuration,
+		int(selectionLoopMaximumDuration.Milliseconds()),
 		10,
 	)
 
@@ -581,7 +579,10 @@ func Test_Selection_ShouldNotSelectSameTransactionsWithSameSender(t *testing.T) 
 		Nonce:    0,
 		PrevHash: []byte("blockHash0"),
 		RootHash: []byte(fmt.Sprintf("rootHash%d", 0)),
-	})
+	},
+		selectionSession,
+		defaultBlockchainInfo,
+	)
 	require.Nil(t, err)
 
 	// do the second selection. should not return same txs
@@ -614,7 +615,7 @@ func Test_Selection_ShouldNotSelectSameTransactionsWithDifferentSenders(t *testi
 	require.NotNil(t, txpool)
 
 	// assure we have enough balance for each account
-	selectionSession := createMockSelectionSession(map[string]*accountInfo{
+	selectionSession := createMockSelectionSessionWithSpecificAccountInfo(map[string]*accountInfo{
 		"alice": {
 			balance: oneEGLD,
 			nonce:   0,
@@ -632,7 +633,7 @@ func Test_Selection_ShouldNotSelectSameTransactionsWithDifferentSenders(t *testi
 	options := holders.NewTxSelectionOptions(
 		10_000_000_000,
 		2,
-		selectionLoopMaximumDuration,
+		int(selectionLoopMaximumDuration.Milliseconds()),
 		10,
 	)
 
@@ -722,11 +723,15 @@ func Test_Selection_ShouldNotSelectSameTransactionsWithDifferentSenders(t *testi
 	require.Equal(t, "txHash1", string(selectedTransactions[1].TxHash))
 
 	// propose the selected transactions
-	err = txpool.OnProposedBlock([]byte("blockHash1"), &blockBody, &block.Header{
-		Nonce:    1,
-		PrevHash: []byte("blockHash0"),
-		RootHash: []byte(fmt.Sprintf("rootHash%d", 0)),
-	})
+	err = txpool.OnProposedBlock([]byte("blockHash1"), &blockBody,
+		&block.Header{
+			Nonce:    1,
+			PrevHash: []byte("blockHash0"),
+			RootHash: []byte(fmt.Sprintf("rootHash%d", 0)),
+		},
+		selectionSession,
+		defaultBlockchainInfo,
+	)
 	require.Nil(t, err)
 
 	// do the second selection. should not return same txs
@@ -762,7 +767,7 @@ func Test_Selection_ShouldNotSelectSameTransactionsWithManyTransactions(t *testi
 	initialAmount := big.NewInt(int64(numTxsPerSender) * 50_000 * 1_000_000_000)
 
 	senders := []string{"alice", "bob"}
-	selectionSession := createMockSelectionSession(map[string]*accountInfo{
+	selectionSession := createMockSelectionSessionWithSpecificAccountInfo(map[string]*accountInfo{
 		"alice": {
 			balance: initialAmount,
 			nonce:   0,
@@ -780,7 +785,7 @@ func Test_Selection_ShouldNotSelectSameTransactionsWithManyTransactions(t *testi
 	options := holders.NewTxSelectionOptions(
 		10_000_000_000,
 		numTxsPerSender,
-		selectionLoopMaximumDuration,
+		int(selectionLoopMaximumDuration.Milliseconds()),
 		10,
 	)
 
@@ -839,7 +844,10 @@ func Test_Selection_ShouldNotSelectSameTransactionsWithManyTransactions(t *testi
 		Nonce:    1,
 		PrevHash: []byte("blockHash0"),
 		RootHash: []byte(fmt.Sprintf("rootHash%d", 0)),
-	})
+	},
+		selectionSession,
+		defaultBlockchainInfo,
+	)
 	require.Nil(t, err)
 
 	// do the second selection (the rest of the transactions should be selected)
@@ -858,11 +866,15 @@ func Test_Selection_ShouldNotSelectSameTransactionsWithManyTransactions(t *testi
 			TxHashes: proposedTxs,
 		},
 	}}
-	err = txpool.OnProposedBlock([]byte("blockHash2"), &proposedBlock2, &block.Header{
-		Nonce:    1,
-		PrevHash: []byte("blockHash1"),
-		RootHash: []byte(fmt.Sprintf("rootHash%d", 1)),
-	})
+	err = txpool.OnProposedBlock([]byte("blockHash2"), &proposedBlock2,
+		&block.Header{
+			Nonce:    1,
+			PrevHash: []byte("blockHash1"),
+			RootHash: []byte(fmt.Sprintf("rootHash%d", 1)),
+		},
+		selectionSession,
+		defaultBlockchainInfo,
+	)
 	require.Nil(t, err)
 
 	// do the last selection (no tx should be returned)
@@ -898,7 +910,7 @@ func Test_Selection_ShouldNotSelectSameTransactionsWithManyTransactionsAndExecut
 
 	// mock the non-virtual selection session
 	senders := []string{"alice", "bob"}
-	selectionSession := createMockSelectionSession(map[string]*accountInfo{
+	selectionSession := createMockSelectionSessionWithSpecificAccountInfo(map[string]*accountInfo{
 		"alice": {
 			balance: initialAmount,
 			nonce:   0,
@@ -916,7 +928,7 @@ func Test_Selection_ShouldNotSelectSameTransactionsWithManyTransactionsAndExecut
 	options := holders.NewTxSelectionOptions(
 		10_000_000_000,
 		numTxsPerSender,
-		selectionLoopMaximumDuration,
+		int(selectionLoopMaximumDuration.Milliseconds()),
 		10,
 	)
 
@@ -970,11 +982,15 @@ func Test_Selection_ShouldNotSelectSameTransactionsWithManyTransactionsAndExecut
 			TxHashes: proposedTxs,
 		},
 	}}
-	err = txpool.OnProposedBlock([]byte("blockHash1"), &proposedBlock1, &block.Header{
-		Nonce:    1,
-		PrevHash: []byte("blockHash0"),
-		RootHash: []byte(fmt.Sprintf("rootHash%d", 0)),
-	})
+	err = txpool.OnProposedBlock([]byte("blockHash1"), &proposedBlock1,
+		&block.Header{
+			Nonce:    1,
+			PrevHash: []byte("blockHash0"),
+			RootHash: []byte(fmt.Sprintf("rootHash%d", 0)),
+		},
+		selectionSession,
+		defaultBlockchainInfo,
+	)
 	require.Nil(t, err)
 
 	// do the second selection (the rest of the transactions should be selected)
@@ -1007,11 +1023,15 @@ func Test_Selection_ShouldNotSelectSameTransactionsWithManyTransactionsAndExecut
 		},
 	}}
 
-	err = txpool.OnProposedBlock([]byte("blockHash2"), &proposedBlock2, &block.Header{
-		Nonce:    2,
-		PrevHash: []byte("blockHash1"),
-		RootHash: []byte(fmt.Sprintf("rootHash%d", 1)),
-	})
+	err = txpool.OnProposedBlock([]byte("blockHash2"), &proposedBlock2,
+		&block.Header{
+			Nonce:    2,
+			PrevHash: []byte("blockHash1"),
+			RootHash: []byte(fmt.Sprintf("rootHash%d", 1)),
+		},
+		selectionSession,
+		defaultBlockchainInfo,
+	)
 	require.Nil(t, err)
 
 	blockchainInfo = holders.NewBlockchainInfo([]byte("blockHash1"), 3)
@@ -1045,7 +1065,7 @@ func Test_SelectionWhenFeeExceedsBalanceWithMax3TxsSelected(t *testing.T) {
 	require.Nil(t, err)
 	require.NotNil(t, txpool)
 
-	selectionSession := createMockSelectionSession(map[string]*accountInfo{
+	selectionSession := createMockSelectionSessionWithSpecificAccountInfo(map[string]*accountInfo{
 		"alice": {
 			balance: oneQuarterOfEGLD,
 			nonce:   0,
@@ -1070,7 +1090,7 @@ func Test_SelectionWhenFeeExceedsBalanceWithMax3TxsSelected(t *testing.T) {
 	options := holders.NewTxSelectionOptions(
 		10_000_000_000,
 		3,
-		selectionLoopMaximumDuration,
+		int(selectionLoopMaximumDuration.Milliseconds()),
 		10,
 	)
 
@@ -1180,11 +1200,15 @@ func Test_SelectionWhenFeeExceedsBalanceWithMax3TxsSelected(t *testing.T) {
 		},
 	}}
 
-	err = txpool.OnProposedBlock([]byte("blockHash1"), &proposedBlock1, &block.Header{
-		Nonce:    0,
-		PrevHash: []byte("blockHash0"),
-		RootHash: []byte(fmt.Sprintf("rootHash%d", 0)),
-	})
+	err = txpool.OnProposedBlock([]byte("blockHash1"), &proposedBlock1,
+		&block.Header{
+			Nonce:    0,
+			PrevHash: []byte("blockHash0"),
+			RootHash: []byte(fmt.Sprintf("rootHash%d", 0)),
+		},
+		selectionSession,
+		defaultBlockchainInfo,
+	)
 	require.Nil(t, err)
 
 	// do the second selection, last tx should not be returned (relayer has insufficient balance)
@@ -1213,7 +1237,7 @@ func Test_SelectionWhenFeeExceedsBalanceWithMax2TxsSelected(t *testing.T) {
 	require.Nil(t, err)
 	require.NotNil(t, txpool)
 
-	selectionSession := createMockSelectionSession(map[string]*accountInfo{
+	selectionSession := createMockSelectionSessionWithSpecificAccountInfo(map[string]*accountInfo{
 		"alice": {
 			balance: oneQuarterOfEGLD,
 			nonce:   0,
@@ -1238,7 +1262,7 @@ func Test_SelectionWhenFeeExceedsBalanceWithMax2TxsSelected(t *testing.T) {
 	options := holders.NewTxSelectionOptions(
 		10_000_000_000,
 		2,
-		selectionLoopMaximumDuration,
+		int(selectionLoopMaximumDuration.Milliseconds()),
 		10,
 	)
 
@@ -1347,11 +1371,15 @@ func Test_SelectionWhenFeeExceedsBalanceWithMax2TxsSelected(t *testing.T) {
 		},
 	}}
 
-	err = txpool.OnProposedBlock([]byte("blockHash1"), &proposedBlock1, &block.Header{
-		Nonce:    0,
-		PrevHash: []byte("blockHash0"),
-		RootHash: []byte(fmt.Sprintf("rootHash%d", 0)),
-	})
+	err = txpool.OnProposedBlock([]byte("blockHash1"), &proposedBlock1,
+		&block.Header{
+			Nonce:    0,
+			PrevHash: []byte("blockHash0"),
+			RootHash: []byte(fmt.Sprintf("rootHash%d", 0)),
+		},
+		selectionSession,
+		defaultBlockchainInfo,
+	)
 	require.Nil(t, err)
 
 	// do the second selection, last tx should not be returned (relayer has insufficient balance)

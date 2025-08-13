@@ -913,7 +913,7 @@ func (txs *transactions) computeExistingAndRequestMissingTxsForShards(body *bloc
 	return numMissingTxsForShard
 }
 
-// processAndRemoveBadTransactions processed transactions, if txs are with error it removes them from pool
+// processAndRemoveBadTransaction processed transactions, if txs are with error it removes them from pool
 func (txs *transactions) processAndRemoveBadTransaction(
 	txHash []byte,
 	tx *transaction.Transaction,
@@ -1816,7 +1816,7 @@ func (txs *transactions) prefilterTransactions(
 
 	log.Debug("preFilterTransactions estimation",
 		"initialTxs", len(initialTxs),
-		"gasCost initialTxs", initialTxsGasEstimation,
+		"gasCostOfInitialTxs", initialTxsGasEstimation,
 		"additionalTxs", len(additionalTxs),
 		"gasCostEstimation", gasEstimation,
 		"selected", len(selectedTxs),

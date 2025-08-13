@@ -7,6 +7,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-go/common"
 )
 
 // TODO use a map instead of slice for st.blocks
@@ -31,7 +32,14 @@ func NewSelectionTracker(txCache txCacheForSelectionTracker) (*selectionTracker,
 }
 
 // OnProposedBlock notifies when a block is proposed and updates the state of the selectionTracker
-func (st *selectionTracker) OnProposedBlock(blockHash []byte, blockBody *block.Body, handler data.HeaderHandler) error {
+// TODO the selection session might be unusable in the flow of OnProposed
+func (st *selectionTracker) OnProposedBlock(
+	blockHash []byte,
+	blockBody *block.Body,
+	handler data.HeaderHandler,
+	session SelectionSession,
+	blockchainInfo common.BlockchainInfo,
+) error {
 	if len(blockHash) == 0 {
 		return errNilBlockHash
 	}
@@ -61,11 +69,17 @@ func (st *selectionTracker) OnProposedBlock(blockHash []byte, blockBody *block.B
 		return err
 	}
 
-	tBlock := newTrackedBlock(nonce, blockHash, rootHash, prevHash)
-	tBlock.compileBreadcrumbs(txs)
+	tBlock, err := newTrackedBlock(nonce, blockHash, rootHash, prevHash, txs)
+	if err != nil {
+		log.Debug("selectionTracker.OnProposedBlock: error creating tracked block", "err", err)
+		return err
+	}
+
 	st.blocks = append(st.blocks, tBlock)
 
-	return nil
+	blocksToBeValidated := st.getChainOfTrackedBlocks(blockchainInfo.GetLatestExecutedBlockHash(), blockchainInfo.GetCurrentNonce())
+	// make sure that the proposed block is valid (continuous with the other proposed blocks and no balance issues)
+	return st.validateTrackedBlocks(blocksToBeValidated, session)
 }
 
 // OnExecutedBlock notifies when a block is executed and updates the state of the selectionTracker
@@ -78,12 +92,51 @@ func (st *selectionTracker) OnExecutedBlock(handler data.HeaderHandler) error {
 	rootHash := handler.GetRootHash()
 	prevHash := handler.GetPrevHash()
 
-	tempTrackedBlock := newTrackedBlock(nonce, nil, rootHash, prevHash)
+	tempTrackedBlock, err := newTrackedBlock(nonce, nil, rootHash, prevHash, nil)
+	if err != nil {
+		return err
+	}
 	st.mutTracker.Lock()
 	defer st.mutTracker.Unlock()
 
 	st.removeFromTrackedBlocksNoLock(tempTrackedBlock)
 	st.updateLatestRootHashNoLock(nonce, rootHash)
+
+	return nil
+}
+
+func (st *selectionTracker) validateTrackedBlocks(chainOfTrackedBlocks []*trackedBlock, session SelectionSession) error {
+	validator := newBreadcrumbValidator()
+
+	for _, tb := range chainOfTrackedBlocks {
+		for address, breadcrumb := range tb.breadcrumbsByAddress {
+			// TODO make sure that the accounts which don't yet exist are properly handled
+			accountState, err := session.GetAccountState([]byte(address))
+			if err != nil {
+				log.Debug("selectionTracker.validateTrackedBlocks",
+					"err", err)
+				return err
+			}
+
+			// validate that a breadcrumb is continuous
+			if !validator.continuousBreadcrumb(address, breadcrumb, accountState) {
+				return errDiscontinuousBreadcrumbs
+			}
+
+			// TODO re-brainstorm, validate with more integration tests
+			// use its balance to accumulate and validate (make sure is < than initialBalance from the session)
+			initialBalance := accountState.GetBalance()
+			err = validator.validateBalance(address, breadcrumb, initialBalance)
+			if err != nil {
+				// exit at the first failure
+				log.Debug("selectionTracker.validateTrackedBlocks validation failed",
+					"err", err,
+					"address", address,
+					"rootHash", accountState.GetRootHash())
+				return err
+			}
+		}
+	}
 
 	return nil
 }
@@ -124,11 +177,10 @@ func (st *selectionTracker) updateLatestRootHashNoLock(receivedNonce uint64, rec
 	}
 }
 
-// TODO compute the size of the slice of txs
-// TODO take the txs from the storage (persister)
 func (st *selectionTracker) getTransactionsFromBlock(blockBody *block.Body) ([]*WrappedTransaction, error) {
 	miniBlocks := blockBody.GetMiniBlocks()
-	txs := make([]*WrappedTransaction, 0)
+	numberOfTxs := st.computeNumberOfTxsInMiniBlocks(miniBlocks)
+	txs := make([]*WrappedTransaction, 0, numberOfTxs)
 
 	for _, miniBlock := range miniBlocks {
 		txHashes := miniBlock.GetTxHashes()
@@ -146,10 +198,18 @@ func (st *selectionTracker) getTransactionsFromBlock(blockBody *block.Body) ([]*
 	return txs, nil
 }
 
+func (st *selectionTracker) computeNumberOfTxsInMiniBlocks(miniBlocks []*block.MiniBlock) int {
+	numberOfTxs := 0
+	for _, miniBlock := range miniBlocks {
+		numberOfTxs += len(miniBlock.GetTxHashes())
+	}
+
+	return numberOfTxs
+}
+
 func (st *selectionTracker) deriveVirtualSelectionSession(
 	session SelectionSession,
-	latestExecutedBlockHash []byte,
-	currentBlockNonce uint64,
+	blockchainInfo common.BlockchainInfo,
 ) (*virtualSelectionSession, error) {
 	rootHash, err := session.GetRootHash()
 	if err != nil {
@@ -160,7 +220,7 @@ func (st *selectionTracker) deriveVirtualSelectionSession(
 
 	log.Debug("selectionTracker.deriveVirtualSelectionSession", "rootHash", rootHash)
 
-	trackedBlocks := st.getChainOfTrackedBlocks(latestExecutedBlockHash, currentBlockNonce)
+	trackedBlocks := st.getChainOfTrackedBlocks(blockchainInfo.GetLatestExecutedBlockHash(), blockchainInfo.GetCurrentNonce())
 	log.Debug("selectionTracker.deriveVirtualSelectionSession",
 		"len(trackedBlocks)", len(trackedBlocks))
 

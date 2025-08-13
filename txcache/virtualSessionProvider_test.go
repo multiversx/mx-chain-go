@@ -39,8 +39,10 @@ func Test_handleAccountBreadcrumb(t *testing.T) {
 			Value:    3,
 			HasValue: true,
 		},
-		initialBalance:  big.NewInt(2),
-		consumedBalance: big.NewInt(3),
+		virtualBalance: &virtualAccountBalance{
+			initialBalance:  big.NewInt(2),
+			consumedBalance: big.NewInt(3),
+		},
 	}
 
 	sessionMock := txcachemocks.SelectionSessionMock{
@@ -142,16 +144,20 @@ func Test_createVirtualSelectionSession(t *testing.T) {
 					Value:    3,
 					HasValue: true,
 				},
-				initialBalance:  big.NewInt(2),
-				consumedBalance: big.NewInt(2),
+				virtualBalance: &virtualAccountBalance{
+					initialBalance:  big.NewInt(2),
+					consumedBalance: big.NewInt(2),
+				},
 			},
 			"bob": {
 				initialNonce: core.OptionalUint64{
 					Value:    6,
 					HasValue: true,
 				},
-				initialBalance:  big.NewInt(2),
-				consumedBalance: big.NewInt(6),
+				virtualBalance: &virtualAccountBalance{
+					initialBalance:  big.NewInt(2),
+					consumedBalance: big.NewInt(6),
+				},
 			},
 		}
 
@@ -167,7 +173,8 @@ func Test_handleTrackedBlock(t *testing.T) {
 	t.Parallel()
 
 	t.Run("should err", func(t *testing.T) {
-		tb := newTrackedBlock(0, []byte("blockHash1"), []byte("blockRootHash1"), []byte("blockPrevHash1"))
+		tb, err := newTrackedBlock(0, []byte("blockHash1"), []byte("blockRootHash1"), []byte("blockPrevHash1"), nil)
+		require.NoError(t, err)
 		tb.breadcrumbsByAddress = map[string]*accountBreadcrumb{
 			"alice": {
 				initialNonce: core.OptionalUint64{
@@ -201,14 +208,15 @@ func Test_handleTrackedBlock(t *testing.T) {
 		}
 
 		provider := newVirtualSessionProvider(&sessionMock)
-		err := provider.handleTrackedBlock(tb)
+		err = provider.handleTrackedBlock(tb)
 		require.Equal(t, expErr, err)
 	})
 
 	t.Run("should skip alice", func(t *testing.T) {
 		t.Parallel()
 
-		tb := newTrackedBlock(0, []byte("blockHash1"), []byte("blockRootHash1"), []byte("blockPrevHash1"))
+		tb, err := newTrackedBlock(0, []byte("blockHash1"), []byte("blockRootHash1"), []byte("blockPrevHash1"), nil)
+		require.NoError(t, err)
 		tb.breadcrumbsByAddress = map[string]*accountBreadcrumb{
 			"alice": {
 				initialNonce: core.OptionalUint64{
@@ -252,18 +260,18 @@ func Test_handleTrackedBlock(t *testing.T) {
 		}
 
 		provider := newVirtualSessionProvider(&sessionMock)
-		provider.skippedSenders = skippedSenders
+		provider.validator.skippedSenders = skippedSenders
 
-		err := provider.handleTrackedBlock(tb)
+		err = provider.handleTrackedBlock(tb)
 		require.Nil(t, err)
-		require.Equal(t, 1, len(provider.sendersInContinuityWithSessionNonce))
-		require.Equal(t, 1, len(provider.accountPreviousBreadcrumb))
+		require.Equal(t, 1, len(provider.validator.sendersInContinuityWithSessionNonce))
+		require.Equal(t, 1, len(provider.validator.accountPreviousBreadcrumb))
 
 		virtualRecord, ok := provider.virtualAccountsByAddress["bob"]
 		require.True(t, ok)
 		require.Equal(t, core.OptionalUint64{Value: 4, HasValue: true}, virtualRecord.initialNonce)
-		require.Equal(t, big.NewInt(2), virtualRecord.initialBalance)
-		require.Equal(t, big.NewInt(3), virtualRecord.consumedBalance)
+		require.Equal(t, big.NewInt(2), virtualRecord.getInitialBalance())
+		require.Equal(t, big.NewInt(3), virtualRecord.getConsumedBalance())
 
 		_, ok = provider.virtualAccountsByAddress["alice"]
 		require.False(t, ok)
@@ -272,7 +280,8 @@ func Test_handleTrackedBlock(t *testing.T) {
 	t.Run("should delete bob and add it to skipped senders", func(t *testing.T) {
 		t.Parallel()
 
-		tb := newTrackedBlock(0, []byte("blockHash1"), []byte("blockRootHash1"), []byte("blockPrevHash1"))
+		tb, err := newTrackedBlock(0, []byte("blockHash1"), []byte("blockRootHash1"), []byte("blockPrevHash1"), nil)
+		require.NoError(t, err)
 		breadcrumb1 := accountBreadcrumb{
 			initialNonce: core.OptionalUint64{
 				Value:    2,
@@ -323,190 +332,27 @@ func Test_handleTrackedBlock(t *testing.T) {
 					Value:    6,
 					HasValue: true,
 				},
-				initialBalance: big.NewInt(5),
+				virtualBalance: newVirtualAccountBalance(big.NewInt(5)),
 			},
 		}
 
 		provider := newVirtualSessionProvider(&sessionMock)
-		provider.accountPreviousBreadcrumb = accountPreviousBreadcrumb
+		provider.validator.accountPreviousBreadcrumb = accountPreviousBreadcrumb
 		provider.virtualAccountsByAddress = virtualAccountsByAddress
 
 		_, ok := provider.virtualAccountsByAddress["bob"]
 		require.True(t, ok)
 
-		_, ok = provider.skippedSenders["bob"]
+		_, ok = provider.validator.skippedSenders["bob"]
 		require.False(t, ok)
 
-		err := provider.handleTrackedBlock(tb)
+		err = provider.handleTrackedBlock(tb)
 		require.Nil(t, err)
 
 		_, ok = provider.virtualAccountsByAddress["bob"]
 		require.False(t, ok)
 
-		_, ok = provider.skippedSenders["bob"]
+		_, ok = provider.validator.skippedSenders["bob"]
 		require.True(t, ok)
-	})
-}
-
-func Test_continousBreadcrumbs(t *testing.T) {
-	t.Parallel()
-
-	// when breadcrumb is relayer
-	t.Run("relayer should be continuous", func(t *testing.T) {
-		t.Parallel()
-
-		breadcrumb := accountBreadcrumb{
-			initialNonce: core.OptionalUint64{
-				Value:    1,
-				HasValue: false,
-			},
-			lastNonce: core.OptionalUint64{
-				Value:    2,
-				HasValue: false,
-			},
-			consumedBalance: nil,
-		}
-
-		sessionMock := txcachemocks.SelectionSessionMock{}
-
-		provider := newVirtualSessionProvider(&sessionMock)
-		actualRes := provider.continuousBreadcrumb("bob", &breadcrumb, 3)
-		require.True(t, actualRes)
-	})
-
-	// when certain account is sender for the first time in the chain of tracked blocks
-	t.Run("sender not continuous with session nonce", func(t *testing.T) {
-		t.Parallel()
-
-		breadcrumbAlice := accountBreadcrumb{
-			initialNonce: core.OptionalUint64{
-				Value:    1,
-				HasValue: true,
-			},
-			lastNonce: core.OptionalUint64{
-				Value:    2,
-				HasValue: true,
-			},
-			consumedBalance: nil,
-		}
-
-		sessionMock := txcachemocks.SelectionSessionMock{}
-
-		provider := newVirtualSessionProvider(&sessionMock)
-		actualRes := provider.continuousBreadcrumb("alice", &breadcrumbAlice, 3)
-		require.False(t, actualRes)
-	})
-
-	t.Run("sender continuous with session nonce", func(t *testing.T) {
-		t.Parallel()
-
-		breadcrumbAlice := accountBreadcrumb{
-			initialNonce: core.OptionalUint64{
-				Value:    1,
-				HasValue: true,
-			},
-			lastNonce: core.OptionalUint64{
-				Value:    2,
-				HasValue: true,
-			},
-			consumedBalance: nil,
-		}
-
-		sessionMock := txcachemocks.SelectionSessionMock{}
-		provider := newVirtualSessionProvider(&sessionMock)
-
-		actualRes := provider.continuousBreadcrumb("alice", &breadcrumbAlice, 1)
-		require.True(t, actualRes)
-
-		_, ok := provider.sendersInContinuityWithSessionNonce["alice"]
-		require.True(t, ok)
-
-		actualBreadcrumb, ok := provider.accountPreviousBreadcrumb["alice"]
-		require.True(t, ok)
-		require.Equal(t, &breadcrumbAlice, actualBreadcrumb)
-	})
-
-	// when address was already a sender in the chain of tracked blocks
-	t.Run("sender continuous with previous account breadcrumb ", func(t *testing.T) {
-		t.Parallel()
-
-		breadcrumbAlice1 := accountBreadcrumb{
-			initialNonce: core.OptionalUint64{
-				Value:    1,
-				HasValue: true,
-			},
-			lastNonce: core.OptionalUint64{
-				Value:    2,
-				HasValue: true,
-			},
-			consumedBalance: nil,
-		}
-
-		breadcrumbAlice2 := accountBreadcrumb{
-			initialNonce: core.OptionalUint64{
-				Value:    3,
-				HasValue: true,
-			},
-			lastNonce: core.OptionalUint64{
-				Value:    4,
-				HasValue: true,
-			},
-			consumedBalance: nil,
-		}
-
-		sessionMock := txcachemocks.SelectionSessionMock{}
-		provider := newVirtualSessionProvider(&sessionMock)
-
-		provider.accountPreviousBreadcrumb = map[string]*accountBreadcrumb{
-			"alice": &breadcrumbAlice1,
-		}
-
-		actualRes := provider.continuousBreadcrumb("alice", &breadcrumbAlice2, 3)
-		require.True(t, actualRes)
-
-		actualBreadcrumb, ok := provider.accountPreviousBreadcrumb["alice"]
-		require.True(t, ok)
-		require.Equal(t, &breadcrumbAlice2, actualBreadcrumb)
-	})
-
-	t.Run("sender is not continuous with previous account breadcrumb ", func(t *testing.T) {
-		t.Parallel()
-
-		breadcrumbAlice1 := accountBreadcrumb{
-			initialNonce: core.OptionalUint64{
-				Value:    1,
-				HasValue: true,
-			},
-			lastNonce: core.OptionalUint64{
-				Value:    2,
-				HasValue: true,
-			},
-			consumedBalance: nil,
-		}
-
-		breadcrumbAlice2 := accountBreadcrumb{
-			initialNonce: core.OptionalUint64{
-				Value:    4,
-				HasValue: true,
-			},
-			lastNonce: core.OptionalUint64{
-				Value:    4,
-				HasValue: true,
-			},
-			consumedBalance: nil,
-		}
-
-		sessionMock := txcachemocks.SelectionSessionMock{}
-		provider := newVirtualSessionProvider(&sessionMock)
-
-		provider.accountPreviousBreadcrumb = map[string]*accountBreadcrumb{
-			"alice": &breadcrumbAlice1,
-		}
-		provider.sendersInContinuityWithSessionNonce = map[string]struct{}{
-			"alice": {},
-		}
-
-		actualRes := provider.continuousBreadcrumb("alice", &breadcrumbAlice2, 1)
-		require.False(t, actualRes)
 	})
 }

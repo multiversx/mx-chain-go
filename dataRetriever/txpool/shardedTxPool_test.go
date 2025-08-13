@@ -21,7 +21,6 @@ import (
 )
 
 const maxNumBytesPerSenderUpperBoundTest = 33_554_432 // 32 MB
-const selectionLoopDurationCheckInterval = 10
 
 func Test_NewShardedTxPool(t *testing.T) {
 	pool, err := newTxPoolToTest()
