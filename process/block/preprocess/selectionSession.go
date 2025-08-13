@@ -43,7 +43,7 @@ func NewSelectionSession(args ArgsSelectionSession) (*selectionSession, error) {
 	}, nil
 }
 
-// GetAccountNonceAndBalance returns nonce and balance of an account.
+// GetAccountNonceAndBalance returns the nonce of the account, the balance of the account, and whether it's currently existing on-chain.
 // Will be called by the transactions pool, during transactions selection.
 func (session *selectionSession) GetAccountNonceAndBalance(address []byte) (uint64, *big.Int, bool, error) {
 	account, err := session.getCachedUserAccount(address)

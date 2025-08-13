@@ -3,6 +3,7 @@ package preprocess
 import (
 	"bytes"
 	"fmt"
+	"math/big"
 	"testing"
 
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
@@ -39,6 +40,58 @@ func TestNewSelectionSession(t *testing.T) {
 	require.NotNil(t, session)
 }
 
+func TestSelectionSession_GetAccountNonceAndBalance(t *testing.T) {
+	t.Parallel()
+
+	accounts := &stateMock.AccountsStub{}
+	processor := &testscommon.TxProcessorStub{}
+
+	accounts.GetExistingAccountCalled = func(address []byte) (vmcommon.AccountHandler, error) {
+		if bytes.Equal(address, []byte("alice")) {
+			return &stateMock.UserAccountStub{
+				Address: []byte("alice"),
+				Nonce:   42,
+				Balance: big.NewInt(3000000000000000000),
+			}, nil
+		}
+
+		if bytes.Equal(address, []byte("bob")) {
+			return &stateMock.UserAccountStub{
+				Address: []byte("bob"),
+				Nonce:   7,
+				Balance: big.NewInt(1000000000000000000),
+			}, nil
+		}
+
+		return nil, state.ErrAccNotFound
+	}
+
+	session, err := NewSelectionSession(ArgsSelectionSession{
+		AccountsAdapter:       accounts,
+		TransactionsProcessor: processor,
+	})
+	require.NoError(t, err)
+	require.NotNil(t, session)
+
+	nonce, balance, existing, err := session.GetAccountNonceAndBalance([]byte("alice"))
+	require.NoError(t, err)
+	require.Equal(t, uint64(42), nonce)
+	require.Equal(t, "3000000000000000000", balance.String())
+	require.True(t, existing)
+
+	nonce, balance, existing, err = session.GetAccountNonceAndBalance([]byte("bob"))
+	require.NoError(t, err)
+	require.Equal(t, uint64(7), nonce)
+	require.Equal(t, "1000000000000000000", balance.String())
+	require.True(t, existing)
+
+	nonce, balance, existing, err = session.GetAccountNonceAndBalance([]byte("carol"))
+	require.NoError(t, err)
+	require.Equal(t, uint64(0), nonce)
+	require.Equal(t, "0", balance.String())
+	require.False(t, existing)
+}
+
 func TestSelectionSession_getCachedUserAccount(t *testing.T) {
 	t.Parallel()
 
@@ -50,6 +103,7 @@ func TestSelectionSession_getCachedUserAccount(t *testing.T) {
 			return &stateMock.UserAccountStub{
 				Address: []byte("alice"),
 				Nonce:   42,
+				Balance: big.NewInt(3000000000000000000),
 			}, nil
 		}
 
@@ -57,9 +111,7 @@ func TestSelectionSession_getCachedUserAccount(t *testing.T) {
 			return &stateMock.UserAccountStub{
 				Address: []byte("bob"),
 				Nonce:   7,
-				IsGuardedCalled: func() bool {
-					return true
-				},
+				Balance: big.NewInt(1000000000000000000),
 			}, nil
 		}
 
@@ -76,10 +128,12 @@ func TestSelectionSession_getCachedUserAccount(t *testing.T) {
 	account, err := session.getCachedUserAccount([]byte("alice"))
 	require.NoError(t, err)
 	require.Equal(t, uint64(42), account.GetNonce())
+	require.Equal(t, "3000000000000000000", account.GetBalance().String())
 
 	account, err = session.getCachedUserAccount([]byte("bob"))
 	require.NoError(t, err)
 	require.Equal(t, uint64(7), account.GetNonce())
+	require.Equal(t, "1000000000000000000", account.GetBalance().String())
 
 	account, err = session.getCachedUserAccount([]byte("carol"))
 	require.NoError(t, err)
@@ -116,6 +170,7 @@ func TestSelectionSession_IsIncorrectlyGuarded(t *testing.T) {
 
 	accounts.GetExistingAccountCalled = func(address []byte) (vmcommon.AccountHandler, error) {
 		if bytes.Equal(address, []byte("bob")) {
+			// Bad account type (programming error).
 			return &stateMock.BaseAccountMock{}, nil
 		}
 
@@ -149,8 +204,9 @@ func TestSelectionSession_IsIncorrectlyGuarded(t *testing.T) {
 	isIncorrectlyGuarded = session.IsIncorrectlyGuarded(&transaction.Transaction{Nonce: 44, SndAddr: []byte("alice")})
 	require.False(t, isIncorrectlyGuarded)
 
+	// Bad account type (programming error).
 	isIncorrectlyGuarded = session.IsIncorrectlyGuarded(&transaction.Transaction{Nonce: 45, SndAddr: []byte("bob")})
-	require.True(t, isIncorrectlyGuarded)
+	require.False(t, isIncorrectlyGuarded)
 }
 
 func TestSelectionSession_ephemeralAccountsCache_IsSharedAmongCalls(t *testing.T) {
