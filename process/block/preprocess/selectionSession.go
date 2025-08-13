@@ -17,7 +17,7 @@ type selectionSession struct {
 
 	// Cache of accounts, held in the scope of a single selection session.
 	// Not concurrency-safe, but never accessed concurrently.
-	// Entries for new (uknown) accounts are "nil" values.
+	// Entries for new (unknown) accounts are "nil" values.
 	ephemeralAccountsCache map[string]state.UserAccountHandler
 }
 
