@@ -6,21 +6,16 @@ import (
 	"testing"
 
 	"github.com/multiversx/mx-chain-core-go/core"
-	"github.com/multiversx/mx-chain-go/state"
-	testscommonState "github.com/multiversx/mx-chain-go/testscommon/state"
 	"github.com/multiversx/mx-chain-go/testscommon/txcachemocks"
 	"github.com/stretchr/testify/require"
 )
 
+// TODO: check if this test makes sense.
 func Test_handleAccountBreadcrumb(t *testing.T) {
 	t.Parallel()
 
-	userAccountMock := testscommonState.StateUserAccountHandlerStub{
-		GetBalanceCalled: func() *big.Int {
-			return big.NewInt(2)
-		},
-	}
 	address := "bob"
+	accountBalance := big.NewInt(2)
 
 	breadcrumbBob := accountBreadcrumb{
 		initialNonce: core.OptionalUint64{
@@ -46,19 +41,13 @@ func Test_handleAccountBreadcrumb(t *testing.T) {
 	}
 
 	sessionMock := txcachemocks.SelectionSessionMock{
-		GetAccountStateCalled: func(address []byte) (state.UserAccountHandler, error) {
-			return &testscommonState.StateUserAccountHandlerStub{
-				GetBalanceCalled: func() *big.Int {
-					return big.NewInt(2)
-				},
-				GetNonceCalled: func() uint64 {
-					return 2
-				},
-			}, nil
+		GetAccountNonceAndBalanceCalled: func(address []byte) (uint64, *big.Int, bool, error) {
+			return 2, big.NewInt(2), true, nil
 		},
 	}
+
 	provider := newVirtualSessionProvider(&sessionMock)
-	provider.handleAccountBreadcrumb(&breadcrumbBob, &userAccountMock, address)
+	provider.handleAccountBreadcrumb(&breadcrumbBob, accountBalance, address)
 
 	actualVirtualRecord, ok := provider.virtualAccountsByAddress[address]
 	require.True(t, ok)
@@ -70,15 +59,8 @@ func Test_createVirtualSelectionSession(t *testing.T) {
 
 	t.Run("should work", func(t *testing.T) {
 		sessionMock := txcachemocks.SelectionSessionMock{
-			GetAccountStateCalled: func(address []byte) (state.UserAccountHandler, error) {
-				return &testscommonState.StateUserAccountHandlerStub{
-					GetBalanceCalled: func() *big.Int {
-						return big.NewInt(2)
-					},
-					GetNonceCalled: func() uint64 {
-						return 2
-					},
-				}, nil
+			GetAccountNonceAndBalanceCalled: func(address []byte) (uint64, *big.Int, bool, error) {
+				return 2, big.NewInt(2), true, nil
 			},
 		}
 
@@ -202,8 +184,8 @@ func Test_handleTrackedBlock(t *testing.T) {
 
 		expErr := errors.New("error")
 		sessionMock := txcachemocks.SelectionSessionMock{
-			GetAccountStateCalled: func(address []byte) (state.UserAccountHandler, error) {
-				return nil, expErr
+			GetAccountNonceAndBalanceCalled: func(address []byte) (uint64, *big.Int, bool, error) {
+				return 0, nil, false, expErr
 			},
 		}
 
@@ -243,15 +225,8 @@ func Test_handleTrackedBlock(t *testing.T) {
 		}
 
 		sessionMock := txcachemocks.SelectionSessionMock{
-			GetAccountStateCalled: func(address []byte) (state.UserAccountHandler, error) {
-				return &testscommonState.StateUserAccountHandlerStub{
-					GetBalanceCalled: func() *big.Int {
-						return big.NewInt(2)
-					},
-					GetNonceCalled: func() uint64 {
-						return 2
-					},
-				}, nil
+			GetAccountNonceAndBalanceCalled: func(address []byte) (uint64, *big.Int, bool, error) {
+				return 2, big.NewInt(2), true, nil
 			},
 		}
 
@@ -311,15 +286,8 @@ func Test_handleTrackedBlock(t *testing.T) {
 		}
 
 		sessionMock := txcachemocks.SelectionSessionMock{
-			GetAccountStateCalled: func(address []byte) (state.UserAccountHandler, error) {
-				return &testscommonState.StateUserAccountHandlerStub{
-					GetBalanceCalled: func() *big.Int {
-						return big.NewInt(2)
-					},
-					GetNonceCalled: func() uint64 {
-						return 2
-					},
-				}, nil
+			GetAccountNonceAndBalanceCalled: func(address []byte) (uint64, *big.Int, bool, error) {
+				return 2, big.NewInt(2), true, nil
 			},
 		}
 

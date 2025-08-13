@@ -7,8 +7,7 @@ import (
 	"testing"
 
 	"github.com/multiversx/mx-chain-core-go/core"
-	"github.com/multiversx/mx-chain-go/state"
-	stateMock "github.com/multiversx/mx-chain-go/testscommon/state"
+	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-go/testscommon/txcachemocks"
 	"github.com/stretchr/testify/require"
 )
@@ -53,15 +52,8 @@ func Test_getVirtualRecord(t *testing.T) {
 		t.Parallel()
 
 		sessionMock := txcachemocks.SelectionSessionMock{
-			GetAccountStateCalled: func(address []byte) (state.UserAccountHandler, error) {
-				return &stateMock.StateUserAccountHandlerStub{
-					GetBalanceCalled: func() *big.Int {
-						return big.NewInt(2)
-					},
-					GetNonceCalled: func() uint64 {
-						return 2
-					},
-				}, nil
+			GetAccountNonceAndBalanceCalled: func(address []byte) (uint64, *big.Int, bool, error) {
+				return 2, big.NewInt(2), true, nil
 			},
 		}
 		virtualSession := newVirtualSelectionSession(&sessionMock)
@@ -88,8 +80,8 @@ func Test_getVirtualRecord(t *testing.T) {
 		t.Parallel()
 
 		sessionMock := txcachemocks.SelectionSessionMock{
-			GetAccountStateCalled: func(address []byte) (state.UserAccountHandler, error) {
-				return nil, state.ErrAccNotFound
+			GetAccountNonceAndBalanceCalled: func(address []byte) (uint64, *big.Int, bool, error) {
+				return 0, big.NewInt(0), false, nil
 			},
 		}
 		virtualSession := newVirtualSelectionSession(&sessionMock)
@@ -106,8 +98,8 @@ func Test_getVirtualRecord(t *testing.T) {
 
 		expErr := errors.New("error")
 		sessionMock := txcachemocks.SelectionSessionMock{
-			GetAccountStateCalled: func(address []byte) (state.UserAccountHandler, error) {
-				return nil, expErr
+			GetAccountNonceAndBalanceCalled: func(address []byte) (uint64, *big.Int, bool, error) {
+				return 0, nil, false, expErr
 			},
 		}
 		virtualSession := newVirtualSelectionSession(&sessionMock)
@@ -125,15 +117,8 @@ func Test_getNonce(t *testing.T) {
 		t.Parallel()
 
 		sessionMock := txcachemocks.SelectionSessionMock{
-			GetAccountStateCalled: func(address []byte) (state.UserAccountHandler, error) {
-				return &stateMock.StateUserAccountHandlerStub{
-					GetBalanceCalled: func() *big.Int {
-						return big.NewInt(2)
-					},
-					GetNonceCalled: func() uint64 {
-						return 2
-					},
-				}, nil
+			GetAccountNonceAndBalanceCalled: func(address []byte) (uint64, *big.Int, bool, error) {
+				return 2, big.NewInt(2), true, nil
 			},
 		}
 		virtualSession := newVirtualSelectionSession(&sessionMock)
@@ -147,15 +132,8 @@ func Test_getNonce(t *testing.T) {
 		t.Parallel()
 
 		sessionMock := txcachemocks.SelectionSessionMock{
-			GetAccountStateCalled: func(address []byte) (state.UserAccountHandler, error) {
-				return &stateMock.StateUserAccountHandlerStub{
-					GetBalanceCalled: func() *big.Int {
-						return big.NewInt(2)
-					},
-					GetNonceCalled: func() uint64 {
-						return 2
-					},
-				}, nil
+			GetAccountNonceAndBalanceCalled: func(address []byte) (uint64, *big.Int, bool, error) {
+				return 2, big.NewInt(2), true, nil
 			},
 		}
 
@@ -186,8 +164,8 @@ func Test_getNonce(t *testing.T) {
 
 		expErr := errors.New("error")
 		sessionMock := txcachemocks.SelectionSessionMock{
-			GetAccountStateCalled: func(address []byte) (state.UserAccountHandler, error) {
-				return nil, expErr
+			GetAccountNonceAndBalanceCalled: func(address []byte) (uint64, *big.Int, bool, error) {
+				return 0, nil, false, expErr
 			},
 		}
 		virtualSession := newVirtualSelectionSession(&sessionMock)
@@ -200,15 +178,8 @@ func Test_getNonce(t *testing.T) {
 		t.Parallel()
 
 		sessionMock := txcachemocks.SelectionSessionMock{
-			GetAccountStateCalled: func(address []byte) (state.UserAccountHandler, error) {
-				return &stateMock.StateUserAccountHandlerStub{
-					GetBalanceCalled: func() *big.Int {
-						return big.NewInt(2)
-					},
-					GetNonceCalled: func() uint64 {
-						return 2
-					},
-				}, nil
+			GetAccountNonceAndBalanceCalled: func(address []byte) (uint64, *big.Int, bool, error) {
+				return 2, big.NewInt(2), true, nil
 			},
 		}
 
@@ -365,19 +336,15 @@ func Test_isIncorrectlyGuarded(t *testing.T) {
 		t.Parallel()
 
 		sessionMock := txcachemocks.SelectionSessionMock{
-			GetAccountStateCalled: func(address []byte) (state.UserAccountHandler, error) {
-				return &stateMock.StateUserAccountHandlerStub{
-					IsGuardedCalled: func() bool {
-						return false
-					},
-				}, nil
+			IsIncorrectlyGuardedCalled: func(tx data.TransactionHandler) bool {
+				return true
 			},
 		}
 
 		virtualSession := newVirtualSelectionSession(&sessionMock)
 
 		actualRes := virtualSession.isIncorrectlyGuarded(nil)
-		require.False(t, actualRes)
+		require.True(t, actualRes)
 	})
 }
 
@@ -409,7 +376,7 @@ func TestBenchmarkVirtualSelectionSession_getNonce(t *testing.T) {
 
 		sw.Stop(t.Name())
 
-		require.Equal(t, numAccounts, session.NumCallsGetAccountState)
+		require.Equal(t, numAccounts, session.NumCallsGetAccountNonceAndBalance)
 	})
 
 	t.Run("numAccounts = 10_000, numTransactionsPerAccount = 3", func(t *testing.T) {
@@ -437,7 +404,7 @@ func TestBenchmarkVirtualSelectionSession_getNonce(t *testing.T) {
 
 		sw.Stop(t.Name())
 
-		require.Equal(t, numAccounts, session.NumCallsGetAccountState)
+		require.Equal(t, numAccounts, session.NumCallsGetAccountNonceAndBalance)
 	})
 
 	t.Run("numAccounts = 30_000, numTransactionsPerAccount = 1", func(t *testing.T) {
@@ -465,7 +432,7 @@ func TestBenchmarkVirtualSelectionSession_getNonce(t *testing.T) {
 
 		sw.Stop(t.Name())
 
-		require.Equal(t, numAccounts, session.NumCallsGetAccountState)
+		require.Equal(t, numAccounts, session.NumCallsGetAccountNonceAndBalance)
 	})
 
 	for name, measurement := range sw.GetMeasurementsMap() {
