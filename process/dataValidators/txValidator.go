@@ -6,6 +6,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/sharding"
@@ -25,6 +26,7 @@ type txValidator struct {
 	whiteListHandler     process.WhiteListHandler
 	pubKeyConverter      core.PubkeyConverter
 	txVersionChecker     process.TxVersionCheckerHandler
+	enableEpochsHandler  core.EnableEpochsHandler
 	maxNonceDeltaAllowed int
 }
 
@@ -35,6 +37,7 @@ func NewTxValidator(
 	whiteListHandler process.WhiteListHandler,
 	pubKeyConverter core.PubkeyConverter,
 	txVersionChecker process.TxVersionCheckerHandler,
+	enableEpochsHandler core.EnableEpochsHandler,
 	maxNonceDeltaAllowed int,
 ) (*txValidator, error) {
 	if check.IfNil(accounts) {
@@ -52,6 +55,9 @@ func NewTxValidator(
 	if check.IfNil(txVersionChecker) {
 		return nil, process.ErrNilTransactionVersionChecker
 	}
+	if check.IfNil(enableEpochsHandler) {
+		return nil, process.ErrNilEnableEpochsHandler
+	}
 
 	return &txValidator{
 		accounts:             accounts,
@@ -60,6 +66,7 @@ func NewTxValidator(
 		maxNonceDeltaAllowed: maxNonceDeltaAllowed,
 		pubKeyConverter:      pubKeyConverter,
 		txVersionChecker:     txVersionChecker,
+		enableEpochsHandler:  enableEpochsHandler,
 	}, nil
 }
 
@@ -77,15 +84,30 @@ func (txv *txValidator) CheckTxValidity(interceptedTx process.InterceptedTransac
 	}
 
 	// for relayed v3, we allow sender accounts that do not exist
+	// only if the transaction is not guarded
 	isRelayedV3 := common.IsRelayedTxV3(interceptedTx.Transaction())
 	hasValue := hasTxValue(interceptedTx)
-	shouldAllowMissingSenderAccount := isRelayedV3 && !hasValue
+	isGuardedTx := txv.isGuardedTxAfterSupernova(interceptedTx.Transaction())
+	shouldAllowMissingSenderAccount := isRelayedV3 && !hasValue && !isGuardedTx
 	accountHandler, err := txv.getSenderAccount(interceptedTx)
 	if err != nil && !shouldAllowMissingSenderAccount {
 		return err
 	}
 
 	return txv.checkAccount(interceptedTx, accountHandler)
+}
+
+func (txv *txValidator) isGuardedTxAfterSupernova(tx data.TransactionHandler) bool {
+	if !txv.enableEpochsHandler.IsFlagEnabled(common.SupernovaFlag) {
+		return false
+	}
+
+	txPtr, ok := tx.(*transaction.Transaction)
+	if !ok {
+		return false
+	}
+
+	return txv.txVersionChecker.IsGuardedTransaction(txPtr)
 }
 
 func hasTxValue(interceptedTx process.InterceptedTransactionHandler) bool {
