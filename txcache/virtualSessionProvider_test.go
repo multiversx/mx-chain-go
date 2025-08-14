@@ -10,8 +10,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// TODO: check if this test makes sense.
-func Test_handleAccountBreadcrumb(t *testing.T) {
+func Test_fromBreadcrumbToVirtualRecord(t *testing.T) {
 	t.Parallel()
 
 	address := "bob"
@@ -40,14 +39,8 @@ func Test_handleAccountBreadcrumb(t *testing.T) {
 		},
 	}
 
-	sessionMock := txcachemocks.SelectionSessionMock{
-		GetAccountNonceAndBalanceCalled: func(address []byte) (uint64, *big.Int, bool, error) {
-			return 2, big.NewInt(2), true, nil
-		},
-	}
-
-	provider := newVirtualSessionProvider(&sessionMock)
-	provider.handleAccountBreadcrumb(&breadcrumbBob, accountBalance, address)
+	provider := newVirtualSessionProvider(nil)
+	provider.fromBreadcrumbToVirtualRecord(address, accountBalance, &breadcrumbBob)
 
 	actualVirtualRecord, ok := provider.virtualAccountsByAddress[address]
 	require.True(t, ok)

@@ -112,13 +112,18 @@ func (st *selectionTracker) validateTrackedBlocks(chainOfTrackedBlocks []*tracke
 		for address, breadcrumb := range tb.breadcrumbsByAddress {
 			initialNonce, initialBalance, _, err := session.GetAccountNonceAndBalance([]byte(address))
 			if err != nil {
-				// TODO: Maybe add more context to this error?
-				log.Debug("selectionTracker.validateTrackedBlocks", "err", err)
+				log.Debug("selectionTracker.validateTrackedBlocks",
+					"err", err,
+					"address", address,
+					"tracked block rootHash", tb.rootHash)
 				return err
 			}
 
 			if !validator.continuousBreadcrumb(address, initialNonce, breadcrumb) {
-				// TODO: Check why there's a log below, but none here.
+				log.Debug("selectionTracker.validateTrackedBlocks",
+					"err", err,
+					"address", address,
+					"tracked block rootHash", tb.rootHash)
 				return errDiscontinuousBreadcrumbs
 			}
 
@@ -130,7 +135,7 @@ func (st *selectionTracker) validateTrackedBlocks(chainOfTrackedBlocks []*tracke
 				log.Debug("selectionTracker.validateTrackedBlocks validation failed",
 					"err", err,
 					"address", address,
-					"rootHash", tb.rootHash)
+					"tracked block rootHash", tb.rootHash)
 				return err
 			}
 		}
