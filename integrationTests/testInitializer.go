@@ -412,6 +412,7 @@ func CreateStore(numOfShards uint32) dataRetriever.StorageService {
 	store.AddStorer(dataRetriever.ReceiptsUnit, CreateMemUnit())
 	store.AddStorer(dataRetriever.ScheduledSCRsUnit, CreateMemUnit())
 	store.AddStorer(dataRetriever.ProofsUnit, CreateMemUnit())
+	store.AddStorer(dataRetriever.TrieEpochRootHashUnit, CreateMemUnit())
 
 	for i := uint32(0); i < numOfShards; i++ {
 		hdrNonceHashDataUnit := dataRetriever.ShardHdrNonceHashDataUnit + dataRetriever.UnitType(i)
@@ -485,6 +486,7 @@ func CreateAccountsDBWithEnableEpochsHandler(
 		LastSnapshotMarker:   lastSnapshotMarker.NewLastSnapshotMarker(),
 		StateStatsHandler:    statistics.NewStateStatistics(),
 	})
+	_ = snapshotsManager.SetSyncer(&mock.AccountsDBSyncerStub{})
 
 	args := state.ArgsAccountsDB{
 		Trie:                  tr,
@@ -610,6 +612,7 @@ func CreateGenesisBlocks(
 	dataPool dataRetriever.PoolsHolder,
 	economics process.EconomicsDataHandler,
 	enableEpochsConfig config.EnableEpochs,
+	chainParametersHandler common.ChainParametersHandler,
 ) map[uint32]data.HeaderHandler {
 
 	genesisBlocks := make(map[uint32]data.HeaderHandler)
@@ -632,6 +635,7 @@ func CreateGenesisBlocks(
 		dataPool,
 		economics,
 		enableEpochsConfig,
+		chainParametersHandler,
 	)
 
 	return genesisBlocks
@@ -754,6 +758,14 @@ func CreateFullGenesisBlocks(
 		HeaderVersionConfigs:    testscommon.GetDefaultHeaderVersionConfig(),
 		HistoryRepository:       &dblookupext.HistoryRepositoryStub{},
 		TxExecutionOrderHandler: &commonMocks.TxExecutionOrderHandlerStub{},
+		TxCacheSelectionConfig: config.TxCacheSelectionConfig{
+			SelectionGasBandwidthIncreasePercent:          400,
+			SelectionGasBandwidthIncreaseScheduledPercent: 260,
+			SelectionGasRequested:                         10_000_000_000,
+			SelectionMaxNumTxs:                            30000,
+			SelectionLoopMaximumDuration:                  250,
+			SelectionLoopDurationCheckInterval:            10,
+		},
 	}
 
 	genesisProcessor, _ := genesisProcess.NewGenesisBlockCreator(argsGenesis)
@@ -778,6 +790,7 @@ func CreateGenesisMetaBlock(
 	dataPool dataRetriever.PoolsHolder,
 	economics process.EconomicsDataHandler,
 	enableEpochsConfig config.EnableEpochs,
+	chainParametersHandler common.ChainParametersHandler,
 ) data.MetaHeaderHandler {
 	gasSchedule := wasmConfig.MakeGasMapForTests()
 	defaults.FillGasMapInternal(gasSchedule, 1)
@@ -873,6 +886,14 @@ func CreateGenesisMetaBlock(
 		HeaderVersionConfigs:    testscommon.GetDefaultHeaderVersionConfig(),
 		HistoryRepository:       &dblookupext.HistoryRepositoryStub{},
 		TxExecutionOrderHandler: &commonMocks.TxExecutionOrderHandlerStub{},
+		TxCacheSelectionConfig: config.TxCacheSelectionConfig{
+			SelectionGasBandwidthIncreasePercent:          400,
+			SelectionGasBandwidthIncreaseScheduledPercent: 260,
+			SelectionGasRequested:                         10_000_000_000,
+			SelectionMaxNumTxs:                            30000,
+			SelectionLoopMaximumDuration:                  250,
+			SelectionLoopDurationCheckInterval:            10,
+		},
 	}
 
 	if shardCoordinator.SelfId() != core.MetachainShardId {
@@ -1402,11 +1423,39 @@ func CreateNodesWithEnableEpochsConfig(
 	return createNodesWithEpochsConfig(numOfShards, nodesPerShard, numMetaChainNodes, enableEpochsConfig)
 }
 
+// CreateNodesWithEnableConfigs -
+func CreateNodesWithEnableConfigs(
+	numOfShards int,
+	nodesPerShard int,
+	numMetaChainNodes int,
+	enableEpochsConfig *config.EnableEpochs,
+	enableRoundsConfig *config.RoundConfig,
+) []*TestProcessorNode {
+	return createNodesWithEnableConfigs(numOfShards, nodesPerShard, numMetaChainNodes, enableEpochsConfig, enableRoundsConfig)
+}
+
 func createNodesWithEpochsConfig(
 	numOfShards int,
 	nodesPerShard int,
 	numMetaChainNodes int,
 	enableEpochsConfig *config.EnableEpochs,
+) []*TestProcessorNode {
+	defaultRoundsConfig := testscommon.GetDefaultRoundsConfig()
+	return createNodesWithEnableConfigs(
+		numOfShards,
+		nodesPerShard,
+		numMetaChainNodes,
+		enableEpochsConfig,
+		&defaultRoundsConfig,
+	)
+}
+
+func createNodesWithEnableConfigs(
+	numOfShards int,
+	nodesPerShard int,
+	numMetaChainNodes int,
+	enableEpochsConfig *config.EnableEpochs,
+	enableRoundsConfig *config.RoundConfig,
 ) []*TestProcessorNode {
 	nodes := make([]*TestProcessorNode, numOfShards*nodesPerShard+numMetaChainNodes)
 	connectableNodes := make([]Connectable, len(nodes))
@@ -1419,6 +1468,7 @@ func createNodesWithEpochsConfig(
 				NodeShardId:          shardId,
 				TxSignPrivKeyShardId: shardId,
 				EpochsConfig:         enableEpochsConfig,
+				RoundsConfig:         enableRoundsConfig,
 			})
 			nodes[idx] = n
 			connectableNodes[idx] = n
@@ -1432,6 +1482,7 @@ func createNodesWithEpochsConfig(
 			NodeShardId:          core.MetachainShardId,
 			TxSignPrivKeyShardId: 0,
 			EpochsConfig:         enableEpochsConfig,
+			RoundsConfig:         enableRoundsConfig,
 		})
 		idx = i + numOfShards*nodesPerShard
 		nodes[idx] = metaNode
@@ -1441,6 +1492,24 @@ func createNodesWithEpochsConfig(
 	ConnectNodes(connectableNodes)
 
 	return nodes
+}
+
+// CreateNodesWithEnableEpochsAndEnableRounds
+func CreateNodesWithEnableEpochsAndEnableRounds(
+	numOfShards int,
+	nodesPerShard int,
+	numMetaChainNodes int,
+	epochConfig config.EnableEpochs,
+	roundConfig config.RoundConfig,
+) []*TestProcessorNode {
+	return CreateNodesWithEnableEpochsAndVmConfigWithRoundsConfig(
+		numOfShards,
+		nodesPerShard,
+		numMetaChainNodes,
+		epochConfig,
+		roundConfig,
+		nil,
+	)
 }
 
 // CreateNodesWithEnableEpochs creates multiple nodes with custom epoch config

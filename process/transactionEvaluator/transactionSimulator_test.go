@@ -16,9 +16,9 @@ import (
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/mock"
 	"github.com/multiversx/mx-chain-go/storage/storageunit"
-	"github.com/multiversx/mx-chain-go/storage/txcache"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
+	"github.com/multiversx/mx-chain-go/txcache"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 	datafield "github.com/multiversx/mx-chain-vm-common-go/parsers/dataField"
 	"github.com/stretchr/testify/assert"
@@ -104,6 +104,15 @@ func TestNewTransactionSimulator(t *testing.T) {
 			exError: ErrNilCacher,
 		},
 		{
+			name: "NilSCRProcessor",
+			argsFunc: func() ArgsTxSimulator {
+				args := getTxSimulatorArgs()
+				args.SCRProcessor = nil
+				return args
+			},
+			exError: process.ErrNilSmartContractResultProcessor,
+		},
+		{
 			name: "Ok",
 			argsFunc: func() ArgsTxSimulator {
 				args := getTxSimulatorArgs()
@@ -139,6 +148,24 @@ func TestTransactionSimulator_ProcessTxProcessingErrShouldSignal(t *testing.T) {
 	require.Equal(t, expErr.Error(), results.FailReason)
 }
 
+func TestTransactionSimulator_ProcessSCR(t *testing.T) {
+	t.Parallel()
+
+	expRetCode := vmcommon.Ok
+	expErr := errors.New("scr failed")
+	args := getTxSimulatorArgs()
+	args.SCRProcessor = &testscommon.SCProcessorMock{
+		ProcessSmartContractResultCalled: func(scr *smartContractResult.SmartContractResult) (vmcommon.ReturnCode, error) {
+			return expRetCode, expErr
+		},
+	}
+	ts, _ := NewTransactionSimulator(args)
+
+	results, err := ts.ProcessSCR(&smartContractResult.SmartContractResult{Nonce: 37}, &block.Header{})
+	require.NoError(t, err)
+	require.Equal(t, expErr.Error(), results.FailReason)
+}
+
 func TestTransactionSimulator_getVMOutputComputeHashFails(t *testing.T) {
 	t.Parallel()
 
@@ -149,7 +176,7 @@ func TestTransactionSimulator_getVMOutputComputeHashFails(t *testing.T) {
 	ts, _ := NewTransactionSimulator(args)
 	require.False(t, ts.IsInterfaceNil())
 
-	_, ok := ts.getVMOutputOfTx(nil)
+	_, ok := ts.getVMOutput(nil)
 	require.False(t, ok)
 }
 
@@ -166,14 +193,14 @@ func TestTransactionSimulator_getVMOutput(t *testing.T) {
 	require.False(t, ts.IsInterfaceNil())
 
 	// cannot find vm output in cacher
-	_, ok := ts.getVMOutputOfTx(&transaction.Transaction{})
+	_, ok := ts.getVMOutput(&transaction.Transaction{})
 	require.False(t, ok)
 
 	// wrong data in cacher
 	tx := &transaction.Transaction{}
 	txHash, _ := core.CalculateHash(args.Marshalizer, args.Hasher, tx)
 	args.VMOutputCacher.Put(txHash, 1, 0)
-	_, ok = ts.getVMOutputOfTx(tx)
+	_, ok = ts.getVMOutput(tx)
 	require.False(t, ok)
 }
 
@@ -246,6 +273,7 @@ func getTxSimulatorArgs() ArgsTxSimulator {
 		Hasher:                    &hashingMocks.HasherMock{},
 		DataFieldParser:           dataFieldParser,
 		BlockChainHook:            &testscommon.BlockChainHookStub{},
+		SCRProcessor:              &testscommon.SCProcessorMock{},
 	}
 }
 

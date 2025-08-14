@@ -432,6 +432,8 @@ func TestMetaForkDetector_ComputeGenesisTimeFromHeader(t *testing.T) {
 		roundDuration := uint64(100)
 		roundHandlerMock := &mock.RoundHandlerMock{}
 
+		hdrEpoch := uint32(2)
+
 		genesisTime := int64(9000)
 		hdrTimeStamp := uint64(10000000) // as milliseconds
 		hdrRound := uint64(10)
@@ -454,9 +456,13 @@ func TestMetaForkDetector_ComputeGenesisTimeFromHeader(t *testing.T) {
 			&dataRetriever.ProofsPoolMock{},
 			&chainParameters.ChainParametersHandlerStub{
 				ChainParametersForEpochCalled: func(epoch uint32) (config.ChainParametersByEpochConfig, error) {
-					return config.ChainParametersByEpochConfig{
-						RoundDuration: roundDuration * 1000,
-					}, nil
+					if epoch == hdrEpoch-1 {
+						return config.ChainParametersByEpochConfig{
+							RoundDuration: roundDuration * 1000,
+						}, nil
+					}
+
+					return config.ChainParametersByEpochConfig{}, errors.New("err")
 				},
 			},
 		)
@@ -464,7 +470,7 @@ func TestMetaForkDetector_ComputeGenesisTimeFromHeader(t *testing.T) {
 		hdr1 := &block.Header{
 			Nonce:         1,
 			Round:         hdrRound,
-			Epoch:         1,
+			Epoch:         hdrEpoch,
 			PubKeysBitmap: []byte("X"),
 			TimeStamp:     hdrTimeStamp,
 		}

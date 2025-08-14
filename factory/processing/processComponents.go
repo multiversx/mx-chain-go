@@ -283,6 +283,7 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 		pcf.data.Datapool().Headers(),
 		pcf.coreData.InternalMarshalizer(),
 		pcf.data.StorageService(),
+		pcf.coreData.EnableRoundsHandler(),
 	)
 	if err != nil {
 		return nil, err
@@ -933,6 +934,7 @@ func (pcf *processComponentsFactory) generateGenesisHeadersAndApplyInitialBalanc
 		GenesisEpoch:            pcf.config.EpochStartConfig.GenesisEpoch,
 		GenesisNonce:            pcf.genesisNonce,
 		GenesisRound:            pcf.genesisRound,
+		TxCacheSelectionConfig:  pcf.config.TxCacheSelection,
 	}
 
 	gbc, err := processGenesis.NewGenesisBlockCreator(arg)
@@ -1367,6 +1369,7 @@ func (pcf *processComponentsFactory) newBlockTracker(
 		WhitelistHandler:              pcf.whiteListHandler,
 		FeeHandler:                    pcf.coreData.EconomicsData(),
 		EnableEpochsHandler:           pcf.coreData.EnableEpochsHandler(),
+		EnableRoundsHandler:           pcf.coreData.EnableRoundsHandler(),
 		ProofsPool:                    pcf.data.Datapool().Proofs(),
 		IsImportDBMode:                pcf.importDBConfig.IsImportDBMode,
 		EpochChangeGracePeriodHandler: pcf.coreData.EpochChangeGracePeriodHandler(),
@@ -1933,6 +1936,7 @@ func (pcf *processComponentsFactory) createHardforkTrigger(epochStartTrigger upd
 		ImportStartHandler:        pcf.importStartHandler,
 		RoundHandler:              pcf.coreData.RoundHandler(),
 		EnableEpochsHandler:       pcf.coreData.EnableEpochsHandler(),
+		EnableRoundsHandler:       pcf.coreData.EnableRoundsHandler(),
 	}
 
 	return trigger.NewTrigger(argTrigger)
