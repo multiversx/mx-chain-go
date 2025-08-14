@@ -2,7 +2,6 @@ package process
 
 import (
 	"fmt"
-	"time"
 )
 
 // BlockHeaderState specifies which is the state of the block header received
@@ -97,7 +96,11 @@ const RoundModulusTriggerWhenSyncIsStuck = 20
 
 // MaxRoundsWithoutCommittedBlock defines the maximum rounds to wait for a new block to be committed,
 // before a special action to be applied
-const MaxRoundsWithoutCommittedBlock = 10
+// TODO: move to config per epoch
+const (
+	MaxRoundsWithoutCommittedBlock          = 10
+	SupernovaMaxRoundsWithoutCommittedBlock = 100
+)
 
 // MinForkRound represents the minimum fork round set by a notarized header received
 const MinForkRound = uint64(0)
@@ -116,7 +119,11 @@ const MaxShardNoncesBehind = 15
 
 // MaxRoundsWithoutNewBlockReceived defines the maximum number of rounds to wait for a new block to be received,
 // before a special action to be applied
-const MaxRoundsWithoutNewBlockReceived = 10
+// TODO: move to config per epoch
+const (
+	MaxRoundsWithoutNewBlockReceived          = 10
+	SupernovaMaxRoundsWithoutNewBlockReceived = 100
+)
 
 // MaxMetaHeadersAllowedInOneShardBlock defines the maximum number of meta headers allowed to be included in one shard block
 const MaxMetaHeadersAllowedInOneShardBlock = 50
@@ -135,12 +142,3 @@ const MaxHeadersToWhitelistInAdvance = 300
 // the real gas used, after which the transaction will be considered an attack and all the gas will be consumed and
 // nothing will be refunded to the sender
 const MaxGasFeeHigherFactorAccepted = 10
-
-// TxCacheSelectionGasRequested defines the maximum total gas for transactions that should be selected from the cache.
-const TxCacheSelectionGasRequested = 10_000_000_000
-
-// TxCacheSelectionMaxNumTxs defines the maximum number of transactions that should be selected from the cache.
-const TxCacheSelectionMaxNumTxs = 30_000
-
-// TxCacheSelectionLoopMaximumDuration defines the maximum duration for the loop that selects transactions from the cache.
-const TxCacheSelectionLoopMaximumDuration = 250 * time.Millisecond

@@ -492,7 +492,6 @@ func (ccf *consensusComponentsFactory) createShardBootstrapper() (process.Bootst
 		ChainHandler:                 ccf.dataComponents.Blockchain(),
 		RoundHandler:                 ccf.processComponents.RoundHandler(),
 		BlockProcessor:               ccf.processComponents.BlockProcessor(),
-		WaitTime:                     ccf.processComponents.RoundHandler().TimeDuration(),
 		Hasher:                       ccf.coreComponents.Hasher(),
 		Marshalizer:                  ccf.coreComponents.InternalMarshalizer(),
 		ForkDetector:                 ccf.processComponents.ForkDetector(),
@@ -516,6 +515,7 @@ func (ccf *consensusComponentsFactory) createShardBootstrapper() (process.Bootst
 		ProcessWaitTime:              time.Duration(ccf.config.GeneralSettings.SyncProcessTimeInMillis) * time.Millisecond,
 		RepopulateTokensSupplies:     ccf.flagsConfig.RepopulateTokensSupplies,
 		EnableEpochsHandler:          ccf.coreComponents.EnableEpochsHandler(),
+		EnableRoundsHandler:          ccf.coreComponents.EnableRoundsHandler(),
 	}
 
 	argsShardBootstrapper := sync.ArgShardBootstrapper{
@@ -625,7 +625,6 @@ func (ccf *consensusComponentsFactory) createMetaChainBootstrapper() (process.Bo
 		ChainHandler:                 ccf.dataComponents.Blockchain(),
 		RoundHandler:                 ccf.processComponents.RoundHandler(),
 		BlockProcessor:               ccf.processComponents.BlockProcessor(),
-		WaitTime:                     ccf.processComponents.RoundHandler().TimeDuration(),
 		Hasher:                       ccf.coreComponents.Hasher(),
 		Marshalizer:                  ccf.coreComponents.InternalMarshalizer(),
 		ForkDetector:                 ccf.processComponents.ForkDetector(),
@@ -649,6 +648,7 @@ func (ccf *consensusComponentsFactory) createMetaChainBootstrapper() (process.Bo
 		ProcessWaitTime:              time.Duration(ccf.config.GeneralSettings.SyncProcessTimeInMillis) * time.Millisecond,
 		RepopulateTokensSupplies:     ccf.flagsConfig.RepopulateTokensSupplies,
 		EnableEpochsHandler:          ccf.coreComponents.EnableEpochsHandler(),
+		EnableRoundsHandler:          ccf.coreComponents.EnableRoundsHandler(),
 	}
 
 	argsMetaBootstrapper := sync.ArgMetaBootstrapper{

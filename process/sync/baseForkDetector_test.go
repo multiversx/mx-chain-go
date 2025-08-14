@@ -1289,25 +1289,57 @@ func TestBaseForkDetector_IsConsensusStuckNotInProperRoundShouldReturnFalse(t *t
 func TestBaseForkDetector_IsConsensusStuckShouldReturnTrue(t *testing.T) {
 	t.Parallel()
 
-	roundHandlerMock := &mock.RoundHandlerMock{}
-	bfd, _ := sync.NewMetaForkDetector(
-		roundHandlerMock,
-		&testscommon.TimeCacheStub{},
-		&mock.BlockTrackerMock{},
-		0,
-		0,
-		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
-		&testscommon.EnableRoundsHandlerStub{},
-		&dataRetriever.ProofsPoolMock{},
-		&chainParameters.ChainParametersHandlerStub{},
-	)
+	t.Run("should work", func(t *testing.T) {
+		t.Parallel()
 
-	// last checkpoint will be (round = 0 , nonce = 0)
-	// round difference is higher than 10
-	// round index is divisible by RoundModulusTrigger -> 5
-	// => consensus is stuck
-	roundHandlerMock.RoundIndex = 20
-	assert.True(t, bfd.IsConsensusStuck())
+		roundHandlerMock := &mock.RoundHandlerMock{}
+		bfd, _ := sync.NewMetaForkDetector(
+			roundHandlerMock,
+			&testscommon.TimeCacheStub{},
+			&mock.BlockTrackerMock{},
+			0,
+			0,
+			&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+			&testscommon.EnableRoundsHandlerStub{},
+			&dataRetriever.ProofsPoolMock{},
+			&chainParameters.ChainParametersHandlerStub{},
+		)
+
+		// last checkpoint will be (round = 0 , nonce = 0)
+		// round difference is higher than 10
+		// round index is divisible by RoundModulusTrigger -> 5
+		// => consensus is stuck
+		roundHandlerMock.RoundIndex = 20
+		assert.True(t, bfd.IsConsensusStuck())
+	})
+
+	t.Run("should work, with supernova", func(t *testing.T) {
+		t.Parallel()
+
+		roundHandlerMock := &mock.RoundHandlerMock{}
+		bfd, _ := sync.NewMetaForkDetector(
+			roundHandlerMock,
+			&testscommon.TimeCacheStub{},
+			&mock.BlockTrackerMock{},
+			0,
+			0,
+			&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+			&testscommon.EnableRoundsHandlerStub{
+				IsFlagEnabledInRoundCalled: func(flag common.EnableRoundFlag, round uint64) bool {
+					return flag == common.SupernovaRoundFlag
+				},
+			},
+			&dataRetriever.ProofsPoolMock{},
+			&chainParameters.ChainParametersHandlerStub{},
+		)
+
+		// last checkpoint will be (round = 0 , nonce = 0)
+		// round difference is higher than 10
+		// round index is divisible by RoundModulusTrigger -> 5
+		// => consensus is stuck
+		roundHandlerMock.RoundIndex = 200
+		assert.True(t, bfd.IsConsensusStuck())
+	})
 }
 
 func TestShardForkDetector_RemoveHeaderShouldComputeFinalCheckpoint(t *testing.T) {

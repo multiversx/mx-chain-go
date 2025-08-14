@@ -46,7 +46,6 @@ func NewShardBootstrap(arguments ArgShardBootstrapper) (*ShardBootstrap, error) 
 		headers:                      arguments.PoolsHolder.Headers(),
 		proofs:                       arguments.PoolsHolder.Proofs(),
 		roundHandler:                 arguments.RoundHandler,
-		waitTime:                     arguments.WaitTime,
 		hasher:                       arguments.Hasher,
 		marshalizer:                  arguments.Marshalizer,
 		forkDetector:                 arguments.ForkDetector,
@@ -71,6 +70,7 @@ func NewShardBootstrap(arguments ArgShardBootstrapper) (*ShardBootstrap, error) 
 		processWaitTime:              arguments.ProcessWaitTime,
 		repopulateTokensSupplies:     arguments.RepopulateTokensSupplies,
 		enableEpochsHandler:          arguments.EnableEpochsHandler,
+		enableRoundsHandler:          arguments.EnableRoundsHandler,
 	}
 
 	if base.isInImportMode {

@@ -568,7 +568,7 @@ func (sr *subroundBlock) processReceivedBlock(
 
 	defer func() {
 		sw.Stop("processReceivedBlock")
-		log.Info("time measurements of processReceivedBlock", sw.GetMeasurements()...)
+		log.Debug("time measurements of processReceivedBlock", sw.GetMeasurements()...)
 
 		sr.SetProcessingBlock(false)
 	}()

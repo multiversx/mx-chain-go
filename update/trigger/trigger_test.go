@@ -8,9 +8,12 @@ import (
 	"testing"
 	"time"
 
+	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data/endProcess"
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/process/smartContract"
+	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/update"
 	"github.com/multiversx/mx-chain-go/update/mock"
@@ -37,6 +40,7 @@ func createMockArgHardforkTrigger() trigger.ArgHardforkTrigger {
 		ImportStartHandler:        &mock.ImportStartHandlerStub{},
 		RoundHandler:              &mock.RoundHandlerStub{},
 		EnableEpochsHandler:       &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		EnableRoundsHandler:       &testscommon.EnableRoundsHandlerStub{},
 	}
 }
 
@@ -122,61 +126,140 @@ func TestTrigger_TriggerWrongEpochShouldErr(t *testing.T) {
 func TestTrigger_TriggerEnabledShouldWork(t *testing.T) {
 	t.Parallel()
 
-	arg := createMockArgHardforkTrigger()
-	trig, _ := trigger.NewTrigger(arg)
+	t.Run("before supernova", func(t *testing.T) {
+		t.Parallel()
 
-	payload, wasTriggered := trig.RecordedTriggerMessage()
-	assert.Nil(t, payload)
-	assert.False(t, wasTriggered)
+		arg := createMockArgHardforkTrigger()
+		trig, _ := trigger.NewTrigger(arg)
 
-	err := trig.Trigger(trigger.MinimumEpochForHarfork, false)
+		payload, wasTriggered := trig.RecordedTriggerMessage()
+		assert.Nil(t, payload)
+		assert.False(t, wasTriggered)
 
-	// delay as to execute the async calls
-	time.Sleep(time.Second)
+		err := trig.Trigger(trigger.MinimumEpochForHarfork, false)
 
-	payload, wasTriggered = trig.RecordedTriggerMessage()
+		// delay as to execute the async calls
+		time.Sleep(time.Second)
 
-	assert.Nil(t, err)
-	assert.Nil(t, payload)
-	assert.True(t, wasTriggered)
+		payload, wasTriggered = trig.RecordedTriggerMessage()
+
+		assert.Nil(t, err)
+		assert.Nil(t, payload)
+		assert.True(t, wasTriggered)
+	})
+
+	t.Run("after supernova", func(t *testing.T) {
+		t.Parallel()
+
+		arg := createMockArgHardforkTrigger()
+		arg.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+			IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
+				return flag == common.SupernovaFlag
+			},
+		}
+
+		trig, _ := trigger.NewTrigger(arg)
+
+		payload, wasTriggered := trig.RecordedTriggerMessage()
+		assert.Nil(t, payload)
+		assert.False(t, wasTriggered)
+
+		err := trig.Trigger(trigger.MinimumEpochForHarfork, false)
+
+		// delay as to execute the async calls
+		time.Sleep(time.Second)
+
+		payload, wasTriggered = trig.RecordedTriggerMessage()
+
+		assert.Nil(t, err)
+		assert.Nil(t, payload)
+		assert.True(t, wasTriggered)
+	})
 }
 
 func TestTrigger_TriggerWithEarlyEndOfEpochEnabledShouldWork(t *testing.T) {
 	t.Parallel()
 
-	forceEpochStartWasCalled := false
-	arg := createMockArgHardforkTrigger()
-	recoveredRound := uint64(0)
-	arg.EpochProvider = &mock.EpochHandlerStub{
-		ForceEpochStartCalled: func(round uint64) {
-			forceEpochStartWasCalled = true
-			recoveredRound = round
-		},
-	}
-	currentRound := uint64(4433)
-	arg.RoundHandler = &mock.RoundHandlerStub{
-		IndexCalled: func() int64 {
-			return int64(currentRound)
-		},
-	}
-	trig, _ := trigger.NewTrigger(arg)
+	t.Run("before supernova", func(t *testing.T) {
+		t.Parallel()
 
-	payload, wasTriggered := trig.RecordedTriggerMessage()
-	assert.Nil(t, payload)
-	assert.False(t, wasTriggered)
+		forceEpochStartWasCalled := false
+		arg := createMockArgHardforkTrigger()
+		recoveredRound := uint64(0)
+		arg.EpochProvider = &mock.EpochHandlerStub{
+			ForceEpochStartCalled: func(round uint64) {
+				forceEpochStartWasCalled = true
+				recoveredRound = round
+			},
+		}
+		currentRound := uint64(4433)
+		arg.RoundHandler = &mock.RoundHandlerStub{
+			IndexCalled: func() int64 {
+				return int64(currentRound)
+			},
+		}
+		trig, _ := trigger.NewTrigger(arg)
 
-	err := trig.Trigger(trigger.MinimumEpochForHarfork, true)
+		payload, wasTriggered := trig.RecordedTriggerMessage()
+		assert.Nil(t, payload)
+		assert.False(t, wasTriggered)
 
-	// delay as to execute the async calls
-	time.Sleep(time.Second)
+		err := trig.Trigger(trigger.MinimumEpochForHarfork, true)
 
-	payload, wasTriggered = trig.RecordedTriggerMessage()
+		// delay as to execute the async calls
+		time.Sleep(time.Second)
 
-	assert.Nil(t, err)
-	assert.Nil(t, payload)
-	assert.True(t, wasTriggered)
-	assert.True(t, forceEpochStartWasCalled)
-	assert.Equal(t, currentRound+trigger.DeltaRoundsForForcedEpoch, recoveredRound)
+		payload, wasTriggered = trig.RecordedTriggerMessage()
+
+		assert.Nil(t, err)
+		assert.Nil(t, payload)
+		assert.True(t, wasTriggered)
+		assert.True(t, forceEpochStartWasCalled)
+		assert.Equal(t, currentRound+trigger.DeltaRoundsForForcedEpoch, recoveredRound)
+	})
+
+	t.Run("after supernova", func(t *testing.T) {
+		t.Parallel()
+
+		forceEpochStartWasCalled := false
+		arg := createMockArgHardforkTrigger()
+		arg.EnableRoundsHandler = &testscommon.EnableRoundsHandlerStub{
+			IsFlagEnabledInRoundCalled: func(flag common.EnableRoundFlag, round uint64) bool {
+				return flag == common.SupernovaRoundFlag
+			},
+		}
+		recoveredRound := uint64(0)
+		arg.EpochProvider = &mock.EpochHandlerStub{
+			ForceEpochStartCalled: func(round uint64) {
+				forceEpochStartWasCalled = true
+				recoveredRound = round
+			},
+		}
+		currentRound := uint64(4433)
+		arg.RoundHandler = &mock.RoundHandlerStub{
+			IndexCalled: func() int64 {
+				return int64(currentRound)
+			},
+		}
+		trig, _ := trigger.NewTrigger(arg)
+
+		payload, wasTriggered := trig.RecordedTriggerMessage()
+		assert.Nil(t, payload)
+		assert.False(t, wasTriggered)
+
+		err := trig.Trigger(trigger.MinimumEpochForHarfork, true)
+
+		// delay as to execute the async calls
+		time.Sleep(time.Second)
+
+		payload, wasTriggered = trig.RecordedTriggerMessage()
+
+		assert.Nil(t, err)
+		assert.Nil(t, payload)
+		assert.True(t, wasTriggered)
+		assert.True(t, forceEpochStartWasCalled)
+		assert.Equal(t, currentRound+trigger.SupernovaDeltaRoundsForForcedEpoch, recoveredRound)
+	})
 }
 
 func TestTrigger_TriggerCalledTwiceShouldErr(t *testing.T) {

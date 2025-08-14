@@ -43,8 +43,6 @@ import (
 	storageStubs "github.com/multiversx/mx-chain-go/testscommon/storage"
 )
 
-// waitTime defines the time in milliseconds until node waits the requested info from the network
-const waitTime = 100 * time.Millisecond
 const testProcessWaitTime = time.Second
 
 type removedFlags struct {
@@ -200,7 +198,6 @@ func CreateShardBootstrapMockArguments() sync.ArgShardBootstrapper {
 		ChainHandler:                 initBlockchain(),
 		RoundHandler:                 &mock.RoundHandlerMock{},
 		BlockProcessor:               &testscommon.BlockProcessorStub{},
-		WaitTime:                     waitTime,
 		Hasher:                       &hashingMocks.HasherMock{},
 		Marshalizer:                  &mock.MarshalizerMock{},
 		ForkDetector:                 &mock.ForkDetectorMock{},
@@ -223,6 +220,7 @@ func CreateShardBootstrapMockArguments() sync.ArgShardBootstrapper {
 		ProcessWaitTime:              testProcessWaitTime,
 		RepopulateTokensSupplies:     false,
 		EnableEpochsHandler:          &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		EnableRoundsHandler:          &testscommon.EnableRoundsHandlerStub{},
 	}
 
 	argsShardBootstrapper := sync.ArgShardBootstrapper{
