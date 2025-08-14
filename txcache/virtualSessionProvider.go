@@ -46,7 +46,7 @@ func (provider *virtualSessionProvider) handleTrackedBlock(tb *trackedBlock) err
 			log.Debug("virtualSessionProvider.handleTrackedBlock",
 				"err", err,
 				"address", address,
-				"rootHash", tb.rootHash)
+				"tracked block rootHash", tb.rootHash)
 			return err
 		}
 
