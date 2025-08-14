@@ -1,9 +1,11 @@
 package estimator
 
 import (
+	"fmt"
 	"math"
 	"testing"
 
+	logger "github.com/multiversx/mx-chain-logger-go"
 	"github.com/stretchr/testify/require"
 )
 
@@ -13,6 +15,8 @@ func TestEIE(t *testing.T) {
 }
 
 func TestDecide(t *testing.T) {
+
+	logger.SetLogLevel("*:DEBUG")
 
 	tests := []struct {
 		name           string
@@ -92,8 +96,9 @@ func TestDecide(t *testing.T) {
 				HeaderTimeMs: 1000,
 			},
 			pending: []ExecutionResultMeta{
-				{HeaderNonce: 1, HeaderTimeMs: 1010, GasUsed: 1 << 62},
-				{HeaderNonce: 2, HeaderTimeMs: 1020, GasUsed: 100},
+				{HeaderNonce: 1, HeaderTimeMs: 1020, GasUsed: 100},
+				{HeaderNonce: 2, HeaderTimeMs: 1010, GasUsed: 1 << 62},
+				{HeaderNonce: 3, HeaderTimeMs: 1020, GasUsed: 100},
 			},
 			currentHdrTsNs: (1_700_000_000_000 + 1000) * 1_000_000,
 			wantAllowed:    1,
@@ -124,13 +129,9 @@ func TestOverflowProtection(t *testing.T) {
 
 		currentTime := uint64(1<<63 - 1) // large enough to fail if overflowed
 
-		// This would panic or wrap if not protected
-		defer func() {
-			if r := recover(); r == nil {
-				t.Error("expected overflow panic or logic to reject unsafe")
-			}
-		}()
-		_ = Decide(cfg, nil, pending, currentTime)
+		num_accepted := Decide(cfg, nil, pending, currentTime)
+		t.Log("num_accepted:", num_accepted)
+		require.Equal(t, 0, num_accepted, "should not accept any results due to overflow")
 	})
 
 	t.Run("estimatedTime * margin overflows", func(t *testing.T) {
@@ -146,12 +147,9 @@ func TestOverflowProtection(t *testing.T) {
 
 		currentTime := uint64(1<<63 - 1)
 
-		defer func() {
-			if r := recover(); r == nil {
-				t.Error("expected overflow panic or logic to reject unsafe")
-			}
-		}()
-		_ = Decide(cfg, nil, pending, currentTime)
+		num_accepted := Decide(cfg, nil, pending, currentTime)
+		t.Log("num_accepted:", num_accepted)
+		require.Equal(t, 0, num_accepted, "should not accept any results due to overflow")
 	})
 }
 
@@ -201,22 +199,56 @@ func TestDecide_EdgeCases(t *testing.T) {
 	})
 }
 
-func BenchmarkDecide(b *testing.B) {
+func BenchmarkDecideScaling_10(b *testing.B) {
 	cfg := Config{SafetyMargin: 110}
 	last := &ExecutionResultMeta{HeaderTimeMs: 1000}
 
-	pending := make([]ExecutionResultMeta, 12)
-	for i := range pending {
-		pending[i] = ExecutionResultMeta{
-			HeaderNonce:  uint64(i + 1),
-			HeaderTimeMs: 1000 + uint64(i)*10,
-			GasUsed:      5000,
-		}
-	}
-	now := (1000 + 600) * 1_000_000
+	b.ReportAllocs()
 
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
-		Decide(cfg, last, pending, uint64(now))
+	for n := range 10 {
+		pendingSize := 12 * (1 << n) // 12, 24, 48, ...
+		pending := make([]ExecutionResultMeta, pendingSize)
+		for i := range pending {
+			pending[i] = ExecutionResultMeta{
+				HeaderNonce:  uint64(i + 1),
+				HeaderTimeMs: 1000 + uint64(i)*10,
+				GasUsed:      5000,
+			}
+		}
+		now := convertMsToNs(1500)
+
+		b.Run(fmt.Sprintf("%d_results", pendingSize), func(b *testing.B) {
+			b.ResetTimer()
+			for i := 0; i < b.N; i++ {
+				Decide(cfg, last, pending, now)
+			}
+		})
+	}
+}
+
+func BenchmarkDecideScaling_100(b *testing.B) {
+	cfg := Config{SafetyMargin: 110}
+	last := &ExecutionResultMeta{HeaderTimeMs: 1000}
+
+	b.ReportAllocs()
+
+	for n := range 100 {
+		pendingSize := 12 * (1 << n) // 12, 24, 48, ...
+		pending := make([]ExecutionResultMeta, pendingSize)
+		for i := range pending {
+			pending[i] = ExecutionResultMeta{
+				HeaderNonce:  uint64(i + 1),
+				HeaderTimeMs: 1000 + uint64(i)*10,
+				GasUsed:      5000,
+			}
+		}
+		now := convertMsToNs(1500)
+
+		b.Run(fmt.Sprintf("%d_results", pendingSize), func(b *testing.B) {
+			b.ResetTimer()
+			for i := 0; i < b.N; i++ {
+				Decide(cfg, last, pending, now)
+			}
+		})
 	}
 }

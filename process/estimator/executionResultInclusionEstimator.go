@@ -1,5 +1,13 @@
 package estimator
 
+import (
+	"math/bits"
+
+	logger "github.com/multiversx/mx-chain-logger-go"
+)
+
+var log = logger.GetOrCreate("process/executionResultInclusionEstimator")
+
 // ExecutionResultMeta is a lightweight summary EIE requires.
 type ExecutionResultMeta struct {
 	HeaderHash   [32]byte // Link to full header in DB / cache
@@ -39,13 +47,34 @@ func Decide(cfg Config,
 	}
 
 	// accumulated execution time in ns (1 gas = 1ns)
-	var estimatedTime uint64
+	estimatedTime := uint64(0)
 	for i, executionResultMeta := range pending {
-		estimatedTime += executionResultMeta.GasUsed * t_gas
+		currentEstimatedTime := executionResultMeta.GasUsed * t_gas
+
+		estimatedTime, overflow := bits.Add64(estimatedTime, currentEstimatedTime, 0)
+		if overflow != 0 {
+			log.Debug("ExecutionResultInclusionEstimator: overflow detected in block tranzactions time estimation",
+				"estimatedTime", estimatedTime,
+				"currentEstimatedTime", currentEstimatedTime)
+			return i
+		}
 
 		// Apply safety margin
-		estimatedTimeWithMargin := estimatedTime * cfg.SafetyMargin / 100
-		tDone := tBase + estimatedTimeWithMargin
+		overflow, estimatedTimeWithMargin := bits.Mul64(estimatedTime, cfg.SafetyMargin/100)
+		if overflow != 0 {
+			log.Debug("ExecutionResultInclusionEstimator: overflow detected in estimated time with margin",
+				"estimatedTime", estimatedTime,
+				"safetyMargin", cfg.SafetyMargin)
+			return i
+		}
+
+		tDone, overflow := bits.Add64(tBase, estimatedTimeWithMargin, 0)
+		if overflow != 0 {
+			log.Debug("ExecutionResultInclusionEstimator: overflow detected in total estimated time",
+				"tBase", tBase,
+				"estimatedTimeWithMargin", estimatedTimeWithMargin)
+			return i
+		}
 
 		// cannot include current pending item or anything after
 		if tDone > currentHdrTsNs {
