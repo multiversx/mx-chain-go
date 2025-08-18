@@ -208,6 +208,27 @@ func TestDecide_EdgeCases(t *testing.T) {
 		require.Equal(t, 2, got)
 	})
 
+	t.Run("HeaderTime before genesis", func(t *testing.T) {
+		cfg := Config{SafetyMargin: 110, GenesisTimeMs: 1_700_000_000_000}
+		erie := NewExecutionResultInclusionEstimator(cfg)
+		pending := []ExecutionResultMeta{
+			{HeaderNonce: 1, HeaderTimeMs: cfg.GenesisTimeMs - 1, GasUsed: 100},
+		}
+		got := erie.Decide(cfg, nil, pending, convertMsToNs(cfg.GenesisTimeMs+1000))
+		require.Equal(t, 0, got)
+	})
+
+	t.Run("HeaderTime before last notarised", func(t *testing.T) {
+		cfg := Config{SafetyMargin: 110, GenesisTimeMs: 1_700_000_000_000}
+		erie := NewExecutionResultInclusionEstimator(cfg)
+		lastNotarised := &ExecutionResultMeta{HeaderNonce: 1, HeaderTimeMs: cfg.GenesisTimeMs + 1000, GasUsed: 100}
+		pending := []ExecutionResultMeta{
+			{HeaderNonce: 2, HeaderTimeMs: lastNotarised.HeaderTimeMs - 1, GasUsed: 50},
+		}
+		got := erie.Decide(cfg, lastNotarised, pending, convertMsToNs(lastNotarised.HeaderTimeMs+1000))
+		require.Equal(t, 0, got)
+	})
+
 	t.Run("large HeaderTimeMs gap", func(t *testing.T) {
 		pending := []ExecutionResultMeta{
 			{HeaderNonce: 1, GasUsed: 100, HeaderTimeMs: 1000},
