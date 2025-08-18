@@ -32,12 +32,12 @@ func NewExecutionResultsVerifier(blockChain data.ChainHandler, executionResultsT
 }
 
 // VerifyHeaderExecutionResults checks the execution results of a shard header
-func (erc *executionResultsVerifier) VerifyHeaderExecutionResults(header data.HeaderHandler, headerHash []byte) error {
-	if check.IfNil(header) {
-		return process.ErrNilHeaderHandler
-	}
+func (erc *executionResultsVerifier) VerifyHeaderExecutionResults(headerHash []byte, header data.HeaderHandler) error {
 	if len(headerHash) == 0 {
 		return process.ErrInvalidHash
+	}
+	if check.IfNil(header) {
+		return process.ErrNilHeaderHandler
 	}
 	if !header.IsHeaderV3() {
 		return process.ErrInvalidHeader
@@ -115,9 +115,6 @@ func (erc *executionResultsVerifier) checkLastExecutionResultInfoAgainstPrevBloc
 		return err
 	}
 
-	if check.IfNil(prevLastExecutionResultInfo) {
-		return fmt.Errorf("%w: for previous block", process.ErrNilLastExecutionResultHandler)
-	}
 	if !lastExecutionResultInfo.Equal(prevLastExecutionResultInfo) {
 		return process.ErrExecutionResultDoesNotMatch
 	}
