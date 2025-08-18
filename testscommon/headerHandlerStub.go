@@ -7,6 +7,21 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/headerVersionData"
 )
 
+// HeaderHandlerWithExecutionResultsStub -
+type HeaderHandlerWithExecutionResultsStub struct {
+	HeaderHandlerStub
+	GetExecutionResultsCalled func() []data.ExecutionResultHandler
+}
+
+// GetExecutionResults -
+func (hh *HeaderHandlerWithExecutionResultsStub) GetExecutionResults() []data.ExecutionResultHandler {
+	if hh.GetExecutionResultsCalled != nil {
+		return hh.GetExecutionResultsCalled()
+	}
+
+	return nil
+}
+
 // HeaderHandlerStub -
 type HeaderHandlerStub struct {
 	EpochField                             uint32
@@ -40,6 +55,9 @@ type HeaderHandlerStub struct {
 	SetLeaderSignatureCalled               func(signature []byte) error
 	GetShardIDCalled                       func() uint32
 	SetRootHashCalled                      func(hash []byte) error
+	GetGasLimitCalled                      func() uint32
+	GetLastExecutionResultHandlerCalled    func() data.ShardExecutionResultInfo
+	GetExecutionResultsHandlersCalled      func() []data.ExecutionResultHandler
 }
 
 // GetAccumulatedFees -
@@ -433,5 +451,29 @@ func (hhs *HeaderHandlerStub) HasScheduledMiniBlocks() bool {
 func (hhs *HeaderHandlerStub) SetBlockBodyTypeInt32(blockBodyType int32) error {
 	hhs.BlockBodyTypeInt32Field = blockBodyType
 
+	return nil
+}
+
+// GetGasLimit -
+func (hhs *HeaderHandlerStub) GetGasLimit() uint32 {
+	if hhs.GetGasLimitCalled != nil {
+		return hhs.GetGasLimitCalled()
+	}
+	return 0
+}
+
+// GetLastExecutionResultHandler -
+func (hhs *HeaderHandlerStub) GetLastExecutionResultHandler() data.ShardExecutionResultInfo {
+	if hhs.GetLastExecutionResultHandlerCalled != nil {
+		return hhs.GetLastExecutionResultHandlerCalled()
+	}
+	return nil
+}
+
+// GetExecutionResultsHandlers -
+func (hhs *HeaderHandlerStub) GetExecutionResultsHandlers() []data.ExecutionResultHandler {
+	if hhs.GetExecutionResultsHandlersCalled != nil {
+		return hhs.GetExecutionResultsHandlersCalled()
+	}
 	return nil
 }

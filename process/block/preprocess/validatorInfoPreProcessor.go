@@ -9,9 +9,11 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/storage"
 )
@@ -22,10 +24,11 @@ var _ process.PreProcessor = (*validatorInfoPreprocessor)(nil)
 type validatorInfoPreprocessor struct {
 	*basePreProcess
 	chReceivedAllValidatorsInfo chan bool
-	validatorsInfoForBlock      txsForBlock
+	validatorsInfoForBlock      TxsForBlockHandler
 	validatorsInfoPool          dataRetriever.ShardedDataCacherNotifier
 	storage                     dataRetriever.StorageService
 	enableEpochsHandler         common.EnableEpochsHandler
+	shardCoordinator            sharding.Coordinator
 }
 
 // NewValidatorInfoPreprocessor creates a new validatorInfo preprocessor object
@@ -36,6 +39,7 @@ func NewValidatorInfoPreprocessor(
 	validatorsInfoPool dataRetriever.ShardedDataCacherNotifier,
 	store dataRetriever.StorageService,
 	enableEpochsHandler common.EnableEpochsHandler,
+	shardCoordinator sharding.Coordinator,
 ) (*validatorInfoPreprocessor, error) {
 
 	if check.IfNil(hasher) {
@@ -56,6 +60,9 @@ func NewValidatorInfoPreprocessor(
 	if check.IfNil(enableEpochsHandler) {
 		return nil, process.ErrNilEnableEpochsHandler
 	}
+	if check.IfNil(shardCoordinator) {
+		return nil, process.ErrNilShardCoordinator
+	}
 	err := core.CheckHandlerCompatibility(enableEpochsHandler, []core.EnableEpochFlag{
 		common.RefactorPeersMiniBlocksFlag,
 	})
@@ -74,10 +81,15 @@ func NewValidatorInfoPreprocessor(
 		storage:             store,
 		validatorsInfoPool:  validatorsInfoPool,
 		enableEpochsHandler: enableEpochsHandler,
+		shardCoordinator:    shardCoordinator,
 	}
 
 	vip.chReceivedAllValidatorsInfo = make(chan bool)
-	vip.validatorsInfoForBlock.txHashAndInfo = make(map[string]*txInfo)
+
+	vip.validatorsInfoForBlock, err = NewTxsForBlock(shardCoordinator)
+	if err != nil {
+		return nil, err
+	}
 
 	return vip, nil
 }
@@ -222,12 +234,7 @@ func (vip *validatorInfoPreprocessor) saveValidatorInfoToStorage(miniBlock *bloc
 
 // CreateBlockStarted cleans the local cache map for processed/created validators info at this round
 func (vip *validatorInfoPreprocessor) CreateBlockStarted() {
-	_ = core.EmptyChannel(vip.chReceivedAllValidatorsInfo)
-
-	vip.validatorsInfoForBlock.mutTxsForBlock.Lock()
-	vip.validatorsInfoForBlock.missingTxs = 0
-	vip.validatorsInfoForBlock.txHashAndInfo = make(map[string]*txInfo)
-	vip.validatorsInfoForBlock.mutTxsForBlock.Unlock()
+	vip.validatorsInfoForBlock.Reset()
 }
 
 // RequestBlockTransactions does nothing
