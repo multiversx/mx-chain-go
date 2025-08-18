@@ -43,9 +43,10 @@ func (provider *virtualSessionProvider) handleTrackedBlock(tb *trackedBlock) err
 
 		accountNonce, accountBalance, _, err := provider.session.GetAccountNonceAndBalance([]byte(address))
 		if err != nil {
-			// TODO: check and fix this log (it's either superfluous or missing useful context).
 			log.Debug("virtualSessionProvider.handleTrackedBlock",
-				"err", err)
+				"err", err,
+				"address", address,
+				"tracked block rootHash", tb.rootHash)
 			return err
 		}
 
@@ -54,17 +55,16 @@ func (provider *virtualSessionProvider) handleTrackedBlock(tb *trackedBlock) err
 			continue
 		}
 
-		provider.handleAccountBreadcrumb(breadcrumb, accountBalance, address)
+		provider.fromBreadcrumbToVirtualRecord(address, accountBalance, breadcrumb)
 	}
 
 	return nil
 }
 
-// TODO: check whether this function is properly named.
-func (provider *virtualSessionProvider) handleAccountBreadcrumb(
-	breadcrumb *accountBreadcrumb,
-	accountBalance *big.Int,
+func (provider *virtualSessionProvider) fromBreadcrumbToVirtualRecord(
 	address string,
+	accountBalance *big.Int,
+	breadcrumb *accountBreadcrumb,
 ) {
 	virtualRecord, ok := provider.virtualAccountsByAddress[address]
 	if !ok {
