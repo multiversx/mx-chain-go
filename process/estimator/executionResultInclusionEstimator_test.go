@@ -10,7 +10,7 @@ import (
 )
 
 func TestDecide(t *testing.T) {
-	logger.SetLogLevel("*:DEBUG")
+	_ = logger.SetLogLevel("*:DEBUG")
 	t.Parallel()
 
 	t.Run("Accept all items", func(t *testing.T) {
@@ -116,7 +116,7 @@ func TestDecide(t *testing.T) {
 }
 
 func TestOverflowProtection(t *testing.T) {
-	logger.SetLogLevel("*:DEBUG")
+	_ = logger.SetLogLevel("*:DEBUG")
 	t.Run("gasUsed * t_gas overflows", func(t *testing.T) {
 		cfg := Config{
 			SafetyMargin:       110,
@@ -141,7 +141,7 @@ func TestOverflowProtection(t *testing.T) {
 }
 
 func TestDecide_EdgeCases(t *testing.T) {
-	logger.SetLogLevel("*:DEBUG")
+	_ = logger.SetLogLevel("*:DEBUG")
 	t.Parallel()
 	cfg := Config{
 		SafetyMargin:       10,
