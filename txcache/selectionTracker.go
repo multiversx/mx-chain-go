@@ -110,29 +110,32 @@ func (st *selectionTracker) validateTrackedBlocks(chainOfTrackedBlocks []*tracke
 
 	for _, tb := range chainOfTrackedBlocks {
 		for address, breadcrumb := range tb.breadcrumbsByAddress {
-			// TODO make sure that the accounts which don't yet exist are properly handled
-			accountState, err := session.GetAccountState([]byte(address))
+			initialNonce, initialBalance, _, err := session.GetAccountNonceAndBalance([]byte(address))
 			if err != nil {
 				log.Debug("selectionTracker.validateTrackedBlocks",
-					"err", err)
+					"err", err,
+					"address", address,
+					"tracked block rootHash", tb.rootHash)
 				return err
 			}
 
-			// validate that a breadcrumb is continuous
-			if !validator.continuousBreadcrumb(address, breadcrumb, accountState) {
+			if !validator.continuousBreadcrumb(address, initialNonce, breadcrumb) {
+				log.Debug("selectionTracker.validateTrackedBlocks",
+					"err", errDiscontinuousBreadcrumbs,
+					"address", address,
+					"tracked block rootHash", tb.rootHash)
 				return errDiscontinuousBreadcrumbs
 			}
 
 			// TODO re-brainstorm, validate with more integration tests
 			// use its balance to accumulate and validate (make sure is < than initialBalance from the session)
-			initialBalance := accountState.GetBalance()
-			err = validator.validateBalance(address, breadcrumb, initialBalance)
+			err = validator.validateBalance(address, initialBalance, breadcrumb)
 			if err != nil {
 				// exit at the first failure
 				log.Debug("selectionTracker.validateTrackedBlocks validation failed",
 					"err", err,
 					"address", address,
-					"rootHash", accountState.GetRootHash())
+					"tracked block rootHash", tb.rootHash)
 				return err
 			}
 		}

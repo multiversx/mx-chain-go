@@ -20,9 +20,7 @@ import (
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/configs"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/dtos"
 	"github.com/multiversx/mx-chain-go/process/block/preprocess"
-	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/testscommon"
-	stateMock "github.com/multiversx/mx-chain-go/testscommon/state"
 	"github.com/multiversx/mx-chain-go/testscommon/txcachemocks"
 	"github.com/multiversx/mx-chain-go/txcache"
 	"github.com/stretchr/testify/require"
@@ -223,15 +221,10 @@ func getTransaction(t *testing.T, simulator testsChainSimulator.ChainSimulator, 
 
 func createMockSelectionSessionWithSpecificAccountInfo(accounts map[string]*accountInfo) *txcachemocks.SelectionSessionMock {
 	sessionMock := txcachemocks.SelectionSessionMock{
-		GetAccountStateCalled: func(address []byte) (state.UserAccountHandler, error) {
-			return &stateMock.StateUserAccountHandlerStub{
-				GetBalanceCalled: func() *big.Int {
-					return accounts[string(address)].balance
-				},
-				GetNonceCalled: func() uint64 {
-					return accounts[string(address)].nonce
-				},
-			}, nil
+		GetAccountNonceAndBalanceCalled: func(address []byte) (uint64, *big.Int, bool, error) {
+			nonce := accounts[string(address)].nonce
+			balance := accounts[string(address)].balance
+			return nonce, balance, true, nil
 		},
 	}
 
@@ -254,15 +247,8 @@ func createProposedBlock(selectedTransactions []*txcache.WrappedTransaction) *bl
 
 func createDefaultSelectionSessionMockWithInitialAmount(initialAmountPerAccount *big.Int) *txcachemocks.SelectionSessionMock {
 	sessionMock := txcachemocks.SelectionSessionMock{
-		GetAccountStateCalled: func(address []byte) (state.UserAccountHandler, error) {
-			return &stateMock.StateUserAccountHandlerStub{
-				GetBalanceCalled: func() *big.Int {
-					return initialAmountPerAccount
-				},
-				GetNonceCalled: func() uint64 {
-					return 0
-				},
-			}, nil
+		GetAccountNonceAndBalanceCalled: func(address []byte) (uint64, *big.Int, bool, error) {
+			return 0, initialAmountPerAccount, true, nil
 		},
 	}
 
