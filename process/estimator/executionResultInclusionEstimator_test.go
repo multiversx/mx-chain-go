@@ -9,9 +9,53 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+func TestEstimatorCreation(t *testing.T) {
+	_ = logger.SetLogLevel("*:DEBUG")
+	t.Parallel()
+
+	t.Run("Default config", func(t *testing.T) {
+		cfg := Config{}
+		erie := NewExecutionResultInclusionEstimator(cfg)
+		require.NotNil(t, erie, "NewExecutionResultInclusionEstimator should not return nil")
+	})
+
+	t.Run("Custom config", func(t *testing.T) {
+		cfg := Config{SafetyMargin: 120, MaxResultsPerBlock: 10}
+		erie := NewExecutionResultInclusionEstimator(cfg)
+		require.NotNil(t, erie, "NewExecutionResultInclusionEstimator should not return nil")
+	})
+	t.Run("SetTimePerGasUnit", func(t *testing.T) {
+		cfg := Config{SafetyMargin: 110}
+		erie := NewExecutionResultInclusionEstimator(cfg)
+		erie.SetTimePerGasUnit(2)
+		require.NotNil(t, erie, "NewExecutionResultInclusionEstimator should not return nil")
+		require.Equal(t, uint64(2), erie.tGas, "tGas should be set to 2")
+	})
+	t.Run("SetTimePerGasUnit with zero value", func(t *testing.T) {
+		cfg := Config{SafetyMargin: 110}
+		erie := NewExecutionResultInclusionEstimator(cfg)
+		erie.SetTimePerGasUnit(0)
+		require.NotNil(t, erie, "NewExecutionResultInclusionEstimator should not return nil")
+		require.Equal(t, uint64(1), erie.tGas, "tGas should default to 1 ns per gas unit when set to zero")
+	})
+}
+
 func TestDecide(t *testing.T) {
 	_ = logger.SetLogLevel("*:DEBUG")
 	t.Parallel()
+
+	t.Run("Empty pending", func(t *testing.T) {
+		cfg := Config{SafetyMargin: 110}
+		erie := NewExecutionResultInclusionEstimator(cfg)
+		lastNotarised := &ExecutionResultMeta{HeaderTimeMs: 1000}
+		pending := []ExecutionResultMeta{}
+		currentHdrTsNs := uint64(1000+500) * 1_000_000 // 1000 ms + 500 ms margin
+		wantAllowed := 0
+		got := erie.Decide(cfg, lastNotarised, pending, currentHdrTsNs)
+		if got != wantAllowed {
+			t.Errorf("Decide() = %d, want %d", got, wantAllowed)
+		}
+	})
 
 	t.Run("Accept all items", func(t *testing.T) {
 		cfg := Config{SafetyMargin: 110, MaxResultsPerBlock: 0}
