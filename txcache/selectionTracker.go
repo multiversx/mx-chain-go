@@ -121,7 +121,7 @@ func (st *selectionTracker) validateTrackedBlocks(chainOfTrackedBlocks []*tracke
 
 			if !validator.continuousBreadcrumb(address, initialNonce, breadcrumb) {
 				log.Debug("selectionTracker.validateTrackedBlocks",
-					"err", err,
+					"err", errDiscontinuousBreadcrumbs,
 					"address", address,
 					"tracked block rootHash", tb.rootHash)
 				return errDiscontinuousBreadcrumbs
