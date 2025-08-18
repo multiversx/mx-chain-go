@@ -17,22 +17,48 @@ type ExecutionResultMeta struct {
 }
 
 // Config supplied at construction, read‑only thereafter.
+// TODO add also max estimated block gas capacity  // used gas must be lower than this
 type Config struct {
 	SafetyMargin       uint64 // default 110
 	MaxResultsPerBlock uint64 // 0 = unlimited
 	GenesisTimeMs      uint64 // required if lastNotarised == nil
 }
 
+type ExecutionResultInclusionEstimator struct {
+	cfg  Config // immutable after construction
+	tGas uint64 // time per gas unit on **minimum‑spec** hardware - 1 ns per gas unit
+	// TODO add also max estimated block gas capacity  // used gas must be lower than this
+}
+
+func NewExecutionResultInclusionEstimator(cfg Config) *ExecutionResultInclusionEstimator {
+	return &ExecutionResultInclusionEstimator{
+		cfg:  cfg,
+		tGas: uint64(1),
+	}
+}
+
+func (erie *ExecutionResultInclusionEstimator) SetTimePerGasUnit(tGas uint64) {
+	if tGas == 0 {
+		log.Warn("ExecutionResultInclusionEstimator: SetTimePerGasUnit called with zero value, using default 1 ns per gas unit")
+		tGas = 1
+	}
+	if erie.tGas != tGas {
+		log.Debug("ExecutionResultInclusionEstimator: SetTimePerGasUnit called",
+			"oldValue", erie.tGas,
+			"newValue", tGas)
+		erie.tGas = tGas
+	}
+}
+
 // Decide returns the prefix of `pending` that may be inserted into the block currently being built / verified.
 // Return value: `allowed` is the count of leading entries in `pending` deemed safe. The caller slices `pending[:allowed]`and embeds them.
-func Decide(cfg Config,
+func (erie *ExecutionResultInclusionEstimator) Decide(cfg Config,
 	lastNotarised *ExecutionResultMeta,
 	pending []ExecutionResultMeta,
 	currentHdrTsNs uint64) (allowed int) {
 	allowed = 0
 
 	// time per gas unit on **minimum‑spec** hardware - 1 ns per gas unit
-	t_gas := uint64(1)
 
 	if len(pending) == 0 {
 		return allowed
@@ -41,7 +67,7 @@ func Decide(cfg Config,
 	var tBase uint64
 	// lastNotarised is nil if genesis.
 	if lastNotarised == nil {
-		tBase = convertMsToNs(cfg.GenesisTimeMs)
+		tBase = convertMsToNs(erie.cfg.GenesisTimeMs)
 	} else {
 		tBase = convertMsToNs(lastNotarised.HeaderTimeMs)
 	}
@@ -49,7 +75,62 @@ func Decide(cfg Config,
 	// accumulated execution time in ns (1 gas = 1ns)
 	estimatedTime := uint64(0)
 	for i, executionResultMeta := range pending {
-		currentEstimatedTime := executionResultMeta.GasUsed * t_gas
+		// Check for nonce monotonicity
+		if i > 0 && executionResultMeta.HeaderNonce <= pending[i-1].HeaderNonce {
+			log.Debug("ExecutionResultInclusionEstimator: non-monotonic HeaderNonce detected",
+				"currentHeaderNonce", executionResultMeta.HeaderNonce,
+				"previousHeaderNonce", pending[i-1].HeaderNonce,
+				"currentHeaderTimeMs", executionResultMeta.HeaderTimeMs,
+				"previousHeaderTimeMs", pending[i-1].HeaderTimeMs,
+			)
+			return i
+		}
+		// Check for monotonicity in time
+		if i > 0 && executionResultMeta.HeaderTimeMs < pending[i-1].HeaderTimeMs {
+			log.Debug("ExecutionResultInclusionEstimator: non-monotonic HeaderTimeMs detected",
+				"currentHeaderTimeMs", executionResultMeta.HeaderTimeMs,
+				"previousHeaderTimeMs", pending[i-1].HeaderTimeMs,
+			)
+			return i
+		}
+		// Check for time before genesis time
+		if executionResultMeta.HeaderTimeMs < erie.cfg.GenesisTimeMs {
+			log.Debug("ExecutionResultInclusionEstimator: HeaderTimeMs before genesis detected",
+				"headerNonce", executionResultMeta.HeaderNonce,
+				"headerTimeMs", executionResultMeta.HeaderTimeMs,
+				"genesisTimeMs", erie.cfg.GenesisTimeMs,
+			)
+			return i
+		}
+		// Check for time before last notarised
+		if lastNotarised != nil && executionResultMeta.HeaderTimeMs < lastNotarised.HeaderTimeMs {
+			log.Debug("ExecutionResultInclusionEstimator: HeaderTimeMs before last notarised detected",
+				"headerNonce", executionResultMeta.HeaderNonce,
+				"headerTimeMs", executionResultMeta.HeaderTimeMs,
+				"lastNotarisedTimeMs", lastNotarised.HeaderTimeMs,
+			)
+			return i
+		}
+
+		// Check for results in the future
+		if convertMsToNs(executionResultMeta.HeaderTimeMs) > currentHdrTsNs {
+			log.Debug("ExecutionResultInclusionEstimator: HeaderTimeMs in the future detected",
+				"headerNonce", executionResultMeta.HeaderNonce,
+				"headerTimeMs", executionResultMeta.HeaderTimeMs,
+				"currentHdrTsNs", currentHdrTsNs,
+			)
+			return i
+		}
+
+		overflow, currentEstimatedTime := bits.Mul64(executionResultMeta.GasUsed, erie.tGas)
+		if overflow != 0 {
+			log.Debug("ExecutionResultInclusionEstimator: overflow detected in currentEstimatedTime",
+				"currentEstimatedTime", currentEstimatedTime,
+				"gasUsed", executionResultMeta.GasUsed,
+				"tGas", erie.tGas,
+			)
+			return i
+		}
 
 		estimatedTime, overflow := bits.Add64(estimatedTime, currentEstimatedTime, 0)
 		if overflow != 0 {
@@ -60,11 +141,11 @@ func Decide(cfg Config,
 		}
 
 		// Apply safety margin
-		overflow, estimatedTimeWithMargin := bits.Mul64(estimatedTime, cfg.SafetyMargin/100)
+		overflow, estimatedTimeWithMargin := bits.Mul64(estimatedTime, erie.cfg.SafetyMargin/100)
 		if overflow != 0 {
 			log.Debug("ExecutionResultInclusionEstimator: overflow detected in estimated time with margin",
 				"estimatedTime", estimatedTime,
-				"safetyMargin", cfg.SafetyMargin)
+				"safetyMargin", erie.cfg.SafetyMargin)
 			return i
 		}
 
@@ -76,13 +157,19 @@ func Decide(cfg Config,
 			return i
 		}
 
-		// cannot include current pending item or anything after
-		if tDone > currentHdrTsNs {
+		// check for time cap reached, cannot include current pending item or anything after
+		if tDone >= currentHdrTsNs {
+			log.Debug("ExecutionResultInclusionEstimator: estimated time exceeds current header timestamp",
+				"tDone", tDone,
+				"currentHdrTsNs", currentHdrTsNs)
 			return i
 		}
 
-		// reached cap, including current pending item
-		if cfg.MaxResultsPerBlock != 0 && uint64(i+1) >= cfg.MaxResultsPerBlock {
+		// check for number of results cap reached, including current pending item
+		if erie.cfg.MaxResultsPerBlock != 0 && uint64(i+1) >= erie.cfg.MaxResultsPerBlock {
+			log.Debug("ExecutionResultInclusionEstimator: reached MaxResultsPerBlock cap",
+				"maxResultsPerBlock", erie.cfg.MaxResultsPerBlock,
+				"currentIndex", i+1)
 			return i + 1
 		}
 	}
