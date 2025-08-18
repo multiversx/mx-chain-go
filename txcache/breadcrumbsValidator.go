@@ -2,8 +2,6 @@ package txcache
 
 import (
 	"math/big"
-
-	"github.com/multiversx/mx-chain-go/state"
 )
 
 // breadcrumbsValidator checks that breadcrumbs are continuous
@@ -34,8 +32,8 @@ func newBreadcrumbValidator() *breadcrumbsValidator {
 // continuousBreadcrumb is used when a block is proposed and also when the deriveVirtualSession is called
 func (validator *breadcrumbsValidator) continuousBreadcrumb(
 	address string,
+	accountNonce uint64,
 	breadcrumb *accountBreadcrumb,
-	accountState state.UserAccountHandler,
 ) bool {
 
 	if breadcrumb.hasUnknownNonce() {
@@ -45,8 +43,6 @@ func (validator *breadcrumbsValidator) continuousBreadcrumb(
 		log.Debug("breadcrumbsValidator.continuousBreadcrumb breadcrumb has unknown nonce")
 		return true
 	}
-
-	accountNonce := accountState.GetNonce()
 
 	if !validator.continuousWithSessionNonce(address, accountNonce, breadcrumb) {
 		return false
@@ -113,8 +109,8 @@ func (validator *breadcrumbsValidator) shouldSkipSender(address string) bool {
 
 func (validator *breadcrumbsValidator) validateBalance(
 	address string,
-	breadcrumb *accountBreadcrumb,
 	initialBalance *big.Int,
+	breadcrumb *accountBreadcrumb,
 ) error {
 	virtualBalance, ok := validator.virtualBalancesByAddress[address]
 	if !ok {

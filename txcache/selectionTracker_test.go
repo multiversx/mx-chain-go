@@ -10,26 +10,9 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-go/common/holders"
-	"github.com/multiversx/mx-chain-go/state"
-	testscommonState "github.com/multiversx/mx-chain-go/testscommon/state"
 	"github.com/multiversx/mx-chain-go/testscommon/txcachemocks"
 	"github.com/stretchr/testify/require"
 )
-
-func getSelectionSessionMock() SelectionSession {
-	return &txcachemocks.SelectionSessionMock{
-		GetAccountStateCalled: func(address []byte) (state.UserAccountHandler, error) {
-			return &testscommonState.StateUserAccountHandlerStub{
-				GetBalanceCalled: func() *big.Int {
-					return big.NewInt(20)
-				},
-				GetNonceCalled: func() uint64 {
-					return uint64(1)
-				},
-			}, nil
-		},
-	}
-}
 
 func createMockedHeaders(numOfHeaders int) []*block.Header {
 	headers := make([]*block.Header, numOfHeaders)
@@ -157,7 +140,12 @@ func TestSelectionTracker_OnProposedBlockShouldErr(t *testing.T) {
 			},
 		}
 
-		selectionSessionMock := getSelectionSessionMock()
+		selectionSessionMock := &txcachemocks.SelectionSessionMock{
+			GetAccountNonceAndBalanceCalled: func(address []byte) (uint64, *big.Int, bool, error) {
+				return 1, big.NewInt(20), true, nil
+			},
+		}
+
 		err = tracker.OnProposedBlock([]byte("hash1"), &blockBody, &block.Header{
 			Nonce:    uint64(0),
 			PrevHash: []byte(fmt.Sprintf("prevHash%d", 0)),
@@ -202,15 +190,8 @@ func TestSelectionTracker_OnProposedBlockShouldErr(t *testing.T) {
 		}
 
 		mockSelectionSession := txcachemocks.SelectionSessionMock{
-			GetAccountStateCalled: func(address []byte) (state.UserAccountHandler, error) {
-				return &testscommonState.StateUserAccountHandlerStub{
-					GetBalanceCalled: func() *big.Int {
-						return big.NewInt(20)
-					},
-					GetNonceCalled: func() uint64 {
-						return uint64(1)
-					},
-				}, nil
+			GetAccountNonceAndBalanceCalled: func(address []byte) (uint64, *big.Int, bool, error) {
+				return 1, big.NewInt(20), true, nil
 			},
 		}
 
@@ -264,15 +245,8 @@ func TestSelectionTracker_OnProposedBlockShouldErr(t *testing.T) {
 		}
 
 		mockSelectionSession := txcachemocks.SelectionSessionMock{
-			GetAccountStateCalled: func(address []byte) (state.UserAccountHandler, error) {
-				return &testscommonState.StateUserAccountHandlerStub{
-					GetBalanceCalled: func() *big.Int {
-						return big.NewInt(20)
-					},
-					GetNonceCalled: func() uint64 {
-						return uint64(1)
-					},
-				}, nil
+			GetAccountNonceAndBalanceCalled: func(address []byte) (uint64, *big.Int, bool, error) {
+				return 1, big.NewInt(20), true, nil
 			},
 		}
 
@@ -313,8 +287,8 @@ func TestSelectionTracker_OnProposedBlockShouldErr(t *testing.T) {
 		}
 
 		mockSelectionSession := txcachemocks.SelectionSessionMock{
-			GetAccountStateCalled: func(address []byte) (state.UserAccountHandler, error) {
-				return nil, expectedErr
+			GetAccountNonceAndBalanceCalled: func(address []byte) (uint64, *big.Int, bool, error) {
+				return 0, nil, false, expectedErr
 			},
 		}
 
@@ -749,15 +723,8 @@ func TestSelectionTracker_validateTrackedBlocks(t *testing.T) {
 		}
 
 		mockSelectionSession := txcachemocks.SelectionSessionMock{
-			GetAccountStateCalled: func(address []byte) (state.UserAccountHandler, error) {
-				return &testscommonState.StateUserAccountHandlerStub{
-					GetBalanceCalled: func() *big.Int {
-						return big.NewInt(20)
-					},
-					GetNonceCalled: func() uint64 {
-						return uint64(0)
-					},
-				}, nil
+			GetAccountNonceAndBalanceCalled: func(address []byte) (uint64, *big.Int, bool, error) {
+				return 0, big.NewInt(20), true, nil
 			},
 		}
 
@@ -812,15 +779,8 @@ func TestSelectionTracker_validateTrackedBlocks(t *testing.T) {
 		}
 
 		mockSelectionSession := txcachemocks.SelectionSessionMock{
-			GetAccountStateCalled: func(address []byte) (state.UserAccountHandler, error) {
-				return &testscommonState.StateUserAccountHandlerStub{
-					GetBalanceCalled: func() *big.Int {
-						return big.NewInt(5)
-					},
-					GetNonceCalled: func() uint64 {
-						return uint64(0)
-					},
-				}, nil
+			GetAccountNonceAndBalanceCalled: func(address []byte) (uint64, *big.Int, bool, error) {
+				return 0, big.NewInt(5), true, nil
 			},
 		}
 
@@ -875,15 +835,8 @@ func TestSelectionTracker_validateTrackedBlocks(t *testing.T) {
 		}
 
 		mockSelectionSession := txcachemocks.SelectionSessionMock{
-			GetAccountStateCalled: func(address []byte) (state.UserAccountHandler, error) {
-				return &testscommonState.StateUserAccountHandlerStub{
-					GetBalanceCalled: func() *big.Int {
-						return big.NewInt(2)
-					},
-					GetNonceCalled: func() uint64 {
-						return uint64(0)
-					},
-				}, nil
+			GetAccountNonceAndBalanceCalled: func(address []byte) (uint64, *big.Int, bool, error) {
+				return 0, big.NewInt(2), true, nil
 			},
 		}
 
