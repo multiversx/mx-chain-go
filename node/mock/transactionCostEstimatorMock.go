@@ -1,6 +1,7 @@
 package mock
 
 import (
+	"github.com/multiversx/mx-chain-core-go/data/smartContractResult"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	txSimData "github.com/multiversx/mx-chain-go/process/transactionEvaluator/data"
 )
@@ -9,6 +10,16 @@ import (
 type TransactionCostEstimatorMock struct {
 	ComputeTransactionGasLimitCalled   func(tx *transaction.Transaction) (*transaction.CostResponse, error)
 	SimulateTransactionExecutionCalled func(tx *transaction.Transaction) (*txSimData.SimulationResultsWithVMOutput, error)
+	SimulateSCRExecutionCostCalled     func(scr *smartContractResult.SmartContractResult) (*transaction.CostResponse, error)
+}
+
+// SimulateSCRExecutionCost -
+func (tcem *TransactionCostEstimatorMock) SimulateSCRExecutionCost(scr *smartContractResult.SmartContractResult) (*transaction.CostResponse, error) {
+	if tcem.SimulateSCRExecutionCostCalled != nil {
+		return tcem.SimulateSCRExecutionCostCalled(scr)
+	}
+
+	return nil, nil
 }
 
 // ComputeTransactionGasLimit -

@@ -214,6 +214,9 @@
         # /transaction/cost will receive a single transaction in JSON format and will return the estimated cost of it
         { Name = "/cost", Open = true },
 
+        # /transaction/cost-scr will receive a single smart contract result in JSON format and will return the estimated cost of it
+        { Name = "/cost-scr", Open = true },
+
         # /transaction/pool will return the hashes of the transactions that are currently in the pool
         # /transaction/pool?fields=sender,receiver,gaslimit,gasprice will return hashes and all the optional fields mentioned that are currently in the pool
         # /transaction/pool?by-sender=erd1... will return the hashes of the transactions that are currently in the pool for the sender

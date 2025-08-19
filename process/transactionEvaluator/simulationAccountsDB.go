@@ -2,6 +2,7 @@ package transactionEvaluator
 
 import (
 	"context"
+	"errors"
 	"sync"
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
@@ -54,6 +55,12 @@ func (r *simulationAccountsDB) GetExistingAccount(address []byte) (vmcommon.Acco
 
 	account, err := r.originalAccounts.GetExistingAccount(address)
 	if err != nil {
+		var errAccountNotFound *state.ErrAccountNotFoundAtBlock
+		isNotFoundAtBlock := errors.As(err, &errAccountNotFound)
+		if isNotFoundAtBlock {
+			return nil, state.ErrAccNotFound
+		}
+
 		return nil, err
 	}
 

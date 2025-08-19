@@ -47,7 +47,7 @@ func TestSCCallCostTransactionCost(t *testing.T) {
 
 	res, err := testContext.TxCostHandler.ComputeTransactionGasLimit(tx)
 	require.Nil(t, err)
-	require.Equal(t, uint64(15704), res.GasUnits)
+	require.Equal(t, uint64(15705), res.GasUnits)
 }
 
 func TestScDeployTransactionCost(t *testing.T) {
@@ -67,7 +67,7 @@ func TestScDeployTransactionCost(t *testing.T) {
 
 	res, err := testContext.TxCostHandler.ComputeTransactionGasLimit(tx)
 	require.Nil(t, err)
-	require.Equal(t, uint64(1960), res.GasUnits)
+	require.Equal(t, uint64(1961), res.GasUnits)
 }
 
 func TestAsyncCallsTransactionCost(t *testing.T) {
@@ -98,7 +98,7 @@ func TestAsyncCallsTransactionCost(t *testing.T) {
 	tx := vm.CreateTransaction(1, big.NewInt(0), senderAddr, secondSCAddress, 0, 0, []byte("doSomething"))
 	resWithCost, err := testContext.TxCostHandler.ComputeTransactionGasLimit(tx)
 	require.Nil(t, err)
-	require.Equal(t, uint64(99984751), resWithCost.GasUnits)
+	require.Equal(t, uint64(99984752), resWithCost.GasUnits)
 }
 
 func TestBuiltInFunctionTransactionCost(t *testing.T) {
@@ -124,7 +124,7 @@ func TestBuiltInFunctionTransactionCost(t *testing.T) {
 	tx := vm.CreateTransaction(1, big.NewInt(0), owner, scAddress, 0, 0, txData)
 	res, err := testContext.TxCostHandler.ComputeTransactionGasLimit(tx)
 	require.Nil(t, err)
-	require.Equal(t, uint64(85), res.GasUnits)
+	require.Equal(t, uint64(86), res.GasUnits)
 }
 
 func TestESDTTransfer(t *testing.T) {
@@ -147,7 +147,7 @@ func TestESDTTransfer(t *testing.T) {
 	tx := utils.CreateESDTTransferTx(0, sndAddr, rcvAddr, token, big.NewInt(100), 0, 0)
 	res, err := testContext.TxCostHandler.ComputeTransactionGasLimit(tx)
 	require.Nil(t, err)
-	require.Equal(t, uint64(36), res.GasUnits)
+	require.Equal(t, uint64(37), res.GasUnits)
 }
 
 func TestAsyncESDTTransfer(t *testing.T) {
@@ -192,5 +192,5 @@ func TestAsyncESDTTransfer(t *testing.T) {
 
 	res, err := testContext.TxCostHandler.ComputeTransactionGasLimit(tx)
 	require.Nil(t, err)
-	require.Equal(t, uint64(177653), res.GasUnits)
+	require.Equal(t, uint64(177654), res.GasUnits)
 }
