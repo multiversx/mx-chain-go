@@ -2,6 +2,7 @@ package transactionEvaluator
 
 import (
 	"context"
+	"errors"
 	"sync"
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
@@ -54,6 +55,12 @@ func (r *simulationAccountsDB) GetExistingAccount(address []byte) (vmcommon.Acco
 
 	account, err := r.originalAccounts.GetExistingAccount(address)
 	if err != nil {
+		var errAccountNotFound *state.ErrAccountNotFoundAtBlock
+		isNotFoundAtBlock := errors.As(err, &errAccountNotFound)
+		if isNotFoundAtBlock {
+			return nil, state.ErrAccNotFound
+		}
+
 		return nil, err
 	}
 
@@ -165,6 +172,11 @@ func (r *simulationAccountsDB) CommitInEpoch(_ uint32, _ uint32) ([]byte, error)
 // GetStackDebugFirstEntry -
 func (r *simulationAccountsDB) GetStackDebugFirstEntry() []byte {
 	return nil
+}
+
+// SetTxHashForLatestStateAccesses -
+func (r *simulationAccountsDB) SetTxHashForLatestStateAccesses(txHash []byte) {
+	r.originalAccounts.SetTxHashForLatestStateAccesses(txHash)
 }
 
 // Close will handle the closing of the underlying components

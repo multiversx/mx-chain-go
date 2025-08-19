@@ -2,6 +2,7 @@ package mock
 
 import (
 	"encoding/hex"
+	"github.com/multiversx/mx-chain-core-go/data/smartContractResult"
 	"math/big"
 
 	"github.com/multiversx/mx-chain-core-go/core"
@@ -99,6 +100,16 @@ type FacadeStub struct {
 	P2PPrometheusMetricsEnabledCalled           func() bool
 	AuctionListHandler                          func() ([]*common.AuctionListValidatorAPIResponse, error)
 	GetSCRsByTxHashCalled                       func(txHash string, scrHash string) ([]*transaction.ApiSmartContractResult, error)
+	SimulateSCRExecutionCostCalled              func(scr *smartContractResult.SmartContractResult) (*transaction.CostResponse, error)
+}
+
+// SimulateSCRExecutionCost -
+func (f *FacadeStub) SimulateSCRExecutionCost(scr *smartContractResult.SmartContractResult) (*transaction.CostResponse, error) {
+	if f.SimulateSCRExecutionCostCalled != nil {
+		return f.SimulateSCRExecutionCostCalled(scr)
+	}
+
+	return nil, nil
 }
 
 // GetSCRsByTxHash -
