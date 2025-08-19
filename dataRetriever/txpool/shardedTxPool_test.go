@@ -17,6 +17,7 @@ import (
 	"github.com/multiversx/mx-chain-go/storage/storageunit"
 	"github.com/multiversx/mx-chain-go/testscommon/txcachemocks"
 	"github.com/multiversx/mx-chain-go/txcache"
+	logger "github.com/multiversx/mx-chain-logger-go"
 	"github.com/stretchr/testify/require"
 )
 
@@ -275,6 +276,7 @@ func Test_RemoveSetOfDataFromPool(t *testing.T) {
 }
 
 func TestCleanupSelfShardTxCache_NilMempool(t *testing.T) {
+	t.Parallel()
 	t.Run("with nil self shard pool", func(t *testing.T) {
 		poolAsInterface, _ := newTxPoolToTest()
 		txPool := poolAsInterface.(*shardedTxPool)
@@ -290,6 +292,61 @@ func TestCleanupSelfShardTxCache_NilMempool(t *testing.T) {
 		ok := txPool.CleanupSelfShardTxCache(session, 7, math.MaxInt, cleanupLoopMaximumDuration)
 		t.Logf("shardedTxPool.CleanupSelfShardTxCache() starting cleanup %d", txPool.selfShardID)
 		require.True(t, ok)
+	})
+}
+
+func Test_Parallel_CleanupSelfShardTxCache(t *testing.T) {
+	_ = logger.SetLogLevel("*:DEBUG")
+	t.Parallel()
+	t.Run("with lower nonces", func(t *testing.T) {
+		t.Parallel()
+		poolAsInterface, _ := newTxPoolToTest()
+		pool := poolAsInterface.(*shardedTxPool)
+		session := txcachemocks.NewSelectionSessionMock()
+		session.SetNonce([]byte("alice"), 2)
+		session.SetNonce([]byte("bob"), 42)
+		session.SetNonce([]byte("carol"), 7)
+
+		// One lower nonce
+		pool.AddData([]byte("hash-alice-1"), createTx("alice", 1), 0, "0")
+		pool.AddData([]byte("hash-alice-2"), createTx("alice", 2), 0, "0")
+		pool.AddData([]byte("hash-alice-3"), createTx("alice", 3), 0, "0")
+
+		// A few with lower nonce
+		pool.AddData([]byte("hash-bob-40"), createTx("bob", 40), 0, "0")
+		pool.AddData([]byte("hash-bob-41"), createTx("bob", 41), 0, "0")
+		pool.AddData([]byte("hash-bob-42"), createTx("bob", 42), 0, "0")
+
+		// Good
+		pool.AddData([]byte("hash-carol-7"), createTx("carol", 7), 0, "0")
+		pool.AddData([]byte("hash-carol-8"), createTx("carol", 8), 0, "0")
+
+		cleanupLoopMaximumDuration := time.Millisecond * 100
+
+		ok := pool.CleanupSelfShardTxCache(session, 7, math.MaxInt, cleanupLoopMaximumDuration)
+		t.Logf("shardedTxPool.CleanupSelfShardTxCache() starting cleanup %d", pool.selfShardID)
+		require.True(t, ok)
+	})
+
+	t.Run("with duplicated nonces", func(t *testing.T) {
+		t.Parallel()
+		poolAsInterface, _ := newTxPoolToTest()
+		pool := poolAsInterface.(*shardedTxPool)
+		session := txcachemocks.NewSelectionSessionMock()
+		session.SetNonce([]byte("alice"), 1)
+
+		pool.AddData([]byte("hash-alice-1"), createTx("alice", 1), 0, "0")
+		pool.AddData([]byte("hash-alice-2"), createTx("alice", 2), 0, "0")
+		pool.AddData([]byte("hash-alice-3"), createTx("alice", 3), 0, "0")
+		pool.AddData([]byte("hash-alice-4"), createPriorityTx("alice", 3), 0, "0")
+		pool.AddData([]byte("hash-alice-5"), createTx("alice", 3), 0, "0")
+		pool.AddData([]byte("hash-alice-6"), createTx("alice", 4), 0, "0")
+
+		cleanupLoopMaximumDuration := time.Millisecond * 100
+
+		require.NotPanics(t, func() {
+			pool.CleanupSelfShardTxCache(session, 7, math.MaxInt, cleanupLoopMaximumDuration)
+		})
 	})
 }
 

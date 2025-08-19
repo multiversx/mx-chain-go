@@ -1,6 +1,7 @@
 package txcache
 
 import (
+	"fmt"
 	"math"
 	"testing"
 
@@ -228,4 +229,50 @@ func TestTxCache_AutoClean_Dummy(t *testing.T) {
 		}
 
 	})
+}
+
+// helper function for creating a new unconstrained cache with a given size
+func newTxPoolWithN(size int, session *txcachemocks.SelectionSessionMock) *TxCache {
+	boundsConfig := createMockTxBoundsConfig()
+	cache := newUnconstrainedCacheToTest(boundsConfig)
+	for i := range size {
+		cache.AddTx(createTx([]byte(fmt.Sprintf("hash-%d", i)), fmt.Sprintf("sender-%d", i), uint64(i)))
+		session.SetNonce([]byte(fmt.Sprintf("sender-%d", i)), uint64(i-1))
+	}
+	return cache
+}
+
+func BenchmarkAddressShuffling(b *testing.B) {
+	sizes := []int{1000, 10000, 50000, 100000}
+	for _, size := range sizes {
+		b.Run(fmt.Sprintf("size=%d", size), func(b *testing.B) {
+			// prepare pool
+			session := txcachemocks.NewSelectionSessionMock()
+			cache := newTxPoolWithN(size, session)
+
+			b.ResetTimer()
+			for i := 0; i < b.N; i++ {
+				senderAddresses := cache.txListBySender.backingMap.Keys()
+				_ = shuffleSendersAddresses(senderAddresses, uint64(i))
+			}
+		})
+	}
+}
+
+func BenchmarkCleanup(b *testing.B) {
+	sizes := []int{1000, 10000, 50000, 100000}
+	for _, size := range sizes {
+		b.Run(fmt.Sprintf("size=%d", size), func(b *testing.B) {
+			b.ResetTimer()
+			for i := 0; i < b.N; i++ {
+				b.StopTimer()
+				session := txcachemocks.NewSelectionSessionMock()
+				cache := newTxPoolWithN(size, session)
+				b.StartTimer()
+
+				_ = cache.Cleanup(session, uint64(i), math.MaxInt, 1000*selectionLoopMaximumDuration)
+			}
+
+		})
+	}
 }
