@@ -203,15 +203,6 @@ func (hfb *headersForBlock) setHasProof(hash string) {
 	hfb.hdrHashAndInfo[hash].SetHasProof(true)
 }
 
-func (hfb *headersForBlock) hasProofRequested(hash string) bool {
-	hi, found := hfb.hdrHashAndInfo[hash]
-	if !found {
-		return false
-	}
-
-	return hi.HasProofRequested()
-}
-
 func (hfb *headersForBlock) setHasProofRequested(hash string) {
 	_, ok := hfb.hdrHashAndInfo[hash]
 	if !ok {
