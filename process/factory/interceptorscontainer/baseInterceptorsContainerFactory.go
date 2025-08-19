@@ -268,6 +268,7 @@ func (bicf *baseInterceptorsContainerFactory) createOneTxInterceptor(topic strin
 		bicf.whiteListHandler,
 		addrPubKeyConverter,
 		bicf.argInterceptorFactory.CoreComponents.TxVersionChecker(),
+		bicf.enableEpochsHandler,
 		bicf.maxTxNonceDeltaAllowed,
 	)
 	if err != nil {
