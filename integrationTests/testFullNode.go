@@ -1095,6 +1095,9 @@ func (tpn *TestFullNode) initBlockProcessorWithSync(
 		GenesisNonce: tpn.GenesisBlocks[tpn.ShardCoordinator.SelfId()].GetNonce(),
 	}
 	hdrsForBlock, err := headerForBlock.NewHeadersForBlock(argsHeadersForBlock)
+	if err != nil {
+		log.Error("initBlockProcessorWithSync NewHeadersForBlock", "error", err)
+	}
 
 	argumentsBase := block.ArgBaseProcessor{
 		CoreComponents:       coreComponents,
