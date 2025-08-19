@@ -110,7 +110,7 @@ type baseProcessor struct {
 	epochNotifier                 process.EpochNotifier
 	enableEpochsHandler           common.EnableEpochsHandler
 	roundNotifier                 process.RoundNotifier
-	enableRoundsHandler           process.EnableRoundsHandler
+	enableRoundsHandler           common.EnableRoundsHandler
 	vmContainerFactory            process.VirtualMachinesContainerFactory
 	vmContainer                   process.VirtualMachinesContainer
 	gasConsumedProvider           gasConsumedProvider
@@ -2404,4 +2404,12 @@ func (bp *baseProcessor) checkReceivedProofIfAttestingIsNeeded(proof data.Header
 	if allMissingMetaHeadersReceived {
 		bp.chRcvAllHdrs <- true
 	}
+}
+
+func (bp *baseProcessor) getMaxRoundsWithoutBlockReceived(round uint64) uint64 {
+	if bp.enableRoundsHandler.IsFlagEnabledInRound(common.SupernovaRoundFlag, round) {
+		return process.SupernovaMaxRoundsWithoutNewBlockReceived
+	}
+
+	return process.MaxRoundsWithoutNewBlockReceived
 }

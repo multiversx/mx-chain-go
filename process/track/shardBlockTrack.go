@@ -48,6 +48,7 @@ func NewShardBlockTrack(arguments ArgShardTracker) (*shardBlockTrack, error) {
 		FinalMetachainHeadersNotifier:         bbt.finalMetachainHeadersNotifier,
 		RoundHandler:                          arguments.RoundHandler,
 		EnableEpochsHandler:                   arguments.EnableEpochsHandler,
+		EnableRoundsHandler:                   arguments.EnableRoundsHandler,
 		ProofsPool:                            arguments.ProofsPool,
 		Marshaller:                            arguments.Marshalizer,
 		Hasher:                                arguments.Hasher,

@@ -47,7 +47,7 @@ type CoreComponentsMock struct {
 	Shuffler                           nodesCoordinator.NodesShuffler
 	EpochChangeNotifier                process.EpochNotifier
 	RoundChangeNotifier                process.RoundNotifier
-	EnableRoundsHandlerField           process.EnableRoundsHandler
+	EnableRoundsHandlerField           common.EnableRoundsHandler
 	EpochNotifierWithConfirm           factory.EpochStartNotifierWithConfirm
 	TxVersionCheckHandler              process.TxVersionCheckerHandler
 	ChanStopProcess                    chan endProcess.ArgEndProcess
@@ -140,6 +140,11 @@ func (ccm *CoreComponentsMock) GenesisTime() time.Time {
 	return ccm.GenesisBlockTime
 }
 
+// SupernovaGenesisTime -
+func (ccm *CoreComponentsMock) SupernovaGenesisTime() time.Time {
+	return ccm.GenesisBlockTime
+}
+
 // ChainID -
 func (ccm *CoreComponentsMock) ChainID() string {
 	if ccm.ChainIdCalled != nil {
@@ -212,7 +217,7 @@ func (ccm *CoreComponentsMock) RoundNotifier() process.RoundNotifier {
 }
 
 // EnableRoundsHandler -
-func (ccm *CoreComponentsMock) EnableRoundsHandler() process.EnableRoundsHandler {
+func (ccm *CoreComponentsMock) EnableRoundsHandler() common.EnableRoundsHandler {
 	return ccm.EnableRoundsHandlerField
 }
 

@@ -13,6 +13,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/smartContractResult"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	vmData "github.com/multiversx/mx-chain-core-go/data/vm"
+	"github.com/multiversx/mx-chain-go/txcache"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 	"github.com/multiversx/mx-chain-vm-common-go/builtInFunctions"
 	"github.com/multiversx/mx-chain-vm-common-go/parsers"
@@ -33,7 +34,6 @@ import (
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/state/accounts"
 	"github.com/multiversx/mx-chain-go/storage/storageunit"
-	"github.com/multiversx/mx-chain-go/storage/txcache"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/economicsmocks"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
@@ -4542,8 +4542,8 @@ func TestScProcessor_DisableAsyncCalls(t *testing.T) {
 	arguments.ShardCoordinator = shardCoordinator
 	arguments.EnableEpochsHandler = enableEpochsHandlerMock.NewEnableEpochsHandlerStub()
 	arguments.EnableRoundsHandler = &testscommon.EnableRoundsHandlerStub{
-		IsDisableAsyncCallV1EnabledCalled: func() bool {
-			return false
+		IsFlagEnabledCalled: func(flag common.EnableRoundFlag) bool {
+			return flag != common.DisableAsyncCallV1Flag
 		},
 	}
 	sc, _ := NewSmartContractProcessor(arguments)
@@ -4573,8 +4573,8 @@ func TestScProcessor_DisableAsyncCalls(t *testing.T) {
 	require.NotNil(t, scResults)
 
 	arguments.EnableRoundsHandler = &testscommon.EnableRoundsHandlerStub{
-		IsDisableAsyncCallV1EnabledCalled: func() bool {
-			return true
+		IsFlagEnabledCalled: func(flag common.EnableRoundFlag) bool {
+			return flag == common.DisableAsyncCallV1Flag
 		},
 	}
 	sc, _ = NewSmartContractProcessor(arguments)

@@ -897,6 +897,8 @@ const (
 	NetStatisticsOrder
 	// OldDatabaseCleanOrder defines the order in which oldDatabaseCleaner component is notified of a start of epoch event
 	OldDatabaseCleanOrder
+	// EpochTxBroadcastDebug defines the order in which epochTxBroadcastDebug is notifier of a start of epoch event
+	EpochTxBroadcastDebug = 9
 )
 
 // NodeState specifies what type of state a node could have
@@ -1279,6 +1281,7 @@ const (
 	RelayedTransactionsV3Flag                           core.EnableEpochFlag = "RelayedTransactionsV3Flag"
 	RelayedTransactionsV3FixESDTTransferFlag            core.EnableEpochFlag = "RelayedTransactionsV3FixESDTTransferFlag"
 	AndromedaFlag                                       core.EnableEpochFlag = "AndromedaFlag"
+	SupernovaFlag                                       core.EnableEpochFlag = "SupernovaFlag"
 	CheckBuiltInCallOnTransferValueAndFailExecutionFlag core.EnableEpochFlag = "CheckBuiltInCallOnTransferValueAndFailExecutionFlag"
 	MaskInternalDependenciesErrorsFlag                  core.EnableEpochFlag = "MaskInternalDependenciesErrorsFlag"
 	FixBackTransferOPCODEFlag                           core.EnableEpochFlag = "FixBackTransferOPCODEFlag"
@@ -1287,4 +1290,13 @@ const (
 	AutomaticActivationOfNodesDisableFlag               core.EnableEpochFlag = "AutomaticActivationOfNodesDisableFlag"
 	FixGetBalanceFlag                                   core.EnableEpochFlag = "FixGetBalanceFlag"
 	// all new flags must be added to createAllFlagsMap method, as part of enableEpochsHandler allFlagsDefined
+)
+
+// EnableRoundFlag defines a flag specific to the enableRounds config
+type EnableRoundFlag string
+
+// EnableRound flag definitions
+const (
+	DisableAsyncCallV1Flag EnableRoundFlag = "DisableAsyncCallV1"
+	SupernovaRoundFlag     EnableRoundFlag = "SupernovaEnableRound"
 )

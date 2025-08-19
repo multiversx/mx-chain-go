@@ -42,14 +42,16 @@
 
     # ChainParametersByEpoch defines chain operation configurable values that can be modified based on epochs
     ChainParametersByEpoch = [
-        { EnableEpoch = 0, RoundDuration = 6000, ShardConsensusGroupSize = 7, ShardMinNumNodes = 10, MetachainConsensusGroupSize = 10, MetachainMinNumNodes = 10, Hysteresis = 0.2, Adaptivity = false },
-        { EnableEpoch = 1, RoundDuration = 6000, ShardConsensusGroupSize = 10, ShardMinNumNodes = 10, MetachainConsensusGroupSize = 10, MetachainMinNumNodes = 10, Hysteresis = 0.2, Adaptivity = false }
+        { EnableEpoch = 0, RoundDuration = 6000, RoundsPerEpoch = 200, MinRoundsBetweenEpochs = 20, ShardConsensusGroupSize = 7, ShardMinNumNodes = 10, MetachainConsensusGroupSize = 10, MetachainMinNumNodes = 10, Hysteresis = 0.2, Adaptivity = false },
+        { EnableEpoch = 1, RoundDuration = 6000, RoundsPerEpoch = 200, MinRoundsBetweenEpochs = 20, ShardConsensusGroupSize = 10, ShardMinNumNodes = 10, MetachainConsensusGroupSize = 10, MetachainMinNumNodes = 10, Hysteresis = 0.2, Adaptivity = false },
+        { EnableEpoch = 2, RoundDuration = 600, RoundsPerEpoch = 2000, MinRoundsBetweenEpochs = 50, ShardConsensusGroupSize = 10, ShardMinNumNodes = 10, MetachainConsensusGroupSize = 10, MetachainMinNumNodes = 10, Hysteresis = 0.2, Adaptivity = false }
     ]
 
     # EpochChangeGracePeriodEnableEpoch represents the configuration of different grace periods for epoch change with their activation epochs
     EpochChangeGracePeriodByEpoch = [
         {EnableEpoch = 0, GracePeriodInRounds = 1 },
         {EnableEpoch = 1, GracePeriodInRounds = 10 }, # Andromeda epoch comes with a longer grace period
+        {EnableEpoch = 2, GracePeriodInRounds = 100 }, # Supernova epoch comes with an even longer grace period due to round duration reduction
     ]
 
 [HardwareRequirements]
@@ -421,6 +423,17 @@
     Type = "TxCache"
     Shards = 16
 
+[TxCacheBounds]
+    MaxNumBytesPerSenderUpperBound = 33_554_432             #32MB
+
+[TxCacheSelection]
+    SelectionMaxNumTxs = 30000
+    SelectionLoopMaximumDuration = 250                      #milliseconds
+    SelectionLoopDurationCheckInterval = 10                 #chunk (of transactions) size
+    SelectionGasBandwidthIncreasePercent = 400
+    SelectionGasBandwidthIncreaseScheduledPercent = 260
+    SelectionGasRequested = 10_000_000_000
+
 [TrieNodesChunksDataPool]
     Name = "TrieNodesDataPool"
     Capacity = 400
@@ -503,6 +516,7 @@
     BadRatedCacheCapacity = 5000
 
 [PoolsCleanersConfig]
+    # TODO: update these (maybe in txpool feat)
     MaxRoundsToKeepUnprocessedMiniBlocks = 300   # max number of rounds unprocessed miniblocks are kept in pool
     MaxRoundsToKeepUnprocessedTransactions = 300 # max number of rounds unprocessed transactions are kept in pool
 
@@ -651,8 +665,6 @@
 
 [EpochStartConfig]
     GenesisEpoch = 0
-    MinRoundsBetweenEpochs = 20
-    RoundsPerEpoch         = 200
     # Min and Max ShuffledOutRestartThreshold represents the minimum and maximum duration of an epoch (in percentage) after a node which
     # has been shuffled out has to restart its process in order to start in a new shard
     MinShuffledOutRestartThreshold = 0.05
@@ -683,6 +695,9 @@
     TimeoutMilliseconds = 100
     SyncPeriodSeconds = 3600
     Version = 0  # Setting 0 means 'use default value'
+    # OutOfBoundsThreshold defines the threshold in milliseconds for checking out of bound
+    # limit in ntp syncer
+    OutOfBoundsThreshold = 120
 
 [StateTriesConfig]
     SnapshotsEnabled = true
@@ -816,6 +831,10 @@
         NumRequestsThreshold = 9
         NumResolveFailureThreshold = 3
         DebugLineExpiration = 10 #Will remove the debug line after a `DebugLineExpiration` number of prints
+        [Debug.InterceptorResolver.BroadcastStatistics]
+            Enabled = false
+            # "intercepted tx", "intercepted reward tx", "intercepted unsigned tx", "intercepted header", ...
+            Messages = ["intercepted tx"]
     [Debug.Antiflood]
         Enabled = true
         CacheSize = 10000

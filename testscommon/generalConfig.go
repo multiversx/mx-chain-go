@@ -67,13 +67,13 @@ func GetGeneralConfig() config.Config {
 					MetachainMinNumNodes:        1,
 					Hysteresis:                  0,
 					Adaptivity:                  false,
+					RoundsPerEpoch:              10,
+					MinRoundsBetweenEpochs:      5,
 				},
 			},
 			EpochChangeGracePeriodByEpoch: []config.EpochChangeGracePeriodByEpoch{{EnableEpoch: 0, GracePeriodInRounds: 1}},
 		},
 		EpochStartConfig: config.EpochStartConfig{
-			MinRoundsBetweenEpochs:            5,
-			RoundsPerEpoch:                    10,
 			MinNumConnectedPeersToStart:       2,
 			MinNumOfPeersToConsiderBlockValid: 2,
 		},
@@ -135,6 +135,17 @@ func GetGeneralConfig() config.Config {
 			SizeInBytes:          1000000000,
 			SizeInBytesPerSender: 10000000,
 			Shards:               1,
+		},
+		TxCacheBounds: config.TxCacheBoundsConfig{
+			MaxNumBytesPerSenderUpperBound: 33_554_432,
+		},
+		TxCacheSelection: config.TxCacheSelectionConfig{
+			SelectionGasBandwidthIncreasePercent:          400,
+			SelectionGasBandwidthIncreaseScheduledPercent: 260,
+			SelectionGasRequested:                         10_000_000_000,
+			SelectionMaxNumTxs:                            30000,
+			SelectionLoopMaximumDuration:                  250,
+			SelectionLoopDurationCheckInterval:            10,
 		},
 		UnsignedTransactionDataPool: config.CacheConfig{
 			Capacity:    10000,

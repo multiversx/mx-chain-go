@@ -27,7 +27,6 @@ type ArgBaseBootstrapper struct {
 	ChainHandler                 data.ChainHandler
 	RoundHandler                 consensus.RoundHandler
 	BlockProcessor               process.BlockProcessor
-	WaitTime                     time.Duration
 	Hasher                       hashing.Hasher
 	Marshalizer                  marshal.Marshalizer
 	ForkDetector                 process.ForkDetector
@@ -50,6 +49,7 @@ type ArgBaseBootstrapper struct {
 	ProcessWaitTime              time.Duration
 	RepopulateTokensSupplies     bool
 	EnableEpochsHandler          common.EnableEpochsHandler
+	EnableRoundsHandler          common.EnableRoundsHandler
 }
 
 // ArgShardBootstrapper holds all dependencies required by the bootstrap data factory in order to create

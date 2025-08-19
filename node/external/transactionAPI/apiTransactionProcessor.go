@@ -23,7 +23,7 @@ import (
 	"github.com/multiversx/mx-chain-go/process/smartContract"
 	"github.com/multiversx/mx-chain-go/process/txstatus"
 	"github.com/multiversx/mx-chain-go/sharding"
-	"github.com/multiversx/mx-chain-go/storage/txcache"
+	"github.com/multiversx/mx-chain-go/txcache"
 	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
@@ -519,6 +519,10 @@ func (atp *apiTransactionProcessor) computeTimestampForRound(round uint64) int64
 
 	secondsSinceGenesis := round * atp.roundDuration
 	timestamp := atp.genesisTime.Add(time.Duration(secondsSinceGenesis) * time.Millisecond)
+
+	if atp.enableEpochsHandler.IsFlagEnabled(common.SupernovaFlag) {
+		return timestamp.UnixMilli()
+	}
 
 	return timestamp.Unix()
 }

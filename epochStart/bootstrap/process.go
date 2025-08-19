@@ -65,7 +65,10 @@ const DefaultTimeToWaitForRequestedData = time.Minute
 const timeBetweenRequests = 100 * time.Millisecond
 const maxToRequest = 100
 const gracePeriodInPercentage = float64(0.25)
+
+// TODO: add constants to config
 const roundGracePeriod = 25
+const supernovaRoundGracePeriod = 250
 
 // thresholdForConsideringMetaBlockCorrect represents the percentage (between 0 and 100) of connected peers to send
 // the same meta block in order to consider it correct
@@ -290,14 +293,14 @@ func NewEpochStartBootstrap(args ArgsEpochStartBootstrap) (*epochStartBootstrap,
 }
 
 func (e *epochStartBootstrap) isStartInEpochZero() bool {
-	startTime := time.Unix(e.genesisNodesConfig.GetStartTime(), 0)
+	startTime := common.GetGenesisStartTimeFromUnixTimestamp(e.genesisNodesConfig.GetStartTime(), e.enableEpochsHandler)
 	isCurrentTimeBeforeGenesis := time.Since(startTime) < 0
 	if isCurrentTimeBeforeGenesis {
 		return true
 	}
 
 	currentRound := e.roundHandler.Index() - e.startRound
-	epochEndPlusGracePeriod := float64(e.generalConfig.EpochStartConfig.RoundsPerEpoch) * (gracePeriodInPercentage + 1.0)
+	epochEndPlusGracePeriod := float64(e.getRoundsPerEpoch(e.baseData.lastEpoch)) * (gracePeriodInPercentage + 1.0)
 	log.Debug("IsStartInEpochZero", "currentRound", currentRound, "epochEndRound", epochEndPlusGracePeriod)
 	return float64(currentRound) < epochEndPlusGracePeriod
 }
@@ -512,6 +515,8 @@ func (e *epochStartBootstrap) computeIfCurrentEpochIsSaved() bool {
 		return false
 	}
 
+	roundGracePeriod := e.getRoundGracePeriod()
+
 	computedRound := e.roundHandler.Index()
 	log.Debug("computed round", "round", computedRound, "lastRound", e.baseData.lastRound)
 	if computedRound-e.baseData.lastRound < roundGracePeriod {
@@ -520,8 +525,27 @@ func (e *epochStartBootstrap) computeIfCurrentEpochIsSaved() bool {
 
 	roundsSinceEpochStart := computedRound - int64(e.baseData.epochStartRound)
 	log.Debug("epoch start round", "round", e.baseData.epochStartRound, "roundsSinceEpochStart", roundsSinceEpochStart)
-	epochEndPlusGracePeriod := float64(e.generalConfig.EpochStartConfig.RoundsPerEpoch) * (gracePeriodInPercentage + 1.0)
+
+	epochEndPlusGracePeriod := float64(e.getRoundsPerEpoch(e.baseData.lastEpoch)) * (gracePeriodInPercentage + 1.0)
 	return float64(roundsSinceEpochStart) < epochEndPlusGracePeriod
+}
+
+func (e *epochStartBootstrap) getRoundGracePeriod() int64 {
+	if e.enableEpochsHandler.IsFlagEnabledInEpoch(common.SupernovaFlag, e.baseData.lastEpoch) {
+		return supernovaRoundGracePeriod
+	}
+
+	return roundGracePeriod
+}
+
+func (e *epochStartBootstrap) getRoundsPerEpoch(epoch uint32) int64 {
+	chainParamtersForEpoch, err := e.coreComponentsHolder.ChainParametersHandler().ChainParametersForEpoch(epoch)
+	if err != nil {
+		log.Warn("could not get rounds per epoch for epoch, returned current chain paramters", "epoch", epoch, "error", err)
+		chainParamtersForEpoch = e.coreComponentsHolder.ChainParametersHandler().CurrentChainParameters()
+	}
+
+	return chainParamtersForEpoch.RoundsPerEpoch
 }
 
 func (e *epochStartBootstrap) prepareComponentsToSyncFromNetwork() error {

@@ -111,7 +111,7 @@ func checkArgsConsensusMessageValidator(args ArgsConsensusMessageValidator) erro
 }
 
 func (cmv *consensusMessageValidator) getPublicKeyBitmapSize() int {
-	sizeConsensus := cmv.consensusState.consensusGroupSize
+	sizeConsensus := cmv.consensusState.ConsensusGroupSize()
 	bitmapSize := sizeConsensus / 8
 	if sizeConsensus%8 != 0 {
 		bitmapSize++

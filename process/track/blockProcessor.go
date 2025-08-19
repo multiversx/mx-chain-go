@@ -30,6 +30,7 @@ type blockProcessor struct {
 	roundHandler                          process.RoundHandler
 
 	enableEpochsHandler common.EnableEpochsHandler
+	enableRoundsHandler common.EnableRoundsHandler
 	proofsPool          process.ProofsPool
 	marshaller          marshal.Marshalizer
 	hasher              hashing.Hasher
@@ -59,6 +60,7 @@ func NewBlockProcessor(arguments ArgBlockProcessor) (*blockProcessor, error) {
 		finalMetachainHeadersNotifier:         arguments.FinalMetachainHeadersNotifier,
 		roundHandler:                          arguments.RoundHandler,
 		enableEpochsHandler:                   arguments.EnableEpochsHandler,
+		enableRoundsHandler:                   arguments.EnableRoundsHandler,
 		proofsPool:                            arguments.ProofsPool,
 		headersPool:                           arguments.HeadersPool,
 		marshaller:                            arguments.Marshaller,
@@ -454,7 +456,7 @@ func (bp *blockProcessor) requestHeadersIfNothingNewIsReceived(
 		return
 	}
 
-	shouldRequestHeaders := bp.roundHandler.Index()-int64(highestRoundInReceivedHeaders) > process.MaxRoundsWithoutNewBlockReceived &&
+	shouldRequestHeaders := bp.roundHandler.Index()-int64(highestRoundInReceivedHeaders) > bp.getMaxRoundsWithoutBlockReceived(highestRoundInReceivedHeaders) &&
 		int64(latestValidHeader.GetNonce())-int64(lastNotarizedHeaderNonce) <= process.MaxHeadersToRequestInAdvance
 	if !shouldRequestHeaders {
 		return
@@ -476,6 +478,14 @@ func (bp *blockProcessor) requestHeadersIfNothingNewIsReceived(
 		bp.headersPool.RemoveHeaderByHash(headerHash)
 	}
 	bp.requestHeaders(shardID, fromNonce)
+}
+
+func (bp *blockProcessor) getMaxRoundsWithoutBlockReceived(round uint64) int64 {
+	if bp.enableRoundsHandler.IsFlagEnabledInRound(common.SupernovaRoundFlag, round) {
+		return process.SupernovaMaxRoundsWithoutNewBlockReceived
+	}
+
+	return process.MaxRoundsWithoutNewBlockReceived
 }
 
 func (bp *blockProcessor) requestHeaders(shardID uint32, fromNonce uint64) {

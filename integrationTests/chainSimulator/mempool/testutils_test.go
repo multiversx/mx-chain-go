@@ -9,23 +9,24 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
+	"github.com/multiversx/mx-chain-go/common/holders"
 	"github.com/multiversx/mx-chain-go/config"
 	testsChainSimulator "github.com/multiversx/mx-chain-go/integrationTests/chainSimulator"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/components/api"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/dtos"
-	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/block/preprocess"
-	"github.com/multiversx/mx-chain-go/storage/txcache"
 	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/txcache"
 	"github.com/stretchr/testify/require"
 )
 
 var (
-	oneEGLD                   = big.NewInt(1000000000000000000)
-	oneQuarterOfEGLD          = big.NewInt(250000000000000000)
-	durationWaitAfterSendMany = 3000 * time.Millisecond
-	durationWaitAfterSendSome = 300 * time.Millisecond
+	oneEGLD                      = big.NewInt(1000000000000000000)
+	oneQuarterOfEGLD             = big.NewInt(250000000000000000)
+	durationWaitAfterSendMany    = 5000 * time.Millisecond
+	durationWaitAfterSendSome    = 500 * time.Millisecond
+	selectionLoopMaximumDuration = 500 * time.Millisecond
 )
 
 func startChainSimulator(t *testing.T, alterConfigsFunction func(cfg *config.Configs)) testsChainSimulator.ChainSimulator {
@@ -34,7 +35,6 @@ func startChainSimulator(t *testing.T, alterConfigsFunction func(cfg *config.Con
 		TempDir:                t.TempDir(),
 		PathToInitialConfig:    "../../../cmd/node/config/",
 		NumOfShards:            1,
-		GenesisTimestamp:       time.Now().Unix(),
 		RoundDurationInMillis:  uint64(4000),
 		RoundsPerEpoch: core.OptionalUint64{
 			HasValue: true,
@@ -161,15 +161,15 @@ func selectTransactions(t *testing.T, simulator testsChainSimulator.ChainSimulat
 	})
 	require.NoError(t, err)
 
-	mempool := poolsHolder.ShardDataStore(shardAsString).(*txcache.TxCache)
-
-	selectedTransactions, gas := mempool.SelectTransactions(
-		selectionSession,
-		process.TxCacheSelectionGasRequested,
-		process.TxCacheSelectionMaxNumTxs,
-		process.TxCacheSelectionLoopMaximumDuration,
+	options := holders.NewTxSelectionOptions(
+		10_000_000_000,
+		30_000,
+		int(selectionLoopMaximumDuration.Milliseconds()),
+		10,
 	)
 
+	mempool := poolsHolder.ShardDataStore(shardAsString).(*txcache.TxCache)
+	selectedTransactions, gas := mempool.SelectTransactions(selectionSession, options)
 	return selectedTransactions, gas
 }
 

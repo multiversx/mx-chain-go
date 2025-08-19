@@ -40,7 +40,7 @@ import (
 	"github.com/multiversx/mx-chain-go/process/transaction"
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/state/syncer"
-	"github.com/multiversx/mx-chain-go/storage/txcache"
+	"github.com/multiversx/mx-chain-go/txcache"
 	"github.com/multiversx/mx-chain-go/vm"
 	logger "github.com/multiversx/mx-chain-logger-go"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
@@ -352,6 +352,7 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 		scheduledTxsExecutionHandler,
 		processedMiniBlocksTracker,
 		pcf.txExecutionOrderHandler,
+		pcf.config.TxCacheSelection,
 	)
 	if err != nil {
 		return nil, err
@@ -661,6 +662,7 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 		scheduledTxsExecutionHandler,
 		processedMiniBlocksTracker,
 		pcf.txExecutionOrderHandler,
+		pcf.config.TxCacheSelection,
 	)
 	if err != nil {
 		return nil, err
@@ -757,6 +759,7 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 		GenesisTotalSupply:    pcf.coreData.EconomicsData().GenesisTotalSupply(),
 		EconomicsDataNotified: economicsDataProvider,
 		StakingV2EnableEpoch:  pcf.coreData.EnableEpochsHandler().GetActivationEpoch(common.StakingV2Flag),
+		EnableEpochsHandler:   pcf.coreData.EnableEpochsHandler(),
 	}
 	epochEconomics, err := metachainEpochStart.NewEndOfEpochEconomicsDataCreator(argsEpochEconomics)
 	if err != nil {

@@ -3,6 +3,8 @@ package consensus
 import (
 	"encoding/hex"
 	"fmt"
+	"math/big"
+	"os"
 	"sync"
 	"testing"
 	"time"
@@ -11,6 +13,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/core/pubkeyConverter"
 	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	crypto "github.com/multiversx/mx-chain-crypto-go"
 	logger "github.com/multiversx/mx-chain-logger-go"
 	"github.com/stretchr/testify/assert"
@@ -20,12 +23,15 @@ import (
 	consensusComp "github.com/multiversx/mx-chain-go/factory/consensus"
 	"github.com/multiversx/mx-chain-go/integrationTests"
 	"github.com/multiversx/mx-chain-go/process"
+	vmFactory "github.com/multiversx/mx-chain-go/process/factory"
 	consensusMocks "github.com/multiversx/mx-chain-go/testscommon/consensus"
 )
 
 const (
 	consensusTimeBetweenRounds = time.Second
 	blsConsensusType           = "bls"
+	roundsPerEpoch             = 10
+	roundTime                  = uint64(1000) // 1 second
 )
 
 var (
@@ -33,6 +39,11 @@ var (
 	testPubkeyConverter, _ = pubkeyConverter.NewHexPubkeyConverter(32)
 	log                    = logger.GetOrCreate("integrationtests/consensus")
 )
+
+type generatedTxsParams struct {
+	numScTxs          int
+	numMoveBalanceTxs int
+}
 
 func TestConsensusBLSFullTestSingleKeys(t *testing.T) {
 	if testing.Short() {
@@ -63,7 +74,16 @@ func TestConsensusBLSWithFullProcessing_BeforeEquivalentProofs(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	testConsensusBLSWithFullProcessing(t, integrationTests.UnreachableEpoch, 1)
+	enableEpochsConfig := integrationTests.CreateEnableEpochsConfig()
+	enableEpochsConfig.AndromedaEnableEpoch = integrationTests.UnreachableEpoch
+	enableEpochsConfig.SupernovaEnableEpoch = integrationTests.UnreachableEpoch
+	numKeysOnEachNode := 1
+	targetEpoch := uint32(2)
+	txs := &generatedTxsParams{
+		numScTxs:          100,
+		numMoveBalanceTxs: 5000,
+	}
+	testConsensusBLSWithFullProcessing(t, enableEpochsConfig, numKeysOnEachNode, roundsPerEpoch, roundTime, targetEpoch, txs)
 }
 
 func TestConsensusBLSWithFullProcessing_WithEquivalentProofs(t *testing.T) {
@@ -71,7 +91,35 @@ func TestConsensusBLSWithFullProcessing_WithEquivalentProofs(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	testConsensusBLSWithFullProcessing(t, uint32(0), 1)
+	enableEpochsConfig := integrationTests.CreateEnableEpochsConfig()
+	enableEpochsConfig.AndromedaEnableEpoch = uint32(0)
+	enableEpochsConfig.SupernovaEnableEpoch = integrationTests.UnreachableEpoch
+	numKeysOnEachNode := 1
+	targetEpoch := uint32(2)
+	txs := &generatedTxsParams{
+		numScTxs:          100,
+		numMoveBalanceTxs: 5000,
+	}
+
+	testConsensusBLSWithFullProcessing(t, enableEpochsConfig, numKeysOnEachNode, roundsPerEpoch, roundTime, targetEpoch, txs)
+}
+
+func TestConsensusBLSWithFullProcessing_TransitionWithEquivalentProofs(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
+	enableEpochsConfig := integrationTests.CreateEnableEpochsConfig()
+	enableEpochsConfig.AndromedaEnableEpoch = uint32(1)
+	enableEpochsConfig.SupernovaEnableEpoch = integrationTests.UnreachableEpoch
+	numKeysOnEachNode := 1
+	targetEpoch := uint32(2)
+	txs := &generatedTxsParams{
+		numScTxs:          100,
+		numMoveBalanceTxs: 5000,
+	}
+
+	testConsensusBLSWithFullProcessing(t, enableEpochsConfig, numKeysOnEachNode, roundsPerEpoch, roundTime, targetEpoch, txs)
 }
 
 func TestConsensusBLSWithFullProcessing_WithEquivalentProofs_MultiKeys(t *testing.T) {
@@ -79,24 +127,109 @@ func TestConsensusBLSWithFullProcessing_WithEquivalentProofs_MultiKeys(t *testin
 		t.Skip("this is not a short test")
 	}
 
-	testConsensusBLSWithFullProcessing(t, uint32(0), 3)
+	enableEpochsConfig := integrationTests.CreateEnableEpochsConfig()
+	enableEpochsConfig.AndromedaEnableEpoch = uint32(0)
+	enableEpochsConfig.SupernovaEnableEpoch = integrationTests.UnreachableEpoch
+	numKeysOnEachNode := 3
+	targetEpoch := uint32(2)
+	txs := &generatedTxsParams{
+		numScTxs:          100,
+		numMoveBalanceTxs: 5000,
+	}
+
+	testConsensusBLSWithFullProcessing(t, enableEpochsConfig, numKeysOnEachNode, roundsPerEpoch, roundTime, targetEpoch, txs)
 }
 
-func testConsensusBLSWithFullProcessing(t *testing.T, equivalentProofsActivationEpoch uint32, numKeysOnEachNode int) {
+func TestConsensusBLSWithFullProcessing_TransitionToSupernova(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
+	enableEpochsConfig := integrationTests.CreateEnableEpochsConfig()
+	enableEpochsConfig.AndromedaEnableEpoch = uint32(0)
+	enableEpochsConfig.SupernovaEnableEpoch = uint32(1)
+	numKeysOnEachNode := 3
+	targetEpoch := uint32(2)
+	txs := &generatedTxsParams{
+		numScTxs:          0,
+		numMoveBalanceTxs: 0,
+	}
+
+	testConsensusBLSWithFullProcessing(t, enableEpochsConfig, numKeysOnEachNode, roundsPerEpoch, roundTime, targetEpoch, txs)
+}
+
+func TestConsensusBLSWithFullProcessing_AfterSupernova(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
+	enableEpochsConfig := integrationTests.CreateEnableEpochsConfig()
+	enableEpochsConfig.AndromedaEnableEpoch = uint32(0)
+	enableEpochsConfig.SupernovaEnableEpoch = uint32(0)
+	numKeysOnEachNode := 3
+	targetEpoch := uint32(2)
+	txs := &generatedTxsParams{
+		numScTxs:          0,
+		numMoveBalanceTxs: 0,
+	}
+
+	testConsensusBLSWithFullProcessing(t, enableEpochsConfig, numKeysOnEachNode, roundsPerEpoch, roundTime, targetEpoch, txs)
+}
+
+func TestConsensusBLSWithFullProcessing_TransitionToSupernova_HighLoad(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
+	enableEpochsConfig := integrationTests.CreateEnableEpochsConfig()
+	enableEpochsConfig.AndromedaEnableEpoch = uint32(0)
+	enableEpochsConfig.SupernovaEnableEpoch = uint32(1)
+	numKeysOnEachNode := 3
+	targetEpoch := uint32(2)
+	txs := &generatedTxsParams{
+		numScTxs:          500,
+		numMoveBalanceTxs: 10000,
+	}
+
+	testConsensusBLSWithFullProcessing(t, enableEpochsConfig, numKeysOnEachNode, roundsPerEpoch, roundTime, targetEpoch, txs)
+}
+
+func TestConsensusBLSWithFullProcessing_AfterSupernova_HighLoad(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
+	enableEpochsConfig := integrationTests.CreateEnableEpochsConfig()
+	enableEpochsConfig.AndromedaEnableEpoch = uint32(0)
+	enableEpochsConfig.SupernovaEnableEpoch = uint32(0)
+	numKeysOnEachNode := 3
+	targetEpoch := uint32(2)
+	txs := &generatedTxsParams{
+		numScTxs:          500,
+		numMoveBalanceTxs: 10000,
+	}
+
+	testConsensusBLSWithFullProcessing(t, enableEpochsConfig, numKeysOnEachNode, roundsPerEpoch, roundTime, targetEpoch, txs)
+}
+
+func testConsensusBLSWithFullProcessing(
+	t *testing.T,
+	enableEpochsConfig config.EnableEpochs,
+	numKeysOnEachNode int,
+	roundsPerEpoch int64,
+	roundTime uint64,
+	targetEpoch uint32,
+	txs *generatedTxsParams,
+) {
 	numMetaNodes := uint32(2)
 	numNodes := uint32(2)
 	consensusSize := uint32(2 * numKeysOnEachNode)
-	roundTime := uint64(1000)
 
 	log.Info("runFullNodesTest",
 		"numNodes", numNodes,
 		"numKeysOnEachNode", numKeysOnEachNode,
 		"consensusSize", consensusSize,
 	)
-
-	enableEpochsConfig := integrationTests.CreateEnableEpochsConfig()
-
-	enableEpochsConfig.AndromedaEnableEpoch = equivalentProofsActivationEpoch
 
 	fmt.Println("Step 1. Setup nodes...")
 
@@ -108,8 +241,11 @@ func testConsensusBLSWithFullProcessing(t *testing.T, equivalentProofsActivation
 		blsConsensusType,
 		numKeysOnEachNode,
 		enableEpochsConfig,
+		integrationTests.GetSupernovaRoundsConfig(),
 		true,
+		roundsPerEpoch,
 	)
+	shard0Node := nodes[0][0]
 
 	for shardID, nodesList := range nodes {
 		for _, n := range nodesList {
@@ -145,9 +281,33 @@ func testConsensusBLSWithFullProcessing(t *testing.T, equivalentProofsActivation
 
 	fmt.Println("Wait for several rounds...")
 
-	time.Sleep(15 * time.Second)
+	nodesList := make([]*integrationTests.TestProcessorNode, 0)
+	shard0Nodes := nodes[0]
+	for _, n := range shard0Nodes {
+		nodesList = append(nodesList, n.TestProcessorNode)
+	}
+	integrationTests.MintAllNodes(nodesList, big.NewInt(100000000000))
+
+	waitForEpoch(shard0Node, enableEpochsConfig.SCDeployEnableEpoch)
+
+	scTxs(t, shard0Node, txs.numScTxs, nodesList)
+
+	encodedReceiverAddr, err := integrationTests.TestAddressPubkeyConverter.Encode(integrationTests.CreateRandomBytes(32))
+	assert.Nil(t, err)
+	moveBalanceTxs(t, shard0Node.TestProcessorNode, encodedReceiverAddr, txs.numMoveBalanceTxs)
+
+	waitForEpoch(shard0Node, targetEpoch)
 
 	fmt.Println("Checking shards...")
+
+	receiverBytes, err := integrationTests.TestAddressPubkeyConverter.Decode(encodedReceiverAddr)
+	require.Nil(t, err)
+	acc, err := shard0Node.AccntState.LoadAccount(receiverBytes)
+	require.Nil(t, err)
+
+	if txs.numMoveBalanceTxs > 0 {
+		require.NotEqual(t, uint64(0), acc.(data.UserAccountHandler).GetBalance().Uint64())
+	}
 
 	expectedNonce := uint64(10)
 	for _, nodesList := range nodes {
@@ -157,6 +317,7 @@ func testConsensusBLSWithFullProcessing(t *testing.T, equivalentProofsActivation
 					assert.Fail(t, fmt.Sprintf("Node with idx %d does not have a current block", i))
 				} else {
 					assert.GreaterOrEqual(t, n.Node.GetDataComponents().Blockchain().GetCurrentBlockHeader().GetNonce(), expectedNonce)
+					assert.Equal(t, targetEpoch, n.Node.GetDataComponents().Blockchain().GetCurrentBlockHeader().GetEpoch())
 				}
 			}
 		}
@@ -527,4 +688,101 @@ func getPkEncoded(pubKey crypto.PublicKey) string {
 	}
 
 	return encodeAddress(pk)
+}
+
+func waitForEpoch(node *integrationTests.TestFullNode, targetEpoch uint32) {
+	epochReached := false
+	for !epochReached {
+		blockHeader := node.Node.GetDataComponents().Blockchain().GetCurrentBlockHeader()
+		if check.IfNil(blockHeader) {
+			time.Sleep(time.Second)
+			continue
+		}
+		epochReached = blockHeader.GetEpoch() == targetEpoch
+	}
+
+	time.Sleep(time.Second * 3) // wait for all nodes to change epoch
+	fmt.Println("Wait for all nodes to change epoch...")
+}
+
+func scTxs(t *testing.T, senderNode *integrationTests.TestFullNode, numTxs int, nodesList []*integrationTests.TestProcessorNode) {
+	if numTxs <= 0 {
+		return
+	}
+
+	numPlayers := 10
+	players := make([]*integrationTests.TestWalletAccount, numPlayers)
+	for i := 0; i < numPlayers; i++ {
+		players[i] = integrationTests.CreateTestWalletAccount(senderNode.ShardCoordinator, 0)
+	}
+	initialVal := big.NewInt(100000000000)
+	integrationTests.MintAllPlayers(nodesList, players, initialVal)
+
+	scCode, err := os.ReadFile("../vm/wasm/testdata/erc20-c-03/wrc20_wasm.wasm")
+	require.Nil(t, err)
+
+	scAddress, _ := senderNode.TestProcessorNode.BlockchainHook.NewAddress(senderNode.OwnAccount.Address, senderNode.OwnAccount.Nonce, vmFactory.WasmVirtualMachine)
+	initialSupply := hex.EncodeToString(big.NewInt(100000000000).Bytes())
+	integrationTests.DeployScTx(nodesList, 0, hex.EncodeToString(scCode), vmFactory.WasmVirtualMachine, initialSupply)
+	time.Sleep(time.Second)
+
+	for i := 0; i < numTxs; i++ {
+		playersDoTransfer(senderNode.TestProcessorNode, players, scAddress, big.NewInt(100))
+	}
+}
+
+func moveBalanceTxs(t *testing.T, senderNode *integrationTests.TestProcessorNode, receiverAddr string, numTxs int) {
+	if numTxs <= 0 {
+		return
+	}
+
+	err := senderNode.Node.GenerateAndSendBulkTransactions(
+		receiverAddr,
+		big.NewInt(1),
+		uint64(numTxs),
+		senderNode.OwnAccount.SkTxSign,
+		nil,
+		integrationTests.ChainID,
+		integrationTests.MinTransactionVersion,
+	)
+	assert.Nil(t, err)
+}
+
+func playersDoTransfer(
+	node *integrationTests.TestProcessorNode,
+	players []*integrationTests.TestWalletAccount,
+	scAddress []byte,
+	txValue *big.Int,
+) {
+	for _, playerToTransfer := range players {
+		createAndSendTx(node, node.OwnAccount, big.NewInt(0), 200000, scAddress,
+			[]byte("transferToken@"+hex.EncodeToString(playerToTransfer.Address)+"@"+hex.EncodeToString(txValue.Bytes())))
+	}
+}
+
+func createAndSendTx(
+	node *integrationTests.TestProcessorNode,
+	player *integrationTests.TestWalletAccount,
+	txValue *big.Int,
+	gasLimit uint64,
+	rcvAddress []byte,
+	txData []byte,
+) {
+	tx := &transaction.Transaction{
+		Nonce:    player.Nonce,
+		Value:    txValue,
+		SndAddr:  player.Address,
+		RcvAddr:  rcvAddress,
+		Data:     txData,
+		GasPrice: node.EconomicsData.GetMinGasPrice(),
+		GasLimit: gasLimit,
+		Version:  integrationTests.MinTransactionVersion,
+		ChainID:  integrationTests.ChainID,
+	}
+
+	txBuff, _ := tx.GetDataForSigning(integrationTests.TestAddressPubkeyConverter, integrationTests.TestTxSignMarshalizer, integrationTests.TestTxSignHasher)
+	tx.Signature, _ = player.SingleSigner.Sign(player.SkTxSign, txBuff)
+
+	_, _ = node.SendTransaction(tx)
+	player.Nonce++
 }
