@@ -82,7 +82,6 @@ type baseProcessor struct {
 	feeHandler              process.TransactionFeeHandler
 	blockChain              data.ChainHandler
 	hdrsForCurrBlock        HeadersForBlock
-	mutHdrsForBlock         sync.RWMutex
 	genesisNonce            uint64
 	mutProcessDebugger      sync.RWMutex
 	processDebugger         process.Debugger
@@ -120,10 +119,8 @@ type baseProcessor struct {
 
 	mutNonceOfFirstCommittedBlock sync.RWMutex
 	nonceOfFirstCommittedBlock    core.OptionalUint64
-	extraDelayRequestBlockInfo    time.Duration
 
-	proofsPool   dataRetriever.ProofsPool
-	chRcvAllHdrs chan bool
+	proofsPool dataRetriever.ProofsPool
 }
 
 type bootStorerDataArgs struct {
@@ -624,6 +621,9 @@ func checkProcessorParameters(arguments ArgBaseProcessor) error {
 	if check.IfNil(arguments.SentSignaturesTracker) {
 		return process.ErrNilSentSignatureTracker
 	}
+	if check.IfNil(arguments.HeadersForBlock) {
+		return process.ErrNilHeadersForBlock
+	}
 
 	return nil
 }
@@ -738,9 +738,7 @@ func (bp *baseProcessor) computeHeadersForCurrentBlockInfo(usedInBlock bool) (ma
 
 // TODO: remove bool parameter and give instead the set to sort
 func (bp *baseProcessor) sortHeadersForCurrentBlockByNonce(usedInBlock bool) (map[uint32][]data.HeaderHandler, error) {
-	bp.mutHdrsForBlock.RLock()
 	hdrsForCurrentBlock, err := bp.computeHeadersForCurrentBlock(usedInBlock)
-	bp.mutHdrsForBlock.RUnlock()
 	if err != nil {
 		return nil, err
 	}
@@ -754,9 +752,7 @@ func (bp *baseProcessor) sortHeadersForCurrentBlockByNonce(usedInBlock bool) (ma
 }
 
 func (bp *baseProcessor) sortHeaderHashesForCurrentBlockByNonce(usedInBlock bool) (map[uint32][][]byte, error) {
-	bp.mutHdrsForBlock.RLock()
 	hdrsForCurrentBlockInfo, err := bp.computeHeadersForCurrentBlockInfo(usedInBlock)
-	bp.mutHdrsForBlock.RUnlock()
 	if err != nil {
 		return nil, err
 	}
@@ -1028,53 +1024,6 @@ func (bp *baseProcessor) checkScheduledMiniBlocksValidity(headerHandler data.Hea
 	}
 
 	return nil
-}
-
-// requestMissingFinalityAttestingHeaders requests the headers needed to accept the current selected headers for
-// processing the current block. It requests the finality headers greater than the highest header, for given shard,
-// related to the block which should be processed
-// this method should be called only under the mutex protection: hdrsForCurrBlock.mutHdrsForBlock
-func (bp *baseProcessor) requestMissingFinalityAttestingHeaders(
-	shardID uint32,
-	finality uint32,
-) uint32 {
-	requestedHeaders := uint32(0)
-	missingFinalityAttestingHeaders := uint32(0)
-
-	highestHdrNonce := bp.hdrsForCurrBlock.GetHighestHeaderNonceForShard(shardID)
-	if highestHdrNonce == uint64(0) {
-		return missingFinalityAttestingHeaders
-	}
-
-	headersPool := bp.dataPool.Headers()
-	lastFinalityAttestingHeader := highestHdrNonce + uint64(finality)
-	for i := highestHdrNonce + 1; i <= lastFinalityAttestingHeader; i++ {
-		headers, headersHashes, err := headersPool.GetHeadersByNonceAndShardId(i, shardID)
-		if err != nil {
-			missingFinalityAttestingHeaders++
-			requestedHeaders++
-			go bp.requestHeaderByShardAndNonce(shardID, i)
-			continue
-		}
-
-		for index := range headers {
-			hdrInfo := headerForBlock.NewHeaderInfo(
-				headers[index],
-				false,
-				false,
-				false,
-			)
-			bp.hdrsForCurrBlock.AddHeaderInfo(string(headersHashes[index]), hdrInfo)
-		}
-	}
-
-	if requestedHeaders > 0 {
-		log.Debug("requested missing finality attesting headers",
-			"num headers", requestedHeaders,
-			"shard", shardID)
-	}
-
-	return missingFinalityAttestingHeaders
 }
 
 func (bp *baseProcessor) requestHeaderByShardAndNonce(shardID uint32, nonce uint64) {
@@ -1879,32 +1828,6 @@ func (bp *baseProcessor) RestoreBlockBodyIntoPools(bodyHandler data.BodyHandler)
 	return nil
 }
 
-func (bp *baseProcessor) requestMiniBlocksIfNeeded(headerHandler data.HeaderHandler) {
-	lastCrossNotarizedHeader, _, err := bp.blockTracker.GetLastCrossNotarizedHeader(headerHandler.GetShardID())
-	if err != nil {
-		log.Debug("requestMiniBlocksIfNeeded.GetLastCrossNotarizedHeader",
-			"shard", headerHandler.GetShardID(),
-			"error", err.Error())
-		return
-	}
-
-	isHeaderOutOfRequestRange := headerHandler.GetNonce() > lastCrossNotarizedHeader.GetNonce()+process.MaxHeadersToRequestInAdvance
-	if isHeaderOutOfRequestRange {
-		return
-	}
-
-	waitTime := bp.extraDelayRequestBlockInfo
-	roundDifferences := bp.roundHandler.Index() - int64(headerHandler.GetRound())
-	if roundDifferences > 1 {
-		waitTime = 0
-	}
-
-	// waiting for late broadcast of mini blocks and transactions to be done and received
-	time.Sleep(waitTime)
-
-	bp.txCoordinator.RequestMiniBlocksAndTransactions(headerHandler)
-}
-
 func (bp *baseProcessor) recordBlockInHistory(blockHeaderHash []byte, blockHeader data.HeaderHandler, blockBody data.BodyHandler) {
 	scrResultsFromPool := bp.txCoordinator.GetAllCurrentUsedTxs(block.SmartContractResultBlock)
 	receiptsFromPool := bp.txCoordinator.GetAllCurrentUsedTxs(block.ReceiptBlock)
@@ -2351,49 +2274,4 @@ func (bp *baseProcessor) getHeaderHash(header data.HeaderHandler) ([]byte, error
 	}
 
 	return bp.hasher.Compute(string(marshalledHeader)), nil
-}
-
-func (bp *baseProcessor) requestProofIfNeeded(currentHeaderHash []byte, header data.HeaderHandler) bool {
-	if !bp.enableEpochsHandler.IsFlagEnabledInEpoch(common.AndromedaFlag, header.GetEpoch()) {
-		return false
-	}
-	if bp.proofsPool.HasProof(header.GetShardID(), currentHeaderHash) {
-		bp.hdrsForCurrBlock.SetHasProof(string(currentHeaderHash))
-
-		return true
-	}
-
-	bp.hdrsForCurrBlock.SetHeader(string(currentHeaderHash), header)
-	bp.hdrsForCurrBlock.SetHasProofRequested(string(currentHeaderHash))
-	bp.hdrsForCurrBlock.IncreaseMissingProofs()
-	go bp.requestHandler.RequestEquivalentProofByHash(header.GetShardID(), currentHeaderHash)
-
-	return false
-}
-
-func (bp *baseProcessor) checkReceivedProofIfAttestingIsNeeded(proof data.HeaderProofHandler) {
-	bp.mutHdrsForBlock.Lock()
-	hashStr := string(proof.GetHeaderHash())
-	_, ok := bp.hdrsForCurrBlock.GetHeaderInfo(hashStr)
-	if !ok {
-		bp.mutHdrsForBlock.Unlock()
-		return // proof not missing
-	}
-
-	isWaitingForProofs := bp.hdrsForCurrBlock.HasProofRequested(hashStr)
-	if !isWaitingForProofs {
-		bp.mutHdrsForBlock.Unlock()
-		return
-	}
-
-	bp.hdrsForCurrBlock.SetHasProof(hashStr)
-	bp.hdrsForCurrBlock.DecreaseMissingProofs()
-
-	missingMetaHdrs, missingProofs, missingFinalityAttestingMetaHdrs := bp.hdrsForCurrBlock.GetMissingData()
-	bp.mutHdrsForBlock.Unlock()
-
-	allMissingMetaHeadersReceived := missingMetaHdrs == 0 && missingFinalityAttestingMetaHdrs == 0 && missingProofs == 0
-	if allMissingMetaHeadersReceived {
-		bp.chRcvAllHdrs <- true
-	}
 }

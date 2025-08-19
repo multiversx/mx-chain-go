@@ -1301,3 +1301,6 @@ var ErrNilKeyRWMutexHandler = errors.New("nil key rw mutex handler")
 
 // ErrNilTxsForBlockHandler signals that a nil transactions for block handler has been provided
 var ErrNilTxsForBlockHandler = errors.New("nil txs for block handler")
+
+// ErrNilHeadersForBlock signals that a nil headers for block has been provided
+var ErrNilHeadersForBlock = errors.New("nil headers for block")

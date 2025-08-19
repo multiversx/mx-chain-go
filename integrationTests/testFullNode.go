@@ -14,6 +14,7 @@ import (
 	crypto "github.com/multiversx/mx-chain-crypto-go"
 	mclMultiSig "github.com/multiversx/mx-chain-crypto-go/signing/mcl/multisig"
 	"github.com/multiversx/mx-chain-crypto-go/signing/multisig"
+	"github.com/multiversx/mx-chain-go/process/block/headerForBlock"
 	wasmConfig "github.com/multiversx/mx-chain-vm-go/config"
 
 	"github.com/multiversx/mx-chain-go/common"
@@ -826,6 +827,22 @@ func (tpn *TestFullNode) initBlockProcessor(
 		AppStatusHandlerField: &statusHandlerMock.AppStatusHandlerStub{},
 	}
 
+	argsHeadersForBlock := headerForBlock.ArgHeadersForBlock{
+		DataPool:            tpn.DataPool,
+		RequestHandler:      tpn.RequestHandler,
+		EnableEpochsHandler: tpn.EnableEpochsHandler,
+		ShardCoordinator:    tpn.ShardCoordinator,
+		BlockTracker:        tpn.BlockTracker,
+		TxCoordinator:       tpn.TxCoordinator,
+		RoundHandler:        tpn.RoundHandler,
+		ExtraDelayForRequestBlockInfoInMilliseconds: 0,
+		GenesisNonce: tpn.GenesisBlocks[tpn.ShardCoordinator.SelfId()].GetNonce(),
+	}
+	hdrsForBlock, err := headerForBlock.NewHeadersForBlock(argsHeadersForBlock)
+	if err != nil {
+		log.Error("initBlockProcessor NewHeadersForBlock", "error", err)
+	}
+
 	argumentsBase := block.ArgBaseProcessor{
 		CoreComponents:       coreComponents,
 		DataComponents:       dataComponents,
@@ -856,6 +873,7 @@ func (tpn *TestFullNode) initBlockProcessor(
 		BlockProcessingCutoffHandler: &testscommon.BlockProcessingCutoffStub{},
 		ManagedPeersHolder:           &testscommon.ManagedPeersHolderStub{},
 		SentSignaturesTracker:        &testscommon.SentSignatureTrackerStub{},
+		HeadersForBlock:              hdrsForBlock,
 	}
 
 	if check.IfNil(tpn.EpochStartNotifier) {
@@ -1065,6 +1083,19 @@ func (tpn *TestFullNode) initBlockProcessorWithSync(
 		AppStatusHandlerField: &statusHandlerMock.AppStatusHandlerStub{},
 	}
 
+	argsHeadersForBlock := headerForBlock.ArgHeadersForBlock{
+		DataPool:            tpn.DataPool,
+		RequestHandler:      tpn.RequestHandler,
+		EnableEpochsHandler: tpn.EnableEpochsHandler,
+		ShardCoordinator:    tpn.ShardCoordinator,
+		BlockTracker:        tpn.BlockTracker,
+		TxCoordinator:       tpn.TxCoordinator,
+		RoundHandler:        tpn.RoundHandler,
+		ExtraDelayForRequestBlockInfoInMilliseconds: 0,
+		GenesisNonce: tpn.GenesisBlocks[tpn.ShardCoordinator.SelfId()].GetNonce(),
+	}
+	hdrsForBlock, err := headerForBlock.NewHeadersForBlock(argsHeadersForBlock)
+
 	argumentsBase := block.ArgBaseProcessor{
 		CoreComponents:       coreComponents,
 		DataComponents:       dataComponents,
@@ -1096,6 +1127,7 @@ func (tpn *TestFullNode) initBlockProcessorWithSync(
 		BlockProcessingCutoffHandler: &testscommon.BlockProcessingCutoffStub{},
 		ManagedPeersHolder:           &testscommon.ManagedPeersHolderStub{},
 		SentSignaturesTracker:        &testscommon.SentSignatureTrackerStub{},
+		HeadersForBlock:              hdrsForBlock,
 	}
 
 	if tpn.ShardCoordinator.SelfId() == core.MetachainShardId {

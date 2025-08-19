@@ -14,8 +14,8 @@ type lastNotarizedHeaderInfo struct {
 	hasProof              bool
 }
 
-// NewLastNotarizedHeaderInfo returns a new instance of lastNotarizedHeaderInfo
-func NewLastNotarizedHeaderInfo(
+// newLastNotarizedHeaderInfo returns a new instance of lastNotarizedHeaderInfo
+func newLastNotarizedHeaderInfo(
 	header data.HeaderHandler,
 	hash []byte,
 	notarizedBasedOnProof bool,

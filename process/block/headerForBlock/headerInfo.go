@@ -15,8 +15,8 @@ type headerInfo struct {
 	hasProofRequested bool
 }
 
-// NewHeaderInfo returns a new instance of headerInfo
-func NewHeaderInfo(
+// newHeaderInfo returns a new instance of headerInfo
+func newHeaderInfo(
 	hdr data.HeaderHandler,
 	usedInBlock bool,
 	hasProof bool,
@@ -30,8 +30,8 @@ func NewHeaderInfo(
 	}
 }
 
-// NewEmptyHeaderInfo returns a new instance of headerInfo with nothing set
-func NewEmptyHeaderInfo() *headerInfo {
+// newEmptyHeaderInfo returns a new instance of headerInfo with nothing set
+func newEmptyHeaderInfo() *headerInfo {
 	return &headerInfo{}
 }
 

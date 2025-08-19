@@ -22,6 +22,7 @@ import (
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/block"
 	"github.com/multiversx/mx-chain-go/process/block/cutoff"
+	"github.com/multiversx/mx-chain-go/process/block/headerForBlock"
 	"github.com/multiversx/mx-chain-go/process/block/postprocess"
 	"github.com/multiversx/mx-chain-go/process/block/preprocess"
 	"github.com/multiversx/mx-chain-go/process/coordinator"
@@ -410,6 +411,22 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 	accountsDb[state.UserAccountsState] = pcf.state.AccountsAdapter()
 	accountsDb[state.PeerAccountsState] = pcf.state.PeerAccounts()
 
+	argsHeadersForBlock := headerForBlock.ArgHeadersForBlock{
+		DataPool:            pcf.data.Datapool(),
+		RequestHandler:      requestHandler,
+		EnableEpochsHandler: pcf.coreData.EnableEpochsHandler(),
+		ShardCoordinator:    pcf.bootstrapComponents.ShardCoordinator(),
+		BlockTracker:        blockTracker,
+		TxCoordinator:       txCoordinator,
+		RoundHandler:        pcf.coreData.RoundHandler(),
+		ExtraDelayForRequestBlockInfoInMilliseconds: pcf.config.EpochStartConfig.ExtraDelayForRequestBlockInfoInMilliseconds,
+		GenesisNonce: pcf.genesisNonce,
+	}
+	hdrsForBlock, err := headerForBlock.NewHeadersForBlock(argsHeadersForBlock)
+	if err != nil {
+		return nil, err
+	}
+
 	argumentsBaseProcessor := block.ArgBaseProcessor{
 		CoreComponents:               pcf.coreData,
 		DataComponents:               pcf.data,
@@ -418,10 +435,10 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 		StatusCoreComponents:         pcf.statusCoreComponents,
 		Config:                       pcf.config,
 		PrefsConfig:                  pcf.prefConfigs,
-		Version:                      pcf.flagsConfig.Version,
 		AccountsDB:                   accountsDb,
 		ForkDetector:                 forkDetector,
 		NodesCoordinator:             pcf.nodesCoordinator,
+		FeeHandler:                   txFeeHandler,
 		RequestHandler:               requestHandler,
 		BlockChainHook:               vmFactory.BlockChainHookImpl(),
 		TxCoordinator:                txCoordinator,
@@ -429,19 +446,20 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 		HeaderValidator:              headerValidator,
 		BootStorer:                   bootStorer,
 		BlockTracker:                 blockTracker,
-		FeeHandler:                   txFeeHandler,
 		BlockSizeThrottler:           blockSizeThrottler,
+		Version:                      pcf.flagsConfig.Version,
 		HistoryRepository:            pcf.historyRepo,
 		VMContainersFactory:          vmFactory,
 		VmContainer:                  vmContainer,
 		GasHandler:                   gasHandler,
+		OutportDataProvider:          outportDataProvider,
 		ScheduledTxsExecutionHandler: scheduledTxsExecutionHandler,
 		ProcessedMiniBlocksTracker:   processedMiniBlocksTracker,
 		ReceiptsRepository:           receiptsRepository,
-		OutportDataProvider:          outportDataProvider,
 		BlockProcessingCutoffHandler: blockProcessingCutoffHandler,
 		ManagedPeersHolder:           pcf.crypto.ManagedPeersHolder(),
 		SentSignaturesTracker:        sentSignaturesTracker,
+		HeadersForBlock:              hdrsForBlock,
 	}
 	arguments := block.ArgShardProcessor{
 		ArgBaseProcessor: argumentsBaseProcessor,
@@ -847,6 +865,22 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 	accountsDb[state.UserAccountsState] = pcf.state.AccountsAdapter()
 	accountsDb[state.PeerAccountsState] = pcf.state.PeerAccounts()
 
+	argsHeadersForBlock := headerForBlock.ArgHeadersForBlock{
+		DataPool:            pcf.data.Datapool(),
+		RequestHandler:      requestHandler,
+		EnableEpochsHandler: pcf.coreData.EnableEpochsHandler(),
+		ShardCoordinator:    pcf.bootstrapComponents.ShardCoordinator(),
+		BlockTracker:        blockTracker,
+		TxCoordinator:       txCoordinator,
+		RoundHandler:        pcf.coreData.RoundHandler(),
+		ExtraDelayForRequestBlockInfoInMilliseconds: pcf.config.EpochStartConfig.ExtraDelayForRequestBlockInfoInMilliseconds,
+		GenesisNonce: pcf.genesisNonce,
+	}
+	hdrsForBlock, err := headerForBlock.NewHeadersForBlock(argsHeadersForBlock)
+	if err != nil {
+		return nil, err
+	}
+
 	argumentsBaseProcessor := block.ArgBaseProcessor{
 		CoreComponents:               pcf.coreData,
 		DataComponents:               pcf.data,
@@ -879,6 +913,7 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 		BlockProcessingCutoffHandler: blockProcessingCutoffhandler,
 		ManagedPeersHolder:           pcf.crypto.ManagedPeersHolder(),
 		SentSignaturesTracker:        sentSignaturesTracker,
+		HeadersForBlock:              hdrsForBlock,
 	}
 
 	esdtOwnerAddress, err := pcf.coreData.AddressPubKeyConverter().Decode(pcf.systemSCConfig.ESDTSystemSCConfig.OwnerAddress)

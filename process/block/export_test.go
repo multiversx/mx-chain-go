@@ -82,11 +82,6 @@ func (bp *baseProcessor) FilterHeadersWithoutProofs() (map[string]headerForBlock
 	return bp.filterHeadersWithoutProofs()
 }
 
-// ReceivedMetaBlock -
-func (sp *shardProcessor) ReceivedMetaBlock(header data.HeaderHandler, metaBlockHash []byte) {
-	sp.receivedMetaBlock(header, metaBlockHash)
-}
-
 // CreateMiniBlocks -
 func (sp *shardProcessor) CreateMiniBlocks(haveTime func() bool) (*block.Body, map[string]*processedMb.ProcessedMiniBlockInfo, error) {
 	return sp.createMiniBlocks(haveTime, []byte("random"))
@@ -193,35 +188,16 @@ func NewShardProcessorEmptyWith3shards(
 			BlockProcessingCutoffHandler: &testscommon.BlockProcessingCutoffStub{},
 			ManagedPeersHolder:           &testscommon.ManagedPeersHolderStub{},
 			SentSignaturesTracker:        &testscommon.SentSignatureTrackerStub{},
+			HeadersForBlock:              &testscommon.HeadersForBlockMock{},
 		},
 	}
 	shardProc, err := NewShardProcessor(arguments)
 	return shardProc, err
 }
 
-// RequestBlockHeaders -
-func (mp *metaProcessor) RequestBlockHeaders(header *block.MetaBlock) (uint32, uint32, uint32) {
-	mp.requestShardHeaders(header)
-	return mp.hdrsForCurrBlock.GetMissingData()
-}
-
-// ReceivedShardHeader -
-func (mp *metaProcessor) ReceivedShardHeader(header data.HeaderHandler, shardHeaderHash []byte) {
-	mp.receivedShardHeader(header, shardHeaderHash)
-}
-
 // GetDataPool -
 func (mp *metaProcessor) GetDataPool() dataRetriever.PoolsHolder {
 	return mp.dataPool
-}
-
-// AddHdrHashToRequestedList -
-func (mp *metaProcessor) AddHdrHashToRequestedList(hdr data.HeaderHandler, hdrHash []byte) {
-	mp.mutHdrsForBlock.Lock()
-	defer mp.mutHdrsForBlock.Unlock()
-
-	mp.hdrsForCurrBlock.AddHeaderInfo(string(hdrHash), headerForBlock.NewHeaderInfo(hdr, true, false, false))
-	mp.hdrsForCurrBlock.IncreaseMissingHeaders()
 }
 
 // IsHdrMissing -
@@ -237,11 +213,6 @@ func (mp *metaProcessor) IsHdrMissing(hdrHash []byte) bool {
 // CreateShardInfo -
 func (mp *metaProcessor) CreateShardInfo() ([]data.ShardDataHandler, error) {
 	return mp.createShardInfo()
-}
-
-// RequestMissingFinalityAttestingShardHeaders -
-func (mp *metaProcessor) RequestMissingFinalityAttestingShardHeaders() uint32 {
-	return mp.requestMissingFinalityAttestingShardHeaders()
 }
 
 // SaveMetricCrossCheckBlockHeight -
@@ -327,10 +298,10 @@ func (bp *baseProcessor) IsHdrConstructionValid(currHdr, prevHdr data.HeaderHand
 	return bp.headerValidator.IsHeaderConstructionValid(currHdr, prevHdr)
 }
 
-// ChRcvAllHdrs -
-func (mp *metaProcessor) ChRcvAllHdrs() chan bool {
-	return mp.chRcvAllHdrs
-}
+// // ChRcvAllHdrs -
+// func (mp *metaProcessor) ChRcvAllHdrs() chan bool {
+// 	return mp.chRcvAllHdrs
+// }
 
 // UpdateShardsHeadersNonce -
 func (mp *metaProcessor) UpdateShardsHeadersNonce(key uint32, value uint64) {
@@ -360,14 +331,6 @@ func (sp *shardProcessor) CheckAndRequestIfMetaHeadersMissing() {
 // GetHashAndHdrStruct -
 func (sp *shardProcessor) GetHashAndHdrStruct(header data.HeaderHandler, hash []byte) *hashAndHdr {
 	return &hashAndHdr{header, hash}
-}
-
-// RequestMissingFinalityAttestingHeaders -
-func (sp *shardProcessor) RequestMissingFinalityAttestingHeaders() uint32 {
-	return sp.requestMissingFinalityAttestingHeaders(
-		core.MetachainShardId,
-		sp.metaBlockFinality,
-	)
 }
 
 // CheckMetaHeadersValidityAndFinality -
@@ -415,29 +378,6 @@ func (sp *shardProcessor) GetAllMiniBlockDstMeFromMeta(
 	header data.ShardHeaderHandler,
 ) (map[string][]byte, error) {
 	return sp.getAllMiniBlockDstMeFromMeta(header)
-}
-
-// SetHdrForCurrentBlock -
-func (bp *baseProcessor) SetHdrForCurrentBlock(headerHash []byte, headerHandler data.HeaderHandler, usedInBlock bool) {
-	bp.hdrsForCurrBlock.AddHeaderInfo(string(headerHash), headerForBlock.NewHeaderInfo(headerHandler, usedInBlock, false, false))
-}
-
-// SetHighestHdrNonceForCurrentBlock -
-func (bp *baseProcessor) SetHighestHdrNonceForCurrentBlock(shardId uint32, value uint64) {
-	bp.hdrsForCurrBlock.SetHighestHeaderNonceForShard(shardId, value)
-}
-
-// LastNotarizedHeaderInfo -
-type LastNotarizedHeaderInfo struct {
-	Header                data.HeaderHandler
-	Hash                  []byte
-	NotarizedBasedOnProof bool
-	HasProof              bool
-}
-
-// SetLastNotarizedHeaderForShard -
-func (bp *baseProcessor) SetLastNotarizedHeaderForShard(shardId uint32, info *LastNotarizedHeaderInfo) {
-	bp.hdrsForCurrBlock.SetLastNotarizedHeaderForShard(shardId, headerForBlock.NewLastNotarizedHeaderInfo(info.Header, info.Hash, info.NotarizedBasedOnProof, info.HasProof))
 }
 
 // CreateBlockStarted -
@@ -664,31 +604,9 @@ func (mp *metaProcessor) GetHdrForBlock() HeadersForBlock {
 	return mp.hdrsForCurrBlock
 }
 
-// ChannelReceiveAllHeaders -
-func (mp *metaProcessor) ChannelReceiveAllHeaders() chan bool {
-	return mp.chRcvAllHdrs
-}
-
-// ComputeExistingAndRequestMissingShardHeaders -
-func (mp *metaProcessor) ComputeExistingAndRequestMissingShardHeaders(metaBlock *block.MetaBlock) (uint32, uint32, uint32) {
-	mp.computeExistingAndRequestMissingShardHeaders(metaBlock)
-	return mp.hdrsForCurrBlock.GetMissingData()
-}
-
-// ComputeExistingAndRequestMissingMetaHeaders -
-func (sp *shardProcessor) ComputeExistingAndRequestMissingMetaHeaders(header data.ShardHeaderHandler) (uint32, uint32, uint32) {
-	sp.computeExistingAndRequestMissingMetaHeaders(header)
-	return sp.hdrsForCurrBlock.GetMissingData()
-}
-
 // GetHdrForBlock -
 func (sp *shardProcessor) GetHdrForBlock() HeadersForBlock {
 	return sp.hdrsForCurrBlock
-}
-
-// ChannelReceiveAllHeaders -
-func (sp *shardProcessor) ChannelReceiveAllHeaders() chan bool {
-	return sp.chRcvAllHdrs
 }
 
 // DisplayHeader -
