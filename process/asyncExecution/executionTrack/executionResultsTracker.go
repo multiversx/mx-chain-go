@@ -2,7 +2,6 @@ package executionTrack
 
 import (
 	"bytes"
-	"encoding/hex"
 	"fmt"
 	"sort"
 	"sync"
@@ -46,7 +45,7 @@ func (ert *executionResultsTracker) AddExecutionResult(executionResult data.Exec
 	shouldIgnoreExecutionResult := bytes.Equal(ert.hashToRemoveOnAdd, executionResult.GetHeaderHash())
 	if shouldIgnoreExecutionResult {
 		ert.hashToRemoveOnAdd = nil
-		log.Debug("ert.AddExecutionResult ignored execution result", "hash", hex.EncodeToString(executionResult.GetHeaderHash()))
+		log.Debug("ert.AddExecutionResult ignored execution result", "hash", executionResult.GetHeaderHash())
 		return nil
 	}
 
@@ -89,7 +88,7 @@ func (ert *executionResultsTracker) getLastExecutionResult() (data.ExecutionResu
 
 	lastExecutedResults, found := ert.executionResultsByHash[string(ert.lastExecutedResultHash)]
 	if !found {
-		return nil, fmt.Errorf("%w hash(%s)", ErrCannotFindExecutionResult, hex.EncodeToString(ert.lastExecutedResultHash))
+		return nil, fmt.Errorf("%w hash(%s)", ErrCannotFindExecutionResult, ert.lastExecutedResultHash)
 	}
 
 	return lastExecutedResults, nil
@@ -139,7 +138,7 @@ func (ert *executionResultsTracker) GetPendingExecutionResultByHash(hash []byte)
 
 	result, found := ert.executionResultsByHash[string(hash)]
 	if !found {
-		return nil, fmt.Errorf("%w with hash: '%s'", ErrCannotFindExecutionResult, hex.EncodeToString(hash))
+		return nil, fmt.Errorf("%w with hash: '%s'", ErrCannotFindExecutionResult, hash)
 	}
 
 	return result, nil
@@ -157,7 +156,7 @@ func (ert *executionResultsTracker) getPendingExecutionResultsByNonce(nonce uint
 	hash := ert.nonceHash.getHashByNonce(nonce)
 	result, found := ert.executionResultsByHash[hash]
 	if !found {
-		return nil, fmt.Errorf("%w with hash: '%s'", ErrCannotFindExecutionResult, hex.EncodeToString([]byte(hash)))
+		return nil, fmt.Errorf("%w with hash: '%s'", ErrCannotFindExecutionResult, []byte(hash))
 	}
 
 	return result, nil

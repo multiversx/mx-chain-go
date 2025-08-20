@@ -70,6 +70,7 @@ func (he *headersExecutor) start(ctx context.Context) {
 	}
 }
 
+// TODO: analyze whether retry logic is needed in case of process errors
 func (he *headersExecutor) process(pair queue.HeaderBodyPair) {
 	executionResult, err := he.blockProcessor.ProcessBlock(pair.Header, pair.Body)
 	if err != nil {

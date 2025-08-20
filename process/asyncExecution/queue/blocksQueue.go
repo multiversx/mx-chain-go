@@ -57,6 +57,8 @@ func (hq *blocksQueue) AddOrReplace(pair HeaderBodyPair) error {
 		hq.headerBodyPairs = append(hq.headerBodyPairs, pair)
 	}
 
+	log.Debug("blocksQueue.AddOrReplace - block queue has been added", "queue size", len(hq.headerBodyPairs))
+
 	if len(hq.headerBodyPairs) > 1 {
 		return nil
 	}
