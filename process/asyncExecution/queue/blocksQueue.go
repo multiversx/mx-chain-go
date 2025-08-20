@@ -34,7 +34,7 @@ func NewBlocksQueue() (*blocksQueue, error) {
 
 // AddOrReplace appends a HeaderBodyPair to the end of the queue,
 // or replaces the last element if it has the same nonce.
-func (hq *blocksQueue) AddOrReplace(pair HeaderBodyPair) error {
+func (bq *blocksQueue) AddOrReplace(pair HeaderBodyPair) error {
 	if check.IfNil(pair.Header) {
 		return common.ErrNilHeaderHandler
 	}
@@ -42,29 +42,29 @@ func (hq *blocksQueue) AddOrReplace(pair HeaderBodyPair) error {
 		return data.ErrNilBlockBody
 	}
 
-	hq.mutex.Lock()
-	defer hq.mutex.Unlock()
-	if hq.closed {
+	bq.mutex.Lock()
+	defer bq.mutex.Unlock()
+	if bq.closed {
 		log.Warn("blocksQueue.AddOrReplace - block queue is closed")
 		return nil
 	}
 
-	lastIndex := len(hq.headerBodyPairs) - 1
-	if lastIndex >= 0 && hq.headerBodyPairs[lastIndex].Header.GetNonce() == pair.Header.GetNonce() {
+	lastIndex := len(bq.headerBodyPairs) - 1
+	if lastIndex >= 0 && bq.headerBodyPairs[lastIndex].Header.GetNonce() == pair.Header.GetNonce() {
 		// if the last header from queue has the same nonce, we should replace it with the current pair
-		hq.headerBodyPairs[lastIndex] = pair
+		bq.headerBodyPairs[lastIndex] = pair
 	} else {
-		hq.headerBodyPairs = append(hq.headerBodyPairs, pair)
+		bq.headerBodyPairs = append(bq.headerBodyPairs, pair)
 	}
 
-	log.Debug("blocksQueue.AddOrReplace - block queue has been added", "queue size", len(hq.headerBodyPairs))
+	log.Debug("blocksQueue.AddOrReplace - block queue has been added", "queue size", len(bq.headerBodyPairs))
 
-	if len(hq.headerBodyPairs) > 1 {
+	if len(bq.headerBodyPairs) > 1 {
 		return nil
 	}
 
 	select {
-	case hq.notifyCh <- struct{}{}:
+	case bq.notifyCh <- struct{}{}:
 	default:
 	}
 
@@ -73,51 +73,51 @@ func (hq *blocksQueue) AddOrReplace(pair HeaderBodyPair) error {
 
 // Pop removes and returns the first HeaderBodyPair from the queue.
 // If the queue is empty, the method blocks until a new item is available.
-func (hq *blocksQueue) Pop() (HeaderBodyPair, bool) {
-	hq.mutex.Lock()
-	if len(hq.headerBodyPairs) > 0 {
-		item := hq.headerBodyPairs[0]
-		hq.headerBodyPairs = hq.headerBodyPairs[1:]
-		hq.mutex.Unlock()
+func (bq *blocksQueue) Pop() (HeaderBodyPair, bool) {
+	bq.mutex.Lock()
+	if len(bq.headerBodyPairs) > 0 {
+		item := bq.headerBodyPairs[0]
+		bq.headerBodyPairs = bq.headerBodyPairs[1:]
+		bq.mutex.Unlock()
 		return item, true
 	}
-	if hq.closed {
-		hq.mutex.Unlock()
+	if bq.closed {
+		bq.mutex.Unlock()
 		return HeaderBodyPair{}, false
 	}
-	hq.mutex.Unlock()
+	bq.mutex.Unlock()
 
 	// Wait until notified or closed
-	_, ok := <-hq.notifyCh
+	_, ok := <-bq.notifyCh
 	if !ok {
 		return HeaderBodyPair{}, false
 	}
 
 	// After being notified, check again
-	hq.mutex.Lock()
-	defer hq.mutex.Unlock()
-	if len(hq.headerBodyPairs) > 0 {
-		item := hq.headerBodyPairs[0]
-		hq.headerBodyPairs = hq.headerBodyPairs[1:]
+	bq.mutex.Lock()
+	defer bq.mutex.Unlock()
+	if len(bq.headerBodyPairs) > 0 {
+		item := bq.headerBodyPairs[0]
+		bq.headerBodyPairs = bq.headerBodyPairs[1:]
 		return item, true
 	}
 	return HeaderBodyPair{}, false
 }
 
 // Close will close the queue
-func (hq *blocksQueue) Close() {
-	hq.mutex.Lock()
-	defer hq.mutex.Unlock()
+func (bq *blocksQueue) Close() {
+	bq.mutex.Lock()
+	defer bq.mutex.Unlock()
 
-	if hq.closed {
+	if bq.closed {
 		return
 	}
 
-	hq.closed = true
-	close(hq.notifyCh)
+	bq.closed = true
+	close(bq.notifyCh)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
-func (hq *blocksQueue) IsInterfaceNil() bool {
-	return hq == nil
+func (bq *blocksQueue) IsInterfaceNil() bool {
+	return bq == nil
 }
