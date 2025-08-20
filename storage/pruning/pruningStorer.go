@@ -784,6 +784,8 @@ func (ps *PruningStorer) changeEpoch(header data.HeaderHandler) error {
 		return nil
 	}
 
+	shardID := core.GetShardIDString(ps.shardCoordinator.SelfId())
+
 	_, ok := ps.persistersMapByEpoch[epoch]
 	if ok {
 		err := ps.changeEpochWithExisting(epoch)
@@ -793,10 +795,11 @@ func (ps *PruningStorer) changeEpoch(header data.HeaderHandler) error {
 		}
 		log.Debug("change epoch pruning storer success", "persister", ps.identifier, "epoch", epoch)
 
+		go ps.createNextEpochPersisterIfNeeded(epoch, shardID)
+
 		return ps.removeOldPersistersIfNeeded(header)
 	}
 
-	shardID := core.GetShardIDString(ps.shardCoordinator.SelfId())
 	filePath := ps.pathManager.PathForEpoch(shardID, epoch, ps.identifier)
 	db, err := ps.persisterFactory.Create(filePath)
 	if err != nil {
@@ -816,7 +819,38 @@ func (ps *PruningStorer) changeEpoch(header data.HeaderHandler) error {
 	ps.activePersisters = append(singleItemPersisters, ps.activePersisters...)
 	ps.persistersMapByEpoch[epoch] = newPersister
 
+	go ps.createNextEpochPersisterIfNeeded(epoch, shardID)
+
 	return ps.removeOldPersistersIfNeeded(header)
+}
+
+func (ps *PruningStorer) createNextEpochPersisterIfNeeded(
+	epoch uint32,
+	shardID string,
+) {
+	epoch++
+
+	_, ok := ps.persistersMapByEpoch[epoch]
+	if ok {
+		log.Warn("createNextEpochPersisterIsNeeded: persister already in map", "persister", ps.identifier, "epoch", epoch)
+		return
+	}
+
+	filePath := ps.pathManager.PathForEpoch(shardID, epoch, ps.identifier)
+	db, err := ps.persisterFactory.Create(filePath)
+	if err != nil {
+		log.Warn("createNextEpochPersister", "persister", ps.identifier, "error", err.Error())
+		return
+	}
+
+	newPersister := &persisterData{
+		persister: db,
+		epoch:     epoch,
+		path:      filePath,
+		isClosed:  false,
+	}
+
+	ps.persistersMapByEpoch[epoch] = newPersister
 }
 
 func (ps *PruningStorer) removeOldPersistersIfNeeded(header data.HeaderHandler) error {
