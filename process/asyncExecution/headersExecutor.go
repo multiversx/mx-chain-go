@@ -65,22 +65,48 @@ func (he *headersExecutor) start(ctx context.Context) {
 				return
 			}
 
-			he.process(headerBodyPair)
+			err := he.process(headerBodyPair)
+			if err != nil {
+				he.handleProcessError(ctx, headerBodyPair)
+			}
 		}
 	}
 }
 
-// TODO: analyze whether retry logic is needed in case of process errors
-func (he *headersExecutor) process(pair queue.HeaderBodyPair) {
+func (he *headersExecutor) handleProcessError(ctx context.Context, pair queue.HeaderBodyPair) {
+	for {
+		pairFromQueue, ok := he.blocksQueue.Peak()
+		if ok && pairFromQueue.Header.GetNonce() == pair.Header.GetNonce() {
+			// continue the processing (pop the next header from queue)
+			return
+		}
+		select {
+		case <-ctx.Done():
+			return
+		default:
+			// retry with the same pair
+			err := he.process(pair)
+			if err == nil {
+				return
+			}
+		}
+	}
+}
+
+func (he *headersExecutor) process(pair queue.HeaderBodyPair) error {
 	executionResult, err := he.blockProcessor.ProcessBlock(pair.Header, pair.Body)
 	if err != nil {
 		log.Warn("headersExecutor.process process block failed", "err", err)
+		return err
 	}
 
 	err = he.executionTracker.AddExecutionResult(executionResult)
 	if err != nil {
 		log.Warn("headersExecutor.process add execution result failed", "err", err)
+		return err
 	}
+
+	return nil
 }
 
 // Close will close the blocks execution loop

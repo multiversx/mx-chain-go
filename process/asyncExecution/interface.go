@@ -7,6 +7,7 @@ import (
 
 type BlocksQueue interface {
 	Pop() (queue.HeaderBodyPair, bool)
+	Peak() (queue.HeaderBodyPair, bool)
 	IsInterfaceNil() bool
 	Close()
 }

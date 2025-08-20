@@ -1,6 +1,8 @@
 package asyncExecution
 
 import (
+	"errors"
+	"sync"
 	"testing"
 	"time"
 
@@ -100,4 +102,50 @@ func TestHeadersExecutor_StartAndClose(t *testing.T) {
 	require.Equal(t, 1, calledProcessBlock)
 	require.Equal(t, 1, calledAddExecutionResult)
 
+}
+
+func TestHeadersExecutor_ProcessBlockError(t *testing.T) {
+	t.Parallel()
+
+	args := createMockArgs()
+	blocksQueue, _ := queue.NewBlocksQueue()
+	count := 0
+	countAddResult := 0
+	args.BlocksQueue = blocksQueue
+	wg := &sync.WaitGroup{}
+	wg.Add(1)
+	args.BlockProcessor = &processMocks.BlockProcessorStub{
+		ProcessBlockCalled: func(handler data.HeaderHandler, body data.BodyHandler) (data.ExecutionResultHandler, error) {
+			if count == 1 {
+				return nil, nil
+			}
+			count++
+			return nil, errors.New("local error")
+		},
+	}
+	args.ExecutionTracker = &processMocks.ExecutionTrackerStub{
+		AddExecutionResultCalled: func(executionResult data.ExecutionResultHandler) error {
+			countAddResult++
+			wg.Done()
+			return nil
+		},
+	}
+
+	executor, err := NewHeadersExecutor(args)
+	require.NoError(t, err)
+
+	executor.StartExecution()
+
+	err = blocksQueue.AddOrReplace(queue.HeaderBodyPair{
+		Header: &block.Header{
+			Nonce: 1,
+		},
+		Body: &block.Body{},
+	})
+	require.NoError(t, err)
+
+	wg.Wait()
+	err = executor.Close()
+	require.NoError(t, err)
+	require.Equal(t, 1, countAddResult)
 }

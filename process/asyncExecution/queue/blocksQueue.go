@@ -104,6 +104,19 @@ func (bq *blocksQueue) Pop() (HeaderBodyPair, bool) {
 	return HeaderBodyPair{}, false
 }
 
+// Peak returns the first element from queue
+func (bq *blocksQueue) Peak() (HeaderBodyPair, bool) {
+	bq.mutex.Lock()
+	defer bq.mutex.Unlock()
+
+	if bq.closed || len(bq.headerBodyPairs) == 0 {
+		return HeaderBodyPair{}, false
+	}
+
+	return bq.headerBodyPairs[0], true
+
+}
+
 // Close will close the queue
 func (bq *blocksQueue) Close() {
 	bq.mutex.Lock()
