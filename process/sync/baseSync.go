@@ -89,7 +89,6 @@ type baseBootstrap struct {
 	statusHandler core.AppStatusHandler
 
 	chStopSync chan bool
-	waitTime   time.Duration
 
 	mutNodeState          sync.RWMutex
 	isNodeSynchronized    bool
@@ -132,6 +131,17 @@ type baseBootstrap struct {
 	processWaitTime              time.Duration
 
 	repopulateTokensSupplies bool
+}
+
+// TODO: remove this handling after async exec
+func (boot *baseBootstrap) getProcessWaitTime() time.Duration {
+	if boot.enableRoundsHandler.IsFlagEnabled(common.SupernovaRoundFlag) {
+		processWaitTimeMs := boot.processWaitTime.Milliseconds()
+
+		return time.Duration(processWaitTimeMs/10) * time.Millisecond
+	}
+
+	return boot.processWaitTime
 }
 
 // setRequestedHeaderNonce method sets the header nonce requested by the sync mechanism
@@ -391,12 +401,16 @@ func (boot *baseBootstrap) getEpochOfCurrentBlock() uint32 {
 	return epoch
 }
 
+func (boot *baseBootstrap) getWaitTime() time.Duration {
+	return boot.roundHandler.TimeDuration()
+}
+
 // waitForHeaderAndProofByNonce method wait for header with the requested nonce to be received
 func (boot *baseBootstrap) waitForHeaderAndProofByNonce() error {
 	select {
 	case <-boot.chRcvHdrNonce:
 		return nil
-	case <-time.After(boot.waitTime):
+	case <-time.After(boot.getWaitTime()):
 		return process.ErrTimeIsOut
 	}
 }
@@ -406,7 +420,7 @@ func (boot *baseBootstrap) waitForHeaderAndProofByHash() error {
 	select {
 	case <-boot.chRcvHdrHash:
 		return nil
-	case <-time.After(boot.waitTime):
+	case <-time.After(boot.getWaitTime()):
 		return process.ErrTimeIsOut
 	}
 }
@@ -786,7 +800,7 @@ func (boot *baseBootstrap) syncBlock() error {
 	}
 
 	startTime := time.Now()
-	waitTime := boot.processWaitTime
+	waitTime := boot.getProcessWaitTime()
 	haveTime := func() time.Duration {
 		return waitTime - time.Since(startTime)
 	}
@@ -1529,7 +1543,7 @@ func (boot *baseBootstrap) waitForMiniBlocks() error {
 	select {
 	case <-boot.chRcvMiniBlocks:
 		return nil
-	case <-time.After(boot.waitTime):
+	case <-time.After(boot.getWaitTime()):
 		return process.ErrTimeIsOut
 	}
 }
