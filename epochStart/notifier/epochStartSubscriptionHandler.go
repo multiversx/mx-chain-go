@@ -8,6 +8,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
 
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/epochStart"
 )
 
@@ -78,10 +79,28 @@ func (essh *epochStartSubscriptionHandler) UnregisterHandler(handlerToUnregister
 
 // NotifyAll will call all the subscribed functions from the internal slice
 func (essh *epochStartSubscriptionHandler) NotifyAll(hdr data.HeaderHandler) {
+	storerHandlers := make([]epochStart.ActionHandler, 0)
+	otherHandlers := make([]epochStart.ActionHandler, 0)
+
 	essh.mutEpochStartHandler.RLock()
 	for i := 0; i < len(essh.epochStartHandlers); i++ {
-		essh.epochStartHandlers[i].EpochStartAction(hdr)
+		if essh.epochStartHandlers[i].NotifyOrder() == common.StorerOrder {
+			storerHandlers = append(storerHandlers, essh.epochStartHandlers[i])
+		}
+
+		otherHandlers = append(otherHandlers, essh.epochStartHandlers[i])
 	}
+
+	go func() {
+		for i := 0; i < len(storerHandlers); i++ {
+			storerHandlers[i].EpochStartAction(hdr)
+		}
+	}()
+
+	for i := 0; i < len(otherHandlers); i++ {
+		otherHandlers[i].EpochStartAction(hdr)
+	}
+
 	essh.mutEpochStartHandler.RUnlock()
 }
 
