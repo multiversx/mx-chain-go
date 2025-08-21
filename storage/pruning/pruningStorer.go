@@ -746,6 +746,8 @@ func (ps *PruningStorer) registerHandler(handler EpochStartNotifier) {
 			if err != nil {
 				log.Warn("change epoch in storer", "error", err.Error())
 			}
+
+			go ps.createNextEpochPersisterIfNeeded(hdr.GetEpoch())
 		},
 		func(metaHdr data.HeaderHandler) {
 			err := ps.saveHeaderForEpochStartPrepare(metaHdr)
@@ -795,8 +797,6 @@ func (ps *PruningStorer) changeEpoch(header data.HeaderHandler) error {
 		}
 		log.Debug("change epoch pruning storer success", "persister", ps.identifier, "epoch", epoch)
 
-		go ps.createNextEpochPersisterIfNeeded(epoch, shardID)
-
 		return ps.removeOldPersistersIfNeeded(header)
 	}
 
@@ -819,15 +819,10 @@ func (ps *PruningStorer) changeEpoch(header data.HeaderHandler) error {
 	ps.activePersisters = append(singleItemPersisters, ps.activePersisters...)
 	ps.persistersMapByEpoch[epoch] = newPersister
 
-	go ps.createNextEpochPersisterIfNeeded(epoch, shardID)
-
 	return ps.removeOldPersistersIfNeeded(header)
 }
 
-func (ps *PruningStorer) createNextEpochPersisterIfNeeded(
-	epoch uint32,
-	shardID string,
-) {
+func (ps *PruningStorer) createNextEpochPersisterIfNeeded(epoch uint32) {
 	epoch++
 
 	_, ok := ps.persistersMapByEpoch[epoch]
@@ -836,6 +831,7 @@ func (ps *PruningStorer) createNextEpochPersisterIfNeeded(
 		return
 	}
 
+	shardID := core.GetShardIDString(ps.shardCoordinator.SelfId())
 	filePath := ps.pathManager.PathForEpoch(shardID, epoch, ps.identifier)
 	db, err := ps.persisterFactory.Create(filePath)
 	if err != nil {
