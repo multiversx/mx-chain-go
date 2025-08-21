@@ -33,7 +33,9 @@ func (wrappedTx *WrappedTransaction) precomputeFields(host MempoolHost) {
 
 	gasLimit := wrappedTx.Tx.GetGasLimit()
 	if gasLimit != 0 {
-		wrappedTx.PricePerUnit = wrappedTx.Fee.Uint64() / gasLimit
+		pricePerUnit := big.NewInt(0)
+		_ = pricePerUnit.Div(wrappedTx.Fee, big.NewInt(int64(gasLimit)))
+		wrappedTx.PricePerUnit = pricePerUnit.Uint64()
 	}
 
 	wrappedTx.TransferredValue = host.GetTransferredValue(wrappedTx.Tx)

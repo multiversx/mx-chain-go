@@ -151,6 +151,7 @@ func (cache *TxCache) SelectTransactions(
 		"gas", accumulatedGas,
 	)
 
+	// TODO discuss if this is still needed. If yes, maybe add a throttler
 	go cache.diagnoseCounters()
 	go displaySelectionOutcome(logSelect, "selection", transactions)
 
