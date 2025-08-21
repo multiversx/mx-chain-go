@@ -28,6 +28,7 @@ import (
 	"github.com/multiversx/mx-chain-go/storage/pruning"
 	"github.com/multiversx/mx-chain-go/storage/storageunit"
 	"github.com/multiversx/mx-chain-go/testscommon"
+	storateMocks "github.com/multiversx/mx-chain-go/testscommon/storage"
 	logger "github.com/multiversx/mx-chain-logger-go"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -1316,6 +1317,109 @@ func TestPruningStorer_RemoveFromCurrentEpoch(t *testing.T) {
 	recovered, errGet := ps.GetFromEpoch(key, 4)
 	assert.Nil(t, errGet)
 	assert.Equal(t, value, recovered)
+}
+
+func TestPruningStorer_CreateNextEpochPersisterIfNeeded(t *testing.T) {
+	t.Parallel()
+
+	t.Run("should not create if persister already in map", func(t *testing.T) {
+		t.Parallel()
+
+		args := getDefaultArgs()
+
+		args.PersistersTracker = &storateMocks.PersistersTrackerStub{
+			HasInitializedEnoughPersistersCalled: func(epoch int64) bool {
+				return true
+			},
+		}
+
+		args.PersisterFactory = &mock.PersisterFactoryStub{
+			CreateCalled: func(path string) (storage.Persister, error) {
+				require.Fail(t, "should have not beed called")
+				return nil, nil
+			},
+		}
+		args.EpochsData.NumOfActivePersisters = 3
+		args.EpochsData.NumOfEpochsToKeep = 4
+
+		ps, _ := pruning.NewPruningStorer(args)
+
+		mockPersister0 := &mock.PersisterStub{}
+		ps.AddMockActivePersister(2, mockPersister0)
+		ps.AddMockActivePersister(3, mockPersister0)
+
+		ps.CreateNextEpochPersisterIfNeeded(2)
+	})
+
+	t.Run("should work", func(t *testing.T) {
+		t.Parallel()
+
+		args := getDefaultArgs()
+		args.CustomDatabaseRemover = &testscommon.CustomDatabaseRemoverStub{
+			ShouldRemoveCalled: func(dbIdentifier string, epoch uint32) bool {
+				return true
+			},
+		}
+
+		args.EpochsData.NumOfActivePersisters = 3
+		args.EpochsData.NumOfEpochsToKeep = 4
+
+		ps, _ := pruning.NewPruningStorer(args)
+
+		_ = ps.ChangeEpochSimple(1)
+		_ = ps.ChangeEpochSimple(2)
+		_ = ps.ChangeEpochSimple(3)
+		_ = ps.ChangeEpochSimple(4)
+
+		activeEpochs := ps.GetActivePersistersEpochs()
+		assert.Equal(t, 3, len(activeEpochs))
+
+		epochs := ps.GetPersistersEpochs()
+		assert.Equal(t, 4, len(epochs))
+
+		ps.CreateNextEpochPersisterIfNeeded(4)
+
+		activeEpochs = ps.GetActivePersistersEpochs()
+		assert.Equal(t, 3, len(activeEpochs))
+
+		epochs = ps.GetPersistersEpochs()
+		assert.Equal(t, 5, len(epochs))
+
+		metaBlock := &block.MetaBlock{
+			EpochStart: block.EpochStart{
+				LastFinalizedHeaders: []block.EpochStartShardData{{Epoch: 3}},
+				Economics:            block.Economics{},
+			},
+			Epoch: 5,
+		}
+		_ = ps.ChangeEpoch(metaBlock)
+
+		ps.CreateNextEpochPersisterIfNeeded(5)
+
+		activeEpochs = ps.GetActivePersistersEpochs()
+		assert.Equal(t, 3, len(activeEpochs))
+
+		epochs = ps.GetPersistersEpochs()
+		assert.Equal(t, 5, len(epochs))
+
+		metaBlock = &block.MetaBlock{
+			EpochStart: block.EpochStart{
+				LastFinalizedHeaders: []block.EpochStartShardData{{Epoch: 4}},
+				Economics:            block.Economics{},
+			},
+			Epoch: 6,
+		}
+		_ = ps.ChangeEpoch(metaBlock)
+
+		// called for an old epoch, should not affect
+		ps.CreateNextEpochPersisterIfNeeded(5)
+
+		activeEpochs = ps.GetActivePersistersEpochs()
+		assert.Equal(t, 3, len(activeEpochs))
+
+		epochs = ps.GetPersistersEpochs()
+		assert.Equal(t, 4, len(epochs))
+	})
 }
 
 func TestPruningStorer_IsInterfaceNil(t *testing.T) {
