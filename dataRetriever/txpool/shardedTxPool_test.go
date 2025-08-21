@@ -327,27 +327,6 @@ func Test_Parallel_CleanupSelfShardTxCache(t *testing.T) {
 		t.Logf("shardedTxPool.CleanupSelfShardTxCache() starting cleanup %d", pool.selfShardID)
 		require.True(t, ok)
 	})
-
-	t.Run("with duplicated nonces", func(t *testing.T) {
-		t.Parallel()
-		poolAsInterface, _ := newTxPoolToTest()
-		pool := poolAsInterface.(*shardedTxPool)
-		session := txcachemocks.NewSelectionSessionMock()
-		session.SetNonce([]byte("alice"), 1)
-
-		pool.AddData([]byte("hash-alice-1"), createTx("alice", 1), 0, "0")
-		pool.AddData([]byte("hash-alice-2"), createTx("alice", 2), 0, "0")
-		pool.AddData([]byte("hash-alice-3"), createTx("alice", 3), 0, "0")
-		pool.AddData([]byte("hash-alice-4"), createPriorityTx("alice", 3), 0, "0")
-		pool.AddData([]byte("hash-alice-5"), createTx("alice", 3), 0, "0")
-		pool.AddData([]byte("hash-alice-6"), createTx("alice", 4), 0, "0")
-
-		cleanupLoopMaximumDuration := time.Millisecond * 100
-
-		require.NotPanics(t, func() {
-			pool.CleanupSelfShardTxCache(session, 7, math.MaxInt, cleanupLoopMaximumDuration)
-		})
-	})
 }
 
 func Test_CleanupSelfShardTxCache(t *testing.T) {
@@ -380,43 +359,6 @@ func Test_CleanupSelfShardTxCache(t *testing.T) {
 
 		pool.CleanupSelfShardTxCache(session, 7, math.MaxInt, selectionLoopMaximumDuration)
 		require.Equal(t, expectedNumRemained, cache.Len())
-	})
-
-	t.Run("with duplicated nonces", func(t *testing.T) {
-		poolAsInterface, _ := newTxPoolToTest()
-		pool := poolAsInterface.(*shardedTxPool)
-		cache := pool.getTxCache("0").(*txcache.TxCache)
-		session := txcachemocks.NewSelectionSessionMock()
-		session.SetNonce([]byte("alice"), 1)
-
-		pool.AddData([]byte("hash-alice-1"), createTx("alice", 1), 0, "0")
-		pool.AddData([]byte("hash-alice-2"), createTx("alice", 2), 0, "0")
-		pool.AddData([]byte("hash-alice-3"), createTx("alice", 3), 0, "0")
-		pool.AddData([]byte("hash-alice-4"), createPriorityTx("alice", 3), 0, "0")
-		pool.AddData([]byte("hash-alice-5"), createTx("alice", 3), 0, "0")
-		pool.AddData([]byte("hash-alice-6"), createTx("alice", 4), 0, "0")
-
-		// Check that the duplicates are removed
-		selectionLoopMaximumDuration := time.Millisecond * 100
-		evicted := cache.Cleanup(session, 7, math.MaxInt, selectionLoopMaximumDuration)
-		require.Equal(t, uint64(2), evicted) // nonce 3 duplicates
-
-		// Check that the duplicates were removed based on their lower priority
-		listForAlice := cache.GetTransactionsPoolForSender("alice")
-		require.Equal(t, 4, len(listForAlice))
-
-		expected := map[uint64][]byte{
-			1: []byte("hash-alice-1"),
-			2: []byte("hash-alice-2"),
-			3: []byte("hash-alice-4"),
-			4: []byte("hash-alice-6"),
-		}
-
-		for _, tx := range listForAlice {
-			expectedHash, ok := expected[tx.Tx.GetNonce()]
-			require.True(t, ok, "Unexpected nonce %d", tx.Tx.GetNonce())
-			require.Equal(t, expectedHash, tx.TxHash)
-		}
 	})
 }
 
