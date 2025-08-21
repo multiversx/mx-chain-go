@@ -16,6 +16,7 @@ type HeadersForBlockMock struct {
 	GetHeaderInfoCalled          func(hash string) (headerForBlock.HeaderInfo, bool)
 	GetHeadersInfoMapCalled      func() map[string]headerForBlock.HeaderInfo
 	GetHeadersMapCalled          func() map[string]data.HeaderHandler
+	GetMissingDataCalled         func() (uint32, uint32, uint32)
 	ResetCalled                  func()
 }
 
@@ -74,6 +75,15 @@ func (mock *HeadersForBlockMock) GetHeadersMap() map[string]data.HeaderHandler {
 	}
 
 	return nil
+}
+
+// GetMissingData -
+func (mock *HeadersForBlockMock) GetMissingData() (uint32, uint32, uint32) {
+	if mock.GetMissingDataCalled != nil {
+		return mock.GetMissingDataCalled()
+	}
+
+	return 0, 0, 0
 }
 
 // Reset -

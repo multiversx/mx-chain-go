@@ -185,15 +185,6 @@ func (hfb *headersForBlock) resetMissingHeaders() {
 	hfb.missingProofs = 0
 }
 
-func (hfb *headersForBlock) setHeader(hash string, header data.HeaderHandler) {
-	_, ok := hfb.hdrHashAndInfo[hash]
-	if !ok {
-		hfb.hdrHashAndInfo[hash] = newEmptyHeaderInfo()
-	}
-
-	hfb.hdrHashAndInfo[hash].SetHeader(header)
-}
-
 func (hfb *headersForBlock) setHasProof(hash string) {
 	_, ok := hfb.hdrHashAndInfo[hash]
 	if !ok {
@@ -233,6 +224,14 @@ func (hfb *headersForBlock) RequestMetaHeaders(shardHeader data.ShardHeaderHandl
 	}
 
 	hfb.computeExistingAndRequestMissingMetaHeaders(shardHeader)
+}
+
+// GetMissingData returns the missing data
+func (hfb *headersForBlock) GetMissingData() (uint32, uint32, uint32) {
+	hfb.mutHdrsForBlock.RLock()
+	defer hfb.mutHdrsForBlock.RUnlock()
+
+	return hfb.missingHdrs, hfb.missingProofs, hfb.missingFinalityAttestingHdrs
 }
 
 // WaitForHeadersIfNeeded waits for any missing headers
@@ -401,7 +400,6 @@ func (hfb *headersForBlock) requestProofIfNeeded(currentHeaderHash []byte, heade
 		return true
 	}
 
-	hfb.setHeader(string(currentHeaderHash), header)
 	hfb.setHasProofRequested(string(currentHeaderHash))
 	go hfb.requestHandler.RequestEquivalentProofByHash(header.GetShardID(), currentHeaderHash)
 
@@ -478,6 +476,7 @@ func (hfb *headersForBlock) checkReceivedProofIfAttestingIsNeeded(proof data.Hea
 	}
 
 	hfb.setHasProof(hashStr)
+	hfb.missingProofs--
 
 	missingHdrs := hfb.missingHdrs
 	missingFinalityAttestingHdrs := hfb.missingFinalityAttestingHdrs
@@ -518,7 +517,7 @@ func (hfb *headersForBlock) receivedShardBlock(headerHandler data.HeaderHandler,
 		hasProofRequested := headerInfoIsNotNil && hdrInfoForHash.HasProofRequested()
 		if headerIsMissing {
 			hdrInfoForHash.SetHeader(shardHeader)
-			hfb.missingHdrs++
+			hfb.missingHdrs--
 
 			if shardHeader.GetNonce() > hfb.highestHdrNonce[shardHeader.GetShardID()] {
 				hfb.highestHdrNonce[shardHeader.GetShardID()] = shardHeader.GetNonce()

@@ -38,6 +38,7 @@ type HeadersForBlock interface {
 	GetHeaderInfo(hash string) (headerForBlock.HeaderInfo, bool)
 	GetHeadersInfoMap() map[string]headerForBlock.HeaderInfo
 	GetHeadersMap() map[string]data.HeaderHandler
+	GetMissingData() (uint32, uint32, uint32)
 	Reset()
 	IsInterfaceNil() bool
 }
