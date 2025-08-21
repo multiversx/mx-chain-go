@@ -2,7 +2,6 @@ package notifier
 
 import (
 	"runtime/debug"
-	"sort"
 	"sync"
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
@@ -57,9 +56,6 @@ func (essh *epochStartSubscriptionHandler) RegisterHandler(handler epochStart.Ac
 	}
 
 	essh.epochStartHandlers = append(essh.epochStartHandlers, handler)
-	sort.Slice(essh.epochStartHandlers, func(i, j int) bool {
-		return essh.epochStartHandlers[i].NotifyOrder() < essh.epochStartHandlers[j].NotifyOrder()
-	})
 }
 
 // UnregisterHandler will unsubscribe a function from the slice
