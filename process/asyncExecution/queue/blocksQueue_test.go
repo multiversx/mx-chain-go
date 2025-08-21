@@ -203,3 +203,36 @@ func TestAddWrongNonce(t *testing.T) {
 	err = hq.AddOrReplace(pair)
 	require.True(t, errors.Is(err, ErrHeaderNonceMismatch))
 }
+
+func TestBlocksQueue_Peak(t *testing.T) {
+	t.Parallel()
+
+	t.Run("peak should return first element", func(t *testing.T) {
+		t.Parallel()
+
+		hq, _ := NewBlocksQueue()
+		pair1 := HeaderBodyPair{Header: &block.Header{Nonce: uint64(1)}, Body: &block.Body{}}
+		err := hq.AddOrReplace(pair1)
+		require.Nil(t, err)
+
+		pair2 := HeaderBodyPair{Header: &block.Header{Nonce: uint64(2)}, Body: &block.Body{}}
+		err = hq.AddOrReplace(pair2)
+		require.Nil(t, err)
+
+		res, ok := hq.Peak()
+		require.True(t, ok)
+		require.Equal(t, pair1, res)
+		require.Equal(t, 2, len(hq.headerBodyPairs))
+	})
+
+	t.Run("peak emtpy queue", func(t *testing.T) {
+		t.Parallel()
+
+		hq, _ := NewBlocksQueue()
+
+		_, ok := hq.Peak()
+		require.False(t, ok)
+
+	})
+
+}
