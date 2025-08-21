@@ -1,6 +1,8 @@
 package queue
 
 import (
+	"errors"
+	"sync"
 	"testing"
 	"time"
 
@@ -108,12 +110,19 @@ func TestHeadersQueue_Concurrency(t *testing.T) {
 
 	done := make(chan struct{})
 
+	var nonceCounter uint64
+	writeMutex := &sync.Mutex{}
 	for i := 0; i < numGoroutines; i++ {
 		go func(gid int) {
 			for j := 0; j < headersPerGoroutine; j++ {
-				h := &block.Header{Nonce: uint64(gid*headersPerGoroutine + j)}
+				writeMutex.Lock()
+				h := &block.Header{Nonce: nonceCounter}
 				pair := HeaderBodyPair{Header: h, Body: &block.Body{}}
-				_ = hq.AddOrReplace(pair)
+
+				err := hq.AddOrReplace(pair)
+				require.Nil(t, err)
+				nonceCounter++
+				writeMutex.Unlock()
 			}
 			done <- struct{}{}
 		}(i)
@@ -180,4 +189,17 @@ func TestMultipleAddOrReplaceShouldNotBlock(t *testing.T) {
 	res, ok := hq.Pop()
 	require.True(t, ok)
 	require.Equal(t, uint64(0), res.Header.GetNonce())
+}
+
+func TestAddWrongNonce(t *testing.T) {
+	t.Parallel()
+
+	hq, _ := NewBlocksQueue()
+	pair := HeaderBodyPair{Header: &block.Header{Nonce: uint64(1)}, Body: &block.Body{}}
+	err := hq.AddOrReplace(pair)
+	require.Nil(t, err)
+
+	pair = HeaderBodyPair{Header: &block.Header{Nonce: uint64(3)}, Body: &block.Body{}}
+	err = hq.AddOrReplace(pair)
+	require.True(t, errors.Is(err, ErrHeaderNonceMismatch))
 }

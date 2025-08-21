@@ -1,6 +1,7 @@
 package queue
 
 import (
+	"fmt"
 	"sync"
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
@@ -50,10 +51,22 @@ func (bq *blocksQueue) AddOrReplace(pair HeaderBodyPair) error {
 	}
 
 	lastIndex := len(bq.headerBodyPairs) - 1
-	if lastIndex >= 0 && bq.headerBodyPairs[lastIndex].Header.GetNonce() == pair.Header.GetNonce() {
-		// if the last header from queue has the same nonce, we should replace it with the current pair
-		bq.headerBodyPairs[lastIndex] = pair
+	if lastIndex >= 0 {
+		lastHeaderNonce := bq.headerBodyPairs[lastIndex].Header.GetNonce()
+		switch {
+		case lastHeaderNonce == pair.Header.GetNonce():
+			// Replace the last pair if the nonce is the same
+			bq.headerBodyPairs[lastIndex] = pair
+		case lastHeaderNonce != pair.Header.GetNonce()-1:
+			// Nonce mismatch
+			return fmt.Errorf("%w: last header nonce: %d, current header nonce %d",
+				ErrHeaderNonceMismatch, lastHeaderNonce, pair.Header.GetNonce())
+		default:
+			// Append if nonce is sequential
+			bq.headerBodyPairs = append(bq.headerBodyPairs, pair)
+		}
 	} else {
+		// Queue is empty, append
 		bq.headerBodyPairs = append(bq.headerBodyPairs, pair)
 	}
 

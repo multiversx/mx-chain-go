@@ -107,45 +107,107 @@ func TestHeadersExecutor_StartAndClose(t *testing.T) {
 func TestHeadersExecutor_ProcessBlockError(t *testing.T) {
 	t.Parallel()
 
-	args := createMockArgs()
-	blocksQueue, _ := queue.NewBlocksQueue()
-	count := 0
-	countAddResult := 0
-	args.BlocksQueue = blocksQueue
-	wg := &sync.WaitGroup{}
-	wg.Add(1)
-	args.BlockProcessor = &processMocks.BlockProcessorStub{
-		ProcessBlockCalled: func(handler data.HeaderHandler, body data.BodyHandler) (data.ExecutionResultHandler, error) {
-			if count == 1 {
-				return nil, nil
-			}
-			count++
-			return nil, errors.New("local error")
-		},
-	}
-	args.ExecutionTracker = &processMocks.ExecutionTrackerStub{
-		AddExecutionResultCalled: func(executionResult data.ExecutionResultHandler) error {
-			countAddResult++
-			wg.Done()
-			return nil
-		},
-	}
+	t.Run("block processing error, after retry should work", func(t *testing.T) {
+		args := createMockArgs()
+		blocksQueue, _ := queue.NewBlocksQueue()
+		count := 0
+		countAddResult := 0
+		args.BlocksQueue = blocksQueue
+		wg := &sync.WaitGroup{}
+		wg.Add(1)
+		args.BlockProcessor = &processMocks.BlockProcessorStub{
+			ProcessBlockCalled: func(handler data.HeaderHandler, body data.BodyHandler) (data.ExecutionResultHandler, error) {
+				if count == 1 {
+					return nil, nil
+				}
+				count++
+				return nil, errors.New("local error")
+			},
+		}
+		args.ExecutionTracker = &processMocks.ExecutionTrackerStub{
+			AddExecutionResultCalled: func(executionResult data.ExecutionResultHandler) error {
+				countAddResult++
+				wg.Done()
+				return nil
+			},
+		}
 
-	executor, err := NewHeadersExecutor(args)
-	require.NoError(t, err)
+		executor, err := NewHeadersExecutor(args)
+		require.NoError(t, err)
 
-	executor.StartExecution()
+		executor.StartExecution()
 
-	err = blocksQueue.AddOrReplace(queue.HeaderBodyPair{
-		Header: &block.Header{
-			Nonce: 1,
-		},
-		Body: &block.Body{},
+		err = blocksQueue.AddOrReplace(queue.HeaderBodyPair{
+			Header: &block.Header{
+				Nonce: 1,
+			},
+			Body: &block.Body{},
+		})
+		require.NoError(t, err)
+
+		wg.Wait()
+		err = executor.Close()
+		require.NoError(t, err)
+		require.Equal(t, 1, countAddResult)
 	})
-	require.NoError(t, err)
 
-	wg.Wait()
-	err = executor.Close()
-	require.NoError(t, err)
-	require.Equal(t, 1, countAddResult)
+	t.Run("block processing error, pop header for queue with the same nonce", func(t *testing.T) {
+		args := createMockArgs()
+		blocksQueue, _ := queue.NewBlocksQueue()
+
+		count := 0
+		countAddResult := 0
+		args.BlocksQueue = blocksQueue
+		wg := &sync.WaitGroup{}
+		wg.Add(1)
+		args.BlockProcessor = &processMocks.BlockProcessorStub{
+			ProcessBlockCalled: func(handler data.HeaderHandler, body data.BodyHandler) (data.ExecutionResultHandler, error) {
+				time.Sleep(time.Millisecond)
+				if handler.GetRound() == 1 {
+					return nil, errors.New("local error")
+				}
+
+				count++
+				return nil, nil
+			},
+		}
+		args.ExecutionTracker = &processMocks.ExecutionTrackerStub{
+			AddExecutionResultCalled: func(executionResult data.ExecutionResultHandler) error {
+				countAddResult++
+				wg.Done()
+				return nil
+			},
+		}
+
+		executor, err := NewHeadersExecutor(args)
+		require.NoError(t, err)
+
+		executor.StartExecution()
+
+		err = blocksQueue.AddOrReplace(queue.HeaderBodyPair{
+			Header: &block.Header{
+				Nonce: 1,
+				Round: 1,
+			},
+			Body: &block.Body{},
+		})
+		require.NoError(t, err)
+
+		time.Sleep(time.Millisecond)
+		err = blocksQueue.AddOrReplace(queue.HeaderBodyPair{
+			Header: &block.Header{
+				Nonce: 1,
+				Round: 2,
+			},
+			Body: &block.Body{},
+		})
+		require.NoError(t, err)
+
+		wg.Wait()
+
+		require.Equal(t, 1, count)
+		_, ok := blocksQueue.Peak()
+		// check if queue is empty
+		require.False(t, ok)
+	})
 }
