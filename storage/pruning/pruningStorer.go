@@ -58,7 +58,7 @@ func (pd *persisterData) setIsClosed(closed bool) {
 // Close closes the underlying persister
 func (pd *persisterData) Close() error {
 	pd.setIsClosed(true)
-	err := pd.persister.Close()
+	err := pd.getPersister().Close()
 	return err
 }
 
@@ -239,7 +239,7 @@ func initPersistersInEpoch(
 		persistersMapByEpoch[uint32(epoch)] = p
 
 		ShouldClosePersister := args.PersistersTracker.ShouldClosePersister(epoch)
-		args.PersistersTracker.CollectPersisterData(p.persister)
+		args.PersistersTracker.CollectPersisterData(p.getPersister())
 
 		if ShouldClosePersister {
 			err = p.Close()
@@ -252,7 +252,32 @@ func initPersistersInEpoch(
 		}
 	}
 
+	initNextEpochPersisterIfNeeded(args, shardIDStr, persistersMapByEpoch)
+
 	return persisters, persistersMapByEpoch, nil
+}
+
+func initNextEpochPersisterIfNeeded(
+	args StorerArgs,
+	shardIDStr string,
+	persistersMapByEpoch map[uint32]*persisterData,
+) {
+	epoch := args.EpochsData.StartingEpoch
+	epoch++
+
+	_, ok := persistersMapByEpoch[epoch]
+	if ok {
+		log.Warn("createNextEpochPersisterIsNeeded: persister already in map", "epoch", epoch)
+		return
+	}
+
+	p, err := createPersisterDataForEpoch(args, uint32(epoch), shardIDStr)
+	if err != nil {
+		log.Warn("createNextEpochPersisterIsNeeded", "epoch", epoch, "error", err.Error())
+		return
+	}
+
+	persistersMapByEpoch[uint32(epoch)] = p
 }
 
 func createPersisterIfPruningDisabled(
@@ -449,7 +474,7 @@ func (ps *PruningStorer) Get(key []byte) ([]byte, error) {
 	for idx := 0; idx < len(ps.activePersisters); idx++ {
 		ps.stateStatsHandler.IncrPersister(ps.activePersisters[idx].epoch)
 
-		val, err := ps.activePersisters[idx].persister.Get(key)
+		val, err := ps.activePersisters[idx].getPersister().Get(key)
 		if err != nil {
 			if errors.Is(err, storage.ErrDBIsClosed) {
 				numClosedDbs++
@@ -655,7 +680,7 @@ func (ps *PruningStorer) RemoveFromCurrentEpoch(key []byte) error {
 	persisterToUse := ps.activePersisters[0]
 
 	ps.stateStatsHandler.IncrWritePersister(persisterToUse.epoch)
-	return persisterToUse.persister.Remove(key)
+	return persisterToUse.getPersister().Remove(key)
 }
 
 // Remove removes the data associated to the given key from both cache and persistence medium
@@ -667,7 +692,7 @@ func (ps *PruningStorer) Remove(key []byte) error {
 	defer ps.lock.RUnlock()
 	for _, pd := range ps.activePersisters {
 		ps.stateStatsHandler.IncrWritePersister(pd.epoch)
-		err = pd.persister.Remove(key)
+		err = pd.getPersister().Remove(key)
 		if err == nil {
 			return nil
 		}
@@ -838,7 +863,7 @@ func (ps *PruningStorer) createNextEpochPersisterIfNeeded(epoch uint32) {
 	filePath := ps.pathManager.PathForEpoch(shardID, epoch, ps.identifier)
 	db, err := ps.persisterFactory.Create(filePath)
 	if err != nil {
-		log.Warn("createNextEpochPersister", "persister", ps.identifier, "error", err.Error())
+		log.Warn("createNextEpochPersisterIsNeeded", "persister", ps.identifier, "error", err.Error())
 		return
 	}
 

@@ -1193,6 +1193,10 @@ func TestPruningStorer_GetOldestEpoch(t *testing.T) {
 		args.PersistersTracker = pruning.NewPersistersTracker(epochsData)
 		ps, _ := pruning.NewPruningStorer(args)
 
+		// on init, it will create persister for next epoch in advance so
+		// we have to clear all persisters from map for this test
+		ps.ClearPersisters()
+
 		epoch, err := ps.GetOldestEpoch()
 		assert.NotNil(t, err)
 		assert.Zero(t, epoch)
@@ -1333,10 +1337,14 @@ func TestPruningStorer_CreateNextEpochPersisterIfNeeded(t *testing.T) {
 			},
 		}
 
+		createCalls := 0
 		args.PersisterFactory = &mock.PersisterFactoryStub{
 			CreateCalled: func(path string) (storage.Persister, error) {
-				require.Fail(t, "should have not beed called")
-				return nil, nil
+				if createCalls > 1 {
+					require.Fail(t, "should have not beed called")
+				}
+
+				return &mock.PersisterStub{}, nil
 			},
 		}
 		args.EpochsData.NumOfActivePersisters = 3
