@@ -825,6 +825,9 @@ func (ps *PruningStorer) changeEpoch(header data.HeaderHandler) error {
 func (ps *PruningStorer) createNextEpochPersisterIfNeeded(epoch uint32) {
 	epoch++
 
+	ps.lock.Lock()
+	defer ps.lock.Unlock()
+
 	_, ok := ps.persistersMapByEpoch[epoch]
 	if ok {
 		log.Warn("createNextEpochPersisterIsNeeded: persister already in map", "persister", ps.identifier, "epoch", epoch)
