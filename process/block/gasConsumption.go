@@ -10,16 +10,19 @@ import (
 )
 
 // gasType defines the type of gas consumption
-type gasType string
+type gasType uint8
 
 const (
-	incoming               gasType = "incoming"
-	outgoingIntra          gasType = "outgoingIntra"
-	outgoingCross          gasType = "outgoingCross"
-	minPercentLimitsFactor         = uint64(10)  // 10%
-	maxPercentLimitsFactor         = uint64(500) // 500%
-	percentSplitBlock              = uint64(50)  // 50%
-	initialLastIndex               = -1
+	incoming gasType = iota
+	outgoingIntra
+	outgoingCross
+)
+
+const (
+	minPercentLimitsFactor = uint64(10)  // 10%
+	maxPercentLimitsFactor = uint64(500) // 500%
+	percentSplitBlock      = uint64(50)  // 50%
+	initialLastIndex       = -1
 )
 
 type txCheckResult struct {
