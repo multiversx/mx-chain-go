@@ -97,6 +97,11 @@ func (ps *PruningStorer) ChangeEpochSimple(epochNum uint32) error {
 	return ps.changeEpoch(&block.Header{Epoch: epochNum})
 }
 
+// CreateNextEpochPersisterIfNeeded -
+func (ps *PruningStorer) CreateNextEpochPersisterIfNeeded(epoch uint32) {
+	ps.createNextEpochPersisterIfNeeded(epoch)
+}
+
 // ChangeEpochWithExisting -
 func (ps *PruningStorer) ChangeEpochWithExisting(epoch uint32) error {
 	return ps.changeEpochWithExisting(epoch)
@@ -113,6 +118,23 @@ func (ps *PruningStorer) GetActivePersistersEpochs() []uint32 {
 	}
 
 	return sliceToRet
+}
+
+// GetPersistersEpochs -
+func (ps *PruningStorer) GetPersistersEpochs() []uint32 {
+	ps.lock.RLock()
+	defer ps.lock.RUnlock()
+
+	persistersEpochs := make([]uint32, 0)
+	for epoch := range ps.persistersMapByEpoch {
+		persistersEpochs = append(persistersEpochs, epoch)
+	}
+
+	sort.Slice(persistersEpochs, func(i, j int) bool {
+		return persistersEpochs[i] > persistersEpochs[j]
+	})
+
+	return persistersEpochs
 }
 
 // GetActivePersistersEpochs -
