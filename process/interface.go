@@ -1460,9 +1460,8 @@ type GasComputation interface {
 		miniBlocks []data.MiniBlockHeaderHandler,
 		transactions map[string][]data.TransactionHandler,
 	) (int, int, error)
-	CheckOutgoingTransactions(transactions []data.TransactionHandler) (int, error)
+	CheckOutgoingTransactions(transactions []data.TransactionHandler) ([]data.TransactionHandler, error)
 	GetLastMiniBlockIndexIncluded() int
-	GetLastTransactionIndexIncluded() int
 	TotalGasConsumed() uint64
 	DecreaseIncomingLimit()
 	DecreaseOutgoingLimit()

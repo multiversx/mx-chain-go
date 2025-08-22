@@ -1313,3 +1313,6 @@ var ErrTransactionsAlreadyProcessed = errors.New("transactions already processed
 
 // ErrMiniBlocksAlreadyProcessed signals that mini blocks were already processed
 var ErrMiniBlocksAlreadyProcessed = errors.New("mini blocks already processed")
+
+// ErrMiniBlocksNotProcessedYet signals that mini blocks were not processed yet
+var ErrMiniBlocksNotProcessedYet = errors.New("mini blocks not processed")
