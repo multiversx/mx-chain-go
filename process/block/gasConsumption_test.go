@@ -307,7 +307,7 @@ func TestGasConsumption_CheckOutgoingTransactions(t *testing.T) {
 		_, _, _ = gc.CheckIncomingMiniBlocks(mbs, txsInMBs)
 
 		addedTxs, err := gc.CheckOutgoingTransactions(generateTxs(maxGasLimitPerTx, 1))
-		require.Equal(t, expectedError, err)
+		require.NoError(t, err)
 		require.Zero(t, len(addedTxs))
 	})
 	t.Run("one tx exceeds the maximum gas limit per tx", func(t *testing.T) {
@@ -323,7 +323,7 @@ func TestGasConsumption_CheckOutgoingTransactions(t *testing.T) {
 		require.NoError(t, err)
 
 		addedTxs, err := gc.CheckOutgoingTransactions(generateTxs(maxGasLimitPerTx+1, 1))
-		require.Equal(t, process.ErrMaxGasLimitPerTransactionIsReached, err)
+		require.NoError(t, err)
 		require.Zero(t, len(addedTxs))
 	})
 	t.Run("should work within limits, no pending mbs", func(t *testing.T) {

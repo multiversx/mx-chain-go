@@ -27,7 +27,6 @@ const (
 
 type txCheckResult struct {
 	shouldSkipSender bool
-	shouldStop       bool
 	err              error
 }
 
@@ -270,9 +269,9 @@ func (gc *gasConsumption) CheckOutgoingTransactions(transactions []data.Transact
 			skippedSenders[string(transactions[i].GetSndAddr())] = struct{}{}
 			continue
 		}
-		if result.err != nil || result.shouldStop {
-			gc.isTransactionSelectionDone = true
-			return addedTransactions, result.err
+		if result.err != nil {
+			log.Warn("checkOutgoingTransaction failed", "error", result.err.Error())
+			continue
 		}
 
 		addedTransactions = append(addedTransactions, transactions[i])
@@ -292,7 +291,6 @@ func (gc *gasConsumption) checkOutgoingTransaction(
 	if check.IfNil(tx) {
 		return txCheckResult{
 			shouldSkipSender: false,
-			shouldStop:       false,
 			err:              nil,
 		}
 	}
@@ -302,8 +300,7 @@ func (gc *gasConsumption) checkOutgoingTransaction(
 	gasConsumedInSenderShard, gasConsumedInReceiverShard, err := gc.checkGasConsumedByTx(senderShard, receiverShard, tx)
 	if err != nil {
 		return txCheckResult{
-			shouldSkipSender: false,
-			shouldStop:       true,
+			shouldSkipSender: true,
 			err:              err,
 		}
 	}
@@ -312,14 +309,12 @@ func (gc *gasConsumption) checkOutgoingTransaction(
 	if shouldSkipSender {
 		return txCheckResult{
 			shouldSkipSender: true,
-			shouldStop:       false,
 			err:              nil,
 		}
 	}
 
 	return txCheckResult{
 		shouldSkipSender: false,
-		shouldStop:       false,
 		err:              nil,
 	}
 }
