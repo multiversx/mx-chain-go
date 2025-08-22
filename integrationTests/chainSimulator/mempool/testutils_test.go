@@ -32,7 +32,7 @@ var (
 	durationWaitAfterSendMany    = 7500 * time.Millisecond
 	durationWaitAfterSendSome    = 1000 * time.Millisecond
 	selectionLoopMaximumDuration = 1000 * time.Millisecond
-	defaultBlockchainInfo        = holders.NewBlockchainInfo([]byte("blockHash0"), nil, 0)
+	defaultBlockchainInfo        = holders.NewBlockchainInfo([]byte("blockHash0"), []byte("blockHash0"), 0)
 	gasLimit                     = 50_000
 	gasPrice                     = 1_000_000_000
 )
@@ -500,7 +500,7 @@ func testSecondSelectionWithManyTxsInPool(t *testing.T, sw *core.StopWatch, numT
 	proposedBlock := createProposedBlock(selectedTransactions)
 	// propose those txs in order to track them (create the breadcrumbs used for the virtual records)
 	err = txpool.OnProposedBlock([]byte("blockHash1"), proposedBlock, &block.Header{
-		Nonce:    0,
+		Nonce:    1,
 		PrevHash: []byte("blockHash0"),
 		RootHash: []byte(fmt.Sprintf("rootHash%d", 0)),
 	},

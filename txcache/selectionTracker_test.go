@@ -24,7 +24,7 @@ func proposeBlocks(t *testing.T, numOfBlocks int, selectionTracker *selectionTra
 			&block.Header{
 				Nonce:    uint64(i),
 				PrevHash: []byte(fmt.Sprintf("hash%d", i-1)),
-				RootHash: []byte(fmt.Sprintf("rootHash0")),
+				RootHash: []byte("rootHash0"),
 			},
 			nil,
 			blockchainInfo,
@@ -45,7 +45,7 @@ func executeBlocksConcurrently(t *testing.T, numOfBlocks int, selectionTracker *
 				&block.Header{
 					Nonce:    uint64(i),
 					PrevHash: []byte(fmt.Sprintf("prevHash%d", i-1)),
-					RootHash: []byte(fmt.Sprintf("rootHash0")),
+					RootHash: []byte("rootHash0"),
 				})
 			require.Nil(t, err)
 		}(i)

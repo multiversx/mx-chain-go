@@ -239,6 +239,10 @@ func (st *selectionTracker) deriveVirtualSelectionSession(
 		blockchainInfo.GetLatestCommitedBlockHash(),
 		blockchainInfo.GetCurrentNonce(),
 	)
+	if err != nil {
+		return nil, err
+	}
+
 	log.Debug("selectionTracker.deriveVirtualSelectionSession",
 		"len(trackedBlocks)", len(trackedBlocks))
 
