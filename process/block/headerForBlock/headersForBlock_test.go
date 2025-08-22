@@ -3,6 +3,7 @@ package headerForBlock_test
 import (
 	"errors"
 	"fmt"
+	"slices"
 	"sync"
 	"testing"
 	"time"
@@ -153,18 +154,15 @@ func TestHeadersForBlock_IsInterfaceNil(t *testing.T) {
 	require.False(t, hfb.IsInterfaceNil())
 }
 
-func TestHeadersForBlock_AddHeader(t *testing.T) {
+func TestHeadersForBlock_AddHeaderUsedInBlock(t *testing.T) {
 	t.Parallel()
 
 	hfb, err := headerForBlock.NewHeadersForBlock(createMockArgs())
 	require.NoError(t, err)
 
-	hfb.AddHeader(
+	hfb.AddHeaderUsedInBlock(
 		"hash1",
 		&testscommon.HeaderHandlerStub{},
-		true,
-		true,
-		false,
 	)
 
 	hi, found := hfb.GetHeaderInfo("hash1")
@@ -178,27 +176,21 @@ func TestHeadersForBlock_GetHeadersInfoMap(t *testing.T) {
 	hfb, err := headerForBlock.NewHeadersForBlock(createMockArgs())
 	require.NoError(t, err)
 
-	hfb.AddHeader(
+	hfb.AddHeaderUsedInBlock(
 		"hash1",
 		&testscommon.HeaderHandlerStub{
 			GetNonceCalled: func() uint64 {
 				return 1
 			},
 		},
-		true,
-		true,
-		false,
 	)
-	hfb.AddHeader(
+	hfb.AddHeaderUsedInBlock(
 		"hash2",
 		&testscommon.HeaderHandlerStub{
 			GetNonceCalled: func() uint64 {
 				return 2
 			},
 		},
-		true,
-		true,
-		false,
 	)
 
 	infoMap := hfb.GetHeadersInfoMap()
@@ -217,27 +209,21 @@ func TestHeadersForBlock_GetHeadersMap(t *testing.T) {
 	hfb, err := headerForBlock.NewHeadersForBlock(createMockArgs())
 	require.NoError(t, err)
 
-	hfb.AddHeader(
+	hfb.AddHeaderUsedInBlock(
 		"hash1",
 		&testscommon.HeaderHandlerStub{
 			GetNonceCalled: func() uint64 {
 				return 1
 			},
 		},
-		true,
-		true,
-		false,
 	)
-	hfb.AddHeader(
+	hfb.AddHeaderUsedInBlock(
 		"hash2",
 		&testscommon.HeaderHandlerStub{
 			GetNonceCalled: func() uint64 {
 				return 2
 			},
 		},
-		true,
-		true,
-		false,
 	)
 
 	headersMap := hfb.GetHeadersMap()
@@ -256,8 +242,8 @@ func TestHeadersForBlock_Reset(t *testing.T) {
 	hfb, err := headerForBlock.NewHeadersForBlock(createMockArgs())
 	require.NoError(t, err)
 
-	hfb.AddHeader("hash1", &testscommon.HeaderHandlerStub{}, true, true, false)
-	hfb.AddHeader("hash2", &testscommon.HeaderHandlerStub{}, true, true, false)
+	hfb.AddHeaderUsedInBlock("hash1", &testscommon.HeaderHandlerStub{})
+	hfb.AddHeaderUsedInBlock("hash2", &testscommon.HeaderHandlerStub{})
 
 	hfb.Reset()
 
@@ -424,6 +410,107 @@ func TestHeadersForBlock_GetHeaderInfo(t *testing.T) {
 	require.Zero(t, missingHdrs)
 	require.Zero(t, missingProofs)
 	require.Zero(t, missingFinalityAttesting)
+}
+
+func TestBaseProcessor_FilterHeadersWithoutProofs(t *testing.T) {
+	t.Parallel()
+
+	headersForCurrentBlock := map[string]data.HeaderHandler{
+		"hash0": &testscommon.HeaderHandlerStub{
+			EpochField: 12,
+			GetNonceCalled: func() uint64 {
+				return 1
+			},
+			GetShardIDCalled: func() uint32 {
+				return 0
+			},
+		},
+		"hash1": &testscommon.HeaderHandlerStub{
+			EpochField: 12,
+			GetNonceCalled: func() uint64 {
+				return 1
+			},
+			GetShardIDCalled: func() uint32 {
+				return 1
+			},
+		},
+		"hash2": &testscommon.HeaderHandlerStub{
+			EpochField: 12, // no proof for this one, should be marked for deletion
+			GetNonceCalled: func() uint64 {
+				return 2
+			},
+			GetShardIDCalled: func() uint32 {
+				return 0
+			},
+		},
+		"hash3": &testscommon.HeaderHandlerStub{
+			EpochField: 1, // flag not active, for coverage only
+			GetNonceCalled: func() uint64 {
+				return 2
+			},
+			GetShardIDCalled: func() uint32 {
+				return 1
+			},
+		},
+	}
+
+	args := createMockArgs()
+	args.ShardCoordinator = &testscommon.ShardsCoordinatorMock{
+		NoShards: 2,
+	}
+	args.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+		IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
+			return epoch == 12
+		},
+	}
+	poolsHolder, ok := args.DataPool.(*dataRetriever.PoolsHolderMock)
+	require.True(t, ok)
+	proofsPoolStub := &dataRetriever.ProofsPoolMock{
+		HasProofCalled: func(shardID uint32, headerHash []byte) bool {
+			return string(headerHash) != "hash2"
+		},
+	}
+	poolsHolder.SetProofsPool(proofsPoolStub)
+
+	hfb, _ := headerForBlock.NewHeadersForBlock(args)
+
+	for hash, header := range headersForCurrentBlock {
+		hfb.AddHeaderUsedInBlock(hash, header)
+	}
+
+	// this call should fail because header with nonce 2 from shard 0 (hash2) does not have proof
+	// and there is no other header with the same nonce and proof
+	headersWithProofs, err := hfb.FilterHeadersWithoutProofs()
+	require.True(t, errors.Is(err, process.ErrMissingHeaderProof))
+	require.Nil(t, headersWithProofs)
+
+	// add one more header with same nonce as hash2, but this one has proof
+	hfb.AddHeaderUsedInBlock(
+		"hash4",
+		&testscommon.HeaderHandlerStub{
+			EpochField: 12, // same nonce as above, but this one has proof
+			GetNonceCalled: func() uint64 {
+				return 2
+			},
+			GetShardIDCalled: func() uint32 {
+				return 0
+			},
+		},
+	)
+
+	// this call should succeed, as for nonce 2 in shard 0 we have 2 headers, hash2 and hash4, but hash4 has proof
+	headersWithProofs, err = hfb.FilterHeadersWithoutProofs()
+	require.NoError(t, err)
+	require.Equal(t, 4, len(headersWithProofs))
+
+	returnedHashes := make([]string, 0, len(headersWithProofs))
+	for hash := range headersWithProofs {
+		returnedHashes = append(returnedHashes, hash)
+	}
+	slices.Sort(returnedHashes)
+
+	expectedSortedHashes := []string{"hash0", "hash1", "hash3", "hash4"}
+	require.Equal(t, expectedSortedHashes, returnedHashes)
 }
 
 type headerData struct {

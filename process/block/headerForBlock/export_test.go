@@ -28,3 +28,8 @@ func NewLastNotarizedHeaderInfo(
 ) *lastNotarizedHeaderInfo {
 	return newLastNotarizedHeaderInfo(header, hash, notarizedBasedOnProof, hasProof)
 }
+
+// FilterHeadersWithoutProofs -
+func (hfb *headersForBlock) FilterHeadersWithoutProofs() (map[string]HeaderInfo, error) {
+	return hfb.filterHeadersWithoutProofs()
+}
