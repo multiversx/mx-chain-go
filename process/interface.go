@@ -1452,3 +1452,28 @@ type ProofsPool interface {
 	IsProofInPoolEqualTo(headerProof data.HeaderProofHandler) bool
 	IsInterfaceNil() bool
 }
+
+// GasComputation defines a component able to select the maximum number of outgoing transactions and incoming mini blocks
+// in order to fill the block in respect with the gas limits
+type GasComputation interface {
+	CheckIncomingMiniBlocks(
+		miniBlocks []data.MiniBlockHeaderHandler,
+		transactions map[string][]data.TransactionHandler,
+	) (int, int, error)
+	CheckOutgoingTransactions(transactions []data.TransactionHandler) ([]data.TransactionHandler, error)
+	GetLastMiniBlockIndexIncluded() int
+	TotalGasConsumed() uint64
+	DecreaseIncomingLimit()
+	DecreaseOutgoingLimit()
+	ResetIncomingLimit()
+	ResetOutgoingLimit()
+	Reset()
+	IsInterfaceNil() bool
+}
+
+// ShardCoordinator defines what a shard state coordinator should hold
+type ShardCoordinator interface {
+	SelfId() uint32
+	ComputeId(address []byte) uint32
+	IsInterfaceNil() bool
+}
