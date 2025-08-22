@@ -3,6 +3,7 @@ package notifier_test
 import (
 	"sync"
 	"testing"
+	"time"
 
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
@@ -107,21 +108,24 @@ func TestEpochStartSubscriptionHandler_UnregisterHandlerOkHandlerShouldRemove(t 
 func TestEpochStartSubscriptionHandler_NotifyAll(t *testing.T) {
 	t.Parallel()
 
+	calledHandlersLock := &sync.RWMutex{}
 	calledHandlers := make(map[int]struct{})
-	calledHandlersIndices := make([]int, 0)
 	essh := notifier.NewEpochStartSubscriptionHandler()
 
 	handler1 := notifier.NewHandlerForEpochStart(func(hdr data.HeaderHandler) {
+		calledHandlersLock.Lock()
 		calledHandlers[1] = struct{}{}
-		calledHandlersIndices = append(calledHandlersIndices, 1)
+		calledHandlersLock.Unlock()
 	}, nil, 1)
 	handler2 := notifier.NewHandlerForEpochStart(func(hdr data.HeaderHandler) {
+		calledHandlersLock.Lock()
 		calledHandlers[2] = struct{}{}
-		calledHandlersIndices = append(calledHandlersIndices, 2)
+		calledHandlersLock.Unlock()
 	}, nil, 2)
 	handler3 := notifier.NewHandlerForEpochStart(func(hdr data.HeaderHandler) {
+		calledHandlersLock.Lock()
 		calledHandlers[3] = struct{}{}
-		calledHandlersIndices = append(calledHandlersIndices, 3)
+		calledHandlersLock.Unlock()
 	}, nil, 3)
 
 	essh.RegisterHandler(handler2)
@@ -133,8 +137,10 @@ func TestEpochStartSubscriptionHandler_NotifyAll(t *testing.T) {
 
 	// now we call the NotifyAll method and all handlers should be called
 	essh.NotifyAll(&block.Header{})
+
+	time.Sleep(10 * time.Millisecond)
+
 	assert.Len(t, calledHandlers, 3)
-	assert.Equal(t, []int{1, 2, 3}, calledHandlersIndices)
 }
 
 func TestEpochStartSubscriptionHandler_ConcurrentOperations(t *testing.T) {
