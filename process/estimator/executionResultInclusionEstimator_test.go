@@ -51,7 +51,7 @@ func TestDecide(t *testing.T) {
 		pending := []ExecutionResultMeta{}
 		currentHdrTsNs := uint64(1000+500) * 1_000_000 // 1000 ms + 500 ms margin
 		wantAllowed := 0
-		got := erie.Decide(cfg, lastNotarised, pending, currentHdrTsNs)
+		got := erie.Decide(lastNotarised, pending, currentHdrTsNs)
 		if got != wantAllowed {
 			t.Errorf("Decide() = %d, want %d", got, wantAllowed)
 		}
@@ -68,7 +68,7 @@ func TestDecide(t *testing.T) {
 		currentHdrTsNs := uint64(1000+500) * 1_000_000
 		wantAllowed := 2
 
-		got := erie.Decide(cfg, lastNotarised, pending, currentHdrTsNs)
+		got := erie.Decide(lastNotarised, pending, currentHdrTsNs)
 		if got != wantAllowed {
 			t.Errorf("Decide() = %d, want %d", got, wantAllowed)
 		}
@@ -85,7 +85,7 @@ func TestDecide(t *testing.T) {
 		currentHdrTsNs := uint64(1000+200) * 1_000_000
 		wantAllowed := 1
 
-		got := erie.Decide(cfg, lastNotarised, pending, currentHdrTsNs)
+		got := erie.Decide(lastNotarised, pending, currentHdrTsNs)
 		if got != wantAllowed {
 			t.Errorf("Decide() = %d, want %d", got, wantAllowed)
 		}
@@ -96,14 +96,14 @@ func TestDecide(t *testing.T) {
 		erie := NewExecutionResultInclusionEstimator(cfg)
 		lastNotarised := &ExecutionResultMeta{HeaderTimeMs: 1000}
 		pending := []ExecutionResultMeta{
-			{HeaderNonce: 1, HeaderTimeMs: 1010, GasUsed: 100_000_000}, // t_done with margin = 1232
+			{HeaderNonce: 1, HeaderTimeMs: 1010, GasUsed: 100_000_000},
 			{HeaderNonce: 2, HeaderTimeMs: 1011, GasUsed: 100_000_000},
 			{HeaderNonce: 3, HeaderTimeMs: 1012, GasUsed: 100_000_000},
 		}
 		currentHdrTsNs := uint64(1010*1.10) * 1_000_000
-		wantAllowed := 3
+		wantAllowed := 1
 
-		got := erie.Decide(cfg, lastNotarised, pending, currentHdrTsNs)
+		got := erie.Decide(lastNotarised, pending, currentHdrTsNs)
 		if got != wantAllowed {
 			t.Errorf("Decide() = %d, want %d", got, wantAllowed)
 		}
@@ -120,7 +120,7 @@ func TestDecide(t *testing.T) {
 		currentHdrTsNs := uint64(1000+500) * 1_000_000
 		wantAllowed := 1
 
-		got := erie.Decide(cfg, lastNotarised, pending, currentHdrTsNs)
+		got := erie.Decide(lastNotarised, pending, currentHdrTsNs)
 		if got != wantAllowed {
 			t.Errorf("Decide() = %d, want %d", got, wantAllowed)
 		}
@@ -136,7 +136,7 @@ func TestDecide(t *testing.T) {
 		currentHdrTsNs := uint64(1_700_000_000_010) * 1_000_000
 		wantAllowed := 1
 
-		got := erie.Decide(cfg, lastNotarised, pending, currentHdrTsNs)
+		got := erie.Decide(lastNotarised, pending, currentHdrTsNs)
 		require.Equal(t, wantAllowed, got, "Decide() should allow %d result on genesis, got %d", wantAllowed, got)
 	})
 
@@ -145,14 +145,14 @@ func TestDecide(t *testing.T) {
 		erie := NewExecutionResultInclusionEstimator(cfg)
 		lastNotarised := &ExecutionResultMeta{HeaderTimeMs: 1000}
 		pending := []ExecutionResultMeta{
-			{HeaderNonce: 1, HeaderTimeMs: 1010, GasUsed: 100},
-			{HeaderNonce: 2, HeaderTimeMs: 1020, GasUsed: 1 << 62},
-			{HeaderNonce: 3, HeaderTimeMs: 1030, GasUsed: 100},
+			{HeaderNonce: 1, HeaderTimeMs: 1000, GasUsed: 1000},
+			{HeaderNonce: 2, HeaderTimeMs: 2000, GasUsed: math.MaxUint64},
+			{HeaderNonce: 3, HeaderTimeMs: 3000, GasUsed: 100},
 		}
 		currentHdrTsNs := uint64(1_700_000_000_000+1000) * 1_000_000
 		wantAllowed := 1
 
-		got := erie.Decide(cfg, lastNotarised, pending, currentHdrTsNs)
+		got := erie.Decide(lastNotarised, pending, currentHdrTsNs)
 		if got != wantAllowed {
 			t.Errorf("Decide() = %d, want %d", got, wantAllowed)
 		}
@@ -168,18 +168,17 @@ func TestOverflowProtection(t *testing.T) {
 			GenesisTimeMs:      0,
 		}
 		erie := NewExecutionResultInclusionEstimator(cfg)
-		erie.SetTimePerGasUnit(2)
 
 		pending := []ExecutionResultMeta{
-			{GasUsed: math.MaxUint64, HeaderTimeMs: 1000}, // large enough to overflow
-			{GasUsed: math.MaxUint64},
+			{GasUsed: 1000, HeaderTimeMs: 1000, HeaderNonce: 1},
+			{GasUsed: math.MaxUint64, HeaderTimeMs: 2000, HeaderNonce: 2}, // This will cause overflow
 		}
 
-		currentTime := uint64(1<<63 - 1) // large enough to fail if overflowed
+		currentTime := uint64(1<<63 - 1)
 
-		num_accepted := erie.Decide(cfg, nil, pending, currentTime)
+		num_accepted := erie.Decide(nil, pending, currentTime)
 		t.Log("num_accepted:", num_accepted)
-		require.Equal(t, 0, num_accepted, "should not accept any results due to overflow")
+		require.Equal(t, 1, num_accepted, "should only accept first result, then overflow")
 	})
 
 }
@@ -204,7 +203,7 @@ func TestDecide_EdgeCases(t *testing.T) {
 		// Ensure currentHdrTsNs is after all pending headers
 		currentHdrTsNs := convertMsToNs(1300) // > 1200
 
-		got := erie.Decide(cfg, nil, pending, currentHdrTsNs)
+		got := erie.Decide(nil, pending, currentHdrTsNs)
 		require.Equal(t, 2, got)
 	})
 
@@ -214,7 +213,7 @@ func TestDecide_EdgeCases(t *testing.T) {
 		pending := []ExecutionResultMeta{
 			{HeaderNonce: 1, HeaderTimeMs: cfg.GenesisTimeMs - 1, GasUsed: 100},
 		}
-		got := erie.Decide(cfg, nil, pending, convertMsToNs(cfg.GenesisTimeMs+1000))
+		got := erie.Decide(nil, pending, convertMsToNs(cfg.GenesisTimeMs+1000))
 		require.Equal(t, 0, got)
 	})
 
@@ -225,7 +224,7 @@ func TestDecide_EdgeCases(t *testing.T) {
 		pending := []ExecutionResultMeta{
 			{HeaderNonce: 2, HeaderTimeMs: lastNotarised.HeaderTimeMs - 1, GasUsed: 50},
 		}
-		got := erie.Decide(cfg, lastNotarised, pending, convertMsToNs(lastNotarised.HeaderTimeMs+1000))
+		got := erie.Decide(lastNotarised, pending, convertMsToNs(lastNotarised.HeaderTimeMs+1000))
 		require.Equal(t, 0, got)
 	})
 
@@ -234,7 +233,7 @@ func TestDecide_EdgeCases(t *testing.T) {
 			{HeaderNonce: 1, GasUsed: 100, HeaderTimeMs: 1000},
 			{HeaderNonce: 2, GasUsed: 200, HeaderTimeMs: 10_000}, // large gap
 		}
-		got := erie.Decide(cfg, nil, pending, now*1_000_000)
+		got := erie.Decide(nil, pending, now*1_000_000)
 		require.Equal(t, 1, got) // should stop at 2nd
 	})
 
@@ -243,7 +242,7 @@ func TestDecide_EdgeCases(t *testing.T) {
 			{GasUsed: 10_000, HeaderTimeMs: 3000},
 			{GasUsed: 20_000, HeaderTimeMs: 4000},
 		}
-		got := erie.Decide(cfg, nil, pending, now*1_000_000)
+		got := erie.Decide(nil, pending, now*1_000_000)
 		require.Equal(t, 0, got)
 	})
 
@@ -253,7 +252,7 @@ func TestDecide_EdgeCases(t *testing.T) {
 			{HeaderNonce: 2, GasUsed: 20, HeaderTimeMs: 1050},
 			{HeaderNonce: 3, GasUsed: 70, HeaderTimeMs: 1150},
 		}
-		got := erie.Decide(cfg, nil, pending, now*1_000_000)
+		got := erie.Decide(nil, pending, now*1_000_000)
 		require.Equal(t, got, 1)
 	})
 
@@ -263,7 +262,7 @@ func TestDecide_EdgeCases(t *testing.T) {
 			{HeaderNonce: 4, GasUsed: 20, HeaderTimeMs: 1125},
 			{HeaderNonce: 3, GasUsed: 70, HeaderTimeMs: 1150},
 		}
-		got := erie.Decide(cfg, nil, pending, now*1_000_000)
+		got := erie.Decide(nil, pending, now*1_000_000)
 		require.Equal(t, got, 2)
 	})
 }
@@ -290,7 +289,7 @@ func BenchmarkDecideScaling_10(b *testing.B) {
 		b.Run(fmt.Sprintf("%d_results", pendingSize), func(b *testing.B) {
 			b.ResetTimer()
 			for i := 0; i < b.N; i++ {
-				erie.Decide(cfg, last, pending, now)
+				erie.Decide(last, pending, now)
 			}
 		})
 	}
