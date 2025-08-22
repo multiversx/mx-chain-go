@@ -291,12 +291,7 @@ func (gc *gasConsumption) checkOutgoingTransaction(
 		return true
 	}
 
-	shouldSkipSender := gc.checkShardsLimits(senderShard, receiverShard, gasConsumedInSenderShard, gasConsumedInReceiverShard)
-	if shouldSkipSender {
-		return true
-	}
-
-	return false
+	return gc.checkShardsLimits(senderShard, receiverShard, gasConsumedInSenderShard, gasConsumedInReceiverShard)
 }
 
 func (gc *gasConsumption) checkGasConsumedByTx(
