@@ -2,6 +2,8 @@ package headerForBlock
 
 import (
 	"bytes"
+	"encoding/hex"
+	"fmt"
 	"sync"
 	"time"
 
@@ -116,18 +118,26 @@ func checkArgs(args ArgHeadersForBlock) error {
 	return nil
 }
 
-// AddHeader adds the provided header info for the provided hash
-func (hfb *headersForBlock) AddHeader(
+// AddHeaderUsedInBlock adds the provided header info for the provided hash as used in block
+func (hfb *headersForBlock) AddHeaderUsedInBlock(
 	hash string,
 	header data.HeaderHandler,
-	usedInBlock bool,
-	hasProof bool,
-	hasProofRequested bool,
 ) {
 	hfb.mutHdrsForBlock.Lock()
 	defer hfb.mutHdrsForBlock.Unlock()
 
-	hfb.hdrHashAndInfo[hash] = newHeaderInfo(header, usedInBlock, hasProof, hasProofRequested)
+	hfb.hdrHashAndInfo[hash] = newHeaderInfo(header, true, false, false)
+}
+
+// AddHeaderNotUsedInBlock adds the provided header info for the provided hash as not used in block
+func (hfb *headersForBlock) AddHeaderNotUsedInBlock(
+	hash string,
+	header data.HeaderHandler,
+) {
+	hfb.mutHdrsForBlock.Lock()
+	defer hfb.mutHdrsForBlock.Unlock()
+
+	hfb.hdrHashAndInfo[hash] = newHeaderInfo(header, false, false, false)
 }
 
 // GetHeaderInfo returns the header info for the provided hash
@@ -144,6 +154,10 @@ func (hfb *headersForBlock) GetHeadersInfoMap() map[string]HeaderInfo {
 	hfb.mutHdrsForBlock.RLock()
 	defer hfb.mutHdrsForBlock.RUnlock()
 
+	return hfb.getHeadersInfoMapUnprotected()
+}
+
+func (hfb *headersForBlock) getHeadersInfoMapUnprotected() map[string]HeaderInfo {
 	mapCopy := make(map[string]HeaderInfo, len(hfb.hdrHashAndInfo))
 	for hash, hi := range hfb.hdrHashAndInfo {
 		mapCopy[hash] = hi
@@ -163,6 +177,106 @@ func (hfb *headersForBlock) GetHeadersMap() map[string]data.HeaderHandler {
 	}
 
 	return headersMap
+}
+
+// ComputeHeadersForCurrentBlock returns a map of header handlers for current block
+func (hfb *headersForBlock) ComputeHeadersForCurrentBlock(usedInBlock bool) (map[uint32][]data.HeaderHandler, error) {
+	hdrsForCurrentBlock := make(map[uint32][]data.HeaderHandler)
+
+	hfb.mutHdrsForBlock.RLock()
+	defer hfb.mutHdrsForBlock.RUnlock()
+
+	hdrHashAndInfo, err := hfb.filterHeadersWithoutProofs()
+	if err != nil {
+		return nil, err
+	}
+
+	for hdrHash, hi := range hdrHashAndInfo {
+		if hi.UsedInBlock() != usedInBlock {
+			continue
+		}
+
+		hdr := hi.GetHeader()
+		if hfb.hasMissingProof(hdr, hdrHash) {
+			return nil, fmt.Errorf("%w for header with hash %s", process.ErrMissingHeaderProof, hex.EncodeToString([]byte(hdrHash)))
+		}
+
+		hdrsForCurrentBlock[hdr.GetShardID()] = append(hdrsForCurrentBlock[hdr.GetShardID()], hdr)
+	}
+
+	return hdrsForCurrentBlock, nil
+}
+
+func (hfb *headersForBlock) filterHeadersWithoutProofs() (map[string]HeaderInfo, error) {
+	removedNonces := make(map[uint32]map[uint64]struct{})
+	noncesWithProofs := make(map[uint32]map[uint64]struct{})
+	shardIDs := common.GetShardIDs(hfb.shardCoordinator.NumberOfShards())
+	for shard := range shardIDs {
+		removedNonces[shard] = make(map[uint64]struct{})
+		noncesWithProofs[shard] = make(map[uint64]struct{})
+	}
+	filteredHeadersInfo := make(map[string]HeaderInfo)
+
+	hdrHashAndInfo := hfb.getHeadersInfoMapUnprotected()
+	for hdrHash, hi := range hdrHashAndInfo {
+		hdr := hi.GetHeader()
+		if hfb.enableEpochsHandler.IsFlagEnabledInEpoch(common.AndromedaFlag, hdr.GetEpoch()) {
+			if hfb.hasMissingProof(hdr, hdrHash) {
+				removedNonces[hdr.GetShardID()][hdr.GetNonce()] = struct{}{}
+				continue
+			}
+
+			noncesWithProofs[hdr.GetShardID()][hdr.GetNonce()] = struct{}{}
+			filteredHeadersInfo[hdrHash] = hi
+			continue
+		}
+
+		filteredHeadersInfo[hdrHash] = hi
+	}
+
+	for shard, nonces := range removedNonces {
+		for nonce := range nonces {
+			if _, ok := noncesWithProofs[shard][nonce]; !ok {
+				return nil, fmt.Errorf("%w for shard %d and nonce %d", process.ErrMissingHeaderProof, shard, nonce)
+			}
+		}
+	}
+
+	return filteredHeadersInfo, nil
+}
+
+// ComputeHeadersForCurrentBlockInfo returns a map of nonce and hash infos for the current block
+func (hfb *headersForBlock) ComputeHeadersForCurrentBlockInfo(usedInBlock bool) (map[uint32][]NonceAndHashInfo, error) {
+	hdrsForCurrentBlockInfo := make(map[uint32][]NonceAndHashInfo)
+
+	hfb.mutHdrsForBlock.RLock()
+	defer hfb.mutHdrsForBlock.RUnlock()
+
+	hdrHashAndInfo := hfb.getHeadersInfoMapUnprotected()
+	for metaBlockHash, hi := range hdrHashAndInfo {
+		if hi.UsedInBlock() != usedInBlock {
+			continue
+		}
+
+		hdr := hi.GetHeader()
+		if hfb.hasMissingProof(hdr, metaBlockHash) {
+			return nil, fmt.Errorf("%w for header with hash %s", process.ErrMissingHeaderProof, hex.EncodeToString([]byte(metaBlockHash)))
+		}
+
+		hdrsForCurrentBlockInfo[hdr.GetShardID()] = append(hdrsForCurrentBlockInfo[hdr.GetShardID()],
+			&nonceAndHashInfo{nonce: hdr.GetNonce(), hash: []byte(metaBlockHash)})
+	}
+
+	return hdrsForCurrentBlockInfo, nil
+}
+
+func (hfb *headersForBlock) hasMissingProof(header data.HeaderHandler, hdrHash string) bool {
+	isFlagEnabledForHeader := hfb.enableEpochsHandler.IsFlagEnabledInEpoch(common.AndromedaFlag, header.GetEpoch()) && header.GetNonce() >= 1
+	if !isFlagEnabledForHeader {
+		return false
+	}
+
+	return !hfb.dataPool.Proofs().HasProof(header.GetShardID(), []byte(hdrHash))
 }
 
 // Reset resets the internal state of the component

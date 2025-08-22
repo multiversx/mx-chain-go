@@ -1791,8 +1791,8 @@ func TestShardProcessor_CheckMetaHeadersValidityAndFinalityShouldPass(t *testing
 	sp, _ := blproc.NewShardProcessor(arguments)
 	hdr.Round = 4
 
-	arguments.HeadersForBlock.AddHeader(string(metaHash1), meta1, true, false, false)
-	arguments.HeadersForBlock.AddHeader(string(metaHash2), meta2, false, false, false)
+	arguments.HeadersForBlock.AddHeaderUsedInBlock(string(metaHash1), meta1)
+	arguments.HeadersForBlock.AddHeaderNotUsedInBlock(string(metaHash2), meta2)
 
 	err := sp.CheckMetaHeadersValidityAndFinality()
 	assert.Nil(t, err)
@@ -3076,9 +3076,9 @@ func TestShardProcessor_GetProcessedMetaBlockFromPoolShouldWork(t *testing.T) {
 	}
 	bp, _ := blproc.NewShardProcessor(arguments)
 
-	arguments.HeadersForBlock.AddHeader(string(metaBlockHash1), metaBlock1, true, false, false)
-	arguments.HeadersForBlock.AddHeader(string(metaBlockHash2), metaBlock2, true, false, false)
-	arguments.HeadersForBlock.AddHeader(string(metaBlockHash3), metaBlock3, true, false, false)
+	arguments.HeadersForBlock.AddHeaderUsedInBlock(string(metaBlockHash1), metaBlock1)
+	arguments.HeadersForBlock.AddHeaderUsedInBlock(string(metaBlockHash2), metaBlock2)
+	arguments.HeadersForBlock.AddHeaderUsedInBlock(string(metaBlockHash3), metaBlock3)
 
 	// create mini block headers with first 3 miniblocks from miniblocks var
 	mbHeaders := []block.MiniBlockHeader{
@@ -3459,7 +3459,7 @@ func TestShardProcessor_RemoveAndSaveLastNotarizedMetaHdrNoDstMB(t *testing.T) {
 
 	// wrong header type in pool and defer called
 	datapool.Headers().AddHeader(currHash, shardHdr)
-	arguments.HeadersForBlock.AddHeader(string(currHash), shardHdr, true, false, false)
+	arguments.HeadersForBlock.AddHeaderUsedInBlock(string(currHash), shardHdr)
 
 	hashes := make([][]byte, 0)
 	hashes = append(hashes, currHash)
@@ -3482,8 +3482,8 @@ func TestShardProcessor_RemoveAndSaveLastNotarizedMetaHdrNoDstMB(t *testing.T) {
 	datapool.Headers().AddHeader(prevHash, prevHdr)
 
 	_ = sp.CreateBlockStarted()
-	arguments.HeadersForBlock.AddHeader(string(currHash), currHdr, true, false, false)
-	arguments.HeadersForBlock.AddHeader(string(prevHash), prevHdr, true, false, false)
+	arguments.HeadersForBlock.AddHeaderUsedInBlock(string(currHash), currHdr)
+	arguments.HeadersForBlock.AddHeaderUsedInBlock(string(prevHash), prevHdr)
 
 	hashes = make([][]byte, 0)
 	hashes = append(hashes, currHash)
@@ -3647,8 +3647,8 @@ func TestShardProcessor_RemoveAndSaveLastNotarizedMetaHdrNotAllMBFinished(t *tes
 	datapool.Headers().AddHeader(currHash, currHdr)
 	datapool.Headers().AddHeader(prevHash, prevHdr)
 
-	arguments.HeadersForBlock.AddHeader(string(currHash), currHdr, true, false, false)
-	arguments.HeadersForBlock.AddHeader(string(prevHash), prevHdr, true, false, false)
+	arguments.HeadersForBlock.AddHeaderUsedInBlock(string(currHash), currHdr)
+	arguments.HeadersForBlock.AddHeaderUsedInBlock(string(prevHash), prevHdr)
 
 	hashes := make([][]byte, 0)
 	hashes = append(hashes, currHash)
@@ -3790,8 +3790,8 @@ func TestShardProcessor_RemoveAndSaveLastNotarizedMetaHdrAllMBFinished(t *testin
 		PrevHash:     currHash,
 		Nonce:        47})
 
-	arguments.HeadersForBlock.AddHeader(string(currHash), currHdr, true, false, false)
-	arguments.HeadersForBlock.AddHeader(string(prevHash), prevHdr, true, false, false)
+	arguments.HeadersForBlock.AddHeaderUsedInBlock(string(currHash), currHdr)
+	arguments.HeadersForBlock.AddHeaderUsedInBlock(string(prevHash), prevHdr)
 
 	hashes := make([][]byte, 0)
 	hashes = append(hashes, currHash)
@@ -4038,7 +4038,7 @@ func TestShardPreprocessor_getAllMiniBlockDstMeFromMetaShouldPass(t *testing.T) 
 		return []byte("cool")
 	}
 	metaHash := hasher.Compute(string(metaBytes))
-	arguments.HeadersForBlock.AddHeader(string(metaHash), metaBlock, true, false, false)
+	arguments.HeadersForBlock.AddHeaderUsedInBlock(string(metaHash), metaBlock)
 
 	metablockHashes := make([][]byte, 0)
 	metablockHashes = append(metablockHashes, metaHash)

@@ -1875,7 +1875,7 @@ func (sp *shardProcessor) createAndProcessMiniBlocksDstMe(haveTime func() bool) 
 
 		createAndProcessInfo.currMetaHdrHash = orderedMetaBlocksHashes[i]
 		if len(createAndProcessInfo.currMetaHdr.GetMiniBlockHeadersWithDst(sp.shardCoordinator.SelfId())) == 0 {
-			sp.hdrsForCurrBlock.AddHeader(string(createAndProcessInfo.currMetaHdrHash), createAndProcessInfo.currMetaHdr, true, false, false)
+			sp.hdrsForCurrBlock.AddHeaderUsedInBlock(string(createAndProcessInfo.currMetaHdrHash), createAndProcessInfo.currMetaHdr)
 			createAndProcessInfo.numHdrsAdded++
 			lastMetaHdr = createAndProcessInfo.currMetaHdr
 			continue
@@ -1937,7 +1937,7 @@ func (sp *shardProcessor) createMbsAndProcessCrossShardTransactionsDstMe(
 	createAndProcessInfo.numTxsAdded += currNumTxsAdded
 
 	if !createAndProcessInfo.hdrAdded && currNumTxsAdded > 0 {
-		sp.hdrsForCurrBlock.AddHeader(string(createAndProcessInfo.currMetaHdrHash), createAndProcessInfo.currMetaHdr, true, false, false)
+		sp.hdrsForCurrBlock.AddHeaderUsedInBlock(string(createAndProcessInfo.currMetaHdrHash), createAndProcessInfo.currMetaHdr)
 		createAndProcessInfo.numHdrsAdded++
 		createAndProcessInfo.hdrAdded = true
 	}

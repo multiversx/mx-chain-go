@@ -1095,7 +1095,7 @@ func (mp *metaProcessor) createAndProcessCrossMiniBlocksDstMe(
 		}
 
 		if len(currShardHdr.GetMiniBlockHeadersWithDst(mp.shardCoordinator.SelfId())) == 0 {
-			mp.hdrsForCurrBlock.AddHeader(string(orderedHdrsHashes[i]), currShardHdr, true, false, false)
+			mp.hdrsForCurrBlock.AddHeaderUsedInBlock(string(orderedHdrsHashes[i]), currShardHdr)
 			hdrsAdded++
 			hdrsAddedForShard[currShardHdr.GetShardID()]++
 			lastShardHdr[currShardHdr.GetShardID()] = currShardHdr
@@ -1133,7 +1133,7 @@ func (mp *metaProcessor) createAndProcessCrossMiniBlocksDstMe(
 		miniBlocks = append(miniBlocks, currMBProcessed...)
 		txsAdded += currTxsAdded
 
-		mp.hdrsForCurrBlock.AddHeader(string(orderedHdrsHashes[i]), currShardHdr, true, false, false)
+		mp.hdrsForCurrBlock.AddHeaderUsedInBlock(string(orderedHdrsHashes[i]), currShardHdr)
 		hdrsAdded++
 		hdrsAddedForShard[currShardHdr.GetShardID()]++
 
@@ -1747,10 +1747,20 @@ func (mp *metaProcessor) getLastCrossNotarizedShardHdrs() (map[uint32]data.Heade
 		log.Debug("lastCrossNotarizedHeader for shard", "shardID", shardID, "hash", hash)
 		lastCrossNotarizedHeader[shardID] = lastCrossNotarizedHeaderForShard
 		usedInBlock := mp.isGenesisShardBlockAndFirstMeta(lastCrossNotarizedHeaderForShard.GetNonce())
-		mp.hdrsForCurrBlock.AddHeader(string(hash), lastCrossNotarizedHeaderForShard, usedInBlock, false, false)
+
+		mp.addHeader(hash, lastCrossNotarizedHeaderForShard, usedInBlock)
 	}
 
 	return lastCrossNotarizedHeader, nil
+}
+
+func (mp *metaProcessor) addHeader(hash []byte, header data.HeaderHandler, usedInBlock bool) {
+	if usedInBlock {
+		mp.hdrsForCurrBlock.AddHeaderUsedInBlock(string(hash), header)
+		return
+	}
+
+	mp.hdrsForCurrBlock.AddHeaderNotUsedInBlock(string(hash), header)
 }
 
 // check if shard headers were signed and constructed correctly and returns headers which has to be
@@ -2208,7 +2218,7 @@ func (mp *metaProcessor) prepareBlockHeaderInternalMapForValidatorProcessor() {
 		currentBlockHeaderHash = mp.blockChain.GetGenesisHeaderHash()
 	}
 
-	mp.hdrsForCurrBlock.AddHeader(string(currentBlockHeaderHash), currentBlockHeader, false, false, false)
+	mp.hdrsForCurrBlock.AddHeaderNotUsedInBlock(string(currentBlockHeaderHash), currentBlockHeader)
 }
 
 func (mp *metaProcessor) verifyValidatorStatisticsRootHash(header *block.MetaBlock) error {
