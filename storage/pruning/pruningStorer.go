@@ -267,13 +267,13 @@ func initNextEpochPersisterIfNeeded(
 
 	_, ok := persistersMapByEpoch[epoch]
 	if ok {
-		log.Warn("createNextEpochPersisterIsNeeded: persister already in map", "epoch", epoch)
+		log.Debug("initNextEpochPersisterIfNeeded: persister already in map", "epoch", epoch)
 		return
 	}
 
 	p, err := createPersisterDataForEpoch(args, uint32(epoch), shardIDStr)
 	if err != nil {
-		log.Warn("createNextEpochPersisterIsNeeded", "epoch", epoch, "error", err.Error())
+		log.Warn("initNextEpochPersisterIfNeeded", "epoch", epoch, "error", err.Error())
 		return
 	}
 
@@ -855,7 +855,7 @@ func (ps *PruningStorer) createNextEpochPersisterIfNeeded(epoch uint32) {
 
 	_, ok := ps.persistersMapByEpoch[epoch]
 	if ok {
-		log.Warn("createNextEpochPersisterIsNeeded: persister already in map", "persister", ps.identifier, "epoch", epoch)
+		log.Debug("createNextEpochPersisterIsNeeded: persister already in map", "persister", ps.identifier, "epoch", epoch)
 		return
 	}
 
