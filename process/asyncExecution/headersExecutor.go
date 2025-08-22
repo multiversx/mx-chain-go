@@ -75,7 +75,7 @@ func (he *headersExecutor) start(ctx context.Context) {
 
 func (he *headersExecutor) handleProcessError(ctx context.Context, pair queue.HeaderBodyPair) {
 	for {
-		pairFromQueue, ok := he.blocksQueue.Peak()
+		pairFromQueue, ok := he.blocksQueue.Peek()
 		if ok && pairFromQueue.Header.GetNonce() == pair.Header.GetNonce() {
 			// continue the processing (pop the next header from queue)
 			return
@@ -103,7 +103,7 @@ func (he *headersExecutor) process(pair queue.HeaderBodyPair) error {
 	err = he.executionTracker.AddExecutionResult(executionResult)
 	if err != nil {
 		log.Warn("headersExecutor.process add execution result failed", "err", err)
-		return err
+		return nil
 	}
 
 	return nil

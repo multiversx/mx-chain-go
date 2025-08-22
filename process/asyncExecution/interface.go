@@ -8,7 +8,7 @@ import (
 // BlocksQueue defines what a block queue should be able to do
 type BlocksQueue interface {
 	Pop() (queue.HeaderBodyPair, bool)
-	Peak() (queue.HeaderBodyPair, bool)
+	Peek() (queue.HeaderBodyPair, bool)
 	IsInterfaceNil() bool
 	Close()
 }

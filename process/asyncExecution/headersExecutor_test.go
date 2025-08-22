@@ -206,7 +206,7 @@ func TestHeadersExecutor_ProcessBlockError(t *testing.T) {
 		wg.Wait()
 
 		require.Equal(t, 1, count)
-		_, ok := blocksQueue.Peak()
+		_, ok := blocksQueue.Peek()
 		// check if queue is empty
 		require.False(t, ok)
 	})

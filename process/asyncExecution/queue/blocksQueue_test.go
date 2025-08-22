@@ -167,8 +167,10 @@ func TestHeadersQueue_Concurrency(t *testing.T) {
 	require.False(t, ok)
 
 	pair := HeaderBodyPair{Header: &block.Header{}, Body: &block.Body{}}
-	_ = hq.AddOrReplace(pair)
-	_, ok = hq.Pop()
+	err := hq.AddOrReplace(pair)
+	require.Nil(t, err)
+
+	res, ok = hq.Pop()
 	require.Nil(t, res.Header)
 	require.Nil(t, res.Body)
 	require.False(t, ok)
@@ -219,7 +221,7 @@ func TestBlocksQueue_Peak(t *testing.T) {
 		err = hq.AddOrReplace(pair2)
 		require.Nil(t, err)
 
-		res, ok := hq.Peak()
+		res, ok := hq.Peek()
 		require.True(t, ok)
 		require.Equal(t, pair1, res)
 		require.Equal(t, 2, len(hq.headerBodyPairs))
@@ -230,9 +232,8 @@ func TestBlocksQueue_Peak(t *testing.T) {
 
 		hq, _ := NewBlocksQueue()
 
-		_, ok := hq.Peak()
+		_, ok := hq.Peek()
 		require.False(t, ok)
-
 	})
 
 }

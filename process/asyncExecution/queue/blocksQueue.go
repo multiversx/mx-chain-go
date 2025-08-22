@@ -18,6 +18,7 @@ var log = logger.GetOrCreate("process/asyncExecution/queue")
 type blocksQueue struct {
 	mutex           *sync.Mutex
 	headerBodyPairs []HeaderBodyPair
+	lastAddedNonce  uint64
 	closed          bool
 	notifyCh        chan struct{} // used only for blocking
 }
@@ -50,24 +51,23 @@ func (bq *blocksQueue) AddOrReplace(pair HeaderBodyPair) error {
 		return nil
 	}
 
-	lastIndex := len(bq.headerBodyPairs) - 1
-	if lastIndex >= 0 {
-		lastHeaderNonce := bq.headerBodyPairs[lastIndex].Header.GetNonce()
-		switch {
-		case lastHeaderNonce == pair.Header.GetNonce():
-			// Replace the last pair if the nonce is the same
-			bq.headerBodyPairs[lastIndex] = pair
-		case lastHeaderNonce != pair.Header.GetNonce()-1:
-			// Nonce mismatch
-			return fmt.Errorf("%w: last header nonce: %d, current header nonce %d",
-				ErrHeaderNonceMismatch, lastHeaderNonce, pair.Header.GetNonce())
-		default:
-			// Append if nonce is sequential
+	nonce := pair.Header.GetNonce()
+	switch {
+	case nonce == bq.lastAddedNonce:
+		// replace last
+		if len(bq.headerBodyPairs) == 0 {
 			bq.headerBodyPairs = append(bq.headerBodyPairs, pair)
+		} else {
+			bq.headerBodyPairs[len(bq.headerBodyPairs)-1] = pair
 		}
-	} else {
-		// Queue is empty, append
+	case nonce == bq.lastAddedNonce+1:
+		// append next
+		bq.lastAddedNonce = nonce
 		bq.headerBodyPairs = append(bq.headerBodyPairs, pair)
+	default:
+		// mismatch
+		return fmt.Errorf("%w: last header nonce: %d, current header nonce %d",
+			ErrHeaderNonceMismatch, bq.lastAddedNonce, nonce)
 	}
 
 	log.Debug("blocksQueue.AddOrReplace - block queue has been added", "queue size", len(bq.headerBodyPairs))
@@ -117,8 +117,8 @@ func (bq *blocksQueue) Pop() (HeaderBodyPair, bool) {
 	return HeaderBodyPair{}, false
 }
 
-// Peak returns the first element from queue
-func (bq *blocksQueue) Peak() (HeaderBodyPair, bool) {
+// Peek returns the first element from queue
+func (bq *blocksQueue) Peek() (HeaderBodyPair, bool) {
 	bq.mutex.Lock()
 	defer bq.mutex.Unlock()
 
@@ -128,6 +128,23 @@ func (bq *blocksQueue) Peak() (HeaderBodyPair, bool) {
 
 	return bq.headerBodyPairs[0], true
 
+}
+
+// Clean cleanup the queue and set the provided last added nonce
+func (bq *blocksQueue) Clean(lastAddedNonce uint64) {
+	bq.mutex.Lock()
+	defer bq.mutex.Unlock()
+
+	bq.headerBodyPairs = make([]HeaderBodyPair, 0)
+	bq.lastAddedNonce = lastAddedNonce
+}
+
+// SetLastAddedNonce will set the last added nonce
+func (bq *blocksQueue) SetLastAddedNonce(lastAddedNonce uint64) {
+	bq.mutex.Lock()
+	defer bq.mutex.Unlock()
+
+	bq.lastAddedNonce = lastAddedNonce
 }
 
 // Close will close the queue
