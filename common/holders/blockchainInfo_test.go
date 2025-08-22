@@ -12,7 +12,7 @@ func TestBlockchainInfo_GetValues(t *testing.T) {
 	t.Run("default values", func(t *testing.T) {
 		t.Parallel()
 
-		chainInfo := NewBlockchainInfo(nil, 0)
+		chainInfo := NewBlockchainInfo(nil, nil, 0)
 		require.NotNil(t, chainInfo)
 		require.Equal(t, uint64(0), chainInfo.GetCurrentNonce())
 		require.Nil(t, chainInfo.GetLatestExecutedBlockHash())
@@ -21,10 +21,11 @@ func TestBlockchainInfo_GetValues(t *testing.T) {
 	t.Run("same values", func(t *testing.T) {
 		t.Parallel()
 
-		chainInfo := NewBlockchainInfo([]byte("blockHash0"), 2)
+		chainInfo := NewBlockchainInfo([]byte("blockHash0"), []byte("blockHash1"), 2)
 		require.NotNil(t, chainInfo)
 		require.Equal(t, uint64(2), chainInfo.GetCurrentNonce())
 		require.Equal(t, "blockHash0", string(chainInfo.GetLatestExecutedBlockHash()))
+		require.Equal(t, "blockHash1", string(chainInfo.GetLatestCommitedBlockHash()))
 	})
 }
 
@@ -34,6 +35,6 @@ func TestBlockchainInfo_IsInterfaceNil(t *testing.T) {
 	var chainInfo *blockchainInfo
 	require.True(t, chainInfo.IsInterfaceNil())
 
-	chainInfo = NewBlockchainInfo(nil, 0)
+	chainInfo = NewBlockchainInfo(nil, nil, 0)
 	require.False(t, chainInfo.IsInterfaceNil())
 }
