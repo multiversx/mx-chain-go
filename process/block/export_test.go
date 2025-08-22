@@ -12,8 +12,6 @@ import (
 	"github.com/multiversx/mx-chain-core-go/display"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
-	"github.com/multiversx/mx-chain-go/process/block/headerForBlock"
-
 	"github.com/multiversx/mx-chain-go/common/graceperiod"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
@@ -75,11 +73,6 @@ func (bp *baseProcessor) SetLastRestartNonce(lastRestartNonce uint64) {
 // CommitTrieEpochRootHashIfNeeded -
 func (bp *baseProcessor) CommitTrieEpochRootHashIfNeeded(metaBlock *block.MetaBlock, rootHash []byte) error {
 	return bp.commitTrieEpochRootHashIfNeeded(metaBlock, rootHash)
-}
-
-// FilterHeadersWithoutProofs -
-func (bp *baseProcessor) FilterHeadersWithoutProofs() (map[string]headerForBlock.HeaderInfo, error) {
-	return bp.filterHeadersWithoutProofs()
 }
 
 // CreateMiniBlocks -
@@ -297,11 +290,6 @@ func (mp *metaProcessor) CheckHeaderBodyCorrelation(hdr data.HeaderHandler, body
 func (bp *baseProcessor) IsHdrConstructionValid(currHdr, prevHdr data.HeaderHandler) error {
 	return bp.headerValidator.IsHeaderConstructionValid(currHdr, prevHdr)
 }
-
-// // ChRcvAllHdrs -
-// func (mp *metaProcessor) ChRcvAllHdrs() chan bool {
-// 	return mp.chRcvAllHdrs
-// }
 
 // UpdateShardsHeadersNonce -
 func (mp *metaProcessor) UpdateShardsHeadersNonce(key uint32, value uint64) {

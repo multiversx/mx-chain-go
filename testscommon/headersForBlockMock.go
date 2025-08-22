@@ -9,20 +9,30 @@ import (
 
 // HeadersForBlockMock -
 type HeadersForBlockMock struct {
-	AddHeaderCalled              func(hash string, header data.HeaderHandler, usedInBlock bool, hasProof bool, hasProofRequested bool)
-	RequestShardHeadersCalled    func(metaBlock data.MetaHeaderHandler)
-	RequestMetaHeadersCalled     func(shardHeader data.ShardHeaderHandler)
-	WaitForHeadersIfNeededCalled func(haveTime func() time.Duration) error
-	GetHeaderInfoCalled          func(hash string) (headerForBlock.HeaderInfo, bool)
-	GetHeadersInfoMapCalled      func() map[string]headerForBlock.HeaderInfo
-	GetHeadersMapCalled          func() map[string]data.HeaderHandler
-	ResetCalled                  func()
+	AddHeaderUsedInBlockCalled              func(hash string, header data.HeaderHandler)
+	AddHeaderNotUsedInBlockCalled           func(hash string, header data.HeaderHandler)
+	RequestShardHeadersCalled               func(metaBlock data.MetaHeaderHandler)
+	RequestMetaHeadersCalled                func(shardHeader data.ShardHeaderHandler)
+	WaitForHeadersIfNeededCalled            func(haveTime func() time.Duration) error
+	GetHeaderInfoCalled                     func(hash string) (headerForBlock.HeaderInfo, bool)
+	GetHeadersInfoMapCalled                 func() map[string]headerForBlock.HeaderInfo
+	GetHeadersMapCalled                     func() map[string]data.HeaderHandler
+	ComputeHeadersForCurrentBlockInfoCalled func(usedInBlock bool) (map[uint32][]headerForBlock.NonceAndHashInfo, error)
+	ComputeHeadersForCurrentBlockCalled     func(usedInBlock bool) (map[uint32][]data.HeaderHandler, error)
+	ResetCalled                             func()
 }
 
-// AddHeader -
-func (mock *HeadersForBlockMock) AddHeader(hash string, header data.HeaderHandler, usedInBlock bool, hasProof bool, hasProofRequested bool) {
-	if mock.AddHeaderCalled != nil {
-		mock.AddHeaderCalled(hash, header, usedInBlock, hasProof, hasProofRequested)
+// AddHeaderUsedInBlock -
+func (mock *HeadersForBlockMock) AddHeaderUsedInBlock(hash string, header data.HeaderHandler) {
+	if mock.AddHeaderUsedInBlockCalled != nil {
+		mock.AddHeaderUsedInBlockCalled(hash, header)
+	}
+}
+
+// AddHeaderNotUsedInBlock -
+func (mock *HeadersForBlockMock) AddHeaderNotUsedInBlock(hash string, header data.HeaderHandler) {
+	if mock.AddHeaderNotUsedInBlockCalled != nil {
+		mock.AddHeaderNotUsedInBlockCalled(hash, header)
 	}
 }
 
@@ -74,6 +84,22 @@ func (mock *HeadersForBlockMock) GetHeadersMap() map[string]data.HeaderHandler {
 	}
 
 	return nil
+}
+
+// ComputeHeadersForCurrentBlockInfo -
+func (mock *HeadersForBlockMock) ComputeHeadersForCurrentBlockInfo(usedInBlock bool) (map[uint32][]headerForBlock.NonceAndHashInfo, error) {
+	if mock.ComputeHeadersForCurrentBlockInfoCalled != nil {
+		return mock.ComputeHeadersForCurrentBlockInfoCalled(usedInBlock)
+	}
+	return make(map[uint32][]headerForBlock.NonceAndHashInfo), nil
+}
+
+// ComputeHeadersForCurrentBlock -
+func (mock *HeadersForBlockMock) ComputeHeadersForCurrentBlock(usedInBlock bool) (map[uint32][]data.HeaderHandler, error) {
+	if mock.ComputeHeadersForCurrentBlockCalled != nil {
+		return mock.ComputeHeadersForCurrentBlockCalled(usedInBlock)
+	}
+	return make(map[uint32][]data.HeaderHandler), nil
 }
 
 // Reset -

@@ -933,7 +933,7 @@ func TestMetaProcessor_CommitBlockStorageFailsForHeaderShouldNotReturnError(t *t
 		busyIdleCalled = append(busyIdleCalled, busyIdentifier)
 	}
 
-	arguments.HeadersForBlock.AddHeader("hdr_hash1", &block.Header{}, true, false, false)
+	arguments.HeadersForBlock.AddHeaderUsedInBlock("hdr_hash1", &block.Header{})
 	expectedFirstNonce := core.OptionalUint64{
 		HasValue: false,
 	}
@@ -1088,7 +1088,7 @@ func TestMetaProcessor_CommitBlockOkValsShouldWork(t *testing.T) {
 		return cs
 	}
 
-	arguments.HeadersForBlock.AddHeader("hdr_hash1", &block.Header{}, true, false, false)
+	arguments.HeadersForBlock.AddHeaderUsedInBlock("hdr_hash1", &block.Header{})
 	err = mp.CommitBlock(hdr, body)
 	assert.Nil(t, err)
 	assert.True(t, forkDetectorAddCalled)
@@ -1852,8 +1852,8 @@ func TestMetaProcessor_CreateLastNotarizedHdrs(t *testing.T) {
 	// wrong header type in pool and defer called
 	pool.Headers().AddHeader(currHash, metaHdr)
 	pool.Headers().AddHeader(prevHash, prevHdr)
-	arguments.HeadersForBlock.AddHeader(string(currHash), metaHdr, true, false, false)
-	arguments.HeadersForBlock.AddHeader(string(prevHash), prevHdr, true, false, false)
+	arguments.HeadersForBlock.AddHeaderUsedInBlock(string(currHash), metaHdr)
+	arguments.HeadersForBlock.AddHeaderUsedInBlock(string(prevHash), prevHdr)
 
 	err = mp.SaveLastNotarizedHeader(metaHdr)
 	assert.Equal(t, process.ErrWrongTypeAssertion, err)
@@ -1863,8 +1863,8 @@ func TestMetaProcessor_CreateLastNotarizedHdrs(t *testing.T) {
 	pool.Headers().AddHeader(currHash, currHdr)
 	pool.Headers().AddHeader(prevHash, prevHdr)
 	_ = mp.CreateBlockStarted()
-	arguments.HeadersForBlock.AddHeader(string(currHash), currHdr, true, false, false)
-	arguments.HeadersForBlock.AddHeader(string(prevHash), prevHdr, true, false, false)
+	arguments.HeadersForBlock.AddHeaderUsedInBlock(string(currHash), currHdr)
+	arguments.HeadersForBlock.AddHeaderUsedInBlock(string(prevHash), prevHdr)
 
 	err = mp.SaveLastNotarizedHeader(metaHdr)
 	assert.Nil(t, err)
@@ -1962,8 +1962,8 @@ func TestMetaProcessor_CheckShardHeadersValidity(t *testing.T) {
 	shDataPrev := block.ShardData{ShardID: 0, HeaderHash: prevHash}
 	metaHdr.ShardInfo = append(metaHdr.ShardInfo, shDataPrev)
 
-	arguments.HeadersForBlock.AddHeader(string(wrongCurrHash), wrongCurrHdr, true, false, false)
-	arguments.HeadersForBlock.AddHeader(string(prevHash), prevHdr, true, false, false)
+	arguments.HeadersForBlock.AddHeaderUsedInBlock(string(wrongCurrHash), wrongCurrHdr)
+	arguments.HeadersForBlock.AddHeaderUsedInBlock(string(prevHash), prevHdr)
 
 	_, err := mp.CheckShardHeadersValidity(metaHdr)
 	assert.True(t, errors.Is(err, process.ErrWrongNonceInBlock))
@@ -1985,8 +1985,8 @@ func TestMetaProcessor_CheckShardHeadersValidity(t *testing.T) {
 	metaHdr.ShardInfo = append(metaHdr.ShardInfo, shDataPrev)
 
 	_ = mp.CreateBlockStarted()
-	arguments.HeadersForBlock.AddHeader(string(currHash), currHdr, true, false, false)
-	arguments.HeadersForBlock.AddHeader(string(prevHash), prevHdr, true, false, false)
+	arguments.HeadersForBlock.AddHeaderUsedInBlock(string(currHash), currHdr)
+	arguments.HeadersForBlock.AddHeaderUsedInBlock(string(prevHash), prevHdr)
 
 	highestNonceHdrs, err := mp.CheckShardHeadersValidity(metaHdr)
 	assert.Nil(t, err)
@@ -2040,7 +2040,7 @@ func TestMetaProcessor_CheckShardHeadersValidityWrongNonceFromLastNoted(t *testi
 	metaHdr.ShardInfo = make([]block.ShardData, 0)
 	metaHdr.ShardInfo = append(metaHdr.ShardInfo, shDataCurr)
 
-	arguments.HeadersForBlock.AddHeader(string(currHash), currHdr, true, false, false)
+	arguments.HeadersForBlock.AddHeaderUsedInBlock(string(currHash), currHdr)
 
 	highestNonceHdrs, err := mp.CheckShardHeadersValidity(metaHdr)
 	assert.Nil(t, highestNonceHdrs)
@@ -2111,7 +2111,7 @@ func TestMetaProcessor_CheckShardHeadersValidityRoundZeroLastNoted(t *testing.T)
 	assert.Nil(t, err)
 
 	pool.Headers().AddHeader(currHash, currHdr)
-	arguments.HeadersForBlock.AddHeader(string(currHash), currHdr, true, false, false)
+	arguments.HeadersForBlock.AddHeaderUsedInBlock(string(currHash), currHdr)
 	highestNonceHdrs, err = mp.CheckShardHeadersValidity(metaHdr)
 	assert.NotNil(t, highestNonceHdrs)
 	assert.Nil(t, err)
@@ -2222,7 +2222,7 @@ func TestMetaProcessor_CheckShardHeadersFinality(t *testing.T) {
 
 	nextHash, _ := mp.ComputeHeaderHash(nextHdr)
 	pool.Headers().AddHeader(nextHash, nextHdr)
-	arguments.HeadersForBlock.AddHeader(string(nextHash), nextHdr, false, false, false)
+	arguments.HeadersForBlock.AddHeaderNotUsedInBlock(string(nextHash), nextHdr)
 
 	metaHdr.Round = 20
 	err = mp.CheckShardHeadersFinality(highestNonceHdrs)

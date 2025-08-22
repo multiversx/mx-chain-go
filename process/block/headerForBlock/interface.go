@@ -27,3 +27,10 @@ type LastNotarizedHeaderInfoHandler interface {
 	SetNotarizedBasedOnProof(notarizedBasedOnProof bool)
 	IsInterfaceNil() bool
 }
+
+// NonceAndHashInfo defines a component that holds nonce and hash
+type NonceAndHashInfo interface {
+	GetNonce() uint64
+	GetHash() []byte
+	IsInterfaceNil() bool
+}

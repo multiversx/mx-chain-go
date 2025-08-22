@@ -31,13 +31,16 @@ type receiptsRepository interface {
 
 // HeadersForBlock defines a component able to hold headers for a block
 type HeadersForBlock interface {
-	AddHeader(hash string, header data.HeaderHandler, usedInBlock bool, hasProof bool, hasProofRequested bool)
+	AddHeaderUsedInBlock(hash string, header data.HeaderHandler)
+	AddHeaderNotUsedInBlock(hash string, header data.HeaderHandler)
 	RequestShardHeaders(metaBlock data.MetaHeaderHandler)
 	RequestMetaHeaders(shardHeader data.ShardHeaderHandler)
 	WaitForHeadersIfNeeded(haveTime func() time.Duration) error
 	GetHeaderInfo(hash string) (headerForBlock.HeaderInfo, bool)
 	GetHeadersInfoMap() map[string]headerForBlock.HeaderInfo
 	GetHeadersMap() map[string]data.HeaderHandler
+	ComputeHeadersForCurrentBlock(usedInBlock bool) (map[uint32][]data.HeaderHandler, error)
+	ComputeHeadersForCurrentBlockInfo(usedInBlock bool) (map[uint32][]headerForBlock.NonceAndHashInfo, error)
 	Reset()
 	IsInterfaceNil() bool
 }
