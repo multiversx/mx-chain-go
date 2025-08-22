@@ -129,6 +129,8 @@ type baseProcessor struct {
 
 	proofsPool   dataRetriever.ProofsPool
 	chRcvAllHdrs chan bool
+
+	miniBlocksSelectionSession *miniBlocksSelectionSession
 }
 
 type bootStorerDataArgs struct {
