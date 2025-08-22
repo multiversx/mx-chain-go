@@ -77,7 +77,18 @@ func (st *selectionTracker) OnProposedBlock(
 
 	st.blocks = append(st.blocks, tBlock)
 
-	blocksToBeValidated := st.getChainOfTrackedBlocks(blockchainInfo.GetLatestExecutedBlockHash(), blockchainInfo.GetCurrentNonce())
+	blocksToBeValidated, err := st.getChainOfTrackedBlocks(
+		blockchainInfo.GetLatestExecutedBlockHash(),
+		prevHash,
+		nonce,
+	)
+	blocksToBeValidated = append(blocksToBeValidated, tBlock)
+
+	if err != nil {
+		log.Debug("selectionTracker.OnProposedBlock: error creating chain of tracked blocks", "err", err)
+		return err
+	}
+
 	// make sure that the proposed block is valid (continuous with the other proposed blocks and no balance issues)
 	return st.validateTrackedBlocks(blocksToBeValidated, session)
 }
@@ -223,7 +234,11 @@ func (st *selectionTracker) deriveVirtualSelectionSession(
 
 	log.Debug("selectionTracker.deriveVirtualSelectionSession", "rootHash", rootHash)
 
-	trackedBlocks := st.getChainOfTrackedBlocks(blockchainInfo.GetLatestExecutedBlockHash(), blockchainInfo.GetCurrentNonce())
+	trackedBlocks, err := st.getChainOfTrackedBlocks(
+		blockchainInfo.GetLatestExecutedBlockHash(),
+		blockchainInfo.GetLatestCommitedBlockHash(),
+		blockchainInfo.GetCurrentNonce(),
+	)
 	log.Debug("selectionTracker.deriveVirtualSelectionSession",
 		"len(trackedBlocks)", len(trackedBlocks))
 
@@ -231,26 +246,62 @@ func (st *selectionTracker) deriveVirtualSelectionSession(
 	return provider.createVirtualSelectionSession(trackedBlocks)
 }
 
-func (st *selectionTracker) getChainOfTrackedBlocks(latestExecutedBlockHash []byte, beforeNonce uint64) []*trackedBlock {
+func (st *selectionTracker) getChainOfTrackedBlocks(
+	latestExecutedBlockHash []byte,
+	previousHashOfCurrentBlock []byte,
+	beforeNonce uint64,
+) ([]*trackedBlock, error) {
 	chain := make([]*trackedBlock, 0)
-	nextBlock := st.findNextBlock(latestExecutedBlockHash)
 
-	for nextBlock != nil && nextBlock.nonce < beforeNonce {
-		chain = append(chain, nextBlock)
-		blockHash := nextBlock.hash
-		nextBlock = st.findNextBlock(blockHash)
+	if bytes.Equal(latestExecutedBlockHash, previousHashOfCurrentBlock) {
+		return chain, nil
 	}
 
-	return chain
+	previousBlock := st.findBlockInChainByPreviousHash(previousHashOfCurrentBlock)
+
+	for {
+		if previousBlock == nil {
+			return nil, errPreviousBlockNotFound
+		}
+
+		if st.discontinuousBlockNonce(previousBlock.nonce, beforeNonce) {
+			return nil, errDiscontinuousBlockNonce
+		}
+
+		chain = append(chain, previousBlock)
+
+		previousBlockHash := previousBlock.prevHash
+		if bytes.Equal(latestExecutedBlockHash, previousBlockHash) {
+			break
+		}
+
+		beforeNonce -= 1
+
+		previousBlock = st.findBlockInChainByPreviousHash(previousBlockHash)
+	}
+
+	return st.reverseOrderOfBlocks(chain), nil
 }
 
-// TODO solve the case of forks
-func (st *selectionTracker) findNextBlock(previousHash []byte) *trackedBlock {
-	for _, block := range st.blocks {
-		if bytes.Equal(previousHash, block.prevHash) {
-			return block
+func (st *selectionTracker) findBlockInChainByPreviousHash(previousHash []byte) *trackedBlock {
+	for _, b := range st.blocks {
+		if bytes.Equal(b.hash, previousHash) {
+			return b
 		}
 	}
 
 	return nil
+}
+
+func (st *selectionTracker) discontinuousBlockNonce(foundBlockNonce uint64, currentNonce uint64) bool {
+	return foundBlockNonce != currentNonce-1
+}
+
+func (st *selectionTracker) reverseOrderOfBlocks(chainOfTrackedBlocks []*trackedBlock) []*trackedBlock {
+	reversedChainOfTrackedBlocks := make([]*trackedBlock, 0, len(chainOfTrackedBlocks))
+	for i := len(chainOfTrackedBlocks) - 1; i >= 0; i-- {
+		reversedChainOfTrackedBlocks = append(reversedChainOfTrackedBlocks, chainOfTrackedBlocks[i])
+	}
+
+	return reversedChainOfTrackedBlocks
 }

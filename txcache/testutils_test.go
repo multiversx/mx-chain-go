@@ -28,7 +28,7 @@ const selectionLoopMaximumDuration = 30_000
 var randomHashes = newRandomData(math.MaxUint16, hashLength)
 var randomAddresses = newRandomData(math.MaxUint16, addressLength)
 
-var defaultBlockchainInfo = holders.NewBlockchainInfo(nil, 0)
+var defaultBlockchainInfo = holders.NewBlockchainInfo(nil, nil, 0)
 
 type randomData struct {
 	randomBytes []byte
