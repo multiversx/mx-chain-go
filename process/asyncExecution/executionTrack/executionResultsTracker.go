@@ -2,6 +2,7 @@ package executionTrack
 
 import (
 	"bytes"
+	"encoding/hex"
 	"fmt"
 	"sort"
 	"sync"
@@ -138,7 +139,7 @@ func (ert *executionResultsTracker) GetPendingExecutionResultByHash(hash []byte)
 
 	result, found := ert.executionResultsByHash[string(hash)]
 	if !found {
-		return nil, fmt.Errorf("%w with hash: '%s'", ErrCannotFindExecutionResult, hash)
+		return nil, fmt.Errorf("%w with hash: '%s'", ErrCannotFindExecutionResult, hex.EncodeToString(hash))
 	}
 
 	return result, nil
@@ -156,7 +157,7 @@ func (ert *executionResultsTracker) getPendingExecutionResultsByNonce(nonce uint
 	hash := ert.nonceHash.getHashByNonce(nonce)
 	result, found := ert.executionResultsByHash[hash]
 	if !found {
-		return nil, fmt.Errorf("%w with hash: '%s'", ErrCannotFindExecutionResult, []byte(hash))
+		return nil, fmt.Errorf("%w with hash: '%s'", ErrCannotFindExecutionResult, hex.EncodeToString([]byte(hash)))
 	}
 
 	return result, nil
