@@ -25,11 +25,6 @@ const (
 	initialLastIndex       = -1
 )
 
-type txCheckResult struct {
-	shouldSkipSender bool
-	err              error
-}
-
 // ArgsGasConsumption holds the arguments needed to create a gasConsumption instance
 type ArgsGasConsumption struct {
 	EconomicsFee                      process.FeeHandler
@@ -264,13 +259,9 @@ func (gc *gasConsumption) CheckOutgoingTransactions(transactions []data.Transact
 			continue
 		}
 
-		result := gc.checkOutgoingTransaction(transactions[i])
-		if result.shouldSkipSender {
+		shouldSkipSender = gc.checkOutgoingTransaction(transactions[i])
+		if shouldSkipSender {
 			skippedSenders[string(transactions[i].GetSndAddr())] = struct{}{}
-			continue
-		}
-		if result.err != nil {
-			log.Warn("checkOutgoingTransaction failed", "error", result.err.Error())
 			continue
 		}
 
@@ -287,36 +278,25 @@ func (gc *gasConsumption) CheckOutgoingTransactions(transactions []data.Transact
 // must be called under mutex protection
 func (gc *gasConsumption) checkOutgoingTransaction(
 	tx data.TransactionHandler,
-) txCheckResult {
+) bool {
 	if check.IfNil(tx) {
-		return txCheckResult{
-			shouldSkipSender: false,
-			err:              nil,
-		}
+		return false
 	}
 
 	senderShard := gc.shardCoordinator.SelfId()
 	receiverShard := gc.shardCoordinator.ComputeId(tx.GetRcvAddr())
 	gasConsumedInSenderShard, gasConsumedInReceiverShard, err := gc.checkGasConsumedByTx(senderShard, receiverShard, tx)
 	if err != nil {
-		return txCheckResult{
-			shouldSkipSender: true,
-			err:              err,
-		}
+		log.Warn("checkOutgoingTransaction.checkGasConsumedByTx failed", "error", err)
+		return true
 	}
 
 	shouldSkipSender := gc.checkShardsLimits(senderShard, receiverShard, gasConsumedInSenderShard, gasConsumedInReceiverShard)
 	if shouldSkipSender {
-		return txCheckResult{
-			shouldSkipSender: true,
-			err:              nil,
-		}
+		return true
 	}
 
-	return txCheckResult{
-		shouldSkipSender: false,
-		err:              nil,
-	}
+	return false
 }
 
 func (gc *gasConsumption) checkGasConsumedByTx(
