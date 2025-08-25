@@ -3,6 +3,7 @@ package txpool
 import (
 	"strconv"
 	"sync"
+	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/counting"
@@ -387,4 +388,34 @@ func (txPool *shardedTxPool) routeToCacheUnions(cacheID string) string {
 	}
 
 	return cacheID
+}
+
+func (txPool *shardedTxPool) getSelfShardTxCache() txCache {
+	return txPool.getTxCache(strconv.Itoa(int(txPool.selfShardID)))
+}
+
+// CleanupSelfShardTxCache performs an automatic cleanup of the transaction cache for the node's own shard.
+// It removes non-executable transactions based on provided time and number constraints.
+func (txPool *shardedTxPool) CleanupSelfShardTxCache(session interface{}, randomness uint64, maxNum int, maxTime time.Duration) bool {
+	cache := txPool.getSelfShardTxCache()
+
+	selfShardTxCache := cache.(*txcache.TxCache)
+
+	log.Debug("shardedTxPool.CleanupSelfShardTxCache() starting cleanup",
+		"selfShardID", txPool.selfShardID,
+		"numTxs", selfShardTxCache.CountTx(),
+		"numBytes", selfShardTxCache.NumBytes(),
+	)
+
+	// Perform the cleanup operation on the mempool
+	selectionSession := session.(txcache.SelectionSession)
+	selfShardTxCache.Cleanup(selectionSession, randomness, maxNum, maxTime)
+
+	log.Debug("shardedTxPool.CleanupSelfShardTxCache() self shard cache cleanup completed",
+		"selfShardID", txPool.selfShardID,
+		"numTxs", selfShardTxCache.CountTx(),
+		"numBytes", selfShardTxCache.NumBytes(),
+	)
+
+	return true
 }
