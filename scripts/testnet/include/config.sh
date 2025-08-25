@@ -148,7 +148,6 @@ updateChainParameters() {
 
   if [ $ROUNDS_PER_EPOCH -ne 0 ]; then
     NEW_ROUNDS_PER_EPOCH=$((ROUNDS_PER_EPOCH*ROUND_DURATION_IN_MS / 600))
-    echo "Calculated NewRoundsPerEpoch = $NEW_ROUNDS_PER_EPOCH"
     sed -i "s,RoundsPerEpoch = 2000,RoundsPerEpoch = $NEW_ROUNDS_PER_EPOCH," $tomlFile
     sed -i "s,RoundsPerEpoch = 200,RoundsPerEpoch = $ROUNDS_PER_EPOCH," $tomlFile
     sed -i "s,MinRoundsBetweenEpochs = 20,MinRoundsBetweenEpochs = $ROUNDS_PER_EPOCH," $tomlFile
