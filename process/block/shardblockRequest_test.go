@@ -10,11 +10,12 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/stretchr/testify/require"
+
 	blproc "github.com/multiversx/mx-chain-go/process/block"
 	"github.com/multiversx/mx-chain-go/process/block/headerForBlock"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	dataRetrieverMock "github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
-	"github.com/stretchr/testify/require"
 )
 
 type headerData struct {
@@ -205,7 +206,7 @@ func shardBlockRequestTestInit(t *testing.T) (blproc.ArgShardProcessor, *testsco
 	requestHandler, ok := arguments.ArgBaseProcessor.RequestHandler.(*testscommon.RequestHandlerStub)
 	require.True(t, ok)
 
-	arguments.HeadersForBlock, _ = headerForBlock.NewHeadersForBlock(headerForBlock.ArgHeadersForBlock{
+	headersForBlock, err := headerForBlock.NewHeadersForBlock(headerForBlock.ArgHeadersForBlock{
 		DataPool:            arguments.DataComponents.Datapool(),
 		RequestHandler:      arguments.RequestHandler,
 		EnableEpochsHandler: arguments.CoreComponents.EnableEpochsHandler(),
@@ -216,6 +217,8 @@ func shardBlockRequestTestInit(t *testing.T) (blproc.ArgShardProcessor, *testsco
 		ExtraDelayForRequestBlockInfoInMilliseconds: 100,
 		GenesisNonce: 0,
 	})
+	require.Nil(t, err)
+	arguments.HeadersForBlock = headersForBlock
 
 	return arguments, requestHandler
 }

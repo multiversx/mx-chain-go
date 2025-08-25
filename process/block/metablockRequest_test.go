@@ -11,6 +11,9 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	blockProcess "github.com/multiversx/mx-chain-go/process/block"
 	"github.com/multiversx/mx-chain-go/process/block/headerForBlock"
@@ -21,8 +24,6 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/pool"
 	stateMock "github.com/multiversx/mx-chain-go/testscommon/state"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 func TestMetaProcessor_computeExistingAndRequestMissingShardHeaders(t *testing.T) {
@@ -281,7 +282,7 @@ func createMetaProcessorArguments(t *testing.T, noOfShards uint32) *blockProcess
 			require.Fail(t, "should not have been called")
 		},
 	}
-	arguments.HeadersForBlock, _ = headerForBlock.NewHeadersForBlock(headerForBlock.ArgHeadersForBlock{
+	headersForBlock, err := headerForBlock.NewHeadersForBlock(headerForBlock.ArgHeadersForBlock{
 		DataPool:            arguments.DataComponents.Datapool(),
 		RequestHandler:      arguments.RequestHandler,
 		EnableEpochsHandler: arguments.CoreComponents.EnableEpochsHandler(),
@@ -292,6 +293,8 @@ func createMetaProcessorArguments(t *testing.T, noOfShards uint32) *blockProcess
 		ExtraDelayForRequestBlockInfoInMilliseconds: 100,
 		GenesisNonce: 0,
 	})
+	require.Nil(t, err)
+	arguments.HeadersForBlock = headersForBlock
 
 	return &arguments
 }
