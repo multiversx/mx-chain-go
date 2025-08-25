@@ -1,9 +1,12 @@
 package block
 
 import (
+	"time"
+
 	"github.com/multiversx/mx-chain-core-go/data"
 
 	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/process/block/headerForBlock"
 )
 
 type blockProcessor interface {
@@ -24,6 +27,23 @@ type peerAccountsDBHandler interface {
 
 type receiptsRepository interface {
 	SaveReceipts(holder common.ReceiptsHolder, header data.HeaderHandler, headerHash []byte) error
+	IsInterfaceNil() bool
+}
+
+// HeadersForBlock defines a component able to hold headers for a block
+type HeadersForBlock interface {
+	AddHeaderUsedInBlock(hash string, header data.HeaderHandler)
+	AddHeaderNotUsedInBlock(hash string, header data.HeaderHandler)
+	RequestShardHeaders(metaBlock data.MetaHeaderHandler)
+	RequestMetaHeaders(shardHeader data.ShardHeaderHandler)
+	WaitForHeadersIfNeeded(haveTime func() time.Duration) error
+	GetHeaderInfo(hash string) (headerForBlock.HeaderInfo, bool)
+	GetHeadersInfoMap() map[string]headerForBlock.HeaderInfo
+	GetHeadersMap() map[string]data.HeaderHandler
+	ComputeHeadersForCurrentBlock(usedInBlock bool) (map[uint32][]data.HeaderHandler, error)
+	ComputeHeadersForCurrentBlockInfo(usedInBlock bool) (map[uint32][]headerForBlock.NonceAndHashInfo, error)
+	GetMissingData() (uint32, uint32, uint32)
+	Reset()
 	IsInterfaceNil() bool
 }
 
