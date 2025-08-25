@@ -1316,3 +1316,6 @@ var ErrMiniBlocksAlreadyProcessed = errors.New("mini blocks already processed")
 
 // ErrMiniBlocksNotProcessedYet signals that mini blocks were not processed yet
 var ErrMiniBlocksNotProcessedYet = errors.New("mini blocks not processed")
+
+// ErrNilHeadersForBlock signals that a nil headers for block has been provided
+var ErrNilHeadersForBlock = errors.New("nil headers for block")

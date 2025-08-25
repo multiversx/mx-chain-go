@@ -166,7 +166,7 @@ func (gc *gasConsumption) checkIncomingMiniBlock(
 		// limit not reached, continue
 		// simply increment the lastMiniBlockIndex as this method might be called either from
 		// handling all mini blocks, either from handling pending, where the pending ones
-		// should have continuos indexes after the ones already included
+		// should have continuous indexes after the ones already included
 		gc.lastMiniBlockIndex++
 		gc.gasConsumedByMiniBlock[string(mbHash)] = gasConsumedByMB
 		gc.totalGasConsumed[incoming] += gasConsumedByMB
