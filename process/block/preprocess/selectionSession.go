@@ -12,13 +12,8 @@ import (
 )
 
 type selectionSession struct {
-	accountsAdapter       state.AccountsAdapter
 	transactionsProcessor process.TransactionProcessor
-
-	// Cache of accounts, held in the scope of a single selection session.
-	// Not concurrency-safe, but never accessed concurrently.
-	// Entries for new (unknown) accounts are "nil" values.
-	ephemeralAccountsCache map[string]state.UserAccountHandler
+	accountsProvider      AccountsProvider
 }
 
 // ArgsSelectionSession holds the arguments for creating a new selection session.
@@ -29,81 +24,36 @@ type ArgsSelectionSession struct {
 
 // NewSelectionSession creates a new selection session.
 func NewSelectionSession(args ArgsSelectionSession) (*selectionSession, error) {
-	if check.IfNil(args.AccountsAdapter) {
-		return nil, process.ErrNilAccountsAdapter
-	}
 	if check.IfNil(args.TransactionsProcessor) {
 		return nil, process.ErrNilTxProcessor
 	}
 
+	// Provider is not concurrency-safe, but it's never accessed concurrently.
+	accountsProvider, err := state.NewAccountsEphemeralProvider(args.AccountsAdapter)
+	if err != nil {
+		return nil, err
+	}
+
 	return &selectionSession{
-		accountsAdapter:        args.AccountsAdapter,
-		transactionsProcessor:  args.TransactionsProcessor,
-		ephemeralAccountsCache: make(map[string]state.UserAccountHandler),
+		transactionsProcessor: args.TransactionsProcessor,
+		accountsProvider:      accountsProvider,
 	}, nil
 }
 
 // GetAccountNonceAndBalance returns the nonce of the account, the balance of the account, and whether it's currently existing on-chain.
 // Will be called by the transactions pool, during transactions selection.
 func (session *selectionSession) GetAccountNonceAndBalance(address []byte) (uint64, *big.Int, bool, error) {
-	account, err := session.getCachedUserAccount(address)
-	if err != nil {
-		// Unexpected failure.
-		return 0, nil, false, err
-	}
-	if check.IfNil(account) {
-		// New (unknown) account.
-		return 0, big.NewInt(0), false, nil
-	}
-
-	return account.GetNonce(), account.GetBalance(), true, nil
-}
-
-func (session *selectionSession) getCachedUserAccount(address []byte) (state.UserAccountHandler, error) {
-	account, ok := session.ephemeralAccountsCache[string(address)]
-	if ok {
-		// Existing or new (unknown) account, previously-cached.
-		return account, nil
-	}
-
-	account, err := session.getExistingAccountTypedAsUserAccount(address)
-	if err != nil && err != state.ErrAccNotFound {
-		// Unexpected failure (error different from "ErrAccNotFound").
-		// Account won't be cached.
-		return nil, err
-	}
-
-	// Existing account or new (unknown), we'll cache it (actual object or nil).
-	session.ephemeralAccountsCache[string(address)] = account
-
-	// Generally speaking, this isn't a good pattern: returning both nil (for unknown accounts), and a nil error.
-	// However, this is a non-exported method, which should only be called with care, within this struct only.
-	return account, nil
-}
-
-func (session *selectionSession) getExistingAccountTypedAsUserAccount(address []byte) (state.UserAccountHandler, error) {
-	account, err := session.accountsAdapter.GetExistingAccount(address)
-	if err != nil {
-		return nil, err
-	}
-
-	userAccount, ok := account.(state.UserAccountHandler)
-	if !ok {
-		return nil, process.ErrWrongTypeAssertion
-	}
-
-	return userAccount, nil
+	return session.accountsProvider.GetAccountNonceAndBalance(address)
 }
 
 // IsIncorrectlyGuarded checks if a transaction is incorrectly guarded (not executable).
 // Will be called by mempool during transaction selection.
+// See: MX-16157, MX-16772.
 func (session *selectionSession) IsIncorrectlyGuarded(tx data.TransactionHandler) bool {
 	address := tx.GetSndAddr()
-	account, err := session.getCachedUserAccount(address)
+	account, err := session.accountsProvider.GetUserAccount(address)
 	if err != nil || check.IfNil(account) {
-		// Unexpected failure.
-		// In case of any error, we assume the transaction is "correctly guarded".
-		// This includes the error "ErrAccNotFound", when the account is obviously not guarded: this special case is denied by interceptors beforehand.
+		// Unexpected failure. In case of any error (or missing account), we assume the transaction is "correctly guarded".
 		return false
 	}
 
@@ -118,7 +68,7 @@ func (session *selectionSession) IsIncorrectlyGuarded(tx data.TransactionHandler
 
 // GetRootHash returns the current root hash
 func (session *selectionSession) GetRootHash() ([]byte, error) {
-	return session.accountsAdapter.RootHash()
+	return session.accountsProvider.GetRootHash()
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

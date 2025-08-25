@@ -21,6 +21,12 @@ type SelectionSession interface {
 	IsInterfaceNil() bool
 }
 
+// AccountNonceAndBalanceProvider provides the nonce and balance of accounts
+type AccountNonceAndBalanceProvider interface {
+	GetAccountNonceAndBalance(accountKey []byte) (uint64, *big.Int, bool, error)
+	IsInterfaceNil() bool
+}
+
 // ForEachTransaction is an iterator callback
 type ForEachTransaction func(txHash []byte, value *WrappedTransaction)
 
