@@ -135,27 +135,34 @@ jobs:
             const sha = pr.data.head.sha;
             const runUrl = `https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
             
-            console.log(`Setting pending status for commit ${sha}`);
-            console.log(`Run URL: ${runUrl}`);
-            
-            // Create a commit status with the EXACT same context
-            await github.rest.repos.createCommitStatus({
+            // Find the existing check run
+            const checkRuns = await github.rest.checks.listForRef({
               owner: context.repo.owner,
               repo: context.repo.repo,
-              sha: sha,
-              state: 'pending',
-              context: 'Chain Simulator Build and Integration Test / build-and-test (pull_request)',
-              description: '⏳ Re-running tests via comment...',
-              target_url: runUrl
+              ref: sha,
+              check_name: 'build-and-test'
             });
             
-            // Also add a comment with the running workflow link
-            await github.rest.issues.createComment({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              issue_number: context.issue.number,
-              body: `🔄 **Tests are running!** [View workflow](${runUrl})\n\nTriggered by comment with:\n- mx-chain-simulator-go: \`${{ env.MX_CHAIN_SIMULATOR_TARGET_BRANCH }}\`\n- mx-chain-testing-suite: \`${{ env.MX_CHAIN_TESTING_SUITE_TARGET_BRANCH }}\``
-            });
+            if (checkRuns.data.check_runs.length > 0) {
+              const checkRun = checkRuns.data.check_runs[0];
+            
+              // Update the existing check to in_progress
+              await github.rest.checks.update({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                check_run_id: checkRun.id,
+                status: 'in_progress',
+                started_at: new Date().toISOString(),
+                output: {
+                  title: 'Re-running tests via comment trigger',
+                  summary: `Tests are being re-run with custom branches:\n- mx-chain-simulator-go: ${{ env.MX_CHAIN_SIMULATOR_TARGET_BRANCH }}\n- mx-chain-testing-suite: ${{ env.MX_CHAIN_TESTING_SUITE_TARGET_BRANCH }}`,
+                  text: `[View running workflow](${runUrl})`
+                },
+                details_url: runUrl
+              });
+            
+              console.log(`Updated check run ${checkRun.id} to in_progress`);
+            }
 
       - name: Set up Go 1.23.6
         uses: actions/setup-go@v5
@@ -551,20 +558,38 @@ jobs:
             
             const sha = pr.data.head.sha;
             const exitCode = '${{ env.PYTEST_EXIT_CODE }}';
-            const state = exitCode === '0' ? 'success' : 'failure';
+            const conclusion = exitCode === '0' ? 'success' : 'failure';
             const r2Url = '${{ env.R2_REPORT_URL }}';
             
-            await github.rest.repos.createCommitStatus({
+            // Find the existing check run
+            const checkRuns = await github.rest.checks.listForRef({
               owner: context.repo.owner,
               repo: context.repo.repo,
-              sha: sha,
-              state: state,
-              context: 'Chain Simulator Build and Integration Test / build-and-test (pull_request)',
-              description: state === 'success' ? '✅ Tests passed' : '❌ Tests failed',
-              target_url: r2Url || `https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`
+              ref: sha,
+              check_name: 'build-and-test'
             });
             
-            console.log(`Updated status to ${state} for commit ${sha}`);
+            if (checkRuns.data.check_runs.length > 0) {
+              const checkRun = checkRuns.data.check_runs[0];
+            
+              // Update the check to completed
+              await github.rest.checks.update({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                check_run_id: checkRun.id,
+                status: 'completed',
+                conclusion: conclusion,
+                completed_at: new Date().toISOString(),
+                output: {
+                  title: `Tests ${conclusion === 'success' ? 'Passed' : 'Failed'} (via comment)`,
+                  summary: `Tests were re-run via comment trigger and ${conclusion === 'success' ? 'passed' : 'failed'}.`,
+                  text: `[View test report](${r2Url})`
+                },
+                details_url: r2Url
+              });
+            
+              console.log(`Updated check run ${checkRun.id} to ${conclusion}`);
+            }
 
       - name: Notify Slack
         if: always()
