@@ -131,7 +131,7 @@ func TestTxCache_AutoClean_Dummy(t *testing.T) {
 		cache.AddTx(createTx([]byte("hash-carol-8"), "carol", 8))
 
 		expectedNumEvicted := 3 // 2 bob, 1 alice
-		evicted := cache.Cleanup(session, 7, math.MaxInt, 1000*selectionLoopMaximumDuration)
+		evicted := cache.Cleanup(session, 7, math.MaxInt, 1000*cleanupLoopMaximumDuration)
 		require.Equal(t, uint64(expectedNumEvicted), evicted)
 	})
 
@@ -141,9 +141,9 @@ func TestTxCache_AutoClean_Dummy(t *testing.T) {
 func newTxPoolWithN(size int, session *txcachemocks.SelectionSessionMock) *TxCache {
 	boundsConfig := createMockTxBoundsConfig()
 	cache := newUnconstrainedCacheToTest(boundsConfig)
-	for i := range size {
+	for i := 0; i < size; i++ {
 		cache.AddTx(createTx([]byte(fmt.Sprintf("hash-%d", i)), fmt.Sprintf("sender-%d", i), uint64(i)))
-		session.SetNonce([]byte(fmt.Sprintf("sender-%d", i)), uint64(i-1))
+		session.SetNonce([]byte(fmt.Sprintf("sender-%d", i)), uint64(i+10))
 	}
 	return cache
 }
@@ -176,7 +176,7 @@ func BenchmarkCleanup(b *testing.B) {
 				cache := newTxPoolWithN(size, session)
 				b.StartTimer()
 
-				_ = cache.Cleanup(session, uint64(i), math.MaxInt, 1000*selectionLoopMaximumDuration)
+				_ = cache.Cleanup(session, uint64(i), math.MaxInt, 1000*cleanupLoopMaximumDuration)
 			}
 
 		})

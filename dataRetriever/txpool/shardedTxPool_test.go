@@ -17,7 +17,6 @@ import (
 	"github.com/multiversx/mx-chain-go/storage/storageunit"
 	"github.com/multiversx/mx-chain-go/testscommon/txcachemocks"
 	"github.com/multiversx/mx-chain-go/txcache"
-	logger "github.com/multiversx/mx-chain-logger-go"
 	"github.com/stretchr/testify/require"
 )
 
@@ -296,7 +295,6 @@ func TestCleanupSelfShardTxCache_NilMempool(t *testing.T) {
 }
 
 func Test_Parallel_CleanupSelfShardTxCache(t *testing.T) {
-	_ = logger.SetLogLevel("*:DEBUG")
 	t.Parallel()
 	t.Run("with lower nonces", func(t *testing.T) {
 		t.Parallel()
@@ -515,15 +513,6 @@ func createTx(sender string, nonce uint64) data.TransactionHandler {
 		Nonce:    nonce,
 		GasLimit: 50000,
 		GasPrice: 20000,
-	}
-}
-
-func createPriorityTx(sender string, nonce uint64) data.TransactionHandler {
-	return &transaction.Transaction{
-		SndAddr:  []byte(sender),
-		Nonce:    nonce,
-		GasLimit: 50000,
-		GasPrice: 50000,
 	}
 }
 
