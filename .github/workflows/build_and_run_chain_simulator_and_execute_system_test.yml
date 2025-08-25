@@ -67,6 +67,13 @@ jobs:
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
+            // Determine PR number based on event type
+            let pr_number;
+            if (context.eventName === 'pull_request') {
+            pr_number = context.payload.pull_request.number;
+            } else if (context.eventName === 'issue_comment') {
+            pr_number = context.issue.number;
+            }
             // Get all comments
             const comments = await github.rest.issues.listComments({
               owner: context.repo.owner,
@@ -113,7 +120,7 @@ jobs:
           echo "mx-chain-simulator-go target branch: ${{ env.MX_CHAIN_SIMULATOR_TARGET_BRANCH }}"
           echo "mx-chain-testing-suite target branch: ${{ env.MX_CHAIN_TESTING_SUITE_TARGET_BRANCH }}"
 
-      - name: Set PR Status to Pending
+      - name: Set PR Check to Pending
         if: github.event_name == 'issue_comment'
         uses: actions/github-script@v7
         with:
@@ -128,17 +135,27 @@ jobs:
             const sha = pr.data.head.sha;
             const runUrl = `https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
             
+            console.log(`Setting pending status for commit ${sha}`);
+            console.log(`Run URL: ${runUrl}`);
+            
+            // Create a commit status with the EXACT same context
             await github.rest.repos.createCommitStatus({
               owner: context.repo.owner,
               repo: context.repo.repo,
               sha: sha,
               state: 'pending',
               context: 'Chain Simulator Build and Integration Test / build-and-test (pull_request)',
-              description: '⏳ Running tests via comment trigger...',
+              description: '⏳ Re-running tests via comment...',
               target_url: runUrl
             });
             
-            console.log(`Set pending status for commit ${sha}`);
+            // Also add a comment with the running workflow link
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body: `🔄 **Tests are running!** [View workflow](${runUrl})\n\nTriggered by comment with:\n- mx-chain-simulator-go: \`${{ env.MX_CHAIN_SIMULATOR_TARGET_BRANCH }}\`\n- mx-chain-testing-suite: \`${{ env.MX_CHAIN_TESTING_SUITE_TARGET_BRANCH }}\``
+            });
 
       - name: Set up Go 1.23.6
         uses: actions/setup-go@v5
@@ -537,17 +554,17 @@ jobs:
             const state = exitCode === '0' ? 'success' : 'failure';
             const r2Url = '${{ env.R2_REPORT_URL }}';
             
-            // Use the EXACT same context as the original PR check
             await github.rest.repos.createCommitStatus({
               owner: context.repo.owner,
               repo: context.repo.repo,
               sha: sha,
               state: state,
               context: 'Chain Simulator Build and Integration Test / build-and-test (pull_request)',
-              description: state === 'success' ? '✅ Tests passed via comment' : '❌ Tests failed via comment',
-              target_url: r2Url
+              description: state === 'success' ? '✅ Tests passed' : '❌ Tests failed',
+              target_url: r2Url || `https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`
             });
-            console.log(`Updated commit ${sha} status to ${state}`);
+            
+            console.log(`Updated status to ${state} for commit ${sha}`);
 
       - name: Notify Slack
         if: always()
