@@ -35,7 +35,6 @@ func NewSelectionTracker(txCache txCacheForSelectionTracker) (*selectionTracker,
 // OnProposedBlock notifies when a block is proposed and updates the state of the selectionTracker
 // TODO the selection session might be unusable in the flow of OnProposed
 // TODO log in case MaxTrackedBlocks is reached and brainstorm how to solve this case
-// TODO assure minimum blocks validation when adding a proposed block (i.e nonce continuity)
 func (st *selectionTracker) OnProposedBlock(
 	blockHash []byte,
 	blockBody *block.Body,
@@ -78,11 +77,28 @@ func (st *selectionTracker) OnProposedBlock(
 		return err
 	}
 
-	st.blocks = append(st.blocks, tBlock)
+	blocksToBeValidated, err := st.getChainOfTrackedBlocks(
+		blockchainInfo.GetLatestExecutedBlockHash(),
+		prevHash,
+		nonce,
+	)
+	if err != nil {
+		log.Debug("selectionTracker.OnProposedBlock: error creating chain of tracked blocks", "err", err)
+		return err
+	}
 
-	blocksToBeValidated := st.getChainOfTrackedBlocks(blockchainInfo.GetLatestExecutedBlockHash(), blockchainInfo.GetCurrentNonce())
+	// add the new block in the chain
+	blocksToBeValidated = append(blocksToBeValidated, tBlock)
+
 	// make sure that the proposed block is valid (continuous with the other proposed blocks and no balance issues)
-	return st.validateTrackedBlocks(blocksToBeValidated, session)
+	err = st.validateTrackedBlocks(blocksToBeValidated, session)
+	if err != nil {
+		log.Debug("selectionTracker.OnProposedBlock: error validating tracked blocks", "err", err)
+		return err
+	}
+
+	st.blocks = append(st.blocks, tBlock)
+	return nil
 }
 
 // OnExecutedBlock notifies when a block is executed and updates the state of the selectionTracker
@@ -226,7 +242,17 @@ func (st *selectionTracker) deriveVirtualSelectionSession(
 
 	log.Debug("selectionTracker.deriveVirtualSelectionSession", "rootHash", rootHash)
 
-	trackedBlocks := st.getChainOfTrackedBlocks(blockchainInfo.GetLatestExecutedBlockHash(), blockchainInfo.GetCurrentNonce())
+	trackedBlocks, err := st.getChainOfTrackedBlocks(
+		blockchainInfo.GetLatestExecutedBlockHash(),
+		blockchainInfo.GetLatestCommittedBlockHash(),
+		blockchainInfo.GetCurrentNonce(),
+	)
+	if err != nil {
+		log.Debug("selectionTracker.deriveVirtualSelectionSession",
+			"err", err)
+		return nil, err
+	}
+
 	log.Debug("selectionTracker.deriveVirtualSelectionSession",
 		"len(trackedBlocks)", len(trackedBlocks))
 
@@ -234,26 +260,74 @@ func (st *selectionTracker) deriveVirtualSelectionSession(
 	return provider.createVirtualSelectionSession(trackedBlocks)
 }
 
-func (st *selectionTracker) getChainOfTrackedBlocks(latestExecutedBlockHash []byte, beforeNonce uint64) []*trackedBlock {
+func (st *selectionTracker) getChainOfTrackedBlocks(
+	latestExecutedBlockHash []byte,
+	previousHashToBeFound []byte,
+	beforeNonce uint64,
+) ([]*trackedBlock, error) {
 	chain := make([]*trackedBlock, 0)
-	nextBlock := st.findNextBlock(latestExecutedBlockHash)
 
-	for nextBlock != nil && nextBlock.nonce < beforeNonce {
-		chain = append(chain, nextBlock)
-		blockHash := nextBlock.hash
-		nextBlock = st.findNextBlock(blockHash)
+	// if the previous hash to be found is equal to the latest executed hash
+	// it means that we do not have any block to be found
+	// the block found would be the actual executed block, but that one is not tracked anymore
+	if bytes.Equal(latestExecutedBlockHash, previousHashToBeFound) {
+		return chain, nil
 	}
 
-	return chain
+	// search for the block with the hash equal to the previous hash
+	previousBlock := st.findBlockInChainByPreviousHash(previousHashToBeFound)
+
+	for {
+		// if no block was found, it means there is a gap and we have to return an error
+		if previousBlock == nil {
+			return nil, errPreviousBlockNotFound
+		}
+
+		// extra check for a nonce gap
+		if st.discontinuousBlockNonce(previousBlock.nonce, beforeNonce) {
+			return nil, errDiscontinuousBlockNonce
+		}
+
+		// if the block passes the validation, add it to the returned chain
+		chain = append(chain, previousBlock)
+
+		// move backwards in the chain and check if the head was reached
+		previousBlockHash := previousBlock.prevHash
+		if bytes.Equal(latestExecutedBlockHash, previousBlockHash) {
+			break
+		}
+
+		// update also the nonce
+		beforeNonce -= 1
+
+		// find the previous block
+		previousBlock = st.findBlockInChainByPreviousHash(previousBlockHash)
+	}
+
+	// reverse the order of the blocks to have them from head to tail
+	return st.reverseOrderOfBlocks(chain), nil
 }
 
-// TODO solve the case of forks
-func (st *selectionTracker) findNextBlock(previousHash []byte) *trackedBlock {
-	for _, block := range st.blocks {
-		if bytes.Equal(previousHash, block.prevHash) {
-			return block
+// findBlockInChainByPreviousHash finds the block A which has the hash equal to the given previous hash
+func (st *selectionTracker) findBlockInChainByPreviousHash(previousHash []byte) *trackedBlock {
+	for _, b := range st.blocks {
+		if bytes.Equal(b.hash, previousHash) {
+			return b
 		}
 	}
 
 	return nil
+}
+
+func (st *selectionTracker) discontinuousBlockNonce(foundBlockNonce uint64, currentNonce uint64) bool {
+	return foundBlockNonce != currentNonce-1
+}
+
+func (st *selectionTracker) reverseOrderOfBlocks(chainOfTrackedBlocks []*trackedBlock) []*trackedBlock {
+	reversedChainOfTrackedBlocks := make([]*trackedBlock, 0, len(chainOfTrackedBlocks))
+	for i := len(chainOfTrackedBlocks) - 1; i >= 0; i-- {
+		reversedChainOfTrackedBlocks = append(reversedChainOfTrackedBlocks, chainOfTrackedBlocks[i])
+	}
+
+	return reversedChainOfTrackedBlocks
 }
