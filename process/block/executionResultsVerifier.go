@@ -132,13 +132,17 @@ func (erc *executionResultsVerifier) checkFirstExecutionResultAgainstPrevBlock(
 	prevLastExecutionResultsHandler data.LastExecutionResultHandler,
 	executionResults []data.BaseExecutionResultHandler,
 ) error {
-	prevLastExecutionResultInfo, ok := prevLastExecutionResultsHandler.(*block.ExecutionResultInfo)
-	if !ok {
+	var prevNonce uint64
+	switch prev := prevLastExecutionResultsHandler.(type) {
+	case *block.ExecutionResultInfo:
+		prevNonce = prev.GetExecutionResult().GetHeaderNonce()
+	case *block.MetaExecutionResultInfo:
+		prevNonce = prev.GetExecutionResult().GetHeaderNonce()
+	default:
 		return process.ErrWrongTypeAssertion
 	}
-
 	// if execution results are present, we check if the previous last execution result info matches the first execution result
-	if executionResults[0].GetHeaderNonce() != prevLastExecutionResultInfo.GetExecutionResult().GetHeaderNonce()+1 {
+	if executionResults[0].GetHeaderNonce() != prevNonce+1 {
 		return fmt.Errorf("%w for first execution result", process.ErrExecutionResultsNonConsecutive)
 	}
 
