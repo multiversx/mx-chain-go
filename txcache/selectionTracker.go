@@ -252,41 +252,53 @@ func (st *selectionTracker) deriveVirtualSelectionSession(
 
 func (st *selectionTracker) getChainOfTrackedBlocks(
 	latestExecutedBlockHash []byte,
-	previousHashOfCurrentBlock []byte,
+	previousHashToBeFound []byte,
 	beforeNonce uint64,
 ) ([]*trackedBlock, error) {
 	chain := make([]*trackedBlock, 0)
 
-	if bytes.Equal(latestExecutedBlockHash, previousHashOfCurrentBlock) {
+	// if the previous hash to be found is equal to the latest executed hash
+	// it means that we do not have any block to be found
+	// the block found would be the actual executed block, but that one is not tracked anymore
+	if bytes.Equal(latestExecutedBlockHash, previousHashToBeFound) {
 		return chain, nil
 	}
 
-	previousBlock := st.findBlockInChainByPreviousHash(previousHashOfCurrentBlock)
+	// search for the block with the hash equal to the previous hash
+	previousBlock := st.findBlockInChainByPreviousHash(previousHashToBeFound)
 
 	for {
+		// if no block was found, it means there is a gap and we have to return an error
 		if previousBlock == nil {
 			return nil, errPreviousBlockNotFound
 		}
 
+		// extra check for a nonce gap
 		if st.discontinuousBlockNonce(previousBlock.nonce, beforeNonce) {
 			return nil, errDiscontinuousBlockNonce
 		}
 
+		// it the block passes the validation, add it to the returned chain
 		chain = append(chain, previousBlock)
 
+		// move backwards in the chain and check if the head was reached
 		previousBlockHash := previousBlock.prevHash
 		if bytes.Equal(latestExecutedBlockHash, previousBlockHash) {
 			break
 		}
 
+		// update also the nonce
 		beforeNonce -= 1
 
+		// find the previous block
 		previousBlock = st.findBlockInChainByPreviousHash(previousBlockHash)
 	}
 
+	// reverse the order of the blocks to have them from head to tail
 	return st.reverseOrderOfBlocks(chain), nil
 }
 
+// findBlockInChainByPreviousHash finds the block A which has the hash equal to the given previous hash
 func (st *selectionTracker) findBlockInChainByPreviousHash(previousHash []byte) *trackedBlock {
 	for _, b := range st.blocks {
 		if bytes.Equal(b.hash, previousHash) {
