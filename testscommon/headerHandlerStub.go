@@ -56,8 +56,17 @@ type HeaderHandlerStub struct {
 	GetShardIDCalled                       func() uint32
 	SetRootHashCalled                      func(hash []byte) error
 	GetGasLimitCalled                      func() uint32
-	GetLastExecutionResultHandlerCalled    func() data.ShardExecutionResultInfo
-	GetExecutionResultsHandlersCalled      func() []data.ExecutionResultHandler
+	GetLastExecutionResultHandlerCalled    func() data.LastExecutionResultHandler
+	GetExecutionResultsHandlersCalled      func() []data.BaseExecutionResultHandler
+	IsHeaderV3Called                       func() bool
+}
+
+// IsHeaderV3 - checks if the header is a V3 header
+func (hhs *HeaderHandlerStub) IsHeaderV3() bool {
+	if hhs.IsHeaderV3Called != nil {
+		return hhs.IsHeaderV3Called()
+	}
+	return false
 }
 
 // GetAccumulatedFees -
@@ -463,7 +472,7 @@ func (hhs *HeaderHandlerStub) GetGasLimit() uint32 {
 }
 
 // GetLastExecutionResultHandler -
-func (hhs *HeaderHandlerStub) GetLastExecutionResultHandler() data.ShardExecutionResultInfo {
+func (hhs *HeaderHandlerStub) GetLastExecutionResultHandler() data.LastExecutionResultHandler {
 	if hhs.GetLastExecutionResultHandlerCalled != nil {
 		return hhs.GetLastExecutionResultHandlerCalled()
 	}
@@ -471,7 +480,7 @@ func (hhs *HeaderHandlerStub) GetLastExecutionResultHandler() data.ShardExecutio
 }
 
 // GetExecutionResultsHandlers -
-func (hhs *HeaderHandlerStub) GetExecutionResultsHandlers() []data.ExecutionResultHandler {
+func (hhs *HeaderHandlerStub) GetExecutionResultsHandlers() []data.BaseExecutionResultHandler {
 	if hhs.GetExecutionResultsHandlersCalled != nil {
 		return hhs.GetExecutionResultsHandlersCalled()
 	}

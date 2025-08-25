@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/data"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/process/block/headerForBlock"
 )
@@ -43,5 +44,16 @@ type HeadersForBlock interface {
 	ComputeHeadersForCurrentBlockInfo(usedInBlock bool) (map[uint32][]headerForBlock.NonceAndHashInfo, error)
 	GetMissingData() (uint32, uint32, uint32)
 	Reset()
+	IsInterfaceNil() bool
+}
+
+// ExecutionResultsTracker is the interface that defines the methods for tracking execution results
+type ExecutionResultsTracker interface {
+	AddExecutionResult(executionResult data.ExecutionResultHandler) error
+	GetPendingExecutionResults() ([]data.ExecutionResultHandler, error)
+	GetPendingExecutionResultByHash(hash []byte) (data.ExecutionResultHandler, error)
+	GetPendingExecutionResultByNonce(nonce uint64) (data.ExecutionResultHandler, error)
+	GetLastNotarizedExecutionResult() (data.ExecutionResultHandler, error)
+	SetLastNotarizedResult(executionResult data.ExecutionResultHandler) error
 	IsInterfaceNil() bool
 }

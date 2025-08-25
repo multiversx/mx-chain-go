@@ -2322,13 +2322,13 @@ func TestUnmarshalHeader(t *testing.T) {
 	shardHeaderV2 := &block.HeaderV2{Header: &block.Header{Nonce: 43, EpochStartMetaHash: []byte{0xaa, 0xbb}}}
 	shardHeaderV3 := &block.HeaderV3{Nonce: 44, LastExecutionResult: &block.ExecutionResultInfo{NotarizedOnHeaderHash: []byte("hash")}}
 	metaHeader := &block.MetaBlock{Nonce: 7, ValidatorStatsRootHash: []byte{0xcc, 0xdd}}
-	metaHeaderV2 := &block.MetaBlockV2{Nonce: 8, LastExecutionResult: &block.MetaExecutionResultInfo{NotarizedAtHeaderHash: []byte("hash")}}
+	metaHeaderV3 := &block.MetaBlockV3{Nonce: 8, LastExecutionResult: &block.MetaExecutionResultInfo{NotarizedOnHeaderHash: []byte("hash")}}
 
 	shardHeaderV1Buffer, _ := marshalizer.Marshal(shardHeaderV1)
 	shardHeaderV2Buffer, _ := marshalizer.Marshal(shardHeaderV2)
 	shardHeaderV3Buffer, _ := marshalizer.Marshal(shardHeaderV3)
 	metaHeaderBuffer, _ := marshalizer.Marshal(metaHeader)
-	metaHeaderV2Buffer, _ := marshalizer.Marshal(metaHeaderV2)
+	metaHeaderV3Buffer, _ := marshalizer.Marshal(metaHeaderV3)
 
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
@@ -2349,9 +2349,9 @@ func TestUnmarshalHeader(t *testing.T) {
 		assert.Nil(t, err)
 		assert.Equal(t, metaHeader, header)
 
-		header, err = process.UnmarshalHeader(core.MetachainShardId, marshalizer, metaHeaderV2Buffer)
+		header, err = process.UnmarshalHeader(core.MetachainShardId, marshalizer, metaHeaderV3Buffer)
 		assert.Nil(t, err)
-		assert.Equal(t, metaHeaderV2, header)
+		assert.Equal(t, metaHeaderV3, header)
 	})
 
 	t.Run("should err", func(t *testing.T) {
