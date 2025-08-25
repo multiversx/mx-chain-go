@@ -589,8 +589,9 @@ func (hfb *headersForBlock) checkReceivedProofIfAttestingIsNeeded(proof data.Hea
 		return
 	}
 
-	hfb.setHasProof(hashStr)
-	hfb.missingProofs--
+	if hfb.missingProofs > 0 {
+		hfb.missingProofs--
+	}
 
 	missingHdrs := hfb.missingHdrs
 	missingFinalityAttestingHdrs := hfb.missingFinalityAttestingHdrs
