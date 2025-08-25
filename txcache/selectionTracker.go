@@ -37,7 +37,7 @@ func (st *selectionTracker) OnProposedBlock(
 	blockHash []byte,
 	blockBody *block.Body,
 	handler data.HeaderHandler,
-	session SelectionSession,
+	nonceAndBalanceProvider AccountNonceAndBalanceProvider,
 	blockchainInfo common.BlockchainInfo,
 ) error {
 	if len(blockHash) == 0 {
@@ -79,7 +79,7 @@ func (st *selectionTracker) OnProposedBlock(
 
 	blocksToBeValidated := st.getChainOfTrackedBlocks(blockchainInfo.GetLatestExecutedBlockHash(), blockchainInfo.GetCurrentNonce())
 	// make sure that the proposed block is valid (continuous with the other proposed blocks and no balance issues)
-	return st.validateTrackedBlocks(blocksToBeValidated, session)
+	return st.validateTrackedBlocks(blocksToBeValidated, nonceAndBalanceProvider)
 }
 
 // OnExecutedBlock notifies when a block is executed and updates the state of the selectionTracker
@@ -105,12 +105,12 @@ func (st *selectionTracker) OnExecutedBlock(handler data.HeaderHandler) error {
 	return nil
 }
 
-func (st *selectionTracker) validateTrackedBlocks(chainOfTrackedBlocks []*trackedBlock, session SelectionSession) error {
+func (st *selectionTracker) validateTrackedBlocks(chainOfTrackedBlocks []*trackedBlock, nonceAndBalanceProvider AccountNonceAndBalanceProvider) error {
 	validator := newBreadcrumbValidator()
 
 	for _, tb := range chainOfTrackedBlocks {
 		for address, breadcrumb := range tb.breadcrumbsByAddress {
-			initialNonce, initialBalance, _, err := session.GetAccountNonceAndBalance([]byte(address))
+			initialNonce, initialBalance, _, err := nonceAndBalanceProvider.GetAccountNonceAndBalance([]byte(address))
 			if err != nil {
 				log.Debug("selectionTracker.validateTrackedBlocks",
 					"err", err,
