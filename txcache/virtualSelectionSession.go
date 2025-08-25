@@ -56,7 +56,6 @@ func (virtualSession *virtualSelectionSession) createAccountRecord(address []byt
 func (virtualSession *virtualSelectionSession) getNonce(address []byte) (uint64, error) {
 	account, err := virtualSession.getRecord(address)
 	if err != nil {
-		// TODO discuss if we should log the error here too (it is already logged in getRecord)
 		log.Debug("virtualSelectionSession.getNonce",
 			"address", address,
 			"err", err)
@@ -79,7 +78,6 @@ func (virtualSession *virtualSelectionSession) accumulateConsumedBalance(tx *Wra
 
 	senderRecord, err := virtualSession.getRecord(sender)
 	if err != nil {
-		// TODO discuss if we should log the error here too (it is already logged in getRecord)
 		log.Warn("accumulateConsumedBalance.getRecord sender",
 			"sender", sender,
 			"err", err)
@@ -119,7 +117,6 @@ func (virtualSession *virtualSelectionSession) detectWillFeeExceedBalance(tx *Wr
 	feePayer := tx.FeePayer
 	feePayerRecord, err := virtualSession.getRecord(feePayer)
 	if err != nil {
-		// TODO discuss if we should log the error here too (it is already logged in getRecord)
 		log.Debug("virtualSelectionSession.detectWillFeeExceedBalance",
 			"err", err)
 		return false
