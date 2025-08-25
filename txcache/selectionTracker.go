@@ -75,8 +75,6 @@ func (st *selectionTracker) OnProposedBlock(
 		return err
 	}
 
-	st.blocks = append(st.blocks, tBlock)
-
 	blocksToBeValidated, err := st.getChainOfTrackedBlocks(
 		blockchainInfo.GetLatestExecutedBlockHash(),
 		prevHash,
@@ -91,7 +89,14 @@ func (st *selectionTracker) OnProposedBlock(
 	blocksToBeValidated = append(blocksToBeValidated, tBlock)
 
 	// make sure that the proposed block is valid (continuous with the other proposed blocks and no balance issues)
-	return st.validateTrackedBlocks(blocksToBeValidated, session)
+	err = st.validateTrackedBlocks(blocksToBeValidated, session)
+	if err != nil {
+		log.Debug("selectionTracker.OnProposedBlock: error validating tracked blocks", "err", err)
+		return err
+	}
+
+	st.blocks = append(st.blocks, tBlock)
+	return nil
 }
 
 // OnExecutedBlock notifies when a block is executed and updates the state of the selectionTracker
