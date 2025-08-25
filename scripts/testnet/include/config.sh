@@ -118,13 +118,6 @@ updateNodeConfig() {
 		updateTOMLValue config_observer.toml "ChainID" "\"local-testnet"\"
 	fi
 
-	if [ $ROUNDS_PER_EPOCH -ne 0 ]; then
-    sed -i "s,RoundsPerEpoch.*$,RoundsPerEpoch = $ROUNDS_PER_EPOCH," config_observer.toml
-    sed -i "s,MinRoundsBetweenEpochs.*$,MinRoundsBetweenEpochs = $ROUNDS_PER_EPOCH," config_observer.toml
-	  sed -i "s,RoundsPerEpoch.*$,RoundsPerEpoch = $ROUNDS_PER_EPOCH," config_validator.toml
-    sed -i "s,MinRoundsBetweenEpochs.*$,MinRoundsBetweenEpochs = $ROUNDS_PER_EPOCH," config_validator.toml
-	fi
-
   cp nodesSetup_edit.json nodesSetup.json
   rm nodesSetup_edit.json
 
@@ -150,8 +143,16 @@ updateChainParameters() {
   sed -i "s,ShardMinNumNodes\([^,]*\),ShardMinNumNodes = $SHARD_CONSENSUS_SIZE," $tomlFile
   sed -i "s,MetachainConsensusGroupSize\([^,]*\),MetachainConsensusGroupSize = $META_CONSENSUS_SIZE," $tomlFile
   sed -i "s,MetachainMinNumNodes\([^,]*\),MetachainMinNumNodes = $META_CONSENSUS_SIZE," $tomlFile
-  sed -i "s,RoundDuration\([^,]*\),RoundDuration = $ROUND_DURATION_IN_MS," $tomlFile
+  sed -i "s,RoundDuration = 6000,RoundDuration = $ROUND_DURATION_IN_MS," $tomlFile
   sed -i "s,Hysteresis\([^,]*\),Hysteresis = $HYSTERESIS," $tomlFile
+
+  if [ $ROUNDS_PER_EPOCH -ne 0 ]; then
+    NEW_ROUNDS_PER_EPOCH=$((ROUNDS_PER_EPOCH*ROUND_DURATION_IN_MS / 600))
+    echo "Calculated NewRoundsPerEpoch = $NEW_ROUNDS_PER_EPOCH"
+    sed -i "s,RoundsPerEpoch = 2000,RoundsPerEpoch = $NEW_ROUNDS_PER_EPOCH," $tomlFile
+    sed -i "s,RoundsPerEpoch = 200,RoundsPerEpoch = $ROUNDS_PER_EPOCH," $tomlFile
+    sed -i "s,MinRoundsBetweenEpochs = 20,MinRoundsBetweenEpochs = $ROUNDS_PER_EPOCH," $tomlFile
+  fi
 }
 
 updateConfigsForStakingV4() {
