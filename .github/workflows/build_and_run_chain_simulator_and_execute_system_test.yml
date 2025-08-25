@@ -142,42 +142,50 @@ jobs:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
             console.log('=== SET PR STATUS TO PENDING ===');
-            console.log('Event name:', context.eventName);
-            console.log('Should run:', context.eventName === 'issue_comment');
+            console.log('Event name from context:', context.eventName);
+            console.log('Event name from github:', '${{ github.event_name }}');
             
-            if (context.eventName !== 'issue_comment') {
-              console.log('Not an issue_comment event, skipping');
+            // Use github.event_name since that's what the if condition uses
+            if ('${{ github.event_name }}' !== 'issue_comment') {
+              console.log('Not an issue_comment event (checked via github.event_name), skipping');
               return;
             }
             
+            console.log('This IS an issue_comment event, proceeding...');
             console.log('Issue number:', context.issue.number);
             
-            const pr = await github.rest.pulls.get({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              pull_number: context.issue.number
-            });
-            
-            const sha = pr.data.head.sha;
-            const runUrl = `https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
-            
-            console.log(`Setting pending status for commit ${sha}`);
-            
-            // Find and update existing checks
             try {
+              const pr = await github.rest.pulls.get({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                pull_number: context.issue.number
+              });
+            
+              const sha = pr.data.head.sha;
+              const runUrl = `https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
+            
+              console.log(`Setting pending status for commit ${sha}`);
+              console.log(`Run URL: ${runUrl}`);
+            
+              // Find and update existing checks
               const checks = await github.rest.checks.listForRef({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
                 ref: sha
               });
             
-              console.log('Found checks:', checks.data.check_runs.map(c => c.name));
+              console.log('Found checks:', checks.data.check_runs.map(c => ({
+                name: c.name,
+                status: c.status,
+                conclusion: c.conclusion
+              })));
             
               // Update the failing check to pending
+              let updatedAny = false;
               for (const check of checks.data.check_runs) {
                 if (check.name === 'build-and-test' || 
                     check.name.includes('Chain Simulator Build and Integration Test')) {
-                  console.log(`Updating check ${check.name} to in_progress`);
+                  console.log(`Updating check ${check.name} (ID: ${check.id}) to in_progress`);
             
                   await github.rest.checks.update({
                     owner: context.repo.owner,
@@ -188,27 +196,36 @@ jobs:
                     details_url: runUrl,
                     output: {
                       title: '⏳ Re-running tests via comment...',
-                      summary: `Re-running with branches:\n- simulator: ${{ env.MX_CHAIN_SIMULATOR_TARGET_BRANCH }}\n- testing-suite: ${{ env.MX_CHAIN_TESTING_SUITE_TARGET_BRANCH }}`
+                      summary: `Triggered by: @${{ github.actor }}\n\nBranches:\n- simulator: ${{ env.MX_CHAIN_SIMULATOR_TARGET_BRANCH }}\n- testing-suite: ${{ env.MX_CHAIN_TESTING_SUITE_TARGET_BRANCH }}`
                     }
                   });
             
+                  updatedAny = true;
                   console.log('Successfully updated check to pending');
                 }
               }
-            } catch (e) {
-              console.error('Error updating checks:', e.message);
-            }
             
-            // Also create a commit status
-            await github.rest.repos.createCommitStatus({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              sha: sha,
-              state: 'pending',
-              target_url: runUrl,
-              description: '⏳ Re-running tests via comment...',
-              context: 'Chain Simulator Build and Integration Test'
-            });
+              if (!updatedAny) {
+                console.log('WARNING: No matching checks found to update!');
+              }
+            
+              // Also create a commit status
+              await github.rest.repos.createCommitStatus({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                sha: sha,
+                state: 'pending',
+                target_url: runUrl,
+                description: '⏳ Re-running tests via comment...',
+                context: 'Chain Simulator Build and Integration Test'
+              });
+            
+              console.log('Commit status updated to pending');
+            
+            } catch (e) {
+              console.error('Error in Set PR Status to Pending:', e.message);
+              console.error('Full error:', JSON.stringify(e, null, 2));
+            }
             
             console.log('=== COMPLETED SET PR STATUS TO PENDING ===');
 
@@ -591,93 +608,6 @@ jobs:
               repo: repo,
               body: message
             });
-
-      - name: Set PR Status to Pending
-        uses: actions/github-script@v7
-        with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          script: |
-            console.log('=== SET PR STATUS TO PENDING ===');
-            console.log('Event name:', context.eventName);
-            console.log('Event type from github:', '${{ github.event_name }}');
-            
-            // Only run for issue_comment events
-            if (context.eventName !== 'issue_comment' && '${{ github.event_name }}' !== 'issue_comment') {
-              console.log('Not an issue_comment event, skipping');
-              console.log('context.eventName:', context.eventName);
-              console.log('github.event_name:', '${{ github.event_name }}');
-              return;
-            }
-            
-            console.log('This IS an issue_comment event, proceeding...');
-            console.log('Issue number:', context.issue.number);
-            
-            const pr = await github.rest.pulls.get({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              pull_number: context.issue.number
-            });
-            
-            const sha = pr.data.head.sha;
-            const runUrl = `https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
-            
-            console.log(`Setting pending status for commit ${sha}`);
-            
-            // Find and update existing checks
-            try {
-              const checks = await github.rest.checks.listForRef({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                ref: sha
-              });
-            
-              console.log('Found checks:', checks.data.check_runs.map(c => ({
-                name: c.name,
-                status: c.status,
-                conclusion: c.conclusion
-              })));
-            
-              // Update the failing check to pending
-              for (const check of checks.data.check_runs) {
-                if (check.name === 'build-and-test' || 
-                    check.name.includes('Chain Simulator Build and Integration Test')) {
-                  console.log(`Updating check ${check.name} (ID: ${check.id}) to in_progress`);
-            
-                  await github.rest.checks.update({
-                    owner: context.repo.owner,
-                    repo: context.repo.repo,
-                    check_run_id: check.id,
-                    status: 'in_progress',
-                    started_at: new Date().toISOString(),
-                    details_url: runUrl,
-                    output: {
-                      title: '⏳ Re-running tests via comment...',
-                      summary: `Re-running with branches:\n- simulator: ${{ env.MX_CHAIN_SIMULATOR_TARGET_BRANCH }}\n- testing-suite: ${{ env.MX_CHAIN_TESTING_SUITE_TARGET_BRANCH }}`
-                    }
-                  });
-            
-                  console.log('Successfully updated check to pending');
-                }
-              }
-            } catch (e) {
-              console.error('Error updating checks:', e.message);
-            }
-            
-            // Also create a commit status
-            await github.rest.repos.createCommitStatus({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              sha: sha,
-              state: 'pending',
-              target_url: runUrl,
-              description: '⏳ Re-running tests via comment...',
-              context: 'Chain Simulator Build and Integration Test'
-            });
-            
-            console.log('=== COMPLETED SET PR STATUS TO PENDING ===');
-      
-
-
 
 
       - name: Update PR Check Status
