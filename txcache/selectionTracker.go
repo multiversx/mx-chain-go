@@ -82,12 +82,13 @@ func (st *selectionTracker) OnProposedBlock(
 		prevHash,
 		nonce,
 	)
-	blocksToBeValidated = append(blocksToBeValidated, tBlock)
-
 	if err != nil {
 		log.Debug("selectionTracker.OnProposedBlock: error creating chain of tracked blocks", "err", err)
 		return err
 	}
+
+	// add the new block in the chain
+	blocksToBeValidated = append(blocksToBeValidated, tBlock)
 
 	// make sure that the proposed block is valid (continuous with the other proposed blocks and no balance issues)
 	return st.validateTrackedBlocks(blocksToBeValidated, session)
@@ -240,6 +241,8 @@ func (st *selectionTracker) deriveVirtualSelectionSession(
 		blockchainInfo.GetCurrentNonce(),
 	)
 	if err != nil {
+		log.Debug("selectionTracker.deriveVirtualSelectionSession",
+			"err", err)
 		return nil, err
 	}
 
