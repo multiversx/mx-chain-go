@@ -113,6 +113,33 @@ jobs:
           echo "mx-chain-simulator-go target branch: ${{ env.MX_CHAIN_SIMULATOR_TARGET_BRANCH }}"
           echo "mx-chain-testing-suite target branch: ${{ env.MX_CHAIN_TESTING_SUITE_TARGET_BRANCH }}"
 
+      - name: Set PR Status to Pending
+        if: github.event_name == 'issue_comment'
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const pr = await github.rest.pulls.get({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: context.issue.number
+            });
+            
+            const sha = pr.data.head.sha;
+            const runUrl = `https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
+            
+            await github.rest.repos.createCommitStatus({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              sha: sha,
+              state: 'pending',
+              context: 'Chain Simulator Build and Integration Test / build-and-test (pull_request)',
+              description: '⏳ Running tests via comment trigger...',
+              target_url: runUrl
+            });
+            
+            console.log(`Set pending status for commit ${sha}`);
+
       - name: Set up Go 1.23.6
         uses: actions/setup-go@v5
         with:
@@ -508,30 +535,20 @@ jobs:
             const sha = pr.data.head.sha;
             const exitCode = '${{ env.PYTEST_EXIT_CODE }}';
             const state = exitCode === '0' ? 'success' : 'failure';
+            const r2Url = '${{ env.R2_REPORT_URL }}';
             
-            // Try multiple possible context names
-            const contexts = [
-              'Chain Simulator Build and Integration Test / build-and-test (pull_request)',
-              'Chain Simulator Build and Integration Test / build-and-test',
-              'build-and-test'
-            ];
-            
-            for (const contextName of contexts) {
-              try {
-                await github.rest.repos.createCommitStatus({
-                  owner: context.repo.owner,
-                  repo: context.repo.repo,
-                  sha: sha,
-                  state: state,
-                  context: contextName,
-                  description: state === 'success' ? '✅ Tests passed' : '❌ Tests failed',
-                  target_url: '${{ env.R2_REPORT_URL }}'
-                });
-                console.log(`Updated status for context: ${contextName}`);
-              } catch (e) {
-                console.log(`Failed to update context ${contextName}: ${e.message}`);
-              }
-            }
+            // Use the EXACT same context as the original PR check
+            await github.rest.repos.createCommitStatus({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              sha: sha,
+              state: state,
+              context: 'Chain Simulator Build and Integration Test / build-and-test (pull_request)',
+              description: state === 'success' ? '✅ Tests passed via comment' : '❌ Tests failed via comment',
+              target_url: r2Url
+            });
+            console.log(`Updated commit ${sha} status to ${state}`);
+
       - name: Notify Slack
         if: always()
         env:
