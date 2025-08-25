@@ -150,7 +150,7 @@ func (st *selectionTracker) validateTrackedBlocks(chainOfTrackedBlocks []*tracke
 func (st *selectionTracker) removeFromTrackedBlocksNoLock(searchedBlock *trackedBlock) {
 	remainingBlocks := make([]*trackedBlock, 0)
 	for _, block := range st.blocks {
-		if !searchedBlock.sameNonce(block) {
+		if !block.sameNonceOrBelow(searchedBlock) {
 			remainingBlocks = append(remainingBlocks, block)
 		}
 	}
