@@ -14,6 +14,7 @@ permissions:
   issues: write
   pull-requests: write
   contents: read
+  checks: write
 
 jobs:
   build-and-test:
@@ -67,13 +68,31 @@ jobs:
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
+            console.log('Event name:', context.eventName);
+            console.log('Event payload:', JSON.stringify(context.payload, null, 2).substring(0, 500));
+            
+            // Determine PR number based on event type
+            let pr_number;
+            if (context.eventName === 'pull_request') {
+              pr_number = context.payload.pull_request.number;
+            } else if (context.eventName === 'issue_comment') {
+              pr_number = context.issue.number;
+            } else {
+              console.log('Not a PR or comment event, skipping');
+              return;
+            }
+            
+            console.log('PR number:', pr_number);
+            
             // Get all comments
             const comments = await github.rest.issues.listComments({
               owner: context.repo.owner,
               repo: context.repo.repo,
-              issue_number: context.issue.number,
+              issue_number: pr_number  // Use the determined PR number
             });
-
+            
+            console.log(`Found ${comments.data.length} comments`);
+            
             // Find the last comment that contains 'Run Tests:'
             let lastTestComment = null;
             for (let i = comments.data.length - 1; i >= 0; i--) {
@@ -82,23 +101,26 @@ jobs:
                 break;
               }
             }
-
+            
             if (lastTestComment) {
               const body = lastTestComment.body.trim();
               core.setOutput('latest_comment', body);
-
+              console.log('Found Run Tests comment:', body);
+            
               // Parse the branches from the last test comment
               const simulatorBranchMatch = body.match(/mx-chain-simulator-go:\s*(\S+)/);
               const testingSuiteBranchMatch = body.match(/mx-chain-testing-suite:\s*(\S+)/);
-
+            
               // Override the target branches if specified
               if (simulatorBranchMatch) {
+                console.log('Setting simulator branch to:', simulatorBranchMatch[1]);
                 core.exportVariable('MX_CHAIN_SIMULATOR_TARGET_BRANCH', simulatorBranchMatch[1]);
               }
               if (testingSuiteBranchMatch) {
+                console.log('Setting testing suite branch to:', testingSuiteBranchMatch[1]);
                 core.exportVariable('MX_CHAIN_TESTING_SUITE_TARGET_BRANCH', testingSuiteBranchMatch[1]);
               }
-
+            
               // Log which comment was used for configuration
               core.info(`Found 'Run Tests:' comment from ${lastTestComment.user.login} at ${lastTestComment.created_at}`);
             } else {
@@ -112,6 +134,100 @@ jobs:
           echo "mx-chain-go target branch: ${{ env.MX_CHAIN_GO_TARGET_BRANCH }}"
           echo "mx-chain-simulator-go target branch: ${{ env.MX_CHAIN_SIMULATOR_TARGET_BRANCH }}"
           echo "mx-chain-testing-suite target branch: ${{ env.MX_CHAIN_TESTING_SUITE_TARGET_BRANCH }}"
+
+      - name: Set PR Status to Pending
+        if: github.event_name == 'issue_comment'
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            console.log('=== SET PR STATUS TO PENDING ===');
+            console.log('Event name from context:', context.eventName);
+            console.log('Event name from github:', '${{ github.event_name }}');
+            
+            // Use github.event_name since that's what the if condition uses
+            if ('${{ github.event_name }}' !== 'issue_comment') {
+              console.log('Not an issue_comment event (checked via github.event_name), skipping');
+              return;
+            }
+            
+            console.log('This IS an issue_comment event, proceeding...');
+            console.log('Issue number:', context.issue.number);
+            
+            try {
+              const pr = await github.rest.pulls.get({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                pull_number: context.issue.number
+              });
+            
+              const sha = pr.data.head.sha;
+              const runUrl = `https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
+            
+              console.log(`Setting pending status for commit ${sha}`);
+              console.log(`Run URL: ${runUrl}`);
+            
+              // Find and update existing checks
+              const checks = await github.rest.checks.listForRef({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                ref: sha
+              });
+            
+              console.log('Found checks:', checks.data.check_runs.map(c => ({
+                name: c.name,
+                status: c.status,
+                conclusion: c.conclusion
+              })));
+            
+              // Update the failing check to pending
+              let updatedAny = false;
+              for (const check of checks.data.check_runs) {
+                if (check.name === 'build-and-test' || 
+                    check.name.includes('Chain Simulator Build and Integration Test')) {
+                  console.log(`Updating check ${check.name} (ID: ${check.id}) to in_progress`);
+            
+                  await github.rest.checks.update({
+                    owner: context.repo.owner,
+                    repo: context.repo.repo,
+                    check_run_id: check.id,
+                    status: 'in_progress',
+                    started_at: new Date().toISOString(),
+                    details_url: runUrl,
+                    output: {
+                      title: '⏳ Re-running tests via comment...',
+                      summary: `Triggered by: @${{ github.actor }}\n\nBranches:\n- simulator: ${{ env.MX_CHAIN_SIMULATOR_TARGET_BRANCH }}\n- testing-suite: ${{ env.MX_CHAIN_TESTING_SUITE_TARGET_BRANCH }}`
+                    }
+                  });
+            
+                  updatedAny = true;
+                  console.log('Successfully updated check to pending');
+                }
+              }
+            
+              if (!updatedAny) {
+                console.log('WARNING: No matching checks found to update!');
+              }
+            
+              // Also create a commit status
+              await github.rest.repos.createCommitStatus({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                sha: sha,
+                state: 'pending',
+                target_url: runUrl,
+                description: '⏳ Re-running tests via comment...',
+                context: 'Chain Simulator Build and Integration Test'
+              });
+            
+              console.log('Commit status updated to pending');
+            
+            } catch (e) {
+              console.error('Error in Set PR Status to Pending:', e.message);
+              console.error('Full error:', JSON.stringify(e, null, 2));
+            }
+            
+            console.log('=== COMPLETED SET PR STATUS TO PENDING ===');
 
       - name: Set up Go 1.23.6
         uses: actions/setup-go@v5
@@ -210,7 +326,7 @@ jobs:
           # Wait for the initialization to complete - look for multiple possible success patterns
           INIT_COMPLETED=false
           RETRY_COUNT=0
-          MAX_RETRIES=60  # Increase timeout to 60 seconds
+          MAX_RETRIES=120
           
           echo "Waiting for ChainSimulator initialization..."
           while [ $RETRY_COUNT -lt $MAX_RETRIES ]; do
@@ -492,6 +608,100 @@ jobs:
               repo: repo,
               body: message
             });
+
+
+      - name: Update PR Check Status
+        if: always()
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            console.log('=== UPDATE PR CHECK STATUS ===');
+            console.log('Event name:', context.eventName);
+            console.log('Event type from github:', '${{ github.event_name }}');
+            
+            // Determine PR number based on event type
+            let pr_number;
+            if (context.eventName === 'pull_request' || '${{ github.event_name }}' === 'pull_request') {
+              pr_number = context.payload.pull_request?.number;
+            } else if (context.eventName === 'issue_comment' || '${{ github.event_name }}' === 'issue_comment') {
+              pr_number = context.issue.number;
+            } else {
+              console.log('Not a PR-related event, skipping');
+              return;
+            }
+            
+            if (!pr_number) {
+              console.log('No PR number found');
+              return;
+            }
+            
+            console.log('PR number:', pr_number);
+            
+            // Rest of the script remains the same...
+            const pr = await github.rest.pulls.get({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: pr_number
+            });
+            
+            const sha = pr.data.head.sha;
+            const exitCode = '${{ env.PYTEST_EXIT_CODE }}';
+            const conclusion = exitCode === '0' ? 'success' : 'failure';
+            const state = exitCode === '0' ? 'success' : 'failure';
+            const r2Url = '${{ env.R2_REPORT_URL }}';
+            
+            console.log(`Final status: ${conclusion} for commit ${sha}`);
+            
+            // Update all relevant checks
+            try {
+              const checks = await github.rest.checks.listForRef({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                ref: sha
+              });
+            
+              for (const check of checks.data.check_runs) {
+                if (check.name === 'build-and-test' || 
+                    check.name.includes('Chain Simulator Build and Integration Test')) {
+            
+                  await github.rest.checks.update({
+                    owner: context.repo.owner,
+                    repo: context.repo.repo,
+                    check_run_id: check.id,
+                    status: 'completed',
+                    conclusion: conclusion,
+                    completed_at: new Date().toISOString(),
+                    details_url: r2Url,
+                    output: {
+                      title: conclusion === 'success' ? '✅ Tests Passed' : '❌ Tests Failed',
+                      summary: `Tests ${conclusion}`,
+                      text: `[View detailed report](${r2Url})`
+                    }
+                  });
+            
+                  console.log(`Updated check ${check.name} to ${conclusion}`);
+                }
+              }
+            } catch (error) {
+              console.error('Error updating checks:', error);
+            }
+            
+            // Update commit status
+            await github.rest.repos.createCommitStatus({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              sha: sha,
+              state: state,
+              target_url: r2Url,
+              description: state === 'success' ? '✅ Tests passed' : '❌ Tests failed',
+              context: 'Chain Simulator Build and Integration Test'
+            });
+            
+            console.log('=== COMPLETED UPDATE PR CHECK STATUS ===');
+
+
+
 
       - name: Notify Slack
         if: always()
