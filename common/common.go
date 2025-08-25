@@ -242,3 +242,17 @@ func GetHeaderTimestamps(
 
 	return timestampSec, timestampMs, nil
 }
+
+type EnableEpochsHandlerWithSet interface {
+	SetActivationRound(flag EnableRoundFlag, round uint64)
+}
+
+var erh EnableEpochsHandlerWithSet
+
+func SetEnableRoundsHandler(enableRoundsHandler EnableEpochsHandlerWithSet) {
+	erh = enableRoundsHandler
+}
+
+func SetSuperNovaActivationRound(round uint64) {
+	erh.SetActivationRound(SupernovaRoundFlag, round)
+}
