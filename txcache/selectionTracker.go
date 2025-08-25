@@ -35,7 +35,6 @@ func NewSelectionTracker(txCache txCacheForSelectionTracker) (*selectionTracker,
 // OnProposedBlock notifies when a block is proposed and updates the state of the selectionTracker
 // TODO the selection session might be unusable in the flow of OnProposed
 // TODO log in case MaxTrackedBlocks is reached and brainstorm how to solve this case
-// TODO assure minimum blocks validation when adding a proposed block (i.e nonce continuity)
 func (st *selectionTracker) OnProposedBlock(
 	blockHash []byte,
 	blockBody *block.Body,
