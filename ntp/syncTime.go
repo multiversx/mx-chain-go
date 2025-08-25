@@ -154,6 +154,9 @@ func (s *syncTime) getSleepTime() time.Duration {
 // and servers time which have been used in synchronization
 func (s *syncTime) sync() {
 	clockOffsets := make([]time.Duration, 0)
+
+	responseDurations := int64(0)
+	numSuccessfulRequests := int64(0)
 	for hostIndex := 0; hostIndex < len(s.ntpOptions.Hosts); hostIndex++ {
 		for requests := 0; requests < numRequestsFromHost; requests++ {
 			startTime := time.Now()
@@ -167,6 +170,9 @@ func (s *syncTime) sync() {
 
 				continue
 			}
+
+			responseDurations += duration.Milliseconds()
+			numSuccessfulRequests++
 
 			if duration.Milliseconds() > maxAllowedNTPQueryResponseTimeMS {
 				log.Trace("sync.query exceeds maximum allowed response time",
@@ -202,8 +208,16 @@ func (s *syncTime) sync() {
 	clockOffsetsWithoutEdges := s.getClockOffsetsWithoutEdges(clockOffsets)
 	clockOffsetHarmonicMean := s.getHarmonicMean(clockOffsetsWithoutEdges)
 
-	isOutOfBounds := core.AbsDuration(clockOffsetHarmonicMean) > time.Duration(s.outOfBoundsThreshold)
-	if isOutOfBounds {
+	avgResponseDurationMs := responseDurations / numSuccessfulRequests
+	isResponseTimeWithinAcceptedBounds := time.Duration(avgResponseDurationMs)*time.Millisecond < s.outOfBoundsThreshold
+	log.Error("avgResponseDurationMs",
+		"avgResponseDurationMs", avgResponseDurationMs,
+		"outOfBoundsThreshold", s.outOfBoundsThreshold,
+		"isResponseTimeWithinAcceptedBounds", isResponseTimeWithinAcceptedBounds,
+	)
+
+	isClockOffsetOutOfBounds := core.AbsDuration(clockOffsetHarmonicMean) > s.outOfBoundsThreshold
+	if !isResponseTimeWithinAcceptedBounds && isClockOffsetOutOfBounds {
 		log.Error("syncTime.sync: clock offset is out of expected bounds",
 			"clock offset harmonic mean", clockOffsetHarmonicMean,
 			"outOfBoundsThreshold", s.outOfBoundsThreshold,

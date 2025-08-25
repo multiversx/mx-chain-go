@@ -288,6 +288,8 @@ func TestCallQueryShouldNotUpdateOnOutOfBoundValuesPositive(t *testing.T) {
 			OutOfBoundsThreshold: 1,
 		},
 		func(options ntp.NTPOptions, hostIndex int) (*beevikNtp.Response, error) {
+			time.Sleep(2 * time.Millisecond)
+
 			return &beevikNtp.Response{
 				ClockOffset: 1 + time.Millisecond,
 			}, nil
@@ -301,7 +303,55 @@ func TestCallQueryShouldNotUpdateOnOutOfBoundValuesPositive(t *testing.T) {
 	assert.Equal(t, currentValue, st.ClockOffset())
 }
 
+func TestCallQueryShouldUpdateOnOutOfBoundValuesPositiveIfDurationNotOutOfBounds(t *testing.T) {
+	t.Parallel()
+
+	st := ntp.NewSyncTime(
+		config.NTPConfig{
+			SyncPeriodSeconds:    3600,
+			Hosts:                []string{"host1"},
+			OutOfBoundsThreshold: 1,
+		},
+		func(options ntp.NTPOptions, hostIndex int) (*beevikNtp.Response, error) {
+			return &beevikNtp.Response{
+				ClockOffset: 1 + time.Millisecond,
+			}, nil
+		},
+	)
+
+	currentValue := 10 * time.Millisecond
+	st.SetClockOffset(currentValue)
+	st.Sync()
+
+	assert.NotEqual(t, currentValue, st.ClockOffset())
+}
+
 func TestCallQueryShouldNotUpdateOnOutOfBoundValuesNegative(t *testing.T) {
+	t.Parallel()
+
+	st := ntp.NewSyncTime(
+		config.NTPConfig{
+			SyncPeriodSeconds:    3600,
+			Hosts:                []string{"host1"},
+			OutOfBoundsThreshold: 2,
+		},
+		func(options ntp.NTPOptions, hostIndex int) (*beevikNtp.Response, error) {
+			time.Sleep(2 * time.Millisecond)
+
+			return &beevikNtp.Response{
+				ClockOffset: -2 - 2*time.Millisecond,
+			}, nil
+		},
+	)
+
+	currentValue := 2 * 10 * time.Microsecond
+	st.SetClockOffset(currentValue)
+	st.Sync()
+
+	assert.Equal(t, currentValue, st.ClockOffset())
+}
+
+func TestCallQueryShouldUpdateOnOutOfBoundValuesNegativeIfDurationNotOutOfBounds(t *testing.T) {
 	t.Parallel()
 
 	st := ntp.NewSyncTime(
@@ -321,7 +371,7 @@ func TestCallQueryShouldNotUpdateOnOutOfBoundValuesNegative(t *testing.T) {
 	st.SetClockOffset(currentValue)
 	st.Sync()
 
-	assert.Equal(t, currentValue, st.ClockOffset())
+	assert.NotEqual(t, currentValue, st.ClockOffset())
 }
 
 // On local machine, seems like average query time is ~35ms, e.g.:
