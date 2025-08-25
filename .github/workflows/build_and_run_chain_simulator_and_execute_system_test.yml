@@ -505,26 +505,88 @@ jobs:
               repo: context.repo.repo,
               pull_number: context.issue.number
             });
-            
+
             const sha = pr.data.head.sha;
             const exitCode = '${{ env.PYTEST_EXIT_CODE }}';
-            const state = exitCode === '0' ? 'success' : 'failure';
+            const conclusion = exitCode === '0' ? 'success' : 'failure';
             const r2Url = '${{ env.R2_REPORT_URL }}';
-            
-            console.log(`Updating commit ${sha} status to ${state}`);
-            
-            // Update the commit status - this will update the check on the PR
+
+            console.log(`Looking for existing checks on commit ${sha}`);
+
+            // List all check runs for this commit
+            const checkRuns = await github.rest.checks.listForRef({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              ref: sha
+            });
+
+            console.log(`Found ${checkRuns.data.check_runs.length} check runs`);
+
+            // Find the check run from the original PR trigger
+            let targetCheckRun = null;
+            for (const checkRun of checkRuns.data.check_runs) {
+              console.log(`Check: ${checkRun.name} - Status: ${checkRun.status} - ID: ${checkRun.id}`);
+              if (checkRun.name === 'build-and-test') {
+                targetCheckRun = checkRun;
+                break;
+              }
+            }
+
+            if (targetCheckRun) {
+              console.log(`Updating existing check run ${targetCheckRun.id} to ${conclusion}`);
+
+              // Update the existing check run
+              await github.rest.checks.update({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                check_run_id: targetCheckRun.id,
+                status: 'completed',
+                conclusion: conclusion,
+                output: {
+                  title: `Integration Tests ${conclusion === 'success' ? 'Passed' : 'Failed'} (via comment trigger)`,
+                  summary: `Tests were re-run via comment trigger and ${conclusion === 'success' ? 'passed successfully' : 'failed with errors'}.`,
+                  text: `View the detailed report: [Test Report](${r2Url})\n\nTriggered by comment on PR #${context.issue.number}`
+                },
+                details_url: r2Url
+              });
+
+              console.log(`Successfully updated check run to ${conclusion}`);
+            } else {
+              console.log('No existing check run found, creating a new one');
+
+              // Create a new check run if none exists
+              await github.rest.checks.create({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                name: 'build-and-test',
+                head_sha: sha,
+                status: 'completed',
+                conclusion: conclusion,
+                started_at: new Date(Date.now() - 60000).toISOString(), // Set start time to 1 minute ago
+                completed_at: new Date().toISOString(),
+                output: {
+                  title: `Integration Tests ${conclusion === 'success' ? 'Passed' : 'Failed'} (via comment trigger)`,
+                  summary: `Tests triggered via comment and ${conclusion === 'success' ? 'passed successfully' : 'failed with errors'}.`,
+                  text: `View the detailed report: [Test Report](${r2Url})\n\nTriggered by comment on PR #${context.issue.number}`
+                },
+                details_url: r2Url
+              });
+
+              console.log(`Created new check run with ${conclusion} status`);
+            }
+
+            // Also create a commit status for good measure
             await github.rest.repos.createCommitStatus({
               owner: context.repo.owner,
               repo: context.repo.repo,
               sha: sha,
-              state: state,
-              context: 'Chain Simulator Build and Integration Test / build-and-test (pull_request)',
-              description: state === 'success' ? '✅ Tests passed via comment trigger' : '❌ Tests failed',
-              target_url: r2Url || `https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`
+              state: exitCode === '0' ? 'success' : 'failure',
+              context: 'integration-tests/comment-trigger',
+              description: exitCode === '0' ? '✅ Tests passed via comment' : '❌ Tests failed via comment',
+              target_url: r2Url
             });
-            
-            console.log(`Successfully updated commit status for ${sha}`);
+
+            console.log('Also created commit status for visibility');
 
       - name: Notify Slack
         if: always()
