@@ -41,6 +41,7 @@ type HeadersForBlock interface {
 	GetHeadersMap() map[string]data.HeaderHandler
 	ComputeHeadersForCurrentBlock(usedInBlock bool) (map[uint32][]data.HeaderHandler, error)
 	ComputeHeadersForCurrentBlockInfo(usedInBlock bool) (map[uint32][]headerForBlock.NonceAndHashInfo, error)
+	GetMissingData() (uint32, uint32, uint32)
 	Reset()
 	IsInterfaceNil() bool
 }

@@ -19,6 +19,7 @@ type HeadersForBlockMock struct {
 	GetHeadersMapCalled                     func() map[string]data.HeaderHandler
 	ComputeHeadersForCurrentBlockInfoCalled func(usedInBlock bool) (map[uint32][]headerForBlock.NonceAndHashInfo, error)
 	ComputeHeadersForCurrentBlockCalled     func(usedInBlock bool) (map[uint32][]data.HeaderHandler, error)
+	GetMissingDataCalled         func() (uint32, uint32, uint32)
 	ResetCalled                             func()
 }
 
@@ -100,6 +101,15 @@ func (mock *HeadersForBlockMock) ComputeHeadersForCurrentBlock(usedInBlock bool)
 		return mock.ComputeHeadersForCurrentBlockCalled(usedInBlock)
 	}
 	return make(map[uint32][]data.HeaderHandler), nil
+}
+
+// GetMissingData -
+func (mock *HeadersForBlockMock) GetMissingData() (uint32, uint32, uint32) {
+	if mock.GetMissingDataCalled != nil {
+		return mock.GetMissingDataCalled()
+	}
+
+	return 0, 0, 0
 }
 
 // Reset -

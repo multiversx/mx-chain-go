@@ -2,7 +2,6 @@ package headerForBlock
 
 import (
 	"github.com/multiversx/mx-chain-core-go/data"
-	"github.com/multiversx/mx-chain-go/process"
 )
 
 // NewHeaderInfo -
@@ -30,7 +29,7 @@ func NewLastNotarizedHeaderInfo(
 	return newLastNotarizedHeaderInfo(header, hash, notarizedBasedOnProof, hasProof)
 }
 
-// SetRequestHandler -
-func (hfb *headersForBlock) SetRequestHandler(handler process.RequestHandler) {
-	hfb.requestHandler = handler
+// FilterHeadersWithoutProofs -
+func (hfb *headersForBlock) FilterHeadersWithoutProofs() (map[string]HeaderInfo, error) {
+	return hfb.filterHeadersWithoutProofs()
 }

@@ -205,6 +205,11 @@ func (holder *PoolsHolderMock) Proofs() dataRetriever.ProofsPool {
 	return holder.proofs
 }
 
+// SetProofsPool -
+func (holder *PoolsHolderMock) SetProofsPool(proofsPool dataRetriever.ProofsPool) {
+	holder.proofs = proofsPool
+}
+
 // Close -
 func (holder *PoolsHolderMock) Close() error {
 	var lastError error
