@@ -493,6 +493,39 @@ jobs:
               body: message
             });
 
+      - name: Update PR Check Status
+        if: github.event_name == 'issue_comment' && always()
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            // Get the PR details to find the HEAD commit SHA
+            const pr = await github.rest.pulls.get({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: context.issue.number
+            });
+            
+            const sha = pr.data.head.sha;
+            const exitCode = '${{ env.PYTEST_EXIT_CODE }}';
+            const state = exitCode === '0' ? 'success' : 'failure';
+            const r2Url = '${{ env.R2_REPORT_URL }}';
+            
+            console.log(`Updating commit ${sha} status to ${state}`);
+            
+            // Update the commit status - this will update the check on the PR
+            await github.rest.repos.createCommitStatus({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              sha: sha,
+              state: state,
+              context: 'Chain Simulator Build and Integration Test / build-and-test (pull_request)',
+              description: state === 'success' ? '✅ Tests passed via comment trigger' : '❌ Tests failed',
+              target_url: r2Url || `https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`
+            });
+            
+            console.log(`Successfully updated commit status for ${sha}`);
+
       - name: Notify Slack
         if: always()
         env:
