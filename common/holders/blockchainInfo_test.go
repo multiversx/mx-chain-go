@@ -25,7 +25,7 @@ func TestBlockchainInfo_GetValues(t *testing.T) {
 		require.NotNil(t, chainInfo)
 		require.Equal(t, uint64(2), chainInfo.GetCurrentNonce())
 		require.Equal(t, "blockHash0", string(chainInfo.GetLatestExecutedBlockHash()))
-		require.Equal(t, "blockHash1", string(chainInfo.GetLatestCommitedBlockHash()))
+		require.Equal(t, "blockHash1", string(chainInfo.GetLatestCommittedBlockHash()))
 	})
 }
 

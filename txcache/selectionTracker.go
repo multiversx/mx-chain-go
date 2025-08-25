@@ -236,7 +236,7 @@ func (st *selectionTracker) deriveVirtualSelectionSession(
 
 	trackedBlocks, err := st.getChainOfTrackedBlocks(
 		blockchainInfo.GetLatestExecutedBlockHash(),
-		blockchainInfo.GetLatestCommitedBlockHash(),
+		blockchainInfo.GetLatestCommittedBlockHash(),
 		blockchainInfo.GetCurrentNonce(),
 	)
 	if err != nil {
@@ -278,7 +278,7 @@ func (st *selectionTracker) getChainOfTrackedBlocks(
 			return nil, errDiscontinuousBlockNonce
 		}
 
-		// it the block passes the validation, add it to the returned chain
+		// if the block passes the validation, add it to the returned chain
 		chain = append(chain, previousBlock)
 
 		// move backwards in the chain and check if the head was reached

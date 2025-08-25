@@ -1,21 +1,21 @@
 package holders
 
 type blockchainInfo struct {
-	latestExecutedBlockHash []byte
-	latestCommitedBlockHash []byte
-	currentNonce            uint64
+	latestExecutedBlockHash  []byte
+	latestCommittedBlockHash []byte
+	currentNonce             uint64
 }
 
 // NewBlockchainInfo creates a new instance of blockchainInfo
 func NewBlockchainInfo(
 	latestExecutedBlockHash []byte,
-	latestCommitedBlockHash []byte,
+	latestCommittedBlockHash []byte,
 	currentNonce uint64,
 ) *blockchainInfo {
 	return &blockchainInfo{
-		latestExecutedBlockHash: latestExecutedBlockHash,
-		latestCommitedBlockHash: latestCommitedBlockHash,
-		currentNonce:            currentNonce,
+		latestExecutedBlockHash:  latestExecutedBlockHash,
+		latestCommittedBlockHash: latestCommittedBlockHash,
+		currentNonce:             currentNonce,
 	}
 }
 
@@ -24,9 +24,9 @@ func (b *blockchainInfo) GetLatestExecutedBlockHash() []byte {
 	return b.latestExecutedBlockHash
 }
 
-// GetLatestCommitedBlockHash returns the hash of the latest commited block on blockchain
-func (b *blockchainInfo) GetLatestCommitedBlockHash() []byte {
-	return b.latestCommitedBlockHash
+// GetLatestCommittedBlockHash returns the hash of the latest commited block on blockchain
+func (b *blockchainInfo) GetLatestCommittedBlockHash() []byte {
+	return b.latestCommittedBlockHash
 }
 
 // GetCurrentNonce returns the current nonce on blockchain
