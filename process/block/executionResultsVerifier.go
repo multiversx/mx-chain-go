@@ -71,7 +71,7 @@ func (erc *executionResultsVerifier) verifyExecutionResults(
 	}
 
 	for i := 0; i < len(executionResults)-1; i++ {
-		if executionResults[i].GetHeaderNonce() != executionResults[i+1].GetHeaderNonce()+1 {
+		if executionResults[i].GetHeaderNonce() != executionResults[i+1].GetHeaderNonce()-1 {
 			return process.ErrExecutionResultsNonConsecutive
 		}
 	}
