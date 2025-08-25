@@ -91,18 +91,14 @@ func selectTransactionsFromBunches(
 
 		shouldSkipTransaction := detectSkippableTransaction(virtualSession, item)
 		if !shouldSkipTransaction {
+			accumulatedGas += gasLimit
 			selectedTransaction := item.selectCurrentTransaction()
-
+			selectedTransactions = append(selectedTransactions, selectedTransaction)
 			err := virtualSession.accumulateConsumedBalance(selectedTransaction)
 			if err != nil {
 				log.Warn("TxCache.selectTransactionsFromBunches error when accumulating consumed balance",
 					"err", err,
 					"txHash", selectedTransaction.TxHash)
-			} else {
-				accumulatedGas += gasLimit
-				selectedTransactions = append(selectedTransactions, selectedTransaction)
-
-				item.updateLatestSelectedTransaction()
 			}
 		}
 
