@@ -58,6 +58,8 @@ func (erc *executionResultsVerifier) verifyExecutionResults(
 		return err
 	}
 
+	// if header is received, the notarized execution results should already be available in the tracker
+	// if not all present, then verify fails
 	executionResults := header.GetExecutionResultsHandlers()
 	pendingExecutionResults, err := erc.executionResultsTracker.GetPendingExecutionResults()
 	if err != nil {
@@ -66,6 +68,12 @@ func (erc *executionResultsVerifier) verifyExecutionResults(
 
 	if len(pendingExecutionResults) < len(executionResults) {
 		return process.ErrExecutionResultsNumberMismatch
+	}
+
+	for i := 0; i < len(executionResults)-1; i++ {
+		if executionResults[i].GetHeaderNonce() != executionResults[i+1].GetHeaderNonce()+1 {
+			return process.ErrExecutionResultsNonConsecutive
+		}
 	}
 
 	for i, er := range executionResults {
@@ -88,9 +96,18 @@ func (erc *executionResultsVerifier) verifyLastExecutionResultInfoMatchesLastExe
 		return fmt.Errorf("%w: for current block", process.ErrNilLastExecutionResultHandler)
 	}
 
+	prevLastExecutionResultInfo, err := erc.getPrevBlockLastExecutionResult()
+	if err != nil {
+		return err
+	}
+
 	// if no execution results are present, we only check if the last execution result info matches the previous reported one
 	if len(executionResults) == 0 {
-		return erc.checkLastExecutionResultInfoAgainstPrevBlock(lastExecutionResultInfo)
+		if !lastExecutionResultInfo.Equal(prevLastExecutionResultInfo) {
+			return process.ErrExecutionResultDoesNotMatch
+		}
+
+		return nil
 	}
 
 	lastExecResult := executionResults[len(executionResults)-1]
@@ -103,20 +120,26 @@ func (erc *executionResultsVerifier) verifyLastExecutionResultInfoMatchesLastExe
 		return process.ErrExecutionResultDoesNotMatch
 	}
 
-	return nil
-}
-
-func (erc *executionResultsVerifier) checkLastExecutionResultInfoAgainstPrevBlock(lastExecutionResultInfo data.LastExecutionResultHandler) error {
-	if check.IfNil(lastExecutionResultInfo) {
-		return process.ErrNilLastExecutionResultHandler
-	}
-	prevLastExecutionResultInfo, err := erc.getPrevBlockLastExecutionResult()
+	err = erc.checkFirstExecutionResultAgainstPrevBlock(prevLastExecutionResultInfo, executionResults)
 	if err != nil {
 		return err
 	}
 
-	if !lastExecutionResultInfo.Equal(prevLastExecutionResultInfo) {
-		return process.ErrExecutionResultDoesNotMatch
+	return nil
+}
+
+func (erc *executionResultsVerifier) checkFirstExecutionResultAgainstPrevBlock(
+	prevLastExecutionResultsHandler data.LastExecutionResultHandler,
+	executionResults []data.BaseExecutionResultHandler,
+) error {
+	prevLastExecutionResultInfo, ok := prevLastExecutionResultsHandler.(*block.ExecutionResultInfo)
+	if !ok {
+		return process.ErrWrongTypeAssertion
+	}
+
+	// if execution results are present, we check if the previous last execution result info matches the first execution result
+	if executionResults[0].GetHeaderNonce() != prevLastExecutionResultInfo.GetExecutionResult().GetHeaderNonce()+1 {
+		return fmt.Errorf("%w for first execution result", process.ErrExecutionResultsNonConsecutive)
 	}
 
 	return nil

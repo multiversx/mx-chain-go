@@ -1322,3 +1322,6 @@ var ErrNilNotarizedOnHeaderHash = errors.New("nil notarized on header hash")
 
 // ErrInvalidHash signals that an invalid hash has been provided
 var ErrInvalidHash = errors.New("invalid hash")
+
+// ErrExecutionResultsNonConsecutive signals that execution results are not consecutive
+var ErrExecutionResultsNonConsecutive = errors.New("execution results non consecutive")
