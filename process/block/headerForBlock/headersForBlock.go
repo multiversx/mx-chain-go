@@ -11,12 +11,13 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
+	logger "github.com/multiversx/mx-chain-logger-go"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/sharding"
-	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
 var log = logger.GetOrCreate("headersForBlock")
@@ -576,8 +577,7 @@ func (hfb *headersForBlock) requestHeaderByShardAndNonce(shardID uint32, nonce u
 
 func (hfb *headersForBlock) checkReceivedProofIfAttestingIsNeeded(proof data.HeaderProofHandler) {
 	hfb.mutHdrsForBlock.Lock()
-	hashStr := string(proof.GetHeaderHash())
-	hInfo, ok := hfb.hdrHashAndInfo[hashStr]
+	hInfo, ok := hfb.hdrHashAndInfo[string(proof.GetHeaderHash())]
 	if !ok {
 		hfb.mutHdrsForBlock.Unlock()
 		return // proof not missing
