@@ -43,8 +43,8 @@ func executeBlocksConcurrently(t *testing.T, numOfBlocks int, selectionTracker *
 
 			err := selectionTracker.OnExecutedBlock(
 				&block.Header{
-					Nonce:    uint64(i),
-					PrevHash: []byte(fmt.Sprintf("prevHash%d", i-1)),
+					Nonce:    uint64(index),
+					PrevHash: []byte(fmt.Sprintf("prevHash%d", index-1)),
 					RootHash: []byte("rootHash0"),
 				})
 			require.Nil(t, err)
