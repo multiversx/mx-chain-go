@@ -807,6 +807,10 @@ func createArgsForCleanupSelfShardTxCachePreprocessor() ArgsTransactionPreProces
 				nonce = 42
 			case bytes.Equal(sender, []byte("carol")):
 				nonce = 7
+			case bytes.Equal(sender, []byte("dave")):
+				nonce = 110
+			case bytes.Equal(sender, []byte("eve")):
+				nonce = 780
 			default:
 				nonce = 0
 			}
@@ -876,7 +880,7 @@ func TestCleanupSelfShardTxCache_NoTransactionToSelect(t *testing.T) {
 	}
 	_ = txs.RemoveTxsFromPools(body)
 
-	expectEvicted := 4
+	expectEvicted := 3
 	actual := int(txs.txPool.GetCounts().GetTotal())
 	t.Logf("expected %d evicted, remaining pool size: %d", expectEvicted, actual)
 	assert.Equal(t, 9-expectEvicted, actual)
@@ -933,14 +937,14 @@ func TestCleanupSelfShardTxCache(t *testing.T) {
 	}
 
 	txsToAddAfterMiniblockCreation := []*transaction.Transaction{
-		createTx("alice", 1),
-		createMoreValuableTx("alice", 4),
-		createTx("alice", 4),
-		createTx("bob", 40),
-		createMoreValuableTx("bob", 44),
-		createTx("bob", 44),
-		createTx("carol", 7),
-		createTx("carol", 8),
+		createTx("dave", 120),
+		createMoreValuableTx("dave", 100),
+		createTx("dave", 101),
+		createTx("eve", 779),
+		createMoreValuableTx("eve", 780),
+		createTx("eve", 779),
+		createTx("carol", 6),
+		createTx("carol", 6),
 		createMoreValuableTx("carol", 8),
 	}
 
@@ -958,11 +962,15 @@ func TestCleanupSelfShardTxCache(t *testing.T) {
 
 	for _, hash := range txs.txPool.ShardDataStore(strCache).Keys() {
 		txRemained, _ := txs.txPool.ShardDataStore(strCache).Peek(hash)
-		assert.Equal(t, uint64(1000), txRemained.(*transaction.Transaction).GetGasPrice())
+		log.Debug("txs left in pool after RemoveTxsFromPools",
+			"hash", hash,
+			"nonce", txRemained.(*transaction.Transaction).Nonce,
+			"sender", string(txRemained.(*transaction.Transaction).SndAddr),
+			"gasPrice", txRemained.(*transaction.Transaction).GasPrice)
 	}
 
-	expectEvictedByRemoveTxsFromPool := 9 //5 selected, nonce 1, 2 for alice, nonce 42 for bob, nonce 7 for carol
-	expectedEvictedByCleanup := 3         //nonce 4 for alice, nonce 44 for bob, nonce 8 for carol
+	expectEvictedByRemoveTxsFromPool := 8 // 5 selected (2,3 for alice, 42,43 for bob, 7 for carol) + lower nonces: 1 for alice, 6 *2 for carol
+	expectedEvictedByCleanup := 4         //nonce 779 * 2 for dave, nonce 100, 101 for eve
 	assert.Equal(t, 15-expectedEvictedByCleanup-expectEvictedByRemoveTxsFromPool, int(txs.txPool.GetCounts().GetTotal()))
 }
 
