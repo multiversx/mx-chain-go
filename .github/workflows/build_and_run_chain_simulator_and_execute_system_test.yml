@@ -235,7 +235,7 @@ jobs:
           # Wait for the initialization to complete - look for multiple possible success patterns
           INIT_COMPLETED=false
           RETRY_COUNT=0
-          MAX_RETRIES=60  # Increase timeout to 60 seconds
+          MAX_RETRIES=120
           
           echo "Waiting for ChainSimulator initialization..."
           while [ $RETRY_COUNT -lt $MAX_RETRIES ]; do
