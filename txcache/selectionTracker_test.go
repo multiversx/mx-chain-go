@@ -427,6 +427,12 @@ func TestSelectionTracker_removeFromTrackedBlocks(t *testing.T) {
 
 	_, ok := tracker.blocks[string(expectedTrackedBlock.hash)]
 	require.True(t, ok)
+
+	_, ok = tracker.blocks[string(b1.hash)]
+	require.False(t, ok)
+
+	_, ok = tracker.blocks[string(b2.hash)]
+	require.False(t, ok)
 }
 
 func TestSelectionTracker_findBlockInChainByPreviousHash(t *testing.T) {
