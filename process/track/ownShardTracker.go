@@ -5,6 +5,7 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/process"
 )
@@ -41,7 +42,7 @@ func (ost *ownShardTracker) ComputeOwnShardStuck(lastExecutionResultsInfo data.B
 	}
 
 	lastNotarizedNonce := lastExecutionResultsInfo.GetHeaderNonce()
-	if currentNonce-lastNotarizedNonce > ost.maxNonceDifference {
+	if currentNonce > lastNotarizedNonce && currentNonce-lastNotarizedNonce > ost.maxNonceDifference {
 		ost.ownShardStuck.Store(true)
 		return
 	}
