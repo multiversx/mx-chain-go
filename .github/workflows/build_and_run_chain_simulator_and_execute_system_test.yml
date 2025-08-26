@@ -6,7 +6,6 @@ on:
       - 'main'
       - 'master'
       - 'rc/*'
-  workflow_dispatch:
 
 permissions:
   issues: write
@@ -16,8 +15,7 @@ permissions:
 jobs:
   build-and-test:
     if: |
-      github.event_name == 'pull_request' ||
-      github.event_name == 'workflow_dispatch'
+      github.event_name == 'pull_request'
 
     runs-on: [self-hosted, Linux, X64]
     env:
