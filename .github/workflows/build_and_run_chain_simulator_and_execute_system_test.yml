@@ -7,8 +7,6 @@ on:
       - 'master'
       - 'rc/*'
   workflow_dispatch:
-  issue_comment:
-    types: [created]
 
 permissions:
   issues: write
@@ -19,7 +17,6 @@ jobs:
   build-and-test:
     if: |
       github.event_name == 'pull_request' ||
-      (github.event_name == 'issue_comment' && contains(github.event.comment.body, 'Run Tests:')) ||
       github.event_name == 'workflow_dispatch'
 
     runs-on: [self-hosted, Linux, X64]
@@ -67,11 +64,39 @@ jobs:
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
+            // Determine the PR number based on context
+            let issue_number;
+            
+            if (context.eventName === 'pull_request') {
+              issue_number = context.issue.number;
+            } else if (context.eventName === 'workflow_dispatch') {
+              // For manual re-runs, we need to find the PR number from the branch
+              const branch = context.ref.replace('refs/heads/', '');
+              const pulls = await github.rest.pulls.list({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                head: `${context.repo.owner}:${branch}`,
+                state: 'open'
+              });
+            
+              if (pulls.data.length > 0) {
+                issue_number = pulls.data[0].number;
+              } else {
+                core.info('No open PR found for this branch');
+                return;
+              }
+            }
+            
+            if (!issue_number) {
+              core.info('Could not determine PR number');
+              return;
+            }
+            
             // Get all comments
             const comments = await github.rest.issues.listComments({
               owner: context.repo.owner,
               repo: context.repo.repo,
-              issue_number: context.issue.number,
+              issue_number: issue_number,
             });
 
             // Find the last comment that contains 'Run Tests:'
@@ -104,7 +129,7 @@ jobs:
             } else {
               core.info('No comment containing "Run Tests:" was found. Using default branch settings.');
             }
-      
+
 
       - name: Print Target Branches
         run: |
@@ -336,7 +361,7 @@ jobs:
 
           echo "PYTEST_EXIT_CODE=$FINAL_PYTEST_EXIT_CODE" >> $GITHUB_ENV
           echo "Final pytest exit code: $FINAL_PYTEST_EXIT_CODE"
-          
+
       - name: Stage report for R2
         run: |
           mkdir -p r2_upload
@@ -455,7 +480,34 @@ jobs:
             const simulatorCommitHash = process.env.SIMULATOR_COMMIT_HASH || 'N/A';
             const r2Url            = process.env.R2_REPORT_URL || 'N/A';
 
-            const issue_number = context.issue.number;
+            // Determine issue_number based on context
+            let issue_number;
+            
+            if (context.eventName === 'pull_request') {
+              issue_number = context.issue.number;
+            } else if (context.eventName === 'workflow_dispatch') {
+              // For manual re-runs, find the PR number
+              const branch = context.ref.replace('refs/heads/', '');
+              const pulls = await github.rest.pulls.list({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                head: `${context.repo.owner}:${branch}`,
+                state: 'open'
+              });
+            
+              if (pulls.data.length > 0) {
+                issue_number = pulls.data[0].number;
+              } else {
+                console.log('No open PR found for this branch');
+                return;
+              }
+            }
+            
+            if (!issue_number) {
+              console.log('Could not determine PR number');
+              return;
+            }
+
             const owner  = context.repo.owner;
             const repo   = context.repo.repo;
             const ts = process.env.TS || process.env.TIMESTAMP;
@@ -532,7 +584,7 @@ jobs:
           else
             echo "Tests passed successfully."
           fi
-          
+
 
       - name: Cleanup Workspace and Processes
         if: always()
