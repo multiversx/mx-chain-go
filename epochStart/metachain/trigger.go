@@ -234,7 +234,7 @@ func (t *trigger) Update(round uint64, nonce uint64) {
 		t.currEpochStartRound = t.currentRound
 
 		msg := fmt.Sprintf("EPOCH %d BEGINS IN ROUND (%d)", t.epoch, t.currentRound)
-		common.SetSuperNovaActivationRound(t.currentRound)
+		common.SetSuperNovaActivationRound(t.epoch, t.currentRound)
 		log.Debug(display.Headline(msg, "", "#"))
 		log.Debug("trigger.Update", "isEpochStart", t.isEpochStart)
 		logger.SetCorrelationEpoch(t.epoch)

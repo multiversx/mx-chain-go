@@ -248,11 +248,22 @@ type EnableEpochsHandlerWithSet interface {
 }
 
 var erh EnableEpochsHandlerWithSet
+var eeh EnableEpochsHandler
+var log = logger.GetOrCreate("common")
 
 func SetEnableRoundsHandler(enableRoundsHandler EnableEpochsHandlerWithSet) {
 	erh = enableRoundsHandler
 }
 
-func SetSuperNovaActivationRound(round uint64) {
-	erh.SetActivationRound(SupernovaRoundFlag, round)
+func SetEnableEpochsHandler(enableEpochsHandler EnableEpochsHandler) {
+	eeh = enableEpochsHandler
+}
+
+func SetSuperNovaActivationRound(epoch uint32, round uint64) {
+	isEnabled := eeh.IsFlagEnabledInEpoch(SupernovaFlag, epoch)
+	log.Info("SetSuperNovaActivationRound", "round", round, "epoch", epoch, "is enabled", isEnabled)
+	if isEnabled {
+		erh.SetActivationRound(SupernovaRoundFlag, round)
+	}
+
 }

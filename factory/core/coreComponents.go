@@ -212,6 +212,7 @@ func (ccf *coreComponentsFactory) Create() (*coreComponents, error) {
 		return nil, err
 	}
 
+	common.SetEnableEpochsHandler(enableEpochsHandler)
 	common.SetEnableRoundsHandler(enableRoundsHandler)
 
 	genesisNodesConfig, err := sharding.NewNodesSetup(
