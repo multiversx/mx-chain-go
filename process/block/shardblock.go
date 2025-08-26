@@ -1041,9 +1041,9 @@ func (sp *shardProcessor) CommitBlock(
 
 	sp.updateLastCommittedInDebugger(headerHandler.GetRound())
 
-	lastExecResultsHandler := header.GetLastExecutionResultHandler()
-	if lastExecResultsHandler != nil {
-		sp.blockTracker.ComputeOwnShardStuck(lastExecResultsHandler.GetExecutionResultHandler(), header.GetNonce())
+	err = sp.computeOwnShardStuckIfNeeded(headerHandler)
+	if err != nil {
+		return err
 	}
 
 	errNotCritical := sp.checkSentSignaturesAtCommitTime(headerHandler)

@@ -1346,3 +1346,6 @@ var ErrExecutionResultsNonConsecutive = errors.New("execution results non consec
 
 // ErrInvalidMaxNonceDifference signals that an invalid max nonce difference has been provided
 var ErrInvalidMaxNonceDifference = errors.New("invalid max nonce difference")
+
+// ErrNilBaseExecutionResult signals that a nil base execution result has been provided
+var ErrNilBaseExecutionResult = errors.New("nil base execution result")

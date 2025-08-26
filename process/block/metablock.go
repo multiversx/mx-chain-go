@@ -1252,9 +1252,9 @@ func (mp *metaProcessor) CommitBlock(
 	mp.setNonceOfFirstCommittedBlock(headerHandler.GetNonce())
 	mp.updateLastCommittedInDebugger(headerHandler.GetRound())
 
-	lastExecResultsHandler := header.GetLastExecutionResultHandler()
-	if lastExecResultsHandler != nil {
-		mp.blockTracker.ComputeOwnShardStuck(lastExecResultsHandler.GetExecutionResultHandler(), header.GetNonce())
+	err = mp.computeOwnShardStuckIfNeeded(headerHandler)
+	if err != nil {
+		return err
 	}
 
 	errNotCritical := mp.checkSentSignaturesAtCommitTime(headerHandler)

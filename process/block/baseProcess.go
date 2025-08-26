@@ -2177,3 +2177,48 @@ func (bp *baseProcessor) getHeaderHash(header data.HeaderHandler) ([]byte, error
 
 	return bp.hasher.Compute(string(marshalledHeader)), nil
 }
+
+func (bp *baseProcessor) computeOwnShardStuckIfNeeded(header data.HeaderHandler) error {
+	if !header.IsHeaderV3() {
+		return nil
+	}
+
+	lastExecResultsHandler, err := getLastBaseExecutionResultHandler(header)
+	if err != nil {
+		return err
+	}
+
+	bp.blockTracker.ComputeOwnShardStuck(lastExecResultsHandler, header.GetNonce())
+	return nil
+}
+
+func getLastBaseExecutionResultHandler(header data.HeaderHandler) (data.BaseExecutionResultHandler, error) {
+	if check.IfNil(header) {
+		return nil, process.ErrNilHeaderHandler
+	}
+	lastExecResultsHandler := header.GetLastExecutionResultHandler()
+	if lastExecResultsHandler == nil {
+		return nil, process.ErrNilLastExecutionResultHandler
+	}
+
+	var baseExecutionResultsHandler data.BaseExecutionResultHandler
+
+	switch executionResultsHandlerType := lastExecResultsHandler.(type) {
+	case data.LastMetaExecutionResultHandler:
+		metaBaseExecutionResults := executionResultsHandlerType.GetExecutionResultHandler()
+		if check.IfNil(metaBaseExecutionResults) {
+			return nil, process.ErrNilBaseExecutionResult
+		}
+		baseExecutionResultsHandler = metaBaseExecutionResults.(data.BaseExecutionResultHandler)
+	case data.LastShardExecutionResultHandler:
+		baseExecutionResultsHandler = executionResultsHandlerType.GetExecutionResultHandler()
+	default:
+		return nil, fmt.Errorf("%w for LastMetaExecutionResultHandler", process.ErrWrongTypeAssertion)
+	}
+
+	if check.IfNil(baseExecutionResultsHandler) {
+		return nil, process.ErrNilBaseExecutionResult
+	}
+
+	return baseExecutionResultsHandler, nil
+}

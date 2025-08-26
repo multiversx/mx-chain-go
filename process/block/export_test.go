@@ -12,6 +12,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/display"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+
 	"github.com/multiversx/mx-chain-go/common/graceperiod"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
@@ -603,4 +604,21 @@ func DisplayHeader(
 	headerProof data.HeaderProofHandler,
 ) []*display.LineData {
 	return displayHeader(headerHandler, headerProof)
+}
+
+// GetLastBaseExecutionResultHandler -
+func GetLastBaseExecutionResultHandler(header data.HeaderHandler) (data.BaseExecutionResultHandler, error) {
+	return getLastBaseExecutionResultHandler(header)
+}
+
+// CreateBaseProcessorWithMockedTracker -
+func CreateBaseProcessorWithMockedTracker(tracker process.BlockTracker) *baseProcessor {
+	return &baseProcessor{
+		blockTracker: tracker,
+	}
+}
+
+// ComputeOwnShardStuckIfNeeded -
+func (bp *baseProcessor) ComputeOwnShardStuckIfNeeded(header data.HeaderHandler) error {
+	return bp.computeOwnShardStuckIfNeeded(header)
 }
