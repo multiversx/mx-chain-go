@@ -53,5 +53,9 @@ func (args *ArgShardedTxPool) verify() error {
 		return fmt.Errorf("%w: MaxNumBytesPerSenderUpperBound is not valid", dataRetriever.ErrBadMaxNumBytesPerSenderUpperBound)
 	}
 
+	if args.TxCacheBoundsConfig.MaxTrackedBlocks == 0 {
+		return fmt.Errorf("%w: MaxNumBytesPerSenderUpperBound is not valid", dataRetriever.ErrBadMaxTrackedBlocks)
+	}
+
 	return nil
 }

@@ -500,6 +500,7 @@ func Test_Selection_ShouldNotSelectSameTransactionsWithSameSender(t *testing.T) 
 		NumItemsToPreemptivelyEvict: 1,
 		TxCacheBoundsConfig: config.TxCacheBoundsConfig{
 			MaxNumBytesPerSenderUpperBound: maxNumBytesPerSenderUpperBoundTest,
+			MaxTrackedBlocks:               maxTrackedBlocks,
 		},
 	}, host)
 
@@ -608,6 +609,7 @@ func Test_Selection_ShouldNotSelectSameTransactionsWithDifferentSenders(t *testi
 		NumItemsToPreemptivelyEvict: 1,
 		TxCacheBoundsConfig: config.TxCacheBoundsConfig{
 			MaxNumBytesPerSenderUpperBound: maxNumBytesPerSenderUpperBoundTest,
+			MaxTrackedBlocks:               maxTrackedBlocks,
 		},
 	}, host)
 
@@ -757,6 +759,7 @@ func Test_Selection_ShouldNotSelectSameTransactionsWithManyTransactions(t *testi
 		NumItemsToPreemptivelyEvict: 1,
 		TxCacheBoundsConfig: config.TxCacheBoundsConfig{
 			MaxNumBytesPerSenderUpperBound: maxNumBytesPerSenderUpperBoundTest,
+			MaxTrackedBlocks:               maxTrackedBlocks,
 		},
 	}, host)
 
@@ -897,6 +900,7 @@ func Test_Selection_ShouldNotSelectSameTransactionsWithManyTransactionsAndExecut
 		NumItemsToPreemptivelyEvict: 1,
 		TxCacheBoundsConfig: config.TxCacheBoundsConfig{
 			MaxNumBytesPerSenderUpperBound: maxNumBytesPerSenderUpperBoundTest,
+			MaxTrackedBlocks:               maxTrackedBlocks,
 		},
 	}, host)
 
@@ -1059,6 +1063,7 @@ func Test_SelectionWhenFeeExceedsBalanceWithMax3TxsSelected(t *testing.T) {
 		NumItemsToPreemptivelyEvict: 1,
 		TxCacheBoundsConfig: config.TxCacheBoundsConfig{
 			MaxNumBytesPerSenderUpperBound: maxNumBytesPerSenderUpperBoundTest,
+			MaxTrackedBlocks:               maxTrackedBlocks,
 		},
 	}, host)
 
@@ -1231,6 +1236,7 @@ func Test_SelectionWhenFeeExceedsBalanceWithMax2TxsSelected(t *testing.T) {
 		NumItemsToPreemptivelyEvict: 1,
 		TxCacheBoundsConfig: config.TxCacheBoundsConfig{
 			MaxNumBytesPerSenderUpperBound: maxNumBytesPerSenderUpperBoundTest,
+			MaxTrackedBlocks:               maxTrackedBlocks,
 		},
 	}, host)
 

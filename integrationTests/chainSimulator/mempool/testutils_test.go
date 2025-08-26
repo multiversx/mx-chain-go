@@ -39,6 +39,7 @@ var (
 
 const maxNumBytesUpperBound = 1_073_741_824           // one GB
 const maxNumBytesPerSenderUpperBoundTest = 33_554_432 // 32 MB
+const maxTrackedBlocks = 100
 
 type accountInfo struct {
 	balance *big.Int

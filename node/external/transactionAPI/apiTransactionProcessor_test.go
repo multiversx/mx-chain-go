@@ -43,6 +43,8 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+const maxTrackedBlocks = 100
+
 func createMockArgAPITransactionProcessor() *ArgAPITransactionProcessor {
 	return &ArgAPITransactionProcessor{
 		RoundDuration:            0,
@@ -888,6 +890,7 @@ func TestApiTransactionProcessor_GetTransactionsPoolForSender(t *testing.T) {
 		NumItemsToPreemptivelyEvict: 1,
 		TxCacheBoundsConfig: config.TxCacheBoundsConfig{
 			MaxNumBytesPerSenderUpperBound: 33_554_432,
+			MaxTrackedBlocks:               maxTrackedBlocks,
 		},
 	}, txcachemocks.NewMempoolHostMock())
 
@@ -908,6 +911,7 @@ func TestApiTransactionProcessor_GetTransactionsPoolForSender(t *testing.T) {
 		NumItemsToPreemptivelyEvict: 1,
 		TxCacheBoundsConfig: config.TxCacheBoundsConfig{
 			MaxNumBytesPerSenderUpperBound: 33_554_432,
+			MaxTrackedBlocks:               maxTrackedBlocks,
 		},
 	}, txcachemocks.NewMempoolHostMock())
 
@@ -998,6 +1002,7 @@ func TestApiTransactionProcessor_GetLastPoolNonceForSender(t *testing.T) {
 		NumItemsToPreemptivelyEvict: 1,
 		TxCacheBoundsConfig: config.TxCacheBoundsConfig{
 			MaxNumBytesPerSenderUpperBound: 33_554_432,
+			MaxTrackedBlocks:               maxTrackedBlocks,
 		},
 	}, txcachemocks.NewMempoolHostMock())
 
@@ -1054,6 +1059,7 @@ func TestApiTransactionProcessor_GetTransactionsPoolNonceGapsForSender(t *testin
 		NumItemsToPreemptivelyEvict: 1,
 		TxCacheBoundsConfig: config.TxCacheBoundsConfig{
 			MaxNumBytesPerSenderUpperBound: 33_554_432,
+			MaxTrackedBlocks:               maxTrackedBlocks,
 		},
 	}, txcachemocks.NewMempoolHostMock())
 
@@ -1069,6 +1075,7 @@ func TestApiTransactionProcessor_GetTransactionsPoolNonceGapsForSender(t *testin
 		NumItemsToPreemptivelyEvict: 1,
 		TxCacheBoundsConfig: config.TxCacheBoundsConfig{
 			MaxNumBytesPerSenderUpperBound: 33_554_432,
+			MaxTrackedBlocks:               maxTrackedBlocks,
 		},
 	}, txcachemocks.NewMempoolHostMock())
 
