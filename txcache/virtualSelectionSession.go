@@ -27,7 +27,7 @@ func (virtualSession *virtualSelectionSession) getRecord(address []byte) (*virtu
 
 	virtualRecord, err := virtualSession.createAccountRecord(address)
 	if err != nil {
-		log.Debug("virtualSelectionSession.getRecord: error when creating virtual account record",
+		log.Warn("virtualSelectionSession.getRecord: error when creating virtual account record",
 			"address", address,
 			"err", err)
 		return nil, err

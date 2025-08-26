@@ -11,6 +11,7 @@ import (
 )
 
 // TODO use a map instead of slice for st.blocks
+// TODO add an upper bound MaxTrackedBlocks
 type selectionTracker struct {
 	mutTracker     sync.RWMutex
 	latestNonce    uint64
@@ -32,6 +33,8 @@ func NewSelectionTracker(txCache txCacheForSelectionTracker) (*selectionTracker,
 }
 
 // OnProposedBlock notifies when a block is proposed and updates the state of the selectionTracker
+// TODO log in case MaxTrackedBlocks is reached and brainstorm how to solve this case
+// TODO assure minimum blocks validation when adding a proposed block (i.e nonce continuity)
 func (st *selectionTracker) OnProposedBlock(
 	blockHash []byte,
 	blockBody *block.Body,
