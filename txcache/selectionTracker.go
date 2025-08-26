@@ -10,7 +10,6 @@ import (
 	"github.com/multiversx/mx-chain-go/common"
 )
 
-// TODO use a map instead of slice for st.blocks
 // TODO add an upper bound MaxTrackedBlocks
 type selectionTracker struct {
 	mutTracker     sync.RWMutex
