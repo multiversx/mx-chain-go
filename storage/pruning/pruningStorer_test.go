@@ -1387,7 +1387,7 @@ func TestPruningStorer_CreateNextEpochPersisterIfNeeded(t *testing.T) {
 		args.PersisterFactory = &mock.PersisterFactoryStub{
 			CreateCalled: func(path string) (storage.Persister, error) {
 				if createCalls > 1 {
-					require.Fail(t, "should have not beed called")
+					require.Fail(t, "should have not been called")
 				}
 
 				return &mock.PersisterStub{}, nil
