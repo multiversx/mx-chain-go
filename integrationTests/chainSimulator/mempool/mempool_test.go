@@ -10,6 +10,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-go/common/holders"
+	"github.com/multiversx/mx-chain-go/testscommon/state"
 	"github.com/multiversx/mx-chain-go/testscommon/txcachemocks"
 	"github.com/multiversx/mx-chain-go/txcache"
 	"github.com/stretchr/testify/require"
@@ -911,16 +912,12 @@ func Test_Selection_ShouldNotSelectSameTransactionsWithManyTransactionsAndExecut
 
 	// mock the non-virtual selection session
 	senders := []string{"alice"}
-	selectionSession := createMockSelectionSessionWithSpecificAccountInfo(map[string]*accountInfo{
-		"alice": {
-			balance: initialAmount,
-			nonce:   0,
-		},
-		"receiver": {
-			balance: big.NewInt(0),
-			nonce:   0,
-		},
-	})
+	selectionSession := &txcachemocks.SelectionSessionMock{}
+
+	selectionSession.AccountByAddress = map[string]*state.UserAccountStub{
+		"alice":    {Nonce: 0, Balance: initialAmount},
+		"receiver": {Nonce: 0, Balance: big.NewInt(0)},
+	}
 
 	options := holders.NewTxSelectionOptions(
 		10_000_000_000,
@@ -1009,16 +1006,7 @@ func Test_Selection_ShouldNotSelectSameTransactionsWithManyTransactionsAndExecut
 	}
 
 	// update the state of the account on the blockchain
-	selectionSession = createMockSelectionSessionWithSpecificAccountInfo(map[string]*accountInfo{
-		"alice": {
-			balance: initialAmount,
-			nonce:   30_000,
-		},
-		"receiver": {
-			balance: big.NewInt(0),
-			nonce:   0,
-		},
-	})
+	selectionSession.SetNonce([]byte("alice"), 30_000)
 
 	// propose the second block
 	proposedTxs = make([][]byte, 0, len(selectedTransactions))

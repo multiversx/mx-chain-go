@@ -65,6 +65,7 @@ func (st *selectionTracker) OnProposedBlock(
 		"rootHash", rootHash,
 		"prevHash", prevHash)
 
+	// TODO brainstorm if this could be moved after getChainOfTrackedBlocks
 	txs, err := st.getTransactionsFromBlock(blockBody)
 	if err != nil {
 		log.Debug("selectionTracker.OnProposedBlock: error getting transactions from block", "err", err)
@@ -260,10 +261,13 @@ func (st *selectionTracker) deriveVirtualSelectionSession(
 	return provider.createVirtualSelectionSession(trackedBlocks)
 }
 
+// getChainOfTrackedBlocks finds the chain of tracked blocks, iterating from tail to head,
+// following the previous hash of each block, in order to avoid fork scenarios
+// the iteration stops when the previous hash of a block is equal to latestExecutedBlockHash
 func (st *selectionTracker) getChainOfTrackedBlocks(
 	latestExecutedBlockHash []byte,
 	previousHashToBeFound []byte,
-	beforeNonce uint64,
+	nextNonce uint64,
 ) ([]*trackedBlock, error) {
 	chain := make([]*trackedBlock, 0)
 
@@ -284,8 +288,9 @@ func (st *selectionTracker) getChainOfTrackedBlocks(
 		}
 
 		// extra check for a nonce gap
-		if st.discontinuousBlockNonce(previousBlock.nonce, beforeNonce) {
-			return nil, errDiscontinuousBlockNonce
+		hasDiscontinuousBlockNonce := previousBlock.nonce != nextNonce-1
+		if hasDiscontinuousBlockNonce {
+			return nil, errDiscontinuousSequenceOfBlocks
 		}
 
 		// if the block passes the validation, add it to the returned chain
@@ -298,7 +303,7 @@ func (st *selectionTracker) getChainOfTrackedBlocks(
 		}
 
 		// update also the nonce
-		beforeNonce -= 1
+		nextNonce -= 1
 
 		// find the previous block
 		previousBlock = st.findBlockInChainByPreviousHash(previousBlockHash)
@@ -308,7 +313,7 @@ func (st *selectionTracker) getChainOfTrackedBlocks(
 	return st.reverseOrderOfBlocks(chain), nil
 }
 
-// findBlockInChainByPreviousHash finds the block A which has the hash equal to the given previous hash
+// findBlockInChainByPreviousHash finds the block which has the hash equal to the given previous hash
 func (st *selectionTracker) findBlockInChainByPreviousHash(previousHash []byte) *trackedBlock {
 	for _, b := range st.blocks {
 		if bytes.Equal(b.hash, previousHash) {
@@ -317,10 +322,6 @@ func (st *selectionTracker) findBlockInChainByPreviousHash(previousHash []byte) 
 	}
 
 	return nil
-}
-
-func (st *selectionTracker) discontinuousBlockNonce(foundBlockNonce uint64, currentNonce uint64) bool {
-	return foundBlockNonce != currentNonce-1
 }
 
 func (st *selectionTracker) reverseOrderOfBlocks(chainOfTrackedBlocks []*trackedBlock) []*trackedBlock {

@@ -24,7 +24,7 @@ func (b *blockchainInfo) GetLatestExecutedBlockHash() []byte {
 	return b.latestExecutedBlockHash
 }
 
-// GetLatestCommittedBlockHash returns the hash of the latest commited block on blockchain
+// GetLatestCommittedBlockHash returns the hash of the latest committed block on blockchain
 func (b *blockchainInfo) GetLatestCommittedBlockHash() []byte {
 	return b.latestCommittedBlockHash
 }

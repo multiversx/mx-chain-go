@@ -41,12 +41,12 @@ func executeBlocksConcurrently(t *testing.T, numOfBlocks int, selectionTracker *
 		go func(index int) {
 			defer wg.Done()
 
-			err := selectionTracker.OnExecutedBlock(
-				&block.Header{
-					Nonce:    uint64(index),
-					PrevHash: []byte(fmt.Sprintf("prevHash%d", index-1)),
-					RootHash: []byte("rootHash0"),
-				})
+			blockHeader := &block.Header{
+				Nonce:    uint64(index),
+				PrevHash: []byte(fmt.Sprintf("prevHash%d", index-1)),
+				RootHash: []byte("rootHash0"),
+			}
+			err := selectionTracker.OnExecutedBlock(blockHeader)
 			require.Nil(t, err)
 		}(i)
 	}
@@ -538,14 +538,44 @@ func TestSelectionTracker_getChainOfTrackedBlocks(t *testing.T) {
 		require.Nil(t, actualChain)
 	})
 
-	t.Run("should return errDiscontinuousBlockNonce because of nonce", func(t *testing.T) {
+	t.Run("should return errDiscontinuousSequenceOfBlocks because of nonce", func(t *testing.T) {
 		t.Parallel()
 
 		actualChain, err := tracker.getChainOfTrackedBlocks([]byte("blockHash5"), []byte("blockHash7"), 6)
-		require.Equal(t, errDiscontinuousBlockNonce, err)
+		require.Equal(t, errDiscontinuousSequenceOfBlocks, err)
 		require.Equal(t, 0, len(actualChain))
 	})
 
+}
+
+func TestSelectionTracker_reverseOrderOfBlocks(t *testing.T) {
+	t.Parallel()
+
+	txCache := newCacheToTest(maxNumBytesPerSenderUpperBoundTest, 3)
+	tracker, err := NewSelectionTracker(txCache)
+	require.Nil(t, err)
+
+	chainOfTrackedBlocks := []*trackedBlock{
+		{
+			nonce: 0,
+			hash:  []byte("hash0"),
+		},
+		{
+			nonce: 1,
+			hash:  []byte("hash1"),
+		},
+		{
+			nonce: 2,
+			hash:  []byte("hash2"),
+		},
+	}
+
+	reversedChainOfTrackedBlocks := tracker.reverseOrderOfBlocks(chainOfTrackedBlocks)
+	require.Equal(t, len(chainOfTrackedBlocks), len(reversedChainOfTrackedBlocks))
+
+	for i := 0; i < len(reversedChainOfTrackedBlocks); i++ {
+		require.Equal(t, chainOfTrackedBlocks[len(chainOfTrackedBlocks)-i-1], reversedChainOfTrackedBlocks[i])
+	}
 }
 
 func TestSelectionTracker_deriveVirtualSelectionSessionShouldErr(t *testing.T) {
