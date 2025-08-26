@@ -1041,6 +1041,11 @@ func (sp *shardProcessor) CommitBlock(
 
 	sp.updateLastCommittedInDebugger(headerHandler.GetRound())
 
+	err = sp.computeOwnShardStuckIfNeeded(headerHandler)
+	if err != nil {
+		return err
+	}
+
 	errNotCritical := sp.checkSentSignaturesAtCommitTime(headerHandler)
 	if errNotCritical != nil {
 		log.Debug("checkSentSignaturesBeforeCommitting", "error", errNotCritical.Error())

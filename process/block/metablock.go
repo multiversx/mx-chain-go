@@ -1252,6 +1252,11 @@ func (mp *metaProcessor) CommitBlock(
 	mp.setNonceOfFirstCommittedBlock(headerHandler.GetNonce())
 	mp.updateLastCommittedInDebugger(headerHandler.GetRound())
 
+	err = mp.computeOwnShardStuckIfNeeded(headerHandler)
+	if err != nil {
+		return err
+	}
+
 	errNotCritical := mp.checkSentSignaturesAtCommitTime(headerHandler)
 	if errNotCritical != nil {
 		log.Debug("checkSentSignaturesBeforeCommitting", "error", errNotCritical.Error())

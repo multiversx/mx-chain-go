@@ -1343,3 +1343,9 @@ var ErrInvalidHash = errors.New("invalid hash")
 
 // ErrExecutionResultsNonConsecutive signals that execution results are not consecutive
 var ErrExecutionResultsNonConsecutive = errors.New("execution results non consecutive")
+
+// ErrInvalidMaxNonceDifference signals that an invalid max nonce difference has been provided
+var ErrInvalidMaxNonceDifference = errors.New("invalid max nonce difference")
+
+// ErrNilBaseExecutionResult signals that a nil base execution result has been provided
+var ErrNilBaseExecutionResult = errors.New("nil base execution result")
