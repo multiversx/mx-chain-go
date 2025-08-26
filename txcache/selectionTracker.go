@@ -11,24 +11,28 @@ import (
 )
 
 // TODO use a map instead of slice for st.blocks
-// TODO add an upper bound MaxTrackedBlocks
 type selectionTracker struct {
-	mutTracker     sync.RWMutex
-	latestNonce    uint64
-	latestRootHash []byte
-	blocks         []*trackedBlock
-	txCache        txCacheForSelectionTracker
+	mutTracker       sync.RWMutex
+	latestNonce      uint64
+	latestRootHash   []byte
+	blocks           []*trackedBlock
+	txCache          txCacheForSelectionTracker
+	maxTrackedBlocks uint32
 }
 
 // NewSelectionTracker creates a new selectionTracker
-func NewSelectionTracker(txCache txCacheForSelectionTracker) (*selectionTracker, error) {
+func NewSelectionTracker(txCache txCacheForSelectionTracker, maxTrackedBlocks uint32) (*selectionTracker, error) {
 	if check.IfNil(txCache) {
 		return nil, errNilTxCache
 	}
+	if maxTrackedBlocks == 0 {
+		return nil, errInvalidMaxTrackedBlocks
+	}
 	return &selectionTracker{
-		mutTracker: sync.RWMutex{},
-		blocks:     make([]*trackedBlock, 0),
-		txCache:    txCache,
+		mutTracker:       sync.RWMutex{},
+		blocks:           make([]*trackedBlock, 0),
+		txCache:          txCache,
+		maxTrackedBlocks: maxTrackedBlocks,
 	}, nil
 }
 
@@ -65,6 +69,12 @@ func (st *selectionTracker) OnProposedBlock(
 		"nonce", nonce,
 		"rootHash", rootHash,
 		"prevHash", prevHash)
+
+	if len(st.blocks) == int(st.maxTrackedBlocks-1) {
+		log.Warn("selectionTracker.OnProposedBlock: max tracked blocks reached",
+			"len(st.blocks)", len(st.blocks),
+		)
+	}
 
 	txs, err := st.getTransactionsFromBlock(blockBody)
 	if err != nil {
