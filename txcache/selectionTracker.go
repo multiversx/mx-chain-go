@@ -32,12 +32,11 @@ func NewSelectionTracker(txCache txCacheForSelectionTracker) (*selectionTracker,
 }
 
 // OnProposedBlock notifies when a block is proposed and updates the state of the selectionTracker
-// TODO the selection session might be unusable in the flow of OnProposed
 func (st *selectionTracker) OnProposedBlock(
 	blockHash []byte,
 	blockBody *block.Body,
-	handler data.HeaderHandler,
-	nonceAndBalanceProvider AccountNonceAndBalanceProvider,
+	blockHeader data.HeaderHandler,
+	accountsProvider AccountNonceAndBalanceProvider,
 	blockchainInfo common.BlockchainInfo,
 ) error {
 	if len(blockHash) == 0 {
@@ -46,13 +45,16 @@ func (st *selectionTracker) OnProposedBlock(
 	if check.IfNil(blockBody) {
 		return errNilBlockBody
 	}
-	if check.IfNil(handler) {
+	if check.IfNil(blockHeader) {
 		return errNilHeaderHandler
 	}
+	if check.IfNil(accountsProvider) {
+		return errNilAccountNonceAndBalanceProvider
+	}
 
-	nonce := handler.GetNonce()
-	rootHash := handler.GetRootHash()
-	prevHash := handler.GetPrevHash()
+	nonce := blockHeader.GetNonce()
+	rootHash := blockHeader.GetRootHash()
+	prevHash := blockHeader.GetPrevHash()
 
 	st.mutTracker.Lock()
 	defer st.mutTracker.Unlock()
@@ -63,7 +65,7 @@ func (st *selectionTracker) OnProposedBlock(
 		"rootHash", rootHash,
 		"prevHash", prevHash)
 
-	txs, err := st.getTransactionsFromBlock(blockBody)
+	txs, err := st.getTransactionsInBlock(blockBody)
 	if err != nil {
 		log.Debug("selectionTracker.OnProposedBlock: error getting transactions from block", "err", err)
 		return err
@@ -79,7 +81,7 @@ func (st *selectionTracker) OnProposedBlock(
 
 	blocksToBeValidated := st.getChainOfTrackedBlocks(blockchainInfo.GetLatestExecutedBlockHash(), blockchainInfo.GetCurrentNonce())
 	// make sure that the proposed block is valid (continuous with the other proposed blocks and no balance issues)
-	return st.validateTrackedBlocks(blocksToBeValidated, nonceAndBalanceProvider)
+	return st.validateTrackedBlocks(blocksToBeValidated, accountsProvider)
 }
 
 // OnExecutedBlock notifies when a block is executed and updates the state of the selectionTracker
@@ -105,12 +107,12 @@ func (st *selectionTracker) OnExecutedBlock(handler data.HeaderHandler) error {
 	return nil
 }
 
-func (st *selectionTracker) validateTrackedBlocks(chainOfTrackedBlocks []*trackedBlock, nonceAndBalanceProvider AccountNonceAndBalanceProvider) error {
+func (st *selectionTracker) validateTrackedBlocks(chainOfTrackedBlocks []*trackedBlock, accountsProvider AccountNonceAndBalanceProvider) error {
 	validator := newBreadcrumbValidator()
 
 	for _, tb := range chainOfTrackedBlocks {
 		for address, breadcrumb := range tb.breadcrumbsByAddress {
-			initialNonce, initialBalance, _, err := nonceAndBalanceProvider.GetAccountNonceAndBalance([]byte(address))
+			initialNonce, initialBalance, _, err := accountsProvider.GetAccountNonceAndBalance([]byte(address))
 			if err != nil {
 				log.Debug("selectionTracker.validateTrackedBlocks",
 					"err", err,
@@ -180,7 +182,7 @@ func (st *selectionTracker) updateLatestRootHashNoLock(receivedNonce uint64, rec
 	}
 }
 
-func (st *selectionTracker) getTransactionsFromBlock(blockBody *block.Body) ([]*WrappedTransaction, error) {
+func (st *selectionTracker) getTransactionsInBlock(blockBody *block.Body) ([]*WrappedTransaction, error) {
 	miniBlocks := blockBody.GetMiniBlocks()
 	numberOfTxs := st.computeNumberOfTxsInMiniBlocks(miniBlocks)
 	txs := make([]*WrappedTransaction, 0, numberOfTxs)

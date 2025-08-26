@@ -13,7 +13,7 @@ import (
 
 type selectionSession struct {
 	transactionsProcessor process.TransactionProcessor
-	accountsProvider      AccountsProvider
+	accountsProvider      *state.AccountsEphemeralProvider
 }
 
 // ArgsSelectionSession holds the arguments for creating a new selection session.

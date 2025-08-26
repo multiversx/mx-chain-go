@@ -614,7 +614,7 @@ func TestSelectionTracker_computeNumberOfTxsInMiniBlocks(t *testing.T) {
 	})
 }
 
-func TestSelectionTracker_getTransactionsFromBlock(t *testing.T) {
+func TestSelectionTracker_getTransactionsInBlock(t *testing.T) {
 	t.Parallel()
 
 	t.Run("should work", func(t *testing.T) {
@@ -642,7 +642,7 @@ func TestSelectionTracker_getTransactionsFromBlock(t *testing.T) {
 		selTracker, err := NewSelectionTracker(txCache)
 		require.Nil(t, err)
 
-		txs, err := selTracker.getTransactionsFromBlock(&blockBody)
+		txs, err := selTracker.getTransactionsInBlock(&blockBody)
 		require.Nil(t, err)
 		require.Equal(t, 3, len(txs))
 	})
@@ -671,7 +671,7 @@ func TestSelectionTracker_getTransactionsFromBlock(t *testing.T) {
 		selTracker, err := NewSelectionTracker(txCache)
 		require.Nil(t, err)
 
-		txs, err := selTracker.getTransactionsFromBlock(&blockBody)
+		txs, err := selTracker.getTransactionsInBlock(&blockBody)
 		require.Nil(t, txs)
 		require.Equal(t, errNotFoundTx, err)
 	})

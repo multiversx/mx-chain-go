@@ -162,9 +162,9 @@ func (cache *TxCache) OnProposedBlock(
 	blockHash []byte,
 	blockBody *block.Body,
 	handler data.HeaderHandler,
-	nonceAndBalanceProvider AccountNonceAndBalanceProvider,
+	accountsProvider AccountNonceAndBalanceProvider,
 	defaultBlockchainInfo common.BlockchainInfo) error {
-	return cache.tracker.OnProposedBlock(blockHash, blockBody, handler, nonceAndBalanceProvider, defaultBlockchainInfo)
+	return cache.tracker.OnProposedBlock(blockHash, blockBody, handler, accountsProvider, defaultBlockchainInfo)
 }
 
 // OnExecutedBlock calls the OnExecutedBlock method from SelectionTracker
