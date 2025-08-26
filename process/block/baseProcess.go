@@ -2202,14 +2202,17 @@ func getLastBaseExecutionResultHandler(header data.HeaderHandler) (data.BaseExec
 	}
 
 	var baseExecutionResultsHandler data.BaseExecutionResultHandler
-
+	var ok bool
 	switch executionResultsHandlerType := lastExecResultsHandler.(type) {
 	case data.LastMetaExecutionResultHandler:
 		metaBaseExecutionResults := executionResultsHandlerType.GetExecutionResultHandler()
 		if check.IfNil(metaBaseExecutionResults) {
 			return nil, process.ErrNilBaseExecutionResult
 		}
-		baseExecutionResultsHandler = metaBaseExecutionResults.(data.BaseExecutionResultHandler)
+		baseExecutionResultsHandler, ok = metaBaseExecutionResults.(data.BaseExecutionResultHandler)
+		if !ok {
+			return nil, process.ErrWrongTypeAssertion
+		}
 	case data.LastShardExecutionResultHandler:
 		baseExecutionResultsHandler = executionResultsHandlerType.GetExecutionResultHandler()
 	default:
