@@ -208,14 +208,7 @@ func (s *syncTime) sync() {
 	clockOffsetsWithoutEdges := s.getClockOffsetsWithoutEdges(clockOffsets)
 	clockOffsetHarmonicMean := s.getHarmonicMean(clockOffsetsWithoutEdges)
 
-	avgResponseDurationMs := responseDurations / numSuccessfulRequests
-	isResponseTimeWithinAcceptedBounds := time.Duration(avgResponseDurationMs)*time.Millisecond < s.outOfBoundsThreshold
-	log.Trace("avgResponseDurationMs",
-		"avgResponseDurationMs", avgResponseDurationMs,
-		"outOfBoundsThreshold", s.outOfBoundsThreshold,
-		"isResponseTimeWithinAcceptedBounds", isResponseTimeWithinAcceptedBounds,
-	)
-
+	isResponseTimeWithinAcceptedBounds := s.isResponseTimeWithinAcceptedBounds(responseDurations, numSuccessfulRequests)
 	isClockOffsetOutOfBounds := core.AbsDuration(clockOffsetHarmonicMean) > s.outOfBoundsThreshold
 	if !isResponseTimeWithinAcceptedBounds && isClockOffsetOutOfBounds {
 		log.Error("syncTime.sync: clock offset is out of expected bounds",
@@ -232,6 +225,26 @@ func (s *syncTime) sync() {
 		"num clock offsets", len(clockOffsets),
 		"num clock offsets without edges", len(clockOffsetsWithoutEdges),
 		"clock offset harmonic mean", clockOffsetHarmonicMean)
+}
+
+func (s *syncTime) isResponseTimeWithinAcceptedBounds(
+	responseDurations int64,
+	numSuccessfulRequests int64,
+) bool {
+	if numSuccessfulRequests <= 0 {
+		return false
+	}
+
+	avgResponseDurationMs := responseDurations / numSuccessfulRequests
+	isWithinAcceptedBounds := time.Duration(avgResponseDurationMs)*time.Millisecond < s.outOfBoundsThreshold
+
+	log.Trace("avgResponseDurationMs",
+		"avgResponseDurationMs", avgResponseDurationMs,
+		"outOfBoundsThreshold", s.outOfBoundsThreshold,
+		"isWithinAcceptedBounds", isWithinAcceptedBounds,
+	)
+
+	return isWithinAcceptedBounds
 }
 
 func (s *syncTime) getClockOffsetsWithoutEdges(clockOffsets []time.Duration) []time.Duration {
