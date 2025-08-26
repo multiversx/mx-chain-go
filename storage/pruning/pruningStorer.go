@@ -277,6 +277,8 @@ func initNextEpochPersisterIfNeeded(
 		return
 	}
 
+	log.Error("initNextEpochPersisterIfNeeded in advance", "epoch", epoch)
+
 	persistersMapByEpoch[uint32(epoch)] = p
 }
 
@@ -501,7 +503,7 @@ func (ps *PruningStorer) Close() error {
 	closedSuccessfully := true
 
 	ps.lock.RLock()
-	for _, pd := range ps.activePersisters {
+	for _, pd := range ps.persistersMapByEpoch {
 		err := pd.Close()
 
 		if err != nil {

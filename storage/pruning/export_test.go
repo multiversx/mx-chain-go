@@ -9,6 +9,11 @@ import (
 	"github.com/multiversx/mx-chain-go/storage/mock"
 )
 
+// GetIsClosed -
+func (pd *persisterData) GetIsClosed() bool {
+	return pd.getIsClosed()
+}
+
 // NewEmptyPruningStorer -
 func NewEmptyPruningStorer() *PruningStorer {
 	return &PruningStorer{
@@ -40,6 +45,11 @@ func (ps *PruningStorer) AddMockActivePersisters(epochs []uint32, ordered bool, 
 func (ps *PruningStorer) ClearPersisters() {
 	ps.activePersisters = make([]*persisterData, 0)
 	ps.persistersMapByEpoch = make(map[uint32]*persisterData)
+}
+
+// PersistersMapByEpoch -
+func (ps *PruningStorer) PersistersMapByEpoch() map[uint32]*persisterData {
+	return ps.persistersMapByEpoch
 }
 
 // AddMockActivePersister -
