@@ -207,6 +207,8 @@ func TestAccountsEphemeralProvider_GetUserAccount_cacheIsSharedAmongCalls(t *tes
 	require.Equal(t, 2, numCallsGetExistingAccount)
 
 	account, err = provider.GetUserAccount([]byte("bob"))
+	require.NotNil(t, account)
+	require.Nil(t, err)
 	require.Equal(t, 2, numCallsGetExistingAccount)
 
 	nonce, balance, exists, err = provider.GetAccountNonceAndBalance([]byte("bob"))
