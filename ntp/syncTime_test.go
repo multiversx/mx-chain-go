@@ -374,6 +374,25 @@ func TestCallQueryShouldUpdateOnOutOfBoundValuesNegativeIfDurationNotOutOfBounds
 	assert.NotEqual(t, currentValue, st.ClockOffset())
 }
 
+func TestSyncTime_IsResponseTimeWithinAcceptedBounds(t *testing.T) {
+	t.Parallel()
+
+	st := ntp.NewSyncTime(
+		config.NTPConfig{
+			SyncPeriodSeconds:    3600,
+			Hosts:                []string{"host1"},
+			OutOfBoundsThreshold: 2,
+		},
+		func(options ntp.NTPOptions, hostIndex int) (*beevikNtp.Response, error) {
+			return &beevikNtp.Response{}, nil
+		},
+	)
+
+	require.True(t, st.IsResponseTimeWithinAcceptedBounds(3, 5))
+	require.False(t, st.IsResponseTimeWithinAcceptedBounds(3, 1))
+	require.False(t, st.IsResponseTimeWithinAcceptedBounds(3, 0))
+}
+
 // On local machine, seems like average query time is ~35ms, e.g.:
 // Avg response time from host: time.google.com is 42.928837ms
 // Avg response time from host: time.cloudflare.com is 13.877162ms

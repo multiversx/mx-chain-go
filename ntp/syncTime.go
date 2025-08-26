@@ -235,7 +235,7 @@ func (s *syncTime) isResponseTimeWithinAcceptedBounds(
 		return false
 	}
 
-	avgResponseDurationMs := responseDurations / numSuccessfulRequests
+	avgResponseDurationMs := float64(responseDurations) / float64(numSuccessfulRequests)
 	isWithinAcceptedBounds := time.Duration(avgResponseDurationMs)*time.Millisecond < s.outOfBoundsThreshold
 
 	log.Trace("avgResponseDurationMs",
