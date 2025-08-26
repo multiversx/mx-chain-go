@@ -1319,3 +1319,27 @@ var ErrMiniBlocksNotProcessedYet = errors.New("mini blocks not processed")
 
 // ErrNilHeadersForBlock signals that a nil headers for block has been provided
 var ErrNilHeadersForBlock = errors.New("nil headers for block")
+
+// ErrNilLastExecutionResultHandler signals that a nil last execution result handler has been provided
+var ErrNilLastExecutionResultHandler = errors.New("nil last execution result handler")
+
+// ErrNilExecutionResultHandler signals that a nil execution result handler has been provided
+var ErrNilExecutionResultHandler = errors.New("nil execution result handler")
+
+// ErrExecutionResultDoesNotMatch signals that the execution result does not match the expected one
+var ErrExecutionResultDoesNotMatch = errors.New("execution result does not match")
+
+// ErrExecutionResultsNumberMismatch signals that the number of execution results does not match the expected one
+var ErrExecutionResultsNumberMismatch = errors.New("execution results number mismatch")
+
+// ErrNilExecutionResultsTracker signals that a nil execution results tracker has been provided
+var ErrNilExecutionResultsTracker = errors.New("nil execution results tracker")
+
+// ErrNilNotarizedOnHeaderHash signals that a nil notarized on header hash has been provided
+var ErrNilNotarizedOnHeaderHash = errors.New("nil notarized on header hash")
+
+// ErrInvalidHash signals that an invalid hash has been provided
+var ErrInvalidHash = errors.New("invalid hash")
+
+// ErrExecutionResultsNonConsecutive signals that execution results are not consecutive
+var ErrExecutionResultsNonConsecutive = errors.New("execution results non consecutive")

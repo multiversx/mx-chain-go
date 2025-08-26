@@ -801,7 +801,7 @@ func UnmarshalHeader(shardId uint32, marshaller marshal.Marshalizer, headerBuffe
 
 // UnmarshalMetaHeader unmarshalls a meta header
 func UnmarshalMetaHeader(marshaller marshal.Marshalizer, headerBuffer []byte) (data.MetaHeaderHandler, error) {
-	hdr, err := UnmarshalMetaHeaderV2(marshaller, headerBuffer)
+	hdr, err := UnmarshalMetaHeaderV3(marshaller, headerBuffer)
 	if err == nil {
 		return hdr, nil
 	}
@@ -809,9 +809,9 @@ func UnmarshalMetaHeader(marshaller marshal.Marshalizer, headerBuffer []byte) (d
 	return UnmarshalMetaHeaderV1(marshaller, headerBuffer)
 }
 
-// UnmarshalMetaHeaderV2 unmarshalls a meta header v2
-func UnmarshalMetaHeaderV2(marshaller marshal.Marshalizer, headerBuffer []byte) (data.MetaHeaderHandler, error) {
-	header := &block.MetaBlockV2{}
+// UnmarshalMetaHeaderV3 unmarshalls a meta header v3
+func UnmarshalMetaHeaderV3(marshaller marshal.Marshalizer, headerBuffer []byte) (data.MetaHeaderHandler, error) {
+	header := &block.MetaBlockV3{}
 	err := marshaller.Unmarshal(header, headerBuffer)
 	if err != nil {
 		return nil, err
