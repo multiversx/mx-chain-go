@@ -218,7 +218,7 @@ func (ppcm *preProcessorsContainerFactory) createTxPreProcessor() (process.PrePr
 		TxProcessor:                  ppcm.txProcessor,
 		ShardCoordinator:             ppcm.shardCoordinator,
 		Accounts:                     ppcm.accounts,
-		OnRequestTransaction:         ppcm.requestHandler.RequestTransaction,
+		OnRequestTransaction:         ppcm.requestHandler.RequestTransactions,
 		EconomicsFee:                 ppcm.economicsFee,
 		GasHandler:                   ppcm.gasHandler,
 		BlockTracker:                 ppcm.blockTracker,

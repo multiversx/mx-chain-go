@@ -602,7 +602,7 @@ type RequestHandler interface {
 	RequestMetaHeader(hash []byte)
 	RequestMetaHeaderByNonce(nonce uint64)
 	RequestShardHeaderByNonce(shardID uint32, nonce uint64)
-	RequestTransaction(destShardID uint32, txHashes [][]byte)
+	RequestTransactions(destShardID uint32, txHashes [][]byte)
 	RequestUnsignedTransactions(destShardID uint32, scrHashes [][]byte)
 	RequestRewardTransactions(destShardID uint32, txHashes [][]byte)
 	RequestMiniBlock(destShardID uint32, miniblockHash []byte)
@@ -1461,16 +1461,13 @@ type GasComputation interface {
 		miniBlocks []data.MiniBlockHeaderHandler,
 		transactions map[string][]data.TransactionHandler,
 	) (int, int, error)
-	CheckOutgoingTransactions(transactions []data.TransactionHandler) (int, error)
+	CheckOutgoingTransactions(transactions []data.TransactionHandler) ([]data.TransactionHandler, error)
 	GetLastMiniBlockIndexIncluded() int
-	GetLastTransactionIndexIncluded() int
 	TotalGasConsumed() uint64
 	DecreaseIncomingLimit()
 	DecreaseOutgoingLimit()
 	ResetIncomingLimit()
 	ResetOutgoingLimit()
-	DecreaseMiniBlockLimit()
-	ResetMiniBlockLimit()
 	Reset()
 	IsInterfaceNil() bool
 }
