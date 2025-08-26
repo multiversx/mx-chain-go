@@ -16,7 +16,7 @@ type selectionTracker struct {
 	mutTracker     sync.RWMutex
 	latestNonce    uint64
 	latestRootHash []byte
-	blocks         []*trackedBlock
+	blocks         map[string]*trackedBlock
 	txCache        txCacheForSelectionTracker
 }
 
@@ -27,7 +27,7 @@ func NewSelectionTracker(txCache txCacheForSelectionTracker) (*selectionTracker,
 	}
 	return &selectionTracker{
 		mutTracker: sync.RWMutex{},
-		blocks:     make([]*trackedBlock, 0),
+		blocks:     make(map[string]*trackedBlock),
 		txCache:    txCache,
 	}, nil
 }
@@ -98,7 +98,7 @@ func (st *selectionTracker) OnProposedBlock(
 		return err
 	}
 
-	st.blocks = append(st.blocks, tBlock)
+	st.blocks[string(blockHash)] = tBlock
 	return nil
 }
 
@@ -165,10 +165,11 @@ func (st *selectionTracker) validateTrackedBlocks(chainOfTrackedBlocks []*tracke
 }
 
 func (st *selectionTracker) removeFromTrackedBlocksNoLock(searchedBlock *trackedBlock) {
-	remainingBlocks := make([]*trackedBlock, 0)
-	for _, block := range st.blocks {
-		if !searchedBlock.sameNonce(block) {
-			remainingBlocks = append(remainingBlocks, block)
+	removedBlocks := 0
+	for blockHash, b := range st.blocks {
+		if searchedBlock.sameNonce(b) {
+			delete(st.blocks, blockHash)
+			removedBlocks += 1
 		}
 	}
 
@@ -177,10 +178,8 @@ func (st *selectionTracker) removeFromTrackedBlocksNoLock(searchedBlock *tracked
 		"searched block hash", searchedBlock.hash,
 		"searched block rootHash", searchedBlock.rootHash,
 		"searched block prevHash", searchedBlock.prevHash,
-		"removed blocks", len(st.blocks)-len(remainingBlocks),
+		"removed blocks", removedBlocks,
 	)
-
-	st.blocks = remainingBlocks
 }
 
 func (st *selectionTracker) updateLatestRootHashNoLock(receivedNonce uint64, receivedRootHash []byte) {
@@ -315,13 +314,7 @@ func (st *selectionTracker) getChainOfTrackedBlocks(
 
 // findBlockInChainByPreviousHash finds the block which has the hash equal to the given previous hash
 func (st *selectionTracker) findBlockInChainByPreviousHash(previousHash []byte) *trackedBlock {
-	for _, b := range st.blocks {
-		if bytes.Equal(b.hash, previousHash) {
-			return b
-		}
-	}
-
-	return nil
+	return st.blocks[string(previousHash)]
 }
 
 func (st *selectionTracker) reverseOrderOfBlocks(chainOfTrackedBlocks []*trackedBlock) []*trackedBlock {
