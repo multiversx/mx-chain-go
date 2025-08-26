@@ -2213,7 +2213,7 @@ func getLastBaseExecutionResultHandler(header data.HeaderHandler) (data.BaseExec
 	case data.LastShardExecutionResultHandler:
 		baseExecutionResultsHandler = executionResultsHandlerType.GetExecutionResultHandler()
 	default:
-		return nil, fmt.Errorf("%w for LastMetaExecutionResultHandler", process.ErrWrongTypeAssertion)
+		return nil, fmt.Errorf("%w: unsupported execution result handler type", process.ErrWrongTypeAssertion)
 	}
 
 	if check.IfNil(baseExecutionResultsHandler) {
