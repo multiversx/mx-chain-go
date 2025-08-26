@@ -892,6 +892,52 @@ func TestPruningStorer_ClosePersisters(t *testing.T) {
 		require.Equal(t, []uint32{4, 5, 6}, ps.PersistersMapByEpochToSlice())
 	})
 
+	t.Run("should remove old databases from map + database created in advance", func(t *testing.T) {
+		t.Parallel()
+
+		args := getDefaultArgs()
+		args.OldDataCleanerProvider = &testscommon.OldDataCleanerProviderStub{
+			ShouldCleanCalled: func() bool {
+				return true
+			},
+		}
+		args.EpochsData.NumOfActivePersisters = 2
+		args.EpochsData.NumOfEpochsToKeep = 3
+
+		ps, _ := pruning.NewPruningStorer(args)
+
+		require.Equal(t, []uint32{0, 1}, ps.PersistersMapByEpochToSlice()) // one persister created in advance
+		require.Equal(t, 1, ps.GetNumActivePersisters())
+
+		_ = ps.ChangeEpochSimple(1)
+		_ = ps.ChangeEpochSimple(2)
+		_ = ps.ChangeEpochSimple(3)
+		_ = ps.ChangeEpochSimple(4)
+
+		require.Equal(t, 2, ps.GetNumActivePersisters())
+		require.Equal(t, []uint32{2, 3, 4}, ps.PersistersMapByEpochToSlice())
+
+		ps.CreateNextEpochPersisterIfNeeded(4)
+
+		require.Equal(t, 2, ps.GetNumActivePersisters())
+		require.Equal(t, []uint32{2, 3, 4, 5}, ps.PersistersMapByEpochToSlice())
+
+		require.True(t, ps.PersistersMapByEpoch()[2].GetIsClosed())
+		require.False(t, ps.PersistersMapByEpoch()[3].GetIsClosed())
+		require.False(t, ps.PersistersMapByEpoch()[4].GetIsClosed())
+		require.False(t, ps.PersistersMapByEpoch()[5].GetIsClosed())
+
+		err := ps.Close()
+		require.NoError(t, err)
+		require.Equal(t, 2, ps.GetNumActivePersisters())
+		require.Equal(t, []uint32{2, 3, 4, 5}, ps.PersistersMapByEpochToSlice())
+
+		require.True(t, ps.PersistersMapByEpoch()[2].GetIsClosed())
+		require.True(t, ps.PersistersMapByEpoch()[3].GetIsClosed())
+		require.True(t, ps.PersistersMapByEpoch()[4].GetIsClosed())
+		require.True(t, ps.PersistersMapByEpoch()[5].GetIsClosed())
+	})
+
 	t.Run("should remove old databases from map + destroy them", func(t *testing.T) {
 		t.Parallel()
 
