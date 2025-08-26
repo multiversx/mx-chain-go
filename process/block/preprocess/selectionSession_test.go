@@ -23,7 +23,7 @@ func TestNewSelectionSession(t *testing.T) {
 		TransactionsProcessor: &testscommon.TxProcessorStub{},
 	})
 	require.Nil(t, session)
-	require.ErrorIs(t, err, process.ErrNilAccountsAdapter)
+	require.ErrorIs(t, err, state.ErrNilAccountsAdapter)
 
 	session, err = NewSelectionSession(ArgsSelectionSession{
 		AccountsAdapter:       &stateMock.AccountsStub{},

@@ -40,11 +40,6 @@ var (
 const maxNumBytesUpperBound = 1_073_741_824           // one GB
 const maxNumBytesPerSenderUpperBoundTest = 33_554_432 // 32 MB
 
-type accountInfo struct {
-	balance *big.Int
-	nonce   uint64
-}
-
 func startChainSimulator(t *testing.T, alterConfigsFunction func(cfg *config.Configs)) testsChainSimulator.ChainSimulator {
 	simulator, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
 		BypassTxSignatureCheck: true,
@@ -217,18 +212,6 @@ func getTransaction(t *testing.T, simulator testsChainSimulator.ChainSimulator, 
 	transaction, err := simulator.GetNodeHandler(uint32(shard)).GetFacadeHandler().GetTransaction(hashAsHex, true)
 	require.NoError(t, err)
 	return transaction
-}
-
-func createMockSelectionSessionWithSpecificAccountInfo(accounts map[string]*accountInfo) *txcachemocks.SelectionSessionMock {
-	sessionMock := txcachemocks.SelectionSessionMock{
-		GetAccountNonceAndBalanceCalled: func(address []byte) (uint64, *big.Int, bool, error) {
-			nonce := accounts[string(address)].nonce
-			balance := accounts[string(address)].balance
-			return nonce, balance, true, nil
-		},
-	}
-
-	return &sessionMock
 }
 
 func createProposedBlock(selectedTransactions []*txcache.WrappedTransaction) *block.Body {

@@ -28,7 +28,7 @@ func createMockedHeaders(numOfHeaders int) []*block.Header {
 	return headers
 }
 
-func proposeBlocksConcurrently(t *testing.T, numOfBlocks int, selectionTracker *selectionTracker, headers []*block.Header) {
+func proposeBlocksConcurrently(t *testing.T, numOfBlocks int, selectionTracker *selectionTracker, headers []*block.Header, accountsProvider AccountNonceAndBalanceProvider) {
 	wg := sync.WaitGroup{}
 	wg.Add(numOfBlocks)
 
@@ -38,7 +38,7 @@ func proposeBlocksConcurrently(t *testing.T, numOfBlocks int, selectionTracker *
 
 			err := selectionTracker.OnProposedBlock(
 				[]byte(fmt.Sprintf("blockHash%d", index)),
-				&block.Body{}, headers[index], nil, defaultBlockchainInfo)
+				&block.Body{}, headers[index], accountsProvider, defaultBlockchainInfo)
 			require.Nil(t, err)
 		}(i)
 	}
@@ -107,7 +107,7 @@ func TestSelectionTracker_OnProposedBlockShouldErr(t *testing.T) {
 		require.Equal(t, errNilBlockBody, err)
 	})
 
-	t.Run("should err nil header", func(t *testing.T) {
+	t.Run("should err nil block header", func(t *testing.T) {
 		t.Parallel()
 
 		txCache := newCacheToTest(maxNumBytesPerSenderUpperBoundTest, 3)
@@ -117,6 +117,17 @@ func TestSelectionTracker_OnProposedBlockShouldErr(t *testing.T) {
 		blockBody := block.Body{}
 		err = tracker.OnProposedBlock([]byte("hash1"), &blockBody, nil, nil, nil)
 		require.Equal(t, errNilHeaderHandler, err)
+	})
+
+	t.Run("should err nil accounts provider", func(t *testing.T) {
+		t.Parallel()
+
+		txCache := newCacheToTest(maxNumBytesPerSenderUpperBoundTest, 3)
+		tracker, err := NewSelectionTracker(txCache)
+		require.Nil(t, err)
+
+		err = tracker.OnProposedBlock([]byte("hash1"), &block.Body{}, &block.Header{}, nil, nil)
+		require.Equal(t, errNilAccountNonceAndBalanceProvider, err)
 	})
 
 	t.Run("should return errNonceGap", func(t *testing.T) {
@@ -310,7 +321,9 @@ func TestSelectionTracker_OnProposedBlockShouldWork(t *testing.T) {
 
 	numOfBlocks := 20
 	headers := createMockedHeaders(numOfBlocks)
-	proposeBlocksConcurrently(t, numOfBlocks, tracker, headers)
+	accountsProvider := txcachemocks.NewAccountNonceAndBalanceProviderMock()
+
+	proposeBlocksConcurrently(t, numOfBlocks, tracker, headers, accountsProvider)
 	require.Equal(t, 20, len(tracker.blocks))
 }
 
@@ -334,8 +347,9 @@ func TestSelectionTracker_OnExecutedBlockShouldWork(t *testing.T) {
 
 	numOfBlocks := 20
 	headers := createMockedHeaders(numOfBlocks)
+	accountsProvider := txcachemocks.NewAccountNonceAndBalanceProviderMock()
 
-	proposeBlocksConcurrently(t, numOfBlocks, tracker, headers)
+	proposeBlocksConcurrently(t, numOfBlocks, tracker, headers, accountsProvider)
 	require.Equal(t, numOfBlocks, len(tracker.blocks))
 
 	executeBlocksConcurrently(t, numOfBlocks, tracker, headers)

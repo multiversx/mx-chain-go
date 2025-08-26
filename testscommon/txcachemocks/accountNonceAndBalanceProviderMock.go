@@ -5,37 +5,34 @@ import (
 	"sync"
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
-	"github.com/multiversx/mx-chain-core-go/data"
 	stateMock "github.com/multiversx/mx-chain-go/testscommon/state"
 )
 
-// SelectionSessionMock -
-type SelectionSessionMock struct {
+// AccountNonceAndBalanceProviderMock -
+type AccountNonceAndBalanceProviderMock struct {
 	mutex            sync.Mutex
 	accountByAddress map[string]*stateMock.UserAccountStub
 
 	NumCallsGetAccountNonceAndBalance int
 	GetAccountNonceAndBalanceCalled   func(address []byte) (uint64, *big.Int, bool, error)
-	GetRootHashCalled                 func() ([]byte, error)
-	IsIncorrectlyGuardedCalled        func(tx data.TransactionHandler) bool
 }
 
-// NewSelectionSessionMock -
-func NewSelectionSessionMock() *SelectionSessionMock {
-	return &SelectionSessionMock{
+// NewAccountNonceAndBalanceProviderMock -
+func NewAccountNonceAndBalanceProviderMock() *AccountNonceAndBalanceProviderMock {
+	return &AccountNonceAndBalanceProviderMock{
 		accountByAddress: make(map[string]*stateMock.UserAccountStub),
 	}
 }
 
-// NewSelectionSessionMockWithAccounts -
-func NewSelectionSessionMockWithAccounts(accountsByAddress map[string]*stateMock.UserAccountStub) *SelectionSessionMock {
-	return &SelectionSessionMock{
+// NewAccountNonceAndBalanceProviderMockWithAccounts -
+func NewAccountNonceAndBalanceProviderMockWithAccounts(accountsByAddress map[string]*stateMock.UserAccountStub) *AccountNonceAndBalanceProviderMock {
+	return &AccountNonceAndBalanceProviderMock{
 		accountByAddress: accountsByAddress,
 	}
 }
 
 // SetNonce -
-func (mock *SelectionSessionMock) SetNonce(address []byte, nonce uint64) {
+func (mock *AccountNonceAndBalanceProviderMock) SetNonce(address []byte, nonce uint64) {
 	mock.mutex.Lock()
 	defer mock.mutex.Unlock()
 
@@ -49,7 +46,7 @@ func (mock *SelectionSessionMock) SetNonce(address []byte, nonce uint64) {
 }
 
 // SetBalance -
-func (mock *SelectionSessionMock) SetBalance(address []byte, balance *big.Int) {
+func (mock *AccountNonceAndBalanceProviderMock) SetBalance(address []byte, balance *big.Int) {
 	mock.mutex.Lock()
 	defer mock.mutex.Unlock()
 
@@ -63,7 +60,7 @@ func (mock *SelectionSessionMock) SetBalance(address []byte, balance *big.Int) {
 }
 
 // GetAccountNonceAndBalance -
-func (mock *SelectionSessionMock) GetAccountNonceAndBalance(address []byte) (uint64, *big.Int, bool, error) {
+func (mock *AccountNonceAndBalanceProviderMock) GetAccountNonceAndBalance(address []byte) (uint64, *big.Int, bool, error) {
 	mock.mutex.Lock()
 	defer mock.mutex.Unlock()
 
@@ -87,31 +84,7 @@ func (mock *SelectionSessionMock) GetAccountNonceAndBalance(address []byte) (uin
 	return account.Nonce, account.Balance, true, nil
 }
 
-// GetRootHash -
-func (mock *SelectionSessionMock) GetRootHash() ([]byte, error) {
-	if mock.GetRootHashCalled != nil {
-		return mock.GetRootHashCalled()
-	}
-	return nil, nil
-}
-
-// IsIncorrectlyGuarded -
-func (mock *SelectionSessionMock) IsIncorrectlyGuarded(tx data.TransactionHandler) bool {
-	if mock.IsIncorrectlyGuardedCalled != nil {
-		return mock.IsIncorrectlyGuardedCalled(tx)
-	}
-
-	return false
-}
-
 // IsInterfaceNil -
-func (mock *SelectionSessionMock) IsInterfaceNil() bool {
+func (mock *AccountNonceAndBalanceProviderMock) IsInterfaceNil() bool {
 	return mock == nil
-}
-
-func newDefaultAccount() *stateMock.UserAccountStub {
-	return &stateMock.UserAccountStub{
-		Nonce:   0,
-		Balance: big.NewInt(1000000000000000000),
-	}
 }
