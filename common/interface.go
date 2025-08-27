@@ -292,6 +292,7 @@ type TxSelectionOptions interface {
 // BlockchainInfo holds the parameters from the blockchain used for SelectTransactions
 type BlockchainInfo interface {
 	GetLatestExecutedBlockHash() []byte
+	GetLatestCommittedBlockHash() []byte
 	GetCurrentNonce() uint64
 	IsInterfaceNil() bool
 }
