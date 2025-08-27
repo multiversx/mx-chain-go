@@ -38,7 +38,7 @@ type miniBlocksSelectionSession struct {
 
 const defaultCapacity = 10
 
-func newMiniBlocksSelectionSession(shardID uint32, marshaller marshal.Marshalizer, hasher hashing.Hasher) (*miniBlocksSelectionSession, error) {
+func NewMiniBlocksSelectionSession(shardID uint32, marshaller marshal.Marshalizer, hasher hashing.Hasher) (*miniBlocksSelectionSession, error) {
 	if check.IfNil(marshaller) {
 		return nil, process.ErrNilMarshalizer
 	}

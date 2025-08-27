@@ -114,8 +114,9 @@ type baseProcessor struct {
 	mutNonceOfFirstCommittedBlock sync.RWMutex
 	nonceOfFirstCommittedBlock    core.OptionalUint64
 
-	proofsPool dataRetriever.ProofsPool
-	ocksSelectionSession *miniBlocksSelectionSession
+	proofsPool                 dataRetriever.ProofsPool
+	miniBlocksSelectionSession MiniBlocksSelectionSession
+	executionResultsVerifier   ExecutionResultsVerifier
 }
 
 type bootStorerDataArgs struct {
@@ -650,9 +651,7 @@ func (bp *baseProcessor) verifyFees(header data.HeaderHandler) error {
 
 // TODO: remove bool parameter and give instead the set to sort
 func (bp *baseProcessor) sortHeadersForCurrentBlockByNonce(usedInBlock bool) (map[uint32][]data.HeaderHandler, error) {
-	bp.hdrsForCurrBlock.mutHdrsForBlock.RLock()
-	hdrsForCurrentBlock, err := bp.computeHeadersForCurrentBlock(usedInBlock)
-	bp.hdrsForCurrBlock.mutHdrsForBlock.RUnlock()
+	hdrsForCurrentBlock, err := bp.hdrsForCurrBlock.ComputeHeadersForCurrentBlock(usedInBlock)
 	if err != nil {
 		return nil, err
 	}

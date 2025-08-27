@@ -144,7 +144,7 @@ func NewMetaProcessor(arguments ArgMetaProcessor) (*metaProcessor, error) {
 		hdrsForCurrBlock:              arguments.HeadersForBlock,
 	}
 
-	selectionSession, err := newMiniBlocksSelectionSession(base.shardCoordinator.SelfId(), base.marshalizer, base.hasher)
+	selectionSession, err := NewMiniBlocksSelectionSession(base.shardCoordinator.SelfId(), base.marshalizer, base.hasher)
 	if err != nil {
 		return nil, err
 	}
@@ -2328,7 +2328,7 @@ func (mp *metaProcessor) applyBodyProposalToHeaderProposal(metaHdr data.MetaHead
 
 	sw.Start("UpdatePeerState")
 	mp.prepareBlockHeaderInternalMapForValidatorProcessor()
-	valStatRootHash, err := mp.validatorStatisticsProcessor.UpdatePeerState(metaHdr, mp.hdrsForCurrBlock.getHdrHashMap())
+	valStatRootHash, err := mp.validatorStatisticsProcessor.UpdatePeerState(metaHdr, mp.hdrsForCurrBlock.GetHeadersMap())
 	sw.Stop("UpdatePeerState")
 	if err != nil {
 		return nil, err
@@ -2347,7 +2347,6 @@ func (mp *metaProcessor) applyBodyProposalToHeaderProposal(metaHdr data.MetaHead
 	mp.blockSizeThrottler.Add(metaHdr.GetRound(), uint32(len(marshalizedBody)))
 
 	return body, nil
-
 }
 
 // applyBodyToHeader creates a miniblock header list given a block body

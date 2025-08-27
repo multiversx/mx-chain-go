@@ -253,3 +253,8 @@ func createLastExecutionResultInfoFromExecutionResult(notarizedOnHeaderHash []by
 		},
 	}, nil
 }
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (erc *executionResultsVerifier) IsInterfaceNil() bool {
+	return erc == nil
+}

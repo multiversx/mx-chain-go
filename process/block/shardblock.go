@@ -20,6 +20,7 @@ import (
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	processOutport "github.com/multiversx/mx-chain-go/outport/process"
 	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/process/asyncExecution/executionTrack"
 	"github.com/multiversx/mx-chain-go/process/block/bootstrapStorage"
 	"github.com/multiversx/mx-chain-go/process/block/helpers"
 	"github.com/multiversx/mx-chain-go/process/block/processedMb"
@@ -130,11 +131,17 @@ func NewShardProcessor(arguments ArgShardProcessor) (*shardProcessor, error) {
 		hdrsForCurrBlock:              arguments.HeadersForBlock,
 	}
 
-	selectionSession, err := newMiniBlocksSelectionSession(base.shardCoordinator.SelfId(), base.marshalizer, base.hasher)
+	selectionSession, err := NewMiniBlocksSelectionSession(base.shardCoordinator.SelfId(), base.marshalizer, base.hasher)
 	if err != nil {
 		return nil, err
 	}
 	base.miniBlocksSelectionSession = selectionSession
+	// todo: move the creation in someplace else (receive it as argument here) and set the last execution result to have it initialized properly before passing it
+	executionResultsTracker := executionTrack.NewExecutionResultsTracker()
+	// executionResultsTracker.SetLastNotarizedResult()
+
+	erv, err := NewExecutionResultsVerifier(arguments.DataComponents.Blockchain(), executionResultsTracker)
+	base.executionResultsVerifier = erv
 
 	sp := shardProcessor{
 		baseProcessor: base,
@@ -173,9 +180,9 @@ func (sp *shardProcessor) VerifyProposedBlock(
 	)
 
 	// TODO: have time should be removed if no longer needed
-	haveTime := func() time.Duration {
-		return time.Second * 10 // this is a dummy value, should be replaced with a real one
-	}
+	// haveTime := func() time.Duration {
+	// 	return time.Second * 10 // this is a dummy value, should be replaced with a real one
+	// }
 
 	err := sp.checkBlockValidity(headerHandler, bodyHandler)
 	if err != nil {
@@ -221,7 +228,7 @@ func (sp *shardProcessor) VerifyProposedBlock(
 		return err
 	}
 
-	err = sp.checkExecutionResultsForHeader(header, headerHash)
+	err = sp.executionResultsVerifier.VerifyHeaderExecutionResults(headerHash, header)
 	if err != nil {
 		return err
 	}
@@ -374,7 +381,7 @@ func (sp *shardProcessor) VerifyProposedBlock(
 	// 	return err
 	// }
 	//
-	// return nil
+	return nil
 }
 
 func (sp *shardProcessor) checkMiniBlocksConstructionState(header data.HeaderHandler) error {
@@ -386,129 +393,6 @@ func (sp *shardProcessor) checkMiniBlocksConstructionState(header data.HeaderHan
 		}
 	}
 	return nil
-}
-
-func (sp *shardProcessor) checkExecutionResultsForHeader(header data.ShardHeaderHandler, headerHash []byte) error {
-	if !header.IsHeaderV3() {
-		return process.ErrInvalidHeader
-	}
-	if header.GetNonce() < 1 {
-		return nil
-	}
-
-	executionResults := header.GetExecutionResultsHandlers()
-	lastExecutionResultInfo := header.GetLastExecutionResultHandler()
-
-	return sp.checkExecutionResults(executionResults, headerHash, lastExecutionResultInfo)
-}
-
-func (sp *shardProcessor) checkExecutionResults(executionResults []data.ExecutionResultHandler, headerHash []byte, lastExecutionResultInfo data.ShardExecutionResultInfo) error {
-	if check.IfNil(lastExecutionResultInfo) {
-		return process.ErrNilLastExecutionResultHandler
-	}
-
-	prevLastExecutionResultInfo, err := sp.getPrevBlockLastExecutionResult()
-	if err != nil {
-		return err
-	}
-
-	if check.IfNil(prevLastExecutionResultInfo) {
-		return process.ErrNilLastExecutionResultHandler
-	}
-
-	if len(executionResults) == 0 {
-		if !lastExecutionResultInfo.Equal(prevLastExecutionResultInfo) {
-			return process.ErrExecutionResultDoesNotMatch
-		}
-
-		return nil
-	}
-
-	lastExecResult := executionResults[len(executionResults)-1]
-	lastExecResultInfo, err := createLastExecutionResultInfoFromExecutionResult(headerHash, lastExecResult)
-	if err != nil {
-		return err
-	}
-
-	if !lastExecutionResultInfo.Equal(lastExecResultInfo) {
-		return process.ErrExecutionResultDoesNotMatch
-	}
-
-	// todo: take this from the sp.executionResultsTracker
-	var executionResultsTracker ExecutionResultsTracker
-
-	pendingExecutionResults, err := executionResultsTracker.GetPendingExecutionResults()
-	if err != nil {
-		return err
-	}
-
-	if len(pendingExecutionResults) < len(executionResults) {
-		return process.ErrExecutionResultsNumberMismatch
-	}
-
-	for i, er := range executionResults {
-		if !er.Equal(pendingExecutionResults[i]) {
-			return process.ErrExecutionResultMismatch
-		}
-	}
-
-	return nil
-}
-
-func createLastExecutionResultInfoFromExecutionResult(notarizedOnHeaderHash []byte, lastExecResult data.ExecutionResultHandler) (*block.ExecutionResultInfo, error) {
-	if check.IfNil(lastExecResult) {
-		return nil, process.ErrNilExecutionResultHandler
-	}
-
-	return &block.ExecutionResultInfo{
-		NotarizedOnHeaderHash: notarizedOnHeaderHash,
-		ExecutionResult: &block.BaseExecutionResult{
-			HeaderHash:  lastExecResult.GetHeaderHash(),
-			HeaderNonce: lastExecResult.GetHeaderNonce(),
-			HeaderRound: lastExecResult.GetHeaderRound(),
-			RootHash:    lastExecResult.GetRootHash(),
-		},
-	}, nil
-}
-
-func (sp *shardProcessor) getPrevBlockLastExecutionResult() (data.ShardExecutionResultInfo, error) {
-	prevHeader := sp.blockChain.GetCurrentBlockHeader()
-	if check.IfNil(prevHeader) {
-		return nil, process.ErrNilHeaderHandler
-	}
-
-	prevShardHeader, ok := prevHeader.(data.ShardHeaderHandler)
-	if !ok {
-		return nil, process.ErrWrongTypeAssertion
-	}
-
-	if prevShardHeader.IsHeaderV3() {
-		return prevShardHeader.GetLastExecutionResultHandler(), nil
-	}
-
-	prevHeaderHash := prevHeader.GetPrevHash()
-
-	return sp.createLastExecutionResultFromPrevHeader(prevShardHeader, prevHeaderHash)
-}
-
-func (sp *shardProcessor) createLastExecutionResultFromPrevHeader(prevShardHeader data.ShardHeaderHandler, prevShardHeaderHash []byte) (data.ShardExecutionResultInfo, error) {
-	if prevShardHeader.IsHeaderV3() {
-		return nil, process.ErrInvalidHeader
-	}
-	// create a dummy execution result info to be used in the case of Supernova
-	execResult := &block.ExecutionResultInfo{
-		NotarizedOnHeaderHash: prevShardHeaderHash,
-		ExecutionResult: &block.BaseExecutionResult{
-			HeaderHash:  prevShardHeaderHash,
-			HeaderNonce: prevShardHeader.GetNonce(),
-			HeaderRound: prevShardHeader.GetRound(),
-			// there should have been no scheduled transactions, as these were stopped earlier,
-			// so it is ok to use the rootHash
-			RootHash: prevShardHeader.GetRootHash(),
-		},
-	}
-
-	return execResult, nil
 }
 
 // ProcessProposedBlock processes a proposed block. It returns nil if all ok or the specific error
