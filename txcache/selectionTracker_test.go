@@ -522,6 +522,22 @@ func TestSelectionTracker_getChainOfTrackedBlocks(t *testing.T) {
 	require.Nil(t, err)
 	tracker.blocks[string(b.hash)] = b
 
+	t.Run("check order to be from head to tail", func(t *testing.T) {
+		t.Parallel()
+
+		expectedTrackedBlockHashes := [][]byte{
+			[]byte("blockHash2"),
+			[]byte("blockHash3"),
+			[]byte("blockHash4"),
+		}
+
+		actualChain, err := tracker.getChainOfTrackedBlocks([]byte("blockHash1"), []byte("blockHash4"), 4)
+		require.Nil(t, err)
+		for i, returnedBlock := range actualChain {
+			require.Equal(t, returnedBlock.hash, expectedTrackedBlockHashes[i])
+		}
+	})
+
 	t.Run("should return expected tracked blocks and stop before nonce", func(t *testing.T) {
 		t.Parallel()
 

@@ -307,7 +307,7 @@ func (st *selectionTracker) getChainOfTrackedBlocks(
 		previousBlock = st.findBlockInChainByPreviousHash(previousBlockHash)
 	}
 
-	// reverse the order of the blocks to have them from head to tail
+	// to be able to validate the blocks later, reverse the order of the blocks to have them from head to tail
 	return st.reverseOrderOfBlocks(chain), nil
 }
 
