@@ -435,51 +435,6 @@ func TestSelectionTracker_removeFromTrackedBlocks(t *testing.T) {
 	require.False(t, ok)
 }
 
-func TestSelectionTracker_findBlockInChainByPreviousHash(t *testing.T) {
-	t.Parallel()
-
-	t.Run("should return previous block", func(t *testing.T) {
-		t.Parallel()
-
-		txCache := newCacheToTest(maxNumBytesPerSenderUpperBoundTest, 3)
-		tracker, err := NewSelectionTracker(txCache)
-		require.Nil(t, err)
-
-		expectedPreviousBlock, err := newTrackedBlock(0, []byte("blockHash1"), []byte("rootHash1"), []byte("blockHash0"), nil)
-		require.Nil(t, err)
-		b1, err := newTrackedBlock(0, []byte("blockHash2"), []byte("rootHash2"), []byte("blockHash1"), nil)
-		require.Nil(t, err)
-
-		tracker.blocks = map[string]*trackedBlock{
-			string(expectedPreviousBlock.hash): expectedPreviousBlock,
-			string(b1.hash):                    b1,
-		}
-
-		receivedNextBlock := tracker.findBlockInChainByPreviousHash([]byte("blockHash1"))
-		require.Equal(t, expectedPreviousBlock, receivedNextBlock)
-	})
-
-	t.Run("should return nil", func(t *testing.T) {
-		t.Parallel()
-
-		txCache := newCacheToTest(maxNumBytesPerSenderUpperBoundTest, 3)
-		tracker, err := NewSelectionTracker(txCache)
-		require.Nil(t, err)
-
-		expectedPreviousBlock, err := newTrackedBlock(0, []byte("blockHash2"), []byte("rootHash2"), []byte("blockHash1"), nil)
-		require.Nil(t, err)
-		b1, err := newTrackedBlock(0, []byte("blockHash1"), []byte("rootHash1"), []byte("prevHash1"), nil)
-		require.Nil(t, err)
-		tracker.blocks = map[string]*trackedBlock{
-			string(expectedPreviousBlock.hash): expectedPreviousBlock,
-			string(b1.hash):                    b1,
-		}
-
-		receivedNextBlock := tracker.findBlockInChainByPreviousHash([]byte("notExistingBlockHash"))
-		require.Nil(t, receivedNextBlock)
-	})
-}
-
 func TestSelectionTracker_getChainOfTrackedBlocks(t *testing.T) {
 	t.Parallel()
 

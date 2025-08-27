@@ -168,7 +168,7 @@ func (st *selectionTracker) removeFromTrackedBlocksNoLock(searchedBlock *tracked
 	for blockHash, b := range st.blocks {
 		if searchedBlock.sameNonce(b) {
 			delete(st.blocks, blockHash)
-			removedBlocks += 1
+			removedBlocks++
 		}
 	}
 
@@ -277,7 +277,8 @@ func (st *selectionTracker) getChainOfTrackedBlocks(
 	}
 
 	// search for the block with the hash equal to the previous hash
-	previousBlock := st.findBlockInChainByPreviousHash(previousHashToBeFound)
+	// NOTE: we expect a nil value for a key (block hash) which is not in the map of tracked blocks
+	previousBlock := st.blocks[string(previousHashToBeFound)]
 
 	for {
 		// if no block was found, it means there is a gap and we have to return an error
@@ -304,16 +305,11 @@ func (st *selectionTracker) getChainOfTrackedBlocks(
 		nextNonce -= 1
 
 		// find the previous block
-		previousBlock = st.findBlockInChainByPreviousHash(previousBlockHash)
+		previousBlock = st.blocks[string(previousBlockHash)]
 	}
 
 	// to be able to validate the blocks later, reverse the order of the blocks to have them from head to tail
 	return st.reverseOrderOfBlocks(chain), nil
-}
-
-// findBlockInChainByPreviousHash finds the block which has the hash equal to the given previous hash
-func (st *selectionTracker) findBlockInChainByPreviousHash(previousHash []byte) *trackedBlock {
-	return st.blocks[string(previousHash)]
 }
 
 func (st *selectionTracker) reverseOrderOfBlocks(chainOfTrackedBlocks []*trackedBlock) []*trackedBlock {
