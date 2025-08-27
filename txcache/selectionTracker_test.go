@@ -329,6 +329,18 @@ func TestSelectionTracker_OnProposedBlockShouldWork(t *testing.T) {
 	require.Equal(t, 20, len(tracker.blocks))
 }
 
+func TestSelectionTracker_OnProposedBlockShouldCleanWhenMaxTrackedBlocksIsReached(t *testing.T) {
+	t.Parallel()
+
+	txCache := newCacheToTest(maxNumBytesPerSenderUpperBoundTest, 3)
+	tracker, err := NewSelectionTracker(txCache, 3)
+	require.Nil(t, err)
+
+	numOfBlocks := 3
+	proposeBlocks(t, numOfBlocks, tracker)
+	require.Equal(t, 0, len(tracker.blocks))
+}
+
 func TestSelectionTracker_OnExecutedBlockShouldError(t *testing.T) {
 	t.Parallel()
 
