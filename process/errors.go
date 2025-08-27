@@ -531,6 +531,12 @@ var ErrMaxGasLimitPerBlockInSelfShardIsReached = errors.New("max gas limit per b
 // ErrMaxGasLimitUsedForDestMeTxsIsReached signals that max gas limit used for dest me txs has been reached
 var ErrMaxGasLimitUsedForDestMeTxsIsReached = errors.New("max gas limit used for dest me txs is reached")
 
+// ErrMaxGasLimitPerTransactionIsReached signals that max gas limit per transactions has been reached
+var ErrMaxGasLimitPerTransactionIsReached = errors.New("max gas limit per transaction is reached")
+
+// ErrMaxGasLimitPerMiniBlockIsReached signals that max gas limit per mini block has been reached
+var ErrMaxGasLimitPerMiniBlockIsReached = errors.New("max gas limit per mini block is reached")
+
 // ErrInvalidMinimumGasPrice signals that an invalid gas price has been read from config file
 var ErrInvalidMinimumGasPrice = errors.New("invalid minimum gas price")
 
@@ -1301,3 +1307,45 @@ var ErrNilKeyRWMutexHandler = errors.New("nil key rw mutex handler")
 
 // ErrNilTxsForBlockHandler signals that a nil transactions for block handler has been provided
 var ErrNilTxsForBlockHandler = errors.New("nil txs for block handler")
+
+// ErrTransactionsAlreadyProcessed signals that transactions were already processed
+var ErrTransactionsAlreadyProcessed = errors.New("transactions already processed")
+
+// ErrMiniBlocksAlreadyProcessed signals that mini blocks were already processed
+var ErrMiniBlocksAlreadyProcessed = errors.New("mini blocks already processed")
+
+// ErrMiniBlocksNotProcessedYet signals that mini blocks were not processed yet
+var ErrMiniBlocksNotProcessedYet = errors.New("mini blocks not processed")
+
+// ErrNilHeadersForBlock signals that a nil headers for block has been provided
+var ErrNilHeadersForBlock = errors.New("nil headers for block")
+
+// ErrNilLastExecutionResultHandler signals that a nil last execution result handler has been provided
+var ErrNilLastExecutionResultHandler = errors.New("nil last execution result handler")
+
+// ErrNilExecutionResultHandler signals that a nil execution result handler has been provided
+var ErrNilExecutionResultHandler = errors.New("nil execution result handler")
+
+// ErrExecutionResultDoesNotMatch signals that the execution result does not match the expected one
+var ErrExecutionResultDoesNotMatch = errors.New("execution result does not match")
+
+// ErrExecutionResultsNumberMismatch signals that the number of execution results does not match the expected one
+var ErrExecutionResultsNumberMismatch = errors.New("execution results number mismatch")
+
+// ErrNilExecutionResultsTracker signals that a nil execution results tracker has been provided
+var ErrNilExecutionResultsTracker = errors.New("nil execution results tracker")
+
+// ErrNilNotarizedOnHeaderHash signals that a nil notarized on header hash has been provided
+var ErrNilNotarizedOnHeaderHash = errors.New("nil notarized on header hash")
+
+// ErrInvalidHash signals that an invalid hash has been provided
+var ErrInvalidHash = errors.New("invalid hash")
+
+// ErrExecutionResultsNonConsecutive signals that execution results are not consecutive
+var ErrExecutionResultsNonConsecutive = errors.New("execution results non consecutive")
+
+// ErrInvalidMaxNonceDifference signals that an invalid max nonce difference has been provided
+var ErrInvalidMaxNonceDifference = errors.New("invalid max nonce difference")
+
+// ErrNilBaseExecutionResult signals that a nil base execution result has been provided
+var ErrNilBaseExecutionResult = errors.New("nil base execution result")
