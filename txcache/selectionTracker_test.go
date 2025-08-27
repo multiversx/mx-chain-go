@@ -367,6 +367,7 @@ func TestSelectionTracker_OnExecutedBlockShouldDeleteAllBlocksBelowSpecificNonce
 	t.Parallel()
 
 	txCache := newCacheToTest(maxNumBytesPerSenderUpperBoundTest, 3)
+	accountsProvider := txcachemocks.NewAccountNonceAndBalanceProviderMock()
 	tracker, err := NewSelectionTracker(txCache)
 	require.Nil(t, err)
 
@@ -378,7 +379,7 @@ func TestSelectionTracker_OnExecutedBlockShouldDeleteAllBlocksBelowSpecificNonce
 			PrevHash: nil,
 			RootHash: nil,
 		},
-		nil,
+		accountsProvider,
 		defaultBlockchainInfo,
 	)
 	require.Nil(t, err)
@@ -391,7 +392,7 @@ func TestSelectionTracker_OnExecutedBlockShouldDeleteAllBlocksBelowSpecificNonce
 			PrevHash: []byte(fmt.Sprintf("blockHash%d", 0)),
 			RootHash: []byte(fmt.Sprintf("rootHash%d", 0)),
 		},
-		nil,
+		accountsProvider,
 		defaultBlockchainInfo,
 	)
 	require.Nil(t, err)
@@ -404,7 +405,7 @@ func TestSelectionTracker_OnExecutedBlockShouldDeleteAllBlocksBelowSpecificNonce
 			PrevHash: []byte(fmt.Sprintf("blockHash%d", 1)),
 			RootHash: []byte(fmt.Sprintf("rootHash%d", 0)),
 		},
-		nil,
+		accountsProvider,
 		defaultBlockchainInfo,
 	)
 	require.Nil(t, err)
@@ -417,7 +418,7 @@ func TestSelectionTracker_OnExecutedBlockShouldDeleteAllBlocksBelowSpecificNonce
 			PrevHash: []byte(fmt.Sprintf("blockHash%d", 2)),
 			RootHash: []byte(fmt.Sprintf("rootHash%d", 0)),
 		},
-		nil,
+		accountsProvider,
 		defaultBlockchainInfo,
 	)
 	require.Nil(t, err)
