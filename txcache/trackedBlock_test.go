@@ -27,11 +27,11 @@ func TestTrackedBlock_sameNonce(t *testing.T) {
 		trackedBlock2, err := newTrackedBlock(0, []byte("blockHash1"), []byte("blockRootHash2"), []byte("blockPrevHash1"), nil)
 		require.NoError(t, err)
 
-		equalBlocks := trackedBlock1.sameNonce(trackedBlock2)
-		require.True(t, equalBlocks)
+		shouldRemoveBlock := trackedBlock1.sameNonceOrBelow(trackedBlock2)
+		require.True(t, shouldRemoveBlock)
 	})
 
-	t.Run("different nonce", func(t *testing.T) {
+	t.Run("lower nonce", func(t *testing.T) {
 		t.Parallel()
 
 		trackedBlock1, err := newTrackedBlock(0, []byte("blockHash1"), []byte("blockRootHash1"), []byte("blockPrevHash1"), nil)
@@ -40,8 +40,21 @@ func TestTrackedBlock_sameNonce(t *testing.T) {
 		trackedBlock2, err := newTrackedBlock(1, []byte("blockHash1"), []byte("blockRootHash1"), []byte("blockPrevHash1"), nil)
 		require.NoError(t, err)
 
-		equalBlocks := trackedBlock1.sameNonce(trackedBlock2)
-		require.False(t, equalBlocks)
+		shouldRemoveBlock := trackedBlock1.sameNonceOrBelow(trackedBlock2)
+		require.True(t, shouldRemoveBlock)
+	})
+
+	t.Run("greater nonce", func(t *testing.T) {
+		t.Parallel()
+
+		trackedBlock1, err := newTrackedBlock(2, []byte("blockHash1"), []byte("blockRootHash1"), []byte("blockPrevHash1"), nil)
+		require.NoError(t, err)
+
+		trackedBlock2, err := newTrackedBlock(1, []byte("blockHash1"), []byte("blockRootHash1"), []byte("blockPrevHash1"), nil)
+		require.NoError(t, err)
+
+		shouldRemoveBlock := trackedBlock1.sameNonceOrBelow(trackedBlock2)
+		require.False(t, shouldRemoveBlock)
 	})
 }
 

@@ -349,6 +349,82 @@ func TestSelectionTracker_OnExecutedBlockShouldWork(t *testing.T) {
 	require.Equal(t, []byte("rootHash0"), tracker.latestRootHash)
 }
 
+func TestSelectionTracker_OnExecutedBlockShouldDeleteAllBlocksBelowSpecificNonce(t *testing.T) {
+	t.Parallel()
+
+	txCache := newCacheToTest(maxNumBytesPerSenderUpperBoundTest, 3)
+	tracker, err := NewSelectionTracker(txCache)
+	require.Nil(t, err)
+
+	err = tracker.OnProposedBlock(
+		[]byte(fmt.Sprintf("blockHash%d", 0)),
+		&block.Body{},
+		&block.Header{
+			Nonce:    0,
+			PrevHash: nil,
+			RootHash: nil,
+		},
+		nil,
+		defaultBlockchainInfo,
+	)
+	require.Nil(t, err)
+
+	err = tracker.OnProposedBlock(
+		[]byte(fmt.Sprintf("blockHash%d", 1)),
+		&block.Body{},
+		&block.Header{
+			Nonce:    1,
+			PrevHash: []byte(fmt.Sprintf("blockHash%d", 0)),
+			RootHash: []byte(fmt.Sprintf("rootHash%d", 0)),
+		},
+		nil,
+		defaultBlockchainInfo,
+	)
+	require.Nil(t, err)
+
+	err = tracker.OnProposedBlock(
+		[]byte(fmt.Sprintf("blockHash%d", 2)),
+		&block.Body{},
+		&block.Header{
+			Nonce:    2,
+			PrevHash: []byte(fmt.Sprintf("blockHash%d", 1)),
+			RootHash: []byte(fmt.Sprintf("rootHash%d", 0)),
+		},
+		nil,
+		defaultBlockchainInfo,
+	)
+	require.Nil(t, err)
+
+	err = tracker.OnProposedBlock(
+		[]byte(fmt.Sprintf("blockHash%d", 3)),
+		&block.Body{},
+		&block.Header{
+			Nonce:    3,
+			PrevHash: []byte(fmt.Sprintf("blockHash%d", 2)),
+			RootHash: []byte(fmt.Sprintf("rootHash%d", 0)),
+		},
+		nil,
+		defaultBlockchainInfo,
+	)
+	require.Nil(t, err)
+
+	err = tracker.OnExecutedBlock(&block.Header{
+		Nonce:    2,
+		PrevHash: []byte(fmt.Sprintf("blockHash%d", 1)),
+		RootHash: []byte(fmt.Sprintf("rootHash%d", 0)),
+	})
+	require.Nil(t, err)
+	require.Equal(t, 1, len(tracker.blocks))
+
+	err = tracker.OnExecutedBlock(&block.Header{
+		Nonce:    3,
+		PrevHash: []byte(fmt.Sprintf("blockHash%d", 2)),
+		RootHash: []byte(fmt.Sprintf("rootHash%d", 0)),
+	})
+	require.Nil(t, err)
+	require.Equal(t, 0, len(tracker.blocks))
+}
+
 func TestSelectionTracker_updateLatestRoothash(t *testing.T) {
 	t.Parallel()
 
