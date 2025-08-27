@@ -790,6 +790,35 @@ func GetHeader(
 	return GetShardHeader(headerHash, headersPool, marshaller, headersStorer)
 }
 
+func UnmarshalExecutionResult(marshaller marshal.Marshalizer, executionResultsBytes []byte) (data.ExecutionResultHandler, error) {
+	executionResult, err := UnmarshalShardExecutionResult(marshaller, executionResultsBytes)
+	if err == nil {
+		return executionResult, nil
+	}
+
+	return UnmarshallMetaExecutionResult(marshaller, executionResultsBytes)
+}
+
+func UnmarshalShardExecutionResult(marshaller marshal.Marshalizer, executionResultsBytes []byte) (data.ExecutionResultHandler, error) {
+	executionResult := &block.ExecutionResult{}
+	err := marshaller.Unmarshal(executionResult, executionResultsBytes)
+	if err != nil {
+		return nil, err
+	}
+
+	return executionResult, nil
+}
+
+func UnmarshallMetaExecutionResult(marshaller marshal.Marshalizer, executionResultsBytes []byte) (data.MetaExecutionResultHandler, error) {
+	executionResult := &block.MetaExecutionResult{}
+	err := marshaller.Unmarshal(executionResult, executionResultsBytes)
+	if err != nil {
+		return nil, err
+	}
+
+	return executionResult, nil
+}
+
 // UnmarshalHeader unmarshalls a block header
 func UnmarshalHeader(shardId uint32, marshalizer marshal.Marshalizer, headerBuffer []byte) (data.HeaderHandler, error) {
 	if shardId == core.MetachainShardId {
@@ -800,7 +829,33 @@ func UnmarshalHeader(shardId uint32, marshalizer marshal.Marshalizer, headerBuff
 }
 
 // UnmarshalMetaHeader unmarshalls a meta header
-func UnmarshalMetaHeader(marshalizer marshal.Marshalizer, headerBuffer []byte) (data.MetaHeaderHandler, error) {
+func UnmarshalMetaHeader(marshaller marshal.Marshalizer, headerBuffer []byte) (data.MetaHeaderHandler, error) {
+	hdr, err := UnmarshalMetaHeaderV3(marshaller, headerBuffer)
+	if err == nil {
+		return hdr, nil
+	}
+
+	return UnmarshalMetaHeaderV1(marshaller, headerBuffer)
+}
+
+// UnmarshalMetaHeaderV3 unmarshalls a meta header v3
+func UnmarshalMetaHeaderV3(marshaller marshal.Marshalizer, headerBuffer []byte) (data.MetaHeaderHandler, error) {
+	header := &block.MetaBlockV3{}
+	err := marshaller.Unmarshal(header, headerBuffer)
+	if err != nil {
+		return nil, err
+	}
+
+	// this should not be nil for meta header v3
+	if header.GetLastExecutionResult() == nil {
+		return nil, ErrInvalidHeader
+	}
+
+	return header, nil
+}
+
+// UnmarshalMetaHeaderV1 unmarshalls a meta header v1
+func UnmarshalMetaHeaderV1(marshaller marshal.Marshalizer, headerBuffer []byte) (data.MetaHeaderHandler, error) {
 	header := &block.MetaBlock{}
 	err := marshalizer.Unmarshal(header, headerBuffer)
 	if err != nil {

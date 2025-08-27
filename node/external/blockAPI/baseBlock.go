@@ -2,6 +2,7 @@ package blockAPI
 
 import (
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"math/big"
 	"strings"
@@ -112,6 +113,57 @@ func (bap *baseAPIBlockProcessor) convertMiniblockFromReceiptsStorageToApiMinibl
 	}
 
 	return miniblockAPI, nil
+}
+
+func (bap *baseAPIBlockProcessor) getMbsAndNumTxsAsyncExecution(
+	blockHeader data.HeaderHandler,
+	mbHeaders []data.MiniBlockHeaderHandler,
+	options api.BlockQueryOptions,
+) ([]*api.MiniBlock, uint32, error) {
+	numOfTxs := uint32(0)
+	miniblocks := make([]*api.MiniBlock, 0)
+	for _, mb := range mbHeaders {
+		mbType := block.Type(mb.GetTypeInt32())
+		if mbType == block.PeerBlock {
+			continue
+		}
+
+		numOfTxs += mb.GetTxCount()
+
+		miniblockAPI := &api.MiniBlock{
+			Hash:             hex.EncodeToString(mb.GetHash()),
+			Type:             mbType.String(),
+			SourceShard:      mb.GetSenderShardID(),
+			DestinationShard: mb.GetReceiverShardID(),
+		}
+		if options.WithTransactions {
+			miniBlockCopy := mb
+			err := bap.getAndAttachTxsToMbAsynxExecution(miniBlockCopy, blockHeader, miniblockAPI, options)
+			if err != nil {
+				return nil, 0, err
+			}
+		}
+
+		miniblocks = append(miniblocks, miniblockAPI)
+	}
+
+	return miniblocks, numOfTxs, nil
+}
+
+func (bap *baseAPIBlockProcessor) getAndAttachTxsToMbAsynxExecution(
+	mbHeader data.MiniBlockHeaderHandler,
+	header data.HeaderHandler,
+	apiMiniblock *api.MiniBlock,
+	options api.BlockQueryOptions,
+) error {
+	miniblockHash := mbHeader.GetHash()
+	miniBlock, err := bap.getMiniblockByHashAndEpoch(miniblockHash, header.GetEpoch())
+	if err != nil {
+		return err
+	}
+
+	mbHeader.GetTxCount()
+	return bap.getAndAttachTxsToMbByEpoch(miniblockHash, miniBlock, header, apiMiniblock, 0, int32(mbHeader.GetTxCount()), options)
 }
 
 func (bap *baseAPIBlockProcessor) getAndAttachTxsToMb(
@@ -667,4 +719,107 @@ func proofToAPIProof(proof data.HeaderProofHandler) *api.HeaderProof {
 		HeaderRound:         proof.GetHeaderRound(),
 		IsStartOfEpoch:      proof.GetIsStartOfEpoch(),
 	}
+}
+
+func (bap *baseAPIBlockProcessor) addMbsAndNumTxsAsyncExecutionBasedOnExecutionResult(apiBlock *api.Block, blockHeader data.HeaderHandler, headerHash []byte, options api.BlockQueryOptions) error {
+	executionResultBytes, err := bap.getFromStorerWithEpoch(dataRetriever.ExecutionResultsUnit, headerHash, blockHeader.GetEpoch())
+	if err != nil {
+		// It's possible to have a block without an execution result (transactions from block are not executed yet)
+		if errors.Is(err, dblookupext.ErrNotFoundInStorage) {
+			mbs, totalTxs, errG := bap.getMbsAndNumTxsNoExecutionResult(blockHeader, options)
+			apiBlock.MiniBlocks = mbs
+			apiBlock.NumTxs = totalTxs
+			return errG
+		}
+		return err
+	}
+
+	executionResultHandler, err := process.UnmarshalExecutionResult(bap.marshalizer, executionResultBytes)
+	if err != nil {
+		return err
+	}
+
+	// get mbs before execution
+	mbsBeforeExecution, _, err := bap.getMbsAndNumTxsNoExecutionResult(blockHeader, options)
+	if err != nil {
+		return err
+	}
+	// get miniblocks after execution
+	mbsAfterExecution, totalExecutedTxs, err := bap.getMbsAndNumTxsAsyncExecution(blockHeader, executionResultHandler.GetMiniBlockHeadersHandlers(), options)
+	if err != nil {
+		return err
+	}
+
+	executedTxsMap := putAllTxsFromMbsInAMap(mbsAfterExecution)
+	mbsBeforeExecutionAndCleanup := removeExecutedTxsFromMbs(mbsBeforeExecution, executedTxsMap)
+
+	allMbs := append(mbsBeforeExecutionAndCleanup, mbsAfterExecution...)
+	intraMb, err := bap.getIntrashardMiniblocksFromReceiptsStorage(blockHeader, headerHash, options)
+	if err != nil {
+		return err
+	}
+
+	if len(intraMb) > 0 {
+		allMbs = append(allMbs, intraMb...)
+	}
+
+	allMbs = filterOutDuplicatedMiniblocks(allMbs)
+
+	apiBlock.MiniBlocks = allMbs
+	apiBlock.NumTxs = totalExecutedTxs
+	apiBlock.AccumulatedFees = executionResultHandler.GetAccumulatedFees().String()
+	apiBlock.DeveloperFees = executionResultHandler.GetDeveloperFees().String()
+
+	return nil
+}
+
+func (bap *baseAPIBlockProcessor) getMbsAndNumTxsNoExecutionResult(blockHeader data.HeaderHandler, options api.BlockQueryOptions) ([]*api.MiniBlock, uint32, error) {
+	miniblocks, numTxs, errG := bap.getMbsAndNumTxsAsyncExecution(blockHeader, blockHeader.GetMiniBlockHeaderHandlers(), options)
+	if errG != nil {
+		return nil, 0, errG
+	}
+
+	// all transactions will have status pending
+	for _, miniBlock := range miniblocks {
+		for _, tx := range miniBlock.Transactions {
+			tx.Status = transaction.TxStatusPending
+		}
+	}
+
+	return miniblocks, numTxs, nil
+}
+
+func removeExecutedTxsFromMbs(mbs []*api.MiniBlock, executedTxsMap map[string]*transaction.ApiTransactionResult) []*api.MiniBlock {
+	for _, mb := range mbs {
+		for idx := 0; idx < len(mb.Transactions); idx++ {
+			txFromMb, found := executedTxsMap[mb.Transactions[idx].Hash]
+			if found {
+				// remove executed transaction
+				mb.Transactions = append(mb.Transactions[:idx], mb.Transactions[idx+1:]...)
+			} else {
+				txFromMb.Status = transaction.TxStatusNotExecutable
+			}
+		}
+	}
+
+	newMbs := make([]*api.MiniBlock, 0, len(mbs))
+	for _, mb := range mbs {
+		if len(mb.Transactions) == 0 {
+			continue
+		}
+		newMbs = append(newMbs, mb)
+	}
+
+	return newMbs
+}
+
+func putAllTxsFromMbsInAMap(mbs []*api.MiniBlock) map[string]*transaction.ApiTransactionResult {
+	txsMap := make(map[string]*transaction.ApiTransactionResult)
+	for _, mb := range mbs {
+		for _, tx := range mb.Transactions {
+			txsMap[tx.Hash] = tx
+		}
+	}
+
+	return txsMap
 }
