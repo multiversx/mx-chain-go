@@ -559,7 +559,7 @@ func TestGasConsumption_DecreaseIncomingLimit(t *testing.T) {
 	lastMBIndex, pendingMBs, err = gc.CheckIncomingMiniBlocks(mbs, txsForMBs)
 	require.NoError(t, err)
 	require.Equal(t, 1, lastMBIndex) // added all
-	require.Zero(t, 0, pendingMBs)   // added all
+	require.Zero(t, pendingMBs)      // added all
 }
 
 func TestGasConsumption_ConcurrentOps(t *testing.T) {
