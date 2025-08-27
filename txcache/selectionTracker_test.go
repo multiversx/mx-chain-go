@@ -496,10 +496,10 @@ func TestSelectionTracker_removeFromTrackedBlocks(t *testing.T) {
 	b2, err := newTrackedBlock(0, []byte("blockHash3"), []byte("rootHash3"), []byte("prevHash1"), nil)
 	require.Nil(t, err)
 
-	tracker.blocks = []*trackedBlock{
-		b1,
-		expectedTrackedBlock,
-		b2,
+	tracker.blocks = map[string]*trackedBlock{
+		string(b1.hash):                   b1,
+		string(expectedTrackedBlock.hash): expectedTrackedBlock,
+		string(b2.hash):                   b2,
 	}
 
 	require.Equal(t, 3, len(tracker.blocks))
@@ -510,52 +510,14 @@ func TestSelectionTracker_removeFromTrackedBlocks(t *testing.T) {
 	tracker.removeFromTrackedBlocksNoLock(r)
 	require.Equal(t, 1, len(tracker.blocks))
 
-	require.Equal(t, expectedTrackedBlock, tracker.blocks[0])
-}
+	_, ok := tracker.blocks[string(expectedTrackedBlock.hash)]
+	require.True(t, ok)
 
-func TestSelectionTracker_findBlockInChainByPreviousHash(t *testing.T) {
-	t.Parallel()
+	_, ok = tracker.blocks[string(b1.hash)]
+	require.False(t, ok)
 
-	t.Run("should return previous block", func(t *testing.T) {
-		t.Parallel()
-
-		txCache := newCacheToTest(maxNumBytesPerSenderUpperBoundTest, 3)
-		tracker, err := NewSelectionTracker(txCache, maxTrackedBlocks)
-		require.Nil(t, err)
-
-		expectedPreviousBlock, err := newTrackedBlock(0, []byte("blockHash1"), []byte("rootHash1"), []byte("blockHash0"), nil)
-		require.Nil(t, err)
-		b1, err := newTrackedBlock(0, []byte("blockHash2"), []byte("rootHash2"), []byte("blockHash1"), nil)
-		require.Nil(t, err)
-
-		tracker.blocks = []*trackedBlock{
-			expectedPreviousBlock,
-			b1,
-		}
-
-		receivedNextBlock := tracker.findBlockInChainByPreviousHash([]byte("blockHash1"))
-		require.Equal(t, expectedPreviousBlock, receivedNextBlock)
-	})
-
-	t.Run("should return nil", func(t *testing.T) {
-		t.Parallel()
-
-		txCache := newCacheToTest(maxNumBytesPerSenderUpperBoundTest, 3)
-		tracker, err := NewSelectionTracker(txCache, maxTrackedBlocks)
-		require.Nil(t, err)
-
-		expectedPreviousBlock, err := newTrackedBlock(0, []byte("blockHash2"), []byte("rootHash2"), []byte("blockHash1"), nil)
-		require.Nil(t, err)
-		b1, err := newTrackedBlock(0, []byte("blockHash1"), []byte("rootHash1"), []byte("prevHash1"), nil)
-		require.Nil(t, err)
-		tracker.blocks = []*trackedBlock{
-			expectedPreviousBlock,
-			b1,
-		}
-
-		receivedNextBlock := tracker.findBlockInChainByPreviousHash([]byte("notExistingBlockHash"))
-		require.Nil(t, receivedNextBlock)
-	})
+	_, ok = tracker.blocks[string(b2.hash)]
+	require.False(t, ok)
 }
 
 func TestSelectionTracker_getChainOfTrackedBlocks(t *testing.T) {
@@ -566,39 +528,39 @@ func TestSelectionTracker_getChainOfTrackedBlocks(t *testing.T) {
 	require.Nil(t, err)
 
 	// create a slice of tracked block which aren't ordered
-	tracker.blocks = make([]*trackedBlock, 0)
+	tracker.blocks = make(map[string]*trackedBlock)
 	b, err := newTrackedBlock(7, []byte("blockHash8"), []byte("rootHash8"), []byte("blockHash7"), nil)
 	require.Nil(t, err)
-	tracker.blocks = append(tracker.blocks, b)
+	tracker.blocks[string(b.hash)] = b
 
 	b, err = newTrackedBlock(5, []byte("blockHash6"), []byte("rootHash6"), []byte("blockHash5"), nil)
 	require.Nil(t, err)
-	tracker.blocks = append(tracker.blocks, b)
+	tracker.blocks[string(b.hash)] = b
 
 	b, err = newTrackedBlock(1, []byte("blockHash2"), []byte("rootHash2"), []byte("blockHash1"), nil)
 	require.Nil(t, err)
-	tracker.blocks = append(tracker.blocks, b)
+	tracker.blocks[string(b.hash)] = b
 
 	b, err = newTrackedBlock(0, []byte("blockHash1"), []byte("rootHash1"), []byte("prevHash1"), nil)
 	require.Nil(t, err)
-	tracker.blocks = append(tracker.blocks, b)
+	tracker.blocks[string(b.hash)] = b
 
 	b, err = newTrackedBlock(3, []byte("blockHash4"), []byte("rootHash4"), []byte("blockHash3"), nil)
 	require.Nil(t, err)
-	tracker.blocks = append(tracker.blocks, b)
+	tracker.blocks[string(b.hash)] = b
 
 	b, err = newTrackedBlock(2, []byte("blockHash3"), []byte("rootHash3"), []byte("blockHash2"), nil)
 	require.Nil(t, err)
-	tracker.blocks = append(tracker.blocks, b)
+	tracker.blocks[string(b.hash)] = b
 
 	// create a block with a wrong previous hash
 	b, err = newTrackedBlock(4, []byte("blockHash5"), []byte("rootHash5"), []byte("blockHashY"), nil)
 	require.Nil(t, err)
-	tracker.blocks = append(tracker.blocks, b)
+	tracker.blocks[string(b.hash)] = b
 
 	b, err = newTrackedBlock(6, []byte("blockHash7"), []byte("rootHash7"), []byte("blockHash6"), nil)
 	require.Nil(t, err)
-	tracker.blocks = append(tracker.blocks, b)
+	tracker.blocks[string(b.hash)] = b
 
 	t.Run("check order to be from head to tail", func(t *testing.T) {
 		t.Parallel()
