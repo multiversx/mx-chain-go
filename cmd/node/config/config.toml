@@ -97,7 +97,7 @@
 
     # NumEpochsToKeep - if the flag above is set to true, this will set the number of epochs to keep in the storage.
     # Epochs older that (current epoch - NumOfEpochsToKeep) will be removed
-    NumEpochsToKeep = 4
+    NumEpochsToKeep = 5
 
     # NumActivePersisters - this will set the number of persisters to keep active at a moment. This works even if
     # the node removes old epochs data or not. In case of a node which removes old epochs data, this value has to be
