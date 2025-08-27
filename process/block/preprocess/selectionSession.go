@@ -48,7 +48,6 @@ func (session *selectionSession) GetAccountNonceAndBalance(address []byte) (uint
 
 // IsIncorrectlyGuarded checks if a transaction is incorrectly guarded (not executable).
 // Will be called by mempool during transaction selection.
-// See: MX-16157, MX-16772.
 func (session *selectionSession) IsIncorrectlyGuarded(tx data.TransactionHandler) bool {
 	address := tx.GetSndAddr()
 	account, err := session.accountsProvider.GetUserAccount(address)
