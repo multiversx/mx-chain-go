@@ -32,7 +32,7 @@ var (
 	durationWaitAfterSendMany    = 7500 * time.Millisecond
 	durationWaitAfterSendSome    = 1000 * time.Millisecond
 	selectionLoopMaximumDuration = 1000 * time.Millisecond
-	defaultBlockchainInfo        = holders.NewBlockchainInfo(nil, 0)
+	defaultBlockchainInfo        = holders.NewBlockchainInfo([]byte("blockHash0"), []byte("blockHash0"), 0)
 	gasLimit                     = 50_000
 	gasPrice                     = 1_000_000_000
 )
@@ -318,7 +318,7 @@ func testOnProposed(t *testing.T, sw *core.StopWatch, numTxs int, numAddresses i
 
 	require.Equal(t, numTxs, int(txpool.CountTx()))
 
-	blockchainInfo := holders.NewBlockchainInfo([]byte("blockHash0"), 1)
+	blockchainInfo := holders.NewBlockchainInfo([]byte("blockHash0"), []byte("blockHash0"), 1)
 	selectedTransactions, _ := txpool.SelectTransactions(selectionSession, options, blockchainInfo)
 	require.Equal(t, numTxs, len(selectedTransactions))
 
@@ -368,7 +368,7 @@ func testFirstSelection(t *testing.T, sw *core.StopWatch, numTxs int, numTxsToBe
 
 	require.Equal(t, numTxs, int(txpool.CountTx()))
 
-	blockchainInfo := holders.NewBlockchainInfo([]byte("blockHash0"), 1)
+	blockchainInfo := holders.NewBlockchainInfo([]byte("blockHash0"), []byte("blockHash0"), 1)
 
 	sw.Start(t.Name())
 	selectedTransactions, _ := txpool.SelectTransactions(selectionSession, options, blockchainInfo)
@@ -406,14 +406,14 @@ func testSecondSelection(t *testing.T, sw *core.StopWatch, numTxs int, numTxsToB
 
 	require.Equal(t, numTxs, int(txpool.CountTx()))
 
-	blockchainInfo := holders.NewBlockchainInfo([]byte("blockHash0"), 1)
+	blockchainInfo := holders.NewBlockchainInfo([]byte("blockHash0"), []byte("blockHash0"), 1)
 	selectedTransactions, _ := txpool.SelectTransactions(selectionSession, options, blockchainInfo)
 	require.Equal(t, numTxsToBeSelected, len(selectedTransactions))
 
 	proposedBlock := createProposedBlock(selectedTransactions)
 	// propose those txs in order to track them (create the breadcrumbs used for the virtual records)
 	err = txpool.OnProposedBlock([]byte("blockHash1"), proposedBlock, &block.Header{
-		Nonce:    0,
+		Nonce:    1,
 		PrevHash: []byte("blockHash0"),
 		RootHash: []byte(fmt.Sprintf("rootHash%d", 0)),
 	},
@@ -422,6 +422,7 @@ func testSecondSelection(t *testing.T, sw *core.StopWatch, numTxs int, numTxsToB
 	)
 	require.Nil(t, err)
 
+	blockchainInfo = holders.NewBlockchainInfo([]byte("blockHash0"), []byte("blockHash1"), 2)
 	// measure the time for the second selection (now we use the breadcrumbs to create the virtual records)
 	sw.Start(t.Name())
 	selectedTransactions, _ = txpool.SelectTransactions(selectionSession, options, blockchainInfo)
@@ -432,7 +433,7 @@ func testSecondSelection(t *testing.T, sw *core.StopWatch, numTxs int, numTxsToB
 	// propose the block and make sure the selection works well
 	proposedBlock = createProposedBlock(selectedTransactions)
 	err = txpool.OnProposedBlock([]byte("blockHash2"), proposedBlock, &block.Header{
-		Nonce:    0,
+		Nonce:    2,
 		PrevHash: []byte("blockHash1"),
 		RootHash: []byte(fmt.Sprintf("rootHash%d", 0)),
 	},
@@ -441,6 +442,7 @@ func testSecondSelection(t *testing.T, sw *core.StopWatch, numTxs int, numTxsToB
 	)
 	require.Nil(t, err)
 
+	blockchainInfo = holders.NewBlockchainInfo([]byte("blockHash0"), []byte("blockHash2"), 3)
 	selectedTransactions, _ = txpool.SelectTransactions(selectionSession, options, blockchainInfo)
 	require.Equal(t, 0, len(selectedTransactions))
 }
@@ -474,14 +476,14 @@ func testSecondSelectionWithManyTxsInPool(t *testing.T, sw *core.StopWatch, numT
 
 	require.Equal(t, numTxs, int(txpool.CountTx()))
 
-	blockchainInfo := holders.NewBlockchainInfo([]byte("blockHash0"), 1)
+	blockchainInfo := holders.NewBlockchainInfo([]byte("blockHash0"), []byte("blockHash0"), 1)
 	selectedTransactions, _ := txpool.SelectTransactions(selectionSession, options, blockchainInfo)
 	require.Equal(t, numTxsToBeSelected, len(selectedTransactions))
 
 	proposedBlock := createProposedBlock(selectedTransactions)
 	// propose those txs in order to track them (create the breadcrumbs used for the virtual records)
 	err = txpool.OnProposedBlock([]byte("blockHash1"), proposedBlock, &block.Header{
-		Nonce:    0,
+		Nonce:    1,
 		PrevHash: []byte("blockHash0"),
 		RootHash: []byte(fmt.Sprintf("rootHash%d", 0)),
 	},
@@ -489,6 +491,8 @@ func testSecondSelectionWithManyTxsInPool(t *testing.T, sw *core.StopWatch, numT
 		defaultBlockchainInfo,
 	)
 	require.Nil(t, err)
+
+	blockchainInfo = holders.NewBlockchainInfo([]byte("blockHash0"), []byte("blockHash1"), 2)
 
 	// measure the time for the second selection (now we use the breadcrumbs to create the virtual records)
 	sw.Start(t.Name())
