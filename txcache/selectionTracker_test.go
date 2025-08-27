@@ -362,7 +362,7 @@ func TestSelectionTracker_OnExecutedBlockShouldDeleteAllBlocksBelowSpecificNonce
 	t.Parallel()
 
 	txCache := newCacheToTest(maxNumBytesPerSenderUpperBoundTest, 3)
-	tracker, err := NewSelectionTracker(txCache)
+	tracker, err := NewSelectionTracker(txCache, maxTrackedBlocks)
 	require.Nil(t, err)
 
 	err = tracker.OnProposedBlock(
@@ -653,7 +653,7 @@ func TestSelectionTracker_reverseOrderOfBlocks(t *testing.T) {
 	t.Parallel()
 
 	txCache := newCacheToTest(maxNumBytesPerSenderUpperBoundTest, 3)
-	tracker, err := NewSelectionTracker(txCache)
+	tracker, err := NewSelectionTracker(txCache, maxTrackedBlocks)
 	require.Nil(t, err)
 
 	chainOfTrackedBlocks := []*trackedBlock{
