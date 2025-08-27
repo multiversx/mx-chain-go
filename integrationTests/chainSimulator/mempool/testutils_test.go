@@ -228,16 +228,6 @@ func createProposedBlock(selectedTransactions []*txcache.WrappedTransaction) *bl
 	}}
 }
 
-func createDefaultSelectionSessionMockWithInitialAmount(initialAmountPerAccount *big.Int) *txcachemocks.SelectionSessionMock {
-	sessionMock := txcachemocks.SelectionSessionMock{
-		GetAccountNonceAndBalanceCalled: func(address []byte) (uint64, *big.Int, bool, error) {
-			return 0, initialAmountPerAccount, true, nil
-		},
-	}
-
-	return &sessionMock
-}
-
 func createFakeAddresses(numAddresses int) []string {
 	base := "sender"
 	addresses := make([]string, numAddresses)
@@ -305,7 +295,18 @@ func testOnProposed(t *testing.T, sw *core.StopWatch, numTxs int, numAddresses i
 	_ = initialAmount.Mul(numTxsAsBigInt, core.SafeMul(uint64(gasLimit), uint64(gasPrice)))
 	_ = initialAmount.Add(initialAmount, core.SafeMul(uint64(numTxs), uint64(transferredValue)))
 
-	selectionSession := createDefaultSelectionSessionMockWithInitialAmount(initialAmount)
+	selectionSession := &txcachemocks.SelectionSessionMock{
+		GetAccountNonceAndBalanceCalled: func(address []byte) (uint64, *big.Int, bool, error) {
+			return 0, initialAmount, true, nil
+		},
+	}
+
+	accountsAdapter := &txcachemocks.AccountNonceAndBalanceProviderMock{
+		GetAccountNonceAndBalanceCalled: func(address []byte) (uint64, *big.Int, bool, error) {
+			return 0, initialAmount, true, nil
+		},
+	}
+
 	options := holders.NewTxSelectionOptions(
 		10_000_000_000,
 		numTxs,
@@ -331,7 +332,7 @@ func testOnProposed(t *testing.T, sw *core.StopWatch, numTxs int, numAddresses i
 		PrevHash: []byte("blockHash0"),
 		RootHash: []byte(fmt.Sprintf("rootHash%d", 0)),
 	},
-		selectionSession,
+		accountsAdapter,
 		defaultBlockchainInfo,
 	)
 	sw.Stop(t.Name())
@@ -355,7 +356,12 @@ func testFirstSelection(t *testing.T, sw *core.StopWatch, numTxs int, numTxsToBe
 	_ = initialAmount.Mul(numTxsAsBigInt, core.SafeMul(uint64(gasLimit), uint64(gasPrice)))
 	_ = initialAmount.Add(initialAmount, big.NewInt(int64(numTxs)))
 
-	selectionSession := createDefaultSelectionSessionMockWithInitialAmount(initialAmount)
+	selectionSession := &txcachemocks.SelectionSessionMock{
+		GetAccountNonceAndBalanceCalled: func(address []byte) (uint64, *big.Int, bool, error) {
+			return 0, initialAmount, true, nil
+		},
+	}
+
 	options := holders.NewTxSelectionOptions(
 		10_000_000_000*10, // in case of 1_000_000 txs
 		numTxsToBeSelected,
@@ -393,7 +399,18 @@ func testSecondSelection(t *testing.T, sw *core.StopWatch, numTxs int, numTxsToB
 	_ = initialAmount.Mul(numTxsAsBigInt, core.SafeMul(uint64(gasLimit), uint64(gasPrice)))
 	_ = initialAmount.Add(initialAmount, core.SafeMul(uint64(numTxs), uint64(transferredValue)))
 
-	selectionSession := createDefaultSelectionSessionMockWithInitialAmount(initialAmount)
+	selectionSession := &txcachemocks.SelectionSessionMock{
+		GetAccountNonceAndBalanceCalled: func(address []byte) (uint64, *big.Int, bool, error) {
+			return 0, initialAmount, true, nil
+		},
+	}
+
+	accountsAdapter := &txcachemocks.AccountNonceAndBalanceProviderMock{
+		GetAccountNonceAndBalanceCalled: func(address []byte) (uint64, *big.Int, bool, error) {
+			return 0, initialAmount, true, nil
+		},
+	}
+
 	options := holders.NewTxSelectionOptions(
 		10_000_000_000*10,
 		numTxsToBeSelected,
@@ -417,7 +434,7 @@ func testSecondSelection(t *testing.T, sw *core.StopWatch, numTxs int, numTxsToB
 		PrevHash: []byte("blockHash0"),
 		RootHash: []byte(fmt.Sprintf("rootHash%d", 0)),
 	},
-		selectionSession,
+		accountsAdapter,
 		defaultBlockchainInfo,
 	)
 	require.Nil(t, err)
@@ -463,7 +480,18 @@ func testSecondSelectionWithManyTxsInPool(t *testing.T, sw *core.StopWatch, numT
 	_ = initialAmount.Mul(numTxsAsBigInt, core.SafeMul(uint64(gasLimit), uint64(gasPrice)))
 	_ = initialAmount.Add(initialAmount, core.SafeMul(uint64(numTxs), uint64(transferredValue)))
 
-	selectionSession := createDefaultSelectionSessionMockWithInitialAmount(initialAmount)
+	selectionSession := &txcachemocks.SelectionSessionMock{
+		GetAccountNonceAndBalanceCalled: func(address []byte) (uint64, *big.Int, bool, error) {
+			return 0, initialAmount, true, nil
+		},
+	}
+
+	accountsAdapter := &txcachemocks.AccountNonceAndBalanceProviderMock{
+		GetAccountNonceAndBalanceCalled: func(address []byte) (uint64, *big.Int, bool, error) {
+			return 0, initialAmount, true, nil
+		},
+	}
+
 	options := holders.NewTxSelectionOptions(
 		10_000_000_000,
 		numTxsToBeSelected,
@@ -487,7 +515,7 @@ func testSecondSelectionWithManyTxsInPool(t *testing.T, sw *core.StopWatch, numT
 		PrevHash: []byte("blockHash0"),
 		RootHash: []byte(fmt.Sprintf("rootHash%d", 0)),
 	},
-		selectionSession,
+		accountsAdapter,
 		defaultBlockchainInfo,
 	)
 	require.Nil(t, err)

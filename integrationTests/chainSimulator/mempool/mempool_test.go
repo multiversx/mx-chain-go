@@ -855,7 +855,7 @@ func Test_Selection_ShouldNotSelectSameTransactionsWithManyTransactions(t *testi
 		PrevHash: []byte("blockHash0"),
 		RootHash: []byte(fmt.Sprintf("rootHash%d", 0)),
 	},
-		selectionSession,
+		accountsProvider,
 		defaultBlockchainInfo,
 	)
 	require.Nil(t, err)

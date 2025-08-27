@@ -143,7 +143,7 @@ func TestSelectionTracker_OnProposedBlockShouldErr(t *testing.T) {
 			},
 		}
 
-		selectionSessionMock := &txcachemocks.SelectionSessionMock{
+		accountsProvider := &txcachemocks.AccountNonceAndBalanceProviderMock{
 			GetAccountNonceAndBalanceCalled: func(address []byte) (uint64, *big.Int, bool, error) {
 				return 1, big.NewInt(20), true, nil
 			},
@@ -153,7 +153,7 @@ func TestSelectionTracker_OnProposedBlockShouldErr(t *testing.T) {
 			Nonce:    uint64(0),
 			PrevHash: []byte(fmt.Sprintf("prevHash%d", 0)),
 			RootHash: []byte(fmt.Sprintf("rootHash%d", 0)),
-		}, selectionSessionMock, defaultBlockchainInfo)
+		}, accountsProvider, defaultBlockchainInfo)
 
 		require.Equal(t, errNonceGap, err)
 	})
@@ -192,7 +192,7 @@ func TestSelectionTracker_OnProposedBlockShouldErr(t *testing.T) {
 			},
 		}
 
-		mockSelectionSession := txcachemocks.SelectionSessionMock{
+		accountsProvider := &txcachemocks.AccountNonceAndBalanceProviderMock{
 			GetAccountNonceAndBalanceCalled: func(address []byte) (uint64, *big.Int, bool, error) {
 				return 1, big.NewInt(20), true, nil
 			},
@@ -202,7 +202,7 @@ func TestSelectionTracker_OnProposedBlockShouldErr(t *testing.T) {
 			Nonce:    uint64(0),
 			PrevHash: []byte(fmt.Sprintf("prevHash%d", 0)),
 			RootHash: []byte(fmt.Sprintf("rootHash%d", 0)),
-		}, &mockSelectionSession, holders.NewBlockchainInfo(
+		}, accountsProvider, holders.NewBlockchainInfo(
 			[]byte(fmt.Sprintf("prevHash%d", 0)),
 			nil,
 			1,
@@ -213,7 +213,7 @@ func TestSelectionTracker_OnProposedBlockShouldErr(t *testing.T) {
 			Nonce:    uint64(1),
 			PrevHash: []byte(fmt.Sprintf("hash%d", 1)),
 			RootHash: []byte(fmt.Sprintf("rootHash%d", 0)),
-		}, &mockSelectionSession, holders.NewBlockchainInfo(
+		}, accountsProvider, holders.NewBlockchainInfo(
 			[]byte("prevHash0"),
 			[]byte("hash1"),
 			2,
@@ -255,7 +255,7 @@ func TestSelectionTracker_OnProposedBlockShouldErr(t *testing.T) {
 			},
 		}
 
-		mockSelectionSession := txcachemocks.SelectionSessionMock{
+		accountsProvider := &txcachemocks.AccountNonceAndBalanceProviderMock{
 			GetAccountNonceAndBalanceCalled: func(address []byte) (uint64, *big.Int, bool, error) {
 				return 1, big.NewInt(20), true, nil
 			},
@@ -265,7 +265,7 @@ func TestSelectionTracker_OnProposedBlockShouldErr(t *testing.T) {
 			Nonce:    uint64(0),
 			PrevHash: []byte(fmt.Sprintf("prevHash%d", 0)),
 			RootHash: []byte(fmt.Sprintf("rootHash%d", 0)),
-		}, &mockSelectionSession, holders.NewBlockchainInfo(
+		}, accountsProvider, holders.NewBlockchainInfo(
 			[]byte(fmt.Sprintf("prevHash%d", 0)),
 			nil,
 			2,
@@ -276,7 +276,7 @@ func TestSelectionTracker_OnProposedBlockShouldErr(t *testing.T) {
 			Nonce:    uint64(1),
 			PrevHash: []byte(fmt.Sprintf("hash%d", 1)),
 			RootHash: []byte(fmt.Sprintf("rootHash%d", 0)),
-		}, &mockSelectionSession, holders.NewBlockchainInfo(
+		}, accountsProvider, holders.NewBlockchainInfo(
 			[]byte(fmt.Sprintf("prevHash%d", 0)),
 			nil,
 			2))
@@ -304,7 +304,7 @@ func TestSelectionTracker_OnProposedBlockShouldErr(t *testing.T) {
 			},
 		}
 
-		mockSelectionSession := txcachemocks.SelectionSessionMock{
+		accountsProvider := &txcachemocks.AccountNonceAndBalanceProviderMock{
 			GetAccountNonceAndBalanceCalled: func(address []byte) (uint64, *big.Int, bool, error) {
 				return 0, nil, false, expectedErr
 			},
@@ -314,7 +314,7 @@ func TestSelectionTracker_OnProposedBlockShouldErr(t *testing.T) {
 			Nonce:    uint64(0),
 			PrevHash: []byte(fmt.Sprintf("prevHash%d", 0)),
 			RootHash: []byte(fmt.Sprintf("rootHash%d", 0)),
-		}, &mockSelectionSession, holders.NewBlockchainInfo([]byte("prevHash0"), nil, 1))
+		}, accountsProvider, holders.NewBlockchainInfo([]byte("prevHash0"), nil, 1))
 		require.Equal(t, expectedErr, err)
 	})
 }
