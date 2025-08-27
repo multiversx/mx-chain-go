@@ -10,6 +10,7 @@ import (
 	"github.com/multiversx/mx-chain-go/common"
 )
 
+// TODO use a map instead of slice for st.blocks
 // TODO add an upper bound MaxTrackedBlocks
 type selectionTracker struct {
 	mutTracker     sync.RWMutex
@@ -166,7 +167,7 @@ func (st *selectionTracker) validateTrackedBlocks(chainOfTrackedBlocks []*tracke
 func (st *selectionTracker) removeFromTrackedBlocksNoLock(searchedBlock *trackedBlock) {
 	removedBlocks := 0
 	for blockHash, b := range st.blocks {
-		if searchedBlock.sameNonce(b) {
+		if searchedBlock.sameNonceOrBelow(b) {
 			delete(st.blocks, blockHash)
 			removedBlocks++
 		}
