@@ -361,8 +361,8 @@ func TestSelectionTracker_OnExecutedBlockShouldDeleteAllBlocksBelowSpecificNonce
 		&block.Body{},
 		&block.Header{
 			Nonce:    0,
-			PrevHash: []byte("prevHash"),
-			RootHash: []byte("rootHash"),
+			PrevHash: nil,
+			RootHash: nil,
 		},
 		nil,
 		defaultBlockchainInfo,
