@@ -62,31 +62,10 @@ jobs:
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
-            // Determine the PR number based on context
-            let issue_number;
-            
-            if (context.eventName === 'pull_request') {
-              issue_number = context.issue.number;
-            } else if (context.eventName === 'workflow_dispatch') {
-              // For manual re-runs, we need to find the PR number from the branch
-              const branch = context.ref.replace('refs/heads/', '');
-              const pulls = await github.rest.pulls.list({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                head: `${context.repo.owner}:${branch}`,
-                state: 'open'
-              });
-            
-              if (pulls.data.length > 0) {
-                issue_number = pulls.data[0].number;
-              } else {
-                core.info('No open PR found for this branch');
-                return;
-              }
-            }
+            const issue_number = context.issue.number;
             
             if (!issue_number) {
-              core.info('Could not determine PR number');
+              core.error('Could not determine PR number from pull_request event');
               return;
             }
             
@@ -478,28 +457,7 @@ jobs:
             const simulatorCommitHash = process.env.SIMULATOR_COMMIT_HASH || 'N/A';
             const r2Url            = process.env.R2_REPORT_URL || 'N/A';
 
-            // Determine issue_number based on context
-            let issue_number;
-            
-            if (context.eventName === 'pull_request') {
-              issue_number = context.issue.number;
-            } else if (context.eventName === 'workflow_dispatch') {
-              // For manual re-runs, find the PR number
-              const branch = context.ref.replace('refs/heads/', '');
-              const pulls = await github.rest.pulls.list({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                head: `${context.repo.owner}:${branch}`,
-                state: 'open'
-              });
-            
-              if (pulls.data.length > 0) {
-                issue_number = pulls.data[0].number;
-              } else {
-                console.log('No open PR found for this branch');
-                return;
-              }
-            }
+            const issue_number = context.issue.number;
             
             if (!issue_number) {
               console.log('Could not determine PR number');
