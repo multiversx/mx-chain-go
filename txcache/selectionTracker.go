@@ -10,7 +10,6 @@ import (
 	"github.com/multiversx/mx-chain-go/common"
 )
 
-
 type selectionTracker struct {
 	mutTracker       sync.RWMutex
 	latestNonce      uint64
@@ -38,7 +37,7 @@ func NewSelectionTracker(txCache txCacheForSelectionTracker, maxTrackedBlocks ui
 
 // OnProposedBlock notifies when a block is proposed and updates the state of the selectionTracker
 // TODO the selection session might be unusable in the flow of OnProposed
-// TODO log in case MaxTrackedBlocks is reached and brainstorm how to solve this case
+// TODO overwrite blocks with same nonce
 func (st *selectionTracker) OnProposedBlock(
 	blockHash []byte,
 	blockBody *block.Body,
@@ -68,12 +67,6 @@ func (st *selectionTracker) OnProposedBlock(
 		"nonce", nonce,
 		"rootHash", rootHash,
 		"prevHash", prevHash)
-
-	if len(st.blocks) == int(st.maxTrackedBlocks-1) {
-		log.Warn("selectionTracker.OnProposedBlock: max tracked blocks reached",
-			"len(st.blocks)", len(st.blocks),
-		)
-	}
 
 	// TODO brainstorm if this could be moved after getChainOfTrackedBlocks
 	txs, err := st.getTransactionsFromBlock(blockBody)
@@ -109,6 +102,16 @@ func (st *selectionTracker) OnProposedBlock(
 	}
 
 	st.blocks[string(blockHash)] = tBlock
+
+	if len(st.blocks) == int(st.maxTrackedBlocks) {
+		log.Warn("selectionTracker.OnProposedBlock: max tracked blocks reached",
+			"len(st.blocks)", len(st.blocks),
+		)
+
+		// clear all the proposed blocks
+		st.blocks = make(map[string]*trackedBlock)
+	}
+
 	return nil
 }
 
