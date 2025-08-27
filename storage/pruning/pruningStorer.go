@@ -503,7 +503,22 @@ func (ps *PruningStorer) Close() error {
 	closedSuccessfully := true
 
 	ps.lock.RLock()
+	for _, pd := range ps.activePersisters {
+		err := pd.Close()
+
+		if err != nil {
+			log.Warn("cannot close pd", "error", err)
+			closedSuccessfully = false
+		}
+	}
+
+	// close also any remaining persisters by map
+	// this includes the persister created in advance
 	for _, pd := range ps.persistersMapByEpoch {
+		if pd.getIsClosed() {
+			continue
+		}
+
 		err := pd.Close()
 
 		if err != nil {
