@@ -177,10 +177,6 @@ func (handler *enableRoundsHandler) IsInterfaceNil() bool {
 
 // SetActivationRound sets the activation round of the provided flag
 func (handler *enableRoundsHandler) SetActivationRound(flag common.EnableRoundFlag, round uint64) {
-	if flag == common.SupernovaRoundFlag {
-		round = round + 50
-	}
-
 	handler.allFlagsDefined[flag] = roundFlagHandler{
 		isActiveInRound: func(r uint64) bool {
 			return r >= round
