@@ -14,47 +14,39 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func createMockedHeaders(numOfHeaders int) []*block.Header {
-	headers := make([]*block.Header, numOfHeaders)
+func proposeBlocks(t *testing.T, numOfBlocks int, selectionTracker *selectionTracker) {
+	blockchainInfo := holders.NewBlockchainInfo([]byte("hash0"), nil, 20)
 
-	for i := 0; i < numOfHeaders; i++ {
-		headers[i] = &block.Header{
-			Nonce:    uint64(i),
-			PrevHash: []byte(fmt.Sprintf("prevHash%d", i)),
-			RootHash: []byte(fmt.Sprintf("rootHash%d", i)),
-		}
+	for i := 1; i < numOfBlocks+1; i++ {
+		err := selectionTracker.OnProposedBlock(
+			[]byte(fmt.Sprintf("hash%d", i)),
+			&block.Body{},
+			&block.Header{
+				Nonce:    uint64(i),
+				PrevHash: []byte(fmt.Sprintf("hash%d", i-1)),
+				RootHash: []byte("rootHash0"),
+			},
+			nil,
+			blockchainInfo,
+		)
+		require.Nil(t, err)
 	}
-
-	return headers
 }
 
-func proposeBlocksConcurrently(t *testing.T, numOfBlocks int, selectionTracker *selectionTracker, headers []*block.Header) {
+func executeBlocksConcurrently(t *testing.T, numOfBlocks int, selectionTracker *selectionTracker) {
 	wg := sync.WaitGroup{}
 	wg.Add(numOfBlocks)
 
-	for i := 0; i < numOfBlocks; i++ {
+	for i := 1; i <= numOfBlocks; i++ {
 		go func(index int) {
 			defer wg.Done()
 
-			err := selectionTracker.OnProposedBlock(
-				[]byte(fmt.Sprintf("blockHash%d", index)),
-				&block.Body{}, headers[index], nil, defaultBlockchainInfo)
-			require.Nil(t, err)
-		}(i)
-	}
-
-	wg.Wait()
-}
-
-func executeBlocksConcurrently(t *testing.T, numOfBlocks int, selectionTracker *selectionTracker, headers []*block.Header) {
-	wg := sync.WaitGroup{}
-	wg.Add(numOfBlocks)
-
-	for i := 0; i < numOfBlocks; i++ {
-		go func(index int) {
-			defer wg.Done()
-
-			err := selectionTracker.OnExecutedBlock(headers[index])
+			blockHeader := &block.Header{
+				Nonce:    uint64(index),
+				PrevHash: []byte(fmt.Sprintf("prevHash%d", index-1)),
+				RootHash: []byte("rootHash0"),
+			}
+			err := selectionTracker.OnExecutedBlock(blockHeader)
 			require.Nil(t, err)
 		}(i)
 	}
@@ -199,14 +191,22 @@ func TestSelectionTracker_OnProposedBlockShouldErr(t *testing.T) {
 			Nonce:    uint64(0),
 			PrevHash: []byte(fmt.Sprintf("prevHash%d", 0)),
 			RootHash: []byte(fmt.Sprintf("rootHash%d", 0)),
-		}, &mockSelectionSession, defaultBlockchainInfo)
+		}, &mockSelectionSession, holders.NewBlockchainInfo(
+			[]byte(fmt.Sprintf("prevHash%d", 0)),
+			nil,
+			1,
+		))
 		require.Nil(t, err)
 
 		err = tracker.OnProposedBlock([]byte("hash2"), &blockBody2, &block.Header{
 			Nonce:    uint64(1),
 			PrevHash: []byte(fmt.Sprintf("hash%d", 1)),
 			RootHash: []byte(fmt.Sprintf("rootHash%d", 0)),
-		}, &mockSelectionSession, holders.NewBlockchainInfo([]byte("prevHash0"), 2))
+		}, &mockSelectionSession, holders.NewBlockchainInfo(
+			[]byte("prevHash0"),
+			[]byte("hash1"),
+			2,
+		))
 		require.Equal(t, errDiscontinuousBreadcrumbs, err)
 	})
 
@@ -254,14 +254,21 @@ func TestSelectionTracker_OnProposedBlockShouldErr(t *testing.T) {
 			Nonce:    uint64(0),
 			PrevHash: []byte(fmt.Sprintf("prevHash%d", 0)),
 			RootHash: []byte(fmt.Sprintf("rootHash%d", 0)),
-		}, &mockSelectionSession, defaultBlockchainInfo)
+		}, &mockSelectionSession, holders.NewBlockchainInfo(
+			[]byte(fmt.Sprintf("prevHash%d", 0)),
+			nil,
+			2,
+		))
 		require.Nil(t, err)
 
 		err = tracker.OnProposedBlock([]byte("hash2"), &blockBody2, &block.Header{
 			Nonce:    uint64(1),
 			PrevHash: []byte(fmt.Sprintf("hash%d", 1)),
 			RootHash: []byte(fmt.Sprintf("rootHash%d", 0)),
-		}, &mockSelectionSession, holders.NewBlockchainInfo([]byte("prevHash0"), 2))
+		}, &mockSelectionSession, holders.NewBlockchainInfo(
+			[]byte(fmt.Sprintf("prevHash%d", 0)),
+			nil,
+			2))
 		require.Equal(t, errExceededBalance, err)
 	})
 
@@ -296,7 +303,7 @@ func TestSelectionTracker_OnProposedBlockShouldErr(t *testing.T) {
 			Nonce:    uint64(0),
 			PrevHash: []byte(fmt.Sprintf("prevHash%d", 0)),
 			RootHash: []byte(fmt.Sprintf("rootHash%d", 0)),
-		}, &mockSelectionSession, holders.NewBlockchainInfo([]byte("prevHash0"), 1))
+		}, &mockSelectionSession, holders.NewBlockchainInfo([]byte("prevHash0"), nil, 1))
 		require.Equal(t, expectedErr, err)
 	})
 }
@@ -309,8 +316,7 @@ func TestSelectionTracker_OnProposedBlockShouldWork(t *testing.T) {
 	require.Nil(t, err)
 
 	numOfBlocks := 20
-	headers := createMockedHeaders(numOfBlocks)
-	proposeBlocksConcurrently(t, numOfBlocks, tracker, headers)
+	proposeBlocks(t, numOfBlocks, tracker)
 	require.Equal(t, 20, len(tracker.blocks))
 }
 
@@ -333,15 +339,90 @@ func TestSelectionTracker_OnExecutedBlockShouldWork(t *testing.T) {
 	require.Nil(t, err)
 
 	numOfBlocks := 20
-	headers := createMockedHeaders(numOfBlocks)
 
-	proposeBlocksConcurrently(t, numOfBlocks, tracker, headers)
+	proposeBlocks(t, numOfBlocks, tracker)
 	require.Equal(t, numOfBlocks, len(tracker.blocks))
 
-	executeBlocksConcurrently(t, numOfBlocks, tracker, headers)
+	executeBlocksConcurrently(t, numOfBlocks, tracker)
 	require.Equal(t, 0, len(tracker.blocks))
-	require.Equal(t, uint64(19), tracker.latestNonce)
-	require.Equal(t, []byte("rootHash19"), tracker.latestRootHash)
+	require.Equal(t, uint64(20), tracker.latestNonce)
+	require.Equal(t, []byte("rootHash0"), tracker.latestRootHash)
+}
+
+func TestSelectionTracker_OnExecutedBlockShouldDeleteAllBlocksBelowSpecificNonce(t *testing.T) {
+	t.Parallel()
+
+	txCache := newCacheToTest(maxNumBytesPerSenderUpperBoundTest, 3)
+	tracker, err := NewSelectionTracker(txCache)
+	require.Nil(t, err)
+
+	err = tracker.OnProposedBlock(
+		[]byte(fmt.Sprintf("blockHash%d", 0)),
+		&block.Body{},
+		&block.Header{
+			Nonce:    0,
+			PrevHash: nil,
+			RootHash: nil,
+		},
+		nil,
+		defaultBlockchainInfo,
+	)
+	require.Nil(t, err)
+
+	err = tracker.OnProposedBlock(
+		[]byte(fmt.Sprintf("blockHash%d", 1)),
+		&block.Body{},
+		&block.Header{
+			Nonce:    1,
+			PrevHash: []byte(fmt.Sprintf("blockHash%d", 0)),
+			RootHash: []byte(fmt.Sprintf("rootHash%d", 0)),
+		},
+		nil,
+		defaultBlockchainInfo,
+	)
+	require.Nil(t, err)
+
+	err = tracker.OnProposedBlock(
+		[]byte(fmt.Sprintf("blockHash%d", 2)),
+		&block.Body{},
+		&block.Header{
+			Nonce:    2,
+			PrevHash: []byte(fmt.Sprintf("blockHash%d", 1)),
+			RootHash: []byte(fmt.Sprintf("rootHash%d", 0)),
+		},
+		nil,
+		defaultBlockchainInfo,
+	)
+	require.Nil(t, err)
+
+	err = tracker.OnProposedBlock(
+		[]byte(fmt.Sprintf("blockHash%d", 3)),
+		&block.Body{},
+		&block.Header{
+			Nonce:    3,
+			PrevHash: []byte(fmt.Sprintf("blockHash%d", 2)),
+			RootHash: []byte(fmt.Sprintf("rootHash%d", 0)),
+		},
+		nil,
+		defaultBlockchainInfo,
+	)
+	require.Nil(t, err)
+
+	err = tracker.OnExecutedBlock(&block.Header{
+		Nonce:    2,
+		PrevHash: []byte(fmt.Sprintf("blockHash%d", 1)),
+		RootHash: []byte(fmt.Sprintf("rootHash%d", 0)),
+	})
+	require.Nil(t, err)
+	require.Equal(t, 1, len(tracker.blocks))
+
+	err = tracker.OnExecutedBlock(&block.Header{
+		Nonce:    3,
+		PrevHash: []byte(fmt.Sprintf("blockHash%d", 2)),
+		RootHash: []byte(fmt.Sprintf("rootHash%d", 0)),
+	})
+	require.Nil(t, err)
+	require.Equal(t, 0, len(tracker.blocks))
 }
 
 func TestSelectionTracker_updateLatestRoothash(t *testing.T) {
@@ -406,10 +487,10 @@ func TestSelectionTracker_removeFromTrackedBlocks(t *testing.T) {
 	b2, err := newTrackedBlock(0, []byte("blockHash3"), []byte("rootHash3"), []byte("prevHash1"), nil)
 	require.Nil(t, err)
 
-	tracker.blocks = []*trackedBlock{
-		b1,
-		expectedTrackedBlock,
-		b2,
+	tracker.blocks = map[string]*trackedBlock{
+		string(b1.hash):                   b1,
+		string(expectedTrackedBlock.hash): expectedTrackedBlock,
+		string(b2.hash):                   b2,
 	}
 
 	require.Equal(t, 3, len(tracker.blocks))
@@ -420,52 +501,14 @@ func TestSelectionTracker_removeFromTrackedBlocks(t *testing.T) {
 	tracker.removeFromTrackedBlocksNoLock(r)
 	require.Equal(t, 1, len(tracker.blocks))
 
-	require.Equal(t, expectedTrackedBlock, tracker.blocks[0])
-}
+	_, ok := tracker.blocks[string(expectedTrackedBlock.hash)]
+	require.True(t, ok)
 
-func TestSelectionTracker_nextBlock(t *testing.T) {
-	t.Parallel()
+	_, ok = tracker.blocks[string(b1.hash)]
+	require.False(t, ok)
 
-	t.Run("should return next block", func(t *testing.T) {
-		t.Parallel()
-
-		txCache := newCacheToTest(maxNumBytesPerSenderUpperBoundTest, 3)
-		tracker, err := NewSelectionTracker(txCache)
-		require.Nil(t, err)
-
-		expectedNextBlock, err := newTrackedBlock(0, []byte("blockHash2"), []byte("rootHash2"), []byte("blockHash1"), nil)
-		require.Nil(t, err)
-		b1, err := newTrackedBlock(0, []byte("blockHash1"), []byte("rootHash1"), []byte("prevHash1"), nil)
-		require.Nil(t, err)
-
-		tracker.blocks = []*trackedBlock{
-			b1,
-			expectedNextBlock,
-		}
-
-		receivedNextBlock := tracker.findNextBlock([]byte("blockHash1"))
-		require.Equal(t, expectedNextBlock, receivedNextBlock)
-	})
-
-	t.Run("should return nil", func(t *testing.T) {
-		t.Parallel()
-
-		txCache := newCacheToTest(maxNumBytesPerSenderUpperBoundTest, 3)
-		tracker, err := NewSelectionTracker(txCache)
-		require.Nil(t, err)
-
-		expectedNextBlock, err := newTrackedBlock(0, []byte("blockHash2"), []byte("rootHash2"), []byte("blockHash1"), nil)
-		require.Nil(t, err)
-		b1, err := newTrackedBlock(0, []byte("blockHash1"), []byte("rootHash1"), []byte("prevHash1"), nil)
-		require.Nil(t, err)
-		tracker.blocks = []*trackedBlock{
-			b1,
-			expectedNextBlock,
-		}
-
-		receivedNextBlock := tracker.findNextBlock([]byte("notExistingBlockHash"))
-		require.Nil(t, receivedNextBlock)
-	})
+	_, ok = tracker.blocks[string(b2.hash)]
+	require.False(t, ok)
 }
 
 func TestSelectionTracker_getChainOfTrackedBlocks(t *testing.T) {
@@ -476,90 +519,117 @@ func TestSelectionTracker_getChainOfTrackedBlocks(t *testing.T) {
 	require.Nil(t, err)
 
 	// create a slice of tracked block which aren't ordered
-	tracker.blocks = make([]*trackedBlock, 0)
+	tracker.blocks = make(map[string]*trackedBlock)
 	b, err := newTrackedBlock(7, []byte("blockHash8"), []byte("rootHash8"), []byte("blockHash7"), nil)
 	require.Nil(t, err)
-	tracker.blocks = append(tracker.blocks, b)
+	tracker.blocks[string(b.hash)] = b
 
 	b, err = newTrackedBlock(5, []byte("blockHash6"), []byte("rootHash6"), []byte("blockHash5"), nil)
 	require.Nil(t, err)
-	tracker.blocks = append(tracker.blocks, b)
+	tracker.blocks[string(b.hash)] = b
 
 	b, err = newTrackedBlock(1, []byte("blockHash2"), []byte("rootHash2"), []byte("blockHash1"), nil)
 	require.Nil(t, err)
-	tracker.blocks = append(tracker.blocks, b)
+	tracker.blocks[string(b.hash)] = b
 
 	b, err = newTrackedBlock(0, []byte("blockHash1"), []byte("rootHash1"), []byte("prevHash1"), nil)
 	require.Nil(t, err)
-	tracker.blocks = append(tracker.blocks, b)
+	tracker.blocks[string(b.hash)] = b
 
 	b, err = newTrackedBlock(3, []byte("blockHash4"), []byte("rootHash4"), []byte("blockHash3"), nil)
 	require.Nil(t, err)
-	tracker.blocks = append(tracker.blocks, b)
+	tracker.blocks[string(b.hash)] = b
 
 	b, err = newTrackedBlock(2, []byte("blockHash3"), []byte("rootHash3"), []byte("blockHash2"), nil)
 	require.Nil(t, err)
-	tracker.blocks = append(tracker.blocks, b)
+	tracker.blocks[string(b.hash)] = b
 
-	b, err = newTrackedBlock(4, []byte("blockHash5"), []byte("rootHash5"), []byte("blockHash4"), nil)
+	// create a block with a wrong previous hash
+	b, err = newTrackedBlock(4, []byte("blockHash5"), []byte("rootHash5"), []byte("blockHashY"), nil)
 	require.Nil(t, err)
-	tracker.blocks = append(tracker.blocks, b)
+	tracker.blocks[string(b.hash)] = b
 
 	b, err = newTrackedBlock(6, []byte("blockHash7"), []byte("rootHash7"), []byte("blockHash6"), nil)
 	require.Nil(t, err)
-	tracker.blocks = append(tracker.blocks, b)
+	tracker.blocks[string(b.hash)] = b
+
+	t.Run("check order to be from head to tail", func(t *testing.T) {
+		t.Parallel()
+
+		expectedTrackedBlockHashes := [][]byte{
+			[]byte("blockHash2"),
+			[]byte("blockHash3"),
+			[]byte("blockHash4"),
+		}
+
+		actualChain, err := tracker.getChainOfTrackedBlocks([]byte("blockHash1"), []byte("blockHash4"), 4)
+		require.Nil(t, err)
+		for i, returnedBlock := range actualChain {
+			require.Equal(t, returnedBlock.hash, expectedTrackedBlockHashes[i])
+		}
+	})
 
 	t.Run("should return expected tracked blocks and stop before nonce", func(t *testing.T) {
 		t.Parallel()
 
 		expectedTrackedBlockHashes := [][]byte{
-			[]byte("blockHash5"),
 			[]byte("blockHash6"),
 			[]byte("blockHash7"),
 		}
 
-		actualChain := tracker.getChainOfTrackedBlocks([]byte("blockHash4"), 7)
+		actualChain, err := tracker.getChainOfTrackedBlocks([]byte("blockHash5"), []byte("blockHash7"), 7)
+		require.Nil(t, err)
 		for i, returnedBlock := range actualChain {
 			require.Equal(t, returnedBlock.hash, expectedTrackedBlockHashes[i])
 		}
 	})
 
-	t.Run("should return expected tracked blocks and stop because of nil block encountered", func(t *testing.T) {
+	t.Run("should return errPreviousBlockNotFound because of prevHash not found", func(t *testing.T) {
 		t.Parallel()
 
-		expectedTrackedBlockHashes := [][]byte{
-			[]byte("blockHash5"),
-			[]byte("blockHash6"),
-			[]byte("blockHash7"),
-			[]byte("blockHash8"),
-		}
-
-		actualChain := tracker.getChainOfTrackedBlocks([]byte("blockHash4"), 12)
-		for i, returnedBlock := range actualChain {
-			require.Equal(t, returnedBlock.hash, expectedTrackedBlockHashes[i])
-		}
+		actualChain, err := tracker.getChainOfTrackedBlocks([]byte("blockHash4"), []byte("blockHash7"), 7)
+		require.Equal(t, err, errPreviousBlockNotFound)
+		require.Nil(t, actualChain)
 	})
 
-	t.Run("should return 0 blocks because prevHash not found", func(t *testing.T) {
+	t.Run("should return errDiscontinuousSequenceOfBlocks because of nonce", func(t *testing.T) {
 		t.Parallel()
 
-		actualChain := tracker.getChainOfTrackedBlocks([]byte("blockHashX"), 12)
+		actualChain, err := tracker.getChainOfTrackedBlocks([]byte("blockHash5"), []byte("blockHash7"), 6)
+		require.Equal(t, errDiscontinuousSequenceOfBlocks, err)
 		require.Equal(t, 0, len(actualChain))
 	})
 
-	t.Run("should return 0 blocks because of greater or equal nonce encountered", func(t *testing.T) {
-		t.Parallel()
+}
 
-		actualChain := tracker.getChainOfTrackedBlocks([]byte("blockHash6"), 6)
-		require.Equal(t, 0, len(actualChain))
-	})
+func TestSelectionTracker_reverseOrderOfBlocks(t *testing.T) {
+	t.Parallel()
 
-	t.Run("should return 1 block because of greater or equal once encountered", func(t *testing.T) {
-		t.Parallel()
+	txCache := newCacheToTest(maxNumBytesPerSenderUpperBoundTest, 3)
+	tracker, err := NewSelectionTracker(txCache)
+	require.Nil(t, err)
 
-		actualChain := tracker.getChainOfTrackedBlocks([]byte("blockHash6"), 7)
-		require.Equal(t, 1, len(actualChain))
-	})
+	chainOfTrackedBlocks := []*trackedBlock{
+		{
+			nonce: 0,
+			hash:  []byte("hash0"),
+		},
+		{
+			nonce: 1,
+			hash:  []byte("hash1"),
+		},
+		{
+			nonce: 2,
+			hash:  []byte("hash2"),
+		},
+	}
+
+	reversedChainOfTrackedBlocks := tracker.reverseOrderOfBlocks(chainOfTrackedBlocks)
+	require.Equal(t, len(chainOfTrackedBlocks), len(reversedChainOfTrackedBlocks))
+
+	for i := 0; i < len(reversedChainOfTrackedBlocks); i++ {
+		require.Equal(t, chainOfTrackedBlocks[len(chainOfTrackedBlocks)-i-1], reversedChainOfTrackedBlocks[i])
+	}
 }
 
 func TestSelectionTracker_deriveVirtualSelectionSessionShouldErr(t *testing.T) {
