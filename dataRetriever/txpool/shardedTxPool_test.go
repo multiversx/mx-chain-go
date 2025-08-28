@@ -10,8 +10,10 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/multiversx/mx-chain-go/common/holders"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/storage/storageunit"
@@ -505,6 +507,74 @@ func Test_routeToCacheUnions(t *testing.T) {
 	require.Equal(t, "42", pool.routeToCacheUnions("42_42"))
 	require.Equal(t, "2_5", pool.routeToCacheUnions("2_5"))
 	require.Equal(t, "foobar", pool.routeToCacheUnions("foobar"))
+}
+
+func TestShardedTxPool_getSelfShardTxCache(t *testing.T) {
+	cacheConfig := storageunit.CacheConfig{
+		Capacity:             100,
+		SizePerSender:        10,
+		SizeInBytes:          409600,
+		SizeInBytesPerSender: 40960,
+		Shards:               1,
+	}
+	args := ArgShardedTxPool{
+		Config:         cacheConfig,
+		TxGasHandler:   txcachemocks.NewTxGasHandlerMock(),
+		Marshalizer:    &marshal.GogoProtoMarshalizer{},
+		NumberOfShards: 3,
+		SelfShardID:    2,
+		TxCacheBoundsConfig: config.TxCacheBoundsConfig{
+			MaxNumBytesPerSenderUpperBound: maxNumBytesPerSenderUpperBoundTest,
+		},
+	}
+
+	pool, _ := NewShardedTxPool(args)
+	require.Equal(t, pool.getTxCache("2"), pool.getSelfShardTxCache())
+}
+
+func TestShardedTxPool_OnProposedBlock_And_OnExecutedBlock(t *testing.T) {
+	cacheConfig := storageunit.CacheConfig{
+		Capacity:             100,
+		SizePerSender:        10,
+		SizeInBytes:          409600,
+		SizeInBytesPerSender: 40960,
+		Shards:               1,
+	}
+	args := ArgShardedTxPool{
+		Config:         cacheConfig,
+		TxGasHandler:   txcachemocks.NewTxGasHandlerMock(),
+		Marshalizer:    &marshal.GogoProtoMarshalizer{},
+		NumberOfShards: 3,
+		SelfShardID:    0,
+		TxCacheBoundsConfig: config.TxCacheBoundsConfig{
+			MaxNumBytesPerSenderUpperBound: maxNumBytesPerSenderUpperBoundTest,
+		},
+	}
+
+	pool, err := NewShardedTxPool(args)
+	require.Nil(t, err)
+
+	t.Run("OnProposedBlock calls TxCache.OnProposedBlock", func(t *testing.T) {
+		err = pool.OnProposedBlock(nil, nil, nil, nil, nil)
+		require.ErrorContains(t, err, "nil block hash")
+
+		err = pool.OnProposedBlock(
+			[]byte("abba"),
+			&block.Body{},
+			&block.HeaderV2{},
+			txcachemocks.NewAccountNonceAndBalanceProviderMock(),
+			holders.NewBlockchainInfo(nil, nil, 42),
+		)
+		require.Nil(t, err)
+	})
+
+	t.Run("OnExecutedBlock calls TxCache.OnExecutedBlock", func(t *testing.T) {
+		err = pool.OnExecutedBlock(nil)
+		require.ErrorContains(t, err, "nil header handler")
+
+		err = pool.OnExecutedBlock(&block.HeaderV2{})
+		require.Nil(t, err)
+	})
 }
 
 func createTx(sender string, nonce uint64) data.TransactionHandler {
