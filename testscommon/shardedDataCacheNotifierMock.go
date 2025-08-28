@@ -2,6 +2,7 @@ package testscommon
 
 import (
 	"sync"
+	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core/counting"
 
@@ -13,6 +14,11 @@ import (
 type ShardedDataCacheNotifierMock struct {
 	mutCaches sync.RWMutex
 	caches    map[string]storage.Cacher
+}
+
+// CleanupSelfShardTxCache -
+func (mock *ShardedDataCacheNotifierMock) CleanupSelfShardTxCache(session interface{}, randomness uint64, maxNum int, cleanupLoopMaximumDuration time.Duration) bool {
+	panic("unimplemented")
 }
 
 // NewShardedDataCacheNotifierMock -
