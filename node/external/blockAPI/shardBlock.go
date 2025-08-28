@@ -217,6 +217,8 @@ func (sbp *shardAPIBlockProcessor) convertShardBlockBytesToAPIBlock(hash []byte,
 		return nil, err
 	}
 
+	addExecutionResultsAndLastExecutionResults(blockHeader, apiBlock)
+
 	return apiBlock, nil
 }
 
