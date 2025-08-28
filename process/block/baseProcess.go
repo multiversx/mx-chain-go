@@ -144,16 +144,17 @@ func NewBaseProcessor(arguments ArgBaseProcessor) (*baseProcessor, error) {
 		return nil, err
 	}
 
-	// TODO: maybe move the creation outside and pass it as argument
 	mbSelectionSession, err := NewMiniBlocksSelectionSession(arguments.BootstrapComponents.ShardCoordinator().SelfId(), arguments.CoreComponents.InternalMarshalizer(), arguments.CoreComponents.Hasher())
 	if err != nil {
 		return nil, err
 	}
 
-	// TODO: move the creation in someplace else (receive it as argument here) and set the last execution result to have it initialized properly before passing it
 	executionResultsTracker := executionTrack.NewExecutionResultsTracker()
-	// TODO: the tracker needs to be seeded
-	//  executionResultsTracker.SetLastNotarizedResult(lastNotarizedResult)
+	err = setBaseExecutionResult(executionResultsTracker, arguments.DataComponents.Blockchain())
+	if err != nil {
+		return nil, err
+	}
+
 	execResultsVerifier, err := NewExecutionResultsVerifier(arguments.DataComponents.Blockchain(), executionResultsTracker)
 	if err != nil {
 		return nil, err
@@ -224,6 +225,34 @@ func NewBaseProcessor(arguments ArgBaseProcessor) (*baseProcessor, error) {
 	}
 
 	return base, nil
+}
+
+func setBaseExecutionResult(ert ExecutionResultsTracker, blockChain data.ChainHandler) error {
+	currentBlock := blockChain.GetCurrentBlockHeader()
+	if currentBlock == nil || !currentBlock.IsHeaderV3() {
+		return nil
+	}
+
+	lastNotarizedResult := currentBlock.GetLastExecutionResultHandler()
+	if check.IfNil(lastNotarizedResult) {
+		return nil
+	}
+
+	var lastBaseExecutionResult data.BaseExecutionResultHandler
+	switch lastNotarizedBaseResult := lastNotarizedResult.(type) {
+	case data.LastShardExecutionResultHandler:
+		lastBaseExecutionResult = lastNotarizedBaseResult.GetExecutionResultHandler()
+	case data.LastMetaExecutionResultHandler:
+		lastBaseExecutionResult = lastNotarizedBaseResult.GetExecutionResultHandler()
+	default:
+		return process.ErrWrongTypeAssertion
+	}
+
+	if check.IfNil(lastBaseExecutionResult) {
+		return process.ErrNilLastExecutionResultHandler
+	}
+
+	return ert.SetLastNotarizedResult(lastBaseExecutionResult)
 }
 
 func checkForNils(
