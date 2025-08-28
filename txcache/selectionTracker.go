@@ -10,13 +10,12 @@ import (
 	"github.com/multiversx/mx-chain-go/common"
 )
 
-// TODO use a map instead of slice for st.blocks
 // TODO add an upper bound MaxTrackedBlocks
 type selectionTracker struct {
 	mutTracker     sync.RWMutex
 	latestNonce    uint64
 	latestRootHash []byte
-	blocks         []*trackedBlock
+	blocks         map[string]*trackedBlock
 	txCache        txCacheForSelectionTracker
 }
 
@@ -27,7 +26,7 @@ func NewSelectionTracker(txCache txCacheForSelectionTracker) (*selectionTracker,
 	}
 	return &selectionTracker{
 		mutTracker: sync.RWMutex{},
-		blocks:     make([]*trackedBlock, 0),
+		blocks:     make(map[string]*trackedBlock),
 		txCache:    txCache,
 	}, nil
 }
@@ -98,7 +97,7 @@ func (st *selectionTracker) OnProposedBlock(
 		return err
 	}
 
-	st.blocks = append(st.blocks, tBlock)
+	st.blocks[string(blockHash)] = tBlock
 	return nil
 }
 
@@ -165,10 +164,11 @@ func (st *selectionTracker) validateTrackedBlocks(chainOfTrackedBlocks []*tracke
 }
 
 func (st *selectionTracker) removeFromTrackedBlocksNoLock(searchedBlock *trackedBlock) {
-	remainingBlocks := make([]*trackedBlock, 0)
-	for _, block := range st.blocks {
-		if !block.sameNonceOrBelow(searchedBlock) {
-			remainingBlocks = append(remainingBlocks, block)
+	removedBlocks := 0
+	for blockHash, b := range st.blocks {
+		if b.sameNonceOrBelow(searchedBlock) {
+			delete(st.blocks, blockHash)
+			removedBlocks++
 		}
 	}
 
@@ -177,10 +177,8 @@ func (st *selectionTracker) removeFromTrackedBlocksNoLock(searchedBlock *tracked
 		"searched block hash", searchedBlock.hash,
 		"searched block rootHash", searchedBlock.rootHash,
 		"searched block prevHash", searchedBlock.prevHash,
-		"removed blocks", len(st.blocks)-len(remainingBlocks),
+		"removed blocks", removedBlocks,
 	)
-
-	st.blocks = remainingBlocks
 }
 
 func (st *selectionTracker) updateLatestRootHashNoLock(receivedNonce uint64, receivedRootHash []byte) {
@@ -279,7 +277,8 @@ func (st *selectionTracker) getChainOfTrackedBlocks(
 	}
 
 	// search for the block with the hash equal to the previous hash
-	previousBlock := st.findBlockInChainByPreviousHash(previousHashToBeFound)
+	// NOTE: we expect a nil value for a key (block hash) which is not in the map of tracked blocks
+	previousBlock := st.blocks[string(previousHashToBeFound)]
 
 	for {
 		// if no block was found, it means there is a gap and we have to return an error
@@ -306,22 +305,11 @@ func (st *selectionTracker) getChainOfTrackedBlocks(
 		nextNonce -= 1
 
 		// find the previous block
-		previousBlock = st.findBlockInChainByPreviousHash(previousBlockHash)
+		previousBlock = st.blocks[string(previousBlockHash)]
 	}
 
 	// to be able to validate the blocks later, reverse the order of the blocks to have them from head to tail
 	return st.reverseOrderOfBlocks(chain), nil
-}
-
-// findBlockInChainByPreviousHash finds the block which has the hash equal to the given previous hash
-func (st *selectionTracker) findBlockInChainByPreviousHash(previousHash []byte) *trackedBlock {
-	for _, b := range st.blocks {
-		if bytes.Equal(b.hash, previousHash) {
-			return b
-		}
-	}
-
-	return nil
 }
 
 func (st *selectionTracker) reverseOrderOfBlocks(chainOfTrackedBlocks []*trackedBlock) []*trackedBlock {
