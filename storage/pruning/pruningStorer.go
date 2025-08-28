@@ -495,6 +495,23 @@ func (ps *PruningStorer) Get(key []byte) ([]byte, error) {
 		return nil, storage.ErrDBIsClosed
 	}
 
+	log.Debug("PruningStorer.Get",
+		"key", hex.EncodeToString(key),
+		"identifier", ps.identifier,
+		"len activePersisters", len(ps.activePersisters),
+	)
+
+	for idx := 0; idx < len(ps.activePersisters); idx++ {
+		log.Debug("active pers", "epoch", ps.activePersisters[idx].epoch)
+	}
+
+	log.Debug("PruningStorer.Get",
+		"len persistersMapByEpoch", len(ps.persistersMapByEpoch),
+	)
+	for epoch, pd := range ps.persistersMapByEpoch {
+		log.Debug("pers", "epoch", epoch, "isClosed", pd.getIsClosed())
+	}
+
 	return nil, fmt.Errorf("key %s not found in %s", hex.EncodeToString(key), ps.identifier)
 }
 
