@@ -852,13 +852,18 @@ func (t *trigger) checkIfTriggerCanBeActivated(hash string, metaHdr data.HeaderH
 		return false, 0
 	}
 
+	syncMiniBlocksStart := time.Now()
 	missingMiniBlocksHashes, blockBody, err := t.peerMiniBlocksSyncer.SyncMiniBlocks(metaHdr)
 	if err != nil {
 		t.addMissingMiniBlocks(metaHdr.GetEpoch(), missingMiniBlocksHashes)
 		log.Debug("checkIfTriggerCanBeActivated.SyncMiniBlocks", "num missing mini blocks", len(missingMiniBlocksHashes), "error", err)
 		return false, 0
 	}
+	log.Debug("trigger.checkIfTriggerCanBeActivated: SyncMiniBlocks",
+		"time elapsed [s]", time.Since(syncMiniBlocksStart),
+	)
 
+	syncValidatorsInfoStart := time.Now()
 	if t.enableEpochsHandler.IsFlagEnabledInEpoch(common.RefactorPeersMiniBlocksFlag, metaHdr.GetEpoch()) {
 		missingValidatorsInfoHashes, validatorsInfo, err := t.peerMiniBlocksSyncer.SyncValidatorsInfo(blockBody)
 		if err != nil {
@@ -871,10 +876,21 @@ func (t *trigger) checkIfTriggerCanBeActivated(hash string, metaHdr data.HeaderH
 			t.currentEpochValidatorInfoPool.AddValidatorInfo([]byte(validatorInfoHash), validatorInfo)
 		}
 	}
+	log.Debug("trigger.checkIfTriggerCanBeActivated: SyncValidatorsInfo",
+		"time elapsed [s]", time.Since(syncValidatorsInfoStart),
+	)
 
+	notifyAllPrepareStart := time.Now()
 	t.epochStartNotifier.NotifyAllPrepare(metaHdr, blockBody)
+	log.Debug("trigger.checkIfTriggerCanBeActivated: NotifyAllPrepare",
+		"time elapsed [s]", time.Since(notifyAllPrepareStart),
+	)
 
+	isMetaBlockFinalStart := time.Now()
 	isMetaHdrFinal, finalityAttestingRound := t.isMetaBlockFinal(hash, metaHdr)
+	log.Debug("trigger.checkIfTriggerCanBeActivated: isMetaBlockFinal",
+		"time elapsed [s]", time.Since(isMetaBlockFinalStart),
+	)
 	return isMetaHdrFinal, finalityAttestingRound
 }
 
