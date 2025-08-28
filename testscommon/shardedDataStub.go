@@ -1,6 +1,8 @@
 package testscommon
 
 import (
+	"time"
+
 	"github.com/multiversx/mx-chain-core-go/core/counting"
 	"github.com/multiversx/mx-chain-go/storage"
 )
@@ -22,6 +24,7 @@ type ShardedDataStub struct {
 	CreateShardStoreCalled                 func(destCacheID string)
 	GetCountsCalled                        func() counting.CountsWithSize
 	KeysCalled                             func() [][]byte
+	CleanupSelfShardTxCacheCalled          func(session interface{}, randomness uint64, maxNum int, cleanupLoopMaximumDuration time.Duration) bool
 }
 
 // NewShardedDataStub -
@@ -129,4 +132,12 @@ func (sd *ShardedDataStub) Keys() [][]byte {
 // IsInterfaceNil returns true if there is no value under the interface
 func (sd *ShardedDataStub) IsInterfaceNil() bool {
 	return sd == nil
+}
+
+// CleanupSelfShardTxCache -
+func (sd *ShardedDataStub) CleanupSelfShardTxCache(session interface{}, randomness uint64, maxNum int, cleanupLoopMaximumDuration time.Duration) bool {
+	if sd.CleanupSelfShardTxCacheCalled != nil {
+		return sd.CleanupSelfShardTxCacheCalled(session, randomness, maxNum, cleanupLoopMaximumDuration)
+	}
+	return false
 }
