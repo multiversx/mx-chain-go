@@ -261,7 +261,7 @@ func TestMissingDataResolver_WaitForMissingData(t *testing.T) {
 			mdr.markHeaderReceived(headerHash)
 		}()
 
-		err := mdr.waitForMissingData(100 * time.Millisecond)
+		err := mdr.WaitForMissingData(100 * time.Millisecond)
 		require.Nil(t, err)
 	})
 
@@ -279,7 +279,7 @@ func TestMissingDataResolver_WaitForMissingData(t *testing.T) {
 
 		mdr, _ := NewMissingDataResolver(headersPool, proofsPool, requestHandler)
 		_ = mdr.addMissingHeader(headerHash)
-		err := mdr.waitForMissingData(50 * time.Millisecond)
+		err := mdr.WaitForMissingData(50 * time.Millisecond)
 		require.NotNil(t, err)
 		require.Contains(t, err.Error(), "timeout waiting for missing data")
 	})
@@ -413,4 +413,14 @@ func TestMissingDataResolver_RequestMissingMetaHeadersBlocking(t *testing.T) {
 		}()
 		wg.Wait()
 	})
+}
+
+func TestMissingDataResolver_IsInterfaceNil(t *testing.T) {
+	t.Parallel()
+
+	var mdr *missingDataResolver
+	require.True(t, mdr.IsInterfaceNil())
+
+	mdr = &missingDataResolver{}
+	require.False(t, mdr.IsInterfaceNil())
 }

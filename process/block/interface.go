@@ -98,3 +98,15 @@ type MiniBlocksSelectionSession interface {
 	CreateAndAddMiniBlockFromTransactions(txHashes [][]byte) error
 	IsInterfaceNil() bool
 }
+
+type MissingDataResolver interface {
+	RequestMissingMetaHeadersBlocking(
+		shardHeader data.ShardHeaderHandler,
+		timeout time.Duration,
+	) error
+	RequestMissingMetaHeaders(
+		shardHeader data.ShardHeaderHandler,
+	) error
+	WaitForMissingData(timeout time.Duration) error
+	IsInterfaceNil() bool
+}

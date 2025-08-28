@@ -72,17 +72,32 @@ func getMetricsFromBlockBody(
 func getMetricsFromHeader(
 	header data.HeaderHandler,
 	numTxWithDst uint64,
-	marshalizer marshal.Marshalizer,
+	marshaller marshal.Marshalizer,
 	appStatusHandler core.AppStatusHandler,
 ) {
 	headerSize := uint64(0)
-	marshalizedHeader, err := marshalizer.Marshal(header)
+	marshalledHeader, err := marshaller.Marshal(header)
 	if err == nil {
-		headerSize = uint64(len(marshalizedHeader))
+		headerSize = uint64(len(marshalledHeader))
 	}
 
 	appStatusHandler.SetUInt64Value(common.MetricHeaderSize, headerSize)
 	appStatusHandler.SetUInt64Value(common.MetricTxPoolLoad, numTxWithDst)
+	lastExecutionResultNonce := header.GetNonce()
+	if header.IsHeaderV3() {
+		lastExecutionResult := header.GetLastExecutionResultHandler()
+		switch lastExecType := lastExecutionResult.(type) {
+		case data.LastShardExecutionResultHandler:
+			lastExecutionResultNonce = lastExecType.GetExecutionResultHandler().GetHeaderNonce()
+		case data.LastMetaExecutionResultHandler:
+			lastExecutionResultNonce = lastExecType.GetExecutionResultHandler().GetHeaderNonce()
+		default:
+			log.Warn("getMetricsFromHeader: unknown last execution result type")
+		}
+		appStatusHandler.SetUInt64Value(common.MetricExecutionResultsNoncesBehind, header.GetNonce()-lastExecutionResultNonce)
+	} else {
+		appStatusHandler.SetUInt64Value(common.MetricExecutionResultsNoncesBehind, 0)
+	}
 }
 
 func saveMetricsForCommittedShardBlock(

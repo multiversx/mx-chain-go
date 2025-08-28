@@ -20,7 +20,6 @@ import (
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	processOutport "github.com/multiversx/mx-chain-go/outport/process"
 	"github.com/multiversx/mx-chain-go/process"
-	"github.com/multiversx/mx-chain-go/process/asyncExecution/executionTrack"
 	"github.com/multiversx/mx-chain-go/process/block/bootstrapStorage"
 	"github.com/multiversx/mx-chain-go/process/block/helpers"
 	"github.com/multiversx/mx-chain-go/process/block/processedMb"
@@ -56,92 +55,14 @@ type shardProcessor struct {
 
 // NewShardProcessor creates a new shardProcessor object
 func NewShardProcessor(arguments ArgShardProcessor) (*shardProcessor, error) {
-	err := checkProcessorParameters(arguments.ArgBaseProcessor)
+	base, err := NewBaseProcessor(arguments.ArgBaseProcessor)
 	if err != nil {
 		return nil, err
 	}
 
-	if check.IfNil(arguments.DataComponents.Datapool()) {
-		return nil, process.ErrNilDataPoolHolder
-	}
-	if check.IfNil(arguments.DataComponents.Datapool().Headers()) {
-		return nil, process.ErrNilHeadersDataPool
-	}
 	if check.IfNil(arguments.DataComponents.Datapool().Transactions()) {
 		return nil, process.ErrNilTransactionPool
 	}
-	genesisHdr := arguments.DataComponents.Blockchain().GetGenesisHeader()
-	if check.IfNil(genesisHdr) {
-		return nil, fmt.Errorf("%w for genesis header in DataComponents.Blockchain", process.ErrNilHeaderHandler)
-	}
-
-	processDebugger, err := createDisabledProcessDebugger()
-	if err != nil {
-		return nil, err
-	}
-
-	base := &baseProcessor{
-		accountsDB:                    arguments.AccountsDB,
-		blockSizeThrottler:            arguments.BlockSizeThrottler,
-		forkDetector:                  arguments.ForkDetector,
-		hasher:                        arguments.CoreComponents.Hasher(),
-		marshalizer:                   arguments.CoreComponents.InternalMarshalizer(),
-		store:                         arguments.DataComponents.StorageService(),
-		shardCoordinator:              arguments.BootstrapComponents.ShardCoordinator(),
-		nodesCoordinator:              arguments.NodesCoordinator,
-		uint64Converter:               arguments.CoreComponents.Uint64ByteSliceConverter(),
-		requestHandler:                arguments.RequestHandler,
-		appStatusHandler:              arguments.StatusCoreComponents.AppStatusHandler(),
-		blockChainHook:                arguments.BlockChainHook,
-		txCoordinator:                 arguments.TxCoordinator,
-		roundHandler:                  arguments.CoreComponents.RoundHandler(),
-		epochStartTrigger:             arguments.EpochStartTrigger,
-		headerValidator:               arguments.HeaderValidator,
-		bootStorer:                    arguments.BootStorer,
-		blockTracker:                  arguments.BlockTracker,
-		dataPool:                      arguments.DataComponents.Datapool(),
-		blockChain:                    arguments.DataComponents.Blockchain(),
-		feeHandler:                    arguments.FeeHandler,
-		outportHandler:                arguments.StatusComponents.OutportHandler(),
-		genesisNonce:                  genesisHdr.GetNonce(),
-		versionedHeaderFactory:        arguments.BootstrapComponents.VersionedHeaderFactory(),
-		headerIntegrityVerifier:       arguments.BootstrapComponents.HeaderIntegrityVerifier(),
-		historyRepo:                   arguments.HistoryRepository,
-		epochNotifier:                 arguments.CoreComponents.EpochNotifier(),
-		enableEpochsHandler:           arguments.CoreComponents.EnableEpochsHandler(),
-		roundNotifier:                 arguments.CoreComponents.RoundNotifier(),
-		enableRoundsHandler:           arguments.CoreComponents.EnableRoundsHandler(),
-		epochChangeGracePeriodHandler: arguments.CoreComponents.EpochChangeGracePeriodHandler(),
-		vmContainerFactory:            arguments.VMContainersFactory,
-		vmContainer:                   arguments.VmContainer,
-		processDataTriesOnCommitEpoch: arguments.Config.Debug.EpochStart.ProcessDataTrieOnCommitEpoch,
-		gasConsumedProvider:           arguments.GasHandler,
-		economicsData:                 arguments.CoreComponents.EconomicsData(),
-		scheduledTxsExecutionHandler:  arguments.ScheduledTxsExecutionHandler,
-		pruningDelay:                  pruningDelay,
-		processedMiniBlocksTracker:    arguments.ProcessedMiniBlocksTracker,
-		receiptsRepository:            arguments.ReceiptsRepository,
-		processDebugger:               processDebugger,
-		outportDataProvider:           arguments.OutportDataProvider,
-		processStatusHandler:          arguments.CoreComponents.ProcessStatusHandler(),
-		blockProcessingCutoffHandler:  arguments.BlockProcessingCutoffHandler,
-		managedPeersHolder:            arguments.ManagedPeersHolder,
-		sentSignaturesTracker:         arguments.SentSignaturesTracker,
-		proofsPool:                    arguments.DataComponents.Datapool().Proofs(),
-		hdrsForCurrBlock:              arguments.HeadersForBlock,
-	}
-
-	selectionSession, err := NewMiniBlocksSelectionSession(base.shardCoordinator.SelfId(), base.marshalizer, base.hasher)
-	if err != nil {
-		return nil, err
-	}
-	base.miniBlocksSelectionSession = selectionSession
-	// todo: move the creation in someplace else (receive it as argument here) and set the last execution result to have it initialized properly before passing it
-	executionResultsTracker := executionTrack.NewExecutionResultsTracker()
-	// executionResultsTracker.SetLastNotarizedResult()
-
-	erv, err := NewExecutionResultsVerifier(arguments.DataComponents.Blockchain(), executionResultsTracker)
-	base.executionResultsVerifier = erv
 
 	sp := shardProcessor{
 		baseProcessor: base,
@@ -171,6 +92,7 @@ func (sp *shardProcessor) VerifyProposedBlock(
 	headerHandler data.HeaderHandler,
 	bodyHandler data.BodyHandler,
 	headerHash []byte,
+	timeoutAfter time.Duration,
 ) error {
 	log.Debug("started verifying proposed block",
 		"epoch", headerHandler.GetEpoch(),
@@ -180,9 +102,11 @@ func (sp *shardProcessor) VerifyProposedBlock(
 	)
 
 	// TODO: have time should be removed if no longer needed
-	// haveTime := func() time.Duration {
-	// 	return time.Second * 10 // this is a dummy value, should be replaced with a real one
-	// }
+	startTime := time.Now()
+	haveTime := func() time.Duration {
+		timeoutAfter -= time.Since(startTime)
+		return timeoutAfter
+	}
 
 	err := sp.checkBlockValidity(headerHandler, bodyHandler)
 	if err != nil {
@@ -246,56 +170,21 @@ func (sp *shardProcessor) VerifyProposedBlock(
 	// 	return err
 	// }
 
-	// sp.txCoordinator.RequestBlockTransactions(body)
-	// requestedMetaHdrs, requestedFinalityAttestingMetaHdrs, requestedProofs := sp.requestMetaHeaders(header)
+	sp.txCoordinator.RequestBlockTransactions(body)
+	sp.hdrsForCurrBlock.RequestMetaHeaders(header)
+
+	if haveTime() < 0 {
+		return process.ErrTimeIsOut
+	}
 	//
 	// err = sp.txCoordinator.IsDataPreparedForProcessing(haveTime)
 	// if err != nil {
 	// 	return err
 	// }
 	//
-	// haveMissingMetaHeaders := requestedMetaHdrs > 0 || requestedFinalityAttestingMetaHdrs > 0 || requestedProofs > 0
-	// if haveMissingMetaHeaders {
-	// 	if requestedMetaHdrs > 0 {
-	// 		log.Debug("requested missing meta headers",
-	// 			"num headers", requestedMetaHdrs,
-	// 		)
-	// 	}
-	// 	if requestedFinalityAttestingMetaHdrs > 0 {
-	// 		log.Debug("requested missing finality attesting meta headers",
-	// 			"num finality meta headers", requestedFinalityAttestingMetaHdrs,
-	// 		)
-	// 	}
-	// 	if requestedProofs > 0 {
-	// 		log.Debug("requested missing meta header proofs",
-	// 			"num proofs", requestedProofs,
-	// 		)
-	// 	}
-	//
-	// 	err = sp.waitForMetaHdrHashes(haveTime())
-	//
-	// 	sp.hdrsForCurrBlock.mutHdrsForBlock.RLock()
-	// 	missingMetaHdrs := sp.hdrsForCurrBlock.missingHdrs
-	// 	missingProofs := sp.hdrsForCurrBlock.missingProofs
-	// 	sp.hdrsForCurrBlock.mutHdrsForBlock.RUnlock()
-	//
-	// 	sp.hdrsForCurrBlock.resetMissingHdrs()
-	//
-	// 	if requestedMetaHdrs > 0 {
-	// 		log.Debug("received missing meta headers",
-	// 			"num headers", requestedMetaHdrs-missingMetaHdrs,
-	// 		)
-	// 	}
-	//
-	// 	if requestedProofs > 0 {
-	// 		log.Debug("received missing meta header proofs",
-	// 			"num proofs", requestedProofs-missingProofs,
-	// 		)
-	// 	}
-	//
-	// 	if err != nil {
-	// 		return err
-	// 	}
+	// err = sp.hdrsForCurrBlock.WaitForHeadersIfNeeded(haveTime)
+	// if err != nil {
+	// 	return err
 	// }
 	//
 	// err = sp.requestEpochStartInfo(header, haveTime)

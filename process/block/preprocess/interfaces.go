@@ -23,6 +23,14 @@ type TxCache interface {
 	IsInterfaceNil() bool
 }
 
+// TxCacheEnhanced defines the functionality for the enhanced transactions cache
+// TODO: adapt after integration of feat/mempool-supernova
+type TxCacheEnhanced interface {
+	OnProposedBlock(blockHash []byte, blockBody *block.Body, header data.HeaderHandler, session txcache.SelectionSession) error
+	OnExecutedBlock(header data.HeaderHandler) error
+	IsInterfaceNil() bool
+}
+
 // BlockTracker defines the functionality for node to track the blocks which are received from network
 type BlockTracker interface {
 	IsShardStuck(shardID uint32) bool

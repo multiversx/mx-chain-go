@@ -34,10 +34,12 @@ import (
 	debugFactory "github.com/multiversx/mx-chain-go/debug/factory"
 	"github.com/multiversx/mx-chain-go/outport"
 	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/process/asyncExecution/executionTrack"
 	"github.com/multiversx/mx-chain-go/process/block/bootstrapStorage"
 	"github.com/multiversx/mx-chain-go/process/block/cutoff"
 	"github.com/multiversx/mx-chain-go/process/block/processedMb"
 	"github.com/multiversx/mx-chain-go/process/headerCheck"
+	"github.com/multiversx/mx-chain-go/process/missingData"
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/state"
@@ -117,6 +119,7 @@ type baseProcessor struct {
 	proofsPool                 dataRetriever.ProofsPool
 	miniBlocksSelectionSession MiniBlocksSelectionSession
 	executionResultsVerifier   ExecutionResultsVerifier
+	missingDataResolver        MissingDataResolver
 }
 
 type bootStorerDataArgs struct {
@@ -128,6 +131,99 @@ type bootStorerDataArgs struct {
 	processedMiniBlocks        []bootstrapStorage.MiniBlocksInMeta
 	nodesCoordinatorConfigKey  []byte
 	epochStartTriggerConfigKey []byte
+}
+
+func NewBaseProcessor(arguments ArgBaseProcessor) (*baseProcessor, error) {
+	err := checkProcessorParameters(arguments)
+	if err != nil {
+		return nil, err
+	}
+
+	processDebugger, err := createDisabledProcessDebugger()
+	if err != nil {
+		return nil, err
+	}
+
+	// TODO: maybe move the creation outside and pass it as argument
+	mbSelectionSession, err := NewMiniBlocksSelectionSession(arguments.BootstrapComponents.ShardCoordinator().SelfId(), arguments.CoreComponents.InternalMarshalizer(), arguments.CoreComponents.Hasher())
+	if err != nil {
+		return nil, err
+	}
+
+	// TODO: move the creation in someplace else (receive it as argument here) and set the last execution result to have it initialized properly before passing it
+	executionResultsTracker := executionTrack.NewExecutionResultsTracker()
+	// TODO: the tracker needs to be seeded
+	//  executionResultsTracker.SetLastNotarizedResult(lastNotarizedResult)
+	execResultsVerifier, err := NewExecutionResultsVerifier(arguments.DataComponents.Blockchain(), executionResultsTracker)
+	if err != nil {
+		return nil, err
+	}
+
+	missingDataResolver, err := missingData.NewMissingDataResolver(arguments.DataComponents.Datapool().Headers(), arguments.DataComponents.Datapool().Proofs(), arguments.RequestHandler)
+	if err != nil {
+		return nil, err
+	}
+
+	genesisHdr := arguments.DataComponents.Blockchain().GetGenesisHeader()
+	if check.IfNil(genesisHdr) {
+		return nil, fmt.Errorf("%w for genesis header in DataComponents.Blockchain", process.ErrNilHeaderHandler)
+	}
+
+	base := &baseProcessor{
+		accountsDB:                    arguments.AccountsDB,
+		blockSizeThrottler:            arguments.BlockSizeThrottler,
+		forkDetector:                  arguments.ForkDetector,
+		hasher:                        arguments.CoreComponents.Hasher(),
+		marshalizer:                   arguments.CoreComponents.InternalMarshalizer(),
+		store:                         arguments.DataComponents.StorageService(),
+		shardCoordinator:              arguments.BootstrapComponents.ShardCoordinator(),
+		feeHandler:                    arguments.FeeHandler,
+		nodesCoordinator:              arguments.NodesCoordinator,
+		uint64Converter:               arguments.CoreComponents.Uint64ByteSliceConverter(),
+		requestHandler:                arguments.RequestHandler,
+		appStatusHandler:              arguments.StatusCoreComponents.AppStatusHandler(),
+		blockChainHook:                arguments.BlockChainHook,
+		txCoordinator:                 arguments.TxCoordinator,
+		epochStartTrigger:             arguments.EpochStartTrigger,
+		headerValidator:               arguments.HeaderValidator,
+		roundHandler:                  arguments.CoreComponents.RoundHandler(),
+		bootStorer:                    arguments.BootStorer,
+		blockTracker:                  arguments.BlockTracker,
+		dataPool:                      arguments.DataComponents.Datapool(),
+		blockChain:                    arguments.DataComponents.Blockchain(),
+		outportHandler:                arguments.StatusComponents.OutportHandler(),
+		genesisNonce:                  genesisHdr.GetNonce(),
+		versionedHeaderFactory:        arguments.BootstrapComponents.VersionedHeaderFactory(),
+		headerIntegrityVerifier:       arguments.BootstrapComponents.HeaderIntegrityVerifier(),
+		historyRepo:                   arguments.HistoryRepository,
+		epochNotifier:                 arguments.CoreComponents.EpochNotifier(),
+		enableEpochsHandler:           arguments.CoreComponents.EnableEpochsHandler(),
+		roundNotifier:                 arguments.CoreComponents.RoundNotifier(),
+		enableRoundsHandler:           arguments.CoreComponents.EnableRoundsHandler(),
+		epochChangeGracePeriodHandler: arguments.CoreComponents.EpochChangeGracePeriodHandler(),
+		vmContainerFactory:            arguments.VMContainersFactory,
+		vmContainer:                   arguments.VmContainer,
+		processDataTriesOnCommitEpoch: arguments.Config.Debug.EpochStart.ProcessDataTrieOnCommitEpoch,
+		gasConsumedProvider:           arguments.GasHandler,
+		economicsData:                 arguments.CoreComponents.EconomicsData(),
+		scheduledTxsExecutionHandler:  arguments.ScheduledTxsExecutionHandler,
+		pruningDelay:                  pruningDelay,
+		processedMiniBlocksTracker:    arguments.ProcessedMiniBlocksTracker,
+		receiptsRepository:            arguments.ReceiptsRepository,
+		processDebugger:               processDebugger,
+		outportDataProvider:           arguments.OutportDataProvider,
+		processStatusHandler:          arguments.CoreComponents.ProcessStatusHandler(),
+		blockProcessingCutoffHandler:  arguments.BlockProcessingCutoffHandler,
+		managedPeersHolder:            arguments.ManagedPeersHolder,
+		sentSignaturesTracker:         arguments.SentSignaturesTracker,
+		proofsPool:                    arguments.DataComponents.Datapool().Proofs(),
+		hdrsForCurrBlock:              arguments.HeadersForBlock,
+		miniBlocksSelectionSession:    mbSelectionSession,
+		executionResultsVerifier:      execResultsVerifier,
+		missingDataResolver:           missingDataResolver,
+	}
+
+	return base, nil
 }
 
 func checkForNils(
@@ -619,6 +715,12 @@ func checkProcessorParameters(arguments ArgBaseProcessor) error {
 	}
 	if check.IfNil(arguments.HeadersForBlock) {
 		return process.ErrNilHeadersForBlock
+	}
+	if check.IfNil(arguments.DataComponents.Datapool()) {
+		return process.ErrNilDataPoolHolder
+	}
+	if check.IfNil(arguments.DataComponents.Datapool().Headers()) {
+		return process.ErrNilHeadersDataPool
 	}
 
 	return nil
