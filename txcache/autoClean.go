@@ -75,7 +75,10 @@ func (cache *TxCache) RemoveSweepableTxs(session SelectionSession, randomness ui
 
 		lastCommittedNonce, err := virtualSession.getNonce(senderAddress)
 		if err != nil {
-			log.Debug("TxCache.RemoveSweepableTxs", "err", err)
+			log.Debug("TxCache.RemoveSweepableTxs",
+				"address", senderAddress,
+				"err", err,
+			)
 			continue
 		}
 
