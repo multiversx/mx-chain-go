@@ -8,8 +8,11 @@ import (
 
 var log = logger.GetOrCreate("process/executionResultInclusionEstimator")
 
-// ExecutionResultMeta is a lightweight summary EIE requires.
-type ExecutionResultMeta struct {
+// Time per gas unit on minimum‑spec hardware (1 gas = 1ns)
+var tGas = uint64(1)
+
+// ExecutionResultMetaData is a lightweight summary EIE requires.
+type ExecutionResultMetaData struct {
 	HeaderHash   [32]byte // Link to full header in DB / cache
 	HeaderNonce  uint64   // Monotonic within shard
 	HeaderTimeMs uint64   // Milliseconds since Unix epoch, from header
@@ -21,45 +24,33 @@ type ExecutionResultMeta struct {
 type Config struct {
 	SafetyMargin       uint64 // default 110
 	MaxResultsPerBlock uint64 // 0 = unlimited
-	GenesisTimeMs      uint64 // required if lastNotarised == nil
 }
 
 // ExecutionResultInclusionEstimator (EIE) is a deterministic component shipped with the MultiversX *Supernova*
 // node. It determines, at proposal‑time and at validation‑time, whether one or more pending execution results can be
 // safely embedded in the block that is being produced / verified.
 type ExecutionResultInclusionEstimator struct {
-	cfg  Config // immutable after construction
-	tGas uint64 // time per gas unit on **minimum‑spec** hardware - 1 ns per gas unit
+	cfg           Config // immutable after construction
+	tGas          uint64 // time per gas unit on minimum‑spec hardware - 1 ns per gas unit
+	GenesisTimeMs uint64 // required if lastNotarised == nil
 	// TODO add also max estimated block gas capacity  // used gas must be lower than this
+
 }
 
 // NewExecutionResultInclusionEstimator returns a new instance of EIE
-func NewExecutionResultInclusionEstimator(cfg Config) *ExecutionResultInclusionEstimator {
+func NewExecutionResultInclusionEstimator(cfg Config, GenesisTimeMs uint64) *ExecutionResultInclusionEstimator {
 	return &ExecutionResultInclusionEstimator{
-		cfg:  cfg,
-		tGas: uint64(1),
-	}
-}
-
-// SetTimePerGasUnit sets the time per gas unit on minimum‑spec hardware.
-func (erie *ExecutionResultInclusionEstimator) SetTimePerGasUnit(tGas uint64) {
-	if tGas == 0 {
-		log.Warn("ExecutionResultInclusionEstimator: SetTimePerGasUnit called with zero value, using default 1 ns per gas unit")
-		tGas = 1
-	}
-	if erie.tGas != tGas {
-		log.Debug("ExecutionResultInclusionEstimator: SetTimePerGasUnit called",
-			"oldValue", erie.tGas,
-			"newValue", tGas)
-		erie.tGas = tGas
+		cfg:           cfg,
+		tGas:          tGas,
+		GenesisTimeMs: GenesisTimeMs,
 	}
 }
 
 // Decide returns the prefix of `pending` that may be inserted into the block currently being built / verified.
-// Return value: `allowed` is the count of leading entries in `pending` deemed safe. The caller slices `pending[:allowed]`and embeds them.
-func (erie *ExecutionResultInclusionEstimator) Decide(lastNotarised *ExecutionResultMeta,
-	pending []ExecutionResultMeta,
-	currentHdrTsNs uint64,
+// Return value: `allowed` is the count of leading entries in `pending` deemed safe. The caller slices `pending[:allowed]` and embeds them.
+func (erie *ExecutionResultInclusionEstimator) Decide(lastNotarised *ExecutionResultMetaData,
+	pending []ExecutionResultMetaData,
+	currentHdrTsMs uint64,
 ) (allowed int) {
 	allowed = 0
 
@@ -70,60 +61,22 @@ func (erie *ExecutionResultInclusionEstimator) Decide(lastNotarised *ExecutionRe
 	var tBase uint64
 	// lastNotarised is nil if genesis.
 	if lastNotarised == nil {
-		tBase = convertMsToNs(erie.cfg.GenesisTimeMs)
+		tBase = convertMsToNs(erie.GenesisTimeMs)
 	} else {
 		tBase = convertMsToNs(lastNotarised.HeaderTimeMs)
 	}
 
+	currentHdrTsNs := convertMsToNs(currentHdrTsMs)
+
 	// accumulated execution time in ns (1 gas = 1ns)
 	estimatedTime := uint64(0)
 	for i, executionResultMeta := range pending {
-		// Check for nonce monotonicity
-		// TODO confirm if we are including execution results for empty blocks, in which case we should check strict continuity
-		if i > 0 && executionResultMeta.HeaderNonce <= pending[i-1].HeaderNonce {
-			log.Debug("ExecutionResultInclusionEstimator: non-monotonic HeaderNonce detected",
-				"currentHeaderNonce", executionResultMeta.HeaderNonce,
-				"previousHeaderNonce", pending[i-1].HeaderNonce,
-				"currentHeaderTimeMs", executionResultMeta.HeaderTimeMs,
-				"previousHeaderTimeMs", pending[i-1].HeaderTimeMs,
-			)
-			return i
+		var previousExecutionResultMeta *ExecutionResultMetaData
+		if i > 0 {
+			previousExecutionResultMeta = &pending[i-1]
 		}
-		// Check for monotonicity in time
-		// TODO confirm if we are keeping this check
-		if i > 0 && executionResultMeta.HeaderTimeMs < pending[i-1].HeaderTimeMs {
-			log.Debug("ExecutionResultInclusionEstimator: non-monotonic HeaderTimeMs detected",
-				"currentHeaderTimeMs", executionResultMeta.HeaderTimeMs,
-				"previousHeaderTimeMs", pending[i-1].HeaderTimeMs,
-			)
-			return i
-		}
-		// Check for time before genesis time
-		if executionResultMeta.HeaderTimeMs < erie.cfg.GenesisTimeMs {
-			log.Debug("ExecutionResultInclusionEstimator: HeaderTimeMs before genesis detected",
-				"headerNonce", executionResultMeta.HeaderNonce,
-				"headerTimeMs", executionResultMeta.HeaderTimeMs,
-				"genesisTimeMs", erie.cfg.GenesisTimeMs,
-			)
-			return i
-		}
-		// Check for time before last notarised
-		if lastNotarised != nil && executionResultMeta.HeaderTimeMs < lastNotarised.HeaderTimeMs {
-			log.Debug("ExecutionResultInclusionEstimator: HeaderTimeMs before last notarised detected",
-				"headerNonce", executionResultMeta.HeaderNonce,
-				"headerTimeMs", executionResultMeta.HeaderTimeMs,
-				"lastNotarisedTimeMs", lastNotarised.HeaderTimeMs,
-			)
-			return i
-		}
-
-		// Check for results in the future
-		if convertMsToNs(executionResultMeta.HeaderTimeMs) > currentHdrTsNs {
-			log.Debug("ExecutionResultInclusionEstimator: HeaderTimeMs in the future detected",
-				"headerNonce", executionResultMeta.HeaderNonce,
-				"headerTimeMs", executionResultMeta.HeaderTimeMs,
-				"currentHdrTsNs", currentHdrTsNs,
-			)
+		ok := erie.checkSanity(executionResultMeta, previousExecutionResultMeta, lastNotarised, currentHdrTsNs)
+		if !ok {
 			return i
 		}
 
@@ -146,13 +99,14 @@ func (erie *ExecutionResultInclusionEstimator) Decide(lastNotarised *ExecutionRe
 		}
 
 		// Apply safety margin
-		overflow, estimatedTimeWithMargin := bits.Mul64(estimatedTime, erie.cfg.SafetyMargin/100)
+		overflow, estimatedTimeWithMargin := bits.Mul64(estimatedTime, erie.cfg.SafetyMargin)
 		if overflow != 0 {
 			log.Debug("ExecutionResultInclusionEstimator: overflow detected in estimated time with margin",
 				"estimatedTime", estimatedTime,
 				"safetyMargin", erie.cfg.SafetyMargin)
 			return i
 		}
+		estimatedTimeWithMargin /= 100
 
 		tDone, overflow := bits.Add64(tBase, estimatedTimeWithMargin, 0)
 		if overflow != 0 {
@@ -183,6 +137,61 @@ func (erie *ExecutionResultInclusionEstimator) Decide(lastNotarised *ExecutionRe
 	return len(pending)
 }
 
+func (erie ExecutionResultInclusionEstimator) checkSanity(currentExecutionResultMeta ExecutionResultMetaData,
+	previousExecutionResultMeta *ExecutionResultMetaData,
+	lastNotarised *ExecutionResultMetaData,
+	currentHdrTsNs uint64,
+) bool {
+	// Check for strict nonce monotonicity
+	if previousExecutionResultMeta != nil && currentExecutionResultMeta.HeaderNonce != previousExecutionResultMeta.HeaderNonce+1 {
+		log.Debug("ExecutionResultInclusionEstimator: non-monotonic HeaderNonce detected",
+			"currentHeaderNonce", currentExecutionResultMeta.HeaderNonce,
+			"previousHeaderNonce", previousExecutionResultMeta.HeaderNonce,
+			"currentHeaderTimeMs", currentExecutionResultMeta.HeaderTimeMs,
+			"previousHeaderTimeMs", previousExecutionResultMeta.HeaderTimeMs,
+		)
+		return false
+	}
+	// Check for monotonicity in time
+	if previousExecutionResultMeta != nil && currentExecutionResultMeta.HeaderTimeMs < previousExecutionResultMeta.HeaderTimeMs {
+		log.Debug("ExecutionResultInclusionEstimator: non-monotonic HeaderTimeMs detected",
+			"currentHeaderTimeMs", currentExecutionResultMeta.HeaderTimeMs,
+			"previousHeaderTimeMs", previousExecutionResultMeta.HeaderTimeMs,
+		)
+		return false
+	}
+	// Check for time before genesis time
+	if currentExecutionResultMeta.HeaderTimeMs < erie.GenesisTimeMs {
+		log.Debug("ExecutionResultInclusionEstimator: HeaderTimeMs before genesis detected",
+			"headerNonce", currentExecutionResultMeta.HeaderNonce,
+			"headerTimeMs", currentExecutionResultMeta.HeaderTimeMs,
+			"genesisTimeMs", erie.GenesisTimeMs,
+		)
+		return false
+	}
+	// Check for time before last notarised
+	if lastNotarised != nil && currentExecutionResultMeta.HeaderTimeMs < lastNotarised.HeaderTimeMs {
+		log.Debug("ExecutionResultInclusionEstimator: HeaderTimeMs before last notarised detected",
+			"headerNonce", currentExecutionResultMeta.HeaderNonce,
+			"headerTimeMs", currentExecutionResultMeta.HeaderTimeMs,
+			"lastNotarisedTimeMs", lastNotarised.HeaderTimeMs,
+		)
+		return false
+	}
+
+	// Check for results in the future
+	if convertMsToNs(currentExecutionResultMeta.HeaderTimeMs) > currentHdrTsNs {
+		log.Debug("ExecutionResultInclusionEstimator: HeaderTimeMs in the future detected",
+			"headerNonce", currentExecutionResultMeta.HeaderNonce,
+			"headerTimeMs", currentExecutionResultMeta.HeaderTimeMs,
+			"currentHdrTsNs", currentHdrTsNs,
+		)
+		return false
+	}
+	return true
+}
+
+// TODO check for overflow
 func convertMsToNs(ms uint64) uint64 {
 	// Convert milliseconds to nanoseconds
 	return ms * 1_000_000
