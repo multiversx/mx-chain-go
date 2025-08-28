@@ -36,6 +36,7 @@ func NewSelectionTracker(txCache txCacheForSelectionTracker, maxTrackedBlocks ui
 }
 
 // OnProposedBlock notifies when a block is proposed and updates the state of the selectionTracker
+// TODO brainstorm how to refactor this method, split it in different methods
 // TODO the selection session might be unusable in the flow of OnProposed
 func (st *selectionTracker) OnProposedBlock(
 	blockHash []byte,
@@ -100,7 +101,8 @@ func (st *selectionTracker) OnProposedBlock(
 		return err
 	}
 
-	st.blocks[string(blockHash)] = tBlock
+	// adds the new block in the chain, overwriting the block with the same nonce
+	st.addNewBlockNoLock(blockHash, tBlock)
 
 	if len(st.blocks) == int(st.maxTrackedBlocks) {
 		log.Warn("selectionTracker.OnProposedBlock: max tracked blocks reached",
@@ -174,6 +176,20 @@ func (st *selectionTracker) validateTrackedBlocks(chainOfTrackedBlocks []*tracke
 	}
 
 	return nil
+}
+
+func (st *selectionTracker) addNewBlockNoLock(blockHash []byte, blockToBeAdded *trackedBlock) {
+	// search if in the tracked block we already have one with same nonce
+	for bHash, b := range st.blocks {
+		if b.sameNonce(blockToBeAdded) {
+			// delete that block and break because there should me maximum one tracked block with that nonce
+			delete(st.blocks, bHash)
+			break
+		}
+	}
+
+	// add the new block
+	st.blocks[string(blockHash)] = blockToBeAdded
 }
 
 func (st *selectionTracker) removeFromTrackedBlocksNoLock(searchedBlock *trackedBlock) {
@@ -300,6 +316,7 @@ func (st *selectionTracker) getChainOfTrackedBlocks(
 		}
 
 		// extra check for a nonce gap
+		// TODO maybe add an extra check for nonce = 0
 		hasDiscontinuousBlockNonce := previousBlock.nonce != nextNonce-1
 		if hasDiscontinuousBlockNonce {
 			return nil, errDiscontinuousSequenceOfBlocks
