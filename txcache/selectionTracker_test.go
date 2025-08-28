@@ -124,7 +124,7 @@ func TestSelectionTracker_OnProposedBlockShouldErr(t *testing.T) {
 		t.Parallel()
 
 		txCache := newCacheToTest(maxNumBytesPerSenderUpperBoundTest, 3)
-		tracker, err := NewSelectionTracker(txCache)
+		tracker, err := NewSelectionTracker(txCache, maxTrackedBlocks)
 		require.Nil(t, err)
 
 		err = tracker.OnProposedBlock([]byte("hash1"), &block.Body{}, &block.Header{}, nil, nil)
@@ -350,7 +350,9 @@ func TestSelectionTracker_OnProposedBlockShouldCleanWhenMaxTrackedBlocksIsReache
 	require.Nil(t, err)
 
 	numOfBlocks := 3
-	proposeBlocks(t, numOfBlocks, tracker)
+	accountsProvider := txcachemocks.NewAccountNonceAndBalanceProviderMock()
+
+	proposeBlocks(t, numOfBlocks, tracker, accountsProvider)
 	require.Equal(t, 0, len(tracker.blocks))
 }
 

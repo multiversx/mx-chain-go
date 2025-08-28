@@ -922,20 +922,22 @@ func Test_Selection_ProposeEmptyBlocks(t *testing.T) {
 	initialAmount := big.NewInt(int64(numTxsPerSender) * 50_000 * 1_000_000_000)
 
 	senders := []string{"alice", "bob"}
-	selectionSession := createMockSelectionSessionWithSpecificAccountInfo(map[string]*accountInfo{
+	accounts := map[string]*stateMock.UserAccountStub{
 		"alice": {
-			balance: initialAmount,
-			nonce:   0,
+			Balance: initialAmount,
+			Nonce:   0,
 		},
 		"bob": {
-			balance: initialAmount,
-			nonce:   0,
+			Balance: initialAmount,
+			Nonce:   0,
 		},
 		"receiver": {
-			balance: big.NewInt(0),
-			nonce:   0,
+			Balance: big.NewInt(0),
+			Nonce:   0,
 		},
-	})
+	}
+
+	selectionSession := txcachemocks.NewSelectionSessionMockWithAccounts(accounts)
 
 	options := holders.NewTxSelectionOptions(
 		10_000_000_000,
@@ -1254,12 +1256,14 @@ func Test_Selection_ProposeEmptyBlocksAndExecutedBlockNotification(t *testing.T)
 
 	// mock the non-virtual selection session
 	senders := []string{"alice"}
-	selectionSession := &txcachemocks.SelectionSessionMock{}
-
-	selectionSession.AccountByAddress = map[string]*state.UserAccountStub{
-		"alice":    {Nonce: 0, Balance: initialAmount},
-		"receiver": {Nonce: 0, Balance: big.NewInt(0)},
+	accounts := map[string]*stateMock.UserAccountStub{
+		"alice": {
+			Balance: initialAmount,
+			Nonce:   0,
+		},
 	}
+
+	selectionSession := txcachemocks.NewSelectionSessionMockWithAccounts(accounts)
 
 	options := holders.NewTxSelectionOptions(
 		10_000_000_000,
@@ -1448,20 +1452,22 @@ func Test_Selection_MaxTrackedBlocksReached(t *testing.T) {
 	initialAmount := big.NewInt(int64(numTxsPerSender) * 50_000 * 1_000_000_000)
 
 	senders := []string{"alice", "bob"}
-	selectionSession := createMockSelectionSessionWithSpecificAccountInfo(map[string]*accountInfo{
+	accounts := map[string]*stateMock.UserAccountStub{
 		"alice": {
-			balance: initialAmount,
-			nonce:   0,
+			Balance: initialAmount,
+			Nonce:   0,
 		},
 		"bob": {
-			balance: initialAmount,
-			nonce:   0,
+			Balance: initialAmount,
+			Nonce:   0,
 		},
 		"receiver": {
-			balance: big.NewInt(0),
-			nonce:   0,
+			Balance: big.NewInt(0),
+			Nonce:   0,
 		},
-	})
+	}
+
+	selectionSession := txcachemocks.NewSelectionSessionMockWithAccounts(accounts)
 
 	options := holders.NewTxSelectionOptions(
 		10_000_000_000,
