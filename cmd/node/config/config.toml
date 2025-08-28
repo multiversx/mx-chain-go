@@ -985,3 +985,9 @@
 [InterceptedDataVerifier]
     CacheSpanInSec = 30
     CacheExpiryInSec = 30
+
+[ExecutionResultInclusionEstimator]
+    # Safety margin = 110 -> 110% -> 10% buffer
+    SafetyMargin = 110
+    # Maximum execution results a single block may carry (0 = unlimited)
+    MaxResultsPerBlock = 20

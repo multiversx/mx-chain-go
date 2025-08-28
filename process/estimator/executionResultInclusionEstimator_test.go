@@ -5,6 +5,7 @@ import (
 	"math"
 	"testing"
 
+	"github.com/multiversx/mx-chain-go/config"
 	logger "github.com/multiversx/mx-chain-logger-go"
 	"github.com/stretchr/testify/require"
 )
@@ -14,13 +15,15 @@ func TestEstimatorCreation(t *testing.T) {
 	t.Parallel()
 
 	t.Run("Default config", func(t *testing.T) {
-		cfg := Config{}
+		t.Parallel()
+		cfg := config.ExecutionResultInclusionEstimatorConfig{}
 		erie := NewExecutionResultInclusionEstimator(cfg, 1000)
 		require.NotNil(t, erie, "NewExecutionResultInclusionEstimator should not return nil")
 	})
 
 	t.Run("Custom config", func(t *testing.T) {
-		cfg := Config{SafetyMargin: 120, MaxResultsPerBlock: 10}
+		t.Parallel()
+		cfg := config.ExecutionResultInclusionEstimatorConfig{SafetyMargin: 120, MaxResultsPerBlock: 10}
 		erie := NewExecutionResultInclusionEstimator(cfg, 1000)
 		require.NotNil(t, erie, "NewExecutionResultInclusionEstimator should not return nil")
 	})
@@ -31,7 +34,8 @@ func TestDecide(t *testing.T) {
 	t.Parallel()
 
 	t.Run("Empty pending", func(t *testing.T) {
-		cfg := Config{SafetyMargin: 110}
+		t.Parallel()
+		cfg := config.ExecutionResultInclusionEstimatorConfig{SafetyMargin: 110}
 		erie := NewExecutionResultInclusionEstimator(cfg, 500)
 		lastNotarised := &ExecutionResultMetaData{HeaderTimeMs: 1000}
 		pending := []ExecutionResultMetaData{}
@@ -44,7 +48,8 @@ func TestDecide(t *testing.T) {
 	})
 
 	t.Run("Accept all items", func(t *testing.T) {
-		cfg := Config{SafetyMargin: 110, MaxResultsPerBlock: 0}
+		t.Parallel()
+		cfg := config.ExecutionResultInclusionEstimatorConfig{SafetyMargin: 110, MaxResultsPerBlock: 0}
 		erie := NewExecutionResultInclusionEstimator(cfg, 500)
 		lastNotarised := &ExecutionResultMetaData{HeaderTimeMs: 1000}
 		pending := []ExecutionResultMetaData{
@@ -61,7 +66,8 @@ func TestDecide(t *testing.T) {
 	})
 
 	t.Run("Reject second item", func(t *testing.T) {
-		cfg := Config{SafetyMargin: 110}
+		t.Parallel()
+		cfg := config.ExecutionResultInclusionEstimatorConfig{SafetyMargin: 110}
 		erie := NewExecutionResultInclusionEstimator(cfg, 500)
 		lastNotarised := &ExecutionResultMetaData{HeaderTimeMs: 1000}
 		pending := []ExecutionResultMetaData{
@@ -78,7 +84,8 @@ func TestDecide(t *testing.T) {
 	})
 
 	t.Run("Allow only up to boundary (t_done == t_now)", func(t *testing.T) {
-		cfg := Config{SafetyMargin: 110}
+		t.Parallel()
+		cfg := config.ExecutionResultInclusionEstimatorConfig{SafetyMargin: 110}
 		erie := NewExecutionResultInclusionEstimator(cfg, 500)
 		lastNotarised := &ExecutionResultMetaData{HeaderTimeMs: 1000}
 		pending := []ExecutionResultMetaData{
@@ -96,7 +103,8 @@ func TestDecide(t *testing.T) {
 	})
 
 	t.Run("Hit MaxResultsPerBlock cap", func(t *testing.T) {
-		cfg := Config{SafetyMargin: 110, MaxResultsPerBlock: 1}
+		t.Parallel()
+		cfg := config.ExecutionResultInclusionEstimatorConfig{SafetyMargin: 110, MaxResultsPerBlock: 1}
 		erie := NewExecutionResultInclusionEstimator(cfg, 500)
 		lastNotarised := &ExecutionResultMetaData{HeaderTimeMs: 1000}
 		pending := []ExecutionResultMetaData{
@@ -113,7 +121,8 @@ func TestDecide(t *testing.T) {
 	})
 
 	t.Run("Genesis fallback", func(t *testing.T) {
-		cfg := Config{SafetyMargin: 110}
+		t.Parallel()
+		cfg := config.ExecutionResultInclusionEstimatorConfig{SafetyMargin: 110}
 		erie := NewExecutionResultInclusionEstimator(cfg, 1_700_000_000_000)
 		var lastNotarised *ExecutionResultMetaData = nil
 		pending := []ExecutionResultMetaData{
@@ -127,7 +136,8 @@ func TestDecide(t *testing.T) {
 	})
 
 	t.Run("Overflow protection", func(t *testing.T) {
-		cfg := Config{SafetyMargin: 110, MaxResultsPerBlock: 10}
+		t.Parallel()
+		cfg := config.ExecutionResultInclusionEstimatorConfig{SafetyMargin: 110, MaxResultsPerBlock: 10}
 		erie := NewExecutionResultInclusionEstimator(cfg, 500)
 		lastNotarised := &ExecutionResultMetaData{HeaderTimeMs: 1000}
 		pending := []ExecutionResultMetaData{
@@ -148,7 +158,7 @@ func TestDecide(t *testing.T) {
 func TestOverflowProtection(t *testing.T) {
 	_ = logger.SetLogLevel("*:DEBUG")
 	t.Run("gasUsed * t_gas overflows", func(t *testing.T) {
-		cfg := Config{
+		cfg := config.ExecutionResultInclusionEstimatorConfig{
 			SafetyMargin:       110,
 			MaxResultsPerBlock: 0,
 		}
@@ -171,7 +181,7 @@ func TestOverflowProtection(t *testing.T) {
 func TestDecide_EdgeCases(t *testing.T) {
 	_ = logger.SetLogLevel("*:DEBUG")
 	t.Parallel()
-	cfg := Config{
+	cfg := config.ExecutionResultInclusionEstimatorConfig{
 		SafetyMargin:       10,
 		MaxResultsPerBlock: 10,
 	}
@@ -179,6 +189,7 @@ func TestDecide_EdgeCases(t *testing.T) {
 	now := uint64(2000)
 
 	t.Run("zero GasUsed", func(t *testing.T) {
+		t.Parallel()
 		pending := []ExecutionResultMetaData{
 			{HeaderNonce: 1, GasUsed: 0, HeaderTimeMs: 1100},
 			{HeaderNonce: 2, GasUsed: 0, HeaderTimeMs: 1200},
@@ -192,7 +203,8 @@ func TestDecide_EdgeCases(t *testing.T) {
 	})
 
 	t.Run("HeaderTime before genesis", func(t *testing.T) {
-		cfg := Config{SafetyMargin: 110}
+		t.Parallel()
+		cfg := config.ExecutionResultInclusionEstimatorConfig{SafetyMargin: 110}
 		erie := NewExecutionResultInclusionEstimator(cfg, 1_700_000_000_000)
 		pending := []ExecutionResultMetaData{
 			{HeaderNonce: 1, HeaderTimeMs: erie.GenesisTimeMs - 1, GasUsed: 100},
@@ -202,7 +214,8 @@ func TestDecide_EdgeCases(t *testing.T) {
 	})
 
 	t.Run("HeaderTime before last notarised", func(t *testing.T) {
-		cfg := Config{SafetyMargin: 110}
+		t.Parallel()
+		cfg := config.ExecutionResultInclusionEstimatorConfig{SafetyMargin: 110}
 		erie := NewExecutionResultInclusionEstimator(cfg, 1_700_000_000_000)
 		lastNotarised := &ExecutionResultMetaData{HeaderNonce: 1, HeaderTimeMs: erie.GenesisTimeMs + 1000, GasUsed: 100}
 		pending := []ExecutionResultMetaData{
@@ -213,6 +226,7 @@ func TestDecide_EdgeCases(t *testing.T) {
 	})
 
 	t.Run("large HeaderTimeMs gap", func(t *testing.T) {
+		t.Parallel()
 		pending := []ExecutionResultMetaData{
 			{HeaderNonce: 1, GasUsed: 100, HeaderTimeMs: 1000},
 			{HeaderNonce: 2, GasUsed: 200, HeaderTimeMs: 10_000}, // large gap
@@ -222,6 +236,7 @@ func TestDecide_EdgeCases(t *testing.T) {
 	})
 
 	t.Run("all results after t_now", func(t *testing.T) {
+		t.Parallel()
 		pending := []ExecutionResultMetaData{
 			{HeaderNonce: 1, GasUsed: 10_000, HeaderTimeMs: 3000},
 			{HeaderNonce: 2, GasUsed: 20_000, HeaderTimeMs: 4000},
@@ -231,6 +246,7 @@ func TestDecide_EdgeCases(t *testing.T) {
 	})
 
 	t.Run("non-monotonic in time", func(t *testing.T) {
+		t.Parallel()
 		pending := []ExecutionResultMetaData{
 			{HeaderNonce: 1, GasUsed: 50, HeaderTimeMs: 1100},
 			{HeaderNonce: 2, GasUsed: 20, HeaderTimeMs: 1050},
@@ -241,6 +257,7 @@ func TestDecide_EdgeCases(t *testing.T) {
 	})
 
 	t.Run("non-monotonic in hash", func(t *testing.T) {
+		t.Parallel()
 		pending := []ExecutionResultMetaData{
 			{HeaderNonce: 1, GasUsed: 10, HeaderTimeMs: 1100},
 			{HeaderNonce: 2, GasUsed: 20, HeaderTimeMs: 1125},
@@ -259,7 +276,7 @@ func TestDecide_EdgeCases(t *testing.T) {
 }
 
 func BenchmarkDecideScaling_10(b *testing.B) {
-	cfg := Config{SafetyMargin: 110}
+	cfg := config.ExecutionResultInclusionEstimatorConfig{SafetyMargin: 110}
 	erie := NewExecutionResultInclusionEstimator(cfg, 0)
 	last := &ExecutionResultMetaData{HeaderTimeMs: 1}
 

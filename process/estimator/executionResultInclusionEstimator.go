@@ -3,6 +3,7 @@ package estimator
 import (
 	"math/bits"
 
+	"github.com/multiversx/mx-chain-go/config"
 	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
@@ -19,26 +20,18 @@ type ExecutionResultMetaData struct {
 	GasUsed      uint64   // Units actually consumed (post‑execution)
 }
 
-// Config supplied at construction, read‑only thereafter.
-// TODO add also max estimated block gas capacity  // used gas must be lower than this
-type Config struct {
-	SafetyMargin       uint64 // default 110
-	MaxResultsPerBlock uint64 // 0 = unlimited
-}
-
 // ExecutionResultInclusionEstimator (EIE) is a deterministic component shipped with the MultiversX *Supernova*
 // node. It determines, at proposal‑time and at validation‑time, whether one or more pending execution results can be
 // safely embedded in the block that is being produced / verified.
 type ExecutionResultInclusionEstimator struct {
-	cfg           Config // immutable after construction
-	tGas          uint64 // time per gas unit on minimum‑spec hardware - 1 ns per gas unit
-	GenesisTimeMs uint64 // required if lastNotarised == nil
-	// TODO add also max estimated block gas capacity  // used gas must be lower than this
-
+	cfg           config.ExecutionResultInclusionEstimatorConfig // immutable after construction
+	tGas          uint64                                         // time per gas unit on minimum‑spec hardware - 1 ns per gas unit
+	GenesisTimeMs uint64                                         // required if lastNotarised == nil
+	// TODO add also max estimated block gas capacity - used gas must be lower than this
 }
 
 // NewExecutionResultInclusionEstimator returns a new instance of EIE
-func NewExecutionResultInclusionEstimator(cfg Config, GenesisTimeMs uint64) *ExecutionResultInclusionEstimator {
+func NewExecutionResultInclusionEstimator(cfg config.ExecutionResultInclusionEstimatorConfig, GenesisTimeMs uint64) *ExecutionResultInclusionEstimator {
 	return &ExecutionResultInclusionEstimator{
 		cfg:           cfg,
 		tGas:          tGas,
