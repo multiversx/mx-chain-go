@@ -10,7 +10,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-go/common/holders"
-	"github.com/multiversx/mx-chain-go/testscommon/state"
+	stateMock "github.com/multiversx/mx-chain-go/testscommon/state"
 	"github.com/multiversx/mx-chain-go/testscommon/txcachemocks"
 	"github.com/multiversx/mx-chain-go/txcache"
 	"github.com/stretchr/testify/require"
@@ -508,16 +508,19 @@ func Test_Selection_ShouldNotSelectSameTransactionsWithSameSender(t *testing.T) 
 	require.NotNil(t, txpool)
 
 	// create the non-virtual selection session, assure we have enough balance
-	selectionSession := createMockSelectionSessionWithSpecificAccountInfo(map[string]*accountInfo{
+	accounts := map[string]*stateMock.UserAccountStub{
 		"alice": {
-			balance: oneEGLD,
-			nonce:   0,
+			Balance: oneEGLD,
+			Nonce:   0,
 		},
 		"receiver": {
-			balance: big.NewInt(0),
-			nonce:   0,
+			Balance: big.NewInt(0),
+			Nonce:   0,
 		},
-	})
+	}
+
+	selectionSession := txcachemocks.NewSelectionSessionMockWithAccounts(accounts)
+	accountsProvider := txcachemocks.NewAccountNonceAndBalanceProviderMockWithAccounts(accounts)
 
 	maxNumTxs := 2
 	options := holders.NewTxSelectionOptions(
@@ -581,7 +584,7 @@ func Test_Selection_ShouldNotSelectSameTransactionsWithSameSender(t *testing.T) 
 		PrevHash: []byte("blockHash0"),
 		RootHash: []byte(fmt.Sprintf("rootHash%d", 0)),
 	},
-		selectionSession,
+		accountsProvider,
 		defaultBlockchainInfo,
 	)
 	require.Nil(t, err)
@@ -616,20 +619,23 @@ func Test_Selection_ShouldNotSelectSameTransactionsWithDifferentSenders(t *testi
 	require.NotNil(t, txpool)
 
 	// assure we have enough balance for each account
-	selectionSession := createMockSelectionSessionWithSpecificAccountInfo(map[string]*accountInfo{
+	accounts := map[string]*stateMock.UserAccountStub{
 		"alice": {
-			balance: oneEGLD,
-			nonce:   0,
+			Balance: oneEGLD,
+			Nonce:   0,
 		},
 		"bob": {
-			balance: oneEGLD,
-			nonce:   0,
+			Balance: oneEGLD,
+			Nonce:   0,
 		},
 		"receiver": {
-			balance: big.NewInt(0),
-			nonce:   0,
+			Balance: big.NewInt(0),
+			Nonce:   0,
 		},
-	})
+	}
+
+	selectionSession := txcachemocks.NewSelectionSessionMockWithAccounts(accounts)
+	accountsProvider := txcachemocks.NewAccountNonceAndBalanceProviderMockWithAccounts(accounts)
 
 	options := holders.NewTxSelectionOptions(
 		10_000_000_000,
@@ -730,7 +736,7 @@ func Test_Selection_ShouldNotSelectSameTransactionsWithDifferentSenders(t *testi
 			PrevHash: []byte("blockHash0"),
 			RootHash: []byte(fmt.Sprintf("rootHash%d", 0)),
 		},
-		selectionSession,
+		accountsProvider,
 		defaultBlockchainInfo,
 	)
 	require.Nil(t, err)
@@ -768,20 +774,23 @@ func Test_Selection_ShouldNotSelectSameTransactionsWithManyTransactions(t *testi
 	initialAmount := big.NewInt(int64(numTxsPerSender) * 50_000 * 1_000_000_000)
 
 	senders := []string{"alice", "bob"}
-	selectionSession := createMockSelectionSessionWithSpecificAccountInfo(map[string]*accountInfo{
+	accounts := map[string]*stateMock.UserAccountStub{
 		"alice": {
-			balance: initialAmount,
-			nonce:   0,
+			Balance: initialAmount,
+			Nonce:   0,
 		},
 		"bob": {
-			balance: initialAmount,
-			nonce:   0,
+			Balance: initialAmount,
+			Nonce:   0,
 		},
 		"receiver": {
-			balance: big.NewInt(0),
-			nonce:   0,
+			Balance: big.NewInt(0),
+			Nonce:   0,
 		},
-	})
+	}
+
+	selectionSession := txcachemocks.NewSelectionSessionMockWithAccounts(accounts)
+	accountsProvider := txcachemocks.NewAccountNonceAndBalanceProviderMockWithAccounts(accounts)
 
 	options := holders.NewTxSelectionOptions(
 		10_000_000_000,
@@ -846,7 +855,7 @@ func Test_Selection_ShouldNotSelectSameTransactionsWithManyTransactions(t *testi
 		PrevHash: []byte("blockHash0"),
 		RootHash: []byte(fmt.Sprintf("rootHash%d", 0)),
 	},
-		selectionSession,
+		accountsProvider,
 		defaultBlockchainInfo,
 	)
 	require.Nil(t, err)
@@ -873,7 +882,7 @@ func Test_Selection_ShouldNotSelectSameTransactionsWithManyTransactions(t *testi
 			PrevHash: []byte("blockHash1"),
 			RootHash: []byte(fmt.Sprintf("rootHash%d", 1)),
 		},
-		selectionSession,
+		accountsProvider,
 		defaultBlockchainInfo,
 	)
 	require.Nil(t, err)
@@ -910,14 +919,20 @@ func Test_Selection_ShouldNotSelectSameTransactionsWithManyTransactionsAndExecut
 	// assure that we have enough balance for fees
 	initialAmount := big.NewInt(int64(numTxsPerSender) * 50_000 * 1_000_000_000)
 
-	// mock the non-virtual selection session
 	senders := []string{"alice"}
-	selectionSession := &txcachemocks.SelectionSessionMock{}
-
-	selectionSession.AccountByAddress = map[string]*state.UserAccountStub{
-		"alice":    {Nonce: 0, Balance: initialAmount},
-		"receiver": {Nonce: 0, Balance: big.NewInt(0)},
+	accounts := map[string]*stateMock.UserAccountStub{
+		"alice": {
+			Balance: initialAmount,
+			Nonce:   0,
+		},
+		"receiver": {
+			Balance: big.NewInt(0),
+			Nonce:   0,
+		},
 	}
+
+	selectionSession := txcachemocks.NewSelectionSessionMockWithAccounts(accounts)
+	accountsProvider := txcachemocks.NewAccountNonceAndBalanceProviderMockWithAccounts(accounts)
 
 	options := holders.NewTxSelectionOptions(
 		10_000_000_000,
@@ -982,7 +997,7 @@ func Test_Selection_ShouldNotSelectSameTransactionsWithManyTransactionsAndExecut
 			PrevHash: []byte("blockHash0"),
 			RootHash: []byte(fmt.Sprintf("rootHash%d", 0)),
 		},
-		selectionSession,
+		accountsProvider,
 		defaultBlockchainInfo,
 	)
 	require.Nil(t, err)
@@ -1026,7 +1041,7 @@ func Test_Selection_ShouldNotSelectSameTransactionsWithManyTransactionsAndExecut
 			PrevHash: []byte("blockHash1"),
 			RootHash: []byte(fmt.Sprintf("rootHash%d", 1)),
 		},
-		selectionSession,
+		accountsProvider,
 		holders.NewBlockchainInfo([]byte("blockHash1"), nil, 2),
 	)
 	require.Nil(t, err)
@@ -1062,28 +1077,32 @@ func Test_SelectionWhenFeeExceedsBalanceWithMax3TxsSelected(t *testing.T) {
 	require.Nil(t, err)
 	require.NotNil(t, txpool)
 
-	selectionSession := createMockSelectionSessionWithSpecificAccountInfo(map[string]*accountInfo{
+	accounts := map[string]*stateMock.UserAccountStub{
 		"alice": {
-			balance: oneQuarterOfEGLD,
-			nonce:   0,
+			Balance: oneQuarterOfEGLD,
+			Nonce:   0,
 		},
 		"bob": {
-			balance: oneQuarterOfEGLD,
-			nonce:   0,
+			Balance: oneQuarterOfEGLD,
+			Nonce:   0,
 		},
 		"carol": {
-			balance: oneQuarterOfEGLD,
-			nonce:   0,
+			Balance: oneQuarterOfEGLD,
+			Nonce:   0,
 		},
 		"receiver": {
-			balance: big.NewInt(0),
-			nonce:   0,
+			Balance: big.NewInt(0),
+			Nonce:   0,
 		},
 		"relayer": {
-			balance: big.NewInt(1000000000000000000),
-			nonce:   0,
+			Balance: big.NewInt(1000000000000000000),
+			Nonce:   0,
 		},
-	})
+	}
+
+	selectionSession := txcachemocks.NewSelectionSessionMockWithAccounts(accounts)
+	accountsProvider := txcachemocks.NewAccountNonceAndBalanceProviderMockWithAccounts(accounts)
+
 	options := holders.NewTxSelectionOptions(
 		10_000_000_000,
 		3,
@@ -1203,7 +1222,7 @@ func Test_SelectionWhenFeeExceedsBalanceWithMax3TxsSelected(t *testing.T) {
 			PrevHash: []byte("blockHash0"),
 			RootHash: []byte(fmt.Sprintf("rootHash%d", 0)),
 		},
-		selectionSession,
+		accountsProvider,
 		defaultBlockchainInfo,
 	)
 	require.Nil(t, err)
@@ -1235,28 +1254,32 @@ func Test_SelectionWhenFeeExceedsBalanceWithMax2TxsSelected(t *testing.T) {
 	require.Nil(t, err)
 	require.NotNil(t, txpool)
 
-	selectionSession := createMockSelectionSessionWithSpecificAccountInfo(map[string]*accountInfo{
+	accounts := map[string]*stateMock.UserAccountStub{
 		"alice": {
-			balance: oneQuarterOfEGLD,
-			nonce:   0,
+			Balance: oneQuarterOfEGLD,
+			Nonce:   0,
 		},
 		"bob": {
-			balance: oneQuarterOfEGLD,
-			nonce:   0,
+			Balance: oneQuarterOfEGLD,
+			Nonce:   0,
 		},
 		"carol": {
-			balance: oneQuarterOfEGLD,
-			nonce:   0,
+			Balance: oneQuarterOfEGLD,
+			Nonce:   0,
 		},
 		"receiver": {
-			balance: big.NewInt(0),
-			nonce:   0,
+			Balance: big.NewInt(0),
+			Nonce:   0,
 		},
 		"relayer": {
-			balance: big.NewInt(1000000000000000000),
-			nonce:   0,
+			Balance: big.NewInt(1000000000000000000),
+			Nonce:   0,
 		},
-	})
+	}
+
+	selectionSession := txcachemocks.NewSelectionSessionMockWithAccounts(accounts)
+	accountsProvider := txcachemocks.NewAccountNonceAndBalanceProviderMockWithAccounts(accounts)
+
 	options := holders.NewTxSelectionOptions(
 		10_000_000_000,
 		2,
@@ -1375,7 +1398,7 @@ func Test_SelectionWhenFeeExceedsBalanceWithMax2TxsSelected(t *testing.T) {
 			PrevHash: []byte("blockHash0"),
 			RootHash: []byte(fmt.Sprintf("rootHash%d", 0)),
 		},
-		selectionSession,
+		accountsProvider,
 		defaultBlockchainInfo,
 	)
 	require.Nil(t, err)
