@@ -14,6 +14,15 @@ func TestEstimatorCreation(t *testing.T) {
 	_ = logger.SetLogLevel("*:DEBUG")
 	t.Parallel()
 
+	t.Run("Nil interface", func(t *testing.T) {
+		t.Parallel()
+		var erie *ExecutionResultInclusionEstimator
+		require.True(t, erie.IsInterfaceNil(), "IsInterfaceNil() should return true for nil interface")
+
+		erie = &ExecutionResultInclusionEstimator{}
+		require.False(t, erie.IsInterfaceNil(), "IsInterfaceNil() should return false for non-nil interface")
+	})
+
 	t.Run("Default config", func(t *testing.T) {
 		t.Parallel()
 		cfg := config.ExecutionResultInclusionEstimatorConfig{}
@@ -207,9 +216,9 @@ func TestDecide_EdgeCases(t *testing.T) {
 		cfg := config.ExecutionResultInclusionEstimatorConfig{SafetyMargin: 110}
 		erie := NewExecutionResultInclusionEstimator(cfg, 1_700_000_000_000)
 		pending := []ExecutionResultMetaData{
-			{HeaderNonce: 1, HeaderTimeMs: erie.GenesisTimeMs - 1, GasUsed: 100},
+			{HeaderNonce: 1, HeaderTimeMs: erie.genesisTimeMs - 1, GasUsed: 100},
 		}
-		got := erie.Decide(nil, pending, erie.GenesisTimeMs+1000)
+		got := erie.Decide(nil, pending, erie.genesisTimeMs+1000)
 		require.Equal(t, 0, got)
 	})
 
@@ -217,7 +226,7 @@ func TestDecide_EdgeCases(t *testing.T) {
 		t.Parallel()
 		cfg := config.ExecutionResultInclusionEstimatorConfig{SafetyMargin: 110}
 		erie := NewExecutionResultInclusionEstimator(cfg, 1_700_000_000_000)
-		lastNotarised := &ExecutionResultMetaData{HeaderNonce: 1, HeaderTimeMs: erie.GenesisTimeMs + 1000, GasUsed: 100}
+		lastNotarised := &ExecutionResultMetaData{HeaderNonce: 1, HeaderTimeMs: erie.genesisTimeMs + 1000, GasUsed: 100}
 		pending := []ExecutionResultMetaData{
 			{HeaderNonce: 2, HeaderTimeMs: lastNotarised.HeaderTimeMs - 1, GasUsed: 50},
 		}

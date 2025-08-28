@@ -14,10 +14,10 @@ var tGas = uint64(1)
 
 // ExecutionResultMetaData is a lightweight summary EIE requires.
 type ExecutionResultMetaData struct {
-	HeaderHash   [32]byte // Link to full header in DB / cache
-	HeaderNonce  uint64   // Monotonic within shard
-	HeaderTimeMs uint64   // Milliseconds since Unix epoch, from header
-	GasUsed      uint64   // Units actually consumed (post‑execution)
+	HeaderHash   []byte // Link to full header in DB / cache
+	HeaderNonce  uint64 // Monotonic within shard
+	HeaderTimeMs uint64 // Milliseconds since Unix epoch, from header
+	GasUsed      uint64 // Units actually consumed (post‑execution)
 }
 
 // ExecutionResultInclusionEstimator (EIE) is a deterministic component shipped with the MultiversX *Supernova*
@@ -26,16 +26,21 @@ type ExecutionResultMetaData struct {
 type ExecutionResultInclusionEstimator struct {
 	cfg           config.ExecutionResultInclusionEstimatorConfig // immutable after construction
 	tGas          uint64                                         // time per gas unit on minimum‑spec hardware - 1 ns per gas unit
-	GenesisTimeMs uint64                                         // required if lastNotarised == nil
+	genesisTimeMs uint64                                         // required if lastNotarised == nil
 	// TODO add also max estimated block gas capacity - used gas must be lower than this
 }
 
+// IsInterfaceNil returns true if there is no value under the interface
+func (erie *ExecutionResultInclusionEstimator) IsInterfaceNil() bool {
+	return erie == nil
+}
+
 // NewExecutionResultInclusionEstimator returns a new instance of EIE
-func NewExecutionResultInclusionEstimator(cfg config.ExecutionResultInclusionEstimatorConfig, GenesisTimeMs uint64) *ExecutionResultInclusionEstimator {
+func NewExecutionResultInclusionEstimator(cfg config.ExecutionResultInclusionEstimatorConfig, genesisTimeMs uint64) *ExecutionResultInclusionEstimator {
 	return &ExecutionResultInclusionEstimator{
 		cfg:           cfg,
 		tGas:          tGas,
-		GenesisTimeMs: GenesisTimeMs,
+		genesisTimeMs: genesisTimeMs,
 	}
 }
 
@@ -54,7 +59,7 @@ func (erie *ExecutionResultInclusionEstimator) Decide(lastNotarised *ExecutionRe
 	var tBase uint64
 	// lastNotarised is nil if genesis.
 	if lastNotarised == nil {
-		tBase = convertMsToNs(erie.GenesisTimeMs)
+		tBase = convertMsToNs(erie.genesisTimeMs)
 	} else {
 		tBase = convertMsToNs(lastNotarised.HeaderTimeMs)
 	}
@@ -130,7 +135,7 @@ func (erie *ExecutionResultInclusionEstimator) Decide(lastNotarised *ExecutionRe
 	return len(pending)
 }
 
-func (erie ExecutionResultInclusionEstimator) checkSanity(currentExecutionResultMeta ExecutionResultMetaData,
+func (erie *ExecutionResultInclusionEstimator) checkSanity(currentExecutionResultMeta ExecutionResultMetaData,
 	previousExecutionResultMeta *ExecutionResultMetaData,
 	lastNotarised *ExecutionResultMetaData,
 	currentHdrTsNs uint64,
@@ -154,11 +159,11 @@ func (erie ExecutionResultInclusionEstimator) checkSanity(currentExecutionResult
 		return false
 	}
 	// Check for time before genesis time
-	if currentExecutionResultMeta.HeaderTimeMs < erie.GenesisTimeMs {
+	if currentExecutionResultMeta.HeaderTimeMs < erie.genesisTimeMs {
 		log.Debug("ExecutionResultInclusionEstimator: HeaderTimeMs before genesis detected",
 			"headerNonce", currentExecutionResultMeta.HeaderNonce,
 			"headerTimeMs", currentExecutionResultMeta.HeaderTimeMs,
-			"genesisTimeMs", erie.GenesisTimeMs,
+			"genesisTimeMs", erie.genesisTimeMs,
 		)
 		return false
 	}
