@@ -23,7 +23,7 @@ func TestNewSelectionSession(t *testing.T) {
 		TransactionsProcessor: &testscommon.TxProcessorStub{},
 	})
 	require.Nil(t, session)
-	require.ErrorIs(t, err, process.ErrNilAccountsAdapter)
+	require.ErrorIs(t, err, state.ErrNilAccountsAdapter)
 
 	session, err = NewSelectionSession(ArgsSelectionSession{
 		AccountsAdapter:       &stateMock.AccountsStub{},
@@ -90,54 +90,6 @@ func TestSelectionSession_GetAccountNonceAndBalance(t *testing.T) {
 	require.Equal(t, uint64(0), nonce)
 	require.Equal(t, "0", balance.String())
 	require.False(t, existing)
-}
-
-func TestSelectionSession_getCachedUserAccount(t *testing.T) {
-	t.Parallel()
-
-	accounts := &stateMock.AccountsStub{}
-	processor := &testscommon.TxProcessorStub{}
-
-	accounts.GetExistingAccountCalled = func(address []byte) (vmcommon.AccountHandler, error) {
-		if bytes.Equal(address, []byte("alice")) {
-			return &stateMock.UserAccountStub{
-				Address: []byte("alice"),
-				Nonce:   42,
-				Balance: big.NewInt(3000000000000000000),
-			}, nil
-		}
-
-		if bytes.Equal(address, []byte("bob")) {
-			return &stateMock.UserAccountStub{
-				Address: []byte("bob"),
-				Nonce:   7,
-				Balance: big.NewInt(1000000000000000000),
-			}, nil
-		}
-
-		return nil, state.ErrAccNotFound
-	}
-
-	session, err := NewSelectionSession(ArgsSelectionSession{
-		AccountsAdapter:       accounts,
-		TransactionsProcessor: processor,
-	})
-	require.NoError(t, err)
-	require.NotNil(t, session)
-
-	account, err := session.getCachedUserAccount([]byte("alice"))
-	require.NoError(t, err)
-	require.Equal(t, uint64(42), account.GetNonce())
-	require.Equal(t, "3000000000000000000", account.GetBalance().String())
-
-	account, err = session.getCachedUserAccount([]byte("bob"))
-	require.NoError(t, err)
-	require.Equal(t, uint64(7), account.GetNonce())
-	require.Equal(t, "1000000000000000000", account.GetBalance().String())
-
-	account, err = session.getCachedUserAccount([]byte("carol"))
-	require.NoError(t, err)
-	require.Nil(t, account)
 }
 
 func TestSelectionSession_GetRootHash(t *testing.T) {
@@ -207,43 +159,4 @@ func TestSelectionSession_IsIncorrectlyGuarded(t *testing.T) {
 	// Bad account type (programming error).
 	isIncorrectlyGuarded = session.IsIncorrectlyGuarded(&transaction.Transaction{Nonce: 45, SndAddr: []byte("bob")})
 	require.False(t, isIncorrectlyGuarded)
-}
-
-func TestSelectionSession_ephemeralAccountsCache_IsSharedAmongCalls(t *testing.T) {
-	t.Parallel()
-
-	accounts := &stateMock.AccountsStub{}
-	processor := &testscommon.TxProcessorStub{}
-
-	numCallsGetExistingAccount := 0
-
-	accounts.GetExistingAccountCalled = func(_ []byte) (vmcommon.AccountHandler, error) {
-		numCallsGetExistingAccount++
-		return &stateMock.UserAccountStub{}, nil
-	}
-
-	session, err := NewSelectionSession(ArgsSelectionSession{
-		AccountsAdapter:       accounts,
-		TransactionsProcessor: processor,
-	})
-	require.NoError(t, err)
-	require.NotNil(t, session)
-
-	_, _ = session.getCachedUserAccount([]byte("alice"))
-	require.Equal(t, 1, numCallsGetExistingAccount)
-
-	_, _ = session.getCachedUserAccount([]byte("alice"))
-	require.Equal(t, 1, numCallsGetExistingAccount)
-
-	_ = session.IsIncorrectlyGuarded(&transaction.Transaction{Nonce: 42, SndAddr: []byte("alice")})
-	require.Equal(t, 1, numCallsGetExistingAccount)
-
-	_, _ = session.getCachedUserAccount([]byte("bob"))
-	require.Equal(t, 2, numCallsGetExistingAccount)
-
-	_, _ = session.getCachedUserAccount([]byte("bob"))
-	require.Equal(t, 2, numCallsGetExistingAccount)
-
-	_ = session.IsIncorrectlyGuarded(&transaction.Transaction{Nonce: 42, SndAddr: []byte("bob")})
-	require.Equal(t, 2, numCallsGetExistingAccount)
 }

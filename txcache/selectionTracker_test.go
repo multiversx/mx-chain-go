@@ -14,7 +14,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func proposeBlocks(t *testing.T, numOfBlocks int, selectionTracker *selectionTracker) {
+func proposeBlocks(t *testing.T, numOfBlocks int, selectionTracker *selectionTracker, accountsProvider AccountNonceAndBalanceProvider) {
 	blockchainInfo := holders.NewBlockchainInfo([]byte("hash0"), nil, 20)
 
 	for i := 1; i < numOfBlocks+1; i++ {
@@ -26,7 +26,7 @@ func proposeBlocks(t *testing.T, numOfBlocks int, selectionTracker *selectionTra
 				PrevHash: []byte(fmt.Sprintf("hash%d", i-1)),
 				RootHash: []byte("rootHash0"),
 			},
-			nil,
+			accountsProvider,
 			blockchainInfo,
 		)
 		require.Nil(t, err)
@@ -108,7 +108,7 @@ func TestSelectionTracker_OnProposedBlockShouldErr(t *testing.T) {
 		require.Equal(t, errNilBlockBody, err)
 	})
 
-	t.Run("should err nil header", func(t *testing.T) {
+	t.Run("should err nil block header", func(t *testing.T) {
 		t.Parallel()
 
 		txCache := newCacheToTest(maxNumBytesPerSenderUpperBoundTest, 3)
@@ -118,6 +118,17 @@ func TestSelectionTracker_OnProposedBlockShouldErr(t *testing.T) {
 		blockBody := block.Body{}
 		err = tracker.OnProposedBlock([]byte("hash1"), &blockBody, nil, nil, nil)
 		require.Equal(t, errNilHeaderHandler, err)
+	})
+
+	t.Run("should err nil accounts provider", func(t *testing.T) {
+		t.Parallel()
+
+		txCache := newCacheToTest(maxNumBytesPerSenderUpperBoundTest, 3)
+		tracker, err := NewSelectionTracker(txCache)
+		require.Nil(t, err)
+
+		err = tracker.OnProposedBlock([]byte("hash1"), &block.Body{}, &block.Header{}, nil, nil)
+		require.Equal(t, errNilAccountNonceAndBalanceProvider, err)
 	})
 
 	t.Run("should return errNonceGap", func(t *testing.T) {
@@ -141,7 +152,7 @@ func TestSelectionTracker_OnProposedBlockShouldErr(t *testing.T) {
 			},
 		}
 
-		selectionSessionMock := &txcachemocks.SelectionSessionMock{
+		accountsProvider := &txcachemocks.AccountNonceAndBalanceProviderMock{
 			GetAccountNonceAndBalanceCalled: func(address []byte) (uint64, *big.Int, bool, error) {
 				return 1, big.NewInt(20), true, nil
 			},
@@ -151,7 +162,7 @@ func TestSelectionTracker_OnProposedBlockShouldErr(t *testing.T) {
 			Nonce:    uint64(0),
 			PrevHash: []byte(fmt.Sprintf("prevHash%d", 0)),
 			RootHash: []byte(fmt.Sprintf("rootHash%d", 0)),
-		}, selectionSessionMock, defaultBlockchainInfo)
+		}, accountsProvider, defaultBlockchainInfo)
 
 		require.Equal(t, errNonceGap, err)
 	})
@@ -190,7 +201,7 @@ func TestSelectionTracker_OnProposedBlockShouldErr(t *testing.T) {
 			},
 		}
 
-		mockSelectionSession := txcachemocks.SelectionSessionMock{
+		accountsProvider := &txcachemocks.AccountNonceAndBalanceProviderMock{
 			GetAccountNonceAndBalanceCalled: func(address []byte) (uint64, *big.Int, bool, error) {
 				return 1, big.NewInt(20), true, nil
 			},
@@ -200,7 +211,7 @@ func TestSelectionTracker_OnProposedBlockShouldErr(t *testing.T) {
 			Nonce:    uint64(0),
 			PrevHash: []byte(fmt.Sprintf("prevHash%d", 0)),
 			RootHash: []byte(fmt.Sprintf("rootHash%d", 0)),
-		}, &mockSelectionSession, holders.NewBlockchainInfo(
+		}, accountsProvider, holders.NewBlockchainInfo(
 			[]byte(fmt.Sprintf("prevHash%d", 0)),
 			nil,
 			1,
@@ -211,7 +222,7 @@ func TestSelectionTracker_OnProposedBlockShouldErr(t *testing.T) {
 			Nonce:    uint64(1),
 			PrevHash: []byte(fmt.Sprintf("hash%d", 1)),
 			RootHash: []byte(fmt.Sprintf("rootHash%d", 0)),
-		}, &mockSelectionSession, holders.NewBlockchainInfo(
+		}, accountsProvider, holders.NewBlockchainInfo(
 			[]byte("prevHash0"),
 			[]byte("hash1"),
 			2,
@@ -253,7 +264,7 @@ func TestSelectionTracker_OnProposedBlockShouldErr(t *testing.T) {
 			},
 		}
 
-		mockSelectionSession := txcachemocks.SelectionSessionMock{
+		accountsProvider := &txcachemocks.AccountNonceAndBalanceProviderMock{
 			GetAccountNonceAndBalanceCalled: func(address []byte) (uint64, *big.Int, bool, error) {
 				return 1, big.NewInt(20), true, nil
 			},
@@ -263,7 +274,7 @@ func TestSelectionTracker_OnProposedBlockShouldErr(t *testing.T) {
 			Nonce:    uint64(0),
 			PrevHash: []byte(fmt.Sprintf("prevHash%d", 0)),
 			RootHash: []byte(fmt.Sprintf("rootHash%d", 0)),
-		}, &mockSelectionSession, holders.NewBlockchainInfo(
+		}, accountsProvider, holders.NewBlockchainInfo(
 			[]byte(fmt.Sprintf("prevHash%d", 0)),
 			nil,
 			2,
@@ -274,7 +285,7 @@ func TestSelectionTracker_OnProposedBlockShouldErr(t *testing.T) {
 			Nonce:    uint64(1),
 			PrevHash: []byte(fmt.Sprintf("hash%d", 1)),
 			RootHash: []byte(fmt.Sprintf("rootHash%d", 0)),
-		}, &mockSelectionSession, holders.NewBlockchainInfo(
+		}, accountsProvider, holders.NewBlockchainInfo(
 			[]byte(fmt.Sprintf("prevHash%d", 0)),
 			nil,
 			2))
@@ -302,7 +313,7 @@ func TestSelectionTracker_OnProposedBlockShouldErr(t *testing.T) {
 			},
 		}
 
-		mockSelectionSession := txcachemocks.SelectionSessionMock{
+		accountsProvider := &txcachemocks.AccountNonceAndBalanceProviderMock{
 			GetAccountNonceAndBalanceCalled: func(address []byte) (uint64, *big.Int, bool, error) {
 				return 0, nil, false, expectedErr
 			},
@@ -312,7 +323,7 @@ func TestSelectionTracker_OnProposedBlockShouldErr(t *testing.T) {
 			Nonce:    uint64(0),
 			PrevHash: []byte(fmt.Sprintf("prevHash%d", 0)),
 			RootHash: []byte(fmt.Sprintf("rootHash%d", 0)),
-		}, &mockSelectionSession, holders.NewBlockchainInfo([]byte("prevHash0"), nil, 1))
+		}, accountsProvider, holders.NewBlockchainInfo([]byte("prevHash0"), nil, 1))
 		require.Equal(t, expectedErr, err)
 	})
 }
@@ -325,7 +336,9 @@ func TestSelectionTracker_OnProposedBlockShouldWork(t *testing.T) {
 	require.Nil(t, err)
 
 	numOfBlocks := 20
-	proposeBlocks(t, numOfBlocks, tracker)
+	accountsProvider := txcachemocks.NewAccountNonceAndBalanceProviderMock()
+
+	proposeBlocks(t, numOfBlocks, tracker, accountsProvider)
 	require.Equal(t, 20, len(tracker.blocks))
 }
 
@@ -360,8 +373,9 @@ func TestSelectionTracker_OnExecutedBlockShouldWork(t *testing.T) {
 	require.Nil(t, err)
 
 	numOfBlocks := 20
+	accountsProvider := txcachemocks.NewAccountNonceAndBalanceProviderMock()
 
-	proposeBlocks(t, numOfBlocks, tracker)
+	proposeBlocks(t, numOfBlocks, tracker, accountsProvider)
 	require.Equal(t, numOfBlocks, len(tracker.blocks))
 
 	executeBlocksConcurrently(t, numOfBlocks, tracker)
@@ -374,6 +388,7 @@ func TestSelectionTracker_OnExecutedBlockShouldDeleteAllBlocksBelowSpecificNonce
 	t.Parallel()
 
 	txCache := newCacheToTest(maxNumBytesPerSenderUpperBoundTest, 3)
+	accountsProvider := txcachemocks.NewAccountNonceAndBalanceProviderMock()
 	tracker, err := NewSelectionTracker(txCache, maxTrackedBlocks)
 	require.Nil(t, err)
 
@@ -385,7 +400,7 @@ func TestSelectionTracker_OnExecutedBlockShouldDeleteAllBlocksBelowSpecificNonce
 			PrevHash: nil,
 			RootHash: nil,
 		},
-		nil,
+		accountsProvider,
 		defaultBlockchainInfo,
 	)
 	require.Nil(t, err)
@@ -398,7 +413,7 @@ func TestSelectionTracker_OnExecutedBlockShouldDeleteAllBlocksBelowSpecificNonce
 			PrevHash: []byte(fmt.Sprintf("blockHash%d", 0)),
 			RootHash: []byte(fmt.Sprintf("rootHash%d", 0)),
 		},
-		nil,
+		accountsProvider,
 		defaultBlockchainInfo,
 	)
 	require.Nil(t, err)
@@ -411,7 +426,7 @@ func TestSelectionTracker_OnExecutedBlockShouldDeleteAllBlocksBelowSpecificNonce
 			PrevHash: []byte(fmt.Sprintf("blockHash%d", 1)),
 			RootHash: []byte(fmt.Sprintf("rootHash%d", 0)),
 		},
-		nil,
+		accountsProvider,
 		defaultBlockchainInfo,
 	)
 	require.Nil(t, err)
@@ -424,7 +439,7 @@ func TestSelectionTracker_OnExecutedBlockShouldDeleteAllBlocksBelowSpecificNonce
 			PrevHash: []byte(fmt.Sprintf("blockHash%d", 2)),
 			RootHash: []byte(fmt.Sprintf("rootHash%d", 0)),
 		},
-		nil,
+		accountsProvider,
 		defaultBlockchainInfo,
 	)
 	require.Nil(t, err)
@@ -705,7 +720,7 @@ func TestSelectionTracker_computeNumberOfTxsInMiniBlocks(t *testing.T) {
 	})
 }
 
-func TestSelectionTracker_getTransactionsFromBlock(t *testing.T) {
+func TestSelectionTracker_getTransactionsInBlock(t *testing.T) {
 	t.Parallel()
 
 	t.Run("should work", func(t *testing.T) {
@@ -733,7 +748,7 @@ func TestSelectionTracker_getTransactionsFromBlock(t *testing.T) {
 		selTracker, err := NewSelectionTracker(txCache, maxTrackedBlocks)
 		require.Nil(t, err)
 
-		txs, err := selTracker.getTransactionsFromBlock(&blockBody)
+		txs, err := selTracker.getTransactionsInBlock(&blockBody)
 		require.Nil(t, err)
 		require.Equal(t, 3, len(txs))
 	})
@@ -762,7 +777,7 @@ func TestSelectionTracker_getTransactionsFromBlock(t *testing.T) {
 		selTracker, err := NewSelectionTracker(txCache, maxTrackedBlocks)
 		require.Nil(t, err)
 
-		txs, err := selTracker.getTransactionsFromBlock(&blockBody)
+		txs, err := selTracker.getTransactionsInBlock(&blockBody)
 		require.Nil(t, txs)
 		require.Equal(t, errNotFoundTx, err)
 	})
