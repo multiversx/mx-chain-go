@@ -24,6 +24,7 @@ var oneQuintillionBig = big.NewInt(oneQuintillion)
 
 // The GitHub Actions runners are (extremely) slow. The variable is expressed in milliseconds.
 const selectionLoopMaximumDuration = 30_000
+const cleanupLoopMaximumDuration = 30_000
 
 var randomHashes = newRandomData(math.MaxUint16, hashLength)
 var randomAddresses = newRandomData(math.MaxUint16, addressLength)
