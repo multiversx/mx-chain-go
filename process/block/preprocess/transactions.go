@@ -1474,8 +1474,8 @@ func (txs *transactions) computeSortedTxs(
 		txs.txCacheSelectionConfig.SelectionLoopDurationCheckInterval,
 	)
 
-	defaultBlockchainInfo := holders.NewBlockchainInfo(nil, nil, 0)
-	sortedTxs, _ := txCache.SelectTransactions(session, selectionOptions, defaultBlockchainInfo)
+	blockchainInfo := holders.NewBlockchainInfo(nil, nil, 0)
+	sortedTxs, _ := txCache.SelectTransactions(session, selectionOptions, blockchainInfo)
 	selectedTxs, remainingTxs := txs.preFilterTransactionsWithMoveBalancePriority(sortedTxs, gasBandwidth)
 	txs.sortTransactionsBySenderAndNonce(selectedTxs, randomness)
 

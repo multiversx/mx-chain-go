@@ -4,6 +4,8 @@ import (
 	"math/big"
 
 	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/txcache"
 )
@@ -19,6 +21,8 @@ type txCache interface {
 	NumBytes() int
 	Diagnose(deep bool)
 	GetTransactionsPoolForSender(sender string) []*txcache.WrappedTransaction
+	OnProposedBlock(blockHash []byte, blockBody *block.Body, blockHeader data.HeaderHandler, accountsProvider txcache.AccountNonceAndBalanceProvider, blockchainInfo common.BlockchainInfo) error
+	OnExecutedBlock(blockHeader data.HeaderHandler) error
 }
 
 type txGasHandler interface {

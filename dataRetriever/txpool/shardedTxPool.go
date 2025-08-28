@@ -8,6 +8,8 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/counting"
 	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/storage"
@@ -418,4 +420,16 @@ func (txPool *shardedTxPool) CleanupSelfShardTxCache(session interface{}, random
 	)
 
 	return true
+}
+
+// OnProposedBlock notifies the underlying TxCache
+func (txPool *shardedTxPool) OnProposedBlock(blockHash []byte, blockBody *block.Body, blockHeader data.HeaderHandler, accountsProvider txcache.AccountNonceAndBalanceProvider, blockchainInfo common.BlockchainInfo) error {
+	txCache := txPool.getSelfShardTxCache()
+	return txCache.OnProposedBlock(blockHash, blockBody, blockHeader, accountsProvider, blockchainInfo)
+}
+
+// OnExecutedBlock notifies the underlying TxCache
+func (txPool *shardedTxPool) OnExecutedBlock(blockHeader data.HeaderHandler) error {
+	txCache := txPool.getSelfShardTxCache()
+	return txCache.OnExecutedBlock(blockHeader)
 }
