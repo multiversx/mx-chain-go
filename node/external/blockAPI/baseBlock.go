@@ -823,3 +823,47 @@ func putAllTxsFromMbsInAMap(mbs []*api.MiniBlock) map[string]*transaction.ApiTra
 
 	return txsMap
 }
+
+func addExecutionResultsAndLastExecutionResults(header data.HeaderHandler, apiBlock *api.Block) {
+	if !header.IsHeaderV3() {
+		return
+	}
+
+	lastExecutionResult := header.GetLastExecutionResultHandler()
+	apiBlock.LastExecutionResult = &api.ExecutionResult{}
+
+	switch executionResult := lastExecutionResult.(type) {
+	case *block.MetaExecutionResultInfo:
+		updateExecutionResultMeta(executionResult.ExecutionResult, apiBlock.LastExecutionResult)
+	case *block.ExecutionResultInfo:
+		updateExecutionResult(executionResult.ExecutionResult, apiBlock.LastExecutionResult)
+	}
+
+	currentExecutionResults := header.GetExecutionResultsHandlers()
+	if len(currentExecutionResults) == 0 {
+		return
+	}
+
+	apiBlock.ExecutionResults = make([]*api.ExecutionResult, len(currentExecutionResults))
+	for i, currentExecutionResult := range currentExecutionResults {
+		apiBlock.ExecutionResults[i] = &api.ExecutionResult{}
+		updateExecutionResult(currentExecutionResult, apiBlock.ExecutionResults[i])
+	}
+}
+
+func updateExecutionResultMeta(executionResult *block.BaseMetaExecutionResult, apiExecutionResult *api.ExecutionResult) {
+	updateExecutionResult(executionResult, apiExecutionResult)
+
+	apiExecutionResult.ValidatorStatsRootHash = hex.EncodeToString(executionResult.ValidatorStatsRootHash)
+	apiExecutionResult.AccumulatedFeesInEpoch = executionResult.AccumulatedFeesInEpoch.String()
+	apiExecutionResult.DevFeesInEpoch = executionResult.DevFeesInEpoch.String()
+
+}
+
+func updateExecutionResult(executionResult data.BaseExecutionResultHandler, apiExecutionResult *api.ExecutionResult) {
+	apiExecutionResult.HeaderHash = hex.EncodeToString(executionResult.GetHeaderHash())
+	apiExecutionResult.HeaderNonce = executionResult.GetHeaderNonce()
+	apiExecutionResult.HeaderRound = executionResult.GetHeaderRound()
+	apiExecutionResult.HeaderEpoch = executionResult.GetHeaderEpoch()
+	apiExecutionResult.RootHash = hex.EncodeToString(executionResult.GetRootHash())
+}
