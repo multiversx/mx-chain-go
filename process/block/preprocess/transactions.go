@@ -246,8 +246,31 @@ func (txs *transactions) RemoveBlockDataFromPools(body *block.Body, miniBlockPoo
 }
 
 // RemoveTxsFromPools removes transactions from associated pools
+// TODO CleanupSelfShardTxCache - Check whether is all right to pass the selection session from here. Maybe find an alternative?
+// TODO CleanupSelfShardTxCache - Maybe find a solution to use block nonce instead of randomness
 func (txs *transactions) RemoveTxsFromPools(body *block.Body) error {
-	return txs.removeTxsFromPools(body, txs.txPool, txs.isMiniBlockCorrect)
+	session, err := NewSelectionSession(ArgsSelectionSession{
+		AccountsAdapter:       txs.accounts,
+		TransactionsProcessor: txs.txProcessor,
+	})
+	if err != nil {
+		return err
+	}
+
+	err = txs.removeTxsFromPools(body, txs.txPool, txs.isMiniBlockCorrect)
+	if err != nil {
+		return err
+	}
+
+	_, ok := txs.txPool.(dataRetriever.CleanupCapableCacher)
+	if !ok {
+		log.Warn("txPool does not implement TxCache interface")
+	}
+
+	randomness := helpers.ComputeRandomnessForCleanup(body)
+	txs.txPool.CleanupSelfShardTxCache(session, randomness, process.TxCacheCleanupMaxNumTxs, process.TxCacheCleanupLoopMaximumDuration)
+
+	return err
 }
 
 // RestoreBlockDataIntoPools restores the transactions and miniblocks to associated pools

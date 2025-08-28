@@ -167,6 +167,8 @@ type PeerListCreator interface {
 }
 
 // ShardedDataCacherNotifier defines what a sharded-data structure can perform
+// TODO CleanupSelfShardTxCache - Check whether we can replace interface{} although session package not available here
+// TODO CleanupSelfShardTxCache - Check whether is all right to pass the selection session from here. Maybe find an alternative?
 type ShardedDataCacherNotifier interface {
 	RegisterOnAdded(func(key []byte, value interface{}))
 	ShardDataStore(cacheId string) (c storage.Cacher)
@@ -182,6 +184,11 @@ type ShardedDataCacherNotifier interface {
 	GetCounts() counting.CountsWithSize
 	Keys() [][]byte
 	IsInterfaceNil() bool
+	CleanupSelfShardTxCache(session interface{}, randomness uint64, maxNum int, cleanupLoopMaximumDuration time.Duration) bool
+}
+
+type CleanupCapableCacher interface {
+	CleanupSelfShardTxCache(session interface{}, randomness uint64, maxNum int, cleanupLoopMaximumDuration time.Duration) bool
 }
 
 // ShardIdHashMap represents a map for shardId and hash

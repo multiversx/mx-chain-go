@@ -4,6 +4,7 @@ import "errors"
 
 var errNilMempoolHost = errors.New("nil mempool host")
 var errNilSelectionSession = errors.New("nil selection session")
+var errNilAccountNonceAndBalanceProvider = errors.New("nil account nonce and balance provider")
 var errItemAlreadyInCache = errors.New("item already in cache")
 var errEmptyBunchOfTransactions = errors.New("empty bunch of transactions")
 var errNilBlockBody = errors.New("nil block body")
