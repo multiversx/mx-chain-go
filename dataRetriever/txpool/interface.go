@@ -2,6 +2,7 @@ package txpool
 
 import (
 	"math/big"
+	"time"
 
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
@@ -23,6 +24,7 @@ type txCache interface {
 	GetTransactionsPoolForSender(sender string) []*txcache.WrappedTransaction
 	OnProposedBlock(blockHash []byte, blockBody *block.Body, blockHeader data.HeaderHandler, accountsProvider txcache.AccountNonceAndBalanceProvider, blockchainInfo common.BlockchainInfo) error
 	OnExecutedBlock(blockHeader data.HeaderHandler) error
+	Cleanup(session txcache.SelectionSession, randomness uint64, maxNum int, cleanupLoopMaximumDurationMs time.Duration) uint64
 }
 
 type txGasHandler interface {

@@ -17,7 +17,7 @@ type ShardedDataCacheNotifierMock struct {
 }
 
 // CleanupSelfShardTxCache -
-func (mock *ShardedDataCacheNotifierMock) CleanupSelfShardTxCache(session interface{}, randomness uint64, maxNum int, cleanupLoopMaximumDuration time.Duration) bool {
+func (mock *ShardedDataCacheNotifierMock) CleanupSelfShardTxCache(session interface{}, randomness uint64, maxNum int, cleanupLoopMaximumDuration time.Duration) {
 	panic("unimplemented")
 }
 

@@ -1,6 +1,8 @@
 package txcache
 
 import (
+	"time"
+
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-go/common"
@@ -134,6 +136,11 @@ func (cache *DisabledCache) OnProposedBlock(_ []byte, _ *block.Body, _ data.Head
 // OnExecutedBlock does nothing
 func (cache *DisabledCache) OnExecutedBlock(data.HeaderHandler) error {
 	return nil
+}
+
+// Cleanup does nothing
+func (cache *DisabledCache) Cleanup(_ SelectionSession, _ uint64, _ int, _ time.Duration) uint64 {
+	return 0
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

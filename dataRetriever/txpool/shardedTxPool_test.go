@@ -289,10 +289,6 @@ func TestCleanupSelfShardTxCache_NilMempool(t *testing.T) {
 		require.NotPanics(t, func() {
 			txPool.CleanupSelfShardTxCache(session, 7, math.MaxInt, cleanupLoopMaximumDuration)
 		})
-
-		ok := txPool.CleanupSelfShardTxCache(session, 7, math.MaxInt, cleanupLoopMaximumDuration)
-		t.Logf("shardedTxPool.CleanupSelfShardTxCache() starting cleanup %d", txPool.selfShardID)
-		require.True(t, ok)
 	})
 }
 
@@ -321,11 +317,12 @@ func Test_Parallel_CleanupSelfShardTxCache(t *testing.T) {
 		pool.AddData([]byte("hash-carol-7"), createTx("carol", 7), 0, "0")
 		pool.AddData([]byte("hash-carol-8"), createTx("carol", 8), 0, "0")
 
-		cleanupLoopMaximumDuration := time.Millisecond * 100
+		require.Equal(t, int64(8), pool.GetCounts().GetTotal())
 
-		ok := pool.CleanupSelfShardTxCache(session, 7, math.MaxInt, cleanupLoopMaximumDuration)
-		t.Logf("shardedTxPool.CleanupSelfShardTxCache() starting cleanup %d", pool.selfShardID)
-		require.True(t, ok)
+		cleanupLoopMaximumDuration := time.Millisecond * 100
+		pool.CleanupSelfShardTxCache(session, 7, math.MaxInt, cleanupLoopMaximumDuration)
+
+		require.Equal(t, int64(5), pool.GetCounts().GetTotal())
 	})
 }
 
@@ -510,6 +507,8 @@ func Test_routeToCacheUnions(t *testing.T) {
 }
 
 func TestShardedTxPool_getSelfShardTxCache(t *testing.T) {
+	t.Parallel()
+
 	cacheConfig := storageunit.CacheConfig{
 		Capacity:             100,
 		SizePerSender:        10,
@@ -533,6 +532,8 @@ func TestShardedTxPool_getSelfShardTxCache(t *testing.T) {
 }
 
 func TestShardedTxPool_OnProposedBlock_And_OnExecutedBlock(t *testing.T) {
+	t.Parallel()
+
 	cacheConfig := storageunit.CacheConfig{
 		Capacity:             100,
 		SizePerSender:        10,
@@ -555,6 +556,8 @@ func TestShardedTxPool_OnProposedBlock_And_OnExecutedBlock(t *testing.T) {
 	require.Nil(t, err)
 
 	t.Run("OnProposedBlock calls TxCache.OnProposedBlock", func(t *testing.T) {
+		t.Parallel()
+
 		err = pool.OnProposedBlock(nil, nil, nil, nil, nil)
 		require.ErrorContains(t, err, "nil block hash")
 
@@ -569,6 +572,8 @@ func TestShardedTxPool_OnProposedBlock_And_OnExecutedBlock(t *testing.T) {
 	})
 
 	t.Run("OnExecutedBlock calls TxCache.OnExecutedBlock", func(t *testing.T) {
+		t.Parallel()
+
 		err = pool.OnExecutedBlock(nil)
 		require.ErrorContains(t, err, "nil header handler")
 
