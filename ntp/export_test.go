@@ -43,8 +43,8 @@ func (s *syncTime) GetSleepTime() time.Duration {
 
 // IsResponseTimeWithinAcceptedBounds -
 func (s *syncTime) IsResponseTimeWithinAcceptedBounds(
-	responseDurations int64,
+	accumulatedResponseDurations int64,
 	numSuccessfulRequests int64,
 ) bool {
-	return s.isResponseTimeWithinAcceptedBounds(responseDurations, numSuccessfulRequests)
+	return s.isResponseTimeWithinAcceptedBounds(accumulatedResponseDurations, numSuccessfulRequests)
 }
