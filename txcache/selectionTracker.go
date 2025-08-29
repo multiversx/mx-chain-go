@@ -184,7 +184,7 @@ func (st *selectionTracker) addNewTrackedBlockNoLock(blockToBeAddedHash []byte, 
 				"nonce", blockToBeAdded.nonce,
 			)
 
-			// delete that block and break because there should me maximum one tracked block with that nonce
+			// delete that block and break because there should be maximum one tracked block with that nonce
 			delete(st.blocks, bHash)
 			break
 		}
@@ -194,7 +194,7 @@ func (st *selectionTracker) addNewTrackedBlockNoLock(blockToBeAddedHash []byte, 
 	st.blocks[string(blockToBeAddedHash)] = blockToBeAdded
 
 	if len(st.blocks) == int(st.maxTrackedBlocks) {
-		log.Warn("selectionTracker.OnProposedBlock: max tracked blocks reached",
+		log.Warn("selectionTracker.addNewTrackedBlockNoLock: max tracked blocks reached",
 			"len(st.blocks)", len(st.blocks),
 		)
 
