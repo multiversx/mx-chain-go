@@ -55,79 +55,13 @@ type shardProcessor struct {
 
 // NewShardProcessor creates a new shardProcessor object
 func NewShardProcessor(arguments ArgShardProcessor) (*shardProcessor, error) {
-	err := checkProcessorParameters(arguments.ArgBaseProcessor)
+	base, err := NewBaseProcessor(arguments.ArgBaseProcessor)
 	if err != nil {
 		return nil, err
 	}
 
-	if check.IfNil(arguments.DataComponents.Datapool()) {
-		return nil, process.ErrNilDataPoolHolder
-	}
-	if check.IfNil(arguments.DataComponents.Datapool().Headers()) {
-		return nil, process.ErrNilHeadersDataPool
-	}
 	if check.IfNil(arguments.DataComponents.Datapool().Transactions()) {
 		return nil, process.ErrNilTransactionPool
-	}
-	genesisHdr := arguments.DataComponents.Blockchain().GetGenesisHeader()
-	if check.IfNil(genesisHdr) {
-		return nil, fmt.Errorf("%w for genesis header in DataComponents.Blockchain", process.ErrNilHeaderHandler)
-	}
-
-	processDebugger, err := createDisabledProcessDebugger()
-	if err != nil {
-		return nil, err
-	}
-
-	base := &baseProcessor{
-		accountsDB:                    arguments.AccountsDB,
-		blockSizeThrottler:            arguments.BlockSizeThrottler,
-		forkDetector:                  arguments.ForkDetector,
-		hasher:                        arguments.CoreComponents.Hasher(),
-		marshalizer:                   arguments.CoreComponents.InternalMarshalizer(),
-		store:                         arguments.DataComponents.StorageService(),
-		shardCoordinator:              arguments.BootstrapComponents.ShardCoordinator(),
-		nodesCoordinator:              arguments.NodesCoordinator,
-		uint64Converter:               arguments.CoreComponents.Uint64ByteSliceConverter(),
-		requestHandler:                arguments.RequestHandler,
-		appStatusHandler:              arguments.StatusCoreComponents.AppStatusHandler(),
-		blockChainHook:                arguments.BlockChainHook,
-		txCoordinator:                 arguments.TxCoordinator,
-		roundHandler:                  arguments.CoreComponents.RoundHandler(),
-		epochStartTrigger:             arguments.EpochStartTrigger,
-		headerValidator:               arguments.HeaderValidator,
-		bootStorer:                    arguments.BootStorer,
-		blockTracker:                  arguments.BlockTracker,
-		dataPool:                      arguments.DataComponents.Datapool(),
-		blockChain:                    arguments.DataComponents.Blockchain(),
-		feeHandler:                    arguments.FeeHandler,
-		outportHandler:                arguments.StatusComponents.OutportHandler(),
-		genesisNonce:                  genesisHdr.GetNonce(),
-		versionedHeaderFactory:        arguments.BootstrapComponents.VersionedHeaderFactory(),
-		headerIntegrityVerifier:       arguments.BootstrapComponents.HeaderIntegrityVerifier(),
-		historyRepo:                   arguments.HistoryRepository,
-		epochNotifier:                 arguments.CoreComponents.EpochNotifier(),
-		enableEpochsHandler:           arguments.CoreComponents.EnableEpochsHandler(),
-		roundNotifier:                 arguments.CoreComponents.RoundNotifier(),
-		enableRoundsHandler:           arguments.CoreComponents.EnableRoundsHandler(),
-		epochChangeGracePeriodHandler: arguments.CoreComponents.EpochChangeGracePeriodHandler(),
-		vmContainerFactory:            arguments.VMContainersFactory,
-		vmContainer:                   arguments.VmContainer,
-		processDataTriesOnCommitEpoch: arguments.Config.Debug.EpochStart.ProcessDataTrieOnCommitEpoch,
-		gasConsumedProvider:           arguments.GasHandler,
-		economicsData:                 arguments.CoreComponents.EconomicsData(),
-		scheduledTxsExecutionHandler:  arguments.ScheduledTxsExecutionHandler,
-		pruningDelay:                  pruningDelay,
-		processedMiniBlocksTracker:    arguments.ProcessedMiniBlocksTracker,
-		receiptsRepository:            arguments.ReceiptsRepository,
-		processDebugger:               processDebugger,
-		outportDataProvider:           arguments.OutportDataProvider,
-		processStatusHandler:          arguments.CoreComponents.ProcessStatusHandler(),
-		blockProcessingCutoffHandler:  arguments.BlockProcessingCutoffHandler,
-		managedPeersHolder:            arguments.ManagedPeersHolder,
-		sentSignaturesTracker:         arguments.SentSignaturesTracker,
-		proofsPool:                    arguments.DataComponents.Datapool().Proofs(),
-		hdrsForCurrBlock:              arguments.HeadersForBlock,
 	}
 
 	sp := shardProcessor{

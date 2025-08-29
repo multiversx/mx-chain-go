@@ -10,8 +10,8 @@ type ExecutionResultsTrackerStub struct {
 	GetPendingExecutionResultsCalled       func() ([]data.ExecutionResultHandler, error)
 	GetPendingExecutionResultByHashCalled  func(hash []byte) (data.ExecutionResultHandler, error)
 	GetPendingExecutionResultByNonceCalled func(nonce uint64) (data.ExecutionResultHandler, error)
-	GetLastNotarizedExecutionResultCalled  func() (data.ExecutionResultHandler, error)
-	SetLastNotarizedResultCalled           func(executionResult data.ExecutionResultHandler) error
+	GetLastNotarizedExecutionResultCalled  func() (data.BaseExecutionResultHandler, error)
+	SetLastNotarizedResultCalled           func(executionResult data.BaseExecutionResultHandler) error
 }
 
 // AddExecutionResult -
@@ -47,7 +47,7 @@ func (ets *ExecutionResultsTrackerStub) GetPendingExecutionResultByNonce(nonce u
 }
 
 // GetLastNotarizedExecutionResult -
-func (ets *ExecutionResultsTrackerStub) GetLastNotarizedExecutionResult() (data.ExecutionResultHandler, error) {
+func (ets *ExecutionResultsTrackerStub) GetLastNotarizedExecutionResult() (data.BaseExecutionResultHandler, error) {
 	if ets.GetLastNotarizedExecutionResultCalled != nil {
 		return ets.GetLastNotarizedExecutionResultCalled()
 	}
@@ -55,7 +55,7 @@ func (ets *ExecutionResultsTrackerStub) GetLastNotarizedExecutionResult() (data.
 }
 
 // SetLastNotarizedResult -
-func (ets *ExecutionResultsTrackerStub) SetLastNotarizedResult(executionResult data.ExecutionResultHandler) error {
+func (ets *ExecutionResultsTrackerStub) SetLastNotarizedResult(executionResult data.BaseExecutionResultHandler) error {
 	if ets.SetLastNotarizedResultCalled != nil {
 		return ets.SetLastNotarizedResultCalled(executionResult)
 	}
