@@ -3,8 +3,6 @@ package preprocess
 import (
 	"math/big"
 
-	"github.com/multiversx/mx-chain-core-go/data"
-	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/txcache"
 )
@@ -12,8 +10,6 @@ import (
 // TxCache defines the functionality for the transactions cache
 type TxCache interface {
 	SelectTransactions(session txcache.SelectionSession, options common.TxSelectionOptions, blockchainInfo common.BlockchainInfo) ([]*txcache.WrappedTransaction, uint64)
-	OnProposedBlock(blockHash []byte, blockBody *block.Body, handler data.HeaderHandler, accountsProvider txcache.AccountNonceAndBalanceProvider, defaultBlockchainInfo common.BlockchainInfo) error
-	OnExecutedBlock(handler data.HeaderHandler) error
 	IsInterfaceNil() bool
 }
 

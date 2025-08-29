@@ -262,11 +262,6 @@ func (txs *transactions) RemoveTxsFromPools(body *block.Body) error {
 		return err
 	}
 
-	_, ok := txs.txPool.(dataRetriever.CleanupCapableCacher)
-	if !ok {
-		log.Warn("txPool does not implement TxCache interface")
-	}
-
 	randomness := helpers.ComputeRandomnessForCleanup(body)
 	txs.txPool.CleanupSelfShardTxCache(session, randomness, process.TxCacheCleanupMaxNumTxs, process.TxCacheCleanupLoopMaximumDuration)
 
@@ -1474,8 +1469,8 @@ func (txs *transactions) computeSortedTxs(
 		txs.txCacheSelectionConfig.SelectionLoopDurationCheckInterval,
 	)
 
-	defaultBlockchainInfo := holders.NewBlockchainInfo(nil, nil, 0)
-	sortedTxs, _ := txCache.SelectTransactions(session, selectionOptions, defaultBlockchainInfo)
+	blockchainInfo := holders.NewBlockchainInfo(nil, nil, 0)
+	sortedTxs, _ := txCache.SelectTransactions(session, selectionOptions, blockchainInfo)
 	selectedTxs, remainingTxs := txs.preFilterTransactionsWithMoveBalancePriority(sortedTxs, gasBandwidth)
 	txs.sortTransactionsBySenderAndNonce(selectedTxs, randomness)
 
