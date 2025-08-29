@@ -967,9 +967,9 @@ func TestSelectionTracker_addNewBlockNoLock(t *testing.T) {
 	tb1, err := newTrackedBlock(0, []byte("blockHash1"), []byte("rootHash0"), []byte("blockHash0"), nil)
 	tb2, err := newTrackedBlock(0, []byte("blockHash2"), []byte("rootHash0"), []byte("blockHash0"), nil)
 
-	tracker.addNewBlockNoLock([]byte("blockHash1"), tb1)
+	tracker.addNewTrackedBlockNoLock([]byte("blockHash1"), tb1)
 	require.Equal(t, len(tracker.blocks), 1)
 
-	tracker.addNewBlockNoLock([]byte("blockHash1"), tb2)
+	tracker.addNewTrackedBlockNoLock([]byte("blockHash1"), tb2)
 	require.Equal(t, len(tracker.blocks), 1)
 }
