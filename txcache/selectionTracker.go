@@ -103,7 +103,6 @@ func (st *selectionTracker) OnProposedBlock(
 		return err
 	}
 
-	// adds the new block in the map of tracked blocks, overwriting the block with the same nonce
 	st.addNewTrackedBlockNoLock(blockHash, tBlock)
 
 	return nil
@@ -178,14 +177,15 @@ func (st *selectionTracker) addNewTrackedBlockNoLock(blockToBeAddedHash []byte, 
 	// search if in the tracked block we already have one with same nonce
 	for bHash, b := range st.blocks {
 		if b.sameNonce(blockToBeAdded) {
-			log.Debug("selectionTracker.addNewTrackedBlockNoLock replaced block with same nonce",
-				"hash of replaced block", b.hash,
-				"new block", blockToBeAddedHash,
-				"nonce", blockToBeAdded.nonce,
-			)
-
 			// delete that block and break because there should be maximum one tracked block with that nonce
 			delete(st.blocks, bHash)
+
+			log.Debug("selectionTracker.addNewTrackedBlockNoLock block with same nonce was deleted, to be replaced",
+				"nonce", blockToBeAdded.nonce,
+				"hash of replaced block", b.hash,
+				"hash of new block", blockToBeAddedHash,
+			)
+
 			break
 		}
 	}
@@ -194,7 +194,7 @@ func (st *selectionTracker) addNewTrackedBlockNoLock(blockToBeAddedHash []byte, 
 	st.blocks[string(blockToBeAddedHash)] = blockToBeAdded
 
 	if len(st.blocks) == int(st.maxTrackedBlocks) {
-		log.Warn("selectionTracker.addNewTrackedBlockNoLock: max tracked blocks reached",
+		log.Warn("selectionTracker.addNewTrackedBlockNoLock: max tracked blocks reached, will be cleared",
 			"len(st.blocks)", len(st.blocks),
 		)
 

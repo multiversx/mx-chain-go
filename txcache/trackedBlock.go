@@ -38,12 +38,12 @@ func newTrackedBlock(
 	return tb, nil
 }
 
-func (tb *trackedBlock) sameNonceOrBelow(trackedBlock1 *trackedBlock) bool {
-	return tb.nonce <= trackedBlock1.nonce
+func (tb *trackedBlock) sameNonceOrBelow(otherBlock *trackedBlock) bool {
+	return tb.nonce <= otherBlock.nonce
 }
 
-func (tb *trackedBlock) sameNonce(trackedBlock1 *trackedBlock) bool {
-	return tb.nonce == trackedBlock1.nonce
+func (tb *trackedBlock) sameNonce(otherBlock *trackedBlock) bool {
+	return tb.nonce == otherBlock.nonce
 }
 
 func (tb *trackedBlock) compileBreadcrumbs(txs []*WrappedTransaction) error {
