@@ -518,11 +518,10 @@ func TestSelectionTracker_removeFromTrackedBlocks(t *testing.T) {
 	tracker, err := NewSelectionTracker(txCache, maxTrackedBlocks)
 	require.Nil(t, err)
 
-	expectedTrackedBlock, _ := newTrackedBlock(1, []byte("blockHash2"), []byte("rootHash2"), []byte("prevHash2"), nil)
-	b1, err := newTrackedBlock(0, []byte("blockHash1"), []byte("rootHash1"), []byte("prevHash1"), nil)
-	require.Nil(t, err)
+	expectedTrackedBlock := newTrackedBlock(1, []byte("blockHash2"), []byte("rootHash2"), []byte("prevHash2"))
+	b1 := newTrackedBlock(0, []byte("blockHash1"), []byte("rootHash1"), []byte("prevHash1"))
 
-	b2, err := newTrackedBlock(0, []byte("blockHash3"), []byte("rootHash3"), []byte("prevHash1"), nil)
+	b2 := newTrackedBlock(0, []byte("blockHash3"), []byte("rootHash3"), []byte("prevHash1"))
 	require.Nil(t, err)
 
 	tracker.blocks = map[string]*trackedBlock{
@@ -533,7 +532,7 @@ func TestSelectionTracker_removeFromTrackedBlocks(t *testing.T) {
 
 	require.Equal(t, 3, len(tracker.blocks))
 
-	r, err := newTrackedBlock(0, nil, nil, []byte("prevHash1"), nil)
+	r := newTrackedBlock(0, nil, nil, []byte("prevHash1"))
 	require.Nil(t, err)
 
 	tracker.removeFromTrackedBlocksNoLock(r)
@@ -558,36 +557,36 @@ func TestSelectionTracker_getChainOfTrackedBlocks(t *testing.T) {
 
 	// create a slice of tracked block which aren't ordered
 	tracker.blocks = make(map[string]*trackedBlock)
-	b, err := newTrackedBlock(7, []byte("blockHash8"), []byte("rootHash8"), []byte("blockHash7"), nil)
+	b := newTrackedBlock(7, []byte("blockHash8"), []byte("rootHash8"), []byte("blockHash7"))
 	require.Nil(t, err)
 	tracker.blocks[string(b.hash)] = b
 
-	b, err = newTrackedBlock(5, []byte("blockHash6"), []byte("rootHash6"), []byte("blockHash5"), nil)
+	b = newTrackedBlock(5, []byte("blockHash6"), []byte("rootHash6"), []byte("blockHash5"))
 	require.Nil(t, err)
 	tracker.blocks[string(b.hash)] = b
 
-	b, err = newTrackedBlock(1, []byte("blockHash2"), []byte("rootHash2"), []byte("blockHash1"), nil)
+	b = newTrackedBlock(1, []byte("blockHash2"), []byte("rootHash2"), []byte("blockHash1"))
 	require.Nil(t, err)
 	tracker.blocks[string(b.hash)] = b
 
-	b, err = newTrackedBlock(0, []byte("blockHash1"), []byte("rootHash1"), []byte("prevHash1"), nil)
+	b = newTrackedBlock(0, []byte("blockHash1"), []byte("rootHash1"), []byte("prevHash1"))
 	require.Nil(t, err)
 	tracker.blocks[string(b.hash)] = b
 
-	b, err = newTrackedBlock(3, []byte("blockHash4"), []byte("rootHash4"), []byte("blockHash3"), nil)
+	b = newTrackedBlock(3, []byte("blockHash4"), []byte("rootHash4"), []byte("blockHash3"))
 	require.Nil(t, err)
 	tracker.blocks[string(b.hash)] = b
 
-	b, err = newTrackedBlock(2, []byte("blockHash3"), []byte("rootHash3"), []byte("blockHash2"), nil)
+	b = newTrackedBlock(2, []byte("blockHash3"), []byte("rootHash3"), []byte("blockHash2"))
 	require.Nil(t, err)
 	tracker.blocks[string(b.hash)] = b
 
 	// create a block with a wrong previous hash
-	b, err = newTrackedBlock(4, []byte("blockHash5"), []byte("rootHash5"), []byte("blockHashY"), nil)
+	b = newTrackedBlock(4, []byte("blockHash5"), []byte("rootHash5"), []byte("blockHashY"))
 	require.Nil(t, err)
 	tracker.blocks[string(b.hash)] = b
 
-	b, err = newTrackedBlock(6, []byte("blockHash7"), []byte("rootHash7"), []byte("blockHash6"), nil)
+	b = newTrackedBlock(6, []byte("blockHash7"), []byte("rootHash7"), []byte("blockHash6"))
 	require.Nil(t, err)
 	tracker.blocks[string(b.hash)] = b
 
@@ -840,7 +839,7 @@ func TestSelectionTracker_validateTrackedBlocks(t *testing.T) {
 		tracker, err := NewSelectionTracker(txCache, maxTrackedBlocks)
 		require.Nil(t, err)
 
-		err = tracker.validateTrackedBlocks(trackedBlocks, &mockSelectionSession)
+		err = tracker.validateBreadcrumbsOfTrackedBlocks(trackedBlocks, &mockSelectionSession)
 		require.Equal(t, errDiscontinuousBreadcrumbs, err)
 	})
 
@@ -896,7 +895,7 @@ func TestSelectionTracker_validateTrackedBlocks(t *testing.T) {
 		tracker, err := NewSelectionTracker(txCache, maxTrackedBlocks)
 		require.Nil(t, err)
 
-		err = tracker.validateTrackedBlocks(trackedBlocks, &mockSelectionSession)
+		err = tracker.validateBreadcrumbsOfTrackedBlocks(trackedBlocks, &mockSelectionSession)
 		require.Equal(t, errExceededBalance, err)
 	})
 
@@ -952,7 +951,7 @@ func TestSelectionTracker_validateTrackedBlocks(t *testing.T) {
 		tracker, err := NewSelectionTracker(txCache, maxTrackedBlocks)
 		require.Nil(t, err)
 
-		err = tracker.validateTrackedBlocks(trackedBlocks, &mockSelectionSession)
+		err = tracker.validateBreadcrumbsOfTrackedBlocks(trackedBlocks, &mockSelectionSession)
 		require.Nil(t, err)
 	})
 }
@@ -964,11 +963,9 @@ func TestSelectionTracker_addNewBlockNoLock(t *testing.T) {
 	tracker, err := NewSelectionTracker(txCache, maxTrackedBlocks)
 	require.Nil(t, err)
 
-	tb1, err := newTrackedBlock(0, []byte("blockHash1"), []byte("rootHash0"), []byte("blockHash0"), nil)
-	require.Nil(t, err)
+	tb1 := newTrackedBlock(0, []byte("blockHash1"), []byte("rootHash0"), []byte("blockHash0"))
 
-	tb2, err := newTrackedBlock(0, []byte("blockHash2"), []byte("rootHash0"), []byte("blockHash0"), nil)
-	require.Nil(t, err)
+	tb2 := newTrackedBlock(0, []byte("blockHash2"), []byte("rootHash0"), []byte("blockHash0"))
 
 	tracker.addNewTrackedBlockNoLock([]byte("blockHash1"), tb1)
 	require.Equal(t, len(tracker.blocks), 1)
