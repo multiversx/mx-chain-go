@@ -618,8 +618,17 @@ func (t *trigger) checkMetaHeaderForEpochTriggerEquivalentProofs(headerHandler d
 	}
 
 	log.Debug("trigger.updateTriggerHeaderData")
+	updateTriggerHeaderDataStart := time.Now()
 	t.updateTriggerHeaderData(metaHdr, metaBlockHash)
+	log.Debug("trigger.checkMetaHeaderForEpochTriggerEquivalentProofs: updateTriggerHeaderData",
+		"time elapsed", time.Since(updateTriggerHeaderDataStart),
+	)
+
+	updateTriggerFromMetaStart := time.Now()
 	t.updateTriggerFromMeta()
+	log.Debug("trigger.checkMetaHeaderForEpochTriggerEquivalentProofs: updateTriggerFromMeta",
+		"time elapsed", time.Since(updateTriggerFromMetaStart),
+	)
 }
 
 func (t *trigger) checkMetaHeaderForEpochTriggerLegacy(headerHandler data.HeaderHandler, metaBlockHash []byte) {
@@ -725,7 +734,12 @@ func (t *trigger) updateTriggerFromMeta() {
 			continue
 		}
 
+		checkIfTriggerCanBeActivatedStart := time.Now()
 		canActivateEpochStart, finalityAttestingRound := t.checkIfTriggerCanBeActivated(currMetaInfo.hash, currMetaInfo.hdr)
+		log.Debug("trigger.checkIfTriggerCanBeActivated: checkIfTriggerCanBeActivated",
+			"time elapsed [s]", time.Since(checkIfTriggerCanBeActivatedStart),
+		)
+
 		log.Debug("trigger.updateTriggerFromMeta", "canActivateEpochStart", canActivateEpochStart, "finalityAttestingRound", finalityAttestingRound)
 		if canActivateEpochStart && t.metaEpoch < currMetaInfo.hdr.GetEpoch() {
 			t.metaEpoch = currMetaInfo.hdr.GetEpoch()
@@ -847,10 +861,14 @@ func (t *trigger) isMetaBlockFinalLegacy(_ string, metaHdr data.HeaderHandler) (
 
 // call only if mutex is locked before
 func (t *trigger) checkIfTriggerCanBeActivated(hash string, metaHdr data.HeaderHandler) (bool, uint64) {
+	isMetaBlockValidStart := time.Now()
 	isMetaHdrValid := t.isMetaBlockValid(hash, metaHdr)
 	if !isMetaHdrValid {
 		return false, 0
 	}
+	log.Debug("trigger.checkIfTriggerCanBeActivated: isMetaBlockValid",
+		"time elapsed [s]", time.Since(isMetaBlockValidStart),
+	)
 
 	syncMiniBlocksStart := time.Now()
 	missingMiniBlocksHashes, blockBody, err := t.peerMiniBlocksSyncer.SyncMiniBlocks(metaHdr)
