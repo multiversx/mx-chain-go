@@ -133,6 +133,7 @@ type bootStorerDataArgs struct {
 	epochStartTriggerConfigKey []byte
 }
 
+// NewBaseProcessor will create a new instance of baseProcessor
 func NewBaseProcessor(arguments ArgBaseProcessor) (*baseProcessor, error) {
 	err := checkProcessorParameters(arguments)
 	if err != nil {

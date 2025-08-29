@@ -1010,6 +1010,7 @@ func CheckIfIndexesAreOutOfBound(
 	return nil
 }
 
+// SetBaseExecutionResult sets the last notarized base execution result in the execution results tracker
 func SetBaseExecutionResult(ert ExecutionResultsTracker, blockChain data.ChainHandler) error {
 	if check.IfNil(blockChain) {
 		return ErrNilBlockChain

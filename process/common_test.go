@@ -2382,16 +2382,20 @@ func Test_SetBaseExecutionResult(t *testing.T) {
 	t.Parallel()
 
 	t.Run("nil tracker should error", func(t *testing.T) {
+		t.Parallel()
 		err := process.SetBaseExecutionResult(nil, &testscommon.ChainHandlerStub{})
 		require.Equal(t, process.ErrNilExecutionResultsTracker, err)
 	})
 
 	t.Run("nil chain handler should error", func(t *testing.T) {
+		t.Parallel()
 		err := process.SetBaseExecutionResult(&executionTrack.ExecutionResultsTrackerStub{}, nil)
 		require.Equal(t, process.ErrNilBlockChain, err)
 	})
 
 	t.Run("tracker error should error", func(t *testing.T) {
+		t.Parallel()
+
 		expectedErr := errors.New("tracker error")
 		tracker := &executionTrack.ExecutionResultsTrackerStub{
 			SetLastNotarizedResultCalled: func(data.BaseExecutionResultHandler) error {
@@ -2423,6 +2427,8 @@ func Test_SetBaseExecutionResult(t *testing.T) {
 	})
 
 	t.Run("chain handler returning nil should not set", func(t *testing.T) {
+		t.Parallel()
+
 		chainHandler := &testscommon.ChainHandlerStub{
 			GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
 				return nil
@@ -2440,6 +2446,8 @@ func Test_SetBaseExecutionResult(t *testing.T) {
 	})
 
 	t.Run("chain handler returning header of different version should not set", func(t *testing.T) {
+		t.Parallel()
+
 		chainHandler := &testscommon.ChainHandlerStub{
 			GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
 				return &block.Header{}
@@ -2456,6 +2464,8 @@ func Test_SetBaseExecutionResult(t *testing.T) {
 		require.Nil(t, err)
 	})
 	t.Run("chain handler returning header without execution result should not set", func(t *testing.T) {
+		t.Parallel()
+
 		header := &block.HeaderV3{}
 		chainHandler := &testscommon.ChainHandlerStub{
 			GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
@@ -2474,6 +2484,8 @@ func Test_SetBaseExecutionResult(t *testing.T) {
 	})
 
 	t.Run("chain handler returning header with execution result but nil based execution result should not set", func(t *testing.T) {
+		t.Parallel()
+
 		header := &block.HeaderV3{
 			LastExecutionResult: &block.ExecutionResultInfo{},
 		}
@@ -2494,6 +2506,8 @@ func Test_SetBaseExecutionResult(t *testing.T) {
 	})
 
 	t.Run("ok with shard header", func(t *testing.T) {
+		t.Parallel()
+
 		executionResultsInfo := &block.ExecutionResultInfo{
 			NotarizedOnHeaderHash: []byte("hash"),
 			ExecutionResult: &block.BaseExecutionResult{
@@ -2528,6 +2542,8 @@ func Test_SetBaseExecutionResult(t *testing.T) {
 	})
 
 	t.Run("ok with meta header", func(t *testing.T) {
+		t.Parallel()
+
 		executionResultsInfo := &block.MetaExecutionResultInfo{
 			NotarizedOnHeaderHash: []byte("hash"),
 			ExecutionResult: &block.BaseMetaExecutionResult{
