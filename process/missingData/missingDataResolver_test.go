@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/stretchr/testify/require"
@@ -412,5 +413,27 @@ func TestMissingDataResolver_RequestMissingMetaHeadersBlocking(t *testing.T) {
 			wg.Done()
 		}()
 		wg.Wait()
+	})
+}
+
+func TestMissingDataResolver_IsInterfaceNil(t *testing.T) {
+	t.Parallel()
+
+	proofsPool := &dataRetriever.ProofsPoolMock{}
+	headersPool := &pool.HeadersPoolStub{}
+	requestHandler := &testscommon.RequestHandlerStub{}
+
+	t.Run("nil receiver should be nil", func(t *testing.T) {
+		t.Parallel()
+
+		var mdr *missingDataResolver
+		require.True(t, check.IfNil(mdr))
+	})
+
+	t.Run("non-nil receiver should not be nil", func(t *testing.T) {
+		t.Parallel()
+
+		mdr, _ := NewMissingDataResolver(headersPool, proofsPool, requestHandler)
+		require.False(t, check.IfNil(mdr))
 	})
 }
