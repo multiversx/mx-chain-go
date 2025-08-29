@@ -73,13 +73,8 @@ type MiniBlocksSelectionSession interface {
 
 // MissingDataResolver is the interface that defines the methods for resolving missing data
 type MissingDataResolver interface {
-	RequestMissingMetaHeadersBlocking(
-		shardHeader data.ShardHeaderHandler,
-		timeout time.Duration,
-	) error
-	RequestMissingMetaHeaders(
-		shardHeader data.ShardHeaderHandler,
-	) error
+	RequestMissingMetaHeadersBlocking(shardHeader data.ShardHeaderHandler, timeout time.Duration) error
+	RequestMissingMetaHeaders(shardHeader data.ShardHeaderHandler) error
 	WaitForMissingData(timeout time.Duration) error
 	IsInterfaceNil() bool
 }
