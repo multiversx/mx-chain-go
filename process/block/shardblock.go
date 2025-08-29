@@ -1073,6 +1073,12 @@ func (sp *shardProcessor) CommitBlock(
 		return err
 	}
 
+	err = sp.dataPool.Transactions().OnExecutedBlock(headerHandler)
+	if err != nil {
+		log.Debug("dataPool.Transactions().OnExecutedBlock()", "error", err)
+		return err
+	}
+
 	err = sp.commitAll(headerHandler)
 	if err != nil {
 		return err
@@ -1204,7 +1210,7 @@ func (sp *shardProcessor) CommitBlock(
 	if errNotCritical != nil {
 		log.Debug("removeTxsFromPools", "error", errNotCritical.Error())
 	}
-	
+
 	sp.cleanupPools(headerHandler)
 
 	sp.blockProcessingCutoffHandler.HandlePauseCutoff(header)

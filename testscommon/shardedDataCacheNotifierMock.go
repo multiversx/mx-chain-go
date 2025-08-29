@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core/counting"
+	"github.com/multiversx/mx-chain-core-go/data"
 
 	"github.com/multiversx/mx-chain-go/storage"
 	cacheMocks "github.com/multiversx/mx-chain-go/testscommon/cache"
@@ -14,11 +15,6 @@ import (
 type ShardedDataCacheNotifierMock struct {
 	mutCaches sync.RWMutex
 	caches    map[string]storage.Cacher
-}
-
-// CleanupSelfShardTxCache -
-func (mock *ShardedDataCacheNotifierMock) CleanupSelfShardTxCache(session interface{}, randomness uint64, maxNum int, cleanupLoopMaximumDuration time.Duration) {
-	panic("unimplemented")
 }
 
 // NewShardedDataCacheNotifierMock -
@@ -129,6 +125,15 @@ func (mock *ShardedDataCacheNotifierMock) Keys() [][]byte {
 	}
 
 	return keys
+}
+
+// CleanupSelfShardTxCache -
+func (mock *ShardedDataCacheNotifierMock) CleanupSelfShardTxCache(_ interface{}, _ uint64, _ int, _ time.Duration) {
+}
+
+// OnExecutedBlock -
+func (mock *ShardedDataCacheNotifierMock) OnExecutedBlock(_ data.HeaderHandler) error {
+	return nil
 }
 
 // IsInterfaceNil -
