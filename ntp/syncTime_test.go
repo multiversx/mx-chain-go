@@ -389,6 +389,11 @@ func TestSyncTime_IsResponseTimeWithinAcceptedBounds(t *testing.T) {
 	)
 
 	require.True(t, st.IsResponseTimeWithinAcceptedBounds(3, 5))
+	require.True(t, st.IsResponseTimeWithinAcceptedBounds(5, 3))
+	require.False(t, st.IsResponseTimeWithinAcceptedBounds(6, 3))
+	require.True(t, st.IsResponseTimeWithinAcceptedBounds(1, 2))
+	require.True(t, st.IsResponseTimeWithinAcceptedBounds(3, 2))
+	require.True(t, st.IsResponseTimeWithinAcceptedBounds(4, 5))
 	require.False(t, st.IsResponseTimeWithinAcceptedBounds(3, 1))
 	require.False(t, st.IsResponseTimeWithinAcceptedBounds(3, 0))
 	require.False(t, st.IsResponseTimeWithinAcceptedBounds(0, 0))

@@ -211,12 +211,6 @@ func (s *syncTime) sync() {
 	isResponseTimeWithinAcceptedBounds := s.isResponseTimeWithinAcceptedBounds(accumulatedResponseDurations, numSuccessfulRequests)
 	isClockOffsetOutOfBounds := core.AbsDuration(clockOffsetHarmonicMean) > s.outOfBoundsThreshold
 
-	log.Error("isClockOffsetOutOfBounds",
-		"isClockOffsetOutOfBounds", isClockOffsetOutOfBounds,
-		"clockOffsetHarmonicMean", clockOffsetHarmonicMean,
-		"s.outOfBoundsThreshold", s.outOfBoundsThreshold,
-	)
-
 	if !isResponseTimeWithinAcceptedBounds && isClockOffsetOutOfBounds {
 		log.Error("syncTime.sync: clock offset is out of expected bounds",
 			"clock offset harmonic mean", clockOffsetHarmonicMean,
