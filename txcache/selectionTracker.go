@@ -36,7 +36,7 @@ func NewSelectionTracker(txCache txCacheForSelectionTracker, maxTrackedBlocks ui
 }
 
 // OnProposedBlock notifies when a block is proposed and updates the state of the selectionTracker
-// TODO brainstorm how to refactor this method, split it in different methods
+// TODO brainstorm if it is possible to refactor this method, maybe split it in different methods
 func (st *selectionTracker) OnProposedBlock(
 	blockHash []byte,
 	blockBody *block.Body,
@@ -93,7 +93,7 @@ func (st *selectionTracker) OnProposedBlock(
 		return err
 	}
 
-	// add the new block in the chain
+	// add the new block in the returned chain
 	blocksToBeValidated = append(blocksToBeValidated, tBlock)
 
 	// make sure that the proposed block is valid (continuous with the other proposed blocks and no balance issues)
@@ -103,17 +103,8 @@ func (st *selectionTracker) OnProposedBlock(
 		return err
 	}
 
-	// adds the new block in the chain, overwriting the block with the same nonce
+	// adds the new block in the map of tracked blocks, overwriting the block with the same nonce
 	st.addNewBlockNoLock(blockHash, tBlock)
-
-	if len(st.blocks) == int(st.maxTrackedBlocks) {
-		log.Warn("selectionTracker.OnProposedBlock: max tracked blocks reached",
-			"len(st.blocks)", len(st.blocks),
-		)
-
-		// clear all the proposed blocks
-		st.blocks = make(map[string]*trackedBlock)
-	}
 
 	return nil
 }
@@ -184,6 +175,12 @@ func (st *selectionTracker) addNewBlockNoLock(blockHash []byte, blockToBeAdded *
 	// search if in the tracked block we already have one with same nonce
 	for bHash, b := range st.blocks {
 		if b.sameNonce(blockToBeAdded) {
+			log.Debug("selectionTracker.addNewBlockNoLock replaced block with same nonce",
+				"hash of replaced block", b.hash,
+				"new block", blockHash,
+				"nonce", blockToBeAdded.nonce,
+			)
+
 			// delete that block and break because there should me maximum one tracked block with that nonce
 			delete(st.blocks, bHash)
 			break
@@ -192,6 +189,15 @@ func (st *selectionTracker) addNewBlockNoLock(blockHash []byte, blockToBeAdded *
 
 	// add the new block
 	st.blocks[string(blockHash)] = blockToBeAdded
+
+	if len(st.blocks) == int(st.maxTrackedBlocks) {
+		log.Warn("selectionTracker.OnProposedBlock: max tracked blocks reached",
+			"len(st.blocks)", len(st.blocks),
+		)
+
+		// clear all the proposed blocks
+		st.blocks = make(map[string]*trackedBlock)
+	}
 }
 
 func (st *selectionTracker) removeFromTrackedBlocksNoLock(searchedBlock *trackedBlock) {
