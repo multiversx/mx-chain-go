@@ -486,6 +486,7 @@ func TestMempoolWithChainSimulator_Eviction(t *testing.T) {
 	require.Equal(t, expectedNumTransactionsInPool, getNumTransactionsInPool(simulator, shard))
 }
 
+// TODO refactor some of the tests below, make them more concise
 func Test_Selection_ShouldNotSelectSameTransactionsWithSameSender(t *testing.T) {
 	t.Parallel()
 
