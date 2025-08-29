@@ -144,13 +144,17 @@ func NewBaseProcessor(arguments ArgBaseProcessor) (*baseProcessor, error) {
 		return nil, err
 	}
 
-	mbSelectionSession, err := NewMiniBlocksSelectionSession(arguments.BootstrapComponents.ShardCoordinator().SelfId(), arguments.CoreComponents.InternalMarshalizer(), arguments.CoreComponents.Hasher())
+	mbSelectionSession, err := NewMiniBlocksSelectionSession(
+		arguments.BootstrapComponents.ShardCoordinator().SelfId(),
+		arguments.CoreComponents.InternalMarshalizer(),
+		arguments.CoreComponents.Hasher(),
+	)
 	if err != nil {
 		return nil, err
 	}
 
 	executionResultsTracker := executionTrack.NewExecutionResultsTracker()
-	err = setBaseExecutionResult(executionResultsTracker, arguments.DataComponents.Blockchain())
+	err = process.SetBaseExecutionResult(executionResultsTracker, arguments.DataComponents.Blockchain())
 	if err != nil {
 		return nil, err
 	}
@@ -160,7 +164,11 @@ func NewBaseProcessor(arguments ArgBaseProcessor) (*baseProcessor, error) {
 		return nil, err
 	}
 
-	missingDataResolver, err := missingData.NewMissingDataResolver(arguments.DataComponents.Datapool().Headers(), arguments.DataComponents.Datapool().Proofs(), arguments.RequestHandler)
+	missingDataResolver, err := missingData.NewMissingDataResolver(
+		arguments.DataComponents.Datapool().Headers(),
+		arguments.DataComponents.Datapool().Proofs(),
+		arguments.RequestHandler,
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -225,34 +233,6 @@ func NewBaseProcessor(arguments ArgBaseProcessor) (*baseProcessor, error) {
 	}
 
 	return base, nil
-}
-
-func setBaseExecutionResult(ert ExecutionResultsTracker, blockChain data.ChainHandler) error {
-	currentBlock := blockChain.GetCurrentBlockHeader()
-	if currentBlock == nil || !currentBlock.IsHeaderV3() {
-		return nil
-	}
-
-	lastNotarizedResult := currentBlock.GetLastExecutionResultHandler()
-	if check.IfNil(lastNotarizedResult) {
-		return nil
-	}
-
-	var lastBaseExecutionResult data.BaseExecutionResultHandler
-	switch lastNotarizedBaseResult := lastNotarizedResult.(type) {
-	case data.LastShardExecutionResultHandler:
-		lastBaseExecutionResult = lastNotarizedBaseResult.GetExecutionResultHandler()
-	case data.LastMetaExecutionResultHandler:
-		lastBaseExecutionResult = lastNotarizedBaseResult.GetExecutionResultHandler()
-	default:
-		return process.ErrWrongTypeAssertion
-	}
-
-	if check.IfNil(lastBaseExecutionResult) {
-		return process.ErrNilLastExecutionResultHandler
-	}
-
-	return ert.SetLastNotarizedResult(lastBaseExecutionResult)
 }
 
 func checkForNils(

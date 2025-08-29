@@ -1009,3 +1009,38 @@ func CheckIfIndexesAreOutOfBound(
 
 	return nil
 }
+
+func SetBaseExecutionResult(ert ExecutionResultsTracker, blockChain data.ChainHandler) error {
+	if check.IfNil(blockChain) {
+		return ErrNilBlockChain
+	}
+	if check.IfNil(ert) {
+		return ErrNilExecutionResultsTracker
+	}
+
+	currentBlock := blockChain.GetCurrentBlockHeader()
+	if currentBlock == nil || !currentBlock.IsHeaderV3() {
+		return nil
+	}
+
+	lastNotarizedResult := currentBlock.GetLastExecutionResultHandler()
+	if check.IfNil(lastNotarizedResult) {
+		return ErrNilLastExecutionResultHandler
+	}
+
+	var lastBaseExecutionResult data.BaseExecutionResultHandler
+	switch lastNotarizedBaseResult := lastNotarizedResult.(type) {
+	case data.LastShardExecutionResultHandler:
+		lastBaseExecutionResult = lastNotarizedBaseResult.GetExecutionResultHandler()
+	case data.LastMetaExecutionResultHandler:
+		lastBaseExecutionResult = lastNotarizedBaseResult.GetExecutionResultHandler()
+	default:
+		return ErrWrongTypeAssertion
+	}
+
+	if check.IfNil(lastBaseExecutionResult) {
+		return ErrNilBaseExecutionResult
+	}
+
+	return ert.SetLastNotarizedResult(lastBaseExecutionResult)
+}

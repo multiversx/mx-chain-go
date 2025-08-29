@@ -1478,3 +1478,14 @@ type ShardCoordinator interface {
 	ComputeId(address []byte) uint32
 	IsInterfaceNil() bool
 }
+
+// ExecutionResultsTracker is the interface that defines the methods for tracking execution results
+type ExecutionResultsTracker interface {
+	AddExecutionResult(executionResult data.ExecutionResultHandler) error
+	GetPendingExecutionResults() ([]data.ExecutionResultHandler, error)
+	GetPendingExecutionResultByHash(hash []byte) (data.ExecutionResultHandler, error)
+	GetPendingExecutionResultByNonce(nonce uint64) (data.ExecutionResultHandler, error)
+	GetLastNotarizedExecutionResult() (data.BaseExecutionResultHandler, error)
+	SetLastNotarizedResult(executionResult data.BaseExecutionResultHandler) error
+	IsInterfaceNil() bool
+}

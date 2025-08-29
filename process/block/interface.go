@@ -48,17 +48,6 @@ type HeadersForBlock interface {
 	IsInterfaceNil() bool
 }
 
-// ExecutionResultsTracker is the interface that defines the methods for tracking execution results
-type ExecutionResultsTracker interface {
-	AddExecutionResult(executionResult data.ExecutionResultHandler) error
-	GetPendingExecutionResults() ([]data.ExecutionResultHandler, error)
-	GetPendingExecutionResultByHash(hash []byte) (data.ExecutionResultHandler, error)
-	GetPendingExecutionResultByNonce(nonce uint64) (data.ExecutionResultHandler, error)
-	GetLastNotarizedExecutionResult() (data.BaseExecutionResultHandler, error)
-	SetLastNotarizedResult(executionResult data.BaseExecutionResultHandler) error
-	IsInterfaceNil() bool
-}
-
 // ExecutionResultsVerifier is the interface that defines the methods for verifying execution results
 type ExecutionResultsVerifier interface {
 	VerifyHeaderExecutionResults(headerHash []byte, header data.HeaderHandler) error
