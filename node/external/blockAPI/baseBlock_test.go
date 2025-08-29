@@ -599,3 +599,160 @@ func TestBaseBlock_getAndAttachTxsToMb_MiniblockTxBlockgetFromStore(t *testing.T
 	require.Nil(t, resp)
 	require.Equal(t, expectedErr, err)
 }
+
+func TestBaseBlock_AddExecutionResults(t *testing.T) {
+	t.Parallel()
+
+	t.Run("shard header v2 will do nothing", func(t *testing.T) {
+		apiBlock := &api.Block{}
+		header := &block.HeaderV2{}
+
+		addExecutionResultsAndLastExecutionResults(header, apiBlock)
+		require.Equal(t, &api.Block{}, apiBlock)
+	})
+
+	t.Run("meta block will do nothing", func(t *testing.T) {
+		apiBlock := &api.Block{}
+		header := &block.MetaBlock{}
+
+		addExecutionResultsAndLastExecutionResults(header, apiBlock)
+		require.Equal(t, &api.Block{}, apiBlock)
+	})
+
+	t.Run("shard header v3", func(t *testing.T) {
+		apiBlock := &api.Block{}
+		header := &block.HeaderV3{
+			LastExecutionResult: &block.ExecutionResultInfo{
+				ExecutionResult: &block.BaseExecutionResult{
+					HeaderHash:  []byte("hash"),
+					HeaderNonce: 1,
+					HeaderRound: 2,
+					HeaderEpoch: 3,
+					RootHash:    []byte("root_hash"),
+				},
+			},
+			ExecutionResults: []*block.ExecutionResult{
+				{
+					BaseExecutionResult: &block.BaseExecutionResult{
+						HeaderHash:  []byte("hash1"),
+						HeaderNonce: 11,
+						HeaderRound: 22,
+						HeaderEpoch: 33,
+						RootHash:    []byte("root_hash1"),
+					},
+				},
+				{
+					BaseExecutionResult: &block.BaseExecutionResult{
+						HeaderHash:  []byte("hash2"),
+						HeaderNonce: 111,
+						HeaderRound: 222,
+						HeaderEpoch: 333,
+						RootHash:    []byte("root_hash2"),
+					},
+				},
+			},
+		}
+
+		addExecutionResultsAndLastExecutionResults(header, apiBlock)
+		require.Equal(t, &api.Block{
+			LastExecutionResult: &api.ExecutionResult{
+				HeaderHash:  "68617368",
+				HeaderNonce: 1,
+				HeaderRound: 2,
+				HeaderEpoch: 3,
+				RootHash:    "726f6f745f68617368",
+			},
+			ExecutionResults: []*api.ExecutionResult{
+				{
+					HeaderHash:  "6861736831",
+					HeaderNonce: 11,
+					HeaderRound: 22,
+					HeaderEpoch: 33,
+					RootHash:    "726f6f745f6861736831",
+				},
+				{
+					HeaderHash:  "6861736832",
+					HeaderNonce: 111,
+					HeaderRound: 222,
+					HeaderEpoch: 333,
+					RootHash:    "726f6f745f6861736832",
+				},
+			},
+		}, apiBlock)
+	})
+
+	t.Run("meta block v3", func(t *testing.T) {
+		apiBlock := &api.Block{}
+		header := &block.MetaBlockV3{
+			LastExecutionResult: &block.MetaExecutionResultInfo{
+				ExecutionResult: &block.BaseMetaExecutionResult{
+					ValidatorStatsRootHash: []byte("validators_root_hash"),
+					AccumulatedFeesInEpoch: big.NewInt(2),
+					DevFeesInEpoch:         big.NewInt(3),
+					BaseExecutionResult: &block.BaseExecutionResult{
+						HeaderHash:  []byte("hash"),
+						HeaderNonce: 1,
+						HeaderRound: 2,
+						HeaderEpoch: 3,
+						RootHash:    []byte("root_hash"),
+					},
+				},
+			},
+			ExecutionResults: []*block.MetaExecutionResult{
+				{
+					ExecutionResult: &block.BaseMetaExecutionResult{
+						BaseExecutionResult: &block.BaseExecutionResult{
+							HeaderHash:  []byte("hash1"),
+							HeaderNonce: 11,
+							HeaderRound: 22,
+							HeaderEpoch: 33,
+							RootHash:    []byte("root_hash1"),
+						},
+					},
+				},
+				{
+					ExecutionResult: &block.BaseMetaExecutionResult{
+						BaseExecutionResult: &block.BaseExecutionResult{
+							HeaderHash:  []byte("hash2"),
+							HeaderNonce: 111,
+							HeaderRound: 222,
+							HeaderEpoch: 333,
+							RootHash:    []byte("root_hash2"),
+						},
+					},
+				},
+			},
+		}
+
+		addExecutionResultsAndLastExecutionResults(header, apiBlock)
+		require.Equal(t, &api.Block{
+			LastExecutionResult: &api.ExecutionResult{
+				HeaderHash:             "68617368",
+				HeaderNonce:            1,
+				HeaderRound:            2,
+				HeaderEpoch:            3,
+				RootHash:               "726f6f745f68617368",
+				ValidatorStatsRootHash: "76616c696461746f72735f726f6f745f68617368",
+				AccumulatedFeesInEpoch: "2",
+				DevFeesInEpoch:         "3",
+			},
+			ExecutionResults: []*api.ExecutionResult{
+				{
+					HeaderHash:  "6861736831",
+					HeaderNonce: 11,
+					HeaderRound: 22,
+					HeaderEpoch: 33,
+					RootHash:    "726f6f745f6861736831",
+				},
+				{
+					HeaderHash:  "6861736832",
+					HeaderNonce: 111,
+					HeaderRound: 222,
+					HeaderEpoch: 333,
+					RootHash:    "726f6f745f6861736832",
+				},
+			},
+		}, apiBlock)
+	})
+
+}
