@@ -48,6 +48,7 @@ func createMockArgument(t *testing.T) StorageServiceFactoryArgs {
 			PeerBlockBodyStorage:       createMockStorageConfig("PeerBlockBodyStorage"),
 			TrieEpochRootHashStorage:   createMockStorageConfig("TrieEpochRootHashStorage"),
 			ProofsStorage:              createMockStorageConfig("ProofsStorage"),
+			ExecutionResultsStorage:    createMockStorageConfig("ExecutionResultsStorage"),
 			DbLookupExtensions: config.DbLookupExtensionsConfig{
 				Enabled:                            true,
 				DbLookupMaxActivePersisters:        10,
@@ -528,7 +529,7 @@ func TestStorageServiceFactory_CreateForMeta(t *testing.T) {
 		allStorers := storageService.GetAllStorers()
 		missingStorers := 2 // PeerChangesUnit and ShardHdrNonceHashDataUnit
 		numShardHdrStorage := 3
-		expectedStorers := 24 - missingStorers + numShardHdrStorage
+		expectedStorers := 25 - missingStorers + numShardHdrStorage
 		assert.Equal(t, expectedStorers, len(allStorers))
 
 		storer, _ := storageService.GetStorer(dataRetriever.UserAccountsUnit)
@@ -551,7 +552,7 @@ func TestStorageServiceFactory_CreateForMeta(t *testing.T) {
 		allStorers := storageService.GetAllStorers()
 		missingStorers := 2 // PeerChangesUnit and ShardHdrNonceHashDataUnit
 		numShardHdrStorage := 3
-		expectedStorers := 24 - missingStorers + numShardHdrStorage
+		expectedStorers := 25 - missingStorers + numShardHdrStorage
 		assert.Equal(t, expectedStorers, len(allStorers))
 
 		storer, _ := storageService.GetStorer(dataRetriever.UserAccountsUnit)
