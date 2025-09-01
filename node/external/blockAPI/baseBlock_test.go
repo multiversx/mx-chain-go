@@ -18,6 +18,7 @@ import (
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/common/holders"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
+	dblookupext2 "github.com/multiversx/mx-chain-go/dblookupext"
 	"github.com/multiversx/mx-chain-go/node/mock"
 	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/testscommon"
@@ -899,4 +900,102 @@ func TestBaseAPIBlockProcessor_AddMbsAndNumTxsAsyncExecutionBasedOnExecutionResu
 	require.Equal(t, 2, len(apiBlock.MiniBlocks))
 	require.Equal(t, transaction.TxStatusNotExecutable, apiBlock.MiniBlocks[0].Transactions[0].Status)
 	require.Equal(t, transaction.TxStatusSuccess, apiBlock.MiniBlocks[1].Transactions[0].Status)
+}
+
+func TestBaseAPIBlockProcessor_AddMbsAndNumTxsAsyncExecutionBasedOnExecutionResult_NoExecutionResult(t *testing.T) {
+	t.Parallel()
+
+	baseAPIBlockProc := createBaseBlockProcessor()
+	baseAPIBlockProc.txStatusComputer = &mock.StatusComputerStub{
+		ComputeStatusWhenInStorageKnowingMiniblockCalled: func(mbType block.Type, tx *transaction.ApiTransactionResult) (transaction.TxStatus, error) {
+			return transaction.TxStatusPending, nil
+		},
+	}
+
+	blockHeader := &block.Header{
+		Nonce: 100,
+		Round: 1000,
+		Epoch: 5,
+		MiniBlockHeaders: []block.MiniBlockHeader{
+			{
+				Hash:            []byte("mb_hash_1"),
+				SenderShardID:   0,
+				ReceiverShardID: 1,
+				TxCount:         2,
+			},
+		},
+	}
+
+	// Create miniblock data
+	mb1 := &block.MiniBlock{
+		TxHashes: [][]byte{
+			[]byte("tx_hash_1"),
+			[]byte("tx_hash_2"),
+		},
+	}
+	mbBytes, _ := baseAPIBlockProc.marshalizer.Marshal(mb1)
+
+	tx1 := &transaction.Transaction{
+		Nonce: 1,
+	}
+	tx1Bytes, _ := baseAPIBlockProc.marshalizer.Marshal(tx1)
+
+	baseAPIBlockProc.store = &storageMocks.ChainStorerStub{
+		GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
+			return &storageMocks.StorerStub{
+				GetFromEpochCalled: func(key []byte, epoch uint32) ([]byte, error) {
+					if string(key) == "header_hash" {
+						return nil, dblookupext2.ErrNotFoundInStorage
+					}
+					if string(key) == "mb_hash_1" {
+						return mbBytes, nil
+					}
+					return nil, errors.New("not found")
+				},
+				GetBulkFromEpochCalled: func(keys [][]byte, epoch uint32) ([]data.KeyValuePair, error) {
+					return []data.KeyValuePair{
+						{
+							Key:   []byte("tx_hash_1"),
+							Value: tx1Bytes,
+						},
+						{
+							Key:   []byte("tx_hash_2"),
+							Value: tx1Bytes,
+						},
+					}, nil
+				},
+			}, nil
+		},
+	}
+
+	apiBlock := &api.Block{
+		Nonce: 100,
+		Round: 1000,
+		Epoch: 5,
+	}
+
+	baseAPIBlockProc.apiTransactionHandler = &mock.TransactionAPIHandlerStub{
+		UnmarshalTransactionCalled: func(txBytes []byte, txType transaction.TxType) (*transaction.ApiTransactionResult, error) {
+			return &transaction.ApiTransactionResult{
+				Hash:   "tx_hash_1",
+				Status: transaction.TxStatusPending,
+			}, nil
+		},
+	}
+
+	err := baseAPIBlockProc.addMbsAndNumTxsAsyncExecutionBasedOnExecutionResult(
+		apiBlock,
+		blockHeader,
+		[]byte("header_hash"),
+		api.BlockQueryOptions{WithTransactions: true},
+	)
+
+	require.NoError(t, err)
+	require.NotNil(t, apiBlock.MiniBlocks)
+	require.Equal(t, 1, len(apiBlock.MiniBlocks))
+	require.Equal(t, 2, len(apiBlock.MiniBlocks[0].Transactions))
+	// All transactions should have pending status when no execution result is found
+	for _, tx := range apiBlock.MiniBlocks[0].Transactions {
+		require.Equal(t, transaction.TxStatusPending, tx.Status)
+	}
 }
