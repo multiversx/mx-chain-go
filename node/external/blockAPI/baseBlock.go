@@ -162,8 +162,7 @@ func (bap *baseAPIBlockProcessor) getAndAttachTxsToMbAsynxExecution(
 		return err
 	}
 
-	mbHeader.GetTxCount()
-	return bap.getAndAttachTxsToMbByEpoch(miniblockHash, miniBlock, header, apiMiniblock, 0, int32(mbHeader.GetTxCount()), options)
+	return bap.getAndAttachTxsToMbByEpoch(miniblockHash, miniBlock, header, apiMiniblock, 0, int32(mbHeader.GetTxCount())-1, options)
 }
 
 func (bap *baseAPIBlockProcessor) getAndAttachTxsToMb(
@@ -791,15 +790,17 @@ func (bap *baseAPIBlockProcessor) getMbsAndNumTxsNoExecutionResult(blockHeader d
 
 func removeExecutedTxsFromMbs(mbs []*api.MiniBlock, executedTxsMap map[string]*transaction.ApiTransactionResult) []*api.MiniBlock {
 	for _, mb := range mbs {
+		newTxs := make([]*transaction.ApiTransactionResult, 0, len(mb.Transactions))
 		for idx := 0; idx < len(mb.Transactions); idx++ {
-			txFromMb, found := executedTxsMap[mb.Transactions[idx].Hash]
+			_, found := executedTxsMap[mb.Transactions[idx].Hash]
 			if found {
-				// remove executed transaction
-				mb.Transactions = append(mb.Transactions[:idx], mb.Transactions[idx+1:]...)
+				continue
 			} else {
-				txFromMb.Status = transaction.TxStatusNotExecutable
+				mb.Transactions[idx].Status = transaction.TxStatusNotExecutable
+				newTxs = append(newTxs, mb.Transactions[idx])
 			}
 		}
+		mb.Transactions = newTxs
 	}
 
 	newMbs := make([]*api.MiniBlock, 0, len(mbs))
