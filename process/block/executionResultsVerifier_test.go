@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/stretchr/testify/require"
@@ -829,6 +830,19 @@ func TestExecutionResultsVerifier_VerifyHeaderExecutionResults(t *testing.T) {
 		err = erc.VerifyHeaderExecutionResults([]byte("headerHash"), header)
 		require.NoError(t, err)
 	})
+}
+
+func TestExecutionResultsVerifier_IsInterfaceNil(t *testing.T) {
+	t.Parallel()
+	var erc ExecutionResultsVerifier
+	require.True(t, check.IfNil(erc))
+
+	executionResultsTracker := &executionTrack.ExecutionResultsTrackerStub{}
+	blockchain := &testscommon.ChainHandlerStub{}
+	erc, err := NewExecutionResultsVerifier(blockchain, executionResultsTracker)
+
+	require.Nil(t, err)
+	require.False(t, check.IfNil(erc))
 }
 
 func createDummyShardExecutionResults(numResults int, firstNonce uint64) []*block.ExecutionResult {
