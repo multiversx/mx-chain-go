@@ -28,6 +28,7 @@ func createMockTxSelectionOptions(gasRequested uint64, maxNumTxs int, loopMaximu
 func createMockTxBoundsConfig() config.TxCacheBoundsConfig {
 	return config.TxCacheBoundsConfig{
 		MaxNumBytesPerSenderUpperBound: maxNumBytesPerSenderUpperBoundTest,
+		MaxTrackedBlocks:               maxTrackedBlocks,
 	}
 }
 

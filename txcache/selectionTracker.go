@@ -10,29 +10,34 @@ import (
 	"github.com/multiversx/mx-chain-go/common"
 )
 
-// TODO add an upper bound MaxTrackedBlocks
 type selectionTracker struct {
-	mutTracker     sync.RWMutex
-	latestNonce    uint64
-	latestRootHash []byte
-	blocks         map[string]*trackedBlock
-	txCache        txCacheForSelectionTracker
+	mutTracker       sync.RWMutex
+	latestNonce      uint64
+	latestRootHash   []byte
+	blocks           map[string]*trackedBlock
+	txCache          txCacheForSelectionTracker
+	maxTrackedBlocks uint32
 }
 
 // NewSelectionTracker creates a new selectionTracker
-func NewSelectionTracker(txCache txCacheForSelectionTracker) (*selectionTracker, error) {
+func NewSelectionTracker(txCache txCacheForSelectionTracker, maxTrackedBlocks uint32) (*selectionTracker, error) {
 	if check.IfNil(txCache) {
 		return nil, errNilTxCache
 	}
+	// TODO compare with the maximum allowed offset between proposing a block and actually executing it
+	if maxTrackedBlocks == 0 {
+		return nil, errInvalidMaxTrackedBlocks
+	}
 	return &selectionTracker{
-		mutTracker: sync.RWMutex{},
-		blocks:     make(map[string]*trackedBlock),
-		txCache:    txCache,
+		mutTracker:       sync.RWMutex{},
+		blocks:           make(map[string]*trackedBlock),
+		txCache:          txCache,
+		maxTrackedBlocks: maxTrackedBlocks,
 	}, nil
 }
 
 // OnProposedBlock notifies when a block is proposed and updates the state of the selectionTracker
-// TODO log in case MaxTrackedBlocks is reached and brainstorm how to solve this case
+// TODO overwrite blocks with same nonce
 func (st *selectionTracker) OnProposedBlock(
 	blockHash []byte,
 	blockBody *block.Body,
@@ -65,6 +70,12 @@ func (st *selectionTracker) OnProposedBlock(
 		"nonce", nonce,
 		"rootHash", rootHash,
 		"prevHash", prevHash)
+
+	err := st.checkReceivedBlockNoLock(blockBody, blockHeader)
+	if err != nil {
+		log.Debug("selectionTracker.OnProposedBlock: error checking the received block", "err", err)
+		return err
+	}
 
 	// TODO brainstorm if this could be moved after getChainOfTrackedBlocks
 	txs, err := st.getTransactionsInBlock(blockBody)
@@ -100,6 +111,7 @@ func (st *selectionTracker) OnProposedBlock(
 	}
 
 	st.blocks[string(blockHash)] = tBlock
+
 	return nil
 }
 
@@ -122,6 +134,32 @@ func (st *selectionTracker) OnExecutedBlock(blockHeader data.HeaderHandler) erro
 
 	st.removeFromTrackedBlocksNoLock(tempTrackedBlock)
 	st.updateLatestRootHashNoLock(nonce, rootHash)
+
+	return nil
+}
+
+// checkReceivedBlockNoLock first checks if MaxTrackedBlocks is reached
+// if MaxTrackedBlocks is reached, the received block must either have an empty body or contain new execution results.
+func (st *selectionTracker) checkReceivedBlockNoLock(blockBody *block.Body, blockHeader data.HeaderHandler) error {
+	if len(st.blocks) < int(st.maxTrackedBlocks) {
+		return nil
+	}
+
+	hasNewTransactions := len(blockBody.MiniBlocks) != 0
+	noNewExecutionResults := len(blockHeader.GetExecutionResultsHandlers()) == 0
+
+	if hasNewTransactions && noNewExecutionResults {
+		log.Warn("selectionTracker.checkReceivedBlockNoLock: received bad block while max tracked blocks is reached. "+
+			"should receive empty block or a block with new execution results",
+			"len(st.blocks)", len(st.blocks),
+		)
+
+		return errBadBlockWhileMaxTrackedBlocksReached
+	}
+
+	log.Warn("selectionTracker.checkReceivedBlockNoLock: max tracked blocks reached "+
+		"but received a tolerated block - an empty block or a block with new execution results",
+		"len(st.blocks)", len(st.blocks))
 
 	return nil
 }

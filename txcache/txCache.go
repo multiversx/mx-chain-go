@@ -53,7 +53,7 @@ func NewTxCache(config ConfigSourceMe, host MempoolHost) (*TxCache, error) {
 		host:           host,
 	}
 
-	tracker, err := NewSelectionTracker(txCache)
+	tracker, err := NewSelectionTracker(txCache, config.TxCacheBoundsConfig.MaxTrackedBlocks)
 	if err != nil {
 		return nil, err
 	}

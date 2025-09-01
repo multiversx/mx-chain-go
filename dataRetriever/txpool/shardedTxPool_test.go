@@ -23,6 +23,7 @@ import (
 )
 
 const maxNumBytesPerSenderUpperBoundTest = 33_554_432 // 32 MB
+const maxTrackedBlocks = 100
 
 func Test_NewShardedTxPool(t *testing.T) {
 	pool, err := newTxPoolToTest()
@@ -46,6 +47,7 @@ func Test_NewShardedTxPool_WhenBadConfig(t *testing.T) {
 		NumberOfShards: 1,
 		TxCacheBoundsConfig: config.TxCacheBoundsConfig{
 			MaxNumBytesPerSenderUpperBound: maxNumBytesPerSenderUpperBoundTest,
+			MaxTrackedBlocks:               maxTrackedBlocks,
 		},
 	}
 
@@ -111,6 +113,13 @@ func Test_NewShardedTxPool_WhenBadConfig(t *testing.T) {
 	require.Nil(t, pool)
 	require.NotNil(t, err)
 	require.Errorf(t, err, dataRetriever.ErrBadMaxNumBytesPerSenderUpperBound.Error())
+
+	args = goodArgs
+	args.TxCacheBoundsConfig.MaxTrackedBlocks = 0
+	pool, err = NewShardedTxPool(args)
+	require.Nil(t, pool)
+	require.NotNil(t, err)
+	require.Errorf(t, err, dataRetriever.ErrBadMaxTrackedBlocks.Error())
 }
 
 func Test_NewShardedTxPool_ComputesCacheConfig(t *testing.T) {
@@ -122,6 +131,7 @@ func Test_NewShardedTxPool_ComputesCacheConfig(t *testing.T) {
 		NumberOfShards: 2,
 		TxCacheBoundsConfig: config.TxCacheBoundsConfig{
 			MaxNumBytesPerSenderUpperBound: maxNumBytesPerSenderUpperBoundTest,
+			MaxTrackedBlocks:               maxTrackedBlocks,
 		},
 	}
 
@@ -492,6 +502,7 @@ func Test_routeToCacheUnions(t *testing.T) {
 		SelfShardID:    42,
 		TxCacheBoundsConfig: config.TxCacheBoundsConfig{
 			MaxNumBytesPerSenderUpperBound: maxNumBytesPerSenderUpperBoundTest,
+			MaxTrackedBlocks:               maxTrackedBlocks,
 		},
 	}
 
@@ -524,6 +535,7 @@ func TestShardedTxPool_getSelfShardTxCache(t *testing.T) {
 		SelfShardID:    2,
 		TxCacheBoundsConfig: config.TxCacheBoundsConfig{
 			MaxNumBytesPerSenderUpperBound: maxNumBytesPerSenderUpperBoundTest,
+			MaxTrackedBlocks:               maxTrackedBlocks,
 		},
 	}
 
@@ -549,6 +561,7 @@ func TestShardedTxPool_OnProposedBlock_And_OnExecutedBlock(t *testing.T) {
 		SelfShardID:    0,
 		TxCacheBoundsConfig: config.TxCacheBoundsConfig{
 			MaxNumBytesPerSenderUpperBound: maxNumBytesPerSenderUpperBoundTest,
+			MaxTrackedBlocks:               maxTrackedBlocks,
 		},
 	}
 
@@ -614,6 +627,7 @@ func newTxPoolToTest() (dataRetriever.ShardedDataCacherNotifier, error) {
 		SelfShardID:    0,
 		TxCacheBoundsConfig: config.TxCacheBoundsConfig{
 			MaxNumBytesPerSenderUpperBound: maxNumBytesPerSenderUpperBoundTest,
+			MaxTrackedBlocks:               maxTrackedBlocks,
 		},
 	}
 	return NewShardedTxPool(args)

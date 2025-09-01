@@ -39,6 +39,7 @@ var (
 
 const maxNumBytesUpperBound = 1_073_741_824           // one GB
 const maxNumBytesPerSenderUpperBoundTest = 33_554_432 // 32 MB
+const maxTrackedBlocks = 100
 
 func startChainSimulator(t *testing.T, alterConfigsFunction func(cfg *config.Configs)) testsChainSimulator.ChainSimulator {
 	simulator, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
