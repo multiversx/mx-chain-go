@@ -14,7 +14,7 @@ import (
 var log = logger.GetOrCreate("process/asyncExecution/executionTrack")
 
 type executionResultsTracker struct {
-	lastNotarizedResult    data.ExecutionResultHandler
+	lastNotarizedResult    data.BaseExecutionResultHandler
 	mutex                  sync.RWMutex
 	executionResultsByHash map[string]data.ExecutionResultHandler
 	nonceHash              *nonceHash
@@ -74,7 +74,7 @@ func (ert *executionResultsTracker) AddExecutionResult(executionResult data.Exec
 	return nil
 }
 
-func (ert *executionResultsTracker) getLastExecutionResult() (data.ExecutionResultHandler, error) {
+func (ert *executionResultsTracker) getLastExecutionResult() (data.BaseExecutionResultHandler, error) {
 	if ert.lastNotarizedResult == nil {
 		return nil, ErrNilLastNotarizedExecutionResult
 	}
@@ -236,7 +236,7 @@ func (ert *executionResultsTracker) cleanExecutionResults(executionResult []data
 }
 
 // GetLastNotarizedExecutionResult will return the last notarized execution result
-func (ert *executionResultsTracker) GetLastNotarizedExecutionResult() (data.ExecutionResultHandler, error) {
+func (ert *executionResultsTracker) GetLastNotarizedExecutionResult() (data.BaseExecutionResultHandler, error) {
 	ert.mutex.RLock()
 	defer ert.mutex.RUnlock()
 	if ert.lastNotarizedResult == nil {
@@ -247,7 +247,7 @@ func (ert *executionResultsTracker) GetLastNotarizedExecutionResult() (data.Exec
 }
 
 // SetLastNotarizedResult will set the last notarized execution result
-func (ert *executionResultsTracker) SetLastNotarizedResult(executionResult data.ExecutionResultHandler) error {
+func (ert *executionResultsTracker) SetLastNotarizedResult(executionResult data.BaseExecutionResultHandler) error {
 	if executionResult == nil {
 		return ErrNilExecutionResult
 	}

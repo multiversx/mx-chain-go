@@ -56,6 +56,18 @@ func (mdr *missingDataResolver) RequestMissingMetaHeadersBlocking(
 	shardHeader data.ShardHeaderHandler,
 	timeout time.Duration,
 ) error {
+	err := mdr.RequestMissingMetaHeaders(shardHeader)
+	if err != nil {
+		return err
+	}
+
+	return mdr.WaitForMissingData(timeout)
+}
+
+// RequestMissingMetaHeaders requests the missing meta headers and proofs for the given shard header.
+func (mdr *missingDataResolver) RequestMissingMetaHeaders(
+	shardHeader data.ShardHeaderHandler,
+) error {
 	if check.IfNil(shardHeader) {
 		return process.ErrNilBlockHeader
 	}
@@ -65,8 +77,7 @@ func (mdr *missingDataResolver) RequestMissingMetaHeadersBlocking(
 		mdr.requestHeaderIfNeeded(core.MetachainShardId, metaBlockHashes[i])
 		mdr.requestProofIfNeeded(core.MetachainShardId, metaBlockHashes[i])
 	}
-
-	return mdr.waitForMissingData(timeout)
+	return nil
 }
 
 func (mdr *missingDataResolver) addMissingHeader(hash []byte) bool {
@@ -178,8 +189,9 @@ func (mdr *missingDataResolver) requestProofIfNeeded(shardID uint32, headerHash 
 	go mdr.requestHandler.RequestEquivalentProofByHash(shardID, headerHash)
 }
 
+// WaitForMissingData waits until all missing data is received or the timeout is reached.
 // TODO: maybe use channels instead of polling
-func (mdr *missingDataResolver) waitForMissingData(timeout time.Duration) error {
+func (mdr *missingDataResolver) WaitForMissingData(timeout time.Duration) error {
 	deadline := time.Now().Add(timeout)
 
 	for {
@@ -192,4 +204,9 @@ func (mdr *missingDataResolver) waitForMissingData(timeout time.Duration) error 
 		}
 		time.Sleep(checkMissingDataStep)
 	}
+}
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (mdr *missingDataResolver) IsInterfaceNil() bool {
+	return mdr == nil
 }
