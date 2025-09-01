@@ -1,6 +1,11 @@
 package txcache
 
 import (
+	"time"
+
+	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-storage-go/types"
 )
 
@@ -121,6 +126,21 @@ func (cache *DisabledCache) GetTransactionsPoolForSender(_ string) []*WrappedTra
 // Close does nothing
 func (cache *DisabledCache) Close() error {
 	return nil
+}
+
+// OnProposedBlock does nothing
+func (cache *DisabledCache) OnProposedBlock(_ []byte, _ *block.Body, _ data.HeaderHandler, _ AccountNonceAndBalanceProvider, _ common.BlockchainInfo) error {
+	return nil
+}
+
+// OnExecutedBlock does nothing
+func (cache *DisabledCache) OnExecutedBlock(data.HeaderHandler) error {
+	return nil
+}
+
+// Cleanup does nothing
+func (cache *DisabledCache) Cleanup(_ SelectionSession, _ uint64, _ int, _ time.Duration) uint64 {
+	return 0
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

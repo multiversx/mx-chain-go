@@ -49,10 +49,12 @@ func (args *ArgShardedTxPool) verify() error {
 		return fmt.Errorf("%w: NumberOfShards is not valid", dataRetriever.ErrCacheConfigInvalidSharding)
 	}
 
+	// TODO brainstorm if these checks could be moved in the underlying component
 	if args.TxCacheBoundsConfig.MaxNumBytesPerSenderUpperBound == 0 {
 		return fmt.Errorf("%w: MaxNumBytesPerSenderUpperBound is not valid", dataRetriever.ErrBadMaxNumBytesPerSenderUpperBound)
 	}
 
+	// TODO compare with the maximum allowed offset between proposing a block and actually executing it
 	if args.TxCacheBoundsConfig.MaxTrackedBlocks == 0 {
 		return fmt.Errorf("%w: MaxTrackedBlocks is not valid", dataRetriever.ErrBadMaxTrackedBlocks)
 	}

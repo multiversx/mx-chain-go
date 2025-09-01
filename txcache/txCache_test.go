@@ -67,7 +67,7 @@ func Test_NewTxCache(t *testing.T) {
 
 	badConfig = config
 	badConfig.TxCacheBoundsConfig.MaxTrackedBlocks = 0
-	requireErrorOnNewTxCache(t, badConfig, errInvalidMaxTrackedBlocks, "invalid max tracked blocks", host)
+	requireErrorOnNewTxCache(t, badConfig, errInvalidMaxTrackedBlocks, "bad max tracked blocks", host)
 }
 
 func requireErrorOnNewTxCache(t *testing.T, config ConfigSourceMe, errExpected error, errPartialMessage string, host MempoolHost) {
