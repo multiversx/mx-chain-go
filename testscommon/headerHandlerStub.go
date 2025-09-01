@@ -40,6 +40,9 @@ type HeaderHandlerStub struct {
 	SetLeaderSignatureCalled               func(signature []byte) error
 	GetShardIDCalled                       func() uint32
 	SetRootHashCalled                      func(hash []byte) error
+	GetLastExecutionResultHandlerCalled    func() data.LastExecutionResultHandler
+	GetExecutionResultsHandlersCalled      func() []data.BaseExecutionResultHandler
+	IsHeaderV3Called                       func() bool
 }
 
 // GetAccumulatedFees -
@@ -434,4 +437,28 @@ func (hhs *HeaderHandlerStub) SetBlockBodyTypeInt32(blockBodyType int32) error {
 	hhs.BlockBodyTypeInt32Field = blockBodyType
 
 	return nil
+}
+
+func (hhs *HeaderHandlerStub) GetLastExecutionResultHandler() data.LastExecutionResultHandler {
+	if hhs.GetLastExecutionResultHandlerCalled != nil {
+		return hhs.GetLastExecutionResultHandlerCalled()
+	}
+
+	return nil
+}
+
+func (hhs *HeaderHandlerStub) GetExecutionResultsHandlers() []data.BaseExecutionResultHandler {
+	if hhs.GetExecutionResultsHandlersCalled != nil {
+		return hhs.GetExecutionResultsHandlersCalled()
+	}
+
+	return nil
+}
+
+func (hhs *HeaderHandlerStub) IsHeaderV3() bool {
+	if hhs.IsHeaderV3Called != nil {
+		return hhs.IsHeaderV3Called()
+	}
+
+	return false
 }

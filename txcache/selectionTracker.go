@@ -24,6 +24,7 @@ func NewSelectionTracker(txCache txCacheForSelectionTracker, maxTrackedBlocks ui
 	if check.IfNil(txCache) {
 		return nil, errNilTxCache
 	}
+	// TODO compare with another variable
 	if maxTrackedBlocks == 0 {
 		return nil, errInvalidMaxTrackedBlocks
 	}
@@ -70,6 +71,12 @@ func (st *selectionTracker) OnProposedBlock(
 		"rootHash", rootHash,
 		"prevHash", prevHash)
 
+	err := st.checkReceivedBlockNoLock(blockBody, blockHeader)
+	if err != nil {
+		log.Debug("selectionTracker.OnProposedBlock: error checking the received block", "err", err)
+		return err
+	}
+
 	// TODO brainstorm if this could be moved after getChainOfTrackedBlocks
 	txs, err := st.getTransactionsInBlock(blockBody)
 	if err != nil {
@@ -105,15 +112,6 @@ func (st *selectionTracker) OnProposedBlock(
 
 	st.blocks[string(blockHash)] = tBlock
 
-	if len(st.blocks) == int(st.maxTrackedBlocks) {
-		log.Warn("selectionTracker.OnProposedBlock: max tracked blocks reached",
-			"len(st.blocks)", len(st.blocks),
-		)
-
-		// clear all the proposed blocks
-		st.blocks = make(map[string]*trackedBlock)
-	}
-
 	return nil
 }
 
@@ -136,6 +134,28 @@ func (st *selectionTracker) OnExecutedBlock(handler data.HeaderHandler) error {
 
 	st.removeFromTrackedBlocksNoLock(tempTrackedBlock)
 	st.updateLatestRootHashNoLock(nonce, rootHash)
+
+	return nil
+}
+
+// checkReceivedBlockNoLock first checks if MaxTrackedBlocks is reached
+// then, if MaxTrackedBlocks is reached, checks that the received block is as expected
+func (st *selectionTracker) checkReceivedBlockNoLock(blockBody *block.Body, blockHeader data.HeaderHandler) error {
+	if len(st.blocks) < int(st.maxTrackedBlocks) {
+		return nil
+	}
+
+	if len(blockBody.MiniBlocks) != 0 && len(blockHeader.GetExecutionResultsHandlers()) == 0 {
+		log.Warn("selectionTracker.checkReceivedBlockNoLock: received bad block while max tracked blocks is reached. "+
+			"should receive empty block or a block with new execution results",
+			"len(st.blocks)", len(st.blocks),
+		)
+
+		return errBadBlockWhileMaxTrackedBlocksReached
+	}
+
+	log.Warn("selectionTracker.checkReceivedBlockNoLock: max tracked blocks reached",
+		"len(st.blocks)", len(st.blocks))
 
 	return nil
 }

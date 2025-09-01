@@ -342,7 +342,7 @@ func TestSelectionTracker_OnProposedBlockShouldWork(t *testing.T) {
 	require.Equal(t, 20, len(tracker.blocks))
 }
 
-func TestSelectionTracker_OnProposedBlockShouldCleanWhenMaxTrackedBlocksIsReached(t *testing.T) {
+func TestSelectionTracker_OnProposedBlockWhenMaxTrackedBlocksIsReached(t *testing.T) {
 	t.Parallel()
 
 	txCache := newCacheToTest(maxNumBytesPerSenderUpperBoundTest, 3)
@@ -353,7 +353,67 @@ func TestSelectionTracker_OnProposedBlockShouldCleanWhenMaxTrackedBlocksIsReache
 	accountsProvider := txcachemocks.NewAccountNonceAndBalanceProviderMock()
 
 	proposeBlocks(t, numOfBlocks, tracker, accountsProvider)
-	require.Equal(t, 0, len(tracker.blocks))
+
+	// this one should not be added, it doesn't have execution results
+	err = tracker.OnProposedBlock(
+		[]byte("hashX"),
+		&block.Body{
+			MiniBlocks: []*block.MiniBlock{
+				{
+					TxHashes: [][]byte{},
+				},
+			},
+		},
+		&block.Header{
+			Nonce:    uint64(4),
+			PrevHash: []byte(fmt.Sprintf("hash%d", 3)),
+			RootHash: []byte("rootHash0"),
+		},
+		accountsProvider,
+		holders.NewBlockchainInfo([]byte("hash0"), nil, 20),
+	)
+	require.Equal(t, errBadBlockWhileMaxTrackedBlocksReached, err)
+	require.Equal(t, 3, len(tracker.blocks))
+
+	// this one should be added because it has new execution results
+	err = tracker.OnProposedBlock(
+		[]byte(fmt.Sprintf("hash%d", 4)),
+		&block.Body{
+			MiniBlocks: []*block.MiniBlock{
+				{
+					TxHashes: [][]byte{},
+				},
+			},
+		},
+		&block.HeaderV3{
+			Nonce:    uint64(4),
+			PrevHash: []byte(fmt.Sprintf("hash%d", 3)),
+			ExecutionResults: []*block.ExecutionResult{
+				{},
+			},
+		},
+		accountsProvider,
+		holders.NewBlockchainInfo([]byte("hash0"), nil, 20),
+	)
+	require.Nil(t, err)
+	require.Equal(t, 4, len(tracker.blocks))
+
+	// this one should be added because is an empty block
+	err = tracker.OnProposedBlock(
+		[]byte(fmt.Sprintf("hash%d", 5)),
+		&block.Body{},
+		&block.HeaderV3{
+			Nonce:    uint64(5),
+			PrevHash: []byte(fmt.Sprintf("hash%d", 4)),
+			ExecutionResults: []*block.ExecutionResult{
+				{},
+			},
+		},
+		accountsProvider,
+		holders.NewBlockchainInfo([]byte("hash0"), nil, 20),
+	)
+	require.Nil(t, err)
+	require.Equal(t, 5, len(tracker.blocks))
 }
 
 func TestSelectionTracker_OnExecutedBlockShouldError(t *testing.T) {

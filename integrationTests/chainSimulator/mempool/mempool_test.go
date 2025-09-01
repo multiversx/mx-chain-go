@@ -1582,10 +1582,51 @@ func Test_Selection_MaxTrackedBlocksReached(t *testing.T) {
 	)
 	require.Nil(t, err)
 
-	// removing the proposed blocks from the tracked blocks, would mean re-selecting transactions
-	blockchainInfo = holders.NewBlockchainInfo([]byte("blockHash0"), []byte("blockHash0"), 1)
-	selectedTransactions, _ = txpool.SelectTransactions(selectionSession, options, blockchainInfo)
-	require.Equal(t, 30_000, len(selectedTransactions))
+	// proposing an empty block whe MaxTrackedBlocks is reached should work
+	err = txpool.OnProposedBlock([]byte("blockHash4"), &block.Body{},
+		&block.Header{
+			Nonce:    4,
+			PrevHash: []byte("blockHash3"),
+			RootHash: []byte(fmt.Sprintf("rootHash%d", 1)),
+		},
+		selectionSession,
+		defaultBlockchainInfo,
+	)
+	require.Nil(t, err)
+
+	// proposing a block with transactions when MaxTrackedBlocks is reached should not work
+	err = txpool.OnProposedBlock([]byte("blockHash4"), &block.Body{
+		MiniBlocks: []*block.MiniBlock{
+			{},
+		},
+	},
+		&block.Header{
+			Nonce:    4,
+			PrevHash: []byte("blockHash3"),
+			RootHash: []byte(fmt.Sprintf("rootHash%d", 1)),
+		},
+		selectionSession,
+		defaultBlockchainInfo,
+	)
+	require.ErrorContains(t, err, "bad block received while max tracked blocks is reached")
+
+	// proposing a block with transactions and with new execution results when MaxTrackedBlocks is reached should work
+	err = txpool.OnProposedBlock([]byte("blockHash5"), &block.Body{
+		MiniBlocks: []*block.MiniBlock{
+			{},
+		},
+	},
+		&block.HeaderV3{
+			Nonce:    5,
+			PrevHash: []byte("blockHash4"),
+			ExecutionResults: []*block.ExecutionResult{
+				{},
+			},
+		},
+		selectionSession,
+		defaultBlockchainInfo,
+	)
+	require.Nil(t, err)
 }
 
 func Test_SelectionWhenFeeExceedsBalanceWithMax3TxsSelected(t *testing.T) {
