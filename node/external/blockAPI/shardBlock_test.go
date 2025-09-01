@@ -3,6 +3,7 @@ package blockAPI
 import (
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"math/big"
 	"testing"
 
@@ -767,4 +768,122 @@ func areAlteredAccountsResponsesTheSame(first []*alteredAccount.AlteredAccount, 
 	}
 
 	return true
+}
+
+func TestShardAPIBlockProcessor_ConvertShardBlockBytesToAPIBlock_HeaderV3(t *testing.T) {
+	t.Parallel()
+
+	shardID := uint32(3)
+	headerHash := []byte("d08089f2ab739520598fd7aeed08c427460fe94f286383047f3f61951afc4e00")
+
+	storerMock := genericMocks.NewStorerMock()
+
+	blockProc := createMockShardAPIProcessor(
+		shardID,
+		headerHash,
+		storerMock,
+		true,
+		false,
+	)
+
+	// Create HeaderV3 with execution results
+	headerV3 := &block.HeaderV3{
+		Nonce:    100,
+		Round:    1000,
+		ShardID:  3,
+		Epoch:    5,
+		PrevHash: []byte("prev_hash"),
+		LastExecutionResult: &block.ExecutionResultInfo{
+			NotarizedOnHeaderHash: []byte("notarized_hash"),
+			ExecutionResult: &block.BaseExecutionResult{
+				HeaderHash:  []byte("exec_header_hash"),
+				HeaderNonce: 99,
+				HeaderRound: 999,
+				HeaderEpoch: 5,
+				RootHash:    []byte("root_hash"),
+			},
+		},
+		ExecutionResults: []*block.ExecutionResult{
+			{
+				BaseExecutionResult: &block.BaseExecutionResult{
+					HeaderHash:  []byte("exec_result_hash"),
+					HeaderNonce: 100,
+					HeaderRound: 1000,
+					HeaderEpoch: 5,
+					RootHash:    []byte("exec_root_hash"),
+				},
+				ReceiptsHash:     []byte("receipts_hash"),
+				MiniBlockHeaders: []block.MiniBlockHeader{},
+				DeveloperFees:    big.NewInt(100),
+				AccumulatedFees:  big.NewInt(1000),
+				GasUsed:          50000,
+				ExecutedTxCount:  0,
+			},
+		},
+	}
+
+	headerBytes, _ := blockProc.marshalizer.Marshal(headerV3)
+	_ = storerMock.Put(headerHash, headerBytes)
+
+	executionResult := &block.ExecutionResult{
+		BaseExecutionResult: &block.BaseExecutionResult{
+			HeaderHash:  headerHash,
+			HeaderNonce: 100,
+			HeaderRound: 1000,
+			HeaderEpoch: 5,
+			RootHash:    []byte("root_hash"),
+		},
+		ReceiptsHash:     []byte("receipts_hash"),
+		MiniBlockHeaders: []block.MiniBlockHeader{},
+		DeveloperFees:    big.NewInt(100),
+		AccumulatedFees:  big.NewInt(1000),
+		GasUsed:          50000,
+		ExecutedTxCount:  0,
+	}
+	executionResultBytes, _ := blockProc.marshalizer.Marshal(executionResult)
+
+	blockProc.store = &storageMocks.ChainStorerStub{
+		GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
+			return &storageMocks.StorerStub{
+				GetFromEpochCalled: func(key []byte, epoch uint32) ([]byte, error) {
+					if string(key) == string(headerHash) {
+						return executionResultBytes, nil
+					}
+					return nil, errors.New("not found")
+				},
+			}, nil
+		},
+	}
+
+	apiBlock, err := blockProc.convertShardBlockBytesToAPIBlock(
+		headerHash,
+		headerBytes,
+		api.BlockQueryOptions{WithTransactions: true},
+	)
+
+	require.NoError(t, err)
+	require.NotNil(t, apiBlock)
+	require.Equal(t, uint64(100), apiBlock.Nonce)
+	require.Equal(t, uint64(1000), apiBlock.Round)
+	require.Equal(t, uint32(5), apiBlock.Epoch)
+	require.Equal(t, uint32(3), apiBlock.Shard)
+	require.Equal(t, hex.EncodeToString(headerHash), apiBlock.Hash)
+	require.Equal(t, "1000", apiBlock.AccumulatedFees)
+	require.Equal(t, "100", apiBlock.DeveloperFees)
+	require.Equal(t, hex.EncodeToString([]byte("root_hash")), apiBlock.StateRootHash)
+
+	require.NotNil(t, apiBlock.LastExecutionResult)
+	require.Equal(t, "657865635f6865616465725f68617368", apiBlock.LastExecutionResult.HeaderHash)
+	require.Equal(t, uint64(99), apiBlock.LastExecutionResult.HeaderNonce)
+	require.Equal(t, uint64(999), apiBlock.LastExecutionResult.HeaderRound)
+	require.Equal(t, uint32(5), apiBlock.LastExecutionResult.HeaderEpoch)
+	require.Equal(t, "726f6f745f68617368", apiBlock.LastExecutionResult.RootHash)
+
+	require.NotNil(t, apiBlock.ExecutionResults)
+	require.Len(t, apiBlock.ExecutionResults, 1)
+	require.Equal(t, "657865635f726573756c745f68617368", apiBlock.ExecutionResults[0].HeaderHash)
+	require.Equal(t, uint64(100), apiBlock.ExecutionResults[0].HeaderNonce)
+	require.Equal(t, uint64(1000), apiBlock.ExecutionResults[0].HeaderRound)
+	require.Equal(t, uint32(5), apiBlock.ExecutionResults[0].HeaderEpoch)
+	require.Equal(t, "657865635f726f6f745f68617368", apiBlock.ExecutionResults[0].RootHash)
 }
