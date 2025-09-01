@@ -14,11 +14,11 @@ import (
 // executionResultsVerifier is a struct that checks the execution results of a shard header
 type executionResultsVerifier struct {
 	blockChain              data.ChainHandler
-	executionResultsTracker ExecutionResultsTracker
+	executionResultsTracker process.ExecutionResultsTracker
 }
 
 // NewExecutionResultsVerifier creates a new instance of executionResultsVerifier
-func NewExecutionResultsVerifier(blockChain data.ChainHandler, executionResultsTracker ExecutionResultsTracker) (*executionResultsVerifier, error) {
+func NewExecutionResultsVerifier(blockChain data.ChainHandler, executionResultsTracker process.ExecutionResultsTracker) (*executionResultsVerifier, error) {
 	if check.IfNil(blockChain) {
 		return nil, process.ErrNilBlockChain
 	}
@@ -252,4 +252,9 @@ func createLastExecutionResultInfoFromExecutionResult(notarizedOnHeaderHash []by
 			DevFeesInEpoch:         lastMetaExecResult.GetDevFeesInEpoch(),
 		},
 	}, nil
+}
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (erc *executionResultsVerifier) IsInterfaceNil() bool {
+	return erc == nil
 }
