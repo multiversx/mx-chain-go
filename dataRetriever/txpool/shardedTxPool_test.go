@@ -535,6 +535,7 @@ func TestShardedTxPool_getSelfShardTxCache(t *testing.T) {
 		SelfShardID:    2,
 		TxCacheBoundsConfig: config.TxCacheBoundsConfig{
 			MaxNumBytesPerSenderUpperBound: maxNumBytesPerSenderUpperBoundTest,
+			MaxTrackedBlocks:               maxTrackedBlocks,
 		},
 	}
 
@@ -560,6 +561,7 @@ func TestShardedTxPool_OnProposedBlock_And_OnExecutedBlock(t *testing.T) {
 		SelfShardID:    0,
 		TxCacheBoundsConfig: config.TxCacheBoundsConfig{
 			MaxNumBytesPerSenderUpperBound: maxNumBytesPerSenderUpperBoundTest,
+			MaxTrackedBlocks:               maxTrackedBlocks,
 		},
 	}
 
