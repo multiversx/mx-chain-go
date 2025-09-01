@@ -147,7 +147,7 @@ func (sd *ShardedDataStub) OnExecutedBlock(blockHeader data.HeaderHandler) error
 	return nil
 }
 
-// IsInterfaceNil returns true if there is no value under the interface
+// IsInterfaceNil -
 func (sd *ShardedDataStub) IsInterfaceNil() bool {
 	return sd == nil
 }
