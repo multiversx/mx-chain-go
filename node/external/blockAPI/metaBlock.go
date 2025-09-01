@@ -310,8 +310,6 @@ func addExtraFieldsLastExecutionResultMeta(metaHeader data.MetaHeaderHandler, ap
 	apiBlock.AccumulatedFeesInEpoch = metaExecutionResult.GetExecutionResultHandler().GetAccumulatedFeesInEpoch().String()
 	apiBlock.DeveloperFeesInEpoch = metaExecutionResult.GetExecutionResultHandler().GetDevFeesInEpoch().String()
 	apiBlock.StateRootHash = hex.EncodeToString(metaExecutionResult.GetExecutionResultHandler().GetRootHash())
-
-	return
 }
 
 func addStartOfEpochInfoInBlock(metaHeader data.MetaHeaderHandler, apiBlock *api.Block) {
