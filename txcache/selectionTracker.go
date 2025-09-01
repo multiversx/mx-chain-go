@@ -204,7 +204,6 @@ func (st *selectionTracker) validateTrackedBlocks(chainOfTrackedBlocks []*tracke
 
 // addNewTrackedBlockNoLock adds a new tracked block into the map of tracked blocks
 // replaces an existing block which has the same nonce with the one received
-// checks if MaxTrackedBlocks is reached
 func (st *selectionTracker) addNewTrackedBlockNoLock(blockToBeAddedHash []byte, blockToBeAdded *trackedBlock) {
 	// search if in the tracked block we already have one with same nonce
 	for bHash, b := range st.blocks {
@@ -224,15 +223,6 @@ func (st *selectionTracker) addNewTrackedBlockNoLock(blockToBeAddedHash []byte, 
 
 	// add the new block
 	st.blocks[string(blockToBeAddedHash)] = blockToBeAdded
-
-	if len(st.blocks) == int(st.maxTrackedBlocks) {
-		log.Warn("selectionTracker.addNewTrackedBlockNoLock: max tracked blocks reached, will be cleared",
-			"len(st.blocks)", len(st.blocks),
-		)
-
-		// clear all the proposed blocks
-		st.blocks = make(map[string]*trackedBlock)
-	}
 }
 
 func (st *selectionTracker) removeFromTrackedBlocksNoLock(searchedBlock *trackedBlock) {
