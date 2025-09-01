@@ -8,6 +8,8 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/counting"
 	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/storage"
@@ -396,26 +398,40 @@ func (txPool *shardedTxPool) getSelfShardTxCache() txCache {
 
 // CleanupSelfShardTxCache performs an automatic cleanup of the transaction cache for the node's own shard.
 // It removes non-executable transactions based on provided time and number constraints.
-func (txPool *shardedTxPool) CleanupSelfShardTxCache(session interface{}, randomness uint64, maxNum int, maxTime time.Duration) bool {
+func (txPool *shardedTxPool) CleanupSelfShardTxCache(session interface{}, randomness uint64, maxNum int, maxTime time.Duration) {
 	cache := txPool.getSelfShardTxCache()
 
-	selfShardTxCache := cache.(*txcache.TxCache)
-
-	log.Debug("shardedTxPool.CleanupSelfShardTxCache() starting cleanup",
+	log.Debug("shardedTxPool.CleanupSelfShardTxCache(): starting cleanup",
 		"selfShardID", txPool.selfShardID,
-		"numTxs", selfShardTxCache.CountTx(),
-		"numBytes", selfShardTxCache.NumBytes(),
+		"len", cache.Len(),
+		"numBytes", cache.NumBytes(),
 	)
+
+	// TODO: actually, receive a mere accounts provider here, instead of a selection session.
+	selectionSession, ok := session.(txcache.SelectionSession)
+	if !ok {
+		log.Warn("shardedTxPool.CleanupSelfShardTxCache(): invalid session type")
+		return
+	}
 
 	// Perform the cleanup operation on the mempool
-	selectionSession := session.(txcache.SelectionSession)
-	selfShardTxCache.Cleanup(selectionSession, randomness, maxNum, maxTime)
+	cache.Cleanup(selectionSession, randomness, maxNum, maxTime)
 
-	log.Debug("shardedTxPool.CleanupSelfShardTxCache() self shard cache cleanup completed",
+	log.Debug("shardedTxPool.CleanupSelfShardTxCache(): self shard cache cleanup completed",
 		"selfShardID", txPool.selfShardID,
-		"numTxs", selfShardTxCache.CountTx(),
-		"numBytes", selfShardTxCache.NumBytes(),
+		"len", cache.Len(),
+		"numBytes", cache.NumBytes(),
 	)
+}
 
-	return true
+// OnProposedBlock notifies the underlying TxCache
+func (txPool *shardedTxPool) OnProposedBlock(blockHash []byte, blockBody *block.Body, blockHeader data.HeaderHandler, accountsProvider txcache.AccountNonceAndBalanceProvider, blockchainInfo common.BlockchainInfo) error {
+	cache := txPool.getSelfShardTxCache()
+	return cache.OnProposedBlock(blockHash, blockBody, blockHeader, accountsProvider, blockchainInfo)
+}
+
+// OnExecutedBlock notifies the underlying TxCache
+func (txPool *shardedTxPool) OnExecutedBlock(blockHeader data.HeaderHandler) error {
+	cache := txPool.getSelfShardTxCache()
+	return cache.OnExecutedBlock(blockHeader)
 }

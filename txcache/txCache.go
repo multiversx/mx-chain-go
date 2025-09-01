@@ -162,15 +162,15 @@ func (cache *TxCache) SelectTransactions(
 func (cache *TxCache) OnProposedBlock(
 	blockHash []byte,
 	blockBody *block.Body,
-	handler data.HeaderHandler,
+	blockHeader data.HeaderHandler,
 	accountsProvider AccountNonceAndBalanceProvider,
-	defaultBlockchainInfo common.BlockchainInfo) error {
-	return cache.tracker.OnProposedBlock(blockHash, blockBody, handler, accountsProvider, defaultBlockchainInfo)
+	blockchainInfo common.BlockchainInfo) error {
+	return cache.tracker.OnProposedBlock(blockHash, blockBody, blockHeader, accountsProvider, blockchainInfo)
 }
 
 // OnExecutedBlock calls the OnExecutedBlock method from SelectionTracker
-func (cache *TxCache) OnExecutedBlock(handler data.HeaderHandler) error {
-	return cache.tracker.OnExecutedBlock(handler)
+func (cache *TxCache) OnExecutedBlock(blockHeader data.HeaderHandler) error {
+	return cache.tracker.OnExecutedBlock(blockHeader)
 }
 
 func (cache *TxCache) getSenders() []*txListForSender {

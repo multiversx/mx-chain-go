@@ -116,14 +116,14 @@ func (st *selectionTracker) OnProposedBlock(
 }
 
 // OnExecutedBlock notifies when a block is executed and updates the state of the selectionTracker
-func (st *selectionTracker) OnExecutedBlock(handler data.HeaderHandler) error {
-	if check.IfNil(handler) {
+func (st *selectionTracker) OnExecutedBlock(blockHeader data.HeaderHandler) error {
+	if check.IfNil(blockHeader) {
 		return errNilHeaderHandler
 	}
 
-	nonce := handler.GetNonce()
-	rootHash := handler.GetRootHash()
-	prevHash := handler.GetPrevHash()
+	nonce := blockHeader.GetNonce()
+	rootHash := blockHeader.GetRootHash()
+	prevHash := blockHeader.GetPrevHash()
 
 	tempTrackedBlock, err := newTrackedBlock(nonce, nil, rootHash, prevHash, nil)
 	if err != nil {
