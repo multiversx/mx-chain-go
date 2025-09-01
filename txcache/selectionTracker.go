@@ -131,9 +131,9 @@ func (st *selectionTracker) checkReceivedBlockNoLock(blockBody *block.Body, bloc
 	}
 
 	hasNewTransactions := len(blockBody.MiniBlocks) != 0
-	noNewExecutionResults := len(blockHeader.GetExecutionResultsHandlers()) == 0
+	hasNoNewExecutionResults := len(blockHeader.GetExecutionResultsHandlers()) == 0
 
-	if hasNewTransactions && noNewExecutionResults {
+	if hasNewTransactions && hasNoNewExecutionResults {
 		log.Warn("selectionTracker.checkReceivedBlockNoLock: received bad block while max tracked blocks is reached. "+
 			"should receive empty block or a block with new execution results",
 			"len(st.blocks)", len(st.blocks),
