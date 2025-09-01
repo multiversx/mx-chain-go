@@ -37,7 +37,6 @@ func NewSelectionTracker(txCache txCacheForSelectionTracker, maxTrackedBlocks ui
 }
 
 // OnProposedBlock notifies when a block is proposed and updates the state of the selectionTracker
-// TODO brainstorm if it is possible to refactor this method, maybe split it in different methods
 func (st *selectionTracker) OnProposedBlock(
 	blockHash []byte,
 	blockBody *block.Body,
@@ -45,17 +44,9 @@ func (st *selectionTracker) OnProposedBlock(
 	accountsProvider AccountNonceAndBalanceProvider,
 	blockchainInfo common.BlockchainInfo,
 ) error {
-	if len(blockHash) == 0 {
-		return errNilBlockHash
-	}
-	if check.IfNil(blockBody) {
-		return errNilBlockBody
-	}
-	if check.IfNil(blockHeader) {
-		return errNilHeaderHandler
-	}
-	if check.IfNil(accountsProvider) {
-		return errNilAccountNonceAndBalanceProvider
+	err := st.verifyArgs(blockHash, blockBody, blockHeader, accountsProvider)
+	if err != nil {
+		return err
 	}
 
 	nonce := blockHeader.GetNonce()
@@ -73,7 +64,7 @@ func (st *selectionTracker) OnProposedBlock(
 	st.mutTracker.Lock()
 	defer st.mutTracker.Unlock()
 
-	err := st.checkReceivedBlockNoLock(blockBody, blockHeader)
+	err = st.checkReceivedBlockNoLock(blockBody, blockHeader)
 	if err != nil {
 		log.Debug("selectionTracker.OnProposedBlock: error checking the received block", "err", err)
 		return err
@@ -106,6 +97,28 @@ func (st *selectionTracker) OnExecutedBlock(blockHeader data.HeaderHandler) erro
 
 	st.removeFromTrackedBlocksNoLock(tempTrackedBlock)
 	st.updateLatestRootHashNoLock(nonce, rootHash)
+
+	return nil
+}
+
+func (st *selectionTracker) verifyArgs(
+	blockHash []byte,
+	blockBody *block.Body,
+	blockHeader data.HeaderHandler,
+	accountsProvider AccountNonceAndBalanceProvider,
+) error {
+	if len(blockHash) == 0 {
+		return errNilBlockHash
+	}
+	if check.IfNil(blockBody) {
+		return errNilBlockBody
+	}
+	if check.IfNil(blockHeader) {
+		return errNilHeaderHandler
+	}
+	if check.IfNil(accountsProvider) {
+		return errNilAccountNonceAndBalanceProvider
+	}
 
 	return nil
 }
