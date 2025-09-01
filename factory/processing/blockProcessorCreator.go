@@ -6,6 +6,10 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	dataBlock "github.com/multiversx/mx-chain-core-go/data/block"
+	logger "github.com/multiversx/mx-chain-logger-go"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
+	"github.com/multiversx/mx-chain-vm-common-go/parsers"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
@@ -43,9 +47,6 @@ import (
 	"github.com/multiversx/mx-chain-go/state/syncer"
 	"github.com/multiversx/mx-chain-go/storage/txcache"
 	"github.com/multiversx/mx-chain-go/vm"
-	logger "github.com/multiversx/mx-chain-logger-go"
-	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
-	"github.com/multiversx/mx-chain-vm-common-go/parsers"
 )
 
 type blockProcessorAndVmFactories struct {
@@ -373,13 +374,25 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 		return nil, err
 	}
 
+	blockDataRequesterArgs := coordinator.BlockDataRequestArgs{
+		RequestHandler:      requestHandler,
+		MiniBlockPool:       pcf.data.Datapool().MiniBlocks(),
+		PreProcessors:       preProcContainer,
+		ShardCoordinator:    pcf.bootstrapComponents.ShardCoordinator(),
+		EnableEpochsHandler: pcf.coreData.EnableEpochsHandler(),
+	}
+
+	blockDataRequester, err := coordinator.NewBlockDataRequester(blockDataRequesterArgs)
+	if err != nil {
+		return nil, err
+	}
+
 	argsTransactionCoordinator := coordinator.ArgTransactionCoordinator{
 		Hasher:                       pcf.coreData.Hasher(),
 		Marshalizer:                  pcf.coreData.InternalMarshalizer(),
 		ShardCoordinator:             pcf.bootstrapComponents.ShardCoordinator(),
 		Accounts:                     pcf.state.AccountsAdapter(),
 		MiniBlockPool:                pcf.data.Datapool().MiniBlocks(),
-		RequestHandler:               requestHandler,
 		PreProcessors:                preProcContainer,
 		InterProcessors:              interimProcContainer,
 		GasHandler:                   gasHandler,
@@ -394,6 +407,7 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 		DoubleTransactionsDetector:   doubleTransactionsDetector,
 		ProcessedMiniBlocksTracker:   processedMiniBlocksTracker,
 		TxExecutionOrderHandler:      pcf.txExecutionOrderHandler,
+		BlockDataRequester:           blockDataRequester,
 	}
 	txCoordinator, err := coordinator.NewTransactionCoordinator(argsTransactionCoordinator)
 	if err != nil {
@@ -699,13 +713,25 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 		return nil, err
 	}
 
+	blockDataRequesterArgs := coordinator.BlockDataRequestArgs{
+		RequestHandler:      requestHandler,
+		MiniBlockPool:       pcf.data.Datapool().MiniBlocks(),
+		PreProcessors:       preProcContainer,
+		ShardCoordinator:    pcf.bootstrapComponents.ShardCoordinator(),
+		EnableEpochsHandler: pcf.coreData.EnableEpochsHandler(),
+	}
+
+	blockDataRequester, err := coordinator.NewBlockDataRequester(blockDataRequesterArgs)
+	if err != nil {
+		return nil, err
+	}
+
 	argsTransactionCoordinator := coordinator.ArgTransactionCoordinator{
 		Hasher:                       pcf.coreData.Hasher(),
 		Marshalizer:                  pcf.coreData.InternalMarshalizer(),
 		ShardCoordinator:             pcf.bootstrapComponents.ShardCoordinator(),
 		Accounts:                     pcf.state.AccountsAdapter(),
 		MiniBlockPool:                pcf.data.Datapool().MiniBlocks(),
-		RequestHandler:               requestHandler,
 		PreProcessors:                preProcContainer,
 		InterProcessors:              interimProcContainer,
 		GasHandler:                   gasHandler,
@@ -720,6 +746,7 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 		DoubleTransactionsDetector:   doubleTransactionsDetector,
 		ProcessedMiniBlocksTracker:   processedMiniBlocksTracker,
 		TxExecutionOrderHandler:      pcf.txExecutionOrderHandler,
+		BlockDataRequester:           blockDataRequester,
 	}
 	txCoordinator, err := coordinator.NewTransactionCoordinator(argsTransactionCoordinator)
 	if err != nil {
