@@ -2579,3 +2579,21 @@ func Test_SetBaseExecutionResult(t *testing.T) {
 		require.True(t, called)
 	})
 }
+
+func TestTransactionCoordinator_SeparateBody(t *testing.T) {
+	t.Parallel()
+
+	body := &block.Body{}
+	body.MiniBlocks = append(body.MiniBlocks, &block.MiniBlock{Type: block.TxBlock})
+	body.MiniBlocks = append(body.MiniBlocks, &block.MiniBlock{Type: block.TxBlock})
+	body.MiniBlocks = append(body.MiniBlocks, &block.MiniBlock{Type: block.TxBlock})
+	body.MiniBlocks = append(body.MiniBlocks, &block.MiniBlock{Type: block.SmartContractResultBlock})
+	body.MiniBlocks = append(body.MiniBlocks, &block.MiniBlock{Type: block.SmartContractResultBlock})
+	body.MiniBlocks = append(body.MiniBlocks, &block.MiniBlock{Type: block.SmartContractResultBlock})
+	body.MiniBlocks = append(body.MiniBlocks, &block.MiniBlock{Type: block.SmartContractResultBlock})
+
+	separated := process.SeparateBodyByType(body)
+	assert.Equal(t, 2, len(separated))
+	assert.Equal(t, 3, len(separated[block.TxBlock].MiniBlocks))
+	assert.Equal(t, 4, len(separated[block.SmartContractResultBlock].MiniBlocks))
+}
