@@ -37,6 +37,7 @@ var (
 		NumItemsToPreemptivelyEvict: 1,
 		TxCacheBoundsConfig: config.TxCacheBoundsConfig{
 			MaxNumBytesPerSenderUpperBound: maxNumBytesPerSenderUpperBoundTest,
+			MaxTrackedBlocks:               maxTrackedBlocks,
 		},
 	}
 )
