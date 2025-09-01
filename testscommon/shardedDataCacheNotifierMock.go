@@ -111,7 +111,7 @@ func (mock *ShardedDataCacheNotifierMock) ClearShardStore(cacheId string) {
 
 // GetCounts -
 func (mock *ShardedDataCacheNotifierMock) GetCounts() counting.CountsWithSize {
-	return nil
+	return &counting.NullCounts{}
 }
 
 // Keys -
