@@ -999,3 +999,140 @@ func TestBaseAPIBlockProcessor_AddMbsAndNumTxsAsyncExecutionBasedOnExecutionResu
 		require.Equal(t, transaction.TxStatusPending, tx.Status)
 	}
 }
+
+func TestBaseAPIBlockProcessor_AddMbsAndNumTxsAsyncExecutionBasedOnExecutionResult_UnmarshalError(t *testing.T) {
+	t.Parallel()
+
+	baseAPIBlockProc := createBaseBlockProcessor()
+	baseAPIBlockProc.txStatusComputer = &mock.StatusComputerStub{
+		ComputeStatusWhenInStorageKnowingMiniblockCalled: func(mbType block.Type, tx *transaction.ApiTransactionResult) (transaction.TxStatus, error) {
+			return transaction.TxStatusSuccess, nil
+		},
+	}
+
+	invalidExecutionResultBytes := []byte("invalid_data")
+
+	baseAPIBlockProc.store = &storageMocks.ChainStorerStub{
+		GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
+			return &storageMocks.StorerStub{
+				GetFromEpochCalled: func(key []byte, epoch uint32) ([]byte, error) {
+					if string(key) == "header_hash" {
+						return invalidExecutionResultBytes, nil
+					}
+					return nil, errors.New("not found")
+				},
+			}, nil
+		},
+	}
+
+	blockHeader := &block.Header{
+		Nonce: 100,
+		Round: 1000,
+		Epoch: 5,
+		MiniBlockHeaders: []block.MiniBlockHeader{
+			{
+				Hash:            []byte("mb_hash_1"),
+				SenderShardID:   0,
+				ReceiverShardID: 1,
+				TxCount:         1,
+			},
+		},
+	}
+
+	apiBlock := &api.Block{
+		Nonce: 100,
+		Round: 1000,
+		Epoch: 5,
+	}
+
+	err := baseAPIBlockProc.addMbsAndNumTxsAsyncExecutionBasedOnExecutionResult(
+		apiBlock,
+		blockHeader,
+		[]byte("header_hash"),
+		api.BlockQueryOptions{WithTransactions: true},
+	)
+
+	require.Error(t, err)
+}
+
+func TestBaseAPIBlockProcessor_AddMbsAndNumTxsAsyncExecutionBasedOnExecutionResult_GetMbsError(t *testing.T) {
+	t.Parallel()
+
+	baseAPIBlockProc := createBaseBlockProcessor()
+	baseAPIBlockProc.txStatusComputer = &mock.StatusComputerStub{
+		ComputeStatusWhenInStorageKnowingMiniblockCalled: func(mbType block.Type, tx *transaction.ApiTransactionResult) (transaction.TxStatus, error) {
+			return transaction.TxStatusSuccess, nil
+		},
+	}
+
+	executionResult := &block.ExecutionResult{
+		BaseExecutionResult: &block.BaseExecutionResult{
+			HeaderHash:  []byte("header_hash"),
+			HeaderNonce: 100,
+			HeaderRound: 1000,
+			HeaderEpoch: 5,
+			RootHash:    []byte("root_hash"),
+		},
+		ReceiptsHash: []byte("receipts_hash"),
+		MiniBlockHeaders: []block.MiniBlockHeader{
+			{
+				Hash:            []byte("mb_hash_1"),
+				SenderShardID:   0,
+				ReceiverShardID: 1,
+				TxCount:         1,
+			},
+		},
+		DeveloperFees:   big.NewInt(100),
+		AccumulatedFees: big.NewInt(1000),
+		GasUsed:         50000,
+		ExecutedTxCount: 1,
+	}
+
+	executionResultBytes, _ := baseAPIBlockProc.marshalizer.Marshal(executionResult)
+
+	baseAPIBlockProc.store = &storageMocks.ChainStorerStub{
+		GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
+			return &storageMocks.StorerStub{
+				GetFromEpochCalled: func(key []byte, epoch uint32) ([]byte, error) {
+					if string(key) == "header_hash" {
+						return executionResultBytes, nil
+					}
+					if string(key) == "mb_hash_1" {
+						return nil, errors.New("miniblock not found")
+					}
+					return nil, errors.New("not found")
+				},
+			}, nil
+		},
+	}
+
+	blockHeader := &block.Header{
+		Nonce: 100,
+		Round: 1000,
+		Epoch: 5,
+		MiniBlockHeaders: []block.MiniBlockHeader{
+			{
+				Hash:            []byte("mb_hash_1"),
+				SenderShardID:   0,
+				ReceiverShardID: 1,
+				TxCount:         1,
+			},
+		},
+	}
+
+	apiBlock := &api.Block{
+		Nonce: 100,
+		Round: 1000,
+		Epoch: 5,
+	}
+
+	err := baseAPIBlockProc.addMbsAndNumTxsAsyncExecutionBasedOnExecutionResult(
+		apiBlock,
+		blockHeader,
+		[]byte("header_hash"),
+		api.BlockQueryOptions{WithTransactions: true},
+	)
+
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "miniblock not found")
+}
