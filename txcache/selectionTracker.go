@@ -24,6 +24,7 @@ func NewSelectionTracker(txCache txCacheForSelectionTracker, maxTrackedBlocks ui
 	if check.IfNil(txCache) {
 		return nil, errNilTxCache
 	}
+	// TODO compare with the maximum allowed offset between proposing a block and actually executing it
 	if maxTrackedBlocks == 0 {
 		return nil, errInvalidMaxTrackedBlocks
 	}
@@ -72,25 +73,30 @@ func (st *selectionTracker) OnProposedBlock(
 	st.mutTracker.Lock()
 	defer st.mutTracker.Unlock()
 
+	err := st.checkReceivedBlockNoLock(blockBody, blockHeader)
+	if err != nil {
+		log.Debug("selectionTracker.OnProposedBlock: error checking the received block", "err", err)
+		return err
+	}
+
 	err := st.validateTrackedBlocks(blockBody, tBlock, accountsProvider, blockchainInfo)
 	if err != nil {
 		return err
 	}
 
 	st.addNewTrackedBlockNoLock(blockHash, tBlock)
-
 	return nil
 }
 
 // OnExecutedBlock notifies when a block is executed and updates the state of the selectionTracker
-func (st *selectionTracker) OnExecutedBlock(handler data.HeaderHandler) error {
-	if check.IfNil(handler) {
+func (st *selectionTracker) OnExecutedBlock(blockHeader data.HeaderHandler) error {
+	if check.IfNil(blockHeader) {
 		return errNilHeaderHandler
 	}
 
-	nonce := handler.GetNonce()
-	rootHash := handler.GetRootHash()
-	prevHash := handler.GetPrevHash()
+	nonce := blockHeader.GetNonce()
+	rootHash := blockHeader.GetRootHash()
+	prevHash := blockHeader.GetPrevHash()
 
 	tempTrackedBlock := newTrackedBlock(nonce, nil, rootHash, prevHash)
 
@@ -99,6 +105,32 @@ func (st *selectionTracker) OnExecutedBlock(handler data.HeaderHandler) error {
 
 	st.removeFromTrackedBlocksNoLock(tempTrackedBlock)
 	st.updateLatestRootHashNoLock(nonce, rootHash)
+
+	return nil
+}
+
+// checkReceivedBlockNoLock first checks if MaxTrackedBlocks is reached
+// if MaxTrackedBlocks is reached, the received block must either have an empty body or contain new execution results.
+func (st *selectionTracker) checkReceivedBlockNoLock(blockBody *block.Body, blockHeader data.HeaderHandler) error {
+	if len(st.blocks) < int(st.maxTrackedBlocks) {
+		return nil
+	}
+
+	hasNewTransactions := len(blockBody.MiniBlocks) != 0
+	noNewExecutionResults := len(blockHeader.GetExecutionResultsHandlers()) == 0
+
+	if hasNewTransactions && noNewExecutionResults {
+		log.Warn("selectionTracker.checkReceivedBlockNoLock: received bad block while max tracked blocks is reached. "+
+			"should receive empty block or a block with new execution results",
+			"len(st.blocks)", len(st.blocks),
+		)
+
+		return errBadBlockWhileMaxTrackedBlocksReached
+	}
+
+	log.Warn("selectionTracker.checkReceivedBlockNoLock: max tracked blocks reached "+
+		"but received a tolerated block - an empty block or a block with new execution results",
+		"len(st.blocks)", len(st.blocks))
 
 	return nil
 }
@@ -187,7 +219,6 @@ func (st *selectionTracker) validateBreadcrumbsOfTrackedBlocks(chainOfTrackedBlo
 
 // addNewTrackedBlockNoLock adds a new tracked block into the map of tracked blocks
 // replaces an existing block which has the same nonce with the one received
-// checks if MaxTrackedBlocks is reached
 func (st *selectionTracker) addNewTrackedBlockNoLock(blockToBeAddedHash []byte, blockToBeAdded *trackedBlock) {
 	// search if in the tracked block we already have one with same nonce
 	for bHash, b := range st.blocks {
@@ -207,15 +238,6 @@ func (st *selectionTracker) addNewTrackedBlockNoLock(blockToBeAddedHash []byte, 
 
 	// add the new block
 	st.blocks[string(blockToBeAddedHash)] = blockToBeAdded
-
-	if len(st.blocks) == int(st.maxTrackedBlocks) {
-		log.Warn("selectionTracker.addNewTrackedBlockNoLock: max tracked blocks reached, will be cleared",
-			"len(st.blocks)", len(st.blocks),
-		)
-
-		// clear all the proposed blocks
-		st.blocks = make(map[string]*trackedBlock)
-	}
 }
 
 func (st *selectionTracker) removeFromTrackedBlocksNoLock(searchedBlock *trackedBlock) {

@@ -733,11 +733,10 @@ func TestCleanupSelfShardTxCacheTriggered(t *testing.T) {
 	var gotMaxNum int
 	mockCalled := false
 	stub := &testscommon.ShardedDataStub{
-		CleanupSelfShardTxCacheCalled: func(_ interface{}, nonce uint64, maxNum int, _ time.Duration) bool {
+		CleanupSelfShardTxCacheCalled: func(_ interface{}, nonce uint64, maxNum int, _ time.Duration) {
 			gotNonce = nonce
 			gotMaxNum = maxNum
 			mockCalled = true
-			return true
 		},
 	}
 
