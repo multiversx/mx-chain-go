@@ -37,7 +37,7 @@ type BlockDataRequest struct {
 	requestHandler        process.RequestHandler
 }
 
-// NewBlockDataRequester creates a new instance of CoordinatorRequest
+// NewBlockDataRequester creates a new instance of BlockDataRequest
 func NewBlockDataRequester(args BlockDataRequestArgs) (*BlockDataRequest, error) {
 	if check.IfNil(args.RequestHandler) {
 		return nil, process.ErrNilRequestHandler

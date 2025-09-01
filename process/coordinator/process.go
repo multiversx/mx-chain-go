@@ -65,8 +65,7 @@ type ArgTransactionCoordinator struct {
 	DoubleTransactionsDetector   process.DoubleTransactionDetector
 	ProcessedMiniBlocksTracker   process.ProcessedMiniBlocksTracker
 	TxExecutionOrderHandler      common.TxExecutionOrderHandler
-	// TODO: make sure to pass these new subcomponent
-	BlockDataRequester process.BlockDataRequester
+	BlockDataRequester           process.BlockDataRequester
 }
 
 type transactionCoordinator struct {
