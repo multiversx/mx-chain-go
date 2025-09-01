@@ -79,8 +79,9 @@ func (st *selectionTracker) OnProposedBlock(
 		return err
 	}
 
-	err := st.validateTrackedBlocks(blockBody, tBlock, accountsProvider, blockchainInfo)
+	err = st.validateTrackedBlocks(blockBody, tBlock, accountsProvider, blockchainInfo)
 	if err != nil {
+		log.Debug("selectionTracker.OnProposedBlock: error validating the tracked blocks", "err", err)
 		return err
 	}
 
