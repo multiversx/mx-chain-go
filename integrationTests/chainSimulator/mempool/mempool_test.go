@@ -1189,7 +1189,7 @@ func Test_Selection_ProposeBlocksWithSameNonce(t *testing.T) {
 
 	// because the first one was replaced, the same transactions should be selected again
 	blockchainInfo := holders.NewBlockchainInfo([]byte("blockHash0"), []byte("blockHash1"), 2)
-	selectedTransactions, _ = txpool.SelectTransactions(selectionSession, options, defaultBlockchainInfo)
+	selectedTransactions, _ = txpool.SelectTransactions(selectionSession, options, blockchainInfo)
 	require.Equal(t, numTxsPerSender, len(selectedTransactions))
 
 	// extract the tx hashes from the selected transactions
