@@ -462,13 +462,26 @@ func createMockTransactionCoordinatorArguments(
 	poolsHolder dataRetriever.PoolsHolder,
 	preProcessorsContainer process.PreProcessorsContainer,
 ) coordinator.ArgTransactionCoordinator {
+
+	shardCoordinator := mock.NewMultiShardsCoordinatorMock(3)
+	enableEpochsHandler := enableEpochsHandlerMock.NewEnableEpochsHandlerStub()
+
+	blockDataRequesterArgs := coordinator.BlockDataRequestArgs{
+		RequestHandler:      &testscommon.RequestHandlerStub{},
+		MiniBlockPool:       poolsHolder.MiniBlocks(),
+		PreProcessors:       preProcessorsContainer,
+		ShardCoordinator:    shardCoordinator,
+		EnableEpochsHandler: enableEpochsHandler,
+	}
+
+	blockDataRequester, _ := coordinator.NewBlockDataRequester(blockDataRequesterArgs)
+
 	argsTransactionCoordinator := coordinator.ArgTransactionCoordinator{
 		Hasher:           &hashingMocks.HasherMock{},
 		Marshalizer:      &mock.MarshalizerMock{},
-		ShardCoordinator: mock.NewMultiShardsCoordinatorMock(3),
+		ShardCoordinator: shardCoordinator,
 		Accounts:         accountAdapter,
 		MiniBlockPool:    poolsHolder.MiniBlocks(),
-		RequestHandler:   &testscommon.RequestHandlerStub{},
 		PreProcessors:    preProcessorsContainer,
 		InterProcessors: &mock.InterimProcessorContainerMock{
 			KeysCalled: func() []block.Type {
@@ -482,11 +495,12 @@ func createMockTransactionCoordinatorArguments(
 		EconomicsFee:                 &economicsmocks.EconomicsHandlerMock{},
 		TxTypeHandler:                &testscommon.TxTypeHandlerMock{},
 		TransactionsLogProcessor:     &mock.TxLogsProcessorStub{},
-		EnableEpochsHandler:          enableEpochsHandlerMock.NewEnableEpochsHandlerStub(),
+		EnableEpochsHandler:          enableEpochsHandler,
 		ScheduledTxsExecutionHandler: &testscommon.ScheduledTxsExecutionStub{},
 		DoubleTransactionsDetector:   &testscommon.PanicDoubleTransactionsDetector{},
 		ProcessedMiniBlocksTracker:   &testscommon.ProcessedMiniBlocksTrackerStub{},
 		TxExecutionOrderHandler:      &commonMocks.TxExecutionOrderHandlerStub{},
+		BlockDataRequester:           blockDataRequester,
 	}
 
 	return argsTransactionCoordinator
