@@ -1582,7 +1582,7 @@ func Test_Selection_MaxTrackedBlocksReached(t *testing.T) {
 	)
 	require.Nil(t, err)
 
-	// proposing an empty block whe MaxTrackedBlocks is reached should work
+	// proposing an empty block when MaxTrackedBlocks is reached should work
 	err = txpool.OnProposedBlock([]byte("blockHash4"), &block.Body{},
 		&block.Header{
 			Nonce:    4,

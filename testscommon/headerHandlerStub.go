@@ -43,6 +43,7 @@ type HeaderHandlerStub struct {
 	GetLastExecutionResultHandlerCalled    func() data.LastExecutionResultHandler
 	GetExecutionResultsHandlersCalled      func() []data.BaseExecutionResultHandler
 	IsHeaderV3Called                       func() bool
+	GetGasLimitCalled                      func() uint32
 }
 
 // GetAccumulatedFees -
@@ -461,4 +462,12 @@ func (hhs *HeaderHandlerStub) IsHeaderV3() bool {
 	}
 
 	return false
+}
+
+func (hhs *HeaderHandlerStub) GetGasLimit() uint32 {
+	if hhs.GetGasLimitCalled != nil {
+		return hhs.GetGasLimitCalled()
+	}
+
+	return 0
 }
