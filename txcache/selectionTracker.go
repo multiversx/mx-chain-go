@@ -24,7 +24,7 @@ func NewSelectionTracker(txCache txCacheForSelectionTracker, maxTrackedBlocks ui
 	if check.IfNil(txCache) {
 		return nil, errNilTxCache
 	}
-	// TODO compare with another variable
+	// TODO compare with the maximum allowed offset between proposing a block and actually executing it
 	if maxTrackedBlocks == 0 {
 		return nil, errInvalidMaxTrackedBlocks
 	}
@@ -139,13 +139,16 @@ func (st *selectionTracker) OnExecutedBlock(blockHeader data.HeaderHandler) erro
 }
 
 // checkReceivedBlockNoLock first checks if MaxTrackedBlocks is reached
-// then, if MaxTrackedBlocks is reached, checks that the received block is as expected
+// if MaxTrackedBlocks is reached, the received block must either have an empty body or contain new execution results.
 func (st *selectionTracker) checkReceivedBlockNoLock(blockBody *block.Body, blockHeader data.HeaderHandler) error {
 	if len(st.blocks) < int(st.maxTrackedBlocks) {
 		return nil
 	}
 
-	if len(blockBody.MiniBlocks) != 0 && len(blockHeader.GetExecutionResultsHandlers()) == 0 {
+	hasNewTransactions := len(blockBody.MiniBlocks) != 0
+	noNewExecutionResults := len(blockHeader.GetExecutionResultsHandlers()) == 0
+
+	if hasNewTransactions && noNewExecutionResults {
 		log.Warn("selectionTracker.checkReceivedBlockNoLock: received bad block while max tracked blocks is reached. "+
 			"should receive empty block or a block with new execution results",
 			"len(st.blocks)", len(st.blocks),
@@ -154,7 +157,8 @@ func (st *selectionTracker) checkReceivedBlockNoLock(blockBody *block.Body, bloc
 		return errBadBlockWhileMaxTrackedBlocksReached
 	}
 
-	log.Warn("selectionTracker.checkReceivedBlockNoLock: max tracked blocks reached",
+	log.Warn("selectionTracker.checkReceivedBlockNoLock: max tracked blocks reached "+
+		"but received a tolerated block - an empty block or a block with new execution results",
 		"len(st.blocks)", len(st.blocks))
 
 	return nil

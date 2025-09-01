@@ -354,13 +354,15 @@ func TestSelectionTracker_OnProposedBlockWhenMaxTrackedBlocksIsReached(t *testin
 
 	proposeBlocks(t, numOfBlocks, tracker, accountsProvider)
 
-	// this one should not be added, it doesn't have execution results
+	// this one should not be added, it has new transactions, but it doesn't have execution results
 	err = tracker.OnProposedBlock(
 		[]byte("hashX"),
 		&block.Body{
 			MiniBlocks: []*block.MiniBlock{
 				{
-					TxHashes: [][]byte{},
+					TxHashes: [][]byte{
+						[]byte("txHash"),
+					},
 				},
 			},
 		},
@@ -398,7 +400,7 @@ func TestSelectionTracker_OnProposedBlockWhenMaxTrackedBlocksIsReached(t *testin
 	require.Nil(t, err)
 	require.Equal(t, 4, len(tracker.blocks))
 
-	// this one should be added because is an empty block
+	// this one should be added because it's an empty block
 	err = tracker.OnProposedBlock(
 		[]byte(fmt.Sprintf("hash%d", 5)),
 		&block.Body{},

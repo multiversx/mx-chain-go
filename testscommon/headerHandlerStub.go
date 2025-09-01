@@ -440,6 +440,7 @@ func (hhs *HeaderHandlerStub) SetBlockBodyTypeInt32(blockBodyType int32) error {
 	return nil
 }
 
+// GetLastExecutionResultHandler -
 func (hhs *HeaderHandlerStub) GetLastExecutionResultHandler() data.LastExecutionResultHandler {
 	if hhs.GetLastExecutionResultHandlerCalled != nil {
 		return hhs.GetLastExecutionResultHandlerCalled()
@@ -448,6 +449,7 @@ func (hhs *HeaderHandlerStub) GetLastExecutionResultHandler() data.LastExecution
 	return nil
 }
 
+// GetExecutionResultsHandlers -
 func (hhs *HeaderHandlerStub) GetExecutionResultsHandlers() []data.BaseExecutionResultHandler {
 	if hhs.GetExecutionResultsHandlersCalled != nil {
 		return hhs.GetExecutionResultsHandlersCalled()
@@ -456,6 +458,7 @@ func (hhs *HeaderHandlerStub) GetExecutionResultsHandlers() []data.BaseExecution
 	return nil
 }
 
+// IsHeaderV3 -
 func (hhs *HeaderHandlerStub) IsHeaderV3() bool {
 	if hhs.IsHeaderV3Called != nil {
 		return hhs.IsHeaderV3Called()
@@ -464,6 +467,7 @@ func (hhs *HeaderHandlerStub) IsHeaderV3() bool {
 	return false
 }
 
+// GetGasLimit -
 func (hhs *HeaderHandlerStub) GetGasLimit() uint32 {
 	if hhs.GetGasLimitCalled != nil {
 		return hhs.GetGasLimitCalled()
