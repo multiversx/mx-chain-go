@@ -2047,9 +2047,8 @@ func TestShardProcessor_CommitBlockStorageFailsForBodyShouldWork(t *testing.T) {
 
 func TestShardProcessor_CommitBlockOkValsShouldWork(t *testing.T) {
 	t.Parallel()
-	tdp := initDataPool()
-	txHash := []byte("tx_hash1")
 
+	txHash := []byte("tx_hash1")
 	rootHash := []byte("root hash")
 	hdrHash := []byte("header hash")
 	randSeed := []byte("rand seed")
@@ -2129,9 +2128,17 @@ func TestShardProcessor_CommitBlockOkValsShouldWork(t *testing.T) {
 
 	coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
 	coreComponents.Hash = hasher
-	dataComponents.DataPool = tdp
+
 	dataComponents.Storage = store
 	dataComponents.BlockChain = blkc
+
+	txPoolOnExecutedBlockCalled := false
+	dataComponents.DataPool = initDataPool()
+	dataComponents.DataPool.Transactions().(*testscommon.ShardedDataCacheNotifierMock).OnExecutedBlockCalled = func(blockHeader data.HeaderHandler) error {
+		txPoolOnExecutedBlockCalled = true
+		return nil
+	}
+
 	arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
 	arguments.AccountsDB[state.UserAccountsState] = accounts
 	arguments.ForkDetector = fd
@@ -2164,14 +2171,97 @@ func TestShardProcessor_CommitBlockOkValsShouldWork(t *testing.T) {
 
 	err = sp.ProcessBlock(hdr, body, haveTime)
 	assert.Nil(t, err)
+
 	err = sp.CommitBlock(hdr, body)
 	assert.Nil(t, err)
+
 	assert.True(t, forkDetectorAddCalled)
 	assert.Equal(t, hdrHash, blkc.GetCurrentBlockHeaderHash())
 	assert.True(t, debuggerMethodWasCalled)
 	assert.True(t, resetCountersForManagedBlockSignerCalled)
-	// this should sleep as there is an async call to display current hdr and block in CommitBlock
-	time.Sleep(time.Second)
+	assert.True(t, txPoolOnExecutedBlockCalled)
+}
+
+func TestShardProcessor_CommitBlockFailsWhenOnExecutedBlockFails(t *testing.T) {
+	t.Parallel()
+
+	rootHash := []byte("root hash")
+	headerHash := []byte("header hash")
+
+	prevHeader := &block.Header{
+		Nonce:    0,
+		Round:    0,
+		PrevHash: headerHash,
+		RootHash: rootHash,
+	}
+
+	mb := block.MiniBlock{
+		TxHashes: [][]byte{[]byte("abba")},
+	}
+
+	header := &block.Header{
+		Nonce:           1,
+		Round:           1,
+		PrevHash:        headerHash,
+		RootHash:        rootHash,
+		AccumulatedFees: big.NewInt(0),
+		DeveloperFees:   big.NewInt(0),
+		MiniBlockHeaders: []block.MiniBlockHeader{
+			{
+				TxCount: uint32(len(mb.TxHashes)),
+				Hash:    headerHash,
+			},
+		},
+	}
+
+	body := &block.Body{MiniBlocks: []*block.MiniBlock{&mb}}
+
+	coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
+	coreComponents.Hash = &mock.HasherStub{
+		ComputeCalled: func(s string) []byte {
+			return headerHash
+		},
+	}
+
+	blockchain := createTestBlockchain()
+	blockchain.GetCurrentBlockHeaderCalled = func() data.HeaderHandler {
+		return prevHeader
+	}
+	blockchain.GetCurrentBlockHeaderHashCalled = func() []byte {
+		return headerHash
+	}
+
+	dataComponents.BlockChain = blockchain
+	dataComponents.Storage = initStore()
+
+	txPoolOnExecutedBlockCalled := false
+	dataComponents.DataPool = initDataPool()
+	dataComponents.DataPool.Transactions().(*testscommon.ShardedDataCacheNotifierMock).OnExecutedBlockCalled = func(blockHeader data.HeaderHandler) error {
+		txPoolOnExecutedBlockCalled = true
+		return expectedErr
+	}
+
+	arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+	arguments.AccountsDB[state.UserAccountsState] = &stateMock.AccountsStub{
+		CommitCalled: func() (i []byte, e error) {
+			return rootHash, nil
+		},
+		RootHashCalled: func() ([]byte, error) {
+			return rootHash, nil
+		},
+	}
+	arguments.ForkDetector = &mock.ForkDetectorMock{}
+	arguments.BlockTracker = mock.NewBlockTrackerMock(mock.NewOneShardCoordinatorMock(), createGenesisBlocks(mock.NewOneShardCoordinatorMock()))
+
+	sp, err := blproc.NewShardProcessor(arguments)
+	assert.Nil(t, err)
+
+	err = sp.ProcessBlock(header, body, haveTime)
+	assert.Nil(t, err)
+
+	err = sp.CommitBlock(header, body)
+	assert.Equal(t, expectedErr, err)
+	assert.True(t, txPoolOnExecutedBlockCalled)
 }
 
 func TestShardProcessor_CommitBlockCallsIndexerMethods(t *testing.T) {

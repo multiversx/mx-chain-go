@@ -15,6 +15,9 @@ import (
 type ShardedDataCacheNotifierMock struct {
 	mutCaches sync.RWMutex
 	caches    map[string]storage.Cacher
+
+	CleanupSelfShardTxCacheCalled func(session interface{}, randomness uint64, maxNum int, cleanupLoopMaximumDuration time.Duration)
+	OnExecutedBlockCalled         func(blockHeader data.HeaderHandler) error
 }
 
 // NewShardedDataCacheNotifierMock -
@@ -128,11 +131,18 @@ func (mock *ShardedDataCacheNotifierMock) Keys() [][]byte {
 }
 
 // CleanupSelfShardTxCache -
-func (mock *ShardedDataCacheNotifierMock) CleanupSelfShardTxCache(_ interface{}, _ uint64, _ int, _ time.Duration) {
+func (sd *ShardedDataCacheNotifierMock) CleanupSelfShardTxCache(session interface{}, randomness uint64, maxNum int, cleanupLoopMaximumDuration time.Duration) {
+	if sd.CleanupSelfShardTxCacheCalled != nil {
+		sd.CleanupSelfShardTxCacheCalled(session, randomness, maxNum, cleanupLoopMaximumDuration)
+	}
 }
 
 // OnExecutedBlock -
-func (mock *ShardedDataCacheNotifierMock) OnExecutedBlock(_ data.HeaderHandler) error {
+func (sd *ShardedDataCacheNotifierMock) OnExecutedBlock(blockHeader data.HeaderHandler) error {
+	if sd.OnExecutedBlockCalled != nil {
+		return sd.OnExecutedBlockCalled(blockHeader)
+	}
+
 	return nil
 }
 
