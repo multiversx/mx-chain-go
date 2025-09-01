@@ -66,10 +66,11 @@ func (st *selectionTracker) OnProposedBlock(
 	defer st.mutTracker.Unlock()
 
 	log.Debug("selectionTracker.OnProposedBlock",
-		"blockHash", blockHash,
 		"nonce", nonce,
+		"blockHash", blockHash,
 		"rootHash", rootHash,
-		"prevHash", prevHash)
+		"prevHash", prevHash,
+	)
 
 	err := st.checkReceivedBlockNoLock(blockBody, blockHeader)
 	if err != nil {
@@ -125,10 +126,17 @@ func (st *selectionTracker) OnExecutedBlock(blockHeader data.HeaderHandler) erro
 	rootHash := blockHeader.GetRootHash()
 	prevHash := blockHeader.GetPrevHash()
 
+	log.Debug("selectionTracker.OnExecutedBlock",
+		"nonce", nonce,
+		"rootHash", rootHash,
+		"prevHash", prevHash,
+	)
+
 	tempTrackedBlock, err := newTrackedBlock(nonce, nil, rootHash, prevHash, nil)
 	if err != nil {
 		return err
 	}
+
 	st.mutTracker.Lock()
 	defer st.mutTracker.Unlock()
 

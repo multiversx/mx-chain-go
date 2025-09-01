@@ -571,7 +571,7 @@ func TestShardedTxPool_OnProposedBlock_And_OnExecutedBlock(t *testing.T) {
 	t.Run("OnProposedBlock calls TxCache.OnProposedBlock", func(t *testing.T) {
 		t.Parallel()
 
-		err = pool.OnProposedBlock(nil, nil, nil, nil, nil)
+		err := pool.OnProposedBlock(nil, nil, nil, nil, nil)
 		require.ErrorContains(t, err, "nil block hash")
 
 		err = pool.OnProposedBlock(
@@ -587,7 +587,7 @@ func TestShardedTxPool_OnProposedBlock_And_OnExecutedBlock(t *testing.T) {
 	t.Run("OnExecutedBlock calls TxCache.OnExecutedBlock", func(t *testing.T) {
 		t.Parallel()
 
-		err = pool.OnExecutedBlock(nil)
+		err := pool.OnExecutedBlock(nil)
 		require.ErrorContains(t, err, "nil header handler")
 
 		err = pool.OnExecutedBlock(&block.HeaderV2{})

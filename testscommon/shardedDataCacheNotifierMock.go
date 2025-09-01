@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core/counting"
+	"github.com/multiversx/mx-chain-core-go/data"
 
 	"github.com/multiversx/mx-chain-go/storage"
 	cacheMocks "github.com/multiversx/mx-chain-go/testscommon/cache"
@@ -14,11 +15,9 @@ import (
 type ShardedDataCacheNotifierMock struct {
 	mutCaches sync.RWMutex
 	caches    map[string]storage.Cacher
-}
 
-// CleanupSelfShardTxCache -
-func (mock *ShardedDataCacheNotifierMock) CleanupSelfShardTxCache(session interface{}, randomness uint64, maxNum int, cleanupLoopMaximumDuration time.Duration) {
-	panic("unimplemented")
+	CleanupSelfShardTxCacheCalled func(session interface{}, randomness uint64, maxNum int, cleanupLoopMaximumDuration time.Duration)
+	OnExecutedBlockCalled         func(blockHeader data.HeaderHandler) error
 }
 
 // NewShardedDataCacheNotifierMock -
@@ -115,7 +114,7 @@ func (mock *ShardedDataCacheNotifierMock) ClearShardStore(cacheId string) {
 
 // GetCounts -
 func (mock *ShardedDataCacheNotifierMock) GetCounts() counting.CountsWithSize {
-	return nil
+	return &counting.NullCounts{}
 }
 
 // Keys -
@@ -129,6 +128,22 @@ func (mock *ShardedDataCacheNotifierMock) Keys() [][]byte {
 	}
 
 	return keys
+}
+
+// CleanupSelfShardTxCache -
+func (sd *ShardedDataCacheNotifierMock) CleanupSelfShardTxCache(session interface{}, randomness uint64, maxNum int, cleanupLoopMaximumDuration time.Duration) {
+	if sd.CleanupSelfShardTxCacheCalled != nil {
+		sd.CleanupSelfShardTxCacheCalled(session, randomness, maxNum, cleanupLoopMaximumDuration)
+	}
+}
+
+// OnExecutedBlock -
+func (sd *ShardedDataCacheNotifierMock) OnExecutedBlock(blockHeader data.HeaderHandler) error {
+	if sd.OnExecutedBlockCalled != nil {
+		return sd.OnExecutedBlockCalled(blockHeader)
+	}
+
+	return nil
 }
 
 // IsInterfaceNil -
