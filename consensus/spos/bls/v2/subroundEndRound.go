@@ -118,7 +118,7 @@ func (sr *subroundEndRound) receivedProof(proof consensus.ProofHandler) {
 	log.Debug("step 3: block header final info has been received",
 		"PubKeysBitmap", proof.GetPubKeysBitmap(),
 		"AggregateSignature", proof.GetAggregatedSignature(),
-		"HederHash", proof.GetHeaderHash())
+		"HeaderHash", proof.GetHeaderHash())
 
 	sr.doEndRoundJobByNode()
 }
@@ -930,6 +930,10 @@ func (sr *subroundEndRound) checkReceivedSignatures() bool {
 			"signatures received", numSigs,
 			"total signatures", len(sr.ConsensusGroup()),
 			"threshold", threshold)
+
+		metricsTime := time.Since(sr.RoundHandler().TimeStamp()).Nanoseconds()
+		defer sr.AppStatusHandler().SetUInt64Value(common.MetricReceivedProof, uint64(metricsTime))
+		log.Warn("received proof", "timestamp (ns)", metricsTime)
 
 		return true
 	}

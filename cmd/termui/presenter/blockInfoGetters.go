@@ -56,3 +56,11 @@ func (psh *PresenterStatusHandler) GetBlockSize() uint64 {
 func (psh *PresenterStatusHandler) GetHighestFinalBlock() uint64 {
 	return psh.getFromCacheAsUint64(common.MetricHighestFinalBlock)
 }
+
+func (psh *PresenterStatusHandler) GetBlockReceived() uint64 {
+	return psh.getFromCacheAsUint64(common.MetricReceivedProposedBlockBody)
+}
+
+func (psh *PresenterStatusHandler) GetBlockProof() uint64 {
+	return psh.getFromCacheAsUint64(common.MetricReceivedProof)
+}

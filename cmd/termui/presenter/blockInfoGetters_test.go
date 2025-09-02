@@ -125,6 +125,28 @@ func TestPresenterStatusHandler_GetCurrentRoundTimestamp(t *testing.T) {
 	assert.Equal(t, currentRoundTimestamp, result)
 }
 
+func TestPresenterStatusHandler_GetBlockReceived(t *testing.T) {
+	t.Parallel()
+
+	proposedBlockMs := uint64(100)
+	//roundstartMs := uint64(50)
+	presenterStatusHandler := NewPresenterStatusHandler()
+	presenterStatusHandler.SetUInt64Value(common.MetricReceivedProposedBlockBody, proposedBlockMs)
+	result := presenterStatusHandler.GetBlockReceived()
+	assert.Equal(t, proposedBlockMs, result)
+}
+
+func TestPresenterStatusHandler_GetHighestFinalBlock(t *testing.T) {
+	t.Parallel()
+
+	highestFinalBlockNonce := uint64(100)
+	presenterStatusHandler := NewPresenterStatusHandler()
+	presenterStatusHandler.SetUInt64Value(common.MetricHighestFinalBlock, highestFinalBlockNonce)
+	result := presenterStatusHandler.GetHighestFinalBlock()
+
+	assert.Equal(t, highestFinalBlockNonce, result)
+}
+
 func TestPresenterStatusHandler_GetBlockSize(t *testing.T) {
 	t.Parallel()
 
@@ -137,15 +159,4 @@ func TestPresenterStatusHandler_GetBlockSize(t *testing.T) {
 
 	blockExpectedSize := miniBlocksSize + headerSize
 	assert.Equal(t, blockExpectedSize, result)
-}
-
-func TestPresenterStatusHandler_GetHighestFinalBlock(t *testing.T) {
-	t.Parallel()
-
-	highestFinalBlockNonce := uint64(100)
-	presenterStatusHandler := NewPresenterStatusHandler()
-	presenterStatusHandler.SetUInt64Value(common.MetricHighestFinalBlock, highestFinalBlockNonce)
-	result := presenterStatusHandler.GetHighestFinalBlock()
-
-	assert.Equal(t, highestFinalBlockNonce, result)
 }

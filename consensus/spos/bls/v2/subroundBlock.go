@@ -255,6 +255,9 @@ func (sr *subroundBlock) sendBlockBody(
 
 	log.Debug("step 1: block body has been sent")
 
+	metricsTime := time.Since(sr.RoundHandler().TimeStamp()).Nanoseconds()
+	defer sr.AppStatusHandler().SetUInt64Value(common.MetricReceivedProposedBlockBody, uint64(metricsTime))
+	log.Debug("Sent block body", "time", metricsTime)
 	sr.SetBody(bodyHandler)
 
 	return true
@@ -383,6 +386,9 @@ func (sr *subroundBlock) receivedBlockBody(ctx context.Context, cnsDta *consensu
 	}
 
 	log.Debug("step 1: block body has been received")
+	metricsTime := time.Since(sr.RoundHandler().TimeStamp()).Nanoseconds()
+	defer sr.AppStatusHandler().SetUInt64Value(common.MetricReceivedProposedBlockBody, uint64(metricsTime))
+	log.Debug("Received block body", "time", metricsTime)
 
 	blockProcessedWithSuccess := sr.processReceivedBlock(ctx, cnsDta.RoundIndex, cnsDta.PubKey)
 

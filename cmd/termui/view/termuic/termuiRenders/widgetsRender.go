@@ -295,7 +295,7 @@ func computeRedundancyStr(redundancyLevel int64, redundancyIsMainActive string) 
 
 func (wr *WidgetsRender) prepareBlockInfo() {
 	// 7 rows and one column
-	numRows := 8
+	numRows := 9
 	rows := make([][]string, numRows)
 
 	currentBlockHeight := wr.presenter.GetNonce()
@@ -338,7 +338,16 @@ func (wr *WidgetsRender) prepareBlockInfo() {
 	}
 
 	currentRoundTimestamp := wr.presenter.GetCurrentRoundTimestamp()
-	rows[7] = []string{fmt.Sprintf("Current round timestamp: %d", currentRoundTimestamp)}
+	rows[8] = []string{fmt.Sprintf("Current round timestamp: %d", currentRoundTimestamp)}
+
+	durationStartRoundToSentOrReceivedBlock := float64(wr.presenter.GetBlockReceived()) / 1e9
+	durationSentOrReceivedBlockToReceivedSignatures := float64(wr.presenter.GetBlockProof())/1e9 - durationStartRoundToSentOrReceivedBlock
+
+	rows[7] = []string{
+		fmt.Sprintf("Received proposed block: %.6f sec | Received proof: %.6f sec",
+			durationStartRoundToSentOrReceivedBlock,
+			durationSentOrReceivedBlockToReceivedSignatures),
+	}
 
 	wr.blockInfo.Title = "Block info:"
 	wr.blockInfo.RowSeparator = false
