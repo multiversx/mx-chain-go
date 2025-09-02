@@ -32,7 +32,6 @@ func TestTrackedBlock_sameNonce(t *testing.T) {
 		t.Parallel()
 
 		trackedBlock1 := newTrackedBlock(0, []byte("blockHash1"), []byte("blockRootHash1"), []byte("blockPrevHash1"))
-
 		trackedBlock2 := newTrackedBlock(1, []byte("blockHash1"), []byte("blockRootHash1"), []byte("blockPrevHash1"))
 
 		shouldRemoveBlock := trackedBlock1.sameNonceOrBelow(trackedBlock2)
@@ -168,7 +167,6 @@ func TestTrackedBlock_compileBreadcrumb(t *testing.T) {
 		t.Parallel()
 
 		block := newTrackedBlock(0, []byte("blockHash1"), []byte("blockRootHash1"), []byte("blockPrevHash1"))
-
 		block.breadcrumbsByAddress = map[string]*accountBreadcrumb{
 			"alice": newAccountBreadcrumb(core.OptionalUint64{
 				Value:    1,
@@ -211,7 +209,6 @@ func TestTrackedBlock_compileBreadcrumb(t *testing.T) {
 		t.Parallel()
 
 		block := newTrackedBlock(0, []byte("blockHash1"), []byte("blockRootHash1"), []byte("blockPrevHash1"))
-
 		block.breadcrumbsByAddress = map[string]*accountBreadcrumb{
 			"alice": newAccountBreadcrumb(core.OptionalUint64{
 				Value:    1,
@@ -266,7 +263,6 @@ func TestTrackedBlock_compileBreadcrumb(t *testing.T) {
 		t.Parallel()
 
 		block := newTrackedBlock(0, []byte("blockHash1"), []byte("blockRootHash1"), []byte("blockPrevHash1"))
-
 		block.breadcrumbsByAddress = map[string]*accountBreadcrumb{
 			"alice": newAccountBreadcrumb(core.OptionalUint64{
 				Value:    1,

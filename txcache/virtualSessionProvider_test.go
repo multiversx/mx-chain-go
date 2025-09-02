@@ -190,7 +190,6 @@ func Test_handleTrackedBlock(t *testing.T) {
 		t.Parallel()
 
 		tb := newTrackedBlock(0, []byte("blockHash1"), []byte("blockRootHash1"), []byte("blockPrevHash1"))
-
 		tb.breadcrumbsByAddress = map[string]*accountBreadcrumb{
 			"alice": {
 				initialNonce: core.OptionalUint64{
@@ -246,7 +245,6 @@ func Test_handleTrackedBlock(t *testing.T) {
 
 	t.Run("should delete bob and add it to skipped senders", func(t *testing.T) {
 		t.Parallel()
-
 		tb := newTrackedBlock(0, []byte("blockHash1"), []byte("blockRootHash1"), []byte("blockPrevHash1"))
 
 		breadcrumb1 := accountBreadcrumb{
