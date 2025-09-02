@@ -687,6 +687,10 @@ func (t *trigger) updateTriggerHeaderData(metaHdr *block.MetaBlock, metaBlockHas
 			wait = 0
 		}
 
+		log.Debug("updateTriggerHeaderData: waiting for late broadcast of mini blocks and transactions",
+			"waitTime", wait,
+		)
+
 		time.Sleep(wait)
 	}
 

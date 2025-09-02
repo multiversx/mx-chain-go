@@ -82,7 +82,13 @@ func (essh *epochStartSubscriptionHandler) NotifyAll(hdr data.HeaderHandler) {
 	essh.mutEpochStartHandler.RLock()
 	epochConfirmedStart := time.Now()
 	for i := 0; i < len(essh.epochStartHandlers); i++ {
+		triggerStart := time.Now()
 		essh.epochStartHandlers[i].EpochStartAction(hdr)
+		log.Debug("epochStartSubscriptionHandler.NotifyAll trigger",
+			"i", i,
+			"order", essh.epochStartHandlers[i].NotifyOrder(),
+			"time elapsed", time.Since(triggerStart),
+		)
 	}
 	log.Debug("epochStartSubscriptionHandler.NotifyAll triggers",
 		"time elapsed", time.Since(epochConfirmedStart),
