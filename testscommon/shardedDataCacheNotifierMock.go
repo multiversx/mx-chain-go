@@ -7,6 +7,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/counting"
 	"github.com/multiversx/mx-chain-core-go/data"
 
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/storage"
 	cacheMocks "github.com/multiversx/mx-chain-go/testscommon/cache"
 )
@@ -131,9 +132,9 @@ func (mock *ShardedDataCacheNotifierMock) Keys() [][]byte {
 }
 
 // CleanupSelfShardTxCache -
-func (sd *ShardedDataCacheNotifierMock) CleanupSelfShardTxCache(session interface{}, randomness uint64, maxNum int, cleanupLoopMaximumDuration time.Duration) {
+func (sd *ShardedDataCacheNotifierMock) CleanupSelfShardTxCache(accountsProvider common.AccountNonceProvider, randomness uint64, maxNum int, cleanupLoopMaximumDuration time.Duration) {
 	if sd.CleanupSelfShardTxCacheCalled != nil {
-		sd.CleanupSelfShardTxCacheCalled(session, randomness, maxNum, cleanupLoopMaximumDuration)
+		sd.CleanupSelfShardTxCacheCalled(accountsProvider, randomness, maxNum, cleanupLoopMaximumDuration)
 	}
 }
 

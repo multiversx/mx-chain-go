@@ -5,6 +5,7 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core/counting"
 	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/storage"
 )
 
@@ -132,9 +133,9 @@ func (sd *ShardedDataStub) Keys() [][]byte {
 }
 
 // CleanupSelfShardTxCache -
-func (sd *ShardedDataStub) CleanupSelfShardTxCache(session interface{}, randomness uint64, maxNum int, cleanupLoopMaximumDuration time.Duration) {
+func (sd *ShardedDataStub) CleanupSelfShardTxCache(accountsProvider common.AccountNonceProvider, randomness uint64, maxNum int, cleanupLoopMaximumDuration time.Duration) {
 	if sd.CleanupSelfShardTxCacheCalled != nil {
-		sd.CleanupSelfShardTxCacheCalled(session, randomness, maxNum, cleanupLoopMaximumDuration)
+		sd.CleanupSelfShardTxCacheCalled(accountsProvider, randomness, maxNum, cleanupLoopMaximumDuration)
 	}
 }
 
