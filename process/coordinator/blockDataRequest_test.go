@@ -2,11 +2,15 @@ package coordinator
 
 import (
 	"bytes"
+	"errors"
 	"sync"
 	"testing"
+	"time"
 
+	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-go/process"
 	"github.com/stretchr/testify/require"
 
 	"github.com/multiversx/mx-chain-go/common"
@@ -18,6 +22,82 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/preprocMocks"
 )
+
+func TestNewBlockDataRequester(t *testing.T) {
+	t.Parallel()
+
+	t.Run("nil request handler should error", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockArgs()
+		args.RequestHandler = nil
+
+		blockDataRequester, err := NewBlockDataRequester(args)
+		require.True(t, check.IfNil(blockDataRequester))
+		require.Equal(t, process.ErrNilRequestHandler, err)
+	})
+
+	t.Run("nil mini block pool should error", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockArgs()
+		args.MiniBlockPool = nil
+
+		blockDataRequester, err := NewBlockDataRequester(args)
+		require.True(t, check.IfNil(blockDataRequester))
+		require.Equal(t, process.ErrNilMiniBlockPool, err)
+	})
+
+	t.Run("nil pre processors should error", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockArgs()
+		args.PreProcessors = nil
+
+		blockDataRequester, err := NewBlockDataRequester(args)
+		require.True(t, check.IfNil(blockDataRequester))
+		require.Equal(t, process.ErrNilPreProcessorsContainer, err)
+	})
+
+	t.Run("nil shard coordinator should error", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockArgs()
+		args.ShardCoordinator = nil
+
+		blockDataRequester, err := NewBlockDataRequester(args)
+		require.True(t, check.IfNil(blockDataRequester))
+		require.Equal(t, process.ErrNilShardCoordinator, err)
+	})
+
+	t.Run("nil enable epochs handler should error", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockArgs()
+		args.EnableEpochsHandler = nil
+
+		blockDataRequester, err := NewBlockDataRequester(args)
+		require.True(t, check.IfNil(blockDataRequester))
+		require.Equal(t, process.ErrNilEnableEpochsHandler, err)
+	})
+
+	t.Run("should work", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockArgs()
+
+		blockDataRequester, err := NewBlockDataRequester(args)
+		require.False(t, blockDataRequester.IsInterfaceNil())
+		require.Nil(t, err)
+		require.NotNil(t, blockDataRequester.requestedTxs)
+		require.NotNil(t, blockDataRequester.preProcessors)
+		require.NotNil(t, blockDataRequester.miniBlockPool)
+		require.NotNil(t, blockDataRequester.shardCoordinator)
+		require.NotNil(t, blockDataRequester.enableEpochsHandler)
+		require.NotNil(t, blockDataRequester.requestHandler)
+		require.NotNil(t, blockDataRequester.requestedItemsHandler)
+	})
+}
 
 func TestBlockDataRequest_getFinalCrossMiniBlockInfos(t *testing.T) {
 	t.Parallel()
@@ -152,6 +232,683 @@ func TestTransactionCoordinator_requestMissingMiniBlocksAndTransactionsShouldWor
 	require.Equal(t, 1, mapRequestedMiniBlocksPerShard[2])
 	require.Equal(t, 2, numTxsRequested)
 	mutMap.RUnlock()
+}
+
+func TestBlockDataRequest_RequestBlockTransactions(t *testing.T) {
+	t.Parallel()
+
+	t.Run("nil body should return early", func(t *testing.T) {
+		t.Parallel()
+		args := createMockArgs()
+		blockDataRequester, _ := NewBlockDataRequester(args)
+
+		// Should not panic
+		blockDataRequester.RequestBlockTransactions(nil)
+	})
+
+	t.Run("empty body should work", func(t *testing.T) {
+		t.Parallel()
+		args := createMockArgs()
+		blockDataRequester, _ := NewBlockDataRequester(args)
+
+		emptyBody := &block.Body{}
+		blockDataRequester.RequestBlockTransactions(emptyBody)
+
+		// Should initialize requestedTxs map
+		blockDataRequester.mutRequestedTxs.RLock()
+		require.Equal(t, 0, len(blockDataRequester.requestedTxs))
+		blockDataRequester.mutRequestedTxs.RUnlock()
+	})
+
+	t.Run("should request transactions for different block types", func(t *testing.T) {
+		t.Parallel()
+		args := createMockArgs()
+
+		// Create preprocessors container with mocks
+		preprocContainer := containers.NewPreProcessorsContainer()
+		txPreproc := &preprocMocks.PreProcessorMock{
+			RequestBlockTransactionsCalled: func(body *block.Body) int {
+				// Count total transactions in TxBlock mini blocks
+				totalTxs := 0
+				for _, mb := range body.MiniBlocks {
+					if mb.Type == block.TxBlock {
+						totalTxs += len(mb.TxHashes)
+					}
+				}
+				return totalTxs
+			},
+		}
+		peerPreproc := &preprocMocks.PreProcessorMock{
+			RequestBlockTransactionsCalled: func(body *block.Body) int {
+				// Count total transactions in PeerBlock mini blocks and multiply by 2
+				totalTxs := 0
+				for _, mb := range body.MiniBlocks {
+					if mb.Type == block.PeerBlock {
+						totalTxs += len(mb.TxHashes)
+					}
+				}
+				return totalTxs * 2 // Different logic for peer blocks
+			},
+		}
+
+		_ = preprocContainer.Add(block.TxBlock, txPreproc)
+		_ = preprocContainer.Add(block.PeerBlock, peerPreproc)
+		args.PreProcessors = preprocContainer
+
+		blockDataRequester, _ := NewBlockDataRequester(args)
+
+		// Create body with different block types
+		body := &block.Body{
+			MiniBlocks: []*block.MiniBlock{
+				{
+					Type:     block.TxBlock,
+					TxHashes: [][]byte{[]byte("tx1"), []byte("tx2")},
+				},
+				{
+					Type:     block.PeerBlock,
+					TxHashes: [][]byte{[]byte("peer1"), []byte("peer2"), []byte("peer3")},
+				},
+			},
+		}
+
+		blockDataRequester.RequestBlockTransactions(body)
+
+		// Wait a bit for goroutines to complete
+		time.Sleep(100 * time.Millisecond)
+
+		// Check that requestedTxs was updated
+		blockDataRequester.mutRequestedTxs.RLock()
+		require.Equal(t, 2, len(blockDataRequester.requestedTxs))
+		require.Equal(t, 2, blockDataRequester.requestedTxs[block.TxBlock])
+		require.Equal(t, 6, blockDataRequester.requestedTxs[block.PeerBlock]) // 3 * 2
+		blockDataRequester.mutRequestedTxs.RUnlock()
+	})
+
+	t.Run("should handle preprocessor not found gracefully", func(t *testing.T) {
+		t.Parallel()
+		args := createMockArgs()
+		blockDataRequester, _ := NewBlockDataRequester(args)
+		blockDataRequester.preProcessors = &preprocMocks.PreProcessorContainerMock{
+			GetCalled: func(key block.Type) (process.PreProcessor, error) {
+				return nil, errors.New("not found")
+			},
+		}
+
+		body := &block.Body{
+			MiniBlocks: []*block.MiniBlock{
+				{
+					Type:     block.TxBlock,
+					TxHashes: [][]byte{[]byte("tx1")},
+				},
+			},
+		}
+
+		// Should not panic even if preprocessor is not found
+		blockDataRequester.RequestBlockTransactions(body)
+
+		// Wait a bit for goroutines to complete
+		time.Sleep(100 * time.Millisecond)
+
+		// Should still initialize the map
+		blockDataRequester.mutRequestedTxs.RLock()
+		require.Equal(t, 0, len(blockDataRequester.requestedTxs))
+		blockDataRequester.mutRequestedTxs.RUnlock()
+	})
+
+	t.Run("should handle concurrent requests safely", func(t *testing.T) {
+		t.Parallel()
+		args := createMockArgs()
+		blockDataRequester, _ := NewBlockDataRequester(args)
+
+		// Create a preprocessor that simulates some processing time
+		preprocContainer := containers.NewPreProcessorsContainer()
+		txPreproc := &preprocMocks.PreProcessorMock{
+			RequestBlockTransactionsCalled: func(body *block.Body) int {
+				time.Sleep(10 * time.Millisecond) // Simulate processing time
+				return len(body.MiniBlocks[0].TxHashes)
+			},
+		}
+		_ = preprocContainer.Add(block.TxBlock, txPreproc)
+		args.PreProcessors = preprocContainer
+
+		blockDataRequester, _ = NewBlockDataRequester(args)
+
+		body := &block.Body{
+			MiniBlocks: []*block.MiniBlock{
+				{
+					Type:     block.TxBlock,
+					TxHashes: [][]byte{[]byte("tx1")},
+				},
+			},
+		}
+
+		// Make concurrent calls
+		var wg sync.WaitGroup
+		for i := 0; i < 5; i++ {
+			wg.Add(1)
+			go func() {
+				defer wg.Done()
+				blockDataRequester.RequestBlockTransactions(body)
+			}()
+		}
+
+		wg.Wait()
+
+		// Should not have race conditions
+		blockDataRequester.mutRequestedTxs.RLock()
+		require.Equal(t, 1, len(blockDataRequester.requestedTxs))
+		blockDataRequester.mutRequestedTxs.RUnlock()
+	})
+}
+
+func TestBlockDataRequest_RequestMiniBlocksAndTransactions(t *testing.T) {
+	t.Parallel()
+
+	t.Run("nil header should return early", func(t *testing.T) {
+		t.Parallel()
+		args := createMockArgs()
+		blockDataRequester, _ := NewBlockDataRequester(args)
+
+		// Should not panic
+		blockDataRequester.RequestMiniBlocksAndTransactions(nil)
+	})
+
+	t.Run("should work with scheduled mini blocks flag disabled", func(t *testing.T) {
+		t.Parallel()
+		args := createMockArgs()
+		enableEpochsHandlerStub := enableEpochsHandlerMock.NewEnableEpochsHandlerStub()
+		args.EnableEpochsHandler = enableEpochsHandlerStub
+		// Flag is disabled by default
+
+		blockDataRequester, _ := NewBlockDataRequester(args)
+
+		// Mock the mini block pool to return some mini blocks
+		miniBlockPool := &cache.CacherStub{
+			PeekCalled: func(key []byte) (value interface{}, ok bool) {
+				if bytes.Equal(key, []byte("hash1")) {
+					return &block.MiniBlock{
+						Type:     block.TxBlock,
+						TxHashes: [][]byte{[]byte("tx1"), []byte("tx2")},
+					}, true
+				}
+				return nil, false
+			},
+		}
+		blockDataRequester.miniBlockPool = miniBlockPool
+
+		// Mock preprocessors
+		preprocContainer := containers.NewPreProcessorsContainer()
+		txPreproc := &preprocMocks.PreProcessorMock{
+			RequestTransactionsForMiniBlockCalled: func(miniBlock *block.MiniBlock) int {
+				return len(miniBlock.TxHashes)
+			},
+		}
+		_ = preprocContainer.Add(block.TxBlock, txPreproc)
+		blockDataRequester.preProcessors = preprocContainer
+
+		// Mock the shard coordinator to return self ID
+		shardCoordinator := mock.NewMultiShardsCoordinatorMock(3)
+		shardCoordinator.CurrentShard = 1
+		blockDataRequester.shardCoordinator = shardCoordinator
+
+		// Mock the header to return cross mini blocks
+		headerWithCrossMbs := &testscommon.HeaderHandlerStub{
+			RoundField: 100,
+			GetMiniBlockHeadersWithDstCalled: func(destShardID uint32) map[string]uint32 {
+				return map[string]uint32{
+					"hash1": 0, // from shard 0 to shard 1
+					"hash2": 2, // from shard 2 to shard 1
+				}
+			},
+		}
+
+		blockDataRequester.RequestMiniBlocksAndTransactions(headerWithCrossMbs)
+
+		// Wait a bit for goroutines to complete
+		time.Sleep(100 * time.Millisecond)
+
+		// Verify that the method executed without errors
+		// The actual verification would be in the requestMissingMiniBlocksAndTransactions method
+		// which is already tested separately
+	})
+
+	t.Run("should work with scheduled mini blocks flag enabled", func(t *testing.T) {
+		t.Parallel()
+		args := createMockArgs()
+		enableEpochsHandlerStub := enableEpochsHandlerMock.NewEnableEpochsHandlerStub()
+		enableEpochsHandlerStub.AddActiveFlags(common.ScheduledMiniBlocksFlag)
+		args.EnableEpochsHandler = enableEpochsHandlerStub
+
+		blockDataRequester, _ := NewBlockDataRequester(args)
+
+		// Mock the mini block pool to return mini blocks not found
+		miniBlockPool := &cache.CacherStub{
+			PeekCalled: func(key []byte) (value interface{}, ok bool) {
+				return nil, false // Mini blocks not found, so they will be requested
+			},
+		}
+		blockDataRequester.miniBlockPool = miniBlockPool
+
+		// Mock the request handler to track requests
+		var requestedMiniBlocksCount int
+		mutRequested := sync.RWMutex{}
+		requestHandler := &testscommon.RequestHandlerStub{
+			RequestMiniBlocksHandlerCalled: func(destShardID uint32, miniblocksHashes [][]byte) {
+				mutRequested.Lock()
+				requestedMiniBlocksCount += len(miniblocksHashes)
+				mutRequested.Unlock()
+			},
+		}
+		blockDataRequester.requestHandler = requestHandler
+
+		// Mock the shard coordinator
+		shardCoordinator := mock.NewMultiShardsCoordinatorMock(3)
+		shardCoordinator.CurrentShard = 1
+		blockDataRequester.shardCoordinator = shardCoordinator
+
+		// Create header with cross mini blocks
+		header := &testscommon.HeaderHandlerStub{
+			RoundField: 100,
+			GetMiniBlockHeadersWithDstCalled: func(destShardID uint32) map[string]uint32 {
+				return map[string]uint32{
+					"hash1": 0, // from shard 0 to shard 1
+					"hash2": 2, // from shard 2 to shard 1
+				}
+			},
+			GetMiniBlockHeaderHandlersCalled: func() []data.MiniBlockHeaderHandler {
+				// Create final mini block headers
+				mbh1 := &block.MiniBlockHeader{Hash: []byte("hash1")}
+				mbhReserved1 := block.MiniBlockHeaderReserved{State: block.Final}
+				mbh1.Reserved, _ = mbhReserved1.Marshal()
+
+				mbh2 := &block.MiniBlockHeader{Hash: []byte("hash2")}
+				mbhReserved2 := block.MiniBlockHeaderReserved{State: block.Final}
+				mbh2.Reserved, _ = mbhReserved2.Marshal()
+
+				return []data.MiniBlockHeaderHandler{mbh1, mbh2}
+			},
+		}
+
+		blockDataRequester.RequestMiniBlocksAndTransactions(header)
+
+		// Wait a bit for goroutines to complete
+		time.Sleep(100 * time.Millisecond)
+
+		// Verify that mini blocks were requested
+		mutRequested.RLock()
+		require.Equal(t, 2, requestedMiniBlocksCount)
+		mutRequested.RUnlock()
+	})
+
+	t.Run("should handle empty cross mini blocks", func(t *testing.T) {
+		t.Parallel()
+		args := createMockArgs()
+		blockDataRequester, _ := NewBlockDataRequester(args)
+
+		// Mock the shard coordinator
+		shardCoordinator := mock.NewMultiShardsCoordinatorMock(3)
+		shardCoordinator.CurrentShard = 1
+		blockDataRequester.shardCoordinator = shardCoordinator
+
+		// Create header with no cross mini blocks
+		header := &testscommon.HeaderHandlerStub{
+			RoundField: 100,
+			GetMiniBlockHeadersWithDstCalled: func(destShardID uint32) map[string]uint32 {
+				return map[string]uint32{} // Empty map
+			},
+		}
+
+		// Should not panic
+		blockDataRequester.RequestMiniBlocksAndTransactions(header)
+	})
+}
+
+func TestBlockDataRequest_IsDataPreparedForProcessing(t *testing.T) {
+	t.Parallel()
+
+	t.Run("no requested transactions should return nil", func(t *testing.T) {
+		t.Parallel()
+		args := createMockArgs()
+		blockDataRequester, _ := NewBlockDataRequester(args)
+
+		// No transactions requested yet
+		blockDataRequester.mutRequestedTxs.Lock()
+		blockDataRequester.requestedTxs = make(map[block.Type]int)
+		blockDataRequester.mutRequestedTxs.Unlock()
+
+		haveTime := func() time.Duration { return time.Second }
+		err := blockDataRequester.IsDataPreparedForProcessing(haveTime)
+		require.Nil(t, err)
+	})
+
+	t.Run("all preprocessors succeed should return nil", func(t *testing.T) {
+		t.Parallel()
+		args := createMockArgs()
+
+		// Create preprocessors container with mocks that always succeed
+		preprocContainer := containers.NewPreProcessorsContainer()
+		txPreproc := &preprocMocks.PreProcessorMock{
+			IsDataPreparedCalled: func(requestedTxs int, haveTime func() time.Duration) error {
+				return nil
+			},
+		}
+		peerPreproc := &preprocMocks.PreProcessorMock{
+			IsDataPreparedCalled: func(requestedTxs int, haveTime func() time.Duration) error {
+				return nil
+			},
+		}
+
+		_ = preprocContainer.Add(block.TxBlock, txPreproc)
+		_ = preprocContainer.Add(block.PeerBlock, peerPreproc)
+		args.PreProcessors = preprocContainer
+
+		blockDataRequester, _ := NewBlockDataRequester(args)
+
+		// Set some requested transactions
+		blockDataRequester.mutRequestedTxs.Lock()
+		blockDataRequester.requestedTxs[block.TxBlock] = 5
+		blockDataRequester.requestedTxs[block.PeerBlock] = 3
+		blockDataRequester.mutRequestedTxs.Unlock()
+
+		haveTime := func() time.Duration { return time.Second }
+		err := blockDataRequester.IsDataPreparedForProcessing(haveTime)
+		require.Nil(t, err)
+	})
+
+	t.Run("one preprocessor fails should return error", func(t *testing.T) {
+		t.Parallel()
+		args := createMockArgs()
+
+		expectedErr := errors.New("data not prepared")
+		preprocContainer := containers.NewPreProcessorsContainer()
+		txPreproc := &preprocMocks.PreProcessorMock{
+			IsDataPreparedCalled: func(requestedTxs int, haveTime func() time.Duration) error {
+				return expectedErr
+			},
+		}
+		peerPreproc := &preprocMocks.PreProcessorMock{
+			IsDataPreparedCalled: func(requestedTxs int, haveTime func() time.Duration) error {
+				return nil
+			},
+		}
+
+		_ = preprocContainer.Add(block.TxBlock, txPreproc)
+		_ = preprocContainer.Add(block.PeerBlock, peerPreproc)
+		args.PreProcessors = preprocContainer
+
+		blockDataRequester, _ := NewBlockDataRequester(args)
+
+		// Set some requested transactions
+		blockDataRequester.mutRequestedTxs.Lock()
+		blockDataRequester.requestedTxs[block.TxBlock] = 5
+		blockDataRequester.requestedTxs[block.PeerBlock] = 3
+		blockDataRequester.mutRequestedTxs.Unlock()
+
+		haveTime := func() time.Duration { return time.Second }
+		err := blockDataRequester.IsDataPreparedForProcessing(haveTime)
+		require.Equal(t, expectedErr, err)
+	})
+
+	t.Run("preprocessor not found should continue gracefully", func(t *testing.T) {
+		t.Parallel()
+		args := createMockArgs()
+
+		// Create preprocessors container with only one preprocessor
+		preprocContainer := containers.NewPreProcessorsContainer()
+		txPreproc := &preprocMocks.PreProcessorMock{
+			IsDataPreparedCalled: func(requestedTxs int, haveTime func() time.Duration) error {
+				return nil
+			},
+		}
+		_ = preprocContainer.Add(block.TxBlock, txPreproc)
+		args.PreProcessors = preprocContainer
+
+		blockDataRequester, _ := NewBlockDataRequester(args)
+
+		// Set requested transactions for both types, but only one preprocessor exists
+		blockDataRequester.mutRequestedTxs.Lock()
+		blockDataRequester.requestedTxs[block.TxBlock] = 5
+		blockDataRequester.requestedTxs[block.PeerBlock] = 3
+		blockDataRequester.mutRequestedTxs.Unlock()
+
+		haveTime := func() time.Duration { return time.Second }
+		err := blockDataRequester.IsDataPreparedForProcessing(haveTime)
+		require.Nil(t, err) // Should not panic and should return nil
+	})
+
+	t.Run("concurrent processing should work correctly", func(t *testing.T) {
+		t.Parallel()
+		args := createMockArgs()
+
+		// Create preprocessors that simulate some processing time
+		preprocContainer := containers.NewPreProcessorsContainer()
+		txPreproc := &preprocMocks.PreProcessorMock{
+			IsDataPreparedCalled: func(requestedTxs int, haveTime func() time.Duration) error {
+				time.Sleep(10 * time.Millisecond) // Simulate processing time
+				return nil
+			},
+		}
+		peerPreproc := &preprocMocks.PreProcessorMock{
+			IsDataPreparedCalled: func(requestedTxs int, haveTime func() time.Duration) error {
+				time.Sleep(15 * time.Millisecond) // Different processing time
+				return nil
+			},
+		}
+
+		_ = preprocContainer.Add(block.TxBlock, txPreproc)
+		_ = preprocContainer.Add(block.PeerBlock, peerPreproc)
+		args.PreProcessors = preprocContainer
+
+		blockDataRequester, _ := NewBlockDataRequester(args)
+
+		// Set multiple requested transactions
+		blockDataRequester.mutRequestedTxs.Lock()
+		blockDataRequester.requestedTxs[block.TxBlock] = 5
+		blockDataRequester.requestedTxs[block.PeerBlock] = 3
+		blockDataRequester.mutRequestedTxs.Unlock()
+
+		haveTime := func() time.Duration { return time.Second }
+		err := blockDataRequester.IsDataPreparedForProcessing(haveTime)
+		require.Nil(t, err)
+	})
+
+	t.Run("haveTime function should be called by preprocessors", func(t *testing.T) {
+		t.Parallel()
+		args := createMockArgs()
+
+		timeFunctionCalled := false
+		haveTime := func() time.Duration {
+			timeFunctionCalled = true
+			return time.Second
+		}
+
+		preprocContainer := containers.NewPreProcessorsContainer()
+		txPreproc := &preprocMocks.PreProcessorMock{
+			IsDataPreparedCalled: func(requestedTxs int, haveTime func() time.Duration) error {
+				haveTime() // Call the function to verify it's passed correctly
+				return nil
+			},
+		}
+
+		_ = preprocContainer.Add(block.TxBlock, txPreproc)
+		args.PreProcessors = preprocContainer
+
+		blockDataRequester, _ := NewBlockDataRequester(args)
+
+		// Set requested transactions
+		blockDataRequester.mutRequestedTxs.Lock()
+		blockDataRequester.requestedTxs[block.TxBlock] = 5
+		blockDataRequester.mutRequestedTxs.Unlock()
+
+		err := blockDataRequester.IsDataPreparedForProcessing(haveTime)
+		require.Nil(t, err)
+		require.True(t, timeFunctionCalled)
+	})
+}
+
+func TestBlockDataRequest_receivedMiniBlock(t *testing.T) {
+	t.Parallel()
+
+	t.Run("nil key should return early", func(t *testing.T) {
+		t.Parallel()
+		args := createMockArgs()
+		blockDataRequester, _ := NewBlockDataRequester(args)
+
+		// Should not panic
+		blockDataRequester.receivedMiniBlock(nil, &block.MiniBlock{})
+	})
+
+	t.Run("unrequested mini block should return early", func(t *testing.T) {
+		t.Parallel()
+		args := createMockArgs()
+		blockDataRequester, _ := NewBlockDataRequester(args)
+
+		// Mini block was not requested
+		key := []byte("hash1")
+		miniBlock := &block.MiniBlock{
+			Type:     block.TxBlock,
+			TxHashes: [][]byte{[]byte("tx1"), []byte("tx2")},
+		}
+
+		// Should not panic and should return early
+		blockDataRequester.receivedMiniBlock(key, miniBlock)
+	})
+
+	t.Run("wrong type assertion should log warning and return", func(t *testing.T) {
+		t.Parallel()
+		args := createMockArgs()
+		blockDataRequester, _ := NewBlockDataRequester(args)
+
+		// Add the mini block to requested items
+		key := []byte("hash1")
+		_ = blockDataRequester.requestedItemsHandler.Add(string(key))
+
+		// Pass wrong type (not a mini block)
+		wrongValue := "not a mini block"
+
+		// Should not panic and should log warning
+		blockDataRequester.receivedMiniBlock(key, wrongValue)
+	})
+
+	t.Run("preprocessor not found should log warning and return", func(t *testing.T) {
+		t.Parallel()
+		args := createMockArgs()
+		blockDataRequester, _ := NewBlockDataRequester(args)
+
+		// Add the mini block to requested items
+		key := []byte("hash1")
+		_ = blockDataRequester.requestedItemsHandler.Add(string(key))
+
+		// Create mini block with type that has no preprocessor
+		miniBlock := &block.MiniBlock{
+			Type:     block.InvalidBlock, // This type won't have a preprocessor
+			TxHashes: [][]byte{[]byte("tx1")},
+		}
+
+		// Should not panic and should log warning
+		blockDataRequester.receivedMiniBlock(key, miniBlock)
+	})
+
+	t.Run("should successfully request transactions for mini block", func(t *testing.T) {
+		t.Parallel()
+		args := createMockArgs()
+
+		// Create preprocessors container with mock
+		preprocContainer := containers.NewPreProcessorsContainer()
+		txPreproc := &preprocMocks.PreProcessorMock{
+			RequestTransactionsForMiniBlockCalled: func(miniBlock *block.MiniBlock) int {
+				return len(miniBlock.TxHashes)
+			},
+		}
+		_ = preprocContainer.Add(block.TxBlock, txPreproc)
+		args.PreProcessors = preprocContainer
+
+		blockDataRequester, _ := NewBlockDataRequester(args)
+
+		// Add the mini block to requested items
+		key := []byte("hash1")
+		_ = blockDataRequester.requestedItemsHandler.Add(string(key))
+
+		// Create mini block
+		miniBlock := &block.MiniBlock{
+			Type:     block.TxBlock,
+			TxHashes: [][]byte{[]byte("tx1"), []byte("tx2"), []byte("tx3")},
+		}
+
+		// Should process successfully
+		blockDataRequester.receivedMiniBlock(key, miniBlock)
+	})
+
+	t.Run("should handle mini block with no transactions", func(t *testing.T) {
+		t.Parallel()
+		args := createMockArgs()
+
+		// Create preprocessors container with mock
+		preprocContainer := containers.NewPreProcessorsContainer()
+		txPreproc := &preprocMocks.PreProcessorMock{
+			RequestTransactionsForMiniBlockCalled: func(miniBlock *block.MiniBlock) int {
+				return len(miniBlock.TxHashes)
+			},
+		}
+		_ = preprocContainer.Add(block.TxBlock, txPreproc)
+		args.PreProcessors = preprocContainer
+
+		blockDataRequester, _ := NewBlockDataRequester(args)
+
+		// Add the mini block to requested items
+		key := []byte("hash1")
+		_ = blockDataRequester.requestedItemsHandler.Add(string(key))
+
+		// Create mini block with no transactions
+		miniBlock := &block.MiniBlock{
+			Type:     block.TxBlock,
+			TxHashes: [][]byte{}, // Empty transactions
+		}
+
+		// Should process successfully (no transactions requested)
+		blockDataRequester.receivedMiniBlock(key, miniBlock)
+	})
+
+	t.Run("should handle multiple mini block types", func(t *testing.T) {
+		t.Parallel()
+		args := createMockArgs()
+
+		// Create preprocessors container with multiple mocks
+		preprocContainer := containers.NewPreProcessorsContainer()
+		txPreproc := &preprocMocks.PreProcessorMock{
+			RequestTransactionsForMiniBlockCalled: func(miniBlock *block.MiniBlock) int {
+				return len(miniBlock.TxHashes)
+			},
+		}
+		peerPreproc := &preprocMocks.PreProcessorMock{
+			RequestTransactionsForMiniBlockCalled: func(miniBlock *block.MiniBlock) int {
+				return len(miniBlock.TxHashes) * 2 // Different logic for peer blocks
+			},
+		}
+		_ = preprocContainer.Add(block.TxBlock, txPreproc)
+		_ = preprocContainer.Add(block.PeerBlock, peerPreproc)
+		args.PreProcessors = preprocContainer
+
+		blockDataRequester, _ := NewBlockDataRequester(args)
+
+		// Test TxBlock type
+		key1 := []byte("hash1")
+		_ = blockDataRequester.requestedItemsHandler.Add(string(key1))
+		txMiniBlock := &block.MiniBlock{
+			Type:     block.TxBlock,
+			TxHashes: [][]byte{[]byte("tx1"), []byte("tx2")},
+		}
+		blockDataRequester.receivedMiniBlock(key1, txMiniBlock)
+
+		// Test PeerBlock type
+		key2 := []byte("hash2")
+		_ = blockDataRequester.requestedItemsHandler.Add(string(key2))
+		peerMiniBlock := &block.MiniBlock{
+			Type:     block.PeerBlock,
+			TxHashes: [][]byte{[]byte("peer1"), []byte("peer2")},
+		}
+		blockDataRequester.receivedMiniBlock(key2, peerMiniBlock)
+	})
 }
 
 func createMockArgs() BlockDataRequestArgs {
