@@ -44,7 +44,7 @@ func (st *selectionTracker) OnProposedBlock(
 	accountsProvider AccountNonceAndBalanceProvider,
 	blockchainInfo common.BlockchainInfo,
 ) error {
-	err := st.verifyArgs(blockHash, blockBody, blockHeader, accountsProvider)
+	err := st.verifyArgsOfOnProposedBlock(blockHash, blockBody, blockHeader, accountsProvider)
 	if err != nil {
 		return err
 	}
@@ -81,6 +81,28 @@ func (st *selectionTracker) OnProposedBlock(
 	return nil
 }
 
+func (st *selectionTracker) verifyArgsOfOnProposedBlock(
+	blockHash []byte,
+	blockBody *block.Body,
+	blockHeader data.HeaderHandler,
+	accountsProvider AccountNonceAndBalanceProvider,
+) error {
+	if len(blockHash) == 0 {
+		return errNilBlockHash
+	}
+	if check.IfNil(blockBody) {
+		return errNilBlockBody
+	}
+	if check.IfNil(blockHeader) {
+		return errNilHeaderHandler
+	}
+	if check.IfNil(accountsProvider) {
+		return errNilAccountNonceAndBalanceProvider
+	}
+
+	return nil
+}
+
 // OnExecutedBlock notifies when a block is executed and updates the state of the selectionTracker
 func (st *selectionTracker) OnExecutedBlock(blockHeader data.HeaderHandler) error {
 	if check.IfNil(blockHeader) {
@@ -104,28 +126,6 @@ func (st *selectionTracker) OnExecutedBlock(blockHeader data.HeaderHandler) erro
 
 	st.removeFromTrackedBlocksNoLock(tempTrackedBlock)
 	st.updateLatestRootHashNoLock(nonce, rootHash)
-
-	return nil
-}
-
-func (st *selectionTracker) verifyArgs(
-	blockHash []byte,
-	blockBody *block.Body,
-	blockHeader data.HeaderHandler,
-	accountsProvider AccountNonceAndBalanceProvider,
-) error {
-	if len(blockHash) == 0 {
-		return errNilBlockHash
-	}
-	if check.IfNil(blockBody) {
-		return errNilBlockBody
-	}
-	if check.IfNil(blockHeader) {
-		return errNilHeaderHandler
-	}
-	if check.IfNil(accountsProvider) {
-		return errNilAccountNonceAndBalanceProvider
-	}
 
 	return nil
 }
@@ -158,14 +158,14 @@ func (st *selectionTracker) checkReceivedBlockNoLock(blockBody *block.Body, bloc
 
 func (st *selectionTracker) validateTrackedBlocks(
 	blockBody *block.Body,
-	tBlock *trackedBlock,
+	blockToTrack *trackedBlock,
 	accountsProvider AccountNonceAndBalanceProvider,
 	blockchainInfo common.BlockchainInfo,
 ) error {
 	blocksToBeValidated, err := st.getChainOfTrackedBlocks(
 		blockchainInfo.GetLatestExecutedBlockHash(),
-		tBlock.prevHash,
-		tBlock.nonce,
+		blockToTrack.prevHash,
+		blockToTrack.nonce,
 	)
 	if err != nil {
 		log.Debug("selectionTracker.validateTrackedBlocks: error creating chain of tracked blocks", "err", err)
@@ -179,14 +179,14 @@ func (st *selectionTracker) validateTrackedBlocks(
 		return err
 	}
 
-	err = tBlock.compileBreadcrumbs(txs)
+	err = blockToTrack.compileBreadcrumbs(txs)
 	if err != nil {
 		log.Debug("selectionTracked.validateTrackedBlocks: error compiling breadcrumbs")
 		return err
 	}
 
 	// add the new block in the returned chain
-	blocksToBeValidated = append(blocksToBeValidated, tBlock)
+	blocksToBeValidated = append(blocksToBeValidated, blockToTrack)
 
 	// make sure that the breadcrumbs of the proposed block are valid
 	// i.e. continuous with the other proposed blocks and no balance issues
@@ -380,6 +380,7 @@ func (st *selectionTracker) getChainOfTrackedBlocks(
 
 	for {
 		if nextNonce == 0 {
+			// should never actually happen (e.g. genesis)
 			break
 		}
 

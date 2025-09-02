@@ -758,7 +758,7 @@ func Test_Selection_ShouldNotSelectSameTransactionsWithManyTransactions(t *testi
 	nonceTracker := newNoncesTracker()
 
 	// create numTxs transactions and save them to txpool
-	saveTransactionsToTxPool(txpool, nonceTracker, numTxsPerSender, senders)
+	addTransactionsToTxPool(txpool, nonceTracker, numTxsPerSender, senders)
 	require.Equal(t, txpool.CountTx(), uint64(numTxs))
 
 	// do the first selections
@@ -842,7 +842,7 @@ func Test_Selection_ProposeEmptyBlocks(t *testing.T) {
 	nonceTracker := newNoncesTracker()
 
 	// create numTxs transactions and save them to txpool
-	saveTransactionsToTxPool(txpool, nonceTracker, numTxsPerSender, senders)
+	addTransactionsToTxPool(txpool, nonceTracker, numTxsPerSender, senders)
 	require.Equal(t, txpool.CountTx(), uint64(numTxs))
 
 	// do the first selections
@@ -949,7 +949,7 @@ func Test_Selection_ProposeBlocksWithSameNonce(t *testing.T) {
 	nonceTracker := newNoncesTracker()
 
 	// create numTxs transactions and save them to txpool
-	saveTransactionsToTxPool(txpool, nonceTracker, numTxsPerSender, senders)
+	addTransactionsToTxPool(txpool, nonceTracker, numTxsPerSender, senders)
 	require.Equal(t, txpool.CountTx(), uint64(numTxs))
 
 	// do the first selection
@@ -1061,7 +1061,7 @@ func Test_Selection_ShouldNotSelectSameTransactionsWithManyTransactionsAndExecut
 
 	// create txs and add them to txpool
 	numTxs := numTxsPerSender * len(senders)
-	saveTransactionsToTxPool(txpool, nonceTracker, numTxsPerSender, senders)
+	addTransactionsToTxPool(txpool, nonceTracker, numTxsPerSender, senders)
 	require.Equal(t, txpool.CountTx(), uint64(numTxs))
 
 	// do the first selection
@@ -1161,7 +1161,7 @@ func Test_Selection_ProposeEmptyBlocksAndExecutedBlockNotification(t *testing.T)
 	numTxs := numTxsPerSender * len(senders)
 
 	// create txs and add them to txpool
-	saveTransactionsToTxPool(txpool, nonceTracker, numTxsPerSender, senders)
+	addTransactionsToTxPool(txpool, nonceTracker, numTxsPerSender, senders)
 	require.Equal(t, txpool.CountTx(), uint64(numTxs))
 
 	// do the first selection
@@ -1317,7 +1317,7 @@ func Test_Selection_MaxTrackedBlocksReached(t *testing.T) {
 	numTxs := numTxsPerSender * len(senders)
 	nonceTracker := newNoncesTracker()
 
-	saveTransactionsToTxPool(txpool, nonceTracker, numTxsPerSender, senders)
+	addTransactionsToTxPool(txpool, nonceTracker, numTxsPerSender, senders)
 	require.Equal(t, txpool.CountTx(), uint64(numTxs))
 
 	// do the first selections

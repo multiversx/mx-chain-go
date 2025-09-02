@@ -279,7 +279,7 @@ func createRandomTxs(txpool *txcache.TxCache, numTxs int, nonceTracker *noncesTr
 	}
 }
 
-func saveTransactionsToTxPool(txpool *txcache.TxCache, nonceTracker *noncesTracker, numTxsPerSender int, senders []string) {
+func addTransactionsToTxPool(txpool *txcache.TxCache, nonceTracker *noncesTracker, numTxsPerSender int, senders []string) {
 	// create numTxs transactions and save them to txpool
 	for i := 0; i < numTxsPerSender; i++ {
 		for j := 0; j < len(senders); j++ {
