@@ -148,8 +148,9 @@ func Test_handleTrackedBlock(t *testing.T) {
 	t.Parallel()
 
 	t.Run("should err", func(t *testing.T) {
-		tb, err := newTrackedBlock(0, []byte("blockHash1"), []byte("blockRootHash1"), []byte("blockPrevHash1"), nil)
-		require.NoError(t, err)
+		t.Parallel()
+
+		tb := newTrackedBlock(0, []byte("blockHash1"), []byte("blockRootHash1"), []byte("blockPrevHash1"))
 		tb.breadcrumbsByAddress = map[string]*accountBreadcrumb{
 			"alice": {
 				initialNonce: core.OptionalUint64{
@@ -183,15 +184,14 @@ func Test_handleTrackedBlock(t *testing.T) {
 		}
 
 		provider := newVirtualSessionProvider(&sessionMock)
-		err = provider.handleTrackedBlock(tb)
+		err := provider.handleTrackedBlock(tb)
 		require.Equal(t, expErr, err)
 	})
 
 	t.Run("should skip alice", func(t *testing.T) {
 		t.Parallel()
 
-		tb, err := newTrackedBlock(0, []byte("blockHash1"), []byte("blockRootHash1"), []byte("blockPrevHash1"), nil)
-		require.NoError(t, err)
+		tb := newTrackedBlock(0, []byte("blockHash1"), []byte("blockRootHash1"), []byte("blockPrevHash1"))
 		tb.breadcrumbsByAddress = map[string]*accountBreadcrumb{
 			"alice": {
 				initialNonce: core.OptionalUint64{
@@ -230,7 +230,7 @@ func Test_handleTrackedBlock(t *testing.T) {
 		provider := newVirtualSessionProvider(&sessionMock)
 		provider.validator.skippedSenders = skippedSenders
 
-		err = provider.handleTrackedBlock(tb)
+		err := provider.handleTrackedBlock(tb)
 		require.Nil(t, err)
 		require.Equal(t, 1, len(provider.validator.sendersInContinuityWithSessionNonce))
 		require.Equal(t, 1, len(provider.validator.accountPreviousBreadcrumb))
@@ -248,8 +248,8 @@ func Test_handleTrackedBlock(t *testing.T) {
 	t.Run("should delete bob and add it to skipped senders", func(t *testing.T) {
 		t.Parallel()
 
-		tb, err := newTrackedBlock(0, []byte("blockHash1"), []byte("blockRootHash1"), []byte("blockPrevHash1"), nil)
-		require.NoError(t, err)
+		tb := newTrackedBlock(0, []byte("blockHash1"), []byte("blockRootHash1"), []byte("blockPrevHash1"))
+
 		breadcrumb1 := accountBreadcrumb{
 			initialNonce: core.OptionalUint64{
 				Value:    2,
@@ -307,7 +307,7 @@ func Test_handleTrackedBlock(t *testing.T) {
 		_, ok = provider.validator.skippedSenders["bob"]
 		require.False(t, ok)
 
-		err = provider.handleTrackedBlock(tb)
+		err := provider.handleTrackedBlock(tb)
 		require.Nil(t, err)
 
 		_, ok = provider.virtualAccountsByAddress["bob"]

@@ -486,25 +486,11 @@ func TestMempoolWithChainSimulator_Eviction(t *testing.T) {
 	require.Equal(t, expectedNumTransactionsInPool, getNumTransactionsInPool(simulator, shard))
 }
 
-// TODO refactor some of the tests below, make them more concise
 func Test_Selection_ShouldNotSelectSameTransactionsWithSameSender(t *testing.T) {
 	t.Parallel()
 
 	host := txcachemocks.NewMempoolHostMock()
-	txpool, err := txcache.NewTxCache(txcache.ConfigSourceMe{
-		Name:                        "test",
-		NumChunks:                   16,
-		NumBytesThreshold:           maxNumBytesUpperBound,
-		NumBytesPerSenderThreshold:  maxNumBytesPerSenderUpperBoundTest,
-		CountThreshold:              math.MaxUint32,
-		CountPerSenderThreshold:     math.MaxUint32,
-		EvictionEnabled:             false,
-		NumItemsToPreemptivelyEvict: 1,
-		TxCacheBoundsConfig: config.TxCacheBoundsConfig{
-			MaxNumBytesPerSenderUpperBound: maxNumBytesPerSenderUpperBoundTest,
-			MaxTrackedBlocks:               maxTrackedBlocks,
-		},
-	}, host)
+	txpool, err := txcache.NewTxCache(configSourceMe, host)
 
 	require.Nil(t, err)
 	require.NotNil(t, txpool)
@@ -542,7 +528,6 @@ func Test_Selection_ShouldNotSelectSameTransactionsWithSameSender(t *testing.T) 
 			Value:     oneQuarterOfEGLD,
 			SndAddr:   []byte("alice"),
 			RcvAddr:   []byte("receiver"),
-			Data:      []byte{},
 			GasLimit:  50_000,
 			GasPrice:  1_000_000_000,
 			ChainID:   []byte(configs.ChainID),
@@ -554,11 +539,7 @@ func Test_Selection_ShouldNotSelectSameTransactionsWithSameSender(t *testing.T) 
 		txpool.AddTx(&txcache.WrappedTransaction{
 			Tx:               tx,
 			TxHash:           txHash,
-			SenderShardID:    0,
-			ReceiverShardID:  0,
-			Size:             0,
 			Fee:              big.NewInt(int64(tx.GasLimit * tx.GasPrice)),
-			PricePerUnit:     0,
 			TransferredValue: tx.Value,
 			FeePayer:         tx.SndAddr,
 		})
@@ -603,20 +584,7 @@ func Test_Selection_ShouldNotSelectSameTransactionsWithDifferentSenders(t *testi
 	t.Parallel()
 
 	host := txcachemocks.NewMempoolHostMock()
-	txpool, err := txcache.NewTxCache(txcache.ConfigSourceMe{
-		Name:                        "test",
-		NumChunks:                   16,
-		NumBytesThreshold:           maxNumBytesUpperBound,
-		NumBytesPerSenderThreshold:  maxNumBytesPerSenderUpperBoundTest,
-		CountThreshold:              math.MaxUint32,
-		CountPerSenderThreshold:     math.MaxUint32,
-		EvictionEnabled:             false,
-		NumItemsToPreemptivelyEvict: 1,
-		TxCacheBoundsConfig: config.TxCacheBoundsConfig{
-			MaxNumBytesPerSenderUpperBound: maxNumBytesPerSenderUpperBoundTest,
-			MaxTrackedBlocks:               maxTrackedBlocks,
-		},
-	}, host)
+	txpool, err := txcache.NewTxCache(configSourceMe, host)
 
 	require.Nil(t, err)
 	require.NotNil(t, txpool)
@@ -655,7 +623,6 @@ func Test_Selection_ShouldNotSelectSameTransactionsWithDifferentSenders(t *testi
 		Value:     oneQuarterOfEGLD,
 		SndAddr:   []byte("alice"),
 		RcvAddr:   []byte("receiver"),
-		Data:      []byte{},
 		GasLimit:  50_000,
 		GasPrice:  1_000_000_000,
 		ChainID:   []byte(configs.ChainID),
@@ -668,7 +635,6 @@ func Test_Selection_ShouldNotSelectSameTransactionsWithDifferentSenders(t *testi
 		Value:     oneQuarterOfEGLD,
 		SndAddr:   []byte("bob"),
 		RcvAddr:   []byte("receiver"),
-		Data:      []byte{},
 		GasLimit:  50_000,
 		GasPrice:  1_000_000_000,
 		ChainID:   []byte(configs.ChainID),
@@ -681,7 +647,6 @@ func Test_Selection_ShouldNotSelectSameTransactionsWithDifferentSenders(t *testi
 		Value:     oneQuarterOfEGLD,
 		SndAddr:   []byte("alice"),
 		RcvAddr:   []byte("receiver"),
-		Data:      []byte{},
 		GasLimit:  50_000,
 		GasPrice:  1_000_000_000,
 		ChainID:   []byte(configs.ChainID),
@@ -694,7 +659,6 @@ func Test_Selection_ShouldNotSelectSameTransactionsWithDifferentSenders(t *testi
 		Value:     oneQuarterOfEGLD,
 		SndAddr:   []byte("bob"),
 		RcvAddr:   []byte("receiver"),
-		Data:      []byte{},
 		GasLimit:  50_000,
 		GasPrice:  1_000_000_000,
 		ChainID:   []byte(configs.ChainID),
@@ -709,11 +673,7 @@ func Test_Selection_ShouldNotSelectSameTransactionsWithDifferentSenders(t *testi
 		txpool.AddTx(&txcache.WrappedTransaction{
 			Tx:               tx,
 			TxHash:           txHash,
-			SenderShardID:    0,
-			ReceiverShardID:  0,
-			Size:             0,
 			Fee:              big.NewInt(int64(tx.GasLimit * tx.GasPrice)),
-			PricePerUnit:     0,
 			TransferredValue: tx.Value,
 			FeePayer:         tx.SndAddr,
 		})
@@ -756,20 +716,7 @@ func Test_Selection_ShouldNotSelectSameTransactionsWithManyTransactions(t *testi
 	t.Parallel()
 
 	host := txcachemocks.NewMempoolHostMock()
-	txpool, err := txcache.NewTxCache(txcache.ConfigSourceMe{
-		Name:                        "test",
-		NumChunks:                   16,
-		NumBytesThreshold:           maxNumBytesUpperBound,
-		NumBytesPerSenderThreshold:  maxNumBytesPerSenderUpperBoundTest,
-		CountThreshold:              math.MaxUint32,
-		CountPerSenderThreshold:     math.MaxUint32,
-		EvictionEnabled:             false,
-		NumItemsToPreemptivelyEvict: 1,
-		TxCacheBoundsConfig: config.TxCacheBoundsConfig{
-			MaxNumBytesPerSenderUpperBound: maxNumBytesPerSenderUpperBoundTest,
-			MaxTrackedBlocks:               maxTrackedBlocks,
-		},
-	}, host)
+	txpool, err := txcache.NewTxCache(configSourceMe, host)
 
 	require.Nil(t, err)
 	require.NotNil(t, txpool)
@@ -807,54 +754,16 @@ func Test_Selection_ShouldNotSelectSameTransactionsWithManyTransactions(t *testi
 	nonceTracker := newNoncesTracker()
 
 	// create numTxs transactions and save them to txpool
-	for i := 0; i < numTxsPerSender; i++ {
-		for j := 0; j < len(senders); j++ {
-			tx := &transaction.Transaction{
-				Nonce:     nonceTracker.getThenIncrementNonceByStringAddress(senders[j]),
-				Value:     big.NewInt(0),
-				SndAddr:   []byte(senders[j]),
-				RcvAddr:   []byte("receiver"),
-				Data:      []byte{},
-				GasLimit:  50_000,
-				GasPrice:  1_000_000_000,
-				ChainID:   []byte(configs.ChainID),
-				Version:   2,
-				Signature: []byte("signature"),
-			}
-			txHash := []byte(fmt.Sprintf("txHash%d", i*len(senders)+j))
-			txpool.AddTx(&txcache.WrappedTransaction{
-				Tx:               tx,
-				TxHash:           txHash,
-				SenderShardID:    0,
-				ReceiverShardID:  0,
-				Size:             0,
-				Fee:              big.NewInt(int64(tx.GasLimit * tx.GasPrice)),
-				PricePerUnit:     0,
-				TransferredValue: tx.Value,
-				FeePayer:         tx.SndAddr,
-			})
-		}
-	}
-
+	addTransactionsToTxPool(txpool, nonceTracker, numTxsPerSender, senders)
 	require.Equal(t, txpool.CountTx(), uint64(numTxs))
 
 	// do the first selections
 	selectedTransactions, _ := txpool.SelectTransactions(selectionSession, options, defaultBlockchainInfo)
 	require.Equal(t, numTxsPerSender, len(selectedTransactions))
 
-	// extract the tx hashes from the selected transactions
-	proposedTxs := make([][]byte, 0, len(selectedTransactions))
-	for _, tx := range selectedTransactions {
-		proposedTxs = append(proposedTxs, tx.TxHash)
-	}
-
 	// propose those txs in order to track them (create the breadcrumbs used for the virtual records)
-	proposedBlock1 := block.Body{MiniBlocks: []*block.MiniBlock{
-		{
-			TxHashes: proposedTxs,
-		},
-	}}
-	err = txpool.OnProposedBlock([]byte("blockHash1"), &proposedBlock1, &block.Header{
+	proposedBlock1 := createProposedBlock(selectedTransactions)
+	err = txpool.OnProposedBlock([]byte("blockHash1"), proposedBlock1, &block.Header{
 		Nonce:    1,
 		PrevHash: []byte("blockHash0"),
 		RootHash: []byte(fmt.Sprintf("rootHash%d", 0)),
@@ -869,18 +778,9 @@ func Test_Selection_ShouldNotSelectSameTransactionsWithManyTransactions(t *testi
 	selectedTransactions, _ = txpool.SelectTransactions(selectionSession, options, blockchainInfo)
 	require.Equal(t, numTxsPerSender, len(selectedTransactions))
 
-	proposedTxs = make([][]byte, 0, len(selectedTransactions))
-	for _, tx := range selectedTransactions {
-		proposedTxs = append(proposedTxs, tx.TxHash)
-	}
-
 	// propose the second block
-	proposedBlock2 := block.Body{MiniBlocks: []*block.MiniBlock{
-		{
-			TxHashes: proposedTxs,
-		},
-	}}
-	err = txpool.OnProposedBlock([]byte("blockHash2"), &proposedBlock2,
+	proposedBlock2 := createProposedBlock(selectedTransactions)
+	err = txpool.OnProposedBlock([]byte("blockHash2"), proposedBlock2,
 		&block.Header{
 			Nonce:    2,
 			PrevHash: []byte("blockHash1"),
@@ -901,20 +801,7 @@ func Test_Selection_ProposeEmptyBlocks(t *testing.T) {
 	t.Parallel()
 
 	host := txcachemocks.NewMempoolHostMock()
-	txpool, err := txcache.NewTxCache(txcache.ConfigSourceMe{
-		Name:                        "test",
-		NumChunks:                   16,
-		NumBytesThreshold:           maxNumBytesUpperBound,
-		NumBytesPerSenderThreshold:  maxNumBytesPerSenderUpperBoundTest,
-		CountThreshold:              math.MaxUint32,
-		CountPerSenderThreshold:     math.MaxUint32,
-		EvictionEnabled:             false,
-		NumItemsToPreemptivelyEvict: 1,
-		TxCacheBoundsConfig: config.TxCacheBoundsConfig{
-			MaxNumBytesPerSenderUpperBound: maxNumBytesPerSenderUpperBoundTest,
-			MaxTrackedBlocks:               maxTrackedBlocks,
-		},
-	}, host)
+	txpool, err := txcache.NewTxCache(configSourceMe, host)
 
 	require.Nil(t, err)
 	require.NotNil(t, txpool)
@@ -951,54 +838,16 @@ func Test_Selection_ProposeEmptyBlocks(t *testing.T) {
 	nonceTracker := newNoncesTracker()
 
 	// create numTxs transactions and save them to txpool
-	for i := 0; i < numTxsPerSender; i++ {
-		for j := 0; j < len(senders); j++ {
-			tx := &transaction.Transaction{
-				Nonce:     nonceTracker.getThenIncrementNonceByStringAddress(senders[j]),
-				Value:     big.NewInt(0),
-				SndAddr:   []byte(senders[j]),
-				RcvAddr:   []byte("receiver"),
-				Data:      []byte{},
-				GasLimit:  50_000,
-				GasPrice:  1_000_000_000,
-				ChainID:   []byte(configs.ChainID),
-				Version:   2,
-				Signature: []byte("signature"),
-			}
-			txHash := []byte(fmt.Sprintf("txHash%d", i*len(senders)+j))
-			txpool.AddTx(&txcache.WrappedTransaction{
-				Tx:               tx,
-				TxHash:           txHash,
-				SenderShardID:    0,
-				ReceiverShardID:  0,
-				Size:             0,
-				Fee:              big.NewInt(int64(tx.GasLimit * tx.GasPrice)),
-				PricePerUnit:     0,
-				TransferredValue: tx.Value,
-				FeePayer:         tx.SndAddr,
-			})
-		}
-	}
-
+	addTransactionsToTxPool(txpool, nonceTracker, numTxsPerSender, senders)
 	require.Equal(t, txpool.CountTx(), uint64(numTxs))
 
 	// do the first selections
 	selectedTransactions, _ := txpool.SelectTransactions(selectionSession, options, defaultBlockchainInfo)
 	require.Equal(t, numTxsPerSender, len(selectedTransactions))
 
-	// extract the tx hashes from the selected transactions
-	proposedTxs := make([][]byte, 0, len(selectedTransactions))
-	for _, tx := range selectedTransactions {
-		proposedTxs = append(proposedTxs, tx.TxHash)
-	}
-
 	// propose those txs in order to track them (create the breadcrumbs used for the virtual records)
-	proposedBlock1 := block.Body{MiniBlocks: []*block.MiniBlock{
-		{
-			TxHashes: proposedTxs,
-		},
-	}}
-	err = txpool.OnProposedBlock([]byte("blockHash1"), &proposedBlock1, &block.Header{
+	proposedBlock1 := createProposedBlock(selectedTransactions)
+	err = txpool.OnProposedBlock([]byte("blockHash1"), proposedBlock1, &block.Header{
 		Nonce:    1,
 		PrevHash: []byte("blockHash0"),
 		RootHash: []byte(fmt.Sprintf("rootHash%d", 0)),
@@ -1036,18 +885,9 @@ func Test_Selection_ProposeEmptyBlocks(t *testing.T) {
 	selectedTransactions, _ = txpool.SelectTransactions(selectionSession, options, blockchainInfo)
 	require.Equal(t, numTxsPerSender, len(selectedTransactions))
 
-	proposedTxs = make([][]byte, 0, len(selectedTransactions))
-	for _, tx := range selectedTransactions {
-		proposedTxs = append(proposedTxs, tx.TxHash)
-	}
-
 	// propose the second block
-	proposedBlock2 := block.Body{MiniBlocks: []*block.MiniBlock{
-		{
-			TxHashes: proposedTxs,
-		},
-	}}
-	err = txpool.OnProposedBlock([]byte("blockHash4"), &proposedBlock2,
+	proposedBlock2 := createProposedBlock(selectedTransactions)
+	err = txpool.OnProposedBlock([]byte("blockHash4"), proposedBlock2,
 		&block.Header{
 			Nonce:    4,
 			PrevHash: []byte("blockHash3"),
@@ -1068,20 +908,7 @@ func Test_Selection_ProposeBlocksWithSameNonce(t *testing.T) {
 	t.Parallel()
 
 	host := txcachemocks.NewMempoolHostMock()
-	txpool, err := txcache.NewTxCache(txcache.ConfigSourceMe{
-		Name:                        "test",
-		NumChunks:                   16,
-		NumBytesThreshold:           maxNumBytesUpperBound,
-		NumBytesPerSenderThreshold:  maxNumBytesPerSenderUpperBoundTest,
-		CountThreshold:              math.MaxUint32,
-		CountPerSenderThreshold:     math.MaxUint32,
-		EvictionEnabled:             false,
-		NumItemsToPreemptivelyEvict: 1,
-		TxCacheBoundsConfig: config.TxCacheBoundsConfig{
-			MaxNumBytesPerSenderUpperBound: maxNumBytesPerSenderUpperBoundTest,
-			MaxTrackedBlocks:               maxTrackedBlocks,
-		},
-	}, host)
+	txpool, err := txcache.NewTxCache(configSourceMe, host)
 
 	require.Nil(t, err)
 	require.NotNil(t, txpool)
@@ -1118,54 +945,16 @@ func Test_Selection_ProposeBlocksWithSameNonce(t *testing.T) {
 	nonceTracker := newNoncesTracker()
 
 	// create numTxs transactions and save them to txpool
-	for i := 0; i < numTxsPerSender; i++ {
-		for j := 0; j < len(senders); j++ {
-			tx := &transaction.Transaction{
-				Nonce:     nonceTracker.getThenIncrementNonceByStringAddress(senders[j]),
-				Value:     big.NewInt(0),
-				SndAddr:   []byte(senders[j]),
-				RcvAddr:   []byte("receiver"),
-				Data:      []byte{},
-				GasLimit:  50_000,
-				GasPrice:  1_000_000_000,
-				ChainID:   []byte(configs.ChainID),
-				Version:   2,
-				Signature: []byte("signature"),
-			}
-			txHash := []byte(fmt.Sprintf("txHash%d", i*len(senders)+j))
-			txpool.AddTx(&txcache.WrappedTransaction{
-				Tx:               tx,
-				TxHash:           txHash,
-				SenderShardID:    0,
-				ReceiverShardID:  0,
-				Size:             0,
-				Fee:              big.NewInt(int64(tx.GasLimit * tx.GasPrice)),
-				PricePerUnit:     0,
-				TransferredValue: tx.Value,
-				FeePayer:         tx.SndAddr,
-			})
-		}
-	}
-
+	addTransactionsToTxPool(txpool, nonceTracker, numTxsPerSender, senders)
 	require.Equal(t, txpool.CountTx(), uint64(numTxs))
 
 	// do the first selection
 	selectedTransactions, _ := txpool.SelectTransactions(selectionSession, options, defaultBlockchainInfo)
 	require.Equal(t, numTxsPerSender, len(selectedTransactions))
 
-	// extract the tx hashes from the selected transactions
-	proposedTxs := make([][]byte, 0, len(selectedTransactions))
-	for _, tx := range selectedTransactions {
-		proposedTxs = append(proposedTxs, tx.TxHash)
-	}
-
 	// propose those txs in order to track them (create the breadcrumbs used for the virtual records)
-	proposedBlock1 := block.Body{MiniBlocks: []*block.MiniBlock{
-		{
-			TxHashes: proposedTxs,
-		},
-	}}
-	err = txpool.OnProposedBlock([]byte("blockHash1"), &proposedBlock1, &block.Header{
+	proposedBlock1 := createProposedBlock(selectedTransactions)
+	err = txpool.OnProposedBlock([]byte("blockHash1"), proposedBlock1, &block.Header{
 		Nonce:    1,
 		PrevHash: []byte("blockHash0"),
 		RootHash: []byte(fmt.Sprintf("rootHash%d", 0)),
@@ -1192,19 +981,9 @@ func Test_Selection_ProposeBlocksWithSameNonce(t *testing.T) {
 	selectedTransactions, _ = txpool.SelectTransactions(selectionSession, options, blockchainInfo)
 	require.Equal(t, numTxsPerSender, len(selectedTransactions))
 
-	// extract the tx hashes from the selected transactions
-	proposedTxs = make([][]byte, 0, len(selectedTransactions))
-	for _, tx := range selectedTransactions {
-		proposedTxs = append(proposedTxs, tx.TxHash)
-	}
-
 	// propose those txs in order to track them (create the breadcrumbs used for the virtual records)
-	proposedBlock2 := block.Body{MiniBlocks: []*block.MiniBlock{
-		{
-			TxHashes: proposedTxs,
-		},
-	}}
-	err = txpool.OnProposedBlock([]byte("blockHash2"), &proposedBlock2, &block.Header{
+	proposedBlock2 := createProposedBlock(selectedTransactions)
+	err = txpool.OnProposedBlock([]byte("blockHash2"), proposedBlock2, &block.Header{
 		Nonce:    2,
 		PrevHash: []byte("blockHash1"),
 		RootHash: []byte(fmt.Sprintf("rootHash%d", 0)),
@@ -1219,18 +998,9 @@ func Test_Selection_ProposeBlocksWithSameNonce(t *testing.T) {
 	selectedTransactions, _ = txpool.SelectTransactions(selectionSession, options, blockchainInfo)
 	require.Equal(t, numTxsPerSender, len(selectedTransactions))
 
-	proposedTxs = make([][]byte, 0, len(selectedTransactions))
-	for _, tx := range selectedTransactions {
-		proposedTxs = append(proposedTxs, tx.TxHash)
-	}
-
 	// propose the second block
-	proposedBlock3 := block.Body{MiniBlocks: []*block.MiniBlock{
-		{
-			TxHashes: proposedTxs,
-		},
-	}}
-	err = txpool.OnProposedBlock([]byte("blockHash3"), &proposedBlock3,
+	proposedBlock3 := createProposedBlock(selectedTransactions)
+	err = txpool.OnProposedBlock([]byte("blockHash3"), proposedBlock3,
 		&block.Header{
 			Nonce:    3,
 			PrevHash: []byte("blockHash2"),
@@ -1251,20 +1021,7 @@ func Test_Selection_ShouldNotSelectSameTransactionsWithManyTransactionsAndExecut
 	t.Parallel()
 
 	host := txcachemocks.NewMempoolHostMock()
-	txpool, err := txcache.NewTxCache(txcache.ConfigSourceMe{
-		Name:                        "test",
-		NumChunks:                   16,
-		NumBytesThreshold:           maxNumBytesUpperBound,
-		NumBytesPerSenderThreshold:  maxNumBytesPerSenderUpperBoundTest,
-		CountThreshold:              math.MaxUint32,
-		CountPerSenderThreshold:     math.MaxUint32,
-		EvictionEnabled:             false,
-		NumItemsToPreemptivelyEvict: 1,
-		TxCacheBoundsConfig: config.TxCacheBoundsConfig{
-			MaxNumBytesPerSenderUpperBound: maxNumBytesPerSenderUpperBoundTest,
-			MaxTrackedBlocks:               maxTrackedBlocks,
-		},
-	}, host)
+	txpool, err := txcache.NewTxCache(configSourceMe, host)
 
 	require.Nil(t, err)
 	require.NotNil(t, txpool)
@@ -1300,35 +1057,7 @@ func Test_Selection_ShouldNotSelectSameTransactionsWithManyTransactionsAndExecut
 
 	// create txs and add them to txpool
 	numTxs := numTxsPerSender * len(senders)
-	for i := 0; i < numTxsPerSender; i++ {
-		for j := 0; j < len(senders); j++ {
-			tx := &transaction.Transaction{
-				Nonce:     nonceTracker.getThenIncrementNonceByStringAddress(senders[j]),
-				Value:     big.NewInt(0),
-				SndAddr:   []byte(senders[j]),
-				RcvAddr:   []byte("receiver"),
-				Data:      []byte{},
-				GasLimit:  50_000,
-				GasPrice:  1_000_000_000,
-				ChainID:   []byte(configs.ChainID),
-				Version:   2,
-				Signature: []byte("signature")}
-
-			txHash := []byte(fmt.Sprintf("txHash%d", i*len(senders)+j))
-			txpool.AddTx(&txcache.WrappedTransaction{
-				Tx:               tx,
-				TxHash:           txHash,
-				SenderShardID:    0,
-				ReceiverShardID:  0,
-				Size:             0,
-				Fee:              big.NewInt(int64(tx.GasLimit * tx.GasPrice)),
-				PricePerUnit:     0,
-				TransferredValue: tx.Value,
-				FeePayer:         tx.SndAddr,
-			})
-		}
-	}
-
+	addTransactionsToTxPool(txpool, nonceTracker, numTxsPerSender, senders)
 	require.Equal(t, txpool.CountTx(), uint64(numTxs))
 
 	// do the first selection
@@ -1336,17 +1065,8 @@ func Test_Selection_ShouldNotSelectSameTransactionsWithManyTransactionsAndExecut
 	require.Equal(t, 30_000, len(selectedTransactions))
 
 	// propose those txs in order to track them (create the breadcrumbs used for the virtual records)
-	proposedTxs := make([][]byte, 0, len(selectedTransactions))
-	for _, tx := range selectedTransactions {
-		proposedTxs = append(proposedTxs, tx.TxHash)
-	}
-
-	proposedBlock1 := block.Body{MiniBlocks: []*block.MiniBlock{
-		{
-			TxHashes: proposedTxs,
-		},
-	}}
-	err = txpool.OnProposedBlock([]byte("blockHash1"), &proposedBlock1,
+	proposedBlock1 := createProposedBlock(selectedTransactions)
+	err = txpool.OnProposedBlock([]byte("blockHash1"), proposedBlock1,
 		&block.Header{
 			Nonce:    1,
 			PrevHash: []byte("blockHash0"),
@@ -1371,7 +1091,7 @@ func Test_Selection_ShouldNotSelectSameTransactionsWithManyTransactionsAndExecut
 	require.Nil(t, err)
 
 	// remove the executed txs from the pool
-	for _, tx := range proposedTxs {
+	for _, tx := range proposedBlock1.MiniBlocks[0].TxHashes {
 		require.True(t, txpool.RemoveTxByHash(tx))
 	}
 
@@ -1379,18 +1099,8 @@ func Test_Selection_ShouldNotSelectSameTransactionsWithManyTransactionsAndExecut
 	selectionSession.SetNonce([]byte("alice"), 30_000)
 
 	// propose the second block
-	proposedTxs = make([][]byte, 0, len(selectedTransactions))
-	for _, tx := range selectedTransactions {
-		proposedTxs = append(proposedTxs, tx.TxHash)
-	}
-
-	proposedBlock2 := block.Body{MiniBlocks: []*block.MiniBlock{
-		{
-			TxHashes: proposedTxs,
-		},
-	}}
-
-	err = txpool.OnProposedBlock([]byte("blockHash2"), &proposedBlock2,
+	proposedBlock2 := createProposedBlock(selectedTransactions)
+	err = txpool.OnProposedBlock([]byte("blockHash2"), proposedBlock2,
 		&block.Header{
 			Nonce:    2,
 			PrevHash: []byte("blockHash1"),
@@ -1406,7 +1116,7 @@ func Test_Selection_ShouldNotSelectSameTransactionsWithManyTransactionsAndExecut
 	selectedTransactions, _ = txpool.SelectTransactions(selectionSession, options, blockchainInfo)
 	require.Equal(t, 0, len(selectedTransactions))
 
-	for _, tx := range proposedTxs {
+	for _, tx := range proposedBlock2.MiniBlocks[0].TxHashes {
 		require.True(t, txpool.RemoveTxByHash(tx))
 	}
 }
@@ -1415,20 +1125,7 @@ func Test_Selection_ProposeEmptyBlocksAndExecutedBlockNotification(t *testing.T)
 	t.Parallel()
 
 	host := txcachemocks.NewMempoolHostMock()
-	txpool, err := txcache.NewTxCache(txcache.ConfigSourceMe{
-		Name:                        "test",
-		NumChunks:                   16,
-		NumBytesThreshold:           maxNumBytesUpperBound,
-		NumBytesPerSenderThreshold:  maxNumBytesPerSenderUpperBoundTest,
-		CountThreshold:              math.MaxUint32,
-		CountPerSenderThreshold:     math.MaxUint32,
-		EvictionEnabled:             false,
-		NumItemsToPreemptivelyEvict: 1,
-		TxCacheBoundsConfig: config.TxCacheBoundsConfig{
-			MaxNumBytesPerSenderUpperBound: maxNumBytesPerSenderUpperBoundTest,
-			MaxTrackedBlocks:               maxTrackedBlocks,
-		},
-	}, host)
+	txpool, err := txcache.NewTxCache(configSourceMe, host)
 
 	require.Nil(t, err)
 	require.NotNil(t, txpool)
@@ -1457,38 +1154,10 @@ func Test_Selection_ProposeEmptyBlocksAndExecutedBlockNotification(t *testing.T)
 	)
 
 	nonceTracker := newNoncesTracker()
+	numTxs := numTxsPerSender * len(senders)
 
 	// create txs and add them to txpool
-	numTxs := numTxsPerSender * len(senders)
-	for i := 0; i < numTxsPerSender; i++ {
-		for j := 0; j < len(senders); j++ {
-			tx := &transaction.Transaction{
-				Nonce:     nonceTracker.getThenIncrementNonceByStringAddress(senders[j]),
-				Value:     big.NewInt(0),
-				SndAddr:   []byte(senders[j]),
-				RcvAddr:   []byte("receiver"),
-				Data:      []byte{},
-				GasLimit:  50_000,
-				GasPrice:  1_000_000_000,
-				ChainID:   []byte(configs.ChainID),
-				Version:   2,
-				Signature: []byte("signature")}
-
-			txHash := []byte(fmt.Sprintf("txHash%d", i*len(senders)+j))
-			txpool.AddTx(&txcache.WrappedTransaction{
-				Tx:               tx,
-				TxHash:           txHash,
-				SenderShardID:    0,
-				ReceiverShardID:  0,
-				Size:             0,
-				Fee:              big.NewInt(int64(tx.GasLimit * tx.GasPrice)),
-				PricePerUnit:     0,
-				TransferredValue: tx.Value,
-				FeePayer:         tx.SndAddr,
-			})
-		}
-	}
-
+	addTransactionsToTxPool(txpool, nonceTracker, numTxsPerSender, senders)
 	require.Equal(t, txpool.CountTx(), uint64(numTxs))
 
 	// do the first selection
@@ -1496,17 +1165,8 @@ func Test_Selection_ProposeEmptyBlocksAndExecutedBlockNotification(t *testing.T)
 	require.Equal(t, 30_000, len(selectedTransactions))
 
 	// propose those txs in order to track them (create the breadcrumbs used for the virtual records)
-	proposedTxs := make([][]byte, 0, len(selectedTransactions))
-	for _, tx := range selectedTransactions {
-		proposedTxs = append(proposedTxs, tx.TxHash)
-	}
-
-	proposedBlock1 := block.Body{MiniBlocks: []*block.MiniBlock{
-		{
-			TxHashes: proposedTxs,
-		},
-	}}
-	err = txpool.OnProposedBlock([]byte("blockHash1"), &proposedBlock1,
+	proposedBlock1 := createProposedBlock(selectedTransactions)
+	err = txpool.OnProposedBlock([]byte("blockHash1"), proposedBlock1,
 		&block.Header{
 			Nonce:    1,
 			PrevHash: []byte("blockHash0"),
@@ -1554,7 +1214,7 @@ func Test_Selection_ProposeEmptyBlocksAndExecutedBlockNotification(t *testing.T)
 	require.Nil(t, err)
 
 	// remove the executed txs from the pool
-	for _, tx := range proposedTxs {
+	for _, tx := range proposedBlock1.MiniBlocks[0].TxHashes {
 		require.True(t, txpool.RemoveTxByHash(tx))
 	}
 
@@ -1562,18 +1222,8 @@ func Test_Selection_ProposeEmptyBlocksAndExecutedBlockNotification(t *testing.T)
 	selectionSession.SetNonce([]byte("alice"), 30_000)
 
 	// propose the second block
-	proposedTxs = make([][]byte, 0, len(selectedTransactions))
-	for _, tx := range selectedTransactions {
-		proposedTxs = append(proposedTxs, tx.TxHash)
-	}
-
-	proposedBlock2 := block.Body{MiniBlocks: []*block.MiniBlock{
-		{
-			TxHashes: proposedTxs,
-		},
-	}}
-
-	err = txpool.OnProposedBlock([]byte("blockHash4"), &proposedBlock2,
+	proposedBlock2 := createProposedBlock(selectedTransactions)
+	err = txpool.OnProposedBlock([]byte("blockHash4"), proposedBlock2,
 		&block.Header{
 			Nonce:    4,
 			PrevHash: []byte("blockHash3"),
@@ -1605,7 +1255,7 @@ func Test_Selection_ProposeEmptyBlocksAndExecutedBlockNotification(t *testing.T)
 	selectedTransactions, _ = txpool.SelectTransactions(selectionSession, options, blockchainInfo)
 	require.Equal(t, 0, len(selectedTransactions))
 
-	for _, tx := range proposedTxs {
+	for _, tx := range proposedBlock2.MiniBlocks[0].TxHashes {
 		require.True(t, txpool.RemoveTxByHash(tx))
 	}
 }
@@ -1663,55 +1313,16 @@ func Test_Selection_MaxTrackedBlocksReached(t *testing.T) {
 	numTxs := numTxsPerSender * len(senders)
 	nonceTracker := newNoncesTracker()
 
-	// create numTxs transactions and save them to txpool
-	for i := 0; i < numTxsPerSender; i++ {
-		for j := 0; j < len(senders); j++ {
-			tx := &transaction.Transaction{
-				Nonce:     nonceTracker.getThenIncrementNonceByStringAddress(senders[j]),
-				Value:     big.NewInt(0),
-				SndAddr:   []byte(senders[j]),
-				RcvAddr:   []byte("receiver"),
-				Data:      []byte{},
-				GasLimit:  50_000,
-				GasPrice:  1_000_000_000,
-				ChainID:   []byte(configs.ChainID),
-				Version:   2,
-				Signature: []byte("signature"),
-			}
-			txHash := []byte(fmt.Sprintf("txHash%d", i*len(senders)+j))
-			txpool.AddTx(&txcache.WrappedTransaction{
-				Tx:               tx,
-				TxHash:           txHash,
-				SenderShardID:    0,
-				ReceiverShardID:  0,
-				Size:             0,
-				Fee:              big.NewInt(int64(tx.GasLimit * tx.GasPrice)),
-				PricePerUnit:     0,
-				TransferredValue: tx.Value,
-				FeePayer:         tx.SndAddr,
-			})
-		}
-	}
-
+	addTransactionsToTxPool(txpool, nonceTracker, numTxsPerSender, senders)
 	require.Equal(t, txpool.CountTx(), uint64(numTxs))
 
 	// do the first selections
 	selectedTransactions, _ := txpool.SelectTransactions(selectionSession, options, defaultBlockchainInfo)
 	require.Equal(t, numTxsPerSender, len(selectedTransactions))
 
-	// extract the tx hashes from the selected transactions
-	proposedTxs := make([][]byte, 0, len(selectedTransactions))
-	for _, tx := range selectedTransactions {
-		proposedTxs = append(proposedTxs, tx.TxHash)
-	}
-
 	// propose those txs in order to track them (create the breadcrumbs used for the virtual records)
-	proposedBlock1 := block.Body{MiniBlocks: []*block.MiniBlock{
-		{
-			TxHashes: proposedTxs,
-		},
-	}}
-	err = txpool.OnProposedBlock([]byte("blockHash1"), &proposedBlock1, &block.Header{
+	proposedBlock1 := createProposedBlock(selectedTransactions)
+	err = txpool.OnProposedBlock([]byte("blockHash1"), proposedBlock1, &block.Header{
 		Nonce:    1,
 		PrevHash: []byte("blockHash0"),
 		RootHash: []byte(fmt.Sprintf("rootHash%d", 0)),
@@ -1726,18 +1337,9 @@ func Test_Selection_MaxTrackedBlocksReached(t *testing.T) {
 	selectedTransactions, _ = txpool.SelectTransactions(selectionSession, options, blockchainInfo)
 	require.Equal(t, numTxsPerSender, len(selectedTransactions))
 
-	proposedTxs = make([][]byte, 0, len(selectedTransactions))
-	for _, tx := range selectedTransactions {
-		proposedTxs = append(proposedTxs, tx.TxHash)
-	}
-
 	// propose the second block
-	proposedBlock2 := block.Body{MiniBlocks: []*block.MiniBlock{
-		{
-			TxHashes: proposedTxs,
-		},
-	}}
-	err = txpool.OnProposedBlock([]byte("blockHash2"), &proposedBlock2,
+	proposedBlock2 := createProposedBlock(selectedTransactions)
+	err = txpool.OnProposedBlock([]byte("blockHash2"), proposedBlock2,
 		&block.Header{
 			Nonce:    2,
 			PrevHash: []byte("blockHash1"),
@@ -1816,20 +1418,7 @@ func Test_SelectionWhenFeeExceedsBalanceWithMax3TxsSelected(t *testing.T) {
 	t.Parallel()
 
 	host := txcachemocks.NewMempoolHostMock()
-	txpool, err := txcache.NewTxCache(txcache.ConfigSourceMe{
-		Name:                        "test",
-		NumChunks:                   16,
-		NumBytesThreshold:           maxNumBytesUpperBound,
-		NumBytesPerSenderThreshold:  maxNumBytesPerSenderUpperBoundTest,
-		CountThreshold:              math.MaxUint32,
-		CountPerSenderThreshold:     math.MaxUint32,
-		EvictionEnabled:             false,
-		NumItemsToPreemptivelyEvict: 1,
-		TxCacheBoundsConfig: config.TxCacheBoundsConfig{
-			MaxNumBytesPerSenderUpperBound: maxNumBytesPerSenderUpperBoundTest,
-			MaxTrackedBlocks:               maxTrackedBlocks,
-		},
-	}, host)
+	txpool, err := txcache.NewTxCache(configSourceMe, host)
 
 	require.Nil(t, err)
 	require.NotNil(t, txpool)
@@ -1852,7 +1441,7 @@ func Test_SelectionWhenFeeExceedsBalanceWithMax3TxsSelected(t *testing.T) {
 			Nonce:   0,
 		},
 		"relayer": {
-			Balance: big.NewInt(1000000000000000000),
+			Balance: oneEGLD,
 			Nonce:   0,
 		},
 	}
@@ -1879,7 +1468,6 @@ func Test_SelectionWhenFeeExceedsBalanceWithMax3TxsSelected(t *testing.T) {
 		Value:     big.NewInt(currentRelayerBalance - feeForTransfer - feeForRelayingTransactionsOfAliceAndBob),
 		SndAddr:   []byte("relayer"),
 		RcvAddr:   []byte("receiver"),
-		Data:      []byte{},
 		GasLimit:  50_000,
 		GasPrice:  1_000_000_004,
 		ChainID:   []byte(configs.ChainID),
@@ -1894,7 +1482,6 @@ func Test_SelectionWhenFeeExceedsBalanceWithMax3TxsSelected(t *testing.T) {
 		SndAddr:          []byte("alice"),
 		RcvAddr:          []byte("receiver"),
 		RelayerAddr:      []byte("relayer"),
-		Data:             []byte{},
 		GasLimit:         100_000,
 		GasPrice:         1_000_000_003,
 		ChainID:          []byte(configs.ChainID),
@@ -1910,7 +1497,6 @@ func Test_SelectionWhenFeeExceedsBalanceWithMax3TxsSelected(t *testing.T) {
 		SndAddr:          []byte("bob"),
 		RcvAddr:          []byte("receiver"),
 		RelayerAddr:      []byte("relayer"),
-		Data:             []byte{},
 		GasLimit:         100_000,
 		GasPrice:         1_000_000_002,
 		ChainID:          []byte(configs.ChainID),
@@ -1926,7 +1512,6 @@ func Test_SelectionWhenFeeExceedsBalanceWithMax3TxsSelected(t *testing.T) {
 		SndAddr:          []byte("carol"),
 		RcvAddr:          []byte("receiver"),
 		RelayerAddr:      []byte("relayer"),
-		Data:             []byte{},
 		GasLimit:         100_000,
 		GasPrice:         1_000_000_001,
 		ChainID:          []byte(configs.ChainID),
@@ -1940,11 +1525,7 @@ func Test_SelectionWhenFeeExceedsBalanceWithMax3TxsSelected(t *testing.T) {
 		txpool.AddTx(&txcache.WrappedTransaction{
 			Tx:               tx,
 			TxHash:           txHash,
-			SenderShardID:    0,
-			ReceiverShardID:  0,
-			Size:             0,
 			Fee:              big.NewInt(int64(tx.GasLimit * tx.GasPrice)),
-			PricePerUnit:     0,
 			TransferredValue: tx.Value,
 			FeePayer:         tx.RelayerAddr,
 		})
@@ -1960,20 +1541,9 @@ func Test_SelectionWhenFeeExceedsBalanceWithMax3TxsSelected(t *testing.T) {
 	require.Equal(t, "alice", string(selectedTransactions[1].Tx.GetSndAddr()))
 	require.Equal(t, "bob", string(selectedTransactions[2].Tx.GetSndAddr()))
 
-	// extract the tx hashes from the selected transactions
-	proposedTxs := make([][]byte, 0, len(selectedTransactions))
-	for _, tx := range selectedTransactions {
-		proposedTxs = append(proposedTxs, tx.TxHash)
-	}
-
 	// propose those txs in order to track them (create the breadcrumbs used for the virtual records)
-	proposedBlock1 := block.Body{MiniBlocks: []*block.MiniBlock{
-		{
-			TxHashes: proposedTxs,
-		},
-	}}
-
-	err = txpool.OnProposedBlock([]byte("blockHash1"), &proposedBlock1,
+	proposedBlock1 := createProposedBlock(selectedTransactions)
+	err = txpool.OnProposedBlock([]byte("blockHash1"), proposedBlock1,
 		&block.Header{
 			Nonce:    1,
 			PrevHash: []byte("blockHash0"),
@@ -1994,20 +1564,7 @@ func Test_SelectionWhenFeeExceedsBalanceWithMax2TxsSelected(t *testing.T) {
 	t.Parallel()
 
 	host := txcachemocks.NewMempoolHostMock()
-	txpool, err := txcache.NewTxCache(txcache.ConfigSourceMe{
-		Name:                        "test",
-		NumChunks:                   16,
-		NumBytesThreshold:           maxNumBytesUpperBound,
-		NumBytesPerSenderThreshold:  maxNumBytesPerSenderUpperBoundTest,
-		CountThreshold:              math.MaxUint32,
-		CountPerSenderThreshold:     math.MaxUint32,
-		EvictionEnabled:             false,
-		NumItemsToPreemptivelyEvict: 1,
-		TxCacheBoundsConfig: config.TxCacheBoundsConfig{
-			MaxNumBytesPerSenderUpperBound: maxNumBytesPerSenderUpperBoundTest,
-			MaxTrackedBlocks:               maxTrackedBlocks,
-		},
-	}, host)
+	txpool, err := txcache.NewTxCache(configSourceMe, host)
 
 	require.Nil(t, err)
 	require.NotNil(t, txpool)
@@ -2030,7 +1587,7 @@ func Test_SelectionWhenFeeExceedsBalanceWithMax2TxsSelected(t *testing.T) {
 			Nonce:   0,
 		},
 		"relayer": {
-			Balance: big.NewInt(1000000000000000000),
+			Balance: oneEGLD,
 			Nonce:   0,
 		},
 	}
@@ -2057,7 +1614,6 @@ func Test_SelectionWhenFeeExceedsBalanceWithMax2TxsSelected(t *testing.T) {
 		Value:     big.NewInt(currentRelayerBalance - feeForTransfer - feeForRelayingTransactionsOfAliceAndBob),
 		SndAddr:   []byte("relayer"),
 		RcvAddr:   []byte("receiver"),
-		Data:      []byte{},
 		GasLimit:  50_000,
 		GasPrice:  1_000_000_004,
 		ChainID:   []byte(configs.ChainID),
@@ -2072,7 +1628,6 @@ func Test_SelectionWhenFeeExceedsBalanceWithMax2TxsSelected(t *testing.T) {
 		SndAddr:          []byte("alice"),
 		RcvAddr:          []byte("receiver"),
 		RelayerAddr:      []byte("relayer"),
-		Data:             []byte{},
 		GasLimit:         100_000,
 		GasPrice:         1_000_000_003,
 		ChainID:          []byte(configs.ChainID),
@@ -2088,7 +1643,6 @@ func Test_SelectionWhenFeeExceedsBalanceWithMax2TxsSelected(t *testing.T) {
 		SndAddr:          []byte("bob"),
 		RcvAddr:          []byte("receiver"),
 		RelayerAddr:      []byte("relayer"),
-		Data:             []byte{},
 		GasLimit:         100_000,
 		GasPrice:         1_000_000_002,
 		ChainID:          []byte(configs.ChainID),
@@ -2104,7 +1658,6 @@ func Test_SelectionWhenFeeExceedsBalanceWithMax2TxsSelected(t *testing.T) {
 		SndAddr:          []byte("carol"),
 		RcvAddr:          []byte("receiver"),
 		RelayerAddr:      []byte("relayer"),
-		Data:             []byte{},
 		GasLimit:         100_000,
 		GasPrice:         1_000_000_001,
 		ChainID:          []byte(configs.ChainID),
@@ -2118,11 +1671,7 @@ func Test_SelectionWhenFeeExceedsBalanceWithMax2TxsSelected(t *testing.T) {
 		txpool.AddTx(&txcache.WrappedTransaction{
 			Tx:               tx,
 			TxHash:           txHash,
-			SenderShardID:    0,
-			ReceiverShardID:  0,
-			Size:             0,
 			Fee:              big.NewInt(int64(tx.GasLimit * tx.GasPrice)),
-			PricePerUnit:     0,
 			TransferredValue: tx.Value,
 			FeePayer:         tx.RelayerAddr,
 		})
@@ -2137,20 +1686,9 @@ func Test_SelectionWhenFeeExceedsBalanceWithMax2TxsSelected(t *testing.T) {
 	require.Equal(t, "relayer", string(selectedTransactions[0].Tx.GetSndAddr()))
 	require.Equal(t, "alice", string(selectedTransactions[1].Tx.GetSndAddr()))
 
-	// extract the tx hashes from the selected transactions
-	proposedTxs := make([][]byte, 0, len(selectedTransactions))
-	for _, tx := range selectedTransactions {
-		proposedTxs = append(proposedTxs, tx.TxHash)
-	}
-
 	// propose those txs in order to track them (create the breadcrumbs used for the virtual records)
-	proposedBlock1 := block.Body{MiniBlocks: []*block.MiniBlock{
-		{
-			TxHashes: proposedTxs,
-		},
-	}}
-
-	err = txpool.OnProposedBlock([]byte("blockHash1"), &proposedBlock1,
+	proposedBlock1 := createProposedBlock(selectedTransactions)
+	err = txpool.OnProposedBlock([]byte("blockHash1"), proposedBlock1,
 		&block.Header{
 			Nonce:    1,
 			PrevHash: []byte("blockHash0"),

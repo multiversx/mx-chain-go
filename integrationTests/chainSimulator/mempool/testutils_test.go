@@ -279,6 +279,34 @@ func createRandomTxs(txpool *txcache.TxCache, numTxs int, nonceTracker *noncesTr
 	}
 }
 
+func addTransactionsToTxPool(txpool *txcache.TxCache, nonceTracker *noncesTracker, numTxsPerSender int, senders []string) {
+	// create numTxs transactions and save them to txpool
+	for i := 0; i < numTxsPerSender; i++ {
+		for j := 0; j < len(senders); j++ {
+			tx := &transaction.Transaction{
+				Nonce:     nonceTracker.getThenIncrementNonceByStringAddress(senders[j]),
+				Value:     big.NewInt(0),
+				SndAddr:   []byte(senders[j]),
+				RcvAddr:   []byte("receiver"),
+				Data:      []byte{},
+				GasLimit:  50_000,
+				GasPrice:  1_000_000_000,
+				ChainID:   []byte(configs.ChainID),
+				Version:   2,
+				Signature: []byte("signature"),
+			}
+			txHash := []byte(fmt.Sprintf("txHash%d", i*len(senders)+j))
+			txpool.AddTx(&txcache.WrappedTransaction{
+				Tx:               tx,
+				TxHash:           txHash,
+				Fee:              big.NewInt(int64(tx.GasLimit * tx.GasPrice)),
+				TransferredValue: tx.Value,
+				FeePayer:         tx.SndAddr,
+			})
+		}
+	}
+}
+
 func testOnProposed(t *testing.T, sw *core.StopWatch, numTxs int, numAddresses int) {
 	// create some fake address for each account
 	accounts := createFakeAddresses(numAddresses)

@@ -19,23 +19,14 @@ func newTrackedBlock(
 	blockHash []byte,
 	rootHash []byte,
 	prevHash []byte,
-	txs []*WrappedTransaction,
-) (*trackedBlock, error) {
-
-	tb := &trackedBlock{
+) *trackedBlock {
+	return &trackedBlock{
 		nonce:                nonce,
 		hash:                 blockHash,
 		rootHash:             rootHash,
 		prevHash:             prevHash,
 		breadcrumbsByAddress: make(map[string]*accountBreadcrumb),
 	}
-
-	err := tb.compileBreadcrumbs(txs)
-	if err != nil {
-		return nil, err
-	}
-
-	return tb, nil
 }
 
 func (tb *trackedBlock) sameNonceOrBelow(otherBlock *trackedBlock) bool {
