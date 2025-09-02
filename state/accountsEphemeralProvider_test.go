@@ -50,6 +50,59 @@ func TestAccountsEphemeralProvider_GetRootHash(t *testing.T) {
 	require.Equal(t, []byte("abba"), rootHash)
 }
 
+func TestAccountsEphemeralProvider_GetAccountNonce(t *testing.T) {
+	t.Parallel()
+
+	accounts := &stateMock.AccountsStub{}
+
+	accounts.GetExistingAccountCalled = func(address []byte) (vmcommon.AccountHandler, error) {
+		if bytes.Equal(address, []byte("alice")) {
+			return &stateMock.UserAccountStub{
+				Address: []byte("alice"),
+				Nonce:   42,
+			}, nil
+		}
+
+		if bytes.Equal(address, []byte("bob")) {
+			return &stateMock.UserAccountStub{
+				Address: []byte("bob"),
+				Nonce:   7,
+			}, nil
+		}
+
+		if bytes.Equal(address, []byte("carol")) {
+			return nil, state.ErrAccNotFound
+		}
+
+		return nil, errors.New("arbitrary error")
+	}
+
+	provider, err := state.NewAccountsEphemeralProvider(accounts)
+	require.NoError(t, err)
+	require.NotNil(t, provider)
+
+	nonce, exists, err := provider.GetAccountNonce([]byte("alice"))
+	require.NoError(t, err)
+	require.Equal(t, uint64(42), nonce)
+	require.True(t, exists)
+
+	nonce, exists, err = provider.GetAccountNonce([]byte("bob"))
+	require.NoError(t, err)
+	require.Equal(t, uint64(7), nonce)
+	require.True(t, exists)
+
+	// If account is not found, no error is returned.
+	nonce, exists, err = provider.GetAccountNonce([]byte("carol"))
+	require.NoError(t, err)
+	require.Equal(t, uint64(0), nonce)
+	require.False(t, exists)
+
+	nonce, exists, err = provider.GetAccountNonce([]byte("judy"))
+	require.ErrorContains(t, err, "arbitrary error")
+	require.Equal(t, uint64(0), nonce)
+	require.False(t, exists)
+}
+
 func TestAccountsEphemeralProvider_GetAccountNonceAndBalance(t *testing.T) {
 	t.Parallel()
 
