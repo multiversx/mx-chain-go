@@ -181,7 +181,7 @@ func (st *selectionTracker) validateTrackedBlocks(
 
 	err = blockToTrack.compileBreadcrumbs(txs)
 	if err != nil {
-		log.Debug("selectionTracked.validateTrackedBlocks: error compiling breadcrumbs")
+		log.Debug("selectionTracker.validateTrackedBlocks: error compiling breadcrumbs")
 		return err
 	}
 
