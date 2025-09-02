@@ -55,7 +55,7 @@ func (erie *ExecutionResultInclusionEstimator) Decide(lastNotarised *ExecutionRe
 	if len(pending) == 0 {
 		return allowed
 	}
-
+	var previousExecutionResultMeta *ExecutionResultMetaData
 	var tBase uint64
 	// lastNotarised is nil if genesis.
 	if lastNotarised == nil {
@@ -69,7 +69,6 @@ func (erie *ExecutionResultInclusionEstimator) Decide(lastNotarised *ExecutionRe
 	// accumulated execution time in ns (1 gas = 1ns)
 	estimatedTime := uint64(0)
 	for i, executionResultMeta := range pending {
-		var previousExecutionResultMeta *ExecutionResultMetaData
 		if i > 0 {
 			previousExecutionResultMeta = &pending[i-1]
 		}
