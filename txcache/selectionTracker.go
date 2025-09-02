@@ -200,7 +200,7 @@ func (st *selectionTracker) validateTrackedBlocks(
 	return nil
 }
 
-func (st *selectionTracker) validateBreadcrumbsOfTrackedBlocks(chainOfTrackedBlocks []*trackedBlock, accountsProvider AccountNonceAndBalanceProvider) error {
+func (st *selectionTracker) validateBreadcrumbsOfTrackedBlocks(chainOfTrackedBlocks []*trackedBlock, accountsProvider common.AccountNonceAndBalanceProvider) error {
 	validator := newBreadcrumbValidator()
 
 	for _, tb := range chainOfTrackedBlocks {
