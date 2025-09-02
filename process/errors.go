@@ -1352,3 +1352,6 @@ var ErrInvalidMaxNonceDifference = errors.New("invalid max nonce difference")
 
 // ErrNilBaseExecutionResult signals that a nil base execution result has been provided
 var ErrNilBaseExecutionResult = errors.New("nil base execution result")
+
+// ErrNilBlockDataRequester signals that a nil block data requester has been provided
+var ErrNilBlockDataRequester = errors.New("nil block data requester")

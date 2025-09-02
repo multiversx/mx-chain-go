@@ -17,34 +17,47 @@ const checkMissingDataStep = 10 * time.Millisecond
 
 var errTimeoutWaitingForMissingData = fmt.Errorf("timeout waiting for missing data")
 
+// MissingDataResolverArgs holds the arguments needed to create a MissingDataResolver
+type MissingDataResolverArgs struct {
+	HeadersPool        dataRetriever.HeadersPool
+	ProofsPool         dataRetriever.ProofsPool
+	RequestHandler     process.RequestHandler
+	BlockDataRequester process.BlockDataRequester
+}
+
 type missingDataResolver struct {
-	mutHeaders     sync.RWMutex
-	missingHeaders map[string]struct{}
-	mutProofs      sync.RWMutex
-	missingProofs  map[string]struct{}
-	headersPool    dataRetriever.HeadersPool
-	proofsPool     dataRetriever.ProofsPool
-	requestHandler process.RequestHandler
+	mutHeaders         sync.RWMutex
+	missingHeaders     map[string]struct{}
+	mutProofs          sync.RWMutex
+	missingProofs      map[string]struct{}
+	headersPool        dataRetriever.HeadersPool
+	proofsPool         dataRetriever.ProofsPool
+	requestHandler     process.RequestHandler
+	blockDataRequester process.BlockDataRequester
 }
 
 // NewMissingDataResolver creates a new instance of missingDataResolver.
-func NewMissingDataResolver(headersPool dataRetriever.HeadersPool, proofsPool dataRetriever.ProofsPool, requestHandler process.RequestHandler) (*missingDataResolver, error) {
-	if check.IfNil(headersPool) {
+func NewMissingDataResolver(args MissingDataResolverArgs) (*missingDataResolver, error) {
+	if check.IfNil(args.HeadersPool) {
 		return nil, process.ErrNilHeadersDataPool
 	}
-	if check.IfNil(proofsPool) {
+	if check.IfNil(args.ProofsPool) {
 		return nil, process.ErrNilProofsPool
 	}
-	if check.IfNil(requestHandler) {
+	if check.IfNil(args.RequestHandler) {
 		return nil, process.ErrNilRequestHandler
+	}
+	if check.IfNil(args.BlockDataRequester) {
+		return nil, process.ErrNilBlockDataRequester
 	}
 
 	mdt := &missingDataResolver{
-		missingHeaders: make(map[string]struct{}),
-		missingProofs:  make(map[string]struct{}),
-		headersPool:    headersPool,
-		proofsPool:     proofsPool,
-		requestHandler: requestHandler,
+		missingHeaders:     make(map[string]struct{}),
+		missingProofs:      make(map[string]struct{}),
+		headersPool:        args.HeadersPool,
+		proofsPool:         args.ProofsPool,
+		requestHandler:     args.RequestHandler,
+		blockDataRequester: args.BlockDataRequester,
 	}
 
 	mdt.monitorReceivedData()

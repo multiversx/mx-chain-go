@@ -6,7 +6,10 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
+
 	"github.com/multiversx/mx-chain-go/process/block/headerForBlock"
+	"github.com/multiversx/mx-chain-go/process/coordinator"
+	"github.com/multiversx/mx-chain-go/process/factory/containers"
 
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/epochStart"
@@ -85,6 +88,17 @@ func createMetaBlockProcessor(
 		GenesisNonce: 0,
 	})
 
+	preprocessors := containers.NewPreProcessorsContainer()
+	blockDataRequesterArgs := coordinator.BlockDataRequestArgs{
+		RequestHandler:      &testscommon.RequestHandlerStub{},
+		MiniBlockPool:       dataComponents.Datapool().MiniBlocks(),
+		PreProcessors:       preprocessors,
+		ShardCoordinator:    bootstrapComponents.ShardCoordinator(),
+		EnableEpochsHandler: coreComponents.EnableEpochsHandler(),
+	}
+	// second instance for proposal missing data fetching to avoid interferences
+	proposalBlockDataRequester, _ := coordinator.NewBlockDataRequester(blockDataRequesterArgs)
+
 	args := blproc.ArgMetaProcessor{
 		ArgBaseProcessor: blproc.ArgBaseProcessor{
 			CoreComponents:      coreComponents,
@@ -119,6 +133,7 @@ func createMetaBlockProcessor(
 			BlockProcessingCutoffHandler:   &testscommon.BlockProcessingCutoffStub{},
 			SentSignaturesTracker:          &testscommon.SentSignatureTrackerStub{},
 			HeadersForBlock:                headersForBlock,
+			BlockDataRequester:             proposalBlockDataRequester,
 		},
 		SCToProtocol:             stakingToPeer,
 		PendingMiniBlocksHandler: &mock.PendingMiniBlocksHandlerStub{},

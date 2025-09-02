@@ -387,6 +387,12 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 		return nil, err
 	}
 
+	// second instance for proposal missing data fetching to avoid interferences
+	proposalBlockDataRequester, err := coordinator.NewBlockDataRequester(blockDataRequesterArgs)
+	if err != nil {
+		return nil, err
+	}
+
 	argsTransactionCoordinator := coordinator.ArgTransactionCoordinator{
 		Hasher:                       pcf.coreData.Hasher(),
 		Marshalizer:                  pcf.coreData.InternalMarshalizer(),
@@ -474,6 +480,7 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 		ManagedPeersHolder:           pcf.crypto.ManagedPeersHolder(),
 		SentSignaturesTracker:        sentSignaturesTracker,
 		HeadersForBlock:              hdrsForBlock,
+		BlockDataRequester:           proposalBlockDataRequester,
 	}
 	arguments := block.ArgShardProcessor{
 		ArgBaseProcessor: argumentsBaseProcessor,
@@ -726,6 +733,12 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 		return nil, err
 	}
 
+	// second instance for proposal missing data fetching to avoid interferences
+	proposalBlockDataRequester, err := coordinator.NewBlockDataRequester(blockDataRequesterArgs)
+	if err != nil {
+		return nil, err
+	}
+
 	argsTransactionCoordinator := coordinator.ArgTransactionCoordinator{
 		Hasher:                       pcf.coreData.Hasher(),
 		Marshalizer:                  pcf.coreData.InternalMarshalizer(),
@@ -941,6 +954,7 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 		ManagedPeersHolder:           pcf.crypto.ManagedPeersHolder(),
 		SentSignaturesTracker:        sentSignaturesTracker,
 		HeadersForBlock:              hdrsForBlock,
+		BlockDataRequester:           proposalBlockDataRequester,
 	}
 
 	esdtOwnerAddress, err := pcf.coreData.AddressPubKeyConverter().Decode(pcf.systemSCConfig.ESDTSystemSCConfig.OwnerAddress)

@@ -2298,6 +2298,19 @@ func (tpn *TestProcessorNode) initBlockProcessor() {
 		log.Error("initBlockProcessor NewHeadersForBlock", "error", err)
 	}
 
+	blockDataRequesterArgs := coordinator.BlockDataRequestArgs{
+		RequestHandler:      tpn.RequestHandler,
+		MiniBlockPool:       tpn.DataPool.MiniBlocks(),
+		PreProcessors:       tpn.PreProcessorsContainer,
+		ShardCoordinator:    tpn.ShardCoordinator,
+		EnableEpochsHandler: tpn.EnableEpochsHandler,
+	}
+	// second instance for proposal missing data fetching to avoid interferences
+	proposalBlockDataRequester, err := coordinator.NewBlockDataRequester(blockDataRequesterArgs)
+	if err != nil {
+		log.LogIfError(err)
+	}
+
 	argumentsBase := block.ArgBaseProcessor{
 		CoreComponents:       coreComponents,
 		DataComponents:       dataComponents,
@@ -2329,6 +2342,7 @@ func (tpn *TestProcessorNode) initBlockProcessor() {
 		ManagedPeersHolder:           &testscommon.ManagedPeersHolderStub{},
 		SentSignaturesTracker:        &testscommon.SentSignatureTrackerStub{},
 		HeadersForBlock:              hdrsForBlock,
+		BlockDataRequester:           proposalBlockDataRequester,
 	}
 
 	if check.IfNil(tpn.EpochStartNotifier) {
