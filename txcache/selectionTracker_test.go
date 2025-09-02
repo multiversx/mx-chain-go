@@ -582,9 +582,7 @@ func TestSelectionTracker_removeFromTrackedBlocks(t *testing.T) {
 
 	expectedTrackedBlock := newTrackedBlock(1, []byte("blockHash2"), []byte("rootHash2"), []byte("prevHash2"))
 	b1 := newTrackedBlock(0, []byte("blockHash1"), []byte("rootHash1"), []byte("prevHash1"))
-
 	b2 := newTrackedBlock(0, []byte("blockHash3"), []byte("rootHash3"), []byte("prevHash1"))
-	require.Nil(t, err)
 
 	tracker.blocks = map[string]*trackedBlock{
 		string(b1.hash):                   b1,
@@ -595,7 +593,6 @@ func TestSelectionTracker_removeFromTrackedBlocks(t *testing.T) {
 	require.Equal(t, 3, len(tracker.blocks))
 
 	r := newTrackedBlock(0, nil, nil, []byte("prevHash1"))
-	require.Nil(t, err)
 
 	tracker.removeFromTrackedBlocksNoLock(r)
 	require.Equal(t, 1, len(tracker.blocks))
@@ -620,36 +617,28 @@ func TestSelectionTracker_getChainOfTrackedBlocks(t *testing.T) {
 	// create a slice of tracked block which aren't ordered
 	tracker.blocks = make(map[string]*trackedBlock)
 	b := newTrackedBlock(7, []byte("blockHash8"), []byte("rootHash8"), []byte("blockHash7"))
-	require.Nil(t, err)
 	tracker.blocks[string(b.hash)] = b
 
 	b = newTrackedBlock(5, []byte("blockHash6"), []byte("rootHash6"), []byte("blockHash5"))
-	require.Nil(t, err)
 	tracker.blocks[string(b.hash)] = b
 
 	b = newTrackedBlock(1, []byte("blockHash2"), []byte("rootHash2"), []byte("blockHash1"))
-	require.Nil(t, err)
 	tracker.blocks[string(b.hash)] = b
 
 	b = newTrackedBlock(0, []byte("blockHash1"), []byte("rootHash1"), []byte("prevHash1"))
-	require.Nil(t, err)
 	tracker.blocks[string(b.hash)] = b
 
 	b = newTrackedBlock(3, []byte("blockHash4"), []byte("rootHash4"), []byte("blockHash3"))
-	require.Nil(t, err)
 	tracker.blocks[string(b.hash)] = b
 
 	b = newTrackedBlock(2, []byte("blockHash3"), []byte("rootHash3"), []byte("blockHash2"))
-	require.Nil(t, err)
 	tracker.blocks[string(b.hash)] = b
 
 	// create a block with a wrong previous hash
 	b = newTrackedBlock(4, []byte("blockHash5"), []byte("rootHash5"), []byte("blockHashY"))
-	require.Nil(t, err)
 	tracker.blocks[string(b.hash)] = b
 
 	b = newTrackedBlock(6, []byte("blockHash7"), []byte("rootHash7"), []byte("blockHash6"))
-	require.Nil(t, err)
 	tracker.blocks[string(b.hash)] = b
 
 	t.Run("check order to be from head to tail", func(t *testing.T) {
@@ -1026,7 +1015,6 @@ func TestSelectionTracker_addNewBlockNoLock(t *testing.T) {
 	require.Nil(t, err)
 
 	tb1 := newTrackedBlock(0, []byte("blockHash1"), []byte("rootHash0"), []byte("blockHash0"))
-
 	tb2 := newTrackedBlock(0, []byte("blockHash2"), []byte("rootHash0"), []byte("blockHash0"))
 
 	tracker.addNewTrackedBlockNoLock([]byte("blockHash1"), tb1)
