@@ -185,6 +185,7 @@ type ShardedDataCacherNotifier interface {
 	Keys() [][]byte
 	IsInterfaceNil() bool
 	CleanupSelfShardTxCache(session interface{}, randomness uint64, maxNum int, cleanupLoopMaximumDuration time.Duration)
+	OnExecutedBlock(blockHeader data.HeaderHandler) error
 }
 
 // ShardIdHashMap represents a map for shardId and hash

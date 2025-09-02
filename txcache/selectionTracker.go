@@ -56,10 +56,11 @@ func (st *selectionTracker) OnProposedBlock(
 	tBlock := newTrackedBlock(nonce, blockHash, rootHash, prevHash)
 
 	log.Debug("selectionTracker.OnProposedBlock",
-		"blockHash", blockHash,
 		"nonce", nonce,
+		"blockHash", blockHash,
 		"rootHash", rootHash,
-		"prevHash", prevHash)
+		"prevHash", prevHash,
+	)
 
 	st.mutTracker.Lock()
 	defer st.mutTracker.Unlock()
@@ -89,6 +90,12 @@ func (st *selectionTracker) OnExecutedBlock(blockHeader data.HeaderHandler) erro
 	nonce := blockHeader.GetNonce()
 	rootHash := blockHeader.GetRootHash()
 	prevHash := blockHeader.GetPrevHash()
+
+	log.Debug("selectionTracker.OnExecutedBlock",
+		"nonce", nonce,
+		"rootHash", rootHash,
+		"prevHash", prevHash,
+	)
 
 	tempTrackedBlock := newTrackedBlock(nonce, nil, rootHash, prevHash)
 
