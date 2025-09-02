@@ -224,7 +224,7 @@ func (en *extensionNode) commitSnapshot(
 	}
 
 	depthLevel := tmc.GetMaxDepth()
-	tmc.SetDepth(depthLevel + 1)
+	tmc.SetMaxDepth(depthLevel + 1)
 	if !childIsMissing {
 		err = en.child.commitSnapshot(db, leavesChan, missingNodesChan, ctx, stats, idleProvider, tmc)
 		if err != nil {
@@ -302,7 +302,7 @@ func (en *extensionNode) tryGet(key []byte, tmc MetricsCollector, db common.Trie
 		return nil, err
 	}
 
-	tmc.SetDepth(tmc.GetMaxDepth() + 1)
+	tmc.SetMaxDepth(tmc.GetMaxDepth() + 1)
 	return en.child.tryGet(key, tmc, db)
 }
 
@@ -745,7 +745,7 @@ func (en *extensionNode) collectStats(ts common.TrieStatisticsHandler, tmc Metri
 	}
 
 	depthLevel := tmc.GetMaxDepth()
-	tmc.SetDepth(depthLevel + 1)
+	tmc.SetMaxDepth(depthLevel + 1)
 	err = en.child.collectStats(ts, tmc, db)
 	if err != nil {
 		return err

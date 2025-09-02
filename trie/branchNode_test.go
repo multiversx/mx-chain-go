@@ -1631,5 +1631,4 @@ func TestBranchNode_commitCollapsesLeaves(t *testing.T) {
 	assert.NotNil(t, en.(*extensionNode).child)
 	assert.Nil(t, bn.children[4])  // leaf node is collapsed
 	assert.Nil(t, bn.children[16]) // leaf node is collapsed
-
 }

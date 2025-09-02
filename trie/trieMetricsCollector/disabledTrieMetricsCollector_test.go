@@ -12,11 +12,11 @@ func TestNewDisabledTrieMetricsCollector(t *testing.T) {
 	assert.NotNil(t, NewDisabledTrieMetricsCollector())
 }
 
-func TestDisabledTrieMetricsCollector_SetDepthDoesNotPanic(t *testing.T) {
+func TestDisabledTrieMetricsCollector_SetMaxDepthDoesNotPanic(t *testing.T) {
 	t.Parallel()
 
 	collector := NewDisabledTrieMetricsCollector()
-	collector.SetDepth(5)
+	collector.SetMaxDepth(5)
 
 	// No assertion needed, just checking that it doesn't panic
 }

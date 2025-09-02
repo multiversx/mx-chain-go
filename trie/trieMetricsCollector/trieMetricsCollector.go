@@ -13,9 +13,9 @@ func NewTrieMetricsCollector() *trieMetricsCollector {
 	}
 }
 
-// SetDepth sets the maxDepth to the provided value if it is greater than the current maxDepth
-func (tmc *trieMetricsCollector) SetDepth(depth uint32) {
-	if depth < uint32(tmc.maxDepth) {
+// SetMaxDepth sets the maxDepth to the provided value if it is greater than the current maxDepth
+func (tmc *trieMetricsCollector) SetMaxDepth(depth uint32) {
+	if depth <= uint32(tmc.maxDepth) {
 		return
 	}
 
