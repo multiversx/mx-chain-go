@@ -21,11 +21,8 @@ func TestTrackedBlock_sameNonce(t *testing.T) {
 	t.Run("same nonce and same prev hash", func(t *testing.T) {
 		t.Parallel()
 
-		trackedBlock1, err := newTrackedBlock(0, []byte("blockHash1"), []byte("blockRootHash1"), []byte("blockPrevHash1"), nil)
-		require.NoError(t, err)
-
-		trackedBlock2, err := newTrackedBlock(0, []byte("blockHash1"), []byte("blockRootHash2"), []byte("blockPrevHash1"), nil)
-		require.NoError(t, err)
+		trackedBlock1 := newTrackedBlock(0, []byte("blockHash1"), []byte("blockRootHash1"), []byte("blockPrevHash1"))
+		trackedBlock2 := newTrackedBlock(0, []byte("blockHash1"), []byte("blockRootHash2"), []byte("blockPrevHash1"))
 
 		shouldRemoveBlock := trackedBlock1.sameNonceOrBelow(trackedBlock2)
 		require.True(t, shouldRemoveBlock)
@@ -34,11 +31,8 @@ func TestTrackedBlock_sameNonce(t *testing.T) {
 	t.Run("lower nonce", func(t *testing.T) {
 		t.Parallel()
 
-		trackedBlock1, err := newTrackedBlock(0, []byte("blockHash1"), []byte("blockRootHash1"), []byte("blockPrevHash1"), nil)
-		require.NoError(t, err)
-
-		trackedBlock2, err := newTrackedBlock(1, []byte("blockHash1"), []byte("blockRootHash1"), []byte("blockPrevHash1"), nil)
-		require.NoError(t, err)
+		trackedBlock1 := newTrackedBlock(0, []byte("blockHash1"), []byte("blockRootHash1"), []byte("blockPrevHash1"))
+		trackedBlock2 := newTrackedBlock(1, []byte("blockHash1"), []byte("blockRootHash1"), []byte("blockPrevHash1"))
 
 		shouldRemoveBlock := trackedBlock1.sameNonceOrBelow(trackedBlock2)
 		require.True(t, shouldRemoveBlock)
@@ -47,11 +41,8 @@ func TestTrackedBlock_sameNonce(t *testing.T) {
 	t.Run("greater nonce", func(t *testing.T) {
 		t.Parallel()
 
-		trackedBlock1, err := newTrackedBlock(2, []byte("blockHash1"), []byte("blockRootHash1"), []byte("blockPrevHash1"), nil)
-		require.NoError(t, err)
-
-		trackedBlock2, err := newTrackedBlock(1, []byte("blockHash1"), []byte("blockRootHash1"), []byte("blockPrevHash1"), nil)
-		require.NoError(t, err)
+		trackedBlock1 := newTrackedBlock(2, []byte("blockHash1"), []byte("blockRootHash1"), []byte("blockPrevHash1"))
+		trackedBlock2 := newTrackedBlock(1, []byte("blockHash1"), []byte("blockRootHash1"), []byte("blockPrevHash1"))
 
 		shouldRemoveBlock := trackedBlock1.sameNonceOrBelow(trackedBlock2)
 		require.False(t, shouldRemoveBlock)
@@ -64,9 +55,7 @@ func TestTrackedBlock_getBreadcrumb(t *testing.T) {
 	t.Run("should return new breadcrumb", func(t *testing.T) {
 		t.Parallel()
 
-		block, err := newTrackedBlock(0, []byte("blockHash1"), []byte("blockRootHash1"), []byte("blockPrevHash1"), nil)
-		require.NoError(t, err)
-
+		block := newTrackedBlock(0, []byte("blockHash1"), []byte("blockRootHash1"), []byte("blockPrevHash1"))
 		block.breadcrumbsByAddress = map[string]*accountBreadcrumb{
 			"alice": newAccountBreadcrumb(core.OptionalUint64{
 				Value:    0,
@@ -93,8 +82,7 @@ func TestTrackedBlock_getBreadcrumb(t *testing.T) {
 		}
 		expectedBreadcrumb := newAccountBreadcrumb(nonce, big.NewInt(1))
 
-		block, err := newTrackedBlock(0, []byte("blockHash1"), []byte("blockRootHash1"), []byte("blockPrevHash1"), nil)
-		require.NoError(t, err)
+		block := newTrackedBlock(0, []byte("blockHash1"), []byte("blockRootHash1"), []byte("blockPrevHash1"))
 
 		block.breadcrumbsByAddress = map[string]*accountBreadcrumb{
 			"alice": expectedBreadcrumb,
@@ -111,8 +99,7 @@ func TestTrackedBlock_compileBreadcrumb(t *testing.T) {
 	t.Run("sender does not exist in map", func(t *testing.T) {
 		t.Parallel()
 
-		block, err := newTrackedBlock(0, []byte("blockHash1"), []byte("blockRootHash1"), []byte("blockPrevHash1"), nil)
-		require.NoError(t, err)
+		block := newTrackedBlock(0, []byte("blockHash1"), []byte("blockRootHash1"), []byte("blockPrevHash1"))
 
 		txs := []*WrappedTransaction{
 			{
@@ -124,7 +111,7 @@ func TestTrackedBlock_compileBreadcrumb(t *testing.T) {
 			},
 		}
 
-		err = block.compileBreadcrumbs(txs)
+		err := block.compileBreadcrumbs(txs)
 		require.NoError(t, err)
 
 		aliceBreadcrumb := newAccountBreadcrumb(core.OptionalUint64{Value: 1, HasValue: true}, big.NewInt(5))
@@ -143,9 +130,7 @@ func TestTrackedBlock_compileBreadcrumb(t *testing.T) {
 	t.Run("sender exists in map, nil fee payer", func(t *testing.T) {
 		t.Parallel()
 
-		block, err := newTrackedBlock(0, []byte("blockHash1"), []byte("blockRootHash1"), []byte("blockPrevHash1"), nil)
-		require.NoError(t, err)
-
+		block := newTrackedBlock(0, []byte("blockHash1"), []byte("blockRootHash1"), []byte("blockPrevHash1"))
 		block.breadcrumbsByAddress = map[string]*accountBreadcrumb{
 			"alice": newAccountBreadcrumb(core.OptionalUint64{
 				Value:    1,
@@ -163,7 +148,7 @@ func TestTrackedBlock_compileBreadcrumb(t *testing.T) {
 			},
 		}
 
-		err = block.compileBreadcrumbs(txs)
+		err := block.compileBreadcrumbs(txs)
 		require.NoError(t, err)
 		aliceBreadcrumb := newAccountBreadcrumb(core.OptionalUint64{Value: 1, HasValue: true}, big.NewInt(10))
 		aliceBreadcrumb.lastNonce = core.OptionalUint64{Value: 4, HasValue: true}
@@ -181,9 +166,7 @@ func TestTrackedBlock_compileBreadcrumb(t *testing.T) {
 	t.Run("sender exists in map, fee payer does not", func(t *testing.T) {
 		t.Parallel()
 
-		block, err := newTrackedBlock(0, []byte("blockHash1"), []byte("blockRootHash1"), []byte("blockPrevHash1"), nil)
-		require.NoError(t, err)
-
+		block := newTrackedBlock(0, []byte("blockHash1"), []byte("blockRootHash1"), []byte("blockPrevHash1"))
 		block.breadcrumbsByAddress = map[string]*accountBreadcrumb{
 			"alice": newAccountBreadcrumb(core.OptionalUint64{
 				Value:    1,
@@ -202,7 +185,7 @@ func TestTrackedBlock_compileBreadcrumb(t *testing.T) {
 			},
 		}
 
-		err = block.compileBreadcrumbs(txs)
+		err := block.compileBreadcrumbs(txs)
 		require.NoError(t, err)
 
 		aliceBreadcrumb := newAccountBreadcrumb(core.OptionalUint64{Value: 1, HasValue: true}, big.NewInt(10))
@@ -225,9 +208,7 @@ func TestTrackedBlock_compileBreadcrumb(t *testing.T) {
 	t.Run("sender and fee payer existing in map", func(t *testing.T) {
 		t.Parallel()
 
-		block, err := newTrackedBlock(0, []byte("blockHash1"), []byte("blockRootHash1"), []byte("blockPrevHash1"), nil)
-		require.NoError(t, err)
-
+		block := newTrackedBlock(0, []byte("blockHash1"), []byte("blockRootHash1"), []byte("blockPrevHash1"))
 		block.breadcrumbsByAddress = map[string]*accountBreadcrumb{
 			"alice": newAccountBreadcrumb(core.OptionalUint64{
 				Value:    1,
@@ -258,7 +239,7 @@ func TestTrackedBlock_compileBreadcrumb(t *testing.T) {
 			},
 		}
 
-		err = block.compileBreadcrumbs(txs)
+		err := block.compileBreadcrumbs(txs)
 		require.NoError(t, err)
 
 		aliceBreadcrumb := newAccountBreadcrumb(core.OptionalUint64{Value: 1, HasValue: true}, big.NewInt(15))
@@ -281,8 +262,7 @@ func TestTrackedBlock_compileBreadcrumb(t *testing.T) {
 	t.Run("sender and fee payer are equal", func(t *testing.T) {
 		t.Parallel()
 
-		block, err := newTrackedBlock(0, []byte("blockHash1"), []byte("blockRootHash1"), []byte("blockPrevHash1"), nil)
-		require.NoError(t, err)
+		block := newTrackedBlock(0, []byte("blockHash1"), []byte("blockRootHash1"), []byte("blockPrevHash1"))
 		block.breadcrumbsByAddress = map[string]*accountBreadcrumb{
 			"alice": newAccountBreadcrumb(core.OptionalUint64{
 				Value:    1,
@@ -301,7 +281,7 @@ func TestTrackedBlock_compileBreadcrumb(t *testing.T) {
 			},
 		}
 
-		err = block.compileBreadcrumbs(txs)
+		err := block.compileBreadcrumbs(txs)
 		require.NoError(t, err)
 
 		aliceBreadcrumb := newAccountBreadcrumb(core.OptionalUint64{

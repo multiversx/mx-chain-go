@@ -37,13 +37,55 @@ func NewSelectionTracker(txCache txCacheForSelectionTracker, maxTrackedBlocks ui
 }
 
 // OnProposedBlock notifies when a block is proposed and updates the state of the selectionTracker
-// TODO brainstorm if it is possible to refactor this method, maybe split it in different methods
 func (st *selectionTracker) OnProposedBlock(
 	blockHash []byte,
 	blockBody *block.Body,
 	blockHeader data.HeaderHandler,
 	accountsProvider common.AccountNonceAndBalanceProvider,
 	blockchainInfo common.BlockchainInfo,
+) error {
+	err := st.verifyArgsOfOnProposedBlock(blockHash, blockBody, blockHeader, accountsProvider)
+	if err != nil {
+		return err
+	}
+
+	nonce := blockHeader.GetNonce()
+	rootHash := blockHeader.GetRootHash()
+	prevHash := blockHeader.GetPrevHash()
+
+	tBlock := newTrackedBlock(nonce, blockHash, rootHash, prevHash)
+
+	log.Debug("selectionTracker.OnProposedBlock",
+		"nonce", nonce,
+		"blockHash", blockHash,
+		"rootHash", rootHash,
+		"prevHash", prevHash,
+	)
+
+	st.mutTracker.Lock()
+	defer st.mutTracker.Unlock()
+
+	err = st.checkReceivedBlockNoLock(blockBody, blockHeader)
+	if err != nil {
+		log.Debug("selectionTracker.OnProposedBlock: error checking the received block", "err", err)
+		return err
+	}
+
+	err = st.validateTrackedBlocks(blockBody, tBlock, accountsProvider, blockchainInfo)
+	if err != nil {
+		log.Debug("selectionTracker.OnProposedBlock: error validating the tracked blocks", "err", err)
+		return err
+	}
+
+	st.addNewTrackedBlockNoLock(blockHash, tBlock)
+	return nil
+}
+
+func (st *selectionTracker) verifyArgsOfOnProposedBlock(
+	blockHash []byte,
+	blockBody *block.Body,
+	blockHeader data.HeaderHandler,
+	accountsProvider common.AccountNonceAndBalanceProvider,
 ) error {
 	if len(blockHash) == 0 {
 		return errNilBlockHash
@@ -58,60 +100,6 @@ func (st *selectionTracker) OnProposedBlock(
 		return errNilAccountNonceAndBalanceProvider
 	}
 
-	nonce := blockHeader.GetNonce()
-	rootHash := blockHeader.GetRootHash()
-	prevHash := blockHeader.GetPrevHash()
-
-	st.mutTracker.Lock()
-	defer st.mutTracker.Unlock()
-
-	log.Debug("selectionTracker.OnProposedBlock",
-		"nonce", nonce,
-		"blockHash", blockHash,
-		"rootHash", rootHash,
-		"prevHash", prevHash,
-	)
-
-	err := st.checkReceivedBlockNoLock(blockBody, blockHeader)
-	if err != nil {
-		log.Debug("selectionTracker.OnProposedBlock: error checking the received block", "err", err)
-		return err
-	}
-
-	// TODO brainstorm if this could be moved after getChainOfTrackedBlocks
-	txs, err := st.getTransactionsInBlock(blockBody)
-	if err != nil {
-		log.Debug("selectionTracker.OnProposedBlock: error getting transactions from block", "err", err)
-		return err
-	}
-
-	tBlock, err := newTrackedBlock(nonce, blockHash, rootHash, prevHash, txs)
-	if err != nil {
-		log.Debug("selectionTracker.OnProposedBlock: error creating tracked block", "err", err)
-		return err
-	}
-
-	blocksToBeValidated, err := st.getChainOfTrackedBlocks(
-		blockchainInfo.GetLatestExecutedBlockHash(),
-		prevHash,
-		nonce,
-	)
-	if err != nil {
-		log.Debug("selectionTracker.OnProposedBlock: error creating chain of tracked blocks", "err", err)
-		return err
-	}
-
-	// add the new block in the returned chain
-	blocksToBeValidated = append(blocksToBeValidated, tBlock)
-
-	// make sure that the proposed block is valid (continuous with the other proposed blocks and no balance issues)
-	err = st.validateTrackedBlocks(blocksToBeValidated, accountsProvider)
-	if err != nil {
-		log.Debug("selectionTracker.OnProposedBlock: error validating tracked blocks", "err", err)
-		return err
-	}
-
-	st.addNewTrackedBlockNoLock(blockHash, tBlock)
 	return nil
 }
 
@@ -131,10 +119,7 @@ func (st *selectionTracker) OnExecutedBlock(blockHeader data.HeaderHandler) erro
 		"prevHash", prevHash,
 	)
 
-	tempTrackedBlock, err := newTrackedBlock(nonce, nil, rootHash, prevHash, nil)
-	if err != nil {
-		return err
-	}
+	tempTrackedBlock := newTrackedBlock(nonce, nil, rootHash, prevHash)
 
 	st.mutTracker.Lock()
 	defer st.mutTracker.Unlock()
@@ -153,9 +138,9 @@ func (st *selectionTracker) checkReceivedBlockNoLock(blockBody *block.Body, bloc
 	}
 
 	hasNewTransactions := len(blockBody.MiniBlocks) != 0
-	noNewExecutionResults := len(blockHeader.GetExecutionResultsHandlers()) == 0
+	hasNoNewExecutionResults := len(blockHeader.GetExecutionResultsHandlers()) == 0
 
-	if hasNewTransactions && noNewExecutionResults {
+	if hasNewTransactions && hasNoNewExecutionResults {
 		log.Warn("selectionTracker.checkReceivedBlockNoLock: received bad block while max tracked blocks is reached. "+
 			"should receive empty block or a block with new execution results",
 			"len(st.blocks)", len(st.blocks),
@@ -171,14 +156,58 @@ func (st *selectionTracker) checkReceivedBlockNoLock(blockBody *block.Body, bloc
 	return nil
 }
 
-func (st *selectionTracker) validateTrackedBlocks(chainOfTrackedBlocks []*trackedBlock, accountsProvider common.AccountNonceAndBalanceProvider) error {
+func (st *selectionTracker) validateTrackedBlocks(
+	blockBody *block.Body,
+	blockToTrack *trackedBlock,
+	accountsProvider common.AccountNonceAndBalanceProvider,
+	blockchainInfo common.BlockchainInfo,
+) error {
+	blocksToBeValidated, err := st.getChainOfTrackedBlocks(
+		blockchainInfo.GetLatestExecutedBlockHash(),
+		blockToTrack.prevHash,
+		blockToTrack.nonce,
+	)
+	if err != nil {
+		log.Debug("selectionTracker.validateTrackedBlocks: error creating chain of tracked blocks", "err", err)
+		return err
+	}
+
+	// if we pass the first validation, only then we extract the txs to compile the breadcrumbs
+	txs, err := st.getTransactionsInBlock(blockBody)
+	if err != nil {
+		log.Debug("selectionTracker.validateTrackedBlocks: error getting transactions from block", "err", err)
+		return err
+	}
+
+	err = blockToTrack.compileBreadcrumbs(txs)
+	if err != nil {
+		log.Debug("selectionTracker.validateTrackedBlocks: error compiling breadcrumbs",
+			"error", err)
+		return err
+	}
+
+	// add the new block in the returned chain
+	blocksToBeValidated = append(blocksToBeValidated, blockToTrack)
+
+	// make sure that the breadcrumbs of the proposed block are valid
+	// i.e. continuous with the other proposed blocks and no balance issues
+	err = st.validateBreadcrumbsOfTrackedBlocks(blocksToBeValidated, accountsProvider)
+	if err != nil {
+		log.Debug("selectionTracker.validateTrackedBlocks: error validating tracked blocks", "err", err)
+		return err
+	}
+
+	return nil
+}
+
+func (st *selectionTracker) validateBreadcrumbsOfTrackedBlocks(chainOfTrackedBlocks []*trackedBlock, accountsProvider AccountNonceAndBalanceProvider) error {
 	validator := newBreadcrumbValidator()
 
 	for _, tb := range chainOfTrackedBlocks {
 		for address, breadcrumb := range tb.breadcrumbsByAddress {
 			initialNonce, initialBalance, _, err := accountsProvider.GetAccountNonceAndBalance([]byte(address))
 			if err != nil {
-				log.Debug("selectionTracker.validateTrackedBlocks",
+				log.Debug("selectionTracker.validateBreadcrumbsOfTrackedBlocks",
 					"err", err,
 					"address", address,
 					"tracked block rootHash", tb.rootHash)
@@ -186,7 +215,7 @@ func (st *selectionTracker) validateTrackedBlocks(chainOfTrackedBlocks []*tracke
 			}
 
 			if !validator.continuousBreadcrumb(address, initialNonce, breadcrumb) {
-				log.Debug("selectionTracker.validateTrackedBlocks",
+				log.Debug("selectionTracker.validateBreadcrumbsOfTrackedBlocks",
 					"err", errDiscontinuousBreadcrumbs,
 					"address", address,
 					"tracked block rootHash", tb.rootHash)
@@ -198,7 +227,7 @@ func (st *selectionTracker) validateTrackedBlocks(chainOfTrackedBlocks []*tracke
 			err = validator.validateBalance(address, initialBalance, breadcrumb)
 			if err != nil {
 				// exit at the first failure
-				log.Debug("selectionTracker.validateTrackedBlocks validation failed",
+				log.Debug("selectionTracker.validateBreadcrumbsOfTrackedBlocks validation failed",
 					"err", err,
 					"address", address,
 					"tracked block rootHash", tb.rootHash)
@@ -351,13 +380,17 @@ func (st *selectionTracker) getChainOfTrackedBlocks(
 	previousBlock := st.blocks[string(previousHashToBeFound)]
 
 	for {
+		if nextNonce == 0 {
+			// should never actually happen (e.g. genesis)
+			break
+		}
+
 		// if no block was found, it means there is a gap and we have to return an error
 		if previousBlock == nil {
 			return nil, errPreviousBlockNotFound
 		}
 
 		// extra check for a nonce gap
-		// TODO maybe add an extra check for nonce = 0
 		hasDiscontinuousBlockNonce := previousBlock.nonce != nextNonce-1
 		if hasDiscontinuousBlockNonce {
 			return nil, errDiscontinuousSequenceOfBlocks

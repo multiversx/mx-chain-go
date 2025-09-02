@@ -151,8 +151,6 @@ func (cache *TxCache) SelectTransactions(
 		"gas", accumulatedGas,
 	)
 
-	// TODO drop the diagnoseCounters
-	go cache.diagnoseCounters()
 	go displaySelectionOutcome(logSelect, "selection", transactions)
 
 	return transactions, accumulatedGas
