@@ -610,7 +610,6 @@ func getUserAccountSyncerArgs(node *integrationTests.TestProcessorNode, version 
 			RequestHandler:                    node.RequestHandler,
 			Timeout:                           common.TimeoutGettingTrieNodes,
 			Cacher:                            node.DataPool.TrieNodes(),
-			MaxTrieLevelInMemory:              200,
 			MaxHardCapForMissingNodes:         5000,
 			TrieSyncerVersion:                 version,
 			UserAccountsSyncStatisticsHandler: statistics.NewTrieSyncStatistics(),

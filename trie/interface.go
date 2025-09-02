@@ -24,38 +24,38 @@ type node interface {
 	isPosCollapsed(pos int) bool
 	isDirty() bool
 	getEncodedNode() ([]byte, error)
-	resolveCollapsed(pos byte, db common.TrieStorageInteractor) error
+	resolveCollapsed(pos byte, tmc MetricsCollector, db common.TrieStorageInteractor) error
 	hashNode() ([]byte, error)
 	hashChildren() error
-	tryGet(key []byte, depth uint32, db common.TrieStorageInteractor) ([]byte, uint32, error)
-	getNext(key []byte, db common.TrieStorageInteractor) (node, []byte, error)
-	insert(newData core.TrieData, db common.TrieStorageInteractor) (node, [][]byte, error)
-	delete(key []byte, db common.TrieStorageInteractor) (bool, node, [][]byte, error)
-	reduceNode(pos int) (node, bool, error)
+	tryGet(key []byte, tmc MetricsCollector, db common.TrieStorageInteractor) ([]byte, error)
+	getNext(key []byte, tmc MetricsCollector, db common.TrieStorageInteractor) (node, []byte, error)
+	insert(newData core.TrieData, tmc MetricsCollector, db common.TrieStorageInteractor) (node, [][]byte, error)
+	delete(key []byte, tmc MetricsCollector, db common.TrieStorageInteractor) (bool, node, [][]byte, error)
+	reduceNode(pos int, tmc MetricsCollector) (node, bool, error)
 	isEmptyOrNil() error
-	print(writer io.Writer, index int, db common.TrieStorageInteractor)
+	print(writer io.Writer, index int, tmc MetricsCollector, db common.TrieStorageInteractor)
 	getDirtyHashes(common.ModifiedHashes) error
-	getChildren(db common.TrieStorageInteractor) ([]node, error)
+	getChildren(tmc MetricsCollector, db common.TrieStorageInteractor) ([]node, error)
 	isValid() bool
 	getNodeData(common.KeyBuilder) ([]common.TrieNodeData, error)
 	setDirty(bool)
 	loadChildren(func([]byte) (node, error)) ([][]byte, []node, error)
-	getAllLeavesOnChannel(chan core.KeyValueHolder, common.KeyBuilder, common.TrieLeafParser, common.TrieStorageInteractor, marshal.Marshalizer, chan struct{}, context.Context) error
-	getAllHashes(db common.TrieStorageInteractor) ([][]byte, error)
+	getAllLeavesOnChannel(chan core.KeyValueHolder, common.KeyBuilder, common.TrieLeafParser, common.TrieStorageInteractor, marshal.Marshalizer, chan struct{}, context.Context, MetricsCollector) error
+	getAllHashes(tmc MetricsCollector, db common.TrieStorageInteractor) ([][]byte, error)
 	getNextHashAndKey([]byte) (bool, []byte, []byte)
 	getValue() []byte
 	getVersion() (core.TrieNodeVersion, error)
-	collectLeavesForMigration(migrationArgs vmcommon.ArgsMigrateDataTrieLeaves, db common.TrieStorageInteractor, keyBuilder common.KeyBuilder) (bool, error)
+	collectLeavesForMigration(migrationArgs vmcommon.ArgsMigrateDataTrieLeaves, tmc MetricsCollector, db common.TrieStorageInteractor, keyBuilder common.KeyBuilder) (bool, error)
 
-	commitDirty(level byte, maxTrieLevelInMemory uint, originDb common.TrieStorageInteractor, targetDb common.BaseStorer) error
-	commitSnapshot(originDb common.TrieStorageInteractor, leavesChan chan core.KeyValueHolder, missingNodesChan chan []byte, ctx context.Context, stats common.TrieStatisticsHandler, idleProvider IdleNodeProvider, depthLevel int) error
+	commitDirty(originDb common.TrieStorageInteractor, targetDb common.BaseStorer, tmc MetricsCollector) error
+	commitSnapshot(originDb common.TrieStorageInteractor, leavesChan chan core.KeyValueHolder, missingNodesChan chan []byte, ctx context.Context, stats common.TrieStatisticsHandler, idleProvider IdleNodeProvider, tmc MetricsCollector) error
 
 	getMarshalizer() marshal.Marshalizer
 	setMarshalizer(marshal.Marshalizer)
 	getHasher() hashing.Hasher
 	setHasher(hashing.Hasher)
 	sizeInBytes() int
-	collectStats(handler common.TrieStatisticsHandler, depthLevel int, db common.TrieStorageInteractor) error
+	collectStats(handler common.TrieStatisticsHandler, tmc MetricsCollector, db common.TrieStorageInteractor) error
 
 	IsInterfaceNil() bool
 }
@@ -65,7 +65,7 @@ type dbWithGetFromEpoch interface {
 }
 
 type snapshotNode interface {
-	commitSnapshot(originDb common.TrieStorageInteractor, leavesChan chan core.KeyValueHolder, missingNodesChan chan []byte, ctx context.Context, stats common.TrieStatisticsHandler, idleProvider IdleNodeProvider, depthLevel int) error
+	commitSnapshot(originDb common.TrieStorageInteractor, leavesChan chan core.KeyValueHolder, missingNodesChan chan []byte, ctx context.Context, stats common.TrieStatisticsHandler, idleProvider IdleNodeProvider, tmc MetricsCollector) error
 }
 
 // RequestHandler defines the methods through which request to data can be made
@@ -110,4 +110,12 @@ type EpochNotifier interface {
 type IdleNodeProvider interface {
 	IsIdle() bool
 	IsInterfaceNil() bool
+}
+
+// MetricsCollector is used to collect metrics about the trie
+type MetricsCollector interface {
+	SetMaxDepth(depth uint32)
+	GetMaxDepth() uint32
+	AddSizeLoadedInMem(size int)
+	GetSizeLoadedInMem() int
 }

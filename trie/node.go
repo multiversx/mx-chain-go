@@ -16,13 +16,17 @@ import (
 )
 
 const (
-	nrOfChildren         = 17
-	firstByte            = 0
-	hexTerminator        = 16
-	nibbleMask           = 0x0f
-	pointerSizeInBytes   = 8
-	numNodeInnerPointers = 2 // each trie node contains a marshalizer and a hasher
-	pollingIdleNode      = time.Millisecond
+	nrOfChildren           = 17
+	firstByte              = 0
+	hexTerminator          = 16
+	nibbleMask             = 0x0f
+	pointerSizeInBytes     = 8
+	numNodeInnerPointers   = 2 // each trie node contains a marshalizer and a hasher
+	pollingIdleNode        = time.Millisecond
+	hashSizeInBytes        = 32                                                            // size of the hash in bytes
+	baseNodeSizeInBytes    = hashSizeInBytes + numNodeInnerPointers*pointerSizeInBytes + 1 // 1 for the dirty flag
+	bnChildrenPointersSize = nrOfChildren * pointerSizeInBytes
+	nodeVersionSizeInBytes = 4
 )
 
 type baseNode struct {
@@ -136,7 +140,7 @@ func treatLogError(logInstance logger.Logger, err error, key []byte) {
 	logInstance.Trace(core.GetNodeFromDBErrorString, "error", err, "key", key, "stack trace", string(debug.Stack()))
 }
 
-func resolveIfCollapsed(n node, pos byte, db common.TrieStorageInteractor) error {
+func resolveIfCollapsed(n node, pos byte, tmc MetricsCollector, db common.TrieStorageInteractor) error {
 	err := n.isEmptyOrNil()
 	if err != nil {
 		return err
@@ -147,7 +151,7 @@ func resolveIfCollapsed(n node, pos byte, db common.TrieStorageInteractor) error
 		return nil
 	}
 
-	return n.resolveCollapsed(pos, db)
+	return n.resolveCollapsed(pos, tmc, db)
 }
 
 func handleStorageInteractorStats(db common.TrieStorageInteractor) {
@@ -307,4 +311,9 @@ func shouldMigrateCurrentNode(
 	}
 
 	return true, nil
+}
+
+func isLeafNode(n node) bool {
+	_, ok := n.(*leafNode)
+	return ok
 }

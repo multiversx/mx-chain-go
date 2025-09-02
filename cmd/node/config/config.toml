@@ -699,8 +699,6 @@
     SnapshotsEnabled = true
     AccountsStatePruningEnabled = false
     PeerStatePruningEnabled = true
-    MaxStateTrieLevelInMemory = 5
-    MaxPeerTrieLevelInMemory = 5
     StateStatisticsEnabled = false
 
 [TrieLeavesRetrieverConfig]
