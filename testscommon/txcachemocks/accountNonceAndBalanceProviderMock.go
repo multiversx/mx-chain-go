@@ -13,7 +13,9 @@ type AccountNonceAndBalanceProviderMock struct {
 	mutex            sync.Mutex
 	accountByAddress map[string]*stateMock.UserAccountStub
 
+	NumCallsGetAccountNonce           int
 	NumCallsGetAccountNonceAndBalance int
+	GetAccountNonceCalled             func(address []byte) (uint64, bool, error)
 	GetAccountNonceAndBalanceCalled   func(address []byte) (uint64, *big.Int, bool, error)
 }
 
@@ -57,6 +59,31 @@ func (mock *AccountNonceAndBalanceProviderMock) SetBalance(address []byte, balan
 	}
 
 	mock.accountByAddress[key].Balance = balance
+}
+
+// GetAccountNonce -
+func (mock *AccountNonceAndBalanceProviderMock) GetAccountNonce(address []byte) (uint64, bool, error) {
+	mock.mutex.Lock()
+	defer mock.mutex.Unlock()
+
+	mock.NumCallsGetAccountNonce++
+
+	if mock.GetAccountNonceCalled != nil {
+		return mock.GetAccountNonceCalled(address)
+	}
+
+	account, ok := mock.accountByAddress[string(address)]
+	if ok {
+		if check.IfNil(account) {
+			// This mock allows one to add "nil" (unknown) accounts in "AccountByAddress".
+			return 0, false, nil
+		}
+
+		return account.Nonce, true, nil
+	}
+
+	account = newDefaultAccount()
+	return account.Nonce, true, nil
 }
 
 // GetAccountNonceAndBalance -

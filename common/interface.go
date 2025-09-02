@@ -2,6 +2,7 @@ package common
 
 import (
 	"context"
+	"math/big"
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
@@ -440,5 +441,17 @@ type DfsIterator interface {
 // it will continue to iterate from the checkpoint.
 type TrieLeavesRetriever interface {
 	GetLeaves(numLeaves int, iteratorState [][]byte, leavesParser TrieLeafParser, ctx context.Context) (map[string]string, [][]byte, error)
+	IsInterfaceNil() bool
+}
+
+// AccountNonceAndBalanceProvider provides the nonce and balance of accounts
+type AccountNonceAndBalanceProvider interface {
+	GetAccountNonceAndBalance(accountKey []byte) (uint64, *big.Int, bool, error)
+	IsInterfaceNil() bool
+}
+
+// AccountNonceProvider provides the nonce of accounts
+type AccountNonceProvider interface {
+	GetAccountNonce(accountKey []byte) (uint64, bool, error)
 	IsInterfaceNil() bool
 }

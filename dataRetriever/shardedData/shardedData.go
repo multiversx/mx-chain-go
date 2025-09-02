@@ -9,6 +9,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/counting"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/storage/cache"
@@ -313,7 +314,7 @@ func (sd *shardedData) Diagnose(deep bool) {
 }
 
 // CleanupSelfShardTxCache does nothing (only to satisfy the interface dataRetriever.ShardedDataCacherNotifier)
-func (sd *shardedData) CleanupSelfShardTxCache(_ interface{}, _ uint64, _ int, _ time.Duration) {
+func (sd *shardedData) CleanupSelfShardTxCache(_ common.AccountNonceProvider, _ uint64, _ int, _ time.Duration) {
 	log.Warn("shardedData.CleanupSelfShardTxCache() should not have been called")
 }
 
