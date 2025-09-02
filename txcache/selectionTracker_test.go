@@ -1018,3 +1018,23 @@ func TestSelectionTracker_validateTrackedBlocks(t *testing.T) {
 		require.Nil(t, err)
 	})
 }
+
+func TestSelectionTracker_addNewBlockNoLock(t *testing.T) {
+	t.Parallel()
+
+	txCache := newCacheToTest(maxNumBytesPerSenderUpperBoundTest, 3)
+	tracker, err := NewSelectionTracker(txCache, maxTrackedBlocks)
+	require.Nil(t, err)
+
+	tb1, err := newTrackedBlock(0, []byte("blockHash1"), []byte("rootHash0"), []byte("blockHash0"), nil)
+	require.Nil(t, err)
+
+	tb2, err := newTrackedBlock(0, []byte("blockHash2"), []byte("rootHash0"), []byte("blockHash0"), nil)
+	require.Nil(t, err)
+
+	tracker.addNewTrackedBlockNoLock([]byte("blockHash1"), tb1)
+	require.Equal(t, len(tracker.blocks), 1)
+
+	tracker.addNewTrackedBlockNoLock([]byte("blockHash1"), tb2)
+	require.Equal(t, len(tracker.blocks), 1)
+}

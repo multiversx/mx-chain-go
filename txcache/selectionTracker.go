@@ -37,7 +37,7 @@ func NewSelectionTracker(txCache txCacheForSelectionTracker, maxTrackedBlocks ui
 }
 
 // OnProposedBlock notifies when a block is proposed and updates the state of the selectionTracker
-// TODO overwrite blocks with same nonce
+// TODO brainstorm if it is possible to refactor this method, maybe split it in different methods
 func (st *selectionTracker) OnProposedBlock(
 	blockHash []byte,
 	blockBody *block.Body,
@@ -101,7 +101,7 @@ func (st *selectionTracker) OnProposedBlock(
 		return err
 	}
 
-	// add the new block in the chain
+	// add the new block in the returned chain
 	blocksToBeValidated = append(blocksToBeValidated, tBlock)
 
 	// make sure that the proposed block is valid (continuous with the other proposed blocks and no balance issues)
@@ -111,8 +111,7 @@ func (st *selectionTracker) OnProposedBlock(
 		return err
 	}
 
-	st.blocks[string(blockHash)] = tBlock
-
+	st.addNewTrackedBlockNoLock(blockHash, tBlock)
 	return nil
 }
 
@@ -209,6 +208,29 @@ func (st *selectionTracker) validateTrackedBlocks(chainOfTrackedBlocks []*tracke
 	}
 
 	return nil
+}
+
+// addNewTrackedBlockNoLock adds a new tracked block into the map of tracked blocks
+// replaces an existing block which has the same nonce with the one received
+func (st *selectionTracker) addNewTrackedBlockNoLock(blockToBeAddedHash []byte, blockToBeAdded *trackedBlock) {
+	// search if in the tracked block we already have one with same nonce
+	for bHash, b := range st.blocks {
+		if b.sameNonce(blockToBeAdded) {
+			// delete that block and break because there should be maximum one tracked block with that nonce
+			delete(st.blocks, bHash)
+
+			log.Debug("selectionTracker.addNewTrackedBlockNoLock block with same nonce was deleted, to be replaced",
+				"nonce", blockToBeAdded.nonce,
+				"hash of replaced block", b.hash,
+				"hash of new block", blockToBeAddedHash,
+			)
+
+			break
+		}
+	}
+
+	// add the new block
+	st.blocks[string(blockToBeAddedHash)] = blockToBeAdded
 }
 
 func (st *selectionTracker) removeFromTrackedBlocksNoLock(searchedBlock *trackedBlock) {
@@ -335,6 +357,7 @@ func (st *selectionTracker) getChainOfTrackedBlocks(
 		}
 
 		// extra check for a nonce gap
+		// TODO maybe add an extra check for nonce = 0
 		hasDiscontinuousBlockNonce := previousBlock.nonce != nextNonce-1
 		if hasDiscontinuousBlockNonce {
 			return nil, errDiscontinuousSequenceOfBlocks
