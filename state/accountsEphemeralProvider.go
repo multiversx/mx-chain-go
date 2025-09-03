@@ -34,6 +34,21 @@ func (provider *AccountsEphemeralProvider) GetRootHash() ([]byte, error) {
 	return provider.accounts.RootHash()
 }
 
+// GetAccountNonce returns the nonce of the account, and whether it's currently existing on-chain.
+func (provider *AccountsEphemeralProvider) GetAccountNonce(address []byte) (uint64, bool, error) {
+	account, err := provider.GetUserAccount(address)
+	if err != nil {
+		// Unexpected failure.
+		return 0, false, err
+	}
+	if check.IfNil(account) {
+		// New (unknown) account.
+		return 0, false, nil
+	}
+
+	return account.GetNonce(), true, nil
+}
+
 // GetAccountNonceAndBalance returns the nonce of the account, the balance of the account, and whether it's currently existing on-chain.
 func (provider *AccountsEphemeralProvider) GetAccountNonceAndBalance(address []byte) (uint64, *big.Int, bool, error) {
 	account, err := provider.GetUserAccount(address)

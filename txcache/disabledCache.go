@@ -129,7 +129,7 @@ func (cache *DisabledCache) Close() error {
 }
 
 // OnProposedBlock does nothing
-func (cache *DisabledCache) OnProposedBlock(_ []byte, _ *block.Body, _ data.HeaderHandler, _ AccountNonceAndBalanceProvider, _ common.BlockchainInfo) error {
+func (cache *DisabledCache) OnProposedBlock(_ []byte, _ *block.Body, _ data.HeaderHandler, _ common.AccountNonceAndBalanceProvider, _ common.BlockchainInfo) error {
 	return nil
 }
 
@@ -139,7 +139,7 @@ func (cache *DisabledCache) OnExecutedBlock(data.HeaderHandler) error {
 }
 
 // Cleanup does nothing
-func (cache *DisabledCache) Cleanup(_ SelectionSession, _ uint64, _ int, _ time.Duration) uint64 {
+func (cache *DisabledCache) Cleanup(_ common.AccountNonceProvider, _ uint64, _ int, _ time.Duration) uint64 {
 	return 0
 }
 

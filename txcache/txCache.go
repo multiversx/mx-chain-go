@@ -161,7 +161,7 @@ func (cache *TxCache) OnProposedBlock(
 	blockHash []byte,
 	blockBody *block.Body,
 	blockHeader data.HeaderHandler,
-	accountsProvider AccountNonceAndBalanceProvider,
+	accountsProvider common.AccountNonceAndBalanceProvider,
 	blockchainInfo common.BlockchainInfo) error {
 	return cache.tracker.OnProposedBlock(blockHash, blockBody, blockHeader, accountsProvider, blockchainInfo)
 }
@@ -303,7 +303,7 @@ func (cache *TxCache) Keys() [][]byte {
 }
 
 // MaxSize returns the maximum number of transactions that can be stored in the cache.
-// See: https://github.com/multiversx/mx-chain-go/blob/v1.8.4/dataRetriever/txpool/shardedTxPool.go#L55
+// See: https://github.com/multiversx/mx-chain-go/blob/v1.10.6/dataRetriever/txpool/shardedTxPool.go#L63
 func (cache *TxCache) MaxSize() int {
 	return int(cache.config.CountThreshold)
 }

@@ -7,11 +7,12 @@ import (
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/hashing/sha256"
+	"github.com/multiversx/mx-chain-go/common"
 )
 
 // Cleanup simulates a selection and removes not-executable transactions. Initial implementation: lower nonces
 // TODO Maybe we can think of an alternative fast and simple sort & shuffle at the same time. Maybe we can do a single sorting (in a separate PR).
-func (cache *TxCache) Cleanup(session SelectionSession, randomness uint64, maxNum int, cleanupLoopMaximumDurationMs time.Duration) uint64 {
+func (cache *TxCache) Cleanup(accountsProvider common.AccountNonceProvider, randomness uint64, maxNum int, cleanupLoopMaximumDurationMs time.Duration) uint64 {
 	logRemove.Debug(
 		"TxCache.Cleanup: begin",
 		"randomness", randomness,
@@ -21,7 +22,7 @@ func (cache *TxCache) Cleanup(session SelectionSession, randomness uint64, maxNu
 		"num txs", cache.CountTx(),
 		"num senders", cache.CountSenders(),
 	)
-	return cache.RemoveSweepableTxs(session, randomness, maxNum, cleanupLoopMaximumDurationMs)
+	return cache.RemoveSweepableTxs(accountsProvider, randomness, maxNum, cleanupLoopMaximumDurationMs)
 }
 
 func (cache *TxCache) getDeterministicallyShuffledSenders(randomness uint64) []*txListForSender {
@@ -60,20 +61,19 @@ func shuffleSendersAddresses(senders []string, randomness uint64) {
 	})
 }
 
-func (cache *TxCache) RemoveSweepableTxs(session SelectionSession, randomness uint64, maxNum int, cleanupLoopMaximumDurationMs time.Duration) uint64 {
+func (cache *TxCache) RemoveSweepableTxs(accountsProvider common.AccountNonceProvider, randomness uint64, maxNum int, cleanupLoopMaximumDurationMs time.Duration) uint64 {
 	cache.mutTxOperation.Lock()
 	defer cache.mutTxOperation.Unlock()
 
 	cleanupLoopStartTime := time.Now()
 	evicted := make([][]byte, 0, cache.txByHash.counter.Get())
 
-	virtualSession := newVirtualSelectionSession(session)
 	senders := cache.getDeterministicallyShuffledSenders(randomness)
 
 	for _, sender := range senders {
 		senderAddress := []byte(sender.sender)
 
-		lastCommittedNonce, err := virtualSession.getNonce(senderAddress)
+		lastCommittedNonce, _, err := accountsProvider.GetAccountNonce(senderAddress)
 		if err != nil {
 			log.Debug("TxCache.RemoveSweepableTxs",
 				"address", senderAddress,

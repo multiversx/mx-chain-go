@@ -293,11 +293,11 @@ func TestCleanupSelfShardTxCache_NilMempool(t *testing.T) {
 		txPool := poolAsInterface.(*shardedTxPool)
 		delete(txPool.backingMap, "0")
 
-		session := txcachemocks.NewSelectionSessionMock()
+		accountsProvider := txcachemocks.NewAccountNonceAndBalanceProviderMock()
 		cleanupLoopMaximumDuration := time.Millisecond * 100
 
 		require.NotPanics(t, func() {
-			txPool.CleanupSelfShardTxCache(session, 7, math.MaxInt, cleanupLoopMaximumDuration)
+			txPool.CleanupSelfShardTxCache(accountsProvider, 7, math.MaxInt, cleanupLoopMaximumDuration)
 		})
 	})
 }
@@ -308,10 +308,10 @@ func Test_Parallel_CleanupSelfShardTxCache(t *testing.T) {
 		t.Parallel()
 		poolAsInterface, _ := newTxPoolToTest()
 		pool := poolAsInterface.(*shardedTxPool)
-		session := txcachemocks.NewSelectionSessionMock()
-		session.SetNonce([]byte("alice"), 2)
-		session.SetNonce([]byte("bob"), 42)
-		session.SetNonce([]byte("carol"), 7)
+		accountsProvider := txcachemocks.NewAccountNonceAndBalanceProviderMock()
+		accountsProvider.SetNonce([]byte("alice"), 2)
+		accountsProvider.SetNonce([]byte("bob"), 42)
+		accountsProvider.SetNonce([]byte("carol"), 7)
 
 		// One lower nonce
 		pool.AddData([]byte("hash-alice-1"), createTx("alice", 1), 0, "0")
@@ -330,7 +330,7 @@ func Test_Parallel_CleanupSelfShardTxCache(t *testing.T) {
 		require.Equal(t, int64(8), pool.GetCounts().GetTotal())
 
 		cleanupLoopMaximumDuration := time.Millisecond * 100
-		pool.CleanupSelfShardTxCache(session, 7, math.MaxInt, cleanupLoopMaximumDuration)
+		pool.CleanupSelfShardTxCache(accountsProvider, 7, math.MaxInt, cleanupLoopMaximumDuration)
 
 		require.Equal(t, int64(5), pool.GetCounts().GetTotal())
 	})
@@ -341,10 +341,10 @@ func Test_CleanupSelfShardTxCache(t *testing.T) {
 		poolAsInterface, _ := newTxPoolToTest()
 		pool := poolAsInterface.(*shardedTxPool)
 		cache := pool.getTxCache("0").(*txcache.TxCache)
-		session := txcachemocks.NewSelectionSessionMock()
-		session.SetNonce([]byte("alice"), 2)
-		session.SetNonce([]byte("bob"), 42)
-		session.SetNonce([]byte("carol"), 7)
+		accountsProvider := txcachemocks.NewAccountNonceAndBalanceProviderMock()
+		accountsProvider.SetNonce([]byte("alice"), 2)
+		accountsProvider.SetNonce([]byte("bob"), 42)
+		accountsProvider.SetNonce([]byte("carol"), 7)
 
 		// One lower nonce
 		pool.AddData([]byte("hash-alice-1"), createTx("alice", 1), 0, "0")
@@ -364,7 +364,7 @@ func Test_CleanupSelfShardTxCache(t *testing.T) {
 		expectedNumRemained := 8 - expectedNumEvicted
 		selectionLoopMaximumDuration := time.Millisecond * 100
 
-		pool.CleanupSelfShardTxCache(session, 7, math.MaxInt, selectionLoopMaximumDuration)
+		pool.CleanupSelfShardTxCache(accountsProvider, 7, math.MaxInt, selectionLoopMaximumDuration)
 		require.Equal(t, expectedNumRemained, cache.Len())
 	})
 }

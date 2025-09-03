@@ -398,7 +398,7 @@ func (txPool *shardedTxPool) getSelfShardTxCache() txCache {
 
 // CleanupSelfShardTxCache performs an automatic cleanup of the transaction cache for the node's own shard.
 // It removes non-executable transactions based on provided time and number constraints.
-func (txPool *shardedTxPool) CleanupSelfShardTxCache(session interface{}, randomness uint64, maxNum int, maxTime time.Duration) {
+func (txPool *shardedTxPool) CleanupSelfShardTxCache(accountsProvider common.AccountNonceProvider, randomness uint64, maxNum int, maxTime time.Duration) {
 	cache := txPool.getSelfShardTxCache()
 
 	log.Debug("shardedTxPool.CleanupSelfShardTxCache(): starting cleanup",
@@ -407,15 +407,8 @@ func (txPool *shardedTxPool) CleanupSelfShardTxCache(session interface{}, random
 		"numBytes", cache.NumBytes(),
 	)
 
-	// TODO: actually, receive a mere accounts provider here, instead of a selection session.
-	selectionSession, ok := session.(txcache.SelectionSession)
-	if !ok {
-		log.Warn("shardedTxPool.CleanupSelfShardTxCache(): invalid session type")
-		return
-	}
-
 	// Perform the cleanup operation on the mempool
-	cache.Cleanup(selectionSession, randomness, maxNum, maxTime)
+	cache.Cleanup(accountsProvider, randomness, maxNum, maxTime)
 
 	log.Debug("shardedTxPool.CleanupSelfShardTxCache(): self shard cache cleanup completed",
 		"selfShardID", txPool.selfShardID,
@@ -425,7 +418,7 @@ func (txPool *shardedTxPool) CleanupSelfShardTxCache(session interface{}, random
 }
 
 // OnProposedBlock notifies the underlying TxCache
-func (txPool *shardedTxPool) OnProposedBlock(blockHash []byte, blockBody *block.Body, blockHeader data.HeaderHandler, accountsProvider txcache.AccountNonceAndBalanceProvider, blockchainInfo common.BlockchainInfo) error {
+func (txPool *shardedTxPool) OnProposedBlock(blockHash []byte, blockBody *block.Body, blockHeader data.HeaderHandler, accountsProvider common.AccountNonceAndBalanceProvider, blockchainInfo common.BlockchainInfo) error {
 	cache := txPool.getSelfShardTxCache()
 	return cache.OnProposedBlock(blockHash, blockBody, blockHeader, accountsProvider, blockchainInfo)
 }

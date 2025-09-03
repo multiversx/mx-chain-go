@@ -246,13 +246,9 @@ func (txs *transactions) RemoveBlockDataFromPools(body *block.Body, miniBlockPoo
 }
 
 // RemoveTxsFromPools removes transactions from associated pools
-// TODO CleanupSelfShardTxCache - Check whether is all right to pass the selection session from here. Maybe find an alternative?
 // TODO CleanupSelfShardTxCache - Maybe find a solution to use block nonce instead of randomness
 func (txs *transactions) RemoveTxsFromPools(body *block.Body) error {
-	session, err := NewSelectionSession(ArgsSelectionSession{
-		AccountsAdapter:       txs.accounts,
-		TransactionsProcessor: txs.txProcessor,
-	})
+	accountsProvider, err := state.NewAccountsEphemeralProvider(txs.accounts)
 	if err != nil {
 		return err
 	}
@@ -263,7 +259,7 @@ func (txs *transactions) RemoveTxsFromPools(body *block.Body) error {
 	}
 
 	randomness := helpers.ComputeRandomnessForCleanup(body)
-	txs.txPool.CleanupSelfShardTxCache(session, randomness, process.TxCacheCleanupMaxNumTxs, process.TxCacheCleanupLoopMaximumDuration)
+	txs.txPool.CleanupSelfShardTxCache(accountsProvider, randomness, process.TxCacheCleanupMaxNumTxs, process.TxCacheCleanupLoopMaximumDuration)
 
 	return err
 }

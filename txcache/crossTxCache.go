@@ -123,7 +123,7 @@ func (cache *CrossTxCache) GetTransactionsPoolForSender(_ string) []*WrappedTran
 }
 
 // OnProposedBlock does nothing (only to satisfy the interface)
-func (cache *CrossTxCache) OnProposedBlock(_ []byte, _ *block.Body, _ data.HeaderHandler, _ AccountNonceAndBalanceProvider, _ common.BlockchainInfo) error {
+func (cache *CrossTxCache) OnProposedBlock(_ []byte, _ *block.Body, _ data.HeaderHandler, _ common.AccountNonceAndBalanceProvider, _ common.BlockchainInfo) error {
 	return nil
 }
 
@@ -133,7 +133,7 @@ func (cache *CrossTxCache) OnExecutedBlock(data.HeaderHandler) error {
 }
 
 // Cleanup does nothing (only to satisfy the interface)
-func (cache *CrossTxCache) Cleanup(_ SelectionSession, _ uint64, _ int, _ time.Duration) uint64 {
+func (cache *CrossTxCache) Cleanup(_ common.AccountNonceProvider, _ uint64, _ int, _ time.Duration) uint64 {
 	return 0
 }
 

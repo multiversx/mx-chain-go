@@ -41,7 +41,7 @@ func (st *selectionTracker) OnProposedBlock(
 	blockHash []byte,
 	blockBody *block.Body,
 	blockHeader data.HeaderHandler,
-	accountsProvider AccountNonceAndBalanceProvider,
+	accountsProvider common.AccountNonceAndBalanceProvider,
 	blockchainInfo common.BlockchainInfo,
 ) error {
 	err := st.verifyArgsOfOnProposedBlock(blockHash, blockBody, blockHeader, accountsProvider)
@@ -85,7 +85,7 @@ func (st *selectionTracker) verifyArgsOfOnProposedBlock(
 	blockHash []byte,
 	blockBody *block.Body,
 	blockHeader data.HeaderHandler,
-	accountsProvider AccountNonceAndBalanceProvider,
+	accountsProvider common.AccountNonceAndBalanceProvider,
 ) error {
 	if len(blockHash) == 0 {
 		return errNilBlockHash
@@ -159,7 +159,7 @@ func (st *selectionTracker) checkReceivedBlockNoLock(blockBody *block.Body, bloc
 func (st *selectionTracker) validateTrackedBlocks(
 	blockBody *block.Body,
 	blockToTrack *trackedBlock,
-	accountsProvider AccountNonceAndBalanceProvider,
+	accountsProvider common.AccountNonceAndBalanceProvider,
 	blockchainInfo common.BlockchainInfo,
 ) error {
 	blocksToBeValidated, err := st.getChainOfTrackedBlocks(
@@ -200,7 +200,7 @@ func (st *selectionTracker) validateTrackedBlocks(
 	return nil
 }
 
-func (st *selectionTracker) validateBreadcrumbsOfTrackedBlocks(chainOfTrackedBlocks []*trackedBlock, accountsProvider AccountNonceAndBalanceProvider) error {
+func (st *selectionTracker) validateBreadcrumbsOfTrackedBlocks(chainOfTrackedBlocks []*trackedBlock, accountsProvider common.AccountNonceAndBalanceProvider) error {
 	validator := newBreadcrumbValidator()
 
 	for _, tb := range chainOfTrackedBlocks {
