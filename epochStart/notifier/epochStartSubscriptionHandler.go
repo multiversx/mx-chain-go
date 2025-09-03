@@ -1,6 +1,7 @@
 package notifier
 
 import (
+	"reflect"
 	"runtime/debug"
 	"sort"
 	"sync"
@@ -87,6 +88,7 @@ func (essh *epochStartSubscriptionHandler) NotifyAll(hdr data.HeaderHandler) {
 		log.Debug("epochStartSubscriptionHandler.NotifyAll trigger",
 			"i", i,
 			"order", essh.epochStartHandlers[i].NotifyOrder(),
+			"type", reflect.TypeOf(essh.epochStartHandlers[i]),
 			"time elapsed", time.Since(triggerStart),
 		)
 	}
