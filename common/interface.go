@@ -151,7 +151,7 @@ type SnapshotDbHandler interface {
 type TriesHolder interface {
 	Put([]byte, Trie)
 	Get([]byte) Trie
-	GetAllDirty() []Trie
+	GetAllDirtyAndResetFlag() []Trie
 	Reset()
 	IsInterfaceNil() bool
 }

@@ -8,8 +8,8 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/testscommon"
+	storage2 "github.com/multiversx/mx-chain-go/testscommon/storage"
 	"github.com/multiversx/mx-chain-go/testscommon/storageManager"
-	"github.com/multiversx/mx-chain-go/testscommon/trie"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -73,7 +73,7 @@ func TestTrieStorageManagerInEpoch_GetFromEpoch(t *testing.T) {
 		t.Parallel()
 
 		_, trieStorage := newEmptyTrie()
-		trieStorage.mainStorer = &trie.SnapshotPruningStorerStub{
+		trieStorage.mainStorer = &storage2.SnapshotPruningStorerStub{
 			GetFromEpochCalled: func(_ []byte, _ uint32) ([]byte, error) {
 				require.Fail(t, "should have not been called")
 				return nil, nil
@@ -91,7 +91,7 @@ func TestTrieStorageManagerInEpoch_GetFromEpoch(t *testing.T) {
 
 		_, trieStorage := newEmptyTrie()
 		getFromEpochCalled := false
-		trieStorage.mainStorer = &trie.SnapshotPruningStorerStub{
+		trieStorage.mainStorer = &storage2.SnapshotPruningStorerStub{
 			GetFromEpochCalled: func(_ []byte, _ uint32) ([]byte, error) {
 				getFromEpochCalled = true
 				return nil, nil
@@ -108,7 +108,7 @@ func TestTrieStorageManagerInEpoch_GetFromEpoch(t *testing.T) {
 
 		_, trieStorage := newEmptyTrie()
 		getFromEpochCalled := false
-		trieStorage.mainStorer = &trie.SnapshotPruningStorerStub{
+		trieStorage.mainStorer = &storage2.SnapshotPruningStorerStub{
 			GetFromEpochCalled: func(_ []byte, _ uint32) ([]byte, error) {
 				getFromEpochCalled = true
 				return nil, storage.ErrDBIsClosed
@@ -126,7 +126,7 @@ func TestTrieStorageManagerInEpoch_GetFromEpoch(t *testing.T) {
 
 		_, trieStorage := newEmptyTrie()
 		getFromEpochCalled := false
-		trieStorage.mainStorer = &trie.SnapshotPruningStorerStub{
+		trieStorage.mainStorer = &storage2.SnapshotPruningStorerStub{
 			GetFromEpochCalled: func(_ []byte, _ uint32) ([]byte, error) {
 				getFromEpochCalled = true
 				return nil, errors.New("not closing error")
@@ -147,7 +147,7 @@ func TestTrieStorageManagerInEpoch_GetFromEpoch(t *testing.T) {
 		getFromPreviousEpochCalled := false
 		currentEpoch := uint32(5)
 		expectedKey := []byte("key")
-		trieStorage.mainStorer = &trie.SnapshotPruningStorerStub{
+		trieStorage.mainStorer = &storage2.SnapshotPruningStorerStub{
 			GetFromEpochCalled: func(key []byte, epoch uint32) ([]byte, error) {
 				assert.Equal(t, expectedKey, key)
 				if epoch == currentEpoch {
