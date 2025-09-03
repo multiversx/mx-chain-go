@@ -2,6 +2,7 @@ package missingData
 
 import (
 	"errors"
+	"fmt"
 	"sync"
 	"testing"
 	"time"
@@ -70,6 +71,15 @@ func TestNewMissingDataResolver(t *testing.T) {
 		mdr, err := NewMissingDataResolver(commonArgsCopy)
 		require.Nil(t, mdr)
 		require.Equal(t, process.ErrNilRequestHandler, err)
+	})
+	t.Run("nil blockDataRequester should err", func(t *testing.T) {
+		t.Parallel()
+
+		commonArgsCopy := commonArgs
+		commonArgsCopy.BlockDataRequester = nil
+		mdr, err := NewMissingDataResolver(commonArgsCopy)
+		require.Nil(t, mdr)
+		require.Equal(t, process.ErrNilBlockDataRequester, err)
 	})
 }
 
@@ -339,8 +349,31 @@ func TestMissingDataResolver_WaitForMissingData(t *testing.T) {
 		mdr, _ := NewMissingDataResolver(commonArgs)
 		_ = mdr.addMissingHeader(headerHash)
 		err := mdr.WaitForMissingData(50 * time.Millisecond)
+		require.Equal(t, process.ErrTimeIsOut, err)
+	})
+	t.Run("timeout waiting for block data requester", func(t *testing.T) {
+		t.Parallel()
+		headersPool := &pool.HeadersPoolStub{}
+		requestHandler := &testscommon.RequestHandlerStub{}
+		blockDataRequester := &preprocMocks.BlockDataRequesterStub{
+			IsDataPreparedForProcessingCalled: func(haveTime func() time.Duration) error {
+				for haveTime() > 0 {
+					time.Sleep(10 * time.Millisecond)
+				}
+
+				return fmt.Errorf("missing data")
+			},
+		}
+		commonArgs := MissingDataResolverArgs{
+			HeadersPool:        headersPool,
+			ProofsPool:         proofsPool,
+			RequestHandler:     requestHandler,
+			BlockDataRequester: blockDataRequester,
+		}
+		mdr, _ := NewMissingDataResolver(commonArgs)
+		err := mdr.WaitForMissingData(50 * time.Millisecond)
 		require.NotNil(t, err)
-		require.Contains(t, err.Error(), "timeout waiting for missing data")
+		require.Equal(t, process.ErrTimeIsOut, err)
 	})
 }
 
@@ -432,7 +465,7 @@ func TestMissingDataResolver_RequestMissingMetaHeadersBlocking(t *testing.T) {
 		t.Parallel()
 
 		err := mdr.RequestMissingMetaHeadersBlocking(shardHeader, 100*time.Millisecond)
-		require.Equal(t, errTimeoutWaitingForMissingData, err)
+		require.Equal(t, process.ErrTimeIsOut, err)
 		require.False(t, mdr.allHeadersReceived())
 		require.False(t, mdr.allProofsReceived())
 	})
@@ -490,6 +523,115 @@ func TestMissingDataResolver_RequestMissingMetaHeadersBlocking(t *testing.T) {
 		}()
 		wg.Wait()
 	})
+}
+
+func TestMissingDataResolver_RequestBlockTransactions(t *testing.T) {
+	t.Parallel()
+
+	var called bool
+	proofsPool := &dataRetriever.ProofsPoolMock{}
+	headersPool := &pool.HeadersPoolStub{}
+	requestHandler := &testscommon.RequestHandlerStub{}
+	blockDataRequester := &preprocMocks.BlockDataRequesterStub{
+		RequestBlockTransactionsCalled: func(_ *block.Body) {
+			called = true
+		},
+	}
+	commonArgs := MissingDataResolverArgs{
+		HeadersPool:        headersPool,
+		ProofsPool:         proofsPool,
+		RequestHandler:     requestHandler,
+		BlockDataRequester: blockDataRequester,
+	}
+
+	mdr, _ := NewMissingDataResolver(commonArgs)
+	body := &block.Body{}
+	mdr.RequestBlockTransactions(body)
+	require.True(t, called)
+}
+
+func TestMissingDataResolver_RequestMiniBlocksAndTransactions(t *testing.T) {
+	t.Parallel()
+	var called bool
+	proofsPool := &dataRetriever.ProofsPoolMock{}
+	headersPool := &pool.HeadersPoolStub{}
+	requestHandler := &testscommon.RequestHandlerStub{}
+	blockDataRequester := &preprocMocks.BlockDataRequesterStub{
+		RequestMiniBlocksAndTransactionsCalled: func(_ data.HeaderHandler) {
+			called = true
+		},
+	}
+
+	commonArgs := MissingDataResolverArgs{
+		HeadersPool:        headersPool,
+		ProofsPool:         proofsPool,
+		RequestHandler:     requestHandler,
+		BlockDataRequester: blockDataRequester,
+	}
+
+	mdr, _ := NewMissingDataResolver(commonArgs)
+	header := &block.HeaderV2{}
+	mdr.RequestMiniBlocksAndTransactions(header)
+	require.True(t, called)
+}
+
+func TestMissingDataResolver_GetFinalCrossMiniBlockInfoAndRequestMissing(t *testing.T) {
+	t.Parallel()
+
+	proofsPool := &dataRetriever.ProofsPoolMock{}
+	headersPool := &pool.HeadersPoolStub{}
+	requestHandler := &testscommon.RequestHandlerStub{}
+
+	expectedValue := []*data.MiniBlockInfo{
+		{Hash: []byte("mbHash"), SenderShardID: 1},
+		{Hash: []byte("mbHash2"), SenderShardID: 2},
+	}
+
+	blockDataRequester := &preprocMocks.BlockDataRequesterStub{
+		GetFinalCrossMiniBlockInfoAndRequestMissingCalled: func(_ data.HeaderHandler) []*data.MiniBlockInfo {
+			return expectedValue
+		},
+	}
+	commonArgs := MissingDataResolverArgs{
+		HeadersPool:        headersPool,
+		ProofsPool:         proofsPool,
+		RequestHandler:     requestHandler,
+		BlockDataRequester: blockDataRequester,
+	}
+
+	mdr, _ := NewMissingDataResolver(commonArgs)
+	header := &block.HeaderV2{}
+	finalCrossMiniBlocks := mdr.GetFinalCrossMiniBlockInfoAndRequestMissing(header)
+	require.Equal(t, expectedValue, finalCrossMiniBlocks)
+}
+
+func TestMissingDataResolver_Reset(t *testing.T) {
+	t.Parallel()
+
+	called := false
+	proofsPool := &dataRetriever.ProofsPoolMock{}
+	headersPool := &pool.HeadersPoolStub{}
+	requestHandler := &testscommon.RequestHandlerStub{}
+	blockDataRequester := &preprocMocks.BlockDataRequesterStub{
+		ResetCalled: func() {
+			called = true
+		},
+	}
+	commonArgs := MissingDataResolverArgs{
+		HeadersPool:        headersPool,
+		ProofsPool:         proofsPool,
+		RequestHandler:     requestHandler,
+		BlockDataRequester: blockDataRequester,
+	}
+
+	mdr, _ := NewMissingDataResolver(commonArgs)
+	mdr.addMissingHeader([]byte("headerHash"))
+	mdr.addMissingProof(0, []byte("proofHash"))
+	require.False(t, mdr.allDataReceived())
+
+	mdr.Reset()
+	require.True(t, mdr.allDataReceived())
+	require.True(t, called)
 }
 
 func TestMissingDataResolver_IsInterfaceNil(t *testing.T) {

@@ -8,6 +8,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/block"
 
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/process"
@@ -206,26 +207,40 @@ func (mdr *missingDataResolver) requestProofIfNeeded(shardID uint32, headerHash 
 // TODO: maybe use channels instead of polling
 func (mdr *missingDataResolver) WaitForMissingData(timeout time.Duration) error {
 	deadline := time.Now().Add(timeout)
-	haveTime := func() time.Duration {
-		return time.Until(deadline)
-	}
 
-	// check if requested miniBlocks and transactions are ready
-	err := mdr.blockDataRequester.IsDataPreparedForProcessing(haveTime)
-	if err != nil {
-		return err
+	timeoutFunc := func(timeout time.Duration) func() time.Duration {
+		deadline := time.Now().Add(timeout)
+		haveTime := func() time.Duration {
+			return time.Until(deadline)
+		}
+		return haveTime
 	}
 
 	for {
-		if mdr.allDataReceived() {
+		err := mdr.blockDataRequester.IsDataPreparedForProcessing(timeoutFunc(checkMissingDataStep))
+		if mdr.allDataReceived() && err == nil {
 			return nil
 		}
 
 		if time.Now().After(deadline) {
-			return errTimeoutWaitingForMissingData
+			return process.ErrTimeIsOut
 		}
-		time.Sleep(checkMissingDataStep)
 	}
+}
+
+// RequestBlockTransactions requests the transactions for the given block body.
+func (mdr *missingDataResolver) RequestBlockTransactions(body *block.Body) {
+	mdr.blockDataRequester.RequestBlockTransactions(body)
+}
+
+// RequestMiniBlocksAndTransactions requests mini blocks and transactions if missing
+func (mdr *missingDataResolver) RequestMiniBlocksAndTransactions(header data.HeaderHandler) {
+	mdr.blockDataRequester.RequestMiniBlocksAndTransactions(header)
+}
+
+// GetFinalCrossMiniBlockInfoAndRequestMissing returns the final cross mini block infos and requests missing mini blocks and transactions
+func (mdr *missingDataResolver) GetFinalCrossMiniBlockInfoAndRequestMissing(header data.HeaderHandler) []*data.MiniBlockInfo {
+	return mdr.blockDataRequester.GetFinalCrossMiniBlockInfoAndRequestMissing(header)
 }
 
 // Reset clears the internal state of the missingDataResolver.
