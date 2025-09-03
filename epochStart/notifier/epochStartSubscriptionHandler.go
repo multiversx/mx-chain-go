@@ -7,6 +7,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
 
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/epochStart"
 )
 
@@ -58,6 +59,19 @@ func (essh *epochStartSubscriptionHandler) RegisterHandler(handler epochStart.Ac
 	essh.epochStartHandlers = append(essh.epochStartHandlers, handler)
 }
 
+func canBeTriggeredAsync(notifyOrder uint32) bool {
+	switch notifyOrder {
+	case common.EpochTxBroadcastDebug:
+		return true
+	case common.OldDatabaseCleanOrder:
+		return true
+	case common.NetStatisticsOrder:
+		return true
+	}
+
+	return false
+}
+
 // UnregisterHandler will unsubscribe a function from the slice
 func (essh *epochStartSubscriptionHandler) UnregisterHandler(handlerToUnregister epochStart.ActionHandler) {
 	if check.IfNilReflect(handlerToUnregister) {
@@ -76,7 +90,11 @@ func (essh *epochStartSubscriptionHandler) UnregisterHandler(handlerToUnregister
 func (essh *epochStartSubscriptionHandler) NotifyAll(hdr data.HeaderHandler) {
 	essh.mutEpochStartHandler.RLock()
 	for i := 0; i < len(essh.epochStartHandlers); i++ {
-		go essh.epochStartHandlers[i].EpochStartAction(hdr)
+		if canBeTriggeredAsync(essh.epochStartHandlers[i].NotifyOrder()) {
+			go essh.epochStartHandlers[i].EpochStartAction(hdr)
+		} else {
+			essh.epochStartHandlers[i].EpochStartAction(hdr)
+		}
 	}
 	essh.mutEpochStartHandler.RUnlock()
 }
