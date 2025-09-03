@@ -282,13 +282,13 @@ func createPersisterForEpoch(
 ) {
 	_, ok := persistersMapByEpoch[epoch]
 	if ok {
-		log.Debug("createNextEpochPersisterIfNeeded: persister already in map", "epoch", epoch)
+		log.Debug("createPersisterForEpoch: persister already in map", "epoch", epoch)
 		return
 	}
 
 	p, err := createPersisterDataForEpoch(persisterFactory, filePath, uint32(epoch))
 	if err != nil {
-		log.Warn("createNextEpochPersisterIfNeeded", "epoch", epoch, "error", err.Error())
+		log.Warn("createPersisterForEpoch", "epoch", epoch, "error", err.Error())
 		return
 	}
 
