@@ -96,7 +96,7 @@ func (tpn *TestProcessorNode) initBlockProcessorWithSync() {
 	blockDataRequesterArgs := coordinator.BlockDataRequestArgs{
 		RequestHandler:      tpn.RequestHandler,
 		MiniBlockPool:       tpn.DataPool.MiniBlocks(),
-		PreProcessors:       tpn.PreProcessorsContainer,
+		PreProcessors:       tpn.PreProcessorsRequestContainer,
 		ShardCoordinator:    tpn.ShardCoordinator,
 		EnableEpochsHandler: tpn.EnableEpochsHandler,
 	}

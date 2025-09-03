@@ -2628,7 +2628,6 @@ func TestShardProcessor_MarshalizedDataToBroadcastShouldWork(t *testing.T) {
 		&commonMock.TxExecutionOrderHandlerStub{},
 	)
 	container, _ := factory.Create()
-
 	argsTransactionCoordinator := createMockTransactionCoordinatorArguments(initAccountsMock(), tdp, container)
 	tc, err := coordinator.NewTransactionCoordinator(argsTransactionCoordinator)
 	assert.Nil(t, err)

@@ -364,6 +364,11 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 		return nil, err
 	}
 
+	proposalPreProcContainer, err := preProcFactory.Create()
+	if err != nil {
+		return nil, err
+	}
+
 	argsDetector := coordinator.ArgsPrintDoubleTransactionsDetector{
 		Marshaller:          pcf.coreData.InternalMarshalizer(),
 		Hasher:              pcf.coreData.Hasher(),
@@ -387,8 +392,15 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 		return nil, err
 	}
 
+	proposalBlockDataRequesterArgs := coordinator.BlockDataRequestArgs{
+		RequestHandler:      requestHandler,
+		MiniBlockPool:       pcf.data.Datapool().MiniBlocks(),
+		PreProcessors:       proposalPreProcContainer,
+		ShardCoordinator:    pcf.bootstrapComponents.ShardCoordinator(),
+		EnableEpochsHandler: pcf.coreData.EnableEpochsHandler(),
+	}
 	// second instance for proposal missing data fetching to avoid interferences
-	proposalBlockDataRequester, err := coordinator.NewBlockDataRequester(blockDataRequesterArgs)
+	proposalBlockDataRequester, err := coordinator.NewBlockDataRequester(proposalBlockDataRequesterArgs)
 	if err != nil {
 		return nil, err
 	}
@@ -709,6 +721,10 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 	if err != nil {
 		return nil, err
 	}
+	proposalPreProcContainer, err := preProcFactory.Create()
+	if err != nil {
+		return nil, err
+	}
 
 	argsDetector := coordinator.ArgsPrintDoubleTransactionsDetector{
 		Marshaller:          pcf.coreData.InternalMarshalizer(),
@@ -733,8 +749,15 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 		return nil, err
 	}
 
+	proposalBlockDataRequesterArgs := coordinator.BlockDataRequestArgs{
+		RequestHandler:      requestHandler,
+		MiniBlockPool:       pcf.data.Datapool().MiniBlocks(),
+		PreProcessors:       proposalPreProcContainer,
+		ShardCoordinator:    pcf.bootstrapComponents.ShardCoordinator(),
+		EnableEpochsHandler: pcf.coreData.EnableEpochsHandler(),
+	}
 	// second instance for proposal missing data fetching to avoid interferences
-	proposalBlockDataRequester, err := coordinator.NewBlockDataRequester(blockDataRequesterArgs)
+	proposalBlockDataRequester, err := coordinator.NewBlockDataRequester(proposalBlockDataRequesterArgs)
 	if err != nil {
 		return nil, err
 	}

@@ -604,7 +604,7 @@ func (tpn *TestFullNode) initNode(
 }
 
 func (tfn *TestFullNode) createForkDetector(
-	startTime int64,
+	_ int64,
 	roundHandler consensus.RoundHandler,
 ) process.ForkDetector {
 	var err error
@@ -635,7 +635,7 @@ func (tfn *TestFullNode) createForkDetector(
 	return forkDetector
 }
 
-func (tfn *TestFullNode) createEpochStartTrigger(startTime int64) TestEpochStartTrigger {
+func (tfn *TestFullNode) createEpochStartTrigger(_ int64) TestEpochStartTrigger {
 	var epochTrigger TestEpochStartTrigger
 	if tfn.ShardCoordinator.SelfId() == core.MetachainShardId {
 		argsNewMetaEpochStart := &metachain.ArgsNewMetaEpochStartTrigger{
@@ -804,7 +804,7 @@ func (tcn *TestFullNode) initInterceptors(
 func (tpn *TestFullNode) initBlockProcessor(
 	coreComponents *mock.CoreComponentsStub,
 	dataComponents *mock.DataComponentsStub,
-	args ArgsTestFullNode,
+	_ ArgsTestFullNode,
 	roundHandler consensus.RoundHandler,
 ) {
 	var err error
@@ -848,7 +848,7 @@ func (tpn *TestFullNode) initBlockProcessor(
 	blockDataRequesterArgs := coordinator.BlockDataRequestArgs{
 		RequestHandler:      tpn.RequestHandler,
 		MiniBlockPool:       tpn.DataPool.MiniBlocks(),
-		PreProcessors:       tpn.PreProcessorsContainer,
+		PreProcessors:       tpn.PreProcessorsRequestContainer,
 		ShardCoordinator:    tpn.ShardCoordinator,
 		EnableEpochsHandler: tpn.EnableEpochsHandler,
 	}
@@ -1068,13 +1068,12 @@ func (tpn *TestFullNode) initBlockProcessor(
 			log.Error("error creating shard blockprocessor", "error", err)
 		}
 	}
-
 }
 
 func (tpn *TestFullNode) initBlockProcessorWithSync(
 	coreComponents *mock.CoreComponentsStub,
 	dataComponents *mock.DataComponentsStub,
-	roundHandler consensus.RoundHandler,
+	_ consensus.RoundHandler,
 ) {
 	var err error
 
@@ -1117,7 +1116,7 @@ func (tpn *TestFullNode) initBlockProcessorWithSync(
 	blockDataRequesterArgs := coordinator.BlockDataRequestArgs{
 		RequestHandler:      tpn.RequestHandler,
 		MiniBlockPool:       tpn.DataPool.MiniBlocks(),
-		PreProcessors:       tpn.PreProcessorsContainer,
+		PreProcessors:       tpn.PreProcessorsRequestContainer,
 		ShardCoordinator:    tpn.ShardCoordinator,
 		EnableEpochsHandler: tpn.EnableEpochsHandler,
 	}

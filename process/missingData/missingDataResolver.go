@@ -206,6 +206,15 @@ func (mdr *missingDataResolver) requestProofIfNeeded(shardID uint32, headerHash 
 // TODO: maybe use channels instead of polling
 func (mdr *missingDataResolver) WaitForMissingData(timeout time.Duration) error {
 	deadline := time.Now().Add(timeout)
+	haveTime := func() time.Duration {
+		return time.Until(deadline)
+	}
+
+	// check if requested miniBlocks and transactions are ready
+	err := mdr.blockDataRequester.IsDataPreparedForProcessing(haveTime)
+	if err != nil {
+		return err
+	}
 
 	for {
 		if mdr.allDataReceived() {
@@ -217,6 +226,19 @@ func (mdr *missingDataResolver) WaitForMissingData(timeout time.Duration) error 
 		}
 		time.Sleep(checkMissingDataStep)
 	}
+}
+
+// Reset clears the internal state of the missingDataResolver.
+func (mdr *missingDataResolver) Reset() {
+	mdr.mutHeaders.Lock()
+	mdr.missingHeaders = make(map[string]struct{})
+	mdr.mutHeaders.Unlock()
+
+	mdr.mutProofs.Lock()
+	mdr.missingProofs = make(map[string]struct{})
+	mdr.mutProofs.Unlock()
+
+	mdr.blockDataRequester.Reset()
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

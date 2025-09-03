@@ -13,6 +13,7 @@ type BlockDataRequesterStub struct {
 	RequestMiniBlocksAndTransactionsCalled            func(header data.HeaderHandler)
 	GetFinalCrossMiniBlockInfoAndRequestMissingCalled func(header data.HeaderHandler) []*data.MiniBlockInfo
 	IsDataPreparedForProcessingCalled                 func(haveTime func() time.Duration) error
+	ResetCalled                                       func()
 }
 
 // RequestBlockTransactions -
@@ -43,6 +44,13 @@ func (bdr *BlockDataRequesterStub) IsDataPreparedForProcessing(haveTime func() t
 		return bdr.IsDataPreparedForProcessingCalled(haveTime)
 	}
 	return nil
+}
+
+// Reset -
+func (bdr *BlockDataRequesterStub) Reset() {
+	if bdr.ResetCalled != nil {
+		bdr.ResetCalled()
+	}
 }
 
 // IsInterfaceNil -
