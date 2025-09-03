@@ -303,47 +303,48 @@ func (wr *WidgetsRender) prepareBlockInfo() {
 	rows[0] = []string{fmt.Sprintf("Current block height: %d, size: %s", currentBlockHeight, core.ConvertBytes(blockSize))}
 
 	numTransactionInBlock := wr.presenter.GetNumTxInBlock()
-	rows[1] = []string{fmt.Sprintf("Num transactions in block: %d", numTransactionInBlock)}
-
 	numMiniBlocks := wr.presenter.GetNumMiniBlocks()
-	rows[2] = []string{fmt.Sprintf("Num miniblocks in block: %d", numMiniBlocks)}
+	rows[1] = []string{fmt.Sprintf("Num transactions in block: %d | Num miniblocks in block: %d",
+		numTransactionInBlock,
+		numMiniBlocks,
+	)}
 
 	currentBlockHash := wr.presenter.GetCurrentBlockHash()
-	rows[3] = []string{fmt.Sprintf("Current block hash: %s", currentBlockHash)}
+	rows[2] = []string{fmt.Sprintf("Current block hash: %s", currentBlockHash)}
 
 	crossCheckBlockHeight := wr.presenter.GetCrossCheckBlockHeight()
-	rows[4] = []string{fmt.Sprintf("Cross check: %s", crossCheckBlockHeight)}
+	rows[3] = []string{fmt.Sprintf("Cross check: %s", crossCheckBlockHeight)}
 
 	shardId := wr.presenter.GetShardId()
 	if shardId != uint64(core.MetachainShardId) {
 		highestFinalBlock := wr.presenter.GetHighestFinalBlock()
-		rows[4][0] += fmt.Sprintf(", final nonce: %d", highestFinalBlock)
+		rows[3][0] += fmt.Sprintf(", final nonce: %d", highestFinalBlock)
 	}
 
 	consensusState := wr.presenter.GetConsensusState()
-	rows[5] = []string{fmt.Sprintf("Consensus state: %s", consensusState)}
+	rows[4] = []string{fmt.Sprintf("Consensus state: %s", consensusState)}
 
 	syncStatus := wr.presenter.GetIsSyncing()
 	switch syncStatus {
 	case 1:
-		rows[6] = []string{"Consensus round state: N/A (syncing)"}
+		rows[5] = []string{"Consensus round state: N/A (syncing)"}
 	case 0:
 		instanceType := wr.presenter.GetNodeType()
 		if instanceType == string(core.NodeTypeObserver) {
-			rows[6] = []string{fmt.Sprintf("Consensus round state: N/A (%s)", string(core.NodeTypeObserver))}
+			rows[5] = []string{fmt.Sprintf("Consensus round state: N/A (%s)", string(core.NodeTypeObserver))}
 		} else {
 			consensusRoundState := wr.presenter.GetConsensusRoundState()
-			rows[6] = []string{fmt.Sprintf("Consensus round state: %s", consensusRoundState)}
+			rows[5] = []string{fmt.Sprintf("Consensus round state: %s", consensusRoundState)}
 		}
 	}
 
 	currentRoundTimestamp := wr.presenter.GetCurrentRoundTimestamp()
-	rows[8] = []string{fmt.Sprintf("Current round timestamp: %d", currentRoundTimestamp)}
+	rows[7] = []string{fmt.Sprintf("Current round timestamp: %d", currentRoundTimestamp)}
 
 	durationStartRoundToSentOrReceivedBlock := float64(wr.presenter.GetBlockReceived()) / 1e9
 	durationSentOrReceivedBlockToReceivedSignatures := float64(wr.presenter.GetBlockProof())/1e9 - durationStartRoundToSentOrReceivedBlock
 
-	rows[7] = []string{
+	rows[6] = []string{
 		fmt.Sprintf("Received proposed block: %.6f sec | Received proof: %.6f sec",
 			durationStartRoundToSentOrReceivedBlock,
 			durationSentOrReceivedBlockToReceivedSignatures),
