@@ -501,6 +501,28 @@ func TestCall_Sync_AcceptedBoundsChecks(t *testing.T) {
 		expClockOffset := 1 * time.Millisecond
 		assert.Equal(t, expClockOffset, st.ClockOffset())
 	})
+
+	t.Run("no successful response times, should set new offset", func(t *testing.T) {
+		t.Parallel()
+
+		st := ntp.NewSyncTime(
+			config.NTPConfig{
+				SyncPeriodSeconds:    3600,
+				Hosts:                []string{"host1"},
+				OutOfBoundsThreshold: 2,
+			},
+			func(options ntp.NTPOptions, hostIndex int) (*beevikNtp.Response, error) {
+				return nil, errors.New("err")
+			},
+		)
+
+		currentValue := 3 * time.Millisecond
+		st.SetClockOffset(currentValue)
+		st.Sync()
+
+		expClockOffset := 3 * time.Millisecond
+		assert.Equal(t, expClockOffset, st.ClockOffset())
+	})
 }
 
 // On local machine, seems like average query time is ~35ms, e.g.:
