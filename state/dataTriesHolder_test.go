@@ -12,16 +12,9 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-// TODO test case:
-// 1 - get trie, uncollapse multiple from trie, check total trie size matches maxTriesSize
-// 2 - put with eviction
-// 3 - eviction but oldest is dirty
-// 4 - eviction but oldest is newest
-
 const (
 	dthSize = 2 * 1024 * 1024 // 2MB
 	oneKB   = 1 * 1024
-	oneMB   = oneKB * 1024
 )
 
 type testTries struct {
@@ -262,6 +255,37 @@ func TestDataTriesHolder_Put(t *testing.T) {
 		assert.Equal(t, dth.newestUsed.prevEntry.nextEntry, dth.newestUsed)
 		assert.Equal(t, uint64(dthSize), dth.totalTriesSize)
 	})
+	t.Run("put with eviction - oldest is dirty", func(t *testing.T) {
+		t.Parallel()
+
+		dth, _ := NewDataTriesHolder(dthSize)
+		numEntries := 5
+		entries := getTestTries(numEntries)
+		for i := 0; i < numEntries; i++ {
+			dth.Put(entries[i].key, entries[i].trie)
+		}
+
+		dth.dirtyTries = make(map[string]struct{})              // reset dirty tries
+		dth.dirtyTries[string(dth.oldestUsed.key)] = struct{}{} // mark oldest as dirty
+
+		sizeToEvictTwoTries := dthSize - (3 * oneKB)
+		tr := &trieMock.TrieStub{
+			SizeInMemoryCalled: func() int {
+				return sizeToEvictTwoTries
+			},
+		}
+		key := []byte("trieEvict")
+
+		dth.Put(key, tr)
+		numEvictedTries := 2
+
+		assert.Equal(t, numEntries-numEvictedTries+1, len(dth.tries))
+		assert.Equal(t, entries[0].key, dth.oldestUsed.key)
+		assert.Equal(t, entries[3].key, dth.oldestUsed.nextEntry.key)
+		assert.Equal(t, key, dth.newestUsed.key)
+		assert.Nil(t, dth.newestUsed.nextEntry)
+		assert.Equal(t, uint64(dthSize), dth.totalTriesSize)
+	})
 }
 
 func TestDataTriesHolder_Get(t *testing.T) {
@@ -315,6 +339,87 @@ func TestDataTriesHolder_GetAllDirtyAndResetFlag(t *testing.T) {
 		dirtyTries := dth.GetAllDirtyAndResetFlag()
 		assert.Equal(t, numEntries-1, len(dirtyTries))
 		assert.Equal(t, 0, len(dth.dirtyTries))
+	})
+	t.Run("eviction - oldest is newest", func(t *testing.T) {
+		t.Parallel()
+
+		dth, _ := NewDataTriesHolder(dthSize)
+		tr := &trieMock.TrieStub{
+			SizeInMemoryCalled: func() int {
+				return dthSize + oneKB
+			},
+		}
+		key := []byte("trieEvict")
+		dth.Put(key, tr)
+		assert.Equal(t, dth.newestUsed.key, dth.oldestUsed.key)
+		assert.Equal(t, key, dth.newestUsed.key)
+
+		dirtyTries := dth.GetAllDirtyAndResetFlag()
+		assert.Equal(t, 1, len(dirtyTries))
+		assert.Equal(t, 0, len(dth.dirtyTries))
+		assert.Equal(t, 0, len(dth.tries))
+		assert.Nil(t, dth.oldestUsed)
+		assert.Nil(t, dth.newestUsed)
+		assert.Equal(t, uint64(0), dth.totalTriesSize)
+	})
+	t.Run("trie size is correctly computed after GetAllDirtyAndResetFlag and eviction", func(t *testing.T) {
+		t.Parallel()
+
+		dth, _ := NewDataTriesHolder(dthSize)
+		numEntries := 5
+		entries := getTestTries(numEntries)
+		for i := 0; i < numEntries; i++ {
+			dth.Put(entries[i].key, entries[i].trie)
+		}
+
+		assert.Equal(t, uint64(numEntries*oneKB), dth.totalTriesSize)
+
+		dirtyTries := dth.GetAllDirtyAndResetFlag()
+		assert.Equal(t, numEntries, len(dirtyTries))
+		assert.Equal(t, 0, len(dth.dirtyTries))
+		assert.Equal(t, uint64(numEntries*oneKB), dth.totalTriesSize)
+
+		trieSize := dthSize - ((numEntries + 1) * oneKB)
+		tr := &trieMock.TrieStub{
+			SizeInMemoryCalled: func() int {
+				return trieSize
+			},
+		}
+		key := []byte("newTrie")
+		dth.Put(key, tr)
+		assert.Equal(t, numEntries+1, len(dth.tries))
+		assert.Equal(t, uint64(numEntries*oneKB+trieSize), dth.totalTriesSize)
+		dth.dirtyTries = make(map[string]struct{}) // reset dirty tries
+
+		// get a trie and "resolve" some nodes, thus increasing its size in memory
+		_ = dth.Get(key)
+		originalSize := trieSize
+		trieSize = trieSize + oneKB
+		assert.Equal(t, uint64(numEntries*oneKB+originalSize), dth.totalTriesSize) // size is not updated
+		assert.Equal(t, numEntries+1, len(dth.tries))                              // no eviction
+		assert.Equal(t, 1, len(dth.touchedTries))
+
+		dirtyTries = dth.GetAllDirtyAndResetFlag()
+		assert.Equal(t, 0, len(dirtyTries))
+		assert.Equal(t, 0, len(dth.dirtyTries))
+		assert.Equal(t, uint64(dthSize), dth.totalTriesSize) // size is updated
+		assert.Equal(t, numEntries+1, len(dth.tries))        // no eviction
+		assert.Equal(t, 0, len(dth.touchedTries))
+
+		// put again the same trie, now with increased size triggering eviction
+		_ = dth.Get(key)
+		assert.Equal(t, 1, len(dth.touchedTries))
+		trieSize = trieSize + oneKB/2
+		assert.Equal(t, 0, len(dth.dirtyTries))
+		assert.Equal(t, uint64(dthSize), dth.totalTriesSize) // size is  not updated
+		assert.Equal(t, numEntries+1, len(dth.tries))        // no eviction
+
+		dirtyTries = dth.GetAllDirtyAndResetFlag()
+		assert.Equal(t, 0, len(dirtyTries))
+		assert.Equal(t, 0, len(dth.dirtyTries))
+		assert.Equal(t, uint64(dthSize-oneKB/2), dth.totalTriesSize) // size is updated
+		assert.Equal(t, numEntries, len(dth.tries))                  // eviction
+		assert.Equal(t, 0, len(dth.touchedTries))
 	})
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()

@@ -80,7 +80,6 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/stakingcommon"
 	testStorage "github.com/multiversx/mx-chain-go/testscommon/state"
 	statusHandlerMock "github.com/multiversx/mx-chain-go/testscommon/statusHandler"
-	testcommonStorage "github.com/multiversx/mx-chain-go/testscommon/storage"
 	"github.com/multiversx/mx-chain-go/testscommon/txDataBuilder"
 	"github.com/multiversx/mx-chain-go/trie"
 	"github.com/multiversx/mx-chain-go/vm"
@@ -428,7 +427,7 @@ func CreateTrieStorageManagerWithPruningStorer(coordinator sharding.Coordinator,
 		fmt.Println("err creating main storer" + err.Error())
 	}
 
-	args := testcommonStorage.GetStorageManagerArgs()
+	args := commonMocks.GetStorageManagerArgs()
 	args.MainStorer = mainStorer
 	args.Marshalizer = TestMarshalizer
 	args.Hasher = TestHasher
@@ -440,7 +439,7 @@ func CreateTrieStorageManagerWithPruningStorer(coordinator sharding.Coordinator,
 
 // CreateTrieStorageManager creates the trie storage manager for the tests
 func CreateTrieStorageManager(store storage.Storer) (common.StorageManager, storage.Storer) {
-	args := testcommonStorage.GetStorageManagerArgs()
+	args := commonMocks.GetStorageManagerArgs()
 	args.MainStorer = store
 	args.Marshalizer = TestMarshalizer
 	args.Hasher = TestHasher
@@ -1103,7 +1102,7 @@ func CreateSimpleTxProcessor(accnts state.AccountsAdapter) process.TransactionPr
 
 // CreateNewDefaultTrie returns a new trie with test hasher and marsahalizer
 func CreateNewDefaultTrie() common.Trie {
-	args := testcommonStorage.GetStorageManagerArgs()
+	args := commonMocks.GetStorageManagerArgs()
 	args.Marshalizer = TestMarshalizer
 	args.Hasher = TestHasher
 

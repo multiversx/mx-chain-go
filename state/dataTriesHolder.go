@@ -13,6 +13,7 @@ const maxTrieSizeMinValue = 1 * 1024 * 1024 // 1 MB
 
 type trieEntry struct {
 	trie      common.Trie
+	trieSize  int
 	key       []byte
 	nextEntry *trieEntry
 	prevEntry *trieEntry
@@ -24,6 +25,7 @@ type trieEntry struct {
 type dataTriesHolder struct {
 	tries          map[string]*trieEntry
 	dirtyTries     map[string]struct{} // These are the tries that have been modified and need to be persisted
+	touchedTries   map[string]struct{} // These are needed to compute an accurate totalTriesSize
 	oldestUsed     *trieEntry
 	newestUsed     *trieEntry
 	totalTriesSize uint64
@@ -41,6 +43,7 @@ func NewDataTriesHolder(maxTriesSize uint64) (*dataTriesHolder, error) {
 	return &dataTriesHolder{
 		tries:          make(map[string]*trieEntry),
 		dirtyTries:     make(map[string]struct{}),
+		touchedTries:   make(map[string]struct{}),
 		oldestUsed:     nil,
 		newestUsed:     nil,
 		totalTriesSize: 0,
@@ -64,6 +67,7 @@ func (dth *dataTriesHolder) Put(key []byte, tr common.Trie) {
 		// If the tries map is empty, we create a new entry
 		entry := &trieEntry{
 			trie:      tr,
+			trieSize:  tr.SizeInMemory(),
 			key:       key,
 			nextEntry: nil,
 			prevEntry: nil,
@@ -72,7 +76,7 @@ func (dth *dataTriesHolder) Put(key []byte, tr common.Trie) {
 		dth.dirtyTries[string(key)] = struct{}{}
 		dth.oldestUsed = entry
 		dth.newestUsed = entry
-		dth.totalTriesSize += uint64(tr.SizeInMemory())
+		dth.totalTriesSize += uint64(entry.trieSize)
 		return
 	}
 
@@ -81,6 +85,7 @@ func (dth *dataTriesHolder) Put(key []byte, tr common.Trie) {
 		// If the entry does not exist, we create a new one
 		entry = &trieEntry{
 			trie:      tr,
+			trieSize:  tr.SizeInMemory(),
 			key:       key,
 			nextEntry: nil,
 			prevEntry: dth.newestUsed,
@@ -90,11 +95,12 @@ func (dth *dataTriesHolder) Put(key []byte, tr common.Trie) {
 		dth.newestUsed = entry
 		dth.tries[string(key)] = entry
 		dth.dirtyTries[string(key)] = struct{}{}
-		dth.totalTriesSize += uint64(tr.SizeInMemory())
+		dth.totalTriesSize += uint64(entry.trieSize)
 
 		return
 	}
 
+	dth.touchedTries[string(key)] = struct{}{}
 	dth.dirtyTries[string(key)] = struct{}{}
 	dth.moveEntryToNewestUsed(entry)
 }
@@ -107,9 +113,7 @@ func (dth *dataTriesHolder) evictIfNeeded() {
 	if dth.oldestUsed == nil {
 		// This should never happen, but we check it just in case
 		log.Error("data tries holder is in an invalid state: totalTriesSize exceeds maxTriesSize but oldestUsed is nil")
-		dth.tries = make(map[string]*trieEntry)
-		dth.newestUsed = nil
-		dth.totalTriesSize = 0
+		dth.reset()
 		return
 	}
 
@@ -126,7 +130,8 @@ func (dth *dataTriesHolder) evictIfNeeded() {
 
 		// Remove entry from the map and update the links between the entries
 		delete(dth.tries, string(entryForEviction.key))
-		dth.totalTriesSize -= uint64(entryForEviction.trie.SizeInMemory())
+		delete(dth.touchedTries, string(entryForEviction.key))
+		dth.totalTriesSize -= uint64(entryForEviction.trieSize)
 
 		if bytes.Equal(entryForEviction.key, dth.oldestUsed.key) {
 			if bytes.Equal(entryForEviction.key, dth.newestUsed.key) {
@@ -198,11 +203,12 @@ func (dth *dataTriesHolder) Get(key []byte) common.Trie {
 		return nil
 	}
 
+	dth.touchedTries[string(key)] = struct{}{}
 	dth.moveEntryToNewestUsed(entry)
 	return entry.trie
 }
 
-// GetAllDirtyAndResetFlag returns all the tries that are marked as dirty. It also resets their dirty flag.
+// GetAllDirtyAndResetFlag returns all the tries that are marked as dirty. It also resets their dirty flag and recomputes the total size.
 func (dth *dataTriesHolder) GetAllDirtyAndResetFlag() []common.Trie {
 	dth.mutex.Lock()
 	defer dth.mutex.Unlock()
@@ -217,14 +223,36 @@ func (dth *dataTriesHolder) GetAllDirtyAndResetFlag() []common.Trie {
 		tries = append(tries, entry.trie)
 	}
 	dth.dirtyTries = make(map[string]struct{})
-
+	dth.recomputeTotalSize()
+	dth.evictIfNeeded()
 	return tries
+}
+
+func (dth *dataTriesHolder) recomputeTotalSize() {
+	for key := range dth.touchedTries {
+		entry, exists := dth.tries[key]
+		if !exists {
+			log.Warn("data tries holder is in an invalid state: touched trie not found in tries map", "key", key)
+			continue
+		}
+		oldSize := entry.trieSize
+		newSize := entry.trie.SizeInMemory()
+		if oldSize != newSize {
+			dth.totalTriesSize = dth.totalTriesSize - uint64(oldSize) + uint64(newSize)
+			entry.trieSize = newSize
+		}
+	}
+	dth.touchedTries = make(map[string]struct{})
 }
 
 // Reset clears the tries map
 func (dth *dataTriesHolder) Reset() {
 	dth.mutex.Lock()
+	dth.reset()
+	dth.mutex.Unlock()
+}
 
+func (dth *dataTriesHolder) reset() {
 	if log.GetLevel() == logger.LogTrace {
 		for key := range dth.tries {
 			log.Trace("reset data tries holder", "key", key)
@@ -236,8 +264,6 @@ func (dth *dataTriesHolder) Reset() {
 	dth.oldestUsed = nil
 	dth.newestUsed = nil
 	dth.totalTriesSize = 0
-
-	dth.mutex.Unlock()
 }
 
 // IsInterfaceNil returns true if underlying object is nil
