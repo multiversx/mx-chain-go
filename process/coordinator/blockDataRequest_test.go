@@ -3,6 +3,7 @@ package coordinator
 import (
 	"bytes"
 	"errors"
+	"fmt"
 	"sync"
 	"testing"
 	"time"
@@ -351,7 +352,6 @@ func TestBlockDataRequest_RequestBlockTransactions(t *testing.T) {
 	t.Run("should handle concurrent requests safely", func(t *testing.T) {
 		t.Parallel()
 		args := createMockArgs()
-		blockDataRequester, _ := NewBlockDataRequester(args)
 
 		// Create a preprocessor that simulates some processing time
 		preprocContainer := containers.NewPreProcessorsContainer()
@@ -367,7 +367,7 @@ func TestBlockDataRequest_RequestBlockTransactions(t *testing.T) {
 		_ = preprocContainer.Add(block.TxBlock, txPreproc)
 		args.PreProcessors = preprocContainer
 
-		blockDataRequester, _ = NewBlockDataRequester(args)
+		blockDataRequester, _ := NewBlockDataRequester(args)
 
 		body := &block.Body{
 			MiniBlocks: []*block.MiniBlock{
@@ -1124,6 +1124,182 @@ func TestBlockDataRequest_ConcurrentOperations(t *testing.T) {
 		mutMiniBlocks.RLock()
 		require.GreaterOrEqual(t, requestedMiniBlocks, 0)
 		mutMiniBlocks.RUnlock()
+	})
+
+	t.Run("comprehensive concurrent operations", func(t *testing.T) {
+		t.Parallel()
+		args := createMockArgs()
+
+		// Create comprehensive preprocessors
+		preprocContainer := containers.NewPreProcessorsContainer()
+		txPreproc := &preprocMocks.PreProcessorMock{
+			RequestBlockTransactionsCalled: func(body *block.Body) int {
+				time.Sleep(time.Millisecond * 2)
+				if body == nil || len(body.MiniBlocks) == 0 {
+					return 0
+				}
+				return len(body.MiniBlocks[0].TxHashes)
+			},
+			IsDataPreparedCalled: func(requestedTxs int, haveTime func() time.Duration) error {
+				time.Sleep(time.Millisecond * 1)
+				return nil
+			},
+			RequestTransactionsForMiniBlockCalled: func(miniBlock *block.MiniBlock) int {
+				time.Sleep(time.Millisecond * 1)
+				return len(miniBlock.TxHashes)
+			},
+		}
+		peerPreproc := &preprocMocks.PreProcessorMock{
+			RequestBlockTransactionsCalled: func(body *block.Body) int {
+				time.Sleep(time.Millisecond * 3)
+				if body == nil || len(body.MiniBlocks) == 0 {
+					return 0
+				}
+				return len(body.MiniBlocks[0].TxHashes)
+			},
+			IsDataPreparedCalled: func(requestedTxs int, haveTime func() time.Duration) error {
+				time.Sleep(time.Millisecond * 2)
+				return nil
+			},
+			RequestTransactionsForMiniBlockCalled: func(miniBlock *block.MiniBlock) int {
+				time.Sleep(time.Millisecond * 2)
+				return len(miniBlock.TxHashes)
+			},
+		}
+		scrPreproc := &preprocMocks.PreProcessorMock{
+			RequestBlockTransactionsCalled: func(body *block.Body) int {
+				time.Sleep(time.Millisecond * 1)
+				if body == nil || len(body.MiniBlocks) == 0 {
+					return 0
+				}
+				return len(body.MiniBlocks[0].TxHashes)
+			},
+			IsDataPreparedCalled: func(requestedTxs int, haveTime func() time.Duration) error {
+				time.Sleep(time.Millisecond * 1)
+				return nil
+			},
+			RequestTransactionsForMiniBlockCalled: func(miniBlock *block.MiniBlock) int {
+				time.Sleep(time.Millisecond * 1)
+				return len(miniBlock.TxHashes)
+			},
+		}
+
+		_ = preprocContainer.Add(block.TxBlock, txPreproc)
+		_ = preprocContainer.Add(block.PeerBlock, peerPreproc)
+		_ = preprocContainer.Add(block.SmartContractResultBlock, scrPreproc)
+		args.PreProcessors = preprocContainer
+
+		// Mock mini block pool
+		miniBlockPool := &cache.CacherStub{
+			PeekCalled: func(key []byte) (value interface{}, ok bool) {
+				time.Sleep(time.Microsecond * 100)
+				if bytes.Equal(key, []byte("hash1")) || bytes.Equal(key, []byte("hash3")) {
+					return &block.MiniBlock{
+						Type:     block.TxBlock,
+						TxHashes: [][]byte{[]byte("tx1"), []byte("tx2")},
+					}, true
+				}
+				return nil, false
+			},
+		}
+		args.MiniBlockPool = miniBlockPool
+		requestHandler := &testscommon.RequestHandlerStub{
+			RequestMiniBlocksHandlerCalled: func(destShardID uint32, miniblocksHashes [][]byte) {
+				time.Sleep(time.Millisecond * 1)
+			},
+		}
+		args.RequestHandler = requestHandler
+
+		shardCoordinator := mock.NewMultiShardsCoordinatorMock(3)
+		shardCoordinator.CurrentShard = 1
+		args.ShardCoordinator = shardCoordinator
+
+		blockDataRequester, _ := NewBlockDataRequester(args)
+
+		// Create test data
+		body1 := &block.Body{
+			MiniBlocks: []*block.MiniBlock{
+				{
+					Type:     block.TxBlock,
+					TxHashes: [][]byte{[]byte("tx1"), []byte("tx2")},
+				},
+			},
+		}
+
+		header1 := &testscommon.HeaderHandlerStub{
+			RoundField: 100,
+			GetMiniBlockHeadersWithDstCalled: func(destShardID uint32) map[string]uint32 {
+				return map[string]uint32{
+					"hash1": 0,
+					"hash2": 2,
+				}
+			},
+			GetOrderedCrossMiniblocksWithDstCalled: func(destShardID uint32) []*data.MiniBlockInfo {
+				return []*data.MiniBlockInfo{
+					{Hash: []byte("hash1"), SenderShardID: 0, Round: 100},
+					{Hash: []byte("hash2"), SenderShardID: 2, Round: 100},
+				}
+			},
+		}
+
+		haveTime := func() time.Duration { return time.Second }
+
+		miniBlocks := make([]*block.MiniBlock, 10)
+		keys := make([][]byte, 10)
+		for i := 0; i < 10; i++ {
+			keys[i] = []byte(fmt.Sprintf("mbhash%d", i))
+			miniBlocks[i] = &block.MiniBlock{
+				Type:     block.TxBlock,
+				TxHashes: [][]byte{[]byte(fmt.Sprintf("mbtx%d", i))},
+			}
+			_ = blockDataRequester.requestedItemsHandler.Add(string(keys[i]))
+		}
+
+		numOperations := 1000
+		wg := sync.WaitGroup{}
+		wg.Add(numOperations)
+		numFunctions := 8
+
+		for i := 0; i < numOperations; i++ {
+			go func(idx int) {
+				operation := idx % numFunctions
+				switch operation {
+				case 0:
+
+					blockDataRequester.RequestBlockTransactions(body1)
+				case 1:
+					_ = blockDataRequester.IsDataPreparedForProcessing(haveTime)
+				case 2:
+					blockDataRequester.RequestMiniBlocksAndTransactions(header1)
+				case 3:
+					mbIndex := idx % len(miniBlocks)
+					blockDataRequester.receivedMiniBlock(keys[mbIndex], miniBlocks[mbIndex])
+				case 4:
+					_ = blockDataRequester.GetFinalCrossMiniBlockInfoAndRequestMissing(header1)
+				case 5:
+					_ = blockDataRequester.IsInterfaceNil()
+				case 6:
+					blockDataRequester.mutRequestedTxs.RLock()
+					_ = blockDataRequester.requestedTxs
+					blockDataRequester.mutRequestedTxs.RUnlock()
+				case 7:
+					blockDataRequester.RequestBlockTransactions(body1)
+					_ = blockDataRequester.IsDataPreparedForProcessing(haveTime)
+					blockDataRequester.RequestMiniBlocksAndTransactions(header1)
+				default:
+					require.Fail(t, fmt.Sprintf("invalid numFunctions value %d, operation: %d", numFunctions, operation))
+				}
+
+				wg.Done()
+			}(i)
+		}
+
+		wg.Wait()
+
+		// Verify final state is consistent
+		blockDataRequester.mutRequestedTxs.RLock()
+		require.NotNil(t, blockDataRequester.requestedTxs)
+		blockDataRequester.mutRequestedTxs.RUnlock()
 	})
 
 }
