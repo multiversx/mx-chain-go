@@ -92,7 +92,7 @@ func (sp *shardProcessor) VerifyProposedBlock(
 	headerHandler data.HeaderHandler,
 	bodyHandler data.BodyHandler,
 	headerHash []byte,
-	timeoutAfter time.Duration,
+	haveTime func() time.Duration,
 ) error {
 	log.Debug("started verifying proposed block",
 		"epoch", headerHandler.GetEpoch(),
@@ -100,13 +100,6 @@ func (sp *shardProcessor) VerifyProposedBlock(
 		"round", headerHandler.GetRound(),
 		"nonce", headerHandler.GetNonce(),
 	)
-
-	// TODO: have time should be removed if no longer needed
-	startTime := time.Now()
-	haveTime := func() time.Duration {
-		timeoutAfter -= time.Since(startTime)
-		return timeoutAfter
-	}
 
 	err := sp.checkBlockValidity(headerHandler, bodyHandler)
 	if err != nil {
@@ -142,6 +135,7 @@ func (sp *shardProcessor) VerifyProposedBlock(
 
 	go getMetricsFromBlockBody(body, sp.marshalizer, sp.appStatusHandler)
 
+	// todo: need to change reserved field verification for Supernova
 	err = sp.checkHeaderBodyCorrelation(header.GetMiniBlockHeaderHandlers(), body)
 	if err != nil {
 		return err
@@ -164,62 +158,52 @@ func (sp *shardProcessor) VerifyProposedBlock(
 
 	go getMetricsFromHeader(header, uint64(txCounts.GetTotal()), sp.marshalizer, sp.appStatusHandler)
 
-	// no need to init the block processing context here, because the block is not processed yet
-	// err = sp.createBlockStarted()
-	// if err != nil {
-	// 	return err
-	// }
-
 	sp.txCoordinator.RequestBlockTransactions(body)
-	sp.hdrsForCurrBlock.RequestMetaHeaders(header)
-
-	if haveTime() < 0 {
-		return process.ErrTimeIsOut
+	// TODO: this needs to be initialized properly for proposed blocks
+	sp.missingDataResolver.Reset()
+	err = sp.missingDataResolver.RequestMissingMetaHeaders(header)
+	if err != nil {
+		return err
 	}
-	//
-	// err = sp.txCoordinator.IsDataPreparedForProcessing(haveTime)
-	// if err != nil {
-	// 	return err
-	// }
-	//
+
+	err = sp.txCoordinator.IsDataPreparedForProcessing(haveTime)
+	if err != nil {
+		return err
+	}
+
 	// err = sp.hdrsForCurrBlock.WaitForHeadersIfNeeded(haveTime)
 	// if err != nil {
 	// 	return err
 	// }
 	//
-	// err = sp.requestEpochStartInfo(header, haveTime)
-	// if err != nil {
-	// 	return err
-	// }
-	//
-	// if sp.accountsDB[state.UserAccountsState].JournalLen() != 0 {
-	// 	log.Error("shardProcessor.ProcessBlock first entry", "stack", string(sp.accountsDB[state.UserAccountsState].GetStackDebugFirstEntry()))
-	// 	return process.ErrAccountStateDirty
-	// }
-	//
-	// defer func() {
-	// 	go sp.checkAndRequestIfMetaHeadersMissing()
-	// }()
-	//
-	// err = sp.checkEpochCorrectnessCrossChain()
-	// if err != nil {
-	// 	return err
-	// }
-	//
-	// err = sp.checkEpochCorrectness(header)
-	// if err != nil {
-	// 	return err
-	// }
-	//
-	// err = sp.checkMetaHeadersValidityAndFinality()
-	// if err != nil {
-	// 	return err
-	// }
-	//
-	// err = sp.verifyCrossShardMiniBlockDstMe(header)
-	// if err != nil {
-	// 	return err
-	// }
+	err = sp.requestEpochStartInfo(header, haveTime)
+	if err != nil {
+		return err
+	}
+
+	defer func() {
+		go sp.checkAndRequestIfMetaHeadersMissing()
+	}()
+
+	err = sp.checkEpochCorrectnessCrossChain()
+	if err != nil {
+		return err
+	}
+
+	err = sp.checkEpochCorrectness(header)
+	if err != nil {
+		return err
+	}
+
+	err = sp.checkMetaHeadersValidityAndFinality()
+	if err != nil {
+		return err
+	}
+
+	err = sp.verifyCrossShardMiniBlockDstMe(header)
+	if err != nil {
+		return err
+	}
 	//
 	// err = sp.blockChainHook.SetCurrentHeader(header)
 	// if err != nil {

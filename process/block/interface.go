@@ -99,14 +99,11 @@ type MiniBlocksSelectionSession interface {
 	IsInterfaceNil() bool
 }
 
+// MissingDataResolver defines a component able to resolve missing data (meta headers and shard headers)
 type MissingDataResolver interface {
-	RequestMissingMetaHeadersBlocking(
-		shardHeader data.ShardHeaderHandler,
-		timeout time.Duration,
-	) error
-	RequestMissingMetaHeaders(
-		shardHeader data.ShardHeaderHandler,
-	) error
+	RequestMissingMetaHeadersBlocking(shardHeader data.ShardHeaderHandler, timeout time.Duration) error
+	RequestMissingMetaHeaders(shardHeader data.ShardHeaderHandler) error
 	WaitForMissingData(timeout time.Duration) error
+	Reset()
 	IsInterfaceNil() bool
 }
