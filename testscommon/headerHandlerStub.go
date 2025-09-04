@@ -59,6 +59,7 @@ type HeaderHandlerStub struct {
 	GetLastExecutionResultHandlerCalled    func() data.LastExecutionResultHandler
 	GetExecutionResultsHandlersCalled      func() []data.BaseExecutionResultHandler
 	IsHeaderV3Called                       func() bool
+	GetMiniBlockHeaderHandlersCalled       func() []data.MiniBlockHeaderHandler
 }
 
 // IsHeaderV3 - checks if the header is a V3 header
@@ -316,7 +317,10 @@ func (hhs *HeaderHandlerStub) GetMiniBlockHeadersHashes() [][]byte {
 
 // GetMiniBlockHeaderHandlers -
 func (hhs *HeaderHandlerStub) GetMiniBlockHeaderHandlers() []data.MiniBlockHeaderHandler {
-	panic("implement me")
+	if hhs.GetMiniBlockHeaderHandlersCalled != nil {
+		return hhs.GetMiniBlockHeaderHandlersCalled()
+	}
+	return make([]data.MiniBlockHeaderHandler, 0)
 }
 
 // GetMetaBlockHashes -
