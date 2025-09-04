@@ -20,6 +20,7 @@ import (
 	"github.com/multiversx/mx-chain-go/common/holders"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/dblookupext"
+	"github.com/multiversx/mx-chain-go/factory/disabled"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/block/preprocess"
 	"github.com/multiversx/mx-chain-go/process/smartContract"
@@ -442,9 +443,10 @@ func (atp *apiTransactionProcessor) selectTransactions(accountsAdapter state.Acc
 		return nil, ErrCouldNotCastToTxCache
 	}
 
+	txProcessor := disabled.TxProcessor{}
 	argsSelectionSession := preprocess.ArgsSelectionSession{
 		AccountsAdapter:       accountsAdapter,
-		TransactionsProcessor: nil,
+		TransactionsProcessor: &txProcessor,
 	}
 
 	selectionSession, err := preprocess.NewSelectionSession(argsSelectionSession)
