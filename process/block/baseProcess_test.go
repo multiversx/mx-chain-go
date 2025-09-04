@@ -40,6 +40,7 @@ import (
 	"github.com/multiversx/mx-chain-go/process/block/headerForBlock"
 	"github.com/multiversx/mx-chain-go/process/block/processedMb"
 	"github.com/multiversx/mx-chain-go/process/coordinator"
+	"github.com/multiversx/mx-chain-go/process/factory/containers"
 	"github.com/multiversx/mx-chain-go/process/mock"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/state"
@@ -59,6 +60,7 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/mainFactoryMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/outport"
+	"github.com/multiversx/mx-chain-go/testscommon/preprocMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/shardingMocks"
 	stateMock "github.com/multiversx/mx-chain-go/testscommon/state"
 	statusHandlerMock "github.com/multiversx/mx-chain-go/testscommon/statusHandler"
@@ -119,6 +121,22 @@ func createArgBaseProcessor(
 		})
 	}
 
+	var blockDataRequester process.BlockDataRequester
+	if check.IfNil(dataComponents) || check.IfNil(dataComponents.Datapool()) || check.IfNil(coreComponents) || check.IfNil(bootstrapComponents) {
+		blockDataRequester = &preprocMocks.BlockDataRequesterStub{}
+	} else {
+		preprocContainer := containers.NewPreProcessorsContainer()
+		blockDataRequesterArgs := coordinator.BlockDataRequestArgs{
+			RequestHandler:      &testscommon.RequestHandlerStub{},
+			MiniBlockPool:       dataComponents.Datapool().MiniBlocks(),
+			PreProcessors:       preprocContainer,
+			ShardCoordinator:    bootstrapComponents.ShardCoordinator(),
+			EnableEpochsHandler: coreComponents.EnableEpochsHandler(),
+		}
+		// second instance for proposal missing data fetching to avoid interferences
+		blockDataRequester, _ = coordinator.NewBlockDataRequester(blockDataRequesterArgs)
+	}
+
 	return blproc.ArgBaseProcessor{
 		CoreComponents:       coreComponents,
 		DataComponents:       dataComponents,
@@ -154,6 +172,7 @@ func createArgBaseProcessor(
 		ManagedPeersHolder:             &testscommon.ManagedPeersHolderStub{},
 		SentSignaturesTracker:          &testscommon.SentSignatureTrackerStub{},
 		HeadersForBlock:                headersForBlock,
+		BlockDataRequester:             blockDataRequester,
 	}
 }
 

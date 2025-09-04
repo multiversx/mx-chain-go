@@ -364,6 +364,11 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 		return nil, err
 	}
 
+	proposalPreProcContainer, err := preProcFactory.Create()
+	if err != nil {
+		return nil, err
+	}
+
 	argsDetector := coordinator.ArgsPrintDoubleTransactionsDetector{
 		Marshaller:          pcf.coreData.InternalMarshalizer(),
 		Hasher:              pcf.coreData.Hasher(),
@@ -383,6 +388,19 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 	}
 
 	blockDataRequester, err := coordinator.NewBlockDataRequester(blockDataRequesterArgs)
+	if err != nil {
+		return nil, err
+	}
+
+	proposalBlockDataRequesterArgs := coordinator.BlockDataRequestArgs{
+		RequestHandler:      requestHandler,
+		MiniBlockPool:       pcf.data.Datapool().MiniBlocks(),
+		PreProcessors:       proposalPreProcContainer,
+		ShardCoordinator:    pcf.bootstrapComponents.ShardCoordinator(),
+		EnableEpochsHandler: pcf.coreData.EnableEpochsHandler(),
+	}
+	// second instance for proposal missing data fetching to avoid interferences
+	proposalBlockDataRequester, err := coordinator.NewBlockDataRequester(proposalBlockDataRequesterArgs)
 	if err != nil {
 		return nil, err
 	}
@@ -474,6 +492,7 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 		ManagedPeersHolder:           pcf.crypto.ManagedPeersHolder(),
 		SentSignaturesTracker:        sentSignaturesTracker,
 		HeadersForBlock:              hdrsForBlock,
+		BlockDataRequester:           proposalBlockDataRequester,
 	}
 	arguments := block.ArgShardProcessor{
 		ArgBaseProcessor: argumentsBaseProcessor,
@@ -702,6 +721,10 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 	if err != nil {
 		return nil, err
 	}
+	proposalPreProcContainer, err := preProcFactory.Create()
+	if err != nil {
+		return nil, err
+	}
 
 	argsDetector := coordinator.ArgsPrintDoubleTransactionsDetector{
 		Marshaller:          pcf.coreData.InternalMarshalizer(),
@@ -722,6 +745,19 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 	}
 
 	blockDataRequester, err := coordinator.NewBlockDataRequester(blockDataRequesterArgs)
+	if err != nil {
+		return nil, err
+	}
+
+	proposalBlockDataRequesterArgs := coordinator.BlockDataRequestArgs{
+		RequestHandler:      requestHandler,
+		MiniBlockPool:       pcf.data.Datapool().MiniBlocks(),
+		PreProcessors:       proposalPreProcContainer,
+		ShardCoordinator:    pcf.bootstrapComponents.ShardCoordinator(),
+		EnableEpochsHandler: pcf.coreData.EnableEpochsHandler(),
+	}
+	// second instance for proposal missing data fetching to avoid interferences
+	proposalBlockDataRequester, err := coordinator.NewBlockDataRequester(proposalBlockDataRequesterArgs)
 	if err != nil {
 		return nil, err
 	}
@@ -941,6 +977,7 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 		ManagedPeersHolder:           pcf.crypto.ManagedPeersHolder(),
 		SentSignaturesTracker:        sentSignaturesTracker,
 		HeadersForBlock:              hdrsForBlock,
+		BlockDataRequester:           proposalBlockDataRequester,
 	}
 
 	esdtOwnerAddress, err := pcf.coreData.AddressPubKeyConverter().Decode(pcf.systemSCConfig.ESDTSystemSCConfig.OwnerAddress)

@@ -1496,5 +1496,6 @@ type BlockDataRequester interface {
 	RequestMiniBlocksAndTransactions(header data.HeaderHandler)
 	GetFinalCrossMiniBlockInfoAndRequestMissing(header data.HeaderHandler) []*data.MiniBlockInfo
 	IsDataPreparedForProcessing(haveTime func() time.Duration) error
+	Reset()
 	IsInterfaceNil() bool
 }

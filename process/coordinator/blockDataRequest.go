@@ -55,7 +55,7 @@ func NewBlockDataRequester(args BlockDataRequestArgs) (*BlockDataRequest, error)
 		return nil, process.ErrNilEnableEpochsHandler
 	}
 
-	cr := &BlockDataRequest{
+	bdr := &BlockDataRequest{
 		requestedTxs:        make(map[block.Type]int),
 		preProcessors:       args.PreProcessors,
 		miniBlockPool:       args.MiniBlockPool,
@@ -64,10 +64,27 @@ func NewBlockDataRequester(args BlockDataRequestArgs) (*BlockDataRequest, error)
 		requestHandler:      args.RequestHandler,
 	}
 
-	cr.requestedItemsHandler = cache.NewTimeCache(common.MaxWaitingTimeToReceiveRequestedItem)
-	cr.miniBlockPool.RegisterHandler(cr.receivedMiniBlock, core.UniqueIdentifier())
+	bdr.requestedItemsHandler = cache.NewTimeCache(common.MaxWaitingTimeToReceiveRequestedItem)
+	bdr.miniBlockPool.RegisterHandler(bdr.receivedMiniBlock, core.UniqueIdentifier())
 
-	return cr, nil
+	return bdr, nil
+}
+
+// Reset resets the internal state of BlockDataRequest
+func (bdr *BlockDataRequest) Reset() {
+	bdr.initRequestedTxs()
+	bdr.requestedItemsHandler.Sweep()
+
+	// clean up the preprocessors used only for missing data requests
+	preprocessors := bdr.preProcessors.Keys()
+	for _, preprocessorType := range preprocessors {
+		preprocessor, err := bdr.preProcessors.Get(preprocessorType)
+		if err != nil {
+			log.Warn("BlockDataRequest.Reset: GetPreProcessor", "type", preprocessorType, "error", err)
+			continue
+		}
+		preprocessor.CreateBlockStarted()
+	}
 }
 
 // RequestBlockTransactions verifies missing transaction and requests them

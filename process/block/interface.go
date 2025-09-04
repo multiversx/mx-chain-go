@@ -76,5 +76,9 @@ type MissingDataResolver interface {
 	RequestMissingMetaHeadersBlocking(shardHeader data.ShardHeaderHandler, timeout time.Duration) error
 	RequestMissingMetaHeaders(shardHeader data.ShardHeaderHandler) error
 	WaitForMissingData(timeout time.Duration) error
+	RequestBlockTransactions(body *block.Body)
+	RequestMiniBlocksAndTransactions(header data.HeaderHandler)
+	GetFinalCrossMiniBlockInfoAndRequestMissing(header data.HeaderHandler) []*data.MiniBlockInfo
+	Reset()
 	IsInterfaceNil() bool
 }
