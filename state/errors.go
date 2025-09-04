@@ -165,3 +165,6 @@ var ErrValidatorsDifferentShards = errors.New("validators are not in the same sh
 
 // ErrValidatorNotFound signals that a validator was not found
 var ErrValidatorNotFound = errors.New("validator not found")
+
+// ErrInvalidMaxTrieSizeValue signals that the provided max trie size value is invalid
+var ErrInvalidMaxTrieSizeValue = errors.New("invalid max trie size value")

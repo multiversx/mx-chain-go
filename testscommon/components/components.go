@@ -44,7 +44,6 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/dblookupext"
 	"github.com/multiversx/mx-chain-go/testscommon/shardingMocks"
 	statusHandlerMock "github.com/multiversx/mx-chain-go/testscommon/statusHandler"
-	"github.com/multiversx/mx-chain-go/testscommon/storage"
 	"github.com/multiversx/mx-chain-go/trie"
 )
 
@@ -352,9 +351,9 @@ func GetNetworkFactoryArgs() networkComp.NetworkComponentsFactoryArgs {
 
 // GetStateFactoryArgs -
 func GetStateFactoryArgs(coreComponents factory.CoreComponentsHolder, statusCoreComp factory.StatusCoreComponentsHolder) stateComp.StateComponentsFactoryArgs {
-	tsm, _ := trie.NewTrieStorageManager(storage.GetStorageManagerArgs())
+	tsm, _ := trie.NewTrieStorageManager(commonMocks.GetStorageManagerArgs())
 	storageManagerUser, _ := trie.NewTrieStorageManagerWithoutPruning(tsm)
-	tsm, _ = trie.NewTrieStorageManager(storage.GetStorageManagerArgs())
+	tsm, _ = trie.NewTrieStorageManager(commonMocks.GetStorageManagerArgs())
 	storageManagerPeer, _ := trie.NewTrieStorageManagerWithoutPruning(tsm)
 
 	trieStorageManagers := make(map[string]common.StorageManager)

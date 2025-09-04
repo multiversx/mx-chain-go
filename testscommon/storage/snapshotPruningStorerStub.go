@@ -1,4 +1,4 @@
-package trie
+package storage
 
 import (
 	"github.com/multiversx/mx-chain-core-go/core"

@@ -115,6 +115,7 @@ func NewAccountsDB(args ArgsAccountsDB) (*AccountsDB, error) {
 }
 
 func createAccountsDb(args ArgsAccountsDB) *AccountsDB {
+	dth, _ := NewDataTriesHolder(10000000) // TODO make this configurable and check for error
 	return &AccountsDB{
 		mainTrie:               args.Trie,
 		hasher:                 args.Hasher,
@@ -123,7 +124,7 @@ func createAccountsDb(args ArgsAccountsDB) *AccountsDB {
 		storagePruningManager:  args.StoragePruningManager,
 		entries:                make([]JournalEntry, 0),
 		mutOp:                  sync.RWMutex{},
-		dataTries:              NewDataTriesHolder(),
+		dataTries:              dth,
 		obsoleteDataTrieHashes: make(map[string][][]byte),
 		loadCodeMeasurements: &loadingMeasurements{
 			identifier: "load code",
@@ -819,7 +820,7 @@ func (adb *AccountsDB) commit() ([]byte, error) {
 	oldHashes := make(common.ModifiedHashes)
 	newHashes := make(common.ModifiedHashes)
 	// Step 1. commit all data tries
-	dataTries := adb.dataTries.GetAll()
+	dataTries := adb.dataTries.GetAllDirtyAndResetFlag()
 	for i := 0; i < len(dataTries); i++ {
 		err := adb.commitTrie(dataTries[i], oldHashes, newHashes)
 		if err != nil {
