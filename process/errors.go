@@ -1191,8 +1191,8 @@ var ErrMaxCallsReached = errors.New("max calls reached")
 // ErrNilTxExecutionOrderHandler signals that a nil transaction execution order handler was provided
 var ErrNilTxExecutionOrderHandler = errors.New("nil transaction execution order handler")
 
-// ErrNilProcessorRequester signals that a nil processor requester was provided
-var ErrNilProcessorRequester = errors.New("nil processor requester")
+// ErrNilBlockDataRequester signals that a nil processor requester was provided
+var ErrNilBlockDataRequester = errors.New("nil block data requester")
 
 // ErrWrongTransactionType signals that transaction is invalid
 var ErrWrongTransactionType = errors.New("invalid transaction type")
