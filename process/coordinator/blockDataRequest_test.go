@@ -356,6 +356,9 @@ func TestBlockDataRequest_RequestBlockTransactions(t *testing.T) {
 		txPreproc := &preprocMocks.PreProcessorMock{
 			RequestBlockTransactionsCalled: func(body *block.Body) int {
 				time.Sleep(10 * time.Millisecond) // Simulate processing time
+				if body == nil || len(body.MiniBlocks) == 0 || body.MiniBlocks[0] == nil {
+					return 0
+				}
 				return len(body.MiniBlocks[0].TxHashes)
 			},
 		}
