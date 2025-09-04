@@ -118,6 +118,11 @@ func (mock *ShardedDataCacheNotifierMock) GetCounts() counting.CountsWithSize {
 	return &counting.NullCounts{}
 }
 
+// GetSelfShardID -
+func (mock *ShardedDataCacheNotifierMock) GetSelfShardID() string {
+	return ""
+}
+
 // Keys -
 func (mock *ShardedDataCacheNotifierMock) Keys() [][]byte {
 	mock.mutCaches.Lock()

@@ -20,6 +20,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/validator"
 	"github.com/multiversx/mx-chain-core-go/data/vm"
 	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/common/holders"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/debug"
 	"github.com/multiversx/mx-chain-go/epochStart/bootstrap/disabled"
@@ -29,6 +30,7 @@ import (
 	"github.com/multiversx/mx-chain-go/process"
 	txSimData "github.com/multiversx/mx-chain-go/process/transactionEvaluator/data"
 	"github.com/multiversx/mx-chain-go/state"
+	"github.com/multiversx/mx-chain-go/state/blockInfoProviders"
 	logger "github.com/multiversx/mx-chain-logger-go"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 )
@@ -48,6 +50,7 @@ type ArgNodeFacade struct {
 	ApiResolver            ApiResolver
 	RestAPIServerDebugMode bool
 	WsAntifloodConfig      config.WebServerAntifloodConfig
+	TxCacheSelectionConfig config.TxCacheSelectionConfig
 	FacadeConfig           config.FacadeConfig
 	ApiRoutesConfig        config.ApiRoutesConfig
 	AccountsState          state.AccountsAdapter
@@ -62,6 +65,7 @@ type nodeFacade struct {
 	syncer                 ntp.SyncTimer
 	config                 config.FacadeConfig
 	apiRoutesConfig        config.ApiRoutesConfig
+	txCacheSelectionConfig config.TxCacheSelectionConfig
 	endpointsThrottlers    map[string]core.Throttler
 	wsAntifloodConfig      config.WebServerAntifloodConfig
 	restAPIServerDebugMode bool
@@ -104,6 +108,7 @@ func NewNodeFacade(arg ArgNodeFacade) (*nodeFacade, error) {
 		wsAntifloodConfig:      arg.WsAntifloodConfig,
 		config:                 arg.FacadeConfig,
 		apiRoutesConfig:        arg.ApiRoutesConfig,
+		txCacheSelectionConfig: arg.TxCacheSelectionConfig,
 		endpointsThrottlers:    throttlersMap,
 		accountsState:          arg.AccountsState,
 		peerState:              arg.PeerState,
@@ -349,7 +354,24 @@ func (nf *nodeFacade) GetTransactionsPoolNonceGapsForSender(sender string) (*com
 }
 
 func (nf *nodeFacade) GetSelectedTransactions() (*common.TransactionsSelected, error) {
-	return nf.apiResolver.GetSelectedTransactions()
+	provider, err := blockInfoProviders.NewCurrentBlockInfo(nf.blockchain)
+	if err != nil {
+		return nil, err
+	}
+
+	accountsAdapterAPI, err := state.NewAccountsDBApi(nf.accountsState, provider)
+	if err != nil {
+		return nil, err
+	}
+
+	selectionOptions := holders.NewTxSelectionOptions(
+		nf.txCacheSelectionConfig.SelectionGasRequested,
+		nf.txCacheSelectionConfig.SelectionMaxNumTxs,
+		nf.txCacheSelectionConfig.SelectionLoopMaximumDuration,
+		nf.txCacheSelectionConfig.SelectionLoopDurationCheckInterval,
+	)
+
+	return nf.apiResolver.GetSelectedTransactions(accountsAdapterAPI, selectionOptions)
 }
 
 // ComputeTransactionGasLimit will estimate how many gas a transaction will consume

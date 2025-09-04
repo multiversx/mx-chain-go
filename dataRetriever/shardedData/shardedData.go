@@ -324,6 +324,11 @@ func (sd *shardedData) OnExecutedBlock(_ data.HeaderHandler) error {
 	return nil
 }
 
+func (sd *shardedData) GetSelfShardID() string {
+	log.Warn("shardedData.GetSelfShardID() should not have been called")
+	return ""
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (sd *shardedData) IsInterfaceNil() bool {
 	return sd == nil

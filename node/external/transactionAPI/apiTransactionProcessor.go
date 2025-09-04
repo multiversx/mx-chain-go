@@ -25,6 +25,7 @@ import (
 	"github.com/multiversx/mx-chain-go/process/smartContract"
 	"github.com/multiversx/mx-chain-go/process/txstatus"
 	"github.com/multiversx/mx-chain-go/sharding"
+	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/txcache"
 	logger "github.com/multiversx/mx-chain-logger-go"
 )
@@ -306,8 +307,8 @@ func (atp *apiTransactionProcessor) GetTransactionsPoolNonceGapsForSender(sender
 	}, nil
 }
 
-func (atp *apiTransactionProcessor) GetSelectedTransactions() (*common.TransactionsSelected, error) {
-	selectedTxHashes, err := atp.selectTransactions()
+func (atp *apiTransactionProcessor) GetSelectedTransactions(accountsAdapter state.AccountsAdapterAPI, selectionOptions common.TxSelectionOptions) (*common.TransactionsSelected, error) {
+	selectedTxHashes, err := atp.selectTransactions(accountsAdapter, selectionOptions)
 	if err != nil {
 		return nil, err
 	}
@@ -431,9 +432,8 @@ func (atp *apiTransactionProcessor) getFieldGettersForTx(wrappedTx *txcache.Wrap
 	return fieldGetters
 }
 
-func (atp *apiTransactionProcessor) selectTransactions() ([]string, error) {
-	var cacheId string
-
+func (atp *apiTransactionProcessor) selectTransactions(accountsAdapter state.AccountsAdapterAPI, selectionOptions common.TxSelectionOptions) ([]string, error) {
+	cacheId := atp.dataPool.Transactions().GetSelfShardID()
 	cache := atp.dataPool.Transactions().ShardDataStore(cacheId)
 	txCache, ok := cache.(*txcache.TxCache)
 	if !ok {
@@ -442,7 +442,7 @@ func (atp *apiTransactionProcessor) selectTransactions() ([]string, error) {
 	}
 
 	argsSelectionSession := preprocess.ArgsSelectionSession{
-		AccountsAdapter:       nil,
+		AccountsAdapter:       accountsAdapter,
 		TransactionsProcessor: nil,
 	}
 
@@ -453,8 +453,6 @@ func (atp *apiTransactionProcessor) selectTransactions() ([]string, error) {
 	}
 
 	blockchainInfo := holders.NewBlockchainInfo(nil, nil, 0)
-	selectionOptions := holders.NewTxSelectionOptions(0, 0, 0, 0)
-
 	selectedTxs, _ := txCache.SelectTransactions(selectionSession, selectionOptions, blockchainInfo)
 
 	return atp.extractTxHashes(selectedTxs), nil

@@ -220,8 +220,8 @@ func (nar *nodeApiResolver) GetTransactionsPoolNonceGapsForSender(sender string,
 	return nar.apiTransactionHandler.GetTransactionsPoolNonceGapsForSender(sender, senderAccountNonce)
 }
 
-func (nar *nodeApiResolver) GetSelectedTransactions() (*common.TransactionsSelected, error) {
-	return nar.apiTransactionHandler.GetSelectedTransactions()
+func (nar *nodeApiResolver) GetSelectedTransactions(accountsAdapter state.AccountsAdapterAPI, selectionOptions common.TxSelectionOptions) (*common.TransactionsSelected, error) {
+	return nar.apiTransactionHandler.GetSelectedTransactions(accountsAdapter, selectionOptions)
 }
 
 // GetBlockByHash will return the block with the given hash and optionally with transactions

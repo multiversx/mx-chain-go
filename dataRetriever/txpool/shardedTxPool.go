@@ -333,6 +333,10 @@ func (txPool *shardedTxPool) RegisterOnAdded(handler func(key []byte, value inte
 	txPool.mutexAddCallbacks.Unlock()
 }
 
+func (txPool *shardedTxPool) GetSelfShardID() string {
+	return strconv.Itoa(int(txPool.selfShardID))
+}
+
 // GetCounts returns the total number of transactions in the pool
 func (txPool *shardedTxPool) GetCounts() counting.CountsWithSize {
 	txPool.mutexBackingMap.RLock()

@@ -3,6 +3,7 @@ package mock
 import (
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/state"
 )
 
 // TransactionAPIHandlerStub -
@@ -12,7 +13,7 @@ type TransactionAPIHandlerStub struct {
 	GetTransactionsPoolForSenderCalled          func(sender, fields string) (*common.TransactionsPoolForSenderApiResponse, error)
 	GetLastPoolNonceForSenderCalled             func(sender string) (uint64, error)
 	GetTransactionsPoolNonceGapsForSenderCalled func(sender string, senderAccountNonce uint64) (*common.TransactionsPoolNonceGapsForSenderApiResponse, error)
-	GetSelectedTransactionsCalled               func() (*common.TransactionsSelected, error)
+	GetSelectedTransactionsCalled               func(accountsAdapter state.AccountsAdapterAPI, selectionOptions common.TxSelectionOptions) (*common.TransactionsSelected, error)
 	UnmarshalTransactionCalled                  func(txBytes []byte, txType transaction.TxType) (*transaction.ApiTransactionResult, error)
 	UnmarshalReceiptCalled                      func(receiptBytes []byte) (*transaction.ApiReceipt, error)
 	PopulateComputedFieldsCalled                func(tx *transaction.ApiTransactionResult)
@@ -74,9 +75,9 @@ func (tas *TransactionAPIHandlerStub) GetTransactionsPoolNonceGapsForSender(send
 }
 
 // GetSelectedTransactions -
-func (tas *TransactionAPIHandlerStub) GetSelectedTransactions() (*common.TransactionsSelected, error) {
+func (tas *TransactionAPIHandlerStub) GetSelectedTransactions(accountsAdapter state.AccountsAdapterAPI, selectionOptions common.TxSelectionOptions) (*common.TransactionsSelected, error) {
 	if tas.GetSelectedTransactionsCalled != nil {
-		return tas.GetSelectedTransactionsCalled()
+		return tas.GetSelectedTransactionsCalled(accountsAdapter, selectionOptions)
 	}
 
 	return nil, nil
