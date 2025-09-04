@@ -42,7 +42,8 @@ type TransactionsPoolNonceGapsForSenderApiResponse struct {
 	Gaps   []NonceGapApiResponse `json:"gaps"`
 }
 
-type TransactionsSelected struct {
+// SelectedTransactions represents a struct that holds the data to be returned when simulating a selection
+type SelectedTransactions struct {
 	TxHashes []string `json:"txHashes"`
 }
 

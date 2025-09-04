@@ -220,7 +220,8 @@ func (nar *nodeApiResolver) GetTransactionsPoolNonceGapsForSender(sender string,
 	return nar.apiTransactionHandler.GetTransactionsPoolNonceGapsForSender(sender, senderAccountNonce)
 }
 
-func (nar *nodeApiResolver) GetSelectedTransactions(accountsAdapter state.AccountsAdapterAPI, selectionOptions common.TxSelectionOptions) (*common.TransactionsSelected, error) {
+// GetSelectedTransactions will simulate a SelectTransactions and it will return the corresponding hash of each selected transaction
+func (nar *nodeApiResolver) GetSelectedTransactions(accountsAdapter state.AccountsAdapterAPI, selectionOptions common.TxSelectionOptions) (*common.SelectedTransactions, error) {
 	return nar.apiTransactionHandler.GetSelectedTransactions(accountsAdapter, selectionOptions)
 }
 

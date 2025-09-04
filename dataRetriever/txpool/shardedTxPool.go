@@ -333,6 +333,7 @@ func (txPool *shardedTxPool) RegisterOnAdded(handler func(key []byte, value inte
 	txPool.mutexAddCallbacks.Unlock()
 }
 
+// GetSelfShardID returns the selfShardID
 func (txPool *shardedTxPool) GetSelfShardID() string {
 	return strconv.Itoa(int(txPool.selfShardID))
 }

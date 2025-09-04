@@ -418,7 +418,7 @@ func (inf *initialNodeFacade) GetTransactionsPoolNonceGapsForSender(_ string) (*
 }
 
 // GetSelectedTransactions return a nil structure and error
-func (inf *initialNodeFacade) GetSelectedTransactions() (*common.TransactionsSelected, error) {
+func (inf *initialNodeFacade) GetSelectedTransactions() (*common.SelectedTransactions, error) {
 	return nil, errNodeStarting
 }
 

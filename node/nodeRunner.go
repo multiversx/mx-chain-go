@@ -764,6 +764,7 @@ func (nr *nodeRunner) createApiFacade(
 		Blockchain:      currentNode.dataComponents.Blockchain(),
 	}
 
+	currentNode.processComponents.BlockProcessor()
 	ef, err := facade.NewNodeFacade(argNodeFacade)
 	if err != nil {
 		return nil, fmt.Errorf("%w while creating NodeFacade", err)

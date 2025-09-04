@@ -353,7 +353,8 @@ func (nf *nodeFacade) GetTransactionsPoolNonceGapsForSender(sender string) (*com
 	return nf.apiResolver.GetTransactionsPoolNonceGapsForSender(sender, accountResponse.Nonce)
 }
 
-func (nf *nodeFacade) GetSelectedTransactions() (*common.TransactionsSelected, error) {
+// GetSelectedTransactions will simulate a SelectTransactions and it will return the corresponding hash of each selected transaction
+func (nf *nodeFacade) GetSelectedTransactions() (*common.SelectedTransactions, error) {
 	provider, err := blockInfoProviders.NewCurrentBlockInfo(nf.blockchain)
 	if err != nil {
 		return nil, err
