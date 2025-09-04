@@ -220,6 +220,10 @@ func (nar *nodeApiResolver) GetTransactionsPoolNonceGapsForSender(sender string,
 	return nar.apiTransactionHandler.GetTransactionsPoolNonceGapsForSender(sender, senderAccountNonce)
 }
 
+func (nar *nodeApiResolver) GetSelectedTransactions() (*common.TransactionsSelected, error) {
+	return nar.apiTransactionHandler.GetSelectedTransactions()
+}
+
 // GetBlockByHash will return the block with the given hash and optionally with transactions
 func (nar *nodeApiResolver) GetBlockByHash(hash string, options api.BlockQueryOptions) (*api.Block, error) {
 	decodedHash, err := hex.DecodeString(hash)

@@ -348,6 +348,10 @@ func (nf *nodeFacade) GetTransactionsPoolNonceGapsForSender(sender string) (*com
 	return nf.apiResolver.GetTransactionsPoolNonceGapsForSender(sender, accountResponse.Nonce)
 }
 
+func (nf *nodeFacade) GetSelectedTransactions() (*common.TransactionsSelected, error) {
+	return nf.apiResolver.GetSelectedTransactions()
+}
+
 // ComputeTransactionGasLimit will estimate how many gas a transaction will consume
 func (nf *nodeFacade) ComputeTransactionGasLimit(tx *transaction.Transaction) (*transaction.CostResponse, error) {
 	return nf.apiResolver.ComputeTransactionGasLimit(tx)

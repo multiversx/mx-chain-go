@@ -17,9 +17,11 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/typeConverters"
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/common/holders"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/dblookupext"
 	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/process/block/preprocess"
 	"github.com/multiversx/mx-chain-go/process/smartContract"
 	"github.com/multiversx/mx-chain-go/process/txstatus"
 	"github.com/multiversx/mx-chain-go/sharding"
@@ -304,6 +306,17 @@ func (atp *apiTransactionProcessor) GetTransactionsPoolNonceGapsForSender(sender
 	}, nil
 }
 
+func (atp *apiTransactionProcessor) GetSelectedTransactions() (*common.TransactionsSelected, error) {
+	selectedTxHashes, err := atp.selectTransactions()
+	if err != nil {
+		return nil, err
+	}
+
+	return &common.TransactionsSelected{
+		TxHashes: selectedTxHashes,
+	}, nil
+}
+
 func (atp *apiTransactionProcessor) extractRequestedTxInfoFromObj(txObj interface{}, txType transaction.TxType, txHash []byte, requestedFieldsHandler fieldsHandler) common.Transaction {
 	txResult := atp.getApiResultFromObj(txObj, txType)
 
@@ -416,6 +429,44 @@ func (atp *apiTransactionProcessor) getFieldGettersForTx(wrappedTx *txcache.Wrap
 	}
 
 	return fieldGetters
+}
+
+func (atp *apiTransactionProcessor) selectTransactions() ([]string, error) {
+	var cacheId string
+
+	cache := atp.dataPool.Transactions().ShardDataStore(cacheId)
+	txCache, ok := cache.(*txcache.TxCache)
+	if !ok {
+		log.Warn("apiTransactionProcessor.selectTransactions could not cast to TxCache")
+		return nil, ErrCouldNotCastToTxCache
+	}
+
+	argsSelectionSession := preprocess.ArgsSelectionSession{
+		AccountsAdapter:       nil,
+		TransactionsProcessor: nil,
+	}
+
+	selectionSession, err := preprocess.NewSelectionSession(argsSelectionSession)
+	if err != nil {
+		log.Warn("apiTransactionProcessor.selectTransactions could not create SelectionSession")
+		return nil, err
+	}
+
+	blockchainInfo := holders.NewBlockchainInfo(nil, nil, 0)
+	selectionOptions := holders.NewTxSelectionOptions(0, 0, 0, 0)
+
+	selectedTxs, _ := txCache.SelectTransactions(selectionSession, selectionOptions, blockchainInfo)
+
+	return atp.extractTxHashes(selectedTxs), nil
+}
+
+func (atp *apiTransactionProcessor) extractTxHashes(txs []*txcache.WrappedTransaction) []string {
+	txHashes := make([]string, len(txs))
+	for i, tx := range txs {
+		txHashes[i] = string(tx.TxHash)
+	}
+
+	return txHashes
 }
 
 func (atp *apiTransactionProcessor) fetchTxsForSender(sender string, senderShard uint32) []*txcache.WrappedTransaction {

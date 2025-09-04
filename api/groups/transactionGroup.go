@@ -37,6 +37,7 @@ const (
 	getTransactionPath               = "/:txhash"
 	getScrsByTxHashPath              = "/scrs-by-tx-hash/:txhash"
 	getTransactionsPool              = "/pool"
+	getSelectedTransactionsPath      = "/selected-transactions"
 
 	queryParamWithResults    = "withResults"
 	queryParamCheckSignature = "checkSignature"
@@ -61,6 +62,7 @@ type transactionFacadeHandler interface {
 	GetTransactionsPoolForSender(sender, fields string) (*common.TransactionsPoolForSenderApiResponse, error)
 	GetLastPoolNonceForSender(sender string) (uint64, error)
 	GetTransactionsPoolNonceGapsForSender(sender string) (*common.TransactionsPoolNonceGapsForSenderApiResponse, error)
+	GetSelectedTransactions() (*common.TransactionsSelected, error)
 	ComputeTransactionGasLimit(tx *transaction.Transaction) (*transaction.CostResponse, error)
 	EncodeAddressPubkey(pk []byte) (string, error)
 	GetThrottlerForEndpoint(endpoint string) (core.Throttler, bool)
@@ -130,6 +132,17 @@ func NewTransactionGroup(facade transactionFacadeHandler) (*transactionGroup, er
 			AdditionalMiddlewares: []shared.AdditionalMiddleware{
 				{
 					Middleware: middleware.CreateEndpointThrottlerFromFacade(getTransactionPath, facade),
+					Position:   shared.Before,
+				},
+			},
+		},
+		{
+			Path:    getSelectedTransactionsPath,
+			Method:  http.MethodGet,
+			Handler: tg.getSelectedTransactions,
+			AdditionalMiddlewares: []shared.AdditionalMiddleware{
+				{
+					Middleware: middleware.CreateEndpointThrottlerFromFacade(getSelectedTransactionsPath, facade),
 					Position:   shared.Before,
 				},
 			},
@@ -767,6 +780,33 @@ func (tg *transactionGroup) getTransactionsPoolNonceGapsForSender(sender string,
 		http.StatusOK,
 		shared.GenericAPIResponse{
 			Data:  gin.H{"nonceGaps": gaps},
+			Error: "",
+			Code:  shared.ReturnCodeSuccess,
+		},
+	)
+}
+
+// getSelectedTransactions simulates a selection and returns the hash of each selected transaction
+func (tg *transactionGroup) getSelectedTransactions(c *gin.Context) {
+	start := time.Now()
+	txHashes, err := tg.getFacade().GetSelectedTransactions()
+	logging.LogAPIActionDurationIfNeeded(start, "API call: GetSelectedTransactions")
+	if err != nil {
+		c.JSON(
+			http.StatusInternalServerError,
+			shared.GenericAPIResponse{
+				Data:  nil,
+				Error: err.Error(),
+				Code:  shared.ReturnCodeInternalError,
+			},
+		)
+		return
+	}
+
+	c.JSON(
+		http.StatusOK,
+		shared.GenericAPIResponse{
+			Data:  gin.H{"txHashes": txHashes},
 			Error: "",
 			Code:  shared.ReturnCodeSuccess,
 		},
