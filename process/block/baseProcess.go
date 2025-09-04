@@ -165,7 +165,7 @@ func NewBaseProcessor(arguments ArgBaseProcessor) (*baseProcessor, error) {
 		return nil, err
 	}
 
-	missingDataArgs := missingData.MissingDataResolverArgs{
+	missingDataArgs := missingData.ResolverArgs{
 		HeadersPool:        arguments.DataComponents.Datapool().Headers(),
 		ProofsPool:         arguments.DataComponents.Datapool().Proofs(),
 		RequestHandler:     arguments.RequestHandler,

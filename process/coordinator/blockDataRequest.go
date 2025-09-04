@@ -74,12 +74,13 @@ func NewBlockDataRequester(args BlockDataRequestArgs) (*BlockDataRequest, error)
 func (bdr *BlockDataRequest) Reset() {
 	bdr.initRequestedTxs()
 	bdr.requestedItemsHandler.Sweep()
-	// clean up the preprocessors used only for missing data requests
 
+	// clean up the preprocessors used only for missing data requests
 	preprocessors := bdr.preProcessors.Keys()
 	for _, preprocessorType := range preprocessors {
 		preprocessor, err := bdr.preProcessors.Get(preprocessorType)
 		if err != nil {
+			log.Warn("BlockDataRequest.Reset: GetPreProcessor", "type", preprocessorType, "error", err)
 			continue
 		}
 		preprocessor.CreateBlockStarted()
