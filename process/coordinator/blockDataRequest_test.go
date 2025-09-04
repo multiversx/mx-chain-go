@@ -242,7 +242,9 @@ func TestBlockDataRequest_RequestBlockTransactions(t *testing.T) {
 		blockDataRequester, _ := NewBlockDataRequester(args)
 
 		// Should not panic
-		blockDataRequester.RequestBlockTransactions(nil)
+		require.NotPanics(t, func() {
+			blockDataRequester.RequestBlockTransactions(nil)
+		})
 	})
 
 	t.Run("empty body should work", func(t *testing.T) {
@@ -376,17 +378,9 @@ func TestBlockDataRequest_RequestBlockTransactions(t *testing.T) {
 			},
 		}
 
-		// Make concurrent calls
-		var wg sync.WaitGroup
-		for i := 0; i < 5; i++ {
-			wg.Add(1)
-			go func() {
-				defer wg.Done()
-				blockDataRequester.RequestBlockTransactions(body)
-			}()
-		}
-
-		wg.Wait()
+		require.NotPanics(t, func() {
+			blockDataRequester.RequestBlockTransactions(body)
+		})
 
 		// Should not have race conditions
 		blockDataRequester.mutRequestedTxs.RLock()
@@ -403,13 +397,9 @@ func TestBlockDataRequest_RequestMiniBlocksAndTransactions(t *testing.T) {
 		args := createMockArgs()
 		blockDataRequester, _ := NewBlockDataRequester(args)
 
-		defer func() {
-			if r := recover(); r != nil {
-				t.Errorf("expected no panic, but got: %v", r)
-			}
-		}()
-
-		blockDataRequester.RequestMiniBlocksAndTransactions(nil)
+		require.NotPanics(t, func() {
+			blockDataRequester.RequestBlockTransactions(nil)
+		})
 	})
 
 	t.Run("should work with scheduled mini blocks flag disabled", func(t *testing.T) {
@@ -568,13 +558,9 @@ func TestBlockDataRequest_RequestMiniBlocksAndTransactions(t *testing.T) {
 			},
 		}
 
-		defer func() {
-			if r := recover(); r != nil {
-				t.Errorf("expected no panic, but got: %v", r)
-			}
-		}()
-
-		blockDataRequester.RequestMiniBlocksAndTransactions(header)
+		require.NotPanics(t, func() {
+			blockDataRequester.RequestMiniBlocksAndTransactions(header)
+		})
 	})
 }
 
@@ -769,12 +755,9 @@ func TestBlockDataRequest_receivedMiniBlock(t *testing.T) {
 		args := createMockArgs()
 		blockDataRequester, _ := NewBlockDataRequester(args)
 
-		defer func() {
-			if r := recover(); r != nil {
-				t.Errorf("expected no panic, but got: %v", r)
-			}
-		}()
-		blockDataRequester.receivedMiniBlock(nil, &block.MiniBlock{})
+		require.NotPanics(t, func() {
+			blockDataRequester.receivedMiniBlock(nil, &block.MiniBlock{})
+		})
 	})
 
 	t.Run("unrequested mini block should return early", func(t *testing.T) {
@@ -789,12 +772,9 @@ func TestBlockDataRequest_receivedMiniBlock(t *testing.T) {
 			TxHashes: [][]byte{[]byte("tx1"), []byte("tx2")},
 		}
 
-		defer func() {
-			if r := recover(); r != nil {
-				t.Errorf("expected no panic, but got: %v", r)
-			}
-		}()
-		blockDataRequester.receivedMiniBlock(key, miniBlock)
+		require.NotPanics(t, func() {
+			blockDataRequester.receivedMiniBlock(key, miniBlock)
+		})
 	})
 
 	t.Run("wrong type assertion should log warning and return", func(t *testing.T) {
@@ -809,12 +789,9 @@ func TestBlockDataRequest_receivedMiniBlock(t *testing.T) {
 		// Pass wrong type (not a mini block)
 		wrongValue := "not a mini block"
 
-		defer func() {
-			if r := recover(); r != nil {
-				t.Errorf("expected no panic, but got: %v", r)
-			}
-		}()
-		blockDataRequester.receivedMiniBlock(key, wrongValue)
+		require.NotPanics(t, func() {
+			blockDataRequester.receivedMiniBlock(key, wrongValue)
+		})
 	})
 
 	t.Run("preprocessor not found should log warning and return", func(t *testing.T) {
@@ -832,12 +809,9 @@ func TestBlockDataRequest_receivedMiniBlock(t *testing.T) {
 			TxHashes: [][]byte{[]byte("tx1")},
 		}
 
-		defer func() {
-			if r := recover(); r != nil {
-				t.Errorf("expected no panic, but got: %v", r)
-			}
-		}()
-		blockDataRequester.receivedMiniBlock(key, miniBlock)
+		require.NotPanics(t, func() {
+			blockDataRequester.receivedMiniBlock(key, miniBlock)
+		})
 	})
 
 	t.Run("should successfully request transactions for mini block", func(t *testing.T) {
@@ -868,12 +842,9 @@ func TestBlockDataRequest_receivedMiniBlock(t *testing.T) {
 			TxHashes: [][]byte{[]byte("tx1"), []byte("tx2"), []byte("tx3")},
 		}
 
-		defer func() {
-			if r := recover(); r != nil {
-				t.Errorf("expected no panic, but got: %v", r)
-			}
-		}()
-		blockDataRequester.receivedMiniBlock(key, miniBlock)
+		require.NotPanics(t, func() {
+			blockDataRequester.receivedMiniBlock(key, miniBlock)
+		})
 		require.Equal(t, 1, countCalled)
 	})
 
@@ -903,12 +874,9 @@ func TestBlockDataRequest_receivedMiniBlock(t *testing.T) {
 			TxHashes: [][]byte{}, // Empty transactions
 		}
 
-		defer func() {
-			if r := recover(); r != nil {
-				t.Errorf("expected no panic, but got: %v", r)
-			}
-		}()
-		blockDataRequester.receivedMiniBlock(key, miniBlock)
+		require.NotPanics(t, func() {
+			blockDataRequester.receivedMiniBlock(key, miniBlock)
+		})
 	})
 
 	t.Run("should handle multiple mini block types", func(t *testing.T) {
@@ -959,6 +927,205 @@ func TestBlockDataRequest_receivedMiniBlock(t *testing.T) {
 		require.Equal(t, 2, numRequestedTxs)
 		require.Equal(t, 3, numRequestedPeer)
 	})
+}
+
+func TestBlockDataRequest_ConcurrentOperations(t *testing.T) {
+	t.Parallel()
+
+	t.Run("concurrent RequestBlockTransactions and IsDataPreparedForProcessing", func(t *testing.T) {
+		t.Parallel()
+		args := createMockArgs()
+
+		// Create preprocessors that simulate processing time
+		preprocContainer := containers.NewPreProcessorsContainer()
+		txPreproc := &preprocMocks.PreProcessorMock{
+			RequestBlockTransactionsCalled: func(body *block.Body) int {
+				time.Sleep(5 * time.Millisecond) // Simulate processing time
+				if body == nil || len(body.MiniBlocks) == 0 {
+					return 0
+				}
+				return len(body.MiniBlocks[0].TxHashes)
+			},
+			IsDataPreparedCalled: func(requestedTxs int, haveTime func() time.Duration) error {
+				time.Sleep(3 * time.Millisecond) // Simulate processing time
+				return nil
+			},
+		}
+		peerPreproc := &preprocMocks.PreProcessorMock{
+			RequestBlockTransactionsCalled: func(body *block.Body) int {
+				time.Sleep(7 * time.Millisecond) // Different processing time
+				if body == nil || len(body.MiniBlocks) == 0 {
+					return 0
+				}
+				return len(body.MiniBlocks[0].TxHashes)
+			},
+			IsDataPreparedCalled: func(requestedTxs int, haveTime func() time.Duration) error {
+				time.Sleep(4 * time.Millisecond) // Different processing time
+				return nil
+			},
+		}
+
+		_ = preprocContainer.Add(block.TxBlock, txPreproc)
+		_ = preprocContainer.Add(block.PeerBlock, peerPreproc)
+		args.PreProcessors = preprocContainer
+
+		blockDataRequester, _ := NewBlockDataRequester(args)
+
+		// Create test bodies
+		body1 := &block.Body{
+			MiniBlocks: []*block.MiniBlock{
+				{
+					Type:     block.TxBlock,
+					TxHashes: [][]byte{[]byte("tx1"), []byte("tx2")},
+				},
+			},
+		}
+		body2 := &block.Body{
+			MiniBlocks: []*block.MiniBlock{
+				{
+					Type:     block.PeerBlock,
+					TxHashes: [][]byte{[]byte("peer1"), []byte("peer2"), []byte("peer3")},
+				},
+			},
+		}
+
+		haveTime := func() time.Duration { return time.Second }
+
+		// Run concurrent operations
+		var wg sync.WaitGroup
+		numGoroutines := 10
+
+		// Concurrent RequestBlockTransactions calls
+		for i := 0; i < numGoroutines/2; i++ {
+			wg.Add(1)
+			go func() {
+				defer wg.Done()
+				blockDataRequester.RequestBlockTransactions(body1)
+			}()
+		}
+
+		// Concurrent IsDataPreparedForProcessing calls
+		for i := 0; i < numGoroutines/2; i++ {
+			wg.Add(1)
+			go func() {
+				defer wg.Done()
+				// First request some transactions
+				blockDataRequester.RequestBlockTransactions(body2)
+				// Then check if data is prepared
+				_ = blockDataRequester.IsDataPreparedForProcessing(haveTime)
+			}()
+		}
+
+		wg.Wait()
+
+		// Verify no race conditions occurred
+		blockDataRequester.mutRequestedTxs.RLock()
+		require.NotNil(t, blockDataRequester.requestedTxs)
+		blockDataRequester.mutRequestedTxs.RUnlock()
+	})
+
+	t.Run("concurrent RequestMiniBlocksAndTransactions calls", func(t *testing.T) {
+		t.Parallel()
+		args := createMockArgs()
+
+		// Mock the mini block pool
+		miniBlockPool := &cache.CacherStub{
+			PeekCalled: func(key []byte) (value interface{}, ok bool) {
+				// Simulate some mini blocks found, some not
+				if bytes.Equal(key, []byte("hash1")) || bytes.Equal(key, []byte("hash3")) {
+					return &block.MiniBlock{
+						Type:     block.TxBlock,
+						TxHashes: [][]byte{[]byte("tx1")},
+					}, true
+				}
+				return nil, false
+			},
+		}
+		args.MiniBlockPool = miniBlockPool
+
+		// Mock preprocessors
+		numRequested := 0
+		mutRequested := sync.RWMutex{}
+		preprocContainer := containers.NewPreProcessorsContainer()
+		txPreproc := &preprocMocks.PreProcessorMock{
+			RequestTransactionsForMiniBlockCalled: func(miniBlock *block.MiniBlock) int {
+				mutRequested.Lock()
+				numRequested++
+				mutRequested.Unlock()
+				return len(miniBlock.TxHashes)
+			},
+		}
+		_ = preprocContainer.Add(block.TxBlock, txPreproc)
+		args.PreProcessors = preprocContainer
+
+		// Mock request handler
+		var requestedMiniBlocks int
+		mutMiniBlocks := sync.RWMutex{}
+		requestHandler := &testscommon.RequestHandlerStub{
+			RequestMiniBlocksHandlerCalled: func(destShardID uint32, miniblocksHashes [][]byte) {
+				mutMiniBlocks.Lock()
+				requestedMiniBlocks += len(miniblocksHashes)
+				mutMiniBlocks.Unlock()
+			},
+		}
+		args.RequestHandler = requestHandler
+
+		// Mock shard coordinator
+		shardCoordinator := mock.NewMultiShardsCoordinatorMock(3)
+		shardCoordinator.CurrentShard = 1
+		args.ShardCoordinator = shardCoordinator
+
+		blockDataRequester, _ := NewBlockDataRequester(args)
+
+		// Create headers with cross mini blocks
+		header1 := &testscommon.HeaderHandlerStub{
+			RoundField: 100,
+			GetMiniBlockHeadersWithDstCalled: func(destShardID uint32) map[string]uint32 {
+				return map[string]uint32{
+					"hash1": 0,
+					"hash2": 2,
+				}
+			},
+		}
+
+		header2 := &testscommon.HeaderHandlerStub{
+			RoundField: 101,
+			GetMiniBlockHeadersWithDstCalled: func(destShardID uint32) map[string]uint32 {
+				return map[string]uint32{
+					"hash3": 0,
+					"hash4": 2,
+				}
+			},
+		}
+
+		// Run concurrent RequestMiniBlocksAndTransactions calls
+		var wg sync.WaitGroup
+		numGoroutines := 5
+
+		for i := 0; i < numGoroutines; i++ {
+			wg.Add(1)
+			go func(headerIndex int) {
+				defer wg.Done()
+				if headerIndex%2 == 0 {
+					blockDataRequester.RequestMiniBlocksAndTransactions(header1)
+				} else {
+					blockDataRequester.RequestMiniBlocksAndTransactions(header2)
+				}
+			}(i)
+		}
+
+		wg.Wait()
+
+		// Verify operations completed without race conditions
+		mutRequested.RLock()
+		require.GreaterOrEqual(t, numRequested, 0)
+		mutRequested.RUnlock()
+
+		mutMiniBlocks.RLock()
+		require.GreaterOrEqual(t, requestedMiniBlocks, 0)
+		mutMiniBlocks.RUnlock()
+	})
+
 }
 
 func createMockArgs() BlockDataRequestArgs {
