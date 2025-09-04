@@ -2591,9 +2591,17 @@ func TestTransactionCoordinator_SeparateBody(t *testing.T) {
 	body.MiniBlocks = append(body.MiniBlocks, &block.MiniBlock{Type: block.SmartContractResultBlock})
 	body.MiniBlocks = append(body.MiniBlocks, &block.MiniBlock{Type: block.SmartContractResultBlock})
 	body.MiniBlocks = append(body.MiniBlocks, &block.MiniBlock{Type: block.SmartContractResultBlock})
+	body.MiniBlocks = append(body.MiniBlocks, &block.MiniBlock{Type: block.InvalidBlock}) // invalid blocks will go into the TxBlock bucket
+	body.MiniBlocks = append(body.MiniBlocks, &block.MiniBlock{Type: block.PeerBlock})
+	body.MiniBlocks = append(body.MiniBlocks, &block.MiniBlock{Type: block.PeerBlock})
+	body.MiniBlocks = append(body.MiniBlocks, &block.MiniBlock{Type: block.RewardsBlock})
+	body.MiniBlocks = append(body.MiniBlocks, &block.MiniBlock{Type: block.RewardsBlock})
+	body.MiniBlocks = append(body.MiniBlocks, &block.MiniBlock{Type: block.RewardsBlock})
 
 	separated := process.SeparateBodyByType(body)
-	assert.Equal(t, 2, len(separated))
-	assert.Equal(t, 3, len(separated[block.TxBlock].MiniBlocks))
-	assert.Equal(t, 4, len(separated[block.SmartContractResultBlock].MiniBlocks))
+	require.Equal(t, 4, len(separated))
+	require.Equal(t, 4, len(separated[block.TxBlock].MiniBlocks))
+	require.Equal(t, 4, len(separated[block.SmartContractResultBlock].MiniBlocks))
+	require.Equal(t, 2, len(separated[block.PeerBlock].MiniBlocks))
+	require.Equal(t, 3, len(separated[block.RewardsBlock].MiniBlocks))
 }

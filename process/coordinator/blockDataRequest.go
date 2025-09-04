@@ -16,7 +16,7 @@ import (
 	"github.com/multiversx/mx-chain-go/storage/cache"
 )
 
-// BlockDataRequestArgs holds the arguments needed to create a CoordinatorRequest
+// BlockDataRequestArgs holds the arguments needed to create a BlockDataRequest
 type BlockDataRequestArgs struct {
 	RequestHandler      process.RequestHandler
 	MiniBlockPool       storage.Cacher
@@ -221,7 +221,7 @@ func (bdr *BlockDataRequest) requestMissingMiniBlocksAndTransactions(mbsInfo []*
 
 		preproc, err := bdr.preProcessors.Get(miniBlock.Type)
 		if err != nil {
-			log.Warn("BlockDataRequest.requestMissingMiniBlocksAndTransactions: GetPreProcessor", "mb type", miniBlock.Type, "error", err)
+			log.Warn("BlockDataRequest.requestMissingMiniBlocksAndTransactions: preProcessors.Get", "mb type", miniBlock.Type, "error", err)
 			continue
 		}
 
