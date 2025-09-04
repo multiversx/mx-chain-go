@@ -662,21 +662,29 @@ func createHardForkExporter(
 			HeaderIntegrityVerifier:          node.HeaderIntegrityVerifier,
 			ValidityAttester:                 node.BlockTracker,
 			RoundHandler:                     &mock.RoundHandlerMock{},
-			InterceptorDebugConfig: config.InterceptorResolverDebugConfig{
-				Enabled:                    true,
-				EnablePrint:                true,
-				CacheSize:                  10000,
-				IntervalAutoPrintInSeconds: 20,
-				NumRequestsThreshold:       3,
-				NumResolveFailureThreshold: 3,
-				DebugLineExpiration:        3,
+			MaxHardCapForMissingNodes:        500,
+			NumConcurrentTrieSyncers:         50,
+			TrieSyncerVersion:                2,
+			CheckNodesOnDisk:                 false,
+			NodeOperationMode:                node.NodeOperationMode,
+			InterceptedDataVerifierFactory:   interceptorFactory.NewInterceptedDataVerifierFactory(interceptorDataVerifierFactoryArgs),
+			Config: config.Config{
+				Debug: config.DebugConfig{
+					InterceptorResolver: config.InterceptorResolverDebugConfig{
+						Enabled:                    true,
+						EnablePrint:                true,
+						CacheSize:                  10000,
+						IntervalAutoPrintInSeconds: 20,
+						NumRequestsThreshold:       3,
+						NumResolveFailureThreshold: 3,
+						DebugLineExpiration:        3,
+					},
+				},
+				InterceptedDataVerifier: config.InterceptedDataVerifierConfig{
+					CacheExpiryInSec: 1,
+					CacheSpanInSec:   1,
+				},
 			},
-			MaxHardCapForMissingNodes:      500,
-			NumConcurrentTrieSyncers:       50,
-			TrieSyncerVersion:              2,
-			CheckNodesOnDisk:               false,
-			NodeOperationMode:              node.NodeOperationMode,
-			InterceptedDataVerifierFactory: interceptorFactory.NewInterceptedDataVerifierFactory(interceptorDataVerifierFactoryArgs),
 		}
 
 		exportHandler, err := factory.NewExportHandlerFactory(argsExportHandler)

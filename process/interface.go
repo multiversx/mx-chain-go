@@ -1,9 +1,10 @@
 package process
 
 import (
-	"github.com/multiversx/mx-chain-go/ntp"
 	"math/big"
 	"time"
+
+	"github.com/multiversx/mx-chain-go/ntp"
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data"
@@ -125,6 +126,7 @@ type InterceptedDataFactory interface {
 // InterceptedData represents the interceptor's view of the received data
 type InterceptedData interface {
 	CheckValidity() error
+	ShouldAllowDuplicates() bool
 	IsForCurrentShard() bool
 	IsInterfaceNil() bool
 	Hash() []byte

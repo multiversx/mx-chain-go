@@ -6,7 +6,6 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/core/sync"
 	"github.com/multiversx/mx-chain-go/common"
-
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/storage"
 )
@@ -47,16 +46,15 @@ func (idv *interceptedDataVerifier) Verify(interceptedData process.InterceptedDa
 	idv.km.Lock(hash)
 	defer idv.km.Unlock(hash)
 
-	if val, ok := idv.cache.Get(interceptedData.Hash()); ok {
-		// TODO: check here is we can avoid sending data multiple times, maybe return err
-		if val == validInterceptedData {
-			return nil
-		}
-
-		return process.ErrInvalidInterceptedData
+	exists, err := idv.checkCachedData(interceptedData)
+	if err != nil {
+		return err
+	}
+	if exists {
+		return nil
 	}
 
-	err := interceptedData.CheckValidity()
+	err = interceptedData.CheckValidity()
 	if err != nil {
 		logInterceptedDataCheckValidityErr(interceptedData, err)
 		// TODO: investigate to selectively add as invalid intercepted data only when data is indeed invalid instead of missing
@@ -66,6 +64,23 @@ func (idv *interceptedDataVerifier) Verify(interceptedData process.InterceptedDa
 
 	idv.cache.Put(interceptedData.Hash(), validInterceptedData, interceptedDataStatusBytesSize)
 	return nil
+}
+
+func (idv *interceptedDataVerifier) checkCachedData(interceptedData process.InterceptedData) (bool, error) {
+	val, ok := idv.cache.Get(interceptedData.Hash())
+	if !ok {
+		return ok, nil
+	}
+
+	if val != validInterceptedData {
+		return ok, process.ErrInvalidInterceptedData
+	}
+
+	if !interceptedData.ShouldAllowDuplicates() {
+		return ok, process.DuplicatedInterceptedDataNotAllowed
+	}
+
+	return ok, nil
 }
 
 func logInterceptedDataCheckValidityErr(interceptedData process.InterceptedData, err error) {

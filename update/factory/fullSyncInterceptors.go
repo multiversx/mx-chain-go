@@ -2,11 +2,14 @@ package factory
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/core/throttler"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/multiversx/mx-chain-go/config"
+	"github.com/multiversx/mx-chain-go/storage/cache"
 
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
@@ -50,6 +53,7 @@ type fullSyncInterceptorsContainerFactory struct {
 	preferredPeersHolder           update.PreferredPeersHolderHandler
 	nodeOperationMode              common.NodeOperation
 	interceptedDataVerifierFactory process.InterceptedDataVerifierFactory
+	config                         config.Config
 }
 
 // ArgsNewFullSyncInterceptorsContainerFactory holds the arguments needed for fullSyncInterceptorsContainerFactory
@@ -78,6 +82,7 @@ type ArgsNewFullSyncInterceptorsContainerFactory struct {
 	AntifloodHandler                 process.P2PAntifloodHandler
 	NodeOperationMode                common.NodeOperation
 	InterceptedDataVerifierFactory   process.InterceptedDataVerifierFactory
+	Config                           config.Config
 }
 
 // NewFullSyncInterceptorsContainerFactory is responsible for creating a new interceptors factory object
@@ -590,6 +595,11 @@ func (ficf *fullSyncInterceptorsContainerFactory) createOneTxInterceptor(topic s
 		return nil, err
 	}
 
+	err = ficf.setUniqueChunksProcessor(interceptor)
+	if err != nil {
+		return nil, err
+	}
+
 	return ficf.createTopicAndAssignHandler(topic, interceptor, true)
 }
 
@@ -628,6 +638,11 @@ func (ficf *fullSyncInterceptorsContainerFactory) createOneUnsignedTxInterceptor
 			InterceptedDataVerifier: interceptedDataVerifier,
 		},
 	)
+	if err != nil {
+		return nil, err
+	}
+
+	err = ficf.setUniqueChunksProcessor(interceptor)
 	if err != nil {
 		return nil, err
 	}
@@ -674,7 +689,30 @@ func (ficf *fullSyncInterceptorsContainerFactory) createOneRewardTxInterceptor(t
 		return nil, err
 	}
 
+	err = ficf.setUniqueChunksProcessor(interceptor)
+	if err != nil {
+		return nil, err
+	}
+
 	return ficf.createTopicAndAssignHandler(topic, interceptor, true)
+}
+
+func (ficf *fullSyncInterceptorsContainerFactory) setUniqueChunksProcessor(interceptor *interceptors.MultiDataInterceptor) error {
+	internalMarshaller := ficf.argInterceptorFactory.CoreComponents.InternalMarshalizer()
+	chunksCache, err := cache.NewTimeCacher(cache.ArgTimeCacher{
+		DefaultSpan: time.Duration(ficf.config.InterceptedDataVerifier.CacheSpanInSec) * time.Second,
+		CacheExpiry: time.Duration(ficf.config.InterceptedDataVerifier.CacheExpiryInSec) * time.Second,
+	})
+	if err != nil {
+		return err
+	}
+
+	chunkProcessor, err := processor.NewUniqueChunksProcessor(chunksCache, internalMarshaller)
+	if err != nil {
+		return err
+	}
+
+	return interceptor.SetChunkProcessor(chunkProcessor)
 }
 
 func (ficf *fullSyncInterceptorsContainerFactory) generateMiniBlocksInterceptors() error {

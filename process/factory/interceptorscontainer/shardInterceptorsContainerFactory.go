@@ -131,6 +131,7 @@ func NewShardInterceptorsContainerFactory(
 		nodeOperationMode:              args.NodeOperationMode,
 		interceptedDataVerifierFactory: args.InterceptedDataVerifierFactory,
 		enableEpochsHandler:            args.CoreComponents.EnableEpochsHandler(),
+		config:                         args.Config,
 	}
 
 	icf := &shardInterceptorsContainerFactory{

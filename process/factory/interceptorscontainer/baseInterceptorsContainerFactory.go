@@ -7,8 +7,8 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/hashing"
-
 	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/heartbeat"
 	"github.com/multiversx/mx-chain-go/process"
@@ -21,6 +21,7 @@ import (
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/storage"
+	"github.com/multiversx/mx-chain-go/storage/cache"
 )
 
 const (
@@ -57,6 +58,7 @@ type baseInterceptorsContainerFactory struct {
 	nodeOperationMode              common.NodeOperation
 	interceptedDataVerifierFactory process.InterceptedDataVerifierFactory
 	enableEpochsHandler            common.EnableEpochsHandler
+	config                         config.Config
 }
 
 func checkBaseParams(
@@ -314,6 +316,11 @@ func (bicf *baseInterceptorsContainerFactory) createOneTxInterceptor(topic strin
 		return nil, err
 	}
 
+	err = bicf.setUniqueChunksProcessor(interceptor)
+	if err != nil {
+		return nil, err
+	}
+
 	return bicf.createTopicAndAssignHandler(topic, interceptor, true)
 }
 
@@ -364,6 +371,11 @@ func (bicf *baseInterceptorsContainerFactory) createOneUnsignedTxInterceptor(top
 		return nil, err
 	}
 
+	err = bicf.setUniqueChunksProcessor(interceptor)
+	if err != nil {
+		return nil, err
+	}
+
 	return bicf.createTopicAndAssignHandler(topic, interceptor, true)
 }
 
@@ -410,6 +422,11 @@ func (bicf *baseInterceptorsContainerFactory) createOneRewardTxInterceptor(topic
 			InterceptedDataVerifier: interceptedDataVerifier,
 		},
 	)
+	if err != nil {
+		return nil, err
+	}
+
+	err = bicf.setUniqueChunksProcessor(interceptor)
 	if err != nil {
 		return nil, err
 	}
@@ -559,7 +576,30 @@ func (bicf *baseInterceptorsContainerFactory) createOneMiniBlocksInterceptor(top
 		return nil, err
 	}
 
+	err = bicf.setUniqueChunksProcessor(interceptor)
+	if err != nil {
+		return nil, err
+	}
+
 	return bicf.createTopicAndAssignHandler(topic, interceptor, true)
+}
+
+func (bicf *baseInterceptorsContainerFactory) setUniqueChunksProcessor(interceptor *interceptors.MultiDataInterceptor) error {
+	internalMarshaller := bicf.argInterceptorFactory.CoreComponents.InternalMarshalizer()
+	chunksCache, err := cache.NewTimeCacher(cache.ArgTimeCacher{
+		DefaultSpan: time.Duration(bicf.config.InterceptedDataVerifier.CacheSpanInSec) * time.Second,
+		CacheExpiry: time.Duration(bicf.config.InterceptedDataVerifier.CacheExpiryInSec) * time.Second,
+	})
+	if err != nil {
+		return err
+	}
+
+	chunkProcessor, err := processor.NewUniqueChunksProcessor(chunksCache, internalMarshaller)
+	if err != nil {
+		return err
+	}
+
+	return interceptor.SetChunkProcessor(chunkProcessor)
 }
 
 // ------- MetachainHeader interceptors

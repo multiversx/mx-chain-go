@@ -1316,3 +1316,6 @@ var ErrBadTxCacheSelectionLoopMaximumDuration = errors.New("bad tx cache selecti
 
 // ErrBadTxCacheSelectionLoopDurationCheckInterval signals a bad txcache config
 var ErrBadTxCacheSelectionLoopDurationCheckInterval = errors.New("bad selection loop duration check interval")
+
+// DuplicatedInterceptedDataNotAllowed signals that duplicated intercepted data is not allowed
+var DuplicatedInterceptedDataNotAllowed = errors.New("duplicated intercepted data not allowed")
