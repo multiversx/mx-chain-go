@@ -145,6 +145,9 @@ const MetricCountConsensus = "erd_count_consensus"
 // MetricCountAcceptedBlocks is the metric for monitoring number of blocks that was accepted proposed by a node
 const MetricCountAcceptedBlocks = "erd_count_accepted_blocks"
 
+// MetricExecutionResultsNoncesBehind is the metric for monitoring how many nonces behind consensus are the execution results
+const MetricExecutionResultsNoncesBehind = "erd_execution_results_nonces_behind"
+
 // MetricNodeType is the metric for monitoring the type of the node
 const MetricNodeType = "erd_node_type"
 

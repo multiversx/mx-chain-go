@@ -82,3 +82,20 @@ type MissingDataResolver interface {
 	Reset()
 	IsInterfaceNil() bool
 }
+
+// GasComputation is the interface that defines the methods for gas tracking and computation for the proposed transactions
+type GasComputation interface {
+	CheckIncomingMiniBlocks(
+		miniBlocks []data.MiniBlockHeaderHandler,
+		transactions map[string][]data.TransactionHandler,
+	) (uint32, uint32)
+	CheckOutgoingTransactions(transactions []data.TransactionHandler) uint32
+	TotalGasConsumed() uint64
+	GetLastMiniBlockIndexIncluded() (bool, uint32)
+	GetLasTransactionIndexIncluded() (bool, uint32)
+	DecreaseMiniBlockLimit()
+	ResetMiniBlockLimit()
+	DecreaseBlockLimit()
+	ResetBlockLimit()
+	Reset()
+}

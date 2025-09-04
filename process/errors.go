@@ -1352,3 +1352,9 @@ var ErrInvalidMaxNonceDifference = errors.New("invalid max nonce difference")
 
 // ErrNilBaseExecutionResult signals that a nil base execution result has been provided
 var ErrNilBaseExecutionResult = errors.New("nil base execution result")
+
+// ErrWrongMiniBlockConstructionState signals that the mini block construction state is not as expected
+var ErrWrongMiniBlockConstructionState = errors.New("wrong mini block construction state")
+
+// ErrExecutionResultMismatch signals that the execution result does not match the expected one
+var ErrExecutionResultMismatch = errors.New("execution result mismatch")
