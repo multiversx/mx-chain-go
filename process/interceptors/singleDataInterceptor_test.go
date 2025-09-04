@@ -61,7 +61,7 @@ func createMockThrottler() *mock.InterceptorThrottlerStub {
 
 func createMockInterceptedDataVerifier() *mock.InterceptedDataVerifierMock {
 	return &mock.InterceptedDataVerifierMock{
-		VerifyCalled: func(interceptedData process.InterceptedData) error {
+		VerifyCalled: func(interceptedData process.InterceptedData, topic string) error {
 			return interceptedData.CheckValidity()
 		},
 	}

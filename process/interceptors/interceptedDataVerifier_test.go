@@ -63,11 +63,11 @@ func TestInterceptedDataVerifier_EmptyHash(t *testing.T) {
 		},
 	}
 
-	err := verifier.Verify(interceptedData)
+	err := verifier.Verify(interceptedData, "topic")
 	require.NoError(t, err)
 	require.Equal(t, 1, checkValidityCounter)
 
-	err = verifier.Verify(interceptedData)
+	err = verifier.Verify(interceptedData, "topic")
 	require.NoError(t, err)
 	require.Equal(t, 2, checkValidityCounter)
 }
@@ -92,8 +92,10 @@ func TestInterceptedDataVerifier_CheckValidityShouldWork(t *testing.T) {
 
 	verifier := defaultInterceptedDataVerifier(defaultSpan)
 
-	err := verifier.Verify(interceptedData)
+	err := verifier.Verify(interceptedData, "topic")
 	require.NoError(t, err)
+
+	verifier.MarkVerified(interceptedData, "topic")
 
 	errCount := atomic.Counter{}
 	wg := sync.WaitGroup{}
@@ -101,7 +103,7 @@ func TestInterceptedDataVerifier_CheckValidityShouldWork(t *testing.T) {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			err := verifier.Verify(interceptedData)
+			err := verifier.Verify(interceptedData, "topic")
 			if err != nil {
 				errCount.Add(1)
 			}
@@ -132,7 +134,7 @@ func TestInterceptedDataVerifier_CheckValidityShouldNotWork(t *testing.T) {
 
 	verifier := defaultInterceptedDataVerifier(defaultSpan)
 
-	err := verifier.Verify(interceptedData)
+	err := verifier.Verify(interceptedData, "topic")
 	require.Equal(t, process.ErrInvalidInterceptedData, err)
 
 	errCount := atomic.Counter{}
@@ -141,7 +143,7 @@ func TestInterceptedDataVerifier_CheckValidityShouldNotWork(t *testing.T) {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			err := verifier.Verify(interceptedData)
+			err := verifier.Verify(interceptedData, "topic")
 			if err != nil {
 				errCount.Add(1)
 			}
@@ -177,12 +179,14 @@ func TestInterceptedDataVerifier_CheckExpiryTime(t *testing.T) {
 		verifier := defaultInterceptedDataVerifier(expiryTestDuration)
 
 		// First retrieval, check validity is reached.
-		err := verifier.Verify(interceptedData)
+		err := verifier.Verify(interceptedData, "topic")
 		require.NoError(t, err)
 		require.Equal(t, int64(1), checkValidityCounter.Get())
 
+		verifier.MarkVerified(interceptedData, "topic")
+
 		// Second retrieval should be from the cache.
-		err = verifier.Verify(interceptedData)
+		err = verifier.Verify(interceptedData, "topic")
 		require.NoError(t, err)
 		require.Equal(t, int64(1), checkValidityCounter.Get())
 
@@ -190,7 +194,7 @@ func TestInterceptedDataVerifier_CheckExpiryTime(t *testing.T) {
 		<-time.After(expiryTestDuration + 100*time.Millisecond)
 
 		// Third retrieval should reach validity check again.
-		err = verifier.Verify(interceptedData)
+		err = verifier.Verify(interceptedData, "topic")
 		require.NoError(t, err)
 		require.Equal(t, int64(2), checkValidityCounter.Get())
 	})
@@ -216,12 +220,12 @@ func TestInterceptedDataVerifier_CheckExpiryTime(t *testing.T) {
 		verifier := defaultInterceptedDataVerifier(expiryTestDuration)
 
 		// First retrieval, check validity is reached.
-		err := verifier.Verify(interceptedData)
+		err := verifier.Verify(interceptedData, "topic")
 		require.Equal(t, process.ErrInvalidInterceptedData, err)
 		require.Equal(t, int64(1), checkValidityCounter.Get())
 
 		// Second retrieval
-		err = verifier.Verify(interceptedData)
+		err = verifier.Verify(interceptedData, "topic")
 		require.Equal(t, process.ErrInvalidInterceptedData, err)
 		require.Equal(t, int64(2), checkValidityCounter.Get())
 
@@ -229,7 +233,7 @@ func TestInterceptedDataVerifier_CheckExpiryTime(t *testing.T) {
 		<-time.After(expiryTestDuration + 100*time.Millisecond)
 
 		// Third retrieval should reach validity check again.
-		err = verifier.Verify(interceptedData)
+		err = verifier.Verify(interceptedData, "topic")
 		require.Equal(t, process.ErrInvalidInterceptedData, err)
 		require.Equal(t, int64(3), checkValidityCounter.Get())
 	})
