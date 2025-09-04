@@ -173,7 +173,7 @@ func (tc *transactionCoordinator) SaveTxsToStorage(body *block.Body) {
 }
 
 func (tc *transactionCoordinator) saveTxsToStorage(blockType block.Type, blockBody *block.Body) {
-	preproc := tc.GetPreProcessor(blockType)
+	preproc := tc.getPreProcessor(blockType)
 	if check.IfNil(preproc) {
 		return
 	}
@@ -210,7 +210,7 @@ func (tc *transactionCoordinator) RestoreBlockDataFromStorage(body *block.Body) 
 
 	for key, value := range separatedBodies {
 		go func(blockType block.Type, blockBody *block.Body) {
-			preproc := tc.GetPreProcessor(blockType)
+			preproc := tc.getPreProcessor(blockType)
 			if check.IfNil(preproc) {
 				wg.Done()
 				return
@@ -255,7 +255,7 @@ func (tc *transactionCoordinator) RemoveBlockDataFromPool(body *block.Body) erro
 
 	for key, value := range separatedBodies {
 		go func(blockType block.Type, blockBody *block.Body) {
-			preproc := tc.GetPreProcessor(blockType)
+			preproc := tc.getPreProcessor(blockType)
 			if check.IfNil(preproc) {
 				wg.Done()
 				return
@@ -294,7 +294,7 @@ func (tc *transactionCoordinator) RemoveTxsFromPool(body *block.Body) error {
 
 	for key, value := range separatedBodies {
 		go func(blockType block.Type, blockBody *block.Body) {
-			preproc := tc.GetPreProcessor(blockType)
+			preproc := tc.getPreProcessor(blockType)
 			if check.IfNil(preproc) {
 				wg.Done()
 				return
@@ -409,7 +409,7 @@ func (tc *transactionCoordinator) processMiniBlocksFromMe(
 			continue
 		}
 
-		preProc := tc.GetPreProcessor(blockType)
+		preProc := tc.getPreProcessor(blockType)
 		if check.IfNil(preProc) {
 			return process.ErrMissingPreProcessor
 		}
@@ -450,7 +450,7 @@ func (tc *transactionCoordinator) processMiniBlocksToMe(
 			return mbIndex, nil
 		}
 
-		preProc := tc.GetPreProcessor(miniBlock.Type)
+		preProc := tc.getPreProcessor(miniBlock.Type)
 		if check.IfNil(preProc) {
 			return mbIndex, process.ErrMissingPreProcessor
 		}
@@ -591,7 +591,7 @@ func (tc *transactionCoordinator) CreateMbsAndProcessCrossShardTransactionsDstMe
 			continue
 		}
 
-		preproc := tc.GetPreProcessor(miniBlock.Type)
+		preproc := tc.getPreProcessor(miniBlock.Type)
 		if check.IfNil(preproc) {
 			return nil, 0, false, fmt.Errorf("%w unknown block type %d", process.ErrNilPreProcessor, miniBlock.Type)
 		}
@@ -756,7 +756,7 @@ func (tc *transactionCoordinator) CreateMbsAndProcessTransactionsFromMe(
 	}()
 
 	for _, blockType := range tc.keysTxPreProcs {
-		txPreProc := tc.GetPreProcessor(blockType)
+		txPreProc := tc.getPreProcessor(blockType)
 		if check.IfNil(txPreProc) {
 			return nil
 		}
@@ -823,7 +823,7 @@ func (tc *transactionCoordinator) CreateBlockStarted() {
 	tc.transactionsLogProcessor.Clean()
 }
 
-func (tc *transactionCoordinator) GetPreProcessor(blockType block.Type) process.PreProcessor {
+func (tc *transactionCoordinator) getPreProcessor(blockType block.Type) process.PreProcessor {
 	tc.mutPreProcessor.RLock()
 	preprocessor, exists := tc.txPreProcessors[blockType]
 	tc.mutPreProcessor.RUnlock()
@@ -891,7 +891,7 @@ func (tc *transactionCoordinator) CreateMarshalizedData(body *block.Body) map[st
 		}
 
 		isPreProcessMiniBlock := miniBlock.Type == block.TxBlock
-		preproc := tc.GetPreProcessor(miniBlock.Type)
+		preproc := tc.getPreProcessor(miniBlock.Type)
 		if !check.IfNil(preproc) && isPreProcessMiniBlock {
 			dataMarshalizer, ok := preproc.(process.DataMarshalizer)
 			if ok {
@@ -945,7 +945,7 @@ func (tc *transactionCoordinator) GetAllCurrentUsedTxs(blockType block.Type) map
 	txPool := make(map[string]data.TransactionHandler)
 	interTxPool := make(map[string]data.TransactionHandler)
 
-	preProc := tc.GetPreProcessor(blockType)
+	preProc := tc.getPreProcessor(blockType)
 	if preProc != nil {
 		txPool = preProc.GetAllCurrentUsedTxs()
 	}
@@ -1257,7 +1257,7 @@ func (tc *transactionCoordinator) isMaxBlockSizeReached(body *block.Body) bool {
 
 	allTxs := make(map[string]data.TransactionHandler)
 
-	preProc := tc.GetPreProcessor(block.TxBlock)
+	preProc := tc.getPreProcessor(block.TxBlock)
 	if check.IfNil(preProc) {
 		log.Warn("transactionCoordinator.isMaxBlockSizeReached: preProc is nil", "blockType", block.TxBlock)
 	} else {
@@ -1611,7 +1611,7 @@ func checkTransactionCoordinatorNilParameters(arguments ArgTransactionCoordinato
 		return process.ErrNilTxExecutionOrderHandler
 	}
 	if check.IfNil(arguments.BlockDataRequester) {
-		return process.ErrNilProcessorRequester
+		return process.ErrNilBlockDataRequester
 	}
 
 	return nil
@@ -1652,7 +1652,7 @@ func (tc *transactionCoordinator) GetAllIntermediateTxs() map[block.Type]map[str
 // AddTxsFromMiniBlocks adds transactions from given mini blocks needed by the current block
 func (tc *transactionCoordinator) AddTxsFromMiniBlocks(miniBlocks block.MiniBlockSlice) {
 	for _, mb := range miniBlocks {
-		preProc := tc.GetPreProcessor(mb.Type)
+		preProc := tc.getPreProcessor(mb.Type)
 		if check.IfNil(preProc) {
 			log.Warn("transactionCoordinator.AddTxsFromMiniBlocks: preProc is nil", "blockType", mb.Type)
 			continue
@@ -1664,7 +1664,7 @@ func (tc *transactionCoordinator) AddTxsFromMiniBlocks(miniBlocks block.MiniBloc
 
 // AddTransactions adds the given transactions to the preprocessor
 func (tc *transactionCoordinator) AddTransactions(txs []data.TransactionHandler, blockType block.Type) {
-	preProc := tc.GetPreProcessor(blockType)
+	preProc := tc.getPreProcessor(blockType)
 	if check.IfNil(preProc) {
 		log.Warn("transactionCoordinator.AddTransactions preProc is nil", "blockType", blockType)
 		return
