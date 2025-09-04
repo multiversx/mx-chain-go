@@ -25,6 +25,9 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/typeConverters/uint64ByteSlice"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/common/graceperiod"
 	"github.com/multiversx/mx-chain-go/config"
@@ -37,6 +40,7 @@ import (
 	"github.com/multiversx/mx-chain-go/process/block/headerForBlock"
 	"github.com/multiversx/mx-chain-go/process/block/processedMb"
 	"github.com/multiversx/mx-chain-go/process/coordinator"
+	"github.com/multiversx/mx-chain-go/process/factory/containers"
 	"github.com/multiversx/mx-chain-go/process/mock"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/state"
@@ -56,12 +60,11 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/mainFactoryMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/outport"
+	"github.com/multiversx/mx-chain-go/testscommon/preprocMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/shardingMocks"
 	stateMock "github.com/multiversx/mx-chain-go/testscommon/state"
 	statusHandlerMock "github.com/multiversx/mx-chain-go/testscommon/statusHandler"
 	storageStubs "github.com/multiversx/mx-chain-go/testscommon/storage"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 var expectedErr = errors.New("expected error")
@@ -118,6 +121,22 @@ func createArgBaseProcessor(
 		})
 	}
 
+	var blockDataRequester process.BlockDataRequester
+	if check.IfNil(dataComponents) || check.IfNil(dataComponents.Datapool()) || check.IfNil(coreComponents) || check.IfNil(bootstrapComponents) {
+		blockDataRequester = &preprocMocks.BlockDataRequesterStub{}
+	} else {
+		preprocContainer := containers.NewPreProcessorsContainer()
+		blockDataRequesterArgs := coordinator.BlockDataRequestArgs{
+			RequestHandler:      &testscommon.RequestHandlerStub{},
+			MiniBlockPool:       dataComponents.Datapool().MiniBlocks(),
+			PreProcessors:       preprocContainer,
+			ShardCoordinator:    bootstrapComponents.ShardCoordinator(),
+			EnableEpochsHandler: coreComponents.EnableEpochsHandler(),
+		}
+		// second instance for proposal missing data fetching to avoid interferences
+		blockDataRequester, _ = coordinator.NewBlockDataRequester(blockDataRequesterArgs)
+	}
+
 	return blproc.ArgBaseProcessor{
 		CoreComponents:       coreComponents,
 		DataComponents:       dataComponents,
@@ -153,6 +172,7 @@ func createArgBaseProcessor(
 		ManagedPeersHolder:             &testscommon.ManagedPeersHolderStub{},
 		SentSignaturesTracker:          &testscommon.SentSignatureTrackerStub{},
 		HeadersForBlock:                headersForBlock,
+		BlockDataRequester:             blockDataRequester,
 	}
 }
 
@@ -461,13 +481,26 @@ func createMockTransactionCoordinatorArguments(
 	poolsHolder dataRetriever.PoolsHolder,
 	preProcessorsContainer process.PreProcessorsContainer,
 ) coordinator.ArgTransactionCoordinator {
+
+	shardCoordinator := mock.NewMultiShardsCoordinatorMock(3)
+	enableEpochsHandler := enableEpochsHandlerMock.NewEnableEpochsHandlerStub()
+
+	blockDataRequesterArgs := coordinator.BlockDataRequestArgs{
+		RequestHandler:      &testscommon.RequestHandlerStub{},
+		MiniBlockPool:       poolsHolder.MiniBlocks(),
+		PreProcessors:       preProcessorsContainer,
+		ShardCoordinator:    shardCoordinator,
+		EnableEpochsHandler: enableEpochsHandler,
+	}
+
+	blockDataRequester, _ := coordinator.NewBlockDataRequester(blockDataRequesterArgs)
+
 	argsTransactionCoordinator := coordinator.ArgTransactionCoordinator{
 		Hasher:           &hashingMocks.HasherMock{},
 		Marshalizer:      &mock.MarshalizerMock{},
-		ShardCoordinator: mock.NewMultiShardsCoordinatorMock(3),
+		ShardCoordinator: shardCoordinator,
 		Accounts:         accountAdapter,
 		MiniBlockPool:    poolsHolder.MiniBlocks(),
-		RequestHandler:   &testscommon.RequestHandlerStub{},
 		PreProcessors:    preProcessorsContainer,
 		InterProcessors: &mock.InterimProcessorContainerMock{
 			KeysCalled: func() []block.Type {
@@ -481,11 +514,12 @@ func createMockTransactionCoordinatorArguments(
 		EconomicsFee:                 &economicsmocks.EconomicsHandlerMock{},
 		TxTypeHandler:                &testscommon.TxTypeHandlerMock{},
 		TransactionsLogProcessor:     &mock.TxLogsProcessorStub{},
-		EnableEpochsHandler:          enableEpochsHandlerMock.NewEnableEpochsHandlerStub(),
+		EnableEpochsHandler:          enableEpochsHandler,
 		ScheduledTxsExecutionHandler: &testscommon.ScheduledTxsExecutionStub{},
 		DoubleTransactionsDetector:   &testscommon.PanicDoubleTransactionsDetector{},
 		ProcessedMiniBlocksTracker:   &testscommon.ProcessedMiniBlocksTrackerStub{},
 		TxExecutionOrderHandler:      &commonMocks.TxExecutionOrderHandlerStub{},
+		BlockDataRequester:           blockDataRequester,
 	}
 
 	return argsTransactionCoordinator
@@ -3302,5 +3336,158 @@ func TestBaseProcessor_DisplayHeader(t *testing.T) {
 
 		lines := blproc.DisplayHeader(header, proof)
 		require.Equal(t, 23, len(lines))
+	})
+}
+
+func Test_getLastBaseExecutionResultHandler(t *testing.T) {
+	t.Parallel()
+
+	t.Run("nil header, should return error", func(t *testing.T) {
+		var header data.HeaderHandler
+		result, err := blproc.GetLastBaseExecutionResultHandler(header)
+		require.Nil(t, result)
+		require.Equal(t, process.ErrNilHeaderHandler, err)
+	})
+	t.Run("nil last execution result (wrong header), should return error", func(t *testing.T) {
+		result, err := blproc.GetLastBaseExecutionResultHandler(&block.Header{})
+		require.Nil(t, result)
+		require.Equal(t, process.ErrNilLastExecutionResultHandler, err)
+	})
+	t.Run("valid LastMetaExecutionResultHandler, should return handler", func(t *testing.T) {
+		baseMetaExecutionResultsHandler := &block.BaseMetaExecutionResult{
+			BaseExecutionResult: &block.BaseExecutionResult{
+				HeaderHash:  []byte("hash"),
+				HeaderNonce: 100,
+				HeaderRound: 200,
+				RootHash:    []byte("rootHash"),
+			},
+		}
+
+		header := &block.MetaBlockV3{
+			LastExecutionResult: &block.MetaExecutionResultInfo{
+				NotarizedOnHeaderHash: []byte("hash notarization header"),
+				ExecutionResult:       baseMetaExecutionResultsHandler,
+			},
+		}
+
+		result, err := blproc.GetLastBaseExecutionResultHandler(header)
+		require.NotNil(t, result)
+		require.Nil(t, err)
+		require.Equal(t, baseMetaExecutionResultsHandler, result)
+	})
+	t.Run("nil internal BaseMetaExecutionResultHandler, should return error", func(t *testing.T) {
+		header := &block.MetaBlockV3{
+			LastExecutionResult: &block.MetaExecutionResultInfo{
+				NotarizedOnHeaderHash: []byte("hash notarization header"),
+				ExecutionResult:       nil,
+			},
+		}
+
+		result, err := blproc.GetLastBaseExecutionResultHandler(header)
+		require.Nil(t, result)
+		require.Equal(t, process.ErrNilBaseExecutionResult, err)
+	})
+	t.Run("valid LastShardExecutionResultHandler, should return handler", func(t *testing.T) {
+		baseExecutionResults := &block.BaseExecutionResult{
+			HeaderHash:  []byte("hash"),
+			HeaderNonce: 100,
+			HeaderRound: 200,
+			RootHash:    []byte("rootHash"),
+		}
+		header := &block.HeaderV3{
+			LastExecutionResult: &block.ExecutionResultInfo{
+				NotarizedOnHeaderHash: []byte("notarized on header hash"),
+				ExecutionResult:       baseExecutionResults,
+			},
+		}
+
+		result, err := blproc.GetLastBaseExecutionResultHandler(header)
+		require.NotNil(t, result)
+		require.Nil(t, err)
+		require.Equal(t, baseExecutionResults, result)
+	})
+
+	t.Run("nil base execution result, should return error", func(t *testing.T) {
+		var baseExecutionResultsHandler *block.BaseExecutionResult
+		header := &block.HeaderV3{
+			LastExecutionResult: &block.ExecutionResultInfo{
+				NotarizedOnHeaderHash: []byte("notarized on header hash"),
+				ExecutionResult:       baseExecutionResultsHandler,
+			},
+		}
+
+		result, err := blproc.GetLastBaseExecutionResultHandler(header)
+		require.Nil(t, result)
+		require.Equal(t, process.ErrNilBaseExecutionResult, err)
+	})
+}
+
+func TestBaseProcessor_computeOwnShardStuckIfNeeded(t *testing.T) {
+	t.Parallel()
+
+	t.Run("header is not V3, should exit early without error", func(t *testing.T) {
+		baseProcessor := blproc.CreateBaseProcessorWithMockedTracker(&mock.BlockTrackerMock{
+			ComputeOwnShardStuckCalled: func(_ data.BaseExecutionResultHandler, _ uint64) {
+				require.Fail(t, "should not be called")
+			},
+		})
+		header := &block.Header{}
+
+		err := baseProcessor.ComputeOwnShardStuckIfNeeded(header)
+		assert.Nil(t, err)
+	})
+
+	t.Run("header is V3 but last executed results is nil", func(t *testing.T) {
+		header := &block.HeaderV3{
+			LastExecutionResult: nil,
+		}
+		baseProcessor := blproc.CreateBaseProcessorWithMockedTracker(&mock.BlockTrackerMock{
+			ComputeOwnShardStuckCalled: func(_ data.BaseExecutionResultHandler, _ uint64) {
+				require.Fail(t, "should not be called")
+			},
+		})
+
+		err := baseProcessor.ComputeOwnShardStuckIfNeeded(header)
+		assert.Equal(t, process.ErrNilBaseExecutionResult, err)
+	})
+
+	t.Run("header is metablock v3, last executed result is nil", func(t *testing.T) {
+		header := &block.MetaBlockV3{
+			LastExecutionResult: nil,
+		}
+
+		baseProcessor := blproc.CreateBaseProcessorWithMockedTracker(&mock.BlockTrackerMock{
+			ComputeOwnShardStuckCalled: func(_ data.BaseExecutionResultHandler, _ uint64) {
+				require.Fail(t, "should not be called")
+			},
+		})
+
+		err := baseProcessor.ComputeOwnShardStuckIfNeeded(header)
+		assert.Equal(t, process.ErrNilBaseExecutionResult, err)
+	})
+
+	t.Run("valid shard header v3 with valid last execution result", func(t *testing.T) {
+		baseExecutionResults := &block.BaseExecutionResult{
+			HeaderHash:  []byte("hash"),
+			HeaderNonce: 100,
+			HeaderRound: 200,
+			RootHash:    []byte("rootHash"),
+		}
+		header := &block.HeaderV3{
+			LastExecutionResult: &block.ExecutionResultInfo{
+				NotarizedOnHeaderHash: []byte("notarized on header hash"),
+				ExecutionResult:       baseExecutionResults,
+			},
+		}
+		called := false
+		baseProcessor := blproc.CreateBaseProcessorWithMockedTracker(&mock.BlockTrackerMock{
+			ComputeOwnShardStuckCalled: func(_ data.BaseExecutionResultHandler, _ uint64) {
+				called = true
+			},
+		})
+
+		err := baseProcessor.ComputeOwnShardStuckIfNeeded(header)
+		assert.Nil(t, err)
+		require.True(t, called)
 	})
 }

@@ -1191,6 +1191,9 @@ var ErrMaxCallsReached = errors.New("max calls reached")
 // ErrNilTxExecutionOrderHandler signals that a nil transaction execution order handler was provided
 var ErrNilTxExecutionOrderHandler = errors.New("nil transaction execution order handler")
 
+// ErrNilBlockDataRequester signals that a nil processor requester was provided
+var ErrNilBlockDataRequester = errors.New("nil block data requester")
+
 // ErrWrongTransactionType signals that transaction is invalid
 var ErrWrongTransactionType = errors.New("invalid transaction type")
 
@@ -1343,6 +1346,12 @@ var ErrInvalidHash = errors.New("invalid hash")
 
 // ErrExecutionResultsNonConsecutive signals that execution results are not consecutive
 var ErrExecutionResultsNonConsecutive = errors.New("execution results non consecutive")
+
+// ErrInvalidMaxNonceDifference signals that an invalid max nonce difference has been provided
+var ErrInvalidMaxNonceDifference = errors.New("invalid max nonce difference")
+
+// ErrNilBaseExecutionResult signals that a nil base execution result has been provided
+var ErrNilBaseExecutionResult = errors.New("nil base execution result")
 
 // ErrWrongMiniBlockConstructionState signals that the mini block construction state is not as expected
 var ErrWrongMiniBlockConstructionState = errors.New("wrong mini block construction state")

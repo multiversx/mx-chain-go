@@ -36,6 +36,7 @@ type BlockTrackerStub struct {
 	RemoveLastNotarizedHeadersCalled                   func()
 	RestoreToGenesisCalled                             func()
 	ShouldAddHeaderCalled                              func(headerHandler data.HeaderHandler) bool
+	ComputeOwnShardStuckCalled                         func(lastExecutionResultsInfo data.BaseExecutionResultHandler, currentNonce uint64)
 }
 
 // AddTrackedHeader -
@@ -268,6 +269,13 @@ func (bts *BlockTrackerStub) ShouldAddHeader(headerHandler data.HeaderHandler) b
 	}
 
 	return true
+}
+
+// ComputeOwnShardStuck -
+func (bts *BlockTrackerStub) ComputeOwnShardStuck(lastExecutionResultsInfo data.BaseExecutionResultHandler, currentNonce uint64) {
+	if bts.ComputeOwnShardStuckCalled != nil {
+		bts.ComputeOwnShardStuckCalled(lastExecutionResultsInfo, currentNonce)
+	}
 }
 
 // IsInterfaceNil -

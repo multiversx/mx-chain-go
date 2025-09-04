@@ -11,6 +11,9 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	dataBlock "github.com/multiversx/mx-chain-core-go/data/block"
+	logger "github.com/multiversx/mx-chain-logger-go"
+	"github.com/multiversx/mx-chain-vm-common-go/parsers"
+
 	"github.com/multiversx/mx-chain-go/common"
 	disabledCommon "github.com/multiversx/mx-chain-go/common/disabled"
 	"github.com/multiversx/mx-chain-go/common/enablers"
@@ -42,8 +45,6 @@ import (
 	"github.com/multiversx/mx-chain-go/storage/txcache"
 	"github.com/multiversx/mx-chain-go/update"
 	hardForkProcess "github.com/multiversx/mx-chain-go/update/process"
-	logger "github.com/multiversx/mx-chain-logger-go"
-	"github.com/multiversx/mx-chain-vm-common-go/parsers"
 )
 
 const unreachableEpoch = ^uint32(0)
@@ -623,13 +624,25 @@ func createProcessorsForShardGenesisBlock(arg ArgsGenesisBlockCreator, enableEpo
 		return nil, err
 	}
 
+	blockDataRequesterArgs := coordinator.BlockDataRequestArgs{
+		RequestHandler:      disabledRequestHandler,
+		MiniBlockPool:       arg.Data.Datapool().MiniBlocks(),
+		PreProcessors:       preProcContainer,
+		ShardCoordinator:    arg.ShardCoordinator,
+		EnableEpochsHandler: enableEpochsHandler,
+	}
+
+	blockDataRequester, err := coordinator.NewBlockDataRequester(blockDataRequesterArgs)
+	if err != nil {
+		return nil, err
+	}
+
 	argsTransactionCoordinator := coordinator.ArgTransactionCoordinator{
 		Hasher:                       arg.Core.Hasher(),
 		Marshalizer:                  arg.Core.InternalMarshalizer(),
 		ShardCoordinator:             arg.ShardCoordinator,
 		Accounts:                     arg.Accounts,
 		MiniBlockPool:                arg.Data.Datapool().MiniBlocks(),
-		RequestHandler:               disabledRequestHandler,
 		PreProcessors:                preProcContainer,
 		InterProcessors:              interimProcContainer,
 		GasHandler:                   gasHandler,
@@ -644,6 +657,7 @@ func createProcessorsForShardGenesisBlock(arg ArgsGenesisBlockCreator, enableEpo
 		DoubleTransactionsDetector:   doubleTransactionsDetector,
 		ProcessedMiniBlocksTracker:   disabledProcessedMiniBlocksTracker,
 		TxExecutionOrderHandler:      arg.TxExecutionOrderHandler,
+		BlockDataRequester:           blockDataRequester,
 	}
 	txCoordinator, err := coordinator.NewTransactionCoordinator(argsTransactionCoordinator)
 	if err != nil {

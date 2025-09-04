@@ -12,12 +12,15 @@ import (
 	"github.com/multiversx/mx-chain-core-go/display"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+
 	"github.com/multiversx/mx-chain-go/common/graceperiod"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/block/bootstrapStorage"
 	"github.com/multiversx/mx-chain-go/process/block/processedMb"
+	"github.com/multiversx/mx-chain-go/process/coordinator"
+	"github.com/multiversx/mx-chain-go/process/factory/containers"
 	"github.com/multiversx/mx-chain-go/process/mock"
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/testscommon"
@@ -147,6 +150,16 @@ func NewShardProcessorEmptyWith3shards(
 	statusCoreComponents := &factory.StatusCoreComponentsStub{
 		AppStatusHandlerField: &statusHandlerMock.AppStatusHandlerStub{},
 	}
+	preprocessors := containers.NewPreProcessorsContainer()
+	blockDataRequesterArgs := coordinator.BlockDataRequestArgs{
+		RequestHandler:      &testscommon.RequestHandlerStub{},
+		MiniBlockPool:       dataComponents.Datapool().MiniBlocks(),
+		PreProcessors:       preprocessors,
+		ShardCoordinator:    boostrapComponents.ShardCoordinator(),
+		EnableEpochsHandler: coreComponents.EnableEpochsHandler(),
+	}
+	// second instance for proposal missing data fetching to avoid interferences
+	proposalBlockDataRequester, _ := coordinator.NewBlockDataRequester(blockDataRequesterArgs)
 
 	arguments := ArgShardProcessor{
 		ArgBaseProcessor: ArgBaseProcessor{
@@ -182,6 +195,7 @@ func NewShardProcessorEmptyWith3shards(
 			ManagedPeersHolder:           &testscommon.ManagedPeersHolderStub{},
 			SentSignaturesTracker:        &testscommon.SentSignatureTrackerStub{},
 			HeadersForBlock:              &testscommon.HeadersForBlockMock{},
+			BlockDataRequester:           proposalBlockDataRequester,
 		},
 	}
 	shardProc, err := NewShardProcessor(arguments)
@@ -603,4 +617,21 @@ func DisplayHeader(
 	headerProof data.HeaderProofHandler,
 ) []*display.LineData {
 	return displayHeader(headerHandler, headerProof)
+}
+
+// GetLastBaseExecutionResultHandler -
+func GetLastBaseExecutionResultHandler(header data.HeaderHandler) (data.BaseExecutionResultHandler, error) {
+	return getLastBaseExecutionResultHandler(header)
+}
+
+// CreateBaseProcessorWithMockedTracker -
+func CreateBaseProcessorWithMockedTracker(tracker process.BlockTracker) *baseProcessor {
+	return &baseProcessor{
+		blockTracker: tracker,
+	}
+}
+
+// ComputeOwnShardStuckIfNeeded -
+func (bp *baseProcessor) ComputeOwnShardStuckIfNeeded(header data.HeaderHandler) error {
+	return bp.computeOwnShardStuckIfNeeded(header)
 }

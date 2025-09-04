@@ -1,4 +1,4 @@
-package mock
+package preprocMocks
 
 import (
 	"time"

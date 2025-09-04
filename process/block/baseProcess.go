@@ -133,6 +133,7 @@ type bootStorerDataArgs struct {
 	epochStartTriggerConfigKey []byte
 }
 
+// NewBaseProcessor will create a new instance of baseProcessor
 func NewBaseProcessor(arguments ArgBaseProcessor) (*baseProcessor, error) {
 	err := checkProcessorParameters(arguments)
 	if err != nil {
@@ -144,22 +145,33 @@ func NewBaseProcessor(arguments ArgBaseProcessor) (*baseProcessor, error) {
 		return nil, err
 	}
 
-	// TODO: maybe move the creation outside and pass it as argument
-	mbSelectionSession, err := NewMiniBlocksSelectionSession(arguments.BootstrapComponents.ShardCoordinator().SelfId(), arguments.CoreComponents.InternalMarshalizer(), arguments.CoreComponents.Hasher())
+	mbSelectionSession, err := NewMiniBlocksSelectionSession(
+		arguments.BootstrapComponents.ShardCoordinator().SelfId(),
+		arguments.CoreComponents.InternalMarshalizer(),
+		arguments.CoreComponents.Hasher(),
+	)
 	if err != nil {
 		return nil, err
 	}
 
-	// TODO: move the creation in someplace else (receive it as argument here) and set the last execution result to have it initialized properly before passing it
 	executionResultsTracker := executionTrack.NewExecutionResultsTracker()
-	// TODO: the tracker needs to be seeded
-	//  executionResultsTracker.SetLastNotarizedResult(lastNotarizedResult)
+	err = process.SetBaseExecutionResult(executionResultsTracker, arguments.DataComponents.Blockchain())
+	if err != nil {
+		return nil, err
+	}
+
 	execResultsVerifier, err := NewExecutionResultsVerifier(arguments.DataComponents.Blockchain(), executionResultsTracker)
 	if err != nil {
 		return nil, err
 	}
 
-	missingDataResolver, err := missingData.NewMissingDataResolver(arguments.DataComponents.Datapool().Headers(), arguments.DataComponents.Datapool().Proofs(), arguments.RequestHandler)
+	missingDataArgs := missingData.ResolverArgs{
+		HeadersPool:        arguments.DataComponents.Datapool().Headers(),
+		ProofsPool:         arguments.DataComponents.Datapool().Proofs(),
+		RequestHandler:     arguments.RequestHandler,
+		BlockDataRequester: arguments.BlockDataRequester,
+	}
+	missingDataResolver, err := missingData.NewMissingDataResolver(missingDataArgs)
 	if err != nil {
 		return nil, err
 	}
@@ -721,6 +733,9 @@ func checkProcessorParameters(arguments ArgBaseProcessor) error {
 	}
 	if check.IfNil(arguments.DataComponents.Datapool().Headers()) {
 		return process.ErrNilHeadersDataPool
+	}
+	if check.IfNil(arguments.BlockDataRequester) {
+		return process.ErrNilBlockDataRequester
 	}
 
 	return nil
@@ -2280,4 +2295,52 @@ func (bp *baseProcessor) getHeaderHash(header data.HeaderHandler) ([]byte, error
 	}
 
 	return bp.hasher.Compute(string(marshalledHeader)), nil
+}
+
+func (bp *baseProcessor) computeOwnShardStuckIfNeeded(header data.HeaderHandler) error {
+	if !header.IsHeaderV3() {
+		return nil
+	}
+
+	lastExecResultsHandler, err := getLastBaseExecutionResultHandler(header)
+	if err != nil {
+		return err
+	}
+
+	bp.blockTracker.ComputeOwnShardStuck(lastExecResultsHandler, header.GetNonce())
+	return nil
+}
+
+func getLastBaseExecutionResultHandler(header data.HeaderHandler) (data.BaseExecutionResultHandler, error) {
+	if check.IfNil(header) {
+		return nil, process.ErrNilHeaderHandler
+	}
+	lastExecResultsHandler := header.GetLastExecutionResultHandler()
+	if lastExecResultsHandler == nil {
+		return nil, process.ErrNilLastExecutionResultHandler
+	}
+
+	var baseExecutionResultsHandler data.BaseExecutionResultHandler
+	var ok bool
+	switch executionResultsHandlerType := lastExecResultsHandler.(type) {
+	case data.LastMetaExecutionResultHandler:
+		metaBaseExecutionResults := executionResultsHandlerType.GetExecutionResultHandler()
+		if check.IfNil(metaBaseExecutionResults) {
+			return nil, process.ErrNilBaseExecutionResult
+		}
+		baseExecutionResultsHandler, ok = metaBaseExecutionResults.(data.BaseExecutionResultHandler)
+		if !ok {
+			return nil, process.ErrWrongTypeAssertion
+		}
+	case data.LastShardExecutionResultHandler:
+		baseExecutionResultsHandler = executionResultsHandlerType.GetExecutionResultHandler()
+	default:
+		return nil, fmt.Errorf("%w: unsupported execution result handler type", process.ErrWrongTypeAssertion)
+	}
+
+	if check.IfNil(baseExecutionResultsHandler) {
+		return nil, process.ErrNilBaseExecutionResult
+	}
+
+	return baseExecutionResultsHandler, nil
 }

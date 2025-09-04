@@ -25,7 +25,6 @@ import (
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/storage"
-	"github.com/multiversx/mx-chain-go/storage/cache"
 )
 
 var _ process.TransactionCoordinator = (*transactionCoordinator)(nil)
@@ -52,7 +51,6 @@ type ArgTransactionCoordinator struct {
 	ShardCoordinator             sharding.Coordinator
 	Accounts                     state.AccountsAdapter
 	MiniBlockPool                storage.Cacher
-	RequestHandler               process.RequestHandler
 	PreProcessors                process.PreProcessorsContainer
 	InterProcessors              process.IntermediateProcessorContainer
 	GasHandler                   process.GasHandler
@@ -67,6 +65,7 @@ type ArgTransactionCoordinator struct {
 	DoubleTransactionsDetector   process.DoubleTransactionDetector
 	ProcessedMiniBlocksTracker   process.ProcessedMiniBlocksTracker
 	TxExecutionOrderHandler      common.TxExecutionOrderHandler
+	BlockDataRequester           process.BlockDataRequester
 }
 
 type transactionCoordinator struct {
@@ -84,15 +83,10 @@ type transactionCoordinator struct {
 	interimProcessors    map[block.Type]process.IntermediateTransactionHandler
 	keysInterimProcs     []block.Type
 
-	mutRequestedTxs sync.RWMutex
-	requestedTxs    map[block.Type]int
-
-	onRequestMiniBlocks          func(shardId uint32, mbHashes [][]byte)
 	gasHandler                   process.GasHandler
 	feeHandler                   process.TransactionFeeHandler
 	blockSizeComputation         preprocess.BlockSizeComputationHandler
 	balanceComputation           preprocess.BalanceComputationHandler
-	requestedItemsHandler        process.TimeCacher
 	economicsFee                 process.FeeHandler
 	txTypeHandler                process.TxTypeHandler
 	transactionsLogProcessor     process.TransactionLogProcessor
@@ -101,6 +95,7 @@ type transactionCoordinator struct {
 	processedMiniBlocksTracker   process.ProcessedMiniBlocksTracker
 	enableEpochsHandler          common.EnableEpochsHandler
 	txExecutionOrderHandler      common.TxExecutionOrderHandler
+	blockDataRequester           process.BlockDataRequester
 }
 
 // NewTransactionCoordinator creates a transaction coordinator to run and coordinate preprocessors and processors
@@ -127,11 +122,10 @@ func NewTransactionCoordinator(args ArgTransactionCoordinator) (*transactionCoor
 		processedMiniBlocksTracker:   args.ProcessedMiniBlocksTracker,
 		enableEpochsHandler:          args.EnableEpochsHandler,
 		txExecutionOrderHandler:      args.TxExecutionOrderHandler,
+		blockDataRequester:           args.BlockDataRequester,
 	}
 
 	tc.miniBlockPool = args.MiniBlockPool
-	tc.onRequestMiniBlocks = args.RequestHandler.RequestMiniBlocks
-	tc.requestedTxs = make(map[block.Type]int)
 	tc.txPreProcessors = make(map[block.Type]process.PreProcessor)
 	tc.interimProcessors = make(map[block.Type]process.IntermediateTransactionHandler)
 
@@ -159,107 +153,7 @@ func NewTransactionCoordinator(args ArgTransactionCoordinator) (*transactionCoor
 		tc.interimProcessors[value] = interProc
 	}
 
-	tc.requestedItemsHandler = cache.NewTimeCache(common.MaxWaitingTimeToReceiveRequestedItem)
-	tc.miniBlockPool.RegisterHandler(tc.receivedMiniBlock, core.UniqueIdentifier())
-
 	return tc, nil
-}
-
-// separateBodyByType creates a map of bodies according to type
-func (tc *transactionCoordinator) separateBodyByType(body *block.Body) map[block.Type]*block.Body {
-	separatedBodies := make(map[block.Type]*block.Body)
-	for i := 0; i < len(body.MiniBlocks); i++ {
-		mb := body.MiniBlocks[i]
-
-		separatedMbType := mb.Type
-		if mb.Type == block.InvalidBlock {
-			separatedMbType = block.TxBlock
-		}
-
-		if _, ok := separatedBodies[separatedMbType]; !ok {
-			separatedBodies[separatedMbType] = &block.Body{}
-		}
-
-		separatedBodies[separatedMbType].MiniBlocks = append(separatedBodies[separatedMbType].MiniBlocks, mb)
-	}
-
-	return separatedBodies
-}
-
-// initRequestedTxs init the requested txs number
-func (tc *transactionCoordinator) initRequestedTxs() {
-	tc.mutRequestedTxs.Lock()
-	tc.requestedTxs = make(map[block.Type]int)
-	tc.mutRequestedTxs.Unlock()
-}
-
-// RequestBlockTransactions verifies missing transaction and requests them
-func (tc *transactionCoordinator) RequestBlockTransactions(body *block.Body) {
-	if check.IfNil(body) {
-		return
-	}
-
-	separatedBodies := tc.separateBodyByType(body)
-
-	tc.initRequestedTxs()
-
-	wg := sync.WaitGroup{}
-	wg.Add(len(separatedBodies))
-
-	for key, value := range separatedBodies {
-		go func(blockType block.Type, blockBody *block.Body) {
-			preproc := tc.getPreProcessor(blockType)
-			if check.IfNil(preproc) {
-				wg.Done()
-				return
-			}
-			requestedTxs := preproc.RequestBlockTransactions(blockBody)
-
-			tc.mutRequestedTxs.Lock()
-			tc.requestedTxs[blockType] = requestedTxs
-			tc.mutRequestedTxs.Unlock()
-
-			wg.Done()
-		}(key, value)
-	}
-
-	wg.Wait()
-}
-
-// IsDataPreparedForProcessing verifies if all the needed data is prepared
-func (tc *transactionCoordinator) IsDataPreparedForProcessing(haveTime func() time.Duration) error {
-	var errFound error
-	errMutex := sync.Mutex{}
-
-	wg := sync.WaitGroup{}
-
-	tc.mutRequestedTxs.RLock()
-	wg.Add(len(tc.requestedTxs))
-
-	for key, value := range tc.requestedTxs {
-		go func(blockType block.Type, requestedTxs int) {
-			preproc := tc.getPreProcessor(blockType)
-			if check.IfNil(preproc) {
-				wg.Done()
-				return
-			}
-
-			err := preproc.IsDataPrepared(requestedTxs, haveTime)
-			if err != nil {
-				log.Trace("IsDataPrepared", "error", err.Error())
-
-				errMutex.Lock()
-				errFound = err
-				errMutex.Unlock()
-			}
-			wg.Done()
-		}(key, value)
-	}
-
-	wg.Wait()
-	tc.mutRequestedTxs.RUnlock()
-
-	return errFound
 }
 
 // SaveTxsToStorage saves transactions from block body into storage units
@@ -268,7 +162,7 @@ func (tc *transactionCoordinator) SaveTxsToStorage(body *block.Body) {
 		return
 	}
 
-	separatedBodies := tc.separateBodyByType(body)
+	separatedBodies := process.SeparateBodyByType(body)
 	for key, value := range separatedBodies {
 		tc.saveTxsToStorage(key, value)
 	}
@@ -305,7 +199,7 @@ func (tc *transactionCoordinator) RestoreBlockDataFromStorage(body *block.Body) 
 		return 0, nil
 	}
 
-	separatedBodies := tc.separateBodyByType(body)
+	separatedBodies := process.SeparateBodyByType(body)
 
 	var errFound error
 	localMutex := sync.Mutex{}
@@ -351,7 +245,7 @@ func (tc *transactionCoordinator) RemoveBlockDataFromPool(body *block.Body) erro
 		return nil
 	}
 
-	separatedBodies := tc.separateBodyByType(body)
+	separatedBodies := process.SeparateBodyByType(body)
 
 	var errFound error
 	errMutex := sync.Mutex{}
@@ -390,7 +284,7 @@ func (tc *transactionCoordinator) RemoveTxsFromPool(body *block.Body) error {
 		return nil
 	}
 
-	separatedBodies := tc.separateBodyByType(body)
+	separatedBodies := process.SeparateBodyByType(body)
 
 	var errFound error
 	errMutex := sync.Mutex{}
@@ -471,6 +365,21 @@ func (tc *transactionCoordinator) ProcessBlockTransaction(
 	return nil
 }
 
+// RequestMiniBlocksAndTransactions forwards the request to block data requester
+func (tc *transactionCoordinator) RequestMiniBlocksAndTransactions(header data.HeaderHandler) {
+	tc.blockDataRequester.RequestMiniBlocksAndTransactions(header)
+}
+
+// RequestBlockTransactions forwards the request to block data requester
+func (tc *transactionCoordinator) RequestBlockTransactions(body *block.Body) {
+	tc.blockDataRequester.RequestBlockTransactions(body)
+}
+
+// IsDataPreparedForProcessing checks if the data is prepared for processing
+func (tc *transactionCoordinator) IsDataPreparedForProcessing(haveTime func() time.Duration) error {
+	return tc.blockDataRequester.IsDataPreparedForProcessing(haveTime)
+}
+
 func (tc *transactionCoordinator) processMiniBlocksFromMe(
 	header data.HeaderHandler,
 	body *block.Body,
@@ -483,7 +392,7 @@ func (tc *transactionCoordinator) processMiniBlocksFromMe(
 	}
 
 	numMiniBlocksProcessed := 0
-	separatedBodies := tc.separateBodyByType(body)
+	separatedBodies := process.SeparateBodyByType(body)
 
 	defer func() {
 		log.Debug("transactionCoordinator.processMiniBlocksFromMe: gas consumed, refunded and penalized info",
@@ -705,7 +614,7 @@ func (tc *transactionCoordinator) CreateMbsAndProcessCrossShardTransactionsDstMe
 
 	tc.handleCreateMiniBlocksDestMeInit(headerHash)
 
-	finalCrossMiniBlockInfos := tc.getFinalCrossMiniBlockInfos(hdr.GetOrderedCrossMiniblocksWithDst(tc.shardCoordinator.SelfId()), hdr)
+	finalCrossMiniBlockInfos := tc.blockDataRequester.GetFinalCrossMiniBlockInfoAndRequestMissing(hdr)
 
 	defer func() {
 		log.Debug("transactionCoordinator.CreateMbsAndProcessCrossShardTransactionsDstMe: gas provided, refunded and penalized info",
@@ -719,8 +628,6 @@ func (tc *transactionCoordinator) CreateMbsAndProcessCrossShardTransactionsDstMe
 			"total gas refunded", tc.gasHandler.TotalGasRefunded(),
 			"total gas penalized", tc.gasHandler.TotalGasPenalized())
 	}()
-
-	tc.requestMissingMiniBlocksAndTransactions(finalCrossMiniBlockInfos)
 
 	for _, miniBlockInfo := range finalCrossMiniBlockInfos {
 		if !haveTime() && !haveAdditionalTime() {
@@ -866,48 +773,6 @@ func (tc *transactionCoordinator) CreateMbsAndProcessCrossShardTransactionsDstMe
 	return createMBDestMeExecutionInfo.miniBlocks, createMBDestMeExecutionInfo.numTxAdded, allMBsProcessed, nil
 }
 
-func (tc *transactionCoordinator) requestMissingMiniBlocksAndTransactions(mbsInfo []*data.MiniBlockInfo) {
-	mapMissingMiniBlocksPerShard := make(map[uint32][][]byte)
-
-	tc.requestedItemsHandler.Sweep()
-
-	for _, mbInfo := range mbsInfo {
-		object, isMiniBlockFound := tc.miniBlockPool.Peek(mbInfo.Hash)
-		if !isMiniBlockFound {
-			log.Debug("transactionCoordinator.requestMissingMiniBlocksAndTransactions: mini block not found and was requested",
-				"sender shard", mbInfo.SenderShardID,
-				"hash", mbInfo.Hash,
-				"round", mbInfo.Round,
-			)
-			mapMissingMiniBlocksPerShard[mbInfo.SenderShardID] = append(mapMissingMiniBlocksPerShard[mbInfo.SenderShardID], mbInfo.Hash)
-			_ = tc.requestedItemsHandler.Add(string(mbInfo.Hash))
-			continue
-		}
-
-		miniBlock, isMiniBlock := object.(*block.MiniBlock)
-		if !isMiniBlock {
-			log.Warn("transactionCoordinator.requestMissingMiniBlocksAndTransactions", "mb hash", mbInfo.Hash, "error", process.ErrWrongTypeAssertion)
-			continue
-		}
-
-		preproc := tc.getPreProcessor(miniBlock.Type)
-		if check.IfNil(preproc) {
-			log.Warn("transactionCoordinator.requestMissingMiniBlocksAndTransactions: getPreProcessor", "mb type", miniBlock.Type, "error", process.ErrNilPreProcessor)
-			continue
-		}
-
-		numTxsRequested := preproc.RequestTransactionsForMiniBlock(miniBlock)
-		if numTxsRequested > 0 {
-			log.Debug("transactionCoordinator.requestMissingMiniBlocksAndTransactions: RequestTransactionsForMiniBlock", "mb hash", mbInfo.Hash,
-				"num txs requested", numTxsRequested)
-		}
-	}
-
-	for senderShardID, mbsHashes := range mapMissingMiniBlocksPerShard {
-		go tc.onRequestMiniBlocks(senderShardID, mbsHashes)
-	}
-}
-
 func initMiniBlockDestMeExecutionInfo() *createMiniBlockDestMeExecutionInfo {
 	return &createMiniBlockDestMeExecutionInfo{
 		processedTxHashes:             make([][]byte, 0),
@@ -969,29 +834,6 @@ func getProcessedMiniBlockInfo(
 	}
 
 	return processedMbInfo
-}
-
-func (tc *transactionCoordinator) getFinalCrossMiniBlockInfos(
-	crossMiniBlockInfos []*data.MiniBlockInfo,
-	header data.HeaderHandler,
-) []*data.MiniBlockInfo {
-
-	if !tc.enableEpochsHandler.IsFlagEnabled(common.ScheduledMiniBlocksFlag) {
-		return crossMiniBlockInfos
-	}
-
-	miniBlockInfos := make([]*data.MiniBlockInfo, 0)
-	for _, crossMiniBlockInfo := range crossMiniBlockInfos {
-		miniBlockHeader := process.GetMiniBlockHeaderWithHash(header, crossMiniBlockInfo.Hash)
-		if miniBlockHeader != nil && !miniBlockHeader.IsFinal() {
-			log.Debug("transactionCoordinator.getFinalCrossMiniBlockInfos: do not execute mini block which is not final", "mb hash", miniBlockHeader.GetHash())
-			continue
-		}
-
-		miniBlockInfos = append(miniBlockInfos, crossMiniBlockInfo)
-	}
-
-	return miniBlockInfos
 }
 
 func (tc *transactionCoordinator) revertIfNeeded(createMBDestMeExecutionInfo *createMiniBlockDestMeExecutionInfo, key []byte) {
@@ -1258,63 +1100,6 @@ func (tc *transactionCoordinator) GetAllCurrentUsedTxs(blockType block.Type) map
 // GetAllCurrentLogs return the cached logs data from current round
 func (tc *transactionCoordinator) GetAllCurrentLogs() []*data.LogData {
 	return tc.transactionsLogProcessor.GetAllCurrentLogs()
-}
-
-// RequestMiniBlocksAndTransactions requests mini blocks and transactions if missing
-func (tc *transactionCoordinator) RequestMiniBlocksAndTransactions(header data.HeaderHandler) {
-	if check.IfNil(header) {
-		return
-	}
-
-	finalCrossMiniBlockHashes := tc.getFinalCrossMiniBlockHashes(header)
-	mbsInfo := make([]*data.MiniBlockInfo, 0, len(finalCrossMiniBlockHashes))
-	for mbHash, senderShardID := range finalCrossMiniBlockHashes {
-		mbsInfo = append(mbsInfo, &data.MiniBlockInfo{
-			Hash:          []byte(mbHash),
-			SenderShardID: senderShardID,
-			Round:         header.GetRound(),
-		})
-	}
-
-	tc.requestMissingMiniBlocksAndTransactions(mbsInfo)
-}
-
-func (tc *transactionCoordinator) getFinalCrossMiniBlockHashes(headerHandler data.HeaderHandler) map[string]uint32 {
-	if !tc.enableEpochsHandler.IsFlagEnabled(common.ScheduledMiniBlocksFlag) {
-		return headerHandler.GetMiniBlockHeadersWithDst(tc.shardCoordinator.SelfId())
-	}
-	return process.GetFinalCrossMiniBlockHashes(headerHandler, tc.shardCoordinator.SelfId())
-}
-
-func (tc *transactionCoordinator) receivedMiniBlock(key []byte, value interface{}) {
-	if key == nil {
-		return
-	}
-
-	if !tc.requestedItemsHandler.Has(string(key)) {
-		return
-	}
-
-	miniBlock, ok := value.(*block.MiniBlock)
-	if !ok {
-		log.Warn("transactionCoordinator.receivedMiniBlock", "error", process.ErrWrongTypeAssertion)
-		return
-	}
-
-	log.Trace("transactionCoordinator.receivedMiniBlock", "hash", key)
-
-	preproc := tc.getPreProcessor(miniBlock.Type)
-	if check.IfNil(preproc) {
-		log.Warn("transactionCoordinator.receivedMiniBlock",
-			"error", fmt.Errorf("%w unknown block type %d", process.ErrNilPreProcessor, miniBlock.Type))
-		return
-	}
-
-	numTxsRequested := preproc.RequestTransactionsForMiniBlock(miniBlock)
-	if numTxsRequested > 0 {
-		log.Debug("transactionCoordinator.receivedMiniBlock", "hash", key,
-			"num txs requested", numTxsRequested)
-	}
 }
 
 // processCompleteMiniBlock - all transactions must be processed together, otherwise error
@@ -1904,9 +1689,6 @@ func checkTransactionCoordinatorNilParameters(arguments ArgTransactionCoordinato
 	if check.IfNil(arguments.MiniBlockPool) {
 		return process.ErrNilMiniBlockPool
 	}
-	if check.IfNil(arguments.RequestHandler) {
-		return process.ErrNilRequestHandler
-	}
 	if check.IfNil(arguments.InterProcessors) {
 		return process.ErrNilIntermediateProcessorContainer
 	}
@@ -1962,6 +1744,9 @@ func checkTransactionCoordinatorNilParameters(arguments ArgTransactionCoordinato
 	}
 	if check.IfNil(arguments.TxExecutionOrderHandler) {
 		return process.ErrNilTxExecutionOrderHandler
+	}
+	if check.IfNil(arguments.BlockDataRequester) {
+		return process.ErrNilBlockDataRequester
 	}
 
 	return nil

@@ -38,6 +38,7 @@ type miniBlocksSelectionSession struct {
 
 const defaultCapacity = 10
 
+// NewMiniBlocksSelectionSession creates a new instance of miniBlocksSelectionSession
 func NewMiniBlocksSelectionSession(shardID uint32, marshaller marshal.Marshalizer, hasher hashing.Hasher) (*miniBlocksSelectionSession, error) {
 	if check.IfNil(marshaller) {
 		return nil, process.ErrNilMarshalizer

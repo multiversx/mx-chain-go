@@ -14,8 +14,10 @@ import (
 	crypto "github.com/multiversx/mx-chain-crypto-go"
 	mclMultiSig "github.com/multiversx/mx-chain-crypto-go/signing/mcl/multisig"
 	"github.com/multiversx/mx-chain-crypto-go/signing/multisig"
-	"github.com/multiversx/mx-chain-go/process/block/headerForBlock"
 	wasmConfig "github.com/multiversx/mx-chain-vm-go/config"
+
+	"github.com/multiversx/mx-chain-go/process/block/headerForBlock"
+	"github.com/multiversx/mx-chain-go/process/coordinator"
 
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/common/enablers"
@@ -602,7 +604,7 @@ func (tpn *TestFullNode) initNode(
 }
 
 func (tfn *TestFullNode) createForkDetector(
-	startTime int64,
+	_ int64,
 	roundHandler consensus.RoundHandler,
 ) process.ForkDetector {
 	var err error
@@ -633,7 +635,7 @@ func (tfn *TestFullNode) createForkDetector(
 	return forkDetector
 }
 
-func (tfn *TestFullNode) createEpochStartTrigger(startTime int64) TestEpochStartTrigger {
+func (tfn *TestFullNode) createEpochStartTrigger(_ int64) TestEpochStartTrigger {
 	var epochTrigger TestEpochStartTrigger
 	if tfn.ShardCoordinator.SelfId() == core.MetachainShardId {
 		argsNewMetaEpochStart := &metachain.ArgsNewMetaEpochStartTrigger{
@@ -802,7 +804,7 @@ func (tcn *TestFullNode) initInterceptors(
 func (tpn *TestFullNode) initBlockProcessor(
 	coreComponents *mock.CoreComponentsStub,
 	dataComponents *mock.DataComponentsStub,
-	args ArgsTestFullNode,
+	_ ArgsTestFullNode,
 	roundHandler consensus.RoundHandler,
 ) {
 	var err error
@@ -843,6 +845,18 @@ func (tpn *TestFullNode) initBlockProcessor(
 		log.Error("initBlockProcessor NewHeadersForBlock", "error", err)
 	}
 
+	blockDataRequesterArgs := coordinator.BlockDataRequestArgs{
+		RequestHandler:      tpn.RequestHandler,
+		MiniBlockPool:       tpn.DataPool.MiniBlocks(),
+		PreProcessors:       tpn.PreProcessorsRequestContainer,
+		ShardCoordinator:    tpn.ShardCoordinator,
+		EnableEpochsHandler: tpn.EnableEpochsHandler,
+	}
+	// second instance for proposal missing data fetching to avoid interferences
+	proposalBlockDataRequester, err := coordinator.NewBlockDataRequester(blockDataRequesterArgs)
+	if err != nil {
+		log.LogIfError(err)
+	}
 	argumentsBase := block.ArgBaseProcessor{
 		CoreComponents:       coreComponents,
 		DataComponents:       dataComponents,
@@ -874,6 +888,7 @@ func (tpn *TestFullNode) initBlockProcessor(
 		ManagedPeersHolder:           &testscommon.ManagedPeersHolderStub{},
 		SentSignaturesTracker:        &testscommon.SentSignatureTrackerStub{},
 		HeadersForBlock:              hdrsForBlock,
+		BlockDataRequester:           proposalBlockDataRequester,
 	}
 
 	if check.IfNil(tpn.EpochStartNotifier) {
@@ -1053,13 +1068,12 @@ func (tpn *TestFullNode) initBlockProcessor(
 			log.Error("error creating shard blockprocessor", "error", err)
 		}
 	}
-
 }
 
 func (tpn *TestFullNode) initBlockProcessorWithSync(
 	coreComponents *mock.CoreComponentsStub,
 	dataComponents *mock.DataComponentsStub,
-	roundHandler consensus.RoundHandler,
+	_ consensus.RoundHandler,
 ) {
 	var err error
 
@@ -1099,6 +1113,19 @@ func (tpn *TestFullNode) initBlockProcessorWithSync(
 		log.Error("initBlockProcessorWithSync NewHeadersForBlock", "error", err)
 	}
 
+	blockDataRequesterArgs := coordinator.BlockDataRequestArgs{
+		RequestHandler:      tpn.RequestHandler,
+		MiniBlockPool:       tpn.DataPool.MiniBlocks(),
+		PreProcessors:       tpn.PreProcessorsRequestContainer,
+		ShardCoordinator:    tpn.ShardCoordinator,
+		EnableEpochsHandler: tpn.EnableEpochsHandler,
+	}
+	// second instance for proposal missing data fetching to avoid interferences
+	proposalBlockDataRequester, err := coordinator.NewBlockDataRequester(blockDataRequesterArgs)
+	if err != nil {
+		log.LogIfError(err)
+	}
+
 	argumentsBase := block.ArgBaseProcessor{
 		CoreComponents:       coreComponents,
 		DataComponents:       dataComponents,
@@ -1131,6 +1158,7 @@ func (tpn *TestFullNode) initBlockProcessorWithSync(
 		ManagedPeersHolder:           &testscommon.ManagedPeersHolderStub{},
 		SentSignaturesTracker:        &testscommon.SentSignatureTrackerStub{},
 		HeadersForBlock:              hdrsForBlock,
+		BlockDataRequester:           proposalBlockDataRequester,
 	}
 
 	if tpn.ShardCoordinator.SelfId() == core.MetachainShardId {
