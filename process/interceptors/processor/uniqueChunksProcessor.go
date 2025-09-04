@@ -1,9 +1,11 @@
 package processor
 
 import (
+	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/core/sync"
 	"github.com/multiversx/mx-chain-core-go/data/batch"
+	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/storage"
@@ -13,21 +15,30 @@ type uniqueChunksProcessor struct {
 	km         sync.KeyRWMutexHandler
 	cache      storage.Cacher
 	marshaller marshal.Marshalizer
+	hasher     hashing.Hasher
 }
 
 // NewUniqueChunksProcessor creates a new instance of unique chunks processor
-func NewUniqueChunksProcessor(cache storage.Cacher, marshaller marshal.Marshalizer) (*uniqueChunksProcessor, error) {
+func NewUniqueChunksProcessor(
+	cache storage.Cacher,
+	marshaller marshal.Marshalizer,
+	hasher hashing.Hasher,
+) (*uniqueChunksProcessor, error) {
 	if check.IfNil(cache) {
 		return nil, process.ErrNilInterceptedDataCache
 	}
 	if check.IfNil(marshaller) {
 		return nil, process.ErrNilMarshalizer
 	}
+	if check.IfNil(hasher) {
+		return nil, process.ErrNilHasher
+	}
 
 	return &uniqueChunksProcessor{
 		km:         sync.NewKeyRWMutex(),
 		cache:      cache,
 		marshaller: marshaller,
+		hasher:     hasher,
 	}, nil
 }
 
@@ -37,22 +48,36 @@ func (proc *uniqueChunksProcessor) CheckBatch(b *batch.Batch, _ process.WhiteLis
 		return process.CheckedChunkResult{}, nil
 	}
 
-	batchHash, err := proc.marshaller.Marshal(b)
+	batchHash, err := core.CalculateHash(proc.marshaller, proc.hasher, b)
 	if err != nil {
 		return process.CheckedChunkResult{}, err
 	}
 	batchHashStr := string(batchHash)
 
-	proc.km.Lock(batchHashStr)
-	defer proc.km.Unlock(batchHashStr)
+	proc.km.RLock(batchHashStr)
+	defer proc.km.RUnlock(batchHashStr)
 
 	if _, ok := proc.cache.Get(batchHash); ok {
 		return process.CheckedChunkResult{}, process.DuplicatedInterceptedDataNotAllowed
 	}
 
-	proc.cache.Put(batchHash, struct{}{}, 0)
-
 	return process.CheckedChunkResult{}, nil
+}
+
+// MarkVerified marks the batch as verified
+func (proc *uniqueChunksProcessor) MarkVerified(b *batch.Batch) {
+	if b == nil || len(b.Data) == 0 {
+		return
+	}
+	batchHash, err := core.CalculateHash(proc.marshaller, proc.hasher, b)
+	if err != nil {
+		return
+	}
+	batchHashStr := string(batchHash)
+	proc.km.RLock(batchHashStr)
+	defer proc.km.RUnlock(batchHashStr)
+
+	proc.cache.Put(batchHash, struct{}{}, 0)
 }
 
 // Close closes the internal cache

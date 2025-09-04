@@ -22,6 +22,10 @@ func (d *disabledInterceptedChunksProcessor) CheckBatch(_ *batch.Batch, _ proces
 	}, nil
 }
 
+// MarkVerified does nothing
+func (d *disabledInterceptedChunksProcessor) MarkVerified(_ *batch.Batch) {
+}
+
 // Close returns nil
 func (d *disabledInterceptedChunksProcessor) Close() error {
 	return nil

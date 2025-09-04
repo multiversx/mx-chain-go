@@ -132,6 +132,10 @@ func (proc *trieNodeChunksProcessor) CheckBatch(b *batch.Batch, whiteListHandler
 	}
 }
 
+// MarkVerified does nothing
+func (proc *trieNodeChunksProcessor) MarkVerified(_ *batch.Batch) {
+}
+
 func (proc *trieNodeChunksProcessor) processCheckRequest(cr checkRequest) {
 	shouldNotCreateChunk := cr.batch.ChunkIndex != 0
 	result := process.CheckedChunkResult{
@@ -140,7 +144,7 @@ func (proc *trieNodeChunksProcessor) processCheckRequest(cr checkRequest) {
 	chunkObject, found := proc.chunksCacher.Get(cr.batch.Reference)
 	if !found {
 		if shouldNotCreateChunk {
-			//we received other chunks from a previous, completed large trie node, return
+			// we received other chunks from a previous, completed large trie node, return
 
 			proc.writeCheckedChunkResultOnChan(cr, result)
 			return
@@ -151,7 +155,7 @@ func (proc *trieNodeChunksProcessor) processCheckRequest(cr checkRequest) {
 	chunkData, ok := chunkObject.(chunkHandler)
 	if !ok {
 		if shouldNotCreateChunk {
-			//we received other chunks from a previous, completed large trie node, return
+			// we received other chunks from a previous, completed large trie node, return
 			proc.writeCheckedChunkResultOnChan(cr, result)
 			return
 		}
@@ -210,7 +214,7 @@ func (proc *trieNodeChunksProcessor) doRequests(ctx context.Context) {
 	for _, ref := range references {
 		select {
 		case <-ctx.Done():
-			//early exit
+			// early exit
 			return
 		default:
 		}
@@ -234,7 +238,7 @@ func (proc *trieNodeChunksProcessor) requestMissingForReference(reference []byte
 	for _, missingChunkIndex := range missing {
 		select {
 		case <-ctx.Done():
-			//early exit
+			// early exit
 			return
 		default:
 		}
@@ -247,7 +251,7 @@ func (proc *trieNodeChunksProcessor) requestMissingForReference(reference []byte
 func (proc *trieNodeChunksProcessor) Close() error {
 	log.Debug("trieNodeChunkProcessor.Close()", "key", proc.topic)
 	defer func() {
-		//this instruction should be called last as to release hanging go routines
+		// this instruction should be called last as to release hanging go routines
 		close(proc.chanClose)
 	}()
 

@@ -4,12 +4,14 @@ import (
 	"errors"
 	"testing"
 
+	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data/batch"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/interceptors/processor"
 	"github.com/multiversx/mx-chain-go/process/mock"
 	"github.com/multiversx/mx-chain-go/testscommon/cache"
+	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
 	"github.com/stretchr/testify/require"
 )
 
@@ -19,21 +21,28 @@ func TestNewUniqueChunksProcessor(t *testing.T) {
 	t.Run("nil cache should error", func(t *testing.T) {
 		t.Parallel()
 
-		ucp, err := processor.NewUniqueChunksProcessor(nil, &mock.MarshalizerMock{})
+		ucp, err := processor.NewUniqueChunksProcessor(nil, &mock.MarshalizerMock{}, &mock.HasherStub{})
 		require.True(t, check.IfNil(ucp))
 		require.Equal(t, process.ErrNilInterceptedDataCache, err)
 	})
 	t.Run("nil marshaller should error", func(t *testing.T) {
 		t.Parallel()
 
-		ucp, err := processor.NewUniqueChunksProcessor(&cache.CacherStub{}, nil)
+		ucp, err := processor.NewUniqueChunksProcessor(&cache.CacherStub{}, nil, &mock.HasherStub{})
 		require.True(t, check.IfNil(ucp))
 		require.Equal(t, process.ErrNilMarshalizer, err)
+	})
+	t.Run("nil hasher should error", func(t *testing.T) {
+		t.Parallel()
+
+		ucp, err := processor.NewUniqueChunksProcessor(&cache.CacherStub{}, &mock.MarshalizerMock{}, nil)
+		require.True(t, check.IfNil(ucp))
+		require.Equal(t, process.ErrNilHasher, err)
 	})
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
 
-		ucp, err := processor.NewUniqueChunksProcessor(&cache.CacherStub{}, &mock.MarshalizerMock{})
+		ucp, err := processor.NewUniqueChunksProcessor(&cache.CacherStub{}, &mock.MarshalizerMock{}, &mock.HasherStub{})
 		require.False(t, check.IfNil(ucp))
 		require.NoError(t, err)
 
@@ -45,10 +54,10 @@ func TestNewUniqueChunksProcessor(t *testing.T) {
 func TestUniqueChunksProcessor_IsInterfaceNil(t *testing.T) {
 	t.Parallel()
 
-	ucp, _ := processor.NewUniqueChunksProcessor(nil, &mock.MarshalizerMock{})
+	ucp, _ := processor.NewUniqueChunksProcessor(nil, &mock.MarshalizerMock{}, &mock.HasherStub{})
 	require.True(t, ucp.IsInterfaceNil())
 
-	ucp, _ = processor.NewUniqueChunksProcessor(&cache.CacherStub{}, &mock.MarshalizerMock{})
+	ucp, _ = processor.NewUniqueChunksProcessor(&cache.CacherStub{}, &mock.MarshalizerMock{}, &mock.HasherStub{})
 	require.False(t, ucp.IsInterfaceNil())
 }
 
@@ -58,7 +67,7 @@ func TestUniqueChunksProcessor_CheckBatch(t *testing.T) {
 	t.Run("nil batch should return empty result", func(t *testing.T) {
 		t.Parallel()
 
-		ucp, _ := processor.NewUniqueChunksProcessor(&cache.CacherStub{}, &mock.MarshalizerMock{})
+		ucp, _ := processor.NewUniqueChunksProcessor(&cache.CacherStub{}, &mock.MarshalizerMock{}, &mock.HasherStub{})
 		result, err := ucp.CheckBatch(nil, nil)
 		require.Equal(t, process.CheckedChunkResult{}, result)
 		require.NoError(t, err)
@@ -73,7 +82,7 @@ func TestUniqueChunksProcessor_CheckBatch(t *testing.T) {
 			},
 		}
 
-		ucp, _ := processor.NewUniqueChunksProcessor(&cache.CacherStub{}, marshaller)
+		ucp, _ := processor.NewUniqueChunksProcessor(&cache.CacherStub{}, marshaller, &mock.HasherStub{})
 		result, err := ucp.CheckBatch(&batch.Batch{Data: [][]byte{{1, 2, 3}}}, nil)
 		require.Equal(t, process.CheckedChunkResult{}, result)
 		require.Equal(t, expectedErr, err)
@@ -81,23 +90,27 @@ func TestUniqueChunksProcessor_CheckBatch(t *testing.T) {
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
 
-		batchData := &batch.Batch{Data: [][]byte{{1, 2, 3}}}
-		batchBytes, _ := (&mock.MarshalizerMock{}).Marshal(batchData)
+		b := &batch.Batch{Data: [][]byte{{1, 2, 3}}}
+		hasher := &hashingMocks.HasherMock{}
+		marshaller := &mock.MarshalizerMock{}
+		batchHash, _ := core.CalculateHash(marshaller, hasher, b)
 
 		cacheMock := cache.NewCacherMock()
-		ucp, _ := processor.NewUniqueChunksProcessor(cacheMock, &mock.MarshalizerMock{})
+		ucp, _ := processor.NewUniqueChunksProcessor(cacheMock, marshaller, hasher)
 
 		// First check should succeed
-		result, err := ucp.CheckBatch(batchData, nil)
+		result, err := ucp.CheckBatch(b, nil)
 		require.Equal(t, process.CheckedChunkResult{}, result)
 		require.NoError(t, err)
 
+		ucp.MarkVerified(b)
+
 		// Verify it was added to cache
-		_, ok := cacheMock.Get(batchBytes)
+		_, ok := cacheMock.Get(batchHash)
 		require.True(t, ok)
 
 		// Second check with same batch should fail
-		result, err = ucp.CheckBatch(batchData, nil)
+		result, err = ucp.CheckBatch(b, nil)
 		require.Equal(t, process.CheckedChunkResult{}, result)
 		require.Equal(t, process.DuplicatedInterceptedDataNotAllowed, err)
 	})

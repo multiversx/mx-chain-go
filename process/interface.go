@@ -1299,6 +1299,7 @@ type CheckedChunkResult struct {
 // InterceptedChunksProcessor defines the component that is able to process chunks of intercepted data
 type InterceptedChunksProcessor interface {
 	CheckBatch(b *batch.Batch, whiteListHandler WhiteListHandler) (CheckedChunkResult, error)
+	MarkVerified(b *batch.Batch)
 	Close() error
 	IsInterfaceNil() bool
 }
@@ -1429,7 +1430,8 @@ type SentSignaturesTracker interface {
 
 // InterceptedDataVerifier defines a component able to verify intercepted data validity
 type InterceptedDataVerifier interface {
-	Verify(interceptedData InterceptedData) error
+	Verify(interceptedData InterceptedData, topic string) error
+	MarkVerified(interceptedData InterceptedData, topic string)
 	IsInterfaceNil() bool
 }
 

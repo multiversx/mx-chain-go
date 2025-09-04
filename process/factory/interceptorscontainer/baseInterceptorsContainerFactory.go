@@ -231,7 +231,8 @@ func (bicf *baseInterceptorsContainerFactory) generateTxInterceptors() error {
 	for idx := uint32(0); idx < noOfShards; idx++ {
 		identifierTx := factory.TransactionTopic + shardC.CommunicationIdentifier(idx)
 
-		interceptor, err := bicf.createOneTxInterceptor(identifierTx)
+		isCrossShard := idx != shardC.SelfId()
+		interceptor, err := bicf.createOneTxInterceptor(identifierTx, isCrossShard)
 		if err != nil {
 			return err
 		}
@@ -243,7 +244,8 @@ func (bicf *baseInterceptorsContainerFactory) generateTxInterceptors() error {
 	// tx interceptor for metachain topic
 	identifierTx := factory.TransactionTopic + shardC.CommunicationIdentifier(core.MetachainShardId)
 
-	interceptor, err := bicf.createOneTxInterceptor(identifierTx)
+	isCrossShard := core.MetachainShardId != shardC.SelfId()
+	interceptor, err := bicf.createOneTxInterceptor(identifierTx, isCrossShard)
 	if err != nil {
 		return err
 	}
@@ -254,7 +256,7 @@ func (bicf *baseInterceptorsContainerFactory) generateTxInterceptors() error {
 	return bicf.addInterceptorsToContainers(keys, interceptorSlice)
 }
 
-func (bicf *baseInterceptorsContainerFactory) createOneTxInterceptor(topic string) (process.Interceptor, error) {
+func (bicf *baseInterceptorsContainerFactory) createOneTxInterceptor(topic string, isCrossShard bool) (process.Interceptor, error) {
 	if bicf.argInterceptorFactory == nil {
 		return nil, process.ErrNilArgumentStruct
 	}
@@ -316,15 +318,17 @@ func (bicf *baseInterceptorsContainerFactory) createOneTxInterceptor(topic strin
 		return nil, err
 	}
 
-	err = bicf.setUniqueChunksProcessor(interceptor)
-	if err != nil {
-		return nil, err
+	if isCrossShard {
+		err = bicf.setUniqueChunksProcessor(interceptor)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	return bicf.createTopicAndAssignHandler(topic, interceptor, true)
 }
 
-func (bicf *baseInterceptorsContainerFactory) createOneUnsignedTxInterceptor(topic string) (process.Interceptor, error) {
+func (bicf *baseInterceptorsContainerFactory) createOneUnsignedTxInterceptor(topic string, isCrossShard bool) (process.Interceptor, error) {
 	if bicf.argInterceptorFactory == nil {
 		return nil, process.ErrNilArgumentStruct
 	}
@@ -371,15 +375,17 @@ func (bicf *baseInterceptorsContainerFactory) createOneUnsignedTxInterceptor(top
 		return nil, err
 	}
 
-	err = bicf.setUniqueChunksProcessor(interceptor)
-	if err != nil {
-		return nil, err
+	if isCrossShard {
+		err = bicf.setUniqueChunksProcessor(interceptor)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	return bicf.createTopicAndAssignHandler(topic, interceptor, true)
 }
 
-func (bicf *baseInterceptorsContainerFactory) createOneRewardTxInterceptor(topic string) (process.Interceptor, error) {
+func (bicf *baseInterceptorsContainerFactory) createOneRewardTxInterceptor(topic string, isCrossShard bool) (process.Interceptor, error) {
 	if bicf.argInterceptorFactory == nil {
 		return nil, process.ErrNilArgumentStruct
 	}
@@ -426,9 +432,11 @@ func (bicf *baseInterceptorsContainerFactory) createOneRewardTxInterceptor(topic
 		return nil, err
 	}
 
-	err = bicf.setUniqueChunksProcessor(interceptor)
-	if err != nil {
-		return nil, err
+	if isCrossShard {
+		err = bicf.setUniqueChunksProcessor(interceptor)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	return bicf.createTopicAndAssignHandler(topic, interceptor, true)
@@ -500,7 +508,8 @@ func (bicf *baseInterceptorsContainerFactory) generateMiniBlocksInterceptors() e
 	for idx := uint32(0); idx < noOfShards; idx++ {
 		identifierMiniBlocks := factory.MiniBlocksTopic + shardC.CommunicationIdentifier(idx)
 
-		interceptor, err := bicf.createOneMiniBlocksInterceptor(identifierMiniBlocks)
+		isCrossShard := idx != shardC.SelfId()
+		interceptor, err := bicf.createOneMiniBlocksInterceptor(identifierMiniBlocks, isCrossShard)
 		if err != nil {
 			return err
 		}
@@ -511,7 +520,8 @@ func (bicf *baseInterceptorsContainerFactory) generateMiniBlocksInterceptors() e
 
 	identifierMiniBlocks := factory.MiniBlocksTopic + shardC.CommunicationIdentifier(core.MetachainShardId)
 
-	interceptor, err := bicf.createOneMiniBlocksInterceptor(identifierMiniBlocks)
+	isCrossShard := core.MetachainShardId != shardC.SelfId()
+	interceptor, err := bicf.createOneMiniBlocksInterceptor(identifierMiniBlocks, isCrossShard)
 	if err != nil {
 		return err
 	}
@@ -521,7 +531,7 @@ func (bicf *baseInterceptorsContainerFactory) generateMiniBlocksInterceptors() e
 
 	identifierAllShardsMiniBlocks := factory.MiniBlocksTopic + shardC.CommunicationIdentifier(core.AllShardId)
 
-	allShardsMiniBlocksInterceptor, err := bicf.createOneMiniBlocksInterceptor(identifierAllShardsMiniBlocks)
+	allShardsMiniBlocksInterceptor, err := bicf.createOneMiniBlocksInterceptor(identifierAllShardsMiniBlocks, true)
 	if err != nil {
 		return err
 	}
@@ -532,7 +542,7 @@ func (bicf *baseInterceptorsContainerFactory) generateMiniBlocksInterceptors() e
 	return bicf.addInterceptorsToContainers(keys, interceptorsSlice)
 }
 
-func (bicf *baseInterceptorsContainerFactory) createOneMiniBlocksInterceptor(topic string) (process.Interceptor, error) {
+func (bicf *baseInterceptorsContainerFactory) createOneMiniBlocksInterceptor(topic string, isCrossShard bool) (process.Interceptor, error) {
 	internalMarshaller := bicf.argInterceptorFactory.CoreComponents.InternalMarshalizer()
 	hasher := bicf.argInterceptorFactory.CoreComponents.Hasher()
 	argProcessor := &processor.ArgMiniblockInterceptorProcessor{
@@ -576,9 +586,11 @@ func (bicf *baseInterceptorsContainerFactory) createOneMiniBlocksInterceptor(top
 		return nil, err
 	}
 
-	err = bicf.setUniqueChunksProcessor(interceptor)
-	if err != nil {
-		return nil, err
+	if isCrossShard {
+		err = bicf.setUniqueChunksProcessor(interceptor)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	return bicf.createTopicAndAssignHandler(topic, interceptor, true)
@@ -594,7 +606,7 @@ func (bicf *baseInterceptorsContainerFactory) setUniqueChunksProcessor(intercept
 		return err
 	}
 
-	chunkProcessor, err := processor.NewUniqueChunksProcessor(chunksCache, internalMarshaller)
+	chunkProcessor, err := processor.NewUniqueChunksProcessor(chunksCache, internalMarshaller, bicf.hasher)
 	if err != nil {
 		return err
 	}
@@ -724,7 +736,8 @@ func (bicf *baseInterceptorsContainerFactory) generateUnsignedTxsInterceptors() 
 
 	for idx := uint32(0); idx < noOfShards; idx++ {
 		identifierScr := factory.UnsignedTransactionTopic + shardC.CommunicationIdentifier(idx)
-		interceptor, err := bicf.createOneUnsignedTxInterceptor(identifierScr)
+		isCrossShard := idx != shardC.SelfId()
+		interceptor, err := bicf.createOneUnsignedTxInterceptor(identifierScr, isCrossShard)
 		if err != nil {
 			return err
 		}
@@ -734,7 +747,8 @@ func (bicf *baseInterceptorsContainerFactory) generateUnsignedTxsInterceptors() 
 	}
 
 	identifierScr := factory.UnsignedTransactionTopic + shardC.CommunicationIdentifier(core.MetachainShardId)
-	interceptor, err := bicf.createOneUnsignedTxInterceptor(identifierScr)
+	isCrossShard := core.MetachainShardId != shardC.SelfId()
+	interceptor, err := bicf.createOneUnsignedTxInterceptor(identifierScr, isCrossShard)
 	if err != nil {
 		return err
 	}

@@ -400,7 +400,8 @@ func (ficf *fullSyncInterceptorsContainerFactory) generateUnsignedTxsInterceptor
 			continue
 		}
 
-		interceptor, err := ficf.createOneUnsignedTxInterceptor(identifierScr)
+		isCrossShard := idx != ficf.shardCoordinator.SelfId()
+		interceptor, err := ficf.createOneUnsignedTxInterceptor(identifierScr, isCrossShard)
 		if err != nil {
 			return err
 		}
@@ -411,7 +412,8 @@ func (ficf *fullSyncInterceptorsContainerFactory) generateUnsignedTxsInterceptor
 
 	identifierScr := factory.UnsignedTransactionTopic + shardC.CommunicationIdentifier(core.MetachainShardId)
 	if !ficf.checkIfInterceptorExists(identifierScr) {
-		interceptor, err := ficf.createOneUnsignedTxInterceptor(identifierScr)
+		isCrossShard := core.MetachainShardId != ficf.shardCoordinator.SelfId()
+		interceptor, err := ficf.createOneUnsignedTxInterceptor(identifierScr, isCrossShard)
 		if err != nil {
 			return err
 		}
@@ -519,7 +521,8 @@ func (ficf *fullSyncInterceptorsContainerFactory) generateTxInterceptors() error
 			continue
 		}
 
-		interceptor, err := ficf.createOneTxInterceptor(identifierTx)
+		isCrossShard := idx != ficf.shardCoordinator.SelfId()
+		interceptor, err := ficf.createOneTxInterceptor(identifierTx, isCrossShard)
 		if err != nil {
 			return err
 		}
@@ -531,7 +534,8 @@ func (ficf *fullSyncInterceptorsContainerFactory) generateTxInterceptors() error
 	// tx interceptor for metachain topic
 	identifierTx := factory.TransactionTopic + shardC.CommunicationIdentifier(core.MetachainShardId)
 	if !ficf.checkIfInterceptorExists(identifierTx) {
-		interceptor, err := ficf.createOneTxInterceptor(identifierTx)
+		isCrossShard := core.MetachainShardId != ficf.shardCoordinator.SelfId()
+		interceptor, err := ficf.createOneTxInterceptor(identifierTx, isCrossShard)
 		if err != nil {
 			return err
 		}
@@ -543,7 +547,7 @@ func (ficf *fullSyncInterceptorsContainerFactory) generateTxInterceptors() error
 	return ficf.addInterceptorsToContainers(keys, interceptorSlice)
 }
 
-func (ficf *fullSyncInterceptorsContainerFactory) createOneTxInterceptor(topic string) (process.Interceptor, error) {
+func (ficf *fullSyncInterceptorsContainerFactory) createOneTxInterceptor(topic string, isCrossShard bool) (process.Interceptor, error) {
 	txValidator, err := dataValidators.NewTxValidator(
 		ficf.accounts,
 		ficf.shardCoordinator,
@@ -595,15 +599,17 @@ func (ficf *fullSyncInterceptorsContainerFactory) createOneTxInterceptor(topic s
 		return nil, err
 	}
 
-	err = ficf.setUniqueChunksProcessor(interceptor)
-	if err != nil {
-		return nil, err
+	if isCrossShard {
+		err = ficf.setUniqueChunksProcessor(interceptor)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	return ficf.createTopicAndAssignHandler(topic, interceptor, true)
 }
 
-func (ficf *fullSyncInterceptorsContainerFactory) createOneUnsignedTxInterceptor(topic string) (process.Interceptor, error) {
+func (ficf *fullSyncInterceptorsContainerFactory) createOneUnsignedTxInterceptor(topic string, isCrossShard bool) (process.Interceptor, error) {
 	argProcessor := &processor.ArgTxInterceptorProcessor{
 		ShardedDataCache: ficf.dataPool.UnsignedTransactions(),
 		TxValidator:      dataValidators.NewDisabledTxValidator(),
@@ -642,15 +648,17 @@ func (ficf *fullSyncInterceptorsContainerFactory) createOneUnsignedTxInterceptor
 		return nil, err
 	}
 
-	err = ficf.setUniqueChunksProcessor(interceptor)
-	if err != nil {
-		return nil, err
+	if isCrossShard {
+		err = ficf.setUniqueChunksProcessor(interceptor)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	return ficf.createTopicAndAssignHandler(topic, interceptor, true)
 }
 
-func (ficf *fullSyncInterceptorsContainerFactory) createOneRewardTxInterceptor(topic string) (process.Interceptor, error) {
+func (ficf *fullSyncInterceptorsContainerFactory) createOneRewardTxInterceptor(topic string, isCrossShard bool) (process.Interceptor, error) {
 	argProcessor := &processor.ArgTxInterceptorProcessor{
 		ShardedDataCache: ficf.dataPool.RewardTransactions(),
 		TxValidator:      dataValidators.NewDisabledTxValidator(),
@@ -689,9 +697,11 @@ func (ficf *fullSyncInterceptorsContainerFactory) createOneRewardTxInterceptor(t
 		return nil, err
 	}
 
-	err = ficf.setUniqueChunksProcessor(interceptor)
-	if err != nil {
-		return nil, err
+	if isCrossShard {
+		err = ficf.setUniqueChunksProcessor(interceptor)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	return ficf.createTopicAndAssignHandler(topic, interceptor, true)
@@ -707,7 +717,7 @@ func (ficf *fullSyncInterceptorsContainerFactory) setUniqueChunksProcessor(inter
 		return err
 	}
 
-	chunkProcessor, err := processor.NewUniqueChunksProcessor(chunksCache, internalMarshaller)
+	chunkProcessor, err := processor.NewUniqueChunksProcessor(chunksCache, internalMarshaller, ficf.argInterceptorFactory.CoreComponents.Hasher())
 	if err != nil {
 		return err
 	}
@@ -904,8 +914,10 @@ func (ficf *fullSyncInterceptorsContainerFactory) generateRewardTxInterceptors()
 			return nil
 		}
 
+		isCrossShard := core.MetachainShardId != ficf.shardCoordinator.SelfId()
+
 		var interceptor process.Interceptor
-		interceptor, err = ficf.createOneRewardTxInterceptor(identifierScr)
+		interceptor, err = ficf.createOneRewardTxInterceptor(identifierScr, isCrossShard)
 		if err != nil {
 			return err
 		}
