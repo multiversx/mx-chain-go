@@ -99,35 +99,3 @@ type GasComputation interface {
 	ResetBlockLimit()
 	Reset()
 }
-
-// ExecutionResultsVerifier is the interface that defines the methods for verifying execution results
-type ExecutionResultsVerifier interface {
-	VerifyHeaderExecutionResults(headerHash []byte, header data.HeaderHandler) error
-	IsInterfaceNil() bool
-}
-
-// MiniBlocksSelectionSession defines a session for selecting mini blocks
-type MiniBlocksSelectionSession interface {
-	ResetSelectionSession()
-	GetMiniBlockHeaderHandlers() []data.MiniBlockHeaderHandler
-	GetMiniBlocks() block.MiniBlockSlice
-	GetMiniBlockHashes() [][]byte
-	AddReferencedMetaBlock(metaBlock data.HeaderHandler, metaBlockHash []byte)
-	GetReferencedMetaBlockHashes() [][]byte
-	GetReferencedMetaBlocks() []data.HeaderHandler
-	GetLastMetaBlock() data.HeaderHandler
-	GetGasProvided() uint64
-	GetNumTxsAdded() uint32
-	AddMiniBlocksAndHashes(miniBlocksAndHashes []block.MiniblockAndHash) error
-	CreateAndAddMiniBlockFromTransactions(txHashes [][]byte) error
-	IsInterfaceNil() bool
-}
-
-// MissingDataResolver defines a component able to resolve missing data (meta headers and shard headers)
-type MissingDataResolver interface {
-	RequestMissingMetaHeadersBlocking(shardHeader data.ShardHeaderHandler, timeout time.Duration) error
-	RequestMissingMetaHeaders(shardHeader data.ShardHeaderHandler) error
-	WaitForMissingData(timeout time.Duration) error
-	Reset()
-	IsInterfaceNil() bool
-}

@@ -481,7 +481,8 @@ func (tc *transactionCoordinator) CreateMbsCrossShardDstMe(
 	shouldSkipShard := make(map[uint32]bool)
 	// TODO: init the gas estimation per added mbs counter
 
-	finalCrossMiniBlockInfos := tc.getFinalCrossMiniBlockInfos(hdr.GetOrderedCrossMiniblocksWithDst(tc.shardCoordinator.SelfId()), hdr)
+	// TODO: replace this request with the separate one used for proposals.
+	finalCrossMiniBlockInfos := tc.blockDataRequester.GetFinalCrossMiniBlockInfoAndRequestMissing(hdr)
 	defer func() {
 		log.Debug("transactionCoordinator.CreateMbsCrossShardDstMe",
 			"header round", hdr.GetRound(),
@@ -489,9 +490,6 @@ func (tc *transactionCoordinator) CreateMbsCrossShardDstMe(
 			"num mini blocks to be processed", len(finalCrossMiniBlockInfos),
 			"total gas provided", tc.gasHandler.TotalGasProvided()) // todo: the gas handler needs to be separate from
 	}()
-
-	// requests non-blocking the missing miniBlocks and transactions
-	tc.requestMissingMiniBlocksAndTransactions(finalCrossMiniBlockInfos)
 
 	for _, miniBlockInfo := range finalCrossMiniBlockInfos {
 		if tc.blockSizeComputation.IsMaxBlockSizeReached(0, 0) {
@@ -541,6 +539,7 @@ func (tc *transactionCoordinator) CreateMbsCrossShardDstMe(
 			continue
 		}
 
+		// TODO: the request here needs to be replaced with the one used for proposals.
 		preproc := tc.getPreProcessor(miniBlock.Type)
 		if check.IfNil(preproc) {
 			return nil, 0, false, fmt.Errorf("%w unknown block type %d", process.ErrNilPreProcessor, miniBlock.Type)
