@@ -1489,3 +1489,12 @@ type ExecutionResultsTracker interface {
 	SetLastNotarizedResult(executionResult data.BaseExecutionResultHandler) error
 	IsInterfaceNil() bool
 }
+
+// BlockDataRequester defines the methods needed by the processor to request missing data
+type BlockDataRequester interface {
+	RequestBlockTransactions(body *block.Body)
+	RequestMiniBlocksAndTransactions(header data.HeaderHandler)
+	GetFinalCrossMiniBlockInfoAndRequestMissing(header data.HeaderHandler) []*data.MiniBlockInfo
+	IsDataPreparedForProcessing(haveTime func() time.Duration) error
+	IsInterfaceNil() bool
+}

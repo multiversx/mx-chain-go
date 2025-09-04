@@ -15,6 +15,10 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
+	vmcommonBuiltInFunctions "github.com/multiversx/mx-chain-vm-common-go/builtInFunctions"
+	"github.com/multiversx/mx-chain-vm-common-go/parsers"
+
 	"github.com/multiversx/mx-chain-go/common"
 	disabledCommon "github.com/multiversx/mx-chain-go/common/disabled"
 	"github.com/multiversx/mx-chain-go/common/enablers"
@@ -45,9 +49,6 @@ import (
 	"github.com/multiversx/mx-chain-go/update"
 	hardForkProcess "github.com/multiversx/mx-chain-go/update/process"
 	"github.com/multiversx/mx-chain-go/vm"
-	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
-	vmcommonBuiltInFunctions "github.com/multiversx/mx-chain-vm-common-go/builtInFunctions"
-	"github.com/multiversx/mx-chain-vm-common-go/parsers"
 )
 
 // CreateMetaGenesisBlock will create a metachain genesis block
@@ -535,13 +536,25 @@ func createProcessorsForMetaGenesisBlock(arg ArgsGenesisBlockCreator, enableEpoc
 		return nil, err
 	}
 
+	blockDataRequesterArgs := coordinator.BlockDataRequestArgs{
+		RequestHandler:      disabledRequestHandler,
+		MiniBlockPool:       arg.Data.Datapool().MiniBlocks(),
+		PreProcessors:       preProcContainer,
+		ShardCoordinator:    arg.ShardCoordinator,
+		EnableEpochsHandler: enableEpochsHandler,
+	}
+
+	blockDataRequester, err := coordinator.NewBlockDataRequester(blockDataRequesterArgs)
+	if err != nil {
+		return nil, err
+	}
+
 	argsTransactionCoordinator := coordinator.ArgTransactionCoordinator{
 		Hasher:                       arg.Core.Hasher(),
 		Marshalizer:                  arg.Core.InternalMarshalizer(),
 		ShardCoordinator:             arg.ShardCoordinator,
 		Accounts:                     arg.Accounts,
 		MiniBlockPool:                arg.Data.Datapool().MiniBlocks(),
-		RequestHandler:               disabledRequestHandler,
 		PreProcessors:                preProcContainer,
 		InterProcessors:              interimProcContainer,
 		GasHandler:                   gasHandler,
@@ -556,6 +569,7 @@ func createProcessorsForMetaGenesisBlock(arg ArgsGenesisBlockCreator, enableEpoc
 		DoubleTransactionsDetector:   doubleTransactionsDetector,
 		ProcessedMiniBlocksTracker:   disabledProcessedMiniBlocksTracker,
 		TxExecutionOrderHandler:      arg.TxExecutionOrderHandler,
+		BlockDataRequester:           blockDataRequester,
 	}
 	txCoordinator, err := coordinator.NewTransactionCoordinator(argsTransactionCoordinator)
 	if err != nil {
