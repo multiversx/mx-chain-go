@@ -109,6 +109,11 @@ func (hpf *historyRepositoryFactory) Create() (dblookupext.HistoryRepository, er
 		return nil, err
 	}
 
+	executionResultsStorer, err := hpf.store.GetStorer(dataRetriever.ExecutionResultsUnit)
+	if err != nil {
+		return nil, err
+	}
+
 	historyRepArgs := dblookupext.HistoryRepositoryArguments{
 		SelfShardID:                 hpf.selfShardID,
 		Hasher:                      hpf.hasher,
@@ -120,6 +125,7 @@ func (hpf *historyRepositoryFactory) Create() (dblookupext.HistoryRepository, er
 		MiniblockHashByTxHashStorer: miniblockHashByTxHashStorer,
 		EventsHashesByTxHashStorer:  resultsHashesByTxHashStorer,
 		ESDTSuppliesHandler:         esdtSuppliesHandler,
+		ExecutionResultsStorer:      executionResultsStorer,
 	}
 	return dblookupext.NewHistoryRepository(historyRepArgs)
 }
