@@ -126,7 +126,7 @@ func (sd *ShardedDataStub) GetCounts() counting.CountsWithSize {
 
 // GetSelfShardID -
 func (mock *ShardedDataStub) GetSelfShardID() string {
-	if mock.GetSelfShardIDCalled == nil {
+	if mock.GetSelfShardIDCalled != nil {
 		return mock.GetSelfShardIDCalled()
 	}
 

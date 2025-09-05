@@ -2080,6 +2080,47 @@ func TestNodeFacade_GetTransactionsPoolNonceGapsForSender(t *testing.T) {
 	})
 }
 
+func TestNodeFacade_GetSelectedTransactions(t *testing.T) {
+	t.Parallel()
+
+	t.Run("should error", func(t *testing.T) {
+		t.Parallel()
+
+		arg := createMockArguments()
+		arg.ApiResolver = &mock.ApiResolverStub{
+			GetSelectedTransactionsCalled: func(accountsAdapter state.AccountsAdapterAPI, selectionOptions common.TxSelectionOptions) (*common.SelectedTransactions, error) {
+				return nil, expectedErr
+			},
+		}
+
+		nf, _ := NewNodeFacade(arg)
+		res, err := nf.GetSelectedTransactions()
+		require.Nil(t, res)
+		require.Equal(t, expectedErr, err)
+	})
+
+	t.Run("should work", func(t *testing.T) {
+		t.Parallel()
+
+		arg := createMockArguments()
+		expectedTxHashes := []string{"txHash1", "txHash2"}
+		expectedRes := &common.SelectedTransactions{
+			TxHashes: expectedTxHashes,
+		}
+
+		arg.ApiResolver = &mock.ApiResolverStub{
+			GetSelectedTransactionsCalled: func(accountsAdapter state.AccountsAdapterAPI, selectionOptions common.TxSelectionOptions) (*common.SelectedTransactions, error) {
+				return expectedRes, nil
+			},
+		}
+
+		nf, _ := NewNodeFacade(arg)
+		res, err := nf.GetSelectedTransactions()
+		require.NoError(t, err)
+		require.Equal(t, expectedRes, res)
+	})
+}
+
 func TestNodeFacade_InternalValidatorsInfo(t *testing.T) {
 	t.Parallel()
 

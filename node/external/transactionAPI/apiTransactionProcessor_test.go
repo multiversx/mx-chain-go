@@ -22,12 +22,14 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/vm"
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/common/holders"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/dblookupext"
 	"github.com/multiversx/mx-chain-go/node/mock"
 	"github.com/multiversx/mx-chain-go/process"
 	processMocks "github.com/multiversx/mx-chain-go/process/mock"
+	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	dataRetrieverMock "github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
@@ -35,15 +37,23 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/genericMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
+	state2 "github.com/multiversx/mx-chain-go/testscommon/state"
 	storageStubs "github.com/multiversx/mx-chain-go/testscommon/storage"
 	"github.com/multiversx/mx-chain-go/testscommon/txcachemocks"
 	"github.com/multiversx/mx-chain-go/txcache"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 	datafield "github.com/multiversx/mx-chain-vm-common-go/parsers/dataField"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 const maxTrackedBlocks = 100
+const selectionLoopMaximumDuration = 250
+const numTxsSelected = 30_000
+const gasRequested = 10_000_000_000
+const loopDurationCheckInterval = 10
+
+var oneEGLD = big.NewInt(1000000000000000000)
 
 func createMockArgAPITransactionProcessor() *ArgAPITransactionProcessor {
 	return &ArgAPITransactionProcessor{
@@ -1152,6 +1162,158 @@ func TestApiTransactionProcessor_GetTransactionsPoolNonceGapsForSender(t *testin
 		Sender: newSender,
 		Gaps:   []common.NonceGapApiResponse{},
 	}, res)
+}
+
+func TestApiTransactionProcessor_GetSelectedTransactions(t *testing.T) {
+	t.Parallel()
+
+	cache, err := txcache.NewTxCache(txcache.ConfigSourceMe{
+		Name:                        "test",
+		NumChunks:                   4,
+		NumBytesThreshold:           1_048_576, // 1 MB
+		NumBytesPerSenderThreshold:  1_048_576, // 1 MB
+		CountThreshold:              math.MaxUint32,
+		CountPerSenderThreshold:     math.MaxUint32,
+		NumItemsToPreemptivelyEvict: 1,
+		TxCacheBoundsConfig: config.TxCacheBoundsConfig{
+			MaxNumBytesPerSenderUpperBound: 33_554_432,
+			MaxTrackedBlocks:               maxTrackedBlocks,
+		},
+	}, txcachemocks.NewMempoolHostMock())
+
+	require.NoError(t, err)
+
+	cache.AddTx(createTx([]byte("hash1"), "alice", 0))
+	cache.AddTx(createTx([]byte("hash2"), "bob", 0))
+	cache.AddTx(createTx([]byte("hash3"), "alice", 1))
+	cache.AddTx(createTx([]byte("hash4"), "bob", 1))
+
+	require.Equal(t, uint64(4), cache.CountTx())
+
+	t.Run("should work", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockArgAPITransactionProcessor()
+		args.DataPool = &dataRetrieverMock.PoolsHolderStub{
+			TransactionsCalled: func() dataRetriever.ShardedDataCacherNotifier {
+				return &testscommon.ShardedDataStub{
+					ShardDataStoreCalled: func(cacheID string) storage.Cacher {
+						if cacheID == "1" { // self shard
+							return cache
+						}
+						return nil
+					},
+					GetSelfShardIDCalled: func() string {
+						return "1"
+					},
+				}
+			},
+		}
+
+		atp, err := NewAPITransactionProcessor(args)
+		require.NoError(t, err)
+		require.NotNil(t, atp)
+
+		accountsAdapter := &state2.AccountsStub{
+			RootHashCalled: func() ([]byte, error) {
+				return []byte("rootHash"), nil
+			},
+			GetExistingAccountCalled: func(addressContainer []byte) (vmcommon.AccountHandler, error) {
+				if bytes.Equal(addressContainer, []byte("alice")) {
+					return &state2.AccountWrapMock{
+						Balance: oneEGLD,
+					}, nil
+				}
+				if bytes.Equal(addressContainer, []byte("bob")) {
+					return &state2.AccountWrapMock{
+						Balance: oneEGLD,
+					}, nil
+				}
+
+				return nil, nil
+			},
+		}
+
+		options := holders.NewTxSelectionOptions(
+			gasRequested,
+			numTxsSelected,
+			selectionLoopMaximumDuration,
+			loopDurationCheckInterval,
+		)
+
+		selectedTxs, err := atp.GetSelectedTransactions(accountsAdapter, options)
+		require.NoError(t, err)
+		require.Len(t, selectedTxs.TxHashes, 4)
+	})
+
+	t.Run("should return ErrNilAccountsAdapter", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockArgAPITransactionProcessor()
+		args.DataPool = &dataRetrieverMock.PoolsHolderStub{
+			TransactionsCalled: func() dataRetriever.ShardedDataCacherNotifier {
+				return &testscommon.ShardedDataStub{
+					ShardDataStoreCalled: func(cacheID string) storage.Cacher {
+						if cacheID == "1" { // self shard
+							return cache
+						}
+						return nil
+					},
+					GetSelfShardIDCalled: func() string {
+						return "1"
+					},
+				}
+			},
+		}
+
+		atp, err := NewAPITransactionProcessor(args)
+		require.NoError(t, err)
+		require.NotNil(t, atp)
+
+		options := holders.NewTxSelectionOptions(
+			gasRequested,
+			numTxsSelected,
+			selectionLoopMaximumDuration,
+			loopDurationCheckInterval,
+		)
+
+		selectedTxs, err := atp.GetSelectedTransactions(nil, options)
+		require.Equal(t, state.ErrNilAccountsAdapter, err)
+		require.Nil(t, selectedTxs)
+	})
+
+	t.Run("should return ErrCouldNotCastToTxCache", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockArgAPITransactionProcessor()
+		args.DataPool = &dataRetrieverMock.PoolsHolderStub{
+			TransactionsCalled: func() dataRetriever.ShardedDataCacherNotifier {
+				return &testscommon.ShardedDataStub{
+					ShardDataStoreCalled: func(cacheID string) storage.Cacher {
+						return nil
+					},
+					GetSelfShardIDCalled: func() string {
+						return ""
+					},
+				}
+			},
+		}
+
+		atp, err := NewAPITransactionProcessor(args)
+		require.NoError(t, err)
+		require.NotNil(t, atp)
+
+		options := holders.NewTxSelectionOptions(
+			gasRequested,
+			numTxsSelected,
+			selectionLoopMaximumDuration,
+			loopDurationCheckInterval,
+		)
+
+		selectedTxs, err := atp.GetSelectedTransactions(nil, options)
+		require.Equal(t, ErrCouldNotCastToTxCache, err)
+		require.Nil(t, selectedTxs)
+	})
 }
 
 func createAPITransactionProc(t *testing.T, epoch uint32, withDbLookupExt bool) (*apiTransactionProcessor, *genericMocks.ChainStorerMock, *dataRetrieverMock.PoolsHolderMock, *dblookupextMock.HistoryRepositoryStub) {
