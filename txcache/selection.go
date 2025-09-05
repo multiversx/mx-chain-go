@@ -78,7 +78,7 @@ func selectTransactionsFromBunches(
 		if len(selectedTransactions)%loopDurationCheckInterval == 0 {
 			if time.Since(selectionLoopStartTime) > selectionLoopMaxDuration {
 				logSelect.Debug("TxCache.selectTransactionsFromBunches, selection loop timeout", "duration", time.Since(selectionLoopStartTime))
-				//break
+				break
 			}
 		}
 

@@ -1014,6 +1014,7 @@ func TestTransactionsGroup_GetSelectedTransactions(t *testing.T) {
 				return nil, expectedErr
 			},
 		}
+
 		testTransactionsGroup(
 			t,
 			facade,
@@ -1032,11 +1033,13 @@ func TestTransactionsGroup_GetSelectedTransactions(t *testing.T) {
 		expectedResult := &common.SelectedTransactions{
 			expectedTxHashes,
 		}
+
 		facade := &mock.FacadeStub{
 			GetSelectedTransactionsCalled: func() (*common.SelectedTransactions, error) {
 				return expectedResult, nil
 			},
 		}
+
 		loadTransactionGroupResponse(
 			t,
 			facade,

@@ -308,7 +308,7 @@ func (atp *apiTransactionProcessor) GetTransactionsPoolNonceGapsForSender(sender
 	}, nil
 }
 
-// GetSelectedTransactions will simulate a SelectTransactions and it will return the corresponding hash of each selected transaction
+// GetSelectedTransactions will simulate a SelectTransactions, and it will return the corresponding hash of each selected transaction
 func (atp *apiTransactionProcessor) GetSelectedTransactions(accountsAdapter state.AccountsAdapterAPI, selectionOptions common.TxSelectionOptions) (*common.SelectedTransactions, error) {
 	selectedTxHashes, err := atp.selectTransactions(accountsAdapter, selectionOptions)
 	if err != nil {
