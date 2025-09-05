@@ -1031,7 +1031,7 @@ func TestTransactionsGroup_GetSelectedTransactions(t *testing.T) {
 
 		expectedTxHashes := []string{"txHash1", "txHash2"}
 		expectedResult := &common.SelectedTransactions{
-			expectedTxHashes,
+			TxHashes: expectedTxHashes,
 		}
 
 		facade := &mock.FacadeStub{
