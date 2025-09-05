@@ -165,11 +165,13 @@ func NewBaseProcessor(arguments ArgBaseProcessor) (*baseProcessor, error) {
 		return nil, err
 	}
 
-	missingDataResolver, err := missingData.NewMissingDataResolver(
-		arguments.DataComponents.Datapool().Headers(),
-		arguments.DataComponents.Datapool().Proofs(),
-		arguments.RequestHandler,
-	)
+	missingDataArgs := missingData.ResolverArgs{
+		HeadersPool:        arguments.DataComponents.Datapool().Headers(),
+		ProofsPool:         arguments.DataComponents.Datapool().Proofs(),
+		RequestHandler:     arguments.RequestHandler,
+		BlockDataRequester: arguments.BlockDataRequester,
+	}
+	missingDataResolver, err := missingData.NewMissingDataResolver(missingDataArgs)
 	if err != nil {
 		return nil, err
 	}
@@ -731,6 +733,9 @@ func checkProcessorParameters(arguments ArgBaseProcessor) error {
 	}
 	if check.IfNil(arguments.DataComponents.Datapool().Headers()) {
 		return process.ErrNilHeadersDataPool
+	}
+	if check.IfNil(arguments.BlockDataRequester) {
+		return process.ErrNilBlockDataRequester
 	}
 
 	return nil

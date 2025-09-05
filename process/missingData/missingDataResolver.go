@@ -1,13 +1,13 @@
 package missingData
 
 import (
-	"fmt"
 	"sync"
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/block"
 
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/process"
@@ -15,57 +15,69 @@ import (
 
 const checkMissingDataStep = 10 * time.Millisecond
 
-var errTimeoutWaitingForMissingData = fmt.Errorf("timeout waiting for missing data")
-
-type missingDataResolver struct {
-	mutHeaders     sync.RWMutex
-	missingHeaders map[string]struct{}
-	mutProofs      sync.RWMutex
-	missingProofs  map[string]struct{}
-	headersPool    dataRetriever.HeadersPool
-	proofsPool     dataRetriever.ProofsPool
-	requestHandler process.RequestHandler
+// ResolverArgs holds the arguments needed to create a Resolver
+type ResolverArgs struct {
+	HeadersPool        dataRetriever.HeadersPool
+	ProofsPool         dataRetriever.ProofsPool
+	RequestHandler     process.RequestHandler
+	BlockDataRequester process.BlockDataRequester
 }
 
-// NewMissingDataResolver creates a new instance of missingDataResolver.
-func NewMissingDataResolver(headersPool dataRetriever.HeadersPool, proofsPool dataRetriever.ProofsPool, requestHandler process.RequestHandler) (*missingDataResolver, error) {
-	if check.IfNil(headersPool) {
+// Resolver is responsible for requesting and tracking missing headers and proofs.
+type Resolver struct {
+	mutHeaders         sync.RWMutex
+	missingHeaders     map[string]struct{}
+	mutProofs          sync.RWMutex
+	missingProofs      map[string]struct{}
+	headersPool        dataRetriever.HeadersPool
+	proofsPool         dataRetriever.ProofsPool
+	requestHandler     process.RequestHandler
+	blockDataRequester process.BlockDataRequester
+}
+
+// NewMissingDataResolver creates a new instance of Resolver.
+func NewMissingDataResolver(args ResolverArgs) (*Resolver, error) {
+	if check.IfNil(args.HeadersPool) {
 		return nil, process.ErrNilHeadersDataPool
 	}
-	if check.IfNil(proofsPool) {
+	if check.IfNil(args.ProofsPool) {
 		return nil, process.ErrNilProofsPool
 	}
-	if check.IfNil(requestHandler) {
+	if check.IfNil(args.RequestHandler) {
 		return nil, process.ErrNilRequestHandler
 	}
-
-	mdt := &missingDataResolver{
-		missingHeaders: make(map[string]struct{}),
-		missingProofs:  make(map[string]struct{}),
-		headersPool:    headersPool,
-		proofsPool:     proofsPool,
-		requestHandler: requestHandler,
+	if check.IfNil(args.BlockDataRequester) {
+		return nil, process.ErrNilBlockDataRequester
 	}
 
-	mdt.monitorReceivedData()
-	return mdt, nil
+	r := &Resolver{
+		missingHeaders:     make(map[string]struct{}),
+		missingProofs:      make(map[string]struct{}),
+		headersPool:        args.HeadersPool,
+		proofsPool:         args.ProofsPool,
+		requestHandler:     args.RequestHandler,
+		blockDataRequester: args.BlockDataRequester,
+	}
+
+	r.monitorReceivedData()
+	return r, nil
 }
 
 // RequestMissingMetaHeadersBlocking requests the missing meta headers and proofs for the given shard header.
-func (mdr *missingDataResolver) RequestMissingMetaHeadersBlocking(
+func (r *Resolver) RequestMissingMetaHeadersBlocking(
 	shardHeader data.ShardHeaderHandler,
 	timeout time.Duration,
 ) error {
-	err := mdr.RequestMissingMetaHeaders(shardHeader)
+	err := r.RequestMissingMetaHeaders(shardHeader)
 	if err != nil {
 		return err
 	}
 
-	return mdr.WaitForMissingData(timeout)
+	return r.WaitForMissingData(timeout)
 }
 
 // RequestMissingMetaHeaders requests the missing meta headers and proofs for the given shard header.
-func (mdr *missingDataResolver) RequestMissingMetaHeaders(
+func (r *Resolver) RequestMissingMetaHeaders(
 	shardHeader data.ShardHeaderHandler,
 ) error {
 	if check.IfNil(shardHeader) {
@@ -74,139 +86,175 @@ func (mdr *missingDataResolver) RequestMissingMetaHeaders(
 
 	metaBlockHashes := shardHeader.GetMetaBlockHashes()
 	for i := 0; i < len(metaBlockHashes); i++ {
-		mdr.requestHeaderIfNeeded(core.MetachainShardId, metaBlockHashes[i])
-		mdr.requestProofIfNeeded(core.MetachainShardId, metaBlockHashes[i])
+		r.requestHeaderIfNeeded(core.MetachainShardId, metaBlockHashes[i])
+		r.requestProofIfNeeded(core.MetachainShardId, metaBlockHashes[i])
 	}
 	return nil
 }
 
-func (mdr *missingDataResolver) addMissingHeader(hash []byte) bool {
-	mdr.mutHeaders.Lock()
-	mdr.missingHeaders[string(hash)] = struct{}{}
-	mdr.mutHeaders.Unlock()
+func (r *Resolver) addMissingHeader(hash []byte) bool {
+	r.mutHeaders.Lock()
+	r.missingHeaders[string(hash)] = struct{}{}
+	r.mutHeaders.Unlock()
 
 	// avoid missing notifications if the header just arrived
-	_, err := mdr.headersPool.GetHeaderByHash(hash)
+	_, err := r.headersPool.GetHeaderByHash(hash)
 	if err == nil {
-		mdr.mutHeaders.Lock()
-		delete(mdr.missingHeaders, string(hash))
-		mdr.mutHeaders.Unlock()
+		r.mutHeaders.Lock()
+		delete(r.missingHeaders, string(hash))
+		r.mutHeaders.Unlock()
 	}
 
 	return err != nil
 }
 
-func (mdr *missingDataResolver) addMissingProof(shardID uint32, hash []byte) bool {
-	mdr.mutProofs.Lock()
-	mdr.missingProofs[string(hash)] = struct{}{}
-	mdr.mutProofs.Unlock()
+func (r *Resolver) addMissingProof(shardID uint32, hash []byte) bool {
+	r.mutProofs.Lock()
+	r.missingProofs[string(hash)] = struct{}{}
+	r.mutProofs.Unlock()
 
 	// avoid missing notifications if the proof just arrived
-	hasProof := mdr.proofsPool.HasProof(shardID, hash)
+	hasProof := r.proofsPool.HasProof(shardID, hash)
 	if hasProof {
-		mdr.mutProofs.Lock()
-		delete(mdr.missingProofs, string(hash))
-		mdr.mutProofs.Unlock()
+		r.mutProofs.Lock()
+		delete(r.missingProofs, string(hash))
+		r.mutProofs.Unlock()
 	}
 
 	return !hasProof
 }
 
-func (mdr *missingDataResolver) markHeaderReceived(hash []byte) {
-	mdr.mutHeaders.Lock()
-	delete(mdr.missingHeaders, string(hash))
-	mdr.mutHeaders.Unlock()
+func (r *Resolver) markHeaderReceived(hash []byte) {
+	r.mutHeaders.Lock()
+	delete(r.missingHeaders, string(hash))
+	r.mutHeaders.Unlock()
 }
 
-func (mdr *missingDataResolver) markProofReceived(hash []byte) {
-	mdr.mutProofs.Lock()
-	delete(mdr.missingProofs, string(hash))
-	mdr.mutProofs.Unlock()
+func (r *Resolver) markProofReceived(hash []byte) {
+	r.mutProofs.Lock()
+	delete(r.missingProofs, string(hash))
+	r.mutProofs.Unlock()
 }
 
-func (mdr *missingDataResolver) allHeadersReceived() bool {
-	mdr.mutHeaders.RLock()
-	defer mdr.mutHeaders.RUnlock()
+func (r *Resolver) allHeadersReceived() bool {
+	r.mutHeaders.RLock()
+	defer r.mutHeaders.RUnlock()
 
-	return len(mdr.missingHeaders) == 0
+	return len(r.missingHeaders) == 0
 }
 
-func (mdr *missingDataResolver) allProofsReceived() bool {
-	mdr.mutProofs.RLock()
-	defer mdr.mutProofs.RUnlock()
+func (r *Resolver) allProofsReceived() bool {
+	r.mutProofs.RLock()
+	defer r.mutProofs.RUnlock()
 
-	return len(mdr.missingProofs) == 0
+	return len(r.missingProofs) == 0
 }
 
-func (mdr *missingDataResolver) allDataReceived() bool {
-	return mdr.allHeadersReceived() && mdr.allProofsReceived()
+func (r *Resolver) allDataReceived() bool {
+	return r.allHeadersReceived() && r.allProofsReceived()
 }
 
-func (mdr *missingDataResolver) receivedProof(proof data.HeaderProofHandler) {
-	mdr.markProofReceived(proof.GetHeaderHash())
+func (r *Resolver) receivedProof(proof data.HeaderProofHandler) {
+	r.markProofReceived(proof.GetHeaderHash())
 }
 
-func (mdr *missingDataResolver) receivedHeader(_ data.HeaderHandler, headerHash []byte) {
-	mdr.markHeaderReceived(headerHash)
+func (r *Resolver) receivedHeader(_ data.HeaderHandler, headerHash []byte) {
+	r.markHeaderReceived(headerHash)
 }
 
-func (mdr *missingDataResolver) monitorReceivedData() {
-	mdr.headersPool.RegisterHandler(mdr.receivedHeader)
-	mdr.proofsPool.RegisterHandler(mdr.receivedProof)
+func (r *Resolver) monitorReceivedData() {
+	r.headersPool.RegisterHandler(r.receivedHeader)
+	r.proofsPool.RegisterHandler(r.receivedProof)
 }
 
-func (mdr *missingDataResolver) requestHeaderIfNeeded(
+func (r *Resolver) requestHeaderIfNeeded(
 	shardID uint32,
 	headerHash []byte,
 ) {
-	_, err := mdr.headersPool.GetHeaderByHash(headerHash)
+	_, err := r.headersPool.GetHeaderByHash(headerHash)
 	if err == nil {
 		return
 	}
 
-	added := mdr.addMissingHeader(headerHash)
+	added := r.addMissingHeader(headerHash)
 	if !added {
 		return
 	}
 
 	if shardID == core.MetachainShardId {
-		go mdr.requestHandler.RequestMetaHeader(headerHash)
+		go r.requestHandler.RequestMetaHeader(headerHash)
 	} else {
-		go mdr.requestHandler.RequestShardHeader(shardID, headerHash)
+		go r.requestHandler.RequestShardHeader(shardID, headerHash)
 	}
 }
 
-func (mdr *missingDataResolver) requestProofIfNeeded(shardID uint32, headerHash []byte) {
-	if mdr.proofsPool.HasProof(shardID, headerHash) {
+func (r *Resolver) requestProofIfNeeded(shardID uint32, headerHash []byte) {
+	if r.proofsPool.HasProof(shardID, headerHash) {
 		return
 	}
 
-	added := mdr.addMissingProof(shardID, headerHash)
+	added := r.addMissingProof(shardID, headerHash)
 	if !added {
 		return
 	}
 
-	go mdr.requestHandler.RequestEquivalentProofByHash(shardID, headerHash)
+	go r.requestHandler.RequestEquivalentProofByHash(shardID, headerHash)
 }
 
 // WaitForMissingData waits until all missing data is received or the timeout is reached.
 // TODO: maybe use channels instead of polling
-func (mdr *missingDataResolver) WaitForMissingData(timeout time.Duration) error {
-	deadline := time.Now().Add(timeout)
+func (r *Resolver) WaitForMissingData(timeout time.Duration) error {
+	waitDeadline := time.Now().Add(timeout)
+
+	stepHaveTime := func(stepTimeout time.Duration) func() time.Duration {
+		stepDeadline := time.Now().Add(stepTimeout)
+		haveTime := func() time.Duration {
+			return time.Until(stepDeadline)
+		}
+		return haveTime
+	}
 
 	for {
-		if mdr.allDataReceived() {
+		err := r.blockDataRequester.IsDataPreparedForProcessing(stepHaveTime(checkMissingDataStep))
+		if r.allDataReceived() && err == nil {
 			return nil
 		}
 
-		if time.Now().After(deadline) {
-			return errTimeoutWaitingForMissingData
+		if time.Now().After(waitDeadline) {
+			return process.ErrTimeIsOut
 		}
-		time.Sleep(checkMissingDataStep)
 	}
 }
 
+// RequestBlockTransactions requests the transactions for the given block body.
+func (r *Resolver) RequestBlockTransactions(body *block.Body) {
+	r.blockDataRequester.RequestBlockTransactions(body)
+}
+
+// RequestMiniBlocksAndTransactions requests mini blocks and transactions if missing
+func (r *Resolver) RequestMiniBlocksAndTransactions(header data.HeaderHandler) {
+	r.blockDataRequester.RequestMiniBlocksAndTransactions(header)
+}
+
+// GetFinalCrossMiniBlockInfoAndRequestMissing returns the final cross mini block infos and requests missing mini blocks and transactions
+func (r *Resolver) GetFinalCrossMiniBlockInfoAndRequestMissing(header data.HeaderHandler) []*data.MiniBlockInfo {
+	return r.blockDataRequester.GetFinalCrossMiniBlockInfoAndRequestMissing(header)
+}
+
+// Reset clears the internal state of the Resolver.
+func (r *Resolver) Reset() {
+	r.mutHeaders.Lock()
+	r.missingHeaders = make(map[string]struct{})
+	r.mutHeaders.Unlock()
+
+	r.mutProofs.Lock()
+	r.missingProofs = make(map[string]struct{})
+	r.mutProofs.Unlock()
+
+	r.blockDataRequester.Reset()
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
-func (mdr *missingDataResolver) IsInterfaceNil() bool {
-	return mdr == nil
+func (r *Resolver) IsInterfaceNil() bool {
+	return r == nil
 }

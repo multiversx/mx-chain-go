@@ -1074,3 +1074,24 @@ func SetBaseExecutionResult(ert ExecutionResultsTracker, blockChain data.ChainHa
 
 	return ert.SetLastNotarizedResult(lastBaseExecutionResult)
 }
+
+// SeparateBodyByType creates a map of bodies according to type
+func SeparateBodyByType(body *block.Body) map[block.Type]*block.Body {
+	separatedBodies := make(map[block.Type]*block.Body)
+	for i := 0; i < len(body.MiniBlocks); i++ {
+		mb := body.MiniBlocks[i]
+
+		separatedMbType := mb.Type
+		if mb.Type == block.InvalidBlock {
+			separatedMbType = block.TxBlock
+		}
+
+		if _, ok := separatedBodies[separatedMbType]; !ok {
+			separatedBodies[separatedMbType] = &block.Body{}
+		}
+
+		separatedBodies[separatedMbType].MiniBlocks = append(separatedBodies[separatedMbType].MiniBlocks, mb)
+	}
+
+	return separatedBodies
+}
