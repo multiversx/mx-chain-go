@@ -464,7 +464,7 @@ func (atp *apiTransactionProcessor) selectTransactions(accountsAdapter state.Acc
 func (atp *apiTransactionProcessor) extractTxHashes(txs []*txcache.WrappedTransaction) []string {
 	txHashes := make([]string, len(txs))
 	for i, tx := range txs {
-		txHashes[i] = string(tx.TxHash)
+		txHashes[i] = hex.EncodeToString(tx.TxHash)
 	}
 
 	return txHashes
