@@ -6,12 +6,10 @@ import (
 	"testing"
 
 	"github.com/multiversx/mx-chain-go/config"
-	logger "github.com/multiversx/mx-chain-logger-go"
 	"github.com/stretchr/testify/require"
 )
 
 func TestEstimatorCreation(t *testing.T) {
-	_ = logger.SetLogLevel("*:DEBUG")
 	t.Parallel()
 
 	t.Run("Nil interface", func(t *testing.T) {
@@ -39,7 +37,6 @@ func TestEstimatorCreation(t *testing.T) {
 }
 
 func TestDecide(t *testing.T) {
-	_ = logger.SetLogLevel("*:DEBUG")
 	t.Parallel()
 
 	t.Run("Empty pending", func(t *testing.T) {
@@ -102,7 +99,7 @@ func TestDecide(t *testing.T) {
 			{HeaderNonce: 2, HeaderTimeMs: 1011, GasUsed: 100_000_000},
 			{HeaderNonce: 3, HeaderTimeMs: 1012, GasUsed: 100_000_000},
 		}
-		currentHdrTsMs := uint64(1010 * 110 / 100)
+		currentHdrTsMs := uint64(1010 * cfg.SafetyMargin / 100)
 		wantAllowed := 1
 
 		got := erie.Decide(lastNotarised, pending, currentHdrTsMs)
@@ -165,7 +162,6 @@ func TestDecide(t *testing.T) {
 }
 
 func TestOverflowProtection(t *testing.T) {
-	_ = logger.SetLogLevel("*:DEBUG")
 	t.Run("gasUsed * t_gas overflows", func(t *testing.T) {
 		cfg := config.ExecutionResultInclusionEstimatorConfig{
 			SafetyMargin:       110,
@@ -188,8 +184,8 @@ func TestOverflowProtection(t *testing.T) {
 }
 
 func TestDecide_EdgeCases(t *testing.T) {
-	_ = logger.SetLogLevel("*:DEBUG")
 	t.Parallel()
+
 	cfg := config.ExecutionResultInclusionEstimatorConfig{
 		SafetyMargin:       10,
 		MaxResultsPerBlock: 10,
