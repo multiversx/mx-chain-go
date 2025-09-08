@@ -588,7 +588,7 @@ func TestNodeApiResolver_GetSelectedTransactions(t *testing.T) {
 		expectedErr := errors.New("expected error")
 		arg := createMockArgs()
 		arg.APITransactionHandler = &mock.TransactionAPIHandlerStub{
-			GetSelectedTransactionsCalled: func(accountsAdapter state.AccountsAdapterAPI, selectionOptions common.TxSelectionOptions) (*common.TransactionsSelectionSimulationResult, error) {
+			GetSelectedTransactionsCalled: func(accountsAdapter state.AccountsAdapter, selectionOptions common.TxSelectionOptions) (*common.TransactionsSelectionSimulationResult, error) {
 				return nil, expectedErr
 			},
 		}
@@ -608,7 +608,7 @@ func TestNodeApiResolver_GetSelectedTransactions(t *testing.T) {
 		}
 		arg := createMockArgs()
 		arg.APITransactionHandler = &mock.TransactionAPIHandlerStub{
-			GetSelectedTransactionsCalled: func(accountsAdapter state.AccountsAdapterAPI, selectionOptions common.TxSelectionOptions) (*common.TransactionsSelectionSimulationResult, error) {
+			GetSelectedTransactionsCalled: func(accountsAdapter state.AccountsAdapter, selectionOptions common.TxSelectionOptions) (*common.TransactionsSelectionSimulationResult, error) {
 				return expectedResult, nil
 			},
 		}

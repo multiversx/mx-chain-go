@@ -61,8 +61,9 @@ func createMockArguments() ArgNodeFacade {
 				},
 			},
 		}},
-		AccountsState: &stateMock.AccountsStub{},
-		PeerState:     &stateMock.AccountsStub{},
+		AccountsStateAPI: &stateMock.AccountsStub{},
+		AccountsState:    &stateMock.AccountsStub{},
+		PeerState:        &stateMock.AccountsStub{},
 		Blockchain: &testscommon.ChainHandlerStub{
 			GetCurrentBlockHeaderCalled: func() nodeData.HeaderHandler {
 				return &block.Header{}
@@ -2088,7 +2089,7 @@ func TestNodeFacade_GetSelectedTransactions(t *testing.T) {
 
 		arg := createMockArguments()
 		arg.ApiResolver = &mock.ApiResolverStub{
-			GetSelectedTransactionsCalled: func(accountsAdapter state.AccountsAdapterAPI, selectionOptions common.TxSelectionOptions) (*common.TransactionsSelectionSimulationResult, error) {
+			GetSelectedTransactionsCalled: func(accountsAdapter state.AccountsAdapter, selectionOptions common.TxSelectionOptions) (*common.TransactionsSelectionSimulationResult, error) {
 				return nil, expectedErr
 			},
 		}
@@ -2109,7 +2110,7 @@ func TestNodeFacade_GetSelectedTransactions(t *testing.T) {
 		}
 
 		arg.ApiResolver = &mock.ApiResolverStub{
-			GetSelectedTransactionsCalled: func(accountsAdapter state.AccountsAdapterAPI, selectionOptions common.TxSelectionOptions) (*common.TransactionsSelectionSimulationResult, error) {
+			GetSelectedTransactionsCalled: func(accountsAdapter state.AccountsAdapter, selectionOptions common.TxSelectionOptions) (*common.TransactionsSelectionSimulationResult, error) {
 				return expectedRes, nil
 			},
 		}
