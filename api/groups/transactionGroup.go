@@ -37,7 +37,7 @@ const (
 	getTransactionPath               = "/:txhash"
 	getScrsByTxHashPath              = "/scrs-by-tx-hash/:txhash"
 	getTransactionsPool              = "/pool"
-	getSelectedTransactionsPath      = "/selected-transactions"
+	getSelectedTransactionsPath      = "/pool/selected-transactions"
 
 	queryParamWithResults    = "withResults"
 	queryParamCheckSignature = "checkSignature"
@@ -62,7 +62,7 @@ type transactionFacadeHandler interface {
 	GetTransactionsPoolForSender(sender, fields string) (*common.TransactionsPoolForSenderApiResponse, error)
 	GetLastPoolNonceForSender(sender string) (uint64, error)
 	GetTransactionsPoolNonceGapsForSender(sender string) (*common.TransactionsPoolNonceGapsForSenderApiResponse, error)
-	GetSelectedTransactions() (*common.SelectedTransactions, error)
+	GetSelectedTransactions() (*common.TransactionsSelectionSimulationResult, error)
 	ComputeTransactionGasLimit(tx *transaction.Transaction) (*transaction.CostResponse, error)
 	EncodeAddressPubkey(pk []byte) (string, error)
 	GetThrottlerForEndpoint(endpoint string) (core.Throttler, bool)
@@ -139,7 +139,7 @@ func NewTransactionGroup(facade transactionFacadeHandler) (*transactionGroup, er
 		{
 			Path:    getSelectedTransactionsPath,
 			Method:  http.MethodGet,
-			Handler: tg.getSelectedTransactions,
+			Handler: tg.simulateTransactionsSelection,
 			AdditionalMiddlewares: []shared.AdditionalMiddleware{
 				{
 					Middleware: middleware.CreateEndpointThrottlerFromFacade(getSelectedTransactionsPath, facade),
@@ -786,9 +786,11 @@ func (tg *transactionGroup) getTransactionsPoolNonceGapsForSender(sender string,
 	)
 }
 
-// getSelectedTransactions simulates a selection and returns the hash of each selected transaction
-func (tg *transactionGroup) getSelectedTransactions(c *gin.Context) {
+// simulateTransactionsSelection simulates a selection and returns the hash of each selected transaction
+func (tg *transactionGroup) simulateTransactionsSelection(c *gin.Context) {
 	start := time.Now()
+	// TODO: allow the client to request some fields (e.g. "sender", "nonce")
+	// TODO: allow the client to specify some block parameters
 	txHashes, err := tg.getFacade().GetSelectedTransactions()
 	logging.LogAPIActionDurationIfNeeded(start, "API call: GetSelectedTransactions")
 	if err != nil {

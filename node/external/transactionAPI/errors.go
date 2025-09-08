@@ -36,4 +36,4 @@ var ErrInvalidAddress = errors.New("invalid address")
 var ErrDBLookExtensionIsNotEnabled = errors.New("db look extension is not enabled")
 
 // ErrCouldNotCastToTxCache signals that an error occurred while casting to TxCache
-var ErrCouldNotCastToTxCache = errors.New("could not cast to tx cache")
+var ErrCouldNotCastToTxCache = errors.New("wrong type conversion")

@@ -131,7 +131,7 @@ type FacadeHandler interface {
 	GetTransactionsPoolForSender(sender, fields string) (*common.TransactionsPoolForSenderApiResponse, error)
 	GetLastPoolNonceForSender(sender string) (uint64, error)
 	GetTransactionsPoolNonceGapsForSender(sender string) (*common.TransactionsPoolNonceGapsForSenderApiResponse, error)
-	GetSelectedTransactions() (*common.SelectedTransactions, error)
+	GetSelectedTransactions() (*common.TransactionsSelectionSimulationResult, error)
 	IsDataTrieMigrated(address string, options api.AccountQueryOptions) (bool, error)
 	GetManagedKeysCount() int
 	GetManagedKeys() []string

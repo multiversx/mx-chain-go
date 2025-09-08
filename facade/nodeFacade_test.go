@@ -2088,7 +2088,7 @@ func TestNodeFacade_GetSelectedTransactions(t *testing.T) {
 
 		arg := createMockArguments()
 		arg.ApiResolver = &mock.ApiResolverStub{
-			GetSelectedTransactionsCalled: func(accountsAdapter state.AccountsAdapterAPI, selectionOptions common.TxSelectionOptions) (*common.SelectedTransactions, error) {
+			GetSelectedTransactionsCalled: func(accountsAdapter state.AccountsAdapterAPI, selectionOptions common.TxSelectionOptions) (*common.TransactionsSelectionSimulationResult, error) {
 				return nil, expectedErr
 			},
 		}
@@ -2104,12 +2104,12 @@ func TestNodeFacade_GetSelectedTransactions(t *testing.T) {
 
 		arg := createMockArguments()
 		expectedTxHashes := []string{"txHash1", "txHash2"}
-		expectedRes := &common.SelectedTransactions{
+		expectedRes := &common.TransactionsSelectionSimulationResult{
 			TxHashes: expectedTxHashes,
 		}
 
 		arg.ApiResolver = &mock.ApiResolverStub{
-			GetSelectedTransactionsCalled: func(accountsAdapter state.AccountsAdapterAPI, selectionOptions common.TxSelectionOptions) (*common.SelectedTransactions, error) {
+			GetSelectedTransactionsCalled: func(accountsAdapter state.AccountsAdapterAPI, selectionOptions common.TxSelectionOptions) (*common.TransactionsSelectionSimulationResult, error) {
 				return expectedRes, nil
 			},
 		}

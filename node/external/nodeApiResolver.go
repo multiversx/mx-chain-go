@@ -221,7 +221,7 @@ func (nar *nodeApiResolver) GetTransactionsPoolNonceGapsForSender(sender string,
 }
 
 // GetSelectedTransactions will simulate a SelectTransactions, and it will return the corresponding hash of each selected transaction
-func (nar *nodeApiResolver) GetSelectedTransactions(accountsAdapter state.AccountsAdapterAPI, selectionOptions common.TxSelectionOptions) (*common.SelectedTransactions, error) {
+func (nar *nodeApiResolver) GetSelectedTransactions(accountsAdapter state.AccountsAdapter, selectionOptions common.TxSelectionOptions) (*common.TransactionsSelectionSimulationResult, error) {
 	return nar.apiTransactionHandler.GetSelectedTransactions(accountsAdapter, selectionOptions)
 }
 

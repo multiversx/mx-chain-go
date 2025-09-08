@@ -1246,7 +1246,7 @@ func TestApiTransactionProcessor_GetSelectedTransactions(t *testing.T) {
 		require.Len(t, selectedTxs.TxHashes, 4)
 	})
 
-	t.Run("should return ErrNilAccountsAdapter", func(t *testing.T) {
+	t.Run("should return ErrNilAccountsAdapter error", func(t *testing.T) {
 		t.Parallel()
 
 		args := createMockArgAPITransactionProcessor()
@@ -1282,7 +1282,7 @@ func TestApiTransactionProcessor_GetSelectedTransactions(t *testing.T) {
 		require.Nil(t, selectedTxs)
 	})
 
-	t.Run("should return ErrCouldNotCastToTxCache", func(t *testing.T) {
+	t.Run("should return ErrCouldNotCastToTxCache error", func(t *testing.T) {
 		t.Parallel()
 
 		args := createMockArgAPITransactionProcessor()
@@ -1299,6 +1299,8 @@ func TestApiTransactionProcessor_GetSelectedTransactions(t *testing.T) {
 			},
 		}
 
+		accountsAdapter := &state2.AccountsStub{}
+
 		atp, err := NewAPITransactionProcessor(args)
 		require.NoError(t, err)
 		require.NotNil(t, atp)
@@ -1310,7 +1312,7 @@ func TestApiTransactionProcessor_GetSelectedTransactions(t *testing.T) {
 			loopDurationCheckInterval,
 		)
 
-		selectedTxs, err := atp.GetSelectedTransactions(nil, options)
+		selectedTxs, err := atp.GetSelectedTransactions(accountsAdapter, options)
 		require.Equal(t, ErrCouldNotCastToTxCache, err)
 		require.Nil(t, selectedTxs)
 	})

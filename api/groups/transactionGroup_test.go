@@ -1006,11 +1006,13 @@ func testTxPoolWithInvalidQuery(query string, expectedErr error) func(t *testing
 }
 
 func TestTransactionsGroup_GetSelectedTransactions(t *testing.T) {
+	t.Parallel()
+
 	t.Run("GetSelectedTransactions should error", func(t *testing.T) {
 		t.Parallel()
 
 		facade := &mock.FacadeStub{
-			GetSelectedTransactionsCalled: func() (*common.SelectedTransactions, error) {
+			GetSelectedTransactionsCalled: func() (*common.TransactionsSelectionSimulationResult, error) {
 				return nil, expectedErr
 			},
 		}
@@ -1018,7 +1020,7 @@ func TestTransactionsGroup_GetSelectedTransactions(t *testing.T) {
 		testTransactionsGroup(
 			t,
 			facade,
-			"/transaction/selected-transactions",
+			"/transaction/pool/selected-transactions",
 			"GET",
 			nil,
 			http.StatusInternalServerError,
@@ -1030,12 +1032,12 @@ func TestTransactionsGroup_GetSelectedTransactions(t *testing.T) {
 		t.Parallel()
 
 		expectedTxHashes := []string{"txHash1", "txHash2"}
-		expectedResult := &common.SelectedTransactions{
+		expectedResult := &common.TransactionsSelectionSimulationResult{
 			TxHashes: expectedTxHashes,
 		}
 
 		facade := &mock.FacadeStub{
-			GetSelectedTransactionsCalled: func() (*common.SelectedTransactions, error) {
+			GetSelectedTransactionsCalled: func() (*common.TransactionsSelectionSimulationResult, error) {
 				return expectedResult, nil
 			},
 		}
@@ -1043,7 +1045,7 @@ func TestTransactionsGroup_GetSelectedTransactions(t *testing.T) {
 		loadTransactionGroupResponse(
 			t,
 			facade,
-			"/transaction/selected-transactions",
+			"/transaction/pool/selected-transactions",
 			"GET",
 			nil,
 			expectedResult,
@@ -1239,7 +1241,7 @@ func getTransactionRoutesConfig() config.ApiRoutesConfig {
 					{Name: "/:txhash/status", Open: true},
 					{Name: "/simulate", Open: true},
 					{Name: "/scrs-by-tx-hash/:txhash", Open: true},
-					{Name: "/selected-transactions", Open: true},
+					{Name: "/pool/selected-transactions", Open: true},
 				},
 			},
 		},

@@ -309,13 +309,13 @@ func (atp *apiTransactionProcessor) GetTransactionsPoolNonceGapsForSender(sender
 }
 
 // GetSelectedTransactions will simulate a SelectTransactions, and it will return the corresponding hash of each selected transaction
-func (atp *apiTransactionProcessor) GetSelectedTransactions(accountsAdapter state.AccountsAdapterAPI, selectionOptions common.TxSelectionOptions) (*common.SelectedTransactions, error) {
+func (atp *apiTransactionProcessor) GetSelectedTransactions(accountsAdapter state.AccountsAdapter, selectionOptions common.TxSelectionOptions) (*common.TransactionsSelectionSimulationResult, error) {
 	selectedTxHashes, err := atp.selectTransactions(accountsAdapter, selectionOptions)
 	if err != nil {
 		return nil, err
 	}
 
-	return &common.SelectedTransactions{
+	return &common.TransactionsSelectionSimulationResult{
 		TxHashes: selectedTxHashes,
 	}, nil
 }
@@ -434,7 +434,7 @@ func (atp *apiTransactionProcessor) getFieldGettersForTx(wrappedTx *txcache.Wrap
 	return fieldGetters
 }
 
-func (atp *apiTransactionProcessor) selectTransactions(accountsAdapter state.AccountsAdapterAPI, selectionOptions common.TxSelectionOptions) ([]string, error) {
+func (atp *apiTransactionProcessor) selectTransactions(accountsAdapter state.AccountsAdapter, selectionOptions common.TxSelectionOptions) ([]string, error) {
 	cacheId := atp.dataPool.Transactions().GetSelfShardID()
 	cache := atp.dataPool.Transactions().ShardDataStore(cacheId)
 	txCache, ok := cache.(*txcache.TxCache)
@@ -443,6 +443,7 @@ func (atp *apiTransactionProcessor) selectTransactions(accountsAdapter state.Acc
 		return nil, ErrCouldNotCastToTxCache
 	}
 
+	// TODO use the right object, not a disabled one
 	txProcessor := disabled.TxProcessor{}
 	argsSelectionSession := preprocess.ArgsSelectionSession{
 		AccountsAdapter:       accountsAdapter,
