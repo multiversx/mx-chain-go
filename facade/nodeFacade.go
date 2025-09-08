@@ -50,7 +50,6 @@ type ArgNodeFacade struct {
 	ApiResolver            ApiResolver
 	RestAPIServerDebugMode bool
 	WsAntifloodConfig      config.WebServerAntifloodConfig
-	TxCacheSelectionConfig config.TxCacheSelectionConfig
 	FacadeConfig           config.FacadeConfig
 	ApiRoutesConfig        config.ApiRoutesConfig
 	AccountsState          state.AccountsAdapter
