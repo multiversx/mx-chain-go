@@ -144,8 +144,6 @@ func (sdi *SingleDataInterceptor) ProcessReceivedMessage(message p2p.MessageP2P,
 		return messageID, nil
 	}
 
-	sdi.interceptedDataVerifier.MarkVerified(interceptedData, message.Topic())
-
 	go func() {
 		sdi.processInterceptedData(interceptedData, message, fromConnectedPeer)
 		sdi.throttler.EndProcessing()

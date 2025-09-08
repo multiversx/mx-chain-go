@@ -41,12 +41,12 @@ func createMockInterceptorStub(checkCalledNum *int32, processCalledNum *int32) p
 
 			return nil
 		},
-		SaveCalled: func(data process.InterceptedData) error {
+		SaveCalled: func(data process.InterceptedData) (bool, error) {
 			if processCalledNum != nil {
 				atomic.AddInt32(processCalledNum, 1)
 			}
 
-			return nil
+			return true, nil
 		},
 	}
 }

@@ -112,6 +112,6 @@ func TestUniqueChunksProcessor_CheckBatch(t *testing.T) {
 		// Second check with same batch should fail
 		result, err = ucp.CheckBatch(b, nil)
 		require.Equal(t, process.CheckedChunkResult{}, result)
-		require.Equal(t, process.DuplicatedInterceptedDataNotAllowed, err)
+		require.Equal(t, process.ErrDuplicatedInterceptedDataNotAllowed, err)
 	})
 }

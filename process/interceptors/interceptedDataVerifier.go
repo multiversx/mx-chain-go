@@ -93,7 +93,7 @@ func (idv *interceptedDataVerifier) checkCachedData(interceptedData process.Inte
 	}
 
 	if !interceptedData.ShouldAllowDuplicates() {
-		return ok, process.DuplicatedInterceptedDataNotAllowed
+		return ok, process.ErrDuplicatedInterceptedDataNotAllowed
 	}
 
 	return ok, nil

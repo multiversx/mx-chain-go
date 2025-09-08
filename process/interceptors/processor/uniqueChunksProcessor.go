@@ -58,7 +58,7 @@ func (proc *uniqueChunksProcessor) CheckBatch(b *batch.Batch, _ process.WhiteLis
 	defer proc.km.RUnlock(batchHashStr)
 
 	if _, ok := proc.cache.Get(batchHash); ok {
-		return process.CheckedChunkResult{}, process.DuplicatedInterceptedDataNotAllowed
+		return process.CheckedChunkResult{}, process.ErrDuplicatedInterceptedDataNotAllowed
 	}
 
 	return process.CheckedChunkResult{}, nil
@@ -74,8 +74,8 @@ func (proc *uniqueChunksProcessor) MarkVerified(b *batch.Batch) {
 		return
 	}
 	batchHashStr := string(batchHash)
-	proc.km.RLock(batchHashStr)
-	defer proc.km.RUnlock(batchHashStr)
+	proc.km.Lock(batchHashStr)
+	defer proc.km.Unlock(batchHashStr)
 
 	proc.cache.Put(batchHash, struct{}{}, 0)
 }

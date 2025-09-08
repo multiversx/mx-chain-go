@@ -202,15 +202,20 @@ func (mdi *MultiDataInterceptor) ProcessReceivedMessage(message p2p.MessageP2P, 
 			mdi.throttler.EndProcessing()
 			return nil, process.ErrInterceptedDataNotForCurrentShard
 		}
-
-		mdi.interceptedDataVerifier.MarkVerified(interceptedData, message.Topic())
 	}
 
-	mdi.chunksProcessor.MarkVerified(&b)
-
 	go func() {
+		cntSaves := 0
 		for _, interceptedData := range listInterceptedData {
-			mdi.processInterceptedData(interceptedData, message, fromConnectedPeer)
+			dataSaved := mdi.processInterceptedData(interceptedData, message, fromConnectedPeer)
+			if dataSaved {
+				cntSaves++
+			}
+		}
+
+		allInfoSaved := cntSaves == len(listInterceptedData)
+		if allInfoSaved {
+			mdi.chunksProcessor.MarkVerified(&b)
 		}
 		mdi.throttler.EndProcessing()
 	}()
