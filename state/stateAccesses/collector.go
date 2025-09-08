@@ -66,12 +66,12 @@ func (c *collector) AddStateAccess(stateAccess *data.StateAccess) {
 }
 
 // GetAccountChanges will return the account changes
-func (c *collector) GetAccountChanges(oldAccount, account vmcommon.AccountHandler) *data.AccountChanges {
+func (c *collector) GetAccountChanges(oldAccount, account vmcommon.AccountHandler) uint32 {
 	if c.withAccountChanges {
 		return getAccountChanges(oldAccount, account)
 	}
 
-	return nil
+	return data.NoChange
 }
 
 // Reset resets the state accesses collector
@@ -147,32 +147,12 @@ func (c *collector) mergeStateAccessesIfSameAccount(txHash string, stateAccess *
 		stateAccesses[i].Operation = data.MergeOperations(stateAccesses[i].Operation, stateAccess.Operation)
 		stateAccesses[i].DataTrieChanges = data.MergeDataTrieChanges(stateAccesses[i].DataTrieChanges, stateAccess.DataTrieChanges)
 		if c.withAccountChanges {
-			stateAccesses[i].AccountChanges = mergeAccountChanges(stateAccesses[i].AccountChanges, stateAccess.AccountChanges)
+			stateAccesses[i].AccountChanges = stateAccesses[i].AccountChanges | stateAccess.AccountChanges
 		}
 	}
 	if !wasMerged {
 		c.stateAccessesForTxs[txHash].StateAccess = append(c.stateAccessesForTxs[txHash].StateAccess, stateAccess)
 	}
-}
-
-func mergeAccountChanges(accountChanges1, accountChanges2 *data.AccountChanges) *data.AccountChanges {
-	if accountChanges1 == nil {
-		return accountChanges2
-	}
-	if accountChanges2 == nil {
-		return accountChanges1
-	}
-
-	accountChanges1.Nonce = accountChanges1.Nonce || accountChanges2.Nonce
-	accountChanges1.Balance = accountChanges1.Balance || accountChanges2.Balance
-	accountChanges1.CodeHash = accountChanges1.CodeHash || accountChanges2.CodeHash
-	accountChanges1.RootHash = accountChanges1.RootHash || accountChanges2.RootHash
-	accountChanges1.DeveloperReward = accountChanges1.DeveloperReward || accountChanges2.DeveloperReward
-	accountChanges1.OwnerAddress = accountChanges1.OwnerAddress || accountChanges2.OwnerAddress
-	accountChanges1.UserName = accountChanges1.UserName || accountChanges2.UserName
-	accountChanges1.CodeMetadata = accountChanges1.CodeMetadata || accountChanges2.CodeMetadata
-
-	return accountChanges1
 }
 
 func logCollectedStateAccesses(message string, stateAccessesForTx map[string]*data.StateAccesses) {

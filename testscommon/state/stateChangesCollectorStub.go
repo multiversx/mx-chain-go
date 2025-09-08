@@ -8,7 +8,7 @@ import (
 // StateAccessesCollectorStub represents a mock for the StateAccessesCollector interface
 type StateAccessesCollectorStub struct {
 	AddStateChangeCalled                    func(stateAccess *stateChange.StateAccess)
-	GetAccountChangesCalled                 func(oldAccount, account vmcommon.AccountHandler) *stateChange.AccountChanges
+	GetAccountChangesCalled                 func(oldAccount, account vmcommon.AccountHandler) uint32
 	ResetCalled                             func()
 	AddTxHashToCollectedStateAccessesCalled func(txHash []byte)
 	SetIndexToLatestStateAccessesCalled     func(index int) error
@@ -26,11 +26,11 @@ func (s *StateAccessesCollectorStub) AddStateAccess(stateChange *stateChange.Sta
 }
 
 // GetAccountChanges -
-func (s *StateAccessesCollectorStub) GetAccountChanges(oldAccount, account vmcommon.AccountHandler) *stateChange.AccountChanges {
+func (s *StateAccessesCollectorStub) GetAccountChanges(oldAccount, account vmcommon.AccountHandler) uint32 {
 	if s.GetAccountChangesCalled != nil {
 		s.GetAccountChangesCalled(oldAccount, account)
 	}
-	return nil
+	return stateChange.NoChange
 }
 
 // Reset -

@@ -19,48 +19,48 @@ type userAccountHandler interface {
 	vmcommon.AccountHandler
 }
 
-func getAccountChanges(oldAcc, newAcc vmcommon.AccountHandler) *stateChange.AccountChanges {
+func getAccountChanges(oldAcc, newAcc vmcommon.AccountHandler) uint32 {
 	baseNewAcc, newAccOk := newAcc.(userAccountHandler)
 	if !newAccOk {
-		return nil
+		return stateChange.NoChange
 	}
 	baseOldAccount, oldAccOk := oldAcc.(userAccountHandler)
 	if !oldAccOk {
-		return nil
+		return stateChange.NoChange
 	}
 
-	accountChanges := &stateChange.AccountChanges{}
+	accountChanges := stateChange.NoChange
 
 	if baseNewAcc.GetNonce() != baseOldAccount.GetNonce() {
-		accountChanges.Nonce = true
+		accountChanges = stateChange.AddAccountChange(accountChanges, stateChange.NonceChanged)
 	}
 
 	if baseNewAcc.GetBalance().Uint64() != baseOldAccount.GetBalance().Uint64() {
-		accountChanges.Balance = true
+		accountChanges = stateChange.AddAccountChange(accountChanges, stateChange.BalanceChanged)
 	}
 
 	if !bytes.Equal(baseNewAcc.GetCodeHash(), baseOldAccount.GetCodeHash()) {
-		accountChanges.CodeHash = true
+		accountChanges = stateChange.AddAccountChange(accountChanges, stateChange.CodeHashChanged)
 	}
 
 	if !bytes.Equal(baseNewAcc.GetRootHash(), baseOldAccount.GetRootHash()) {
-		accountChanges.RootHash = true
+		accountChanges = stateChange.AddAccountChange(accountChanges, stateChange.RootHashChanged)
 	}
 
 	if !bytes.Equal(baseNewAcc.GetDeveloperReward().Bytes(), baseOldAccount.GetDeveloperReward().Bytes()) {
-		accountChanges.DeveloperReward = true
+		accountChanges = stateChange.AddAccountChange(accountChanges, stateChange.DeveloperRewardChanged)
 	}
 
 	if !bytes.Equal(baseNewAcc.GetOwnerAddress(), baseOldAccount.GetOwnerAddress()) {
-		accountChanges.OwnerAddress = true
+		accountChanges = stateChange.AddAccountChange(accountChanges, stateChange.OwnerAddressChanged)
 	}
 
 	if !bytes.Equal(baseNewAcc.GetUserName(), baseOldAccount.GetUserName()) {
-		accountChanges.UserName = true
+		accountChanges = stateChange.AddAccountChange(accountChanges, stateChange.UserNameChanged)
 	}
 
 	if !bytes.Equal(baseNewAcc.GetCodeMetadata(), baseOldAccount.GetCodeMetadata()) {
-		accountChanges.CodeMetadata = true
+		accountChanges = stateChange.AddAccountChange(accountChanges, stateChange.CodeMetadataChanged)
 	}
 
 	return accountChanges

@@ -17,8 +17,8 @@ func NewDisabledStateAccessesCollector() state.StateAccessesCollector {
 }
 
 // GetAccountChanges returns nil
-func (d *disabledStateAccessesCollector) GetAccountChanges(_, _ vmcommon.AccountHandler) *data.AccountChanges {
-	return nil
+func (d *disabledStateAccessesCollector) GetAccountChanges(_, _ vmcommon.AccountHandler) uint32 {
+	return data.NoChange
 }
 
 // AddStateAccess does nothing
