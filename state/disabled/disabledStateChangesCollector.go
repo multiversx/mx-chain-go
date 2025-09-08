@@ -16,7 +16,7 @@ func NewDisabledStateAccessesCollector() state.StateAccessesCollector {
 	return &disabledStateAccessesCollector{}
 }
 
-// GetAccountChanges returns nil
+// GetAccountChanges returns the constant marking NoChange
 func (d *disabledStateAccessesCollector) GetAccountChanges(_, _ vmcommon.AccountHandler) uint32 {
 	return data.NoChange
 }
