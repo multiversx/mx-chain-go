@@ -232,7 +232,7 @@
         { Name = "/scrs-by-tx-hash/:txhash", Open = true },
 
         # /selected-transactions will simulate a selection, and it will return each hex-encoded hash of each selected transaction
-        { Name = "/selected-transactions", Open = true}
+        { Name = "/selected-transactions", Open = true},
     ]
 
 [APIPackages.block]

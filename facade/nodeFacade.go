@@ -65,7 +65,6 @@ type nodeFacade struct {
 	syncer                 ntp.SyncTimer
 	config                 config.FacadeConfig
 	apiRoutesConfig        config.ApiRoutesConfig
-	txCacheSelectionConfig config.TxCacheSelectionConfig
 	endpointsThrottlers    map[string]core.Throttler
 	wsAntifloodConfig      config.WebServerAntifloodConfig
 	restAPIServerDebugMode bool
@@ -108,7 +107,6 @@ func NewNodeFacade(arg ArgNodeFacade) (*nodeFacade, error) {
 		wsAntifloodConfig:      arg.WsAntifloodConfig,
 		config:                 arg.FacadeConfig,
 		apiRoutesConfig:        arg.ApiRoutesConfig,
-		txCacheSelectionConfig: arg.TxCacheSelectionConfig,
 		endpointsThrottlers:    throttlersMap,
 		accountsState:          arg.AccountsState,
 		peerState:              arg.PeerState,
@@ -366,10 +364,10 @@ func (nf *nodeFacade) GetSelectedTransactions() (*common.SelectedTransactions, e
 	}
 
 	selectionOptions := holders.NewTxSelectionOptions(
-		nf.txCacheSelectionConfig.SelectionGasRequested,
-		nf.txCacheSelectionConfig.SelectionMaxNumTxs,
-		nf.txCacheSelectionConfig.SelectionLoopMaximumDuration,
-		nf.txCacheSelectionConfig.SelectionLoopDurationCheckInterval,
+		nf.config.TxCacheSelectionConfig.SelectionGasRequested,
+		nf.config.TxCacheSelectionConfig.SelectionMaxNumTxs,
+		nf.config.TxCacheSelectionConfig.SelectionLoopMaximumDuration,
+		nf.config.TxCacheSelectionConfig.SelectionLoopDurationCheckInterval,
 	)
 
 	return nf.apiResolver.GetSelectedTransactions(accountsAdapterAPI, selectionOptions)

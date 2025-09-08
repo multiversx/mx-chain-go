@@ -757,6 +757,7 @@ func (nr *nodeRunner) createApiFacade(
 			RestApiInterface:            flagsConfig.RestApiInterface,
 			PprofEnabled:                flagsConfig.EnablePprof,
 			P2PPrometheusMetricsEnabled: flagsConfig.P2PPrometheusMetricsEnabled,
+			TxCacheSelectionConfig:      configs.GeneralConfig.TxCacheSelection,
 		},
 		ApiRoutesConfig: *configs.ApiRoutesConfig,
 		AccountsState:   currentNode.stateComponents.AccountsAdapter(),

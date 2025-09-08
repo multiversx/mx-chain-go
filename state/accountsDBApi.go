@@ -154,6 +154,11 @@ func (accountsDB *accountsDBApi) GetCode(codeHash []byte) []byte {
 
 // RootHash will return last loaded root hash
 func (accountsDB *accountsDBApi) RootHash() ([]byte, error) {
+	_, err := accountsDB.recreateTrieIfNecessary()
+	if err != nil {
+		return nil, err
+	}
+
 	accountsDB.mutRecreatedTrieBlockInfo.RLock()
 	defer accountsDB.mutRecreatedTrieBlockInfo.RUnlock()
 
