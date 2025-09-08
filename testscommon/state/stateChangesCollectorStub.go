@@ -28,7 +28,7 @@ func (s *StateAccessesCollectorStub) AddStateAccess(stateChange *stateChange.Sta
 // GetAccountChanges -
 func (s *StateAccessesCollectorStub) GetAccountChanges(oldAccount, account vmcommon.AccountHandler) uint32 {
 	if s.GetAccountChangesCalled != nil {
-		s.GetAccountChangesCalled(oldAccount, account)
+		return s.GetAccountChangesCalled(oldAccount, account)
 	}
 	return stateChange.NoChange
 }
