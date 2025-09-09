@@ -8,6 +8,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/marshal"
 
 	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/block/preprocess"
@@ -39,6 +40,7 @@ type preProcessorsContainerFactory struct {
 	scheduledTxsExecutionHandler process.ScheduledTxsExecutionHandler
 	processedMiniBlocksTracker   process.ProcessedMiniBlocksTracker
 	txExecutionOrderHandler      common.TxExecutionOrderHandler
+	txCacheSelectionConfig       config.TxCacheSelectionConfig
 }
 
 // NewPreProcessorsContainerFactory is responsible for creating a new preProcessors factory object
@@ -63,6 +65,7 @@ func NewPreProcessorsContainerFactory(
 	scheduledTxsExecutionHandler process.ScheduledTxsExecutionHandler,
 	processedMiniBlocksTracker process.ProcessedMiniBlocksTracker,
 	txExecutionOrderHandler common.TxExecutionOrderHandler,
+	txCacheSelectionConfig config.TxCacheSelectionConfig,
 ) (*preProcessorsContainerFactory, error) {
 
 	if check.IfNil(shardCoordinator) {
@@ -147,6 +150,7 @@ func NewPreProcessorsContainerFactory(
 		scheduledTxsExecutionHandler: scheduledTxsExecutionHandler,
 		processedMiniBlocksTracker:   processedMiniBlocksTracker,
 		txExecutionOrderHandler:      txExecutionOrderHandler,
+		txCacheSelectionConfig:       txCacheSelectionConfig,
 	}, nil
 }
 
@@ -199,6 +203,7 @@ func (ppcm *preProcessorsContainerFactory) createTxPreProcessor() (process.PrePr
 		ScheduledTxsExecutionHandler: ppcm.scheduledTxsExecutionHandler,
 		ProcessedMiniBlocksTracker:   ppcm.processedMiniBlocksTracker,
 		TxExecutionOrderHandler:      ppcm.txExecutionOrderHandler,
+		TxCacheSelectionConfig:       ppcm.txCacheSelectionConfig,
 	}
 
 	txPreprocessor, err := preprocess.NewTransactionPreprocessor(args)
