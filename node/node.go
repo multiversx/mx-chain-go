@@ -807,6 +807,7 @@ func (n *Node) commonTransactionValidation(
 		whiteListRequest,
 		n.coreComponents.AddressPubKeyConverter(),
 		n.coreComponents.TxVersionChecker(),
+		n.coreComponents.EnableEpochsHandler(),
 		common.MaxTxNonceDeltaAllowed,
 	)
 

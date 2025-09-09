@@ -6,9 +6,6 @@ on:
       - 'main'
       - 'master'
       - 'rc/*'
-  workflow_dispatch:
-  issue_comment:
-    types: [created]
 
 permissions:
   issues: write
@@ -18,9 +15,7 @@ permissions:
 jobs:
   build-and-test:
     if: |
-      github.event_name == 'pull_request' ||
-      (github.event_name == 'issue_comment' && contains(github.event.comment.body, 'Run Tests:')) ||
-      github.event_name == 'workflow_dispatch'
+      github.event_name == 'pull_request'
 
     runs-on: [self-hosted, Linux, X64]
     env:
@@ -67,11 +62,18 @@ jobs:
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
+            const issue_number = context.issue.number;
+            
+            if (!issue_number) {
+              core.error('Could not determine PR number from pull_request event');
+              return;
+            }
+            
             // Get all comments
             const comments = await github.rest.issues.listComments({
               owner: context.repo.owner,
               repo: context.repo.repo,
-              issue_number: context.issue.number,
+              issue_number: issue_number,
             });
 
             // Find the last comment that contains 'Run Tests:'
@@ -104,7 +106,7 @@ jobs:
             } else {
               core.info('No comment containing "Run Tests:" was found. Using default branch settings.');
             }
-      
+
 
       - name: Print Target Branches
         run: |
@@ -210,7 +212,7 @@ jobs:
           # Wait for the initialization to complete - look for multiple possible success patterns
           INIT_COMPLETED=false
           RETRY_COUNT=0
-          MAX_RETRIES=60  # Increase timeout to 60 seconds
+          MAX_RETRIES=120
           
           echo "Waiting for ChainSimulator initialization..."
           while [ $RETRY_COUNT -lt $MAX_RETRIES ]; do
@@ -336,7 +338,7 @@ jobs:
 
           echo "PYTEST_EXIT_CODE=$FINAL_PYTEST_EXIT_CODE" >> $GITHUB_ENV
           echo "Final pytest exit code: $FINAL_PYTEST_EXIT_CODE"
-          
+
       - name: Stage report for R2
         run: |
           mkdir -p r2_upload
@@ -456,6 +458,12 @@ jobs:
             const r2Url            = process.env.R2_REPORT_URL || 'N/A';
 
             const issue_number = context.issue.number;
+            
+            if (!issue_number) {
+              console.log('Could not determine PR number');
+              return;
+            }
+
             const owner  = context.repo.owner;
             const repo   = context.repo.repo;
             const ts = process.env.TS || process.env.TIMESTAMP;
@@ -532,7 +540,7 @@ jobs:
           else
             echo "Tests passed successfully."
           fi
-          
+
 
       - name: Cleanup Workspace and Processes
         if: always()
