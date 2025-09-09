@@ -159,7 +159,7 @@ func TestAccountsDBAPi_recreateTrieIfNecessary(t *testing.T) {
 		assert.Equal(t, expectedErr, accountsApi.RecreateTrieIfNecessary())
 		lastRootHash, err := accountsApi.RootHash()
 		assert.Nil(t, lastRootHash)
-		assert.Equal(t, expectedErr, err)
+		assert.Equal(t, state.ErrNilRootHash, err)
 	})
 }
 

@@ -357,6 +357,25 @@ func (nf *nodeFacade) GetTransactionsPoolNonceGapsForSender(sender string) (*com
 
 // GetSelectedTransactions will simulate a SelectTransactions, and it will return the corresponding hash of each selected transaction
 func (nf *nodeFacade) GetSelectedTransactions() (*common.TransactionsSelectionSimulationResult, error) {
+	currentRootHash := nf.blockchain.GetCurrentBlockRootHash()
+	if currentRootHash == nil {
+		return nil, ErrNilCurrentRootHash
+	}
+
+	blockHeader := nf.blockchain.GetCurrentBlockHeader()
+	if blockHeader == nil {
+		return nil, ErrNilBlockHeader
+
+	}
+
+	epoch := blockHeader.GetEpoch()
+	rootHashHolder := holders.NewRootHashHolder(currentRootHash, core.OptionalUint32{Value: epoch, HasValue: true})
+
+	err := nf.accountStateAPI.RecreateTrie(rootHashHolder)
+	if err != nil {
+		return nil, err
+	}
+
 	selectionOptions := holders.NewTxSelectionOptions(
 		nf.config.TxCacheSelectionConfig.SelectionGasRequested,
 		nf.config.TxCacheSelectionConfig.SelectionMaxNumTxs,

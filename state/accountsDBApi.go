@@ -154,11 +154,6 @@ func (accountsDB *accountsDBApi) GetCode(codeHash []byte) []byte {
 
 // RootHash will return last loaded root hash
 func (accountsDB *accountsDBApi) RootHash() ([]byte, error) {
-	_, err := accountsDB.recreateTrieIfNecessary()
-	if err != nil {
-		return nil, err
-	}
-
 	accountsDB.mutRecreatedTrieBlockInfo.RLock()
 	defer accountsDB.mutRecreatedTrieBlockInfo.RUnlock()
 
@@ -170,7 +165,7 @@ func (accountsDB *accountsDBApi) RootHash() ([]byte, error) {
 	return blockInfo.GetRootHash(), nil
 }
 
-// RecreateTrie is a not permitted operation in this implementation and thus, will return an error
+// RecreateTrie is used to reload the trie based on the provided options
 func (accountsDB *accountsDBApi) RecreateTrie(options common.RootHashHolder) error {
 	accountsDB.mutRecreatedTrieBlockInfo.Lock()
 	defer accountsDB.mutRecreatedTrieBlockInfo.Unlock()
