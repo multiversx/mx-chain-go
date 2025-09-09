@@ -338,6 +338,7 @@ type TestProcessorNode struct {
 	Storage             dataRetriever.StorageService
 	PeerState           state.AccountsAdapter
 	AccntState          state.AccountsAdapter
+	AccntStateProposal  state.AccountsAdapter
 	TrieStorageManagers map[string]common.StorageManager
 	TrieContainer       common.TriesHolder
 	BlockChain          data.ChainHandler
@@ -660,6 +661,7 @@ func (tpn *TestProcessorNode) initAccountDBsWithPruningStorer() {
 	tpn.TrieContainer = state.NewDataTriesHolder()
 	var stateTrie common.Trie
 	tpn.AccntState, stateTrie = CreateAccountsDBWithEnableEpochsHandler(UserAccount, trieStorageManager, tpn.EnableEpochsHandler)
+	tpn.AccntStateProposal, _ = CreateAccountsDBWithEnableEpochsHandler(UserAccount, trieStorageManager, tpn.EnableEpochsHandler)
 	tpn.TrieContainer.Put([]byte(dataRetriever.UserAccountsUnit.String()), stateTrie)
 
 	var peerTrie common.Trie
@@ -676,6 +678,7 @@ func (tpn *TestProcessorNode) initAccountDBs(store storage.Storer) {
 	tpn.TrieContainer = state.NewDataTriesHolder()
 	var stateTrie common.Trie
 	tpn.AccntState, stateTrie = CreateAccountsDBWithEnableEpochsHandler(UserAccount, trieStorageManager, tpn.EnableEpochsHandler)
+	tpn.AccntStateProposal, _ = CreateAccountsDBWithEnableEpochsHandler(UserAccount, trieStorageManager, tpn.EnableEpochsHandler)
 	tpn.TrieContainer.Put([]byte(dataRetriever.UserAccountsUnit.String()), stateTrie)
 
 	var peerTrie common.Trie
@@ -1812,6 +1815,7 @@ func (tpn *TestProcessorNode) initInnerProcessors(gasMap map[string]map[string]u
 		tpn.DataPool,
 		TestAddressPubkeyConverter,
 		tpn.AccntState,
+		tpn.AccntStateProposal,
 		tpn.RequestHandler,
 		tpn.TxProcessor,
 		tpn.ScProcessor,
@@ -2102,6 +2106,7 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors(gasMap map[string]map[stri
 		TestHasher,
 		tpn.DataPool,
 		tpn.AccntState,
+		tpn.AccntStateProposal,
 		tpn.RequestHandler,
 		tpn.TxProcessor,
 		tpn.ScProcessor,

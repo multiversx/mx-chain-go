@@ -502,6 +502,7 @@ func createProcessorsForMetaGenesisBlock(arg ArgsGenesisBlockCreator, enableEpoc
 		arg.Core.Hasher(),
 		arg.Data.Datapool(),
 		arg.Accounts,
+		arg.AccountsProposal,
 		disabledRequestHandler,
 		txProcessor,
 		scProcessorProxy,

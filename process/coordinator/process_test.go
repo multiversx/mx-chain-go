@@ -552,6 +552,7 @@ func createPreProcessorContainer() process.PreProcessorsContainer {
 		initDataPool([]byte("tx_hash0")),
 		createMockPubkeyConverter(),
 		&stateMock.AccountsStub{},
+		&stateMock.AccountsStub{},
 		&testscommon.RequestHandlerStub{},
 		&testscommon.TxProcessorMock{
 			ProcessTransactionCalled: func(transaction *transaction.Transaction) (vmcommon.ReturnCode, error) {
@@ -609,6 +610,7 @@ func createPreProcessorContainerWithDataPool(
 		&hashingMocks.HasherMock{},
 		dataPool,
 		createMockPubkeyConverter(),
+		accounts,
 		accounts,
 		&testscommon.RequestHandlerStub{},
 		&testscommon.TxProcessorMock{
@@ -908,6 +910,7 @@ func TestTransactionCoordinator_CreateMbsAndProcessCrossShardTransactions(t *tes
 		tdp,
 		createMockPubkeyConverter(),
 		&stateMock.AccountsStub{},
+		&stateMock.AccountsStub{},
 		&testscommon.RequestHandlerStub{},
 		&testscommon.TxProcessorMock{
 			ProcessTransactionCalled: func(transaction *transaction.Transaction) (vmcommon.ReturnCode, error) {
@@ -1099,6 +1102,7 @@ func TestTransactionCoordinator_CreateMbsAndProcessCrossShardTransactionsNilPreP
 		tdp,
 		createMockPubkeyConverter(),
 		&stateMock.AccountsStub{},
+		&stateMock.AccountsStub{},
 		&testscommon.RequestHandlerStub{},
 		&testscommon.TxProcessorMock{},
 		&testscommon.SCProcessorMock{},
@@ -1213,6 +1217,7 @@ func TestTransactionCoordinator_CreateMbsAndProcessTransactionsFromMeNothingToPr
 			},
 		},
 		createMockPubkeyConverter(),
+		&stateMock.AccountsStub{},
 		&stateMock.AccountsStub{},
 		&testscommon.RequestHandlerStub{},
 		&testscommon.TxProcessorMock{
@@ -1768,6 +1773,7 @@ func TestTransactionCoordinator_ProcessBlockTransactionProcessTxError(t *testing
 		dataPool,
 		createMockPubkeyConverter(),
 		accounts,
+		accounts,
 		&testscommon.RequestHandlerStub{},
 		&testscommon.TxProcessorMock{
 			ProcessTransactionCalled: func(transaction *transaction.Transaction) (vmcommon.ReturnCode, error) {
@@ -1896,6 +1902,7 @@ func TestTransactionCoordinator_RequestMiniblocks(t *testing.T) {
 		dataPool,
 		createMockPubkeyConverter(),
 		accounts,
+		accounts,
 		requestHandler,
 		&testscommon.TxProcessorMock{
 			ProcessTransactionCalled: func(transaction *transaction.Transaction) (vmcommon.ReturnCode, error) {
@@ -2009,6 +2016,7 @@ func TestShardProcessor_ProcessMiniBlockCompleteWithOkTxsShouldExecuteThemAndNot
 		hasher,
 		dataPool,
 		createMockPubkeyConverter(),
+		accounts,
 		accounts,
 		&testscommon.RequestHandlerStub{},
 		&testscommon.TxProcessorMock{
@@ -2157,6 +2165,7 @@ func TestShardProcessor_ProcessMiniBlockCompleteWithErrorWhileProcessShouldCallR
 		hasher,
 		dataPool,
 		createMockPubkeyConverter(),
+		accounts,
 		accounts,
 		&testscommon.RequestHandlerStub{},
 		&testscommon.TxProcessorMock{

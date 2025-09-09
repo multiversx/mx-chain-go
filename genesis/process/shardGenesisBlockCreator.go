@@ -589,6 +589,7 @@ func createProcessorsForShardGenesisBlock(arg ArgsGenesisBlockCreator, enableEpo
 		arg.Data.Datapool(),
 		arg.Core.AddressPubKeyConverter(),
 		arg.Accounts,
+		arg.AccountsProposal,
 		disabledRequestHandler,
 		transactionProcessor,
 		scProcessorProxy,
