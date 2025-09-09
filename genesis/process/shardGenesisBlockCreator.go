@@ -9,7 +9,6 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
-	"github.com/multiversx/mx-chain-core-go/data/block"
 	dataBlock "github.com/multiversx/mx-chain-core-go/data/block"
 	logger "github.com/multiversx/mx-chain-logger-go"
 	"github.com/multiversx/mx-chain-vm-common-go/parsers"
@@ -42,7 +41,7 @@ import (
 	"github.com/multiversx/mx-chain-go/process/transaction"
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/state/syncer"
-	"github.com/multiversx/mx-chain-go/storage/txcache"
+	"github.com/multiversx/mx-chain-go/txcache"
 	"github.com/multiversx/mx-chain-go/update"
 	hardForkProcess "github.com/multiversx/mx-chain-go/update/process"
 )
@@ -83,7 +82,7 @@ func createGenesisRoundConfig(providedEnableRounds config.RoundConfig) config.Ro
 // CreateShardGenesisBlock will create a shard genesis block
 func CreateShardGenesisBlock(
 	arg ArgsGenesisBlockCreator,
-	body *block.Body,
+	body *dataBlock.Body,
 	nodesListSplitter genesis.NodesListSplitter,
 	hardForkBlockProcessor update.HardForkBlockProcessor,
 ) (data.HeaderHandler, [][]byte, *genesis.IndexingData, error) {
@@ -141,7 +140,7 @@ func CreateShardGenesisBlock(
 			err, arg.ShardCoordinator.SelfId())
 	}
 
-	scrsTxs := processors.txCoordinator.GetAllCurrentUsedTxs(block.SmartContractResultBlock)
+	scrsTxs := processors.txCoordinator.GetAllCurrentUsedTxs(dataBlock.SmartContractResultBlock)
 	indexingData.ScrsTxs = scrsTxs
 
 	rootHash, err := arg.Accounts.Commit()
@@ -200,7 +199,7 @@ func setInitialDataInHeader(
 	setErrors = append(setErrors, shardHeaderHandler.SetNonce(nonce))
 	setErrors = append(setErrors, shardHeaderHandler.SetRound(round))
 	setErrors = append(setErrors, shardHeaderHandler.SetShardID(arg.ShardCoordinator.SelfId()))
-	setErrors = append(setErrors, shardHeaderHandler.SetBlockBodyTypeInt32(int32(block.StateBlock)))
+	setErrors = append(setErrors, shardHeaderHandler.SetBlockBodyTypeInt32(int32(dataBlock.StateBlock)))
 	setErrors = append(setErrors, shardHeaderHandler.SetPubKeysBitmap([]byte{1}))
 	setErrors = append(setErrors, shardHeaderHandler.SetSignature(rootHash))
 	setErrors = append(setErrors, shardHeaderHandler.SetRootHash(rootHash))
@@ -223,7 +222,7 @@ func setInitialDataInHeader(
 
 func createShardGenesisBlockAfterHardFork(
 	arg ArgsGenesisBlockCreator,
-	body *block.Body,
+	body *dataBlock.Body,
 	hardForkBlockProcessor update.HardForkBlockProcessor,
 ) (data.HeaderHandler, [][]byte, *genesis.IndexingData, error) {
 	if check.IfNil(hardForkBlockProcessor) {
@@ -604,6 +603,7 @@ func createProcessorsForShardGenesisBlock(arg ArgsGenesisBlockCreator, enableEpo
 		disabledScheduledTxsExecutionHandler,
 		disabledProcessedMiniBlocksTracker,
 		arg.TxExecutionOrderHandler,
+		arg.TxCacheSelectionConfig,
 	)
 	if err != nil {
 		return nil, err
