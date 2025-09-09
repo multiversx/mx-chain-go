@@ -10,10 +10,11 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/core/closing"
 	"github.com/multiversx/mx-chain-core-go/display"
-	"github.com/multiversx/mx-chain-logger-go"
+	logger "github.com/multiversx/mx-chain-logger-go"
 
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/consensus"
+	"github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/ntp"
 )
 
@@ -25,8 +26,21 @@ var log = logger.GetOrCreate("consensus/chronology")
 // srBeforeStartRound defines the state which exist before the start of the round
 const srBeforeStartRound = -1
 
+// TODO: add variables to config
 const numRoundsToWaitBeforeSignalingChronologyStuck = 10
+const numRoundsToWaitBeforeSignalingChronologyStuckSupernova = 100
 const chronologyAlarmID = "chronology"
+
+// ArgChronology holds all dependencies required by the chronology component
+type ArgChronology struct {
+	GenesisTime         time.Time
+	RoundHandler        consensus.RoundHandler
+	SyncTimer           ntp.SyncTimer
+	Watchdog            core.WatchdogTimer
+	AppStatusHandler    core.AppStatusHandler
+	EnableEpochsHandler common.EnableEpochsHandler
+	EnableRoundsHandler common.EnableRoundsHandler
+}
 
 // chronology defines the data needed by the chronology
 type chronology struct {
@@ -43,23 +57,26 @@ type chronology struct {
 	appStatusHandler core.AppStatusHandler
 	cancelFunc       func()
 
-	watchdog core.WatchdogTimer
+	watchdog            core.WatchdogTimer
+	enableEpochsHandler common.EnableEpochsHandler
+	enableRoundsHandler common.EnableRoundsHandler
 }
 
 // NewChronology creates a new chronology object
 func NewChronology(arg ArgChronology) (*chronology, error) {
-
 	err := checkNewChronologyParams(arg)
 	if err != nil {
 		return nil, err
 	}
 
 	chr := chronology{
-		genesisTime:      arg.GenesisTime,
-		roundHandler:     arg.RoundHandler,
-		syncTimer:        arg.SyncTimer,
-		appStatusHandler: arg.AppStatusHandler,
-		watchdog:         arg.Watchdog,
+		genesisTime:         arg.GenesisTime,
+		roundHandler:        arg.RoundHandler,
+		syncTimer:           arg.SyncTimer,
+		appStatusHandler:    arg.AppStatusHandler,
+		watchdog:            arg.Watchdog,
+		enableEpochsHandler: arg.EnableEpochsHandler,
+		enableRoundsHandler: arg.EnableRoundsHandler,
 	}
 
 	chr.subroundId = srBeforeStartRound
@@ -71,7 +88,6 @@ func NewChronology(arg ArgChronology) (*chronology, error) {
 }
 
 func checkNewChronologyParams(arg ArgChronology) error {
-
 	if check.IfNil(arg.RoundHandler) {
 		return ErrNilRoundHandler
 	}
@@ -83,6 +99,12 @@ func checkNewChronologyParams(arg ArgChronology) error {
 	}
 	if check.IfNil(arg.AppStatusHandler) {
 		return ErrNilAppStatusHandler
+	}
+	if check.IfNil(arg.EnableEpochsHandler) {
+		return errors.ErrNilEnableEpochsHandler
+	}
+	if check.IfNil(arg.EnableRoundsHandler) {
+		return errors.ErrNilEnableRoundsHandler
 	}
 
 	return nil
@@ -112,6 +134,10 @@ func (chr *chronology) RemoveAllSubrounds() {
 // StartRounds actually starts the chronology and calls the DoWork() method of the subroundHandlers loaded
 func (chr *chronology) StartRounds() {
 	watchdogAlarmDuration := chr.roundHandler.TimeDuration() * numRoundsToWaitBeforeSignalingChronologyStuck
+	if chr.enableEpochsHandler.IsFlagEnabled(common.SupernovaFlag) {
+		watchdogAlarmDuration = chr.roundHandler.TimeDuration() * numRoundsToWaitBeforeSignalingChronologyStuckSupernova
+	}
+
 	chr.watchdog.SetDefault(watchdogAlarmDuration, chronologyAlarmID)
 
 	var ctx context.Context
@@ -169,12 +195,21 @@ func (chr *chronology) updateRound() {
 
 	if oldRoundIndex != chr.roundHandler.Index() {
 		chr.watchdog.Reset(chronologyAlarmID)
-		msg := fmt.Sprintf("ROUND %d BEGINS (%d)", chr.roundHandler.Index(), chr.roundHandler.TimeStamp().Unix())
+
+		msg := fmt.Sprintf("ROUND %d BEGINS (%d)", chr.roundHandler.Index(), chr.roundHandler.TimeStamp().UnixMilli())
 		log.Debug(display.Headline(msg, chr.syncTimer.FormattedCurrentTime(), "#"))
 		logger.SetCorrelationRound(chr.roundHandler.Index())
 
 		chr.initRound()
 	}
+}
+
+func (chr *chronology) getRoundUnixTimeStamp() int64 {
+	if chr.enableEpochsHandler.IsFlagEnabled(common.SupernovaFlag) {
+		return chr.roundHandler.TimeStamp().UnixMilli()
+	}
+
+	return chr.roundHandler.TimeStamp().Unix()
 }
 
 // initRound is called when a new round begins, and it does the necessary initialization
@@ -187,8 +222,16 @@ func (chr *chronology) initRound() {
 
 	if hasSubroundsAndGenesisTimePassed {
 		chr.subroundId = chr.subroundHandlers[0].Current()
-		chr.appStatusHandler.SetUInt64Value(common.MetricCurrentRound, uint64(chr.roundHandler.Index()))
-		chr.appStatusHandler.SetUInt64Value(common.MetricCurrentRoundTimestamp, uint64(chr.roundHandler.TimeStamp().Unix()))
+
+		roundIndex := uint64(chr.roundHandler.Index())
+		chr.appStatusHandler.SetUInt64Value(common.MetricCurrentRound, roundIndex)
+		chr.appStatusHandler.SetUInt64Value(common.MetricCurrentRoundTimestamp, uint64(chr.getRoundUnixTimeStamp()))
+
+		if chr.enableEpochsHandler.IsFlagEnabled(common.SupernovaFlag) &&
+			chr.enableRoundsHandler.GetActivationRound(common.SupernovaRoundFlag) == roundIndex-1 {
+			chr.appStatusHandler.SetUInt64Value(common.MetricRoundDuration, uint64(chr.roundHandler.TimeDuration().Milliseconds()))
+		}
+
 	}
 
 	chr.mutSubrounds.RUnlock()

@@ -113,8 +113,12 @@ func (tpn *TestProcessorNode) initBlockProcessorWithSync() {
 			tpn.BlockBlackListHandler,
 			tpn.BlockTracker,
 			0,
+			0,
 			tpn.EnableEpochsHandler,
-			tpn.DataPool.Proofs())
+			tpn.EnableRoundsHandler,
+			tpn.DataPool.Proofs(),
+			tpn.ChainParametersHandler,
+		)
 		argumentsBase.ForkDetector = tpn.ForkDetector
 		argumentsBase.TxCoordinator = &mock.TransactionCoordinatorMock{}
 		arguments := block.ArgMetaProcessor{
@@ -140,8 +144,12 @@ func (tpn *TestProcessorNode) initBlockProcessorWithSync() {
 			tpn.BlockBlackListHandler,
 			tpn.BlockTracker,
 			0,
+			0,
 			tpn.EnableEpochsHandler,
-			tpn.DataPool.Proofs())
+			tpn.EnableRoundsHandler,
+			tpn.DataPool.Proofs(),
+			tpn.ChainParametersHandler,
+		)
 		argumentsBase.ForkDetector = tpn.ForkDetector
 		argumentsBase.BlockChainHook = tpn.BlockchainHook
 		argumentsBase.TxCoordinator = tpn.TxCoordinator
@@ -165,7 +173,6 @@ func (tpn *TestProcessorNode) createShardBootstrapper() (TestBootstrapper, error
 		ChainHandler:                 tpn.BlockChain,
 		RoundHandler:                 tpn.RoundHandler,
 		BlockProcessor:               tpn.BlockProcessor,
-		WaitTime:                     tpn.RoundHandler.TimeDuration(),
 		Hasher:                       TestHasher,
 		Marshalizer:                  TestMarshalizer,
 		ForkDetector:                 tpn.ForkDetector,
@@ -189,6 +196,7 @@ func (tpn *TestProcessorNode) createShardBootstrapper() (TestBootstrapper, error
 		ProcessWaitTime:              tpn.RoundHandler.TimeDuration(),
 		RepopulateTokensSupplies:     false,
 		EnableEpochsHandler:          tpn.EnableEpochsHandler,
+		EnableRoundsHandler:          tpn.EnableRoundsHandler,
 	}
 
 	argsShardBootstrapper := sync.ArgShardBootstrapper{
@@ -212,7 +220,6 @@ func (tpn *TestProcessorNode) createMetaChainBootstrapper() (TestBootstrapper, e
 		ChainHandler:                 tpn.BlockChain,
 		RoundHandler:                 tpn.RoundHandler,
 		BlockProcessor:               tpn.BlockProcessor,
-		WaitTime:                     tpn.RoundHandler.TimeDuration(),
 		Hasher:                       TestHasher,
 		Marshalizer:                  TestMarshalizer,
 		ForkDetector:                 tpn.ForkDetector,
@@ -236,6 +243,7 @@ func (tpn *TestProcessorNode) createMetaChainBootstrapper() (TestBootstrapper, e
 		ProcessWaitTime:              tpn.RoundHandler.TimeDuration(),
 		RepopulateTokensSupplies:     false,
 		EnableEpochsHandler:          &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		EnableRoundsHandler:          tpn.EnableRoundsHandler,
 	}
 
 	argsMetaBootstrapper := sync.ArgMetaBootstrapper{

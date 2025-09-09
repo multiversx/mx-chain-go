@@ -52,6 +52,8 @@ func createArgsCoreComponentsHolder() ArgsCoreComponentsHolder {
 						MetachainMinNumNodes:        1,
 						Hysteresis:                  0,
 						Adaptivity:                  false,
+						RoundsPerEpoch:              200,
+						MinRoundsBetweenEpochs:      20,
 					},
 				},
 				EpochChangeGracePeriodByEpoch: []config.EpochChangeGracePeriodByEpoch{{EnableEpoch: 0, GracePeriodInRounds: 1}},
@@ -65,6 +67,9 @@ func createArgsCoreComponentsHolder() ArgsCoreComponentsHolder {
 			RoundActivations: map[string]config.ActivationRoundByName{
 				"DisableAsyncCallV1": {
 					Round: "18446744073709551615",
+				},
+				"SupernovaEnableRound": {
+					Round: "9999999",
 				},
 			},
 		},

@@ -132,9 +132,9 @@ func (scf *statusComponentsFactory) Create() (*statusComponents, error) {
 
 	softwareVersionChecker.StartCheckSoftwareVersion()
 
-	roundDurationSec := scf.coreComponents.GenesisNodesSetup().GetRoundDuration() / 1000
-	if roundDurationSec < 1 {
-		return nil, errors.ErrInvalidRoundDuration
+	err = common.CheckRoundDuration(scf.coreComponents.GenesisNodesSetup().GetRoundDuration(), scf.coreComponents.EnableEpochsHandler())
+	if err != nil {
+		return nil, err
 	}
 
 	outportHandler, err := scf.createOutportDriver()
@@ -228,6 +228,8 @@ func (scf *statusComponentsFactory) createOutportDriver() (outport.OutportHandle
 		EventNotifierFactoryArgs:  eventNotifierArgs,
 		HostDriversArgs:           hostDriversArgs,
 		IsImportDB:                scf.isInImportMode,
+		EnableEpochsHandler:       scf.coreComponents.EnableEpochsHandler(),
+		EnableRoundsHandler:       scf.coreComponents.EnableRoundsHandler(),
 	}
 
 	return outportDriverFactory.CreateOutport(outportFactoryArgs)
