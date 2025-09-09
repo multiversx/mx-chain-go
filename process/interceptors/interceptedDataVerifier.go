@@ -43,10 +43,6 @@ func (idv *interceptedDataVerifier) Verify(interceptedData process.InterceptedDa
 		return interceptedData.CheckValidity()
 	}
 
-	hash := string(interceptedData.Hash())
-	idv.km.RLock(hash)
-	defer idv.km.RUnlock(hash)
-
 	exists, err := idv.checkCachedData(interceptedData, topic)
 	if err != nil {
 		return err
@@ -79,6 +75,10 @@ func (idv *interceptedDataVerifier) MarkVerified(interceptedData process.Interce
 }
 
 func (idv *interceptedDataVerifier) checkCachedData(interceptedData process.InterceptedData, topic string) (bool, error) {
+	hash := string(interceptedData.Hash())
+	idv.km.RLock(hash)
+	defer idv.km.RUnlock(hash)
+
 	val, ok := idv.cache.Get(interceptedData.Hash())
 	if !ok {
 		return ok, nil
