@@ -2,6 +2,7 @@ package txcache
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"math"
 	"math/big"
@@ -15,6 +16,8 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/txcachemocks"
 	"github.com/stretchr/testify/require"
 )
+
+var expectedError = errors.New("expected error")
 
 func createMockTxSelectionOptions(gasRequested uint64, maxNumTxs int, loopMaximumDuration int) common.TxSelectionOptions {
 	return holders.NewTxSelectionOptions(
@@ -30,6 +33,77 @@ func createMockTxBoundsConfig() config.TxCacheBoundsConfig {
 		MaxNumBytesPerSenderUpperBound: maxNumBytesPerSenderUpperBoundTest,
 		MaxTrackedBlocks:               maxTrackedBlocks,
 	}
+}
+
+func TestTxCache_SelectTransactions(t *testing.T) {
+	t.Parallel()
+
+	t.Run("should return errNilSelectionSession error", func(t *testing.T) {
+		t.Parallel()
+
+		options := createMockTxSelectionOptions(math.MaxUint64, math.MaxInt, selectionLoopMaximumDuration)
+		boundsConfig := createMockTxBoundsConfig()
+		cache := newUnconstrainedCacheToTest(boundsConfig)
+
+		_, _, err := cache.SelectTransactions(nil, options, defaultBlockchainInfo)
+		require.Equal(t, errNilSelectionSession, err)
+	})
+
+	t.Run("should return the error from GetRootHash", func(t *testing.T) {
+		t.Parallel()
+
+		options := createMockTxSelectionOptions(math.MaxUint64, math.MaxInt, selectionLoopMaximumDuration)
+		boundsConfig := createMockTxBoundsConfig()
+		cache := newUnconstrainedCacheToTest(boundsConfig)
+		session := &txcachemocks.SelectionSessionMock{
+			GetRootHashCalled: func() ([]byte, error) {
+				return nil, expectedError
+			},
+		}
+
+		_, _, err := cache.SelectTransactions(session, options, defaultBlockchainInfo)
+		require.Equal(t, expectedError, err)
+	})
+
+	t.Run("should return errPreviousBlockNotFound error from deriveVirtualSelectionSession", func(t *testing.T) {
+		t.Parallel()
+
+		options := createMockTxSelectionOptions(math.MaxUint64, math.MaxInt, selectionLoopMaximumDuration)
+		boundsConfig := createMockTxBoundsConfig()
+		cache := newUnconstrainedCacheToTest(boundsConfig)
+		session := &txcachemocks.SelectionSessionMock{
+			GetRootHashCalled: func() ([]byte, error) {
+				return []byte("rootHash"), nil
+			},
+		}
+
+		blockChainInfo := holders.NewBlockchainInfo(nil, []byte("hash0"), 1)
+		_, _, err := cache.SelectTransactions(session, options, blockChainInfo)
+		require.Equal(t, errPreviousBlockNotFound, err)
+	})
+
+	t.Run("should return errDiscontinuousSequenceOfBlocks error from deriveVirtualSelectionSession", func(t *testing.T) {
+		t.Parallel()
+
+		options := createMockTxSelectionOptions(math.MaxUint64, math.MaxInt, selectionLoopMaximumDuration)
+		boundsConfig := createMockTxBoundsConfig()
+		cache := newUnconstrainedCacheToTest(boundsConfig)
+		session := &txcachemocks.SelectionSessionMock{
+			GetRootHashCalled: func() ([]byte, error) {
+				return []byte("rootHash"), nil
+			},
+		}
+
+		cache.tracker.blocks["blockHash0"] = &trackedBlock{
+			nonce:    1,
+			hash:     []byte("blockHash0"),
+			rootHash: []byte("rootHash0"),
+			prevHash: nil,
+		}
+		blockChainInfo := holders.NewBlockchainInfo(nil, []byte("blockHash0"), 3)
+		_, _, err := cache.SelectTransactions(session, options, blockChainInfo)
+		require.Equal(t, errDiscontinuousSequenceOfBlocks, err)
+	})
 }
 
 func TestTxCache_SelectTransactions_Dummy(t *testing.T) {
