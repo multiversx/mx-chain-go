@@ -539,22 +539,13 @@ func TestStateAccessesCollector_GetCollectedAccesses(t *testing.T) {
 		})
 	})
 
-	t.Run("merging nil account changes should return one account change", func(t *testing.T) {
+	t.Run("merging no account changes should not set any changes in the account", func(t *testing.T) {
 		t.Parallel()
 
 		c, _ := NewCollector(disabled.NewDisabledStateAccessesStorer(), WithCollectRead(), WithCollectWrite(), WithAccountChanges())
 		assert.Equal(t, 0, len(c.stateAccesses))
 
-		defaultAccChanges := &data.AccountChanges{
-			Nonce:           false,
-			Balance:         false,
-			CodeHash:        false,
-			RootHash:        false,
-			DeveloperReward: false,
-			OwnerAddress:    false,
-			UserName:        false,
-			CodeMetadata:    false,
-		}
+		defaultAccChanges := data.NoChange
 
 		c.AddStateAccess(&data.StateAccess{
 			Type:           data.Write,
@@ -570,7 +561,7 @@ func TestStateAccessesCollector_GetCollectedAccesses(t *testing.T) {
 			TxHash:         []byte("hash"),
 			MainTrieKey:    []byte("account1"),
 			MainTrieVal:    []byte("mainTrieVal2"),
-			AccountChanges: nil,
+			AccountChanges: defaultAccChanges,
 		})
 
 		stateChangesForTx := c.GetCollectedAccesses()
@@ -598,38 +589,20 @@ func TestStateAccessesCollector_GetCollectedAccesses(t *testing.T) {
 		assert.Equal(t, 0, len(c.stateAccesses))
 
 		c.AddStateAccess(&data.StateAccess{
-			Type:        data.Write,
-			TxHash:      []byte("hash"),
-			MainTrieKey: []byte("account1"),
-			MainTrieVal: []byte("mainTrieVal1"),
-			AccountChanges: &data.AccountChanges{
-				Nonce:           false,
-				Balance:         true,
-				CodeHash:        false,
-				RootHash:        true,
-				DeveloperReward: false,
-				OwnerAddress:    true,
-				UserName:        false,
-				CodeMetadata:    true,
-			},
+			Type:           data.Write,
+			TxHash:         []byte("hash"),
+			MainTrieKey:    []byte("account1"),
+			MainTrieVal:    []byte("mainTrieVal1"),
+			AccountChanges: data.BalanceChanged | data.RootHashChanged | data.OwnerAddressChanged | data.CodeMetadataChanged,
 		})
 
 		c.AddStateAccess(&data.StateAccess{
-			Type:        data.Write,
-			Index:       0,
-			TxHash:      []byte("hash"),
-			MainTrieKey: []byte("account1"),
-			MainTrieVal: []byte("mainTrieVal2"),
-			AccountChanges: &data.AccountChanges{
-				Nonce:           true,
-				Balance:         false,
-				CodeHash:        true,
-				RootHash:        false,
-				DeveloperReward: true,
-				OwnerAddress:    false,
-				UserName:        true,
-				CodeMetadata:    false,
-			},
+			Type:           data.Write,
+			Index:          0,
+			TxHash:         []byte("hash"),
+			MainTrieKey:    []byte("account1"),
+			MainTrieVal:    []byte("mainTrieVal2"),
+			AccountChanges: data.NonceChanged | data.CodeHashChanged | data.DeveloperRewardChanged | data.UserNameChanged,
 		})
 
 		stateChangesForTx := c.GetCollectedAccesses()
@@ -637,22 +610,15 @@ func TestStateAccessesCollector_GetCollectedAccesses(t *testing.T) {
 		require.Len(t, stateChangesForTx, 1)
 		require.Len(t, stateChangesForTx["hash"].StateAccess, 1)
 
+		allFieldsChanged := uint32(255)
+
 		require.Equal(t, stateChangesForTx, map[string]*data.StateAccesses{
 			"hash": {
 				StateAccess: []*data.StateAccess{
 					{
 						MainTrieKey: []byte("account1"), Type: data.Write,
 						TxHash: []byte("hash"), MainTrieVal: []byte("mainTrieVal2"),
-						AccountChanges: &data.AccountChanges{
-							Nonce:           true,
-							Balance:         true,
-							CodeHash:        true,
-							RootHash:        true,
-							DeveloperReward: true,
-							OwnerAddress:    true,
-							UserName:        true,
-							CodeMetadata:    true,
-						},
+						AccountChanges: allFieldsChanged,
 					},
 				},
 			},
@@ -665,27 +631,9 @@ func TestStateAccessesCollector_GetCollectedAccesses(t *testing.T) {
 		c, _ := NewCollector(disabled.NewDisabledStateAccessesStorer(), WithCollectRead(), WithCollectWrite(), WithAccountChanges())
 		assert.Equal(t, 0, len(c.stateAccesses))
 
-		defaultAccChanges := &data.AccountChanges{
-			Nonce:           false,
-			Balance:         false,
-			CodeHash:        false,
-			RootHash:        false,
-			DeveloperReward: false,
-			OwnerAddress:    false,
-			UserName:        false,
-			CodeMetadata:    false,
-		}
+		defaultAccChanges := data.NoChange
 
-		modifiedAccChanges := &data.AccountChanges{
-			Nonce:           false,
-			Balance:         true,
-			CodeHash:        false,
-			RootHash:        true,
-			DeveloperReward: false,
-			OwnerAddress:    true,
-			UserName:        false,
-			CodeMetadata:    true,
-		}
+		modifiedAccChanges := data.BalanceChanged | data.RootHashChanged | data.OwnerAddressChanged | data.CodeMetadataChanged
 
 		operations := []uint32{
 			data.NotSet,
@@ -697,7 +645,6 @@ func TestStateAccessesCollector_GetCollectedAccesses(t *testing.T) {
 			data.GetDataTrieValue,
 		}
 
-		var accChanges *data.AccountChanges
 		numStateChanges := 20
 		for i := 0; i < numStateChanges; i++ {
 			if i%2 == 0 {
@@ -711,10 +658,9 @@ func TestStateAccessesCollector_GetCollectedAccesses(t *testing.T) {
 					Operation:      operations[i%len(operations)],
 				})
 			} else {
+				accChanges := defaultAccChanges
 				if i == 19 {
 					accChanges = modifiedAccChanges
-				} else {
-					accChanges = defaultAccChanges
 				}
 				c.AddStateAccess(&data.StateAccess{
 					MainTrieKey: []byte("key"),
@@ -765,7 +711,7 @@ func TestCollector_GetAccountChanges(t *testing.T) {
 			nil,
 			&mockState.UserAccountStub{},
 		)
-		assert.Nil(t, accountChanges)
+		assert.Equal(t, data.NoChange, accountChanges)
 	})
 
 	t.Run("nil new account should return early", func(t *testing.T) {
@@ -778,7 +724,7 @@ func TestCollector_GetAccountChanges(t *testing.T) {
 			&mockState.UserAccountStub{},
 			nil,
 		)
-		assert.Nil(t, accountChanges)
+		assert.Equal(t, data.NoChange, accountChanges)
 	})
 
 	t.Run("should work", func(t *testing.T) {
@@ -816,14 +762,8 @@ func TestCollector_GetAccountChanges(t *testing.T) {
 			},
 		)
 
-		require.True(t, accountChanges.Nonce)
-		require.True(t, accountChanges.Balance)
-		require.True(t, accountChanges.CodeHash)
-		require.True(t, accountChanges.RootHash)
-		require.True(t, accountChanges.DeveloperReward)
-		require.True(t, accountChanges.OwnerAddress)
-		require.True(t, accountChanges.UserName)
-		require.True(t, accountChanges.CodeMetadata)
+		allFieldsChanged := uint32(255)
+		require.Equal(t, allFieldsChanged, accountChanges)
 	})
 }
 

@@ -2,6 +2,7 @@ package stateAccesses
 
 import (
 	"fmt"
+
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	data "github.com/multiversx/mx-chain-core-go/data/stateChange"
 	"github.com/multiversx/mx-chain-core-go/marshal"
