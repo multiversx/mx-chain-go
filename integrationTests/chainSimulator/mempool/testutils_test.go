@@ -192,7 +192,9 @@ func selectTransactions(t *testing.T, simulator testsChainSimulator.ChainSimulat
 	)
 
 	mempool := poolsHolder.ShardDataStore(shardAsString).(*txcache.TxCache)
-	selectedTransactions, gas := mempool.SelectTransactions(selectionSession, options, defaultBlockchainInfo)
+	selectedTransactions, gas, err := mempool.SelectTransactions(selectionSession, options, defaultBlockchainInfo)
+	require.NoError(t, err)
+
 	return selectedTransactions, gas
 }
 
@@ -349,7 +351,8 @@ func testOnProposed(t *testing.T, sw *core.StopWatch, numTxs int, numAddresses i
 	require.Equal(t, numTxs, int(txpool.CountTx()))
 
 	blockchainInfo := holders.NewBlockchainInfo([]byte("blockHash0"), []byte("blockHash0"), 1)
-	selectedTransactions, _ := txpool.SelectTransactions(selectionSession, options, blockchainInfo)
+	selectedTransactions, _, err := txpool.SelectTransactions(selectionSession, options, blockchainInfo)
+	require.NoError(t, err)
 	require.Equal(t, numTxs, len(selectedTransactions))
 
 	proposedBlock1 := createProposedBlock(selectedTransactions)
@@ -406,8 +409,10 @@ func testFirstSelection(t *testing.T, sw *core.StopWatch, numTxs int, numTxsToBe
 	blockchainInfo := holders.NewBlockchainInfo([]byte("blockHash0"), []byte("blockHash0"), 1)
 
 	sw.Start(t.Name())
-	selectedTransactions, _ := txpool.SelectTransactions(selectionSession, options, blockchainInfo)
+	selectedTransactions, _, err := txpool.SelectTransactions(selectionSession, options, blockchainInfo)
 	sw.Stop(t.Name())
+
+	require.Nil(t, err)
 	require.Equal(t, numTxsToBeSelected, len(selectedTransactions))
 }
 
@@ -453,7 +458,9 @@ func testSecondSelection(t *testing.T, sw *core.StopWatch, numTxs int, numTxsToB
 	require.Equal(t, numTxs, int(txpool.CountTx()))
 
 	blockchainInfo := holders.NewBlockchainInfo([]byte("blockHash0"), []byte("blockHash0"), 1)
-	selectedTransactions, _ := txpool.SelectTransactions(selectionSession, options, blockchainInfo)
+	selectedTransactions, _, err := txpool.SelectTransactions(selectionSession, options, blockchainInfo)
+
+	require.NoError(t, err)
 	require.Equal(t, numTxsToBeSelected, len(selectedTransactions))
 
 	proposedBlock := createProposedBlock(selectedTransactions)
@@ -471,9 +478,10 @@ func testSecondSelection(t *testing.T, sw *core.StopWatch, numTxs int, numTxsToB
 	blockchainInfo = holders.NewBlockchainInfo([]byte("blockHash0"), []byte("blockHash1"), 2)
 	// measure the time for the second selection (now we use the breadcrumbs to create the virtual records)
 	sw.Start(t.Name())
-	selectedTransactions, _ = txpool.SelectTransactions(selectionSession, options, blockchainInfo)
+	selectedTransactions, _, err = txpool.SelectTransactions(selectionSession, options, blockchainInfo)
 	sw.Stop(t.Name())
 
+	require.NoError(t, err)
 	require.Equal(t, numTxsToBeSelected, len(selectedTransactions))
 
 	// propose the block and make sure the selection works well
@@ -489,7 +497,8 @@ func testSecondSelection(t *testing.T, sw *core.StopWatch, numTxs int, numTxsToB
 	require.Nil(t, err)
 
 	blockchainInfo = holders.NewBlockchainInfo([]byte("blockHash0"), []byte("blockHash2"), 3)
-	selectedTransactions, _ = txpool.SelectTransactions(selectionSession, options, blockchainInfo)
+	selectedTransactions, _, err = txpool.SelectTransactions(selectionSession, options, blockchainInfo)
+	require.NoError(t, err)
 	require.Equal(t, 0, len(selectedTransactions))
 }
 
@@ -534,7 +543,8 @@ func testSecondSelectionWithManyTxsInPool(t *testing.T, sw *core.StopWatch, numT
 	require.Equal(t, numTxs, int(txpool.CountTx()))
 
 	blockchainInfo := holders.NewBlockchainInfo([]byte("blockHash0"), []byte("blockHash0"), 1)
-	selectedTransactions, _ := txpool.SelectTransactions(selectionSession, options, blockchainInfo)
+	selectedTransactions, _, err := txpool.SelectTransactions(selectionSession, options, blockchainInfo)
+	require.NoError(t, err)
 	require.Equal(t, numTxsToBeSelected, len(selectedTransactions))
 
 	proposedBlock := createProposedBlock(selectedTransactions)
@@ -553,8 +563,9 @@ func testSecondSelectionWithManyTxsInPool(t *testing.T, sw *core.StopWatch, numT
 
 	// measure the time for the second selection (now we use the breadcrumbs to create the virtual records)
 	sw.Start(t.Name())
-	selectedTransactions, _ = txpool.SelectTransactions(selectionSession, options, blockchainInfo)
+	selectedTransactions, _, err = txpool.SelectTransactions(selectionSession, options, blockchainInfo)
 	sw.Stop(t.Name())
 
+	require.NoError(t, err)
 	require.Equal(t, numTxsToBeSelected, len(selectedTransactions))
 }
