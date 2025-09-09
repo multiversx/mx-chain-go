@@ -40,6 +40,13 @@ type ProofsPoolConfig struct {
 	BucketSize        int
 }
 
+// ExecutionResultInclusionEstimatorConfig will map the EIE configuration - supplied at construction, read‑only thereafter.
+// TODO add also max estimated block gas capacity
+type ExecutionResultInclusionEstimatorConfig struct {
+	SafetyMargin       uint64
+	MaxResultsPerBlock uint64
+}
+
 // DBConfig will map the database configuration
 type DBConfig struct {
 	FilePath            string
@@ -178,6 +185,8 @@ type Config struct {
 	SmartContractsStorageForSCQuery StorageConfig
 	TrieEpochRootHashStorage        StorageConfig
 	SmartContractsStorageSimulate   StorageConfig
+
+	ExecutionResultInclusionEstimator ExecutionResultInclusionEstimatorConfig
 
 	BootstrapStorage StorageConfig
 	MetaBlockStorage StorageConfig
