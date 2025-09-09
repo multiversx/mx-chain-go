@@ -9,6 +9,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data/alteredAccount"
 	"github.com/multiversx/mx-chain-core-go/data/api"
+	"github.com/multiversx/mx-chain-core-go/data/smartContractResult"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/genesis"
@@ -153,6 +154,11 @@ func (nar *nodeApiResolver) ComputeTransactionGasLimit(tx *transaction.Transacti
 // SimulateTransactionExecution will simulate the provided transaction and return the simulation results
 func (nar *nodeApiResolver) SimulateTransactionExecution(tx *transaction.Transaction) (*txSimData.SimulationResultsWithVMOutput, error) {
 	return nar.apiTransactionEvaluator.SimulateTransactionExecution(tx)
+}
+
+// SimulateSCRExecutionCost will simulate the provided smart contract results and return the simulation results
+func (nar *nodeApiResolver) SimulateSCRExecutionCost(scr *smartContractResult.SmartContractResult) (*transaction.CostResponse, error) {
+	return nar.apiTransactionEvaluator.SimulateSCRExecutionCost(scr)
 }
 
 // Close closes all underlying components

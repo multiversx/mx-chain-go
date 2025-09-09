@@ -45,7 +45,7 @@ const (
 	guardAccountCost                        = 250_000
 	extraGasLimitForGuarded                 = minGasLimit
 	extraGasESDTTransfer                    = 250000
-	extraGasMultiESDTTransferPerToken       = 1100000
+	extraGasMultiESDTTransfer               = 500000
 	egldTicker                              = "EGLD-000000"
 )
 
@@ -337,7 +337,7 @@ func testRelayedV3ScCall(
 
 		// send relayed tx
 		txDataAdd := "add@" + hex.EncodeToString(big.NewInt(1).Bytes())
-		gasLimit := uint64(3000000)
+		gasLimit := uint64(2000000)
 		relayedTx := generateRelayedV3Transaction(sender.Bytes, 0, scAddressBytes, relayer.Bytes, big.NewInt(0), txDataAdd, gasLimit)
 
 		result, err := cs.SendTxAndGenerateBlockTilTxIsExecuted(relayedTx, maxNumOfBlocksToGenerateWhenExecutingTx)
@@ -656,7 +656,7 @@ func testRelayedV3MultiESDTTransferWithEGLD(
 				hex.EncodeToString(sender.Bytes) + "@02@" +
 				hex.EncodeToString([]byte(ticker)) + "@00@" + hex.EncodeToString(transferValue.Bytes()) + "@" +
 				hex.EncodeToString([]byte(egldTicker)) + "@00@" + hex.EncodeToString(egldTransferValue.Bytes())
-			gasLimit := minGasLimit + len(txDataTransfer)*1500 + extraGasMultiESDTTransferPerToken*2
+			gasLimit := minGasLimit + len(txDataTransfer)*1500 + extraGasMultiESDTTransfer
 			ownerNonce := getNonce(t, cs, owner)
 
 			esdtTransferTx := generateTransaction(owner.Bytes, ownerNonce, owner.Bytes, big.NewInt(0), txDataTransfer, uint64(gasLimit))
@@ -678,7 +678,7 @@ func testRelayedV3MultiESDTTransferWithEGLD(
 			hex.EncodeToString(receiver.Bytes) + "@02@" +
 			hex.EncodeToString([]byte(ticker)) + "@00@" + hex.EncodeToString(transferValue.Bytes()) + "@" +
 			hex.EncodeToString([]byte(egldTicker)) + "@00@" + hex.EncodeToString(egldTransferValue.Bytes())
-		gasLimit := minGasLimit*2 + len(txDataTransfer)*1500 + extraGasMultiESDTTransferPerToken*2
+		gasLimit := minGasLimit*2 + len(txDataTransfer)*1500 + extraGasMultiESDTTransfer
 		senderNonce := getNonce(t, cs, sender)
 		relayedTx := generateRelayedV3Transaction(sender.Bytes, senderNonce, sender.Bytes, relayer.Bytes, big.NewInt(0), txDataTransfer, uint64(gasLimit))
 
