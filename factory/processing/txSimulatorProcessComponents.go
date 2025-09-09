@@ -13,6 +13,7 @@ import (
 	"github.com/multiversx/mx-chain-go/process/coordinator"
 	"github.com/multiversx/mx-chain-go/process/factory/shard"
 	"github.com/multiversx/mx-chain-go/process/smartContract"
+	"github.com/multiversx/mx-chain-go/process/smartContract/processProxy"
 	"github.com/multiversx/mx-chain-go/process/smartContract/scrCommon"
 	"github.com/multiversx/mx-chain-go/process/transaction"
 	"github.com/multiversx/mx-chain-go/process/transactionEvaluator"
@@ -377,7 +378,7 @@ func (pcf *processComponentsFactory) createArgsTxSimulatorProcessorShard(
 		IsGenesisProcessing: false,
 	}
 
-	scProcessor, err := smartContract.NewSmartContractProcessor(scProcArgs)
+	scProcessorProxy, err := processProxy.NewSmartContractProcessorProxy(scProcArgs, pcf.coreData.EpochNotifier())
 	if err != nil {
 		return args, nil, nil, nil, err
 	}
@@ -389,7 +390,7 @@ func (pcf *processComponentsFactory) createArgsTxSimulatorProcessorShard(
 		Marshalizer:         pcf.coreData.InternalMarshalizer(),
 		SignMarshalizer:     pcf.coreData.TxMarshalizer(),
 		ShardCoordinator:    pcf.bootstrapComponents.ShardCoordinator(),
-		ScProcessor:         scProcessor,
+		ScProcessor:         scProcessorProxy,
 		TxFeeHandler:        txFeeHandler,
 		TxTypeHandler:       txTypeHandler,
 		EconomicsFee:        pcf.coreData.EconomicsData(),
@@ -412,5 +413,5 @@ func (pcf *processComponentsFactory) createArgsTxSimulatorProcessorShard(
 	args.TransactionProcessor = txProcessor
 	args.IntermediateProcContainer = intermediateProcessorsContainer
 
-	return args, vmContainerFactory, txTypeHandler, scProcessor, nil
+	return args, vmContainerFactory, txTypeHandler, scProcessorProxy, nil
 }
