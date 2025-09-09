@@ -121,8 +121,9 @@ func TestDeployDNSContract_TestGasWhenSaveUsernameFailsCrossShardBackwardsCompat
 	}
 
 	enableEpochs := config.EnableEpochs{
-		ChangeUsernameEnableEpoch: 1000, // flag disabled, backwards compatibility
-		SCProcessorV2EnableEpoch:  1000,
+		ChangeUsernameEnableEpoch:           1000, // flag disabled, backwards compatibility
+		SCProcessorV2EnableEpoch:            1000,
+		RelayedTransactionsV1V2DisableEpoch: 1000,
 	}
 
 	vmConfig := vm.CreateVMConfigWithVersion("v1.4")
