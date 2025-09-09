@@ -80,7 +80,6 @@ import (
 	"github.com/multiversx/mx-chain-go/process/block/processedMb"
 	"github.com/multiversx/mx-chain-go/process/coordinator"
 	"github.com/multiversx/mx-chain-go/process/economics"
-	"github.com/multiversx/mx-chain-go/process/factory"
 	procFactory "github.com/multiversx/mx-chain-go/process/factory"
 	"github.com/multiversx/mx-chain-go/process/factory/interceptorscontainer"
 	metaProcess "github.com/multiversx/mx-chain-go/process/factory/metachain"
@@ -2182,7 +2181,7 @@ func (tpn *TestProcessorNode) InitDelegationManager() {
 		return
 	}
 
-	systemVM, err := tpn.VMContainer.Get(factory.SystemVirtualMachine)
+	systemVM, err := tpn.VMContainer.Get(procFactory.SystemVirtualMachine)
 	log.LogIfError(err)
 
 	codeMetaData := &vmcommon.CodeMetadata{
@@ -2248,7 +2247,7 @@ func (tpn *TestProcessorNode) addMockVm(blockchainHook vmcommon.BlockchainHook) 
 	mockVM, _ := mock.NewOneSCExecutorMockVM(blockchainHook, TestHasher)
 	mockVM.GasForOperation = OpGasValueForMockVm
 
-	_ = tpn.VMContainer.Add(factory.InternalTestingVM, mockVM)
+	_ = tpn.VMContainer.Add(procFactory.InternalTestingVM, mockVM)
 }
 
 func (tpn *TestProcessorNode) initBlockProcessor() {
@@ -2435,7 +2434,7 @@ func (tpn *TestProcessorNode) initBlockProcessor() {
 		}
 		epochEconomics, _ := metachain.NewEndOfEpochEconomicsDataCreator(argsEpochEconomics)
 
-		systemVM, errGet := tpn.VMContainer.Get(factory.SystemVirtualMachine)
+		systemVM, errGet := tpn.VMContainer.Get(procFactory.SystemVirtualMachine)
 		if errGet != nil {
 			log.Error("initBlockProcessor tpn.VMContainer.Get", "error", errGet)
 		}

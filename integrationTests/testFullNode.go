@@ -43,7 +43,7 @@ import (
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/block"
 	"github.com/multiversx/mx-chain-go/process/block/bootstrapStorage"
-	factory2 "github.com/multiversx/mx-chain-go/process/factory"
+	processFactory "github.com/multiversx/mx-chain-go/process/factory"
 	"github.com/multiversx/mx-chain-go/process/factory/interceptorscontainer"
 	"github.com/multiversx/mx-chain-go/process/interceptors"
 	disabledInterceptors "github.com/multiversx/mx-chain-go/process/interceptors/disabled"
@@ -67,7 +67,6 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/cryptoMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/economicsmocks"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
-	"github.com/multiversx/mx-chain-go/testscommon/factory"
 	testFactory "github.com/multiversx/mx-chain-go/testscommon/factory"
 	"github.com/multiversx/mx-chain-go/testscommon/genesisMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/nodeTypeProviderMock"
@@ -944,7 +943,7 @@ func (tpn *TestFullNode) initBlockProcessor(
 		}
 		epochEconomics, _ := metachain.NewEndOfEpochEconomicsDataCreator(argsEpochEconomics)
 
-		systemVM, _ := tpn.VMContainer.Get(factory2.SystemVirtualMachine)
+		systemVM, _ := tpn.VMContainer.Get(processFactory.SystemVirtualMachine)
 		argsStakingDataProvider := metachain.StakingDataProviderArgs{
 			EnableEpochsHandler: coreComponents.EnableEpochsHandler(),
 			SystemVM:            systemVM,
@@ -1097,7 +1096,7 @@ func (tpn *TestFullNode) initBlockProcessorWithSync(
 
 	statusComponents := GetDefaultStatusComponents()
 
-	statusCoreComponents := &factory.StatusCoreComponentsStub{
+	statusCoreComponents := &testFactory.StatusCoreComponentsStub{
 		AppStatusHandlerField: &statusHandlerMock.AppStatusHandlerStub{},
 	}
 
