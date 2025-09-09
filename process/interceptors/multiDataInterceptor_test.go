@@ -379,7 +379,7 @@ func testProcessReceiveMessageMultiData(t *testing.T, isForCurrentShard bool, ex
 	arg.Processor = createMockInterceptorStub(&checkCalledNum, &processCalledNum)
 	arg.Throttler = throttler
 	arg.InterceptedDataVerifier = &mock.InterceptedDataVerifierMock{
-		VerifyCalled: func(interceptedData process.InterceptedData) error {
+		VerifyCalled: func(interceptedData process.InterceptedData, topic string) error {
 			return interceptedData.CheckValidity()
 		},
 	}
@@ -648,7 +648,7 @@ func processReceivedMessageMultiDataInvalidVersion(t *testing.T, expectedErr err
 		},
 	}
 	arg.InterceptedDataVerifier = &mock.InterceptedDataVerifierMock{
-		VerifyCalled: func(interceptedData process.InterceptedData) error {
+		VerifyCalled: func(interceptedData process.InterceptedData, topic string) error {
 			return interceptedData.CheckValidity()
 		},
 	}

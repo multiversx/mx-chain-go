@@ -6,16 +6,24 @@ import (
 
 // InterceptedDataVerifierMock -
 type InterceptedDataVerifierMock struct {
-	VerifyCalled func(interceptedData process.InterceptedData) error
+	VerifyCalled       func(interceptedData process.InterceptedData, topic string) error
+	MarkVerifiedCalled func(interceptedData process.InterceptedData, topic string)
 }
 
 // Verify -
-func (idv *InterceptedDataVerifierMock) Verify(interceptedData process.InterceptedData) error {
+func (idv *InterceptedDataVerifierMock) Verify(interceptedData process.InterceptedData, topic string) error {
 	if idv.VerifyCalled != nil {
-		return idv.VerifyCalled(interceptedData)
+		return idv.VerifyCalled(interceptedData, topic)
 	}
 
 	return nil
+}
+
+// MarkVerified -
+func (idv *InterceptedDataVerifierMock) MarkVerified(interceptedData process.InterceptedData, topic string) {
+	if idv.MarkVerifiedCalled != nil {
+		idv.MarkVerifiedCalled(interceptedData, topic)
+	}
 }
 
 // IsInterfaceNil -

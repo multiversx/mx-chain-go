@@ -129,6 +129,11 @@ func (imh *InterceptedMetaHeader) CheckValidity() error {
 	return imh.integrityVerifier.Verify(imh.hdr)
 }
 
+// ShouldAllowDuplicates returns if this type of intercepted data should allow duplicates
+func (imh *InterceptedMetaHeader) ShouldAllowDuplicates() bool {
+	return true
+}
+
 func (imh *InterceptedMetaHeader) isMetaHeaderEpochOutOfRange() bool {
 	if imh.shardCoordinator.SelfId() == core.MetachainShardId {
 		return false

@@ -2,13 +2,14 @@ package mock
 
 // InterceptedTrieNodeStub -
 type InterceptedTrieNodeStub struct {
-	CheckValidityCalled     func() error
-	IsForCurrentShardCalled func() bool
-	SizeInBytesCalled       func() int
-	HashField               []byte
-	StringField             string
-	IdentifiersField        [][]byte
-	TypeField               string
+	CheckValidityCalled         func() error
+	IsForCurrentShardCalled     func() bool
+	SizeInBytesCalled           func() int
+	ShouldAllowDuplicatesCalled func() bool
+	HashField                   []byte
+	StringField                 string
+	IdentifiersField            [][]byte
+	TypeField                   string
 }
 
 // CheckValidity -
@@ -18,6 +19,15 @@ func (ins *InterceptedTrieNodeStub) CheckValidity() error {
 	}
 
 	return nil
+}
+
+// ShouldAllowDuplicates -
+func (ins *InterceptedTrieNodeStub) ShouldAllowDuplicates() bool {
+	if ins.ShouldAllowDuplicatesCalled != nil {
+		return ins.ShouldAllowDuplicatesCalled()
+	}
+
+	return true
 }
 
 // IsForCurrentShard -

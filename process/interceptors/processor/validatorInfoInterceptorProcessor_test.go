@@ -75,7 +75,8 @@ func TestValidatorInfoInterceptorProcessor_Save(t *testing.T) {
 
 		proc, err := processor.NewValidatorInfoInterceptorProcessor(createMockArgValidatorInfoInterceptorProcessor())
 		assert.Nil(t, err)
-		assert.Equal(t, process.ErrWrongTypeAssertion, proc.Save(nil, "", ""))
+		_, err = proc.Save(nil, "", "")
+		assert.Equal(t, process.ErrWrongTypeAssertion, err)
 	})
 	t.Run("invalid validator info should error", func(t *testing.T) {
 		t.Parallel()
@@ -92,7 +93,8 @@ func TestValidatorInfoInterceptorProcessor_Save(t *testing.T) {
 		proc, _ := processor.NewValidatorInfoInterceptorProcessor(args)
 		require.False(t, check.IfNil(proc))
 
-		assert.Equal(t, process.ErrWrongTypeAssertion, proc.Save(providedData, "", ""))
+		_, err := proc.Save(providedData, "", "")
+		assert.Equal(t, process.ErrWrongTypeAssertion, err)
 		assert.False(t, wasCalled)
 	})
 	t.Run("should work", func(t *testing.T) {
@@ -117,7 +119,8 @@ func TestValidatorInfoInterceptorProcessor_Save(t *testing.T) {
 		proc, _ := processor.NewValidatorInfoInterceptorProcessor(args)
 		require.False(t, check.IfNil(proc))
 
-		assert.Nil(t, proc.Save(providedData, "", providedEpochStr))
+		_, err := proc.Save(providedData, "", providedEpochStr)
+		assert.NoError(t, err)
 		assert.True(t, wasHasOrAddCalled)
 	})
 }

@@ -2,11 +2,11 @@ package interceptors
 
 import (
 	"errors"
+	"strings"
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/core/sync"
 	"github.com/multiversx/mx-chain-go/common"
-
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/storage"
 )
@@ -38,25 +38,20 @@ func NewInterceptedDataVerifier(cache storage.Cacher) (*interceptedDataVerifier,
 // Verify will check if the intercepted data has been validated before and put in the time cache.
 // It will retrieve the status in the cache if it exists, otherwise it will validate it and store the status of the
 // validation in the cache. Note that the entries are stored for a set period of time
-func (idv *interceptedDataVerifier) Verify(interceptedData process.InterceptedData) error {
+func (idv *interceptedDataVerifier) Verify(interceptedData process.InterceptedData, topic string) error {
 	if len(interceptedData.Hash()) == 0 {
 		return interceptedData.CheckValidity()
 	}
 
-	hash := string(interceptedData.Hash())
-	idv.km.Lock(hash)
-	defer idv.km.Unlock(hash)
-
-	if val, ok := idv.cache.Get(interceptedData.Hash()); ok {
-		// TODO: check here is we can avoid sending data multiple times, maybe return err
-		if val == validInterceptedData {
-			return nil
-		}
-
-		return process.ErrInvalidInterceptedData
+	exists, err := idv.checkCachedData(interceptedData, topic)
+	if err != nil {
+		return err
+	}
+	if exists {
+		return nil
 	}
 
-	err := interceptedData.CheckValidity()
+	err = interceptedData.CheckValidity()
 	if err != nil {
 		logInterceptedDataCheckValidityErr(interceptedData, err)
 		// TODO: investigate to selectively add as invalid intercepted data only when data is indeed invalid instead of missing
@@ -64,8 +59,49 @@ func (idv *interceptedDataVerifier) Verify(interceptedData process.InterceptedDa
 		return process.ErrInvalidInterceptedData
 	}
 
-	idv.cache.Put(interceptedData.Hash(), validInterceptedData, interceptedDataStatusBytesSize)
 	return nil
+}
+
+// MarkVerified marks the intercepted data as verified
+func (idv *interceptedDataVerifier) MarkVerified(interceptedData process.InterceptedData, topic string) {
+	if !isCrossShardTopic(topic) {
+		return
+	}
+
+	idv.km.Lock(string(interceptedData.Hash()))
+	defer idv.km.Unlock(string(interceptedData.Hash()))
+
+	idv.cache.Put(interceptedData.Hash(), validInterceptedData, interceptedDataStatusBytesSize)
+}
+
+func (idv *interceptedDataVerifier) checkCachedData(interceptedData process.InterceptedData, topic string) (bool, error) {
+	hash := string(interceptedData.Hash())
+	idv.km.RLock(hash)
+	defer idv.km.RUnlock(hash)
+
+	val, ok := idv.cache.Get(interceptedData.Hash())
+	if !ok {
+		return ok, nil
+	}
+
+	if val != validInterceptedData {
+		return ok, process.ErrInvalidInterceptedData
+	}
+
+	if !isCrossShardTopic(topic) {
+		return ok, nil
+	}
+
+	if !interceptedData.ShouldAllowDuplicates() {
+		return ok, process.ErrDuplicatedInterceptedDataNotAllowed
+	}
+
+	return ok, nil
+}
+
+func isCrossShardTopic(topic string) bool {
+	topicSplit := strings.Split(topic, "_")
+	return len(topicSplit) == 3 || len(topicSplit) == 1 // cross _0_1 or global topic
 }
 
 func logInterceptedDataCheckValidityErr(interceptedData process.InterceptedData, err error) {

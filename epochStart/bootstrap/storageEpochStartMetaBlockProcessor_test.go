@@ -111,7 +111,7 @@ func TestStorageEpochStartMetaBlockProcessor_SaveNilData(t *testing.T) {
 		&hashingMocks.HasherMock{},
 	)
 
-	err := sesmbp.Save(nil, "", "")
+	_, err := sesmbp.Save(nil, "", "")
 	assert.Nil(t, err)
 	mb, _ := sesmbp.getMetablock()
 	assert.True(t, check.IfNil(mb))
@@ -127,7 +127,7 @@ func TestStorageEpochStartMetaBlockProcessor_SaveNotAHeader(t *testing.T) {
 		&hashingMocks.HasherMock{},
 	)
 
-	err := sesmbp.Save(&testscommon.InterceptedDataStub{}, "", "")
+	_, err := sesmbp.Save(&testscommon.InterceptedDataStub{}, "", "")
 	assert.Nil(t, err)
 	mb, _ := sesmbp.getMetablock()
 	assert.True(t, check.IfNil(mb))
@@ -149,7 +149,7 @@ func TestStorageEpochStartMetaBlockProcessor_SaveNotAnEpochStartBlock(t *testing
 	}
 	interceptedMetaBlock := mock.NewInterceptedMetaBlockMock(metaBlock, []byte("hash"))
 
-	err := sesmbp.Save(interceptedMetaBlock, "", "")
+	_, err := sesmbp.Save(interceptedMetaBlock, "", "")
 	assert.Nil(t, err)
 	mb, _ := sesmbp.getMetablock()
 	assert.True(t, check.IfNil(mb))
@@ -174,10 +174,10 @@ func TestStorageEpochStartMetaBlockProcessor_SaveShouldWork(t *testing.T) {
 	}
 	interceptedMetaBlock := mock.NewInterceptedMetaBlockMock(metaBlock, []byte("hash"))
 
-	err := sesmbp.Save(interceptedMetaBlock, "", "")
+	_, err := sesmbp.Save(interceptedMetaBlock, "", "")
 	assert.Nil(t, err)
 	mb, _ := sesmbp.getMetablock()
-	assert.True(t, mb == metaBlock) //pointer testing
+	assert.True(t, mb == metaBlock) // pointer testing
 }
 
 func TestStorageEpochStartMetaBlockProcessor_GetEpochStartMetaBlockShouldRequestRepeatedly(t *testing.T) {
@@ -201,7 +201,7 @@ func TestStorageEpochStartMetaBlockProcessor_GetEpochStartMetaBlockShouldRequest
 			RequestStartOfEpochMetaBlockCalled: func(epoch uint32) {
 				numRequests++
 				if numRequests > numUnsuccessfulRequests {
-					_ = sesmbp.Save(interceptedMetaBlock, "", "")
+					_, _ = sesmbp.Save(interceptedMetaBlock, "", "")
 				}
 			},
 		},

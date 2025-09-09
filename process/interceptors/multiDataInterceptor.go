@@ -165,7 +165,12 @@ func (mdi *MultiDataInterceptor) ProcessReceivedMessage(message p2p.MessageP2P, 
 
 	for index, dataBuff := range multiDataBuff {
 		var interceptedData process.InterceptedData
-		interceptedData, err = mdi.interceptedData(dataBuff, message.Peer(), fromConnectedPeer)
+		interceptedData, err = mdi.interceptedData(
+			dataBuff,
+			message.Peer(),
+			fromConnectedPeer,
+			message.Topic(),
+		)
 		listInterceptedData[index] = interceptedData
 
 		if err != nil {
@@ -200,8 +205,17 @@ func (mdi *MultiDataInterceptor) ProcessReceivedMessage(message p2p.MessageP2P, 
 	}
 
 	go func() {
+		cntSaves := 0
 		for _, interceptedData := range listInterceptedData {
-			mdi.processInterceptedData(interceptedData, message, fromConnectedPeer)
+			dataSaved := mdi.processInterceptedData(interceptedData, message, fromConnectedPeer)
+			if dataSaved {
+				cntSaves++
+			}
+		}
+
+		allInfoSaved := cntSaves == len(listInterceptedData)
+		if allInfoSaved {
+			mdi.chunksProcessor.MarkVerified(&b)
 		}
 		mdi.throttler.EndProcessing()
 	}()
@@ -231,7 +245,12 @@ func (mdi *MultiDataInterceptor) createInterceptedMultiDataMsgID(interceptedMult
 	return mdi.hasher.Compute(string(data))
 }
 
-func (mdi *MultiDataInterceptor) interceptedData(dataBuff []byte, originator core.PeerID, fromConnectedPeer core.PeerID) (process.InterceptedData, error) {
+func (mdi *MultiDataInterceptor) interceptedData(
+	dataBuff []byte,
+	originator core.PeerID,
+	fromConnectedPeer core.PeerID,
+	topic string,
+) (process.InterceptedData, error) {
 	interceptedData, err := mdi.factory.Create(dataBuff, originator)
 	if err != nil {
 		// this situation is so severe that we need to black list de peers
@@ -244,7 +263,7 @@ func (mdi *MultiDataInterceptor) interceptedData(dataBuff []byte, originator cor
 
 	mdi.receivedDebugInterceptedData(interceptedData)
 
-	err = mdi.interceptedDataVerifier.Verify(interceptedData)
+	err = mdi.interceptedDataVerifier.Verify(interceptedData, topic)
 	if err != nil {
 		mdi.processDebugInterceptedData(interceptedData, err)
 

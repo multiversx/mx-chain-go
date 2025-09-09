@@ -7,8 +7,9 @@ import (
 
 // ChunkProcessorStub -
 type ChunkProcessorStub struct {
-	CheckBatchCalled func(b *batch.Batch, w process.WhiteListHandler) (process.CheckedChunkResult, error)
-	CloseCalled      func() error
+	CheckBatchCalled   func(b *batch.Batch, w process.WhiteListHandler) (process.CheckedChunkResult, error)
+	MarkVerifiedCalled func(b *batch.Batch)
+	CloseCalled        func() error
 }
 
 // CheckBatch -
@@ -18,6 +19,13 @@ func (c *ChunkProcessorStub) CheckBatch(b *batch.Batch, w process.WhiteListHandl
 	}
 
 	return process.CheckedChunkResult{}, nil
+}
+
+// MarkVerified -
+func (c *ChunkProcessorStub) MarkVerified(b *batch.Batch) {
+	if c.MarkVerifiedCalled != nil {
+		c.MarkVerifiedCalled(b)
+	}
 }
 
 // Close -

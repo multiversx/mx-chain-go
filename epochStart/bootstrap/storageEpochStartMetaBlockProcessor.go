@@ -68,29 +68,29 @@ func (ses *storageEpochStartMetaBlockProcessor) Validate(_ process.InterceptedDa
 // Save will handle the consensus mechanism for the fetched metablocks
 // All errors are just logged because if this function returns an error, the processing is finished. This way, we ignore
 // wrong received data and wait for relevant intercepted data
-func (ses *storageEpochStartMetaBlockProcessor) Save(data process.InterceptedData, _ core.PeerID, _ string) error {
+func (ses *storageEpochStartMetaBlockProcessor) Save(data process.InterceptedData, _ core.PeerID, _ string) (bool, error) {
 	if check.IfNil(data) {
 		log.Debug("epoch bootstrapper: nil intercepted data")
-		return nil
+		return false, nil
 	}
 
 	log.Debug("received header", "type", data.Type(), "hash", data.Hash())
 	interceptedHdr, ok := data.(process.HdrValidatorHandler)
 	if !ok {
 		log.Warn("saving epoch start meta block error", "error", epochStart.ErrWrongTypeAssertion)
-		return nil
+		return false, nil
 	}
 
 	metaBlock, ok := interceptedHdr.HeaderHandler().(*block.MetaBlock)
 	if !ok {
 		log.Warn("saving epoch start meta block error", "error", epochStart.ErrWrongTypeAssertion,
 			"header", interceptedHdr.HeaderHandler())
-		return nil
+		return false, nil
 	}
 
 	if !metaBlock.IsStartOfEpochBlock() {
 		log.Warn("received metablock is not of type epoch start", "error", epochStart.ErrNotEpochStartBlock)
-		return nil
+		return false, nil
 	}
 
 	log.Debug("received epoch start meta", "epoch", metaBlock.GetEpoch(), "from peer", "self")
@@ -103,7 +103,7 @@ func (ses *storageEpochStartMetaBlockProcessor) Save(data process.InterceptedDat
 	default:
 	}
 
-	return nil
+	return true, nil
 }
 
 // GetEpochStartMetaBlock will return the metablock after it is confirmed or an error if the number of tries was exceeded

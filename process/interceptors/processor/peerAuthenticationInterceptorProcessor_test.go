@@ -127,7 +127,8 @@ func TestPeerAuthenticationInterceptorProcessor_Save(t *testing.T) {
 		paip, err := processor.NewPeerAuthenticationInterceptorProcessor(createPeerAuthenticationInterceptorProcessArg())
 		assert.Nil(t, err)
 		assert.False(t, paip.IsInterfaceNil())
-		assert.Equal(t, process.ErrWrongTypeAssertion, paip.Save(nil, "", ""))
+		_, err = paip.Save(nil, "", "")
+		assert.Equal(t, process.ErrWrongTypeAssertion, err)
 	})
 	t.Run("invalid peer auth data should error", func(t *testing.T) {
 		t.Parallel()
@@ -144,7 +145,8 @@ func TestPeerAuthenticationInterceptorProcessor_Save(t *testing.T) {
 		paip, err := processor.NewPeerAuthenticationInterceptorProcessor(args)
 		assert.Nil(t, err)
 		assert.False(t, paip.IsInterfaceNil())
-		assert.Equal(t, process.ErrWrongTypeAssertion, paip.Save(providedData, "", ""))
+		_, err = paip.Save(providedData, "", "")
+		assert.Equal(t, process.ErrWrongTypeAssertion, err)
 		assert.False(t, wasCalled)
 	})
 	t.Run("unmarshal returns error", func(t *testing.T) {
@@ -161,7 +163,7 @@ func TestPeerAuthenticationInterceptorProcessor_Save(t *testing.T) {
 		assert.Nil(t, err)
 		assert.False(t, paip.IsInterfaceNil())
 
-		err = paip.Save(createMockInterceptedPeerAuthentication(), "", "")
+		_, err = paip.Save(createMockInterceptedPeerAuthentication(), "", "")
 		assert.Equal(t, expectedError, err)
 	})
 	t.Run("trigger received returns error", func(t *testing.T) {
@@ -178,7 +180,7 @@ func TestPeerAuthenticationInterceptorProcessor_Save(t *testing.T) {
 		assert.Nil(t, err)
 		assert.False(t, paip.IsInterfaceNil())
 
-		err = paip.Save(createMockInterceptedPeerAuthentication(), "", "")
+		_, err = paip.Save(createMockInterceptedPeerAuthentication(), "", "")
 		assert.Equal(t, expectedError, err)
 	})
 	t.Run("should work", func(t *testing.T) {
@@ -216,7 +218,7 @@ func TestPeerAuthenticationInterceptorProcessor_Save(t *testing.T) {
 		assert.Nil(t, err)
 		assert.False(t, paip.IsInterfaceNil())
 
-		err = paip.Save(providedIPA, providedPid, "")
+		_, err = paip.Save(providedIPA, providedPid, "")
 		assert.Nil(t, err)
 		assert.True(t, wasPutCalled)
 		assert.True(t, wasUpdatePeerIDPublicKeyPairCalled)

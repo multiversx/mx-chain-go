@@ -1404,6 +1404,12 @@ func (tpn *TestProcessorNode) initInterceptors(heartbeatPk string) {
 			HardforkTrigger:                tpn.HardforkTrigger,
 			NodeOperationMode:              tpn.NodeOperationMode,
 			InterceptedDataVerifierFactory: interceptorsFactory.NewInterceptedDataVerifierFactory(interceptorDataVerifierArgs),
+			Config: config.Config{
+				InterceptedDataVerifier: config.InterceptedDataVerifierConfig{
+					CacheSpanInSec:   1,
+					CacheExpiryInSec: 1,
+				},
+			},
 		}
 		interceptorContainerFactory, _ := interceptorscontainer.NewMetaInterceptorsContainerFactory(metaInterceptorContainerFactoryArgs)
 
@@ -1473,6 +1479,12 @@ func (tpn *TestProcessorNode) initInterceptors(heartbeatPk string) {
 			HardforkTrigger:                tpn.HardforkTrigger,
 			NodeOperationMode:              tpn.NodeOperationMode,
 			InterceptedDataVerifierFactory: interceptorsFactory.NewInterceptedDataVerifierFactory(interceptorDataVerifierArgs),
+			Config: config.Config{
+				InterceptedDataVerifier: config.InterceptedDataVerifierConfig{
+					CacheSpanInSec:   1,
+					CacheExpiryInSec: 1,
+				},
+			},
 		}
 
 		interceptorContainerFactory, _ := interceptorscontainer.NewShardInterceptorsContainerFactory(shardIntereptorContainerFactoryArgs)
