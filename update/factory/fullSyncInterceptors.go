@@ -914,7 +914,7 @@ func (ficf *fullSyncInterceptorsContainerFactory) generateRewardTxInterceptors()
 			return nil
 		}
 
-		isCrossShard := core.MetachainShardId != ficf.shardCoordinator.SelfId()
+		isCrossShard := idx != ficf.shardCoordinator.SelfId()
 
 		var interceptor process.Interceptor
 		interceptor, err = ficf.createOneRewardTxInterceptor(identifierScr, isCrossShard)
