@@ -805,23 +805,9 @@ func (sp *shardProcessor) CreateBlock(
 
 	// placeholder for shardProcessor.CreateBlock script 2
 
-	if sp.epochStartTrigger.IsEpochStart() {
-		log.Debug("CreateBlock", "IsEpochStart", sp.epochStartTrigger.IsEpochStart(),
-			"epoch start meta header hash", sp.epochStartTrigger.EpochStartMetaHdrHash())
-		err = shardHdr.SetEpochStartMetaHash(sp.epochStartTrigger.EpochStartMetaHdrHash())
-		if err != nil {
-			return nil, nil, err
-		}
-
-		epoch := sp.epochStartTrigger.MetaEpoch()
-		if initialHdr.GetEpoch() != epoch {
-			log.Debug("shardProcessor.CreateBlock: epoch from header is not the same as epoch from epoch start trigger, overwriting",
-				"epoch from header", initialHdr.GetEpoch(), "epoch from epoch start trigger", epoch)
-			err = shardHdr.SetEpoch(epoch)
-			if err != nil {
-				return nil, nil, err
-			}
-		}
+	err = sp.updateEpochIfNeeded(shardHdr)
+	if err != nil {
+		return nil, nil, err
 	}
 
 	sp.epochNotifier.CheckEpoch(shardHdr)
@@ -850,6 +836,31 @@ func (sp *shardProcessor) CreateBlock(
 	}
 
 	return shardHdr, finalBody, nil
+}
+
+func (sp *shardProcessor) updateEpochIfNeeded(shardHeader data.ShardHeaderHandler) error {
+	if !sp.epochStartTrigger.IsEpochStart() {
+		return nil
+	}
+
+	log.Debug("CreateBlock", "IsEpochStart", sp.epochStartTrigger.IsEpochStart(),
+		"epoch start meta header hash", sp.epochStartTrigger.EpochStartMetaHdrHash())
+	err := shardHeader.SetEpochStartMetaHash(sp.epochStartTrigger.EpochStartMetaHdrHash())
+	if err != nil {
+		return err
+	}
+
+	epoch := sp.epochStartTrigger.MetaEpoch()
+	if shardHeader.GetEpoch() != epoch {
+		log.Debug("shardProcessor.CreateBlock: epoch from header is not the same as epoch from epoch start trigger, overwriting",
+			"epoch from header", shardHeader.GetEpoch(), "epoch from epoch start trigger", epoch)
+		err = shardHeader.SetEpoch(epoch)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 // createBlockBody creates a list of miniblocks by filling them with transactions out of the transactions pools
