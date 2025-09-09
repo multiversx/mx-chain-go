@@ -1269,10 +1269,10 @@ func Test_Selection_ProposeEmptyBlocksAndExecutedBlockNotification(t *testing.T)
 	})
 	require.Nil(t, err)
 
-	blockchainInfo = holders.NewBlockchainInfo([]byte("blockHash1"), []byte("blockHash4"), 5)
+	blockchainInfo = holders.NewBlockchainInfo([]byte("blockHash3"), []byte("blockHash4"), 5)
 	// no transactions should be returned
 	selectedTransactions, _, err = txpool.SelectTransactions(selectionSession, options, blockchainInfo)
-	require.Nil(t, err)
+	require.NoError(t, err)
 	require.Equal(t, 0, len(selectedTransactions))
 
 	for _, tx := range proposedBlock2.MiniBlocks[0].TxHashes {
