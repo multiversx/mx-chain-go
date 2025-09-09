@@ -6,6 +6,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
@@ -221,7 +222,7 @@ func (ppcm *preProcessorsContainerFactory) createTxPreProcessor() (process.PrePr
 		TxProcessor:                  ppcm.txProcessor,
 		ShardCoordinator:             ppcm.shardCoordinator,
 		Accounts:                     ppcm.accounts,
-		OnRequestTransaction:         ppcm.requestHandler.RequestTransaction,
+		OnRequestTransaction:         ppcm.requestHandler.RequestTransactions,
 		EconomicsFee:                 ppcm.economicsFee,
 		GasHandler:                   ppcm.gasHandler,
 		BlockTracker:                 ppcm.blockTracker,
@@ -294,6 +295,7 @@ func (ppcm *preProcessorsContainerFactory) createValidatorInfoPreProcessor() (pr
 		ppcm.dataPool.ValidatorsInfo(),
 		ppcm.store,
 		ppcm.enableEpochsHandler,
+		ppcm.shardCoordinator,
 	)
 
 	return validatorInfoPreprocessor, err

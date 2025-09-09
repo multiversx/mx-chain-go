@@ -823,7 +823,10 @@ func TestRewardTxPreprocessor_IsDataPreparedShouldErr(t *testing.T) {
 		&common.TxExecutionOrderHandlerStub{},
 	)
 
-	err := rtp.IsDataPrepared(1, haveTime)
+	txHashesMissing := [][]byte{[]byte("missing_tx_hash")}
+
+	rtp.SetMissingRewardTxs(len(txHashesMissing))
+	err := rtp.IsDataPrepared(len(txHashesMissing), haveTime)
 
 	assert.Equal(t, process.ErrTimeIsOut, err)
 }
@@ -851,7 +854,7 @@ func TestRewardTxPreprocessor_IsDataPrepared(t *testing.T) {
 
 	go func() {
 		time.Sleep(50 * time.Millisecond)
-		rtp.chReceivedAllRewardTxs <- true
+		rtp.SetMissingRewardTxs(0)
 	}()
 
 	err := rtp.IsDataPrepared(1, haveTime)
@@ -969,5 +972,6 @@ func TestRewardTxPreprocessor_CreateBlockStartedShouldCleanMap(t *testing.T) {
 	)
 
 	rtp.CreateBlockStarted()
-	assert.Equal(t, 0, len(rtp.rewardTxsForBlock.txHashAndInfo))
+	rewardsForBlock := rtp.rewardTxsForBlock.(*txsForBlock)
+	assert.Equal(t, 0, len(rewardsForBlock.txHashAndInfo))
 }

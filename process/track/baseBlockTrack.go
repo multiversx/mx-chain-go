@@ -24,6 +24,8 @@ var _ process.ValidityAttester = (*baseBlockTrack)(nil)
 
 var log = logger.GetOrCreate("process/track")
 
+const maxNonceDifference = 10 // TODO move this to a config file
+
 // HeaderInfo holds the information about a header
 type HeaderInfo struct {
 	Hash   []byte
@@ -52,6 +54,7 @@ type baseBlockTrack struct {
 	feeHandler                            process.FeeHandler
 	enableEpochsHandler                   common.EnableEpochsHandler
 	epochChangeGracePeriodHandler         common.EpochChangeGracePeriodHandler
+	ownShardTracker                       OwnShardTrackerHandler
 
 	mutHeaders                  sync.RWMutex
 	headers                     map[uint32]map[uint64][]*HeaderInfo
@@ -101,6 +104,11 @@ func createBaseBlockTrack(arguments ArgBaseTracker) (*baseBlockTrack, error) {
 		return nil, err
 	}
 
+	tracker, err := NewOwnShardTracker(arguments.EnableEpochsHandler, maxNonceDifference)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create own shard tracker: %w", err)
+	}
+
 	bbt := &baseBlockTrack{
 		hasher:                                arguments.Hasher,
 		headerValidator:                       arguments.HeaderValidator,
@@ -122,6 +130,7 @@ func createBaseBlockTrack(arguments ArgBaseTracker) (*baseBlockTrack, error) {
 		feeHandler:                            arguments.FeeHandler,
 		enableEpochsHandler:                   arguments.EnableEpochsHandler,
 		epochChangeGracePeriodHandler:         arguments.EpochChangeGracePeriodHandler,
+		ownShardTracker:                       tracker,
 	}
 
 	return bbt, nil
@@ -951,4 +960,9 @@ func (bbt *baseBlockTrack) isHeaderOutOfRange(headerHandler data.HeaderHandler) 
 
 	isHeaderOutOfRange := headerHandler.GetNonce() > lastCrossNotarizedHeader.GetNonce()+process.MaxHeadersToWhitelistInAdvance
 	return isHeaderOutOfRange
+}
+
+// ComputeOwnShardStuck checks if the own shard is stuck and updates the own shard tracker accordingly
+func (bbt *baseBlockTrack) ComputeOwnShardStuck(lastExecutionResultsInfo data.BaseExecutionResultHandler, currentNonce uint64) {
+	bbt.ownShardTracker.ComputeOwnShardStuck(lastExecutionResultsInfo, currentNonce)
 }

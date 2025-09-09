@@ -26,8 +26,8 @@ func (r *RequestHandler) RequestMetaHeaderByNonce(_ uint64) {
 func (r *RequestHandler) RequestShardHeaderByNonce(_ uint32, _ uint64) {
 }
 
-// RequestTransaction does nothing
-func (r *RequestHandler) RequestTransaction(_ uint32, _ [][]byte) {
+// RequestTransactions does nothing
+func (r *RequestHandler) RequestTransactions(_ uint32, _ [][]byte) {
 }
 
 // RequestUnsignedTransactions does nothing
