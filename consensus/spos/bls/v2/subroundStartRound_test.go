@@ -7,6 +7,7 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/data"
 	outportcore "github.com/multiversx/mx-chain-core-go/data/outport"
+	logger "github.com/multiversx/mx-chain-logger-go"
 	"github.com/stretchr/testify/require"
 
 	v2 "github.com/multiversx/mx-chain-go/consensus/spos/bls/v2"
@@ -15,6 +16,7 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/consensus"
 	"github.com/multiversx/mx-chain-go/testscommon/consensus/initializers"
 	"github.com/multiversx/mx-chain-go/testscommon/outport"
+	"github.com/multiversx/mx-chain-go/testscommon/statusHandler"
 
 	"github.com/stretchr/testify/assert"
 
@@ -25,7 +27,9 @@ import (
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/shardingMocks"
-	"github.com/multiversx/mx-chain-go/testscommon/statusHandler"
+
+	//"github.com/multiversx/mx-chain-go/testscommon/statusHandler"
+	statusHandlerMock "github.com/multiversx/mx-chain-go/testscommon/statusHandler"
 )
 
 var expErr = fmt.Errorf("expected error")
@@ -71,7 +75,7 @@ func defaultSubround(
 		container,
 		chainID,
 		currentPid,
-		&statusHandler.AppStatusHandlerStub{},
+		&statusHandlerMock.AppStatusHandlerMock{},
 	)
 }
 
@@ -790,7 +794,7 @@ func buildDefaultSubround(container spos.ConsensusCoreHandler) *spos.Subround {
 		container,
 		chainID,
 		currentPid,
-		&statusHandler.AppStatusHandlerStub{},
+		statusHandlerMock.NewAppStatusHandlerMock(),
 	)
 
 	return sr
@@ -1114,4 +1118,82 @@ func TestSubroundStartRound_GenerateNextConsensusGroupShouldReturnErr(t *testing
 	err2 := srStartRound.GenerateNextConsensusGroup(0)
 
 	assert.Equal(t, expErr, err2)
+}
+
+func TestSubroundStartRound_ConsensusMetricsResetAveragesShouldWork(t *testing.T) {
+	t.Parallel()
+	_ = logger.SetLogLevel("*:DEBUG")
+	container := consensus.InitConsensusCore()
+
+	sr := buildDefaultSubround(container)
+
+	consensusMetrics := spos.NewConsensusMetrics(sr.AppStatusHandler())
+	worker := consensus.SposWorkerMock{
+		GetConsensusMetricsCalled: func() *spos.ConsensusMetrics {
+			return consensusMetrics
+		},
+	}
+	startRound, err := v2.NewSubroundStartRound(
+		sr,
+		v2.ProcessingThresholdPercent,
+		&testscommon.SentSignatureTrackerStub{},
+		&worker,
+	)
+	require.Nil(t, err)
+
+	worker.GetConsensusMetrics().SetBlockHeaderReceived([]byte("hash"), uint64(100))
+	worker.GetConsensusMetrics().SetBlockBodyReceived([]byte("hash"), uint64(150))
+	worker.GetConsensusMetrics().SetSignaturesReceived([]byte("hash"), uint64(200))
+	values := worker.GetConsensusMetrics().GetValuesForTesting()
+
+	assert.NotZero(t, values["blockReceivedDelaySum"])
+	assert.NotZero(t, values["blockReceivedCount"])
+	assert.NotZero(t, values["blockSignedDelaySum"])
+	assert.NotZero(t, values["blockSignedCount"])
+
+	startRound.EpochStartAction(&testscommon.HeaderHandlerStub{EpochField: 2})
+
+	values = worker.GetConsensusMetrics().GetValuesForTesting()
+	assert.Zero(t, values["blockReceivedDelaySum"])
+	assert.Zero(t, values["blockReceivedCount"])
+	assert.Zero(t, values["blockSignedDelaySum"])
+	assert.Zero(t, values["blockSignedCount"])
+}
+
+func TestSubroundStartRound_ConsensusMetricsResetInstanceValuesShouldWork(t *testing.T) {
+	t.Parallel()
+	_ = logger.SetLogLevel("*:DEBUG")
+	container := consensus.InitConsensusCore()
+
+	sr := buildDefaultSubround(container)
+
+	consensusMetrics := spos.NewConsensusMetrics(sr.AppStatusHandler())
+	worker := consensus.SposWorkerMock{
+		GetConsensusMetricsCalled: func() *spos.ConsensusMetrics {
+			return consensusMetrics
+		},
+	}
+	startRound, err := v2.NewSubroundStartRound(
+		sr,
+		v2.ProcessingThresholdPercent,
+		&testscommon.SentSignatureTrackerStub{},
+		&worker,
+	)
+	require.Nil(t, err)
+
+	worker.GetConsensusMetrics().SetBlockHeaderReceived([]byte("hash"), uint64(100))
+	worker.GetConsensusMetrics().SetBlockBodyReceived([]byte("hash"), uint64(150))
+	worker.GetConsensusMetrics().SetSignaturesReceived([]byte("hash"), uint64(200))
+	values := worker.GetConsensusMetrics().GetValuesForTesting()
+
+	assert.Equal(t, uint64(100), values["blockHeaderReceivedOrSentDelay"])
+	assert.Equal(t, uint64(150), values["blockBodyReceivedOrSentDelay"])
+	assert.Equal(t, []byte("hash"), values["blockHash"])
+
+	startRound.DoStartRoundJob()
+
+	values = worker.GetConsensusMetrics().GetValuesForTesting()
+	assert.Equal(t, uint64(0), values["blockHeaderReceivedOrSentDelay"])
+	assert.Equal(t, uint64(0), values["blockBodyReceivedOrSentDelay"])
+	assert.Nil(t, values["blockHash"])
 }

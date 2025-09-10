@@ -102,6 +102,7 @@ func (sr *subroundStartRound) doStartRoundJob(_ context.Context) bool {
 	sr.GetAntiFloodHandler().ResetForTopic(topic)
 	sr.worker.ResetConsensusMessages()
 	sr.worker.ResetInvalidSignersCache()
+	sr.worker.GetConsensusMetrics().ResetInstanceValues()
 
 	return true
 }
@@ -337,6 +338,7 @@ func (sr *subroundStartRound) EpochStartAction(hdr data.HeaderHandler) {
 	log.Trace(fmt.Sprintf("epoch %d start action in consensus", hdr.GetEpoch()))
 
 	sr.changeEpoch(hdr.GetEpoch())
+	sr.worker.GetConsensusMetrics().ResetAverages()
 }
 
 func (sr *subroundStartRound) changeEpoch(currentEpoch uint32) {

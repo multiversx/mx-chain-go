@@ -73,7 +73,7 @@ func TestConsensusMetrics_resetInstanceValues(t *testing.T) {
 		cm.blockBodyReceivedOrSentDelay = 200
 		cm.blockHash = []byte{0x01, 0x02, 0x03}
 
-		cm.resetInstanceValues()
+		cm.ResetInstanceValues()
 
 		assert.Equal(t, uint64(0), cm.blockHeaderReceivedOrSentDelay, "blockHeaderReceivedOrSentDelay should be reset to 0")
 		assert.Equal(t, uint64(0), cm.blockBodyReceivedOrSentDelay, "blockBodyReceivedOrSentDelay should be reset to 0")
@@ -86,11 +86,14 @@ func TestConsensusMetrics_SetBlockHeaderAndBodyReceived(t *testing.T) {
 	_ = logger.SetLogLevel("*:TRACE")
 
 	t.Run("with header received first", func(t *testing.T) {
-		t.Parallel()
+		//t.Parallel()
 		appStatusHandler := statusHandlerMock.NewAppStatusHandlerMock()
 		cm := NewConsensusMetrics(appStatusHandler)
 
 		appStatusHandler.SetUInt64Value(common.MetricReceivedProposedBlockBody, 0)
+		cm.blockReceivedCount = 2
+		cm.blockReceivedDelaySum = 300
+
 		blockHash := []byte{0x01, 0x02, 0x03}
 		headerDelay := uint64(100)
 		bodyDelay := uint64(200)
@@ -106,10 +109,12 @@ func TestConsensusMetrics_SetBlockHeaderAndBodyReceived(t *testing.T) {
 		assert.Equal(t, headerDelay, cm.blockHeaderReceivedOrSentDelay, "blockHeaderReceivedOrSentDelay should be reset to 0")
 		assert.Equal(t, blockHash, cm.blockHash, "blockHash should be set correctly")
 		assert.Equal(t, uint64(200), appStatusHandler.GetUint64(common.MetricReceivedProposedBlockBody))
+		assert.Equal(t, uint64(166), appStatusHandler.GetUint64(common.MetricAvgReceivedProposedBlockBody))
+
 	})
 
 	t.Run("with body received first", func(t *testing.T) {
-		t.Parallel()
+		//t.Parallel()
 
 		appStatusHandler := statusHandlerMock.NewAppStatusHandlerMock()
 		cm := NewConsensusMetrics(appStatusHandler)
@@ -133,7 +138,7 @@ func TestConsensusMetrics_SetBlockHeaderAndBodyReceived(t *testing.T) {
 	})
 
 	t.Run("with body for a different hash", func(t *testing.T) {
-		t.Parallel()
+		//t.Parallel()
 		appStatusHandler := statusHandlerMock.NewAppStatusHandlerMock()
 		cm := NewConsensusMetrics(appStatusHandler)
 
@@ -169,7 +174,7 @@ func TestConsensusMetrics_SetProof(t *testing.T) {
 		blockHash := []byte{0x01, 0x02, 0x03}
 		proofDelay := uint64(50)
 
-		err := cm.SetProofReceived(blockHash, proofDelay)
+		err := cm.SetSignaturesReceived(blockHash, proofDelay)
 		assert.NotNil(t, err, "SetProofReceived should return error when no header or body received")
 	})
 
@@ -179,7 +184,9 @@ func TestConsensusMetrics_SetProof(t *testing.T) {
 		cm := NewConsensusMetrics(appStatusHandler)
 
 		appStatusHandler.SetUInt64Value(common.MetricReceivedProposedBlockBody, 0)
-		appStatusHandler.SetUInt64Value(common.MetricReceivedProof, 0)
+		appStatusHandler.SetUInt64Value(common.MetricReceivedSignatures, 0)
+		cm.blockSignedCount = 3
+		cm.blockSignedDelaySum = 630
 
 		blockHash := []byte{0x01, 0x02, 0x04}
 		headerDelay := uint64(100)
@@ -188,13 +195,16 @@ func TestConsensusMetrics_SetProof(t *testing.T) {
 
 		cm.SetBlockHeaderReceived(blockHash, headerDelay)
 		cm.SetBlockBodyReceived(blockHash, bodyDelay)
-		cm.SetProofReceived(blockHash, proofDelay)
+		err := cm.SetSignaturesReceived(blockHash, proofDelay)
 
+		assert.Nil(t, err, "SetProofReceived should not return error when header and body received")
+		assert.Equal(t, bodyDelay, appStatusHandler.GetUint64(common.MetricReceivedProposedBlockBody), "blockReceivedDelay metric should be updated correctly")
+		assert.Equal(t, proofDelay-bodyDelay, appStatusHandler.GetUint64(common.MetricReceivedSignatures), "blockReceivedProof metric should be updated correctly")
+
+		cm.ResetInstanceValues()
 		assert.Equal(t, uint64(0), cm.blockHeaderReceivedOrSentDelay, "blockHeaderReceivedOrSentDelay should be reset to 0")
 		assert.Equal(t, uint64(0), cm.blockBodyReceivedOrSentDelay, "blockBodyReceivedOrSentDelay should be reset to 0")
 		assert.Nil(t, cm.blockHash, "blockHash should be reset to nil")
-		assert.Equal(t, bodyDelay, appStatusHandler.GetUint64(common.MetricReceivedProposedBlockBody), "blockReceivedDelay metric should be updated correctly")
-		assert.Equal(t, proofDelay-bodyDelay, appStatusHandler.GetUint64(common.MetricReceivedProof), "blockReceivedProof metric should be updated correctly")
 	})
 
 	t.Run("with body received first", func(t *testing.T) {
@@ -203,7 +213,7 @@ func TestConsensusMetrics_SetProof(t *testing.T) {
 		cm := NewConsensusMetrics(appStatusHandler)
 
 		appStatusHandler.SetUInt64Value(common.MetricReceivedProposedBlockBody, 0)
-		appStatusHandler.SetUInt64Value(common.MetricReceivedProof, 0)
+		appStatusHandler.SetUInt64Value(common.MetricReceivedSignatures, 0)
 
 		blockHash := []byte{0x01, 0x02, 0x04}
 		headerDelay := uint64(200)
@@ -212,13 +222,10 @@ func TestConsensusMetrics_SetProof(t *testing.T) {
 
 		cm.SetBlockBodyReceived(blockHash, headerDelay)
 		cm.SetBlockHeaderReceived(blockHash, bodyDelay)
-		cm.SetProofReceived(blockHash, proofDelay)
+		_ = cm.SetSignaturesReceived(blockHash, proofDelay)
 
-		assert.Equal(t, uint64(0), cm.blockHeaderReceivedOrSentDelay, "blockHeaderReceivedOrSentDelay should be reset to 0")
-		assert.Equal(t, uint64(0), cm.blockBodyReceivedOrSentDelay, "blockBodyReceivedOrSentDelay should be reset to 0")
-		assert.Nil(t, cm.blockHash, "blockHash should be reset to nil")
 		assert.Equal(t, headerDelay, appStatusHandler.GetUint64(common.MetricReceivedProposedBlockBody), "blockReceivedDelay metric should be updated correctly")
-		assert.Equal(t, proofDelay-headerDelay, appStatusHandler.GetUint64(common.MetricReceivedProof), "blockReceivedProof metric should be updated correctly")
+		assert.Equal(t, proofDelay-headerDelay, appStatusHandler.GetUint64(common.MetricReceivedSignatures), "blockReceivedProof metric should be updated correctly")
 	})
 
 	t.Run("with only header received", func(t *testing.T) {
@@ -227,20 +234,17 @@ func TestConsensusMetrics_SetProof(t *testing.T) {
 		cm := NewConsensusMetrics(appStatusHandler)
 
 		appStatusHandler.SetUInt64Value(common.MetricReceivedProposedBlockBody, 0)
-		appStatusHandler.SetUInt64Value(common.MetricReceivedProof, 0)
+		appStatusHandler.SetUInt64Value(common.MetricReceivedSignatures, 0)
 
 		blockHash := []byte{0x01, 0x02, 0x04}
 		headerDelay := uint64(200)
 		proofDelay := uint64(250)
 
 		cm.SetBlockHeaderReceived(blockHash, headerDelay)
-		cm.SetProofReceived(blockHash, proofDelay)
+		_ = cm.SetSignaturesReceived(blockHash, proofDelay)
 
-		assert.Equal(t, uint64(0), cm.blockHeaderReceivedOrSentDelay, "blockHeaderReceivedOrSentDelay should be reset to 0")
-		assert.Equal(t, uint64(0), cm.blockBodyReceivedOrSentDelay, "blockBodyReceivedOrSentDelay should be reset to 0")
-		assert.Nil(t, cm.blockHash, "blockHash should be reset to nil")
 		assert.Equal(t, headerDelay, appStatusHandler.GetUint64(common.MetricReceivedProposedBlockBody), "blockReceivedDelay metric should be updated correctly")
-		assert.Equal(t, proofDelay-headerDelay, appStatusHandler.GetUint64(common.MetricReceivedProof), "blockReceivedProof metric should be updated correctly")
+		assert.Equal(t, proofDelay-headerDelay, appStatusHandler.GetUint64(common.MetricReceivedSignatures), "blockReceivedProof metric should be updated correctly")
 	})
 
 	t.Run("with only body received", func(t *testing.T) {
@@ -249,20 +253,17 @@ func TestConsensusMetrics_SetProof(t *testing.T) {
 		cm := NewConsensusMetrics(appStatusHandler)
 
 		appStatusHandler.SetUInt64Value(common.MetricReceivedProposedBlockBody, 0)
-		appStatusHandler.SetUInt64Value(common.MetricReceivedProof, 0)
+		appStatusHandler.SetUInt64Value(common.MetricReceivedSignatures, 0)
 
 		blockHash := []byte{0x01, 0x02, 0x04}
 		bodyDelay := uint64(200)
 		proofDelay := uint64(250)
 
 		cm.SetBlockBodyReceived(blockHash, bodyDelay)
-		cm.SetProofReceived(blockHash, proofDelay)
+		_ = cm.SetSignaturesReceived(blockHash, proofDelay)
 
-		assert.Equal(t, uint64(0), cm.blockHeaderReceivedOrSentDelay, "blockHeaderReceivedOrSentDelay should be reset to 0")
-		assert.Equal(t, uint64(0), cm.blockBodyReceivedOrSentDelay, "blockBodyReceivedOrSentDelay should be reset to 0")
-		assert.Nil(t, cm.blockHash, "blockHash should be reset to nil")
 		assert.Equal(t, bodyDelay, appStatusHandler.GetUint64(common.MetricReceivedProposedBlockBody), "blockReceivedDelay metric should be updated correctly")
-		assert.Equal(t, proofDelay-bodyDelay, appStatusHandler.GetUint64(common.MetricReceivedProof), "blockReceivedProof metric should be updated correctly")
+		assert.Equal(t, proofDelay-bodyDelay, appStatusHandler.GetUint64(common.MetricReceivedSignatures), "blockReceivedProof metric should be updated correctly")
 	})
 
 	t.Run("with proof for different hash", func(t *testing.T) {
@@ -271,7 +272,7 @@ func TestConsensusMetrics_SetProof(t *testing.T) {
 		cm := NewConsensusMetrics(appStatusHandler)
 
 		appStatusHandler.SetUInt64Value(common.MetricReceivedProposedBlockBody, 0)
-		appStatusHandler.SetUInt64Value(common.MetricReceivedProof, 0)
+		appStatusHandler.SetUInt64Value(common.MetricReceivedSignatures, 0)
 
 		blockHash := []byte{0x01, 0x02, 0x03}
 		proofHash := []byte{0x01, 0x02, 0x04}
@@ -281,13 +282,10 @@ func TestConsensusMetrics_SetProof(t *testing.T) {
 
 		cm.SetBlockHeaderReceived(blockHash, headerDelay)
 		cm.SetBlockBodyReceived(blockHash, bodyDelay)
-		cm.SetProofReceived(proofHash, proofDelay)
+		_ = cm.SetSignaturesReceived(proofHash, proofDelay)
 
-		assert.NotEqual(t, uint64(0), cm.blockHeaderReceivedOrSentDelay, "blockHeaderReceivedOrSentDelay should not be reset to 0")
-		assert.NotEqual(t, uint64(0), cm.blockBodyReceivedOrSentDelay, "blockBodyReceivedOrSentDelay should not be reset to 0")
-		assert.NotNil(t, cm.blockHash, "blockHash should not be reset to nil")
 		assert.Equal(t, bodyDelay, appStatusHandler.GetUint64(common.MetricReceivedProposedBlockBody), "blockReceivedDelay metric should be updated correctly")
-		assert.Equal(t, uint64(0), appStatusHandler.GetUint64(common.MetricReceivedProof), "blockReceivedProof metric should be updated correctly")
+		assert.Equal(t, uint64(0), appStatusHandler.GetUint64(common.MetricReceivedSignatures), "blockReceivedProof metric should be updated correctly")
 	})
 
 }

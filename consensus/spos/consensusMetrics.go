@@ -30,16 +30,26 @@ func NewConsensusMetrics(appStatusHandler core.AppStatusHandler) *ConsensusMetri
 	return &ConsensusMetrics{appStatusHandler: appStatusHandler}
 }
 
-// resetInstanceValues resets the instance values for the next round.
-func (cm *ConsensusMetrics) resetInstanceValues() {
+// ResetInstanceValues resets the instance values for the next round.
+func (cm *ConsensusMetrics) ResetInstanceValues() {
+	log.Debug("Resetting consensus metrics instance values for the next round")
+	cm.mut.Lock()
+	defer cm.mut.Unlock()
+
 	cm.blockHeaderReceivedOrSentDelay = uint64(0)
 	cm.blockBodyReceivedOrSentDelay = uint64(0)
 	cm.blockHash = nil
+	log.Debug("Consensus metrics instance values have been reset for the next round", "blockHeaderReceivedOrSentDelay", cm.blockHeaderReceivedOrSentDelay, "blockBodyReceivedOrSentDelay", cm.blockBodyReceivedOrSentDelay, "blockHash", cm.blockHash)
 }
 
 // ResetAverages resets the average calculations. It should be called on epoch change.
 func (cm *ConsensusMetrics) ResetAverages() {
 	cm.mut.Lock()
+
+	avgBlockReceivedDelay := _avg(cm.blockReceivedDelaySum, cm.blockReceivedCount)
+	avgBlockSignedDelay := _avg(cm.blockSignedDelaySum, cm.blockSignedCount)
+	log.Debug("Resetting consensus metrics averages on epoch change. Values before reset", "avgBlockReceivedDelay", avgBlockReceivedDelay, "avgBlockSignedDelaySum", avgBlockSignedDelay)
+
 	cm.blockReceivedDelaySum = 0
 	cm.blockReceivedCount = 0
 	cm.blockSignedDelaySum = 0
@@ -85,8 +95,8 @@ func (cm *ConsensusMetrics) SetBlockBodyReceived(blockHash []byte, delayFromRoun
 	cm.mut.Unlock()
 }
 
-// SetProofReceived sets the proof received delay and updates the metrics
-func (cm *ConsensusMetrics) SetProofReceived(blockHash []byte, delayProofFromRoundStart uint64) error {
+// SetSignaturesReceived sets the proof received delay and updates the metrics
+func (cm *ConsensusMetrics) SetSignaturesReceived(blockHash []byte, delayProofFromRoundStart uint64) error {
 	cm.mut.Lock()
 	defer cm.mut.Unlock()
 
@@ -102,7 +112,7 @@ func (cm *ConsensusMetrics) SetProofReceived(blockHash []byte, delayProofFromRou
 			// update metrics for incomplete block received
 			defer cm.appStatusHandler.SetUInt64Value(common.MetricReceivedProposedBlockBody, delayBlockFromRoundStart)
 			cm.updateAverage(common.MetricReceivedProposedBlockBody, delayBlockFromRoundStart)
-			log.Debug("Proof received: Incomplete Block header and body received")
+			log.Debug("Signatures received: Incomplete Block header and body received")
 		}
 
 		if delayBlockFromRoundStart > delayProofFromRoundStart {
@@ -111,11 +121,8 @@ func (cm *ConsensusMetrics) SetProofReceived(blockHash []byte, delayProofFromRou
 		}
 
 		metricsTime := delayProofFromRoundStart - delayBlockFromRoundStart
-		defer cm.appStatusHandler.SetUInt64Value(common.MetricReceivedProof, metricsTime)
-		cm.updateAverage(common.MetricReceivedProof, metricsTime)
-
-		// reset instance values for the next round
-		cm.resetInstanceValues()
+		defer cm.appStatusHandler.SetUInt64Value(common.MetricReceivedSignatures, metricsTime)
+		cm.updateAverage(common.MetricReceivedSignatures, metricsTime)
 	}
 
 	return nil
@@ -126,14 +133,38 @@ func (cm *ConsensusMetrics) updateAverage(metric string, metricsTime uint64) {
 	case common.MetricReceivedProposedBlockBody:
 		cm.blockReceivedDelaySum += metricsTime
 		cm.blockReceivedCount++
-		averageReceivedBlockDelay := cm.blockReceivedDelaySum / cm.blockReceivedCount
-		log.Debug("Block header and body received", "averageBlockReceivedDelay", averageReceivedBlockDelay)
-	case common.MetricReceivedProof:
+		averageReceivedBlockDelay := _avg(cm.blockReceivedDelaySum, cm.blockReceivedCount)
+		defer cm.appStatusHandler.SetUInt64Value(common.MetricAvgReceivedProposedBlockBody, averageReceivedBlockDelay)
+		log.Debug("Computed average block header and body received delay", "currentBlockReceivedDelay", metricsTime, "averageBlockReceivedDelay", averageReceivedBlockDelay)
+	case common.MetricReceivedSignatures:
 		cm.blockSignedDelaySum += metricsTime
 		cm.blockSignedCount++
-		averageProofDelay := cm.blockSignedDelaySum / cm.blockSignedCount
-		log.Debug("Proof received", "averageProofDelay", averageProofDelay)
+		averageProofDelay := _avg(cm.blockSignedDelaySum, cm.blockSignedCount)
+		defer cm.appStatusHandler.SetUInt64Value(common.MetricAvgReceivedSignatures, averageProofDelay)
+		log.Debug("Computed average signature received delay from block body received", "currentSignaturesDelay", metricsTime, "averageSignaturesDelay", averageProofDelay)
 	}
+}
+
+func _avg(sum, count uint64) uint64 {
+	if count == 0 {
+		return 0
+	}
+	return sum / count
+}
+
+func (cm *ConsensusMetrics) GetValuesForTesting() map[string]interface{} {
+	cm.mut.RLock()
+	defer cm.mut.RUnlock()
+
+	result := make(map[string]interface{})
+	result["blockHeaderReceivedOrSentDelay"] = cm.blockHeaderReceivedOrSentDelay
+	result["blockBodyReceivedOrSentDelay"] = cm.blockBodyReceivedOrSentDelay
+	result["blockHash"] = cm.blockHash
+	result["blockReceivedDelaySum"] = cm.blockReceivedDelaySum
+	result["blockReceivedCount"] = cm.blockReceivedCount
+	result["blockSignedDelaySum"] = cm.blockSignedDelaySum
+	result["blockSignedCount"] = cm.blockSignedCount
+	return result
 }
 
 func (cm *ConsensusMetrics) IsInterfaceNil() bool {

@@ -22,6 +22,7 @@ import (
 	cryptoCommon "github.com/multiversx/mx-chain-go/common/crypto"
 	"github.com/multiversx/mx-chain-go/common/statistics"
 	"github.com/multiversx/mx-chain-go/consensus"
+	"github.com/multiversx/mx-chain-go/consensus/spos"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/dblookupext"
 	"github.com/multiversx/mx-chain-go/epochStart"
@@ -420,6 +421,7 @@ type ConsensusWorker interface {
 	ReceivedProof(proofHandler consensus.ProofHandler)
 	// IsInterfaceNil returns true if there is no value under the interface
 	IsInterfaceNil() bool
+	GetConsensusMetrics() *spos.ConsensusMetrics
 }
 
 // HardforkTrigger defines the hard-fork trigger functionality

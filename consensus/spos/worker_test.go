@@ -16,6 +16,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	crypto "github.com/multiversx/mx-chain-crypto-go"
+	logger "github.com/multiversx/mx-chain-logger-go"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -622,6 +623,7 @@ func TestWorker_ProcessReceivedMessageRedundancyNodeShouldResetInactivityIfNeede
 
 func TestWorker_ProcessReceivedMessageNodeNotInEligibleListShouldErr(t *testing.T) {
 	t.Parallel()
+	_ = logger.SetLogLevel("*:DEBUG")
 	wrk := *initWorker(&statusHandlerMock.AppStatusHandlerStub{})
 	blk := &block.Body{}
 	blkStr, _ := mock.MarshalizerMock{}.Marshal(blk)
@@ -1365,7 +1367,7 @@ func TestWorker_ProcessReceivedMessageWithHeaderAndWrongHash(t *testing.T) {
 
 func TestWorker_ProcessReceivedMessageOkValsShouldWork(t *testing.T) {
 	t.Parallel()
-
+	_ = logger.SetLogLevel("*:DEBUG")
 	workerArgs := createDefaultWorkerArgs(&statusHandlerMock.AppStatusHandlerStub{})
 	expectedShardID := workerArgs.ShardCoordinator.SelfId()
 	expectedPK := []byte(workerArgs.ConsensusState.ConsensusGroup()[0])
@@ -1688,6 +1690,7 @@ func TestWorker_ExecuteSignatureMessagesShouldNotExecuteWhenBlockIsNotFinished(t
 
 func TestWorker_ExecuteMessagesShouldExecute(t *testing.T) {
 	t.Parallel()
+	_ = logger.SetLogLevel("*:DEBUG")
 	wrk := *initWorker(&statusHandlerMock.AppStatusHandlerStub{})
 	wrk.StartWorking()
 	blk := &block.Body{}
@@ -2393,4 +2396,14 @@ func TestWorker_ReceivedProof(t *testing.T) {
 		wrk.ReceivedProof(&block.HeaderProof{})
 		require.True(t, wasHandlerCalled)
 	})
+}
+
+func TestWorker_GetConsensusMetrics(t *testing.T) {
+	t.Parallel()
+
+	workerArgs := createDefaultWorkerArgs(&statusHandlerMock.AppStatusHandlerStub{})
+	wrk, _ := spos.NewWorker(workerArgs)
+
+	metrics := wrk.GetConsensusMetrics()
+	require.NotNil(t, metrics)
 }

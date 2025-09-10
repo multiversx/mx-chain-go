@@ -90,6 +90,7 @@ type Worker struct {
 	closer                    core.SafeCloser
 
 	invalidSignersCache InvalidSignersCache
+	consensusMetrics    *ConsensusMetrics
 }
 
 // WorkerArgs holds the consensus worker arguments
@@ -148,6 +149,11 @@ func NewWorker(args *WorkerArgs) (*Worker, error) {
 		return nil, err
 	}
 
+	consensusMetrics := NewConsensusMetrics(args.AppStatusHandler)
+	if consensusMetrics == nil {
+		return nil, ErrNilAppStatusHandler // TODO change the error to ErrNilConsensusMetrics
+	}
+
 	wrk := Worker{
 		consensusService:         args.ConsensusService,
 		blockChain:               args.BlockChain,
@@ -174,6 +180,7 @@ func NewWorker(args *WorkerArgs) (*Worker, error) {
 		closer:                   closing.NewSafeChanCloser(),
 		enableEpochsHandler:      args.EnableEpochsHandler,
 		invalidSignersCache:      args.InvalidSignersCache,
+		consensusMetrics:         consensusMetrics,
 	}
 
 	wrk.consensusMessageValidator = consensusMessageValidatorObj
@@ -987,4 +994,8 @@ func emptyChannel(ch chan *consensus.Message) int {
 			return readsCnt
 		}
 	}
+}
+
+func (wrk *Worker) GetConsensusMetrics() *ConsensusMetrics {
+	return wrk.consensusMetrics
 }

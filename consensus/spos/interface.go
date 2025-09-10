@@ -127,6 +127,7 @@ type WorkerHandler interface {
 	ResetInvalidSignersCache()
 	// IsInterfaceNil returns true if there is no value under the interface
 	IsInterfaceNil() bool
+	GetConsensusMetrics() *ConsensusMetrics
 }
 
 // PoolAdder adds data in a key-value pool
