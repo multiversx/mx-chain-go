@@ -4,6 +4,7 @@ import (
 	"runtime/debug"
 	"sort"
 	"sync"
+	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
@@ -79,9 +80,13 @@ func (essh *epochStartSubscriptionHandler) UnregisterHandler(handlerToUnregister
 // NotifyAll will call all the subscribed functions from the internal slice
 func (essh *epochStartSubscriptionHandler) NotifyAll(hdr data.HeaderHandler) {
 	essh.mutEpochStartHandler.RLock()
+	epochConfirmedStart := time.Now()
 	for i := 0; i < len(essh.epochStartHandlers); i++ {
 		essh.epochStartHandlers[i].EpochStartAction(hdr)
 	}
+	log.Debug("epochStartSubscriptionHandler.NotifyAll triggers",
+		"time elapsed", time.Since(epochConfirmedStart),
+	)
 	essh.mutEpochStartHandler.RUnlock()
 }
 

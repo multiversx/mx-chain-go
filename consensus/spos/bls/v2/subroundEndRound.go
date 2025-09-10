@@ -271,6 +271,8 @@ func (sr *subroundEndRound) doEndRoundJobByNode() bool {
 		}
 
 		if proofSent {
+			// TODO: confirm that block data is propagated if proof sent (by each node in parallel)
+			//   - check if we can have antiflood protection here also, as with equivalent proofs
 			err := sr.prepareBroadcastBlockData()
 			log.LogIfError(err)
 		}

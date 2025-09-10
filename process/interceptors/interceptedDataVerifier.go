@@ -48,6 +48,7 @@ func (idv *interceptedDataVerifier) Verify(interceptedData process.InterceptedDa
 	defer idv.km.Unlock(hash)
 
 	if val, ok := idv.cache.Get(interceptedData.Hash()); ok {
+		// TODO: check here is we can avoid sending data multiple times, maybe return err
 		if val == validInterceptedData {
 			return nil
 		}

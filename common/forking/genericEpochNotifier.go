@@ -2,6 +2,7 @@ package forking
 
 import (
 	"sync"
+	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
@@ -60,9 +61,13 @@ func (gen *genericEpochNotifier) CheckEpoch(header data.HeaderHandler) {
 		"num handlers", len(handlersCopy),
 	)
 
+	epochConfirmedStart := time.Now()
 	for _, handler := range handlersCopy {
 		handler.EpochConfirmed(epoch, timestamp)
 	}
+	log.Debug("genericEpochNotifier.NotifyEpochChangeConfirmed triggers",
+		"time elapsed [s]", time.Since(epochConfirmedStart),
+	)
 }
 
 // RegisterNotifyHandler will register the provided handler to be called whenever a new epoch has changed
