@@ -339,13 +339,22 @@ func (wr *WidgetsRender) prepareBlockInfo() {
 	}
 
 	currentRoundTimestamp := wr.presenter.GetCurrentRoundTimestamp()
-	rows[7] = []string{fmt.Sprintf("Current round timestamp: %d", currentRoundTimestamp)}
+	rows[8] = []string{fmt.Sprintf("Current round timestamp: %d", currentRoundTimestamp)}
 
 	durationStartRoundToSentOrReceivedBlock := float64(wr.presenter.GetBlockReceived()) / 1e9
-	durationSentOrReceivedBlockToReceivedSignatures := float64(wr.presenter.GetBlockProof())/1e9 - durationStartRoundToSentOrReceivedBlock
+	durationSentOrReceivedBlockToReceivedSignatures := float64(wr.presenter.GetBlockSigned()) / 1e9
 
 	rows[6] = []string{
-		fmt.Sprintf("Received proposed block: %.6f sec | Received proof: %.6f sec",
+		fmt.Sprintf("Received proposed block: %.6f sec | Received signatures: %.6f sec",
+			durationStartRoundToSentOrReceivedBlock,
+			durationSentOrReceivedBlockToReceivedSignatures),
+	}
+
+	durationStartRoundToSentOrReceivedBlock = float64(wr.presenter.GetAvgBlockReceived()) / 1e9
+	durationSentOrReceivedBlockToReceivedSignatures = float64(wr.presenter.GetAvgBlockSigned()) / 1e9
+
+	rows[7] = []string{
+		fmt.Sprintf("Avg Received proposed block: %.6f sec | Avg Received signatures: %.6f sec",
 			durationStartRoundToSentOrReceivedBlock,
 			durationSentOrReceivedBlockToReceivedSignatures),
 	}

@@ -319,9 +319,17 @@ const MetricReceivedProposedBlock = "erd_consensus_received_proposed_block"
 // current node.
 const MetricReceivedProposedBlockBody = "erd_consensus_received_sent_proposed_block_body"
 
-// MetricReceivedProof is the metric that specifies the moment from the time the block body has been sent or has reached the
-// current node until the proof was received or sent.
-const MetricReceivedProof = "erd_received_sent_proof"
+// MetricReceivedSignatures is the metric that specifies the moment from the time the block body has been sent or has reached the
+// current node until the signatures were received.
+const MetricReceivedSignatures = "erd_consensus_received_sent_signatures"
+
+// MetricReceivedProposedBlock is the metric that specifies the moment from round start when the received block has reached the
+// current node.
+const MetricAvgReceivedProposedBlockBody = "erd_consensus_average_received_sent_proposed_block_body"
+
+// MetricReceivedSignatures is the metric that specifies the moment from the time the block body has been sent or has reached the
+// current node until signatures were received.
+const MetricAvgReceivedSignatures = "erd_consensus_average_received_sent_signatures"
 
 // MetricCreatedProposedBlock is the metric that specifies the percent of the block subround used for header and body
 // creation (0 meaning that the block was created in no-time and 100 meaning that the block creation used all the
