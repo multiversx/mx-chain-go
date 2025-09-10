@@ -338,7 +338,6 @@ func (sr *subroundStartRound) EpochStartAction(hdr data.HeaderHandler) {
 	log.Trace(fmt.Sprintf("epoch %d start action in consensus", hdr.GetEpoch()))
 
 	sr.changeEpoch(hdr.GetEpoch())
-	sr.worker.GetConsensusMetrics().ResetAverages()
 }
 
 func (sr *subroundStartRound) changeEpoch(currentEpoch uint32) {
@@ -347,6 +346,7 @@ func (sr *subroundStartRound) changeEpoch(currentEpoch uint32) {
 		panic(fmt.Sprintf("consensus changing epoch failed with error %s", err.Error()))
 	}
 
+	sr.worker.GetConsensusMetrics().ResetAverages()
 	sr.SetEligibleList(epochNodes)
 }
 

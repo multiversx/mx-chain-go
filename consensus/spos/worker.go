@@ -90,7 +90,7 @@ type Worker struct {
 	closer                    core.SafeCloser
 
 	invalidSignersCache InvalidSignersCache
-	consensusMetrics    *ConsensusMetrics
+	consensusMetrics    ConsensusMetricsHandler
 }
 
 // WorkerArgs holds the consensus worker arguments
@@ -996,6 +996,6 @@ func emptyChannel(ch chan *consensus.Message) int {
 	}
 }
 
-func (wrk *Worker) GetConsensusMetrics() *ConsensusMetrics {
+func (wrk *Worker) GetConsensusMetrics() ConsensusMetricsHandler {
 	return wrk.consensusMetrics
 }

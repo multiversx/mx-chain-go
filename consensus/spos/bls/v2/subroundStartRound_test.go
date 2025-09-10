@@ -1129,7 +1129,7 @@ func TestSubroundStartRound_ConsensusMetricsResetAveragesShouldWork(t *testing.T
 
 	consensusMetrics := spos.NewConsensusMetrics(sr.AppStatusHandler())
 	worker := consensus.SposWorkerMock{
-		GetConsensusMetricsCalled: func() *spos.ConsensusMetrics {
+		GetConsensusMetricsCalled: func() spos.ConsensusMetricsHandler {
 			return consensusMetrics
 		},
 	}
@@ -1140,11 +1140,12 @@ func TestSubroundStartRound_ConsensusMetricsResetAveragesShouldWork(t *testing.T
 		&worker,
 	)
 	require.Nil(t, err)
+	cm := worker.GetConsensusMetrics().(*spos.ConsensusMetrics)
 
-	worker.GetConsensusMetrics().SetBlockHeaderReceived([]byte("hash"), uint64(100))
-	worker.GetConsensusMetrics().SetBlockBodyReceived([]byte("hash"), uint64(150))
-	worker.GetConsensusMetrics().SetSignaturesReceived([]byte("hash"), uint64(200))
-	values := worker.GetConsensusMetrics().GetValuesForTesting()
+	cm.SetBlockHeaderReceived([]byte("hash"), uint64(100))
+	cm.SetBlockBodyReceived([]byte("hash"), uint64(150))
+	_ = cm.SetSignaturesReceived([]byte("hash"), uint64(200))
+	values := cm.GetValuesForTesting()
 
 	assert.NotZero(t, values["blockReceivedDelaySum"])
 	assert.NotZero(t, values["blockReceivedCount"])
@@ -1153,7 +1154,7 @@ func TestSubroundStartRound_ConsensusMetricsResetAveragesShouldWork(t *testing.T
 
 	startRound.EpochStartAction(&testscommon.HeaderHandlerStub{EpochField: 2})
 
-	values = worker.GetConsensusMetrics().GetValuesForTesting()
+	values = cm.GetValuesForTesting()
 	assert.Zero(t, values["blockReceivedDelaySum"])
 	assert.Zero(t, values["blockReceivedCount"])
 	assert.Zero(t, values["blockSignedDelaySum"])
@@ -1169,7 +1170,7 @@ func TestSubroundStartRound_ConsensusMetricsResetInstanceValuesShouldWork(t *tes
 
 	consensusMetrics := spos.NewConsensusMetrics(sr.AppStatusHandler())
 	worker := consensus.SposWorkerMock{
-		GetConsensusMetricsCalled: func() *spos.ConsensusMetrics {
+		GetConsensusMetricsCalled: func() spos.ConsensusMetricsHandler {
 			return consensusMetrics
 		},
 	}
@@ -1180,11 +1181,12 @@ func TestSubroundStartRound_ConsensusMetricsResetInstanceValuesShouldWork(t *tes
 		&worker,
 	)
 	require.Nil(t, err)
+	cm := worker.GetConsensusMetrics().(*spos.ConsensusMetrics)
 
-	worker.GetConsensusMetrics().SetBlockHeaderReceived([]byte("hash"), uint64(100))
-	worker.GetConsensusMetrics().SetBlockBodyReceived([]byte("hash"), uint64(150))
-	worker.GetConsensusMetrics().SetSignaturesReceived([]byte("hash"), uint64(200))
-	values := worker.GetConsensusMetrics().GetValuesForTesting()
+	cm.SetBlockHeaderReceived([]byte("hash"), uint64(100))
+	cm.SetBlockBodyReceived([]byte("hash"), uint64(150))
+	_ = cm.SetSignaturesReceived([]byte("hash"), uint64(200))
+	values := cm.GetValuesForTesting()
 
 	assert.Equal(t, uint64(100), values["blockHeaderReceivedOrSentDelay"])
 	assert.Equal(t, uint64(150), values["blockBodyReceivedOrSentDelay"])
@@ -1192,7 +1194,7 @@ func TestSubroundStartRound_ConsensusMetricsResetInstanceValuesShouldWork(t *tes
 
 	startRound.DoStartRoundJob()
 
-	values = worker.GetConsensusMetrics().GetValuesForTesting()
+	values = cm.GetValuesForTesting()
 	assert.Equal(t, uint64(0), values["blockHeaderReceivedOrSentDelay"])
 	assert.Equal(t, uint64(0), values["blockBodyReceivedOrSentDelay"])
 	assert.Nil(t, values["blockHash"])

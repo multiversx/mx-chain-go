@@ -44,7 +44,7 @@ func TestConsensusMetrics_ResetAverages(t *testing.T) {
 
 		cm.blockReceivedDelaySum = 100
 		cm.blockReceivedCount = 10
-		cm.blockSignedDelaySum = 200
+		cm.blockSignedDelaySum = 300
 		cm.blockSignedCount = 20
 
 		cm.ResetAverages()

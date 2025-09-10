@@ -935,9 +935,12 @@ func (sr *subroundEndRound) checkReceivedSignatures() bool {
 		metricsTime := currentTime.Sub(sr.RoundHandler().TimeStamp()).Nanoseconds()
 
 		//defer sr.AppStatusHandler().SetUInt64Value(common.MetricReceivedProof, uint64(metricsTime))
-		sr.worker.GetConsensusMetrics().SetSignaturesReceived(sr.GetData(), uint64(metricsTime))
-		log.Debug("Received signatures v2", "hash", sr.GetData(), "time", metricsTime, "currentTime", currentTime, "roundTime", sr.RoundHandler().TimeStamp())
-
+		err := sr.worker.GetConsensusMetrics().SetSignaturesReceived(sr.GetData(), uint64(metricsTime))
+		if err != nil {
+			log.Warn("Consensus metrics SetSignaturesReceived", "error", err.Error())
+		} else {
+			log.Debug("Received signatures v2", "hash", sr.GetData(), "time", metricsTime, "currentTime", currentTime, "roundTime", sr.RoundHandler().TimeStamp())
+		}
 		return true
 	}
 

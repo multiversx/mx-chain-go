@@ -32,14 +32,20 @@ func NewConsensusMetrics(appStatusHandler core.AppStatusHandler) *ConsensusMetri
 
 // ResetInstanceValues resets the instance values for the next round.
 func (cm *ConsensusMetrics) ResetInstanceValues() {
-	log.Debug("Resetting consensus metrics instance values for the next round")
 	cm.mut.Lock()
 	defer cm.mut.Unlock()
+
+	oldBlockHeaderReceivedOrSentDelay := cm.blockBodyReceivedOrSentDelay
+	oldBlockBodyReceivedOrSentDelay := cm.blockBodyReceivedOrSentDelay
+	oldBlockHash := cm.blockHash
 
 	cm.blockHeaderReceivedOrSentDelay = uint64(0)
 	cm.blockBodyReceivedOrSentDelay = uint64(0)
 	cm.blockHash = nil
-	log.Debug("Consensus metrics instance values have been reset for the next round", "blockHeaderReceivedOrSentDelay", cm.blockHeaderReceivedOrSentDelay, "blockBodyReceivedOrSentDelay", cm.blockBodyReceivedOrSentDelay, "blockHash", cm.blockHash)
+	log.Debug("Consensus metrics instance values have been reset for the next round",
+		"blockHeaderReceivedOrSentDelay", oldBlockHeaderReceivedOrSentDelay,
+		"blockBodyReceivedOrSentDelay", oldBlockBodyReceivedOrSentDelay,
+		"blockHash", oldBlockHash)
 }
 
 // ResetAverages resets the average calculations. It should be called on epoch change.
