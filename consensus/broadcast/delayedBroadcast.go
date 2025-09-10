@@ -365,7 +365,7 @@ func (dbb *delayedBlockBroadcaster) scheduleValidatorBroadcast(dataForValidators
 			sameRound := headerData.round == broadcastData.Header.GetRound()
 			samePrevRandomness := bytes.Equal(headerData.prevRandSeed, broadcastData.Header.GetPrevRandSeed())
 			if sameRound && samePrevRandomness {
-				duration := validatorDelayPerOrder*time.Duration(broadcastData.Order) + common.ExtraDelayForBroadcastBlockInfo
+				duration := common.ExtraDelayForBroadcastBlockInfo
 				alarmID := prefixDelayDataAlarm + hex.EncodeToString(broadcastData.HeaderHash)
 
 				alarmsToAdd = append(alarmsToAdd, alarmParams{
