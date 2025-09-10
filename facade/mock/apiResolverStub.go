@@ -46,6 +46,7 @@ type ApiResolverStub struct {
 	GetLastPoolNonceForSenderCalled             func(sender string) (uint64, error)
 	GetTransactionsPoolNonceGapsForSenderCalled func(sender string, senderAccountNonce uint64) (*common.TransactionsPoolNonceGapsForSenderApiResponse, error)
 	GetSelectedTransactionsCalled               func(accountsAdapter state.AccountsAdapter, selectionOptions common.TxSelectionOptions) (*common.TransactionsSelectionSimulationResult, error)
+	GetVirtualNonceCalled                       func(address []byte, accountsAdapter state.AccountsAdapter) (*common.VirtualNonceOfAccountResponse, error)
 	GetGasConfigsCalled                         func() map[string]map[string]uint64
 	GetManagedKeysCountCalled                   func() int
 	GetManagedKeysCalled                        func() []string
@@ -70,6 +71,14 @@ func (ars *ApiResolverStub) SimulateSCRExecutionCost(scr *smartContractResult.Sm
 func (ars *ApiResolverStub) GetSCRsByTxHash(txHash string, scrHash string) ([]*transaction.ApiSmartContractResult, error) {
 	if ars.GetSCRsByTxHashCalled != nil {
 		return ars.GetSCRsByTxHashCalled(txHash, scrHash)
+	}
+
+	return nil, nil
+}
+
+func (ars *ApiResolverStub) GetVirtualNonce(address []byte, accountsAdapter state.AccountsAdapter) (*common.VirtualNonceOfAccountResponse, error) {
+	if ars.GetVirtualNonceCalled != nil {
+		return ars.GetVirtualNonceCalled(address, accountsAdapter)
 	}
 
 	return nil, nil

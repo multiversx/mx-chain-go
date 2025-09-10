@@ -320,6 +320,18 @@ func (atp *apiTransactionProcessor) GetSelectedTransactions(accountsAdapter stat
 	}, nil
 }
 
+// GetVirtualNonce will return the virtual nonce of an account
+func (atp *apiTransactionProcessor) GetVirtualNonce(address []byte, accountsAdapter state.AccountsAdapter) (*common.VirtualNonceOfAccountResponse, error) {
+	virtualNonce, err := atp.getVirtualNonce(address, accountsAdapter)
+	if err != nil {
+		return nil, err
+	}
+
+	return &common.VirtualNonceOfAccountResponse{
+		VirtualNonce: virtualNonce,
+	}, err
+}
+
 func (atp *apiTransactionProcessor) extractRequestedTxInfoFromObj(txObj interface{}, txType transaction.TxType, txHash []byte, requestedFieldsHandler fieldsHandler) common.Transaction {
 	txResult := atp.getApiResultFromObj(txObj, txType)
 
@@ -469,6 +481,38 @@ func (atp *apiTransactionProcessor) extractTxHashes(txs []*txcache.WrappedTransa
 	}
 
 	return txHashes
+}
+
+func (atp *apiTransactionProcessor) getVirtualNonce(address []byte, accountsAdapter state.AccountsAdapter) (uint64, error) {
+	cacheId := atp.dataPool.Transactions().GetSelfShardID()
+	cache := atp.dataPool.Transactions().ShardDataStore(cacheId)
+	txCache, ok := cache.(*txcache.TxCache)
+	if !ok {
+		log.Warn("apiTransactionProcessor.getVirtualNonce could not cast to TxCache")
+		return 0, ErrCouldNotCastToTxCache
+	}
+
+	// TODO use the right object, not a disabled one
+	txProcessor := disabled.TxProcessor{}
+	argsSelectionSession := preprocess.ArgsSelectionSession{
+		AccountsAdapter:       accountsAdapter,
+		TransactionsProcessor: &txProcessor,
+	}
+
+	selectionSession, err := preprocess.NewSelectionSession(argsSelectionSession)
+	if err != nil {
+		log.Warn("apiTransactionProcessor.getVirtualNonce could not create SelectionSession")
+		return 0, err
+	}
+
+	blockchainInfo := holders.NewBlockchainInfo(nil, nil, 0)
+	virtualNonce, err := txCache.GetVirtualNonce(address, selectionSession, blockchainInfo)
+	if err != nil {
+		log.Warn("apiTransactionProcessor.getVirtualNonce could not get virtual nonce")
+		return 0, err
+	}
+
+	return virtualNonce, nil
 }
 
 func (atp *apiTransactionProcessor) fetchTxsForSender(sender string, senderShard uint32) []*txcache.WrappedTransaction {

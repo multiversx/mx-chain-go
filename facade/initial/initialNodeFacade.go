@@ -422,6 +422,11 @@ func (inf *initialNodeFacade) GetSelectedTransactions() (*common.TransactionsSel
 	return nil, errNodeStarting
 }
 
+// GetVirtualNonce returns a nil structure and error
+func (inf *initialNodeFacade) GetVirtualNonce(_ []byte) (*common.VirtualNonceOfAccountResponse, error) {
+	return nil, errNodeStarting
+}
+
 // GetTransactionsPoolForSender returns a nil structure and error
 func (inf *initialNodeFacade) GetTransactionsPoolForSender(_, _ string) (*common.TransactionsPoolForSenderApiResponse, error) {
 	return nil, errNodeStarting

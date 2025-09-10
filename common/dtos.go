@@ -47,6 +47,10 @@ type TransactionsSelectionSimulationResult struct {
 	TxHashes []string `json:"txHashes"`
 }
 
+type VirtualNonceOfAccountResponse struct {
+	VirtualNonce uint64 `json:"virtualNonce"`
+}
+
 // DelegationDataAPI will be used when requesting the genesis balances from API
 type DelegationDataAPI struct {
 	Address string `json:"address"`

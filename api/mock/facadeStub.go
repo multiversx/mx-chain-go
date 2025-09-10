@@ -102,6 +102,7 @@ type FacadeStub struct {
 	P2PPrometheusMetricsEnabledCalled           func() bool
 	AuctionListHandler                          func() ([]*common.AuctionListValidatorAPIResponse, error)
 	GetSCRsByTxHashCalled                       func(txHash string, scrHash string) ([]*transaction.ApiSmartContractResult, error)
+	GetVirtualNonceCalled                       func(address []byte) (*common.VirtualNonceOfAccountResponse, error)
 	SimulateSCRExecutionCostCalled              func(scr *smartContractResult.SmartContractResult) (*transaction.CostResponse, error)
 }
 
@@ -767,6 +768,15 @@ func (f *FacadeStub) GetWaitingEpochsLeftForPublicKey(publicKey string) (uint32,
 		return f.GetWaitingEpochsLeftForPublicKeyCalled(publicKey)
 	}
 	return 0, nil
+}
+
+// GetVirtualNonce -
+func (f *FacadeStub) GetVirtualNonce(address []byte) (*common.VirtualNonceOfAccountResponse, error) {
+	if f.GetVirtualNonceCalled != nil {
+		return f.GetVirtualNonceCalled(address)
+	}
+
+	return nil, nil
 }
 
 // P2PPrometheusMetricsEnabled -

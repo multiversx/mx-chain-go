@@ -14,6 +14,7 @@ type TransactionAPIHandlerStub struct {
 	GetLastPoolNonceForSenderCalled             func(sender string) (uint64, error)
 	GetTransactionsPoolNonceGapsForSenderCalled func(sender string, senderAccountNonce uint64) (*common.TransactionsPoolNonceGapsForSenderApiResponse, error)
 	GetSelectedTransactionsCalled               func(accountsAdapter state.AccountsAdapter, selectionOptions common.TxSelectionOptions) (*common.TransactionsSelectionSimulationResult, error)
+	GetVirtualNonceCalled                       func(address []byte, accountsAdapter state.AccountsAdapter) (*common.VirtualNonceOfAccountResponse, error)
 	UnmarshalTransactionCalled                  func(txBytes []byte, txType transaction.TxType) (*transaction.ApiTransactionResult, error)
 	UnmarshalReceiptCalled                      func(receiptBytes []byte) (*transaction.ApiReceipt, error)
 	PopulateComputedFieldsCalled                func(tx *transaction.ApiTransactionResult)
@@ -24,6 +25,14 @@ type TransactionAPIHandlerStub struct {
 func (tas *TransactionAPIHandlerStub) GetSCRsByTxHash(txHash string, scrHash string) ([]*transaction.ApiSmartContractResult, error) {
 	if tas.GetSCRsByTxHashCalled != nil {
 		return tas.GetSCRsByTxHashCalled(txHash, scrHash)
+	}
+
+	return nil, nil
+}
+
+func (tas *TransactionAPIHandlerStub) GetVirtualNonce(address []byte, accountsAdapter state.AccountsAdapter) (*common.VirtualNonceOfAccountResponse, error) {
+	if tas.GetVirtualNonceCalled != nil {
+		return tas.GetVirtualNonceCalled(address, accountsAdapter)
 	}
 
 	return nil, nil

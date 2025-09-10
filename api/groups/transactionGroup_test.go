@@ -1242,6 +1242,7 @@ func getTransactionRoutesConfig() config.ApiRoutesConfig {
 					{Name: "/simulate", Open: true},
 					{Name: "/scrs-by-tx-hash/:txhash", Open: true},
 					{Name: "/pool/selected-transactions", Open: true},
+					{Name: "/pool/:address/virtual-nonce", Open: true},
 				},
 			},
 		},

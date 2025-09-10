@@ -387,6 +387,31 @@ func (nf *nodeFacade) GetSelectedTransactions() (*common.TransactionsSelectionSi
 	return nf.apiResolver.GetSelectedTransactions(nf.accountStateAPI, selectionOptions)
 }
 
+// GetVirtualNonce will return the virtual nonce of an account
+func (nf *nodeFacade) GetVirtualNonce(address []byte) (*common.VirtualNonceOfAccountResponse, error) {
+	currentRootHash := nf.blockchain.GetCurrentBlockRootHash()
+	if currentRootHash == nil {
+		return nil, ErrNilCurrentRootHash
+	}
+
+	blockHeader := nf.blockchain.GetCurrentBlockHeader()
+	if blockHeader == nil {
+		return nil, ErrNilBlockHeader
+
+	}
+
+	epoch := blockHeader.GetEpoch()
+	rootHashHolder := holders.NewRootHashHolder(currentRootHash, core.OptionalUint32{Value: epoch, HasValue: true})
+
+	// NOTE: keep in mind that the selection simulation can be affected by other API requests which might alter the trie
+	err := nf.accountStateAPI.RecreateTrie(rootHashHolder)
+	if err != nil {
+		return nil, err
+	}
+
+	return nf.apiResolver.GetVirtualNonce(address, nf.accountStateAPI)
+}
+
 // ComputeTransactionGasLimit will estimate how many gas a transaction will consume
 func (nf *nodeFacade) ComputeTransactionGasLimit(tx *transaction.Transaction) (*transaction.CostResponse, error) {
 	return nf.apiResolver.ComputeTransactionGasLimit(tx)

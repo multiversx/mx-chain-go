@@ -114,6 +114,7 @@ type Facade interface {
 	GetLastPoolNonceForSender(sender string) (uint64, error)
 	GetTransactionsPoolNonceGapsForSender(sender string) (*common.TransactionsPoolNonceGapsForSenderApiResponse, error)
 	GetSelectedTransactions() (*common.TransactionsSelectionSimulationResult, error)
+	GetVirtualNonce(address []byte) (*common.VirtualNonceOfAccountResponse, error)
 	GetAlteredAccountsForBlock(options dataApi.GetAlteredAccountsForBlockOptions) ([]*alteredAccount.AlteredAccount, error)
 	IsDataTrieMigrated(address string, options api.AccountQueryOptions) (bool, error)
 	GetManagedKeysCount() int
