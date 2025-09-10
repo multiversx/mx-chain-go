@@ -414,6 +414,7 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 		Accounts:                     pcf.state.AccountsAdapter(),
 		MiniBlockPool:                pcf.data.Datapool().MiniBlocks(),
 		PreProcessors:                preProcContainer,
+		PreProcessorsProposal:        proposalPreProcContainer,
 		InterProcessors:              interimProcContainer,
 		GasHandler:                   gasHandler,
 		FeeHandler:                   txFeeHandler,
@@ -428,6 +429,7 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 		ProcessedMiniBlocksTracker:   processedMiniBlocksTracker,
 		TxExecutionOrderHandler:      pcf.txExecutionOrderHandler,
 		BlockDataRequester:           blockDataRequester,
+		BlockDataRequesterProposal:   proposalBlockDataRequester,
 	}
 	txCoordinator, err := coordinator.NewTransactionCoordinator(argsTransactionCoordinator)
 	if err != nil {
@@ -773,6 +775,7 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 		Accounts:                     pcf.state.AccountsAdapter(),
 		MiniBlockPool:                pcf.data.Datapool().MiniBlocks(),
 		PreProcessors:                preProcContainer,
+		PreProcessorsProposal:        proposalPreProcContainer,
 		InterProcessors:              interimProcContainer,
 		GasHandler:                   gasHandler,
 		FeeHandler:                   txFeeHandler,
@@ -787,6 +790,7 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 		ProcessedMiniBlocksTracker:   processedMiniBlocksTracker,
 		TxExecutionOrderHandler:      pcf.txExecutionOrderHandler,
 		BlockDataRequester:           blockDataRequester,
+		BlockDataRequesterProposal:   proposalBlockDataRequester,
 	}
 	txCoordinator, err := coordinator.NewTransactionCoordinator(argsTransactionCoordinator)
 	if err != nil {

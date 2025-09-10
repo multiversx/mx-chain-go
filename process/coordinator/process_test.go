@@ -21,10 +21,11 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/scheduled"
 	"github.com/multiversx/mx-chain-core-go/data/smartContractResult"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
-	"github.com/multiversx/mx-chain-go/config"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/multiversx/mx-chain-go/config"
 
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
@@ -247,6 +248,7 @@ func createMockTransactionCoordinatorArguments() ArgTransactionCoordinator {
 		Accounts:                     &stateMock.AccountsStub{},
 		MiniBlockPool:                dataRetrieverMock.NewPoolsHolderMock().MiniBlocks(),
 		PreProcessors:                &preprocMocks.PreProcessorContainerMock{},
+		PreProcessorsProposal:        &preprocMocks.PreProcessorContainerMock{},
 		InterProcessors:              &mock.InterimProcessorContainerMock{},
 		GasHandler:                   &testscommon.GasHandlerStub{},
 		FeeHandler:                   &mock.FeeAccumulatorStub{},
@@ -260,6 +262,8 @@ func createMockTransactionCoordinatorArguments() ArgTransactionCoordinator {
 		DoubleTransactionsDetector:   &testscommon.PanicDoubleTransactionsDetector{},
 		ProcessedMiniBlocksTracker:   &testscommon.ProcessedMiniBlocksTrackerStub{},
 		TxExecutionOrderHandler:      &commonMock.TxExecutionOrderHandlerStub{},
+		BlockDataRequester:           &preprocMocks.BlockDataRequesterStub{},
+		BlockDataRequesterProposal:   &preprocMocks.BlockDataRequesterStub{},
 	}
 
 	blockDataRequesterArgs := BlockDataRequestArgs{
@@ -713,12 +717,12 @@ func TestTransactionCoordinator_CreateBlockStarted(t *testing.T) {
 
 	tc.CreateBlockStarted()
 
-	tc.mutPreProcessor.Lock()
-	for _, value := range tc.txPreProcessors {
+	tc.preProcExecution.mutPreProcessor.Lock()
+	for _, value := range tc.preProcExecution.txPreProcessors {
 		txs := value.GetAllCurrentUsedTxs()
 		assert.Equal(t, 0, len(txs))
 	}
-	tc.mutPreProcessor.Unlock()
+	tc.preProcExecution.mutPreProcessor.Unlock()
 }
 
 func TestTransactionCoordinator_CreateMarshalizedDataNilBody(t *testing.T) {
@@ -1006,7 +1010,7 @@ func TestTransactionCoordinator_CreateMbsAndProcessCrossShardTransactionsWithSki
 	argsTransactionCoordinator.MiniBlockPool = mbPool
 	tc, _ := NewTransactionCoordinator(argsTransactionCoordinator)
 
-	tc.txPreProcessors[block.TxBlock] = &preprocMocks.PreProcessorMock{
+	tc.preProcExecution.txPreProcessors[block.TxBlock] = &preprocMocks.PreProcessorMock{
 		RequestTransactionsForMiniBlockCalled: func(miniBlock *block.MiniBlock) int {
 			return 0
 		},
@@ -2105,7 +2109,7 @@ func TestShardProcessor_ProcessMiniBlockCompleteWithOkTxsShouldExecuteThemAndNot
 	haveAdditionalTime := func() bool {
 		return false
 	}
-	preproc := tc.getPreProcessor(block.TxBlock)
+	preproc := tc.preProcExecution.getPreProcessor(block.TxBlock)
 	processedMbInfo := &processedMb.ProcessedMiniBlockInfo{
 		IndexOfLastTxProcessed: -1,
 		FullyProcessed:         false,
@@ -2253,7 +2257,7 @@ func TestShardProcessor_ProcessMiniBlockCompleteWithErrorWhileProcessShouldCallR
 	haveAdditionalTime := func() bool {
 		return false
 	}
-	preproc := tc.getPreProcessor(block.TxBlock)
+	preproc := tc.preProcExecution.getPreProcessor(block.TxBlock)
 	processedMbInfo := &processedMb.ProcessedMiniBlockInfo{
 		IndexOfLastTxProcessed: -1,
 		FullyProcessed:         false,
@@ -2464,8 +2468,8 @@ func TestTransactionCoordinator_PreprocessorsHasToBeOrderedRewardsAreLast(t *tes
 	assert.Nil(t, err)
 	assert.NotNil(t, tc)
 
-	preProcLen := len(tc.keysTxPreProcs)
-	lastKey := tc.keysTxPreProcs[preProcLen-1]
+	preProcLen := len(tc.preProcExecution.keysTxPreProcs)
+	lastKey := tc.preProcExecution.keysTxPreProcs[preProcLen-1]
 
 	assert.Equal(t, block.RewardsBlock, lastKey)
 }
@@ -2538,7 +2542,7 @@ func TestTransactionCoordinator_IsMaxBlockSizeReachedShouldWork(t *testing.T) {
 	}
 	tc, _ := NewTransactionCoordinator(argsTransactionCoordinator)
 
-	tc.keysTxPreProcs = append(tc.keysTxPreProcs, block.TxBlock)
+	tc.preProcExecution.keysTxPreProcs = append(tc.preProcExecution.keysTxPreProcs, block.TxBlock)
 
 	body := &block.Body{
 		MiniBlocks: make([]*block.MiniBlock, 0),
@@ -2557,7 +2561,7 @@ func TestTransactionCoordinator_IsMaxBlockSizeReachedShouldWork(t *testing.T) {
 	body.MiniBlocks = append(body.MiniBlocks, mb1)
 	body.MiniBlocks = append(body.MiniBlocks, mb2)
 
-	tc.txPreProcessors[block.TxBlock] = &preprocMocks.PreProcessorMock{
+	tc.preProcExecution.txPreProcessors[block.TxBlock] = &preprocMocks.PreProcessorMock{
 		GetAllCurrentUsedTxsCalled: func() map[string]data.TransactionHandler {
 			allTxs := make(map[string]data.TransactionHandler)
 			allTxs["txHash2"] = &transaction.Transaction{
@@ -2568,7 +2572,7 @@ func TestTransactionCoordinator_IsMaxBlockSizeReachedShouldWork(t *testing.T) {
 	}
 	assert.False(t, tc.isMaxBlockSizeReached(body))
 
-	tc.txPreProcessors[block.TxBlock] = &preprocMocks.PreProcessorMock{
+	tc.preProcExecution.txPreProcessors[block.TxBlock] = &preprocMocks.PreProcessorMock{
 		GetAllCurrentUsedTxsCalled: func() map[string]data.TransactionHandler {
 			allTxs := make(map[string]data.TransactionHandler)
 			allTxs["txHash2"] = &transaction.Transaction{
@@ -2682,7 +2686,7 @@ func TestTransactionCoordinator_VerifyCreatedMiniBlocksShouldErrMaxGasLimitPerMi
 	assert.Nil(t, err)
 	assert.NotNil(t, tc)
 
-	tc.txPreProcessors[block.TxBlock] = &preprocMocks.PreProcessorMock{
+	tc.preProcExecution.txPreProcessors[block.TxBlock] = &preprocMocks.PreProcessorMock{
 		GetAllCurrentUsedTxsCalled: func() map[string]data.TransactionHandler {
 			allTxs := make(map[string]data.TransactionHandler)
 			allTxs[string(txHash)] = &transaction.Transaction{}
@@ -2733,7 +2737,7 @@ func TestTransactionCoordinator_VerifyCreatedMiniBlocksShouldErrMaxAccumulatedFe
 	assert.Nil(t, err)
 	assert.NotNil(t, tc)
 
-	tc.txPreProcessors[block.TxBlock] = &preprocMocks.PreProcessorMock{
+	tc.preProcExecution.txPreProcessors[block.TxBlock] = &preprocMocks.PreProcessorMock{
 		GetAllCurrentUsedTxsCalled: func() map[string]data.TransactionHandler {
 			allTxs := make(map[string]data.TransactionHandler)
 			allTxs[string(txHash)] = &transaction.Transaction{
@@ -2789,7 +2793,7 @@ func TestTransactionCoordinator_VerifyCreatedMiniBlocksShouldErrMaxDeveloperFees
 	assert.Nil(t, err)
 	assert.NotNil(t, tc)
 
-	tc.txPreProcessors[block.TxBlock] = &preprocMocks.PreProcessorMock{
+	tc.preProcExecution.txPreProcessors[block.TxBlock] = &preprocMocks.PreProcessorMock{
 		GetAllCurrentUsedTxsCalled: func() map[string]data.TransactionHandler {
 			allTxs := make(map[string]data.TransactionHandler)
 			allTxs[string(txHash)] = &transaction.Transaction{
@@ -2845,7 +2849,7 @@ func TestTransactionCoordinator_VerifyCreatedMiniBlocksShouldWork(t *testing.T) 
 	assert.Nil(t, err)
 	assert.NotNil(t, tc)
 
-	tc.txPreProcessors[block.TxBlock] = &preprocMocks.PreProcessorMock{
+	tc.preProcExecution.txPreProcessors[block.TxBlock] = &preprocMocks.PreProcessorMock{
 		GetAllCurrentUsedTxsCalled: func() map[string]data.TransactionHandler {
 			allTxs := make(map[string]data.TransactionHandler)
 			allTxs[string(txHash)] = &transaction.Transaction{
@@ -2890,7 +2894,7 @@ func TestTransactionCoordinator_GetAllTransactionsShouldWork(t *testing.T) {
 	txHash2 := "hash2"
 	txHash3 := "hash3"
 
-	tc.txPreProcessors[block.TxBlock] = &preprocMocks.PreProcessorMock{
+	tc.preProcExecution.txPreProcessors[block.TxBlock] = &preprocMocks.PreProcessorMock{
 		GetAllCurrentUsedTxsCalled: func() map[string]data.TransactionHandler {
 			allTxs := make(map[string]data.TransactionHandler)
 			allTxs[txHash1] = tx1
@@ -2952,7 +2956,7 @@ func TestTransactionCoordinator_VerifyGasLimitShouldErrMaxGasLimitPerMiniBlockIn
 	txHash2 := "hash2"
 	txHash3 := "hash3"
 
-	tc.txPreProcessors[block.TxBlock] = &preprocMocks.PreProcessorMock{
+	tc.preProcExecution.txPreProcessors[block.TxBlock] = &preprocMocks.PreProcessorMock{
 		GetAllCurrentUsedTxsCalled: func() map[string]data.TransactionHandler {
 			allTxs := make(map[string]data.TransactionHandler)
 			allTxs[txHash1] = tx1
@@ -3024,7 +3028,7 @@ func TestTransactionCoordinator_VerifyGasLimitShouldWork(t *testing.T) {
 	txHash2 := "hash2"
 	txHash3 := "hash3"
 
-	tc.txPreProcessors[block.TxBlock] = &preprocMocks.PreProcessorMock{
+	tc.preProcExecution.txPreProcessors[block.TxBlock] = &preprocMocks.PreProcessorMock{
 		GetAllCurrentUsedTxsCalled: func() map[string]data.TransactionHandler {
 			allTxs := make(map[string]data.TransactionHandler)
 			allTxs[txHash1] = tx1
@@ -3859,13 +3863,13 @@ func TestTransactionCoordinator_AddTxsFromMiniBlocks(t *testing.T) {
 
 		tc, _ := NewTransactionCoordinator(args)
 		tc.keysInterimProcs = []block.Type{block.TxBlock}
-		tc.txPreProcessors[block.TxBlock] = &preprocMocks.PreProcessorMock{
+		tc.preProcExecution.txPreProcessors[block.TxBlock] = &preprocMocks.PreProcessorMock{
 			AddTxsFromMiniBlocksCalled: func(miniBlocks block.MiniBlockSlice) {
 				require.Equal(t, miniBlocks, block.MiniBlockSlice{mb1})
 			},
 		}
 
-		tc.txPreProcessors[block.SmartContractResultBlock] = &preprocMocks.PreProcessorMock{
+		tc.preProcExecution.txPreProcessors[block.SmartContractResultBlock] = &preprocMocks.PreProcessorMock{
 			AddTxsFromMiniBlocksCalled: func(miniBlocks block.MiniBlockSlice) {
 				require.Equal(t, miniBlocks, block.MiniBlockSlice{mb2})
 			},
@@ -3909,8 +3913,8 @@ func TestTransactionCoordinator_AddTransactions(t *testing.T) {
 	t.Run("valid preprocessor should add", func(t *testing.T) {
 		tc, _ := NewTransactionCoordinator(args)
 		addTransactionsCalled := &atomic.Flag{}
-		tc.keysTxPreProcs = append(tc.keysTxPreProcs, block.TxBlock)
-		tc.txPreProcessors[block.TxBlock] = &preprocMocks.PreProcessorMock{
+		tc.preProcExecution.keysTxPreProcs = append(tc.preProcExecution.keysTxPreProcs, block.TxBlock)
+		tc.preProcExecution.txPreProcessors[block.TxBlock] = &preprocMocks.PreProcessorMock{
 			AddTransactionsCalled: func(txHandlers []data.TransactionHandler) {
 				require.Equal(t, txs, txHandlers)
 				addTransactionsCalled.SetValue(true)

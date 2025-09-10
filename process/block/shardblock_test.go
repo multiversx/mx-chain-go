@@ -22,10 +22,11 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
-	"github.com/multiversx/mx-chain-go/config"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/multiversx/mx-chain-go/config"
 
 	"github.com/multiversx/mx-chain-go/process/block/headerForBlock"
 
@@ -503,8 +504,10 @@ func TestShardProcessor_ProcessBlockWithInvalidTransactionShouldErr(t *testing.T
 
 	container, err := factory.Create()
 	require.NoError(t, err)
+	containerPreProcProposal, err := factory.Create()
+	require.NoError(t, err)
 
-	argsTransactionCoordinator := createMockTransactionCoordinatorArguments(accounts, tdp, container)
+	argsTransactionCoordinator := createMockTransactionCoordinatorArguments(accounts, tdp, container, containerPreProcProposal)
 	argsTransactionCoordinator.GasHandler = &testscommon.GasHandlerStub{
 		InitCalled: func() {
 		},
@@ -730,9 +733,11 @@ func TestShardProcessor_ProcessBlockWithErrOnProcessBlockTransactionsCallShouldR
 
 	container, err := factory.Create()
 	require.NoError(t, err)
+	containerPreProcProposal, err := factory.Create()
+	require.NoError(t, err)
 
 	totalGasProvided := uint64(0)
-	argsTransactionCoordinator := createMockTransactionCoordinatorArguments(accounts, tdp, container)
+	argsTransactionCoordinator := createMockTransactionCoordinatorArguments(accounts, tdp, container, containerPreProcProposal)
 	argsTransactionCoordinator.GasHandler = &testscommon.GasHandlerStub{
 		InitCalled: func() {
 			totalGasProvided = 0
@@ -2651,8 +2656,10 @@ func TestShardProcessor_MarshalizedDataToBroadcastShouldWork(t *testing.T) {
 
 	container, err := factory.Create()
 	require.NoError(t, err)
+	containerPreProcProposal, err := factory.Create()
+	require.NoError(t, err)
 
-	argsTransactionCoordinator := createMockTransactionCoordinatorArguments(initAccountsMock(), tdp, container)
+	argsTransactionCoordinator := createMockTransactionCoordinatorArguments(initAccountsMock(), tdp, container, containerPreProcProposal)
 	tc, err := coordinator.NewTransactionCoordinator(argsTransactionCoordinator)
 	assert.Nil(t, err)
 
@@ -2765,8 +2772,10 @@ func TestShardProcessor_MarshalizedDataMarshalWithoutSuccess(t *testing.T) {
 
 	container, err := factory.Create()
 	require.NoError(t, err)
+	containerPreProcProposal, err := factory.Create()
+	require.NoError(t, err)
 
-	argsTransactionCoordinator := createMockTransactionCoordinatorArguments(initAccountsMock(), tdp, container)
+	argsTransactionCoordinator := createMockTransactionCoordinatorArguments(initAccountsMock(), tdp, container, containerPreProcProposal)
 	tc, err := coordinator.NewTransactionCoordinator(argsTransactionCoordinator)
 	assert.Nil(t, err)
 
@@ -3027,8 +3036,10 @@ func TestShardProcessor_CreateMiniBlocksShouldWorkWithIntraShardTxs(t *testing.T
 
 	container, err := factory.Create()
 	require.NoError(t, err)
+	containerPreProcProposal, err := factory.Create()
+	require.NoError(t, err)
 
-	argsTransactionCoordinator := createMockTransactionCoordinatorArguments(accntAdapter, datapool, container)
+	argsTransactionCoordinator := createMockTransactionCoordinatorArguments(accntAdapter, datapool, container, containerPreProcProposal)
 	tc, err := coordinator.NewTransactionCoordinator(argsTransactionCoordinator)
 	require.Nil(t, err)
 
@@ -3214,8 +3225,10 @@ func TestShardProcessor_RestoreBlockIntoPoolsShouldWork(t *testing.T) {
 
 	container, err := factory.Create()
 	require.NoError(t, err)
+	containerPreProcProposal, err := factory.Create()
+	require.NoError(t, err)
 
-	argsTransactionCoordinator := createMockTransactionCoordinatorArguments(initAccountsMock(), datapool, container)
+	argsTransactionCoordinator := createMockTransactionCoordinatorArguments(initAccountsMock(), datapool, container, containerPreProcProposal)
 	tc, err := coordinator.NewTransactionCoordinator(argsTransactionCoordinator)
 	assert.Nil(t, err)
 

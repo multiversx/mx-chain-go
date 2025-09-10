@@ -480,6 +480,7 @@ func createMockTransactionCoordinatorArguments(
 	accountAdapter state.AccountsAdapter,
 	poolsHolder dataRetriever.PoolsHolder,
 	preProcessorsContainer process.PreProcessorsContainer,
+	preProcessorsContainerProposal process.PreProcessorsContainer,
 ) coordinator.ArgTransactionCoordinator {
 
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(3)
@@ -495,13 +496,23 @@ func createMockTransactionCoordinatorArguments(
 
 	blockDataRequester, _ := coordinator.NewBlockDataRequester(blockDataRequesterArgs)
 
+	blockDataRequesterArgsProposal := coordinator.BlockDataRequestArgs{
+		RequestHandler:      &testscommon.RequestHandlerStub{},
+		MiniBlockPool:       poolsHolder.MiniBlocks(),
+		PreProcessors:       preProcessorsContainerProposal,
+		ShardCoordinator:    shardCoordinator,
+		EnableEpochsHandler: enableEpochsHandler,
+	}
+	blockDataRequesterProposal, _ := coordinator.NewBlockDataRequester(blockDataRequesterArgsProposal)
+
 	argsTransactionCoordinator := coordinator.ArgTransactionCoordinator{
-		Hasher:           &hashingMocks.HasherMock{},
-		Marshalizer:      &mock.MarshalizerMock{},
-		ShardCoordinator: shardCoordinator,
-		Accounts:         accountAdapter,
-		MiniBlockPool:    poolsHolder.MiniBlocks(),
-		PreProcessors:    preProcessorsContainer,
+		Hasher:                &hashingMocks.HasherMock{},
+		Marshalizer:           &mock.MarshalizerMock{},
+		ShardCoordinator:      shardCoordinator,
+		Accounts:              accountAdapter,
+		MiniBlockPool:         poolsHolder.MiniBlocks(),
+		PreProcessors:         preProcessorsContainer,
+		PreProcessorsProposal: preProcessorsContainerProposal,
 		InterProcessors: &mock.InterimProcessorContainerMock{
 			KeysCalled: func() []block.Type {
 				return []block.Type{block.SmartContractResultBlock}
@@ -520,6 +531,7 @@ func createMockTransactionCoordinatorArguments(
 		ProcessedMiniBlocksTracker:   &testscommon.ProcessedMiniBlocksTrackerStub{},
 		TxExecutionOrderHandler:      &commonMocks.TxExecutionOrderHandlerStub{},
 		BlockDataRequester:           blockDataRequester,
+		BlockDataRequesterProposal:   blockDataRequesterProposal,
 	}
 
 	return argsTransactionCoordinator

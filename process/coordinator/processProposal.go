@@ -25,8 +25,7 @@ func (tc *transactionCoordinator) CreateMbsCrossShardDstMe(
 	shouldSkipShard := make(map[uint32]bool)
 	// TODO: init the gas estimation per added mbs counter
 
-	// TODO: replace this request with the separate one used for proposals.
-	finalCrossMiniBlockInfos := tc.blockDataRequester.GetFinalCrossMiniBlockInfoAndRequestMissing(hdr)
+	finalCrossMiniBlockInfos := tc.blockDataRequesterProposal.GetFinalCrossMiniBlockInfoAndRequestMissing(hdr)
 	defer func() {
 		log.Debug("transactionCoordinator.CreateMbsCrossShardDstMe",
 			"header round", hdr.GetRound(),
@@ -83,8 +82,7 @@ func (tc *transactionCoordinator) CreateMbsCrossShardDstMe(
 			continue
 		}
 
-		// TODO: the request here needs to be replaced with the one used for proposals.
-		preproc := tc.getPreProcessor(miniBlock.Type)
+		preproc := tc.preProcProposal.getPreProcessor(miniBlock.Type)
 		if check.IfNil(preproc) {
 			return nil, 0, false, fmt.Errorf("%w unknown block type %d", process.ErrNilPreProcessor, miniBlock.Type)
 		}
@@ -126,8 +124,8 @@ func (tc *transactionCoordinator) CreateMbsCrossShardDstMe(
 func (tc *transactionCoordinator) SelectOutgoingTransactions() [][]byte {
 	txHashes := make([][]byte, 0)
 	var err error
-	for _, blockType := range tc.keysTxPreProcs {
-		txPreProc := tc.getPreProcessor(blockType)
+	for _, blockType := range tc.preProcProposal.keysTxPreProcs {
+		txPreProc := tc.preProcProposal.getPreProcessor(blockType)
 		if check.IfNil(txPreProc) {
 			log.Warn("transactionCoordinator.SelectOutgoingTransactions: getPreProcessor returned nil for block type", "blockType", blockType)
 			continue
