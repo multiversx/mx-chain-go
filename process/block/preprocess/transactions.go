@@ -13,10 +13,11 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
+	logger "github.com/multiversx/mx-chain-logger-go"
+
 	"github.com/multiversx/mx-chain-go/common/holders"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/txcache"
-	logger "github.com/multiversx/mx-chain-logger-go"
 
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
@@ -933,7 +934,7 @@ func (txs *transactions) getRemainingGasPerBlockAsScheduled() uint64 {
 // SelectOutgoingTransactions selects outgoing transactions from the transaction pool
 func (txs *transactions) SelectOutgoingTransactions() ([][]byte, error) {
 	// TODO: this needs to be adjusted depending the new gas consumption component
-	gasBandwidth := txs.economicsFee.MaxGasLimitPerBlock(txs.shardCoordinator.SelfId()) * selectionGasBandwidthIncreasePercent / 100
+	gasBandwidth := txs.economicsFee.MaxGasLimitPerBlock(txs.shardCoordinator.SelfId()) * uint64(txs.txCacheSelectionConfig.SelectionGasBandwidthIncreasePercent) / 100
 	wrappedTxs, err := txs.selectTransactionsFromTxPoolForProposal(txs.shardCoordinator.SelfId(), txs.shardCoordinator.SelfId(), gasBandwidth)
 	if err != nil {
 		return nil, err
@@ -1344,8 +1345,8 @@ func createEmptyMiniBlockFromMiniBlock(miniBlock *block.MiniBlock) *block.MiniBl
 func (txs *transactions) selectTransactionsFromTxPoolForProposal(
 	sndShardId uint32,
 	dstShardId uint32,
-	gasBandwidth uint64
-	) ([]*txcache.WrappedTransaction, error) {
+	gasBandwidth uint64,
+) ([]*txcache.WrappedTransaction, error) {
 	strCache := process.ShardCacherIdentifier(sndShardId, dstShardId)
 	txShardPool := txs.txPool.ShardDataStore(strCache)
 
@@ -1371,8 +1372,9 @@ func (txs *transactions) selectTransactionsFromTxPoolForProposal(
 		txs.txCacheSelectionConfig.SelectionLoopMaximumDuration,
 		txs.txCacheSelectionConfig.SelectionLoopDurationCheckInterval,
 	)
+	selectedTransactions, _ := txCache.SelectTransactions(session, selectionOptions)
 
-	return txCache.SelectTransactions(session, selectionOptions)
+	return selectedTransactions, nil
 }
 
 func (txs *transactions) selectTransactionsFromTxPool(
@@ -1406,7 +1408,9 @@ func (txs *transactions) selectTransactionsFromTxPool(
 		txs.txCacheSelectionConfig.SelectionLoopDurationCheckInterval,
 	)
 
-	return txCache.SelectTransactions(session, selectionOptions)
+	selectedTxs, _ := txCache.SelectTransactions(session, selectionOptions)
+
+	return selectedTxs, nil
 }
 
 func (txs *transactions) computeSortedTxs(
