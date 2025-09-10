@@ -121,8 +121,9 @@ func TestDeployDNSContract_TestGasWhenSaveUsernameFailsCrossShardBackwardsCompat
 	}
 
 	enableEpochs := config.EnableEpochs{
-		ChangeUsernameEnableEpoch: 1000, // flag disabled, backwards compatibility
-		SCProcessorV2EnableEpoch:  1000,
+		ChangeUsernameEnableEpoch:           1000, // flag disabled, backwards compatibility
+		SCProcessorV2EnableEpoch:            1000,
+		RelayedTransactionsV1V2DisableEpoch: 1000,
 	}
 
 	vmConfig := vm.CreateVMConfigWithVersion("v1.4")
@@ -203,12 +204,15 @@ func TestDeployDNSContract_TestGasWhenSaveUsernameAfterDNSv2IsActivated(t *testi
 	}
 
 	testContextForDNSContract, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(1, config.EnableEpochs{
-		FixRelayedBaseCostEnableEpoch: integrationTests.UnreachableEpoch,
+		FixRelayedBaseCostEnableEpoch:       integrationTests.UnreachableEpoch,
+		RelayedTransactionsV1V2DisableEpoch: integrationTests.UnreachableEpoch,
 	}, 1)
 	require.Nil(t, err)
 	defer testContextForDNSContract.Close()
 
-	testContextForRelayerAndUser, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(2, config.EnableEpochs{}, 1)
+	testContextForRelayerAndUser, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(2, config.EnableEpochs{
+		RelayedTransactionsV1V2DisableEpoch: integrationTests.UnreachableEpoch,
+	}, 1)
 	require.Nil(t, err)
 	defer testContextForRelayerAndUser.Close()
 	scAddress, _ := utils.DoDeployDNS(t, testContextForDNSContract, "../../multiShard/smartContract/dns/dns.wasm")

@@ -128,7 +128,7 @@ func (tep *transactionsFeeProcessor) prepareNormalTxs(transactionsAndScrs *trans
 		feeInfo.SetFee(fee)
 		feeInfo.SetInitialPaidFee(initialPaidFee)
 
-		isRelayed := isRelayedTx(txWithResult)
+		isRelayed := tep.isRelayedTxV1V2(txWithResult, epoch)
 		isFeeFixActive := tep.enableEpochsHandler.IsFlagEnabledInEpoch(common.FixRelayedBaseCostFlag, epoch)
 		isRelayedBeforeFix := isRelayed && !isFeeFixActive
 		if isRelayedBeforeFix || tep.isESDTOperationWithSCCall(txHandler) {
@@ -136,7 +136,7 @@ func (tep *transactionsFeeProcessor) prepareNormalTxs(transactionsAndScrs *trans
 			feeInfo.SetFee(initialPaidFee)
 		}
 
-		userTx, totalFee, isRelayedV1V2 := tep.getFeeOfRelayedV1V2(txWithResult)
+		userTx, totalFee, isRelayedV1V2 := tep.getFeeOfRelayedV1V2(txWithResult, epoch)
 		isRelayedAfterFix := isRelayedV1V2 && isFeeFixActive
 		if isRelayedAfterFix {
 			feeInfo.SetFee(totalFee)
@@ -176,12 +176,16 @@ func (tep *transactionsFeeProcessor) prepareTxWithResults(
 	tep.prepareTxWithResultsBasedOnLogs(txHashHex, txWithResults, userTx, hasRefund, epoch)
 }
 
-func (tep *transactionsFeeProcessor) getFeeOfRelayedV1V2(tx *transactionWithResults) (data.TransactionHandler, *big.Int, bool) {
+func (tep *transactionsFeeProcessor) getFeeOfRelayedV1V2(tx *transactionWithResults, epoch uint32) (data.TransactionHandler, *big.Int, bool) {
 	if common.IsValidRelayedTxV3(tx.GetTxHandler()) {
 		return nil, nil, false
 	}
 
 	if len(tx.GetTxHandler().GetData()) == 0 {
+		return nil, nil, false
+	}
+
+	if tep.enableEpochsHandler.IsFlagEnabledInEpoch(common.RelayedTransactionsV1V2DisableFlag, epoch) {
 		return nil, nil, false
 	}
 
@@ -331,7 +335,7 @@ func (tep *transactionsFeeProcessor) prepareScrsNoTx(transactionsAndScrs *transa
 			continue
 		}
 
-		userTx := tep.getUserTxOfRelayed(txFromStorage)
+		userTx := tep.getUserTxOfRelayed(txFromStorage, epoch)
 		if check.IfNil(userTx) {
 			// relayed v3 and other txs
 			if isRelayedV3 {
@@ -360,13 +364,17 @@ func (tep *transactionsFeeProcessor) prepareScrsNoTx(transactionsAndScrs *transa
 	return nil
 }
 
-func (tep *transactionsFeeProcessor) getUserTxOfRelayed(tx data.TransactionHandler) data.TransactionHandler {
+func (tep *transactionsFeeProcessor) getUserTxOfRelayed(tx data.TransactionHandler, epoch uint32) data.TransactionHandler {
 	if len(tx.GetData()) == 0 {
 		return nil
 	}
 
 	funcName, args, err := tep.argsParser.ParseCallData(string(tx.GetData()))
 	if err != nil {
+		return nil
+	}
+
+	if tep.enableEpochsHandler.IsFlagEnabledInEpoch(common.RelayedTransactionsV1V2DisableFlag, epoch) {
 		return nil
 	}
 
