@@ -39,7 +39,6 @@ import (
 	"github.com/multiversx/mx-chain-go/epochStart/shardchain"
 	errorsMx "github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/factory"
-	mainFactory "github.com/multiversx/mx-chain-go/factory"
 	"github.com/multiversx/mx-chain-go/factory/disabled"
 	"github.com/multiversx/mx-chain-go/fallback"
 	"github.com/multiversx/mx-chain-go/genesis"
@@ -131,7 +130,7 @@ type processComponents struct {
 	processedMiniBlocksTracker       process.ProcessedMiniBlocksTracker
 	esdtDataStorageForApi            vmcommon.ESDTNFTStorageHandler
 	accountsParser                   genesis.AccountsParser
-	receiptsRepository               mainFactory.ReceiptsRepository
+	receiptsRepository               factory.ReceiptsRepository
 	sentSignaturesTracker            process.SentSignaturesTracker
 	epochSystemSCProcessor           process.EpochStartSystemSCProcessor
 	interceptedDataVerifierFactory   process.InterceptedDataVerifierFactory
@@ -931,6 +930,7 @@ func (pcf *processComponentsFactory) generateGenesisHeadersAndApplyInitialBalanc
 		GenesisEpoch:            pcf.config.EpochStartConfig.GenesisEpoch,
 		GenesisNonce:            pcf.genesisNonce,
 		GenesisRound:            pcf.genesisRound,
+		TxCacheSelectionConfig:  pcf.config.TxCacheSelection,
 	}
 
 	gbc, err := processGenesis.NewGenesisBlockCreator(arg)

@@ -21,6 +21,8 @@ import (
 	"github.com/multiversx/mx-chain-core-go/hashing/blake2b"
 	"github.com/multiversx/mx-chain-core-go/hashing/sha256"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/multiversx/mx-chain-go/config"
+	"github.com/multiversx/mx-chain-go/txcache"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -31,7 +33,6 @@ import (
 	"github.com/multiversx/mx-chain-go/process/mock"
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/storage"
-	"github.com/multiversx/mx-chain-go/storage/txcache"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/cache"
 	commonMocks "github.com/multiversx/mx-chain-go/testscommon/common"
@@ -243,6 +244,14 @@ func createDefaultTransactionsProcessorArgs() ArgsTransactionPreProcessor {
 		BlockType:                    block.TxBlock,
 		TxTypeHandler:                &testscommon.TxTypeHandlerMock{},
 		ScheduledTxsExecutionHandler: &testscommon.ScheduledTxsExecutionStub{},
+		TxCacheSelectionConfig: config.TxCacheSelectionConfig{
+			SelectionGasBandwidthIncreasePercent:          400,
+			SelectionGasBandwidthIncreaseScheduledPercent: 260,
+			SelectionGasRequested:                         10_000_000_000,
+			SelectionMaxNumTxs:                            30000,
+			SelectionLoopMaximumDuration:                  250,
+			SelectionLoopDurationCheckInterval:            10,
+		},
 	}
 }
 
@@ -459,6 +468,76 @@ func TestTxsPreprocessor_NewTransactionPreprocessorNilTxExecutionOrderHandler(t 
 	txs, err := NewTransactionPreprocessor(args)
 	assert.Nil(t, txs)
 	assert.Equal(t, process.ErrNilTxExecutionOrderHandler, err)
+}
+
+func TestTxsPreprocessor_NewTransactionPreprocessorBadTxCacheSelectionConfig(t *testing.T) {
+	t.Parallel()
+
+	t.Run("should err ErrBadSelectionGasBandwidthIncreasePercent", func(t *testing.T) {
+		t.Parallel()
+
+		args := createDefaultTransactionsProcessorArgs()
+		args.TxCacheSelectionConfig.SelectionGasBandwidthIncreasePercent = 0
+
+		txs, err := NewTransactionPreprocessor(args)
+		assert.Nil(t, txs)
+		assert.Equal(t, process.ErrBadSelectionGasBandwidthIncreasePercent, err)
+	})
+
+	t.Run("should err ErrBadSelectionGasBandwidthIncreaseScheduledPercent", func(t *testing.T) {
+		t.Parallel()
+
+		args := createDefaultTransactionsProcessorArgs()
+		args.TxCacheSelectionConfig.SelectionGasBandwidthIncreaseScheduledPercent = 0
+
+		txs, err := NewTransactionPreprocessor(args)
+		assert.Nil(t, txs)
+		assert.Equal(t, process.ErrBadSelectionGasBandwidthIncreaseScheduledPercent, err)
+	})
+
+	t.Run("should err ErrBadTxCacheSelectionGasRequested", func(t *testing.T) {
+		t.Parallel()
+
+		args := createDefaultTransactionsProcessorArgs()
+		args.TxCacheSelectionConfig.SelectionGasRequested = 0
+
+		txs, err := NewTransactionPreprocessor(args)
+		assert.Nil(t, txs)
+		assert.Equal(t, process.ErrBadTxCacheSelectionGasRequested, err)
+	})
+
+	t.Run("should err ErrBadTxCacheSelectionMaxNumTxs", func(t *testing.T) {
+		t.Parallel()
+
+		args := createDefaultTransactionsProcessorArgs()
+		args.TxCacheSelectionConfig.SelectionMaxNumTxs = 0
+
+		txs, err := NewTransactionPreprocessor(args)
+		assert.Nil(t, txs)
+		assert.Equal(t, process.ErrBadTxCacheSelectionMaxNumTxs, err)
+	})
+
+	t.Run("should err ErrBadTxCacheSelectionLoopMaximumDuration", func(t *testing.T) {
+		t.Parallel()
+
+		args := createDefaultTransactionsProcessorArgs()
+		args.TxCacheSelectionConfig.SelectionLoopMaximumDuration = 0
+
+		txs, err := NewTransactionPreprocessor(args)
+		assert.Nil(t, txs)
+		assert.Equal(t, process.ErrBadTxCacheSelectionLoopMaximumDuration, err)
+	})
+
+	t.Run("should err ErrBadTxCacheSelectionLoopDurationCheckInterval", func(t *testing.T) {
+		t.Parallel()
+
+		args := createDefaultTransactionsProcessorArgs()
+		args.TxCacheSelectionConfig.SelectionLoopDurationCheckInterval = 0
+
+		txs, err := NewTransactionPreprocessor(args)
+		assert.Nil(t, txs)
+		assert.Equal(t, process.ErrBadTxCacheSelectionLoopDurationCheckInterval, err)
+	})
 }
 
 func TestTxsPreprocessor_NewTransactionPreprocessorOkValsShouldWork(t *testing.T) {

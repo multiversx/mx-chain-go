@@ -45,7 +45,7 @@ import (
 	"github.com/multiversx/mx-chain-go/process/transaction"
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/state/syncer"
-	"github.com/multiversx/mx-chain-go/storage/txcache"
+	"github.com/multiversx/mx-chain-go/txcache"
 	"github.com/multiversx/mx-chain-go/vm"
 )
 
@@ -355,6 +355,7 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 		scheduledTxsExecutionHandler,
 		processedMiniBlocksTracker,
 		pcf.txExecutionOrderHandler,
+		pcf.config.TxCacheSelection,
 	)
 	if err != nil {
 		return nil, err
@@ -714,6 +715,7 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 		scheduledTxsExecutionHandler,
 		processedMiniBlocksTracker,
 		pcf.txExecutionOrderHandler,
+		pcf.config.TxCacheSelection,
 	)
 	if err != nil {
 		return nil, err

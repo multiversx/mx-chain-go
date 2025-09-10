@@ -511,6 +511,14 @@ func hardForkImport(
 			HeaderVersionConfigs:    testscommon.GetDefaultHeaderVersionConfig(),
 			HistoryRepository:       &dblookupext.HistoryRepositoryStub{},
 			TxExecutionOrderHandler: &commonMocks.TxExecutionOrderHandlerStub{},
+			TxCacheSelectionConfig: config.TxCacheSelectionConfig{
+				SelectionGasBandwidthIncreasePercent:          400,
+				SelectionGasBandwidthIncreaseScheduledPercent: 260,
+				SelectionGasRequested:                         10_000_000_000,
+				SelectionMaxNumTxs:                            30000,
+				SelectionLoopMaximumDuration:                  250,
+				SelectionLoopDurationCheckInterval:            10,
+			},
 		}
 
 		genesisProcessor, err := process.NewGenesisBlockCreator(argsGenesis)

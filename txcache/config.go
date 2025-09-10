@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 
+	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-storage-go/common"
 )
 
@@ -14,7 +15,6 @@ const maxNumBytesLowerBound = maxNumItemsLowerBound * 1
 const maxNumBytesUpperBound = 1_073_741_824 // one GB
 const maxNumItemsPerSenderLowerBound = 1
 const maxNumBytesPerSenderLowerBound = maxNumItemsPerSenderLowerBound * 1
-const maxNumBytesPerSenderUpperBound = 33_554_432 // 32 MB
 const numItemsToPreemptivelyEvictLowerBound = uint32(1)
 
 // ConfigSourceMe holds cache configuration
@@ -27,6 +27,7 @@ type ConfigSourceMe struct {
 	CountThreshold              uint32
 	CountPerSenderThreshold     uint32
 	NumItemsToPreemptivelyEvict uint32
+	TxCacheBoundsConfig         config.TxCacheBoundsConfig
 }
 
 type senderConstraints struct {
@@ -41,7 +42,7 @@ func (config *ConfigSourceMe) verify() error {
 	if config.NumChunks < numChunksLowerBound || config.NumChunks > numChunksUpperBound {
 		return fmt.Errorf("%w: config.NumChunks is invalid", common.ErrInvalidConfig)
 	}
-	if config.NumBytesPerSenderThreshold < maxNumBytesPerSenderLowerBound || config.NumBytesPerSenderThreshold > maxNumBytesPerSenderUpperBound {
+	if config.NumBytesPerSenderThreshold < maxNumBytesPerSenderLowerBound || config.NumBytesPerSenderThreshold > config.TxCacheBoundsConfig.MaxNumBytesPerSenderUpperBound {
 		return fmt.Errorf("%w: config.NumBytesPerSenderThreshold is invalid", common.ErrInvalidConfig)
 	}
 	if config.CountPerSenderThreshold < maxNumItemsPerSenderLowerBound {

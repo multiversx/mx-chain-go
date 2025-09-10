@@ -13,6 +13,9 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
+	"github.com/multiversx/mx-chain-go/common/holders"
+	"github.com/multiversx/mx-chain-go/config"
+	"github.com/multiversx/mx-chain-go/txcache"
 	logger "github.com/multiversx/mx-chain-logger-go"
 
 	"github.com/multiversx/mx-chain-go/common"
@@ -20,19 +23,12 @@ import (
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/block/helpers"
 	"github.com/multiversx/mx-chain-go/storage"
-	"github.com/multiversx/mx-chain-go/storage/txcache"
 )
 
 var _ process.DataMarshalizer = (*transactions)(nil)
 var _ process.PreProcessor = (*transactions)(nil)
 
 var log = logger.GetOrCreate("process/block/preprocess")
-
-// 200% bandwidth to allow 100% overshooting estimations
-const selectionGasBandwidthIncreasePercent = 400
-
-// 130% to allow 30% overshooting estimations for scheduled SC calls
-const selectionGasBandwidthIncreaseScheduledPercent = 260
 
 // TODO: increase code coverage with unit test
 
@@ -44,6 +40,7 @@ type ArgsTransactionPreProcessor struct {
 	BlockType                    block.Type
 	TxTypeHandler                process.TxTypeHandler
 	ScheduledTxsExecutionHandler process.ScheduledTxsExecutionHandler
+	TxCacheSelectionConfig       config.TxCacheSelectionConfig
 }
 
 type transactions struct {
@@ -61,6 +58,7 @@ type transactions struct {
 	emptyAddress                 []byte
 	txTypeHandler                process.TxTypeHandler
 	scheduledTxsExecutionHandler process.ScheduledTxsExecutionHandler
+	txCacheSelectionConfig       config.TxCacheSelectionConfig
 }
 
 // NewTransactionPreprocessor creates a new transaction preprocessor object
@@ -94,7 +92,24 @@ func NewTransactionPreprocessor(
 	if check.IfNil(args.ScheduledTxsExecutionHandler) {
 		return nil, process.ErrNilScheduledTxsExecutionHandler
 	}
-
+	if args.TxCacheSelectionConfig.SelectionGasBandwidthIncreasePercent == 0 {
+		return nil, process.ErrBadSelectionGasBandwidthIncreasePercent
+	}
+	if args.TxCacheSelectionConfig.SelectionGasBandwidthIncreaseScheduledPercent == 0 {
+		return nil, process.ErrBadSelectionGasBandwidthIncreaseScheduledPercent
+	}
+	if args.TxCacheSelectionConfig.SelectionMaxNumTxs == 0 {
+		return nil, process.ErrBadTxCacheSelectionMaxNumTxs
+	}
+	if args.TxCacheSelectionConfig.SelectionGasRequested == 0 {
+		return nil, process.ErrBadTxCacheSelectionGasRequested
+	}
+	if args.TxCacheSelectionConfig.SelectionLoopMaximumDuration == 0 {
+		return nil, process.ErrBadTxCacheSelectionLoopMaximumDuration
+	}
+	if args.TxCacheSelectionConfig.SelectionLoopDurationCheckInterval == 0 {
+		return nil, process.ErrBadTxCacheSelectionLoopDurationCheckInterval
+	}
 	bpp := basePreProcess{
 		hasher:      args.Hasher,
 		marshalizer: args.Marshalizer,
@@ -123,6 +138,7 @@ func NewTransactionPreprocessor(
 		blockType:                    args.BlockType,
 		txTypeHandler:                args.TxTypeHandler,
 		scheduledTxsExecutionHandler: args.ScheduledTxsExecutionHandler,
+		txCacheSelectionConfig:       args.TxCacheSelectionConfig,
 	}
 
 	txs.txPool.RegisterOnAdded(txs.receivedTransaction)
@@ -940,10 +956,10 @@ func wrappedTxsToTxHashes(wrappedTxs []*txcache.WrappedTransaction) [][]byte {
 func (txs *transactions) CreateAndProcessMiniBlocks(haveTime func() bool, randomness []byte) (block.MiniBlockSlice, error) {
 	startTime := time.Now()
 
-	gasBandwidth := txs.getRemainingGasPerBlock() * selectionGasBandwidthIncreasePercent / 100
+	gasBandwidth := txs.getRemainingGasPerBlock() * uint64(txs.txCacheSelectionConfig.SelectionGasBandwidthIncreasePercent) / 100
 	gasBandwidthForScheduled := uint64(0)
 	if txs.enableEpochsHandler.IsFlagEnabled(common.ScheduledMiniBlocksFlag) {
-		gasBandwidthForScheduled = txs.getRemainingGasPerBlockAsScheduled() * selectionGasBandwidthIncreaseScheduledPercent / 100
+		gasBandwidthForScheduled = txs.getRemainingGasPerBlockAsScheduled() * uint64(txs.txCacheSelectionConfig.SelectionGasBandwidthIncreaseScheduledPercent) / 100
 		gasBandwidth += gasBandwidthForScheduled
 	}
 
@@ -1328,18 +1344,18 @@ func createEmptyMiniBlockFromMiniBlock(miniBlock *block.MiniBlock) *block.MiniBl
 func (txs *transactions) selectTransactionsFromTxPoolForProposal(
 	sndShardId uint32,
 	dstShardId uint32,
-	gasBandwidth uint64) ([]*txcache.WrappedTransaction, error) {
+	gasBandwidth uint64
+	) ([]*txcache.WrappedTransaction, error) {
 	strCache := process.ShardCacherIdentifier(sndShardId, dstShardId)
 	txShardPool := txs.txPool.ShardDataStore(strCache)
 
 	if check.IfNil(txShardPool) {
 		return nil, process.ErrNilTxDataPool
 	}
-
-	// TODO: pas the gasBandwidth for the selection, as this could be dynamic
-	_ = gasBandwidth
-	sortedTransactionsProvider := createSortedTransactionsProvider(txShardPool)
-	log.Debug("computeSortedTxs.GetSortedTransactions")
+	txCache, isTxCache := txShardPool.(TxCache)
+	if !isTxCache {
+		return nil, fmt.Errorf("%w: 'txShardPool' should be of type 'TxCache'", process.ErrWrongTypeAssertion)
+	}
 
 	session, err := NewSelectionSession(ArgsSelectionSession{
 		AccountsAdapter:       txs.accountsProposal,
@@ -1349,7 +1365,14 @@ func (txs *transactions) selectTransactionsFromTxPoolForProposal(
 		return nil, err
 	}
 
-	return sortedTransactionsProvider.GetSortedTransactions(session), nil
+	selectionOptions := holders.NewTxSelectionOptions(
+		gasBandwidth,
+		txs.txCacheSelectionConfig.SelectionMaxNumTxs,
+		txs.txCacheSelectionConfig.SelectionLoopMaximumDuration,
+		txs.txCacheSelectionConfig.SelectionLoopDurationCheckInterval,
+	)
+
+	return txCache.SelectTransactions(session, selectionOptions)
 }
 
 func (txs *transactions) selectTransactionsFromTxPool(
@@ -1363,11 +1386,10 @@ func (txs *transactions) selectTransactionsFromTxPool(
 	if check.IfNil(txShardPool) {
 		return nil, process.ErrNilTxDataPool
 	}
-
-	// TODO: gas bandwidth will be passed with the merge of new txpool
-	_ = gasBandwidth
-	sortedTransactionsProvider := createSortedTransactionsProvider(txShardPool)
-	log.Debug("computeSortedTxs.GetSortedTransactions")
+	txCache, isTxCache := txShardPool.(TxCache)
+	if !isTxCache {
+		return nil, fmt.Errorf("%w: 'txShardPool' should be of type 'TxCache'", process.ErrWrongTypeAssertion)
+	}
 
 	session, err := NewSelectionSession(ArgsSelectionSession{
 		AccountsAdapter:       txs.accounts,
@@ -1377,7 +1399,14 @@ func (txs *transactions) selectTransactionsFromTxPool(
 		return nil, err
 	}
 
-	return sortedTransactionsProvider.GetSortedTransactions(session), nil
+	selectionOptions := holders.NewTxSelectionOptions(
+		gasBandwidth,
+		txs.txCacheSelectionConfig.SelectionMaxNumTxs,
+		txs.txCacheSelectionConfig.SelectionLoopMaximumDuration,
+		txs.txCacheSelectionConfig.SelectionLoopDurationCheckInterval,
+	)
+
+	return txCache.SelectTransactions(session, selectionOptions)
 }
 
 func (txs *transactions) computeSortedTxs(
@@ -1386,12 +1415,18 @@ func (txs *transactions) computeSortedTxs(
 	gasBandwidth uint64,
 	randomness []byte,
 ) ([]*txcache.WrappedTransaction, []*txcache.WrappedTransaction, error) {
+	log.Debug("computeSortedTxs",
+		"sndShardId", sndShardId,
+		"dstShardId", dstShardId,
+		"gasBandwidth", gasBandwidth,
+		"randomness", randomness,
+	)
+
 	sortedTxs, err := txs.selectTransactionsFromTxPool(sndShardId, dstShardId, gasBandwidth)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	// TODO: this could be moved to SortedTransactionsProvider
 	selectedTxs, remainingTxs := txs.preFilterTransactionsWithMoveBalancePriority(sortedTxs, gasBandwidth)
 	txs.sortTransactionsBySenderAndNonce(selectedTxs, randomness)
 
