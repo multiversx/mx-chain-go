@@ -286,13 +286,13 @@ func createPersisterForEpoch(
 		return
 	}
 
-	p, err := createPersisterDataForEpoch(persisterFactory, filePath, uint32(epoch))
+	p, err := createPersisterDataForEpoch(persisterFactory, filePath, epoch)
 	if err != nil {
 		log.Warn("createPersisterForEpoch", "epoch", epoch, "error", err.Error())
 		return
 	}
 
-	persistersMapByEpoch[uint32(epoch)] = p
+	persistersMapByEpoch[epoch] = p
 }
 
 func createPersisterIfPruningDisabled(
@@ -534,7 +534,6 @@ func (ps *PruningStorer) Close() error {
 		}
 
 		err := pd.Close()
-
 		if err != nil {
 			log.Warn("cannot close pd", "error", err)
 			closedSuccessfully = false
