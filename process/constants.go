@@ -108,10 +108,12 @@ const MinForkRound = uint64(0)
 // MaxMetaNoncesBehind defines the maximum difference between the current meta block nonce and the processed meta block
 // nonce before a shard is considered stuck
 const MaxMetaNoncesBehind = 15
+const SupernovaMaxMetaNoncesBehind = 75
 
 // MaxMetaNoncesBehindForGlobalStuck defines the maximum difference between the current meta block nonce and the processed
 // meta block nonce for any shard, where the chain is considered stuck and enters recovery
 const MaxMetaNoncesBehindForGlobalStuck = 30
+const SupernovaMaxMetaNoncesBehindForGlobalStuck = 120
 
 // MaxShardNoncesBehind defines the maximum difference between the current shard block nonce and the last notarized
 // shard block nonce by meta, before meta is considered stuck
