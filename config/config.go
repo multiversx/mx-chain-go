@@ -339,6 +339,7 @@ type FacadeConfig struct {
 	RestApiInterface            string
 	PprofEnabled                bool
 	P2PPrometheusMetricsEnabled bool
+	TxCacheSelectionConfig      TxCacheSelectionConfig
 }
 
 // StateTriesConfig will hold information about state tries

@@ -2,6 +2,7 @@ package mock
 
 import (
 	"context"
+
 	"github.com/multiversx/mx-chain-core-go/data/smartContractResult"
 
 	"github.com/multiversx/mx-chain-core-go/data/alteredAccount"
@@ -44,6 +45,7 @@ type ApiResolverStub struct {
 	GetTransactionsPoolForSenderCalled          func(sender, fields string) (*common.TransactionsPoolForSenderApiResponse, error)
 	GetLastPoolNonceForSenderCalled             func(sender string) (uint64, error)
 	GetTransactionsPoolNonceGapsForSenderCalled func(sender string, senderAccountNonce uint64) (*common.TransactionsPoolNonceGapsForSenderApiResponse, error)
+	GetSelectedTransactionsCalled               func(accountsAdapter state.AccountsAdapter, selectionOptions common.TxSelectionOptions) (*common.TransactionsSelectionSimulationResult, error)
 	GetGasConfigsCalled                         func() map[string]map[string]uint64
 	GetManagedKeysCountCalled                   func() int
 	GetManagedKeysCalled                        func() []string
@@ -243,6 +245,15 @@ func (ars *ApiResolverStub) GetLastPoolNonceForSender(sender string) (uint64, er
 func (ars *ApiResolverStub) GetTransactionsPoolNonceGapsForSender(sender string, senderAccountNonce uint64) (*common.TransactionsPoolNonceGapsForSenderApiResponse, error) {
 	if ars.GetTransactionsPoolNonceGapsForSenderCalled != nil {
 		return ars.GetTransactionsPoolNonceGapsForSenderCalled(sender, senderAccountNonce)
+	}
+
+	return nil, nil
+}
+
+// GetSelectedTransactions -
+func (ars *ApiResolverStub) GetSelectedTransactions(accountsAdapter state.AccountsAdapter, selectionOptions common.TxSelectionOptions) (*common.TransactionsSelectionSimulationResult, error) {
+	if ars.GetSelectedTransactionsCalled != nil {
+		return ars.GetSelectedTransactionsCalled(accountsAdapter, selectionOptions)
 	}
 
 	return nil, nil

@@ -2,8 +2,9 @@ package mock
 
 import (
 	"encoding/hex"
-	"github.com/multiversx/mx-chain-core-go/data/smartContractResult"
 	"math/big"
+
+	"github.com/multiversx/mx-chain-core-go/data/smartContractResult"
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data/alteredAccount"
@@ -85,6 +86,7 @@ type FacadeStub struct {
 	GetTransactionsPoolForSenderCalled          func(sender, fields string) (*common.TransactionsPoolForSenderApiResponse, error)
 	GetLastPoolNonceForSenderCalled             func(sender string) (uint64, error)
 	GetTransactionsPoolNonceGapsForSenderCalled func(sender string) (*common.TransactionsPoolNonceGapsForSenderApiResponse, error)
+	GetSelectedTransactionsCalled               func() (*common.TransactionsSelectionSimulationResult, error)
 	GetGasConfigsCalled                         func() (map[string]map[string]uint64, error)
 	RestApiInterfaceCalled                      func() string
 	RestAPIServerDebugModeCalled                func() bool
@@ -668,6 +670,15 @@ func (f *FacadeStub) GetLastPoolNonceForSender(sender string) (uint64, error) {
 func (f *FacadeStub) GetTransactionsPoolNonceGapsForSender(sender string) (*common.TransactionsPoolNonceGapsForSenderApiResponse, error) {
 	if f.GetTransactionsPoolNonceGapsForSenderCalled != nil {
 		return f.GetTransactionsPoolNonceGapsForSenderCalled(sender)
+	}
+
+	return nil, nil
+}
+
+// GetSelectedTransactions -
+func (f *FacadeStub) GetSelectedTransactions() (*common.TransactionsSelectionSimulationResult, error) {
+	if f.GetSelectedTransactionsCalled != nil {
+		return f.GetSelectedTransactionsCalled()
 	}
 
 	return nil, nil

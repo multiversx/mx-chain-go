@@ -9,6 +9,7 @@ import (
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/process"
 	txSimData "github.com/multiversx/mx-chain-go/process/transactionEvaluator/data"
+	"github.com/multiversx/mx-chain-go/state"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 )
 
@@ -68,6 +69,7 @@ type APITransactionHandler interface {
 	GetTransactionsPoolForSender(sender, fields string) (*common.TransactionsPoolForSenderApiResponse, error)
 	GetLastPoolNonceForSender(sender string) (uint64, error)
 	GetTransactionsPoolNonceGapsForSender(sender string, senderAccountNonce uint64) (*common.TransactionsPoolNonceGapsForSenderApiResponse, error)
+	GetSelectedTransactions(accountsAdapter state.AccountsAdapter, selectionOptions common.TxSelectionOptions) (*common.TransactionsSelectionSimulationResult, error)
 	UnmarshalTransaction(txBytes []byte, txType transaction.TxType) (*transaction.ApiTransactionResult, error)
 	PopulateComputedFields(tx *transaction.ApiTransactionResult)
 	UnmarshalReceipt(receiptBytes []byte) (*transaction.ApiReceipt, error)
