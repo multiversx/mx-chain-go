@@ -132,6 +132,7 @@ type WorkerHandler interface {
 
 type ConsensusMetricsHandler interface {
 	IsInterfaceNil() bool
+	IsProofForCurrentConsensusSet() bool
 	ResetAverages()
 	ResetInstanceValues()
 	SetBlockBodyReceived(blockHash []byte, delayFromRoundStart uint64)

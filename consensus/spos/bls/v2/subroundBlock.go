@@ -257,7 +257,10 @@ func (sr *subroundBlock) sendBlockBody(
 	currentTime := sr.SyncTimer().CurrentTime()
 	metricsTime := currentTime.Sub(sr.RoundHandler().TimeStamp()).Nanoseconds()
 	//defer sr.AppStatusHandler().SetUInt64Value(common.MetricReceivedProposedBlockBody, uint64(metricsTime))
-	sr.worker.GetConsensusMetrics().SetBlockBodyReceived(sr.GetData(), uint64(metricsTime))
+	consensusMetrics := sr.worker.GetConsensusMetrics()
+	if consensusMetrics != nil {
+		consensusMetrics.SetBlockBodyReceived(sr.GetData(), uint64(metricsTime))
+	}
 	log.Debug("Sent block body v2", "hash", sr.GetData(), "time", metricsTime, "currentTime", currentTime, "roundTime", sr.RoundHandler().TimeStamp())
 
 	sr.SetBody(bodyHandler)
@@ -294,7 +297,10 @@ func (sr *subroundBlock) sendBlockHeader(
 	currentTime := sr.SyncTimer().CurrentTime()
 	metricsTime := currentTime.Sub(sr.RoundHandler().TimeStamp()).Nanoseconds()
 
-	sr.worker.GetConsensusMetrics().SetBlockHeaderReceived(sr.GetData(), uint64(metricsTime))
+	consensusMetrics := sr.worker.GetConsensusMetrics()
+	if consensusMetrics != nil {
+		consensusMetrics.SetBlockHeaderReceived(sr.GetData(), uint64(metricsTime))
+	}
 	log.Debug("Sent block header v2", "hash", sr.GetData(), "time", metricsTime, "currentTime", currentTime, "roundTime", sr.RoundHandler().TimeStamp())
 
 	return true
@@ -397,8 +403,11 @@ func (sr *subroundBlock) receivedBlockBody(ctx context.Context, cnsDta *consensu
 
 	currentTime := sr.SyncTimer().CurrentTime()
 	metricsTime := currentTime.Sub(sr.RoundHandler().TimeStamp()).Nanoseconds()
-	//defer sr.AppStatusHandler().SetUInt64Value(common.MetricReceivedProposedBlockBody, uint64(metricsTime))
-	sr.worker.GetConsensusMetrics().SetBlockBodyReceived(sr.GetData(), uint64(metricsTime))
+
+	consensusMetrics := sr.worker.GetConsensusMetrics()
+	if consensusMetrics != nil {
+		consensusMetrics.SetBlockBodyReceived(sr.GetData(), uint64(metricsTime))
+	}
 	log.Debug("Received block body v2", "hash", sr.GetData(), "time", metricsTime, "currentTime", currentTime, "roundTime", sr.RoundHandler().TimeStamp())
 
 	blockProcessedWithSuccess := sr.processReceivedBlock(ctx, cnsDta.RoundIndex, cnsDta.PubKey)
@@ -535,7 +544,11 @@ func (sr *subroundBlock) receivedBlockHeader(headerHandler data.HeaderHandler) {
 
 	currentTime := sr.SyncTimer().CurrentTime()
 	metricsTime := currentTime.Sub(sr.RoundHandler().TimeStamp()).Nanoseconds()
-	sr.worker.GetConsensusMetrics().SetBlockHeaderReceived(sr.GetData(), uint64(metricsTime))
+
+	consensusMetrics := sr.worker.GetConsensusMetrics()
+	if consensusMetrics != nil {
+		consensusMetrics.SetBlockHeaderReceived(sr.GetData(), uint64(metricsTime))
+	}
 	log.Debug("Received block header v2", "hash", sr.GetData(), "time", metricsTime, "currentTime", currentTime, "roundTime", sr.RoundHandler().TimeStamp())
 
 	ctx, cancel := context.WithTimeout(context.Background(), sr.RoundHandler().TimeDuration())

@@ -18,8 +18,10 @@ type ConsensusMetrics struct {
 	blockSignedDelaySum   uint64
 	blockSignedCount      uint64
 
-	appStatusHandler core.AppStatusHandler
-	mut              sync.RWMutex
+	isBlockBodyAlreadyReceived bool
+	isProofAlreadyReceived     bool
+	appStatusHandler           core.AppStatusHandler
+	mut                        sync.RWMutex
 }
 
 // NewConsensusMetrics creates a new instance of ConsensusMetrics
@@ -41,7 +43,11 @@ func (cm *ConsensusMetrics) ResetInstanceValues() {
 
 	cm.blockHeaderReceivedOrSentDelay = uint64(0)
 	cm.blockBodyReceivedOrSentDelay = uint64(0)
+
 	cm.blockHash = nil
+	cm.isBlockBodyAlreadyReceived = false
+	cm.isProofAlreadyReceived = false
+
 	log.Debug("Consensus metrics instance values have been reset for the next round",
 		"blockHeaderReceivedOrSentDelay", oldBlockHeaderReceivedOrSentDelay,
 		"blockBodyReceivedOrSentDelay", oldBlockBodyReceivedOrSentDelay,
@@ -67,13 +73,16 @@ func (cm *ConsensusMetrics) ResetAverages() {
 func (cm *ConsensusMetrics) SetBlockHeaderReceived(blockHash []byte, delayFromRoundStart uint64) {
 	cm.mut.Lock()
 
-	if cm.blockHash == nil {
+	if cm.blockHash == nil && !cm.isBlockBodyAlreadyReceived {
 		// first block information received
 		cm.blockHash = blockHash
 		cm.blockHeaderReceivedOrSentDelay = delayFromRoundStart
-	} else if string(cm.blockHash) == string(blockHash) && cm.blockHeaderReceivedOrSentDelay == 0 {
+	} else if (string(cm.blockHash) == string(blockHash) || cm.blockHash == nil && cm.isBlockBodyAlreadyReceived) && cm.blockHeaderReceivedOrSentDelay == 0 {
 		// all block information received, update metrics
 		cm.blockHeaderReceivedOrSentDelay = delayFromRoundStart
+		// if block body comes first, it may not have a hash yet
+		cm.blockHash = blockHash
+
 		metricValue := max(cm.blockHeaderReceivedOrSentDelay, cm.blockBodyReceivedOrSentDelay)
 		defer cm.appStatusHandler.SetUInt64Value(common.MetricReceivedProposedBlockBody, metricValue)
 		cm.updateAverage(common.MetricReceivedProposedBlockBody, delayFromRoundStart)
@@ -98,6 +107,7 @@ func (cm *ConsensusMetrics) SetBlockBodyReceived(blockHash []byte, delayFromRoun
 		cm.updateAverage(common.MetricReceivedProposedBlockBody, delayFromRoundStart)
 	}
 
+	cm.isBlockBodyAlreadyReceived = true
 	cm.mut.Unlock()
 }
 
@@ -131,6 +141,7 @@ func (cm *ConsensusMetrics) SetSignaturesReceived(blockHash []byte, delayProofFr
 		cm.updateAverage(common.MetricReceivedSignatures, metricsTime)
 	}
 
+	cm.isProofAlreadyReceived = true
 	return nil
 }
 
@@ -171,6 +182,13 @@ func (cm *ConsensusMetrics) GetValuesForTesting() map[string]interface{} {
 	result["blockSignedDelaySum"] = cm.blockSignedDelaySum
 	result["blockSignedCount"] = cm.blockSignedCount
 	return result
+}
+
+func (cm *ConsensusMetrics) IsProofForCurrentConsensusSet() bool {
+	cm.mut.RLock()
+	defer cm.mut.RUnlock()
+
+	return cm.isProofAlreadyReceived
 }
 
 func (cm *ConsensusMetrics) IsInterfaceNil() bool {

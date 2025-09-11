@@ -120,6 +120,7 @@ func (sr *subroundEndRound) receivedProof(proof consensus.ProofHandler) {
 		"AggregateSignature", proof.GetAggregatedSignature(),
 		"HeaderHash", proof.GetHeaderHash())
 
+	sr.updateConsensusMetricsIfNeeded()
 	sr.doEndRoundJobByNode()
 }
 
@@ -968,6 +969,21 @@ func (sr *subroundEndRound) getNumOfSignaturesCollected() int {
 	}
 
 	return n
+}
+
+// updateConsensusMetricsIfNeeded sets the consensus metrics if it has not been previously set
+func (sr *subroundEndRound) updateConsensusMetricsIfNeeded() {
+	if sr.worker.GetConsensusMetrics().IsProofForCurrentConsensusSet() {
+		return
+	}
+	currentTime := sr.SyncTimer().CurrentTime()
+	metricsTime := currentTime.Sub(sr.RoundHandler().TimeStamp()).Nanoseconds()
+	err := sr.worker.GetConsensusMetrics().SetSignaturesReceived(sr.GetData(), uint64(metricsTime))
+	if err != nil {
+		log.Warn("Consensus metrics SetProofReceived", "error", err.Error())
+	} else {
+		log.Debug("Received proof v2", "hash", sr.GetData(), "time", metricsTime, "currentTime", currentTime, "roundTime", sr.RoundHandler().TimeStamp())
+	}
 }
 
 // areSignaturesCollected method checks if the signatures received from the nodes, belonging to the current
