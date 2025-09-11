@@ -15,13 +15,13 @@ func (tc *transactionCoordinator) CreateMbsCrossShardDstMe(
 	hdr data.HeaderHandler,
 	processedMiniBlocksInfo map[string]*processedMb.ProcessedMiniBlockInfo,
 ) ([]block.MiniblockAndHash, uint32, bool, error) {
+	if check.IfNil(hdr) {
+		return nil, 0, false, process.ErrNilHeaderHandler
+	}
+
+	numMiniBlocksAlreadyProcessed := 0
 	miniBlocksAndHashes := make([]block.MiniblockAndHash, 0)
 	numTransactions := uint32(0)
-	if check.IfNil(hdr) {
-		log.Warn("transactionCoordinator.CreateMbsCrossShardDstMe header is nil")
-
-		return miniBlocksAndHashes, 0, false, nil
-	}
 	shouldSkipShard := make(map[uint32]bool)
 	// TODO: init the gas estimation per added mbs counter
 
@@ -52,6 +52,7 @@ func (tc *transactionCoordinator) CreateMbsCrossShardDstMe(
 
 		processedMbInfo := getProcessedMiniBlockInfo(processedMiniBlocksInfo, miniBlockInfo.Hash)
 		if processedMbInfo.FullyProcessed {
+			numMiniBlocksAlreadyProcessed++
 			log.Trace("transactionCoordinator.CreateMbsCrossShardDstMe: mini block already processed",
 				"sender shard", miniBlockInfo.SenderShardID,
 				"hash", miniBlockInfo.Hash,
@@ -115,7 +116,7 @@ func (tc *transactionCoordinator) CreateMbsCrossShardDstMe(
 		numTransactions += uint32(len(miniBlock.TxHashes))
 	}
 
-	allMiniBlocksAdded := len(miniBlocksAndHashes) == len(finalCrossMiniBlockInfos)
+	allMiniBlocksAdded := len(miniBlocksAndHashes)+numMiniBlocksAlreadyProcessed == len(finalCrossMiniBlockInfos)
 
 	return miniBlocksAndHashes, numTransactions, allMiniBlocksAdded, nil
 }
@@ -123,6 +124,7 @@ func (tc *transactionCoordinator) CreateMbsCrossShardDstMe(
 // SelectOutgoingTransactions returns transactions originating in the shard, for a block proposal
 func (tc *transactionCoordinator) SelectOutgoingTransactions() [][]byte {
 	txHashes := make([][]byte, 0)
+	currentTxHashes := make([][]byte, 0)
 	var err error
 	for _, blockType := range tc.preProcProposal.keysTxPreProcs {
 		txPreProc := tc.preProcProposal.getPreProcessor(blockType)
@@ -131,12 +133,12 @@ func (tc *transactionCoordinator) SelectOutgoingTransactions() [][]byte {
 			continue
 		}
 
-		txHashes, err = txPreProc.SelectOutgoingTransactions()
+		currentTxHashes, err = txPreProc.SelectOutgoingTransactions()
 		if err != nil {
 			log.Warn("transactionCoordinator.SelectOutgoingTransactions: SelectOutgoingTransactions returned error", "error", err)
 			continue
 		}
-		txHashes = append(txHashes, txHashes...)
+		txHashes = append(txHashes, currentTxHashes...)
 	}
 
 	return txHashes
