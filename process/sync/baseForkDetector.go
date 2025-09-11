@@ -764,6 +764,8 @@ func (bfd *baseForkDetector) checkGenesisTimeForHeaderAfterSupernovaWithoutRound
 	roundDifference := int64(headerHandler.GetRound() - bfd.genesisRound)
 	genesisTime := int64(headerHandler.GetTimeStamp()) - roundDifference*roundDuration
 
+	_ = bfd.GetSupernovaGenesisTimestamp()
+
 	log.Trace("getGenesisTimeForHeaderAfterSupernovaWithoutRoundActivation",
 		"roundDuration", roundDuration,
 		"roundDifference", roundDifference,
@@ -838,11 +840,13 @@ func (bfd *baseForkDetector) checkGenesisTimeForHeaderAfterSupernovaWithRoundAct
 func (rnd *baseForkDetector) GetSupernovaGenesisTimestamp() int64 {
 	supernovaStartRound := int64(rnd.enableRoundsHandler.GetActivationRound(common.SupernovaRoundFlag))
 	if supernovaStartRound != rnd.superstartRound {
-		genesisTimeDuration := time.Unix(rnd.genesisTime, 0)
+		genesisTime := common.GetGenesisStartTimeFromUnixTimestamp(rnd.genesisTime, rnd.enableEpochsHandler)
 		rnd.superstartRound = supernovaStartRound
-
-		rnd.supernovaGenesisTime = genesisTimeDuration.Add(time.Duration(supernovaStartRound * rnd.roundHandler.TimeDuration().Nanoseconds())).UnixMilli()
-		log.Debug("baseForkDetector.go: GetSupernovaGenesisTimestamp: force set supernovaStartRound", "round", supernovaStartRound, "supernovaGenesisTimeStamp", rnd.supernovaGenesisTime)
+		rnd.supernovaGenesisTime = genesisTime.Add(time.Duration(supernovaStartRound * rnd.roundHandler.TimeDuration().Nanoseconds())).UnixMilli()
+		log.Debug("baseForkDetector.go: GetSupernovaGenesisTimestamp: force set supernovaStartRound",
+			"round", supernovaStartRound,
+			"supernovaGenesisTimeStamp", rnd.supernovaGenesisTime,
+			"genesisTime", rnd.genesisTime)
 	}
 
 	return rnd.supernovaGenesisTime
