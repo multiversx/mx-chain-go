@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
 
@@ -435,8 +436,8 @@ func (atp *apiTransactionProcessor) getFieldGettersForTx(wrappedTx *txcache.Wrap
 }
 
 func (atp *apiTransactionProcessor) selectTransactions(accountsAdapter state.AccountsAdapter, selectionOptions common.TxSelectionOptions) ([]string, error) {
-	cacheId := atp.dataPool.Transactions().GetSelfShardID()
-	cache := atp.dataPool.Transactions().ShardDataStore(cacheId)
+	cacheId := atp.shardCoordinator.SelfId()
+	cache := atp.dataPool.Transactions().ShardDataStore(strconv.Itoa(int(cacheId)))
 	txCache, ok := cache.(*txcache.TxCache)
 	if !ok {
 		log.Warn("apiTransactionProcessor.selectTransactions could not cast to TxCache")
