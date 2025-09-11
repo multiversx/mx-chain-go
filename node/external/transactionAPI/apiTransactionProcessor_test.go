@@ -1380,9 +1380,6 @@ func TestApiTransactionProcessor_GetVirtualNonce(t *testing.T) {
 						}
 						return nil
 					},
-					GetSelfShardIDCalled: func() string {
-						return "1"
-					},
 				}
 			},
 		}
@@ -1430,9 +1427,6 @@ func TestApiTransactionProcessor_GetVirtualNonce(t *testing.T) {
 							return cache
 						}
 						return nil
-					},
-					GetSelfShardIDCalled: func() string {
-						return "1"
 					},
 				}
 			},
@@ -1482,9 +1476,6 @@ func TestApiTransactionProcessor_GetVirtualNonce(t *testing.T) {
 						}
 						return nil
 					},
-					GetSelfShardIDCalled: func() string {
-						return "1"
-					},
 				}
 			},
 		}
@@ -1507,9 +1498,6 @@ func TestApiTransactionProcessor_GetVirtualNonce(t *testing.T) {
 				return &testscommon.ShardedDataStub{
 					ShardDataStoreCalled: func(cacheID string) storage.Cacher {
 						return nil
-					},
-					GetSelfShardIDCalled: func() string {
-						return ""
 					},
 				}
 			},

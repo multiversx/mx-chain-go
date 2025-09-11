@@ -489,8 +489,8 @@ func (atp *apiTransactionProcessor) extractTxHashes(txs []*txcache.WrappedTransa
 }
 
 func (atp *apiTransactionProcessor) getVirtualNonce(address []byte, accountsAdapter state.AccountsAdapter) (uint64, error) {
-	cacheId := atp.dataPool.Transactions().GetSelfShardID()
-	cache := atp.dataPool.Transactions().ShardDataStore(cacheId)
+	cacheId := atp.shardCoordinator.SelfId()
+	cache := atp.dataPool.Transactions().ShardDataStore(strconv.Itoa(int(cacheId)))
 	txCache, ok := cache.(*txcache.TxCache)
 	if !ok {
 		log.Warn("apiTransactionProcessor.getVirtualNonce could not cast to TxCache")
