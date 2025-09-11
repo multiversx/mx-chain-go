@@ -2199,7 +2199,7 @@ func TestNodeFacade_GetVirtualNonce(t *testing.T) {
 		}
 
 		nf, _ := NewNodeFacade(arg)
-		res, err := nf.GetVirtualNonce([]byte("address"))
+		res, err := nf.GetVirtualNonce("address")
 		require.Nil(t, res)
 		require.Equal(t, ErrNilCurrentRootHash, err)
 	})
@@ -2218,7 +2218,7 @@ func TestNodeFacade_GetVirtualNonce(t *testing.T) {
 		}
 
 		nf, _ := NewNodeFacade(arg)
-		res, err := nf.GetVirtualNonce([]byte("address"))
+		res, err := nf.GetVirtualNonce("address")
 		require.Nil(t, res)
 		require.Equal(t, ErrNilBlockHeader, err)
 	})
@@ -2234,7 +2234,7 @@ func TestNodeFacade_GetVirtualNonce(t *testing.T) {
 		}
 
 		nf, _ := NewNodeFacade(arg)
-		res, err := nf.GetVirtualNonce([]byte("address"))
+		res, err := nf.GetVirtualNonce("address")
 		require.Nil(t, res)
 		require.Equal(t, expectedErr, err)
 	})
@@ -2256,7 +2256,7 @@ func TestNodeFacade_GetVirtualNonce(t *testing.T) {
 		}
 
 		nf, _ := NewNodeFacade(arg)
-		res, err := nf.GetVirtualNonce([]byte("address"))
+		res, err := nf.GetVirtualNonce("address")
 		require.Nil(t, res)
 		require.Equal(t, expectedErr, err)
 	})
@@ -2279,7 +2279,7 @@ func TestNodeFacade_GetVirtualNonce(t *testing.T) {
 		}
 
 		nf, _ := NewNodeFacade(arg)
-		res, err := nf.GetVirtualNonce([]byte("address"))
+		res, err := nf.GetVirtualNonce("address")
 		require.NoError(t, err)
 		require.Equal(t, expectedRes, res)
 	})

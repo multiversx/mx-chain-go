@@ -1060,7 +1060,7 @@ func TestTransactionsGroup_GetVirtualNonce(t *testing.T) {
 		t.Parallel()
 
 		facade := &mock.FacadeStub{
-			GetVirtualNonceCalled: func(address []byte) (*common.VirtualNonceOfAccountResponse, error) {
+			GetVirtualNonceCalled: func(address string) (*common.VirtualNonceOfAccountResponse, error) {
 				return nil, expectedErr
 			},
 		}
@@ -1084,8 +1084,8 @@ func TestTransactionsGroup_GetVirtualNonce(t *testing.T) {
 		}
 
 		facade := &mock.FacadeStub{
-			GetVirtualNonceCalled: func(address []byte) (*common.VirtualNonceOfAccountResponse, error) {
-				if bytes.Equal(address, []byte("alice")) {
+			GetVirtualNonceCalled: func(address string) (*common.VirtualNonceOfAccountResponse, error) {
+				if address == "alice" {
 					return expectedResult, nil
 				}
 				return expectedResult, nil
