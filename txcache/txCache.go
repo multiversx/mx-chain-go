@@ -123,7 +123,6 @@ func (cache *TxCache) SelectTransactions(
 
 	rootHash, err := session.GetRootHash()
 	if err != nil {
-		// TODO propagate the error
 		log.Error("TxCache.SelectTransactions", "err", err)
 		return nil, 0, err
 	}

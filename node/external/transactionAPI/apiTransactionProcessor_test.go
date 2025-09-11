@@ -1204,9 +1204,6 @@ func TestApiTransactionProcessor_GetSelectedTransactions(t *testing.T) {
 						}
 						return nil
 					},
-					GetSelfShardIDCalled: func() string {
-						return "1"
-					},
 				}
 			},
 		}
@@ -1260,9 +1257,6 @@ func TestApiTransactionProcessor_GetSelectedTransactions(t *testing.T) {
 						}
 						return nil
 					},
-					GetSelfShardIDCalled: func() string {
-						return "1"
-					},
 				}
 			},
 		}
@@ -1301,9 +1295,6 @@ func TestApiTransactionProcessor_GetSelectedTransactions(t *testing.T) {
 						}
 						return nil
 					},
-					GetSelfShardIDCalled: func() string {
-						return "1"
-					},
 				}
 			},
 		}
@@ -1333,9 +1324,6 @@ func TestApiTransactionProcessor_GetSelectedTransactions(t *testing.T) {
 				return &testscommon.ShardedDataStub{
 					ShardDataStoreCalled: func(cacheID string) storage.Cacher {
 						return nil
-					},
-					GetSelfShardIDCalled: func() string {
-						return ""
 					},
 				}
 			},
