@@ -25,7 +25,6 @@ type ShardedDataStub struct {
 	ImmunizeSetOfDataAgainstEvictionCalled func(keys [][]byte, cacheID string)
 	CreateShardStoreCalled                 func(destCacheID string)
 	GetCountsCalled                        func() counting.CountsWithSize
-	GetSelfShardIDCalled                   func() string
 	KeysCalled                             func() [][]byte
 	CleanupSelfShardTxCacheCalled          func(session interface{}, randomness uint64, maxNum int, cleanupLoopMaximumDuration time.Duration)
 	OnExecutedBlockCalled                  func(blockHeader data.HeaderHandler) error
@@ -122,15 +121,6 @@ func (sd *ShardedDataStub) GetCounts() counting.CountsWithSize {
 	}
 
 	return &counting.NullCounts{}
-}
-
-// GetSelfShardID -
-func (mock *ShardedDataStub) GetSelfShardID() string {
-	if mock.GetSelfShardIDCalled != nil {
-		return mock.GetSelfShardIDCalled()
-	}
-
-	return ""
 }
 
 // Keys -

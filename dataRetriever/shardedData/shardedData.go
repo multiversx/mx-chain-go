@@ -324,12 +324,6 @@ func (sd *shardedData) OnExecutedBlock(_ data.HeaderHandler) error {
 	return nil
 }
 
-// GetSelfShardID does nothing (only to satisfy the interface dataRetriever.ShardedDataCacherNotifier)
-func (sd *shardedData) GetSelfShardID() string {
-	log.Warn("shardedData.GetSelfShardID() should not have been called")
-	return ""
-}
-
 // IsInterfaceNil returns true if there is no value under the interface
 func (sd *shardedData) IsInterfaceNil() bool {
 	return sd == nil

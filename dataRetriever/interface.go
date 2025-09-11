@@ -181,7 +181,6 @@ type ShardedDataCacherNotifier interface {
 	Clear()
 	ClearShardStore(cacheId string)
 	GetCounts() counting.CountsWithSize
-	GetSelfShardID() string
 	Keys() [][]byte
 	IsInterfaceNil() bool
 	CleanupSelfShardTxCache(accountsProvider common.AccountNonceProvider, randomness uint64, maxNum int, cleanupLoopMaximumDuration time.Duration)
