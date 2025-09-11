@@ -7,8 +7,6 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
-	"github.com/multiversx/mx-chain-core-go/hashing"
-	"github.com/multiversx/mx-chain-core-go/marshal"
 
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
@@ -20,6 +18,10 @@ import (
 
 var _ process.DataMarshalizer = (*validatorInfoPreprocessor)(nil)
 var _ process.PreProcessor = (*validatorInfoPreprocessor)(nil)
+
+type ValidatorInfoPreProcessorArgs struct {
+	BasePreProcessorArgs
+}
 
 type validatorInfoPreprocessor struct {
 	*basePreProcess
@@ -33,37 +35,14 @@ type validatorInfoPreprocessor struct {
 
 // NewValidatorInfoPreprocessor creates a new validatorInfo preprocessor object
 func NewValidatorInfoPreprocessor(
-	hasher hashing.Hasher,
-	marshalizer marshal.Marshalizer,
-	blockSizeComputation BlockSizeComputationHandler,
-	validatorsInfoPool dataRetriever.ShardedDataCacherNotifier,
-	store dataRetriever.StorageService,
-	enableEpochsHandler common.EnableEpochsHandler,
-	shardCoordinator sharding.Coordinator,
+	args ValidatorInfoPreProcessorArgs,
 ) (*validatorInfoPreprocessor, error) {
+	err := CheckBasePreProcessArgs(args.BasePreProcessorArgs)
+	if err != nil {
+		return nil, err
+	}
 
-	if check.IfNil(hasher) {
-		return nil, process.ErrNilHasher
-	}
-	if check.IfNil(marshalizer) {
-		return nil, process.ErrNilMarshalizer
-	}
-	if check.IfNil(blockSizeComputation) {
-		return nil, process.ErrNilBlockSizeComputationHandler
-	}
-	if check.IfNil(validatorsInfoPool) {
-		return nil, process.ErrNilValidatorInfoPool
-	}
-	if check.IfNil(store) {
-		return nil, process.ErrNilStorage
-	}
-	if check.IfNil(enableEpochsHandler) {
-		return nil, process.ErrNilEnableEpochsHandler
-	}
-	if check.IfNil(shardCoordinator) {
-		return nil, process.ErrNilShardCoordinator
-	}
-	err := core.CheckHandlerCompatibility(enableEpochsHandler, []core.EnableEpochFlag{
+	err = core.CheckHandlerCompatibility(args.EnableEpochsHandler, []core.EnableEpochFlag{
 		common.RefactorPeersMiniBlocksFlag,
 	})
 	if err != nil {
@@ -71,22 +50,22 @@ func NewValidatorInfoPreprocessor(
 	}
 
 	bpp := &basePreProcess{
-		hasher:               hasher,
-		marshalizer:          marshalizer,
-		blockSizeComputation: blockSizeComputation,
+		hasher:               args.Hasher,
+		marshalizer:          args.Marshalizer,
+		blockSizeComputation: args.BlockSizeComputation,
 	}
 
 	vip := &validatorInfoPreprocessor{
 		basePreProcess:      bpp,
-		storage:             store,
-		validatorsInfoPool:  validatorsInfoPool,
-		enableEpochsHandler: enableEpochsHandler,
-		shardCoordinator:    shardCoordinator,
+		storage:             args.Store,
+		validatorsInfoPool:  args.DataPool,
+		enableEpochsHandler: args.EnableEpochsHandler,
+		shardCoordinator:    args.ShardCoordinator,
 	}
 
 	vip.chReceivedAllValidatorsInfo = make(chan bool)
 
-	vip.validatorsInfoForBlock, err = NewTxsForBlock(shardCoordinator)
+	vip.validatorsInfoForBlock, err = NewTxsForBlock(args.ShardCoordinator)
 	if err != nil {
 		return nil, err
 	}
@@ -245,6 +224,11 @@ func (vip *validatorInfoPreprocessor) RequestBlockTransactions(_ *block.Body) in
 // RequestTransactionsForMiniBlock does nothing
 func (vip *validatorInfoPreprocessor) RequestTransactionsForMiniBlock(_ *block.MiniBlock) int {
 	return 0
+}
+
+// SelectOutgoingTransactions does nothing
+func (vip *validatorInfoPreprocessor) SelectOutgoingTransactions() ([][]byte, error) {
+	return make([][]byte, 0), nil
 }
 
 // CreateAndProcessMiniBlocks does nothing

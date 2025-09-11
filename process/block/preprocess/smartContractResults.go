@@ -9,19 +9,21 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/data/smartContractResult"
-	"github.com/multiversx/mx-chain-core-go/hashing"
-	"github.com/multiversx/mx-chain-core-go/marshal"
 
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/process"
-	"github.com/multiversx/mx-chain-go/sharding"
-	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/storage"
 )
 
 var _ process.DataMarshalizer = (*smartContractResults)(nil)
 var _ process.PreProcessor = (*smartContractResults)(nil)
+
+// SmartContractResultsArgs is the struct which contains all the arguments needed for creating a smartContractResult preprocessor
+type SmartContractResultsArgs struct {
+	BasePreProcessorArgs
+	ScrProcessor process.SmartContractResultProcessor
+}
 
 type smartContractResults struct {
 	*basePreProcess
@@ -33,71 +35,19 @@ type smartContractResults struct {
 }
 
 // NewSmartContractResultPreprocessor creates a new smartContractResult preprocessor object
-func NewSmartContractResultPreprocessor(
-	scrDataPool dataRetriever.ShardedDataCacherNotifier,
-	store dataRetriever.StorageService,
-	hasher hashing.Hasher,
-	marshalizer marshal.Marshalizer,
-	scrProcessor process.SmartContractResultProcessor,
-	shardCoordinator sharding.Coordinator,
-	accounts state.AccountsAdapter,
-	onRequestSmartContractResult func(shardID uint32, txHashes [][]byte),
-	gasHandler process.GasHandler,
-	economicsFee process.FeeHandler,
-	pubkeyConverter core.PubkeyConverter,
-	blockSizeComputation BlockSizeComputationHandler,
-	balanceComputation BalanceComputationHandler,
-	enableEpochsHandler common.EnableEpochsHandler,
-	processedMiniBlocksTracker process.ProcessedMiniBlocksTracker,
-	txExecutionOrderHandler common.TxExecutionOrderHandler,
-) (*smartContractResults, error) {
-
-	if check.IfNil(hasher) {
-		return nil, process.ErrNilHasher
+func NewSmartContractResultPreprocessor(args SmartContractResultsArgs) (*smartContractResults, error) {
+	err := CheckBasePreProcessArgs(args.BasePreProcessorArgs)
+	if err != nil {
+		return nil, err
 	}
-	if check.IfNil(marshalizer) {
-		return nil, process.ErrNilMarshalizer
-	}
-	if check.IfNil(scrDataPool) {
-		return nil, process.ErrNilUTxDataPool
-	}
-	if check.IfNil(store) {
-		return nil, process.ErrNilUTxStorage
-	}
-	if check.IfNil(scrProcessor) {
+	if check.IfNil(args.ScrProcessor) {
 		return nil, process.ErrNilTxProcessor
 	}
-	if check.IfNil(shardCoordinator) {
-		return nil, process.ErrNilShardCoordinator
-	}
-	if check.IfNil(accounts) {
-		return nil, process.ErrNilAccountsAdapter
-	}
-	if onRequestSmartContractResult == nil {
-		return nil, process.ErrNilRequestHandler
-	}
-	if check.IfNil(gasHandler) {
-		return nil, process.ErrNilGasHandler
-	}
-	if check.IfNil(economicsFee) {
-		return nil, process.ErrNilEconomicsFeeHandler
-	}
-	if check.IfNil(pubkeyConverter) {
-		return nil, process.ErrNilPubkeyConverter
-	}
-	if check.IfNil(blockSizeComputation) {
-		return nil, process.ErrNilBlockSizeComputationHandler
-	}
-	if check.IfNil(balanceComputation) {
-		return nil, process.ErrNilBalanceComputationHandler
-	}
-	if check.IfNil(enableEpochsHandler) {
-		return nil, process.ErrNilEnableEpochsHandler
-	}
-	if check.IfNil(processedMiniBlocksTracker) {
+
+	if check.IfNil(args.ProcessedMiniBlocksTracker) {
 		return nil, process.ErrNilProcessedMiniBlocksTracker
 	}
-	err := core.CheckHandlerCompatibility(enableEpochsHandler, []core.EnableEpochFlag{
+	err = core.CheckHandlerCompatibility(args.EnableEpochsHandler, []core.EnableEpochFlag{
 		common.OptimizeGasUsedInCrossMiniBlocksFlag,
 		common.ScheduledMiniBlocksFlag,
 		common.FrontRunningProtectionFlag,
@@ -105,37 +55,35 @@ func NewSmartContractResultPreprocessor(
 	if err != nil {
 		return nil, err
 	}
-	if check.IfNil(txExecutionOrderHandler) {
-		return nil, process.ErrNilTxExecutionOrderHandler
-	}
 
 	bpp := &basePreProcess{
-		hasher:      hasher,
-		marshalizer: marshalizer,
+		hasher:      args.Hasher,
+		marshalizer: args.Marshalizer,
 		gasTracker: gasTracker{
-			shardCoordinator: shardCoordinator,
-			gasHandler:       gasHandler,
-			economicsFee:     economicsFee,
+			shardCoordinator: args.ShardCoordinator,
+			gasHandler:       args.GasHandler,
+			economicsFee:     args.EconomicsFee,
 		},
-		blockSizeComputation:       blockSizeComputation,
-		balanceComputation:         balanceComputation,
-		accounts:                   accounts,
-		pubkeyConverter:            pubkeyConverter,
-		enableEpochsHandler:        enableEpochsHandler,
-		processedMiniBlocksTracker: processedMiniBlocksTracker,
-		txExecutionOrderHandler:    txExecutionOrderHandler,
+		blockSizeComputation:       args.BlockSizeComputation,
+		balanceComputation:         args.BalanceComputation,
+		accounts:                   args.Accounts,
+		accountsProposal:           args.AccountsProposal,
+		pubkeyConverter:            args.PubkeyConverter,
+		enableEpochsHandler:        args.EnableEpochsHandler,
+		processedMiniBlocksTracker: args.ProcessedMiniBlocksTracker,
+		txExecutionOrderHandler:    args.TxExecutionOrderHandler,
 	}
 
 	scr := &smartContractResults{
 		basePreProcess:               bpp,
-		storage:                      store,
-		scrPool:                      scrDataPool,
-		onRequestSmartContractResult: onRequestSmartContractResult,
-		scrProcessor:                 scrProcessor,
+		storage:                      args.Store,
+		scrPool:                      args.DataPool,
+		onRequestSmartContractResult: args.OnRequestTransaction,
+		scrProcessor:                 args.ScrProcessor,
 	}
 
 	scr.scrPool.RegisterOnAdded(scr.receivedSmartContractResult)
-	scr.scrForBlock, err = NewTxsForBlock(shardCoordinator)
+	scr.scrForBlock, err = NewTxsForBlock(args.ShardCoordinator)
 	if err != nil {
 		return nil, err
 	}
@@ -506,6 +454,11 @@ func (scr *smartContractResults) getAllScrsFromMiniBlock(
 	}
 
 	return smartContractResult.TrimSlicePtr(scResSlice), sliceUtil.TrimSliceSliceByte(txHashes), nil
+}
+
+// SelectOutgoingTransactions returns an empty slice of byte slices, as this preprocessor does not handle outgoing transactions
+func (scr *smartContractResults) SelectOutgoingTransactions() ([][]byte, error) {
+	return make([][]byte, 0), nil
 }
 
 // CreateAndProcessMiniBlocks creates miniblocks from storage and processes the reward transactions added into the miniblocks

@@ -502,6 +502,7 @@ func createProcessorsForMetaGenesisBlock(arg ArgsGenesisBlockCreator, enableEpoc
 		arg.Core.Hasher(),
 		arg.Data.Datapool(),
 		arg.Accounts,
+		arg.AccountsProposal,
 		disabledRequestHandler,
 		txProcessor,
 		scProcessorProxy,
@@ -557,6 +558,7 @@ func createProcessorsForMetaGenesisBlock(arg ArgsGenesisBlockCreator, enableEpoc
 		Accounts:                     arg.Accounts,
 		MiniBlockPool:                arg.Data.Datapool().MiniBlocks(),
 		PreProcessors:                preProcContainer,
+		PreProcessorsProposal:        preProcContainer, // for genesis no need for separate one
 		InterProcessors:              interimProcContainer,
 		GasHandler:                   gasHandler,
 		FeeHandler:                   genesisFeeHandler,
@@ -571,6 +573,7 @@ func createProcessorsForMetaGenesisBlock(arg ArgsGenesisBlockCreator, enableEpoc
 		ProcessedMiniBlocksTracker:   disabledProcessedMiniBlocksTracker,
 		TxExecutionOrderHandler:      arg.TxExecutionOrderHandler,
 		BlockDataRequester:           blockDataRequester,
+		BlockDataRequesterProposal:   blockDataRequester, // for genesis block no need for separate one
 	}
 	txCoordinator, err := coordinator.NewTransactionCoordinator(argsTransactionCoordinator)
 	if err != nil {

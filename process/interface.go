@@ -180,6 +180,9 @@ type TransactionCoordinator interface {
 	AddTxsFromMiniBlocks(miniBlocks block.MiniBlockSlice)
 	AddTransactions(txHandlers []data.TransactionHandler, blockType block.Type)
 	IsInterfaceNil() bool
+
+	SelectOutgoingTransactions() [][]byte
+	CreateMbsCrossShardDstMe(header data.HeaderHandler, processedMiniBlocksInfo map[string]*processedMb.ProcessedMiniBlockInfo) ([]block.MiniblockAndHash, uint32, bool, error)
 }
 
 // SmartContractProcessor is the main interface for the smart contract caller engine
@@ -244,6 +247,7 @@ type PreProcessor interface {
 
 	RequestTransactionsForMiniBlock(miniBlock *block.MiniBlock) int
 	ProcessMiniBlock(miniBlock *block.MiniBlock, haveTime func() bool, haveAdditionalTime func() bool, scheduledMode bool, partialMbExecutionMode bool, indexOfLastTxProcessed int, preProcessorExecutionInfoHandler PreProcessorExecutionInfoHandler) ([][]byte, int, bool, error)
+	SelectOutgoingTransactions() ([][]byte, error)
 	CreateAndProcessMiniBlocks(haveTime func() bool, randomness []byte) (block.MiniBlockSlice, error)
 
 	GetAllCurrentUsedTxs() map[string]data.TransactionHandler

@@ -339,6 +339,7 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 		pcf.data.Datapool(),
 		pcf.coreData.AddressPubKeyConverter(),
 		pcf.state.AccountsAdapter(),
+		pcf.state.AccountsAdapterProposal(),
 		requestHandler,
 		transactionProcessor,
 		scProcessorProxy,
@@ -413,6 +414,7 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 		Accounts:                     pcf.state.AccountsAdapter(),
 		MiniBlockPool:                pcf.data.Datapool().MiniBlocks(),
 		PreProcessors:                preProcContainer,
+		PreProcessorsProposal:        proposalPreProcContainer,
 		InterProcessors:              interimProcContainer,
 		GasHandler:                   gasHandler,
 		FeeHandler:                   txFeeHandler,
@@ -427,6 +429,7 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 		ProcessedMiniBlocksTracker:   processedMiniBlocksTracker,
 		TxExecutionOrderHandler:      pcf.txExecutionOrderHandler,
 		BlockDataRequester:           blockDataRequester,
+		BlockDataRequesterProposal:   proposalBlockDataRequester,
 	}
 	txCoordinator, err := coordinator.NewTransactionCoordinator(argsTransactionCoordinator)
 	if err != nil {
@@ -699,6 +702,7 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 		pcf.coreData.Hasher(),
 		pcf.data.Datapool(),
 		pcf.state.AccountsAdapter(),
+		pcf.state.AccountsAdapterProposal(),
 		requestHandler,
 		transactionProcessor,
 		scProcessorProxy,
@@ -771,6 +775,7 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 		Accounts:                     pcf.state.AccountsAdapter(),
 		MiniBlockPool:                pcf.data.Datapool().MiniBlocks(),
 		PreProcessors:                preProcContainer,
+		PreProcessorsProposal:        proposalPreProcContainer,
 		InterProcessors:              interimProcContainer,
 		GasHandler:                   gasHandler,
 		FeeHandler:                   txFeeHandler,
@@ -785,6 +790,7 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 		ProcessedMiniBlocksTracker:   processedMiniBlocksTracker,
 		TxExecutionOrderHandler:      pcf.txExecutionOrderHandler,
 		BlockDataRequester:           blockDataRequester,
+		BlockDataRequesterProposal:   proposalBlockDataRequester,
 	}
 	txCoordinator, err := coordinator.NewTransactionCoordinator(argsTransactionCoordinator)
 	if err != nil {
