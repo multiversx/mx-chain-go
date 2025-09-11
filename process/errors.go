@@ -1370,3 +1370,6 @@ var ErrInvalidMaxNonceDifference = errors.New("invalid max nonce difference")
 
 // ErrNilBaseExecutionResult signals that a nil base execution result has been provided
 var ErrNilBaseExecutionResult = errors.New("nil base execution result")
+
+// ErrNilGasComputation signals that a nil gas computation has been provided
+var ErrNilGasComputation = errors.New("nil gas computation")

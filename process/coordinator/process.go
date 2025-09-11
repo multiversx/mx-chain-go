@@ -68,6 +68,7 @@ type ArgTransactionCoordinator struct {
 	TxExecutionOrderHandler      common.TxExecutionOrderHandler
 	BlockDataRequester           process.BlockDataRequester
 	BlockDataRequesterProposal   process.BlockDataRequester
+	GasComputation               process.GasComputation
 }
 
 type transactionCoordinator struct {
@@ -98,6 +99,7 @@ type transactionCoordinator struct {
 	txExecutionOrderHandler      common.TxExecutionOrderHandler
 	blockDataRequester           process.BlockDataRequester
 	blockDataRequesterProposal   process.BlockDataRequester
+	gasComputation               process.GasComputation
 }
 
 // NewTransactionCoordinator creates a transaction coordinator to run and coordinate preprocessors and processors
@@ -126,6 +128,7 @@ func NewTransactionCoordinator(args ArgTransactionCoordinator) (*transactionCoor
 		txExecutionOrderHandler:      args.TxExecutionOrderHandler,
 		blockDataRequester:           args.BlockDataRequester,
 		blockDataRequesterProposal:   args.BlockDataRequesterProposal,
+		gasComputation:               args.GasComputation,
 	}
 
 	tc.miniBlockPool = args.MiniBlockPool
@@ -595,7 +598,7 @@ func (tc *transactionCoordinator) CreateMbsAndProcessCrossShardTransactionsDstMe
 			return nil, 0, false, fmt.Errorf("%w unknown block type %d", process.ErrNilPreProcessor, miniBlock.Type)
 		}
 
-		requestedTxs := preproc.RequestTransactionsForMiniBlock(miniBlock)
+		_, requestedTxs := preproc.GetTransactionsAndRequestMissingForMiniBlock(miniBlock)
 		if requestedTxs > 0 {
 			shouldSkipShard[miniBlockInfo.SenderShardID] = true
 			log.Trace("transactionCoordinator.CreateMbsAndProcessCrossShardTransactionsDstMe: transactions not found and were requested",
@@ -1605,6 +1608,9 @@ func checkTransactionCoordinatorNilParameters(arguments ArgTransactionCoordinato
 	}
 	if check.IfNil(arguments.BlockDataRequesterProposal) {
 		return fmt.Errorf("%w for proposal", process.ErrNilBlockDataRequester)
+	}
+	if check.IfNil(arguments.GasComputation) {
+		return process.ErrNilGasComputation
 	}
 
 	return nil

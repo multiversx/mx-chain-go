@@ -235,9 +235,16 @@ func (gc *gasConsumption) checkPendingIncomingMiniBlocks() error {
 
 // CheckOutgoingTransactions verifies the outgoing transactions and returns the index of the last valid transaction
 // only returns error if a transaction is invalid, with too much gas
-func (gc *gasConsumption) CheckOutgoingTransactions(transactions []data.TransactionHandler) ([]data.TransactionHandler, error) {
-	if len(transactions) == 0 {
+func (gc *gasConsumption) CheckOutgoingTransactions(
+	txHashes [][]byte,
+	transactions []data.TransactionHandler,
+) ([][]byte, error) {
+	if len(transactions) == 0 || len(txHashes) == 0 {
 		return nil, nil
+	}
+
+	if len(transactions) != len(txHashes) {
+		return nil, process.ErrInvalidValue
 	}
 
 	gc.mut.Lock()
@@ -252,7 +259,7 @@ func (gc *gasConsumption) CheckOutgoingTransactions(transactions []data.Transact
 	}
 
 	skippedSenders := make(map[string]struct{})
-	addedTransactions := make([]data.TransactionHandler, 0)
+	addedHashes := make([][]byte, 0)
 	for i := 0; i < len(transactions); i++ {
 		_, shouldSkipSender := skippedSenders[string(transactions[i].GetSndAddr())]
 		if shouldSkipSender {
@@ -265,14 +272,14 @@ func (gc *gasConsumption) CheckOutgoingTransactions(transactions []data.Transact
 			continue
 		}
 
-		addedTransactions = append(addedTransactions, transactions[i])
+		addedHashes = append(addedHashes, txHashes[i])
 	}
 
 	gc.isTransactionSelectionDone = true
 
 	// reaching this point means that transactions were added and the limit for outgoing was not reached
 	err := gc.checkPendingIncomingMiniBlocks()
-	return addedTransactions, err
+	return addedHashes, err
 }
 
 // must be called under mutex protection
@@ -367,6 +374,16 @@ func (gc *gasConsumption) getGasLeftFromTransactions() uint64 {
 	}
 
 	return bandwidthForOutgoingIntra - gasConsumedByOutgoingIntra
+}
+
+// GetBandwidthForTransactions returns the total bandwidth left for transactions after mini blocks selection
+func (gc *gasConsumption) GetBandwidthForTransactions() uint64 {
+	gc.mut.RLock()
+	defer gc.mut.RUnlock()
+
+	gasLeftFromMiniBlocks := gc.getGasLeftFromMiniBlocks(gc.shardCoordinator.SelfId())
+	initialBandwidthForTransactions := gc.getGasLimitForOneDirection(outgoingIntra, gc.shardCoordinator.SelfId())
+	return initialBandwidthForTransactions + gasLeftFromMiniBlocks
 }
 
 // TotalGasConsumed returns the total gas consumed for both incoming and outgoing transactions

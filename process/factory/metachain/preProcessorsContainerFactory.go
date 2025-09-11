@@ -44,6 +44,7 @@ type preProcessorsContainerFactory struct {
 	processedMiniBlocksTracker   process.ProcessedMiniBlocksTracker
 	txExecutionOrderHandler      common.TxExecutionOrderHandler
 	txCacheSelectionConfig       config.TxCacheSelectionConfig
+	gasComputation               process.GasComputation
 }
 
 // NewPreProcessorsContainerFactory is responsible for creating a new preProcessors factory object
@@ -70,6 +71,7 @@ func NewPreProcessorsContainerFactory(
 	processedMiniBlocksTracker process.ProcessedMiniBlocksTracker,
 	txExecutionOrderHandler common.TxExecutionOrderHandler,
 	txCacheSelectionConfig config.TxCacheSelectionConfig,
+	gasComputation process.GasComputation,
 ) (*preProcessorsContainerFactory, error) {
 
 	if check.IfNil(shardCoordinator) {
@@ -159,6 +161,7 @@ func NewPreProcessorsContainerFactory(
 		processedMiniBlocksTracker:   processedMiniBlocksTracker,
 		txExecutionOrderHandler:      txExecutionOrderHandler,
 		txCacheSelectionConfig:       txCacheSelectionConfig,
+		gasComputation:               gasComputation,
 	}, nil
 }
 
@@ -215,6 +218,7 @@ func (ppcm *preProcessorsContainerFactory) createTxPreProcessor() (process.PrePr
 		TxTypeHandler:                ppcm.txTypeHandler,
 		ScheduledTxsExecutionHandler: ppcm.scheduledTxsExecutionHandler,
 		TxCacheSelectionConfig:       ppcm.txCacheSelectionConfig,
+		GasComputation:               ppcm.gasComputation,
 	}
 
 	return preprocess.NewTransactionPreprocessor(args)

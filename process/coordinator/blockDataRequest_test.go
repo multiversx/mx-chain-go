@@ -188,9 +188,9 @@ func TestTransactionCoordinator_requestMissingMiniBlocksAndTransactionsShouldWor
 	numTxsRequested := 0
 	args.PreProcessors = containers.NewPreProcessorsContainer()
 	err := args.PreProcessors.Add(block.TxBlock, &preprocMocks.PreProcessorMock{
-		RequestTransactionsForMiniBlockCalled: func(miniBlock *block.MiniBlock) int {
+		GetTransactionsAndRequestMissingForMiniBlockCalled: func(miniBlock *block.MiniBlock) ([]data.TransactionHandler, int) {
 			numTxsRequested += len(miniBlock.TxHashes)
-			return len(miniBlock.TxHashes)
+			return make([]data.TransactionHandler, 0), len(miniBlock.TxHashes)
 		},
 	})
 	require.Nil(t, err)
@@ -437,9 +437,9 @@ func TestBlockDataRequest_RequestMiniBlocksAndTransactions(t *testing.T) {
 		calledCount := 0
 		preprocContainer := containers.NewPreProcessorsContainer()
 		txPreproc := &preprocMocks.PreProcessorMock{
-			RequestTransactionsForMiniBlockCalled: func(miniBlock *block.MiniBlock) int {
+			GetTransactionsAndRequestMissingForMiniBlockCalled: func(miniBlock *block.MiniBlock) ([]data.TransactionHandler, int) {
 				calledCount++
-				return len(miniBlock.TxHashes)
+				return make([]data.TransactionHandler, 0), len(miniBlock.TxHashes)
 			},
 		}
 		_ = preprocContainer.Add(block.TxBlock, txPreproc)
@@ -822,9 +822,9 @@ func TestBlockDataRequest_receivedMiniBlock(t *testing.T) {
 		countCalled := 0
 		preprocContainer := containers.NewPreProcessorsContainer()
 		txPreproc := &preprocMocks.PreProcessorMock{
-			RequestTransactionsForMiniBlockCalled: func(miniBlock *block.MiniBlock) int {
+			GetTransactionsAndRequestMissingForMiniBlockCalled: func(miniBlock *block.MiniBlock) ([]data.TransactionHandler, int) {
 				countCalled++
-				return len(miniBlock.TxHashes)
+				return make([]data.TransactionHandler, 0), len(miniBlock.TxHashes)
 			},
 		}
 		_ = preprocContainer.Add(block.TxBlock, txPreproc)
@@ -855,8 +855,8 @@ func TestBlockDataRequest_receivedMiniBlock(t *testing.T) {
 		// Create preprocessors container with mock
 		preprocContainer := containers.NewPreProcessorsContainer()
 		txPreproc := &preprocMocks.PreProcessorMock{
-			RequestTransactionsForMiniBlockCalled: func(miniBlock *block.MiniBlock) int {
-				return len(miniBlock.TxHashes)
+			GetTransactionsAndRequestMissingForMiniBlockCalled: func(miniBlock *block.MiniBlock) ([]data.TransactionHandler, int) {
+				return make([]data.TransactionHandler, 0), len(miniBlock.TxHashes)
 			},
 		}
 		_ = preprocContainer.Add(block.TxBlock, txPreproc)
@@ -888,17 +888,17 @@ func TestBlockDataRequest_receivedMiniBlock(t *testing.T) {
 		numRequestedPeer := 0
 		preprocContainer := containers.NewPreProcessorsContainer()
 		txPreproc := &preprocMocks.PreProcessorMock{
-			RequestTransactionsForMiniBlockCalled: func(miniBlock *block.MiniBlock) int {
+			GetTransactionsAndRequestMissingForMiniBlockCalled: func(miniBlock *block.MiniBlock) ([]data.TransactionHandler, int) {
 				require.Equal(t, block.TxBlock, miniBlock.Type)
 				numRequestedTxs += len(miniBlock.TxHashes)
-				return len(miniBlock.TxHashes)
+				return make([]data.TransactionHandler, 0), len(miniBlock.TxHashes)
 			},
 		}
 		peerPreproc := &preprocMocks.PreProcessorMock{
-			RequestTransactionsForMiniBlockCalled: func(miniBlock *block.MiniBlock) int {
+			GetTransactionsAndRequestMissingForMiniBlockCalled: func(miniBlock *block.MiniBlock) ([]data.TransactionHandler, int) {
 				require.Equal(t, block.PeerBlock, miniBlock.Type)
 				numRequestedPeer += len(miniBlock.TxHashes)
-				return len(miniBlock.TxHashes)
+				return make([]data.TransactionHandler, 0), len(miniBlock.TxHashes)
 			},
 		}
 		_ = preprocContainer.Add(block.TxBlock, txPreproc)
@@ -1048,11 +1048,11 @@ func TestBlockDataRequest_ConcurrentOperations(t *testing.T) {
 		mutRequested := sync.RWMutex{}
 		preprocContainer := containers.NewPreProcessorsContainer()
 		txPreproc := &preprocMocks.PreProcessorMock{
-			RequestTransactionsForMiniBlockCalled: func(miniBlock *block.MiniBlock) int {
+			GetTransactionsAndRequestMissingForMiniBlockCalled: func(miniBlock *block.MiniBlock) ([]data.TransactionHandler, int) {
 				mutRequested.Lock()
 				numRequested++
 				mutRequested.Unlock()
-				return len(miniBlock.TxHashes)
+				return make([]data.TransactionHandler, 0), len(miniBlock.TxHashes)
 			},
 		}
 		_ = preprocContainer.Add(block.TxBlock, txPreproc)
@@ -1144,9 +1144,9 @@ func TestBlockDataRequest_ConcurrentOperations(t *testing.T) {
 				time.Sleep(time.Millisecond * 1)
 				return nil
 			},
-			RequestTransactionsForMiniBlockCalled: func(miniBlock *block.MiniBlock) int {
+			GetTransactionsAndRequestMissingForMiniBlockCalled: func(miniBlock *block.MiniBlock) ([]data.TransactionHandler, int) {
 				time.Sleep(time.Millisecond * 1)
-				return len(miniBlock.TxHashes)
+				return make([]data.TransactionHandler, 0), len(miniBlock.TxHashes)
 			},
 		}
 		peerPreproc := &preprocMocks.PreProcessorMock{
@@ -1161,9 +1161,9 @@ func TestBlockDataRequest_ConcurrentOperations(t *testing.T) {
 				time.Sleep(time.Millisecond * 2)
 				return nil
 			},
-			RequestTransactionsForMiniBlockCalled: func(miniBlock *block.MiniBlock) int {
+			GetTransactionsAndRequestMissingForMiniBlockCalled: func(miniBlock *block.MiniBlock) ([]data.TransactionHandler, int) {
 				time.Sleep(time.Millisecond * 2)
-				return len(miniBlock.TxHashes)
+				return make([]data.TransactionHandler, 0), len(miniBlock.TxHashes)
 			},
 		}
 		scrPreproc := &preprocMocks.PreProcessorMock{
@@ -1178,9 +1178,9 @@ func TestBlockDataRequest_ConcurrentOperations(t *testing.T) {
 				time.Sleep(time.Millisecond * 1)
 				return nil
 			},
-			RequestTransactionsForMiniBlockCalled: func(miniBlock *block.MiniBlock) int {
+			GetTransactionsAndRequestMissingForMiniBlockCalled: func(miniBlock *block.MiniBlock) ([]data.TransactionHandler, int) {
 				time.Sleep(time.Millisecond * 1)
-				return len(miniBlock.TxHashes)
+				return make([]data.TransactionHandler, 0), len(miniBlock.TxHashes)
 			},
 		}
 

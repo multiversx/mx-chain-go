@@ -15,6 +15,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+	processBlock "github.com/multiversx/mx-chain-go/process/block"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 	vmcommonBuiltInFunctions "github.com/multiversx/mx-chain-vm-common-go/builtInFunctions"
 	"github.com/multiversx/mx-chain-vm-common-go/parsers"
@@ -495,6 +496,18 @@ func createProcessorsForMetaGenesisBlock(arg ArgsGenesisBlockCreator, enableEpoc
 	disabledScheduledTxsExecutionHandler := &disabled.ScheduledTxsExecutionHandler{}
 	disabledProcessedMiniBlocksTracker := &disabled.ProcessedMiniBlocksTracker{}
 
+	argsGasConsumption := processBlock.ArgsGasConsumption{
+		EconomicsFee:                      arg.Core.EconomicsData(),
+		ShardCoordinator:                  arg.ShardCoordinator,
+		GasHandler:                        gasHandler,
+		BlockCapacityOverestimationFactor: arg.FeeSettings.BlockCapacityOverestimationFactor,
+		PercentDecreaseLimitsStep:         arg.FeeSettings.PercentDecreaseLimitsStep,
+	}
+	gasConsumption, err := processBlock.NewGasConsumption(argsGasConsumption)
+	if err != nil {
+		return nil, err
+	}
+
 	preProcFactory, err := metachain.NewPreProcessorsContainerFactory(
 		arg.ShardCoordinator,
 		arg.Data.StorageService(),
@@ -518,6 +531,7 @@ func createProcessorsForMetaGenesisBlock(arg ArgsGenesisBlockCreator, enableEpoc
 		disabledProcessedMiniBlocksTracker,
 		arg.TxExecutionOrderHandler,
 		arg.TxCacheSelectionConfig,
+		gasConsumption,
 	)
 	if err != nil {
 		return nil, err
@@ -574,6 +588,7 @@ func createProcessorsForMetaGenesisBlock(arg ArgsGenesisBlockCreator, enableEpoc
 		TxExecutionOrderHandler:      arg.TxExecutionOrderHandler,
 		BlockDataRequester:           blockDataRequester,
 		BlockDataRequesterProposal:   blockDataRequester, // for genesis block no need for separate one
+		GasComputation:               gasConsumption,
 	}
 	txCoordinator, err := coordinator.NewTransactionCoordinator(argsTransactionCoordinator)
 	if err != nil {
