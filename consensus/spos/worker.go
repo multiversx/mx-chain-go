@@ -151,7 +151,7 @@ func NewWorker(args *WorkerArgs) (*Worker, error) {
 
 	consensusMetrics := NewConsensusMetrics(args.AppStatusHandler)
 	if consensusMetrics == nil {
-		return nil, ErrNilAppStatusHandler // TODO change the error to ErrNilConsensusMetrics
+		log.Warn("NewWorker: NewConsensusMetrics returned nil")
 	}
 
 	wrk := Worker{

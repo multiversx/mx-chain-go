@@ -932,16 +932,7 @@ func (sr *subroundEndRound) checkReceivedSignatures() bool {
 			"total signatures", len(sr.ConsensusGroup()),
 			"threshold", threshold)
 
-		currentTime := sr.SyncTimer().CurrentTime()
-		metricsTime := currentTime.Sub(sr.RoundHandler().TimeStamp()).Nanoseconds()
-
-		//defer sr.AppStatusHandler().SetUInt64Value(common.MetricReceivedProof, uint64(metricsTime))
-		err := sr.worker.GetConsensusMetrics().SetSignaturesReceived(sr.GetData(), uint64(metricsTime))
-		if err != nil {
-			log.Warn("Consensus metrics SetSignaturesReceived", "error", err.Error())
-		} else {
-			log.Debug("Received signatures v2", "hash", sr.GetData(), "time", metricsTime, "currentTime", currentTime, "roundTime", sr.RoundHandler().TimeStamp())
-		}
+		sr.updateConsensusMetricsIfNeeded()
 		return true
 	}
 
@@ -973,12 +964,19 @@ func (sr *subroundEndRound) getNumOfSignaturesCollected() int {
 
 // updateConsensusMetricsIfNeeded sets the consensus metrics if it has not been previously set
 func (sr *subroundEndRound) updateConsensusMetricsIfNeeded() {
-	if sr.worker.GetConsensusMetrics().IsProofForCurrentConsensusSet() {
+	consensusMetrics := sr.worker.GetConsensusMetrics()
+	if consensusMetrics == nil {
 		return
 	}
+
+	if consensusMetrics.IsProofForCurrentConsensusSet() {
+		return
+	}
+
 	currentTime := sr.SyncTimer().CurrentTime()
 	metricsTime := currentTime.Sub(sr.RoundHandler().TimeStamp()).Nanoseconds()
-	err := sr.worker.GetConsensusMetrics().SetSignaturesReceived(sr.GetData(), uint64(metricsTime))
+
+	err := consensusMetrics.SetSignaturesReceived(sr.GetData(), uint64(metricsTime))
 	if err != nil {
 		log.Warn("Consensus metrics SetProofReceived", "error", err.Error())
 	} else {

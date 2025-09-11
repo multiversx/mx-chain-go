@@ -75,7 +75,7 @@ func defaultSubround(
 		container,
 		chainID,
 		currentPid,
-		&statusHandlerMock.AppStatusHandlerMock{},
+		statusHandlerMock.NewAppStatusHandlerMock(),
 	)
 }
 

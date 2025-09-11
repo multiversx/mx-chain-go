@@ -102,7 +102,11 @@ func (sr *subroundStartRound) doStartRoundJob(_ context.Context) bool {
 	sr.GetAntiFloodHandler().ResetForTopic(topic)
 	sr.worker.ResetConsensusMessages()
 	sr.worker.ResetInvalidSignersCache()
-	sr.worker.GetConsensusMetrics().ResetInstanceValues()
+
+	consensusMetrics := sr.worker.GetConsensusMetrics()
+	if consensusMetrics != nil {
+		consensusMetrics.ResetInstanceValues()
+	}
 
 	return true
 }
@@ -346,7 +350,10 @@ func (sr *subroundStartRound) changeEpoch(currentEpoch uint32) {
 		panic(fmt.Sprintf("consensus changing epoch failed with error %s", err.Error()))
 	}
 
-	sr.worker.GetConsensusMetrics().ResetAverages()
+	consensusMetrics := sr.worker.GetConsensusMetrics()
+	if consensusMetrics != nil {
+		consensusMetrics.ResetAverages()
+	}
 	sr.SetEligibleList(epochNodes)
 }
 
