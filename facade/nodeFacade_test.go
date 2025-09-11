@@ -2188,6 +2188,28 @@ func TestNodeFacade_GetSelectedTransactions(t *testing.T) {
 func TestNodeFacade_GetVirtualNonce(t *testing.T) {
 	t.Parallel()
 
+	t.Run("should return error from decoding", func(t *testing.T) {
+		t.Parallel()
+
+		arg := createMockArguments()
+		arg.Blockchain = &testscommon.ChainHandlerStub{
+			GetCurrentBlockRootHashCalled: func() []byte {
+				return nil
+			},
+		}
+		arg.Node = &mock.NodeStub{
+			DecodeAddressPubkeyCalled: func(address string) ([]byte, error) {
+				return nil, expectedErr
+			},
+		}
+
+		nf, _ := NewNodeFacade(arg)
+
+		res, err := nf.GetVirtualNonce("address")
+		require.Nil(t, res)
+		require.ErrorContains(t, err, expectedErr.Error())
+	})
+
 	t.Run("should return ErrNilCurrentRootHash error", func(t *testing.T) {
 		t.Parallel()
 
@@ -2197,8 +2219,14 @@ func TestNodeFacade_GetVirtualNonce(t *testing.T) {
 				return nil
 			},
 		}
+		arg.Node = &mock.NodeStub{
+			DecodeAddressPubkeyCalled: func(address string) ([]byte, error) {
+				return []byte("address"), nil
+			},
+		}
 
 		nf, _ := NewNodeFacade(arg)
+
 		res, err := nf.GetVirtualNonce("address")
 		require.Nil(t, res)
 		require.Equal(t, ErrNilCurrentRootHash, err)
@@ -2214,6 +2242,11 @@ func TestNodeFacade_GetVirtualNonce(t *testing.T) {
 			},
 			GetCurrentBlockHeaderCalled: func() nodeData.HeaderHandler {
 				return nil
+			},
+		}
+		arg.Node = &mock.NodeStub{
+			DecodeAddressPubkeyCalled: func(address string) ([]byte, error) {
+				return []byte("address"), nil
 			},
 		}
 
@@ -2232,6 +2265,11 @@ func TestNodeFacade_GetVirtualNonce(t *testing.T) {
 				return expectedErr
 			},
 		}
+		arg.Node = &mock.NodeStub{
+			DecodeAddressPubkeyCalled: func(address string) ([]byte, error) {
+				return []byte("address"), nil
+			},
+		}
 
 		nf, _ := NewNodeFacade(arg)
 		res, err := nf.GetVirtualNonce("address")
@@ -2246,6 +2284,11 @@ func TestNodeFacade_GetVirtualNonce(t *testing.T) {
 		arg.AccountsStateAPI = &stateMock.AccountsStub{
 			RecreateTrieCalled: func(options common.RootHashHolder) error {
 				return nil
+			},
+		}
+		arg.Node = &mock.NodeStub{
+			DecodeAddressPubkeyCalled: func(address string) ([]byte, error) {
+				return []byte("address"), nil
 			},
 		}
 
@@ -2268,6 +2311,11 @@ func TestNodeFacade_GetVirtualNonce(t *testing.T) {
 		arg.AccountsStateAPI = &stateMock.AccountsStub{
 			RecreateTrieCalled: func(options common.RootHashHolder) error {
 				return nil
+			},
+		}
+		arg.Node = &mock.NodeStub{
+			DecodeAddressPubkeyCalled: func(address string) ([]byte, error) {
+				return []byte("address"), nil
 			},
 		}
 
