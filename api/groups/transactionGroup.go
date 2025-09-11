@@ -64,7 +64,7 @@ type transactionFacadeHandler interface {
 	GetLastPoolNonceForSender(sender string) (uint64, error)
 	GetTransactionsPoolNonceGapsForSender(sender string) (*common.TransactionsPoolNonceGapsForSenderApiResponse, error)
 	GetSelectedTransactions() (*common.TransactionsSelectionSimulationResult, error)
-	GetVirtualNonce(address []byte) (*common.VirtualNonceOfAccountResponse, error)
+	GetVirtualNonce(address string) (*common.VirtualNonceOfAccountResponse, error)
 	ComputeTransactionGasLimit(tx *transaction.Transaction) (*transaction.CostResponse, error)
 	EncodeAddressPubkey(pk []byte) (string, error)
 	GetThrottlerForEndpoint(endpoint string) (core.Throttler, bool)
@@ -535,7 +535,7 @@ func (tg *transactionGroup) getVirtualNonceByAddress(c *gin.Context) {
 	}
 
 	start := time.Now()
-	virtualNonce, err := tg.getFacade().GetVirtualNonce([]byte(address))
+	virtualNonce, err := tg.getFacade().GetVirtualNonce(address)
 	if err != nil {
 		c.JSON(
 			http.StatusInternalServerError,

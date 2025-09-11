@@ -235,7 +235,7 @@
         { Name = "/pool/selected-transactions", Open = true},
 
         # transaction/pool/:address/virtual-nonce will return the virtual nonce of the account
-        { Name = "pool/:address/virtual-nonce", Open = true},
+        { Name = "/pool/:address/virtual-nonce", Open = true},
     ]
 
 [APIPackages.block]

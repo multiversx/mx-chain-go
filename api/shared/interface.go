@@ -140,7 +140,7 @@ type FacadeHandler interface {
 	GetWaitingManagedKeys() ([]string, error)
 	GetWaitingEpochsLeftForPublicKey(publicKey string) (uint32, error)
 	GetSCRsByTxHash(txHash string, scrHash string) ([]*transaction.ApiSmartContractResult, error)
-	GetVirtualNonce(address []byte) (*common.VirtualNonceOfAccountResponse, error)
+	GetVirtualNonce(address string) (*common.VirtualNonceOfAccountResponse, error)
 	P2PPrometheusMetricsEnabled() bool
 	IsInterfaceNil() bool
 }

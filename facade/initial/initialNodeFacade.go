@@ -423,7 +423,7 @@ func (inf *initialNodeFacade) GetSelectedTransactions() (*common.TransactionsSel
 }
 
 // GetVirtualNonce returns a nil structure and error
-func (inf *initialNodeFacade) GetVirtualNonce(_ []byte) (*common.VirtualNonceOfAccountResponse, error) {
+func (inf *initialNodeFacade) GetVirtualNonce(_ string) (*common.VirtualNonceOfAccountResponse, error) {
 	return nil, errNodeStarting
 }
 
