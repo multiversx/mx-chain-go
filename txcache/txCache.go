@@ -112,10 +112,10 @@ func (cache *TxCache) SelectTransactions(
 	session SelectionSession,
 	options common.TxSelectionOptions,
 	blockchainInfo common.BlockchainInfo,
-) ([]*WrappedTransaction, uint64) {
+) ([]*WrappedTransaction, uint64, error) {
 	if check.IfNil(session) {
 		log.Error("TxCache.SelectTransactions", "err", errNilSelectionSession)
-		return nil, 0
+		return nil, 0, errNilSelectionSession
 	}
 
 	stopWatch := core.NewStopWatch()
@@ -125,7 +125,7 @@ func (cache *TxCache) SelectTransactions(
 	if err != nil {
 		// TODO propagate the error
 		log.Error("TxCache.SelectTransactions", "err", err)
-		return nil, 0
+		return nil, 0, err
 	}
 
 	logSelect.Debug(
@@ -139,7 +139,7 @@ func (cache *TxCache) SelectTransactions(
 	virtualSession, err := cache.tracker.deriveVirtualSelectionSession(session, blockchainInfo)
 	if err != nil {
 		log.Error("TxCache.SelectTransactions: could not derive virtual selection session", "err", err)
-		return nil, 0
+		return nil, 0, err
 	}
 	transactions, accumulatedGas := cache.doSelectTransactions(virtualSession, options)
 
@@ -154,7 +154,7 @@ func (cache *TxCache) SelectTransactions(
 
 	go displaySelectionOutcome(logSelect, "selection", transactions)
 
-	return transactions, accumulatedGas
+	return transactions, accumulatedGas, nil
 }
 
 // GetVirtualNonce returns the nonce of the virtual record of an account

@@ -1247,6 +1247,47 @@ func TestApiTransactionProcessor_GetSelectedTransactions(t *testing.T) {
 		require.Len(t, selectedTxs.TxHashes, 4)
 	})
 
+	t.Run("should return error from SelectTransactions", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockArgAPITransactionProcessor()
+		args.DataPool = &dataRetrieverMock.PoolsHolderStub{
+			TransactionsCalled: func() dataRetriever.ShardedDataCacherNotifier {
+				return &testscommon.ShardedDataStub{
+					ShardDataStoreCalled: func(cacheID string) storage.Cacher {
+						if cacheID == "1" { // self shard
+							return cache
+						}
+						return nil
+					},
+					GetSelfShardIDCalled: func() string {
+						return "1"
+					},
+				}
+			},
+		}
+
+		atp, err := NewAPITransactionProcessor(args)
+		require.NoError(t, err)
+		require.NotNil(t, atp)
+
+		accountsAdapter := &state2.AccountsStub{
+			RootHashCalled: func() ([]byte, error) {
+				return nil, expectedErr
+			},
+		}
+
+		options := holders.NewTxSelectionOptions(
+			gasRequested,
+			numTxsSelected,
+			selectionLoopMaximumDuration,
+			loopDurationCheckInterval,
+		)
+
+		_, err = atp.GetSelectedTransactions(accountsAdapter, options)
+		require.Equal(t, expectedErr, err)
+	})
+
 	t.Run("should return ErrNilAccountsAdapter error", func(t *testing.T) {
 		t.Parallel()
 
