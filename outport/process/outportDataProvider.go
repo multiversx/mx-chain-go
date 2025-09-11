@@ -25,6 +25,7 @@ import (
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
+	"github.com/multiversx/mx-chain-go/state"
 )
 
 var log = logger.GetOrCreate("outport/process/outportDataProvider")
@@ -44,6 +45,7 @@ type ArgOutportDataProvider struct {
 	ExecutionOrderHandler    common.ExecutionOrderGetter
 	ProofsPool               dataRetriever.ProofsPool
 	EnableEpochsHandler      common.EnableEpochsHandler
+	StateAccessesCollector   state.StateAccessesCollector
 }
 
 // ArgPrepareOutportSaveBlockData holds the arguments needed for prepare outport save block data
@@ -74,6 +76,7 @@ type outportDataProvider struct {
 	hasher                   hashing.Hasher
 	proofsPool               dataRetriever.ProofsPool
 	enableEpochsHandler      common.EnableEpochsHandler
+	StateAccessesCollector   state.StateAccessesCollector
 }
 
 // NewOutportDataProvider will create a new instance of outportDataProvider
@@ -92,6 +95,7 @@ func NewOutportDataProvider(arg ArgOutportDataProvider) (*outportDataProvider, e
 		hasher:                   arg.Hasher,
 		proofsPool:               arg.ProofsPool,
 		enableEpochsHandler:      arg.EnableEpochsHandler,
+		StateAccessesCollector:   arg.StateAccessesCollector,
 	}, nil
 }
 
@@ -154,6 +158,7 @@ func (odp *outportDataProvider) PrepareOutportSaveBlockData(arg ArgPrepareOutpor
 				GasPenalized:   odp.gasConsumedProvider.TotalGasPenalized(),
 				MaxGasPerBlock: odp.economicsData.MaxGasLimitPerBlock(odp.shardID),
 			},
+			StateAccesses:          odp.StateAccessesCollector.GetCollectedAccesses(),
 			AlteredAccounts:        alteredAccounts,
 			NotarizedHeadersHashes: arg.NotarizedHeadersHashes,
 			NumberOfShards:         odp.numOfShards,

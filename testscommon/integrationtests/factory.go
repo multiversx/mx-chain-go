@@ -7,6 +7,7 @@ import (
 	"github.com/multiversx/mx-chain-go/common/statistics"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/state"
+	"github.com/multiversx/mx-chain-go/state/disabled"
 	accountFactory "github.com/multiversx/mx-chain-go/state/factory"
 	"github.com/multiversx/mx-chain-go/state/iteratorChannelsProvider"
 	"github.com/multiversx/mx-chain-go/state/lastSnapshotMarker"
@@ -104,9 +105,10 @@ func CreateAccountsDB(db storage.Storer, enableEpochs common.EnableEpochsHandler
 	spm, _ := storagePruningManager.NewStoragePruningManager(ewl, 10)
 
 	argsAccCreator := accountFactory.ArgsAccountCreator{
-		Hasher:              TestHasher,
-		Marshaller:          TestMarshalizer,
-		EnableEpochsHandler: enableEpochs,
+		Hasher:                 TestHasher,
+		Marshaller:             TestMarshalizer,
+		EnableEpochsHandler:    enableEpochs,
+		StateAccessesCollector: disabled.NewDisabledStateAccessesCollector(),
 	}
 	accCreator, _ := accountFactory.NewAccountCreator(argsAccCreator)
 
@@ -123,13 +125,14 @@ func CreateAccountsDB(db storage.Storer, enableEpochs common.EnableEpochsHandler
 	})
 
 	argsAccountsDB := state.ArgsAccountsDB{
-		Trie:                  tr,
-		Hasher:                TestHasher,
-		Marshaller:            TestMarshalizer,
-		AccountFactory:        accCreator,
-		StoragePruningManager: spm,
-		AddressConverter:      &testscommon.PubkeyConverterMock{},
-		SnapshotsManager:      snapshotsManager,
+		Trie:                   tr,
+		Hasher:                 TestHasher,
+		Marshaller:             TestMarshalizer,
+		AccountFactory:         accCreator,
+		StoragePruningManager:  spm,
+		AddressConverter:       &testscommon.PubkeyConverterMock{},
+		SnapshotsManager:       snapshotsManager,
+		StateAccessesCollector: disabled.NewDisabledStateAccessesCollector(),
 	}
 	adb, _ := state.NewAccountsDB(argsAccountsDB)
 

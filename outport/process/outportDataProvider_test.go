@@ -24,6 +24,7 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/shardingMocks"
+	"github.com/multiversx/mx-chain-go/testscommon/state"
 )
 
 func createArgOutportDataProvider() ArgOutportDataProvider {
@@ -49,6 +50,7 @@ func createArgOutportDataProvider() ArgOutportDataProvider {
 		Hasher:                   &hashingMocks.HasherMock{},
 		ProofsPool:               &dataRetriever.ProofsPoolMock{},
 		EnableEpochsHandler:      enableEpochsHandlerMock.NewEnableEpochsHandlerStubWithNoFlagsDefined(),
+		StateAccessesCollector:   &state.StateAccessesCollectorStub{},
 	}
 }
 
