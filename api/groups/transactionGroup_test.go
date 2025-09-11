@@ -1053,6 +1053,56 @@ func TestTransactionsGroup_GetSelectedTransactions(t *testing.T) {
 	})
 }
 
+func TestTransactionsGroup_GetVirtualNonce(t *testing.T) {
+	t.Parallel()
+
+	t.Run("GetVirtualNonce should error", func(t *testing.T) {
+		t.Parallel()
+
+		facade := &mock.FacadeStub{
+			GetVirtualNonceCalled: func(address []byte) (*common.VirtualNonceOfAccountResponse, error) {
+				return nil, expectedErr
+			},
+		}
+
+		testTransactionsGroup(
+			t,
+			facade,
+			"/transaction/pool/address/virtual-nonce",
+			"GET",
+			nil,
+			http.StatusInternalServerError,
+			expectedErr,
+		)
+	})
+
+	t.Run("GetVirtualNonce should work", func(t *testing.T) {
+		t.Parallel()
+
+		expectedResult := &common.VirtualNonceOfAccountResponse{
+			VirtualNonce: 10,
+		}
+
+		facade := &mock.FacadeStub{
+			GetVirtualNonceCalled: func(address []byte) (*common.VirtualNonceOfAccountResponse, error) {
+				if bytes.Equal(address, []byte("alice")) {
+					return expectedResult, nil
+				}
+				return expectedResult, nil
+			},
+		}
+
+		loadTransactionGroupResponse(
+			t,
+			facade,
+			"/transaction/pool/alice/virtual-nonce",
+			"GET",
+			nil,
+			expectedResult,
+		)
+	})
+}
+
 func TestTransactionsGroup_UpdateFacade(t *testing.T) {
 	t.Parallel()
 

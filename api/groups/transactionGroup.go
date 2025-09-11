@@ -150,6 +150,17 @@ func NewTransactionGroup(facade transactionFacadeHandler) (*transactionGroup, er
 			},
 		},
 		{
+			Path:    getVirtualNoncePath,
+			Method:  http.MethodGet,
+			Handler: tg.getVirtualNonceByAddress,
+			AdditionalMiddlewares: []shared.AdditionalMiddleware{
+				{
+					Middleware: middleware.CreateEndpointThrottlerFromFacade(getVirtualNoncePath, facade),
+					Position:   shared.Before,
+				},
+			},
+		},
+		{
 			Path:    sendMultiplePath,
 			Method:  http.MethodPost,
 			Handler: tg.sendMultipleTransactions,

@@ -2185,6 +2185,106 @@ func TestNodeFacade_GetSelectedTransactions(t *testing.T) {
 	})
 }
 
+func TestNodeFacade_GetVirtualNonce(t *testing.T) {
+	t.Parallel()
+
+	t.Run("should return ErrNilCurrentRootHash error", func(t *testing.T) {
+		t.Parallel()
+
+		arg := createMockArguments()
+		arg.Blockchain = &testscommon.ChainHandlerStub{
+			GetCurrentBlockRootHashCalled: func() []byte {
+				return nil
+			},
+		}
+
+		nf, _ := NewNodeFacade(arg)
+		res, err := nf.GetVirtualNonce([]byte("address"))
+		require.Nil(t, res)
+		require.Equal(t, ErrNilCurrentRootHash, err)
+	})
+
+	t.Run("should return ErrNilBlockHeader error", func(t *testing.T) {
+		t.Parallel()
+
+		arg := createMockArguments()
+		arg.Blockchain = &testscommon.ChainHandlerStub{
+			GetCurrentBlockRootHashCalled: func() []byte {
+				return []byte("rootHash1")
+			},
+			GetCurrentBlockHeaderCalled: func() nodeData.HeaderHandler {
+				return nil
+			},
+		}
+
+		nf, _ := NewNodeFacade(arg)
+		res, err := nf.GetVirtualNonce([]byte("address"))
+		require.Nil(t, res)
+		require.Equal(t, ErrNilBlockHeader, err)
+	})
+
+	t.Run("should propagate the error from RecreateTrie", func(t *testing.T) {
+		t.Parallel()
+
+		arg := createMockArguments()
+		arg.AccountsStateAPI = &stateMock.AccountsStub{
+			RecreateTrieCalled: func(options common.RootHashHolder) error {
+				return expectedErr
+			},
+		}
+
+		nf, _ := NewNodeFacade(arg)
+		res, err := nf.GetVirtualNonce([]byte("address"))
+		require.Nil(t, res)
+		require.Equal(t, expectedErr, err)
+	})
+
+	t.Run("should propagate error from ApiResolver", func(t *testing.T) {
+		t.Parallel()
+
+		arg := createMockArguments()
+		arg.AccountsStateAPI = &stateMock.AccountsStub{
+			RecreateTrieCalled: func(options common.RootHashHolder) error {
+				return nil
+			},
+		}
+
+		arg.ApiResolver = &mock.ApiResolverStub{
+			GetVirtualNonceCalled: func(address []byte, accountsAdapter state.AccountsAdapter) (*common.VirtualNonceOfAccountResponse, error) {
+				return nil, expectedErr
+			},
+		}
+
+		nf, _ := NewNodeFacade(arg)
+		res, err := nf.GetVirtualNonce([]byte("address"))
+		require.Nil(t, res)
+		require.Equal(t, expectedErr, err)
+	})
+
+	t.Run("should work", func(t *testing.T) {
+		t.Parallel()
+
+		arg := createMockArguments()
+		arg.AccountsStateAPI = &stateMock.AccountsStub{
+			RecreateTrieCalled: func(options common.RootHashHolder) error {
+				return nil
+			},
+		}
+
+		expectedRes := &common.VirtualNonceOfAccountResponse{VirtualNonce: 10}
+		arg.ApiResolver = &mock.ApiResolverStub{
+			GetVirtualNonceCalled: func(address []byte, accountsAdapter state.AccountsAdapter) (*common.VirtualNonceOfAccountResponse, error) {
+				return expectedRes, nil
+			},
+		}
+
+		nf, _ := NewNodeFacade(arg)
+		res, err := nf.GetVirtualNonce([]byte("address"))
+		require.NoError(t, err)
+		require.Equal(t, expectedRes, res)
+	})
+}
+
 func TestNodeFacade_InternalValidatorsInfo(t *testing.T) {
 	t.Parallel()
 
