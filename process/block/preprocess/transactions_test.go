@@ -253,6 +253,7 @@ func createDefaultTransactionsProcessorArgs() ArgsTransactionPreProcessor {
 			SelectionLoopMaximumDuration:                  250,
 			SelectionLoopDurationCheckInterval:            10,
 		},
+		GasComputation: &testscommon.GasComputationMock{},
 	}
 }
 
@@ -374,6 +375,17 @@ func TestTxsPreprocessor_NewTransactionPreprocessorNilBlockTracker(t *testing.T)
 	txs, err := NewTransactionPreprocessor(args)
 	assert.Nil(t, txs)
 	assert.Equal(t, process.ErrNilBlockTracker, err)
+}
+
+func TestTxsPreprocessor_NewTransactionPreprocessorNilGasComputation(t *testing.T) {
+	t.Parallel()
+
+	args := createDefaultTransactionsProcessorArgs()
+	args.GasComputation = nil
+
+	txs, err := NewTransactionPreprocessor(args)
+	assert.Nil(t, txs)
+	assert.Equal(t, process.ErrNilGasComputation, err)
 }
 
 func TestTxsPreprocessor_NewTransactionPreprocessorNilPubkeyConverter(t *testing.T) {
@@ -596,8 +608,9 @@ func TestTransactionPreprocessor_RequestBlockTransactionFromMiniBlockFromNetwork
 	txHashes = append(txHashes, txHash1)
 	txHashes = append(txHashes, txHash2)
 	mb := &block.MiniBlock{ReceiverShardID: shardID, TxHashes: txHashes}
-	txsRequested := txs.RequestTransactionsForMiniBlock(mb)
+	txsInstances, txsRequested := txs.GetTransactionsAndRequestMissingForMiniBlock(mb)
 	assert.Equal(t, 2, txsRequested)
+	assert.Len(t, txsInstances, 0)
 }
 
 func TestTransactionPreprocessor_ReceivedTransactionShouldEraseRequested(t *testing.T) {

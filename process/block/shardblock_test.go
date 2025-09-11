@@ -499,6 +499,7 @@ func TestShardProcessor_ProcessBlockWithInvalidTransactionShouldErr(t *testing.T
 		&testscommon.ProcessedMiniBlocksTrackerStub{},
 		&commonMock.TxExecutionOrderHandlerStub{},
 		createMockTxCacheSelectionConfig(),
+		&testscommon.GasComputationMock{},
 	)
 	require.NoError(t, err)
 
@@ -728,6 +729,7 @@ func TestShardProcessor_ProcessBlockWithErrOnProcessBlockTransactionsCallShouldR
 		&testscommon.ProcessedMiniBlocksTrackerStub{},
 		&commonMock.TxExecutionOrderHandlerStub{},
 		createMockTxCacheSelectionConfig(),
+		&testscommon.GasComputationMock{},
 	)
 	require.NoError(t, err)
 
@@ -2651,6 +2653,7 @@ func TestShardProcessor_MarshalizedDataToBroadcastShouldWork(t *testing.T) {
 		&testscommon.ProcessedMiniBlocksTrackerStub{},
 		&commonMock.TxExecutionOrderHandlerStub{},
 		createMockTxCacheSelectionConfig(),
+		&testscommon.GasComputationMock{},
 	)
 	require.NoError(t, err)
 
@@ -2767,6 +2770,7 @@ func TestShardProcessor_MarshalizedDataMarshalWithoutSuccess(t *testing.T) {
 		&testscommon.ProcessedMiniBlocksTrackerStub{},
 		&commonMock.TxExecutionOrderHandlerStub{},
 		createMockTxCacheSelectionConfig(),
+		&testscommon.GasComputationMock{},
 	)
 	require.NoError(t, err)
 
@@ -3031,6 +3035,7 @@ func TestShardProcessor_CreateMiniBlocksShouldWorkWithIntraShardTxs(t *testing.T
 		&testscommon.ProcessedMiniBlocksTrackerStub{},
 		&commonMock.TxExecutionOrderHandlerStub{},
 		createMockTxCacheSelectionConfig(),
+		&testscommon.GasComputationMock{},
 	)
 	require.NoError(t, err)
 
@@ -3220,6 +3225,7 @@ func TestShardProcessor_RestoreBlockIntoPoolsShouldWork(t *testing.T) {
 		&testscommon.ProcessedMiniBlocksTrackerStub{},
 		&commonMock.TxExecutionOrderHandlerStub{},
 		createMockTxCacheSelectionConfig(),
+		&testscommon.GasComputationMock{},
 	)
 	require.NoError(t, err)
 
