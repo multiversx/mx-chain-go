@@ -886,7 +886,7 @@ func TestBaseAPIBlockProcessor_AddMbsAndNumTxsAsyncExecutionBasedOnExecutionResu
 		},
 	}
 
-	err := baseAPIBlockProc.addMbsAndNumTxsAsyncExecutionBasedOnExecutionResult(
+	err := baseAPIBlockProc.addMbsAndNumTxsAsyncExecution(
 		apiBlock,
 		blockHeader,
 		[]byte("header_hash"),
@@ -983,7 +983,7 @@ func TestBaseAPIBlockProcessor_AddMbsAndNumTxsAsyncExecutionBasedOnExecutionResu
 		},
 	}
 
-	err := baseAPIBlockProc.addMbsAndNumTxsAsyncExecutionBasedOnExecutionResult(
+	err := baseAPIBlockProc.addMbsAndNumTxsAsyncExecution(
 		apiBlock,
 		blockHeader,
 		[]byte("header_hash"),
@@ -1045,7 +1045,7 @@ func TestBaseAPIBlockProcessor_AddMbsAndNumTxsAsyncExecutionBasedOnExecutionResu
 		Epoch: 5,
 	}
 
-	err := baseAPIBlockProc.addMbsAndNumTxsAsyncExecutionBasedOnExecutionResult(
+	err := baseAPIBlockProc.addMbsAndNumTxsAsyncExecution(
 		apiBlock,
 		blockHeader,
 		[]byte("header_hash"),
@@ -1126,7 +1126,7 @@ func TestBaseAPIBlockProcessor_AddMbsAndNumTxsAsyncExecutionBasedOnExecutionResu
 		Epoch: 5,
 	}
 
-	err := baseAPIBlockProc.addMbsAndNumTxsAsyncExecutionBasedOnExecutionResult(
+	err := baseAPIBlockProc.addMbsAndNumTxsAsyncExecution(
 		apiBlock,
 		blockHeader,
 		[]byte("header_hash"),

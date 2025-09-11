@@ -51,7 +51,7 @@ const (
 	ScheduledSCRsUnit UnitType = 22
 	// ProofsUnit is the header proofs unit identifier
 	ProofsUnit UnitType = 23
-	//ExecutionResultsUnit is the execution results unit identifier
+	// ExecutionResultsUnit is the execution results unit identifier
 	ExecutionResultsUnit UnitType = 24
 
 	// ShardHdrNonceHashDataUnit is the header nonce-hash pair data unit identifier

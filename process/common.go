@@ -790,6 +790,7 @@ func GetHeader(
 	return GetShardHeader(headerHash, headersPool, marshaller, headersStorer)
 }
 
+// UnmarshalExecutionResult unmarshalls an execution result
 func UnmarshalExecutionResult(marshaller marshal.Marshalizer, executionResultsBytes []byte) (data.ExecutionResultHandler, error) {
 	executionResult, err := UnmarshalShardExecutionResult(marshaller, executionResultsBytes)
 	if err == nil {
@@ -799,6 +800,7 @@ func UnmarshalExecutionResult(marshaller marshal.Marshalizer, executionResultsBy
 	return UnmarshallMetaExecutionResult(marshaller, executionResultsBytes)
 }
 
+// UnmarshalShardExecutionResult unmarshalls a shard execution result
 func UnmarshalShardExecutionResult(marshaller marshal.Marshalizer, executionResultsBytes []byte) (data.ExecutionResultHandler, error) {
 	executionResult := &block.ExecutionResult{}
 	err := marshaller.Unmarshal(executionResult, executionResultsBytes)
@@ -809,6 +811,7 @@ func UnmarshalShardExecutionResult(marshaller marshal.Marshalizer, executionResu
 	return executionResult, nil
 }
 
+// UnmarshallMetaExecutionResult unmarshalls a meta execution result
 func UnmarshallMetaExecutionResult(marshaller marshal.Marshalizer, executionResultsBytes []byte) (data.MetaExecutionResultHandler, error) {
 	executionResult := &block.MetaExecutionResult{}
 	err := marshaller.Unmarshal(executionResult, executionResultsBytes)

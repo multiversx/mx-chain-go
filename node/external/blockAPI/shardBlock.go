@@ -199,7 +199,7 @@ func (sbp *shardAPIBlockProcessor) convertShardBlockBytesToAPIBlock(hash []byte,
 	}
 
 	if blockHeader.IsHeaderV3() {
-		err = sbp.addMbsAndNumTxsAsyncExecutionBasedOnExecutionResult(apiBlock, blockHeader, hash, options)
+		err = sbp.addMbsAndNumTxsAsyncExecution(apiBlock, blockHeader, hash, options)
 	} else {
 		err = sbp.addMbsAndNumTxsV1(apiBlock, blockHeader, hash, options)
 	}

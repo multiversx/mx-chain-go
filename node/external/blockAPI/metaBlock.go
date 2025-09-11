@@ -215,7 +215,7 @@ func (mbp *metaAPIBlockProcessor) convertMetaBlockBytesToAPIBlock(hash []byte, b
 		err = mbp.addMbsAndNumTxsV1(apiMetaBlock, blockHeader, hash, options)
 	} else {
 		//async execution
-		err = mbp.addMbsAndNumTxsAsyncExecutionBasedOnExecutionResult(apiMetaBlock, blockHeader, hash, options)
+		err = mbp.addMbsAndNumTxsAsyncExecution(apiMetaBlock, blockHeader, hash, options)
 	}
 	if err != nil {
 		return nil, err

@@ -138,7 +138,7 @@ func (bap *baseAPIBlockProcessor) getMbsAndNumTxsAsyncExecution(
 		}
 		if options.WithTransactions {
 			miniBlockCopy := mb
-			err := bap.getAndAttachTxsToMbAsynxExecution(miniBlockCopy, blockHeader, miniblockAPI, options)
+			err := bap.getAndAttachTxsToMbAsyncExecution(miniBlockCopy, blockHeader, miniblockAPI, options)
 			if err != nil {
 				return nil, 0, err
 			}
@@ -150,7 +150,7 @@ func (bap *baseAPIBlockProcessor) getMbsAndNumTxsAsyncExecution(
 	return miniblocks, numOfTxs, nil
 }
 
-func (bap *baseAPIBlockProcessor) getAndAttachTxsToMbAsynxExecution(
+func (bap *baseAPIBlockProcessor) getAndAttachTxsToMbAsyncExecution(
 	mbHeader data.MiniBlockHeaderHandler,
 	header data.HeaderHandler,
 	apiMiniblock *api.MiniBlock,
@@ -720,12 +720,12 @@ func proofToAPIProof(proof data.HeaderProofHandler) *api.HeaderProof {
 	}
 }
 
-func (bap *baseAPIBlockProcessor) addMbsAndNumTxsAsyncExecutionBasedOnExecutionResult(apiBlock *api.Block, blockHeader data.HeaderHandler, headerHash []byte, options api.BlockQueryOptions) error {
+func (bap *baseAPIBlockProcessor) addMbsAndNumTxsAsyncExecution(apiBlock *api.Block, blockHeader data.HeaderHandler, headerHash []byte, options api.BlockQueryOptions) error {
 	executionResultBytes, err := bap.getFromStorerWithEpoch(dataRetriever.ExecutionResultsUnit, headerHash, blockHeader.GetEpoch())
 	if err != nil {
 		// It's possible to have a block without an execution result (transactions from block are not executed yet)
 		if errors.Is(err, dblookupext.ErrNotFoundInStorage) {
-			mbs, totalTxs, errG := bap.getMbsAndNumTxsNoExecutionResult(blockHeader, options)
+			mbs, totalTxs, errG := bap.getMbsAndTxsIfMissingExecutionResult(blockHeader, options)
 			apiBlock.MiniBlocks = mbs
 			apiBlock.NumTxs = totalTxs
 			return errG
@@ -739,7 +739,7 @@ func (bap *baseAPIBlockProcessor) addMbsAndNumTxsAsyncExecutionBasedOnExecutionR
 	}
 
 	// get mbs before execution
-	mbsBeforeExecution, _, err := bap.getMbsAndNumTxsNoExecutionResult(blockHeader, options)
+	mbsBeforeExecution, _, err := bap.getMbsAndTxsIfMissingExecutionResult(blockHeader, options)
 	if err != nil {
 		return err
 	}
@@ -772,7 +772,7 @@ func (bap *baseAPIBlockProcessor) addMbsAndNumTxsAsyncExecutionBasedOnExecutionR
 	return nil
 }
 
-func (bap *baseAPIBlockProcessor) getMbsAndNumTxsNoExecutionResult(blockHeader data.HeaderHandler, options api.BlockQueryOptions) ([]*api.MiniBlock, uint32, error) {
+func (bap *baseAPIBlockProcessor) getMbsAndTxsIfMissingExecutionResult(blockHeader data.HeaderHandler, options api.BlockQueryOptions) ([]*api.MiniBlock, uint32, error) {
 	miniblocks, numTxs, errG := bap.getMbsAndNumTxsAsyncExecution(blockHeader, blockHeader.GetMiniBlockHeaderHandlers(), options)
 	if errG != nil {
 		return nil, 0, errG
