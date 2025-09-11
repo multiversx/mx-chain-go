@@ -18,8 +18,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-var expectedError = errors.New("expected error")
-
 func Test_NewTxCache(t *testing.T) {
 	config := ConfigSourceMe{
 		Name:                        "test",
@@ -314,7 +312,7 @@ func Test_GetTransactionsPoolForSender(t *testing.T) {
 	require.Equal(t, expectedTxs, txs)
 }
 
-func TestTxCache_SelectTransactions(t *testing.T) {
+func TestTxCache_GetVirtualNonce(t *testing.T) {
 	t.Parallel()
 
 	t.Run("should return errNilSelectionSession error", func(t *testing.T) {
