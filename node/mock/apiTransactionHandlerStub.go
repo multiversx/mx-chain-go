@@ -30,6 +30,7 @@ func (tas *TransactionAPIHandlerStub) GetSCRsByTxHash(txHash string, scrHash str
 	return nil, nil
 }
 
+// GetVirtualNonce -
 func (tas *TransactionAPIHandlerStub) GetVirtualNonce(address []byte, accountsAdapter state.AccountsAdapter) (*common.VirtualNonceOfAccountResponse, error) {
 	if tas.GetVirtualNonceCalled != nil {
 		return tas.GetVirtualNonceCalled(address, accountsAdapter)

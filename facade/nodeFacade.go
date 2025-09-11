@@ -397,13 +397,12 @@ func (nf *nodeFacade) GetVirtualNonce(address []byte) (*common.VirtualNonceOfAcc
 	blockHeader := nf.blockchain.GetCurrentBlockHeader()
 	if blockHeader == nil {
 		return nil, ErrNilBlockHeader
-
 	}
 
 	epoch := blockHeader.GetEpoch()
 	rootHashHolder := holders.NewRootHashHolder(currentRootHash, core.OptionalUint32{Value: epoch, HasValue: true})
 
-	// NOTE: keep in mind that the selection simulation can be affected by other API requests which might alter the trie
+	// TODO: keep in mind that the selection simulation can be affected by other API requests which might alter the trie
 	err := nf.accountStateAPI.RecreateTrie(rootHashHolder)
 	if err != nil {
 		return nil, err

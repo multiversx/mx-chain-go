@@ -76,6 +76,7 @@ func (ars *ApiResolverStub) GetSCRsByTxHash(txHash string, scrHash string) ([]*t
 	return nil, nil
 }
 
+// GetVirtualNonce -
 func (ars *ApiResolverStub) GetVirtualNonce(address []byte, accountsAdapter state.AccountsAdapter) (*common.VirtualNonceOfAccountResponse, error) {
 	if ars.GetVirtualNonceCalled != nil {
 		return ars.GetVirtualNonceCalled(address, accountsAdapter)

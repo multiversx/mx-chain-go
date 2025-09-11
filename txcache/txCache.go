@@ -158,7 +158,7 @@ func (cache *TxCache) SelectTransactions(
 
 // GetVirtualNonce returns the nonce of the virtual record of an account
 func (cache *TxCache) GetVirtualNonce(
-	sender []byte,
+	address []byte,
 	session SelectionSession,
 	blockchainInfo common.BlockchainInfo,
 ) (uint64, error) {
@@ -177,20 +177,18 @@ func (cache *TxCache) GetVirtualNonce(
 	}
 
 	logSelect.Debug(
-		"TxCache.SelectTransactions: begin",
-		"num txs", cache.CountTx(),
-		"num senders", cache.CountSenders(),
-		"num bytes", cache.NumBytes(),
+		"TxCache.GetVirtualNonce",
+		"address", address,
 		"current root hash", rootHash,
 	)
 
 	virtualSession, err := cache.tracker.deriveVirtualSelectionSession(session, blockchainInfo)
 	if err != nil {
-		log.Error("TxCache.SelectTransactions: could not derive virtual selection session", "err", err)
+		log.Error("TxCache.GetVirtualNonce: could not derive virtual selection session", "err", err)
 		return 0, err
 	}
 
-	return virtualSession.getNonce(sender)
+	return virtualSession.getNonce(address)
 }
 
 // OnProposedBlock calls the OnProposedBlock method from SelectionTracker

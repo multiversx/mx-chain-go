@@ -330,7 +330,7 @@ func (atp *apiTransactionProcessor) GetVirtualNonce(address []byte, accountsAdap
 
 	return &common.VirtualNonceOfAccountResponse{
 		VirtualNonce: virtualNonce,
-	}, err
+	}, nil
 }
 
 func (atp *apiTransactionProcessor) extractRequestedTxInfoFromObj(txObj interface{}, txType transaction.TxType, txHash []byte, requestedFieldsHandler fieldsHandler) common.Transaction {
