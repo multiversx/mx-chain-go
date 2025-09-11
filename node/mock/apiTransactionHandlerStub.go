@@ -12,7 +12,7 @@ type TransactionAPIHandlerStub struct {
 	GetTransactionsPoolForSenderCalled          func(sender, fields string) (*common.TransactionsPoolForSenderApiResponse, error)
 	GetLastPoolNonceForSenderCalled             func(sender string) (uint64, error)
 	GetTransactionsPoolNonceGapsForSenderCalled func(sender string, senderAccountNonce uint64) (*common.TransactionsPoolNonceGapsForSenderApiResponse, error)
-	UnmarshalTransactionCalled                  func(txBytes []byte, txType transaction.TxType) (*transaction.ApiTransactionResult, error)
+	UnmarshalTransactionCalled                  func(txBytes []byte, txType transaction.TxType, epoch uint32) (*transaction.ApiTransactionResult, error)
 	UnmarshalReceiptCalled                      func(receiptBytes []byte) (*transaction.ApiReceipt, error)
 	PopulateComputedFieldsCalled                func(tx *transaction.ApiTransactionResult)
 	GetSCRsByTxHashCalled                       func(txHash string, scrHash string) ([]*transaction.ApiSmartContractResult, error)
@@ -73,9 +73,9 @@ func (tas *TransactionAPIHandlerStub) GetTransactionsPoolNonceGapsForSender(send
 }
 
 // UnmarshalTransaction -
-func (tas *TransactionAPIHandlerStub) UnmarshalTransaction(txBytes []byte, txType transaction.TxType) (*transaction.ApiTransactionResult, error) {
+func (tas *TransactionAPIHandlerStub) UnmarshalTransaction(txBytes []byte, txType transaction.TxType, epoch uint32) (*transaction.ApiTransactionResult, error) {
 	if tas.UnmarshalTransactionCalled != nil {
-		return tas.UnmarshalTransactionCalled(txBytes, txType)
+		return tas.UnmarshalTransactionCalled(txBytes, txType, epoch)
 	}
 	return nil, nil
 }
