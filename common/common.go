@@ -242,3 +242,28 @@ func GetHeaderTimestamps(
 
 	return timestampSec, timestampMs, nil
 }
+
+type EnableEpochsHandlerWithSet interface {
+	SetActivationRound(flag EnableRoundFlag, round uint64)
+}
+
+var erh EnableEpochsHandlerWithSet
+var eeh EnableEpochsHandler
+var log = logger.GetOrCreate("common")
+
+func SetEnableRoundsHandler(enableRoundsHandler EnableEpochsHandlerWithSet) {
+	erh = enableRoundsHandler
+}
+
+func SetEnableEpochsHandler(enableEpochsHandler EnableEpochsHandler) {
+	eeh = enableEpochsHandler
+}
+
+func SetSuperNovaActivationRound(epoch uint32, round uint64) {
+	isEnabled := eeh.GetActivationEpoch(SupernovaFlag) == epoch && eeh.IsFlagEnabledInEpoch(SupernovaFlag, epoch)
+	log.Info("SetSuperNovaActivationRound", "round", round, "epoch", epoch, "is enabled in current round", isEnabled)
+	if isEnabled {
+		erh.SetActivationRound(SupernovaRoundFlag, round+20)
+	}
+
+}

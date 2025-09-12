@@ -211,7 +211,7 @@ func (v *validatorSC) Execute(args *vmcommon.ContractCallInput) vmcommon.ReturnC
 		v.eei.AddReturnMessage("cannot transfer ESDT to system SCs")
 		return vmcommon.UserError
 	}
-
+	log.Info("Execute validatorSC - entered", "args", args)
 	switch args.Function {
 	case core.SCDeployInitFunctionName:
 		return v.init(args)

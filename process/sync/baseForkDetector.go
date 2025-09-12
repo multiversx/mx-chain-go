@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"math"
 	"sync"
+	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
@@ -59,6 +60,7 @@ type baseForkDetector struct {
 	enableRoundsHandler    common.EnableRoundsHandler
 	proofsPool             process.ProofsPool
 	chainParametersHandler common.ChainParametersHandler
+	superstartRound        int64
 }
 
 // SetRollBackNonce sets the nonce where the chain should roll back
@@ -762,6 +764,8 @@ func (bfd *baseForkDetector) checkGenesisTimeForHeaderAfterSupernovaWithoutRound
 	roundDifference := int64(headerHandler.GetRound() - bfd.genesisRound)
 	genesisTime := int64(headerHandler.GetTimeStamp()) - roundDifference*roundDuration
 
+	_ = bfd.GetSupernovaGenesisTimestamp()
+
 	log.Trace("getGenesisTimeForHeaderAfterSupernovaWithoutRoundActivation",
 		"roundDuration", roundDuration,
 		"roundDifference", roundDifference,
@@ -818,12 +822,12 @@ func (bfd *baseForkDetector) checkGenesisTimeForHeaderAfterSupernovaWithRoundAct
 		"roundDuration", roundDuration,
 		"roundDifference", roundDifference,
 		"genesisTime", genesisTime,
-		"supernovaGenesisTime", bfd.supernovaGenesisTime,
+		"supernovaGenesisTime", bfd.GetSupernovaGenesisTimestamp(),
 	)
 
-	if genesisTime != bfd.supernovaGenesisTime {
+	if genesisTime != bfd.GetSupernovaGenesisTimestamp() {
 		log.Error("checkGenesisTimeForHeaderAfterSupernovaWithRoundActivation: genesis time mismatch",
-			"localGenesisTime", bfd.supernovaGenesisTime,
+			"localGenesisTime", bfd.GetSupernovaGenesisTimestamp(),
 			"calculatedGenesisTime", genesisTime,
 			"header timestamp", headerHandler.GetTimeStamp(),
 		)
@@ -831,6 +835,21 @@ func (bfd *baseForkDetector) checkGenesisTimeForHeaderAfterSupernovaWithRoundAct
 	}
 
 	return nil
+}
+
+func (rnd *baseForkDetector) GetSupernovaGenesisTimestamp() int64 {
+	supernovaStartRound := int64(rnd.enableRoundsHandler.GetActivationRound(common.SupernovaRoundFlag))
+	if supernovaStartRound != rnd.superstartRound {
+		genesisTime := common.GetGenesisStartTimeFromUnixTimestamp(rnd.genesisTime, rnd.enableEpochsHandler)
+		rnd.superstartRound = supernovaStartRound
+		rnd.supernovaGenesisTime = genesisTime.Add(time.Duration(supernovaStartRound * rnd.roundHandler.TimeDuration().Nanoseconds())).UnixMilli()
+		log.Debug("baseForkDetector.go: GetSupernovaGenesisTimestamp: force set supernovaStartRound",
+			"round", supernovaStartRound,
+			"supernovaGenesisTimeStamp", rnd.supernovaGenesisTime,
+			"genesisTime", rnd.genesisTime)
+	}
+
+	return rnd.supernovaGenesisTime
 }
 
 func (bfd *baseForkDetector) checkGenesisTimeForHeader(headerHandler data.HeaderHandler) error {
