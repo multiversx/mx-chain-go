@@ -212,6 +212,7 @@ type EquivalentProofsPool interface {
 	GetProof(shardID uint32, headerHash []byte) (data.HeaderProofHandler, error)
 	GetProofByNonce(headerNonce uint64, shardID uint32) (data.HeaderProofHandler, error)
 	HasProof(shardID uint32, headerHash []byte) bool
+	RegisterHandler(handler func(headerProof data.HeaderProofHandler))
 	IsInterfaceNil() bool
 }
 

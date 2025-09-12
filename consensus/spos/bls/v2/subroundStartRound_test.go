@@ -1191,11 +1191,14 @@ func TestSubroundStartRound_ConsensusMetricsResetInstanceValuesShouldWork(t *tes
 	assert.Equal(t, uint64(100), values["blockHeaderReceivedOrSentDelay"])
 	assert.Equal(t, uint64(150), values["blockBodyReceivedOrSentDelay"])
 	assert.Equal(t, []byte("hash"), values["blockHash"])
-
+	assert.True(t, values["isBlockBodyAlreadyReceived"].(bool))
+	assert.True(t, values["isProofAlreadyReceived"].(bool))
 	startRound.DoStartRoundJob()
 
 	values = cm.GetValuesForTesting()
 	assert.Equal(t, uint64(0), values["blockHeaderReceivedOrSentDelay"])
 	assert.Equal(t, uint64(0), values["blockBodyReceivedOrSentDelay"])
 	assert.Nil(t, values["blockHash"])
+	assert.False(t, values["isBlockBodyAlreadyReceived"].(bool))
+	assert.False(t, values["isProofAlreadyReceived"].(bool))
 }

@@ -86,7 +86,7 @@ func TestConsensusMetrics_SetBlockHeaderAndBodyReceived(t *testing.T) {
 	_ = logger.SetLogLevel("*:TRACE")
 
 	t.Run("with header received first", func(t *testing.T) {
-		//t.Parallel()
+		t.Parallel()
 		appStatusHandler := statusHandlerMock.NewAppStatusHandlerMock()
 		cm := NewConsensusMetrics(appStatusHandler)
 
@@ -114,7 +114,7 @@ func TestConsensusMetrics_SetBlockHeaderAndBodyReceived(t *testing.T) {
 	})
 
 	t.Run("with body received first", func(t *testing.T) {
-		//t.Parallel()
+		t.Parallel()
 
 		appStatusHandler := statusHandlerMock.NewAppStatusHandlerMock()
 		cm := NewConsensusMetrics(appStatusHandler)
@@ -138,7 +138,7 @@ func TestConsensusMetrics_SetBlockHeaderAndBodyReceived(t *testing.T) {
 	})
 
 	t.Run("with body for a different hash", func(t *testing.T) {
-		//t.Parallel()
+		t.Parallel()
 		appStatusHandler := statusHandlerMock.NewAppStatusHandlerMock()
 		cm := NewConsensusMetrics(appStatusHandler)
 
@@ -163,10 +163,10 @@ func TestConsensusMetrics_SetBlockHeaderAndBodyReceived(t *testing.T) {
 }
 
 func TestConsensusMetrics_SetProof(t *testing.T) {
-	//t.Parallel()
+	t.Parallel()
 	_ = logger.SetLogLevel("*:TRACE")
 	t.Run("with no header or body received", func(t *testing.T) {
-		//t.Parallel()
+		t.Parallel()
 		appStatusHandler := statusHandlerMock.NewAppStatusHandlerMock()
 		cm := NewConsensusMetrics(appStatusHandler)
 
@@ -179,7 +179,7 @@ func TestConsensusMetrics_SetProof(t *testing.T) {
 	})
 
 	t.Run("with header received first", func(t *testing.T) {
-		//t.Parallel()
+		t.Parallel()
 		appStatusHandler := statusHandlerMock.NewAppStatusHandlerMock()
 		cm := NewConsensusMetrics(appStatusHandler)
 
@@ -208,7 +208,7 @@ func TestConsensusMetrics_SetProof(t *testing.T) {
 	})
 
 	t.Run("with body received first", func(t *testing.T) {
-		//t.Parallel()
+		t.Parallel()
 		appStatusHandler := statusHandlerMock.NewAppStatusHandlerMock()
 		cm := NewConsensusMetrics(appStatusHandler)
 
@@ -229,7 +229,7 @@ func TestConsensusMetrics_SetProof(t *testing.T) {
 	})
 
 	t.Run("with only header received", func(t *testing.T) {
-		//t.Parallel()
+		t.Parallel()
 		appStatusHandler := statusHandlerMock.NewAppStatusHandlerMock()
 		cm := NewConsensusMetrics(appStatusHandler)
 
@@ -248,7 +248,7 @@ func TestConsensusMetrics_SetProof(t *testing.T) {
 	})
 
 	t.Run("with only body received", func(t *testing.T) {
-		//t.Parallel()
+		t.Parallel()
 		appStatusHandler := statusHandlerMock.NewAppStatusHandlerMock()
 		cm := NewConsensusMetrics(appStatusHandler)
 
@@ -267,7 +267,7 @@ func TestConsensusMetrics_SetProof(t *testing.T) {
 	})
 
 	t.Run("with proof for different hash", func(t *testing.T) {
-		//t.Parallel()
+		t.Parallel()
 		appStatusHandler := statusHandlerMock.NewAppStatusHandlerMock()
 		cm := NewConsensusMetrics(appStatusHandler)
 
@@ -285,7 +285,73 @@ func TestConsensusMetrics_SetProof(t *testing.T) {
 		_ = cm.SetSignaturesReceived(proofHash, proofDelay)
 
 		assert.Equal(t, bodyDelay, appStatusHandler.GetUint64(common.MetricReceivedProposedBlockBody), "blockReceivedDelay metric should be updated correctly")
-		assert.Equal(t, uint64(0), appStatusHandler.GetUint64(common.MetricReceivedSignatures), "blockReceivedProof metric should be updated correctly")
+		assert.Equal(t, uint64(0), appStatusHandler.GetUint64(common.MetricReceivedSignatures), "blockReceivedProof metric should not be updated")
 	})
 
+	t.Run("with proof delay smaller than header and body delay", func(t *testing.T) {
+		t.Parallel()
+		appStatusHandler := statusHandlerMock.NewAppStatusHandlerMock()
+		cm := NewConsensusMetrics(appStatusHandler)
+
+		appStatusHandler.SetUInt64Value(common.MetricReceivedProposedBlockBody, 0)
+		appStatusHandler.SetUInt64Value(common.MetricReceivedSignatures, 0)
+
+		blockHash := []byte{0x01, 0x02, 0x03}
+		headerDelay := uint64(100)
+		bodyDelay := uint64(200)
+		proofDelay := uint64(50)
+
+		cm.SetBlockHeaderReceived(blockHash, headerDelay)
+		cm.SetBlockBodyReceived(blockHash, bodyDelay)
+		err := cm.SetSignaturesReceived(blockHash, proofDelay)
+
+		assert.Equal(t, bodyDelay, appStatusHandler.GetUint64(common.MetricReceivedProposedBlockBody), "blockReceivedDelay metric should be updated correctly")
+		assert.Zero(t, appStatusHandler.GetUint64(common.MetricReceivedSignatures), "blockReceivedProof metric should be updated correctly")
+		assert.NotNil(t, err, "SetProofReceived should return error when proof delay is less than block delay")
+	})
+
+}
+
+func TestConsensusMetrics_UpdateAverages(t *testing.T) {
+	//t.Parallel()
+	_ = logger.SetLogLevel("*:TRACE")
+	appStatusHandler := statusHandlerMock.NewAppStatusHandlerMock()
+	cm := NewConsensusMetrics(appStatusHandler)
+
+	cm.blockReceivedDelaySum = 300
+	cm.blockReceivedCount = 3
+	cm.updateAverages(common.MetricReceivedProposedBlockBody, 500)
+	assert.Equal(t, uint64(800), cm.blockReceivedDelaySum, "blockReceivedDelaySum should be updated correctly")
+	assert.Equal(t, uint64(4), cm.blockReceivedCount, "blockReceivedCount should be updated correctly")
+	assert.Equal(t, uint64(200), appStatusHandler.GetUint64(common.MetricAvgReceivedProposedBlockBody), "AvgReceivedProposedBlockBody should be updated correctly")
+
+	cm.blockSignedDelaySum = 600
+	cm.blockSignedCount = 4
+	cm.updateAverages(common.MetricReceivedSignatures, 400)
+	assert.Equal(t, uint64(1000), cm.blockSignedDelaySum, "blockSignedDelaySum should be updated correctly")
+	assert.Equal(t, uint64(5), cm.blockSignedCount, "blockSignedCount should be updated correctly")
+	assert.Equal(t, uint64(200), appStatusHandler.GetUint64(common.MetricAvgReceivedSignatures), "AvgReceivedSignatures should be updated correctly")
+}
+
+func TestConsensusMetrics_IsProofSet(t *testing.T) {
+	t.Parallel()
+	_ = logger.SetLogLevel("*:TRACE")
+
+	appStatusHandler := statusHandlerMock.NewAppStatusHandlerMock()
+	cm := NewConsensusMetrics(appStatusHandler)
+	cm.ResetInstanceValues()
+
+	assert.False(t, cm.IsProofForCurrentConsensusSet(), "isProofForCurrentConsensusSet should be false initially")
+
+	cm.SetSignaturesReceived([]byte{0x01, 0x02}, 100)
+	assert.False(t, cm.IsProofForCurrentConsensusSet(), "isProofForCurrentConsensusSet should be false after setting only proof")
+
+	cm.SetBlockHeaderReceived([]byte{0x01, 0x02}, 100)
+	cm.SetBlockBodyReceived([]byte{0x01, 0x02}, 200)
+
+	cm.SetSignaturesReceived([]byte{0x02, 0x03}, 300)
+	assert.False(t, cm.IsProofForCurrentConsensusSet(), "isProofForCurrentConsensusSet should be false after receiving proof for another block")
+
+	cm.SetSignaturesReceived([]byte{0x01, 0x02}, 300)
+	assert.True(t, cm.IsProofForCurrentConsensusSet(), "isProofForCurrentConsensusSet should be true after setting header, body and proof")
 }
