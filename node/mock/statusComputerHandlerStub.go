@@ -7,10 +7,15 @@ import (
 
 // StatusComputerStub -
 type StatusComputerStub struct {
+	ComputeStatusWhenInStorageKnowingMiniblockCalled func(mbType block.Type, tx *transaction.ApiTransactionResult) (transaction.TxStatus, error)
 }
 
 // ComputeStatusWhenInStorageKnowingMiniblock -
-func (scs *StatusComputerStub) ComputeStatusWhenInStorageKnowingMiniblock(_ block.Type, _ *transaction.ApiTransactionResult) (transaction.TxStatus, error) {
+func (scs *StatusComputerStub) ComputeStatusWhenInStorageKnowingMiniblock(mbType block.Type, tx *transaction.ApiTransactionResult) (transaction.TxStatus, error) {
+	if scs.ComputeStatusWhenInStorageKnowingMiniblockCalled != nil {
+		return scs.ComputeStatusWhenInStorageKnowingMiniblockCalled(mbType, tx)
+	}
+
 	return "", nil
 }
 

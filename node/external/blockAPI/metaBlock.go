@@ -4,11 +4,13 @@ import (
 	"encoding/hex"
 
 	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/alteredAccount"
 	"github.com/multiversx/mx-chain-core-go/data/api"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
+	"github.com/multiversx/mx-chain-go/process"
 )
 
 type metaAPIBlockProcessor struct {
@@ -170,92 +172,60 @@ func (mbp *metaAPIBlockProcessor) getHashAndBlockBytesFromStorerByNonce(params a
 }
 
 func (mbp *metaAPIBlockProcessor) convertMetaBlockBytesToAPIBlock(hash []byte, blockBytes []byte, options api.BlockQueryOptions) (*api.Block, error) {
-	blockHeader := &block.MetaBlock{}
-	err := mbp.marshalizer.Unmarshal(blockHeader, blockBytes)
+	blockHeader, err := process.UnmarshalMetaHeader(mbp.marshalizer, blockBytes)
 	if err != nil {
 		return nil, err
 	}
 
-	numOfTxs := uint32(0)
-	miniblocks := make([]*api.MiniBlock, 0)
-	for _, mb := range blockHeader.MiniBlockHeaders {
-		if mb.Type == block.PeerBlock {
-			continue
-		}
-
-		numOfTxs += mb.TxCount
-
-		miniblockAPI := &api.MiniBlock{
-			Hash:             hex.EncodeToString(mb.Hash),
-			Type:             mb.Type.String(),
-			SourceShard:      mb.SenderShardID,
-			DestinationShard: mb.ReceiverShardID,
-		}
-		if options.WithTransactions {
-			miniBlockCopy := mb
-			err = mbp.getAndAttachTxsToMb(&miniBlockCopy, blockHeader, miniblockAPI, options)
-			if err != nil {
-				return nil, err
-			}
-		}
-
-		miniblocks = append(miniblocks, miniblockAPI)
-	}
-
-	intraMb, err := mbp.getIntrashardMiniblocksFromReceiptsStorage(blockHeader, hash, options)
-	if err != nil {
-		return nil, err
-	}
-
-	if len(intraMb) > 0 {
-		miniblocks = append(miniblocks, intraMb...)
-	}
-
-	miniblocks = filterOutDuplicatedMiniblocks(miniblocks)
-
-	notarizedBlocks := make([]*api.NotarizedBlock, 0, len(blockHeader.ShardInfo))
-	for _, shardData := range blockHeader.ShardInfo {
+	notarizedBlocks := make([]*api.NotarizedBlock, 0, len(blockHeader.GetShardInfoHandlers()))
+	for _, shardData := range blockHeader.GetShardInfoHandlers() {
 		notarizedBlock := &api.NotarizedBlock{
-			Hash:  hex.EncodeToString(shardData.HeaderHash),
-			Nonce: shardData.Nonce,
-			Round: shardData.Round,
-			Shard: shardData.ShardID,
+			Hash:  hex.EncodeToString(shardData.GetHeaderHash()),
+			Nonce: shardData.GetNonce(),
+			Round: shardData.GetRound(),
+			Shard: shardData.GetShardID(),
 		}
 
 		notarizedBlocks = append(notarizedBlocks, notarizedBlock)
 	}
 
 	apiMetaBlock := &api.Block{
-		Nonce:                  blockHeader.Nonce,
-		Round:                  blockHeader.Round,
-		Epoch:                  blockHeader.Epoch,
-		Shard:                  core.MetachainShardId,
-		Hash:                   hex.EncodeToString(hash),
-		PrevBlockHash:          hex.EncodeToString(blockHeader.PrevHash),
-		NumTxs:                 numOfTxs,
-		NotarizedBlocks:        notarizedBlocks,
-		MiniBlocks:             miniblocks,
-		AccumulatedFees:        blockHeader.AccumulatedFees.String(),
-		DeveloperFees:          blockHeader.DeveloperFees.String(),
-		AccumulatedFeesInEpoch: blockHeader.AccumulatedFeesInEpoch.String(),
-		DeveloperFeesInEpoch:   blockHeader.DevFeesInEpoch.String(),
-		Timestamp:              int64(blockHeader.GetTimeStamp()),
-		TimestampMs:            int64(common.ConvertTimeStampSecToMs(blockHeader.GetTimeStamp())),
-		StateRootHash:          hex.EncodeToString(blockHeader.RootHash),
-		Status:                 BlockStatusOnChain,
-		PubKeyBitmap:           hex.EncodeToString(blockHeader.GetPubKeysBitmap()),
-		Signature:              hex.EncodeToString(blockHeader.GetSignature()),
-		LeaderSignature:        hex.EncodeToString(blockHeader.GetLeaderSignature()),
-		ChainID:                string(blockHeader.GetChainID()),
-		SoftwareVersion:        hex.EncodeToString(blockHeader.GetSoftwareVersion()),
-		ReceiptsHash:           hex.EncodeToString(blockHeader.GetReceiptsHash()),
-		Reserved:               blockHeader.GetReserved(),
-		RandSeed:               hex.EncodeToString(blockHeader.GetRandSeed()),
-		PrevRandSeed:           hex.EncodeToString(blockHeader.GetPrevRandSeed()),
+		Nonce:           blockHeader.GetNonce(),
+		Round:           blockHeader.GetRound(),
+		Epoch:           blockHeader.GetEpoch(),
+		Shard:           core.MetachainShardId,
+		Hash:            hex.EncodeToString(hash),
+		PrevBlockHash:   hex.EncodeToString(blockHeader.GetPrevHash()),
+		NotarizedBlocks: notarizedBlocks,
+		Timestamp:       int64(blockHeader.GetTimeStamp()),
+		TimestampMs:     int64(common.ConvertTimeStampSecToMs(blockHeader.GetTimeStamp())),
+		Status:          BlockStatusOnChain,
+		PubKeyBitmap:    hex.EncodeToString(blockHeader.GetPubKeysBitmap()),
+		Signature:       hex.EncodeToString(blockHeader.GetSignature()),
+		LeaderSignature: hex.EncodeToString(blockHeader.GetLeaderSignature()),
+		ChainID:         string(blockHeader.GetChainID()),
+		SoftwareVersion: hex.EncodeToString(blockHeader.GetSoftwareVersion()),
+		ReceiptsHash:    hex.EncodeToString(blockHeader.GetReceiptsHash()),
+		Reserved:        blockHeader.GetReserved(),
+		RandSeed:        hex.EncodeToString(blockHeader.GetRandSeed()),
+		PrevRandSeed:    hex.EncodeToString(blockHeader.GetPrevRandSeed()),
 	}
 
+	if !blockHeader.IsHeaderV3() {
+		err = mbp.addMbsAndNumTxsV1(apiMetaBlock, blockHeader, hash, options)
+	} else {
+		//async execution
+		err = mbp.addMbsAndNumTxsAsyncExecution(apiMetaBlock, blockHeader, hash, options)
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	addExtraFieldsLastExecutionResultMeta(blockHeader, apiMetaBlock)
 	addScheduledInfoInBlock(blockHeader, apiMetaBlock)
 	addStartOfEpochInfoInBlock(blockHeader, apiMetaBlock)
+
+	addExecutionResultsAndLastExecutionResults(blockHeader, apiMetaBlock)
 
 	err = mbp.addProof(hash, blockHeader, apiMetaBlock)
 	if err != nil {
@@ -265,61 +235,145 @@ func (mbp *metaAPIBlockProcessor) convertMetaBlockBytesToAPIBlock(hash []byte, b
 	return apiMetaBlock, nil
 }
 
-func addStartOfEpochInfoInBlock(metaBlock *block.MetaBlock, apiBlock *api.Block) {
-	if !metaBlock.IsStartOfEpochBlock() {
+func (mbp *metaAPIBlockProcessor) getMbsAndNumTxs(blockHeader data.MetaHeaderHandler, options api.BlockQueryOptions) ([]*api.MiniBlock, uint32, error) {
+	numOfTxs := uint32(0)
+	miniblocks := make([]*api.MiniBlock, 0)
+	for _, mb := range blockHeader.GetMiniBlockHeaderHandlers() {
+		mbType := block.Type(mb.GetTypeInt32())
+		if mbType == block.PeerBlock {
+			continue
+		}
+
+		numOfTxs += mb.GetTxCount()
+
+		miniblockAPI := &api.MiniBlock{
+			Hash:             hex.EncodeToString(mb.GetHash()),
+			Type:             mbType.String(),
+			SourceShard:      mb.GetSenderShardID(),
+			DestinationShard: mb.GetReceiverShardID(),
+		}
+		if options.WithTransactions {
+			miniBlockCopy := mb
+			err := mbp.getAndAttachTxsToMb(miniBlockCopy, blockHeader, miniblockAPI, options)
+			if err != nil {
+				return nil, 0, err
+			}
+		}
+
+		miniblocks = append(miniblocks, miniblockAPI)
+	}
+
+	return miniblocks, numOfTxs, nil
+}
+
+func (mbp *metaAPIBlockProcessor) addMbsAndNumTxsV1(apiBlock *api.Block, blockHeader data.MetaHeaderHandler, headerHash []byte, options api.BlockQueryOptions) error {
+	miniblocks, numOfTxs, err := mbp.getMbsAndNumTxs(blockHeader, options)
+	if err != nil {
+		return err
+	}
+
+	intraMb, err := mbp.getIntrashardMiniblocksFromReceiptsStorage(blockHeader, headerHash, options)
+	if err != nil {
+		return err
+	}
+
+	if len(intraMb) > 0 {
+		miniblocks = append(miniblocks, intraMb...)
+	}
+
+	miniblocks = filterOutDuplicatedMiniblocks(miniblocks)
+
+	apiBlock.MiniBlocks = miniblocks
+	apiBlock.NumTxs = numOfTxs
+
+	return nil
+}
+
+func addExtraFieldsLastExecutionResultMeta(metaHeader data.MetaHeaderHandler, apiBlock *api.Block) {
+	if !metaHeader.IsHeaderV3() {
+		apiBlock.AccumulatedFees = metaHeader.GetAccumulatedFees().String()
+		apiBlock.DeveloperFees = metaHeader.GetDeveloperFees().String()
+
+		apiBlock.AccumulatedFeesInEpoch = metaHeader.GetAccumulatedFeesInEpoch().String()
+		apiBlock.DeveloperFeesInEpoch = metaHeader.GetDevFeesInEpoch().String()
+		apiBlock.StateRootHash = hex.EncodeToString(metaHeader.GetRootHash())
+
 		return
 	}
 
-	epochStartEconomics := metaBlock.EpochStart.Economics
+	metaExecutionResult, ok := metaHeader.GetLastExecutionResultHandler().(data.LastMetaExecutionResultHandler)
+	if !ok {
+		log.Warn("mbp.addExtraFields cannot cast last execution result handler to data.LastMetaExecutionResultHandler")
+		return
+	}
+
+	apiBlock.AccumulatedFeesInEpoch = metaExecutionResult.GetExecutionResultHandler().GetAccumulatedFeesInEpoch().String()
+	apiBlock.DeveloperFeesInEpoch = metaExecutionResult.GetExecutionResultHandler().GetDevFeesInEpoch().String()
+	apiBlock.StateRootHash = hex.EncodeToString(metaExecutionResult.GetExecutionResultHandler().GetRootHash())
+}
+
+func addStartOfEpochInfoInBlock(metaHeader data.MetaHeaderHandler, apiBlock *api.Block) {
+	if !metaHeader.IsStartOfEpochBlock() {
+		return
+	}
+
+	epochStartEconomics := metaHeader.GetEpochStartHandler().GetEconomicsHandler()
 
 	apiBlock.EpochStartInfo = &api.EpochStartInfo{
-		TotalSupply:                      epochStartEconomics.TotalSupply.String(),
-		TotalToDistribute:                epochStartEconomics.TotalToDistribute.String(),
-		TotalNewlyMinted:                 epochStartEconomics.TotalNewlyMinted.String(),
-		RewardsPerBlock:                  epochStartEconomics.RewardsPerBlock.String(),
-		RewardsForProtocolSustainability: epochStartEconomics.RewardsForProtocolSustainability.String(),
-		NodePrice:                        epochStartEconomics.NodePrice.String(),
-		PrevEpochStartRound:              epochStartEconomics.PrevEpochStartRound,
-		PrevEpochStartHash:               hex.EncodeToString(epochStartEconomics.PrevEpochStartHash),
+		TotalSupply:                      epochStartEconomics.GetTotalSupply().String(),
+		TotalToDistribute:                epochStartEconomics.GetTotalToDistribute().String(),
+		TotalNewlyMinted:                 epochStartEconomics.GetTotalNewlyMinted().String(),
+		RewardsPerBlock:                  epochStartEconomics.GetRewardsPerBlock().String(),
+		RewardsForProtocolSustainability: epochStartEconomics.GetRewardsForProtocolSustainability().String(),
+		NodePrice:                        epochStartEconomics.GetNodePrice().String(),
+		PrevEpochStartRound:              epochStartEconomics.GetPrevEpochStartRound(),
+		PrevEpochStartHash:               hex.EncodeToString(epochStartEconomics.GetPrevEpochStartHash()),
 	}
 
-	if len(metaBlock.EpochStart.LastFinalizedHeaders) == 0 {
+	lastFinalizedHeaderHandlers := metaHeader.GetEpochStartHandler().GetLastFinalizedHeaderHandlers()
+	if len(lastFinalizedHeaderHandlers) == 0 {
 		return
 	}
 
-	epochStartShardsData := metaBlock.EpochStart.LastFinalizedHeaders
-	apiBlock.EpochStartShardsData = make([]*api.EpochStartShardData, 0, len(epochStartShardsData))
-	for _, epochStartShardData := range epochStartShardsData {
+	apiBlock.EpochStartShardsData = make([]*api.EpochStartShardData, 0, len(lastFinalizedHeaderHandlers))
+	for _, epochStartShardData := range lastFinalizedHeaderHandlers {
 		addEpochStartShardDataForMeta(epochStartShardData, apiBlock)
 	}
 }
 
-func addEpochStartShardDataForMeta(epochStartShardData block.EpochStartShardData, apiBlock *api.Block) {
+func addEpochStartShardDataForMeta(epochStartShardData data.EpochStartShardDataHandler, apiBlock *api.Block) {
 	shardData := &api.EpochStartShardData{
-		ShardID:               epochStartShardData.ShardID,
-		Epoch:                 epochStartShardData.Epoch,
-		Round:                 epochStartShardData.Round,
-		Nonce:                 epochStartShardData.Nonce,
-		HeaderHash:            hex.EncodeToString(epochStartShardData.HeaderHash),
-		RootHash:              hex.EncodeToString(epochStartShardData.RootHash),
-		ScheduledRootHash:     hex.EncodeToString(epochStartShardData.ScheduledRootHash),
-		FirstPendingMetaBlock: hex.EncodeToString(epochStartShardData.FirstPendingMetaBlock),
-		LastFinishedMetaBlock: hex.EncodeToString(epochStartShardData.LastFinishedMetaBlock),
+		ShardID:               epochStartShardData.GetShardID(),
+		Epoch:                 epochStartShardData.GetEpoch(),
+		Round:                 epochStartShardData.GetRound(),
+		Nonce:                 epochStartShardData.GetNonce(),
+		HeaderHash:            hex.EncodeToString(epochStartShardData.GetHeaderHash()),
+		RootHash:              hex.EncodeToString(epochStartShardData.GetRootHash()),
+		FirstPendingMetaBlock: hex.EncodeToString(epochStartShardData.GetFirstPendingMetaBlock()),
+		LastFinishedMetaBlock: hex.EncodeToString(epochStartShardData.GetLastFinishedMetaBlock()),
+	}
+
+	epochStartData, ok := epochStartShardData.(*block.EpochStartShardData)
+	if ok {
+		shardData.ScheduledRootHash = hex.EncodeToString(epochStartData.ScheduledRootHash)
 	}
 
 	apiBlock.EpochStartShardsData = append(apiBlock.EpochStartShardsData, shardData)
 
-	if len(epochStartShardData.PendingMiniBlockHeaders) == 0 {
+	pendingMiniBlockHeaders := epochStartShardData.GetPendingMiniBlockHeaderHandlers()
+	if len(pendingMiniBlockHeaders) == 0 {
 		return
 	}
 
-	shardData.PendingMiniBlockHeaders = make([]*api.MiniBlock, 0, len(epochStartShardData.PendingMiniBlockHeaders))
-	for _, pendingMb := range epochStartShardData.PendingMiniBlockHeaders {
+	shardData.PendingMiniBlockHeaders = make([]*api.MiniBlock, 0, len(pendingMiniBlockHeaders))
+	for _, pendingMb := range pendingMiniBlockHeaders {
+		pendingMbType := block.Type(pendingMb.GetTypeInt32())
+
 		shardData.PendingMiniBlockHeaders = append(shardData.PendingMiniBlockHeaders, &api.MiniBlock{
-			Hash:             hex.EncodeToString(pendingMb.Hash),
-			SourceShard:      pendingMb.SenderShardID,
-			DestinationShard: pendingMb.ReceiverShardID,
-			Type:             pendingMb.Type.String(),
+			Hash:             hex.EncodeToString(pendingMb.GetHash()),
+			SourceShard:      pendingMb.GetSenderShardID(),
+			DestinationShard: pendingMb.GetReceiverShardID(),
+			Type:             pendingMbType.String(),
 		})
 	}
 }

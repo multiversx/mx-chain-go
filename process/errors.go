@@ -1272,6 +1272,9 @@ var ErrProtocolSustainabilityAddressInMetachain = errors.New("protocol sustainab
 // ErrNilHeaderProof signals that a nil header proof has been provided
 var ErrNilHeaderProof = errors.New("nil header proof")
 
+// ErrInvalidHeader signals that an invalid header has been provided
+var ErrInvalidHeader = errors.New("invalid header")
+
 // ErrNilInterceptedDataCache signals that a nil cacher was provided for intercepted data verifier
 var ErrNilInterceptedDataCache = errors.New("nil cache for intercepted data")
 
