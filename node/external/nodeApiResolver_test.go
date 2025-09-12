@@ -620,6 +620,46 @@ func TestNodeApiResolver_GetSelectedTransactions(t *testing.T) {
 	})
 }
 
+func TestNodeApiResolver_GetVirtualNonce(t *testing.T) {
+	t.Parallel()
+
+	t.Run("should error", func(t *testing.T) {
+		t.Parallel()
+
+		expectedErr := errors.New("expected error")
+		arg := createMockArgs()
+		arg.APITransactionHandler = &mock.TransactionAPIHandlerStub{
+			GetVirtualNonceCalled: func(address []byte, accountsAdapter state.AccountsAdapter) (*common.VirtualNonceOfAccountResponse, error) {
+				return nil, expectedErr
+			},
+		}
+
+		nar, _ := external.NewNodeApiResolver(arg)
+		res, err := nar.GetVirtualNonce([]byte("alice"), nil)
+		require.Nil(t, res)
+		require.Equal(t, expectedErr, err)
+	})
+
+	t.Run("should work", func(t *testing.T) {
+		t.Parallel()
+
+		expectedResult := &common.VirtualNonceOfAccountResponse{
+			VirtualNonce: 0,
+		}
+		arg := createMockArgs()
+		arg.APITransactionHandler = &mock.TransactionAPIHandlerStub{
+			GetVirtualNonceCalled: func(address []byte, accountsAdapter state.AccountsAdapter) (*common.VirtualNonceOfAccountResponse, error) {
+				return expectedResult, nil
+			},
+		}
+
+		nar, _ := external.NewNodeApiResolver(arg)
+		res, err := nar.GetVirtualNonce(nil, nil)
+		require.NoError(t, err)
+		require.Equal(t, expectedResult, res)
+	})
+}
+
 func TestNodeApiResolver_GetGenesisNodesPubKeys(t *testing.T) {
 	t.Parallel()
 

@@ -225,6 +225,11 @@ func (nar *nodeApiResolver) GetSelectedTransactions(accountsAdapter state.Accoun
 	return nar.apiTransactionHandler.GetSelectedTransactions(accountsAdapter, selectionOptions)
 }
 
+// GetVirtualNonce will return the virtual nonce of the account
+func (nar *nodeApiResolver) GetVirtualNonce(address []byte, accountsAdapter state.AccountsAdapter) (*common.VirtualNonceOfAccountResponse, error) {
+	return nar.apiTransactionHandler.GetVirtualNonce(address, accountsAdapter)
+}
+
 // GetBlockByHash will return the block with the given hash and optionally with transactions
 func (nar *nodeApiResolver) GetBlockByHash(hash string, options api.BlockQueryOptions) (*api.Block, error) {
 	decodedHash, err := hex.DecodeString(hash)
