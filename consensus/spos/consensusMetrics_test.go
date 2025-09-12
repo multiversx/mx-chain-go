@@ -343,15 +343,15 @@ func TestConsensusMetrics_IsProofSet(t *testing.T) {
 
 	assert.False(t, cm.IsProofForCurrentConsensusSet(), "isProofForCurrentConsensusSet should be false initially")
 
-	cm.SetSignaturesReceived([]byte{0x01, 0x02}, 100)
+	_ = cm.SetSignaturesReceived([]byte{0x01, 0x02}, 100)
 	assert.False(t, cm.IsProofForCurrentConsensusSet(), "isProofForCurrentConsensusSet should be false after setting only proof")
 
 	cm.SetBlockHeaderReceived([]byte{0x01, 0x02}, 100)
 	cm.SetBlockBodyReceived([]byte{0x01, 0x02}, 200)
 
-	cm.SetSignaturesReceived([]byte{0x02, 0x03}, 300)
+	_ = cm.SetSignaturesReceived([]byte{0x02, 0x03}, 300)
 	assert.False(t, cm.IsProofForCurrentConsensusSet(), "isProofForCurrentConsensusSet should be false after receiving proof for another block")
 
-	cm.SetSignaturesReceived([]byte{0x01, 0x02}, 300)
+	_ = cm.SetSignaturesReceived([]byte{0x01, 0x02}, 300)
 	assert.True(t, cm.IsProofForCurrentConsensusSet(), "isProofForCurrentConsensusSet should be true after setting header, body and proof")
 }
