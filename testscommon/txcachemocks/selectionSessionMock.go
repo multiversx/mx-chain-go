@@ -4,26 +4,33 @@ import (
 	"math/big"
 	"sync"
 
+	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
-	"github.com/multiversx/mx-chain-go/state"
 	stateMock "github.com/multiversx/mx-chain-go/testscommon/state"
 )
 
 // SelectionSessionMock -
 type SelectionSessionMock struct {
-	mutex sync.Mutex
+	mutex            sync.Mutex
+	accountByAddress map[string]*stateMock.UserAccountStub
 
-	NumCallsGetAccountState int
-
-	AccountStateByAddress      map[string]*stateMock.UserAccountStub
-	GetAccountStateCalled      func(address []byte) (state.UserAccountHandler, error)
-	IsIncorrectlyGuardedCalled func(tx data.TransactionHandler) bool
+	NumCallsGetAccountNonceAndBalance int
+	GetAccountNonceAndBalanceCalled   func(address []byte) (uint64, *big.Int, bool, error)
+	GetRootHashCalled                 func() ([]byte, error)
+	IsIncorrectlyGuardedCalled        func(tx data.TransactionHandler) bool
 }
 
 // NewSelectionSessionMock -
 func NewSelectionSessionMock() *SelectionSessionMock {
 	return &SelectionSessionMock{
-		AccountStateByAddress: make(map[string]*stateMock.UserAccountStub),
+		accountByAddress: make(map[string]*stateMock.UserAccountStub),
+	}
+}
+
+// NewSelectionSessionMockWithAccounts -
+func NewSelectionSessionMockWithAccounts(accountsByAddress map[string]*stateMock.UserAccountStub) *SelectionSessionMock {
+	return &SelectionSessionMock{
+		accountByAddress: accountsByAddress,
 	}
 }
 
@@ -34,11 +41,11 @@ func (mock *SelectionSessionMock) SetNonce(address []byte, nonce uint64) {
 
 	key := string(address)
 
-	if mock.AccountStateByAddress[key] == nil {
-		mock.AccountStateByAddress[key] = newDefaultAccountState()
+	if mock.accountByAddress[key] == nil {
+		mock.accountByAddress[key] = newDefaultAccount()
 	}
 
-	mock.AccountStateByAddress[key].Nonce = nonce
+	mock.accountByAddress[key].Nonce = nonce
 }
 
 // SetBalance -
@@ -48,30 +55,44 @@ func (mock *SelectionSessionMock) SetBalance(address []byte, balance *big.Int) {
 
 	key := string(address)
 
-	if mock.AccountStateByAddress[key] == nil {
-		mock.AccountStateByAddress[key] = newDefaultAccountState()
+	if mock.accountByAddress[key] == nil {
+		mock.accountByAddress[key] = newDefaultAccount()
 	}
 
-	mock.AccountStateByAddress[key].Balance = balance
+	mock.accountByAddress[key].Balance = balance
 }
 
-// GetAccountState -
-func (mock *SelectionSessionMock) GetAccountState(address []byte) (state.UserAccountHandler, error) {
+// GetAccountNonceAndBalance -
+func (mock *SelectionSessionMock) GetAccountNonceAndBalance(address []byte) (uint64, *big.Int, bool, error) {
 	mock.mutex.Lock()
 	defer mock.mutex.Unlock()
 
-	mock.NumCallsGetAccountState++
+	mock.NumCallsGetAccountNonceAndBalance++
 
-	if mock.GetAccountStateCalled != nil {
-		return mock.GetAccountStateCalled(address)
+	if mock.GetAccountNonceAndBalanceCalled != nil {
+		return mock.GetAccountNonceAndBalanceCalled(address)
 	}
 
-	state, ok := mock.AccountStateByAddress[string(address)]
+	account, ok := mock.accountByAddress[string(address)]
 	if ok {
-		return state, nil
+		if check.IfNil(account) {
+			// This mock allows one to add "nil" (unknown) accounts in "AccountByAddress".
+			return 0, big.NewInt(0), false, nil
+		}
+
+		return account.Nonce, account.Balance, true, nil
 	}
 
-	return newDefaultAccountState(), nil
+	account = newDefaultAccount()
+	return account.Nonce, account.Balance, true, nil
+}
+
+// GetRootHash -
+func (mock *SelectionSessionMock) GetRootHash() ([]byte, error) {
+	if mock.GetRootHashCalled != nil {
+		return mock.GetRootHashCalled()
+	}
+	return nil, nil
 }
 
 // IsIncorrectlyGuarded -
@@ -88,7 +109,7 @@ func (mock *SelectionSessionMock) IsInterfaceNil() bool {
 	return mock == nil
 }
 
-func newDefaultAccountState() *stateMock.UserAccountStub {
+func newDefaultAccount() *stateMock.UserAccountStub {
 	return &stateMock.UserAccountStub{
 		Nonce:   0,
 		Balance: big.NewInt(1000000000000000000),

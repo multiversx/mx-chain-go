@@ -23,38 +23,7 @@ type printedTransaction struct {
 
 // Diagnose checks the state of the cache for inconsistencies and displays a summary, senders and transactions.
 func (cache *TxCache) Diagnose(_ bool) {
-	cache.diagnoseCounters()
 	cache.diagnoseTransactions()
-}
-
-func (cache *TxCache) diagnoseCounters() {
-	if log.GetLevel() > logger.LogDebug {
-		return
-	}
-
-	sizeInBytes := cache.NumBytes()
-	numTxsEstimate := int(cache.CountTx())
-	numTxsInChunks := cache.txByHash.backingMap.Count()
-	txsKeys := cache.txByHash.backingMap.Keys()
-	numSendersEstimate := int(cache.CountSenders())
-	numSendersInChunks := cache.txListBySender.backingMap.Count()
-	sendersKeys := cache.txListBySender.backingMap.Keys()
-
-	fine := numSendersEstimate == numSendersInChunks
-	fine = fine && (int(numSendersEstimate) == len(sendersKeys))
-	fine = fine && (numTxsEstimate == numTxsInChunks && numTxsEstimate == len(txsKeys))
-
-	log.Debug("diagnoseCounters",
-		"fine", fine,
-		"numTxsEstimate", numTxsEstimate,
-		"numTxsInChunks", numTxsInChunks,
-		"len(txsKeys)", len(txsKeys),
-		"sizeInBytes", sizeInBytes,
-		"numBytesThreshold", cache.config.NumBytesThreshold,
-		"numSendersEstimate", numSendersEstimate,
-		"numSendersInChunks", numSendersInChunks,
-		"len(sendersKeys)", len(sendersKeys),
-	)
 }
 
 func (cache *TxCache) diagnoseTransactions() {

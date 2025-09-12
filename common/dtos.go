@@ -42,6 +42,11 @@ type TransactionsPoolNonceGapsForSenderApiResponse struct {
 	Gaps   []NonceGapApiResponse `json:"gaps"`
 }
 
+// TransactionsSelectionSimulationResult represents a struct that holds the data to be returned when simulating a selection
+type TransactionsSelectionSimulationResult struct {
+	TxHashes []string `json:"txHashes"`
+}
+
 // DelegationDataAPI will be used when requesting the genesis balances from API
 type DelegationDataAPI struct {
 	Address string `json:"address"`

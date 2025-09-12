@@ -274,3 +274,6 @@ var ErrNilEnableEpochsHandler = errors.New("nil enable epochs handler")
 
 // ErrBadMaxNumBytesPerSenderUpperBound signals a bad MaxNumBytesPerSenderUpperBound config
 var ErrBadMaxNumBytesPerSenderUpperBound = errors.New("bad max number of bytes per sender upper bound")
+
+// ErrBadMaxTrackedBlocks signals a bad MaxTrackedBlocks config
+var ErrBadMaxTrackedBlocks = errors.New("bad max tracked blocks")

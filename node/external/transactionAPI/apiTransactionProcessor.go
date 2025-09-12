@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
 
@@ -17,12 +18,16 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/typeConverters"
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/common/holders"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/dblookupext"
+	"github.com/multiversx/mx-chain-go/factory/disabled"
 	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/process/block/preprocess"
 	"github.com/multiversx/mx-chain-go/process/smartContract"
 	"github.com/multiversx/mx-chain-go/process/txstatus"
 	"github.com/multiversx/mx-chain-go/sharding"
+	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/txcache"
 	logger "github.com/multiversx/mx-chain-logger-go"
 )
@@ -304,6 +309,18 @@ func (atp *apiTransactionProcessor) GetTransactionsPoolNonceGapsForSender(sender
 	}, nil
 }
 
+// GetSelectedTransactions will simulate a SelectTransactions, and it will return the corresponding hash of each selected transaction
+func (atp *apiTransactionProcessor) GetSelectedTransactions(accountsAdapter state.AccountsAdapter, selectionOptions common.TxSelectionOptions) (*common.TransactionsSelectionSimulationResult, error) {
+	selectedTxHashes, err := atp.selectTransactions(accountsAdapter, selectionOptions)
+	if err != nil {
+		return nil, err
+	}
+
+	return &common.TransactionsSelectionSimulationResult{
+		TxHashes: selectedTxHashes,
+	}, nil
+}
+
 func (atp *apiTransactionProcessor) extractRequestedTxInfoFromObj(txObj interface{}, txType transaction.TxType, txHash []byte, requestedFieldsHandler fieldsHandler) common.Transaction {
 	txResult := atp.getApiResultFromObj(txObj, txType)
 
@@ -416,6 +433,47 @@ func (atp *apiTransactionProcessor) getFieldGettersForTx(wrappedTx *txcache.Wrap
 	}
 
 	return fieldGetters
+}
+
+func (atp *apiTransactionProcessor) selectTransactions(accountsAdapter state.AccountsAdapter, selectionOptions common.TxSelectionOptions) ([]string, error) {
+	cacheId := atp.shardCoordinator.SelfId()
+	cache := atp.dataPool.Transactions().ShardDataStore(strconv.Itoa(int(cacheId)))
+	txCache, ok := cache.(*txcache.TxCache)
+	if !ok {
+		log.Warn("apiTransactionProcessor.selectTransactions could not cast to TxCache")
+		return nil, ErrCouldNotCastToTxCache
+	}
+
+	// TODO use the right object, not a disabled one
+	txProcessor := disabled.TxProcessor{}
+	argsSelectionSession := preprocess.ArgsSelectionSession{
+		AccountsAdapter:       accountsAdapter,
+		TransactionsProcessor: &txProcessor,
+	}
+
+	selectionSession, err := preprocess.NewSelectionSession(argsSelectionSession)
+	if err != nil {
+		log.Warn("apiTransactionProcessor.selectTransactions could not create SelectionSession")
+		return nil, err
+	}
+
+	blockchainInfo := holders.NewBlockchainInfo(nil, nil, 0)
+	selectedTxs, _, err := txCache.SelectTransactions(selectionSession, selectionOptions, blockchainInfo)
+	if err != nil {
+		log.Warn("apiTransactionProcessor.selectTransactions could not SelectTransactions")
+		return nil, err
+	}
+
+	return atp.extractTxHashes(selectedTxs), nil
+}
+
+func (atp *apiTransactionProcessor) extractTxHashes(txs []*txcache.WrappedTransaction) []string {
+	txHashes := make([]string, len(txs))
+	for i, tx := range txs {
+		txHashes[i] = hex.EncodeToString(tx.TxHash)
+	}
+
+	return txHashes
 }
 
 func (atp *apiTransactionProcessor) fetchTxsForSender(sender string, senderShard uint32) []*txcache.WrappedTransaction {

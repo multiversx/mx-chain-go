@@ -6,6 +6,8 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/atomic"
 	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-storage-go/monitoring"
 	"github.com/multiversx/mx-chain-storage-go/types"
@@ -23,6 +25,7 @@ type TxCache struct {
 	evictionMutex        sync.Mutex
 	isEvictionInProgress atomic.Flag
 	mutTxOperation       sync.Mutex
+	tracker              *selectionTracker
 }
 
 // NewTxCache creates a new transaction cache
@@ -49,6 +52,12 @@ func NewTxCache(config ConfigSourceMe, host MempoolHost) (*TxCache, error) {
 		config:         config,
 		host:           host,
 	}
+
+	tracker, err := NewSelectionTracker(txCache, config.TxCacheBoundsConfig.MaxTrackedBlocks)
+	if err != nil {
+		return nil, err
+	}
+	txCache.tracker = tracker
 
 	return txCache, nil
 }
@@ -99,23 +108,39 @@ func (cache *TxCache) GetByTxHash(txHash []byte) (*WrappedTransaction, bool) {
 
 // SelectTransactions selects the best transactions to be included in the next miniblock.
 // It returns up to "options.maxNumTxs" transactions, with total gas <= "options.gasRequested".
-func (cache *TxCache) SelectTransactions(session SelectionSession, options common.TxSelectionOptions) ([]*WrappedTransaction, uint64) {
+func (cache *TxCache) SelectTransactions(
+	session SelectionSession,
+	options common.TxSelectionOptions,
+	blockchainInfo common.BlockchainInfo,
+) ([]*WrappedTransaction, uint64, error) {
 	if check.IfNil(session) {
 		log.Error("TxCache.SelectTransactions", "err", errNilSelectionSession)
-		return nil, 0
+		return nil, 0, errNilSelectionSession
 	}
 
 	stopWatch := core.NewStopWatch()
 	stopWatch.Start("selection")
 
+	rootHash, err := session.GetRootHash()
+	if err != nil {
+		log.Error("TxCache.SelectTransactions", "err", err)
+		return nil, 0, err
+	}
+
 	logSelect.Debug(
 		"TxCache.SelectTransactions: begin",
-		"num bytes", cache.NumBytes(),
 		"num txs", cache.CountTx(),
 		"num senders", cache.CountSenders(),
+		"num bytes", cache.NumBytes(),
+		"current root hash", rootHash,
 	)
 
-	transactions, accumulatedGas := cache.doSelectTransactions(session, options)
+	virtualSession, err := cache.tracker.deriveVirtualSelectionSession(session, blockchainInfo)
+	if err != nil {
+		log.Error("TxCache.SelectTransactions: could not derive virtual selection session", "err", err)
+		return nil, 0, err
+	}
+	transactions, accumulatedGas := cache.doSelectTransactions(virtualSession, options)
 
 	stopWatch.Stop("selection")
 
@@ -126,10 +151,24 @@ func (cache *TxCache) SelectTransactions(session SelectionSession, options commo
 		"gas", accumulatedGas,
 	)
 
-	go cache.diagnoseCounters()
 	go displaySelectionOutcome(logSelect, "selection", transactions)
 
-	return transactions, accumulatedGas
+	return transactions, accumulatedGas, nil
+}
+
+// OnProposedBlock calls the OnProposedBlock method from SelectionTracker
+func (cache *TxCache) OnProposedBlock(
+	blockHash []byte,
+	blockBody *block.Body,
+	blockHeader data.HeaderHandler,
+	accountsProvider common.AccountNonceAndBalanceProvider,
+	blockchainInfo common.BlockchainInfo) error {
+	return cache.tracker.OnProposedBlock(blockHash, blockBody, blockHeader, accountsProvider, blockchainInfo)
+}
+
+// OnExecutedBlock calls the OnExecutedBlock method from SelectionTracker
+func (cache *TxCache) OnExecutedBlock(blockHeader data.HeaderHandler) error {
+	return cache.tracker.OnExecutedBlock(blockHeader)
 }
 
 func (cache *TxCache) getSenders() []*txListForSender {
@@ -264,7 +303,7 @@ func (cache *TxCache) Keys() [][]byte {
 }
 
 // MaxSize returns the maximum number of transactions that can be stored in the cache.
-// See: https://github.com/multiversx/mx-chain-go/blob/v1.8.4/dataRetriever/txpool/shardedTxPool.go#L55
+// See: https://github.com/multiversx/mx-chain-go/blob/v1.10.6/dataRetriever/txpool/shardedTxPool.go#L63
 func (cache *TxCache) MaxSize() int {
 	return int(cache.config.CountThreshold)
 }

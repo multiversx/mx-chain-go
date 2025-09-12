@@ -18,6 +18,7 @@ import (
 	"github.com/multiversx/mx-chain-go/node/mock"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
+	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/genesisMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/shardingMocks"
@@ -575,6 +576,47 @@ func TestNodeApiResolver_GetTransactionsPoolNonceGapsForSender(t *testing.T) {
 		res, err := nar.GetTransactionsPoolNonceGapsForSender(expectedSender, 0)
 		require.NoError(t, err)
 		require.Equal(t, expectedNonceGaps, res)
+	})
+}
+
+func TestNodeApiResolver_GetSelectedTransactions(t *testing.T) {
+	t.Parallel()
+
+	t.Run("should error", func(t *testing.T) {
+		t.Parallel()
+
+		expectedErr := errors.New("expected error")
+		arg := createMockArgs()
+		arg.APITransactionHandler = &mock.TransactionAPIHandlerStub{
+			GetSelectedTransactionsCalled: func(accountsAdapter state.AccountsAdapter, selectionOptions common.TxSelectionOptions) (*common.TransactionsSelectionSimulationResult, error) {
+				return nil, expectedErr
+			},
+		}
+
+		nar, _ := external.NewNodeApiResolver(arg)
+		res, err := nar.GetSelectedTransactions(nil, nil)
+		require.Nil(t, res)
+		require.Equal(t, expectedErr, err)
+	})
+
+	t.Run("should work", func(t *testing.T) {
+		t.Parallel()
+
+		expectedTxHashes := []string{"hash1", "hash2"}
+		expectedResult := &common.TransactionsSelectionSimulationResult{
+			TxHashes: expectedTxHashes,
+		}
+		arg := createMockArgs()
+		arg.APITransactionHandler = &mock.TransactionAPIHandlerStub{
+			GetSelectedTransactionsCalled: func(accountsAdapter state.AccountsAdapter, selectionOptions common.TxSelectionOptions) (*common.TransactionsSelectionSimulationResult, error) {
+				return expectedResult, nil
+			},
+		}
+
+		nar, _ := external.NewNodeApiResolver(arg)
+		res, err := nar.GetSelectedTransactions(nil, nil)
+		require.NoError(t, err)
+		require.Equal(t, expectedResult, res)
 	})
 }
 

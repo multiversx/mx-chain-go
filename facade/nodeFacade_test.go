@@ -61,8 +61,9 @@ func createMockArguments() ArgNodeFacade {
 				},
 			},
 		}},
-		AccountsState: &stateMock.AccountsStub{},
-		PeerState:     &stateMock.AccountsStub{},
+		AccountsStateAPI: &stateMock.AccountsStub{},
+		AccountsState:    &stateMock.AccountsStub{},
+		PeerState:        &stateMock.AccountsStub{},
 		Blockchain: &testscommon.ChainHandlerStub{
 			GetCurrentBlockHeaderCalled: func() nodeData.HeaderHandler {
 				return &block.Header{}
@@ -2077,6 +2078,110 @@ func TestNodeFacade_GetTransactionsPoolNonceGapsForSender(t *testing.T) {
 		res, err := nf.GetTransactionsPoolNonceGapsForSender(expectedSender)
 		require.NoError(t, err)
 		require.Equal(t, expectedNonceGaps, res)
+	})
+}
+
+func TestNodeFacade_GetSelectedTransactions(t *testing.T) {
+	t.Parallel()
+
+	t.Run("should return ErrNilCurrentRootHash error", func(t *testing.T) {
+		t.Parallel()
+
+		arg := createMockArguments()
+		arg.Blockchain = &testscommon.ChainHandlerStub{
+			GetCurrentBlockRootHashCalled: func() []byte {
+				return nil
+			},
+		}
+
+		nf, _ := NewNodeFacade(arg)
+		res, err := nf.GetSelectedTransactions()
+		require.Nil(t, res)
+		require.Equal(t, ErrNilCurrentRootHash, err)
+	})
+
+	t.Run("should return ErrNilBlockHeader error", func(t *testing.T) {
+		t.Parallel()
+
+		arg := createMockArguments()
+		arg.Blockchain = &testscommon.ChainHandlerStub{
+			GetCurrentBlockRootHashCalled: func() []byte {
+				return []byte("rootHash1")
+			},
+			GetCurrentBlockHeaderCalled: func() nodeData.HeaderHandler {
+				return nil
+			},
+		}
+
+		nf, _ := NewNodeFacade(arg)
+		res, err := nf.GetSelectedTransactions()
+		require.Nil(t, res)
+		require.Equal(t, ErrNilBlockHeader, err)
+	})
+
+	t.Run("should propagate the error from RecreateTrie", func(t *testing.T) {
+		t.Parallel()
+
+		arg := createMockArguments()
+		arg.AccountsStateAPI = &stateMock.AccountsStub{
+			RecreateTrieCalled: func(options common.RootHashHolder) error {
+				return expectedErr
+			},
+		}
+
+		nf, _ := NewNodeFacade(arg)
+		res, err := nf.GetSelectedTransactions()
+		require.Nil(t, res)
+		require.Equal(t, expectedErr, err)
+	})
+
+	t.Run("should propagate error from ApiResolver", func(t *testing.T) {
+		t.Parallel()
+
+		arg := createMockArguments()
+		arg.AccountsStateAPI = &stateMock.AccountsStub{
+			RecreateTrieCalled: func(options common.RootHashHolder) error {
+				return nil
+			},
+		}
+
+		arg.ApiResolver = &mock.ApiResolverStub{
+			GetSelectedTransactionsCalled: func(accountsAdapter state.AccountsAdapter, selectionOptions common.TxSelectionOptions) (*common.TransactionsSelectionSimulationResult, error) {
+				return nil, expectedErr
+			},
+		}
+
+		nf, _ := NewNodeFacade(arg)
+		res, err := nf.GetSelectedTransactions()
+		require.Nil(t, res)
+		require.Equal(t, expectedErr, err)
+	})
+
+	t.Run("should work", func(t *testing.T) {
+		t.Parallel()
+
+		arg := createMockArguments()
+		arg.AccountsStateAPI = &stateMock.AccountsStub{
+			RecreateTrieCalled: func(options common.RootHashHolder) error {
+				return nil
+			},
+		}
+
+		expectedTxHashes := []string{"txHash1", "txHash2"}
+		expectedRes := &common.TransactionsSelectionSimulationResult{
+			TxHashes: expectedTxHashes,
+		}
+
+		arg.ApiResolver = &mock.ApiResolverStub{
+			GetSelectedTransactionsCalled: func(accountsAdapter state.AccountsAdapter, selectionOptions common.TxSelectionOptions) (*common.TransactionsSelectionSimulationResult, error) {
+				return expectedRes, nil
+			},
+		}
+
+		nf, _ := NewNodeFacade(arg)
+		res, err := nf.GetSelectedTransactions()
+		require.NoError(t, err)
+		require.Equal(t, expectedRes, res)
 	})
 }
 
