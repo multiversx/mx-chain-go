@@ -225,6 +225,11 @@ func (sr *subroundBlock) sendHeaderAndBlockBody(
 		"nonce", headerHandler.GetNonce(),
 		"hash", headerHash)
 
+	currentTime := sr.SyncTimer().CurrentTime()
+	metricsTime := currentTime.Sub(sr.RoundHandler().TimeStamp()).Nanoseconds()
+	defer sr.AppStatusHandler().SetUInt64Value(common.MetricReceivedProposedBlockBody, uint64(metricsTime))
+	log.Debug("Sent block body v1 old", "time", metricsTime, "currentTime", currentTime, "roundTime", sr.RoundHandler().TimeStamp())
+
 	sr.SetData(headerHash)
 	sr.SetBody(bodyHandler)
 	sr.SetHeader(headerHandler)
@@ -264,6 +269,11 @@ func (sr *subroundBlock) sendBlockBody(bodyHandler data.BodyHandler, marshalized
 	}
 
 	log.Debug("step 1: block body has been sent")
+
+	currentTime := sr.SyncTimer().CurrentTime()
+	metricsTime := currentTime.Sub(sr.RoundHandler().TimeStamp()).Nanoseconds()
+	defer sr.AppStatusHandler().SetUInt64Value(common.MetricReceivedProposedBlockBody, uint64(metricsTime))
+	log.Debug("Sent block body v1", "time", metricsTime, "currentTime", currentTime, "roundTime", sr.RoundHandler().TimeStamp())
 
 	sr.SetBody(bodyHandler)
 
@@ -484,6 +494,11 @@ func (sr *subroundBlock) receivedBlockBody(ctx context.Context, cnsDta *consensu
 	}
 
 	log.Debug("step 1: block body has been received")
+
+	currentTime := sr.SyncTimer().CurrentTime()
+	metricsTime := currentTime.Sub(sr.RoundHandler().TimeStamp()).Nanoseconds()
+	defer sr.AppStatusHandler().SetUInt64Value(common.MetricReceivedProposedBlockBody, uint64(metricsTime))
+	log.Debug("Received block body v1", "time", metricsTime, "currentTime", currentTime, "roundTime", sr.RoundHandler().TimeStamp())
 
 	blockProcessedWithSuccess := sr.processReceivedBlock(ctx, cnsDta)
 

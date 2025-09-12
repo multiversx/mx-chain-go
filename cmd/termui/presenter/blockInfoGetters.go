@@ -56,3 +56,21 @@ func (psh *PresenterStatusHandler) GetBlockSize() uint64 {
 func (psh *PresenterStatusHandler) GetHighestFinalBlock() uint64 {
 	return psh.getFromCacheAsUint64(common.MetricHighestFinalBlock)
 }
+
+func (psh *PresenterStatusHandler) GetBlockReceived() uint64 {
+	return psh.getFromCacheAsUint64(common.MetricReceivedProposedBlockBody)
+}
+
+func (psh *PresenterStatusHandler) GetBlockSigned() uint64 {
+	return psh.getFromCacheAsUint64(common.MetricReceivedSignatures)
+}
+
+// GetAvgBlockReceived implements view.Presenter.
+func (psh *PresenterStatusHandler) GetAvgBlockReceived() uint64 {
+	return psh.getFromCacheAsUint64(common.MetricAvgReceivedProposedBlockBody)
+}
+
+// GetAvgBlockSigned implements view.Presenter.
+func (psh *PresenterStatusHandler) GetAvgBlockSigned() uint64 {
+	return psh.getFromCacheAsUint64(common.MetricAvgReceivedSignatures)
+}

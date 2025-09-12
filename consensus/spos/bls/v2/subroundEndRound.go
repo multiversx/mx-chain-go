@@ -12,6 +12,7 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/display"
 
@@ -73,7 +74,7 @@ func NewSubroundEndRound(
 	srEndRound.Job = srEndRound.doEndRoundJob
 	srEndRound.Check = srEndRound.doEndRoundConsensusCheck
 	srEndRound.Extend = worker.Extend
-
+	srEndRound.EquivalentProofsPool().RegisterHandler(srEndRound.receivedProofForConsensusMetrics)
 	return &srEndRound, nil
 }
 
@@ -118,8 +119,9 @@ func (sr *subroundEndRound) receivedProof(proof consensus.ProofHandler) {
 	log.Debug("step 3: block header final info has been received",
 		"PubKeysBitmap", proof.GetPubKeysBitmap(),
 		"AggregateSignature", proof.GetAggregatedSignature(),
-		"HederHash", proof.GetHeaderHash())
+		"HeaderHash", proof.GetHeaderHash())
 
+	sr.updateConsensusMetricsIfNeeded()
 	sr.doEndRoundJobByNode()
 }
 
@@ -931,6 +933,7 @@ func (sr *subroundEndRound) checkReceivedSignatures() bool {
 			"total signatures", len(sr.ConsensusGroup()),
 			"threshold", threshold)
 
+		sr.updateConsensusMetricsIfNeeded()
 		return true
 	}
 
@@ -958,6 +961,41 @@ func (sr *subroundEndRound) getNumOfSignaturesCollected() int {
 	}
 
 	return n
+}
+
+// receivedProofForConsensusMetrics method updates the consensus metrics when a proof is added to the equivalet proofs pool
+// needed in order to have the proof delay available to observers
+// could be removed if we decide to register the already prepared Proof handler in the worker
+func (sr *subroundEndRound) receivedProofForConsensusMetrics(proof data.HeaderProofHandler) {
+	// this is also checked by the ConsensusMetrics but by detecting it here we avoid unnecessary processing
+	if !bytes.Equal(proof.GetHeaderHash(), sr.GetData()) {
+		return
+	}
+
+	sr.updateConsensusMetricsIfNeeded()
+}
+
+// updateConsensusMetricsIfNeeded sets the consensus metrics if it has not been previously set
+func (sr *subroundEndRound) updateConsensusMetricsIfNeeded() {
+	consensusMetrics := sr.worker.GetConsensusMetrics()
+	if consensusMetrics == nil {
+		return
+	}
+
+	// we set the metrics only once, when the proof for the current consensus set is first received
+	if consensusMetrics.IsProofForCurrentConsensusSet() {
+		return
+	}
+
+	currentTime := sr.SyncTimer().CurrentTime()
+	metricsTime := currentTime.Sub(sr.RoundHandler().TimeStamp()).Nanoseconds()
+
+	err := consensusMetrics.SetSignaturesReceived(sr.GetData(), uint64(metricsTime))
+	if err != nil {
+		log.Warn("Consensus metrics SetProofReceived", "error", err.Error())
+	} else {
+		log.Debug("Received proof v2", "hash", sr.GetData(), "time", metricsTime, "currentTime", currentTime, "roundTime", sr.RoundHandler().TimeStamp())
+	}
 }
 
 // areSignaturesCollected method checks if the signatures received from the nodes, belonging to the current
