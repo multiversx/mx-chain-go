@@ -14,6 +14,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/multiversx/mx-chain-go/common/graceperiod"
+	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/process"
 	processBlock "github.com/multiversx/mx-chain-go/process/block"
@@ -114,7 +116,7 @@ func CreateShardTrackerMockArguments() track.ArgShardTracker {
 	}
 	headerValidator, _ := processBlock.NewHeaderValidator(argsHeaderValidator)
 	whitelistHandler := &testscommon.WhiteListHandlerStub{}
-	feeHandler := &economicsmocks.EconomicsHandlerStub{
+	feeHandler := &economicsmocks.EconomicsHandlerMock{
 		MaxGasLimitPerBlockForSafeCrossShardCalled: func() uint64 {
 			return maxGasLimitPerBlock
 		},
@@ -122,6 +124,13 @@ func CreateShardTrackerMockArguments() track.ArgShardTracker {
 			return maxGasLimitPerMiniBlock
 		},
 	}
+
+	epochChangeGracePeriod, _ := graceperiod.NewEpochChangeGracePeriod(
+		[]config.EpochChangeGracePeriodByEpoch{
+			{
+				EnableEpoch:         0,
+				GracePeriodInRounds: 1,
+			}})
 
 	arguments := track.ArgShardTracker{
 		ArgBaseTracker: track.ArgBaseTracker{
@@ -141,7 +150,8 @@ func CreateShardTrackerMockArguments() track.ArgShardTracker {
 					return false
 				},
 			},
-			ProofsPool: &dataRetrieverMock.ProofsPoolMock{},
+			EpochChangeGracePeriodHandler: epochChangeGracePeriod,
+			ProofsPool:                    &dataRetrieverMock.ProofsPoolMock{},
 		},
 	}
 
@@ -159,7 +169,7 @@ func CreateMetaTrackerMockArguments() track.ArgMetaTracker {
 	}
 	headerValidator, _ := processBlock.NewHeaderValidator(argsHeaderValidator)
 	whitelistHandler := &testscommon.WhiteListHandlerStub{}
-	feeHandler := &economicsmocks.EconomicsHandlerStub{
+	feeHandler := &economicsmocks.EconomicsHandlerMock{
 		MaxGasLimitPerBlockForSafeCrossShardCalled: func() uint64 {
 			return maxGasLimitPerBlock
 		},
@@ -167,6 +177,13 @@ func CreateMetaTrackerMockArguments() track.ArgMetaTracker {
 			return maxGasLimitPerMiniBlock
 		},
 	}
+
+	epochChangeGracePeriod, _ := graceperiod.NewEpochChangeGracePeriod(
+		[]config.EpochChangeGracePeriodByEpoch{
+			{
+				EnableEpoch:         0,
+				GracePeriodInRounds: 1,
+			}})
 
 	arguments := track.ArgMetaTracker{
 		ArgBaseTracker: track.ArgBaseTracker{
@@ -186,7 +203,8 @@ func CreateMetaTrackerMockArguments() track.ArgMetaTracker {
 					return false
 				},
 			},
-			ProofsPool: &dataRetrieverMock.ProofsPoolMock{},
+			EpochChangeGracePeriodHandler: epochChangeGracePeriod,
+			ProofsPool:                    &dataRetrieverMock.ProofsPoolMock{},
 		},
 	}
 
@@ -202,7 +220,7 @@ func CreateBaseTrackerMockArguments() track.ArgBaseTracker {
 		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 	}
 	headerValidator, _ := processBlock.NewHeaderValidator(argsHeaderValidator)
-	feeHandler := &economicsmocks.EconomicsHandlerStub{
+	feeHandler := &economicsmocks.EconomicsHandlerMock{
 		MaxGasLimitPerBlockForSafeCrossShardCalled: func() uint64 {
 			return maxGasLimitPerBlock
 		},
@@ -211,18 +229,26 @@ func CreateBaseTrackerMockArguments() track.ArgBaseTracker {
 		},
 	}
 
+	epochChangeGracePeriod, _ := graceperiod.NewEpochChangeGracePeriod(
+		[]config.EpochChangeGracePeriodByEpoch{
+			{
+				EnableEpoch:         0,
+				GracePeriodInRounds: 1,
+			}})
+
 	arguments := track.ArgBaseTracker{
-		Hasher:              &hashingMocks.HasherMock{},
-		HeaderValidator:     headerValidator,
-		Marshalizer:         &mock.MarshalizerMock{},
-		RequestHandler:      &testscommon.RequestHandlerStub{},
-		RoundHandler:        &mock.RoundHandlerMock{},
-		ShardCoordinator:    shardCoordinatorMock,
-		Store:               initStore(),
-		StartHeaders:        genesisBlocks,
-		FeeHandler:          feeHandler,
-		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
-		ProofsPool:          &dataRetrieverMock.ProofsPoolMock{},
+		Hasher:                        &hashingMocks.HasherMock{},
+		HeaderValidator:               headerValidator,
+		Marshalizer:                   &mock.MarshalizerMock{},
+		RequestHandler:                &testscommon.RequestHandlerStub{},
+		RoundHandler:                  &mock.RoundHandlerMock{},
+		ShardCoordinator:              shardCoordinatorMock,
+		Store:                         initStore(),
+		StartHeaders:                  genesisBlocks,
+		FeeHandler:                    feeHandler,
+		EnableEpochsHandler:           &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		EpochChangeGracePeriodHandler: epochChangeGracePeriod,
+		ProofsPool:                    &dataRetrieverMock.ProofsPoolMock{},
 	}
 
 	return arguments

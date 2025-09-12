@@ -540,6 +540,9 @@ var ErrInvalidExtraGasLimitGuardedTx = errors.New("invalid extra gas limit for g
 // ErrInvalidMaxGasPriceSetGuardian signals that an invalid maximum gas price has been provided in the config file
 var ErrInvalidMaxGasPriceSetGuardian = errors.New("invalid maximum gas price for set guardian")
 
+// ErrInvalidMaxGasHigherFactorAccepted signals that an invalid gas factor has been provided in the config file
+var ErrInvalidMaxGasHigherFactorAccepted = errors.New("invalid gas higher factor accepted")
+
 // ErrGuardianSignatureNotExpected signals that the guardian signature is not expected
 var ErrGuardianSignatureNotExpected = errors.New("guardian signature not expected")
 
@@ -1146,6 +1149,9 @@ var ErrNilESDTGlobalSettingsHandler = errors.New("nil esdt global settings handl
 // ErrNilEnableEpochsHandler signals that a nil enable epochs handler has been provided
 var ErrNilEnableEpochsHandler = errors.New("nil enable epochs handler")
 
+// ErrNilEpochChangeGracePeriodHandler signals that a nil epoch change grace period handler has been provided
+var ErrNilEpochChangeGracePeriodHandler = errors.New("nil epoch change grace period handler")
+
 // ErrNilMultiSignerContainer signals that the given multisigner container is nil
 var ErrNilMultiSignerContainer = errors.New("nil multiSigner container")
 
@@ -1260,6 +1266,9 @@ var ErrRelayedByGuardianNotAllowed = errors.New("relayed by guardian not allowed
 // ErrInvalidRelayedTxV3 signals that an invalid relayed tx v3 has been provided
 var ErrInvalidRelayedTxV3 = errors.New("invalid relayed transaction")
 
+// ErrProtocolSustainabilityAddressInMetachain signals that protocol sustainability address is in metachain which is not allowed
+var ErrProtocolSustainabilityAddressInMetachain = errors.New("protocol sustainability address in metachain")
+
 // ErrNilHeaderProof signals that a nil header proof has been provided
 var ErrNilHeaderProof = errors.New("nil header proof")
 
@@ -1275,9 +1284,6 @@ var ErrInvalidInterceptedData = errors.New("invalid intercepted data")
 // ErrMissingHeaderProof signals that the proof for the header is missing
 var ErrMissingHeaderProof = errors.New("missing header proof")
 
-// ErrMissingPrevHeaderProof signals that the proof for the previous header is missing
-var ErrMissingPrevHeaderProof = errors.New("missing previous header proof")
-
 // ErrInvalidHeaderProof signals that an invalid equivalent proof has been provided
 var ErrInvalidHeaderProof = errors.New("invalid equivalent proof")
 
@@ -1286,3 +1292,9 @@ var ErrUnexpectedHeaderProof = errors.New("unexpected header proof")
 
 // ErrEpochMismatch signals that the epoch do not match
 var ErrEpochMismatch = errors.New("epoch mismatch")
+
+// ErrInvalidRatingsConfig signals that an invalid ratings config has been provided
+var ErrInvalidRatingsConfig = errors.New("invalid ratings config")
+
+// ErrNilKeyRWMutexHandler signals that a nil KeyRWMutexHandler has been provided
+var ErrNilKeyRWMutexHandler = errors.New("nil key rw mutex handler")

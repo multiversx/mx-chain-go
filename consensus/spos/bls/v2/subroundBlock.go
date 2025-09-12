@@ -3,7 +3,6 @@ package v2
 import (
 	"bytes"
 	"context"
-	"encoding/hex"
 	"sync"
 	"time"
 
@@ -75,8 +74,7 @@ func checkNewSubroundBlockParams(
 
 // doBlockJob method does the job of the subround Block
 func (sr *subroundBlock) doBlockJob(ctx context.Context) bool {
-	isSelfLeader := sr.IsSelfLeader() && sr.ShouldConsiderSelfKeyInConsensus()
-	if !isSelfLeader { // is NOT self leader in this round?
+	if !sr.IsSelfLeader() { // is NOT self leader in this round?
 		return false
 	}
 
@@ -356,30 +354,6 @@ func (sr *subroundBlock) createHeader() (data.HeaderHandler, error) {
 	return hdr, nil
 }
 
-func (sr *subroundBlock) saveProofForPreviousHeaderIfNeeded(header data.HeaderHandler, prevHeader data.HeaderHandler) {
-	if !common.ShouldBlockHavePrevProof(header, sr.EnableEpochsHandler(), common.EquivalentMessagesFlag) {
-		return
-	}
-
-	hasProof := sr.EquivalentProofsPool().HasProof(sr.ShardCoordinator().SelfId(), header.GetPrevHash())
-	if hasProof {
-		log.Debug("saveProofForPreviousHeaderIfNeeded: no need to set proof since it is already saved")
-		return
-	}
-
-	proof := header.GetPreviousProof()
-	err := common.VerifyProofAgainstHeader(proof, prevHeader)
-	if err != nil {
-		log.Debug("saveProofForPreviousHeaderIfNeeded: invalid proof", "error", err.Error())
-		return
-	}
-
-	ok := sr.EquivalentProofsPool().AddProof(proof)
-	if !ok {
-		log.Debug("saveProofForPreviousHeaderIfNeeded: proof not added", "headerHash", hex.EncodeToString(proof.GetHeaderHash()))
-	}
-}
-
 // receivedBlockBody method is called when a block body is received through the block body channel
 func (sr *subroundBlock) receivedBlockBody(ctx context.Context, cnsDta *consensus.Message) bool {
 	node := string(cnsDta.PubKey)
@@ -421,30 +395,30 @@ func (sr *subroundBlock) receivedBlockBody(ctx context.Context, cnsDta *consensu
 	return blockProcessedWithSuccess
 }
 
-func (sr *subroundBlock) isHeaderForCurrentConsensus(header data.HeaderHandler) (bool, data.HeaderHandler) {
+func (sr *subroundBlock) isHeaderForCurrentConsensus(header data.HeaderHandler) bool {
 	if check.IfNil(header) {
-		return false, nil
+		return false
 	}
 	if header.GetShardID() != sr.ShardCoordinator().SelfId() {
-		return false, nil
+		return false
 	}
 	if header.GetRound() != uint64(sr.RoundHandler().Index()) {
-		return false, nil
+		return false
 	}
 
 	prevHeader, prevHash := sr.getPrevHeaderAndHash()
 	if check.IfNil(prevHeader) {
-		return false, nil
+		return false
 	}
 	if !bytes.Equal(header.GetPrevHash(), prevHash) {
-		return false, nil
+		return false
 	}
 	if header.GetNonce() != prevHeader.GetNonce()+1 {
-		return false, nil
+		return false
 	}
 	prevRandSeed := prevHeader.GetRandSeed()
 
-	return bytes.Equal(header.GetPrevRandSeed(), prevRandSeed), prevHeader
+	return bytes.Equal(header.GetPrevRandSeed(), prevRandSeed)
 }
 
 func (sr *subroundBlock) getLeaderForHeader(headerHandler data.HeaderHandler) ([]byte, error) {
@@ -483,7 +457,7 @@ func (sr *subroundBlock) receivedBlockHeader(headerHandler data.HeaderHandler) {
 		return
 	}
 
-	isHeaderForCurrentConsensus, prevHeader := sr.isHeaderForCurrentConsensus(headerHandler)
+	isHeaderForCurrentConsensus := sr.isHeaderForCurrentConsensus(headerHandler)
 	if !isHeaderForCurrentConsensus {
 		log.Debug("subroundBlock.receivedBlockHeader - header is not for current consensus")
 		return
@@ -527,16 +501,14 @@ func (sr *subroundBlock) receivedBlockHeader(headerHandler data.HeaderHandler) {
 		return
 	}
 
-	marshalledHeader, err := sr.Marshalizer().Marshal(headerHandler)
+	headerHash, err := core.CalculateHash(sr.Marshalizer(), sr.Hasher(), headerHandler)
 	if err != nil {
 		log.Debug("subroundBlock.receivedBlockHeader", "error", err.Error())
 		return
 	}
 
-	sr.SetData(sr.Hasher().Compute(string(marshalledHeader)))
+	sr.SetData(headerHash)
 	sr.SetHeader(headerHandler)
-
-	sr.saveProofForPreviousHeaderIfNeeded(headerHandler, prevHeader)
 
 	log.Debug("step 1: block header has been received",
 		"nonce", sr.GetHeader().GetNonce(),
@@ -587,10 +559,16 @@ func (sr *subroundBlock) processReceivedBlock(
 		return false
 	}
 
+	sw := core.NewStopWatch()
+	sw.Start("processReceivedBlock")
+
 	sr.mutBlockProcessing.Lock()
 	defer sr.mutBlockProcessing.Unlock()
 
 	defer func() {
+		sw.Stop("processReceivedBlock")
+		log.Debug("time measurements of processReceivedBlock", sw.GetMeasurements()...)
+
 		sr.SetProcessingBlock(false)
 	}()
 
@@ -612,7 +590,11 @@ func (sr *subroundBlock) processReceivedBlock(
 		return false
 	}
 
-	return sr.processBlock(ctx, round, senderPK)
+	sw.Start("processBlock")
+	ok := sr.processBlock(ctx, round, senderPK)
+	sw.Stop("processBlock")
+
+	return ok
 }
 
 func (sr *subroundBlock) processBlock(

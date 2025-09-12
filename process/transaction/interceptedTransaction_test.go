@@ -71,8 +71,8 @@ func createKeyGenMock() crypto.KeyGenerator {
 	}
 }
 
-func createFreeTxFeeHandler() *economicsmocks.EconomicsHandlerStub {
-	return &economicsmocks.EconomicsHandlerStub{
+func createFreeTxFeeHandler() *economicsmocks.EconomicsHandlerMock {
+	return &economicsmocks.EconomicsHandlerMock{
 		CheckValidityTxValuesCalled: func(tx data.TransactionWithFeeHandler) error {
 			return nil
 		},
@@ -230,7 +230,7 @@ func TestNewInterceptedTransaction_NilBufferShouldErr(t *testing.T) {
 		&mock.SignerMock{},
 		createMockPubKeyConverter(),
 		mock.NewOneShardCoordinatorMock(),
-		&economicsmocks.EconomicsHandlerStub{},
+		&economicsmocks.EconomicsHandlerMock{},
 		&testscommon.WhiteListHandlerStub{},
 		&testscommon.ArgumentParserMock{},
 		[]byte("chainID"),
@@ -256,7 +256,7 @@ func TestNewInterceptedTransaction_NilArgsParser(t *testing.T) {
 		&mock.SignerMock{},
 		createMockPubKeyConverter(),
 		mock.NewOneShardCoordinatorMock(),
-		&economicsmocks.EconomicsHandlerStub{},
+		&economicsmocks.EconomicsHandlerMock{},
 		&testscommon.WhiteListHandlerStub{},
 		nil,
 		[]byte("chainID"),
@@ -282,7 +282,7 @@ func TestNewInterceptedTransaction_NilVersionChecker(t *testing.T) {
 		&mock.SignerMock{},
 		createMockPubKeyConverter(),
 		mock.NewOneShardCoordinatorMock(),
-		&economicsmocks.EconomicsHandlerStub{},
+		&economicsmocks.EconomicsHandlerMock{},
 		&testscommon.WhiteListHandlerStub{},
 		&testscommon.ArgumentParserMock{},
 		[]byte("chainID"),
@@ -308,7 +308,7 @@ func TestNewInterceptedTransaction_NilMarshalizerShouldErr(t *testing.T) {
 		&mock.SignerMock{},
 		createMockPubKeyConverter(),
 		mock.NewOneShardCoordinatorMock(),
-		&economicsmocks.EconomicsHandlerStub{},
+		&economicsmocks.EconomicsHandlerMock{},
 		&testscommon.WhiteListHandlerStub{},
 		&testscommon.ArgumentParserMock{},
 		[]byte("chainID"),
@@ -334,7 +334,7 @@ func TestNewInterceptedTransaction_NilSignMarshalizerShouldErr(t *testing.T) {
 		&mock.SignerMock{},
 		createMockPubKeyConverter(),
 		mock.NewOneShardCoordinatorMock(),
-		&economicsmocks.EconomicsHandlerStub{},
+		&economicsmocks.EconomicsHandlerMock{},
 		&testscommon.WhiteListHandlerStub{},
 		&testscommon.ArgumentParserMock{},
 		[]byte("chainID"),
@@ -360,7 +360,7 @@ func TestNewInterceptedTransaction_NilHasherShouldErr(t *testing.T) {
 		&mock.SignerMock{},
 		createMockPubKeyConverter(),
 		mock.NewOneShardCoordinatorMock(),
-		&economicsmocks.EconomicsHandlerStub{},
+		&economicsmocks.EconomicsHandlerMock{},
 		&testscommon.WhiteListHandlerStub{},
 		&testscommon.ArgumentParserMock{},
 		[]byte("chainID"),
@@ -386,7 +386,7 @@ func TestNewInterceptedTransaction_NilKeyGenShouldErr(t *testing.T) {
 		&mock.SignerMock{},
 		createMockPubKeyConverter(),
 		mock.NewOneShardCoordinatorMock(),
-		&economicsmocks.EconomicsHandlerStub{},
+		&economicsmocks.EconomicsHandlerMock{},
 		&testscommon.WhiteListHandlerStub{},
 		&testscommon.ArgumentParserMock{},
 		[]byte("chainID"),
@@ -412,7 +412,7 @@ func TestNewInterceptedTransaction_NilSignerShouldErr(t *testing.T) {
 		nil,
 		createMockPubKeyConverter(),
 		mock.NewOneShardCoordinatorMock(),
-		&economicsmocks.EconomicsHandlerStub{},
+		&economicsmocks.EconomicsHandlerMock{},
 		&testscommon.WhiteListHandlerStub{},
 		&testscommon.ArgumentParserMock{},
 		[]byte("chainID"),
@@ -438,7 +438,7 @@ func TestNewInterceptedTransaction_NilPubkeyConverterShouldErr(t *testing.T) {
 		&mock.SignerMock{},
 		nil,
 		mock.NewOneShardCoordinatorMock(),
-		&economicsmocks.EconomicsHandlerStub{},
+		&economicsmocks.EconomicsHandlerMock{},
 		&testscommon.WhiteListHandlerStub{},
 		&testscommon.ArgumentParserMock{},
 		[]byte("chainID"),
@@ -464,7 +464,7 @@ func TestNewInterceptedTransaction_NilCoordinatorShouldErr(t *testing.T) {
 		&mock.SignerMock{},
 		createMockPubKeyConverter(),
 		nil,
-		&economicsmocks.EconomicsHandlerStub{},
+		&economicsmocks.EconomicsHandlerMock{},
 		&testscommon.WhiteListHandlerStub{},
 		&testscommon.ArgumentParserMock{},
 		[]byte("chainID"),
@@ -516,7 +516,7 @@ func TestNewInterceptedTransaction_NilWhiteListerVerifiedTxsShouldErr(t *testing
 		&mock.SignerMock{},
 		createMockPubKeyConverter(),
 		mock.NewOneShardCoordinatorMock(),
-		&economicsmocks.EconomicsHandlerStub{},
+		&economicsmocks.EconomicsHandlerMock{},
 		nil,
 		&testscommon.ArgumentParserMock{},
 		[]byte("chainID"),
@@ -542,7 +542,7 @@ func TestNewInterceptedTransaction_InvalidChainIDShouldErr(t *testing.T) {
 		&mock.SignerMock{},
 		createMockPubKeyConverter(),
 		mock.NewOneShardCoordinatorMock(),
-		&economicsmocks.EconomicsHandlerStub{},
+		&economicsmocks.EconomicsHandlerMock{},
 		&testscommon.WhiteListHandlerStub{},
 		&testscommon.ArgumentParserMock{},
 		nil,
@@ -568,7 +568,7 @@ func TestNewInterceptedTransaction_NilTxSignHasherShouldErr(t *testing.T) {
 		&mock.SignerMock{},
 		createMockPubKeyConverter(),
 		mock.NewOneShardCoordinatorMock(),
-		&economicsmocks.EconomicsHandlerStub{},
+		&economicsmocks.EconomicsHandlerMock{},
 		&testscommon.WhiteListHandlerStub{},
 		&testscommon.ArgumentParserMock{},
 		[]byte("chainID"),
@@ -594,7 +594,7 @@ func TestNewInterceptedTransaction_NilEnableEpochsHandlerShouldErr(t *testing.T)
 		&mock.SignerMock{},
 		createMockPubKeyConverter(),
 		mock.NewOneShardCoordinatorMock(),
-		&economicsmocks.EconomicsHandlerStub{},
+		&economicsmocks.EconomicsHandlerMock{},
 		&testscommon.WhiteListHandlerStub{},
 		&testscommon.ArgumentParserMock{},
 		[]byte("chainID"),
@@ -626,7 +626,7 @@ func TestNewInterceptedTransaction_UnmarshalingTxFailsShouldErr(t *testing.T) {
 		&mock.SignerMock{},
 		createMockPubKeyConverter(),
 		mock.NewOneShardCoordinatorMock(),
-		&economicsmocks.EconomicsHandlerStub{},
+		&economicsmocks.EconomicsHandlerMock{},
 		&testscommon.WhiteListHandlerStub{},
 		&testscommon.ArgumentParserMock{},
 		[]byte("chainID"),
@@ -892,7 +892,7 @@ func TestNewInterceptedTransaction_InsufficientFeeShouldErr(t *testing.T) {
 		Version:   minTxVersion,
 	}
 	errExpected := errors.New("insufficient fee")
-	feeHandler := &economicsmocks.EconomicsHandlerStub{
+	feeHandler := &economicsmocks.EconomicsHandlerMock{
 		CheckValidityTxValuesCalled: func(tx data.TransactionWithFeeHandler) error {
 			return errExpected
 		},
@@ -1822,7 +1822,7 @@ func TestInterceptedTransaction_checkMaxGasPrice(t *testing.T) {
 	t.Parallel()
 
 	maxAllowedGasPriceSetGuardian := uint64(2000000)
-	feeHandler := &economicsmocks.EconomicsHandlerStub{
+	feeHandler := &economicsmocks.EconomicsHandlerMock{
 		MaxGasPriceSetGuardianCalled: func() uint64 {
 			return maxAllowedGasPriceSetGuardian
 		},
@@ -1925,7 +1925,7 @@ func TestInterceptedTransaction_VerifyGuardianSig(t *testing.T) {
 			return true
 		},
 	}
-	feeHandler := &economicsmocks.EconomicsHandlerStub{
+	feeHandler := &economicsmocks.EconomicsHandlerMock{
 		MaxGasPriceSetGuardianCalled: func() uint64 {
 			return 1000
 		},

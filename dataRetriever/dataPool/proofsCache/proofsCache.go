@@ -1,28 +1,24 @@
 package proofscache
 
 import (
-	"sort"
 	"sync"
 
+	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
 )
 
-type proofNonceMapping struct {
-	headerHash string
-	nonce      uint64
-}
-
 type proofsCache struct {
-	mutProofsCache sync.RWMutex
-	proofsByNonce  []*proofNonceMapping
-	proofsByHash   map[string]data.HeaderProofHandler
+	mutProofsCache       sync.RWMutex
+	proofsByNonceBuckets map[uint64]*proofNonceBucket
+	bucketSize           uint64
+	proofsByHash         map[string]data.HeaderProofHandler
 }
 
-func newProofsCache() *proofsCache {
+func newProofsCache(bucketSize int) *proofsCache {
 	return &proofsCache{
-		mutProofsCache: sync.RWMutex{},
-		proofsByNonce:  make([]*proofNonceMapping, 0),
-		proofsByHash:   make(map[string]data.HeaderProofHandler),
+		proofsByNonceBuckets: make(map[uint64]*proofNonceBucket),
+		bucketSize:           uint64(bucketSize),
+		proofsByHash:         make(map[string]data.HeaderProofHandler),
 	}
 }
 
@@ -38,24 +34,57 @@ func (pc *proofsCache) getProofByHash(headerHash []byte) (data.HeaderProofHandle
 	return proof, nil
 }
 
+func (pc *proofsCache) getProofByNonce(headerNonce uint64) (data.HeaderProofHandler, error) {
+	pc.mutProofsCache.RLock()
+	defer pc.mutProofsCache.RUnlock()
+
+	bucketKey := pc.getBucketKey(headerNonce)
+	bucket, ok := pc.proofsByNonceBuckets[bucketKey]
+	if !ok {
+		return nil, ErrMissingProof
+	}
+
+	proofHash, ok := bucket.proofsByNonce[headerNonce]
+	if !ok {
+		return nil, ErrMissingProof
+	}
+
+	proof, ok := pc.proofsByHash[proofHash]
+	if !ok {
+		return nil, ErrMissingProof
+	}
+
+	return proof, nil
+}
+
 func (pc *proofsCache) addProof(proof data.HeaderProofHandler) {
-	if proof == nil {
+	if check.IfNil(proof) {
 		return
 	}
 
 	pc.mutProofsCache.Lock()
 	defer pc.mutProofsCache.Unlock()
 
-	pc.proofsByNonce = append(pc.proofsByNonce, &proofNonceMapping{
-		headerHash: string(proof.GetHeaderHash()),
-		nonce:      proof.GetHeaderNonce(),
-	})
-
-	sort.Slice(pc.proofsByNonce, func(i, j int) bool {
-		return pc.proofsByNonce[i].nonce < pc.proofsByNonce[j].nonce
-	})
+	pc.insertProofByNonce(proof)
 
 	pc.proofsByHash[string(proof.GetHeaderHash())] = proof
+}
+
+// getBucketKey will return bucket key as lower bound window value
+func (pc *proofsCache) getBucketKey(index uint64) uint64 {
+	return (index / pc.bucketSize) * pc.bucketSize
+}
+
+func (pc *proofsCache) insertProofByNonce(proof data.HeaderProofHandler) {
+	bucketKey := pc.getBucketKey(proof.GetHeaderNonce())
+
+	bucket, ok := pc.proofsByNonceBuckets[bucketKey]
+	if !ok {
+		bucket = newProofBucket()
+		pc.proofsByNonceBuckets[bucketKey] = bucket
+	}
+
+	bucket.insert(proof)
 }
 
 func (pc *proofsCache) cleanupProofsBehindNonce(nonce uint64) {
@@ -66,16 +95,16 @@ func (pc *proofsCache) cleanupProofsBehindNonce(nonce uint64) {
 	pc.mutProofsCache.Lock()
 	defer pc.mutProofsCache.Unlock()
 
-	proofsByNonce := make([]*proofNonceMapping, 0)
-
-	for _, proofInfo := range pc.proofsByNonce {
-		if proofInfo.nonce < nonce {
-			delete(pc.proofsByHash, proofInfo.headerHash)
-			continue
+	for key, bucket := range pc.proofsByNonceBuckets {
+		if nonce > bucket.maxNonce {
+			pc.cleanupProofsInBucket(bucket)
+			delete(pc.proofsByNonceBuckets, key)
 		}
-
-		proofsByNonce = append(proofsByNonce, proofInfo)
 	}
+}
 
-	pc.proofsByNonce = proofsByNonce
+func (pc *proofsCache) cleanupProofsInBucket(bucket *proofNonceBucket) {
+	for _, headerHash := range bucket.proofsByNonce {
+		delete(pc.proofsByHash, headerHash)
+	}
 }

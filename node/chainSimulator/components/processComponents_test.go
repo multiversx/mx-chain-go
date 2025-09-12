@@ -11,7 +11,10 @@ import (
 	"github.com/multiversx/mx-chain-core-go/hashing/blake2b"
 	"github.com/multiversx/mx-chain-core-go/hashing/keccak"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/stretchr/testify/require"
+
 	commonFactory "github.com/multiversx/mx-chain-go/common/factory"
+	"github.com/multiversx/mx-chain-go/common/graceperiod"
 	disabledStatistics "github.com/multiversx/mx-chain-go/common/statistics/disabled"
 	"github.com/multiversx/mx-chain-go/config"
 	retriever "github.com/multiversx/mx-chain-go/dataRetriever"
@@ -39,7 +42,6 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/statusHandler"
 	"github.com/multiversx/mx-chain-go/testscommon/storage"
 	updateMocks "github.com/multiversx/mx-chain-go/update/mock"
-	"github.com/stretchr/testify/require"
 )
 
 const testingProtocolSustainabilityAddress = "erd1932eft30w753xyvme8d49qejgkjc09n5e49w4mwdjtm0neld797su0dlxp"
@@ -62,7 +64,7 @@ func createArgsProcessComponentsHolder() ArgsProcessComponentsHolder {
 	var nodesConfig config.NodesConfig
 	_ = core.LoadJsonFile(&nodesConfig, "../../../integrationTests/factory/testdata/nodesSetup.json")
 	nodesSetup, _ := sharding.NewNodesSetup(nodesConfig, &chainParameters.ChainParametersHolderMock{}, addrPubKeyConv, valPubKeyConv, 3)
-
+	gracePeriod, _ := graceperiod.NewEpochChangeGracePeriod([]config.EpochChangeGracePeriodByEpoch{{EnableEpoch: 0, GracePeriodInRounds: 1}})
 	args := ArgsProcessComponentsHolder{
 		Config: testscommon.GetGeneralConfig(),
 		EpochConfig: config.EpochConfig{
@@ -150,7 +152,7 @@ func createArgsProcessComponentsHolder() ArgsProcessComponentsHolder {
 			ValPubKeyConv:       valPubKeyConv,
 			NodesConfig:         nodesSetup,
 			EpochChangeNotifier: &epochNotifier.EpochNotifierStub{},
-			EconomicsHandler: &economicsmocks.EconomicsHandlerStub{
+			EconomicsHandler: &economicsmocks.EconomicsHandlerMock{
 				ProtocolSustainabilityAddressCalled: func() string {
 					return testingProtocolSustainabilityAddress
 				},
@@ -158,22 +160,23 @@ func createArgsProcessComponentsHolder() ArgsProcessComponentsHolder {
 					return big.NewInt(0).Mul(big.NewInt(1000000000000000000), big.NewInt(20000000))
 				},
 			},
-			Hash:                         blake2b.NewBlake2b(),
-			TxVersionCheckHandler:        &testscommon.TxVersionCheckerStub{},
-			RatingHandler:                &testscommon.RaterMock{},
-			EnableEpochsHandlerField:     &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
-			EnableRoundsHandlerField:     &testscommon.EnableRoundsHandlerStub{},
-			EpochNotifierWithConfirm:     &updateMocks.EpochStartNotifierStub{},
-			RoundHandlerField:            &testscommon.RoundHandlerMock{},
-			RoundChangeNotifier:          &epochNotifier.RoundNotifierStub{},
-			ChanStopProcess:              make(chan endProcess.ArgEndProcess, 1),
-			TxSignHasherField:            keccak.NewKeccak(),
-			HardforkTriggerPubKeyField:   []byte("hardfork pub key"),
-			WasmVMChangeLockerInternal:   &sync.RWMutex{},
-			NodeTypeProviderField:        &nodeTypeProviderMock.NodeTypeProviderStub{},
-			RatingsConfig:                &testscommon.RatingsInfoMock{},
-			PathHdl:                      &testscommon.PathManagerStub{},
-			ProcessStatusHandlerInternal: &testscommon.ProcessStatusHandlerStub{},
+			Hash:                               blake2b.NewBlake2b(),
+			TxVersionCheckHandler:              &testscommon.TxVersionCheckerStub{},
+			RatingHandler:                      &testscommon.RaterMock{},
+			EnableEpochsHandlerField:           &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+			EnableRoundsHandlerField:           &testscommon.EnableRoundsHandlerStub{},
+			EpochNotifierWithConfirm:           &updateMocks.EpochStartNotifierStub{},
+			RoundHandlerField:                  &testscommon.RoundHandlerMock{},
+			RoundChangeNotifier:                &epochNotifier.RoundNotifierStub{},
+			ChanStopProcess:                    make(chan endProcess.ArgEndProcess, 1),
+			TxSignHasherField:                  keccak.NewKeccak(),
+			HardforkTriggerPubKeyField:         []byte("hardfork pub key"),
+			WasmVMChangeLockerInternal:         &sync.RWMutex{},
+			NodeTypeProviderField:              &nodeTypeProviderMock.NodeTypeProviderStub{},
+			RatingsConfig:                      &testscommon.RatingsInfoMock{},
+			PathHdl:                            &testscommon.PathManagerStub{},
+			ProcessStatusHandlerInternal:       &testscommon.ProcessStatusHandlerStub{},
+			EpochChangeGracePeriodHandlerField: gracePeriod,
 		},
 		CryptoComponents: &mock.CryptoComponentsStub{
 			BlKeyGen: &cryptoMocks.KeyGenStub{},

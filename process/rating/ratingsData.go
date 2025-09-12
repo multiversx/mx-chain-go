@@ -6,9 +6,13 @@ import (
 	"sort"
 	"sync"
 
+	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/statusHandler"
+	"golang.org/x/exp/slices"
 )
 
 var _ process.RatingsInfoHandler = (*RatingsData)(nil)
@@ -47,6 +51,8 @@ type RatingsData struct {
 	ratingsSetup                config.RatingsConfig
 	roundDurationInMilliseconds uint64
 	mutConfiguration            sync.RWMutex
+	statusHandler               core.AppStatusHandler
+	mutStatusHandler            sync.RWMutex
 }
 
 // RatingsDataArg contains information for the creation of the new ratingsData
@@ -79,35 +85,49 @@ func NewRatingsData(args RatingsDataArg) (*RatingsData, error) {
 		})
 	}
 
+	// avoid any invalid configuration where ratings are not sorted by epoch
+	slices.SortFunc(ratingsConfig.ShardChain.RatingStepsByEpoch, func(a, b config.RatingSteps) int {
+		return int(a.EnableEpoch) - int(b.EnableEpoch)
+	})
+	slices.SortFunc(ratingsConfig.MetaChain.RatingStepsByEpoch, func(a, b config.RatingSteps) int {
+		return int(a.EnableEpoch) - int(b.EnableEpoch)
+	})
+
+	if !checkForEpochZeroConfiguration(args) {
+		return nil, process.ErrMissingConfigurationForEpochZero
+	}
+
 	currentChainParameters := args.ChainParametersHolder.CurrentChainParameters()
+	shardChainRatingSteps, _ := getRatingStepsForEpoch(args.EpochNotifier.CurrentEpoch(), ratingsConfig.ShardChain.RatingStepsByEpoch)
 	arg := computeRatingStepArg{
 		shardSize:                       currentChainParameters.ShardMinNumNodes,
 		consensusSize:                   currentChainParameters.ShardConsensusGroupSize,
 		roundTimeMillis:                 args.RoundDurationMilliseconds,
 		startRating:                     ratingsConfig.General.StartRating,
 		maxRating:                       ratingsConfig.General.MaxRating,
-		hoursToMaxRatingFromStartRating: ratingsConfig.ShardChain.HoursToMaxRatingFromStartRating,
-		proposerDecreaseFactor:          ratingsConfig.ShardChain.ProposerDecreaseFactor,
-		validatorDecreaseFactor:         ratingsConfig.ShardChain.ValidatorDecreaseFactor,
-		consecutiveMissedBlocksPenalty:  ratingsConfig.ShardChain.ConsecutiveMissedBlocksPenalty,
-		proposerValidatorImportance:     ratingsConfig.ShardChain.ProposerValidatorImportance,
+		hoursToMaxRatingFromStartRating: shardChainRatingSteps.HoursToMaxRatingFromStartRating,
+		proposerDecreaseFactor:          shardChainRatingSteps.ProposerDecreaseFactor,
+		validatorDecreaseFactor:         shardChainRatingSteps.ValidatorDecreaseFactor,
+		consecutiveMissedBlocksPenalty:  shardChainRatingSteps.ConsecutiveMissedBlocksPenalty,
+		proposerValidatorImportance:     shardChainRatingSteps.ProposerValidatorImportance,
 	}
 	shardRatingStep, err := computeRatingStep(arg)
 	if err != nil {
 		return nil, err
 	}
 
+	metaChainRatingSteps, _ := getRatingStepsForEpoch(args.EpochNotifier.CurrentEpoch(), ratingsConfig.MetaChain.RatingStepsByEpoch)
 	arg = computeRatingStepArg{
 		shardSize:                       currentChainParameters.MetachainMinNumNodes,
 		consensusSize:                   currentChainParameters.MetachainConsensusGroupSize,
 		roundTimeMillis:                 args.RoundDurationMilliseconds,
 		startRating:                     ratingsConfig.General.StartRating,
 		maxRating:                       ratingsConfig.General.MaxRating,
-		hoursToMaxRatingFromStartRating: ratingsConfig.MetaChain.HoursToMaxRatingFromStartRating,
-		proposerDecreaseFactor:          ratingsConfig.MetaChain.ProposerDecreaseFactor,
-		validatorDecreaseFactor:         ratingsConfig.MetaChain.ValidatorDecreaseFactor,
-		consecutiveMissedBlocksPenalty:  ratingsConfig.MetaChain.ConsecutiveMissedBlocksPenalty,
-		proposerValidatorImportance:     ratingsConfig.MetaChain.ProposerValidatorImportance,
+		hoursToMaxRatingFromStartRating: metaChainRatingSteps.HoursToMaxRatingFromStartRating,
+		proposerDecreaseFactor:          metaChainRatingSteps.ProposerDecreaseFactor,
+		validatorDecreaseFactor:         metaChainRatingSteps.ValidatorDecreaseFactor,
+		consecutiveMissedBlocksPenalty:  metaChainRatingSteps.ConsecutiveMissedBlocksPenalty,
+		proposerValidatorImportance:     metaChainRatingSteps.ProposerValidatorImportance,
 	}
 	metaRatingStep, err := computeRatingStep(arg)
 	if err != nil {
@@ -130,6 +150,7 @@ func NewRatingsData(args RatingsDataArg) (*RatingsData, error) {
 		chainParametersHandler:      args.ChainParametersHolder,
 		ratingsSetup:                ratingsConfig,
 		roundDurationInMilliseconds: args.RoundDurationMilliseconds,
+		statusHandler:               statusHandler.NewNilStatusHandler(),
 	}
 
 	err = ratingData.computeRatingStepsConfig(args.ChainParametersHolder.AllChainParameters())
@@ -142,14 +163,40 @@ func NewRatingsData(args RatingsDataArg) (*RatingsData, error) {
 	return ratingData, nil
 }
 
+func checkForEpochZeroConfiguration(args RatingsDataArg) bool {
+	_, foundShardChainRatingSteps := getRatingStepsForEpoch(0, args.Config.ShardChain.RatingStepsByEpoch)
+	_, foundMetaChainRatingSteps := getRatingStepsForEpoch(0, args.Config.MetaChain.RatingStepsByEpoch)
+	_, foundChainParams := getChainParamsForEpoch(0, args.ChainParametersHolder.AllChainParameters())
+
+	return foundShardChainRatingSteps && foundMetaChainRatingSteps && foundChainParams
+}
+
 func (rd *RatingsData) computeRatingStepsConfig(chainParamsList []config.ChainParametersByEpochConfig) error {
 	if len(chainParamsList) == 0 {
 		return process.ErrEmptyChainParametersConfiguration
 	}
 
-	ratingsStepsConfig := make([]ratingsStepsData, 0)
+	// there are multiple scenarios when ratingSteps can change:
+	// 		1. chain parameters change in a specific epoch
+	//		2. shard/meta rating steps change in a specific epoch
+	// thus we extract first all configured epochs in a map, from all meta, chard and chain parameters
+	// this way we make sure that for each activation epoch we got the proper config, taking all params into consideration
+	configuredEpochsMap := make(map[uint32]struct{})
+	for _, ratingStepsForEpoch := range rd.ratingsSetup.ShardChain.RatingStepsByEpoch {
+		configuredEpochsMap[ratingStepsForEpoch.EnableEpoch] = struct{}{}
+	}
+
+	for _, ratingStepsForEpoch := range rd.ratingsSetup.MetaChain.RatingStepsByEpoch {
+		configuredEpochsMap[ratingStepsForEpoch.EnableEpoch] = struct{}{}
+	}
+
 	for _, chainParams := range chainParamsList {
-		configForEpoch, err := rd.computeRatingStepsConfigForParams(chainParams)
+		configuredEpochsMap[chainParams.EnableEpoch] = struct{}{}
+	}
+
+	ratingsStepsConfig := make([]ratingsStepsData, 0)
+	for epoch := range configuredEpochsMap {
+		configForEpoch, err := rd.computeRatingStepsConfigForEpoch(epoch, chainParamsList)
 		if err != nil {
 			return err
 		}
@@ -172,35 +219,42 @@ func (rd *RatingsData) computeRatingStepsConfig(chainParamsList []config.ChainPa
 	return nil
 }
 
-func (rd *RatingsData) computeRatingStepsConfigForParams(chainParams config.ChainParametersByEpochConfig) (ratingsStepsData, error) {
+func (rd *RatingsData) computeRatingStepsConfigForEpoch(
+	epoch uint32,
+	chainParamsList []config.ChainParametersByEpochConfig,
+) (ratingsStepsData, error) {
+	chainParams, _ := getChainParamsForEpoch(epoch, chainParamsList)
+
+	shardChainRatingSteps, _ := getRatingStepsForEpoch(epoch, rd.ratingsSetup.ShardChain.RatingStepsByEpoch)
 	shardRatingsStepsArgs := computeRatingStepArg{
 		shardSize:                       chainParams.ShardMinNumNodes,
 		consensusSize:                   chainParams.ShardConsensusGroupSize,
 		roundTimeMillis:                 rd.roundDurationInMilliseconds,
 		startRating:                     rd.ratingsSetup.General.StartRating,
 		maxRating:                       rd.ratingsSetup.General.MaxRating,
-		hoursToMaxRatingFromStartRating: rd.ratingsSetup.ShardChain.HoursToMaxRatingFromStartRating,
-		proposerDecreaseFactor:          rd.ratingsSetup.ShardChain.ProposerDecreaseFactor,
-		validatorDecreaseFactor:         rd.ratingsSetup.ShardChain.ValidatorDecreaseFactor,
-		consecutiveMissedBlocksPenalty:  rd.ratingsSetup.ShardChain.ConsecutiveMissedBlocksPenalty,
-		proposerValidatorImportance:     rd.ratingsSetup.ShardChain.ProposerValidatorImportance,
+		hoursToMaxRatingFromStartRating: shardChainRatingSteps.HoursToMaxRatingFromStartRating,
+		proposerDecreaseFactor:          shardChainRatingSteps.ProposerDecreaseFactor,
+		validatorDecreaseFactor:         shardChainRatingSteps.ValidatorDecreaseFactor,
+		consecutiveMissedBlocksPenalty:  shardChainRatingSteps.ConsecutiveMissedBlocksPenalty,
+		proposerValidatorImportance:     shardChainRatingSteps.ProposerValidatorImportance,
 	}
 	shardRatingsStepData, err := computeRatingStep(shardRatingsStepsArgs)
 	if err != nil {
 		return ratingsStepsData{}, fmt.Errorf("%w while computing shard rating steps for epoch %d", err, chainParams.EnableEpoch)
 	}
 
+	metaChainRatingSteps, _ := getRatingStepsForEpoch(epoch, rd.ratingsSetup.MetaChain.RatingStepsByEpoch)
 	metaRatingsStepsArgs := computeRatingStepArg{
 		shardSize:                       chainParams.MetachainMinNumNodes,
 		consensusSize:                   chainParams.MetachainConsensusGroupSize,
 		roundTimeMillis:                 rd.roundDurationInMilliseconds,
 		startRating:                     rd.ratingsSetup.General.StartRating,
 		maxRating:                       rd.ratingsSetup.General.MaxRating,
-		hoursToMaxRatingFromStartRating: rd.ratingsSetup.MetaChain.HoursToMaxRatingFromStartRating,
-		proposerDecreaseFactor:          rd.ratingsSetup.MetaChain.ProposerDecreaseFactor,
-		validatorDecreaseFactor:         rd.ratingsSetup.MetaChain.ValidatorDecreaseFactor,
-		consecutiveMissedBlocksPenalty:  rd.ratingsSetup.MetaChain.ConsecutiveMissedBlocksPenalty,
-		proposerValidatorImportance:     rd.ratingsSetup.MetaChain.ProposerValidatorImportance,
+		hoursToMaxRatingFromStartRating: metaChainRatingSteps.HoursToMaxRatingFromStartRating,
+		proposerDecreaseFactor:          metaChainRatingSteps.ProposerDecreaseFactor,
+		validatorDecreaseFactor:         metaChainRatingSteps.ValidatorDecreaseFactor,
+		consecutiveMissedBlocksPenalty:  metaChainRatingSteps.ConsecutiveMissedBlocksPenalty,
+		proposerValidatorImportance:     metaChainRatingSteps.ProposerValidatorImportance,
 	}
 	metaRatingsStepData, err := computeRatingStep(metaRatingsStepsArgs)
 	if err != nil {
@@ -208,7 +262,7 @@ func (rd *RatingsData) computeRatingStepsConfigForParams(chainParams config.Chai
 	}
 
 	return ratingsStepsData{
-		enableEpoch:          chainParams.EnableEpoch,
+		enableEpoch:          epoch,
 		shardRatingsStepData: shardRatingsStepData,
 		metaRatingsStepData:  metaRatingsStepData,
 	}, nil
@@ -248,6 +302,8 @@ func (rd *RatingsData) EpochConfirmed(epoch uint32, _ uint64) {
 		"validator increase rating step", newVersion.metaRatingsStepData.ValidatorIncreaseRatingStep(),
 		"validator decrease rating step", newVersion.metaRatingsStepData.ValidatorDecreaseRatingStep(),
 	)
+
+	rd.updateRatingsMetrics(epoch)
 }
 
 func (rd *RatingsData) getMatchingVersion(epoch uint32) (ratingsStepsData, error) {
@@ -284,36 +340,45 @@ func verifyRatingsConfig(settings config.RatingsConfig) error {
 			process.ErrSignedBlocksThresholdNotBetweenZeroAndOne,
 			settings.General.SignedBlocksThreshold)
 	}
-	if settings.ShardChain.HoursToMaxRatingFromStartRating == 0 {
-		return fmt.Errorf("%w hoursToMaxRatingFromStartRating: shardChain",
-			process.ErrHoursToMaxRatingFromStartRatingZero)
+	err := checkRatingStepsByEpochConfigForDest(settings.ShardChain.RatingStepsByEpoch, "shardChain")
+	if err != nil {
+		return err
 	}
-	if settings.MetaChain.HoursToMaxRatingFromStartRating == 0 {
-		return fmt.Errorf("%w hoursToMaxRatingFromStartRating: metachain",
-			process.ErrHoursToMaxRatingFromStartRatingZero)
+
+	return checkRatingStepsByEpochConfigForDest(settings.MetaChain.RatingStepsByEpoch, "metaChain")
+}
+
+func checkRatingStepsByEpochConfigForDest(ratingStepsByEpoch []config.RatingSteps, configDestination string) error {
+	if len(ratingStepsByEpoch) == 0 {
+		return fmt.Errorf("%w for %s",
+			process.ErrInvalidRatingsConfig,
+			configDestination)
 	}
-	if settings.MetaChain.ConsecutiveMissedBlocksPenalty < 1 {
-		return fmt.Errorf("%w: metaChain consecutiveMissedBlocksPenalty: %v",
-			process.ErrConsecutiveMissedBlocksPenaltyLowerThanOne,
-			settings.MetaChain.ConsecutiveMissedBlocksPenalty)
+
+	for _, ratingStepsForEpoch := range ratingStepsByEpoch {
+		if ratingStepsForEpoch.HoursToMaxRatingFromStartRating == 0 {
+			return fmt.Errorf("%w hoursToMaxRatingFromStartRating: %s, epoch: %d",
+				process.ErrHoursToMaxRatingFromStartRatingZero,
+				configDestination,
+				ratingStepsForEpoch.EnableEpoch)
+		}
+		if ratingStepsForEpoch.ConsecutiveMissedBlocksPenalty < 1 {
+			return fmt.Errorf("%w: %s consecutiveMissedBlocksPenalty: %v, epoch: %d",
+				process.ErrConsecutiveMissedBlocksPenaltyLowerThanOne,
+				configDestination,
+				ratingStepsForEpoch.ConsecutiveMissedBlocksPenalty,
+				ratingStepsForEpoch.EnableEpoch)
+		}
+		if ratingStepsForEpoch.ProposerDecreaseFactor > -1 || ratingStepsForEpoch.ValidatorDecreaseFactor > -1 {
+			return fmt.Errorf("%w: %s decrease steps - proposer: %v, validator: %v, epoch: %d",
+				process.ErrDecreaseRatingsStepMoreThanMinusOne,
+				configDestination,
+				ratingStepsForEpoch.ProposerDecreaseFactor,
+				ratingStepsForEpoch.ValidatorDecreaseFactor,
+				ratingStepsForEpoch.EnableEpoch)
+		}
 	}
-	if settings.ShardChain.ConsecutiveMissedBlocksPenalty < 1 {
-		return fmt.Errorf("%w: shardChain consecutiveMissedBlocksPenalty: %v",
-			process.ErrConsecutiveMissedBlocksPenaltyLowerThanOne,
-			settings.ShardChain.ConsecutiveMissedBlocksPenalty)
-	}
-	if settings.ShardChain.ProposerDecreaseFactor > -1 || settings.ShardChain.ValidatorDecreaseFactor > -1 {
-		return fmt.Errorf("%w: shardChain decrease steps - proposer: %v, validator: %v",
-			process.ErrDecreaseRatingsStepMoreThanMinusOne,
-			settings.ShardChain.ProposerDecreaseFactor,
-			settings.ShardChain.ValidatorDecreaseFactor)
-	}
-	if settings.MetaChain.ProposerDecreaseFactor > -1 || settings.MetaChain.ValidatorDecreaseFactor > -1 {
-		return fmt.Errorf("%w: metachain decrease steps - proposer: %v, validator: %v",
-			process.ErrDecreaseRatingsStepMoreThanMinusOne,
-			settings.MetaChain.ProposerDecreaseFactor,
-			settings.MetaChain.ValidatorDecreaseFactor)
-	}
+
 	return nil
 }
 
@@ -409,7 +474,69 @@ func (rd *RatingsData) ShardChainRatingsStepHandler() process.RatingsStepHandler
 	return rd.currentRatingsStepData.shardRatingsStepData
 }
 
+// SetStatusHandler sets the provided status handler if not nil
+func (rd *RatingsData) SetStatusHandler(handler core.AppStatusHandler) error {
+	if check.IfNil(handler) {
+		return process.ErrNilAppStatusHandler
+	}
+
+	rd.mutStatusHandler.Lock()
+	rd.statusHandler = handler
+	rd.mutStatusHandler.Unlock()
+
+	return nil
+}
+
 // IsInterfaceNil returns true if underlying object is nil
 func (rd *RatingsData) IsInterfaceNil() bool {
 	return rd == nil
+}
+
+func (rd *RatingsData) updateRatingsMetrics(epoch uint32) {
+	rd.mutStatusHandler.RLock()
+	defer rd.mutStatusHandler.RUnlock()
+
+	currentShardRatingsStep, _ := getRatingStepsForEpoch(epoch, rd.ratingsSetup.ShardChain.RatingStepsByEpoch)
+	rd.statusHandler.SetUInt64Value(common.MetricRatingsShardChainHoursToMaxRatingFromStartRating, uint64(currentShardRatingsStep.HoursToMaxRatingFromStartRating))
+	rd.statusHandler.SetStringValue(common.MetricRatingsShardChainProposerValidatorImportance, fmt.Sprintf("%f", currentShardRatingsStep.ProposerValidatorImportance))
+	rd.statusHandler.SetStringValue(common.MetricRatingsShardChainProposerDecreaseFactor, fmt.Sprintf("%f", currentShardRatingsStep.ProposerDecreaseFactor))
+	rd.statusHandler.SetStringValue(common.MetricRatingsShardChainValidatorDecreaseFactor, fmt.Sprintf("%f", currentShardRatingsStep.ValidatorDecreaseFactor))
+	rd.statusHandler.SetStringValue(common.MetricRatingsShardChainConsecutiveMissedBlocksPenalty, fmt.Sprintf("%f", currentShardRatingsStep.ConsecutiveMissedBlocksPenalty))
+
+	currentMetaRatingsStep, _ := getRatingStepsForEpoch(epoch, rd.ratingsSetup.MetaChain.RatingStepsByEpoch)
+	rd.statusHandler.SetUInt64Value(common.MetricRatingsMetaChainHoursToMaxRatingFromStartRating, uint64(currentMetaRatingsStep.HoursToMaxRatingFromStartRating))
+	rd.statusHandler.SetStringValue(common.MetricRatingsMetaChainProposerValidatorImportance, fmt.Sprintf("%f", currentMetaRatingsStep.ProposerValidatorImportance))
+	rd.statusHandler.SetStringValue(common.MetricRatingsMetaChainProposerDecreaseFactor, fmt.Sprintf("%f", currentMetaRatingsStep.ProposerDecreaseFactor))
+	rd.statusHandler.SetStringValue(common.MetricRatingsMetaChainValidatorDecreaseFactor, fmt.Sprintf("%f", currentMetaRatingsStep.ValidatorDecreaseFactor))
+	rd.statusHandler.SetStringValue(common.MetricRatingsMetaChainConsecutiveMissedBlocksPenalty, fmt.Sprintf("%f", currentMetaRatingsStep.ConsecutiveMissedBlocksPenalty))
+}
+
+func getRatingStepsForEpoch(epoch uint32, ratingStepsPerEpoch []config.RatingSteps) (config.RatingSteps, bool) {
+	var ratingSteps config.RatingSteps
+	found := false
+	for _, ratingStepsForEpoch := range ratingStepsPerEpoch {
+		if ratingStepsForEpoch.EnableEpoch <= epoch {
+			ratingSteps = ratingStepsForEpoch
+			found = true
+		}
+	}
+
+	return ratingSteps, found
+}
+
+func getChainParamsForEpoch(epoch uint32, chainParamsList []config.ChainParametersByEpochConfig) (config.ChainParametersByEpochConfig, bool) {
+	slices.SortFunc(chainParamsList, func(a, b config.ChainParametersByEpochConfig) int {
+		return int(a.EnableEpoch) - int(b.EnableEpoch)
+	})
+
+	var chainParams config.ChainParametersByEpochConfig
+	found := false
+	for _, chainParamsForEpoch := range chainParamsList {
+		if chainParamsForEpoch.EnableEpoch <= epoch {
+			chainParams = chainParamsForEpoch
+			found = true
+		}
+	}
+
+	return chainParams, found
 }

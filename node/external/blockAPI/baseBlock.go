@@ -20,6 +20,8 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/typeConverters"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+	logger "github.com/multiversx/mx-chain-logger-go"
+
 	"github.com/multiversx/mx-chain-go/api/shared/logging"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
@@ -28,7 +30,6 @@ import (
 	"github.com/multiversx/mx-chain-go/outport/process/alteredaccounts/shared"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/state"
-	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
 // BlockStatus is the status of a block
@@ -60,6 +61,7 @@ type baseAPIBlockProcessor struct {
 	scheduledTxsExecutionHandler process.ScheduledTxsExecutionHandler
 	enableEpochsHandler          common.EnableEpochsHandler
 	proofsPool                   dataRetriever.ProofsPool
+	blockchain                   data.ChainHandler
 }
 
 var log = logger.GetOrCreate("node/blockAPI")
@@ -246,7 +248,7 @@ func (bap *baseAPIBlockProcessor) getTxsFromMiniblock(
 	start = time.Now()
 	txs := make([]*transaction.ApiTransactionResult, 0)
 	for _, pair := range marshalledTxs {
-		tx, errUnmarshalTx := bap.apiTransactionHandler.UnmarshalTransaction(pair.Value, txType)
+		tx, errUnmarshalTx := bap.apiTransactionHandler.UnmarshalTransaction(pair.Value, txType, header.GetEpoch())
 		if errUnmarshalTx != nil {
 			return nil, fmt.Errorf("%w: %v, miniblock = %s", errCannotUnmarshalTransactions, err, hex.EncodeToString(miniblockHash))
 		}
@@ -603,26 +605,22 @@ func createAlteredBlockHash(hash []byte) []byte {
 	return alteredHash
 }
 
-func (bap *baseAPIBlockProcessor) addProofs(
+func (bap *baseAPIBlockProcessor) addProof(
 	headerHash []byte,
 	header data.HeaderHandler,
 	apiBlock *api.Block,
-	getHeaderHandlerByNonce func(nonce uint64) (data.HeaderHandler, error),
 ) error {
-	prevHeaderProof := header.GetPreviousProof()
-	isNil := check.IfNilReflect(prevHeaderProof)
-	if isNil && !bap.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, header.GetEpoch()) {
+	if !bap.enableEpochsHandler.IsFlagEnabledInEpoch(common.AndromedaFlag, header.GetEpoch()) {
 		return nil
 	}
 
-	if !isNil {
-		apiBlock.PreviousHeaderProof = proofToAPIProof(prevHeaderProof)
-	}
-
-	headerProof, err := bap.getHeaderProof(headerHash, header, getHeaderHandlerByNonce)
+	headerProof, err := bap.getHeaderProof(headerHash, header)
 	if err != nil {
 		return errCannotFindBlockProof
 	}
+
+	apiBlock.PubKeyBitmap = hex.EncodeToString(headerProof.GetPubKeysBitmap())
+	apiBlock.Signature = hex.EncodeToString(headerProof.GetAggregatedSignature())
 
 	apiBlock.Proof = proofToAPIProof(headerProof)
 
@@ -632,19 +630,30 @@ func (bap *baseAPIBlockProcessor) addProofs(
 func (bap *baseAPIBlockProcessor) getHeaderProof(
 	headerHash []byte,
 	header data.HeaderHandler,
-	getHeaderByNonce func(nonce uint64) (data.HeaderHandler, error),
 ) (data.HeaderProofHandler, error) {
 	proofFromPool, err := bap.proofsPool.GetProof(header.GetShardID(), headerHash)
 	if err == nil {
 		return proofFromPool, nil
 	}
 
-	nextHeader, err := getHeaderByNonce(header.GetNonce() + 1)
+	proofsStorer, err := bap.store.GetStorer(dataRetriever.ProofsUnit)
 	if err != nil {
 		return nil, err
 	}
 
-	return nextHeader.GetPreviousProof(), nil
+	proofBytes, err := proofsStorer.GetFromEpoch(headerHash, header.GetEpoch())
+	if err != nil {
+		return nil, err
+	}
+
+	proof := &block.HeaderProof{}
+	err = bap.marshalizer.Unmarshal(proof, proofBytes)
+
+	return proof, err
+}
+
+func (bap *baseAPIBlockProcessor) isBlockNonceInStorage(blockNonce uint64) bool {
+	return blockNonce <= bap.blockchain.GetCurrentBlockHeader().GetNonce()
 }
 
 func proofToAPIProof(proof data.HeaderProofHandler) *api.HeaderProof {

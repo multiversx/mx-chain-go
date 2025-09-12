@@ -19,13 +19,12 @@ import (
 	"github.com/multiversx/mx-chain-core-go/display"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
-	"github.com/multiversx/mx-chain-logger-go"
-
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/epochStart"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/storage"
+	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
 var log = logger.GetOrCreate("epochStart/shardchain")
@@ -563,7 +562,7 @@ func (t *trigger) changeEpochFinalityAttestingRoundIfNeeded(
 }
 
 func (t *trigger) receivedProof(headerProof data.HeaderProofHandler) {
-	if check.IfNilReflect(headerProof) {
+	if check.IfNil(headerProof) {
 		return
 	}
 	if headerProof.GetHeaderShardId() != core.MetachainShardId {
@@ -590,7 +589,7 @@ func (t *trigger) receivedMetaBlock(headerHandler data.HeaderHandler, metaBlockH
 	}
 
 	log.Debug("received meta header in trigger", "header hash", metaBlockHash)
-	if t.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, headerHandler.GetEpoch()) {
+	if t.enableEpochsHandler.IsFlagEnabledInEpoch(common.AndromedaFlag, headerHandler.GetEpoch()) {
 		proof, err := t.proofsPool.GetProof(headerHandler.GetShardID(), metaBlockHash)
 		if err != nil {
 			return
@@ -650,15 +649,18 @@ func (t *trigger) shouldUpdateTrigger(metaHdr *block.MetaBlock, metaBlockHash []
 		return false
 	}
 
-	isMetaStartOfEpochForCurrentEpoch := metaHdr.Epoch == t.epoch && metaHdr.IsStartOfEpochBlock()
-	if isMetaStartOfEpochForCurrentEpoch {
+	isMetaStartOfEpochForCurrentOrOlderEpoch := metaHdr.Epoch <= t.epoch && metaHdr.IsStartOfEpochBlock()
+	if isMetaStartOfEpochForCurrentOrOlderEpoch {
 		return false
 	}
 
-	if _, ok := t.mapHashHdr[string(metaBlockHash)]; ok {
-		return false
-	}
-	if _, ok := t.mapEpochStartHdrs[string(metaBlockHash)]; ok {
+	_, foundHdrInMap := t.mapHashHdr[string(metaBlockHash)]
+	_, foundHdrInEpochStartMap := t.mapEpochStartHdrs[string(metaBlockHash)]
+
+	finalizedMetaBlockHash, ok := t.mapFinalizedEpochs[metaHdr.Epoch]
+	foundHdrInFinalizedMap := ok && bytes.Equal(metaBlockHash, []byte(finalizedMetaBlockHash))
+
+	if foundHdrInMap && foundHdrInEpochStartMap && foundHdrInFinalizedMap {
 		return false
 	}
 
@@ -798,7 +800,7 @@ func (t *trigger) isMetaBlockValid(hash string, metaHdr data.HeaderHandler) bool
 }
 
 func (t *trigger) isMetaBlockFinal(hash string, metaHdr data.HeaderHandler) (bool, uint64) {
-	if !t.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, metaHdr.GetEpoch()) {
+	if !t.enableEpochsHandler.IsFlagEnabledInEpoch(common.AndromedaFlag, metaHdr.GetEpoch()) {
 		return t.isMetaBlockFinalLegacy(hash, metaHdr)
 	}
 
@@ -1189,6 +1191,32 @@ func (t *trigger) EpochStartMetaHdrHash() []byte {
 	defer t.mutTrigger.RUnlock()
 
 	return t.epochMetaBlockHash
+}
+
+// LastCommitedEpochStartHdr returns the epoch start header
+func (t *trigger) LastCommitedEpochStartHdr() (data.HeaderHandler, error) {
+	t.mutTrigger.RLock()
+	defer t.mutTrigger.RUnlock()
+
+	// marshal + unmarshal deep copy
+	headerBytes, err := t.marshaller.Marshal(t.epochStartShardHeader)
+	if err != nil {
+		return nil, err
+	}
+
+	return process.UnmarshalShardHeader(t.marshaller, headerBytes)
+}
+
+// GetEpochStartHdrFromStorage returns the epoch start header from storage
+func (t *trigger) GetEpochStartHdrFromStorage(epoch uint32) (data.HeaderHandler, error) {
+	epochStartIdentifier := core.EpochStartIdentifier(epoch)
+	shardHdrBuff, err := t.shardHdrStorage.SearchFirst([]byte(epochStartIdentifier))
+	if err != nil {
+		log.Warn("GetEpochStartHdrFromStorage search first", "epoch", epoch, "identifier", epochStartIdentifier, "error", err)
+		return nil, err
+	}
+
+	return process.UnmarshalShardHeader(t.marshaller, shardHdrBuff)
 }
 
 // GetSavedStateKey returns the last saved trigger state key

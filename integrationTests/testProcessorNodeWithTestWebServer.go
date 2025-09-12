@@ -183,6 +183,7 @@ func createFacadeComponents(tpn *TestProcessorNode) nodeFacade.ApiResolver {
 		VMOutputCacher:            &cache.CacherMock{},
 		DataFieldParser:           dataFieldParser,
 		BlockChainHook:            tpn.BlockchainHook,
+		SCRProcessor:              tpn.ScProcessor,
 	}
 
 	txSimulator, err := transactionEvaluator.NewTransactionSimulator(argSimulator)
@@ -264,6 +265,7 @@ func createFacadeComponents(tpn *TestProcessorNode) nodeFacade.ApiResolver {
 		ScheduledTxsExecutionHandler: &testscommon.ScheduledTxsExecutionStub{},
 		EnableEpochsHandler:          &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 		ProofsPool:                   tpn.ProofsPool,
+		BlockChain:                   tpn.BlockChain,
 	}
 	blockAPIHandler, err := blockAPI.CreateAPIBlockProcessor(argsBlockAPI)
 	log.LogIfError(err)

@@ -15,6 +15,7 @@ import (
 	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/factory"
 	"github.com/multiversx/mx-chain-go/integrationTests/mock"
+	"github.com/multiversx/mx-chain-go/node/chainSimulator/components/heartbeat"
 	chainSimulatorProcess "github.com/multiversx/mx-chain-go/node/chainSimulator/process"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/sharding"
@@ -22,6 +23,7 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/chainSimulator"
 	testsConsensus "github.com/multiversx/mx-chain-go/testscommon/consensus"
+	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	testsFactory "github.com/multiversx/mx-chain-go/testscommon/factory"
 	"github.com/multiversx/mx-chain-go/testscommon/shardingMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/statusHandler"
@@ -35,14 +37,14 @@ func TestNewBlocksCreator(t *testing.T) {
 	t.Run("nil node handler should error", func(t *testing.T) {
 		t.Parallel()
 
-		creator, err := chainSimulatorProcess.NewBlocksCreator(nil)
+		creator, err := chainSimulatorProcess.NewBlocksCreator(nil, heartbeat.NewHeartbeatMonitor())
 		require.Equal(t, chainSimulatorProcess.ErrNilNodeHandler, err)
 		require.Nil(t, creator)
 	})
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
 
-		creator, err := chainSimulatorProcess.NewBlocksCreator(&chainSimulator.NodeHandlerMock{})
+		creator, err := chainSimulatorProcess.NewBlocksCreator(&chainSimulator.NodeHandlerMock{}, heartbeat.NewHeartbeatMonitor())
 		require.NoError(t, err)
 		require.NotNil(t, creator)
 	})
@@ -51,10 +53,10 @@ func TestNewBlocksCreator(t *testing.T) {
 func TestBlocksCreator_IsInterfaceNil(t *testing.T) {
 	t.Parallel()
 
-	creator, _ := chainSimulatorProcess.NewBlocksCreator(nil)
+	creator, _ := chainSimulatorProcess.NewBlocksCreator(nil, heartbeat.NewHeartbeatMonitor())
 	require.True(t, creator.IsInterfaceNil())
 
-	creator, _ = chainSimulatorProcess.NewBlocksCreator(&chainSimulator.NodeHandlerMock{})
+	creator, _ = chainSimulatorProcess.NewBlocksCreator(&chainSimulator.NodeHandlerMock{}, heartbeat.NewHeartbeatMonitor())
 	require.False(t, creator.IsInterfaceNil())
 }
 
@@ -73,6 +75,9 @@ func TestBlocksCreator_IncrementRound(t *testing.T) {
 						},
 					}
 				},
+				EnableEpochsHandlerCalled: func() common.EnableEpochsHandler {
+					return &enableEpochsHandlerMock.EnableEpochsHandlerStub{}
+				},
 			}
 		},
 		GetStatusCoreComponentsCalled: func() factory.StatusCoreComponentsHolder {
@@ -86,7 +91,7 @@ func TestBlocksCreator_IncrementRound(t *testing.T) {
 			}
 		},
 	}
-	creator, err := chainSimulatorProcess.NewBlocksCreator(nodeHandler)
+	creator, err := chainSimulatorProcess.NewBlocksCreator(nodeHandler, heartbeat.NewHeartbeatMonitor())
 	require.NoError(t, err)
 
 	creator.IncrementRound()
@@ -119,7 +124,7 @@ func TestBlocksCreator_CreateNewBlock(t *testing.T) {
 			}
 		}
 
-		creator, err := chainSimulatorProcess.NewBlocksCreator(nodeHandler)
+		creator, err := chainSimulatorProcess.NewBlocksCreator(nodeHandler, heartbeat.NewHeartbeatMonitor())
 		require.NoError(t, err)
 
 		err = creator.CreateNewBlock()
@@ -227,7 +232,7 @@ func TestBlocksCreator_CreateNewBlock(t *testing.T) {
 				},
 			}
 		}
-		creator, err := chainSimulatorProcess.NewBlocksCreator(nodeHandler)
+		creator, err := chainSimulatorProcess.NewBlocksCreator(nodeHandler, heartbeat.NewHeartbeatMonitor())
 		require.NoError(t, err)
 
 		err = creator.CreateNewBlock()
@@ -246,7 +251,7 @@ func TestBlocksCreator_CreateNewBlock(t *testing.T) {
 				},
 			}
 		}
-		creator, err := chainSimulatorProcess.NewBlocksCreator(nodeHandler)
+		creator, err := chainSimulatorProcess.NewBlocksCreator(nodeHandler, heartbeat.NewHeartbeatMonitor())
 		require.NoError(t, err)
 
 		err = creator.CreateNewBlock()
@@ -267,7 +272,7 @@ func TestBlocksCreator_CreateNewBlock(t *testing.T) {
 				},
 			}
 		}
-		creator, err := chainSimulatorProcess.NewBlocksCreator(nodeHandler)
+		creator, err := chainSimulatorProcess.NewBlocksCreator(nodeHandler, heartbeat.NewHeartbeatMonitor())
 		require.NoError(t, err)
 
 		err = creator.CreateNewBlock()
@@ -317,9 +322,12 @@ func TestBlocksCreator_CreateNewBlock(t *testing.T) {
 						},
 					}
 				},
+				EnableEpochsHandlerCalled: func() common.EnableEpochsHandler {
+					return &enableEpochsHandlerMock.EnableEpochsHandlerStub{}
+				},
 			}
 		}
-		creator, err := chainSimulatorProcess.NewBlocksCreator(nodeHandler)
+		creator, err := chainSimulatorProcess.NewBlocksCreator(nodeHandler, heartbeat.NewHeartbeatMonitor())
 		require.NoError(t, err)
 
 		err = creator.CreateNewBlock()
@@ -340,7 +348,7 @@ func TestBlocksCreator_CreateNewBlock(t *testing.T) {
 				},
 			}
 		}
-		creator, err := chainSimulatorProcess.NewBlocksCreator(nodeHandler)
+		creator, err := chainSimulatorProcess.NewBlocksCreator(nodeHandler, heartbeat.NewHeartbeatMonitor())
 		require.NoError(t, err)
 
 		err = creator.CreateNewBlock()
@@ -361,7 +369,7 @@ func TestBlocksCreator_CreateNewBlock(t *testing.T) {
 				},
 			}
 		}
-		creator, err := chainSimulatorProcess.NewBlocksCreator(nodeHandler)
+		creator, err := chainSimulatorProcess.NewBlocksCreator(nodeHandler, heartbeat.NewHeartbeatMonitor())
 		require.NoError(t, err)
 
 		err = creator.CreateNewBlock()
@@ -382,7 +390,7 @@ func TestBlocksCreator_CreateNewBlock(t *testing.T) {
 				},
 			}
 		}
-		creator, err := chainSimulatorProcess.NewBlocksCreator(nodeHandler)
+		creator, err := chainSimulatorProcess.NewBlocksCreator(nodeHandler, heartbeat.NewHeartbeatMonitor())
 		require.NoError(t, err)
 
 		err = creator.CreateNewBlock()
@@ -521,7 +529,7 @@ func TestBlocksCreator_CreateNewBlock(t *testing.T) {
 				},
 			}
 		}
-		creator, err := chainSimulatorProcess.NewBlocksCreator(nodeHandler)
+		creator, err := chainSimulatorProcess.NewBlocksCreator(nodeHandler, heartbeat.NewHeartbeatMonitor())
 		require.NoError(t, err)
 
 		err = creator.CreateNewBlock()
@@ -530,7 +538,7 @@ func TestBlocksCreator_CreateNewBlock(t *testing.T) {
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
 
-		creator, err := chainSimulatorProcess.NewBlocksCreator(getNodeHandler())
+		creator, err := chainSimulatorProcess.NewBlocksCreator(getNodeHandler(), heartbeat.NewHeartbeatMonitor())
 		require.NoError(t, err)
 
 		err = creator.CreateNewBlock()
@@ -547,7 +555,7 @@ func testCreateNewBlock(t *testing.T, blockProcess process.BlockProcessor, expec
 			NodesCoord:   nc,
 		}
 	}
-	creator, err := chainSimulatorProcess.NewBlocksCreator(nodeHandler)
+	creator, err := chainSimulatorProcess.NewBlocksCreator(nodeHandler, heartbeat.NewHeartbeatMonitor())
 	require.NoError(t, err)
 
 	err = creator.CreateNewBlock()
@@ -574,6 +582,9 @@ func getNodeHandler() *chainSimulator.NodeHandlerMock {
 							return []byte("hash")
 						},
 					}
+				},
+				EnableEpochsHandlerCalled: func() common.EnableEpochsHandler {
+					return &enableEpochsHandlerMock.EnableEpochsHandlerStub{}
 				},
 			}
 		},
@@ -627,4 +638,27 @@ func getNodeHandler() *chainSimulator.NodeHandlerMock {
 			return &testsConsensus.BroadcastMessengerMock{}
 		},
 	}
+}
+
+func TestGeneratePubKeyBitmap(t *testing.T) {
+	t.Parallel()
+
+	require.Equal(t, []byte{1}, chainSimulatorProcess.GeneratePubKeyBitmap(1))
+	require.Equal(t, []byte{3}, chainSimulatorProcess.GeneratePubKeyBitmap(2))
+	require.Equal(t, []byte{7}, chainSimulatorProcess.GeneratePubKeyBitmap(3))
+	require.Equal(t, []byte{255, 255, 15}, chainSimulatorProcess.GeneratePubKeyBitmap(20))
+
+	bitmap := chainSimulatorProcess.GeneratePubKeyBitmap(2)
+	_ = chainSimulatorProcess.UnsetBitInBitmap(0, bitmap)
+	require.Equal(t, []byte{2}, bitmap)
+
+	bitmap = chainSimulatorProcess.GeneratePubKeyBitmap(20)
+	_ = chainSimulatorProcess.UnsetBitInBitmap(3, bitmap)
+	require.Equal(t, []byte{247, 255, 15}, bitmap)
+
+	err := chainSimulatorProcess.UnsetBitInBitmap(3, nil)
+	require.Equal(t, common.ErrWrongSizeBitmap, err)
+
+	err = chainSimulatorProcess.UnsetBitInBitmap(3, []byte{})
+	require.Equal(t, common.ErrWrongSizeBitmap, err)
 }

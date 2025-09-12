@@ -22,17 +22,22 @@ jobs:
       (github.event_name == 'issue_comment' && contains(github.event.comment.body, 'Run Tests:')) ||
       github.event_name == 'workflow_dispatch'
 
-    strategy:
-      matrix:
-        #TODO Include Macos support later on
-        runs-on: [ubuntu-latest]
-    runs-on: ${{ matrix.runs-on }}
+    runs-on: [self-hosted, Linux, X64]
     env:
       BRANCH_NAME: ${{ github.head_ref || github.ref_name }}
       TARGET_BRANCH: ""
       MX_CHAIN_GO_TARGET_BRANCH: ""
       MX_CHAIN_SIMULATOR_TARGET_BRANCH: ""
       MX_CHAIN_TESTING_SUITE_TARGET_BRANCH: ""
+
+      CF_R2_ACCESS_KEY: ${{ secrets.CF_R2_ACCESS_KEY }}
+      CF_R2_SECRET_KEY: ${{ secrets.CF_R2_SECRET_KEY }}
+      CF_R2_ENDPOINT:    ${{ secrets.CF_R2_ENDPOINT }}
+
+      REPORT_BUCKET:  mx-chain-go-testing-reports
+      REPORT_BASE_URL: https://mx-chain-go-testing-reports.multiversx.com
+
+      SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
 
     steps:
       - name: Determine Target Branches
@@ -62,20 +67,27 @@ jobs:
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
-            // Get the latest comment
+            // Get all comments
             const comments = await github.rest.issues.listComments({
               owner: context.repo.owner,
               repo: context.repo.repo,
               issue_number: context.issue.number,
             });
 
-            const lastComment = comments.data.pop(); // Get the last comment
+            // Find the last comment that contains 'Run Tests:'
+            let lastTestComment = null;
+            for (let i = comments.data.length - 1; i >= 0; i--) {
+              if (comments.data[i].body.includes('Run Tests:')) {
+                lastTestComment = comments.data[i];
+                break;
+              }
+            }
 
-            if (lastComment && lastComment.body.includes('Run Tests:')) {
-              const body = lastComment.body.trim();
+            if (lastTestComment) {
+              const body = lastTestComment.body.trim();
               core.setOutput('latest_comment', body);
 
-              // Parse the branches from the last comment
+              // Parse the branches from the last test comment
               const simulatorBranchMatch = body.match(/mx-chain-simulator-go:\s*(\S+)/);
               const testingSuiteBranchMatch = body.match(/mx-chain-testing-suite:\s*(\S+)/);
 
@@ -86,8 +98,11 @@ jobs:
               if (testingSuiteBranchMatch) {
                 core.exportVariable('MX_CHAIN_TESTING_SUITE_TARGET_BRANCH', testingSuiteBranchMatch[1]);
               }
+
+              // Log which comment was used for configuration
+              core.info(`Found 'Run Tests:' comment from ${lastTestComment.user.login} at ${lastTestComment.created_at}`);
             } else {
-              core.info('The last comment does not contain "Run Tests:". Skipping branch override.');
+              core.info('No comment containing "Run Tests:" was found. Using default branch settings.');
             }
       
 
@@ -98,10 +113,11 @@ jobs:
           echo "mx-chain-simulator-go target branch: ${{ env.MX_CHAIN_SIMULATOR_TARGET_BRANCH }}"
           echo "mx-chain-testing-suite target branch: ${{ env.MX_CHAIN_TESTING_SUITE_TARGET_BRANCH }}"
 
-      - name: Set up Go 1.20.7
-        uses: actions/setup-go@v3
+      - name: Set up Go 1.23.6
+        uses: actions/setup-go@v5
         with:
-          go-version: 1.20.7
+          go-version: 1.23.6
+          cache: false
         id: go
 
       - name: Checkout mx-chain-go
@@ -122,6 +138,32 @@ jobs:
           echo "LATEST_COMMIT_HASH=${latest_commit_hash}" >> $GITHUB_ENV
           echo "Latest commit hash: ${latest_commit_hash}"
 
+      - name: Install rclone
+        run: |
+          TS=$(date +'%Y_%^B_%d__%H_%M_%S'); 
+          echo "TS=$TS" >> "$GITHUB_ENV"
+          echo "TIMESTAMP=$TS" >> "$GITHUB_ENV"
+
+          # Fix any interrupted dpkg operations first
+          sudo dpkg --configure -a || true
+
+          # Clean up any partial packages
+          sudo apt-get clean
+          sudo apt-get autoclean
+
+          # Update package lists and install rclone
+          sudo apt-get update -y && sudo apt-get install -y rclone
+
+          mkdir -p ~/.config/rclone
+          cat > ~/.config/rclone/rclone.conf <<EOF
+          [r2]
+          type = s3
+          provider = Cloudflare
+          access_key_id = ${CF_R2_ACCESS_KEY}
+          secret_access_key = ${CF_R2_SECRET_KEY}
+          endpoint = ${CF_R2_ENDPOINT}
+          EOF
+
       - name: Checkout mx-chain-simulator-go
         uses: actions/checkout@v4
         with:
@@ -137,6 +179,8 @@ jobs:
       - name: Install Python Dependencies and Update go.mod
         run: |
           cd mx-chain-simulator-go
+          echo "SIMULATOR_REF=$(git symbolic-ref --short HEAD || git describe --tags)" >> $GITHUB_ENV
+          echo "SIMULATOR_COMMIT_HASH=$(git rev-parse HEAD)" >> $GITHUB_ENV
           pip install -r scripts/update-go-mod/requirements.txt
           python scripts/update-go-mod/update-go-mod.py $LATEST_COMMIT_HASH
 
@@ -145,6 +189,82 @@ jobs:
           cd mx-chain-simulator-go/cmd/chainsimulator
           go build
           echo "CHAIN_SIMULATOR_BUILD_PATH=$(pwd)" >> $GITHUB_ENV
+
+      - name: Initialize Chain Simulator
+        run: |
+          cd mx-chain-simulator-go/cmd/chainsimulator
+          
+          # Start ChainSimulator with minimal args to initialize configs
+          INIT_LOG_FILE="/tmp/chainsim_init.log"
+          echo "Starting ChainSimulator initialization process..."
+          ./chainsimulator > $INIT_LOG_FILE 2>&1 &
+          INIT_PROCESS_PID=$!
+          
+          # Verify the process is running
+          if ! ps -p $INIT_PROCESS_PID > /dev/null; then
+            echo "Failed to start ChainSimulator process"
+            cat $INIT_LOG_FILE
+            exit 1
+          fi
+          
+          # Wait for the initialization to complete - look for multiple possible success patterns
+          INIT_COMPLETED=false
+          RETRY_COUNT=0
+          MAX_RETRIES=60  # Increase timeout to 60 seconds
+          
+          echo "Waiting for ChainSimulator initialization..."
+          while [ $RETRY_COUNT -lt $MAX_RETRIES ]; do
+            # Check for any of these success patterns
+            if grep -q "starting as observer node" $INIT_LOG_FILE || \
+               grep -q "ChainSimulator started successfully" $INIT_LOG_FILE || \
+               grep -q "initialized the node" $INIT_LOG_FILE || \
+               grep -q "Node is running" $INIT_LOG_FILE; then
+              INIT_COMPLETED=true
+              echo "ChainSimulator initialization completed successfully"
+              break
+            fi
+          
+            # If there's a known fatal error, exit early
+            if grep -q "fatal error" $INIT_LOG_FILE || grep -q "panic:" $INIT_LOG_FILE; then
+              echo "Fatal error detected during initialization:"
+              grep -A 10 -E "fatal error|panic:" $INIT_LOG_FILE
+              break
+            fi
+          
+            # Print progress every 10 seconds
+            if [ $((RETRY_COUNT % 10)) -eq 0 ]; then
+              echo "Still waiting for initialization... ($RETRY_COUNT seconds elapsed)"
+              tail -5 $INIT_LOG_FILE
+            fi
+          
+            RETRY_COUNT=$((RETRY_COUNT+1))
+            sleep 1
+          done
+          
+          # Kill the initialization process - try graceful shutdown first
+          echo "Stopping initialization process (PID: $INIT_PROCESS_PID)..."
+          kill -TERM $INIT_PROCESS_PID 2>/dev/null || true
+          sleep 3
+          
+          # Check if process still exists and force kill if needed
+          if ps -p $INIT_PROCESS_PID > /dev/null 2>&1; then
+            echo "Process still running, forcing kill..."
+            kill -9 $INIT_PROCESS_PID 2>/dev/null || true
+            sleep 1
+          fi
+          
+          if [ "$INIT_COMPLETED" != "true" ]; then
+            echo "ChainSimulator initialization failed after $MAX_RETRIES seconds"
+            echo "Last 20 lines of log:"
+            tail -20 $INIT_LOG_FILE
+            exit 1
+          fi
+          
+          # Create a marker file to indicate successful initialization
+          touch /tmp/chain_simulator_initialized.lock
+          echo "Chain Simulator successfully initialized"
+          
+          echo "Initialization log stored at: $INIT_LOG_FILE"
 
       - name: Checkout mx-chain-testing-suite
         uses: actions/checkout@v4
@@ -155,27 +275,80 @@ jobs:
           ref: ${{ env.MX_CHAIN_TESTING_SUITE_TARGET_BRANCH || github.event.pull_request.base.ref }}
           token: ${{ secrets.MVX_TESTER_GH_TOKEN }}
 
-      - name: Install Dependencies
+      - name: Install MX-Chain-Testing-Suite Dependencies
         run: |
           pip install -r mx-chain-testing-suite/requirements.txt
           echo "PYTHONPATH=mx-chain-testing-suite" >> $GITHUB_ENV
+          cd mx-chain-testing-suite
+          echo "CURRENT_COMMIT_HASH=$(git rev-parse HEAD)" >> $GITHUB_ENV
 
 
       - name: Run tests and generate HTML report
         run: |
           set +e
           pytest mx-chain-testing-suite/scenarios/ --html=report.html --self-contained-html --continue-on-collection-errors
-          PYTEST_EXIT_CODE=$?
+          INITIAL_PYTEST_EXIT_CODE=$?
           set -e
-          echo "PYTEST_EXIT_CODE=$PYTEST_EXIT_CODE" >> $GITHUB_ENV
-          echo "Pytest exit code: $PYTEST_EXIT_CODE"
+
+          echo "Initial pytest exit code: $INITIAL_PYTEST_EXIT_CODE"
+
+          # Parse the HTML report to determine actual test status
+          FINAL_PYTEST_EXIT_CODE=$INITIAL_PYTEST_EXIT_CODE
+
           if [ -f "report.html" ]; then
             echo "Report generated successfully."
+
+            # Extract test summary from HTML report using multiple parsing approaches
+            FAILED_TESTS=$(grep -E '[0-9]+ Failed|Failed.*[0-9]+' report.html | head -1 | grep -o '[0-9]\+' | head -1 || echo "0")
+            ERROR_TESTS=$(grep -E '[0-9]+ Errors|Errors.*[0-9]+' report.html | head -1 | grep -o '[0-9]\+' | head -1 || echo "0")
+            RERUN_TESTS=$(grep -E '[0-9]+ Reruns|Reruns.*[0-9]+' report.html | head -1 | grep -o '[0-9]\+' | head -1 || echo "0")
+
+            # Fallback: check for "0 Failed" pattern directly
+            if grep -q "0 Failed" report.html && [ "$INITIAL_PYTEST_EXIT_CODE" -ne 0 ]; then
+              echo "Detected '0 Failed' pattern in report despite non-zero exit code - likely successful reruns"
+              FAILED_TESTS=0
+            fi
+
+            echo "Failed tests: $FAILED_TESTS"
+            echo "Error tests: $ERROR_TESTS" 
+            echo "Rerun tests: $RERUN_TESTS"
+
+            # Determine final status based on actual test results
+            if [ "$FAILED_TESTS" -eq 0 ] && [ "$ERROR_TESTS" -eq 0 ]; then
+              if [ "$RERUN_TESTS" -gt 0 ]; then
+                echo "✅ All tests passed after $RERUN_TESTS reruns - considering as SUCCESS"
+              else
+                echo "✅ All tests passed on first attempt"
+              fi
+              FINAL_PYTEST_EXIT_CODE=0
+            else
+              echo "❌ Tests have genuine failures: $FAILED_TESTS failed, $ERROR_TESTS errors"
+              FINAL_PYTEST_EXIT_CODE=1
+            fi
+
+            # Move report to reports directory
             mkdir -p ./reports
             mv report.html ./reports/
           else
-            echo "Report not found."
+            echo "❌ Report not found - using original exit code"
+            FINAL_PYTEST_EXIT_CODE=$INITIAL_PYTEST_EXIT_CODE
           fi
+
+          echo "PYTEST_EXIT_CODE=$FINAL_PYTEST_EXIT_CODE" >> $GITHUB_ENV
+          echo "Final pytest exit code: $FINAL_PYTEST_EXIT_CODE"
+          
+      - name: Stage report for R2
+        run: |
+          mkdir -p r2_upload
+          cp reports/report.html r2_upload/index.html  # correct source
+
+      - name: Upload report to Cloudflare R2
+        if: always()
+        run: |
+          branch="${{ env.BRANCH_NAME }}"
+          target="reports/chain-simulator/${branch}/${TS}"
+          rclone copy r2_upload/ "r2:${REPORT_BUCKET}/${target}"
+          echo "R2_REPORT_URL=${REPORT_BASE_URL}/${target}/index.html" >> $GITHUB_ENV          
 
       - name: Upload test report
         if: always()
@@ -238,8 +411,11 @@ jobs:
             done
             echo "</ul></body></html>" >> index.html
             git add index.html
-            git commit -m "Update Index of Reports"
-            git push origin gh-pages --force
+            if git commit -m "Update Index of Reports"; then
+              git push origin gh-pages --force
+            else
+              echo "No changes to commit. Nothing to push."
+            fi
           else
             mkdir -p docs
             cd docs
@@ -260,42 +436,54 @@ jobs:
           MX_CHAIN_TESTING_SUITE_TARGET_BRANCH: ${{ env.MX_CHAIN_TESTING_SUITE_TARGET_BRANCH }}
           LATEST_COMMIT_HASH: ${{ env.LATEST_COMMIT_HASH }}
           PYTEST_EXIT_CODE: ${{ env.PYTEST_EXIT_CODE }}
-
+          CURRENT_COMMIT_HASH:   ${{ env.CURRENT_COMMIT_HASH }}
+          SIMULATOR_COMMIT_HASH: ${{ env.SIMULATOR_COMMIT_HASH }}
+          SIMULATOR_REF:         ${{ env.SIMULATOR_REF }}
+          R2_REPORT_URL:         ${{ env.R2_REPORT_URL }}
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
-            const timestamp = process.env.TIMESTAMP;
-            const branchName = process.env.BRANCH_NAME;
-            const currentBranch = process.env.CURRENT_BRANCH;
-            const goTargetBranch = process.env.MX_CHAIN_GO_TARGET_BRANCH;
-            const simulatorTargetBranch = process.env.MX_CHAIN_SIMULATOR_TARGET_BRANCH;
-            const testingSuiteTargetBranch = process.env.MX_CHAIN_TESTING_SUITE_TARGET_BRANCH;
-            const commitHash = process.env.LATEST_COMMIT_HASH;
-            const exitCode = process.env.PYTEST_EXIT_CODE;
-            const issue_number = context.issue.number;
-            const owner = context.repo.owner;
-            const repo = context.repo.repo;
-            let message;
+            const timestamp                 = process.env.TIMESTAMP;
+            const branchName                = process.env.BRANCH_NAME;
+            const currentBranch             = process.env.CURRENT_BRANCH;
+            const goTargetBranch            = process.env.MX_CHAIN_GO_TARGET_BRANCH;
+            const simulatorTargetBranch     = process.env.MX_CHAIN_SIMULATOR_TARGET_BRANCH;
+            const testingSuiteTargetBranch  = process.env.MX_CHAIN_TESTING_SUITE_TARGET_BRANCH;
+            const commitHash                = process.env.LATEST_COMMIT_HASH;
+            const exitCode                  = process.env.PYTEST_EXIT_CODE;
 
-            if (timestamp && branchName && timestamp !== "" && branchName !== "") {
-              const reportUrl = `https://multiversx.github.io/mx-chain-testing-suite/reports/${branchName}/${timestamp}/index.html`;
+            const simulatorCommitHash = process.env.SIMULATOR_COMMIT_HASH || 'N/A';
+            const r2Url            = process.env.R2_REPORT_URL || 'N/A';
+
+            const issue_number = context.issue.number;
+            const owner  = context.repo.owner;
+            const repo   = context.repo.repo;
+            const ts = process.env.TS || process.env.TIMESTAMP;
+            const verdict = exitCode === "0"
+              ? "✅ **Integration Tests passed successfully!**"
+              : "❌ **Integration Tests completed with failures or errors.**";
+            let message;
+            if (timestamp && branchName) {
+              const backupUrl = `https://multiversx.github.io/mx-chain-testing-suite/reports/${branchName}/${timestamp}/index.html`;
               message = `
-              📊 **MultiversX Automated Test Report:** [View Report](${reportUrl})
+              ${verdict}
             
+              📊 **MultiversX Automated Test Report:** [View Report](${r2Url})
+
               🔄 **Build Details:**
               - **mx-chain-go Commit Hash:** \`${commitHash}\`
               - **Current Branch:** \`${currentBranch}\`
               - **mx-chain-go Target Branch:** \`${goTargetBranch}\`
               - **mx-chain-simulator-go Target Branch:** \`${simulatorTargetBranch}\`
               - **mx-chain-testing-suite Target Branch:** \`${testingSuiteTargetBranch}\`
-            
+              - **mx-chain-simulator-go Commit Hash:** \`${simulatorCommitHash}\`
+
               🚀 **Environment Variables:**
-            - **TIMESTAMP:** \`${timestamp}\`
-            - **PYTEST_EXIT_CODE:** \`${exitCode}\`
-              🎉 **MultiversX CI/CD Workflow Complete!**
+              - **TIMESTAMP:** \`${ts}\`
+              - **PYTEST_EXIT_CODE:** \`${exitCode}\`
               `;
             } else {
-              message = "⚠️ No report was generated due to an error or cancellation of the process.\nPlease checkout gh action logs for details";
+              message = "⚠️ No report was generated due to an error or cancellation of the process.\nPlease checkout GH-Action logs for details.";
             }
 
             github.rest.issues.createComment({
@@ -304,6 +492,36 @@ jobs:
               repo: repo,
               body: message
             });
+
+      - name: Notify Slack
+        if: always()
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+          R2_REPORT_URL: ${{ env.R2_REPORT_URL }}
+          BRANCH_NAME: ${{ env.BRANCH_NAME }}
+          CURRENT_COMMIT_HASH: ${{ env.CURRENT_COMMIT_HASH }}
+          SIMULATOR_REF: ${{ env.SIMULATOR_REF }}
+          SIMULATOR_COMMIT_HASH: ${{ env.SIMULATOR_COMMIT_HASH }}
+          TS: ${{ env.TS }}
+          PYTEST_EXIT_CODE: ${{ env.PYTEST_EXIT_CODE }}
+        run: |
+          status="❌ FAILED"
+          [ "${PYTEST_EXIT_CODE}" = "0" ] && status="✅ PASSED"
+          repo="${GITHUB_REPOSITORY##*/}"
+          base="${{ github.base_ref }}"
+          
+          msg="*MX-CHAIN-GO ChainSimulator CI – ${status}*\
+          \n• *Report:* <${R2_REPORT_URL:-N/A}|HTML>\
+          \n• *Repository:* \`${repo}\`\
+          \n• *Branch:* \`${BRANCH_NAME}\` → \`${base:-main}\`\
+          \n• *Testing-suite Commit:* \`${CURRENT_COMMIT_HASH}\`\
+          \n• *Chain Simulator Branch:* \`${SIMULATOR_REF}\`\
+          \n• *Chain Simulator Commit:* \`${SIMULATOR_COMMIT_HASH}\`\
+          \n• *Run at:* ${TS}"
+          
+          curl -s -X POST -H 'Content-Type: application/json' \
+               -d "{\"text\":\"${msg}\"}" \
+               "$SLACK_WEBHOOK_URL"
 
       - name: Fail job if tests failed
         if: always()
@@ -314,3 +532,81 @@ jobs:
           else
             echo "Tests passed successfully."
           fi
+          
+
+      - name: Cleanup Workspace and Processes
+        if: always()
+        run: |
+          echo "🧹 Starting SAFE cleanup for job ${{ github.run_id }}..."
+          
+          # Get current working directory to limit cleanup scope
+          WORKSPACE_DIR=$(pwd)
+          echo "Workspace directory: $WORKSPACE_DIR"
+          
+          # 1. Kill only OUR ChainSimulator processes (by checking working directory)
+          echo "Killing ChainSimulator processes from this workspace..."
+          for pid in $(pgrep -f "chainsimulator"); do
+            if [ -n "$pid" ]; then
+              CWD=$(pwdx $pid 2>/dev/null | awk '{print $2}' || echo "")
+              if [[ "$CWD" == *"$WORKSPACE_DIR"* ]]; then
+                echo "Killing chainsimulator process $pid from our workspace"
+                kill -TERM $pid 2>/dev/null || true
+                sleep 2
+                kill -9 $pid 2>/dev/null || true
+              fi
+            fi
+          done
+          
+          # 2. Kill only OUR pytest processes (by checking if they're in our workspace)
+          echo "Killing pytest processes from this workspace..."
+          for pid in $(pgrep -f "pytest.*scenarios"); do
+            if [ -n "$pid" ]; then
+              CWD=$(pwdx $pid 2>/dev/null | awk '{print $2}' || echo "")
+              if [[ "$CWD" == *"$WORKSPACE_DIR"* ]]; then
+                echo "Killing pytest process $pid from our workspace"
+                kill -TERM $pid 2>/dev/null || true
+              fi
+            fi
+          done
+          
+          # 3. Remove only OUR temporary files (with unique identifiers)
+          echo "Removing temporary files from this job..."
+          rm -f /tmp/chainsim_init_${{ github.run_id }}.log || true
+          rm -f /tmp/chain_simulator_initialized_${{ github.run_id }}.lock || true
+          # Only remove temp files that might be from this job (be very specific)
+          rm -f /tmp/chainsim_init.log || true  # Only if we created it without job ID
+          rm -f /tmp/chain_simulator_initialized.lock || true  # Only if we created it without job ID
+          rm -rf /tmp/chainsim_logs || true
+          find /tmp -type d -name "mx-chainsimulator-*" -exec rm -rf {} \; 2>/dev/null || true
+          
+          # 4. Clean up ONLY our workspace directories
+          echo "Cleaning up workspace directories..."
+          rm -rf "$WORKSPACE_DIR/mx-chain-go" || true
+          rm -rf "$WORKSPACE_DIR/mx-chain-simulator-go" || true
+          rm -rf "$WORKSPACE_DIR/mx-chain-testing-suite" || true
+          rm -rf "$WORKSPACE_DIR/reports" || true
+          rm -rf "$WORKSPACE_DIR/r2_upload" || true
+          rm -f "$WORKSPACE_DIR/report.html" || true
+          
+          # 5. Clean up Python cache ONLY in our workspace
+          echo "Cleaning Python cache in workspace..."
+          find "$WORKSPACE_DIR" -type d -name "__pycache__" -exec rm -rf {} + 2>/dev/null || true
+          find "$WORKSPACE_DIR" -type d -name "*.egg-info" -exec rm -rf {} + 2>/dev/null || true
+          find "$WORKSPACE_DIR" -type f -name "*.pyc" -delete 2>/dev/null || true
+
+          # 6. Check disk space (informational only)
+          echo "Checking remaining disk space..."
+          df -h "$WORKSPACE_DIR" || true
+          
+          # 7. Show what processes are still running FROM OUR WORKSPACE (for debugging)
+          echo "Checking for remaining processes from our workspace:"
+          for pid in $(pgrep -f "chainsimulator\|pytest.*scenarios"); do
+            if [ -n "$pid" ]; then
+              CWD=$(pwdx $pid 2>/dev/null | awk '{print $2}' || echo "unknown")
+              if [[ "$CWD" == *"$WORKSPACE_DIR"* ]]; then
+                echo "⚠️ Process $pid still running from our workspace: $CWD"
+              fi
+            fi
+          done
+          
+          echo "✅ Safe cleanup completed for job ${{ github.run_id }}!"

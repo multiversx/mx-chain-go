@@ -1,8 +1,6 @@
 package interceptedBlocks
 
 import (
-	"sync"
-
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
@@ -46,6 +44,9 @@ func checkBlockHeaderArgument(arg *ArgInterceptedBlockHeader) error {
 	if check.IfNil(arg.EnableEpochsHandler) {
 		return process.ErrNilEnableEpochsHandler
 	}
+	if check.IfNil(arg.EpochChangeGracePeriodHandler) {
+		return process.ErrNilEpochChangeGracePeriodHandler
+	}
 
 	return nil
 }
@@ -70,8 +71,11 @@ func checkMiniblockArgument(arg *ArgInterceptedMiniblock) error {
 	return nil
 }
 
-func checkHeaderHandler(hdr data.HeaderHandler, enableEpochsHandler common.EnableEpochsHandler) error {
-	equivalentMessagesEnabled := enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, hdr.GetEpoch())
+func checkHeaderHandler(
+	hdr data.HeaderHandler,
+	enableEpochsHandler common.EnableEpochsHandler,
+) error {
+	equivalentMessagesEnabled := enableEpochsHandler.IsFlagEnabledInEpoch(common.AndromedaFlag, hdr.GetEpoch())
 
 	if len(hdr.GetPubKeysBitmap()) == 0 && !equivalentMessagesEnabled {
 		return process.ErrNilPubKeysBitmap
@@ -92,44 +96,16 @@ func checkHeaderHandler(hdr data.HeaderHandler, enableEpochsHandler common.Enabl
 		return process.ErrNilPrevRandSeed
 	}
 
-	err := checkProofIntegrity(hdr, enableEpochsHandler)
-	if err != nil {
-		return err
-	}
-
 	return hdr.CheckFieldsForNil()
-}
-
-func checkProofIntegrity(hdr data.HeaderHandler, enableEpochsHandler common.EnableEpochsHandler) error {
-	prevHeaderProof := hdr.GetPreviousProof()
-	nilPreviousProof := check.IfNilReflect(prevHeaderProof)
-	shouldHavePrevProof := common.ShouldBlockHavePrevProof(hdr, enableEpochsHandler, common.EquivalentMessagesFlag)
-	missingPrevProof := nilPreviousProof && shouldHavePrevProof
-	unexpectedPrevProof := !nilPreviousProof && !shouldHavePrevProof
-	hasPrevProof := !nilPreviousProof && !missingPrevProof
-
-	if missingPrevProof {
-		return process.ErrMissingPrevHeaderProof
-	}
-	if unexpectedPrevProof {
-		return process.ErrUnexpectedHeaderProof
-	}
-	if hasPrevProof && isIncompleteProof(prevHeaderProof) {
-		return process.ErrInvalidHeaderProof
-	}
-
-	return nil
 }
 
 func checkMetaShardInfo(
 	shardInfo []data.ShardDataHandler,
 	coordinator sharding.Coordinator,
-	headerSigVerifier process.InterceptedHeaderSigVerifier,
 ) error {
-	wgProofsVerification := sync.WaitGroup{}
-
-	errChan := make(chan error, len(shardInfo))
-	defer close(errChan)
+	if coordinator.SelfId() != core.MetachainShardId {
+		return nil
+	}
 
 	for _, sd := range shardInfo {
 		if sd.GetShardID() >= coordinator.NumberOfShards() && sd.GetShardID() != core.MetachainShardId {
@@ -140,63 +116,9 @@ func checkMetaShardInfo(
 		if err != nil {
 			return err
 		}
-
-		isSelfMeta := coordinator.SelfId() == core.MetachainShardId
-		isHeaderFromSelf := sd.GetShardID() == coordinator.SelfId()
-		if !(isSelfMeta || isHeaderFromSelf) {
-			continue
-		}
-
-		wgProofsVerification.Add(1)
-		checkProofAsync(sd.GetPreviousProof(), headerSigVerifier, &wgProofsVerification, errChan)
 	}
 
-	wgProofsVerification.Wait()
-
-	return readFromChanNonBlocking(errChan)
-}
-
-func readFromChanNonBlocking(errChan chan error) error {
-	select {
-	case err := <-errChan:
-		return err
-	default:
-		return nil
-	}
-}
-
-func checkProofAsync(
-	proof data.HeaderProofHandler,
-	headerSigVerifier process.InterceptedHeaderSigVerifier,
-	wg *sync.WaitGroup,
-	errChan chan error,
-) {
-	go func(proof data.HeaderProofHandler) {
-		errCheckProof := checkProof(proof, headerSigVerifier)
-		if errCheckProof != nil {
-			errChan <- errCheckProof
-		}
-
-		wg.Done()
-	}(proof)
-}
-
-func checkProof(proof data.HeaderProofHandler, headerSigVerifier process.InterceptedHeaderSigVerifier) error {
-	if check.IfNilReflect(proof) {
-		return nil
-	}
-
-	if isIncompleteProof(proof) {
-		return process.ErrInvalidHeaderProof
-	}
-
-	return headerSigVerifier.VerifyHeaderProof(proof)
-}
-
-func isIncompleteProof(proof data.HeaderProofHandler) bool {
-	return len(proof.GetAggregatedSignature()) == 0 ||
-		len(proof.GetPubKeysBitmap()) == 0 ||
-		len(proof.GetHeaderHash()) == 0
+	return nil
 }
 
 func checkShardData(sd data.ShardDataHandler, coordinator sharding.Coordinator) error {

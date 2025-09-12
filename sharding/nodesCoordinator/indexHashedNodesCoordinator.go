@@ -428,7 +428,7 @@ func (ihnc *indexHashedNodesCoordinator) selectLeaderAndConsensusGroup(
 	epoch uint32,
 ) (Validator, []Validator, error) {
 	leaderPositionInSelection := 0
-	if !ihnc.enableEpochsHandler.IsFlagEnabledInEpoch(common.FixedOrderInConsensusFlag, epoch) {
+	if !ihnc.enableEpochsHandler.IsFlagEnabledInEpoch(common.AndromedaFlag, epoch) {
 		tempList, err := selectValidators(selector, randomness, uint32(consensusSize), eligibleList)
 		if err != nil {
 			return nil, nil, err
@@ -678,6 +678,19 @@ func (ihnc *indexHashedNodesCoordinator) GetValidatorsIndexes(
 	}
 
 	return signersIndexes, nil
+}
+
+// GetCachedEpochs returns all epochs cached
+func (ihnc *indexHashedNodesCoordinator) GetCachedEpochs() map[uint32]struct{} {
+	cachedEpochs := make(map[uint32]struct{}, nodesCoordinatorStoredEpochs)
+
+	ihnc.mutNodesConfig.RLock()
+	for epoch := range ihnc.nodesConfig {
+		cachedEpochs[epoch] = struct{}{}
+	}
+	ihnc.mutNodesConfig.RUnlock()
+
+	return cachedEpochs
 }
 
 // EpochStartPrepare is called when an epoch start event is observed, but not yet confirmed/committed.
@@ -1209,18 +1222,7 @@ func (ihnc *indexHashedNodesCoordinator) ConsensusGroupSizeForShardAndEpoch(
 	shardID uint32,
 	epoch uint32,
 ) int {
-	currentChainParameters, err := ihnc.chainParametersHandler.ChainParametersForEpoch(epoch)
-	if err != nil {
-		log.Warn("indexHashedNodesCoordinator.ConsensusGroupSizeForShardAndEpoch: could not compute chain params for epoch. "+
-			"Will use the current chain parameters", "epoch", epoch, "error", err)
-		currentChainParameters = ihnc.chainParametersHandler.CurrentChainParameters()
-	}
-
-	if shardID == core.MetachainShardId {
-		return int(currentChainParameters.MetachainConsensusGroupSize)
-	}
-
-	return int(currentChainParameters.ShardConsensusGroupSize)
+	return common.ConsensusGroupSizeForShardAndEpoch(log, ihnc.chainParametersHandler, shardID, epoch)
 }
 
 // GetNumTotalEligible returns the number of total eligible accross all shards from current setup

@@ -34,6 +34,7 @@ type blockProcessor struct {
 	marshaller          marshal.Marshalizer
 	hasher              hashing.Hasher
 	headersPool         dataRetriever.HeadersPool
+	isImportDBMode      bool
 
 	blockFinality uint64
 }
@@ -62,6 +63,7 @@ func NewBlockProcessor(arguments ArgBlockProcessor) (*blockProcessor, error) {
 		headersPool:                           arguments.HeadersPool,
 		marshaller:                            arguments.Marshaller,
 		hasher:                                arguments.Hasher,
+		isImportDBMode:                        arguments.IsImportDBMode,
 	}
 
 	bp.blockFinality = process.BlockFinality
@@ -317,7 +319,7 @@ func (bp *blockProcessor) checkHeaderFinality(
 		return process.ErrNilBlockHeader
 	}
 
-	if bp.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, header.GetEpoch()) {
+	if bp.enableEpochsHandler.IsFlagEnabledInEpoch(common.AndromedaFlag, header.GetEpoch()) {
 		// the index in argument is for the next block after header
 		hashIndex := index
 		if index > 0 {
@@ -345,7 +347,7 @@ func (bp *blockProcessor) checkHeaderFinality(
 
 		// if the currentHeader(the one that should confirm the finality of the prev)
 		// is the epoch start block of equivalent messages, we must check for its proof as well
-		if bp.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, currHeader.GetEpoch()) {
+		if bp.enableEpochsHandler.IsFlagEnabledInEpoch(common.AndromedaFlag, currHeader.GetEpoch()) {
 			if bp.proofsPool.HasProof(currHeader.GetShardID(), sortedHeadersHashes[i]) {
 				return nil
 			}
@@ -466,8 +468,13 @@ func (bp *blockProcessor) requestHeadersIfNothingNewIsReceived(
 
 	fromNonce := latestValidHeader.GetNonce()
 	shardID := latestValidHeader.GetShardID()
-	// remove first header from pool - to force re-triggering the callbacks on receiving the header (edge case for epoch change)
-	bp.headersPool.RemoveHeaderByNonceAndShardId(fromNonce, shardID)
+	// force the trigger to be activated by removing the start of epoch block on Andromeda activation
+	header, headerHash, err := process.GetMetaHeaderFromPoolWithNonce(fromNonce, bp.headersPool)
+	isHeaderStartOfEpochForAndromedaActivation := err == nil && shardID == common.MetachainShardId &&
+		common.IsEpochChangeBlockForFlagActivation(header, bp.enableEpochsHandler, common.AndromedaFlag)
+	if isHeaderStartOfEpochForAndromedaActivation {
+		bp.headersPool.RemoveHeaderByHash(headerHash)
+	}
 	bp.requestHeaders(shardID, fromNonce)
 }
 
@@ -482,8 +489,10 @@ func (bp *blockProcessor) requestHeaders(shardID uint32, fromNonce uint64) {
 
 		if shardID == core.MetachainShardId {
 			bp.requestHandler.RequestMetaHeaderByNonce(nonce)
+			bp.requestHandler.RequestEquivalentProofByNonce(core.MetachainShardId, nonce)
 		} else {
 			bp.requestHandler.RequestShardHeaderByNonce(shardID, nonce)
+			bp.requestHandler.RequestEquivalentProofByNonce(shardID, nonce)
 		}
 	}
 }

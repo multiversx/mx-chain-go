@@ -1080,6 +1080,21 @@ func TestNode_GetAllESDTTokensShouldReturnEsdtAndFormattedNft(t *testing.T) {
 	nftData := &esdt.ESDigitalToken{Type: uint32(core.NonFungible), Value: big.NewInt(10), TokenMetaData: nftMetaData}
 	marshalledNftData, _ := getMarshalizer().Marshal(nftData)
 
+	dynamicNft := "TCKR-abcdef"
+	dynamicNftNonce := big.NewInt(100)
+	dynamicNftKey := []byte(core.ProtectedKeyPrefix + core.ESDTKeyIdentifier + dynamicNft)
+	dynamicNftKeyWithBytes := append(dynamicNftKey, dynamicNftNonce.Bytes()...)
+	dynamicNftSuffix := append(dynamicNftKeyWithBytes, acc.AddressBytes()...)
+	dynamicNftData := &esdt.ESDigitalToken{
+		Type:  uint32(core.DynamicNFT),
+		Value: big.NewInt(0),
+		TokenMetaData: &esdt.MetaData{
+			Nonce: dynamicNftNonce.Uint64(),
+			URIs:  [][]byte{[]byte("https://example.com/dynamic-nft")},
+		},
+	}
+	marshalledDynamicNftData, _ := getMarshalizer().Marshal(dynamicNftData)
+
 	esdtStorageStub := &testscommon.EsdtStorageHandlerStub{
 		GetESDTNFTTokenOnDestinationWithCustomSystemAccountCalled: func(acnt vmcommon.UserAccountHandler, esdtTokenKey []byte, nonce uint64, _ vmcommon.UserAccountHandler) (*esdt.ESDigitalToken, bool, error) {
 			switch string(esdtTokenKey) {
@@ -1087,6 +1102,8 @@ func TestNode_GetAllESDTTokensShouldReturnEsdtAndFormattedNft(t *testing.T) {
 				return esdtData, false, nil
 			case string(nftKey):
 				return nftData, false, nil
+			case string(dynamicNftKey):
+				return dynamicNftData, false, nil
 			default:
 				return nil, false, nil
 			}
@@ -1103,6 +1120,10 @@ func TestNode_GetAllESDTTokensShouldReturnEsdtAndFormattedNft(t *testing.T) {
 
 					trieLeaf = keyValStorage.NewKeyValStorage(nftKey, append(marshalledNftData, nftSuffix...))
 					leavesChannels.LeavesChan <- trieLeaf
+
+					trieLeaf = keyValStorage.NewKeyValStorage(dynamicNftKey, append(marshalledDynamicNftData, dynamicNftSuffix...))
+					leavesChannels.LeavesChan <- trieLeaf
+
 					wg.Done()
 					close(leavesChannels.LeavesChan)
 					leavesChannels.ErrChan.Close()
@@ -2215,7 +2236,7 @@ func TestCreateTransaction_SignatureLengthChecks(t *testing.T) {
 	coreComponents.VmMarsh = getMarshalizer()
 	coreComponents.TxMarsh = getMarshalizer()
 	coreComponents.Hash = getHasher()
-	coreComponents.EconomicsHandler = &economicsmocks.EconomicsHandlerStub{
+	coreComponents.EconomicsHandler = &economicsmocks.EconomicsHandlerMock{
 		GenesisTotalSupplyCalled: func() *big.Int {
 			str := strings.Repeat("1", maxValueLength)
 			bi := big.NewInt(0)
@@ -2285,7 +2306,7 @@ func TestCreateTransaction_SenderLengthChecks(t *testing.T) {
 	coreComponents.ChainIdCalled = func() string {
 		return chainID
 	}
-	coreComponents.EconomicsHandler = &economicsmocks.EconomicsHandlerStub{
+	coreComponents.EconomicsHandler = &economicsmocks.EconomicsHandlerMock{
 		GenesisTotalSupplyCalled: func() *big.Int {
 			str := strings.Repeat("1", maxLength)
 			bi := big.NewInt(0)
@@ -2346,7 +2367,7 @@ func TestCreateTransaction_ReceiverLengthChecks(t *testing.T) {
 	coreComponents.ChainIdCalled = func() string {
 		return chainID
 	}
-	coreComponents.EconomicsHandler = &economicsmocks.EconomicsHandlerStub{
+	coreComponents.EconomicsHandler = &economicsmocks.EconomicsHandlerMock{
 		GenesisTotalSupplyCalled: func() *big.Int {
 			str := strings.Repeat("1", maxLength)
 			bi := big.NewInt(0)
@@ -2406,7 +2427,7 @@ func TestCreateTransaction_TooBigSenderUsernameShouldErr(t *testing.T) {
 	coreComponents.ChainIdCalled = func() string {
 		return chainID
 	}
-	coreComponents.EconomicsHandler = &economicsmocks.EconomicsHandlerStub{
+	coreComponents.EconomicsHandler = &economicsmocks.EconomicsHandlerMock{
 		GenesisTotalSupplyCalled: func() *big.Int {
 			str := strings.Repeat("1", maxLength)
 			bi := big.NewInt(0)
@@ -2459,7 +2480,7 @@ func TestCreateTransaction_TooBigReceiverUsernameShouldErr(t *testing.T) {
 	coreComponents.ChainIdCalled = func() string {
 		return chainID
 	}
-	coreComponents.EconomicsHandler = &economicsmocks.EconomicsHandlerStub{
+	coreComponents.EconomicsHandler = &economicsmocks.EconomicsHandlerMock{
 		GenesisTotalSupplyCalled: func() *big.Int {
 			str := strings.Repeat("1", maxLength)
 			bi := big.NewInt(0)
@@ -2512,7 +2533,7 @@ func TestCreateTransaction_DataFieldSizeExceedsMaxShouldErr(t *testing.T) {
 	coreComponents.ChainIdCalled = func() string {
 		return chainID
 	}
-	coreComponents.EconomicsHandler = &economicsmocks.EconomicsHandlerStub{
+	coreComponents.EconomicsHandler = &economicsmocks.EconomicsHandlerMock{
 		GenesisTotalSupplyCalled: func() *big.Int {
 			str := strings.Repeat("1", maxLength)
 			bi := big.NewInt(0)
@@ -2565,7 +2586,7 @@ func TestCreateTransaction_TooLargeValueFieldShouldErr(t *testing.T) {
 	coreComponents.ChainIdCalled = func() string {
 		return chainID
 	}
-	coreComponents.EconomicsHandler = &economicsmocks.EconomicsHandlerStub{
+	coreComponents.EconomicsHandler = &economicsmocks.EconomicsHandlerMock{
 		GenesisTotalSupplyCalled: func() *big.Int {
 			str := strings.Repeat("1", maxLength)
 			bi := big.NewInt(0)
@@ -2876,7 +2897,7 @@ func TestCreateTransaction_TxSignedWithHashShouldErrVersionShoudBe2(t *testing.T
 		return chainID
 	}
 
-	feeHandler := &economicsmocks.EconomicsHandlerStub{
+	feeHandler := &economicsmocks.EconomicsHandlerMock{
 		CheckValidityTxValuesCalled: func(tx data.TransactionWithFeeHandler) error {
 			return nil
 		},
@@ -2966,7 +2987,7 @@ func TestCreateTransaction_TxSignedWithHashNoEnabledShouldErr(t *testing.T) {
 		},
 	}
 
-	feeHandler := &economicsmocks.EconomicsHandlerStub{
+	feeHandler := &economicsmocks.EconomicsHandlerMock{
 		CheckValidityTxValuesCalled: func(tx data.TransactionWithFeeHandler) error {
 			return nil
 		},
@@ -4717,7 +4738,10 @@ func TestNode_GetEpochStartDataAPI(t *testing.T) {
 
 	dataComponents := getDefaultDataComponents()
 	blockchain := dataComponents.BlockChain.(*testscommon.ChainHandlerStub)
+
 	timestamp := uint64(778899)
+	expTimeStampMs := common.ConvertTimeStampSecToMs(timestamp)
+
 	shardID := uint32(2)
 	blockchain.GetGenesisHeaderCalled = func() data.HeaderHandler {
 		return &block.Header{
@@ -4751,6 +4775,7 @@ func TestNode_GetEpochStartDataAPI(t *testing.T) {
 			Nonce:             0,
 			Round:             0,
 			Timestamp:         int64(timestamp),
+			TimestampMs:       int64(expTimeStampMs),
 			Epoch:             0,
 			Shard:             shardID,
 			PrevBlockHash:     hex.EncodeToString(prevHash),
@@ -4800,6 +4825,7 @@ func TestNode_GetEpochStartDataAPI(t *testing.T) {
 			Nonce:             nonce,
 			Round:             round,
 			Timestamp:         int64(timestamp),
+			TimestampMs:       int64(expTimeStampMs),
 			Epoch:             epoch,
 			Shard:             core.MetachainShardId,
 			PrevBlockHash:     hex.EncodeToString(prevHash),
@@ -4850,6 +4876,7 @@ func TestNode_GetEpochStartDataAPI(t *testing.T) {
 			Nonce:             nonce,
 			Round:             round,
 			Timestamp:         int64(timestamp),
+			TimestampMs:       int64(expTimeStampMs),
 			Epoch:             epoch,
 			Shard:             shardID,
 			PrevBlockHash:     hex.EncodeToString(prevHash),
@@ -5341,6 +5368,7 @@ func getDefaultCoreComponents() *nodeMockFactory.CoreComponentsMock {
 		EpochChangeNotifier:      &epochNotifier.EpochNotifierStub{},
 		TxVersionCheckHandler:    versioning.NewTxVersionChecker(0),
 		EnableEpochsHandlerField: enableEpochsHandlerMock.NewEnableEpochsHandlerStub(common.RelayedTransactionsV3Flag),
+		FieldsSizeCheckerField:   &testscommon.FieldsSizeCheckerMock{},
 	}
 }
 
@@ -5376,6 +5404,7 @@ func getDefaultProcessComponents() *factoryMock.ProcessComponentsMock {
 		TxsSenderHandlerField:                &txsSenderMock.TxsSenderHandlerMock{},
 		ScheduledTxsExecutionHandlerInternal: &testscommon.ScheduledTxsExecutionStub{},
 		HistoryRepositoryInternal:            &dblookupext.HistoryRepositoryStub{},
+		BlockchainHookField:                  &testscommon.BlockChainHookStub{},
 	}
 }
 

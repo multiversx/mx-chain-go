@@ -92,10 +92,10 @@ func (ps *triePruningStorer) PutInEpochWithoutCache(key []byte, data []byte, epo
 }
 
 // GetFromOldEpochsWithoutAddingToCache searches the old epochs for the given key without adding to the cache
-func (ps *triePruningStorer) GetFromOldEpochsWithoutAddingToCache(key []byte) ([]byte, core.OptionalUint32, error) {
+func (ps *triePruningStorer) GetFromOldEpochsWithoutAddingToCache(key []byte, maxEpochToSearchFrom uint32) ([]byte, core.OptionalUint32, error) {
 	v, ok := ps.cacher.Get(key)
 	if ok && !bytes.Equal([]byte(common.ActiveDBKey), key) {
-		ps.stateStatsHandler.IncrementSnapshotCache()
+		ps.stateStatsHandler.IncrSnapshotCache()
 		return v.([]byte), core.OptionalUint32{}, nil
 	}
 
@@ -104,6 +104,9 @@ func (ps *triePruningStorer) GetFromOldEpochsWithoutAddingToCache(key []byte) ([
 
 	numClosedDbs := 0
 	for idx := 1; idx < len(ps.activePersisters); idx++ {
+		if ps.activePersisters[idx].epoch >= maxEpochToSearchFrom {
+			continue
+		}
 		val, err := ps.activePersisters[idx].persister.Get(key)
 		if err != nil {
 			if errors.Is(err, storage.ErrDBIsClosed) {
@@ -118,7 +121,7 @@ func (ps *triePruningStorer) GetFromOldEpochsWithoutAddingToCache(key []byte) ([
 			HasValue: true,
 		}
 
-		ps.stateStatsHandler.IncrementSnapshotPersister(epoch.Value)
+		ps.stateStatsHandler.IncrSnapshotPersister(epoch.Value)
 
 		return val, epoch, nil
 	}

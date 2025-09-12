@@ -8,6 +8,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	crypto "github.com/multiversx/mx-chain-crypto-go"
+
 	"github.com/multiversx/mx-chain-go/config"
 )
 
@@ -81,7 +82,10 @@ type StorageMarker interface {
 type KeyBuilder interface {
 	BuildKey(keyPart []byte)
 	GetKey() ([]byte, error)
-	Clone() KeyBuilder
+	GetRawKey() []byte
+	DeepClone() KeyBuilder
+	ShallowClone() KeyBuilder
+	Size() uint
 	IsInterfaceNil() bool
 }
 
@@ -223,17 +227,19 @@ type StateStatisticsHandler interface {
 	Reset()
 	ResetSnapshot()
 
-	IncrementCache()
+	IncrCache()
 	Cache() uint64
-	IncrementSnapshotCache()
+	IncrSnapshotCache()
 	SnapshotCache() uint64
 
-	IncrementPersister(epoch uint32)
+	IncrPersister(epoch uint32)
 	Persister(epoch uint32) uint64
-	IncrementSnapshotPersister(epoch uint32)
+	IncrWritePersister(epoch uint32)
+	WritePersister(epoch uint32) uint64
+	IncrSnapshotPersister(epoch uint32)
 	SnapshotPersister(epoch uint32) uint64
 
-	IncrementTrie()
+	IncrTrie()
 	Trie() uint64
 
 	ProcessingStats() []string
@@ -383,4 +389,39 @@ type ChainParametersSubscriptionHandler interface {
 // HeadersPool defines what a headers pool structure can perform
 type HeadersPool interface {
 	GetHeaderByHash(hash []byte) (data.HeaderHandler, error)
+}
+
+// FieldsSizeChecker defines the behavior of a fields size checker common component
+type FieldsSizeChecker interface {
+	IsProofSizeValid(proof data.HeaderProofHandler) bool
+	IsInterfaceNil() bool
+}
+
+// EpochChangeGracePeriodHandler defines the behavior of a component that can return the grace period for a specific epoch
+type EpochChangeGracePeriodHandler interface {
+	GetGracePeriodForEpoch(epoch uint32) (uint32, error)
+	IsInterfaceNil() bool
+}
+
+// TrieNodeData is used to retrieve the data of a trie node
+type TrieNodeData interface {
+	GetKeyBuilder() KeyBuilder
+	GetData() []byte
+	Size() uint64
+	IsLeaf() bool
+	GetVersion() core.TrieNodeVersion
+}
+
+// DfsIterator is used to iterate the trie nodes in a depth-first search manner
+type DfsIterator interface {
+	GetLeaves(numLeaves int, maxSize uint64, leavesParser TrieLeafParser, ctx context.Context) (map[string]string, error)
+	GetIteratorState() [][]byte
+	IsInterfaceNil() bool
+}
+
+// TrieLeavesRetriever is used to retrieve the leaves from the trie. If there is a saved checkpoint for the iterator id,
+// it will continue to iterate from the checkpoint.
+type TrieLeavesRetriever interface {
+	GetLeaves(numLeaves int, iteratorState [][]byte, leavesParser TrieLeafParser, ctx context.Context) (map[string]string, [][]byte, error)
+	IsInterfaceNil() bool
 }

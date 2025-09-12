@@ -15,6 +15,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/alteredAccount"
 	apiData "github.com/multiversx/mx-chain-core-go/data/api"
 	"github.com/multiversx/mx-chain-core-go/data/esdt"
+	"github.com/multiversx/mx-chain-core-go/data/smartContractResult"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-core-go/data/validator"
 	"github.com/multiversx/mx-chain-core-go/data/vm"
@@ -229,6 +230,14 @@ func (nf *nodeFacade) GetKeyValuePairs(address string, options apiData.AccountQu
 	return nf.node.GetKeyValuePairs(address, options, ctx)
 }
 
+// IterateKeys starts from the given iteratorState and returns the next key-value pairs and the new iteratorState
+func (nf *nodeFacade) IterateKeys(address string, numKeys uint, iteratorState [][]byte, options apiData.AccountQueryOptions) (map[string]string, [][]byte, apiData.BlockInfo, error) {
+	ctx, cancel := nf.getContextForApiTrieRangeOperations()
+	defer cancel()
+
+	return nf.node.IterateKeys(address, numKeys, iteratorState, options, ctx)
+}
+
 // GetGuardianData returns the guardian data for the provided address
 func (nf *nodeFacade) GetGuardianData(address string, options apiData.AccountQueryOptions) (apiData.GuardianData, apiData.BlockInfo, error) {
 	return nf.node.GetGuardianData(address, options)
@@ -297,6 +306,11 @@ func (nf *nodeFacade) SendBulkTransactions(txs []*transaction.Transaction) (uint
 // SimulateTransactionExecution will simulate a transaction's execution and will return the results
 func (nf *nodeFacade) SimulateTransactionExecution(tx *transaction.Transaction) (*txSimData.SimulationResultsWithVMOutput, error) {
 	return nf.apiResolver.SimulateTransactionExecution(tx)
+}
+
+// SimulateSCRExecutionCost will simulate a smart contract results and will return the gas cost
+func (nf *nodeFacade) SimulateSCRExecutionCost(scr *smartContractResult.SmartContractResult) (*transaction.CostResponse, error) {
+	return nf.apiResolver.SimulateSCRExecutionCost(scr)
 }
 
 // GetTransaction gets the transaction with a specified hash

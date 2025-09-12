@@ -159,6 +159,8 @@ func printEnableEpochs(configs *config.Configs) {
 	log.Debug(readEpochFor("double key protection"), "epoch", enableEpochs.DoubleKeyProtectionEnableEpoch)
 	log.Debug(readEpochFor("esdt"), "epoch", enableEpochs.ESDTEnableEpoch)
 	log.Debug(readEpochFor("governance"), "epoch", enableEpochs.GovernanceEnableEpoch)
+	log.Debug(readEpochFor("governance disable proposal"), "epoch", enableEpochs.GovernanceDisableProposeEnableEpoch)
+	log.Debug(readEpochFor("governance fixes"), "epoch", enableEpochs.GovernanceFixesEnableEpoch)
 	log.Debug(readEpochFor("delegation manager"), "epoch", enableEpochs.DelegationManagerEnableEpoch)
 	log.Debug(readEpochFor("delegation smart contract"), "epoch", enableEpochs.DelegationSmartContractEnableEpoch)
 	log.Debug(readEpochFor("correct last unjailed"), "epoch", enableEpochs.CorrectLastUnjailedEnableEpoch)
@@ -211,6 +213,7 @@ func printEnableEpochs(configs *config.Configs) {
 	log.Debug(readEpochFor("staking v4 step 1"), "epoch", enableEpochs.StakingV4Step1EnableEpoch)
 	log.Debug(readEpochFor("staking v4 step 2"), "epoch", enableEpochs.StakingV4Step2EnableEpoch)
 	log.Debug(readEpochFor("staking v4 step 3"), "epoch", enableEpochs.StakingV4Step3EnableEpoch)
+	log.Debug(readEpochFor("disable relayed transactions v1 v2"), "epoch", enableEpochs.RelayedTransactionsV1V2DisableEpoch)
 
 	gasSchedule := configs.EpochConfig.GasSchedule
 

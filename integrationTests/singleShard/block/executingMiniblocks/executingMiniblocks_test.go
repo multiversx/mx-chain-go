@@ -220,7 +220,6 @@ func testSameBlockHeight(t *testing.T, nodes []*integrationTests.TestProcessorNo
 	}
 }
 
-
 func testTxIsInMiniblock(t *testing.T, proposer *integrationTests.TestProcessorNode, hash []byte, bt block.Type) {
 	hdrHandler := proposer.BlockChain.GetCurrentBlockHeader()
 	hdr := hdrHandler.(*block.Header)

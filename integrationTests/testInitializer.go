@@ -6,6 +6,7 @@ import (
 	"encoding/binary"
 	"encoding/hex"
 	"fmt"
+	"math"
 	"math/big"
 	"strings"
 	"sync"
@@ -149,7 +150,8 @@ func createP2PConfig(initialPeerList []string) p2pConfig.P2PConfig {
 				},
 			},
 			ResourceLimiter: p2pConfig.P2PResourceLimiterConfig{
-				Type: p2p.DefaultWithScaleResourceLimiter,
+				Type:          p2p.DefaultWithScaleResourceLimiter,
+				Ipv4ConnLimit: []p2pConfig.ConnLimitConfig{{PrefixLength: 0, ConnCount: math.MaxInt}},
 			},
 		},
 		KadDhtPeerDiscovery: p2pConfig.KadDhtPeerDiscoveryConfig{
@@ -245,7 +247,8 @@ func CreateP2PConfigWithNoDiscovery() p2pConfig.P2PConfig {
 				},
 			},
 			ResourceLimiter: p2pConfig.P2PResourceLimiterConfig{
-				Type: p2p.DefaultWithScaleResourceLimiter,
+				Type:          p2p.DefaultWithScaleResourceLimiter,
+				Ipv4ConnLimit: []p2pConfig.ConnLimitConfig{{PrefixLength: 0, ConnCount: math.MaxInt}},
 			},
 		},
 		KadDhtPeerDiscovery: p2pConfig.KadDhtPeerDiscoveryConfig{
@@ -275,7 +278,8 @@ func CreateMessengerWithNoDiscoveryAndPeersRatingHandler(peersRatingHanlder p2p.
 				},
 			},
 			ResourceLimiter: p2pConfig.P2PResourceLimiterConfig{
-				Type: p2p.DefaultWithScaleResourceLimiter,
+				Type:          p2p.DefaultWithScaleResourceLimiter,
+				Ipv4ConnLimit: []p2pConfig.ConnLimitConfig{{PrefixLength: 0, ConnCount: math.MaxInt}},
 			},
 		},
 		KadDhtPeerDiscovery: p2pConfig.KadDhtPeerDiscoveryConfig{
@@ -407,6 +411,7 @@ func CreateStore(numOfShards uint32) dataRetriever.StorageService {
 	store.AddStorer(dataRetriever.StatusMetricsUnit, CreateMemUnit())
 	store.AddStorer(dataRetriever.ReceiptsUnit, CreateMemUnit())
 	store.AddStorer(dataRetriever.ScheduledSCRsUnit, CreateMemUnit())
+	store.AddStorer(dataRetriever.ProofsUnit, CreateMemUnit())
 
 	for i := uint32(0); i < numOfShards; i++ {
 		hdrNonceHashDataUnit := dataRetriever.ShardHdrNonceHashDataUnit + dataRetriever.UnitType(i)
@@ -695,7 +700,8 @@ func CreateFullGenesisBlocks(
 				OwnerAddress:    "aaaaaa",
 			},
 			GovernanceSystemSCConfig: config.GovernanceSystemSCConfig{
-				OwnerAddress: DelegationManagerConfigChangeAddress,
+				OwnerAddress:                 DelegationManagerConfigChangeAddress,
+				MaxVotingDelayPeriodInEpochs: 30,
 				V1: config.GovernanceSystemSCConfigV1{
 					ProposalCost: "500",
 				},
@@ -824,7 +830,8 @@ func CreateGenesisMetaBlock(
 					MinVetoThreshold: 0.5,
 					LostProposalFee:  "1",
 				},
-				OwnerAddress: DelegationManagerConfigChangeAddress,
+				OwnerAddress:                 DelegationManagerConfigChangeAddress,
+				MaxVotingDelayPeriodInEpochs: 30,
 			},
 			StakingSystemSCConfig: config.StakingSystemSCConfig{
 				GenesisNodePrice:                     "1000",
@@ -1048,7 +1055,7 @@ func CreateSimpleTxProcessor(accnts state.AccountsAdapter) process.TransactionPr
 		ScProcessor:      &testscommon.SCProcessorMock{},
 		TxFeeHandler:     &testscommon.UnsignedTxHandlerStub{},
 		TxTypeHandler:    &testscommon.TxTypeHandlerMock{},
-		EconomicsFee: &economicsmocks.EconomicsHandlerStub{
+		EconomicsFee: &economicsmocks.EconomicsHandlerMock{
 			ComputeGasLimitCalled: func(tx data.TransactionWithFeeHandler) uint64 {
 				return tx.GetGasLimit()
 			},
@@ -1159,12 +1166,71 @@ func ProposeBlock(nodes []*TestProcessorNode, leaders []*TestProcessorNode, roun
 		n.WhiteListBody(nodes, body)
 		pk := n.NodeKeys.MainKey.Pk
 		n.BroadcastBlock(body, header, pk)
+
+		_ = addProofIfNeeded(n, header)
 		n.CommitBlock(body, header)
 	}
 
 	log.Info("Delaying for disseminating headers and miniblocks...")
 	time.Sleep(stepDelayAdjustment)
 	log.Info("Proposed block\n" + MakeDisplayTable(nodes))
+}
+
+// ProposeBlockWithProof proposes a block for every shard with custom handling for equivalent proof
+func ProposeBlockWithProof(
+	nodes []*TestProcessorNode,
+	leaders []*TestProcessorNode,
+	round uint64,
+	nonce uint64,
+) {
+	log.Info("All shards propose blocks with proof...")
+
+	stepDelayAdjustment := StepDelay * time.Duration(1+len(nodes)/3)
+
+	for _, n := range leaders {
+		body, header, _ := n.ProposeBlock(round, nonce)
+		n.WhiteListBody(nodes, body)
+		pk := n.NodeKeys.MainKey.Pk
+		n.BroadcastBlock(body, header, pk)
+
+		proof := addProofIfNeeded(n, header)
+		n.CommitBlock(body, header)
+
+		time.Sleep(SyncDelay)
+
+		// cleanup proof from pool before broadcasting so that the interceptor will propagate the proof to the other nodes
+		_ = n.Node.GetDataComponents().Datapool().Proofs().CleanupProofsBehindNonce(n.ShardCoordinator.SelfId(), nonce+4) // default cleanup delta is 3
+
+		n.BroadcastProof(proof, pk)
+
+	}
+
+	log.Info("Delaying for disseminating headers and miniblocks...")
+	time.Sleep(stepDelayAdjustment)
+	log.Info("Proposed block\n" + MakeDisplayTable(nodes))
+}
+
+func addProofIfNeeded(node *TestProcessorNode, header data.HeaderHandler) data.HeaderProofHandler {
+	coreComp := node.Node.GetCoreComponents()
+	if !common.IsProofsFlagEnabledForHeader(coreComp.EnableEpochsHandler(), header) {
+		return nil
+	}
+
+	hash, _ := core.CalculateHash(coreComp.InternalMarshalizer(), coreComp.Hasher(), header)
+	proof := &dataBlock.HeaderProof{
+		PubKeysBitmap:       []byte("bitmap"),
+		AggregatedSignature: []byte("sig"),
+		HeaderHash:          hash,
+		HeaderEpoch:         header.GetEpoch(),
+		HeaderNonce:         header.GetNonce(),
+		HeaderShardId:       header.GetShardID(),
+		HeaderRound:         header.GetRound(),
+		IsStartOfEpoch:      header.IsStartOfEpochBlock(),
+	}
+
+	node.Node.GetDataComponents().Datapool().Proofs().AddProof(proof)
+
+	return proof
 }
 
 // SyncBlock synchronizes the proposed block in all the other shard nodes
