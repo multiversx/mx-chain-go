@@ -117,8 +117,9 @@ type baseBootstrap struct {
 	storageBootstrapper  process.BootstrapperFromStorage
 	currentEpochProvider process.CurrentNetworkEpochProviderHandler
 
-	outportHandler   outport.OutportHandler
-	accountsDBSyncer process.AccountsDBSyncer
+	outportHandler        outport.OutportHandler
+	accountsDBSyncer      process.AccountsDBSyncer
+	processConfigsHandler common.ProcessConfigsHandler
 
 	chRcvMiniBlocks              chan bool
 	mutRcvMiniBlocks             sync.Mutex
@@ -526,11 +527,7 @@ func (boot *baseBootstrap) requestHeadersIfSyncIsStuck() {
 }
 
 func (boot *baseBootstrap) getMaxRoundsWithoutBlockReceived(round uint64) uint64 {
-	if boot.enableRoundsHandler.IsFlagEnabledInRound(common.SupernovaRoundFlag, round) {
-		return process.SupernovaMaxRoundsWithoutNewBlockReceived
-	}
-
-	return process.MaxRoundsWithoutNewBlockReceived
+	return uint64(boot.processConfigsHandler.GetMaxRoundsWithoutNewBlockReceivedByRound(round))
 }
 
 func (boot *baseBootstrap) removeHeaderFromPools(header data.HeaderHandler) []byte {

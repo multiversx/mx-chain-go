@@ -54,6 +54,17 @@
         {EnableEpoch = 2, GracePeriodInRounds = 100 }, # Supernova epoch comes with an even longer grace period due to round duration reduction
     ]
 
+    # ProcessConfigsByEpoch represents the configuration of process configuration parameters by epoch
+    ProcessConfigsByEpoch = [
+        { EnableEpoch = 0, MaxMetaNoncesBehind = 15, MaxMetaNoncesBehindForGlobalStuck = 30, MaxShardNoncesBehind = 15 },
+        { EnableEpoch = 2, MaxMetaNoncesBehind = 75, MaxMetaNoncesBehindForGlobalStuck = 120, MaxShardNoncesBehind = 75 },
+    ]
+
+    ProcessConfigsByRound = [
+        { EnableRound = 0, MaxRoundsWithoutNewBlockReceived = 10, MaxRoundsWithoutCommittedBlock = 10 },
+        { EnableRound = 2, MaxRoundsWithoutNewBlockReceived = 100, MaxRoundsWithoutCommittedBlock = 100 },
+    ]
+
 [HardwareRequirements]
     CPUFlags = ["SSE4", "SSE42"]
 

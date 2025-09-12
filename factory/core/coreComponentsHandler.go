@@ -648,6 +648,18 @@ func (mcc *managedCoreComponents) EpochChangeGracePeriodHandler() common.EpochCh
 	return mcc.coreComponents.epochChangeGracePeriodHandler
 }
 
+// ProcessConfigsHandler returns the process configs handler component
+func (mcc *managedCoreComponents) ProcessConfigsHandler() common.ProcessConfigsHandler {
+	mcc.mutCoreComponents.RLock()
+	defer mcc.mutCoreComponents.RUnlock()
+
+	if mcc.coreComponents == nil {
+		return nil
+	}
+
+	return mcc.coreComponents.processConfigsHandler
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (mcc *managedCoreComponents) IsInterfaceNil() bool {
 	return mcc == nil

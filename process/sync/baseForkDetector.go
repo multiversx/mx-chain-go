@@ -59,6 +59,7 @@ type baseForkDetector struct {
 	enableRoundsHandler    common.EnableRoundsHandler
 	proofsPool             process.ProofsPool
 	chainParametersHandler common.ChainParametersHandler
+	processConfigsHandler  common.ProcessConfigsHandler
 }
 
 // SetRollBackNonce sets the nonce where the chain should roll back
@@ -657,11 +658,7 @@ func (bfd *baseForkDetector) isConsensusStuck() bool {
 }
 
 func (bfd *baseForkDetector) getMaxRoundsWithoutCommittedBlock(round uint64) int64 {
-	if bfd.enableRoundsHandler.IsFlagEnabledInRound(common.SupernovaRoundFlag, round) {
-		return process.SupernovaMaxRoundsWithoutCommittedBlock
-	}
-
-	return process.MaxRoundsWithoutCommittedBlock
+	return int64(bfd.processConfigsHandler.GetMaxRoundsWithoutCommittedBlock(round))
 }
 
 func (bfd *baseForkDetector) isSyncing() bool {

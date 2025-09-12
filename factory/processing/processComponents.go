@@ -1373,6 +1373,7 @@ func (pcf *processComponentsFactory) newBlockTracker(
 		ProofsPool:                    pcf.data.Datapool().Proofs(),
 		IsImportDBMode:                pcf.importDBConfig.IsImportDBMode,
 		EpochChangeGracePeriodHandler: pcf.coreData.EpochChangeGracePeriodHandler(),
+		ProcessConfigsHandler:         pcf.coreData.ProcessConfigsHandler(),
 	}
 
 	if shardCoordinator.SelfId() < shardCoordinator.NumberOfShards() {
@@ -1829,6 +1830,7 @@ func (pcf *processComponentsFactory) newForkDetector(
 			pcf.coreData.EnableRoundsHandler(),
 			pcf.data.Datapool().Proofs(),
 			pcf.coreData.ChainParametersHandler(),
+			pcf.coreData.ProcessConfigsHandler(),
 		)
 	}
 
