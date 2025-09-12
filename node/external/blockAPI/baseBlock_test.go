@@ -843,15 +843,13 @@ func TestBaseAPIBlockProcessor_AddMbsAndNumTxsAsyncExecutionBasedOnExecutionResu
 								Value: tx1Bytes,
 							},
 						}, nil
-					} else {
-						return []data.KeyValuePair{
-							{
-								Key:   []byte("tx_hash_1"),
-								Value: tx1Bytes,
-							},
-						}, nil
 					}
-
+					return []data.KeyValuePair{
+						{
+							Key:   []byte("tx_hash_1"),
+							Value: tx1Bytes,
+						},
+					}, nil
 				},
 			}, nil
 		},

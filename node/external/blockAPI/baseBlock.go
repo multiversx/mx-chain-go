@@ -858,7 +858,6 @@ func updateExecutionResultMeta(executionResult *block.BaseMetaExecutionResult, a
 	apiExecutionResult.ValidatorStatsRootHash = hex.EncodeToString(executionResult.ValidatorStatsRootHash)
 	apiExecutionResult.AccumulatedFeesInEpoch = executionResult.AccumulatedFeesInEpoch.String()
 	apiExecutionResult.DevFeesInEpoch = executionResult.DevFeesInEpoch.String()
-
 }
 
 func updateExecutionResult(executionResult data.BaseExecutionResultHandler, apiExecutionResult *api.ExecutionResult) {

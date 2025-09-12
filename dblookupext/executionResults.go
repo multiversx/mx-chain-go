@@ -1,30 +1,31 @@
 package dblookupext
 
 import (
+	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/storage"
 )
 
 type executionResultsProcessor struct {
-	marshalizer marshal.Marshalizer
-	storer      storage.Storer
+	marshaller marshal.Marshalizer
+	storer     storage.Storer
 }
 
-func newExecutionResultsProcessor(storer storage.Storer, marshalizer marshal.Marshalizer) *executionResultsProcessor {
+func newExecutionResultsProcessor(storer storage.Storer, marshaller marshal.Marshalizer) *executionResultsProcessor {
 	return &executionResultsProcessor{
-		marshalizer: marshalizer,
-		storer:      storer,
+		marshaller: marshaller,
+		storer:     storer,
 	}
 }
 
 func (erp *executionResultsProcessor) saveExecutionResultsFromHeader(header data.HeaderHandler) error {
 	for _, executionResult := range header.GetExecutionResultsHandlers() {
-		if executionResult.IsInterfaceNil() {
+		if check.IfNil(executionResult) {
 			continue
 		}
 
-		executionResultBytes, err := erp.marshalizer.Marshal(executionResult)
+		executionResultBytes, err := erp.marshaller.Marshal(executionResult)
 		if err != nil {
 			return err
 		}
