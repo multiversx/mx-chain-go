@@ -25,6 +25,77 @@ func (cache *TxCache) Cleanup(accountsProvider common.AccountNonceProvider, rand
 	return cache.RemoveSweepableTxs(accountsProvider, randomness, maxNum, cleanupLoopMaximumDurationMs)
 }
 
+func (cache *TxCache) RemoveSweepableTxs(accountsProvider common.AccountNonceProvider, randomness uint64, maxNum int, cleanupLoopMaximumDurationMs time.Duration) uint64 {
+	cache.mutTxOperation.Lock()
+	defer cache.mutTxOperation.Unlock()
+
+	cleanupLoopStartTime := time.Now()
+
+	logRemove.Debug("TxCache.RemoveSweepableTxs start",
+		"randomness", randomness,
+		"maxNum", maxNum,
+		"cleanupLoopMaximumDuration", cleanupLoopMaximumDurationMs,
+	)
+
+	evicted := make([][]byte, 0, cache.txByHash.counter.Get())
+
+	senders := cache.getDeterministicallyShuffledSenders(randomness)
+
+	for _, sender := range senders {
+		senderAddress := []byte(sender.sender)
+
+		accountNonce, _, err := accountsProvider.GetAccountNonce(senderAddress)
+		if err != nil {
+			log.Debug("TxCache.RemoveSweepableTxs",
+				"address", senderAddress,
+				"err", err,
+			)
+			continue
+		}
+
+		// nothing to do
+		if accountNonce == 0 {
+			continue
+		}
+
+		// we want to remove transactions with nonces < lastCommittedNonce
+		targetNonce := accountNonce - 1
+
+		// stop if we reached the max number of evicted transactions for this cleanup loop
+		if len(evicted) >= maxNum {
+			logRemove.Debug("TxCache.RemoveSweepableTxs reached maxNum",
+				"len(evicted)", len(evicted),
+				"maxNum", maxNum,
+			)
+			break
+		}
+
+		// stop if we reached the maximum duration for this cleanup loop
+		if time.Since(cleanupLoopStartTime) > cleanupLoopMaximumDurationMs {
+			logRemove.Debug("TxCache.RemoveSweepableTxs reached cleanupLoopMaximumDuration",
+				"len(evicted)", len(evicted),
+				"duration", time.Since(cleanupLoopStartTime),
+				"cleanupLoopMaximumDuration", cleanupLoopMaximumDurationMs,
+			)
+			break
+		}
+
+		evicted = append(evicted, sender.removeSweepableTransactionsReturnHashes(targetNonce)...)
+	}
+
+	if len(evicted) > 0 {
+		cache.txByHash.RemoveTxsBulk(evicted)
+	}
+
+	logRemove.Debug("TxCache.RemoveSweepableTxs end",
+		"randomness", randomness,
+		"len(evicted)", len(evicted),
+		"duration", time.Since(cleanupLoopStartTime),
+	)
+
+	return uint64(len(evicted))
+}
+
 func (cache *TxCache) getDeterministicallyShuffledSenders(randomness uint64) []*txListForSender {
 	senders := make([]*txListForSender, 0, cache.txListBySender.counter.Get())
 	senderAddresses := cache.txListBySender.backingMap.Keys()
@@ -61,49 +132,6 @@ func shuffleSendersAddresses(senders []string, randomness uint64) {
 	})
 }
 
-func (cache *TxCache) RemoveSweepableTxs(accountsProvider common.AccountNonceProvider, randomness uint64, maxNum int, cleanupLoopMaximumDurationMs time.Duration) uint64 {
-	cache.mutTxOperation.Lock()
-	defer cache.mutTxOperation.Unlock()
-
-	cleanupLoopStartTime := time.Now()
-	evicted := make([][]byte, 0, cache.txByHash.counter.Get())
-
-	senders := cache.getDeterministicallyShuffledSenders(randomness)
-
-	for _, sender := range senders {
-		senderAddress := []byte(sender.sender)
-
-		lastCommittedNonce, _, err := accountsProvider.GetAccountNonce(senderAddress)
-		if err != nil {
-			log.Debug("TxCache.RemoveSweepableTxs",
-				"address", senderAddress,
-				"err", err,
-			)
-			continue
-		}
-
-		// we want to remove transactions with nonces < lastCommittedNonce
-		if lastCommittedNonce == 0 {
-			continue
-		}
-
-		lastCommittedNonce -= 1
-
-		if len(evicted) >= maxNum || time.Since(cleanupLoopStartTime) > cleanupLoopMaximumDurationMs {
-			break
-		}
-		evicted = append(evicted, sender.removeSweepableTransactionsReturnHashes(lastCommittedNonce)...)
-	}
-
-	if len(evicted) > 0 {
-		cache.txByHash.RemoveTxsBulk(evicted)
-	}
-
-	logRemove.Debug("TxCache.RemoveSweepableTxs end", "randomness", randomness, "len(evicted)", len(evicted), "duration", time.Since(cleanupLoopStartTime))
-
-	return uint64(len(evicted))
-}
-
 func (listForSender *txListForSender) removeSweepableTransactionsReturnHashes(targetNonce uint64) [][]byte {
 	txHashesToEvict := make([][]byte, 0)
 
@@ -116,9 +144,9 @@ func (listForSender *txListForSender) removeSweepableTransactionsReturnHashes(ta
 		tx := element.Value.(*WrappedTransaction)
 		txNonce := tx.Tx.GetNonce()
 
+		// nonces are sorted ascending, so we can stop as soon as we find a nonce that is higher
 		if txNonce > targetNonce {
-			element = element.Next()
-			continue
+			break
 		}
 
 		logRemove.Debug("TxCache.removeSweepableTransactionsReturnHashes",
