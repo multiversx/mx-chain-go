@@ -391,6 +391,7 @@ func createComponentHolderMocks() (
 	_ = blkc.SetGenesisHeader(&block.Header{Nonce: 0})
 
 	gracePeriod, _ := graceperiod.NewEpochChangeGracePeriod([]config.EpochChangeGracePeriodByEpoch{{EnableEpoch: 0, GracePeriodInRounds: 1}})
+
 	coreComponents := &mock.CoreComponentsMock{
 		IntMarsh:                           &mock.MarshalizerMock{},
 		Hash:                               &mock.HasherStub{},

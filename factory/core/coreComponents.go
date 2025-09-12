@@ -23,6 +23,7 @@ import (
 
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/common/chainparametersnotifier"
+	commonConfigs "github.com/multiversx/mx-chain-go/common/configs"
 	"github.com/multiversx/mx-chain-go/common/enablers"
 	commonFactory "github.com/multiversx/mx-chain-go/common/factory"
 	"github.com/multiversx/mx-chain-go/common/fieldsChecker"
@@ -116,6 +117,8 @@ type coreComponents struct {
 	chainParametersHandler        process.ChainParametersHandler
 	fieldsSizeChecker             common.FieldsSizeChecker
 	epochChangeGracePeriodHandler common.EpochChangeGracePeriodHandler
+	processConfigsHandler         common.ProcessConfigsHandler
+	epochStartConfigsHandler      common.EpochStartConfigsHandler
 }
 
 // NewCoreComponentsFactory initializes the factory which is responsible to creating core components
@@ -176,6 +179,21 @@ func (ccf *coreComponentsFactory) Create() (*coreComponents, error) {
 	epochChangeGracePeriodHandler, err := graceperiod.NewEpochChangeGracePeriod(ccf.config.GeneralSettings.EpochChangeGracePeriodByEpoch)
 	if err != nil {
 		return nil, fmt.Errorf("%w for epochChangeGracePeriod", err)
+	}
+
+	processConfigs, err := commonConfigs.NewProcessConfigsHandler(
+		ccf.config.GeneralSettings.ProcessConfigsByEpoch,
+		ccf.config.GeneralSettings.ProcessConfigsByRound,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("%w for processConfigsByEpoch", err)
+	}
+
+	epochStartConfigs, err := commonConfigs.NewEpochStartConfigsHandler(
+		ccf.config.GeneralSettings.EpochStartConfigsByEpoch,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("%w for processConfigsByEpoch", err)
 	}
 
 	pathHandler, err := storageFactory.CreatePathManager(
@@ -415,6 +433,8 @@ func (ccf *coreComponentsFactory) Create() (*coreComponents, error) {
 		chainParametersHandler:        chainParametersHandler,
 		fieldsSizeChecker:             fieldsSizeChecker,
 		epochChangeGracePeriodHandler: epochChangeGracePeriodHandler,
+		processConfigsHandler:         processConfigs,
+		epochStartConfigsHandler:      epochStartConfigs,
 	}, nil
 }
 

@@ -60,6 +60,7 @@ type CoreComponentsStub struct {
 	ChainParametersSubscriberField     process.ChainParametersSubscriber
 	FieldsSizeCheckerField             common.FieldsSizeChecker
 	EpochChangeGracePeriodHandlerField common.EpochChangeGracePeriodHandler
+	ProcessConfigsHandlerField         common.ProcessConfigsHandler
 }
 
 // Create -
@@ -288,6 +289,11 @@ func (ccs *CoreComponentsStub) FieldsSizeChecker() common.FieldsSizeChecker {
 // EpochChangeGracePeriodHandler -
 func (ccs *CoreComponentsStub) EpochChangeGracePeriodHandler() common.EpochChangeGracePeriodHandler {
 	return ccs.EpochChangeGracePeriodHandlerField
+}
+
+// ProcessConfigsHandler -
+func (ccs *CoreComponentsStub) ProcessConfigsHandler() common.ProcessConfigsHandler {
+	return ccs.ProcessConfigsHandlerField
 }
 
 // IsInterfaceNil -

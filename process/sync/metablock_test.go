@@ -8,6 +8,7 @@ import (
 	"reflect"
 	"strings"
 	goSync "sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -90,6 +91,7 @@ func CreateMetaBootstrapMockArguments() sync.ArgMetaBootstrapper {
 		RepopulateTokensSupplies:     false,
 		EnableEpochsHandler:          &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 		EnableRoundsHandler:          &testscommon.EnableRoundsHandlerStub{},
+		ProcessConfigsHandler:        &testscommon.ProcessConfigsHandlerStub{},
 	}
 
 	argsMetaBootstrapper := sync.ArgMetaBootstrapper{
@@ -973,6 +975,7 @@ func TestMetaBootstrap_GetNodeStateShouldReturnNotSynchronizedWhenForkIsDetected
 		&testscommon.EnableRoundsHandlerStub{},
 		&dataRetrieverMock.ProofsPoolMock{},
 		&chainParameters.ChainParametersHandlerStub{},
+		testscommon.GetDefaultProcessConfigsHandler(),
 	)
 
 	bs, _ := sync.NewMetaBootstrap(args)
@@ -1043,6 +1046,7 @@ func TestMetaBootstrap_GetNodeStateShouldReturnSynchronizedWhenForkIsDetectedAnd
 		&testscommon.EnableRoundsHandlerStub{},
 		&dataRetrieverMock.ProofsPoolMock{},
 		&chainParameters.ChainParametersHandlerStub{},
+		testscommon.GetDefaultProcessConfigsHandler(),
 	)
 
 	bs, _ := sync.NewMetaBootstrap(args)
@@ -1866,12 +1870,12 @@ func TestMetaBootstrap_SyncBlock_WithEquivalentProofs(t *testing.T) {
 			}
 		}
 
-		numHeaderCalls := 0
+		var numHeaderCalls atomic.Uint64
 		pools.HeadersCalled = func() dataRetriever.HeadersPool {
 			sds := &mock.HeadersCacherStub{}
 			sds.GetHeaderByNonceAndShardIdCalled = func(hdrNonce uint64, shardId uint32) (handlers []data.HeaderHandler, i [][]byte, e error) {
-				if numHeaderCalls == 0 {
-					numHeaderCalls++
+				if numHeaderCalls.Load() == 0 {
+					numHeaderCalls.Add(1)
 					return nil, nil, errors.New("err")
 				}
 

@@ -675,6 +675,7 @@ func (tfn *TestFullNode) createForkDetector(
 			tfn.EnableRoundsHandler,
 			tfn.DataPool.Proofs(),
 			tfn.ChainParametersHandler,
+			tfn.ProcessConfigsHandler,
 		)
 	}
 	if err != nil {
@@ -1206,6 +1207,7 @@ func (tpn *TestFullNode) initBlockTracker(
 		EnableRoundsHandler:           tpn.EnableRoundsHandler,
 		ProofsPool:                    tpn.DataPool.Proofs(),
 		EpochChangeGracePeriodHandler: tpn.EpochChangeGracePeriodHandler,
+		ProcessConfigsHandler:         tpn.ProcessConfigsHandler,
 	}
 
 	var err error

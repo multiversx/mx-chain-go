@@ -46,15 +46,15 @@ type ArgsShardEpochStartTrigger struct {
 	HeaderValidator epochStart.HeaderValidator
 	Uint64Converter typeConverters.Uint64ByteSliceConverter
 
-	DataPool                      dataRetriever.PoolsHolder
-	Storage                       dataRetriever.StorageService
-	RequestHandler                epochStart.RequestHandler
-	EpochStartNotifier            epochStart.Notifier
-	PeerMiniBlocksSyncer          process.ValidatorInfoSyncer
-	RoundHandler                  process.RoundHandler
-	AppStatusHandler              core.AppStatusHandler
-	EnableEpochsHandler           common.EnableEpochsHandler
-	ExtraDelayForRequestBlockInfo time.Duration
+	DataPool                 dataRetriever.PoolsHolder
+	Storage                  dataRetriever.StorageService
+	RequestHandler           epochStart.RequestHandler
+	EpochStartNotifier       epochStart.Notifier
+	PeerMiniBlocksSyncer     process.ValidatorInfoSyncer
+	RoundHandler             process.RoundHandler
+	AppStatusHandler         core.AppStatusHandler
+	EnableEpochsHandler      common.EnableEpochsHandler
+	EpochStartConfigsHandler common.EpochStartConfigsHandler
 
 	Epoch    uint32
 	Validity uint64
@@ -106,16 +106,15 @@ type trigger struct {
 
 	peerMiniBlocksSyncer process.ValidatorInfoSyncer
 
-	appStatusHandler    core.AppStatusHandler
-	enableEpochsHandler common.EnableEpochsHandler
+	appStatusHandler         core.AppStatusHandler
+	enableEpochsHandler      common.EnableEpochsHandler
+	epochStartConfigsHandler common.EpochStartConfigsHandler
 
 	mapMissingMiniBlocks     map[string]uint32
 	mapMissingValidatorsInfo map[string]uint32
 	mutMissingMiniBlocks     sync.RWMutex
 	mutMissingValidatorsInfo sync.RWMutex
 	cancelFunc               func()
-
-	extraDelayForRequestBlockInfo time.Duration
 }
 
 type metaInfo struct {
@@ -228,11 +227,6 @@ func NewEpochStartTrigger(args *ArgsShardEpochStartTrigger) (*trigger, error) {
 		return nil, err
 	}
 
-	if args.ExtraDelayForRequestBlockInfo != common.ExtraDelayForRequestBlockInfo {
-		log.Warn("different delay for request block info: the epoch change trigger might not behave normally",
-			"value from config", args.ExtraDelayForRequestBlockInfo.String(), "expected", common.ExtraDelayForRequestBlockInfo.String())
-	}
-
 	triggerStateKey := common.TriggerRegistryInitialKeyPrefix + fmt.Sprintf("%d", args.Epoch)
 	t := &trigger{
 		triggerStateKey:               []byte(triggerStateKey),
@@ -272,7 +266,7 @@ func NewEpochStartTrigger(args *ArgsShardEpochStartTrigger) (*trigger, error) {
 		appStatusHandler:              args.AppStatusHandler,
 		roundHandler:                  args.RoundHandler,
 		enableEpochsHandler:           args.EnableEpochsHandler,
-		extraDelayForRequestBlockInfo: args.ExtraDelayForRequestBlockInfo,
+		epochStartConfigsHandler:      args.EpochStartConfigsHandler,
 	}
 
 	t.headersPool.RegisterHandler(t.receivedMetaBlock)
@@ -292,6 +286,11 @@ func NewEpochStartTrigger(args *ArgsShardEpochStartTrigger) (*trigger, error) {
 	go t.requestMissingValidatorsInfo(ctx)
 
 	return t, nil
+}
+
+func (t *trigger) getExtraDelayForRequestsBlockInfo(epoch uint32) time.Duration {
+	extraDelayForRequestBlockInfoInMilliseconds := t.epochStartConfigsHandler.GetExtraDelayForRequestBlockInfoInMs(epoch)
+	return time.Duration(extraDelayForRequestBlockInfoInMilliseconds) * time.Millisecond
 }
 
 func (t *trigger) clearMissingMiniBlocksMap(epoch uint32) {
@@ -681,7 +680,7 @@ func (t *trigger) updateTriggerHeaderData(metaHdr *block.MetaBlock, metaBlockHas
 		t.newEpochHdrReceived = true
 		t.mapEpochStartHdrs[string(metaBlockHash)] = metaHdr
 		// waiting for late broadcast of mini blocks and transactions to be done and received
-		wait := t.extraDelayForRequestBlockInfo
+		wait := t.getExtraDelayForRequestsBlockInfo(metaHdr.GetEpoch())
 		roundDifferences := t.roundHandler.Index() - int64(metaHdr.GetRound())
 		if roundDifferences > 1 {
 			wait = 0

@@ -118,6 +118,7 @@ func (tpn *TestProcessorNode) initBlockProcessorWithSync() {
 			tpn.EnableRoundsHandler,
 			tpn.DataPool.Proofs(),
 			tpn.ChainParametersHandler,
+			tpn.ProcessConfigsHandler,
 		)
 		argumentsBase.ForkDetector = tpn.ForkDetector
 		argumentsBase.TxCoordinator = &mock.TransactionCoordinatorMock{}
@@ -197,6 +198,7 @@ func (tpn *TestProcessorNode) createShardBootstrapper() (TestBootstrapper, error
 		RepopulateTokensSupplies:     false,
 		EnableEpochsHandler:          tpn.EnableEpochsHandler,
 		EnableRoundsHandler:          tpn.EnableRoundsHandler,
+		ProcessConfigsHandler:        tpn.ProcessConfigsHandler,
 	}
 
 	argsShardBootstrapper := sync.ArgShardBootstrapper{
@@ -244,6 +246,7 @@ func (tpn *TestProcessorNode) createMetaChainBootstrapper() (TestBootstrapper, e
 		RepopulateTokensSupplies:     false,
 		EnableEpochsHandler:          &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 		EnableRoundsHandler:          tpn.EnableRoundsHandler,
+		ProcessConfigsHandler:        tpn.ProcessConfigsHandler,
 	}
 
 	argsMetaBootstrapper := sync.ArgMetaBootstrapper{
