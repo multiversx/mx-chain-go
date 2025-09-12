@@ -260,8 +260,8 @@ func SetEnableEpochsHandler(enableEpochsHandler EnableEpochsHandler) {
 }
 
 func SetSuperNovaActivationRound(epoch uint32, round uint64) {
-	isEnabled := eeh.IsFlagEnabledInEpoch(SupernovaFlag, epoch)
-	log.Info("SetSuperNovaActivationRound", "round", round, "epoch", epoch, "is enabled", isEnabled)
+	isEnabled := eeh.GetActivationEpoch(SupernovaFlag) == epoch && eeh.IsFlagEnabledInEpoch(SupernovaFlag, epoch)
+	log.Info("SetSuperNovaActivationRound", "round", round, "epoch", epoch, "is enabled in current round", isEnabled)
 	if isEnabled {
 		erh.SetActivationRound(SupernovaRoundFlag, round+20)
 	}
