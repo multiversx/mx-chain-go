@@ -118,6 +118,7 @@ type coreComponents struct {
 	fieldsSizeChecker             common.FieldsSizeChecker
 	epochChangeGracePeriodHandler common.EpochChangeGracePeriodHandler
 	processConfigsHandler         common.ProcessConfigsHandler
+	epochStartConfigsHandler      common.EpochStartConfigsHandler
 }
 
 // NewCoreComponentsFactory initializes the factory which is responsible to creating core components
@@ -180,9 +181,16 @@ func (ccf *coreComponentsFactory) Create() (*coreComponents, error) {
 		return nil, fmt.Errorf("%w for epochChangeGracePeriod", err)
 	}
 
-	processConfigsByEpoch, err := commonConfigs.NewProcessConfigsHandler(
+	processConfigs, err := commonConfigs.NewProcessConfigsHandler(
 		ccf.config.GeneralSettings.ProcessConfigsByEpoch,
 		ccf.config.GeneralSettings.ProcessConfigsByRound,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("%w for processConfigsByEpoch", err)
+	}
+
+	epochStartConfigs, err := commonConfigs.NewEpochStartConfigsHandler(
+		ccf.config.GeneralSettings.EpochStartConfigsByEpoch,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("%w for processConfigsByEpoch", err)
@@ -425,7 +433,8 @@ func (ccf *coreComponentsFactory) Create() (*coreComponents, error) {
 		chainParametersHandler:        chainParametersHandler,
 		fieldsSizeChecker:             fieldsSizeChecker,
 		epochChangeGracePeriodHandler: epochChangeGracePeriodHandler,
-		processConfigsHandler:         processConfigsByEpoch,
+		processConfigsHandler:         processConfigs,
+		epochStartConfigsHandler:      epochStartConfigs,
 	}, nil
 }
 

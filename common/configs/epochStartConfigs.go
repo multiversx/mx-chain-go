@@ -8,7 +8,8 @@ import (
 )
 
 const (
-	defaultGracePeriodRounds = 25
+	defaultGracePeriodRounds                 = 25
+	defaultExtraDelayForRequestBlockInfoInMs = 3000
 )
 
 // ErrEmptyEpochStartConfigsByEpoch signals that an empty process configs by epoch has been provided
@@ -67,7 +68,7 @@ func checkEpochStartConfigsByEpoch(configsByEpoch []config.EpochStartConfigByEpo
 }
 
 // GetMaxMetaNoncesBehind returns the max meta nonces behind by epoch
-func (esc *epochStartConfigs) GetGracePeriodRounds(epoch uint32) uint32 {
+func (esc *epochStartConfigs) GetGracePeriodRoundsByEpoch(epoch uint32) uint32 {
 	for i := len(esc.orderedConfigByEpoch) - 1; i >= 0; i-- {
 		if esc.orderedConfigByEpoch[i].EnableEpoch <= epoch {
 			return esc.orderedConfigByEpoch[i].GracePeriodRounds
@@ -75,6 +76,17 @@ func (esc *epochStartConfigs) GetGracePeriodRounds(epoch uint32) uint32 {
 	}
 
 	return defaultGracePeriodRounds // this should not happen
+}
+
+// GetExtraDelayForRequestBlockInfoInMs returns the max meta nonces behind by epoch
+func (esc *epochStartConfigs) GetExtraDelayForRequestBlockInfoInMs(epoch uint32) uint32 {
+	for i := len(esc.orderedConfigByEpoch) - 1; i >= 0; i-- {
+		if esc.orderedConfigByEpoch[i].EnableEpoch <= epoch {
+			return esc.orderedConfigByEpoch[i].ExtraDelayForRequestBlockInfoInMilliseconds
+		}
+	}
+
+	return defaultExtraDelayForRequestBlockInfoInMs // this should not happen
 }
 
 // IsInterfaceNil checks if the instance is nil

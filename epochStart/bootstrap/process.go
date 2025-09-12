@@ -66,10 +66,6 @@ const timeBetweenRequests = 100 * time.Millisecond
 const maxToRequest = 100
 const gracePeriodInPercentage = float64(0.25)
 
-// TODO: add constants to config
-const roundGracePeriod = 25
-const supernovaRoundGracePeriod = 250
-
 // thresholdForConsideringMetaBlockCorrect represents the percentage (between 0 and 100) of connected peers to send
 // the same meta block in order to consider it correct
 const thresholdForConsideringMetaBlockCorrect = 67
@@ -128,6 +124,7 @@ type epochStartBootstrap struct {
 	nodeOperationMode          common.NodeOperation
 	stateStatsHandler          common.StateStatisticsHandler
 	enableEpochsHandler        common.EnableEpochsHandler
+	epochStartConfigsHandler   common.EpochStartConfigsHandler
 
 	// created components
 	requestHandler                  process.RequestHandler
@@ -256,6 +253,7 @@ func NewEpochStartBootstrap(args ArgsEpochStartBootstrap) (*epochStartBootstrap,
 		startEpoch:                      args.GeneralConfig.EpochStartConfig.GenesisEpoch,
 		nodesCoordinatorRegistryFactory: args.NodesCoordinatorRegistryFactory,
 		enableEpochsHandler:             args.EnableEpochsHandler,
+		epochStartConfigsHandler:        args.CoreComponentsHolder.EpochStartConfigsHandler(),
 		interceptedDataVerifierFactory:  args.InterceptedDataVerifierFactory,
 	}
 
@@ -531,11 +529,7 @@ func (e *epochStartBootstrap) computeIfCurrentEpochIsSaved() bool {
 }
 
 func (e *epochStartBootstrap) getRoundGracePeriod() int64 {
-	if e.enableEpochsHandler.IsFlagEnabledInEpoch(common.SupernovaFlag, e.baseData.lastEpoch) {
-		return supernovaRoundGracePeriod
-	}
-
-	return roundGracePeriod
+	return int64(e.epochStartConfigsHandler.GetGracePeriodRoundsByEpoch(e.baseData.lastEpoch))
 }
 
 func (e *epochStartBootstrap) getRoundsPerEpoch(epoch uint32) int64 {

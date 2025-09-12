@@ -660,6 +660,18 @@ func (mcc *managedCoreComponents) ProcessConfigsHandler() common.ProcessConfigsH
 	return mcc.coreComponents.processConfigsHandler
 }
 
+// EpochStartConfigsHandler returns the epoch start configs handler component
+func (mcc *managedCoreComponents) EpochStartConfigsHandler() common.EpochStartConfigsHandler {
+	mcc.mutCoreComponents.RLock()
+	defer mcc.mutCoreComponents.RUnlock()
+
+	if mcc.coreComponents == nil {
+		return nil
+	}
+
+	return mcc.coreComponents.epochStartConfigsHandler
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (mcc *managedCoreComponents) IsInterfaceNil() bool {
 	return mcc == nil

@@ -142,6 +142,7 @@ type CoreComponentsHolder interface {
 	FieldsSizeChecker() common.FieldsSizeChecker
 	EpochChangeGracePeriodHandler() common.EpochChangeGracePeriodHandler
 	ProcessConfigsHandler() common.ProcessConfigsHandler
+	EpochStartConfigsHandler() common.EpochStartConfigsHandler
 	IsInterfaceNil() bool
 }
 

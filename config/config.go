@@ -315,7 +315,8 @@ type EpochChangeGracePeriodByEpoch struct {
 type EpochStartConfigByEpoch struct {
 	EnableEpoch uint32
 
-	GracePeriodRounds uint32
+	GracePeriodRounds                           uint32
+	ExtraDelayForRequestBlockInfoInMilliseconds uint32
 }
 
 // ProcessConfigByEpoch defines process configuration parameters by epoch
@@ -366,6 +367,7 @@ type GeneralSettingsConfig struct {
 	EpochChangeGracePeriodByEpoch        []EpochChangeGracePeriodByEpoch
 	ProcessConfigsByEpoch                []ProcessConfigByEpoch
 	ProcessConfigsByRound                []ProcessConfigByRound
+	EpochStartConfigsByEpoch             []EpochStartConfigByEpoch
 }
 
 // HardwareRequirementsConfig will hold the hardware requirements config

@@ -28,6 +28,7 @@ type ProcessConfigsHandlerStub struct {
 	GetMaxMetaNoncesBehindForBlobalStuckByEpochCalled func(epoch uint32) uint32
 	GetMaxShardNoncesBehindByEpochCalled              func(epoch uint32) uint32
 	GetMaxRoundsWithoutNewBlockReceivedByRoundCalled  func(round uint64) uint32
+	GetMaxRoundsWithoutCommittedBlockCalled           func(round uint64) uint32
 }
 
 // GetMaxMetaNoncesBehindByEpoch -
@@ -61,6 +62,15 @@ func (p *ProcessConfigsHandlerStub) GetMaxShardNoncesBehindByEpoch(epoch uint32)
 func (p *ProcessConfigsHandlerStub) GetMaxRoundsWithoutNewBlockReceivedByRound(round uint64) uint32 {
 	if p.GetMaxRoundsWithoutNewBlockReceivedByRoundCalled != nil {
 		return p.GetMaxRoundsWithoutNewBlockReceivedByRoundCalled(round)
+	}
+
+	return 0
+}
+
+// GetMaxRoundsWithoutCommittedBlock -
+func (p *ProcessConfigsHandlerStub) GetMaxRoundsWithoutCommittedBlock(round uint64) uint32 {
+	if p.GetMaxRoundsWithoutCommittedBlockCalled != nil {
+		return p.GetMaxRoundsWithoutCommittedBlockCalled(round)
 	}
 
 	return 0
