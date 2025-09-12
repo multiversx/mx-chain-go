@@ -860,7 +860,7 @@ func UnmarshalMetaHeaderV3(marshaller marshal.Marshalizer, headerBuffer []byte) 
 // UnmarshalMetaHeaderV1 unmarshalls a meta header v1
 func UnmarshalMetaHeaderV1(marshaller marshal.Marshalizer, headerBuffer []byte) (data.MetaHeaderHandler, error) {
 	header := &block.MetaBlock{}
-	err := marshalizer.Unmarshal(header, headerBuffer)
+	err := marshaller.Unmarshal(header, headerBuffer)
 	if err != nil {
 		return nil, err
 	}
