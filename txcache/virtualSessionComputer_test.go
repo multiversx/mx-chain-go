@@ -39,10 +39,10 @@ func Test_fromBreadcrumbToVirtualRecord(t *testing.T) {
 		},
 	}
 
-	provider := newVirtualSessionProvider(nil)
-	provider.fromBreadcrumbToVirtualRecord(address, accountBalance, &breadcrumbBob)
+	computer := newVirtualSessionComputer(nil)
+	computer.fromBreadcrumbToVirtualRecord(address, accountBalance, &breadcrumbBob)
 
-	actualVirtualRecord, ok := provider.virtualAccountsByAddress[address]
+	actualVirtualRecord, ok := computer.virtualAccountsByAddress[address]
 	require.True(t, ok)
 	require.Equal(t, expectedVirtualRecord, actualVirtualRecord)
 }
@@ -136,8 +136,8 @@ func Test_createVirtualSelectionSession(t *testing.T) {
 			},
 		}
 
-		provider := newVirtualSessionProvider(&sessionMock)
-		virtualSession, err := provider.createVirtualSelectionSession(trackedBlocks)
+		computer := newVirtualSessionComputer(&sessionMock)
+		virtualSession, err := computer.createVirtualSelectionSession(trackedBlocks)
 		require.Nil(t, err)
 		require.Equal(t, expectedVirtualAccounts, virtualSession.virtualAccountsByAddress)
 	})
@@ -183,8 +183,8 @@ func Test_handleTrackedBlock(t *testing.T) {
 			},
 		}
 
-		provider := newVirtualSessionProvider(&sessionMock)
-		err := provider.handleTrackedBlock(tb)
+		computer := newVirtualSessionComputer(&sessionMock)
+		err := computer.handleTrackedBlock(tb)
 		require.Equal(t, expErr, err)
 	})
 
@@ -227,21 +227,21 @@ func Test_handleTrackedBlock(t *testing.T) {
 			"alice": {},
 		}
 
-		provider := newVirtualSessionProvider(&sessionMock)
-		provider.validator.skippedSenders = skippedSenders
+		computer := newVirtualSessionComputer(&sessionMock)
+		computer.validator.skippedSenders = skippedSenders
 
-		err := provider.handleTrackedBlock(tb)
+		err := computer.handleTrackedBlock(tb)
 		require.Nil(t, err)
-		require.Equal(t, 1, len(provider.validator.sendersInContinuityWithSessionNonce))
-		require.Equal(t, 1, len(provider.validator.accountPreviousBreadcrumb))
+		require.Equal(t, 1, len(computer.validator.sendersInContinuityWithSessionNonce))
+		require.Equal(t, 1, len(computer.validator.accountPreviousBreadcrumb))
 
-		virtualRecord, ok := provider.virtualAccountsByAddress["bob"]
+		virtualRecord, ok := computer.virtualAccountsByAddress["bob"]
 		require.True(t, ok)
 		require.Equal(t, core.OptionalUint64{Value: 4, HasValue: true}, virtualRecord.initialNonce)
 		require.Equal(t, big.NewInt(2), virtualRecord.getInitialBalance())
 		require.Equal(t, big.NewInt(3), virtualRecord.getConsumedBalance())
 
-		_, ok = provider.virtualAccountsByAddress["alice"]
+		_, ok = computer.virtualAccountsByAddress["alice"]
 		require.False(t, ok)
 	})
 
@@ -297,23 +297,23 @@ func Test_handleTrackedBlock(t *testing.T) {
 			},
 		}
 
-		provider := newVirtualSessionProvider(&sessionMock)
-		provider.validator.accountPreviousBreadcrumb = accountPreviousBreadcrumb
-		provider.virtualAccountsByAddress = virtualAccountsByAddress
+		computer := newVirtualSessionComputer(&sessionMock)
+		computer.validator.accountPreviousBreadcrumb = accountPreviousBreadcrumb
+		computer.virtualAccountsByAddress = virtualAccountsByAddress
 
-		_, ok := provider.virtualAccountsByAddress["bob"]
+		_, ok := computer.virtualAccountsByAddress["bob"]
 		require.True(t, ok)
 
-		_, ok = provider.validator.skippedSenders["bob"]
+		_, ok = computer.validator.skippedSenders["bob"]
 		require.False(t, ok)
 
-		err := provider.handleTrackedBlock(tb)
+		err := computer.handleTrackedBlock(tb)
 		require.Nil(t, err)
 
-		_, ok = provider.virtualAccountsByAddress["bob"]
+		_, ok = computer.virtualAccountsByAddress["bob"]
 		require.False(t, ok)
 
-		_, ok = provider.validator.skippedSenders["bob"]
+		_, ok = computer.validator.skippedSenders["bob"]
 		require.True(t, ok)
 	})
 }
