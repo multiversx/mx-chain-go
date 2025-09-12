@@ -28,7 +28,7 @@ func Test_continuousBreadcrumbs(t *testing.T) {
 
 		validator := newBreadcrumbValidator()
 
-		actualRes := validator.continuousBreadcrumb("bob", 0, &breadcrumb)
+		actualRes := validator.isContinuousBreadcrumb("bob", 0, &breadcrumb)
 		require.True(t, actualRes)
 	})
 
@@ -70,7 +70,7 @@ func Test_continuousBreadcrumbs(t *testing.T) {
 
 		validator := newBreadcrumbValidator()
 
-		actualRes := validator.continuousBreadcrumb("alice", 1, &breadcrumbAlice)
+		actualRes := validator.isContinuousBreadcrumb("alice", 1, &breadcrumbAlice)
 		require.True(t, actualRes)
 
 		_, ok := validator.sendersInContinuityWithSessionNonce["alice"]
