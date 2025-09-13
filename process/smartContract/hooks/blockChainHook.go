@@ -802,7 +802,7 @@ func hashFromAddressAndNonce(creatorAddress []byte, creatorNonce uint64) []byte 
 }
 
 func createPrefixMask(vmType []byte) []byte {
-	prefixMask := make([]byte, core.NumInitCharactersForScAddress-core.VMTypeLen)
+	prefixMask := make([]byte, 0, core.NumInitCharactersForScAddress-core.VMTypeLen)
 	prefixMask = append(prefixMask, vmType...)
 
 	return prefixMask
