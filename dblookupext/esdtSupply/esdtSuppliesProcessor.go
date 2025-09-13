@@ -9,6 +9,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/storage"
 	logger "github.com/multiversx/mx-chain-logger-go"
 )
@@ -16,9 +17,10 @@ import (
 var log = logger.GetOrCreate("dblookupext/esdtSupply")
 
 type suppliesProcessor struct {
-	logsProc *logsProcessor
-	logsGet  *logsGetter
-	mutex    sync.Mutex
+	logsProc             *logsProcessor
+	logsGet              *logsGetter
+	supplyCorrectionProc *supplyCorrectionProcessor
+	mutex                sync.Mutex
 }
 
 // NewSuppliesProcessor will create a new instance of the supplies processor
@@ -26,6 +28,8 @@ func NewSuppliesProcessor(
 	marshalizer marshal.Marshalizer,
 	suppliesStorer storage.Storer,
 	logsStorer storage.Storer,
+	supplyCorrections []config.SupplyCorrection,
+	shardID uint32,
 ) (*suppliesProcessor, error) {
 	if check.IfNil(marshalizer) {
 		return nil, core.ErrNilMarshalizer
@@ -39,11 +43,21 @@ func NewSuppliesProcessor(
 
 	logsGet := newLogsGetter(marshalizer, logsStorer)
 	logsProc := newLogsProcessor(marshalizer, suppliesStorer)
+	supplyCorrectionProc := newSupplyCorrectionProcessor(shardID, logsProc)
 
-	return &suppliesProcessor{
+	sp := &suppliesProcessor{
 		logsProc: logsProc,
 		logsGet:  logsGet,
-	}, nil
+	}
+
+	err := supplyCorrectionProc.applySupplyCorrections(supplyCorrections)
+	if err != nil {
+		return nil, err
+	}
+
+	sp.supplyCorrectionProc = supplyCorrectionProc
+
+	return sp, nil
 }
 
 // ProcessLogs will process the provided logs
@@ -58,7 +72,12 @@ func (sp *suppliesProcessor) ProcessLogs(blockNonce uint64, logs []*data.LogData
 		}
 	}
 
-	return sp.logsProc.processLogs(blockNonce, logsMap, false)
+	err := sp.logsProc.processLogs(blockNonce, logsMap, false)
+	if err != nil {
+		return err
+	}
+
+	return sp.supplyCorrectionProc.applyLateCorrections(blockNonce)
 }
 
 // RevertChanges will revert supplies changes based on the provided block body
