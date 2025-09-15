@@ -344,6 +344,7 @@ type StateComponentsHolder interface {
 	TrieStorageManagers() map[string]common.StorageManager
 	MissingTrieNodesNotifier() common.MissingTrieNodesNotifier
 	TrieLeavesRetriever() common.TrieLeavesRetriever
+	StateAccessesCollector() state.StateAccessesCollector
 	Close() error
 	IsInterfaceNil() bool
 }
