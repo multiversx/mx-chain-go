@@ -3700,6 +3700,7 @@ func GetDefaultEnableEpochsConfig() *config.EnableEpochs {
 		StakingV4Step2EnableEpoch:                       UnreachableEpoch,
 		StakingV4Step3EnableEpoch:                       UnreachableEpoch,
 		AndromedaEnableEpoch:                            UnreachableEpoch,
+		RelayedTransactionsV1V2DisableEpoch:             UnreachableEpoch,
 	}
 }
 

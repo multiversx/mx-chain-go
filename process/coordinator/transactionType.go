@@ -185,10 +185,20 @@ func (tth *txTypeHandler) isBuiltInFunctionCall(functionName string) bool {
 }
 
 func (tth *txTypeHandler) isRelayedTransactionV1(functionName string) bool {
+	areRelayedDisabled := tth.enableEpochsHandler.IsFlagEnabled(common.RelayedTransactionsV1V2DisableFlag)
+	if areRelayedDisabled {
+		return false
+	}
+
 	return functionName == core.RelayedTransaction
 }
 
 func (tth *txTypeHandler) isRelayedTransactionV2(functionName string) bool {
+	areRelayedDisabled := tth.enableEpochsHandler.IsFlagEnabled(common.RelayedTransactionsV1V2DisableFlag)
+	if areRelayedDisabled {
+		return false
+	}
+
 	return functionName == core.RelayedTransactionV2
 }
 

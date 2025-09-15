@@ -29,6 +29,7 @@ func TestRelayedTxScCallMultiShardShouldWork(t *testing.T) {
 
 	enableEpochs := config.EnableEpochs{
 		DynamicGasCostForDataTrieStorageLoadEnableEpoch: integrationTests.UnreachableEpoch,
+		RelayedTransactionsV1V2DisableEpoch:             integrationTests.UnreachableEpoch,
 	}
 
 	testContextRelayer, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(2, enableEpochs, 1)
@@ -140,15 +141,32 @@ func TestRelayedTxScCallMultiShardFailOnInnerTxDst(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	testContextRelayer, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(2, config.EnableEpochs{}, 1)
+	testContextRelayer, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(
+		2,
+		config.EnableEpochs{
+			RelayedTransactionsV1V2DisableEpoch: integrationTests.UnreachableEpoch,
+		},
+		1)
 	require.Nil(t, err)
 	defer testContextRelayer.Close()
 
-	testContextInnerSource, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(0, config.EnableEpochs{}, 1)
+	testContextInnerSource, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(
+		0,
+		config.EnableEpochs{
+			RelayedTransactionsV1V2DisableEpoch: integrationTests.UnreachableEpoch,
+		},
+		1,
+	)
 	require.Nil(t, err)
 	defer testContextInnerSource.Close()
 
-	testContextInnerDst, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(1, config.EnableEpochs{}, 1)
+	testContextInnerDst, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(
+		1,
+		config.EnableEpochs{
+			RelayedTransactionsV1V2DisableEpoch: integrationTests.UnreachableEpoch,
+		},
+		1,
+	)
 	require.Nil(t, err)
 	defer testContextInnerDst.Close()
 
