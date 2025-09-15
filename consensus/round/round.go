@@ -17,8 +17,8 @@ var _ consensus.RoundHandler = (*round)(nil)
 type round struct {
 	index            int64         // represents the index of the round in the current chronology (current time - genesis time) / round duration
 	timeStamp        time.Time     // represents the start time of the round in the current chronology genesis time + round index * round duration
-	genesisTimeStamp time.Time     // represents the start time of the round in the current chronology genesis time + round index * round duration
 	timeDuration     time.Duration // represents the duration of the round in current chronology
+	genesisTimeStamp time.Time
 	syncTimer        ntp.SyncTimer
 	startRound       int64
 
