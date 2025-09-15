@@ -1085,9 +1085,6 @@ func TestTransactionsGroup_GetVirtualNonce(t *testing.T) {
 
 		facade := &mock.FacadeStub{
 			GetVirtualNonceCalled: func(address string) (*common.VirtualNonceOfAccountResponse, error) {
-				if address == "alice" {
-					return expectedResult, nil
-				}
 				return expectedResult, nil
 			},
 		}

@@ -119,7 +119,7 @@ func (cache *TxCache) SelectTransactions(
 	}
 
 	if check.IfNil(blockchainInfo) {
-		log.Error("TxCache.GetVirtualNonce", "err", errNilBlockchainInfo)
+		log.Error("TxCache.SelectTransactions", "err", errNilBlockchainInfo)
 		return nil, 0, errNilBlockchainInfo
 	}
 
