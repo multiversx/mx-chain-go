@@ -357,26 +357,6 @@ func (nf *nodeFacade) GetTransactionsPoolNonceGapsForSender(sender string) (*com
 
 // GetSelectedTransactions will simulate a SelectTransactions, and it will return the corresponding hash of each selected transaction
 func (nf *nodeFacade) GetSelectedTransactions() (*common.TransactionsSelectionSimulationResult, error) {
-	currentRootHash := nf.blockchain.GetCurrentBlockRootHash()
-	if currentRootHash == nil {
-		return nil, ErrNilCurrentRootHash
-	}
-
-	blockHeader := nf.blockchain.GetCurrentBlockHeader()
-	if blockHeader == nil {
-		return nil, ErrNilBlockHeader
-
-	}
-
-	epoch := blockHeader.GetEpoch()
-	rootHashHolder := holders.NewRootHashHolder(currentRootHash, core.OptionalUint32{Value: epoch, HasValue: true})
-
-	// TODO: keep in mind that the selection simulation can be affected by other API requests which might alter the trie
-	err := nf.accountStateAPI.RecreateTrie(rootHashHolder)
-	if err != nil {
-		return nil, err
-	}
-
 	selectionOptions := holders.NewTxSelectionOptions(
 		nf.config.TxCacheSelectionConfig.SelectionGasRequested,
 		nf.config.TxCacheSelectionConfig.SelectionMaxNumTxs,
@@ -384,7 +364,12 @@ func (nf *nodeFacade) GetSelectedTransactions() (*common.TransactionsSelectionSi
 		nf.config.TxCacheSelectionConfig.SelectionLoopDurationCheckInterval,
 	)
 
-	return nf.apiResolver.GetSelectedTransactions(nf.accountStateAPI, selectionOptions)
+	return nf.apiResolver.GetSelectedTransactions(selectionOptions, nf.blockchain, nf.accountStateAPI)
+}
+
+// GetVirtualNonce will return the virtual nonce of an account
+func (nf *nodeFacade) GetVirtualNonce(address string) (*common.VirtualNonceOfAccountResponse, error) {
+	return nf.apiResolver.GetVirtualNonce(address, nf.blockchain, nf.accountStateAPI)
 }
 
 // ComputeTransactionGasLimit will estimate how many gas a transaction will consume

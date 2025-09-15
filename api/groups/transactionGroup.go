@@ -38,6 +38,7 @@ const (
 	getScrsByTxHashPath              = "/scrs-by-tx-hash/:txhash"
 	getTransactionsPool              = "/pool"
 	getSelectedTransactionsPath      = "/pool/selected-transactions"
+	getVirtualNoncePath              = "/pool/:address/virtual-nonce"
 
 	queryParamWithResults    = "withResults"
 	queryParamCheckSignature = "checkSignature"
@@ -63,6 +64,7 @@ type transactionFacadeHandler interface {
 	GetLastPoolNonceForSender(sender string) (uint64, error)
 	GetTransactionsPoolNonceGapsForSender(sender string) (*common.TransactionsPoolNonceGapsForSenderApiResponse, error)
 	GetSelectedTransactions() (*common.TransactionsSelectionSimulationResult, error)
+	GetVirtualNonce(address string) (*common.VirtualNonceOfAccountResponse, error)
 	ComputeTransactionGasLimit(tx *transaction.Transaction) (*transaction.CostResponse, error)
 	EncodeAddressPubkey(pk []byte) (string, error)
 	GetThrottlerForEndpoint(endpoint string) (core.Throttler, bool)
@@ -143,6 +145,17 @@ func NewTransactionGroup(facade transactionFacadeHandler) (*transactionGroup, er
 			AdditionalMiddlewares: []shared.AdditionalMiddleware{
 				{
 					Middleware: middleware.CreateEndpointThrottlerFromFacade(getSelectedTransactionsPath, facade),
+					Position:   shared.Before,
+				},
+			},
+		},
+		{
+			Path:    getVirtualNoncePath,
+			Method:  http.MethodGet,
+			Handler: tg.getVirtualNonceByAddress,
+			AdditionalMiddlewares: []shared.AdditionalMiddleware{
+				{
+					Middleware: middleware.CreateEndpointThrottlerFromFacade(getVirtualNoncePath, facade),
 					Position:   shared.Before,
 				},
 			},
@@ -501,6 +514,45 @@ func (tg *transactionGroup) getScrsByTxHash(c *gin.Context) {
 		http.StatusOK,
 		shared.GenericAPIResponse{
 			Data:  gin.H{"scrs": scrs},
+			Error: "",
+			Code:  shared.ReturnCodeSuccess,
+		},
+	)
+}
+
+func (tg *transactionGroup) getVirtualNonceByAddress(c *gin.Context) {
+	address := c.Param("address")
+	if address == "" {
+		c.JSON(
+			http.StatusBadRequest,
+			shared.GenericAPIResponse{
+				Data:  nil,
+				Error: fmt.Sprintf("%s: %s", errors.ErrValidation.Error(), errors.ErrEmptyAddress.Error()),
+				Code:  shared.ReturnCodeRequestError,
+			},
+		)
+		return
+	}
+
+	start := time.Now()
+	virtualNonce, err := tg.getFacade().GetVirtualNonce(address)
+	if err != nil {
+		c.JSON(
+			http.StatusInternalServerError,
+			shared.GenericAPIResponse{
+				Data:  nil,
+				Error: fmt.Sprintf("%s: %s", errors.ErrGetVirtualNonce.Error(), err.Error()),
+				Code:  shared.ReturnCodeInternalError,
+			},
+		)
+		return
+	}
+	logging.LogAPIActionDurationIfNeeded(start, "API call: GetVirtualNonce")
+
+	c.JSON(
+		http.StatusOK,
+		shared.GenericAPIResponse{
+			Data:  gin.H{"virtualNonce": virtualNonce},
 			Error: "",
 			Code:  shared.ReturnCodeSuccess,
 		},
