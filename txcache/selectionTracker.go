@@ -309,19 +309,19 @@ func (st *selectionTracker) deriveVirtualSelectionSession(
 	}
 
 	latestExecutedBlockHash := blockchainInfo.GetLatestExecutedBlockHash()
-	latestCommitedBlockHash := blockchainInfo.GetLatestCommittedBlockHash()
+	latestCommittedBlockHash := blockchainInfo.GetLatestCommittedBlockHash()
 	currentNonce := blockchainInfo.GetCurrentNonce()
 
 	log.Debug("selectionTracker.deriveVirtualSelectionSession",
 		"rootHash", rootHash,
 		"latestExecutedBlockHash", latestExecutedBlockHash,
-		"latestCommitedBlockHash", latestCommitedBlockHash,
+		"latestCommitedBlockHash", latestCommittedBlockHash,
 		"currentNonce", currentNonce,
 	)
 
 	trackedBlocks, err := st.getChainOfTrackedBlocks(
 		latestExecutedBlockHash,
-		latestCommitedBlockHash,
+		latestCommittedBlockHash,
 		currentNonce,
 	)
 	if err != nil {

@@ -23,7 +23,6 @@ func newVirtualSessionComputer(session SelectionSession) *virtualSessionComputer
 func (computer *virtualSessionComputer) createVirtualSelectionSession(
 	chainOfTrackedBlocks []*trackedBlock,
 ) (*virtualSelectionSession, error) {
-
 	for _, tb := range chainOfTrackedBlocks {
 		err := computer.handleTrackedBlock(tb)
 		if err != nil {
