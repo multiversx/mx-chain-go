@@ -635,3 +635,8 @@ func CreateBaseProcessorWithMockedTracker(tracker process.BlockTracker) *basePro
 func (bp *baseProcessor) ComputeOwnShardStuckIfNeeded(header data.HeaderHandler) error {
 	return bp.computeOwnShardStuckIfNeeded(header)
 }
+
+// SetMiniBlockSelectionSession -
+func (bp *baseProcessor) SetMiniBlockSelectionSession(session MiniBlocksSelectionSession) {
+	bp.miniBlocksSelectionSession = session
+}

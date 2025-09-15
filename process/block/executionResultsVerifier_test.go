@@ -48,14 +48,14 @@ func Test_createLastExecutionResultInfoFromExecutionResult(t *testing.T) {
 
 	t.Run("nil notarizedOnHeaderHash", func(t *testing.T) {
 		t.Parallel()
-		lastExecutionResultInfo, err := createLastExecutionResultInfoFromExecutionResult(nil, nil, 0)
+		lastExecutionResultInfo, err := process.CreateLastExecutionResultInfoFromExecutionResult(nil, nil, 0)
 		require.Equal(t, process.ErrNilNotarizedOnHeaderHash, err)
 		require.Nil(t, lastExecutionResultInfo)
 	})
 	t.Run("nil executionResult", func(t *testing.T) {
 		t.Parallel()
 		notarizedOnHash := []byte("notarizedOnHash")
-		lastExecutionResultInfo, err := createLastExecutionResultInfoFromExecutionResult(notarizedOnHash, nil, 0)
+		lastExecutionResultInfo, err := process.CreateLastExecutionResultInfoFromExecutionResult(notarizedOnHash, nil, 0)
 		require.Equal(t, process.ErrNilExecutionResultHandler, err)
 		require.Nil(t, lastExecutionResultInfo)
 	})
@@ -63,7 +63,7 @@ func Test_createLastExecutionResultInfoFromExecutionResult(t *testing.T) {
 		t.Parallel()
 		notarizedOnHash := []byte("notarizedOnHash")
 		executionResult := createDummyMetaExecutionResult() // This is a valid type, but we will use it incorrectly
-		lastExecutionResultInfo, err := createLastExecutionResultInfoFromExecutionResult(notarizedOnHash, executionResult, 0)
+		lastExecutionResultInfo, err := process.CreateLastExecutionResultInfoFromExecutionResult(notarizedOnHash, executionResult, 0)
 		require.Equal(t, process.ErrWrongTypeAssertion, err)
 		require.Nil(t, lastExecutionResultInfo)
 	})
@@ -81,7 +81,7 @@ func Test_createLastExecutionResultInfoFromExecutionResult(t *testing.T) {
 			},
 		}
 
-		lastExecutionResultHandler, err := createLastExecutionResultInfoFromExecutionResult(notarizedOnHash, executionResult, 0)
+		lastExecutionResultHandler, err := process.CreateLastExecutionResultInfoFromExecutionResult(notarizedOnHash, executionResult, 0)
 		lastExecutionResultInfo := lastExecutionResultHandler.(*block.ExecutionResultInfo)
 		require.NoError(t, err)
 		require.NotNil(t, lastExecutionResultInfo)
@@ -91,7 +91,7 @@ func Test_createLastExecutionResultInfoFromExecutionResult(t *testing.T) {
 		t.Parallel()
 		notarizedOnHash := []byte("notarizedOnHash")
 		executionResult := createDummyShardExecutionResult()
-		lastExecutionResultHandler, err := createLastExecutionResultInfoFromExecutionResult(notarizedOnHash, executionResult, core.MetachainShardId)
+		lastExecutionResultHandler, err := process.CreateLastExecutionResultInfoFromExecutionResult(notarizedOnHash, executionResult, core.MetachainShardId)
 		require.Equal(t, process.ErrWrongTypeAssertion, err)
 		require.Nil(t, lastExecutionResultHandler)
 	})
@@ -114,7 +114,7 @@ func Test_createLastExecutionResultInfoFromExecutionResult(t *testing.T) {
 			},
 		}
 
-		lastExecutionResultHandler, err := createLastExecutionResultInfoFromExecutionResult(notarizedOnHash, executionResult, core.MetachainShardId)
+		lastExecutionResultHandler, err := process.CreateLastExecutionResultInfoFromExecutionResult(notarizedOnHash, executionResult, core.MetachainShardId)
 		lastExecutionResultInfo, ok := lastExecutionResultHandler.(*block.MetaExecutionResultInfo)
 		require.True(t, ok)
 		require.NoError(t, err)
@@ -128,14 +128,14 @@ func Test_createLastExecutionResultFromPrevHeader(t *testing.T) {
 
 	t.Run("nil prevHeader", func(t *testing.T) {
 		t.Parallel()
-		lastExecutionResult, err := createLastExecutionResultFromPrevHeader(nil, []byte("prevHeaderHash"))
+		lastExecutionResult, err := process.CreateLastExecutionResultFromPrevHeader(nil, []byte("prevHeaderHash"))
 		require.Equal(t, process.ErrNilBlockHeader, err)
 		require.Nil(t, lastExecutionResult)
 	})
 	t.Run("nil prevHeaderHash", func(t *testing.T) {
 		t.Parallel()
 		prevHeader := createDummyPrevShardHeaderV2()
-		lastExecutionResult, err := createLastExecutionResultFromPrevHeader(prevHeader, nil)
+		lastExecutionResult, err := process.CreateLastExecutionResultFromPrevHeader(prevHeader, nil)
 		require.Equal(t, process.ErrInvalidHash, err)
 		require.Nil(t, lastExecutionResult)
 	})
@@ -149,7 +149,7 @@ func Test_createLastExecutionResultFromPrevHeader(t *testing.T) {
 			RootHash: []byte("prevRootHash"),
 			ShardID:  0,
 		}
-		lastExecutionResult, err := createLastExecutionResultFromPrevHeader(prevHeader, prevHeaderHash)
+		lastExecutionResult, err := process.CreateLastExecutionResultFromPrevHeader(prevHeader, prevHeaderHash)
 		require.Equal(t, process.ErrWrongTypeAssertion, err)
 		require.Nil(t, lastExecutionResult)
 	})
@@ -167,7 +167,7 @@ func Test_createLastExecutionResultFromPrevHeader(t *testing.T) {
 			},
 		}
 
-		lastExecutionResultHandler, err := createLastExecutionResultFromPrevHeader(prevHeader, prevHeaderHash)
+		lastExecutionResultHandler, err := process.CreateLastExecutionResultFromPrevHeader(prevHeader, prevHeaderHash)
 		lastExecutionResultInfo := lastExecutionResultHandler.(*block.ExecutionResultInfo)
 		require.NoError(t, err)
 		require.NotNil(t, lastExecutionResultInfo)
@@ -177,7 +177,7 @@ func Test_createLastExecutionResultFromPrevHeader(t *testing.T) {
 		t.Parallel()
 		prevHeaderHash := []byte("prevHeaderHash")
 		prevMetaHeader := createDummyInvalidMetaHeader()
-		lastExecutionResultHandler, err := createLastExecutionResultFromPrevHeader(prevMetaHeader, prevHeaderHash)
+		lastExecutionResultHandler, err := process.CreateLastExecutionResultFromPrevHeader(prevMetaHeader, prevHeaderHash)
 		require.Equal(t, process.ErrWrongTypeAssertion, err)
 		require.Nil(t, lastExecutionResultHandler)
 	})
@@ -200,7 +200,7 @@ func Test_createLastExecutionResultFromPrevHeader(t *testing.T) {
 			},
 		}
 
-		lastExecutionResultHandler, err := createLastExecutionResultFromPrevHeader(prevMetaHeader, prevHeaderHash)
+		lastExecutionResultHandler, err := process.CreateLastExecutionResultFromPrevHeader(prevMetaHeader, prevHeaderHash)
 		lastExecutionResultInfo, ok := lastExecutionResultHandler.(*block.MetaExecutionResultInfo)
 		require.True(t, ok)
 		require.NoError(t, err)
@@ -224,7 +224,7 @@ func TestExecutionResultsVerifier_getPrevBlockLastExecutionResult(t *testing.T) 
 		erc, err := NewExecutionResultsVerifier(blockchain, executionResultsTracker)
 		require.NoError(t, err)
 
-		_, err = erc.getPrevBlockLastExecutionResult()
+		_, err = process.GetPrevBlockLastExecutionResult(erc.blockChain)
 		require.Equal(t, process.ErrNilHeaderHandler, err)
 	})
 
@@ -242,7 +242,7 @@ func TestExecutionResultsVerifier_getPrevBlockLastExecutionResult(t *testing.T) 
 		erc, err := NewExecutionResultsVerifier(blockchain, executionResultsTracker)
 		require.NoError(t, err)
 
-		lastExecutionResult, err := erc.getPrevBlockLastExecutionResult()
+		lastExecutionResult, err := process.GetPrevBlockLastExecutionResult(erc.blockChain)
 		require.NoError(t, err)
 		require.NotNil(t, lastExecutionResult)
 		require.Equal(t, prevHeader.LastExecutionResult, lastExecutionResult)
@@ -265,10 +265,10 @@ func TestExecutionResultsVerifier_getPrevBlockLastExecutionResult(t *testing.T) 
 		erc, err := NewExecutionResultsVerifier(blockchain, executionResultsTracker)
 		require.NoError(t, err)
 
-		lastExecutionResult, err := erc.getPrevBlockLastExecutionResult()
+		lastExecutionResult, err := process.GetPrevBlockLastExecutionResult(erc.blockChain)
 		require.NoError(t, err)
 		require.NotNil(t, lastExecutionResult)
-		expectedLastExecutionResult, _ := createLastExecutionResultFromPrevHeader(prevHeader, prevHeaderHash)
+		expectedLastExecutionResult, _ := process.CreateLastExecutionResultFromPrevHeader(prevHeader, prevHeaderHash)
 		require.Equal(t, expectedLastExecutionResult, lastExecutionResult)
 	})
 	t.Run("valid prev header - meta header v3", func(t *testing.T) {
@@ -285,7 +285,7 @@ func TestExecutionResultsVerifier_getPrevBlockLastExecutionResult(t *testing.T) 
 		erc, err := NewExecutionResultsVerifier(blockchain, executionResultsTracker)
 		require.NoError(t, err)
 
-		lastExecutionResult, err := erc.getPrevBlockLastExecutionResult()
+		lastExecutionResult, err := process.GetPrevBlockLastExecutionResult(erc.blockChain)
 		require.NoError(t, err)
 		require.NotNil(t, lastExecutionResult)
 		require.Equal(t, prevHeader.LastExecutionResult, lastExecutionResult)
@@ -308,10 +308,10 @@ func TestExecutionResultsVerifier_getPrevBlockLastExecutionResult(t *testing.T) 
 		erc, err := NewExecutionResultsVerifier(blockchain, executionResultsTracker)
 		require.NoError(t, err)
 
-		lastExecutionResult, err := erc.getPrevBlockLastExecutionResult()
+		lastExecutionResult, err := process.GetPrevBlockLastExecutionResult(erc.blockChain)
 		require.NoError(t, err)
 		require.NotNil(t, lastExecutionResult)
-		expectedLastExecutionResult, _ := createLastExecutionResultFromPrevHeader(prevHeader, prevHeaderHash)
+		expectedLastExecutionResult, _ := process.CreateLastExecutionResultFromPrevHeader(prevHeader, prevHeaderHash)
 		require.Equal(t, expectedLastExecutionResult, lastExecutionResult)
 	})
 }
@@ -515,7 +515,7 @@ func TestExecutionResultsVerifier_verifyLastExecutionResultInfoMatchesLastExecut
 		header := createShardHeaderV3WithExecutionResults()
 		headerHash := []byte("headerHash")
 		header.ExecutionResults[len(header.ExecutionResults)-1] = createDummyShardExecutionResult()
-		lastExecutionResult, err := createLastExecutionResultInfoFromExecutionResult(headerHash, header.ExecutionResults[len(header.ExecutionResults)-1], header.GetShardID())
+		lastExecutionResult, err := process.CreateLastExecutionResultInfoFromExecutionResult(headerHash, header.ExecutionResults[len(header.ExecutionResults)-1], header.GetShardID())
 		require.Nil(t, err)
 		header.LastExecutionResult = lastExecutionResult.(*block.ExecutionResultInfo)
 
@@ -657,7 +657,7 @@ func TestExecutionResultsVerifier_VerifyHeaderExecutionResults(t *testing.T) {
 		}
 
 		header := createShardHeaderV3WithExecutionResults()
-		lastExecutionResult, err := createLastExecutionResultInfoFromExecutionResult(header.ExecutionResults[len(header.ExecutionResults)-1].GetHeaderHash(), header.ExecutionResults[len(header.ExecutionResults)-1], header.GetShardID())
+		lastExecutionResult, err := process.CreateLastExecutionResultInfoFromExecutionResult(header.ExecutionResults[len(header.ExecutionResults)-1].GetHeaderHash(), header.ExecutionResults[len(header.ExecutionResults)-1], header.GetShardID())
 		require.NoError(t, err)
 		header.LastExecutionResult = lastExecutionResult.(*block.ExecutionResultInfo)
 
@@ -686,7 +686,7 @@ func TestExecutionResultsVerifier_VerifyHeaderExecutionResults(t *testing.T) {
 		}
 
 		header := createShardHeaderV3WithExecutionResults()
-		lastExecutionResult, err := createLastExecutionResultInfoFromExecutionResult(header.ExecutionResults[len(header.ExecutionResults)-1].GetHeaderHash(), header.ExecutionResults[len(header.ExecutionResults)-1], header.GetShardID())
+		lastExecutionResult, err := process.CreateLastExecutionResultInfoFromExecutionResult(header.ExecutionResults[len(header.ExecutionResults)-1].GetHeaderHash(), header.ExecutionResults[len(header.ExecutionResults)-1], header.GetShardID())
 		require.NoError(t, err)
 		header.LastExecutionResult = lastExecutionResult.(*block.ExecutionResultInfo)
 		executionResultsTracker := &executionTrack.ExecutionResultsTrackerStub{
@@ -714,7 +714,7 @@ func TestExecutionResultsVerifier_VerifyHeaderExecutionResults(t *testing.T) {
 		}
 
 		header := createShardHeaderV3WithExecutionResults()
-		lastExecutionResult, err := createLastExecutionResultInfoFromExecutionResult(header.ExecutionResults[len(header.ExecutionResults)-1].GetHeaderHash(), header.ExecutionResults[len(header.ExecutionResults)-1], header.GetShardID())
+		lastExecutionResult, err := process.CreateLastExecutionResultInfoFromExecutionResult(header.ExecutionResults[len(header.ExecutionResults)-1].GetHeaderHash(), header.ExecutionResults[len(header.ExecutionResults)-1], header.GetShardID())
 		require.NoError(t, err)
 		header.LastExecutionResult = lastExecutionResult.(*block.ExecutionResultInfo)
 
@@ -810,7 +810,7 @@ func TestExecutionResultsVerifier_VerifyHeaderExecutionResults(t *testing.T) {
 		}
 
 		header := createShardHeaderV3WithExecutionResults()
-		lastExecutionResult, err := createLastExecutionResultInfoFromExecutionResult(header.ExecutionResults[len(header.ExecutionResults)-1].GetHeaderHash(), header.ExecutionResults[len(header.ExecutionResults)-1], header.GetShardID())
+		lastExecutionResult, err := process.CreateLastExecutionResultInfoFromExecutionResult(header.ExecutionResults[len(header.ExecutionResults)-1].GetHeaderHash(), header.ExecutionResults[len(header.ExecutionResults)-1], header.GetShardID())
 		require.NoError(t, err)
 		header.LastExecutionResult = lastExecutionResult.(*block.ExecutionResultInfo)
 
@@ -955,7 +955,7 @@ func createLastExecutionResultMeta() *block.MetaExecutionResultInfo {
 
 func createShardHeaderV3WithMultipleExecutionResults(numResults int, firstNonce uint64) *block.HeaderV3 {
 	executionResults := createDummyShardExecutionResults(numResults, firstNonce)
-	lastExecResult, _ := createLastExecutionResultInfoFromExecutionResult([]byte("headerHash"), executionResults[len(executionResults)-1], 0)
+	lastExecResult, _ := process.CreateLastExecutionResultInfoFromExecutionResult([]byte("headerHash"), executionResults[len(executionResults)-1], 0)
 
 	return &block.HeaderV3{
 		PrevHash:            []byte("prevHash"),

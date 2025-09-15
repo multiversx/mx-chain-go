@@ -21,6 +21,9 @@ func (sp *shardProcessor) CreateBlockProposal(
 	if check.IfNil(initialHdr) {
 		return nil, nil, process.ErrNilBlockHeader
 	}
+	if !initialHdr.IsHeaderV3() {
+		return nil, nil, process.ErrInvalidHeader
+	}
 	shardHdr, ok := initialHdr.(data.ShardHeaderHandler)
 	if !ok {
 		return nil, nil, process.ErrWrongTypeAssertion
@@ -43,9 +46,62 @@ func (sp *shardProcessor) CreateBlockProposal(
 		return nil, nil, err
 	}
 
-	// todo: check also the rest of the header fields (e.g what was previously done on applyBodyToHeader)
+	err = sp.addExecutionResultsOnHeader(shardHdr)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	defer func() {
+		go sp.checkAndRequestIfMetaHeadersMissing()
+	}()
+
+	// todo: some more checks from applyBodyToHeader
 
 	return shardHdr, &block.Body{MiniBlocks: sp.miniBlocksSelectionSession.GetMiniBlocks()}, nil
+}
+
+func (sp *shardProcessor) addExecutionResultsOnHeader(shardHeader data.HeaderHandler) error {
+	pendingExecutionResults, err := sp.executionResultsTracker.GetPendingExecutionResults()
+	if err != nil {
+		return err
+	}
+
+	lastExecutionResultHandler, err := process.GetPrevBlockLastExecutionResult(sp.blockChain)
+	if err != nil {
+		return err
+	}
+
+	lastNotarizedExecutionResultInfo, err := process.CreateDataForInclusionEstimation(lastExecutionResultHandler)
+	if err != nil {
+		return err
+	}
+
+	var lastExecutionResultForCurrentBlock data.LastExecutionResultHandler
+	numToInclude := sp.executionResultsInclusionEstimator.Decide(lastNotarizedExecutionResultInfo, pendingExecutionResults, shardHeader.GetTimeStamp())
+
+	executionResultsToInclude := pendingExecutionResults[:numToInclude]
+	if len(executionResultsToInclude) > 0 {
+		lastExecutionResult := executionResultsToInclude[len(executionResultsToInclude)-1]
+		lastExecutionResultForCurrentBlock, err = process.CreateLastExecutionResultInfoFromExecutionResult(shardHeader.GetRound(), lastExecutionResult, sp.shardCoordinator.SelfId())
+	} else {
+		lastExecutionResultForCurrentBlock = lastExecutionResultHandler
+	}
+
+	err = shardHeader.SetLastExecutionResultHandler(lastExecutionResultForCurrentBlock)
+	if err != nil {
+		return err
+	}
+
+	return shardHeader.SetExecutionResultsHandlers(ExecutionHandlersToBaseExecutionHandlers(executionResultsToInclude))
+}
+
+func ExecutionHandlersToBaseExecutionHandlers(execHandlers []data.ExecutionResultHandler) []data.BaseExecutionResultHandler {
+	baseExecHandlers := make([]data.BaseExecutionResultHandler, len(execHandlers))
+	for i, execHandler := range execHandlers {
+		baseExecHandlers[i] = execHandler
+	}
+
+	return baseExecHandlers
 }
 
 func (sp *shardProcessor) createBlockBodyProposal(

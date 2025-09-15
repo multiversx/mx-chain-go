@@ -124,7 +124,7 @@ func (tc *transactionCoordinator) CreateMbsCrossShardDstMe(
 // SelectOutgoingTransactions returns transactions originating in the shard, for a block proposal
 func (tc *transactionCoordinator) SelectOutgoingTransactions() [][]byte {
 	txHashes := make([][]byte, 0)
-	currentTxHashes := make([][]byte, 0)
+	var currentTxHashes [][]byte
 	var err error
 	for _, blockType := range tc.preProcProposal.keysTxPreProcs {
 		txPreProc := tc.preProcProposal.getPreProcessor(blockType)

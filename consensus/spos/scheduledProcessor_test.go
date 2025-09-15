@@ -13,6 +13,7 @@ import (
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/consensus"
+	"github.com/multiversx/mx-chain-go/testscommon/round"
 
 	"github.com/stretchr/testify/require"
 )
@@ -33,7 +34,7 @@ func TestNewScheduledProcessorWrapper_NilSyncTimerShouldErr(t *testing.T) {
 	args := spos.ScheduledProcessorWrapperArgs{
 		SyncTimer:                nil,
 		Processor:                &testscommon.BlockProcessorStub{},
-		RoundTimeDurationHandler: &consensus.RoundHandlerMock{},
+		RoundTimeDurationHandler: &round.RoundHandlerMock{},
 	}
 
 	sp, err := spos.NewScheduledProcessorWrapper(args)
@@ -47,7 +48,7 @@ func TestNewScheduledProcessorWrapper_NilBlockProcessorShouldErr(t *testing.T) {
 	args := spos.ScheduledProcessorWrapperArgs{
 		SyncTimer:                &consensus.SyncTimerMock{},
 		Processor:                nil,
-		RoundTimeDurationHandler: &consensus.RoundHandlerMock{},
+		RoundTimeDurationHandler: &round.RoundHandlerMock{},
 	}
 
 	sp, err := spos.NewScheduledProcessorWrapper(args)
@@ -75,7 +76,7 @@ func TestNewScheduledProcessorWrapper_NilBlockProcessorOK(t *testing.T) {
 	args := spos.ScheduledProcessorWrapperArgs{
 		SyncTimer:                &consensus.SyncTimerMock{},
 		Processor:                &testscommon.BlockProcessorStub{},
-		RoundTimeDurationHandler: &consensus.RoundHandlerMock{},
+		RoundTimeDurationHandler: &round.RoundHandlerMock{},
 	}
 
 	sp, err := spos.NewScheduledProcessorWrapper(args)
@@ -95,7 +96,7 @@ func TestScheduledProcessorWrapper_IsProcessedOKEarlyExit(t *testing.T) {
 			},
 		},
 		Processor:                &testscommon.BlockProcessorStub{},
-		RoundTimeDurationHandler: &consensus.RoundHandlerMock{},
+		RoundTimeDurationHandler: &round.RoundHandlerMock{},
 	}
 
 	sp, err := spos.NewScheduledProcessorWrapper(args)
@@ -121,7 +122,7 @@ func defaultScheduledProcessorWrapperArgs() spos.ScheduledProcessorWrapperArgs {
 			},
 		},
 		Processor:                &testscommon.BlockProcessorStub{},
-		RoundTimeDurationHandler: &consensus.RoundHandlerMock{},
+		RoundTimeDurationHandler: &round.RoundHandlerMock{},
 	}
 }
 
@@ -232,7 +233,7 @@ func TestScheduledProcessorWrapper_StatusGetterAndSetter(t *testing.T) {
 	args := spos.ScheduledProcessorWrapperArgs{
 		SyncTimer:                &consensus.SyncTimerMock{},
 		Processor:                &testscommon.BlockProcessorStub{},
-		RoundTimeDurationHandler: &consensus.RoundHandlerMock{},
+		RoundTimeDurationHandler: &round.RoundHandlerMock{},
 	}
 
 	sp, _ := spos.NewScheduledProcessorWrapper(args)
@@ -260,7 +261,7 @@ func TestScheduledProcessorWrapper_StartScheduledProcessingHeaderV1ProcessingOK(
 				return nil
 			},
 		},
-		RoundTimeDurationHandler: &consensus.RoundHandlerMock{},
+		RoundTimeDurationHandler: &round.RoundHandlerMock{},
 	}
 
 	sp, _ := spos.NewScheduledProcessorWrapper(args)
@@ -286,7 +287,7 @@ func TestScheduledProcessorWrapper_StartScheduledProcessingHeaderV2ProcessingWit
 				return errors.New("processing error")
 			},
 		},
-		RoundTimeDurationHandler: &consensus.RoundHandlerMock{},
+		RoundTimeDurationHandler: &round.RoundHandlerMock{},
 	}
 
 	sp, _ := spos.NewScheduledProcessorWrapper(args)
@@ -314,7 +315,7 @@ func TestScheduledProcessorWrapper_StartScheduledProcessingHeaderV2ProcessingOK(
 				return nil
 			},
 		},
-		RoundTimeDurationHandler: &consensus.RoundHandlerMock{},
+		RoundTimeDurationHandler: &round.RoundHandlerMock{},
 	}
 
 	sp, _ := spos.NewScheduledProcessorWrapper(args)
@@ -353,7 +354,7 @@ func TestScheduledProcessorWrapper_StartScheduledProcessingHeaderV2ForceStopped(
 				}
 			},
 		},
-		RoundTimeDurationHandler: &consensus.RoundHandlerMock{},
+		RoundTimeDurationHandler: &round.RoundHandlerMock{},
 	}
 
 	spw, err := spos.NewScheduledProcessorWrapper(args)
@@ -389,7 +390,7 @@ func TestScheduledProcessorWrapper_StartScheduledProcessingHeaderV2ForceStopAfte
 				return nil
 			},
 		},
-		RoundTimeDurationHandler: &consensus.RoundHandlerMock{},
+		RoundTimeDurationHandler: &round.RoundHandlerMock{},
 	}
 
 	spw, err := spos.NewScheduledProcessorWrapper(args)
