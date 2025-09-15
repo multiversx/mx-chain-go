@@ -445,7 +445,7 @@ func (st *selectionTracker) getVirtualNonceOfAccount(
 	}
 
 	if !breadcrumb.lastNonce.HasValue {
-		return 0, errBreadcrumbNotFound
+		return 0, errLastNonceNotFound
 	}
 
 	return breadcrumb.lastNonce.Value + 1, nil

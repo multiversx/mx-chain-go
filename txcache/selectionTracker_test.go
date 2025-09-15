@@ -1024,3 +1024,88 @@ func TestSelectionTracker_addNewBlockNoLock(t *testing.T) {
 	tracker.addNewTrackedBlockNoLock([]byte("blockHash1"), tb2)
 	require.Equal(t, len(tracker.blocks), 1)
 }
+
+func Test_getVirtualNonceOfAccount(t *testing.T) {
+	t.Parallel()
+
+	t.Run("should return errNilLatestCommitedBlockHash error", func(t *testing.T) {
+		t.Parallel()
+
+		txCache := newCacheToTest(maxNumBytesPerSenderUpperBoundTest, 3)
+		tracker, err := NewSelectionTracker(txCache, maxTrackedBlocks)
+		require.Nil(t, err)
+
+		_, err = tracker.getVirtualNonceOfAccount([]byte("alice"), defaultBlockchainInfo)
+		require.Equal(t, errNilLatestCommitedBlockHash, err)
+	})
+
+	t.Run("should return errBlockNotFound error", func(t *testing.T) {
+		t.Parallel()
+
+		txCache := newCacheToTest(maxNumBytesPerSenderUpperBoundTest, 3)
+		tracker, err := NewSelectionTracker(txCache, maxTrackedBlocks)
+		require.Nil(t, err)
+
+		blockchainInfo := holders.NewBlockchainInfo(nil, []byte("hash2"), 0)
+		_, err = tracker.getVirtualNonceOfAccount([]byte("alice"), blockchainInfo)
+		require.Equal(t, errBlockNotFound, err)
+	})
+
+	t.Run("should return errBreadcrumbNotFound error", func(t *testing.T) {
+		t.Parallel()
+
+		txCache := newCacheToTest(maxNumBytesPerSenderUpperBoundTest, 3)
+		tracker, err := NewSelectionTracker(txCache, maxTrackedBlocks)
+		require.Nil(t, err)
+
+		tracker.blocks["hash2"] = newTrackedBlock(0, []byte("hash2"), []byte("rootHash0"), []byte("hash1"))
+
+		blockchainInfo := holders.NewBlockchainInfo(nil, []byte("hash2"), 0)
+		_, err = tracker.getVirtualNonceOfAccount([]byte("alice"), blockchainInfo)
+		require.Equal(t, errBreadcrumbNotFound, err)
+	})
+
+	t.Run("should return errLastNonceNotFound error", func(t *testing.T) {
+		t.Parallel()
+
+		txCache := newCacheToTest(maxNumBytesPerSenderUpperBoundTest, 3)
+		tracker, err := NewSelectionTracker(txCache, maxTrackedBlocks)
+		require.Nil(t, err)
+
+		tb := newTrackedBlock(0, []byte("hash2"), []byte("rootHash0"), []byte("hash1"))
+		tb.breadcrumbsByAddress["alice"] = newAccountBreadcrumb(core.OptionalUint64{
+			HasValue: true,
+			Value:    10,
+		}, nil)
+		tracker.blocks["hash2"] = tb
+
+		blockchainInfo := holders.NewBlockchainInfo(nil, []byte("hash2"), 0)
+		_, err = tracker.getVirtualNonceOfAccount([]byte("alice"), blockchainInfo)
+		require.Equal(t, errLastNonceNotFound, err)
+	})
+
+	t.Run("should work", func(t *testing.T) {
+		t.Parallel()
+
+		txCache := newCacheToTest(maxNumBytesPerSenderUpperBoundTest, 3)
+		tracker, err := NewSelectionTracker(txCache, maxTrackedBlocks)
+		require.Nil(t, err)
+
+		breadcrumb := newAccountBreadcrumb(core.OptionalUint64{HasValue: true, Value: 10}, nil)
+		err = breadcrumb.updateLastNonce(core.OptionalUint64{
+			HasValue: true,
+			Value:    20,
+		})
+		require.Nil(t, err)
+
+		tb := newTrackedBlock(0, []byte("hash2"), []byte("rootHash0"), []byte("hash1"))
+		tb.breadcrumbsByAddress["alice"] = breadcrumb
+
+		tracker.blocks["hash2"] = tb
+
+		blockchainInfo := holders.NewBlockchainInfo(nil, []byte("hash2"), 0)
+		nonce, err := tracker.getVirtualNonceOfAccount([]byte("alice"), blockchainInfo)
+		require.Nil(t, err)
+		require.Equal(t, uint64(21), nonce)
+	})
+}
