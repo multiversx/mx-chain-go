@@ -15,11 +15,12 @@ var _ consensus.RoundHandler = (*round)(nil)
 
 // round defines the data needed by the roundHandler
 type round struct {
-	index        int64         // represents the index of the round in the current chronology (current time - genesis time) / round duration
-	timeStamp    time.Time     // represents the start time of the round in the current chronology genesis time + round index * round duration
-	timeDuration time.Duration // represents the duration of the round in current chronology
-	syncTimer    ntp.SyncTimer
-	startRound   int64
+	index            int64         // represents the index of the round in the current chronology (current time - genesis time) / round duration
+	timeStamp        time.Time     // represents the start time of the round in the current chronology genesis time + round index * round duration
+	genesisTimeStamp time.Time     // represents the start time of the round in the current chronology genesis time + round index * round duration
+	timeDuration     time.Duration // represents the duration of the round in current chronology
+	syncTimer        ntp.SyncTimer
+	startRound       int64
 
 	*sync.RWMutex
 }
@@ -38,11 +39,12 @@ func NewRound(
 	}
 
 	rnd := round{
-		timeDuration: roundTimeDuration,
-		timeStamp:    genesisTimeStamp,
-		syncTimer:    syncTimer,
-		startRound:   startRound,
-		RWMutex:      &sync.RWMutex{},
+		timeDuration:     roundTimeDuration,
+		timeStamp:        genesisTimeStamp,
+		genesisTimeStamp: genesisTimeStamp,
+		syncTimer:        syncTimer,
+		startRound:       startRound,
+		RWMutex:          &sync.RWMutex{},
 	}
 	rnd.UpdateRound(genesisTimeStamp, currentTimeStamp)
 	return &rnd, nil
@@ -107,6 +109,12 @@ func (rnd *round) RevertOneRound() {
 	rnd.index--
 	rnd.timeStamp = rnd.timeStamp.Add(-rnd.timeDuration)
 	rnd.Unlock()
+}
+
+// GetTimeStampForRound returns unix milliseconds timestamp for the specified round
+func (rnd *round) GetTimeStampForRound(round uint64) uint64 {
+	roundTimeStampMs := rnd.genesisTimeStamp.Add(time.Duration(round) * rnd.timeDuration).UnixMilli()
+	return uint64(roundTimeStampMs)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
