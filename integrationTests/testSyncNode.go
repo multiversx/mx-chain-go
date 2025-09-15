@@ -150,6 +150,7 @@ func (tpn *TestProcessorNode) initBlockProcessorWithSync() {
 			tpn.EnableRoundsHandler,
 			tpn.DataPool.Proofs(),
 			tpn.ChainParametersHandler,
+			tpn.ProcessConfigsHandler,
 		)
 		argumentsBase.ForkDetector = tpn.ForkDetector
 		argumentsBase.BlockChainHook = tpn.BlockchainHook

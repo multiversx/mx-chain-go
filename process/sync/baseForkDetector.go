@@ -646,7 +646,7 @@ func (bfd *baseForkDetector) isConsensusStuck() bool {
 
 	lastCheckpointRound := bfd.lastCheckpoint().round
 	roundsDifference := bfd.roundHandler.Index() - int64(lastCheckpointRound)
-	if roundsDifference <= bfd.getMaxRoundsWithoutCommittedBlock(lastCheckpointRound) {
+	if roundsDifference <= bfd.getMaxRoundsWithoutCommittedBlock(uint64(bfd.roundHandler.Index())) {
 		return false
 	}
 

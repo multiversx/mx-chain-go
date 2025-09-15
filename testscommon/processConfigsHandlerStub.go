@@ -15,7 +15,7 @@ func GetDefaultProcessConfigsHandler() common.ProcessConfigsHandler {
 		MaxShardNoncesBehind:              15,
 	}},
 		[]config.ProcessConfigByRound{
-			{EnableRound: 0, MaxRoundsWithoutNewBlockReceived: 10},
+			{EnableRound: 0, MaxRoundsWithoutNewBlockReceived: 10, MaxRoundsWithoutCommittedBlock: 10},
 		},
 	)
 

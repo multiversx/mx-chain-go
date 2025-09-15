@@ -1817,6 +1817,7 @@ func (pcf *processComponentsFactory) newForkDetector(
 			pcf.coreData.EnableRoundsHandler(),
 			pcf.data.Datapool().Proofs(),
 			pcf.coreData.ChainParametersHandler(),
+			pcf.coreData.ProcessConfigsHandler(),
 		)
 	}
 	if shardCoordinator.SelfId() == core.MetachainShardId {

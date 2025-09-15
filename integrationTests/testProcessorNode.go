@@ -2294,6 +2294,7 @@ func (tpn *TestProcessorNode) initBlockProcessor() {
 			tpn.EnableRoundsHandler,
 			tpn.DataPool.Proofs(),
 			tpn.ChainParametersHandler,
+			tpn.ProcessConfigsHandler,
 		)
 	} else {
 		tpn.ForkDetector, _ = processSync.NewMetaForkDetector(
