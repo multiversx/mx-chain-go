@@ -11,11 +11,16 @@ type virtualAccountRecord struct {
 	virtualBalance *virtualAccountBalance
 }
 
-func newVirtualAccountRecord(initialNonce core.OptionalUint64, initialBalance *big.Int) *virtualAccountRecord {
+func newVirtualAccountRecord(initialNonce core.OptionalUint64, initialBalance *big.Int) (*virtualAccountRecord, error) {
+	virtualBalance, err := newVirtualAccountBalance(initialBalance)
+	if err != nil {
+		return nil, err
+	}
+
 	return &virtualAccountRecord{
 		initialNonce:   initialNonce,
-		virtualBalance: newVirtualAccountBalance(initialBalance),
-	}
+		virtualBalance: virtualBalance,
+	}, nil
 }
 
 // updateVirtualRecord updates the virtualBalance of a virtualAccountRecord and handles the nonces

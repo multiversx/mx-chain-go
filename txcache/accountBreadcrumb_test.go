@@ -191,6 +191,37 @@ func Test_verifyContinuityBetweenAccountBreadcrumbs(t *testing.T) {
 		actualRes := breadcrumbBob.verifyContinuityBetweenAccountBreadcrumbs(&breadcrumbAlice)
 		require.False(t, actualRes)
 	})
+
+	t.Run("should return false", func(t *testing.T) {
+		t.Parallel()
+
+		breadcrumbAlice := accountBreadcrumb{
+			initialNonce: core.OptionalUint64{
+				Value:    1,
+				HasValue: true,
+			},
+			lastNonce: core.OptionalUint64{
+				Value:    2,
+				HasValue: true,
+			},
+			consumedBalance: nil,
+		}
+
+		breadcrumbBob := accountBreadcrumb{
+			initialNonce: core.OptionalUint64{
+				Value:    4,
+				HasValue: true,
+			},
+			lastNonce: core.OptionalUint64{
+				Value:    5,
+				HasValue: true,
+			},
+			consumedBalance: nil,
+		}
+
+		actualRes := breadcrumbBob.verifyContinuityBetweenAccountBreadcrumbs(&breadcrumbAlice)
+		require.False(t, actualRes)
+	})
 }
 
 func Test_verifyContinuityWithSessionNonce(t *testing.T) {

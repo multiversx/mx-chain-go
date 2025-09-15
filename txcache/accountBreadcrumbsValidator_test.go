@@ -28,7 +28,7 @@ func Test_continuousBreadcrumbs(t *testing.T) {
 
 		validator := newBreadcrumbValidator()
 
-		actualRes := validator.isContinuousBreadcrumb("bob", 0, &breadcrumb)
+		actualRes := validator.validateNonceContinuityOfBreadcrumb("bob", 0, &breadcrumb)
 		require.True(t, actualRes)
 	})
 
@@ -49,7 +49,7 @@ func Test_continuousBreadcrumbs(t *testing.T) {
 		}
 
 		validator := newBreadcrumbValidator()
-		actualRes := validator.continuousWithSessionNonce("alice", 3, &breadcrumbAlice)
+		actualRes := validator.validateContinuityWithSessionNonce("alice", 3, &breadcrumbAlice)
 		require.False(t, actualRes)
 	})
 
@@ -70,7 +70,7 @@ func Test_continuousBreadcrumbs(t *testing.T) {
 
 		validator := newBreadcrumbValidator()
 
-		actualRes := validator.isContinuousBreadcrumb("alice", 1, &breadcrumbAlice)
+		actualRes := validator.validateNonceContinuityOfBreadcrumb("alice", 1, &breadcrumbAlice)
 		require.True(t, actualRes)
 
 		_, ok := validator.sendersInContinuityWithSessionNonce["alice"]
@@ -115,7 +115,7 @@ func Test_continuousBreadcrumbs(t *testing.T) {
 			"alice": &breadcrumbAlice1,
 		}
 
-		actualRes := validator.continuousWithPreviousBreadcrumb("alice", 3, &breadcrumbAlice2)
+		actualRes := validator.validateContinuityWithPreviousBreadcrumb("alice", &breadcrumbAlice2)
 		require.True(t, actualRes)
 
 		actualBreadcrumb, ok := validator.accountPreviousBreadcrumb["alice"]
@@ -159,7 +159,7 @@ func Test_continuousBreadcrumbs(t *testing.T) {
 			"alice": {},
 		}
 
-		actualRes := validator.continuousWithPreviousBreadcrumb("alice", 1, &breadcrumbAlice2)
+		actualRes := validator.validateContinuityWithPreviousBreadcrumb("alice", &breadcrumbAlice2)
 		require.False(t, actualRes)
 	})
 }

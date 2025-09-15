@@ -287,13 +287,17 @@ func Test_handleTrackedBlock(t *testing.T) {
 		accountPreviousBreadcrumb := map[string]*accountBreadcrumb{
 			"bob": &breadcrumb1,
 		}
+
+		bobVirtualBalance, err := newVirtualAccountBalance(big.NewInt(5))
+		require.Nil(t, err)
+
 		virtualAccountsByAddress := map[string]*virtualAccountRecord{
 			"bob": {
 				initialNonce: core.OptionalUint64{
 					Value:    6,
 					HasValue: true,
 				},
-				virtualBalance: newVirtualAccountBalance(big.NewInt(5)),
+				virtualBalance: bobVirtualBalance,
 			},
 		}
 
@@ -307,7 +311,7 @@ func Test_handleTrackedBlock(t *testing.T) {
 		_, ok = computer.validator.skippedSenders["bob"]
 		require.False(t, ok)
 
-		err := computer.handleTrackedBlock(tb)
+		err = computer.handleTrackedBlock(tb)
 		require.Nil(t, err)
 
 		_, ok = computer.virtualAccountsByAddress["bob"]
