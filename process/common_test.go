@@ -2321,9 +2321,9 @@ func TestUnmarshalHeader(t *testing.T) {
 
 	shardHeaderV1 := &block.Header{Nonce: 42, EpochStartMetaHash: []byte{0xaa, 0xbb}}
 	shardHeaderV2 := &block.HeaderV2{Header: &block.Header{Nonce: 43, EpochStartMetaHash: []byte{0xaa, 0xbb}}}
-	shardHeaderV3 := &block.HeaderV3{Nonce: 44, LastExecutionResult: &block.ExecutionResultInfo{NotarizedOnHeaderHash: []byte("hash")}}
+	shardHeaderV3 := &block.HeaderV3{Nonce: 44, LastExecutionResult: &block.ExecutionResultInfo{NotarizedInRound: 100}}
 	metaHeader := &block.MetaBlock{Nonce: 7, ValidatorStatsRootHash: []byte{0xcc, 0xdd}}
-	metaHeaderV3 := &block.MetaBlockV3{Nonce: 8, LastExecutionResult: &block.MetaExecutionResultInfo{NotarizedOnHeaderHash: []byte("hash")}}
+	metaHeaderV3 := &block.MetaBlockV3{Nonce: 8, LastExecutionResult: &block.MetaExecutionResultInfo{NotarizedInRound: 100}}
 
 	shardHeaderV1Buffer, _ := marshalizer.Marshal(shardHeaderV1)
 	shardHeaderV2Buffer, _ := marshalizer.Marshal(shardHeaderV2)
@@ -2404,7 +2404,7 @@ func Test_SetBaseExecutionResult(t *testing.T) {
 		}
 
 		executionResultsInfo := &block.ExecutionResultInfo{
-			NotarizedOnHeaderHash: []byte("hash"),
+			NotarizedInRound: 100,
 			ExecutionResult: &block.BaseExecutionResult{
 				HeaderHash:  []byte("hash"),
 				HeaderNonce: 100,
@@ -2414,6 +2414,7 @@ func Test_SetBaseExecutionResult(t *testing.T) {
 		}
 
 		header := &block.HeaderV3{
+			Round:               100,
 			LastExecutionResult: executionResultsInfo,
 		}
 		chainHandler := &testscommon.ChainHandlerStub{
@@ -2509,7 +2510,7 @@ func Test_SetBaseExecutionResult(t *testing.T) {
 		t.Parallel()
 
 		executionResultsInfo := &block.ExecutionResultInfo{
-			NotarizedOnHeaderHash: []byte("hash"),
+			NotarizedInRound: 101,
 			ExecutionResult: &block.BaseExecutionResult{
 				HeaderHash:  []byte("hash"),
 				HeaderNonce: 100,
@@ -2519,6 +2520,7 @@ func Test_SetBaseExecutionResult(t *testing.T) {
 		}
 
 		header := &block.HeaderV3{
+			Round:               101,
 			LastExecutionResult: executionResultsInfo,
 		}
 
@@ -2545,7 +2547,7 @@ func Test_SetBaseExecutionResult(t *testing.T) {
 		t.Parallel()
 
 		executionResultsInfo := &block.MetaExecutionResultInfo{
-			NotarizedOnHeaderHash: []byte("hash"),
+			NotarizedInRound: 101,
 			ExecutionResult: &block.BaseMetaExecutionResult{
 				BaseExecutionResult: &block.BaseExecutionResult{
 					HeaderHash:  []byte("hash"),
@@ -2557,6 +2559,7 @@ func Test_SetBaseExecutionResult(t *testing.T) {
 		}
 
 		header := &block.MetaBlockV3{
+			Round:               101,
 			LastExecutionResult: executionResultsInfo,
 		}
 

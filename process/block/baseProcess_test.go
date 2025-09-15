@@ -3377,8 +3377,8 @@ func Test_getLastBaseExecutionResultHandler(t *testing.T) {
 
 		header := &block.MetaBlockV3{
 			LastExecutionResult: &block.MetaExecutionResultInfo{
-				NotarizedOnHeaderHash: []byte("hash notarization header"),
-				ExecutionResult:       baseMetaExecutionResultsHandler,
+				NotarizedInRound: 201,
+				ExecutionResult:  baseMetaExecutionResultsHandler,
 			},
 		}
 
@@ -3390,8 +3390,8 @@ func Test_getLastBaseExecutionResultHandler(t *testing.T) {
 	t.Run("nil internal BaseMetaExecutionResultHandler, should return error", func(t *testing.T) {
 		header := &block.MetaBlockV3{
 			LastExecutionResult: &block.MetaExecutionResultInfo{
-				NotarizedOnHeaderHash: []byte("hash notarization header"),
-				ExecutionResult:       nil,
+				NotarizedInRound: 201,
+				ExecutionResult:  nil,
 			},
 		}
 
@@ -3408,8 +3408,8 @@ func Test_getLastBaseExecutionResultHandler(t *testing.T) {
 		}
 		header := &block.HeaderV3{
 			LastExecutionResult: &block.ExecutionResultInfo{
-				NotarizedOnHeaderHash: []byte("notarized on header hash"),
-				ExecutionResult:       baseExecutionResults,
+				NotarizedInRound: 201,
+				ExecutionResult:  baseExecutionResults,
 			},
 		}
 
@@ -3423,8 +3423,8 @@ func Test_getLastBaseExecutionResultHandler(t *testing.T) {
 		var baseExecutionResultsHandler *block.BaseExecutionResult
 		header := &block.HeaderV3{
 			LastExecutionResult: &block.ExecutionResultInfo{
-				NotarizedOnHeaderHash: []byte("notarized on header hash"),
-				ExecutionResult:       baseExecutionResultsHandler,
+				NotarizedInRound: 201,
+				ExecutionResult:  baseExecutionResultsHandler,
 			},
 		}
 
@@ -3487,8 +3487,8 @@ func TestBaseProcessor_computeOwnShardStuckIfNeeded(t *testing.T) {
 		}
 		header := &block.HeaderV3{
 			LastExecutionResult: &block.ExecutionResultInfo{
-				NotarizedOnHeaderHash: []byte("notarized on header hash"),
-				ExecutionResult:       baseExecutionResults,
+				NotarizedInRound: 201,
+				ExecutionResult:  baseExecutionResults,
 			},
 		}
 		called := false
