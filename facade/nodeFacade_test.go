@@ -163,6 +163,17 @@ func TestNewNodeFacade(t *testing.T) {
 		require.Nil(t, nf)
 		require.Equal(t, ErrNilAccountState, err)
 	})
+	t.Run("nil AccountsStateAPI should error", func(t *testing.T) {
+		t.Parallel()
+
+		arg := createMockArguments()
+		arg.WsAntifloodConfig.WebServerAntifloodEnabled = true // coverage
+		arg.AccountsStateAPI = nil
+		nf, err := NewNodeFacade(arg)
+
+		require.Nil(t, nf)
+		require.Equal(t, ErrNilAccountStateAPI, err)
+	})
 	t.Run("nil PeerState should error", func(t *testing.T) {
 		t.Parallel()
 
