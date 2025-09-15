@@ -673,11 +673,11 @@ func TestSelectionTracker_getChainOfTrackedBlocks(t *testing.T) {
 		}
 	})
 
-	t.Run("should return errPreviousBlockNotFound because of prevHash not found", func(t *testing.T) {
+	t.Run("should return errBlockNotFound because of prevHash not found", func(t *testing.T) {
 		t.Parallel()
 
 		actualChain, err := tracker.getChainOfTrackedBlocks([]byte("blockHash4"), []byte("blockHash7"), 7)
-		require.Equal(t, err, errPreviousBlockNotFound)
+		require.Equal(t, err, errBlockNotFound)
 		require.Nil(t, actualChain)
 	})
 

@@ -65,7 +65,7 @@ func TestTxCache_SelectTransactions(t *testing.T) {
 		require.Equal(t, expectedError, err)
 	})
 
-	t.Run("should return errPreviousBlockNotFound error from deriveVirtualSelectionSession", func(t *testing.T) {
+	t.Run("should return errBlockNotFound error from deriveVirtualSelectionSession", func(t *testing.T) {
 		t.Parallel()
 
 		options := createMockTxSelectionOptions(math.MaxUint64, math.MaxInt, selectionLoopMaximumDuration)
@@ -79,7 +79,7 @@ func TestTxCache_SelectTransactions(t *testing.T) {
 
 		blockChainInfo := holders.NewBlockchainInfo(nil, []byte("hash0"), 1)
 		_, _, err := cache.SelectTransactions(session, options, blockChainInfo)
-		require.Equal(t, errPreviousBlockNotFound, err)
+		require.Equal(t, errBlockNotFound, err)
 	})
 
 	t.Run("should return errDiscontinuousSequenceOfBlocks error from deriveVirtualSelectionSession", func(t *testing.T) {

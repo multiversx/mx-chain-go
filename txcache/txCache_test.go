@@ -340,7 +340,7 @@ func TestTxCache_GetVirtualNonce(t *testing.T) {
 		require.Equal(t, expectedError, err)
 	})
 
-	t.Run("should return errPreviousBlockNotFound error from deriveVirtualSelectionSession", func(t *testing.T) {
+	t.Run("should return errBlockNotFound error from deriveVirtualSelectionSession", func(t *testing.T) {
 		t.Parallel()
 
 		boundsConfig := createMockTxBoundsConfig()
@@ -353,7 +353,7 @@ func TestTxCache_GetVirtualNonce(t *testing.T) {
 
 		blockChainInfo := holders.NewBlockchainInfo(nil, []byte("hash0"), 1)
 		_, err := cache.GetVirtualNonce([]byte("alice"), session, blockChainInfo)
-		require.Equal(t, errPreviousBlockNotFound, err)
+		require.Equal(t, errBlockNotFound, err)
 	})
 
 	t.Run("should return errDiscontinuousSequenceOfBlocks error from deriveVirtualSelectionSession", func(t *testing.T) {

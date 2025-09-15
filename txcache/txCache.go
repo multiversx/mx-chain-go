@@ -162,7 +162,7 @@ func (cache *TxCache) SelectTransactions(
 }
 
 // GetVirtualNonce returns the nonce of the virtual record of an account
-// The blockchainInfo should contain the hash of the latest executed block, the hash of the last committed block and the nonce of the next proposed block
+// For this method, the blockchainInfo should contain the hash of the last committed block
 func (cache *TxCache) GetVirtualNonce(
 	address []byte,
 	session SelectionSession,
@@ -189,14 +189,18 @@ func (cache *TxCache) GetVirtualNonce(
 		)
 	}
 
-	// TODO find another way to get the virtual nonce in order to avoid the overhead
-	virtualSession, err := cache.tracker.deriveVirtualSelectionSession(session, blockchainInfo)
+	virtualNonce, err := cache.tracker.getVirtualNonceOfAccount(address, blockchainInfo)
 	if err != nil {
-		log.Error("TxCache.GetVirtualNonce: could not derive virtual selection session", "err", err)
-		return 0, err
+		// selection session fallback
+		return cache.getNonceFromSelectionSession(address, session)
 	}
 
-	return virtualSession.getNonce(address)
+	return virtualNonce, nil
+}
+
+func (cache *TxCache) getNonceFromSelectionSession(address []byte, selectionSession SelectionSession) (uint64, error) {
+	initialNonce, _, _, err := selectionSession.GetAccountNonceAndBalance(address)
+	return initialNonce, err
 }
 
 // OnProposedBlock calls the OnProposedBlock method from SelectionTracker

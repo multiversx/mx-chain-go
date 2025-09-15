@@ -332,7 +332,7 @@ func (atp *apiTransactionProcessor) GetVirtualNonce(address string, blockchain d
 		return nil, fmt.Errorf("%s, %w", ErrInvalidAddress.Error(), err)
 	}
 
-	// TODO brainstorm if recreating the trie is needed
+	// below a SelectionSession is created in case of fallbacks, so we have to recreate the trie here.
 	err = atp.recreateTrie(blockchain, accountsAdapter)
 	if err != nil {
 		return nil, err
@@ -515,6 +515,7 @@ func (atp *apiTransactionProcessor) selectTransactions(accountsAdapter state.Acc
 		return nil, err
 	}
 
+	// TODO use the right information for blockchainInfo
 	blockchainInfo := holders.NewBlockchainInfo(nil, nil, 0)
 	selectedTxs, _, err := txCache.SelectTransactions(selectionSession, selectionOptions, blockchainInfo)
 	if err != nil {
@@ -551,14 +552,15 @@ func (atp *apiTransactionProcessor) getVirtualNonce(address []byte, accountsAdap
 		TransactionsProcessor: &txProcessor,
 	}
 
-	// TODO brainstorm if the selection session is needed
+	// the SelectionSession is used in this flow for fallbacks (e.g. the account does not exist in the proposed blocks, unexpected errors etc.)
 	selectionSession, err := preprocess.NewSelectionSession(argsSelectionSession)
 	if err != nil {
 		log.Warn("apiTransactionProcessor.getVirtualNonce could not create SelectionSession")
 		return 0, err
 	}
 
-	// TODO brainstorm if the blockchain info is needed
+	// TODO use the right information for blockchainInfo
+	// the blockchainInfo should contain the hash of the last committed block
 	blockchainInfo := holders.NewBlockchainInfo(nil, nil, 0)
 	virtualNonce, err := txCache.GetVirtualNonce(address, selectionSession, blockchainInfo)
 	if err != nil {
