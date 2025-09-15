@@ -12,6 +12,9 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/smartContractResult"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-go/config"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
+	"github.com/stretchr/testify/assert"
+
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/mock"
 	"github.com/multiversx/mx-chain-go/testscommon"
@@ -22,8 +25,6 @@ import (
 	stateMock "github.com/multiversx/mx-chain-go/testscommon/state"
 	storageStubs "github.com/multiversx/mx-chain-go/testscommon/storage"
 	"github.com/multiversx/mx-chain-go/txcache"
-	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
-	"github.com/stretchr/testify/assert"
 )
 
 func createTransactionPreprocessor() *transactions {
@@ -532,7 +533,9 @@ func TestTransactions_VerifyTransactionShouldWork(t *testing.T) {
 	mbInfo.mapGasConsumedByMiniBlockInReceiverShard[receiverShardID] = 0
 	err = preprocessor.verifyTransaction(tx, txHash, senderShardID, receiverShardID, mbInfo)
 	assert.Nil(t, err)
-	_, ok := preprocessor.txsForCurrBlock.txHashAndInfo[string(txHash)]
+
+	txsForCurrBlock := preprocessor.txsForCurrBlock.(*txsForBlock)
+	_, ok := txsForCurrBlock.txHashAndInfo[string(txHash)]
 	assert.True(t, ok)
 }
 

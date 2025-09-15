@@ -10,11 +10,12 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data/rewardTx"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
 	"github.com/multiversx/mx-chain-go/integrationTests"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/factory"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 func TestNode_RequestInterceptTransactionWithMessengerAndWhitelist(t *testing.T) {
@@ -44,7 +45,7 @@ func TestNode_RequestInterceptTransactionWithMessengerAndWhitelist(t *testing.T)
 		nResolver.Close()
 	}()
 
-	//connect messengers together
+	// connect messengers together
 	time.Sleep(time.Second)
 	err := nRequester.ConnectOnMain(nResolver)
 	require.Nil(t, err)
@@ -53,11 +54,11 @@ func TestNode_RequestInterceptTransactionWithMessengerAndWhitelist(t *testing.T)
 
 	buffPk1, _ := nRequester.OwnAccount.SkTxSign.GeneratePublic().ToByteArray()
 
-	//minting the sender is no longer required as the requests are whitelisted
+	// minting the sender is no longer required as the requests are whitelisted
 
-	//Step 1. Generate a signed transaction
+	// Step 1. Generate a signed transaction
 	txData := "tx notarized data"
-	//TODO change here when gas limit will no longer be linear with the tx data length
+	// TODO change here when gas limit will no longer be linear with the tx data length
 	txDataCost := uint64(len(txData))
 	tx := transaction.Transaction{
 		Nonce:    0,
@@ -80,7 +81,7 @@ func TestNode_RequestInterceptTransactionWithMessengerAndWhitelist(t *testing.T)
 
 	txHash := integrationTests.TestHasher.Compute(string(signedTxBuff))
 
-	//step 2. wire up a received handler for requester
+	// step 2. wire up a received handler for requester
 	nRequester.DataPool.Transactions().RegisterOnAdded(func(key []byte, value interface{}) {
 		txStored, _ := nRequester.DataPool.Transactions().ShardDataStore(
 			process.ShardCacherIdentifier(nRequester.ShardCoordinator.SelfId(), nRequester.ShardCoordinator.SelfId()),
@@ -94,7 +95,7 @@ func TestNode_RequestInterceptTransactionWithMessengerAndWhitelist(t *testing.T)
 		assert.Equal(t, txHash, key)
 	})
 
-	//Step 3. add the transaction in resolver pool
+	// Step 3. add the transaction in resolver pool
 	nResolver.DataPool.Transactions().AddData(
 		txHash,
 		&tx,
@@ -102,8 +103,8 @@ func TestNode_RequestInterceptTransactionWithMessengerAndWhitelist(t *testing.T)
 		process.ShardCacherIdentifier(nRequester.ShardCoordinator.SelfId(), nRequester.ShardCoordinator.SelfId()),
 	)
 
-	//Step 4. request tx through request handler that will whitelist the hash
-	nRequester.RequestHandler.RequestTransaction(0, [][]byte{txHash})
+	// Step 4. request tx through request handler that will whitelist the hash
+	nRequester.RequestHandler.RequestTransactions(0, [][]byte{txHash})
 	assert.Nil(t, err)
 
 	select {
@@ -140,14 +141,14 @@ func TestNode_RequestInterceptRewardTransactionWithMessenger(t *testing.T) {
 		nResolver.Close()
 	}()
 
-	//connect messengers together
+	// connect messengers together
 	time.Sleep(time.Second)
 	err := nRequester.ConnectOnMain(nResolver)
 	require.Nil(t, err)
 
 	time.Sleep(time.Second)
 
-	//Step 1. Generate a reward Transaction
+	// Step 1. Generate a reward Transaction
 	_, pubKey, _ := integrationTests.GenerateSkAndPkInShard(nRequester.ShardCoordinator, nRequester.ShardCoordinator.SelfId())
 	pubKeyArray, _ := pubKey.ToByteArray()
 	tx := rewardTx.RewardTx{
@@ -163,7 +164,7 @@ func TestNode_RequestInterceptRewardTransactionWithMessenger(t *testing.T) {
 
 	txHash := integrationTests.TestHasher.Compute(string(marshaledTxBuff))
 
-	//step 2. wire up a received handler for requester
+	// step 2. wire up a received handler for requester
 	nRequester.DataPool.RewardTransactions().RegisterOnAdded(func(key []byte, value interface{}) {
 		rewardTxStored, _ := nRequester.DataPool.RewardTransactions().ShardDataStore(
 			process.ShardCacherIdentifier(core.MetachainShardId, nRequester.ShardCoordinator.SelfId()),
@@ -177,7 +178,7 @@ func TestNode_RequestInterceptRewardTransactionWithMessenger(t *testing.T) {
 		assert.Equal(t, txHash, key)
 	})
 
-	//Step 3. add the transaction in resolver pool
+	// Step 3. add the transaction in resolver pool
 	nResolver.DataPool.RewardTransactions().AddData(
 		txHash,
 		&tx,
@@ -185,7 +186,7 @@ func TestNode_RequestInterceptRewardTransactionWithMessenger(t *testing.T) {
 		process.ShardCacherIdentifier(nRequester.ShardCoordinator.SelfId(), core.MetachainShardId),
 	)
 
-	//Step 4. request tx
+	// Step 4. request tx
 	rewardTxRequester, _ := nRequester.RequestersFinder.CrossShardRequester(factory.RewardsTransactionTopic, core.MetachainShardId)
 	err = rewardTxRequester.RequestDataFromHash(txHash, 0)
 	assert.Nil(t, err)

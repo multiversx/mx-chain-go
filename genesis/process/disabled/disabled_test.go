@@ -195,7 +195,7 @@ func TestRequestHandler(t *testing.T) {
 	handler.RequestMetaHeader([]byte{})
 	handler.RequestMetaHeaderByNonce(0)
 	handler.RequestShardHeaderByNonce(0, 0)
-	handler.RequestTransaction(0, [][]byte{})
+	handler.RequestTransactions(0, [][]byte{})
 	handler.RequestUnsignedTransactions(0, [][]byte{})
 	handler.RequestRewardTransactions(0, [][]byte{})
 	handler.RequestMiniBlock(0, []byte{})

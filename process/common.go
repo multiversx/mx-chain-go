@@ -791,18 +791,44 @@ func GetHeader(
 }
 
 // UnmarshalHeader unmarshalls a block header
-func UnmarshalHeader(shardId uint32, marshalizer marshal.Marshalizer, headerBuffer []byte) (data.HeaderHandler, error) {
+func UnmarshalHeader(shardId uint32, marshaller marshal.Marshalizer, headerBuffer []byte) (data.HeaderHandler, error) {
 	if shardId == core.MetachainShardId {
-		return UnmarshalMetaHeader(marshalizer, headerBuffer)
+		return UnmarshalMetaHeader(marshaller, headerBuffer)
 	} else {
-		return UnmarshalShardHeader(marshalizer, headerBuffer)
+		return UnmarshalShardHeader(marshaller, headerBuffer)
 	}
 }
 
 // UnmarshalMetaHeader unmarshalls a meta header
-func UnmarshalMetaHeader(marshalizer marshal.Marshalizer, headerBuffer []byte) (data.MetaHeaderHandler, error) {
+func UnmarshalMetaHeader(marshaller marshal.Marshalizer, headerBuffer []byte) (data.MetaHeaderHandler, error) {
+	hdr, err := UnmarshalMetaHeaderV3(marshaller, headerBuffer)
+	if err == nil {
+		return hdr, nil
+	}
+
+	return UnmarshalMetaHeaderV1(marshaller, headerBuffer)
+}
+
+// UnmarshalMetaHeaderV3 unmarshalls a meta header v3
+func UnmarshalMetaHeaderV3(marshaller marshal.Marshalizer, headerBuffer []byte) (data.MetaHeaderHandler, error) {
+	header := &block.MetaBlockV3{}
+	err := marshaller.Unmarshal(header, headerBuffer)
+	if err != nil {
+		return nil, err
+	}
+
+	// this should not be nil for meta header v2
+	if header.GetLastExecutionResult() == nil {
+		return nil, ErrInvalidHeader
+	}
+
+	return header, nil
+}
+
+// UnmarshalMetaHeaderV1 unmarshalls a meta header v1
+func UnmarshalMetaHeaderV1(marshaller marshal.Marshalizer, headerBuffer []byte) (data.MetaHeaderHandler, error) {
 	header := &block.MetaBlock{}
-	err := marshalizer.Unmarshal(header, headerBuffer)
+	err := marshaller.Unmarshal(header, headerBuffer)
 	if err != nil {
 		return nil, err
 	}
@@ -811,14 +837,34 @@ func UnmarshalMetaHeader(marshalizer marshal.Marshalizer, headerBuffer []byte) (
 }
 
 // UnmarshalShardHeader unmarshalls a shard header
-func UnmarshalShardHeader(marshalizer marshal.Marshalizer, hdrBuff []byte) (data.ShardHeaderHandler, error) {
-	hdr, err := UnmarshalShardHeaderV2(marshalizer, hdrBuff)
+func UnmarshalShardHeader(marshaller marshal.Marshalizer, hdrBuff []byte) (data.ShardHeaderHandler, error) {
+	hdr, err := UnmarshalShardHeaderV3(marshaller, hdrBuff)
 	if err == nil {
 		return hdr, nil
 	}
 
-	hdr, err = UnmarshalShardHeaderV1(marshalizer, hdrBuff)
-	return hdr, err
+	hdr, err = UnmarshalShardHeaderV2(marshaller, hdrBuff)
+	if err == nil {
+		return hdr, nil
+	}
+
+	return UnmarshalShardHeaderV1(marshaller, hdrBuff)
+}
+
+// UnmarshalShardHeaderV3 unmarshalls a header with version 3
+func UnmarshalShardHeaderV3(marshaller marshal.Marshalizer, hdrBuff []byte) (data.ShardHeaderHandler, error) {
+	hdrV3 := &block.HeaderV3{}
+	err := marshaller.Unmarshal(hdrV3, hdrBuff)
+	if err != nil {
+		return nil, err
+	}
+
+	// this should not be nil for shard header v3
+	if hdrV3.GetLastExecutionResult() == nil {
+		return nil, ErrInvalidHeader
+	}
+
+	return hdrV3, nil
 }
 
 // UnmarshalShardHeaderV2 unmarshalls a header with version 2
@@ -962,4 +1008,61 @@ func CheckIfIndexesAreOutOfBound(
 	}
 
 	return nil
+}
+
+// SetBaseExecutionResult sets the last notarized base execution result in the execution results tracker
+func SetBaseExecutionResult(ert ExecutionResultsTracker, blockChain data.ChainHandler) error {
+	if check.IfNil(blockChain) {
+		return ErrNilBlockChain
+	}
+	if check.IfNil(ert) {
+		return ErrNilExecutionResultsTracker
+	}
+
+	currentBlock := blockChain.GetCurrentBlockHeader()
+	if currentBlock == nil || !currentBlock.IsHeaderV3() {
+		return nil
+	}
+
+	lastNotarizedResult := currentBlock.GetLastExecutionResultHandler()
+	if check.IfNil(lastNotarizedResult) {
+		return ErrNilLastExecutionResultHandler
+	}
+
+	var lastBaseExecutionResult data.BaseExecutionResultHandler
+	switch lastNotarizedBaseResult := lastNotarizedResult.(type) {
+	case data.LastShardExecutionResultHandler:
+		lastBaseExecutionResult = lastNotarizedBaseResult.GetExecutionResultHandler()
+	case data.LastMetaExecutionResultHandler:
+		lastBaseExecutionResult = lastNotarizedBaseResult.GetExecutionResultHandler()
+	default:
+		return ErrWrongTypeAssertion
+	}
+
+	if check.IfNil(lastBaseExecutionResult) {
+		return ErrNilBaseExecutionResult
+	}
+
+	return ert.SetLastNotarizedResult(lastBaseExecutionResult)
+}
+
+// SeparateBodyByType creates a map of bodies according to type
+func SeparateBodyByType(body *block.Body) map[block.Type]*block.Body {
+	separatedBodies := make(map[block.Type]*block.Body)
+	for i := 0; i < len(body.MiniBlocks); i++ {
+		mb := body.MiniBlocks[i]
+
+		separatedMbType := mb.Type
+		if mb.Type == block.InvalidBlock {
+			separatedMbType = block.TxBlock
+		}
+
+		if _, ok := separatedBodies[separatedMbType]; !ok {
+			separatedBodies[separatedMbType] = &block.Body{}
+		}
+
+		separatedBodies[separatedMbType].MiniBlocks = append(separatedBodies[separatedMbType].MiniBlocks, mb)
+	}
+
+	return separatedBodies
 }

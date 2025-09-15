@@ -1,9 +1,10 @@
 package process
 
 import (
-	"github.com/multiversx/mx-chain-go/ntp"
 	"math/big"
 	"time"
+
+	"github.com/multiversx/mx-chain-go/ntp"
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data"
@@ -601,7 +602,7 @@ type RequestHandler interface {
 	RequestMetaHeader(hash []byte)
 	RequestMetaHeaderByNonce(nonce uint64)
 	RequestShardHeaderByNonce(shardID uint32, nonce uint64)
-	RequestTransaction(destShardID uint32, txHashes [][]byte)
+	RequestTransactions(destShardID uint32, txHashes [][]byte)
 	RequestUnsignedTransactions(destShardID uint32, scrHashes [][]byte)
 	RequestRewardTransactions(destShardID uint32, txHashes [][]byte)
 	RequestMiniBlock(destShardID uint32, miniblockHash []byte)
@@ -915,6 +916,7 @@ type BlockTracker interface {
 	RemoveLastNotarizedHeaders()
 	RestoreToGenesis()
 	ShouldAddHeader(headerHandler data.HeaderHandler) bool
+	ComputeOwnShardStuck(lastExecutionResultsInfo data.BaseExecutionResultHandler, currentNonce uint64)
 	IsInterfaceNil() bool
 }
 
@@ -1449,5 +1451,51 @@ type ProofsPool interface {
 	AddProof(headerProof data.HeaderProofHandler) bool
 	HasProof(shardID uint32, headerHash []byte) bool
 	IsProofInPoolEqualTo(headerProof data.HeaderProofHandler) bool
+	IsInterfaceNil() bool
+}
+
+// GasComputation defines a component able to select the maximum number of outgoing transactions and incoming mini blocks
+// in order to fill the block in respect with the gas limits
+type GasComputation interface {
+	CheckIncomingMiniBlocks(
+		miniBlocks []data.MiniBlockHeaderHandler,
+		transactions map[string][]data.TransactionHandler,
+	) (int, int, error)
+	CheckOutgoingTransactions(transactions []data.TransactionHandler) ([]data.TransactionHandler, error)
+	GetLastMiniBlockIndexIncluded() int
+	TotalGasConsumed() uint64
+	DecreaseIncomingLimit()
+	DecreaseOutgoingLimit()
+	ResetIncomingLimit()
+	ResetOutgoingLimit()
+	Reset()
+	IsInterfaceNil() bool
+}
+
+// ShardCoordinator defines what a shard state coordinator should hold
+type ShardCoordinator interface {
+	SelfId() uint32
+	ComputeId(address []byte) uint32
+	IsInterfaceNil() bool
+}
+
+// ExecutionResultsTracker is the interface that defines the methods for tracking execution results
+type ExecutionResultsTracker interface {
+	AddExecutionResult(executionResult data.ExecutionResultHandler) error
+	GetPendingExecutionResults() ([]data.ExecutionResultHandler, error)
+	GetPendingExecutionResultByHash(hash []byte) (data.ExecutionResultHandler, error)
+	GetPendingExecutionResultByNonce(nonce uint64) (data.ExecutionResultHandler, error)
+	GetLastNotarizedExecutionResult() (data.BaseExecutionResultHandler, error)
+	SetLastNotarizedResult(executionResult data.BaseExecutionResultHandler) error
+	IsInterfaceNil() bool
+}
+
+// BlockDataRequester defines the methods needed by the processor to request missing data
+type BlockDataRequester interface {
+	RequestBlockTransactions(body *block.Body)
+	RequestMiniBlocksAndTransactions(header data.HeaderHandler)
+	GetFinalCrossMiniBlockInfoAndRequestMissing(header data.HeaderHandler) []*data.MiniBlockInfo
+	IsDataPreparedForProcessing(haveTime func() time.Duration) error
+	Reset()
 	IsInterfaceNil() bool
 }

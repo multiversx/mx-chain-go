@@ -10,13 +10,12 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/txDataBuilder"
 	"github.com/multiversx/mx-chain-vm-go/mock/contracts"
 	"github.com/multiversx/mx-chain-vm-go/testcommon"
-	test "github.com/multiversx/mx-chain-vm-go/testcommon"
 	"github.com/stretchr/testify/require"
 )
 
 func TestExecuteOnDestCtx_BlockchainHook(t *testing.T) {
 	if testing.Short() {
-		t.Skip("this is not a short test")
+		t.Skip("this is not a short testscommon")
 	}
 
 	net := integrationTests.NewTestNetworkSized(t, 1, 1, 1)
@@ -51,12 +50,12 @@ func TestExecuteOnDestCtx_BlockchainHook(t *testing.T) {
 		t, net,
 		node.VMContainer,
 		[][]byte{factory.WasmVirtualMachine, fakeVMType},
-		test.CreateMockContract(parentAddress).
+		testcommon.CreateMockContract(parentAddress).
 			WithVMType(factory.WasmVirtualMachine).
 			WithBalance(testConfig.ParentBalance).
 			WithConfig(testConfig).
 			WithMethods(contracts.ExecOnDestCtxParentMock),
-		test.CreateMockContract(childAddress).
+		testcommon.CreateMockContract(childAddress).
 			WithVMType(fakeVMType).
 			WithBalance(testConfig.ChildBalance).
 			WithConfig(testConfig).
@@ -80,7 +79,7 @@ func TestExecuteOnDestCtx_BlockchainHook(t *testing.T) {
 	childHandler, err := net.NodesSharded[0][0].BlockchainHook.GetUserAccount(childAddress)
 	require.Nil(t, err)
 
-	childValue, _, err := childHandler.AccountDataHandler().RetrieveValue(test.ChildKey)
+	childValue, _, err := childHandler.AccountDataHandler().RetrieveValue(testcommon.ChildKey)
 	require.Nil(t, err)
-	require.Equal(t, test.ChildData, childValue)
+	require.Equal(t, testcommon.ChildData, childValue)
 }

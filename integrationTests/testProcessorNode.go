@@ -36,6 +36,8 @@ import (
 	"github.com/multiversx/mx-chain-vm-common-go/parsers"
 	wasmConfig "github.com/multiversx/mx-chain-vm-go/config"
 
+	"github.com/multiversx/mx-chain-go/process/block/headerForBlock"
+
 	nodeFactory "github.com/multiversx/mx-chain-go/cmd/node/factory"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/common/enablers"
@@ -78,7 +80,6 @@ import (
 	"github.com/multiversx/mx-chain-go/process/block/processedMb"
 	"github.com/multiversx/mx-chain-go/process/coordinator"
 	"github.com/multiversx/mx-chain-go/process/economics"
-	"github.com/multiversx/mx-chain-go/process/factory"
 	procFactory "github.com/multiversx/mx-chain-go/process/factory"
 	"github.com/multiversx/mx-chain-go/process/factory/interceptorscontainer"
 	metaProcess "github.com/multiversx/mx-chain-go/process/factory/metachain"
@@ -357,21 +358,23 @@ type TestProcessorNode struct {
 	RequestHandler                   process.RequestHandler
 	WasmVMChangeLocker               common.Locker
 
-	InterimProcContainer   process.IntermediateProcessorContainer
-	TxProcessor            process.TransactionProcessor
-	TxCoordinator          process.TransactionCoordinator
-	ScrForwarder           process.IntermediateTransactionHandler
-	BlockchainHook         *hooks.BlockChainHookImpl
-	VMFactory              process.VirtualMachinesContainerFactory
-	VMContainer            process.VirtualMachinesContainer
-	ArgsParser             process.ArgumentsParser
-	ScProcessor            process.SmartContractProcessorFacade
-	RewardsProcessor       process.RewardTransactionProcessor
-	PreProcessorsContainer process.PreProcessorsContainer
-	GasHandler             process.GasHandler
-	FeeAccumulator         process.TransactionFeeHandler
-	SmartContractParser    genesis.InitialSmartContractParser
-	SystemSCFactory        vm.SystemSCContainerFactory
+	InterimProcContainer          process.IntermediateProcessorContainer
+	TxProcessor                   process.TransactionProcessor
+	TxCoordinator                 process.TransactionCoordinator
+	ScrForwarder                  process.IntermediateTransactionHandler
+	BlockchainHook                *hooks.BlockChainHookImpl
+	VMFactory                     process.VirtualMachinesContainerFactory
+	VMContainer                   process.VirtualMachinesContainer
+	ArgsParser                    process.ArgumentsParser
+	ScProcessor                   process.SmartContractProcessorFacade
+	RewardsProcessor              process.RewardTransactionProcessor
+	PreProcessorsFactory          process.PreProcessorsContainerFactory
+	PreProcessorsRequestContainer process.PreProcessorsContainer
+	PreProcessorsContainer        process.PreProcessorsContainer
+	GasHandler                    process.GasHandler
+	FeeAccumulator                process.TransactionFeeHandler
+	SmartContractParser           genesis.InitialSmartContractParser
+	SystemSCFactory               vm.SystemSCContainerFactory
 
 	ForkDetector             process.ForkDetector
 	BlockProcessor           process.BlockProcessor
@@ -1836,7 +1839,22 @@ func (tpn *TestProcessorNode) initInnerProcessors(gasMap map[string]map[string]u
 	if err != nil {
 		panic(err.Error())
 	}
+	tpn.PreProcessorsFactory = fact
 	tpn.PreProcessorsContainer, _ = fact.Create()
+	tpn.PreProcessorsRequestContainer, _ = fact.Create()
+
+	blockDataRequesterArgs := coordinator.BlockDataRequestArgs{
+		RequestHandler:      tpn.RequestHandler,
+		MiniBlockPool:       tpn.DataPool.MiniBlocks(),
+		PreProcessors:       tpn.PreProcessorsContainer,
+		ShardCoordinator:    tpn.ShardCoordinator,
+		EnableEpochsHandler: tpn.EnableEpochsHandler,
+	}
+
+	blockDataRequester, err := coordinator.NewBlockDataRequester(blockDataRequesterArgs)
+	if err != nil {
+		panic(err.Error())
+	}
 
 	argsTransactionCoordinator := coordinator.ArgTransactionCoordinator{
 		Hasher:                       TestHasher,
@@ -1844,7 +1862,6 @@ func (tpn *TestProcessorNode) initInnerProcessors(gasMap map[string]map[string]u
 		ShardCoordinator:             tpn.ShardCoordinator,
 		Accounts:                     tpn.AccntState,
 		MiniBlockPool:                tpn.DataPool.MiniBlocks(),
-		RequestHandler:               tpn.RequestHandler,
 		PreProcessors:                tpn.PreProcessorsContainer,
 		InterProcessors:              tpn.InterimProcContainer,
 		GasHandler:                   tpn.GasHandler,
@@ -1859,6 +1876,7 @@ func (tpn *TestProcessorNode) initInnerProcessors(gasMap map[string]map[string]u
 		DoubleTransactionsDetector:   &testscommon.PanicDoubleTransactionsDetector{},
 		ProcessedMiniBlocksTracker:   processedMiniBlocksTracker,
 		TxExecutionOrderHandler:      tpn.TxExecutionOrderHandler,
+		BlockDataRequester:           blockDataRequester,
 	}
 	tpn.TxCoordinator, _ = coordinator.NewTransactionCoordinator(argsTransactionCoordinator)
 	scheduledTxsExecutionHandler.SetTransactionCoordinator(tpn.TxCoordinator)
@@ -2116,6 +2134,20 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors(gasMap map[string]map[stri
 		},
 	)
 	tpn.PreProcessorsContainer, _ = fact.Create()
+	tpn.PreProcessorsRequestContainer, _ = fact.Create()
+
+	blockDataRequesterArgs := coordinator.BlockDataRequestArgs{
+		RequestHandler:      tpn.RequestHandler,
+		MiniBlockPool:       tpn.DataPool.MiniBlocks(),
+		PreProcessors:       tpn.PreProcessorsContainer,
+		ShardCoordinator:    tpn.ShardCoordinator,
+		EnableEpochsHandler: tpn.EnableEpochsHandler,
+	}
+
+	blockDataRequester, err := coordinator.NewBlockDataRequester(blockDataRequesterArgs)
+	if err != nil {
+		panic(err.Error())
+	}
 
 	argsTransactionCoordinator := coordinator.ArgTransactionCoordinator{
 		Hasher:                       TestHasher,
@@ -2123,7 +2155,6 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors(gasMap map[string]map[stri
 		ShardCoordinator:             tpn.ShardCoordinator,
 		Accounts:                     tpn.AccntState,
 		MiniBlockPool:                tpn.DataPool.MiniBlocks(),
-		RequestHandler:               tpn.RequestHandler,
 		PreProcessors:                tpn.PreProcessorsContainer,
 		InterProcessors:              tpn.InterimProcContainer,
 		GasHandler:                   tpn.GasHandler,
@@ -2138,6 +2169,7 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors(gasMap map[string]map[stri
 		DoubleTransactionsDetector:   &testscommon.PanicDoubleTransactionsDetector{},
 		ProcessedMiniBlocksTracker:   processedMiniBlocksTracker,
 		TxExecutionOrderHandler:      tpn.TxExecutionOrderHandler,
+		BlockDataRequester:           blockDataRequester,
 	}
 	tpn.TxCoordinator, _ = coordinator.NewTransactionCoordinator(argsTransactionCoordinator)
 	scheduledTxsExecutionHandler.SetTransactionCoordinator(tpn.TxCoordinator)
@@ -2149,7 +2181,7 @@ func (tpn *TestProcessorNode) InitDelegationManager() {
 		return
 	}
 
-	systemVM, err := tpn.VMContainer.Get(factory.SystemVirtualMachine)
+	systemVM, err := tpn.VMContainer.Get(procFactory.SystemVirtualMachine)
 	log.LogIfError(err)
 
 	codeMetaData := &vmcommon.CodeMetadata{
@@ -2215,7 +2247,7 @@ func (tpn *TestProcessorNode) addMockVm(blockchainHook vmcommon.BlockchainHook) 
 	mockVM, _ := mock.NewOneSCExecutorMockVM(blockchainHook, TestHasher)
 	mockVM.GasForOperation = OpGasValueForMockVm
 
-	_ = tpn.VMContainer.Add(factory.InternalTestingVM, mockVM)
+	_ = tpn.VMContainer.Add(procFactory.InternalTestingVM, mockVM)
 }
 
 func (tpn *TestProcessorNode) initBlockProcessor() {
@@ -2271,6 +2303,35 @@ func (tpn *TestProcessorNode) initBlockProcessor() {
 		AppStatusHandlerField: &statusHandlerMock.AppStatusHandlerStub{},
 	}
 
+	argsHeadersForBlock := headerForBlock.ArgHeadersForBlock{
+		DataPool:            tpn.DataPool,
+		RequestHandler:      tpn.RequestHandler,
+		EnableEpochsHandler: tpn.EnableEpochsHandler,
+		ShardCoordinator:    tpn.ShardCoordinator,
+		BlockTracker:        tpn.BlockTracker,
+		TxCoordinator:       tpn.TxCoordinator,
+		RoundHandler:        tpn.RoundHandler,
+		ExtraDelayForRequestBlockInfoInMilliseconds: 100,
+		GenesisNonce: tpn.GenesisBlocks[tpn.ShardCoordinator.SelfId()].GetNonce(),
+	}
+	hdrsForBlock, err := headerForBlock.NewHeadersForBlock(argsHeadersForBlock)
+	if err != nil {
+		log.Error("initBlockProcessor NewHeadersForBlock", "error", err)
+	}
+
+	blockDataRequesterArgs := coordinator.BlockDataRequestArgs{
+		RequestHandler:      tpn.RequestHandler,
+		MiniBlockPool:       tpn.DataPool.MiniBlocks(),
+		PreProcessors:       tpn.PreProcessorsRequestContainer,
+		ShardCoordinator:    tpn.ShardCoordinator,
+		EnableEpochsHandler: tpn.EnableEpochsHandler,
+	}
+	// second instance for proposal missing data fetching to avoid interferences
+	proposalBlockDataRequester, err := coordinator.NewBlockDataRequester(blockDataRequesterArgs)
+	if err != nil {
+		log.LogIfError(err)
+	}
+
 	argumentsBase := block.ArgBaseProcessor{
 		CoreComponents:       coreComponents,
 		DataComponents:       dataComponents,
@@ -2301,6 +2362,8 @@ func (tpn *TestProcessorNode) initBlockProcessor() {
 		BlockProcessingCutoffHandler: &testscommon.BlockProcessingCutoffStub{},
 		ManagedPeersHolder:           &testscommon.ManagedPeersHolderStub{},
 		SentSignaturesTracker:        &testscommon.SentSignatureTrackerStub{},
+		HeadersForBlock:              hdrsForBlock,
+		BlockDataRequester:           proposalBlockDataRequester,
 	}
 
 	if check.IfNil(tpn.EpochStartNotifier) {
@@ -2371,7 +2434,7 @@ func (tpn *TestProcessorNode) initBlockProcessor() {
 		}
 		epochEconomics, _ := metachain.NewEndOfEpochEconomicsDataCreator(argsEpochEconomics)
 
-		systemVM, errGet := tpn.VMContainer.Get(factory.SystemVirtualMachine)
+		systemVM, errGet := tpn.VMContainer.Get(procFactory.SystemVirtualMachine)
 		if errGet != nil {
 			log.Error("initBlockProcessor tpn.VMContainer.Get", "error", errGet)
 		}
