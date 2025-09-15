@@ -208,3 +208,30 @@ Transactions from the same sender are organized based on specific rules to ensur
 2. **Gas price descending (same nonce)**: if multiple transactions share the same nonce, they are sorted by their gas prices in descending order - transactions offering higher gas prices are prioritized. This mechanism allows one to easily override a pending transaction with a higher gas price.
 
 3. **Hash ascending (same nonce and gas price)**: for transactions that have identical nonce and gas price, the tie is broken by sorting them based on their transaction hash in ascending order. This provides a consistent and deterministic ordering when other factors are equal. While this ordering isn't a critical aspect of the mempool's operation, it ensures logical consistency.
+
+### Transactions removal & eviction
+
+### Paragraph 1: happy flow removal, after processing
+
+Once a block is executed, the processed transactions are removed from both `TxCache` and `CrossTxCache`; see callers of `shardedTxPool.RemoveSetOfDataFromPool()`.
+
+For `TxCache`, removing a transaction also triggers the removal of transactions with nonces lower or equal to the given transaction's nonce.
+
+### Paragraph 2: exotic flow removal, after rollbacks
+
+(?) Same behavior as for paragraph 1 (?)
+
+### Paragraph 3: global eviction
+
+`TxCache.AddTx()` never refuses a transaction (though, see paragraph 4). **Before accepting** the incoming transaction, `TxCache` performs an eviction across the whole cache (if necessary), which removes the least likely to select transactions (higher nonces, lower price per unit).
+
+On the other hand, `CrossTxCache.AddTx()` refuses transactions if capacity is exceeded - when the cache is full of imunized transactions. Though, note that this behaviour is _slightly imprecise_, since the `CrossTxCache` is backed by a set of chunks of equal capacity, in which the transactions are _almost_ uniformly distributed.
+
+### Paragraph 4: eviction at the sender level
+
+`TxCache.AddTx()`, **after accepting** the incoming transaction, performs a secondary eviction, at the sender level: exceeding transactions are removed; see `txListForSender.applySizeConstraints()`.
+
+### Paragraph 5: auto-clean mechanism
+
+### Paragraph 6: immunized transactions
+
