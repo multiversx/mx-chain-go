@@ -38,7 +38,7 @@ func initNodesWithTestSigner(
 		consensusType,
 		1,
 		enableEpochsConfig,
-		false,
+		100,
 	)
 
 	time.Sleep(p2pBootstrapDelay)

@@ -6,20 +6,15 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-go/txcache"
 
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
-	"github.com/multiversx/mx-chain-go/storage/txcache"
 )
-
-// SortedTransactionsProvider defines the public API of the transactions cache
-type SortedTransactionsProvider interface {
-	GetSortedTransactions(session txcache.SelectionSession) []*txcache.WrappedTransaction
-	IsInterfaceNil() bool
-}
 
 // TxCache defines the functionality for the transactions cache
 type TxCache interface {
-	SelectTransactions(session txcache.SelectionSession, gasRequested uint64, maxNum int, selectionLoopMaximumDuration time.Duration) ([]*txcache.WrappedTransaction, uint64)
+	SelectTransactions(session txcache.SelectionSession, options common.TxSelectionOptions) ([]*txcache.WrappedTransaction, uint64)
 	IsInterfaceNil() bool
 }
 
