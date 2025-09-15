@@ -28,7 +28,6 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/shardingMocks"
 
-	//"github.com/multiversx/mx-chain-go/testscommon/statusHandler"
 	statusHandlerMock "github.com/multiversx/mx-chain-go/testscommon/statusHandler"
 )
 
@@ -1122,7 +1121,7 @@ func TestSubroundStartRound_GenerateNextConsensusGroupShouldReturnErr(t *testing
 
 func TestSubroundStartRound_ConsensusMetricsResetAveragesShouldWork(t *testing.T) {
 	t.Parallel()
-	_ = logger.SetLogLevel("*:DEBUG")
+
 	container := consensus.InitConsensusCore()
 
 	sr := buildDefaultSubround(container)

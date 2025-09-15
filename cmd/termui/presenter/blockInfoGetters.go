@@ -57,20 +57,22 @@ func (psh *PresenterStatusHandler) GetHighestFinalBlock() uint64 {
 	return psh.getFromCacheAsUint64(common.MetricHighestFinalBlock)
 }
 
-func (psh *PresenterStatusHandler) GetBlockReceived() uint64 {
+// GetDurationProposedBlockReceivedOrSentFromRoundStart implements will return the metrics containing time taken to receive a proposed block body since the round started
+func (psh *PresenterStatusHandler) GetDurationProposedBlockReceivedOrSentFromRoundStart() uint64 {
 	return psh.getFromCacheAsUint64(common.MetricReceivedProposedBlockBody)
 }
 
-func (psh *PresenterStatusHandler) GetBlockSigned() uint64 {
+// GetBlockSigned implements will return the metrics containing time taken to receive signatures for a block since the block was received
+func (psh *PresenterStatusHandler) GetDurationProofReceivedFromProposedBlockReceivedOrSent() uint64 {
 	return psh.getFromCacheAsUint64(common.MetricReceivedSignatures)
 }
 
-// GetAvgBlockReceived implements view.Presenter.
-func (psh *PresenterStatusHandler) GetAvgBlockReceived() uint64 {
+// GetAvgBlockReceived returns the average received proposed block body metric
+func (psh *PresenterStatusHandler) GetAvgDurationProposedBlockReceivedOrSentFromRoundStart() uint64 {
 	return psh.getFromCacheAsUint64(common.MetricAvgReceivedProposedBlockBody)
 }
 
-// GetAvgBlockSigned implements view.Presenter.
-func (psh *PresenterStatusHandler) GetAvgBlockSigned() uint64 {
+// GetAvgBlockSigned returns the average received signatures metric from the time of block body received
+func (psh *PresenterStatusHandler) GetAvgDurationProofReceivedFromProposedBlockReceivedOrSent() uint64 {
 	return psh.getFromCacheAsUint64(common.MetricAvgReceivedSignatures)
 }

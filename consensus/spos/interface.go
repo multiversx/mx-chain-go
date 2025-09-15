@@ -130,6 +130,7 @@ type WorkerHandler interface {
 	GetConsensusMetrics() ConsensusMetricsHandler
 }
 
+// ConsensusMetricsHandler handles the consensus metrics
 type ConsensusMetricsHandler interface {
 	IsInterfaceNil() bool
 	IsProofForCurrentConsensusSet() bool

@@ -11,6 +11,8 @@ import (
 	"github.com/multiversx/mx-chain-go/common"
 )
 
+const conversionFactorToSeconds = 1e9
+
 const (
 	statusSyncing       = "currently syncing"
 	statusSynchronized  = "synchronized"
@@ -77,6 +79,8 @@ func (wr *WidgetsRender) initWidgets() {
 }
 
 func (wr *WidgetsRender) setGrid() {
+	//
+
 	gridLeft := ui.NewGrid()
 
 	gridLeft.Set(
@@ -90,12 +94,15 @@ func (wr *WidgetsRender) setGrid() {
 	colMemoryLoad := ui.NewCol(1.0/2, wr.memoryLoad)
 
 	gridRight := ui.NewGrid()
+
+	progressBarElementRatio := 3.0 / topHeight
+	blockSectionHeightRatio := 1 - 4*progressBarElementRatio
 	gridRight.Set(
-		ui.NewRow(10.0/22, wr.blockInfo),
-		ui.NewRow(3.0/22, colCpuLoad, colMemoryLoad),
-		ui.NewRow(3.0/22, wr.epochLoad),
-		ui.NewRow(3.0/22, wr.networkBytesInEpoch),
-		ui.NewRow(3.0/22, colNetworkSent, colNetworkRecv),
+		ui.NewRow(blockSectionHeightRatio, wr.blockInfo),
+		ui.NewRow(progressBarElementRatio, colCpuLoad, colMemoryLoad),
+		ui.NewRow(progressBarElementRatio, wr.epochLoad),
+		ui.NewRow(progressBarElementRatio, wr.networkBytesInEpoch),
+		ui.NewRow(progressBarElementRatio, colNetworkSent, colNetworkRecv),
 	)
 
 	gridBottom := ui.NewGrid()
@@ -294,7 +301,7 @@ func computeRedundancyStr(redundancyLevel int64, redundancyIsMainActive string) 
 }
 
 func (wr *WidgetsRender) prepareBlockInfo() {
-	// 7 rows and one column
+	// 8 rows and one column
 	numRows := 9
 	rows := make([][]string, numRows)
 
@@ -341,8 +348,8 @@ func (wr *WidgetsRender) prepareBlockInfo() {
 	currentRoundTimestamp := wr.presenter.GetCurrentRoundTimestamp()
 	rows[8] = []string{fmt.Sprintf("Current round timestamp: %d", currentRoundTimestamp)}
 
-	durationStartRoundToSentOrReceivedBlock := float64(wr.presenter.GetBlockReceived()) / 1e9
-	durationSentOrReceivedBlockToReceivedSignatures := float64(wr.presenter.GetBlockSigned()) / 1e9
+	durationStartRoundToSentOrReceivedBlock := float64(wr.presenter.GetDurationProposedBlockReceivedOrSentFromRoundStart()) / conversionFactorToSeconds
+	durationSentOrReceivedBlockToReceivedSignatures := float64(wr.presenter.GetDurationProofReceivedFromProposedBlockReceivedOrSent()) / conversionFactorToSeconds
 
 	rows[6] = []string{
 		fmt.Sprintf("Received proposed block: %.6f sec | Received signatures: %.6f sec",
@@ -350,8 +357,8 @@ func (wr *WidgetsRender) prepareBlockInfo() {
 			durationSentOrReceivedBlockToReceivedSignatures),
 	}
 
-	durationStartRoundToSentOrReceivedBlock = float64(wr.presenter.GetAvgBlockReceived()) / 1e9
-	durationSentOrReceivedBlockToReceivedSignatures = float64(wr.presenter.GetAvgBlockSigned()) / 1e9
+	durationStartRoundToSentOrReceivedBlock = float64(wr.presenter.GetAvgDurationProposedBlockReceivedOrSentFromRoundStart()) / conversionFactorToSeconds
+	durationSentOrReceivedBlockToReceivedSignatures = float64(wr.presenter.GetAvgDurationProofReceivedFromProposedBlockReceivedOrSent()) / conversionFactorToSeconds
 
 	rows[7] = []string{
 		fmt.Sprintf("Avg Received proposed block: %.6f sec | Avg Received signatures: %.6f sec",

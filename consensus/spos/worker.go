@@ -996,6 +996,7 @@ func emptyChannel(ch chan *consensus.Message) int {
 	}
 }
 
+// GetConsensusMetrics returns the consensus metrics handler
 func (wrk *Worker) GetConsensusMetrics() ConsensusMetricsHandler {
 	return wrk.consensusMetrics
 }

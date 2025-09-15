@@ -360,3 +360,11 @@ func (sr *subroundEndRound) GetEquivalentProofSender() string {
 func (sr *subroundEndRound) SendProof() (bool, error) {
 	return sr.sendProof()
 }
+
+func (sr *subroundEndRound) UpdateConsensusMetricsIfNeeded() {
+	sr.updateConsensusMetricsIfNeeded()
+}
+
+func (sr *subroundEndRound) ReceivedProofForConsensusMetrics(proof data.HeaderProofHandler) {
+	sr.receivedProofForConsensusMetrics(proof)
+}

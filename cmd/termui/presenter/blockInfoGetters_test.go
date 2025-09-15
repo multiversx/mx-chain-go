@@ -129,10 +129,10 @@ func TestPresenterStatusHandler_GetBlockReceived(t *testing.T) {
 	t.Parallel()
 
 	proposedBlockMs := uint64(100)
-	//roundstartMs := uint64(50)
+
 	presenterStatusHandler := NewPresenterStatusHandler()
 	presenterStatusHandler.SetUInt64Value(common.MetricReceivedProposedBlockBody, proposedBlockMs)
-	result := presenterStatusHandler.GetBlockReceived()
+	result := presenterStatusHandler.GetDurationProposedBlockReceivedOrSentFromRoundStart()
 	assert.Equal(t, proposedBlockMs, result)
 }
 

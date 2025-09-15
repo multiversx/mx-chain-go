@@ -315,20 +315,20 @@ const MetricNoncesPassedInCurrentEpoch = "erd_nonces_passed_in_current_epoch"
 // 100 meaning that the block has been received in the last moment of the round)
 const MetricReceivedProposedBlock = "erd_consensus_received_proposed_block"
 
-// MetricReceivedProposedBlock is the metric that specifies the moment from round start when the received block has reached the
-// current node.
+// MetricReceivedProposedBlockBody is the metric that specifies the delay in nanoseconds from the start of the current round until
+// the time the proposed block body has been sent or has reached the current node until signatures were received.
 const MetricReceivedProposedBlockBody = "erd_consensus_received_sent_proposed_block_body"
 
-// MetricReceivedSignatures is the metric that specifies the moment from the time the block body has been sent or has reached the
-// current node until the signatures were received.
+// MetricReceivedSignatures is the metric that specifies the delay in nanoseconds between the time the proposed block body has been sent
+// or has reached the current node until the signatures were received.
 const MetricReceivedSignatures = "erd_consensus_received_sent_signatures"
 
-// MetricReceivedProposedBlock is the metric that specifies the moment from round start when the received block has reached the
-// current node.
+// MetricAvgReceivedProposedBlockBody is the metric that specifies the average delay in nanoseconds from the start of the round until
+// the time the proposed block has been sent or has reached the current node until signatures were received.
 const MetricAvgReceivedProposedBlockBody = "erd_consensus_average_received_sent_proposed_block_body"
 
-// MetricReceivedSignatures is the metric that specifies the moment from the time the block body has been sent or has reached the
-// current node until signatures were received.
+// MetricAvgReceivedSignatures is the metric that specifies the average delay in nanoseconds between the time the proposed block
+// has been sent or has reached the current node until signatures were received.
 const MetricAvgReceivedSignatures = "erd_consensus_average_received_sent_signatures"
 
 // MetricCreatedProposedBlock is the metric that specifies the percent of the block subround used for header and body

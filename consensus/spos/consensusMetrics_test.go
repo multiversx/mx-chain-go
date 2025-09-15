@@ -5,13 +5,11 @@ import (
 
 	"github.com/multiversx/mx-chain-go/common"
 	statusHandlerMock "github.com/multiversx/mx-chain-go/testscommon/statusHandler"
-	logger "github.com/multiversx/mx-chain-logger-go"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestConsensusMetrics_NewConsensusMetrics(t *testing.T) {
 	t.Parallel()
-	_ = logger.SetLogLevel("*:TRACE")
 
 	t.Run("nil appStatusHandler", func(t *testing.T) {
 		t.Parallel()
@@ -31,7 +29,6 @@ func TestConsensusMetrics_NewConsensusMetrics(t *testing.T) {
 
 func TestConsensusMetrics_ResetAverages(t *testing.T) {
 	t.Parallel()
-	_ = logger.SetLogLevel("*:TRACE")
 
 	t.Run("normal operation", func(t *testing.T) {
 		t.Parallel()
@@ -58,7 +55,6 @@ func TestConsensusMetrics_ResetAverages(t *testing.T) {
 
 func TestConsensusMetrics_resetInstanceValues(t *testing.T) {
 	t.Parallel()
-	_ = logger.SetLogLevel("*:TRACE")
 
 	t.Run("normal operation", func(t *testing.T) {
 		t.Parallel()
@@ -83,7 +79,6 @@ func TestConsensusMetrics_resetInstanceValues(t *testing.T) {
 
 func TestConsensusMetrics_SetBlockHeaderAndBodyReceived(t *testing.T) {
 	t.Parallel()
-	_ = logger.SetLogLevel("*:TRACE")
 
 	t.Run("with header received first", func(t *testing.T) {
 		t.Parallel()
@@ -164,7 +159,7 @@ func TestConsensusMetrics_SetBlockHeaderAndBodyReceived(t *testing.T) {
 
 func TestConsensusMetrics_SetProof(t *testing.T) {
 	t.Parallel()
-	_ = logger.SetLogLevel("*:TRACE")
+
 	t.Run("with no header or body received", func(t *testing.T) {
 		t.Parallel()
 		appStatusHandler := statusHandlerMock.NewAppStatusHandlerMock()
@@ -313,8 +308,8 @@ func TestConsensusMetrics_SetProof(t *testing.T) {
 }
 
 func TestConsensusMetrics_UpdateAverages(t *testing.T) {
-	//t.Parallel()
-	_ = logger.SetLogLevel("*:TRACE")
+	t.Parallel()
+
 	appStatusHandler := statusHandlerMock.NewAppStatusHandlerMock()
 	cm := NewConsensusMetrics(appStatusHandler)
 
@@ -335,7 +330,6 @@ func TestConsensusMetrics_UpdateAverages(t *testing.T) {
 
 func TestConsensusMetrics_IsProofSet(t *testing.T) {
 	t.Parallel()
-	_ = logger.SetLogLevel("*:TRACE")
 
 	appStatusHandler := statusHandlerMock.NewAppStatusHandlerMock()
 	cm := NewConsensusMetrics(appStatusHandler)
