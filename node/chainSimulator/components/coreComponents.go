@@ -38,6 +38,7 @@ import (
 	hashingFactory "github.com/multiversx/mx-chain-core-go/hashing/factory"
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	marshalFactory "github.com/multiversx/mx-chain-core-go/marshal/factory"
+	commonConfigs "github.com/multiversx/mx-chain-go/common/configs"
 )
 
 type coreComponentsHolder struct {
@@ -289,6 +290,21 @@ func CreateCoreComponents(args ArgsCoreComponentsHolder) (*coreComponentsHolder,
 		return nil, err
 	}
 	instance.fieldsSizeChecker = fchecker
+
+	instance.processConfigsHandler, err = commonConfigs.NewProcessConfigsHandler(
+		args.Config.GeneralSettings.ProcessConfigsByEpoch,
+		args.Config.GeneralSettings.ProcessConfigsByRound,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	instance.epochStartConfigsHandler, err = commonConfigs.NewEpochStartConfigsHandler(
+		args.Config.GeneralSettings.EpochStartConfigsByEpoch,
+	)
+	if err != nil {
+		return nil, err
+	}
 
 	instance.collectClosableComponents()
 
