@@ -118,6 +118,11 @@ func (cache *TxCache) SelectTransactions(
 		return nil, 0, errNilSelectionSession
 	}
 
+	if check.IfNil(blockchainInfo) {
+		log.Error("TxCache.GetVirtualNonce", "err", errNilBlockchainInfo)
+		return nil, 0, errNilBlockchainInfo
+	}
+
 	stopWatch := core.NewStopWatch()
 	stopWatch.Start("selection")
 
@@ -157,6 +162,7 @@ func (cache *TxCache) SelectTransactions(
 }
 
 // GetVirtualNonce returns the nonce of the virtual record of an account
+// The blockchainInfo should contain the hash of the latest executed block, the hash of the last committed block and the nonce of the next proposed block
 func (cache *TxCache) GetVirtualNonce(
 	address []byte,
 	session SelectionSession,
@@ -167,21 +173,23 @@ func (cache *TxCache) GetVirtualNonce(
 		return 0, errNilSelectionSession
 	}
 
-	stopWatch := core.NewStopWatch()
-	stopWatch.Start("selection")
-
-	rootHash, err := session.GetRootHash()
-	if err != nil {
-		log.Error("TxCache.GetVirtualNonce", "err", err)
-		return 0, err
+	if check.IfNil(blockchainInfo) {
+		log.Error("TxCache.GetVirtualNonce", "err", errNilBlockchainInfo)
+		return 0, errNilBlockchainInfo
 	}
 
-	logSelect.Debug(
-		"TxCache.GetVirtualNonce",
-		"address", address,
-		"current root hash", rootHash,
-	)
+	if rootHash, err := session.GetRootHash(); err != nil {
+		log.Error("TxCache.GetVirtualNonce", "err", err)
+		return 0, err
+	} else {
+		logSelect.Debug(
+			"TxCache.GetVirtualNonce",
+			"address", address,
+			"current root hash", rootHash,
+		)
+	}
 
+	// TODO find another way to get the virtual nonce in order to avoid the overhead
 	virtualSession, err := cache.tracker.deriveVirtualSelectionSession(session, blockchainInfo)
 	if err != nil {
 		log.Error("TxCache.GetVirtualNonce: could not derive virtual selection session", "err", err)

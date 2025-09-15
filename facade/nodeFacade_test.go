@@ -12,7 +12,7 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	atomicCore "github.com/multiversx/mx-chain-core-go/core/atomic"
-	nodeData "github.com/multiversx/mx-chain-core-go/data"
+	coreData "github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/alteredAccount"
 	"github.com/multiversx/mx-chain-core-go/data/api"
 	"github.com/multiversx/mx-chain-core-go/data/block"
@@ -65,7 +65,7 @@ func createMockArguments() ArgNodeFacade {
 		AccountsState:    &stateMock.AccountsStub{},
 		PeerState:        &stateMock.AccountsStub{},
 		Blockchain: &testscommon.ChainHandlerStub{
-			GetCurrentBlockHeaderCalled: func() nodeData.HeaderHandler {
+			GetCurrentBlockHeaderCalled: func() coreData.HeaderHandler {
 				return &block.Header{}
 			},
 			GetCurrentBlockRootHashCalled: func() []byte {
@@ -2084,57 +2084,6 @@ func TestNodeFacade_GetTransactionsPoolNonceGapsForSender(t *testing.T) {
 func TestNodeFacade_GetSelectedTransactions(t *testing.T) {
 	t.Parallel()
 
-	t.Run("should return ErrNilCurrentRootHash error", func(t *testing.T) {
-		t.Parallel()
-
-		arg := createMockArguments()
-		arg.Blockchain = &testscommon.ChainHandlerStub{
-			GetCurrentBlockRootHashCalled: func() []byte {
-				return nil
-			},
-		}
-
-		nf, _ := NewNodeFacade(arg)
-		res, err := nf.GetSelectedTransactions()
-		require.Nil(t, res)
-		require.Equal(t, ErrNilCurrentRootHash, err)
-	})
-
-	t.Run("should return ErrNilBlockHeader error", func(t *testing.T) {
-		t.Parallel()
-
-		arg := createMockArguments()
-		arg.Blockchain = &testscommon.ChainHandlerStub{
-			GetCurrentBlockRootHashCalled: func() []byte {
-				return []byte("rootHash1")
-			},
-			GetCurrentBlockHeaderCalled: func() nodeData.HeaderHandler {
-				return nil
-			},
-		}
-
-		nf, _ := NewNodeFacade(arg)
-		res, err := nf.GetSelectedTransactions()
-		require.Nil(t, res)
-		require.Equal(t, ErrNilBlockHeader, err)
-	})
-
-	t.Run("should propagate the error from RecreateTrie", func(t *testing.T) {
-		t.Parallel()
-
-		arg := createMockArguments()
-		arg.AccountsStateAPI = &stateMock.AccountsStub{
-			RecreateTrieCalled: func(options common.RootHashHolder) error {
-				return expectedErr
-			},
-		}
-
-		nf, _ := NewNodeFacade(arg)
-		res, err := nf.GetSelectedTransactions()
-		require.Nil(t, res)
-		require.Equal(t, expectedErr, err)
-	})
-
 	t.Run("should propagate error from ApiResolver", func(t *testing.T) {
 		t.Parallel()
 
@@ -2146,7 +2095,7 @@ func TestNodeFacade_GetSelectedTransactions(t *testing.T) {
 		}
 
 		arg.ApiResolver = &mock.ApiResolverStub{
-			GetSelectedTransactionsCalled: func(accountsAdapter state.AccountsAdapter, selectionOptions common.TxSelectionOptions) (*common.TransactionsSelectionSimulationResult, error) {
+			GetSelectedTransactionsCalled: func(selectionOptions common.TxSelectionOptions, blockchain coreData.ChainHandler, accountsAdapter state.AccountsAdapter) (*common.TransactionsSelectionSimulationResult, error) {
 				return nil, expectedErr
 			},
 		}
@@ -2173,7 +2122,7 @@ func TestNodeFacade_GetSelectedTransactions(t *testing.T) {
 		}
 
 		arg.ApiResolver = &mock.ApiResolverStub{
-			GetSelectedTransactionsCalled: func(accountsAdapter state.AccountsAdapter, selectionOptions common.TxSelectionOptions) (*common.TransactionsSelectionSimulationResult, error) {
+			GetSelectedTransactionsCalled: func(selectionOptions common.TxSelectionOptions, blockchain coreData.ChainHandler, accountsAdapter state.AccountsAdapter) (*common.TransactionsSelectionSimulationResult, error) {
 				return expectedRes, nil
 			},
 		}
@@ -2187,95 +2136,6 @@ func TestNodeFacade_GetSelectedTransactions(t *testing.T) {
 
 func TestNodeFacade_GetVirtualNonce(t *testing.T) {
 	t.Parallel()
-
-	t.Run("should return error from decoding", func(t *testing.T) {
-		t.Parallel()
-
-		arg := createMockArguments()
-		arg.Blockchain = &testscommon.ChainHandlerStub{
-			GetCurrentBlockRootHashCalled: func() []byte {
-				return nil
-			},
-		}
-		arg.Node = &mock.NodeStub{
-			DecodeAddressPubkeyCalled: func(address string) ([]byte, error) {
-				return nil, expectedErr
-			},
-		}
-
-		nf, _ := NewNodeFacade(arg)
-
-		res, err := nf.GetVirtualNonce("address")
-		require.Nil(t, res)
-		require.ErrorContains(t, err, expectedErr.Error())
-	})
-
-	t.Run("should return ErrNilCurrentRootHash error", func(t *testing.T) {
-		t.Parallel()
-
-		arg := createMockArguments()
-		arg.Blockchain = &testscommon.ChainHandlerStub{
-			GetCurrentBlockRootHashCalled: func() []byte {
-				return nil
-			},
-		}
-		arg.Node = &mock.NodeStub{
-			DecodeAddressPubkeyCalled: func(address string) ([]byte, error) {
-				return []byte("address"), nil
-			},
-		}
-
-		nf, _ := NewNodeFacade(arg)
-
-		res, err := nf.GetVirtualNonce("address")
-		require.Nil(t, res)
-		require.Equal(t, ErrNilCurrentRootHash, err)
-	})
-
-	t.Run("should return ErrNilBlockHeader error", func(t *testing.T) {
-		t.Parallel()
-
-		arg := createMockArguments()
-		arg.Blockchain = &testscommon.ChainHandlerStub{
-			GetCurrentBlockRootHashCalled: func() []byte {
-				return []byte("rootHash1")
-			},
-			GetCurrentBlockHeaderCalled: func() nodeData.HeaderHandler {
-				return nil
-			},
-		}
-		arg.Node = &mock.NodeStub{
-			DecodeAddressPubkeyCalled: func(address string) ([]byte, error) {
-				return []byte("address"), nil
-			},
-		}
-
-		nf, _ := NewNodeFacade(arg)
-		res, err := nf.GetVirtualNonce("address")
-		require.Nil(t, res)
-		require.Equal(t, ErrNilBlockHeader, err)
-	})
-
-	t.Run("should propagate the error from RecreateTrie", func(t *testing.T) {
-		t.Parallel()
-
-		arg := createMockArguments()
-		arg.AccountsStateAPI = &stateMock.AccountsStub{
-			RecreateTrieCalled: func(options common.RootHashHolder) error {
-				return expectedErr
-			},
-		}
-		arg.Node = &mock.NodeStub{
-			DecodeAddressPubkeyCalled: func(address string) ([]byte, error) {
-				return []byte("address"), nil
-			},
-		}
-
-		nf, _ := NewNodeFacade(arg)
-		res, err := nf.GetVirtualNonce("address")
-		require.Nil(t, res)
-		require.Equal(t, expectedErr, err)
-	})
 
 	t.Run("should propagate error from ApiResolver", func(t *testing.T) {
 		t.Parallel()
@@ -2293,7 +2153,7 @@ func TestNodeFacade_GetVirtualNonce(t *testing.T) {
 		}
 
 		arg.ApiResolver = &mock.ApiResolverStub{
-			GetVirtualNonceCalled: func(address []byte, accountsAdapter state.AccountsAdapter) (*common.VirtualNonceOfAccountResponse, error) {
+			GetVirtualNonceCalled: func(address string, blockchain coreData.ChainHandler, accountsAdapter state.AccountsAdapter) (*common.VirtualNonceOfAccountResponse, error) {
 				return nil, expectedErr
 			},
 		}
@@ -2321,7 +2181,7 @@ func TestNodeFacade_GetVirtualNonce(t *testing.T) {
 
 		expectedRes := &common.VirtualNonceOfAccountResponse{VirtualNonce: 10}
 		arg.ApiResolver = &mock.ApiResolverStub{
-			GetVirtualNonceCalled: func(address []byte, accountsAdapter state.AccountsAdapter) (*common.VirtualNonceOfAccountResponse, error) {
+			GetVirtualNonceCalled: func(address string, blockchain coreData.ChainHandler, accountsAdapter state.AccountsAdapter) (*common.VirtualNonceOfAccountResponse, error) {
 				return expectedRes, nil
 			},
 		}

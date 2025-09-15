@@ -37,7 +37,7 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/genericMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
-	state2 "github.com/multiversx/mx-chain-go/testscommon/state"
+	stateMock "github.com/multiversx/mx-chain-go/testscommon/state"
 	storageStubs "github.com/multiversx/mx-chain-go/testscommon/storage"
 	"github.com/multiversx/mx-chain-go/testscommon/txcachemocks"
 	"github.com/multiversx/mx-chain-go/txcache"
@@ -1212,23 +1212,35 @@ func TestApiTransactionProcessor_GetSelectedTransactions(t *testing.T) {
 		require.NoError(t, err)
 		require.NotNil(t, atp)
 
-		accountsAdapter := &state2.AccountsStub{
+		accountsAdapter := &stateMock.AccountsStub{
 			RootHashCalled: func() ([]byte, error) {
 				return []byte("rootHash"), nil
 			},
 			GetExistingAccountCalled: func(addressContainer []byte) (vmcommon.AccountHandler, error) {
 				if bytes.Equal(addressContainer, []byte("alice")) {
-					return &state2.AccountWrapMock{
+					return &stateMock.AccountWrapMock{
 						Balance: oneEGLD,
 					}, nil
 				}
 				if bytes.Equal(addressContainer, []byte("bob")) {
-					return &state2.AccountWrapMock{
+					return &stateMock.AccountWrapMock{
 						Balance: oneEGLD,
 					}, nil
 				}
 
 				return nil, nil
+			},
+			RecreateTrieCalled: func(options common.RootHashHolder) error {
+				return nil
+			},
+		}
+
+		blockchainMock := &testscommon.ChainHandlerStub{
+			GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
+				return &block.Header{}
+			},
+			GetCurrentBlockRootHashCalled: func() []byte {
+				return []byte("root hash")
 			},
 		}
 
@@ -1239,7 +1251,7 @@ func TestApiTransactionProcessor_GetSelectedTransactions(t *testing.T) {
 			loopDurationCheckInterval,
 		)
 
-		selectedTxs, err := atp.GetSelectedTransactions(accountsAdapter, options)
+		selectedTxs, err := atp.GetSelectedTransactions(options, blockchainMock, accountsAdapter)
 		require.NoError(t, err)
 		require.Len(t, selectedTxs.TxHashes, 4)
 	})
@@ -1265,7 +1277,7 @@ func TestApiTransactionProcessor_GetSelectedTransactions(t *testing.T) {
 		require.NoError(t, err)
 		require.NotNil(t, atp)
 
-		accountsAdapter := &state2.AccountsStub{
+		accountsAdapter := &stateMock.AccountsStub{
 			RootHashCalled: func() ([]byte, error) {
 				return nil, expectedErr
 			},
@@ -1278,7 +1290,7 @@ func TestApiTransactionProcessor_GetSelectedTransactions(t *testing.T) {
 			loopDurationCheckInterval,
 		)
 
-		_, err = atp.GetSelectedTransactions(accountsAdapter, options)
+		_, err = atp.GetSelectedTransactions(options, nil, accountsAdapter)
 		require.Equal(t, expectedErr, err)
 	})
 
@@ -1310,7 +1322,7 @@ func TestApiTransactionProcessor_GetSelectedTransactions(t *testing.T) {
 			loopDurationCheckInterval,
 		)
 
-		selectedTxs, err := atp.GetSelectedTransactions(nil, options)
+		selectedTxs, err := atp.GetSelectedTransactions(options, nil, nil)
 		require.Equal(t, state.ErrNilAccountsAdapter, err)
 		require.Nil(t, selectedTxs)
 	})
@@ -1329,7 +1341,7 @@ func TestApiTransactionProcessor_GetSelectedTransactions(t *testing.T) {
 			},
 		}
 
-		accountsAdapter := &state2.AccountsStub{}
+		accountsAdapter := &stateMock.AccountsStub{}
 
 		atp, err := NewAPITransactionProcessor(args)
 		require.NoError(t, err)
@@ -1342,7 +1354,7 @@ func TestApiTransactionProcessor_GetSelectedTransactions(t *testing.T) {
 			loopDurationCheckInterval,
 		)
 
-		selectedTxs, err := atp.GetSelectedTransactions(accountsAdapter, options)
+		selectedTxs, err := atp.GetSelectedTransactions(options, nil, accountsAdapter)
 		require.Equal(t, ErrCouldNotCastToTxCache, err)
 		require.Nil(t, selectedTxs)
 	})
@@ -1383,34 +1395,51 @@ func TestApiTransactionProcessor_GetVirtualNonce(t *testing.T) {
 				}
 			},
 		}
+		args.AddressPubKeyConverter = &testscommon.PubkeyConverterMock{
+			DecodeCalled: func(humanReadable string) ([]byte, error) {
+				return []byte(humanReadable), nil
+			},
+		}
 
 		atp, err := NewAPITransactionProcessor(args)
 		require.NoError(t, err)
 		require.NotNil(t, atp)
 
-		accountsAdapter := &state2.AccountsStub{
+		accountsAdapter := &stateMock.AccountsStub{
 			RootHashCalled: func() ([]byte, error) {
 				return []byte("rootHash"), nil
 			},
 			GetExistingAccountCalled: func(addressContainer []byte) (vmcommon.AccountHandler, error) {
 				if bytes.Equal(addressContainer, []byte("alice")) {
-					accountMock := &state2.AccountWrapMock{
+					accountMock := &stateMock.AccountWrapMock{
 						Balance: oneEGLD,
 					}
 					accountMock.SetNonce(10)
 					return accountMock, nil
 				}
 				if bytes.Equal(addressContainer, []byte("bob")) {
-					return &state2.AccountWrapMock{
+					return &stateMock.AccountWrapMock{
 						Balance: oneEGLD,
 					}, nil
 				}
 
 				return nil, nil
 			},
+			RecreateTrieCalled: func(options common.RootHashHolder) error {
+				return nil
+			},
 		}
 
-		virtualNonce, err := atp.GetVirtualNonce([]byte("alice"), accountsAdapter)
+		blockchainMock := &testscommon.ChainHandlerStub{
+			GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
+				return &block.Header{}
+			},
+			GetCurrentBlockRootHashCalled: func() []byte {
+				return []byte("root hash")
+			},
+		}
+
+		virtualNonce, err := atp.GetVirtualNonce("alice", blockchainMock, accountsAdapter)
 		require.NoError(t, err)
 		require.Equal(t, uint64(10), virtualNonce.VirtualNonce)
 	})
@@ -1431,39 +1460,56 @@ func TestApiTransactionProcessor_GetVirtualNonce(t *testing.T) {
 				}
 			},
 		}
+		args.AddressPubKeyConverter = &testscommon.PubkeyConverterMock{
+			DecodeCalled: func(humanReadable string) ([]byte, error) {
+				return []byte(humanReadable), nil
+			},
+		}
 
 		atp, err := NewAPITransactionProcessor(args)
 		require.NoError(t, err)
 		require.NotNil(t, atp)
 
-		accountsAdapter := &state2.AccountsStub{
+		accountsAdapter := &stateMock.AccountsStub{
 			RootHashCalled: func() ([]byte, error) {
 				return nil, expectedErr
 			},
 			GetExistingAccountCalled: func(addressContainer []byte) (vmcommon.AccountHandler, error) {
 				if bytes.Equal(addressContainer, []byte("alice")) {
-					accountMock := &state2.AccountWrapMock{
+					accountMock := &stateMock.AccountWrapMock{
 						Balance: oneEGLD,
 					}
 					accountMock.SetNonce(10)
 					return accountMock, nil
 				}
 				if bytes.Equal(addressContainer, []byte("bob")) {
-					return &state2.AccountWrapMock{
+					return &stateMock.AccountWrapMock{
 						Balance: oneEGLD,
 					}, nil
 				}
 
 				return nil, nil
 			},
+			RecreateTrieCalled: func(options common.RootHashHolder) error {
+				return nil
+			},
 		}
 
-		virtualNonce, err := atp.GetVirtualNonce([]byte("alice"), accountsAdapter)
+		blockchainMock := &testscommon.ChainHandlerStub{
+			GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
+				return &block.Header{}
+			},
+			GetCurrentBlockRootHashCalled: func() []byte {
+				return []byte("root hash")
+			},
+		}
+
+		virtualNonce, err := atp.GetVirtualNonce("alice", blockchainMock, accountsAdapter)
 		require.Equal(t, expectedErr, err)
 		require.Nil(t, virtualNonce)
 	})
 
-	t.Run("should return ErrNilAccountsAdapter error", func(t *testing.T) {
+	t.Run("should return ErrNilCurrentRootHash error", func(t *testing.T) {
 		t.Parallel()
 
 		args := createMockArgAPITransactionProcessor()
@@ -1479,14 +1525,147 @@ func TestApiTransactionProcessor_GetVirtualNonce(t *testing.T) {
 				}
 			},
 		}
+		args.AddressPubKeyConverter = &testscommon.PubkeyConverterMock{
+			DecodeCalled: func(humanReadable string) ([]byte, error) {
+				return []byte(humanReadable), nil
+			},
+		}
 
 		atp, err := NewAPITransactionProcessor(args)
 		require.NoError(t, err)
 		require.NotNil(t, atp)
 
-		virtualNonce, err := atp.GetVirtualNonce([]byte("alice"), nil)
-		require.Equal(t, state.ErrNilAccountsAdapter, err)
+		accountsAdapter := &stateMock.AccountsStub{
+			RootHashCalled: func() ([]byte, error) {
+				return []byte("rootHash"), nil
+			},
+			GetExistingAccountCalled: func(addressContainer []byte) (vmcommon.AccountHandler, error) {
+				if bytes.Equal(addressContainer, []byte("alice")) {
+					accountMock := &stateMock.AccountWrapMock{
+						Balance: oneEGLD,
+					}
+					accountMock.SetNonce(10)
+					return accountMock, nil
+				}
+				if bytes.Equal(addressContainer, []byte("bob")) {
+					return &stateMock.AccountWrapMock{
+						Balance: oneEGLD,
+					}, nil
+				}
+
+				return nil, nil
+			},
+			RecreateTrieCalled: func(options common.RootHashHolder) error {
+				return nil
+			},
+		}
+
+		blockchainMock := &testscommon.ChainHandlerStub{
+			GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
+				return &block.Header{}
+			},
+			GetCurrentBlockRootHashCalled: func() []byte {
+				return nil
+			},
+		}
+
+		_, err = atp.GetVirtualNonce("alice", blockchainMock, accountsAdapter)
+		require.Equal(t, ErrNilCurrentRootHash, err)
+	})
+
+	t.Run("should return ErrNilAccountStateAPI error", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockArgAPITransactionProcessor()
+		args.DataPool = &dataRetrieverMock.PoolsHolderStub{
+			TransactionsCalled: func() dataRetriever.ShardedDataCacherNotifier {
+				return &testscommon.ShardedDataStub{
+					ShardDataStoreCalled: func(cacheID string) storage.Cacher {
+						if cacheID == "1" { // self shard
+							return cache
+						}
+						return nil
+					},
+				}
+			},
+		}
+		args.AddressPubKeyConverter = &testscommon.PubkeyConverterMock{
+			DecodeCalled: func(humanReadable string) ([]byte, error) {
+				return []byte(humanReadable), nil
+			},
+		}
+
+		atp, err := NewAPITransactionProcessor(args)
+		require.NoError(t, err)
+		require.NotNil(t, atp)
+
+		blockchainMock := &testscommon.ChainHandlerStub{
+			GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
+				return &block.Header{}
+			},
+			GetCurrentBlockRootHashCalled: func() []byte {
+				return []byte("root hash")
+			},
+		}
+
+		virtualNonce, err := atp.GetVirtualNonce("alice", blockchainMock, nil)
+		require.Equal(t, ErrNilAccountStateAPI, err)
 		require.Nil(t, virtualNonce)
+	})
+
+	t.Run("should return ErrNilBlockchain error", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockArgAPITransactionProcessor()
+		args.DataPool = &dataRetrieverMock.PoolsHolderStub{
+			TransactionsCalled: func() dataRetriever.ShardedDataCacherNotifier {
+				return &testscommon.ShardedDataStub{
+					ShardDataStoreCalled: func(cacheID string) storage.Cacher {
+						if cacheID == "1" { // self shard
+							return cache
+						}
+						return nil
+					},
+				}
+			},
+		}
+		args.AddressPubKeyConverter = &testscommon.PubkeyConverterMock{
+			DecodeCalled: func(humanReadable string) ([]byte, error) {
+				return []byte(humanReadable), nil
+			},
+		}
+
+		atp, err := NewAPITransactionProcessor(args)
+		require.NoError(t, err)
+		require.NotNil(t, atp)
+
+		accountsAdapter := &stateMock.AccountsStub{
+			RootHashCalled: func() ([]byte, error) {
+				return []byte("rootHash"), nil
+			},
+			GetExistingAccountCalled: func(addressContainer []byte) (vmcommon.AccountHandler, error) {
+				if bytes.Equal(addressContainer, []byte("alice")) {
+					accountMock := &stateMock.AccountWrapMock{
+						Balance: oneEGLD,
+					}
+					accountMock.SetNonce(10)
+					return accountMock, nil
+				}
+				if bytes.Equal(addressContainer, []byte("bob")) {
+					return &stateMock.AccountWrapMock{
+						Balance: oneEGLD,
+					}, nil
+				}
+
+				return nil, nil
+			},
+			RecreateTrieCalled: func(options common.RootHashHolder) error {
+				return nil
+			},
+		}
+
+		_, err = atp.GetVirtualNonce("alice", nil, accountsAdapter)
+		require.Equal(t, ErrNilBlockchain, err)
 	})
 
 	t.Run("should return ErrCouldNotCastToTxCache error", func(t *testing.T) {
@@ -1502,15 +1681,104 @@ func TestApiTransactionProcessor_GetVirtualNonce(t *testing.T) {
 				}
 			},
 		}
+		args.AddressPubKeyConverter = &testscommon.PubkeyConverterMock{
+			DecodeCalled: func(humanReadable string) ([]byte, error) {
+				return []byte(humanReadable), nil
+			},
+		}
 
-		accountsAdapter := &state2.AccountsStub{}
+		accountsAdapter := &stateMock.AccountsStub{
+			RecreateTrieCalled: func(options common.RootHashHolder) error {
+				return nil
+			},
+		}
 
 		atp, err := NewAPITransactionProcessor(args)
 		require.NoError(t, err)
 		require.NotNil(t, atp)
 
-		virtualNonce, err := atp.GetVirtualNonce([]byte("alice"), accountsAdapter)
+		blockchainMock := &testscommon.ChainHandlerStub{
+			GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
+				return &block.Header{}
+			},
+			GetCurrentBlockRootHashCalled: func() []byte {
+				return []byte("root hash")
+			},
+		}
+
+		virtualNonce, err := atp.GetVirtualNonce("alice", blockchainMock, accountsAdapter)
 		require.Equal(t, ErrCouldNotCastToTxCache, err)
+		require.Nil(t, virtualNonce)
+	})
+
+	t.Run("should return ErrNilBlockHeader error", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockArgAPITransactionProcessor()
+		args.DataPool = &dataRetrieverMock.PoolsHolderStub{
+			TransactionsCalled: func() dataRetriever.ShardedDataCacherNotifier {
+				return &testscommon.ShardedDataStub{
+					ShardDataStoreCalled: func(cacheID string) storage.Cacher {
+						return nil
+					},
+				}
+			},
+		}
+		args.AddressPubKeyConverter = &testscommon.PubkeyConverterMock{
+			DecodeCalled: func(humanReadable string) ([]byte, error) {
+				return []byte(humanReadable), nil
+			},
+		}
+
+		accountsAdapter := &stateMock.AccountsStub{
+			RecreateTrieCalled: func(options common.RootHashHolder) error {
+				return nil
+			},
+		}
+
+		atp, err := NewAPITransactionProcessor(args)
+		require.NoError(t, err)
+		require.NotNil(t, atp)
+
+		blockchainMock := &testscommon.ChainHandlerStub{
+			GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
+				return nil
+			},
+			GetCurrentBlockRootHashCalled: func() []byte {
+				return []byte("root hash")
+			},
+		}
+
+		virtualNonce, err := atp.GetVirtualNonce("alice", blockchainMock, accountsAdapter)
+		require.Equal(t, ErrNilBlockHeader, err)
+		require.Nil(t, virtualNonce)
+	})
+
+	t.Run("should return error from decoding", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockArgAPITransactionProcessor()
+		args.DataPool = &dataRetrieverMock.PoolsHolderStub{
+			TransactionsCalled: func() dataRetriever.ShardedDataCacherNotifier {
+				return &testscommon.ShardedDataStub{
+					ShardDataStoreCalled: func(cacheID string) storage.Cacher {
+						return nil
+					},
+				}
+			},
+		}
+		args.AddressPubKeyConverter = &testscommon.PubkeyConverterMock{
+			DecodeCalled: func(humanReadable string) ([]byte, error) {
+				return nil, expectedErr
+			},
+		}
+
+		atp, err := NewAPITransactionProcessor(args)
+		require.NoError(t, err)
+		require.NotNil(t, atp)
+
+		virtualNonce, err := atp.GetVirtualNonce("alice", nil, nil)
+		require.ErrorContains(t, err, expectedErr.Error())
 		require.Nil(t, virtualNonce)
 	})
 }

@@ -357,26 +357,6 @@ func (nf *nodeFacade) GetTransactionsPoolNonceGapsForSender(sender string) (*com
 
 // GetSelectedTransactions will simulate a SelectTransactions, and it will return the corresponding hash of each selected transaction
 func (nf *nodeFacade) GetSelectedTransactions() (*common.TransactionsSelectionSimulationResult, error) {
-	currentRootHash := nf.blockchain.GetCurrentBlockRootHash()
-	if currentRootHash == nil {
-		return nil, ErrNilCurrentRootHash
-	}
-
-	blockHeader := nf.blockchain.GetCurrentBlockHeader()
-	if blockHeader == nil {
-		return nil, ErrNilBlockHeader
-
-	}
-
-	epoch := blockHeader.GetEpoch()
-	rootHashHolder := holders.NewRootHashHolder(currentRootHash, core.OptionalUint32{Value: epoch, HasValue: true})
-
-	// TODO: keep in mind that the selection simulation can be affected by other API requests which might alter the trie
-	err := nf.accountStateAPI.RecreateTrie(rootHashHolder)
-	if err != nil {
-		return nil, err
-	}
-
 	selectionOptions := holders.NewTxSelectionOptions(
 		nf.config.TxCacheSelectionConfig.SelectionGasRequested,
 		nf.config.TxCacheSelectionConfig.SelectionMaxNumTxs,
@@ -384,36 +364,12 @@ func (nf *nodeFacade) GetSelectedTransactions() (*common.TransactionsSelectionSi
 		nf.config.TxCacheSelectionConfig.SelectionLoopDurationCheckInterval,
 	)
 
-	return nf.apiResolver.GetSelectedTransactions(nf.accountStateAPI, selectionOptions)
+	return nf.apiResolver.GetSelectedTransactions(selectionOptions, nf.blockchain, nf.accountStateAPI)
 }
 
 // GetVirtualNonce will return the virtual nonce of an account
 func (nf *nodeFacade) GetVirtualNonce(address string) (*common.VirtualNonceOfAccountResponse, error) {
-	pubKey, err := nf.decodeAddressToPubKey(address)
-	if err != nil {
-		return nil, err
-	}
-
-	currentRootHash := nf.blockchain.GetCurrentBlockRootHash()
-	if currentRootHash == nil {
-		return nil, ErrNilCurrentRootHash
-	}
-
-	blockHeader := nf.blockchain.GetCurrentBlockHeader()
-	if blockHeader == nil {
-		return nil, ErrNilBlockHeader
-	}
-
-	epoch := blockHeader.GetEpoch()
-	rootHashHolder := holders.NewRootHashHolder(currentRootHash, core.OptionalUint32{Value: epoch, HasValue: true})
-
-	// TODO: keep in mind that the selection simulation can be affected by other API requests which might alter the trie
-	err = nf.accountStateAPI.RecreateTrie(rootHashHolder)
-	if err != nil {
-		return nil, err
-	}
-
-	return nf.apiResolver.GetVirtualNonce(pubKey, nf.accountStateAPI)
+	return nf.apiResolver.GetVirtualNonce(address, nf.blockchain, nf.accountStateAPI)
 }
 
 // ComputeTransactionGasLimit will estimate how many gas a transaction will consume
@@ -723,15 +679,6 @@ func (nf *nodeFacade) GetWaitingManagedKeys() ([]string, error) {
 // GetWaitingEpochsLeftForPublicKey returns the number of epochs left for the public key until it becomes eligible
 func (nf *nodeFacade) GetWaitingEpochsLeftForPublicKey(publicKey string) (uint32, error) {
 	return nf.apiResolver.GetWaitingEpochsLeftForPublicKey(publicKey)
-}
-
-func (nf *nodeFacade) decodeAddressToPubKey(address string) ([]byte, error) {
-	pubKey, err := nf.node.DecodeAddressPubkey(address)
-	if err != nil {
-		return nil, fmt.Errorf("invalid address (%w): %s", err, address)
-	}
-
-	return pubKey, nil
 }
 
 func (nf *nodeFacade) convertVmOutputToApiResponse(input *vmcommon.VMOutput) *vm.VMOutputApi {
