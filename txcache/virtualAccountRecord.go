@@ -28,41 +28,53 @@ func (virtualRecord *virtualAccountRecord) updateVirtualRecord(breadcrumb *accou
 	virtualRecord.virtualBalance.accumulateConsumedBalance(breadcrumb)
 
 	if !breadcrumb.lastNonce.HasValue {
-		// in a certain tracked block, we can have breadcrumbs for accounts that are only used as relayers and never as senders
-		// those accounts don't have a set nonce, here we treat those cases
+		// In a certain tracked block, we can have breadcrumbs for accounts that are only used as relayers and never as senders.
+		// Breadcrumb of those accounts don't have a set nonce, here we treat those cases.
 		return
 	}
 
 	if !virtualRecord.initialNonce.HasValue {
-		// a virtual record is created accumulating information from at least one breadcrumb
-		// we could have a breadcrumb for the same account in two different tracked blocks
-		// a breadcrumb without nonce (if first occurred in record creation) leads to a virtual record without nonce
-		// here we treat the virtual records which don't have a nonce yet.
-		virtualRecord.setInitialNonce(breadcrumb)
+		// A virtual record is created by accumulating information from at least one breadcrumb.
+		// We could have a breadcrumb for the same account in two different tracked blocks.
+		// A breadcrumb without nonce (if first occurred in record creation) leads to a virtual record without nonce.
+		// Here we treat the virtual records which don't have a nonce yet.
+		virtualRecord.setInitialNonceOnFirstUpdate(breadcrumb)
 		return
 	}
 
-	virtualRecord.updateInitialNonce(breadcrumb)
+	virtualRecord.setInitialNonceOnSubsequentUpdate(breadcrumb)
 }
 
-func (virtualRecord *virtualAccountRecord) setInitialNonce(breadcrumb *accountBreadcrumb) {
+func (virtualRecord *virtualAccountRecord) setInitialNonceOnFirstUpdate(breadcrumb *accountBreadcrumb) {
 	virtualRecord.initialNonce = core.OptionalUint64{
 		Value:    breadcrumb.lastNonce.Value + 1,
 		HasValue: true,
 	}
 }
 
-func (virtualRecord *virtualAccountRecord) updateInitialNonce(breadcrumb *accountBreadcrumb) {
-	// this solves the next scenario:
-	// two different breadcrumbs for the same sender
-	// in the first tracked block, the last tx of that sender has nonce X -> virtual record, for the moment, has nonce X
-	// in the second tracked block, the last tx of that sender has nonce X + N
-	// the virtual record has to be updated with the maximum between current value (X) and (X+N) value
-	// increasing by 1 helps knowing that we can select txs starting from this nonce of the virtual record
+func (virtualRecord *virtualAccountRecord) setInitialNonceOnSubsequentUpdate(breadcrumb *accountBreadcrumb) {
+	// This solves the common scenario when we have at least two different breadcrumbs for the same sender.
+	// For example:
+	// In a first tracked block, the last tx of a certain sender has nonce X.
+	// This means that its virtual record, for the moment, has nonce X.
+	// In a second tracked block, the last tx of the same sender has nonce X + N.
+	// This means that the virtual record has to be updated with the maximum between current value (X) and (X+N) value.
+	// The resulted value + 1 indicates the starting nonce which can be used for selection for that certain sender.
 	virtualRecord.initialNonce = core.OptionalUint64{
 		Value:    max(breadcrumb.lastNonce.Value, virtualRecord.initialNonce.Value) + 1,
 		HasValue: true,
 	}
+}
+
+func (virtualRecord *virtualAccountRecord) getInitialNonce() (uint64, error) {
+
+	if !virtualRecord.initialNonce.HasValue {
+		log.Debug("virtualSelectionSession.getNonceForAccountRecord",
+			"err", errNonceNotSet)
+		return 0, errNonceNotSet
+	}
+
+	return virtualRecord.initialNonce.Value, nil
 }
 
 func (virtualRecord *virtualAccountRecord) getInitialBalance() *big.Int {

@@ -15,7 +15,7 @@ func Test_continuousBreadcrumbs(t *testing.T) {
 		t.Parallel()
 
 		breadcrumb := accountBreadcrumb{
-			initialNonce: core.OptionalUint64{
+			firstNonce: core.OptionalUint64{
 				Value:    1,
 				HasValue: false,
 			},
@@ -37,7 +37,7 @@ func Test_continuousBreadcrumbs(t *testing.T) {
 		t.Parallel()
 
 		breadcrumbAlice := accountBreadcrumb{
-			initialNonce: core.OptionalUint64{
+			firstNonce: core.OptionalUint64{
 				Value:    1,
 				HasValue: true,
 			},
@@ -57,7 +57,7 @@ func Test_continuousBreadcrumbs(t *testing.T) {
 		t.Parallel()
 
 		breadcrumbAlice := accountBreadcrumb{
-			initialNonce: core.OptionalUint64{
+			firstNonce: core.OptionalUint64{
 				Value:    1,
 				HasValue: true,
 			},
@@ -86,7 +86,7 @@ func Test_continuousBreadcrumbs(t *testing.T) {
 		t.Parallel()
 
 		breadcrumbAlice1 := accountBreadcrumb{
-			initialNonce: core.OptionalUint64{
+			firstNonce: core.OptionalUint64{
 				Value:    1,
 				HasValue: true,
 			},
@@ -98,7 +98,7 @@ func Test_continuousBreadcrumbs(t *testing.T) {
 		}
 
 		breadcrumbAlice2 := accountBreadcrumb{
-			initialNonce: core.OptionalUint64{
+			firstNonce: core.OptionalUint64{
 				Value:    3,
 				HasValue: true,
 			},
@@ -127,7 +127,7 @@ func Test_continuousBreadcrumbs(t *testing.T) {
 		t.Parallel()
 
 		breadcrumbAlice1 := accountBreadcrumb{
-			initialNonce: core.OptionalUint64{
+			firstNonce: core.OptionalUint64{
 				Value:    1,
 				HasValue: true,
 			},
@@ -139,7 +139,7 @@ func Test_continuousBreadcrumbs(t *testing.T) {
 		}
 
 		breadcrumbAlice2 := accountBreadcrumb{
-			initialNonce: core.OptionalUint64{
+			firstNonce: core.OptionalUint64{
 				Value:    4,
 				HasValue: true,
 			},

@@ -82,19 +82,26 @@ func selectTransactionsFromBunches(
 			}
 		}
 
-		shouldSkipSender := detectSkippableSender(virtualSession, item)
+		senderRecord, err := virtualSession.getRecord(item.sender)
+		if err != nil {
+			log.Debug("TxCache.selectTransactionsFromBunches when getting the virtual record of sender", "err", err,
+				"address", item.sender)
+			continue
+		}
+
+		shouldSkipSender := detectSkippableSender(virtualSession, item, senderRecord)
 		if shouldSkipSender {
 			// Item was popped from the heap, but not used downstream.
 			// Therefore, the sender is completely ignored (from now on) in the current selection session.
 			continue
 		}
 
-		shouldSkipTransaction := detectSkippableTransaction(virtualSession, item)
+		shouldSkipTransaction := detectSkippableTransaction(virtualSession, item, senderRecord)
 		if !shouldSkipTransaction {
 			accumulatedGas += gasLimit
 			selectedTransaction := item.selectCurrentTransaction()
 			selectedTransactions = append(selectedTransactions, selectedTransaction)
-			err := virtualSession.accumulateConsumedBalance(selectedTransaction)
+			err := virtualSession.accumulateConsumedBalance(selectedTransaction, senderRecord)
 			if err != nil {
 				// TODO brainstorm whether we should select / not select the transaction on this flow.
 				log.Warn("TxCache.selectTransactionsFromBunches error when accumulating consumed balance",
@@ -115,13 +122,14 @@ func selectTransactionsFromBunches(
 }
 
 // Note (future micro-optimization): we can merge "detectSkippableSender()" and "detectSkippableTransaction()" into a single function,
-// any share the result of "sessionWrapper.getNonce()".
-func detectSkippableSender(virtualSession *virtualSelectionSession, item *transactionsHeapItem) bool {
-	nonce, err := virtualSession.getNonce(item.sender)
+// any share the result of "sessionWrapper.getNonceForAccountRecord()".
+func detectSkippableSender(virtualSession *virtualSelectionSession, item *transactionsHeapItem, virtualRecord *virtualAccountRecord) bool {
+	nonce, err := virtualRecord.getInitialNonce()
 	if err != nil {
-		log.Debug("detectSkippableSender", "err", err)
+		log.Debug("detectSkippableTransaction", "err", err)
 		return true
 	}
+
 	if item.detectInitialGap(nonce) {
 		return true
 	}
@@ -135,8 +143,8 @@ func detectSkippableSender(virtualSession *virtualSelectionSession, item *transa
 	return false
 }
 
-func detectSkippableTransaction(virtualSession *virtualSelectionSession, item *transactionsHeapItem) bool {
-	nonce, err := virtualSession.getNonce(item.sender)
+func detectSkippableTransaction(virtualSession *virtualSelectionSession, item *transactionsHeapItem, virtualRecord *virtualAccountRecord) bool {
+	nonce, err := virtualRecord.getInitialNonce()
 	if err != nil {
 		log.Debug("detectSkippableTransaction", "err", err)
 		return true

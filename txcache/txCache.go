@@ -190,7 +190,13 @@ func (cache *TxCache) GetVirtualNonce(
 		return 0, err
 	}
 
-	return virtualSession.getNonce(address)
+	addressRecord, err := virtualSession.getRecord(address)
+	if err != nil {
+		log.Error("TxCache.GetVirtualNonce: could not get address record", "err", err)
+		return 0, err
+	}
+
+	return virtualSession.getNonceForAccountRecord(addressRecord)
 }
 
 // OnProposedBlock calls the OnProposedBlock method from SelectionTracker
