@@ -58,6 +58,8 @@ type CoreComponentsMock struct {
 	ChainParametersSubscriberField     process.ChainParametersSubscriber
 	FieldsSizeCheckerField             common.FieldsSizeChecker
 	EpochChangeGracePeriodHandlerField common.EpochChangeGracePeriodHandler
+	ProcessConfigsHandlerField         common.ProcessConfigsHandler
+	EpochStartConfigsHandlerField      common.EpochStartConfigsHandler
 }
 
 // Create -
@@ -286,6 +288,16 @@ func (ccm *CoreComponentsMock) FieldsSizeChecker() common.FieldsSizeChecker {
 // EpochChangeGracePeriodHandler -
 func (ccm *CoreComponentsMock) EpochChangeGracePeriodHandler() common.EpochChangeGracePeriodHandler {
 	return ccm.EpochChangeGracePeriodHandlerField
+}
+
+// ProcessConfigsHandler -
+func (ccm *CoreComponentsMock) ProcessConfigsHandler() common.ProcessConfigsHandler {
+	return ccm.ProcessConfigsHandlerField
+}
+
+// EpochStartConfigsHandler -
+func (ccm *CoreComponentsMock) EpochStartConfigsHandler() common.EpochStartConfigsHandler {
+	return ccm.EpochStartConfigsHandlerField
 }
 
 // IsInterfaceNil -
