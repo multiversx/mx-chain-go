@@ -5,7 +5,6 @@ import (
 	"math/big"
 	"testing"
 
-	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
@@ -43,279 +42,10 @@ func TestNewExecutionResultsVerifier(t *testing.T) {
 	})
 }
 
-func Test_createLastExecutionResultInfoFromExecutionResult(t *testing.T) {
-	t.Parallel()
-
-	notarizedInRound := uint64(1)
-	t.Run("nil executionResult", func(t *testing.T) {
-		t.Parallel()
-		lastExecutionResultInfo, err := process.CreateLastExecutionResultInfoFromExecutionResult(notarizedInRound, nil, 0)
-		require.Equal(t, process.ErrNilExecutionResultHandler, err)
-		require.Nil(t, lastExecutionResultInfo)
-	})
-	t.Run("invalid shard executionResult type", func(t *testing.T) {
-		t.Parallel()
-		executionResult := createDummyMetaExecutionResult() // This is a valid type, but we will use it incorrectly
-		lastExecutionResultInfo, err := process.CreateLastExecutionResultInfoFromExecutionResult(notarizedInRound, executionResult, 0)
-		require.Equal(t, process.ErrWrongTypeAssertion, err)
-		require.Nil(t, lastExecutionResultInfo)
-	})
-	t.Run("valid executionResult for shard", func(t *testing.T) {
-		t.Parallel()
-		executionResult := createDummyShardExecutionResult()
-		expectedLastExecutionResult := &block.ExecutionResultInfo{
-			NotarizedInRound: notarizedInRound,
-			ExecutionResult: &block.BaseExecutionResult{
-				HeaderHash:  executionResult.GetHeaderHash(),
-				HeaderNonce: executionResult.GetHeaderNonce(),
-				HeaderRound: executionResult.GetHeaderRound(),
-				RootHash:    executionResult.GetRootHash(),
-			},
-		}
-
-		lastExecutionResultHandler, err := process.CreateLastExecutionResultInfoFromExecutionResult(notarizedInRound, executionResult, 0)
-		lastExecutionResultInfo := lastExecutionResultHandler.(*block.ExecutionResultInfo)
-		require.NoError(t, err)
-		require.NotNil(t, lastExecutionResultInfo)
-		require.Equal(t, expectedLastExecutionResult, lastExecutionResultInfo)
-	})
-	t.Run("invalid metaChain executionResult", func(t *testing.T) {
-		t.Parallel()
-		executionResult := createDummyShardExecutionResult()
-		lastExecutionResultHandler, err := process.CreateLastExecutionResultInfoFromExecutionResult(notarizedInRound, executionResult, core.MetachainShardId)
-		require.Equal(t, process.ErrWrongTypeAssertion, err)
-		require.Nil(t, lastExecutionResultHandler)
-	})
-	t.Run("valid executionResult for metaChain", func(t *testing.T) {
-		t.Parallel()
-		executionResult := createDummyMetaExecutionResult()
-		expectedLastExecutionResult := &block.MetaExecutionResultInfo{
-			NotarizedInRound: notarizedInRound,
-			ExecutionResult: &block.BaseMetaExecutionResult{
-				BaseExecutionResult: &block.BaseExecutionResult{
-					HeaderHash:  executionResult.GetHeaderHash(),
-					HeaderNonce: executionResult.GetHeaderNonce(),
-					HeaderRound: executionResult.GetHeaderRound(),
-					RootHash:    executionResult.GetRootHash(),
-				},
-				ValidatorStatsRootHash: executionResult.GetValidatorStatsRootHash(),
-				AccumulatedFeesInEpoch: executionResult.GetAccumulatedFeesInEpoch(),
-				DevFeesInEpoch:         executionResult.GetDevFeesInEpoch(),
-			},
-		}
-
-		lastExecutionResultHandler, err := process.CreateLastExecutionResultInfoFromExecutionResult(notarizedInRound, executionResult, core.MetachainShardId)
-		lastExecutionResultInfo, ok := lastExecutionResultHandler.(*block.MetaExecutionResultInfo)
-		require.True(t, ok)
-		require.NoError(t, err)
-		require.NotNil(t, lastExecutionResultInfo)
-		require.Equal(t, expectedLastExecutionResult, lastExecutionResultInfo)
-	})
-}
-
-func Test_createLastExecutionResultFromPrevHeader(t *testing.T) {
-	t.Parallel()
-
-	t.Run("nil prevHeader", func(t *testing.T) {
-		t.Parallel()
-		lastExecutionResult, err := process.CreateLastExecutionResultFromPrevHeader(nil, []byte("prevHeaderHash"))
-		require.Equal(t, process.ErrNilBlockHeader, err)
-		require.Nil(t, lastExecutionResult)
-	})
-	t.Run("nil prevHeaderHash", func(t *testing.T) {
-		t.Parallel()
-		prevHeader := createDummyPrevShardHeaderV2()
-		lastExecutionResult, err := process.CreateLastExecutionResultFromPrevHeader(prevHeader, nil)
-		require.Equal(t, process.ErrInvalidHash, err)
-		require.Nil(t, lastExecutionResult)
-	})
-	t.Run("invalid shard prevHeader type", func(t *testing.T) {
-		t.Parallel()
-		prevHeaderHash := []byte("prevHeaderHash")
-		// the expected header type is HeaderV2
-		prevHeader := &block.Header{
-			Nonce:    1,
-			Round:    2,
-			RootHash: []byte("prevRootHash"),
-			ShardID:  0,
-		}
-		lastExecutionResult, err := process.CreateLastExecutionResultFromPrevHeader(prevHeader, prevHeaderHash)
-		require.Equal(t, process.ErrWrongTypeAssertion, err)
-		require.Nil(t, lastExecutionResult)
-	})
-	t.Run("valid shard prevHeader type", func(t *testing.T) {
-		t.Parallel()
-		prevHeaderHash := []byte("prevHeaderHash")
-		prevHeader := createDummyPrevShardHeaderV2()
-		expectedLastExecutionResult := &block.ExecutionResultInfo{
-			NotarizedInRound: prevHeader.GetRound(),
-			ExecutionResult: &block.BaseExecutionResult{
-				HeaderHash:  prevHeaderHash,
-				HeaderNonce: prevHeader.GetNonce(),
-				HeaderRound: prevHeader.GetRound(),
-				RootHash:    prevHeader.GetRootHash(),
-			},
-		}
-
-		lastExecutionResultHandler, err := process.CreateLastExecutionResultFromPrevHeader(prevHeader, prevHeaderHash)
-		lastExecutionResultInfo := lastExecutionResultHandler.(*block.ExecutionResultInfo)
-		require.NoError(t, err)
-		require.NotNil(t, lastExecutionResultInfo)
-		require.Equal(t, expectedLastExecutionResult, lastExecutionResultInfo)
-	})
-	t.Run("invalid metaChain prevHeader type", func(t *testing.T) {
-		t.Parallel()
-		prevHeaderHash := []byte("prevHeaderHash")
-		prevMetaHeader := createDummyInvalidMetaHeader()
-		lastExecutionResultHandler, err := process.CreateLastExecutionResultFromPrevHeader(prevMetaHeader, prevHeaderHash)
-		require.Equal(t, process.ErrWrongTypeAssertion, err)
-		require.Nil(t, lastExecutionResultHandler)
-	})
-	t.Run("valid metaChain prevHeader type", func(t *testing.T) {
-		t.Parallel()
-		prevHeaderHash := []byte("prevHeaderHash")
-		prevMetaHeader := createDummyPrevMetaHeader()
-		expectedLastExecutionResult := &block.MetaExecutionResultInfo{
-			NotarizedInRound: prevMetaHeader.GetRound(),
-			ExecutionResult: &block.BaseMetaExecutionResult{
-				BaseExecutionResult: &block.BaseExecutionResult{
-					HeaderHash:  prevHeaderHash,
-					HeaderNonce: prevMetaHeader.GetNonce(),
-					HeaderRound: prevMetaHeader.GetRound(),
-					RootHash:    prevMetaHeader.GetRootHash(),
-				},
-				ValidatorStatsRootHash: prevMetaHeader.GetValidatorStatsRootHash(),
-				AccumulatedFeesInEpoch: prevMetaHeader.GetAccumulatedFeesInEpoch(),
-				DevFeesInEpoch:         prevMetaHeader.GetDevFeesInEpoch(),
-			},
-		}
-
-		lastExecutionResultHandler, err := process.CreateLastExecutionResultFromPrevHeader(prevMetaHeader, prevHeaderHash)
-		lastExecutionResultInfo, ok := lastExecutionResultHandler.(*block.MetaExecutionResultInfo)
-		require.True(t, ok)
-		require.NoError(t, err)
-		require.NotNil(t, lastExecutionResultInfo)
-		require.Equal(t, expectedLastExecutionResult, lastExecutionResultInfo)
-	})
-}
-
-func TestExecutionResultsVerifier_getPrevBlockLastExecutionResult(t *testing.T) {
-	t.Parallel()
-
-	t.Run("nil current block header", func(t *testing.T) {
-		t.Parallel()
-		blockchain := &testscommon.ChainHandlerStub{
-			GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
-				return nil
-			},
-		}
-
-		executionResultsTracker := &executionTrack.ExecutionResultsTrackerStub{}
-		erc, err := NewExecutionResultsVerifier(blockchain, executionResultsTracker)
-		require.NoError(t, err)
-
-		_, err = process.GetPrevBlockLastExecutionResult(erc.blockChain)
-		require.Equal(t, process.ErrNilHeaderHandler, err)
-	})
-
-	t.Run("valid prev header - shard header v3", func(t *testing.T) {
-		t.Parallel()
-
-		prevHeader := createShardHeaderV3WithExecutionResults()
-		blockchain := &testscommon.ChainHandlerStub{
-			GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
-				return prevHeader
-			},
-			GetCurrentBlockHeaderHashCalled: func() []byte {
-				return []byte("prevHeaderHash")
-			},
-		}
-
-		executionResultsTracker := &executionTrack.ExecutionResultsTrackerStub{}
-		erc, err := NewExecutionResultsVerifier(blockchain, executionResultsTracker)
-		require.NoError(t, err)
-
-		lastExecutionResult, err := process.GetPrevBlockLastExecutionResult(erc.blockChain)
-		require.NoError(t, err)
-		require.NotNil(t, lastExecutionResult)
-		require.Equal(t, prevHeader.LastExecutionResult, lastExecutionResult)
-	})
-	t.Run("valid prev header - shard header v2", func(t *testing.T) {
-		t.Parallel()
-
-		prevHeader := createDummyPrevShardHeaderV2()
-		prevHeaderHash := []byte("prevHeaderHash")
-		blockchain := &testscommon.ChainHandlerStub{
-			GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
-				return prevHeader
-			},
-			GetCurrentBlockHeaderHashCalled: func() []byte {
-				return prevHeaderHash
-			},
-		}
-
-		executionResultsTracker := &executionTrack.ExecutionResultsTrackerStub{}
-		erc, err := NewExecutionResultsVerifier(blockchain, executionResultsTracker)
-		require.NoError(t, err)
-
-		lastExecutionResult, err := process.GetPrevBlockLastExecutionResult(erc.blockChain)
-		require.NoError(t, err)
-		require.NotNil(t, lastExecutionResult)
-		expectedLastExecutionResult, _ := process.CreateLastExecutionResultFromPrevHeader(prevHeader, prevHeaderHash)
-		require.Equal(t, expectedLastExecutionResult, lastExecutionResult)
-	})
-	t.Run("valid prev header - meta header v3", func(t *testing.T) {
-		t.Parallel()
-
-		prevHeader := createMetaHeaderV3WithExecutionResults()
-		blockchain := &testscommon.ChainHandlerStub{
-			GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
-				return prevHeader
-			},
-			GetCurrentBlockHeaderHashCalled: func() []byte {
-				return []byte("prevHeaderHash")
-			},
-		}
-
-		executionResultsTracker := &executionTrack.ExecutionResultsTrackerStub{}
-		erc, err := NewExecutionResultsVerifier(blockchain, executionResultsTracker)
-		require.NoError(t, err)
-
-		lastExecutionResult, err := process.GetPrevBlockLastExecutionResult(erc.blockChain)
-		require.NoError(t, err)
-		require.NotNil(t, lastExecutionResult)
-		require.Equal(t, prevHeader.LastExecutionResult, lastExecutionResult)
-	})
-	t.Run("valid prev header - meta header", func(t *testing.T) {
-		t.Parallel()
-
-		prevHeader := createDummyPrevMetaHeader()
-		prevHeaderHash := []byte("prevHeaderHash")
-		blockchain := &testscommon.ChainHandlerStub{
-			GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
-				return prevHeader
-			},
-			GetCurrentBlockHeaderHashCalled: func() []byte {
-				return prevHeaderHash
-			},
-		}
-
-		executionResultsTracker := &executionTrack.ExecutionResultsTrackerStub{}
-		erc, err := NewExecutionResultsVerifier(blockchain, executionResultsTracker)
-		require.NoError(t, err)
-
-		lastExecutionResult, err := process.GetPrevBlockLastExecutionResult(erc.blockChain)
-		require.NoError(t, err)
-		require.NotNil(t, lastExecutionResult)
-		expectedLastExecutionResult, _ := process.CreateLastExecutionResultFromPrevHeader(prevHeader, prevHeaderHash)
-		require.Equal(t, expectedLastExecutionResult, lastExecutionResult)
-	})
-}
-
 func TestExecutionResultsVerifier_verifyLastExecutionResultInfoMatchesLastExecutionResult(t *testing.T) {
 	t.Parallel()
 
-	notarizedInRound := uint64(100)
+	notarizedInRound := uint64(3)
 	t.Run("nil last execution result info", func(t *testing.T) {
 		t.Parallel()
 		header := createDummyPrevShardHeaderV2()
@@ -486,6 +216,9 @@ func TestExecutionResultsVerifier_verifyLastExecutionResultInfoMatchesLastExecut
 		blockchain := &testscommon.ChainHandlerStub{
 			GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
 				return header
+			},
+			GetCurrentBlockHeaderHashCalled: func() []byte {
+				return []byte("headerHash")
 			},
 		}
 		executionResultsTracker := &executionTrack.ExecutionResultsTrackerStub{}
@@ -737,7 +470,9 @@ func TestExecutionResultsVerifier_VerifyHeaderExecutionResults(t *testing.T) {
 				result := make([]data.ExecutionResultHandler, len(header.ExecutionResults))
 				for i := range header.ExecutionResults {
 					differentResult := *header.ExecutionResults[i]
-					differentResult.BaseExecutionResult.GasUsed = 100000 // Modify to ensure mismatch
+					differentBase := *differentResult.BaseExecutionResult
+					differentBase.GasUsed = 100000 // Modify to ensure mismatch
+					differentResult.BaseExecutionResult = &differentBase
 					result[i] = &differentResult
 				}
 				return result, nil
@@ -927,16 +662,6 @@ func createDummyPrevShardHeaderV2() *block.HeaderV2 {
 		},
 	}
 }
-func createDummyInvalidMetaHeader() data.HeaderHandler {
-	return &block.HeaderV2{
-		Header: &block.Header{
-			Nonce:    1,
-			Round:    2,
-			RootHash: []byte("prevRootHash"),
-			ShardID:  core.MetachainShardId,
-		},
-	}
-}
 
 func createLastExecutionResultShard() *block.ExecutionResultInfo {
 	return &block.ExecutionResultInfo{
@@ -969,7 +694,7 @@ func createLastExecutionResultMeta() *block.MetaExecutionResultInfo {
 
 func createShardHeaderV3WithMultipleExecutionResults(numResults int, firstNonce uint64) *block.HeaderV3 {
 	executionResults := createDummyShardExecutionResults(numResults, firstNonce)
-	lastExecResult, _ := process.CreateLastExecutionResultInfoFromExecutionResult(3+uint64(numResults)+firstNonce+1, executionResults[len(executionResults)-1], 0)
+	lastExecResult, _ := process.CreateLastExecutionResultInfoFromExecutionResult(3+uint64(numResults)+firstNonce, executionResults[len(executionResults)-1], 0)
 
 	return &block.HeaderV3{
 		PrevHash:            []byte("prevHash"),
@@ -1017,16 +742,5 @@ func createMetaHeaderV3WithExecutionResults() *block.MetaBlockV3 {
 		Round:               4,
 		LastExecutionResult: lastExecutionResult,
 		ExecutionResults:    []*block.MetaExecutionResult{executionResults},
-	}
-}
-
-func createDummyPrevMetaHeader() *block.MetaBlock {
-	return &block.MetaBlock{
-		Nonce:                  4,
-		Round:                  5,
-		RootHash:               []byte("prevRootHash"),
-		ValidatorStatsRootHash: []byte("prevValidatorStatsRootHash"),
-		DevFeesInEpoch:         big.NewInt(300),
-		AccumulatedFeesInEpoch: big.NewInt(400),
 	}
 }
