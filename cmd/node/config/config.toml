@@ -65,7 +65,7 @@
         { EnableRound = 2, MaxRoundsWithoutNewBlockReceived = 100, MaxRoundsWithoutCommittedBlock = 100 },
     ]
 
-    EpochStartConfigsByEpoch = [
+    CommonConfigsByEpoch = [
         { EnableEpoch = 0, GracePeriodRounds = 25, ExtraDelayForRequestBlockInfoInMilliseconds = 3000 },
         { EnableEpoch = 2, GracePeriodRounds = 250, ExtraDelayForRequestBlockInfoInMilliseconds = 220 },
     ]

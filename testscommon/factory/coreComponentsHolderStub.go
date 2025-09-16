@@ -62,7 +62,7 @@ type CoreComponentsHolderStub struct {
 	FieldsSizeCheckerCalled             func() common.FieldsSizeChecker
 	EpochChangeGracePeriodHandlerCalled func() common.EpochChangeGracePeriodHandler
 	ProcessConfigsHandlerCalled         func() common.ProcessConfigsHandler
-	EpochStartConfigsHandlerCalled      func() common.EpochStartConfigsHandler
+	CommonConfigsHandlerCalled      func() common.CommonConfigsHandler
 }
 
 // NewCoreComponentsHolderStubFromRealComponent -
@@ -439,10 +439,10 @@ func (stub *CoreComponentsHolderStub) ProcessConfigsHandler() common.ProcessConf
 	return nil
 }
 
-// EpochStartConfigsHandler -
-func (stub *CoreComponentsHolderStub) EpochStartConfigsHandler() common.EpochStartConfigsHandler {
-	if stub.EpochStartConfigsHandlerCalled != nil {
-		return stub.EpochStartConfigsHandlerCalled()
+// CommonConfigsHandler -
+func (stub *CoreComponentsHolderStub) CommonConfigsHandler() common.CommonConfigsHandler {
+	if stub.CommonConfigsHandlerCalled != nil {
+		return stub.CommonConfigsHandlerCalled()
 	}
 	return nil
 }

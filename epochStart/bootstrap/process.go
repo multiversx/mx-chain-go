@@ -124,7 +124,7 @@ type epochStartBootstrap struct {
 	nodeOperationMode          common.NodeOperation
 	stateStatsHandler          common.StateStatisticsHandler
 	enableEpochsHandler        common.EnableEpochsHandler
-	epochStartConfigsHandler   common.EpochStartConfigsHandler
+	epochStartConfigsHandler   common.CommonConfigsHandler
 
 	// created components
 	requestHandler                  process.RequestHandler
@@ -253,7 +253,7 @@ func NewEpochStartBootstrap(args ArgsEpochStartBootstrap) (*epochStartBootstrap,
 		startEpoch:                      args.GeneralConfig.EpochStartConfig.GenesisEpoch,
 		nodesCoordinatorRegistryFactory: args.NodesCoordinatorRegistryFactory,
 		enableEpochsHandler:             args.EnableEpochsHandler,
-		epochStartConfigsHandler:        args.CoreComponentsHolder.EpochStartConfigsHandler(),
+		epochStartConfigsHandler:        args.CoreComponentsHolder.CommonConfigsHandler(),
 		interceptedDataVerifierFactory:  args.InterceptedDataVerifierFactory,
 	}
 

@@ -62,7 +62,7 @@ type CoreComponentsMock struct {
 	FieldsSizeCheckerField             common.FieldsSizeChecker
 	EpochChangeGracePeriodHandlerField common.EpochChangeGracePeriodHandler
 	ProcessConfigsHandlerField         common.ProcessConfigsHandler
-	EpochStartConfigsHandlerField      common.EpochStartConfigsHandler
+	CommonConfigsHandlerField      common.CommonConfigsHandler
 }
 
 // InternalMarshalizer -
@@ -283,9 +283,9 @@ func (ccm *CoreComponentsMock) ProcessConfigsHandler() common.ProcessConfigsHand
 	return ccm.ProcessConfigsHandlerField
 }
 
-// EpochStartConfigsHandler -
-func (ccm *CoreComponentsMock) EpochStartConfigsHandler() common.EpochStartConfigsHandler {
-	return ccm.EpochStartConfigsHandlerField
+// CommonConfigsHandler -
+func (ccm *CoreComponentsMock) CommonConfigsHandler() common.CommonConfigsHandler {
+	return ccm.CommonConfigsHandlerField
 }
 
 // IsInterfaceNil -

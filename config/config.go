@@ -367,7 +367,7 @@ type GeneralSettingsConfig struct {
 	EpochChangeGracePeriodByEpoch        []EpochChangeGracePeriodByEpoch
 	ProcessConfigsByEpoch                []ProcessConfigByEpoch
 	ProcessConfigsByRound                []ProcessConfigByRound
-	EpochStartConfigsByEpoch             []EpochStartConfigByEpoch
+	CommonConfigsByEpoch             []EpochStartConfigByEpoch
 }
 
 // HardwareRequirementsConfig will hold the hardware requirements config

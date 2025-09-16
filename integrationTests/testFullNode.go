@@ -732,7 +732,7 @@ func (tfn *TestFullNode) createEpochStartTrigger() TestEpochStartTrigger {
 			RoundHandler:             tfn.RoundHandler,
 			AppStatusHandler:         &statusHandlerMock.AppStatusHandlerStub{},
 			EnableEpochsHandler:      tfn.EnableEpochsHandler,
-			EpochStartConfigsHandler: testscommon.GetDefaultEpochStartConfigsHandler(),
+			CommonConfigsHandler: testscommon.GetDefaultCommonConfigsHandler(),
 		}
 		epochStartTrigger, err := shardchain.NewEpochStartTrigger(argsShardEpochStart)
 		if err != nil {
@@ -837,7 +837,7 @@ func (tfn *TestFullNode) initInterceptors(
 			RoundHandler:             roundHandler,
 			AppStatusHandler:         &statusHandlerMock.AppStatusHandlerStub{},
 			EnableEpochsHandler:      enableEpochsHandler,
-			EpochStartConfigsHandler: testscommon.GetDefaultEpochStartConfigsHandler(),
+			CommonConfigsHandler: testscommon.GetDefaultCommonConfigsHandler(),
 		}
 		_, _ = shardchain.NewEpochStartTrigger(argsShardEpochStart)
 

@@ -865,7 +865,7 @@ func (pcf *processComponentsFactory) newEpochStartTrigger(requestHandler epochSt
 			RoundHandler:             pcf.coreData.RoundHandler(),
 			AppStatusHandler:         pcf.statusCoreComponents.AppStatusHandler(),
 			EnableEpochsHandler:      pcf.coreData.EnableEpochsHandler(),
-			EpochStartConfigsHandler: pcf.coreData.EpochStartConfigsHandler(),
+			CommonConfigsHandler: pcf.coreData.CommonConfigsHandler(),
 		}
 		return shardchain.NewEpochStartTrigger(argEpochStart)
 	}

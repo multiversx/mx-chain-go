@@ -83,7 +83,7 @@ type coreComponentsHolder struct {
 	fieldsSizeChecker             common.FieldsSizeChecker
 	epochChangeGracePeriodHandler common.EpochChangeGracePeriodHandler
 	processConfigsHandler         common.ProcessConfigsHandler
-	epochStartConfigsHandler      common.EpochStartConfigsHandler
+	epochStartConfigsHandler      common.CommonConfigsHandler
 }
 
 // ArgsCoreComponentsHolder will hold arguments needed for the core components holder
@@ -299,8 +299,8 @@ func CreateCoreComponents(args ArgsCoreComponentsHolder) (*coreComponentsHolder,
 		return nil, err
 	}
 
-	instance.epochStartConfigsHandler, err = commonConfigs.NewEpochStartConfigsHandler(
-		args.Config.GeneralSettings.EpochStartConfigsByEpoch,
+	instance.epochStartConfigsHandler, err = commonConfigs.NewCommonConfigsHandler(
+		args.Config.GeneralSettings.CommonConfigsByEpoch,
 	)
 	if err != nil {
 		return nil, err
@@ -540,8 +540,8 @@ func (c *coreComponentsHolder) ProcessConfigsHandler() common.ProcessConfigsHand
 	return c.processConfigsHandler
 }
 
-// EpochStartConfigsHandler returns epoch start configs handler component
-func (c *coreComponentsHolder) EpochStartConfigsHandler() common.EpochStartConfigsHandler {
+// CommonConfigsHandler returns epoch start configs handler component
+func (c *coreComponentsHolder) CommonConfigsHandler() common.CommonConfigsHandler {
 	return c.epochStartConfigsHandler
 }
 

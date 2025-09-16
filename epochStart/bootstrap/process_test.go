@@ -113,7 +113,7 @@ func createComponentsForEpochStart() (*mock.CoreComponentsMock, *mock.CryptoComp
 			EpochChangeGracePeriodHandlerField: gracePeriod,
 			ChainParametersHandlerField:        chainParams,
 			ProcessConfigsHandlerField:         &testscommon.ProcessConfigsHandlerStub{},
-			EpochStartConfigsHandlerField:      testscommon.GetDefaultEpochStartConfigsHandler(),
+			CommonConfigsHandlerField:      testscommon.GetDefaultCommonConfigsHandler(),
 		},
 		&mock.CryptoComponentsMock{
 			PubKey:          &cryptoMocks.PublicKeyStub{},

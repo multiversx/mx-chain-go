@@ -72,7 +72,7 @@ func createMockShardEpochStartTriggerArguments() *ArgsShardEpochStartTrigger {
 		RoundHandler:             &mock.RoundHandlerStub{},
 		AppStatusHandler:         &statusHandlerMock.AppStatusHandlerStub{},
 		EnableEpochsHandler:      &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
-		EpochStartConfigsHandler: testscommon.GetDefaultEpochStartConfigsHandler(),
+		CommonConfigsHandler: testscommon.GetDefaultCommonConfigsHandler(),
 	}
 }
 

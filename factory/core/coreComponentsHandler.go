@@ -660,8 +660,8 @@ func (mcc *managedCoreComponents) ProcessConfigsHandler() common.ProcessConfigsH
 	return mcc.coreComponents.processConfigsHandler
 }
 
-// EpochStartConfigsHandler returns the epoch start configs handler component
-func (mcc *managedCoreComponents) EpochStartConfigsHandler() common.EpochStartConfigsHandler {
+// CommonConfigsHandler returns the epoch start configs handler component
+func (mcc *managedCoreComponents) CommonConfigsHandler() common.CommonConfigsHandler {
 	mcc.mutCoreComponents.RLock()
 	defer mcc.mutCoreComponents.RUnlock()
 

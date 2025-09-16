@@ -54,7 +54,7 @@ type ArgsShardEpochStartTrigger struct {
 	RoundHandler             process.RoundHandler
 	AppStatusHandler         core.AppStatusHandler
 	EnableEpochsHandler      common.EnableEpochsHandler
-	EpochStartConfigsHandler common.EpochStartConfigsHandler
+	CommonConfigsHandler common.CommonConfigsHandler
 
 	Epoch    uint32
 	Validity uint64
@@ -108,7 +108,7 @@ type trigger struct {
 
 	appStatusHandler         core.AppStatusHandler
 	enableEpochsHandler      common.EnableEpochsHandler
-	epochStartConfigsHandler common.EpochStartConfigsHandler
+	epochStartConfigsHandler common.CommonConfigsHandler
 
 	mapMissingMiniBlocks     map[string]uint32
 	mapMissingValidatorsInfo map[string]uint32
@@ -266,7 +266,7 @@ func NewEpochStartTrigger(args *ArgsShardEpochStartTrigger) (*trigger, error) {
 		appStatusHandler:              args.AppStatusHandler,
 		roundHandler:                  args.RoundHandler,
 		enableEpochsHandler:           args.EnableEpochsHandler,
-		epochStartConfigsHandler:      args.EpochStartConfigsHandler,
+		epochStartConfigsHandler:      args.CommonConfigsHandler,
 	}
 
 	t.headersPool.RegisterHandler(t.receivedMetaBlock)

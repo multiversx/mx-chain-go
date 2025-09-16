@@ -12,21 +12,21 @@ const (
 	defaultExtraDelayForRequestBlockInfoInMs = 3000
 )
 
-// ErrEmptyEpochStartConfigsByEpoch signals that an empty process configs by epoch has been provided
-var ErrEmptyEpochStartConfigsByEpoch = errors.New("empty process configs by epoch")
+// ErrEmptyCommonConfigsByEpoch signals that an empty process configs by epoch has been provided
+var ErrEmptyCommonConfigsByEpoch = errors.New("empty process configs by epoch")
 
-// ErrEmptyEpochStartConfigsByEpoch signals that an empty process configs by round has been provided
-var ErrEmptyEpochStartConfigsByRound = errors.New("empty process configs by round")
+// ErrEmptyCommonConfigsByEpoch signals that an empty process configs by round has been provided
+var ErrEmptyCommonConfigsByRound = errors.New("empty process configs by round")
 
 type epochStartConfigs struct {
 	orderedConfigByEpoch []config.EpochStartConfigByEpoch
 }
 
-// NewEpochStartConfigsHandler creates a new process configs by epoch component
-func NewEpochStartConfigsHandler(
+// NewCommonConfigsHandler creates a new process configs by epoch component
+func NewCommonConfigsHandler(
 	configsByEpoch []config.EpochStartConfigByEpoch,
 ) (*epochStartConfigs, error) {
-	err := checkEpochStartConfigsByEpoch(configsByEpoch)
+	err := checkCommonConfigsByEpoch(configsByEpoch)
 	if err != nil {
 		return nil, err
 	}
@@ -44,9 +44,9 @@ func NewEpochStartConfigsHandler(
 	return esc, nil
 }
 
-func checkEpochStartConfigsByEpoch(configsByEpoch []config.EpochStartConfigByEpoch) error {
+func checkCommonConfigsByEpoch(configsByEpoch []config.EpochStartConfigByEpoch) error {
 	if len(configsByEpoch) == 0 {
-		return ErrEmptyEpochStartConfigsByEpoch
+		return ErrEmptyCommonConfigsByEpoch
 	}
 
 	// check for duplicated configs

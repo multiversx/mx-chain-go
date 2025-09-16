@@ -181,7 +181,7 @@ func createArgsProcessComponentsHolder() ArgsProcessComponentsHolder {
 			ChainParametersHandlerField:        &chainParameters.ChainParametersHandlerStub{},
 			ChainParametersSubscriberField:     &commonmocks.ChainParametersNotifierStub{},
 			ProcessConfigsHandlerField:         testscommon.GetDefaultProcessConfigsHandler(),
-			EpochStartConfigsHandlerField:      testscommon.GetDefaultEpochStartConfigsHandler(),
+			CommonConfigsHandlerField:      testscommon.GetDefaultCommonConfigsHandler(),
 		},
 		CryptoComponents: &mock.CryptoComponentsStub{
 			BlKeyGen: &cryptoMocks.KeyGenStub{},

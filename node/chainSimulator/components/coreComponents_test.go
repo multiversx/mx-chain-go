@@ -66,7 +66,7 @@ func createArgsCoreComponentsHolder() ArgsCoreComponentsHolder {
 				ProcessConfigsByRound: []config.ProcessConfigByRound{
 					{EnableRound: 0, MaxRoundsWithoutNewBlockReceived: 10, MaxRoundsWithoutCommittedBlock: 10},
 				},
-				EpochStartConfigsByEpoch: []config.EpochStartConfigByEpoch{
+				CommonConfigsByEpoch: []config.EpochStartConfigByEpoch{
 					{EnableEpoch: 0, GracePeriodRounds: 25, ExtraDelayForRequestBlockInfoInMilliseconds: 3000},
 				},
 			},

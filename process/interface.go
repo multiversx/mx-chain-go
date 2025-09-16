@@ -1255,7 +1255,7 @@ type CoreComponentsHolder interface {
 	FieldsSizeChecker() common.FieldsSizeChecker
 	EpochChangeGracePeriodHandler() common.EpochChangeGracePeriodHandler
 	ProcessConfigsHandler() common.ProcessConfigsHandler
-	EpochStartConfigsHandler() common.EpochStartConfigsHandler
+	CommonConfigsHandler() common.CommonConfigsHandler
 	SyncTimer() ntp.SyncTimer
 	IsInterfaceNil() bool
 }

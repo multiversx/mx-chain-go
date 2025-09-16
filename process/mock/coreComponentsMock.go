@@ -47,7 +47,7 @@ type CoreComponentsMock struct {
 	FieldsSizeCheckerField             common.FieldsSizeChecker
 	EpochChangeGracePeriodHandlerField common.EpochChangeGracePeriodHandler
 	ProcessConfigsHandlerField         common.ProcessConfigsHandler
-	EpochStartConfigsHandlerField      common.EpochStartConfigsHandler
+	CommonConfigsHandlerField      common.CommonConfigsHandler
 	SyncTimerField                     ntp.SyncTimer
 }
 
@@ -219,8 +219,8 @@ func (ccm *CoreComponentsMock) ProcessConfigsHandler() common.ProcessConfigsHand
 }
 
 // EpochChangeGracePeriodHandler -
-func (ccm *CoreComponentsMock) EpochStartConfigsHandler() common.EpochStartConfigsHandler {
-	return ccm.EpochStartConfigsHandlerField
+func (ccm *CoreComponentsMock) CommonConfigsHandler() common.CommonConfigsHandler {
+	return ccm.CommonConfigsHandlerField
 }
 
 // IsInterfaceNil -

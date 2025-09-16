@@ -467,8 +467,8 @@ type ProcessConfigsHandler interface {
 	IsInterfaceNil() bool
 }
 
-// EpochStartConfigsHandler defines the behavior of a component that can return epoch start configurations by epoch or by round
-type EpochStartConfigsHandler interface {
+// CommonConfigsHandler defines the behavior of a component that can return epoch start configurations by epoch or by round
+type CommonConfigsHandler interface {
 	GetGracePeriodRoundsByEpoch(epoch uint32) uint32
 	GetExtraDelayForRequestBlockInfoInMs(epoch uint32) uint32
 
