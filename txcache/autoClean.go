@@ -58,8 +58,6 @@ func (cache *TxCache) RemoveSweepableTxs(accountsProvider common.AccountNoncePro
 			continue
 		}
 
-		// we want to remove transactions with nonces < lastCommittedNonce
-		targetNonce := accountNonce - 1
 
 		// stop if we reached the max number of evicted transactions for this cleanup loop
 		if len(evicted) >= maxNum {
@@ -79,6 +77,9 @@ func (cache *TxCache) RemoveSweepableTxs(accountsProvider common.AccountNoncePro
 			)
 			break
 		}
+
+		// we want to remove transactions with nonces < lastCommittedNonce
+		targetNonce := accountNonce - 1
 
 		evicted = append(evicted, sender.removeSweepableTransactionsReturnHashes(targetNonce)...)
 	}

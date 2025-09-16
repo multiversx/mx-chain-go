@@ -106,7 +106,7 @@ func Test_RemoveSweepableTransactionsReturnHashes_Dummy(t *testing.T) {
 	})
 }
 
-func TestTxCache_AutoClean_Dummy(t *testing.T) {
+func TestTxCache_Cleanup(t *testing.T) {
 	t.Run("with GetAccountNonce errors", func(t *testing.T) {
 		boundsConfig := createMockTxBoundsConfig()
 		cache := newUnconstrainedCacheToTest(boundsConfig)
@@ -137,7 +137,7 @@ func TestTxCache_AutoClean_Dummy(t *testing.T) {
 		cache.AddTx(createTx([]byte("hash-carol-8"), "carol", 8))
 		expectedNumEvicted := 2 // only alice
 		evicted := cache.Cleanup(accountsProvider, 7, math.MaxInt, 1000*cleanupLoopMaximumDuration)
-		require.NoError(t, nil)
+
 		require.Equal(t, uint64(expectedNumEvicted), evicted)
 	})
 
@@ -152,11 +152,11 @@ func TestTxCache_AutoClean_Dummy(t *testing.T) {
 
 		expectedNumEvicted := 0
 		evicted := cache.Cleanup(accountsProvider, 7, math.MaxInt, 1000*cleanupLoopMaximumDuration)
-		require.NoError(t, nil)
+
 		require.Equal(t, uint64(expectedNumEvicted), evicted)
 	})
 
-	t.Run("with number of evicted tranzactions cap reached", func(t *testing.T) {
+	t.Run("with number of evicted transactions cap reached", func(t *testing.T) {
 		boundsConfig := createMockTxBoundsConfig()
 		cache := newUnconstrainedCacheToTest(boundsConfig)
 
