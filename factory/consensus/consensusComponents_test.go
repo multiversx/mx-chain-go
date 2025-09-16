@@ -69,10 +69,11 @@ func createMockConsensusComponentsFactoryArgs() consensusComp.ConsensusComponent
 					return 2
 				},
 			},
-			EpochChangeNotifier:      &epochNotifier.EpochNotifierStub{},
-			StartTime:                time.Time{},
-			EnableEpochsHandlerField: &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
-			EnableRoundsHandlerField: &testscommon.EnableRoundsHandlerStub{},
+			EpochChangeNotifier:        &epochNotifier.EpochNotifierStub{},
+			StartTime:                  time.Time{},
+			EnableEpochsHandlerField:   &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+			EnableRoundsHandlerField:   &testscommon.EnableRoundsHandlerStub{},
+			ProcessConfigsHandlerField: testscommon.GetDefaultProcessConfigsHandler(),
 		},
 		NetworkComponents: &testsMocks.NetworkComponentsStub{
 			Messenger:      &p2pmocks.MessengerStub{},
