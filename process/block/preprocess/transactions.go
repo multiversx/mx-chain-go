@@ -246,8 +246,22 @@ func (txs *transactions) RemoveBlockDataFromPools(body *block.Body, miniBlockPoo
 }
 
 // RemoveTxsFromPools removes transactions from associated pools
+// TODO CleanupSelfShardTxCache - Maybe find a solution to use block nonce instead of randomness
 func (txs *transactions) RemoveTxsFromPools(body *block.Body) error {
-	return txs.removeTxsFromPools(body, txs.txPool, txs.isMiniBlockCorrect)
+	accountsProvider, err := state.NewAccountsEphemeralProvider(txs.accounts)
+	if err != nil {
+		return err
+	}
+
+	err = txs.removeTxsFromPools(body, txs.txPool, txs.isMiniBlockCorrect)
+	if err != nil {
+		return err
+	}
+
+	randomness := helpers.ComputeRandomnessForCleanup(body)
+	txs.txPool.CleanupSelfShardTxCache(accountsProvider, randomness, process.TxCacheCleanupMaxNumTxs, process.TxCacheCleanupLoopMaximumDuration)
+
+	return err
 }
 
 // RestoreBlockDataIntoPools restores the transactions and miniblocks to associated pools
@@ -890,7 +904,7 @@ func (txs *transactions) computeExistingAndRequestMissingTxsForShards(body *bloc
 	return numMissingTxsForShard
 }
 
-// processAndRemoveBadTransactions processed transactions, if txs are with error it removes them from pool
+// processAndRemoveBadTransaction processed transactions, if txs are with error it removes them from pool
 func (txs *transactions) processAndRemoveBadTransaction(
 	txHash []byte,
 	tx *transaction.Transaction,
@@ -1451,7 +1465,13 @@ func (txs *transactions) computeSortedTxs(
 		txs.txCacheSelectionConfig.SelectionLoopDurationCheckInterval,
 	)
 
-	sortedTxs, _ := txCache.SelectTransactions(session, selectionOptions)
+	blockchainInfo := holders.NewBlockchainInfo(nil, nil, 0)
+	sortedTxs, _, err := txCache.SelectTransactions(session, selectionOptions, blockchainInfo)
+	if err != nil {
+		// TODO re-brainstorm if this error should be propagated or just logged
+		return nil, nil, err
+	}
+
 	selectedTxs, remainingTxs := txs.preFilterTransactionsWithMoveBalancePriority(sortedTxs, gasBandwidth)
 	txs.sortTransactionsBySenderAndNonce(selectedTxs, randomness)
 
@@ -1792,7 +1812,7 @@ func (txs *transactions) prefilterTransactions(
 
 	log.Debug("preFilterTransactions estimation",
 		"initialTxs", len(initialTxs),
-		"gasCost initialTxs", initialTxsGasEstimation,
+		"gasCostOfInitialTxs", initialTxsGasEstimation,
 		"additionalTxs", len(additionalTxs),
 		"gasCostEstimation", gasEstimation,
 		"selected", len(selectedTxs),

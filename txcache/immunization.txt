@@ -1,0 +1,9 @@
+Să ne asigurăm că la rollback-uri se apelează shardedTxPool.RemoveSetOfDataFromPool() - și se dez-imunizează tranzacțiile aiurea atât din "txCache", cât și din "crossTxCache".
+
+Nu merge cu immunityCache cum e făcut în "crossTxCache", că acolo aia-i colecția (structura de date) de bază, cea care ține tranzacțiile. În "txCache" avem alte structuri de date.
+
+Să ne gândim dacă putem extinde "WrappedTransaction". Sau, să avem un alt map mic asociat?
+
+
+
+Tranzacții imunizate: să nu fie șterse atunci când ...

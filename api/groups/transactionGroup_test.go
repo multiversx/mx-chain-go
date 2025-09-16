@@ -1005,6 +1005,101 @@ func testTxPoolWithInvalidQuery(query string, expectedErr error) func(t *testing
 	}
 }
 
+func TestTransactionsGroup_GetSelectedTransactions(t *testing.T) {
+	t.Parallel()
+
+	t.Run("GetSelectedTransactions should error", func(t *testing.T) {
+		t.Parallel()
+
+		facade := &mock.FacadeStub{
+			GetSelectedTransactionsCalled: func() (*common.TransactionsSelectionSimulationResult, error) {
+				return nil, expectedErr
+			},
+		}
+
+		testTransactionsGroup(
+			t,
+			facade,
+			"/transaction/pool/selected-transactions",
+			"GET",
+			nil,
+			http.StatusInternalServerError,
+			expectedErr,
+		)
+	})
+
+	t.Run("GetSelectedTransactions should work", func(t *testing.T) {
+		t.Parallel()
+
+		expectedTxHashes := []string{"txHash1", "txHash2"}
+		expectedResult := &common.TransactionsSelectionSimulationResult{
+			TxHashes: expectedTxHashes,
+		}
+
+		facade := &mock.FacadeStub{
+			GetSelectedTransactionsCalled: func() (*common.TransactionsSelectionSimulationResult, error) {
+				return expectedResult, nil
+			},
+		}
+
+		loadTransactionGroupResponse(
+			t,
+			facade,
+			"/transaction/pool/selected-transactions",
+			"GET",
+			nil,
+			expectedResult,
+		)
+	})
+}
+
+func TestTransactionsGroup_GetVirtualNonce(t *testing.T) {
+	t.Parallel()
+
+	t.Run("GetVirtualNonce should error", func(t *testing.T) {
+		t.Parallel()
+
+		facade := &mock.FacadeStub{
+			GetVirtualNonceCalled: func(address string) (*common.VirtualNonceOfAccountResponse, error) {
+				return nil, expectedErr
+			},
+		}
+
+		testTransactionsGroup(
+			t,
+			facade,
+			"/transaction/pool/address/virtual-nonce",
+			"GET",
+			nil,
+			http.StatusInternalServerError,
+			expectedErr,
+		)
+	})
+
+	t.Run("GetVirtualNonce should work", func(t *testing.T) {
+		t.Parallel()
+
+		expectedResult := &common.VirtualNonceOfAccountResponse{
+			VirtualNonce: 10,
+		}
+
+		facade := &mock.FacadeStub{
+			GetVirtualNonceCalled: func(address string) (*common.VirtualNonceOfAccountResponse, error) {
+				return expectedResult, nil
+			},
+		}
+
+		loadTransactionGroupResponse(
+			t,
+			facade,
+			"/transaction/pool/alice/virtual-nonce",
+			"GET",
+			nil,
+			expectedResult,
+		)
+	})
+}
+
 func TestTransactionsGroup_UpdateFacade(t *testing.T) {
 	t.Parallel()
 
@@ -1193,6 +1288,8 @@ func getTransactionRoutesConfig() config.ApiRoutesConfig {
 					{Name: "/:txhash/status", Open: true},
 					{Name: "/simulate", Open: true},
 					{Name: "/scrs-by-tx-hash/:txhash", Open: true},
+					{Name: "/pool/selected-transactions", Open: true},
+					{Name: "/pool/:address/virtual-nonce", Open: true},
 				},
 			},
 		},

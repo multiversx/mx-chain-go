@@ -17,12 +17,16 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/typeConverters"
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/common/holders"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/dblookupext"
+	"github.com/multiversx/mx-chain-go/factory/disabled"
 	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/process/block/preprocess"
 	"github.com/multiversx/mx-chain-go/process/smartContract"
 	"github.com/multiversx/mx-chain-go/process/txstatus"
 	"github.com/multiversx/mx-chain-go/sharding"
+	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/txcache"
 	logger "github.com/multiversx/mx-chain-logger-go"
 )
@@ -310,6 +314,46 @@ func (atp *apiTransactionProcessor) GetTransactionsPoolNonceGapsForSender(sender
 	}, nil
 }
 
+// GetSelectedTransactions will simulate a SelectTransactions, and it will return the corresponding hash of each selected transaction
+func (atp *apiTransactionProcessor) GetSelectedTransactions(selectionOptions common.TxSelectionOptions, blockchain data.ChainHandler, accountsAdapter state.AccountsAdapter) (*common.TransactionsSelectionSimulationResult, error) {
+	selectedTxHashes, err := atp.selectTransactions(accountsAdapter, selectionOptions)
+	if err != nil {
+		return nil, err
+	}
+
+	err = atp.recreateTrie(blockchain, accountsAdapter)
+	if err != nil {
+		return nil, err
+	}
+
+	return &common.TransactionsSelectionSimulationResult{
+		TxHashes: selectedTxHashes,
+	}, nil
+}
+
+// GetVirtualNonce will return the virtual nonce of an account
+func (atp *apiTransactionProcessor) GetVirtualNonce(address string, blockchain data.ChainHandler, accountsAdapter state.AccountsAdapter) (*common.VirtualNonceOfAccountResponse, error) {
+	pubKey, err := atp.addressPubKeyConverter.Decode(address)
+	if err != nil {
+		return nil, fmt.Errorf("%s, %w", ErrInvalidAddress.Error(), err)
+	}
+
+	// TODO brainstorm if recreating the trie is needed
+	err = atp.recreateTrie(blockchain, accountsAdapter)
+	if err != nil {
+		return nil, err
+	}
+
+	virtualNonce, err := atp.getVirtualNonce(pubKey, accountsAdapter)
+	if err != nil {
+		return nil, err
+	}
+
+	return &common.VirtualNonceOfAccountResponse{
+		VirtualNonce: virtualNonce,
+	}, nil
+}
+
 func (atp *apiTransactionProcessor) extractRequestedTxInfoFromObj(txObj interface{}, txType transaction.TxType, txHash []byte, requestedFieldsHandler fieldsHandler) common.Transaction {
 	txResult := atp.getApiResultFromObj(txObj, txType)
 
@@ -422,6 +466,113 @@ func (atp *apiTransactionProcessor) getFieldGettersForTx(wrappedTx *txcache.Wrap
 	}
 
 	return fieldGetters
+}
+
+func (atp *apiTransactionProcessor) recreateTrie(blockchain data.ChainHandler, accountStateAPI state.AccountsAdapter) error {
+	if accountStateAPI == nil {
+		return ErrNilAccountStateAPI
+	}
+
+	if blockchain == nil {
+		return ErrNilBlockchain
+	}
+
+	currentRootHash := blockchain.GetCurrentBlockRootHash()
+	if currentRootHash == nil {
+		return ErrNilCurrentRootHash
+	}
+
+	blockHeader := blockchain.GetCurrentBlockHeader()
+	if blockHeader == nil {
+		return ErrNilBlockHeader
+	}
+
+	epoch := blockHeader.GetEpoch()
+	rootHashHolder := holders.NewRootHashHolder(currentRootHash, core.OptionalUint32{Value: epoch, HasValue: true})
+
+	// TODO: keep in mind that the selection simulation can be affected by other API requests which might alter the trie
+	err := accountStateAPI.RecreateTrie(rootHashHolder)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (atp *apiTransactionProcessor) selectTransactions(accountsAdapter state.AccountsAdapter, selectionOptions common.TxSelectionOptions) ([]string, error) {
+	cacheId := process.ShardCacherIdentifier(atp.shardCoordinator.SelfId(), atp.shardCoordinator.SelfId())
+	cache := atp.dataPool.Transactions().ShardDataStore(cacheId)
+	txCache, ok := cache.(*txcache.TxCache)
+	if !ok {
+		log.Warn("apiTransactionProcessor.selectTransactions could not cast to TxCache")
+		return nil, ErrCouldNotCastToTxCache
+	}
+
+	// TODO use the right object, not a disabled one
+	txProcessor := disabled.TxProcessor{}
+	argsSelectionSession := preprocess.ArgsSelectionSession{
+		AccountsAdapter:       accountsAdapter,
+		TransactionsProcessor: &txProcessor,
+	}
+
+	selectionSession, err := preprocess.NewSelectionSession(argsSelectionSession)
+	if err != nil {
+		log.Warn("apiTransactionProcessor.selectTransactions could not create SelectionSession")
+		return nil, err
+	}
+
+	blockchainInfo := holders.NewBlockchainInfo(nil, nil, 0)
+	selectedTxs, _, err := txCache.SelectTransactions(selectionSession, selectionOptions, blockchainInfo)
+	if err != nil {
+		log.Warn("apiTransactionProcessor.selectTransactions could not SelectTransactions")
+		return nil, err
+	}
+
+	return atp.extractTxHashes(selectedTxs), nil
+}
+
+func (atp *apiTransactionProcessor) extractTxHashes(txs []*txcache.WrappedTransaction) []string {
+	txHashes := make([]string, len(txs))
+	for i, tx := range txs {
+		txHashes[i] = hex.EncodeToString(tx.TxHash)
+	}
+
+	return txHashes
+}
+
+// TODO return also some "block coordinates"
+func (atp *apiTransactionProcessor) getVirtualNonce(address []byte, accountsAdapter state.AccountsAdapter) (uint64, error) {
+	cacheId := process.ShardCacherIdentifier(atp.shardCoordinator.SelfId(), atp.shardCoordinator.SelfId())
+	cache := atp.dataPool.Transactions().ShardDataStore(cacheId)
+	txCache, ok := cache.(*txcache.TxCache)
+	if !ok {
+		log.Warn("apiTransactionProcessor.getVirtualNonce could not cast to TxCache")
+		return 0, ErrCouldNotCastToTxCache
+	}
+
+	// TODO use the right object, not a disabled one
+	txProcessor := disabled.TxProcessor{}
+	argsSelectionSession := preprocess.ArgsSelectionSession{
+		AccountsAdapter:       accountsAdapter,
+		TransactionsProcessor: &txProcessor,
+	}
+
+	// TODO brainstorm if the selection session is needed
+	selectionSession, err := preprocess.NewSelectionSession(argsSelectionSession)
+	if err != nil {
+		log.Warn("apiTransactionProcessor.getVirtualNonce could not create SelectionSession")
+		return 0, err
+	}
+
+	// TODO brainstorm if the blockchain info is needed
+	blockchainInfo := holders.NewBlockchainInfo(nil, nil, 0)
+	virtualNonce, err := txCache.GetVirtualNonce(address, selectionSession, blockchainInfo)
+	if err != nil {
+		log.Warn("apiTransactionProcessor.getVirtualNonce could not get virtual nonce")
+		return 0, err
+	}
+
+	return virtualNonce, nil
 }
 
 func (atp *apiTransactionProcessor) fetchTxsForSender(sender string, senderShard uint32) []*txcache.WrappedTransaction {

@@ -16,6 +16,7 @@ type CacheConfig struct {
 // TxCacheBoundsConfig will map the transactions cache bounds config
 type TxCacheBoundsConfig struct {
 	MaxNumBytesPerSenderUpperBound uint32
+	MaxTrackedBlocks               uint32
 }
 
 // TxCacheSelectionConfig will map the mempool selection config
@@ -338,6 +339,7 @@ type FacadeConfig struct {
 	RestApiInterface            string
 	PprofEnabled                bool
 	P2PPrometheusMetricsEnabled bool
+	TxCacheSelectionConfig      TxCacheSelectionConfig
 }
 
 // StateTriesConfig will hold information about state tries
@@ -544,6 +546,13 @@ type InterceptorResolverDebugConfig struct {
 	NumRequestsThreshold       int
 	NumResolveFailureThreshold int
 	DebugLineExpiration        int
+	BroadcastStatistics        BroadcastStatisticsConfig
+}
+
+// BroadcastStatisticsConfig holds configuration for broadcast statistics collection
+type BroadcastStatisticsConfig struct {
+	Enabled  bool
+	Messages []string
 }
 
 // AntifloodDebugConfig will hold the antiflood debug configuration

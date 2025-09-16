@@ -12,7 +12,7 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	atomicCore "github.com/multiversx/mx-chain-core-go/core/atomic"
-	nodeData "github.com/multiversx/mx-chain-core-go/data"
+	coreData "github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/alteredAccount"
 	"github.com/multiversx/mx-chain-core-go/data/api"
 	"github.com/multiversx/mx-chain-core-go/data/block"
@@ -61,10 +61,11 @@ func createMockArguments() ArgNodeFacade {
 				},
 			},
 		}},
-		AccountsState: &stateMock.AccountsStub{},
-		PeerState:     &stateMock.AccountsStub{},
+		AccountsStateAPI: &stateMock.AccountsStub{},
+		AccountsState:    &stateMock.AccountsStub{},
+		PeerState:        &stateMock.AccountsStub{},
 		Blockchain: &testscommon.ChainHandlerStub{
-			GetCurrentBlockHeaderCalled: func() nodeData.HeaderHandler {
+			GetCurrentBlockHeaderCalled: func() coreData.HeaderHandler {
 				return &block.Header{}
 			},
 			GetCurrentBlockRootHashCalled: func() []byte {
@@ -161,6 +162,17 @@ func TestNewNodeFacade(t *testing.T) {
 
 		require.Nil(t, nf)
 		require.Equal(t, ErrNilAccountState, err)
+	})
+	t.Run("nil AccountsStateAPI should error", func(t *testing.T) {
+		t.Parallel()
+
+		arg := createMockArguments()
+		arg.WsAntifloodConfig.WebServerAntifloodEnabled = true // coverage
+		arg.AccountsStateAPI = nil
+		nf, err := NewNodeFacade(arg)
+
+		require.Nil(t, nf)
+		require.Equal(t, ErrNilAccountStateAPI, err)
 	})
 	t.Run("nil PeerState should error", func(t *testing.T) {
 		t.Parallel()
@@ -2077,6 +2089,118 @@ func TestNodeFacade_GetTransactionsPoolNonceGapsForSender(t *testing.T) {
 		res, err := nf.GetTransactionsPoolNonceGapsForSender(expectedSender)
 		require.NoError(t, err)
 		require.Equal(t, expectedNonceGaps, res)
+	})
+}
+
+func TestNodeFacade_GetSelectedTransactions(t *testing.T) {
+	t.Parallel()
+
+	t.Run("should propagate error from ApiResolver", func(t *testing.T) {
+		t.Parallel()
+
+		arg := createMockArguments()
+		arg.AccountsStateAPI = &stateMock.AccountsStub{
+			RecreateTrieCalled: func(options common.RootHashHolder) error {
+				return nil
+			},
+		}
+
+		arg.ApiResolver = &mock.ApiResolverStub{
+			GetSelectedTransactionsCalled: func(selectionOptions common.TxSelectionOptions, blockchain coreData.ChainHandler, accountsAdapter state.AccountsAdapter) (*common.TransactionsSelectionSimulationResult, error) {
+				return nil, expectedErr
+			},
+		}
+
+		nf, _ := NewNodeFacade(arg)
+		res, err := nf.GetSelectedTransactions()
+		require.Nil(t, res)
+		require.Equal(t, expectedErr, err)
+	})
+
+	t.Run("should work", func(t *testing.T) {
+		t.Parallel()
+
+		arg := createMockArguments()
+		arg.AccountsStateAPI = &stateMock.AccountsStub{
+			RecreateTrieCalled: func(options common.RootHashHolder) error {
+				return nil
+			},
+		}
+
+		expectedTxHashes := []string{"txHash1", "txHash2"}
+		expectedRes := &common.TransactionsSelectionSimulationResult{
+			TxHashes: expectedTxHashes,
+		}
+
+		arg.ApiResolver = &mock.ApiResolverStub{
+			GetSelectedTransactionsCalled: func(selectionOptions common.TxSelectionOptions, blockchain coreData.ChainHandler, accountsAdapter state.AccountsAdapter) (*common.TransactionsSelectionSimulationResult, error) {
+				return expectedRes, nil
+			},
+		}
+
+		nf, _ := NewNodeFacade(arg)
+		res, err := nf.GetSelectedTransactions()
+		require.NoError(t, err)
+		require.Equal(t, expectedRes, res)
+	})
+}
+
+func TestNodeFacade_GetVirtualNonce(t *testing.T) {
+	t.Parallel()
+
+	t.Run("should propagate error from ApiResolver", func(t *testing.T) {
+		t.Parallel()
+
+		arg := createMockArguments()
+		arg.AccountsStateAPI = &stateMock.AccountsStub{
+			RecreateTrieCalled: func(options common.RootHashHolder) error {
+				return nil
+			},
+		}
+		arg.Node = &mock.NodeStub{
+			DecodeAddressPubkeyCalled: func(address string) ([]byte, error) {
+				return []byte("address"), nil
+			},
+		}
+
+		arg.ApiResolver = &mock.ApiResolverStub{
+			GetVirtualNonceCalled: func(address string, blockchain coreData.ChainHandler, accountsAdapter state.AccountsAdapter) (*common.VirtualNonceOfAccountResponse, error) {
+				return nil, expectedErr
+			},
+		}
+
+		nf, _ := NewNodeFacade(arg)
+		res, err := nf.GetVirtualNonce("address")
+		require.Nil(t, res)
+		require.Equal(t, expectedErr, err)
+	})
+
+	t.Run("should work", func(t *testing.T) {
+		t.Parallel()
+
+		arg := createMockArguments()
+		arg.AccountsStateAPI = &stateMock.AccountsStub{
+			RecreateTrieCalled: func(options common.RootHashHolder) error {
+				return nil
+			},
+		}
+		arg.Node = &mock.NodeStub{
+			DecodeAddressPubkeyCalled: func(address string) ([]byte, error) {
+				return []byte("address"), nil
+			},
+		}
+
+		expectedRes := &common.VirtualNonceOfAccountResponse{VirtualNonce: 10}
+		arg.ApiResolver = &mock.ApiResolverStub{
+			GetVirtualNonceCalled: func(address string, blockchain coreData.ChainHandler, accountsAdapter state.AccountsAdapter) (*common.VirtualNonceOfAccountResponse, error) {
+				return expectedRes, nil
+			},
+		}
+
+		nf, _ := NewNodeFacade(arg)
+		res, err := nf.GetVirtualNonce("address")
+		require.NoError(t, err)
+		require.Equal(t, expectedRes, res)
 	})
 }
 
