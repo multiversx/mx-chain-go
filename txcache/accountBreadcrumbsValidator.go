@@ -27,32 +27,33 @@ func newBreadcrumbValidator() *breadcrumbsValidator {
 	}
 }
 
-// isContinuousBreadcrumb is used when a block is proposed and also when the deriveVirtualSession is called
-func (validator *breadcrumbsValidator) isContinuousBreadcrumb(
+// validateNonceContinuityOfBreadcrumb is used when a block is proposed and also when the deriveVirtualSession is called
+func (validator *breadcrumbsValidator) validateNonceContinuityOfBreadcrumb(
 	address string,
-	accountNonce uint64,
+	accountSessionNonce uint64,
 	breadcrumb *accountBreadcrumb,
 ) bool {
 	if breadcrumb.hasUnknownNonce() {
 		// this might occur when an account only acts as a relayer (never sender) in a specific tracked block.
 		// in that case, we don't have any nonce info for the relayer.
 		// as a result, its breadcrumb is treated as continuous.
-		log.Debug("breadcrumbsValidator.isContinuousBreadcrumb breadcrumb has unknown nonce")
+		log.Trace("breadcrumbsValidator.validateNonceContinuityOfBreadcrumb breadcrumb has unknown nonce")
 		return true
 	}
 
-	if !validator.continuousWithSessionNonce(address, accountNonce, breadcrumb) {
+	if !validator.validateContinuityWithSessionNonce(address, accountSessionNonce, breadcrumb) {
 		return false
 	}
 
-	if !validator.continuousWithPreviousBreadcrumb(address, accountNonce, breadcrumb) {
+	if !validator.validateContinuityWithPreviousBreadcrumb(address, breadcrumb) {
 		return false
 	}
 
 	return true
 }
 
-func (validator *breadcrumbsValidator) continuousWithSessionNonce(
+// validateContinuityWithSessionNonce checks that the given breadcrumb is continuous with the session nonce
+func (validator *breadcrumbsValidator) validateContinuityWithSessionNonce(
 	address string,
 	accountNonce uint64,
 	breadcrumb *accountBreadcrumb,
@@ -64,35 +65,38 @@ func (validator *breadcrumbsValidator) continuousWithSessionNonce(
 
 	continuousWithSessionNonce := breadcrumb.verifyContinuityWithSessionNonce(accountNonce)
 	if !continuousWithSessionNonce {
+		// mark this sender as not continuous
 		validator.skippedSenders[address] = struct{}{}
-		log.Debug("virtualSessionComputer.isContinuousBreadcrumb breadcrumb not continuous with session nonce",
+		log.Debug("virtualSessionComputer.validateNonceContinuityOfBreadcrumb breadcrumb not continuous with session nonce",
 			"address", address,
 			"accountNonce", accountNonce,
 			"breadcrumb nonce", breadcrumb.initialNonce)
 		return false
 	}
-	validator.sendersInContinuityWithSessionNonce[address] = struct{}{}
 
+	// mark this sender as continuous with the session nonce
+	validator.sendersInContinuityWithSessionNonce[address] = struct{}{}
 	return true
 }
 
-func (validator *breadcrumbsValidator) continuousWithPreviousBreadcrumb(
+// validateContinuityWithPreviousBreadcrumb checks that the given breadcrumb of the address is continuous with the previous one, saved in the internal state of the validator.
+func (validator *breadcrumbsValidator) validateContinuityWithPreviousBreadcrumb(
 	address string,
-	accountNonce uint64,
 	breadcrumb *accountBreadcrumb) bool {
 
 	previousBreadcrumb := validator.accountPreviousBreadcrumb[address]
 	continuousBreadcrumbs := breadcrumb.verifyContinuityBetweenAccountBreadcrumbs(previousBreadcrumb)
 	if !continuousBreadcrumbs {
+		// mark this sender as not continuous
 		validator.skippedSenders[address] = struct{}{}
-		log.Debug("virtualSessionComputer.isContinuousBreadcrumb breadcrumb not continuous with previous breadcrumb",
+		log.Debug("virtualSessionComputer.validateNonceContinuityOfBreadcrumb breadcrumb not continuous with previous breadcrumb",
 			"address", address,
-			"accountNonce", accountNonce,
 			"current breadcrumb nonce", breadcrumb.initialNonce,
-			"previous breadcrumb nonce", previousBreadcrumb.initialNonce)
+			"previous breadcrumb nonce", previousBreadcrumb.lastNonce)
 		return false
 	}
 
+	// update the previous breadcrumb of this address
 	validator.accountPreviousBreadcrumb[address] = breadcrumb
 
 	return true
@@ -103,6 +107,7 @@ func (validator *breadcrumbsValidator) shouldSkipSender(address string) bool {
 	return ok
 }
 
+// validateBalance is used only for the OnProposedBlock flow, when validating the compiled breadcrumbs.
 func (validator *breadcrumbsValidator) validateBalance(
 	address string,
 	initialBalance *big.Int,
@@ -110,8 +115,13 @@ func (validator *breadcrumbsValidator) validateBalance(
 ) error {
 	virtualBalance, ok := validator.virtualBalancesByAddress[address]
 	if !ok {
-		virtualBalance = newVirtualAccountBalance(initialBalance)
-		validator.virtualBalancesByAddress[address] = virtualBalance
+		balance, err := newVirtualAccountBalance(initialBalance)
+		if err != nil {
+			return err
+		}
+
+		virtualBalance = balance
+		validator.virtualBalancesByAddress[address] = balance
 	}
 
 	virtualBalance.accumulateConsumedBalance(breadcrumb)
