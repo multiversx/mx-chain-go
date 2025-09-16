@@ -447,17 +447,3 @@ func (st *selectionTracker) getVirtualNonceOfAccountWithRootHash(
 
 	return breadcrumb.lastNonce.Value + 1, latestCommitedBlock.rootHash, nil
 }
-
-func (st *selectionTracker) getLastCommittedBlock(blockchainInfo common.BlockchainInfo) ([]byte, uint64, error) {
-	latestCommitedBlockHash := blockchainInfo.GetLatestCommittedBlockHash()
-	if latestCommitedBlockHash == nil {
-		return nil, 0, errNilLatestCommitedBlockHash
-	}
-
-	latestCommitedBlock, ok := st.blocks[string(latestCommitedBlockHash)]
-	if !ok {
-		return nil, 0, errBlockNotFound
-	}
-
-	return latestCommitedBlock.rootHash, latestCommitedBlock.nonce, nil
-}
