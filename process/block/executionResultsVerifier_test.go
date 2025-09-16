@@ -116,7 +116,6 @@ func Test_createLastExecutionResultInfoFromExecutionResult(t *testing.T) {
 func Test_createLastExecutionResultFromPrevHeader(t *testing.T) {
 	t.Parallel()
 
-	notarizedInRound := uint64(1)
 	t.Run("nil prevHeader", func(t *testing.T) {
 		t.Parallel()
 		lastExecutionResult, err := process.CreateLastExecutionResultFromPrevHeader(nil, []byte("prevHeaderHash"))
@@ -149,7 +148,7 @@ func Test_createLastExecutionResultFromPrevHeader(t *testing.T) {
 		prevHeaderHash := []byte("prevHeaderHash")
 		prevHeader := createDummyPrevShardHeaderV2()
 		expectedLastExecutionResult := &block.ExecutionResultInfo{
-			NotarizedInRound: notarizedInRound,
+			NotarizedInRound: prevHeader.GetRound(),
 			ExecutionResult: &block.BaseExecutionResult{
 				HeaderHash:  prevHeaderHash,
 				HeaderNonce: prevHeader.GetNonce(),
@@ -177,7 +176,7 @@ func Test_createLastExecutionResultFromPrevHeader(t *testing.T) {
 		prevHeaderHash := []byte("prevHeaderHash")
 		prevMetaHeader := createDummyPrevMetaHeader()
 		expectedLastExecutionResult := &block.MetaExecutionResultInfo{
-			NotarizedInRound: notarizedInRound,
+			NotarizedInRound: prevMetaHeader.GetRound(),
 			ExecutionResult: &block.BaseMetaExecutionResult{
 				BaseExecutionResult: &block.BaseExecutionResult{
 					HeaderHash:  prevHeaderHash,
@@ -227,6 +226,9 @@ func TestExecutionResultsVerifier_getPrevBlockLastExecutionResult(t *testing.T) 
 			GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
 				return prevHeader
 			},
+			GetCurrentBlockHeaderHashCalled: func() []byte {
+				return []byte("prevHeaderHash")
+			},
 		}
 
 		executionResultsTracker := &executionTrack.ExecutionResultsTrackerStub{}
@@ -269,6 +271,9 @@ func TestExecutionResultsVerifier_getPrevBlockLastExecutionResult(t *testing.T) 
 		blockchain := &testscommon.ChainHandlerStub{
 			GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
 				return prevHeader
+			},
+			GetCurrentBlockHeaderHashCalled: func() []byte {
+				return []byte("prevHeaderHash")
 			},
 		}
 
@@ -382,6 +387,9 @@ func TestExecutionResultsVerifier_verifyLastExecutionResultInfoMatchesLastExecut
 			GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
 				return prevHeader
 			},
+			GetCurrentBlockHeaderHashCalled: func() []byte {
+				return prevHeaderHash
+			},
 		}
 		executionResultsTracker := &executionTrack.ExecutionResultsTrackerStub{}
 		erc, err := NewExecutionResultsVerifier(blockchain, executionResultsTracker)
@@ -406,6 +414,9 @@ func TestExecutionResultsVerifier_verifyLastExecutionResultInfoMatchesLastExecut
 		blockchain := &testscommon.ChainHandlerStub{
 			GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
 				return prevHeader
+			},
+			GetCurrentBlockHeaderHashCalled: func() []byte {
+				return prevHeaderHash
 			},
 		}
 		executionResultsTracker := &executionTrack.ExecutionResultsTrackerStub{}
@@ -432,6 +443,9 @@ func TestExecutionResultsVerifier_verifyLastExecutionResultInfoMatchesLastExecut
 			GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
 				return createMetaHeaderV3WithExecutionResults()
 			},
+			GetCurrentBlockHeaderHashCalled: func() []byte {
+				return prevHeaderHash
+			},
 		}
 		executionResultsTracker := &executionTrack.ExecutionResultsTrackerStub{}
 		erc, err := NewExecutionResultsVerifier(blockchain, executionResultsTracker)
@@ -442,8 +456,9 @@ func TestExecutionResultsVerifier_verifyLastExecutionResultInfoMatchesLastExecut
 	})
 	t.Run("create last execution result from execution result error (nil execution result)", func(t *testing.T) {
 		t.Parallel()
+		prevHeaderHash := []byte("prevHash")
 		header := &block.HeaderV3{
-			PrevHash:            []byte("prevHash"),
+			PrevHash:            prevHeaderHash,
 			Nonce:               1,
 			Round:               2,
 			ShardID:             0,
@@ -453,6 +468,9 @@ func TestExecutionResultsVerifier_verifyLastExecutionResultInfoMatchesLastExecut
 		blockchain := &testscommon.ChainHandlerStub{
 			GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
 				return header
+			},
+			GetCurrentBlockHeaderHashCalled: func() []byte {
+				return prevHeaderHash
 			},
 		}
 		executionResultsTracker := &executionTrack.ExecutionResultsTrackerStub{}
@@ -641,14 +659,17 @@ func TestExecutionResultsVerifier_VerifyHeaderExecutionResults(t *testing.T) {
 	t.Run("error getting pending execution results", func(t *testing.T) {
 		t.Parallel()
 
+		header := createShardHeaderV3WithExecutionResults()
 		prevHeader := createPrevShardHeaderV3WithoutExecutionResults()
 		blockchain := &testscommon.ChainHandlerStub{
 			GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
 				return prevHeader
 			},
+			GetCurrentBlockHeaderHashCalled: func() []byte {
+				return header.GetPrevHash()
+			},
 		}
 
-		header := createShardHeaderV3WithExecutionResults()
 		lastExecutionResult, err := process.CreateLastExecutionResultInfoFromExecutionResult(header.GetRound(), header.ExecutionResults[len(header.ExecutionResults)-1], header.GetShardID())
 		require.NoError(t, err)
 		header.LastExecutionResult = lastExecutionResult.(*block.ExecutionResultInfo)
@@ -667,17 +688,18 @@ func TestExecutionResultsVerifier_VerifyHeaderExecutionResults(t *testing.T) {
 	})
 	t.Run("execution results number mismatch", func(t *testing.T) {
 		t.Parallel()
+
+		header := createShardHeaderV3WithExecutionResults()
 		prevHeader := createPrevShardHeaderV3WithoutExecutionResults()
 		blockchain := &testscommon.ChainHandlerStub{
 			GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
 				return prevHeader
 			},
 			GetCurrentBlockHeaderHashCalled: func() []byte {
-				return []byte("prevHeaderHash")
+				return header.GetPrevHash()
 			},
 		}
 
-		header := createShardHeaderV3WithExecutionResults()
 		lastExecutionResult, err := process.CreateLastExecutionResultInfoFromExecutionResult(header.GetRound(), header.ExecutionResults[len(header.ExecutionResults)-1], header.GetShardID())
 		require.NoError(t, err)
 		header.LastExecutionResult = lastExecutionResult.(*block.ExecutionResultInfo)
@@ -762,17 +784,17 @@ func TestExecutionResultsVerifier_VerifyHeaderExecutionResults(t *testing.T) {
 	t.Run("execution results consecutive", func(t *testing.T) {
 		t.Parallel()
 
+		header := createShardHeaderV3WithMultipleExecutionResults(3, 2)
 		prevHeader := createShardHeaderV3WithMultipleExecutionResults(1, 1)
 		blockchain := &testscommon.ChainHandlerStub{
 			GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
 				return prevHeader
 			},
 			GetCurrentBlockHeaderHashCalled: func() []byte {
-				return []byte("prevHeaderHash")
+				return header.GetPrevHash()
 			},
 		}
 
-		header := createShardHeaderV3WithMultipleExecutionResults(3, 2)
 		executionResultsTracker := &executionTrack.ExecutionResultsTrackerStub{
 			GetPendingExecutionResultsCalled: func() ([]data.ExecutionResultHandler, error) {
 				result := make([]data.ExecutionResultHandler, len(header.ExecutionResults))

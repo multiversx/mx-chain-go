@@ -1113,6 +1113,7 @@ func CreateLastExecutionResultFromPrevHeader(prevHeader data.HeaderHandler, prev
 				HeaderNonce: prevHeader.GetNonce(),
 				HeaderRound: prevHeader.GetRound(),
 				RootHash:    prevHeader.GetRootHash(),
+				GasUsed:     0, // we don't have this information in previous header
 			},
 		}, nil
 	}
@@ -1123,13 +1124,14 @@ func CreateLastExecutionResultFromPrevHeader(prevHeader data.HeaderHandler, prev
 	}
 
 	return &block.MetaExecutionResultInfo{
-		NotarizedInRound: prevHeader.GetTimeStamp(),
+		NotarizedInRound: prevHeader.GetRound(),
 		ExecutionResult: &block.BaseMetaExecutionResult{
 			BaseExecutionResult: &block.BaseExecutionResult{
 				HeaderHash:  prevHeaderHash,
 				HeaderNonce: prevMetaHeader.GetNonce(),
 				HeaderRound: prevMetaHeader.GetRound(),
 				RootHash:    prevMetaHeader.GetRootHash(),
+				GasUsed:     0, // we don't have this information in previous header
 			},
 			ValidatorStatsRootHash: prevMetaHeader.GetValidatorStatsRootHash(),
 			AccumulatedFeesInEpoch: prevMetaHeader.GetAccumulatedFeesInEpoch(),
@@ -1156,6 +1158,7 @@ func CreateLastExecutionResultInfoFromExecutionResult(notarizedInRound uint64, l
 				HeaderNonce: lastExecResult.GetHeaderNonce(),
 				HeaderRound: lastExecResult.GetHeaderRound(),
 				RootHash:    lastExecResult.GetRootHash(),
+				GasUsed:     lastExecResult.GetGasUsed(),
 			},
 		}, nil
 	}
@@ -1173,6 +1176,7 @@ func CreateLastExecutionResultInfoFromExecutionResult(notarizedInRound uint64, l
 				HeaderNonce: lastMetaExecResult.GetHeaderNonce(),
 				HeaderRound: lastMetaExecResult.GetHeaderRound(),
 				RootHash:    lastMetaExecResult.GetRootHash(),
+				GasUsed:     lastMetaExecResult.GetGasUsed(),
 			},
 			ValidatorStatsRootHash: lastMetaExecResult.GetValidatorStatsRootHash(),
 			AccumulatedFeesInEpoch: lastMetaExecResult.GetAccumulatedFeesInEpoch(),
