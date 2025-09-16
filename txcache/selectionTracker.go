@@ -173,7 +173,7 @@ func (st *selectionTracker) validateTrackedBlocks(
 	}
 
 	// if we pass the first validation, only then we extract the txs to compile the breadcrumbs
-	txs, err := st.getTransactionsInBlock(blockBody)
+	txs, err := getTransactionsInBlock(blockBody, st.txCache)
 	if err != nil {
 		log.Debug("selectionTracker.validateTrackedBlocks: error getting transactions from block", "err", err)
 		return err
@@ -214,7 +214,7 @@ func (st *selectionTracker) validateBreadcrumbsOfTrackedBlocks(chainOfTrackedBlo
 				return err
 			}
 
-			if !validator.continuousBreadcrumb(address, initialNonce, breadcrumb) {
+			if !validator.isContinuousBreadcrumb(address, initialNonce, breadcrumb) {
 				log.Debug("selectionTracker.validateBreadcrumbsOfTrackedBlocks",
 					"err", errDiscontinuousBreadcrumbs,
 					"address", address,
@@ -297,36 +297,6 @@ func (st *selectionTracker) updateLatestRootHashNoLock(receivedNonce uint64, rec
 	}
 }
 
-func (st *selectionTracker) getTransactionsInBlock(blockBody *block.Body) ([]*WrappedTransaction, error) {
-	miniBlocks := blockBody.GetMiniBlocks()
-	numberOfTxs := st.computeNumberOfTxsInMiniBlocks(miniBlocks)
-	txs := make([]*WrappedTransaction, 0, numberOfTxs)
-
-	for _, miniBlock := range miniBlocks {
-		txHashes := miniBlock.GetTxHashes()
-
-		for _, txHash := range txHashes {
-			tx, ok := st.txCache.GetByTxHash(txHash)
-			if !ok {
-				return nil, errNotFoundTx
-			}
-
-			txs = append(txs, tx)
-		}
-	}
-
-	return txs, nil
-}
-
-func (st *selectionTracker) computeNumberOfTxsInMiniBlocks(miniBlocks []*block.MiniBlock) int {
-	numberOfTxs := 0
-	for _, miniBlock := range miniBlocks {
-		numberOfTxs += len(miniBlock.GetTxHashes())
-	}
-
-	return numberOfTxs
-}
-
 func (st *selectionTracker) deriveVirtualSelectionSession(
 	session SelectionSession,
 	blockchainInfo common.BlockchainInfo,
@@ -338,12 +308,21 @@ func (st *selectionTracker) deriveVirtualSelectionSession(
 		return nil, err
 	}
 
-	log.Debug("selectionTracker.deriveVirtualSelectionSession", "rootHash", rootHash)
+	latestExecutedBlockHash := blockchainInfo.GetLatestExecutedBlockHash()
+	latestCommittedBlockHash := blockchainInfo.GetLatestCommittedBlockHash()
+	currentNonce := blockchainInfo.GetCurrentNonce()
+
+	log.Debug("selectionTracker.deriveVirtualSelectionSession",
+		"rootHash", rootHash,
+		"latestExecutedBlockHash", latestExecutedBlockHash,
+		"latestCommitedBlockHash", latestCommittedBlockHash,
+		"currentNonce", currentNonce,
+	)
 
 	trackedBlocks, err := st.getChainOfTrackedBlocks(
-		blockchainInfo.GetLatestExecutedBlockHash(),
-		blockchainInfo.GetLatestCommittedBlockHash(),
-		blockchainInfo.GetCurrentNonce(),
+		latestExecutedBlockHash,
+		latestCommittedBlockHash,
+		currentNonce,
 	)
 	if err != nil {
 		log.Debug("selectionTracker.deriveVirtualSelectionSession",
@@ -354,8 +333,10 @@ func (st *selectionTracker) deriveVirtualSelectionSession(
 	log.Debug("selectionTracker.deriveVirtualSelectionSession",
 		"len(trackedBlocks)", len(trackedBlocks))
 
-	provider := newVirtualSessionProvider(session)
-	return provider.createVirtualSelectionSession(trackedBlocks)
+	displayTrackedBlocks(log, "trackedBlocks", trackedBlocks)
+
+	computer := newVirtualSessionComputer(session)
+	return computer.createVirtualSelectionSession(trackedBlocks)
 }
 
 // getChainOfTrackedBlocks finds the chain of tracked blocks, iterating from tail to head,

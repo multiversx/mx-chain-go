@@ -4,10 +4,9 @@ import (
 	"math/big"
 )
 
-// breadcrumbsValidator checks that breadcrumbs are continuous
-//
-//	with the session nonce
-//	with the previous breadcrumbs
+// breadcrumbsValidator checks that breadcrumbs are continuous:
+// With the session nonce.
+// With the previous breadcrumbs.
 type breadcrumbsValidator struct {
 	skippedSenders                      map[string]struct{}
 	sendersInContinuityWithSessionNonce map[string]struct{}
@@ -15,11 +14,10 @@ type breadcrumbsValidator struct {
 	virtualBalancesByAddress            map[string]*virtualAccountBalance
 }
 
-// a validator object is used for the next scenarios:
-//
-// when the creation of the virtual session - deriveVirtualSelectionSession - is called (in the SelectTransactions)
-// when the validation for a proposed block is called (when receiving the OnProposedBlock notification)
-// at the end of those methods it becomes useless
+// newBreadcrumbValidator is used for the next scenarios:
+// When the creation of the virtual session - deriveVirtualSelectionSession - is called (in the SelectTransactions).
+// When the validation for a proposed block is called (when receiving the OnProposedBlock notification).
+// At the end of those methods it becomes useless.
 func newBreadcrumbValidator() *breadcrumbsValidator {
 	return &breadcrumbsValidator{
 		skippedSenders:                      make(map[string]struct{}),
@@ -29,18 +27,17 @@ func newBreadcrumbValidator() *breadcrumbsValidator {
 	}
 }
 
-// continuousBreadcrumb is used when a block is proposed and also when the deriveVirtualSession is called
-func (validator *breadcrumbsValidator) continuousBreadcrumb(
+// isContinuousBreadcrumb is used when a block is proposed and also when the deriveVirtualSession is called
+func (validator *breadcrumbsValidator) isContinuousBreadcrumb(
 	address string,
 	accountNonce uint64,
 	breadcrumb *accountBreadcrumb,
 ) bool {
-
 	if breadcrumb.hasUnknownNonce() {
 		// this might occur when an account only acts as a relayer (never sender) in a specific tracked block.
 		// in that case, we don't have any nonce info for the relayer.
 		// as a result, its breadcrumb is treated as continuous.
-		log.Debug("breadcrumbsValidator.continuousBreadcrumb breadcrumb has unknown nonce")
+		log.Debug("breadcrumbsValidator.isContinuousBreadcrumb breadcrumb has unknown nonce")
 		return true
 	}
 
@@ -60,7 +57,6 @@ func (validator *breadcrumbsValidator) continuousWithSessionNonce(
 	accountNonce uint64,
 	breadcrumb *accountBreadcrumb,
 ) bool {
-
 	_, ok := validator.sendersInContinuityWithSessionNonce[address]
 	if ok {
 		return true
@@ -69,7 +65,7 @@ func (validator *breadcrumbsValidator) continuousWithSessionNonce(
 	continuousWithSessionNonce := breadcrumb.verifyContinuityWithSessionNonce(accountNonce)
 	if !continuousWithSessionNonce {
 		validator.skippedSenders[address] = struct{}{}
-		log.Debug("virtualSessionProvider.continuousBreadcrumb breadcrumb not continuous with session nonce",
+		log.Debug("virtualSessionComputer.isContinuousBreadcrumb breadcrumb not continuous with session nonce",
 			"address", address,
 			"accountNonce", accountNonce,
 			"breadcrumb nonce", breadcrumb.initialNonce)
@@ -89,7 +85,7 @@ func (validator *breadcrumbsValidator) continuousWithPreviousBreadcrumb(
 	continuousBreadcrumbs := breadcrumb.verifyContinuityBetweenAccountBreadcrumbs(previousBreadcrumb)
 	if !continuousBreadcrumbs {
 		validator.skippedSenders[address] = struct{}{}
-		log.Debug("virtualSessionProvider.continuousBreadcrumb breadcrumb not continuous with previous breadcrumb",
+		log.Debug("virtualSessionComputer.isContinuousBreadcrumb breadcrumb not continuous with previous breadcrumb",
 			"address", address,
 			"accountNonce", accountNonce,
 			"current breadcrumb nonce", breadcrumb.initialNonce,
