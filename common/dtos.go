@@ -49,7 +49,14 @@ type TransactionsSelectionSimulationResult struct {
 
 // VirtualNonceOfAccountResponse represents a struct that holds the data to be returned when requesting the virtual nonce of an account
 type VirtualNonceOfAccountResponse struct {
-	VirtualNonce uint64 `json:"virtualNonce"`
+	VirtualNonce        uint64                       `json:"virtualNonce"`
+	LatestCommitedBlock LatestCommittedBlockResponse `json:"latestCommitedBlock"`
+}
+
+type LatestCommittedBlockResponse struct {
+	Nonce    uint64 `json:"nonce"`
+	Hash     string `json:"hash"`
+	RootHash string `json:"rootHash"`
 }
 
 // DelegationDataAPI will be used when requesting the genesis balances from API

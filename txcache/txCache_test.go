@@ -321,7 +321,7 @@ func TestTxCache_GetVirtualNonce(t *testing.T) {
 		boundsConfig := createMockTxBoundsConfig()
 		cache := newUnconstrainedCacheToTest(boundsConfig)
 
-		_, err := cache.GetVirtualNonce(nil, nil, nil)
+		_, _, err := cache.GetVirtualNonceAndRootHash(nil, nil, nil)
 		require.Equal(t, errNilSelectionSession, err)
 	})
 
@@ -336,7 +336,7 @@ func TestTxCache_GetVirtualNonce(t *testing.T) {
 			},
 		}
 
-		_, err := cache.GetVirtualNonce([]byte("alice"), session, defaultBlockchainInfo)
+		_, _, err := cache.GetVirtualNonceAndRootHash([]byte("alice"), session, defaultBlockchainInfo)
 		require.Equal(t, expectedError, err)
 	})
 
@@ -351,7 +351,7 @@ func TestTxCache_GetVirtualNonce(t *testing.T) {
 			},
 		}
 
-		_, err := cache.GetVirtualNonce([]byte("alice"), session, nil)
+		_, _, err := cache.GetVirtualNonceAndRootHash([]byte("alice"), session, nil)
 		require.Equal(t, errNilBlockchainInfo, err)
 	})
 
@@ -369,8 +369,9 @@ func TestTxCache_GetVirtualNonce(t *testing.T) {
 			},
 		}
 
-		virtualNonce, err := cache.GetVirtualNonce([]byte("alice"), session, defaultBlockchainInfo)
+		virtualNonce, rootHash, err := cache.GetVirtualNonceAndRootHash([]byte("alice"), session, defaultBlockchainInfo)
 		require.Nil(t, err)
+		require.Equal(t, []byte("rootHash"), rootHash)
 		require.Equal(t, uint64(10), virtualNonce)
 	})
 }

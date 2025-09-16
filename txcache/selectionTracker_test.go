@@ -938,7 +938,7 @@ func Test_getVirtualNonceOfAccount(t *testing.T) {
 		tracker, err := NewSelectionTracker(txCache, maxTrackedBlocks)
 		require.Nil(t, err)
 
-		_, err = tracker.getVirtualNonceOfAccount([]byte("alice"), defaultBlockchainInfo)
+		_, _, err = tracker.getVirtualNonceOfAccountWithRootHash([]byte("alice"), defaultBlockchainInfo)
 		require.Equal(t, errNilLatestCommitedBlockHash, err)
 	})
 
@@ -950,7 +950,7 @@ func Test_getVirtualNonceOfAccount(t *testing.T) {
 		require.Nil(t, err)
 
 		blockchainInfo := holders.NewBlockchainInfo(nil, []byte("hash2"), 0)
-		_, err = tracker.getVirtualNonceOfAccount([]byte("alice"), blockchainInfo)
+		_, _, err = tracker.getVirtualNonceOfAccountWithRootHash([]byte("alice"), blockchainInfo)
 		require.Equal(t, errBlockNotFound, err)
 	})
 
@@ -964,7 +964,7 @@ func Test_getVirtualNonceOfAccount(t *testing.T) {
 		tracker.blocks["hash2"] = newTrackedBlock(0, []byte("hash2"), []byte("rootHash0"), []byte("hash1"))
 
 		blockchainInfo := holders.NewBlockchainInfo(nil, []byte("hash2"), 0)
-		_, err = tracker.getVirtualNonceOfAccount([]byte("alice"), blockchainInfo)
+		_, _, err = tracker.getVirtualNonceOfAccountWithRootHash([]byte("alice"), blockchainInfo)
 		require.Equal(t, errBreadcrumbNotFound, err)
 	})
 
@@ -983,7 +983,7 @@ func Test_getVirtualNonceOfAccount(t *testing.T) {
 		tracker.blocks["hash2"] = tb
 
 		blockchainInfo := holders.NewBlockchainInfo(nil, []byte("hash2"), 0)
-		_, err = tracker.getVirtualNonceOfAccount([]byte("alice"), blockchainInfo)
+		_, _, err = tracker.getVirtualNonceOfAccountWithRootHash([]byte("alice"), blockchainInfo)
 		require.Equal(t, errLastNonceNotFound, err)
 	})
 
@@ -1007,8 +1007,9 @@ func Test_getVirtualNonceOfAccount(t *testing.T) {
 		tracker.blocks["hash2"] = tb
 
 		blockchainInfo := holders.NewBlockchainInfo(nil, []byte("hash2"), 0)
-		nonce, err := tracker.getVirtualNonceOfAccount([]byte("alice"), blockchainInfo)
+		nonce, rootHash, err := tracker.getVirtualNonceOfAccountWithRootHash([]byte("alice"), blockchainInfo)
 		require.Nil(t, err)
 		require.Equal(t, uint64(21), nonce)
+		require.Equal(t, []byte("rootHash0"), rootHash)
 	})
 }

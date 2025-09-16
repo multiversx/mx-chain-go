@@ -15,7 +15,7 @@ type TransactionAPIHandlerStub struct {
 	GetLastPoolNonceForSenderCalled             func(sender string) (uint64, error)
 	GetTransactionsPoolNonceGapsForSenderCalled func(sender string, senderAccountNonce uint64) (*common.TransactionsPoolNonceGapsForSenderApiResponse, error)
 	GetSelectedTransactionsCalled               func(selectionOptions common.TxSelectionOptions, blockchain coreData.ChainHandler, accountsAdapter state.AccountsAdapter) (*common.TransactionsSelectionSimulationResult, error)
-	GetVirtualNonceCalled                       func(address string, blockchain coreData.ChainHandler, accountsAdapter state.AccountsAdapter) (*common.VirtualNonceOfAccountResponse, error)
+	GetVirtualNonceCalled                       func(address string, accountsAdapter state.AccountsAdapter) (*common.VirtualNonceOfAccountResponse, error)
 	UnmarshalTransactionCalled                  func(txBytes []byte, txType transaction.TxType) (*transaction.ApiTransactionResult, error)
 	UnmarshalReceiptCalled                      func(receiptBytes []byte) (*transaction.ApiReceipt, error)
 	PopulateComputedFieldsCalled                func(tx *transaction.ApiTransactionResult)
@@ -32,9 +32,9 @@ func (tas *TransactionAPIHandlerStub) GetSCRsByTxHash(txHash string, scrHash str
 }
 
 // GetVirtualNonce -
-func (tas *TransactionAPIHandlerStub) GetVirtualNonce(address string, blockchain coreData.ChainHandler, accountsAdapter state.AccountsAdapter) (*common.VirtualNonceOfAccountResponse, error) {
+func (tas *TransactionAPIHandlerStub) GetVirtualNonce(address string, accountsAdapter state.AccountsAdapter) (*common.VirtualNonceOfAccountResponse, error) {
 	if tas.GetVirtualNonceCalled != nil {
-		return tas.GetVirtualNonceCalled(address, blockchain, accountsAdapter)
+		return tas.GetVirtualNonceCalled(address, accountsAdapter)
 	}
 
 	return nil, nil

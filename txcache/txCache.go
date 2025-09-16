@@ -155,46 +155,44 @@ func (cache *TxCache) SelectTransactions(
 	return transactions, accumulatedGas, nil
 }
 
-// GetVirtualNonce returns the nonce of the virtual record of an account
-// For this method, the blockchainInfo should contain the hash of the last committed block
-func (cache *TxCache) GetVirtualNonce(
+// GetVirtualNonceAndRootHash returns the nonce of the virtual record of an account and the corresponding rootHash.
+// For this method, the blockchainInfo should contain the hash of the last committed block.
+func (cache *TxCache) GetVirtualNonceAndRootHash(
 	address []byte,
 	session SelectionSession,
 	blockchainInfo common.BlockchainInfo,
-) (uint64, error) {
+) (uint64, []byte, error) {
 	if check.IfNil(session) {
 		log.Error("TxCache.GetVirtualNonce", "err", errNilSelectionSession)
-		return 0, errNilSelectionSession
+		return 0, nil, errNilSelectionSession
 	}
 
 	if check.IfNil(blockchainInfo) {
 		log.Error("TxCache.GetVirtualNonce", "err", errNilBlockchainInfo)
-		return 0, errNilBlockchainInfo
+		return 0, nil, errNilBlockchainInfo
 	}
 
-	if rootHash, err := session.GetRootHash(); err != nil {
-		log.Error("TxCache.GetVirtualNonce", "err", err)
-		return 0, err
-	} else {
-		logSelect.Debug(
-			"TxCache.GetVirtualNonce",
-			"address", address,
-			"current root hash", rootHash,
-		)
-	}
-
-	virtualNonce, err := cache.tracker.getVirtualNonceOfAccount(address, blockchainInfo)
+	virtualNonce, rootHash, err := cache.tracker.getVirtualNonceOfAccountWithRootHash(address, blockchainInfo)
 	if err != nil {
 		// selection session fallback
-		return cache.getNonceFromSelectionSession(address, session)
+		return cache.getNonceWithRootHashFromSelectionSession(address, session)
 	}
 
-	return virtualNonce, nil
+	return virtualNonce, rootHash, nil
 }
 
-func (cache *TxCache) getNonceFromSelectionSession(address []byte, selectionSession SelectionSession) (uint64, error) {
+func (cache *TxCache) getNonceWithRootHashFromSelectionSession(address []byte, selectionSession SelectionSession) (uint64, []byte, error) {
 	initialNonce, _, _, err := selectionSession.GetAccountNonceAndBalance(address)
-	return initialNonce, err
+	if err != nil {
+		return 0, nil, err
+	}
+
+	rootHash, err := selectionSession.GetRootHash()
+	if err != nil {
+		return 0, nil, err
+	}
+
+	return initialNonce, rootHash, err
 }
 
 // OnProposedBlock calls the OnProposedBlock method from SelectionTracker

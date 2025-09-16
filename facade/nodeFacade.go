@@ -369,7 +369,7 @@ func (nf *nodeFacade) GetSelectedTransactions() (*common.TransactionsSelectionSi
 
 // GetVirtualNonce will return the virtual nonce of an account
 func (nf *nodeFacade) GetVirtualNonce(address string) (*common.VirtualNonceOfAccountResponse, error) {
-	return nf.apiResolver.GetVirtualNonce(address, nf.blockchain, nf.accountStateAPI)
+	return nf.apiResolver.GetVirtualNonce(address, nf.accountStateAPI)
 }
 
 // ComputeTransactionGasLimit will estimate how many gas a transaction will consume

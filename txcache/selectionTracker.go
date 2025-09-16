@@ -406,28 +406,42 @@ func (st *selectionTracker) reverseOrderOfBlocks(chainOfTrackedBlocks []*tracked
 	return reversedChainOfTrackedBlocks
 }
 
-func (st *selectionTracker) getVirtualNonceOfAccount(
+func (st *selectionTracker) getVirtualNonceOfAccountWithRootHash(
 	address []byte,
 	blockchainInfo common.BlockchainInfo,
-) (uint64, error) {
+) (uint64, []byte, error) {
 	latestCommitedBlockHash := blockchainInfo.GetLatestCommittedBlockHash()
 	if latestCommitedBlockHash == nil {
-		return 0, errNilLatestCommitedBlockHash
+		return 0, nil, errNilLatestCommitedBlockHash
 	}
 
 	latestCommitedBlock, ok := st.blocks[string(latestCommitedBlockHash)]
 	if !ok {
-		return 0, errBlockNotFound
+		return 0, nil, errBlockNotFound
 	}
 
 	breadcrumb, ok := latestCommitedBlock.breadcrumbsByAddress[string(address)]
 	if !ok {
-		return 0, errBreadcrumbNotFound
+		return 0, nil, errBreadcrumbNotFound
 	}
 
 	if !breadcrumb.lastNonce.HasValue {
-		return 0, errLastNonceNotFound
+		return 0, nil, errLastNonceNotFound
 	}
 
-	return breadcrumb.lastNonce.Value + 1, nil
+	return breadcrumb.lastNonce.Value + 1, latestCommitedBlock.rootHash, nil
+}
+
+func (st *selectionTracker) getLastCommittedBlock(blockchainInfo common.BlockchainInfo) ([]byte, uint64, error) {
+	latestCommitedBlockHash := blockchainInfo.GetLatestCommittedBlockHash()
+	if latestCommitedBlockHash == nil {
+		return nil, 0, errNilLatestCommitedBlockHash
+	}
+
+	latestCommitedBlock, ok := st.blocks[string(latestCommitedBlockHash)]
+	if !ok {
+		return nil, 0, errBlockNotFound
+	}
+
+	return latestCommitedBlock.rootHash, latestCommitedBlock.nonce, nil
 }

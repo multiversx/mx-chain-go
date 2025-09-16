@@ -326,25 +326,20 @@ func (atp *apiTransactionProcessor) GetSelectedTransactions(selectionOptions com
 }
 
 // GetVirtualNonce will return the virtual nonce of an account
-func (atp *apiTransactionProcessor) GetVirtualNonce(address string, blockchain data.ChainHandler, accountsAdapter state.AccountsAdapter) (*common.VirtualNonceOfAccountResponse, error) {
+func (atp *apiTransactionProcessor) GetVirtualNonce(address string, accountsAdapter state.AccountsAdapter) (*common.VirtualNonceOfAccountResponse, error) {
 	pubKey, err := atp.addressPubKeyConverter.Decode(address)
 	if err != nil {
 		return nil, fmt.Errorf("%s, %w", ErrInvalidAddress.Error(), err)
 	}
 
-	// below a SelectionSession is created in case of fallbacks, so we have to recreate the trie here.
-	err = atp.recreateTrie(blockchain, accountsAdapter)
-	if err != nil {
-		return nil, err
-	}
-
-	virtualNonce, err := atp.getVirtualNonce(pubKey, accountsAdapter)
+	virtualNonce, latestCommittedBlockResponse, err := atp.getVirtualNonceWithBlockInfo(pubKey, accountsAdapter)
 	if err != nil {
 		return nil, err
 	}
 
 	return &common.VirtualNonceOfAccountResponse{
-		VirtualNonce: virtualNonce,
+		VirtualNonce:        virtualNonce,
+		LatestCommitedBlock: *latestCommittedBlockResponse,
 	}, nil
 }
 
@@ -535,14 +530,16 @@ func (atp *apiTransactionProcessor) extractTxHashes(txs []*txcache.WrappedTransa
 	return txHashes
 }
 
-// TODO return also some "block coordinates"
-func (atp *apiTransactionProcessor) getVirtualNonce(address []byte, accountsAdapter state.AccountsAdapter) (uint64, error) {
+func (atp *apiTransactionProcessor) getVirtualNonceWithBlockInfo(
+	address []byte,
+	accountsAdapter state.AccountsAdapter,
+) (uint64, *common.LatestCommittedBlockResponse, error) {
 	cacheId := process.ShardCacherIdentifier(atp.shardCoordinator.SelfId(), atp.shardCoordinator.SelfId())
 	cache := atp.dataPool.Transactions().ShardDataStore(cacheId)
 	txCache, ok := cache.(*txcache.TxCache)
 	if !ok {
-		log.Warn("apiTransactionProcessor.getVirtualNonce could not cast to TxCache")
-		return 0, ErrCouldNotCastToTxCache
+		log.Warn("apiTransactionProcessor.getVirtualNonceWithBlockInfo could not cast to TxCache")
+		return 0, nil, ErrCouldNotCastToTxCache
 	}
 
 	// TODO use the right object, not a disabled one
@@ -555,20 +552,33 @@ func (atp *apiTransactionProcessor) getVirtualNonce(address []byte, accountsAdap
 	// the SelectionSession is used in this flow for fallbacks (e.g. the account does not exist in the proposed blocks, unexpected errors etc.)
 	selectionSession, err := preprocess.NewSelectionSession(argsSelectionSession)
 	if err != nil {
-		log.Warn("apiTransactionProcessor.getVirtualNonce could not create SelectionSession")
-		return 0, err
+		log.Warn("apiTransactionProcessor.getVirtualNonceWithBlockInfo could not create SelectionSession")
+		return 0, nil, err
 	}
 
 	// TODO use the right information for blockchainInfo
-	// the blockchainInfo should contain the hash of the last committed block
-	blockchainInfo := holders.NewBlockchainInfo(nil, nil, 0)
-	virtualNonce, err := txCache.GetVirtualNonce(address, selectionSession, blockchainInfo)
+	// these blockchainInfo should contain the hash of the last committed block and the actual nonce
+	// these variables will also be used for the response
+	// NOTE: should not remain like this
+	var latestCommittedBlockHash []byte
+	currentNonce := uint64(1)
+
+	blockchainInfo := holders.NewBlockchainInfo(nil, latestCommittedBlockHash, currentNonce)
+	virtualNonce, rootHash, err := txCache.GetVirtualNonceAndRootHash(address, selectionSession, blockchainInfo)
 	if err != nil {
-		log.Warn("apiTransactionProcessor.getVirtualNonce could not get virtual nonce")
-		return 0, err
+		log.Warn("apiTransactionProcessor.getVirtualNonceWithBlockInfo could not get virtual nonce")
+		return 0, nil, err
 	}
 
-	return virtualNonce, nil
+	if currentNonce != 0 {
+		currentNonce -= 1
+	}
+
+	return virtualNonce, &common.LatestCommittedBlockResponse{
+		Nonce:    currentNonce,
+		Hash:     hex.EncodeToString(latestCommittedBlockHash),
+		RootHash: hex.EncodeToString(rootHash),
+	}, nil
 }
 
 func (atp *apiTransactionProcessor) fetchTxsForSender(sender string, senderShard uint32) []*txcache.WrappedTransaction {
