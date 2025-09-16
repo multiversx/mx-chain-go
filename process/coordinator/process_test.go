@@ -266,6 +266,17 @@ func createMockTransactionCoordinatorArguments() ArgTransactionCoordinator {
 		BlockDataRequesterProposal:   &preprocMocks.BlockDataRequesterStub{},
 	}
 
+	blockDataRequesterArgs := BlockDataRequestArgs{
+		RequestHandler:      &testscommon.RequestHandlerStub{},
+		MiniBlockPool:       argsTransactionCoordinator.MiniBlockPool,
+		PreProcessors:       argsTransactionCoordinator.PreProcessors,
+		ShardCoordinator:    argsTransactionCoordinator.ShardCoordinator,
+		EnableEpochsHandler: argsTransactionCoordinator.EnableEpochsHandler,
+	}
+
+	blockDataRequester, _ := NewBlockDataRequester(blockDataRequesterArgs)
+	argsTransactionCoordinator.BlockDataRequester = blockDataRequester
+
 	return argsTransactionCoordinator
 }
 
