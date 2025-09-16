@@ -4,6 +4,7 @@ import (
 	"math/big"
 )
 
+// virtualSessionComputer relies on the internal state of the validator for skipping certain senders
 type virtualSessionComputer struct {
 	session                  SelectionSession
 	validator                *breadcrumbsValidator
@@ -37,6 +38,7 @@ func (computer *virtualSessionComputer) createVirtualSelectionSession(
 
 func (computer *virtualSessionComputer) handleTrackedBlock(tb *trackedBlock) error {
 	for address, breadcrumb := range tb.breadcrumbsByAddress {
+		// check if this address was already marked as not continuous by the validator
 		ok := computer.validator.shouldSkipSender(address)
 		if ok {
 			continue
@@ -51,12 +53,15 @@ func (computer *virtualSessionComputer) handleTrackedBlock(tb *trackedBlock) err
 			return err
 		}
 
-		if !computer.validator.isContinuousBreadcrumb(address, accountNonce, breadcrumb) {
+		if !computer.validator.validateNonceContinuityOfBreadcrumb(address, accountNonce, breadcrumb) {
 			delete(computer.virtualAccountsByAddress, address)
 			continue
 		}
 
-		computer.fromBreadcrumbToVirtualRecord(address, accountBalance, breadcrumb)
+		err = computer.fromBreadcrumbToVirtualRecord(address, accountBalance, breadcrumb)
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil
@@ -66,13 +71,19 @@ func (computer *virtualSessionComputer) fromBreadcrumbToVirtualRecord(
 	address string,
 	accountBalance *big.Int,
 	breadcrumb *accountBreadcrumb,
-) {
+) error {
 	virtualRecord, ok := computer.virtualAccountsByAddress[address]
 	if !ok {
 		initialBalance := accountBalance
-		virtualRecord = newVirtualAccountRecord(breadcrumb.initialNonce, initialBalance)
-		computer.virtualAccountsByAddress[address] = virtualRecord
+		record, err := newVirtualAccountRecord(breadcrumb.initialNonce, initialBalance)
+		if err != nil {
+			return err
+		}
+
+		virtualRecord = record
+		computer.virtualAccountsByAddress[address] = record
 	}
 
 	virtualRecord.updateVirtualRecord(breadcrumb)
+	return nil
 }
