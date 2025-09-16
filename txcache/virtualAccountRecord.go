@@ -67,9 +67,8 @@ func (virtualRecord *virtualAccountRecord) setInitialNonceOnSubsequentUpdate(bre
 }
 
 func (virtualRecord *virtualAccountRecord) getInitialNonce() (uint64, error) {
-
 	if !virtualRecord.initialNonce.HasValue {
-		log.Debug("virtualSelectionSession.getNonceForAccountRecord",
+		log.Debug("virtualAccountRecord.getInitialNonce",
 			"err", errNonceNotSet)
 		return 0, errNonceNotSet
 	}
