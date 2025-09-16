@@ -964,7 +964,8 @@ func (tpn *TestProcessorNode) createFullSCQueryService(gasMap map[string]map[str
 						MinVetoThreshold: 0.5,
 						LostProposalFee:  "1",
 					},
-					OwnerAddress: DelegationManagerConfigChangeAddress,
+					OwnerAddress:                 DelegationManagerConfigChangeAddress,
+					MaxVotingDelayPeriodInEpochs: 30,
 				},
 				StakingSystemSCConfig: config.StakingSystemSCConfig{
 					GenesisNodePrice:                     "1000",
@@ -1968,7 +1969,8 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors(gasMap map[string]map[stri
 					MinVetoThreshold: 0.5,
 					LostProposalFee:  "1",
 				},
-				OwnerAddress: DelegationManagerConfigChangeAddress,
+				OwnerAddress:                 DelegationManagerConfigChangeAddress,
+				MaxVotingDelayPeriodInEpochs: 30,
 			},
 			StakingSystemSCConfig: config.StakingSystemSCConfig{
 				GenesisNodePrice:                     "1000",
@@ -3349,6 +3351,8 @@ func CreateEnableEpochsConfig() config.EnableEpochs {
 		DoubleKeyProtectionEnableEpoch:                    0,
 		ESDTEnableEpoch:                                   UnreachableEpoch,
 		GovernanceEnableEpoch:                             UnreachableEpoch,
+		GovernanceDisableProposeEnableEpoch:               UnreachableEpoch,
+		GovernanceFixesEnableEpoch:                        UnreachableEpoch,
 		DelegationManagerEnableEpoch:                      UnreachableEpoch,
 		DelegationSmartContractEnableEpoch:                UnreachableEpoch,
 		CorrectLastUnjailedEnableEpoch:                    UnreachableEpoch,
@@ -3710,6 +3714,7 @@ func GetDefaultEnableEpochsConfig() *config.EnableEpochs {
 		StakingV4Step2EnableEpoch:                       UnreachableEpoch,
 		StakingV4Step3EnableEpoch:                       UnreachableEpoch,
 		AndromedaEnableEpoch:                            UnreachableEpoch,
+		RelayedTransactionsV1V2DisableEpoch:             UnreachableEpoch,
 	}
 }
 

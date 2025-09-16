@@ -759,7 +759,8 @@ func createSystemSCConfig() *config.SystemSmartContractsConfig {
 				MinVetoThreshold: 0.5,
 				LostProposalFee:  "1",
 			},
-			OwnerAddress: "3132333435363738393031323334353637383930313233343536373839303234",
+			OwnerAddress:                 "3132333435363738393031323334353637383930313233343536373839303234",
+			MaxVotingDelayPeriodInEpochs: 30,
 		},
 		StakingSystemSCConfig: config.StakingSystemSCConfig{
 			GenesisNodePrice:                     "2500000000000000000000",
@@ -1013,6 +1014,8 @@ func CreateTxProcessorWithOneSCExecutorWithVMs(
 	if err != nil {
 		return nil, err
 	}
+
+	txSimulatorProcessorArgs.SCRProcessor = proxyProcessor
 
 	txSimulatorProcessorArgs.IntermediateProcContainer = interimProcContainer
 

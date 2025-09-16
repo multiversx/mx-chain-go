@@ -234,6 +234,7 @@ func TestStatusMetrics_NetworkMetrics(t *testing.T) {
 	sm.SetUInt64Value(common.MetricRoundAtEpochStart, 100)
 	sm.SetUInt64Value(common.MetricNonce, 180)
 	sm.SetUInt64Value(common.MetricBlockTimestamp, 18000)
+	sm.SetUInt64Value(common.MetricBlockTimestampMs, 18000000)
 	sm.SetUInt64Value(common.MetricHighestFinalBlock, 181)
 	sm.SetUInt64Value(common.MetricNonceAtEpochStart, 95)
 	sm.SetUInt64Value(common.MetricEpochNumber, 1)
@@ -244,6 +245,7 @@ func TestStatusMetrics_NetworkMetrics(t *testing.T) {
 		"erd_round_at_epoch_start":           uint64(100),
 		"erd_nonce":                          uint64(180),
 		"erd_block_timestamp":                uint64(18000),
+		"erd_block_timestamp_ms":             uint64(18000000),
 		"erd_highest_final_nonce":            uint64(181),
 		"erd_nonce_at_epoch_start":           uint64(95),
 		"erd_epoch_number":                   uint64(1),
@@ -275,6 +277,7 @@ func TestStatusMetrics_StatusMetricsMapWithoutP2P(t *testing.T) {
 	sm.SetUInt64Value(common.MetricRoundAtEpochStart, 200)
 	sm.SetUInt64Value(common.MetricNonce, 300)
 	sm.SetUInt64Value(common.MetricBlockTimestamp, 30000)
+	sm.SetUInt64Value(common.MetricBlockTimestampMs, 30000000)
 	sm.SetStringValue(common.MetricAppVersion, "400")
 	sm.SetUInt64Value(common.MetricRoundsPassedInCurrentEpoch, 95)
 	sm.SetUInt64Value(common.MetricNoncesPassedInCurrentEpoch, 1)
@@ -412,6 +415,7 @@ func TestStatusMetrics_EnableEpochMetrics(t *testing.T) {
 	sm.SetUInt64Value(common.MetricValidationOnGobDecodeEnableEpoch, uint64(4))
 	sm.SetUInt64Value(common.MetricBarnardOpcodesEnableEpoch, uint64(4))
 	sm.SetUInt64Value(common.MetricAutomaticActivationOfNodesDisableEpoch, uint64(4))
+	sm.SetUInt64Value(common.MetricFixGetBalanceEnableEpoch, uint64(4))
 
 	maxNodesChangeConfig := []map[string]uint64{
 		{
@@ -551,6 +555,7 @@ func TestStatusMetrics_EnableEpochMetrics(t *testing.T) {
 		common.MetricValidationOnGobDecodeEnableEpoch:                         uint64(4),
 		common.MetricBarnardOpcodesEnableEpoch:                                uint64(4),
 		common.MetricAutomaticActivationOfNodesDisableEpoch:                   uint64(4),
+		common.MetricFixGetBalanceEnableEpoch:                                 uint64(4),
 		common.MetricMaxNodesChangeEnableEpoch: []map[string]interface{}{
 			{
 				common.MetricEpochEnable:            uint64(0),

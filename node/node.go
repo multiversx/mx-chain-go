@@ -679,6 +679,10 @@ func (n *Node) GetAllESDTTokens(address string, options api.AccountQueryOptions,
 			continue
 		}
 
+		if esdtToken.Value.Sign() <= 0 {
+			continue
+		}
+
 		if esdtToken.TokenMetaData != nil {
 			esdtTokenCreatorAddr, errEncode := n.coreComponents.AddressPubKeyConverter().Encode(esdtToken.TokenMetaData.Creator)
 			if errEncode != nil {
@@ -1298,7 +1302,8 @@ func prepareEpochStartDataResponse(header data.HeaderHandler) *common.EpochStart
 		Nonce:         header.GetNonce(),
 		Round:         header.GetRound(),
 		Shard:         header.GetShardID(),
-		Timestamp:     int64(time.Duration(header.GetTimeStamp())),
+		Timestamp:     int64(header.GetTimeStamp()),
+		TimestampMs:   int64(common.ConvertTimeStampSecToMs(header.GetTimeStamp())),
 		Epoch:         header.GetEpoch(),
 		PrevBlockHash: hex.EncodeToString(header.GetPrevHash()),
 		StateRootHash: hex.EncodeToString(header.GetRootHash()),

@@ -55,7 +55,13 @@ func NewAPITransactionProcessor(args *ArgAPITransactionProcessor) (*apiTransacti
 		return nil, err
 	}
 
-	txUnmarshalerAndPreparer := newTransactionUnmarshaller(args.Marshalizer, args.AddressPubKeyConverter, args.DataFieldParser, args.ShardCoordinator)
+	txUnmarshalerAndPreparer := newTransactionUnmarshaller(
+		args.Marshalizer,
+		args.AddressPubKeyConverter,
+		args.DataFieldParser,
+		args.ShardCoordinator,
+		args.EnableEpochsHandler,
+	)
 	txResultsProc := newAPITransactionResultProcessor(
 		args.AddressPubKeyConverter,
 		args.HistoryRepository,
@@ -523,6 +529,17 @@ func (atp *apiTransactionProcessor) computeTimestampForRound(round uint64) int64
 	return timestamp.Unix()
 }
 
+func (atp *apiTransactionProcessor) computeTimestampForRoundAsMs(round uint64) int64 {
+	if round == 0 {
+		return 0
+	}
+
+	secondsSinceGenesis := round * atp.roundDuration
+	timestamp := atp.genesisTime.Add(time.Duration(secondsSinceGenesis) * time.Millisecond)
+
+	return timestamp.UnixMilli()
+}
+
 func (atp *apiTransactionProcessor) lookupHistoricalTransaction(hash []byte, withResults bool) (*transaction.ApiTransactionResult, error) {
 	miniblockMetadata, err := atp.historyRepository.GetMiniblockMetadataByTxHash(hash)
 	if err != nil {
@@ -542,7 +559,7 @@ func (atp *apiTransactionProcessor) lookupHistoricalTransaction(hash []byte, wit
 		txType = transaction.TxTypeInvalid
 	}
 
-	tx, err := atp.txUnmarshaller.unmarshalTransaction(txBytes, txType)
+	tx, err := atp.txUnmarshaller.unmarshalTransaction(txBytes, txType, miniblockMetadata.Epoch)
 	if err != nil {
 		log.Warn("lookupHistoricalTransaction(): unexpected condition, cannot unmarshal transaction")
 		return nil, fmt.Errorf("%s: %w", ErrCannotRetrieveTransaction.Error(), err)
@@ -550,6 +567,7 @@ func (atp *apiTransactionProcessor) lookupHistoricalTransaction(hash []byte, wit
 
 	putMiniblockFieldsInTransaction(tx, miniblockMetadata)
 	tx.Timestamp = atp.computeTimestampForRound(tx.Round)
+	tx.TimestampMs = atp.computeTimestampForRoundAsMs(tx.Round)
 	statusComputer, err := txstatus.NewStatusComputer(atp.shardCoordinator.SelfId(), atp.uint64ByteSliceConverter, atp.storageService)
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", ErrNilStatusComputer.Error(), err)
@@ -601,12 +619,18 @@ func (atp *apiTransactionProcessor) getTransactionFromStorage(hash []byte) (*tra
 		return nil, ErrTransactionNotFound
 	}
 
-	tx, err := atp.txUnmarshaller.unmarshalTransaction(txBytes, txType)
+	// will use the current epoch here as it is unknown at this point
+	// considering that this epoch will be used for relayed v1/v2, this may lead
+	// to inconsistent responses for relayed v1/v2 that will be returned from storage
+	// that were executed before deactivation and the request is made after
+	currentEpoch := atp.enableEpochsHandler.GetCurrentEpoch()
+	tx, err := atp.txUnmarshaller.unmarshalTransaction(txBytes, txType, currentEpoch)
 	if err != nil {
 		return nil, err
 	}
 
 	tx.Timestamp = atp.computeTimestampForRound(tx.Round)
+	tx.TimestampMs = atp.computeTimestampForRoundAsMs(tx.Round)
 
 	// TODO: take care of this when integrating the adaptivity
 	statusComputer, err := txstatus.NewStatusComputer(atp.shardCoordinator.SelfId(), atp.uint64ByteSliceConverter, atp.storageService)
@@ -759,8 +783,8 @@ func getTxValue(wrappedTx *txcache.WrappedTransaction) string {
 }
 
 // UnmarshalTransaction will try to unmarshal the transaction bytes based on the transaction type
-func (atp *apiTransactionProcessor) UnmarshalTransaction(txBytes []byte, txType transaction.TxType) (*transaction.ApiTransactionResult, error) {
-	tx, err := atp.txUnmarshaller.unmarshalTransaction(txBytes, txType)
+func (atp *apiTransactionProcessor) UnmarshalTransaction(txBytes []byte, txType transaction.TxType, epoch uint32) (*transaction.ApiTransactionResult, error) {
+	tx, err := atp.txUnmarshaller.unmarshalTransaction(txBytes, txType, epoch)
 	if err != nil {
 		return nil, err
 	}
