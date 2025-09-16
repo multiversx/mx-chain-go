@@ -173,6 +173,7 @@ func Test_getNonce(t *testing.T) {
 		virtualSession := newVirtualSelectionSession(&sessionMock, make(map[string]*virtualAccountRecord))
 
 		aliceRecord, err := newVirtualAccountRecord(core.OptionalUint64{Value: 0, HasValue: false}, big.NewInt(1))
+		require.NoError(t, err)
 
 		_, err = virtualSession.getNonceForAccountRecord(aliceRecord)
 		require.Equal(t, errNonceNotSet, err)
