@@ -3,10 +3,49 @@ package txcache
 import (
 	"fmt"
 	"math"
+	"strings"
 	"testing"
 
+	"github.com/multiversx/mx-chain-storage-go/common"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+func TestNewCrossTxCache(t *testing.T) {
+	t.Parallel()
+
+	t.Run("invalid config should error", func(t *testing.T) {
+		t.Parallel()
+
+		cfg := ConfigDestinationMe{
+			Name:                        "",
+			NumChunks:                   1,
+			MaxNumItems:                 100,
+			MaxNumBytes:                 1000,
+			NumItemsToPreemptivelyEvict: 1,
+		}
+
+		cache, err := NewCrossTxCache(cfg)
+		assert.Nil(t, cache)
+		assert.ErrorIs(t, err, common.ErrInvalidConfig)
+		assert.True(t, strings.Contains(err.Error(), "config.Name is invalid"))
+	})
+	t.Run("should work", func(t *testing.T) {
+		t.Parallel()
+
+		cfg := ConfigDestinationMe{
+			Name:                        "test",
+			NumChunks:                   1,
+			MaxNumItems:                 100,
+			MaxNumBytes:                 1000,
+			NumItemsToPreemptivelyEvict: 1,
+		}
+
+		cache, err := NewCrossTxCache(cfg)
+		assert.NotNil(t, cache)
+		assert.Nil(t, err)
+	})
+}
 
 func TestCrossTxCache_DoImmunizeTxsAgainstEviction(t *testing.T) {
 	cache := newCrossTxCacheToTest(1, 8, math.MaxUint16)
