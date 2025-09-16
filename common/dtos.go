@@ -53,6 +53,7 @@ type VirtualNonceOfAccountResponse struct {
 	LatestCommitedBlock LatestCommittedBlockResponse `json:"latestCommitedBlock"`
 }
 
+// LatestCommittedBlockResponse represents a struct that holds the data to be returned when requesting the latest committed block
 type LatestCommittedBlockResponse struct {
 	Nonce    uint64 `json:"nonce"`
 	Hash     string `json:"hash"`
