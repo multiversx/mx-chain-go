@@ -45,9 +45,7 @@ func (breadcrumb *accountBreadcrumb) updateLastNonce(lastNonce core.OptionalUint
 	return nil
 }
 
-func (breadcrumb *accountBreadcrumb) verifyContinuityBetweenAccountBreadcrumbs(
-	previousBreadcrumbAsSender *accountBreadcrumb,
-) bool {
+func (breadcrumb *accountBreadcrumb) verifyContinuityBetweenAccountBreadcrumbs(previousBreadcrumbAsSender *accountBreadcrumb) bool {
 	return previousBreadcrumbAsSender == nil || previousBreadcrumbAsSender.lastNonce.Value+1 == breadcrumb.initialNonce.Value
 }
 

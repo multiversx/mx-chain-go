@@ -50,7 +50,7 @@ func (virtualSession *virtualSelectionSession) createAccountRecord(address []byt
 			HasValue: true,
 		},
 		initialBalance,
-	), nil
+	)
 }
 
 func (virtualSession *virtualSelectionSession) getNonce(address []byte) (uint64, error) {

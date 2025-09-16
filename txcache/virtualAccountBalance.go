@@ -13,11 +13,14 @@ type virtualAccountBalance struct {
 // virtualAccountBalance is used in two scenarios:
 // when validating a proposed block (on the OnProposedBlock notification), where we create a virtualBalance for each account;
 // inside a virtual record
-func newVirtualAccountBalance(initialBalance *big.Int) *virtualAccountBalance {
+func newVirtualAccountBalance(initialBalance *big.Int) (*virtualAccountBalance, error) {
+	if initialBalance == nil {
+		return nil, errNilBalance
+	}
 	return &virtualAccountBalance{
 		initialBalance:  initialBalance,
 		consumedBalance: big.NewInt(0),
-	}
+	}, nil
 }
 
 // accumulateConsumedBalance is used in two places:

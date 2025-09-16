@@ -118,7 +118,7 @@ func TestSelectionTracker_OnProposedBlockShouldErr(t *testing.T) {
 
 		blockBody := block.Body{}
 		err = tracker.OnProposedBlock([]byte("hash1"), &blockBody, nil, nil, nil)
-		require.Equal(t, errNilHeaderHandler, err)
+		require.Equal(t, errNilBlockHeader, err)
 	})
 
 	t.Run("should err nil accounts provider", func(t *testing.T) {
@@ -427,7 +427,7 @@ func TestSelectionTracker_OnExecutedBlockShouldError(t *testing.T) {
 	require.Nil(t, err)
 
 	err = tracker.OnExecutedBlock(nil)
-	require.Equal(t, errNilHeaderHandler, err)
+	require.Equal(t, errNilBlockHeader, err)
 }
 
 func TestSelectionTracker_OnExecutedBlockShouldWork(t *testing.T) {
@@ -651,7 +651,7 @@ func TestSelectionTracker_getChainOfTrackedBlocks(t *testing.T) {
 			[]byte("blockHash4"),
 		}
 
-		actualChain, err := tracker.getChainOfTrackedBlocks([]byte("blockHash1"), []byte("blockHash4"), 4)
+		actualChain, err := tracker.getChainOfTrackedPendingBlocks([]byte("blockHash1"), []byte("blockHash4"), 4)
 		require.Nil(t, err)
 		for i, returnedBlock := range actualChain {
 			require.Equal(t, returnedBlock.hash, expectedTrackedBlockHashes[i])
@@ -666,7 +666,7 @@ func TestSelectionTracker_getChainOfTrackedBlocks(t *testing.T) {
 			[]byte("blockHash7"),
 		}
 
-		actualChain, err := tracker.getChainOfTrackedBlocks([]byte("blockHash5"), []byte("blockHash7"), 7)
+		actualChain, err := tracker.getChainOfTrackedPendingBlocks([]byte("blockHash5"), []byte("blockHash7"), 7)
 		require.Nil(t, err)
 		for i, returnedBlock := range actualChain {
 			require.Equal(t, returnedBlock.hash, expectedTrackedBlockHashes[i])
@@ -676,7 +676,7 @@ func TestSelectionTracker_getChainOfTrackedBlocks(t *testing.T) {
 	t.Run("should return errPreviousBlockNotFound because of prevHash not found", func(t *testing.T) {
 		t.Parallel()
 
-		actualChain, err := tracker.getChainOfTrackedBlocks([]byte("blockHash4"), []byte("blockHash7"), 7)
+		actualChain, err := tracker.getChainOfTrackedPendingBlocks([]byte("blockHash4"), []byte("blockHash7"), 7)
 		require.Equal(t, err, errPreviousBlockNotFound)
 		require.Nil(t, actualChain)
 	})
@@ -684,41 +684,11 @@ func TestSelectionTracker_getChainOfTrackedBlocks(t *testing.T) {
 	t.Run("should return errDiscontinuousSequenceOfBlocks because of nonce", func(t *testing.T) {
 		t.Parallel()
 
-		actualChain, err := tracker.getChainOfTrackedBlocks([]byte("blockHash5"), []byte("blockHash7"), 6)
+		actualChain, err := tracker.getChainOfTrackedPendingBlocks([]byte("blockHash5"), []byte("blockHash7"), 6)
 		require.Equal(t, errDiscontinuousSequenceOfBlocks, err)
 		require.Equal(t, 0, len(actualChain))
 	})
 
-}
-
-func TestSelectionTracker_reverseOrderOfBlocks(t *testing.T) {
-	t.Parallel()
-
-	txCache := newCacheToTest(maxNumBytesPerSenderUpperBoundTest, 3)
-	tracker, err := NewSelectionTracker(txCache, maxTrackedBlocks)
-	require.Nil(t, err)
-
-	chainOfTrackedBlocks := []*trackedBlock{
-		{
-			nonce: 0,
-			hash:  []byte("hash0"),
-		},
-		{
-			nonce: 1,
-			hash:  []byte("hash1"),
-		},
-		{
-			nonce: 2,
-			hash:  []byte("hash2"),
-		},
-	}
-
-	reversedChainOfTrackedBlocks := tracker.reverseOrderOfBlocks(chainOfTrackedBlocks)
-	require.Equal(t, len(chainOfTrackedBlocks), len(reversedChainOfTrackedBlocks))
-
-	for i := 0; i < len(reversedChainOfTrackedBlocks); i++ {
-		require.Equal(t, chainOfTrackedBlocks[len(chainOfTrackedBlocks)-i-1], reversedChainOfTrackedBlocks[i])
-	}
 }
 
 func TestSelectionTracker_deriveVirtualSelectionSessionShouldErr(t *testing.T) {
@@ -737,103 +707,6 @@ func TestSelectionTracker_deriveVirtualSelectionSessionShouldErr(t *testing.T) {
 	virtualSession, actualErr := tracker.deriveVirtualSelectionSession(&session, defaultBlockchainInfo)
 	require.Nil(t, virtualSession)
 	require.Equal(t, expectedErr, actualErr)
-}
-
-func TestSelectionTracker_computeNumberOfTxsInMiniBlocks(t *testing.T) {
-	t.Parallel()
-
-	t.Run("should return the right number of txs", func(t *testing.T) {
-		blockBody := block.Body{MiniBlocks: []*block.MiniBlock{
-			{
-				TxHashes: [][]byte{
-					[]byte("txHash1"),
-					[]byte("txHash2"),
-				},
-			},
-			{
-				TxHashes: [][]byte{
-					[]byte("txHash3"),
-				},
-			},
-			{
-				TxHashes: [][]byte{
-					[]byte("txHash4"),
-					[]byte("txHash5"),
-					[]byte("txHash6"),
-				},
-			},
-		}}
-
-		txCache := newCacheToTest(maxNumBytesPerSenderUpperBoundTest, 3)
-		tracker, err := NewSelectionTracker(txCache, maxTrackedBlocks)
-		require.Nil(t, err)
-
-		actualResult := tracker.computeNumberOfTxsInMiniBlocks(blockBody.MiniBlocks)
-		require.Equal(t, 6, actualResult)
-	})
-}
-
-func TestSelectionTracker_getTransactionsInBlock(t *testing.T) {
-	t.Parallel()
-
-	t.Run("should work", func(t *testing.T) {
-		blockBody := block.Body{MiniBlocks: []*block.MiniBlock{
-			{
-				TxHashes: [][]byte{
-					[]byte("txHash1"),
-					[]byte("txHash2"),
-				},
-			},
-			{
-				TxHashes: [][]byte{
-					[]byte("txHash3"),
-				},
-			},
-		}}
-
-		txCache := newCacheToTest(maxNumBytesPerSenderUpperBoundTest, 3)
-		txCache.txByHash = newTxByHashMap(1)
-
-		txCache.txByHash.addTx(createTx([]byte("txHash1"), "alice", 1))
-		txCache.txByHash.addTx(createTx([]byte("txHash2"), "alice", 2))
-		txCache.txByHash.addTx(createTx([]byte("txHash3"), "alice", 3))
-
-		selTracker, err := NewSelectionTracker(txCache, maxTrackedBlocks)
-		require.Nil(t, err)
-
-		txs, err := selTracker.getTransactionsInBlock(&blockBody)
-		require.Nil(t, err)
-		require.Equal(t, 3, len(txs))
-	})
-
-	t.Run("should fail", func(t *testing.T) {
-		blockBody := block.Body{MiniBlocks: []*block.MiniBlock{
-			{
-				TxHashes: [][]byte{
-					[]byte("txHash1"),
-					[]byte("txHash2"),
-				},
-			},
-			{
-				TxHashes: [][]byte{
-					[]byte("txHash3"),
-				},
-			},
-		}}
-
-		txCache := newCacheToTest(maxNumBytesPerSenderUpperBoundTest, 3)
-		txCache.txByHash = newTxByHashMap(1)
-
-		txCache.txByHash.addTx(createTx([]byte("txHash1"), "alice", 1))
-		txCache.txByHash.addTx(createTx([]byte("txHash2"), "alice", 2))
-
-		selTracker, err := NewSelectionTracker(txCache, maxTrackedBlocks)
-		require.Nil(t, err)
-
-		txs, err := selTracker.getTransactionsInBlock(&blockBody)
-		require.Nil(t, txs)
-		require.Equal(t, errNotFoundTx, err)
-	})
 }
 
 func TestSelectionTracker_validateTrackedBlocks(t *testing.T) {
