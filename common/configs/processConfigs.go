@@ -73,18 +73,7 @@ func NewProcessConfigsHandler(
 	return pce, nil
 }
 
-// type configsChecker interface {
-// 	Key() uint64
-// }
-
-// type processConfigsByEpochWrapper struct {
-// 	*config.ProcessConfigByEpoch
-// }
-
-// func (pcbe *processConfigsByEpochWrapper) Key() uint64 {
-// 	return uint64(pcbe.EnableEpoch)
-// }
-
+// TODO: consider extracting common functionality into a base component
 func checkConfigsByEpoch(configsByEpoch []config.ProcessConfigByEpoch) error {
 	if len(configsByEpoch) == 0 {
 		return ErrEmptyProcessConfigsByEpoch
@@ -118,7 +107,7 @@ func checkConfigsByRound(configsByRound []config.ProcessConfigByRound) error {
 	for _, cfg := range configsByRound {
 		_, exists := seen[cfg.EnableRound]
 		if exists {
-			return ErrDuplicatedEpochConfig
+			return ErrDuplicatedRoundConfig
 		}
 		seen[cfg.EnableRound] = struct{}{}
 	}

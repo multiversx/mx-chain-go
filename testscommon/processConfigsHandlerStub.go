@@ -51,8 +51,8 @@ func (p *ProcessConfigsHandlerStub) GetMaxMetaNoncesBehindForBlobalStuckByEpoch(
 
 // GetMaxShardNoncesBehindByEpoch -
 func (p *ProcessConfigsHandlerStub) GetMaxShardNoncesBehindByEpoch(epoch uint32) uint32 {
-	if p.GetMaxMetaNoncesBehindByEpochCalled != nil {
-		return p.GetMaxMetaNoncesBehindByEpochCalled(epoch)
+	if p.GetMaxShardNoncesBehindByEpochCalled != nil {
+		return p.GetMaxShardNoncesBehindByEpochCalled(epoch)
 	}
 
 	return 0

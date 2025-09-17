@@ -15,9 +15,6 @@ const (
 // ErrEmptyCommonConfigsByEpoch signals that an empty process configs by epoch has been provided
 var ErrEmptyCommonConfigsByEpoch = errors.New("empty process configs by epoch")
 
-// ErrEmptyCommonConfigsByEpoch signals that an empty process configs by round has been provided
-var ErrEmptyCommonConfigsByRound = errors.New("empty process configs by round")
-
 type commonConfigs struct {
 	orderedEpochStartConfigByEpoch []config.EpochStartConfigByEpoch
 }

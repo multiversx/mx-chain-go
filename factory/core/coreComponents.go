@@ -189,11 +189,11 @@ func (ccf *coreComponentsFactory) Create() (*coreComponents, error) {
 		return nil, fmt.Errorf("%w for processConfigsByEpoch", err)
 	}
 
-	epochStartConfigs, err := commonConfigs.NewCommonConfigsHandler(
+	commonConfigsHandler, err := commonConfigs.NewCommonConfigsHandler(
 		ccf.config.GeneralSettings.CommonConfigsByEpoch,
 	)
 	if err != nil {
-		return nil, fmt.Errorf("%w for processConfigsByEpoch", err)
+		return nil, fmt.Errorf("%w for commonConfigsHandler", err)
 	}
 
 	pathHandler, err := storageFactory.CreatePathManager(
@@ -434,7 +434,7 @@ func (ccf *coreComponentsFactory) Create() (*coreComponents, error) {
 		fieldsSizeChecker:             fieldsSizeChecker,
 		epochChangeGracePeriodHandler: epochChangeGracePeriodHandler,
 		processConfigsHandler:         processConfigs,
-		epochStartConfigsHandler:      epochStartConfigs,
+		epochStartConfigsHandler:      commonConfigsHandler,
 	}, nil
 }
 
