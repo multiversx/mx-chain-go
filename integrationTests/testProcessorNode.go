@@ -337,6 +337,7 @@ type TestProcessorNode struct {
 	Storage             dataRetriever.StorageService
 	PeerState           state.AccountsAdapter
 	AccntState          state.AccountsAdapter
+	AccntStateAPI       state.AccountsAdapter
 	TrieStorageManagers map[string]common.StorageManager
 	TrieContainer       common.TriesHolder
 	BlockChain          data.ChainHandler
@@ -657,6 +658,9 @@ func (tpn *TestProcessorNode) initAccountDBsWithPruningStorer() {
 	tpn.TrieContainer = state.NewDataTriesHolder()
 	var stateTrie common.Trie
 	tpn.AccntState, stateTrie = CreateAccountsDBWithEnableEpochsHandler(UserAccount, trieStorageManager, tpn.EnableEpochsHandler)
+	tpn.TrieContainer.Put([]byte(dataRetriever.UserAccountsUnit.String()), stateTrie)
+
+	tpn.AccntStateAPI, stateTrie = CreateAccountsDBWithEnableEpochsHandler(UserAccount, trieStorageManager, tpn.EnableEpochsHandler)
 	tpn.TrieContainer.Put([]byte(dataRetriever.UserAccountsUnit.String()), stateTrie)
 
 	peerState, peerTrie := CreateAccountsDBWithEnableEpochsHandler(ValidatorAccount, trieStorageManager, tpn.EnableEpochsHandler)
