@@ -19,12 +19,12 @@ var ErrEmptyCommonConfigsByEpoch = errors.New("empty process configs by epoch")
 var ErrEmptyCommonConfigsByRound = errors.New("empty process configs by round")
 
 type commonConfigs struct {
-	orderedConfigByEpoch []config.CommonConfigByEpoch
+	orderedEpochStartConfigByEpoch []config.EpochStartConfigByEpoch
 }
 
 // NewCommonConfigsHandler creates a new process configs by epoch component
 func NewCommonConfigsHandler(
-	configsByEpoch []config.CommonConfigByEpoch,
+	configsByEpoch []config.EpochStartConfigByEpoch,
 ) (*commonConfigs, error) {
 	err := checkCommonConfigsByEpoch(configsByEpoch)
 	if err != nil {
@@ -32,19 +32,19 @@ func NewCommonConfigsHandler(
 	}
 
 	esc := &commonConfigs{
-		orderedConfigByEpoch: make([]config.CommonConfigByEpoch, len(configsByEpoch)),
+		orderedEpochStartConfigByEpoch: make([]config.EpochStartConfigByEpoch, len(configsByEpoch)),
 	}
 
 	// sort the config values in ascending order
-	copy(esc.orderedConfigByEpoch, configsByEpoch)
-	sort.SliceStable(esc.orderedConfigByEpoch, func(i, j int) bool {
-		return esc.orderedConfigByEpoch[i].EnableEpoch < esc.orderedConfigByEpoch[j].EnableEpoch
+	copy(esc.orderedEpochStartConfigByEpoch, configsByEpoch)
+	sort.SliceStable(esc.orderedEpochStartConfigByEpoch, func(i, j int) bool {
+		return esc.orderedEpochStartConfigByEpoch[i].EnableEpoch < esc.orderedEpochStartConfigByEpoch[j].EnableEpoch
 	})
 
 	return esc, nil
 }
 
-func checkCommonConfigsByEpoch(configsByEpoch []config.CommonConfigByEpoch) error {
+func checkCommonConfigsByEpoch(configsByEpoch []config.EpochStartConfigByEpoch) error {
 	if len(configsByEpoch) == 0 {
 		return ErrEmptyCommonConfigsByEpoch
 	}
@@ -69,9 +69,9 @@ func checkCommonConfigsByEpoch(configsByEpoch []config.CommonConfigByEpoch) erro
 
 // GetMaxMetaNoncesBehind returns the max meta nonces behind by epoch
 func (cc *commonConfigs) GetGracePeriodRoundsByEpoch(epoch uint32) uint32 {
-	for i := len(cc.orderedConfigByEpoch) - 1; i >= 0; i-- {
-		if cc.orderedConfigByEpoch[i].EnableEpoch <= epoch {
-			return cc.orderedConfigByEpoch[i].GracePeriodRounds
+	for i := len(cc.orderedEpochStartConfigByEpoch) - 1; i >= 0; i-- {
+		if cc.orderedEpochStartConfigByEpoch[i].EnableEpoch <= epoch {
+			return cc.orderedEpochStartConfigByEpoch[i].GracePeriodRounds
 		}
 	}
 
@@ -80,9 +80,9 @@ func (cc *commonConfigs) GetGracePeriodRoundsByEpoch(epoch uint32) uint32 {
 
 // GetExtraDelayForRequestBlockInfoInMs returns the max meta nonces behind by epoch
 func (cc *commonConfigs) GetExtraDelayForRequestBlockInfoInMs(epoch uint32) uint32 {
-	for i := len(cc.orderedConfigByEpoch) - 1; i >= 0; i-- {
-		if cc.orderedConfigByEpoch[i].EnableEpoch <= epoch {
-			return cc.orderedConfigByEpoch[i].ExtraDelayForRequestBlockInfoInMilliseconds
+	for i := len(cc.orderedEpochStartConfigByEpoch) - 1; i >= 0; i-- {
+		if cc.orderedEpochStartConfigByEpoch[i].EnableEpoch <= epoch {
+			return cc.orderedEpochStartConfigByEpoch[i].ExtraDelayForRequestBlockInfoInMilliseconds
 		}
 	}
 

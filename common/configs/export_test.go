@@ -10,3 +10,12 @@ func (pce *processConfigsByEpoch) GetOrderedConfigsByEpoch(epoch uint32) config.
 
 	return pce.orderedConfigByEpoch[epoch]
 }
+
+// GetOrderedEpochStartConfigByEpoch -
+func (cc *commonConfigs) GetOrderedEpochStartConfigByEpoch(epoch uint32) config.EpochStartConfigByEpoch {
+	if len(cc.orderedEpochStartConfigByEpoch) == 0 {
+		return config.EpochStartConfigByEpoch{}
+	}
+
+	return cc.orderedEpochStartConfigByEpoch[epoch]
+}
