@@ -227,8 +227,8 @@ func (nar *nodeApiResolver) GetSelectedTransactions(selectionOptions common.TxSe
 }
 
 // GetVirtualNonce will return the virtual nonce of the account
-func (nar *nodeApiResolver) GetVirtualNonce(address string, blockchain coreData.ChainHandler, accountsAdapter state.AccountsAdapter) (*common.VirtualNonceOfAccountResponse, error) {
-	return nar.apiTransactionHandler.GetVirtualNonce(address, blockchain, accountsAdapter)
+func (nar *nodeApiResolver) GetVirtualNonce(address string) (*common.VirtualNonceOfAccountResponse, error) {
+	return nar.apiTransactionHandler.GetVirtualNonce(address)
 }
 
 // GetBlockByHash will return the block with the given hash and optionally with transactions

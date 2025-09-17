@@ -392,7 +392,7 @@ func (st *selectionTracker) getChainOfTrackedPendingBlocks(
 
 		// if no block was found, it means there is a gap and we have to return an error
 		if previousBlock == nil {
-			return nil, errPreviousBlockNotFound
+			return nil, errBlockNotFound
 		}
 
 		// extra check for a block gap, to assure there are no missing tracked blocks
@@ -420,4 +420,30 @@ func (st *selectionTracker) getChainOfTrackedPendingBlocks(
 	// return the blocks in their natural order (from head to tail)
 	slices.Reverse(chain)
 	return chain, nil
+}
+
+func (st *selectionTracker) getVirtualNonceOfAccountWithRootHash(
+	address []byte,
+	blockchainInfo common.BlockchainInfo,
+) (uint64, []byte, error) {
+	latestCommittedBlockHash := blockchainInfo.GetLatestCommittedBlockHash()
+	if latestCommittedBlockHash == nil {
+		return 0, nil, errNilLatestCommittedBlockHash
+	}
+
+	latestCommittedBlock, ok := st.blocks[string(latestCommittedBlockHash)]
+	if !ok {
+		return 0, nil, errBlockNotFound
+	}
+
+	breadcrumb, ok := latestCommittedBlock.breadcrumbsByAddress[string(address)]
+	if !ok {
+		return 0, nil, errBreadcrumbNotFound
+	}
+
+	if !breadcrumb.lastNonce.HasValue {
+		return 0, nil, errLastNonceNotFound
+	}
+
+	return breadcrumb.lastNonce.Value + 1, latestCommittedBlock.rootHash, nil
 }

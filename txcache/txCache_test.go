@@ -10,7 +10,6 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
-	"github.com/multiversx/mx-chain-go/common/holders"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/testscommon/txcachemocks"
 	"github.com/multiversx/mx-chain-storage-go/common"
@@ -315,68 +314,14 @@ func Test_GetTransactionsPoolForSender(t *testing.T) {
 func TestTxCache_GetVirtualNonce(t *testing.T) {
 	t.Parallel()
 
-	t.Run("should return errNilSelectionSession error", func(t *testing.T) {
+	t.Run("should return errNilBlockchainInfo error", func(t *testing.T) {
 		t.Parallel()
 
 		boundsConfig := createMockTxBoundsConfig()
 		cache := newUnconstrainedCacheToTest(boundsConfig)
 
-		_, err := cache.GetVirtualNonce(nil, nil, nil)
-		require.Equal(t, errNilSelectionSession, err)
-	})
-
-	t.Run("should return the error from GetRootHash", func(t *testing.T) {
-		t.Parallel()
-
-		boundsConfig := createMockTxBoundsConfig()
-		cache := newUnconstrainedCacheToTest(boundsConfig)
-		session := &txcachemocks.SelectionSessionMock{
-			GetRootHashCalled: func() ([]byte, error) {
-				return nil, expectedError
-			},
-		}
-
-		_, err := cache.GetVirtualNonce([]byte("alice"), session, defaultBlockchainInfo)
-		require.Equal(t, expectedError, err)
-	})
-
-	t.Run("should return errPreviousBlockNotFound error from deriveVirtualSelectionSession", func(t *testing.T) {
-		t.Parallel()
-
-		boundsConfig := createMockTxBoundsConfig()
-		cache := newUnconstrainedCacheToTest(boundsConfig)
-		session := &txcachemocks.SelectionSessionMock{
-			GetRootHashCalled: func() ([]byte, error) {
-				return []byte("rootHash"), nil
-			},
-		}
-
-		blockChainInfo := holders.NewBlockchainInfo(nil, []byte("hash0"), 1)
-		_, err := cache.GetVirtualNonce([]byte("alice"), session, blockChainInfo)
-		require.Equal(t, errPreviousBlockNotFound, err)
-	})
-
-	t.Run("should return errDiscontinuousSequenceOfBlocks error from deriveVirtualSelectionSession", func(t *testing.T) {
-		t.Parallel()
-
-		boundsConfig := createMockTxBoundsConfig()
-		cache := newUnconstrainedCacheToTest(boundsConfig)
-		session := &txcachemocks.SelectionSessionMock{
-			GetRootHashCalled: func() ([]byte, error) {
-				return []byte("rootHash"), nil
-			},
-		}
-
-		cache.tracker.blocks["blockHash0"] = &trackedBlock{
-			nonce:    1,
-			hash:     []byte("blockHash0"),
-			rootHash: []byte("rootHash0"),
-			prevHash: nil,
-		}
-
-		blockChainInfo := holders.NewBlockchainInfo(nil, []byte("blockHash0"), 3)
-		_, err := cache.GetVirtualNonce([]byte("alice"), session, blockChainInfo)
-		require.Equal(t, errDiscontinuousSequenceOfBlocks, err)
+		_, _, err := cache.GetVirtualNonceAndRootHash([]byte("alice"), nil)
+		require.Equal(t, errNilBlockchainInfo, err)
 	})
 }
 
