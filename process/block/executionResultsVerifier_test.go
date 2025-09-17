@@ -54,7 +54,7 @@ func TestExecutionResultsVerifier_verifyLastExecutionResultInfoMatchesLastExecut
 		erc, err := NewExecutionResultsVerifier(blockchain, executionResultsTracker)
 		require.NoError(t, err)
 
-		err = erc.verifyLastExecutionResultInfoMatchesLastExecutionResult([]byte("headerHash"), header)
+		err = erc.verifyLastExecutionResultInfoMatchesLastExecutionResult(header)
 		require.ErrorIs(t, err, process.ErrNilLastExecutionResultHandler)
 	})
 	t.Run("prev header get error", func(t *testing.T) {
@@ -70,7 +70,7 @@ func TestExecutionResultsVerifier_verifyLastExecutionResultInfoMatchesLastExecut
 		erc, err := NewExecutionResultsVerifier(blockchain, executionResultsTracker)
 		require.NoError(t, err)
 
-		err = erc.verifyLastExecutionResultInfoMatchesLastExecutionResult([]byte("headerHash"), header)
+		err = erc.verifyLastExecutionResultInfoMatchesLastExecutionResult(header)
 		require.Equal(t, process.ErrNilHeaderHandler, err)
 	})
 	t.Run("no execution results, keeps last execution results", func(t *testing.T) {
@@ -96,7 +96,7 @@ func TestExecutionResultsVerifier_verifyLastExecutionResultInfoMatchesLastExecut
 		erc, err := NewExecutionResultsVerifier(blockchain, executionResultsTracker)
 		require.NoError(t, err)
 
-		err = erc.verifyLastExecutionResultInfoMatchesLastExecutionResult([]byte("headerHash"), header)
+		err = erc.verifyLastExecutionResultInfoMatchesLastExecutionResult(header)
 		require.NoError(t, err)
 	})
 	t.Run("last execution result info does not match previous block,  nil execution results", func(t *testing.T) {
@@ -125,7 +125,7 @@ func TestExecutionResultsVerifier_verifyLastExecutionResultInfoMatchesLastExecut
 		erc, err := NewExecutionResultsVerifier(blockchain, executionResultsTracker)
 		require.NoError(t, err)
 
-		err = erc.verifyLastExecutionResultInfoMatchesLastExecutionResult([]byte("headerHash"), header)
+		err = erc.verifyLastExecutionResultInfoMatchesLastExecutionResult(header)
 		require.Equal(t, process.ErrExecutionResultDoesNotMatch, err)
 	})
 	t.Run("last execution result info (shard) matches previous block, nil execution results", func(t *testing.T) {
@@ -153,7 +153,7 @@ func TestExecutionResultsVerifier_verifyLastExecutionResultInfoMatchesLastExecut
 		erc, err := NewExecutionResultsVerifier(blockchain, executionResultsTracker)
 		require.NoError(t, err)
 
-		err = erc.verifyLastExecutionResultInfoMatchesLastExecutionResult([]byte("headerHash"), header)
+		err = erc.verifyLastExecutionResultInfoMatchesLastExecutionResult(header)
 		require.NoError(t, err)
 	})
 	t.Run("last execution result info (meta) matches previous block, nil execution results", func(t *testing.T) {
@@ -181,7 +181,7 @@ func TestExecutionResultsVerifier_verifyLastExecutionResultInfoMatchesLastExecut
 		erc, err := NewExecutionResultsVerifier(blockchain, executionResultsTracker)
 		require.NoError(t, err)
 
-		err = erc.verifyLastExecutionResultInfoMatchesLastExecutionResult([]byte("headerHash"), header)
+		err = erc.verifyLastExecutionResultInfoMatchesLastExecutionResult(header)
 		require.NoError(t, err)
 	})
 	t.Run("create last execution result from execution result error (nil execution result)", func(t *testing.T) {
@@ -207,7 +207,7 @@ func TestExecutionResultsVerifier_verifyLastExecutionResultInfoMatchesLastExecut
 		erc, err := NewExecutionResultsVerifier(blockchain, executionResultsTracker)
 		require.NoError(t, err)
 
-		err = erc.verifyLastExecutionResultInfoMatchesLastExecutionResult([]byte("headerHash"), header)
+		err = erc.verifyLastExecutionResultInfoMatchesLastExecutionResult(header)
 		require.Equal(t, process.ErrNilExecutionResultHandler, err)
 	})
 	t.Run("execution results mismatch", func(t *testing.T) {
@@ -225,7 +225,7 @@ func TestExecutionResultsVerifier_verifyLastExecutionResultInfoMatchesLastExecut
 		erc, err := NewExecutionResultsVerifier(blockchain, executionResultsTracker)
 		require.NoError(t, err)
 
-		err = erc.verifyLastExecutionResultInfoMatchesLastExecutionResult([]byte("headerHash"), header)
+		err = erc.verifyLastExecutionResultInfoMatchesLastExecutionResult(header)
 		require.Equal(t, process.ErrExecutionResultDoesNotMatch, err)
 	})
 	t.Run("first execution result not consecutive to prevHeader last execution result", func(t *testing.T) {
@@ -233,7 +233,6 @@ func TestExecutionResultsVerifier_verifyLastExecutionResultInfoMatchesLastExecut
 		prevHeader := createShardHeaderV3WithMultipleExecutionResults(1, 5)
 		prevHeader.LastExecutionResult.ExecutionResult.HeaderNonce = big.NewInt(10).Uint64()
 		header := createShardHeaderV3WithMultipleExecutionResults(3, 6)
-		headerHash := []byte("headerHash")
 		header.ExecutionResults[0].BaseExecutionResult.HeaderNonce = 100 // Modify to ensure mismatch
 
 		blockchain := &testscommon.ChainHandlerStub{
@@ -248,7 +247,7 @@ func TestExecutionResultsVerifier_verifyLastExecutionResultInfoMatchesLastExecut
 		erc, err := NewExecutionResultsVerifier(blockchain, executionResultsTracker)
 		require.NoError(t, err)
 
-		err = erc.verifyLastExecutionResultInfoMatchesLastExecutionResult(headerHash, header)
+		err = erc.verifyLastExecutionResultInfoMatchesLastExecutionResult(header)
 		require.ErrorIs(t, err, process.ErrExecutionResultsNonConsecutive)
 	})
 	t.Run("valid execution results for shard", func(t *testing.T) {
@@ -256,7 +255,6 @@ func TestExecutionResultsVerifier_verifyLastExecutionResultInfoMatchesLastExecut
 		prevHeader := createShardHeaderV3WithExecutionResults()
 		prevHeader.LastExecutionResult.ExecutionResult.HeaderNonce = prevHeader.LastExecutionResult.ExecutionResult.HeaderNonce - 1
 		header := createShardHeaderV3WithExecutionResults()
-		headerHash := []byte("headerHash")
 		header.ExecutionResults[len(header.ExecutionResults)-1] = createDummyShardExecutionResult()
 		lastExecutionResult, err := process.CreateLastExecutionResultInfoFromExecutionResult(notarizedInRound, header.ExecutionResults[len(header.ExecutionResults)-1], header.GetShardID())
 		require.Nil(t, err)
@@ -274,25 +272,13 @@ func TestExecutionResultsVerifier_verifyLastExecutionResultInfoMatchesLastExecut
 		erc, err := NewExecutionResultsVerifier(blockchain, executionResultsTracker)
 		require.NoError(t, err)
 
-		err = erc.verifyLastExecutionResultInfoMatchesLastExecutionResult(headerHash, header)
+		err = erc.verifyLastExecutionResultInfoMatchesLastExecutionResult(header)
 		require.NoError(t, err)
 	})
 }
 
 func TestExecutionResultsVerifier_VerifyHeaderExecutionResults(t *testing.T) {
 	t.Parallel()
-
-	t.Run("nil header hash", func(t *testing.T) {
-		t.Parallel()
-		header := createShardHeaderV3WithExecutionResults()
-		blockchain := &testscommon.ChainHandlerStub{}
-		executionResultsTracker := &executionTrack.ExecutionResultsTrackerStub{}
-		erc, err := NewExecutionResultsVerifier(blockchain, executionResultsTracker)
-		require.NoError(t, err)
-
-		err = erc.VerifyHeaderExecutionResults(nil, header)
-		require.Equal(t, process.ErrInvalidHash, err)
-	})
 
 	t.Run("nil header", func(t *testing.T) {
 		t.Parallel()
@@ -301,7 +287,7 @@ func TestExecutionResultsVerifier_VerifyHeaderExecutionResults(t *testing.T) {
 		erc, err := NewExecutionResultsVerifier(blockchain, executionResultsTracker)
 		require.NoError(t, err)
 
-		err = erc.VerifyHeaderExecutionResults([]byte("headerHash"), nil)
+		err = erc.VerifyHeaderExecutionResults(nil)
 		require.Equal(t, process.ErrNilHeaderHandler, err)
 	})
 
@@ -327,7 +313,7 @@ func TestExecutionResultsVerifier_VerifyHeaderExecutionResults(t *testing.T) {
 		erc, err := NewExecutionResultsVerifier(blockchain, executionResultsTracker)
 		require.NoError(t, err)
 
-		err = erc.VerifyHeaderExecutionResults([]byte("headerHash"), header)
+		err = erc.VerifyHeaderExecutionResults(header)
 		require.NoError(t, err)
 	})
 	t.Run("invalid header type", func(t *testing.T) {
@@ -343,7 +329,7 @@ func TestExecutionResultsVerifier_VerifyHeaderExecutionResults(t *testing.T) {
 		erc, err := NewExecutionResultsVerifier(blockchain, executionResultsTracker)
 		require.NoError(t, err)
 
-		err = erc.VerifyHeaderExecutionResults([]byte("headerHash"), header)
+		err = erc.VerifyHeaderExecutionResults(header)
 		require.Equal(t, process.ErrInvalidHeader, err)
 	})
 	t.Run("always valid for genesis header (nonce < 0)", func(t *testing.T) {
@@ -361,7 +347,7 @@ func TestExecutionResultsVerifier_VerifyHeaderExecutionResults(t *testing.T) {
 		erc, err := NewExecutionResultsVerifier(blockchain, executionResultsTracker)
 		require.NoError(t, err)
 
-		err = erc.VerifyHeaderExecutionResults([]byte("headerHash"), header)
+		err = erc.VerifyHeaderExecutionResults(header)
 		require.NoError(t, err)
 	})
 	t.Run("header with nil last execution results", func(t *testing.T) {
@@ -386,7 +372,7 @@ func TestExecutionResultsVerifier_VerifyHeaderExecutionResults(t *testing.T) {
 		erc, err := NewExecutionResultsVerifier(blockchain, executionResultsTracker)
 		require.NoError(t, err)
 
-		err = erc.VerifyHeaderExecutionResults([]byte("headerHash"), header)
+		err = erc.VerifyHeaderExecutionResults(header)
 		require.ErrorIs(t, err, process.ErrNilLastExecutionResultHandler)
 	})
 	t.Run("error getting pending execution results", func(t *testing.T) {
@@ -409,14 +395,14 @@ func TestExecutionResultsVerifier_VerifyHeaderExecutionResults(t *testing.T) {
 
 		expectedErr := fmt.Errorf("error getting pending execution results")
 		executionResultsTracker := &executionTrack.ExecutionResultsTrackerStub{
-			GetPendingExecutionResultsCalled: func() ([]data.ExecutionResultHandler, error) {
+			GetPendingExecutionResultsCalled: func() ([]data.BaseExecutionResultHandler, error) {
 				return nil, expectedErr
 			},
 		}
 		erc, err := NewExecutionResultsVerifier(blockchain, executionResultsTracker)
 		require.NoError(t, err)
 
-		err = erc.VerifyHeaderExecutionResults([]byte("headerHash"), header)
+		err = erc.VerifyHeaderExecutionResults(header)
 		require.Equal(t, expectedErr, err)
 	})
 	t.Run("execution results number mismatch", func(t *testing.T) {
@@ -437,14 +423,14 @@ func TestExecutionResultsVerifier_VerifyHeaderExecutionResults(t *testing.T) {
 		require.NoError(t, err)
 		header.LastExecutionResult = lastExecutionResult.(*block.ExecutionResultInfo)
 		executionResultsTracker := &executionTrack.ExecutionResultsTrackerStub{
-			GetPendingExecutionResultsCalled: func() ([]data.ExecutionResultHandler, error) {
+			GetPendingExecutionResultsCalled: func() ([]data.BaseExecutionResultHandler, error) {
 				return nil, nil // less than expected number of execution results
 			},
 		}
 		erc, err := NewExecutionResultsVerifier(blockchain, executionResultsTracker)
 		require.NoError(t, err)
 
-		err = erc.VerifyHeaderExecutionResults([]byte("headerHash"), header)
+		err = erc.VerifyHeaderExecutionResults(header)
 		require.Equal(t, process.ErrExecutionResultsNumberMismatch, err)
 	})
 	t.Run("execution results mismatch", func(t *testing.T) {
@@ -466,8 +452,8 @@ func TestExecutionResultsVerifier_VerifyHeaderExecutionResults(t *testing.T) {
 		header.LastExecutionResult = lastExecutionResult.(*block.ExecutionResultInfo)
 
 		executionResultsTracker := &executionTrack.ExecutionResultsTrackerStub{
-			GetPendingExecutionResultsCalled: func() ([]data.ExecutionResultHandler, error) {
-				result := make([]data.ExecutionResultHandler, len(header.ExecutionResults))
+			GetPendingExecutionResultsCalled: func() ([]data.BaseExecutionResultHandler, error) {
+				result := make([]data.BaseExecutionResultHandler, len(header.ExecutionResults))
 				for i := range header.ExecutionResults {
 					differentResult := *header.ExecutionResults[i]
 					differentBase := *differentResult.BaseExecutionResult
@@ -481,7 +467,7 @@ func TestExecutionResultsVerifier_VerifyHeaderExecutionResults(t *testing.T) {
 		erc, err := NewExecutionResultsVerifier(blockchain, executionResultsTracker)
 		require.NoError(t, err)
 
-		err = erc.VerifyHeaderExecutionResults([]byte("headerHash"), header)
+		err = erc.VerifyHeaderExecutionResults(header)
 		require.Equal(t, process.ErrExecutionResultDoesNotMatch, err)
 	})
 	t.Run("execution results not consecutive", func(t *testing.T) {
@@ -501,8 +487,8 @@ func TestExecutionResultsVerifier_VerifyHeaderExecutionResults(t *testing.T) {
 		// remove middle execution results, so they become not consecutive
 		header.ExecutionResults = []*block.ExecutionResult{header.ExecutionResults[0], header.ExecutionResults[2]}
 		executionResultsTracker := &executionTrack.ExecutionResultsTrackerStub{
-			GetPendingExecutionResultsCalled: func() ([]data.ExecutionResultHandler, error) {
-				result := make([]data.ExecutionResultHandler, len(header.ExecutionResults))
+			GetPendingExecutionResultsCalled: func() ([]data.BaseExecutionResultHandler, error) {
+				result := make([]data.BaseExecutionResultHandler, len(header.ExecutionResults))
 				for i := range header.ExecutionResults {
 					result[i] = header.ExecutionResults[i]
 				}
@@ -513,7 +499,7 @@ func TestExecutionResultsVerifier_VerifyHeaderExecutionResults(t *testing.T) {
 		erc, err := NewExecutionResultsVerifier(blockchain, executionResultsTracker)
 		require.NoError(t, err)
 
-		err = erc.VerifyHeaderExecutionResults([]byte("headerHash"), header)
+		err = erc.VerifyHeaderExecutionResults(header)
 		require.Equal(t, process.ErrExecutionResultsNonConsecutive, err)
 	})
 	t.Run("execution results consecutive", func(t *testing.T) {
@@ -531,8 +517,8 @@ func TestExecutionResultsVerifier_VerifyHeaderExecutionResults(t *testing.T) {
 		}
 
 		executionResultsTracker := &executionTrack.ExecutionResultsTrackerStub{
-			GetPendingExecutionResultsCalled: func() ([]data.ExecutionResultHandler, error) {
-				result := make([]data.ExecutionResultHandler, len(header.ExecutionResults))
+			GetPendingExecutionResultsCalled: func() ([]data.BaseExecutionResultHandler, error) {
+				result := make([]data.BaseExecutionResultHandler, len(header.ExecutionResults))
 				for i := range header.ExecutionResults {
 					result[i] = header.ExecutionResults[i]
 				}
@@ -543,7 +529,7 @@ func TestExecutionResultsVerifier_VerifyHeaderExecutionResults(t *testing.T) {
 		erc, err := NewExecutionResultsVerifier(blockchain, executionResultsTracker)
 		require.NoError(t, err)
 
-		err = erc.VerifyHeaderExecutionResults([]byte("headerHash"), header)
+		err = erc.VerifyHeaderExecutionResults(header)
 		require.NoError(t, err)
 	})
 	t.Run("valid execution results for shard", func(t *testing.T) {
@@ -564,8 +550,8 @@ func TestExecutionResultsVerifier_VerifyHeaderExecutionResults(t *testing.T) {
 		header.LastExecutionResult = lastExecutionResult.(*block.ExecutionResultInfo)
 
 		executionResultsTracker := &executionTrack.ExecutionResultsTrackerStub{
-			GetPendingExecutionResultsCalled: func() ([]data.ExecutionResultHandler, error) {
-				result := make([]data.ExecutionResultHandler, len(header.ExecutionResults))
+			GetPendingExecutionResultsCalled: func() ([]data.BaseExecutionResultHandler, error) {
+				result := make([]data.BaseExecutionResultHandler, len(header.ExecutionResults))
 				for i := range header.ExecutionResults {
 					result[i] = header.ExecutionResults[i]
 				}
@@ -576,7 +562,7 @@ func TestExecutionResultsVerifier_VerifyHeaderExecutionResults(t *testing.T) {
 		erc, err := NewExecutionResultsVerifier(blockchain, executionResultsTracker)
 		require.NoError(t, err)
 
-		err = erc.VerifyHeaderExecutionResults([]byte("headerHash"), header)
+		err = erc.VerifyHeaderExecutionResults(header)
 		require.NoError(t, err)
 	})
 }
