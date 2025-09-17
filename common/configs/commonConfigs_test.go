@@ -14,17 +14,17 @@ func TestNewCommonConfigsHandler(t *testing.T) {
 	t.Run("should return error for empty config by epoch", func(t *testing.T) {
 		t.Parallel()
 
-		pce, err := configs.NewCommonConfigsHandler(nil)
+		pce, err := configs.NewCommonConfigsHandler(nil, nil)
 		require.Nil(t, pce)
-		require.Equal(t, configs.ErrEmptyProcessConfigsByEpoch, err)
+		require.Equal(t, configs.ErrEmptyCommonConfigsByEpoch, err)
 	})
 
 	t.Run("should return error for empty config by round", func(t *testing.T) {
 		t.Parallel()
 
-		pce, err := configs.NewCommonConfigsHandler([]config.EpochStartConfigByEpoch{})
+		pce, err := configs.NewCommonConfigsHandler([]config.EpochStartConfigByEpoch{}, nil)
 		require.Nil(t, pce)
-		require.Equal(t, configs.ErrEmptyProcessConfigsByEpoch, err)
+		require.Equal(t, configs.ErrEmptyCommonConfigsByRound, err)
 	})
 
 	t.Run("should return error for duplicated epoch configs", func(t *testing.T) {
@@ -34,7 +34,7 @@ func TestNewCommonConfigsHandler(t *testing.T) {
 			{EnableEpoch: 0, GracePeriodRounds: 1},
 			{EnableEpoch: 0, GracePeriodRounds: 2},
 		}
-		pce, err := configs.NewCommonConfigsHandler(conf)
+		pce, err := configs.NewCommonConfigsHandler(conf, []config.EpochStartConfigByRound{})
 		require.Nil(t, pce)
 		require.Equal(t, configs.ErrDuplicatedEpochConfig, err)
 	})
@@ -46,7 +46,7 @@ func TestNewCommonConfigsHandler(t *testing.T) {
 			{EnableEpoch: 1, GracePeriodRounds: 1},
 			{EnableEpoch: 2, GracePeriodRounds: 2},
 		}
-		pce, err := configs.NewCommonConfigsHandler(conf)
+		pce, err := configs.NewCommonConfigsHandler(conf, []config.EpochStartConfigByRound{})
 		require.Nil(t, pce)
 		require.Equal(t, configs.ErrMissingEpochZeroConfig, err)
 	})
@@ -59,8 +59,12 @@ func TestNewCommonConfigsHandler(t *testing.T) {
 			{EnableEpoch: 2, GracePeriodRounds: 2},
 			{EnableEpoch: 1, GracePeriodRounds: 1},
 		}
+		confByRound := []config.EpochStartConfigByRound{
+			{EnableRound: 0, MaxRoundsWithoutCommittedStartInEpochBlock: 10},
+			{EnableRound: 1, MaxRoundsWithoutCommittedStartInEpochBlock: 11},
+		}
 
-		pce, err := configs.NewCommonConfigsHandler(conf)
+		pce, err := configs.NewCommonConfigsHandler(conf, confByRound)
 		require.NotNil(t, pce)
 		require.NoError(t, err)
 		require.False(t, pce.IsInterfaceNil())
@@ -80,10 +84,15 @@ func TestCommonConfigsByEpoch_Getters(t *testing.T) {
 		{EnableEpoch: 2, GracePeriodRounds: 12, ExtraDelayForRequestBlockInfoInMilliseconds: 22},
 	}
 
+	confByRound := []config.EpochStartConfigByRound{
+		{EnableRound: 0, MaxRoundsWithoutCommittedStartInEpochBlock: 30},
+		{EnableRound: 1, MaxRoundsWithoutCommittedStartInEpochBlock: 31},
+	}
+
 	t.Run("get grace period rounds by epoch", func(t *testing.T) {
 		t.Parallel()
 
-		cc, _ := configs.NewCommonConfigsHandler(conf)
+		cc, _ := configs.NewCommonConfigsHandler(conf, confByRound)
 
 		gracePeriodRounds := cc.GetGracePeriodRoundsByEpoch(0)
 		require.Equal(t, uint32(10), gracePeriodRounds)
@@ -95,12 +104,24 @@ func TestCommonConfigsByEpoch_Getters(t *testing.T) {
 	t.Run("get extra delay for request block info", func(t *testing.T) {
 		t.Parallel()
 
-		cc, _ := configs.NewCommonConfigsHandler(conf)
+		cc, _ := configs.NewCommonConfigsHandler(conf, confByRound)
 
 		extraDelayForRequests := cc.GetExtraDelayForRequestBlockInfoInMs(0)
 		require.Equal(t, uint32(20), extraDelayForRequests)
 
 		extraDelayForRequests = cc.GetExtraDelayForRequestBlockInfoInMs(1)
 		require.Equal(t, uint32(21), extraDelayForRequests)
+	})
+
+	t.Run("get max rounds without commited start in epoch block by roud", func(t *testing.T) {
+		t.Parallel()
+
+		cc, _ := configs.NewCommonConfigsHandler(conf, confByRound)
+
+		maxRoundsWithoutCommitedStartInEpochBlock := cc.GetMaxRoundsWithoutCommittedStartInEpochBlockInRound(0)
+		require.Equal(t, uint32(30), maxRoundsWithoutCommitedStartInEpochBlock)
+
+		maxRoundsWithoutCommitedStartInEpochBlock = cc.GetMaxRoundsWithoutCommittedStartInEpochBlockInRound(1)
+		require.Equal(t, uint32(31), maxRoundsWithoutCommitedStartInEpochBlock)
 	})
 }

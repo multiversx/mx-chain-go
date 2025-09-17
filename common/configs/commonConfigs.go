@@ -8,37 +8,54 @@ import (
 )
 
 const (
-	defaultGracePeriodRounds                 = 25
-	defaultExtraDelayForRequestBlockInfoInMs = 3000
+	defaultGracePeriodRounds                          = 25
+	defaultExtraDelayForRequestBlockInfoInMs          = 3000
+	defaultMaxRoundsWithoutCommittedStartInEpochBlock = 50
 )
 
-// ErrEmptyCommonConfigsByEpoch signals that an empty process configs by epoch has been provided
-var ErrEmptyCommonConfigsByEpoch = errors.New("empty process configs by epoch")
+// ErrEmptyCommonConfigsByEpoch signals that an empty common configs by epoch has been provided
+var ErrEmptyCommonConfigsByEpoch = errors.New("empty common configs by epoch")
+
+// ErrEmptyCommonConfigsByRound signals that an empty common configs by round has been provided
+var ErrEmptyCommonConfigsByRound = errors.New("empty common configs by epoch")
 
 type commonConfigs struct {
 	orderedEpochStartConfigByEpoch []config.EpochStartConfigByEpoch
+	orderedEpochStartConfigByRound []config.EpochStartConfigByRound
 }
 
 // NewCommonConfigsHandler creates a new process configs by epoch component
 func NewCommonConfigsHandler(
 	configsByEpoch []config.EpochStartConfigByEpoch,
+	configsByRound []config.EpochStartConfigByRound,
 ) (*commonConfigs, error) {
 	err := checkCommonConfigsByEpoch(configsByEpoch)
 	if err != nil {
 		return nil, err
 	}
 
-	esc := &commonConfigs{
+	err = checkCommonConfigsByRound(configsByRound)
+	if err != nil {
+		return nil, err
+	}
+
+	cc := &commonConfigs{
 		orderedEpochStartConfigByEpoch: make([]config.EpochStartConfigByEpoch, len(configsByEpoch)),
+		orderedEpochStartConfigByRound: make([]config.EpochStartConfigByRound, len(configsByRound)),
 	}
 
 	// sort the config values in ascending order
-	copy(esc.orderedEpochStartConfigByEpoch, configsByEpoch)
-	sort.SliceStable(esc.orderedEpochStartConfigByEpoch, func(i, j int) bool {
-		return esc.orderedEpochStartConfigByEpoch[i].EnableEpoch < esc.orderedEpochStartConfigByEpoch[j].EnableEpoch
+	copy(cc.orderedEpochStartConfigByEpoch, configsByEpoch)
+	sort.SliceStable(cc.orderedEpochStartConfigByEpoch, func(i, j int) bool {
+		return cc.orderedEpochStartConfigByEpoch[i].EnableEpoch < cc.orderedEpochStartConfigByEpoch[j].EnableEpoch
 	})
 
-	return esc, nil
+	copy(cc.orderedEpochStartConfigByRound, configsByRound)
+	sort.SliceStable(cc.orderedEpochStartConfigByRound, func(i, j int) bool {
+		return cc.orderedEpochStartConfigByRound[i].EnableRound < cc.orderedEpochStartConfigByRound[j].EnableRound
+	})
+
+	return cc, nil
 }
 
 func checkCommonConfigsByEpoch(configsByEpoch []config.EpochStartConfigByEpoch) error {
@@ -64,6 +81,29 @@ func checkCommonConfigsByEpoch(configsByEpoch []config.EpochStartConfigByEpoch) 
 	return nil
 }
 
+func checkCommonConfigsByRound(configsByRound []config.EpochStartConfigByRound) error {
+	if len(configsByRound) == 0 {
+		return ErrEmptyCommonConfigsByRound
+	}
+
+	// check for duplicated configs
+	seen := make(map[uint64]struct{})
+	for _, cfg := range configsByRound {
+		_, exists := seen[cfg.EnableRound]
+		if exists {
+			return ErrDuplicatedRoundConfig
+		}
+		seen[cfg.EnableRound] = struct{}{}
+	}
+
+	_, exists := seen[0]
+	if !exists {
+		return ErrMissingRoundZeroConfig
+	}
+
+	return nil
+}
+
 // GetMaxMetaNoncesBehind returns the max meta nonces behind by epoch
 func (cc *commonConfigs) GetGracePeriodRoundsByEpoch(epoch uint32) uint32 {
 	for i := len(cc.orderedEpochStartConfigByEpoch) - 1; i >= 0; i-- {
@@ -84,6 +124,17 @@ func (cc *commonConfigs) GetExtraDelayForRequestBlockInfoInMs(epoch uint32) uint
 	}
 
 	return defaultExtraDelayForRequestBlockInfoInMs // this should not happen
+}
+
+// GetMaxRoundsWithoutCommittedStartInEpochBlockInRound returns max rounds without commited start in epoch block
+func (cc *commonConfigs) GetMaxRoundsWithoutCommittedStartInEpochBlockInRound(round uint64) uint32 {
+	for i := len(cc.orderedEpochStartConfigByRound) - 1; i >= 0; i-- {
+		if cc.orderedEpochStartConfigByRound[i].EnableRound <= round {
+			return cc.orderedEpochStartConfigByRound[i].MaxRoundsWithoutCommittedStartInEpochBlock
+		}
+	}
+
+	return defaultMaxRoundsWithoutCommittedStartInEpochBlock // this should not happen
 }
 
 // IsInterfaceNil checks if the instance is nil

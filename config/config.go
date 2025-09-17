@@ -319,6 +319,15 @@ type EpochStartConfigByEpoch struct {
 	ExtraDelayForRequestBlockInfoInMilliseconds uint32
 }
 
+// EpochStartConfigByRound defines epoch start configuration parameters by round
+type EpochStartConfigByRound struct {
+	EnableRound uint64
+
+	// MaxRoundsWithoutCommittedStartInEpochBlock defines the maximum rounds to wait for start in epoch block to be committed,
+	// before a special action to be applied
+	MaxRoundsWithoutCommittedStartInEpochBlock uint32
+}
+
 // ProcessConfigByEpoch defines process configuration parameters by epoch
 type ProcessConfigByEpoch struct {
 	EnableEpoch uint32
@@ -367,7 +376,8 @@ type GeneralSettingsConfig struct {
 	EpochChangeGracePeriodByEpoch        []EpochChangeGracePeriodByEpoch
 	ProcessConfigsByEpoch                []ProcessConfigByEpoch
 	ProcessConfigsByRound                []ProcessConfigByRound
-	CommonConfigsByEpoch             []EpochStartConfigByEpoch
+	EpochStartConfigsByEpoch             []EpochStartConfigByEpoch
+	EpochStartConfigsByRound             []EpochStartConfigByRound
 }
 
 // HardwareRequirementsConfig will hold the hardware requirements config

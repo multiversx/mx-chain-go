@@ -300,7 +300,8 @@ func CreateCoreComponents(args ArgsCoreComponentsHolder) (*coreComponentsHolder,
 	}
 
 	instance.epochStartConfigsHandler, err = commonConfigs.NewCommonConfigsHandler(
-		args.Config.GeneralSettings.CommonConfigsByEpoch,
+		args.Config.GeneralSettings.EpochStartConfigsByEpoch,
+		args.Config.GeneralSettings.EpochStartConfigsByRound,
 	)
 	if err != nil {
 		return nil, err

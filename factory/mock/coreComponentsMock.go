@@ -62,7 +62,7 @@ type CoreComponentsMock struct {
 	FieldsSizeCheckerField             common.FieldsSizeChecker
 	EpochChangeGracePeriodHandlerField common.EpochChangeGracePeriodHandler
 	ProcessConfigsHandlerField         common.ProcessConfigsHandler
-	CommonConfigsHandlerField      common.CommonConfigsHandler
+	CommonConfigsHandlerField          common.CommonConfigsHandler
 }
 
 // InternalMarshalizer -

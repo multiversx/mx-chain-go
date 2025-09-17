@@ -1027,10 +1027,6 @@ const NotSetDestinationShardID = "disabled"
 // considering that constant below is set to 3
 const AdditionalScrForEachScCallOrSpecialTx = 3
 
-// MaxRoundsWithoutCommittedStartInEpochBlock defines the maximum rounds to wait for start in epoch block to be committed,
-// before a special action to be applied
-const MaxRoundsWithoutCommittedStartInEpochBlock = 50
-
 // DefaultResolversIdentifier represents the identifier that is used in conjunction with regular resolvers
 // (that makes the node run properly)
 const DefaultResolversIdentifier = "default resolver"
