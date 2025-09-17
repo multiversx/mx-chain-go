@@ -25,6 +25,7 @@ import (
 	disabledSig "github.com/multiversx/mx-chain-crypto-go/signing/disabled/singlesig"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/common/errChan"
+	"github.com/multiversx/mx-chain-go/common/holders"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/debug"
 	"github.com/multiversx/mx-chain-go/facade"
@@ -330,19 +331,31 @@ func (n *Node) getLeaves(rootHash []byte, numKeys uint, iteratorState [][]byte, 
 	return n.stateComponents.TrieLeavesRetriever().GetLeaves(int(numKeys), iteratorState, leavesParser, ctx)
 }
 
-// IterateKeys starts from the given iteratorState and returns the next key-value pairs and the new iteratorState
-func (n *Node) IterateKeys(address string, numKeys uint, iteratorState [][]byte, options api.AccountQueryOptions, ctx context.Context) (map[string]string, [][]byte, api.BlockInfo, error) {
-	userAccount, blockInfo, err := n.loadUserAccountHandlerByAddress(address, options)
-	if err != nil {
-		adaptedBlockInfo, isEmptyAccount := extractBlockInfoIfNewAccount(err)
-		if isEmptyAccount {
-			return make(map[string]string), nil, adaptedBlockInfo, nil
-		}
-
-		return nil, nil, api.BlockInfo{}, err
+func (n *Node) getBlockInfo(options api.AccountQueryOptions) (api.BlockInfo, error) {
+	if len(options.BlockRootHash) > 0 {
+		return api.BlockInfo{
+			Nonce:    0,
+			Hash:     "",
+			RootHash: hex.EncodeToString(options.BlockRootHash),
+		}, nil
 	}
 
+	blockHeader := n.dataComponents.Blockchain().GetCurrentBlockHeader()
+	if check.IfNil(blockHeader) {
+		return api.BlockInfo{}, errors.New("current block header is nil")
+	}
+
+	return accountBlockInfoToApiResource(holders.NewBlockInfo(n.dataComponents.Blockchain().GetCurrentBlockHeaderHash(), blockHeader.GetNonce(), blockHeader.GetRootHash())), nil
+}
+
+// IterateKeys starts from the given iteratorState and returns the next key-value pairs and the new iteratorState
+func (n *Node) IterateKeys(address string, numKeys uint, iteratorState [][]byte, options api.AccountQueryOptions, ctx context.Context) (map[string]string, [][]byte, api.BlockInfo, error) {
 	if address == iterateKeysMainTrie {
+		blockInfo, err := n.getBlockInfo(options)
+		if err != nil {
+			return nil, nil, api.BlockInfo{}, err
+		}
+
 		rootHashBytes, err := hex.DecodeString(blockInfo.RootHash)
 		if err != nil {
 			return nil, nil, api.BlockInfo{}, err
@@ -354,6 +367,16 @@ func (n *Node) IterateKeys(address string, numKeys uint, iteratorState [][]byte,
 		}
 
 		return mapToReturn, newIteratorState, blockInfo, nil
+	}
+
+	userAccount, blockInfo, err := n.loadUserAccountHandlerByAddress(address, options)
+	if err != nil {
+		adaptedBlockInfo, isEmptyAccount := extractBlockInfoIfNewAccount(err)
+		if isEmptyAccount {
+			return make(map[string]string), nil, adaptedBlockInfo, nil
+		}
+
+		return nil, nil, api.BlockInfo{}, err
 	}
 
 	if check.IfNil(userAccount.DataTrie()) {
