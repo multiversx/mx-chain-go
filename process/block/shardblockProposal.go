@@ -9,6 +9,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	logger "github.com/multiversx/mx-chain-logger-go"
 
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/block/processedMb"
 )
@@ -40,8 +41,32 @@ func (sp *shardProcessor) CreateBlockProposal(
 		return nil, nil, err
 	}
 
+	miniBlockHeaderHandlers := sp.miniBlocksSelectionSession.GetMiniBlockHeaderHandlers()
 	// todo: check empty mini blocks vs nil. Same for block.Body.MiniBlocks
-	err = shardHdr.SetMiniBlockHeaderHandlers(sp.miniBlocksSelectionSession.GetMiniBlockHeaderHandlers())
+	err = shardHdr.SetMiniBlockHeaderHandlers(miniBlockHeaderHandlers)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	err = shardHdr.SetMetaBlockHashes(sp.miniBlocksSelectionSession.GetReferencedMetaBlockHashes())
+	if err != nil {
+		return nil, nil, err
+	}
+
+	// TODO: check that the limits for the block are not exceeded
+	// err = sp.verifyGasLimit(shardHdr)
+	// if err != nil {
+	// 	return nil, nil, err
+	// }
+
+	totalTxCount := computeTxTotalTxCount(miniBlockHeaderHandlers)
+	err = shardHdr.SetTxCount(totalTxCount)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	miniBlocks := sp.miniBlocksSelectionSession.GetMiniBlocks()
+	err = checkMiniBlocksAndMiniBlockHeadersConsistency(miniBlocks, miniBlockHeaderHandlers)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -51,13 +76,44 @@ func (sp *shardProcessor) CreateBlockProposal(
 		return nil, nil, err
 	}
 
+	// TODO: sanity check use the verify execution results method
+
+	body := &block.Body{MiniBlocks: miniBlocks}
+
+	sp.appStatusHandler.SetUInt64Value(common.MetricNumTxInBlock, uint64(totalTxCount))
+	sp.appStatusHandler.SetUInt64Value(common.MetricNumMiniBlocks, uint64(len(body.MiniBlocks)))
+
+	marshalledBody, err := sp.marshalizer.Marshal(body)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	sp.blockSizeThrottler.Add(shardHdr.GetRound(), uint32(len(marshalledBody)))
+
 	defer func() {
 		go sp.checkAndRequestIfMetaHeadersMissing()
 	}()
 
-	// todo: some more checks from applyBodyToHeader
+	return shardHdr, body, nil
+}
 
-	return shardHdr, &block.Body{MiniBlocks: sp.miniBlocksSelectionSession.GetMiniBlocks()}, nil
+func computeTxTotalTxCount(miniBlockHeaders []data.MiniBlockHeaderHandler) uint32 {
+	totalTxCount := uint32(0)
+	for i := range miniBlockHeaders {
+		totalTxCount += miniBlockHeaders[i].GetTxCount()
+	}
+	return totalTxCount
+}
+
+func checkMiniBlocksAndMiniBlockHeadersConsistency(miniBlocks block.MiniBlockSlice, miniBlockHeaders []data.MiniBlockHeaderHandler) error {
+	if len(miniBlocks) != len(miniBlockHeaders) {
+		log.Warn("transactionCoordinator.verifyFees: num of mini blocks and mini blocks headers does not match", "num of mb", len(miniBlocks), "num of mbh", len(miniBlockHeaders))
+		return process.ErrNumOfMiniBlocksAndMiniBlocksHeadersMismatch
+	}
+
+	// TODO: check if the reserved field or other fields are consistent.
+
+	return nil
 }
 
 func (sp *shardProcessor) addExecutionResultsOnHeader(shardHeader data.HeaderHandler) error {
@@ -95,6 +151,7 @@ func (sp *shardProcessor) addExecutionResultsOnHeader(shardHeader data.HeaderHan
 	return shardHeader.SetExecutionResultsHandlers(ExecutionHandlersToBaseExecutionHandlers(executionResultsToInclude))
 }
 
+// ExecutionHandlersToBaseExecutionHandlers converts a slice of ExecutionResultHandler to a slice of BaseExecutionResultHandler
 func ExecutionHandlersToBaseExecutionHandlers(execHandlers []data.ExecutionResultHandler) []data.BaseExecutionResultHandler {
 	baseExecHandlers := make([]data.BaseExecutionResultHandler, len(execHandlers))
 	for i, execHandler := range execHandlers {
