@@ -718,7 +718,7 @@ func TestSelectionTracker_validateTrackedBlocks(t *testing.T) {
 		breadcrumbAlice1 := newAccountBreadcrumb(core.OptionalUint64{
 			Value:    0,
 			HasValue: true,
-		}, nil)
+		})
 		breadcrumbAlice1.lastNonce = core.OptionalUint64{
 			Value:    4,
 			HasValue: true,
@@ -727,7 +727,7 @@ func TestSelectionTracker_validateTrackedBlocks(t *testing.T) {
 		breadcrumbAlice2 := newAccountBreadcrumb(core.OptionalUint64{
 			Value:    6,
 			HasValue: true,
-		}, nil)
+		})
 		breadcrumbAlice2.lastNonce = core.OptionalUint64{
 			Value:    7,
 			HasValue: true,
@@ -774,7 +774,8 @@ func TestSelectionTracker_validateTrackedBlocks(t *testing.T) {
 		breadcrumbAlice1 := newAccountBreadcrumb(core.OptionalUint64{
 			Value:    0,
 			HasValue: true,
-		}, big.NewInt(3))
+		})
+		breadcrumbAlice1.accumulateConsumedBalance(big.NewInt(3))
 		breadcrumbAlice1.lastNonce = core.OptionalUint64{
 			Value:    4,
 			HasValue: true,
@@ -783,7 +784,8 @@ func TestSelectionTracker_validateTrackedBlocks(t *testing.T) {
 		breadcrumbAlice2 := newAccountBreadcrumb(core.OptionalUint64{
 			Value:    5,
 			HasValue: true,
-		}, big.NewInt(3))
+		})
+		breadcrumbAlice2.accumulateConsumedBalance(big.NewInt(3))
 		breadcrumbAlice2.lastNonce = core.OptionalUint64{
 			Value:    7,
 			HasValue: true,
@@ -830,7 +832,7 @@ func TestSelectionTracker_validateTrackedBlocks(t *testing.T) {
 		breadcrumbAlice1 := newAccountBreadcrumb(core.OptionalUint64{
 			Value:    0,
 			HasValue: true,
-		}, nil)
+		})
 		breadcrumbAlice1.lastNonce = core.OptionalUint64{
 			Value:    4,
 			HasValue: true,
@@ -839,7 +841,9 @@ func TestSelectionTracker_validateTrackedBlocks(t *testing.T) {
 		breadcrumbAlice2 := newAccountBreadcrumb(core.OptionalUint64{
 			Value:    5,
 			HasValue: true,
-		}, big.NewInt(1))
+		})
+		breadcrumbAlice2.accumulateConsumedBalance(big.NewInt(1))
+
 		breadcrumbAlice2.lastNonce = core.OptionalUint64{
 			Value:    7,
 			HasValue: true,
@@ -949,7 +953,7 @@ func Test_getVirtualNonceOfAccount(t *testing.T) {
 		tb.breadcrumbsByAddress["alice"] = newAccountBreadcrumb(core.OptionalUint64{
 			HasValue: true,
 			Value:    10,
-		}, nil)
+		})
 		tracker.blocks["hash2"] = tb
 
 		blockchainInfo := holders.NewBlockchainInfo(nil, []byte("hash2"), 0)
@@ -964,7 +968,7 @@ func Test_getVirtualNonceOfAccount(t *testing.T) {
 		tracker, err := NewSelectionTracker(txCache, maxTrackedBlocks)
 		require.Nil(t, err)
 
-		breadcrumb := newAccountBreadcrumb(core.OptionalUint64{HasValue: true, Value: 10}, nil)
+		breadcrumb := newAccountBreadcrumb(core.OptionalUint64{HasValue: true, Value: 10})
 		err = breadcrumb.updateLastNonce(core.OptionalUint64{
 			HasValue: true,
 			Value:    20,
