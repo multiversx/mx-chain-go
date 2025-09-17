@@ -38,6 +38,7 @@ import (
 	"github.com/multiversx/mx-chain-go/process/smartContract"
 	procTx "github.com/multiversx/mx-chain-go/process/transaction"
 	"github.com/multiversx/mx-chain-go/state"
+	"github.com/multiversx/mx-chain-go/state/parsers"
 	"github.com/multiversx/mx-chain-go/trie"
 	"github.com/multiversx/mx-chain-go/vm"
 	"github.com/multiversx/mx-chain-go/vm/systemSmartContracts"
@@ -48,6 +49,8 @@ import (
 const (
 	// esdtTickerNumChars represents the number of hex-encoded characters of a ticker
 	esdtTickerNumChars = 6
+
+	iterateKeysMainTrie = "mainTrie"
 )
 
 var log = logger.GetOrCreate("node")
@@ -319,6 +322,14 @@ type userAccountWithLeavesParser interface {
 	GetLeavesParser() common.TrieLeafParser
 }
 
+func (n *Node) getLeaves(rootHash []byte, numKeys uint, iteratorState [][]byte, leavesParser common.TrieLeafParser, ctx context.Context) (map[string]string, [][]byte, error) {
+	if len(iteratorState) == 0 {
+		iteratorState = append(iteratorState, rootHash)
+	}
+
+	return n.stateComponents.TrieLeavesRetriever().GetLeaves(int(numKeys), iteratorState, leavesParser, ctx)
+}
+
 // IterateKeys starts from the given iteratorState and returns the next key-value pairs and the new iteratorState
 func (n *Node) IterateKeys(address string, numKeys uint, iteratorState [][]byte, options api.AccountQueryOptions, ctx context.Context) (map[string]string, [][]byte, api.BlockInfo, error) {
 	userAccount, blockInfo, err := n.loadUserAccountHandlerByAddress(address, options)
@@ -331,6 +342,20 @@ func (n *Node) IterateKeys(address string, numKeys uint, iteratorState [][]byte,
 		return nil, nil, api.BlockInfo{}, err
 	}
 
+	if address == iterateKeysMainTrie {
+		rootHashBytes, err := hex.DecodeString(blockInfo.RootHash)
+		if err != nil {
+			return nil, nil, api.BlockInfo{}, err
+		}
+
+		mapToReturn, newIteratorState, err := n.getLeaves(rootHashBytes, numKeys, iteratorState, parsers.NewMainTrieLeafParser(), ctx)
+		if err != nil {
+			return nil, nil, api.BlockInfo{}, err
+		}
+
+		return mapToReturn, newIteratorState, blockInfo, nil
+	}
+
 	if check.IfNil(userAccount.DataTrie()) {
 		return map[string]string{}, nil, blockInfo, nil
 	}
@@ -340,11 +365,7 @@ func (n *Node) IterateKeys(address string, numKeys uint, iteratorState [][]byte,
 		return nil, nil, api.BlockInfo{}, fmt.Errorf("cannot cast user account to userAccountWithLeavesParser")
 	}
 
-	if len(iteratorState) == 0 {
-		iteratorState = append(iteratorState, userAccount.GetRootHash())
-	}
-
-	mapToReturn, newIteratorState, err := n.stateComponents.TrieLeavesRetriever().GetLeaves(int(numKeys), iteratorState, account.GetLeavesParser(), ctx)
+	mapToReturn, newIteratorState, err := n.getLeaves(userAccount.GetRootHash(), numKeys, iteratorState, account.GetLeavesParser(), ctx)
 	if err != nil {
 		return nil, nil, api.BlockInfo{}, err
 	}
