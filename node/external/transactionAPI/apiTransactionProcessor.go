@@ -548,17 +548,12 @@ func (atp *apiTransactionProcessor) getVirtualNonceWithBlockInfo(
 	// these variables will also be used for the response
 	// NOTE: should not remain like this
 	var latestCommittedBlockHash []byte
-	currentNonce := uint64(1)
-
+	var currentNonce uint64
 	blockchainInfo := holders.NewBlockchainInfo(nil, latestCommittedBlockHash, currentNonce)
 	virtualNonce, rootHash, err := txCache.GetVirtualNonceAndRootHash(address, blockchainInfo)
 	if err != nil {
 		log.Warn("apiTransactionProcessor.getVirtualNonceWithBlockInfo could not get virtual nonce")
 		return 0, nil, err
-	}
-
-	if currentNonce != 0 {
-		currentNonce -= 1
 	}
 
 	return virtualNonce, &common.LatestCommittedBlockResponse{
