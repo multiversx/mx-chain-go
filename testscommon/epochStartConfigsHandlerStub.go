@@ -15,6 +15,9 @@ func GetDefaultCommonConfigsHandler() common.CommonConfigsHandler {
 		[]config.EpochStartConfigByRound{
 			{EnableRound: 0, MaxRoundsWithoutCommittedStartInEpochBlock: 50},
 		},
+		[]config.ConsensusConfigByEpoch{
+			{EnableEpoch: 0, NumRoundsToWaitBeforeSignalingChronologyStuck: 10},
+		},
 	)
 
 	return commonConfigsHandler

@@ -75,6 +75,11 @@
         { EnableRound = 2, MaxRoundsWithoutCommittedStartInEpochBlock = 500 },
     ]
 
+    ConsensusConfigsByEpoch = [
+        { EnableEpoch = 0, NumRoundsToWaitBeforeSignalingChronologyStuck = 10 },
+        { EnableEpoch = 2, NumRoundsToWaitBeforeSignalingChronologyStuck = 100 },
+    ]
+
 [HardwareRequirements]
     CPUFlags = ["SSE4", "SSE42"]
 

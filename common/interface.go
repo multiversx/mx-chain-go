@@ -472,6 +472,7 @@ type CommonConfigsHandler interface {
 	GetGracePeriodRoundsByEpoch(epoch uint32) uint32
 	GetExtraDelayForRequestBlockInfoInMs(epoch uint32) uint32
 	GetMaxRoundsWithoutCommittedStartInEpochBlockInRound(round uint64) uint32
+	GetNumRoundsToWaitBeforeSignalingChronologyStuck(epoch uint32) uint32
 
 	IsInterfaceNil() bool
 }

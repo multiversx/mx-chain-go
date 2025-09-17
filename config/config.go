@@ -311,6 +311,13 @@ type EpochChangeGracePeriodByEpoch struct {
 	GracePeriodInRounds uint32
 }
 
+// ConsensusConfigByEpoch defines consensus configuration parameters by epoch
+type ConsensusConfigByEpoch struct {
+	EnableEpoch uint32
+
+	NumRoundsToWaitBeforeSignalingChronologyStuck uint32
+}
+
 // EpochStartConfigByEpoch defines epoch start configuration parameters by epoch
 type EpochStartConfigByEpoch struct {
 	EnableEpoch uint32
@@ -378,6 +385,7 @@ type GeneralSettingsConfig struct {
 	ProcessConfigsByRound                []ProcessConfigByRound
 	EpochStartConfigsByEpoch             []EpochStartConfigByEpoch
 	EpochStartConfigsByRound             []EpochStartConfigByRound
+	ConsensusConfigsByEpoch              []ConsensusConfigByEpoch
 }
 
 // HardwareRequirementsConfig will hold the hardware requirements config

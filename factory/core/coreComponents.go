@@ -192,6 +192,7 @@ func (ccf *coreComponentsFactory) Create() (*coreComponents, error) {
 	commonConfigsHandler, err := commonConfigs.NewCommonConfigsHandler(
 		ccf.config.GeneralSettings.EpochStartConfigsByEpoch,
 		ccf.config.GeneralSettings.EpochStartConfigsByRound,
+		ccf.config.GeneralSettings.ConsensusConfigsByEpoch,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("%w for commonConfigsHandler", err)
