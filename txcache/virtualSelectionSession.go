@@ -67,7 +67,9 @@ func (virtualSession *virtualSelectionSession) accumulateConsumedBalance(tx *Wra
 	}
 
 	// check if there's a need to search for another record
-	if !tx.isFeePayerSameAsSender() {
+	if tx.isFeePayerSameAsSender() {
+		feePayerRecord = senderRecord
+	} else {
 		record, err := virtualSession.getRecord(feePayer)
 		if err != nil {
 			log.Warn("accumulateConsumedBalance.getRecord feePayer",
@@ -78,8 +80,6 @@ func (virtualSession *virtualSelectionSession) accumulateConsumedBalance(tx *Wra
 
 		// should affect the record of fee payer
 		feePayerRecord = record
-	} else {
-		feePayerRecord = senderRecord
 	}
 
 	fee := tx.Fee
