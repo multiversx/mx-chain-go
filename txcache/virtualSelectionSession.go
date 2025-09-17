@@ -60,23 +60,32 @@ func (virtualSession *virtualSelectionSession) getNonceForAccountRecord(accountR
 func (virtualSession *virtualSelectionSession) accumulateConsumedBalance(tx *WrappedTransaction, senderRecord *virtualAccountRecord) error {
 	feePayer := tx.FeePayer
 
-	feePayerRecord, err := virtualSession.getRecord(feePayer)
-	if err != nil {
-		log.Warn("accumulateConsumedBalance.getRecord feePayer",
-			"feePayer", feePayer,
-			"err", err)
-		return err
-	}
+	// should affect the account of sender first
+	affectedRecord := senderRecord
 
 	transferredValue := tx.TransferredValue
 	if transferredValue != nil {
-		consumedBalance := senderRecord.getConsumedBalance()
+		consumedBalance := affectedRecord.getConsumedBalance()
 		consumedBalance.Add(consumedBalance, transferredValue)
+	}
+
+	// check if there's a need to search for another record
+	if !tx.isFeePayerSameAsSender() {
+		feePayerRecord, err := virtualSession.getRecord(feePayer)
+		if err != nil {
+			log.Warn("accumulateConsumedBalance.getRecord feePayer",
+				"feePayer", feePayer,
+				"err", err)
+			return err
+		}
+
+		// should affect the record of fee payer
+		affectedRecord = feePayerRecord
 	}
 
 	fee := tx.Fee
 	if fee != nil {
-		consumedBalance := feePayerRecord.getConsumedBalance()
+		consumedBalance := affectedRecord.getConsumedBalance()
 		consumedBalance.Add(consumedBalance, fee)
 	}
 

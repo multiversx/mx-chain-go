@@ -126,7 +126,7 @@ func selectTransactionsFromBunches(
 func detectSkippableSender(virtualSession *virtualSelectionSession, item *transactionsHeapItem, virtualRecord *virtualAccountRecord) bool {
 	nonce, err := virtualRecord.getInitialNonce()
 	if err != nil {
-		log.Debug("detectSkippableTransaction", "err", err)
+		log.Debug("detectSkippableSender", "err", err)
 		return true
 	}
 
