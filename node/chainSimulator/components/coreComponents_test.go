@@ -72,6 +72,9 @@ func createArgsCoreComponentsHolder() ArgsCoreComponentsHolder {
 				EpochStartConfigsByRound: []config.EpochStartConfigByRound{
 					{EnableRound: 0, MaxRoundsWithoutCommittedStartInEpochBlock: 50},
 				},
+				ConsensusConfigsByEpoch: []config.ConsensusConfigByEpoch{
+					{EnableEpoch: 0, NumRoundsToWaitBeforeSignalingChronologyStuck: 10},
+				},
 			},
 			Hardfork: config.HardforkConfig{
 				PublicKeyToListenFrom: components.DummyPk,

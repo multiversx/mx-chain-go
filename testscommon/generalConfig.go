@@ -87,6 +87,9 @@ func GetGeneralConfig() config.Config {
 			EpochStartConfigsByRound: []config.EpochStartConfigByRound{
 				{EnableRound: 0, MaxRoundsWithoutCommittedStartInEpochBlock: 50},
 			},
+			ConsensusConfigsByEpoch: []config.ConsensusConfigByEpoch{
+				{EnableEpoch: 0, NumRoundsToWaitBeforeSignalingChronologyStuck: 10},
+			},
 		},
 		EpochStartConfig: config.EpochStartConfig{
 			MinNumConnectedPeersToStart:       2,
