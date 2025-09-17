@@ -135,7 +135,7 @@ func (tpn *TestProcessorNode) initBlockProcessorWithSync() {
 			SafetyMargin:       110,
 			MaxResultsPerBlock: 20,
 		},
-		uint64(tpn.Node.GetCoreComponents().GenesisTime().UnixMilli()),
+		0,
 		tpn.RoundHandler,
 	)
 
