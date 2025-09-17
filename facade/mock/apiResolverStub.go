@@ -47,7 +47,7 @@ type ApiResolverStub struct {
 	GetLastPoolNonceForSenderCalled             func(sender string) (uint64, error)
 	GetTransactionsPoolNonceGapsForSenderCalled func(sender string, senderAccountNonce uint64) (*common.TransactionsPoolNonceGapsForSenderApiResponse, error)
 	GetSelectedTransactionsCalled               func(selectionOptions common.TxSelectionOptions, blockchain data.ChainHandler, accountsAdapter state.AccountsAdapter) (*common.TransactionsSelectionSimulationResult, error)
-	GetVirtualNonceCalled                       func(address string, blockchain data.ChainHandler, accountsAdapter state.AccountsAdapter) (*common.VirtualNonceOfAccountResponse, error)
+	GetVirtualNonceCalled                       func(address string) (*common.VirtualNonceOfAccountResponse, error)
 	GetGasConfigsCalled                         func() map[string]map[string]uint64
 	GetManagedKeysCountCalled                   func() int
 	GetManagedKeysCalled                        func() []string
@@ -78,9 +78,9 @@ func (ars *ApiResolverStub) GetSCRsByTxHash(txHash string, scrHash string) ([]*t
 }
 
 // GetVirtualNonce -
-func (ars *ApiResolverStub) GetVirtualNonce(address string, blockchain data.ChainHandler, accountsAdapter state.AccountsAdapter) (*common.VirtualNonceOfAccountResponse, error) {
+func (ars *ApiResolverStub) GetVirtualNonce(address string) (*common.VirtualNonceOfAccountResponse, error) {
 	if ars.GetVirtualNonceCalled != nil {
-		return ars.GetVirtualNonceCalled(address, blockchain, accountsAdapter)
+		return ars.GetVirtualNonceCalled(address)
 	}
 
 	return nil, nil
