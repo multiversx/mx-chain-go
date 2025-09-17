@@ -2164,7 +2164,7 @@ func TestNodeFacade_GetVirtualNonce(t *testing.T) {
 		}
 
 		arg.ApiResolver = &mock.ApiResolverStub{
-			GetVirtualNonceCalled: func(address string, accountsAdapter state.AccountsAdapter) (*common.VirtualNonceOfAccountResponse, error) {
+			GetVirtualNonceCalled: func(address string) (*common.VirtualNonceOfAccountResponse, error) {
 				return nil, expectedErr
 			},
 		}
@@ -2192,7 +2192,7 @@ func TestNodeFacade_GetVirtualNonce(t *testing.T) {
 
 		expectedRes := &common.VirtualNonceOfAccountResponse{VirtualNonce: 10}
 		arg.ApiResolver = &mock.ApiResolverStub{
-			GetVirtualNonceCalled: func(address string, accountsAdapter state.AccountsAdapter) (*common.VirtualNonceOfAccountResponse, error) {
+			GetVirtualNonceCalled: func(address string) (*common.VirtualNonceOfAccountResponse, error) {
 				return expectedRes, nil
 			},
 		}

@@ -71,7 +71,7 @@ type APITransactionHandler interface {
 	GetLastPoolNonceForSender(sender string) (uint64, error)
 	GetTransactionsPoolNonceGapsForSender(sender string, senderAccountNonce uint64) (*common.TransactionsPoolNonceGapsForSenderApiResponse, error)
 	GetSelectedTransactions(selectionOptions common.TxSelectionOptions, blockchain data.ChainHandler, accountsAdapter state.AccountsAdapter) (*common.TransactionsSelectionSimulationResult, error)
-	GetVirtualNonce(address string, accountsAdapter state.AccountsAdapter) (*common.VirtualNonceOfAccountResponse, error)
+	GetVirtualNonce(address string) (*common.VirtualNonceOfAccountResponse, error)
 	UnmarshalTransaction(txBytes []byte, txType transaction.TxType) (*transaction.ApiTransactionResult, error)
 	PopulateComputedFields(tx *transaction.ApiTransactionResult)
 	UnmarshalReceipt(receiptBytes []byte) (*transaction.ApiReceipt, error)

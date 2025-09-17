@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"math"
-	"math/big"
 	"sort"
 	"sync"
 	"testing"
@@ -315,64 +314,14 @@ func Test_GetTransactionsPoolForSender(t *testing.T) {
 func TestTxCache_GetVirtualNonce(t *testing.T) {
 	t.Parallel()
 
-	t.Run("should return errNilSelectionSession error", func(t *testing.T) {
-		t.Parallel()
-
-		boundsConfig := createMockTxBoundsConfig()
-		cache := newUnconstrainedCacheToTest(boundsConfig)
-
-		_, _, err := cache.GetVirtualNonceAndRootHash(nil, nil, nil)
-		require.Equal(t, errNilSelectionSession, err)
-	})
-
-	t.Run("should return the error from GetRootHash", func(t *testing.T) {
-		t.Parallel()
-
-		boundsConfig := createMockTxBoundsConfig()
-		cache := newUnconstrainedCacheToTest(boundsConfig)
-		session := &txcachemocks.SelectionSessionMock{
-			GetRootHashCalled: func() ([]byte, error) {
-				return nil, expectedError
-			},
-		}
-
-		_, _, err := cache.GetVirtualNonceAndRootHash([]byte("alice"), session, defaultBlockchainInfo)
-		require.Equal(t, expectedError, err)
-	})
-
 	t.Run("should return errNilBlockchainInfo error", func(t *testing.T) {
 		t.Parallel()
 
 		boundsConfig := createMockTxBoundsConfig()
 		cache := newUnconstrainedCacheToTest(boundsConfig)
-		session := &txcachemocks.SelectionSessionMock{
-			GetRootHashCalled: func() ([]byte, error) {
-				return []byte("rootHash"), nil
-			},
-		}
 
-		_, _, err := cache.GetVirtualNonceAndRootHash([]byte("alice"), session, nil)
+		_, _, err := cache.GetVirtualNonceAndRootHash([]byte("alice"), nil)
 		require.Equal(t, errNilBlockchainInfo, err)
-	})
-
-	t.Run("should fallback on SelectionSession", func(t *testing.T) {
-		t.Parallel()
-
-		boundsConfig := createMockTxBoundsConfig()
-		cache := newUnconstrainedCacheToTest(boundsConfig)
-		session := &txcachemocks.SelectionSessionMock{
-			GetRootHashCalled: func() ([]byte, error) {
-				return []byte("rootHash"), nil
-			},
-			GetAccountNonceAndBalanceCalled: func(address []byte) (uint64, *big.Int, bool, error) {
-				return uint64(10), nil, false, nil
-			},
-		}
-
-		virtualNonce, rootHash, err := cache.GetVirtualNonceAndRootHash([]byte("alice"), session, defaultBlockchainInfo)
-		require.Nil(t, err)
-		require.Equal(t, []byte("rootHash"), rootHash)
-		require.Equal(t, uint64(10), virtualNonce)
 	})
 }
 

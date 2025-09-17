@@ -159,14 +159,8 @@ func (cache *TxCache) SelectTransactions(
 // For this method, the blockchainInfo should contain the hash of the last committed block.
 func (cache *TxCache) GetVirtualNonceAndRootHash(
 	address []byte,
-	session SelectionSession,
 	blockchainInfo common.BlockchainInfo,
 ) (uint64, []byte, error) {
-	if check.IfNil(session) {
-		log.Error("TxCache.GetVirtualNonce", "err", errNilSelectionSession)
-		return 0, nil, errNilSelectionSession
-	}
-
 	if check.IfNil(blockchainInfo) {
 		log.Error("TxCache.GetVirtualNonce", "err", errNilBlockchainInfo)
 		return 0, nil, errNilBlockchainInfo
@@ -174,25 +168,10 @@ func (cache *TxCache) GetVirtualNonceAndRootHash(
 
 	virtualNonce, rootHash, err := cache.tracker.getVirtualNonceOfAccountWithRootHash(address, blockchainInfo)
 	if err != nil {
-		// selection session fallback
-		return cache.getNonceWithRootHashFromSelectionSession(address, session)
+		return 0, nil, err
 	}
 
 	return virtualNonce, rootHash, nil
-}
-
-func (cache *TxCache) getNonceWithRootHashFromSelectionSession(address []byte, selectionSession SelectionSession) (uint64, []byte, error) {
-	initialNonce, _, _, err := selectionSession.GetAccountNonceAndBalance(address)
-	if err != nil {
-		return 0, nil, err
-	}
-
-	rootHash, err := selectionSession.GetRootHash()
-	if err != nil {
-		return 0, nil, err
-	}
-
-	return initialNonce, rootHash, err
 }
 
 // OnProposedBlock calls the OnProposedBlock method from SelectionTracker

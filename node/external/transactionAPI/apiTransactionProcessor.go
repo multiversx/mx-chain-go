@@ -326,20 +326,20 @@ func (atp *apiTransactionProcessor) GetSelectedTransactions(selectionOptions com
 }
 
 // GetVirtualNonce will return the virtual nonce of an account
-func (atp *apiTransactionProcessor) GetVirtualNonce(address string, accountsAdapter state.AccountsAdapter) (*common.VirtualNonceOfAccountResponse, error) {
+func (atp *apiTransactionProcessor) GetVirtualNonce(address string) (*common.VirtualNonceOfAccountResponse, error) {
 	pubKey, err := atp.addressPubKeyConverter.Decode(address)
 	if err != nil {
 		return nil, fmt.Errorf("%s, %w", ErrInvalidAddress.Error(), err)
 	}
 
-	virtualNonce, latestCommittedBlockResponse, err := atp.getVirtualNonceWithBlockInfo(pubKey, accountsAdapter)
+	virtualNonce, latestCommittedBlockResponse, err := atp.getVirtualNonceWithBlockInfo(pubKey)
 	if err != nil {
 		return nil, err
 	}
 
 	return &common.VirtualNonceOfAccountResponse{
-		VirtualNonce:        virtualNonce,
-		LatestCommitedBlock: *latestCommittedBlockResponse,
+		VirtualNonce:         virtualNonce,
+		LatestCommittedBlock: *latestCommittedBlockResponse,
 	}, nil
 }
 
@@ -532,7 +532,6 @@ func (atp *apiTransactionProcessor) extractTxHashes(txs []*txcache.WrappedTransa
 
 func (atp *apiTransactionProcessor) getVirtualNonceWithBlockInfo(
 	address []byte,
-	accountsAdapter state.AccountsAdapter,
 ) (uint64, *common.LatestCommittedBlockResponse, error) {
 	cacheId := process.ShardCacherIdentifier(atp.shardCoordinator.SelfId(), atp.shardCoordinator.SelfId())
 	cache := atp.dataPool.Transactions().ShardDataStore(cacheId)
@@ -542,19 +541,7 @@ func (atp *apiTransactionProcessor) getVirtualNonceWithBlockInfo(
 		return 0, nil, ErrCouldNotCastToTxCache
 	}
 
-	// TODO use the right object, not a disabled one
-	txProcessor := disabled.TxProcessor{}
-	argsSelectionSession := preprocess.ArgsSelectionSession{
-		AccountsAdapter:       accountsAdapter,
-		TransactionsProcessor: &txProcessor,
-	}
-
 	// the SelectionSession is used in this flow for fallbacks (e.g. the account does not exist in the proposed blocks, unexpected errors etc.)
-	selectionSession, err := preprocess.NewSelectionSession(argsSelectionSession)
-	if err != nil {
-		log.Warn("apiTransactionProcessor.getVirtualNonceWithBlockInfo could not create SelectionSession")
-		return 0, nil, err
-	}
 
 	// TODO use the right information for blockchainInfo
 	// these blockchainInfo should contain the hash of the last committed block and the actual nonce
@@ -564,7 +551,7 @@ func (atp *apiTransactionProcessor) getVirtualNonceWithBlockInfo(
 	currentNonce := uint64(1)
 
 	blockchainInfo := holders.NewBlockchainInfo(nil, latestCommittedBlockHash, currentNonce)
-	virtualNonce, rootHash, err := txCache.GetVirtualNonceAndRootHash(address, selectionSession, blockchainInfo)
+	virtualNonce, rootHash, err := txCache.GetVirtualNonceAndRootHash(address, blockchainInfo)
 	if err != nil {
 		log.Warn("apiTransactionProcessor.getVirtualNonceWithBlockInfo could not get virtual nonce")
 		return 0, nil, err

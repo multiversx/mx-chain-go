@@ -428,7 +428,7 @@ func (st *selectionTracker) getVirtualNonceOfAccountWithRootHash(
 ) (uint64, []byte, error) {
 	latestCommitedBlockHash := blockchainInfo.GetLatestCommittedBlockHash()
 	if latestCommitedBlockHash == nil {
-		return 0, nil, errNilLatestCommitedBlockHash
+		return 0, nil, errNilLatestCommittedBlockHash
 	}
 
 	latestCommitedBlock, ok := st.blocks[string(latestCommitedBlockHash)]

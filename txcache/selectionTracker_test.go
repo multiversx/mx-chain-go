@@ -901,7 +901,7 @@ func TestSelectionTracker_addNewBlockNoLock(t *testing.T) {
 func Test_getVirtualNonceOfAccount(t *testing.T) {
 	t.Parallel()
 
-	t.Run("should return errNilLatestCommitedBlockHash error", func(t *testing.T) {
+	t.Run("should return errNilLatestCommittedBlockHash error", func(t *testing.T) {
 		t.Parallel()
 
 		txCache := newCacheToTest(maxNumBytesPerSenderUpperBoundTest, 3)
@@ -909,7 +909,7 @@ func Test_getVirtualNonceOfAccount(t *testing.T) {
 		require.Nil(t, err)
 
 		_, _, err = tracker.getVirtualNonceOfAccountWithRootHash([]byte("alice"), defaultBlockchainInfo)
-		require.Equal(t, errNilLatestCommitedBlockHash, err)
+		require.Equal(t, errNilLatestCommittedBlockHash, err)
 	})
 
 	t.Run("should return errBlockNotFound error", func(t *testing.T) {

@@ -49,8 +49,8 @@ type TransactionsSelectionSimulationResult struct {
 
 // VirtualNonceOfAccountResponse represents a struct that holds the data to be returned when requesting the virtual nonce of an account
 type VirtualNonceOfAccountResponse struct {
-	VirtualNonce        uint64                       `json:"virtualNonce"`
-	LatestCommitedBlock LatestCommittedBlockResponse `json:"latestCommitedBlock"`
+	VirtualNonce         uint64                       `json:"virtualNonce"`
+	LatestCommittedBlock LatestCommittedBlockResponse `json:"latestCommitedBlock"`
 }
 
 // LatestCommittedBlockResponse represents a struct that holds the data to be returned when requesting the latest committed block
