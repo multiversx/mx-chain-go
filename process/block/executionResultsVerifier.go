@@ -31,10 +31,7 @@ func NewExecutionResultsVerifier(blockChain data.ChainHandler, executionResultsT
 }
 
 // VerifyHeaderExecutionResults checks the execution results of a shard header
-func (erc *executionResultsVerifier) VerifyHeaderExecutionResults(headerHash []byte, header data.HeaderHandler) error {
-	if len(headerHash) == 0 {
-		return process.ErrInvalidHash
-	}
+func (erc *executionResultsVerifier) VerifyHeaderExecutionResults(header data.HeaderHandler) error {
 	if check.IfNil(header) {
 		return process.ErrNilHeaderHandler
 	}
@@ -45,14 +42,13 @@ func (erc *executionResultsVerifier) VerifyHeaderExecutionResults(headerHash []b
 		return nil
 	}
 
-	return erc.verifyExecutionResults(headerHash, header)
+	return erc.verifyExecutionResults(header)
 }
 
 func (erc *executionResultsVerifier) verifyExecutionResults(
-	headerHash []byte,
 	header data.HeaderHandler,
 ) error {
-	err := erc.verifyLastExecutionResultInfoMatchesLastExecutionResult(headerHash, header)
+	err := erc.verifyLastExecutionResultInfoMatchesLastExecutionResult(header)
 	if err != nil {
 		return err
 	}
@@ -85,7 +81,6 @@ func (erc *executionResultsVerifier) verifyExecutionResults(
 }
 
 func (erc *executionResultsVerifier) verifyLastExecutionResultInfoMatchesLastExecutionResult(
-	headerHash []byte,
 	header data.HeaderHandler,
 ) error {
 	executionResults := header.GetExecutionResultsHandlers()

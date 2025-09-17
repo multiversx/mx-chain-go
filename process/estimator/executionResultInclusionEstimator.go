@@ -54,7 +54,7 @@ func NewExecutionResultInclusionEstimator(cfg config.ExecutionResultInclusionEst
 // Return value: `allowed` is the count of leading entries in `pending` deemed safe. The caller slices `pending[:allowed]` and embeds them.
 func (erie *ExecutionResultInclusionEstimator) Decide(
 	lastNotarised *LastExecutionResultForInclusion,
-	pending []data.ExecutionResultHandler,
+	pending []data.BaseExecutionResultHandler,
 	currentHdrTsMs uint64,
 ) (allowed int) {
 	allowed = 0
@@ -64,12 +64,14 @@ func (erie *ExecutionResultInclusionEstimator) Decide(
 	}
 
 	var roundForTBaseCalculation uint64
+
+	// lastNotarised is nil if genesis.
 	if lastNotarised == nil {
 		roundForTBaseCalculation = 0
 	} else {
 		roundForTBaseCalculation = lastNotarised.NotarizedInRound
 	}
-	var previousExecutionResultMeta data.ExecutionResultHandler
+	var previousExecutionResultMeta data.BaseExecutionResultHandler
 
 	tBase := convertMsToNs(erie.roundHandler.GetTimeStampForRound(roundForTBaseCalculation))
 
@@ -149,8 +151,8 @@ func (erie *ExecutionResultInclusionEstimator) IsInterfaceNil() bool {
 }
 
 func (erie *ExecutionResultInclusionEstimator) checkSanity(
-	currentExecutionResult data.ExecutionResultHandler,
-	previousExecutionResult data.ExecutionResultHandler,
+	currentExecutionResult data.BaseExecutionResultHandler,
+	previousExecutionResult data.BaseExecutionResultHandler,
 	lastNotarised *LastExecutionResultForInclusion,
 	currentHdrTsNs uint64,
 ) bool {

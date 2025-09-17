@@ -50,7 +50,7 @@ type HeadersForBlock interface {
 
 // ExecutionResultsVerifier is the interface that defines the methods for verifying execution results
 type ExecutionResultsVerifier interface {
-	VerifyHeaderExecutionResults(headerHash []byte, header data.HeaderHandler) error
+	VerifyHeaderExecutionResults(header data.HeaderHandler) error
 	IsInterfaceNil() bool
 }
 
