@@ -65,7 +65,7 @@ func TestDecide(t *testing.T) {
 			NotarizedInRound: 1,
 			ProposedInRound:  0,
 		}
-		var pending []data.ExecutionResultHandler
+		var pending []data.BaseExecutionResultHandler
 		currentHdrTsMs := uint64(1000 + 500) // 1000 ms + 500 ms margin
 		wantAllowed := 0
 		got := erie.Decide(lastNotarised, pending, currentHdrTsMs)
@@ -81,7 +81,7 @@ func TestDecide(t *testing.T) {
 			ProposedInRound:  0,
 		}
 
-		pending := []data.ExecutionResultHandler{
+		pending := []data.BaseExecutionResultHandler{
 			&block.ExecutionResult{BaseExecutionResult: &block.BaseExecutionResult{HeaderNonce: 1, HeaderRound: 1, GasUsed: 100}},
 			&block.ExecutionResult{BaseExecutionResult: &block.BaseExecutionResult{HeaderNonce: 2, HeaderRound: 2, GasUsed: 200}},
 		}
@@ -102,7 +102,7 @@ func TestDecide(t *testing.T) {
 			NotarizedInRound: 1,
 			ProposedInRound:  0,
 		}
-		pending := []data.ExecutionResultHandler{
+		pending := []data.BaseExecutionResultHandler{
 			&block.ExecutionResult{BaseExecutionResult: &block.BaseExecutionResult{HeaderNonce: 1, HeaderRound: 1, GasUsed: 100_000_000}},
 			&block.ExecutionResult{BaseExecutionResult: &block.BaseExecutionResult{HeaderNonce: 2, HeaderRound: 2, GasUsed: 999_000_000}},
 		}
@@ -123,7 +123,7 @@ func TestDecide(t *testing.T) {
 			NotarizedInRound: 1,
 			ProposedInRound:  0,
 		}
-		pending := []data.ExecutionResultHandler{
+		pending := []data.BaseExecutionResultHandler{
 			&block.ExecutionResult{BaseExecutionResult: &block.BaseExecutionResult{HeaderNonce: 1, HeaderRound: 1, GasUsed: 100_000_000}},
 			&block.ExecutionResult{BaseExecutionResult: &block.BaseExecutionResult{HeaderNonce: 2, HeaderRound: 2, GasUsed: 100_000_000}},
 			&block.ExecutionResult{BaseExecutionResult: &block.BaseExecutionResult{HeaderNonce: 3, HeaderRound: 3, GasUsed: 100_000_000}},
@@ -143,7 +143,7 @@ func TestDecide(t *testing.T) {
 			NotarizedInRound: 1,
 			ProposedInRound:  0,
 		}
-		pending := []data.ExecutionResultHandler{
+		pending := []data.BaseExecutionResultHandler{
 			&block.ExecutionResult{BaseExecutionResult: &block.BaseExecutionResult{HeaderNonce: 1, HeaderRound: 1, GasUsed: 100}},
 			&block.ExecutionResult{BaseExecutionResult: &block.BaseExecutionResult{HeaderNonce: 2, HeaderRound: 2, GasUsed: 100}},
 		}
@@ -166,7 +166,7 @@ func TestDecide(t *testing.T) {
 		cfg := config.ExecutionResultInclusionEstimatorConfig{SafetyMargin: 110}
 		erie := NewExecutionResultInclusionEstimator(cfg, genesisTimeStampMs, roundHandler)
 		var lastNotarised *LastExecutionResultForInclusion = nil
-		pending := []data.ExecutionResultHandler{
+		pending := []data.BaseExecutionResultHandler{
 			&block.ExecutionResult{BaseExecutionResult: &block.BaseExecutionResult{HeaderNonce: 1, HeaderRound: 1, GasUsed: 100}}, // after genesis
 		}
 		currentHdrTsMs := genesisTimeStampMs + 2*roundTime
@@ -184,7 +184,7 @@ func TestDecide(t *testing.T) {
 			NotarizedInRound: 1,
 			ProposedInRound:  0,
 		}
-		pending := []data.ExecutionResultHandler{
+		pending := []data.BaseExecutionResultHandler{
 			&block.ExecutionResult{BaseExecutionResult: &block.BaseExecutionResult{HeaderNonce: 1, HeaderRound: 1, GasUsed: 1000}},
 			&block.ExecutionResult{BaseExecutionResult: &block.BaseExecutionResult{HeaderNonce: 2, HeaderRound: 2, GasUsed: math.MaxUint64}},
 			&block.ExecutionResult{BaseExecutionResult: &block.BaseExecutionResult{HeaderNonce: 1, HeaderRound: 1, GasUsed: 100}},
@@ -212,7 +212,7 @@ func TestOverflowProtection(t *testing.T) {
 		}
 		erie := NewExecutionResultInclusionEstimator(cfg, 0, roundHandler)
 
-		pending := []data.ExecutionResultHandler{
+		pending := []data.BaseExecutionResultHandler{
 			&block.ExecutionResult{BaseExecutionResult: &block.BaseExecutionResult{HeaderNonce: 1, HeaderRound: 1, GasUsed: 1000}},
 			&block.ExecutionResult{BaseExecutionResult: &block.BaseExecutionResult{HeaderNonce: 2, HeaderRound: 2, GasUsed: math.MaxUint64}}, // This will cause overflow
 		}
@@ -245,7 +245,7 @@ func TestDecide_EdgeCases(t *testing.T) {
 
 	t.Run("zero GasUsed", func(t *testing.T) {
 		t.Parallel()
-		pending := []data.ExecutionResultHandler{
+		pending := []data.BaseExecutionResultHandler{
 			&block.ExecutionResult{BaseExecutionResult: &block.BaseExecutionResult{HeaderNonce: 1, HeaderRound: 1, GasUsed: 0}},
 			&block.ExecutionResult{BaseExecutionResult: &block.BaseExecutionResult{HeaderNonce: 2, HeaderRound: 2, GasUsed: 0}},
 		}
@@ -262,7 +262,7 @@ func TestDecide_EdgeCases(t *testing.T) {
 		genesisTimeStampMs := uint64(1_700_000_000_000)
 		cfg := config.ExecutionResultInclusionEstimatorConfig{SafetyMargin: 110}
 		erie := NewExecutionResultInclusionEstimator(cfg, genesisTimeStampMs, roundHandler)
-		pending := []data.ExecutionResultHandler{
+		pending := []data.BaseExecutionResultHandler{
 			&block.ExecutionResult{BaseExecutionResult: &block.BaseExecutionResult{HeaderNonce: 1, HeaderRound: 0, GasUsed: 100}},
 		}
 		got := erie.Decide(nil, pending, erie.genesisTimeMs+roundTime)
@@ -278,7 +278,7 @@ func TestDecide_EdgeCases(t *testing.T) {
 			NotarizedInRound: 2,
 			ProposedInRound:  0,
 		}
-		pending := []data.ExecutionResultHandler{
+		pending := []data.BaseExecutionResultHandler{
 			&block.ExecutionResult{BaseExecutionResult: &block.BaseExecutionResult{HeaderNonce: 1, HeaderRound: 1, GasUsed: 100}},
 		}
 		got := erie.Decide(lastNotarised, pending, genesisTimeStampMs+4*roundTime)
@@ -287,7 +287,7 @@ func TestDecide_EdgeCases(t *testing.T) {
 
 	t.Run("second execution result HeaderTimeMs after current", func(t *testing.T) {
 		t.Parallel()
-		pending := []data.ExecutionResultHandler{
+		pending := []data.BaseExecutionResultHandler{
 			&block.ExecutionResult{BaseExecutionResult: &block.BaseExecutionResult{HeaderNonce: 1, HeaderRound: 1, GasUsed: 100}},
 			&block.ExecutionResult{BaseExecutionResult: &block.BaseExecutionResult{HeaderNonce: 2, HeaderRound: roundNow + 1, GasUsed: 200}},
 		}
@@ -297,7 +297,7 @@ func TestDecide_EdgeCases(t *testing.T) {
 
 	t.Run("all results after t_now", func(t *testing.T) {
 		t.Parallel()
-		pending := []data.ExecutionResultHandler{
+		pending := []data.BaseExecutionResultHandler{
 			&block.ExecutionResult{BaseExecutionResult: &block.BaseExecutionResult{HeaderNonce: 1, HeaderRound: roundNow + 1, GasUsed: 10_000}},
 			&block.ExecutionResult{BaseExecutionResult: &block.BaseExecutionResult{HeaderNonce: 2, HeaderRound: roundNow + 2, GasUsed: 10_000}},
 		}
@@ -307,7 +307,7 @@ func TestDecide_EdgeCases(t *testing.T) {
 
 	t.Run("non-monotonic in time", func(t *testing.T) {
 		t.Parallel()
-		pending := []data.ExecutionResultHandler{
+		pending := []data.BaseExecutionResultHandler{
 			&block.ExecutionResult{BaseExecutionResult: &block.BaseExecutionResult{HeaderNonce: 1, HeaderRound: 2, GasUsed: 50}},
 			&block.ExecutionResult{BaseExecutionResult: &block.BaseExecutionResult{HeaderNonce: 2, HeaderRound: 1, GasUsed: 20}},
 			&block.ExecutionResult{BaseExecutionResult: &block.BaseExecutionResult{HeaderNonce: 3, HeaderRound: 3, GasUsed: 70}},
@@ -318,7 +318,7 @@ func TestDecide_EdgeCases(t *testing.T) {
 
 	t.Run("non-monotonic in nonce", func(t *testing.T) {
 		t.Parallel()
-		pending := []data.ExecutionResultHandler{
+		pending := []data.BaseExecutionResultHandler{
 			&block.ExecutionResult{BaseExecutionResult: &block.BaseExecutionResult{HeaderNonce: 1, HeaderRound: 1, GasUsed: 50}},
 			&block.ExecutionResult{BaseExecutionResult: &block.BaseExecutionResult{HeaderNonce: 2, HeaderRound: 2, GasUsed: 20}},
 			&block.ExecutionResult{BaseExecutionResult: &block.BaseExecutionResult{HeaderNonce: 4, HeaderRound: 3, GasUsed: 70}},
@@ -326,7 +326,7 @@ func TestDecide_EdgeCases(t *testing.T) {
 		got := erie.Decide(nil, pending, now)
 		require.Equal(t, got, 2)
 
-		pending = []data.ExecutionResultHandler{
+		pending = []data.BaseExecutionResultHandler{
 			&block.ExecutionResult{BaseExecutionResult: &block.BaseExecutionResult{HeaderNonce: 2, HeaderRound: 1, GasUsed: 20}},
 			&block.ExecutionResult{BaseExecutionResult: &block.BaseExecutionResult{HeaderNonce: 1, HeaderRound: 2, GasUsed: 70}},
 		}
@@ -352,7 +352,7 @@ func BenchmarkDecideScaling_10(b *testing.B) {
 
 	for n := 0; n < 10; n++ {
 		pendingSize := 12 * (1 << n) // 12, 24, 48, ...
-		pending := make([]data.ExecutionResultHandler, pendingSize)
+		pending := make([]data.BaseExecutionResultHandler, pendingSize)
 		for i := range pending {
 			pending[i] = &block.ExecutionResult{BaseExecutionResult: &block.BaseExecutionResult{
 				HeaderNonce: uint64(i + 1),

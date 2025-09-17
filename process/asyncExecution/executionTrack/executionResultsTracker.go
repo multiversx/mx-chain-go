@@ -16,7 +16,7 @@ var log = logger.GetOrCreate("process/asyncExecution/executionTrack")
 type executionResultsTracker struct {
 	lastNotarizedResult    data.BaseExecutionResultHandler
 	mutex                  sync.RWMutex
-	executionResultsByHash map[string]data.ExecutionResultHandler
+	executionResultsByHash map[string]data.BaseExecutionResultHandler
 	nonceHash              *nonceHash
 	lastExecutedResultHash []byte
 	hashToRemoveOnAdd      []byte
@@ -25,14 +25,14 @@ type executionResultsTracker struct {
 // NewExecutionResultsTracker will create a new instance of *executionResultsTracker
 func NewExecutionResultsTracker() *executionResultsTracker {
 	return &executionResultsTracker{
-		executionResultsByHash: make(map[string]data.ExecutionResultHandler),
+		executionResultsByHash: make(map[string]data.BaseExecutionResultHandler),
 		nonceHash:              newNonceHash(),
 	}
 }
 
 // AddExecutionResult will add the provided execution result in tracker
 // It will return true if the execution result was added in the tracker
-func (ert *executionResultsTracker) AddExecutionResult(executionResult data.ExecutionResultHandler) error {
+func (ert *executionResultsTracker) AddExecutionResult(executionResult data.BaseExecutionResultHandler) error {
 	if executionResult == nil {
 		return ErrNilExecutionResult
 	}
@@ -96,15 +96,15 @@ func (ert *executionResultsTracker) getLastExecutionResult() (data.BaseExecution
 }
 
 // GetPendingExecutionResults will return the pending execution results
-func (ert *executionResultsTracker) GetPendingExecutionResults() ([]data.ExecutionResultHandler, error) {
+func (ert *executionResultsTracker) GetPendingExecutionResults() ([]data.BaseExecutionResultHandler, error) {
 	ert.mutex.RLock()
 	defer ert.mutex.RUnlock()
 
 	return ert.getPendingExecutionResults()
 }
 
-func (ert *executionResultsTracker) getPendingExecutionResults() ([]data.ExecutionResultHandler, error) {
-	executionResults := make([]data.ExecutionResultHandler, 0, len(ert.executionResultsByHash))
+func (ert *executionResultsTracker) getPendingExecutionResults() ([]data.BaseExecutionResultHandler, error) {
+	executionResults := make([]data.BaseExecutionResultHandler, 0, len(ert.executionResultsByHash))
 	for _, executionResult := range ert.executionResultsByHash {
 		executionResults = append(executionResults, executionResult)
 	}
@@ -133,7 +133,7 @@ func (ert *executionResultsTracker) getPendingExecutionResults() ([]data.Executi
 }
 
 // GetPendingExecutionResultByHash will return the execution results by hash
-func (ert *executionResultsTracker) GetPendingExecutionResultByHash(hash []byte) (data.ExecutionResultHandler, error) {
+func (ert *executionResultsTracker) GetPendingExecutionResultByHash(hash []byte) (data.BaseExecutionResultHandler, error) {
 	ert.mutex.RLock()
 	defer ert.mutex.RUnlock()
 
@@ -146,14 +146,14 @@ func (ert *executionResultsTracker) GetPendingExecutionResultByHash(hash []byte)
 }
 
 // GetPendingExecutionResultByNonce will return the execution results by nonce
-func (ert *executionResultsTracker) GetPendingExecutionResultByNonce(nonce uint64) (data.ExecutionResultHandler, error) {
+func (ert *executionResultsTracker) GetPendingExecutionResultByNonce(nonce uint64) (data.BaseExecutionResultHandler, error) {
 	ert.mutex.RLock()
 	defer ert.mutex.RUnlock()
 
 	return ert.getPendingExecutionResultsByNonce(nonce)
 }
 
-func (ert *executionResultsTracker) getPendingExecutionResultsByNonce(nonce uint64) (data.ExecutionResultHandler, error) {
+func (ert *executionResultsTracker) getPendingExecutionResultsByNonce(nonce uint64) (data.BaseExecutionResultHandler, error) {
 	hash := ert.nonceHash.getHashByNonce(nonce)
 	result, found := ert.executionResultsByHash[hash]
 	if !found {
@@ -169,11 +169,21 @@ func (ert *executionResultsTracker) CleanConfirmedExecutionResults(header Header
 	defer ert.mutex.Unlock()
 
 	headerExecutionResults := header.GetExecutionResults()
+	headerBaseExecutionResults := executionHandlersToBaseExecutionHandlers(headerExecutionResults)
 
-	return ert.cleanConfirmedExecutionResults(headerExecutionResults)
+	return ert.cleanConfirmedExecutionResults(headerBaseExecutionResults)
 }
 
-func (ert *executionResultsTracker) cleanConfirmedExecutionResults(headerExecutionResults []data.ExecutionResultHandler) (*CleanInfo, error) {
+func executionHandlersToBaseExecutionHandlers(execHandlers []data.ExecutionResultHandler) []data.BaseExecutionResultHandler {
+	baseExecHandlers := make([]data.BaseExecutionResultHandler, len(execHandlers))
+	for i, execHandler := range execHandlers {
+		baseExecHandlers[i] = execHandler
+	}
+
+	return baseExecHandlers
+}
+
+func (ert *executionResultsTracker) cleanConfirmedExecutionResults(headerExecutionResults []data.BaseExecutionResultHandler) (*CleanInfo, error) {
 	if len(headerExecutionResults) == 0 {
 		return &CleanInfo{
 			CleanResult:             CleanResultOK,
@@ -228,7 +238,7 @@ func (ert *executionResultsTracker) cleanConfirmedExecutionResults(headerExecuti
 	}, nil
 }
 
-func (ert *executionResultsTracker) cleanExecutionResults(executionResult []data.ExecutionResultHandler) {
+func (ert *executionResultsTracker) cleanExecutionResults(executionResult []data.BaseExecutionResultHandler) {
 	for _, result := range executionResult {
 		delete(ert.executionResultsByHash, string(result.GetHeaderHash()))
 		ert.nonceHash.removeByNonce(result.GetHeaderNonce())
