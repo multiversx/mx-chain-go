@@ -58,18 +58,18 @@ func (virtualSession *virtualSelectionSession) getNonceForAccountRecord(accountR
 }
 
 func (virtualSession *virtualSelectionSession) accumulateConsumedBalance(tx *WrappedTransaction, senderRecord *virtualAccountRecord) error {
-	var feePayerRecord *virtualAccountRecord
-	feePayer := tx.FeePayer
-
 	transferredValue := tx.TransferredValue
 	if transferredValue != nil {
 		senderRecord.accumulateConsumedBalance(transferredValue)
 	}
 
+	var feePayerRecord *virtualAccountRecord
+
 	// check if there's a need to search for another record
 	if tx.isFeePayerSameAsSender() {
 		feePayerRecord = senderRecord
 	} else {
+		feePayer := tx.FeePayer
 		record, err := virtualSession.getRecord(feePayer)
 		if err != nil {
 			log.Warn("accumulateConsumedBalance.getRecord feePayer",
