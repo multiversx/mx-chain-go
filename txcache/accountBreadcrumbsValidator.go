@@ -124,6 +124,6 @@ func (validator *breadcrumbsValidator) validateBalance(
 		validator.virtualBalancesByAddress[address] = balance
 	}
 
-	virtualBalance.accumulateConsumedBalance(breadcrumb)
+	virtualBalance.accumulateConsumedBalance(breadcrumb.consumedBalance)
 	return virtualBalance.validateBalance()
 }

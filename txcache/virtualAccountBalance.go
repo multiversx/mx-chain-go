@@ -26,8 +26,8 @@ func newVirtualAccountBalance(initialBalance *big.Int) (*virtualAccountBalance, 
 // accumulateConsumedBalance is used in two places:
 // accumulating for the validation of a proposed block
 // accumulating for a virtual record
-func (virtualBalance *virtualAccountBalance) accumulateConsumedBalance(breadcrumb *accountBreadcrumb) {
-	_ = virtualBalance.consumedBalance.Add(virtualBalance.consumedBalance, breadcrumb.consumedBalance)
+func (virtualBalance *virtualAccountBalance) accumulateConsumedBalance(consumedBalance *big.Int) {
+	_ = virtualBalance.consumedBalance.Add(virtualBalance.consumedBalance, consumedBalance)
 }
 
 // validateBalance is used in ONLY one place: the validation of a proposed block
