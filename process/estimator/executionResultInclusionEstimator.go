@@ -31,24 +31,22 @@ type LastExecutionResultForInclusion struct {
 // node. It determines, at proposal‑time and at validation‑time, whether one or more pending execution results can be
 // safely embedded in the block that is being produced / verified.
 type ExecutionResultInclusionEstimator struct {
-	cfg           config.ExecutionResultInclusionEstimatorConfig // immutable after construction
-	tGas          uint64                                         // time per gas unit on minimum‑spec hardware - 1 ns per gas unit
-	genesisTimeMs uint64                                         // required if lastNotarised == nil
-	roundHandler  RoundHandler
+	cfg          config.ExecutionResultInclusionEstimatorConfig // immutable after construction
+	tGas         uint64                                         // time per gas unit on minimum‑spec hardware - 1 ns per gas unit
+	roundHandler RoundHandler
 	// TODO add also max estimated block gas capacity - used gas must be lower than this
 }
 
 // NewExecutionResultInclusionEstimator returns a new instance of EIE
-func NewExecutionResultInclusionEstimator(cfg config.ExecutionResultInclusionEstimatorConfig, genesisTimeMs uint64, roundHandler RoundHandler) *ExecutionResultInclusionEstimator {
+func NewExecutionResultInclusionEstimator(cfg config.ExecutionResultInclusionEstimatorConfig, roundHandler RoundHandler) *ExecutionResultInclusionEstimator {
 	if check.IfNil(roundHandler) {
 		log.Error("NewExecutionResultInclusionEstimator: nil roundHandler")
 		return nil
 	}
 	return &ExecutionResultInclusionEstimator{
-		cfg:           cfg,
-		tGas:          tGas,
-		genesisTimeMs: genesisTimeMs,
-		roundHandler:  roundHandler,
+		cfg:          cfg,
+		tGas:         tGas,
+		roundHandler: roundHandler,
 	}
 }
 
@@ -64,15 +62,16 @@ func (erie *ExecutionResultInclusionEstimator) Decide(
 	if len(pending) == 0 {
 		return allowed
 	}
-	var previousExecutionResultMeta data.ExecutionResultHandler
-	var tBase uint64
-	// lastNotarised is nil if genesis.
+
+	var roundForTBaseCalculation uint64
 	if lastNotarised == nil {
-		tBase = convertMsToNs(erie.genesisTimeMs)
+		roundForTBaseCalculation = 0
 	} else {
-		LastNotarizedTimestampMs := erie.roundHandler.GetTimeStampForRound(lastNotarised.NotarizedInRound)
-		tBase = convertMsToNs(LastNotarizedTimestampMs)
+		roundForTBaseCalculation = lastNotarised.NotarizedInRound
 	}
+	var previousExecutionResultMeta data.ExecutionResultHandler
+
+	tBase := convertMsToNs(erie.roundHandler.GetTimeStampForRound(roundForTBaseCalculation))
 
 	currentHdrTsNs := convertMsToNs(currentHdrTsMs)
 
@@ -167,29 +166,31 @@ func (erie *ExecutionResultInclusionEstimator) checkSanity(
 		)
 		return false
 	}
-	// Check for monotonicity in time
-	if previousExecutionResult != nil && currentExecutionResultForProposalTimestamp < erie.roundHandler.GetTimeStampForRound(previousExecutionResult.GetHeaderRound()) {
-		log.Debug("ExecutionResultInclusionEstimator: non-monotonic HeaderTimeMs detected",
+	// Check for monotonicity of rounds
+	if previousExecutionResult != nil && currentExecutionResult.GetHeaderRound() < previousExecutionResult.GetHeaderRound() {
+		log.Debug("ExecutionResultInclusionEstimator: non-monotonic rounds detected",
 			"currentHeaderTimeMs", currentExecutionResultForProposalTimestamp,
 			"previousHeaderTimeMs", erie.roundHandler.GetTimeStampForRound(previousExecutionResult.GetHeaderRound()),
 		)
 		return false
 	}
 	// Check for time before genesis time
-	if currentExecutionResultForProposalTimestamp < erie.genesisTimeMs {
+	genesisTimeMs := erie.roundHandler.GetTimeStampForRound(0)
+
+	if currentExecutionResultForProposalTimestamp < genesisTimeMs {
 		log.Debug("ExecutionResultInclusionEstimator: HeaderTimeMs before genesis detected",
 			"headerNonce", currentExecutionResult.GetHeaderNonce(),
 			"headerTimeMs", currentExecutionResultForProposalTimestamp,
-			"genesisTimeMs", erie.genesisTimeMs,
+			"genesisTimeMs", genesisTimeMs,
 		)
 		return false
 	}
-	// Check for time before last notarised
-	if lastNotarised != nil && currentExecutionResultForProposalTimestamp < erie.roundHandler.GetTimeStampForRound(lastNotarised.ProposedInRound) {
+	// Check for round before last notarised
+	if lastNotarised != nil && currentExecutionResult.GetHeaderRound() < lastNotarised.NotarizedInRound {
 		log.Debug("ExecutionResultInclusionEstimator: HeaderTimeMs before last notarised detected",
 			"headerNonce", currentExecutionResult.GetHeaderNonce(),
 			"headerTimeMs", currentExecutionResultForProposalTimestamp,
-			"lastNotarisedTimeMs", erie.roundHandler.GetTimeStampForRound(lastNotarised.ProposedInRound),
+			"lastNotarisedTimeMs", erie.roundHandler.GetTimeStampForRound(lastNotarised.NotarizedInRound),
 		)
 		return false
 	}

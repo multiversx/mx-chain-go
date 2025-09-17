@@ -170,7 +170,6 @@ func NewBaseProcessor(arguments ArgBaseProcessor) (*baseProcessor, error) {
 
 	inclusionEstimator := estimator.NewExecutionResultInclusionEstimator(
 		arguments.Config.ExecutionResultInclusionEstimator,
-		0, // TODO: take this from arguments.CoreComponents - make sure it is in milliseconds
 		arguments.CoreComponents.RoundHandler(),
 	)
 

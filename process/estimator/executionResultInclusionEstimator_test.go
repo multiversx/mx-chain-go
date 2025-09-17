@@ -7,6 +7,7 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
+	logger "github.com/multiversx/mx-chain-logger-go"
 	"github.com/stretchr/testify/require"
 
 	"github.com/multiversx/mx-chain-go/config"
@@ -34,14 +35,14 @@ func TestEstimatorCreation(t *testing.T) {
 	t.Run("Default config", func(t *testing.T) {
 		t.Parallel()
 		cfg := config.ExecutionResultInclusionEstimatorConfig{}
-		erie := NewExecutionResultInclusionEstimator(cfg, genesisTimeStampMs, roundHandler)
+		erie := NewExecutionResultInclusionEstimator(cfg, roundHandler)
 		require.NotNil(t, erie, "NewExecutionResultInclusionEstimator should not return nil")
 	})
 
 	t.Run("Custom config", func(t *testing.T) {
 		t.Parallel()
 		cfg := config.ExecutionResultInclusionEstimatorConfig{SafetyMargin: 120, MaxResultsPerBlock: 10}
-		erie := NewExecutionResultInclusionEstimator(cfg, genesisTimeStampMs, roundHandler)
+		erie := NewExecutionResultInclusionEstimator(cfg, roundHandler)
 		require.NotNil(t, erie, "NewExecutionResultInclusionEstimator should not return nil")
 	})
 }
@@ -60,7 +61,7 @@ func TestDecide(t *testing.T) {
 	t.Run("Empty pending", func(t *testing.T) {
 		t.Parallel()
 		cfg := config.ExecutionResultInclusionEstimatorConfig{SafetyMargin: 110}
-		erie := NewExecutionResultInclusionEstimator(cfg, genesisTimeStampMs, roundHandler)
+		erie := NewExecutionResultInclusionEstimator(cfg, roundHandler)
 		lastNotarised := &LastExecutionResultForInclusion{
 			NotarizedInRound: 1,
 			ProposedInRound:  0,
@@ -75,7 +76,7 @@ func TestDecide(t *testing.T) {
 	t.Run("Accept all items", func(t *testing.T) {
 		t.Parallel()
 		cfg := config.ExecutionResultInclusionEstimatorConfig{SafetyMargin: 110, MaxResultsPerBlock: 0}
-		erie := NewExecutionResultInclusionEstimator(cfg, genesisTimeStampMs, roundHandler)
+		erie := NewExecutionResultInclusionEstimator(cfg, roundHandler)
 		lastNotarised := &LastExecutionResultForInclusion{
 			NotarizedInRound: 1,
 			ProposedInRound:  0,
@@ -97,7 +98,7 @@ func TestDecide(t *testing.T) {
 	t.Run("Reject second item", func(t *testing.T) {
 		t.Parallel()
 		cfg := config.ExecutionResultInclusionEstimatorConfig{SafetyMargin: 110}
-		erie := NewExecutionResultInclusionEstimator(cfg, genesisTimeStampMs, roundHandler)
+		erie := NewExecutionResultInclusionEstimator(cfg, roundHandler)
 		lastNotarised := &LastExecutionResultForInclusion{
 			NotarizedInRound: 1,
 			ProposedInRound:  0,
@@ -118,7 +119,7 @@ func TestDecide(t *testing.T) {
 	t.Run("Allow only up to boundary (t_done == t_now)", func(t *testing.T) {
 		t.Parallel()
 		cfg := config.ExecutionResultInclusionEstimatorConfig{SafetyMargin: 110}
-		erie := NewExecutionResultInclusionEstimator(cfg, genesisTimeStampMs, roundHandler)
+		erie := NewExecutionResultInclusionEstimator(cfg, roundHandler)
 		lastNotarised := &LastExecutionResultForInclusion{
 			NotarizedInRound: 1,
 			ProposedInRound:  0,
@@ -138,7 +139,7 @@ func TestDecide(t *testing.T) {
 	t.Run("Hit MaxResultsPerBlock cap", func(t *testing.T) {
 		t.Parallel()
 		cfg := config.ExecutionResultInclusionEstimatorConfig{SafetyMargin: 110, MaxResultsPerBlock: 1}
-		erie := NewExecutionResultInclusionEstimator(cfg, 500, roundHandler)
+		erie := NewExecutionResultInclusionEstimator(cfg, roundHandler)
 		lastNotarised := &LastExecutionResultForInclusion{
 			NotarizedInRound: 1,
 			ProposedInRound:  0,
@@ -164,7 +165,7 @@ func TestDecide(t *testing.T) {
 			},
 		}
 		cfg := config.ExecutionResultInclusionEstimatorConfig{SafetyMargin: 110}
-		erie := NewExecutionResultInclusionEstimator(cfg, genesisTimeStampMs, roundHandler)
+		erie := NewExecutionResultInclusionEstimator(cfg, roundHandler)
 		var lastNotarised *LastExecutionResultForInclusion = nil
 		pending := []data.ExecutionResultHandler{
 			&block.ExecutionResult{BaseExecutionResult: &block.BaseExecutionResult{HeaderNonce: 1, HeaderRound: 1, GasUsed: 100}}, // after genesis
@@ -179,7 +180,7 @@ func TestDecide(t *testing.T) {
 	t.Run("Overflow protection", func(t *testing.T) {
 		t.Parallel()
 		cfg := config.ExecutionResultInclusionEstimatorConfig{SafetyMargin: 110, MaxResultsPerBlock: 10}
-		erie := NewExecutionResultInclusionEstimator(cfg, genesisTimeStampMs, roundHandler)
+		erie := NewExecutionResultInclusionEstimator(cfg, roundHandler)
 		lastNotarised := &LastExecutionResultForInclusion{
 			NotarizedInRound: 1,
 			ProposedInRound:  0,
@@ -210,7 +211,7 @@ func TestOverflowProtection(t *testing.T) {
 			SafetyMargin:       110,
 			MaxResultsPerBlock: 0,
 		}
-		erie := NewExecutionResultInclusionEstimator(cfg, 0, roundHandler)
+		erie := NewExecutionResultInclusionEstimator(cfg, roundHandler)
 
 		pending := []data.ExecutionResultHandler{
 			&block.ExecutionResult{BaseExecutionResult: &block.BaseExecutionResult{HeaderNonce: 1, HeaderRound: 1, GasUsed: 1000}},
@@ -227,6 +228,7 @@ func TestOverflowProtection(t *testing.T) {
 
 func TestDecide_EdgeCases(t *testing.T) {
 	t.Parallel()
+	_ = logger.SetLogLevel("*:DEBUG")
 
 	genesisTimeStampMs := uint64(1000)
 	roundTime := uint64(1000)
@@ -239,12 +241,12 @@ func TestDecide_EdgeCases(t *testing.T) {
 		SafetyMargin:       10,
 		MaxResultsPerBlock: 10,
 	}
-	erie := NewExecutionResultInclusionEstimator(cfg, genesisTimeStampMs, roundHandler)
+	erie := NewExecutionResultInclusionEstimator(cfg, roundHandler)
 	roundNow := uint64(3)
 	now := genesisTimeStampMs + roundNow*roundTime
 
 	t.Run("zero GasUsed", func(t *testing.T) {
-		t.Parallel()
+		//t.Parallel()
 		pending := []data.ExecutionResultHandler{
 			&block.ExecutionResult{BaseExecutionResult: &block.BaseExecutionResult{HeaderNonce: 1, HeaderRound: 1, GasUsed: 0}},
 			&block.ExecutionResult{BaseExecutionResult: &block.BaseExecutionResult{HeaderNonce: 2, HeaderRound: 2, GasUsed: 0}},
@@ -258,22 +260,22 @@ func TestDecide_EdgeCases(t *testing.T) {
 	})
 
 	t.Run("HeaderTime on genesis time", func(t *testing.T) {
-		t.Parallel()
-		genesisTimeStampMs := uint64(1_700_000_000_000)
+		//t.Parallel()
+
 		cfg := config.ExecutionResultInclusionEstimatorConfig{SafetyMargin: 110}
-		erie := NewExecutionResultInclusionEstimator(cfg, genesisTimeStampMs, roundHandler)
+		erie := NewExecutionResultInclusionEstimator(cfg, roundHandler)
+
 		pending := []data.ExecutionResultHandler{
 			&block.ExecutionResult{BaseExecutionResult: &block.BaseExecutionResult{HeaderNonce: 1, HeaderRound: 0, GasUsed: 100}},
 		}
-		got := erie.Decide(nil, pending, erie.genesisTimeMs+roundTime)
-		require.Equal(t, 0, got)
+		got := erie.Decide(nil, pending, genesisTimeStampMs+roundTime)
+		require.Equal(t, 1, got)
 	})
 
 	t.Run("HeaderRound before last notarised", func(t *testing.T) {
-		t.Parallel()
-		genesisTimeStampMs := uint64(1_700_000_000_000)
+		//t.Parallel()
 		cfg := config.ExecutionResultInclusionEstimatorConfig{SafetyMargin: 110}
-		erie := NewExecutionResultInclusionEstimator(cfg, genesisTimeStampMs, roundHandler)
+		erie := NewExecutionResultInclusionEstimator(cfg, roundHandler)
 		lastNotarised := &LastExecutionResultForInclusion{
 			NotarizedInRound: 2,
 			ProposedInRound:  0,
@@ -286,7 +288,7 @@ func TestDecide_EdgeCases(t *testing.T) {
 	})
 
 	t.Run("second execution result HeaderTimeMs after current", func(t *testing.T) {
-		t.Parallel()
+		//t.Parallel()
 		pending := []data.ExecutionResultHandler{
 			&block.ExecutionResult{BaseExecutionResult: &block.BaseExecutionResult{HeaderNonce: 1, HeaderRound: 1, GasUsed: 100}},
 			&block.ExecutionResult{BaseExecutionResult: &block.BaseExecutionResult{HeaderNonce: 2, HeaderRound: roundNow + 1, GasUsed: 200}},
@@ -296,7 +298,7 @@ func TestDecide_EdgeCases(t *testing.T) {
 	})
 
 	t.Run("all results after t_now", func(t *testing.T) {
-		t.Parallel()
+		//t.Parallel()
 		pending := []data.ExecutionResultHandler{
 			&block.ExecutionResult{BaseExecutionResult: &block.BaseExecutionResult{HeaderNonce: 1, HeaderRound: roundNow + 1, GasUsed: 10_000}},
 			&block.ExecutionResult{BaseExecutionResult: &block.BaseExecutionResult{HeaderNonce: 2, HeaderRound: roundNow + 2, GasUsed: 10_000}},
@@ -306,7 +308,7 @@ func TestDecide_EdgeCases(t *testing.T) {
 	})
 
 	t.Run("non-monotonic in time", func(t *testing.T) {
-		t.Parallel()
+		//t.Parallel()
 		pending := []data.ExecutionResultHandler{
 			&block.ExecutionResult{BaseExecutionResult: &block.BaseExecutionResult{HeaderNonce: 1, HeaderRound: 2, GasUsed: 50}},
 			&block.ExecutionResult{BaseExecutionResult: &block.BaseExecutionResult{HeaderNonce: 2, HeaderRound: 1, GasUsed: 20}},
@@ -317,7 +319,7 @@ func TestDecide_EdgeCases(t *testing.T) {
 	})
 
 	t.Run("non-monotonic in nonce", func(t *testing.T) {
-		t.Parallel()
+		//t.Parallel()
 		pending := []data.ExecutionResultHandler{
 			&block.ExecutionResult{BaseExecutionResult: &block.BaseExecutionResult{HeaderNonce: 1, HeaderRound: 1, GasUsed: 50}},
 			&block.ExecutionResult{BaseExecutionResult: &block.BaseExecutionResult{HeaderNonce: 2, HeaderRound: 2, GasUsed: 20}},
@@ -342,7 +344,7 @@ func BenchmarkDecideScaling_10(b *testing.B) {
 			return round * 1000
 		},
 	}
-	erie := NewExecutionResultInclusionEstimator(cfg, 0, roundHandler)
+	erie := NewExecutionResultInclusionEstimator(cfg, roundHandler)
 	last := &LastExecutionResultForInclusion{
 		NotarizedInRound: 0,
 		ProposedInRound:  0,
