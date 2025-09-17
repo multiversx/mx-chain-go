@@ -284,6 +284,7 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 		pcf.coreData.InternalMarshalizer(),
 		pcf.data.StorageService(),
 		pcf.coreData.EnableRoundsHandler(),
+		pcf.coreData.CommonConfigsHandler(),
 	)
 	if err != nil {
 		return nil, err
@@ -850,22 +851,22 @@ func (pcf *processComponentsFactory) newEpochStartTrigger(requestHandler epochSt
 		}
 
 		argEpochStart := &shardchain.ArgsShardEpochStartTrigger{
-			Marshalizer:                   pcf.coreData.InternalMarshalizer(),
-			Hasher:                        pcf.coreData.Hasher(),
-			HeaderValidator:               headerValidator,
-			Uint64Converter:               pcf.coreData.Uint64ByteSliceConverter(),
-			DataPool:                      pcf.data.Datapool(),
-			Storage:                       pcf.data.StorageService(),
-			RequestHandler:                requestHandler,
-			Epoch:                         pcf.bootstrapComponents.EpochBootstrapParams().Epoch(),
-			EpochStartNotifier:            pcf.coreData.EpochStartNotifierWithConfirm(),
-			Validity:                      process.MetaBlockValidity,
-			Finality:                      process.BlockFinality,
-			PeerMiniBlocksSyncer:          peerMiniBlockSyncer,
-			RoundHandler:                  pcf.coreData.RoundHandler(),
-			AppStatusHandler:              pcf.statusCoreComponents.AppStatusHandler(),
-			EnableEpochsHandler:           pcf.coreData.EnableEpochsHandler(),
-			ExtraDelayForRequestBlockInfo: time.Duration(pcf.config.EpochStartConfig.ExtraDelayForRequestBlockInfoInMilliseconds) * time.Millisecond,
+			Marshalizer:          pcf.coreData.InternalMarshalizer(),
+			Hasher:               pcf.coreData.Hasher(),
+			HeaderValidator:      headerValidator,
+			Uint64Converter:      pcf.coreData.Uint64ByteSliceConverter(),
+			DataPool:             pcf.data.Datapool(),
+			Storage:              pcf.data.StorageService(),
+			RequestHandler:       requestHandler,
+			Epoch:                pcf.bootstrapComponents.EpochBootstrapParams().Epoch(),
+			EpochStartNotifier:   pcf.coreData.EpochStartNotifierWithConfirm(),
+			Validity:             process.MetaBlockValidity,
+			Finality:             process.BlockFinality,
+			PeerMiniBlocksSyncer: peerMiniBlockSyncer,
+			RoundHandler:         pcf.coreData.RoundHandler(),
+			AppStatusHandler:     pcf.statusCoreComponents.AppStatusHandler(),
+			EnableEpochsHandler:  pcf.coreData.EnableEpochsHandler(),
+			CommonConfigsHandler: pcf.coreData.CommonConfigsHandler(),
 		}
 		return shardchain.NewEpochStartTrigger(argEpochStart)
 	}
@@ -1373,6 +1374,7 @@ func (pcf *processComponentsFactory) newBlockTracker(
 		ProofsPool:                    pcf.data.Datapool().Proofs(),
 		IsImportDBMode:                pcf.importDBConfig.IsImportDBMode,
 		EpochChangeGracePeriodHandler: pcf.coreData.EpochChangeGracePeriodHandler(),
+		ProcessConfigsHandler:         pcf.coreData.ProcessConfigsHandler(),
 	}
 
 	if shardCoordinator.SelfId() < shardCoordinator.NumberOfShards() {
@@ -1816,6 +1818,7 @@ func (pcf *processComponentsFactory) newForkDetector(
 			pcf.coreData.EnableRoundsHandler(),
 			pcf.data.Datapool().Proofs(),
 			pcf.coreData.ChainParametersHandler(),
+			pcf.coreData.ProcessConfigsHandler(),
 		)
 	}
 	if shardCoordinator.SelfId() == core.MetachainShardId {
@@ -1829,6 +1832,7 @@ func (pcf *processComponentsFactory) newForkDetector(
 			pcf.coreData.EnableRoundsHandler(),
 			pcf.data.Datapool().Proofs(),
 			pcf.coreData.ChainParametersHandler(),
+			pcf.coreData.ProcessConfigsHandler(),
 		)
 	}
 

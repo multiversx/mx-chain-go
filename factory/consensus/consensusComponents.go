@@ -362,6 +362,7 @@ func (ccf *consensusComponentsFactory) createChronology() (consensus.ChronologyH
 		AppStatusHandler:    ccf.statusCoreComponents.AppStatusHandler(),
 		EnableEpochsHandler: ccf.coreComponents.EnableEpochsHandler(),
 		EnableRoundsHandler: ccf.coreComponents.EnableRoundsHandler(),
+		ConfigsHandler:      ccf.coreComponents.CommonConfigsHandler(),
 	}
 	return chronology.NewChronology(chronologyArg)
 }
@@ -516,6 +517,7 @@ func (ccf *consensusComponentsFactory) createShardBootstrapper() (process.Bootst
 		RepopulateTokensSupplies:     ccf.flagsConfig.RepopulateTokensSupplies,
 		EnableEpochsHandler:          ccf.coreComponents.EnableEpochsHandler(),
 		EnableRoundsHandler:          ccf.coreComponents.EnableRoundsHandler(),
+		ProcessConfigsHandler:        ccf.coreComponents.ProcessConfigsHandler(),
 	}
 
 	argsShardBootstrapper := sync.ArgShardBootstrapper{
@@ -649,6 +651,7 @@ func (ccf *consensusComponentsFactory) createMetaChainBootstrapper() (process.Bo
 		RepopulateTokensSupplies:     ccf.flagsConfig.RepopulateTokensSupplies,
 		EnableEpochsHandler:          ccf.coreComponents.EnableEpochsHandler(),
 		EnableRoundsHandler:          ccf.coreComponents.EnableRoundsHandler(),
+		ProcessConfigsHandler:        ccf.coreComponents.ProcessConfigsHandler(),
 	}
 
 	argsMetaBootstrapper := sync.ArgMetaBootstrapper{

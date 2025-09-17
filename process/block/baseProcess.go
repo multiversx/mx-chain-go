@@ -116,6 +116,7 @@ type baseProcessor struct {
 	gasConsumedProvider           gasConsumedProvider
 	economicsData                 process.EconomicsDataHandler
 	epochChangeGracePeriodHandler common.EpochChangeGracePeriodHandler
+	processConfigsHandler         common.ProcessConfigsHandler
 
 	processDataTriesOnCommitEpoch bool
 	lastRestartNonce              uint64
@@ -2407,9 +2408,6 @@ func (bp *baseProcessor) checkReceivedProofIfAttestingIsNeeded(proof data.Header
 }
 
 func (bp *baseProcessor) getMaxRoundsWithoutBlockReceived(round uint64) uint64 {
-	if bp.enableRoundsHandler.IsFlagEnabledInRound(common.SupernovaRoundFlag, round) {
-		return process.SupernovaMaxRoundsWithoutNewBlockReceived
-	}
-
-	return process.MaxRoundsWithoutNewBlockReceived
+	maxRoundsWithoutNewBlockReceived := bp.processConfigsHandler.GetMaxRoundsWithoutNewBlockReceivedByRound(round)
+	return uint64(maxRoundsWithoutNewBlockReceived)
 }

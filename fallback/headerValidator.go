@@ -13,9 +13,6 @@ import (
 	"github.com/multiversx/mx-chain-go/process"
 )
 
-// TODO: move constant to config
-const SupernovaMaxRoundsWithoutCommittedStartInEpochBlock = 500
-
 var log = logger.GetOrCreate("fallback")
 
 type fallbackHeaderValidator struct {
@@ -23,6 +20,7 @@ type fallbackHeaderValidator struct {
 	marshalizer         marshal.Marshalizer
 	storageService      dataRetriever.StorageService
 	enableRoundsHandler common.EnableRoundsHandler
+	configsByRound      common.CommonConfigsHandler
 }
 
 // NewFallbackHeaderValidator creates a new fallbackHeaderValidator object
@@ -31,6 +29,7 @@ func NewFallbackHeaderValidator(
 	marshalizer marshal.Marshalizer,
 	storageService dataRetriever.StorageService,
 	enableRoundsHandler common.EnableRoundsHandler,
+	configsByRound common.CommonConfigsHandler,
 ) (*fallbackHeaderValidator, error) {
 
 	if check.IfNil(headersPool) {
@@ -45,12 +44,16 @@ func NewFallbackHeaderValidator(
 	if check.IfNil(enableRoundsHandler) {
 		return nil, errors.ErrNilEnableRoundsHandler
 	}
+	if check.IfNil(configsByRound) {
+		return nil, common.ErrNilCommonConfigsHandler
+	}
 
 	hv := &fallbackHeaderValidator{
 		headersPool:         headersPool,
 		marshalizer:         marshalizer,
 		storageService:      storageService,
 		enableRoundsHandler: enableRoundsHandler,
+		configsByRound:      configsByRound,
 	}
 
 	return hv, nil
@@ -76,11 +79,7 @@ func (fhv *fallbackHeaderValidator) ShouldApplyFallbackValidationForHeaderWith(s
 }
 
 func (fhv *fallbackHeaderValidator) getMaxRoundsWithoutCommittedStartInEpochBlock(round uint64) int64 {
-	if fhv.enableRoundsHandler.IsFlagEnabledInRound(common.SupernovaRoundFlag, round) {
-		return SupernovaMaxRoundsWithoutCommittedStartInEpochBlock
-	}
-
-	return common.MaxRoundsWithoutCommittedStartInEpochBlock
+	return int64(fhv.configsByRound.GetMaxRoundsWithoutCommittedStartInEpochBlockInRound(round))
 }
 
 // ShouldApplyFallbackValidation returns if for the given header could be applied fallback validation or not

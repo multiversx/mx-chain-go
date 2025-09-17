@@ -61,6 +61,8 @@ type CoreComponentsHolderStub struct {
 	ChainParametersHandlerCalled        func() process.ChainParametersHandler
 	FieldsSizeCheckerCalled             func() common.FieldsSizeChecker
 	EpochChangeGracePeriodHandlerCalled func() common.EpochChangeGracePeriodHandler
+	ProcessConfigsHandlerCalled         func() common.ProcessConfigsHandler
+	CommonConfigsHandlerCalled          func() common.CommonConfigsHandler
 }
 
 // NewCoreComponentsHolderStubFromRealComponent -
@@ -105,6 +107,8 @@ func NewCoreComponentsHolderStubFromRealComponent(coreComponents factory.CoreCom
 		ChainParametersSubscriberCalled:     coreComponents.ChainParametersSubscriber,
 		FieldsSizeCheckerCalled:             coreComponents.FieldsSizeChecker,
 		EpochChangeGracePeriodHandlerCalled: coreComponents.EpochChangeGracePeriodHandler,
+		ProcessConfigsHandlerCalled:         coreComponents.ProcessConfigsHandler,
+		CommonConfigsHandlerCalled:          coreComponents.CommonConfigsHandler,
 	}
 }
 
@@ -424,6 +428,22 @@ func (stub *CoreComponentsHolderStub) FieldsSizeChecker() common.FieldsSizeCheck
 func (stub *CoreComponentsHolderStub) EpochChangeGracePeriodHandler() common.EpochChangeGracePeriodHandler {
 	if stub.EpochChangeGracePeriodHandlerCalled != nil {
 		return stub.EpochChangeGracePeriodHandlerCalled()
+	}
+	return nil
+}
+
+// ProcessConfigsHandler -
+func (stub *CoreComponentsHolderStub) ProcessConfigsHandler() common.ProcessConfigsHandler {
+	if stub.ProcessConfigsHandlerCalled != nil {
+		return stub.ProcessConfigsHandlerCalled()
+	}
+	return nil
+}
+
+// CommonConfigsHandler -
+func (stub *CoreComponentsHolderStub) CommonConfigsHandler() common.CommonConfigsHandler {
+	if stub.CommonConfigsHandlerCalled != nil {
+		return stub.CommonConfigsHandlerCalled()
 	}
 	return nil
 }

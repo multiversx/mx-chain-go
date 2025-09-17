@@ -30,6 +30,7 @@ func NewMetaForkDetector(
 	enableRoundsHandler common.EnableRoundsHandler,
 	proofsPool process.ProofsPool,
 	chainParametersHandler common.ChainParametersHandler,
+	processConfigsHandler common.ProcessConfigsHandler,
 ) (*metaForkDetector, error) {
 	if check.IfNil(roundHandler) {
 		return nil, process.ErrNilRoundHandler
@@ -52,6 +53,9 @@ func NewMetaForkDetector(
 	if check.IfNil(chainParametersHandler) {
 		return nil, process.ErrNilChainParametersHandler
 	}
+	if check.IfNil(processConfigsHandler) {
+		return nil, process.ErrNilProcessConfigsHandler
+	}
 
 	genesisHdr, _, err := blockTracker.GetSelfNotarizedHeader(core.MetachainShardId, 0)
 	if err != nil {
@@ -71,6 +75,7 @@ func NewMetaForkDetector(
 		enableRoundsHandler:    enableRoundsHandler,
 		proofsPool:             proofsPool,
 		chainParametersHandler: chainParametersHandler,
+		processConfigsHandler:  processConfigsHandler,
 	}
 
 	bfd.headers = make(map[uint64][]*headerInfo)

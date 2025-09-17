@@ -35,6 +35,7 @@ func TestNewMetaForkDetector_NilRoundHandlerShouldErr(t *testing.T) {
 		&testscommon.EnableRoundsHandlerStub{},
 		&dataRetriever.ProofsPoolMock{},
 		&chainParameters.ChainParametersHandlerStub{},
+		testscommon.GetDefaultProcessConfigsHandler(),
 	)
 	assert.True(t, check.IfNil(sfd))
 	assert.Equal(t, process.ErrNilRoundHandler, err)
@@ -53,6 +54,7 @@ func TestNewMetaForkDetector_NilBlackListShouldErr(t *testing.T) {
 		&testscommon.EnableRoundsHandlerStub{},
 		&dataRetriever.ProofsPoolMock{},
 		&chainParameters.ChainParametersHandlerStub{},
+		testscommon.GetDefaultProcessConfigsHandler(),
 	)
 	assert.True(t, check.IfNil(sfd))
 	assert.Equal(t, process.ErrNilBlackListCacher, err)
@@ -71,6 +73,7 @@ func TestNewMetaForkDetector_NilBlockTrackerShouldErr(t *testing.T) {
 		&testscommon.EnableRoundsHandlerStub{},
 		&dataRetriever.ProofsPoolMock{},
 		&chainParameters.ChainParametersHandlerStub{},
+		testscommon.GetDefaultProcessConfigsHandler(),
 	)
 	assert.True(t, check.IfNil(sfd))
 	assert.Equal(t, process.ErrNilBlockTracker, err)
@@ -89,6 +92,7 @@ func TestNewMetaForkDetector_NilEnableEpochsHandlerShouldErr(t *testing.T) {
 		&testscommon.EnableRoundsHandlerStub{},
 		&dataRetriever.ProofsPoolMock{},
 		&chainParameters.ChainParametersHandlerStub{},
+		testscommon.GetDefaultProcessConfigsHandler(),
 	)
 	assert.True(t, check.IfNil(sfd))
 	assert.Equal(t, process.ErrNilEnableEpochsHandler, err)
@@ -107,6 +111,7 @@ func TestNewMetaForkDetector_NilEnableRoundsHandlerShouldErr(t *testing.T) {
 		nil,
 		&dataRetriever.ProofsPoolMock{},
 		&chainParameters.ChainParametersHandlerStub{},
+		testscommon.GetDefaultProcessConfigsHandler(),
 	)
 	assert.True(t, check.IfNil(sfd))
 	assert.Equal(t, process.ErrNilEnableRoundsHandler, err)
@@ -125,6 +130,7 @@ func TestNewMetaForkDetector_NilProofsPoolShouldErr(t *testing.T) {
 		&testscommon.EnableRoundsHandlerStub{},
 		nil,
 		&chainParameters.ChainParametersHandlerStub{},
+		testscommon.GetDefaultProcessConfigsHandler(),
 	)
 	assert.True(t, check.IfNil(sfd))
 	assert.Equal(t, process.ErrNilProofsPool, err)
@@ -143,6 +149,7 @@ func TestNewMetaForkDetector_OkParamsShouldWork(t *testing.T) {
 		&testscommon.EnableRoundsHandlerStub{},
 		&dataRetriever.ProofsPoolMock{},
 		&chainParameters.ChainParametersHandlerStub{},
+		testscommon.GetDefaultProcessConfigsHandler(),
 	)
 	assert.Nil(t, err)
 	assert.False(t, check.IfNil(sfd))
@@ -167,6 +174,7 @@ func TestMetaForkDetector_AddHeaderNilHeaderShouldErr(t *testing.T) {
 		&testscommon.EnableRoundsHandlerStub{},
 		&dataRetriever.ProofsPoolMock{},
 		&chainParameters.ChainParametersHandlerStub{},
+		testscommon.GetDefaultProcessConfigsHandler(),
 	)
 	err := bfd.AddHeader(nil, make([]byte, 0), process.BHProcessed, nil, nil)
 	assert.Equal(t, sync.ErrNilHeader, err)
@@ -186,6 +194,7 @@ func TestMetaForkDetector_AddHeaderNilHashShouldErr(t *testing.T) {
 		&testscommon.EnableRoundsHandlerStub{},
 		&dataRetriever.ProofsPoolMock{},
 		&chainParameters.ChainParametersHandlerStub{},
+		testscommon.GetDefaultProcessConfigsHandler(),
 	)
 	err := bfd.AddHeader(&block.Header{}, nil, process.BHProcessed, nil, nil)
 	assert.Equal(t, sync.ErrNilHash, err)
@@ -207,6 +216,7 @@ func TestMetaForkDetector_AddHeaderNotPresentShouldWork(t *testing.T) {
 		&testscommon.EnableRoundsHandlerStub{},
 		&dataRetriever.ProofsPoolMock{},
 		&chainParameters.ChainParametersHandlerStub{},
+		testscommon.GetDefaultProcessConfigsHandler(),
 	)
 
 	err := bfd.AddHeader(hdr, hash, process.BHProcessed, nil, nil)
@@ -235,6 +245,7 @@ func TestMetaForkDetector_AddHeaderPresentShouldAppend(t *testing.T) {
 		&testscommon.EnableRoundsHandlerStub{},
 		&dataRetriever.ProofsPoolMock{},
 		&chainParameters.ChainParametersHandlerStub{},
+		testscommon.GetDefaultProcessConfigsHandler(),
 	)
 
 	_ = bfd.AddHeader(hdr1, hash1, process.BHProcessed, nil, nil)
@@ -263,6 +274,7 @@ func TestMetaForkDetector_AddHeaderWithProcessedBlockShouldSetCheckpoint(t *test
 		&testscommon.EnableRoundsHandlerStub{},
 		&dataRetriever.ProofsPoolMock{},
 		&chainParameters.ChainParametersHandlerStub{},
+		testscommon.GetDefaultProcessConfigsHandler(),
 	)
 	_ = bfd.AddHeader(hdr1, hash1, process.BHProcessed, nil, nil)
 	assert.Equal(t, hdr1.Nonce, bfd.LastCheckpointNonce())
@@ -292,6 +304,7 @@ func TestMetaForkDetector_AddHeaderWithProcessedBlockAndFlagShouldSetCheckpoint(
 			},
 		},
 		&chainParameters.ChainParametersHandlerStub{},
+		testscommon.GetDefaultProcessConfigsHandler(),
 	)
 	_ = bfd.AddHeader(hdr1, hash1, process.BHProcessed, nil, nil)
 	assert.Equal(t, hdr1.Nonce, bfd.FinalCheckpointNonce())
@@ -314,6 +327,7 @@ func TestMetaForkDetector_AddHeaderPresentShouldNotRewriteState(t *testing.T) {
 		&testscommon.EnableRoundsHandlerStub{},
 		&dataRetriever.ProofsPoolMock{},
 		&chainParameters.ChainParametersHandlerStub{},
+		testscommon.GetDefaultProcessConfigsHandler(),
 	)
 
 	_ = bfd.AddHeader(hdr1, hash, process.BHReceived, nil, nil)
@@ -341,6 +355,7 @@ func TestMetaForkDetector_AddHeaderHigherNonceThanRoundShouldErr(t *testing.T) {
 		&testscommon.EnableRoundsHandlerStub{},
 		&dataRetriever.ProofsPoolMock{},
 		&chainParameters.ChainParametersHandlerStub{},
+		testscommon.GetDefaultProcessConfigsHandler(),
 	)
 	err := bfd.AddHeader(
 		&block.Header{Nonce: 1, Round: 0, PubKeysBitmap: []byte("X")},
@@ -384,6 +399,7 @@ func TestMetaForkDetector_ComputeGenesisTimeFromHeader(t *testing.T) {
 					}, nil
 				},
 			},
+			testscommon.GetDefaultProcessConfigsHandler(),
 		)
 
 		hdr1 := &block.Header{Nonce: 1, Round: hdrRound, PubKeysBitmap: []byte("X"), TimeStamp: hdrTimeStamp}
@@ -418,6 +434,7 @@ func TestMetaForkDetector_ComputeGenesisTimeFromHeader(t *testing.T) {
 					return config.ChainParametersByEpochConfig{}, expErr
 				},
 			},
+			testscommon.GetDefaultProcessConfigsHandler(),
 		)
 
 		hdr1 := &block.Header{Nonce: 1, Round: hdrRound, PubKeysBitmap: []byte("X"), TimeStamp: hdrTimeStamp}
@@ -465,6 +482,7 @@ func TestMetaForkDetector_ComputeGenesisTimeFromHeader(t *testing.T) {
 					return config.ChainParametersByEpochConfig{}, errors.New("err")
 				},
 			},
+			testscommon.GetDefaultProcessConfigsHandler(),
 		)
 
 		hdr1 := &block.Header{
@@ -509,6 +527,7 @@ func TestMetaForkDetector_ComputeGenesisTimeFromHeader(t *testing.T) {
 					return config.ChainParametersByEpochConfig{}, expErr
 				},
 			},
+			testscommon.GetDefaultProcessConfigsHandler(),
 		)
 
 		hdr1 := &block.Header{Nonce: 1, Round: hdrRound, Epoch: 2, PubKeysBitmap: []byte("X"), TimeStamp: hdrTimeStamp}
@@ -557,6 +576,7 @@ func TestMetaForkDetector_ComputeGenesisTimeFromHeader(t *testing.T) {
 					}, nil
 				},
 			},
+			testscommon.GetDefaultProcessConfigsHandler(),
 		)
 
 		hdr1 := &block.Header{Nonce: 1, Round: hdrRound, PubKeysBitmap: []byte("X"), TimeStamp: hdrTimeStamp}

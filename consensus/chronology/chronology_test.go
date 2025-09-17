@@ -104,6 +104,17 @@ func TestChronology_NewChronologyNilEnableRoundsHandlerShouldFail(t *testing.T) 
 	assert.Equal(t, err, errors.ErrNilEnableRoundsHandler)
 }
 
+func TestChronology_NewChronologyNilConfigsHandlerShouldFail(t *testing.T) {
+	t.Parallel()
+
+	arg := getDefaultChronologyArg()
+	arg.ConfigsHandler = nil
+	chr, err := chronology.NewChronology(arg)
+
+	assert.Nil(t, chr)
+	assert.Equal(t, err, common.ErrNilCommonConfigsHandler)
+}
+
 func TestChronology_NewChronologyShouldWork(t *testing.T) {
 	t.Parallel()
 
@@ -352,6 +363,7 @@ func getDefaultChronologyArg() chronology.ArgChronology {
 		Watchdog:            &mock.WatchdogMock{},
 		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 		EnableRoundsHandler: &testscommon.EnableRoundsHandlerStub{},
+		ConfigsHandler:      testscommon.GetDefaultCommonConfigsHandler(),
 	}
 }
 

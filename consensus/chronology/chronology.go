@@ -26,9 +26,6 @@ var log = logger.GetOrCreate("consensus/chronology")
 // srBeforeStartRound defines the state which exist before the start of the round
 const srBeforeStartRound = -1
 
-// TODO: add variables to config
-const numRoundsToWaitBeforeSignalingChronologyStuck = 10
-const numRoundsToWaitBeforeSignalingChronologyStuckSupernova = 100
 const chronologyAlarmID = "chronology"
 
 // ArgChronology holds all dependencies required by the chronology component
@@ -40,6 +37,7 @@ type ArgChronology struct {
 	AppStatusHandler    core.AppStatusHandler
 	EnableEpochsHandler common.EnableEpochsHandler
 	EnableRoundsHandler common.EnableRoundsHandler
+	ConfigsHandler      common.CommonConfigsHandler
 }
 
 // chronology defines the data needed by the chronology
@@ -60,6 +58,7 @@ type chronology struct {
 	watchdog            core.WatchdogTimer
 	enableEpochsHandler common.EnableEpochsHandler
 	enableRoundsHandler common.EnableRoundsHandler
+	configsHandler      common.CommonConfigsHandler
 }
 
 // NewChronology creates a new chronology object
@@ -77,6 +76,7 @@ func NewChronology(arg ArgChronology) (*chronology, error) {
 		watchdog:            arg.Watchdog,
 		enableEpochsHandler: arg.EnableEpochsHandler,
 		enableRoundsHandler: arg.EnableRoundsHandler,
+		configsHandler:      arg.ConfigsHandler,
 	}
 
 	chr.subroundId = srBeforeStartRound
@@ -106,6 +106,9 @@ func checkNewChronologyParams(arg ArgChronology) error {
 	if check.IfNil(arg.EnableRoundsHandler) {
 		return errors.ErrNilEnableRoundsHandler
 	}
+	if check.IfNil(arg.ConfigsHandler) {
+		return common.ErrNilCommonConfigsHandler
+	}
 
 	return nil
 }
@@ -133,16 +136,18 @@ func (chr *chronology) RemoveAllSubrounds() {
 
 // StartRounds actually starts the chronology and calls the DoWork() method of the subroundHandlers loaded
 func (chr *chronology) StartRounds() {
-	watchdogAlarmDuration := chr.roundHandler.TimeDuration() * numRoundsToWaitBeforeSignalingChronologyStuck
-	if chr.enableEpochsHandler.IsFlagEnabled(common.SupernovaFlag) {
-		watchdogAlarmDuration = chr.roundHandler.TimeDuration() * numRoundsToWaitBeforeSignalingChronologyStuckSupernova
-	}
-
+	alarmDurationRounds := chr.getNumRoundsToWaitBeforeSignalingChronologyStuck()
+	watchdogAlarmDuration := chr.roundHandler.TimeDuration() * time.Duration(alarmDurationRounds)
 	chr.watchdog.SetDefault(watchdogAlarmDuration, chronologyAlarmID)
 
 	var ctx context.Context
 	ctx, chr.cancelFunc = context.WithCancel(context.Background())
 	go chr.startRounds(ctx)
+}
+
+func (chr *chronology) getNumRoundsToWaitBeforeSignalingChronologyStuck() uint32 {
+	supernovaActivationEpoch := chr.enableEpochsHandler.GetActivationEpoch(common.SupernovaFlag)
+	return chr.configsHandler.GetNumRoundsToWaitBeforeSignalingChronologyStuck(supernovaActivationEpoch)
 }
 
 func (chr *chronology) startRounds(ctx context.Context) {
