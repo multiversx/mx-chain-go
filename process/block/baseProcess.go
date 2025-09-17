@@ -968,8 +968,8 @@ func isPartiallyExecuted(
 	return processedMiniBlockInfo != nil && !processedMiniBlockInfo.FullyProcessed
 }
 
-// check if header has the same miniblocks as presented in body
-func (bp *baseProcessor) checkHeaderBodyCorrelation(miniBlockHeaders []data.MiniBlockHeaderHandler, body *block.Body) error {
+// check if header has the same miniBlocks as presented in body
+func (bp *baseProcessor) checkHeaderBodyCorrelationProposal(miniBlockHeaders []data.MiniBlockHeaderHandler, body *block.Body) error {
 	mbHashesFromHdr := make(map[string]data.MiniBlockHeaderHandler, len(miniBlockHeaders))
 	for i := 0; i < len(miniBlockHeaders); i++ {
 		mbHashesFromHdr[string(miniBlockHeaders[i].GetHash())] = miniBlockHeaders[i]
@@ -979,10 +979,16 @@ func (bp *baseProcessor) checkHeaderBodyCorrelation(miniBlockHeaders []data.Mini
 		return process.ErrHeaderBodyMismatch
 	}
 
+	var mbHdr data.MiniBlockHeaderHandler
+	var miniBlock *block.MiniBlock
 	for i := 0; i < len(body.MiniBlocks); i++ {
-		miniBlock := body.MiniBlocks[i]
+		miniBlock = body.MiniBlocks[i]
+		mbHdr = miniBlockHeaders[i]
 		if miniBlock == nil {
 			return process.ErrNilMiniBlock
+		}
+		if mbHdr == nil {
+			return process.ErrNilMiniBlockHeader
 		}
 
 		mbHash, err := core.CalculateHash(bp.marshalizer, bp.hasher, miniBlock)
@@ -990,28 +996,78 @@ func (bp *baseProcessor) checkHeaderBodyCorrelation(miniBlockHeaders []data.Mini
 			return err
 		}
 
-		mbHdr, ok := mbHashesFromHdr[string(mbHash)]
-		if !ok {
-			return process.ErrHeaderBodyMismatch
+		err = checkMiniBlockWithMiniBlockHeader(mbHash, miniBlockHeaders[i], miniBlock)
+		if err != nil {
+			return err
+		}
+	}
+
+	return bp.checkMiniBlocksConstructionProposal(miniBlockHeaders)
+}
+
+func (bp *baseProcessor) checkMiniBlocksConstructionProposal(miniBlockHeaders []data.MiniBlockHeaderHandler) error {
+	for i := 0; i < len(miniBlockHeaders); i++ {
+		// for Supernova all miniBlocks not part of an execution result need to have construction state Proposed
+		if miniBlockHeaders[i].GetConstructionState() != int32(block.Proposed) {
+			return process.ErrWrongMiniBlockConstructionState
+		}
+		if miniBlockHeaders[i].GetProcessingType() != int32(block.Normal) {
+			return process.ErrWrongMiniBlockProcessingType
+		}
+	}
+	return nil
+}
+
+func checkMiniBlockWithMiniBlockHeader(mbHash []byte, mbHdr data.MiniBlockHeaderHandler, miniBlock *block.MiniBlock) error {
+	if !bytes.Equal(mbHash, mbHdr.GetHash()) {
+		return process.ErrHeaderBodyMismatch
+	}
+
+	if mbHdr.GetTxCount() != uint32(len(miniBlock.TxHashes)) {
+		return process.ErrHeaderBodyMismatch
+	}
+
+	if mbHdr.GetReceiverShardID() != miniBlock.ReceiverShardID {
+		return process.ErrHeaderBodyMismatch
+	}
+
+	if mbHdr.GetSenderShardID() != miniBlock.SenderShardID {
+		return process.ErrHeaderBodyMismatch
+	}
+	return nil
+}
+
+// check if header has the same miniblocks as presented in body
+func (bp *baseProcessor) checkHeaderBodyCorrelation(miniBlockHeaders []data.MiniBlockHeaderHandler, body *block.Body) error {
+	if len(miniBlockHeaders) != len(body.MiniBlocks) {
+		return process.ErrHeaderBodyMismatch
+	}
+
+	var mbHdr data.MiniBlockHeaderHandler
+	var miniBlock *block.MiniBlock
+	var mbHash []byte
+	var err error
+	for i := 0; i < len(body.MiniBlocks); i++ {
+		miniBlock = body.MiniBlocks[i]
+		mbHdr = miniBlockHeaders[i]
+		if miniBlock == nil {
+			return process.ErrNilMiniBlock
 		}
 
-		if mbHdr.GetTxCount() != uint32(len(miniBlock.TxHashes)) {
-			return process.ErrHeaderBodyMismatch
+		mbHash, err = core.CalculateHash(bp.marshalizer, bp.hasher, miniBlock)
+		if err != nil {
+			return err
 		}
 
-		if mbHdr.GetReceiverShardID() != miniBlock.ReceiverShardID {
-			return process.ErrHeaderBodyMismatch
-		}
-
-		if mbHdr.GetSenderShardID() != miniBlock.SenderShardID {
-			return process.ErrHeaderBodyMismatch
+		err = checkMiniBlockWithMiniBlockHeader(mbHash, miniBlockHeaders[i], miniBlock)
+		if err != nil {
+			return err
 		}
 
 		err = process.CheckIfIndexesAreOutOfBound(mbHdr.GetIndexOfFirstTxProcessed(), mbHdr.GetIndexOfLastTxProcessed(), miniBlock)
 		if err != nil {
 			return err
 		}
-
 		err = checkConstructionStateAndIndexesCorrectness(mbHdr)
 		if err != nil {
 			return err
