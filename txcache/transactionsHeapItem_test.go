@@ -156,7 +156,7 @@ func TestTransactionsHeapItem_detectNonceDuplicate(t *testing.T) {
 func TestTransactionsHeapItem_detectIncorrectlyGuarded(t *testing.T) {
 	t.Run("is correctly guarded", func(t *testing.T) {
 		session := txcachemocks.NewSelectionSessionMock()
-		virtualSession := newVirtualSelectionSession(session)
+		virtualSession := newVirtualSelectionSession(session, make(map[string]*virtualAccountRecord))
 
 		session.IsIncorrectlyGuardedCalled = func(tx data.TransactionHandler) bool {
 			return false
@@ -173,7 +173,7 @@ func TestTransactionsHeapItem_detectIncorrectlyGuarded(t *testing.T) {
 		session.IsIncorrectlyGuardedCalled = func(tx data.TransactionHandler) bool {
 			return true
 		}
-		virtualSession := newVirtualSelectionSession(session)
+		virtualSession := newVirtualSelectionSession(session, make(map[string]*virtualAccountRecord))
 
 		item, err := newTransactionsHeapItem(bunchOfTransactions{createTx([]byte("tx-1"), "alice", 42)})
 		require.NoError(t, err)

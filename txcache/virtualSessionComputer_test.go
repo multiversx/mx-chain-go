@@ -17,7 +17,7 @@ func Test_fromBreadcrumbToVirtualRecord(t *testing.T) {
 	accountBalance := big.NewInt(2)
 
 	breadcrumbBob := accountBreadcrumb{
-		initialNonce: core.OptionalUint64{
+		firstNonce: core.OptionalUint64{
 			Value:    1,
 			HasValue: true,
 		},
@@ -40,7 +40,8 @@ func Test_fromBreadcrumbToVirtualRecord(t *testing.T) {
 	}
 
 	computer := newVirtualSessionComputer(nil)
-	computer.fromBreadcrumbToVirtualRecord(address, accountBalance, &breadcrumbBob)
+	err := computer.fromBreadcrumbToVirtualRecord(address, accountBalance, &breadcrumbBob)
+	require.Nil(t, err)
 
 	actualVirtualRecord, ok := computer.virtualAccountsByAddress[address]
 	require.True(t, ok)
@@ -61,7 +62,7 @@ func Test_createVirtualSelectionSession(t *testing.T) {
 			{
 				breadcrumbsByAddress: map[string]*accountBreadcrumb{
 					"alice": {
-						initialNonce: core.OptionalUint64{
+						firstNonce: core.OptionalUint64{
 							Value:    2,
 							HasValue: true,
 						},
@@ -72,7 +73,7 @@ func Test_createVirtualSelectionSession(t *testing.T) {
 						consumedBalance: big.NewInt(2),
 					},
 					"bob": {
-						initialNonce: core.OptionalUint64{
+						firstNonce: core.OptionalUint64{
 							Value:    2,
 							HasValue: true,
 						},
@@ -86,9 +87,9 @@ func Test_createVirtualSelectionSession(t *testing.T) {
 			},
 			{
 				breadcrumbsByAddress: map[string]*accountBreadcrumb{
-					// carol's virtual record will not be saved because the initialNonce is != session nonce
+					// carol's virtual record will not be saved because the firstNonce is != session nonce
 					"carol": {
-						initialNonce: core.OptionalUint64{
+						firstNonce: core.OptionalUint64{
 							Value:    10,
 							HasValue: true,
 						},
@@ -99,7 +100,7 @@ func Test_createVirtualSelectionSession(t *testing.T) {
 						consumedBalance: big.NewInt(2),
 					},
 					"bob": {
-						initialNonce: core.OptionalUint64{
+						firstNonce: core.OptionalUint64{
 							Value:    4,
 							HasValue: true,
 						},
@@ -153,7 +154,7 @@ func Test_handleTrackedBlock(t *testing.T) {
 		tb := newTrackedBlock(0, []byte("blockHash1"), []byte("blockRootHash1"), []byte("blockPrevHash1"))
 		tb.breadcrumbsByAddress = map[string]*accountBreadcrumb{
 			"alice": {
-				initialNonce: core.OptionalUint64{
+				firstNonce: core.OptionalUint64{
 					Value:    1,
 					HasValue: true,
 				},
@@ -164,7 +165,7 @@ func Test_handleTrackedBlock(t *testing.T) {
 				consumedBalance: big.NewInt(2),
 			},
 			"bob": {
-				initialNonce: core.OptionalUint64{
+				firstNonce: core.OptionalUint64{
 					Value:    2,
 					HasValue: true,
 				},
@@ -194,7 +195,7 @@ func Test_handleTrackedBlock(t *testing.T) {
 		tb := newTrackedBlock(0, []byte("blockHash1"), []byte("blockRootHash1"), []byte("blockPrevHash1"))
 		tb.breadcrumbsByAddress = map[string]*accountBreadcrumb{
 			"alice": {
-				initialNonce: core.OptionalUint64{
+				firstNonce: core.OptionalUint64{
 					Value:    1,
 					HasValue: true,
 				},
@@ -205,7 +206,7 @@ func Test_handleTrackedBlock(t *testing.T) {
 				consumedBalance: big.NewInt(2),
 			},
 			"bob": {
-				initialNonce: core.OptionalUint64{
+				firstNonce: core.OptionalUint64{
 					Value:    2,
 					HasValue: true,
 				},
@@ -251,7 +252,7 @@ func Test_handleTrackedBlock(t *testing.T) {
 		tb := newTrackedBlock(0, []byte("blockHash1"), []byte("blockRootHash1"), []byte("blockPrevHash1"))
 
 		breadcrumb1 := accountBreadcrumb{
-			initialNonce: core.OptionalUint64{
+			firstNonce: core.OptionalUint64{
 				Value:    2,
 				HasValue: true,
 			},
@@ -263,7 +264,7 @@ func Test_handleTrackedBlock(t *testing.T) {
 		}
 
 		breadcrumb2 := accountBreadcrumb{
-			initialNonce: core.OptionalUint64{
+			firstNonce: core.OptionalUint64{
 				Value:    5,
 				HasValue: true,
 			},

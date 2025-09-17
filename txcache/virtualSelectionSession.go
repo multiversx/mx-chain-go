@@ -12,10 +12,10 @@ type virtualSelectionSession struct {
 	virtualAccountsByAddress map[string]*virtualAccountRecord
 }
 
-func newVirtualSelectionSession(session SelectionSession) *virtualSelectionSession {
+func newVirtualSelectionSession(session SelectionSession, virtualAccountsByAddress map[string]*virtualAccountRecord) *virtualSelectionSession {
 	return &virtualSelectionSession{
 		session:                  session,
-		virtualAccountsByAddress: make(map[string]*virtualAccountRecord),
+		virtualAccountsByAddress: virtualAccountsByAddress,
 	}
 }
 
@@ -53,55 +53,38 @@ func (virtualSession *virtualSelectionSession) createAccountRecord(address []byt
 	)
 }
 
-func (virtualSession *virtualSelectionSession) getNonce(address []byte) (uint64, error) {
-	account, err := virtualSession.getRecord(address)
-	if err != nil {
-		log.Debug("virtualSelectionSession.getNonce",
-			"address", address,
-			"err", err)
-		return 0, err
-	}
-
-	if !account.initialNonce.HasValue {
-		log.Debug("virtualSelectionSession.getNonce",
-			"address", address,
-			"err", errNonceNotSet)
-		return 0, errNonceNotSet
-	}
-
-	return account.initialNonce.Value, nil
+func (virtualSession *virtualSelectionSession) getNonceForAccountRecord(accountRecord *virtualAccountRecord) (uint64, error) {
+	return accountRecord.getInitialNonce()
 }
 
-func (virtualSession *virtualSelectionSession) accumulateConsumedBalance(tx *WrappedTransaction) error {
-	sender := tx.Tx.GetSndAddr()
-	feePayer := tx.FeePayer
-
-	senderRecord, err := virtualSession.getRecord(sender)
-	if err != nil {
-		log.Warn("accumulateConsumedBalance.getRecord sender",
-			"sender", sender,
-			"err", err)
-		return err
-	}
-
-	feePayerRecord, err := virtualSession.getRecord(feePayer)
-	if err != nil {
-		log.Warn("accumulateConsumedBalance.getRecord feePayer",
-			"feePayer", feePayer,
-			"err", err)
-		return err
-	}
-
+func (virtualSession *virtualSelectionSession) accumulateConsumedBalance(tx *WrappedTransaction, senderRecord *virtualAccountRecord) error {
 	transferredValue := tx.TransferredValue
 	if transferredValue != nil {
-		consumedBalance := senderRecord.getConsumedBalance()
-		consumedBalance.Add(consumedBalance, transferredValue)
+		senderRecord.accumulateConsumedBalance(transferredValue)
+	}
+
+	var feePayerRecord *virtualAccountRecord
+
+	// check if there's a need to search for another record
+	if tx.isFeePayerSameAsSender() {
+		feePayerRecord = senderRecord
+	} else {
+		feePayer := tx.FeePayer
+		record, err := virtualSession.getRecord(feePayer)
+		if err != nil {
+			log.Warn("accumulateConsumedBalance.getRecord feePayer",
+				"feePayer", feePayer,
+				"err", err)
+			return err
+		}
+
+		// should affect the record of fee payer
+		feePayerRecord = record
 	}
 
 	fee := tx.Fee
 	if fee != nil {
-		consumedBalance := feePayerRecord.getConsumedBalance()
-		consumedBalance.Add(consumedBalance, fee)
+		feePayerRecord.accumulateConsumedBalance(fee)
 	}
 
 	return nil
@@ -110,6 +93,8 @@ func (virtualSession *virtualSelectionSession) accumulateConsumedBalance(tx *Wra
 func (virtualSession *virtualSelectionSession) detectWillFeeExceedBalance(tx *WrappedTransaction) bool {
 	fee := tx.Fee
 	if fee == nil {
+		// unexpected failure
+		log.Debug("virtualSelectionSession.detectWillFeeExceedBalance nil fee")
 		return false
 	}
 

@@ -31,8 +31,7 @@ func (computer *virtualSessionComputer) createVirtualSelectionSession(
 		}
 	}
 
-	virtualSession := newVirtualSelectionSession(computer.session)
-	virtualSession.virtualAccountsByAddress = computer.virtualAccountsByAddress
+	virtualSession := newVirtualSelectionSession(computer.session, computer.virtualAccountsByAddress)
 	return virtualSession, nil
 }
 
@@ -75,7 +74,7 @@ func (computer *virtualSessionComputer) fromBreadcrumbToVirtualRecord(
 	virtualRecord, ok := computer.virtualAccountsByAddress[address]
 	if !ok {
 		initialBalance := accountBalance
-		record, err := newVirtualAccountRecord(breadcrumb.initialNonce, initialBalance)
+		record, err := newVirtualAccountRecord(breadcrumb.firstNonce, initialBalance)
 		if err != nil {
 			return err
 		}

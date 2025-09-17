@@ -70,7 +70,7 @@ func (validator *breadcrumbsValidator) validateContinuityWithSessionNonce(
 		log.Debug("virtualSessionComputer.validateNonceContinuityOfBreadcrumb breadcrumb not continuous with session nonce",
 			"address", address,
 			"accountNonce", accountNonce,
-			"breadcrumb nonce", breadcrumb.initialNonce)
+			"breadcrumb nonce", breadcrumb.firstNonce)
 		return false
 	}
 
@@ -91,7 +91,7 @@ func (validator *breadcrumbsValidator) validateContinuityWithPreviousBreadcrumb(
 		validator.skippedSenders[address] = struct{}{}
 		log.Debug("virtualSessionComputer.validateNonceContinuityOfBreadcrumb breadcrumb not continuous with previous breadcrumb",
 			"address", address,
-			"current breadcrumb nonce", breadcrumb.initialNonce,
+			"current breadcrumb nonce", breadcrumb.firstNonce,
 			"previous breadcrumb nonce", previousBreadcrumb.lastNonce)
 		return false
 	}
@@ -124,6 +124,6 @@ func (validator *breadcrumbsValidator) validateBalance(
 		validator.virtualBalancesByAddress[address] = balance
 	}
 
-	virtualBalance.accumulateConsumedBalance(breadcrumb)
+	virtualBalance.accumulateConsumedBalance(breadcrumb.consumedBalance)
 	return virtualBalance.validateBalance()
 }
