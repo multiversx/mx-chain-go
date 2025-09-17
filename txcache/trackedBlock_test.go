@@ -70,14 +70,14 @@ func TestTrackedBlock_getBreadcrumb(t *testing.T) {
 			"alice": newAccountBreadcrumb(core.OptionalUint64{
 				Value:    0,
 				HasValue: true,
-			}, nil),
+			}),
 		}
 
 		nonce := core.OptionalUint64{
 			Value:    1,
 			HasValue: true,
 		}
-		expectedBreadcrumb := newAccountBreadcrumb(nonce, big.NewInt(0))
+		expectedBreadcrumb := newAccountBreadcrumb(nonce)
 
 		breadcrumb := block.getOrCreateBreadcrumbWithNonce("bob", nonce)
 		require.Equal(t, expectedBreadcrumb, breadcrumb)
@@ -90,7 +90,8 @@ func TestTrackedBlock_getBreadcrumb(t *testing.T) {
 			Value:    1,
 			HasValue: true,
 		}
-		expectedBreadcrumb := newAccountBreadcrumb(nonce, big.NewInt(1))
+		expectedBreadcrumb := newAccountBreadcrumb(nonce)
+		expectedBreadcrumb.accumulateConsumedBalance(big.NewInt(1))
 
 		block := newTrackedBlock(0, []byte("blockHash1"), []byte("blockRootHash1"), []byte("blockPrevHash1"))
 
@@ -124,7 +125,8 @@ func TestTrackedBlock_compileBreadcrumbs(t *testing.T) {
 		err := block.compileBreadcrumbs(txs)
 		require.NoError(t, err)
 
-		aliceBreadcrumb := newAccountBreadcrumb(core.OptionalUint64{Value: 1, HasValue: true}, big.NewInt(5))
+		aliceBreadcrumb := newAccountBreadcrumb(core.OptionalUint64{Value: 1, HasValue: true})
+		aliceBreadcrumb.accumulateConsumedBalance(big.NewInt(5))
 		aliceBreadcrumb.lastNonce = core.OptionalUint64{Value: 1, HasValue: true}
 		expectedBreadcrumbs := map[string]*accountBreadcrumb{
 			"alice": aliceBreadcrumb,
@@ -141,11 +143,13 @@ func TestTrackedBlock_compileBreadcrumbs(t *testing.T) {
 		t.Parallel()
 
 		block := newTrackedBlock(0, []byte("blockHash1"), []byte("blockRootHash1"), []byte("blockPrevHash1"))
+		aliceBreadcrumb := newAccountBreadcrumb(core.OptionalUint64{
+			Value:    1,
+			HasValue: true})
+
+		aliceBreadcrumb.accumulateConsumedBalance(big.NewInt(5))
 		block.breadcrumbsByAddress = map[string]*accountBreadcrumb{
-			"alice": newAccountBreadcrumb(core.OptionalUint64{
-				Value:    1,
-				HasValue: true,
-			}, big.NewInt(5)),
+			"alice": aliceBreadcrumb,
 		}
 
 		txs := []*WrappedTransaction{
@@ -160,7 +164,9 @@ func TestTrackedBlock_compileBreadcrumbs(t *testing.T) {
 
 		err := block.compileBreadcrumbs(txs)
 		require.NoError(t, err)
-		aliceBreadcrumb := newAccountBreadcrumb(core.OptionalUint64{Value: 1, HasValue: true}, big.NewInt(10))
+
+		aliceBreadcrumb = newAccountBreadcrumb(core.OptionalUint64{Value: 1, HasValue: true})
+		aliceBreadcrumb.accumulateConsumedBalance(big.NewInt(10))
 		aliceBreadcrumb.lastNonce = core.OptionalUint64{Value: 4, HasValue: true}
 		expectedBreadcrumbs := map[string]*accountBreadcrumb{
 			"alice": aliceBreadcrumb,
@@ -177,12 +183,15 @@ func TestTrackedBlock_compileBreadcrumbs(t *testing.T) {
 		t.Parallel()
 
 		block := newTrackedBlock(0, []byte("blockHash1"), []byte("blockRootHash1"), []byte("blockPrevHash1"))
+		aliceBreadcrumb := newAccountBreadcrumb(core.OptionalUint64{
+			Value:    1,
+			HasValue: true,
+		})
+		aliceBreadcrumb.accumulateConsumedBalance(big.NewInt(5))
 		block.breadcrumbsByAddress = map[string]*accountBreadcrumb{
-			"alice": newAccountBreadcrumb(core.OptionalUint64{
-				Value:    1,
-				HasValue: true,
-			}, big.NewInt(5)),
+			"alice": aliceBreadcrumb,
 		}
+
 		txs := []*WrappedTransaction{
 			{
 				Tx: &transaction.Transaction{
@@ -198,10 +207,12 @@ func TestTrackedBlock_compileBreadcrumbs(t *testing.T) {
 		err := block.compileBreadcrumbs(txs)
 		require.NoError(t, err)
 
-		aliceBreadcrumb := newAccountBreadcrumb(core.OptionalUint64{Value: 1, HasValue: true}, big.NewInt(10))
+		aliceBreadcrumb = newAccountBreadcrumb(core.OptionalUint64{Value: 1, HasValue: true})
+		aliceBreadcrumb.accumulateConsumedBalance(big.NewInt(10))
 		aliceBreadcrumb.lastNonce = core.OptionalUint64{Value: 4, HasValue: true}
 
-		bobBreadcrumb := newAccountBreadcrumb(core.OptionalUint64{Value: 0, HasValue: false}, big.NewInt(5))
+		bobBreadcrumb := newAccountBreadcrumb(core.OptionalUint64{Value: 0, HasValue: false})
+		bobBreadcrumb.accumulateConsumedBalance(big.NewInt(5))
 
 		expectedBreadcrumbs := map[string]*accountBreadcrumb{
 			"alice": aliceBreadcrumb,
@@ -219,15 +230,21 @@ func TestTrackedBlock_compileBreadcrumbs(t *testing.T) {
 		t.Parallel()
 
 		block := newTrackedBlock(0, []byte("blockHash1"), []byte("blockRootHash1"), []byte("blockPrevHash1"))
+		aliceBreadcrumb := newAccountBreadcrumb(core.OptionalUint64{
+			Value:    1,
+			HasValue: true,
+		})
+		aliceBreadcrumb.accumulateConsumedBalance(big.NewInt(5))
+
+		bobBreadcrumb := newAccountBreadcrumb(core.OptionalUint64{
+			Value:    0,
+			HasValue: true,
+		})
+		bobBreadcrumb.accumulateConsumedBalance(big.NewInt(3))
+
 		block.breadcrumbsByAddress = map[string]*accountBreadcrumb{
-			"alice": newAccountBreadcrumb(core.OptionalUint64{
-				Value:    1,
-				HasValue: true,
-			}, big.NewInt(5)),
-			"bob": newAccountBreadcrumb(core.OptionalUint64{
-				Value:    0,
-				HasValue: true,
-			}, big.NewInt(3)),
+			"alice": aliceBreadcrumb,
+			"bob":   bobBreadcrumb,
 		}
 		txs := []*WrappedTransaction{
 			{
@@ -252,10 +269,12 @@ func TestTrackedBlock_compileBreadcrumbs(t *testing.T) {
 		err := block.compileBreadcrumbs(txs)
 		require.NoError(t, err)
 
-		aliceBreadcrumb := newAccountBreadcrumb(core.OptionalUint64{Value: 1, HasValue: true}, big.NewInt(15))
+		aliceBreadcrumb = newAccountBreadcrumb(core.OptionalUint64{Value: 1, HasValue: true})
+		aliceBreadcrumb.accumulateConsumedBalance(big.NewInt(15))
 		aliceBreadcrumb.lastNonce = core.OptionalUint64{Value: 4, HasValue: true}
 
-		bobBreadcrumb := newAccountBreadcrumb(core.OptionalUint64{Value: 0, HasValue: true}, big.NewInt(6))
+		bobBreadcrumb = newAccountBreadcrumb(core.OptionalUint64{Value: 0, HasValue: true})
+		bobBreadcrumb.accumulateConsumedBalance(big.NewInt(6))
 
 		expectedBreadcrumbs := map[string]*accountBreadcrumb{
 			"alice": aliceBreadcrumb,
@@ -273,11 +292,13 @@ func TestTrackedBlock_compileBreadcrumbs(t *testing.T) {
 		t.Parallel()
 
 		block := newTrackedBlock(0, []byte("blockHash1"), []byte("blockRootHash1"), []byte("blockPrevHash1"))
+		aliceBreadcrumb := newAccountBreadcrumb(core.OptionalUint64{
+			Value:    1,
+			HasValue: true,
+		})
+		aliceBreadcrumb.accumulateConsumedBalance(big.NewInt(5))
 		block.breadcrumbsByAddress = map[string]*accountBreadcrumb{
-			"alice": newAccountBreadcrumb(core.OptionalUint64{
-				Value:    1,
-				HasValue: true,
-			}, big.NewInt(5)),
+			"alice": aliceBreadcrumb,
 		}
 		txs := []*WrappedTransaction{
 			{
@@ -294,10 +315,11 @@ func TestTrackedBlock_compileBreadcrumbs(t *testing.T) {
 		err := block.compileBreadcrumbs(txs)
 		require.NoError(t, err)
 
-		aliceBreadcrumb := newAccountBreadcrumb(core.OptionalUint64{
+		aliceBreadcrumb = newAccountBreadcrumb(core.OptionalUint64{
 			Value:    1,
 			HasValue: true,
-		}, big.NewInt(12)) // initial value in breadcrumb + transferredValue + fee
+		})
+		aliceBreadcrumb.accumulateConsumedBalance(big.NewInt(12)) // initial value in breadcrumb + transferredValue + fee
 		aliceBreadcrumb.lastNonce = core.OptionalUint64{Value: 3, HasValue: true}
 
 		expectedBreadcrumbs := map[string]*accountBreadcrumb{

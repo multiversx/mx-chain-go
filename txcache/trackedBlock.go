@@ -105,7 +105,7 @@ func (tb *trackedBlock) getOrCreateBreadcrumbWithNonce(
 		return breadCrumb
 	}
 
-	breadcrumb := newAccountBreadcrumb(nonce, nil)
+	breadcrumb := newAccountBreadcrumb(nonce)
 	tb.breadcrumbsByAddress[address] = breadcrumb
 
 	return breadcrumb
@@ -121,7 +121,7 @@ func (tb *trackedBlock) getOrCreateBreadcrumb(address string) *accountBreadcrumb
 	breadcrumb := newAccountBreadcrumb(core.OptionalUint64{
 		Value:    0,
 		HasValue: false,
-	}, nil)
+	})
 	tb.breadcrumbsByAddress[address] = breadcrumb
 
 	return breadcrumb
