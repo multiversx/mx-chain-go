@@ -106,7 +106,102 @@ func Test_RemoveSweepableTransactionsReturnHashes_Dummy(t *testing.T) {
 	})
 }
 
-func TestTxCache_AutoClean_Dummy(t *testing.T) {
+func TestTxCache_Cleanup(t *testing.T) {
+	t.Run("with GetAccountNonce errors", func(t *testing.T) {
+		boundsConfig := createMockTxBoundsConfig()
+		cache := newUnconstrainedCacheToTest(boundsConfig)
+		accountsProvider := txcachemocks.NewAccountNonceAndBalanceProviderMock()
+		accountsProvider.GetAccountNonceCalled = func(address []byte) (uint64, bool, error) {
+			switch string(address) {
+			case "alice":
+				return 3, true, nil
+			case "bob":
+				return 42, true, fmt.Errorf("forced error for address %s", address)
+			case "carol":
+				return 7, true, nil
+			default:
+				return 0, false, nil
+			}
+		}
+
+		// Two with lower nonce for alice
+		cache.AddTx(createTx([]byte("hash-alice-1"), "alice", 1))
+		cache.AddTx(createTx([]byte("hash-alice-2"), "alice", 2))
+		cache.AddTx(createTx([]byte("hash-alice-3"), "alice", 3))
+		// Two with lower nonce for bob (all will error out)
+		cache.AddTx(createTx([]byte("hash-bob-40"), "bob", 40))
+		cache.AddTx(createTx([]byte("hash-bob-41"), "bob", 41))
+		cache.AddTx(createTx([]byte("hash-bob-42"), "bob", 42))
+		// Good for carol
+		cache.AddTx(createTx([]byte("hash-carol-7"), "carol", 7))
+		cache.AddTx(createTx([]byte("hash-carol-8"), "carol", 8))
+		expectedNumEvicted := 2 // only alice
+		evicted := cache.Cleanup(accountsProvider, 7, math.MaxInt, 1000*cleanupLoopMaximumDuration)
+
+		require.Equal(t, uint64(expectedNumEvicted), evicted)
+	})
+
+	t.Run("with nonce equal 0", func(t *testing.T) {
+		boundsConfig := createMockTxBoundsConfig()
+		cache := newUnconstrainedCacheToTest(boundsConfig)
+		accountsProvider := txcachemocks.NewAccountNonceAndBalanceProviderMock()
+		accountsProvider.SetNonce([]byte("alice"), 0)
+
+		cache.AddTx(createTx([]byte("hash-alice-1"), "alice", 1))
+		cache.AddTx(createTx([]byte("hash-alice-2"), "alice", 2))
+
+		expectedNumEvicted := 0
+		evicted := cache.Cleanup(accountsProvider, 7, math.MaxInt, 1000*cleanupLoopMaximumDuration)
+
+		require.Equal(t, uint64(expectedNumEvicted), evicted)
+	})
+
+	t.Run("with number of evicted transactions cap reached", func(t *testing.T) {
+		boundsConfig := createMockTxBoundsConfig()
+		cache := newUnconstrainedCacheToTest(boundsConfig)
+
+		accountsProvider := txcachemocks.NewAccountNonceAndBalanceProviderMock()
+		accountsProvider.SetNonce([]byte("alice"), 3)
+		accountsProvider.SetNonce([]byte("bob"), 42)
+
+		// Two with lower nonce for alice
+		cache.AddTx(createTx([]byte("hash-alice-1"), "alice", 1))
+		cache.AddTx(createTx([]byte("hash-alice-2"), "alice", 2))
+		cache.AddTx(createTx([]byte("hash-alice-3"), "alice", 3))
+
+		// A few with lower nonce for bob
+		cache.AddTx(createTx([]byte("hash-bob-40"), "bob", 40))
+		cache.AddTx(createTx([]byte("hash-bob-41"), "bob", 41))
+		cache.AddTx(createTx([]byte("hash-bob-42"), "bob", 42))
+
+		expectedNumEvicted := 2 // only alice, because maxNum is 2
+		evicted := cache.Cleanup(accountsProvider, 7, 2, 1000*cleanupLoopMaximumDuration)
+		require.Equal(t, uint64(expectedNumEvicted), evicted)
+	})
+
+	t.Run("with cleanupLoopMaximumDuration cap reached", func(t *testing.T) {
+		boundsConfig := createMockTxBoundsConfig()
+		cache := newUnconstrainedCacheToTest(boundsConfig)
+		accountsProvider := txcachemocks.NewAccountNonceAndBalanceProviderMock()
+		accountsProvider.SetNonce([]byte("alice"), 4)
+		accountsProvider.SetNonce([]byte("bob"), 43)
+		accountsProvider.SetNonce([]byte("carol"), 9)
+		// Two with lower nonce for alice
+		cache.AddTx(createTx([]byte("hash-alice-1"), "alice", 1))
+		cache.AddTx(createTx([]byte("hash-alice-2"), "alice", 2))
+		cache.AddTx(createTx([]byte("hash-alice-3"), "alice", 3))
+		// A few with lower nonce for bob
+		cache.AddTx(createTx([]byte("hash-bob-40"), "bob", 40))
+		cache.AddTx(createTx([]byte("hash-bob-41"), "bob", 41))
+		cache.AddTx(createTx([]byte("hash-bob-42"), "bob", 42))
+		// Good for carol
+		cache.AddTx(createTx([]byte("hash-carol-7"), "carol", 7))
+		cache.AddTx(createTx([]byte("hash-carol-8"), "carol", 8))
+		evictable := 8
+		evicted := cache.Cleanup(accountsProvider, 7, math.MaxInt, 1000)
+		require.Less(t, evicted, uint64(evictable))
+	})
+
 	t.Run("with lower nonces", func(t *testing.T) {
 		boundsConfig := createMockTxBoundsConfig()
 		cache := newUnconstrainedCacheToTest(boundsConfig)
