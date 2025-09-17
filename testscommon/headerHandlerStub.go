@@ -501,6 +501,7 @@ func (hhs *HeaderHandlerStub) SetExecutionResultsHandlers(resultHandlers []data.
 	return nil
 }
 
+// SetLastExecutionResultHandler -
 func (hhs *HeaderHandlerStub) SetLastExecutionResultHandler(resultHandler data.LastExecutionResultHandler) error {
 	if hhs.SetLastExecutionResultHandlerCalled != nil {
 		return hhs.SetLastExecutionResultHandlerCalled(resultHandler)

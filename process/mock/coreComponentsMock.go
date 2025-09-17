@@ -151,7 +151,7 @@ func (ccm *CoreComponentsMock) RoundNotifier() process.RoundNotifier {
 	return ccm.RoundNotifierField
 }
 
-// EnableEpochsHandler -
+// EnableRoundsHandler -
 func (ccm *CoreComponentsMock) EnableRoundsHandler() process.EnableRoundsHandler {
 	return ccm.EnableRoundsHandlerField
 }
