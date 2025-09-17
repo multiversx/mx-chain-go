@@ -7,7 +7,7 @@ import (
 )
 
 type accountBreadcrumb struct {
-	initialNonce    core.OptionalUint64
+	firstNonce      core.OptionalUint64
 	lastNonce       core.OptionalUint64
 	consumedBalance *big.Int
 }
@@ -20,7 +20,7 @@ func newAccountBreadcrumb(
 		consumedBalance = big.NewInt(0)
 	}
 	return &accountBreadcrumb{
-		initialNonce:    initialNonce,
+		firstNonce:      initialNonce,
 		lastNonce:       core.OptionalUint64{HasValue: false},
 		consumedBalance: consumedBalance,
 	}
@@ -45,14 +45,14 @@ func (breadcrumb *accountBreadcrumb) updateLastNonce(lastNonce core.OptionalUint
 	return nil
 }
 
-func (breadcrumb *accountBreadcrumb) verifyContinuityBetweenAccountBreadcrumbs(previousBreadcrumbAsSender *accountBreadcrumb) bool {
-	return previousBreadcrumbAsSender == nil || previousBreadcrumbAsSender.lastNonce.Value+1 == breadcrumb.initialNonce.Value
+func (breadcrumb *accountBreadcrumb) verifyContinuityBetweenAccountBreadcrumbs(previousBreadcrumbOfSender *accountBreadcrumb) bool {
+	return previousBreadcrumbOfSender == nil || previousBreadcrumbOfSender.lastNonce.Value+1 == breadcrumb.firstNonce.Value
 }
 
 func (breadcrumb *accountBreadcrumb) verifyContinuityWithSessionNonce(sessionNonce uint64) bool {
-	return breadcrumb.initialNonce.Value == sessionNonce
+	return breadcrumb.firstNonce.Value == sessionNonce
 }
 
 func (breadcrumb *accountBreadcrumb) hasUnknownNonce() bool {
-	return !breadcrumb.initialNonce.HasValue && !breadcrumb.lastNonce.HasValue
+	return !breadcrumb.firstNonce.HasValue && !breadcrumb.lastNonce.HasValue
 }

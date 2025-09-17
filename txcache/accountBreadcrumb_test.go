@@ -14,7 +14,7 @@ func Test_isRelayer(t *testing.T) {
 		t.Parallel()
 
 		breadcrumb := accountBreadcrumb{
-			initialNonce: core.OptionalUint64{
+			firstNonce: core.OptionalUint64{
 				Value:    0,
 				HasValue: false,
 			},
@@ -33,7 +33,7 @@ func Test_isRelayer(t *testing.T) {
 		t.Parallel()
 
 		breadcrumb := accountBreadcrumb{
-			initialNonce: core.OptionalUint64{
+			firstNonce: core.OptionalUint64{
 				Value:    0,
 				HasValue: true,
 			},
@@ -56,7 +56,7 @@ func Test_updateLastNonce(t *testing.T) {
 		t.Parallel()
 
 		breadcrumb := accountBreadcrumb{
-			initialNonce: core.OptionalUint64{
+			firstNonce: core.OptionalUint64{
 				Value:    0,
 				HasValue: false,
 			},
@@ -81,7 +81,7 @@ func Test_updateLastNonce(t *testing.T) {
 		t.Parallel()
 
 		breadcrumb := accountBreadcrumb{
-			initialNonce: core.OptionalUint64{
+			firstNonce: core.OptionalUint64{
 				Value:    0,
 				HasValue: true,
 			},
@@ -105,7 +105,7 @@ func Test_updateLastNonce(t *testing.T) {
 		t.Parallel()
 
 		breadcrumb := accountBreadcrumb{
-			initialNonce: core.OptionalUint64{
+			firstNonce: core.OptionalUint64{
 				Value:    0,
 				HasValue: true,
 			},
@@ -134,7 +134,7 @@ func Test_verifyContinuityBetweenAccountBreadcrumbs(t *testing.T) {
 		t.Parallel()
 
 		breadcrumbAlice := accountBreadcrumb{
-			initialNonce: core.OptionalUint64{
+			firstNonce: core.OptionalUint64{
 				Value:    1,
 				HasValue: true,
 			},
@@ -146,7 +146,7 @@ func Test_verifyContinuityBetweenAccountBreadcrumbs(t *testing.T) {
 		}
 
 		breadcrumbBob := accountBreadcrumb{
-			initialNonce: core.OptionalUint64{
+			firstNonce: core.OptionalUint64{
 				Value:    3,
 				HasValue: true,
 			},
@@ -165,7 +165,7 @@ func Test_verifyContinuityBetweenAccountBreadcrumbs(t *testing.T) {
 		t.Parallel()
 
 		breadcrumbAlice := accountBreadcrumb{
-			initialNonce: core.OptionalUint64{
+			firstNonce: core.OptionalUint64{
 				Value:    1,
 				HasValue: true,
 			},
@@ -177,7 +177,7 @@ func Test_verifyContinuityBetweenAccountBreadcrumbs(t *testing.T) {
 		}
 
 		breadcrumbBob := accountBreadcrumb{
-			initialNonce: core.OptionalUint64{
+			firstNonce: core.OptionalUint64{
 				Value:    2,
 				HasValue: true,
 			},
@@ -196,7 +196,7 @@ func Test_verifyContinuityBetweenAccountBreadcrumbs(t *testing.T) {
 		t.Parallel()
 
 		breadcrumbAlice := accountBreadcrumb{
-			initialNonce: core.OptionalUint64{
+			firstNonce: core.OptionalUint64{
 				Value:    1,
 				HasValue: true,
 			},
@@ -208,7 +208,7 @@ func Test_verifyContinuityBetweenAccountBreadcrumbs(t *testing.T) {
 		}
 
 		breadcrumbBob := accountBreadcrumb{
-			initialNonce: core.OptionalUint64{
+			firstNonce: core.OptionalUint64{
 				Value:    4,
 				HasValue: true,
 			},
@@ -231,7 +231,7 @@ func Test_verifyContinuityWithSessionNonce(t *testing.T) {
 		t.Parallel()
 
 		breadcrumb := accountBreadcrumb{
-			initialNonce: core.OptionalUint64{
+			firstNonce: core.OptionalUint64{
 				Value:    1,
 				HasValue: true,
 			},
@@ -250,7 +250,7 @@ func Test_verifyContinuityWithSessionNonce(t *testing.T) {
 		t.Parallel()
 
 		breadcrumb := accountBreadcrumb{
-			initialNonce: core.OptionalUint64{
+			firstNonce: core.OptionalUint64{
 				Value:    1,
 				HasValue: true,
 			},

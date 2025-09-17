@@ -10,12 +10,12 @@ import (
 )
 
 func requireEqualBreadcrumbs(t *testing.T, breadCrumb1 *accountBreadcrumb, breadCrumb2 *accountBreadcrumb) {
-	require.Equal(t, breadCrumb1.initialNonce, breadCrumb2.initialNonce)
+	require.Equal(t, breadCrumb1.firstNonce, breadCrumb2.firstNonce)
 	require.Equal(t, breadCrumb1.lastNonce, breadCrumb2.lastNonce)
 	require.Equal(t, breadCrumb1.consumedBalance, breadCrumb2.consumedBalance)
 }
 
-func TestTrackedBlock_sameNonce(t *testing.T) {
+func TestTrackedBlock_sameNonceOrBelow(t *testing.T) {
 	t.Parallel()
 
 	t.Run("same nonce and same prev hash", func(t *testing.T) {
@@ -47,6 +47,16 @@ func TestTrackedBlock_sameNonce(t *testing.T) {
 		shouldRemoveBlock := trackedBlock1.sameNonceOrBelow(trackedBlock2)
 		require.False(t, shouldRemoveBlock)
 	})
+}
+
+func TestTrackedBlock_sameNonce(t *testing.T) {
+	t.Parallel()
+
+	trackedBlock1 := newTrackedBlock(0, []byte("blockHash1"), []byte("blockRootHash1"), []byte("blockPrevHash1"))
+	trackedBlock2 := newTrackedBlock(0, []byte("blockHash1"), []byte("blockRootHash2"), []byte("blockPrevHash1"))
+
+	shouldRemoveBlock := trackedBlock1.sameNonce(trackedBlock2)
+	require.True(t, shouldRemoveBlock)
 }
 
 func TestTrackedBlock_getBreadcrumb(t *testing.T) {
@@ -93,7 +103,7 @@ func TestTrackedBlock_getBreadcrumb(t *testing.T) {
 	})
 }
 
-func TestTrackedBlock_compileBreadcrumb(t *testing.T) {
+func TestTrackedBlock_compileBreadcrumbs(t *testing.T) {
 	t.Parallel()
 
 	t.Run("sender does not exist in map", func(t *testing.T) {

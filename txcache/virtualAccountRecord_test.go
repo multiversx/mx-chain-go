@@ -13,7 +13,7 @@ func Test_updateVirtualRecord(t *testing.T) {
 		t.Parallel()
 
 		breadcrumb := accountBreadcrumb{
-			initialNonce: core.OptionalUint64{
+			firstNonce: core.OptionalUint64{
 				Value:    3,
 				HasValue: false,
 			},
@@ -44,7 +44,7 @@ func Test_updateVirtualRecord(t *testing.T) {
 		require.NoError(t, err)
 
 		breadcrumb := accountBreadcrumb{
-			initialNonce: core.OptionalUint64{
+			firstNonce: core.OptionalUint64{
 				Value:    3,
 				HasValue: true,
 			},
@@ -72,7 +72,7 @@ func Test_updateVirtualRecord(t *testing.T) {
 		require.NoError(t, err)
 
 		breadcrumb := accountBreadcrumb{
-			initialNonce: core.OptionalUint64{
+			firstNonce: core.OptionalUint64{
 				Value:    3,
 				HasValue: true,
 			},

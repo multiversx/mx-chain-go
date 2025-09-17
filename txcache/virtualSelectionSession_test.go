@@ -16,7 +16,7 @@ func Test_newVirtualSelectionSession(t *testing.T) {
 	t.Parallel()
 
 	session := txcachemocks.NewSelectionSessionMock()
-	virtualSession := newVirtualSelectionSession(session)
+	virtualSession := newVirtualSelectionSession(session, make(map[string]*virtualAccountRecord))
 	require.NotNil(t, virtualSession)
 }
 
@@ -27,7 +27,7 @@ func Test_getVirtualRecord(t *testing.T) {
 		t.Parallel()
 
 		sessionMock := txcachemocks.SelectionSessionMock{}
-		virtualSession := newVirtualSelectionSession(&sessionMock)
+		virtualSession := newVirtualSelectionSession(&sessionMock, make(map[string]*virtualAccountRecord))
 
 		expectedRecord := virtualAccountRecord{
 			initialNonce: core.OptionalUint64{
@@ -56,7 +56,7 @@ func Test_getVirtualRecord(t *testing.T) {
 				return 2, big.NewInt(2), true, nil
 			},
 		}
-		virtualSession := newVirtualSelectionSession(&sessionMock)
+		virtualSession := newVirtualSelectionSession(&sessionMock, make(map[string]*virtualAccountRecord))
 
 		expectedRecord := virtualAccountRecord{
 			initialNonce: core.OptionalUint64{
@@ -84,7 +84,7 @@ func Test_getVirtualRecord(t *testing.T) {
 				return 0, big.NewInt(0), false, nil
 			},
 		}
-		virtualSession := newVirtualSelectionSession(&sessionMock)
+		virtualSession := newVirtualSelectionSession(&sessionMock, make(map[string]*virtualAccountRecord))
 
 		actualRecord, err := virtualSession.getRecord([]byte("alice"))
 		require.NoError(t, err)
@@ -102,7 +102,7 @@ func Test_getVirtualRecord(t *testing.T) {
 				return 0, nil, false, expErr
 			},
 		}
-		virtualSession := newVirtualSelectionSession(&sessionMock)
+		virtualSession := newVirtualSelectionSession(&sessionMock, make(map[string]*virtualAccountRecord))
 
 		actualRecord, err := virtualSession.getRecord([]byte("alice"))
 		require.Nil(t, actualRecord)
@@ -121,8 +121,12 @@ func Test_getNonce(t *testing.T) {
 				return 2, big.NewInt(2), true, nil
 			},
 		}
-		virtualSession := newVirtualSelectionSession(&sessionMock)
-		actualNonce, err := virtualSession.getNonce([]byte("alice"))
+		virtualSession := newVirtualSelectionSession(&sessionMock, make(map[string]*virtualAccountRecord))
+
+		virtualRecord, err := virtualSession.getRecord([]byte("alice"))
+		require.NoError(t, err)
+
+		actualNonce, err := virtualSession.getNonceForAccountRecord(virtualRecord)
 
 		require.NoError(t, err)
 		require.Equal(t, uint64(2), actualNonce)
@@ -137,7 +141,7 @@ func Test_getNonce(t *testing.T) {
 			},
 		}
 
-		virtualSession := newVirtualSelectionSession(&sessionMock)
+		virtualSession := newVirtualSelectionSession(&sessionMock, make(map[string]*virtualAccountRecord))
 
 		expectedRecord := virtualAccountRecord{
 			initialNonce: core.OptionalUint64{
@@ -153,7 +157,10 @@ func Test_getNonce(t *testing.T) {
 			"alice": &expectedRecord,
 		}
 
-		actualNonce, err := virtualSession.getNonce([]byte("alice"))
+		aliceRecord, err := virtualSession.getRecord([]byte("alice"))
+		require.NoError(t, err)
+
+		actualNonce, err := virtualSession.getNonceForAccountRecord(aliceRecord)
 
 		require.NoError(t, err)
 		require.Equal(t, uint64(3), actualNonce)
@@ -162,16 +169,14 @@ func Test_getNonce(t *testing.T) {
 	t.Run("should err", func(t *testing.T) {
 		t.Parallel()
 
-		expErr := errors.New("error")
-		sessionMock := txcachemocks.SelectionSessionMock{
-			GetAccountNonceAndBalanceCalled: func(address []byte) (uint64, *big.Int, bool, error) {
-				return 0, nil, false, expErr
-			},
-		}
-		virtualSession := newVirtualSelectionSession(&sessionMock)
+		sessionMock := txcachemocks.SelectionSessionMock{}
+		virtualSession := newVirtualSelectionSession(&sessionMock, make(map[string]*virtualAccountRecord))
 
-		_, err := virtualSession.getNonce([]byte("alice"))
-		require.Equal(t, expErr, err)
+		aliceRecord, err := newVirtualAccountRecord(core.OptionalUint64{Value: 0, HasValue: false}, big.NewInt(1))
+		require.NoError(t, err)
+
+		_, err = virtualSession.getNonceForAccountRecord(aliceRecord)
+		require.Equal(t, errNonceNotSet, err)
 	})
 
 	t.Run("should return errNonceNotSet", func(t *testing.T) {
@@ -183,7 +188,7 @@ func Test_getNonce(t *testing.T) {
 			},
 		}
 
-		virtualSession := newVirtualSelectionSession(&sessionMock)
+		virtualSession := newVirtualSelectionSession(&sessionMock, make(map[string]*virtualAccountRecord))
 
 		expectedRecord := virtualAccountRecord{
 			initialNonce: core.OptionalUint64{
@@ -199,7 +204,10 @@ func Test_getNonce(t *testing.T) {
 			"alice": &expectedRecord,
 		}
 
-		_, err := virtualSession.getNonce([]byte("alice"))
+		aliceRecord, err := virtualSession.getRecord([]byte("alice"))
+		require.NoError(t, err)
+
+		_, err = virtualSession.getNonceForAccountRecord(aliceRecord)
 		require.Equal(t, errNonceNotSet, err)
 	})
 }
@@ -209,7 +217,7 @@ func Test_accumulateConsumedBalance(t *testing.T) {
 
 	t.Run("when sender is fee payer", func(t *testing.T) {
 		session := txcachemocks.NewSelectionSessionMock()
-		virtualSession := newVirtualSelectionSession(session)
+		virtualSession := newVirtualSelectionSession(session, make(map[string]*virtualAccountRecord))
 
 		a := createTx([]byte("a-7"), "a", 7)
 		b := createTx([]byte("a-8"), "a", 8).withValue(oneQuintillionBig)
@@ -217,14 +225,17 @@ func Test_accumulateConsumedBalance(t *testing.T) {
 		a.precomputeFields(host)
 		b.precomputeFields(host)
 
-		err := virtualSession.accumulateConsumedBalance(a)
+		virtualRecord1, err := virtualSession.getRecord([]byte("a"))
 		require.NoError(t, err)
 
-		virtualRecord1, err := virtualSession.getRecord([]byte("a"))
+		err = virtualSession.accumulateConsumedBalance(a, virtualRecord1)
+		require.NoError(t, err)
+
+		virtualRecord1, err = virtualSession.getRecord([]byte("a"))
 		require.NoError(t, err)
 		require.Equal(t, "50000000000000", virtualRecord1.getConsumedBalance().String())
 
-		err = virtualSession.accumulateConsumedBalance(b)
+		err = virtualSession.accumulateConsumedBalance(b, virtualRecord1)
 		require.NoError(t, err)
 
 		virtualRecord2, err := virtualSession.getRecord([]byte("a"))
@@ -235,7 +246,7 @@ func Test_accumulateConsumedBalance(t *testing.T) {
 
 	t.Run("when relayer is fee payer", func(t *testing.T) {
 		session := txcachemocks.NewSelectionSessionMock()
-		virtualSession := newVirtualSelectionSession(session)
+		virtualSession := newVirtualSelectionSession(session, make(map[string]*virtualAccountRecord))
 
 		a := createTx([]byte("a-7"), "a", 7).withRelayer([]byte("b")).withGasLimit(100_000)
 		b := createTx([]byte("a-8"), "a", 8).withValue(oneQuintillionBig).withRelayer([]byte("b")).withGasLimit(100_000)
@@ -243,10 +254,13 @@ func Test_accumulateConsumedBalance(t *testing.T) {
 		a.precomputeFields(host)
 		b.precomputeFields(host)
 
-		err := virtualSession.accumulateConsumedBalance(a)
+		virtualRecord1, err := virtualSession.getRecord([]byte("a"))
 		require.NoError(t, err)
 
-		virtualRecord1, err := virtualSession.getRecord([]byte("a"))
+		err = virtualSession.accumulateConsumedBalance(a, virtualRecord1)
+		require.NoError(t, err)
+
+		virtualRecord1, err = virtualSession.getRecord([]byte("a"))
 		require.NoError(t, err)
 		require.Equal(t, "0", virtualRecord1.getConsumedBalance().String())
 
@@ -254,7 +268,7 @@ func Test_accumulateConsumedBalance(t *testing.T) {
 		require.NoError(t, err)
 		require.Equal(t, "100000000000000", virtualRecord2.getConsumedBalance().String())
 
-		err = virtualSession.accumulateConsumedBalance(b)
+		err = virtualSession.accumulateConsumedBalance(b, virtualRecord1)
 		require.NoError(t, err)
 
 		virtualRecord1, err = virtualSession.getRecord([]byte("a"))
@@ -274,7 +288,7 @@ func Test_detectWillFeeExceedBalance(t *testing.T) {
 		t.Parallel()
 
 		sessionMock := txcachemocks.SelectionSessionMock{}
-		virtualSession := newVirtualSelectionSession(&sessionMock)
+		virtualSession := newVirtualSelectionSession(&sessionMock, make(map[string]*virtualAccountRecord))
 
 		aliceRecord := virtualAccountRecord{
 			initialNonce: core.OptionalUint64{
@@ -303,7 +317,7 @@ func Test_detectWillFeeExceedBalance(t *testing.T) {
 		t.Parallel()
 
 		sessionMock := txcachemocks.SelectionSessionMock{}
-		virtualSession := newVirtualSelectionSession(&sessionMock)
+		virtualSession := newVirtualSelectionSession(&sessionMock, make(map[string]*virtualAccountRecord))
 
 		aliceRecord := virtualAccountRecord{
 			initialNonce: core.OptionalUint64{
@@ -341,19 +355,19 @@ func Test_isIncorrectlyGuarded(t *testing.T) {
 			},
 		}
 
-		virtualSession := newVirtualSelectionSession(&sessionMock)
+		virtualSession := newVirtualSelectionSession(&sessionMock, make(map[string]*virtualAccountRecord))
 
 		actualRes := virtualSession.isIncorrectlyGuarded(nil)
 		require.True(t, actualRes)
 	})
 }
 
-func TestBenchmarkVirtualSelectionSession_getNonce(t *testing.T) {
+func TestBenchmarkVirtualSelectionSession_getRecord(t *testing.T) {
 	sw := core.NewStopWatch()
 
 	t.Run("numAccounts = 300, numTransactionsPerAccount = 100", func(t *testing.T) {
 		session := txcachemocks.NewSelectionSessionMock()
-		virtualSession := newVirtualSelectionSession(session)
+		virtualSession := newVirtualSelectionSession(session, make(map[string]*virtualAccountRecord))
 
 		numAccounts := 300
 		numTransactionsPerAccount := 100
@@ -369,7 +383,7 @@ func TestBenchmarkVirtualSelectionSession_getNonce(t *testing.T) {
 
 		for i := 0; i < numAccounts; i++ {
 			for j := 0; j < numCallsGetNoncePerAccount; j++ {
-				_, err := virtualSession.getNonce(randomAddresses.getItem(i))
+				_, err := virtualSession.getRecord(randomAddresses.getItem(i))
 				require.NoError(t, err)
 			}
 		}
@@ -381,7 +395,7 @@ func TestBenchmarkVirtualSelectionSession_getNonce(t *testing.T) {
 
 	t.Run("numAccounts = 10_000, numTransactionsPerAccount = 3", func(t *testing.T) {
 		session := txcachemocks.NewSelectionSessionMock()
-		sessionWrapper := newVirtualSelectionSession(session)
+		sessionWrapper := newVirtualSelectionSession(session, make(map[string]*virtualAccountRecord))
 
 		numAccounts := 10_000
 		numTransactionsPerAccount := 3
@@ -397,7 +411,7 @@ func TestBenchmarkVirtualSelectionSession_getNonce(t *testing.T) {
 
 		for i := 0; i < numAccounts; i++ {
 			for j := 0; j < numCallsGetNoncePerAccount; j++ {
-				_, err := sessionWrapper.getNonce(randomAddresses.getItem(i))
+				_, err := sessionWrapper.getRecord(randomAddresses.getItem(i))
 				require.NoError(t, err)
 			}
 		}
@@ -409,7 +423,7 @@ func TestBenchmarkVirtualSelectionSession_getNonce(t *testing.T) {
 
 	t.Run("numAccounts = 30_000, numTransactionsPerAccount = 1", func(t *testing.T) {
 		session := txcachemocks.NewSelectionSessionMock()
-		sessionWrapper := newVirtualSelectionSession(session)
+		sessionWrapper := newVirtualSelectionSession(session, make(map[string]*virtualAccountRecord))
 
 		numAccounts := 30_000
 		numTransactionsPerAccount := 1
@@ -425,7 +439,7 @@ func TestBenchmarkVirtualSelectionSession_getNonce(t *testing.T) {
 
 		for i := 0; i < numAccounts; i++ {
 			for j := 0; j < numCallsGetNoncePerAccount; j++ {
-				_, err := sessionWrapper.getNonce(randomAddresses.getItem(i))
+				_, err := sessionWrapper.getRecord(randomAddresses.getItem(i))
 				require.NoError(t, err)
 			}
 		}
@@ -448,7 +462,7 @@ func TestBenchmarkVirtualSelectionSession_getNonce(t *testing.T) {
 	//     Core(s) per socket:   14
 	//
 	// VirtualSelectionSession operations should have a negligible (or small) impact on the performance!
-	// 0.011032s (TestBenchmarkVirtualSelectionSession_getNonce/_numAccounts_=_300,_numTransactionsPerAccount=_100)
-	// 0.017172s (TestBenchmarkVirtualSelectionSession_getNonce/_numAccounts_=_10_000,_numTransactionsPerAccount=_3)
-	// 0.019611s (TestBenchmarkVirtualSelectionSession_getNonce/_numAccounts_=_30_000,_numTransactionsPerAccount=_1)
+	// 0.011677s (TestBenchmarkVirtualSelectionSession_getNonce/_numAccounts_=_300,_numTransactionsPerAccount=_100)
+	// 0.016253s (TestBenchmarkVirtualSelectionSession_getNonce/_numAccounts_=_10_000,_numTransactionsPerAccount=_3)
+	// 0.028861s (TestBenchmarkVirtualSelectionSession_getNonce/_numAccounts_=_30_000,_numTransactionsPerAccount=_1)
 }
