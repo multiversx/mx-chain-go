@@ -55,7 +55,7 @@ func NewExecutionResultInclusionEstimator(cfg config.ExecutionResultInclusionEst
 func (erie *ExecutionResultInclusionEstimator) Decide(
 	lastNotarised *LastExecutionResultForInclusion,
 	pending []data.BaseExecutionResultHandler,
-	currentHdrTsMs uint64,
+	currentRound uint64,
 ) (allowed int) {
 	allowed = 0
 
@@ -64,6 +64,7 @@ func (erie *ExecutionResultInclusionEstimator) Decide(
 	}
 
 	var roundForTBaseCalculation uint64
+	var previousExecutionResultMeta data.BaseExecutionResultHandler
 
 	// lastNotarised is nil if genesis.
 	if lastNotarised == nil {
@@ -71,10 +72,10 @@ func (erie *ExecutionResultInclusionEstimator) Decide(
 	} else {
 		roundForTBaseCalculation = lastNotarised.NotarizedInRound
 	}
-	var previousExecutionResultMeta data.BaseExecutionResultHandler
 
 	tBase := convertMsToNs(erie.roundHandler.GetTimeStampForRound(roundForTBaseCalculation))
 
+	currentHdrTsMs := erie.roundHandler.GetTimeStampForRound(currentRound)
 	currentHdrTsNs := convertMsToNs(currentHdrTsMs)
 
 	// accumulated execution time in ns (1 gas = 1ns)
@@ -83,7 +84,7 @@ func (erie *ExecutionResultInclusionEstimator) Decide(
 		if i > 0 {
 			previousExecutionResultMeta = pending[i-1]
 		}
-		ok := erie.checkSanity(executionResultMeta, previousExecutionResultMeta, lastNotarised, currentHdrTsNs)
+		ok := erie.checkSanity(executionResultMeta, previousExecutionResultMeta, lastNotarised, currentRound)
 		if !ok {
 			return i
 		}
@@ -154,62 +155,48 @@ func (erie *ExecutionResultInclusionEstimator) checkSanity(
 	currentExecutionResult data.BaseExecutionResultHandler,
 	previousExecutionResult data.BaseExecutionResultHandler,
 	lastNotarised *LastExecutionResultForInclusion,
-	currentHdrTsNs uint64,
+	currentRound uint64,
 ) bool {
-	currentExecutionResultForProposalTimestamp := erie.roundHandler.GetTimeStampForRound(currentExecutionResult.GetHeaderRound())
-	currentExecutionResultForProposalTimestampNs := convertMsToNs(currentExecutionResultForProposalTimestamp)
 	// Check for strict nonce monotonicity
 	if previousExecutionResult != nil && currentExecutionResult.GetHeaderNonce() != previousExecutionResult.GetHeaderNonce()+1 {
 		log.Debug("ExecutionResultInclusionEstimator: non-monotonic HeaderNonce detected",
 			"currentHeaderNonce", currentExecutionResult.GetHeaderNonce(),
 			"previousHeaderNonce", previousExecutionResult.GetHeaderNonce(),
-			"currentHeaderTimeMs", currentExecutionResultForProposalTimestamp,
-			"previousHeaderTimeMs", erie.roundHandler.GetTimeStampForRound(previousExecutionResult.GetHeaderRound()),
+			"currentRound", currentExecutionResult.GetHeaderRound(),
+			"previousRound", previousExecutionResult.GetHeaderRound(),
 		)
 		return false
 	}
 	// Check for monotonicity of rounds
 	if previousExecutionResult != nil && currentExecutionResult.GetHeaderRound() < previousExecutionResult.GetHeaderRound() {
 		log.Debug("ExecutionResultInclusionEstimator: non-monotonic rounds detected",
-			"currentHeaderTimeMs", currentExecutionResultForProposalTimestamp,
-			"previousHeaderTimeMs", erie.roundHandler.GetTimeStampForRound(previousExecutionResult.GetHeaderRound()),
+			"currentRound", currentExecutionResult.GetHeaderRound(),
+			"previousRound", previousExecutionResult.GetHeaderRound(),
 		)
 		return false
 	}
-	// Check for time before genesis time
-	genesisTimeMs := erie.roundHandler.GetTimeStampForRound(0)
 
-	if currentExecutionResultForProposalTimestamp < genesisTimeMs {
-		log.Debug("ExecutionResultInclusionEstimator: HeaderTimeMs before genesis detected",
-			"headerNonce", currentExecutionResult.GetHeaderNonce(),
-			"headerTimeMs", currentExecutionResultForProposalTimestamp,
-			"genesisTimeMs", genesisTimeMs,
-		)
-		return false
-	}
 	// Check for round before last notarised
 	if lastNotarised != nil && currentExecutionResult.GetHeaderRound() < lastNotarised.NotarizedInRound {
-		log.Debug("ExecutionResultInclusionEstimator: HeaderTimeMs before last notarised detected",
+		log.Debug("ExecutionResultInclusionEstimator: Round before last notarised detected",
 			"headerNonce", currentExecutionResult.GetHeaderNonce(),
-			"headerTimeMs", currentExecutionResultForProposalTimestamp,
-			"lastNotarisedTimeMs", erie.roundHandler.GetTimeStampForRound(lastNotarised.NotarizedInRound),
-		)
+			"lastNotarisedRound", lastNotarised.NotarizedInRound,
+			"currentRound", currentExecutionResult.GetHeaderRound())
 		return false
 	}
-
 	// Check for results in the future
-	if currentExecutionResultForProposalTimestampNs > currentHdrTsNs {
+	if currentExecutionResult.GetHeaderRound() > currentRound {
 		log.Debug("ExecutionResultInclusionEstimator: HeaderTimeMs in the future detected",
 			"headerNonce", currentExecutionResult.GetHeaderNonce(),
-			"headerTimeNs", currentExecutionResultForProposalTimestampNs,
-			"currentHdrTsNs", currentHdrTsNs,
+			"currentRound", currentExecutionResult.GetHeaderRound(),
+			"currentHeaderRound", currentRound,
 		)
 		return false
 	}
 	return true
 }
 
-// TODO check for overflow
+// TODO check for overflow?
 func convertMsToNs(ms uint64) uint64 {
 	// Convert milliseconds to nanoseconds
 	return ms * 1_000_000
