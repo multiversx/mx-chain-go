@@ -14,7 +14,7 @@ import (
 	"github.com/multiversx/mx-chain-go/process/block/processedMb"
 )
 
-// CreateBlockProposal - creates a block proposal without executing any of the transactions
+// CreateBlockProposal creates a block proposal without executing any of the transactions
 func (sp *shardProcessor) CreateBlockProposal(
 	initialHdr data.HeaderHandler,
 	haveTime func() bool,
@@ -136,11 +136,13 @@ func (sp *shardProcessor) addExecutionResultsOnHeader(shardHeader data.HeaderHan
 	numToInclude := sp.executionResultsInclusionEstimator.Decide(lastNotarizedExecutionResultInfo, pendingExecutionResults, shardHeader.GetTimeStamp())
 
 	executionResultsToInclude := pendingExecutionResults[:numToInclude]
+	lastExecutionResultForCurrentBlock = lastExecutionResultHandler
 	if len(executionResultsToInclude) > 0 {
 		lastExecutionResult := executionResultsToInclude[len(executionResultsToInclude)-1]
 		lastExecutionResultForCurrentBlock, err = process.CreateLastExecutionResultInfoFromExecutionResult(shardHeader.GetRound(), lastExecutionResult, sp.shardCoordinator.SelfId())
-	} else {
-		lastExecutionResultForCurrentBlock = lastExecutionResultHandler
+		if err != nil {
+			return err
+		}
 	}
 
 	err = shardHeader.SetLastExecutionResultHandler(lastExecutionResultForCurrentBlock)
@@ -264,15 +266,15 @@ func (sp *shardProcessor) selectIncomingMiniBlocks(
 		}
 
 		currentMetaBlockHash = orderedMetaBlocksHashes[i]
-		if len(currentMetaBlock.GetMiniBlockHeadersWithDst(sp.shardCoordinator.SelfId())) == 0 {
-			sp.miniBlocksSelectionSession.AddReferencedMetaBlock(orderedMetaBlocks[i], orderedMetaBlocksHashes[i])
-			continue
-		}
-
 		metaBlock, ok := currentMetaBlock.(data.MetaHeaderHandler)
 		if !ok {
 			log.Warn("selectIncomingMiniBlocks: wrong type assertion for meta block")
 			break
+		}
+
+		if len(currentMetaBlock.GetMiniBlockHeadersWithDst(sp.shardCoordinator.SelfId())) == 0 {
+			sp.miniBlocksSelectionSession.AddReferencedMetaBlock(orderedMetaBlocks[i], orderedMetaBlocksHashes[i])
+			continue
 		}
 
 		currProcessedMiniBlocksInfo := sp.processedMiniBlocksTracker.GetProcessedMiniBlocksInfo(currentMetaBlockHash)
@@ -295,7 +297,6 @@ func (sp *shardProcessor) createMbsCrossShardDstMe(
 	currentMetaBlock data.MetaHeaderHandler,
 	miniBlockProcessingInfo map[string]*processedMb.ProcessedMiniBlockInfo,
 ) (bool, error) {
-	// if miniBlock was partially executed before, we can continue processing it
 	currMiniBlocksAdded, currNumTxsAdded, hdrFinished, errCreate := sp.txCoordinator.CreateMbsCrossShardDstMe(
 		currentMetaBlock,
 		miniBlockProcessingInfo,
