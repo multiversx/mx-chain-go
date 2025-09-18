@@ -522,22 +522,12 @@ func (atp *apiTransactionProcessor) selectTransactions(accountsAdapter state.Acc
 }
 
 func (atp *apiTransactionProcessor) extractTransactions(txs []*txcache.WrappedTransaction, selectionOptions common.TxSelectionOptionsAPI) []common.Transaction {
+	requestedFieldsHandler := newFieldsHandler(selectionOptions.GetRequestedFields())
+
 	transactions := make([]common.Transaction, len(txs))
 	for i, tx := range txs {
-		transactions[i].TxFields = make(map[string]interface{})
-		transactions[i].TxFields["hash"] = hex.EncodeToString(tx.TxHash)
+		transactions[i] = atp.extractRequestedTxInfo(tx, requestedFieldsHandler)
 
-		if selectionOptions.GetWithSender() {
-			transactions[i].TxFields["sender"] = hex.EncodeToString(tx.Tx.GetSndAddr())
-		}
-
-		if selectionOptions.GetWithRelayer() {
-			transactions[i].TxFields["relayer"] = hex.EncodeToString(tx.FeePayer)
-		}
-
-		if selectionOptions.GetWithNonce() {
-			transactions[i].TxFields["nonce"] = tx.Tx.GetNonce()
-		}
 	}
 
 	return transactions

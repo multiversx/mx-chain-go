@@ -113,7 +113,7 @@ type Facade interface {
 	GetTransactionsPoolForSender(sender, fields string) (*common.TransactionsPoolForSenderApiResponse, error)
 	GetLastPoolNonceForSender(sender string) (uint64, error)
 	GetTransactionsPoolNonceGapsForSender(sender string) (*common.TransactionsPoolNonceGapsForSenderApiResponse, error)
-	GetSelectedTransactions(request *common.TransactionsSelectionSimulationRequest) (*common.TransactionsSelectionSimulationResult, error)
+	GetSelectedTransactions(fields string) (*common.TransactionsSelectionSimulationResult, error)
 	GetVirtualNonce(address string) (*common.VirtualNonceOfAccountResponse, error)
 	GetAlteredAccountsForBlock(options dataApi.GetAlteredAccountsForBlockOptions) ([]*alteredAccount.AlteredAccount, error)
 	IsDataTrieMigrated(address string, options api.AccountQueryOptions) (bool, error)

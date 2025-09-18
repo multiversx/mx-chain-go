@@ -2111,14 +2111,8 @@ func TestNodeFacade_GetSelectedTransactions(t *testing.T) {
 			},
 		}
 
-		requestedFields := &common.TransactionsSelectionSimulationRequest{
-			WithSender:  false,
-			WithRelayer: false,
-			WithNonce:   false,
-		}
-
 		nf, _ := NewNodeFacade(arg)
-		res, err := nf.GetSelectedTransactions(requestedFields)
+		res, err := nf.GetSelectedTransactions("hash")
 		require.Nil(t, res)
 		require.Equal(t, expectedErr, err)
 	})
@@ -2155,14 +2149,8 @@ func TestNodeFacade_GetSelectedTransactions(t *testing.T) {
 			},
 		}
 
-		requestedFields := &common.TransactionsSelectionSimulationRequest{
-			WithSender:  false,
-			WithRelayer: false,
-			WithNonce:   false,
-		}
-
 		nf, _ := NewNodeFacade(arg)
-		res, err := nf.GetSelectedTransactions(requestedFields)
+		res, err := nf.GetSelectedTransactions("hash")
 		require.NoError(t, err)
 		require.Equal(t, expectedRes, res)
 	})

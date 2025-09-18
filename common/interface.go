@@ -293,9 +293,7 @@ type TxSelectionOptions interface {
 // TxSelectionOptionsAPI holds transactions selection options (parameters) for the API call
 type TxSelectionOptionsAPI interface {
 	TxSelectionOptions
-	GetWithSender() bool
-	GetWithRelayer() bool
-	GetWithNonce() bool
+	GetRequestedFields() string
 }
 
 // BlockchainInfo holds the parameters from the blockchain used for SelectTransactions

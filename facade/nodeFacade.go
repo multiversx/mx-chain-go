@@ -356,7 +356,7 @@ func (nf *nodeFacade) GetTransactionsPoolNonceGapsForSender(sender string) (*com
 }
 
 // GetSelectedTransactions will simulate a SelectTransactions, and it will return the corresponding hash of each selected transaction
-func (nf *nodeFacade) GetSelectedTransactions(requestedFields *common.TransactionsSelectionSimulationRequest) (*common.TransactionsSelectionSimulationResult, error) {
+func (nf *nodeFacade) GetSelectedTransactions(fields string) (*common.TransactionsSelectionSimulationResult, error) {
 	selectionOptions := holders.NewTxSelectionOptions(
 		nf.config.TxCacheSelectionConfig.SelectionGasRequested,
 		nf.config.TxCacheSelectionConfig.SelectionMaxNumTxs,
@@ -366,9 +366,7 @@ func (nf *nodeFacade) GetSelectedTransactions(requestedFields *common.Transactio
 
 	selectionOptionsAPI := holders.NewTxSelectionOptionsAPI(
 		selectionOptions,
-		requestedFields.WithSender,
-		requestedFields.WithSender,
-		requestedFields.WithNonce,
+		fields,
 	)
 
 	return nf.apiResolver.GetSelectedTransactions(selectionOptionsAPI, nf.blockchain, nf.accountStateAPI)

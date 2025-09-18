@@ -1012,7 +1012,7 @@ func TestTransactionsGroup_GetSelectedTransactions(t *testing.T) {
 		t.Parallel()
 
 		facade := &mock.FacadeStub{
-			GetSelectedTransactionsCalled: func(request *common.TransactionsSelectionSimulationRequest) (*common.TransactionsSelectionSimulationResult, error) {
+			GetSelectedTransactionsCalled: func(fields string) (*common.TransactionsSelectionSimulationResult, error) {
 				return nil, expectedErr
 			},
 		}
@@ -1048,7 +1048,7 @@ func TestTransactionsGroup_GetSelectedTransactions(t *testing.T) {
 		}
 
 		facade := &mock.FacadeStub{
-			GetSelectedTransactionsCalled: func(request *common.TransactionsSelectionSimulationRequest) (*common.TransactionsSelectionSimulationResult, error) {
+			GetSelectedTransactionsCalled: func(fields string) (*common.TransactionsSelectionSimulationResult, error) {
 				return expectedResult, nil
 			},
 		}

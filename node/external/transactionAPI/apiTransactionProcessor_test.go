@@ -1252,9 +1252,7 @@ func TestApiTransactionProcessor_GetSelectedTransactions(t *testing.T) {
 
 		selectionOptionsAPI := holders.NewTxSelectionOptionsAPI(
 			options,
-			false,
-			false,
-			false,
+			"hash",
 		)
 
 		selectedTxs, err := atp.GetSelectedTransactions(selectionOptionsAPI, blockchainMock, accountsAdapter)
@@ -1324,9 +1322,7 @@ func TestApiTransactionProcessor_GetSelectedTransactions(t *testing.T) {
 
 		selectionOptionsAPI := holders.NewTxSelectionOptionsAPI(
 			options,
-			true,
-			false,
-			true,
+			"hash,sender,relayer,nonce",
 		)
 
 		selectedTxs, err := atp.GetSelectedTransactions(selectionOptionsAPI, blockchainMock, accountsAdapter)
@@ -1381,9 +1377,7 @@ func TestApiTransactionProcessor_GetSelectedTransactions(t *testing.T) {
 
 		selectionOptionsAPI := holders.NewTxSelectionOptionsAPI(
 			options,
-			false,
-			false,
-			false,
+			"hash",
 		)
 
 		_, err = atp.GetSelectedTransactions(selectionOptionsAPI, nil, accountsAdapter)
@@ -1429,9 +1423,7 @@ func TestApiTransactionProcessor_GetSelectedTransactions(t *testing.T) {
 
 		selectionOptionsAPI := holders.NewTxSelectionOptionsAPI(
 			options,
-			false,
-			false,
-			false,
+			"hash",
 		)
 
 		selectedTxs, err := atp.GetSelectedTransactions(selectionOptionsAPI, blockchainMock, nil)
@@ -1498,9 +1490,7 @@ func TestApiTransactionProcessor_GetSelectedTransactions(t *testing.T) {
 
 		selectionOptionsAPI := holders.NewTxSelectionOptionsAPI(
 			options,
-			false,
-			false,
-			false,
+			"hash",
 		)
 
 		selectedTxs, err := atp.GetSelectedTransactions(selectionOptionsAPI, blockchainMock, accountsAdapter)

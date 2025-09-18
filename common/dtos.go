@@ -42,13 +42,6 @@ type TransactionsPoolNonceGapsForSenderApiResponse struct {
 	Gaps   []NonceGapApiResponse `json:"gaps"`
 }
 
-// TransactionsSelectionSimulationRequest is a struct that holds the requested fields for a selection simulation
-type TransactionsSelectionSimulationRequest struct {
-	WithSender  bool
-	WithRelayer bool
-	WithNonce   bool
-}
-
 // TransactionsSelectionSimulationResult represents a struct that holds the data to be returned when simulating a selection
 type TransactionsSelectionSimulationResult struct {
 	Transactions []Transaction `json:"transactions"`
