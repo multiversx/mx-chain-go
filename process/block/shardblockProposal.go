@@ -395,7 +395,7 @@ func (sp *shardProcessor) selectIncomingMiniBlocks(
 			continue
 		}
 
-		metaBlock, ok := currentMetaBlock.(*block.MetaBlock)
+		metaBlock, ok := currentMetaBlock.(data.MetaHeaderHandler)
 		if !ok {
 			log.Warn("selectIncomingMiniBlocks: wrong type assertion for meta block")
 			break
@@ -462,10 +462,7 @@ func (sp *shardProcessor) createProposalMiniBlocks(haveTime func() bool) error {
 	elapsedTime := time.Since(startTime)
 	log.Debug("elapsed time to create mbs to me", "time", elapsedTime)
 
-	outgoingTransactions, err := sp.selectOutgoingTransactions()
-	if err != nil {
-		return err
-	}
+	outgoingTransactions := sp.selectOutgoingTransactions()
 
 	err = sp.miniBlocksSelectionSession.CreateAndAddMiniBlockFromTransactions(outgoingTransactions)
 	if err != nil {
@@ -478,7 +475,7 @@ func (sp *shardProcessor) createProposalMiniBlocks(haveTime func() bool) error {
 	return nil
 }
 
-func (sp *shardProcessor) selectOutgoingTransactions() ([][]byte, error) {
+func (sp *shardProcessor) selectOutgoingTransactions() [][]byte {
 	log.Debug("selectOutgoingTransactions has been started")
 
 	sw := core.NewStopWatch()
@@ -492,7 +489,7 @@ func (sp *shardProcessor) selectOutgoingTransactions() ([][]byte, error) {
 	log.Debug("selectOutgoingTransactions has been finished",
 		"num txs", len(outgoingTransactions))
 
-	return outgoingTransactions, nil
+	return outgoingTransactions
 }
 
 func (sp *shardProcessor) checkMetaHeadersValidityAndFinalityProposal(header data.ShardHeaderHandler) error {
