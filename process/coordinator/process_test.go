@@ -281,12 +281,13 @@ func createMockTransactionCoordinatorArguments() ArgTransactionCoordinator {
 	return argsTransactionCoordinator
 }
 
-func createAndAddBlockDataRequester(
+func createAndAddBlockDataRequesters(
 	argsTransactionCoordinator *ArgTransactionCoordinator,
 	nrShards uint32,
-	poolsHolder *dataRetrieverMock.PoolsHolderStub,
+	poolsHolder dataRetriever.PoolsHolder,
 	requestHandler process.RequestHandler,
 	preprocContainer process.PreProcessorsContainer,
+	preprocContainerProposal process.PreProcessorsContainer,
 ) *BlockDataRequest {
 	argsTransactionCoordinator.PreProcessors = preprocContainer
 	argsTransactionCoordinator.ShardCoordinator = mock.NewMultiShardsCoordinatorMock(nrShards)
@@ -300,6 +301,18 @@ func createAndAddBlockDataRequester(
 	}
 	blockDataRequest, _ := NewBlockDataRequester(blockDataRequestArgs)
 	argsTransactionCoordinator.BlockDataRequester = blockDataRequest
+
+	blockDataRequesterArgsProposal := BlockDataRequestArgs{
+		RequestHandler:      requestHandler,
+		MiniBlockPool:       argsTransactionCoordinator.MiniBlockPool,
+		PreProcessors:       preprocContainerProposal,
+		ShardCoordinator:    argsTransactionCoordinator.ShardCoordinator,
+		EnableEpochsHandler: argsTransactionCoordinator.EnableEpochsHandler,
+	}
+
+	blockDataRequesterProposal, _ := NewBlockDataRequester(blockDataRequesterArgsProposal)
+	argsTransactionCoordinator.BlockDataRequesterProposal = blockDataRequesterProposal
+
 	return blockDataRequest
 }
 
@@ -1611,7 +1624,7 @@ func TestTransactionCoordinator_GetAllCurrentUsedTxs(t *testing.T) {
 		},
 	}
 	preprocContainer := createPreProcessorContainerWithDataPool(tdp, FeeHandlerMock(), argsTransactionCoordinator.Accounts)
-	_ = createAndAddBlockDataRequester(&argsTransactionCoordinator, nrShards, tdp, &testscommon.RequestHandlerStub{}, preprocContainer)
+	_ = createAndAddBlockDataRequesters(&argsTransactionCoordinator, nrShards, tdp, &testscommon.RequestHandlerStub{}, preprocContainer, preprocContainer)
 
 	argsTransactionCoordinator.GasHandler = &testscommon.GasHandlerStub{
 		ComputeGasProvidedByTxCalled: func(txSndShId uint32, txRcvShId uint32, txHandler data.TransactionHandler) (uint64, uint64, error) {
@@ -1654,7 +1667,7 @@ func TestTransactionCoordinator_RequestBlockTransactionsNilBody(t *testing.T) {
 	tdp := initDataPool(txHash)
 	nrShards := uint32(5)
 	preprocContainer := createPreProcessorContainerWithDataPool(tdp, FeeHandlerMock(), argsTransactionCoordinator.Accounts)
-	blockDataRequester := createAndAddBlockDataRequester(&argsTransactionCoordinator, nrShards, tdp, &testscommon.RequestHandlerStub{}, preprocContainer)
+	blockDataRequester := createAndAddBlockDataRequesters(&argsTransactionCoordinator, nrShards, tdp, &testscommon.RequestHandlerStub{}, preprocContainer, preprocContainer)
 
 	tc, err := NewTransactionCoordinator(argsTransactionCoordinator)
 	assert.Nil(t, err)
@@ -1676,7 +1689,7 @@ func TestTransactionCoordinator_RequestBlockTransactionsRequestOne(t *testing.T)
 	nrShards := uint32(5)
 	argsTransactionCoordinator := createMockTransactionCoordinatorArguments()
 	preprocContainer := createPreProcessorContainerWithDataPool(tdp, FeeHandlerMock(), argsTransactionCoordinator.Accounts)
-	blockDataRequester := createAndAddBlockDataRequester(&argsTransactionCoordinator, nrShards, tdp, &testscommon.RequestHandlerStub{}, preprocContainer)
+	blockDataRequester := createAndAddBlockDataRequesters(&argsTransactionCoordinator, nrShards, tdp, &testscommon.RequestHandlerStub{}, preprocContainer, preprocContainer)
 	tc, err := NewTransactionCoordinator(argsTransactionCoordinator)
 	assert.Nil(t, err)
 	assert.NotNil(t, tc)
@@ -1847,7 +1860,7 @@ func TestTransactionCoordinator_ProcessBlockTransactionProcessTxError(t *testing
 	argsTransactionCoordinator := createMockTransactionCoordinatorArguments()
 	argsTransactionCoordinator.Accounts = initAccountsMock()
 	argsTransactionCoordinator.PreProcessors = container
-	_ = createAndAddBlockDataRequester(&argsTransactionCoordinator, 3, dataPool, &testscommon.RequestHandlerStub{}, container)
+	_ = createAndAddBlockDataRequesters(&argsTransactionCoordinator, 3, dataPool, &testscommon.RequestHandlerStub{}, container, container)
 	tc, err := NewTransactionCoordinator(argsTransactionCoordinator)
 	assert.Nil(t, err)
 	assert.NotNil(t, tc)
@@ -1970,7 +1983,7 @@ func TestTransactionCoordinator_RequestMiniblocks(t *testing.T) {
 	argsTransactionCoordinator := createMockTransactionCoordinatorArguments()
 	argsTransactionCoordinator.Accounts = accounts
 	argsTransactionCoordinator.PreProcessors = container
-	_ = createAndAddBlockDataRequester(&argsTransactionCoordinator, 3, dataPool, requestHandler, container)
+	_ = createAndAddBlockDataRequesters(&argsTransactionCoordinator, 3, dataPool, requestHandler, container, container)
 	tc, err := NewTransactionCoordinator(argsTransactionCoordinator)
 	assert.Nil(t, err)
 	assert.NotNil(t, tc)

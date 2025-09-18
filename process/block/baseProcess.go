@@ -38,6 +38,7 @@ import (
 	"github.com/multiversx/mx-chain-go/process/block/bootstrapStorage"
 	"github.com/multiversx/mx-chain-go/process/block/cutoff"
 	"github.com/multiversx/mx-chain-go/process/block/processedMb"
+	"github.com/multiversx/mx-chain-go/process/estimator"
 	"github.com/multiversx/mx-chain-go/process/headerCheck"
 	"github.com/multiversx/mx-chain-go/process/missingData"
 	"github.com/multiversx/mx-chain-go/sharding"
@@ -116,10 +117,12 @@ type baseProcessor struct {
 	mutNonceOfFirstCommittedBlock sync.RWMutex
 	nonceOfFirstCommittedBlock    core.OptionalUint64
 
-	proofsPool                 dataRetriever.ProofsPool
-	miniBlocksSelectionSession MiniBlocksSelectionSession
-	executionResultsVerifier   ExecutionResultsVerifier
-	missingDataResolver        MissingDataResolver
+	proofsPool                         dataRetriever.ProofsPool
+	executionResultsInclusionEstimator process.InclusionEstimator
+	executionResultsTracker            process.ExecutionResultsTracker
+	miniBlocksSelectionSession         MiniBlocksSelectionSession
+	executionResultsVerifier           ExecutionResultsVerifier
+	missingDataResolver                MissingDataResolver
 }
 
 type bootStorerDataArgs struct {
@@ -164,6 +167,12 @@ func NewBaseProcessor(arguments ArgBaseProcessor) (*baseProcessor, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	inclusionEstimator := estimator.NewExecutionResultInclusionEstimator(
+		arguments.Config.ExecutionResultInclusionEstimator,
+		0, // TODO: take this from arguments.CoreComponents - make sure it is in milliseconds
+		arguments.CoreComponents.RoundHandler(),
+	)
 
 	missingDataArgs := missingData.ResolverArgs{
 		HeadersPool:        arguments.DataComponents.Datapool().Headers(),
@@ -230,9 +239,12 @@ func NewBaseProcessor(arguments ArgBaseProcessor) (*baseProcessor, error) {
 		sentSignaturesTracker:         arguments.SentSignaturesTracker,
 		proofsPool:                    arguments.DataComponents.Datapool().Proofs(),
 		hdrsForCurrBlock:              arguments.HeadersForBlock,
-		miniBlocksSelectionSession:    mbSelectionSession,
-		executionResultsVerifier:      execResultsVerifier,
-		missingDataResolver:           missingDataResolver,
+
+		executionResultsTracker:            executionResultsTracker,
+		executionResultsInclusionEstimator: inclusionEstimator,
+		miniBlocksSelectionSession:         mbSelectionSession,
+		executionResultsVerifier:           execResultsVerifier,
+		missingDataResolver:                missingDataResolver,
 	}
 
 	return base, nil

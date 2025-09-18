@@ -39,6 +39,11 @@ func (rh *RoundHandler) RemainingTime(startTime time.Time, maxTime time.Duration
 func (rh *RoundHandler) IncrementIndex() {
 }
 
+// GetTimeStampForRound -
+func (rh *RoundHandler) GetTimeStampForRound(round uint64) uint64 {
+	return 0
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (rh *RoundHandler) IsInterfaceNil() bool {
 	return rh == nil

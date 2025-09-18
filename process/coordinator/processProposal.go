@@ -15,13 +15,13 @@ func (tc *transactionCoordinator) CreateMbsCrossShardDstMe(
 	hdr data.HeaderHandler,
 	processedMiniBlocksInfo map[string]*processedMb.ProcessedMiniBlockInfo,
 ) ([]block.MiniblockAndHash, uint32, bool, error) {
+	if check.IfNil(hdr) {
+		return nil, 0, false, process.ErrNilHeaderHandler
+	}
+
+	numMiniBlocksAlreadyProcessed := 0
 	miniBlocksAndHashes := make([]block.MiniblockAndHash, 0)
 	numTransactions := uint32(0)
-	if check.IfNil(hdr) {
-		log.Warn("transactionCoordinator.CreateMbsCrossShardDstMe header is nil")
-
-		return miniBlocksAndHashes, 0, false, nil
-	}
 	shouldSkipShard := make(map[uint32]bool)
 
 	tc.gasComputation.Reset()
@@ -55,6 +55,7 @@ func (tc *transactionCoordinator) CreateMbsCrossShardDstMe(
 
 		processedMbInfo := getProcessedMiniBlockInfo(processedMiniBlocksInfo, miniBlockInfo.Hash)
 		if processedMbInfo.FullyProcessed {
+			numMiniBlocksAlreadyProcessed++
 			log.Trace("transactionCoordinator.CreateMbsCrossShardDstMe: mini block already processed",
 				"sender shard", miniBlockInfo.SenderShardID,
 				"hash", miniBlockInfo.Hash,
@@ -136,7 +137,7 @@ func (tc *transactionCoordinator) CreateMbsCrossShardDstMe(
 		miniBlocksAndHashes = miniBlocksAndHashes[:lastMBIndex+1]
 	}
 
-	allMiniBlocksAdded := len(miniBlocksAndHashes) == len(finalCrossMiniBlockInfos)
+	allMiniBlocksAdded := len(miniBlocksAndHashes)+numMiniBlocksAlreadyProcessed == len(finalCrossMiniBlockInfos)
 
 	return miniBlocksAndHashes, numTransactions, allMiniBlocksAdded, nil
 }

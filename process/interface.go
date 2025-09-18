@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/multiversx/mx-chain-go/ntp"
+	"github.com/multiversx/mx-chain-go/process/estimator"
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data"
@@ -1505,5 +1506,11 @@ type BlockDataRequester interface {
 	GetFinalCrossMiniBlockInfoAndRequestMissing(header data.HeaderHandler) []*data.MiniBlockInfo
 	IsDataPreparedForProcessing(haveTime func() time.Duration) error
 	Reset()
+	IsInterfaceNil() bool
+}
+
+// InclusionEstimator decides how many execution results can be included in the next block
+type InclusionEstimator interface {
+	Decide(lastNotarised *estimator.LastExecutionResultForInclusion, pending []data.ExecutionResultHandler, currentHdrTsMs uint64) (allowed int)
 	IsInterfaceNil() bool
 }
