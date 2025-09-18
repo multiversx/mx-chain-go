@@ -334,6 +334,18 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 		return nil, err
 	}
 
+	argsGasConsumption := block.ArgsGasConsumption{
+		EconomicsFee:                      pcf.coreData.EconomicsData(),
+		ShardCoordinator:                  pcf.bootstrapComponents.ShardCoordinator(),
+		GasHandler:                        gasHandler,
+		BlockCapacityOverestimationFactor: pcf.economicsConfig.FeeSettings.BlockCapacityOverestimationFactor,
+		PercentDecreaseLimitsStep:         pcf.economicsConfig.FeeSettings.PercentDecreaseLimitsStep,
+	}
+	gasConsumption, err := block.NewGasConsumption(argsGasConsumption)
+	if err != nil {
+		return nil, err
+	}
+
 	preProcFactory, err := shard.NewPreProcessorsContainerFactory(
 		pcf.bootstrapComponents.ShardCoordinator(),
 		pcf.data.StorageService(),
@@ -359,6 +371,7 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 		processedMiniBlocksTracker,
 		pcf.txExecutionOrderHandler,
 		pcf.config.TxCacheSelection,
+		gasConsumption,
 	)
 	if err != nil {
 		return nil, err
@@ -433,6 +446,7 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 		TxExecutionOrderHandler:      pcf.txExecutionOrderHandler,
 		BlockDataRequester:           blockDataRequester,
 		BlockDataRequesterProposal:   proposalBlockDataRequester,
+		GasComputation:               gasConsumption,
 	}
 	txCoordinator, err := coordinator.NewTransactionCoordinator(argsTransactionCoordinator)
 	if err != nil {
@@ -739,6 +753,18 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 		return nil, err
 	}
 
+	argsGasConsumption := block.ArgsGasConsumption{
+		EconomicsFee:                      pcf.coreData.EconomicsData(),
+		ShardCoordinator:                  pcf.bootstrapComponents.ShardCoordinator(),
+		GasHandler:                        gasHandler,
+		BlockCapacityOverestimationFactor: pcf.economicsConfig.FeeSettings.BlockCapacityOverestimationFactor,
+		PercentDecreaseLimitsStep:         pcf.economicsConfig.FeeSettings.PercentDecreaseLimitsStep,
+	}
+	gasConsumption, err := block.NewGasConsumption(argsGasConsumption)
+	if err != nil {
+		return nil, err
+	}
+
 	preProcFactory, err := metachain.NewPreProcessorsContainerFactory(
 		pcf.bootstrapComponents.ShardCoordinator(),
 		pcf.data.StorageService(),
@@ -762,6 +788,7 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 		processedMiniBlocksTracker,
 		pcf.txExecutionOrderHandler,
 		pcf.config.TxCacheSelection,
+		gasConsumption,
 	)
 	if err != nil {
 		return nil, err
@@ -835,6 +862,7 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 		TxExecutionOrderHandler:      pcf.txExecutionOrderHandler,
 		BlockDataRequester:           blockDataRequester,
 		BlockDataRequesterProposal:   proposalBlockDataRequester,
+		GasComputation:               gasConsumption,
 	}
 	txCoordinator, err := coordinator.NewTransactionCoordinator(argsTransactionCoordinator)
 	if err != nil {

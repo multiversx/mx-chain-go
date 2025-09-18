@@ -12,22 +12,22 @@ import (
 
 // PreProcessorMock -
 type PreProcessorMock struct {
-	CreateBlockStartedCalled              func()
-	IsDataPreparedCalled                  func(requestedTxs int, haveTime func() time.Duration) error
-	RemoveBlockDataFromPoolsCalled        func(body *block.Body, miniBlockPool storage.Cacher) error
-	RemoveTxsFromPoolsCalled              func(body *block.Body) error
-	RestoreBlockDataIntoPoolsCalled       func(body *block.Body, miniBlockPool storage.Cacher) (int, error)
-	SaveTxsToStorageCalled                func(body *block.Body) error
-	ProcessBlockTransactionsCalled        func(header data.HeaderHandler, body *block.Body, haveTime func() bool) error
-	RequestBlockTransactionsCalled        func(body *block.Body) int
-	CreateMarshalledDataCalled            func(txHashes [][]byte) ([][]byte, error)
-	RequestTransactionsForMiniBlockCalled func(miniBlock *block.MiniBlock) int
-	ProcessMiniBlockCalled                func(miniBlock *block.MiniBlock, haveTime func() bool, haveAdditionalTime func() bool, scheduledMode bool, partialMbExecutionMode bool, indexOfLastTxProcessed int, preProcessorExecutionInfoHandler process.PreProcessorExecutionInfoHandler) ([][]byte, int, bool, error)
-	CreateAndProcessMiniBlocksCalled      func(haveTime func() bool) (block.MiniBlockSlice, error)
-	SelectOutgoingTransactionsCalled      func() ([][]byte, error)
-	GetAllCurrentUsedTxsCalled            func() map[string]data.TransactionHandler
-	AddTxsFromMiniBlocksCalled            func(miniBlocks block.MiniBlockSlice)
-	AddTransactionsCalled                 func(txHandlers []data.TransactionHandler)
+	CreateBlockStartedCalled                           func()
+	IsDataPreparedCalled                               func(requestedTxs int, haveTime func() time.Duration) error
+	RemoveBlockDataFromPoolsCalled                     func(body *block.Body, miniBlockPool storage.Cacher) error
+	RemoveTxsFromPoolsCalled                           func(body *block.Body) error
+	RestoreBlockDataIntoPoolsCalled                    func(body *block.Body, miniBlockPool storage.Cacher) (int, error)
+	SaveTxsToStorageCalled                             func(body *block.Body) error
+	ProcessBlockTransactionsCalled                     func(header data.HeaderHandler, body *block.Body, haveTime func() bool) error
+	RequestBlockTransactionsCalled                     func(body *block.Body) int
+	CreateMarshalledDataCalled                         func(txHashes [][]byte) ([][]byte, error)
+	GetTransactionsAndRequestMissingForMiniBlockCalled func(miniBlock *block.MiniBlock) ([]data.TransactionHandler, int)
+	ProcessMiniBlockCalled                             func(miniBlock *block.MiniBlock, haveTime func() bool, haveAdditionalTime func() bool, scheduledMode bool, partialMbExecutionMode bool, indexOfLastTxProcessed int, preProcessorExecutionInfoHandler process.PreProcessorExecutionInfoHandler) ([][]byte, int, bool, error)
+	CreateAndProcessMiniBlocksCalled                   func(haveTime func() bool) (block.MiniBlockSlice, error)
+	SelectOutgoingTransactionsCalled                   func() ([][]byte, []data.TransactionHandler, error)
+	GetAllCurrentUsedTxsCalled                         func() map[string]data.TransactionHandler
+	AddTxsFromMiniBlocksCalled                         func(miniBlocks block.MiniBlockSlice)
+	AddTransactionsCalled                              func(txHandlers []data.TransactionHandler)
 }
 
 // CreateBlockStarted -
@@ -102,12 +102,12 @@ func (ppm *PreProcessorMock) CreateMarshalledData(txHashes [][]byte) ([][]byte, 
 	return ppm.CreateMarshalledDataCalled(txHashes)
 }
 
-// RequestTransactionsForMiniBlock -
-func (ppm *PreProcessorMock) RequestTransactionsForMiniBlock(miniBlock *block.MiniBlock) int {
-	if ppm.RequestTransactionsForMiniBlockCalled == nil {
-		return 0
+// GetTransactionsAndRequestMissingForMiniBlock -
+func (ppm *PreProcessorMock) GetTransactionsAndRequestMissingForMiniBlock(miniBlock *block.MiniBlock) ([]data.TransactionHandler, int) {
+	if ppm.GetTransactionsAndRequestMissingForMiniBlockCalled == nil {
+		return make([]data.TransactionHandler, 0), 0
 	}
-	return ppm.RequestTransactionsForMiniBlockCalled(miniBlock)
+	return ppm.GetTransactionsAndRequestMissingForMiniBlockCalled(miniBlock)
 }
 
 // ProcessMiniBlock -
@@ -127,9 +127,9 @@ func (ppm *PreProcessorMock) ProcessMiniBlock(
 }
 
 // SelectOutgoingTransactions selects the outgoing transactions
-func (ppm *PreProcessorMock) SelectOutgoingTransactions() ([][]byte, error) {
+func (ppm *PreProcessorMock) SelectOutgoingTransactions() ([][]byte, []data.TransactionHandler, error) {
 	if ppm.SelectOutgoingTransactionsCalled == nil {
-		return nil, nil
+		return nil, nil, nil
 	}
 	return ppm.SelectOutgoingTransactionsCalled()
 }

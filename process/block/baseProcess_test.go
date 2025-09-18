@@ -576,6 +576,7 @@ func createMockTransactionCoordinatorArguments(
 		TxExecutionOrderHandler:      &commonMocks.TxExecutionOrderHandlerStub{},
 		BlockDataRequester:           blockDataRequester,
 		BlockDataRequesterProposal:   blockDataRequesterProposal,
+		GasComputation:               &testscommon.GasComputationMock{},
 	}
 
 	return argsTransactionCoordinator
