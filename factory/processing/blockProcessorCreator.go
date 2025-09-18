@@ -6,6 +6,9 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	dataBlock "github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-go/process/asyncExecution/executionTrack"
+	"github.com/multiversx/mx-chain-go/process/estimator"
+	"github.com/multiversx/mx-chain-go/process/missingData"
 	logger "github.com/multiversx/mx-chain-logger-go"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 	"github.com/multiversx/mx-chain-vm-common-go/parsers"
@@ -463,40 +466,81 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 		return nil, err
 	}
 
+	mbSelectionSession, err := block.NewMiniBlocksSelectionSession(
+		pcf.bootstrapComponents.ShardCoordinator().SelfId(),
+		pcf.coreData.InternalMarshalizer(),
+		pcf.coreData.Hasher(),
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	executionResultsTracker := executionTrack.NewExecutionResultsTracker()
+	err = process.SetBaseExecutionResult(executionResultsTracker, pcf.data.Blockchain())
+	if err != nil {
+		return nil, err
+	}
+
+	execResultsVerifier, err := block.NewExecutionResultsVerifier(pcf.data.Blockchain(), executionResultsTracker)
+	if err != nil {
+		return nil, err
+	}
+
+	inclusionEstimator := estimator.NewExecutionResultInclusionEstimator(
+		pcf.config.ExecutionResultInclusionEstimator,
+		uint64(pcf.coreData.GenesisTime().UnixMilli()),
+		pcf.coreData.RoundHandler(),
+	)
+
+	missingDataArgs := missingData.ResolverArgs{
+		HeadersPool:        pcf.data.Datapool().Headers(),
+		ProofsPool:         pcf.data.Datapool().Proofs(),
+		RequestHandler:     requestHandler,
+		BlockDataRequester: proposalBlockDataRequester,
+	}
+	missingDataResolver, err := missingData.NewMissingDataResolver(missingDataArgs)
+	if err != nil {
+		return nil, err
+	}
+
 	argumentsBaseProcessor := block.ArgBaseProcessor{
-		CoreComponents:               pcf.coreData,
-		DataComponents:               pcf.data,
-		BootstrapComponents:          pcf.bootstrapComponents,
-		StatusComponents:             pcf.statusComponents,
-		StatusCoreComponents:         pcf.statusCoreComponents,
-		Config:                       pcf.config,
-		PrefsConfig:                  pcf.prefConfigs,
-		AccountsDB:                   accountsDb,
-		ForkDetector:                 forkDetector,
-		NodesCoordinator:             pcf.nodesCoordinator,
-		FeeHandler:                   txFeeHandler,
-		RequestHandler:               requestHandler,
-		BlockChainHook:               vmFactory.BlockChainHookImpl(),
-		TxCoordinator:                txCoordinator,
-		EpochStartTrigger:            epochStartTrigger,
-		HeaderValidator:              headerValidator,
-		BootStorer:                   bootStorer,
-		BlockTracker:                 blockTracker,
-		BlockSizeThrottler:           blockSizeThrottler,
-		Version:                      pcf.flagsConfig.Version,
-		HistoryRepository:            pcf.historyRepo,
-		VMContainersFactory:          vmFactory,
-		VmContainer:                  vmContainer,
-		GasHandler:                   gasHandler,
-		OutportDataProvider:          outportDataProvider,
-		ScheduledTxsExecutionHandler: scheduledTxsExecutionHandler,
-		ProcessedMiniBlocksTracker:   processedMiniBlocksTracker,
-		ReceiptsRepository:           receiptsRepository,
-		BlockProcessingCutoffHandler: blockProcessingCutoffHandler,
-		ManagedPeersHolder:           pcf.crypto.ManagedPeersHolder(),
-		SentSignaturesTracker:        sentSignaturesTracker,
-		HeadersForBlock:              hdrsForBlock,
-		BlockDataRequester:           proposalBlockDataRequester,
+		CoreComponents:                     pcf.coreData,
+		DataComponents:                     pcf.data,
+		BootstrapComponents:                pcf.bootstrapComponents,
+		StatusComponents:                   pcf.statusComponents,
+		StatusCoreComponents:               pcf.statusCoreComponents,
+		Config:                             pcf.config,
+		PrefsConfig:                        pcf.prefConfigs,
+		AccountsDB:                         accountsDb,
+		ForkDetector:                       forkDetector,
+		NodesCoordinator:                   pcf.nodesCoordinator,
+		FeeHandler:                         txFeeHandler,
+		RequestHandler:                     requestHandler,
+		BlockChainHook:                     vmFactory.BlockChainHookImpl(),
+		TxCoordinator:                      txCoordinator,
+		EpochStartTrigger:                  epochStartTrigger,
+		HeaderValidator:                    headerValidator,
+		BootStorer:                         bootStorer,
+		BlockTracker:                       blockTracker,
+		BlockSizeThrottler:                 blockSizeThrottler,
+		Version:                            pcf.flagsConfig.Version,
+		HistoryRepository:                  pcf.historyRepo,
+		VMContainersFactory:                vmFactory,
+		VmContainer:                        vmContainer,
+		GasHandler:                         gasHandler,
+		OutportDataProvider:                outportDataProvider,
+		ScheduledTxsExecutionHandler:       scheduledTxsExecutionHandler,
+		ProcessedMiniBlocksTracker:         processedMiniBlocksTracker,
+		ReceiptsRepository:                 receiptsRepository,
+		BlockProcessingCutoffHandler:       blockProcessingCutoffHandler,
+		ManagedPeersHolder:                 pcf.crypto.ManagedPeersHolder(),
+		SentSignaturesTracker:              sentSignaturesTracker,
+		HeadersForBlock:                    hdrsForBlock,
+		MiniBlocksSelectionSession:         mbSelectionSession,
+		ExecutionResultsVerifier:           execResultsVerifier,
+		MissingDataResolver:                missingDataResolver,
+		ExecutionResultsInclusionEstimator: inclusionEstimator,
+		ExecutionResultsTracker:            executionResultsTracker,
 	}
 	arguments := block.ArgShardProcessor{
 		ArgBaseProcessor: argumentsBaseProcessor,
@@ -952,40 +996,81 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 		return nil, err
 	}
 
+	mbSelectionSession, err := block.NewMiniBlocksSelectionSession(
+		pcf.bootstrapComponents.ShardCoordinator().SelfId(),
+		pcf.coreData.InternalMarshalizer(),
+		pcf.coreData.Hasher(),
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	executionResultsTracker := executionTrack.NewExecutionResultsTracker()
+	err = process.SetBaseExecutionResult(executionResultsTracker, pcf.data.Blockchain())
+	if err != nil {
+		return nil, err
+	}
+
+	execResultsVerifier, err := block.NewExecutionResultsVerifier(pcf.data.Blockchain(), executionResultsTracker)
+	if err != nil {
+		return nil, err
+	}
+
+	inclusionEstimator := estimator.NewExecutionResultInclusionEstimator(
+		pcf.config.ExecutionResultInclusionEstimator,
+		uint64(pcf.coreData.GenesisTime().UnixMilli()),
+		pcf.coreData.RoundHandler(),
+	)
+
+	missingDataArgs := missingData.ResolverArgs{
+		HeadersPool:        pcf.data.Datapool().Headers(),
+		ProofsPool:         pcf.data.Datapool().Proofs(),
+		RequestHandler:     requestHandler,
+		BlockDataRequester: proposalBlockDataRequester,
+	}
+	missingDataResolver, err := missingData.NewMissingDataResolver(missingDataArgs)
+	if err != nil {
+		return nil, err
+	}
+
 	argumentsBaseProcessor := block.ArgBaseProcessor{
-		CoreComponents:               pcf.coreData,
-		DataComponents:               pcf.data,
-		BootstrapComponents:          pcf.bootstrapComponents,
-		StatusComponents:             pcf.statusComponents,
-		StatusCoreComponents:         pcf.statusCoreComponents,
-		Config:                       pcf.config,
-		PrefsConfig:                  pcf.prefConfigs,
-		Version:                      pcf.flagsConfig.Version,
-		AccountsDB:                   accountsDb,
-		ForkDetector:                 forkDetector,
-		NodesCoordinator:             pcf.nodesCoordinator,
-		RequestHandler:               requestHandler,
-		BlockChainHook:               vmFactory.BlockChainHookImpl(),
-		TxCoordinator:                txCoordinator,
-		EpochStartTrigger:            epochStartTrigger,
-		HeaderValidator:              headerValidator,
-		BootStorer:                   bootStorer,
-		BlockTracker:                 blockTracker,
-		FeeHandler:                   txFeeHandler,
-		BlockSizeThrottler:           blockSizeThrottler,
-		HistoryRepository:            pcf.historyRepo,
-		VMContainersFactory:          vmFactory,
-		VmContainer:                  vmContainer,
-		GasHandler:                   gasHandler,
-		ScheduledTxsExecutionHandler: scheduledTxsExecutionHandler,
-		ProcessedMiniBlocksTracker:   processedMiniBlocksTracker,
-		ReceiptsRepository:           receiptsRepository,
-		OutportDataProvider:          outportDataProvider,
-		BlockProcessingCutoffHandler: blockProcessingCutoffhandler,
-		ManagedPeersHolder:           pcf.crypto.ManagedPeersHolder(),
-		SentSignaturesTracker:        sentSignaturesTracker,
-		HeadersForBlock:              hdrsForBlock,
-		BlockDataRequester:           proposalBlockDataRequester,
+		CoreComponents:                     pcf.coreData,
+		DataComponents:                     pcf.data,
+		BootstrapComponents:                pcf.bootstrapComponents,
+		StatusComponents:                   pcf.statusComponents,
+		StatusCoreComponents:               pcf.statusCoreComponents,
+		Config:                             pcf.config,
+		PrefsConfig:                        pcf.prefConfigs,
+		Version:                            pcf.flagsConfig.Version,
+		AccountsDB:                         accountsDb,
+		ForkDetector:                       forkDetector,
+		NodesCoordinator:                   pcf.nodesCoordinator,
+		RequestHandler:                     requestHandler,
+		BlockChainHook:                     vmFactory.BlockChainHookImpl(),
+		TxCoordinator:                      txCoordinator,
+		EpochStartTrigger:                  epochStartTrigger,
+		HeaderValidator:                    headerValidator,
+		BootStorer:                         bootStorer,
+		BlockTracker:                       blockTracker,
+		FeeHandler:                         txFeeHandler,
+		BlockSizeThrottler:                 blockSizeThrottler,
+		HistoryRepository:                  pcf.historyRepo,
+		VMContainersFactory:                vmFactory,
+		VmContainer:                        vmContainer,
+		GasHandler:                         gasHandler,
+		ScheduledTxsExecutionHandler:       scheduledTxsExecutionHandler,
+		ProcessedMiniBlocksTracker:         processedMiniBlocksTracker,
+		ReceiptsRepository:                 receiptsRepository,
+		OutportDataProvider:                outportDataProvider,
+		BlockProcessingCutoffHandler:       blockProcessingCutoffhandler,
+		ManagedPeersHolder:                 pcf.crypto.ManagedPeersHolder(),
+		SentSignaturesTracker:              sentSignaturesTracker,
+		HeadersForBlock:                    hdrsForBlock,
+		MiniBlocksSelectionSession:         mbSelectionSession,
+		ExecutionResultsVerifier:           execResultsVerifier,
+		MissingDataResolver:                missingDataResolver,
+		ExecutionResultsInclusionEstimator: inclusionEstimator,
+		ExecutionResultsTracker:            executionResultsTracker,
 	}
 
 	esdtOwnerAddress, err := pcf.coreData.AddressPubKeyConverter().Decode(pcf.systemSCConfig.ESDTSystemSCConfig.OwnerAddress)

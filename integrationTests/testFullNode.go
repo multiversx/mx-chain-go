@@ -14,6 +14,9 @@ import (
 	crypto "github.com/multiversx/mx-chain-crypto-go"
 	mclMultiSig "github.com/multiversx/mx-chain-crypto-go/signing/mcl/multisig"
 	"github.com/multiversx/mx-chain-crypto-go/signing/multisig"
+	"github.com/multiversx/mx-chain-go/process/asyncExecution/executionTrack"
+	"github.com/multiversx/mx-chain-go/process/estimator"
+	"github.com/multiversx/mx-chain-go/process/missingData"
 	wasmConfig "github.com/multiversx/mx-chain-vm-go/config"
 
 	"github.com/multiversx/mx-chain-go/process/block/headerForBlock"
@@ -862,6 +865,47 @@ func (tpn *TestFullNode) initBlockProcessor(
 	if err != nil {
 		log.LogIfError(err)
 	}
+
+	mbSelectionSession, err := block.NewMiniBlocksSelectionSession(
+		tpn.ShardCoordinator.SelfId(),
+		TestMarshalizer,
+		TestHasher,
+	)
+	if err != nil {
+		log.LogIfError(err)
+	}
+
+	executionResultsTracker := executionTrack.NewExecutionResultsTracker()
+	err = process.SetBaseExecutionResult(executionResultsTracker, tpn.BlockChain)
+	if err != nil {
+		log.LogIfError(err)
+	}
+
+	execResultsVerifier, err := block.NewExecutionResultsVerifier(tpn.BlockChain, executionResultsTracker)
+	if err != nil {
+		log.LogIfError(err)
+	}
+
+	inclusionEstimator := estimator.NewExecutionResultInclusionEstimator(
+		config.ExecutionResultInclusionEstimatorConfig{
+			SafetyMargin:       110,
+			MaxResultsPerBlock: 20,
+		},
+		uint64(tpn.GenesisTimeField.UnixMilli()),
+		tpn.RoundHandler,
+	)
+
+	missingDataArgs := missingData.ResolverArgs{
+		HeadersPool:        tpn.DataPool.Headers(),
+		ProofsPool:         tpn.DataPool.Proofs(),
+		RequestHandler:     tpn.RequestHandler,
+		BlockDataRequester: proposalBlockDataRequester,
+	}
+	missingDataResolver, err := missingData.NewMissingDataResolver(missingDataArgs)
+	if err != nil {
+		log.LogIfError(err)
+	}
+
 	argumentsBase := block.ArgBaseProcessor{
 		CoreComponents:       coreComponents,
 		DataComponents:       dataComponents,
@@ -881,19 +925,23 @@ func (tpn *TestFullNode) initBlockProcessor(
 				return nil
 			},
 		},
-		BlockTracker:                 tpn.BlockTracker,
-		BlockSizeThrottler:           TestBlockSizeThrottler,
-		HistoryRepository:            tpn.HistoryRepository,
-		GasHandler:                   tpn.GasHandler,
-		ScheduledTxsExecutionHandler: &testscommon.ScheduledTxsExecutionStub{},
-		ProcessedMiniBlocksTracker:   &testscommon.ProcessedMiniBlocksTrackerStub{},
-		ReceiptsRepository:           &testscommon.ReceiptsRepositoryStub{},
-		OutportDataProvider:          &outport.OutportDataProviderStub{},
-		BlockProcessingCutoffHandler: &testscommon.BlockProcessingCutoffStub{},
-		ManagedPeersHolder:           &testscommon.ManagedPeersHolderStub{},
-		SentSignaturesTracker:        &testscommon.SentSignatureTrackerStub{},
-		HeadersForBlock:              hdrsForBlock,
-		BlockDataRequester:           proposalBlockDataRequester,
+		BlockTracker:                       tpn.BlockTracker,
+		BlockSizeThrottler:                 TestBlockSizeThrottler,
+		HistoryRepository:                  tpn.HistoryRepository,
+		GasHandler:                         tpn.GasHandler,
+		ScheduledTxsExecutionHandler:       &testscommon.ScheduledTxsExecutionStub{},
+		ProcessedMiniBlocksTracker:         &testscommon.ProcessedMiniBlocksTrackerStub{},
+		ReceiptsRepository:                 &testscommon.ReceiptsRepositoryStub{},
+		OutportDataProvider:                &outport.OutportDataProviderStub{},
+		BlockProcessingCutoffHandler:       &testscommon.BlockProcessingCutoffStub{},
+		ManagedPeersHolder:                 &testscommon.ManagedPeersHolderStub{},
+		SentSignaturesTracker:              &testscommon.SentSignatureTrackerStub{},
+		HeadersForBlock:                    hdrsForBlock,
+		MiniBlocksSelectionSession:         mbSelectionSession,
+		ExecutionResultsVerifier:           execResultsVerifier,
+		MissingDataResolver:                missingDataResolver,
+		ExecutionResultsInclusionEstimator: inclusionEstimator,
+		ExecutionResultsTracker:            executionResultsTracker,
 	}
 
 	if check.IfNil(tpn.EpochStartNotifier) {
@@ -1130,6 +1178,46 @@ func (tpn *TestFullNode) initBlockProcessorWithSync(
 		log.LogIfError(err)
 	}
 
+	mbSelectionSession, err := block.NewMiniBlocksSelectionSession(
+		tpn.ShardCoordinator.SelfId(),
+		TestMarshalizer,
+		TestHasher,
+	)
+	if err != nil {
+		log.LogIfError(err)
+	}
+
+	executionResultsTracker := executionTrack.NewExecutionResultsTracker()
+	err = process.SetBaseExecutionResult(executionResultsTracker, tpn.BlockChain)
+	if err != nil {
+		log.LogIfError(err)
+	}
+
+	execResultsVerifier, err := block.NewExecutionResultsVerifier(tpn.BlockChain, executionResultsTracker)
+	if err != nil {
+		log.LogIfError(err)
+	}
+
+	inclusionEstimator := estimator.NewExecutionResultInclusionEstimator(
+		config.ExecutionResultInclusionEstimatorConfig{
+			SafetyMargin:       110,
+			MaxResultsPerBlock: 20,
+		},
+		uint64(tpn.GenesisTimeField.UnixMilli()),
+		tpn.RoundHandler,
+	)
+
+	missingDataArgs := missingData.ResolverArgs{
+		HeadersPool:        tpn.DataPool.Headers(),
+		ProofsPool:         tpn.DataPool.Proofs(),
+		RequestHandler:     tpn.RequestHandler,
+		BlockDataRequester: proposalBlockDataRequester,
+	}
+	missingDataResolver, err := missingData.NewMissingDataResolver(missingDataArgs)
+	if err != nil {
+		log.LogIfError(err)
+	}
+
 	argumentsBase := block.ArgBaseProcessor{
 		CoreComponents:       coreComponents,
 		DataComponents:       dataComponents,
@@ -1150,19 +1238,23 @@ func (tpn *TestFullNode) initBlockProcessorWithSync(
 				return nil
 			},
 		},
-		BlockTracker:                 tpn.BlockTracker,
-		BlockSizeThrottler:           TestBlockSizeThrottler,
-		HistoryRepository:            tpn.HistoryRepository,
-		GasHandler:                   tpn.GasHandler,
-		ScheduledTxsExecutionHandler: &testscommon.ScheduledTxsExecutionStub{},
-		ProcessedMiniBlocksTracker:   &testscommon.ProcessedMiniBlocksTrackerStub{},
-		ReceiptsRepository:           &testscommon.ReceiptsRepositoryStub{},
-		OutportDataProvider:          &outport.OutportDataProviderStub{},
-		BlockProcessingCutoffHandler: &testscommon.BlockProcessingCutoffStub{},
-		ManagedPeersHolder:           &testscommon.ManagedPeersHolderStub{},
-		SentSignaturesTracker:        &testscommon.SentSignatureTrackerStub{},
-		HeadersForBlock:              hdrsForBlock,
-		BlockDataRequester:           proposalBlockDataRequester,
+		BlockTracker:                       tpn.BlockTracker,
+		BlockSizeThrottler:                 TestBlockSizeThrottler,
+		HistoryRepository:                  tpn.HistoryRepository,
+		GasHandler:                         tpn.GasHandler,
+		ScheduledTxsExecutionHandler:       &testscommon.ScheduledTxsExecutionStub{},
+		ProcessedMiniBlocksTracker:         &testscommon.ProcessedMiniBlocksTrackerStub{},
+		ReceiptsRepository:                 &testscommon.ReceiptsRepositoryStub{},
+		OutportDataProvider:                &outport.OutportDataProviderStub{},
+		BlockProcessingCutoffHandler:       &testscommon.BlockProcessingCutoffStub{},
+		ManagedPeersHolder:                 &testscommon.ManagedPeersHolderStub{},
+		SentSignaturesTracker:              &testscommon.SentSignatureTrackerStub{},
+		HeadersForBlock:                    hdrsForBlock,
+		MiniBlocksSelectionSession:         mbSelectionSession,
+		ExecutionResultsVerifier:           execResultsVerifier,
+		MissingDataResolver:                missingDataResolver,
+		ExecutionResultsInclusionEstimator: inclusionEstimator,
+		ExecutionResultsTracker:            executionResultsTracker,
 	}
 
 	if tpn.ShardCoordinator.SelfId() == core.MetachainShardId {
