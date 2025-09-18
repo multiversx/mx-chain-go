@@ -1251,9 +1251,16 @@ func TestApiTransactionProcessor_GetSelectedTransactions(t *testing.T) {
 			loopDurationCheckInterval,
 		)
 
-		selectedTxs, err := atp.GetSelectedTransactions(options, blockchainMock, accountsAdapter)
+		selectionOptionsAPI := holders.NewTxSelectionOptionsAPI(
+			options,
+			false,
+			false,
+			false,
+		)
+
+		selectedTxs, err := atp.GetSelectedTransactions(selectionOptionsAPI, blockchainMock, accountsAdapter)
 		require.NoError(t, err)
-		require.Len(t, selectedTxs.TxHashes, 4)
+		require.Len(t, selectedTxs.Transactions, 4)
 	})
 
 	t.Run("should return error from SelectTransactions", func(t *testing.T) {
@@ -1290,7 +1297,14 @@ func TestApiTransactionProcessor_GetSelectedTransactions(t *testing.T) {
 			loopDurationCheckInterval,
 		)
 
-		_, err = atp.GetSelectedTransactions(options, nil, accountsAdapter)
+		selectionOptionsAPI := holders.NewTxSelectionOptionsAPI(
+			options,
+			false,
+			false,
+			false,
+		)
+
+		_, err = atp.GetSelectedTransactions(selectionOptionsAPI, nil, accountsAdapter)
 		require.Equal(t, expectedErr, err)
 	})
 
@@ -1322,7 +1336,14 @@ func TestApiTransactionProcessor_GetSelectedTransactions(t *testing.T) {
 			loopDurationCheckInterval,
 		)
 
-		selectedTxs, err := atp.GetSelectedTransactions(options, nil, nil)
+		selectionOptionsAPI := holders.NewTxSelectionOptionsAPI(
+			options,
+			false,
+			false,
+			false,
+		)
+
+		selectedTxs, err := atp.GetSelectedTransactions(selectionOptionsAPI, nil, nil)
 		require.Equal(t, state.ErrNilAccountsAdapter, err)
 		require.Nil(t, selectedTxs)
 	})
@@ -1354,7 +1375,14 @@ func TestApiTransactionProcessor_GetSelectedTransactions(t *testing.T) {
 			loopDurationCheckInterval,
 		)
 
-		selectedTxs, err := atp.GetSelectedTransactions(options, nil, accountsAdapter)
+		selectionOptionsAPI := holders.NewTxSelectionOptionsAPI(
+			options,
+			false,
+			false,
+			false,
+		)
+
+		selectedTxs, err := atp.GetSelectedTransactions(selectionOptionsAPI, nil, accountsAdapter)
 		require.Equal(t, ErrCouldNotCastToTxCache, err)
 		require.Nil(t, selectedTxs)
 	})

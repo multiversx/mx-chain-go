@@ -309,8 +309,8 @@ func (atp *apiTransactionProcessor) GetTransactionsPoolNonceGapsForSender(sender
 }
 
 // GetSelectedTransactions will simulate a SelectTransactions, and it will return the corresponding hash of each selected transaction
-func (atp *apiTransactionProcessor) GetSelectedTransactions(selectionOptions common.TxSelectionOptions, blockchain data.ChainHandler, accountsAdapter state.AccountsAdapter) (*common.TransactionsSelectionSimulationResult, error) {
-	selectedTxHashes, err := atp.selectTransactions(accountsAdapter, selectionOptions)
+func (atp *apiTransactionProcessor) GetSelectedTransactions(selectionOptionsAPI common.TxSelectionOptionsAPI, blockchain data.ChainHandler, accountsAdapter state.AccountsAdapter) (*common.TransactionsSelectionSimulationResult, error) {
+	selectedTransactions, err := atp.selectTransactions(accountsAdapter, selectionOptionsAPI)
 	if err != nil {
 		return nil, err
 	}
@@ -321,7 +321,7 @@ func (atp *apiTransactionProcessor) GetSelectedTransactions(selectionOptions com
 	}
 
 	return &common.TransactionsSelectionSimulationResult{
-		TxHashes: selectedTxHashes,
+		Transactions: selectedTransactions,
 	}, nil
 }
 
@@ -488,7 +488,7 @@ func (atp *apiTransactionProcessor) recreateTrie(blockchain data.ChainHandler, a
 	return nil
 }
 
-func (atp *apiTransactionProcessor) selectTransactions(accountsAdapter state.AccountsAdapter, selectionOptions common.TxSelectionOptions) ([]string, error) {
+func (atp *apiTransactionProcessor) selectTransactions(accountsAdapter state.AccountsAdapter, selectionOptions common.TxSelectionOptionsAPI) ([]common.Transaction, error) {
 	cacheId := process.ShardCacherIdentifier(atp.shardCoordinator.SelfId(), atp.shardCoordinator.SelfId())
 	cache := atp.dataPool.Transactions().ShardDataStore(cacheId)
 	txCache, ok := cache.(*txcache.TxCache)
@@ -518,16 +518,16 @@ func (atp *apiTransactionProcessor) selectTransactions(accountsAdapter state.Acc
 		return nil, err
 	}
 
-	return atp.extractTxHashes(selectedTxs), nil
+	return atp.extractTransactions(selectedTxs), nil
 }
 
-func (atp *apiTransactionProcessor) extractTxHashes(txs []*txcache.WrappedTransaction) []string {
-	txHashes := make([]string, len(txs))
+func (atp *apiTransactionProcessor) extractTransactions(txs []*txcache.WrappedTransaction) []common.Transaction {
+	transactions := make([]common.Transaction, len(txs))
 	for i, tx := range txs {
-		txHashes[i] = hex.EncodeToString(tx.TxHash)
+		transactions[i].TxFields["hash"] = hex.EncodeToString(tx.TxHash)
 	}
 
-	return txHashes
+	return transactions
 }
 
 func (atp *apiTransactionProcessor) getVirtualNonceWithBlockInfo(

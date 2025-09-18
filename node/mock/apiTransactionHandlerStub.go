@@ -14,7 +14,7 @@ type TransactionAPIHandlerStub struct {
 	GetTransactionsPoolForSenderCalled          func(sender, fields string) (*common.TransactionsPoolForSenderApiResponse, error)
 	GetLastPoolNonceForSenderCalled             func(sender string) (uint64, error)
 	GetTransactionsPoolNonceGapsForSenderCalled func(sender string, senderAccountNonce uint64) (*common.TransactionsPoolNonceGapsForSenderApiResponse, error)
-	GetSelectedTransactionsCalled               func(selectionOptions common.TxSelectionOptions, blockchain coreData.ChainHandler, accountsAdapter state.AccountsAdapter) (*common.TransactionsSelectionSimulationResult, error)
+	GetSelectedTransactionsCalled               func(selectionOptionsAPI common.TxSelectionOptionsAPI, blockchain coreData.ChainHandler, accountsAdapter state.AccountsAdapter) (*common.TransactionsSelectionSimulationResult, error)
 	GetVirtualNonceCalled                       func(address string) (*common.VirtualNonceOfAccountResponse, error)
 	UnmarshalTransactionCalled                  func(txBytes []byte, txType transaction.TxType) (*transaction.ApiTransactionResult, error)
 	UnmarshalReceiptCalled                      func(receiptBytes []byte) (*transaction.ApiReceipt, error)
@@ -86,9 +86,9 @@ func (tas *TransactionAPIHandlerStub) GetTransactionsPoolNonceGapsForSender(send
 }
 
 // GetSelectedTransactions -
-func (tas *TransactionAPIHandlerStub) GetSelectedTransactions(selectionOptions common.TxSelectionOptions, blockchain coreData.ChainHandler, accountsAdapter state.AccountsAdapter) (*common.TransactionsSelectionSimulationResult, error) {
+func (tas *TransactionAPIHandlerStub) GetSelectedTransactions(selectionOptionsAPI common.TxSelectionOptionsAPI, blockchain coreData.ChainHandler, accountsAdapter state.AccountsAdapter) (*common.TransactionsSelectionSimulationResult, error) {
 	if tas.GetSelectedTransactionsCalled != nil {
-		return tas.GetSelectedTransactionsCalled(selectionOptions, blockchain, accountsAdapter)
+		return tas.GetSelectedTransactionsCalled(selectionOptionsAPI, blockchain, accountsAdapter)
 	}
 
 	return nil, nil

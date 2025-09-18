@@ -37,16 +37,19 @@ const (
 	getTransactionPath               = "/:txhash"
 	getScrsByTxHashPath              = "/scrs-by-tx-hash/:txhash"
 	getTransactionsPool              = "/pool"
-	getSelectedTransactionsPath      = "/pool/selected-transactions"
+	getSelectedTransactionsPath      = "/pool/simulate-selection"
 	getVirtualNoncePath              = "/pool/:address/virtual-nonce"
 
-	queryParamWithResults    = "withResults"
-	queryParamCheckSignature = "checkSignature"
-	queryParamSender         = "by-sender"
-	queryParamFields         = "fields"
-	queryParamLastNonce      = "last-nonce"
-	queryParamNonceGaps      = "nonce-gaps"
-	queryParameterScrHash    = "scrHash"
+	queryParamWithResults     = "withResults"
+	queryParamCheckSignature  = "checkSignature"
+	queryParamSender          = "by-sender"
+	queryParamFields          = "fields"
+	queryParamLastNonce       = "last-nonce"
+	queryParamNonceGaps       = "nonce-gaps"
+	queryParameterScrHash     = "scrHash"
+	queryParameterWithSender  = "withSender"
+	queryParameterWithRelayer = "withRelayer"
+	queryParameterWithNonce   = "withNonce"
 )
 
 // transactionFacadeHandler defines the methods to be implemented by a facade for transaction requests
@@ -63,7 +66,7 @@ type transactionFacadeHandler interface {
 	GetTransactionsPoolForSender(sender, fields string) (*common.TransactionsPoolForSenderApiResponse, error)
 	GetLastPoolNonceForSender(sender string) (uint64, error)
 	GetTransactionsPoolNonceGapsForSender(sender string) (*common.TransactionsPoolNonceGapsForSenderApiResponse, error)
-	GetSelectedTransactions() (*common.TransactionsSelectionSimulationResult, error)
+	GetSelectedTransactions(requestedFields *common.TransactionsSelectionSimulationRequest) (*common.TransactionsSelectionSimulationResult, error)
 	GetVirtualNonce(address string) (*common.VirtualNonceOfAccountResponse, error)
 	ComputeTransactionGasLimit(tx *transaction.Transaction) (*transaction.CostResponse, error)
 	EncodeAddressPubkey(pk []byte) (string, error)
@@ -841,9 +844,22 @@ func (tg *transactionGroup) getTransactionsPoolNonceGapsForSender(sender string,
 // simulateTransactionsSelection simulates a selection and returns the hash of each selected transaction
 func (tg *transactionGroup) simulateTransactionsSelection(c *gin.Context) {
 	start := time.Now()
-	// TODO: allow the client to request some fields (e.g. "sender", "nonce")
 	// TODO: allow the client to specify some block parameters
-	txHashes, err := tg.getFacade().GetSelectedTransactions()
+
+	selectionSimulationFields, err := getSelectionSimulationFields(c)
+	if err != nil {
+		c.JSON(
+			http.StatusBadRequest,
+			shared.GenericAPIResponse{
+				Data:  nil,
+				Error: errors.ErrValidation.Error(),
+				Code:  shared.ReturnCodeRequestError,
+			},
+		)
+		return
+	}
+
+	txHashes, err := tg.getFacade().GetSelectedTransactions(selectionSimulationFields)
 	logging.LogAPIActionDurationIfNeeded(start, "API call: GetSelectedTransactions")
 	if err != nil {
 		c.JSON(
@@ -947,6 +963,33 @@ func getQueryParamWithResults(c *gin.Context) (bool, error) {
 	return strconv.ParseBool(withResultsStr)
 }
 
+func getQueryParamWithSender(c *gin.Context) (bool, error) {
+	withSender := c.Request.URL.Query().Get(queryParameterWithSender)
+	if withSender == "" {
+		return false, nil
+	}
+
+	return strconv.ParseBool(withSender)
+}
+
+func getQueryParamWithRelayer(c *gin.Context) (bool, error) {
+	withRelayer := c.Request.URL.Query().Get(queryParameterWithRelayer)
+	if withRelayer == "" {
+		return false, nil
+	}
+
+	return strconv.ParseBool(withRelayer)
+}
+
+func getQueryParamWithNonce(c *gin.Context) (bool, error) {
+	withNonce := c.Request.URL.Query().Get(queryParameterWithNonce)
+	if withNonce == "" {
+		return false, nil
+	}
+
+	return strconv.ParseBool(withNonce)
+}
+
 func getQueryParameterCheckSignature(c *gin.Context) (bool, error) {
 	bypassSignatureStr := c.Request.URL.Query().Get(queryParamCheckSignature)
 	if bypassSignatureStr == "" {
@@ -982,6 +1025,29 @@ func getQueryParameterNonceGaps(c *gin.Context) (bool, error) {
 	}
 
 	return strconv.ParseBool(nonceGapsStr)
+}
+
+func getSelectionSimulationFields(c *gin.Context) (*common.TransactionsSelectionSimulationRequest, error) {
+	withSender, err := getQueryParamWithSender(c)
+	if err != nil {
+		return nil, err
+	}
+
+	withRelayer, err := getQueryParamWithRelayer(c)
+	if err != nil {
+		return nil, err
+	}
+
+	withNonce, err := getQueryParamWithNonce(c)
+	if err != nil {
+		return nil, err
+	}
+
+	return &common.TransactionsSelectionSimulationRequest{
+		WithSender:  withSender,
+		WithRelayer: withRelayer,
+		WithNonce:   withNonce,
+	}, nil
 }
 
 func (tg *transactionGroup) getFacade() transactionFacadeHandler {
