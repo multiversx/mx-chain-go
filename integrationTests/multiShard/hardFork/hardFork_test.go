@@ -419,6 +419,7 @@ func hardForkImport(
 			Core:              coreComponents,
 			Data:              dataComponents,
 			Accounts:          node.AccntState,
+			AccountsProposal:  node.AccntState,
 			InitialNodesSetup: node.NodesSetup,
 			Economics:         node.EconomicsData,
 			ShardCoordinator:  node.ShardCoordinator,

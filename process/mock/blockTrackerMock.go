@@ -227,6 +227,10 @@ func (btm *BlockTrackerMock) ComputeLongestChain(shardID uint32, header data.Hea
 
 // ComputeLongestMetaChainFromLastNotarized -
 func (btm *BlockTrackerMock) ComputeLongestMetaChainFromLastNotarized() ([]data.HeaderHandler, [][]byte, error) {
+	if btm.ComputeLongestMetaChainFromLastNotarizedCalled != nil {
+		return btm.ComputeLongestMetaChainFromLastNotarizedCalled()
+	}
+
 	lastCrossNotarizedHeader, _, err := btm.GetLastCrossNotarizedHeader(core.MetachainShardId)
 	if err != nil {
 		return nil, nil, err

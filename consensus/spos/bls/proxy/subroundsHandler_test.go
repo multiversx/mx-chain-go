@@ -20,6 +20,7 @@ import (
 	epochNotifierMock "github.com/multiversx/mx-chain-go/testscommon/epochNotifier"
 	mock "github.com/multiversx/mx-chain-go/testscommon/epochstartmock"
 	outportStub "github.com/multiversx/mx-chain-go/testscommon/outport"
+	"github.com/multiversx/mx-chain-go/testscommon/round"
 	"github.com/multiversx/mx-chain-go/testscommon/shardingMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/statusHandler"
 )
@@ -66,7 +67,7 @@ func getDefaultArgumentsSubroundHandler() (*SubroundsHandlerArgs, *spos.Consensu
 			return &cryptoMocks.MultisignerMock{}, nil
 		},
 	})
-	consensusCore.SetRoundHandler(&consensus.RoundHandlerMock{})
+	consensusCore.SetRoundHandler(&round.RoundHandlerMock{})
 	consensusCore.SetShardCoordinator(&testscommon.ShardsCoordinatorMock{})
 	consensusCore.SetSyncTimer(&testscommon.SyncTimerStub{})
 	consensusCore.SetNodesCoordinator(&shardingMocks.NodesCoordinatorMock{})

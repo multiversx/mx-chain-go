@@ -1370,3 +1370,15 @@ var ErrInvalidMaxNonceDifference = errors.New("invalid max nonce difference")
 
 // ErrNilBaseExecutionResult signals that a nil base execution result has been provided
 var ErrNilBaseExecutionResult = errors.New("nil base execution result")
+
+// ErrNilExecutionResultsInclusionEstimator signals that a nil execution results inclusion estimator has been provided
+var ErrNilExecutionResultsInclusionEstimator = errors.New("nil execution results inclusion estimator")
+
+// ErrNilMiniBlocksSelectionSession signals that a nil miniblocks selection session has been provided
+var ErrNilMiniBlocksSelectionSession = errors.New("nil miniblocks selection session")
+
+// ErrNilExecutionResultsVerifier signals that a nil execution results verifier has been provided
+var ErrNilExecutionResultsVerifier = errors.New("nil execution results verifier")
+
+// ErrNilMissingDataResolver signals that a nil missing data resolver has been provided
+var ErrNilMissingDataResolver = errors.New("nil missing data resolver")

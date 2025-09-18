@@ -3,8 +3,11 @@ package estimator
 import (
 	"math/bits"
 
-	"github.com/multiversx/mx-chain-go/config"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/data"
 	logger "github.com/multiversx/mx-chain-logger-go"
+
+	"github.com/multiversx/mx-chain-go/config"
 )
 
 var log = logger.GetOrCreate("process/executionResultInclusionEstimator")
@@ -12,12 +15,16 @@ var log = logger.GetOrCreate("process/executionResultInclusionEstimator")
 // Time per gas unit on minimum‑spec hardware (1 gas = 1ns)
 var tGas = uint64(1)
 
-// ExecutionResultMetaData is a lightweight summary EIE requires.
-type ExecutionResultMetaData struct {
-	HeaderHash   []byte // Link to full header in DB / cache
-	HeaderNonce  uint64 // Monotonic within shard
-	HeaderTimeMs uint64 // Milliseconds since Unix epoch, from header
-	GasUsed      uint64 // Units actually consumed (post‑execution)
+// RoundHandler provides the current round index and timestamp.
+type RoundHandler interface {
+	GetTimeStampForRound(round uint64) uint64
+	IsInterfaceNil() bool
+}
+
+// LastExecutionResultForInclusion is a lightweight summary of the last notarized execution result EIE requires.
+type LastExecutionResultForInclusion struct {
+	NotarizedInRound uint64
+	ProposedInRound  uint64
 }
 
 // ExecutionResultInclusionEstimator (EIE) is a deterministic component shipped with the MultiversX *Supernova*
@@ -27,27 +34,29 @@ type ExecutionResultInclusionEstimator struct {
 	cfg           config.ExecutionResultInclusionEstimatorConfig // immutable after construction
 	tGas          uint64                                         // time per gas unit on minimum‑spec hardware - 1 ns per gas unit
 	genesisTimeMs uint64                                         // required if lastNotarised == nil
+	roundHandler  RoundHandler
 	// TODO add also max estimated block gas capacity - used gas must be lower than this
 }
 
-// IsInterfaceNil returns true if there is no value under the interface
-func (erie *ExecutionResultInclusionEstimator) IsInterfaceNil() bool {
-	return erie == nil
-}
-
 // NewExecutionResultInclusionEstimator returns a new instance of EIE
-func NewExecutionResultInclusionEstimator(cfg config.ExecutionResultInclusionEstimatorConfig, genesisTimeMs uint64) *ExecutionResultInclusionEstimator {
+func NewExecutionResultInclusionEstimator(cfg config.ExecutionResultInclusionEstimatorConfig, genesisTimeMs uint64, roundHandler RoundHandler) *ExecutionResultInclusionEstimator {
+	if check.IfNil(roundHandler) {
+		log.Error("NewExecutionResultInclusionEstimator: nil roundHandler")
+		return nil
+	}
 	return &ExecutionResultInclusionEstimator{
 		cfg:           cfg,
 		tGas:          tGas,
 		genesisTimeMs: genesisTimeMs,
+		roundHandler:  roundHandler,
 	}
 }
 
 // Decide returns the prefix of `pending` that may be inserted into the block currently being built / verified.
 // Return value: `allowed` is the count of leading entries in `pending` deemed safe. The caller slices `pending[:allowed]` and embeds them.
-func (erie *ExecutionResultInclusionEstimator) Decide(lastNotarised *ExecutionResultMetaData,
-	pending []ExecutionResultMetaData,
+func (erie *ExecutionResultInclusionEstimator) Decide(
+	lastNotarised *LastExecutionResultForInclusion,
+	pending []data.ExecutionResultHandler,
 	currentHdrTsMs uint64,
 ) (allowed int) {
 	allowed = 0
@@ -55,13 +64,14 @@ func (erie *ExecutionResultInclusionEstimator) Decide(lastNotarised *ExecutionRe
 	if len(pending) == 0 {
 		return allowed
 	}
-	var previousExecutionResultMeta *ExecutionResultMetaData
+	var previousExecutionResultMeta data.ExecutionResultHandler
 	var tBase uint64
 	// lastNotarised is nil if genesis.
 	if lastNotarised == nil {
 		tBase = convertMsToNs(erie.genesisTimeMs)
 	} else {
-		tBase = convertMsToNs(lastNotarised.HeaderTimeMs)
+		LastNotarizedTimestampMs := erie.roundHandler.GetTimeStampForRound(lastNotarised.NotarizedInRound)
+		tBase = convertMsToNs(LastNotarizedTimestampMs)
 	}
 
 	currentHdrTsNs := convertMsToNs(currentHdrTsMs)
@@ -70,18 +80,18 @@ func (erie *ExecutionResultInclusionEstimator) Decide(lastNotarised *ExecutionRe
 	estimatedTime := uint64(0)
 	for i, executionResultMeta := range pending {
 		if i > 0 {
-			previousExecutionResultMeta = &pending[i-1]
+			previousExecutionResultMeta = pending[i-1]
 		}
 		ok := erie.checkSanity(executionResultMeta, previousExecutionResultMeta, lastNotarised, currentHdrTsNs)
 		if !ok {
 			return i
 		}
 
-		overflow, currentEstimatedTime := bits.Mul64(executionResultMeta.GasUsed, erie.tGas)
+		overflow, currentEstimatedTime := bits.Mul64(executionResultMeta.GetGasUsed(), erie.tGas)
 		if overflow != 0 {
 			log.Debug("ExecutionResultInclusionEstimator: overflow detected in currentEstimatedTime",
 				"currentEstimatedTime", currentEstimatedTime,
-				"gasUsed", executionResultMeta.GasUsed,
+				"gasUsed", executionResultMeta.GetGasUsed(),
 				"tGas", erie.tGas,
 			)
 			return i
@@ -134,53 +144,61 @@ func (erie *ExecutionResultInclusionEstimator) Decide(lastNotarised *ExecutionRe
 	return len(pending)
 }
 
-func (erie *ExecutionResultInclusionEstimator) checkSanity(currentExecutionResultMeta ExecutionResultMetaData,
-	previousExecutionResultMeta *ExecutionResultMetaData,
-	lastNotarised *ExecutionResultMetaData,
+// IsInterfaceNil returns true if there is no value under the interface
+func (erie *ExecutionResultInclusionEstimator) IsInterfaceNil() bool {
+	return erie == nil
+}
+
+func (erie *ExecutionResultInclusionEstimator) checkSanity(
+	currentExecutionResult data.ExecutionResultHandler,
+	previousExecutionResult data.ExecutionResultHandler,
+	lastNotarised *LastExecutionResultForInclusion,
 	currentHdrTsNs uint64,
 ) bool {
+	currentExecutionResultForProposalTimestamp := erie.roundHandler.GetTimeStampForRound(currentExecutionResult.GetHeaderRound())
+	currentExecutionResultForProposalTimestampNs := convertMsToNs(currentExecutionResultForProposalTimestamp)
 	// Check for strict nonce monotonicity
-	if previousExecutionResultMeta != nil && currentExecutionResultMeta.HeaderNonce != previousExecutionResultMeta.HeaderNonce+1 {
+	if previousExecutionResult != nil && currentExecutionResult.GetHeaderNonce() != previousExecutionResult.GetHeaderNonce()+1 {
 		log.Debug("ExecutionResultInclusionEstimator: non-monotonic HeaderNonce detected",
-			"currentHeaderNonce", currentExecutionResultMeta.HeaderNonce,
-			"previousHeaderNonce", previousExecutionResultMeta.HeaderNonce,
-			"currentHeaderTimeMs", currentExecutionResultMeta.HeaderTimeMs,
-			"previousHeaderTimeMs", previousExecutionResultMeta.HeaderTimeMs,
+			"currentHeaderNonce", currentExecutionResult.GetHeaderNonce(),
+			"previousHeaderNonce", previousExecutionResult.GetHeaderNonce(),
+			"currentHeaderTimeMs", currentExecutionResultForProposalTimestamp,
+			"previousHeaderTimeMs", erie.roundHandler.GetTimeStampForRound(previousExecutionResult.GetHeaderRound()),
 		)
 		return false
 	}
 	// Check for monotonicity in time
-	if previousExecutionResultMeta != nil && currentExecutionResultMeta.HeaderTimeMs < previousExecutionResultMeta.HeaderTimeMs {
+	if previousExecutionResult != nil && currentExecutionResultForProposalTimestamp < erie.roundHandler.GetTimeStampForRound(previousExecutionResult.GetHeaderRound()) {
 		log.Debug("ExecutionResultInclusionEstimator: non-monotonic HeaderTimeMs detected",
-			"currentHeaderTimeMs", currentExecutionResultMeta.HeaderTimeMs,
-			"previousHeaderTimeMs", previousExecutionResultMeta.HeaderTimeMs,
+			"currentHeaderTimeMs", currentExecutionResultForProposalTimestamp,
+			"previousHeaderTimeMs", erie.roundHandler.GetTimeStampForRound(previousExecutionResult.GetHeaderRound()),
 		)
 		return false
 	}
 	// Check for time before genesis time
-	if currentExecutionResultMeta.HeaderTimeMs < erie.genesisTimeMs {
+	if currentExecutionResultForProposalTimestamp < erie.genesisTimeMs {
 		log.Debug("ExecutionResultInclusionEstimator: HeaderTimeMs before genesis detected",
-			"headerNonce", currentExecutionResultMeta.HeaderNonce,
-			"headerTimeMs", currentExecutionResultMeta.HeaderTimeMs,
+			"headerNonce", currentExecutionResult.GetHeaderNonce(),
+			"headerTimeMs", currentExecutionResultForProposalTimestamp,
 			"genesisTimeMs", erie.genesisTimeMs,
 		)
 		return false
 	}
 	// Check for time before last notarised
-	if lastNotarised != nil && currentExecutionResultMeta.HeaderTimeMs < lastNotarised.HeaderTimeMs {
+	if lastNotarised != nil && currentExecutionResultForProposalTimestamp < erie.roundHandler.GetTimeStampForRound(lastNotarised.ProposedInRound) {
 		log.Debug("ExecutionResultInclusionEstimator: HeaderTimeMs before last notarised detected",
-			"headerNonce", currentExecutionResultMeta.HeaderNonce,
-			"headerTimeMs", currentExecutionResultMeta.HeaderTimeMs,
-			"lastNotarisedTimeMs", lastNotarised.HeaderTimeMs,
+			"headerNonce", currentExecutionResult.GetHeaderNonce(),
+			"headerTimeMs", currentExecutionResultForProposalTimestamp,
+			"lastNotarisedTimeMs", erie.roundHandler.GetTimeStampForRound(lastNotarised.ProposedInRound),
 		)
 		return false
 	}
 
 	// Check for results in the future
-	if convertMsToNs(currentExecutionResultMeta.HeaderTimeMs) > currentHdrTsNs {
+	if currentExecutionResultForProposalTimestampNs > currentHdrTsNs {
 		log.Debug("ExecutionResultInclusionEstimator: HeaderTimeMs in the future detected",
-			"headerNonce", currentExecutionResultMeta.HeaderNonce,
-			"headerTimeMs", currentExecutionResultMeta.HeaderTimeMs,
+			"headerNonce", currentExecutionResult.GetHeaderNonce(),
+			"headerTimeNs", currentExecutionResultForProposalTimestampNs,
 			"currentHdrTsNs", currentHdrTsNs,
 		)
 		return false

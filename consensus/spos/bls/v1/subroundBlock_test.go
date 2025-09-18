@@ -22,6 +22,7 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/consensus/initializers"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
+	"github.com/multiversx/mx-chain-go/testscommon/round"
 	"github.com/multiversx/mx-chain-go/testscommon/statusHandler"
 )
 
@@ -343,7 +344,7 @@ func TestSubroundBlock_DoBlockJob(t *testing.T) {
 		},
 	}
 	container.SetBroadcastMessenger(bm)
-	container.SetRoundHandler(&consensusMock.RoundHandlerMock{
+	container.SetRoundHandler(&round.RoundHandlerMock{
 		RoundIndex: 1,
 	})
 	r = sr.DoBlockJob()
@@ -701,7 +702,7 @@ func TestSubroundBlock_ProcessReceivedBlockShouldReturnFalseWhenProcessBlockRetu
 		return errors.New("error")
 	}
 	container.SetBlockProcessor(blockProcessorMock)
-	container.SetRoundHandler(&consensusMock.RoundHandlerMock{RoundIndex: 1})
+	container.SetRoundHandler(&round.RoundHandlerMock{RoundIndex: 1})
 	assert.False(t, sr.ProcessReceivedBlock(cnsMsg))
 }
 
@@ -839,7 +840,7 @@ func TestSubroundBlock_HaveTimeInCurrentSubroundShouldReturnTrue(t *testing.T) {
 
 		return time.Duration(remainingTime) > 0
 	}
-	roundHandlerMock := &consensusMock.RoundHandlerMock{}
+	roundHandlerMock := &round.RoundHandlerMock{}
 	roundHandlerMock.TimeDurationCalled = func() time.Duration {
 		return 4000 * time.Millisecond
 	}
@@ -869,7 +870,7 @@ func TestSubroundBlock_HaveTimeInCurrentSuboundShouldReturnFalse(t *testing.T) {
 
 		return time.Duration(remainingTime) > 0
 	}
-	roundHandlerMock := &consensusMock.RoundHandlerMock{}
+	roundHandlerMock := &round.RoundHandlerMock{}
 	roundHandlerMock.TimeDurationCalled = func() time.Duration {
 		return 4000 * time.Millisecond
 	}
