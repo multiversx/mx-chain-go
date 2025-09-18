@@ -5,6 +5,8 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/stretchr/testify/require"
+
 	retriever "github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/process"
 	blproc "github.com/multiversx/mx-chain-go/process/block"
@@ -16,7 +18,6 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/executionTrack"
 	"github.com/multiversx/mx-chain-go/testscommon/mbSelection"
 	"github.com/multiversx/mx-chain-go/testscommon/processMocks"
-	"github.com/stretchr/testify/require"
 )
 
 func getSimpleHeaderV3Mock() *testscommon.HeaderHandlerStub {
@@ -273,7 +274,7 @@ func TestShardProcessor_CreateBlockProposal(t *testing.T) {
 		coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
 		arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
 		arguments.ExecutionResultsTracker = &executionTrack.ExecutionResultsTrackerStub{
-			GetPendingExecutionResultsCalled: func() ([]data.ExecutionResultHandler, error) {
+			GetPendingExecutionResultsCalled: func() ([]data.BaseExecutionResultHandler, error) {
 				return nil, expectedErr
 			},
 		}
@@ -296,13 +297,13 @@ func TestShardProcessor_CreateBlockProposal(t *testing.T) {
 		}
 		arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
 		arguments.ExecutionResultsInclusionEstimator = &processMocks.InclusionEstimatorMock{
-			DecideCalled: func(lastNotarised *estimator.LastExecutionResultForInclusion, pending []data.ExecutionResultHandler, currentHdrTsMs uint64) (allowed int) {
+			DecideCalled: func(lastNotarised *estimator.LastExecutionResultForInclusion, pending []data.BaseExecutionResultHandler, currentHdrTsMs uint64) (allowed int) {
 				return 1 // coverage only
 			},
 		}
 		arguments.ExecutionResultsTracker = &executionTrack.ExecutionResultsTrackerStub{
-			GetPendingExecutionResultsCalled: func() ([]data.ExecutionResultHandler, error) {
-				return []data.ExecutionResultHandler{
+			GetPendingExecutionResultsCalled: func() ([]data.BaseExecutionResultHandler, error) {
+				return []data.BaseExecutionResultHandler{
 					&block.ExecutionResult{
 						BaseExecutionResult: &block.BaseExecutionResult{},
 					},
