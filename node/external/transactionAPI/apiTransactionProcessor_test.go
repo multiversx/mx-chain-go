@@ -29,7 +29,6 @@ import (
 	"github.com/multiversx/mx-chain-go/node/mock"
 	"github.com/multiversx/mx-chain-go/process"
 	processMocks "github.com/multiversx/mx-chain-go/process/mock"
-	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	dataRetrieverMock "github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
@@ -1263,6 +1262,89 @@ func TestApiTransactionProcessor_GetSelectedTransactions(t *testing.T) {
 		require.Len(t, selectedTxs.Transactions, 4)
 	})
 
+	t.Run("should work and contain requested fields", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockArgAPITransactionProcessor()
+		args.DataPool = &dataRetrieverMock.PoolsHolderStub{
+			TransactionsCalled: func() dataRetriever.ShardedDataCacherNotifier {
+				return &testscommon.ShardedDataStub{
+					ShardDataStoreCalled: func(cacheID string) storage.Cacher {
+						if cacheID == "1" { // self shard
+							return cache
+						}
+						return nil
+					},
+				}
+			},
+		}
+
+		atp, err := NewAPITransactionProcessor(args)
+		require.NoError(t, err)
+		require.NotNil(t, atp)
+
+		accountsAdapter := &stateMock.AccountsStub{
+			RootHashCalled: func() ([]byte, error) {
+				return []byte("rootHash"), nil
+			},
+			GetExistingAccountCalled: func(addressContainer []byte) (vmcommon.AccountHandler, error) {
+				if bytes.Equal(addressContainer, []byte("alice")) {
+					return &stateMock.AccountWrapMock{
+						Balance: oneEGLD,
+					}, nil
+				}
+				if bytes.Equal(addressContainer, []byte("bob")) {
+					return &stateMock.AccountWrapMock{
+						Balance: oneEGLD,
+					}, nil
+				}
+
+				return nil, nil
+			},
+			RecreateTrieCalled: func(options common.RootHashHolder) error {
+				return nil
+			},
+		}
+
+		blockchainMock := &testscommon.ChainHandlerStub{
+			GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
+				return &block.Header{}
+			},
+			GetCurrentBlockRootHashCalled: func() []byte {
+				return []byte("root hash")
+			},
+		}
+
+		options := holders.NewTxSelectionOptions(
+			gasRequested,
+			numTxsSelected,
+			selectionLoopMaximumDuration,
+			loopDurationCheckInterval,
+		)
+
+		selectionOptionsAPI := holders.NewTxSelectionOptionsAPI(
+			options,
+			true,
+			false,
+			true,
+		)
+
+		selectedTxs, err := atp.GetSelectedTransactions(selectionOptionsAPI, blockchainMock, accountsAdapter)
+		require.NoError(t, err)
+		require.Len(t, selectedTxs.Transactions, 4)
+
+		for _, tx := range selectedTxs.Transactions {
+			_, ok := tx.TxFields["sender"]
+			require.True(t, ok)
+
+			_, ok = tx.TxFields["relayer"]
+			require.False(t, ok)
+
+			_, ok = tx.TxFields["nonce"]
+			require.True(t, ok)
+		}
+	})
+
 	t.Run("should return error from SelectTransactions", func(t *testing.T) {
 		t.Parallel()
 
@@ -1305,7 +1387,7 @@ func TestApiTransactionProcessor_GetSelectedTransactions(t *testing.T) {
 		)
 
 		_, err = atp.GetSelectedTransactions(selectionOptionsAPI, nil, accountsAdapter)
-		require.Equal(t, expectedErr, err)
+		require.Equal(t, ErrNilBlockchain, err)
 	})
 
 	t.Run("should return ErrNilAccountsAdapter error", func(t *testing.T) {
@@ -1325,6 +1407,15 @@ func TestApiTransactionProcessor_GetSelectedTransactions(t *testing.T) {
 			},
 		}
 
+		blockchainMock := &testscommon.ChainHandlerStub{
+			GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
+				return &block.Header{}
+			},
+			GetCurrentBlockRootHashCalled: func() []byte {
+				return []byte("root hash")
+			},
+		}
+
 		atp, err := NewAPITransactionProcessor(args)
 		require.NoError(t, err)
 		require.NotNil(t, atp)
@@ -1343,8 +1434,8 @@ func TestApiTransactionProcessor_GetSelectedTransactions(t *testing.T) {
 			false,
 		)
 
-		selectedTxs, err := atp.GetSelectedTransactions(selectionOptionsAPI, nil, nil)
-		require.Equal(t, state.ErrNilAccountsAdapter, err)
+		selectedTxs, err := atp.GetSelectedTransactions(selectionOptionsAPI, blockchainMock, nil)
+		require.Equal(t, ErrNilAccountStateAPI, err)
 		require.Nil(t, selectedTxs)
 	})
 
@@ -1362,7 +1453,28 @@ func TestApiTransactionProcessor_GetSelectedTransactions(t *testing.T) {
 			},
 		}
 
-		accountsAdapter := &stateMock.AccountsStub{}
+		accountsAdapter := &stateMock.AccountsStub{
+			RootHashCalled: func() ([]byte, error) {
+				return []byte("rootHash"), nil
+			},
+			GetExistingAccountCalled: func(addressContainer []byte) (vmcommon.AccountHandler, error) {
+				if bytes.Equal(addressContainer, []byte("alice")) {
+					return &stateMock.AccountWrapMock{
+						Balance: oneEGLD,
+					}, nil
+				}
+				if bytes.Equal(addressContainer, []byte("bob")) {
+					return &stateMock.AccountWrapMock{
+						Balance: oneEGLD,
+					}, nil
+				}
+
+				return nil, nil
+			},
+			RecreateTrieCalled: func(options common.RootHashHolder) error {
+				return nil
+			},
+		}
 
 		atp, err := NewAPITransactionProcessor(args)
 		require.NoError(t, err)
@@ -1375,6 +1487,15 @@ func TestApiTransactionProcessor_GetSelectedTransactions(t *testing.T) {
 			loopDurationCheckInterval,
 		)
 
+		blockchainMock := &testscommon.ChainHandlerStub{
+			GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
+				return &block.Header{}
+			},
+			GetCurrentBlockRootHashCalled: func() []byte {
+				return []byte("root hash")
+			},
+		}
+
 		selectionOptionsAPI := holders.NewTxSelectionOptionsAPI(
 			options,
 			false,
@@ -1382,7 +1503,7 @@ func TestApiTransactionProcessor_GetSelectedTransactions(t *testing.T) {
 			false,
 		)
 
-		selectedTxs, err := atp.GetSelectedTransactions(selectionOptionsAPI, nil, accountsAdapter)
+		selectedTxs, err := atp.GetSelectedTransactions(selectionOptionsAPI, blockchainMock, accountsAdapter)
 		require.Equal(t, ErrCouldNotCastToTxCache, err)
 		require.Nil(t, selectedTxs)
 	})
