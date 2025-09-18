@@ -157,6 +157,13 @@ func (erie *ExecutionResultInclusionEstimator) checkSanity(
 	lastNotarised *LastExecutionResultForInclusion,
 	currentRound uint64,
 ) bool {
+	// Check for genesis round
+	if currentExecutionResult.GetHeaderRound() == 0 {
+		log.Debug("ExecutionResultInclusionEstimator: ExecutionResultHeaderRound on genesis detected",
+			"headerNonce", currentExecutionResult.GetHeaderNonce(),
+		)
+		return false
+	}
 	// Check for strict nonce monotonicity
 	if previousExecutionResult != nil && currentExecutionResult.GetHeaderNonce() != previousExecutionResult.GetHeaderNonce()+1 {
 		log.Debug("ExecutionResultInclusionEstimator: non-monotonic HeaderNonce detected",
@@ -168,27 +175,27 @@ func (erie *ExecutionResultInclusionEstimator) checkSanity(
 		return false
 	}
 	// Check for monotonicity of rounds
-	if previousExecutionResult != nil && currentExecutionResult.GetHeaderRound() < previousExecutionResult.GetHeaderRound() {
+	if previousExecutionResult != nil && currentExecutionResult.GetHeaderRound() <= previousExecutionResult.GetHeaderRound() {
 		log.Debug("ExecutionResultInclusionEstimator: non-monotonic rounds detected",
 			"currentRound", currentExecutionResult.GetHeaderRound(),
-			"previousRound", previousExecutionResult.GetHeaderRound(),
+			"previousERound", previousExecutionResult.GetHeaderRound(),
 		)
 		return false
 	}
 
 	// Check for round before last notarised
-	if lastNotarised != nil && currentExecutionResult.GetHeaderRound() < lastNotarised.NotarizedInRound {
+	if lastNotarised != nil && currentExecutionResult.GetHeaderRound() <= lastNotarised.ProposedInRound {
 		log.Debug("ExecutionResultInclusionEstimator: Round before last notarised detected",
 			"headerNonce", currentExecutionResult.GetHeaderNonce(),
-			"lastNotarisedRound", lastNotarised.NotarizedInRound,
-			"currentRound", currentExecutionResult.GetHeaderRound())
+			"lastNotarisedResultProposalRound", lastNotarised.ProposedInRound,
+			"currentExecutionResultRound", currentExecutionResult.GetHeaderRound())
 		return false
 	}
 	// Check for results in the future
-	if currentExecutionResult.GetHeaderRound() > currentRound {
-		log.Debug("ExecutionResultInclusionEstimator: HeaderTimeMs in the future detected",
-			"headerNonce", currentExecutionResult.GetHeaderNonce(),
-			"currentRound", currentExecutionResult.GetHeaderRound(),
+	if currentExecutionResult.GetHeaderRound() >= currentRound {
+		log.Debug("ExecutionResultInclusionEstimator: Execution result round in the future detected",
+			"currentExecutionResultNonce", currentExecutionResult.GetHeaderNonce(),
+			"currentExecutionResultRound", currentExecutionResult.GetHeaderRound(),
 			"currentHeaderRound", currentRound,
 		)
 		return false

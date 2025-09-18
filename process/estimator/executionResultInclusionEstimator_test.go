@@ -238,7 +238,7 @@ func TestOverflowProtection(t *testing.T) {
 		currentRound := uint64(1<<63 - 1)
 		numAccepted := erie.Decide(nil, pending, currentRound)
 		t.Log("num_accepted:", numAccepted)
-		require.Equal(t, 0, numAccepted, "should from the first result overflow")
+		require.Equal(t, 0, numAccepted, "should overflow from the first result")
 	})
 
 	t.Run("overflow detected in total estimated time - accumulated estimatedTime overflows", func(t *testing.T) {
@@ -300,7 +300,7 @@ func TestDecide_EdgeCases(t *testing.T) {
 		}
 
 		got := erie.Decide(nil, pending, roundNow)
-		require.Equal(t, 1, got)
+		require.Equal(t, 0, got)
 	})
 
 	t.Run("HeaderRound before last notarised", func(t *testing.T) {
@@ -308,13 +308,14 @@ func TestDecide_EdgeCases(t *testing.T) {
 		cfg := config.ExecutionResultInclusionEstimatorConfig{SafetyMargin: 110}
 		erie := NewExecutionResultInclusionEstimator(cfg, roundHandler)
 		lastNotarised := &LastExecutionResultForInclusion{
-			NotarizedInRound: 2,
-			ProposedInRound:  0,
+			NotarizedInRound: 3,
+			ProposedInRound:  2,
 		}
 		pending := []data.BaseExecutionResultHandler{
 			&block.ExecutionResult{BaseExecutionResult: &block.BaseExecutionResult{HeaderNonce: 1, HeaderRound: 1, GasUsed: 100}},
 		}
-		got := erie.Decide(lastNotarised, pending, roundNow)
+		round := uint64(4)
+		got := erie.Decide(lastNotarised, pending, round)
 		require.Equal(t, 0, got)
 	})
 
