@@ -188,9 +188,10 @@ type Config struct {
 
 	ExecutionResultInclusionEstimator ExecutionResultInclusionEstimatorConfig
 
-	BootstrapStorage StorageConfig
-	MetaBlockStorage StorageConfig
-	ProofsStorage    StorageConfig
+	BootstrapStorage 		StorageConfig
+	MetaBlockStorage 		StorageConfig
+	ProofsStorage    		StorageConfig
+	ExecutionResultsStorage StorageConfig
 
 	AccountsTrieStorage       StorageConfig
 	PeerAccountsTrieStorage   StorageConfig

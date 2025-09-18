@@ -3,6 +3,7 @@ package blockAPI
 import (
 	"encoding/hex"
 
+	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/alteredAccount"
 	"github.com/multiversx/mx-chain-core-go/data/api"
 	"github.com/multiversx/mx-chain-core-go/data/block"
@@ -177,9 +178,72 @@ func (sbp *shardAPIBlockProcessor) convertShardBlockBytesToAPIBlock(hash []byte,
 		return nil, err
 	}
 
+	apiBlock := &api.Block{
+		Nonce:           blockHeader.GetNonce(),
+		Round:           blockHeader.GetRound(),
+		Epoch:           blockHeader.GetEpoch(),
+		Shard:           blockHeader.GetShardID(),
+		Hash:            hex.EncodeToString(hash),
+		PrevBlockHash:   hex.EncodeToString(blockHeader.GetPrevHash()),
+		Timestamp:       int64(blockHeader.GetTimeStamp()),
+		TimestampMs:     int64(common.ConvertTimeStampSecToMs(blockHeader.GetTimeStamp())),
+		Status:          BlockStatusOnChain,
+		PubKeyBitmap:    hex.EncodeToString(blockHeader.GetPubKeysBitmap()),
+		Signature:       hex.EncodeToString(blockHeader.GetSignature()),
+		LeaderSignature: hex.EncodeToString(blockHeader.GetLeaderSignature()),
+		ChainID:         string(blockHeader.GetChainID()),
+		SoftwareVersion: hex.EncodeToString(blockHeader.GetSoftwareVersion()),
+		Reserved:        blockHeader.GetReserved(),
+		RandSeed:        hex.EncodeToString(blockHeader.GetRandSeed()),
+		PrevRandSeed:    hex.EncodeToString(blockHeader.GetPrevRandSeed()),
+	}
+
+	if blockHeader.IsHeaderV3() {
+		err = sbp.addMbsAndNumTxsAsyncExecution(apiBlock, blockHeader, hash, options)
+	} else {
+		err = sbp.addMbsAndNumTxsV1(apiBlock, blockHeader, hash, options)
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	statusFilters := filters.NewStatusFilters(sbp.selfShardID)
+	statusFilters.ApplyStatusFilters(apiBlock.MiniBlocks)
+
+	addExtraFieldsLastExecutionResult(blockHeader, apiBlock)
+	addScheduledInfoInBlock(blockHeader, apiBlock)
+	err = sbp.addProof(hash, blockHeader, apiBlock)
+	if err != nil {
+		return nil, err
+	}
+
+	addExecutionResultsAndLastExecutionResults(blockHeader, apiBlock)
+
+	return apiBlock, nil
+}
+
+func addExtraFieldsLastExecutionResult(blockHeader data.HeaderHandler, apiBlock *api.Block) {
+	if !blockHeader.IsHeaderV3() {
+		apiBlock.AccumulatedFees = blockHeader.GetAccumulatedFees().String()
+		apiBlock.DeveloperFees = blockHeader.GetDeveloperFees().String()
+		apiBlock.StateRootHash = hex.EncodeToString(blockHeader.GetRootHash())
+		apiBlock.ReceiptsHash = hex.EncodeToString(blockHeader.GetReceiptsHash())
+
+		return
+	}
+
+	lastShardExecutionResult, ok := blockHeader.GetLastExecutionResultHandler().(data.LastShardExecutionResultHandler)
+	if !ok {
+		log.Warn("mbp.addExtraFields cannot cast last execution result handler to data.LastShardExecutionResultHandler")
+		return
+	}
+
+	apiBlock.StateRootHash = hex.EncodeToString(lastShardExecutionResult.GetExecutionResultHandler().GetRootHash())
+}
+
+func (sbp *shardAPIBlockProcessor) addMbsAndNumTxsV1(apiBlock *api.Block, blockHeader data.HeaderHandler, headerHash []byte, options api.BlockQueryOptions) error {
 	numOfTxs := uint32(0)
 	miniblocks := make([]*api.MiniBlock, 0)
-
 	for _, mb := range blockHeader.GetMiniBlockHeaderHandlers() {
 		if block.Type(mb.GetTypeInt32()) == block.PeerBlock {
 			continue
@@ -199,59 +263,27 @@ func (sbp *shardAPIBlockProcessor) convertShardBlockBytesToAPIBlock(hash []byte,
 		}
 		if options.WithTransactions {
 			miniBlockCopy := mb
-			err = sbp.getAndAttachTxsToMb(miniBlockCopy, blockHeader, miniblockAPI, options)
+			err := sbp.getAndAttachTxsToMb(miniBlockCopy, blockHeader, miniblockAPI, options)
 			if err != nil {
-				return nil, err
+				return err
 			}
 		}
 
 		miniblocks = append(miniblocks, miniblockAPI)
 	}
 
-	intraMb, err := sbp.getIntrashardMiniblocksFromReceiptsStorage(blockHeader, hash, options)
+	intraMb, err := sbp.getIntrashardMiniblocksFromReceiptsStorage(blockHeader, headerHash, options)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	miniblocks = append(miniblocks, intraMb...)
 	miniblocks = filterOutDuplicatedMiniblocks(miniblocks)
 
-	statusFilters := filters.NewStatusFilters(sbp.selfShardID)
-	statusFilters.ApplyStatusFilters(miniblocks)
+	apiBlock.MiniBlocks = miniblocks
+	apiBlock.NumTxs = numOfTxs
 
-	apiBlock := &api.Block{
-		Nonce:           blockHeader.GetNonce(),
-		Round:           blockHeader.GetRound(),
-		Epoch:           blockHeader.GetEpoch(),
-		Shard:           blockHeader.GetShardID(),
-		Hash:            hex.EncodeToString(hash),
-		PrevBlockHash:   hex.EncodeToString(blockHeader.GetPrevHash()),
-		NumTxs:          numOfTxs,
-		MiniBlocks:      miniblocks,
-		AccumulatedFees: blockHeader.GetAccumulatedFees().String(),
-		DeveloperFees:   blockHeader.GetDeveloperFees().String(),
-		Timestamp:       int64(blockHeader.GetTimeStamp()),
-		TimestampMs:     int64(common.ConvertTimeStampSecToMs(blockHeader.GetTimeStamp())),
-		Status:          BlockStatusOnChain,
-		StateRootHash:   hex.EncodeToString(blockHeader.GetRootHash()),
-		PubKeyBitmap:    hex.EncodeToString(blockHeader.GetPubKeysBitmap()),
-		Signature:       hex.EncodeToString(blockHeader.GetSignature()),
-		LeaderSignature: hex.EncodeToString(blockHeader.GetLeaderSignature()),
-		ChainID:         string(blockHeader.GetChainID()),
-		SoftwareVersion: hex.EncodeToString(blockHeader.GetSoftwareVersion()),
-		ReceiptsHash:    hex.EncodeToString(blockHeader.GetReceiptsHash()),
-		Reserved:        blockHeader.GetReserved(),
-		RandSeed:        hex.EncodeToString(blockHeader.GetRandSeed()),
-		PrevRandSeed:    hex.EncodeToString(blockHeader.GetPrevRandSeed()),
-	}
-
-	addScheduledInfoInBlock(blockHeader, apiBlock)
-	err = sbp.addProof(hash, blockHeader, apiBlock)
-	if err != nil {
-		return nil, err
-	}
-
-	return apiBlock, nil
+	return nil
 }
 
 // IsInterfaceNil returns true if underlying object is nil
