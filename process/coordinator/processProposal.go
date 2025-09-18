@@ -11,6 +11,7 @@ import (
 	"github.com/multiversx/mx-chain-go/process/block/processedMb"
 )
 
+// CreateMbsCrossShardDstMe creates cross-shard miniblocks for the current shard
 func (tc *transactionCoordinator) CreateMbsCrossShardDstMe(
 	hdr data.HeaderHandler,
 	processedMiniBlocksInfo map[string]*processedMb.ProcessedMiniBlockInfo,

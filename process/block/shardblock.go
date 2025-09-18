@@ -843,7 +843,7 @@ func (sp *shardProcessor) updateEpochIfNeeded(shardHeader data.ShardHeaderHandle
 		return nil
 	}
 
-	log.Debug("CreateBlock", "IsEpochStart", sp.epochStartTrigger.IsEpochStart(),
+	log.Debug("shardProcessor.updateEpochIfNeeded", "IsEpochStart", sp.epochStartTrigger.IsEpochStart(),
 		"epoch start meta header hash", sp.epochStartTrigger.EpochStartMetaHdrHash())
 	err := shardHeader.SetEpochStartMetaHash(sp.epochStartTrigger.EpochStartMetaHdrHash())
 	if err != nil {
@@ -852,7 +852,7 @@ func (sp *shardProcessor) updateEpochIfNeeded(shardHeader data.ShardHeaderHandle
 
 	epoch := sp.epochStartTrigger.MetaEpoch()
 	if shardHeader.GetEpoch() != epoch {
-		log.Debug("shardProcessor.CreateBlock: epoch from header is not the same as epoch from epoch start trigger, overwriting",
+		log.Debug("shardProcessor.updateEpochIfNeeded: epoch from header is not the same as epoch from epoch start trigger, overwriting",
 			"epoch from header", shardHeader.GetEpoch(), "epoch from epoch start trigger", epoch)
 		err = shardHeader.SetEpoch(epoch)
 		if err != nil {
