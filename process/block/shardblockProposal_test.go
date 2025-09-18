@@ -566,7 +566,8 @@ func TestShardProcessor_SelectIncomingMiniBlocks(t *testing.T) {
 		sp, err := blproc.NewShardProcessor(arguments)
 		require.Nil(t, err)
 
-		providedOrderedMetaBlocksCopy := providedOrderedMetaBlocks
+		providedOrderedMetaBlocksCopy := make([]data.HeaderHandler, len(providedOrderedMetaBlocks))
+		copy(providedOrderedMetaBlocksCopy, providedOrderedMetaBlocks)
 		_ = providedOrderedMetaBlocksCopy[1].SetNonce(10)
 		err = sp.SelectIncomingMiniBlocks(providedLastCrossNotarizedMetaHdr, providedOrderedMetaBlocksCopy, providedOrderedMetaBlocksHashes, haveTimeTrue)
 		require.NoError(t, err)
