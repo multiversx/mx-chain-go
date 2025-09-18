@@ -31,7 +31,6 @@ import (
 	"github.com/multiversx/mx-chain-go/process/mock"
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/state/accounts"
-	"github.com/multiversx/mx-chain-go/state/dataTrieValue"
 	stateDisabled "github.com/multiversx/mx-chain-go/state/disabled"
 	"github.com/multiversx/mx-chain-go/state/factory"
 	"github.com/multiversx/mx-chain-go/state/iteratorChannelsProvider"
@@ -459,9 +458,10 @@ func stepCreateAccountWithDataTrieAndCode(
 	code := []byte("smart contract code")
 	key1 := []byte("key1")
 	key2 := []byte("key2")
+	value := []byte("value")
 	userAcc.SetCode(code)
-	_ = userAcc.SaveKeyValue(key1, []byte("value"))
-	_ = userAcc.SaveKeyValue(key2, []byte("value"))
+	_ = userAcc.SaveKeyValue(key1, value)
+	_ = userAcc.SaveKeyValue(key2, value)
 	_ = adb.SaveAccount(userAcc)
 
 	txHash := []byte("accountCreationTxHash")
@@ -493,12 +493,9 @@ func stepCreateAccountWithDataTrieAndCode(
 	assert.Equal(t, serializedAcc, accountStateChange.MainTrieVal)
 	assert.Equal(t, 2, len(accountStateChange.DataTrieChanges))
 	assert.Equal(t, key1, accountStateChange.DataTrieChanges[0].Key)
-	valWithMetadata1 := append([]byte("value"), key1...)
-	valWithMetadata1 = append(valWithMetadata1, address...)
-	assert.Equal(t, valWithMetadata1, accountStateChange.DataTrieChanges[0].Val)
-	valWithMetadata2 := append([]byte("value"), key2...)
-	valWithMetadata2 = append(valWithMetadata2, address...)
-	assert.Equal(t, valWithMetadata2, accountStateChange.DataTrieChanges[1].Val)
+	assert.Equal(t, value, accountStateChange.DataTrieChanges[0].Val)
+	assert.Equal(t, key2, accountStateChange.DataTrieChanges[1].Key)
+	assert.Equal(t, value, accountStateChange.DataTrieChanges[1].Val)
 }
 
 func stepMigrateDataTrieValAndChangeCode(
@@ -507,7 +504,6 @@ func stepMigrateDataTrieValAndChangeCode(
 	address []byte,
 ) {
 	marshaller := &marshallerMock.MarshalizerMock{}
-	hasher := &hashingMocks.HasherMock{}
 
 	acc, _ := adb.LoadAccount(address)
 	userAcc := acc.(state.UserAccountHandler)
@@ -548,16 +544,12 @@ func stepMigrateDataTrieValAndChangeCode(
 	assert.Equal(t, address, accountStateChange.MainTrieKey)
 	assert.Equal(t, serializedAcc, accountStateChange.MainTrieVal)
 	assert.Equal(t, 2, len(accountStateChange.DataTrieChanges))
-	trieVal := &dataTrieValue.TrieLeafData{
-		Value:   []byte("value1"),
-		Key:     []byte("key1"),
-		Address: address,
-	}
-	serializedTrieVal, _ := marshaller.Marshal(trieVal)
-	assert.Equal(t, hasher.Compute("key1"), accountStateChange.DataTrieChanges[0].Key)
-	assert.Equal(t, serializedTrieVal, accountStateChange.DataTrieChanges[0].Val)
+	assert.Equal(t, []byte("key1"), accountStateChange.DataTrieChanges[0].Key)
+	assert.Equal(t, []byte("value1"), accountStateChange.DataTrieChanges[0].Val)
+	assert.Equal(t, uint32(data.NotSpecified), accountStateChange.DataTrieChanges[0].Operation)
 	assert.Equal(t, []byte("key1"), accountStateChange.DataTrieChanges[1].Key)
-	assert.Equal(t, []byte(nil), accountStateChange.DataTrieChanges[1].Val)
+	assert.Equal(t, []byte("value"), accountStateChange.DataTrieChanges[1].Val)
+	assert.Equal(t, uint32(data.Delete), accountStateChange.DataTrieChanges[1].Operation)
 }
 
 func TestAccountsDB_SaveAccountWithSomeValuesShouldWork(t *testing.T) {

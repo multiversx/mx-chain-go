@@ -277,17 +277,23 @@ func (tdt *trackableDataTrie) updateTrie(dtr state.DataTrie) ([]*stateChange.Dat
 		}
 
 		if wasDeleted {
+			originalVal, err := tdt.getValueNotSpecifiedVersion([]byte(key), oldVal.Value)
+			if err != nil {
+				return nil, nil, err
+			}
+
 			deletedKeys = append(deletedKeys,
 				&stateChange.DataTrieChange{
-					Type:    stateChange.Write,
-					Key:     []byte(key),
-					Val:     nil,
-					Version: 0,
+					Type:      stateChange.Write,
+					Key:       []byte(key),
+					Val:       originalVal,
+					Version:   0,
+					Operation: uint32(stateChange.Delete),
 				},
 			)
 		}
 
-		dataTrieKey, dataTrieVal, err := tdt.modifyTrie([]byte(key), dataEntry, oldVal, dtr)
+		dataTrieKey, err := tdt.modifyTrie([]byte(key), dataEntry, oldVal, dtr)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -310,11 +316,22 @@ func (tdt *trackableDataTrie) updateTrie(dtr state.DataTrie) ([]*stateChange.Dat
 			return nil, nil, fmt.Errorf("index out of range")
 		}
 
+		dataTrieOperation := uint32(stateChange.NotSpecified)
+		val := dataEntry.value
+		if len(val) == 0 {
+			dataTrieOperation = uint32(stateChange.Delete)
+			val, err = tdt.getValueWithoutMetadata([]byte(key), oldVal)
+			if err != nil {
+				return nil, nil, err
+			}
+		}
+
 		newData[dataEntry.index] = &stateChange.DataTrieChange{
-			Type:    stateChange.Write,
-			Key:     dataTrieKey,
-			Val:     dataTrieVal,
-			Version: uint32(dataEntry.newVersion),
+			Type:      stateChange.Write,
+			Key:       []byte(key),
+			Val:       val,
+			Version:   uint32(dataEntry.newVersion),
+			Operation: dataTrieOperation,
 		}
 	}
 
@@ -449,30 +466,30 @@ func (tdt *trackableDataTrie) deleteOldEntryIfMigrated(key []byte, newData dirty
 	return false, nil
 }
 
-func (tdt *trackableDataTrie) modifyTrie(key []byte, dataEntry dirtyData, oldVal core.TrieData, dtr state.DataTrie) ([]byte, []byte, error) {
+func (tdt *trackableDataTrie) modifyTrie(key []byte, dataEntry dirtyData, oldVal core.TrieData, dtr state.DataTrie) ([]byte, error) {
 	version := dataEntry.newVersion
 	newKey := tdt.getKeyForVersion(key, version)
 
 	if len(dataEntry.value) == 0 {
 		deletedKey, err := tdt.deleteFromTrie(oldVal, key, dtr)
 		if err != nil {
-			return nil, nil, err
+			return nil, err
 		}
 
-		return deletedKey, nil, nil
+		return deletedKey, nil
 	}
 
 	value, err := tdt.getValueForVersion(key, dataEntry.value, version)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
 	err = dtr.UpdateWithVersion(newKey, value, version)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
-	return newKey, value, nil
+	return newKey, nil
 }
 
 func (tdt *trackableDataTrie) deleteFromTrie(oldVal core.TrieData, key []byte, dtr state.DataTrie) ([]byte, error) {

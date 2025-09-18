@@ -7,6 +7,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/stateChange"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
@@ -475,7 +476,6 @@ func TestTrackableDataTrie_SaveDirtyData(t *testing.T) {
 
 		key := []byte("key")
 		val := []byte("val")
-		newVal := []byte("valkeyidentifier")
 		_ = tdt.SaveKeyValue(key, val)
 		stateChanges, oldValues, err := tdt.SaveDirtyData(trie)
 		assert.Nil(t, err)
@@ -484,7 +484,7 @@ func TestTrackableDataTrie_SaveDirtyData(t *testing.T) {
 		assert.Equal(t, []byte(nil), oldValues[0].Value)
 		assert.Equal(t, 1, len(stateChanges))
 		assert.Equal(t, key, stateChanges[0].Key)
-		assert.Equal(t, newVal, stateChanges[0].Val)
+		assert.Equal(t, val, stateChanges[0].Val)
 		assert.True(t, recreateCalled)
 	})
 
@@ -546,10 +546,12 @@ func TestTrackableDataTrie_SaveDirtyData(t *testing.T) {
 		assert.Equal(t, hasher.Compute(string(expectedKey)), oldValues[1].Key)
 		assert.Equal(t, []byte(nil), oldValues[1].Value)
 		assert.Equal(t, 2, len(stateChanges))
-		assert.Equal(t, hasher.Compute(string(expectedKey)), stateChanges[0].Key)
-		assert.Equal(t, serializedTrieVal, stateChanges[0].Val)
+		assert.Equal(t, expectedKey, stateChanges[0].Key)
+		assert.Equal(t, expectedVal, stateChanges[0].Val)
+		assert.Equal(t, uint32(stateChange.NotSpecified), stateChanges[0].Operation)
 		assert.Equal(t, expectedKey, stateChanges[1].Key)
-		assert.Equal(t, []byte(nil), stateChanges[1].Val)
+		assert.Equal(t, expectedVal, stateChanges[1].Val)
+		assert.Equal(t, uint32(stateChange.Delete), stateChanges[1].Operation)
 		assert.True(t, deleteCalled)
 		assert.True(t, updateCalled)
 	})
@@ -609,7 +611,7 @@ func TestTrackableDataTrie_SaveDirtyData(t *testing.T) {
 		assert.Equal(t, expectedVal, oldValues[0].Value)
 		assert.Equal(t, 1, len(stateChanges))
 		assert.Equal(t, expectedKey, stateChanges[0].Key)
-		assert.Equal(t, expectedVal, stateChanges[0].Val)
+		assert.Equal(t, val, stateChanges[0].Val)
 		assert.True(t, updateCalled)
 	})
 
@@ -674,8 +676,8 @@ func TestTrackableDataTrie_SaveDirtyData(t *testing.T) {
 		assert.Equal(t, hasher.Compute(string(expectedKey)), oldValues[0].Key)
 		assert.Equal(t, serializedOldTrieVal, oldValues[0].Value)
 		assert.Equal(t, 1, len(stateChanges))
-		assert.Equal(t, hasher.Compute(string(expectedKey)), stateChanges[0].Key)
-		assert.Equal(t, serializedNewTrieVal, stateChanges[0].Val)
+		assert.Equal(t, expectedKey, stateChanges[0].Key)
+		assert.Equal(t, newVal, stateChanges[0].Val)
 		assert.True(t, updateCalled)
 	})
 
@@ -729,8 +731,8 @@ func TestTrackableDataTrie_SaveDirtyData(t *testing.T) {
 		assert.Equal(t, hasher.Compute(string(expectedKey)), oldValues[0].Key)
 		assert.Equal(t, []byte(nil), oldValues[0].Value)
 		assert.Equal(t, 1, len(stateChanges))
-		assert.Equal(t, hasher.Compute(string(expectedKey)), stateChanges[0].Key)
-		assert.Equal(t, serializedNewTrieVal, stateChanges[0].Val)
+		assert.Equal(t, expectedKey, stateChanges[0].Key)
+		assert.Equal(t, newVal, stateChanges[0].Val)
 		assert.True(t, updateCalled)
 	})
 
@@ -818,12 +820,18 @@ func TestTrackableDataTrie_SaveDirtyData(t *testing.T) {
 		t.Parallel()
 
 		hasher := &hashingMocks.HasherMock{}
+		marshaller := &marshallerMock.MarshalizerMock{}
 		expectedKey := []byte("key")
 		deleteCalled := false
+		originalVal := []byte("value")
+		oldVal := &dataTrieValue.TrieLeafData{
+			Value: originalVal,
+		}
+		oldValBytes, _ := marshaller.Marshal(oldVal)
 		trie := &trieMock.TrieStub{
 			GetCalled: func(key []byte) ([]byte, uint32, error) {
 				if bytes.Equal(hasher.Compute(string(expectedKey)), key) {
-					return []byte("value"), 0, nil
+					return oldValBytes, 0, nil
 				}
 
 				return nil, 0, nil
@@ -840,7 +848,7 @@ func TestTrackableDataTrie_SaveDirtyData(t *testing.T) {
 				return flag == common.AutoBalanceDataTriesFlag
 			},
 		}
-		tdt, _ := trackableDataTrie.NewTrackableDataTrie([]byte("identifier"), &hashingMocks.HasherMock{}, &marshallerMock.MarshalizerMock{}, enableEpchs, &stateMock.StateAccessesCollectorStub{})
+		tdt, _ := trackableDataTrie.NewTrackableDataTrie([]byte("identifier"), hasher, marshaller, enableEpchs, &stateMock.StateAccessesCollectorStub{})
 		tdt.SetDataTrie(trie)
 
 		_ = tdt.SaveKeyValue(expectedKey, nil)
@@ -849,8 +857,9 @@ func TestTrackableDataTrie_SaveDirtyData(t *testing.T) {
 		assert.Equal(t, 0, len(tdt.DirtyData()))
 		assert.True(t, deleteCalled)
 		assert.Equal(t, 1, len(stateChanges))
-		assert.Equal(t, hasher.Compute(string(expectedKey)), stateChanges[0].Key)
-		assert.Equal(t, []byte(nil), stateChanges[0].Val)
+		assert.Equal(t, expectedKey, stateChanges[0].Key)
+		assert.Equal(t, originalVal, stateChanges[0].Val)
+		assert.Equal(t, uint32(stateChange.Delete), stateChanges[0].Operation)
 	})
 
 	t.Run("nil val autobalance enabled, old val saved at key", func(t *testing.T) {
@@ -941,7 +950,7 @@ func TestTrackableDataTrie_SaveDirtyData(t *testing.T) {
 		assert.True(t, updateCalled)
 		assert.Equal(t, 1, len(stateChanges))
 		assert.Equal(t, expectedKey, stateChanges[0].Key)
-		assert.Equal(t, valueWithMetadata, stateChanges[0].Val)
+		assert.Equal(t, newVal, stateChanges[0].Val)
 	})
 
 	t.Run("state accesses are ordered deterministically", func(t *testing.T) {
@@ -993,10 +1002,10 @@ func TestTrackableDataTrie_SaveDirtyData(t *testing.T) {
 			},
 		}
 		tdt.SetDataTrie(trie)
-
-		_ = tdt.SaveKeyValue([]byte(key1), []byte("value"))
-		_ = tdt.SaveKeyValue([]byte(key2), []byte("value"))
-		_ = tdt.SaveKeyValue([]byte(key3), []byte("value"))
+		val := []byte("value")
+		_ = tdt.SaveKeyValue([]byte(key1), val)
+		_ = tdt.SaveKeyValue([]byte(key2), val)
+		_ = tdt.SaveKeyValue([]byte(key3), val)
 		_ = tdt.SaveKeyValue([]byte(key4), nil)
 		_ = tdt.SaveKeyValue([]byte("non existent key"), nil)
 
@@ -1005,18 +1014,24 @@ func TestTrackableDataTrie_SaveDirtyData(t *testing.T) {
 		assert.Equal(t, 7, len(oldVals))
 		assert.Equal(t, 6, len(stateChanges))
 
-		assert.Equal(t, hasher.Compute(key1), stateChanges[0].Key)
-		assert.Equal(t, tdt.GetValueForVersion([]byte(key1), []byte("value"), core.AutoBalanceEnabled), stateChanges[0].Val)
-		assert.Equal(t, hasher.Compute(key2), stateChanges[1].Key)
-		assert.Equal(t, tdt.GetValueForVersion([]byte(key2), []byte("value"), core.AutoBalanceEnabled), stateChanges[1].Val)
-		assert.Equal(t, hasher.Compute(key3), stateChanges[2].Key)
-		assert.Equal(t, tdt.GetValueForVersion([]byte(key3), []byte("value"), core.AutoBalanceEnabled), stateChanges[2].Val)
-		assert.Equal(t, hasher.Compute(key4), stateChanges[3].Key)
-		assert.Equal(t, []byte(nil), stateChanges[3].Val)
+		assert.Equal(t, []byte(key1), stateChanges[0].Key)
+		assert.Equal(t, val, stateChanges[0].Val)
+		assert.Equal(t, uint32(stateChange.NotSpecified), stateChanges[0].Operation)
+		assert.Equal(t, []byte(key2), stateChanges[1].Key)
+		assert.Equal(t, val, stateChanges[1].Val)
+		assert.Equal(t, uint32(stateChange.NotSpecified), stateChanges[1].Operation)
+		assert.Equal(t, []byte(key3), stateChanges[2].Key)
+		assert.Equal(t, val, stateChanges[2].Val)
+		assert.Equal(t, uint32(stateChange.NotSpecified), stateChanges[2].Operation)
+		assert.Equal(t, []byte(key4), stateChanges[3].Key)
+		assert.Equal(t, []byte("value4"), stateChanges[3].Val)
+		assert.Equal(t, uint32(stateChange.Delete), stateChanges[3].Operation)
 		assert.Equal(t, []byte(key1), stateChanges[4].Key)
-		assert.Equal(t, []byte(nil), stateChanges[4].Val)
+		assert.Equal(t, []byte("value1"), stateChanges[4].Val)
+		assert.Equal(t, uint32(stateChange.Delete), stateChanges[4].Operation)
 		assert.Equal(t, []byte(key2), stateChanges[5].Key)
-		assert.Equal(t, []byte(nil), stateChanges[5].Val)
+		assert.Equal(t, []byte("value2"), stateChanges[5].Val)
+		assert.Equal(t, uint32(stateChange.Delete), stateChanges[5].Operation)
 	})
 }
 
