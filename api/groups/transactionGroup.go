@@ -859,7 +859,7 @@ func (tg *transactionGroup) simulateTransactionsSelection(c *gin.Context) {
 		return
 	}
 
-	txHashes, err := tg.getFacade().GetSelectedTransactions(selectionSimulationFields)
+	transactions, err := tg.getFacade().GetSelectedTransactions(selectionSimulationFields)
 	logging.LogAPIActionDurationIfNeeded(start, "API call: GetSelectedTransactions")
 	if err != nil {
 		c.JSON(
@@ -876,7 +876,7 @@ func (tg *transactionGroup) simulateTransactionsSelection(c *gin.Context) {
 	c.JSON(
 		http.StatusOK,
 		shared.GenericAPIResponse{
-			Data:  gin.H{"txHashes": txHashes},
+			Data:  gin.H{"transactions": transactions},
 			Error: "",
 			Code:  shared.ReturnCodeSuccess,
 		},

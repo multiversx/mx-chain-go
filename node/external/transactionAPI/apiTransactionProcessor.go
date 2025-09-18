@@ -310,12 +310,12 @@ func (atp *apiTransactionProcessor) GetTransactionsPoolNonceGapsForSender(sender
 
 // GetSelectedTransactions will simulate a SelectTransactions, and it will return the corresponding hash of each selected transaction
 func (atp *apiTransactionProcessor) GetSelectedTransactions(selectionOptionsAPI common.TxSelectionOptionsAPI, blockchain data.ChainHandler, accountsAdapter state.AccountsAdapter) (*common.TransactionsSelectionSimulationResult, error) {
-	selectedTransactions, err := atp.selectTransactions(accountsAdapter, selectionOptionsAPI)
+	err := atp.recreateTrie(blockchain, accountsAdapter)
 	if err != nil {
 		return nil, err
 	}
 
-	err = atp.recreateTrie(blockchain, accountsAdapter)
+	selectedTransactions, err := atp.selectTransactions(accountsAdapter, selectionOptionsAPI)
 	if err != nil {
 		return nil, err
 	}
@@ -518,13 +518,26 @@ func (atp *apiTransactionProcessor) selectTransactions(accountsAdapter state.Acc
 		return nil, err
 	}
 
-	return atp.extractTransactions(selectedTxs), nil
+	return atp.extractTransactions(selectedTxs, selectionOptions), nil
 }
 
-func (atp *apiTransactionProcessor) extractTransactions(txs []*txcache.WrappedTransaction) []common.Transaction {
+func (atp *apiTransactionProcessor) extractTransactions(txs []*txcache.WrappedTransaction, selectionOptions common.TxSelectionOptionsAPI) []common.Transaction {
 	transactions := make([]common.Transaction, len(txs))
 	for i, tx := range txs {
+		transactions[i].TxFields = make(map[string]interface{})
 		transactions[i].TxFields["hash"] = hex.EncodeToString(tx.TxHash)
+
+		if selectionOptions.GetWithSender() {
+			transactions[i].TxFields["sender"] = hex.EncodeToString(tx.Tx.GetSndAddr())
+		}
+
+		if selectionOptions.GetWithRelayer() {
+			transactions[i].TxFields["relayer"] = hex.EncodeToString(tx.FeePayer)
+		}
+
+		if selectionOptions.GetWithNonce() {
+			transactions[i].TxFields["nonce"] = tx.Tx.GetNonce()
+		}
 	}
 
 	return transactions
