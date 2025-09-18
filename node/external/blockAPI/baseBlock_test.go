@@ -776,6 +776,7 @@ func TestBaseAPIBlockProcessor_AddMbsAndNumTxsAsyncExecutionBasedOnExecutionResu
 			HeaderRound: 1000,
 			HeaderEpoch: 5,
 			RootHash:    []byte("root_hash"),
+			GasUsed:     50000,
 		},
 		ReceiptsHash: []byte("receipts_hash"),
 		MiniBlockHeaders: []block.MiniBlockHeader{
@@ -788,7 +789,6 @@ func TestBaseAPIBlockProcessor_AddMbsAndNumTxsAsyncExecutionBasedOnExecutionResu
 		},
 		DeveloperFees:   big.NewInt(100),
 		AccumulatedFees: big.NewInt(1000),
-		GasUsed:         50000,
 		ExecutedTxCount: 2,
 	}
 
@@ -1072,6 +1072,7 @@ func TestBaseAPIBlockProcessor_AddMbsAndNumTxsAsyncExecutionBasedOnExecutionResu
 			HeaderRound: 1000,
 			HeaderEpoch: 5,
 			RootHash:    []byte("root_hash"),
+			GasUsed:     50000,
 		},
 		ReceiptsHash: []byte("receipts_hash"),
 		MiniBlockHeaders: []block.MiniBlockHeader{
@@ -1084,7 +1085,6 @@ func TestBaseAPIBlockProcessor_AddMbsAndNumTxsAsyncExecutionBasedOnExecutionResu
 		},
 		DeveloperFees:   big.NewInt(100),
 		AccumulatedFees: big.NewInt(1000),
-		GasUsed:         50000,
 		ExecutedTxCount: 1,
 	}
 

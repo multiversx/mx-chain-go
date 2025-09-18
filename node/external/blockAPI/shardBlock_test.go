@@ -794,7 +794,7 @@ func TestShardAPIBlockProcessor_ConvertShardBlockBytesToAPIBlock_HeaderV3(t *tes
 		Epoch:    5,
 		PrevHash: []byte("prev_hash"),
 		LastExecutionResult: &block.ExecutionResultInfo{
-			NotarizedOnHeaderHash: []byte("notarized_hash"),
+			NotarizedInRound: 100,
 			ExecutionResult: &block.BaseExecutionResult{
 				HeaderHash:  []byte("exec_header_hash"),
 				HeaderNonce: 99,
@@ -811,12 +811,12 @@ func TestShardAPIBlockProcessor_ConvertShardBlockBytesToAPIBlock_HeaderV3(t *tes
 					HeaderRound: 1000,
 					HeaderEpoch: 5,
 					RootHash:    []byte("exec_root_hash"),
+					GasUsed:     50000,
 				},
 				ReceiptsHash:     []byte("receipts_hash"),
 				MiniBlockHeaders: []block.MiniBlockHeader{},
 				DeveloperFees:    big.NewInt(100),
 				AccumulatedFees:  big.NewInt(1000),
-				GasUsed:          50000,
 				ExecutedTxCount:  0,
 			},
 		},
@@ -832,12 +832,12 @@ func TestShardAPIBlockProcessor_ConvertShardBlockBytesToAPIBlock_HeaderV3(t *tes
 			HeaderRound: 1000,
 			HeaderEpoch: 5,
 			RootHash:    []byte("root_hash"),
+			GasUsed:     50000,
 		},
 		ReceiptsHash:     []byte("receipts_hash"),
 		MiniBlockHeaders: []block.MiniBlockHeader{},
 		DeveloperFees:    big.NewInt(100),
 		AccumulatedFees:  big.NewInt(1000),
-		GasUsed:          50000,
 		ExecutedTxCount:  0,
 	}
 	executionResultBytes, _ := blockProc.marshalizer.Marshal(executionResult)
