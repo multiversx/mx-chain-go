@@ -14,6 +14,9 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-go/process/asyncExecution/executionTrack"
+	"github.com/multiversx/mx-chain-go/process/estimator"
+	"github.com/multiversx/mx-chain-go/process/missingData"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -156,6 +159,31 @@ func createMockMetaArguments(
 	// second instance for proposal missing data fetching to avoid interferences
 	proposalBlockDataRequester, _ := coordinator.NewBlockDataRequester(blockDataRequesterArgs)
 
+	mbSelectionSession, _ := blproc.NewMiniBlocksSelectionSession(
+		bootstrapComponents.ShardCoordinator().SelfId(),
+		coreComponents.InternalMarshalizer(),
+		coreComponents.Hasher(),
+	)
+
+	executionResultsTracker := executionTrack.NewExecutionResultsTracker()
+	execResultsVerifier, _ := blproc.NewExecutionResultsVerifier(dataComponents.BlockChain, executionResultsTracker)
+	inclusionEstimator := estimator.NewExecutionResultInclusionEstimator(
+		config.ExecutionResultInclusionEstimatorConfig{
+			SafetyMargin:       110,
+			MaxResultsPerBlock: 20,
+		},
+		0,
+		coreComponents.RoundHandler(),
+	)
+
+	missingDataArgs := missingData.ResolverArgs{
+		HeadersPool:        dataComponents.DataPool.Headers(),
+		ProofsPool:         dataComponents.DataPool.Proofs(),
+		RequestHandler:     &testscommon.RequestHandlerStub{},
+		BlockDataRequester: proposalBlockDataRequester,
+	}
+	missingDataResolver, _ := missingData.NewMissingDataResolver(missingDataArgs)
+
 	arguments := blproc.ArgMetaProcessor{
 		ArgBaseProcessor: blproc.ArgBaseProcessor{
 			CoreComponents:       coreComponents,
@@ -178,18 +206,22 @@ func createMockMetaArguments(
 					return nil
 				},
 			},
-			BlockTracker:                 blockTracker,
-			BlockSizeThrottler:           &mock.BlockSizeThrottlerStub{},
-			HistoryRepository:            &dblookupext.HistoryRepositoryStub{},
-			ScheduledTxsExecutionHandler: &testscommon.ScheduledTxsExecutionStub{},
-			ProcessedMiniBlocksTracker:   &testscommon.ProcessedMiniBlocksTrackerStub{},
-			ReceiptsRepository:           &testscommon.ReceiptsRepositoryStub{},
-			OutportDataProvider:          &outport.OutportDataProviderStub{},
-			BlockProcessingCutoffHandler: &testscommon.BlockProcessingCutoffStub{},
-			ManagedPeersHolder:           &testscommon.ManagedPeersHolderStub{},
-			SentSignaturesTracker:        &testscommon.SentSignatureTrackerStub{},
-			HeadersForBlock:              headersForBlock,
-			BlockDataRequester:           proposalBlockDataRequester,
+			BlockTracker:                       blockTracker,
+			BlockSizeThrottler:                 &mock.BlockSizeThrottlerStub{},
+			HistoryRepository:                  &dblookupext.HistoryRepositoryStub{},
+			ScheduledTxsExecutionHandler:       &testscommon.ScheduledTxsExecutionStub{},
+			ProcessedMiniBlocksTracker:         &testscommon.ProcessedMiniBlocksTrackerStub{},
+			ReceiptsRepository:                 &testscommon.ReceiptsRepositoryStub{},
+			OutportDataProvider:                &outport.OutportDataProviderStub{},
+			BlockProcessingCutoffHandler:       &testscommon.BlockProcessingCutoffStub{},
+			ManagedPeersHolder:                 &testscommon.ManagedPeersHolderStub{},
+			SentSignaturesTracker:              &testscommon.SentSignatureTrackerStub{},
+			HeadersForBlock:                    headersForBlock,
+			MiniBlocksSelectionSession:         mbSelectionSession,
+			ExecutionResultsVerifier:           execResultsVerifier,
+			MissingDataResolver:                missingDataResolver,
+			ExecutionResultsInclusionEstimator: inclusionEstimator,
+			ExecutionResultsTracker:            executionResultsTracker,
 		},
 		SCToProtocol:                 &mock.SCToProtocolStub{},
 		PendingMiniBlocksHandler:     &mock.PendingMiniBlocksHandlerStub{},

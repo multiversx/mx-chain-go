@@ -25,6 +25,11 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/typeConverters/uint64ByteSlice"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/multiversx/mx-chain-go/process/asyncExecution/executionTrack"
+	"github.com/multiversx/mx-chain-go/process/estimator"
+	"github.com/multiversx/mx-chain-go/process/missingData"
+	"github.com/multiversx/mx-chain-go/testscommon/mbSelection"
+	"github.com/multiversx/mx-chain-go/testscommon/processMocks"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -122,8 +127,18 @@ func createArgBaseProcessor(
 	}
 
 	var blockDataRequester process.BlockDataRequester
+	var inclusionEstimator process.InclusionEstimator
+	var executionResultsTracker process.ExecutionResultsTracker
+	var mbSelectionSession blproc.MiniBlocksSelectionSession
+	var execResultsVerifier blproc.ExecutionResultsVerifier
+	var missingDataResolver blproc.MissingDataResolver
 	if check.IfNil(dataComponents) || check.IfNil(dataComponents.Datapool()) || check.IfNil(coreComponents) || check.IfNil(bootstrapComponents) {
 		blockDataRequester = &preprocMocks.BlockDataRequesterStub{}
+		inclusionEstimator = &processMocks.InclusionEstimatorMock{}
+		mbSelectionSession = &mbSelection.MiniBlockSelectionSessionStub{}
+		execResultsVerifier = &processMocks.ExecutionResultsVerifierMock{}
+		missingDataResolver = &processMocks.MissingDataResolverMock{}
+
 	} else {
 		preprocContainer := containers.NewPreProcessorsContainer()
 		blockDataRequesterArgs := coordinator.BlockDataRequestArgs{
@@ -135,6 +150,31 @@ func createArgBaseProcessor(
 		}
 		// second instance for proposal missing data fetching to avoid interferences
 		blockDataRequester, _ = coordinator.NewBlockDataRequester(blockDataRequesterArgs)
+
+		mbSelectionSession, _ = blproc.NewMiniBlocksSelectionSession(
+			bootstrapComponents.ShardCoordinator().SelfId(),
+			coreComponents.InternalMarshalizer(),
+			coreComponents.Hasher(),
+		)
+
+		executionResultsTracker = executionTrack.NewExecutionResultsTracker()
+		execResultsVerifier, _ = blproc.NewExecutionResultsVerifier(dataComponents.BlockChain, executionResultsTracker)
+		inclusionEstimator = estimator.NewExecutionResultInclusionEstimator(
+			config.ExecutionResultInclusionEstimatorConfig{
+				SafetyMargin:       110,
+				MaxResultsPerBlock: 20,
+			},
+			0,
+			coreComponents.RoundHandler(),
+		)
+
+		missingDataArgs := missingData.ResolverArgs{
+			HeadersPool:        dataComponents.DataPool.Headers(),
+			ProofsPool:         dataComponents.DataPool.Proofs(),
+			RequestHandler:     &testscommon.RequestHandlerStub{},
+			BlockDataRequester: blockDataRequester,
+		}
+		missingDataResolver, _ = missingData.NewMissingDataResolver(missingDataArgs)
 	}
 
 	return blproc.ArgBaseProcessor{
@@ -158,21 +198,25 @@ func createArgBaseProcessor(
 				return nil
 			},
 		},
-		BlockTracker:                   blockTracker,
-		BlockSizeThrottler:             &mock.BlockSizeThrottlerStub{},
-		Version:                        "softwareVersion",
-		HistoryRepository:              &dblookupext.HistoryRepositoryStub{},
-		GasHandler:                     &mock.GasHandlerMock{},
-		ScheduledTxsExecutionHandler:   &testscommon.ScheduledTxsExecutionStub{},
-		OutportDataProvider:            &outport.OutportDataProviderStub{},
-		ScheduledMiniBlocksEnableEpoch: 2,
-		ProcessedMiniBlocksTracker:     &testscommon.ProcessedMiniBlocksTrackerStub{},
-		ReceiptsRepository:             &testscommon.ReceiptsRepositoryStub{},
-		BlockProcessingCutoffHandler:   &testscommon.BlockProcessingCutoffStub{},
-		ManagedPeersHolder:             &testscommon.ManagedPeersHolderStub{},
-		SentSignaturesTracker:          &testscommon.SentSignatureTrackerStub{},
-		HeadersForBlock:                headersForBlock,
-		BlockDataRequester:             blockDataRequester,
+		BlockTracker:                       blockTracker,
+		BlockSizeThrottler:                 &mock.BlockSizeThrottlerStub{},
+		Version:                            "softwareVersion",
+		HistoryRepository:                  &dblookupext.HistoryRepositoryStub{},
+		GasHandler:                         &mock.GasHandlerMock{},
+		ScheduledTxsExecutionHandler:       &testscommon.ScheduledTxsExecutionStub{},
+		OutportDataProvider:                &outport.OutportDataProviderStub{},
+		ScheduledMiniBlocksEnableEpoch:     2,
+		ProcessedMiniBlocksTracker:         &testscommon.ProcessedMiniBlocksTrackerStub{},
+		ReceiptsRepository:                 &testscommon.ReceiptsRepositoryStub{},
+		BlockProcessingCutoffHandler:       &testscommon.BlockProcessingCutoffStub{},
+		ManagedPeersHolder:                 &testscommon.ManagedPeersHolderStub{},
+		SentSignaturesTracker:              &testscommon.SentSignatureTrackerStub{},
+		HeadersForBlock:                    headersForBlock,
+		MiniBlocksSelectionSession:         mbSelectionSession,
+		ExecutionResultsVerifier:           execResultsVerifier,
+		MissingDataResolver:                missingDataResolver,
+		ExecutionResultsInclusionEstimator: inclusionEstimator,
+		ExecutionResultsTracker:            executionResultsTracker,
 	}
 }
 
@@ -885,6 +929,46 @@ func TestCheckProcessorNilParameters(t *testing.T) {
 				return args
 			},
 			expectedErr: process.ErrNilSentSignatureTracker,
+		},
+		{
+			args: func() blproc.ArgBaseProcessor {
+				args := createArgBaseProcessor(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+				args.ExecutionResultsInclusionEstimator = nil
+				return args
+			},
+			expectedErr: process.ErrNilExecutionResultsInclusionEstimator,
+		},
+		{
+			args: func() blproc.ArgBaseProcessor {
+				args := createArgBaseProcessor(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+				args.ExecutionResultsTracker = nil
+				return args
+			},
+			expectedErr: process.ErrNilExecutionResultsTracker,
+		},
+		{
+			args: func() blproc.ArgBaseProcessor {
+				args := createArgBaseProcessor(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+				args.MiniBlocksSelectionSession = nil
+				return args
+			},
+			expectedErr: process.ErrNilMiniBlocksSelectionSession,
+		},
+		{
+			args: func() blproc.ArgBaseProcessor {
+				args := createArgBaseProcessor(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+				args.ExecutionResultsVerifier = nil
+				return args
+			},
+			expectedErr: process.ErrNilExecutionResultsVerifier,
+		},
+		{
+			args: func() blproc.ArgBaseProcessor {
+				args := createArgBaseProcessor(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+				args.MissingDataResolver = nil
+				return args
+			},
+			expectedErr: process.ErrNilMissingDataResolver,
 		},
 		{
 			args: func() blproc.ArgBaseProcessor {
