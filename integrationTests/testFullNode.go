@@ -544,6 +544,7 @@ func (tpn *TestFullNode) initNode(
 	stateComponents := GetDefaultStateComponents()
 	stateComponents.Accounts = tpn.AccntState
 	stateComponents.AccountsAPI = tpn.AccntState
+	stateComponents.AccountsProposal = tpn.AccntState
 
 	finalProvider, _ := blockInfoProviders.NewFinalBlockInfo(dataComponents.BlockChain)
 	finalAccountsApi, _ := state.NewAccountsDBApi(tpn.AccntState, finalProvider)
@@ -852,7 +853,7 @@ func (tpn *TestFullNode) initBlockProcessor(
 	blockDataRequesterArgs := coordinator.BlockDataRequestArgs{
 		RequestHandler:      tpn.RequestHandler,
 		MiniBlockPool:       tpn.DataPool.MiniBlocks(),
-		PreProcessors:       tpn.PreProcessorsRequestContainer,
+		PreProcessors:       tpn.PreProcessorsProposal,
 		ShardCoordinator:    tpn.ShardCoordinator,
 		EnableEpochsHandler: tpn.EnableEpochsHandler,
 	}
@@ -1119,7 +1120,7 @@ func (tpn *TestFullNode) initBlockProcessorWithSync(
 	blockDataRequesterArgs := coordinator.BlockDataRequestArgs{
 		RequestHandler:      tpn.RequestHandler,
 		MiniBlockPool:       tpn.DataPool.MiniBlocks(),
-		PreProcessors:       tpn.PreProcessorsRequestContainer,
+		PreProcessors:       tpn.PreProcessorsProposal,
 		ShardCoordinator:    tpn.ShardCoordinator,
 		EnableEpochsHandler: tpn.EnableEpochsHandler,
 	}

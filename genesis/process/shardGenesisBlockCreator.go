@@ -588,6 +588,7 @@ func createProcessorsForShardGenesisBlock(arg ArgsGenesisBlockCreator, enableEpo
 		arg.Data.Datapool(),
 		arg.Core.AddressPubKeyConverter(),
 		arg.Accounts,
+		arg.AccountsProposal,
 		disabledRequestHandler,
 		transactionProcessor,
 		scProcessorProxy,
@@ -644,6 +645,7 @@ func createProcessorsForShardGenesisBlock(arg ArgsGenesisBlockCreator, enableEpo
 		Accounts:                     arg.Accounts,
 		MiniBlockPool:                arg.Data.Datapool().MiniBlocks(),
 		PreProcessors:                preProcContainer,
+		PreProcessorsProposal:        preProcContainer, // no need for a different one in genesis
 		InterProcessors:              interimProcContainer,
 		GasHandler:                   gasHandler,
 		FeeHandler:                   genesisFeeHandler,
@@ -658,6 +660,7 @@ func createProcessorsForShardGenesisBlock(arg ArgsGenesisBlockCreator, enableEpo
 		ProcessedMiniBlocksTracker:   disabledProcessedMiniBlocksTracker,
 		TxExecutionOrderHandler:      arg.TxExecutionOrderHandler,
 		BlockDataRequester:           blockDataRequester,
+		BlockDataRequesterProposal:   blockDataRequester, // no need for a different one in genesis
 	}
 	txCoordinator, err := coordinator.NewTransactionCoordinator(argsTransactionCoordinator)
 	if err != nil {

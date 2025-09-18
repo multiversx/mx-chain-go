@@ -60,6 +60,25 @@ type HeaderHandlerStub struct {
 	GetExecutionResultsHandlersCalled      func() []data.BaseExecutionResultHandler
 	IsHeaderV3Called                       func() bool
 	GetMiniBlockHeaderHandlersCalled       func() []data.MiniBlockHeaderHandler
+	SetEpochStartMetaHashCalled            func(hash []byte) error
+	SetLastExecutionResultHandlerCalled    func(resultHandler data.LastExecutionResultHandler) error
+	SetExecutionResultsHandlersCalled      func(resultHandlers []data.BaseExecutionResultHandler) error
+}
+
+// SetLastExecutionResultHandler -
+func (hhs *HeaderHandlerStub) SetLastExecutionResultHandler(resultHandler data.LastExecutionResultHandler) error {
+	if hhs.SetLastExecutionResultHandlerCalled != nil {
+		return hhs.SetLastExecutionResultHandlerCalled(resultHandler)
+	}
+	return nil
+}
+
+// SetExecutionResultsHandlers -
+func (hhs *HeaderHandlerStub) SetExecutionResultsHandlers(resultHandlers []data.BaseExecutionResultHandler) error {
+	if hhs.SetExecutionResultsHandlersCalled != nil {
+		return hhs.SetExecutionResultsHandlersCalled(resultHandlers)
+	}
+	return nil
 }
 
 func (hhs *HeaderHandlerStub) SetLastExecutionResultHandler(_ data.LastExecutionResultHandler) error {
@@ -387,7 +406,10 @@ func (hhs *HeaderHandlerStub) SetMetaBlockHashes(_ [][]byte) error {
 }
 
 // SetEpochStartMetaHash -
-func (hhs *HeaderHandlerStub) SetEpochStartMetaHash(_ []byte) error {
+func (hhs *HeaderHandlerStub) SetEpochStartMetaHash(hash []byte) error {
+	if hhs.SetEpochStartMetaHashCalled != nil {
+		return hhs.SetEpochStartMetaHashCalled(hash)
+	}
 	return nil
 }
 
