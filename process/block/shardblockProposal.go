@@ -275,6 +275,9 @@ func (sp *shardProcessor) addExecutionResultsOnHeader(shardHeader data.HeaderHan
 	if len(executionResultsToInclude) > 0 {
 		lastExecutionResult := executionResultsToInclude[len(executionResultsToInclude)-1]
 		lastExecutionResultForCurrentBlock, err = process.CreateLastExecutionResultInfoFromExecutionResult(shardHeader.GetRound(), lastExecutionResult, sp.shardCoordinator.SelfId())
+		if err != nil {
+			return err
+		}
 	} else {
 		lastExecutionResultForCurrentBlock = lastExecutionResultHandler
 	}
