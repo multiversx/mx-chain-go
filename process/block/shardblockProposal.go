@@ -2,6 +2,7 @@ package block
 
 import (
 	"errors"
+	"fmt"
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
@@ -98,8 +99,8 @@ func (sp *shardProcessor) CreateBlockProposal(
 	return shardHdr, body, nil
 }
 
-// VerifyProposedBlock verifies the proposed block. It returns nil if all ok or the specific error
-func (sp *shardProcessor) VerifyProposedBlock(
+// VerifyBlockProposal verifies the proposed block. It returns nil if all ok or the specific error
+func (sp *shardProcessor) VerifyBlockProposal(
 	headerHandler data.HeaderHandler,
 	bodyHandler data.BodyHandler,
 	haveTime func() time.Duration,
@@ -141,7 +142,6 @@ func (sp *shardProcessor) VerifyProposedBlock(
 
 	go getMetricsFromBlockBody(body, sp.marshalizer, sp.appStatusHandler)
 
-	// todo: need to change reserved field verification for Supernova
 	err = sp.checkHeaderBodyCorrelationProposal(header.GetMiniBlockHeaderHandlers(), body)
 	if err != nil {
 		return err
@@ -195,8 +195,7 @@ func (sp *shardProcessor) VerifyProposedBlock(
 		return err
 	}
 
-	// todo: headers for block isolation
-	err = sp.checkMetaHeadersValidityAndFinality()
+	err = sp.checkMetaHeadersValidityAndFinalityProposal(header)
 	if err != nil {
 		return err
 	}
@@ -494,4 +493,37 @@ func (sp *shardProcessor) selectOutgoingTransactions() ([][]byte, error) {
 		"num txs", len(outgoingTransactions))
 
 	return outgoingTransactions, nil
+}
+
+func (sp *shardProcessor) checkMetaHeadersValidityAndFinalityProposal(header data.ShardHeaderHandler) error {
+	lastCrossNotarizedHeader, _, err := sp.blockTracker.GetLastCrossNotarizedHeader(core.MetachainShardId)
+	if err != nil {
+		return err
+	}
+	usedMetaHdrHashes := header.GetMetaBlockHashes()
+	usedMetaHeaders := make([]data.HeaderHandler, 0, len(usedMetaHdrHashes))
+	for _, metaHdrHash := range usedMetaHdrHashes {
+		metaHdr, errNotCritical := sp.dataPool.Headers().GetHeaderByHash(metaHdrHash)
+		if errNotCritical != nil {
+			return fmt.Errorf("%w : checkMetaHeadersValidityAndFinalityProposal -> getHeaderByHash", errNotCritical)
+		}
+		usedMetaHeaders = append(usedMetaHeaders, metaHdr)
+	}
+
+	process.SortHeadersByNonce(usedMetaHeaders)
+
+	for _, metaHeader := range usedMetaHeaders {
+		err = sp.headerValidator.IsHeaderConstructionValid(metaHeader, lastCrossNotarizedHeader)
+		if err != nil {
+			return fmt.Errorf("%w : checkMetaHeadersValidityAndFinalityProposal -> isHdrConstructionValid", err)
+		}
+
+		err = sp.checkHeaderHasProof(metaHeader)
+		if err != nil {
+			return fmt.Errorf("%w : checkMetaHeadersValidityAndFinalityProposal -> checkHeaderHasProof", err)
+		}
+		lastCrossNotarizedHeader = metaHeader
+	}
+
+	return nil
 }
