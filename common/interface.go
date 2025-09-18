@@ -290,7 +290,7 @@ type TxSelectionOptions interface {
 	IsInterfaceNil() bool
 }
 
-// TxSelectionOptionsAPI holds transactions selection options (parameters)
+// TxSelectionOptionsAPI holds transactions selection options (parameters) for the API call
 type TxSelectionOptionsAPI interface {
 	TxSelectionOptions
 	GetWithSender() bool
