@@ -81,14 +81,6 @@ func (hhs *HeaderHandlerStub) SetExecutionResultsHandlers(resultHandlers []data.
 	return nil
 }
 
-func (hhs *HeaderHandlerStub) SetLastExecutionResultHandler(_ data.LastExecutionResultHandler) error {
-	return nil
-}
-
-func (hhs *HeaderHandlerStub) SetExecutionResultsHandlers(_ []data.BaseExecutionResultHandler) error {
-	return nil
-}
-
 // IsHeaderV3 - checks if the header is a V3 header
 func (hhs *HeaderHandlerStub) IsHeaderV3() bool {
 	if hhs.IsHeaderV3Called != nil {
