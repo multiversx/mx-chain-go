@@ -222,7 +222,7 @@ func (sp *shardProcessor) checkInclusionEstimationForExecutionResults(header dat
 
 	lastResultData, err := process.CreateDataForInclusionEstimation(prevBlockLastExecutionResult)
 	executionResults := header.GetExecutionResultsHandlers()
-	allowed := sp.executionResultsInclusionEstimator.Decide(lastResultData, executionResults, header.GetTimeStamp())
+	allowed := sp.executionResultsInclusionEstimator.Decide(lastResultData, executionResults, header.GetRound())
 	if allowed != len(executionResults) {
 		log.Warn("number of execution results included in the header is not correct",
 			"expected", allowed,
@@ -269,7 +269,7 @@ func (sp *shardProcessor) addExecutionResultsOnHeader(shardHeader data.HeaderHan
 	}
 
 	var lastExecutionResultForCurrentBlock data.LastExecutionResultHandler
-	numToInclude := sp.executionResultsInclusionEstimator.Decide(lastNotarizedExecutionResultInfo, pendingExecutionResults, shardHeader.GetTimeStamp())
+	numToInclude := sp.executionResultsInclusionEstimator.Decide(lastNotarizedExecutionResultInfo, pendingExecutionResults, shardHeader.GetRound())
 
 	executionResultsToInclude := pendingExecutionResults[:numToInclude]
 	lastExecutionResultForCurrentBlock = lastExecutionResultHandler

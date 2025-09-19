@@ -488,7 +488,6 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 
 	inclusionEstimator := estimator.NewExecutionResultInclusionEstimator(
 		pcf.config.ExecutionResultInclusionEstimator,
-		uint64(pcf.coreData.GenesisTime().UnixMilli()),
 		pcf.coreData.RoundHandler(),
 	)
 
@@ -1018,7 +1017,6 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 
 	inclusionEstimator := estimator.NewExecutionResultInclusionEstimator(
 		pcf.config.ExecutionResultInclusionEstimator,
-		uint64(pcf.coreData.GenesisTime().UnixMilli()),
 		pcf.coreData.RoundHandler(),
 	)
 
