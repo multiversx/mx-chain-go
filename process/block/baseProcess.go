@@ -555,7 +555,6 @@ func displayHeader(
 
 // checkProcessorParameters will check the input parameters values
 func checkProcessorParameters(arguments ArgBaseProcessor) error {
-
 	for key := range arguments.AccountsDB {
 		if check.IfNil(arguments.AccountsDB[key]) {
 			return process.ErrNilAccountsAdapter
@@ -942,11 +941,6 @@ func isPartiallyExecuted(
 
 // check if header has the same mini blocks as presented in body
 func (bp *baseProcessor) checkHeaderBodyCorrelationProposal(miniBlockHeaders []data.MiniBlockHeaderHandler, body *block.Body) error {
-	mbHashesFromHdr := make(map[string]data.MiniBlockHeaderHandler, len(miniBlockHeaders))
-	for i := 0; i < len(miniBlockHeaders); i++ {
-		mbHashesFromHdr[string(miniBlockHeaders[i].GetHash())] = miniBlockHeaders[i]
-	}
-
 	if len(miniBlockHeaders) != len(body.MiniBlocks) {
 		return process.ErrHeaderBodyMismatch
 	}
@@ -968,7 +962,7 @@ func (bp *baseProcessor) checkHeaderBodyCorrelationProposal(miniBlockHeaders []d
 			return err
 		}
 
-		err = checkMiniBlockWithMiniBlockHeader(mbHash, miniBlockHeaders[i], miniBlock)
+		err = checkMiniBlockWithMiniBlockHeader(mbHash, mbHdr, miniBlock)
 		if err != nil {
 			return err
 		}
