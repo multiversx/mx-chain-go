@@ -37,7 +37,7 @@ func defaultSubroundStartRoundFromSubround(sr *spos.Subround) (v2.SubroundStartR
 		&testscommon.SentSignatureTrackerStub{},
 		&consensus.SposWorkerMock{
 			ConsensusMetricsCalled: func() spos.ConsensusMetricsHandler {
-				_, consensusMetrics := spos.NewConsensusMetrics(sr.AppStatusHandler())
+				consensusMetrics, _ := spos.NewConsensusMetrics(sr.AppStatusHandler())
 				return consensusMetrics
 			},
 		},
@@ -53,7 +53,7 @@ func defaultWithoutErrorSubroundStartRoundFromSubround(sr *spos.Subround) v2.Sub
 		&testscommon.SentSignatureTrackerStub{},
 		&consensus.SposWorkerMock{
 			ConsensusMetricsCalled: func() spos.ConsensusMetricsHandler {
-				_, consensusMetrics := spos.NewConsensusMetrics(sr.AppStatusHandler())
+				consensusMetrics, _ := spos.NewConsensusMetrics(sr.AppStatusHandler())
 				return consensusMetrics
 			},
 		},
@@ -95,7 +95,7 @@ func initSubroundStartRoundWithContainer(container spos.ConsensusCoreHandler) v2
 		&testscommon.SentSignatureTrackerStub{},
 		&consensus.SposWorkerMock{
 			ConsensusMetricsCalled: func() spos.ConsensusMetricsHandler {
-				_, consensusMetrics := spos.NewConsensusMetrics(sr.AppStatusHandler())
+				consensusMetrics, _ := spos.NewConsensusMetrics(sr.AppStatusHandler())
 				return consensusMetrics
 			},
 		},
@@ -1074,7 +1074,7 @@ func TestSubroundStartRound_changeEpoch(t *testing.T) {
 			&testscommon.SentSignatureTrackerStub{},
 			&consensus.SposWorkerMock{
 				ConsensusMetricsCalled: func() spos.ConsensusMetricsHandler {
-					_, consensusMetrics := spos.NewConsensusMetrics(sr.AppStatusHandler())
+					consensusMetrics, _ := spos.NewConsensusMetrics(sr.AppStatusHandler())
 					return consensusMetrics
 				},
 			},
@@ -1108,7 +1108,7 @@ func TestSubroundStartRound_changeEpoch(t *testing.T) {
 			&testscommon.SentSignatureTrackerStub{},
 			&consensus.SposWorkerMock{
 				ConsensusMetricsCalled: func() spos.ConsensusMetricsHandler {
-					_, consensusMetrics := spos.NewConsensusMetrics(sr.AppStatusHandler())
+					consensusMetrics, _ := spos.NewConsensusMetrics(sr.AppStatusHandler())
 					return consensusMetrics
 				},
 			},
@@ -1148,7 +1148,7 @@ func TestSubroundStartRound_ConsensusMetricsResetAveragesShouldWork(t *testing.T
 
 	sr := buildDefaultSubround(container)
 
-	_, consensusMetrics := spos.NewConsensusMetrics(sr.AppStatusHandler())
+	consensusMetrics, _ := spos.NewConsensusMetrics(sr.AppStatusHandler())
 	worker := consensus.SposWorkerMock{
 		ConsensusMetricsCalled: func() spos.ConsensusMetricsHandler {
 			return consensusMetrics
@@ -1188,7 +1188,7 @@ func TestSubroundStartRound_ConsensusMetricsResetInstanceValuesShouldWork(t *tes
 
 	sr := buildDefaultSubround(container)
 
-	_, consensusMetrics := spos.NewConsensusMetrics(sr.AppStatusHandler())
+	consensusMetrics, _ := spos.NewConsensusMetrics(sr.AppStatusHandler())
 	worker := consensus.SposWorkerMock{
 		ConsensusMetricsCalled: func() spos.ConsensusMetricsHandler {
 			return consensusMetrics

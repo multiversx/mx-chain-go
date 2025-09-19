@@ -22,11 +22,11 @@ type ConsensusMetrics struct {
 }
 
 // NewConsensusMetrics creates a new instance of ConsensusMetrics
-func NewConsensusMetrics(appStatusHandler core.AppStatusHandler) (error, *ConsensusMetrics) {
+func NewConsensusMetrics(appStatusHandler core.AppStatusHandler) (*ConsensusMetrics, error) {
 	if appStatusHandler == nil {
-		return ErrNilConsensusMetricsHandler, nil
+		return nil, ErrNilConsensusMetricsHandler
 	}
-	return nil, &ConsensusMetrics{appStatusHandler: appStatusHandler}
+	return &ConsensusMetrics{appStatusHandler: appStatusHandler}, nil
 }
 
 // ResetInstanceValues resets the instance values for the next round.

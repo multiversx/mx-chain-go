@@ -71,7 +71,7 @@ func defaultSubroundBlockFromSubround(sr *spos.Subround) (v2.SubroundBlock, erro
 		v2.ProcessingThresholdPercent,
 		&consensusMocks.SposWorkerMock{
 			ConsensusMetricsCalled: func() spos.ConsensusMetricsHandler {
-				_, consensusMetrics := spos.NewConsensusMetrics(sr.AppStatusHandler())
+				consensusMetrics, _ := spos.NewConsensusMetrics(sr.AppStatusHandler())
 				return consensusMetrics
 			},
 		},
@@ -87,7 +87,7 @@ func defaultSubroundBlockWithoutErrorFromSubround(sr *spos.Subround) v2.Subround
 		v2.ProcessingThresholdPercent,
 		&consensusMocks.SposWorkerMock{
 			ConsensusMetricsCalled: func() spos.ConsensusMetricsHandler {
-				_, consensusMetrics := spos.NewConsensusMetrics(sr.AppStatusHandler())
+				consensusMetrics, _ := spos.NewConsensusMetrics(sr.AppStatusHandler())
 				return consensusMetrics
 			},
 		},
@@ -580,7 +580,7 @@ func TestSubroundBlock_DoBlockJob(t *testing.T) {
 			v2.ProcessingThresholdPercent,
 			&consensusMocks.SposWorkerMock{
 				ConsensusMetricsCalled: func() spos.ConsensusMetricsHandler {
-					_, consensusMetrics := spos.NewConsensusMetrics(baseSr.AppStatusHandler())
+					consensusMetrics, _ := spos.NewConsensusMetrics(baseSr.AppStatusHandler())
 					return consensusMetrics
 				},
 			},

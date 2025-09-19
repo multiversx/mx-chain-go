@@ -149,7 +149,7 @@ func NewWorker(args *WorkerArgs) (*Worker, error) {
 		return nil, err
 	}
 
-	err, consensusMetrics := NewConsensusMetrics(args.AppStatusHandler)
+	consensusMetrics, err := NewConsensusMetrics(args.AppStatusHandler)
 	if err != nil {
 		return nil, err
 	}

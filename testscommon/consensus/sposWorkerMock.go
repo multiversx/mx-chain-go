@@ -189,6 +189,6 @@ func (sposWorkerMock *SposWorkerMock) ConsensusMetrics() spos.ConsensusMetricsHa
 	if sposWorkerMock.ConsensusMetricsCalled != nil {
 		return sposWorkerMock.ConsensusMetricsCalled()
 	}
-	_, consensusMetrics := spos.NewConsensusMetrics(nil)
+	consensusMetrics, _ := spos.NewConsensusMetrics(nil)
 	return consensusMetrics
 }

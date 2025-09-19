@@ -13,7 +13,7 @@ func TestConsensusMetrics_NewConsensusMetrics(t *testing.T) {
 
 	t.Run("nil appStatusHandler", func(t *testing.T) {
 		t.Parallel()
-		_, cm := NewConsensusMetrics(nil)
+		cm, _ := NewConsensusMetrics(nil)
 		assert.Nil(t, cm)
 		assert.True(t, cm.IsInterfaceNil(), "NewConsensusMetrics(nil) should return nil")
 	})
@@ -21,7 +21,7 @@ func TestConsensusMetrics_NewConsensusMetrics(t *testing.T) {
 	t.Run("normal operation", func(t *testing.T) {
 		t.Parallel()
 		appStatusHandler := &statusHandlerMock.AppStatusHandlerMock{}
-		_, cm := NewConsensusMetrics(appStatusHandler)
+		cm, _ := NewConsensusMetrics(appStatusHandler)
 		assert.NotNil(t, cm)
 		assert.False(t, cm.IsInterfaceNil(), "NewConsensusMetrics(non-nil) should return non-nil")
 	})
@@ -33,7 +33,7 @@ func TestConsensusMetrics_ResetAverages(t *testing.T) {
 	t.Run("normal operation", func(t *testing.T) {
 		t.Parallel()
 		appStatusHandler := &statusHandlerMock.AppStatusHandlerMock{}
-		_, cm := NewConsensusMetrics(appStatusHandler)
+		cm, _ := NewConsensusMetrics(appStatusHandler)
 		if cm == nil {
 			t.Errorf("NewConsensusMetrics() = nil, want non-nil")
 			return
@@ -59,7 +59,7 @@ func TestConsensusMetrics_resetInstanceValues(t *testing.T) {
 	t.Run("normal operation", func(t *testing.T) {
 		t.Parallel()
 		appStatusHandler := &statusHandlerMock.AppStatusHandlerMock{}
-		_, cm := NewConsensusMetrics(appStatusHandler)
+		cm, _ := NewConsensusMetrics(appStatusHandler)
 		if cm == nil {
 			t.Errorf("NewConsensusMetrics() = nil, want non-nil")
 			return
@@ -79,7 +79,7 @@ func TestConsensusMetrics_SetBlockReceivedOrSent(t *testing.T) {
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
 		appStatusHandler := statusHandlerMock.NewAppStatusHandlerMock()
-		_, cm := NewConsensusMetrics(appStatusHandler)
+		cm, _ := NewConsensusMetrics(appStatusHandler)
 
 		appStatusHandler.SetUInt64Value(common.MetricReceivedProposedBlockBody, 0)
 
@@ -111,7 +111,7 @@ func TestConsensusMetrics_SetProof(t *testing.T) {
 	t.Run("with no header or body received", func(t *testing.T) {
 		t.Parallel()
 		appStatusHandler := statusHandlerMock.NewAppStatusHandlerMock()
-		_, cm := NewConsensusMetrics(appStatusHandler)
+		cm, _ := NewConsensusMetrics(appStatusHandler)
 
 		appStatusHandler.SetUInt64Value(common.MetricReceivedProposedBlockBody, 0)
 		appStatusHandler.SetUInt64Value(common.MetricReceivedProof, 0)
@@ -125,7 +125,7 @@ func TestConsensusMetrics_SetProof(t *testing.T) {
 	t.Run("with body received first", func(t *testing.T) {
 		t.Parallel()
 		appStatusHandler := statusHandlerMock.NewAppStatusHandlerMock()
-		_, cm := NewConsensusMetrics(appStatusHandler)
+		cm, _ := NewConsensusMetrics(appStatusHandler)
 
 		appStatusHandler.SetUInt64Value(common.MetricReceivedProposedBlockBody, 0)
 		appStatusHandler.SetUInt64Value(common.MetricReceivedProof, 0)
@@ -143,7 +143,7 @@ func TestConsensusMetrics_SetProof(t *testing.T) {
 	t.Run("with proof delay smaller than header and body delay", func(t *testing.T) {
 		t.Parallel()
 		appStatusHandler := statusHandlerMock.NewAppStatusHandlerMock()
-		_, cm := NewConsensusMetrics(appStatusHandler)
+		cm, _ := NewConsensusMetrics(appStatusHandler)
 
 		appStatusHandler.SetUInt64Value(common.MetricReceivedProposedBlockBody, 0)
 		appStatusHandler.SetUInt64Value(common.MetricReceivedProof, 0)
@@ -164,7 +164,7 @@ func TestConsensusMetrics_UpdateAverages(t *testing.T) {
 	t.Parallel()
 
 	appStatusHandler := statusHandlerMock.NewAppStatusHandlerMock()
-	_, cm := NewConsensusMetrics(appStatusHandler)
+	cm, _ := NewConsensusMetrics(appStatusHandler)
 
 	cm.blockReceivedDelaySum = 300
 	cm.blockReceivedCount = 3
@@ -185,7 +185,7 @@ func TestConsensusMetrics_IsProofSet(t *testing.T) {
 	t.Parallel()
 
 	appStatusHandler := statusHandlerMock.NewAppStatusHandlerMock()
-	_, cm := NewConsensusMetrics(appStatusHandler)
+	cm, _ := NewConsensusMetrics(appStatusHandler)
 	cm.ResetInstanceValues()
 	appStatusHandler.SetUInt64Value(common.MetricReceivedProof, 0)
 
