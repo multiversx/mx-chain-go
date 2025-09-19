@@ -145,7 +145,7 @@ func (s *stakingSC) Execute(args *vmcommon.ContractCallInput) vmcommon.ReturnCod
 		s.eei.AddReturnMessage("cannot transfer ESDT to system SCs")
 		return vmcommon.UserError
 	}
-	log.Info("Execute stakingSC - entered", "args", args)
+
 	switch args.Function {
 	case core.SCDeployInitFunctionName:
 		return s.init(args)
@@ -258,39 +258,12 @@ func (s *stakingSC) canUnBond() bool {
 }
 
 func (s *stakingSC) changeValidatorKey(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
-	log.Info("changeValidatorKey - entered", "args", args)
-	if len(args.Arguments) < 2 {
-		s.eei.AddReturnMessage(fmt.Sprintf("invalid number of arguments: expected min %d, got %d", 2, len(args.Arguments)))
+	if !bytes.Equal(args.CallerAddr, s.stakeAccessAddr) {
+		s.eei.AddReturnMessage("changeValidatorKey function not allowed to be called by address " + string(args.CallerAddr))
 		return vmcommon.UserError
 	}
-
-	oldKey := args.Arguments[0]
-	newKey := args.Arguments[1]
-	if len(oldKey) != len(newKey) {
-		s.eei.AddReturnMessage("invalid bls key")
-		return vmcommon.UserError
-	}
-
-	stakedData, err := s.getOrCreateRegisteredData(oldKey)
-	if err != nil {
-		s.eei.AddReturnMessage("cannot get or create registered data: error " + err.Error())
-		return vmcommon.UserError
-	}
-	if len(stakedData.RewardAddress) == 0 {
-		// if not registered this is not an error
-		return vmcommon.Ok
-	}
-
-	s.eei.SetStorage(oldKey, nil)
-	err = s.saveStakingData(newKey, stakedData)
-	if err != nil {
-		s.eei.AddReturnMessage("cannot save staking data: error " + err.Error())
-		return vmcommon.UserError
-	}
-
-	s.eei.AddReturnMessage("changeValidatorKey: success, old key " + hex.EncodeToString(oldKey) + " replaced by new key " + hex.EncodeToString(newKey) + "")
-	log.Info("changeValidatorKey - exited", "args", args)
-	return vmcommon.Ok
+	s.eei.AddReturnMessage("function is deprecated")
+	return vmcommon.UserError
 }
 
 func (s *stakingSC) changeRewardAddress(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
