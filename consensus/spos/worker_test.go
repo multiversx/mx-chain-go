@@ -1366,7 +1366,7 @@ func TestWorker_ProcessReceivedMessageWithHeaderAndWrongHash(t *testing.T) {
 
 func TestWorker_ProcessReceivedMessageOkValsShouldWork(t *testing.T) {
 	t.Parallel()
-	_ = logger.SetLogLevel("*:DEBUG")
+
 	workerArgs := createDefaultWorkerArgs(&statusHandlerMock.AppStatusHandlerStub{})
 	expectedShardID := workerArgs.ShardCoordinator.SelfId()
 	expectedPK := []byte(workerArgs.ConsensusState.ConsensusGroup()[0])
