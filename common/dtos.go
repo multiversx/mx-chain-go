@@ -44,7 +44,7 @@ type TransactionsPoolNonceGapsForSenderApiResponse struct {
 
 // TransactionsSelectionSimulationResult represents a struct that holds the data to be returned when simulating a selection
 type TransactionsSelectionSimulationResult struct {
-	TxHashes []string `json:"txHashes"`
+	Transactions []Transaction `json:"transactions"`
 }
 
 // VirtualNonceOfAccountResponse represents a struct that holds the data to be returned when requesting the virtual nonce of an account

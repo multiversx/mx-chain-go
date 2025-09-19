@@ -1012,7 +1012,7 @@ func TestTransactionsGroup_GetSelectedTransactions(t *testing.T) {
 		t.Parallel()
 
 		facade := &mock.FacadeStub{
-			GetSelectedTransactionsCalled: func() (*common.TransactionsSelectionSimulationResult, error) {
+			GetSelectedTransactionsCalled: func(fields string) (*common.TransactionsSelectionSimulationResult, error) {
 				return nil, expectedErr
 			},
 		}
@@ -1020,7 +1020,7 @@ func TestTransactionsGroup_GetSelectedTransactions(t *testing.T) {
 		testTransactionsGroup(
 			t,
 			facade,
-			"/transaction/pool/selected-transactions",
+			"/transaction/pool/simulate-selection",
 			"GET",
 			nil,
 			http.StatusInternalServerError,
@@ -1031,13 +1031,24 @@ func TestTransactionsGroup_GetSelectedTransactions(t *testing.T) {
 	t.Run("GetSelectedTransactions should work", func(t *testing.T) {
 		t.Parallel()
 
-		expectedTxHashes := []string{"txHash1", "txHash2"}
+		expectedTransactions := []common.Transaction{
+			{
+				TxFields: map[string]interface{}{
+					"hash": "txHash1",
+				},
+			},
+			{
+				TxFields: map[string]interface{}{
+					"hash": "txHash2",
+				},
+			},
+		}
 		expectedResult := &common.TransactionsSelectionSimulationResult{
-			TxHashes: expectedTxHashes,
+			Transactions: expectedTransactions,
 		}
 
 		facade := &mock.FacadeStub{
-			GetSelectedTransactionsCalled: func() (*common.TransactionsSelectionSimulationResult, error) {
+			GetSelectedTransactionsCalled: func(fields string) (*common.TransactionsSelectionSimulationResult, error) {
 				return expectedResult, nil
 			},
 		}
@@ -1045,7 +1056,7 @@ func TestTransactionsGroup_GetSelectedTransactions(t *testing.T) {
 		loadTransactionGroupResponse(
 			t,
 			facade,
-			"/transaction/pool/selected-transactions",
+			"/transaction/pool/simulate-selection",
 			"GET",
 			nil,
 			expectedResult,
@@ -1288,7 +1299,7 @@ func getTransactionRoutesConfig() config.ApiRoutesConfig {
 					{Name: "/:txhash/status", Open: true},
 					{Name: "/simulate", Open: true},
 					{Name: "/scrs-by-tx-hash/:txhash", Open: true},
-					{Name: "/pool/selected-transactions", Open: true},
+					{Name: "/pool/simulate-selection", Open: true},
 					{Name: "/pool/:address/virtual-nonce", Open: true},
 				},
 			},

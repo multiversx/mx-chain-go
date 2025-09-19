@@ -86,7 +86,7 @@ type FacadeStub struct {
 	GetTransactionsPoolForSenderCalled          func(sender, fields string) (*common.TransactionsPoolForSenderApiResponse, error)
 	GetLastPoolNonceForSenderCalled             func(sender string) (uint64, error)
 	GetTransactionsPoolNonceGapsForSenderCalled func(sender string) (*common.TransactionsPoolNonceGapsForSenderApiResponse, error)
-	GetSelectedTransactionsCalled               func() (*common.TransactionsSelectionSimulationResult, error)
+	GetSelectedTransactionsCalled               func(fields string) (*common.TransactionsSelectionSimulationResult, error)
 	GetGasConfigsCalled                         func() (map[string]map[string]uint64, error)
 	RestApiInterfaceCalled                      func() string
 	RestAPIServerDebugModeCalled                func() bool
@@ -677,9 +677,9 @@ func (f *FacadeStub) GetTransactionsPoolNonceGapsForSender(sender string) (*comm
 }
 
 // GetSelectedTransactions -
-func (f *FacadeStub) GetSelectedTransactions() (*common.TransactionsSelectionSimulationResult, error) {
+func (f *FacadeStub) GetSelectedTransactions(fields string) (*common.TransactionsSelectionSimulationResult, error) {
 	if f.GetSelectedTransactionsCalled != nil {
-		return f.GetSelectedTransactionsCalled()
+		return f.GetSelectedTransactionsCalled(fields)
 	}
 
 	return nil, nil

@@ -2106,13 +2106,13 @@ func TestNodeFacade_GetSelectedTransactions(t *testing.T) {
 		}
 
 		arg.ApiResolver = &mock.ApiResolverStub{
-			GetSelectedTransactionsCalled: func(selectionOptions common.TxSelectionOptions, blockchain coreData.ChainHandler, accountsAdapter state.AccountsAdapter) (*common.TransactionsSelectionSimulationResult, error) {
+			GetSelectedTransactionsCalled: func(selectionOptions common.TxSelectionOptionsAPI, blockchain coreData.ChainHandler, accountsAdapter state.AccountsAdapter) (*common.TransactionsSelectionSimulationResult, error) {
 				return nil, expectedErr
 			},
 		}
 
 		nf, _ := NewNodeFacade(arg)
-		res, err := nf.GetSelectedTransactions()
+		res, err := nf.GetSelectedTransactions("hash")
 		require.Nil(t, res)
 		require.Equal(t, expectedErr, err)
 	})
@@ -2127,19 +2127,30 @@ func TestNodeFacade_GetSelectedTransactions(t *testing.T) {
 			},
 		}
 
-		expectedTxHashes := []string{"txHash1", "txHash2"}
+		expectedTxs := []common.Transaction{
+			{
+				TxFields: map[string]interface{}{
+					"hash": "txHash1",
+				},
+			},
+			{
+				TxFields: map[string]interface{}{
+					"hash": "txHash2",
+				},
+			},
+		}
 		expectedRes := &common.TransactionsSelectionSimulationResult{
-			TxHashes: expectedTxHashes,
+			Transactions: expectedTxs,
 		}
 
 		arg.ApiResolver = &mock.ApiResolverStub{
-			GetSelectedTransactionsCalled: func(selectionOptions common.TxSelectionOptions, blockchain coreData.ChainHandler, accountsAdapter state.AccountsAdapter) (*common.TransactionsSelectionSimulationResult, error) {
+			GetSelectedTransactionsCalled: func(selectionOptions common.TxSelectionOptionsAPI, blockchain coreData.ChainHandler, accountsAdapter state.AccountsAdapter) (*common.TransactionsSelectionSimulationResult, error) {
 				return expectedRes, nil
 			},
 		}
 
 		nf, _ := NewNodeFacade(arg)
-		res, err := nf.GetSelectedTransactions()
+		res, err := nf.GetSelectedTransactions("hash")
 		require.NoError(t, err)
 		require.Equal(t, expectedRes, res)
 	})

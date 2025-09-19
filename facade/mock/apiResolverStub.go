@@ -46,7 +46,7 @@ type ApiResolverStub struct {
 	GetTransactionsPoolForSenderCalled          func(sender, fields string) (*common.TransactionsPoolForSenderApiResponse, error)
 	GetLastPoolNonceForSenderCalled             func(sender string) (uint64, error)
 	GetTransactionsPoolNonceGapsForSenderCalled func(sender string, senderAccountNonce uint64) (*common.TransactionsPoolNonceGapsForSenderApiResponse, error)
-	GetSelectedTransactionsCalled               func(selectionOptions common.TxSelectionOptions, blockchain data.ChainHandler, accountsAdapter state.AccountsAdapter) (*common.TransactionsSelectionSimulationResult, error)
+	GetSelectedTransactionsCalled               func(selectionOptions common.TxSelectionOptionsAPI, blockchain data.ChainHandler, accountsAdapter state.AccountsAdapter) (*common.TransactionsSelectionSimulationResult, error)
 	GetVirtualNonceCalled                       func(address string) (*common.VirtualNonceOfAccountResponse, error)
 	GetGasConfigsCalled                         func() map[string]map[string]uint64
 	GetManagedKeysCountCalled                   func() int
@@ -262,7 +262,7 @@ func (ars *ApiResolverStub) GetTransactionsPoolNonceGapsForSender(sender string,
 }
 
 // GetSelectedTransactions -
-func (ars *ApiResolverStub) GetSelectedTransactions(selectionOptions common.TxSelectionOptions, blockchain data.ChainHandler, accountsAdapter state.AccountsAdapter) (*common.TransactionsSelectionSimulationResult, error) {
+func (ars *ApiResolverStub) GetSelectedTransactions(selectionOptions common.TxSelectionOptionsAPI, blockchain data.ChainHandler, accountsAdapter state.AccountsAdapter) (*common.TransactionsSelectionSimulationResult, error) {
 	if ars.GetSelectedTransactionsCalled != nil {
 		return ars.GetSelectedTransactionsCalled(selectionOptions, blockchain, accountsAdapter)
 	}

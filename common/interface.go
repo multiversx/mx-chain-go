@@ -290,6 +290,12 @@ type TxSelectionOptions interface {
 	IsInterfaceNil() bool
 }
 
+// TxSelectionOptionsAPI holds transactions selection options (parameters) for the API call
+type TxSelectionOptionsAPI interface {
+	TxSelectionOptions
+	GetRequestedFields() string
+}
+
 // BlockchainInfo holds the parameters from the blockchain used for SelectTransactions
 type BlockchainInfo interface {
 	GetLatestExecutedBlockHash() []byte

@@ -222,8 +222,8 @@ func (nar *nodeApiResolver) GetTransactionsPoolNonceGapsForSender(sender string,
 }
 
 // GetSelectedTransactions will simulate a SelectTransactions, and it will return the corresponding hash of each selected transaction
-func (nar *nodeApiResolver) GetSelectedTransactions(selectionOptions common.TxSelectionOptions, blockchain coreData.ChainHandler, accountsAdapter state.AccountsAdapter) (*common.TransactionsSelectionSimulationResult, error) {
-	return nar.apiTransactionHandler.GetSelectedTransactions(selectionOptions, blockchain, accountsAdapter)
+func (nar *nodeApiResolver) GetSelectedTransactions(selectionOptionsAPI common.TxSelectionOptionsAPI, blockchain coreData.ChainHandler, accountsAdapter state.AccountsAdapter) (*common.TransactionsSelectionSimulationResult, error) {
+	return nar.apiTransactionHandler.GetSelectedTransactions(selectionOptionsAPI, blockchain, accountsAdapter)
 }
 
 // GetVirtualNonce will return the virtual nonce of the account
