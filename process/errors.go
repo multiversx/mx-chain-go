@@ -104,6 +104,9 @@ var ErrNilMiniBlocks = errors.New("nil mini blocks")
 // ErrNilMiniBlock signals that an operation has been attempted with a nil miniblock
 var ErrNilMiniBlock = errors.New("nil mini block")
 
+// ErrNilMiniBlockHeader signals that an operation has been attempted with a nil mini block header
+var ErrNilMiniBlockHeader = errors.New("nil mini block header")
+
 // ErrNilRootHash signals that an operation has been attempted with a nil root hash
 var ErrNilRootHash = errors.New("root hash is nil")
 
@@ -1356,9 +1359,6 @@ var ErrExecutionResultsNumberMismatch = errors.New("execution results number mis
 // ErrNilExecutionResultsTracker signals that a nil execution results tracker has been provided
 var ErrNilExecutionResultsTracker = errors.New("nil execution results tracker")
 
-// ErrNilNotarizedOnHeaderHash signals that a nil notarized on header hash has been provided
-var ErrNilNotarizedOnHeaderHash = errors.New("nil notarized on header hash")
-
 // ErrInvalidHash signals that an invalid hash has been provided
 var ErrInvalidHash = errors.New("invalid hash")
 
@@ -1382,3 +1382,12 @@ var ErrNilExecutionResultsVerifier = errors.New("nil execution results verifier"
 
 // ErrNilMissingDataResolver signals that a nil missing data resolver has been provided
 var ErrNilMissingDataResolver = errors.New("nil missing data resolver")
+
+// ErrWrongMiniBlockConstructionState signals that the mini block construction state is not as expected
+var ErrWrongMiniBlockConstructionState = errors.New("wrong mini block construction state")
+
+// ErrWrongMiniBlockProcessingType signals that the mini block processing type is not as expected
+var ErrWrongMiniBlockProcessingType = errors.New("wrong mini block processing type")
+
+// ErrInvalidNumberOfExecutionResultsInHeader signals that the number of execution results in header is invalid
+var ErrInvalidNumberOfExecutionResultsInHeader = errors.New("invalid number of execution results in header")

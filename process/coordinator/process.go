@@ -806,6 +806,7 @@ func (tc *transactionCoordinator) CreateBlockStarted() {
 	tc.blockSizeComputation.Init()
 	tc.balanceComputation.Init()
 	tc.txExecutionOrderHandler.Clear()
+	tc.blockDataRequester.Reset()
 
 	tc.preProcExecution.mutPreProcessor.RLock()
 	for _, value := range tc.preProcExecution.txPreProcessors {

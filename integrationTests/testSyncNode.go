@@ -135,7 +135,7 @@ func (tpn *TestProcessorNode) initBlockProcessorWithSync() {
 			SafetyMargin:       110,
 			MaxResultsPerBlock: 20,
 		},
-		0,
+
 		tpn.RoundHandler,
 	)
 
