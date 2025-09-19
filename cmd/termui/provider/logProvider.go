@@ -11,7 +11,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/node"
-	"github.com/multiversx/mx-chain-logger-go"
+	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
 var formatter = logger.PlainFormatter{}
@@ -48,14 +48,20 @@ func InitLogHandler(args LogHandlerArgs) error {
 
 	var err error
 	scheme := ws
+	nodeURL := args.NodeURL
 	if args.UseWss {
 		scheme = wss
+		nodeURL = strings.TrimPrefix(nodeURL, "https://")
+	} else {
+		nodeURL = strings.TrimPrefix(nodeURL, "http://")
 	}
+
 	go func() {
 		for {
-			webSocket, err = openWebSocket(scheme, args.NodeURL)
+			webSocket, err = openWebSocket(scheme, nodeURL)
+
 			if err != nil {
-				_, _ = args.Presenter.Write([]byte(fmt.Sprintf("termui websocket error, retrying in %v...", retryDuration)))
+				_, _ = args.Presenter.Write([]byte(fmt.Sprintf("termui websocket error %s, retrying in %v...", err, retryDuration)))
 				time.Sleep(retryDuration)
 				continue
 			}
@@ -81,6 +87,7 @@ func openWebSocket(scheme string, address string) (*websocket.Conn, error) {
 		Host:   address,
 		Path:   "/log",
 	}
+
 	conn, _, err := websocket.DefaultDialer.Dial(u.String(), nil)
 	if err != nil {
 		return nil, err

@@ -118,7 +118,7 @@ func (sr *subroundEndRound) receivedProof(proof consensus.ProofHandler) {
 	log.Debug("step 3: block header final info has been received",
 		"PubKeysBitmap", proof.GetPubKeysBitmap(),
 		"AggregateSignature", proof.GetAggregatedSignature(),
-		"HederHash", proof.GetHeaderHash())
+		"HeaderHash", proof.GetHeaderHash())
 
 	sr.doEndRoundJobByNode()
 }
@@ -317,6 +317,8 @@ func (sr *subroundEndRound) finalizeConfirmedBlock() bool {
 	if !sr.waitForProof() {
 		return false
 	}
+
+	sr.updateConsensusMetricsIfNeeded()
 
 	ok := sr.ScheduledProcessor().IsProcessedOKWithTimeout()
 	// placeholder for subroundEndRound.doEndRoundJobByLeader script
@@ -958,6 +960,15 @@ func (sr *subroundEndRound) getNumOfSignaturesCollected() int {
 	}
 
 	return n
+}
+
+// updateConsensusMetricsIfNeeded sets the consensus metrics
+func (sr *subroundEndRound) updateConsensusMetricsIfNeeded() {
+
+	currentTime := sr.SyncTimer().CurrentTime()
+	metricsTime := currentTime.Sub(sr.RoundHandler().TimeStamp()).Nanoseconds()
+
+	sr.worker.ConsensusMetrics().SetProofReceived(uint64(metricsTime))
 }
 
 // areSignaturesCollected method checks if the signatures received from the nodes, belonging to the current
