@@ -127,18 +127,16 @@ type WorkerHandler interface {
 	ResetInvalidSignersCache()
 	// IsInterfaceNil returns true if there is no value under the interface
 	IsInterfaceNil() bool
-	GetConsensusMetrics() ConsensusMetricsHandler
+	ConsensusMetrics() ConsensusMetricsHandler
 }
 
 // ConsensusMetricsHandler handles the consensus metrics
 type ConsensusMetricsHandler interface {
 	IsInterfaceNil() bool
-	IsProofForCurrentConsensusSet() bool
 	ResetAverages()
 	ResetInstanceValues()
-	SetBlockBodyReceived(blockHash []byte, delayFromRoundStart uint64)
-	SetBlockHeaderReceived(blockHash []byte, delayFromRoundStart uint64)
-	SetSignaturesReceived(blockHash []byte, delayProofFromRoundStart uint64) error
+	SetBlockReceivedOrSent(delayFromRoundStart uint64)
+	SetProofReceived(delayProofFromRoundStart uint64)
 }
 
 // PoolAdder adds data in a key-value pool

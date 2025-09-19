@@ -36,7 +36,7 @@ type SposWorkerMock struct {
 	ReceivedProofCalled                    func(proofHandler consensus.ProofHandler)
 	ResetConsensusRoundStateCalled         func()
 	ResetInvalidSignersCacheCalled         func()
-	GetConsensusMetricsCalled              func() spos.ConsensusMetricsHandler
+	ConsensusMetricsCalled                 func() spos.ConsensusMetricsHandler
 }
 
 // ResetConsensusRoundState -
@@ -184,10 +184,11 @@ func (sposWorkerMock *SposWorkerMock) ResetInvalidSignersCache() {
 	}
 }
 
-// GetConsensusMetrics -
-func (sposWorkerMock *SposWorkerMock) GetConsensusMetrics() spos.ConsensusMetricsHandler {
-	if sposWorkerMock.GetConsensusMetricsCalled != nil {
-		return sposWorkerMock.GetConsensusMetricsCalled()
+// ConsensusMetrics -
+func (sposWorkerMock *SposWorkerMock) ConsensusMetrics() spos.ConsensusMetricsHandler {
+	if sposWorkerMock.ConsensusMetricsCalled != nil {
+		return sposWorkerMock.ConsensusMetricsCalled()
 	}
-	return nil
+	_, consensusMetrics := spos.NewConsensusMetrics(nil)
+	return consensusMetrics
 }

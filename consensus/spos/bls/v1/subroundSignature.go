@@ -290,12 +290,6 @@ func (sr *subroundSignature) doSignatureConsensusCheck() bool {
 
 		sr.appStatusHandler.SetStringValue(common.MetricConsensusRoundState, "signed")
 
-		currentTime := sr.SyncTimer().CurrentTime()
-		metricsTime := currentTime.Sub(sr.RoundHandler().TimeStamp()).Nanoseconds()
-
-		defer sr.AppStatusHandler().SetUInt64Value(common.MetricReceivedSignatures, uint64(metricsTime))
-		log.Debug("Received proof v1 old", "time", metricsTime, "currentTime", currentTime, "roundTime", sr.RoundHandler().TimeStamp())
-
 		return true
 	}
 

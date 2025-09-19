@@ -364,7 +364,3 @@ func (sr *subroundEndRound) SendProof() (bool, error) {
 func (sr *subroundEndRound) UpdateConsensusMetricsIfNeeded() {
 	sr.updateConsensusMetricsIfNeeded()
 }
-
-func (sr *subroundEndRound) ReceivedProofForConsensusMetrics(proof data.HeaderProofHandler) {
-	sr.receivedProofForConsensusMetrics(proof)
-}

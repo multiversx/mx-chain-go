@@ -421,7 +421,7 @@ type ConsensusWorker interface {
 	ReceivedProof(proofHandler consensus.ProofHandler)
 	// IsInterfaceNil returns true if there is no value under the interface
 	IsInterfaceNil() bool
-	GetConsensusMetrics() spos.ConsensusMetricsHandler
+	ConsensusMetrics() spos.ConsensusMetricsHandler
 }
 
 // HardforkTrigger defines the hard-fork trigger functionality

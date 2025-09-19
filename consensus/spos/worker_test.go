@@ -2397,12 +2397,12 @@ func TestWorker_ReceivedProof(t *testing.T) {
 	})
 }
 
-func TestWorker_GetConsensusMetrics(t *testing.T) {
+func TestWorker_ConsensusMetrics(t *testing.T) {
 	t.Parallel()
 
 	workerArgs := createDefaultWorkerArgs(&statusHandlerMock.AppStatusHandlerStub{})
 	wrk, _ := spos.NewWorker(workerArgs)
 
-	metrics := wrk.GetConsensusMetrics()
+	metrics := wrk.ConsensusMetrics()
 	require.NotNil(t, metrics)
 }

@@ -64,7 +64,7 @@ func (psh *PresenterStatusHandler) GetDurationProposedBlockReceivedOrSentFromRou
 
 // GetBlockSigned implements will return the metrics containing time taken to receive signatures for a block since the block was received
 func (psh *PresenterStatusHandler) GetDurationProofReceivedFromProposedBlockReceivedOrSent() uint64 {
-	return psh.getFromCacheAsUint64(common.MetricReceivedSignatures)
+	return psh.getFromCacheAsUint64(common.MetricReceivedProof)
 }
 
 // GetAvgBlockReceived returns the average received proposed block body metric
@@ -74,5 +74,5 @@ func (psh *PresenterStatusHandler) GetAvgDurationProposedBlockReceivedOrSentFrom
 
 // GetAvgBlockSigned returns the average received signatures metric from the time of block body received
 func (psh *PresenterStatusHandler) GetAvgDurationProofReceivedFromProposedBlockReceivedOrSent() uint64 {
-	return psh.getFromCacheAsUint64(common.MetricAvgReceivedSignatures)
+	return psh.getFromCacheAsUint64(common.MetricAvgReceivedProof)
 }

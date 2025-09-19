@@ -149,9 +149,9 @@ func NewWorker(args *WorkerArgs) (*Worker, error) {
 		return nil, err
 	}
 
-	consensusMetrics := NewConsensusMetrics(args.AppStatusHandler)
-	if consensusMetrics == nil {
-		log.Warn("NewWorker: NewConsensusMetrics returned nil")
+	err, consensusMetrics := NewConsensusMetrics(args.AppStatusHandler)
+	if err != nil {
+		return nil, err
 	}
 
 	wrk := Worker{
@@ -996,7 +996,7 @@ func emptyChannel(ch chan *consensus.Message) int {
 	}
 }
 
-// GetConsensusMetrics returns the consensus metrics handler
-func (wrk *Worker) GetConsensusMetrics() ConsensusMetricsHandler {
+// ConsensusMetrics returns the consensus metrics handler
+func (wrk *Worker) ConsensusMetrics() ConsensusMetricsHandler {
 	return wrk.consensusMetrics
 }

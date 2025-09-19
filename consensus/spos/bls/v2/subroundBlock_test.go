@@ -69,17 +69,28 @@ func defaultSubroundBlockFromSubround(sr *spos.Subround) (v2.SubroundBlock, erro
 	srBlock, err := v2.NewSubroundBlock(
 		sr,
 		v2.ProcessingThresholdPercent,
-		&consensusMocks.SposWorkerMock{},
+		&consensusMocks.SposWorkerMock{
+			ConsensusMetricsCalled: func() spos.ConsensusMetricsHandler {
+				_, consensusMetrics := spos.NewConsensusMetrics(sr.AppStatusHandler())
+				return consensusMetrics
+			},
+		},
 	)
 
 	return srBlock, err
 }
 
 func defaultSubroundBlockWithoutErrorFromSubround(sr *spos.Subround) v2.SubroundBlock {
+
 	srBlock, _ := v2.NewSubroundBlock(
 		sr,
 		v2.ProcessingThresholdPercent,
-		&consensusMocks.SposWorkerMock{},
+		&consensusMocks.SposWorkerMock{
+			ConsensusMetricsCalled: func() spos.ConsensusMetricsHandler {
+				_, consensusMetrics := spos.NewConsensusMetrics(sr.AppStatusHandler())
+				return consensusMetrics
+			},
+		},
 	)
 
 	return srBlock
@@ -567,7 +578,12 @@ func TestSubroundBlock_DoBlockJob(t *testing.T) {
 		sr, _ := v2.NewSubroundBlock(
 			baseSr,
 			v2.ProcessingThresholdPercent,
-			&consensusMocks.SposWorkerMock{},
+			&consensusMocks.SposWorkerMock{
+				ConsensusMetricsCalled: func() spos.ConsensusMetricsHandler {
+					_, consensusMetrics := spos.NewConsensusMetrics(baseSr.AppStatusHandler())
+					return consensusMetrics
+				},
+			},
 		)
 
 		providedLeaderSignature := []byte("leader signature")
@@ -1299,6 +1315,102 @@ func TestSubroundBlock_ReceivedBlockHeader(t *testing.T) {
 	sr.ReceivedBlockHeader(headerForCurrentConsensus)
 }
 
+func TestSubroundBlock_ReceivedBlockHeaderConsensusMetrics(t *testing.T) {
+	t.Parallel()
+
+	container := consensusMocks.InitConsensusCore()
+	sr := initSubroundBlock(nil, container, &statusHandler.AppStatusHandlerStub{})
+
+	prevHash := []byte("header hash")
+	prevHeader := createDefaultHeader()
+	blockchain := &testscommon.ChainHandlerStub{
+		GetCurrentBlockHeaderHashCalled: func() []byte {
+			return prevHash
+		},
+		GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
+			return &block.HeaderV2{
+				Header: prevHeader,
+			}
+		},
+	}
+	container.SetBlockchain(blockchain)
+
+	// nil header
+	sr.ReceivedBlockHeader(nil)
+
+	// header not for current consensus
+	sr.ReceivedBlockHeader(&testscommon.HeaderHandlerStub{})
+
+	// nil fields on header
+	sr.ReceivedBlockHeader(&testscommon.HeaderHandlerStub{
+		CheckFieldsForNilCalled: func() error {
+			return expectedErr
+		},
+	})
+
+	// header not for current consensus
+	sr.ReceivedBlockHeader(&testscommon.HeaderHandlerStub{})
+
+	headerForCurrentConsensus := &testscommon.HeaderHandlerStub{
+		GetShardIDCalled: func() uint32 {
+			return container.ShardCoordinator().SelfId()
+		},
+		RoundField: uint64(container.RoundHandler().Index()),
+		GetPrevHashCalled: func() []byte {
+			return prevHash
+		},
+		GetNonceCalled: func() uint64 {
+			return prevHeader.GetNonce() + 1
+		},
+		GetPrevRandSeedCalled: func() []byte {
+			return prevHeader.RandSeed
+		},
+	}
+
+	// leader
+	defaultLeader := sr.Leader()
+	sr.SetLeader(sr.SelfPubKey())
+	sr.ReceivedBlockHeader(headerForCurrentConsensus)
+	sr.SetLeader(defaultLeader)
+
+	// consensus data already set
+	sr.SetData([]byte("some data"))
+	sr.ReceivedBlockHeader(headerForCurrentConsensus)
+	sr.SetData(nil)
+
+	// header leader is not the current one
+	sr.SetLeader("X")
+	sr.ReceivedBlockHeader(headerForCurrentConsensus)
+	sr.SetLeader(defaultLeader)
+
+	// header already received
+	sr.SetHeader(&testscommon.HeaderHandlerStub{})
+	sr.ReceivedBlockHeader(headerForCurrentConsensus)
+	sr.SetHeader(nil)
+
+	// self job already done
+	_ = sr.SetJobDone(sr.SelfPubKey(), sr.Current(), true)
+	sr.ReceivedBlockHeader(headerForCurrentConsensus)
+	_ = sr.SetJobDone(sr.SelfPubKey(), sr.Current(), false)
+
+	// subround already finished
+	sr.SetStatus(sr.Current(), spos.SsFinished)
+	sr.ReceivedBlockHeader(headerForCurrentConsensus)
+	sr.SetStatus(sr.Current(), spos.SsNotFinished)
+
+	// marshal error
+	container.SetMarshalizer(&testscommon.MarshallerStub{
+		MarshalCalled: func(obj interface{}) ([]byte, error) {
+			return nil, expectedErr
+		},
+	})
+	sr.ReceivedBlockHeader(headerForCurrentConsensus)
+	container.SetMarshalizer(&testscommon.MarshallerStub{})
+
+	// should work
+	sr.ReceivedBlockHeader(headerForCurrentConsensus)
+}
+
 func TestSubroundBlock_GetLeaderForHeader(t *testing.T) {
 	t.Parallel()
 
@@ -1353,7 +1465,6 @@ func TestSubroundBlock_IsInterfaceNil(t *testing.T) {
 	container := consensusMocks.InitConsensusCore()
 	sr := initSubroundBlock(nil, container, nil)
 	require.True(t, sr.IsInterfaceNil())
-
 	sr = initSubroundBlock(nil, container, &statusHandler.AppStatusHandlerStub{})
 	require.False(t, sr.IsInterfaceNil())
 }
