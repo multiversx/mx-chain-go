@@ -620,7 +620,7 @@ func TestNodeApiResolver_GetSelectedTransactions(t *testing.T) {
 		}
 		arg := createMockArgs()
 		arg.APITransactionHandler = &mock.TransactionAPIHandlerStub{
-			GetSelectedTransactionsCalled: func(selectionOptionsAPI common.TxSelectionOptionsAPI, blockchain coreData.ChainHandler, accountsAdapter state.AccountsAdapter) (*common.TransactionsSelectionSimulationResult, error) {
+			GetSelectedTransactionsCalled: func(selectionOptions common.TxSelectionOptionsAPI, blockchain coreData.ChainHandler, accountsAdapter state.AccountsAdapter) (*common.TransactionsSelectionSimulationResult, error) {
 				return expectedResult, nil
 			},
 		}

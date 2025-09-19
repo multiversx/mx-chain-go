@@ -841,7 +841,7 @@ func (tg *transactionGroup) getTransactionsPoolNonceGapsForSender(sender string,
 	)
 }
 
-// simulateTransactionsSelection simulates a selection and returns the hash of each selected transaction
+// simulateTransactionsSelection simulates a selection and returns the requested fields of each selected transaction
 func (tg *transactionGroup) simulateTransactionsSelection(c *gin.Context) {
 	start := time.Now()
 

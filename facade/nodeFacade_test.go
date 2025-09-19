@@ -2106,7 +2106,7 @@ func TestNodeFacade_GetSelectedTransactions(t *testing.T) {
 		}
 
 		arg.ApiResolver = &mock.ApiResolverStub{
-			GetSelectedTransactionsCalled: func(selectionOptionsAPI common.TxSelectionOptionsAPI, blockchain coreData.ChainHandler, accountsAdapter state.AccountsAdapter) (*common.TransactionsSelectionSimulationResult, error) {
+			GetSelectedTransactionsCalled: func(selectionOptions common.TxSelectionOptionsAPI, blockchain coreData.ChainHandler, accountsAdapter state.AccountsAdapter) (*common.TransactionsSelectionSimulationResult, error) {
 				return nil, expectedErr
 			},
 		}
@@ -2144,7 +2144,7 @@ func TestNodeFacade_GetSelectedTransactions(t *testing.T) {
 		}
 
 		arg.ApiResolver = &mock.ApiResolverStub{
-			GetSelectedTransactionsCalled: func(selectionOptionsAPI common.TxSelectionOptionsAPI, blockchain coreData.ChainHandler, accountsAdapter state.AccountsAdapter) (*common.TransactionsSelectionSimulationResult, error) {
+			GetSelectedTransactionsCalled: func(selectionOptions common.TxSelectionOptionsAPI, blockchain coreData.ChainHandler, accountsAdapter state.AccountsAdapter) (*common.TransactionsSelectionSimulationResult, error) {
 				return expectedRes, nil
 			},
 		}

@@ -309,13 +309,13 @@ func (atp *apiTransactionProcessor) GetTransactionsPoolNonceGapsForSender(sender
 }
 
 // GetSelectedTransactions will simulate a SelectTransactions, and it will return the corresponding hash of each selected transaction
-func (atp *apiTransactionProcessor) GetSelectedTransactions(selectionOptionsAPI common.TxSelectionOptionsAPI, blockchain data.ChainHandler, accountsAdapter state.AccountsAdapter) (*common.TransactionsSelectionSimulationResult, error) {
+func (atp *apiTransactionProcessor) GetSelectedTransactions(selectionOptions common.TxSelectionOptionsAPI, blockchain data.ChainHandler, accountsAdapter state.AccountsAdapter) (*common.TransactionsSelectionSimulationResult, error) {
 	err := atp.recreateTrie(blockchain, accountsAdapter)
 	if err != nil {
 		return nil, err
 	}
 
-	selectedTransactions, err := atp.selectTransactions(accountsAdapter, selectionOptionsAPI)
+	selectedTransactions, err := atp.selectTransactions(accountsAdapter, selectionOptions)
 	if err != nil {
 		return nil, err
 	}

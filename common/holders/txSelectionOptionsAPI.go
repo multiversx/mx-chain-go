@@ -14,6 +14,6 @@ func NewTxSelectionOptionsAPI(options *txSelectionOptions, requestedFields strin
 }
 
 // GetRequestedFields returns a selection query parameter for the selection simulation endpoint (the requested fields of the transaction)
-func (selectionOptionsAPI *txSelectionOptionsAPI) GetRequestedFields() string {
-	return selectionOptionsAPI.requestedFields
+func (selectionOptions *txSelectionOptionsAPI) GetRequestedFields() string {
+	return selectionOptions.requestedFields
 }
