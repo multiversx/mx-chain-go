@@ -207,6 +207,7 @@ func TestOverflowProtection(t *testing.T) {
 	}
 
 	t.Run("overflow detected in block transactions time estimation - gasUsed * t_gas overflows", func(t *testing.T) {
+		t.Parallel()
 		cfg := config.ExecutionResultInclusionEstimatorConfig{
 			SafetyMargin:       110,
 			MaxResultsPerBlock: 0,
@@ -226,6 +227,7 @@ func TestOverflowProtection(t *testing.T) {
 	})
 
 	t.Run("overflow detected in estimated time with margin", func(t *testing.T) {
+		t.Parallel()
 		cfg := config.ExecutionResultInclusionEstimatorConfig{
 			SafetyMargin:       110,
 			MaxResultsPerBlock: 0,
@@ -242,6 +244,7 @@ func TestOverflowProtection(t *testing.T) {
 	})
 
 	t.Run("overflow detected in total estimated time - accumulated estimatedTime overflows", func(t *testing.T) {
+		t.Parallel()
 		cfg := config.ExecutionResultInclusionEstimatorConfig{
 			SafetyMargin:       110,
 			MaxResultsPerBlock: 0,
