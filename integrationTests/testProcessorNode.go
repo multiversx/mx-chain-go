@@ -661,7 +661,6 @@ func (tpn *TestProcessorNode) initAccountDBsWithPruningStorer() {
 	tpn.TrieContainer.Put([]byte(dataRetriever.UserAccountsUnit.String()), stateTrie)
 
 	tpn.AccntStateAPI, stateTrie = CreateAccountsDBWithEnableEpochsHandler(UserAccount, trieStorageManager, tpn.EnableEpochsHandler)
-	tpn.TrieContainer.Put([]byte(dataRetriever.UserAccountsUnit.String()), stateTrie)
 
 	peerState, peerTrie := CreateAccountsDBWithEnableEpochsHandler(ValidatorAccount, trieStorageManager, tpn.EnableEpochsHandler)
 	tpn.PeerState = &state.PeerAccountsDB{AccountsDB: peerState}
