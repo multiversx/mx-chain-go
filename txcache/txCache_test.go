@@ -64,6 +64,10 @@ func Test_NewTxCache(t *testing.T) {
 	badConfig = config
 	badConfig.CountThreshold = 0
 	requireErrorOnNewTxCache(t, badConfig, common.ErrInvalidConfig, "config.CountThreshold", host)
+
+	badConfig = config
+	badConfig.TxCacheBoundsConfig.MaxTrackedBlocks = 0
+	requireErrorOnNewTxCache(t, badConfig, errInvalidMaxTrackedBlocks, "bad max tracked blocks", host)
 }
 
 func requireErrorOnNewTxCache(t *testing.T, config ConfigSourceMe, errExpected error, errPartialMessage string, host MempoolHost) {
@@ -305,6 +309,20 @@ func Test_GetTransactionsPoolForSender(t *testing.T) {
 	expectedTxs := wrappedTxs2[1:]
 	txs = cache.GetTransactionsPoolForSender(txSender2)
 	require.Equal(t, expectedTxs, txs)
+}
+
+func TestTxCache_GetVirtualNonce(t *testing.T) {
+	t.Parallel()
+
+	t.Run("should return errNilBlockchainInfo error", func(t *testing.T) {
+		t.Parallel()
+
+		boundsConfig := createMockTxBoundsConfig()
+		cache := newUnconstrainedCacheToTest(boundsConfig)
+
+		_, _, err := cache.GetVirtualNonceAndRootHash([]byte("alice"), nil)
+		require.Equal(t, errNilBlockchainInfo, err)
+	})
 }
 
 func Test_Keys(t *testing.T) {

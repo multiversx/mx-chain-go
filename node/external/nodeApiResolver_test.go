@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/multiversx/mx-chain-core-go/core"
+	coreData "github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/api"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-go/common"
@@ -18,6 +19,7 @@ import (
 	"github.com/multiversx/mx-chain-go/node/mock"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
+	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/genesisMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/shardingMocks"
@@ -575,6 +577,98 @@ func TestNodeApiResolver_GetTransactionsPoolNonceGapsForSender(t *testing.T) {
 		res, err := nar.GetTransactionsPoolNonceGapsForSender(expectedSender, 0)
 		require.NoError(t, err)
 		require.Equal(t, expectedNonceGaps, res)
+	})
+}
+
+func TestNodeApiResolver_GetSelectedTransactions(t *testing.T) {
+	t.Parallel()
+
+	t.Run("should error", func(t *testing.T) {
+		t.Parallel()
+
+		expectedErr := errors.New("expected error")
+		arg := createMockArgs()
+		arg.APITransactionHandler = &mock.TransactionAPIHandlerStub{
+			GetSelectedTransactionsCalled: func(selectionOptions common.TxSelectionOptionsAPI, blockchain coreData.ChainHandler, accountsAdapter state.AccountsAdapter) (*common.TransactionsSelectionSimulationResult, error) {
+				return nil, expectedErr
+			},
+		}
+
+		nar, _ := external.NewNodeApiResolver(arg)
+		res, err := nar.GetSelectedTransactions(nil, nil, nil)
+		require.Nil(t, res)
+		require.Equal(t, expectedErr, err)
+	})
+
+	t.Run("should work", func(t *testing.T) {
+		t.Parallel()
+
+		expectedTxs := []common.Transaction{
+			{
+				TxFields: map[string]interface{}{
+					"hash": "txHash1",
+				},
+			},
+			{
+				TxFields: map[string]interface{}{
+					"hash": "txHash2",
+				},
+			},
+		}
+		expectedResult := &common.TransactionsSelectionSimulationResult{
+			Transactions: expectedTxs,
+		}
+		arg := createMockArgs()
+		arg.APITransactionHandler = &mock.TransactionAPIHandlerStub{
+			GetSelectedTransactionsCalled: func(selectionOptions common.TxSelectionOptionsAPI, blockchain coreData.ChainHandler, accountsAdapter state.AccountsAdapter) (*common.TransactionsSelectionSimulationResult, error) {
+				return expectedResult, nil
+			},
+		}
+
+		nar, _ := external.NewNodeApiResolver(arg)
+		res, err := nar.GetSelectedTransactions(nil, nil, nil)
+		require.NoError(t, err)
+		require.Equal(t, expectedResult, res)
+	})
+}
+
+func TestNodeApiResolver_GetVirtualNonce(t *testing.T) {
+	t.Parallel()
+
+	t.Run("should error", func(t *testing.T) {
+		t.Parallel()
+
+		expectedErr := errors.New("expected error")
+		arg := createMockArgs()
+		arg.APITransactionHandler = &mock.TransactionAPIHandlerStub{
+			GetVirtualNonceCalled: func(address string) (*common.VirtualNonceOfAccountResponse, error) {
+				return nil, expectedErr
+			},
+		}
+
+		nar, _ := external.NewNodeApiResolver(arg)
+		res, err := nar.GetVirtualNonce("alice")
+		require.Nil(t, res)
+		require.Equal(t, expectedErr, err)
+	})
+
+	t.Run("should work", func(t *testing.T) {
+		t.Parallel()
+
+		expectedResult := &common.VirtualNonceOfAccountResponse{
+			VirtualNonce: 0,
+		}
+		arg := createMockArgs()
+		arg.APITransactionHandler = &mock.TransactionAPIHandlerStub{
+			GetVirtualNonceCalled: func(address string) (*common.VirtualNonceOfAccountResponse, error) {
+				return expectedResult, nil
+			},
+		}
+
+		nar, _ := external.NewNodeApiResolver(arg)
+		res, err := nar.GetVirtualNonce("")
+		require.NoError(t, err)
+		require.Equal(t, expectedResult, res)
 	})
 }
 

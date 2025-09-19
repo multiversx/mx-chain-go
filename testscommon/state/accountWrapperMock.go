@@ -218,6 +218,11 @@ func (awm *AccountWrapMock) AccountDataHandler() vmcommon.AccountDataHandler {
 	return awm.trackableDataTrie
 }
 
+// SetNonce -
+func (awm *AccountWrapMock) SetNonce(nonce uint64) {
+	awm.nonce = nonce
+}
+
 // GetNonce gets the nonce of the account
 func (awm *AccountWrapMock) GetNonce() uint64 {
 	return awm.nonce

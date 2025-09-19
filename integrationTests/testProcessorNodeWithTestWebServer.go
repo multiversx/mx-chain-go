@@ -94,11 +94,12 @@ func createFacadeArg(tpn *TestProcessorNode) nodeFacade.ArgNodeFacade {
 			TrieOperationsDeadlineMilliseconds: 1,
 			EndpointsThrottlers:                []config.EndpointsThrottlersConfig{},
 		},
-		FacadeConfig:    config.FacadeConfig{},
-		ApiRoutesConfig: createTestApiConfig(),
-		AccountsState:   tpn.AccntState,
-		PeerState:       tpn.PeerState,
-		Blockchain:      tpn.BlockChain,
+		FacadeConfig:     config.FacadeConfig{},
+		ApiRoutesConfig:  createTestApiConfig(),
+		AccountsState:    tpn.AccntState,
+		AccountsStateAPI: tpn.AccntStateAPI,
+		PeerState:        tpn.PeerState,
+		Blockchain:       tpn.BlockChain,
 	}
 }
 

@@ -57,6 +57,7 @@ type NodeStub struct {
 	GetTokenSupplyCalled                           func(token string) (*api.ESDTSupply, error)
 	IsDataTrieMigratedCalled                       func(address string, options api.AccountQueryOptions) (bool, error)
 	AuctionListApiCalled                           func() ([]*common.AuctionListValidatorAPIResponse, error)
+	DecodeAddressPubkeyCalled                      func(address string) ([]byte, error)
 }
 
 // GetProof -
@@ -146,6 +147,9 @@ func (ns *NodeStub) EncodeAddressPubkey(pk []byte) (string, error) {
 
 // DecodeAddressPubkey -
 func (ns *NodeStub) DecodeAddressPubkey(pk string) ([]byte, error) {
+	if ns.DecodeAddressPubkeyCalled != nil {
+		return ns.DecodeAddressPubkeyCalled(pk)
+	}
 	return hex.DecodeString(pk)
 }
 

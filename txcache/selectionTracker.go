@@ -1,0 +1,449 @@
+package txcache
+
+import (
+	"bytes"
+	"sync"
+
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-go/common"
+	"golang.org/x/exp/slices"
+)
+
+type selectionTracker struct {
+	mutTracker       sync.RWMutex
+	latestNonce      uint64
+	latestRootHash   []byte
+	blocks           map[string]*trackedBlock
+	txCache          txCacheForSelectionTracker
+	maxTrackedBlocks uint32
+}
+
+// NewSelectionTracker creates a new selectionTracker
+func NewSelectionTracker(txCache txCacheForSelectionTracker, maxTrackedBlocks uint32) (*selectionTracker, error) {
+	if check.IfNil(txCache) {
+		return nil, errNilTxCache
+	}
+	// TODO compare with the maximum allowed offset between proposing a block and actually executing it
+	if maxTrackedBlocks == 0 {
+		return nil, errInvalidMaxTrackedBlocks
+	}
+	return &selectionTracker{
+		mutTracker:       sync.RWMutex{},
+		blocks:           make(map[string]*trackedBlock),
+		txCache:          txCache,
+		maxTrackedBlocks: maxTrackedBlocks,
+	}, nil
+}
+
+// OnProposedBlock notifies when a block is proposed and updates the state of the selectionTracker.
+// blockHash is the hash of the new proposed block.
+// blockBody contains the transactions of the new block (required for creating the breadcrumbs and validating the block).
+// blockHeader contains the nonce, the rootHash and the previousHash of the new proposed block.
+// accountsProvider is a wrapper over the current blockchain state.
+// blockchainInfo must contain the information about the last executed block. The other information is not used in this flow.
+func (st *selectionTracker) OnProposedBlock(
+	blockHash []byte,
+	blockBody *block.Body,
+	blockHeader data.HeaderHandler,
+	accountsProvider common.AccountNonceAndBalanceProvider,
+	blockchainInfo common.BlockchainInfo,
+) error {
+	err := st.verifyArgsOfOnProposedBlock(blockHash, blockBody, blockHeader, accountsProvider)
+	if err != nil {
+		return err
+	}
+
+	nonce := blockHeader.GetNonce()
+	rootHash := blockHeader.GetRootHash()
+	prevHash := blockHeader.GetPrevHash()
+
+	tBlock := newTrackedBlock(nonce, blockHash, rootHash, prevHash)
+
+	log.Debug("selectionTracker.OnProposedBlock",
+		"nonce", nonce,
+		"blockHash", blockHash,
+		"rootHash", rootHash,
+		"prevHash", prevHash,
+	)
+
+	st.mutTracker.Lock()
+	defer st.mutTracker.Unlock()
+
+	err = st.checkReceivedBlockNoLock(blockBody, blockHeader)
+	if err != nil {
+		log.Debug("selectionTracker.OnProposedBlock: error checking the received block", "err", err)
+		return err
+	}
+
+	err = st.validateTrackedBlocksAndCompileBreadcrumbs(blockBody, tBlock, accountsProvider, blockchainInfo)
+	if err != nil {
+		log.Debug("selectionTracker.OnProposedBlock: error validating the tracked blocks", "err", err)
+		return err
+	}
+
+	st.addNewTrackedBlockNoLock(blockHash, tBlock)
+	return nil
+}
+
+func (st *selectionTracker) verifyArgsOfOnProposedBlock(
+	blockHash []byte,
+	blockBody *block.Body,
+	blockHeader data.HeaderHandler,
+	accountsProvider common.AccountNonceAndBalanceProvider,
+) error {
+	if len(blockHash) == 0 {
+		return errNilBlockHash
+	}
+	if check.IfNil(blockBody) {
+		return errNilBlockBody
+	}
+	if check.IfNil(blockHeader) {
+		return errNilBlockHeader
+	}
+	if check.IfNil(accountsProvider) {
+		return errNilAccountNonceAndBalanceProvider
+	}
+
+	return nil
+}
+
+// checkReceivedBlockNoLock first checks if MaxTrackedBlocks is reached.
+// If MaxTrackedBlocks is reached, the received block must either have an empty body or contain new execution results.
+func (st *selectionTracker) checkReceivedBlockNoLock(blockBody *block.Body, blockHeader data.HeaderHandler) error {
+	if len(st.blocks) < int(st.maxTrackedBlocks) {
+		return nil
+	}
+
+	hasNewTransactions := len(blockBody.MiniBlocks) != 0
+	hasNoNewExecutionResults := len(blockHeader.GetExecutionResultsHandlers()) == 0
+
+	// should receive empty block or a block with new execution results
+	if hasNewTransactions && hasNoNewExecutionResults {
+		log.Warn("selectionTracker.checkReceivedBlockNoLock: received non-tolerated block while max tracked blocks is reached. "+
+			"len(st.blocks)", len(st.blocks),
+		)
+
+		return errBadBlockWhileMaxTrackedBlocksReached
+	}
+
+	// received an empty block or a block with new execution results
+	log.Warn("selectionTracker.checkReceivedBlockNoLock: max tracked blocks reached "+
+		"but received a tolerated block",
+		"len(st.blocks)", len(st.blocks),
+		"nonce", blockHeader.GetNonce())
+
+	return nil
+}
+
+// validateTrackedBlocksAndCompileBreadcrumbs is used when a new block is proposed.
+// Firstly, the method finds the chain of tracked blocks.
+// Secondly, the method extracts the transaction of the new block, compiles its breadcrumbs and adds the new block to the previous returned chain.
+// Then, it validates the entire chain (by nonce and balance of each breadcrumb).
+func (st *selectionTracker) validateTrackedBlocksAndCompileBreadcrumbs(
+	blockBody *block.Body,
+	blockToTrack *trackedBlock,
+	accountsProvider common.AccountNonceAndBalanceProvider,
+	blockchainInfo common.BlockchainInfo,
+) error {
+	blocksToBeValidated, err := st.getChainOfTrackedPendingBlocks(
+		blockchainInfo.GetLatestExecutedBlockHash(),
+		blockToTrack.prevHash,
+		blockToTrack.nonce,
+	)
+	if err != nil {
+		log.Debug("selectionTracker.validateTrackedBlocksAndCompileBreadcrumbs: error creating chain of tracked blocks", "err", err)
+		return err
+	}
+
+	// if we pass the first validation, only then we extract the txs to compile the breadcrumbs
+	txs, err := getTransactionsInBlock(blockBody, st.txCache)
+	if err != nil {
+		log.Debug("selectionTracker.validateTrackedBlocksAndCompileBreadcrumbs: error getting transactions from block", "err", err)
+		return err
+	}
+
+	err = blockToTrack.compileBreadcrumbs(txs)
+	if err != nil {
+		log.Debug("selectionTracker.validateTrackedBlocksAndCompileBreadcrumbs: error compiling breadcrumbs",
+			"error", err)
+		return err
+	}
+
+	// add the new block in the returned chain
+	blocksToBeValidated = append(blocksToBeValidated, blockToTrack)
+
+	// make sure that the breadcrumbs of the proposed block are valid
+	// i.e. continuous with the other proposed blocks and no balance issues
+	err = st.validateBreadcrumbsOfTrackedBlocks(blocksToBeValidated, accountsProvider)
+	if err != nil {
+		log.Debug("selectionTracker.validateTrackedBlocksAndCompileBreadcrumbs: error validating tracked blocks", "err", err)
+		return err
+	}
+
+	return nil
+}
+
+// validateBreadcrumbsOfTrackedBlocks validates the breadcrumbs of each tracked block.
+// Firstly, it checks for nonce continuity.
+// Then, it checks that each account has enough balance.
+func (st *selectionTracker) validateBreadcrumbsOfTrackedBlocks(
+	chainOfTrackedBlocks []*trackedBlock,
+	accountsProvider common.AccountNonceAndBalanceProvider,
+) error {
+	validator := newBreadcrumbValidator()
+
+	for _, tb := range chainOfTrackedBlocks {
+		for address, breadcrumb := range tb.breadcrumbsByAddress {
+			initialNonce, initialBalance, _, err := accountsProvider.GetAccountNonceAndBalance([]byte(address))
+			if err != nil {
+				log.Debug("selectionTracker.validateBreadcrumbsOfTrackedBlocks",
+					"err", err,
+					"address", address,
+					"tracked block rootHash", tb.rootHash,
+					"tracked block hash", tb.hash,
+					"tracked block nonce", tb.nonce)
+				return err
+			}
+
+			if !validator.validateNonceContinuityOfBreadcrumb(address, initialNonce, breadcrumb) {
+				log.Debug("selectionTracker.validateBreadcrumbsOfTrackedBlocks",
+					"err", errDiscontinuousBreadcrumbs,
+					"address", address,
+					"tracked block rootHash", tb.rootHash,
+					"tracked block hash", tb.hash,
+					"tracked block nonce", tb.nonce)
+				return errDiscontinuousBreadcrumbs
+			}
+
+			// TODO re-brainstorm, validate with more integration tests
+			// use its balance to accumulate and validate (make sure is < than initialBalance from the session)
+			err = validator.validateBalance(address, initialBalance, breadcrumb)
+			if err != nil {
+				// exit at the first failure
+				log.Debug("selectionTracker.validateBreadcrumbsOfTrackedBlocks validation failed",
+					"err", err,
+					"address", address,
+					"tracked block rootHash", tb.rootHash,
+					"tracked block hash", tb.hash,
+					"tracked block nonce", tb.nonce)
+				return err
+			}
+		}
+	}
+
+	return nil
+}
+
+// addNewTrackedBlockNoLock adds a new tracked block into the map of tracked blocks,
+// replaces an existing block which has the same nonce with the one received.
+func (st *selectionTracker) addNewTrackedBlockNoLock(blockToBeAddedHash []byte, blockToBeAdded *trackedBlock) {
+	// search if in the tracked block we already have one with same nonce
+	for bHash, b := range st.blocks {
+		if b.sameNonce(blockToBeAdded) {
+			// delete that block and break because there should be maximum one tracked block with that nonce
+			delete(st.blocks, bHash)
+
+			log.Debug("selectionTracker.addNewTrackedBlockNoLock block with same nonce was deleted, to be replaced",
+				"nonce", blockToBeAdded.nonce,
+				"hash of replaced block", b.hash,
+				"hash of new block", blockToBeAddedHash,
+			)
+
+			break
+		}
+	}
+
+	// add the new block
+	st.blocks[string(blockToBeAddedHash)] = blockToBeAdded
+}
+
+// OnExecutedBlock notifies when a block is executed and updates the state of the selectionTracker
+func (st *selectionTracker) OnExecutedBlock(blockHeader data.HeaderHandler) error {
+	if check.IfNil(blockHeader) {
+		return errNilBlockHeader
+	}
+
+	nonce := blockHeader.GetNonce()
+	rootHash := blockHeader.GetRootHash()
+	prevHash := blockHeader.GetPrevHash()
+
+	log.Debug("selectionTracker.OnExecutedBlock",
+		"nonce", nonce,
+		"rootHash", rootHash,
+		"prevHash", prevHash,
+	)
+
+	tempTrackedBlock := newTrackedBlock(nonce, nil, rootHash, prevHash)
+
+	st.mutTracker.Lock()
+	defer st.mutTracker.Unlock()
+
+	st.removeFromTrackedBlocksNoLock(tempTrackedBlock)
+	st.updateLatestRootHashNoLock(nonce, rootHash)
+
+	return nil
+}
+
+func (st *selectionTracker) removeFromTrackedBlocksNoLock(searchedBlock *trackedBlock) {
+	removedBlocks := 0
+	for blockHash, b := range st.blocks {
+		if b.sameNonceOrBelow(searchedBlock) {
+			delete(st.blocks, blockHash)
+			removedBlocks++
+		}
+	}
+
+	log.Debug("selectionTracker.removeFromTrackedBlocksNoLock",
+		"searched block nonce", searchedBlock.nonce,
+		"searched block hash", searchedBlock.hash,
+		"searched block rootHash", searchedBlock.rootHash,
+		"searched block prevHash", searchedBlock.prevHash,
+		"removed blocks", removedBlocks,
+	)
+}
+
+func (st *selectionTracker) updateLatestRootHashNoLock(receivedNonce uint64, receivedRootHash []byte) {
+	log.Debug("selectionTracker.updateLatestRootHashNoLock",
+		"received root hash", receivedRootHash,
+		"received nonce", receivedNonce)
+
+	if st.latestRootHash == nil {
+		st.latestRootHash = receivedRootHash
+		st.latestNonce = receivedNonce
+		return
+	}
+
+	if receivedNonce > st.latestNonce {
+		st.latestRootHash = receivedRootHash
+		st.latestNonce = receivedNonce
+	}
+}
+
+func (st *selectionTracker) deriveVirtualSelectionSession(
+	session SelectionSession,
+	blockchainInfo common.BlockchainInfo,
+) (*virtualSelectionSession, error) {
+	rootHash, err := session.GetRootHash()
+	if err != nil {
+		log.Debug("selectionTracker.deriveVirtualSelectionSession",
+			"err", err)
+		return nil, err
+	}
+
+	latestExecutedBlockHash := blockchainInfo.GetLatestExecutedBlockHash()
+	latestCommittedBlockHash := blockchainInfo.GetLatestCommittedBlockHash()
+	currentNonce := blockchainInfo.GetCurrentNonce()
+
+	log.Debug("selectionTracker.deriveVirtualSelectionSession",
+		"rootHash", rootHash,
+		"latestExecutedBlockHash", latestExecutedBlockHash,
+		"latestCommitedBlockHash", latestCommittedBlockHash,
+		"currentNonce", currentNonce,
+	)
+
+	trackedBlocks, err := st.getChainOfTrackedPendingBlocks(
+		latestExecutedBlockHash,
+		latestCommittedBlockHash,
+		currentNonce,
+	)
+	if err != nil {
+		log.Debug("selectionTracker.deriveVirtualSelectionSession",
+			"err", err)
+		return nil, err
+	}
+
+	log.Debug("selectionTracker.deriveVirtualSelectionSession",
+		"len(trackedBlocks)", len(trackedBlocks))
+
+	displayTrackedBlocks(log, "trackedBlocks", trackedBlocks)
+
+	computer := newVirtualSessionComputer(session)
+	return computer.createVirtualSelectionSession(trackedBlocks)
+}
+
+// getChainOfTrackedPendingBlocks finds the chain of tracked blocks, iterating from tail to head,
+// following the previous hash of each block, in order to avoid fork scenarios.
+// The iteration stops when the previous hash of a block is equal to latestExecutedBlockHash.
+func (st *selectionTracker) getChainOfTrackedPendingBlocks(
+	latestExecutedBlockHash []byte,
+	previousHashToBeFound []byte,
+	nonceOfNextBlock uint64,
+) ([]*trackedBlock, error) {
+	chain := make([]*trackedBlock, 0)
+
+	// If the previous hash to be found is equal to the latest executed hash,
+	// it means that we do not have any tracked proposed block on top.
+	// The block found would be the actual executed block, but that one is not tracked anymore.
+	if bytes.Equal(latestExecutedBlockHash, previousHashToBeFound) {
+		return chain, nil
+	}
+
+	// search for the block with the hash equal to the previous hash.
+	// NOTE: we expect a nil value for a key (block hash) which is not in the map of tracked blocks.
+	previousBlock := st.blocks[string(previousHashToBeFound)]
+
+	for {
+		if nonceOfNextBlock == 0 {
+			// should never actually happen (e.g. genesis)
+			break
+		}
+
+		// if no block was found, it means there is a gap and we have to return an error
+		if previousBlock == nil {
+			return nil, errBlockNotFound
+		}
+
+		// extra check for a block gap, to assure there are no missing tracked blocks
+		hasDiscontinuousBlockNonce := previousBlock.nonce != nonceOfNextBlock-1
+		if hasDiscontinuousBlockNonce {
+			return nil, errDiscontinuousSequenceOfBlocks
+		}
+
+		// if the block passes the validation, add it to the returned chain
+		chain = append(chain, previousBlock)
+
+		// move backwards in the chain and check if the head was reached
+		previousBlockHash := previousBlock.prevHash
+		if bytes.Equal(latestExecutedBlockHash, previousBlockHash) {
+			break
+		}
+
+		// update also the nonce
+		nonceOfNextBlock -= 1
+
+		// find the previous block
+		previousBlock = st.blocks[string(previousBlockHash)]
+	}
+
+	// return the blocks in their natural order (from head to tail)
+	slices.Reverse(chain)
+	return chain, nil
+}
+
+func (st *selectionTracker) getVirtualNonceOfAccountWithRootHash(
+	address []byte,
+	blockchainInfo common.BlockchainInfo,
+) (uint64, []byte, error) {
+	latestCommittedBlockHash := blockchainInfo.GetLatestCommittedBlockHash()
+	if latestCommittedBlockHash == nil {
+		return 0, nil, errNilLatestCommittedBlockHash
+	}
+
+	latestCommittedBlock, ok := st.blocks[string(latestCommittedBlockHash)]
+	if !ok {
+		return 0, nil, errBlockNotFound
+	}
+
+	breadcrumb, ok := latestCommittedBlock.breadcrumbsByAddress[string(address)]
+	if !ok {
+		return 0, nil, errBreadcrumbNotFound
+	}
+
+	if !breadcrumb.lastNonce.HasValue {
+		return 0, nil, errLastNonceNotFound
+	}
+
+	return breadcrumb.lastNonce.Value + 1, latestCommittedBlock.rootHash, nil
+}

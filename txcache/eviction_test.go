@@ -12,6 +12,7 @@ import (
 
 // maxNumBytesPerSenderUpperBoundTest is used for setting the MaxNumBytesPerSenderUpperBoundTest from ConfigSourceMe in tests
 const maxNumBytesPerSenderUpperBoundTest = 33_554_432 // 32 MB
+const maxTrackedBlocks = 100
 
 func TestTxCache_DoEviction_BecauseOfCount(t *testing.T) {
 	config := ConfigSourceMe{
