@@ -221,6 +221,9 @@ func (sp *shardProcessor) checkInclusionEstimationForExecutionResults(header dat
 	}
 
 	lastResultData, err := process.CreateDataForInclusionEstimation(prevBlockLastExecutionResult)
+	if err != nil {
+		return err
+	}
 	executionResults := header.GetExecutionResultsHandlers()
 	allowed := sp.executionResultsInclusionEstimator.Decide(lastResultData, executionResults, header.GetTimeStamp())
 	if allowed != len(executionResults) {
