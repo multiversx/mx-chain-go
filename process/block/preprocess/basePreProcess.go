@@ -132,7 +132,7 @@ type basePreProcess struct {
 	txExecutionOrderHandler    common.TxExecutionOrderHandler
 }
 
-func CheckBasePreProcessArgs(args BasePreProcessorArgs) error {
+func checkBasePreProcessArgs(args BasePreProcessorArgs) error {
 	if check.IfNil(args.Hasher) {
 		return process.ErrNilHasher
 	}

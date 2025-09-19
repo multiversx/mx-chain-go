@@ -34,13 +34,10 @@ import (
 	debugFactory "github.com/multiversx/mx-chain-go/debug/factory"
 	"github.com/multiversx/mx-chain-go/outport"
 	"github.com/multiversx/mx-chain-go/process"
-	"github.com/multiversx/mx-chain-go/process/asyncExecution/executionTrack"
 	"github.com/multiversx/mx-chain-go/process/block/bootstrapStorage"
 	"github.com/multiversx/mx-chain-go/process/block/cutoff"
 	"github.com/multiversx/mx-chain-go/process/block/processedMb"
-	"github.com/multiversx/mx-chain-go/process/estimator"
 	"github.com/multiversx/mx-chain-go/process/headerCheck"
-	"github.com/multiversx/mx-chain-go/process/missingData"
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/state"
@@ -148,42 +145,6 @@ func NewBaseProcessor(arguments ArgBaseProcessor) (*baseProcessor, error) {
 		return nil, err
 	}
 
-	mbSelectionSession, err := NewMiniBlocksSelectionSession(
-		arguments.BootstrapComponents.ShardCoordinator().SelfId(),
-		arguments.CoreComponents.InternalMarshalizer(),
-		arguments.CoreComponents.Hasher(),
-	)
-	if err != nil {
-		return nil, err
-	}
-
-	executionResultsTracker := executionTrack.NewExecutionResultsTracker()
-	err = process.SetBaseExecutionResult(executionResultsTracker, arguments.DataComponents.Blockchain())
-	if err != nil {
-		return nil, err
-	}
-
-	execResultsVerifier, err := NewExecutionResultsVerifier(arguments.DataComponents.Blockchain(), executionResultsTracker)
-	if err != nil {
-		return nil, err
-	}
-
-	inclusionEstimator := estimator.NewExecutionResultInclusionEstimator(
-		arguments.Config.ExecutionResultInclusionEstimator,
-		arguments.CoreComponents.RoundHandler(),
-	)
-
-	missingDataArgs := missingData.ResolverArgs{
-		HeadersPool:        arguments.DataComponents.Datapool().Headers(),
-		ProofsPool:         arguments.DataComponents.Datapool().Proofs(),
-		RequestHandler:     arguments.RequestHandler,
-		BlockDataRequester: arguments.BlockDataRequester,
-	}
-	missingDataResolver, err := missingData.NewMissingDataResolver(missingDataArgs)
-	if err != nil {
-		return nil, err
-	}
-
 	genesisHdr := arguments.DataComponents.Blockchain().GetGenesisHeader()
 	if check.IfNil(genesisHdr) {
 		return nil, fmt.Errorf("%w for genesis header in DataComponents.Blockchain", process.ErrNilHeaderHandler)
@@ -239,11 +200,11 @@ func NewBaseProcessor(arguments ArgBaseProcessor) (*baseProcessor, error) {
 		proofsPool:                    arguments.DataComponents.Datapool().Proofs(),
 		hdrsForCurrBlock:              arguments.HeadersForBlock,
 
-		executionResultsTracker:            executionResultsTracker,
-		executionResultsInclusionEstimator: inclusionEstimator,
-		miniBlocksSelectionSession:         mbSelectionSession,
-		executionResultsVerifier:           execResultsVerifier,
-		missingDataResolver:                missingDataResolver,
+		executionResultsTracker:            arguments.ExecutionResultsTracker,
+		executionResultsInclusionEstimator: arguments.ExecutionResultsInclusionEstimator,
+		miniBlocksSelectionSession:         arguments.MiniBlocksSelectionSession,
+		executionResultsVerifier:           arguments.ExecutionResultsVerifier,
+		missingDataResolver:                arguments.MissingDataResolver,
 	}
 
 	return base, nil
@@ -745,8 +706,20 @@ func checkProcessorParameters(arguments ArgBaseProcessor) error {
 	if check.IfNil(arguments.DataComponents.Datapool().Headers()) {
 		return process.ErrNilHeadersDataPool
 	}
-	if check.IfNil(arguments.BlockDataRequester) {
-		return process.ErrNilBlockDataRequester
+	if check.IfNil(arguments.ExecutionResultsInclusionEstimator) {
+		return process.ErrNilExecutionResultsInclusionEstimator
+	}
+	if check.IfNil(arguments.ExecutionResultsTracker) {
+		return process.ErrNilExecutionResultsTracker
+	}
+	if check.IfNil(arguments.MiniBlocksSelectionSession) {
+		return process.ErrNilMiniBlocksSelectionSession
+	}
+	if check.IfNil(arguments.ExecutionResultsVerifier) {
+		return process.ErrNilExecutionResultsVerifier
+	}
+	if check.IfNil(arguments.MissingDataResolver) {
+		return process.ErrNilMissingDataResolver
 	}
 
 	return nil
@@ -967,7 +940,7 @@ func isPartiallyExecuted(
 	return processedMiniBlockInfo != nil && !processedMiniBlockInfo.FullyProcessed
 }
 
-// check if header has the same miniBlocks as presented in body
+// check if header has the same mini blocks as presented in body
 func (bp *baseProcessor) checkHeaderBodyCorrelationProposal(miniBlockHeaders []data.MiniBlockHeaderHandler, body *block.Body) error {
 	mbHashesFromHdr := make(map[string]data.MiniBlockHeaderHandler, len(miniBlockHeaders))
 	for i := 0; i < len(miniBlockHeaders); i++ {
@@ -1036,7 +1009,7 @@ func checkMiniBlockWithMiniBlockHeader(mbHash []byte, mbHdr data.MiniBlockHeader
 	return nil
 }
 
-// check if header has the same miniblocks as presented in body
+// check if header has the same mini blocks as presented in body
 func (bp *baseProcessor) checkHeaderBodyCorrelation(miniBlockHeaders []data.MiniBlockHeaderHandler, body *block.Body) error {
 	if len(miniBlockHeaders) != len(body.MiniBlocks) {
 		return process.ErrHeaderBodyMismatch

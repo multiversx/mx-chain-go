@@ -34,7 +34,7 @@ type rewardTxPreprocessor struct {
 
 // NewRewardTxPreprocessor creates a new reward transaction preprocessor object
 func NewRewardTxPreprocessor(args RewardsPreProcessorArgs) (*rewardTxPreprocessor, error) {
-	err := CheckBasePreProcessArgs(args.BasePreProcessorArgs)
+	err := checkBasePreProcessArgs(args.BasePreProcessorArgs)
 	if err != nil {
 		return nil, err
 	}

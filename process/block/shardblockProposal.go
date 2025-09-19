@@ -2,6 +2,7 @@ package block
 
 import (
 	"errors"
+	"fmt"
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
@@ -15,7 +16,7 @@ import (
 	"github.com/multiversx/mx-chain-go/process/block/processedMb"
 )
 
-// CreateBlockProposal - creates a block proposal without executing any of the transactions
+// CreateBlockProposal creates a block proposal without executing any of the transactions
 func (sp *shardProcessor) CreateBlockProposal(
 	initialHdr data.HeaderHandler,
 	haveTime func() bool,
@@ -98,8 +99,8 @@ func (sp *shardProcessor) CreateBlockProposal(
 	return shardHdr, body, nil
 }
 
-// VerifyProposedBlock verifies the proposed block. It returns nil if all ok or the specific error
-func (sp *shardProcessor) VerifyProposedBlock(
+// VerifyBlockProposal verifies the proposed block. It returns nil if all ok or the specific error
+func (sp *shardProcessor) VerifyBlockProposal(
 	headerHandler data.HeaderHandler,
 	bodyHandler data.BodyHandler,
 	haveTime func() time.Duration,
@@ -141,7 +142,6 @@ func (sp *shardProcessor) VerifyProposedBlock(
 
 	go getMetricsFromBlockBody(body, sp.marshalizer, sp.appStatusHandler)
 
-	// todo: need to change reserved field verification for Supernova
 	err = sp.checkHeaderBodyCorrelationProposal(header.GetMiniBlockHeaderHandlers(), body)
 	if err != nil {
 		return err
@@ -195,8 +195,7 @@ func (sp *shardProcessor) VerifyProposedBlock(
 		return err
 	}
 
-	// todo: headers for block isolation
-	err = sp.checkMetaHeadersValidityAndFinality()
+	err = sp.checkMetaHeadersValidityAndFinalityProposal(header)
 	if err != nil {
 		return err
 	}
@@ -273,11 +272,13 @@ func (sp *shardProcessor) addExecutionResultsOnHeader(shardHeader data.HeaderHan
 	numToInclude := sp.executionResultsInclusionEstimator.Decide(lastNotarizedExecutionResultInfo, pendingExecutionResults, shardHeader.GetTimeStamp())
 
 	executionResultsToInclude := pendingExecutionResults[:numToInclude]
+	lastExecutionResultForCurrentBlock = lastExecutionResultHandler
 	if len(executionResultsToInclude) > 0 {
 		lastExecutionResult := executionResultsToInclude[len(executionResultsToInclude)-1]
 		lastExecutionResultForCurrentBlock, err = process.CreateLastExecutionResultInfoFromExecutionResult(shardHeader.GetRound(), lastExecutionResult, sp.shardCoordinator.SelfId())
-	} else {
-		lastExecutionResultForCurrentBlock = lastExecutionResultHandler
+		if err != nil {
+			return err
+		}
 	}
 
 	err = shardHeader.SetLastExecutionResultHandler(lastExecutionResultForCurrentBlock)
@@ -391,15 +392,15 @@ func (sp *shardProcessor) selectIncomingMiniBlocks(
 		}
 
 		currentMetaBlockHash = orderedMetaBlocksHashes[i]
-		if len(currentMetaBlock.GetMiniBlockHeadersWithDst(sp.shardCoordinator.SelfId())) == 0 {
-			sp.miniBlocksSelectionSession.AddReferencedMetaBlock(orderedMetaBlocks[i], orderedMetaBlocksHashes[i])
-			continue
-		}
-
-		metaBlock, ok := currentMetaBlock.(*block.MetaBlock)
+		metaBlock, ok := currentMetaBlock.(data.MetaHeaderHandler)
 		if !ok {
 			log.Warn("selectIncomingMiniBlocks: wrong type assertion for meta block")
 			break
+		}
+
+		if len(currentMetaBlock.GetMiniBlockHeadersWithDst(sp.shardCoordinator.SelfId())) == 0 {
+			sp.miniBlocksSelectionSession.AddReferencedMetaBlock(orderedMetaBlocks[i], orderedMetaBlocksHashes[i])
+			continue
 		}
 
 		currProcessedMiniBlocksInfo := sp.processedMiniBlocksTracker.GetProcessedMiniBlocksInfo(currentMetaBlockHash)
@@ -422,7 +423,6 @@ func (sp *shardProcessor) createMbsCrossShardDstMe(
 	currentMetaBlock data.MetaHeaderHandler,
 	miniBlockProcessingInfo map[string]*processedMb.ProcessedMiniBlockInfo,
 ) (bool, error) {
-	// if miniBlock was partially executed before, we can continue processing it
 	currMiniBlocksAdded, currNumTxsAdded, hdrFinished, errCreate := sp.txCoordinator.CreateMbsCrossShardDstMe(
 		currentMetaBlock,
 		miniBlockProcessingInfo,
@@ -463,10 +463,7 @@ func (sp *shardProcessor) createProposalMiniBlocks(haveTime func() bool) error {
 	elapsedTime := time.Since(startTime)
 	log.Debug("elapsed time to create mbs to me", "time", elapsedTime)
 
-	outgoingTransactions, err := sp.selectOutgoingTransactions()
-	if err != nil {
-		return err
-	}
+	outgoingTransactions := sp.selectOutgoingTransactions()
 
 	err = sp.miniBlocksSelectionSession.CreateAndAddMiniBlockFromTransactions(outgoingTransactions)
 	if err != nil {
@@ -479,7 +476,7 @@ func (sp *shardProcessor) createProposalMiniBlocks(haveTime func() bool) error {
 	return nil
 }
 
-func (sp *shardProcessor) selectOutgoingTransactions() ([][]byte, error) {
+func (sp *shardProcessor) selectOutgoingTransactions() [][]byte {
 	log.Debug("selectOutgoingTransactions has been started")
 
 	sw := core.NewStopWatch()
@@ -493,5 +490,38 @@ func (sp *shardProcessor) selectOutgoingTransactions() ([][]byte, error) {
 	log.Debug("selectOutgoingTransactions has been finished",
 		"num txs", len(outgoingTransactions))
 
-	return outgoingTransactions, nil
+	return outgoingTransactions
+}
+
+func (sp *shardProcessor) checkMetaHeadersValidityAndFinalityProposal(header data.ShardHeaderHandler) error {
+	lastCrossNotarizedHeader, _, err := sp.blockTracker.GetLastCrossNotarizedHeader(core.MetachainShardId)
+	if err != nil {
+		return err
+	}
+	usedMetaHdrHashes := header.GetMetaBlockHashes()
+	usedMetaHeaders := make([]data.HeaderHandler, 0, len(usedMetaHdrHashes))
+	for _, metaHdrHash := range usedMetaHdrHashes {
+		metaHdr, errNotCritical := sp.dataPool.Headers().GetHeaderByHash(metaHdrHash)
+		if errNotCritical != nil {
+			return fmt.Errorf("%w : checkMetaHeadersValidityAndFinalityProposal -> getHeaderByHash", errNotCritical)
+		}
+		usedMetaHeaders = append(usedMetaHeaders, metaHdr)
+	}
+
+	process.SortHeadersByNonce(usedMetaHeaders)
+
+	for _, metaHeader := range usedMetaHeaders {
+		err = sp.headerValidator.IsHeaderConstructionValid(metaHeader, lastCrossNotarizedHeader)
+		if err != nil {
+			return fmt.Errorf("%w : checkMetaHeadersValidityAndFinalityProposal -> isHdrConstructionValid", err)
+		}
+
+		err = sp.checkHeaderHasProof(metaHeader)
+		if err != nil {
+			return fmt.Errorf("%w : checkMetaHeadersValidityAndFinalityProposal -> checkHeaderHasProof", err)
+		}
+		lastCrossNotarizedHeader = metaHeader
+	}
+
+	return nil
 }

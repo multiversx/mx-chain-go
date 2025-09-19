@@ -309,7 +309,6 @@ func testConsensusBLSWithFullProcessing(
 
 	expectedNonce := uint64(10)
 	var nodeEpoch uint32
-	var nodeReachedTargetEpochOrNext bool
 	for _, nodesList := range nodes {
 		for _, n := range nodesList {
 			for i := 1; i < len(nodes); i++ {
@@ -318,8 +317,7 @@ func testConsensusBLSWithFullProcessing(
 				} else {
 					assert.GreaterOrEqual(t, n.Node.GetDataComponents().Blockchain().GetCurrentBlockHeader().GetNonce(), expectedNonce)
 					nodeEpoch = n.Node.GetDataComponents().Blockchain().GetCurrentBlockHeader().GetEpoch()
-					nodeReachedTargetEpochOrNext = nodeEpoch == targetEpoch || nodeEpoch == targetEpoch+1
-					assert.True(t, nodeReachedTargetEpochOrNext)
+					assert.Equal(t, targetEpoch, nodeEpoch)
 				}
 			}
 		}

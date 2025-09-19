@@ -19,6 +19,7 @@ import (
 var _ process.DataMarshalizer = (*validatorInfoPreprocessor)(nil)
 var _ process.PreProcessor = (*validatorInfoPreprocessor)(nil)
 
+// ValidatorInfoPreProcessorArgs is the struct that groups all arguments needed for creating a validatorInfo preprocessor
 type ValidatorInfoPreProcessorArgs struct {
 	BasePreProcessorArgs
 }
@@ -37,7 +38,7 @@ type validatorInfoPreprocessor struct {
 func NewValidatorInfoPreprocessor(
 	args ValidatorInfoPreProcessorArgs,
 ) (*validatorInfoPreprocessor, error) {
-	err := CheckBasePreProcessArgs(args.BasePreProcessorArgs)
+	err := checkBasePreProcessArgs(args.BasePreProcessorArgs)
 	if err != nil {
 		return nil, err
 	}

@@ -23,6 +23,7 @@ func (r *RequestHandler) RequestMetaHeaderForEpoch(hash []byte, epoch uint32) {}
 // RequestMetaHeaderByNonce does nothing
 func (r *RequestHandler) RequestMetaHeaderByNonce(_ uint64) {}
 
+// RequestMetaHeaderByNonceForEpoch does nothing
 func (r *RequestHandler) RequestMetaHeaderByNonceForEpoch(nonce uint64, epoch uint32) {}
 
 // RequestShardHeaderByNonce does nothing
