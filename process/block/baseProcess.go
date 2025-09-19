@@ -968,7 +968,7 @@ func (bp *baseProcessor) checkHeaderBodyCorrelationProposal(miniBlockHeaders []d
 			return err
 		}
 
-		err = checkMiniBlockWithMiniBlockHeader(mbHash, miniBlockHeaders[i], miniBlock)
+		err = checkMiniBlockWithMiniBlockHeader(mbHash, mbHdr, miniBlock)
 		if err != nil {
 			return err
 		}
@@ -1031,7 +1031,7 @@ func (bp *baseProcessor) checkHeaderBodyCorrelation(miniBlockHeaders []data.Mini
 			return err
 		}
 
-		err = checkMiniBlockWithMiniBlockHeader(mbHash, miniBlockHeaders[i], miniBlock)
+		err = checkMiniBlockWithMiniBlockHeader(mbHash, mbHdr, miniBlock)
 		if err != nil {
 			return err
 		}
