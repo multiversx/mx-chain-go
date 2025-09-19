@@ -174,3 +174,14 @@ func (handler *enableRoundsHandler) GetActivationRound(flag common.EnableRoundFl
 func (handler *enableRoundsHandler) IsInterfaceNil() bool {
 	return handler == nil
 }
+
+// SetActivationRound sets the activation round of the provided flag
+func (handler *enableRoundsHandler) SetActivationRound(flag common.EnableRoundFlag, round uint64) {
+	handler.allFlagsDefined[flag] = roundFlagHandler{
+		isActiveInRound: func(r uint64) bool {
+			return r >= round
+		},
+		activationRound: round,
+	}
+	log.Debug("SetActivationRound", "flag", flag, "round", round)
+}
