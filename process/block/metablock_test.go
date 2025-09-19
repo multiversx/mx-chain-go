@@ -172,7 +172,6 @@ func createMockMetaArguments(
 			SafetyMargin:       110,
 			MaxResultsPerBlock: 20,
 		},
-		0,
 		coreComponents.RoundHandler(),
 	)
 

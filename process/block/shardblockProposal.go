@@ -269,7 +269,7 @@ func (sp *shardProcessor) addExecutionResultsOnHeader(shardHeader data.HeaderHan
 	}
 
 	var lastExecutionResultForCurrentBlock data.LastExecutionResultHandler
-	numToInclude := sp.executionResultsInclusionEstimator.Decide(lastNotarizedExecutionResultInfo, pendingExecutionResults, shardHeader.GetTimeStamp())
+	numToInclude := sp.executionResultsInclusionEstimator.Decide(lastNotarizedExecutionResultInfo, pendingExecutionResults, shardHeader.GetRound())
 
 	executionResultsToInclude := pendingExecutionResults[:numToInclude]
 	lastExecutionResultForCurrentBlock = lastExecutionResultHandler
