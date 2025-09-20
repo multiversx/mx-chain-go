@@ -376,6 +376,10 @@ func (sp *shardProcessor) CreateAndProcessMiniBlocksDstMe(
 	haveTime func() bool,
 ) (block.MiniBlockSlice, uint32, uint32, error) {
 	createAndProcessInfo, err := sp.createAndProcessMiniBlocksDstMe(haveTime)
+	if err != nil {
+		return nil, 0, 0, err
+	}
+
 	return createAndProcessInfo.miniBlocks, createAndProcessInfo.numHdrsAdded, createAndProcessInfo.numTxsAdded, err
 }
 
@@ -680,4 +684,25 @@ func (bp *baseProcessor) ComputeOwnShardStuckIfNeeded(header data.HeaderHandler)
 // SetMiniBlockSelectionSession -
 func (bp *baseProcessor) SetMiniBlockSelectionSession(session MiniBlocksSelectionSession) {
 	bp.miniBlocksSelectionSession = session
+}
+
+// CheckHeaderBodyCorrelationProposal -
+func (bp *baseProcessor) CheckHeaderBodyCorrelationProposal(miniBlockHeaders []data.MiniBlockHeaderHandler, body *block.Body) error {
+	return bp.checkHeaderBodyCorrelationProposal(miniBlockHeaders, body)
+}
+
+// VerifyCrossShardMiniBlockDstMe -
+func (sp *shardProcessor) VerifyCrossShardMiniBlockDstMe(header data.ShardHeaderHandler) error {
+	return sp.verifyCrossShardMiniBlockDstMe(header)
+}
+
+// AddCrossShardMiniBlocksDstMeToMap -
+func (sp *shardProcessor) AddCrossShardMiniBlocksDstMeToMap(
+	header data.ShardHeaderHandler,
+	referencedMetaBlockHash []byte,
+	referencedMetaHeaderHandler data.HeaderHandler,
+	lastCrossNotarizedHeader data.HeaderHandler,
+	miniBlockMetaHashes map[string][]byte,
+) error {
+	return sp.addCrossShardMiniBlocksDstMeToMap(header, referencedMetaBlockHash, referencedMetaHeaderHandler, lastCrossNotarizedHeader, miniBlockMetaHashes)
 }

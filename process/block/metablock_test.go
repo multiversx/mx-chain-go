@@ -5,6 +5,7 @@ import (
 	"errors"
 	"math/big"
 	"reflect"
+	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -677,6 +678,34 @@ func TestMetaProcessor_CheckHeaderBodyCorrelationShouldPass(t *testing.T) {
 
 	err := mp.CheckHeaderBodyCorrelation(hdr, body)
 	assert.Nil(t, err)
+}
+
+func TestMetaProcessor_CheckHeaderBodyCorrelationWrongProcessingIndexes(t *testing.T) {
+	t.Parallel()
+
+	hdr, body := createOneHeaderOneBody()
+	arguments := createMockMetaArguments(createMockComponentHolders())
+	mp, _ := blproc.NewMetaProcessor(arguments)
+
+	_ = hdr.MiniBlockHeaders[0].SetIndexOfFirstTxProcessed(0)
+	_ = hdr.MiniBlockHeaders[0].SetIndexOfLastTxProcessed(-1)
+
+	err := mp.CheckHeaderBodyCorrelation(hdr, body)
+	require.NotNil(t, err)
+	require.True(t, strings.Contains(err.Error(), "index is out of bound"))
+}
+
+func TestMetaProcessor_CheckHeaderBodyCorrelationWrongConstructionState(t *testing.T) {
+	t.Parallel()
+
+	hdr, body := createOneHeaderOneBody()
+	arguments := createMockMetaArguments(createMockComponentHolders())
+	mp, _ := blproc.NewMetaProcessor(arguments)
+
+	_ = hdr.MiniBlockHeaders[0].SetConstructionState(int32(block.PartialExecuted))
+
+	err := mp.CheckHeaderBodyCorrelation(hdr, body)
+	require.NotNil(t, err)
 }
 
 func TestMetaProcessor_CheckHeaderBodyCorrelationNilMiniBlock(t *testing.T) {

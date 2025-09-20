@@ -1772,7 +1772,7 @@ func (sp *shardProcessor) addCrossShardMiniBlocksDstMeToMap(
 	lastCrossNotarizedHeader data.HeaderHandler,
 	miniBlockMetaHashes map[string][]byte,
 ) error {
-	metaBlock, ok := referencedMetaHeaderHandler.(*block.MetaBlock)
+	metaBlock, ok := referencedMetaHeaderHandler.(data.MetaHeaderHandler)
 	if !ok {
 		return process.ErrWrongTypeAssertion
 	}
