@@ -61,9 +61,7 @@ func createMockArguments() ArgNodeFacade {
 				},
 			},
 		}},
-		AccountsStateAPI: &stateMock.AccountsStub{},
-		AccountsState:    &stateMock.AccountsStub{},
-		PeerState:        &stateMock.AccountsStub{},
+		AccountsState: &stateMock.AccountsStub{},
 		Blockchain: &testscommon.ChainHandlerStub{
 			GetCurrentBlockHeaderCalled: func() coreData.HeaderHandler {
 				return &block.Header{}
@@ -162,27 +160,6 @@ func TestNewNodeFacade(t *testing.T) {
 
 		require.Nil(t, nf)
 		require.Equal(t, ErrNilAccountState, err)
-	})
-	t.Run("nil AccountsStateAPI should error", func(t *testing.T) {
-		t.Parallel()
-
-		arg := createMockArguments()
-		arg.WsAntifloodConfig.WebServerAntifloodEnabled = true // coverage
-		arg.AccountsStateAPI = nil
-		nf, err := NewNodeFacade(arg)
-
-		require.Nil(t, nf)
-		require.Equal(t, ErrNilAccountStateAPI, err)
-	})
-	t.Run("nil PeerState should error", func(t *testing.T) {
-		t.Parallel()
-
-		arg := createMockArguments()
-		arg.PeerState = nil
-		nf, err := NewNodeFacade(arg)
-
-		require.Nil(t, nf)
-		require.Equal(t, ErrNilPeerState, err)
 	})
 	t.Run("nil Blockchain should error", func(t *testing.T) {
 		t.Parallel()
@@ -2099,7 +2076,7 @@ func TestNodeFacade_GetSelectedTransactions(t *testing.T) {
 		t.Parallel()
 
 		arg := createMockArguments()
-		arg.AccountsStateAPI = &stateMock.AccountsStub{
+		arg.AccountsState = &stateMock.AccountsStub{
 			RecreateTrieCalled: func(options common.RootHashHolder) error {
 				return nil
 			},
@@ -2121,7 +2098,7 @@ func TestNodeFacade_GetSelectedTransactions(t *testing.T) {
 		t.Parallel()
 
 		arg := createMockArguments()
-		arg.AccountsStateAPI = &stateMock.AccountsStub{
+		arg.AccountsState = &stateMock.AccountsStub{
 			RecreateTrieCalled: func(options common.RootHashHolder) error {
 				return nil
 			},
@@ -2163,7 +2140,7 @@ func TestNodeFacade_GetVirtualNonce(t *testing.T) {
 		t.Parallel()
 
 		arg := createMockArguments()
-		arg.AccountsStateAPI = &stateMock.AccountsStub{
+		arg.AccountsState = &stateMock.AccountsStub{
 			RecreateTrieCalled: func(options common.RootHashHolder) error {
 				return nil
 			},
@@ -2190,7 +2167,7 @@ func TestNodeFacade_GetVirtualNonce(t *testing.T) {
 		t.Parallel()
 
 		arg := createMockArguments()
-		arg.AccountsStateAPI = &stateMock.AccountsStub{
+		arg.AccountsState = &stateMock.AccountsStub{
 			RecreateTrieCalled: func(options common.RootHashHolder) error {
 				return nil
 			},
