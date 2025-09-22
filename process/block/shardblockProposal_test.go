@@ -1,7 +1,10 @@
 package block_test
 
 import (
+	"errors"
+	"sync"
 	"testing"
+	"time"
 
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
@@ -742,6 +745,300 @@ func TestShardProcessor_SelectIncomingMiniBlocks(t *testing.T) {
 		err = sp.SelectIncomingMiniBlocks(providedLastCrossNotarizedMetaHdr, orderedMetaBlocks, orderedMetaBlocksHashes, haveTimeTrue)
 		require.NoError(t, err)
 		require.Equal(t, 2, cntAddReferencedMetaBlockCalled) // should be called twice, the third hdr returns shouldContinue false
+	})
+}
+
+func TestShardProcessor_VerifyBlockProposal(t *testing.T) {
+	t.Parallel()
+
+	t.Run("nil header should error", func(t *testing.T) {
+		arguments := CreateMockArguments(createComponentHolderMocks())
+		arguments.MiniBlocksSelectionSession = &mbSelection.MiniBlockSelectionSessionStub{}
+		sp, err := blproc.NewShardProcessor(arguments)
+		require.Nil(t, err)
+
+		body := &block.Body{}
+		err = sp.VerifyBlockProposal(nil, body, func() time.Duration { return time.Second })
+		require.Equal(t, process.ErrNilBlockHeader, err)
+	})
+
+	t.Run("block hash does not mach should request prev header hash", func(t *testing.T) {
+		coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
+
+		currentBlockHeader := &block.Header{}
+		_ = dataComponents.BlockChain.SetCurrentBlockHeaderAndRootHash(currentBlockHeader, []byte("root"))
+		dataComponents.BlockChain.SetCurrentBlockHeaderHash([]byte("wrong"))
+
+		called := false
+		wg := &sync.WaitGroup{}
+		wg.Add(1)
+		arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+		arguments.RequestHandler = &testscommon.RequestHandlerStub{
+			RequestShardHeaderForEpochCalled: func(shardID uint32, hash []byte, epoch uint32) {
+				called = true
+				require.Equal(t, "prevHash", string(hash))
+				wg.Done()
+			},
+		}
+		arguments.MiniBlocksSelectionSession = &mbSelection.MiniBlockSelectionSessionStub{}
+		sp, err := blproc.NewShardProcessor(arguments)
+		require.Nil(t, err)
+
+		body := &block.Body{}
+		header := &block.Header{
+			Nonce:    1,
+			Round:    2,
+			Epoch:    1,
+			PrevHash: []byte("prevHash"),
+		}
+		err = sp.VerifyBlockProposal(header, body, func() time.Duration { return time.Second })
+		require.Equal(t, process.ErrBlockHashDoesNotMatch, err)
+
+		wg.Wait()
+		require.True(t, called)
+	})
+
+	t.Run("wrong header type should error", func(t *testing.T) {
+		arguments := CreateMockArguments(createComponentHolderMocks())
+		arguments.MiniBlocksSelectionSession = &mbSelection.MiniBlockSelectionSessionStub{}
+		sp, err := blproc.NewShardProcessor(arguments)
+		require.Nil(t, err)
+
+		body := &block.Body{}
+		header := &block.MetaBlock{
+			Nonce: 1,
+		}
+		err = sp.VerifyBlockProposal(header, body, func() time.Duration { return time.Second })
+		require.Equal(t, process.ErrWrongTypeAssertion, err)
+	})
+
+	t.Run("wrong header version should error", func(t *testing.T) {
+		arguments := CreateMockArguments(createComponentHolderMocks())
+		arguments.MiniBlocksSelectionSession = &mbSelection.MiniBlockSelectionSessionStub{}
+		sp, err := blproc.NewShardProcessor(arguments)
+		require.Nil(t, err)
+
+		body := &block.Body{}
+		header := &block.Header{
+			Nonce: 1,
+		}
+		err = sp.VerifyBlockProposal(header, body, func() time.Duration { return time.Second })
+		require.Equal(t, process.ErrInvalidHeader, err)
+	})
+
+	t.Run("wrong body should error", func(t *testing.T) {
+		arguments := CreateMockArguments(createComponentHolderMocks())
+		arguments.MiniBlocksSelectionSession = &mbSelection.MiniBlockSelectionSessionStub{}
+		sp, err := blproc.NewShardProcessor(arguments)
+		require.Nil(t, err)
+
+		body := &wrongBody{}
+		header := &block.HeaderV3{
+			Nonce: 1,
+		}
+		err = sp.VerifyBlockProposal(header, body, func() time.Duration { return time.Second })
+		require.Equal(t, process.ErrWrongTypeAssertion, err)
+	})
+	t.Run("different mbs header from body vs from header should error", func(t *testing.T) {
+		arguments := CreateMockArguments(createComponentHolderMocks())
+		arguments.MiniBlocksSelectionSession = &mbSelection.MiniBlockSelectionSessionStub{}
+		sp, err := blproc.NewShardProcessor(arguments)
+		require.Nil(t, err)
+
+		body := &block.Body{
+			MiniBlocks: []*block.MiniBlock{nil},
+		}
+
+		header := &block.HeaderV3{
+			Nonce: 1,
+			MiniBlockHeaders: []block.MiniBlockHeader{
+				{},
+			},
+		}
+		err = sp.VerifyBlockProposal(header, body, func() time.Duration { return time.Second })
+		require.Equal(t, process.ErrNilMiniBlock, err)
+	})
+
+	t.Run("header execution results verification fails should error", func(t *testing.T) {
+		arguments := CreateMockArguments(createComponentHolderMocks())
+		localErr := errors.New("local error")
+		arguments.ExecutionResultsVerifier = &processMocks.ExecutionResultsVerifierMock{
+			VerifyHeaderExecutionResultsCalled: func(header data.HeaderHandler) error {
+				return localErr
+			},
+		}
+		sp, err := blproc.NewShardProcessor(arguments)
+		require.Nil(t, err)
+
+		body := &block.Body{}
+
+		header := &block.HeaderV3{
+			Nonce:            1,
+			MiniBlockHeaders: []block.MiniBlockHeader{},
+		}
+		err = sp.VerifyBlockProposal(header, body, func() time.Duration { return time.Second })
+		require.Equal(t, localErr, err)
+	})
+
+	t.Run("check inclusion estimation fails should error", func(t *testing.T) {
+		coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
+		currentBlockHeader := &block.HeaderV2{
+			Header: &block.Header{},
+		}
+		_ = dataComponents.BlockChain.SetCurrentBlockHeaderAndRootHash(currentBlockHeader, []byte("root"))
+		dataComponents.BlockChain.SetCurrentBlockHeaderHash([]byte("hash"))
+		arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+		arguments.ExecutionResultsVerifier = &processMocks.ExecutionResultsVerifierMock{
+			VerifyHeaderExecutionResultsCalled: func(header data.HeaderHandler) error {
+				return nil
+			},
+		}
+		arguments.ExecutionResultsInclusionEstimator = &processMocks.InclusionEstimatorMock{
+			DecideCalled: func(lastNotarised *estimator.LastExecutionResultForInclusion, pending []data.BaseExecutionResultHandler, currentHdrTsMs uint64) (allowed int) {
+				return 10
+			},
+		}
+		sp, err := blproc.NewShardProcessor(arguments)
+		require.Nil(t, err)
+
+		body := &block.Body{}
+
+		header := &block.HeaderV3{
+			PrevHash:         []byte("hash"),
+			Nonce:            1,
+			Round:            2,
+			MiniBlockHeaders: []block.MiniBlockHeader{},
+		}
+		err = sp.VerifyBlockProposal(header, body, func() time.Duration { return time.Second })
+		require.Equal(t, process.ErrInvalidNumberOfExecutionResultsInHeader, err)
+	})
+
+	t.Run("request missing meta headers fails should error", func(t *testing.T) {
+		coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
+		currentBlockHeader := &block.HeaderV2{
+			Header: &block.Header{},
+		}
+		_ = dataComponents.BlockChain.SetCurrentBlockHeaderAndRootHash(currentBlockHeader, []byte("root"))
+		dataComponents.BlockChain.SetCurrentBlockHeaderHash([]byte("hash"))
+		arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+		arguments.ExecutionResultsVerifier = &processMocks.ExecutionResultsVerifierMock{
+			VerifyHeaderExecutionResultsCalled: func(header data.HeaderHandler) error {
+				return nil
+			},
+		}
+		arguments.ExecutionResultsInclusionEstimator = &processMocks.InclusionEstimatorMock{
+			DecideCalled: func(lastNotarised *estimator.LastExecutionResultForInclusion, pending []data.BaseExecutionResultHandler, currentHdrTsMs uint64) (allowed int) {
+				return 0
+			},
+		}
+
+		localErr := errors.New("local error")
+		arguments.MissingDataResolver = &processMocks.MissingDataResolverMock{
+			RequestMissingMetaHeadersCalled: func(shardHeader data.ShardHeaderHandler) error {
+				return localErr
+			},
+		}
+
+		sp, err := blproc.NewShardProcessor(arguments)
+		require.Nil(t, err)
+
+		body := &block.Body{}
+
+		header := &block.HeaderV3{
+			PrevHash:         []byte("hash"),
+			Nonce:            1,
+			Round:            2,
+			MiniBlockHeaders: []block.MiniBlockHeader{},
+		}
+		err = sp.VerifyBlockProposal(header, body, func() time.Duration { return time.Second })
+		require.Equal(t, localErr, err)
+	})
+
+	t.Run("wait for missing data fails should error", func(t *testing.T) {
+		coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
+		currentBlockHeader := &block.HeaderV2{
+			Header: &block.Header{},
+		}
+		_ = dataComponents.BlockChain.SetCurrentBlockHeaderAndRootHash(currentBlockHeader, []byte("root"))
+		dataComponents.BlockChain.SetCurrentBlockHeaderHash([]byte("hash"))
+		arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+		arguments.ExecutionResultsVerifier = &processMocks.ExecutionResultsVerifierMock{
+			VerifyHeaderExecutionResultsCalled: func(header data.HeaderHandler) error {
+				return nil
+			},
+		}
+		arguments.ExecutionResultsInclusionEstimator = &processMocks.InclusionEstimatorMock{
+			DecideCalled: func(lastNotarised *estimator.LastExecutionResultForInclusion, pending []data.BaseExecutionResultHandler, currentHdrTsMs uint64) (allowed int) {
+				return 0
+			},
+		}
+
+		localErr := errors.New("local error")
+		arguments.MissingDataResolver = &processMocks.MissingDataResolverMock{
+			RequestMissingMetaHeadersCalled: func(shardHeader data.ShardHeaderHandler) error {
+				return nil
+			},
+			WaitForMissingDataCalled: func(timeout time.Duration) error {
+				return localErr
+			},
+		}
+
+		sp, err := blproc.NewShardProcessor(arguments)
+		require.Nil(t, err)
+
+		body := &block.Body{}
+
+		header := &block.HeaderV3{
+			PrevHash:         []byte("hash"),
+			Nonce:            1,
+			Round:            2,
+			MiniBlockHeaders: []block.MiniBlockHeader{},
+		}
+		err = sp.VerifyBlockProposal(header, body, func() time.Duration { return time.Second })
+		require.Equal(t, localErr, err)
+	})
+
+	t.Run("should work", func(t *testing.T) {
+		coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
+		currentBlockHeader := &block.HeaderV2{
+			Header: &block.Header{},
+		}
+		_ = dataComponents.BlockChain.SetCurrentBlockHeaderAndRootHash(currentBlockHeader, []byte("root"))
+		dataComponents.BlockChain.SetCurrentBlockHeaderHash([]byte("hash"))
+		arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+		arguments.ExecutionResultsVerifier = &processMocks.ExecutionResultsVerifierMock{
+			VerifyHeaderExecutionResultsCalled: func(header data.HeaderHandler) error {
+				return nil
+			},
+		}
+		arguments.ExecutionResultsInclusionEstimator = &processMocks.InclusionEstimatorMock{
+			DecideCalled: func(lastNotarised *estimator.LastExecutionResultForInclusion, pending []data.BaseExecutionResultHandler, currentHdrTsMs uint64) (allowed int) {
+				return 0
+			},
+		}
+
+		arguments.MissingDataResolver = &processMocks.MissingDataResolverMock{
+			RequestMissingMetaHeadersCalled: func(shardHeader data.ShardHeaderHandler) error {
+				return nil
+			},
+			WaitForMissingDataCalled: func(timeout time.Duration) error {
+				return nil
+			},
+		}
+
+		sp, err := blproc.NewShardProcessor(arguments)
+		require.Nil(t, err)
+
+		body := &block.Body{}
+
+		header := &block.HeaderV3{
+			PrevHash:         []byte("hash"),
+			Nonce:            1,
+			Round:            2,
+			MiniBlockHeaders: []block.MiniBlockHeader{},
+		}
+		err = sp.VerifyBlockProposal(header, body, func() time.Duration { return time.Second })
+		require.Equal(t, nil, err)
 	})
 }
 
