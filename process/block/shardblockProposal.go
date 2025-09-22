@@ -16,6 +16,9 @@ import (
 	"github.com/multiversx/mx-chain-go/process/block/processedMb"
 )
 
+// TODO: maybe move this to config
+const maxBlockProcessingTime = 3 * time.Second
+
 // CreateBlockProposal creates a block proposal without executing any of the transactions
 func (sp *shardProcessor) CreateBlockProposal(
 	initialHdr data.HeaderHandler,
@@ -214,11 +217,78 @@ func (sp *shardProcessor) VerifyBlockProposal(
 	return nil
 }
 
+func getHaveTimeForProposal(startTime time.Time, maxDuration time.Duration) func() time.Duration {
+	timeOut := startTime.Add(maxDuration)
+	haveTime := func() time.Duration {
+		return time.Until(timeOut)
+	}
+	return haveTime
+}
+
 // ProcessBlockProposal processes the proposed block. It returns nil if all ok or the specific error
 func (sp *shardProcessor) ProcessBlockProposal(
 	headerHandler data.HeaderHandler,
 	bodyHandler data.BodyHandler,
 ) (data.BaseExecutionResultHandler, error) {
+	if check.IfNil(headerHandler) {
+		return nil, process.ErrNilBlockHeader
+	}
+	if check.IfNil(bodyHandler) {
+		return nil, process.ErrNilBlockBody
+	}
+	if !headerHandler.IsHeaderV3() {
+		return nil, process.ErrInvalidHeader
+	}
+
+	sp.processStatusHandler.SetBusy("shardProcessor.ProcessBlock")
+	defer sp.processStatusHandler.SetIdle()
+
+	sp.roundNotifier.CheckRound(headerHandler)
+	sp.epochNotifier.CheckEpoch(headerHandler)
+	sp.requestHandler.SetEpoch(headerHandler.GetEpoch())
+
+	log.Debug("started processing block",
+		"epoch", headerHandler.GetEpoch(),
+		"shard", headerHandler.GetShardID(),
+		"round", headerHandler.GetRound(),
+		"nonce", headerHandler.GetNonce(),
+	)
+
+	header, ok := headerHandler.(data.ShardHeaderHandler)
+	if !ok {
+		return nil, process.ErrWrongTypeAssertion
+	}
+
+	body, ok := bodyHandler.(*block.Body)
+	if !ok {
+		return nil, process.ErrWrongTypeAssertion
+	}
+
+	// this is used now to reset the context for processing not creation of blocks
+	err := sp.createBlockStarted()
+	if err != nil {
+		return nil, err
+	}
+
+	// should already be available in the pools since it passed the block proposal verification,
+	// but kept here to update the internal caches (txsForBlock, hdrsForCurrBlock)
+	sp.txCoordinator.RequestBlockTransactions(body)
+	sp.hdrsForCurrBlock.RequestMetaHeaders(header)
+
+	// although we can have a long time for processing, it being decoupled from consensus,
+	// we still give some reasonable timeout
+	haveTime := getHaveTimeForProposal(time.Now(), maxBlockProcessingTime)
+
+	err = sp.txCoordinator.IsDataPreparedForProcessing(haveTime)
+	if err != nil {
+		return nil, err
+	}
+
+	err = sp.hdrsForCurrBlock.WaitForHeadersIfNeeded(haveTime)
+	if err != nil {
+		return nil, err
+	}
+
 	return nil, nil
 }
 
