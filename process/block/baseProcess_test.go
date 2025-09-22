@@ -2376,10 +2376,9 @@ func TestBaseProcessor_ProcessScheduledBlockShouldFail(t *testing.T) {
 			busyIdleCalled = append(busyIdleCalled, busyIdentifier)
 		}
 
-		localErr := errors.New("execute all err")
 		scheduledTxsExec := &testscommon.ScheduledTxsExecutionStub{
 			ExecuteAllCalled: func(func() time.Duration) error {
-				return localErr
+				return expectedError
 			},
 		}
 
@@ -2390,7 +2389,7 @@ func TestBaseProcessor_ProcessScheduledBlockShouldFail(t *testing.T) {
 			&block.MetaBlock{}, &block.Body{}, haveTime,
 		)
 
-		assert.Equal(t, localErr, err)
+		assert.Equal(t, expectedError, err)
 		assert.Equal(t, []string{busyIdentifier, idleIdentifier}, busyIdleCalled)
 	})
 	t.Run("get root hash fail", func(t *testing.T) {
@@ -2407,10 +2406,9 @@ func TestBaseProcessor_ProcessScheduledBlockShouldFail(t *testing.T) {
 			busyIdleCalled = append(busyIdleCalled, busyIdentifier)
 		}
 
-		localErr := errors.New("root hash err")
 		accounts := &stateMock.AccountsStub{
 			RootHashCalled: func() ([]byte, error) {
-				return nil, localErr
+				return nil, expectedError
 			},
 		}
 		arguments.AccountsDB[state.UserAccountsState] = accounts
@@ -2421,7 +2419,7 @@ func TestBaseProcessor_ProcessScheduledBlockShouldFail(t *testing.T) {
 			&block.MetaBlock{}, &block.Body{}, haveTime,
 		)
 
-		assert.Equal(t, localErr, err)
+		assert.Equal(t, expectedError, err)
 		assert.Equal(t, []string{busyIdentifier, idleIdentifier}, busyIdleCalled)
 	})
 }

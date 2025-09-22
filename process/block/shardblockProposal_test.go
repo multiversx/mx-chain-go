@@ -1,7 +1,6 @@
 package block_test
 
 import (
-	"errors"
 	"sync"
 	"testing"
 	"time"
@@ -752,8 +751,6 @@ func TestShardProcessor_SelectIncomingMiniBlocks(t *testing.T) {
 func TestShardProcessor_VerifyBlockProposal(t *testing.T) {
 	t.Parallel()
 
-	localErr := errors.New("local error")
-
 	t.Run("nil header should error", func(t *testing.T) {
 		t.Parallel()
 
@@ -874,7 +871,7 @@ func TestShardProcessor_VerifyBlockProposal(t *testing.T) {
 		arguments := CreateMockArguments(createComponentHolderMocks())
 		arguments.ExecutionResultsVerifier = &processMocks.ExecutionResultsVerifierMock{
 			VerifyHeaderExecutionResultsCalled: func(header data.HeaderHandler) error {
-				return localErr
+				return expectedError
 			},
 		}
 		sp, err := blproc.NewShardProcessor(arguments)
@@ -887,7 +884,7 @@ func TestShardProcessor_VerifyBlockProposal(t *testing.T) {
 			MiniBlockHeaders: []block.MiniBlockHeader{},
 		}
 		err = sp.VerifyBlockProposal(header, body, haveTime)
-		require.Equal(t, localErr, err)
+		require.Equal(t, expectedError, err)
 	})
 
 	t.Run("check inclusion estimation fails should error", func(t *testing.T) {
@@ -948,7 +945,7 @@ func TestShardProcessor_VerifyBlockProposal(t *testing.T) {
 
 		arguments.MissingDataResolver = &processMocks.MissingDataResolverMock{
 			RequestMissingMetaHeadersCalled: func(shardHeader data.ShardHeaderHandler) error {
-				return localErr
+				return expectedError
 			},
 		}
 
@@ -964,7 +961,7 @@ func TestShardProcessor_VerifyBlockProposal(t *testing.T) {
 			MiniBlockHeaders: []block.MiniBlockHeader{},
 		}
 		err = sp.VerifyBlockProposal(header, body, haveTime)
-		require.Equal(t, localErr, err)
+		require.Equal(t, expectedError, err)
 	})
 
 	t.Run("wait for missing data fails should error", func(t *testing.T) {
@@ -993,7 +990,7 @@ func TestShardProcessor_VerifyBlockProposal(t *testing.T) {
 				return nil
 			},
 			WaitForMissingDataCalled: func(timeout time.Duration) error {
-				return localErr
+				return expectedError
 			},
 		}
 
@@ -1009,7 +1006,7 @@ func TestShardProcessor_VerifyBlockProposal(t *testing.T) {
 			MiniBlockHeaders: []block.MiniBlockHeader{},
 		}
 		err = sp.VerifyBlockProposal(header, body, haveTime)
-		require.Equal(t, localErr, err)
+		require.Equal(t, expectedError, err)
 	})
 
 	t.Run("should work", func(t *testing.T) {
@@ -1109,8 +1106,6 @@ func TestShardProcessor_CheckInclusionEstimationForExecutionResults(t *testing.T
 func TestShardProcessor_CheckMetaHeadersValidityAndFinalityProposal(t *testing.T) {
 	t.Parallel()
 
-	localErr := errors.New("local error")
-
 	t.Run("cannot get last notarized header should err", func(t *testing.T) {
 		t.Parallel()
 
@@ -1119,7 +1114,7 @@ func TestShardProcessor_CheckMetaHeadersValidityAndFinalityProposal(t *testing.T
 
 		arguments.BlockTracker = &mock.BlockTrackerMock{
 			GetLastCrossNotarizedHeaderCalled: func(shardID uint32) (data.HeaderHandler, []byte, error) {
-				return nil, nil, localErr
+				return nil, nil, expectedError
 			},
 		}
 
@@ -1127,7 +1122,7 @@ func TestShardProcessor_CheckMetaHeadersValidityAndFinalityProposal(t *testing.T
 
 		header := &block.HeaderV3{}
 		err := sp.CheckMetaHeadersValidityAndFinalityProposal(header)
-		require.Equal(t, localErr, err)
+		require.Equal(t, expectedError, err)
 	})
 
 	t.Run("cannot find used meta header should error", func(t *testing.T) {
@@ -1167,7 +1162,7 @@ func TestShardProcessor_CheckMetaHeadersValidityAndFinalityProposal(t *testing.T
 		}
 		arguments.HeaderValidator = &processMocks.HeaderValidatorMock{
 			IsHeaderConstructionValidCalled: func(currHdr, prevHdr data.HeaderHandler) error {
-				return localErr
+				return expectedError
 			},
 		}
 
@@ -1189,7 +1184,7 @@ func TestShardProcessor_CheckMetaHeadersValidityAndFinalityProposal(t *testing.T
 		}
 		err := sp.CheckMetaHeadersValidityAndFinalityProposal(header)
 		require.NotNil(t, err)
-		require.ErrorContains(t, err, localErr.Error())
+		require.ErrorContains(t, err, expectedError.Error())
 	})
 
 	t.Run("missing proof should error", func(t *testing.T) {
