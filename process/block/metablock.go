@@ -2615,18 +2615,6 @@ func (mp *metaProcessor) MarshalizedDataToBroadcast(
 
 	mrsData := make(map[uint32][]byte, len(bodies))
 	for shardId, subsetBlockBody := range bodies {
-
-		if hdr.IsStartOfEpochBlock() {
-			log.Debug("metaProcessor.MarshalizedDataToBroadcast",
-				"len subsetBlockBody", len(subsetBlockBody),
-			)
-			for _, mb := range subsetBlockBody {
-				log.Debug("subsetBlockBody",
-					"mb type", mb.Type,
-				)
-			}
-		}
-
 		buff, err := mp.marshalizer.Marshal(&block.Body{MiniBlocks: subsetBlockBody})
 		if err != nil {
 			log.Error("metaProcessor.MarshalizedDataToBroadcast.Marshal", "error", err.Error())
