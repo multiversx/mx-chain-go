@@ -706,3 +706,13 @@ func (sp *shardProcessor) AddCrossShardMiniBlocksDstMeToMap(
 ) error {
 	return sp.addCrossShardMiniBlocksDstMeToMap(header, referencedMetaBlockHash, referencedMetaHeaderHandler, lastCrossNotarizedHeader, miniBlockMetaHashes)
 }
+
+// CheckInclusionEstimationForExecutionResults -
+func (sp *shardProcessor) CheckInclusionEstimationForExecutionResults(header data.HeaderHandler) error {
+	return sp.checkInclusionEstimationForExecutionResults(header)
+}
+
+// CheckMetaHeadersValidityAndFinalityProposal -
+func (sp *shardProcessor) CheckMetaHeadersValidityAndFinalityProposal(header data.ShardHeaderHandler) error {
+	return sp.checkMetaHeadersValidityAndFinalityProposal(header)
+}
