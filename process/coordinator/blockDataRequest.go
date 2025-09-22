@@ -225,9 +225,9 @@ func (bdr *BlockDataRequest) requestMissingMiniBlocksAndTransactions(mbsInfo []*
 			continue
 		}
 
-		numTxsRequested := preproc.RequestTransactionsForMiniBlock(miniBlock)
+		_, numTxsRequested := preproc.GetTransactionsAndRequestMissingForMiniBlock(miniBlock)
 		if numTxsRequested > 0 {
-			log.Debug("BlockDataRequest.requestMissingMiniBlocksAndTransactions: RequestTransactionsForMiniBlock", "mb hash", mbInfo.Hash,
+			log.Debug("BlockDataRequest.requestMissingMiniBlocksAndTransactions: GetTransactionsAndRequestMissingForMiniBlock", "mb hash", mbInfo.Hash,
 				"num txs requested", numTxsRequested)
 		}
 	}
@@ -261,7 +261,7 @@ func (bdr *BlockDataRequest) receivedMiniBlock(key []byte, value interface{}) {
 		return
 	}
 
-	numTxsRequested := preproc.RequestTransactionsForMiniBlock(miniBlock)
+	_, numTxsRequested := preproc.GetTransactionsAndRequestMissingForMiniBlock(miniBlock)
 	if numTxsRequested > 0 {
 		log.Debug("BlockDataRequest.receivedMiniBlock", "hash", key,
 			"num txs requested", numTxsRequested)
