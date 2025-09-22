@@ -36,7 +36,7 @@ type smartContractResults struct {
 
 // NewSmartContractResultPreprocessor creates a new smartContractResult preprocessor object
 func NewSmartContractResultPreprocessor(args SmartContractResultsArgs) (*smartContractResults, error) {
-	err := CheckBasePreProcessArgs(args.BasePreProcessorArgs)
+	err := checkBasePreProcessArgs(args.BasePreProcessorArgs)
 	if err != nil {
 		return nil, err
 	}

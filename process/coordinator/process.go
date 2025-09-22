@@ -134,11 +134,11 @@ func NewTransactionCoordinator(args ArgTransactionCoordinator) (*transactionCoor
 	tc.miniBlockPool = args.MiniBlockPool
 	tc.interimProcessors = make(map[block.Type]process.IntermediateTransactionHandler)
 
-	tc.preProcExecution, err = NewPreProcData(args.PreProcessors)
+	tc.preProcExecution, err = newPreProcData(args.PreProcessors)
 	if err != nil {
 		return nil, err
 	}
-	tc.preProcProposal, err = NewPreProcData(args.PreProcessorsProposal)
+	tc.preProcProposal, err = newPreProcData(args.PreProcessorsProposal)
 	if err != nil {
 		return nil, err
 	}

@@ -66,7 +66,7 @@ type transactions struct {
 func NewTransactionPreprocessor(
 	args ArgsTransactionPreProcessor,
 ) (*transactions, error) {
-	err := CheckBasePreProcessArgs(args.BasePreProcessorArgs)
+	err := checkBasePreProcessArgs(args.BasePreProcessorArgs)
 	if err != nil {
 		return nil, err
 	}
