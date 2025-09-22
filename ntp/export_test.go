@@ -40,11 +40,3 @@ func (s *syncTime) GetHarmonicMean(clockOffsets []time.Duration) time.Duration {
 func (s *syncTime) GetSleepTime() time.Duration {
 	return s.getSleepTime()
 }
-
-// IsResponseTimeWithinAcceptedBounds -
-func (s *syncTime) IsResponseTimeWithinAcceptedBounds(
-	accumulatedResponseDurations int64,
-	numSuccessfulRequests int64,
-) bool {
-	return s.isResponseTimeWithinAcceptedBounds(accumulatedResponseDurations, numSuccessfulRequests)
-}

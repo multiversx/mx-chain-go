@@ -300,7 +300,9 @@ func TestCallQueryShouldNotUpdateOnOutOfBoundValuesPositive(t *testing.T) {
 	st.SetClockOffset(currentValue)
 	st.Sync()
 
-	assert.Equal(t, currentValue, st.ClockOffset())
+	expValue := 1 + time.Millisecond
+
+	assert.Equal(t, expValue, st.ClockOffset())
 }
 
 func TestCallQueryShouldUpdateOnOutOfBoundValuesPositiveIfDurationNotOutOfBounds(t *testing.T) {
@@ -326,32 +328,7 @@ func TestCallQueryShouldUpdateOnOutOfBoundValuesPositiveIfDurationNotOutOfBounds
 	assert.NotEqual(t, currentValue, st.ClockOffset())
 }
 
-func TestCallQueryShouldNotUpdateOnOutOfBoundValuesNegative(t *testing.T) {
-	t.Parallel()
-
-	st := ntp.NewSyncTime(
-		config.NTPConfig{
-			SyncPeriodSeconds:    3600,
-			Hosts:                []string{"host1"},
-			OutOfBoundsThreshold: 2,
-		},
-		func(options ntp.NTPOptions, hostIndex int) (*beevikNtp.Response, error) {
-			time.Sleep(2 * time.Millisecond)
-
-			return &beevikNtp.Response{
-				ClockOffset: -2 - 2*time.Millisecond,
-			}, nil
-		},
-	)
-
-	currentValue := 2 * 10 * time.Microsecond
-	st.SetClockOffset(currentValue)
-	st.Sync()
-
-	assert.Equal(t, currentValue, st.ClockOffset())
-}
-
-func TestCallQueryShouldUpdateOnOutOfBoundValuesNegativeIfDurationNotOutOfBounds(t *testing.T) {
+func TestCallQueryShouldUpdateOnOutOfBoundValuesNegative(t *testing.T) {
 	t.Parallel()
 
 	st := ntp.NewSyncTime(
@@ -367,42 +344,19 @@ func TestCallQueryShouldUpdateOnOutOfBoundValuesNegativeIfDurationNotOutOfBounds
 		},
 	)
 
-	currentValue := 2 * 10 * time.Microsecond
+	currentValue := 2 * 10 * time.Millisecond
 	st.SetClockOffset(currentValue)
 	st.Sync()
 
-	assert.NotEqual(t, currentValue, st.ClockOffset())
-}
+	expValue := -2 - 2*time.Millisecond + 1 // + 1 due to added constant in harmonic mean calculation
 
-func TestSyncTime_IsResponseTimeWithinAcceptedBounds(t *testing.T) {
-	t.Parallel()
-
-	st := ntp.NewSyncTime(
-		config.NTPConfig{
-			SyncPeriodSeconds:    3600,
-			Hosts:                []string{"host1"},
-			OutOfBoundsThreshold: 2,
-		},
-		func(options ntp.NTPOptions, hostIndex int) (*beevikNtp.Response, error) {
-			return &beevikNtp.Response{}, nil
-		},
-	)
-
-	require.True(t, st.IsResponseTimeWithinAcceptedBounds(3, 5))
-	require.True(t, st.IsResponseTimeWithinAcceptedBounds(5, 3))
-	require.False(t, st.IsResponseTimeWithinAcceptedBounds(6, 3))
-	require.True(t, st.IsResponseTimeWithinAcceptedBounds(1, 2))
-	require.True(t, st.IsResponseTimeWithinAcceptedBounds(3, 2))
-	require.True(t, st.IsResponseTimeWithinAcceptedBounds(4, 5))
-	require.False(t, st.IsResponseTimeWithinAcceptedBounds(3, 1))
-	require.False(t, st.IsResponseTimeWithinAcceptedBounds(3, 0))
-	require.False(t, st.IsResponseTimeWithinAcceptedBounds(0, 0))
+	assert.Equal(t, expValue, st.ClockOffset())
 }
 
 func TestCall_Sync_AcceptedBoundsChecks(t *testing.T) {
 	t.Parallel()
 
-	t.Run("response time within accepted bounds, clock offset within accepted bounds, should set new offset", func(t *testing.T) {
+	t.Run("response time within accepted bounds, should set new offset", func(t *testing.T) {
 		t.Parallel()
 
 		st := ntp.NewSyncTime(
@@ -450,7 +404,7 @@ func TestCall_Sync_AcceptedBoundsChecks(t *testing.T) {
 		assert.Equal(t, expClockOffset, st.ClockOffset())
 	})
 
-	t.Run("response time not within accepted bounds, clock offset not within accepted bounds, should not set new offset", func(t *testing.T) {
+	t.Run("response time not within accepted bounds, clock offset not within accepted bounds, should set new offset", func(t *testing.T) {
 		t.Parallel()
 
 		st := ntp.NewSyncTime(
@@ -472,7 +426,7 @@ func TestCall_Sync_AcceptedBoundsChecks(t *testing.T) {
 		st.SetClockOffset(currentValue)
 		st.Sync()
 
-		expClockOffset := currentValue
+		expClockOffset := 4 * time.Millisecond
 		assert.Equal(t, expClockOffset, st.ClockOffset())
 	})
 

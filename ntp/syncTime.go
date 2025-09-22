@@ -155,8 +155,6 @@ func (s *syncTime) getSleepTime() time.Duration {
 func (s *syncTime) sync() {
 	clockOffsets := make([]time.Duration, 0)
 
-	accumulatedResponseDurations := int64(0)
-	numSuccessfulRequests := int64(0)
 	for hostIndex := 0; hostIndex < len(s.ntpOptions.Hosts); hostIndex++ {
 		for requests := 0; requests < numRequestsFromHost; requests++ {
 			startTime := time.Now()
@@ -170,9 +168,6 @@ func (s *syncTime) sync() {
 
 				continue
 			}
-
-			accumulatedResponseDurations += duration.Milliseconds()
-			numSuccessfulRequests++
 
 			if duration.Milliseconds() > maxAllowedNTPQueryResponseTimeMS {
 				log.Trace("sync.query exceeds maximum allowed response time",
@@ -208,16 +203,13 @@ func (s *syncTime) sync() {
 	clockOffsetsWithoutEdges := s.getClockOffsetsWithoutEdges(clockOffsets)
 	clockOffsetHarmonicMean := s.getHarmonicMean(clockOffsetsWithoutEdges)
 
-	isResponseTimeWithinAcceptedBounds := s.isResponseTimeWithinAcceptedBounds(accumulatedResponseDurations, numSuccessfulRequests)
 	isClockOffsetOutOfBounds := core.AbsDuration(clockOffsetHarmonicMean) > s.outOfBoundsThreshold
 
-	if !isResponseTimeWithinAcceptedBounds && isClockOffsetOutOfBounds {
-		log.Error("syncTime.sync: clock offset is out of expected bounds",
+	if isClockOffsetOutOfBounds {
+		log.Warn("syncTime.sync: clock offset is out of expected bounds",
 			"clock offset harmonic mean", clockOffsetHarmonicMean,
 			"outOfBoundsThreshold", s.outOfBoundsThreshold,
 		)
-
-		return
 	}
 
 	s.setClockOffset(clockOffsetHarmonicMean)
@@ -226,26 +218,6 @@ func (s *syncTime) sync() {
 		"num clock offsets", len(clockOffsets),
 		"num clock offsets without edges", len(clockOffsetsWithoutEdges),
 		"clock offset harmonic mean", clockOffsetHarmonicMean)
-}
-
-func (s *syncTime) isResponseTimeWithinAcceptedBounds(
-	responseDurations int64,
-	numSuccessfulRequests int64,
-) bool {
-	if numSuccessfulRequests <= 0 {
-		return false
-	}
-
-	avgResponseDurationMs := float64(responseDurations) / float64(numSuccessfulRequests)
-	isWithinAcceptedBounds := time.Duration(avgResponseDurationMs)*time.Millisecond < s.outOfBoundsThreshold
-
-	log.Trace("avgResponseDurationMs",
-		"avgResponseDurationMs", avgResponseDurationMs,
-		"outOfBoundsThreshold", s.outOfBoundsThreshold,
-		"isWithinAcceptedBounds", isWithinAcceptedBounds,
-	)
-
-	return isWithinAcceptedBounds
 }
 
 func (s *syncTime) getClockOffsetsWithoutEdges(clockOffsets []time.Duration) []time.Duration {
