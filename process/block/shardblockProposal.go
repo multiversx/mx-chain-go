@@ -214,6 +214,14 @@ func (sp *shardProcessor) VerifyBlockProposal(
 	return nil
 }
 
+// ProcessBlockProposal processes the proposed block. It returns nil if all ok or the specific error
+func (sp *shardProcessor) ProcessBlockProposal(
+	headerHandler data.HeaderHandler,
+	bodyHandler data.BodyHandler,
+) (data.BaseExecutionResultHandler, error) {
+	return nil, nil
+}
+
 func (sp *shardProcessor) checkInclusionEstimationForExecutionResults(header data.HeaderHandler) error {
 	prevBlockLastExecutionResult, err := process.GetPrevBlockLastExecutionResult(sp.blockChain)
 	if err != nil {

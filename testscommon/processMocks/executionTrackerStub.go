@@ -6,11 +6,11 @@ import (
 
 // ExecutionTrackerStub -
 type ExecutionTrackerStub struct {
-	AddExecutionResultCalled func(executionResult data.ExecutionResultHandler) error
+	AddExecutionResultCalled func(executionResult data.BaseExecutionResultHandler) error
 }
 
 // AddExecutionResult -
-func (e *ExecutionTrackerStub) AddExecutionResult(executionResult data.ExecutionResultHandler) error {
+func (e *ExecutionTrackerStub) AddExecutionResult(executionResult data.BaseExecutionResultHandler) error {
 	if e.AddExecutionResultCalled != nil {
 		return e.AddExecutionResultCalled(executionResult)
 	}
