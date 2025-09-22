@@ -3812,6 +3812,6 @@ func TestCheckHeaderBodyCorrelationProposal(t *testing.T) {
 				miniBlock,
 			}},
 		)
-		require.Equal(t, nil, err)
+		require.NoError(t, err)
 	})
 }

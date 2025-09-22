@@ -5,7 +5,6 @@ import (
 	"errors"
 	"math/big"
 	"reflect"
-	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -692,7 +691,7 @@ func TestMetaProcessor_CheckHeaderBodyCorrelationWrongProcessingIndexes(t *testi
 
 	err := mp.CheckHeaderBodyCorrelation(hdr, body)
 	require.NotNil(t, err)
-	require.True(t, strings.Contains(err.Error(), "index is out of bound"))
+	require.ErrorContains(t, err, "index is out of bound")
 }
 
 func TestMetaProcessor_CheckHeaderBodyCorrelationWrongConstructionState(t *testing.T) {

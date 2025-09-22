@@ -752,18 +752,23 @@ func TestShardProcessor_SelectIncomingMiniBlocks(t *testing.T) {
 func TestShardProcessor_VerifyBlockProposal(t *testing.T) {
 	t.Parallel()
 
+	localErr := errors.New("local error")
+
 	t.Run("nil header should error", func(t *testing.T) {
+		t.Parallel()
+
 		arguments := CreateMockArguments(createComponentHolderMocks())
-		arguments.MiniBlocksSelectionSession = &mbSelection.MiniBlockSelectionSessionStub{}
 		sp, err := blproc.NewShardProcessor(arguments)
 		require.Nil(t, err)
 
 		body := &block.Body{}
-		err = sp.VerifyBlockProposal(nil, body, func() time.Duration { return time.Second })
+		err = sp.VerifyBlockProposal(nil, body, haveTime)
 		require.Equal(t, process.ErrNilBlockHeader, err)
 	})
 
-	t.Run("block hash does not mach should request prev header hash", func(t *testing.T) {
+	t.Run("block hash does not match should request prev header hash", func(t *testing.T) {
+		t.Parallel()
+
 		coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
 
 		currentBlockHeader := &block.Header{}
@@ -781,7 +786,6 @@ func TestShardProcessor_VerifyBlockProposal(t *testing.T) {
 				wg.Done()
 			},
 		}
-		arguments.MiniBlocksSelectionSession = &mbSelection.MiniBlockSelectionSessionStub{}
 		sp, err := blproc.NewShardProcessor(arguments)
 		require.Nil(t, err)
 
@@ -792,7 +796,7 @@ func TestShardProcessor_VerifyBlockProposal(t *testing.T) {
 			Epoch:    1,
 			PrevHash: []byte("prevHash"),
 		}
-		err = sp.VerifyBlockProposal(header, body, func() time.Duration { return time.Second })
+		err = sp.VerifyBlockProposal(header, body, haveTime)
 		require.Equal(t, process.ErrBlockHashDoesNotMatch, err)
 
 		wg.Wait()
@@ -800,8 +804,9 @@ func TestShardProcessor_VerifyBlockProposal(t *testing.T) {
 	})
 
 	t.Run("wrong header type should error", func(t *testing.T) {
+		t.Parallel()
+
 		arguments := CreateMockArguments(createComponentHolderMocks())
-		arguments.MiniBlocksSelectionSession = &mbSelection.MiniBlockSelectionSessionStub{}
 		sp, err := blproc.NewShardProcessor(arguments)
 		require.Nil(t, err)
 
@@ -809,13 +814,14 @@ func TestShardProcessor_VerifyBlockProposal(t *testing.T) {
 		header := &block.MetaBlock{
 			Nonce: 1,
 		}
-		err = sp.VerifyBlockProposal(header, body, func() time.Duration { return time.Second })
+		err = sp.VerifyBlockProposal(header, body, haveTime)
 		require.Equal(t, process.ErrWrongTypeAssertion, err)
 	})
 
 	t.Run("wrong header version should error", func(t *testing.T) {
+		t.Parallel()
+
 		arguments := CreateMockArguments(createComponentHolderMocks())
-		arguments.MiniBlocksSelectionSession = &mbSelection.MiniBlockSelectionSessionStub{}
 		sp, err := blproc.NewShardProcessor(arguments)
 		require.Nil(t, err)
 
@@ -823,13 +829,14 @@ func TestShardProcessor_VerifyBlockProposal(t *testing.T) {
 		header := &block.Header{
 			Nonce: 1,
 		}
-		err = sp.VerifyBlockProposal(header, body, func() time.Duration { return time.Second })
+		err = sp.VerifyBlockProposal(header, body, haveTime)
 		require.Equal(t, process.ErrInvalidHeader, err)
 	})
 
 	t.Run("wrong body should error", func(t *testing.T) {
+		t.Parallel()
+
 		arguments := CreateMockArguments(createComponentHolderMocks())
-		arguments.MiniBlocksSelectionSession = &mbSelection.MiniBlockSelectionSessionStub{}
 		sp, err := blproc.NewShardProcessor(arguments)
 		require.Nil(t, err)
 
@@ -837,12 +844,13 @@ func TestShardProcessor_VerifyBlockProposal(t *testing.T) {
 		header := &block.HeaderV3{
 			Nonce: 1,
 		}
-		err = sp.VerifyBlockProposal(header, body, func() time.Duration { return time.Second })
+		err = sp.VerifyBlockProposal(header, body, haveTime)
 		require.Equal(t, process.ErrWrongTypeAssertion, err)
 	})
 	t.Run("different mbs header from body vs from header should error", func(t *testing.T) {
+		t.Parallel()
+
 		arguments := CreateMockArguments(createComponentHolderMocks())
-		arguments.MiniBlocksSelectionSession = &mbSelection.MiniBlockSelectionSessionStub{}
 		sp, err := blproc.NewShardProcessor(arguments)
 		require.Nil(t, err)
 
@@ -856,13 +864,14 @@ func TestShardProcessor_VerifyBlockProposal(t *testing.T) {
 				{},
 			},
 		}
-		err = sp.VerifyBlockProposal(header, body, func() time.Duration { return time.Second })
+		err = sp.VerifyBlockProposal(header, body, haveTime)
 		require.Equal(t, process.ErrNilMiniBlock, err)
 	})
 
 	t.Run("header execution results verification fails should error", func(t *testing.T) {
+		t.Parallel()
+
 		arguments := CreateMockArguments(createComponentHolderMocks())
-		localErr := errors.New("local error")
 		arguments.ExecutionResultsVerifier = &processMocks.ExecutionResultsVerifierMock{
 			VerifyHeaderExecutionResultsCalled: func(header data.HeaderHandler) error {
 				return localErr
@@ -877,11 +886,13 @@ func TestShardProcessor_VerifyBlockProposal(t *testing.T) {
 			Nonce:            1,
 			MiniBlockHeaders: []block.MiniBlockHeader{},
 		}
-		err = sp.VerifyBlockProposal(header, body, func() time.Duration { return time.Second })
+		err = sp.VerifyBlockProposal(header, body, haveTime)
 		require.Equal(t, localErr, err)
 	})
 
 	t.Run("check inclusion estimation fails should error", func(t *testing.T) {
+		t.Parallel()
+
 		coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
 		currentBlockHeader := &block.HeaderV2{
 			Header: &block.Header{},
@@ -910,11 +921,13 @@ func TestShardProcessor_VerifyBlockProposal(t *testing.T) {
 			Round:            2,
 			MiniBlockHeaders: []block.MiniBlockHeader{},
 		}
-		err = sp.VerifyBlockProposal(header, body, func() time.Duration { return time.Second })
+		err = sp.VerifyBlockProposal(header, body, haveTime)
 		require.Equal(t, process.ErrInvalidNumberOfExecutionResultsInHeader, err)
 	})
 
 	t.Run("request missing meta headers fails should error", func(t *testing.T) {
+		t.Parallel()
+
 		coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
 		currentBlockHeader := &block.HeaderV2{
 			Header: &block.Header{},
@@ -933,7 +946,6 @@ func TestShardProcessor_VerifyBlockProposal(t *testing.T) {
 			},
 		}
 
-		localErr := errors.New("local error")
 		arguments.MissingDataResolver = &processMocks.MissingDataResolverMock{
 			RequestMissingMetaHeadersCalled: func(shardHeader data.ShardHeaderHandler) error {
 				return localErr
@@ -951,11 +963,13 @@ func TestShardProcessor_VerifyBlockProposal(t *testing.T) {
 			Round:            2,
 			MiniBlockHeaders: []block.MiniBlockHeader{},
 		}
-		err = sp.VerifyBlockProposal(header, body, func() time.Duration { return time.Second })
+		err = sp.VerifyBlockProposal(header, body, haveTime)
 		require.Equal(t, localErr, err)
 	})
 
 	t.Run("wait for missing data fails should error", func(t *testing.T) {
+		t.Parallel()
+
 		coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
 		currentBlockHeader := &block.HeaderV2{
 			Header: &block.Header{},
@@ -974,7 +988,6 @@ func TestShardProcessor_VerifyBlockProposal(t *testing.T) {
 			},
 		}
 
-		localErr := errors.New("local error")
 		arguments.MissingDataResolver = &processMocks.MissingDataResolverMock{
 			RequestMissingMetaHeadersCalled: func(shardHeader data.ShardHeaderHandler) error {
 				return nil
@@ -995,11 +1008,13 @@ func TestShardProcessor_VerifyBlockProposal(t *testing.T) {
 			Round:            2,
 			MiniBlockHeaders: []block.MiniBlockHeader{},
 		}
-		err = sp.VerifyBlockProposal(header, body, func() time.Duration { return time.Second })
+		err = sp.VerifyBlockProposal(header, body, haveTime)
 		require.Equal(t, localErr, err)
 	})
 
 	t.Run("should work", func(t *testing.T) {
+		t.Parallel()
+
 		coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
 		currentBlockHeader := &block.HeaderV2{
 			Header: &block.Header{},
@@ -1029,8 +1044,8 @@ func TestShardProcessor_VerifyBlockProposal(t *testing.T) {
 			Round:            2,
 			MiniBlockHeaders: []block.MiniBlockHeader{},
 		}
-		err = sp.VerifyBlockProposal(header, body, func() time.Duration { return time.Second })
-		require.Equal(t, nil, err)
+		err = sp.VerifyBlockProposal(header, body, haveTime)
+		require.NoError(t, err)
 	})
 }
 
@@ -1038,6 +1053,8 @@ func TestShardProcessor_CheckInclusionEstimationForExecutionResults(t *testing.T
 	t.Parallel()
 
 	t.Run("cannot get prev block last execution results should error", func(t *testing.T) {
+		t.Parallel()
+
 		arguments := CreateMockArguments(createComponentHolderMocks())
 		sp, _ := blproc.NewShardProcessor(arguments)
 
@@ -1047,6 +1064,8 @@ func TestShardProcessor_CheckInclusionEstimationForExecutionResults(t *testing.T
 	})
 
 	t.Run("invalid number of execution results", func(t *testing.T) {
+		t.Parallel()
+
 		coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
 		currentBlockHeader := &block.HeaderV2{
 			Header: &block.Header{},
@@ -1069,6 +1088,8 @@ func TestShardProcessor_CheckInclusionEstimationForExecutionResults(t *testing.T
 	})
 
 	t.Run("should work", func(t *testing.T) {
+		t.Parallel()
+
 		coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
 		currentBlockHeader := &block.HeaderV2{
 			Header: &block.Header{},
@@ -1088,10 +1109,14 @@ func TestShardProcessor_CheckInclusionEstimationForExecutionResults(t *testing.T
 func TestShardProcessor_CheckMetaHeadersValidityAndFinalityProposal(t *testing.T) {
 	t.Parallel()
 
+	localErr := errors.New("local error")
+
 	t.Run("cannot get last notarized header should err", func(t *testing.T) {
+		t.Parallel()
+
 		coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
 		arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
-		localErr := errors.New("local error")
+
 		arguments.BlockTracker = &mock.BlockTrackerMock{
 			GetLastCrossNotarizedHeaderCalled: func(shardID uint32) (data.HeaderHandler, []byte, error) {
 				return nil, nil, localErr
@@ -1106,6 +1131,8 @@ func TestShardProcessor_CheckMetaHeadersValidityAndFinalityProposal(t *testing.T
 	})
 
 	t.Run("cannot find used meta header should error", func(t *testing.T) {
+		t.Parallel()
+
 		coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
 		arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
 
@@ -1127,6 +1154,8 @@ func TestShardProcessor_CheckMetaHeadersValidityAndFinalityProposal(t *testing.T
 	})
 
 	t.Run("invalid header should error", func(t *testing.T) {
+		t.Parallel()
+
 		coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
 		arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
 
@@ -1136,8 +1165,7 @@ func TestShardProcessor_CheckMetaHeadersValidityAndFinalityProposal(t *testing.T
 				return metaHeader, []byte("h"), nil
 			},
 		}
-		localErr := errors.New("local error")
-		arguments.HeaderValidator = &processMocks.HeaderValidatorStub{
+		arguments.HeaderValidator = &processMocks.HeaderValidatorMock{
 			IsHeaderConstructionValidCalled: func(currHdr, prevHdr data.HeaderHandler) error {
 				return localErr
 			},
@@ -1165,12 +1193,14 @@ func TestShardProcessor_CheckMetaHeadersValidityAndFinalityProposal(t *testing.T
 	})
 
 	t.Run("missing proof should error", func(t *testing.T) {
+		t.Parallel()
+
 		coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
 		arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
 
 		metaHeader := &block.MetaBlockV3{}
 
-		arguments.HeaderValidator = &processMocks.HeaderValidatorStub{
+		arguments.HeaderValidator = &processMocks.HeaderValidatorMock{
 			IsHeaderConstructionValidCalled: func(currHdr, prevHdr data.HeaderHandler) error {
 				return nil
 			},
@@ -1204,12 +1234,14 @@ func TestShardProcessor_CheckMetaHeadersValidityAndFinalityProposal(t *testing.T
 	})
 
 	t.Run("should work", func(t *testing.T) {
+		t.Parallel()
+
 		coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
 		arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
 
 		metaHeader := &block.MetaBlockV3{}
 
-		arguments.HeaderValidator = &processMocks.HeaderValidatorStub{
+		arguments.HeaderValidator = &processMocks.HeaderValidatorMock{
 			IsHeaderConstructionValidCalled: func(currHdr, prevHdr data.HeaderHandler) error {
 				return nil
 			},
