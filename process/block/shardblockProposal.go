@@ -105,9 +105,6 @@ func (sp *shardProcessor) VerifyBlockProposal(
 	bodyHandler data.BodyHandler,
 	haveTime func() time.Duration,
 ) error {
-	if !headerHandler.IsHeaderV3() {
-		return process.ErrInvalidHeader
-	}
 	log.Debug("started verifying proposed block",
 		"epoch", headerHandler.GetEpoch(),
 		"shard", headerHandler.GetShardID(),
