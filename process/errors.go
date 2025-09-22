@@ -1329,15 +1329,6 @@ var ErrBadTxCacheSelectionLoopDurationCheckInterval = errors.New("bad selection 
 // ErrNilTxsForBlockHandler signals that a nil transactions for block handler has been provided
 var ErrNilTxsForBlockHandler = errors.New("nil txs for block handler")
 
-// ErrTransactionsAlreadyProcessed signals that transactions were already processed
-var ErrTransactionsAlreadyProcessed = errors.New("transactions already processed")
-
-// ErrMiniBlocksAlreadyProcessed signals that mini blocks were already processed
-var ErrMiniBlocksAlreadyProcessed = errors.New("mini blocks already processed")
-
-// ErrMiniBlocksNotProcessedYet signals that mini blocks were not processed yet
-var ErrMiniBlocksNotProcessedYet = errors.New("mini blocks not processed")
-
 // ErrNilHeadersForBlock signals that a nil headers for block has been provided
 var ErrNilHeadersForBlock = errors.New("nil headers for block")
 
@@ -1355,9 +1346,6 @@ var ErrExecutionResultsNumberMismatch = errors.New("execution results number mis
 
 // ErrNilExecutionResultsTracker signals that a nil execution results tracker has been provided
 var ErrNilExecutionResultsTracker = errors.New("nil execution results tracker")
-
-// ErrNilNotarizedOnHeaderHash signals that a nil notarized on header hash has been provided
-var ErrNilNotarizedOnHeaderHash = errors.New("nil notarized on header hash")
 
 // ErrInvalidHash signals that an invalid hash has been provided
 var ErrInvalidHash = errors.New("invalid hash")

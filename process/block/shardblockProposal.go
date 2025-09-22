@@ -230,6 +230,9 @@ func (sp *shardProcessor) selectIncomingMiniBlocks(
 	orderedMetaBlocksHashes [][]byte,
 	haveTime func() bool,
 ) error {
+
+	sp.gasComputation.Reset()
+
 	var currentMetaBlock data.HeaderHandler
 	var currentMetaBlockHash []byte
 	for i := 0; i < len(orderedMetaBlocks); i++ {

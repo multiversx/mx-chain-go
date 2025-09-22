@@ -253,7 +253,6 @@ func createDefaultTransactionsProcessorArgs() ArgsTransactionPreProcessor {
 			SelectionLoopMaximumDuration:                  250,
 			SelectionLoopDurationCheckInterval:            10,
 		},
-		GasComputation: &testscommon.GasComputationMock{},
 	}
 }
 
@@ -375,17 +374,6 @@ func TestTxsPreprocessor_NewTransactionPreprocessorNilBlockTracker(t *testing.T)
 	txs, err := NewTransactionPreprocessor(args)
 	assert.Nil(t, txs)
 	assert.Equal(t, process.ErrNilBlockTracker, err)
-}
-
-func TestTxsPreprocessor_NewTransactionPreprocessorNilGasComputation(t *testing.T) {
-	t.Parallel()
-
-	args := createDefaultTransactionsProcessorArgs()
-	args.GasComputation = nil
-
-	txs, err := NewTransactionPreprocessor(args)
-	assert.Nil(t, txs)
-	assert.Equal(t, process.ErrNilGasComputation, err)
 }
 
 func TestTxsPreprocessor_NewTransactionPreprocessorNilPubkeyConverter(t *testing.T) {

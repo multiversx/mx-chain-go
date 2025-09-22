@@ -371,7 +371,6 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 		processedMiniBlocksTracker,
 		pcf.txExecutionOrderHandler,
 		pcf.config.TxCacheSelection,
-		gasConsumption,
 	)
 	if err != nil {
 		return nil, err
@@ -555,6 +554,7 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 		MissingDataResolver:                missingDataResolver,
 		ExecutionResultsInclusionEstimator: inclusionEstimator,
 		ExecutionResultsTracker:            executionResultsTracker,
+		GasComputation:                     gasConsumption,
 	}
 	arguments := block.ArgShardProcessor{
 		ArgBaseProcessor: argumentsBaseProcessor,
@@ -788,7 +788,6 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 		processedMiniBlocksTracker,
 		pcf.txExecutionOrderHandler,
 		pcf.config.TxCacheSelection,
-		gasConsumption,
 	)
 	if err != nil {
 		return nil, err
@@ -1099,6 +1098,7 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 		MissingDataResolver:                missingDataResolver,
 		ExecutionResultsInclusionEstimator: inclusionEstimator,
 		ExecutionResultsTracker:            executionResultsTracker,
+		GasComputation:                     gasConsumption,
 	}
 
 	esdtOwnerAddress, err := pcf.coreData.AddressPubKeyConverter().Decode(pcf.systemSCConfig.ESDTSystemSCConfig.OwnerAddress)

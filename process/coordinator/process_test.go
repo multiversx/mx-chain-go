@@ -264,7 +264,14 @@ func createMockTransactionCoordinatorArguments() ArgTransactionCoordinator {
 		TxExecutionOrderHandler:      &commonMock.TxExecutionOrderHandlerStub{},
 		BlockDataRequester:           &preprocMocks.BlockDataRequesterStub{},
 		BlockDataRequesterProposal:   &preprocMocks.BlockDataRequesterStub{},
-		GasComputation:               &testscommon.GasComputationMock{},
+		GasComputation: &testscommon.GasComputationMock{
+			CheckOutgoingTransactionsCalled: func(txHashes [][]byte, transactions []data.TransactionHandler) ([][]byte, error) {
+				return txHashes, nil
+			},
+			CheckIncomingMiniBlocksCalled: func(miniBlocks []data.MiniBlockHeaderHandler, transactions map[string][]data.TransactionHandler) (int, int, error) {
+				return len(miniBlocks), 0, nil
+			},
+		},
 	}
 
 	blockDataRequesterArgs := BlockDataRequestArgs{
@@ -614,7 +621,6 @@ func createPreProcessorContainer() process.PreProcessorsContainer {
 		&testscommon.ProcessedMiniBlocksTrackerStub{},
 		&commonMock.TxExecutionOrderHandlerStub{},
 		createMockTxCacheSelectionConfig(),
-		&testscommon.GasComputationMock{},
 	)
 	container, _ := preFactory.Create()
 
@@ -717,7 +723,6 @@ func createPreProcessorContainerWithDataPool(
 		&testscommon.ProcessedMiniBlocksTrackerStub{},
 		&commonMock.TxExecutionOrderHandlerStub{},
 		createMockTxCacheSelectionConfig(),
-		&testscommon.GasComputationMock{},
 	)
 	container, _ := preFactory.Create()
 
@@ -990,7 +995,6 @@ func TestTransactionCoordinator_CreateMbsAndProcessCrossShardTransactions(t *tes
 		&testscommon.ProcessedMiniBlocksTrackerStub{},
 		&commonMock.TxExecutionOrderHandlerStub{},
 		createMockTxCacheSelectionConfig(),
-		&testscommon.GasComputationMock{},
 	)
 	container, _ := preFactory.Create()
 
@@ -1180,7 +1184,6 @@ func TestTransactionCoordinator_CreateMbsAndProcessCrossShardTransactionsNilPreP
 		&testscommon.ProcessedMiniBlocksTrackerStub{},
 		&commonMock.TxExecutionOrderHandlerStub{},
 		createMockTxCacheSelectionConfig(),
-		&testscommon.GasComputationMock{},
 	)
 	container, _ := preFactory.Create()
 
@@ -1292,7 +1295,6 @@ func TestTransactionCoordinator_CreateMbsAndProcessTransactionsFromMeNothingToPr
 		&testscommon.ProcessedMiniBlocksTrackerStub{},
 		&commonMock.TxExecutionOrderHandlerStub{},
 		createMockTxCacheSelectionConfig(),
-		&testscommon.GasComputationMock{},
 	)
 	container, _ := preFactory.Create()
 
@@ -1853,7 +1855,6 @@ func TestTransactionCoordinator_ProcessBlockTransactionProcessTxError(t *testing
 		&testscommon.ProcessedMiniBlocksTrackerStub{},
 		&commonMock.TxExecutionOrderHandlerStub{},
 		createMockTxCacheSelectionConfig(),
-		&testscommon.GasComputationMock{},
 	)
 	container, _ := preFactory.Create()
 
@@ -1976,7 +1977,6 @@ func TestTransactionCoordinator_RequestMiniblocks(t *testing.T) {
 		&testscommon.ProcessedMiniBlocksTrackerStub{},
 		&commonMock.TxExecutionOrderHandlerStub{},
 		createMockTxCacheSelectionConfig(),
-		&testscommon.GasComputationMock{},
 	)
 	container, _ := preFactory.Create()
 
@@ -2118,7 +2118,6 @@ func TestShardProcessor_ProcessMiniBlockCompleteWithOkTxsShouldExecuteThemAndNot
 		&testscommon.ProcessedMiniBlocksTrackerStub{},
 		&commonMock.TxExecutionOrderHandlerStub{},
 		createMockTxCacheSelectionConfig(),
-		&testscommon.GasComputationMock{},
 	)
 	container, _ := preFactory.Create()
 
@@ -2263,7 +2262,6 @@ func TestShardProcessor_ProcessMiniBlockCompleteWithErrorWhileProcessShouldCallR
 		&testscommon.ProcessedMiniBlocksTrackerStub{},
 		&commonMock.TxExecutionOrderHandlerStub{},
 		createMockTxCacheSelectionConfig(),
-		&testscommon.GasComputationMock{},
 	)
 	container, _ := preFactory.Create()
 

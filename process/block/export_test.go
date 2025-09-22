@@ -15,6 +15,7 @@ import (
 	"github.com/multiversx/mx-chain-go/process/asyncExecution/executionTrack"
 	"github.com/multiversx/mx-chain-go/process/estimator"
 	"github.com/multiversx/mx-chain-go/process/missingData"
+	"github.com/multiversx/mx-chain-go/testscommon/economicsmocks"
 
 	"github.com/multiversx/mx-chain-go/common/graceperiod"
 	"github.com/multiversx/mx-chain-go/config"
@@ -189,6 +190,15 @@ func NewShardProcessorEmptyWith3shards(
 	}
 	missingDataResolver, _ := missingData.NewMissingDataResolver(missingDataArgs)
 
+	argsGasConsumption := ArgsGasConsumption{
+		EconomicsFee:                      &economicsmocks.EconomicsHandlerMock{},
+		ShardCoordinator:                  boostrapComponents.ShardCoordinator(),
+		GasHandler:                        &mock.GasHandlerMock{},
+		BlockCapacityOverestimationFactor: 200,
+		PercentDecreaseLimitsStep:         10,
+	}
+	gasComputation, _ := NewGasConsumption(argsGasConsumption)
+
 	arguments := ArgShardProcessor{
 		ArgBaseProcessor: ArgBaseProcessor{
 			CoreComponents:       coreComponents,
@@ -228,6 +238,7 @@ func NewShardProcessorEmptyWith3shards(
 			MissingDataResolver:                missingDataResolver,
 			ExecutionResultsInclusionEstimator: inclusionEstimator,
 			ExecutionResultsTracker:            executionResultsTracker,
+			GasComputation:                     gasComputation,
 		},
 	}
 	shardProc, err := NewShardProcessor(arguments)

@@ -248,7 +248,7 @@ type PreProcessor interface {
 
 	GetTransactionsAndRequestMissingForMiniBlock(miniBlock *block.MiniBlock) ([]data.TransactionHandler, int)
 	ProcessMiniBlock(miniBlock *block.MiniBlock, haveTime func() bool, haveAdditionalTime func() bool, scheduledMode bool, partialMbExecutionMode bool, indexOfLastTxProcessed int, preProcessorExecutionInfoHandler PreProcessorExecutionInfoHandler) ([][]byte, int, bool, error)
-	SelectOutgoingTransactions() ([][]byte, []data.TransactionHandler, error)
+	SelectOutgoingTransactions(bandwidth uint64) ([][]byte, []data.TransactionHandler, error)
 	CreateAndProcessMiniBlocks(haveTime func() bool, randomness []byte) (block.MiniBlockSlice, error)
 
 	GetAllCurrentUsedTxs() map[string]data.TransactionHandler
@@ -1460,7 +1460,7 @@ type ProofsPool interface {
 }
 
 // GasComputation defines a component able to select the maximum number of outgoing transactions and incoming mini blocks
-// to fill the block in respect with the gas limits
+// to fill the block with respect to the gas limits
 type GasComputation interface {
 	CheckIncomingMiniBlocks(
 		miniBlocks []data.MiniBlockHeaderHandler,
@@ -1470,7 +1470,6 @@ type GasComputation interface {
 		txHashes [][]byte,
 		transactions []data.TransactionHandler,
 	) ([][]byte, error)
-	GetLastMiniBlockIndexIncluded() int
 	GetBandwidthForTransactions() uint64
 	TotalGasConsumed() uint64
 	DecreaseIncomingLimit()

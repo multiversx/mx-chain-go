@@ -14,14 +14,13 @@ type GasComputationMock struct {
 		txHashes [][]byte,
 		transactions []data.TransactionHandler,
 	) ([][]byte, error)
-	GetLastMiniBlockIndexIncludedCalled func() int
-	GetBandwidthForTransactionsCalled   func() uint64
-	TotalGasConsumedCalled              func() uint64
-	DecreaseIncomingLimitCalled         func()
-	DecreaseOutgoingLimitCalled         func()
-	ResetIncomingLimitCalled            func()
-	ResetOutgoingLimitCalled            func()
-	ResetCalled                         func()
+	GetBandwidthForTransactionsCalled func() uint64
+	TotalGasConsumedCalled            func() uint64
+	DecreaseIncomingLimitCalled       func()
+	DecreaseOutgoingLimitCalled       func()
+	ResetIncomingLimitCalled          func()
+	ResetOutgoingLimitCalled          func()
+	ResetCalled                       func()
 }
 
 // CheckIncomingMiniBlocks -
@@ -44,14 +43,6 @@ func (mock *GasComputationMock) CheckOutgoingTransactions(
 		return mock.CheckOutgoingTransactionsCalled(txHashes, transactions)
 	}
 	return nil, nil
-}
-
-// GetLastMiniBlockIndexIncluded -
-func (mock *GasComputationMock) GetLastMiniBlockIndexIncluded() int {
-	if mock.GetLastMiniBlockIndexIncludedCalled != nil {
-		return mock.GetLastMiniBlockIndexIncludedCalled()
-	}
-	return 0
 }
 
 // GetBandwidthForTransactions -

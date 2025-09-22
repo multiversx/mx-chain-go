@@ -120,6 +120,7 @@ type baseProcessor struct {
 	miniBlocksSelectionSession         MiniBlocksSelectionSession
 	executionResultsVerifier           ExecutionResultsVerifier
 	missingDataResolver                MissingDataResolver
+	gasComputation                     process.GasComputation
 }
 
 type bootStorerDataArgs struct {
@@ -205,6 +206,7 @@ func NewBaseProcessor(arguments ArgBaseProcessor) (*baseProcessor, error) {
 		miniBlocksSelectionSession:         arguments.MiniBlocksSelectionSession,
 		executionResultsVerifier:           arguments.ExecutionResultsVerifier,
 		missingDataResolver:                arguments.MissingDataResolver,
+		gasComputation:                     arguments.GasComputation,
 	}
 
 	return base, nil
@@ -720,6 +722,9 @@ func checkProcessorParameters(arguments ArgBaseProcessor) error {
 	}
 	if check.IfNil(arguments.MissingDataResolver) {
 		return process.ErrNilMissingDataResolver
+	}
+	if check.IfNil(arguments.GasComputation) {
+		return process.ErrNilGasComputation
 	}
 
 	return nil

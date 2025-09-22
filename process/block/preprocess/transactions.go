@@ -42,7 +42,6 @@ type ArgsTransactionPreProcessor struct {
 	TxTypeHandler                process.TxTypeHandler
 	ScheduledTxsExecutionHandler process.ScheduledTxsExecutionHandler
 	TxCacheSelectionConfig       config.TxCacheSelectionConfig
-	GasComputation               process.GasComputation
 }
 
 type transactions struct {
@@ -61,7 +60,6 @@ type transactions struct {
 	txTypeHandler                process.TxTypeHandler
 	scheduledTxsExecutionHandler process.ScheduledTxsExecutionHandler
 	txCacheSelectionConfig       config.TxCacheSelectionConfig
-	gasComputation               process.GasComputation
 }
 
 // NewTransactionPreprocessor creates a new transaction preprocessor object
@@ -77,9 +75,6 @@ func NewTransactionPreprocessor(
 	}
 	if check.IfNil(args.BlockTracker) {
 		return nil, process.ErrNilBlockTracker
-	}
-	if check.IfNil(args.GasComputation) {
-		return nil, process.ErrNilGasComputation
 	}
 
 	err = core.CheckHandlerCompatibility(args.EnableEpochsHandler, []core.EnableEpochFlag{
@@ -145,7 +140,6 @@ func NewTransactionPreprocessor(
 		txTypeHandler:                args.TxTypeHandler,
 		scheduledTxsExecutionHandler: args.ScheduledTxsExecutionHandler,
 		txCacheSelectionConfig:       args.TxCacheSelectionConfig,
-		gasComputation:               args.GasComputation,
 	}
 
 	txs.txPool.RegisterOnAdded(txs.receivedTransaction)
@@ -942,9 +936,8 @@ func (txs *transactions) getRemainingGasPerBlockAsScheduled() uint64 {
 }
 
 // SelectOutgoingTransactions selects outgoing transactions from the transaction pool
-func (txs *transactions) SelectOutgoingTransactions() ([][]byte, []data.TransactionHandler, error) {
-	gasBandwidth := txs.gasComputation.GetBandwidthForTransactions()
-	wrappedTxs, err := txs.selectTransactionsFromTxPoolForProposal(txs.shardCoordinator.SelfId(), txs.shardCoordinator.SelfId(), gasBandwidth)
+func (txs *transactions) SelectOutgoingTransactions(bandwidth uint64) ([][]byte, []data.TransactionHandler, error) {
+	wrappedTxs, err := txs.selectTransactionsFromTxPoolForProposal(txs.shardCoordinator.SelfId(), txs.shardCoordinator.SelfId(), bandwidth)
 	if err != nil {
 		return nil, nil, err
 	}

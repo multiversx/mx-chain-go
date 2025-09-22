@@ -24,8 +24,6 @@ func (tc *transactionCoordinator) CreateMbsCrossShardDstMe(
 	numTransactions := uint32(0)
 	shouldSkipShard := make(map[uint32]bool)
 
-	tc.gasComputation.Reset()
-
 	finalCrossMiniBlockInfos := tc.blockDataRequesterProposal.GetFinalCrossMiniBlockInfoAndRequestMissing(hdr)
 	defer func() {
 		log.Debug("transactionCoordinator.CreateMbsCrossShardDstMe",
@@ -153,7 +151,8 @@ func (tc *transactionCoordinator) SelectOutgoingTransactions() [][]byte {
 			continue
 		}
 
-		txHashes, txs, err := txPreProc.SelectOutgoingTransactions()
+		gasBandwidth := tc.gasComputation.GetBandwidthForTransactions()
+		txHashes, txs, err := txPreProc.SelectOutgoingTransactions(gasBandwidth)
 		if err != nil {
 			log.Warn("transactionCoordinator.SelectOutgoingTransactions: SelectOutgoingTransactions returned error", "error", err)
 			continue

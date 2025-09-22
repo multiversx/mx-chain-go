@@ -70,6 +70,7 @@ func generateTxsForMb(gasLimitPerTx uint64, numTxs uint32) []data.TransactionHan
 	_, txs := generateTxs(gasLimitPerTx, numTxs)
 	return txs
 }
+
 func generateTxsForMiniBlocks(mbs []data.MiniBlockHeaderHandler) map[string][]data.TransactionHandler {
 	txs := make(map[string][]data.TransactionHandler, len(mbs))
 	for _, mb := range mbs {
@@ -153,23 +154,14 @@ func TestGasConsumption_IsInterfaceNil(t *testing.T) {
 func TestGasConsumption_CheckIncomingMiniBlocks(t *testing.T) {
 	t.Parallel()
 
-	t.Run("mini blocks selection done should error", func(t *testing.T) {
+	t.Run("empty mini blocks should early exit", func(t *testing.T) {
 		t.Parallel()
 
 		gc, _ := block.NewGasConsumption(getMockArgsGasConsumption())
 		require.NotNil(t, gc)
 
-		lastMbIndex, pendingMbs, err := gc.CheckIncomingMiniBlocks(nil, nil) // coverage only
+		lastMbIndex, pendingMbs, err := gc.CheckIncomingMiniBlocks(nil, nil)
 		require.NoError(t, err)
-		require.Zero(t, pendingMbs)
-		require.Equal(t, -1, lastMbIndex)
-
-		// first call with dummy data should set isMiniBlockSelectionDone
-		_, _, _ = gc.CheckIncomingMiniBlocks([]data.MiniBlockHeaderHandler{&coreBlock.MiniBlockHeader{}}, map[string][]data.TransactionHandler{"mb1": generateTxsForMb(maxGasLimitPerTx, 1)})
-
-		// second call should early exit
-		lastMbIndex, pendingMbs, err = gc.CheckIncomingMiniBlocks([]data.MiniBlockHeaderHandler{&coreBlock.MiniBlockHeader{}}, map[string][]data.TransactionHandler{"mb1": generateTxsForMb(maxGasLimitPerTx, 1)})
-		require.Equal(t, process.ErrMiniBlocksAlreadyProcessed, err)
 		require.Zero(t, pendingMbs)
 		require.Equal(t, -1, lastMbIndex)
 	})
@@ -246,7 +238,7 @@ func TestGasConsumption_CheckIncomingMiniBlocks(t *testing.T) {
 		require.Zero(t, pendingMbs)
 		require.Equal(t, -1, lastMbIndex)
 	})
-	t.Run("should work within limits", func(t *testing.T) {
+	t.Run("should work within limits and multiple calls", func(t *testing.T) {
 		t.Parallel()
 
 		gc, _ := block.NewGasConsumption(getMockArgsGasConsumption())
@@ -258,6 +250,14 @@ func TestGasConsumption_CheckIncomingMiniBlocks(t *testing.T) {
 		require.NoError(t, err)
 		require.Zero(t, pendingMbs) // no pending mini blocks, we are within limits
 		require.Equal(t, len(mbs)-1, lastMbIndex)
+
+		// should allow multiple calls
+		lastMbIndex, pendingMbs, err = gc.CheckIncomingMiniBlocks(mbs, txs)
+		require.NoError(t, err)
+		require.Zero(t, pendingMbs) // no pending mini blocks, we are still within limits
+		require.Equal(t, len(mbs)-1, lastMbIndex)
+
+		require.Equal(t, 30*maxGasLimitPerTx, gc.TotalGasConsumed()) // 3 mbs of 5 txs from 2 different calls
 	})
 	t.Run("should work and save pending mini blocks", func(t *testing.T) {
 		t.Parallel()
@@ -309,15 +309,6 @@ func TestGasConsumption_CheckOutgoingTransactions(t *testing.T) {
 		_, err := gc.CheckOutgoingTransactions(txHashes, txs)
 		require.Equal(t, process.ErrInvalidValue, err)
 	})
-	t.Run("should fail if mini blocks were not processed yet", func(t *testing.T) {
-		t.Parallel()
-
-		gc, _ := block.NewGasConsumption(getMockArgsGasConsumption())
-		require.NotNil(t, gc)
-
-		_, err := gc.CheckOutgoingTransactions(generateTxs(maxGasLimitPerTx, 70))
-		require.Equal(t, process.ErrMiniBlocksNotProcessedYet, err)
-	})
 	t.Run("ComputeGasProvidedByTx fails", func(t *testing.T) {
 		t.Parallel()
 
@@ -330,11 +321,6 @@ func TestGasConsumption_CheckOutgoingTransactions(t *testing.T) {
 		gc, _ := block.NewGasConsumption(args)
 		require.NotNil(t, gc)
 
-		// process some dummy mini blocks to avoid early exits
-		mbs := generateMiniBlocks(1, 1)
-		txsInMBs := generateTxsForMiniBlocks(mbs)
-		_, _, _ = gc.CheckIncomingMiniBlocks(mbs, txsInMBs)
-
 		addedTxs, err := gc.CheckOutgoingTransactions(generateTxs(maxGasLimitPerTx, 1))
 		require.NoError(t, err)
 		require.Zero(t, len(addedTxs))
@@ -345,34 +331,28 @@ func TestGasConsumption_CheckOutgoingTransactions(t *testing.T) {
 		gc, _ := block.NewGasConsumption(getMockArgsGasConsumption())
 		require.NotNil(t, gc)
 
-		// process some dummy mini blocks to avoid early exits
-		mbs := generateMiniBlocks(1, 1)
-		txsInMBs := generateTxsForMiniBlocks(mbs)
-		_, _, err := gc.CheckIncomingMiniBlocks(mbs, txsInMBs)
-		require.NoError(t, err)
-
 		addedTxs, err := gc.CheckOutgoingTransactions(generateTxs(maxGasLimitPerTx+1, 1))
 		require.NoError(t, err)
 		require.Zero(t, len(addedTxs))
 	})
-	t.Run("should work within limits, no pending mbs", func(t *testing.T) {
+	t.Run("should work within limits, no pending mbs, multiple calls", func(t *testing.T) {
 		t.Parallel()
 
 		gc, _ := block.NewGasConsumption(getMockArgsGasConsumption())
 		require.NotNil(t, gc)
-
-		// process some dummy mini blocks to avoid early exits
-		mbs := generateMiniBlocks(1, 1)
-		txsInMBs := generateTxsForMiniBlocks(mbs)
-		_, _, err := gc.CheckIncomingMiniBlocks(mbs, txsInMBs)
-		require.NoError(t, err)
 
 		txHashes, txs := generateTxs(maxGasLimitPerTx, 10)
 		addedTxs, err := gc.CheckOutgoingTransactions(txHashes, txs)
 		require.NoError(t, err)
 		require.Equal(t, len(txs), len(addedTxs))
 
-		require.Equal(t, 11*maxGasLimitPerTx, gc.TotalGasConsumed()) // 1 tx from the dummy mb
+		require.Equal(t, 10*maxGasLimitPerTx, gc.TotalGasConsumed())
+
+		addedTxs, err = gc.CheckOutgoingTransactions(txHashes, txs)
+		require.NoError(t, err)
+		require.Equal(t, len(txs), len(addedTxs))
+
+		require.Equal(t, 20*maxGasLimitPerTx, gc.TotalGasConsumed())
 	})
 	t.Run("should work within limits and continue adding pending mini blocks to fill the block", func(t *testing.T) {
 		t.Parallel()
@@ -401,10 +381,6 @@ func TestGasConsumption_CheckOutgoingTransactions(t *testing.T) {
 		addedTxs, err := gc.CheckOutgoingTransactions(txHashes, txs)
 		require.NoError(t, err)
 		require.Equal(t, len(txs), len(addedTxs)) // added all
-
-		expectedFinalMBIndex := 9
-		finalLastMBIndex := gc.GetLastMiniBlockIndexIncluded()
-		require.Equal(t, expectedFinalMBIndex, finalLastMBIndex)
 
 		require.Equal(t, maxGasLimitPerBlock*2, gc.TotalGasConsumed()) // *2 due to the 200% factor
 	})
@@ -435,11 +411,6 @@ func TestGasConsumption_CheckOutgoingTransactions(t *testing.T) {
 		gc, _ := block.NewGasConsumption(args)
 		require.NotNil(t, gc)
 
-		// process some dummy mini blocks to avoid early exits
-		mbs := generateMiniBlocks(1, 1)
-		txsInMBs := generateTxsForMiniBlocks(mbs)
-		_, _, _ = gc.CheckIncomingMiniBlocks(mbs, txsInMBs)
-
 		// maxGasLimitPerBlock = 400
 		// half of it * factor (200% by default) will be used for txs
 		// thus 400 is the total max limit for transactions
@@ -449,7 +420,7 @@ func TestGasConsumption_CheckOutgoingTransactions(t *testing.T) {
 		require.NoError(t, err)
 		require.Equal(t, len(txs), len(addedTxs))
 
-		require.Equal(t, 51*maxGasLimitPerTx, gc.TotalGasConsumed()) // one extra tx from mini block
+		require.Equal(t, 50*maxGasLimitPerTx, gc.TotalGasConsumed())
 	})
 }
 
@@ -483,12 +454,7 @@ func TestGasConsumption_Reset(t *testing.T) {
 
 	// call reset, block is full
 	gc.Reset()
-	require.Equal(t, -1, gc.GetLastMiniBlockIndexIncluded())
-
-	// should not work now as mini blocks are not processed yet
-	txHashes, txs = generateTxs(maxGasLimitPerTx, 30)
-	_, err = gc.CheckOutgoingTransactions(txHashes, txs)
-	require.Equal(t, process.ErrMiniBlocksNotProcessedYet, err)
+	require.Equal(t, uint64(0), gc.TotalGasConsumed())
 }
 
 func TestGasConsumption_DecreaseOutgoingLimit(t *testing.T) {
@@ -502,12 +468,6 @@ func TestGasConsumption_DecreaseOutgoingLimit(t *testing.T) {
 		gc.DecreaseOutgoingLimit()
 	}
 
-	// process some dummy mini blocks to avoid early exits
-	mbs := generateMiniBlocks(1, 1)
-	txsInMBs := generateTxsForMiniBlocks(mbs)
-	_, _, err := gc.CheckIncomingMiniBlocks(mbs, txsInMBs)
-	require.NoError(t, err)
-
 	// outgoing limit should be at lowest, 10% of the half configured 400 => 20 (max 2 txs)
 	txHashes, txs := generateTxs(maxGasLimitPerTx, 3)
 	addedTxs, err := gc.CheckOutgoingTransactions(txHashes, txs)
@@ -516,11 +476,6 @@ func TestGasConsumption_DecreaseOutgoingLimit(t *testing.T) {
 
 	// calling reset should not reset the block limit
 	gc.Reset()
-
-	// process some dummy mini blocks to avoid early exits
-	mbs = generateMiniBlocks(1, 1)
-	txsInMBs = generateTxsForMiniBlocks(mbs)
-	_, _, _ = gc.CheckIncomingMiniBlocks(mbs, txsInMBs)
 
 	// adding txs should be allowed again, but within the same limit
 	txHashes, txs = generateTxs(maxGasLimitPerTx, 3)
@@ -531,11 +486,6 @@ func TestGasConsumption_DecreaseOutgoingLimit(t *testing.T) {
 	// calling reset should reset the limit
 	gc.ResetOutgoingLimit()
 	gc.Reset() // required to reset the state
-
-	// process some dummy mini blocks to avoid early exits
-	mbs = generateMiniBlocks(1, 1)
-	txsInMBs = generateTxsForMiniBlocks(mbs)
-	_, _, _ = gc.CheckIncomingMiniBlocks(mbs, txsInMBs)
 
 	txHashes, txs = generateTxs(maxGasLimitPerTx, 30)
 	addedTxs, err = gc.CheckOutgoingTransactions(txHashes, txs)
@@ -611,7 +561,7 @@ func TestGasConsumption_ConcurrentOps(t *testing.T) {
 
 		for i := 0; i < numCalls; i++ {
 			go func(idx int) {
-				switch idx % 9 {
+				switch idx % 8 {
 				case 0:
 					_, _ = gc.CheckOutgoingTransactions(txHashes, txs)
 				case 1:
@@ -627,8 +577,6 @@ func TestGasConsumption_ConcurrentOps(t *testing.T) {
 				case 6:
 					gc.ResetIncomingLimit()
 				case 7:
-					gc.GetLastMiniBlockIndexIncluded()
-				case 8:
 					gc.TotalGasConsumed()
 				default:
 					require.Fail(t, "should have not been called")
