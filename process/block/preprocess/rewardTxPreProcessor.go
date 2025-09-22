@@ -8,19 +8,20 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/data/rewardTx"
-	"github.com/multiversx/mx-chain-core-go/hashing"
-	"github.com/multiversx/mx-chain-core-go/marshal"
 
-	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/process"
-	"github.com/multiversx/mx-chain-go/sharding"
-	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/storage"
 )
 
 var _ process.DataMarshalizer = (*rewardTxPreprocessor)(nil)
 var _ process.PreProcessor = (*rewardTxPreprocessor)(nil)
+
+// RewardsPreProcessorArgs is the struct that contains all the dependencies needed for creating a reward transaction preprocessor
+type RewardsPreProcessorArgs struct {
+	BasePreProcessorArgs
+	RewardProcessor process.RewardTransactionProcessor
+}
 
 type rewardTxPreprocessor struct {
 	*basePreProcess
@@ -32,93 +33,43 @@ type rewardTxPreprocessor struct {
 }
 
 // NewRewardTxPreprocessor creates a new reward transaction preprocessor object
-func NewRewardTxPreprocessor(
-	rewardTxDataPool dataRetriever.ShardedDataCacherNotifier,
-	store dataRetriever.StorageService,
-	hasher hashing.Hasher,
-	marshalizer marshal.Marshalizer,
-	rewardProcessor process.RewardTransactionProcessor,
-	shardCoordinator sharding.Coordinator,
-	accounts state.AccountsAdapter,
-	onRequestRewardTransaction func(shardID uint32, txHashes [][]byte),
-	gasHandler process.GasHandler,
-	pubkeyConverter core.PubkeyConverter,
-	blockSizeComputation BlockSizeComputationHandler,
-	balanceComputation BalanceComputationHandler,
-	processedMiniBlocksTracker process.ProcessedMiniBlocksTracker,
-	txExecutionOrderHandler common.TxExecutionOrderHandler,
-) (*rewardTxPreprocessor, error) {
-
-	if check.IfNil(hasher) {
-		return nil, process.ErrNilHasher
+func NewRewardTxPreprocessor(args RewardsPreProcessorArgs) (*rewardTxPreprocessor, error) {
+	err := checkBasePreProcessArgs(args.BasePreProcessorArgs)
+	if err != nil {
+		return nil, err
 	}
-	if check.IfNil(marshalizer) {
-		return nil, process.ErrNilMarshalizer
-	}
-	if check.IfNil(rewardTxDataPool) {
-		return nil, process.ErrNilRewardTxDataPool
-	}
-	if check.IfNil(store) {
-		return nil, process.ErrNilStorage
-	}
-	if check.IfNil(rewardProcessor) {
+	if check.IfNil(args.RewardProcessor) {
 		return nil, process.ErrNilRewardsTxProcessor
-	}
-	if check.IfNil(shardCoordinator) {
-		return nil, process.ErrNilShardCoordinator
-	}
-	if check.IfNil(accounts) {
-		return nil, process.ErrNilAccountsAdapter
-	}
-	if onRequestRewardTransaction == nil {
-		return nil, process.ErrNilRequestHandler
-	}
-	if check.IfNil(gasHandler) {
-		return nil, process.ErrNilGasHandler
-	}
-	if check.IfNil(pubkeyConverter) {
-		return nil, process.ErrNilPubkeyConverter
-	}
-	if check.IfNil(blockSizeComputation) {
-		return nil, process.ErrNilBlockSizeComputationHandler
-	}
-	if check.IfNil(balanceComputation) {
-		return nil, process.ErrNilBalanceComputationHandler
-	}
-	if check.IfNil(processedMiniBlocksTracker) {
-		return nil, process.ErrNilProcessedMiniBlocksTracker
-	}
-	if check.IfNil(txExecutionOrderHandler) {
-		return nil, process.ErrNilTxExecutionOrderHandler
 	}
 
 	bpp := &basePreProcess{
-		hasher:      hasher,
-		marshalizer: marshalizer,
+		hasher:      args.Hasher,
+		marshalizer: args.Marshalizer,
 		gasTracker: gasTracker{
-			shardCoordinator: shardCoordinator,
-			gasHandler:       gasHandler,
-			economicsFee:     nil,
+			shardCoordinator: args.ShardCoordinator,
+			gasHandler:       args.GasHandler,
+			economicsFee:     args.EconomicsFee,
 		},
-		blockSizeComputation:       blockSizeComputation,
-		balanceComputation:         balanceComputation,
-		accounts:                   accounts,
-		pubkeyConverter:            pubkeyConverter,
-		processedMiniBlocksTracker: processedMiniBlocksTracker,
-		txExecutionOrderHandler:    txExecutionOrderHandler,
+		blockSizeComputation:       args.BlockSizeComputation,
+		balanceComputation:         args.BalanceComputation,
+		accounts:                   args.Accounts,
+		accountsProposal:           args.AccountsProposal,
+		pubkeyConverter:            args.PubkeyConverter,
+		processedMiniBlocksTracker: args.ProcessedMiniBlocksTracker,
+		txExecutionOrderHandler:    args.TxExecutionOrderHandler,
+		enableEpochsHandler:        args.EnableEpochsHandler,
 	}
 
 	rtp := &rewardTxPreprocessor{
 		basePreProcess:    bpp,
-		storage:           store,
-		rewardTxPool:      rewardTxDataPool,
-		onRequestRewardTx: onRequestRewardTransaction,
-		rewardsProcessor:  rewardProcessor,
+		storage:           args.Store,
+		rewardTxPool:      args.DataPool,
+		onRequestRewardTx: args.OnRequestTransaction,
+		rewardsProcessor:  args.RewardProcessor,
 	}
 
 	rtp.rewardTxPool.RegisterOnAdded(rtp.receivedRewardTransaction)
-	var err error
-	rtp.rewardTxsForBlock, err = NewTxsForBlock(shardCoordinator)
+	rtp.rewardTxsForBlock, err = NewTxsForBlock(args.ShardCoordinator)
 	if err != nil {
 		return nil, err
 	}
@@ -426,6 +377,11 @@ func (rtp *rewardTxPreprocessor) getAllRewardTxsFromMiniBlock(
 	}
 
 	return rewardTxs, txHashes, nil
+}
+
+// SelectOutgoingTransactions does nothing as rewards transactions are created by meta chain
+func (rtp *rewardTxPreprocessor) SelectOutgoingTransactions() ([][]byte, error) {
+	return make([][]byte, 0), nil
 }
 
 // CreateAndProcessMiniBlocks creates miniblocks from storage and processes the reward transactions added into the miniblocks

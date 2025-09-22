@@ -922,6 +922,7 @@ func TestProcessComponentsFactory_Create(t *testing.T) {
 				CommitCalled:   realStateComp.AccountsAdapter().Commit,
 				RootHashCalled: realStateComp.AccountsAdapter().RootHash,
 			},
+			AccountsProposal:     &testState.AccountsStub{},
 			PeersAcc:             realStateComp.PeerAccounts(),
 			Tries:                realStateComp.TriesContainer(),
 			AccountsAPI:          realStateComp.AccountsAdapterAPI(),
@@ -966,6 +967,7 @@ func TestProcessComponentsFactory_Create(t *testing.T) {
 			PeersAcc:             realStateComp.PeerAccounts(),
 			Tries:                realStateComp.TriesContainer(),
 			AccountsAPI:          realStateComp.AccountsAdapterAPI(),
+			AccountsProposal:     realStateComp.AccountsAdapterProposal(),
 			StorageManagers:      realStateComp.TrieStorageManagers(),
 			MissingNodesNotifier: realStateComp.MissingTrieNodesNotifier(),
 		}

@@ -2,6 +2,7 @@ package preprocess
 
 import (
 	"bytes"
+	"fmt"
 	"math/big"
 	"time"
 
@@ -15,6 +16,7 @@ import (
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/storage"
 )
@@ -95,6 +97,26 @@ type processedIndexes struct {
 	indexOfLastTxProcessedByProposer int32
 }
 
+// BasePreProcessorArgs holds the arguments for creating a base pre-processor
+type BasePreProcessorArgs struct {
+	DataPool                   dataRetriever.ShardedDataCacherNotifier
+	Store                      dataRetriever.StorageService
+	Hasher                     hashing.Hasher
+	Marshalizer                marshal.Marshalizer
+	ShardCoordinator           sharding.Coordinator
+	Accounts                   state.AccountsAdapter
+	AccountsProposal           state.AccountsAdapter
+	OnRequestTransaction       func(shardID uint32, txHashes [][]byte)
+	GasHandler                 process.GasHandler
+	PubkeyConverter            core.PubkeyConverter
+	BlockSizeComputation       BlockSizeComputationHandler
+	BalanceComputation         BalanceComputationHandler
+	ProcessedMiniBlocksTracker process.ProcessedMiniBlocksTracker
+	TxExecutionOrderHandler    common.TxExecutionOrderHandler
+	EconomicsFee               process.FeeHandler
+	EnableEpochsHandler        common.EnableEpochsHandler
+}
+
 // basePreProcess is the base struct for all pre-processors
 type basePreProcess struct {
 	gasTracker
@@ -103,10 +125,64 @@ type basePreProcess struct {
 	blockSizeComputation       BlockSizeComputationHandler
 	balanceComputation         BalanceComputationHandler
 	accounts                   state.AccountsAdapter
+	accountsProposal           state.AccountsAdapter
 	pubkeyConverter            core.PubkeyConverter
 	processedMiniBlocksTracker process.ProcessedMiniBlocksTracker
 	enableEpochsHandler        common.EnableEpochsHandler
 	txExecutionOrderHandler    common.TxExecutionOrderHandler
+}
+
+func checkBasePreProcessArgs(args BasePreProcessorArgs) error {
+	if check.IfNil(args.Hasher) {
+		return process.ErrNilHasher
+	}
+	if check.IfNil(args.Marshalizer) {
+		return process.ErrNilMarshalizer
+	}
+	if check.IfNil(args.DataPool) {
+		return process.ErrNilTransactionPool
+	}
+	if check.IfNil(args.Store) {
+		return process.ErrNilStorage
+	}
+	if check.IfNil(args.ShardCoordinator) {
+		return process.ErrNilShardCoordinator
+	}
+	if check.IfNil(args.Accounts) {
+		return process.ErrNilAccountsAdapter
+	}
+	if check.IfNil(args.AccountsProposal) {
+		return fmt.Errorf("%w for proposal", process.ErrNilAccountsAdapter)
+	}
+	if args.OnRequestTransaction == nil {
+		return process.ErrNilRequestHandler
+	}
+	if check.IfNil(args.GasHandler) {
+		return process.ErrNilGasHandler
+	}
+	if check.IfNil(args.PubkeyConverter) {
+		return process.ErrNilPubkeyConverter
+	}
+	if check.IfNil(args.BlockSizeComputation) {
+		return process.ErrNilBlockSizeComputationHandler
+	}
+	if check.IfNil(args.BalanceComputation) {
+		return process.ErrNilBalanceComputationHandler
+	}
+	if check.IfNil(args.ProcessedMiniBlocksTracker) {
+		return process.ErrNilProcessedMiniBlocksTracker
+	}
+	if check.IfNil(args.TxExecutionOrderHandler) {
+		return process.ErrNilTxExecutionOrderHandler
+	}
+	if check.IfNil(args.EconomicsFee) {
+		return process.ErrNilEconomicsFeeHandler
+	}
+	if check.IfNil(args.EnableEpochsHandler) {
+		return process.ErrNilEnableEpochsHandler
+	}
+
+	return nil
 }
 
 func (bpp *basePreProcess) removeBlockDataFromPools(
