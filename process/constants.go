@@ -91,9 +91,6 @@ const MaxHeadersToRequestInAdvance = 20
 // RoundModulusTrigger defines a round modulus on which a trigger for an action will be released
 const RoundModulusTrigger = 5
 
-// RoundModulusTriggerWhenSyncIsStuck defines a round modulus on which a trigger for an action when sync is stuck will be released
-const RoundModulusTriggerWhenSyncIsStuck = 20
-
 // MinForkRound represents the minimum fork round set by a notarized header received
 const MinForkRound = uint64(0)
 

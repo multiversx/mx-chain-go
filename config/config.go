@@ -364,6 +364,9 @@ type ProcessConfigByRound struct {
 	// MaxRoundsWithoutCommittedBlock defines the maximum rounds to wait for a new block to be committed,
 	// before a special action to be applied
 	MaxRoundsWithoutCommittedBlock uint32
+
+	// RoundModulusTriggerWhenSyncIsStuck defines a round modulus on which a trigger for an action when sync is stuck will be released
+	RoundModulusTriggerWhenSyncIsStuck uint32
 }
 
 // GeneralSettingsConfig will hold the general settings for a node

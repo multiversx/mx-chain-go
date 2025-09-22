@@ -61,8 +61,8 @@
     ]
 
     ProcessConfigsByRound = [
-        { EnableRound = 0, MaxRoundsWithoutNewBlockReceived = 10, MaxRoundsWithoutCommittedBlock = 10 },
-        { EnableRound = 2, MaxRoundsWithoutNewBlockReceived = 100, MaxRoundsWithoutCommittedBlock = 100 },
+        { EnableRound = 0, MaxRoundsWithoutNewBlockReceived = 10, MaxRoundsWithoutCommittedBlock = 10, RoundModulusTriggerWhenSyncIsStuck = 20 },
+        { EnableRound = 2, MaxRoundsWithoutNewBlockReceived = 100, MaxRoundsWithoutCommittedBlock = 100, RoundModulusTriggerWhenSyncIsStuck = 200 },
     ]
 
     EpochStartConfigsByEpoch = [

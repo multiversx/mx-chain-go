@@ -15,7 +15,12 @@ func GetDefaultProcessConfigsHandler() common.ProcessConfigsHandler {
 		MaxShardNoncesBehind:              15,
 	}},
 		[]config.ProcessConfigByRound{
-			{EnableRound: 0, MaxRoundsWithoutNewBlockReceived: 10, MaxRoundsWithoutCommittedBlock: 10},
+			{
+				EnableRound:                        0,
+				MaxRoundsWithoutNewBlockReceived:   10,
+				MaxRoundsWithoutCommittedBlock:     10,
+				RoundModulusTriggerWhenSyncIsStuck: 20,
+			},
 		},
 	)
 
@@ -25,10 +30,11 @@ func GetDefaultProcessConfigsHandler() common.ProcessConfigsHandler {
 // ProcessConfigsHandlerStub -
 type ProcessConfigsHandlerStub struct {
 	GetMaxMetaNoncesBehindByEpochCalled               func(epoch uint32) uint32
-	GetMaxMetaNoncesBehindForBlobalStuckByEpochCalled func(epoch uint32) uint32
+	GetMaxMetaNoncesBehindForGlobalStuckByEpochCalled func(epoch uint32) uint32
 	GetMaxShardNoncesBehindByEpochCalled              func(epoch uint32) uint32
 	GetMaxRoundsWithoutNewBlockReceivedByRoundCalled  func(round uint64) uint32
 	GetMaxRoundsWithoutCommittedBlockCalled           func(round uint64) uint32
+	GetRoundModulusTriggerWhenSyncIsStuckCalled       func(round uint64) uint32
 }
 
 // GetMaxMetaNoncesBehindByEpoch -
@@ -40,10 +46,10 @@ func (p *ProcessConfigsHandlerStub) GetMaxMetaNoncesBehindByEpoch(epoch uint32) 
 	return 0
 }
 
-// GetMaxMetaNoncesBehindForBlobalStuckByEpoch -
-func (p *ProcessConfigsHandlerStub) GetMaxMetaNoncesBehindForBlobalStuckByEpoch(epoch uint32) uint32 {
-	if p.GetMaxMetaNoncesBehindForBlobalStuckByEpochCalled != nil {
-		return p.GetMaxMetaNoncesBehindForBlobalStuckByEpochCalled(epoch)
+// GetMaxMetaNoncesBehindForGlobalStuckByEpoch -
+func (p *ProcessConfigsHandlerStub) GetMaxMetaNoncesBehindForGlobalStuckByEpoch(epoch uint32) uint32 {
+	if p.GetMaxMetaNoncesBehindForGlobalStuckByEpochCalled != nil {
+		return p.GetMaxMetaNoncesBehindForGlobalStuckByEpochCalled(epoch)
 	}
 
 	return 0
@@ -71,6 +77,15 @@ func (p *ProcessConfigsHandlerStub) GetMaxRoundsWithoutNewBlockReceivedByRound(r
 func (p *ProcessConfigsHandlerStub) GetMaxRoundsWithoutCommittedBlock(round uint64) uint32 {
 	if p.GetMaxRoundsWithoutCommittedBlockCalled != nil {
 		return p.GetMaxRoundsWithoutCommittedBlockCalled(round)
+	}
+
+	return 0
+}
+
+// GetRoundModulusTriggerWhenSyncIsStuck -
+func (p *ProcessConfigsHandlerStub) GetRoundModulusTriggerWhenSyncIsStuck(round uint64) uint32 {
+	if p.GetRoundModulusTriggerWhenSyncIsStuckCalled != nil {
+		return p.GetRoundModulusTriggerWhenSyncIsStuckCalled(round)
 	}
 
 	return 0

@@ -91,7 +91,7 @@ func CreateMetaBootstrapMockArguments() sync.ArgMetaBootstrapper {
 		RepopulateTokensSupplies:     false,
 		EnableEpochsHandler:          &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 		EnableRoundsHandler:          &testscommon.EnableRoundsHandlerStub{},
-		ProcessConfigsHandler:        &testscommon.ProcessConfigsHandlerStub{},
+		ProcessConfigsHandler:        testscommon.GetDefaultProcessConfigsHandler(),
 	}
 
 	argsMetaBootstrapper := sync.ArgMetaBootstrapper{

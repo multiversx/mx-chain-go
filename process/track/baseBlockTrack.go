@@ -659,7 +659,7 @@ func (bbt *baseBlockTrack) ShouldSkipMiniBlocksCreationFromSelf() bool {
 	}
 
 	currentEpoch := bbt.enableEpochsHandler.GetCurrentEpoch()
-	maxMetaNoncesBehind := bbt.processConfigsHandler.GetMaxMetaNoncesBehindForBlobalStuckByEpoch(currentEpoch)
+	maxMetaNoncesBehind := bbt.processConfigsHandler.GetMaxMetaNoncesBehindForGlobalStuckByEpoch(currentEpoch)
 
 	shards := bbt.shardCoordinator.NumberOfShards()
 	for shardID := uint32(0); shardID < shards; shardID++ {

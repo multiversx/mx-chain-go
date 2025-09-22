@@ -495,7 +495,10 @@ func (boot *baseBootstrap) shouldTryToRequestHeaders() bool {
 		return true
 	}
 
-	return boot.roundHandler.Index()%process.RoundModulusTriggerWhenSyncIsStuck == 0
+	roundIndex := boot.roundHandler.Index()
+	roundModulusTriggerWhenSyncIsStuck := boot.processConfigsHandler.GetRoundModulusTriggerWhenSyncIsStuck(uint64(roundIndex))
+
+	return roundIndex%int64(roundModulusTriggerWhenSyncIsStuck) == 0
 }
 
 func (boot *baseBootstrap) requestHeadersIfSyncIsStuck() {

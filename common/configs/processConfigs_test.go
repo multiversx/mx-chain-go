@@ -105,10 +105,10 @@ func TestProcessConfigsByEpoch_Getters(t *testing.T) {
 
 		pce, _ := configs.NewProcessConfigsHandler(conf, confByRound)
 
-		maxMetaNoncesBehindForGlobalStuck := pce.GetMaxMetaNoncesBehindForBlobalStuckByEpoch(0)
+		maxMetaNoncesBehindForGlobalStuck := pce.GetMaxMetaNoncesBehindForGlobalStuckByEpoch(0)
 		require.Equal(t, uint32(11), maxMetaNoncesBehindForGlobalStuck)
 
-		maxMetaNoncesBehindForGlobalStuck = pce.GetMaxMetaNoncesBehindForBlobalStuckByEpoch(1)
+		maxMetaNoncesBehindForGlobalStuck = pce.GetMaxMetaNoncesBehindForGlobalStuckByEpoch(1)
 		require.Equal(t, uint32(21), maxMetaNoncesBehindForGlobalStuck)
 	})
 
