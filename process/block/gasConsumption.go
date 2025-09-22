@@ -356,8 +356,8 @@ func (gc *gasConsumption) GetBandwidthForTransactions() uint64 {
 	defer gc.mut.RUnlock()
 
 	gasLeftFromMiniBlocks := gc.getGasLeftFromMiniBlocks(gc.shardCoordinator.SelfId())
-	initialBandwidthForTransactions := gc.getGasLimitForOneDirection(outgoingIntra, gc.shardCoordinator.SelfId())
-	return initialBandwidthForTransactions + gasLeftFromMiniBlocks
+	gasLeftFromTransactions := gc.getGasLeftFromTransactions()
+	return gasLeftFromMiniBlocks + gasLeftFromTransactions
 }
 
 // TotalGasConsumed returns the total gas consumed for both incoming and outgoing transactions
