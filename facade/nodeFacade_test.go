@@ -61,7 +61,7 @@ func createMockArguments() ArgNodeFacade {
 				},
 			},
 		}},
-		AccountsState: &stateMock.AccountsStub{},
+		AccountsStateAPI: &stateMock.AccountsStub{},
 		Blockchain: &testscommon.ChainHandlerStub{
 			GetCurrentBlockHeaderCalled: func() coreData.HeaderHandler {
 				return &block.Header{}
@@ -150,12 +150,12 @@ func TestNewNodeFacade(t *testing.T) {
 		require.Nil(t, nf)
 		require.True(t, errors.Is(err, ErrInvalidValue))
 	})
-	t.Run("nil AccountsState should error", func(t *testing.T) {
+	t.Run("nil AccountsStateAPI should error", func(t *testing.T) {
 		t.Parallel()
 
 		arg := createMockArguments()
 		arg.WsAntifloodConfig.WebServerAntifloodEnabled = true // coverage
-		arg.AccountsState = nil
+		arg.AccountsStateAPI = nil
 		nf, err := NewNodeFacade(arg)
 
 		require.Nil(t, nf)
@@ -2076,7 +2076,7 @@ func TestNodeFacade_GetSelectedTransactions(t *testing.T) {
 		t.Parallel()
 
 		arg := createMockArguments()
-		arg.AccountsState = &stateMock.AccountsStub{
+		arg.AccountsStateAPI = &stateMock.AccountsStub{
 			RecreateTrieCalled: func(options common.RootHashHolder) error {
 				return nil
 			},
@@ -2098,7 +2098,7 @@ func TestNodeFacade_GetSelectedTransactions(t *testing.T) {
 		t.Parallel()
 
 		arg := createMockArguments()
-		arg.AccountsState = &stateMock.AccountsStub{
+		arg.AccountsStateAPI = &stateMock.AccountsStub{
 			RecreateTrieCalled: func(options common.RootHashHolder) error {
 				return nil
 			},
@@ -2140,7 +2140,7 @@ func TestNodeFacade_GetVirtualNonce(t *testing.T) {
 		t.Parallel()
 
 		arg := createMockArguments()
-		arg.AccountsState = &stateMock.AccountsStub{
+		arg.AccountsStateAPI = &stateMock.AccountsStub{
 			RecreateTrieCalled: func(options common.RootHashHolder) error {
 				return nil
 			},
@@ -2167,7 +2167,7 @@ func TestNodeFacade_GetVirtualNonce(t *testing.T) {
 		t.Parallel()
 
 		arg := createMockArguments()
-		arg.AccountsState = &stateMock.AccountsStub{
+		arg.AccountsStateAPI = &stateMock.AccountsStub{
 			RecreateTrieCalled: func(options common.RootHashHolder) error {
 				return nil
 			},

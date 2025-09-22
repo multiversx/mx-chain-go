@@ -759,9 +759,9 @@ func (nr *nodeRunner) createApiFacade(
 			P2PPrometheusMetricsEnabled: flagsConfig.P2PPrometheusMetricsEnabled,
 			TxCacheSelectionConfig:      configs.GeneralConfig.TxCacheSelection,
 		},
-		ApiRoutesConfig: *configs.ApiRoutesConfig,
-		AccountsState:   currentNode.stateComponents.AccountsAdapterAPI(),
-		Blockchain:      currentNode.dataComponents.Blockchain(),
+		ApiRoutesConfig:  *configs.ApiRoutesConfig,
+		AccountsStateAPI: currentNode.stateComponents.AccountsAdapterAPI(),
+		Blockchain:       currentNode.dataComponents.Blockchain(),
 	}
 
 	ef, err := facade.NewNodeFacade(argNodeFacade)

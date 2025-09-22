@@ -51,7 +51,7 @@ type ArgNodeFacade struct {
 	WsAntifloodConfig      config.WebServerAntifloodConfig
 	FacadeConfig           config.FacadeConfig
 	ApiRoutesConfig        config.ApiRoutesConfig
-	AccountsState          state.AccountsAdapter
+	AccountsStateAPI       state.AccountsAdapter
 	Blockchain             chainData.ChainHandler
 }
 
@@ -65,7 +65,7 @@ type nodeFacade struct {
 	endpointsThrottlers    map[string]core.Throttler
 	wsAntifloodConfig      config.WebServerAntifloodConfig
 	restAPIServerDebugMode bool
-	accountsState          state.AccountsAdapter
+	accountsStateAPI       state.AccountsAdapter
 	blockchain             chainData.ChainHandler
 }
 
@@ -84,7 +84,7 @@ func NewNodeFacade(arg ArgNodeFacade) (*nodeFacade, error) {
 	if err != nil {
 		return nil, err
 	}
-	if check.IfNil(arg.AccountsState) {
+	if check.IfNil(arg.AccountsStateAPI) {
 		return nil, ErrNilAccountState
 	}
 	if check.IfNil(arg.Blockchain) {
@@ -101,7 +101,7 @@ func NewNodeFacade(arg ArgNodeFacade) (*nodeFacade, error) {
 		config:                 arg.FacadeConfig,
 		apiRoutesConfig:        arg.ApiRoutesConfig,
 		endpointsThrottlers:    throttlersMap,
-		accountsState:          arg.AccountsState,
+		accountsStateAPI:       arg.AccountsStateAPI,
 		blockchain:             arg.Blockchain,
 	}
 
@@ -358,7 +358,7 @@ func (nf *nodeFacade) GetSelectedTransactions(fields string) (*common.Transactio
 	)
 
 	// TODO brainstorm if this could be handled by the node
-	return nf.apiResolver.GetSelectedTransactions(selectionOptionsAPI, nf.blockchain, nf.accountsState)
+	return nf.apiResolver.GetSelectedTransactions(selectionOptionsAPI, nf.blockchain, nf.accountsStateAPI)
 }
 
 // GetVirtualNonce will return the virtual nonce of an account
