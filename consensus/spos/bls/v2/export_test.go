@@ -226,6 +226,10 @@ func (sr *subroundBlock) GetLeaderForHeader(headerHandler data.HeaderHandler) ([
 	return sr.getLeaderForHeader(headerHandler)
 }
 
+func (sr *subroundBlock) UpdateConsensusMetricsProposedBlockReceivedOrSent() {
+	sr.updateConsensusMetricsProposedBlockReceivedOrSent()
+}
+
 // subroundSignature
 
 // SubroundSignature defines an alias to the subroundSignature structure
@@ -361,6 +365,6 @@ func (sr *subroundEndRound) SendProof() (bool, error) {
 	return sr.sendProof()
 }
 
-func (sr *subroundEndRound) UpdateConsensusMetricsIfNeeded() {
-	sr.updateConsensusMetricsIfNeeded()
+func (sr *subroundEndRound) UpdateConsensusMetricsProof() {
+	sr.updateConsensusMetricsProof()
 }

@@ -318,7 +318,7 @@ func (sr *subroundEndRound) finalizeConfirmedBlock() bool {
 		return false
 	}
 
-	sr.updateConsensusMetricsIfNeeded()
+	sr.updateConsensusMetricsProof()
 
 	ok := sr.ScheduledProcessor().IsProcessedOKWithTimeout()
 	// placeholder for subroundEndRound.doEndRoundJobByLeader script
@@ -962,8 +962,8 @@ func (sr *subroundEndRound) getNumOfSignaturesCollected() int {
 	return n
 }
 
-// updateConsensusMetricsIfNeeded sets the consensus metrics
-func (sr *subroundEndRound) updateConsensusMetricsIfNeeded() {
+// updateConsensusMetricsProof sets the consensus metrics
+func (sr *subroundEndRound) updateConsensusMetricsProof() {
 
 	currentTime := sr.SyncTimer().CurrentTime()
 	metricsTime := currentTime.Sub(sr.RoundHandler().TimeStamp()).Nanoseconds()

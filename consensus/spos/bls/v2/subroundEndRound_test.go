@@ -2437,7 +2437,7 @@ func TestSubroundEndRound_SendProof(t *testing.T) {
 	})
 }
 
-func TestSubroundEndRound_UpdateConsensusMetricsIfNeeded(t *testing.T) {
+func TestSubroundEndRound_UpdateConsensusMetrics(t *testing.T) {
 	t.Parallel()
 
 	now := time.Now()
@@ -2502,10 +2502,16 @@ func TestSubroundEndRound_UpdateConsensusMetricsIfNeeded(t *testing.T) {
 
 	consensusMetrics.SetBlockReceivedOrSent(uint64(200))
 
-	srEndRound.UpdateConsensusMetricsIfNeeded()
-	assert.NoError(t, nil)
-	values := consensusMetrics.GetValuesForTesting()
-	assert.Equal(t, uint64(300), values["blockSignedDelaySum"], "should be set")
-	assert.Equal(t, uint64(1), values["blockSignedCount"], "should be incremented")
-	assert.Equal(t, uint64(300), appStatusHandler.GetUint64(common.MetricReceivedProof), "should be average")
+	srEndRound.UpdateConsensusMetricsProof()
+	// instance value = 500 - 200 = 300; avg = 300
+	assert.Equal(t, uint64(300), appStatusHandler.GetUint64(common.MetricReceivedProof), "MetricReceivedProof should be set")
+	assert.Equal(t, uint64(300), appStatusHandler.GetUint64(common.MetricAvgReceivedProof), "MetricAvgProofsReceived should be set")
+
+	consensusMetrics.ResetInstanceValues()
+	consensusMetrics.SetBlockReceivedOrSent(uint64(400))
+
+	srEndRound.UpdateConsensusMetricsProof()
+	// instance value = 500 - 400 = 100; avg = 300 + 100 / 2 = 200
+	assert.Equal(t, uint64(100), appStatusHandler.GetUint64(common.MetricReceivedProof), "MetricReceivedProof should be set")
+	assert.Equal(t, uint64(200), appStatusHandler.GetUint64(common.MetricAvgReceivedProof), "MetricAvgProofsReceived should be set")
 }
