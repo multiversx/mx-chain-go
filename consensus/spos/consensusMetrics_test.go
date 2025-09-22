@@ -32,7 +32,7 @@ func TestConsensusMetrics_ResetAverages(t *testing.T) {
 
 	t.Run("normal operation", func(t *testing.T) {
 		t.Parallel()
-		appStatusHandler := &statusHandlerMock.AppStatusHandlerMock{}
+		appStatusHandler := statusHandlerMock.NewAppStatusHandlerMock()
 		cm, _ := NewConsensusMetrics(appStatusHandler)
 		if cm == nil {
 			t.Errorf("NewConsensusMetrics() = nil, want non-nil")
@@ -58,13 +58,16 @@ func TestConsensusMetrics_resetInstanceValues(t *testing.T) {
 
 	t.Run("normal operation", func(t *testing.T) {
 		t.Parallel()
-		appStatusHandler := &statusHandlerMock.AppStatusHandlerMock{}
+		appStatusHandler := statusHandlerMock.NewAppStatusHandlerMock()
+
 		cm, _ := NewConsensusMetrics(appStatusHandler)
 		if cm == nil {
 			t.Errorf("NewConsensusMetrics() = nil, want non-nil")
 			return
 		}
 
+		appStatusHandler.SetUInt64Value(common.MetricReceivedProposedBlockBody, 0)
+		appStatusHandler.SetUInt64Value(common.MetricReceivedProof, 0)
 		cm.blockReceivedOrSentDelay = 200
 
 		cm.ResetInstanceValues()

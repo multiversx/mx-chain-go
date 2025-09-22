@@ -1161,24 +1161,21 @@ func TestSubroundStartRound_ConsensusMetricsResetAveragesShouldWork(t *testing.T
 		&worker,
 	)
 	require.Nil(t, err)
+
+	appStatusHandler := sr.AppStatusHandler().(*statusHandler.AppStatusHandlerMock)
 	cm := worker.ConsensusMetrics().(*spos.ConsensusMetrics)
 
 	cm.SetBlockReceivedOrSent(uint64(150))
 	cm.SetProofReceived(uint64(200))
-	values := cm.GetValuesForTesting()
 
-	assert.NotZero(t, values["blockReceivedDelaySum"])
-	assert.NotZero(t, values["blockReceivedCount"])
-	assert.NotZero(t, values["blockSignedDelaySum"])
-	assert.NotZero(t, values["blockSignedCount"])
+	assert.NotZero(t, appStatusHandler.GetUint64(common.MetricAvgReceivedProposedBlockBody))
+	assert.NotZero(t, appStatusHandler.GetUint64(common.MetricAvgReceivedProof))
 
 	startRound.EpochStartAction(&testscommon.HeaderHandlerStub{EpochField: 2})
 
-	values = cm.GetValuesForTesting()
-	assert.Zero(t, values["blockReceivedDelaySum"])
-	assert.Zero(t, values["blockReceivedCount"])
-	assert.Zero(t, values["blockSignedDelaySum"])
-	assert.Zero(t, values["blockSignedCount"])
+	assert.Zero(t, appStatusHandler.GetUint64(common.MetricAvgReceivedProposedBlockBody))
+	assert.Zero(t, appStatusHandler.GetUint64(common.MetricAvgReceivedProof))
+
 }
 
 func TestSubroundStartRound_ConsensusMetricsResetInstanceValuesShouldWork(t *testing.T) {
@@ -1202,18 +1199,16 @@ func TestSubroundStartRound_ConsensusMetricsResetInstanceValuesShouldWork(t *tes
 	)
 	require.Nil(t, err)
 	cm := worker.ConsensusMetrics().(*spos.ConsensusMetrics)
+	appStatusHandler := sr.AppStatusHandler().(*statusHandler.AppStatusHandlerMock)
 
 	cm.SetBlockReceivedOrSent(uint64(150))
 	cm.SetProofReceived(uint64(200))
-	values := cm.GetValuesForTesting()
 
-	assert.Equal(t, uint64(150), values["blockReceivedOrSentDelay"])
-	assert.True(t, values["isBlockAlreadyReceived"].(bool))
+	assert.Equal(t, uint64(150), appStatusHandler.GetUint64(common.MetricReceivedProposedBlockBody))
+	assert.Equal(t, uint64(50), appStatusHandler.GetUint64(common.MetricReceivedProof))
 
 	startRound.DoStartRoundJob()
 
-	values = cm.GetValuesForTesting()
-	assert.Equal(t, uint64(0), values["blockReceivedOrSentDelay"])
-	assert.False(t, values["isBlockAlreadyReceived"].(bool))
-
+	assert.Equal(t, uint64(0), appStatusHandler.GetUint64(common.MetricReceivedProposedBlockBody))
+	assert.Equal(t, uint64(0), appStatusHandler.GetUint64(common.MetricReceivedProof))
 }

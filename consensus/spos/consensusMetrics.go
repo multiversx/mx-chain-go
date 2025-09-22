@@ -36,6 +36,8 @@ func (cm *ConsensusMetrics) ResetInstanceValues() {
 
 	cm.blockReceivedOrSentDelay = uint64(0)
 	cm.isBlockAlreadyReceived = false
+	cm.appStatusHandler.SetUInt64Value(common.MetricReceivedProposedBlockBody, uint64(0))
+	cm.appStatusHandler.SetUInt64Value(common.MetricReceivedProof, uint64(0))
 }
 
 // ResetAverages resets the average calculations. It should be called on epoch change.
@@ -51,6 +53,9 @@ func (cm *ConsensusMetrics) ResetAverages() {
 	cm.blockReceivedCount = 0
 	cm.proofReceivedDelaySum = 0
 	cm.proofReceivedCount = 0
+
+	cm.appStatusHandler.SetUInt64Value(common.MetricAvgReceivedProposedBlockBody, uint64(0))
+	cm.appStatusHandler.SetUInt64Value(common.MetricAvgReceivedProof, uint64(0))
 }
 
 // SetBlockReceivedOrSent sets the block body received delay and updates the metrics if both header and body have been received/sent.
@@ -109,21 +114,6 @@ func avg(sum, count uint64) uint64 {
 		return 0
 	}
 	return sum / count
-}
-
-func (cm *ConsensusMetrics) GetValuesForTesting() map[string]interface{} {
-	cm.mut.RLock()
-	defer cm.mut.RUnlock()
-
-	result := make(map[string]interface{})
-	result["blockReceivedOrSentDelay"] = cm.blockReceivedOrSentDelay
-	result["blockReceivedDelaySum"] = cm.blockReceivedDelaySum
-	result["blockReceivedCount"] = cm.blockReceivedCount
-	result["blockSignedDelaySum"] = cm.proofReceivedDelaySum
-	result["blockSignedCount"] = cm.proofReceivedCount
-	result["isBlockAlreadyReceived"] = cm.isBlockAlreadyReceived
-
-	return result
 }
 
 // IsInterfaceNil returns true if the interface is nil
