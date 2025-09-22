@@ -14,11 +14,12 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
 	"github.com/multiversx/mx-chain-go/process/asyncExecution/executionTrack"
 	"github.com/multiversx/mx-chain-go/process/estimator"
 	"github.com/multiversx/mx-chain-go/process/missingData"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 
 	"github.com/multiversx/mx-chain-go/process/block/headerForBlock"
 	"github.com/multiversx/mx-chain-go/process/coordinator"
@@ -629,7 +630,7 @@ func TestMetaProcessor_CheckHeaderBodyCorrelationReceiverMissmatch(t *testing.T)
 
 	hdr.MiniBlockHeaders[0].ReceiverShardID = body.MiniBlocks[0].ReceiverShardID + 1
 	err := mp.CheckHeaderBodyCorrelation(hdr, body)
-	assert.Equal(t, process.ErrHeaderBodyMismatch, err)
+	assert.ErrorIs(t, err, process.ErrHeaderBodyMismatch)
 }
 
 func TestMetaProcessor_CheckHeaderBodyCorrelationSenderMissmatch(t *testing.T) {
@@ -641,7 +642,7 @@ func TestMetaProcessor_CheckHeaderBodyCorrelationSenderMissmatch(t *testing.T) {
 
 	hdr.MiniBlockHeaders[0].SenderShardID = body.MiniBlocks[0].SenderShardID + 1
 	err := mp.CheckHeaderBodyCorrelation(hdr, body)
-	assert.Equal(t, process.ErrHeaderBodyMismatch, err)
+	assert.ErrorIs(t, err, process.ErrHeaderBodyMismatch)
 }
 
 func TestMetaProcessor_CheckHeaderBodyCorrelationTxCountMissmatch(t *testing.T) {

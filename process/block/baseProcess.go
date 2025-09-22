@@ -1000,11 +1000,11 @@ func checkMiniBlockWithMiniBlockHeader(mbHash []byte, mbHdr data.MiniBlockHeader
 	}
 
 	if mbHdr.GetReceiverShardID() != miniBlock.ReceiverShardID {
-		return process.ErrHeaderBodyMismatch
+		return fmt.Errorf("%w: different mb receiver shard ID", process.ErrHeaderBodyMismatch)
 	}
 
 	if mbHdr.GetSenderShardID() != miniBlock.SenderShardID {
-		return process.ErrHeaderBodyMismatch
+		return fmt.Errorf("%w: different mb sender shard ID", process.ErrHeaderBodyMismatch)
 	}
 	return nil
 }

@@ -105,6 +105,9 @@ func (sp *shardProcessor) VerifyBlockProposal(
 	bodyHandler data.BodyHandler,
 	haveTime func() time.Duration,
 ) error {
+	if !headerHandler.IsHeaderV3() {
+		return process.ErrInvalidHeader
+	}
 	log.Debug("started verifying proposed block",
 		"epoch", headerHandler.GetEpoch(),
 		"shard", headerHandler.GetShardID(),
@@ -503,10 +506,11 @@ func (sp *shardProcessor) checkMetaHeadersValidityAndFinalityProposal(header dat
 	}
 	usedMetaHdrHashes := header.GetMetaBlockHashes()
 	usedMetaHeaders := make([]data.HeaderHandler, 0, len(usedMetaHdrHashes))
+	var metaHdr data.HeaderHandler
 	for _, metaHdrHash := range usedMetaHdrHashes {
-		metaHdr, errNotCritical := sp.dataPool.Headers().GetHeaderByHash(metaHdrHash)
-		if errNotCritical != nil {
-			return fmt.Errorf("%w : checkMetaHeadersValidityAndFinalityProposal -> getHeaderByHash", errNotCritical)
+		metaHdr, err = sp.dataPool.Headers().GetHeaderByHash(metaHdrHash)
+		if err != nil {
+			return fmt.Errorf("%w : checkMetaHeadersValidityAndFinalityProposal -> getHeaderByHash", err)
 		}
 		usedMetaHeaders = append(usedMetaHeaders, metaHdr)
 	}

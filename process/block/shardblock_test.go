@@ -1308,7 +1308,7 @@ func TestShardProcessor_ProcessBlockWithWrongMiniBlockHeaderShouldErr(t *testing
 
 	// should return err
 	err := sp.ProcessBlock(&hdr, body, haveTime)
-	assert.Equal(t, process.ErrHeaderBodyMismatch, err)
+	assert.ErrorIs(t, err, process.ErrHeaderBodyMismatch)
 }
 
 // ------- requestEpochStartInfo
@@ -3914,7 +3914,7 @@ func TestShardProcessor_CheckHeaderBodyCorrelationReceiverMissmatch(t *testing.T
 
 	hdr.MiniBlockHeaders[0].ReceiverShardID = body.MiniBlocks[0].ReceiverShardID + 1
 	err := sp.CheckHeaderBodyCorrelation(hdr, body)
-	assert.Equal(t, process.ErrHeaderBodyMismatch, err)
+	assert.ErrorIs(t, err, process.ErrHeaderBodyMismatch)
 }
 
 func TestShardProcessor_CheckHeaderBodyCorrelationSenderMissmatch(t *testing.T) {
@@ -3927,7 +3927,7 @@ func TestShardProcessor_CheckHeaderBodyCorrelationSenderMissmatch(t *testing.T) 
 
 	hdr.MiniBlockHeaders[0].SenderShardID = body.MiniBlocks[0].SenderShardID + 1
 	err := sp.CheckHeaderBodyCorrelation(hdr, body)
-	assert.Equal(t, process.ErrHeaderBodyMismatch, err)
+	assert.ErrorIs(t, err, process.ErrHeaderBodyMismatch)
 }
 
 func TestShardProcessor_CheckHeaderBodyCorrelationTxCountMissmatch(t *testing.T) {
