@@ -1,9 +1,11 @@
 package block_test
 
 import (
+	"bytes"
 	"testing"
 	"time"
 
+	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/stretchr/testify/require"
@@ -878,7 +880,42 @@ func TestShardBlockProposal_CreateAndVerifyProposal_WithTransactions(t *testing.
 	blkc.SetCurrentBlockHeaderHash(currentHeaderHash)
 	blkc.SetCurrentBlockHeaderAndRootHash(currentHeader, []byte("currHdrRootHash"))
 
-	headers := dataComponents.DataPool.Headers()
+	epochStartMetaHash := []byte("epochStartMetaHash")
+	metaBlockHash1 := []byte("metaBlockHash1")
+	metaBlock1 := &block.MetaBlockV3{
+		Round: 10,
+	}
+	lastCommitedMetaHash := []byte("lastCommitedMeta")
+	lastCommitedMeta := &block.MetaBlockV3{
+		Round: 9,
+		Nonce: 9,
+	}
+	lastCrossNotarizedMetaHdrHash := []byte("lastCrossNotarizedMetaHdrHash")
+	lastCrossNotarizedMetaHdr := &block.MetaBlockV3{
+		Round: 8,
+		Nonce: 8,
+	}
+
+	headers := &mock.HeadersCacherStub{}
+	headers.GetHeaderByHashCalled = func(hash []byte) (data.HeaderHandler, error) {
+		if bytes.Equal(hash, epochStartMetaHash) {
+			return &block.MetaBlockV3{}, nil
+		}
+		if bytes.Equal(hash, metaBlockHash1) {
+			return metaBlock1, nil
+		}
+		if bytes.Equal(hash, lastCommitedMetaHash) {
+			return lastCommitedMeta, nil
+		}
+		if bytes.Equal(hash, lastCrossNotarizedMetaHdrHash) {
+			return lastCrossNotarizedMetaHdr, nil
+		}
+
+		return &block.HeaderV3{}, nil
+	}
+
+	headers.AddHeader(epochStartMetaHash, &block.MetaBlockV3{})
+
 	dataComponents.DataPool = &dataRetriever.PoolsHolderStub{
 		ProofsCalled: func() retriever.ProofsPool {
 			return &dataRetriever.ProofsPoolMock{
@@ -899,6 +936,12 @@ func TestShardBlockProposal_CreateAndVerifyProposal_WithTransactions(t *testing.
 	arguments.ArgBaseProcessor.ExecutionResultsTracker = executionResultsTracker
 	arguments.ArgBaseProcessor.ExecutionResultsVerifier = execResultsVerifier
 
+	arguments.MissingDataResolver = &processMocks.MissingDataResolverMock{
+		WaitForMissingDataCalled: func(timeout time.Duration) error {
+			return nil
+		},
+	}
+
 	arguments.BlockTracker = &mock.BlockTrackerMock{
 		ComputeLongestMetaChainFromLastNotarizedCalled: func() ([]data.HeaderHandler, [][]byte, error) {
 			return []data.HeaderHandler{&block.MetaBlockV3{
@@ -917,22 +960,23 @@ func TestShardBlockProposal_CreateAndVerifyProposal_WithTransactions(t *testing.
 						{},
 					},
 				}},
-				[][]byte{[]byte("hash_ok"), []byte("hash_empty")},
+				[][]byte{lastCommitedMetaHash},
 				nil
 		},
 		GetLastCrossNotarizedHeaderCalled: func(shardID uint32) (data.HeaderHandler, []byte, error) {
-			return &block.MetaBlockV3{}, []byte("hash"), nil // dummy
+			return lastCrossNotarizedMetaHdr, lastCrossNotarizedMetaHdrHash, nil
 		},
 	}
 	providedMb := &block.MiniBlock{
 		TxHashes: [][]byte{[]byte("tx_hash")},
 	}
+	mbHash, _ := core.CalculateHash(arguments.CoreComponents.InternalMarshalizer(), arguments.CoreComponents.Hasher(), providedMb)
 	arguments.TxCoordinator = &testscommon.TransactionCoordinatorMock{
 		CreateMbsCrossShardDstMeCalled: func(header data.HeaderHandler, processedMiniBlocksInfo map[string]*processedMb.ProcessedMiniBlockInfo) ([]block.MiniblockAndHash, uint32, bool, error) {
 			return []block.MiniblockAndHash{
 				{
 					Miniblock: providedMb,
-					Hash:      []byte("providedMB"),
+					Hash:      mbHash,
 				},
 			}, 0, true, nil
 		},
@@ -941,10 +985,19 @@ func TestShardBlockProposal_CreateAndVerifyProposal_WithTransactions(t *testing.
 	shardProcessor, err := blproc.NewShardProcessor(arguments)
 	require.Nil(t, err)
 
+	argsHeaderValidator := blproc.ArgsHeaderValidator{
+		Hasher:              coreComponents.Hasher(),
+		Marshalizer:         coreComponents.InternalMarshalizer(),
+		EnableEpochsHandler: coreComponents.EnableEpochsHandler(),
+	}
+	headerValidator, _ := blproc.NewHeaderValidator(argsHeaderValidator)
+	shardProcessor.SetHeaderValidator(headerValidator)
+
 	header := &block.HeaderV3{
-		Round:    11,
-		Nonce:    11,
-		PrevHash: currentHeaderHash,
+		Round:           11,
+		Nonce:           11,
+		PrevHash:        currentHeaderHash,
+		MetaBlockHashes: [][]byte{metaBlockHash1},
 	}
 	headerProposed, bodyProposed, err := shardProcessor.CreateBlockProposal(header, haveTimeTrue)
 	require.Nil(t, err)
