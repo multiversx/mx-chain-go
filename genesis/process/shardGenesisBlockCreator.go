@@ -10,6 +10,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
 	dataBlock "github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-go/process/block"
 	logger "github.com/multiversx/mx-chain-logger-go"
 	"github.com/multiversx/mx-chain-vm-common-go/parsers"
 
@@ -580,6 +581,18 @@ func createProcessorsForShardGenesisBlock(arg ArgsGenesisBlockCreator, enableEpo
 	disabledScheduledTxsExecutionHandler := &disabled.ScheduledTxsExecutionHandler{}
 	disabledProcessedMiniBlocksTracker := &disabled.ProcessedMiniBlocksTracker{}
 
+	argsGasConsumption := block.ArgsGasConsumption{
+		EconomicsFee:                      arg.Core.EconomicsData(),
+		ShardCoordinator:                  arg.ShardCoordinator,
+		GasHandler:                        gasHandler,
+		BlockCapacityOverestimationFactor: arg.FeeSettings.BlockCapacityOverestimationFactor,
+		PercentDecreaseLimitsStep:         arg.FeeSettings.PercentDecreaseLimitsStep,
+	}
+	gasConsumption, err := block.NewGasConsumption(argsGasConsumption)
+	if err != nil {
+		return nil, err
+	}
+
 	preProcFactory, err := shard.NewPreProcessorsContainerFactory(
 		arg.ShardCoordinator,
 		arg.Data.StorageService(),
@@ -661,6 +674,7 @@ func createProcessorsForShardGenesisBlock(arg ArgsGenesisBlockCreator, enableEpo
 		TxExecutionOrderHandler:      arg.TxExecutionOrderHandler,
 		BlockDataRequester:           blockDataRequester,
 		BlockDataRequesterProposal:   blockDataRequester, // no need for a different one in genesis
+		GasComputation:               gasConsumption,
 	}
 	txCoordinator, err := coordinator.NewTransactionCoordinator(argsTransactionCoordinator)
 	if err != nil {

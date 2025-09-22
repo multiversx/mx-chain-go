@@ -132,12 +132,14 @@ func createArgBaseProcessor(
 	var mbSelectionSession blproc.MiniBlocksSelectionSession
 	var execResultsVerifier blproc.ExecutionResultsVerifier
 	var missingDataResolver blproc.MissingDataResolver
+	var gasComputation process.GasComputation
 	if check.IfNil(dataComponents) || check.IfNil(dataComponents.Datapool()) || check.IfNil(coreComponents) || check.IfNil(bootstrapComponents) {
 		blockDataRequester = &preprocMocks.BlockDataRequesterStub{}
 		inclusionEstimator = &processMocks.InclusionEstimatorMock{}
 		mbSelectionSession = &mbSelection.MiniBlockSelectionSessionStub{}
 		execResultsVerifier = &processMocks.ExecutionResultsVerifierMock{}
 		missingDataResolver = &processMocks.MissingDataResolverMock{}
+		gasComputation = &testscommon.GasComputationMock{}
 
 	} else {
 		preprocContainer := containers.NewPreProcessorsContainer()
@@ -175,6 +177,15 @@ func createArgBaseProcessor(
 			BlockDataRequester: blockDataRequester,
 		}
 		missingDataResolver, _ = missingData.NewMissingDataResolver(missingDataArgs)
+
+		argsGasConsumption := blproc.ArgsGasConsumption{
+			EconomicsFee:                      &economicsmocks.EconomicsHandlerMock{},
+			ShardCoordinator:                  bootstrapComponents.ShardCoordinator(),
+			GasHandler:                        &mock.GasHandlerMock{},
+			BlockCapacityOverestimationFactor: 200,
+			PercentDecreaseLimitsStep:         10,
+		}
+		gasComputation, _ = blproc.NewGasConsumption(argsGasConsumption)
 	}
 
 	return blproc.ArgBaseProcessor{
@@ -217,6 +228,7 @@ func createArgBaseProcessor(
 		MissingDataResolver:                missingDataResolver,
 		ExecutionResultsInclusionEstimator: inclusionEstimator,
 		ExecutionResultsTracker:            executionResultsTracker,
+		GasComputation:                     gasComputation,
 	}
 }
 
@@ -576,6 +588,7 @@ func createMockTransactionCoordinatorArguments(
 		TxExecutionOrderHandler:      &commonMocks.TxExecutionOrderHandlerStub{},
 		BlockDataRequester:           blockDataRequester,
 		BlockDataRequesterProposal:   blockDataRequesterProposal,
+		GasComputation:               &testscommon.GasComputationMock{},
 	}
 
 	return argsTransactionCoordinator
@@ -968,6 +981,14 @@ func TestCheckProcessorNilParameters(t *testing.T) {
 				return args
 			},
 			expectedErr: process.ErrNilMissingDataResolver,
+		},
+		{
+			args: func() blproc.ArgBaseProcessor {
+				args := createArgBaseProcessor(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+				args.GasComputation = nil
+				return args
+			},
+			expectedErr: process.ErrNilGasComputation,
 		},
 		{
 			args: func() blproc.ArgBaseProcessor {
