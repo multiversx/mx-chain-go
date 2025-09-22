@@ -231,7 +231,8 @@ func initPersistersInEpoch(
 		}
 
 		log.Debug("initPersistersInEpoch(): createPersisterDataForEpoch", "identifier", args.Identifier, "epoch", epoch, "shardID", shardIDStr)
-		p, err := createPersisterDataForEpoch(args, uint32(epoch), shardIDStr)
+		filePath := createPersisterPathForEpoch(args, uint32(epoch), shardIDStr)
+		p, err := createPersisterDataForEpoch(args.PersisterFactory, filePath, uint32(epoch))
 		if err != nil {
 			return nil, nil, err
 		}
@@ -265,19 +266,33 @@ func initNextEpochPersisterIfNeeded(
 	epoch := args.EpochsData.StartingEpoch
 	epoch++
 
+	// TODO: if booting from storage in an epoch > 0, shardId needs to be taken from somewhere else
+	// e.g. determined from directories in persister path or taken from boot storer
+	filePath := createPersisterPathForEpoch(args, epoch, shardIDStr)
+
+	createPersisterForEpoch(epoch, filePath, persistersMapByEpoch, args.PersisterFactory)
+
+}
+
+func createPersisterForEpoch(
+	epoch uint32,
+	filePath string,
+	persistersMapByEpoch map[uint32]*persisterData,
+	persisterFactory DbFactoryHandler,
+) {
 	_, ok := persistersMapByEpoch[epoch]
 	if ok {
-		log.Warn("createNextEpochPersisterIsNeeded: persister already in map", "epoch", epoch)
+		log.Debug("createPersisterForEpoch: persister already in map", "epoch", epoch)
 		return
 	}
 
-	p, err := createPersisterDataForEpoch(args, uint32(epoch), shardIDStr)
+	p, err := createPersisterDataForEpoch(persisterFactory, filePath, epoch)
 	if err != nil {
-		log.Warn("createNextEpochPersisterIsNeeded", "epoch", epoch, "error", err.Error())
+		log.Warn("createPersisterForEpoch", "epoch", epoch, "error", err.Error())
 		return
 	}
 
-	persistersMapByEpoch[uint32(epoch)] = p
+	persistersMapByEpoch[epoch] = p
 }
 
 func createPersisterIfPruningDisabled(
@@ -288,7 +303,8 @@ func createPersisterIfPruningDisabled(
 	persistersMapByEpoch := make(map[uint32]*persisterData)
 
 	epoch := uint32(0)
-	p, err := createPersisterDataForEpoch(args, epoch, shardIDStr)
+	filePath := createPersisterPathForEpoch(args, epoch, shardIDStr)
+	p, err := createPersisterDataForEpoch(args.PersisterFactory, filePath, epoch)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -504,6 +520,20 @@ func (ps *PruningStorer) Close() error {
 	for _, pd := range ps.activePersisters {
 		err := pd.Close()
 
+		if err != nil {
+			log.Warn("cannot close pd", "error", err)
+			closedSuccessfully = false
+		}
+	}
+
+	// close also any remaining persisters by map
+	// this includes the persister created in advance
+	for _, pd := range ps.persistersMapByEpoch {
+		if pd.getIsClosed() {
+			continue
+		}
+
+		err := pd.Close()
 		if err != nil {
 			log.Warn("cannot close pd", "error", err)
 			closedSuccessfully = false
@@ -850,31 +880,13 @@ func (ps *PruningStorer) changeEpoch(header data.HeaderHandler) error {
 func (ps *PruningStorer) createNextEpochPersisterIfNeeded(epoch uint32) {
 	epoch++
 
+	shardID := core.GetShardIDString(ps.shardCoordinator.SelfId())
+	filePath := ps.pathManager.PathForEpoch(shardID, epoch, ps.identifier)
+
 	ps.lock.Lock()
 	defer ps.lock.Unlock()
 
-	_, ok := ps.persistersMapByEpoch[epoch]
-	if ok {
-		log.Warn("createNextEpochPersisterIsNeeded: persister already in map", "persister", ps.identifier, "epoch", epoch)
-		return
-	}
-
-	shardID := core.GetShardIDString(ps.shardCoordinator.SelfId())
-	filePath := ps.pathManager.PathForEpoch(shardID, epoch, ps.identifier)
-	db, err := ps.persisterFactory.Create(filePath)
-	if err != nil {
-		log.Warn("createNextEpochPersisterIsNeeded", "persister", ps.identifier, "error", err.Error())
-		return
-	}
-
-	newPersister := &persisterData{
-		persister: db,
-		epoch:     epoch,
-		path:      filePath,
-		isClosed:  false,
-	}
-
-	ps.persistersMapByEpoch[epoch] = newPersister
+	createPersisterForEpoch(epoch, filePath, ps.persistersMapByEpoch, ps.persisterFactory)
 }
 
 func (ps *PruningStorer) removeOldPersistersIfNeeded(header data.HeaderHandler) error {
@@ -1136,12 +1148,12 @@ func createPersisterPathForEpoch(args StorerArgs, epoch uint32, shard string) st
 	return filePath
 }
 
-func createPersisterDataForEpoch(args StorerArgs, epoch uint32, shard string) (*persisterData, error) {
-	// TODO: if booting from storage in an epoch > 0, shardId needs to be taken from somewhere else
-	// e.g. determined from directories in persister path or taken from boot storer
-	filePath := createPersisterPathForEpoch(args, epoch, shard)
-
-	db, err := args.PersisterFactory.Create(filePath)
+func createPersisterDataForEpoch(
+	persisterFactory DbFactoryHandler,
+	filePath string,
+	epoch uint32,
+) (*persisterData, error) {
+	db, err := persisterFactory.Create(filePath)
 	if err != nil {
 		log.Warn("persister create error", "error", err.Error())
 		return nil, err
