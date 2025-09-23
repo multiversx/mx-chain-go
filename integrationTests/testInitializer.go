@@ -754,6 +754,10 @@ func CreateFullGenesisBlocks(
 		EpochConfig: config.EpochConfig{
 			EnableEpochs: enableEpochsConfig,
 		},
+		FeeSettings: config.FeeSettings{
+			BlockCapacityOverestimationFactor: 200,
+			PercentDecreaseLimitsStep:         10,
+		},
 		RoundConfig:             testscommon.GetDefaultRoundsConfig(),
 		HeaderVersionConfigs:    testscommon.GetDefaultHeaderVersionConfig(),
 		HistoryRepository:       &dblookupext.HistoryRepositoryStub{},
@@ -881,6 +885,10 @@ func CreateGenesisMetaBlock(
 		GenesisNodePrice: big.NewInt(1000),
 		EpochConfig: config.EpochConfig{
 			EnableEpochs: enableEpochsConfig,
+		},
+		FeeSettings: config.FeeSettings{
+			BlockCapacityOverestimationFactor: 200,
+			PercentDecreaseLimitsStep:         10,
 		},
 		RoundConfig:             testscommon.GetDefaultRoundsConfig(),
 		HeaderVersionConfigs:    testscommon.GetDefaultHeaderVersionConfig(),

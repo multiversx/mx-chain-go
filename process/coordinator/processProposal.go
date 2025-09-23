@@ -11,6 +11,7 @@ import (
 	"github.com/multiversx/mx-chain-go/process/block/processedMb"
 )
 
+// CreateMbsCrossShardDstMe creates cross-shard miniblocks for the current shard
 func (tc *transactionCoordinator) CreateMbsCrossShardDstMe(
 	hdr data.HeaderHandler,
 	processedMiniBlocksInfo map[string]*processedMb.ProcessedMiniBlockInfo,
@@ -23,7 +24,6 @@ func (tc *transactionCoordinator) CreateMbsCrossShardDstMe(
 	miniBlocksAndHashes := make([]block.MiniblockAndHash, 0)
 	numTransactions := uint32(0)
 	shouldSkipShard := make(map[uint32]bool)
-	// TODO: init the gas estimation per added mbs counter
 
 	finalCrossMiniBlockInfos := tc.blockDataRequesterProposal.GetFinalCrossMiniBlockInfoAndRequestMissing(hdr)
 	defer func() {
@@ -31,9 +31,11 @@ func (tc *transactionCoordinator) CreateMbsCrossShardDstMe(
 			"header round", hdr.GetRound(),
 			"header nonce", hdr.GetNonce(),
 			"num mini blocks to be processed", len(finalCrossMiniBlockInfos),
-			"total gas provided", tc.gasHandler.TotalGasProvided()) // todo: the gas handler needs to be separate from
+			"total gas provided", tc.gasComputation.TotalGasConsumed())
 	}()
 
+	txsForMbs := make(map[string][]data.TransactionHandler, 0)
+	mbsSlice := make([]data.MiniBlockHeaderHandler, 0)
 	for _, miniBlockInfo := range finalCrossMiniBlockInfos {
 		if tc.blockSizeComputation.IsMaxBlockSizeReached(0, 0) {
 			log.Debug("transactionCoordinator.CreateMbsCrossShardDstMe",
@@ -88,8 +90,7 @@ func (tc *transactionCoordinator) CreateMbsCrossShardDstMe(
 			return nil, 0, false, fmt.Errorf("%w unknown block type %d", process.ErrNilPreProcessor, miniBlock.Type)
 		}
 
-		// TODO: The method here should be renamed, as it checks which transactions are not available locally (in the node pool)
-		missingTxs := preproc.RequestTransactionsForMiniBlock(miniBlock)
+		existingTxsForMb, missingTxs := preproc.GetTransactionsAndRequestMissingForMiniBlock(miniBlock)
 		if missingTxs > 0 {
 			shouldSkipShard[miniBlockInfo.SenderShardID] = true
 			log.Trace("transactionCoordinator.CreateMbsCrossShardDstMe: transactions not found",
@@ -106,7 +107,6 @@ func (tc *transactionCoordinator) CreateMbsCrossShardDstMe(
 			"type", miniBlock.Type,
 			"round", miniBlockInfo.Round,
 			"num txs", len(miniBlock.TxHashes),
-			"total gas provided", tc.gasHandler.TotalGasProvided(), // todo: don't use the same instance used in processing, as it will be accessed in parallel
 		)
 
 		miniBlocksAndHashes = append(miniBlocksAndHashes, block.MiniblockAndHash{
@@ -114,6 +114,26 @@ func (tc *transactionCoordinator) CreateMbsCrossShardDstMe(
 			Hash:      miniBlockInfo.Hash,
 		})
 		numTransactions += uint32(len(miniBlock.TxHashes))
+
+		txsForMbs[string(miniBlockInfo.Hash)] = existingTxsForMb
+		mbsSlice = append(mbsSlice, &block.MiniBlockHeader{
+			Hash:            miniBlockInfo.Hash,
+			SenderShardID:   miniBlock.SenderShardID,
+			ReceiverShardID: miniBlock.ReceiverShardID,
+			TxCount:         uint32(len(miniBlock.TxHashes)),
+			Type:            miniBlock.Type,
+			Reserved:        miniBlock.Reserved,
+		})
+	}
+
+	lastMBIndex, _, err := tc.gasComputation.CheckIncomingMiniBlocks(mbsSlice, txsForMbs)
+	if err != nil {
+		return nil, 0, false, err
+	}
+
+	// if not all mini blocks were included, remove them from the miniBlocksAndHashes slice
+	if lastMBIndex != len(mbsSlice) {
+		miniBlocksAndHashes = miniBlocksAndHashes[:lastMBIndex+1]
 	}
 
 	allMiniBlocksAdded := len(miniBlocksAndHashes)+numMiniBlocksAlreadyProcessed == len(finalCrossMiniBlockInfos)
@@ -123,9 +143,8 @@ func (tc *transactionCoordinator) CreateMbsCrossShardDstMe(
 
 // SelectOutgoingTransactions returns transactions originating in the shard, for a block proposal
 func (tc *transactionCoordinator) SelectOutgoingTransactions() [][]byte {
-	txHashes := make([][]byte, 0)
-	var currentTxHashes [][]byte
-	var err error
+	selectedTxHashes := make([][]byte, 0)
+	selectedTxs := make([]data.TransactionHandler, 0)
 	for _, blockType := range tc.preProcProposal.keysTxPreProcs {
 		txPreProc := tc.preProcProposal.getPreProcessor(blockType)
 		if check.IfNil(txPreProc) {
@@ -133,13 +152,20 @@ func (tc *transactionCoordinator) SelectOutgoingTransactions() [][]byte {
 			continue
 		}
 
-		currentTxHashes, err = txPreProc.SelectOutgoingTransactions()
+		gasBandwidth := tc.gasComputation.GetBandwidthForTransactions()
+		txHashes, txs, err := txPreProc.SelectOutgoingTransactions(gasBandwidth)
 		if err != nil {
 			log.Warn("transactionCoordinator.SelectOutgoingTransactions: SelectOutgoingTransactions returned error", "error", err)
 			continue
 		}
-		txHashes = append(txHashes, currentTxHashes...)
+		selectedTxHashes = append(selectedTxHashes, txHashes...)
+		selectedTxs = append(selectedTxs, txs...)
 	}
 
-	return txHashes
+	selectedTxHashes, err := tc.gasComputation.CheckOutgoingTransactions(selectedTxHashes, selectedTxs)
+	if err != nil {
+		log.Warn("transactionCoordinator.CheckOutgoingTransactions: CheckOutgoingTransactions returned error", "error", err)
+	}
+
+	return selectedTxHashes
 }

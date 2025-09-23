@@ -66,7 +66,7 @@ type transactions struct {
 func NewTransactionPreprocessor(
 	args ArgsTransactionPreProcessor,
 ) (*transactions, error) {
-	err := CheckBasePreProcessArgs(args.BasePreProcessorArgs)
+	err := checkBasePreProcessArgs(args.BasePreProcessorArgs)
 	if err != nil {
 		return nil, err
 	}
@@ -831,26 +831,27 @@ func (txs *transactions) processAndRemoveBadTransaction(
 	return err
 }
 
-// RequestTransactionsForMiniBlock requests missing transactions for a certain miniblock
-func (txs *transactions) RequestTransactionsForMiniBlock(miniBlock *block.MiniBlock) int {
+// GetTransactionsAndRequestMissingForMiniBlock requests missing transactions for a certain miniblock
+func (txs *transactions) GetTransactionsAndRequestMissingForMiniBlock(miniBlock *block.MiniBlock) ([]data.TransactionHandler, int) {
 	if miniBlock == nil {
-		return 0
+		return nil, 0
 	}
 
-	missingTxsHashesForMiniBlock := txs.computeMissingTxsHashesForMiniBlock(miniBlock)
+	existingTxs, missingTxsHashesForMiniBlock := txs.computeMissingTxsHashesForMiniBlock(miniBlock)
 	if len(missingTxsHashesForMiniBlock) > 0 {
 		txs.onRequestTransaction(miniBlock.SenderShardID, missingTxsHashesForMiniBlock)
 	}
 
-	return len(missingTxsHashesForMiniBlock)
+	return existingTxs, len(missingTxsHashesForMiniBlock)
 }
 
 // computeMissingTxsHashesForMiniBlock computes missing transactions hashes for a certain miniblock
-func (txs *transactions) computeMissingTxsHashesForMiniBlock(miniBlock *block.MiniBlock) [][]byte {
+func (txs *transactions) computeMissingTxsHashesForMiniBlock(miniBlock *block.MiniBlock) ([]data.TransactionHandler, [][]byte) {
 	missingTransactionsHashes := make([][]byte, 0)
+	existingTxs := make([]data.TransactionHandler, 0)
 
 	if miniBlock.Type != txs.blockType {
-		return missingTransactionsHashes
+		return existingTxs, missingTransactionsHashes
 	}
 
 	method := process.SearchMethodJustPeek
@@ -868,10 +869,13 @@ func (txs *transactions) computeMissingTxsHashesForMiniBlock(miniBlock *block.Mi
 
 		if check.IfNil(tx) {
 			missingTransactionsHashes = append(missingTransactionsHashes, txHash)
+			continue
 		}
+
+		existingTxs = append(existingTxs, tx)
 	}
 
-	return missingTransactionsHashes
+	return existingTxs, missingTransactionsHashes
 }
 
 // getAllTxsFromMiniBlock gets all the transactions from a miniblock into a new structure
@@ -932,23 +936,24 @@ func (txs *transactions) getRemainingGasPerBlockAsScheduled() uint64 {
 }
 
 // SelectOutgoingTransactions selects outgoing transactions from the transaction pool
-func (txs *transactions) SelectOutgoingTransactions() ([][]byte, error) {
-	// TODO: this needs to be adjusted depending the new gas consumption component
-	gasBandwidth := txs.economicsFee.MaxGasLimitPerBlock(txs.shardCoordinator.SelfId()) * uint64(txs.txCacheSelectionConfig.SelectionGasBandwidthIncreasePercent) / 100
-	wrappedTxs, err := txs.selectTransactionsFromTxPoolForProposal(txs.shardCoordinator.SelfId(), txs.shardCoordinator.SelfId(), gasBandwidth)
+func (txs *transactions) SelectOutgoingTransactions(bandwidth uint64) ([][]byte, []data.TransactionHandler, error) {
+	wrappedTxs, err := txs.selectTransactionsFromTxPoolForProposal(txs.shardCoordinator.SelfId(), txs.shardCoordinator.SelfId(), bandwidth)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
-	return wrappedTxsToTxHashes(wrappedTxs), nil
+	txHashes, txInstances := unwrapTxs(wrappedTxs)
+	return txHashes, txInstances, nil
 }
 
-func wrappedTxsToTxHashes(wrappedTxs []*txcache.WrappedTransaction) [][]byte {
+func unwrapTxs(wrappedTxs []*txcache.WrappedTransaction) ([][]byte, []data.TransactionHandler) {
 	txHashes := make([][]byte, 0, len(wrappedTxs))
+	txs := make([]data.TransactionHandler, 0, len(wrappedTxs))
 	for _, wrappedTx := range wrappedTxs {
 		txHashes = append(txHashes, wrappedTx.TxHash)
+		txs = append(txs, wrappedTx.Tx)
 	}
-	return txHashes
+	return txHashes, txs
 }
 
 // CreateAndProcessMiniBlocks creates miniBlocks from storage and processes the transactions added into the miniblocks

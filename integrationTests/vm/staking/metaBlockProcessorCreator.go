@@ -6,6 +6,10 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-go/config"
+	"github.com/multiversx/mx-chain-go/process/asyncExecution/executionTrack"
+	"github.com/multiversx/mx-chain-go/process/estimator"
+	"github.com/multiversx/mx-chain-go/process/missingData"
 
 	"github.com/multiversx/mx-chain-go/process/block/headerForBlock"
 	"github.com/multiversx/mx-chain-go/process/coordinator"
@@ -99,6 +103,31 @@ func createMetaBlockProcessor(
 	// second instance for proposal missing data fetching to avoid interferences
 	proposalBlockDataRequester, _ := coordinator.NewBlockDataRequester(blockDataRequesterArgs)
 
+	mbSelectionSession, _ := blproc.NewMiniBlocksSelectionSession(
+		bootstrapComponents.ShardCoordinator().SelfId(),
+		coreComponents.InternalMarshalizer(),
+		coreComponents.Hasher(),
+	)
+
+	executionResultsTracker := executionTrack.NewExecutionResultsTracker()
+	execResultsVerifier, _ := blproc.NewExecutionResultsVerifier(dataComponents.Blockchain(), executionResultsTracker)
+	inclusionEstimator := estimator.NewExecutionResultInclusionEstimator(
+		config.ExecutionResultInclusionEstimatorConfig{
+			SafetyMargin:       110,
+			MaxResultsPerBlock: 20,
+		},
+		0,
+		coreComponents.RoundHandler(),
+	)
+
+	missingDataArgs := missingData.ResolverArgs{
+		HeadersPool:        dataComponents.Datapool().Headers(),
+		ProofsPool:         dataComponents.Datapool().Proofs(),
+		RequestHandler:     &testscommon.RequestHandlerStub{},
+		BlockDataRequester: proposalBlockDataRequester,
+	}
+	missingDataResolver, _ := missingData.NewMissingDataResolver(missingDataArgs)
+
 	args := blproc.ArgMetaProcessor{
 		ArgBaseProcessor: blproc.ArgBaseProcessor{
 			CoreComponents:      coreComponents,
@@ -108,32 +137,37 @@ func createMetaBlockProcessor(
 			StatusCoreComponents: &testsFactory.StatusCoreComponentsStub{
 				AppStatusHandlerField: &statusHandlerMock.AppStatusHandlerStub{},
 			},
-			AccountsDB:                     accountsDb,
-			ForkDetector:                   &integrationMocks.ForkDetectorStub{},
-			NodesCoordinator:               nc,
-			FeeHandler:                     postprocess.NewFeeAccumulator(),
-			RequestHandler:                 &testscommon.RequestHandlerStub{},
-			BlockChainHook:                 blockChainHook,
-			TxCoordinator:                  txCoordinator,
-			EpochStartTrigger:              epochStartHandler,
-			HeaderValidator:                headerValidator,
-			BootStorer:                     bootStorer,
-			BlockTracker:                   blockTracker,
-			BlockSizeThrottler:             &mock.BlockSizeThrottlerStub{},
-			HistoryRepository:              &dblookupext.HistoryRepositoryStub{},
-			VMContainersFactory:            metaVMFactory,
-			VmContainer:                    vmContainer,
-			GasHandler:                     &mock.GasHandlerMock{},
-			ScheduledTxsExecutionHandler:   &testscommon.ScheduledTxsExecutionStub{},
-			ScheduledMiniBlocksEnableEpoch: 10000,
-			ProcessedMiniBlocksTracker:     processedMb.NewProcessedMiniBlocksTracker(),
-			OutportDataProvider:            &outport.OutportDataProviderStub{},
-			ReceiptsRepository:             &testscommon.ReceiptsRepositoryStub{},
-			ManagedPeersHolder:             &testscommon.ManagedPeersHolderStub{},
-			BlockProcessingCutoffHandler:   &testscommon.BlockProcessingCutoffStub{},
-			SentSignaturesTracker:          &testscommon.SentSignatureTrackerStub{},
-			HeadersForBlock:                headersForBlock,
-			BlockDataRequester:             proposalBlockDataRequester,
+			AccountsDB:                         accountsDb,
+			ForkDetector:                       &integrationMocks.ForkDetectorStub{},
+			NodesCoordinator:                   nc,
+			FeeHandler:                         postprocess.NewFeeAccumulator(),
+			RequestHandler:                     &testscommon.RequestHandlerStub{},
+			BlockChainHook:                     blockChainHook,
+			TxCoordinator:                      txCoordinator,
+			EpochStartTrigger:                  epochStartHandler,
+			HeaderValidator:                    headerValidator,
+			BootStorer:                         bootStorer,
+			BlockTracker:                       blockTracker,
+			BlockSizeThrottler:                 &mock.BlockSizeThrottlerStub{},
+			HistoryRepository:                  &dblookupext.HistoryRepositoryStub{},
+			VMContainersFactory:                metaVMFactory,
+			VmContainer:                        vmContainer,
+			GasHandler:                         &mock.GasHandlerMock{},
+			ScheduledTxsExecutionHandler:       &testscommon.ScheduledTxsExecutionStub{},
+			ScheduledMiniBlocksEnableEpoch:     10000,
+			ProcessedMiniBlocksTracker:         processedMb.NewProcessedMiniBlocksTracker(),
+			OutportDataProvider:                &outport.OutportDataProviderStub{},
+			ReceiptsRepository:                 &testscommon.ReceiptsRepositoryStub{},
+			ManagedPeersHolder:                 &testscommon.ManagedPeersHolderStub{},
+			BlockProcessingCutoffHandler:       &testscommon.BlockProcessingCutoffStub{},
+			SentSignaturesTracker:              &testscommon.SentSignatureTrackerStub{},
+			HeadersForBlock:                    headersForBlock,
+			MiniBlocksSelectionSession:         mbSelectionSession,
+			ExecutionResultsVerifier:           execResultsVerifier,
+			MissingDataResolver:                missingDataResolver,
+			ExecutionResultsInclusionEstimator: inclusionEstimator,
+			ExecutionResultsTracker:            executionResultsTracker,
+			GasComputation:                     &testscommon.GasComputationMock{},
 		},
 		SCToProtocol:             stakingToPeer,
 		PendingMiniBlocksHandler: &mock.PendingMiniBlocksHandlerStub{},

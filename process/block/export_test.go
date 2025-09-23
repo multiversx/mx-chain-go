@@ -12,6 +12,10 @@ import (
 	"github.com/multiversx/mx-chain-core-go/display"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/multiversx/mx-chain-go/process/asyncExecution/executionTrack"
+	"github.com/multiversx/mx-chain-go/process/estimator"
+	"github.com/multiversx/mx-chain-go/process/missingData"
+	"github.com/multiversx/mx-chain-go/testscommon/economicsmocks"
 
 	"github.com/multiversx/mx-chain-go/common/graceperiod"
 	"github.com/multiversx/mx-chain-go/config"
@@ -161,6 +165,40 @@ func NewShardProcessorEmptyWith3shards(
 	// second instance for proposal missing data fetching to avoid interferences
 	proposalBlockDataRequester, _ := coordinator.NewBlockDataRequester(blockDataRequesterArgs)
 
+	mbSelectionSession, _ := NewMiniBlocksSelectionSession(
+		boostrapComponents.ShardCoordinator().SelfId(),
+		coreComponents.InternalMarshalizer(),
+		coreComponents.Hasher(),
+	)
+
+	executionResultsTracker := executionTrack.NewExecutionResultsTracker()
+	execResultsVerifier, _ := NewExecutionResultsVerifier(dataComponents.BlockChain, executionResultsTracker)
+	inclusionEstimator := estimator.NewExecutionResultInclusionEstimator(
+		config.ExecutionResultInclusionEstimatorConfig{
+			SafetyMargin:       110,
+			MaxResultsPerBlock: 20,
+		},
+		0,
+		coreComponents.RoundHandler(),
+	)
+
+	missingDataArgs := missingData.ResolverArgs{
+		HeadersPool:        dataComponents.DataPool.Headers(),
+		ProofsPool:         dataComponents.DataPool.Proofs(),
+		RequestHandler:     &testscommon.RequestHandlerStub{},
+		BlockDataRequester: proposalBlockDataRequester,
+	}
+	missingDataResolver, _ := missingData.NewMissingDataResolver(missingDataArgs)
+
+	argsGasConsumption := ArgsGasConsumption{
+		EconomicsFee:                      &economicsmocks.EconomicsHandlerMock{},
+		ShardCoordinator:                  boostrapComponents.ShardCoordinator(),
+		GasHandler:                        &mock.GasHandlerMock{},
+		BlockCapacityOverestimationFactor: 200,
+		PercentDecreaseLimitsStep:         10,
+	}
+	gasComputation, _ := NewGasConsumption(argsGasConsumption)
+
 	arguments := ArgShardProcessor{
 		ArgBaseProcessor: ArgBaseProcessor{
 			CoreComponents:       coreComponents,
@@ -182,20 +220,25 @@ func NewShardProcessorEmptyWith3shards(
 					return nil
 				},
 			},
-			BlockTracker:                 mock.NewBlockTrackerMock(shardCoordinator, genesisBlocks),
-			BlockSizeThrottler:           &mock.BlockSizeThrottlerStub{},
-			Version:                      "softwareVersion",
-			HistoryRepository:            &dblookupext.HistoryRepositoryStub{},
-			GasHandler:                   &mock.GasHandlerMock{},
-			OutportDataProvider:          &outport.OutportDataProviderStub{},
-			ScheduledTxsExecutionHandler: &testscommon.ScheduledTxsExecutionStub{},
-			ProcessedMiniBlocksTracker:   &testscommon.ProcessedMiniBlocksTrackerStub{},
-			ReceiptsRepository:           &testscommon.ReceiptsRepositoryStub{},
-			BlockProcessingCutoffHandler: &testscommon.BlockProcessingCutoffStub{},
-			ManagedPeersHolder:           &testscommon.ManagedPeersHolderStub{},
-			SentSignaturesTracker:        &testscommon.SentSignatureTrackerStub{},
-			HeadersForBlock:              &testscommon.HeadersForBlockMock{},
-			BlockDataRequester:           proposalBlockDataRequester,
+			BlockTracker:                       mock.NewBlockTrackerMock(shardCoordinator, genesisBlocks),
+			BlockSizeThrottler:                 &mock.BlockSizeThrottlerStub{},
+			Version:                            "softwareVersion",
+			HistoryRepository:                  &dblookupext.HistoryRepositoryStub{},
+			GasHandler:                         &mock.GasHandlerMock{},
+			OutportDataProvider:                &outport.OutportDataProviderStub{},
+			ScheduledTxsExecutionHandler:       &testscommon.ScheduledTxsExecutionStub{},
+			ProcessedMiniBlocksTracker:         &testscommon.ProcessedMiniBlocksTrackerStub{},
+			ReceiptsRepository:                 &testscommon.ReceiptsRepositoryStub{},
+			BlockProcessingCutoffHandler:       &testscommon.BlockProcessingCutoffStub{},
+			ManagedPeersHolder:                 &testscommon.ManagedPeersHolderStub{},
+			SentSignaturesTracker:              &testscommon.SentSignatureTrackerStub{},
+			HeadersForBlock:                    &testscommon.HeadersForBlockMock{},
+			MiniBlocksSelectionSession:         mbSelectionSession,
+			ExecutionResultsVerifier:           execResultsVerifier,
+			MissingDataResolver:                missingDataResolver,
+			ExecutionResultsInclusionEstimator: inclusionEstimator,
+			ExecutionResultsTracker:            executionResultsTracker,
+			GasComputation:                     gasComputation,
 		},
 	}
 	shardProc, err := NewShardProcessor(arguments)
@@ -609,6 +652,16 @@ func (mp *metaProcessor) GetHdrForBlock() HeadersForBlock {
 // GetHdrForBlock -
 func (sp *shardProcessor) GetHdrForBlock() HeadersForBlock {
 	return sp.hdrsForCurrBlock
+}
+
+// SelectIncomingMiniBlocks -
+func (sp *shardProcessor) SelectIncomingMiniBlocks(
+	lastCrossNotarizedMetaHdr data.HeaderHandler,
+	orderedMetaBlocks []data.HeaderHandler,
+	orderedMetaBlocksHashes [][]byte,
+	haveTime func() bool,
+) error {
+	return sp.selectIncomingMiniBlocks(lastCrossNotarizedMetaHdr, orderedMetaBlocks, orderedMetaBlocksHashes, haveTime)
 }
 
 // DisplayHeader -

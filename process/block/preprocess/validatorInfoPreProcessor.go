@@ -19,6 +19,7 @@ import (
 var _ process.DataMarshalizer = (*validatorInfoPreprocessor)(nil)
 var _ process.PreProcessor = (*validatorInfoPreprocessor)(nil)
 
+// ValidatorInfoPreProcessorArgs is the struct that groups all arguments needed for creating a validatorInfo preprocessor
 type ValidatorInfoPreProcessorArgs struct {
 	BasePreProcessorArgs
 }
@@ -37,7 +38,7 @@ type validatorInfoPreprocessor struct {
 func NewValidatorInfoPreprocessor(
 	args ValidatorInfoPreProcessorArgs,
 ) (*validatorInfoPreprocessor, error) {
-	err := CheckBasePreProcessArgs(args.BasePreProcessorArgs)
+	err := checkBasePreProcessArgs(args.BasePreProcessorArgs)
 	if err != nil {
 		return nil, err
 	}
@@ -221,14 +222,14 @@ func (vip *validatorInfoPreprocessor) RequestBlockTransactions(_ *block.Body) in
 	return 0
 }
 
-// RequestTransactionsForMiniBlock does nothing
-func (vip *validatorInfoPreprocessor) RequestTransactionsForMiniBlock(_ *block.MiniBlock) int {
-	return 0
+// GetTransactionsAndRequestMissingForMiniBlock does nothing
+func (vip *validatorInfoPreprocessor) GetTransactionsAndRequestMissingForMiniBlock(_ *block.MiniBlock) ([]data.TransactionHandler, int) {
+	return nil, 0
 }
 
 // SelectOutgoingTransactions does nothing
-func (vip *validatorInfoPreprocessor) SelectOutgoingTransactions() ([][]byte, error) {
-	return make([][]byte, 0), nil
+func (vip *validatorInfoPreprocessor) SelectOutgoingTransactions(_ uint64) ([][]byte, []data.TransactionHandler, error) {
+	return make([][]byte, 0), make([]data.TransactionHandler, 0), nil
 }
 
 // CreateAndProcessMiniBlocks does nothing

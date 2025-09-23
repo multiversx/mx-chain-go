@@ -36,7 +36,7 @@ type smartContractResults struct {
 
 // NewSmartContractResultPreprocessor creates a new smartContractResult preprocessor object
 func NewSmartContractResultPreprocessor(args SmartContractResultsArgs) (*smartContractResults, error) {
-	err := CheckBasePreProcessArgs(args.BasePreProcessorArgs)
+	err := checkBasePreProcessArgs(args.BasePreProcessorArgs)
 	if err != nil {
 		return nil, err
 	}
@@ -374,26 +374,27 @@ func (scr *smartContractResults) computeExistingAndRequestMissingSCResultsForSha
 	return numMissingTxsForShard
 }
 
-// RequestTransactionsForMiniBlock requests missing smartContractResults for a certain miniblock
-func (scr *smartContractResults) RequestTransactionsForMiniBlock(miniBlock *block.MiniBlock) int {
+// GetTransactionsAndRequestMissingForMiniBlock requests missing smartContractResults for a certain miniblock
+func (scr *smartContractResults) GetTransactionsAndRequestMissingForMiniBlock(miniBlock *block.MiniBlock) ([]data.TransactionHandler, int) {
 	if miniBlock == nil {
-		return 0
+		return nil, 0
 	}
 
-	missingScrsHashesForMiniBlock := scr.computeMissingScrsHashesForMiniBlock(miniBlock)
+	existingTxs, missingScrsHashesForMiniBlock := scr.computeMissingScrsHashesForMiniBlock(miniBlock)
 	if len(missingScrsHashesForMiniBlock) > 0 {
 		scr.onRequestSmartContractResult(miniBlock.SenderShardID, missingScrsHashesForMiniBlock)
 	}
 
-	return len(missingScrsHashesForMiniBlock)
+	return existingTxs, len(missingScrsHashesForMiniBlock)
 }
 
 // computeMissingScrsHashesForMiniBlock computes missing smart contract results hashes for a certain miniblock
-func (scr *smartContractResults) computeMissingScrsHashesForMiniBlock(miniBlock *block.MiniBlock) [][]byte {
+func (scr *smartContractResults) computeMissingScrsHashesForMiniBlock(miniBlock *block.MiniBlock) ([]data.TransactionHandler, [][]byte) {
 	missingSmartContractResultsHashes := make([][]byte, 0)
+	existingTxs := make([]data.TransactionHandler, 0)
 
 	if miniBlock.Type != block.SmartContractResultBlock {
-		return missingSmartContractResultsHashes
+		return existingTxs, missingSmartContractResultsHashes
 	}
 
 	for _, txHash := range miniBlock.TxHashes {
@@ -406,10 +407,13 @@ func (scr *smartContractResults) computeMissingScrsHashesForMiniBlock(miniBlock 
 
 		if check.IfNil(tx) {
 			missingSmartContractResultsHashes = append(missingSmartContractResultsHashes, txHash)
+			continue
 		}
+
+		existingTxs = append(existingTxs, tx)
 	}
 
-	return missingSmartContractResultsHashes
+	return existingTxs, missingSmartContractResultsHashes
 }
 
 // getAllScrsFromMiniBlock gets all the smartContractResults from a miniblock into a new structure
@@ -457,8 +461,8 @@ func (scr *smartContractResults) getAllScrsFromMiniBlock(
 }
 
 // SelectOutgoingTransactions returns an empty slice of byte slices, as this preprocessor does not handle outgoing transactions
-func (scr *smartContractResults) SelectOutgoingTransactions() ([][]byte, error) {
-	return make([][]byte, 0), nil
+func (scr *smartContractResults) SelectOutgoingTransactions(_ uint64) ([][]byte, []data.TransactionHandler, error) {
+	return make([][]byte, 0), make([]data.TransactionHandler, 0), nil
 }
 
 // CreateAndProcessMiniBlocks creates miniblocks from storage and processes the reward transactions added into the miniblocks
