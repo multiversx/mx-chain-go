@@ -1,26 +1,31 @@
 package block_test
 
 import (
+	"bytes"
 	"sync"
 	"testing"
 	"time"
 
+	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-go/testscommon/pool"
 	"github.com/stretchr/testify/require"
 
 	retriever "github.com/multiversx/mx-chain-go/dataRetriever"
+	"github.com/multiversx/mx-chain-go/dataRetriever/blockchain"
 	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/process/asyncExecution/executionTrack"
 	blproc "github.com/multiversx/mx-chain-go/process/block"
 	"github.com/multiversx/mx-chain-go/process/block/processedMb"
 	"github.com/multiversx/mx-chain-go/process/estimator"
 	"github.com/multiversx/mx-chain-go/process/mock"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
-	"github.com/multiversx/mx-chain-go/testscommon/executionTrack"
+	testscommonExecutionTrack "github.com/multiversx/mx-chain-go/testscommon/executionTrack"
 	"github.com/multiversx/mx-chain-go/testscommon/mbSelection"
 	"github.com/multiversx/mx-chain-go/testscommon/processMocks"
+	statusHandlerMock "github.com/multiversx/mx-chain-go/testscommon/statusHandler"
 )
 
 func getSimpleHeaderV3Mock() *testscommon.HeaderHandlerStub {
@@ -276,7 +281,7 @@ func TestShardProcessor_CreateBlockProposal(t *testing.T) {
 
 		coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
 		arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
-		arguments.ExecutionResultsTracker = &executionTrack.ExecutionResultsTrackerStub{
+		arguments.ExecutionResultsTracker = &testscommonExecutionTrack.ExecutionResultsTrackerStub{
 			GetPendingExecutionResultsCalled: func() ([]data.BaseExecutionResultHandler, error) {
 				return nil, expectedErr
 			},
@@ -304,7 +309,7 @@ func TestShardProcessor_CreateBlockProposal(t *testing.T) {
 				return 1 // coverage only
 			},
 		}
-		arguments.ExecutionResultsTracker = &executionTrack.ExecutionResultsTrackerStub{
+		arguments.ExecutionResultsTracker = &testscommonExecutionTrack.ExecutionResultsTrackerStub{
 			GetPendingExecutionResultsCalled: func() ([]data.BaseExecutionResultHandler, error) {
 				return []data.BaseExecutionResultHandler{
 					&block.ExecutionResult{
@@ -1287,4 +1292,248 @@ func checkCreateBlockProposalResult(
 	require.Equal(t, expectedError, err)
 	require.Nil(t, hdr)
 	require.Nil(t, body)
+}
+
+func TestShardBlockProposal_CreateAndVerifyProposal(t *testing.T) {
+	t.Parallel()
+
+	coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
+	arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+
+	blkc, _ := blockchain.NewBlockChain(&statusHandlerMock.AppStatusHandlerStub{})
+	_ = blkc.SetGenesisHeader(&block.Header{Nonce: 0})
+
+	currentHeader := &block.HeaderV3{
+		Nonce: 10,
+		Round: 10,
+		LastExecutionResult: &block.ExecutionResultInfo{
+			NotarizedInRound: 10,
+			ExecutionResult: &block.BaseExecutionResult{
+				HeaderHash:  []byte("prevHeaderHash"),
+				HeaderNonce: 9,
+				HeaderRound: 9,
+				RootHash:    []byte("prevRootHash"),
+				GasUsed:     100000,
+			},
+		},
+	}
+	currentHeaderHash := []byte("currHdrHash")
+	blkc.SetCurrentBlockHeaderHash(currentHeaderHash)
+	blkc.SetCurrentBlockHeaderAndRootHash(currentHeader, []byte("currHdrRootHash"))
+
+	headers := dataComponents.DataPool.Headers()
+	dataComponents.DataPool = &dataRetriever.PoolsHolderStub{
+		ProofsCalled: func() retriever.ProofsPool {
+			return &dataRetriever.ProofsPoolMock{
+				HasProofCalled: func(shardID uint32, headerHash []byte) bool {
+					return true
+				},
+			}
+		},
+		HeadersCalled: func() retriever.HeadersPool {
+			return headers
+		},
+	}
+	dataComponents.BlockChain = blkc
+
+	executionResultsTracker := executionTrack.NewExecutionResultsTracker()
+	execResultsVerifier, _ := blproc.NewExecutionResultsVerifier(dataComponents.BlockChain, executionResultsTracker)
+
+	arguments.ArgBaseProcessor.ExecutionResultsTracker = executionResultsTracker
+	arguments.ArgBaseProcessor.ExecutionResultsVerifier = execResultsVerifier
+
+	shardProcessor, err := blproc.NewShardProcessor(arguments)
+	require.Nil(t, err)
+
+	t.Run("should work - without miniblocks and transactions", func(t *testing.T) {
+		header := &block.HeaderV3{
+			Round:    11,
+			Nonce:    11,
+			PrevHash: currentHeaderHash,
+		}
+		headerProposed, bodyProposed, err := shardProcessor.CreateBlockProposal(header, haveTimeTrue)
+		require.Nil(t, err)
+		require.NotNil(t, headerProposed)
+		require.NotNil(t, bodyProposed)
+
+		err = shardProcessor.VerifyBlockProposal(headerProposed, bodyProposed, func() time.Duration { return time.Second })
+		require.Nil(t, err)
+	})
+
+	t.Run("nil proposed block should fail", func(t *testing.T) {
+		headerProposed, bodyProposed, err := shardProcessor.CreateBlockProposal(nil, haveTimeTrue)
+		require.Equal(t, process.ErrNilBlockHeader, err)
+		require.Nil(t, headerProposed)
+		require.Nil(t, bodyProposed)
+	})
+
+	t.Run("nil proposed body should fail", func(t *testing.T) {
+		header := &block.HeaderV3{
+			Round:    11,
+			Nonce:    11,
+			PrevHash: currentHeaderHash,
+		}
+		headerProposed, bodyProposed, err := shardProcessor.CreateBlockProposal(header, haveTimeTrue)
+		require.Nil(t, err)
+		require.NotNil(t, headerProposed)
+		require.NotNil(t, bodyProposed)
+
+		err = shardProcessor.VerifyBlockProposal(headerProposed, nil, func() time.Duration { return time.Second })
+		require.Equal(t, process.ErrNilBlockBody, err)
+	})
+}
+
+func TestShardBlockProposal_CreateAndVerifyProposal_WithTransactions(t *testing.T) {
+	t.Parallel()
+
+	coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
+	arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+
+	blkc, _ := blockchain.NewBlockChain(&statusHandlerMock.AppStatusHandlerStub{})
+	_ = blkc.SetGenesisHeader(&block.Header{Nonce: 0})
+
+	currentHeader := &block.HeaderV3{
+		Nonce: 10,
+		Round: 10,
+		LastExecutionResult: &block.ExecutionResultInfo{
+			NotarizedInRound: 10,
+			ExecutionResult: &block.BaseExecutionResult{
+				HeaderHash:  []byte("prevHeaderHash"),
+				HeaderNonce: 9,
+				HeaderRound: 9,
+				RootHash:    []byte("prevRootHash"),
+				GasUsed:     100000,
+			},
+		},
+	}
+	currentHeaderHash := []byte("currHdrHash")
+	blkc.SetCurrentBlockHeaderHash(currentHeaderHash)
+	blkc.SetCurrentBlockHeaderAndRootHash(currentHeader, []byte("currHdrRootHash"))
+
+	epochStartMetaHash := []byte("epochStartMetaHash")
+	metaBlockHash1 := []byte("metaBlockHash1")
+	metaBlock1 := &block.MetaBlockV3{
+		Round: 10,
+	}
+	lastCommitedMetaHash := []byte("lastCommitedMeta")
+	lastCommitedMeta := &block.MetaBlockV3{
+		Round: 9,
+		Nonce: 9,
+	}
+	lastCrossNotarizedMetaHdrHash := []byte("lastCrossNotarizedMetaHdrHash")
+	lastCrossNotarizedMetaHdr := &block.MetaBlockV3{
+		Round: 8,
+		Nonce: 8,
+	}
+
+	headers := &mock.HeadersCacherStub{}
+	headers.GetHeaderByHashCalled = func(hash []byte) (data.HeaderHandler, error) {
+		if bytes.Equal(hash, epochStartMetaHash) {
+			return &block.MetaBlockV3{}, nil
+		}
+		if bytes.Equal(hash, metaBlockHash1) {
+			return metaBlock1, nil
+		}
+		if bytes.Equal(hash, lastCommitedMetaHash) {
+			return lastCommitedMeta, nil
+		}
+		if bytes.Equal(hash, lastCrossNotarizedMetaHdrHash) {
+			return lastCrossNotarizedMetaHdr, nil
+		}
+
+		return &block.HeaderV3{}, nil
+	}
+
+	headers.AddHeader(epochStartMetaHash, &block.MetaBlockV3{})
+
+	dataComponents.DataPool = &dataRetriever.PoolsHolderStub{
+		ProofsCalled: func() retriever.ProofsPool {
+			return &dataRetriever.ProofsPoolMock{
+				HasProofCalled: func(shardID uint32, headerHash []byte) bool {
+					return true
+				},
+			}
+		},
+		HeadersCalled: func() retriever.HeadersPool {
+			return headers
+		},
+	}
+	dataComponents.BlockChain = blkc
+
+	executionResultsTracker := executionTrack.NewExecutionResultsTracker()
+	execResultsVerifier, _ := blproc.NewExecutionResultsVerifier(dataComponents.BlockChain, executionResultsTracker)
+
+	arguments.ArgBaseProcessor.ExecutionResultsTracker = executionResultsTracker
+	arguments.ArgBaseProcessor.ExecutionResultsVerifier = execResultsVerifier
+
+	arguments.MissingDataResolver = &processMocks.MissingDataResolverMock{
+		WaitForMissingDataCalled: func(timeout time.Duration) error {
+			return nil
+		},
+	}
+
+	arguments.BlockTracker = &mock.BlockTrackerMock{
+		ComputeLongestMetaChainFromLastNotarizedCalled: func() ([]data.HeaderHandler, [][]byte, error) {
+			return []data.HeaderHandler{&block.MetaBlockV3{
+					ShardInfo: []block.ShardData{
+						{
+							ShardID: 1,
+							ShardMiniBlockHeaders: []block.MiniBlockHeader{
+								{
+									SenderShardID:   1,
+									ReceiverShardID: 0,
+								},
+							},
+						},
+					},
+					MiniBlockHeaders: []block.MiniBlockHeader{
+						{},
+					},
+				}},
+				[][]byte{lastCommitedMetaHash},
+				nil
+		},
+		GetLastCrossNotarizedHeaderCalled: func(shardID uint32) (data.HeaderHandler, []byte, error) {
+			return lastCrossNotarizedMetaHdr, lastCrossNotarizedMetaHdrHash, nil
+		},
+	}
+	providedMb := &block.MiniBlock{
+		TxHashes: [][]byte{[]byte("tx_hash")},
+	}
+	mbHash, _ := core.CalculateHash(arguments.CoreComponents.InternalMarshalizer(), arguments.CoreComponents.Hasher(), providedMb)
+	arguments.TxCoordinator = &testscommon.TransactionCoordinatorMock{
+		CreateMbsCrossShardDstMeCalled: func(header data.HeaderHandler, processedMiniBlocksInfo map[string]*processedMb.ProcessedMiniBlockInfo) ([]block.MiniblockAndHash, uint32, bool, error) {
+			return []block.MiniblockAndHash{
+				{
+					Miniblock: providedMb,
+					Hash:      mbHash,
+				},
+			}, 0, true, nil
+		},
+	}
+
+	shardProcessor, err := blproc.NewShardProcessor(arguments)
+	require.Nil(t, err)
+
+	argsHeaderValidator := blproc.ArgsHeaderValidator{
+		Hasher:              coreComponents.Hasher(),
+		Marshalizer:         coreComponents.InternalMarshalizer(),
+		EnableEpochsHandler: coreComponents.EnableEpochsHandler(),
+	}
+	headerValidator, _ := blproc.NewHeaderValidator(argsHeaderValidator)
+	shardProcessor.SetHeaderValidator(headerValidator)
+
+	header := &block.HeaderV3{
+		Round:           11,
+		Nonce:           11,
+		PrevHash:        currentHeaderHash,
+		MetaBlockHashes: [][]byte{metaBlockHash1},
+	}
+	headerProposed, bodyProposed, err := shardProcessor.CreateBlockProposal(header, haveTimeTrue)
+	require.Nil(t, err)
+	require.NotNil(t, headerProposed)
+	require.NotNil(t, bodyProposed)
+
+	err = shardProcessor.VerifyBlockProposal(headerProposed, bodyProposed, func() time.Duration { return time.Second })
+	require.Nil(t, err)
 }

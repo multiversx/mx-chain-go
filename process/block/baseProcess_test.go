@@ -25,13 +25,14 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/typeConverters/uint64ByteSlice"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
 	"github.com/multiversx/mx-chain-go/process/asyncExecution/executionTrack"
 	"github.com/multiversx/mx-chain-go/process/estimator"
 	"github.com/multiversx/mx-chain-go/process/missingData"
 	"github.com/multiversx/mx-chain-go/testscommon/mbSelection"
 	"github.com/multiversx/mx-chain-go/testscommon/processMocks"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/common/graceperiod"
@@ -3696,7 +3697,7 @@ func TestCheckHeaderBodyCorrelationProposal(t *testing.T) {
 		require.Equal(t, process.ErrHeaderBodyMismatch, err)
 	})
 
-	t.Run("different receiver shard mb header and miniblock", func(t *testing.T) {
+	t.Run("different receiver shard mb header and mini block", func(t *testing.T) {
 		arguments := CreateMockArguments(createComponentHolderMocks())
 		bp, _ := blproc.NewShardProcessor(arguments)
 
@@ -3718,7 +3719,7 @@ func TestCheckHeaderBodyCorrelationProposal(t *testing.T) {
 				miniBlock,
 			}},
 		)
-		require.Equal(t, process.ErrHeaderBodyMismatch, err)
+		require.ErrorIs(t, err, process.ErrHeaderBodyMismatch)
 	})
 
 	t.Run("different sender shard mb header and miniblock", func(t *testing.T) {
@@ -3745,7 +3746,7 @@ func TestCheckHeaderBodyCorrelationProposal(t *testing.T) {
 				miniBlock,
 			}},
 		)
-		require.Equal(t, process.ErrHeaderBodyMismatch, err)
+		require.ErrorIs(t, err, process.ErrHeaderBodyMismatch)
 	})
 
 	t.Run("wrong construction state should error", func(t *testing.T) {
