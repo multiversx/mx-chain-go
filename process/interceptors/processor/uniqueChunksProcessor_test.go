@@ -115,3 +115,23 @@ func TestUniqueChunksProcessor_CheckBatch(t *testing.T) {
 		require.Equal(t, process.ErrDuplicatedInterceptedDataNotAllowed, err)
 	})
 }
+
+func TestUniqueChunksProcessor_MarkVerified(t *testing.T) {
+	t.Parallel()
+
+	b := &batch.Batch{Data: [][]byte{{1, 2, 3}}}
+	hasher := &hashingMocks.HasherMock{}
+	marshaller := &mock.MarshalizerStub{
+		MarshalCalled: func(obj interface{}) ([]byte, error) {
+			return nil, errors.New("marshal error")
+		},
+	}
+	cacheMock := cache.NewCacherMock()
+	ucp, _ := processor.NewUniqueChunksProcessor(cacheMock, marshaller, hasher)
+
+	// nil batch, early exit
+	ucp.MarkVerified(nil)
+
+	// marshal error, early exit
+	ucp.MarkVerified(b)
+}

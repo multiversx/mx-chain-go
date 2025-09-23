@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core/atomic"
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/stretchr/testify/require"
 
 	"github.com/multiversx/mx-chain-go/process"
@@ -72,6 +73,78 @@ func TestInterceptedDataVerifier_EmptyHash(t *testing.T) {
 	require.Equal(t, 2, checkValidityCounter)
 }
 
+func TestInterceptedDataVerifier_checkCachedData(t *testing.T) {
+	t.Parallel()
+
+	t.Run("already cached invalid data should error", func(t *testing.T) {
+		t.Parallel()
+
+		interceptedData := &testscommon.InterceptedDataStub{
+			CheckValidityCalled: func() error {
+				require.Fail(t, "should have not been called")
+				return nil
+			},
+			HashCalled: func() []byte {
+				return []byte("hash")
+			},
+		}
+
+		verifier := defaultInterceptedDataVerifier(defaultSpan)
+
+		verifier.PutInCache(interceptedData, interceptedDataStatus(1)) // not validInterceptedData
+
+		err := verifier.Verify(interceptedData, "topic")
+		require.Equal(t, process.ErrInvalidInterceptedData, err)
+	})
+	t.Run("already cached intra shard data should work", func(t *testing.T) {
+		t.Parallel()
+
+		interceptedData := &testscommon.InterceptedDataStub{
+			CheckValidityCalled: func() error {
+				require.Fail(t, "should have not been called")
+				return nil
+			},
+			HashCalled: func() []byte {
+				return []byte("hash")
+			},
+			ShouldAllowDuplicatesCalled: func() bool {
+				require.Fail(t, "should have not been called")
+				return true
+			},
+		}
+
+		verifier := defaultInterceptedDataVerifier(defaultSpan)
+
+		verifier.PutInCache(interceptedData, validInterceptedData)
+
+		err := verifier.Verify(interceptedData, "topic_1") // intra shard
+		require.NoError(t, err)
+	})
+	t.Run("already cached data that does not allow duplicates should error", func(t *testing.T) {
+		t.Parallel()
+
+		interceptedData := &testscommon.InterceptedDataStub{
+			CheckValidityCalled: func() error {
+				require.Fail(t, "should have not been called")
+				return nil
+			},
+			HashCalled: func() []byte {
+				return []byte("hash")
+			},
+			ShouldAllowDuplicatesCalled: func() bool {
+				return false
+			},
+		}
+
+		verifier := defaultInterceptedDataVerifier(defaultSpan)
+
+		verifier.PutInCache(interceptedData, validInterceptedData)
+
+		err := verifier.Verify(interceptedData, "topic_0_1")
+		require.Equal(t, process.ErrDuplicatedInterceptedDataNotAllowed, err)
+	})
+}
+
 func TestInterceptedDataVerifier_CheckValidityShouldWork(t *testing.T) {
 	t.Parallel()
 
@@ -94,6 +167,8 @@ func TestInterceptedDataVerifier_CheckValidityShouldWork(t *testing.T) {
 
 	err := verifier.Verify(interceptedData, "topic")
 	require.NoError(t, err)
+
+	verifier.MarkVerified(interceptedData, "topic_1") // intra shard, for coverage only
 
 	verifier.MarkVerified(interceptedData, "topic")
 
@@ -153,6 +228,24 @@ func TestInterceptedDataVerifier_CheckValidityShouldNotWork(t *testing.T) {
 
 	require.Equal(t, int64(100), errCount.Get())
 	require.Equal(t, int64(101), checkValidityCounter.Get())
+}
+
+func TestInterceptedDataVerifier_CheckValidityInterceptedProof(t *testing.T) {
+	t.Parallel()
+
+	interceptedData := &testscommon.InterceptedDataStub{
+		CheckValidityCalled: func() error {
+			return common.ErrAlreadyExistingEquivalentProof // for coverage only
+		},
+		HashCalled: func() []byte {
+			return []byte("hash")
+		},
+	}
+
+	verifier := defaultInterceptedDataVerifier(defaultSpan)
+
+	err := verifier.Verify(interceptedData, "topic")
+	require.Equal(t, process.ErrInvalidInterceptedData, err)
 }
 
 func TestInterceptedDataVerifier_CheckExpiryTime(t *testing.T) {

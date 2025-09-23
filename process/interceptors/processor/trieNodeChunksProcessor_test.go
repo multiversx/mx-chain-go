@@ -233,6 +233,8 @@ func TestTrieNodeChunksProcessor_CheckBatchShouldWork(t *testing.T) {
 	assert.Equal(t, expectedCheckedChunkResult, chunkResult)
 	assert.Equal(t, 0, args.ChunksCacher.Len())
 
+	tncp.MarkVerified(nil) // for coverage only
+
 	_ = tncp.Close()
 }
 
