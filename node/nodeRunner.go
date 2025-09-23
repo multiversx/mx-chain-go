@@ -761,8 +761,6 @@ func (nr *nodeRunner) createApiFacade(
 		},
 		ApiRoutesConfig:  *configs.ApiRoutesConfig,
 		AccountsStateAPI: currentNode.stateComponents.AccountsAdapterAPI(),
-		AccountsState:    currentNode.stateComponents.AccountsAdapter(),
-		PeerState:        currentNode.stateComponents.PeerAccounts(),
 		Blockchain:       currentNode.dataComponents.Blockchain(),
 	}
 

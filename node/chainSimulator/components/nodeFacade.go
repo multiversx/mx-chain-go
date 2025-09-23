@@ -122,9 +122,7 @@ func (node *testOnlyProcessingNode) createFacade(configs config.Configs, apiInte
 			PprofEnabled:     flagsConfig.EnablePprof,
 		},
 		ApiRoutesConfig:  *configs.ApiRoutesConfig,
-		AccountsStateAPI: node.StateComponentsHolder.AccountsAdapterAPI(),
-		AccountsState:    node.StateComponentsHolder.AccountsAdapter(),
-		PeerState:        node.StateComponentsHolder.PeerAccounts(),
+		AccountsStateAPI: node.StateComponentsHolder.AccountsAdapter(),
 		Blockchain:       node.DataComponentsHolder.Blockchain(),
 	}
 

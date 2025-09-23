@@ -96,9 +96,7 @@ func createFacadeArg(tpn *TestProcessorNode) nodeFacade.ArgNodeFacade {
 		},
 		FacadeConfig:     config.FacadeConfig{},
 		ApiRoutesConfig:  createTestApiConfig(),
-		AccountsState:    tpn.AccntState,
-		AccountsStateAPI: tpn.AccntStateAPI,
-		PeerState:        tpn.PeerState,
+		AccountsStateAPI: tpn.AccntState,
 		Blockchain:       tpn.BlockChain,
 	}
 }

@@ -62,8 +62,6 @@ func createMockArguments() ArgNodeFacade {
 			},
 		}},
 		AccountsStateAPI: &stateMock.AccountsStub{},
-		AccountsState:    &stateMock.AccountsStub{},
-		PeerState:        &stateMock.AccountsStub{},
 		Blockchain: &testscommon.ChainHandlerStub{
 			GetCurrentBlockHeaderCalled: func() coreData.HeaderHandler {
 				return &block.Header{}
@@ -152,17 +150,6 @@ func TestNewNodeFacade(t *testing.T) {
 		require.Nil(t, nf)
 		require.True(t, errors.Is(err, ErrInvalidValue))
 	})
-	t.Run("nil AccountsState should error", func(t *testing.T) {
-		t.Parallel()
-
-		arg := createMockArguments()
-		arg.WsAntifloodConfig.WebServerAntifloodEnabled = true // coverage
-		arg.AccountsState = nil
-		nf, err := NewNodeFacade(arg)
-
-		require.Nil(t, nf)
-		require.Equal(t, ErrNilAccountState, err)
-	})
 	t.Run("nil AccountsStateAPI should error", func(t *testing.T) {
 		t.Parallel()
 
@@ -172,17 +159,7 @@ func TestNewNodeFacade(t *testing.T) {
 		nf, err := NewNodeFacade(arg)
 
 		require.Nil(t, nf)
-		require.Equal(t, ErrNilAccountStateAPI, err)
-	})
-	t.Run("nil PeerState should error", func(t *testing.T) {
-		t.Parallel()
-
-		arg := createMockArguments()
-		arg.PeerState = nil
-		nf, err := NewNodeFacade(arg)
-
-		require.Nil(t, nf)
-		require.Equal(t, ErrNilPeerState, err)
+		require.Equal(t, ErrNilAccountState, err)
 	})
 	t.Run("nil Blockchain should error", func(t *testing.T) {
 		t.Parallel()

@@ -23,6 +23,7 @@ type ArgsSelectionSession struct {
 }
 
 // NewSelectionSession creates a new selection session.
+// TODO minimalize the interface used for AccountsAdapter
 func NewSelectionSession(args ArgsSelectionSession) (*selectionSession, error) {
 	if check.IfNil(args.TransactionsProcessor) {
 		return nil, process.ErrNilTxProcessor
