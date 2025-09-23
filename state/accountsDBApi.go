@@ -165,7 +165,7 @@ func (accountsDB *accountsDBApi) RootHash() ([]byte, error) {
 	return blockInfo.GetRootHash(), nil
 }
 
-// RecreateTrie is a not permitted operation in this implementation and thus, will return an error
+// RecreateTrie is used to reload the trie based on the provided options
 func (accountsDB *accountsDBApi) RecreateTrie(options common.RootHashHolder) error {
 	accountsDB.mutRecreatedTrieBlockInfo.Lock()
 	defer accountsDB.mutRecreatedTrieBlockInfo.Unlock()
