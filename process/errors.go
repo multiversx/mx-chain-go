@@ -1391,3 +1391,6 @@ var ErrWrongMiniBlockProcessingType = errors.New("wrong mini block processing ty
 
 // ErrInvalidNumberOfExecutionResultsInHeader signals that the number of execution results in header is invalid
 var ErrInvalidNumberOfExecutionResultsInHeader = errors.New("invalid number of execution results in header")
+
+// ErrEpochStartInfoNotAvailable signals that epoch start info is not available
+var ErrEpochStartInfoNotAvailable = errors.New("epoch start info not available")

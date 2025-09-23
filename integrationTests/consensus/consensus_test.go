@@ -286,7 +286,7 @@ func testConsensusBLSWithFullProcessing(
 	}
 	integrationTests.MintAllNodes(nodesList, big.NewInt(100000000000))
 
-	maxRounds := uint64(roundsPerEpoch)*uint64(enableEpochsConfig.SCDeployEnableEpoch) + 2*uint64(roundsPerEpoch)
+	maxRounds := uint64(roundsPerEpoch)*uint64(enableEpochsConfig.SCDeployEnableEpoch) + uint64(roundsPerEpoch)
 	timeoutSeconds := (maxRounds * roundTime) / 1000
 	waitForEpoch(shard0Node, enableEpochsConfig.SCDeployEnableEpoch, timeoutSeconds)
 
@@ -296,7 +296,7 @@ func testConsensusBLSWithFullProcessing(
 	assert.Nil(t, err)
 	moveBalanceTxs(t, shard0Node.TestProcessorNode, encodedReceiverAddr, txs.numMoveBalanceTxs)
 
-	maxRounds = uint64(roundsPerEpoch)*uint64(targetEpoch) + 2*uint64(roundsPerEpoch)
+	maxRounds = uint64(roundsPerEpoch)*uint64(targetEpoch) + uint64(roundsPerEpoch)
 	timeoutSeconds = (maxRounds * roundTime) / 1000
 	waitForEpoch(shard0Node, targetEpoch, timeoutSeconds)
 

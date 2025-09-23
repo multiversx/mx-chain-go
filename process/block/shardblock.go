@@ -267,14 +267,30 @@ func (sp *shardProcessor) ProcessBlock(
 	return nil
 }
 
-func (sp *shardProcessor) requestEpochStartInfo(header data.ShardHeaderHandler, haveTime func() time.Duration) error {
+func (sp *shardProcessor) shouldEpochStartInfoBeAvailable(header data.ShardHeaderHandler) bool {
 	if !header.IsStartOfEpochBlock() {
-		return nil
+		return false
 	}
 	if sp.epochStartTrigger.MetaEpoch() >= header.GetEpoch() {
-		return nil
+		return false
 	}
 	if sp.epochStartTrigger.IsEpochStart() {
+		return false
+	}
+
+	return true
+}
+
+func (sp *shardProcessor) checkEpochStartInfoAvailableIfNeeded(header data.ShardHeaderHandler) error {
+	if !sp.shouldEpochStartInfoBeAvailable(header) {
+		return nil
+	}
+
+	return process.ErrEpochStartInfoNotAvailable
+}
+
+func (sp *shardProcessor) requestEpochStartInfo(header data.ShardHeaderHandler, haveTime func() time.Duration) error {
+	if !sp.shouldEpochStartInfoBeAvailable(header) {
 		return nil
 	}
 

@@ -14,6 +14,7 @@ import (
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/block/processedMb"
+	"github.com/multiversx/mx-chain-go/state"
 )
 
 // TODO: maybe move this to config
@@ -169,17 +170,13 @@ func (sp *shardProcessor) VerifyBlockProposal(
 
 	sp.missingDataResolver.Reset()
 	sp.missingDataResolver.RequestBlockTransactions(body)
+	// the epoch start meta block and its proof is also requested here if missing
 	err = sp.missingDataResolver.RequestMissingMetaHeaders(header)
 	if err != nil {
 		return err
 	}
 
 	err = sp.missingDataResolver.WaitForMissingData(haveTime())
-	if err != nil {
-		return err
-	}
-
-	err = sp.requestEpochStartInfo(header, haveTime)
 	if err != nil {
 		return err
 	}
@@ -284,11 +281,71 @@ func (sp *shardProcessor) ProcessBlockProposal(
 		return nil, err
 	}
 
+	// todo: add also a request if it is missing, although it should not be missing
+	err = sp.checkEpochStartInfoAvailableIfNeeded(header)
+	if err != nil {
+		return nil, err
+	}
+
 	err = sp.hdrsForCurrBlock.WaitForHeadersIfNeeded(haveTime)
 	if err != nil {
 		return nil, err
 	}
 
+	if sp.accountsDB[state.UserAccountsState].JournalLen() != 0 {
+		log.Error("shardProcessor.ProcessBlock first entry", "stack", string(sp.accountsDB[state.UserAccountsState].GetStackDebugFirstEntry()))
+		return nil, process.ErrAccountStateDirty
+	}
+
+	err = sp.blockChainHook.SetCurrentHeader(header)
+	if err != nil {
+		return nil, err
+	}
+
+	defer func() {
+		if err != nil {
+			sp.RevertCurrentBlock()
+		}
+	}()
+
+	startTime := time.Now()
+	err = sp.txCoordinator.ProcessBlockTransaction(header, body, haveTime)
+	elapsedTime := time.Since(startTime)
+	log.Debug("elapsed time to process block transaction",
+		"time [s]", elapsedTime,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	err = sp.txCoordinator.VerifyCreatedBlockTransactions(header, body)
+	if err != nil {
+		return nil, err
+	}
+
+	err = sp.txCoordinator.VerifyCreatedMiniBlocks(header, body)
+	if err != nil {
+		return nil, err
+	}
+
+	//
+	// err = sp.verifyFees(header)
+	// if err != nil {
+	// 	return nil, err
+	// }
+	//
+	// if !sp.verifyStateRoot(header.GetRootHash()) {
+	// 	err = process.ErrRootStateDoesNotMatch
+	// 	return err
+	// }
+	//
+	// err = sp.blockProcessingCutoffHandler.HandleProcessErrorCutoff(header)
+	// if err != nil {
+	// 	return err
+	// }
+	//
+	// return nil
+	//
 	return nil, nil
 }
 
