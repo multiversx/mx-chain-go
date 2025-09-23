@@ -106,13 +106,6 @@ func (sp *shardProcessor) VerifyBlockProposal(
 	bodyHandler data.BodyHandler,
 	haveTime func() time.Duration,
 ) error {
-	log.Debug("started verifying proposed block",
-		"epoch", headerHandler.GetEpoch(),
-		"shard", headerHandler.GetShardID(),
-		"round", headerHandler.GetRound(),
-		"nonce", headerHandler.GetNonce(),
-	)
-
 	err := sp.checkBlockValidity(headerHandler, bodyHandler)
 	if err != nil {
 		if errors.Is(err, process.ErrBlockHashDoesNotMatch) {
@@ -126,6 +119,13 @@ func (sp *shardProcessor) VerifyBlockProposal(
 
 		return err
 	}
+
+	log.Debug("started verifying proposed block",
+		"epoch", headerHandler.GetEpoch(),
+		"shard", headerHandler.GetShardID(),
+		"round", headerHandler.GetRound(),
+		"nonce", headerHandler.GetNonce(),
+	)
 
 	header, ok := headerHandler.(data.ShardHeaderHandler)
 	if !ok {
@@ -141,12 +141,12 @@ func (sp *shardProcessor) VerifyBlockProposal(
 		return process.ErrWrongTypeAssertion
 	}
 
-	go getMetricsFromBlockBody(body, sp.marshalizer, sp.appStatusHandler)
-
 	err = sp.checkHeaderBodyCorrelationProposal(header.GetMiniBlockHeaderHandlers(), body)
 	if err != nil {
 		return err
 	}
+
+	go getMetricsFromBlockBody(body, sp.marshalizer, sp.appStatusHandler)
 
 	err = sp.executionResultsVerifier.VerifyHeaderExecutionResults(header)
 	if err != nil {

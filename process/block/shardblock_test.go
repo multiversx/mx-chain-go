@@ -22,6 +22,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/multiversx/mx-chain-go/testscommon/pool"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -5338,5 +5339,301 @@ func TestShardProcessor_CreateBlock(t *testing.T) {
 		assert.False(t, check.IfNil(hdr))
 		assert.Equal(t, expectedHeader, header)
 		assert.Nil(t, err)
+	})
+}
+
+func TestVerifyCrossShardMiniBlockDstMe(t *testing.T) {
+	t.Parallel()
+
+	t.Run("header v1 cannot get last notarized meta block", func(t *testing.T) {
+		localError := errors.New("local err")
+		arguments := CreateMockArguments(createComponentHolderMocks())
+		arguments.BlockTracker = &mock.BlockTrackerMock{
+			GetLastCrossNotarizedHeaderCalled: func(shardID uint32) (data.HeaderHandler, []byte, error) {
+				return nil, nil, localError
+			},
+		}
+		sp, _ := blproc.NewShardProcessor(arguments)
+
+		header := &block.Header{}
+
+		err := sp.VerifyCrossShardMiniBlockDstMe(header)
+		require.Equal(t, localError, err)
+	})
+
+	t.Run("header v3 cannot get last notarized meta block", func(t *testing.T) {
+		localError := errors.New("local err")
+		arguments := CreateMockArguments(createComponentHolderMocks())
+		arguments.BlockTracker = &mock.BlockTrackerMock{
+			GetLastCrossNotarizedHeaderCalled: func(shardID uint32) (data.HeaderHandler, []byte, error) {
+				return nil, nil, localError
+			},
+		}
+		sp, _ := blproc.NewShardProcessor(arguments)
+
+		header := &block.HeaderV3{}
+
+		err := sp.VerifyCrossShardMiniBlockDstMe(header)
+		require.Equal(t, localError, err)
+	})
+
+	t.Run("header v1 wrong header from pool", func(t *testing.T) {
+		localError := errors.New("local err")
+		arguments := CreateMockArguments(createComponentHolderMocks())
+		arguments.BlockTracker = &mock.BlockTrackerMock{
+			GetLastCrossNotarizedHeaderCalled: func(shardID uint32) (data.HeaderHandler, []byte, error) {
+				return &block.MetaBlockV3{}, nil, nil
+			},
+		}
+
+		blkc, _ := blockchain.NewBlockChain(&statusHandlerMock.AppStatusHandlerStub{})
+		_ = blkc.SetGenesisHeader(&block.Header{Nonce: 0})
+		dataComponents := &mock.DataComponentsMock{
+			Storage:    initStore(),
+			BlockChain: blkc,
+		}
+
+		dataComponents.DataPool = &dataRetrieverMock.PoolsHolderStub{
+			HeadersCalled: func() dataRetriever.HeadersPool {
+				return &pool.HeadersPoolStub{
+					GetHeaderByHashCalled: func(hash []byte) (data.HeaderHandler, error) {
+						if bytes.Equal(hash, []byte("m1")) {
+							return nil, localError
+						}
+						if bytes.Equal(hash, []byte("m2")) {
+							return &block.Header{}, nil
+						}
+						return &block.MetaBlockV3{}, nil
+					},
+				}
+			},
+		}
+		arguments.DataComponents = dataComponents
+		sp, _ := blproc.NewShardProcessor(arguments)
+
+		header := &block.Header{
+			MetaBlockHashes: [][]byte{[]byte("m1"), []byte("m2")},
+		}
+
+		err := sp.VerifyCrossShardMiniBlockDstMe(header)
+		require.Nil(t, err)
+	})
+
+	t.Run("cannot find header in pool should error", func(t *testing.T) {
+		arguments := CreateMockArguments(createComponentHolderMocks())
+		arguments.BlockTracker = &mock.BlockTrackerMock{
+			GetLastCrossNotarizedHeaderCalled: func(shardID uint32) (data.HeaderHandler, []byte, error) {
+				return &block.MetaBlockV3{}, nil, nil
+			},
+		}
+
+		blkc, _ := blockchain.NewBlockChain(&statusHandlerMock.AppStatusHandlerStub{})
+		_ = blkc.SetGenesisHeader(&block.Header{Nonce: 0})
+		dataComponents := &mock.DataComponentsMock{
+			Storage:    initStore(),
+			BlockChain: blkc,
+		}
+
+		dataComponents.DataPool = &dataRetrieverMock.PoolsHolderStub{
+			HeadersCalled: func() dataRetriever.HeadersPool {
+				return &pool.HeadersPoolStub{
+					GetHeaderByHashCalled: func(hash []byte) (data.HeaderHandler, error) {
+						if bytes.Equal(hash, []byte("m1")) {
+							return nil, expectedError
+						}
+						return nil, nil
+					},
+				}
+			},
+		}
+		arguments.DataComponents = dataComponents
+		sp, _ := blproc.NewShardProcessor(arguments)
+
+		header := &block.HeaderV3{
+			MetaBlockHashes: [][]byte{[]byte("m1"), []byte("m2")},
+			Round:           100,
+		}
+
+		err := sp.VerifyCrossShardMiniBlockDstMe(header)
+		require.Equal(t, expectedError, err)
+	})
+
+	t.Run("wrong header type in pool", func(t *testing.T) {
+		arguments := CreateMockArguments(createComponentHolderMocks())
+		arguments.BlockTracker = &mock.BlockTrackerMock{
+			GetLastCrossNotarizedHeaderCalled: func(shardID uint32) (data.HeaderHandler, []byte, error) {
+				return &block.MetaBlockV3{}, nil, nil
+			},
+		}
+
+		blkc, _ := blockchain.NewBlockChain(&statusHandlerMock.AppStatusHandlerStub{})
+		_ = blkc.SetGenesisHeader(&block.Header{Nonce: 0})
+		dataComponents := &mock.DataComponentsMock{
+			Storage:    initStore(),
+			BlockChain: blkc,
+		}
+
+		dataComponents.DataPool = &dataRetrieverMock.PoolsHolderStub{
+			HeadersCalled: func() dataRetriever.HeadersPool {
+				return &pool.HeadersPoolStub{
+					GetHeaderByHashCalled: func(hash []byte) (data.HeaderHandler, error) {
+						if bytes.Equal(hash, []byte("m1")) {
+							return &block.Header{}, nil
+						}
+						return nil, nil
+					},
+				}
+			},
+		}
+		arguments.DataComponents = dataComponents
+		sp, _ := blproc.NewShardProcessor(arguments)
+
+		header := &block.HeaderV3{
+			MetaBlockHashes: [][]byte{[]byte("m1"), []byte("m2")},
+			Round:           100,
+		}
+
+		err := sp.VerifyCrossShardMiniBlockDstMe(header)
+		require.Equal(t, process.ErrWrongTypeAssertion, err)
+	})
+
+	t.Run("should work", func(t *testing.T) {
+		arguments := CreateMockArguments(createComponentHolderMocks())
+		arguments.BlockTracker = &mock.BlockTrackerMock{
+			GetLastCrossNotarizedHeaderCalled: func(shardID uint32) (data.HeaderHandler, []byte, error) {
+				return &block.MetaBlockV3{}, nil, nil
+			},
+		}
+
+		blkc, _ := blockchain.NewBlockChain(&statusHandlerMock.AppStatusHandlerStub{})
+		_ = blkc.SetGenesisHeader(&block.Header{Nonce: 0})
+		dataComponents := &mock.DataComponentsMock{
+			Storage:    initStore(),
+			BlockChain: blkc,
+		}
+
+		dataComponents.DataPool = &dataRetrieverMock.PoolsHolderStub{
+			HeadersCalled: func() dataRetriever.HeadersPool {
+				return &pool.HeadersPoolStub{
+					GetHeaderByHashCalled: func(hash []byte) (data.HeaderHandler, error) {
+						return &block.MetaBlock{
+							Round: 1,
+							Nonce: 1,
+						}, nil
+					},
+				}
+			},
+		}
+		arguments.DataComponents = dataComponents
+		sp, _ := blproc.NewShardProcessor(arguments)
+
+		header := &block.HeaderV3{
+			MetaBlockHashes: [][]byte{[]byte("m1"), []byte("m2")},
+			Round:           100,
+		}
+
+		err := sp.VerifyCrossShardMiniBlockDstMe(header)
+		require.Nil(t, err)
+	})
+}
+
+func TestShardProcessor_AddCrossShardMiniBlocksDstMeToMap(t *testing.T) {
+	t.Parallel()
+
+	t.Run("wrong type", func(t *testing.T) {
+		arguments := CreateMockArguments(createComponentHolderMocks())
+		sp, _ := blproc.NewShardProcessor(arguments)
+
+		header := &block.HeaderV3{}
+		metaBlock := &block.Header{}
+		err := sp.AddCrossShardMiniBlocksDstMeToMap(header, []byte("h1"), metaBlock, metaBlock, nil)
+		require.Equal(t, process.ErrWrongTypeAssertion, err)
+	})
+
+	t.Run("higher round", func(t *testing.T) {
+		arguments := CreateMockArguments(createComponentHolderMocks())
+		sp, _ := blproc.NewShardProcessor(arguments)
+
+		header := &block.HeaderV3{
+			Round: 100,
+		}
+		metaBlock := &block.MetaBlockV3{
+			Round: 200,
+		}
+		err := sp.AddCrossShardMiniBlocksDstMeToMap(header, []byte("h1"), metaBlock, metaBlock, nil)
+		require.Equal(t, process.ErrHigherRoundInBlock, err)
+	})
+
+	t.Run("lower round in last notarized", func(t *testing.T) {
+		arguments := CreateMockArguments(createComponentHolderMocks())
+		sp, _ := blproc.NewShardProcessor(arguments)
+
+		header := &block.HeaderV3{
+			Round: 100,
+		}
+		metaBlock := &block.MetaBlockV3{
+			Round: 100,
+		}
+		lastCrossNotarized := &block.HeaderV3{
+			Round: 150,
+		}
+
+		err := sp.AddCrossShardMiniBlocksDstMeToMap(header, []byte("h1"), metaBlock, lastCrossNotarized, nil)
+		require.Equal(t, process.ErrLowerRoundInBlock, err)
+	})
+
+	t.Run("lower nonce in last notarized", func(t *testing.T) {
+		arguments := CreateMockArguments(createComponentHolderMocks())
+		sp, _ := blproc.NewShardProcessor(arguments)
+
+		header := &block.HeaderV3{
+			Round: 101,
+		}
+		metaBlock := &block.MetaBlockV3{
+			Round: 101,
+			Nonce: 101,
+		}
+		lastCrossNotarized := &block.HeaderV3{
+			Round: 100,
+			Nonce: 102,
+		}
+
+		err := sp.AddCrossShardMiniBlocksDstMeToMap(header, []byte("h1"), metaBlock, lastCrossNotarized, nil)
+		require.Equal(t, process.ErrLowerNonceInBlock, err)
+	})
+
+	t.Run("should add miniblock hashes", func(t *testing.T) {
+		arguments := CreateMockArguments(createComponentHolderMocks())
+		sp, _ := blproc.NewShardProcessor(arguments)
+
+		header := &block.HeaderV3{
+			Round: 101,
+		}
+		metaBlock := &block.MetaBlockV3{
+			Round: 101,
+			Nonce: 101,
+			ShardInfo: []block.ShardData{
+				{
+					ShardID: 1,
+					ShardMiniBlockHeaders: []block.MiniBlockHeader{
+						{
+							ReceiverShardID: 0,
+							SenderShardID:   1,
+							Hash:            []byte("h2"),
+						},
+					},
+				},
+			},
+		}
+		lastCrossNotarized := &block.HeaderV3{
+			Round: 100,
+			Nonce: 100,
+		}
+
+		miniblocks := make(map[string][]byte)
+		err := sp.AddCrossShardMiniBlocksDstMeToMap(header, []byte("h1"), metaBlock, lastCrossNotarized, miniblocks)
+		require.Nil(t, err)
+		require.Equal(t, 1, len(miniblocks))
+		require.Equal(t, []byte("h1"), miniblocks["h2"])
 	})
 }
