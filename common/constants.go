@@ -979,12 +979,10 @@ const MaxSoftwareVersionLengthInBytes = 10
 
 // ExtraDelayForBroadcastBlockInfo represents the number of seconds to wait since a block has been broadcast and the
 // moment when its components, like mini blocks and transactions, would be broadcast too
-// TODO: change to 15ms + avg proof broadcast time ~= 120ms
 const ExtraDelayForBroadcastBlockInfo = 120 * time.Millisecond
 
 // ExtraDelayBetweenBroadcastMbsAndTxs represents the number of seconds to wait since miniblocks have been broadcast
 // and the moment when theirs transactions would be broadcast too
-// TODO: change to ~= 100ms
 const ExtraDelayBetweenBroadcastMbsAndTxs = 100 * time.Millisecond
 
 // ExtraDelayForRequestBlockInfo represents the number of seconds to wait since a block has been received and the
