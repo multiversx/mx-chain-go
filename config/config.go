@@ -311,6 +311,64 @@ type EpochChangeGracePeriodByEpoch struct {
 	GracePeriodInRounds uint32
 }
 
+// ConsensusConfigByEpoch defines consensus configuration parameters by epoch
+type ConsensusConfigByEpoch struct {
+	EnableEpoch uint32
+
+	NumRoundsToWaitBeforeSignalingChronologyStuck uint32
+}
+
+// EpochStartConfigByEpoch defines epoch start configuration parameters by epoch
+type EpochStartConfigByEpoch struct {
+	EnableEpoch uint32
+
+	GracePeriodRounds                           uint32
+	ExtraDelayForRequestBlockInfoInMilliseconds uint32
+}
+
+// EpochStartConfigByRound defines epoch start configuration parameters by round
+type EpochStartConfigByRound struct {
+	EnableRound uint64
+
+	// MaxRoundsWithoutCommittedStartInEpochBlock defines the maximum rounds to wait for start in epoch block to be committed,
+	// before a special action to be applied
+	MaxRoundsWithoutCommittedStartInEpochBlock uint32
+}
+
+// ProcessConfigByEpoch defines process configuration parameters by epoch
+type ProcessConfigByEpoch struct {
+	EnableEpoch uint32
+
+	// MaxMetaNoncesBehind defines the maximum difference between the current meta block nonce and the processed meta block
+	// nonce before a shard is considered stuck
+	MaxMetaNoncesBehind uint32
+
+	// MaxMetaNoncesBehindForGlobalStuck defines the maximum difference between the current meta block nonce and the processed
+	// meta block nonce for any shard, where the chain is considered stuck and enters recovery
+
+	MaxMetaNoncesBehindForGlobalStuck uint32
+
+	// MaxShardNoncesBehind defines the maximum difference between the current shard block nonce and the last notarized
+	// shard block nonce by meta, before meta is considered stuck
+	MaxShardNoncesBehind uint32
+}
+
+// ProcessConfigByRound defines process configuration parameters by round
+type ProcessConfigByRound struct {
+	EnableRound uint64
+
+	// MaxRoundsWithoutNewBlockReceived defines the maximum number of rounds to wait for a new block to be received,
+	// before a special action to be applied
+	MaxRoundsWithoutNewBlockReceived uint32
+
+	// MaxRoundsWithoutCommittedBlock defines the maximum rounds to wait for a new block to be committed,
+	// before a special action to be applied
+	MaxRoundsWithoutCommittedBlock uint32
+
+	// RoundModulusTriggerWhenSyncIsStuck defines a round modulus on which a trigger for an action when sync is stuck will be released
+	RoundModulusTriggerWhenSyncIsStuck uint32
+}
+
 // GeneralSettingsConfig will hold the general settings for a node
 type GeneralSettingsConfig struct {
 	StatusPollingIntervalSec int
@@ -326,6 +384,11 @@ type GeneralSettingsConfig struct {
 	SetGuardianEpochsDelay               uint32
 	ChainParametersByEpoch               []ChainParametersByEpochConfig
 	EpochChangeGracePeriodByEpoch        []EpochChangeGracePeriodByEpoch
+	ProcessConfigsByEpoch                []ProcessConfigByEpoch
+	ProcessConfigsByRound                []ProcessConfigByRound
+	EpochStartConfigsByEpoch             []EpochStartConfigByEpoch
+	EpochStartConfigsByRound             []EpochStartConfigByRound
+	ConsensusConfigsByEpoch              []ConsensusConfigByEpoch
 }
 
 // HardwareRequirementsConfig will hold the hardware requirements config

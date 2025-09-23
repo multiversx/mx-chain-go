@@ -36,6 +36,7 @@ func TestNewBasicForkDetector_ShouldErrNilRoundHandler(t *testing.T) {
 		&testscommon.EnableRoundsHandlerStub{},
 		&dataRetriever.ProofsPoolMock{},
 		&chainParameters.ChainParametersHandlerStub{},
+		testscommon.GetDefaultProcessConfigsHandler(),
 	)
 	assert.Equal(t, process.ErrNilRoundHandler, err)
 	assert.Nil(t, bfd)
@@ -55,6 +56,7 @@ func TestNewBasicForkDetector_ShouldErrNilBlackListHandler(t *testing.T) {
 		&testscommon.EnableRoundsHandlerStub{},
 		&dataRetriever.ProofsPoolMock{},
 		&chainParameters.ChainParametersHandlerStub{},
+		testscommon.GetDefaultProcessConfigsHandler(),
 	)
 	assert.Equal(t, process.ErrNilBlackListCacher, err)
 	assert.Nil(t, bfd)
@@ -74,6 +76,7 @@ func TestNewBasicForkDetector_ShouldErrNilBlockTracker(t *testing.T) {
 		&testscommon.EnableRoundsHandlerStub{},
 		&dataRetriever.ProofsPoolMock{},
 		&chainParameters.ChainParametersHandlerStub{},
+		testscommon.GetDefaultProcessConfigsHandler(),
 	)
 	assert.Equal(t, process.ErrNilBlockTracker, err)
 	assert.Nil(t, bfd)
@@ -93,6 +96,7 @@ func TestNewBasicForkDetector_ShouldErrNilEnableEpochsHandler(t *testing.T) {
 		&testscommon.EnableRoundsHandlerStub{},
 		&dataRetriever.ProofsPoolMock{},
 		&chainParameters.ChainParametersHandlerStub{},
+		testscommon.GetDefaultProcessConfigsHandler(),
 	)
 	assert.Equal(t, process.ErrNilEnableEpochsHandler, err)
 	assert.Nil(t, bfd)
@@ -112,6 +116,7 @@ func TestNewBasicForkDetector_ShouldErrNilProofsPool(t *testing.T) {
 		&testscommon.EnableRoundsHandlerStub{},
 		nil,
 		&chainParameters.ChainParametersHandlerStub{},
+		testscommon.GetDefaultProcessConfigsHandler(),
 	)
 	assert.Equal(t, process.ErrNilProofsPool, err)
 	assert.Nil(t, bfd)
@@ -131,6 +136,7 @@ func TestNewBasicForkDetector_ShouldWork(t *testing.T) {
 		&testscommon.EnableRoundsHandlerStub{},
 		&dataRetriever.ProofsPoolMock{},
 		&chainParameters.ChainParametersHandlerStub{},
+		testscommon.GetDefaultProcessConfigsHandler(),
 	)
 	assert.Nil(t, err)
 	assert.NotNil(t, bfd)
@@ -155,6 +161,7 @@ func TestBasicForkDetector_CheckBlockValidityShouldErrGenesisTimeMissmatch(t *te
 		&testscommon.EnableRoundsHandlerStub{},
 		&dataRetriever.ProofsPoolMock{},
 		&chainParameters.ChainParametersHandlerStub{},
+		testscommon.GetDefaultProcessConfigsHandler(),
 	)
 
 	err := bfd.CheckBlockValidity(&block.Header{Nonce: 1, Round: round, TimeStamp: incorrectTimeStamp}, []byte("hash"))
@@ -178,6 +185,7 @@ func TestBasicForkDetector_CheckBlockValidityShouldErrLowerRoundInBlock(t *testi
 		&testscommon.EnableRoundsHandlerStub{},
 		&dataRetriever.ProofsPoolMock{},
 		&chainParameters.ChainParametersHandlerStub{},
+		testscommon.GetDefaultProcessConfigsHandler(),
 	)
 	bfd.SetFinalCheckpoint(1, 1, nil)
 	err := bfd.CheckBlockValidity(&block.Header{PubKeysBitmap: []byte("X")}, []byte("hash"))
@@ -198,6 +206,7 @@ func TestBasicForkDetector_CheckBlockValidityShouldErrLowerNonceInBlock(t *testi
 		&testscommon.EnableRoundsHandlerStub{},
 		&dataRetriever.ProofsPoolMock{},
 		&chainParameters.ChainParametersHandlerStub{},
+		testscommon.GetDefaultProcessConfigsHandler(),
 	)
 	bfd.SetFinalCheckpoint(2, 2, nil)
 	err := bfd.CheckBlockValidity(&block.Header{Nonce: 1, Round: 3, PubKeysBitmap: []byte("X")}, []byte("hash"))
@@ -218,6 +227,7 @@ func TestBasicForkDetector_CheckBlockValidityShouldErrHigherRoundInBlock(t *test
 		&testscommon.EnableRoundsHandlerStub{},
 		&dataRetriever.ProofsPoolMock{},
 		&chainParameters.ChainParametersHandlerStub{},
+		testscommon.GetDefaultProcessConfigsHandler(),
 	)
 	err := bfd.CheckBlockValidity(&block.Header{Nonce: 1, Round: 2, PubKeysBitmap: []byte("X")}, []byte("hash"))
 	assert.Equal(t, sync.ErrHigherRoundInBlock, err)
@@ -237,6 +247,7 @@ func TestBasicForkDetector_CheckBlockValidityShouldErrHigherNonceInBlock(t *test
 		&testscommon.EnableRoundsHandlerStub{},
 		&dataRetriever.ProofsPoolMock{},
 		&chainParameters.ChainParametersHandlerStub{},
+		testscommon.GetDefaultProcessConfigsHandler(),
 	)
 	err := bfd.CheckBlockValidity(&block.Header{Nonce: 2, Round: 1, PubKeysBitmap: []byte("X")}, []byte("hash"))
 	assert.Equal(t, sync.ErrHigherNonceInBlock, err)
@@ -256,6 +267,7 @@ func TestBasicForkDetector_CheckBlockValidityShouldWork(t *testing.T) {
 		&testscommon.EnableRoundsHandlerStub{},
 		&dataRetriever.ProofsPoolMock{},
 		&chainParameters.ChainParametersHandlerStub{},
+		testscommon.GetDefaultProcessConfigsHandler(),
 	)
 	err := bfd.CheckBlockValidity(&block.Header{Nonce: 1, Round: 1, PubKeysBitmap: []byte("X")}, []byte("hash"))
 	assert.Nil(t, err)
@@ -279,6 +291,7 @@ func TestBasicForkDetector_RemoveHeadersShouldWork(t *testing.T) {
 		&testscommon.EnableRoundsHandlerStub{},
 		&dataRetriever.ProofsPoolMock{},
 		&chainParameters.ChainParametersHandlerStub{},
+		testscommon.GetDefaultProcessConfigsHandler(),
 	)
 
 	roundHandlerMock.RoundIndex = 1
@@ -315,6 +328,7 @@ func TestBasicForkDetector_CheckForkOnlyOneShardHeaderOnANonceShouldReturnFalse(
 		&testscommon.EnableRoundsHandlerStub{},
 		&dataRetriever.ProofsPoolMock{},
 		&chainParameters.ChainParametersHandlerStub{},
+		testscommon.GetDefaultProcessConfigsHandler(),
 	)
 	_ = bfd.AddHeader(
 		&block.Header{Nonce: 0, PubKeysBitmap: []byte("X")},
@@ -348,6 +362,7 @@ func TestBasicForkDetector_CheckForkOnlyReceivedHeadersShouldReturnFalse(t *test
 		&testscommon.EnableRoundsHandlerStub{},
 		&dataRetriever.ProofsPoolMock{},
 		&chainParameters.ChainParametersHandlerStub{},
+		testscommon.GetDefaultProcessConfigsHandler(),
 	)
 	_ = bfd.AddHeader(
 		&block.Header{Nonce: 0, PubKeysBitmap: []byte("X")},
@@ -383,6 +398,7 @@ func TestBasicForkDetector_CheckForkOnlyOneShardHeaderOnANonceReceivedAndProcess
 		&testscommon.EnableRoundsHandlerStub{},
 		&dataRetriever.ProofsPoolMock{},
 		&chainParameters.ChainParametersHandlerStub{},
+		testscommon.GetDefaultProcessConfigsHandler(),
 	)
 	_ = bfd.AddHeader(
 		&block.Header{Nonce: 0, PubKeysBitmap: []byte("X")},
@@ -418,6 +434,7 @@ func TestBasicForkDetector_CheckForkMetaHeaderProcessedShouldReturnFalse(t *test
 		&testscommon.EnableRoundsHandlerStub{},
 		&dataRetriever.ProofsPoolMock{},
 		&chainParameters.ChainParametersHandlerStub{},
+		testscommon.GetDefaultProcessConfigsHandler(),
 	)
 	_ = bfd.AddHeader(
 		&block.MetaBlock{Nonce: 1, Round: 3, PubKeysBitmap: []byte("X")},
@@ -451,6 +468,7 @@ func TestBasicForkDetector_CheckForkMetaHeaderProcessedShouldReturnFalseWhenLowe
 		&testscommon.EnableRoundsHandlerStub{},
 		&dataRetriever.ProofsPoolMock{},
 		&chainParameters.ChainParametersHandlerStub{},
+		testscommon.GetDefaultProcessConfigsHandler(),
 	)
 	roundHandlerMock.RoundIndex = 5
 	_ = bfd.AddHeader(
@@ -500,6 +518,7 @@ func TestBasicForkDetector_CheckForkMetaHeaderProcessedShouldReturnFalseWhenEqua
 		&testscommon.EnableRoundsHandlerStub{},
 		&dataRetriever.ProofsPoolMock{},
 		&chainParameters.ChainParametersHandlerStub{},
+		testscommon.GetDefaultProcessConfigsHandler(),
 	)
 	roundHandlerMock.RoundIndex = 5
 	_ = bfd.AddHeader(
@@ -548,6 +567,7 @@ func TestBasicForkDetector_CheckForkShardHeaderProcessedShouldReturnTrueWhenEqua
 		&testscommon.EnableRoundsHandlerStub{},
 		&dataRetriever.ProofsPoolMock{},
 		&chainParameters.ChainParametersHandlerStub{},
+		testscommon.GetDefaultProcessConfigsHandler(),
 	)
 
 	hdr1 := &block.Header{Nonce: 1, Round: 4, PubKeysBitmap: []byte("X")}
@@ -617,6 +637,7 @@ func TestBasicForkDetector_CheckForkMetaHeaderProcessedShouldReturnTrueWhenEqual
 		&testscommon.EnableRoundsHandlerStub{},
 		&dataRetriever.ProofsPoolMock{},
 		&chainParameters.ChainParametersHandlerStub{},
+		testscommon.GetDefaultProcessConfigsHandler(),
 	)
 	roundHandlerMock.RoundIndex = 5
 	_ = bfd.AddHeader(
@@ -664,6 +685,7 @@ func TestBasicForkDetector_CheckForkShardHeaderProcessedShouldReturnTrueWhenEqua
 		&testscommon.EnableRoundsHandlerStub{},
 		&dataRetriever.ProofsPoolMock{},
 		&chainParameters.ChainParametersHandlerStub{},
+		testscommon.GetDefaultProcessConfigsHandler(),
 	)
 
 	hdr1 := &block.Header{Nonce: 1, Round: 4, PubKeysBitmap: []byte("X")}
@@ -732,6 +754,7 @@ func TestBasicForkDetector_CheckForkShouldReturnTrue(t *testing.T) {
 		&testscommon.EnableRoundsHandlerStub{},
 		&dataRetriever.ProofsPoolMock{},
 		&chainParameters.ChainParametersHandlerStub{},
+		testscommon.GetDefaultProcessConfigsHandler(),
 	)
 	roundHandlerMock.RoundIndex = 4
 	_ = bfd.AddHeader(
@@ -781,6 +804,7 @@ func TestBasicForkDetector_CheckForkShouldReturnFalseWhenForkIsOnFinalCheckpoint
 		&testscommon.EnableRoundsHandlerStub{},
 		&dataRetriever.ProofsPoolMock{},
 		&chainParameters.ChainParametersHandlerStub{},
+		testscommon.GetDefaultProcessConfigsHandler(),
 	)
 	roundHandlerMock.RoundIndex = 1
 	_ = bfd.AddHeader(
@@ -822,6 +846,7 @@ func TestBasicForkDetector_CheckForkShouldReturnFalseWhenForkIsOnHigherEpochBloc
 		&testscommon.EnableRoundsHandlerStub{},
 		&dataRetriever.ProofsPoolMock{},
 		&chainParameters.ChainParametersHandlerStub{},
+		testscommon.GetDefaultProcessConfigsHandler(),
 	)
 	roundHandlerMock.RoundIndex = 2
 	_ = bfd.AddHeader(
@@ -869,6 +894,7 @@ func TestBasicForkDetector_RemovePastHeadersShouldWork(t *testing.T) {
 		&testscommon.EnableRoundsHandlerStub{},
 		&dataRetriever.ProofsPoolMock{},
 		&chainParameters.ChainParametersHandlerStub{},
+		testscommon.GetDefaultProcessConfigsHandler(),
 	)
 	_ = bfd.AddHeader(hdr1, hash1, process.BHReceived, nil, nil)
 	_ = bfd.AddHeader(hdr2, hash2, process.BHReceived, nil, nil)
@@ -908,6 +934,7 @@ func TestBasicForkDetector_RemoveInvalidReceivedHeadersShouldWork(t *testing.T) 
 		&testscommon.EnableRoundsHandlerStub{},
 		&dataRetriever.ProofsPoolMock{},
 		&chainParameters.ChainParametersHandlerStub{},
+		testscommon.GetDefaultProcessConfigsHandler(),
 	)
 	roundHandlerMock.RoundIndex = 11
 	_ = bfd.AddHeader(hdr0, hash0, process.BHReceived, nil, nil)
@@ -951,6 +978,7 @@ func TestBasicForkDetector_RemoveCheckpointHeaderNonceShouldResetCheckpoint(t *t
 		&testscommon.EnableRoundsHandlerStub{},
 		&dataRetriever.ProofsPoolMock{},
 		&chainParameters.ChainParametersHandlerStub{},
+		testscommon.GetDefaultProcessConfigsHandler(),
 	)
 
 	_ = bfd.AddHeader(hdr1, hash1, process.BHProcessed, nil, nil)
@@ -975,6 +1003,7 @@ func TestBasicForkDetector_GetHighestFinalBlockNonce(t *testing.T) {
 		&testscommon.EnableRoundsHandlerStub{},
 		&dataRetriever.ProofsPoolMock{},
 		&chainParameters.ChainParametersHandlerStub{},
+		testscommon.GetDefaultProcessConfigsHandler(),
 	)
 
 	hdr1 := &block.MetaBlock{Nonce: 2, Round: 1, PubKeysBitmap: []byte("X")}
@@ -1021,6 +1050,7 @@ func TestBasicForkDetector_ProbableHighestNonce(t *testing.T) {
 		&testscommon.EnableRoundsHandlerStub{},
 		&dataRetriever.ProofsPoolMock{},
 		&chainParameters.ChainParametersHandlerStub{},
+		testscommon.GetDefaultProcessConfigsHandler(),
 	)
 
 	roundHandlerMock.RoundIndex = 11
@@ -1083,6 +1113,7 @@ func TestShardForkDetector_ShouldAddBlockInForkDetectorShouldWork(t *testing.T) 
 		&testscommon.EnableRoundsHandlerStub{},
 		&dataRetriever.ProofsPoolMock{},
 		&chainParameters.ChainParametersHandlerStub{},
+		testscommon.GetDefaultProcessConfigsHandler(),
 	)
 
 	hdr := &block.Header{Nonce: 1, Round: 1}
@@ -1111,6 +1142,7 @@ func TestShardForkDetector_ShouldAddBlockInForkDetectorShouldErrLowerRoundInBloc
 		&testscommon.EnableRoundsHandlerStub{},
 		&dataRetriever.ProofsPoolMock{},
 		&chainParameters.ChainParametersHandlerStub{},
+		testscommon.GetDefaultProcessConfigsHandler(),
 	)
 	hdr := &block.Header{Nonce: 1, Round: 1}
 
@@ -1133,6 +1165,7 @@ func TestMetaForkDetector_ShouldAddBlockInForkDetectorShouldWork(t *testing.T) {
 		&testscommon.EnableRoundsHandlerStub{},
 		&dataRetriever.ProofsPoolMock{},
 		&chainParameters.ChainParametersHandlerStub{},
+		testscommon.GetDefaultProcessConfigsHandler(),
 	)
 
 	hdr := &block.MetaBlock{Nonce: 1, Round: 1}
@@ -1161,6 +1194,7 @@ func TestMetaForkDetector_ShouldAddBlockInForkDetectorShouldErrLowerRoundInBlock
 		&testscommon.EnableRoundsHandlerStub{},
 		&dataRetriever.ProofsPoolMock{},
 		&chainParameters.ChainParametersHandlerStub{},
+		testscommon.GetDefaultProcessConfigsHandler(),
 	)
 	hdr := &block.MetaBlock{Nonce: 1, Round: 1}
 
@@ -1183,6 +1217,7 @@ func TestShardForkDetector_AddNotarizedHeadersShouldNotChangeTheFinalCheckpoint(
 		&testscommon.EnableRoundsHandlerStub{},
 		&dataRetriever.ProofsPoolMock{},
 		&chainParameters.ChainParametersHandlerStub{},
+		testscommon.GetDefaultProcessConfigsHandler(),
 	)
 	hdr1 := &block.Header{Nonce: 3, Round: 3}
 	hash1 := []byte("hash1")
@@ -1239,6 +1274,7 @@ func TestBaseForkDetector_IsConsensusStuckNotSyncingShouldReturnFalse(t *testing
 		&testscommon.EnableRoundsHandlerStub{},
 		&dataRetriever.ProofsPoolMock{},
 		&chainParameters.ChainParametersHandlerStub{},
+		testscommon.GetDefaultProcessConfigsHandler(),
 	)
 
 	bfd.SetProbableHighestNonce(1)
@@ -1260,6 +1296,7 @@ func TestBaseForkDetector_IsConsensusStuckNoncesDifferencesNotEnoughShouldReturn
 		&testscommon.EnableRoundsHandlerStub{},
 		&dataRetriever.ProofsPoolMock{},
 		&chainParameters.ChainParametersHandlerStub{},
+		testscommon.GetDefaultProcessConfigsHandler(),
 	)
 
 	roundHandlerMock.RoundIndex = 10
@@ -1280,6 +1317,7 @@ func TestBaseForkDetector_IsConsensusStuckNotInProperRoundShouldReturnFalse(t *t
 		&testscommon.EnableRoundsHandlerStub{},
 		&dataRetriever.ProofsPoolMock{},
 		&chainParameters.ChainParametersHandlerStub{},
+		testscommon.GetDefaultProcessConfigsHandler(),
 	)
 
 	roundHandlerMock.RoundIndex = 11
@@ -1303,6 +1341,7 @@ func TestBaseForkDetector_IsConsensusStuckShouldReturnTrue(t *testing.T) {
 			&testscommon.EnableRoundsHandlerStub{},
 			&dataRetriever.ProofsPoolMock{},
 			&chainParameters.ChainParametersHandlerStub{},
+			testscommon.GetDefaultProcessConfigsHandler(),
 		)
 
 		// last checkpoint will be (round = 0 , nonce = 0)
@@ -1331,6 +1370,7 @@ func TestBaseForkDetector_IsConsensusStuckShouldReturnTrue(t *testing.T) {
 			},
 			&dataRetriever.ProofsPoolMock{},
 			&chainParameters.ChainParametersHandlerStub{},
+			testscommon.GetDefaultProcessConfigsHandler(),
 		)
 
 		// last checkpoint will be (round = 0 , nonce = 0)
@@ -1356,6 +1396,7 @@ func TestShardForkDetector_RemoveHeaderShouldComputeFinalCheckpoint(t *testing.T
 		&testscommon.EnableRoundsHandlerStub{},
 		&dataRetriever.ProofsPoolMock{},
 		&chainParameters.ChainParametersHandlerStub{},
+		testscommon.GetDefaultProcessConfigsHandler(),
 	)
 	hdr1 := &block.Header{Nonce: 3, Round: 3}
 	hash1 := []byte("hash1")
@@ -1402,6 +1443,7 @@ func TestBasicForkDetector_CheckForkMetaHeaderProcessedShouldWorkOnEqualRoundWit
 		&testscommon.EnableRoundsHandlerStub{},
 		&dataRetriever.ProofsPoolMock{},
 		&chainParameters.ChainParametersHandlerStub{},
+		testscommon.GetDefaultProcessConfigsHandler(),
 	)
 	roundHandlerMock.RoundIndex = 5
 	_ = bfd.AddHeader(
@@ -1455,6 +1497,7 @@ func TestBasicForkDetector_SetFinalToLastCheckpointShouldWork(t *testing.T) {
 		&testscommon.EnableRoundsHandlerStub{},
 		&dataRetriever.ProofsPoolMock{},
 		&chainParameters.ChainParametersHandlerStub{},
+		testscommon.GetDefaultProcessConfigsHandler(),
 	)
 
 	roundHandlerMock.RoundIndex = 1000
@@ -1492,6 +1535,7 @@ func TestBaseForkDetector_GetNotarizedHeaderHash(t *testing.T) {
 		&testscommon.EnableRoundsHandlerStub{},
 		&dataRetriever.ProofsPoolMock{},
 		&chainParameters.ChainParametersHandlerStub{},
+		testscommon.GetDefaultProcessConfigsHandler(),
 	)
 
 	roundHandlerMock.RoundIndex = 10
@@ -1547,6 +1591,7 @@ func TestBaseForkDetector_ReceivedProof(t *testing.T) {
 		&testscommon.EnableRoundsHandlerStub{},
 		&dataRetriever.ProofsPoolMock{},
 		&chainParameters.ChainParametersHandlerStub{},
+		testscommon.GetDefaultProcessConfigsHandler(),
 	)
 
 	proof := &processMocks.HeaderProofHandlerStub{
@@ -1616,6 +1661,7 @@ func TestBaseForkDetector_BlockWithoutProofShouldReturnEarly(t *testing.T) {
 			},
 		},
 		&chainParameters.ChainParametersHandlerStub{},
+		testscommon.GetDefaultProcessConfigsHandler(),
 	)
 
 	roundHandlerMock.RoundIndex = 10
@@ -1654,6 +1700,7 @@ func TestBaseForkDetector_ReceivedProofForBlockHeaderShouldSetProof(t *testing.T
 		&testscommon.EnableRoundsHandlerStub{},
 		&dataRetriever.ProofsPoolMock{},
 		&chainParameters.ChainParametersHandlerStub{},
+		testscommon.GetDefaultProcessConfigsHandler(),
 	)
 
 	hdrInfo := &sync.HeaderInfo{

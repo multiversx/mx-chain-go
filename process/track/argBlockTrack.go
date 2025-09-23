@@ -29,6 +29,7 @@ type ArgBaseTracker struct {
 	EnableRoundsHandler           common.EnableRoundsHandler
 	ProofsPool                    process.ProofsPool
 	EpochChangeGracePeriodHandler common.EpochChangeGracePeriodHandler
+	ProcessConfigsHandler         common.ProcessConfigsHandler
 	IsImportDBMode                bool
 }
 

@@ -111,6 +111,7 @@ type TestConsensusNode struct {
 	DataPool                  dataRetriever.PoolsHolder
 	RequestHandler            process.RequestHandler
 	ChainParametersHandler    common.ChainParametersHandler
+	ProcessConfigsHandler     common.ProcessConfigsHandler
 }
 
 // NewTestConsensusNode returns a new TestConsensusNode
@@ -221,6 +222,8 @@ func (tcn *TestConsensusNode) initNode(args ArgsTestConsensusNode) {
 			}, nil
 		},
 	}
+
+	tcn.ProcessConfigsHandler = testscommon.GetDefaultProcessConfigsHandler()
 
 	tcn.initNodesCoordinator(args.ConsensusSize, testHasher, epochStartRegistrationHandler, args.EligibleMap, args.WaitingMap, pkBytes, consensusCache)
 	tcn.MainMessenger = CreateMessengerWithNoDiscovery()
@@ -401,6 +404,7 @@ func (tcn *TestConsensusNode) initNode(args ArgsTestConsensusNode) {
 		enableRoundsHandler,
 		dataPool.Proofs(),
 		tcn.ChainParametersHandler,
+		tcn.ProcessConfigsHandler,
 	)
 
 	processComponents := GetDefaultProcessComponents()

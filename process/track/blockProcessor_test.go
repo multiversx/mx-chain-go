@@ -26,6 +26,8 @@ import (
 	"github.com/multiversx/mx-chain-go/process/track"
 )
 
+const defaultMaxRoundsWithoutNewBlockReceived = 10
+
 func CreateBlockProcessorMockArguments() track.ArgBlockProcessor {
 	shardCoordinatorMock := mock.NewMultipleShardsCoordinatorMock()
 	argsHeaderValidator := processBlock.ArgsHeaderValidator{
@@ -62,13 +64,14 @@ func CreateBlockProcessorMockArguments() track.ArgBlockProcessor {
 				return 1
 			},
 		},
-		RoundHandler:        &mock.RoundHandlerMock{},
-		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
-		EnableRoundsHandler: &testscommon.EnableRoundsHandlerStub{},
-		ProofsPool:          &dataRetriever.ProofsPoolMock{},
-		Marshaller:          &testscommon.MarshallerStub{},
-		Hasher:              &hashingMocks.HasherMock{},
-		HeadersPool:         &pool.HeadersPoolStub{},
+		RoundHandler:          &mock.RoundHandlerMock{},
+		EnableEpochsHandler:   &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		EnableRoundsHandler:   &testscommon.EnableRoundsHandlerStub{},
+		ProofsPool:            &dataRetriever.ProofsPoolMock{},
+		Marshaller:            &testscommon.MarshallerStub{},
+		Hasher:                &hashingMocks.HasherMock{},
+		HeadersPool:           &pool.HeadersPoolStub{},
+		ProcessConfigsHandler: testscommon.GetDefaultProcessConfigsHandler(),
 	}
 
 	return arguments
@@ -961,7 +964,7 @@ func testRequestHeaders(t *testing.T, roundIndex uint64, round uint64, nonce uin
 	}
 
 	blockProcessorArguments.RoundHandler = &mock.RoundHandlerMock{
-		RoundIndex: process.MaxRoundsWithoutNewBlockReceived + int64(roundIndex),
+		RoundIndex: defaultMaxRoundsWithoutNewBlockReceived + int64(roundIndex),
 	}
 
 	bp, _ := track.NewBlockProcessor(blockProcessorArguments)
@@ -1007,7 +1010,7 @@ func TestRequestHeadersIfNothingNewIsReceived_ShouldRequestIfHighestRoundFromRec
 	}
 
 	blockProcessorArguments.RoundHandler = &mock.RoundHandlerMock{
-		RoundIndex: process.MaxRoundsWithoutNewBlockReceived + 4,
+		RoundIndex: defaultMaxRoundsWithoutNewBlockReceived + 4,
 	}
 
 	bp, _ := track.NewBlockProcessor(blockProcessorArguments)

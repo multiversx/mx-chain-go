@@ -454,3 +454,26 @@ type ChainParametersHandler interface {
 	ChainParametersForEpoch(epoch uint32) (config.ChainParametersByEpochConfig, error)
 	IsInterfaceNil() bool
 }
+
+// ProcessConfigsHandler defines the behavior of a component that can return the process configs for a specific epoch or round
+type ProcessConfigsHandler interface {
+	GetMaxMetaNoncesBehindByEpoch(epoch uint32) uint32
+	GetMaxMetaNoncesBehindForGlobalStuckByEpoch(epoch uint32) uint32
+	GetMaxShardNoncesBehindByEpoch(epoch uint32) uint32
+
+	GetMaxRoundsWithoutNewBlockReceivedByRound(round uint64) uint32
+	GetMaxRoundsWithoutCommittedBlock(round uint64) uint32
+	GetRoundModulusTriggerWhenSyncIsStuck(round uint64) uint32
+
+	IsInterfaceNil() bool
+}
+
+// CommonConfigsHandler defines the behavior of a component that can return epoch start configurations by epoch or by round
+type CommonConfigsHandler interface {
+	GetGracePeriodRoundsByEpoch(epoch uint32) uint32
+	GetExtraDelayForRequestBlockInfoInMs(epoch uint32) uint32
+	GetMaxRoundsWithoutCommittedStartInEpochBlockInRound(round uint64) uint32
+	GetNumRoundsToWaitBeforeSignalingChronologyStuck(epoch uint32) uint32
+
+	IsInterfaceNil() bool
+}
