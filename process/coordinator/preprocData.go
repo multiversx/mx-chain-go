@@ -15,7 +15,7 @@ type preProcData struct {
 	keysTxPreProcs  []block.Type
 }
 
-func NewPreProcData(container process.PreProcessorsContainer) (*preProcData, error) {
+func newPreProcData(container process.PreProcessorsContainer) (*preProcData, error) {
 	ppd := &preProcData{}
 	ppd.txPreProcessors = make(map[block.Type]process.PreProcessor)
 	ppd.keysTxPreProcs = container.Keys()

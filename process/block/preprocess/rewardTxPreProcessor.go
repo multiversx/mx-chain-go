@@ -303,26 +303,27 @@ func (rtp *rewardTxPreprocessor) computeExistingAndRequestMissingRewardTxsForSha
 	return numMissingTxsForShards
 }
 
-// RequestTransactionsForMiniBlock requests missing reward transactions for a certain miniblock
-func (rtp *rewardTxPreprocessor) RequestTransactionsForMiniBlock(miniBlock *block.MiniBlock) int {
+// GetTransactionsAndRequestMissingForMiniBlock returns the reward transactions from pool and requests missing for a certain miniblock
+func (rtp *rewardTxPreprocessor) GetTransactionsAndRequestMissingForMiniBlock(miniBlock *block.MiniBlock) ([]data.TransactionHandler, int) {
 	if miniBlock == nil {
-		return 0
+		return nil, 0
 	}
 
-	missingRewardTxsHashesForMiniBlock := rtp.computeMissingRewardTxsHashesForMiniBlock(miniBlock)
+	existingTxs, missingRewardTxsHashesForMiniBlock := rtp.computeMissingRewardTxsHashesForMiniBlock(miniBlock)
 	if len(missingRewardTxsHashesForMiniBlock) > 0 {
 		rtp.onRequestRewardTx(miniBlock.SenderShardID, missingRewardTxsHashesForMiniBlock)
 	}
 
-	return len(missingRewardTxsHashesForMiniBlock)
+	return existingTxs, len(missingRewardTxsHashesForMiniBlock)
 }
 
 // computeMissingRewardTxsHashesForMiniBlock computes missing reward transactions hashes for a certain miniblock
-func (rtp *rewardTxPreprocessor) computeMissingRewardTxsHashesForMiniBlock(miniBlock *block.MiniBlock) [][]byte {
+func (rtp *rewardTxPreprocessor) computeMissingRewardTxsHashesForMiniBlock(miniBlock *block.MiniBlock) ([]data.TransactionHandler, [][]byte) {
 	missingRewardTxsHashes := make([][]byte, 0)
+	existingTxs := make([]data.TransactionHandler, 0)
 
 	if miniBlock.Type != block.RewardsBlock {
-		return missingRewardTxsHashes
+		return existingTxs, missingRewardTxsHashes
 	}
 
 	for _, txHash := range miniBlock.TxHashes {
@@ -336,10 +337,13 @@ func (rtp *rewardTxPreprocessor) computeMissingRewardTxsHashesForMiniBlock(miniB
 
 		if check.IfNil(tx) {
 			missingRewardTxsHashes = append(missingRewardTxsHashes, txHash)
+			continue
 		}
+
+		existingTxs = append(existingTxs, tx)
 	}
 
-	return missingRewardTxsHashes
+	return existingTxs, missingRewardTxsHashes
 }
 
 // getAllRewardTxsFromMiniBlock gets all the reward transactions from a miniblock into a new structure
@@ -380,8 +384,8 @@ func (rtp *rewardTxPreprocessor) getAllRewardTxsFromMiniBlock(
 }
 
 // SelectOutgoingTransactions does nothing as rewards transactions are created by meta chain
-func (rtp *rewardTxPreprocessor) SelectOutgoingTransactions() ([][]byte, error) {
-	return make([][]byte, 0), nil
+func (rtp *rewardTxPreprocessor) SelectOutgoingTransactions(_ uint64) ([][]byte, []data.TransactionHandler, error) {
+	return make([][]byte, 0), make([]data.TransactionHandler, 0), nil
 }
 
 // CreateAndProcessMiniBlocks creates miniblocks from storage and processes the reward transactions added into the miniblocks

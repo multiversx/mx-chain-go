@@ -171,19 +171,19 @@ func TestTransactionCoordinator_CreateMbsCrossShardDstMe_MiniBlockProcessing(t *
 	// Mock preprocessor to simulate no missing transactions
 	proposalPreprocessorCalled := false
 	tc.preProcProposal.txPreProcessors[block.TxBlock] = &preprocMocks.PreProcessorMock{
-		RequestTransactionsForMiniBlockCalled: func(miniBlock *block.MiniBlock) int {
+		GetTransactionsAndRequestMissingForMiniBlockCalled: func(miniBlock *block.MiniBlock) ([]data.TransactionHandler, int) {
 			proposalPreprocessorCalled = true
 			require.Equal(t, td.mb1Info.Miniblock, miniBlock)
-			return 0 // No missing transactions
+			return nil, 0 // No missing transactions
 		},
 	}
 
 	// Mock execution preprocessor to ensure it's not called
 	executionPreprocessorCalled := false
 	tc.preProcExecution.txPreProcessors[block.TxBlock] = &preprocMocks.PreProcessorMock{
-		RequestTransactionsForMiniBlockCalled: func(miniBlock *block.MiniBlock) int {
+		GetTransactionsAndRequestMissingForMiniBlockCalled: func(miniBlock *block.MiniBlock) ([]data.TransactionHandler, int) {
 			executionPreprocessorCalled = true
-			return 0
+			return nil, 0
 		},
 	}
 
@@ -340,18 +340,18 @@ func TestTransactionCoordinator_SelectOutgoingTransactions_EmptyResult(t *testin
 	// Mock proposal preprocessors to return empty transactions
 	proposalPreprocessorCalled := false
 	tc.preProcProposal.txPreProcessors[block.TxBlock] = &preprocMocks.PreProcessorMock{
-		SelectOutgoingTransactionsCalled: func() ([][]byte, error) {
+		SelectOutgoingTransactionsCalled: func(_ uint64) ([][]byte, []data.TransactionHandler, error) {
 			proposalPreprocessorCalled = true
-			return [][]byte{}, nil
+			return [][]byte{}, []data.TransactionHandler{}, nil
 		},
 	}
 
 	// Mock execution preprocessor to ensure it's not called
 	executionPreprocessorCalled := false
 	tc.preProcExecution.txPreProcessors[block.TxBlock] = &preprocMocks.PreProcessorMock{
-		SelectOutgoingTransactionsCalled: func() ([][]byte, error) {
+		SelectOutgoingTransactionsCalled: func(_ uint64) ([][]byte, []data.TransactionHandler, error) {
 			executionPreprocessorCalled = true
-			return [][]byte{}, nil
+			return [][]byte{}, []data.TransactionHandler{}, nil
 		},
 	}
 
@@ -373,22 +373,23 @@ func TestTransactionCoordinator_SelectOutgoingTransactions_ReturnsTransactions(t
 	require.NotNil(t, tc)
 
 	expectedTxHashes := [][]byte{[]byte("tx_hash_1"), []byte("tx_hash_2")}
+	expectedTxs := []data.TransactionHandler{&transaction.Transaction{}, &transaction.Transaction{}}
 
 	// Mock proposal preprocessor to return transactions
 	proposalPreprocessorCalled := false
 	tc.preProcProposal.txPreProcessors[block.TxBlock] = &preprocMocks.PreProcessorMock{
-		SelectOutgoingTransactionsCalled: func() ([][]byte, error) {
+		SelectOutgoingTransactionsCalled: func(_ uint64) ([][]byte, []data.TransactionHandler, error) {
 			proposalPreprocessorCalled = true
-			return expectedTxHashes, nil
+			return expectedTxHashes, expectedTxs, nil
 		},
 	}
 
 	// Mock execution preprocessor to ensure it's not called
 	executionPreprocessorCalled := false
 	tc.preProcExecution.txPreProcessors[block.TxBlock] = &preprocMocks.PreProcessorMock{
-		SelectOutgoingTransactionsCalled: func() ([][]byte, error) {
+		SelectOutgoingTransactionsCalled: func(_ uint64) ([][]byte, []data.TransactionHandler, error) {
 			executionPreprocessorCalled = true
-			return [][]byte{}, nil
+			return [][]byte{}, []data.TransactionHandler{}, nil
 		},
 	}
 
@@ -456,8 +457,8 @@ func TestTransactionCoordinator_SelectOutgoingTransactions_HandlesErrors(t *test
 
 	// Mock proposal preprocessor to return error
 	tc.preProcProposal.txPreProcessors[block.TxBlock] = &preprocMocks.PreProcessorMock{
-		SelectOutgoingTransactionsCalled: func() ([][]byte, error) {
-			return nil, errors.New("test error")
+		SelectOutgoingTransactionsCalled: func(_ uint64) ([][]byte, []data.TransactionHandler, error) {
+			return nil, nil, errors.New("test error")
 		},
 	}
 

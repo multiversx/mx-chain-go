@@ -905,6 +905,18 @@ func (tpn *TestFullNode) initBlockProcessor(
 		log.LogIfError(err)
 	}
 
+	argsGasConsumption := block.ArgsGasConsumption{
+		EconomicsFee:                      tpn.EconomicsData,
+		ShardCoordinator:                  tpn.ShardCoordinator,
+		GasHandler:                        tpn.GasHandler,
+		BlockCapacityOverestimationFactor: 200,
+		PercentDecreaseLimitsStep:         10,
+	}
+	gasConsumption, err := block.NewGasConsumption(argsGasConsumption)
+	if err != nil {
+		log.LogIfError(err)
+	}
+
 	argumentsBase := block.ArgBaseProcessor{
 		CoreComponents:       coreComponents,
 		DataComponents:       dataComponents,
@@ -941,6 +953,7 @@ func (tpn *TestFullNode) initBlockProcessor(
 		MissingDataResolver:                missingDataResolver,
 		ExecutionResultsInclusionEstimator: inclusionEstimator,
 		ExecutionResultsTracker:            executionResultsTracker,
+		GasComputation:                     gasConsumption,
 	}
 
 	if check.IfNil(tpn.EpochStartNotifier) {
@@ -1216,6 +1229,18 @@ func (tpn *TestFullNode) initBlockProcessorWithSync(
 		log.LogIfError(err)
 	}
 
+	argsGasConsumption := block.ArgsGasConsumption{
+		EconomicsFee:                      tpn.EconomicsData,
+		ShardCoordinator:                  tpn.ShardCoordinator,
+		GasHandler:                        tpn.GasHandler,
+		BlockCapacityOverestimationFactor: 200,
+		PercentDecreaseLimitsStep:         10,
+	}
+	gasConsumption, err := block.NewGasConsumption(argsGasConsumption)
+	if err != nil {
+		log.LogIfError(err)
+	}
+
 	argumentsBase := block.ArgBaseProcessor{
 		CoreComponents:       coreComponents,
 		DataComponents:       dataComponents,
@@ -1253,6 +1278,7 @@ func (tpn *TestFullNode) initBlockProcessorWithSync(
 		MissingDataResolver:                missingDataResolver,
 		ExecutionResultsInclusionEstimator: inclusionEstimator,
 		ExecutionResultsTracker:            executionResultsTracker,
+		GasComputation:                     gasConsumption,
 	}
 
 	if tpn.ShardCoordinator.SelfId() == core.MetachainShardId {

@@ -120,6 +120,7 @@ type baseProcessor struct {
 	miniBlocksSelectionSession         MiniBlocksSelectionSession
 	executionResultsVerifier           ExecutionResultsVerifier
 	missingDataResolver                MissingDataResolver
+	gasComputation                     process.GasComputation
 }
 
 type bootStorerDataArgs struct {
@@ -205,6 +206,7 @@ func NewBaseProcessor(arguments ArgBaseProcessor) (*baseProcessor, error) {
 		miniBlocksSelectionSession:         arguments.MiniBlocksSelectionSession,
 		executionResultsVerifier:           arguments.ExecutionResultsVerifier,
 		missingDataResolver:                arguments.MissingDataResolver,
+		gasComputation:                     arguments.GasComputation,
 	}
 
 	return base, nil
@@ -555,7 +557,6 @@ func displayHeader(
 
 // checkProcessorParameters will check the input parameters values
 func checkProcessorParameters(arguments ArgBaseProcessor) error {
-
 	for key := range arguments.AccountsDB {
 		if check.IfNil(arguments.AccountsDB[key]) {
 			return process.ErrNilAccountsAdapter
@@ -720,6 +721,9 @@ func checkProcessorParameters(arguments ArgBaseProcessor) error {
 	}
 	if check.IfNil(arguments.MissingDataResolver) {
 		return process.ErrNilMissingDataResolver
+	}
+	if check.IfNil(arguments.GasComputation) {
+		return process.ErrNilGasComputation
 	}
 
 	return nil
@@ -942,11 +946,6 @@ func isPartiallyExecuted(
 
 // check if header has the same mini blocks as presented in body
 func (bp *baseProcessor) checkHeaderBodyCorrelationProposal(miniBlockHeaders []data.MiniBlockHeaderHandler, body *block.Body) error {
-	mbHashesFromHdr := make(map[string]data.MiniBlockHeaderHandler, len(miniBlockHeaders))
-	for i := 0; i < len(miniBlockHeaders); i++ {
-		mbHashesFromHdr[string(miniBlockHeaders[i].GetHash())] = miniBlockHeaders[i]
-	}
-
 	if len(miniBlockHeaders) != len(body.MiniBlocks) {
 		return process.ErrHeaderBodyMismatch
 	}
@@ -968,7 +967,7 @@ func (bp *baseProcessor) checkHeaderBodyCorrelationProposal(miniBlockHeaders []d
 			return err
 		}
 
-		err = checkMiniBlockWithMiniBlockHeader(mbHash, miniBlockHeaders[i], miniBlock)
+		err = checkMiniBlockWithMiniBlockHeader(mbHash, mbHdr, miniBlock)
 		if err != nil {
 			return err
 		}
@@ -1000,11 +999,11 @@ func checkMiniBlockWithMiniBlockHeader(mbHash []byte, mbHdr data.MiniBlockHeader
 	}
 
 	if mbHdr.GetReceiverShardID() != miniBlock.ReceiverShardID {
-		return process.ErrHeaderBodyMismatch
+		return fmt.Errorf("%w: different mb receiver shard ID", process.ErrHeaderBodyMismatch)
 	}
 
 	if mbHdr.GetSenderShardID() != miniBlock.SenderShardID {
-		return process.ErrHeaderBodyMismatch
+		return fmt.Errorf("%w: different mb sender shard ID", process.ErrHeaderBodyMismatch)
 	}
 	return nil
 }
@@ -1031,7 +1030,7 @@ func (bp *baseProcessor) checkHeaderBodyCorrelation(miniBlockHeaders []data.Mini
 			return err
 		}
 
-		err = checkMiniBlockWithMiniBlockHeader(mbHash, miniBlockHeaders[i], miniBlock)
+		err = checkMiniBlockWithMiniBlockHeader(mbHash, mbHdr, miniBlock)
 		if err != nil {
 			return err
 		}

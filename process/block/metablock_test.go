@@ -17,6 +17,7 @@ import (
 	"github.com/multiversx/mx-chain-go/process/asyncExecution/executionTrack"
 	"github.com/multiversx/mx-chain-go/process/estimator"
 	"github.com/multiversx/mx-chain-go/process/missingData"
+	"github.com/multiversx/mx-chain-go/testscommon/economicsmocks"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -183,6 +184,15 @@ func createMockMetaArguments(
 	}
 	missingDataResolver, _ := missingData.NewMissingDataResolver(missingDataArgs)
 
+	argsGasConsumption := blproc.ArgsGasConsumption{
+		EconomicsFee:                      &economicsmocks.EconomicsHandlerMock{},
+		ShardCoordinator:                  bootstrapComponents.ShardCoordinator(),
+		GasHandler:                        &mock.GasHandlerMock{},
+		BlockCapacityOverestimationFactor: 200,
+		PercentDecreaseLimitsStep:         10,
+	}
+	gasComputation, _ := blproc.NewGasConsumption(argsGasConsumption)
+
 	arguments := blproc.ArgMetaProcessor{
 		ArgBaseProcessor: blproc.ArgBaseProcessor{
 			CoreComponents:       coreComponents,
@@ -221,6 +231,7 @@ func createMockMetaArguments(
 			MissingDataResolver:                missingDataResolver,
 			ExecutionResultsInclusionEstimator: inclusionEstimator,
 			ExecutionResultsTracker:            executionResultsTracker,
+			GasComputation:                     gasComputation,
 		},
 		SCToProtocol:                 &mock.SCToProtocolStub{},
 		PendingMiniBlocksHandler:     &mock.PendingMiniBlocksHandlerStub{},
@@ -629,7 +640,7 @@ func TestMetaProcessor_CheckHeaderBodyCorrelationReceiverMissmatch(t *testing.T)
 
 	hdr.MiniBlockHeaders[0].ReceiverShardID = body.MiniBlocks[0].ReceiverShardID + 1
 	err := mp.CheckHeaderBodyCorrelation(hdr, body)
-	assert.Equal(t, process.ErrHeaderBodyMismatch, err)
+	assert.ErrorIs(t, err, process.ErrHeaderBodyMismatch)
 }
 
 func TestMetaProcessor_CheckHeaderBodyCorrelationSenderMissmatch(t *testing.T) {
@@ -641,7 +652,7 @@ func TestMetaProcessor_CheckHeaderBodyCorrelationSenderMissmatch(t *testing.T) {
 
 	hdr.MiniBlockHeaders[0].SenderShardID = body.MiniBlocks[0].SenderShardID + 1
 	err := mp.CheckHeaderBodyCorrelation(hdr, body)
-	assert.Equal(t, process.ErrHeaderBodyMismatch, err)
+	assert.ErrorIs(t, err, process.ErrHeaderBodyMismatch)
 }
 
 func TestMetaProcessor_CheckHeaderBodyCorrelationTxCountMissmatch(t *testing.T) {
@@ -677,6 +688,34 @@ func TestMetaProcessor_CheckHeaderBodyCorrelationShouldPass(t *testing.T) {
 
 	err := mp.CheckHeaderBodyCorrelation(hdr, body)
 	assert.Nil(t, err)
+}
+
+func TestMetaProcessor_CheckHeaderBodyCorrelationWrongProcessingIndexes(t *testing.T) {
+	t.Parallel()
+
+	hdr, body := createOneHeaderOneBody()
+	arguments := createMockMetaArguments(createMockComponentHolders())
+	mp, _ := blproc.NewMetaProcessor(arguments)
+
+	_ = hdr.MiniBlockHeaders[0].SetIndexOfFirstTxProcessed(0)
+	_ = hdr.MiniBlockHeaders[0].SetIndexOfLastTxProcessed(-1)
+
+	err := mp.CheckHeaderBodyCorrelation(hdr, body)
+	require.NotNil(t, err)
+	require.ErrorContains(t, err, "index is out of bound")
+}
+
+func TestMetaProcessor_CheckHeaderBodyCorrelationWrongConstructionState(t *testing.T) {
+	t.Parallel()
+
+	hdr, body := createOneHeaderOneBody()
+	arguments := createMockMetaArguments(createMockComponentHolders())
+	mp, _ := blproc.NewMetaProcessor(arguments)
+
+	_ = hdr.MiniBlockHeaders[0].SetConstructionState(int32(block.PartialExecuted))
+
+	err := mp.CheckHeaderBodyCorrelation(hdr, body)
+	require.NotNil(t, err)
 }
 
 func TestMetaProcessor_CheckHeaderBodyCorrelationNilMiniBlock(t *testing.T) {

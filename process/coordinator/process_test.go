@@ -264,6 +264,14 @@ func createMockTransactionCoordinatorArguments() ArgTransactionCoordinator {
 		TxExecutionOrderHandler:      &commonMock.TxExecutionOrderHandlerStub{},
 		BlockDataRequester:           &preprocMocks.BlockDataRequesterStub{},
 		BlockDataRequesterProposal:   &preprocMocks.BlockDataRequesterStub{},
+		GasComputation: &testscommon.GasComputationMock{
+			CheckOutgoingTransactionsCalled: func(txHashes [][]byte, transactions []data.TransactionHandler) ([][]byte, error) {
+				return txHashes, nil
+			},
+			CheckIncomingMiniBlocksCalled: func(miniBlocks []data.MiniBlockHeaderHandler, transactions map[string][]data.TransactionHandler) (int, int, error) {
+				return len(miniBlocks), 0, nil
+			},
+		},
 	}
 
 	blockDataRequesterArgs := BlockDataRequestArgs{
@@ -500,6 +508,17 @@ func TestNewTransactionCoordinator_NilBlockDataRequester(t *testing.T) {
 
 	assert.Nil(t, tc)
 	assert.Equal(t, process.ErrNilBlockDataRequester, err)
+}
+
+func TestNewTransactionCoordinator_NilGasComputation(t *testing.T) {
+	t.Parallel()
+
+	argsTransactionCoordinator := createMockTransactionCoordinatorArguments()
+	argsTransactionCoordinator.GasComputation = nil
+	tc, err := NewTransactionCoordinator(argsTransactionCoordinator)
+
+	assert.Nil(t, tc)
+	assert.Equal(t, process.ErrNilGasComputation, err)
 }
 
 func TestNewTransactionCoordinator_InvalidEnableEpochsHandler(t *testing.T) {
@@ -1024,8 +1043,8 @@ func TestTransactionCoordinator_CreateMbsAndProcessCrossShardTransactionsWithSki
 	tc, _ := NewTransactionCoordinator(argsTransactionCoordinator)
 
 	tc.preProcExecution.txPreProcessors[block.TxBlock] = &preprocMocks.PreProcessorMock{
-		RequestTransactionsForMiniBlockCalled: func(miniBlock *block.MiniBlock) int {
-			return 0
+		GetTransactionsAndRequestMissingForMiniBlockCalled: func(miniBlock *block.MiniBlock) ([]data.TransactionHandler, int) {
+			return nil, 0
 		},
 	}
 

@@ -286,7 +286,9 @@ func testConsensusBLSWithFullProcessing(
 	}
 	integrationTests.MintAllNodes(nodesList, big.NewInt(100000000000))
 
-	waitForEpoch(shard0Node, enableEpochsConfig.SCDeployEnableEpoch)
+	maxRounds := uint64(roundsPerEpoch)*uint64(enableEpochsConfig.SCDeployEnableEpoch) + 2*uint64(roundsPerEpoch)
+	timeoutSeconds := (maxRounds * roundTime) / 1000
+	waitForEpoch(shard0Node, enableEpochsConfig.SCDeployEnableEpoch, timeoutSeconds)
 
 	scTxs(t, shard0Node, txs.numScTxs, nodesList)
 
@@ -294,7 +296,9 @@ func testConsensusBLSWithFullProcessing(
 	assert.Nil(t, err)
 	moveBalanceTxs(t, shard0Node.TestProcessorNode, encodedReceiverAddr, txs.numMoveBalanceTxs)
 
-	waitForEpoch(shard0Node, targetEpoch)
+	maxRounds = uint64(roundsPerEpoch)*uint64(targetEpoch) + 2*uint64(roundsPerEpoch)
+	timeoutSeconds = (maxRounds * roundTime) / 1000
+	waitForEpoch(shard0Node, targetEpoch, timeoutSeconds)
 
 	fmt.Println("Checking shards...")
 
@@ -690,8 +694,9 @@ func getPkEncoded(pubKey crypto.PublicKey) string {
 	return encodeAddress(pk)
 }
 
-func waitForEpoch(node *integrationTests.TestFullNode, targetEpoch uint32) {
+func waitForEpoch(node *integrationTests.TestFullNode, targetEpoch uint32, timeoutSeconds uint64) {
 	epochReached := false
+	timeStart := time.Now()
 	for !epochReached {
 		blockHeader := node.Node.GetDataComponents().Blockchain().GetCurrentBlockHeader()
 		if check.IfNil(blockHeader) {
@@ -699,6 +704,10 @@ func waitForEpoch(node *integrationTests.TestFullNode, targetEpoch uint32) {
 			continue
 		}
 		epochReached = blockHeader.GetEpoch() == targetEpoch
+		secondsPassed := time.Since(timeStart).Seconds()
+		if secondsPassed > float64(timeoutSeconds) {
+			break
+		}
 	}
 
 	time.Sleep(time.Second * 3) // wait for all nodes to change epoch

@@ -411,8 +411,9 @@ func TestRewardTxPreprocessor_RequestTransactionsForMiniBlockShouldWork(t *testi
 		Type:            block.RewardsBlock,
 	}
 
-	res := rtp.RequestTransactionsForMiniBlock(mb1)
+	txs, res := rtp.GetTransactionsAndRequestMissingForMiniBlock(mb1)
 	assert.Equal(t, 0, res)
+	assert.Len(t, txs, 1)
 }
 
 func TestRewardTxPreprocessor_ProcessBlockTransactions(t *testing.T) {

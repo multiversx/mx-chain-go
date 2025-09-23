@@ -596,8 +596,9 @@ func TestTransactionPreprocessor_RequestBlockTransactionFromMiniBlockFromNetwork
 	txHashes = append(txHashes, txHash1)
 	txHashes = append(txHashes, txHash2)
 	mb := &block.MiniBlock{ReceiverShardID: shardID, TxHashes: txHashes}
-	txsRequested := txs.RequestTransactionsForMiniBlock(mb)
+	txsInstances, txsRequested := txs.GetTransactionsAndRequestMissingForMiniBlock(mb)
 	assert.Equal(t, 2, txsRequested)
+	assert.Len(t, txsInstances, 0)
 }
 
 func TestTransactionPreprocessor_ReceivedTransactionShouldEraseRequested(t *testing.T) {
