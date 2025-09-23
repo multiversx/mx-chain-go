@@ -4,6 +4,7 @@ import (
 	"sync"
 
 	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-go/common"
 )
 
@@ -23,7 +24,7 @@ type ConsensusMetrics struct {
 
 // NewConsensusMetrics creates a new instance of ConsensusMetrics
 func NewConsensusMetrics(appStatusHandler core.AppStatusHandler) (*ConsensusMetrics, error) {
-	if appStatusHandler == nil || appStatusHandler.IsInterfaceNil() {
+	if check.IfNil(appStatusHandler) {
 		return nil, ErrNilConsensusMetricsHandler
 	}
 	return &ConsensusMetrics{appStatusHandler: appStatusHandler}, nil
@@ -36,7 +37,7 @@ func (cm *ConsensusMetrics) ResetInstanceValues() {
 
 	cm.blockReceivedOrSentDelay = uint64(0)
 	cm.isBlockAlreadyReceived = false
-	cm.appStatusHandler.SetUInt64Value(common.MetricReceivedProposedBlockBody, uint64(0))
+	cm.appStatusHandler.SetUInt64Value(common.MetricReceivedOrSentProposedBlock, uint64(0))
 	cm.appStatusHandler.SetUInt64Value(common.MetricReceivedProof, uint64(0))
 }
 
@@ -54,7 +55,7 @@ func (cm *ConsensusMetrics) ResetAverages() {
 	cm.proofReceivedDelaySum = 0
 	cm.proofReceivedCount = 0
 
-	cm.appStatusHandler.SetUInt64Value(common.MetricAvgReceivedProposedBlockBody, uint64(0))
+	cm.appStatusHandler.SetUInt64Value(common.MetricAvgReceivedOrSentProposedBlock, uint64(0))
 	cm.appStatusHandler.SetUInt64Value(common.MetricAvgReceivedProof, uint64(0))
 }
 
@@ -66,8 +67,8 @@ func (cm *ConsensusMetrics) SetBlockReceivedOrSent(delayFromRoundStart uint64) {
 	cm.isBlockAlreadyReceived = true
 	cm.blockReceivedOrSentDelay = delayFromRoundStart
 
-	cm.appStatusHandler.SetUInt64Value(common.MetricReceivedProposedBlockBody, delayFromRoundStart)
-	cm.updateAverages(common.MetricReceivedProposedBlockBody, delayFromRoundStart)
+	cm.appStatusHandler.SetUInt64Value(common.MetricReceivedOrSentProposedBlock, delayFromRoundStart)
+	cm.updateAverages(common.MetricReceivedOrSentProposedBlock, delayFromRoundStart)
 }
 
 // SetProofReceived sets the proof received delay and updates the metrics
@@ -94,11 +95,11 @@ func (cm *ConsensusMetrics) SetProofReceived(delayProofFromRoundStart uint64) {
 
 func (cm *ConsensusMetrics) updateAverages(metric string, metricsTime uint64) {
 	switch metric {
-	case common.MetricReceivedProposedBlockBody:
+	case common.MetricReceivedOrSentProposedBlock:
 		cm.blockReceivedDelaySum += metricsTime
 		cm.blockReceivedCount++
 		averageReceivedBlockDelay := avg(cm.blockReceivedDelaySum, cm.blockReceivedCount)
-		cm.appStatusHandler.SetUInt64Value(common.MetricAvgReceivedProposedBlockBody, averageReceivedBlockDelay)
+		cm.appStatusHandler.SetUInt64Value(common.MetricAvgReceivedOrSentProposedBlock, averageReceivedBlockDelay)
 		log.Debug("Computed average block header and body received delay", "currentBlockReceivedDelay", metricsTime, "averageBlockReceivedDelay", averageReceivedBlockDelay)
 	case common.MetricReceivedProof:
 		cm.proofReceivedDelaySum += metricsTime

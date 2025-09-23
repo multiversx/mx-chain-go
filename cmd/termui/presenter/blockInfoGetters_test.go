@@ -131,7 +131,7 @@ func TestPresenterStatusHandler_GetBlockReceived(t *testing.T) {
 	proposedBlockMs := uint64(100)
 
 	presenterStatusHandler := NewPresenterStatusHandler()
-	presenterStatusHandler.SetUInt64Value(common.MetricReceivedProposedBlockBody, proposedBlockMs)
+	presenterStatusHandler.SetUInt64Value(common.MetricReceivedOrSentProposedBlock, proposedBlockMs)
 	result := presenterStatusHandler.GetDurationProposedBlockReceivedOrSentFromRoundStart()
 	assert.Equal(t, proposedBlockMs, result)
 }
@@ -142,7 +142,7 @@ func TestPresenterStatusHandler_GetAvgBlockReceived(t *testing.T) {
 	proposedBlockMs := uint64(100)
 
 	presenterStatusHandler := NewPresenterStatusHandler()
-	presenterStatusHandler.SetUInt64Value(common.MetricAvgReceivedProposedBlockBody, proposedBlockMs)
+	presenterStatusHandler.SetUInt64Value(common.MetricAvgReceivedOrSentProposedBlock, proposedBlockMs)
 	result := presenterStatusHandler.GetAvgDurationProposedBlockReceivedOrSentFromRoundStart()
 	assert.Equal(t, proposedBlockMs, result)
 }

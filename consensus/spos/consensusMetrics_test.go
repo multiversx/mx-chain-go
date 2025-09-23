@@ -51,6 +51,25 @@ func TestConsensusMetrics_ResetAverages(t *testing.T) {
 		assert.Equal(t, uint64(0), cm.proofReceivedDelaySum, "blockSignedDelaySum should be reset to 0")
 		assert.Equal(t, uint64(0), cm.proofReceivedCount, "blockSignedCount should be reset to 0")
 	})
+
+	t.Run("reset when sums and counts are zero", func(t *testing.T) {
+		t.Parallel()
+		appStatusHandler := statusHandlerMock.NewAppStatusHandlerMock()
+		cm, _ := NewConsensusMetrics(appStatusHandler)
+		if cm == nil {
+			t.Errorf("NewConsensusMetrics() = nil, want non-nil")
+			return
+		}
+
+		cm.blockReceivedDelaySum = 0
+		cm.blockReceivedCount = 0
+		cm.proofReceivedDelaySum = 0
+		cm.proofReceivedCount = 0
+
+		assert.NotPanics(t, func() {
+			cm.ResetAverages()
+		})
+	})
 }
 
 func TestConsensusMetrics_resetInstanceValues(t *testing.T) {
@@ -66,7 +85,7 @@ func TestConsensusMetrics_resetInstanceValues(t *testing.T) {
 			return
 		}
 
-		appStatusHandler.SetUInt64Value(common.MetricReceivedProposedBlockBody, 0)
+		appStatusHandler.SetUInt64Value(common.MetricReceivedOrSentProposedBlock, 0)
 		appStatusHandler.SetUInt64Value(common.MetricReceivedProof, 0)
 		cm.blockReceivedOrSentDelay = 200
 
@@ -84,14 +103,14 @@ func TestConsensusMetrics_SetBlockReceivedOrSent(t *testing.T) {
 		appStatusHandler := statusHandlerMock.NewAppStatusHandlerMock()
 		cm, _ := NewConsensusMetrics(appStatusHandler)
 
-		appStatusHandler.SetUInt64Value(common.MetricReceivedProposedBlockBody, 0)
+		appStatusHandler.SetUInt64Value(common.MetricReceivedOrSentProposedBlock, 0)
 
 		delay_100 := uint64(100)
 		cm.SetBlockReceivedOrSent(delay_100)
 
 		assert.Equal(t, uint64(delay_100), cm.blockReceivedOrSentDelay, "blockHeaderReceivedOrSentDelay should be set correctly")
-		assert.Equal(t, uint64(delay_100), appStatusHandler.GetUint64(common.MetricReceivedProposedBlockBody), "blockReceivedDelay metric should be set correctly")
-		assert.Equal(t, uint64(delay_100), appStatusHandler.GetUint64(common.MetricAvgReceivedProposedBlockBody), "AvgReceivedProposedBlockBody should be set correctly")
+		assert.Equal(t, uint64(delay_100), appStatusHandler.GetUint64(common.MetricReceivedOrSentProposedBlock), "blockReceivedDelay metric should be set correctly")
+		assert.Equal(t, uint64(delay_100), appStatusHandler.GetUint64(common.MetricAvgReceivedOrSentProposedBlock), "AvgReceivedProposedBlockBody should be set correctly")
 		assert.Equal(t, uint64(1), cm.blockReceivedCount, "blockReceivedCount should be incremented")
 		assert.Equal(t, uint64(delay_100), cm.blockReceivedDelaySum, "blockReceivedDelaySum should be updated correctly")
 
@@ -100,8 +119,8 @@ func TestConsensusMetrics_SetBlockReceivedOrSent(t *testing.T) {
 		cm.SetBlockReceivedOrSent(delay_200)
 
 		assert.Equal(t, uint64(delay_200), cm.blockReceivedOrSentDelay, "blockHeaderReceivedOrSentDelay should be set correctly")
-		assert.Equal(t, uint64(delay_200), appStatusHandler.GetUint64(common.MetricReceivedProposedBlockBody), "blockReceivedDelay metric should be set correctly")
-		assert.Equal(t, uint64((delay_100+delay_200)/2), appStatusHandler.GetUint64(common.MetricAvgReceivedProposedBlockBody), "AvgReceivedProposedBlockBody should be set correctly")
+		assert.Equal(t, uint64(delay_200), appStatusHandler.GetUint64(common.MetricReceivedOrSentProposedBlock), "blockReceivedDelay metric should be set correctly")
+		assert.Equal(t, uint64((delay_100+delay_200)/2), appStatusHandler.GetUint64(common.MetricAvgReceivedOrSentProposedBlock), "AvgReceivedProposedBlockBody should be set correctly")
 		assert.Equal(t, uint64(2), cm.blockReceivedCount, "blockReceivedCount should be incremented")
 		assert.Equal(t, uint64(delay_100+delay_200), cm.blockReceivedDelaySum, "blockReceivedDelaySum should be updated correctly")
 
@@ -116,7 +135,7 @@ func TestConsensusMetrics_SetProof(t *testing.T) {
 		appStatusHandler := statusHandlerMock.NewAppStatusHandlerMock()
 		cm, _ := NewConsensusMetrics(appStatusHandler)
 
-		appStatusHandler.SetUInt64Value(common.MetricReceivedProposedBlockBody, 0)
+		appStatusHandler.SetUInt64Value(common.MetricReceivedOrSentProposedBlock, 0)
 		appStatusHandler.SetUInt64Value(common.MetricReceivedProof, 0)
 
 		proofDelay := uint64(50)
@@ -130,7 +149,7 @@ func TestConsensusMetrics_SetProof(t *testing.T) {
 		appStatusHandler := statusHandlerMock.NewAppStatusHandlerMock()
 		cm, _ := NewConsensusMetrics(appStatusHandler)
 
-		appStatusHandler.SetUInt64Value(common.MetricReceivedProposedBlockBody, 0)
+		appStatusHandler.SetUInt64Value(common.MetricReceivedOrSentProposedBlock, 0)
 		appStatusHandler.SetUInt64Value(common.MetricReceivedProof, 0)
 
 		headerDelay := uint64(200)
@@ -139,7 +158,7 @@ func TestConsensusMetrics_SetProof(t *testing.T) {
 		cm.SetBlockReceivedOrSent(headerDelay)
 		cm.SetProofReceived(proofDelay)
 
-		assert.Equal(t, headerDelay, appStatusHandler.GetUint64(common.MetricReceivedProposedBlockBody), "blockReceivedDelay metric should be updated correctly")
+		assert.Equal(t, headerDelay, appStatusHandler.GetUint64(common.MetricReceivedOrSentProposedBlock), "blockReceivedDelay metric should be updated correctly")
 		assert.Equal(t, proofDelay-headerDelay, appStatusHandler.GetUint64(common.MetricReceivedProof), "blockReceivedProof metric should be updated correctly")
 	})
 
@@ -148,7 +167,7 @@ func TestConsensusMetrics_SetProof(t *testing.T) {
 		appStatusHandler := statusHandlerMock.NewAppStatusHandlerMock()
 		cm, _ := NewConsensusMetrics(appStatusHandler)
 
-		appStatusHandler.SetUInt64Value(common.MetricReceivedProposedBlockBody, 0)
+		appStatusHandler.SetUInt64Value(common.MetricReceivedOrSentProposedBlock, 0)
 		appStatusHandler.SetUInt64Value(common.MetricReceivedProof, 0)
 
 		bodyDelay := uint64(200)
@@ -157,7 +176,7 @@ func TestConsensusMetrics_SetProof(t *testing.T) {
 		cm.SetBlockReceivedOrSent(bodyDelay)
 		cm.SetProofReceived(proofDelay)
 
-		assert.Equal(t, bodyDelay, appStatusHandler.GetUint64(common.MetricReceivedProposedBlockBody), "blockReceivedDelay metric should be updated correctly")
+		assert.Equal(t, bodyDelay, appStatusHandler.GetUint64(common.MetricReceivedOrSentProposedBlock), "blockReceivedDelay metric should be updated correctly")
 		assert.Zero(t, appStatusHandler.GetUint64(common.MetricReceivedProof), "blockReceivedProof metric should be updated correctly")
 	})
 
@@ -171,10 +190,10 @@ func TestConsensusMetrics_UpdateAverages(t *testing.T) {
 
 	cm.blockReceivedDelaySum = 300
 	cm.blockReceivedCount = 3
-	cm.updateAverages(common.MetricReceivedProposedBlockBody, 500)
+	cm.updateAverages(common.MetricReceivedOrSentProposedBlock, 500)
 	assert.Equal(t, uint64(800), cm.blockReceivedDelaySum, "blockReceivedDelaySum should be updated correctly")
 	assert.Equal(t, uint64(4), cm.blockReceivedCount, "blockReceivedCount should be updated correctly")
-	assert.Equal(t, uint64(200), appStatusHandler.GetUint64(common.MetricAvgReceivedProposedBlockBody), "AvgReceivedProposedBlockBody should be updated correctly")
+	assert.Equal(t, uint64(200), appStatusHandler.GetUint64(common.MetricAvgReceivedOrSentProposedBlock), "AvgReceivedProposedBlockBody should be updated correctly")
 
 	cm.proofReceivedDelaySum = 600
 	cm.proofReceivedCount = 4

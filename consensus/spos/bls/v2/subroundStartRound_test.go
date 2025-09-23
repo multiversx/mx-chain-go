@@ -1168,12 +1168,12 @@ func TestSubroundStartRound_ConsensusMetricsResetAveragesShouldWork(t *testing.T
 	cm.SetBlockReceivedOrSent(uint64(150))
 	cm.SetProofReceived(uint64(200))
 
-	assert.NotZero(t, appStatusHandler.GetUint64(common.MetricAvgReceivedProposedBlockBody))
+	assert.NotZero(t, appStatusHandler.GetUint64(common.MetricAvgReceivedOrSentProposedBlock))
 	assert.NotZero(t, appStatusHandler.GetUint64(common.MetricAvgReceivedProof))
 
 	startRound.EpochStartAction(&testscommon.HeaderHandlerStub{EpochField: 2})
 
-	assert.Zero(t, appStatusHandler.GetUint64(common.MetricAvgReceivedProposedBlockBody))
+	assert.Zero(t, appStatusHandler.GetUint64(common.MetricAvgReceivedOrSentProposedBlock))
 	assert.Zero(t, appStatusHandler.GetUint64(common.MetricAvgReceivedProof))
 
 }
@@ -1204,11 +1204,11 @@ func TestSubroundStartRound_ConsensusMetricsResetInstanceValuesShouldWork(t *tes
 	cm.SetBlockReceivedOrSent(uint64(150))
 	cm.SetProofReceived(uint64(200))
 
-	assert.Equal(t, uint64(150), appStatusHandler.GetUint64(common.MetricReceivedProposedBlockBody))
+	assert.Equal(t, uint64(150), appStatusHandler.GetUint64(common.MetricReceivedOrSentProposedBlock))
 	assert.Equal(t, uint64(50), appStatusHandler.GetUint64(common.MetricReceivedProof))
 
 	startRound.DoStartRoundJob()
 
-	assert.Equal(t, uint64(0), appStatusHandler.GetUint64(common.MetricReceivedProposedBlockBody))
+	assert.Equal(t, uint64(0), appStatusHandler.GetUint64(common.MetricReceivedOrSentProposedBlock))
 	assert.Equal(t, uint64(0), appStatusHandler.GetUint64(common.MetricReceivedProof))
 }

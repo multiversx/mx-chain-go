@@ -1377,15 +1377,15 @@ func TestSubroundBlock_UpdateConsensusMetrics(t *testing.T) {
 
 	srBlock.UpdateConsensusMetricsProposedBlockReceivedOrSent()
 	// instance value = 500; avg = 500
-	assert.Equal(t, uint64(500), appStatusHandler.GetUint64(common.MetricReceivedProposedBlockBody), "MetricReceivedProof should be set")
-	assert.Equal(t, uint64(500), appStatusHandler.GetUint64(common.MetricAvgReceivedProposedBlockBody), "MetricAvgProofsReceived should be set")
+	assert.Equal(t, uint64(500), appStatusHandler.GetUint64(common.MetricReceivedOrSentProposedBlock), "MetricReceivedProof should be set")
+	assert.Equal(t, uint64(500), appStatusHandler.GetUint64(common.MetricAvgReceivedOrSentProposedBlock), "MetricAvgProofsReceived should be set")
 
 	consensusMetrics.ResetInstanceValues()
 
 	srBlock.UpdateConsensusMetricsProposedBlockReceivedOrSent()
 	// instance value = 200; avg = 500 + 200 / 2 = 350
-	assert.Equal(t, uint64(200), appStatusHandler.GetUint64(common.MetricReceivedProposedBlockBody), "MetricReceivedProof should be set")
-	assert.Equal(t, uint64(350), appStatusHandler.GetUint64(common.MetricAvgReceivedProposedBlockBody), "MetricAvgProofsReceived should be set")
+	assert.Equal(t, uint64(200), appStatusHandler.GetUint64(common.MetricReceivedOrSentProposedBlock), "MetricReceivedProof should be set")
+	assert.Equal(t, uint64(350), appStatusHandler.GetUint64(common.MetricAvgReceivedOrSentProposedBlock), "MetricAvgProofsReceived should be set")
 }
 
 func TestSubroundBlock_GetLeaderForHeader(t *testing.T) {

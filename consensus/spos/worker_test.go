@@ -2406,27 +2406,19 @@ func TestWorker_ConsensusMetrics(t *testing.T) {
 	require.NotNil(t, metrics)
 }
 
-type nilAppStatusHandlerMock struct {
-	*statusHandlerMock.AppStatusHandlerStub
-	calls int // to track calls to IsInterfaceNil
-}
-
-func (f *nilAppStatusHandlerMock) IsInterfaceNil() bool {
-	if f == nil {
-		return true
-	}
-	f.calls++
-	return f.calls > 1
-}
-
 func TestWorker_NewWorkerNilConsensusMetrics(t *testing.T) {
 	t.Parallel()
-
-	var typedNil core.AppStatusHandler = &nilAppStatusHandlerMock{}
+	called := 0
+	var typedNil core.AppStatusHandler = &statusHandlerMock.AppStatusHandlerStub{
+		IsInterfaceNilCalled: func() bool {
+			called++
+			return called > 1
+		},
+	}
 
 	workerArgs := createDefaultWorkerArgs(typedNil)
 	worker, err := spos.NewWorker(workerArgs)
-	require.Error(t, err) // should come from NewConsensusMetrics
 	require.Nil(t, worker)
+	require.Error(t, err) // should come from NewConsensusMetrics
 	require.Equal(t, spos.ErrNilConsensusMetricsHandler, err)
 }

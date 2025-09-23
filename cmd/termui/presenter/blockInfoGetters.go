@@ -57,22 +57,22 @@ func (psh *PresenterStatusHandler) GetHighestFinalBlock() uint64 {
 	return psh.getFromCacheAsUint64(common.MetricHighestFinalBlock)
 }
 
-// GetDurationProposedBlockReceivedOrSentFromRoundStart implements will return the metrics containing time taken to receive a proposed block body since the round started
+// GetDurationProposedBlockReceivedOrSentFromRoundStart returns the metrics containing time taken to receive a proposed block body since the round started
 func (psh *PresenterStatusHandler) GetDurationProposedBlockReceivedOrSentFromRoundStart() uint64 {
-	return psh.getFromCacheAsUint64(common.MetricReceivedProposedBlockBody)
+	return psh.getFromCacheAsUint64(common.MetricReceivedOrSentProposedBlock)
 }
 
-// GetBlockSigned implements will return the metrics containing time taken to receive signatures for a block since the block was received
+// GetDurationProofReceivedFromProposedBlockReceivedOrSent returns the metrics containing time taken to receive signatures for a block since the block was received
 func (psh *PresenterStatusHandler) GetDurationProofReceivedFromProposedBlockReceivedOrSent() uint64 {
 	return psh.getFromCacheAsUint64(common.MetricReceivedProof)
 }
 
-// GetAvgBlockReceived returns the average received proposed block body metric
+// GetAvgDurationProposedBlockReceivedOrSentFromRoundStart returns the average received proposed block body metric
 func (psh *PresenterStatusHandler) GetAvgDurationProposedBlockReceivedOrSentFromRoundStart() uint64 {
-	return psh.getFromCacheAsUint64(common.MetricAvgReceivedProposedBlockBody)
+	return psh.getFromCacheAsUint64(common.MetricAvgReceivedOrSentProposedBlock)
 }
 
-// GetAvgBlockSigned returns the average received signatures metric from the time of block body received
+// GetAvgDurationProofReceivedFromProposedBlockReceivedOrSent returns the average received signatures metric from the time of block body received
 func (psh *PresenterStatusHandler) GetAvgDurationProofReceivedFromProposedBlockReceivedOrSent() uint64 {
 	return psh.getFromCacheAsUint64(common.MetricAvgReceivedProof)
 }
