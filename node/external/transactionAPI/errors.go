@@ -34,3 +34,18 @@ var ErrInvalidAddress = errors.New("invalid address")
 
 // ErrDBLookExtensionIsNotEnabled signals that the db look extension is not enabled
 var ErrDBLookExtensionIsNotEnabled = errors.New("db look extension is not enabled")
+
+// ErrCouldNotCastToTxCache signals that an error occurred while casting to TxCache
+var ErrCouldNotCastToTxCache = errors.New("wrong type conversion")
+
+// ErrNilBlockHeader signals that the returned block header is nil
+var ErrNilBlockHeader = errors.New("nil block header")
+
+// ErrNilCurrentRootHash signals that the current root hash returned is nil
+var ErrNilCurrentRootHash = errors.New("nil current root hash")
+
+// ErrNilAccountStateAPI signals that a nil account state api has been provided
+var ErrNilAccountStateAPI = errors.New("nil account state api")
+
+// ErrNilBlockchain signals that a nil blockchain has been provided
+var ErrNilBlockchain = errors.New("nil blockchain")
