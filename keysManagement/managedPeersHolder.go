@@ -135,8 +135,25 @@ func generateNodeName(providedNodeName string, index int) string {
 // It errors if the generated public key is already contained by the struct
 // It will auto-generate some fields like the machineID and pid
 func (holder *managedPeersHolder) AddManagedPeer(privateKeyBytes []byte) error {
-	sk, _ := holder.keyGenerator.GeneratePair()
-	publicKeyBytes := privateKeyBytes
+	var publicKeyBytes []byte
+	var privateKey crypto.PrivateKey
+	var err error
+	actualPrivateKey := len(privateKeyBytes) == 32
+	if actualPrivateKey {
+		privateKey, err = holder.keyGenerator.PrivateKeyFromByteArray(privateKeyBytes)
+		if err != nil {
+			return fmt.Errorf("%w for provided bytes %s", err, hex.EncodeToString(privateKeyBytes))
+		}
+
+		publicKey := privateKey.GeneratePublic()
+		publicKeyBytes, err = publicKey.ToByteArray()
+		if err != nil {
+			return fmt.Errorf("%w for provided bytes %s", err, hex.EncodeToString(privateKeyBytes))
+		}
+	} else {
+		publicKeyBytes = privateKeyBytes
+		privateKey, _ = holder.keyGenerator.GeneratePair()
+	}
 
 	p2pPrivateKey, p2pPublicKey := holder.p2pKeyGenerator.GeneratePair()
 
@@ -172,7 +189,7 @@ func (holder *managedPeersHolder) AddManagedPeer(privateKeyBytes []byte) error {
 	pInfo.handler = common.NewRedundancyHandler()
 	pInfo.pid = pid
 	pInfo.p2pPrivateKeyBytes = p2pPrivateKeyBytes
-	pInfo.privateKey = sk
+	pInfo.privateKey = privateKey
 	holder.data[string(publicKeyBytes)] = pInfo
 	holder.pids[pid] = struct{}{}
 
