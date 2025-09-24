@@ -1175,7 +1175,6 @@ func TestSubroundStartRound_ConsensusMetricsResetAveragesShouldWork(t *testing.T
 
 	assert.Zero(t, appStatusHandler.GetUint64(common.MetricAvgReceivedOrSentProposedBlock))
 	assert.Zero(t, appStatusHandler.GetUint64(common.MetricAvgReceivedProof))
-
 }
 
 func TestSubroundStartRound_ConsensusMetricsResetInstanceValuesShouldWork(t *testing.T) {

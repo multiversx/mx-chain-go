@@ -211,17 +211,17 @@ func TestConsensusMetrics_IsProofSet(t *testing.T) {
 	cm.ResetInstanceValues()
 	appStatusHandler.SetUInt64Value(common.MetricReceivedProof, 0)
 
-	assert.False(t, IsProofForCurrentConsensusSet(appStatusHandler), "isProofForCurrentConsensusSet should be false initially")
+	assert.False(t, isProofForCurrentConsensusSet(appStatusHandler), "isProofForCurrentConsensusSet should be false initially")
 
 	cm.SetProofReceived(100)
-	assert.False(t, IsProofForCurrentConsensusSet(appStatusHandler), "isProofForCurrentConsensusSet should be false after setting only proof")
+	assert.False(t, isProofForCurrentConsensusSet(appStatusHandler), "isProofForCurrentConsensusSet should be false after setting only proof")
 
 	cm.SetBlockReceivedOrSent(200)
 
 	cm.SetProofReceived(300)
-	assert.True(t, IsProofForCurrentConsensusSet(appStatusHandler), "isProofForCurrentConsensusSet should be true after setting header, body and proof")
+	assert.True(t, isProofForCurrentConsensusSet(appStatusHandler), "isProofForCurrentConsensusSet should be true after setting header, body and proof")
 }
 
-func IsProofForCurrentConsensusSet(appStatusHandler *statusHandlerMock.AppStatusHandlerMock) bool {
+func isProofForCurrentConsensusSet(appStatusHandler *statusHandlerMock.AppStatusHandlerMock) bool {
 	return appStatusHandler.GetUint64(common.MetricReceivedProof) > 0
 }

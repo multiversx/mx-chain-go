@@ -48,13 +48,11 @@ func InitLogHandler(args LogHandlerArgs) error {
 
 	var err error
 	scheme := ws
-	nodeURL := args.NodeURL
+
 	if args.UseWss {
 		scheme = wss
-		nodeURL = strings.TrimPrefix(nodeURL, "https://")
-	} else {
-		nodeURL = strings.TrimPrefix(nodeURL, "http://")
 	}
+	nodeURL := getNodeUrlPath(args.NodeURL)
 
 	go func() {
 		for {
@@ -79,6 +77,10 @@ func InitLogHandler(args LogHandlerArgs) error {
 	}()
 
 	return nil
+}
+
+func getNodeUrlPath(nodeURL string) string {
+	return strings.TrimPrefix(strings.TrimPrefix(nodeURL, "http://"), "https://")
 }
 
 func openWebSocket(scheme string, address string) (*websocket.Conn, error) {

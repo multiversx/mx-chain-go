@@ -317,7 +317,7 @@ const MetricReceivedProposedBlock = "erd_consensus_received_proposed_block"
 
 // MetricReceivedOrSentProposedBlock is the metric that specifies the delay in nanoseconds from the start of the current round until
 // the time the proposed block body has been sent or has reached the current node.
-const MetricReceivedOrSentProposedBlock = "erd_consensus_received_sent_proposed_block"
+const MetricReceivedOrSentProposedBlock = "erd_consensus_received_or_sent_proposed_block"
 
 // MetricReceivedProof is the metric that specifies the delay in nanoseconds between the time the proposed block has been sent
 // or has reached the current node until the proof was received.
@@ -325,7 +325,7 @@ const MetricReceivedProof = "erd_consensus_received_proof"
 
 // MetricAvgReceivedOrSentProposedBlock is the metric that specifies the average delay in nanoseconds from the start of the round until
 // the time the proposed block has been sent or has reached the current node.
-const MetricAvgReceivedOrSentProposedBlock = "erd_consensus_average_received_sent_proposed_block"
+const MetricAvgReceivedOrSentProposedBlock = "erd_consensus_average_received_or_sent_proposed_block"
 
 // MetricAvgReceivedProof is the metric that specifies the average delay in nanoseconds between the time the proposed block
 // has been sent or has reached the current node until proof was received.
