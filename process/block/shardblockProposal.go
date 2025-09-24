@@ -56,11 +56,10 @@ func (sp *shardProcessor) CreateBlockProposal(
 		return nil, nil, err
 	}
 
-	// TODO: check that the limits for the block are not exceeded
-	// err = sp.verifyGasLimit(shardHdr)
-	// if err != nil {
-	// 	return nil, nil, err
-	// }
+	err = sp.verifyGasLimit(shardHdr)
+	if err != nil {
+		return nil, nil, err
+	}
 
 	totalTxCount := computeTxTotalTxCount(miniBlockHeaderHandlers)
 	err = shardHdr.SetTxCount(totalTxCount)
@@ -206,13 +205,102 @@ func (sp *shardProcessor) VerifyBlockProposal(
 		return err
 	}
 
-	// TODO: check that the limits for the block are not exceeded
-	// err = sp.verifyGasLimit(shardHdr)
-	// if err != nil {
-	// 	return nil, nil, err
-	// }
+	return sp.verifyGasLimit(header)
+}
+
+func (sp *shardProcessor) verifyGasLimit(header data.ShardHeaderHandler) error {
+	incomingMiniBlocks, incomingTransactions, outgoingTransactionHashes, outgoingTransactions, err := sp.splitTransactionsForHeader(header)
+	if err != nil {
+		return err
+	}
+
+	// TODO: decide if we reset gasComputation here and call the common methods
+	// Or implement new methods for verification only.
+	// Have in mind that the limits can be modified for one direction on this node,
+	// which may be different than what proposer used for proposal.
+	// Perhaps consider here the following two calls as well, although this can be problematic
+	// if the current node will be proposer afterwards:
+	// sp.gasComputation.ResetIncomingLimit()
+	// sp.gasComputation.ResetOutgoingLimit()
+	sp.gasComputation.Reset()
+	lastMiniBlockIndex, pendingMiniBlocks, err := sp.gasComputation.CheckIncomingMiniBlocks(incomingMiniBlocks, incomingTransactions)
+	if err != nil {
+		return err
+	}
+	allMiniBlocksIncluded := pendingMiniBlocks == 0 && lastMiniBlockIndex == len(incomingMiniBlocks)
+	if !allMiniBlocksIncluded {
+		return fmt.Errorf("%w, incoming mini blocks exceeded the limit", process.ErrInvalidMaxGasLimitPerMiniBlock)
+	}
+
+	addedTxHashes, err := sp.gasComputation.CheckOutgoingTransactions(outgoingTransactionHashes, outgoingTransactions)
+	if err != nil {
+		return err
+	}
+	if len(addedTxHashes) != len(outgoingTransactionHashes) {
+		return fmt.Errorf("%w, outgoing transactions exceeded the limit", process.ErrInvalidMaxGasLimitPerMiniBlock)
+	}
 
 	return nil
+}
+
+func (sp *shardProcessor) splitTransactionsForHeader(header data.HeaderHandler) (
+	incomingMiniBlocks []data.MiniBlockHeaderHandler,
+	incomingTransactions map[string][]data.TransactionHandler,
+	outgoingTransactionHashes [][]byte,
+	outgoingTransactions []data.TransactionHandler,
+	err error,
+) {
+	incomingTransactions = make(map[string][]data.TransactionHandler)
+	var txsForMb []data.TransactionHandler
+	var txHashes [][]byte
+	for _, mb := range header.GetMiniBlockHeaderHandlers() {
+		txHashes, txsForMb, err = sp.getTransactionsForMiniBlock(mb)
+		if err != nil {
+			return nil, nil, nil, nil, err
+		}
+
+		if mb.GetSenderShardID() == sp.shardCoordinator.SelfId() {
+			outgoingTransactionHashes = append(outgoingTransactionHashes, txHashes...)
+			outgoingTransactions = append(outgoingTransactions, txsForMb...)
+			continue
+		}
+
+		incomingMiniBlocks = append(incomingMiniBlocks, mb)
+		incomingTransactions[string(mb.GetHash())] = txsForMb
+	}
+
+	return incomingMiniBlocks, incomingTransactions, outgoingTransactionHashes, outgoingTransactions, nil
+}
+
+func (sp *shardProcessor) getTransactionsForMiniBlock(
+	miniBlock data.MiniBlockHeaderHandler,
+) ([][]byte, []data.TransactionHandler, error) {
+	obj, hashInPool := sp.dataPool.MiniBlocks().Get(miniBlock.GetHash())
+	if !hashInPool {
+		return nil, nil, process.ErrMissingMiniBlock
+	}
+
+	mbForHeaderPtr, typeOk := obj.(*block.MiniBlock)
+	if !typeOk {
+		return nil, nil, process.ErrWrongTypeAssertion
+	}
+
+	txs := make([]data.TransactionHandler, len(mbForHeaderPtr.TxHashes))
+	var err error
+	for idx, txHash := range mbForHeaderPtr.TxHashes {
+		txs[idx], err = process.GetTransactionHandlerFromPool(
+			miniBlock.GetSenderShardID(),
+			miniBlock.GetReceiverShardID(),
+			txHash,
+			sp.dataPool.Transactions(),
+			process.SearchMethodSearchFirst,
+		)
+		if err != nil {
+			return nil, nil, err
+		}
+	}
+
+	return mbForHeaderPtr.TxHashes, txs, nil
 }
 
 func (sp *shardProcessor) checkInclusionEstimationForExecutionResults(header data.HeaderHandler) error {

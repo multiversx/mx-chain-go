@@ -1485,11 +1485,11 @@ type GasComputation interface {
 	CheckIncomingMiniBlocks(
 		miniBlocks []data.MiniBlockHeaderHandler,
 		transactions map[string][]data.TransactionHandler,
-	) (int, int, error)
+	) (lastMiniBlockIndex int, pendingMiniBlocks int, err error)
 	CheckOutgoingTransactions(
 		txHashes [][]byte,
 		transactions []data.TransactionHandler,
-	) ([][]byte, error)
+	) (addedTxHashes [][]byte, err error)
 	GetBandwidthForTransactions() uint64
 	TotalGasConsumed() uint64
 	DecreaseIncomingLimit()

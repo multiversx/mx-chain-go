@@ -91,7 +91,7 @@ func NewGasConsumption(args ArgsGasConsumption) (*gasConsumption, error) {
 func (gc *gasConsumption) CheckIncomingMiniBlocks(
 	miniBlocks []data.MiniBlockHeaderHandler,
 	transactions map[string][]data.TransactionHandler,
-) (int, int, error) {
+) (lastMiniBlockIndex int, pendingMiniBlocks int, err error) {
 	gc.mut.Lock()
 	defer gc.mut.Unlock()
 
@@ -101,9 +101,10 @@ func (gc *gasConsumption) CheckIncomingMiniBlocks(
 
 	bandwidthForIncomingMiniBlocks := gc.getGasLimitForOneDirection(incoming, gc.shardCoordinator.SelfId())
 
-	lastMiniBlockIndex := initialLastIndex
+	lastMiniBlockIndex = initialLastIndex
+	shouldSavePending := false
 	for i := 0; i < len(miniBlocks); i++ {
-		shouldSavePending, err := gc.checkIncomingMiniBlock(miniBlocks[i], transactions, bandwidthForIncomingMiniBlocks)
+		shouldSavePending, err = gc.checkIncomingMiniBlock(miniBlocks[i], transactions, bandwidthForIncomingMiniBlocks)
 		if shouldSavePending {
 			gc.pendingMiniBlocks = append(gc.pendingMiniBlocks, miniBlocks[i:]...)
 			gc.transactionsForPendingMiniBlocks = transactions
@@ -224,7 +225,7 @@ func (gc *gasConsumption) checkPendingIncomingMiniBlocks() error {
 func (gc *gasConsumption) CheckOutgoingTransactions(
 	txHashes [][]byte,
 	transactions []data.TransactionHandler,
-) ([][]byte, error) {
+) (addedTxHashes [][]byte, err error) {
 	if len(transactions) == 0 || len(txHashes) == 0 {
 		return nil, nil
 	}
@@ -254,7 +255,7 @@ func (gc *gasConsumption) CheckOutgoingTransactions(
 	}
 
 	// reaching this point means that transactions were added and the limit for outgoing was not reached
-	err := gc.checkPendingIncomingMiniBlocks()
+	err = gc.checkPendingIncomingMiniBlocks()
 	return addedHashes, err
 }
 

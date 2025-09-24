@@ -727,3 +727,8 @@ func (sp *shardProcessor) CheckInclusionEstimationForExecutionResults(header dat
 func (sp *shardProcessor) CheckMetaHeadersValidityAndFinalityProposal(header data.ShardHeaderHandler) error {
 	return sp.checkMetaHeadersValidityAndFinalityProposal(header)
 }
+
+// VerifyGasLimit -
+func (sp *shardProcessor) VerifyGasLimit(header data.ShardHeaderHandler) error {
+	return sp.verifyGasLimit(header)
+}

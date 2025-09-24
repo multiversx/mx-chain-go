@@ -9,6 +9,9 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-core-go/data/transaction"
+	"github.com/multiversx/mx-chain-go/storage"
+	"github.com/multiversx/mx-chain-go/testscommon/cache"
 	"github.com/multiversx/mx-chain-go/testscommon/pool"
 	"github.com/stretchr/testify/require"
 
@@ -1319,7 +1322,7 @@ func TestShardBlockProposal_CreateAndVerifyProposal(t *testing.T) {
 	}
 	currentHeaderHash := []byte("currHdrHash")
 	blkc.SetCurrentBlockHeaderHash(currentHeaderHash)
-	blkc.SetCurrentBlockHeaderAndRootHash(currentHeader, []byte("currHdrRootHash"))
+	_ = blkc.SetCurrentBlockHeaderAndRootHash(currentHeader, []byte("currHdrRootHash"))
 
 	headers := dataComponents.DataPool.Headers()
 	dataComponents.DataPool = &dataRetriever.PoolsHolderStub{
@@ -1408,7 +1411,7 @@ func TestShardBlockProposal_CreateAndVerifyProposal_WithTransactions(t *testing.
 	}
 	currentHeaderHash := []byte("currHdrHash")
 	blkc.SetCurrentBlockHeaderHash(currentHeaderHash)
-	blkc.SetCurrentBlockHeaderAndRootHash(currentHeader, []byte("currHdrRootHash"))
+	_ = blkc.SetCurrentBlockHeaderAndRootHash(currentHeader, []byte("currHdrRootHash"))
 
 	epochStartMetaHash := []byte("epochStartMetaHash")
 	metaBlockHash1 := []byte("metaBlockHash1")
@@ -1424,6 +1427,10 @@ func TestShardBlockProposal_CreateAndVerifyProposal_WithTransactions(t *testing.
 	lastCrossNotarizedMetaHdr := &block.MetaBlockV3{
 		Round: 8,
 		Nonce: 8,
+	}
+
+	providedMb := &block.MiniBlock{
+		TxHashes: [][]byte{[]byte("tx_hash")},
 	}
 
 	headers := &mock.HeadersCacherStub{}
@@ -1456,6 +1463,24 @@ func TestShardBlockProposal_CreateAndVerifyProposal_WithTransactions(t *testing.
 		},
 		HeadersCalled: func() retriever.HeadersPool {
 			return headers
+		},
+		MiniBlocksCalled: func() storage.Cacher {
+			return &cache.CacherStub{
+				GetCalled: func(key []byte) (value interface{}, ok bool) {
+					value = providedMb
+					ok = true
+					return
+				},
+			}
+		},
+		TransactionsCalled: func() retriever.ShardedDataCacherNotifier {
+			return &testscommon.ShardedDataStub{
+				SearchFirstDataCalled: func(key []byte) (value interface{}, ok bool) {
+					value = &transaction.Transaction{}
+					ok = true
+					return
+				},
+			}
 		},
 	}
 	dataComponents.BlockChain = blkc
@@ -1497,9 +1522,6 @@ func TestShardBlockProposal_CreateAndVerifyProposal_WithTransactions(t *testing.
 			return lastCrossNotarizedMetaHdr, lastCrossNotarizedMetaHdrHash, nil
 		},
 	}
-	providedMb := &block.MiniBlock{
-		TxHashes: [][]byte{[]byte("tx_hash")},
-	}
 	mbHash, _ := core.CalculateHash(arguments.CoreComponents.InternalMarshalizer(), arguments.CoreComponents.Hasher(), providedMb)
 	arguments.TxCoordinator = &testscommon.TransactionCoordinatorMock{
 		CreateMbsCrossShardDstMeCalled: func(header data.HeaderHandler, processedMiniBlocksInfo map[string]*processedMb.ProcessedMiniBlockInfo) ([]block.MiniblockAndHash, uint32, bool, error) {
@@ -1536,4 +1558,254 @@ func TestShardBlockProposal_CreateAndVerifyProposal_WithTransactions(t *testing.
 
 	err = shardProcessor.VerifyBlockProposal(headerProposed, bodyProposed, func() time.Duration { return time.Second })
 	require.Nil(t, err)
+}
+
+func TestShardProcessor_VerifyGasLimit(t *testing.T) {
+	t.Parallel()
+
+	t.Run("getTransactionsForMiniBlock fails due to missing mini block", func(t *testing.T) {
+		t.Parallel()
+
+		outgoingMbh, outgoingMb, incomingMbh, incomingMb := createMiniBlocks()
+		coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
+		dataPool := adaptDataPoolForVerifyGas(t, dataComponents.DataPool, outgoingMb, incomingMb)
+		dataPool.MiniBlocksCalled = func() storage.Cacher {
+			return &cache.CacherStub{
+				GetCalled: func(key []byte) (value interface{}, ok bool) {
+					return nil, false
+				},
+			}
+		}
+		dataComponents.DataPool = dataPool
+		arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+
+		sp, err := blproc.NewShardProcessor(arguments)
+		require.NoError(t, err)
+
+		err = sp.VerifyGasLimit(createHeaderFromMBs(outgoingMbh, incomingMbh))
+		require.Equal(t, process.ErrMissingMiniBlock, err)
+	})
+	t.Run("getTransactionsForMiniBlock fails due to mini block cast issue", func(t *testing.T) {
+		t.Parallel()
+
+		outgoingMbh, outgoingMb, incomingMbh, incomingMb := createMiniBlocks()
+		coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
+		dataPool := adaptDataPoolForVerifyGas(t, dataComponents.DataPool, outgoingMb, incomingMb)
+		dataPool.MiniBlocksCalled = func() storage.Cacher {
+			return &cache.CacherStub{
+				GetCalled: func(key []byte) (value interface{}, ok bool) {
+					value = "non mini block"
+					ok = true
+					return
+				},
+			}
+		}
+		dataComponents.DataPool = dataPool
+		arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+
+		sp, err := blproc.NewShardProcessor(arguments)
+		require.NoError(t, err)
+
+		err = sp.VerifyGasLimit(createHeaderFromMBs(outgoingMbh, incomingMbh))
+		require.Equal(t, process.ErrWrongTypeAssertion, err)
+	})
+	t.Run("getTransactionsForMiniBlock fails due to error on GetTransactionHandlerFromPool", func(t *testing.T) {
+		t.Parallel()
+
+		outgoingMbh, outgoingMb, incomingMbh, incomingMb := createMiniBlocks()
+		coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
+		dataPool := adaptDataPoolForVerifyGas(t, dataComponents.DataPool, outgoingMb, incomingMb)
+		dataPool.TransactionsCalled = func() retriever.ShardedDataCacherNotifier {
+			return &testscommon.ShardedDataStub{
+				SearchFirstDataCalled: func(key []byte) (value interface{}, ok bool) {
+					return nil, false
+				},
+			}
+		}
+		dataComponents.DataPool = dataPool
+		arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+
+		sp, err := blproc.NewShardProcessor(arguments)
+		require.NoError(t, err)
+
+		err = sp.VerifyGasLimit(createHeaderFromMBs(outgoingMbh, incomingMbh))
+		require.Error(t, err)
+	})
+	t.Run("CheckIncomingMiniBlocks error", func(t *testing.T) {
+		t.Parallel()
+
+		outgoingMbh, outgoingMb, incomingMbh, incomingMb := createMiniBlocks()
+		coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
+		dataPool := adaptDataPoolForVerifyGas(t, dataComponents.DataPool, outgoingMb, incomingMb)
+		dataComponents.DataPool = dataPool
+		arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+		arguments.GasComputation = &testscommon.GasComputationMock{
+			CheckIncomingMiniBlocksCalled: func(miniBlocks []data.MiniBlockHeaderHandler, transactions map[string][]data.TransactionHandler) (int, int, error) {
+				return 0, 0, expectedError
+			},
+		}
+		sp, err := blproc.NewShardProcessor(arguments)
+		require.NoError(t, err)
+
+		err = sp.VerifyGasLimit(createHeaderFromMBs(outgoingMbh, incomingMbh))
+		require.Equal(t, expectedError, err)
+	})
+	t.Run("CheckIncomingMiniBlocks results in limit exceeded", func(t *testing.T) {
+		t.Parallel()
+
+		outgoingMbh, outgoingMb, incomingMbh, incomingMb := createMiniBlocks()
+		coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
+		dataPool := adaptDataPoolForVerifyGas(t, dataComponents.DataPool, outgoingMb, incomingMb)
+		dataComponents.DataPool = dataPool
+		arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+		arguments.GasComputation = &testscommon.GasComputationMock{
+			CheckIncomingMiniBlocksCalled: func(miniBlocks []data.MiniBlockHeaderHandler, transactions map[string][]data.TransactionHandler) (int, int, error) {
+				return len(miniBlocks) - 1, 1, nil // one mini block over the limit
+			},
+		}
+		sp, err := blproc.NewShardProcessor(arguments)
+		require.NoError(t, err)
+
+		err = sp.VerifyGasLimit(createHeaderFromMBs(outgoingMbh, incomingMbh))
+		require.ErrorIs(t, err, process.ErrInvalidMaxGasLimitPerMiniBlock)
+		require.Contains(t, err.Error(), "incoming mini blocks exceeded")
+	})
+	t.Run("CheckOutgoingTransactions error", func(t *testing.T) {
+		t.Parallel()
+
+		outgoingMbh, outgoingMb, incomingMbh, incomingMb := createMiniBlocks()
+		coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
+		dataPool := adaptDataPoolForVerifyGas(t, dataComponents.DataPool, outgoingMb, incomingMb)
+		dataComponents.DataPool = dataPool
+		arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+		arguments.GasComputation = &testscommon.GasComputationMock{
+			CheckIncomingMiniBlocksCalled: func(miniBlocks []data.MiniBlockHeaderHandler, transactions map[string][]data.TransactionHandler) (int, int, error) {
+				return len(miniBlocks), 0, nil
+			},
+			CheckOutgoingTransactionsCalled: func(txHashes [][]byte, transactions []data.TransactionHandler) ([][]byte, error) {
+				return nil, expectedError
+			},
+		}
+		sp, err := blproc.NewShardProcessor(arguments)
+		require.NoError(t, err)
+
+		err = sp.VerifyGasLimit(createHeaderFromMBs(outgoingMbh, incomingMbh))
+		require.Equal(t, expectedError, err)
+	})
+	t.Run("CheckOutgoingTransactions results in limit exceeded", func(t *testing.T) {
+		t.Parallel()
+
+		outgoingMbh, outgoingMb, incomingMbh, incomingMb := createMiniBlocks()
+		coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
+		dataPool := adaptDataPoolForVerifyGas(t, dataComponents.DataPool, outgoingMb, incomingMb)
+		dataComponents.DataPool = dataPool
+		arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+		arguments.GasComputation = &testscommon.GasComputationMock{
+			CheckIncomingMiniBlocksCalled: func(miniBlocks []data.MiniBlockHeaderHandler, transactions map[string][]data.TransactionHandler) (int, int, error) {
+				return len(miniBlocks), 0, nil
+			},
+			CheckOutgoingTransactionsCalled: func(txHashes [][]byte, transactions []data.TransactionHandler) ([][]byte, error) {
+				return txHashes[:len(txHashes)-1], nil // one tx over the limit
+			},
+		}
+		sp, err := blproc.NewShardProcessor(arguments)
+		require.NoError(t, err)
+
+		err = sp.VerifyGasLimit(createHeaderFromMBs(outgoingMbh, incomingMbh))
+		require.ErrorIs(t, err, process.ErrInvalidMaxGasLimitPerMiniBlock)
+		require.Contains(t, err.Error(), "outgoing transactions exceeded")
+	})
+	t.Run("should work", func(t *testing.T) {
+		t.Parallel()
+
+		outgoingMbh, outgoingMb, incomingMbh, incomingMb := createMiniBlocks()
+		coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
+		dataPool := adaptDataPoolForVerifyGas(t, dataComponents.DataPool, outgoingMb, incomingMb)
+		dataComponents.DataPool = dataPool
+		arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+
+		sp, err := blproc.NewShardProcessor(arguments)
+		require.NoError(t, err)
+
+		err = sp.VerifyGasLimit(createHeaderFromMBs(outgoingMbh, incomingMbh))
+		require.NoError(t, err)
+	})
+}
+
+func adaptDataPoolForVerifyGas(
+	t *testing.T,
+	initialPool retriever.PoolsHolder,
+	outgoingMb *block.MiniBlock,
+	incomingMb *block.MiniBlock,
+) *dataRetriever.PoolsHolderStub {
+	headers := initialPool.Headers()
+	proofs := initialPool.Proofs()
+	return &dataRetriever.PoolsHolderStub{
+		HeadersCalled: func() retriever.HeadersPool {
+			return headers
+		},
+		ProofsCalled: func() retriever.ProofsPool {
+			return proofs
+		},
+		MiniBlocksCalled: func() storage.Cacher {
+			return &cache.CacherStub{
+				GetCalled: func(key []byte) (value interface{}, ok bool) {
+					switch string(key) {
+					case "outgoingMBHash":
+						value = outgoingMb
+						ok = true
+						return
+					case "incomingMBHash":
+						value = incomingMb
+						ok = true
+						return
+					default:
+						require.Fail(t, "unexpected key")
+					}
+
+					return
+				},
+			}
+		},
+		TransactionsCalled: func() retriever.ShardedDataCacherNotifier {
+			return &testscommon.ShardedDataStub{
+				SearchFirstDataCalled: func(key []byte) (value interface{}, ok bool) {
+					value = &transaction.Transaction{}
+					ok = true
+					return
+				},
+			}
+		},
+	}
+}
+
+func createHeaderFromMBs(mbs ...block.MiniBlockHeader) data.ShardHeaderHandler {
+	return &block.HeaderV3{MiniBlockHeaders: mbs}
+}
+
+func createMiniBlocks() (
+	outgoingMbh block.MiniBlockHeader,
+	outgoingMb *block.MiniBlock,
+	incomingMbh block.MiniBlockHeader,
+	incomingMb *block.MiniBlock,
+) {
+	outgoingMbh, outgoingMb = createMiniBlock("outgoingMBHash", 0, 0)
+	incomingMbh, incomingMb = createMiniBlock("incomingMBHash", 1, 0)
+	return
+}
+
+func createMiniBlock(hash string, srcShard uint32, dstShard uint32) (block.MiniBlockHeader, *block.MiniBlock) {
+	mbh := block.MiniBlockHeader{
+		Hash:            []byte(hash),
+		SenderShardID:   srcShard,
+		ReceiverShardID: dstShard,
+	}
+	mb := &block.MiniBlock{
+		TxHashes: [][]byte{
+			[]byte("txHash"),
+		},
+		SenderShardID:   srcShard,
+		ReceiverShardID: dstShard,
+	}
+	return mbh, mb
 }
