@@ -447,11 +447,3 @@ func (st *selectionTracker) getVirtualNonceOfAccountWithRootHash(
 
 	return breadcrumb.lastNonce.Value + 1, latestCommittedBlock.rootHash, nil
 }
-
-// getTrackedBlocks returns the tracked blocks concurrent safe
-func (st *selectionTracker) getTrackedBlocks() map[string]*trackedBlock {
-	st.mutTracker.RLock()
-	defer st.mutTracker.RUnlock()
-
-	return st.blocks
-}

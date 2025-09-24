@@ -44,9 +44,10 @@ func (txTracker *transactionsTracker) createAccountsWithDefaultRange(transaction
 
 // updateAccountsWithRange updates all the saved accounts with the range extracted from breadcrumbs
 func (txTracker *transactionsTracker) updateAccountsWithRange(tracker *selectionTracker) {
-	tBlocks := tracker.getTrackedBlocks()
+	tracker.mutTracker.RLock()
+	defer tracker.mutTracker.RUnlock()
 
-	for _, tb := range tBlocks {
+	for _, tb := range tracker.blocks {
 		txTracker.updateRangesWithBreadcrumbs(tb)
 	}
 }
