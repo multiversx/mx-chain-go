@@ -471,12 +471,7 @@ func (tdt *trackableDataTrie) modifyTrie(key []byte, dataEntry dirtyData, oldVal
 	newKey := tdt.getKeyForVersion(key, version)
 
 	if len(dataEntry.value) == 0 {
-		deletedKey, err := tdt.deleteFromTrie(oldVal, key, dtr)
-		if err != nil {
-			return nil, err
-		}
-
-		return deletedKey, nil
+		return tdt.deleteFromTrie(oldVal, key, dtr)
 	}
 
 	value, err := tdt.getValueForVersion(key, dataEntry.value, version)
