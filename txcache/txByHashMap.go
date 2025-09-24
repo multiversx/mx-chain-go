@@ -54,8 +54,8 @@ func (txMap *txByHashMap) removeTx(txHash string) (*WrappedTransaction, bool) {
 
 // removeTxWithCheck removes a transaction from the map but checks if it is still tracked
 func (txMap *txByHashMap) removeTxWithCheck(txHash string, tracker *selectionTracker) (*WrappedTransaction, bool) {
-	tx, _ := txMap.getTx(txHash)
-	if tracker.isTransactionTracked(tx) {
+	tx, ok := txMap.getTx(txHash)
+	if ok && tracker.isTransactionTracked(tx) {
 		return nil, false
 	}
 

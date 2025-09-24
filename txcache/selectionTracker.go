@@ -326,6 +326,9 @@ func (st *selectionTracker) updateLatestRootHashNoLock(receivedNonce uint64, rec
 // It iterates over all trackedBlocks and checks if the nonce of the given tx is out of breadcrumbs range.
 // NOTE: the method ignores (at the moment) some possible forks
 func (st *selectionTracker) isTransactionTracked(tx *WrappedTransaction) bool {
+	st.mutTracker.Lock()
+	defer st.mutTracker.Unlock()
+
 	sender := tx.Tx.GetSndAddr()
 	txNonce := tx.Tx.GetNonce()
 
