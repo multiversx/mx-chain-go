@@ -282,6 +282,3 @@ var ErrInvalidSignersAlreadyReceived = errors.New("invalid signers already recei
 
 // ErrNilInvalidSignersCache signals that nil invalid signers has been provided
 var ErrNilInvalidSignersCache = errors.New("nil invalid signers cache")
-
-// ErrNilAppStatusHandler defines the error for setting a nil AppStatusHandler
-var ErrNilConsensusMetricsHandler = errors.New("nil ConsensusMetricsHandler")

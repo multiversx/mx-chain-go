@@ -2420,5 +2420,5 @@ func TestWorker_NewWorkerNilConsensusMetrics(t *testing.T) {
 	worker, err := spos.NewWorker(workerArgs)
 	require.Nil(t, worker)
 	require.Error(t, err) // should come from NewConsensusMetrics
-	require.Equal(t, spos.ErrNilConsensusMetricsHandler, err)
+	require.Equal(t, spos.ErrNilAppStatusHandler, err)
 }

@@ -79,7 +79,6 @@ func (wr *WidgetsRender) initWidgets() {
 }
 
 func (wr *WidgetsRender) setGrid() {
-
 	gridLeft := ui.NewGrid()
 
 	gridLeft.Set(

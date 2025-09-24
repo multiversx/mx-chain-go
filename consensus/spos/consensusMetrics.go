@@ -25,7 +25,7 @@ type ConsensusMetrics struct {
 // NewConsensusMetrics creates a new instance of ConsensusMetrics
 func NewConsensusMetrics(appStatusHandler core.AppStatusHandler) (*ConsensusMetrics, error) {
 	if check.IfNil(appStatusHandler) {
-		return nil, ErrNilConsensusMetricsHandler
+		return nil, ErrNilAppStatusHandler
 	}
 	return &ConsensusMetrics{appStatusHandler: appStatusHandler}, nil
 }
