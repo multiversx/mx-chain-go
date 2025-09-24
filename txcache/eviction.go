@@ -157,7 +157,7 @@ func (cache *TxCache) evictLeastLikelyToSelectTransactions() *evictionJournal {
 		}
 
 		// Remove those transactions from "txByHash".
-		_ = cache.txByHash.RemoveTxsBulk(transactionsToEvictHashes)
+		_ = cache.txByHash.RemoveTxsBulkWithCheck(transactionsToEvictHashes, cache.tracker)
 
 		journal.numEvictedByPass = append(journal.numEvictedByPass, len(transactionsToEvict))
 		journal.numEvicted += len(transactionsToEvict)

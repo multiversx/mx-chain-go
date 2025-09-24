@@ -52,6 +52,16 @@ func (txMap *txByHashMap) removeTx(txHash string) (*WrappedTransaction, bool) {
 	return tx, true
 }
 
+// removeTxWithCheck removes a transaction from the map but checks if it is still tracked
+func (txMap *txByHashMap) removeTxWithCheck(txHash string, tracker *selectionTracker) (*WrappedTransaction, bool) {
+	tx, _ := txMap.getTx(txHash)
+	if tracker.isTransactionTracked(tx) {
+		return nil, false
+	}
+
+	return txMap.removeTx(txHash)
+}
+
 // getTx gets a transaction from the map
 func (txMap *txByHashMap) getTx(txHash string) (*WrappedTransaction, bool) {
 	txUntyped, ok := txMap.backingMap.Get(txHash)
@@ -69,6 +79,20 @@ func (txMap *txByHashMap) RemoveTxsBulk(txHashes [][]byte) uint32 {
 
 	for _, txHash := range txHashes {
 		_, removed := txMap.removeTx(string(txHash))
+		if removed {
+			numRemoved++
+		}
+	}
+
+	return numRemoved
+}
+
+// RemoveTxsBulkWithCheck removes transactions, in bulk, but checks if each tx can be removed
+func (txMap *txByHashMap) RemoveTxsBulkWithCheck(txHashes [][]byte, tracker *selectionTracker) uint32 {
+	numRemoved := uint32(0)
+
+	for _, txHash := range txHashes {
+		_, removed := txMap.removeTxWithCheck(string(txHash), tracker)
 		if removed {
 			numRemoved++
 		}

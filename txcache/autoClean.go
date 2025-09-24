@@ -58,7 +58,6 @@ func (cache *TxCache) RemoveSweepableTxs(accountsProvider common.AccountNoncePro
 			continue
 		}
 
-
 		// stop if we reached the max number of evicted transactions for this cleanup loop
 		if len(evicted) >= maxNum {
 			logRemove.Debug("TxCache.RemoveSweepableTxs reached maxNum",
@@ -85,7 +84,7 @@ func (cache *TxCache) RemoveSweepableTxs(accountsProvider common.AccountNoncePro
 	}
 
 	if len(evicted) > 0 {
-		cache.txByHash.RemoveTxsBulk(evicted)
+		cache.txByHash.RemoveTxsBulkWithCheck(evicted, cache.tracker)
 	}
 
 	logRemove.Debug("TxCache.RemoveSweepableTxs end",

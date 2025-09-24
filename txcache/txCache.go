@@ -92,7 +92,7 @@ func (cache *TxCache) AddTx(tx *WrappedTransaction) (ok bool, added bool) {
 
 	if len(evicted) > 0 {
 		logRemove.Trace("TxCache.AddTx with eviction", "sender", tx.Tx.GetSndAddr(), "num evicted txs", len(evicted))
-		cache.txByHash.RemoveTxsBulk(evicted)
+		cache.txByHash.RemoveTxsBulkWithCheck(evicted, cache.tracker)
 	}
 
 	// The return value "added" is true even if transaction added, but then removed due to limits be sender.
