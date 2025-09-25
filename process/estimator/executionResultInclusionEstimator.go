@@ -31,24 +31,22 @@ type LastExecutionResultForInclusion struct {
 // node. It determines, at proposal‑time and at validation‑time, whether one or more pending execution results can be
 // safely embedded in the block that is being produced / verified.
 type ExecutionResultInclusionEstimator struct {
-	cfg           config.ExecutionResultInclusionEstimatorConfig // immutable after construction
-	tGas          uint64                                         // time per gas unit on minimum‑spec hardware - 1 ns per gas unit
-	genesisTimeMs uint64                                         // required if lastNotarised == nil
-	roundHandler  RoundHandler
+	cfg          config.ExecutionResultInclusionEstimatorConfig // immutable after construction
+	tGas         uint64                                         // time per gas unit on minimum‑spec hardware - 1 ns per gas unit
+	roundHandler RoundHandler
 	// TODO add also max estimated block gas capacity - used gas must be lower than this
 }
 
 // NewExecutionResultInclusionEstimator returns a new instance of EIE
-func NewExecutionResultInclusionEstimator(cfg config.ExecutionResultInclusionEstimatorConfig, genesisTimeMs uint64, roundHandler RoundHandler) *ExecutionResultInclusionEstimator {
+func NewExecutionResultInclusionEstimator(cfg config.ExecutionResultInclusionEstimatorConfig, roundHandler RoundHandler) *ExecutionResultInclusionEstimator {
 	if check.IfNil(roundHandler) {
 		log.Error("NewExecutionResultInclusionEstimator: nil roundHandler")
 		return nil
 	}
 	return &ExecutionResultInclusionEstimator{
-		cfg:           cfg,
-		tGas:          tGas,
-		genesisTimeMs: genesisTimeMs,
-		roundHandler:  roundHandler,
+		cfg:          cfg,
+		tGas:         tGas,
+		roundHandler: roundHandler,
 	}
 }
 
@@ -56,24 +54,28 @@ func NewExecutionResultInclusionEstimator(cfg config.ExecutionResultInclusionEst
 // Return value: `allowed` is the count of leading entries in `pending` deemed safe. The caller slices `pending[:allowed]` and embeds them.
 func (erie *ExecutionResultInclusionEstimator) Decide(
 	lastNotarised *LastExecutionResultForInclusion,
-	pending []data.ExecutionResultHandler,
-	currentHdrTsMs uint64,
+	pending []data.BaseExecutionResultHandler,
+	currentRound uint64,
 ) (allowed int) {
 	allowed = 0
 
 	if len(pending) == 0 {
 		return allowed
 	}
-	var previousExecutionResultMeta data.ExecutionResultHandler
-	var tBase uint64
+
+	var roundForTBaseCalculation uint64
+	var previousExecutionResultMeta data.BaseExecutionResultHandler
+
 	// lastNotarised is nil if genesis.
 	if lastNotarised == nil {
-		tBase = convertMsToNs(erie.genesisTimeMs)
+		roundForTBaseCalculation = 0
 	} else {
-		LastNotarizedTimestampMs := erie.roundHandler.GetTimeStampForRound(lastNotarised.NotarizedInRound)
-		tBase = convertMsToNs(LastNotarizedTimestampMs)
+		roundForTBaseCalculation = lastNotarised.NotarizedInRound
 	}
 
+	tBase := convertMsToNs(erie.roundHandler.GetTimeStampForRound(roundForTBaseCalculation))
+
+	currentHdrTsMs := erie.roundHandler.GetTimeStampForRound(currentRound)
 	currentHdrTsNs := convertMsToNs(currentHdrTsMs)
 
 	// accumulated execution time in ns (1 gas = 1ns)
@@ -82,7 +84,7 @@ func (erie *ExecutionResultInclusionEstimator) Decide(
 		if i > 0 {
 			previousExecutionResultMeta = pending[i-1]
 		}
-		ok := erie.checkSanity(executionResultMeta, previousExecutionResultMeta, lastNotarised, currentHdrTsNs)
+		ok := erie.checkSanity(executionResultMeta, previousExecutionResultMeta, lastNotarised, currentRound)
 		if !ok {
 			return i
 		}
@@ -150,63 +152,58 @@ func (erie *ExecutionResultInclusionEstimator) IsInterfaceNil() bool {
 }
 
 func (erie *ExecutionResultInclusionEstimator) checkSanity(
-	currentExecutionResult data.ExecutionResultHandler,
-	previousExecutionResult data.ExecutionResultHandler,
+	currentExecutionResult data.BaseExecutionResultHandler,
+	previousExecutionResult data.BaseExecutionResultHandler,
 	lastNotarised *LastExecutionResultForInclusion,
-	currentHdrTsNs uint64,
+	currentRound uint64,
 ) bool {
-	currentExecutionResultForProposalTimestamp := erie.roundHandler.GetTimeStampForRound(currentExecutionResult.GetHeaderRound())
-	currentExecutionResultForProposalTimestampNs := convertMsToNs(currentExecutionResultForProposalTimestamp)
+	// Check for genesis round
+	if currentExecutionResult.GetHeaderRound() == 0 {
+		log.Debug("ExecutionResultInclusionEstimator: ExecutionResultHeaderRound on genesis detected",
+			"headerNonce", currentExecutionResult.GetHeaderNonce(),
+		)
+		return false
+	}
 	// Check for strict nonce monotonicity
 	if previousExecutionResult != nil && currentExecutionResult.GetHeaderNonce() != previousExecutionResult.GetHeaderNonce()+1 {
 		log.Debug("ExecutionResultInclusionEstimator: non-monotonic HeaderNonce detected",
 			"currentHeaderNonce", currentExecutionResult.GetHeaderNonce(),
 			"previousHeaderNonce", previousExecutionResult.GetHeaderNonce(),
-			"currentHeaderTimeMs", currentExecutionResultForProposalTimestamp,
-			"previousHeaderTimeMs", erie.roundHandler.GetTimeStampForRound(previousExecutionResult.GetHeaderRound()),
+			"currentRound", currentExecutionResult.GetHeaderRound(),
+			"previousRound", previousExecutionResult.GetHeaderRound(),
 		)
 		return false
 	}
-	// Check for monotonicity in time
-	if previousExecutionResult != nil && currentExecutionResultForProposalTimestamp < erie.roundHandler.GetTimeStampForRound(previousExecutionResult.GetHeaderRound()) {
-		log.Debug("ExecutionResultInclusionEstimator: non-monotonic HeaderTimeMs detected",
-			"currentHeaderTimeMs", currentExecutionResultForProposalTimestamp,
-			"previousHeaderTimeMs", erie.roundHandler.GetTimeStampForRound(previousExecutionResult.GetHeaderRound()),
-		)
-		return false
-	}
-	// Check for time before genesis time
-	if currentExecutionResultForProposalTimestamp < erie.genesisTimeMs {
-		log.Debug("ExecutionResultInclusionEstimator: HeaderTimeMs before genesis detected",
-			"headerNonce", currentExecutionResult.GetHeaderNonce(),
-			"headerTimeMs", currentExecutionResultForProposalTimestamp,
-			"genesisTimeMs", erie.genesisTimeMs,
-		)
-		return false
-	}
-	// Check for time before last notarised
-	if lastNotarised != nil && currentExecutionResultForProposalTimestamp < erie.roundHandler.GetTimeStampForRound(lastNotarised.ProposedInRound) {
-		log.Debug("ExecutionResultInclusionEstimator: HeaderTimeMs before last notarised detected",
-			"headerNonce", currentExecutionResult.GetHeaderNonce(),
-			"headerTimeMs", currentExecutionResultForProposalTimestamp,
-			"lastNotarisedTimeMs", erie.roundHandler.GetTimeStampForRound(lastNotarised.ProposedInRound),
+	// Check for monotonicity of rounds
+	if previousExecutionResult != nil && currentExecutionResult.GetHeaderRound() <= previousExecutionResult.GetHeaderRound() {
+		log.Debug("ExecutionResultInclusionEstimator: non-monotonic rounds detected",
+			"currentRound", currentExecutionResult.GetHeaderRound(),
+			"previousERound", previousExecutionResult.GetHeaderRound(),
 		)
 		return false
 	}
 
-	// Check for results in the future
-	if currentExecutionResultForProposalTimestampNs > currentHdrTsNs {
-		log.Debug("ExecutionResultInclusionEstimator: HeaderTimeMs in the future detected",
+	// Check for round before last notarised
+	if lastNotarised != nil && currentExecutionResult.GetHeaderRound() <= lastNotarised.ProposedInRound {
+		log.Debug("ExecutionResultInclusionEstimator: Round before last notarised detected",
 			"headerNonce", currentExecutionResult.GetHeaderNonce(),
-			"headerTimeNs", currentExecutionResultForProposalTimestampNs,
-			"currentHdrTsNs", currentHdrTsNs,
+			"lastNotarisedResultProposalRound", lastNotarised.ProposedInRound,
+			"currentExecutionResultRound", currentExecutionResult.GetHeaderRound())
+		return false
+	}
+	// Check for results in the future
+	if currentExecutionResult.GetHeaderRound() >= currentRound {
+		log.Debug("ExecutionResultInclusionEstimator: Execution result round in the future detected",
+			"currentExecutionResultNonce", currentExecutionResult.GetHeaderNonce(),
+			"currentExecutionResultRound", currentExecutionResult.GetHeaderRound(),
+			"currentHeaderRound", currentRound,
 		)
 		return false
 	}
 	return true
 }
 
-// TODO check for overflow
+// TODO check for overflow?
 func convertMsToNs(ms uint64) uint64 {
 	// Convert milliseconds to nanoseconds
 	return ms * 1_000_000

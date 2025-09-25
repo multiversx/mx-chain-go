@@ -2422,7 +2422,6 @@ func (tpn *TestProcessorNode) initBlockProcessor() {
 			SafetyMargin:       110,
 			MaxResultsPerBlock: 20,
 		},
-		0,
 		tpn.RoundHandler,
 	)
 

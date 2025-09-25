@@ -116,7 +116,6 @@ func createMetaBlockProcessor(
 			SafetyMargin:       110,
 			MaxResultsPerBlock: 20,
 		},
-		0,
 		coreComponents.RoundHandler(),
 	)
 

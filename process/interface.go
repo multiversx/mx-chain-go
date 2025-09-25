@@ -600,8 +600,28 @@ type DataPacker interface {
 	IsInterfaceNil() bool
 }
 
+// RequestForEpochHandler defines the methods through which request to data for a specific epoch can be made
+type RequestForEpochHandler interface {
+	RequestShardHeaderForEpoch(shardID uint32, hash []byte, epoch uint32)
+	RequestMetaHeaderForEpoch(hash []byte, epoch uint32)
+	RequestMetaHeaderByNonceForEpoch(nonce uint64, epoch uint32)
+	RequestShardHeaderByNonceForEpoch(shardID uint32, nonce uint64, epoch uint32)
+	RequestTransactionsForEpoch(destShardID uint32, txHashes [][]byte, epoch uint32)
+	RequestUnsignedTransactionsForEpoch(destShardID uint32, scrHashes [][]byte, epoch uint32)
+	RequestRewardTransactionsForEpoch(destShardID uint32, rewardTxHashes [][]byte, epoch uint32)
+	RequestMiniBlockForEpoch(destShardID uint32, miniBlockHash []byte, epoch uint32)
+	RequestMiniBlocksForEpoch(destShardID uint32, miniBlocksHashes [][]byte, epoch uint32)
+	RequestTrieNodesForEpoch(destShardID uint32, hashes [][]byte, topic string, epoch uint32)
+	RequestValidatorInfoForEpoch(hash []byte, epoch uint32)
+	RequestValidatorsInfoForEpoch(hashes [][]byte, epoch uint32)
+	RequestEquivalentProofByHashForEpoch(headerShard uint32, headerHash []byte, epoch uint32)
+	RequestEquivalentProofByNonceForEpoch(headerShard uint32, headerNonce uint64, epoch uint32)
+	IsInterfaceNil() bool
+}
+
 // RequestHandler defines the methods through which request to data can be made
 type RequestHandler interface {
+	RequestForEpochHandler
 	SetEpoch(epoch uint32)
 	RequestShardHeader(shardID uint32, hash []byte)
 	RequestMetaHeader(hash []byte)
@@ -1489,10 +1509,10 @@ type ShardCoordinator interface {
 
 // ExecutionResultsTracker is the interface that defines the methods for tracking execution results
 type ExecutionResultsTracker interface {
-	AddExecutionResult(executionResult data.ExecutionResultHandler) error
-	GetPendingExecutionResults() ([]data.ExecutionResultHandler, error)
-	GetPendingExecutionResultByHash(hash []byte) (data.ExecutionResultHandler, error)
-	GetPendingExecutionResultByNonce(nonce uint64) (data.ExecutionResultHandler, error)
+	AddExecutionResult(executionResult data.BaseExecutionResultHandler) error
+	GetPendingExecutionResults() ([]data.BaseExecutionResultHandler, error)
+	GetPendingExecutionResultByHash(hash []byte) (data.BaseExecutionResultHandler, error)
+	GetPendingExecutionResultByNonce(nonce uint64) (data.BaseExecutionResultHandler, error)
 	GetLastNotarizedExecutionResult() (data.BaseExecutionResultHandler, error)
 	SetLastNotarizedResult(executionResult data.BaseExecutionResultHandler) error
 	IsInterfaceNil() bool
@@ -1510,6 +1530,6 @@ type BlockDataRequester interface {
 
 // InclusionEstimator decides how many execution results can be included in the next block
 type InclusionEstimator interface {
-	Decide(lastNotarised *estimator.LastExecutionResultForInclusion, pending []data.ExecutionResultHandler, currentHdrTsMs uint64) (allowed int)
+	Decide(lastNotarised *estimator.LastExecutionResultForInclusion, pending []data.BaseExecutionResultHandler, currentHeaderRound uint64) (allowed int)
 	IsInterfaceNil() bool
 }

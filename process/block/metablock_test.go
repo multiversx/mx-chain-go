@@ -173,7 +173,6 @@ func createMockMetaArguments(
 			SafetyMargin:       110,
 			MaxResultsPerBlock: 20,
 		},
-		0,
 		coreComponents.RoundHandler(),
 	)
 
@@ -641,7 +640,7 @@ func TestMetaProcessor_CheckHeaderBodyCorrelationReceiverMissmatch(t *testing.T)
 
 	hdr.MiniBlockHeaders[0].ReceiverShardID = body.MiniBlocks[0].ReceiverShardID + 1
 	err := mp.CheckHeaderBodyCorrelation(hdr, body)
-	assert.Equal(t, process.ErrHeaderBodyMismatch, err)
+	assert.ErrorIs(t, err, process.ErrHeaderBodyMismatch)
 }
 
 func TestMetaProcessor_CheckHeaderBodyCorrelationSenderMissmatch(t *testing.T) {
@@ -653,7 +652,7 @@ func TestMetaProcessor_CheckHeaderBodyCorrelationSenderMissmatch(t *testing.T) {
 
 	hdr.MiniBlockHeaders[0].SenderShardID = body.MiniBlocks[0].SenderShardID + 1
 	err := mp.CheckHeaderBodyCorrelation(hdr, body)
-	assert.Equal(t, process.ErrHeaderBodyMismatch, err)
+	assert.ErrorIs(t, err, process.ErrHeaderBodyMismatch)
 }
 
 func TestMetaProcessor_CheckHeaderBodyCorrelationTxCountMissmatch(t *testing.T) {
@@ -689,6 +688,34 @@ func TestMetaProcessor_CheckHeaderBodyCorrelationShouldPass(t *testing.T) {
 
 	err := mp.CheckHeaderBodyCorrelation(hdr, body)
 	assert.Nil(t, err)
+}
+
+func TestMetaProcessor_CheckHeaderBodyCorrelationWrongProcessingIndexes(t *testing.T) {
+	t.Parallel()
+
+	hdr, body := createOneHeaderOneBody()
+	arguments := createMockMetaArguments(createMockComponentHolders())
+	mp, _ := blproc.NewMetaProcessor(arguments)
+
+	_ = hdr.MiniBlockHeaders[0].SetIndexOfFirstTxProcessed(0)
+	_ = hdr.MiniBlockHeaders[0].SetIndexOfLastTxProcessed(-1)
+
+	err := mp.CheckHeaderBodyCorrelation(hdr, body)
+	require.NotNil(t, err)
+	require.ErrorContains(t, err, "index is out of bound")
+}
+
+func TestMetaProcessor_CheckHeaderBodyCorrelationWrongConstructionState(t *testing.T) {
+	t.Parallel()
+
+	hdr, body := createOneHeaderOneBody()
+	arguments := createMockMetaArguments(createMockComponentHolders())
+	mp, _ := blproc.NewMetaProcessor(arguments)
+
+	_ = hdr.MiniBlockHeaders[0].SetConstructionState(int32(block.PartialExecuted))
+
+	err := mp.CheckHeaderBodyCorrelation(hdr, body)
+	require.NotNil(t, err)
 }
 
 func TestMetaProcessor_CheckHeaderBodyCorrelationNilMiniBlock(t *testing.T) {

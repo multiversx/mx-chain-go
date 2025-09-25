@@ -1700,7 +1700,13 @@ func (sp *shardProcessor) updateCrossShardInfo(processedMetaHdrs []data.HeaderHa
 }
 
 func (sp *shardProcessor) verifyCrossShardMiniBlockDstMe(header data.ShardHeaderHandler) error {
-	miniBlockMetaHashes, err := sp.getAllMiniBlockDstMeFromMeta(header)
+	var miniBlockMetaHashes map[string][]byte
+	var err error
+	if header.IsHeaderV3() {
+		miniBlockMetaHashes, err = sp.getAllMiniBlockDstMeFromMetaForProposal(header)
+	} else {
+		miniBlockMetaHashes, err = sp.getAllMiniBlockDstMeFromMeta(header)
+	}
 	if err != nil {
 		return err
 	}
@@ -1715,6 +1721,28 @@ func (sp *shardProcessor) verifyCrossShardMiniBlockDstMe(header data.ShardHeader
 	return nil
 }
 
+func (sp *shardProcessor) getAllMiniBlockDstMeFromMetaForProposal(header data.ShardHeaderHandler) (map[string][]byte, error) {
+	lastCrossNotarizedHeader, _, err := sp.blockTracker.GetLastCrossNotarizedHeader(core.MetachainShardId)
+	if err != nil {
+		return nil, err
+	}
+
+	var metaHeaderHandler data.HeaderHandler
+	miniBlockMetaHashes := make(map[string][]byte)
+	for _, metaBlockHash := range header.GetMetaBlockHashes() {
+		metaHeaderHandler, err = sp.dataPool.Headers().GetHeaderByHash(metaBlockHash)
+		if err != nil {
+			return nil, err
+		}
+		err = sp.addCrossShardMiniBlocksDstMeToMap(header, metaBlockHash, metaHeaderHandler, lastCrossNotarizedHeader, miniBlockMetaHashes)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return miniBlockMetaHashes, nil
+}
+
 func (sp *shardProcessor) getAllMiniBlockDstMeFromMeta(header data.ShardHeaderHandler) (map[string][]byte, error) {
 	lastCrossNotarizedHeader, _, err := sp.blockTracker.GetLastCrossNotarizedHeader(core.MetachainShardId)
 	if err != nil {
@@ -1722,33 +1750,48 @@ func (sp *shardProcessor) getAllMiniBlockDstMeFromMeta(header data.ShardHeaderHa
 	}
 
 	miniBlockMetaHashes := make(map[string][]byte)
-
 	for _, metaBlockHash := range header.GetMetaBlockHashes() {
 		headerInfo, ok := sp.hdrsForCurrBlock.GetHeaderInfo(string(metaBlockHash))
 		if !ok {
-			continue
-		}
-		metaBlock, ok := headerInfo.GetHeader().(*block.MetaBlock)
-		if !ok {
-			continue
-		}
-		if metaBlock.GetRound() > header.GetRound() {
-			continue
-		}
-		if metaBlock.GetRound() <= lastCrossNotarizedHeader.GetRound() {
-			continue
-		}
-		if metaBlock.GetNonce() <= lastCrossNotarizedHeader.GetNonce() {
-			continue
+			return nil, err
 		}
 
-		crossMiniBlockHashes := metaBlock.GetMiniBlockHeadersWithDst(sp.shardCoordinator.SelfId())
-		for hash := range crossMiniBlockHashes {
-			miniBlockMetaHashes[hash] = metaBlockHash
+		err = sp.addCrossShardMiniBlocksDstMeToMap(header, metaBlockHash, headerInfo.GetHeader(), lastCrossNotarizedHeader, miniBlockMetaHashes)
+		if err != nil {
+			return nil, err
 		}
 	}
 
 	return miniBlockMetaHashes, nil
+}
+
+func (sp *shardProcessor) addCrossShardMiniBlocksDstMeToMap(
+	header data.ShardHeaderHandler,
+	referencedMetaBlockHash []byte,
+	referencedMetaHeaderHandler data.HeaderHandler,
+	lastCrossNotarizedHeader data.HeaderHandler,
+	miniBlockMetaHashes map[string][]byte,
+) error {
+	metaBlock, ok := referencedMetaHeaderHandler.(data.MetaHeaderHandler)
+	if !ok {
+		return process.ErrWrongTypeAssertion
+	}
+	if metaBlock.GetRound() > header.GetRound() {
+		return process.ErrHigherRoundInBlock
+	}
+	if metaBlock.GetRound() <= lastCrossNotarizedHeader.GetRound() {
+		return process.ErrLowerRoundInBlock
+	}
+	if metaBlock.GetNonce() <= lastCrossNotarizedHeader.GetNonce() {
+		return process.ErrLowerNonceInBlock
+	}
+
+	crossMiniBlockHashes := metaBlock.GetMiniBlockHeadersWithDst(sp.shardCoordinator.SelfId())
+	for hash := range crossMiniBlockHashes {
+		miniBlockMetaHashes[hash] = referencedMetaBlockHash
+	}
+
+	return nil
 }
 
 // full verification through metachain header

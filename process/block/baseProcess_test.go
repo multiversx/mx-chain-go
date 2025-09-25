@@ -25,13 +25,14 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/typeConverters/uint64ByteSlice"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
 	"github.com/multiversx/mx-chain-go/process/asyncExecution/executionTrack"
 	"github.com/multiversx/mx-chain-go/process/estimator"
 	"github.com/multiversx/mx-chain-go/process/missingData"
 	"github.com/multiversx/mx-chain-go/testscommon/mbSelection"
 	"github.com/multiversx/mx-chain-go/testscommon/processMocks"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/common/graceperiod"
@@ -166,7 +167,6 @@ func createArgBaseProcessor(
 				SafetyMargin:       110,
 				MaxResultsPerBlock: 20,
 			},
-			0,
 			coreComponents.RoundHandler(),
 		)
 
@@ -2398,10 +2398,9 @@ func TestBaseProcessor_ProcessScheduledBlockShouldFail(t *testing.T) {
 			busyIdleCalled = append(busyIdleCalled, busyIdentifier)
 		}
 
-		localErr := errors.New("execute all err")
 		scheduledTxsExec := &testscommon.ScheduledTxsExecutionStub{
 			ExecuteAllCalled: func(func() time.Duration) error {
-				return localErr
+				return expectedError
 			},
 		}
 
@@ -2412,7 +2411,7 @@ func TestBaseProcessor_ProcessScheduledBlockShouldFail(t *testing.T) {
 			&block.MetaBlock{}, &block.Body{}, haveTime,
 		)
 
-		assert.Equal(t, localErr, err)
+		assert.Equal(t, expectedError, err)
 		assert.Equal(t, []string{busyIdentifier, idleIdentifier}, busyIdleCalled)
 	})
 	t.Run("get root hash fail", func(t *testing.T) {
@@ -2429,10 +2428,9 @@ func TestBaseProcessor_ProcessScheduledBlockShouldFail(t *testing.T) {
 			busyIdleCalled = append(busyIdleCalled, busyIdentifier)
 		}
 
-		localErr := errors.New("root hash err")
 		accounts := &stateMock.AccountsStub{
 			RootHashCalled: func() ([]byte, error) {
-				return nil, localErr
+				return nil, expectedError
 			},
 		}
 		arguments.AccountsDB[state.UserAccountsState] = accounts
@@ -2443,7 +2441,7 @@ func TestBaseProcessor_ProcessScheduledBlockShouldFail(t *testing.T) {
 			&block.MetaBlock{}, &block.Body{}, haveTime,
 		)
 
-		assert.Equal(t, localErr, err)
+		assert.Equal(t, expectedError, err)
 		assert.Equal(t, []string{busyIdentifier, idleIdentifier}, busyIdleCalled)
 	})
 }
@@ -3606,5 +3604,234 @@ func TestBaseProcessor_computeOwnShardStuckIfNeeded(t *testing.T) {
 		err := baseProcessor.ComputeOwnShardStuckIfNeeded(header)
 		assert.Nil(t, err)
 		require.True(t, called)
+	})
+}
+
+func TestCheckHeaderBodyCorrelationProposal(t *testing.T) {
+	t.Parallel()
+
+	t.Run("different number of miniblock headers and miniblocks should error ", func(t *testing.T) {
+		t.Parallel()
+
+		arguments := CreateMockArguments(createComponentHolderMocks())
+		bp, _ := blproc.NewShardProcessor(arguments)
+
+		err := bp.CheckHeaderBodyCorrelationProposal(
+			nil,
+			&block.Body{MiniBlocks: []*block.MiniBlock{
+				{SenderShardID: 0},
+			}},
+		)
+		require.Equal(t, process.ErrHeaderBodyMismatch, err)
+	})
+
+	t.Run("nil miniblock should error", func(t *testing.T) {
+		arguments := CreateMockArguments(createComponentHolderMocks())
+		bp, _ := blproc.NewShardProcessor(arguments)
+
+		mbHeaders := make([]data.MiniBlockHeaderHandler, 1)
+		mbHeaders[0] = &block.MiniBlockHeader{}
+
+		err := bp.CheckHeaderBodyCorrelationProposal(
+			mbHeaders,
+			&block.Body{MiniBlocks: []*block.MiniBlock{
+				nil,
+			}},
+		)
+		require.Equal(t, process.ErrNilMiniBlock, err)
+	})
+
+	t.Run("nil miniblock header should error", func(t *testing.T) {
+		arguments := CreateMockArguments(createComponentHolderMocks())
+		bp, _ := blproc.NewShardProcessor(arguments)
+
+		mbHeaders := make([]data.MiniBlockHeaderHandler, 1)
+		mbHeaders[0] = nil
+
+		err := bp.CheckHeaderBodyCorrelationProposal(
+			mbHeaders,
+			&block.Body{MiniBlocks: []*block.MiniBlock{
+				{},
+			}},
+		)
+		require.Equal(t, process.ErrNilMiniBlockHeader, err)
+	})
+	t.Run("different hash mb header and miniblock", func(t *testing.T) {
+		arguments := CreateMockArguments(createComponentHolderMocks())
+		bp, _ := blproc.NewShardProcessor(arguments)
+
+		mbHeaders := make([]data.MiniBlockHeaderHandler, 1)
+		mbHeaders[0] = &block.MiniBlockHeader{
+			Hash: []byte("hash"),
+		}
+
+		err := bp.CheckHeaderBodyCorrelationProposal(
+			mbHeaders,
+			&block.Body{MiniBlocks: []*block.MiniBlock{
+				{},
+			}},
+		)
+		require.Equal(t, process.ErrHeaderBodyMismatch, err)
+	})
+
+	t.Run("different tx count mb header and miniblock", func(t *testing.T) {
+		arguments := CreateMockArguments(createComponentHolderMocks())
+		bp, _ := blproc.NewShardProcessor(arguments)
+
+		miniBlock := &block.MiniBlock{}
+
+		mbHash, _ := core.CalculateHash(arguments.CoreComponents.InternalMarshalizer(), arguments.CoreComponents.Hasher(), miniBlock)
+
+		mbHeaders := make([]data.MiniBlockHeaderHandler, 1)
+		mbHeaders[0] = &block.MiniBlockHeader{
+			Hash:    mbHash,
+			TxCount: 1,
+		}
+
+		err := bp.CheckHeaderBodyCorrelationProposal(
+			mbHeaders,
+			&block.Body{MiniBlocks: []*block.MiniBlock{
+				miniBlock,
+			}},
+		)
+		require.Equal(t, process.ErrHeaderBodyMismatch, err)
+	})
+
+	t.Run("different receiver shard mb header and mini block", func(t *testing.T) {
+		arguments := CreateMockArguments(createComponentHolderMocks())
+		bp, _ := blproc.NewShardProcessor(arguments)
+
+		miniBlock := &block.MiniBlock{
+			ReceiverShardID: 2,
+		}
+
+		mbHash, _ := core.CalculateHash(arguments.CoreComponents.InternalMarshalizer(), arguments.CoreComponents.Hasher(), miniBlock)
+
+		mbHeaders := make([]data.MiniBlockHeaderHandler, 1)
+		mbHeaders[0] = &block.MiniBlockHeader{
+			Hash:            mbHash,
+			ReceiverShardID: 1,
+		}
+
+		err := bp.CheckHeaderBodyCorrelationProposal(
+			mbHeaders,
+			&block.Body{MiniBlocks: []*block.MiniBlock{
+				miniBlock,
+			}},
+		)
+		require.ErrorIs(t, err, process.ErrHeaderBodyMismatch)
+	})
+
+	t.Run("different sender shard mb header and miniblock", func(t *testing.T) {
+		arguments := CreateMockArguments(createComponentHolderMocks())
+		bp, _ := blproc.NewShardProcessor(arguments)
+
+		miniBlock := &block.MiniBlock{
+			SenderShardID:   0,
+			ReceiverShardID: 2,
+		}
+
+		mbHash, _ := core.CalculateHash(arguments.CoreComponents.InternalMarshalizer(), arguments.CoreComponents.Hasher(), miniBlock)
+
+		mbHeaders := make([]data.MiniBlockHeaderHandler, 1)
+		mbHeaders[0] = &block.MiniBlockHeader{
+			Hash:            mbHash,
+			SenderShardID:   2,
+			ReceiverShardID: 2,
+		}
+
+		err := bp.CheckHeaderBodyCorrelationProposal(
+			mbHeaders,
+			&block.Body{MiniBlocks: []*block.MiniBlock{
+				miniBlock,
+			}},
+		)
+		require.ErrorIs(t, err, process.ErrHeaderBodyMismatch)
+	})
+
+	t.Run("wrong construction state should error", func(t *testing.T) {
+		arguments := CreateMockArguments(createComponentHolderMocks())
+		bp, _ := blproc.NewShardProcessor(arguments)
+
+		miniBlock := &block.MiniBlock{
+			SenderShardID:   0,
+			ReceiverShardID: 2,
+		}
+
+		mbHash, _ := core.CalculateHash(arguments.CoreComponents.InternalMarshalizer(), arguments.CoreComponents.Hasher(), miniBlock)
+
+		mbHeaders := make([]data.MiniBlockHeaderHandler, 1)
+		mbHeaders[0] = &block.MiniBlockHeader{
+			Hash:            mbHash,
+			SenderShardID:   0,
+			ReceiverShardID: 2,
+		}
+		_ = mbHeaders[0].SetConstructionState(int32(block.PartialExecuted))
+
+		err := bp.CheckHeaderBodyCorrelationProposal(
+			mbHeaders,
+			&block.Body{MiniBlocks: []*block.MiniBlock{
+				miniBlock,
+			}},
+		)
+		require.Equal(t, process.ErrWrongMiniBlockConstructionState, err)
+	})
+
+	t.Run("wrong processing type should error", func(t *testing.T) {
+		arguments := CreateMockArguments(createComponentHolderMocks())
+		bp, _ := blproc.NewShardProcessor(arguments)
+
+		miniBlock := &block.MiniBlock{
+			SenderShardID:   0,
+			ReceiverShardID: 2,
+		}
+
+		mbHash, _ := core.CalculateHash(arguments.CoreComponents.InternalMarshalizer(), arguments.CoreComponents.Hasher(), miniBlock)
+
+		mbHeaders := make([]data.MiniBlockHeaderHandler, 1)
+		mbHeaders[0] = &block.MiniBlockHeader{
+			Hash:            mbHash,
+			SenderShardID:   0,
+			ReceiverShardID: 2,
+		}
+		_ = mbHeaders[0].SetConstructionState(int32(block.Proposed))
+		_ = mbHeaders[0].SetProcessingType(int32(block.Scheduled))
+
+		err := bp.CheckHeaderBodyCorrelationProposal(
+			mbHeaders,
+			&block.Body{MiniBlocks: []*block.MiniBlock{
+				miniBlock,
+			}},
+		)
+		require.Equal(t, process.ErrWrongMiniBlockProcessingType, err)
+	})
+
+	t.Run("should work", func(t *testing.T) {
+		arguments := CreateMockArguments(createComponentHolderMocks())
+		bp, _ := blproc.NewShardProcessor(arguments)
+
+		miniBlock := &block.MiniBlock{
+			SenderShardID:   0,
+			ReceiverShardID: 2,
+		}
+
+		mbHash, _ := core.CalculateHash(arguments.CoreComponents.InternalMarshalizer(), arguments.CoreComponents.Hasher(), miniBlock)
+
+		mbHeaders := make([]data.MiniBlockHeaderHandler, 1)
+		mbHeaders[0] = &block.MiniBlockHeader{
+			Hash:            mbHash,
+			SenderShardID:   0,
+			ReceiverShardID: 2,
+		}
+		_ = mbHeaders[0].SetConstructionState(int32(block.Proposed))
+		_ = mbHeaders[0].SetProcessingType(int32(block.Normal))
+
+		err := bp.CheckHeaderBodyCorrelationProposal(
+			mbHeaders,
+			&block.Body{MiniBlocks: []*block.MiniBlock{
+				miniBlock,
+			}},
+		)
+		require.NoError(t, err)
 	})
 }
