@@ -335,13 +335,13 @@ func (st *selectionTracker) isTransactionTracked(tx *WrappedTransaction) bool {
 	maxNonce := uint64(0)
 	var minNonce uint64 = math.MaxUint64
 
-	absencesInTrackedBlocks := 0
+	blocksWhereSenderNotFound := 0
 
 	for _, tb := range st.blocks {
 		senderBreadcrumb, ok := tb.breadcrumbsByAddress[string(sender)]
 		if !ok {
 			// it means the sender was not part of that tracked block at all
-			absencesInTrackedBlocks += 1
+			blocksWhereSenderNotFound += 1
 			continue
 		}
 
@@ -350,7 +350,7 @@ func (st *selectionTracker) isTransactionTracked(tx *WrappedTransaction) bool {
 
 		if !firstNonce.HasValue || !lastNonce.HasValue {
 			// it means sender was part of that tracked block, but only as a fee payer
-			absencesInTrackedBlocks += 1
+			blocksWhereSenderNotFound += 1
 			continue
 		}
 
@@ -358,7 +358,7 @@ func (st *selectionTracker) isTransactionTracked(tx *WrappedTransaction) bool {
 		maxNonce = max(lastNonce.Value, maxNonce)
 	}
 
-	if absencesInTrackedBlocks == len(st.blocks) {
+	if blocksWhereSenderNotFound == len(st.blocks) {
 		return false
 	}
 
