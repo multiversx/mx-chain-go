@@ -41,6 +41,7 @@ func (sp *shardProcessor) CreateBlockProposal(
 		return nil, nil, err
 	}
 
+	sp.gasComputation.Reset()
 	sp.miniBlocksSelectionSession.ResetSelectionSession()
 	err = sp.createBlockBodyProposal(shardHdr, haveTime)
 	if err != nil {
@@ -109,13 +110,6 @@ func (sp *shardProcessor) VerifyBlockProposal(
 	bodyHandler data.BodyHandler,
 	haveTime func() time.Duration,
 ) error {
-	log.Debug("started verifying proposed block",
-		"epoch", headerHandler.GetEpoch(),
-		"shard", headerHandler.GetShardID(),
-		"round", headerHandler.GetRound(),
-		"nonce", headerHandler.GetNonce(),
-	)
-
 	err := sp.checkBlockValidity(headerHandler, bodyHandler)
 	if err != nil {
 		if errors.Is(err, process.ErrBlockHashDoesNotMatch) {
@@ -129,6 +123,13 @@ func (sp *shardProcessor) VerifyBlockProposal(
 
 		return err
 	}
+
+	log.Debug("started verifying proposed block",
+		"epoch", headerHandler.GetEpoch(),
+		"shard", headerHandler.GetShardID(),
+		"round", headerHandler.GetRound(),
+		"nonce", headerHandler.GetNonce(),
+	)
 
 	header, ok := headerHandler.(data.ShardHeaderHandler)
 	if !ok {
@@ -144,12 +145,12 @@ func (sp *shardProcessor) VerifyBlockProposal(
 		return process.ErrWrongTypeAssertion
 	}
 
-	go getMetricsFromBlockBody(body, sp.marshalizer, sp.appStatusHandler)
-
 	err = sp.checkHeaderBodyCorrelationProposal(header.GetMiniBlockHeaderHandlers(), body)
 	if err != nil {
 		return err
 	}
+
+	go getMetricsFromBlockBody(body, sp.marshalizer, sp.appStatusHandler)
 
 	err = sp.executionResultsVerifier.VerifyHeaderExecutionResults(header)
 	if err != nil {
@@ -638,10 +639,11 @@ func (sp *shardProcessor) checkMetaHeadersValidityAndFinalityProposal(header dat
 	}
 	usedMetaHdrHashes := header.GetMetaBlockHashes()
 	usedMetaHeaders := make([]data.HeaderHandler, 0, len(usedMetaHdrHashes))
+	var metaHdr data.HeaderHandler
 	for _, metaHdrHash := range usedMetaHdrHashes {
-		metaHdr, errNotCritical := sp.dataPool.Headers().GetHeaderByHash(metaHdrHash)
-		if errNotCritical != nil {
-			return fmt.Errorf("%w : checkMetaHeadersValidityAndFinalityProposal -> getHeaderByHash", errNotCritical)
+		metaHdr, err = sp.dataPool.Headers().GetHeaderByHash(metaHdrHash)
+		if err != nil {
+			return fmt.Errorf("%w : checkMetaHeadersValidityAndFinalityProposal -> getHeaderByHash", err)
 		}
 		usedMetaHeaders = append(usedMetaHeaders, metaHdr)
 	}

@@ -1748,11 +1748,11 @@ func (sp *shardProcessor) getAllMiniBlockDstMeFromMetaForProposal(header data.Sh
 	for _, metaBlockHash := range header.GetMetaBlockHashes() {
 		metaHeaderHandler, err = sp.dataPool.Headers().GetHeaderByHash(metaBlockHash)
 		if err != nil {
-			continue
+			return nil, err
 		}
 		err = sp.addCrossShardMiniBlocksDstMeToMap(header, metaBlockHash, metaHeaderHandler, lastCrossNotarizedHeader, miniBlockMetaHashes)
 		if err != nil {
-			continue
+			return nil, err
 		}
 	}
 
@@ -1769,12 +1769,12 @@ func (sp *shardProcessor) getAllMiniBlockDstMeFromMeta(header data.ShardHeaderHa
 	for _, metaBlockHash := range header.GetMetaBlockHashes() {
 		headerInfo, ok := sp.hdrsForCurrBlock.GetHeaderInfo(string(metaBlockHash))
 		if !ok {
-			continue
+			return nil, err
 		}
 
 		err = sp.addCrossShardMiniBlocksDstMeToMap(header, metaBlockHash, headerInfo.GetHeader(), lastCrossNotarizedHeader, miniBlockMetaHashes)
 		if err != nil {
-			continue
+			return nil, err
 		}
 	}
 
@@ -1788,7 +1788,7 @@ func (sp *shardProcessor) addCrossShardMiniBlocksDstMeToMap(
 	lastCrossNotarizedHeader data.HeaderHandler,
 	miniBlockMetaHashes map[string][]byte,
 ) error {
-	metaBlock, ok := referencedMetaHeaderHandler.(*block.MetaBlock)
+	metaBlock, ok := referencedMetaHeaderHandler.(data.MetaHeaderHandler)
 	if !ok {
 		return process.ErrWrongTypeAssertion
 	}

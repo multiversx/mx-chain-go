@@ -44,9 +44,6 @@ type gasConsumption struct {
 	gasConsumedByMiniBlock           map[string]uint64
 	pendingMiniBlocks                []data.MiniBlockHeaderHandler
 	transactionsForPendingMiniBlocks map[string][]data.TransactionHandler
-	lastMiniBlockIndex               int
-	isMiniBlockSelectionDone         bool
-	isTransactionSelectionDone       bool
 	incomingLimitFactor              uint64
 	outgoingLimitFactor              uint64
 	decreaseStep                     uint64
@@ -82,7 +79,6 @@ func NewGasConsumption(args ArgsGasConsumption) (*gasConsumption, error) {
 		transactionsForPendingMiniBlocks: make(map[string][]data.TransactionHandler),
 		incomingLimitFactor:              args.BlockCapacityOverestimationFactor,
 		outgoingLimitFactor:              args.BlockCapacityOverestimationFactor,
-		lastMiniBlockIndex:               initialLastIndex,
 		decreaseStep:                     args.BlockCapacityOverestimationFactor * args.PercentDecreaseLimitsStep / 100,
 		percentDecreaseLimitsStep:        args.PercentDecreaseLimitsStep,
 		initialOverestimationFactor:      args.BlockCapacityOverestimationFactor,
@@ -100,37 +96,27 @@ func (gc *gasConsumption) CheckIncomingMiniBlocks(
 	defer gc.mut.Unlock()
 
 	if len(miniBlocks) == 0 || len(transactions) == 0 {
-		return gc.lastMiniBlockIndex, 0, nil
-	}
-
-	if gc.isMiniBlockSelectionDone {
-		return initialLastIndex, 0, process.ErrMiniBlocksAlreadyProcessed
-	}
-
-	if gc.isTransactionSelectionDone {
-		return initialLastIndex, 0, process.ErrTransactionsAlreadyProcessed
+		return initialLastIndex, 0, nil
 	}
 
 	bandwidthForIncomingMiniBlocks := gc.getGasLimitForOneDirection(incoming, gc.shardCoordinator.SelfId())
 
+	lastMiniBlockIndex := initialLastIndex
 	for i := 0; i < len(miniBlocks); i++ {
 		shouldSavePending, err := gc.checkIncomingMiniBlock(miniBlocks[i], transactions, bandwidthForIncomingMiniBlocks)
 		if shouldSavePending {
 			gc.pendingMiniBlocks = append(gc.pendingMiniBlocks, miniBlocks[i:]...)
 			gc.transactionsForPendingMiniBlocks = transactions
-			gc.isMiniBlockSelectionDone = true
 
-			return gc.lastMiniBlockIndex, len(gc.pendingMiniBlocks), err
+			return lastMiniBlockIndex, len(gc.pendingMiniBlocks), err
 		}
 		if err != nil {
-			gc.isMiniBlockSelectionDone = true
-			return gc.lastMiniBlockIndex, 0, err
+			return lastMiniBlockIndex, 0, err
 		}
+		lastMiniBlockIndex = i
 	}
 
-	gc.isMiniBlockSelectionDone = true
-
-	return gc.lastMiniBlockIndex, 0, nil
+	return lastMiniBlockIndex, 0, nil
 }
 
 func (gc *gasConsumption) checkIncomingMiniBlock(
@@ -164,10 +150,9 @@ func (gc *gasConsumption) checkIncomingMiniBlock(
 	mbsLimitReached := gc.totalGasConsumed[incoming]+gasConsumedByMB > bandwidthForIncomingMiniBlocks
 	if !mbsLimitReached {
 		// limit not reached, continue
-		// simply increment the lastMiniBlockIndex as this method might be called either from
-		// handling all mini blocks, either from handling pending, where the pending ones
+		// this method might be called either from handling all mini blocks,
+		// either from handling pending, where the pending ones
 		// should have continuous indexes after the ones already included
-		gc.lastMiniBlockIndex++
 		gc.gasConsumedByMiniBlock[string(mbHash)] = gasConsumedByMB
 		gc.totalGasConsumed[incoming] += gasConsumedByMB
 
@@ -214,8 +199,8 @@ func (gc *gasConsumption) checkGasConsumedByMiniBlock(mb data.MiniBlockHeaderHan
 }
 
 func (gc *gasConsumption) checkPendingIncomingMiniBlocks() error {
-	// checking if any pending mini blocks are left in order to fill the block
-	hasPendingMiniBlocks := gc.isMiniBlockSelectionDone && len(gc.pendingMiniBlocks) > 0
+	// checking if any pending mini blocks are left to fill the block
+	hasPendingMiniBlocks := len(gc.pendingMiniBlocks) > 0
 	if !hasPendingMiniBlocks {
 		return nil
 	}
@@ -235,24 +220,24 @@ func (gc *gasConsumption) checkPendingIncomingMiniBlocks() error {
 
 // CheckOutgoingTransactions verifies the outgoing transactions and returns the index of the last valid transaction
 // only returns error if a transaction is invalid, with too much gas
-func (gc *gasConsumption) CheckOutgoingTransactions(transactions []data.TransactionHandler) ([]data.TransactionHandler, error) {
-	if len(transactions) == 0 {
+// This method assumes that incoming mini blocks were already handled, trying to add any remaining pending ones at the end
+func (gc *gasConsumption) CheckOutgoingTransactions(
+	txHashes [][]byte,
+	transactions []data.TransactionHandler,
+) ([][]byte, error) {
+	if len(transactions) == 0 || len(txHashes) == 0 {
 		return nil, nil
+	}
+
+	if len(transactions) != len(txHashes) {
+		return nil, process.ErrInvalidValue
 	}
 
 	gc.mut.Lock()
 	defer gc.mut.Unlock()
 
-	if gc.isTransactionSelectionDone {
-		return nil, process.ErrTransactionsAlreadyProcessed
-	}
-
-	if !gc.isMiniBlockSelectionDone {
-		return nil, process.ErrMiniBlocksNotProcessedYet
-	}
-
 	skippedSenders := make(map[string]struct{})
-	addedTransactions := make([]data.TransactionHandler, 0)
+	addedHashes := make([][]byte, 0)
 	for i := 0; i < len(transactions); i++ {
 		_, shouldSkipSender := skippedSenders[string(transactions[i].GetSndAddr())]
 		if shouldSkipSender {
@@ -265,14 +250,12 @@ func (gc *gasConsumption) CheckOutgoingTransactions(transactions []data.Transact
 			continue
 		}
 
-		addedTransactions = append(addedTransactions, transactions[i])
+		addedHashes = append(addedHashes, txHashes[i])
 	}
-
-	gc.isTransactionSelectionDone = true
 
 	// reaching this point means that transactions were added and the limit for outgoing was not reached
 	err := gc.checkPendingIncomingMiniBlocks()
-	return addedTransactions, err
+	return addedHashes, err
 }
 
 // must be called under mutex protection
@@ -322,10 +305,8 @@ func (gc *gasConsumption) checkShardsLimits(
 	isCrossShard := senderShard != receiverShard
 
 	bandwidthForOutgoingTransactionsIntra := gc.getGasLimitForOneDirection(outgoingIntra, senderShard)
-	if gc.isMiniBlockSelectionDone {
-		// if mini blocks are already handled, use the space left only for intra shard limit
-		bandwidthForOutgoingTransactionsIntra += gc.getGasLeftFromMiniBlocks(senderShard)
-	}
+	// if mini blocks are already handled, use the space left only for intra shard limit
+	bandwidthForOutgoingTransactionsIntra += gc.getGasLeftFromMiniBlocks(senderShard)
 
 	txsLimitReachedIntra := gc.totalGasConsumed[outgoingIntra]+gasConsumedInSenderShard > bandwidthForOutgoingTransactionsIntra
 	txsLimitReachedCross := false
@@ -369,6 +350,16 @@ func (gc *gasConsumption) getGasLeftFromTransactions() uint64 {
 	return bandwidthForOutgoingIntra - gasConsumedByOutgoingIntra
 }
 
+// GetBandwidthForTransactions returns the total bandwidth left for transactions after mini blocks selection
+func (gc *gasConsumption) GetBandwidthForTransactions() uint64 {
+	gc.mut.RLock()
+	defer gc.mut.RUnlock()
+
+	gasLeftFromMiniBlocks := gc.getGasLeftFromMiniBlocks(gc.shardCoordinator.SelfId())
+	gasLeftFromTransactions := gc.getGasLeftFromTransactions()
+	return gasLeftFromMiniBlocks + gasLeftFromTransactions
+}
+
 // TotalGasConsumed returns the total gas consumed for both incoming and outgoing transactions
 func (gc *gasConsumption) TotalGasConsumed() uint64 {
 	gc.mut.RLock()
@@ -380,14 +371,6 @@ func (gc *gasConsumption) TotalGasConsumed() uint64 {
 	}
 
 	return totalGasConsumed
-}
-
-// GetLastMiniBlockIndexIncluded returns the last mini block index added
-func (gc *gasConsumption) GetLastMiniBlockIndexIncluded() int {
-	gc.mut.RLock()
-	defer gc.mut.RUnlock()
-
-	return gc.lastMiniBlockIndex
 }
 
 // DecreaseIncomingLimit reduces the gas limit for incoming mini blocks by a configured percentage
@@ -449,11 +432,8 @@ func (gc *gasConsumption) Reset() {
 
 	gc.totalGasConsumed = make(map[gasType]uint64)
 	gc.gasConsumedByMiniBlock = make(map[string]uint64)
-	gc.isTransactionSelectionDone = false
-	gc.isMiniBlockSelectionDone = false
 	gc.pendingMiniBlocks = make([]data.MiniBlockHeaderHandler, 0)
 	gc.transactionsForPendingMiniBlocks = make(map[string][]data.TransactionHandler, 0)
-	gc.lastMiniBlockIndex = initialLastIndex
 }
 
 func (gc *gasConsumption) getGasLimitForOneDirection(gasType gasType, shardID uint32) uint64 {
