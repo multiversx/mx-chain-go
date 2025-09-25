@@ -5,9 +5,6 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/multiversx/mx-chain-core-go/data/block"
-	"github.com/multiversx/mx-chain-go/common/holders"
-	"github.com/multiversx/mx-chain-go/testscommon/txcachemocks"
 	"github.com/stretchr/testify/require"
 )
 
@@ -77,50 +74,6 @@ func Test_removeTx(t *testing.T) {
 
 	removeWrappedTxsConcurrently(txByHash, wrappedTxs, numberOfTxs)
 	checkExistenceOfTxs(t, txByHash, wrappedTxs, false)
-}
-
-func Test_RemoveTxsBulkWithCheck(t *testing.T) {
-	t.Parallel()
-
-	txByHash := newTxByHashMap(2)
-	txCache := newCacheToTest(maxNumBytesPerSenderUpperBoundTest, 10)
-	txCache.txByHash = txByHash
-
-	accountsProvider := &txcachemocks.AccountNonceAndBalanceProviderMock{
-		GetAccountNonceAndBalanceCalled: func(address []byte) (uint64, *big.Int, bool, error) {
-			return 0, big.NewInt(6 * 100000 * oneBillion), true, nil
-		},
-	}
-
-	txHashes := createMockTxHashes(10)
-	wrappedTxs := createSliceMockWrappedTxsWithSameSender(txHashes, "alice")
-
-	for _, tx := range wrappedTxs {
-		txCache.AddTx(tx)
-	}
-
-	err := txCache.OnProposedBlock(
-		[]byte("hash1"),
-		&block.Body{
-			MiniBlocks: []*block.MiniBlock{
-				{
-					TxHashes: txHashes[0:5],
-				},
-			},
-		},
-		&block.Header{
-			Nonce:    uint64(0),
-			PrevHash: []byte("hash0"),
-			RootHash: []byte("rootHash0"),
-		},
-		accountsProvider,
-		holders.NewBlockchainInfo([]byte("hash0"), []byte("hash0"), 0),
-	)
-	require.Nil(t, err)
-
-	txsTracker := newTransactionsTracker(txCache.tracker, wrappedTxs)
-	noOfRemovedTxs := txByHash.RemoveTxsBulkWithTrackingCheck(txHashes, txsTracker)
-	require.Equal(t, uint32(5), noOfRemovedTxs)
 }
 
 func Test_RemoveTxsBulk(t *testing.T) {

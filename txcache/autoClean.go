@@ -86,7 +86,9 @@ func (cache *TxCache) RemoveSweepableTxs(accountsProvider common.AccountNoncePro
 	if len(evicted) > 0 {
 		txs := cache.txByHash.GetTxsBulk(evicted)
 		txTracker := newTransactionsTracker(cache.tracker, txs)
-		cache.txByHash.RemoveTxsBulkWithTrackingCheck(evicted, txTracker)
+
+		untrackedEvicted := txTracker.GetBulkOfUntrackedTransactions(txs)
+		cache.txByHash.RemoveTxsBulk(untrackedEvicted)
 	}
 
 	logRemove.Debug("TxCache.RemoveSweepableTxs end",

@@ -91,10 +91,10 @@ func (txTracker *transactionsTracker) updateRangeWithBreadcrumb(rangeOfSender *a
 	return nil
 }
 
-// IsTransactionTracked checks if a transaction is still in the tracked blocks of the SelectionTracker
+// isTransactionTracked checks if a transaction is still in the tracked blocks of the SelectionTracker
 // TODO the method ignores (at the moment) some possible forks. This should be fixed
 // TODO Analyze the next scenario: a sender sends more transactions with same nonce, but only one of them is tracked, the others aren't.
-func (txTracker *transactionsTracker) IsTransactionTracked(transaction *WrappedTransaction) bool {
+func (txTracker *transactionsTracker) isTransactionTracked(transaction *WrappedTransaction) bool {
 	if transaction == nil || transaction.Tx == nil {
 		return false
 	}
@@ -119,6 +119,22 @@ func (txTracker *transactionsTracker) IsTransactionTracked(transaction *WrappedT
 	}
 
 	return true
+}
+
+func (txTracker *transactionsTracker) GetBulkOfUntrackedTransactions(transactions []*WrappedTransaction) [][]byte {
+	untrackedTransactions := make([][]byte, 0)
+	for _, tx := range transactions {
+		if tx == nil || tx.Tx == nil {
+			continue
+		}
+
+		txHash := tx.TxHash
+		if !txTracker.isTransactionTracked(tx) {
+			untrackedTransactions = append(untrackedTransactions, txHash)
+		}
+	}
+
+	return untrackedTransactions
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

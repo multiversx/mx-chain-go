@@ -165,8 +165,8 @@ func Test_IsTransactionTracked(t *testing.T) {
 			tx2,
 		})
 
-		require.True(t, txTracker.IsTransactionTracked(tx1))
-		require.True(t, txTracker.IsTransactionTracked(tx2))
+		require.True(t, txTracker.isTransactionTracked(tx1))
+		require.True(t, txTracker.isTransactionTracked(tx2))
 	})
 
 	t.Run("should return false because out of range", func(t *testing.T) {
@@ -179,8 +179,8 @@ func Test_IsTransactionTracked(t *testing.T) {
 			tx2,
 		})
 
-		require.False(t, txTracker.IsTransactionTracked(tx1))
-		require.False(t, txTracker.IsTransactionTracked(tx2))
+		require.False(t, txTracker.isTransactionTracked(tx1))
+		require.False(t, txTracker.isTransactionTracked(tx2))
 
 	})
 
@@ -192,7 +192,7 @@ func Test_IsTransactionTracked(t *testing.T) {
 			tx1,
 		})
 
-		require.False(t, txTracker.IsTransactionTracked(tx1))
+		require.False(t, txTracker.isTransactionTracked(tx1))
 	})
 
 	t.Run("should return false because account is not tracked at all", func(t *testing.T) {
@@ -203,6 +203,53 @@ func Test_IsTransactionTracked(t *testing.T) {
 			tx1,
 		})
 
-		require.False(t, txTracker.IsTransactionTracked(tx1))
+		require.False(t, txTracker.isTransactionTracked(tx1))
 	})
+}
+
+func Test_RemoveTxs(t *testing.T) {
+	t.Parallel()
+
+	txByHash := newTxByHashMap(2)
+	txCache := newCacheToTest(maxNumBytesPerSenderUpperBoundTest, 10)
+	txCache.txByHash = txByHash
+
+	accountsProvider := &txcachemocks.AccountNonceAndBalanceProviderMock{
+		GetAccountNonceAndBalanceCalled: func(address []byte) (uint64, *big.Int, bool, error) {
+			return 0, big.NewInt(6 * 100000 * oneBillion), true, nil
+		},
+	}
+
+	txHashes := createMockTxHashes(10)
+	wrappedTxs := createSliceMockWrappedTxsWithSameSender(txHashes, "alice")
+
+	for _, tx := range wrappedTxs {
+		txCache.AddTx(tx)
+	}
+
+	err := txCache.OnProposedBlock(
+		[]byte("hash1"),
+		&block.Body{
+			MiniBlocks: []*block.MiniBlock{
+				{
+					TxHashes: txHashes[0:4],
+				},
+			},
+		},
+		&block.Header{
+			Nonce:    uint64(0),
+			PrevHash: []byte("hash0"),
+			RootHash: []byte("rootHash0"),
+		},
+		accountsProvider,
+		holders.NewBlockchainInfo([]byte("hash0"), []byte("hash0"), 0),
+	)
+	require.Nil(t, err)
+
+	txsTracker := newTransactionsTracker(txCache.tracker, wrappedTxs)
+
+	untrackedTxs := txsTracker.GetBulkOfUntrackedTransactions(wrappedTxs)
+	noOfRemovedTxs := txByHash.RemoveTxsBulk(untrackedTxs)
+
+	require.Equal(t, uint32(6), noOfRemovedTxs)
 }
