@@ -4,6 +4,7 @@ import (
 	"errors"
 	"strings"
 
+	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/core/sync"
 	"github.com/multiversx/mx-chain-go/common"
@@ -104,7 +105,8 @@ func (idv *interceptedDataVerifier) checkCachedData(interceptedData process.Inte
 }
 
 func isCrossShardTopic(topic string) bool {
-	topicSplit := strings.Split(topic, "_")
+	baseTopic := strings.Trim(topic, core.TopicRequestSuffix)
+	topicSplit := strings.Split(baseTopic, "_")
 	return len(topicSplit) == 3 || len(topicSplit) == 1 // cross _0_1 or global topic
 }
 

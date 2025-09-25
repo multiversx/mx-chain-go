@@ -140,7 +140,7 @@ func TestInterceptedDataVerifier_checkCachedData(t *testing.T) {
 
 		verifier.PutInCache(interceptedData, validInterceptedData)
 
-		err := verifier.Verify(interceptedData, "topic_0_1")
+		err := verifier.Verify(interceptedData, "topic_0_1_REQUEST")
 		require.Equal(t, process.ErrDuplicatedInterceptedDataNotAllowed, err)
 	})
 }
