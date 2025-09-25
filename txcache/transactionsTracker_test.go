@@ -82,6 +82,7 @@ func Test_IsTransactionTracked(t *testing.T) {
 		createTx([]byte("txHash4"), "alice", 14),
 		createTx([]byte("txHash5"), "alice", 15).withRelayer([]byte("bob")).withGasLimit(100_000),
 		createTx([]byte("txHash6"), "eve", 11).withRelayer([]byte("alice")).withGasLimit(100_000),
+		createTx([]byte("txHash7"), "eve", 11).withRelayer([]byte("alice")).withGasLimit(100_000),
 	}
 
 	for _, tx := range txs {

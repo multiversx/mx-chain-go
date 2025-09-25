@@ -2,6 +2,7 @@ package txcache
 
 import (
 	"github.com/multiversx/mx-chain-core-go/core/atomic"
+	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-go/txcache/maps"
 )
 
@@ -52,14 +53,16 @@ func (txMap *txByHashMap) removeTx(txHash string) (*WrappedTransaction, bool) {
 	return tx, true
 }
 
-// removeTxWithCheck removes a transaction from the map but checks if it is still tracked
-func (txMap *txByHashMap) removeTxWithCheck(txHash string, txTracker *transactionsTracker) (*WrappedTransaction, bool) {
+// removeTxWithTrackingCheck removes a transaction from the map but checks if it is still tracked
+// TODO should do the check at a higher level
+func (txMap *txByHashMap) removeTxWithTrackingCheck(txHash string, txTracker TransactionsTracker) bool {
 	tx, ok := txMap.getTx(txHash)
 	if ok && txTracker.IsTransactionTracked(tx) {
-		return nil, false
+		return false
 	}
 
-	return txMap.removeTx(txHash)
+	_, ok = txMap.removeTx(txHash)
+	return ok
 }
 
 // getTx gets a transaction from the map
@@ -104,12 +107,16 @@ func (txMap *txByHashMap) RemoveTxsBulk(txHashes [][]byte) uint32 {
 	return numRemoved
 }
 
-// RemoveTxsBulkWithCheck removes transactions, in bulk, but checks if each tx can be removed
-func (txMap *txByHashMap) RemoveTxsBulkWithCheck(txHashes [][]byte, txTracker *transactionsTracker) uint32 {
-	numRemoved := uint32(0)
+// RemoveTxsBulkWithTrackingCheck removes transactions, in bulk, but checks if each tx can be removed
+// TODO should do the check at a higher level
+func (txMap *txByHashMap) RemoveTxsBulkWithTrackingCheck(txHashes [][]byte, txTracker TransactionsTracker) uint32 {
+	if check.IfNil(txTracker) {
+		return 0
+	}
 
+	numRemoved := uint32(0)
 	for _, txHash := range txHashes {
-		_, removed := txMap.removeTxWithCheck(string(txHash), txTracker)
+		removed := txMap.removeTxWithTrackingCheck(string(txHash), txTracker)
 		if removed {
 			numRemoved++
 		}
