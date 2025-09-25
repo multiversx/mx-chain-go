@@ -2,7 +2,6 @@ package txcache
 
 import (
 	"bytes"
-	"math"
 	"sync"
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
@@ -320,53 +319,6 @@ func (st *selectionTracker) updateLatestRootHashNoLock(receivedNonce uint64, rec
 		st.latestRootHash = receivedRootHash
 		st.latestNonce = receivedNonce
 	}
-}
-
-// isTransactionTracked checks if a given transaction is still tracked (i.e. part of the txs of a tracked block).
-// It iterates over all trackedBlocks and checks if the nonce of the given tx is out of breadcrumbs range.
-// NOTE: the method ignores (at the moment) some possible forks
-func (st *selectionTracker) isTransactionTracked(tx *WrappedTransaction) bool {
-	st.mutTracker.Lock()
-	defer st.mutTracker.Unlock()
-
-	sender := tx.Tx.GetSndAddr()
-	txNonce := tx.Tx.GetNonce()
-
-	maxNonce := uint64(0)
-	var minNonce uint64 = math.MaxUint64
-
-	blocksWhereSenderNotFound := 0
-
-	for _, tb := range st.blocks {
-		senderBreadcrumb, ok := tb.breadcrumbsByAddress[string(sender)]
-		if !ok {
-			// it means the sender was not part of that tracked block at all
-			blocksWhereSenderNotFound += 1
-			continue
-		}
-
-		firstNonce := senderBreadcrumb.firstNonce
-		lastNonce := senderBreadcrumb.lastNonce
-
-		if !firstNonce.HasValue || !lastNonce.HasValue {
-			// it means sender was part of that tracked block, but only as a fee payer
-			blocksWhereSenderNotFound += 1
-			continue
-		}
-
-		minNonce = min(firstNonce.Value, minNonce)
-		maxNonce = max(lastNonce.Value, maxNonce)
-	}
-
-	if blocksWhereSenderNotFound == len(st.blocks) {
-		return false
-	}
-
-	if txNonce < minNonce || txNonce > maxNonce {
-		return false
-	}
-
-	return true
 }
 
 func (st *selectionTracker) deriveVirtualSelectionSession(

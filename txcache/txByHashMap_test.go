@@ -118,7 +118,8 @@ func Test_RemoveTxsBulkWithCheck(t *testing.T) {
 	)
 	require.Nil(t, err)
 
-	noOfRemovedTxs := txByHash.RemoveTxsBulkWithCheck(txHashes, txCache.tracker)
+	txsTracker := newTransactionsTracker(txCache.tracker, wrappedTxs)
+	noOfRemovedTxs := txByHash.RemoveTxsBulkWithCheck(txHashes, txsTracker)
 	require.Equal(t, uint32(5), noOfRemovedTxs)
 }
 
