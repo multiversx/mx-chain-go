@@ -9,8 +9,9 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
-	"github.com/multiversx/mx-chain-go/testscommon/pool"
 	"github.com/stretchr/testify/require"
+
+	"github.com/multiversx/mx-chain-go/testscommon/pool"
 
 	retriever "github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/dataRetriever/blockchain"
@@ -1319,7 +1320,8 @@ func TestShardBlockProposal_CreateAndVerifyProposal(t *testing.T) {
 	}
 	currentHeaderHash := []byte("currHdrHash")
 	blkc.SetCurrentBlockHeaderHash(currentHeaderHash)
-	blkc.SetCurrentBlockHeaderAndRootHash(currentHeader, []byte("currHdrRootHash"))
+	err := blkc.SetCurrentBlockHeaderAndRootHash(currentHeader, []byte("currHdrRootHash"))
+	require.Nil(t, err)
 
 	headers := dataComponents.DataPool.Headers()
 	dataComponents.DataPool = &dataRetriever.PoolsHolderStub{
@@ -1408,7 +1410,8 @@ func TestShardBlockProposal_CreateAndVerifyProposal_WithTransactions(t *testing.
 	}
 	currentHeaderHash := []byte("currHdrHash")
 	blkc.SetCurrentBlockHeaderHash(currentHeaderHash)
-	blkc.SetCurrentBlockHeaderAndRootHash(currentHeader, []byte("currHdrRootHash"))
+	err := blkc.SetCurrentBlockHeaderAndRootHash(currentHeader, []byte("currHdrRootHash"))
+	require.Nil(t, err)
 
 	epochStartMetaHash := []byte("epochStartMetaHash")
 	metaBlockHash1 := []byte("metaBlockHash1")
