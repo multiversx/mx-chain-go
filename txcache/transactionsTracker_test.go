@@ -1,14 +1,64 @@
 package txcache
 
 import (
+	"math"
 	"math/big"
 	"testing"
 
+	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-go/common/holders"
 	"github.com/multiversx/mx-chain-go/testscommon/txcachemocks"
 	"github.com/stretchr/testify/require"
 )
+
+func Test_updateRangeWithBreadcrumb(t *testing.T) {
+	t.Parallel()
+
+	txCache := newCacheToTest(maxNumBytesPerSenderUpperBoundTest, 3)
+	tracker, err := NewSelectionTracker(txCache, maxTrackedBlocks)
+	require.Nil(t, err)
+
+	txTracker := newTransactionsTracker(tracker, nil)
+
+	t.Run("range of sender not set yet", func(t *testing.T) {
+		t.Parallel()
+
+		rangeOfSender := &accountRange{
+			minNonce: core.OptionalUint64{Value: math.MaxUint64, HasValue: false},
+			maxNonce: core.OptionalUint64{Value: 0, HasValue: false},
+		}
+
+		senderBreadcrumb := newAccountBreadcrumb(core.OptionalUint64{
+			Value:    10,
+			HasValue: true,
+		})
+		err := senderBreadcrumb.updateLastNonce(core.OptionalUint64{Value: 12, HasValue: true})
+		require.NoError(t, err)
+
+		err = txTracker.updateRangeWithBreadcrumb(rangeOfSender, senderBreadcrumb)
+		require.NoError(t, err)
+		require.Equal(t, uint64(10), rangeOfSender.minNonce.Value)
+		require.Equal(t, uint64(12), rangeOfSender.maxNonce.Value)
+	})
+
+	t.Run("should return err", func(t *testing.T) {
+		t.Parallel()
+
+		rangeOfSender := &accountRange{
+			minNonce: core.OptionalUint64{Value: 10, HasValue: true},
+			maxNonce: core.OptionalUint64{Value: 12, HasValue: true},
+		}
+
+		senderBreadcrumb := newAccountBreadcrumb(core.OptionalUint64{
+			Value:    0,
+			HasValue: false,
+		})
+
+		err = txTracker.updateRangeWithBreadcrumb(rangeOfSender, senderBreadcrumb)
+		require.Equal(t, errBreadcrumbOfFeePayer, err)
+	})
+}
 
 func Test_IsTransactionTracked(t *testing.T) {
 	t.Parallel()

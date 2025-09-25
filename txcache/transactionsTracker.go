@@ -31,6 +31,10 @@ func newTransactionsTracker(tracker *selectionTracker, transactions []*WrappedTr
 // createAccountsWithDefaultRange initializes all the required accounts with a default range
 func (txTracker *transactionsTracker) createAccountsWithDefaultRange(transactions []*WrappedTransaction) {
 	for _, tx := range transactions {
+		if tx == nil || tx.Tx == nil {
+			continue
+		}
+
 		sender := tx.Tx.GetSndAddr()
 		_, ok := txTracker.accountsWithRange[string(sender)]
 		if !ok {
@@ -90,6 +94,10 @@ func (txTracker *transactionsTracker) updateRangeWithBreadcrumb(rangeOfSender *a
 // IsTransactionTracked checks if a transaction is still in the tracked blocks of the SelectionTracker
 // TODO the method ignores (at the moment) some possible forks. This should be fixed
 func (txTracker *transactionsTracker) IsTransactionTracked(transaction *WrappedTransaction) bool {
+	if transaction == nil || transaction.Tx == nil {
+		return false
+	}
+
 	sender := transaction.Tx.GetSndAddr()
 	txNonce := transaction.Tx.GetNonce()
 
