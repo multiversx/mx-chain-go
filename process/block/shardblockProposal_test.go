@@ -1322,7 +1322,8 @@ func TestShardBlockProposal_CreateAndVerifyProposal(t *testing.T) {
 	}
 	currentHeaderHash := []byte("currHdrHash")
 	blkc.SetCurrentBlockHeaderHash(currentHeaderHash)
-	_ = blkc.SetCurrentBlockHeaderAndRootHash(currentHeader, []byte("currHdrRootHash"))
+	err := blkc.SetCurrentBlockHeaderAndRootHash(currentHeader, []byte("currHdrRootHash"))
+	require.Nil(t, err)
 
 	headers := dataComponents.DataPool.Headers()
 	dataComponents.DataPool = &dataRetriever.PoolsHolderStub{
@@ -1411,7 +1412,8 @@ func TestShardBlockProposal_CreateAndVerifyProposal_WithTransactions(t *testing.
 	}
 	currentHeaderHash := []byte("currHdrHash")
 	blkc.SetCurrentBlockHeaderHash(currentHeaderHash)
-	_ = blkc.SetCurrentBlockHeaderAndRootHash(currentHeader, []byte("currHdrRootHash"))
+	err := blkc.SetCurrentBlockHeaderAndRootHash(currentHeader, []byte("currHdrRootHash"))
+	require.Nil(t, err)
 
 	epochStartMetaHash := []byte("epochStartMetaHash")
 	metaBlockHash1 := []byte("metaBlockHash1")
