@@ -105,7 +105,7 @@ func (idv *interceptedDataVerifier) checkCachedData(interceptedData process.Inte
 }
 
 func isCrossShardTopic(topic string) bool {
-	baseTopic := strings.Trim(topic, core.TopicRequestSuffix)
+	baseTopic, _ := strings.CutSuffix(topic, core.TopicRequestSuffix)
 	topicSplit := strings.Split(baseTopic, "_")
 	return len(topicSplit) == 3 || len(topicSplit) == 1 // cross _0_1 or global topic
 }
