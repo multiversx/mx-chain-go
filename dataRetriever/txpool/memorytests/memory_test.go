@@ -120,6 +120,7 @@ func newPool() dataRetriever.ShardedDataCacherNotifier {
 		SelfShardID:    0,
 		TxCacheBoundsConfig: config.TxCacheBoundsConfig{
 			MaxNumBytesPerSenderUpperBound: maxNumBytesPerSenderUpperBoundTest,
+			MaxTrackedBlocks:               100,
 		},
 	}
 	pool, err := txpool.NewShardedTxPool(args)
