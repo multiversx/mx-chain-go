@@ -68,6 +68,10 @@ func (idv *interceptedDataVerifier) MarkVerified(interceptedData process.Interce
 		return
 	}
 
+	if len(interceptedData.Hash()) == 0 {
+		return
+	}
+
 	idv.km.Lock(string(interceptedData.Hash()))
 	defer idv.km.Unlock(string(interceptedData.Hash()))
 

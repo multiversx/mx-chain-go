@@ -162,6 +162,11 @@ func TestInterceptedDataVerifier_CheckValidityShouldWork(t *testing.T) {
 			return []byte("hash")
 		},
 	}
+	interceptedDataWithNoHash := &testscommon.InterceptedDataStub{
+		HashCalled: func() []byte {
+			return []byte("") // peerAuthentication
+		},
+	}
 
 	verifier := defaultInterceptedDataVerifier(defaultSpan)
 
@@ -169,6 +174,8 @@ func TestInterceptedDataVerifier_CheckValidityShouldWork(t *testing.T) {
 	require.NoError(t, err)
 
 	verifier.MarkVerified(interceptedData, "topic_1") // intra shard, for coverage only
+
+	verifier.MarkVerified(interceptedDataWithNoHash, "topic") // no hash, for coverage only
 
 	verifier.MarkVerified(interceptedData, "topic")
 
