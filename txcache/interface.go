@@ -29,3 +29,9 @@ type txCacheForSelectionTracker interface {
 	GetByTxHash(txHash []byte) (*WrappedTransaction, bool)
 	IsInterfaceNil() bool
 }
+
+// txsTracker provides the transactionsTracker methods used by other components
+type txsTracker interface {
+	IsTransactionTracked(transaction *WrappedTransaction) bool
+	IsInterfaceNil() bool
+}
