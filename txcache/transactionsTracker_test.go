@@ -36,13 +36,12 @@ func Test_updateRangeWithBreadcrumb(t *testing.T) {
 		err := senderBreadcrumb.updateLastNonce(core.OptionalUint64{Value: 12, HasValue: true})
 		require.NoError(t, err)
 
-		err = txTracker.updateRangeWithBreadcrumb(rangeOfSender, senderBreadcrumb)
-		require.NoError(t, err)
+		txTracker.updateRangeWithBreadcrumb(rangeOfSender, senderBreadcrumb)
 		require.Equal(t, uint64(10), rangeOfSender.minNonce.Value)
 		require.Equal(t, uint64(12), rangeOfSender.maxNonce.Value)
 	})
 
-	t.Run("should return err", func(t *testing.T) {
+	t.Run("the sender breadcrumb is a breadcrumb of fee payer", func(t *testing.T) {
 		t.Parallel()
 
 		rangeOfSender := &accountRange{
@@ -55,8 +54,8 @@ func Test_updateRangeWithBreadcrumb(t *testing.T) {
 			HasValue: false,
 		})
 
-		err = txTracker.updateRangeWithBreadcrumb(rangeOfSender, senderBreadcrumb)
-		require.Equal(t, errBreadcrumbOfFeePayer, err)
+		txTracker.updateRangeWithBreadcrumb(rangeOfSender, senderBreadcrumb)
+		require.Equal(t, uint64(10), rangeOfSender.minNonce.Value)
 	})
 }
 

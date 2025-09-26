@@ -17,7 +17,8 @@ type transactionsTracker struct {
 	accountsWithRange map[string]*accountRange
 }
 
-// newTransactionsTracker creates a new transactions tracker
+// newTransactionsTracker creates a new transactions tracker.
+// It should receive the evicted transactions waiting to be deleted.
 func newTransactionsTracker(tracker *selectionTracker, transactions []*WrappedTransaction) *transactionsTracker {
 	txTracker := &transactionsTracker{
 		accountsWithRange: make(map[string]*accountRange),
@@ -37,11 +38,13 @@ func (txTracker *transactionsTracker) createAccountsWithDefaultRange(transaction
 
 		sender := tx.Tx.GetSndAddr()
 		_, ok := txTracker.accountsWithRange[string(sender)]
-		if !ok {
-			txTracker.accountsWithRange[string(sender)] = &accountRange{
-				minNonce: core.OptionalUint64{Value: math.MaxUint64, HasValue: false},
-				maxNonce: core.OptionalUint64{Value: 0, HasValue: false},
-			}
+		if ok {
+			continue
+		}
+
+		txTracker.accountsWithRange[string(sender)] = &accountRange{
+			minNonce: core.OptionalUint64{Value: math.MaxUint64, HasValue: false},
+			maxNonce: core.OptionalUint64{Value: 0, HasValue: false},
 		}
 	}
 }
@@ -65,21 +68,18 @@ func (txTracker *transactionsTracker) updateRangesWithBreadcrumbs(tb *trackedBlo
 			continue
 		}
 
-		err := txTracker.updateRangeWithBreadcrumb(rangeOfSender, senderBreadcrumb)
-		if err != nil {
-			continue
-		}
+		txTracker.updateRangeWithBreadcrumb(rangeOfSender, senderBreadcrumb)
 	}
 }
 
 // updateRangeWithBreadcrumb updates a specific account with the range extracted from a specific breadcrumb
-func (txTracker *transactionsTracker) updateRangeWithBreadcrumb(rangeOfSender *accountRange, senderBreadcrumb *accountBreadcrumb) error {
+func (txTracker *transactionsTracker) updateRangeWithBreadcrumb(rangeOfSender *accountRange, senderBreadcrumb *accountBreadcrumb) {
 	firstNonce := senderBreadcrumb.firstNonce
 	lastNonce := senderBreadcrumb.lastNonce
 
 	if !firstNonce.HasValue || !lastNonce.HasValue {
 		// it means sender was part of that tracked block, but only as a fee payer
-		return errBreadcrumbOfFeePayer
+		return
 	}
 
 	rangeOfSender.minNonce.Value = min(firstNonce.Value, rangeOfSender.minNonce.Value)
@@ -87,8 +87,6 @@ func (txTracker *transactionsTracker) updateRangeWithBreadcrumb(rangeOfSender *a
 
 	rangeOfSender.maxNonce.Value = max(lastNonce.Value, rangeOfSender.maxNonce.Value)
 	rangeOfSender.maxNonce.HasValue = true
-
-	return nil
 }
 
 // IsTransactionTracked checks if a transaction is still in the tracked blocks of the SelectionTracker
