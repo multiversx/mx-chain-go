@@ -448,3 +448,15 @@ func (st *selectionTracker) getVirtualNonceOfAccountWithRootHash(
 
 	return breadcrumb.lastNonce.Value + 1, latestCommittedBlock.rootHash, nil
 }
+
+func (st *selectionTracker) getTrackedBlocks() map[string]*trackedBlock {
+	st.mutTracker.RLock()
+	defer st.mutTracker.RUnlock()
+
+	copyOfTrackedBlocks := make(map[string]*trackedBlock, len(st.blocks))
+	for key, value := range st.blocks {
+		copyOfTrackedBlocks[key] = value
+	}
+
+	return copyOfTrackedBlocks
+}
