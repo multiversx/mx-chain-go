@@ -3,6 +3,7 @@ package process
 import (
 	"bytes"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"math"
 	"math/big"
@@ -1210,4 +1211,11 @@ func CreateDataForInclusionEstimation(
 		NotarizedInRound: notarizedInRound,
 		ProposedInRound:  proposedInRound,
 	}, nil
+}
+
+// IsNotExecutableTransactionError checks if the given error is related to a transaction which cannot be executed
+func IsNotExecutableTransactionError(err error) bool {
+	return errors.Is(err, ErrLowerNonceInTransaction) ||
+		errors.Is(err, ErrInsufficientFee) ||
+		errors.Is(err, ErrTransactionNotExecutable)
 }

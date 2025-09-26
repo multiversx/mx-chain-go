@@ -1388,3 +1388,6 @@ var ErrInvalidNumberOfExecutionResultsInHeader = errors.New("invalid number of e
 
 // ErrEpochStartInfoNotAvailable signals that epoch start info is not available
 var ErrEpochStartInfoNotAvailable = errors.New("epoch start info not available")
+
+// ErrNilUnExecutableTxForwarder signals that a nil un-executable forwarder has been provided
+var ErrNilUnExecutableTxForwarder = errors.New("nil un-executable forwarder")

@@ -38,37 +38,39 @@ type relayedFees struct {
 // txProcessor implements TransactionProcessor interface and can modify account states according to a transaction
 type txProcessor struct {
 	*baseTxProcessor
-	txFeeHandler        process.TransactionFeeHandler
-	receiptForwarder    process.IntermediateTransactionHandler
-	badTxForwarder      process.IntermediateTransactionHandler
-	argsParser          process.ArgumentsParser
-	scrForwarder        process.IntermediateTransactionHandler
-	signMarshalizer     marshal.Marshalizer
-	enableEpochsHandler common.EnableEpochsHandler
-	txLogsProcessor     process.TransactionLogProcessor
+	txFeeHandler            process.TransactionFeeHandler
+	receiptForwarder        process.IntermediateTransactionHandler
+	badTxForwarder          process.IntermediateTransactionHandler
+	unExecutableTxForwarder process.IntermediateTransactionHandler
+	argsParser              process.ArgumentsParser
+	scrForwarder            process.IntermediateTransactionHandler
+	signMarshalizer         marshal.Marshalizer
+	enableEpochsHandler     common.EnableEpochsHandler
+	txLogsProcessor         process.TransactionLogProcessor
 }
 
 // ArgsNewTxProcessor defines the arguments needed for new tx processor
 type ArgsNewTxProcessor struct {
-	Accounts            state.AccountsAdapter
-	Hasher              hashing.Hasher
-	PubkeyConv          core.PubkeyConverter
-	Marshalizer         marshal.Marshalizer
-	SignMarshalizer     marshal.Marshalizer
-	ShardCoordinator    sharding.Coordinator
-	ScProcessor         process.SmartContractProcessor
-	TxFeeHandler        process.TransactionFeeHandler
-	TxTypeHandler       process.TxTypeHandler
-	EconomicsFee        process.FeeHandler
-	ReceiptForwarder    process.IntermediateTransactionHandler
-	BadTxForwarder      process.IntermediateTransactionHandler
-	ArgsParser          process.ArgumentsParser
-	ScrForwarder        process.IntermediateTransactionHandler
-	EnableRoundsHandler process.EnableRoundsHandler
-	EnableEpochsHandler common.EnableEpochsHandler
-	TxVersionChecker    process.TxVersionCheckerHandler
-	GuardianChecker     process.GuardianChecker
-	TxLogsProcessor     process.TransactionLogProcessor
+	Accounts                state.AccountsAdapter
+	Hasher                  hashing.Hasher
+	PubkeyConv              core.PubkeyConverter
+	Marshalizer             marshal.Marshalizer
+	SignMarshalizer         marshal.Marshalizer
+	ShardCoordinator        sharding.Coordinator
+	ScProcessor             process.SmartContractProcessor
+	TxFeeHandler            process.TransactionFeeHandler
+	TxTypeHandler           process.TxTypeHandler
+	EconomicsFee            process.FeeHandler
+	ReceiptForwarder        process.IntermediateTransactionHandler
+	BadTxForwarder          process.IntermediateTransactionHandler
+	UnExecutableTxForwarder process.IntermediateTransactionHandler
+	ArgsParser              process.ArgumentsParser
+	ScrForwarder            process.IntermediateTransactionHandler
+	EnableRoundsHandler     process.EnableRoundsHandler
+	EnableEpochsHandler     common.EnableEpochsHandler
+	TxVersionChecker        process.TxVersionCheckerHandler
+	GuardianChecker         process.GuardianChecker
+	TxLogsProcessor         process.TransactionLogProcessor
 }
 
 // NewTxProcessor creates a new txProcessor engine
@@ -105,6 +107,9 @@ func NewTxProcessor(args ArgsNewTxProcessor) (*txProcessor, error) {
 	}
 	if check.IfNil(args.BadTxForwarder) {
 		return nil, process.ErrNilBadTxHandler
+	}
+	if check.IfNil(args.UnExecutableTxForwarder) {
+		return nil, process.ErrNilUnExecutableTxForwarder
 	}
 	if check.IfNil(args.ArgsParser) {
 		return nil, process.ErrNilArgumentParser
@@ -158,15 +163,16 @@ func NewTxProcessor(args ArgsNewTxProcessor) (*txProcessor, error) {
 	}
 
 	txProc := &txProcessor{
-		baseTxProcessor:     baseTxProcess,
-		txFeeHandler:        args.TxFeeHandler,
-		receiptForwarder:    args.ReceiptForwarder,
-		badTxForwarder:      args.BadTxForwarder,
-		argsParser:          args.ArgsParser,
-		scrForwarder:        args.ScrForwarder,
-		signMarshalizer:     args.SignMarshalizer,
-		enableEpochsHandler: args.EnableEpochsHandler,
-		txLogsProcessor:     args.TxLogsProcessor,
+		baseTxProcessor:         baseTxProcess,
+		txFeeHandler:            args.TxFeeHandler,
+		receiptForwarder:        args.ReceiptForwarder,
+		badTxForwarder:          args.BadTxForwarder,
+		unExecutableTxForwarder: args.UnExecutableTxForwarder,
+		argsParser:              args.ArgsParser,
+		scrForwarder:            args.ScrForwarder,
+		signMarshalizer:         args.SignMarshalizer,
+		enableEpochsHandler:     args.EnableEpochsHandler,
+		txLogsProcessor:         args.TxLogsProcessor,
 	}
 
 	return txProc, nil
@@ -861,7 +867,7 @@ func (txProc *txProcessor) removeValueAndConsumedFeeFromUser(
 }
 
 func (txProc *txProcessor) addNonExecutableLog(executionErr error, originalTxHash []byte, originalTx data.TransactionHandler) error {
-	if !isNonExecutableError(executionErr) {
+	if !process.IsNotExecutableTransactionError(executionErr) {
 		return nil
 	}
 
@@ -871,7 +877,6 @@ func (txProc *txProcessor) addNonExecutableLog(executionErr error, originalTxHas
 	}
 
 	return txProc.txLogsProcessor.SaveLog(originalTxHash, originalTx, []*vmcommon.LogEntry{logEntry})
-
 }
 
 func (txProc *txProcessor) processMoveBalanceCostRelayedUserTx(
@@ -1139,17 +1144,11 @@ func (txProc *txProcessor) shouldIncreaseNonce(executionErr error) bool {
 		return true
 	}
 
-	if isNonExecutableError(executionErr) {
+	if process.IsNotExecutableTransactionError(executionErr) {
 		return false
 	}
 
 	return true
-}
-
-func isNonExecutableError(executionErr error) bool {
-	return errors.Is(executionErr, process.ErrLowerNonceInTransaction) ||
-		errors.Is(executionErr, process.ErrHigherNonceInTransaction) ||
-		errors.Is(executionErr, process.ErrTransactionNotExecutable)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

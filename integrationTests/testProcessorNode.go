@@ -31,12 +31,13 @@ import (
 	ed25519SingleSig "github.com/multiversx/mx-chain-crypto-go/signing/ed25519/singlesig"
 	"github.com/multiversx/mx-chain-crypto-go/signing/mcl"
 	mclsig "github.com/multiversx/mx-chain-crypto-go/signing/mcl/singlesig"
-	"github.com/multiversx/mx-chain-go/process/asyncExecution/executionTrack"
-	"github.com/multiversx/mx-chain-go/process/estimator"
-	"github.com/multiversx/mx-chain-go/process/missingData"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 	"github.com/multiversx/mx-chain-vm-common-go/parsers"
 	wasmConfig "github.com/multiversx/mx-chain-vm-go/config"
+
+	"github.com/multiversx/mx-chain-go/process/asyncExecution/executionTrack"
+	"github.com/multiversx/mx-chain-go/process/estimator"
+	"github.com/multiversx/mx-chain-go/process/missingData"
 
 	"github.com/multiversx/mx-chain-go/txcache"
 
@@ -1748,6 +1749,7 @@ func (tpn *TestProcessorNode) initInnerProcessors(gasMap map[string]map[string]u
 	txTypeHandler, _ := coordinator.NewTxTypeHandler(argsTxTypeHandler)
 	tpn.GasHandler, _ = preprocess.NewGasComputation(tpn.EconomicsData, txTypeHandler, tpn.EnableEpochsHandler)
 	badBlocksHandler, _ := tpn.InterimProcContainer.Get(dataBlock.InvalidBlock)
+	unExecutableBlocksHandler, _ := tpn.InterimProcContainer.Get(dataBlock.UnExecutableBlock)
 	guardianChecker := &guardianMocks.GuardedAccountHandlerStub{}
 
 	argsNewScProcessor := scrCommon.ArgsNewSmartContractProcessor{
@@ -1778,25 +1780,26 @@ func (tpn *TestProcessorNode) initInnerProcessors(gasMap map[string]map[string]u
 
 	receiptsHandler, _ := tpn.InterimProcContainer.Get(dataBlock.ReceiptBlock)
 	argsNewTxProcessor := transaction.ArgsNewTxProcessor{
-		Accounts:            tpn.AccntState,
-		Hasher:              TestHasher,
-		PubkeyConv:          TestAddressPubkeyConverter,
-		Marshalizer:         TestMarshalizer,
-		SignMarshalizer:     TestTxSignMarshalizer,
-		ShardCoordinator:    tpn.ShardCoordinator,
-		ScProcessor:         tpn.ScProcessor,
-		TxFeeHandler:        tpn.FeeAccumulator,
-		TxTypeHandler:       txTypeHandler,
-		EconomicsFee:        tpn.EconomicsData,
-		ReceiptForwarder:    receiptsHandler,
-		BadTxForwarder:      badBlocksHandler,
-		ArgsParser:          tpn.ArgsParser,
-		ScrForwarder:        tpn.ScrForwarder,
-		EnableRoundsHandler: tpn.EnableRoundsHandler,
-		EnableEpochsHandler: tpn.EnableEpochsHandler,
-		GuardianChecker:     guardianChecker,
-		TxVersionChecker:    &testscommon.TxVersionCheckerStub{},
-		TxLogsProcessor:     tpn.TransactionLogProcessor,
+		Accounts:                tpn.AccntState,
+		Hasher:                  TestHasher,
+		PubkeyConv:              TestAddressPubkeyConverter,
+		Marshalizer:             TestMarshalizer,
+		SignMarshalizer:         TestTxSignMarshalizer,
+		ShardCoordinator:        tpn.ShardCoordinator,
+		ScProcessor:             tpn.ScProcessor,
+		TxFeeHandler:            tpn.FeeAccumulator,
+		TxTypeHandler:           txTypeHandler,
+		EconomicsFee:            tpn.EconomicsData,
+		ReceiptForwarder:        receiptsHandler,
+		BadTxForwarder:          badBlocksHandler,
+		UnExecutableTxForwarder: unExecutableBlocksHandler,
+		ArgsParser:              tpn.ArgsParser,
+		ScrForwarder:            tpn.ScrForwarder,
+		EnableRoundsHandler:     tpn.EnableRoundsHandler,
+		EnableEpochsHandler:     tpn.EnableEpochsHandler,
+		GuardianChecker:         guardianChecker,
+		TxVersionChecker:        &testscommon.TxVersionCheckerStub{},
+		TxLogsProcessor:         tpn.TransactionLogProcessor,
 	}
 	tpn.TxProcessor, _ = transaction.NewTxProcessor(argsNewTxProcessor)
 	scheduledSCRsStorer, _ := tpn.Storage.GetStorer(dataRetriever.ScheduledSCRsUnit)

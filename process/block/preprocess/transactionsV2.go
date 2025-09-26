@@ -373,7 +373,7 @@ func (txs *transactions) verifyTransaction(
 	mbInfo.schedulingInfo.totalTimeUsedForScheduledVerify += elapsedTime
 
 	if err != nil {
-		isTxTargetedForDeletion := errors.Is(err, process.ErrLowerNonceInTransaction) || errors.Is(err, process.ErrInsufficientFee) || errors.Is(err, process.ErrTransactionNotExecutable)
+		isTxTargetedForDeletion := process.IsNotExecutableTransactionError(err)
 		if isTxTargetedForDeletion {
 			strCache := process.ShardCacherIdentifier(senderShardID, receiverShardID)
 			txs.txPool.RemoveData(txHash, strCache)

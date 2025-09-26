@@ -23,6 +23,10 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-core-go/hashing/blake2b"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
+	"github.com/multiversx/mx-chain-vm-common-go/parsers"
+	"github.com/stretchr/testify/require"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/common/enablers"
 	"github.com/multiversx/mx-chain-go/config"
@@ -55,9 +59,6 @@ import (
 	storageStubs "github.com/multiversx/mx-chain-go/testscommon/storage"
 	"github.com/multiversx/mx-chain-go/txcache"
 	"github.com/multiversx/mx-chain-go/vm/systemSmartContracts/defaults"
-	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
-	"github.com/multiversx/mx-chain-vm-common-go/parsers"
-	"github.com/stretchr/testify/require"
 )
 
 // VMTypeHex -
@@ -408,25 +409,26 @@ func (context *TestContext) initTxProcessorWithOneSCExecutorWithVMs() {
 	require.Nil(context.T, err)
 
 	argsNewTxProcessor := processTransaction.ArgsNewTxProcessor{
-		Accounts:            context.Accounts,
-		Hasher:              hasher,
-		PubkeyConv:          pkConverter,
-		Marshalizer:         marshalizer,
-		SignMarshalizer:     marshalizer,
-		ShardCoordinator:    oneShardCoordinator,
-		ScProcessor:         context.ScProcessor,
-		TxFeeHandler:        context.UnsignexTxHandler,
-		TxTypeHandler:       txTypeHandler,
-		EconomicsFee:        context.EconomicsFee,
-		ReceiptForwarder:    &mock.IntermediateTransactionHandlerMock{},
-		BadTxForwarder:      &mock.IntermediateTransactionHandlerMock{},
-		ArgsParser:          smartContract.NewArgumentParser(),
-		ScrForwarder:        &mock.IntermediateTransactionHandlerMock{},
-		EnableRoundsHandler: context.EnableRoundsHandler,
-		EnableEpochsHandler: context.EnableEpochsHandler,
-		TxVersionChecker:    &testscommon.TxVersionCheckerStub{},
-		GuardianChecker:     &guardianMocks.GuardedAccountHandlerStub{},
-		TxLogsProcessor:     context.TxLogsProcessor,
+		Accounts:                context.Accounts,
+		Hasher:                  hasher,
+		PubkeyConv:              pkConverter,
+		Marshalizer:             marshalizer,
+		SignMarshalizer:         marshalizer,
+		ShardCoordinator:        oneShardCoordinator,
+		ScProcessor:             context.ScProcessor,
+		TxFeeHandler:            context.UnsignexTxHandler,
+		TxTypeHandler:           txTypeHandler,
+		EconomicsFee:            context.EconomicsFee,
+		ReceiptForwarder:        &mock.IntermediateTransactionHandlerMock{},
+		BadTxForwarder:          &mock.IntermediateTransactionHandlerMock{},
+		UnExecutableTxForwarder: &mock.IntermediateTransactionHandlerMock{},
+		ArgsParser:              smartContract.NewArgumentParser(),
+		ScrForwarder:            &mock.IntermediateTransactionHandlerMock{},
+		EnableRoundsHandler:     context.EnableRoundsHandler,
+		EnableEpochsHandler:     context.EnableEpochsHandler,
+		TxVersionChecker:        &testscommon.TxVersionCheckerStub{},
+		GuardianChecker:         &guardianMocks.GuardedAccountHandlerStub{},
+		TxLogsProcessor:         context.TxLogsProcessor,
 	}
 
 	context.TxProcessor, err = processTransaction.NewTxProcessor(argsNewTxProcessor)
