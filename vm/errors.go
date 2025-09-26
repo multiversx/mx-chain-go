@@ -250,6 +250,9 @@ var ErrProposalNotFound = errors.New("proposal was not found in storage")
 // ErrNilEnableEpochsHandler signals that a nil enable epochs handler has been provided
 var ErrNilEnableEpochsHandler = errors.New("nil enable epochs handler")
 
+// ErrNilEnableRoundsHandler signals that a nil enable rouds handler has been provided
+var ErrNilEnableRoundsHandler = errors.New("nil enable rouds handler")
+
 // ErrNotEnoughStakeToVote signals that the stake/delegation is not enough to vote
 var ErrNotEnoughStakeToVote = errors.New("not enough stake/delegate to vote")
 
