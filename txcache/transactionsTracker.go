@@ -91,7 +91,6 @@ func (txTracker *transactionsTracker) updateRangeWithBreadcrumb(rangeOfSender *a
 
 // isTransactionTracked checks if a transaction is still in the tracked blocks of the SelectionTracker
 // TODO the method ignores (at the moment) some possible forks. This should be fixed
-// TODO Analyze the next scenario: a sender sends more transactions with same nonce, but only one of them is tracked, the others aren't.
 func (txTracker *transactionsTracker) isTransactionTracked(transaction *WrappedTransaction) bool {
 	if transaction == nil || transaction.Tx == nil {
 		return false
