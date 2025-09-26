@@ -131,7 +131,7 @@ func (imh *InterceptedMetaHeader) CheckValidity() error {
 
 // ShouldAllowDuplicates returns if this type of intercepted data should allow duplicates
 func (imh *InterceptedMetaHeader) ShouldAllowDuplicates() bool {
-	return true
+	return false
 }
 
 func (imh *InterceptedMetaHeader) isMetaHeaderEpochOutOfRange() bool {

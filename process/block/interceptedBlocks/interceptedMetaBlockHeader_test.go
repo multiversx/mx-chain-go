@@ -212,7 +212,7 @@ func TestInterceptedMetaHeader_Getters(t *testing.T) {
 
 	assert.Equal(t, hash, inHdr.Hash())
 	assert.True(t, inHdr.IsForCurrentShard())
-	require.True(t, inHdr.ShouldAllowDuplicates())
+	require.False(t, inHdr.ShouldAllowDuplicates())
 }
 
 func TestInterceptedMetaHeader_CheckValidityLeaderSignatureNotCorrectShouldErr(t *testing.T) {

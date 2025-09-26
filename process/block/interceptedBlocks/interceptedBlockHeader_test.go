@@ -364,7 +364,7 @@ func TestInterceptedHeader_Getters(t *testing.T) {
 	hash := testHasher.Compute(string(arg.HdrBuff))
 
 	assert.Equal(t, hash, inHdr.Hash())
-	require.True(t, inHdr.ShouldAllowDuplicates())
+	require.False(t, inHdr.ShouldAllowDuplicates())
 }
 
 // ------- IsInterfaceNil
