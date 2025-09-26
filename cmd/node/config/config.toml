@@ -451,6 +451,7 @@
 
 [TxCacheBounds]
     MaxNumBytesPerSenderUpperBound = 33_554_432             #32MB
+    MaxTrackedBlocks = 100
 
 [TxCacheSelection]
     SelectionMaxNumTxs = 30000

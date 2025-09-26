@@ -156,6 +156,7 @@ func GetGeneralConfig() config.Config {
 		},
 		TxCacheBounds: config.TxCacheBoundsConfig{
 			MaxNumBytesPerSenderUpperBound: 33_554_432,
+			MaxTrackedBlocks:               100,
 		},
 		TxCacheSelection: config.TxCacheSelectionConfig{
 			SelectionGasBandwidthIncreasePercent:          400,

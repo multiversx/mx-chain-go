@@ -207,6 +207,7 @@ func testStateOnNodes(t *testing.T, nodes []*integrationTests.TestProcessorNode,
 
 	// Not removed from mempool (see MX-16200).
 	_, ok = proposer.DataPool.Transactions().SearchFirstData(hashes[txDeletedIdx])
+
 	assert.True(t, ok)
 }
 

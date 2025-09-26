@@ -2,6 +2,7 @@ package process
 
 import (
 	"fmt"
+	"time"
 )
 
 // BlockHeaderState specifies which is the state of the block header received
@@ -111,3 +112,9 @@ const MaxHeadersToWhitelistInAdvance = 300
 // the real gas used, after which the transaction will be considered an attack and all the gas will be consumed and
 // nothing will be refunded to the sender
 const MaxGasFeeHigherFactorAccepted = 10
+
+// TxCacheCleanupMaxNumTxs defines the maximum number of transactions that should be cleaned from the cache in one go.
+const TxCacheCleanupMaxNumTxs = 30_000
+
+// TxCacheCleanupLoopMaximumDuration defines the maximum duration for the loop that cleans transactions from the cache.
+const TxCacheCleanupLoopMaximumDuration = 250 * time.Millisecond

@@ -57,6 +57,7 @@ func NewPoolsHolderMock() *PoolsHolderMock {
 			NumberOfShards: 1,
 			TxCacheBoundsConfig: config.TxCacheBoundsConfig{
 				MaxNumBytesPerSenderUpperBound: 33_554_432,
+				MaxTrackedBlocks:               100,
 			},
 		},
 	)
