@@ -1518,7 +1518,6 @@ func TestStakingSc_ExecuteStakeStakeStakeJailJailUnJailTwice(t *testing.T) {
 	doGetStatus(t, stakingSmartContract, eei, []byte("fourthKey"), "staked")
 
 	stakingSmartContract.unBondPeriod = 100
-	stakingSmartContract.unBondPeriodSupernova = 1000
 	blockChainHook.CurrentNonceCalled = func() uint64 {
 		return 1
 	}
