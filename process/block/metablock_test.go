@@ -58,7 +58,7 @@ func createMockComponentHolders() (
 	*mock.BootstrapComponentsMock,
 	*mock.StatusComponentsMock,
 ) {
-	mdp := initDataPool([]byte("tx_hash"))
+	mdp := initDataPool()
 	gracePeriod, _ := graceperiod.NewEpochChangeGracePeriod([]config.EpochChangeGracePeriodByEpoch{{EnableEpoch: 0, GracePeriodInRounds: 1}})
 	coreComponents := &mock.CoreComponentsMock{
 		IntMarsh:                           &mock.MarshalizerMock{},
@@ -1037,7 +1037,7 @@ func TestMetaProcessor_CommitBlockStorageFailsForHeaderShouldNotReturnError(t *t
 func TestMetaProcessor_CommitBlockNoTxInPoolShouldErr(t *testing.T) {
 	t.Parallel()
 
-	mdp := initDataPool([]byte("tx_hash"))
+	mdp := initDataPool()
 	hdr := createMetaBlockHeader()
 	body := &block.Body{}
 	accounts := &stateMock.AccountsStub{
@@ -1076,7 +1076,7 @@ func TestMetaProcessor_CommitBlockNoTxInPoolShouldErr(t *testing.T) {
 func TestMetaProcessor_CommitBlockOkValsShouldWork(t *testing.T) {
 	t.Parallel()
 
-	mdp := initDataPool([]byte("tx_hash"))
+	mdp := initDataPool()
 	rootHash := []byte("rootHash")
 	hdr := createMetaBlockHeader()
 	hdr.PubKeysBitmap = []byte{0b11111111}
@@ -1187,7 +1187,7 @@ func TestMetaProcessor_ApplyBodyToHeaderShouldWork(t *testing.T) {
 	t.Parallel()
 
 	coreComponents, dataComponents, bootstrapComponents, statusComponents := createMockComponentHolders()
-	dataComponents.DataPool = initDataPool([]byte("tx_hash"))
+	dataComponents.DataPool = initDataPool()
 	dataComponents.Storage = initStore()
 	arguments := createMockMetaArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
 	arguments.AccountsDB[state.UserAccountsState] = &stateMock.AccountsStub{
@@ -1210,7 +1210,7 @@ func TestMetaProcessor_ApplyBodyToHeaderShouldSetEpochStart(t *testing.T) {
 	t.Parallel()
 
 	coreComponents, dataComponents, bootstrapComponents, statusComponents := createMockComponentHolders()
-	dataComponents.DataPool = initDataPool([]byte("tx_hash"))
+	dataComponents.DataPool = initDataPool()
 	dataComponents.Storage = initStore()
 	arguments := createMockMetaArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
 	arguments.AccountsDB[state.UserAccountsState] = &stateMock.AccountsStub{
@@ -1241,7 +1241,7 @@ func TestMetaProcessor_CommitBlockShouldRevertCurrentBlockWhenErr(t *testing.T) 
 	}
 
 	coreComponents, dataComponents, bootstrapComponents, statusComponents := createMockComponentHolders()
-	dataComponents.DataPool = initDataPool([]byte("tx_hash"))
+	dataComponents.DataPool = initDataPool()
 	dataComponents.Storage = initStore()
 	arguments := createMockMetaArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
 	arguments.AccountsDB[state.UserAccountsState] = &stateMock.AccountsStub{
@@ -1257,7 +1257,7 @@ func TestMetaProcessor_CommitBlockShouldRevertCurrentBlockWhenErr(t *testing.T) 
 func TestMetaProcessor_RevertStateRevertPeerStateFailsShouldErr(t *testing.T) {
 	expectedErr := errors.New("err")
 	coreComponents, dataComponents, bootstrapComponents, statusComponents := createMockComponentHolders()
-	dataComponents.DataPool = initDataPool([]byte("tx_hash"))
+	dataComponents.DataPool = initDataPool()
 	dataComponents.Storage = initStore()
 	arguments := createMockMetaArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
 	arguments.AccountsDB[state.UserAccountsState] = &stateMock.AccountsStub{}
@@ -1285,7 +1285,7 @@ func TestMetaProcessor_RevertStateShouldWork(t *testing.T) {
 	revertePeerStateWasCalled := false
 
 	coreComponents, dataComponents, bootstrapComponents, statusComponents := createMockComponentHolders()
-	dataComponents.DataPool = initDataPool([]byte("tx_hash"))
+	dataComponents.DataPool = initDataPool()
 	dataComponents.Storage = initStore()
 	arguments := createMockMetaArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
 
@@ -2542,7 +2542,7 @@ func TestMetaProcessor_CreateMiniBlocksDestMe(t *testing.T) {
 	hdrHash2Bytes := []byte("hdr_hash2")
 	expectedMiniBlock1 := &block.MiniBlock{TxHashes: [][]byte{hash1}}
 	expectedMiniBlock2 := &block.MiniBlock{TxHashes: [][]byte{[]byte("hash2")}}
-	dPool := initDataPool([]byte("tx_hash"))
+	dPool := initDataPool()
 	dPool.TransactionsCalled = func() dataRetriever.ShardedDataCacherNotifier {
 		return testscommon.NewShardedDataStub()
 	}
@@ -2709,7 +2709,7 @@ func TestMetaProcessor_VerifyCrossShardMiniBlocksDstMe(t *testing.T) {
 	hdrHash2Bytes := []byte("hdr_hash2")
 	miniBlock1 := &block.MiniBlock{TxHashes: [][]byte{hash1}}
 	miniBlock2 := &block.MiniBlock{TxHashes: [][]byte{hash2}}
-	dPool := initDataPool([]byte("tx_hash"))
+	dPool := initDataPool()
 	dPool.TransactionsCalled = func() dataRetriever.ShardedDataCacherNotifier {
 		return testscommon.NewShardedDataStub()
 	}
@@ -2830,7 +2830,7 @@ func TestMetaProcessor_CreateBlockCreateHeaderProcessBlock(t *testing.T) {
 		return hash
 	}
 	miniBlock1 := &block.MiniBlock{TxHashes: [][]byte{hash}}
-	dPool := initDataPool([]byte("tx_hash"))
+	dPool := initDataPool()
 	dPool.TransactionsCalled = func() dataRetriever.ShardedDataCacherNotifier {
 		return testscommon.NewShardedDataStub()
 	}
@@ -2929,7 +2929,7 @@ func TestMetaProcessor_RequestShardHeadersIfNeededShouldAddHeaderIntoTrackerPool
 	t.Parallel()
 
 	var addedNonces []uint64
-	poolsHolderStub := initDataPool([]byte(""))
+	poolsHolderStub := initDataPool()
 	poolsHolderStub.HeadersCalled = func() dataRetriever.HeadersPool {
 		return &mock.HeadersCacherStub{
 			GetHeaderByNonceAndShardIdCalled: func(hdrNonce uint64, shardId uint32) ([]data.HeaderHandler, [][]byte, error) {
@@ -2976,7 +2976,7 @@ func TestMetaProcessor_CreateAndProcessBlockCallsProcessAfterFirstEpoch(t *testi
 	coreComponents.TxSignHasherField = hasher
 
 	miniBlock1 := &block.MiniBlock{TxHashes: [][]byte{hash}}
-	dPool := initDataPool([]byte("tx_hash"))
+	dPool := initDataPool()
 	dPool.TransactionsCalled = func() dataRetriever.ShardedDataCacherNotifier {
 		return testscommon.NewShardedDataStub()
 	}

@@ -970,6 +970,12 @@ func (sp *shardProcessor) CommitBlock(
 		return err
 	}
 
+	err = sp.dataPool.Transactions().OnExecutedBlock(headerHandler)
+	if err != nil {
+		log.Debug("dataPool.Transactions().OnExecutedBlock()", "error", err)
+		return err
+	}
+
 	err = sp.commitAll(headerHandler)
 	if err != nil {
 		return err

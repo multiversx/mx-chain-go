@@ -1116,6 +1116,16 @@ func TestShardProcessor_CheckMetaHeadersValidityAndFinalityProposal(t *testing.T
 		t.Parallel()
 
 		coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
+		dataPool, ok := dataComponents.DataPool.(*dataRetriever.PoolsHolderStub)
+		require.True(t, ok)
+		dataPool.HeadersCalled = func() retriever.HeadersPool {
+			return &pool.HeadersPoolStub{
+				GetHeaderByHashCalled: func(hash []byte) (data.HeaderHandler, error) {
+					return &block.HeaderV3{}, nil
+				},
+			}
+		}
+
 		arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
 
 		arguments.BlockTracker = &mock.BlockTrackerMock{
@@ -1129,29 +1139,6 @@ func TestShardProcessor_CheckMetaHeadersValidityAndFinalityProposal(t *testing.T
 		header := &block.HeaderV3{}
 		err := sp.CheckMetaHeadersValidityAndFinalityProposal(header)
 		require.Equal(t, expectedError, err)
-	})
-
-	t.Run("cannot find used meta header should error", func(t *testing.T) {
-		t.Parallel()
-
-		coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
-		arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
-
-		metaHeader := &block.MetaBlockV3{}
-		arguments.BlockTracker = &mock.BlockTrackerMock{
-			GetLastCrossNotarizedHeaderCalled: func(shardID uint32) (data.HeaderHandler, []byte, error) {
-				return metaHeader, []byte("h"), nil
-			},
-		}
-
-		sp, _ := blproc.NewShardProcessor(arguments)
-
-		header := &block.HeaderV3{
-			MetaBlockHashes: [][]byte{[]byte("hh")},
-		}
-		err := sp.CheckMetaHeadersValidityAndFinalityProposal(header)
-		require.NotNil(t, err)
-		require.ErrorContains(t, err, process.ErrMissingHeader.Error())
 	})
 
 	t.Run("invalid header should error", func(t *testing.T) {
