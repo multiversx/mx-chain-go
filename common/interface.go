@@ -2,6 +2,7 @@ package common
 
 import (
 	"context"
+	"math/big"
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
@@ -280,6 +281,29 @@ type RootHashHolder interface {
 	IsInterfaceNil() bool
 }
 
+// TxSelectionOptions holds transactions selection options (parameters)
+type TxSelectionOptions interface {
+	GetGasRequested() uint64
+	GetMaxNumTxs() int
+	GetLoopMaximumDurationMs() int
+	GetLoopDurationCheckInterval() int
+	IsInterfaceNil() bool
+}
+
+// TxSelectionOptionsAPI holds transactions selection options (parameters) for the API call
+type TxSelectionOptionsAPI interface {
+	TxSelectionOptions
+	GetRequestedFields() string
+}
+
+// BlockchainInfo holds the parameters from the blockchain used for SelectTransactions
+type BlockchainInfo interface {
+	GetLatestExecutedBlockHash() []byte
+	GetLatestCommittedBlockHash() []byte
+	GetCurrentNonce() uint64
+	IsInterfaceNil() bool
+}
+
 // GasScheduleNotifierAPI defines the behavior of the gas schedule notifier components that is used for api
 type GasScheduleNotifierAPI interface {
 	core.GasScheduleNotifier
@@ -423,5 +447,17 @@ type DfsIterator interface {
 // it will continue to iterate from the checkpoint.
 type TrieLeavesRetriever interface {
 	GetLeaves(numLeaves int, iteratorState [][]byte, leavesParser TrieLeafParser, ctx context.Context) (map[string]string, [][]byte, error)
+	IsInterfaceNil() bool
+}
+
+// AccountNonceAndBalanceProvider provides the nonce and balance of accounts
+type AccountNonceAndBalanceProvider interface {
+	GetAccountNonceAndBalance(accountKey []byte) (uint64, *big.Int, bool, error)
+	IsInterfaceNil() bool
+}
+
+// AccountNonceProvider provides the nonce of accounts
+type AccountNonceProvider interface {
+	GetAccountNonce(accountKey []byte) (uint64, bool, error)
 	IsInterfaceNil() bool
 }

@@ -104,6 +104,9 @@ var ErrNilMiniBlocks = errors.New("nil mini blocks")
 // ErrNilMiniBlock signals that an operation has been attempted with a nil miniblock
 var ErrNilMiniBlock = errors.New("nil mini block")
 
+// ErrNilMiniBlockHeader signals that an operation has been attempted with a nil mini block header
+var ErrNilMiniBlockHeader = errors.New("nil mini block header")
+
 // ErrNilRootHash signals that an operation has been attempted with a nil root hash
 var ErrNilRootHash = errors.New("root hash is nil")
 
@@ -530,6 +533,12 @@ var ErrMaxGasLimitPerBlockInSelfShardIsReached = errors.New("max gas limit per b
 
 // ErrMaxGasLimitUsedForDestMeTxsIsReached signals that max gas limit used for dest me txs has been reached
 var ErrMaxGasLimitUsedForDestMeTxsIsReached = errors.New("max gas limit used for dest me txs is reached")
+
+// ErrMaxGasLimitPerTransactionIsReached signals that max gas limit per transactions has been reached
+var ErrMaxGasLimitPerTransactionIsReached = errors.New("max gas limit per transaction is reached")
+
+// ErrMaxGasLimitPerMiniBlockIsReached signals that max gas limit per mini block has been reached
+var ErrMaxGasLimitPerMiniBlockIsReached = errors.New("max gas limit per mini block is reached")
 
 // ErrInvalidMinimumGasPrice signals that an invalid gas price has been read from config file
 var ErrInvalidMinimumGasPrice = errors.New("invalid minimum gas price")
@@ -1185,6 +1194,9 @@ var ErrMaxCallsReached = errors.New("max calls reached")
 // ErrNilTxExecutionOrderHandler signals that a nil transaction execution order handler was provided
 var ErrNilTxExecutionOrderHandler = errors.New("nil transaction execution order handler")
 
+// ErrNilBlockDataRequester signals that a nil processor requester was provided
+var ErrNilBlockDataRequester = errors.New("nil block data requester")
+
 // ErrWrongTransactionType signals that transaction is invalid
 var ErrWrongTransactionType = errors.New("invalid transaction type")
 
@@ -1284,8 +1296,8 @@ var ErrInvalidInterceptedData = errors.New("invalid intercepted data")
 // ErrMissingHeaderProof signals that the proof for the header is missing
 var ErrMissingHeaderProof = errors.New("missing header proof")
 
-// ErrInvalidHeaderProof signals that an invalid equivalent proof has been provided
-var ErrInvalidHeaderProof = errors.New("invalid equivalent proof")
+// ErrInvalidHeader signals that an invalid header has been provided
+var ErrInvalidHeader = errors.New("invalid header")
 
 // ErrUnexpectedHeaderProof signals that a header proof has been provided unexpectedly
 var ErrUnexpectedHeaderProof = errors.New("unexpected header proof")
@@ -1298,3 +1310,78 @@ var ErrInvalidRatingsConfig = errors.New("invalid ratings config")
 
 // ErrNilKeyRWMutexHandler signals that a nil KeyRWMutexHandler has been provided
 var ErrNilKeyRWMutexHandler = errors.New("nil key rw mutex handler")
+
+// ErrBadSelectionGasBandwidthIncreasePercent signals a bad txcache config
+var ErrBadSelectionGasBandwidthIncreasePercent = errors.New("bad selection gas bandwidth increase percent")
+
+// ErrBadSelectionGasBandwidthIncreaseScheduledPercent signals a bad txcache config
+var ErrBadSelectionGasBandwidthIncreaseScheduledPercent = errors.New("bad selection gas bandwidth increase scheduled percent")
+
+// ErrBadTxCacheSelectionGasRequested signals a bad txcache config
+var ErrBadTxCacheSelectionGasRequested = errors.New("bad tx cache selection gas requested")
+
+// ErrBadTxCacheSelectionMaxNumTxs signals a bad txcache config
+var ErrBadTxCacheSelectionMaxNumTxs = errors.New("bad tx cache selection max num txs")
+
+// ErrBadTxCacheSelectionLoopMaximumDuration signals a bad txcache config
+var ErrBadTxCacheSelectionLoopMaximumDuration = errors.New("bad tx cache selection loop maximum duration")
+
+// ErrBadTxCacheSelectionLoopDurationCheckInterval signals a bad txcache config
+var ErrBadTxCacheSelectionLoopDurationCheckInterval = errors.New("bad selection loop duration check interval")
+
+// ErrNilTxsForBlockHandler signals that a nil transactions for block handler has been provided
+var ErrNilTxsForBlockHandler = errors.New("nil txs for block handler")
+
+// ErrNilHeadersForBlock signals that a nil headers for block has been provided
+var ErrNilHeadersForBlock = errors.New("nil headers for block")
+
+// ErrNilLastExecutionResultHandler signals that a nil last execution result handler has been provided
+var ErrNilLastExecutionResultHandler = errors.New("nil last execution result handler")
+
+// ErrNilExecutionResultHandler signals that a nil execution result handler has been provided
+var ErrNilExecutionResultHandler = errors.New("nil execution result handler")
+
+// ErrExecutionResultDoesNotMatch signals that the execution result does not match the expected one
+var ErrExecutionResultDoesNotMatch = errors.New("execution result does not match")
+
+// ErrExecutionResultsNumberMismatch signals that the number of execution results does not match the expected one
+var ErrExecutionResultsNumberMismatch = errors.New("execution results number mismatch")
+
+// ErrNilExecutionResultsTracker signals that a nil execution results tracker has been provided
+var ErrNilExecutionResultsTracker = errors.New("nil execution results tracker")
+
+// ErrInvalidHash signals that an invalid hash has been provided
+var ErrInvalidHash = errors.New("invalid hash")
+
+// ErrExecutionResultsNonConsecutive signals that execution results are not consecutive
+var ErrExecutionResultsNonConsecutive = errors.New("execution results non consecutive")
+
+// ErrInvalidMaxNonceDifference signals that an invalid max nonce difference has been provided
+var ErrInvalidMaxNonceDifference = errors.New("invalid max nonce difference")
+
+// ErrNilBaseExecutionResult signals that a nil base execution result has been provided
+var ErrNilBaseExecutionResult = errors.New("nil base execution result")
+
+// ErrNilGasComputation signals that a nil gas computation has been provided
+var ErrNilGasComputation = errors.New("nil gas computation")
+
+// ErrNilExecutionResultsInclusionEstimator signals that a nil execution results inclusion estimator has been provided
+var ErrNilExecutionResultsInclusionEstimator = errors.New("nil execution results inclusion estimator")
+
+// ErrNilMiniBlocksSelectionSession signals that a nil miniblocks selection session has been provided
+var ErrNilMiniBlocksSelectionSession = errors.New("nil miniblocks selection session")
+
+// ErrNilExecutionResultsVerifier signals that a nil execution results verifier has been provided
+var ErrNilExecutionResultsVerifier = errors.New("nil execution results verifier")
+
+// ErrNilMissingDataResolver signals that a nil missing data resolver has been provided
+var ErrNilMissingDataResolver = errors.New("nil missing data resolver")
+
+// ErrWrongMiniBlockConstructionState signals that the mini block construction state is not as expected
+var ErrWrongMiniBlockConstructionState = errors.New("wrong mini block construction state")
+
+// ErrWrongMiniBlockProcessingType signals that the mini block processing type is not as expected
+var ErrWrongMiniBlockProcessingType = errors.New("wrong mini block processing type")
+
+// ErrInvalidNumberOfExecutionResultsInHeader signals that the number of execution results in header is invalid
+var ErrInvalidNumberOfExecutionResultsInHeader = errors.New("invalid number of execution results in header")

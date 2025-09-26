@@ -39,7 +39,6 @@ import (
 	"github.com/multiversx/mx-chain-go/epochStart/shardchain"
 	errorsMx "github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/factory"
-	mainFactory "github.com/multiversx/mx-chain-go/factory"
 	"github.com/multiversx/mx-chain-go/factory/disabled"
 	"github.com/multiversx/mx-chain-go/fallback"
 	"github.com/multiversx/mx-chain-go/genesis"
@@ -131,7 +130,7 @@ type processComponents struct {
 	processedMiniBlocksTracker       process.ProcessedMiniBlocksTracker
 	esdtDataStorageForApi            vmcommon.ESDTNFTStorageHandler
 	accountsParser                   genesis.AccountsParser
-	receiptsRepository               mainFactory.ReceiptsRepository
+	receiptsRepository               factory.ReceiptsRepository
 	sentSignaturesTracker            process.SentSignaturesTracker
 	epochSystemSCProcessor           process.EpochStartSystemSCProcessor
 	interceptedDataVerifierFactory   process.InterceptedDataVerifierFactory
@@ -907,6 +906,7 @@ func (pcf *processComponentsFactory) generateGenesisHeadersAndApplyInitialBalanc
 		Data:                    pcf.data,
 		Core:                    pcf.coreData,
 		Accounts:                pcf.state.AccountsAdapter(),
+		AccountsProposal:        pcf.state.AccountsAdapterProposal(),
 		ValidatorAccounts:       pcf.state.PeerAccounts(),
 		InitialNodesSetup:       pcf.coreData.GenesisNodesSetup(),
 		Economics:               pcf.coreData.EconomicsData(),
@@ -921,6 +921,7 @@ func (pcf *processComponentsFactory) generateGenesisHeadersAndApplyInitialBalanc
 		SystemSCConfig:          *pcf.systemSCConfig,
 		RoundConfig:             pcf.roundConfig,
 		EpochConfig:             pcf.epochConfig,
+		FeeSettings:             pcf.economicsConfig.FeeSettings,
 		HeaderVersionConfigs:    pcf.config.Versions,
 		BlockSignKeyGen:         pcf.crypto.BlockSignKeyGen(),
 		HistoryRepository:       pcf.historyRepo,
@@ -930,6 +931,7 @@ func (pcf *processComponentsFactory) generateGenesisHeadersAndApplyInitialBalanc
 		GenesisEpoch:            pcf.config.EpochStartConfig.GenesisEpoch,
 		GenesisNonce:            pcf.genesisNonce,
 		GenesisRound:            pcf.genesisRound,
+		TxCacheSelectionConfig:  pcf.config.TxCacheSelection,
 	}
 
 	gbc, err := processGenesis.NewGenesisBlockCreator(arg)

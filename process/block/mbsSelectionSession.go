@@ -38,7 +38,8 @@ type miniBlocksSelectionSession struct {
 
 const defaultCapacity = 10
 
-func newMiniBlocksSelectionSession(shardID uint32, marshaller marshal.Marshalizer, hasher hashing.Hasher) (*miniBlocksSelectionSession, error) {
+// NewMiniBlocksSelectionSession creates a new instance of miniBlocksSelectionSession
+func NewMiniBlocksSelectionSession(shardID uint32, marshaller marshal.Marshalizer, hasher hashing.Hasher) (*miniBlocksSelectionSession, error) {
 	if check.IfNil(marshaller) {
 		return nil, process.ErrNilMarshalizer
 	}
@@ -228,7 +229,6 @@ func (s *miniBlocksSelectionSession) AddMiniBlocksAndHashes(miniBlocksAndHashes 
 	s.miniBlockHeaderHandlers = append(s.miniBlockHeaderHandlers, miniBlockHeaderHandlers...)
 	s.miniBlockHashes = append(s.miniBlockHashes, miniBlockHashes...)
 	s.numTxsAdded += uint32(numTxsAdded)
-	// TODO: take care of the gas management
 
 	return nil
 }
@@ -238,8 +238,6 @@ func (s *miniBlocksSelectionSession) CreateAndAddMiniBlockFromTransactions(txHas
 	if len(txHashes) == 0 {
 		return nil
 	}
-
-	// TODO: add estimated gas management
 
 	// no need to create multiple miniblocks from the shard to itself or to other shards before processing
 	// the transactions, so create a single miniBlock

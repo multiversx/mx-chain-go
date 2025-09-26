@@ -55,6 +55,10 @@ func NewPoolsHolderMock() *PoolsHolderMock {
 			TxGasHandler:   txcachemocks.NewTxGasHandlerMock(),
 			Marshalizer:    &marshal.GogoProtoMarshalizer{},
 			NumberOfShards: 1,
+			TxCacheBoundsConfig: config.TxCacheBoundsConfig{
+				MaxNumBytesPerSenderUpperBound: 33_554_432,
+				MaxTrackedBlocks:               100,
+			},
 		},
 	)
 	panicIfError("NewPoolsHolderMock", err)
@@ -203,6 +207,11 @@ func (holder *PoolsHolderMock) ValidatorsInfo() dataRetriever.ShardedDataCacherN
 // Proofs -
 func (holder *PoolsHolderMock) Proofs() dataRetriever.ProofsPool {
 	return holder.proofs
+}
+
+// SetProofsPool -
+func (holder *PoolsHolderMock) SetProofsPool(proofsPool dataRetriever.ProofsPool) {
+	holder.proofs = proofsPool
 }
 
 // Close -

@@ -10,6 +10,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/smartContractResult"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/facade"
@@ -142,6 +143,25 @@ func (ate *apiTransactionEvaluator) computeMoveBalanceCost(tx *transaction.Trans
 	}
 }
 
+// SimulateSCRExecutionCost will simulate a smart contract result execution and will return the results
+func (ate *apiTransactionEvaluator) SimulateSCRExecutionCost(scr *smartContractResult.SmartContractResult) (*transaction.CostResponse, error) {
+	ate.mutExecution.Lock()
+	defer func() {
+		ate.accounts.CleanCache()
+		ate.mutExecution.Unlock()
+	}()
+
+	costResponse := &transaction.CostResponse{}
+	currentHeader := ate.getCurrentBlockHeader()
+	res, err := ate.txSimulator.ProcessSCR(scr, currentHeader)
+	if err != nil {
+		costResponse.ReturnMessage = err.Error()
+		return costResponse, nil
+	}
+
+	return ate.prepareCostResponse(res, scr)
+}
+
 func (ate *apiTransactionEvaluator) simulateTransactionCost(tx *transaction.Transaction, txType process.TransactionType) (*transaction.CostResponse, error) {
 	err := ate.addMissingFieldsIfNeeded(tx)
 	if err != nil {
@@ -163,6 +183,11 @@ func (ate *apiTransactionEvaluator) simulateTransactionCost(tx *transaction.Tran
 
 	}
 
+	return ate.prepareCostResponse(res, tx)
+}
+
+func (ate *apiTransactionEvaluator) prepareCostResponse(res *txSimData.SimulationResultsWithVMOutput, txHandler data.TransactionHandler) (*transaction.CostResponse, error) {
+	costResponse := &transaction.CostResponse{}
 	returnMessageFromVMOutput := ""
 	if res.VMOutput != nil {
 		returnMessageFromVMOutput = res.VMOutput.ReturnMessage
@@ -181,7 +206,7 @@ func (ate *apiTransactionEvaluator) simulateTransactionCost(tx *transaction.Tran
 	costResponse.SmartContractResults = res.ScResults
 	costResponse.Logs = res.Logs
 	if res.VMOutput.ReturnCode == vmcommon.Ok {
-		costResponse.GasUnits = ate.computeGasUnitsBasedOnVMOutput(tx, res.VMOutput)
+		costResponse.GasUnits = ate.computeGasUnitsBasedOnVMOutput(txHandler, res.VMOutput) + 1
 		return costResponse, nil
 	}
 
@@ -189,10 +214,10 @@ func (ate *apiTransactionEvaluator) simulateTransactionCost(tx *transaction.Tran
 	return costResponse, nil
 }
 
-func (ate *apiTransactionEvaluator) computeGasUnitsBasedOnVMOutput(tx *transaction.Transaction, vmOutput *vmcommon.VMOutput) uint64 {
+func (ate *apiTransactionEvaluator) computeGasUnitsBasedOnVMOutput(tx data.TransactionHandler, vmOutput *vmcommon.VMOutput) uint64 {
 	isTooMuchGasProvided := strings.Contains(vmOutput.ReturnMessage, smartContract.TooMuchGasProvidedMessage)
 	if !isTooMuchGasProvided {
-		return tx.GasLimit - vmOutput.GasRemaining
+		return tx.GetGasLimit() - vmOutput.GasRemaining
 	}
 
 	isTooMuchGasV2MsgFlagSet := ate.enableEpochsHandler.IsFlagEnabled(common.CleanUpInformativeSCRsFlag)
@@ -201,7 +226,7 @@ func (ate *apiTransactionEvaluator) computeGasUnitsBasedOnVMOutput(tx *transacti
 		return ate.feeHandler.ComputeGasLimit(tx) + gasNeededForProcessing
 	}
 
-	return tx.GasLimit - extractGasRemainedFromMessage(vmOutput.ReturnMessage, gasRemainedSplitString)
+	return tx.GetGasLimit() - extractGasRemainedFromMessage(vmOutput.ReturnMessage, gasRemainedSplitString)
 }
 
 func extractGasRemainedFromMessage(message string, splitString string) uint64 {

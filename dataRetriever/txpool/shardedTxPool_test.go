@@ -2,6 +2,7 @@ package txpool
 
 import (
 	"fmt"
+	"math"
 	"sync"
 	"sync/atomic"
 	"testing"
@@ -9,13 +10,20 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/multiversx/mx-chain-go/common/holders"
+	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/storage/storageunit"
 	"github.com/multiversx/mx-chain-go/testscommon/txcachemocks"
+	"github.com/multiversx/mx-chain-go/txcache"
 	"github.com/stretchr/testify/require"
 )
+
+const maxNumBytesPerSenderUpperBoundTest = 33_554_432 // 32 MB
+const maxTrackedBlocks = 100
 
 func Test_NewShardedTxPool(t *testing.T) {
 	pool, err := newTxPoolToTest()
@@ -37,6 +45,10 @@ func Test_NewShardedTxPool_WhenBadConfig(t *testing.T) {
 		TxGasHandler:   txcachemocks.NewTxGasHandlerMock(),
 		Marshalizer:    &marshal.GogoProtoMarshalizer{},
 		NumberOfShards: 1,
+		TxCacheBoundsConfig: config.TxCacheBoundsConfig{
+			MaxNumBytesPerSenderUpperBound: maxNumBytesPerSenderUpperBoundTest,
+			MaxTrackedBlocks:               maxTrackedBlocks,
+		},
 	}
 
 	args := goodArgs
@@ -94,15 +106,33 @@ func Test_NewShardedTxPool_WhenBadConfig(t *testing.T) {
 	require.Nil(t, pool)
 	require.NotNil(t, err)
 	require.Errorf(t, err, dataRetriever.ErrCacheConfigInvalidSharding.Error())
+
+	args = goodArgs
+	args.TxCacheBoundsConfig.MaxNumBytesPerSenderUpperBound = 0
+	pool, err = NewShardedTxPool(args)
+	require.Nil(t, pool)
+	require.NotNil(t, err)
+	require.Errorf(t, err, dataRetriever.ErrBadMaxNumBytesPerSenderUpperBound.Error())
+
+	args = goodArgs
+	args.TxCacheBoundsConfig.MaxTrackedBlocks = 0
+	pool, err = NewShardedTxPool(args)
+	require.Nil(t, pool)
+	require.NotNil(t, err)
+	require.Errorf(t, err, dataRetriever.ErrBadMaxTrackedBlocks.Error())
 }
 
 func Test_NewShardedTxPool_ComputesCacheConfig(t *testing.T) {
-	config := storageunit.CacheConfig{SizeInBytes: 419430400, SizeInBytesPerSender: 614400, Capacity: 600000, SizePerSender: 1000, Shards: 1}
+	cacheConfig := storageunit.CacheConfig{SizeInBytes: 419430400, SizeInBytesPerSender: 614400, Capacity: 600000, SizePerSender: 1000, Shards: 1}
 	args := ArgShardedTxPool{
-		Config:         config,
+		Config:         cacheConfig,
 		TxGasHandler:   txcachemocks.NewTxGasHandlerMock(),
 		Marshalizer:    &marshal.GogoProtoMarshalizer{},
 		NumberOfShards: 2,
+		TxCacheBoundsConfig: config.TxCacheBoundsConfig{
+			MaxNumBytesPerSenderUpperBound: maxNumBytesPerSenderUpperBoundTest,
+			MaxTrackedBlocks:               maxTrackedBlocks,
+		},
 	}
 
 	pool, err := NewShardedTxPool(args)
@@ -256,6 +286,89 @@ func Test_RemoveSetOfDataFromPool(t *testing.T) {
 	require.Zero(t, cache.Len())
 }
 
+func TestCleanupSelfShardTxCache_NilMempool(t *testing.T) {
+	t.Parallel()
+	t.Run("with nil self shard pool", func(t *testing.T) {
+		poolAsInterface, _ := newTxPoolToTest()
+		txPool := poolAsInterface.(*shardedTxPool)
+		delete(txPool.backingMap, "0")
+
+		accountsProvider := txcachemocks.NewAccountNonceAndBalanceProviderMock()
+		cleanupLoopMaximumDuration := time.Millisecond * 100
+
+		require.NotPanics(t, func() {
+			txPool.CleanupSelfShardTxCache(accountsProvider, 7, math.MaxInt, cleanupLoopMaximumDuration)
+		})
+	})
+}
+
+func Test_Parallel_CleanupSelfShardTxCache(t *testing.T) {
+	t.Parallel()
+	t.Run("with lower nonces", func(t *testing.T) {
+		t.Parallel()
+		poolAsInterface, _ := newTxPoolToTest()
+		pool := poolAsInterface.(*shardedTxPool)
+		accountsProvider := txcachemocks.NewAccountNonceAndBalanceProviderMock()
+		accountsProvider.SetNonce([]byte("alice"), 2)
+		accountsProvider.SetNonce([]byte("bob"), 42)
+		accountsProvider.SetNonce([]byte("carol"), 7)
+
+		// One lower nonce
+		pool.AddData([]byte("hash-alice-1"), createTx("alice", 1), 0, "0")
+		pool.AddData([]byte("hash-alice-2"), createTx("alice", 2), 0, "0")
+		pool.AddData([]byte("hash-alice-3"), createTx("alice", 3), 0, "0")
+
+		// A few with lower nonce
+		pool.AddData([]byte("hash-bob-40"), createTx("bob", 40), 0, "0")
+		pool.AddData([]byte("hash-bob-41"), createTx("bob", 41), 0, "0")
+		pool.AddData([]byte("hash-bob-42"), createTx("bob", 42), 0, "0")
+
+		// Good
+		pool.AddData([]byte("hash-carol-7"), createTx("carol", 7), 0, "0")
+		pool.AddData([]byte("hash-carol-8"), createTx("carol", 8), 0, "0")
+
+		require.Equal(t, int64(8), pool.GetCounts().GetTotal())
+
+		cleanupLoopMaximumDuration := time.Millisecond * 100
+		pool.CleanupSelfShardTxCache(accountsProvider, 7, math.MaxInt, cleanupLoopMaximumDuration)
+
+		require.Equal(t, int64(5), pool.GetCounts().GetTotal())
+	})
+}
+
+func Test_CleanupSelfShardTxCache(t *testing.T) {
+	t.Run("with lower nonces", func(t *testing.T) {
+		poolAsInterface, _ := newTxPoolToTest()
+		pool := poolAsInterface.(*shardedTxPool)
+		cache := pool.getTxCache("0").(*txcache.TxCache)
+		accountsProvider := txcachemocks.NewAccountNonceAndBalanceProviderMock()
+		accountsProvider.SetNonce([]byte("alice"), 2)
+		accountsProvider.SetNonce([]byte("bob"), 42)
+		accountsProvider.SetNonce([]byte("carol"), 7)
+
+		// One lower nonce
+		pool.AddData([]byte("hash-alice-1"), createTx("alice", 1), 0, "0")
+		pool.AddData([]byte("hash-alice-2"), createTx("alice", 2), 0, "0")
+		pool.AddData([]byte("hash-alice-3"), createTx("alice", 3), 0, "0")
+
+		// A few with lower nonce
+		pool.AddData([]byte("hash-bob-40"), createTx("bob", 40), 0, "0")
+		pool.AddData([]byte("hash-bob-41"), createTx("bob", 41), 0, "0")
+		pool.AddData([]byte("hash-bob-42"), createTx("bob", 42), 0, "0")
+
+		// Good
+		pool.AddData([]byte("hash-carol-7"), createTx("carol", 7), 0, "0")
+		pool.AddData([]byte("hash-carol-8"), createTx("carol", 8), 0, "0")
+
+		expectedNumEvicted := 1 + 2 // 1 alice + 2 bob
+		expectedNumRemained := 8 - expectedNumEvicted
+		selectionLoopMaximumDuration := time.Millisecond * 100
+
+		pool.CleanupSelfShardTxCache(accountsProvider, 7, math.MaxInt, selectionLoopMaximumDuration)
+		require.Equal(t, expectedNumRemained, cache.Len())
+	})
+}
+
 func Test_RemoveDataFromAllShards(t *testing.T) {
 	poolAsInterface, _ := newTxPoolToTest()
 	pool := poolAsInterface.(*shardedTxPool)
@@ -374,7 +487,7 @@ func Test_IsInterfaceNil(t *testing.T) {
 }
 
 func Test_routeToCacheUnions(t *testing.T) {
-	config := storageunit.CacheConfig{
+	cacheConfig := storageunit.CacheConfig{
 		Capacity:             100,
 		SizePerSender:        10,
 		SizeInBytes:          409600,
@@ -382,12 +495,17 @@ func Test_routeToCacheUnions(t *testing.T) {
 		Shards:               1,
 	}
 	args := ArgShardedTxPool{
-		Config:         config,
+		Config:         cacheConfig,
 		TxGasHandler:   txcachemocks.NewTxGasHandlerMock(),
 		Marshalizer:    &marshal.GogoProtoMarshalizer{},
 		NumberOfShards: 4,
 		SelfShardID:    42,
+		TxCacheBoundsConfig: config.TxCacheBoundsConfig{
+			MaxNumBytesPerSenderUpperBound: maxNumBytesPerSenderUpperBoundTest,
+			MaxTrackedBlocks:               maxTrackedBlocks,
+		},
 	}
+
 	pool, _ := NewShardedTxPool(args)
 
 	require.Equal(t, "42", pool.routeToCacheUnions("42"))
@@ -399,11 +517,90 @@ func Test_routeToCacheUnions(t *testing.T) {
 	require.Equal(t, "foobar", pool.routeToCacheUnions("foobar"))
 }
 
+func TestShardedTxPool_getSelfShardTxCache(t *testing.T) {
+	t.Parallel()
+
+	cacheConfig := storageunit.CacheConfig{
+		Capacity:             100,
+		SizePerSender:        10,
+		SizeInBytes:          409600,
+		SizeInBytesPerSender: 40960,
+		Shards:               1,
+	}
+	args := ArgShardedTxPool{
+		Config:         cacheConfig,
+		TxGasHandler:   txcachemocks.NewTxGasHandlerMock(),
+		Marshalizer:    &marshal.GogoProtoMarshalizer{},
+		NumberOfShards: 3,
+		SelfShardID:    2,
+		TxCacheBoundsConfig: config.TxCacheBoundsConfig{
+			MaxNumBytesPerSenderUpperBound: maxNumBytesPerSenderUpperBoundTest,
+			MaxTrackedBlocks:               maxTrackedBlocks,
+		},
+	}
+
+	pool, _ := NewShardedTxPool(args)
+	require.Equal(t, pool.getTxCache("2"), pool.getSelfShardTxCache())
+}
+
+func TestShardedTxPool_OnProposedBlock_And_OnExecutedBlock(t *testing.T) {
+	t.Parallel()
+
+	cacheConfig := storageunit.CacheConfig{
+		Capacity:             100,
+		SizePerSender:        10,
+		SizeInBytes:          409600,
+		SizeInBytesPerSender: 40960,
+		Shards:               1,
+	}
+	args := ArgShardedTxPool{
+		Config:         cacheConfig,
+		TxGasHandler:   txcachemocks.NewTxGasHandlerMock(),
+		Marshalizer:    &marshal.GogoProtoMarshalizer{},
+		NumberOfShards: 3,
+		SelfShardID:    0,
+		TxCacheBoundsConfig: config.TxCacheBoundsConfig{
+			MaxNumBytesPerSenderUpperBound: maxNumBytesPerSenderUpperBoundTest,
+			MaxTrackedBlocks:               maxTrackedBlocks,
+		},
+	}
+
+	pool, err := NewShardedTxPool(args)
+	require.Nil(t, err)
+
+	t.Run("OnProposedBlock calls TxCache.OnProposedBlock", func(t *testing.T) {
+		t.Parallel()
+
+		err := pool.OnProposedBlock(nil, nil, nil, nil, nil)
+		require.ErrorContains(t, err, "nil block hash")
+
+		err = pool.OnProposedBlock(
+			[]byte("abba"),
+			&block.Body{},
+			&block.HeaderV2{},
+			txcachemocks.NewAccountNonceAndBalanceProviderMock(),
+			holders.NewBlockchainInfo(nil, nil, 42),
+		)
+		require.Nil(t, err)
+	})
+
+	t.Run("OnExecutedBlock calls TxCache.OnExecutedBlock", func(t *testing.T) {
+		t.Parallel()
+
+		err := pool.OnExecutedBlock(nil)
+		require.ErrorContains(t, err, "nil block header")
+
+		err = pool.OnExecutedBlock(&block.HeaderV2{})
+		require.Nil(t, err)
+	})
+}
+
 func createTx(sender string, nonce uint64) data.TransactionHandler {
 	return &transaction.Transaction{
 		SndAddr:  []byte(sender),
 		Nonce:    nonce,
 		GasLimit: 50000,
+		GasPrice: 20000,
 	}
 }
 
@@ -415,7 +612,7 @@ type thisIsNotATransaction struct {
 }
 
 func newTxPoolToTest() (dataRetriever.ShardedDataCacherNotifier, error) {
-	config := storageunit.CacheConfig{
+	cacheConfig := storageunit.CacheConfig{
 		Capacity:             100,
 		SizePerSender:        10,
 		SizeInBytes:          409600,
@@ -423,11 +620,15 @@ func newTxPoolToTest() (dataRetriever.ShardedDataCacherNotifier, error) {
 		Shards:               1,
 	}
 	args := ArgShardedTxPool{
-		Config:         config,
+		Config:         cacheConfig,
 		TxGasHandler:   txcachemocks.NewTxGasHandlerMock(),
 		Marshalizer:    &marshal.GogoProtoMarshalizer{},
 		NumberOfShards: 4,
 		SelfShardID:    0,
+		TxCacheBoundsConfig: config.TxCacheBoundsConfig{
+			MaxNumBytesPerSenderUpperBound: maxNumBytesPerSenderUpperBoundTest,
+			MaxTrackedBlocks:               maxTrackedBlocks,
+		},
 	}
 	return NewShardedTxPool(args)
 }

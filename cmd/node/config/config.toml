@@ -421,6 +421,18 @@
     Type = "TxCache"
     Shards = 16
 
+[TxCacheBounds]
+    MaxNumBytesPerSenderUpperBound = 33_554_432             #32MB
+    MaxTrackedBlocks = 100
+
+[TxCacheSelection]
+    SelectionMaxNumTxs = 30000
+    SelectionLoopMaximumDuration = 250                      #milliseconds
+    SelectionLoopDurationCheckInterval = 10                 #chunk (of transactions) size
+    SelectionGasBandwidthIncreasePercent = 400
+    SelectionGasBandwidthIncreaseScheduledPercent = 260
+    SelectionGasRequested = 10_000_000_000
+
 [TrieNodesChunksDataPool]
     Name = "TrieNodesDataPool"
     Capacity = 400
@@ -817,7 +829,7 @@
         NumResolveFailureThreshold = 3
         DebugLineExpiration = 10 #Will remove the debug line after a `DebugLineExpiration` number of prints
         [Debug.InterceptorResolver.BroadcastStatistics]
-            Enabled = true
+            Enabled = false
             # "intercepted tx", "intercepted reward tx", "intercepted unsigned tx", "intercepted header", ...
             Messages = ["intercepted tx"]
     [Debug.Antiflood]
@@ -985,3 +997,9 @@
 [InterceptedDataVerifier]
     CacheSpanInSec = 30
     CacheExpiryInSec = 30
+
+[ExecutionResultInclusionEstimator]
+    # Safety margin = 110 -> 110% -> 10% buffer
+    SafetyMargin = 110
+    # Maximum execution results a single block may carry (0 = unlimited)
+    MaxResultsPerBlock = 20

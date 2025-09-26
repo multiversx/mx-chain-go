@@ -94,11 +94,10 @@ func createFacadeArg(tpn *TestProcessorNode) nodeFacade.ArgNodeFacade {
 			TrieOperationsDeadlineMilliseconds: 1,
 			EndpointsThrottlers:                []config.EndpointsThrottlersConfig{},
 		},
-		FacadeConfig:    config.FacadeConfig{},
-		ApiRoutesConfig: createTestApiConfig(),
-		AccountsState:   tpn.AccntState,
-		PeerState:       tpn.PeerState,
-		Blockchain:      tpn.BlockChain,
+		FacadeConfig:     config.FacadeConfig{},
+		ApiRoutesConfig:  createTestApiConfig(),
+		AccountsStateAPI: tpn.AccntState,
+		Blockchain:       tpn.BlockChain,
 	}
 }
 
@@ -183,6 +182,7 @@ func createFacadeComponents(tpn *TestProcessorNode) nodeFacade.ApiResolver {
 		VMOutputCacher:            &cache.CacherMock{},
 		DataFieldParser:           dataFieldParser,
 		BlockChainHook:            tpn.BlockchainHook,
+		SCRProcessor:              tpn.ScProcessor,
 	}
 
 	txSimulator, err := transactionEvaluator.NewTransactionSimulator(argSimulator)

@@ -16,6 +16,7 @@ import (
 	epochNotifierMock "github.com/multiversx/mx-chain-go/testscommon/epochNotifier"
 	epochstartmock "github.com/multiversx/mx-chain-go/testscommon/epochstartmock"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
+	"github.com/multiversx/mx-chain-go/testscommon/round"
 	"github.com/multiversx/mx-chain-go/testscommon/shardingMocks"
 )
 
@@ -28,7 +29,7 @@ func initConsensusDataContainer() *spos.ConsensusCore {
 	chronologyHandlerMock := consensusMocks.InitChronologyHandlerMock()
 	multiSignerMock := cryptoMocks.NewMultiSigner()
 	hasherMock := &hashingMocks.HasherMock{}
-	roundHandlerMock := &consensusMocks.RoundHandlerMock{}
+	roundHandlerMock := &round.RoundHandlerMock{}
 	epochStartSubscriber := &epochstartmock.EpochStartNotifierStub{}
 	shardCoordinatorMock := mock.ShardCoordinatorMock{}
 	syncTimerMock := &consensusMocks.SyncTimerMock{}

@@ -13,13 +13,15 @@ import (
 
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/process/mock"
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/cache"
+	"github.com/multiversx/mx-chain-go/testscommon/common"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
-	"github.com/multiversx/mx-chain-go/testscommon/genericMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
+	stateMock "github.com/multiversx/mx-chain-go/testscommon/state"
 	"github.com/multiversx/mx-chain-go/testscommon/storage"
 )
 
@@ -27,14 +29,9 @@ func TestNewValidatorInfoPreprocessor_NilHasherShouldErr(t *testing.T) {
 	t.Parallel()
 
 	tdp := initDataPool()
-	rtp, err := NewValidatorInfoPreprocessor(
-		nil,
-		&marshallerMock.MarshalizerMock{},
-		&testscommon.BlockSizeComputationStub{},
-		tdp.ValidatorsInfo(),
-		genericMocks.NewChainStorerMock(0),
-		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
-	)
+	args := createDefaultValidatorInfoPreProcessorArgs(tdp)
+	args.Hasher = nil
+	rtp, err := NewValidatorInfoPreprocessor(args)
 
 	assert.Nil(t, rtp)
 	assert.Equal(t, process.ErrNilHasher, err)
@@ -44,14 +41,9 @@ func TestNewValidatorInfoPreprocessor_NilMarshalizerShouldErr(t *testing.T) {
 	t.Parallel()
 
 	tdp := initDataPool()
-	rtp, err := NewValidatorInfoPreprocessor(
-		&hashingMocks.HasherMock{},
-		nil,
-		&testscommon.BlockSizeComputationStub{},
-		tdp.ValidatorsInfo(),
-		genericMocks.NewChainStorerMock(0),
-		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
-	)
+	args := createDefaultValidatorInfoPreProcessorArgs(tdp)
+	args.Marshalizer = nil
+	rtp, err := NewValidatorInfoPreprocessor(args)
 
 	assert.Nil(t, rtp)
 	assert.Equal(t, process.ErrNilMarshalizer, err)
@@ -61,14 +53,9 @@ func TestNewValidatorInfoPreprocessor_NilBlockSizeComputationHandlerShouldErr(t 
 	t.Parallel()
 
 	tdp := initDataPool()
-	rtp, err := NewValidatorInfoPreprocessor(
-		&hashingMocks.HasherMock{},
-		&marshallerMock.MarshalizerMock{},
-		nil,
-		tdp.ValidatorsInfo(),
-		genericMocks.NewChainStorerMock(0),
-		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
-	)
+	args := createDefaultValidatorInfoPreProcessorArgs(tdp)
+	args.BlockSizeComputation = nil
+	rtp, err := NewValidatorInfoPreprocessor(args)
 
 	assert.Nil(t, rtp)
 	assert.Equal(t, process.ErrNilBlockSizeComputationHandler, err)
@@ -77,31 +64,22 @@ func TestNewValidatorInfoPreprocessor_NilBlockSizeComputationHandlerShouldErr(t 
 func TestNewValidatorInfoPreprocessor_NilValidatorInfoPoolShouldErr(t *testing.T) {
 	t.Parallel()
 
-	rtp, err := NewValidatorInfoPreprocessor(
-		&hashingMocks.HasherMock{},
-		&marshallerMock.MarshalizerMock{},
-		&testscommon.BlockSizeComputationStub{},
-		nil,
-		genericMocks.NewChainStorerMock(0),
-		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
-	)
+	tdp := initDataPool()
+	args := createDefaultValidatorInfoPreProcessorArgs(tdp)
+	args.DataPool = nil
+	rtp, err := NewValidatorInfoPreprocessor(args)
 
 	assert.Nil(t, rtp)
-	assert.Equal(t, process.ErrNilValidatorInfoPool, err)
+	assert.Equal(t, process.ErrNilTransactionPool, err)
 }
 
 func TestNewValidatorInfoPreprocessor_NilStoreShouldErr(t *testing.T) {
 	t.Parallel()
 
 	tdp := initDataPool()
-	rtp, err := NewValidatorInfoPreprocessor(
-		&hashingMocks.HasherMock{},
-		&marshallerMock.MarshalizerMock{},
-		&testscommon.BlockSizeComputationStub{},
-		tdp.ValidatorsInfo(),
-		nil,
-		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
-	)
+	args := createDefaultValidatorInfoPreProcessorArgs(tdp)
+	args.Store = nil
+	rtp, err := NewValidatorInfoPreprocessor(args)
 
 	assert.Nil(t, rtp)
 	assert.Equal(t, process.ErrNilStorage, err)
@@ -111,31 +89,33 @@ func TestNewValidatorInfoPreprocessor_NilEnableEpochHandlerShouldErr(t *testing.
 	t.Parallel()
 
 	tdp := initDataPool()
-	rtp, err := NewValidatorInfoPreprocessor(
-		&hashingMocks.HasherMock{},
-		&marshallerMock.MarshalizerMock{},
-		&testscommon.BlockSizeComputationStub{},
-		tdp.ValidatorsInfo(),
-		genericMocks.NewChainStorerMock(0),
-		nil,
-	)
+	args := createDefaultValidatorInfoPreProcessorArgs(tdp)
+	args.EnableEpochsHandler = nil
+	rtp, err := NewValidatorInfoPreprocessor(args)
 
 	assert.Nil(t, rtp)
 	assert.Equal(t, process.ErrNilEnableEpochsHandler, err)
+}
+
+func TestNewValidatorInfoPreprocessor_NilShardsCoordinatorMock(t *testing.T) {
+	t.Parallel()
+
+	tdp := initDataPool()
+	args := createDefaultValidatorInfoPreProcessorArgs(tdp)
+	args.ShardCoordinator = nil
+	rtp, err := NewValidatorInfoPreprocessor(args)
+
+	assert.Nil(t, rtp)
+	assert.Equal(t, process.ErrNilShardCoordinator, err)
 }
 
 func TestNewValidatorInfoPreprocessor_InvalidEnableEpochHandlerShouldErr(t *testing.T) {
 	t.Parallel()
 
 	tdp := initDataPool()
-	rtp, err := NewValidatorInfoPreprocessor(
-		&hashingMocks.HasherMock{},
-		&marshallerMock.MarshalizerMock{},
-		&testscommon.BlockSizeComputationStub{},
-		tdp.ValidatorsInfo(),
-		genericMocks.NewChainStorerMock(0),
-		enableEpochsHandlerMock.NewEnableEpochsHandlerStubWithNoFlagsDefined(),
-	)
+	args := createDefaultValidatorInfoPreProcessorArgs(tdp)
+	args.EnableEpochsHandler = enableEpochsHandlerMock.NewEnableEpochsHandlerStubWithNoFlagsDefined()
+	rtp, err := NewValidatorInfoPreprocessor(args)
 
 	assert.Nil(t, rtp)
 	assert.True(t, errors.Is(err, core.ErrInvalidEnableEpochsHandler))
@@ -145,14 +125,8 @@ func TestNewValidatorInfoPreprocessor_OkValsShouldWork(t *testing.T) {
 	t.Parallel()
 
 	tdp := initDataPool()
-	rtp, err := NewValidatorInfoPreprocessor(
-		&hashingMocks.HasherMock{},
-		&marshallerMock.MarshalizerMock{},
-		&testscommon.BlockSizeComputationStub{},
-		tdp.ValidatorsInfo(),
-		genericMocks.NewChainStorerMock(0),
-		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
-	)
+	args := createDefaultValidatorInfoPreProcessorArgs(tdp)
+	rtp, err := NewValidatorInfoPreprocessor(args)
 	assert.Nil(t, err)
 	assert.NotNil(t, rtp)
 }
@@ -161,14 +135,8 @@ func TestNewValidatorInfoPreprocessor_CreateMarshalizedDataShouldWork(t *testing
 	t.Parallel()
 
 	tdp := initDataPool()
-	rtp, _ := NewValidatorInfoPreprocessor(
-		&hashingMocks.HasherMock{},
-		&marshallerMock.MarshalizerMock{},
-		&testscommon.BlockSizeComputationStub{},
-		tdp.ValidatorsInfo(),
-		genericMocks.NewChainStorerMock(0),
-		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
-	)
+	args := createDefaultValidatorInfoPreProcessorArgs(tdp)
+	rtp, _ := NewValidatorInfoPreprocessor(args)
 
 	hash := make([][]byte, 0)
 	res, err := rtp.CreateMarshalledData(hash)
@@ -181,14 +149,8 @@ func TestNewValidatorInfoPreprocessor_ProcessMiniBlockInvalidMiniBlockTypeShould
 	t.Parallel()
 
 	tdp := initDataPool()
-	rtp, _ := NewValidatorInfoPreprocessor(
-		&hashingMocks.HasherMock{},
-		&marshallerMock.MarshalizerMock{},
-		&testscommon.BlockSizeComputationStub{},
-		tdp.ValidatorsInfo(),
-		genericMocks.NewChainStorerMock(0),
-		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
-	)
+	args := createDefaultValidatorInfoPreProcessorArgs(tdp)
+	rtp, _ := NewValidatorInfoPreprocessor(args)
 
 	txHashes := make([][]byte, 0)
 	mb1 := block.MiniBlock{
@@ -210,14 +172,8 @@ func TestNewValidatorInfoPreprocessor_ProcessMiniBlockShouldWork(t *testing.T) {
 	t.Parallel()
 
 	tdp := initDataPool()
-	rtp, _ := NewValidatorInfoPreprocessor(
-		&hashingMocks.HasherMock{},
-		&marshallerMock.MarshalizerMock{},
-		&testscommon.BlockSizeComputationStub{},
-		tdp.ValidatorsInfo(),
-		genericMocks.NewChainStorerMock(0),
-		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
-	)
+	args := createDefaultValidatorInfoPreProcessorArgs(tdp)
+	rtp, _ := NewValidatorInfoPreprocessor(args)
 
 	txHashes := make([][]byte, 0)
 	mb1 := block.MiniBlock{
@@ -239,14 +195,8 @@ func TestNewValidatorInfoPreprocessor_ProcessMiniBlockNotFromMeta(t *testing.T) 
 	t.Parallel()
 
 	tdp := initDataPool()
-	rtp, _ := NewValidatorInfoPreprocessor(
-		&hashingMocks.HasherMock{},
-		&marshallerMock.MarshalizerMock{},
-		&testscommon.BlockSizeComputationStub{},
-		tdp.ValidatorsInfo(),
-		genericMocks.NewChainStorerMock(0),
-		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
-	)
+	args := createDefaultValidatorInfoPreProcessorArgs(tdp)
+	rtp, _ := NewValidatorInfoPreprocessor(args)
 
 	txHashes := make([][]byte, 0)
 	mb1 := block.MiniBlock{
@@ -267,19 +217,9 @@ func TestNewValidatorInfoPreprocessor_ProcessMiniBlockNotFromMeta(t *testing.T) 
 func TestNewValidatorInfoPreprocessor_RestorePeerBlockIntoPools(t *testing.T) {
 	t.Parallel()
 
-	hasher := &hashingMocks.HasherMock{}
-	marshalizer := &marshallerMock.MarshalizerMock{}
-	blockSizeComputation := &testscommon.BlockSizeComputationStub{}
-
 	tdp := initDataPool()
-	rtp, _ := NewValidatorInfoPreprocessor(
-		hasher,
-		marshalizer,
-		blockSizeComputation,
-		tdp.ValidatorsInfo(),
-		genericMocks.NewChainStorerMock(0),
-		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
-	)
+	args := createDefaultValidatorInfoPreProcessorArgs(tdp)
+	rtp, _ := NewValidatorInfoPreprocessor(args)
 
 	txHashes := [][]byte{[]byte("tx_hash1")}
 	mb1 := block.MiniBlock{
@@ -293,8 +233,8 @@ func TestNewValidatorInfoPreprocessor_RestorePeerBlockIntoPools(t *testing.T) {
 	blockBody.MiniBlocks = append(blockBody.MiniBlocks, &mb1)
 	miniBlockPool := cache.NewCacherMock()
 
-	marshalizedMb, _ := marshalizer.Marshal(mb1)
-	mbHash := hasher.Compute(string(marshalizedMb))
+	marshalizedMb, _ := args.Marshalizer.Marshal(mb1)
+	mbHash := args.Hasher.Compute(string(marshalizedMb))
 
 	foundMb, ok := miniBlockPool.Get(mbHash)
 	assert.Nil(t, foundMb)
@@ -312,19 +252,9 @@ func TestNewValidatorInfoPreprocessor_RestorePeerBlockIntoPools(t *testing.T) {
 func TestNewValidatorInfoPreprocessor_RestoreOtherBlockTypeIntoPoolsShouldNotRestore(t *testing.T) {
 	t.Parallel()
 
-	hasher := &hashingMocks.HasherMock{}
-	marshalizer := &marshallerMock.MarshalizerMock{}
-	blockSizeComputation := &testscommon.BlockSizeComputationStub{}
-
 	tdp := initDataPool()
-	rtp, _ := NewValidatorInfoPreprocessor(
-		hasher,
-		marshalizer,
-		blockSizeComputation,
-		tdp.ValidatorsInfo(),
-		genericMocks.NewChainStorerMock(0),
-		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
-	)
+	args := createDefaultValidatorInfoPreProcessorArgs(tdp)
+	rtp, _ := NewValidatorInfoPreprocessor(args)
 
 	txHashes := [][]byte{[]byte("tx_hash1")}
 	mb1 := block.MiniBlock{
@@ -338,8 +268,8 @@ func TestNewValidatorInfoPreprocessor_RestoreOtherBlockTypeIntoPoolsShouldNotRes
 	blockBody.MiniBlocks = append(blockBody.MiniBlocks, &mb1)
 	miniBlockPool := cache.NewCacherMock()
 
-	marshalizedMb, _ := marshalizer.Marshal(mb1)
-	mbHash := hasher.Compute(string(marshalizedMb))
+	marshalizedMb, _ := args.Marshalizer.Marshal(mb1)
+	mbHash := args.Hasher.Compute(string(marshalizedMb))
 
 	foundMb, ok := miniBlockPool.Get(mbHash)
 	assert.Nil(t, foundMb)
@@ -357,19 +287,9 @@ func TestNewValidatorInfoPreprocessor_RestoreOtherBlockTypeIntoPoolsShouldNotRes
 func TestNewValidatorInfoPreprocessor_RemovePeerBlockFromPool(t *testing.T) {
 	t.Parallel()
 
-	hasher := &hashingMocks.HasherMock{}
-	marshalizer := &marshallerMock.MarshalizerMock{}
-	blockSizeComputation := &testscommon.BlockSizeComputationStub{}
-
 	tdp := initDataPool()
-	rtp, _ := NewValidatorInfoPreprocessor(
-		hasher,
-		marshalizer,
-		blockSizeComputation,
-		tdp.ValidatorsInfo(),
-		genericMocks.NewChainStorerMock(0),
-		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
-	)
+	args := createDefaultValidatorInfoPreProcessorArgs(tdp)
+	rtp, _ := NewValidatorInfoPreprocessor(args)
 
 	txHashes := [][]byte{[]byte("tx_hash1")}
 	mb1 := block.MiniBlock{
@@ -379,8 +299,8 @@ func TestNewValidatorInfoPreprocessor_RemovePeerBlockFromPool(t *testing.T) {
 		Type:            block.PeerBlock,
 	}
 
-	marshalizedMb, _ := marshalizer.Marshal(mb1)
-	mbHash := hasher.Compute(string(marshalizedMb))
+	marshalizedMb, _ := args.Marshalizer.Marshal(mb1)
+	mbHash := args.Hasher.Compute(string(marshalizedMb))
 
 	blockBody := &block.Body{}
 	blockBody.MiniBlocks = append(blockBody.MiniBlocks, &mb1)
@@ -402,19 +322,9 @@ func TestNewValidatorInfoPreprocessor_RemovePeerBlockFromPool(t *testing.T) {
 func TestNewValidatorInfoPreprocessor_RemoveOtherBlockTypeFromPoolShouldNotRemove(t *testing.T) {
 	t.Parallel()
 
-	hasher := &hashingMocks.HasherMock{}
-	marshalizer := &marshallerMock.MarshalizerMock{}
-	blockSizeComputation := &testscommon.BlockSizeComputationStub{}
-
 	tdp := initDataPool()
-	rtp, _ := NewValidatorInfoPreprocessor(
-		hasher,
-		marshalizer,
-		blockSizeComputation,
-		tdp.ValidatorsInfo(),
-		genericMocks.NewChainStorerMock(0),
-		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
-	)
+	args := createDefaultValidatorInfoPreProcessorArgs(tdp)
+	rtp, _ := NewValidatorInfoPreprocessor(args)
 
 	txHashes := [][]byte{[]byte("tx_hash1")}
 	mb1 := block.MiniBlock{
@@ -424,8 +334,8 @@ func TestNewValidatorInfoPreprocessor_RemoveOtherBlockTypeFromPoolShouldNotRemov
 		Type:            block.TxBlock,
 	}
 
-	marshalizedMb, _ := marshalizer.Marshal(mb1)
-	mbHash := hasher.Compute(string(marshalizedMb))
+	marshalizedMb, _ := args.Marshalizer.Marshal(mb1)
+	mbHash := args.Hasher.Compute(string(marshalizedMb))
 
 	blockBody := &block.Body{}
 	blockBody.MiniBlocks = append(blockBody.MiniBlocks, &mb1)
@@ -451,23 +361,15 @@ func TestNewValidatorInfoPreprocessor_RestoreValidatorsInfo(t *testing.T) {
 		t.Parallel()
 
 		expectedErr := errors.New("error")
-		hasher := &hashingMocks.HasherMock{}
-		marshalizer := &marshallerMock.MarshalizerMock{}
-		blockSizeComputation := &testscommon.BlockSizeComputationStub{}
 		storer := &storage.ChainStorerStub{
 			GetAllCalled: func(unitType dataRetriever.UnitType, keys [][]byte) (map[string][]byte, error) {
 				return nil, expectedErr
 			},
 		}
 		tdp := initDataPool()
-		rtp, _ := NewValidatorInfoPreprocessor(
-			hasher,
-			marshalizer,
-			blockSizeComputation,
-			tdp.ValidatorsInfo(),
-			storer,
-			&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
-		)
+		args := createDefaultValidatorInfoPreProcessorArgs(tdp)
+		args.Store = storer
+		rtp, _ := NewValidatorInfoPreprocessor(args)
 
 		miniBlock := &block.MiniBlock{}
 		err := rtp.restoreValidatorsInfo(miniBlock)
@@ -477,9 +379,7 @@ func TestNewValidatorInfoPreprocessor_RestoreValidatorsInfo(t *testing.T) {
 	t.Run("restore validators info with all txs found in storage", func(t *testing.T) {
 		t.Parallel()
 
-		hasher := &hashingMocks.HasherMock{}
 		marshalizer := &marshallerMock.MarshalizerMock{}
-		blockSizeComputation := &testscommon.BlockSizeComputationStub{}
 		shardValidatorInfoHash := []byte("hash")
 		shardValidatorInfo := &state.ShardValidatorInfo{
 			PublicKey: []byte("x"),
@@ -503,14 +403,11 @@ func TestNewValidatorInfoPreprocessor_RestoreValidatorsInfo(t *testing.T) {
 				},
 			}
 		}
-		rtp, _ := NewValidatorInfoPreprocessor(
-			hasher,
-			marshalizer,
-			blockSizeComputation,
-			tdp.ValidatorsInfo(),
-			storer,
-			&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
-		)
+
+		args := createDefaultValidatorInfoPreProcessorArgs(tdp)
+		args.Store = storer
+		args.Marshalizer = marshalizer
+		rtp, _ := NewValidatorInfoPreprocessor(args)
 
 		miniBlock := &block.MiniBlock{}
 		err := rtp.restoreValidatorsInfo(miniBlock)
@@ -556,15 +453,10 @@ func TestValidatorInfoPreprocessor_SaveTxsToStorageShouldWork(t *testing.T) {
 			return nil
 		},
 	}
+	args := createDefaultValidatorInfoPreProcessorArgs(tdp)
+	args.Store = storer
 
-	vip, _ := NewValidatorInfoPreprocessor(
-		&hashingMocks.HasherMock{},
-		&marshallerMock.MarshalizerMock{},
-		&testscommon.BlockSizeComputationStub{},
-		tdp.ValidatorsInfo(),
-		storer,
-		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
-	)
+	vip, _ := NewValidatorInfoPreprocessor(args)
 
 	err := vip.SaveTxsToStorage(nil)
 	assert.Equal(t, process.ErrNilBlockBody, err)
@@ -589,4 +481,28 @@ func TestValidatorInfoPreprocessor_SaveTxsToStorageShouldWork(t *testing.T) {
 	assert.Nil(t, err)
 	require.Equal(t, 1, len(putHashes))
 	assert.Equal(t, txHash3, putHashes[0])
+}
+
+func createDefaultValidatorInfoPreProcessorArgs(tdp dataRetriever.PoolsHolder) ValidatorInfoPreProcessorArgs {
+	requestTransaction := func(shardID uint32, txHashes [][]byte) {}
+	return ValidatorInfoPreProcessorArgs{
+		BasePreProcessorArgs: BasePreProcessorArgs{
+			DataPool:                   tdp.ValidatorsInfo(),
+			Store:                      &storage.ChainStorerStub{},
+			Hasher:                     &hashingMocks.HasherMock{},
+			Marshalizer:                &marshallerMock.MarshalizerMock{},
+			ShardCoordinator:           mock.NewMultiShardsCoordinatorMock(3),
+			Accounts:                   &stateMock.AccountsStub{},
+			AccountsProposal:           &stateMock.AccountsStub{},
+			OnRequestTransaction:       requestTransaction,
+			GasHandler:                 &testscommon.GasHandlerStub{},
+			PubkeyConverter:            createMockPubkeyConverter(),
+			BlockSizeComputation:       &testscommon.BlockSizeComputationStub{},
+			BalanceComputation:         &testscommon.BalanceComputationStub{},
+			ProcessedMiniBlocksTracker: &testscommon.ProcessedMiniBlocksTrackerStub{},
+			TxExecutionOrderHandler:    &common.TxExecutionOrderHandlerStub{},
+			EconomicsFee:               feeHandlerMock(),
+			EnableEpochsHandler:        enableEpochsHandlerMock.NewEnableEpochsHandlerStub(),
+		},
+	}
 }

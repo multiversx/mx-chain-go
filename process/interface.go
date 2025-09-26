@@ -1,9 +1,11 @@
 package process
 
 import (
-	"github.com/multiversx/mx-chain-go/ntp"
 	"math/big"
 	"time"
+
+	"github.com/multiversx/mx-chain-go/ntp"
+	"github.com/multiversx/mx-chain-go/process/estimator"
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data"
@@ -179,6 +181,9 @@ type TransactionCoordinator interface {
 	AddTxsFromMiniBlocks(miniBlocks block.MiniBlockSlice)
 	AddTransactions(txHandlers []data.TransactionHandler, blockType block.Type)
 	IsInterfaceNil() bool
+
+	SelectOutgoingTransactions() [][]byte
+	CreateMbsCrossShardDstMe(header data.HeaderHandler, processedMiniBlocksInfo map[string]*processedMb.ProcessedMiniBlockInfo) ([]block.MiniblockAndHash, uint32, bool, error)
 }
 
 // SmartContractProcessor is the main interface for the smart contract caller engine
@@ -241,8 +246,9 @@ type PreProcessor interface {
 	ProcessBlockTransactions(header data.HeaderHandler, body *block.Body, haveTime func() bool) error
 	RequestBlockTransactions(body *block.Body) int
 
-	RequestTransactionsForMiniBlock(miniBlock *block.MiniBlock) int
+	GetTransactionsAndRequestMissingForMiniBlock(miniBlock *block.MiniBlock) ([]data.TransactionHandler, int)
 	ProcessMiniBlock(miniBlock *block.MiniBlock, haveTime func() bool, haveAdditionalTime func() bool, scheduledMode bool, partialMbExecutionMode bool, indexOfLastTxProcessed int, preProcessorExecutionInfoHandler PreProcessorExecutionInfoHandler) ([][]byte, int, bool, error)
+	SelectOutgoingTransactions(bandwidth uint64) ([][]byte, []data.TransactionHandler, error)
 	CreateAndProcessMiniBlocks(haveTime func() bool, randomness []byte) (block.MiniBlockSlice, error)
 
 	GetAllCurrentUsedTxs() map[string]data.TransactionHandler
@@ -594,14 +600,34 @@ type DataPacker interface {
 	IsInterfaceNil() bool
 }
 
+// RequestForEpochHandler defines the methods through which request to data for a specific epoch can be made
+type RequestForEpochHandler interface {
+	RequestShardHeaderForEpoch(shardID uint32, hash []byte, epoch uint32)
+	RequestMetaHeaderForEpoch(hash []byte, epoch uint32)
+	RequestMetaHeaderByNonceForEpoch(nonce uint64, epoch uint32)
+	RequestShardHeaderByNonceForEpoch(shardID uint32, nonce uint64, epoch uint32)
+	RequestTransactionsForEpoch(destShardID uint32, txHashes [][]byte, epoch uint32)
+	RequestUnsignedTransactionsForEpoch(destShardID uint32, scrHashes [][]byte, epoch uint32)
+	RequestRewardTransactionsForEpoch(destShardID uint32, rewardTxHashes [][]byte, epoch uint32)
+	RequestMiniBlockForEpoch(destShardID uint32, miniBlockHash []byte, epoch uint32)
+	RequestMiniBlocksForEpoch(destShardID uint32, miniBlocksHashes [][]byte, epoch uint32)
+	RequestTrieNodesForEpoch(destShardID uint32, hashes [][]byte, topic string, epoch uint32)
+	RequestValidatorInfoForEpoch(hash []byte, epoch uint32)
+	RequestValidatorsInfoForEpoch(hashes [][]byte, epoch uint32)
+	RequestEquivalentProofByHashForEpoch(headerShard uint32, headerHash []byte, epoch uint32)
+	RequestEquivalentProofByNonceForEpoch(headerShard uint32, headerNonce uint64, epoch uint32)
+	IsInterfaceNil() bool
+}
+
 // RequestHandler defines the methods through which request to data can be made
 type RequestHandler interface {
+	RequestForEpochHandler
 	SetEpoch(epoch uint32)
 	RequestShardHeader(shardID uint32, hash []byte)
 	RequestMetaHeader(hash []byte)
 	RequestMetaHeaderByNonce(nonce uint64)
 	RequestShardHeaderByNonce(shardID uint32, nonce uint64)
-	RequestTransaction(destShardID uint32, txHashes [][]byte)
+	RequestTransactions(destShardID uint32, txHashes [][]byte)
 	RequestUnsignedTransactions(destShardID uint32, scrHashes [][]byte)
 	RequestRewardTransactions(destShardID uint32, txHashes [][]byte)
 	RequestMiniBlock(destShardID uint32, miniblockHash []byte)
@@ -915,6 +941,7 @@ type BlockTracker interface {
 	RemoveLastNotarizedHeaders()
 	RestoreToGenesis()
 	ShouldAddHeader(headerHandler data.HeaderHandler) bool
+	ComputeOwnShardStuck(lastExecutionResultsInfo data.BaseExecutionResultHandler, currentNonce uint64)
 	IsInterfaceNil() bool
 }
 
@@ -1449,5 +1476,60 @@ type ProofsPool interface {
 	AddProof(headerProof data.HeaderProofHandler) bool
 	HasProof(shardID uint32, headerHash []byte) bool
 	IsProofInPoolEqualTo(headerProof data.HeaderProofHandler) bool
+	IsInterfaceNil() bool
+}
+
+// GasComputation defines a component able to select the maximum number of outgoing transactions and incoming mini blocks
+// to fill the block with respect to the gas limits
+type GasComputation interface {
+	CheckIncomingMiniBlocks(
+		miniBlocks []data.MiniBlockHeaderHandler,
+		transactions map[string][]data.TransactionHandler,
+	) (int, int, error)
+	CheckOutgoingTransactions(
+		txHashes [][]byte,
+		transactions []data.TransactionHandler,
+	) ([][]byte, error)
+	GetBandwidthForTransactions() uint64
+	TotalGasConsumed() uint64
+	DecreaseIncomingLimit()
+	DecreaseOutgoingLimit()
+	ResetIncomingLimit()
+	ResetOutgoingLimit()
+	Reset()
+	IsInterfaceNil() bool
+}
+
+// ShardCoordinator defines what a shard state coordinator should hold
+type ShardCoordinator interface {
+	SelfId() uint32
+	ComputeId(address []byte) uint32
+	IsInterfaceNil() bool
+}
+
+// ExecutionResultsTracker is the interface that defines the methods for tracking execution results
+type ExecutionResultsTracker interface {
+	AddExecutionResult(executionResult data.BaseExecutionResultHandler) error
+	GetPendingExecutionResults() ([]data.BaseExecutionResultHandler, error)
+	GetPendingExecutionResultByHash(hash []byte) (data.BaseExecutionResultHandler, error)
+	GetPendingExecutionResultByNonce(nonce uint64) (data.BaseExecutionResultHandler, error)
+	GetLastNotarizedExecutionResult() (data.BaseExecutionResultHandler, error)
+	SetLastNotarizedResult(executionResult data.BaseExecutionResultHandler) error
+	IsInterfaceNil() bool
+}
+
+// BlockDataRequester defines the methods needed by the processor to request missing data
+type BlockDataRequester interface {
+	RequestBlockTransactions(body *block.Body)
+	RequestMiniBlocksAndTransactions(header data.HeaderHandler)
+	GetFinalCrossMiniBlockInfoAndRequestMissing(header data.HeaderHandler) []*data.MiniBlockInfo
+	IsDataPreparedForProcessing(haveTime func() time.Duration) error
+	Reset()
+	IsInterfaceNil() bool
+}
+
+// InclusionEstimator decides how many execution results can be included in the next block
+type InclusionEstimator interface {
+	Decide(lastNotarised *estimator.LastExecutionResultForInclusion, pending []data.BaseExecutionResultHandler, currentHeaderRound uint64) (allowed int)
 	IsInterfaceNil() bool
 }

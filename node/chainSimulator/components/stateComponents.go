@@ -4,6 +4,7 @@ import (
 	"io"
 
 	chainData "github.com/multiversx/mx-chain-core-go/data"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
@@ -25,6 +26,7 @@ type stateComponentsHolder struct {
 	peerAccount              state.AccountsAdapter
 	accountsAdapter          state.AccountsAdapter
 	accountsAdapterAPI       state.AccountsAdapter
+	accountsAdapterProposal  state.AccountsAdapter
 	accountsRepository       state.AccountsRepository
 	triesContainer           common.TriesHolder
 	triesStorageManager      map[string]common.StorageManager
@@ -67,6 +69,7 @@ func CreateStateComponents(args ArgsStateComponents) (*stateComponentsHolder, er
 		peerAccount:              stateComp.PeerAccounts(),
 		accountsAdapter:          stateComp.AccountsAdapter(),
 		accountsAdapterAPI:       stateComp.AccountsAdapterAPI(),
+		accountsAdapterProposal:  stateComp.AccountsAdapterProposal(),
 		accountsRepository:       stateComp.AccountsRepository(),
 		triesContainer:           stateComp.TriesContainer(),
 		triesStorageManager:      stateComp.TrieStorageManagers(),
@@ -89,6 +92,11 @@ func (s *stateComponentsHolder) AccountsAdapter() state.AccountsAdapter {
 // AccountsAdapterAPI will return accounts adapter api
 func (s *stateComponentsHolder) AccountsAdapterAPI() state.AccountsAdapter {
 	return s.accountsAdapterAPI
+}
+
+// AccountsAdapterProposal will return accounts adapter for proposal
+func (s *stateComponentsHolder) AccountsAdapterProposal() state.AccountsAdapter {
+	return s.accountsAdapterProposal
 }
 
 // AccountsRepository will return accounts repository

@@ -13,6 +13,22 @@ type CacheConfig struct {
 	Shards               uint32
 }
 
+// TxCacheBoundsConfig will map the transactions cache bounds config
+type TxCacheBoundsConfig struct {
+	MaxNumBytesPerSenderUpperBound uint32
+	MaxTrackedBlocks               uint32
+}
+
+// TxCacheSelectionConfig will map the mempool selection config
+type TxCacheSelectionConfig struct {
+	SelectionGasBandwidthIncreasePercent          uint32
+	SelectionGasBandwidthIncreaseScheduledPercent uint32
+	SelectionGasRequested                         uint64
+	SelectionMaxNumTxs                            int
+	SelectionLoopMaximumDuration                  int
+	SelectionLoopDurationCheckInterval            int
+}
+
 // HeadersPoolConfig will map the headers cache configuration
 type HeadersPoolConfig struct {
 	MaxHeadersPerShard            int
@@ -23,6 +39,13 @@ type HeadersPoolConfig struct {
 type ProofsPoolConfig struct {
 	CleanupNonceDelta uint64
 	BucketSize        int
+}
+
+// ExecutionResultInclusionEstimatorConfig will map the EIE configuration - supplied at construction, read‑only thereafter.
+// TODO add also max estimated block gas capacity
+type ExecutionResultInclusionEstimatorConfig struct {
+	SafetyMargin       uint64
+	MaxResultsPerBlock uint64
 }
 
 // DBConfig will map the database configuration
@@ -164,6 +187,8 @@ type Config struct {
 	TrieEpochRootHashStorage        StorageConfig
 	SmartContractsStorageSimulate   StorageConfig
 
+	ExecutionResultInclusionEstimator ExecutionResultInclusionEstimatorConfig
+
 	BootstrapStorage StorageConfig
 	MetaBlockStorage StorageConfig
 	ProofsStorage    StorageConfig
@@ -179,6 +204,8 @@ type Config struct {
 	TxBlockBodyDataPool         CacheConfig
 	PeerBlockBodyDataPool       CacheConfig
 	TxDataPool                  CacheConfig
+	TxCacheBounds               TxCacheBoundsConfig
+	TxCacheSelection            TxCacheSelectionConfig
 	UnsignedTransactionDataPool CacheConfig
 	RewardTransactionDataPool   CacheConfig
 	TrieNodesChunksDataPool     CacheConfig
@@ -321,6 +348,7 @@ type FacadeConfig struct {
 	RestApiInterface            string
 	PprofEnabled                bool
 	P2PPrometheusMetricsEnabled bool
+	TxCacheSelectionConfig      TxCacheSelectionConfig
 }
 
 // StateTriesConfig will hold information about state tries

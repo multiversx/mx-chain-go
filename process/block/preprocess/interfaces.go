@@ -4,18 +4,18 @@ import (
 	"math/big"
 	"time"
 
-	"github.com/multiversx/mx-chain-go/storage/txcache"
-)
+	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-go/txcache"
 
-// SortedTransactionsProvider defines the public API of the transactions cache
-type SortedTransactionsProvider interface {
-	GetSortedTransactions(session txcache.SelectionSession) []*txcache.WrappedTransaction
-	IsInterfaceNil() bool
-}
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/dataRetriever"
+)
 
 // TxCache defines the functionality for the transactions cache
 type TxCache interface {
-	SelectTransactions(session txcache.SelectionSession, gasRequested uint64, maxNum int, selectionLoopMaximumDuration time.Duration) ([]*txcache.WrappedTransaction, uint64)
+	SelectTransactions(session txcache.SelectionSession, options common.TxSelectionOptions, blockchainInfo common.BlockchainInfo) ([]*txcache.WrappedTransaction, uint64, error)
+	GetVirtualNonceAndRootHash(sender []byte, blockchainInfo common.BlockchainInfo) (uint64, []byte, error)
 	IsInterfaceNil() bool
 }
 
@@ -52,5 +52,29 @@ type BalanceComputationHandler interface {
 	SubBalanceFromAddress(address []byte, value *big.Int) bool
 	IsAddressSet(address []byte) bool
 	AddressHasEnoughBalance(address []byte, value *big.Int) bool
+	IsInterfaceNil() bool
+}
+
+// TxsForBlockHandler defines the functionality for handling transactions for a block
+type TxsForBlockHandler interface {
+	Reset()
+	AddTransaction(
+		txHash []byte,
+		tx data.TransactionHandler,
+		senderShardID uint32,
+		receiverShardID uint32,
+	)
+	WaitForRequestedData(waitTime time.Duration) error
+	GetTxInfoByHash(hash []byte) (*TxInfo, bool)
+	GetAllCurrentUsedTxs() map[string]data.TransactionHandler
+	GetMissingTxsCount() int
+	ReceivedTransaction(txHash []byte, tx data.TransactionHandler)
+	HasMissingTransactions() bool
+	ComputeExistingAndRequestMissing(
+		body *block.Body,
+		isMiniBlockCorrect func(block.Type) bool,
+		txPool dataRetriever.ShardedDataCacherNotifier,
+		onRequestTxs func(shardID uint32, txHashes [][]byte),
+	) int
 	IsInterfaceNil() bool
 }

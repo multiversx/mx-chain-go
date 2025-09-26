@@ -7,6 +7,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/process"
@@ -68,7 +69,7 @@ type HistoryStorer interface {
 
 // RequestHandler defines the methods through which request to data can be made
 type RequestHandler interface {
-	RequestTransaction(shardId uint32, txHashes [][]byte)
+	RequestTransactions(shardId uint32, txHashes [][]byte)
 	RequestUnsignedTransactions(destShardID uint32, scrHashes [][]byte)
 	RequestRewardTransactions(destShardID uint32, txHashes [][]byte)
 	RequestMiniBlock(shardId uint32, miniblockHash []byte)
