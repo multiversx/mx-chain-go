@@ -75,6 +75,15 @@ func feeHandlerMock() *economicsmocks.EconomicsHandlerMock {
 		MaxGasLimitPerTxCalled: func() uint64 {
 			return MaxGasLimitPerBlock
 		},
+		MaxGasLimitPerTxInEpochCalled: func(_ uint32) uint64 {
+			return MaxGasLimitPerBlock
+		},
+		MaxGasLimitPerBlockForSafeCrossShardInEpochCalled: func(_ uint32) uint64 {
+			return MaxGasLimitPerBlock
+		},
+		MaxGasLimitPerBlockInEpochCalled: func(shardID uint32, _ uint32) uint64 {
+			return MaxGasLimitPerBlock
+		},
 	}
 }
 
@@ -436,7 +445,7 @@ func TestTxsPreprocessor_NewTransactionPreprocessorNilEnableRoundsHandler(t *tes
 
 	txs, err := NewTransactionPreprocessor(args)
 	assert.Nil(t, txs)
-	assert.True(t, errors.Is(err, core.ErrNilEnableEpochsHandler))
+	assert.True(t, errors.Is(err, process.ErrNilEnableRoundsHandler))
 }
 
 func TestTxsPreprocessor_NewTransactionPreprocessorNilTxTypeHandler(t *testing.T) {
@@ -1746,7 +1755,7 @@ func TestTransactionsPreprocessor_ComputeGasProvidedShouldWork(t *testing.T) {
 	txGasLimitInReceiver := maxGasLimit
 	args := createDefaultTransactionsProcessorArgs()
 	args.EconomicsFee = &economicsmocks.EconomicsHandlerMock{
-		MaxGasLimitPerBlockCalled: func(_ uint32) uint64 {
+		MaxGasLimitPerBlockInEpochCalled: func(_ uint32, _ uint32) uint64 {
 			return maxGasLimit
 		},
 	}

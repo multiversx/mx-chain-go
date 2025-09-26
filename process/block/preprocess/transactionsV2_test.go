@@ -42,13 +42,13 @@ func createTransactionPreprocessor() *transactions {
 			MaxGasLimitPerMiniBlockForSafeCrossShardCalled: func() uint64 {
 				return MaxGasLimitPerBlock
 			},
-			MaxGasLimitPerBlockForSafeCrossShardCalled: func() uint64 {
+			MaxGasLimitPerBlockForSafeCrossShardInEpochCalled: func(_ uint32) uint64 {
 				return MaxGasLimitPerBlock
 			},
-			MaxGasLimitPerBlockCalled: func(_ uint32) uint64 {
+			MaxGasLimitPerBlockInEpochCalled: func(_ uint32, _ uint32) uint64 {
 				return MaxGasLimitPerBlock
 			},
-			MaxGasLimitPerTxCalled: func() uint64 {
+			MaxGasLimitPerTxInEpochCalled: func(_ uint32) uint64 {
 				return MaxGasLimitPerBlock
 			},
 		},

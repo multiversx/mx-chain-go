@@ -845,13 +845,13 @@ func createDefaultMiniBlockBuilderArgs() miniBlocksBuilderArgs {
 				},
 			},
 			economicsFee: &economicsmocks.EconomicsHandlerMock{
-				MaxGasLimitPerTxCalled: func() uint64 {
+				MaxGasLimitPerTxInEpochCalled: func(_ uint32) uint64 {
 					return 1000000
 				},
-				MaxGasLimitPerBlockForSafeCrossShardCalled: func() uint64 {
+				MaxGasLimitPerBlockForSafeCrossShardInEpochCalled: func(_ uint32) uint64 {
 					return 1000000
 				},
-				MaxGasLimitPerBlockCalled: func(shardID uint32) uint64 {
+				MaxGasLimitPerBlockInEpochCalled: func(shardID uint32, _ uint32) uint64 {
 					return 1000000
 				},
 			},

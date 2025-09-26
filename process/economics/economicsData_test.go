@@ -1438,7 +1438,7 @@ func TestEconomicsData_BlockCapacityOverestimationFactor(t *testing.T) {
 	args := createArgsForEconomicsDataRealFees()
 	economicData, _ := economics.NewEconomicsData(args)
 
-	require.Equal(t, uint64(200), economicData.BlockCapacityOverestimationFactor())
+	require.Equal(t, uint64(100), economicData.BlockCapacityOverestimationFactor())
 }
 
 func TestEconomicsData_SetStatusHandler(t *testing.T) {

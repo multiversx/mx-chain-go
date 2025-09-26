@@ -84,6 +84,15 @@ func FeeHandlerMock() *economicsmocks.EconomicsHandlerMock {
 		MaxGasLimitPerTxCalled: func() uint64 {
 			return MaxGasLimitPerBlock
 		},
+		MaxGasLimitPerTxInEpochCalled: func(_ uint32) uint64 {
+			return MaxGasLimitPerBlock
+		},
+		MaxGasLimitPerBlockForSafeCrossShardInEpochCalled: func(_ uint32) uint64 {
+			return MaxGasLimitPerBlock
+		},
+		MaxGasLimitPerBlockInEpochCalled: func(shardID uint32, _ uint32) uint64 {
+			return MaxGasLimitPerBlock
+		},
 	}
 }
 
