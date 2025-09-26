@@ -511,6 +511,7 @@ func createProcessorsForMetaGenesisBlock(arg ArgsGenesisBlockCreator, enableEpoc
 		disabledBlockSizeComputationHandler,
 		disabledBalanceComputationHandler,
 		enableEpochsHandler,
+		enableRoundsHandler,
 		txTypeHandler,
 		disabledScheduledTxsExecutionHandler,
 		disabledProcessedMiniBlocksTracker,

@@ -66,6 +66,7 @@ func createTransactionPreprocessor() *transactions {
 			},
 		},
 		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		EnableRoundsHandler: &testscommon.EnableRoundsHandlerStub{},
 		TxTypeHandler: &testscommon.TxTypeHandlerMock{
 			ComputeTransactionTypeCalled: func(tx data.TransactionHandler) (process.TransactionType, process.TransactionType, bool) {
 				if bytes.Equal(tx.GetRcvAddr(), []byte("smart contract address")) {

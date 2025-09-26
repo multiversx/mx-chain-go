@@ -12,6 +12,7 @@ import (
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/economicsmocks"
+	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
 	stateMock "github.com/multiversx/mx-chain-go/testscommon/state"
@@ -496,6 +497,8 @@ func Test_MiniBlocksBuilderAccountGasForTxComputeGasProvidedWithErr(t *testing.T
 				return 0, 0, expectedErr
 			},
 		},
+		enableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		enableRoundsHandler: &testscommon.EnableRoundsHandlerStub{},
 	}
 	mbb, _ := newMiniBlockBuilder(args)
 	sender, _ := hex.DecodeString("aaaaaaaaaa" + suffixShard0)
@@ -528,6 +531,8 @@ func Test_MiniBlocksBuilderAccountGasForTxComputeGasProvidedOK(t *testing.T) {
 				return gasProvidedByTxInSenderShard, gasProvidedByTxInReceiverShard, nil
 			},
 		},
+		enableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		enableRoundsHandler: &testscommon.EnableRoundsHandlerStub{},
 	}
 	mbb, _ := newMiniBlockBuilder(args)
 	sender, _ := hex.DecodeString("aaaaaaaaaa" + suffixShard0)
@@ -796,6 +801,8 @@ func Test_MiniBlocksBuilderCheckAddTransactionGasAccountingError(t *testing.T) {
 				return 0, 0, expectedErr
 			},
 		},
+		enableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		enableRoundsHandler: &testscommon.EnableRoundsHandlerStub{},
 	}
 	mbb, _ := newMiniBlockBuilder(args)
 
@@ -856,6 +863,8 @@ func createDefaultMiniBlockBuilderArgs() miniBlocksBuilderArgs {
 				RemoveGasPenalizedCalled: func(hashes [][]byte) {
 				},
 			},
+			enableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+			enableRoundsHandler: &testscommon.EnableRoundsHandlerStub{},
 		},
 		accounts:                  &stateMock.AccountsStub{},
 		blockSizeComputation:      &testscommon.BlockSizeComputationStub{},

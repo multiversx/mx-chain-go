@@ -49,6 +49,7 @@ func NewSmartContractResultPreprocessor(
 	blockSizeComputation BlockSizeComputationHandler,
 	balanceComputation BalanceComputationHandler,
 	enableEpochsHandler common.EnableEpochsHandler,
+	enableRoundsHandler common.EnableRoundsHandler,
 	processedMiniBlocksTracker process.ProcessedMiniBlocksTracker,
 	txExecutionOrderHandler common.TxExecutionOrderHandler,
 ) (*smartContractResults, error) {
@@ -95,6 +96,9 @@ func NewSmartContractResultPreprocessor(
 	if check.IfNil(enableEpochsHandler) {
 		return nil, process.ErrNilEnableEpochsHandler
 	}
+	if check.IfNil(enableRoundsHandler) {
+		return nil, process.ErrNilEnableRoundsHandler
+	}
 	if check.IfNil(processedMiniBlocksTracker) {
 		return nil, process.ErrNilProcessedMiniBlocksTracker
 	}
@@ -114,9 +118,11 @@ func NewSmartContractResultPreprocessor(
 		hasher:      hasher,
 		marshalizer: marshalizer,
 		gasTracker: gasTracker{
-			shardCoordinator: shardCoordinator,
-			gasHandler:       gasHandler,
-			economicsFee:     economicsFee,
+			shardCoordinator:    shardCoordinator,
+			gasHandler:          gasHandler,
+			economicsFee:        economicsFee,
+			enableEpochsHandler: enableEpochsHandler,
+			enableRoundsHandler: enableRoundsHandler,
 		},
 		blockSizeComputation:       blockSizeComputation,
 		balanceComputation:         balanceComputation,

@@ -599,6 +599,7 @@ func createProcessorsForShardGenesisBlock(arg ArgsGenesisBlockCreator, enableEpo
 		disabledBlockSizeComputationHandler,
 		disabledBalanceComputationHandler,
 		enableEpochsHandler,
+		enableRoundsHandler,
 		txTypeHandler,
 		disabledScheduledTxsExecutionHandler,
 		disabledProcessedMiniBlocksTracker,

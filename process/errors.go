@@ -540,6 +540,9 @@ var ErrInvalidExtraGasLimitGuardedTx = errors.New("invalid extra gas limit for g
 // ErrInvalidMaxGasPriceSetGuardian signals that an invalid maximum gas price has been provided in the config file
 var ErrInvalidMaxGasPriceSetGuardian = errors.New("invalid maximum gas price for set guardian")
 
+// ErrInvalidBlockCapacityOverestimationFactor signals that an invalid block capacity overestimation factor has been provided in the config file
+var ErrInvalidBlockCapacityOverestimationFactor = errors.New("invalid block capacity overestimation factor")
+
 // ErrInvalidMaxGasHigherFactorAccepted signals that an invalid gas factor has been provided in the config file
 var ErrInvalidMaxGasHigherFactorAccepted = errors.New("invalid gas higher factor accepted")
 

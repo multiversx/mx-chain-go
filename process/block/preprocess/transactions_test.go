@@ -237,6 +237,7 @@ func createDefaultTransactionsProcessorArgs() ArgsTransactionPreProcessor {
 		BlockSizeComputation:         &testscommon.BlockSizeComputationStub{},
 		BalanceComputation:           &testscommon.BalanceComputationStub{},
 		EnableEpochsHandler:          enableEpochsHandlerMock.NewEnableEpochsHandlerStub(),
+		EnableRoundsHandler:          &testscommon.EnableRoundsHandlerStub{},
 		TxTypeHandler:                &testscommon.TxTypeHandlerMock{},
 		ScheduledTxsExecutionHandler: &testscommon.ScheduledTxsExecutionStub{},
 		ProcessedMiniBlocksTracker:   &testscommon.ProcessedMiniBlocksTrackerStub{},
@@ -425,6 +426,17 @@ func TestTxsPreprocessor_NewTransactionPreprocessorInvalidEnableEpochsHandler(t 
 	txs, err := NewTransactionPreprocessor(args)
 	assert.Nil(t, txs)
 	assert.True(t, errors.Is(err, core.ErrInvalidEnableEpochsHandler))
+}
+
+func TestTxsPreprocessor_NewTransactionPreprocessorNilEnableRoundsHandler(t *testing.T) {
+	t.Parallel()
+
+	args := createDefaultTransactionsProcessorArgs()
+	args.EnableRoundsHandler = nil
+
+	txs, err := NewTransactionPreprocessor(args)
+	assert.Nil(t, txs)
+	assert.True(t, errors.Is(err, core.ErrNilEnableEpochsHandler))
 }
 
 func TestTxsPreprocessor_NewTransactionPreprocessorNilTxTypeHandler(t *testing.T) {
@@ -969,7 +981,7 @@ func TestCleanupSelfShardTxCache(t *testing.T) {
 	}
 
 	expectEvictedByRemoveTxsFromPool := 8 // 5 selected (2,3 for alice, 42,43 for bob, 7 for carol) + lower nonces: 1 for alice, 6 *2 for carol
-	expectedEvictedByCleanup := 4         //nonce 779 * 2 for dave, nonce 100, 101 for eve
+	expectedEvictedByCleanup := 4         // nonce 779 * 2 for dave, nonce 100, 101 for eve
 	assert.Equal(t, 15-expectedEvictedByCleanup-expectEvictedByRemoveTxsFromPool, int(txs.txPool.GetCounts().GetTotal()))
 }
 
@@ -1856,9 +1868,11 @@ func TestTransactionsPreProcessor_preFilterTransactionsNoBandwidth(t *testing.T)
 	txsProcessor := &transactions{
 		basePreProcess: &basePreProcess{
 			gasTracker: gasTracker{
-				shardCoordinator: mock.NewMultiShardsCoordinatorMock(3),
-				economicsFee:     economicsFee,
-				gasHandler:       gasHandler,
+				shardCoordinator:    mock.NewMultiShardsCoordinatorMock(3),
+				economicsFee:        economicsFee,
+				gasHandler:          gasHandler,
+				enableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+				enableRoundsHandler: &testscommon.EnableRoundsHandlerStub{},
 			},
 		},
 	}
@@ -1905,9 +1919,11 @@ func TestTransactionsPreProcessor_preFilterTransactionsLimitedBandwidthMultipleT
 	txsProcessor := &transactions{
 		basePreProcess: &basePreProcess{
 			gasTracker: gasTracker{
-				shardCoordinator: mock.NewMultiShardsCoordinatorMock(3),
-				economicsFee:     economicsFee,
-				gasHandler:       gasHandler,
+				shardCoordinator:    mock.NewMultiShardsCoordinatorMock(3),
+				economicsFee:        economicsFee,
+				gasHandler:          gasHandler,
+				enableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+				enableRoundsHandler: &testscommon.EnableRoundsHandlerStub{},
 			},
 		},
 	}
@@ -1966,9 +1982,11 @@ func TestTransactionsPreProcessor_preFilterTransactionsLimitedBandwidthMultipleT
 	txsProcessor := &transactions{
 		basePreProcess: &basePreProcess{
 			gasTracker: gasTracker{
-				shardCoordinator: mock.NewMultiShardsCoordinatorMock(3),
-				economicsFee:     economicsFee,
-				gasHandler:       gasHandler,
+				shardCoordinator:    mock.NewMultiShardsCoordinatorMock(3),
+				economicsFee:        economicsFee,
+				gasHandler:          gasHandler,
+				enableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+				enableRoundsHandler: &testscommon.EnableRoundsHandlerStub{},
 			},
 		},
 	}
@@ -2035,9 +2053,11 @@ func TestTransactionsPreProcessor_preFilterTransactionsHighBandwidth(t *testing.
 	txsProcessor := &transactions{
 		basePreProcess: &basePreProcess{
 			gasTracker: gasTracker{
-				shardCoordinator: mock.NewMultiShardsCoordinatorMock(3),
-				economicsFee:     economicsFee,
-				gasHandler:       gasHandler,
+				shardCoordinator:    mock.NewMultiShardsCoordinatorMock(3),
+				economicsFee:        economicsFee,
+				gasHandler:          gasHandler,
+				enableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+				enableRoundsHandler: &testscommon.EnableRoundsHandlerStub{},
 			},
 		},
 	}
@@ -2096,9 +2116,11 @@ func TestTransactionsPreProcessor_getRemainingGasPerBlock(t *testing.T) {
 	txsProcessor := &transactions{
 		basePreProcess: &basePreProcess{
 			gasTracker: gasTracker{
-				shardCoordinator: mock.NewMultiShardsCoordinatorMock(3),
-				economicsFee:     economicsFee,
-				gasHandler:       gasHandler,
+				shardCoordinator:    mock.NewMultiShardsCoordinatorMock(3),
+				economicsFee:        economicsFee,
+				gasHandler:          gasHandler,
+				enableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+				enableRoundsHandler: &testscommon.EnableRoundsHandlerStub{},
 			},
 			enableEpochsHandler: enableEpochsHandlerMock.NewEnableEpochsHandlerStub(),
 		},
@@ -2126,9 +2148,11 @@ func TestTransactionsPreProcessor_getRemainingGasPerBlockAsScheduled(t *testing.
 	txsProcessor := &transactions{
 		basePreProcess: &basePreProcess{
 			gasTracker: gasTracker{
-				shardCoordinator: mock.NewMultiShardsCoordinatorMock(3),
-				economicsFee:     economicsFee,
-				gasHandler:       gasHandler,
+				shardCoordinator:    mock.NewMultiShardsCoordinatorMock(3),
+				economicsFee:        economicsFee,
+				gasHandler:          gasHandler,
+				enableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+				enableRoundsHandler: &testscommon.EnableRoundsHandlerStub{},
 			},
 		},
 	}
@@ -2332,7 +2356,9 @@ func TestTransactions_ComputeCacheIdentifier(t *testing.T) {
 		txs := &transactions{
 			basePreProcess: &basePreProcess{
 				gasTracker: gasTracker{
-					shardCoordinator: coordinator,
+					shardCoordinator:    coordinator,
+					enableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+					enableRoundsHandler: &testscommon.EnableRoundsHandlerStub{},
 				},
 				enableEpochsHandler: enableEpochsHandlerMock.NewEnableEpochsHandlerStub(common.ScheduledMiniBlocksFlag),
 			},

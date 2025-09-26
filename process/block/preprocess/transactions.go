@@ -73,6 +73,7 @@ type ArgsTransactionPreProcessor struct {
 	BlockSizeComputation         BlockSizeComputationHandler
 	BalanceComputation           BalanceComputationHandler
 	EnableEpochsHandler          common.EnableEpochsHandler
+	EnableRoundsHandler          common.EnableRoundsHandler
 	TxTypeHandler                process.TxTypeHandler
 	ScheduledTxsExecutionHandler process.ScheduledTxsExecutionHandler
 	ProcessedMiniBlocksTracker   process.ProcessedMiniBlocksTracker
@@ -129,6 +130,9 @@ func NewTransactionPreprocessor(
 	if check.IfNil(args.EnableEpochsHandler) {
 		return nil, process.ErrNilEnableEpochsHandler
 	}
+	if check.IfNil(args.EnableRoundsHandler) {
+		return nil, process.ErrNilEnableRoundsHandler
+	}
 	err := core.CheckHandlerCompatibility(args.EnableEpochsHandler, []core.EnableEpochFlag{
 		common.OptimizeGasUsedInCrossMiniBlocksFlag,
 		common.ScheduledMiniBlocksFlag,
@@ -174,9 +178,11 @@ func NewTransactionPreprocessor(
 		hasher:      args.Hasher,
 		marshalizer: args.Marshalizer,
 		gasTracker: gasTracker{
-			shardCoordinator: args.ShardCoordinator,
-			gasHandler:       args.GasHandler,
-			economicsFee:     args.EconomicsFee,
+			shardCoordinator:    args.ShardCoordinator,
+			gasHandler:          args.GasHandler,
+			economicsFee:        args.EconomicsFee,
+			enableEpochsHandler: args.EnableEpochsHandler,
+			enableRoundsHandler: args.EnableRoundsHandler,
 		},
 		blockSizeComputation:       args.BlockSizeComputation,
 		balanceComputation:         args.BalanceComputation,

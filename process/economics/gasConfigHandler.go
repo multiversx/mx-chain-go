@@ -30,13 +30,14 @@ type gasConfig struct {
 }
 
 type gasConfigHandler struct {
-	statusHandler          core.AppStatusHandler
-	gasLimitSettings       []*gasConfig
-	minGasPrice            uint64
-	gasPerDataByte         uint64
-	genesisTotalSupply     *big.Int
-	maxGasPriceSetGuardian uint64
-	mut                    sync.RWMutex
+	statusHandler                     core.AppStatusHandler
+	gasLimitSettings                  []*gasConfig
+	minGasPrice                       uint64
+	gasPerDataByte                    uint64
+	genesisTotalSupply                *big.Int
+	maxGasPriceSetGuardian            uint64
+	blockCapacityOverestimationFactor uint64
+	mut                               sync.RWMutex
 }
 
 // newGasConfigHandler returns a new instance of gasConfigHandler
@@ -50,18 +51,19 @@ func newGasConfigHandler(economics *config.EconomicsConfig) (*gasConfigHandler, 
 		return gasConfigSlice[i].gasLimitSettingEpoch < gasConfigSlice[j].gasLimitSettingEpoch
 	})
 
-	minGasPrice, gasPerDataByte, genesisTotalSupply, maxGasPriceSetGuardian, err := convertGenericValues(economics)
+	minGasPrice, gasPerDataByte, genesisTotalSupply, maxGasPriceSetGuardian, blockCapacityOverestimationFactor, err := convertGenericValues(economics)
 	if err != nil {
 		return nil, err
 	}
 
 	return &gasConfigHandler{
-		statusHandler:          statusHandler.NewNilStatusHandler(),
-		gasLimitSettings:       gasConfigSlice,
-		minGasPrice:            minGasPrice,
-		gasPerDataByte:         gasPerDataByte,
-		genesisTotalSupply:     genesisTotalSupply,
-		maxGasPriceSetGuardian: maxGasPriceSetGuardian,
+		statusHandler:                     statusHandler.NewNilStatusHandler(),
+		gasLimitSettings:                  gasConfigSlice,
+		minGasPrice:                       minGasPrice,
+		gasPerDataByte:                    gasPerDataByte,
+		genesisTotalSupply:                genesisTotalSupply,
+		maxGasPriceSetGuardian:            maxGasPriceSetGuardian,
+		blockCapacityOverestimationFactor: blockCapacityOverestimationFactor,
 	}, nil
 }
 
@@ -259,29 +261,36 @@ func checkAndParseGasLimitSettings(gasLimitSetting config.GasLimitSetting) (*gas
 	return gc, nil
 }
 
-func convertGenericValues(economics *config.EconomicsConfig) (uint64, uint64, *big.Int, uint64, error) {
+func convertGenericValues(economics *config.EconomicsConfig) (uint64, uint64, *big.Int, uint64, uint64, error) {
 	conversionBase := 10
 	bitConversionSize := 64
 
 	minGasPrice, err := strconv.ParseUint(economics.FeeSettings.MinGasPrice, conversionBase, bitConversionSize)
 	if err != nil {
-		return 0, 0, nil, 0, process.ErrInvalidMinimumGasPrice
+		return 0, 0, nil, 0, 0, process.ErrInvalidMinimumGasPrice
 	}
 
 	gasPerDataByte, err := strconv.ParseUint(economics.FeeSettings.GasPerDataByte, conversionBase, bitConversionSize)
 	if err != nil {
-		return 0, 0, nil, 0, process.ErrInvalidGasPerDataByte
+		return 0, 0, nil, 0, 0, process.ErrInvalidGasPerDataByte
 	}
 
 	genesisTotalSupply, ok := big.NewInt(0).SetString(economics.GlobalSettings.GenesisTotalSupply, conversionBase)
 	if !ok {
-		return 0, 0, nil, 0, process.ErrInvalidGenesisTotalSupply
+		return 0, 0, nil, 0, 0, process.ErrInvalidGenesisTotalSupply
 	}
 
 	maxGasPriceSetGuardian, err := strconv.ParseUint(economics.FeeSettings.MaxGasPriceSetGuardian, conversionBase, bitConversionSize)
 	if err != nil {
-		return 0, 0, nil, 0, process.ErrInvalidMaxGasPriceSetGuardian
+		return 0, 0, nil, 0, 0, process.ErrInvalidMaxGasPriceSetGuardian
 	}
 
-	return minGasPrice, gasPerDataByte, genesisTotalSupply, maxGasPriceSetGuardian, nil
+	// TODO[Sorin]: uncomment this once feat/supernova-async-exec merges with feat/sub-second-round
+	// blockCapacityOverestimationFactor, err := strconv.ParseUint(economics.FeeSettings.BlockCapacityOverestimationFactor, conversionBase, bitConversionSize)
+	// if err != nil {
+	// 	return 0, 0, nil, 0, 0, process.ErrInvalidBlockCapacityOverestimationFactor
+	// }
+	blockCapacityOverestimationFactor := uint64(200)
+
+	return minGasPrice, gasPerDataByte, genesisTotalSupply, maxGasPriceSetGuardian, blockCapacityOverestimationFactor, nil
 }

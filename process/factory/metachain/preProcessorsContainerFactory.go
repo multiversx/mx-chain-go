@@ -35,6 +35,7 @@ type preProcessorsContainerFactory struct {
 	blockSizeComputation         preprocess.BlockSizeComputationHandler
 	balanceComputation           preprocess.BalanceComputationHandler
 	enableEpochsHandler          common.EnableEpochsHandler
+	enableRoundsHandler          common.EnableRoundsHandler
 	txTypeHandler                process.TxTypeHandler
 	scheduledTxsExecutionHandler process.ScheduledTxsExecutionHandler
 	processedMiniBlocksTracker   process.ProcessedMiniBlocksTracker
@@ -60,6 +61,7 @@ func NewPreProcessorsContainerFactory(
 	blockSizeComputation preprocess.BlockSizeComputationHandler,
 	balanceComputation preprocess.BalanceComputationHandler,
 	enableEpochsHandler common.EnableEpochsHandler,
+	enableRoundsHandler common.EnableRoundsHandler,
 	txTypeHandler process.TxTypeHandler,
 	scheduledTxsExecutionHandler process.ScheduledTxsExecutionHandler,
 	processedMiniBlocksTracker process.ProcessedMiniBlocksTracker,
@@ -115,6 +117,9 @@ func NewPreProcessorsContainerFactory(
 	if check.IfNil(enableEpochsHandler) {
 		return nil, process.ErrNilEnableEpochsHandler
 	}
+	if check.IfNil(enableRoundsHandler) {
+		return nil, process.ErrNilEnableRoundsHandler
+	}
 	if check.IfNil(txTypeHandler) {
 		return nil, process.ErrNilTxTypeHandler
 	}
@@ -145,6 +150,7 @@ func NewPreProcessorsContainerFactory(
 		blockSizeComputation:         blockSizeComputation,
 		balanceComputation:           balanceComputation,
 		enableEpochsHandler:          enableEpochsHandler,
+		enableRoundsHandler:          enableRoundsHandler,
 		txTypeHandler:                txTypeHandler,
 		scheduledTxsExecutionHandler: scheduledTxsExecutionHandler,
 		processedMiniBlocksTracker:   processedMiniBlocksTracker,
@@ -198,6 +204,7 @@ func (ppcm *preProcessorsContainerFactory) createTxPreProcessor() (process.PrePr
 		BlockSizeComputation:         ppcm.blockSizeComputation,
 		BalanceComputation:           ppcm.balanceComputation,
 		EnableEpochsHandler:          ppcm.enableEpochsHandler,
+		EnableRoundsHandler:          ppcm.enableRoundsHandler,
 		TxTypeHandler:                ppcm.txTypeHandler,
 		ScheduledTxsExecutionHandler: ppcm.scheduledTxsExecutionHandler,
 		ProcessedMiniBlocksTracker:   ppcm.processedMiniBlocksTracker,
@@ -226,6 +233,7 @@ func (ppcm *preProcessorsContainerFactory) createSmartContractResultPreProcessor
 		ppcm.blockSizeComputation,
 		ppcm.balanceComputation,
 		ppcm.enableEpochsHandler,
+		ppcm.enableRoundsHandler,
 		ppcm.processedMiniBlocksTracker,
 		ppcm.txExecutionOrderHandler,
 	)
