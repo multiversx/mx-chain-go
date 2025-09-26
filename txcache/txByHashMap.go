@@ -65,7 +65,7 @@ func (txMap *txByHashMap) getTx(txHash string) (*WrappedTransaction, bool) {
 
 // GetTxsBulk gets a bulk of transactions from map
 func (txMap *txByHashMap) GetTxsBulk(txHashes [][]byte) []*WrappedTransaction {
-	txs := make([]*WrappedTransaction, 0)
+	txs := make([]*WrappedTransaction, 0, len(txHashes))
 	for _, txHash := range txHashes {
 		txUntyped, ok := txMap.backingMap.Get(string(txHash))
 		if !ok {

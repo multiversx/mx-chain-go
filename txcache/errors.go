@@ -17,7 +17,6 @@ var errDiscontinuousSequenceOfBlocks = errors.New("discontinuous sequence of blo
 var errNilTxCache = errors.New("nil tx cache")
 var errNotFoundTx = errors.New("tx not found")
 var errDiscontinuousBreadcrumbs = errors.New("discontinuous breadcrumbs")
-var errBreadcrumbOfFeePayer = errors.New("breadcrumb of fee payer")
 var errBreadcrumbNotFound = errors.New("breadcrumb not found")
 var errLastNonceNotFound = errors.New("last nonce not found")
 var errNonceGap = errors.New("nonce gap")

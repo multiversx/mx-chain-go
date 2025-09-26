@@ -11,6 +11,7 @@ import (
 	"golang.org/x/exp/slices"
 )
 
+// TODO rename this to proposedBlocksTracker
 type selectionTracker struct {
 	mutTracker       sync.RWMutex
 	latestNonce      uint64
