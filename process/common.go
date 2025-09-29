@@ -1214,8 +1214,10 @@ func CreateDataForInclusionEstimation(
 }
 
 // IsNotExecutableTransactionError checks if the given error is related to a transaction which cannot be executed
+// TODO: needs to be called for Supernova processing
 func IsNotExecutableTransactionError(err error) bool {
 	return errors.Is(err, ErrLowerNonceInTransaction) ||
+		errors.Is(err, ErrHigherNonceInTransaction) ||
 		errors.Is(err, ErrInsufficientFee) ||
 		errors.Is(err, ErrTransactionNotExecutable)
 }

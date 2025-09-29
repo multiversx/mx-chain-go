@@ -6,6 +6,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/process"
@@ -109,6 +110,16 @@ func (ppcm *intermediateProcessorsContainerFactory) Create() (process.Intermedia
 		return nil, err
 	}
 
+	interproc, err = ppcm.createUnExecutableIntermediateProcessor()
+	if err != nil {
+		return nil, err
+	}
+
+	err = container.Add(block.UnExecutableBlock, interproc)
+	if err != nil {
+		return nil, err
+	}
+
 	return container, nil
 }
 
@@ -136,6 +147,20 @@ func (ppcm *intermediateProcessorsContainerFactory) createBadTransactionsInterme
 		ppcm.shardCoordinator,
 		ppcm.store,
 		block.InvalidBlock,
+		dataRetriever.TransactionUnit,
+		ppcm.economicsFee,
+	)
+
+	return irp, err
+}
+
+func (ppcm *intermediateProcessorsContainerFactory) createUnExecutableIntermediateProcessor() (process.IntermediateTransactionHandler, error) {
+	irp, err := postprocess.NewOneMiniBlockPostProcessor(
+		ppcm.hasher,
+		ppcm.marshalizer,
+		ppcm.shardCoordinator,
+		ppcm.store,
+		block.UnExecutableBlock,
 		dataRetriever.TransactionUnit,
 		ppcm.economicsFee,
 	)

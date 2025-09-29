@@ -44,6 +44,7 @@ type TransactionProcessor interface {
 	ProcessTransaction(transaction *transaction.Transaction) (vmcommon.ReturnCode, error)
 	VerifyTransaction(transaction *transaction.Transaction) error
 	VerifyGuardian(tx *transaction.Transaction, account state.UserAccountHandler) error
+	RegisterUnExecutableTransaction(tx *transaction.Transaction, txHash []byte) error
 	IsInterfaceNil() bool
 }
 
@@ -184,6 +185,8 @@ type TransactionCoordinator interface {
 
 	SelectOutgoingTransactions() [][]byte
 	CreateMbsCrossShardDstMe(header data.HeaderHandler, processedMiniBlocksInfo map[string]*processedMb.ProcessedMiniBlockInfo) ([]block.MiniblockAndHash, uint32, bool, error)
+
+	// CollectExecutionResults(header data.HeaderHandler, body *block.Body) (data.BaseExecutionResultHandler, error)
 }
 
 // SmartContractProcessor is the main interface for the smart contract caller engine

@@ -125,6 +125,11 @@ func (ppcm *intermediateProcessorsContainerFactory) Create() (process.Intermedia
 		return nil, err
 	}
 
+	err = container.Add(block.UnExecutableBlock, interproc)
+	if err != nil {
+		return nil, err
+	}
+
 	return container, nil
 }
 

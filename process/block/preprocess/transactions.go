@@ -591,6 +591,10 @@ func (txs *transactions) processTxsFromMe(
 	if err != nil {
 		return err
 	}
+	// TODO: replace the check to use the round activation for async execution
+	if txs.enableEpochsHandler.IsFlagEnabled(common.SupernovaFlag) {
+		return nil
+	}
 
 	if !haveTime() {
 		return process.ErrTimeIsOut
@@ -611,8 +615,12 @@ func (txs *transactions) processTxsFromMe(
 
 	calculatedMiniBlocks = append(calculatedMiniBlocks, scheduledMiniBlocks...)
 
+	return txs.checkMiniBlocks(calculatedMiniBlocks, body.MiniBlocks)
+}
+
+func (txs *transactions) checkMiniBlocks(calculatedMiniBlocks, bodyMiniBlocks block.MiniBlockSlice) error {
 	receivedMiniBlocks := make(block.MiniBlockSlice, 0)
-	for _, miniBlock := range body.MiniBlocks {
+	for _, miniBlock := range bodyMiniBlocks {
 		if miniBlock.Type == block.InvalidBlock {
 			continue
 		}
@@ -812,7 +820,7 @@ func (txs *transactions) processAndRemoveBadTransaction(
 ) error {
 	txs.txExecutionOrderHandler.Add(txHash)
 	_, err := txs.txProcessor.ProcessTransaction(tx)
-	isNotExecutable := process.IsNotExecutableTransactionError(err)
+	isNotExecutable := errors.Is(err, process.ErrLowerNonceInTransaction) || errors.Is(err, process.ErrInsufficientFee) || errors.Is(err, process.ErrTransactionNotExecutable)
 	if isNotExecutable {
 		txs.txExecutionOrderHandler.Remove(txHash)
 		strCache := process.ShardCacherIdentifier(sndShardId, dstShardId)

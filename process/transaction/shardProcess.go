@@ -299,6 +299,20 @@ func (txProc *txProcessor) executeAfterFailedMoveBalanceTransaction(
 	return txError
 }
 
+// RegisterUnExecutableTransaction adds a transaction that could not be executed to the unExecutableTxForwarder
+func (txProc *txProcessor) RegisterUnExecutableTransaction(tx *transaction.Transaction, txHash []byte) error {
+	if check.IfNil(tx) {
+		return process.ErrNilTransaction
+	}
+
+	err := txProc.unExecutableTxForwarder.AddIntermediateTransactions([]data.TransactionHandler{tx}, txHash)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (txProc *txProcessor) executingFailedTransaction(
 	tx *transaction.Transaction,
 	acntSnd state.UserAccountHandler,
@@ -867,7 +881,7 @@ func (txProc *txProcessor) removeValueAndConsumedFeeFromUser(
 }
 
 func (txProc *txProcessor) addNonExecutableLog(executionErr error, originalTxHash []byte, originalTx data.TransactionHandler) error {
-	if !process.IsNotExecutableTransactionError(executionErr) {
+	if !isNonExecutableError(executionErr) {
 		return nil
 	}
 
@@ -1144,11 +1158,17 @@ func (txProc *txProcessor) shouldIncreaseNonce(executionErr error) bool {
 		return true
 	}
 
-	if process.IsNotExecutableTransactionError(executionErr) {
+	if isNonExecutableError(executionErr) {
 		return false
 	}
 
 	return true
+}
+
+func isNonExecutableError(executionErr error) bool {
+	return errors.Is(executionErr, process.ErrLowerNonceInTransaction) ||
+		errors.Is(executionErr, process.ErrHigherNonceInTransaction) ||
+		errors.Is(executionErr, process.ErrTransactionNotExecutable)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

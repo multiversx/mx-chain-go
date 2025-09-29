@@ -193,6 +193,14 @@ func (txs *transactions) processTransaction(
 		mbInfo.mapGasConsumedByMiniBlockInReceiverShard[receiverShardID] = oldGasConsumedByMiniBlockInReceiverShard
 		mbInfo.gasInfo.totalGasConsumedInSelfShard = oldTotalGasConsumedInSelfShard
 
+		// TODO: use the round activation flag check for transitioning to async execution
+		if txs.enableEpochsHandler.IsFlagEnabled(common.SupernovaFlag) {
+			errReg := txs.txProcessor.RegisterUnExecutableTransaction(tx, txHash)
+			if errReg != nil {
+				log.Warn("RegisterUnExecutableTransaction failed", "error", errReg.Error())
+			}
+		}
+
 		return false, err
 	}
 
@@ -373,7 +381,7 @@ func (txs *transactions) verifyTransaction(
 	mbInfo.schedulingInfo.totalTimeUsedForScheduledVerify += elapsedTime
 
 	if err != nil {
-		isTxTargetedForDeletion := process.IsNotExecutableTransactionError(err)
+		isTxTargetedForDeletion := errors.Is(err, process.ErrLowerNonceInTransaction) || errors.Is(err, process.ErrInsufficientFee) || errors.Is(err, process.ErrTransactionNotExecutable)
 		if isTxTargetedForDeletion {
 			strCache := process.ShardCacherIdentifier(senderShardID, receiverShardID)
 			txs.txPool.RemoveData(txHash, strCache)

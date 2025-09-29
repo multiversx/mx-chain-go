@@ -2063,6 +2063,16 @@ func (sp *shardProcessor) createMiniBlocks(haveTime func() bool, randomness []by
 		return &block.Body{MiniBlocks: miniBlocks}, processedMiniBlocksDestMeInfo, nil
 	}
 
+	if shouldDisableOutgoingTxs(sp.enableEpochsHandler, sp.enableRoundsHandler) {
+		interMBs := sp.txCoordinator.CreatePostProcessMiniBlocks()
+		miniBlocks = append(miniBlocks, interMBs...)
+
+		log.Debug("transactions and miniblocks from ME are no longer processed until asynchronous execution is activated.")
+		log.Debug("creating mini blocks has been finished", "num miniblocks", len(miniBlocks))
+
+		return &block.Body{MiniBlocks: miniBlocks}, processedMiniBlocksDestMeInfo, nil
+	}
+
 	startTime = time.Now()
 	mbsFromMe := sp.txCoordinator.CreateMbsAndProcessTransactionsFromMe(haveTime, randomness)
 	elapsedTime = time.Since(startTime)
@@ -2083,6 +2093,14 @@ func (sp *shardProcessor) createMiniBlocks(haveTime func() bool, randomness []by
 
 	log.Debug("creating mini blocks has been finished", "num miniblocks", len(miniBlocks))
 	return &block.Body{MiniBlocks: miniBlocks}, processedMiniBlocksDestMeInfo, nil
+}
+
+func shouldDisableOutgoingTxs(enableEpochsHandler common.EnableEpochsHandler, enableRoundsHandler process.EnableRoundsHandler) bool {
+	// // TODO: use flag for async execution
+	// isSupernovaEnabled := enableEpochsHandler.IsFlagEnabled(common.SupernovaFlag)
+	// asyncExecutionEnabled := enableRoundsHandler.IsFlagEnabled(common.SupernovaAsyncExecution)
+	// return isSupernovaEnabled && !asyncExecutionEnabled
+	return false
 }
 
 // applyBodyToHeader creates a miniblock header list given a block body

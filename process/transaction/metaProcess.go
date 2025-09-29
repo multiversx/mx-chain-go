@@ -8,11 +8,12 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/state"
-	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 )
 
 var _ process.TransactionProcessor = (*metaTxProcessor)(nil)
@@ -154,6 +155,11 @@ func (txProc *metaTxProcessor) ProcessTransaction(tx *transaction.Transaction) (
 	}
 
 	return vmcommon.UserError, nil
+}
+
+// RegisterUnExecutableTransaction registers the un-executable transaction in the smart contract processor
+func (txProc *metaTxProcessor) RegisterUnExecutableTransaction(_ *transaction.Transaction, _ []byte) error {
+	return process.ErrOperationNotSupportedOnMetaChain
 }
 
 func (txProc *metaTxProcessor) processSCDeployment(

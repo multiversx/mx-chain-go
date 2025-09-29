@@ -1391,3 +1391,6 @@ var ErrEpochStartInfoNotAvailable = errors.New("epoch start info not available")
 
 // ErrNilUnExecutableTxForwarder signals that a nil un-executable forwarder has been provided
 var ErrNilUnExecutableTxForwarder = errors.New("nil un-executable forwarder")
+
+// ErrOperationNotSupportedOnMetaChain signals that an operation is not supported on metachain
+var ErrOperationNotSupportedOnMetaChain = errors.New("operation not supported on metachain")
