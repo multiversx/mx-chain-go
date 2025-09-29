@@ -528,3 +528,8 @@ func (hhs *HeaderHandlerStub) GetExecutionResultsHandlers() []data.BaseExecution
 	}
 	return nil
 }
+
+// GetAccumulatedFeesInEpoch -
+func (hhs *HeaderHandlerStub) GetAccumulatedFeesInEpoch() *big.Int {
+	return nil
+}
