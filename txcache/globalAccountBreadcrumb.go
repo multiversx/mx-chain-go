@@ -100,7 +100,7 @@ func (gab *globalAccountBreadcrumb) updateOnRemoveAccountBreadcrumbOnProposedBlo
 
 	hasSameFirstNonce := gab.firstNonce == receivedBreadcrumb.firstNonce
 
-	// if our global breadcrumb has same last nonce with the received one it means we can mark it as a fee payer
+	// if our global breadcrumb has same first nonce with the received one it means we can mark it as a fee payer
 	if !gab.isFeePayer() && hasSameFirstNonce {
 		gab.setForFeePayer()
 	}
