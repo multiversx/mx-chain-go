@@ -6,6 +6,8 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 )
 
+// TODO should refactor this; each account virtual record should be simply created from a global account breadcrumb, without further updates
+
 type virtualAccountRecord struct {
 	initialNonce   core.OptionalUint64
 	virtualBalance *virtualAccountBalance

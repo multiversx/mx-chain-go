@@ -7,6 +7,8 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 )
 
+// globalAccountBreadcrumb will be used for the elements stored in the globalAccountBreadcrumbs from the SelectionTracker.
+// A globalAccountBreadcrumb should be affected each time a tracked block is added or removed.
 type globalAccountBreadcrumb struct {
 	firstNonce      core.OptionalUint64
 	lastNonce       core.OptionalUint64
@@ -35,7 +37,8 @@ func (gab *globalAccountBreadcrumb) setForFeePayer() {
 	}
 }
 
-// updateOnAddedAccountBreadcrumb updates a global breadcrumb when a tracked block is added
+// updateOnAddedAccountBreadcrumb updates a global breadcrumb when a tracked block is added,
+// but should be used only after the validation of the proposed block passed.
 func (gab *globalAccountBreadcrumb) updateOnAddedAccountBreadcrumb(receivedBreadcrumb *accountBreadcrumb) {
 	gab.extendConsumedBalance(receivedBreadcrumb)
 
@@ -75,7 +78,7 @@ func (gab *globalAccountBreadcrumb) updateOnRemoveAccountBreadcrumbOnExecutedBlo
 
 	if !gab.isFeePayer() {
 		if receivedBreadcrumb.hasUnknownNonce() {
-			// we do not update with nonce info from breadcrumb of relayer
+			// should not update with nonce info from breadcrumb of relayer
 			return false, nil
 		}
 
@@ -91,7 +94,8 @@ func (gab *globalAccountBreadcrumb) reduceLeftRange(receivedBreadcrumb *accountB
 	gab.firstNonce.HasValue = true
 }
 
-// updateOnRemoveAccountBreadcrumbOnExecutedBlock updates the global account breadcrumb when a block is removed on the OnProposedBlock notification
+// updateOnRemoveAccountBreadcrumbOnExecutedBlock updates the global account breadcrumb when a block is removed on the OnProposedBlock notification,
+// but should be used only after the validation of the proposed block passed.
 func (gab *globalAccountBreadcrumb) updateOnRemoveAccountBreadcrumbOnProposedBlock(receivedBreadcrumb *accountBreadcrumb) (bool, error) {
 	err := gab.reduceConsumedBalance(receivedBreadcrumb)
 	if err != nil {
@@ -107,7 +111,7 @@ func (gab *globalAccountBreadcrumb) updateOnRemoveAccountBreadcrumbOnProposedBlo
 
 	if !gab.isFeePayer() {
 		if receivedBreadcrumb.hasUnknownNonce() {
-			// we do not update with nonce info from breadcrumb of relayer
+			// should not update with nonce info from breadcrumb of relayer
 			return false, nil
 		}
 
@@ -145,7 +149,8 @@ func (gab *globalAccountBreadcrumb) isFeePayer() bool {
 
 func (gab *globalAccountBreadcrumb) canBeDeleted() bool {
 	hasConsumedBalance := gab.consumedBalance.Cmp(big.NewInt(0)) == 1
-	// it might be possible to delete that breadcrumb from the global map if it is a relayer breadcrumb but does not have a consumed balance
+	// it might be possible to delete the address of the breadcrumb from the global map,
+	// but only if it is a relayer breadcrumb and its consumed balance is equal to 0.
 	if gab.isFeePayer() && !hasConsumedBalance {
 		return true
 	}

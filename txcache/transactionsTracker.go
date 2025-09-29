@@ -6,6 +6,8 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 )
 
+// TODO should refactor this component to find the global account breadcrumb in the selection tracker and use it for a small range check.
+
 // accountRange defines a structure which contains the minimum and the maximum nonce of an account
 type accountRange struct {
 	minNonce core.OptionalUint64

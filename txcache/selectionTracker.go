@@ -243,6 +243,8 @@ func (st *selectionTracker) validateBreadcrumbsOfTrackedBlocks(
 func (st *selectionTracker) addNewTrackedBlockNoLock(blockToBeAddedHash []byte, blockToBeAdded *trackedBlock) {
 	// search if in the tracked block we already have one with same nonce
 	for bHash, b := range st.blocks {
+		// TODO should delete also blocks with nonce greater than the nonce of the blockToBeAdded
+		// TODO should iterate over the breadcrumbs of each tracked block, and call updateOnRemoveAccountBreadcrumbOnProposedBlock.
 		if b.sameNonce(blockToBeAdded) {
 			// delete that block and break because there should be maximum one tracked block with that nonce
 			delete(st.blocks, bHash)
@@ -257,6 +259,7 @@ func (st *selectionTracker) addNewTrackedBlockNoLock(blockToBeAddedHash []byte, 
 		}
 	}
 
+	// TODO should call updateOnAddedAccountBreadcrumb or create a new global account breadcrumb.
 	// add the new block
 	st.blocks[string(blockToBeAddedHash)] = blockToBeAdded
 }
@@ -292,6 +295,7 @@ func (st *selectionTracker) removeFromTrackedBlocksNoLock(searchedBlock *tracked
 	removedBlocks := 0
 	for blockHash, b := range st.blocks {
 		if b.sameNonceOrBelow(searchedBlock) {
+			// TODO should call updateOnRemoveAccountBreadcrumbOnExecutedBlock for each breadcrumb of the deleted tracked block
 			delete(st.blocks, blockHash)
 			removedBlocks++
 		}
@@ -344,6 +348,8 @@ func (st *selectionTracker) deriveVirtualSelectionSession(
 		"latestCommitedBlockHash", latestCommittedBlockHash,
 		"currentNonce", currentNonce,
 	)
+
+	// TODO should not re-create the chain anymore, but instead: transform each global account record into a virtual record.
 
 	trackedBlocks, err := st.getChainOfTrackedPendingBlocks(
 		latestExecutedBlockHash,
