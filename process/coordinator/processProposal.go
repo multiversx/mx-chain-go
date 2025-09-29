@@ -169,3 +169,45 @@ func (tc *transactionCoordinator) SelectOutgoingTransactions() [][]byte {
 
 	return selectedTxHashes
 }
+
+func (tc *transactionCoordinator) CollectExecutionResults(header data.HeaderHandler, body *block.Body) (data.BaseExecutionResultHandler, error) {
+	miniBlocks := tc.CreatePostProcessMiniBlocks()
+	allMiniBlocks := make([]*block.MiniBlock, 0, len(body.MiniBlocks)+len(miniBlocks))
+	allMiniBlocks = append(allMiniBlocks, body.MiniBlocks...)
+
+	var unExecutableBlock *block.MiniBlock
+	for i, mb := range miniBlocks {
+		if mb.Type == block.UnExecutableBlock {
+			unExecutableBlock = miniBlocks[i]
+		}
+		allMiniBlocks = append(allMiniBlocks, mb)
+	}
+
+	filterOutUnExecutableTransactions(allMiniBlocks, unExecutableBlock)
+
+	// TODO: finish the implementation
+	return nil, nil
+}
+
+func filterOutUnExecutableTransactions(allMiniBlocks []*block.MiniBlock, unExecutableBlock *block.MiniBlock) {
+	if unExecutableBlock == nil {
+		return
+	}
+
+	unExecutableTxs := make(map[string]bool)
+	for _, txHash := range unExecutableBlock.TxHashes {
+		unExecutableTxs[string(txHash)] = true
+	}
+
+	for _, mb := range allMiniBlocks {
+		filteredTxHashes := make([][]byte, 0, len(mb.TxHashes))
+		for _, txHash := range mb.TxHashes {
+			if !unExecutableTxs[string(txHash)] {
+				filteredTxHashes = append(filteredTxHashes, txHash)
+			}
+		}
+		mb.TxHashes = filteredTxHashes
+		// mb.
+		// TODO: finish the implementation
+	}
+}

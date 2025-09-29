@@ -282,7 +282,7 @@ func (sp *shardProcessor) ProcessBlockProposal(
 		return nil, err
 	}
 
-	// todo: add also a request if it is missing, although it should not be missing
+	// todo: add also a request if it is missing as a fallback, although it should not be missing at this point
 	err = sp.checkEpochStartInfoAvailableIfNeeded(header)
 	if err != nil {
 		return nil, err
@@ -319,15 +319,20 @@ func (sp *shardProcessor) ProcessBlockProposal(
 		return nil, err
 	}
 
-	err = sp.txCoordinator.VerifyCreatedBlockTransactions(header, body)
-	if err != nil {
-		return nil, err
-	}
+	// executionResult, err := sp.txCoordinator.CollectExecutionResults(header, body)
+	// if err != nil {
+	// 	return nil, err
+	// }
 
-	err = sp.txCoordinator.VerifyCreatedMiniBlocks(header, body)
-	if err != nil {
-		return nil, err
-	}
+	// err = sp.txCoordinator.VerifyCreatedBlockTransactions(header, body)
+	// if err != nil {
+	// 	return nil, err
+	// }
+	//
+	// err = sp.txCoordinator.VerifyCreatedMiniBlocks(header, body)
+	// if err != nil {
+	// 	return nil, err
+	// }
 
 	//
 	// err = sp.verifyFees(header)
@@ -340,13 +345,12 @@ func (sp *shardProcessor) ProcessBlockProposal(
 	// 	return err
 	// }
 	//
-	// err = sp.blockProcessingCutoffHandler.HandleProcessErrorCutoff(header)
-	// if err != nil {
-	// 	return err
-	// }
-	//
-	// return nil
-	//
+	errCutoff := sp.blockProcessingCutoffHandler.HandleProcessErrorCutoff(header)
+	if errCutoff != nil {
+		return nil, errCutoff
+	}
+
+	// return executionResult, nil
 	return nil, nil
 }
 
