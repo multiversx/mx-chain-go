@@ -170,6 +170,7 @@ func (mdi *MultiDataInterceptor) ProcessReceivedMessage(message p2p.MessageP2P, 
 			message.Peer(),
 			fromConnectedPeer,
 			message.Topic(),
+			message.BroadcastMethod(),
 		)
 		listInterceptedData[index] = interceptedData
 
@@ -250,6 +251,7 @@ func (mdi *MultiDataInterceptor) interceptedData(
 	originator core.PeerID,
 	fromConnectedPeer core.PeerID,
 	topic string,
+	broadcastMethod p2p.BroadcastMethod,
 ) (process.InterceptedData, error) {
 	interceptedData, err := mdi.factory.Create(dataBuff, originator)
 	if err != nil {
@@ -263,7 +265,7 @@ func (mdi *MultiDataInterceptor) interceptedData(
 
 	mdi.receivedDebugInterceptedData(interceptedData)
 
-	err = mdi.interceptedDataVerifier.Verify(interceptedData, topic)
+	err = mdi.interceptedDataVerifier.Verify(interceptedData, topic, broadcastMethod)
 	if err != nil {
 		mdi.processDebugInterceptedData(interceptedData, err)
 

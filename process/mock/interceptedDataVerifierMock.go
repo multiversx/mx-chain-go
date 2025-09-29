@@ -1,28 +1,29 @@
 package mock
 
 import (
+	"github.com/multiversx/mx-chain-go/p2p"
 	"github.com/multiversx/mx-chain-go/process"
 )
 
 // InterceptedDataVerifierMock -
 type InterceptedDataVerifierMock struct {
-	VerifyCalled       func(interceptedData process.InterceptedData, topic string) error
-	MarkVerifiedCalled func(interceptedData process.InterceptedData, topic string)
+	VerifyCalled       func(interceptedData process.InterceptedData, topic string, broadcastMethod p2p.BroadcastMethod) error
+	MarkVerifiedCalled func(interceptedData process.InterceptedData)
 }
 
 // Verify -
-func (idv *InterceptedDataVerifierMock) Verify(interceptedData process.InterceptedData, topic string) error {
+func (idv *InterceptedDataVerifierMock) Verify(interceptedData process.InterceptedData, topic string, broadcastMethod p2p.BroadcastMethod) error {
 	if idv.VerifyCalled != nil {
-		return idv.VerifyCalled(interceptedData, topic)
+		return idv.VerifyCalled(interceptedData, topic, broadcastMethod)
 	}
 
 	return nil
 }
 
 // MarkVerified -
-func (idv *InterceptedDataVerifierMock) MarkVerified(interceptedData process.InterceptedData, topic string) {
+func (idv *InterceptedDataVerifierMock) MarkVerified(interceptedData process.InterceptedData) {
 	if idv.MarkVerifiedCalled != nil {
-		idv.MarkVerifiedCalled(interceptedData, topic)
+		idv.MarkVerifiedCalled(interceptedData)
 	}
 }
 

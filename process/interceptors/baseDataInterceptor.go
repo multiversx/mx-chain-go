@@ -98,7 +98,7 @@ func (bdi *baseDataInterceptor) processInterceptedData(data process.InterceptedD
 	}
 
 	if savedData {
-		bdi.interceptedDataVerifier.MarkVerified(data, msg.Topic())
+		bdi.interceptedDataVerifier.MarkVerified(data)
 	}
 
 	log.Trace("intercepted data is processed",

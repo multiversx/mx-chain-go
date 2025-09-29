@@ -4,10 +4,10 @@ import (
 	"errors"
 	"strings"
 
-	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/core/sync"
 	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/p2p"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/storage"
 )
@@ -39,12 +39,12 @@ func NewInterceptedDataVerifier(cache storage.Cacher) (*interceptedDataVerifier,
 // Verify will check if the intercepted data has been validated before and put in the time cache.
 // It will retrieve the status in the cache if it exists, otherwise it will validate it and store the status of the
 // validation in the cache. Note that the entries are stored for a set period of time
-func (idv *interceptedDataVerifier) Verify(interceptedData process.InterceptedData, topic string) error {
+func (idv *interceptedDataVerifier) Verify(interceptedData process.InterceptedData, topic string, broadcastMethod p2p.BroadcastMethod) error {
 	if len(interceptedData.Hash()) == 0 {
 		return interceptedData.CheckValidity()
 	}
 
-	exists, err := idv.checkCachedData(interceptedData, topic)
+	exists, err := idv.checkCachedData(interceptedData, topic, broadcastMethod)
 	if err != nil {
 		return err
 	}
@@ -64,11 +64,7 @@ func (idv *interceptedDataVerifier) Verify(interceptedData process.InterceptedDa
 }
 
 // MarkVerified marks the intercepted data as verified
-func (idv *interceptedDataVerifier) MarkVerified(interceptedData process.InterceptedData, topic string) {
-	if !isCrossShardTopic(topic) {
-		return
-	}
-
+func (idv *interceptedDataVerifier) MarkVerified(interceptedData process.InterceptedData) {
 	if len(interceptedData.Hash()) == 0 {
 		return
 	}
@@ -79,7 +75,11 @@ func (idv *interceptedDataVerifier) MarkVerified(interceptedData process.Interce
 	idv.cache.Put(interceptedData.Hash(), validInterceptedData, interceptedDataStatusBytesSize)
 }
 
-func (idv *interceptedDataVerifier) checkCachedData(interceptedData process.InterceptedData, topic string) (bool, error) {
+func (idv *interceptedDataVerifier) checkCachedData(
+	interceptedData process.InterceptedData,
+	topic string,
+	broadcastMethod p2p.BroadcastMethod,
+) (bool, error) {
 	hash := string(interceptedData.Hash())
 	idv.km.RLock(hash)
 	defer idv.km.RUnlock(hash)
@@ -93,7 +93,7 @@ func (idv *interceptedDataVerifier) checkCachedData(interceptedData process.Inte
 		return ok, process.ErrInvalidInterceptedData
 	}
 
-	if !isCrossShardTopic(topic) {
+	if !shouldCheckForDuplicates(topic, broadcastMethod) {
 		return ok, nil
 	}
 
@@ -104,10 +104,15 @@ func (idv *interceptedDataVerifier) checkCachedData(interceptedData process.Inte
 	return ok, nil
 }
 
-func isCrossShardTopic(topic string) bool {
-	baseTopic, _ := strings.CutSuffix(topic, core.TopicRequestSuffix)
-	topicSplit := strings.Split(baseTopic, "_")
-	return len(topicSplit) == 3 || len(topicSplit) == 1 // cross _0_1 or global topic
+func shouldCheckForDuplicates(topic string, broadcastMethod p2p.BroadcastMethod) bool {
+	isDirectSend := broadcastMethod == p2p.Direct
+	if isDirectSend {
+		return false // skip deduplication on direct messages
+	}
+
+	topicSplit := strings.Split(topic, "_")
+	isCrossShardTopic := len(topicSplit) == 3 || len(topicSplit) == 1 // cross _0_1 or global topic
+	return isCrossShardTopic
 }
 
 func logInterceptedDataCheckValidityErr(interceptedData process.InterceptedData, err error) {
