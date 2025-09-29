@@ -8,6 +8,7 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-go/p2p"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -61,7 +62,7 @@ func createMockThrottler() *mock.InterceptorThrottlerStub {
 
 func createMockInterceptedDataVerifier() *mock.InterceptedDataVerifierMock {
 	return &mock.InterceptedDataVerifierMock{
-		VerifyCalled: func(interceptedData process.InterceptedData, topic string) error {
+		VerifyCalled: func(interceptedData process.InterceptedData, topic string, broadcastMethod p2p.BroadcastMethod) error {
 			return interceptedData.CheckValidity()
 		},
 	}

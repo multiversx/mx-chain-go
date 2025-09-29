@@ -1432,8 +1432,8 @@ type SentSignaturesTracker interface {
 
 // InterceptedDataVerifier defines a component able to verify intercepted data validity
 type InterceptedDataVerifier interface {
-	Verify(interceptedData InterceptedData, topic string) error
-	MarkVerified(interceptedData InterceptedData, topic string)
+	Verify(interceptedData InterceptedData, topic string, broadcastMethod p2p.BroadcastMethod) error
+	MarkVerified(interceptedData InterceptedData)
 	IsInterfaceNil() bool
 }
 
