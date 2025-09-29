@@ -201,7 +201,7 @@ func (txProc *txProcessor) ProcessTransaction(tx *transaction.Transaction) (vmco
 	// TODO refactor to set the tx hash for the following state accesses before the processing occurs
 	defer func() {
 		txProc.accounts.SetTxHashForLatestStateAccesses(txHash)
-		log.Debug("SetTxHashForLatestStateAccesses", "txHash", txHash)
+		log.Trace("SetTxHashForLatestStateAccesses", "txHash", txHash)
 	}()
 
 	txType, dstShardTxType, isRelayedV3 := txProc.txTypeHandler.ComputeTransactionType(tx)
