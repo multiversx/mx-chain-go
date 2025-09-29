@@ -16,6 +16,7 @@ type CacheConfig struct {
 // TxCacheBoundsConfig will map the transactions cache bounds config
 type TxCacheBoundsConfig struct {
 	MaxNumBytesPerSenderUpperBound uint32
+	MaxTrackedBlocks               uint32
 }
 
 // TxCacheSelectionConfig will map the mempool selection config
@@ -188,9 +189,10 @@ type Config struct {
 
 	ExecutionResultInclusionEstimator ExecutionResultInclusionEstimatorConfig
 
-	BootstrapStorage StorageConfig
-	MetaBlockStorage StorageConfig
-	ProofsStorage    StorageConfig
+	BootstrapStorage 		StorageConfig
+	MetaBlockStorage 		StorageConfig
+	ProofsStorage    		StorageConfig
+	ExecutionResultsStorage StorageConfig
 
 	AccountsTrieStorage       StorageConfig
 	PeerAccountsTrieStorage   StorageConfig
@@ -347,6 +349,7 @@ type FacadeConfig struct {
 	RestApiInterface            string
 	PprofEnabled                bool
 	P2PPrometheusMetricsEnabled bool
+	TxCacheSelectionConfig      TxCacheSelectionConfig
 }
 
 // StateTriesConfig will hold information about state tries

@@ -13,6 +13,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
+	"github.com/multiversx/mx-chain-go/state"
 	logger "github.com/multiversx/mx-chain-logger-go"
 
 	"github.com/multiversx/mx-chain-go/common/holders"
@@ -178,8 +179,22 @@ func (txs *transactions) RemoveBlockDataFromPools(body *block.Body, miniBlockPoo
 }
 
 // RemoveTxsFromPools removes transactions from associated pools
+// TODO CleanupSelfShardTxCache - Maybe find a solution to use block nonce instead of randomness
 func (txs *transactions) RemoveTxsFromPools(body *block.Body) error {
-	return txs.removeTxsFromPools(body, txs.txPool, txs.isMiniBlockCorrect)
+	accountsProvider, err := state.NewAccountsEphemeralProvider(txs.accounts)
+	if err != nil {
+		return err
+	}
+
+	err = txs.removeTxsFromPools(body, txs.txPool, txs.isMiniBlockCorrect)
+	if err != nil {
+		return err
+	}
+
+	randomness := helpers.ComputeRandomnessForCleanup(body)
+	txs.txPool.CleanupSelfShardTxCache(accountsProvider, randomness, process.TxCacheCleanupMaxNumTxs, process.TxCacheCleanupLoopMaximumDuration)
+
+	return err
 }
 
 // RestoreBlockDataIntoPools restores the transactions and miniblocks to associated pools
@@ -1384,7 +1399,12 @@ func (txs *transactions) selectTransactionsFromTxPoolForProposal(
 		txs.txCacheSelectionConfig.SelectionLoopMaximumDuration,
 		txs.txCacheSelectionConfig.SelectionLoopDurationCheckInterval,
 	)
-	selectedTransactions, _ := txCache.SelectTransactions(session, selectionOptions)
+	blockchainInfo := holders.NewBlockchainInfo(nil, nil, 0)
+	selectedTransactions, _, err := txCache.SelectTransactions(session, selectionOptions, blockchainInfo)
+	if err != nil {
+		// TODO re-brainstorm if this error should be propagated or just logged
+		return nil, err
+	}
 
 	return selectedTransactions, nil
 }
@@ -1420,7 +1440,12 @@ func (txs *transactions) selectTransactionsFromTxPool(
 		txs.txCacheSelectionConfig.SelectionLoopDurationCheckInterval,
 	)
 
-	selectedTxs, _ := txCache.SelectTransactions(session, selectionOptions)
+	blockchainInfo := holders.NewBlockchainInfo(nil, nil, 0)
+	selectedTxs, _, err := txCache.SelectTransactions(session, selectionOptions, blockchainInfo)
+	if err != nil {
+		// TODO re-brainstorm if this error should be propagated or just logged
+		return nil, err
+	}
 
 	return selectedTxs, nil
 }
@@ -1772,7 +1797,7 @@ func (txs *transactions) prefilterTransactions(
 
 	log.Debug("preFilterTransactions estimation",
 		"initialTxs", len(initialTxs),
-		"gasCost initialTxs", initialTxsGasEstimation,
+		"gasCostOfInitialTxs", initialTxsGasEstimation,
 		"additionalTxs", len(additionalTxs),
 		"gasCostEstimation", gasEstimation,
 		"selected", len(selectedTxs),

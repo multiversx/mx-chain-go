@@ -14,7 +14,8 @@ import (
 
 // TxCache defines the functionality for the transactions cache
 type TxCache interface {
-	SelectTransactions(session txcache.SelectionSession, options common.TxSelectionOptions) ([]*txcache.WrappedTransaction, uint64)
+	SelectTransactions(session txcache.SelectionSession, options common.TxSelectionOptions, blockchainInfo common.BlockchainInfo) ([]*txcache.WrappedTransaction, uint64, error)
+	GetVirtualNonceAndRootHash(sender []byte, blockchainInfo common.BlockchainInfo) (uint64, []byte, error)
 	IsInterfaceNil() bool
 }
 

@@ -9,6 +9,8 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
+	"github.com/multiversx/mx-chain-go/state"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 	"github.com/stretchr/testify/require"
 
 	"github.com/multiversx/mx-chain-go/dataRetriever"
@@ -576,7 +578,14 @@ func createPreProcessorContainerWithPoolsHolder(poolsHolder dataRetriever.PoolsH
 		poolsHolder,
 		createMockPubkeyConverter(),
 		&stateMock.AccountsStub{},
-		&stateMock.AccountsStub{},
+		&stateMock.AccountsStub{
+			RootHashCalled: func() ([]byte, error) {
+				return []byte("root_hash"), nil
+			},
+			GetExistingAccountCalled: func(addressContainer []byte) (vmcommon.AccountHandler, error) {
+				return nil, state.ErrAccNotFound // only new accounts
+			},
+		},
 		&testscommon.RequestHandlerStub{},
 		&testscommon.TxProcessorMock{},
 		&testscommon.SCProcessorMock{},

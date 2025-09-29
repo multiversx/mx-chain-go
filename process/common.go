@@ -792,6 +792,38 @@ func GetHeader(
 	return GetShardHeader(headerHash, headersPool, marshaller, headersStorer)
 }
 
+// UnmarshalExecutionResult unmarshalls an execution result
+func UnmarshalExecutionResult(marshaller marshal.Marshalizer, executionResultsBytes []byte) (data.ExecutionResultHandler, error) {
+	executionResult, err := UnmarshalShardExecutionResult(marshaller, executionResultsBytes)
+	if err == nil {
+		return executionResult, nil
+	}
+
+	return UnmarshallMetaExecutionResult(marshaller, executionResultsBytes)
+}
+
+// UnmarshalShardExecutionResult unmarshalls a shard execution result
+func UnmarshalShardExecutionResult(marshaller marshal.Marshalizer, executionResultsBytes []byte) (data.ExecutionResultHandler, error) {
+	executionResult := &block.ExecutionResult{}
+	err := marshaller.Unmarshal(executionResult, executionResultsBytes)
+	if err != nil {
+		return nil, err
+	}
+
+	return executionResult, nil
+}
+
+// UnmarshallMetaExecutionResult unmarshalls a meta execution result
+func UnmarshallMetaExecutionResult(marshaller marshal.Marshalizer, executionResultsBytes []byte) (data.MetaExecutionResultHandler, error) {
+	executionResult := &block.MetaExecutionResult{}
+	err := marshaller.Unmarshal(executionResult, executionResultsBytes)
+	if err != nil {
+		return nil, err
+	}
+
+	return executionResult, nil
+}
+
 // UnmarshalHeader unmarshalls a block header
 func UnmarshalHeader(shardId uint32, marshaller marshal.Marshalizer, headerBuffer []byte) (data.HeaderHandler, error) {
 	if shardId == core.MetachainShardId {
@@ -819,7 +851,7 @@ func UnmarshalMetaHeaderV3(marshaller marshal.Marshalizer, headerBuffer []byte) 
 		return nil, err
 	}
 
-	// this should not be nil for meta header v2
+	// this should not be nil for meta header v3
 	if header.GetLastExecutionResult() == nil {
 		return nil, ErrInvalidHeader
 	}
