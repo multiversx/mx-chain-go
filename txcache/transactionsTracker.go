@@ -118,15 +118,14 @@ func (txTracker *transactionsTracker) isTransactionTracked(transaction *WrappedT
 }
 
 func (txTracker *transactionsTracker) GetBulkOfUntrackedTransactions(transactions []*WrappedTransaction) [][]byte {
-	untrackedTransactions := make([][]byte, 0)
+	untrackedTransactions := make([][]byte, 0, len(transactions))
 	for _, tx := range transactions {
 		if tx == nil || tx.Tx == nil {
 			continue
 		}
 
-		txHash := tx.TxHash
 		if !txTracker.isTransactionTracked(tx) {
-			untrackedTransactions = append(untrackedTransactions, txHash)
+			untrackedTransactions = append(untrackedTransactions, tx.TxHash)
 		}
 	}
 

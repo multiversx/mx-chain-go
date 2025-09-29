@@ -81,7 +81,8 @@ func Test_IsTransactionTracked(t *testing.T) {
 		createTx([]byte("txHash4"), "alice", 14),
 		createTx([]byte("txHash5"), "alice", 15).withRelayer([]byte("bob")).withGasLimit(100_000),
 		createTx([]byte("txHash6"), "eve", 11).withRelayer([]byte("alice")).withGasLimit(100_000),
-		// this one is not proposed. however, will be detected as "tracked", because it has the same nonce with a tracked one.
+		// This one is not proposed. However, will be detected as "tracked" because it has the same nonce with as a tracked one.
+		// This is not critical. It is ok that a sender has a specific nonce "protected".
 		createTx([]byte("txHash7"), "eve", 11).withRelayer([]byte("alice")).withGasLimit(100_000),
 	}
 
