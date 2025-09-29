@@ -38,6 +38,7 @@ import (
 	hashingFactory "github.com/multiversx/mx-chain-core-go/hashing/factory"
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	marshalFactory "github.com/multiversx/mx-chain-core-go/marshal/factory"
+	commonConfigs "github.com/multiversx/mx-chain-go/common/configs"
 )
 
 type coreComponentsHolder struct {
@@ -81,6 +82,8 @@ type coreComponentsHolder struct {
 	chainParametersHandler        process.ChainParametersHandler
 	fieldsSizeChecker             common.FieldsSizeChecker
 	epochChangeGracePeriodHandler common.EpochChangeGracePeriodHandler
+	processConfigsHandler         common.ProcessConfigsHandler
+	epochStartConfigsHandler      common.CommonConfigsHandler
 }
 
 // ArgsCoreComponentsHolder will hold arguments needed for the core components holder
@@ -287,6 +290,23 @@ func CreateCoreComponents(args ArgsCoreComponentsHolder) (*coreComponentsHolder,
 		return nil, err
 	}
 	instance.fieldsSizeChecker = fchecker
+
+	instance.processConfigsHandler, err = commonConfigs.NewProcessConfigsHandler(
+		args.Config.GeneralSettings.ProcessConfigsByEpoch,
+		args.Config.GeneralSettings.ProcessConfigsByRound,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	instance.epochStartConfigsHandler, err = commonConfigs.NewCommonConfigsHandler(
+		args.Config.GeneralSettings.EpochStartConfigsByEpoch,
+		args.Config.GeneralSettings.EpochStartConfigsByRound,
+		args.Config.GeneralSettings.ConsensusConfigsByEpoch,
+	)
+	if err != nil {
+		return nil, err
+	}
 
 	instance.collectClosableComponents()
 
@@ -515,6 +535,16 @@ func (c *coreComponentsHolder) FieldsSizeChecker() common.FieldsSizeChecker {
 // EpochChangeGracePeriodHandler will return the epoch change grace period handler
 func (c *coreComponentsHolder) EpochChangeGracePeriodHandler() common.EpochChangeGracePeriodHandler {
 	return c.epochChangeGracePeriodHandler
+}
+
+// ProcessConfigsHandler returns process configs handler component
+func (c *coreComponentsHolder) ProcessConfigsHandler() common.ProcessConfigsHandler {
+	return c.processConfigsHandler
+}
+
+// CommonConfigsHandler returns epoch start configs handler component
+func (c *coreComponentsHolder) CommonConfigsHandler() common.CommonConfigsHandler {
+	return c.epochStartConfigsHandler
 }
 
 func (c *coreComponentsHolder) collectClosableComponents() {

@@ -180,6 +180,8 @@ func createArgsProcessComponentsHolder() ArgsProcessComponentsHolder {
 			EpochChangeGracePeriodHandlerField: gracePeriod,
 			ChainParametersHandlerField:        &chainParameters.ChainParametersHandlerStub{},
 			ChainParametersSubscriberField:     &commonmocks.ChainParametersNotifierStub{},
+			ProcessConfigsHandlerField:         testscommon.GetDefaultProcessConfigsHandler(),
+			CommonConfigsHandlerField:      testscommon.GetDefaultCommonConfigsHandler(),
 		},
 		CryptoComponents: &mock.CryptoComponentsStub{
 			BlKeyGen: &cryptoMocks.KeyGenStub{},

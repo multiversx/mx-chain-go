@@ -141,6 +141,8 @@ type CoreComponentsHolder interface {
 	ChainParametersHandler() process.ChainParametersHandler
 	FieldsSizeChecker() common.FieldsSizeChecker
 	EpochChangeGracePeriodHandler() common.EpochChangeGracePeriodHandler
+	ProcessConfigsHandler() common.ProcessConfigsHandler
+	CommonConfigsHandler() common.CommonConfigsHandler
 	IsInterfaceNil() bool
 }
 
