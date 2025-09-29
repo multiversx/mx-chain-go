@@ -144,7 +144,6 @@ func NewStakingSmartContract(
 func (s *stakingSC) getUnBondPeriod(
 	unStakedNonce uint64,
 ) uint64 {
-	currentNonce := s.eei.BlockChainHook().CurrentNonce()
 	currentRound := s.eei.BlockChainHook().CurrentRound()
 
 	// supernova not activated
@@ -172,13 +171,14 @@ func (s *stakingSC) isUnBondingPassed(
 	passedNonce := currentNonce - unStakedNonce
 
 	unBondPeriod := s.unBondPeriod
+	remaining := uint64(0)
+
 	// supernova not activated
 	if !s.enableRoundsHandler.IsFlagEnabledInRound(common.SupernovaRoundFlag, currentRound) {
 		unBondPeriod = s.unBondPeriod
 
 		isPassed := passedNonce >= unBondPeriod
 
-		remaining := uint64(0)
 		if !isPassed {
 			remaining = unBondPeriod - passedNonce
 		}
@@ -187,13 +187,12 @@ func (s *stakingSC) isUnBondingPassed(
 	}
 
 	// supernova activated after unbond period
-	unBondRound := unStakedNonce // we take it approximately based on nonce
-	if s.enableRoundsHandler.IsFlagEnabledInRound(common.SupernovaRoundFlag, unBondRound) {
+	unStakedRound := unStakedNonce // we take it approximately based on nonce
+	if s.enableRoundsHandler.IsFlagEnabledInRound(common.SupernovaRoundFlag, unStakedRound) {
 		unBondPeriod = s.unBondPeriodSupernova
 
 		isPassed := passedNonce >= unBondPeriod
 
-		remaining := uint64(0)
 		if !isPassed {
 			remaining = unBondPeriod - passedNonce
 		}
@@ -201,16 +200,35 @@ func (s *stakingSC) isUnBondingPassed(
 		return isPassed, remaining
 	}
 
-	// supernova activated on current round, but not on unbond trigger
+	// supernova activated on current round, but not on unbond trigger round
+	supernovaActivationRound := s.enableRoundsHandler.GetActivationRound(common.SupernovaRoundFlag)
+	numPassedRoundsBeforeSupernova := supernovaActivationRound - unStakedRound
+	remainingRoundsBeforeSupernova := s.unBondPeriod - numPassedRoundsBeforeSupernova
 
-	isPassed := passedNonce >= unBondPeriod
+	unBondPeriodChangeRatio := s.getUnBondPeriodChangeRatio()
+	unStakedRound = numPassedRoundsBeforeSupernova + remainingRoundsBeforeSupernova*unBondPeriodChangeRatio
 
-	remaining := uint64(0)
+	isPassed := currentRound >= unStakedRound
+
 	if !isPassed {
-		remaining = unBondPeriod - passedNonce
+		remaining = unStakedNonce - currentRound
 	}
 
 	return isPassed, remaining
+}
+
+func (s *stakingSC) getUnBondPeriodChangeRatio() uint64 {
+	configChangeRatio := uint64(1)
+	if s.unBondPeriod == 0 {
+		return configChangeRatio
+	}
+
+	configChangeRatio = s.unBondPeriodSupernova / s.unBondPeriod
+	if configChangeRatio < 1 {
+		return 1
+	}
+
+	return configChangeRatio
 }
 
 // Execute calls one of the functions from the staking smart contract and runs the code according to the input
@@ -785,8 +803,8 @@ func (s *stakingSC) unBond(args *vmcommon.ContractCallInput) vmcommon.ReturnCode
 		return vmcommon.UserError
 	}
 
-	currentNonce := s.eei.BlockChainHook().CurrentNonce()
-	if registrationData.UnStakedNonce > 0 && currentNonce-registrationData.UnStakedNonce < s.getUnBondPeriod(registrationData.UnStakedNonce) {
+	isUnBondingPassed, _ := s.isUnBondingPassed(registrationData.UnStakedNonce)
+	if registrationData.UnStakedNonce > 0 && isUnBondingPassed {
 		s.eei.AddReturnMessage(fmt.Sprintf("unBond is not possible for key %s because unBond period did not pass", encodedBlsKey))
 		return vmcommon.UserError
 	}
@@ -1030,16 +1048,14 @@ func (s *stakingSC) getRemainingUnbondPeriod(args *vmcommon.ContractCallInput) v
 		return vmcommon.UserError
 	}
 
-	currentNonce := s.eei.BlockChainHook().CurrentNonce()
-	passedNonce := currentNonce - stakedData.UnStakedNonce
-	if passedNonce >= s.getUnBondPeriod(stakedData.UnStakedNonce) {
+	isUnBondingPassed, remaining := s.isUnBondingPassed(stakedData.UnStakedNonce)
+	if isUnBondingPassed {
 		if s.enableEpochsHandler.IsFlagEnabled(common.StakingV2Flag) {
 			s.eei.Finish(zero.Bytes())
 		} else {
 			s.eei.Finish([]byte("0"))
 		}
 	} else {
-		remaining := s.getUnBondPeriod(stakedData.UnStakedNonce) - passedNonce
 		if s.enableEpochsHandler.IsFlagEnabled(common.StakingV2Flag) {
 			s.eei.Finish(big.NewInt(0).SetUint64(remaining).Bytes())
 		} else {
