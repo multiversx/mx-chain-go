@@ -6,16 +6,16 @@ import (
 
 // ExecutionResultsTrackerStub is a stub implementation of the ExecutionResultsTracker interface
 type ExecutionResultsTrackerStub struct {
-	AddExecutionResultCalled               func(executionResult data.ExecutionResultHandler) error
-	GetPendingExecutionResultsCalled       func() ([]data.ExecutionResultHandler, error)
-	GetPendingExecutionResultByHashCalled  func(hash []byte) (data.ExecutionResultHandler, error)
-	GetPendingExecutionResultByNonceCalled func(nonce uint64) (data.ExecutionResultHandler, error)
+	AddExecutionResultCalled               func(executionResult data.BaseExecutionResultHandler) error
+	GetPendingExecutionResultsCalled       func() ([]data.BaseExecutionResultHandler, error)
+	GetPendingExecutionResultByHashCalled  func(hash []byte) (data.BaseExecutionResultHandler, error)
+	GetPendingExecutionResultByNonceCalled func(nonce uint64) (data.BaseExecutionResultHandler, error)
 	GetLastNotarizedExecutionResultCalled  func() (data.BaseExecutionResultHandler, error)
 	SetLastNotarizedResultCalled           func(executionResult data.BaseExecutionResultHandler) error
 }
 
 // AddExecutionResult -
-func (ets *ExecutionResultsTrackerStub) AddExecutionResult(executionResult data.ExecutionResultHandler) error {
+func (ets *ExecutionResultsTrackerStub) AddExecutionResult(executionResult data.BaseExecutionResultHandler) error {
 	if ets.AddExecutionResultCalled != nil {
 		return ets.AddExecutionResultCalled(executionResult)
 	}
@@ -23,7 +23,7 @@ func (ets *ExecutionResultsTrackerStub) AddExecutionResult(executionResult data.
 }
 
 // GetPendingExecutionResults -
-func (ets *ExecutionResultsTrackerStub) GetPendingExecutionResults() ([]data.ExecutionResultHandler, error) {
+func (ets *ExecutionResultsTrackerStub) GetPendingExecutionResults() ([]data.BaseExecutionResultHandler, error) {
 	if ets.GetPendingExecutionResultsCalled != nil {
 		return ets.GetPendingExecutionResultsCalled()
 	}
@@ -31,7 +31,7 @@ func (ets *ExecutionResultsTrackerStub) GetPendingExecutionResults() ([]data.Exe
 }
 
 // GetPendingExecutionResultByHash -
-func (ets *ExecutionResultsTrackerStub) GetPendingExecutionResultByHash(hash []byte) (data.ExecutionResultHandler, error) {
+func (ets *ExecutionResultsTrackerStub) GetPendingExecutionResultByHash(hash []byte) (data.BaseExecutionResultHandler, error) {
 	if ets.GetPendingExecutionResultByHashCalled != nil {
 		return ets.GetPendingExecutionResultByHashCalled(hash)
 	}
@@ -39,7 +39,7 @@ func (ets *ExecutionResultsTrackerStub) GetPendingExecutionResultByHash(hash []b
 }
 
 // GetPendingExecutionResultByNonce -
-func (ets *ExecutionResultsTrackerStub) GetPendingExecutionResultByNonce(nonce uint64) (data.ExecutionResultHandler, error) {
+func (ets *ExecutionResultsTrackerStub) GetPendingExecutionResultByNonce(nonce uint64) (data.BaseExecutionResultHandler, error) {
 	if ets.GetPendingExecutionResultByNonceCalled != nil {
 		return ets.GetPendingExecutionResultByNonceCalled(nonce)
 	}

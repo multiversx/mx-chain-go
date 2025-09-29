@@ -891,7 +891,6 @@ func (tpn *TestFullNode) initBlockProcessor(
 			SafetyMargin:       110,
 			MaxResultsPerBlock: 20,
 		},
-		uint64(tpn.GenesisTimeField.UnixMilli()),
 		tpn.RoundHandler,
 	)
 
@@ -1216,7 +1215,6 @@ func (tpn *TestFullNode) initBlockProcessorWithSync(
 			SafetyMargin:       110,
 			MaxResultsPerBlock: 20,
 		},
-		uint64(tpn.GenesisTimeField.UnixMilli()),
 		tpn.RoundHandler,
 	)
 

@@ -1,6 +1,8 @@
 package block
 
 import (
+	"errors"
+	"fmt"
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
@@ -98,6 +100,144 @@ func (sp *shardProcessor) CreateBlockProposal(
 	return shardHdr, body, nil
 }
 
+// VerifyBlockProposal verifies the proposed block. It returns nil if all ok or the specific error
+func (sp *shardProcessor) VerifyBlockProposal(
+	headerHandler data.HeaderHandler,
+	bodyHandler data.BodyHandler,
+	haveTime func() time.Duration,
+) error {
+	err := sp.checkBlockValidity(headerHandler, bodyHandler)
+	if err != nil {
+		if errors.Is(err, process.ErrBlockHashDoesNotMatch) {
+			log.Debug("requested missing shard header",
+				"hash", headerHandler.GetPrevHash(),
+				"for shard", headerHandler.GetShardID(),
+			)
+
+			go sp.requestHandler.RequestShardHeaderForEpoch(headerHandler.GetShardID(), headerHandler.GetPrevHash(), headerHandler.GetEpoch())
+		}
+
+		return err
+	}
+
+	log.Debug("started verifying proposed block",
+		"epoch", headerHandler.GetEpoch(),
+		"shard", headerHandler.GetShardID(),
+		"round", headerHandler.GetRound(),
+		"nonce", headerHandler.GetNonce(),
+	)
+
+	header, ok := headerHandler.(data.ShardHeaderHandler)
+	if !ok {
+		return process.ErrWrongTypeAssertion
+	}
+
+	if !header.IsHeaderV3() {
+		return process.ErrInvalidHeader
+	}
+
+	body, ok := bodyHandler.(*block.Body)
+	if !ok {
+		return process.ErrWrongTypeAssertion
+	}
+
+	err = sp.checkHeaderBodyCorrelationProposal(header.GetMiniBlockHeaderHandlers(), body)
+	if err != nil {
+		return err
+	}
+
+	go getMetricsFromBlockBody(body, sp.marshalizer, sp.appStatusHandler)
+
+	err = sp.executionResultsVerifier.VerifyHeaderExecutionResults(header)
+	if err != nil {
+		return err
+	}
+
+	err = sp.checkInclusionEstimationForExecutionResults(header)
+	if err != nil {
+		return err
+	}
+
+	txCounts, rewardCounts, unsignedCounts := sp.txCounter.getPoolCounts(sp.dataPool)
+	log.Debug("total txs in pool", "counts", txCounts.String())
+	log.Debug("total txs in rewards pool", "counts", rewardCounts.String())
+	log.Debug("total txs in unsigned pool", "counts", unsignedCounts.String())
+
+	go getMetricsFromHeader(header, uint64(txCounts.GetTotal()), sp.marshalizer, sp.appStatusHandler)
+
+	sp.missingDataResolver.Reset()
+	sp.missingDataResolver.RequestBlockTransactions(body)
+	err = sp.missingDataResolver.RequestMissingMetaHeaders(header)
+	if err != nil {
+		return err
+	}
+
+	err = sp.missingDataResolver.WaitForMissingData(haveTime())
+	if err != nil {
+		return err
+	}
+
+	err = sp.requestEpochStartInfo(header, haveTime)
+	if err != nil {
+		return err
+	}
+
+	defer func() {
+		go sp.checkAndRequestIfMetaHeadersMissing()
+	}()
+
+	err = sp.checkEpochCorrectnessCrossChain()
+	if err != nil {
+		return err
+	}
+
+	err = sp.checkEpochCorrectness(header)
+	if err != nil {
+		return err
+	}
+
+	err = sp.checkMetaHeadersValidityAndFinalityProposal(header)
+	if err != nil {
+		return err
+	}
+
+	err = sp.verifyCrossShardMiniBlockDstMe(header)
+	if err != nil {
+		return err
+	}
+
+	// TODO: check that the limits for the block are not exceeded
+	// err = sp.verifyGasLimit(shardHdr)
+	// if err != nil {
+	// 	return nil, nil, err
+	// }
+
+	return nil
+}
+
+func (sp *shardProcessor) checkInclusionEstimationForExecutionResults(header data.HeaderHandler) error {
+	prevBlockLastExecutionResult, err := process.GetPrevBlockLastExecutionResult(sp.blockChain)
+	if err != nil {
+		return err
+	}
+
+	lastResultData, err := process.CreateDataForInclusionEstimation(prevBlockLastExecutionResult)
+	if err != nil {
+		return err
+	}
+	executionResults := header.GetExecutionResultsHandlers()
+	allowed := sp.executionResultsInclusionEstimator.Decide(lastResultData, executionResults, header.GetRound())
+	if allowed != len(executionResults) {
+		log.Warn("number of execution results included in the header is not correct",
+			"expected", allowed,
+			"actual", len(executionResults),
+		)
+		return process.ErrInvalidNumberOfExecutionResultsInHeader
+	}
+
+	return nil
+}
+
 func computeTxTotalTxCount(miniBlockHeaders []data.MiniBlockHeaderHandler) uint32 {
 	totalTxCount := uint32(0)
 	for i := range miniBlockHeaders {
@@ -113,7 +253,6 @@ func checkMiniBlocksAndMiniBlockHeadersConsistency(miniBlocks block.MiniBlockSli
 	}
 
 	// TODO: check if the reserved field or other fields are consistent.
-
 	return nil
 }
 
@@ -134,7 +273,7 @@ func (sp *shardProcessor) addExecutionResultsOnHeader(shardHeader data.HeaderHan
 	}
 
 	var lastExecutionResultForCurrentBlock data.LastExecutionResultHandler
-	numToInclude := sp.executionResultsInclusionEstimator.Decide(lastNotarizedExecutionResultInfo, pendingExecutionResults, shardHeader.GetTimeStamp())
+	numToInclude := sp.executionResultsInclusionEstimator.Decide(lastNotarizedExecutionResultInfo, pendingExecutionResults, shardHeader.GetRound())
 
 	executionResultsToInclude := pendingExecutionResults[:numToInclude]
 	lastExecutionResultForCurrentBlock = lastExecutionResultHandler
@@ -151,17 +290,7 @@ func (sp *shardProcessor) addExecutionResultsOnHeader(shardHeader data.HeaderHan
 		return err
 	}
 
-	return shardHeader.SetExecutionResultsHandlers(ExecutionHandlersToBaseExecutionHandlers(executionResultsToInclude))
-}
-
-// ExecutionHandlersToBaseExecutionHandlers converts a slice of ExecutionResultHandler to a slice of BaseExecutionResultHandler
-func ExecutionHandlersToBaseExecutionHandlers(execHandlers []data.ExecutionResultHandler) []data.BaseExecutionResultHandler {
-	baseExecHandlers := make([]data.BaseExecutionResultHandler, len(execHandlers))
-	for i, execHandler := range execHandlers {
-		baseExecHandlers[i] = execHandler
-	}
-
-	return baseExecHandlers
+	return shardHeader.SetExecutionResultsHandlers(executionResultsToInclude)
 }
 
 func (sp *shardProcessor) createBlockBodyProposal(
@@ -366,4 +495,38 @@ func (sp *shardProcessor) selectOutgoingTransactions() [][]byte {
 		"num txs", len(outgoingTransactions))
 
 	return outgoingTransactions
+}
+
+func (sp *shardProcessor) checkMetaHeadersValidityAndFinalityProposal(header data.ShardHeaderHandler) error {
+	lastCrossNotarizedHeader, _, err := sp.blockTracker.GetLastCrossNotarizedHeader(core.MetachainShardId)
+	if err != nil {
+		return err
+	}
+	usedMetaHdrHashes := header.GetMetaBlockHashes()
+	usedMetaHeaders := make([]data.HeaderHandler, 0, len(usedMetaHdrHashes))
+	var metaHdr data.HeaderHandler
+	for _, metaHdrHash := range usedMetaHdrHashes {
+		metaHdr, err = sp.dataPool.Headers().GetHeaderByHash(metaHdrHash)
+		if err != nil {
+			return fmt.Errorf("%w : checkMetaHeadersValidityAndFinalityProposal -> getHeaderByHash", err)
+		}
+		usedMetaHeaders = append(usedMetaHeaders, metaHdr)
+	}
+
+	process.SortHeadersByNonce(usedMetaHeaders)
+
+	for _, metaHeader := range usedMetaHeaders {
+		err = sp.headerValidator.IsHeaderConstructionValid(metaHeader, lastCrossNotarizedHeader)
+		if err != nil {
+			return fmt.Errorf("%w : checkMetaHeadersValidityAndFinalityProposal -> isHdrConstructionValid", err)
+		}
+
+		err = sp.checkHeaderHasProof(metaHeader)
+		if err != nil {
+			return fmt.Errorf("%w : checkMetaHeadersValidityAndFinalityProposal -> checkHeaderHasProof", err)
+		}
+		lastCrossNotarizedHeader = metaHeader
+	}
+
+	return nil
 }
