@@ -117,7 +117,7 @@ func TestInterceptedDataVerifier_checkCachedData(t *testing.T) {
 
 		verifier.PutInCache(interceptedData, validInterceptedData)
 
-		err := verifier.Verify(interceptedData, "topic_1") // intra shard
+		err := verifier.Verify(interceptedData, "topic_1_REQUEST") // intra shard
 		require.NoError(t, err)
 	})
 	t.Run("already cached data that does not allow duplicates should error", func(t *testing.T) {
@@ -140,7 +140,7 @@ func TestInterceptedDataVerifier_checkCachedData(t *testing.T) {
 
 		verifier.PutInCache(interceptedData, validInterceptedData)
 
-		err := verifier.Verify(interceptedData, "topic_0_1_REQUEST")
+		err := verifier.Verify(interceptedData, "topic_0_1")
 		require.Equal(t, process.ErrDuplicatedInterceptedDataNotAllowed, err)
 	})
 }

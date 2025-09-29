@@ -65,7 +65,7 @@ func (idv *interceptedDataVerifier) Verify(interceptedData process.InterceptedDa
 
 // MarkVerified marks the intercepted data as verified
 func (idv *interceptedDataVerifier) MarkVerified(interceptedData process.InterceptedData, topic string) {
-	if !isCrossShardTopic(topic) {
+	if !shouldCheckForDuplicates(topic) {
 		return
 	}
 
@@ -93,7 +93,7 @@ func (idv *interceptedDataVerifier) checkCachedData(interceptedData process.Inte
 		return ok, process.ErrInvalidInterceptedData
 	}
 
-	if !isCrossShardTopic(topic) {
+	if !shouldCheckForDuplicates(topic) {
 		return ok, nil
 	}
 
@@ -104,10 +104,15 @@ func (idv *interceptedDataVerifier) checkCachedData(interceptedData process.Inte
 	return ok, nil
 }
 
-func isCrossShardTopic(topic string) bool {
-	baseTopic, _ := strings.CutSuffix(topic, core.TopicRequestSuffix)
-	topicSplit := strings.Split(baseTopic, "_")
-	return len(topicSplit) == 3 || len(topicSplit) == 1 // cross _0_1 or global topic
+func shouldCheckForDuplicates(topic string) bool {
+	isRequestTopic := strings.Contains(topic, core.TopicRequestSuffix)
+	if isRequestTopic {
+		return false // allow duplicates on requests no matter the topic
+	}
+
+	topicSplit := strings.Split(topic, "_")
+	isCrossShardTopic := len(topicSplit) == 3 || len(topicSplit) == 1 // cross _0_1 or global topic
+	return isCrossShardTopic
 }
 
 func logInterceptedDataCheckValidityErr(interceptedData process.InterceptedData, err error) {
