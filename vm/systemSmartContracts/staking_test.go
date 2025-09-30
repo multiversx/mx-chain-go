@@ -11,6 +11,7 @@ import (
 	"strconv"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
@@ -21,6 +22,7 @@ import (
 	"github.com/multiversx/mx-chain-go/process/smartContract/hooks"
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/state/accounts"
+	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	stateMock "github.com/multiversx/mx-chain-go/testscommon/state"
 	"github.com/multiversx/mx-chain-go/vm"
@@ -29,6 +31,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+var defaultRoundTimeDuration = time.Duration(10) * time.Millisecond
 
 func createMockStakingScArgumentsWithSystemScAddresses(
 	validatorScAddress []byte,
@@ -48,6 +52,7 @@ func createMockStakingScArgumentsWithSystemScAddresses(
 			UnJailValue:                          "1",
 			MinStepValue:                         "1",
 			UnBondPeriod:                         0,
+			UnBondPeriodSec:                      0,
 			NumRoundsWithoutBleed:                0,
 			MaximumPercentageToBleed:             0,
 			BleedPercentagePerRound:              0,
@@ -64,6 +69,15 @@ func createMockStakingScArgumentsWithSystemScAddresses(
 			common.CorrectJailedNotUnStakedEmptyQueueFlag,
 			common.ValidatorToDelegationFlag,
 		),
+		EnableRoundsHandler: &testscommon.EnableRoundsHandlerStub{},
+		RoundHandler: &testscommon.RoundHandlerMock{
+			TimeDurationCalled: func() time.Duration {
+				return defaultRoundTimeDuration
+			},
+			GetTimeStampForRoundCalled: func(round uint64) uint64 {
+				return round * uint64(defaultRoundTimeDuration.Milliseconds())
+			},
+		},
 	}
 }
 
@@ -1499,6 +1513,7 @@ func TestStakingSc_ExecuteStakeStakeStakeJailJailUnJailTwice(t *testing.T) {
 	assert.Equal(t, 12, len(outPut))
 
 	stakingSmartContract.unBondPeriod = 0
+	stakingSmartContract.unBondPeriodDuration = 0
 	doUnStake(t, stakingSmartContract, stakingAccessAddress, stakerAddress, []byte("secondKey"), vmcommon.Ok)
 	doUnBond(t, stakingSmartContract, stakingAccessAddress, []byte("secondKey"), vmcommon.Ok)
 	waitingList, _ = stakingSmartContract.getWaitingListHead()
@@ -1515,6 +1530,139 @@ func TestStakingSc_ExecuteStakeStakeStakeJailJailUnJailTwice(t *testing.T) {
 	doGetStatus(t, stakingSmartContract, eei, []byte("fourthKey"), "staked")
 
 	stakingSmartContract.unBondPeriod = 100
+	stakingSmartContract.unBondPeriodDuration = time.Duration(100*10) * time.Millisecond
+	blockChainHook.CurrentNonceCalled = func() uint64 {
+		return 1
+	}
+	doUnStake(t, stakingSmartContract, stakingAccessAddress, stakerAddress, []byte("fourthKey"), vmcommon.Ok)
+	doGetRemainingUnbondPeriod(t, stakingSmartContract, eei, []byte("fourthKey"), 100)
+
+	blockChainHook.CurrentNonceCalled = func() uint64 {
+		return 50
+	}
+	doGetRemainingUnbondPeriod(t, stakingSmartContract, eei, []byte("fourthKey"), 51)
+
+	blockChainHook.CurrentNonceCalled = func() uint64 {
+		return 101
+	}
+	doGetRemainingUnbondPeriod(t, stakingSmartContract, eei, []byte("fourthKey"), 0)
+
+	doStake(t, stakingSmartContract, stakingAccessAddress, stakerAddress, []byte("seventKey"))
+	doGetWaitingListSize(t, stakingSmartContract, eei, 2)
+	outPut = doGetWaitingListRegisterNonceAndRewardAddress(t, stakingSmartContract, eei)
+	assert.Equal(t, 6, len(outPut))
+	requireTotalNumberOfRegisteredNodes(t, stakingSmartContract, eei, big.NewInt(4))
+}
+
+func TestStakingSc_ExecuteStakeWithSupernova(t *testing.T) {
+	t.Parallel()
+
+	stakeValue := big.NewInt(100)
+	blockChainHook := &mock.BlockChainHookStub{}
+	blockChainHook.GetStorageDataCalled = func(accountsAddress []byte, index []byte) ([]byte, uint32, error) {
+		return nil, 0, nil
+	}
+
+	eei := createDefaultEei()
+	eei.blockChainHook = blockChainHook
+	eei.SetSCAddress([]byte("addr"))
+
+	stakingAccessAddress := []byte("stakingAccessAddress")
+	args := createMockStakingScArguments()
+	args.StakingAccessAddr = stakingAccessAddress
+	args.StakingSCConfig.MinStakeValue = stakeValue.Text(10)
+	args.StakingSCConfig.MaxNumberOfNodesForStake = 2
+	enableEpochsHandler, _ := args.EnableEpochsHandler.(*enableEpochsHandlerMock.EnableEpochsHandlerStub)
+	enableEpochsHandler.AddActiveFlags(common.StakingV2Flag)
+
+	enableRoundsHandler, _ := args.EnableRoundsHandler.(*testscommon.EnableRoundsHandlerStub)
+
+	enableRoundsHandler.IsFlagEnabledInRoundCalled = func(flag common.EnableRoundFlag, round uint64) bool {
+		if flag == common.SupernovaRoundFlag {
+			return true
+		}
+
+		return false
+	}
+
+	args.Eei = eei
+	stakingSmartContract, _ := NewStakingSmartContract(args)
+
+	stakerAddress := []byte("stakerAddr")
+	stakerPubKey := []byte("stakerPublicKey")
+	callerAddress := []byte("data")
+
+	// do stake should work
+	doStake(t, stakingSmartContract, stakingAccessAddress, stakerAddress, []byte("firsstKey"))
+	doStake(t, stakingSmartContract, stakingAccessAddress, stakerAddress, []byte("secondKey"))
+	doStake(t, stakingSmartContract, stakingAccessAddress, stakerAddress, stakerPubKey)
+	doStake(t, stakingSmartContract, stakingAccessAddress, stakerAddress, []byte("fourthKey"))
+
+	checkIsStaked(t, stakingSmartContract, callerAddress, []byte("firsstKey"), vmcommon.Ok)
+	checkIsStaked(t, stakingSmartContract, callerAddress, []byte("secondKey"), vmcommon.Ok)
+	checkIsStaked(t, stakingSmartContract, callerAddress, stakerPubKey, vmcommon.UserError)
+	checkIsStaked(t, stakingSmartContract, callerAddress, []byte("fourthKey"), vmcommon.UserError)
+
+	arguments := CreateVmContractCallInput()
+	arguments.Function = "switchJailedWithWaiting"
+	arguments.CallerAddr = args.EndOfEpochAccessAddr
+	arguments.Arguments = [][]byte{[]byte("firsstKey")}
+	retCode := stakingSmartContract.Execute(arguments)
+	assert.Equal(t, retCode, vmcommon.Ok)
+	// check if account is staked should return error code
+	checkIsStaked(t, stakingSmartContract, callerAddress, stakerPubKey, vmcommon.Ok)
+	checkIsStaked(t, stakingSmartContract, callerAddress, []byte("firsstKey"), vmcommon.UserError)
+
+	arguments = CreateVmContractCallInput()
+	arguments.Function = "switchJailedWithWaiting"
+	arguments.CallerAddr = args.EndOfEpochAccessAddr
+	arguments.Arguments = [][]byte{[]byte("secondKey")}
+	retCode = stakingSmartContract.Execute(arguments)
+	assert.Equal(t, retCode, vmcommon.Ok)
+	checkIsStaked(t, stakingSmartContract, callerAddress, []byte("fourthKey"), vmcommon.Ok)
+	checkIsStaked(t, stakingSmartContract, callerAddress, []byte("secondKey"), vmcommon.UserError)
+
+	doStake(t, stakingSmartContract, stakingAccessAddress, stakerAddress, []byte("fifthhKey"))
+	checkIsStaked(t, stakingSmartContract, callerAddress, []byte("fifthhKey"), vmcommon.UserError)
+
+	doGetStatus(t, stakingSmartContract, eei, []byte("firsstKey"), "jailed")
+	doUnJail(t, stakingSmartContract, stakingAccessAddress, []byte("firsstKey"), vmcommon.Ok)
+	doGetStatus(t, stakingSmartContract, eei, []byte("firsstKey"), "queued")
+	doUnJail(t, stakingSmartContract, stakingAccessAddress, []byte("secondKey"), vmcommon.Ok)
+
+	waitingList, _ := stakingSmartContract.getWaitingListHead()
+	assert.Equal(t, uint32(3), waitingList.Length)
+	assert.Equal(t, []byte("w_secondKey"), waitingList.LastJailedKey)
+	assert.Equal(t, []byte("w_firsstKey"), waitingList.FirstKey)
+	assert.Equal(t, []byte("w_fifthhKey"), waitingList.LastKey)
+
+	doStake(t, stakingSmartContract, stakingAccessAddress, stakerAddress, []byte("sixthhKey"))
+	doGetWaitingListIndex(t, stakingSmartContract, eei, []byte("firsstKey"), vmcommon.Ok, 1)
+	doGetWaitingListIndex(t, stakingSmartContract, eei, []byte("secondKey"), vmcommon.Ok, 2)
+	doGetWaitingListIndex(t, stakingSmartContract, eei, []byte("fifthhKey"), vmcommon.Ok, 3)
+	doGetWaitingListIndex(t, stakingSmartContract, eei, []byte("sixthhKey"), vmcommon.Ok, 4)
+
+	outPut := doGetWaitingListRegisterNonceAndRewardAddress(t, stakingSmartContract, eei)
+	assert.Equal(t, 12, len(outPut))
+
+	stakingSmartContract.unBondPeriod = 0
+	doUnStake(t, stakingSmartContract, stakingAccessAddress, stakerAddress, []byte("secondKey"), vmcommon.Ok)
+	doUnBond(t, stakingSmartContract, stakingAccessAddress, []byte("secondKey"), vmcommon.Ok)
+	waitingList, _ = stakingSmartContract.getWaitingListHead()
+	assert.Equal(t, []byte("w_firsstKey"), waitingList.LastJailedKey)
+
+	doUnStake(t, stakingSmartContract, stakingAccessAddress, stakerAddress, []byte("firsstKey"), vmcommon.Ok)
+	doUnBond(t, stakingSmartContract, stakingAccessAddress, []byte("firsstKey"), vmcommon.Ok)
+	waitingList, _ = stakingSmartContract.getWaitingListHead()
+	assert.Equal(t, 0, len(waitingList.LastJailedKey))
+
+	doGetWaitingListSize(t, stakingSmartContract, eei, 2)
+	doGetRewardAddress(t, stakingSmartContract, eei, []byte("fifthhKey"), string(stakerAddress))
+	doGetStatus(t, stakingSmartContract, eei, []byte("fifthhKey"), "queued")
+	doGetStatus(t, stakingSmartContract, eei, []byte("fourthKey"), "staked")
+
+	stakingSmartContract.unBondPeriod = 10
+	stakingSmartContract.unBondPeriodDuration = time.Duration(100*10) * time.Millisecond
 	blockChainHook.CurrentNonceCalled = func() uint64 {
 		return 1
 	}
@@ -1649,6 +1797,7 @@ func TestStakingSc_UnBondFromWaitingNotPossible(t *testing.T) {
 	args.StakingSCConfig.MaxNumberOfNodesForStake = 2
 	args.Eei = eei
 	args.StakingSCConfig.UnBondPeriod = 100
+	args.StakingSCConfig.UnBondPeriodSec = 1
 	stakingSmartContract, _ := NewStakingSmartContract(args)
 
 	stakerAddress := []byte("stakerAddr")
@@ -3212,7 +3361,7 @@ func doGetRemainingUnbondPeriod(t *testing.T, sc *stakingSC, eei *vmContext, bls
 	assert.Equal(t, vmcommon.Ok, retCode)
 
 	lastOutput := eei.output[len(eei.output)-1]
-	assert.True(t, bytes.Equal(lastOutput, big.NewInt(int64(expected)).Bytes()))
+	require.Equal(t, lastOutput, big.NewInt(int64(expected)).Bytes())
 }
 
 func doGetStatus(t *testing.T, sc *stakingSC, eei *vmContext, blsKey []byte, expectedStatus string) {

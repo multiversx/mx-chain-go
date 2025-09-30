@@ -18,7 +18,7 @@ type StakingSystemSCConfig struct {
 	UnJailValue                          string
 	MinStepValue                         string
 	UnBondPeriod                         uint64
-	UnBondPeriodSupernova                uint64
+	UnBondPeriodSec                      uint64
 	UnBondPeriodInEpochs                 uint32
 	NumRoundsWithoutBleed                uint64
 	MaximumPercentageToBleed             float64

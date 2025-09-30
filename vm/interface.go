@@ -2,6 +2,7 @@ package vm
 
 import (
 	"math/big"
+	"time"
 
 	"github.com/multiversx/mx-chain-core-go/data"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
@@ -137,4 +138,11 @@ type BlockchainHook interface {
 	RevertToSnapshot(snapshot int) error
 	IsBuiltinFunctionName(functionName string) bool
 	ProcessBuiltInFunction(input *vmcommon.ContractCallInput) (*vmcommon.VMOutput, error)
+}
+
+// RoundHandler defines the behaviour of a component able to get round related timestamp
+type RoundHandler interface {
+	GetTimeStampForRound(round uint64) uint64
+	TimeDuration() time.Duration
+	IsInterfaceNil() bool
 }

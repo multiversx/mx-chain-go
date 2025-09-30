@@ -27,6 +27,8 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+const defaultUnBondPeriodSec = 1
+
 func createMockArgumentsForValidatorSCWithSystemScAddresses(
 	validatorScAddress []byte,
 	stakingScAddress []byte,
@@ -1214,6 +1216,7 @@ func TestStakingValidatorSC_ExecuteStakeUnStakeUnBondUnStakeUnBondOneBlsPubKey(t
 	argsStaking.StakingSCConfig.GenesisNodePrice = "10000000"
 	argsStaking.Eei = eei
 	argsStaking.StakingSCConfig.UnBondPeriod = unBondPeriod
+	argsStaking.StakingSCConfig.UnBondPeriodSec = 1
 	stakingSc, _ := NewStakingSmartContract(argsStaking)
 
 	eei.SetSCAddress([]byte("addr"))
@@ -2698,6 +2701,7 @@ func TestValidatorSC_ExecuteUnBondBeforePeriodEndsForV2(t *testing.T) {
 	enableEpochsHandler, _ := args.EnableEpochsHandler.(*enableEpochsHandlerMock.EnableEpochsHandlerStub)
 	enableEpochsHandler.AddActiveFlags(common.StakingV2Flag)
 	args.StakingSCConfig.UnBondPeriod = 1000
+	args.StakingSCConfig.UnBondPeriodSec = 10
 	eei := createVmContextWithStakingSc(minStakeValue, unbondPeriod, blockChainHook)
 	args.Eei = eei
 	caller := []byte("caller")
@@ -5421,6 +5425,7 @@ func createVmContextWithStakingSc(stakeValue *big.Int, unboundPeriod uint64, blo
 	argsStaking.StakingSCConfig.GenesisNodePrice = stakeValue.Text(10)
 	argsStaking.Eei = eei
 	argsStaking.StakingSCConfig.UnBondPeriod = unboundPeriod
+	argsStaking.StakingSCConfig.UnBondPeriodSec = uint64(defaultUnBondPeriodSec)
 	stakingSc, _ := NewStakingSmartContract(argsStaking)
 
 	eei.SetSCAddress([]byte("addr"))

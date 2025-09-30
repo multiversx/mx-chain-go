@@ -9,6 +9,7 @@ import (
 	"math/big"
 	"strconv"
 	"sync"
+	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
@@ -28,7 +29,7 @@ const nodesConfigKey = "nodesConfig"
 type stakingSC struct {
 	eei                      vm.SystemEI
 	unBondPeriod             uint64
-	unBondPeriodSupernova    uint64
+	unBondPeriodDuration     time.Duration
 	stakeAccessAddr          []byte // TODO add a viewAddress field and use it on all system SC view functions
 	jailAccessAddr           []byte
 	endOfEpochAccessAddr     []byte
@@ -45,6 +46,7 @@ type stakingSC struct {
 	minNodePrice             *big.Int
 	enableEpochsHandler      common.EnableEpochsHandler
 	enableRoundsHandler      common.EnableRoundsHandler
+	roundHandler             vm.RoundHandler
 }
 
 // ArgsNewStakingSmartContract holds the arguments needed to create a StakingSmartContract
@@ -59,6 +61,7 @@ type ArgsNewStakingSmartContract struct {
 	Marshalizer          marshal.Marshalizer
 	EnableEpochsHandler  common.EnableEpochsHandler
 	EnableRoundsHandler  common.EnableRoundsHandler
+	RoundHandler         vm.RoundHandler
 }
 
 // NewStakingSmartContract creates a staking smart contract
@@ -115,7 +118,7 @@ func NewStakingSmartContract(
 	reg := &stakingSC{
 		eei:                      args.Eei,
 		unBondPeriod:             args.StakingSCConfig.UnBondPeriod,
-		unBondPeriodSupernova:    args.StakingSCConfig.UnBondPeriodSupernova,
+		unBondPeriodDuration:     time.Duration(args.StakingSCConfig.UnBondPeriodSec) * time.Second,
 		stakeAccessAddr:          args.StakingAccessAddr,
 		jailAccessAddr:           args.JailAccessAddr,
 		numRoundsWithoutBleed:    args.StakingSCConfig.NumRoundsWithoutBleed,
@@ -130,6 +133,7 @@ func NewStakingSmartContract(
 		minNodePrice:             minStakeValue,
 		enableEpochsHandler:      args.EnableEpochsHandler,
 		enableRoundsHandler:      args.EnableRoundsHandler,
+		roundHandler:             args.RoundHandler,
 	}
 
 	var conversionOk bool
@@ -141,12 +145,32 @@ func NewStakingSmartContract(
 	return reg, nil
 }
 
-func (s *stakingSC) getUnBondPeriod(round uint64) uint64 {
-	if !s.enableRoundsHandler.IsFlagEnabledInRound(common.SupernovaRoundFlag, round) {
-		return s.unBondPeriod
+func (s *stakingSC) isUnBondingPassed(
+	unStakedNonce uint64,
+) (bool, uint64) {
+	currentRound := s.eei.BlockChainHook().CurrentNonce()
+	unStakedRound := unStakedNonce // we take it approximately based on nonce
+
+	currentRoundTimestampMs := s.roundHandler.GetTimeStampForRound(currentRound)
+	unStakedRoundTimestampMs := s.roundHandler.GetTimeStampForRound(unStakedRound)
+
+	passedNoncesDuration := currentRoundTimestampMs - unStakedRoundTimestampMs
+	unBondPeriodDuration := uint64(s.unBondPeriodDuration.Milliseconds())
+
+	isPassed := passedNoncesDuration >= unBondPeriodDuration
+
+	remaining := uint64(0)
+	if !isPassed {
+		// since the remaining number of rounds is calculated based on the remaining time
+		// round duration (based on round handler) is already handled based on the activation flag
+		// so the remaining number of rounds is calculated based on the current round time duration, which is enough for the remaining time
+		roundDurationMs := uint64(s.roundHandler.TimeDuration().Milliseconds())
+
+		roundsDiff := unBondPeriodDuration - passedNoncesDuration
+		remaining = roundsDiff / roundDurationMs
 	}
 
-	return s.unBondPeriodSupernova
+	return isPassed, remaining
 }
 
 // Execute calls one of the functions from the staking smart contract and runs the code according to the input
@@ -721,8 +745,8 @@ func (s *stakingSC) unBond(args *vmcommon.ContractCallInput) vmcommon.ReturnCode
 		return vmcommon.UserError
 	}
 
-	currentNonce := s.eei.BlockChainHook().CurrentNonce()
-	if registrationData.UnStakedNonce > 0 && currentNonce-registrationData.UnStakedNonce < s.getUnBondPeriod(registrationData.UnStakedNonce) {
+	isUnBondingPassed, _ := s.isUnBondingPassed(registrationData.UnStakedNonce)
+	if registrationData.UnStakedNonce > 0 && !isUnBondingPassed {
 		s.eei.AddReturnMessage(fmt.Sprintf("unBond is not possible for key %s because unBond period did not pass", encodedBlsKey))
 		return vmcommon.UserError
 	}
@@ -966,16 +990,14 @@ func (s *stakingSC) getRemainingUnbondPeriod(args *vmcommon.ContractCallInput) v
 		return vmcommon.UserError
 	}
 
-	currentNonce := s.eei.BlockChainHook().CurrentNonce()
-	passedNonce := currentNonce - stakedData.UnStakedNonce
-	if passedNonce >= s.getUnBondPeriod(stakedData.UnStakedNonce) {
+	isUnBondingPassed, remaining := s.isUnBondingPassed(stakedData.UnStakedNonce)
+	if isUnBondingPassed {
 		if s.enableEpochsHandler.IsFlagEnabled(common.StakingV2Flag) {
 			s.eei.Finish(zero.Bytes())
 		} else {
 			s.eei.Finish([]byte("0"))
 		}
 	} else {
-		remaining := s.getUnBondPeriod(stakedData.UnStakedNonce) - passedNonce
 		if s.enableEpochsHandler.IsFlagEnabled(common.StakingV2Flag) {
 			s.eei.Finish(big.NewInt(0).SetUint64(remaining).Bytes())
 		} else {
