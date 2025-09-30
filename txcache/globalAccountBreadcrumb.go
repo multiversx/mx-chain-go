@@ -20,13 +20,13 @@ func newGlobalAccountBreadcrumb() *globalAccountBreadcrumb {
 	gab := &globalAccountBreadcrumb{
 		consumedBalance: big.NewInt(0),
 	}
-	gab.setAsFeePayer()
+	gab.resetNonces()
 
 	return gab
 }
 
-// setAsFeePayer sets a global account breadcrumb for a fee payer
-func (gab *globalAccountBreadcrumb) setAsFeePayer() {
+// resetNonces sets a global account breadcrumb for a fee payer
+func (gab *globalAccountBreadcrumb) resetNonces() {
 	gab.firstNonce = core.OptionalUint64{
 		Value:    math.MaxUint64,
 		HasValue: false,
@@ -73,7 +73,7 @@ func (gab *globalAccountBreadcrumb) updateOnRemoveAccountBreadcrumbOnExecutedBlo
 
 	// if our global breadcrumb has same last nonce with the received one it means we can mark it as a fee payer
 	if gab.isUser() && hasSameLastNonce {
-		gab.setAsFeePayer()
+		gab.resetNonces()
 	}
 
 	if gab.isUser() {
@@ -106,7 +106,7 @@ func (gab *globalAccountBreadcrumb) updateOnRemoveAccountBreadcrumbOnProposedBlo
 
 	// if our global breadcrumb has same first nonce with the received one it means we can mark it as a fee payer
 	if gab.isUser() && hasSameFirstNonce {
-		gab.setAsFeePayer()
+		gab.resetNonces()
 	}
 
 	if gab.isUser() {
