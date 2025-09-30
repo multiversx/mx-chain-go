@@ -51,10 +51,9 @@ func (txTracker *transactionsTracker) createAccountsWithDefaultRange(transaction
 
 // updateAccountsWithRange updates all the saved accounts with the range extracted from breadcrumbs
 func (txTracker *transactionsTracker) updateAccountsWithRange(tracker *selectionTracker) {
-	tracker.mutTracker.RLock()
-	defer tracker.mutTracker.RUnlock()
+	trackedBlocks := tracker.getTrackedBlocks()
 
-	for _, tb := range tracker.blocks {
+	for _, tb := range trackedBlocks {
 		txTracker.updateRangesWithBreadcrumbs(tb)
 	}
 }
@@ -89,10 +88,9 @@ func (txTracker *transactionsTracker) updateRangeWithBreadcrumb(rangeOfSender *a
 	rangeOfSender.maxNonce.HasValue = true
 }
 
-// IsTransactionTracked checks if a transaction is still in the tracked blocks of the SelectionTracker
+// isTransactionTracked checks if a transaction is still in the tracked blocks of the SelectionTracker
 // TODO the method ignores (at the moment) some possible forks. This should be fixed
-// TODO Analyze the next scenario: a sender sends more transactions with same nonce, but only one of them is tracked, the others aren't.
-func (txTracker *transactionsTracker) IsTransactionTracked(transaction *WrappedTransaction) bool {
+func (txTracker *transactionsTracker) isTransactionTracked(transaction *WrappedTransaction) bool {
 	if transaction == nil || transaction.Tx == nil {
 		return false
 	}
@@ -117,6 +115,22 @@ func (txTracker *transactionsTracker) IsTransactionTracked(transaction *WrappedT
 	}
 
 	return true
+}
+
+// GetBulkOfUntrackedTransactions returns the txHashes of the untracked transactions
+func (txTracker *transactionsTracker) GetBulkOfUntrackedTransactions(transactions []*WrappedTransaction) [][]byte {
+	untrackedTransactions := make([][]byte, 0)
+	for _, tx := range transactions {
+		if tx == nil || tx.Tx == nil {
+			continue
+		}
+
+		if !txTracker.isTransactionTracked(tx) {
+			untrackedTransactions = append(untrackedTransactions, tx.TxHash)
+		}
+	}
+
+	return untrackedTransactions
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

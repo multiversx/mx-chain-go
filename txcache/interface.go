@@ -32,6 +32,6 @@ type txCacheForSelectionTracker interface {
 
 // txsTracker provides the transactionsTracker methods used by other components
 type txsTracker interface {
-	IsTransactionTracked(transaction *WrappedTransaction) bool
+	GetBulkOfUntrackedTransactions(transactions []*WrappedTransaction) [][]byte
 	IsInterfaceNil() bool
 }
