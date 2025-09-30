@@ -72,11 +72,11 @@ func (gab *globalAccountBreadcrumb) updateOnRemoveAccountBreadcrumbOnExecutedBlo
 	hasSameLastNonce := gab.lastNonce == receivedBreadcrumb.lastNonce
 
 	// if our global breadcrumb has same last nonce with the received one it means we can mark it as a fee payer
-	if !gab.isFeePayer() && hasSameLastNonce {
+	if gab.isUser() && hasSameLastNonce {
 		gab.setAsFeePayer()
 	}
 
-	if !gab.isFeePayer() {
+	if gab.isUser() {
 		if receivedBreadcrumb.hasUnknownNonce() {
 			// should not update with nonce info from breadcrumb of relayer
 			return false, nil
@@ -105,11 +105,11 @@ func (gab *globalAccountBreadcrumb) updateOnRemoveAccountBreadcrumbOnProposedBlo
 	hasSameFirstNonce := gab.firstNonce == receivedBreadcrumb.firstNonce
 
 	// if our global breadcrumb has same first nonce with the received one it means we can mark it as a fee payer
-	if !gab.isFeePayer() && hasSameFirstNonce {
+	if gab.isUser() && hasSameFirstNonce {
 		gab.setAsFeePayer()
 	}
 
-	if !gab.isFeePayer() {
+	if gab.isUser() {
 		if receivedBreadcrumb.hasUnknownNonce() {
 			// should not update with nonce info from breadcrumb of relayer
 			return false, nil
@@ -143,15 +143,15 @@ func (gab *globalAccountBreadcrumb) extendConsumedBalance(receivedBreadcrumb *ac
 	_ = gab.consumedBalance.Add(gab.consumedBalance, receivedBreadcrumb.consumedBalance)
 }
 
-func (gab *globalAccountBreadcrumb) isFeePayer() bool {
-	return !gab.firstNonce.HasValue || !gab.lastNonce.HasValue
+func (gab *globalAccountBreadcrumb) isUser() bool {
+	return gab.firstNonce.HasValue || gab.lastNonce.HasValue
 }
 
 func (gab *globalAccountBreadcrumb) canBeDeleted() bool {
 	hasConsumedBalance := gab.consumedBalance.Sign() == 1
 	// it might be possible to delete the address of the breadcrumb from the global map,
 	// but only if it is a relayer breadcrumb and its consumed balance is equal to 0.
-	if gab.isFeePayer() && !hasConsumedBalance {
+	if !gab.isUser() && !hasConsumedBalance {
 		return true
 	}
 

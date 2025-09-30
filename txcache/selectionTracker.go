@@ -13,13 +13,12 @@ import (
 
 // TODO rename this to proposedBlocksTracker
 type selectionTracker struct {
-	mutTracker               sync.RWMutex
-	latestNonce              uint64
-	latestRootHash           []byte
-	globalAccountBreadcrumbs map[string]*globalAccountBreadcrumb
-	blocks                   map[string]*trackedBlock
-	txCache                  txCacheForSelectionTracker
-	maxTrackedBlocks         uint32
+	mutTracker       sync.RWMutex
+	latestNonce      uint64
+	latestRootHash   []byte
+	blocks           map[string]*trackedBlock
+	txCache          txCacheForSelectionTracker
+	maxTrackedBlocks uint32
 }
 
 // NewSelectionTracker creates a new selectionTracker
