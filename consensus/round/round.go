@@ -33,8 +33,9 @@ type ArgsRound struct {
 
 // round defines the data needed by the roundHandler
 type round struct {
-	index                     int64         // represents the index of the round in the current chronology (current time - genesis time) / round duration
-	timeStamp                 time.Time     // represents the start time of the round in the current chronology genesis time + round index * round duration
+	index                     int64     // represents the index of the round in the current chronology (current time - genesis time) / round duration
+	timeStamp                 time.Time // represents the start time of the round in the current chronology genesis time + round index * round duration
+	genesisTimeStamp          time.Time
 	supernovaGenesisTimeStamp time.Time     // time duration between genesis and the time duration change
 	timeDuration              time.Duration // represents the duration of the round in current chronology
 	supernovaTimeDuration     time.Duration
@@ -62,6 +63,7 @@ func NewRound(args ArgsRound) (*round, error) {
 		timeDuration:              args.RoundTimeDuration,
 		supernovaTimeDuration:     args.SupernovaTimeDuration,
 		timeStamp:                 args.GenesisTimeStamp,
+		genesisTimeStamp:          args.GenesisTimeStamp,
 		supernovaGenesisTimeStamp: args.SupernovaGenesisTimeStamp,
 		syncTimer:                 args.SyncTimer,
 		startRound:                args.StartRound,
@@ -208,6 +210,12 @@ func (rnd *round) RevertOneRound() {
 	rnd.timeStamp = rnd.timeStamp.Add(-timeDuration)
 
 	rnd.Unlock()
+}
+
+// GetTimeStampForRound returns unix milliseconds timestamp for the specified round
+func (rnd *round) GetTimeStampForRound(round uint64) uint64 {
+	roundTimeStampMs := rnd.genesisTimeStamp.Add(time.Duration(round) * rnd.timeDuration).UnixMilli()
+	return uint64(roundTimeStampMs)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
