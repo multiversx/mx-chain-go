@@ -720,7 +720,7 @@ func CreateVMAndBlockchainHookMeta(
 		ChanceComputer:      &shardingMocks.NodesCoordinatorMock{},
 		ShardCoordinator:    mock.NewMultiShardsCoordinatorMock(1),
 		EnableEpochsHandler: enableEpochsHandler,
-		EnableRoundsHandler: &testscommon.EnableRoundsHandlerStub{},
+		RoundHandler:        &testscommon.RoundHandlerMock{},
 		NodesCoordinator:    &shardingMocks.NodesCoordinatorMock{},
 	}
 	vmFactory, err := metachain.NewVMContainerFactory(argVMContainer)
