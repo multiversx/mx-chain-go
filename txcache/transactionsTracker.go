@@ -117,8 +117,9 @@ func (txTracker *transactionsTracker) isTransactionTracked(transaction *WrappedT
 	return true
 }
 
+// GetBulkOfUntrackedTransactions returns the txHashes of the untracked transactions
 func (txTracker *transactionsTracker) GetBulkOfUntrackedTransactions(transactions []*WrappedTransaction) [][]byte {
-	untrackedTransactions := make([][]byte, 0, len(transactions))
+	untrackedTransactions := make([][]byte, 0)
 	for _, tx := range transactions {
 		if tx == nil || tx.Tx == nil {
 			continue
