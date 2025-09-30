@@ -19,6 +19,10 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/typeConverters"
 	"github.com/multiversx/mx-chain-core-go/hashing/keccak"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+	logger "github.com/multiversx/mx-chain-logger-go"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
+	"github.com/multiversx/mx-chain-vm-common-go/parsers"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
@@ -30,9 +34,6 @@ import (
 	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/storage/factory"
 	"github.com/multiversx/mx-chain-go/storage/storageunit"
-	logger "github.com/multiversx/mx-chain-logger-go"
-	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
-	"github.com/multiversx/mx-chain-vm-common-go/parsers"
 )
 
 var _ process.BlockChainHookHandler = (*BlockChainHookImpl)(nil)
@@ -850,7 +851,7 @@ func (bh *BlockChainHookImpl) updateEpochStartHeaderFromCurrentHeader(hdr data.H
 
 	epochStartHdr, err := bh.epochStartTrigger.LastCommitedEpochStartHdr()
 	if err != nil {
-		log.Warn("BlockChainHookImpl.updateEpochStartHeaderFromCurrentHeader: epochStartTrigger.LastCommitedEpochStartHdr", "error", err)
+		log.Warn("BlockChainHookImpl.updateEpochStartHeaderFromCurrentHeader: epochStartTrigger.LastCommittedEpochStartHdr", "error", err)
 		return err
 	}
 

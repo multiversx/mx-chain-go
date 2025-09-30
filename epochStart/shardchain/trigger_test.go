@@ -569,7 +569,7 @@ func TestTrigger_LastCommitedShardEpochStartBlock(t *testing.T) {
 	et.SetProcessed(epochStartShHdr, nil)
 	et.SetProcessed(shHdr, nil)
 
-	lastCommitedEpochStartBlock, err := et.LastCommitedEpochStartHdr()
+	lastCommitedEpochStartBlock, err := et.LastCommittedEpochStartHdr()
 	require.Nil(t, err)
 	require.Equal(t, epochStartShHdr, lastCommitedEpochStartBlock)
 }

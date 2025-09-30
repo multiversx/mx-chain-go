@@ -11,6 +11,9 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/epochStart"
@@ -21,8 +24,6 @@ import (
 	statusHandlerMock "github.com/multiversx/mx-chain-go/testscommon/statusHandler"
 	storageStubs "github.com/multiversx/mx-chain-go/testscommon/storage"
 	vic "github.com/multiversx/mx-chain-go/testscommon/validatorInfoCacher"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 func createMockEpochStartTriggerArguments() *ArgsNewMetaEpochStartTrigger {
@@ -299,7 +300,7 @@ func TestTrigger_LastCommitedMetaEpochStartBlock(t *testing.T) {
 	et.SetProcessed(epochStartMetaHdr, nil)
 	et.SetProcessed(metaHdr, nil)
 
-	lastCommitedEpochStartBlock, err := et.LastCommitedEpochStartHdr()
+	lastCommitedEpochStartBlock, err := et.LastCommittedEpochStartHdr()
 	require.Nil(t, err)
 	require.Equal(t, epochStartMetaHdr, lastCommitedEpochStartBlock)
 }

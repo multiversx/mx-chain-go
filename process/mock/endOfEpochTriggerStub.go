@@ -86,8 +86,8 @@ func (e *EpochStartTriggerStub) EpochStartRound() uint64 {
 	return 0
 }
 
-// LastCommitedEpochStartHdr -
-func (e *EpochStartTriggerStub) LastCommitedEpochStartHdr() (data.HeaderHandler, error) {
+// LastCommittedEpochStartHdr -
+func (e *EpochStartTriggerStub) LastCommittedEpochStartHdr() (data.HeaderHandler, error) {
 	if e.LastCommitedEpochStartHdrCalled != nil {
 		return e.LastCommitedEpochStartHdrCalled()
 	}

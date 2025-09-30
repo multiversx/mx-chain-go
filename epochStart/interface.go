@@ -23,7 +23,7 @@ type TriggerHandler interface {
 	Update(round uint64, nonce uint64)
 	EpochStartRound() uint64
 	EpochStartMetaHdrHash() []byte
-	LastCommitedEpochStartHdr() (data.HeaderHandler, error)
+	LastCommittedEpochStartHdr() (data.HeaderHandler, error)
 	GetEpochStartHdrFromStorage(epoch uint32) (data.HeaderHandler, error)
 	GetSavedStateKey() []byte
 	LoadState(key []byte) error
