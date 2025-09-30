@@ -31,7 +31,7 @@ type systemSCFactory struct {
 	addressPubKeyConverter core.PubkeyConverter
 	shardCoordinator       sharding.Coordinator
 	enableEpochsHandler    common.EnableEpochsHandler
-	enableRoundsHandler    common.EnableRoundsHandler
+	roundHandler           vm.RoundHandler
 	nodesCoordinator       vm.NodesCoordinator
 }
 
@@ -48,7 +48,7 @@ type ArgsNewSystemSCFactory struct {
 	AddressPubKeyConverter core.PubkeyConverter
 	ShardCoordinator       sharding.Coordinator
 	EnableEpochsHandler    common.EnableEpochsHandler
-	EnableRoundsHandler    common.EnableRoundsHandler
+	RoundHandler           vm.RoundHandler
 	NodesCoordinator       vm.NodesCoordinator
 }
 
@@ -99,7 +99,7 @@ func NewSystemSCFactory(args ArgsNewSystemSCFactory) (*systemSCFactory, error) {
 		addressPubKeyConverter: args.AddressPubKeyConverter,
 		shardCoordinator:       args.ShardCoordinator,
 		enableEpochsHandler:    args.EnableEpochsHandler,
-		enableRoundsHandler:    args.EnableRoundsHandler,
+		roundHandler:           args.RoundHandler,
 		nodesCoordinator:       args.NodesCoordinator,
 	}
 
@@ -185,7 +185,7 @@ func (scf *systemSCFactory) createStakingContract() (vm.SystemSmartContract, err
 		GasCost:              scf.gasCost,
 		Marshalizer:          scf.marshalizer,
 		EnableEpochsHandler:  scf.enableEpochsHandler,
-		EnableRoundsHandler:  scf.enableRoundsHandler,
+		RoundHandler:         scf.roundHandler,
 	}
 	staking, err := systemSmartContracts.NewStakingSmartContract(argsStaking)
 	return staking, err

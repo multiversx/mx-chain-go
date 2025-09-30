@@ -9,6 +9,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
+	commonErrors "github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/factory"
 	"github.com/multiversx/mx-chain-go/process/factory/containers"
@@ -44,7 +45,7 @@ type vmContainerFactory struct {
 	scFactory              vm.SystemSCContainerFactory
 	shardCoordinator       sharding.Coordinator
 	enableEpochsHandler    common.EnableEpochsHandler
-	enableRoundsHandler    common.EnableRoundsHandler
+	roundHandler           vm.RoundHandler
 	nodesCoordinator       vm.NodesCoordinator
 }
 
@@ -65,7 +66,7 @@ type ArgsNewVMContainerFactory struct {
 	PubkeyConv          core.PubkeyConverter
 	BlockChainHook      process.BlockChainHookWithAccountsAdapter
 	EnableEpochsHandler common.EnableEpochsHandler
-	EnableRoundsHandler common.EnableRoundsHandler
+	RoundHandler        vm.RoundHandler
 	NodesCoordinator    vm.NodesCoordinator
 }
 
@@ -113,8 +114,8 @@ func NewVMContainerFactory(args ArgsNewVMContainerFactory) (*vmContainerFactory,
 	if check.IfNil(args.EnableEpochsHandler) {
 		return nil, vm.ErrNilEnableEpochsHandler
 	}
-	if check.IfNil(args.EnableRoundsHandler) {
-		return nil, vm.ErrNilEnableRoundsHandler
+	if check.IfNil(args.RoundHandler) {
+		return nil, commonErrors.ErrNilRoundHandler
 	}
 	if check.IfNil(args.NodesCoordinator) {
 		return nil, fmt.Errorf("%w in NewVMContainerFactory", process.ErrNilNodesCoordinator)
@@ -138,7 +139,7 @@ func NewVMContainerFactory(args ArgsNewVMContainerFactory) (*vmContainerFactory,
 		addressPubKeyConverter: args.PubkeyConv,
 		shardCoordinator:       args.ShardCoordinator,
 		enableEpochsHandler:    args.EnableEpochsHandler,
-		enableRoundsHandler:    args.EnableRoundsHandler,
+		roundHandler:           args.RoundHandler,
 		nodesCoordinator:       args.NodesCoordinator,
 	}, nil
 }
@@ -213,7 +214,7 @@ func (vmf *vmContainerFactory) createSystemVMFactoryAndEEI() (vm.SystemSCContain
 		AddressPubKeyConverter: vmf.addressPubKeyConverter,
 		ShardCoordinator:       vmf.shardCoordinator,
 		EnableEpochsHandler:    vmf.enableEpochsHandler,
-		EnableRoundsHandler:    vmf.enableRoundsHandler,
+		RoundHandler:           vmf.roundHandler,
 		NodesCoordinator:       vmf.nodesCoordinator,
 	}
 	scFactory, err := systemVMFactory.NewSystemSCFactory(argsNewSystemScFactory)

@@ -1161,7 +1161,7 @@ func (pcf *processComponentsFactory) createVMFactoryMeta(
 		ChanceComputer:      pcf.coreData.Rater(),
 		ShardCoordinator:    pcf.bootstrapComponents.ShardCoordinator(),
 		EnableEpochsHandler: pcf.coreData.EnableEpochsHandler(),
-		EnableRoundsHandler: pcf.coreData.EnableRoundsHandler(),
+		RoundHandler:        pcf.coreData.RoundHandler(),
 		NodesCoordinator:    pcf.nodesCoordinator,
 	}
 	return metachain.NewVMContainerFactory(argsNewVMContainer)

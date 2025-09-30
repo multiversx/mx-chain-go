@@ -69,7 +69,6 @@ func createMockStakingScArgumentsWithSystemScAddresses(
 			common.CorrectJailedNotUnStakedEmptyQueueFlag,
 			common.ValidatorToDelegationFlag,
 		),
-		EnableRoundsHandler: &testscommon.EnableRoundsHandlerStub{},
 		RoundHandler: &testscommon.RoundHandlerMock{
 			TimeDurationCalled: func() time.Duration {
 				return defaultRoundTimeDuration
@@ -1574,12 +1573,7 @@ func TestStakingSc_ExecuteStakeWithSupernova(t *testing.T) {
 	args.StakingSCConfig.MaxNumberOfNodesForStake = 2
 	enableEpochsHandler, _ := args.EnableEpochsHandler.(*enableEpochsHandlerMock.EnableEpochsHandlerStub)
 	enableEpochsHandler.AddActiveFlags(common.StakingV2Flag)
-
-	enableRoundsHandler, _ := args.EnableRoundsHandler.(*testscommon.EnableRoundsHandlerStub)
-
-	enableRoundsHandler.IsFlagEnabledInRoundCalled = func(flag common.EnableRoundFlag, round uint64) bool {
-		return flag == common.SupernovaRoundFlag
-	}
+	enableEpochsHandler.AddActiveFlags(common.SupernovaFlag)
 
 	args.Eei = eei
 	stakingSmartContract, _ := NewStakingSmartContract(args)

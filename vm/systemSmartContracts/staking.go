@@ -45,7 +45,6 @@ type stakingSC struct {
 	mutExecution             sync.RWMutex
 	minNodePrice             *big.Int
 	enableEpochsHandler      common.EnableEpochsHandler
-	enableRoundsHandler      common.EnableRoundsHandler
 	roundHandler             vm.RoundHandler
 }
 
@@ -60,7 +59,6 @@ type ArgsNewStakingSmartContract struct {
 	GasCost              vm.GasCost
 	Marshalizer          marshal.Marshalizer
 	EnableEpochsHandler  common.EnableEpochsHandler
-	EnableRoundsHandler  common.EnableRoundsHandler
 	RoundHandler         vm.RoundHandler
 }
 
@@ -94,9 +92,6 @@ func NewStakingSmartContract(
 	}
 	if check.IfNil(args.EnableEpochsHandler) {
 		return nil, vm.ErrNilEnableEpochsHandler
-	}
-	if check.IfNil(args.EnableRoundsHandler) {
-		return nil, vm.ErrNilEnableRoundsHandler
 	}
 	err := core.CheckHandlerCompatibility(args.EnableEpochsHandler, []core.EnableEpochFlag{
 		common.CorrectFirstQueuedFlag,
@@ -132,7 +127,6 @@ func NewStakingSmartContract(
 		walletAddressLen:         len(args.StakingAccessAddr),
 		minNodePrice:             minStakeValue,
 		enableEpochsHandler:      args.EnableEpochsHandler,
-		enableRoundsHandler:      args.EnableRoundsHandler,
 		roundHandler:             args.RoundHandler,
 	}
 
