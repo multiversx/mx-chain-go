@@ -590,7 +590,7 @@ func Test_reduceConsumedBalance(t *testing.T) {
 		}
 
 		err := gab.reduceConsumedBalance(&breadcrumb)
-		require.Equal(t, errNegativeBalance, err)
+		require.Equal(t, errNegativeBalanceForBreadcrumb, err)
 	})
 
 	t.Run("should work", func(t *testing.T) {

@@ -20,13 +20,13 @@ func newGlobalAccountBreadcrumb() *globalAccountBreadcrumb {
 	gab := &globalAccountBreadcrumb{
 		consumedBalance: big.NewInt(0),
 	}
-	gab.setForFeePayer()
+	gab.setAsFeePayer()
 
 	return gab
 }
 
-// setForFeePayer sets a global account breadcrumb for a fee payer
-func (gab *globalAccountBreadcrumb) setForFeePayer() {
+// setAsFeePayer sets a global account breadcrumb for a fee payer
+func (gab *globalAccountBreadcrumb) setAsFeePayer() {
 	gab.firstNonce = core.OptionalUint64{
 		Value:    math.MaxUint64,
 		HasValue: false,
@@ -53,11 +53,11 @@ func (gab *globalAccountBreadcrumb) updateOnAddedAccountBreadcrumb(receivedBread
 		gab.firstNonce = receivedBreadcrumb.firstNonce
 	}
 
-	gab.extendRightRange(receivedBreadcrumb)
+	gab.extendRightNonceRange(receivedBreadcrumb)
 }
 
-// extendRightRange extends the nonce range by maximizing the last nonce
-func (gab *globalAccountBreadcrumb) extendRightRange(receivedBreadcrumb *accountBreadcrumb) {
+// extendRightNonceRange extends the nonce range by maximizing the last nonce
+func (gab *globalAccountBreadcrumb) extendRightNonceRange(receivedBreadcrumb *accountBreadcrumb) {
 	gab.lastNonce.Value = max(gab.lastNonce.Value, receivedBreadcrumb.lastNonce.Value)
 	gab.lastNonce.HasValue = true
 }
@@ -73,7 +73,7 @@ func (gab *globalAccountBreadcrumb) updateOnRemoveAccountBreadcrumbOnExecutedBlo
 
 	// if our global breadcrumb has same last nonce with the received one it means we can mark it as a fee payer
 	if !gab.isFeePayer() && hasSameLastNonce {
-		gab.setForFeePayer()
+		gab.setAsFeePayer()
 	}
 
 	if !gab.isFeePayer() {
@@ -82,19 +82,19 @@ func (gab *globalAccountBreadcrumb) updateOnRemoveAccountBreadcrumbOnExecutedBlo
 			return false, nil
 		}
 
-		gab.reduceLeftRange(receivedBreadcrumb)
+		gab.reduceLeftNonceRange(receivedBreadcrumb)
 	}
 
 	return gab.canBeDeleted(), nil
 }
 
-// extendRightRange reduces the nonce range by minimizing the first nonce
-func (gab *globalAccountBreadcrumb) reduceLeftRange(receivedBreadcrumb *accountBreadcrumb) {
+// reduceLeftNonceRange reduces the left range by maximizing the first nonce
+func (gab *globalAccountBreadcrumb) reduceLeftNonceRange(receivedBreadcrumb *accountBreadcrumb) {
 	gab.firstNonce.Value = max(gab.firstNonce.Value, receivedBreadcrumb.lastNonce.Value+1)
 	gab.firstNonce.HasValue = true
 }
 
-// updateOnRemoveAccountBreadcrumbOnExecutedBlock updates the global account breadcrumb when a block is removed on the OnProposedBlock notification,
+// updateOnRemoveAccountBreadcrumbOnProposedBlock updates the global account breadcrumb when a block is removed on the OnProposedBlock notification,
 // but should be used only after the validation of the proposed block passed.
 func (gab *globalAccountBreadcrumb) updateOnRemoveAccountBreadcrumbOnProposedBlock(receivedBreadcrumb *accountBreadcrumb) (bool, error) {
 	err := gab.reduceConsumedBalance(receivedBreadcrumb)
@@ -106,7 +106,7 @@ func (gab *globalAccountBreadcrumb) updateOnRemoveAccountBreadcrumbOnProposedBlo
 
 	// if our global breadcrumb has same first nonce with the received one it means we can mark it as a fee payer
 	if !gab.isFeePayer() && hasSameFirstNonce {
-		gab.setForFeePayer()
+		gab.setAsFeePayer()
 	}
 
 	if !gab.isFeePayer() {
@@ -115,14 +115,14 @@ func (gab *globalAccountBreadcrumb) updateOnRemoveAccountBreadcrumbOnProposedBlo
 			return false, nil
 		}
 
-		gab.reduceRightRange(receivedBreadcrumb)
+		gab.reduceRightNonceRange(receivedBreadcrumb)
 	}
 
 	return gab.canBeDeleted(), nil
 }
 
-// reduceRightRange reduces the nonce range by minimizing the last nonce
-func (gab *globalAccountBreadcrumb) reduceRightRange(receivedBreadcrumb *accountBreadcrumb) {
+// reduceRightNonceRange reduces the nonce range by minimizing the last nonce
+func (gab *globalAccountBreadcrumb) reduceRightNonceRange(receivedBreadcrumb *accountBreadcrumb) {
 	gab.lastNonce.Value = min(gab.lastNonce.Value, receivedBreadcrumb.firstNonce.Value-1)
 	gab.lastNonce.HasValue = true
 }
@@ -130,8 +130,8 @@ func (gab *globalAccountBreadcrumb) reduceRightRange(receivedBreadcrumb *account
 // reduceConsumedBalance reduces the consumed balance of the global account breadcrumb by subtracting the received balance
 func (gab *globalAccountBreadcrumb) reduceConsumedBalance(receivedBreadcrumb *accountBreadcrumb) error {
 	_ = gab.consumedBalance.Sub(gab.consumedBalance, receivedBreadcrumb.consumedBalance)
-	if gab.consumedBalance.Cmp(big.NewInt(0)) == -1 {
-		return errNegativeBalance
+	if gab.consumedBalance.Sign() == -1 {
+		return errNegativeBalanceForBreadcrumb
 	}
 
 	return nil
@@ -148,7 +148,7 @@ func (gab *globalAccountBreadcrumb) isFeePayer() bool {
 }
 
 func (gab *globalAccountBreadcrumb) canBeDeleted() bool {
-	hasConsumedBalance := gab.consumedBalance.Cmp(big.NewInt(0)) == 1
+	hasConsumedBalance := gab.consumedBalance.Sign() == 1
 	// it might be possible to delete the address of the breadcrumb from the global map,
 	// but only if it is a relayer breadcrumb and its consumed balance is equal to 0.
 	if gab.isFeePayer() && !hasConsumedBalance {
