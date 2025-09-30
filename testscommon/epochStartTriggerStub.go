@@ -59,8 +59,8 @@ func (e *EpochStartTriggerStub) EpochStartMetaHdrHash() []byte {
 	return nil
 }
 
-// LastCommittedEpochStartHdr -
-func (e *EpochStartTriggerStub) LastCommittedEpochStartHdr() (data.HeaderHandler, error) {
+// LastCommitedEpochStartHdr -
+func (e *EpochStartTriggerStub) LastCommitedEpochStartHdr() (data.HeaderHandler, error) {
 	if e.LastCommitedEpochStartHdrCalled != nil {
 		return e.LastCommitedEpochStartHdrCalled()
 	}

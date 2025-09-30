@@ -19,13 +19,12 @@ import (
 	"github.com/multiversx/mx-chain-core-go/display"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
-	logger "github.com/multiversx/mx-chain-logger-go"
-
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/epochStart"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/storage"
+	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
 var log = logger.GetOrCreate("epochStart/shardchain")
@@ -1194,8 +1193,8 @@ func (t *trigger) EpochStartMetaHdrHash() []byte {
 	return t.epochMetaBlockHash
 }
 
-// LastCommittedEpochStartHdr returns the epoch start header
-func (t *trigger) LastCommittedEpochStartHdr() (data.HeaderHandler, error) {
+// LastCommitedEpochStartHdr returns the epoch start header
+func (t *trigger) LastCommitedEpochStartHdr() (data.HeaderHandler, error) {
 	t.mutTrigger.RLock()
 	defer t.mutTrigger.RUnlock()
 

@@ -483,7 +483,7 @@ type EpochStartTriggerHandler interface {
 	Epoch() uint32
 	MetaEpoch() uint32
 	EpochStartRound() uint64
-	LastCommittedEpochStartHdr() (data.HeaderHandler, error)
+	LastCommitedEpochStartHdr() (data.HeaderHandler, error)
 	GetEpochStartHdrFromStorage(epoch uint32) (data.HeaderHandler, error)
 	SetProcessed(header data.HeaderHandler, body data.BodyHandler)
 	RevertStateToBlock(header data.HeaderHandler) error

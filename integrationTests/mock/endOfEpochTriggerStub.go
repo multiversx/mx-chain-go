@@ -4,7 +4,6 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
-
 	"github.com/multiversx/mx-chain-go/epochStart"
 )
 
@@ -53,8 +52,8 @@ func (e *EpochStartTriggerStub) EpochStartMetaHdrHash() []byte {
 	return nil
 }
 
-// LastCommittedEpochStartHdr -
-func (e *EpochStartTriggerStub) LastCommittedEpochStartHdr() (data.HeaderHandler, error) {
+// LastCommitedEpochStartHdr -
+func (e *EpochStartTriggerStub) LastCommitedEpochStartHdr() (data.HeaderHandler, error) {
 	if e.LastCommitedEpochStartHdrCalled != nil {
 		return e.LastCommitedEpochStartHdrCalled()
 	}
