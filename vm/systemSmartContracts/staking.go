@@ -141,76 +141,12 @@ func NewStakingSmartContract(
 	return reg, nil
 }
 
-func (s *stakingSC) getUnBondPeriod(
-	unStakedNonce uint64,
-) uint64 {
-	currentNonce := s.eei.BlockChainHook().CurrentNonce()
-	currentRound := s.eei.BlockChainHook().CurrentRound()
-
-	// supernova not activated
-	if !s.enableRoundsHandler.IsFlagEnabledInRound(common.SupernovaRoundFlag, currentRound) {
+func (s *stakingSC) getUnBondPeriod(round uint64) uint64 {
+	if !s.enableRoundsHandler.IsFlagEnabledInRound(common.SupernovaRoundFlag, round) {
 		return s.unBondPeriod
 	}
 
-	// supernova activated
-	unBondRound := unStakedNonce // we take it approximately based on nonce
-	if s.enableRoundsHandler.IsFlagEnabledInRound(common.SupernovaRoundFlag, unBondRound) {
-		return s.unBondPeriodSupernova
-	}
-
-	// supernova activated on current round, but not on unStakedNonce
-
 	return s.unBondPeriodSupernova
-}
-
-func (s *stakingSC) isUnBondingPassed(
-	unStakedNonce uint64,
-) (bool, uint64) {
-	currentNonce := s.eei.BlockChainHook().CurrentNonce()
-	currentRound := s.eei.BlockChainHook().CurrentRound()
-
-	passedNonce := currentNonce - unStakedNonce
-
-	unBondPeriod := s.unBondPeriod
-	// supernova not activated
-	if !s.enableRoundsHandler.IsFlagEnabledInRound(common.SupernovaRoundFlag, currentRound) {
-		unBondPeriod = s.unBondPeriod
-
-		isPassed := passedNonce >= unBondPeriod
-
-		remaining := uint64(0)
-		if !isPassed {
-			remaining = unBondPeriod - passedNonce
-		}
-
-		return isPassed, remaining
-	}
-
-	// supernova activated after unbond period
-	unBondRound := unStakedNonce // we take it approximately based on nonce
-	if s.enableRoundsHandler.IsFlagEnabledInRound(common.SupernovaRoundFlag, unBondRound) {
-		unBondPeriod = s.unBondPeriodSupernova
-
-		isPassed := passedNonce >= unBondPeriod
-
-		remaining := uint64(0)
-		if !isPassed {
-			remaining = unBondPeriod - passedNonce
-		}
-
-		return isPassed, remaining
-	}
-
-	// supernova activated on current round, but not on unbond trigger
-
-	isPassed := passedNonce >= unBondPeriod
-
-	remaining := uint64(0)
-	if !isPassed {
-		remaining = unBondPeriod - passedNonce
-	}
-
-	return isPassed, remaining
 }
 
 // Execute calls one of the functions from the staking smart contract and runs the code according to the input
