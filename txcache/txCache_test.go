@@ -311,20 +311,6 @@ func Test_GetTransactionsPoolForSender(t *testing.T) {
 	require.Equal(t, expectedTxs, txs)
 }
 
-func TestTxCache_GetVirtualNonce(t *testing.T) {
-	t.Parallel()
-
-	t.Run("should return errNilBlockchainInfo error", func(t *testing.T) {
-		t.Parallel()
-
-		boundsConfig := createMockTxBoundsConfig()
-		cache := newUnconstrainedCacheToTest(boundsConfig)
-
-		_, _, err := cache.GetVirtualNonceAndRootHash([]byte("alice"), nil)
-		require.Equal(t, errNilBlockchainInfo, err)
-	})
-}
-
 func Test_Keys(t *testing.T) {
 	boundsConfig := createMockTxBoundsConfig()
 	cache := newUnconstrainedCacheToTest(boundsConfig)

@@ -118,16 +118,10 @@ func (cache *TxCache) GetByTxHash(txHash []byte) (*WrappedTransaction, bool) {
 func (cache *TxCache) SelectTransactions(
 	session SelectionSession,
 	options common.TxSelectionOptions,
-	blockchainInfo common.BlockchainInfo,
 ) ([]*WrappedTransaction, uint64, error) {
 	if check.IfNil(session) {
 		log.Error("TxCache.SelectTransactions", "err", errNilSelectionSession)
 		return nil, 0, errNilSelectionSession
-	}
-
-	if check.IfNil(blockchainInfo) {
-		log.Error("TxCache.SelectTransactions", "err", errNilBlockchainInfo)
-		return nil, 0, errNilBlockchainInfo
 	}
 
 	stopWatch := core.NewStopWatch()
@@ -140,7 +134,7 @@ func (cache *TxCache) SelectTransactions(
 		"num bytes", cache.NumBytes(),
 	)
 
-	virtualSession, err := cache.tracker.deriveVirtualSelectionSession(session, blockchainInfo)
+	virtualSession, err := cache.tracker.deriveVirtualSelectionSession(session)
 	if err != nil {
 		log.Error("TxCache.SelectTransactions: could not derive virtual selection session", "err", err)
 		return nil, 0, err
@@ -165,14 +159,8 @@ func (cache *TxCache) SelectTransactions(
 // For this method, the blockchainInfo should contain the hash of the last committed block.
 func (cache *TxCache) GetVirtualNonceAndRootHash(
 	address []byte,
-	blockchainInfo common.BlockchainInfo,
 ) (uint64, []byte, error) {
-	if check.IfNil(blockchainInfo) {
-		log.Error("TxCache.GetVirtualNonce", "err", errNilBlockchainInfo)
-		return 0, nil, errNilBlockchainInfo
-	}
-
-	virtualNonce, rootHash, err := cache.tracker.getVirtualNonceOfAccountWithRootHash(address, blockchainInfo)
+	virtualNonce, rootHash, err := cache.tracker.getVirtualNonceOfAccountWithRootHash(address)
 	if err != nil {
 		return 0, nil, err
 	}

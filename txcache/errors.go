@@ -17,6 +17,7 @@ var errDiscontinuousSequenceOfBlocks = errors.New("discontinuous sequence of blo
 var errNilTxCache = errors.New("nil tx cache")
 var errNotFoundTx = errors.New("tx not found")
 var errDiscontinuousBreadcrumbs = errors.New("discontinuous breadcrumbs")
+var errDiscontinuousGlobalBreadcrumbs = errors.New("discontinuous global breadcrumbs")
 var errBreadcrumbNotFound = errors.New("breadcrumb not found")
 var errNegativeBalanceForBreadcrumb = errors.New("breadcrumb should not have negative balance")
 var errLastNonceNotFound = errors.New("last nonce not found")

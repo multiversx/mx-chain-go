@@ -159,3 +159,17 @@ func (gab *globalAccountBreadcrumb) canBeDeleted() bool {
 
 	return false
 }
+
+func (gab *globalAccountBreadcrumb) continuousWithSessionNonce(sessionNonce uint64) bool {
+	return gab.firstNonce.HasValue && gab.firstNonce.Value == sessionNonce
+}
+
+func (gab *globalAccountBreadcrumb) createCopy() *globalAccountBreadcrumb {
+	gabCopy := newGlobalAccountBreadcrumb()
+
+	gabCopy.firstNonce = gab.firstNonce
+	gabCopy.lastNonce = gab.lastNonce
+	gabCopy.consumedBalance = big.NewInt(int64(gab.consumedBalance.Uint64()))
+
+	return gabCopy
+}

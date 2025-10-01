@@ -7,14 +7,12 @@ import (
 // virtualSessionComputer relies on the internal state of the validator for skipping certain senders
 type virtualSessionComputer struct {
 	session                  SelectionSession
-	validator                *breadcrumbsValidator
 	virtualAccountsByAddress map[string]*virtualAccountRecord
 }
 
 func newVirtualSessionComputer(session SelectionSession) *virtualSessionComputer {
 	return &virtualSessionComputer{
 		session:                  session,
-		validator:                newBreadcrumbValidator(),
 		virtualAccountsByAddress: make(map[string]*virtualAccountRecord),
 	}
 }
@@ -22,42 +20,39 @@ func newVirtualSessionComputer(session SelectionSession) *virtualSessionComputer
 // createVirtualSelectionSession iterates over the chain of tracked blocks and for each sender checks that its breadcrumb is continuous
 // If the breadcrumb of an account is continuous, the virtual record of that account is created or updated
 func (computer *virtualSessionComputer) createVirtualSelectionSession(
-	chainOfTrackedBlocks []*trackedBlock,
+	globalAccountBreadcrumbs map[string]*globalAccountBreadcrumb,
 ) (*virtualSelectionSession, error) {
-	for _, tb := range chainOfTrackedBlocks {
-		err := computer.handleTrackedBlock(tb)
-		if err != nil {
-			return nil, err
-		}
+	err := computer.handleGlobalAccountBreadcrumbs(globalAccountBreadcrumbs)
+	if err != nil {
+		return nil, err
 	}
 
 	virtualSession := newVirtualSelectionSession(computer.session, computer.virtualAccountsByAddress)
 	return virtualSession, nil
 }
 
-func (computer *virtualSessionComputer) handleTrackedBlock(tb *trackedBlock) error {
-	for address, breadcrumb := range tb.breadcrumbsByAddress {
-		// check if this address was already marked as not continuous by the validator
-		ok := computer.validator.shouldSkipSender(address)
-		if ok {
-			continue
-		}
-
+func (computer *virtualSessionComputer) handleGlobalAccountBreadcrumbs(
+	globalAccountBreadcrumbs map[string]*globalAccountBreadcrumb,
+) error {
+	for address, globalBreadcrumb := range globalAccountBreadcrumbs {
 		accountNonce, accountBalance, _, err := computer.session.GetAccountNonceAndBalance([]byte(address))
 		if err != nil {
 			log.Debug("virtualSessionComputer.handleTrackedBlock",
 				"err", err,
-				"address", address,
-				"tracked block rootHash", tb.rootHash)
+				"address", address)
 			return err
 		}
 
-		if !computer.validator.validateNonceContinuityOfBreadcrumb(address, accountNonce, breadcrumb) {
-			delete(computer.virtualAccountsByAddress, address)
-			continue
+		if !globalBreadcrumb.continuousWithSessionNonce(accountNonce) {
+			log.Debug("virtualSessionComputer.handleGlobalAccountBreadcrumbs global breadcrumb not continuous with session nonce",
+				"address", address,
+				"accountNonce", accountNonce,
+				"breadcrumb nonce", globalBreadcrumb.firstNonce,
+			)
+			return errDiscontinuousGlobalBreadcrumbs
 		}
 
-		err = computer.fromBreadcrumbToVirtualRecord(address, accountBalance, breadcrumb)
+		err = computer.fromGlobalBreadcrumbToVirtualRecord(address, accountBalance, globalBreadcrumb)
 		if err != nil {
 			return err
 		}
@@ -66,23 +61,22 @@ func (computer *virtualSessionComputer) handleTrackedBlock(tb *trackedBlock) err
 	return nil
 }
 
-func (computer *virtualSessionComputer) fromBreadcrumbToVirtualRecord(
+func (computer *virtualSessionComputer) fromGlobalBreadcrumbToVirtualRecord(
 	address string,
 	accountBalance *big.Int,
-	breadcrumb *accountBreadcrumb,
+	globalBreadcrumb *globalAccountBreadcrumb,
 ) error {
-	virtualRecord, ok := computer.virtualAccountsByAddress[address]
+	_, ok := computer.virtualAccountsByAddress[address]
 	if !ok {
 		initialBalance := accountBalance
-		record, err := newVirtualAccountRecord(breadcrumb.firstNonce, initialBalance)
+		record, err := newVirtualAccountRecord(globalBreadcrumb.lastNonce, initialBalance)
 		if err != nil {
 			return err
 		}
 
-		virtualRecord = record
+		record.updateVirtualRecord(globalBreadcrumb)
 		computer.virtualAccountsByAddress[address] = record
 	}
 
-	virtualRecord.updateVirtualRecord(breadcrumb)
 	return nil
 }

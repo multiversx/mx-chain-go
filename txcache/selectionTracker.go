@@ -192,6 +192,65 @@ func (st *selectionTracker) validateTrackedBlocksAndCompileBreadcrumbs(
 	return nil
 }
 
+// getChainOfTrackedPendingBlocks finds the chain of tracked blocks, iterating from tail to head,
+// following the previous hash of each block, in order to avoid fork scenarios.
+// The iteration stops when the previous hash of a block is equal to latestExecutedBlockHash.
+func (st *selectionTracker) getChainOfTrackedPendingBlocks(
+	latestExecutedBlockHash []byte,
+	previousHashToBeFound []byte,
+	nonceOfNextBlock uint64,
+) ([]*trackedBlock, error) {
+	chain := make([]*trackedBlock, 0)
+
+	// If the previous hash to be found is equal to the latest executed hash,
+	// it means that we do not have any tracked proposed block on top.
+	// The block found would be the actual executed block, but that one is not tracked anymore.
+	if bytes.Equal(latestExecutedBlockHash, previousHashToBeFound) {
+		return chain, nil
+	}
+
+	// search for the block with the hash equal to the previous hash.
+	// NOTE: we expect a nil value for a key (block hash) which is not in the map of tracked blocks.
+	previousBlock := st.blocks[string(previousHashToBeFound)]
+
+	for {
+		if nonceOfNextBlock == 0 {
+			// should never actually happen (e.g. genesis)
+			break
+		}
+
+		// if no block was found, it means there is a gap and we have to return an error
+		if previousBlock == nil {
+			return nil, errBlockNotFound
+		}
+
+		// extra check for a block gap, to assure there are no missing tracked blocks
+		hasDiscontinuousBlockNonce := previousBlock.nonce != nonceOfNextBlock-1
+		if hasDiscontinuousBlockNonce {
+			return nil, errDiscontinuousSequenceOfBlocks
+		}
+
+		// if the block passes the validation, add it to the returned chain
+		chain = append(chain, previousBlock)
+
+		// move backwards in the chain and check if the head was reached
+		previousBlockHash := previousBlock.prevHash
+		if bytes.Equal(latestExecutedBlockHash, previousBlockHash) {
+			break
+		}
+
+		// update also the nonce
+		nonceOfNextBlock -= 1
+
+		// find the previous block
+		previousBlock = st.blocks[string(previousBlockHash)]
+	}
+
+	// return the blocks in their natural order (from head to tail)
+	slices.Reverse(chain)
+	return chain, nil
+}
+
 // validateBreadcrumbsOfTrackedBlocks validates the breadcrumbs of each tracked block.
 // Firstly, it checks for nonce continuity.
 // Then, it checks that each account has enough balance.
@@ -344,7 +403,6 @@ func (st *selectionTracker) updateLatestRootHashNoLock(receivedNonce uint64, rec
 
 func (st *selectionTracker) deriveVirtualSelectionSession(
 	session SelectionSession,
-	blockchainInfo common.BlockchainInfo,
 ) (*virtualSelectionSession, error) {
 	rootHash, err := session.GetRootHash()
 	if err != nil {
@@ -353,114 +411,30 @@ func (st *selectionTracker) deriveVirtualSelectionSession(
 		return nil, err
 	}
 
-	latestExecutedBlockHash := blockchainInfo.GetLatestExecutedBlockHash()
-	latestCommittedBlockHash := blockchainInfo.GetLatestCommittedBlockHash()
-	currentNonce := blockchainInfo.GetCurrentNonce()
-
 	log.Debug("selectionTracker.deriveVirtualSelectionSession",
-		"rootHash", rootHash,
-		"latestExecutedBlockHash", latestExecutedBlockHash,
-		"latestCommitedBlockHash", latestCommittedBlockHash,
-		"currentNonce", currentNonce,
-	)
+		"rootHash", rootHash)
 
-	// TODO should not re-create the chain anymore, but instead: transform each global account record into a virtual record.
-
-	trackedBlocks, err := st.getChainOfTrackedPendingBlocks(
-		latestExecutedBlockHash,
-		latestCommittedBlockHash,
-		currentNonce,
-	)
-	if err != nil {
-		log.Debug("selectionTracker.deriveVirtualSelectionSession",
-			"err", err)
-		return nil, err
-	}
-
+	trackedBlocks := st.getTrackedBlocksAsSlice()
 	log.Debug("selectionTracker.deriveVirtualSelectionSession",
 		"len(trackedBlocks)", len(trackedBlocks))
 
 	displayTrackedBlocks(log, "trackedBlocks", trackedBlocks)
 
 	computer := newVirtualSessionComputer(session)
-	return computer.createVirtualSelectionSession(trackedBlocks)
+
+	globalAccountsBreadcrumbs := st.getGlobalAccountsBreadcrumbs()
+	return computer.createVirtualSelectionSession(globalAccountsBreadcrumbs)
 }
 
-// getChainOfTrackedPendingBlocks finds the chain of tracked blocks, iterating from tail to head,
-// following the previous hash of each block, in order to avoid fork scenarios.
-// The iteration stops when the previous hash of a block is equal to latestExecutedBlockHash.
-func (st *selectionTracker) getChainOfTrackedPendingBlocks(
-	latestExecutedBlockHash []byte,
-	previousHashToBeFound []byte,
-	nonceOfNextBlock uint64,
-) ([]*trackedBlock, error) {
-	chain := make([]*trackedBlock, 0)
-
-	// If the previous hash to be found is equal to the latest executed hash,
-	// it means that we do not have any tracked proposed block on top.
-	// The block found would be the actual executed block, but that one is not tracked anymore.
-	if bytes.Equal(latestExecutedBlockHash, previousHashToBeFound) {
-		return chain, nil
-	}
-
-	// search for the block with the hash equal to the previous hash.
-	// NOTE: we expect a nil value for a key (block hash) which is not in the map of tracked blocks.
-	previousBlock := st.blocks[string(previousHashToBeFound)]
-
-	for {
-		if nonceOfNextBlock == 0 {
-			// should never actually happen (e.g. genesis)
-			break
-		}
-
-		// if no block was found, it means there is a gap and we have to return an error
-		if previousBlock == nil {
-			return nil, errBlockNotFound
-		}
-
-		// extra check for a block gap, to assure there are no missing tracked blocks
-		hasDiscontinuousBlockNonce := previousBlock.nonce != nonceOfNextBlock-1
-		if hasDiscontinuousBlockNonce {
-			return nil, errDiscontinuousSequenceOfBlocks
-		}
-
-		// if the block passes the validation, add it to the returned chain
-		chain = append(chain, previousBlock)
-
-		// move backwards in the chain and check if the head was reached
-		previousBlockHash := previousBlock.prevHash
-		if bytes.Equal(latestExecutedBlockHash, previousBlockHash) {
-			break
-		}
-
-		// update also the nonce
-		nonceOfNextBlock -= 1
-
-		// find the previous block
-		previousBlock = st.blocks[string(previousBlockHash)]
-	}
-
-	// return the blocks in their natural order (from head to tail)
-	slices.Reverse(chain)
-	return chain, nil
+func (st *selectionTracker) getGlobalAccountsBreadcrumbs() map[string]*globalAccountBreadcrumb {
+	return st.gabc.getGlobalBreadcrumbs()
 }
 
 func (st *selectionTracker) getVirtualNonceOfAccountWithRootHash(
 	address []byte,
-	blockchainInfo common.BlockchainInfo,
 ) (uint64, []byte, error) {
-	latestCommittedBlockHash := blockchainInfo.GetLatestCommittedBlockHash()
-	if latestCommittedBlockHash == nil {
-		return 0, nil, errNilLatestCommittedBlockHash
-	}
-
-	latestCommittedBlock, ok := st.blocks[string(latestCommittedBlockHash)]
-	if !ok {
-		return 0, nil, errBlockNotFound
-	}
-
-	breadcrumb, ok := latestCommittedBlock.breadcrumbsByAddress[string(address)]
-	if !ok {
+	breadcrumb, err := st.gabc.getGlobalBreadcrumbByAddress(string(address))
+	if err != nil {
 		return 0, nil, errBreadcrumbNotFound
 	}
 
@@ -468,7 +442,7 @@ func (st *selectionTracker) getVirtualNonceOfAccountWithRootHash(
 		return 0, nil, errLastNonceNotFound
 	}
 
-	return breadcrumb.lastNonce.Value + 1, latestCommittedBlock.rootHash, nil
+	return breadcrumb.lastNonce.Value + 1, st.latestRootHash, nil
 }
 
 func (st *selectionTracker) getTrackedBlocks() map[string]*trackedBlock {
@@ -478,6 +452,18 @@ func (st *selectionTracker) getTrackedBlocks() map[string]*trackedBlock {
 	copyOfTrackedBlocks := make(map[string]*trackedBlock, len(st.blocks))
 	for key, value := range st.blocks {
 		copyOfTrackedBlocks[key] = value
+	}
+
+	return copyOfTrackedBlocks
+}
+
+func (st *selectionTracker) getTrackedBlocksAsSlice() []*trackedBlock {
+	st.mutTracker.RLock()
+	defer st.mutTracker.RUnlock()
+
+	copyOfTrackedBlocks := make([]*trackedBlock, 0, len(st.blocks))
+	for _, value := range st.blocks {
+		copyOfTrackedBlocks = append(copyOfTrackedBlocks, value)
 	}
 
 	return copyOfTrackedBlocks

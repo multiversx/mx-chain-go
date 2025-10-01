@@ -12,7 +12,7 @@ func Test_updateVirtualRecord(t *testing.T) {
 	t.Run("breadcrumb doesn't have last nonce", func(t *testing.T) {
 		t.Parallel()
 
-		breadcrumb := accountBreadcrumb{
+		breadcrumb := globalAccountBreadcrumb{
 			firstNonce: core.OptionalUint64{
 				Value:    3,
 				HasValue: false,
@@ -43,7 +43,7 @@ func Test_updateVirtualRecord(t *testing.T) {
 		}, big.NewInt(2))
 		require.NoError(t, err)
 
-		breadcrumb := accountBreadcrumb{
+		breadcrumb := globalAccountBreadcrumb{
 			firstNonce: core.OptionalUint64{
 				Value:    3,
 				HasValue: true,
@@ -71,7 +71,7 @@ func Test_updateVirtualRecord(t *testing.T) {
 		}, big.NewInt(2))
 		require.NoError(t, err)
 
-		breadcrumb := accountBreadcrumb{
+		breadcrumb := globalAccountBreadcrumb{
 			firstNonce: core.OptionalUint64{
 				Value:    3,
 				HasValue: true,

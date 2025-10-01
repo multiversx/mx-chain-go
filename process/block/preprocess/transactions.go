@@ -1465,8 +1465,7 @@ func (txs *transactions) computeSortedTxs(
 		txs.txCacheSelectionConfig.SelectionLoopDurationCheckInterval,
 	)
 
-	blockchainInfo := holders.NewBlockchainInfo(nil, nil, 0)
-	sortedTxs, _, err := txCache.SelectTransactions(session, selectionOptions, blockchainInfo)
+	sortedTxs, _, err := txCache.SelectTransactions(session, selectionOptions)
 	if err != nil {
 		// TODO re-brainstorm if this error should be propagated or just logged
 		return nil, nil, err

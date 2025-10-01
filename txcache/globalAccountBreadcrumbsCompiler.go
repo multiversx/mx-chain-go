@@ -1,6 +1,8 @@
 package txcache
 
-import "sync"
+import (
+	"sync"
+)
 
 type globalAccountBreadcrumbsCompiler struct {
 	mutCompiler              sync.RWMutex
@@ -76,4 +78,28 @@ func (gabc *globalAccountBreadcrumbsCompiler) updateGlobalBreadcrumbsOnRemovedBl
 	}
 
 	return nil
+}
+
+func (gabc *globalAccountBreadcrumbsCompiler) getGlobalBreadcrumbByAddress(address string) (*globalAccountBreadcrumb, error) {
+	gabc.mutCompiler.RLock()
+	defer gabc.mutCompiler.RUnlock()
+
+	_, ok := gabc.globalAccountBreadcrumbs[address]
+	if !ok {
+		return nil, errGlobalBreadcrumbDoesNotExist
+	}
+
+	return gabc.globalAccountBreadcrumbs[address].createCopy(), nil
+}
+
+func (gabc *globalAccountBreadcrumbsCompiler) getGlobalBreadcrumbs() map[string]*globalAccountBreadcrumb {
+	gabc.mutCompiler.RLock()
+	defer gabc.mutCompiler.RUnlock()
+
+	globalBreadcrumbsCopy := make(map[string]*globalAccountBreadcrumb)
+	for account, globalBreadcrumb := range gabc.globalAccountBreadcrumbs {
+		globalBreadcrumbsCopy[account] = globalBreadcrumb.createCopy()
+	}
+
+	return globalBreadcrumbsCopy
 }
