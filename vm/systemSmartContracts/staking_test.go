@@ -1565,11 +1565,7 @@ func TestStakingSc_ExecuteStakeWithSupernova(t *testing.T) {
 	enableRoundsHandler, _ := args.EnableRoundsHandler.(*testscommon.EnableRoundsHandlerStub)
 
 	enableRoundsHandler.IsFlagEnabledInRoundCalled = func(flag common.EnableRoundFlag, round uint64) bool {
-		if flag == common.SupernovaRoundFlag {
-			return true
-		}
-
-		return false
+		return flag == common.SupernovaRoundFlag
 	}
 
 	args.Eei = eei

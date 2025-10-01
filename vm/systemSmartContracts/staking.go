@@ -141,7 +141,9 @@ func NewStakingSmartContract(
 	return reg, nil
 }
 
-func (s *stakingSC) getUnBondPeriod(round uint64) uint64 {
+func (s *stakingSC) getUnBondPeriod() uint64 {
+	round := s.eei.BlockChainHook().CurrentRound()
+
 	if !s.enableRoundsHandler.IsFlagEnabledInRound(common.SupernovaRoundFlag, round) {
 		return s.unBondPeriod
 	}
@@ -722,7 +724,7 @@ func (s *stakingSC) unBond(args *vmcommon.ContractCallInput) vmcommon.ReturnCode
 	}
 
 	currentNonce := s.eei.BlockChainHook().CurrentNonce()
-	if registrationData.UnStakedNonce > 0 && currentNonce-registrationData.UnStakedNonce < s.getUnBondPeriod(registrationData.UnStakedNonce) {
+	if registrationData.UnStakedNonce > 0 && currentNonce-registrationData.UnStakedNonce < s.getUnBondPeriod() {
 		s.eei.AddReturnMessage(fmt.Sprintf("unBond is not possible for key %s because unBond period did not pass", encodedBlsKey))
 		return vmcommon.UserError
 	}
@@ -968,14 +970,14 @@ func (s *stakingSC) getRemainingUnbondPeriod(args *vmcommon.ContractCallInput) v
 
 	currentNonce := s.eei.BlockChainHook().CurrentNonce()
 	passedNonce := currentNonce - stakedData.UnStakedNonce
-	if passedNonce >= s.getUnBondPeriod(stakedData.UnStakedNonce) {
+	if passedNonce >= s.getUnBondPeriod() {
 		if s.enableEpochsHandler.IsFlagEnabled(common.StakingV2Flag) {
 			s.eei.Finish(zero.Bytes())
 		} else {
 			s.eei.Finish([]byte("0"))
 		}
 	} else {
-		remaining := s.getUnBondPeriod(stakedData.UnStakedNonce) - passedNonce
+		remaining := s.getUnBondPeriod() - passedNonce
 		if s.enableEpochsHandler.IsFlagEnabled(common.StakingV2Flag) {
 			s.eei.Finish(big.NewInt(0).SetUint64(remaining).Bytes())
 		} else {
