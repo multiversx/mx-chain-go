@@ -354,6 +354,11 @@ type ManagedPeersHolder interface {
 	SetNextPeerAuthenticationTime(pkBytes []byte, nextTime time.Time)
 	IsMultiKeyMode() bool
 	GetRedundancyStepInReason() string
+	IncrementRoundsSigned()
+	ShouldProposeBlock(currentRound int64) bool
+	SetLastRoundAsParticipant(round int64)
+	SetRoundsSignedToMin()
+	DecrementRoundsSigned()
 	IsInterfaceNil() bool
 }
 

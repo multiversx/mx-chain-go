@@ -237,6 +237,7 @@ func (sr *subroundSignature) doSignatureJobForManagedKeys(ctx context.Context) b
 	wg.Wait()
 
 	if numMultiKeysSignaturesSent > 0 {
+		sr.IncrementRoundsSigned()
 		log.Debug("step 2: multi keys signatures have been sent", "num", numMultiKeysSignaturesSent)
 	}
 
@@ -305,6 +306,8 @@ func (sr *subroundSignature) doSignatureJobForSingleKey() bool {
 	if !ok {
 		return false
 	}
+
+	sr.IncrementRoundsSigned()
 
 	return sr.completeSignatureSubRound(sr.SelfPubKey())
 }
