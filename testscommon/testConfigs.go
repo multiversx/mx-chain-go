@@ -27,10 +27,5 @@ func GetDefaultHeaderVersionConfig() config.VersionsConfig {
 				Version:    "2",
 			},
 		},
-		Cache: config.CacheConfig{
-			Name:     "VersionsCache",
-			Type:     "LRU",
-			Capacity: 100,
-		},
 	}
 }

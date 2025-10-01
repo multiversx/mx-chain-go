@@ -4,13 +4,13 @@ import "github.com/multiversx/mx-chain-core-go/data"
 
 // VersionedHeaderFactoryStub -
 type VersionedHeaderFactoryStub struct {
-	CreateCalled func(epoch uint32) data.HeaderHandler
+	CreateCalled func(epoch uint32, round uint64) data.HeaderHandler
 }
 
 // Create -
-func (vhfs *VersionedHeaderFactoryStub) Create(epoch uint32) data.HeaderHandler {
+func (vhfs *VersionedHeaderFactoryStub) Create(epoch uint32, round uint64) data.HeaderHandler {
 	if vhfs.CreateCalled != nil {
-		return vhfs.CreateCalled(epoch)
+		return vhfs.CreateCalled(epoch, round)
 	}
 	return nil
 }

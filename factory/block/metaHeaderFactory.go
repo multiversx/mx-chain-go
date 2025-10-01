@@ -8,7 +8,7 @@ import (
 
 // HeaderVersionGetter can get the header version based on epoch
 type HeaderVersionGetter interface {
-	GetVersion(epoch uint32) string
+	GetVersion(epoch uint32, round uint64) string
 	IsInterfaceNil() bool
 }
 
@@ -27,12 +27,20 @@ func NewMetaHeaderFactory(headerVersionHandler HeaderVersionGetter) (*metaHeader
 }
 
 // Create creates a metaBlock instance with the correct version and format, according to the epoch
-func (mhv *metaHeaderVersionHandler) Create(epoch uint32) data.HeaderHandler {
-	version := mhv.headerVersionHandler.GetVersion(epoch)
+func (mhv *metaHeaderVersionHandler) Create(epoch uint32, round uint64) data.HeaderHandler {
+	version := mhv.headerVersionHandler.GetVersion(epoch, round)
 
-	return &block.MetaBlock{
-		Epoch:           epoch,
-		SoftwareVersion: []byte(version),
+	switch version {
+	case "3":
+		return &block.MetaBlockV3{
+			Epoch: epoch,
+			Round: round,
+		}
+	default:
+		return &block.MetaBlock{
+			Epoch:           epoch,
+			SoftwareVersion: []byte(version),
+		}
 	}
 }
 

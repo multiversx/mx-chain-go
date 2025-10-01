@@ -31,10 +31,12 @@ func TestNewMetaHeaderFactory_CreateOK(t *testing.T) {
 	t.Parallel()
 
 	hvh := &testscommon.HeaderVersionHandlerStub{
-		GetVersionCalled: func(epoch uint32) string {
+		GetVersionCalled: func(epoch uint32, _ uint64) string {
 			switch epoch {
 			case 1:
 				return "2"
+			case 2:
+				return "3"
 			}
 			return "*"
 		},
@@ -43,14 +45,20 @@ func TestNewMetaHeaderFactory_CreateOK(t *testing.T) {
 	mhf, _ := NewMetaHeaderFactory(hvh)
 
 	epoch := uint32(0)
-	header := mhf.Create(epoch)
+	header := mhf.Create(epoch, 0)
 	require.NotNil(t, header)
 	require.IsType(t, &block.MetaBlock{}, header)
 	require.Equal(t, epoch, header.GetEpoch())
 
 	epoch = uint32(1)
-	header = mhf.Create(epoch)
+	header = mhf.Create(epoch, 0)
 	require.NotNil(t, header)
 	require.IsType(t, &block.MetaBlock{}, header)
+	require.Equal(t, epoch, header.GetEpoch())
+
+	epoch = uint32(2)
+	header = mhf.Create(epoch, 0)
+	require.NotNil(t, header)
+	require.IsType(t, &block.MetaBlockV3{}, header)
 	require.Equal(t, epoch, header.GetEpoch())
 }

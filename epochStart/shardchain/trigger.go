@@ -1228,6 +1228,11 @@ func (t *trigger) GetSavedStateKey() []byte {
 func (t *trigger) Update(_ uint64, _ uint64) {
 }
 
+// ShouldProposeEpochChange will return true if an epoch change event should be trigger
+func (t *trigger) ShouldProposeEpochChange(_ uint64, _ uint64) bool {
+	return false
+}
+
 // SetFinalityAttestingRound sets the round which finalized the start of epoch block
 func (t *trigger) SetFinalityAttestingRound(_ uint64) {
 }

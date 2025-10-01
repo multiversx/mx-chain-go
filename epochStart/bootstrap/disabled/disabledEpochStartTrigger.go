@@ -17,6 +17,11 @@ func NewEpochStartTrigger() *epochStartTrigger {
 func (e *epochStartTrigger) Update(_ uint64, _ uint64) {
 }
 
+// ShouldProposeEpochChange -
+func (e *epochStartTrigger) ShouldProposeEpochChange(_ uint64, _ uint64) bool {
+	return false
+}
+
 // ReceivedHeader -
 func (e *epochStartTrigger) ReceivedHeader(_ data.HeaderHandler) {
 }

@@ -197,6 +197,11 @@ func (t *trigger) ForceEpochStart(round uint64) {
 	log.Debug("set new epoch start round", "round", t.nextEpochStartRound)
 }
 
+// ShouldProposeEpochChange will return true if an epoch change event should be trigger
+func (t *trigger) ShouldProposeEpochChange(_ uint64, _ uint64) bool {
+	return false
+}
+
 // Update processes changes in the trigger
 func (t *trigger) Update(round uint64, nonce uint64) {
 	t.mutTrigger.Lock()

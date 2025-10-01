@@ -533,3 +533,11 @@ func (hhs *HeaderHandlerStub) GetExecutionResultsHandlers() []data.BaseExecution
 func (hhs *HeaderHandlerStub) GetAccumulatedFeesInEpoch() *big.Int {
 	return nil
 }
+
+// SetEpochChangeProposed -
+func (hhs *HeaderHandlerStub) SetEpochChangeProposed(_ bool) {}
+
+// IsEpochChangeProposed -
+func (hhs *HeaderHandlerStub) IsEpochChangeProposed() bool {
+	return false
+}
