@@ -192,65 +192,6 @@ func (st *selectionTracker) validateTrackedBlocksAndCompileBreadcrumbsNoLock(
 	return nil
 }
 
-// getChainOfTrackedPendingBlocks finds the chain of tracked blocks, iterating from tail to head,
-// following the previous hash of each block, in order to avoid fork scenarios.
-// The iteration stops when the previous hash of a block is equal to latestExecutedBlockHash.
-func (st *selectionTracker) getChainOfTrackedPendingBlocks(
-	latestExecutedBlockHash []byte,
-	previousHashToBeFound []byte,
-	nonceOfNextBlock uint64,
-) ([]*trackedBlock, error) {
-	chain := make([]*trackedBlock, 0)
-
-	// If the previous hash to be found is equal to the latest executed hash,
-	// it means that we do not have any tracked proposed block on top.
-	// The block found would be the actual executed block, but that one is not tracked anymore.
-	if bytes.Equal(latestExecutedBlockHash, previousHashToBeFound) {
-		return chain, nil
-	}
-
-	// search for the block with the hash equal to the previous hash.
-	// NOTE: we expect a nil value for a key (block hash) which is not in the map of tracked blocks.
-	previousBlock := st.blocks[string(previousHashToBeFound)]
-
-	for {
-		if nonceOfNextBlock == 0 {
-			// should never actually happen (e.g. genesis)
-			break
-		}
-
-		// if no block was found, it means there is a gap and we have to return an error
-		if previousBlock == nil {
-			return nil, errBlockNotFound
-		}
-
-		// extra check for a block gap, to assure there are no missing tracked blocks
-		hasDiscontinuousBlockNonce := previousBlock.nonce != nonceOfNextBlock-1
-		if hasDiscontinuousBlockNonce {
-			return nil, errDiscontinuousSequenceOfBlocks
-		}
-
-		// if the block passes the validation, add it to the returned chain
-		chain = append(chain, previousBlock)
-
-		// move backwards in the chain and check if the head was reached
-		previousBlockHash := previousBlock.prevHash
-		if bytes.Equal(latestExecutedBlockHash, previousBlockHash) {
-			break
-		}
-
-		// update also the nonce
-		nonceOfNextBlock -= 1
-
-		// find the previous block
-		previousBlock = st.blocks[string(previousBlockHash)]
-	}
-
-	// return the blocks in their natural order (from head to tail)
-	slices.Reverse(chain)
-	return chain, nil
-}
-
 // validateBreadcrumbsOfTrackedBlocks validates the breadcrumbs of each tracked block.
 // Firstly, it checks for nonce continuity.
 // Then, it checks that each account has enough balance.
@@ -425,6 +366,65 @@ func (st *selectionTracker) deriveVirtualSelectionSession(
 
 	globalAccountsBreadcrumbs := st.getGlobalAccountsBreadcrumbs()
 	return computer.createVirtualSelectionSession(globalAccountsBreadcrumbs)
+}
+
+// getChainOfTrackedPendingBlocks finds the chain of tracked blocks, iterating from tail to head,
+// following the previous hash of each block, in order to avoid fork scenarios.
+// The iteration stops when the previous hash of a block is equal to latestExecutedBlockHash.
+func (st *selectionTracker) getChainOfTrackedPendingBlocks(
+	latestExecutedBlockHash []byte,
+	previousHashToBeFound []byte,
+	nonceOfNextBlock uint64,
+) ([]*trackedBlock, error) {
+	chain := make([]*trackedBlock, 0)
+
+	// If the previous hash to be found is equal to the latest executed hash,
+	// it means that we do not have any tracked proposed block on top.
+	// The block found would be the actual executed block, but that one is not tracked anymore.
+	if bytes.Equal(latestExecutedBlockHash, previousHashToBeFound) {
+		return chain, nil
+	}
+
+	// search for the block with the hash equal to the previous hash.
+	// NOTE: we expect a nil value for a key (block hash) which is not in the map of tracked blocks.
+	previousBlock := st.blocks[string(previousHashToBeFound)]
+
+	for {
+		if nonceOfNextBlock == 0 {
+			// should never actually happen (e.g. genesis)
+			break
+		}
+
+		// if no block was found, it means there is a gap and we have to return an error
+		if previousBlock == nil {
+			return nil, errBlockNotFound
+		}
+
+		// extra check for a block gap, to assure there are no missing tracked blocks
+		hasDiscontinuousBlockNonce := previousBlock.nonce != nonceOfNextBlock-1
+		if hasDiscontinuousBlockNonce {
+			return nil, errDiscontinuousSequenceOfBlocks
+		}
+
+		// if the block passes the validation, add it to the returned chain
+		chain = append(chain, previousBlock)
+
+		// move backwards in the chain and check if the head was reached
+		previousBlockHash := previousBlock.prevHash
+		if bytes.Equal(latestExecutedBlockHash, previousBlockHash) {
+			break
+		}
+
+		// update also the nonce
+		nonceOfNextBlock -= 1
+
+		// find the previous block
+		previousBlock = st.blocks[string(previousBlockHash)]
+	}
+
+	// return the blocks in their natural order (from head to tail)
+	slices.Reverse(chain)
+	return chain, nil
 }
 
 func (st *selectionTracker) getGlobalAccountsBreadcrumbs() map[string]*globalAccountBreadcrumb {
