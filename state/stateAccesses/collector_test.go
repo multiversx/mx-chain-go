@@ -655,8 +655,12 @@ func TestStateAccessesCollector_GetCollectedAccesses(t *testing.T) {
 		stateChangesForTx := c.GetCollectedAccesses()
 		require.Len(t, stateChangesForTx, 1)
 		require.Len(t, stateChangesForTx["hash"].StateAccess, 1)
-		require.Len(t, stateChangesForTx["hash"].StateAccess[0].DataTrieChanges, 1)
+		require.Len(t, stateChangesForTx["hash"].StateAccess[0].DataTrieChanges, 2)
 		dataTrieChange := stateChangesForTx["hash"].StateAccess[0].DataTrieChanges[0]
+		require.Equal(t, []byte("dataTrieKey1"), dataTrieChange.Key)
+		require.Equal(t, []byte("dataTrieVal1"), dataTrieChange.Val)
+		require.Equal(t, uint32(data.NotSpecified), dataTrieChange.Operation)
+		dataTrieChange = stateChangesForTx["hash"].StateAccess[0].DataTrieChanges[1]
 		require.Equal(t, []byte("dataTrieKey1"), dataTrieChange.Key)
 		require.Equal(t, []byte("dataTrieVal1"), dataTrieChange.Val)
 		require.Equal(t, uint32(data.Delete), dataTrieChange.Operation)
@@ -675,11 +679,15 @@ func TestStateAccessesCollector_GetCollectedAccesses(t *testing.T) {
 		stateChangesForTx = c.GetCollectedAccesses()
 		require.Len(t, stateChangesForTx, 1)
 		require.Len(t, stateChangesForTx["hash"].StateAccess, 1)
-		require.Len(t, stateChangesForTx["hash"].StateAccess[0].DataTrieChanges, 1)
+		require.Len(t, stateChangesForTx["hash"].StateAccess[0].DataTrieChanges, 2)
 		dataTrieChange = stateChangesForTx["hash"].StateAccess[0].DataTrieChanges[0]
 		require.Equal(t, []byte("dataTrieKey1"), dataTrieChange.Key)
 		require.Equal(t, []byte("dataTrieVal1"), dataTrieChange.Val)
 		require.Equal(t, uint32(data.NotSpecified), dataTrieChange.Operation)
+		dataTrieChange = stateChangesForTx["hash"].StateAccess[0].DataTrieChanges[1]
+		require.Equal(t, []byte("dataTrieKey1"), dataTrieChange.Key)
+		require.Equal(t, []byte("dataTrieVal1"), dataTrieChange.Val)
+		require.Equal(t, uint32(data.Delete), dataTrieChange.Operation)
 	})
 	t.Run("merge should work", func(t *testing.T) {
 		t.Parallel()
