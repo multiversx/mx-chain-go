@@ -319,6 +319,10 @@ func (sp *shardProcessor) ProcessBlockProposal(
 		return nil, err
 	}
 
+	// createdMiniBlocksForShard := sp.txCoordinator.GetCreatedMiniBlocksFromMe()
+
+	sp.txCoordinator.GetCreatedInShardMiniBlocks()
+
 	// executionResult, err := sp.txCoordinator.CollectExecutionResults(header, body)
 	// if err != nil {
 	// 	return nil, err

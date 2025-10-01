@@ -163,6 +163,11 @@ func (vip *validatorInfoPreprocessor) ProcessBlockTransactions(
 	return nil
 }
 
+// GetCreatedMiniBlocksFromMe returns nil as this preprocessor does not create any mini blocks
+func (vip *validatorInfoPreprocessor) GetCreatedMiniBlocksFromMe() block.MiniBlockSlice {
+	return make(block.MiniBlockSlice, 0)
+}
+
 // SaveTxsToStorage saves validator info from body into storage
 func (vip *validatorInfoPreprocessor) SaveTxsToStorage(body *block.Body) error {
 	if check.IfNil(body) {

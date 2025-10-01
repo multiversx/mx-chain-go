@@ -44,7 +44,6 @@ type TransactionProcessor interface {
 	ProcessTransaction(transaction *transaction.Transaction) (vmcommon.ReturnCode, error)
 	VerifyTransaction(transaction *transaction.Transaction) error
 	VerifyGuardian(tx *transaction.Transaction, account state.UserAccountHandler) error
-	RegisterUnExecutableTransaction(tx *transaction.Transaction, txHash []byte) error
 	IsInterfaceNil() bool
 }
 
@@ -164,6 +163,7 @@ type TransactionCoordinator interface {
 	RemoveTxsFromPool(body *block.Body) error
 
 	ProcessBlockTransaction(header data.HeaderHandler, body *block.Body, haveTime func() time.Duration) error
+	// GetCreatedMiniBlocksFromMe() block.MiniBlockSlice
 
 	CreateBlockStarted()
 	CreateMbsAndProcessCrossShardTransactionsDstMe(header data.HeaderHandler, processedMiniBlocksInfo map[string]*processedMb.ProcessedMiniBlockInfo, haveTime func() bool, haveAdditionalTime func() bool, scheduledMode bool) (block.MiniBlockSlice, uint32, bool, error)
@@ -247,6 +247,8 @@ type PreProcessor interface {
 	SaveTxsToStorage(body *block.Body) error
 
 	ProcessBlockTransactions(header data.HeaderHandler, body *block.Body, haveTime func() bool) error
+	GetCreatedMiniBlocksFromMe() block.MiniBlockSlice
+
 	RequestBlockTransactions(body *block.Body) int
 
 	GetTransactionsAndRequestMissingForMiniBlock(miniBlock *block.MiniBlock) ([]data.TransactionHandler, int)

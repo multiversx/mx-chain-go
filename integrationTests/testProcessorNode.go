@@ -1749,7 +1749,6 @@ func (tpn *TestProcessorNode) initInnerProcessors(gasMap map[string]map[string]u
 	txTypeHandler, _ := coordinator.NewTxTypeHandler(argsTxTypeHandler)
 	tpn.GasHandler, _ = preprocess.NewGasComputation(tpn.EconomicsData, txTypeHandler, tpn.EnableEpochsHandler)
 	badBlocksHandler, _ := tpn.InterimProcContainer.Get(dataBlock.InvalidBlock)
-	unExecutableBlocksHandler, _ := tpn.InterimProcContainer.Get(dataBlock.UnExecutableBlock)
 	guardianChecker := &guardianMocks.GuardedAccountHandlerStub{}
 
 	argsNewScProcessor := scrCommon.ArgsNewSmartContractProcessor{
@@ -1780,26 +1779,25 @@ func (tpn *TestProcessorNode) initInnerProcessors(gasMap map[string]map[string]u
 
 	receiptsHandler, _ := tpn.InterimProcContainer.Get(dataBlock.ReceiptBlock)
 	argsNewTxProcessor := transaction.ArgsNewTxProcessor{
-		Accounts:                tpn.AccntState,
-		Hasher:                  TestHasher,
-		PubkeyConv:              TestAddressPubkeyConverter,
-		Marshalizer:             TestMarshalizer,
-		SignMarshalizer:         TestTxSignMarshalizer,
-		ShardCoordinator:        tpn.ShardCoordinator,
-		ScProcessor:             tpn.ScProcessor,
-		TxFeeHandler:            tpn.FeeAccumulator,
-		TxTypeHandler:           txTypeHandler,
-		EconomicsFee:            tpn.EconomicsData,
-		ReceiptForwarder:        receiptsHandler,
-		BadTxForwarder:          badBlocksHandler,
-		UnExecutableTxForwarder: unExecutableBlocksHandler,
-		ArgsParser:              tpn.ArgsParser,
-		ScrForwarder:            tpn.ScrForwarder,
-		EnableRoundsHandler:     tpn.EnableRoundsHandler,
-		EnableEpochsHandler:     tpn.EnableEpochsHandler,
-		GuardianChecker:         guardianChecker,
-		TxVersionChecker:        &testscommon.TxVersionCheckerStub{},
-		TxLogsProcessor:         tpn.TransactionLogProcessor,
+		Accounts:            tpn.AccntState,
+		Hasher:              TestHasher,
+		PubkeyConv:          TestAddressPubkeyConverter,
+		Marshalizer:         TestMarshalizer,
+		SignMarshalizer:     TestTxSignMarshalizer,
+		ShardCoordinator:    tpn.ShardCoordinator,
+		ScProcessor:         tpn.ScProcessor,
+		TxFeeHandler:        tpn.FeeAccumulator,
+		TxTypeHandler:       txTypeHandler,
+		EconomicsFee:        tpn.EconomicsData,
+		ReceiptForwarder:    receiptsHandler,
+		BadTxForwarder:      badBlocksHandler,
+		ArgsParser:          tpn.ArgsParser,
+		ScrForwarder:        tpn.ScrForwarder,
+		EnableRoundsHandler: tpn.EnableRoundsHandler,
+		EnableEpochsHandler: tpn.EnableEpochsHandler,
+		GuardianChecker:     guardianChecker,
+		TxVersionChecker:    &testscommon.TxVersionCheckerStub{},
+		TxLogsProcessor:     tpn.TransactionLogProcessor,
 	}
 	tpn.TxProcessor, _ = transaction.NewTxProcessor(argsNewTxProcessor)
 	scheduledSCRsStorer, _ := tpn.Storage.GetStorer(dataRetriever.ScheduledSCRsUnit)

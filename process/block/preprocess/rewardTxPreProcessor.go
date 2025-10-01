@@ -228,6 +228,11 @@ func (rtp *rewardTxPreprocessor) ProcessBlockTransactions(
 	return nil
 }
 
+// GetCreatedMiniBlocksFromMe returns nil as this preprocessor does not create any mini blocks
+func (rtp *rewardTxPreprocessor) GetCreatedMiniBlocksFromMe() block.MiniBlockSlice {
+	return make(block.MiniBlockSlice, 0)
+}
+
 // SaveTxsToStorage saves the reward transactions from body into storage
 func (rtp *rewardTxPreprocessor) SaveTxsToStorage(body *block.Body) error {
 	if check.IfNil(body) {

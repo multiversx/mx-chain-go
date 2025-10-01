@@ -195,10 +195,9 @@ func (txs *transactions) processTransaction(
 
 		// TODO: use the round activation flag check for transitioning to async execution
 		if txs.enableEpochsHandler.IsFlagEnabled(common.SupernovaFlag) {
-			errReg := txs.txProcessor.RegisterUnExecutableTransaction(tx, txHash)
-			if errReg != nil {
-				log.Warn("RegisterUnExecutableTransaction failed", "error", errReg.Error())
-			}
+			txs.mutUnExecutableTxs.Lock()
+			txs.unExecutableTransactions[string(txHash)] = struct{}{}
+			txs.mutUnExecutableTxs.Unlock()
 		}
 
 		return false, err

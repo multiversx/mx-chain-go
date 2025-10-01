@@ -12,12 +12,11 @@ import (
 
 // TxProcessorMock -
 type TxProcessorMock struct {
-	ProcessTransactionCalled              func(transaction *transaction.Transaction) (vmcommon.ReturnCode, error)
-	RegisterUnExecutableTransactionCalled func(transaction *transaction.Transaction, txHash []byte) error
-	VerifyTransactionCalled               func(tx *transaction.Transaction) error
-	VerifyGuardianCalled                  func(tx *transaction.Transaction, account state.UserAccountHandler) error
-	SetBalancesToTrieCalled               func(accBalance map[string]*big.Int) (rootHash []byte, err error)
-	ProcessSmartContractResultCalled      func(scr *smartContractResult.SmartContractResult) (vmcommon.ReturnCode, error)
+	ProcessTransactionCalled         func(transaction *transaction.Transaction) (vmcommon.ReturnCode, error)
+	VerifyTransactionCalled          func(tx *transaction.Transaction) error
+	VerifyGuardianCalled             func(tx *transaction.Transaction, account state.UserAccountHandler) error
+	SetBalancesToTrieCalled          func(accBalance map[string]*big.Int) (rootHash []byte, err error)
+	ProcessSmartContractResultCalled func(scr *smartContractResult.SmartContractResult) (vmcommon.ReturnCode, error)
 }
 
 // ProcessTransaction -
@@ -27,15 +26,6 @@ func (etm *TxProcessorMock) ProcessTransaction(transaction *transaction.Transact
 	}
 
 	return 0, nil
-}
-
-// RegisterUnExecutableTransaction -
-func (etm *TxProcessorMock) RegisterUnExecutableTransaction(transaction *transaction.Transaction, txHash []byte) error {
-	if etm.RegisterUnExecutableTransactionCalled != nil {
-		return etm.RegisterUnExecutableTransactionCalled(transaction, txHash)
-	}
-
-	return nil
 }
 
 // VerifyTransaction -

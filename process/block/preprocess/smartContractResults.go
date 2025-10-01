@@ -298,6 +298,11 @@ func (scr *smartContractResults) ProcessBlockTransactions(
 	return nil
 }
 
+// GetCreatedMiniBlocksFromMe returns nil as this preprocessor does not create any mini blocks
+func (scr *smartContractResults) GetCreatedMiniBlocksFromMe() block.MiniBlockSlice {
+	return make(block.MiniBlockSlice, 0)
+}
+
 // SaveTxsToStorage saves smart contract results from body into storage
 func (scr *smartContractResults) SaveTxsToStorage(body *block.Body) error {
 	if check.IfNil(body) {
