@@ -71,9 +71,9 @@ func Test_shouldWorkConcurrently(t *testing.T) {
 	wg.Wait()
 }
 
-func Test_shouldWork(t *testing.T) {
+func Test_shouldWorkOnDifferentScenarios(t *testing.T) {
 	t.Parallel()
-	t.Run("should work", func(t *testing.T) {
+	t.Run("should work on most common scenario", func(t *testing.T) {
 		t.Parallel()
 
 		gabc := newGlobalAccountBreadcrumbsCompiler()
@@ -228,7 +228,7 @@ func Test_shouldWork(t *testing.T) {
 
 	})
 
-	t.Run("should work for forks", func(t *testing.T) {
+	t.Run("should work for forks scenarios", func(t *testing.T) {
 		t.Parallel()
 
 		gabc := newGlobalAccountBreadcrumbsCompiler()

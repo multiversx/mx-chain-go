@@ -3,6 +3,7 @@ package txcache
 import "sync"
 
 type globalAccountBreadcrumbsCompiler struct {
+	// TODO analyze if this mutex is needed
 	mutCompiler              sync.RWMutex
 	globalAccountBreadcrumbs map[string]*globalAccountBreadcrumb
 }

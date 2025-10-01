@@ -13,13 +13,13 @@ import (
 
 // TODO rename this to proposedBlocksTracker
 type selectionTracker struct {
-	mutTracker       sync.RWMutex
-	latestNonce      uint64
-	latestRootHash   []byte
-	blocks           map[string]*trackedBlock
-	gabc             *globalAccountBreadcrumbsCompiler
-	txCache          txCacheForSelectionTracker
-	maxTrackedBlocks uint32
+	mutTracker                sync.RWMutex
+	latestNonce               uint64
+	latestRootHash            []byte
+	blocks                    map[string]*trackedBlock
+	globalBreadcrumbsCompiler *globalAccountBreadcrumbsCompiler
+	txCache                   txCacheForSelectionTracker
+	maxTrackedBlocks          uint32
 }
 
 // NewSelectionTracker creates a new selectionTracker
@@ -32,11 +32,11 @@ func NewSelectionTracker(txCache txCacheForSelectionTracker, maxTrackedBlocks ui
 		return nil, errInvalidMaxTrackedBlocks
 	}
 	return &selectionTracker{
-		mutTracker:       sync.RWMutex{},
-		blocks:           make(map[string]*trackedBlock),
-		gabc:             newGlobalAccountBreadcrumbsCompiler(),
-		txCache:          txCache,
-		maxTrackedBlocks: maxTrackedBlocks,
+		mutTracker:                sync.RWMutex{},
+		blocks:                    make(map[string]*trackedBlock),
+		globalBreadcrumbsCompiler: newGlobalAccountBreadcrumbsCompiler(),
+		txCache:                   txCache,
+		maxTrackedBlocks:          maxTrackedBlocks,
 	}, nil
 }
 
@@ -248,8 +248,8 @@ func (st *selectionTracker) validateBreadcrumbsOfTrackedBlocks(
 func (st *selectionTracker) addNewTrackedBlockNoLock(blockToBeAddedHash []byte, blockToBeAdded *trackedBlock) error {
 	// search if in the tracked blocks we already have one with same nonce or greater
 	for bHash, b := range st.blocks {
-		if b.sameNonceOrHigher(blockToBeAdded) {
-			err := st.gabc.updateGlobalBreadcrumbsOnRemovedBlockOnProposed(b)
+		if b.hasSameNonceOrHigher(blockToBeAdded) {
+			err := st.globalBreadcrumbsCompiler.updateGlobalBreadcrumbsOnRemovedBlockOnProposed(b)
 			if err != nil {
 				return err
 			}
@@ -266,7 +266,7 @@ func (st *selectionTracker) addNewTrackedBlockNoLock(blockToBeAddedHash []byte, 
 
 	// add the new block
 	st.blocks[string(blockToBeAddedHash)] = blockToBeAdded
-	st.gabc.updateGlobalBreadcrumbsOnAddedBlockOnProposed(blockToBeAdded)
+	st.globalBreadcrumbsCompiler.updateGlobalBreadcrumbsOnAddedBlockOnProposed(blockToBeAdded)
 
 	return nil
 }
@@ -305,7 +305,7 @@ func (st *selectionTracker) removeFromTrackedBlocksNoLock(searchedBlock *tracked
 	removedBlocks := 0
 	for blockHash, b := range st.blocks {
 		if b.sameNonceOrBelow(searchedBlock) {
-			err := st.gabc.updateGlobalBreadcrumbsOnRemovedBlockOnExecuted(b)
+			err := st.globalBreadcrumbsCompiler.updateGlobalBreadcrumbsOnRemovedBlockOnExecuted(b)
 			if err != nil {
 				return err
 			}
@@ -322,6 +322,7 @@ func (st *selectionTracker) removeFromTrackedBlocksNoLock(searchedBlock *tracked
 		"searched block prevHash", searchedBlock.prevHash,
 		"removed blocks", removedBlocks,
 	)
+
 	return nil
 }
 
