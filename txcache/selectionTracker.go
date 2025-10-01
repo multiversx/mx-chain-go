@@ -401,6 +401,7 @@ func (st *selectionTracker) updateLatestRootHashNoLock(receivedNonce uint64, rec
 	}
 }
 
+// deriveVirtualSelectionSession creates a virtual selection session by transforming the global accounts breadcrumbs into virtual records
 func (st *selectionTracker) deriveVirtualSelectionSession(
 	session SelectionSession,
 ) (*virtualSelectionSession, error) {
@@ -430,6 +431,7 @@ func (st *selectionTracker) getGlobalAccountsBreadcrumbs() map[string]*globalAcc
 	return st.gabc.getGlobalBreadcrumbs()
 }
 
+// getVirtualNonceOfAccountWithRootHash searches the global breadcrumb of the given address and return its nonce
 func (st *selectionTracker) getVirtualNonceOfAccountWithRootHash(
 	address []byte,
 ) (uint64, []byte, error) {
@@ -443,6 +445,51 @@ func (st *selectionTracker) getVirtualNonceOfAccountWithRootHash(
 	}
 
 	return breadcrumb.lastNonce.Value + 1, st.latestRootHash, nil
+}
+
+// GetBulkOfUntrackedTransactions returns the hashes of the untracked transactions
+func (st *selectionTracker) GetBulkOfUntrackedTransactions(transactions []*WrappedTransaction) [][]byte {
+	untrackedTransactions := make([][]byte, 0)
+	for _, tx := range transactions {
+		if tx == nil || tx.Tx == nil {
+			continue
+		}
+
+		if !st.isTransactionTracked(tx) {
+			untrackedTransactions = append(untrackedTransactions, tx.TxHash)
+		}
+	}
+
+	return untrackedTransactions
+}
+
+// isTransactionTracked checks if a transaction is still in the tracked blocks of the SelectionTracker
+// TODO analyze if the forks are still an issue here
+func (st *selectionTracker) isTransactionTracked(transaction *WrappedTransaction) bool {
+	if transaction == nil || transaction.Tx == nil {
+		return false
+	}
+
+	sender := transaction.Tx.GetSndAddr()
+	txNonce := transaction.Tx.GetNonce()
+
+	senderGlobalBreadcrumb, err := st.gabc.getGlobalBreadcrumbByAddress(string(sender))
+	if err != nil {
+		return false
+	}
+
+	minNonce := senderGlobalBreadcrumb.firstNonce
+	maxNonce := senderGlobalBreadcrumb.lastNonce
+
+	if !minNonce.HasValue || !maxNonce.HasValue {
+		return false
+	}
+
+	if txNonce < minNonce.Value || txNonce > maxNonce.Value {
+		return false
+	}
+
+	return true
 }
 
 func (st *selectionTracker) getTrackedBlocks() map[string]*trackedBlock {

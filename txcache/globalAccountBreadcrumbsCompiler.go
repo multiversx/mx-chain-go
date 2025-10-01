@@ -4,11 +4,14 @@ import (
 	"sync"
 )
 
+// globalAccountBreadcrumbsCompiler represents the global account breadcrumbs compiler used in the Selection Tracker.
+// A globalAccountBreadcrumbsCompiler holds a globalAccountBreadcrumb for each account.
 type globalAccountBreadcrumbsCompiler struct {
 	mutCompiler              sync.RWMutex
 	globalAccountBreadcrumbs map[string]*globalAccountBreadcrumb
 }
 
+// newGlobalAccountBreadcrumbsCompiler creates a new global account breadcrumb compiler
 func newGlobalAccountBreadcrumbsCompiler() *globalAccountBreadcrumbsCompiler {
 	return &globalAccountBreadcrumbsCompiler{
 		mutCompiler:              sync.RWMutex{},
@@ -16,6 +19,7 @@ func newGlobalAccountBreadcrumbsCompiler() *globalAccountBreadcrumbsCompiler {
 	}
 }
 
+// updateGlobalBreadcrumbsOnAddedBlockOnProposed updates the global state of the account when a block is added on the OnProposedBlock flow
 func (gabc *globalAccountBreadcrumbsCompiler) updateGlobalBreadcrumbsOnAddedBlockOnProposed(tb *trackedBlock) {
 	gabc.mutCompiler.Lock()
 	defer gabc.mutCompiler.Unlock()
@@ -32,6 +36,7 @@ func (gabc *globalAccountBreadcrumbsCompiler) updateGlobalBreadcrumbsOnAddedBloc
 	}
 }
 
+// updateGlobalBreadcrumbsOnRemovedBlockOnProposed updates the global state of the account when a block is removed on the OnProposedBlock flow
 func (gabc *globalAccountBreadcrumbsCompiler) updateGlobalBreadcrumbsOnRemovedBlockOnProposed(tb *trackedBlock) error {
 	gabc.mutCompiler.Lock()
 	defer gabc.mutCompiler.Unlock()
@@ -56,6 +61,7 @@ func (gabc *globalAccountBreadcrumbsCompiler) updateGlobalBreadcrumbsOnRemovedBl
 	return nil
 }
 
+// updateGlobalBreadcrumbsOnRemovedBlockOnExecuted updates the global state of the account when a block is removed on the OnExecutedBlock flow
 func (gabc *globalAccountBreadcrumbsCompiler) updateGlobalBreadcrumbsOnRemovedBlockOnExecuted(tb *trackedBlock) error {
 	gabc.mutCompiler.Lock()
 	defer gabc.mutCompiler.Unlock()
@@ -80,6 +86,7 @@ func (gabc *globalAccountBreadcrumbsCompiler) updateGlobalBreadcrumbsOnRemovedBl
 	return nil
 }
 
+// getGlobalBreadcrumbByAddress returns a deep copy of the global breadcrumb of a certain address
 func (gabc *globalAccountBreadcrumbsCompiler) getGlobalBreadcrumbByAddress(address string) (*globalAccountBreadcrumb, error) {
 	gabc.mutCompiler.RLock()
 	defer gabc.mutCompiler.RUnlock()
@@ -92,6 +99,7 @@ func (gabc *globalAccountBreadcrumbsCompiler) getGlobalBreadcrumbByAddress(addre
 	return gabc.globalAccountBreadcrumbs[address].createCopy(), nil
 }
 
+// getGlobalBreadcrumbs returns a deep copy of the map of global accounts breadcrumbs
 func (gabc *globalAccountBreadcrumbsCompiler) getGlobalBreadcrumbs() map[string]*globalAccountBreadcrumb {
 	gabc.mutCompiler.RLock()
 	defer gabc.mutCompiler.RUnlock()

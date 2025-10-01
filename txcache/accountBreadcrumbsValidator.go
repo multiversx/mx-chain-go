@@ -14,10 +14,8 @@ type breadcrumbsValidator struct {
 	virtualBalancesByAddress            map[string]*virtualAccountBalance
 }
 
-// newBreadcrumbValidator is used for the next scenarios:
-// When the creation of the virtual session - deriveVirtualSelectionSession - is called (in the SelectTransactions).
-// When the validation for a proposed block is called (when receiving the OnProposedBlock notification).
-// At the end of those methods it becomes useless.
+// newBreadcrumbValidator is used when the validation for a proposed block is called (when receiving the OnProposedBlock notification).
+// At the end of the method it becomes useless.
 func newBreadcrumbValidator() *breadcrumbsValidator {
 	return &breadcrumbsValidator{
 		skippedSenders:                      make(map[string]struct{}),
@@ -27,7 +25,7 @@ func newBreadcrumbValidator() *breadcrumbsValidator {
 	}
 }
 
-// validateNonceContinuityOfBreadcrumb is used when a block is proposed and also when the deriveVirtualSession is called
+// validateNonceContinuityOfBreadcrumb is used when a block is proposed.
 func (validator *breadcrumbsValidator) validateNonceContinuityOfBreadcrumb(
 	address string,
 	accountSessionNonce uint64,
@@ -107,7 +105,7 @@ func (validator *breadcrumbsValidator) shouldSkipSender(address string) bool {
 	return ok
 }
 
-// validateBalance is used only for the OnProposedBlock flow, when validating the compiled breadcrumbs.
+// validateBalance is used for the OnProposedBlock flow, when validating the compiled breadcrumbs.
 func (validator *breadcrumbsValidator) validateBalance(
 	address string,
 	initialBalance *big.Int,

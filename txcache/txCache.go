@@ -93,9 +93,8 @@ func (cache *TxCache) AddTx(tx *WrappedTransaction) (ok bool, added bool) {
 	if len(evicted) > 0 {
 		logRemove.Trace("TxCache.AddTx with eviction", "sender", tx.Tx.GetSndAddr(), "num evicted txs", len(evicted))
 		txs := cache.txByHash.GetTxsBulk(evicted)
-		txTracker := newTransactionsTracker(cache.tracker, txs)
 
-		untrackedEvicted := txTracker.GetBulkOfUntrackedTransactions(txs)
+		untrackedEvicted := cache.tracker.GetBulkOfUntrackedTransactions(txs)
 		_ = cache.txByHash.RemoveTxsBulk(untrackedEvicted)
 
 		logRemove.Trace("TxCache.AddTx with eviction and tracking check", "sender", tx.Tx.GetSndAddr(), "num evicted txs with tracking check", len(untrackedEvicted))
