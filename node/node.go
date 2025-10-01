@@ -51,7 +51,7 @@ const (
 	// esdtTickerNumChars represents the number of hex-encoded characters of a ticker
 	esdtTickerNumChars = 6
 
-	iterateKeysMainTrie = "mainTrie"
+	iterateKeysMainTrie = "maintrie"
 )
 
 var log = logger.GetOrCreate("node")
