@@ -31,7 +31,6 @@ import (
 	"github.com/multiversx/mx-chain-go/process/mock"
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/state/accounts"
-	"github.com/multiversx/mx-chain-go/state/dataTrieValue"
 	stateDisabled "github.com/multiversx/mx-chain-go/state/disabled"
 	"github.com/multiversx/mx-chain-go/state/factory"
 	"github.com/multiversx/mx-chain-go/state/iteratorChannelsProvider"
@@ -429,6 +428,131 @@ func TestAccountsDB_SaveAccountMalfunctionMarshallerShouldErr(t *testing.T) {
 	assert.NotNil(t, err)
 }
 
+func TestAccountsDB_MigrateDataTrieLeafCollectsDeleteAndUpdateStateChanges(t *testing.T) {
+	t.Parallel()
+
+	autoBalanceFlagEnabled := false
+	enableEpochs := &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+		IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
+			return autoBalanceFlagEnabled
+		},
+	}
+
+	_, adb := getDefaultStateComponentsWithCustomEnableEpochs(enableEpochs)
+	address := generateRandomByteArray(32)
+
+	// save a key-value in the data trie with auto-balance disabled
+	acc, _ := adb.LoadAccount(address)
+	userAcc := acc.(state.UserAccountHandler)
+	key := []byte("key1")
+	value := []byte("value")
+	_ = userAcc.SaveKeyValue(key, value)
+	_ = adb.SaveAccount(userAcc)
+
+	txHash := []byte("accountCreationTxHash")
+	adb.SetTxHashForLatestStateAccesses(txHash)
+	_, err := adb.ResetStateAccessesCollector()
+	assert.Nil(t, err)
+
+	// enable auto-balance and migrate the data trie leaf
+	autoBalanceFlagEnabled = true
+	newValue := []byte("newValue")
+	acc, _ = adb.LoadAccount(address)
+	userAcc = acc.(state.UserAccountHandler)
+	_ = userAcc.SaveKeyValue(key, newValue)
+	_ = adb.SaveAccount(userAcc)
+
+	// save another key-value in the data trie
+	acc, _ = adb.LoadAccount(address)
+	userAcc = acc.(state.UserAccountHandler)
+	key = []byte("key2")
+	value = []byte("value")
+	_ = userAcc.SaveKeyValue(key, value)
+	_ = adb.SaveAccount(userAcc)
+
+	txHash = []byte("accountMigrationTxHash")
+	adb.SetTxHashForLatestStateAccesses(txHash)
+
+	collectedStateAccesses, err := adb.ResetStateAccessesCollector()
+	assert.Nil(t, err)
+
+	assert.Equal(t, 1, len(collectedStateAccesses))
+	assert.Equal(t, 1, len(collectedStateAccesses[string(txHash)].StateAccess))
+
+	stateChanges := collectedStateAccesses[string(txHash)].StateAccess
+	dataTrieChanges := stateChanges[0].DataTrieChanges
+	assert.Equal(t, 3, len(dataTrieChanges))
+
+	// first change is the addition of the new key-value
+	assert.Equal(t, []byte("key1"), dataTrieChanges[0].Key)
+	assert.Equal(t, newValue, dataTrieChanges[0].Val)
+	assert.Equal(t, uint32(data.NotSpecified), dataTrieChanges[0].Operation)
+	assert.Equal(t, uint32(core.AutoBalanceEnabled), dataTrieChanges[0].Version)
+	// second change is the deletion of the old key-value
+	assert.Equal(t, []byte("key1"), dataTrieChanges[1].Key)
+	assert.Equal(t, value, dataTrieChanges[1].Val)
+	assert.Equal(t, uint32(data.Delete), dataTrieChanges[1].Operation)
+	assert.Equal(t, uint32(core.NotSpecified), dataTrieChanges[1].Version)
+	// third change is the addition of the new key-value
+	assert.Equal(t, []byte("key2"), dataTrieChanges[2].Key)
+	assert.Equal(t, []byte("value"), dataTrieChanges[2].Val)
+	assert.Equal(t, uint32(data.NotSpecified), dataTrieChanges[2].Operation)
+	assert.Equal(t, uint32(core.AutoBalanceEnabled), dataTrieChanges[2].Version)
+}
+
+func TestAccountsDB_DeleteStateChangesHaveProperVersion(t *testing.T) {
+	t.Parallel()
+
+	autoBalanceFlagEnabled := false
+	enableEpochs := &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+		IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
+			return autoBalanceFlagEnabled
+		},
+	}
+
+	_, adb := getDefaultStateComponentsWithCustomEnableEpochs(enableEpochs)
+	address := generateRandomByteArray(32)
+
+	// save a key-value in the data trie with auto-balance disabled
+	acc, _ := adb.LoadAccount(address)
+	userAcc := acc.(state.UserAccountHandler)
+	key := []byte("key1")
+	value := []byte("value")
+	_ = userAcc.SaveKeyValue(key, value)
+	_ = adb.SaveAccount(userAcc)
+
+	txHash := []byte("accountCreationTxHash")
+	adb.SetTxHashForLatestStateAccesses(txHash)
+	_, err := adb.ResetStateAccessesCollector()
+	assert.Nil(t, err)
+
+	// enable auto-balance and delete the data trie leaf
+	autoBalanceFlagEnabled = true
+	acc, _ = adb.LoadAccount(address)
+	userAcc = acc.(state.UserAccountHandler)
+	_ = userAcc.SaveKeyValue(key, nil)
+	_ = adb.SaveAccount(userAcc)
+
+	txHash = []byte("DeleteDataTrieTxHash")
+	adb.SetTxHashForLatestStateAccesses(txHash)
+
+	collectedStateAccesses, err := adb.ResetStateAccessesCollector()
+	assert.Nil(t, err)
+
+	assert.Equal(t, 1, len(collectedStateAccesses))
+	assert.Equal(t, 1, len(collectedStateAccesses[string(txHash)].StateAccess))
+
+	stateChanges := collectedStateAccesses[string(txHash)].StateAccess
+	dataTrieChanges := stateChanges[0].DataTrieChanges
+	assert.Equal(t, 1, len(dataTrieChanges))
+
+	// change is the deletion of the old key-value
+	assert.Equal(t, []byte("key1"), dataTrieChanges[0].Key)
+	assert.Equal(t, value, dataTrieChanges[0].Val)
+	assert.Equal(t, uint32(data.Delete), dataTrieChanges[0].Operation)
+	assert.Equal(t, uint32(core.NotSpecified), dataTrieChanges[0].Version)
+}
+
 func TestAccountsDB_SaveAccountCollectsAllStateChanges(t *testing.T) {
 	t.Parallel()
 
@@ -459,9 +583,10 @@ func stepCreateAccountWithDataTrieAndCode(
 	code := []byte("smart contract code")
 	key1 := []byte("key1")
 	key2 := []byte("key2")
+	value := []byte("value")
 	userAcc.SetCode(code)
-	_ = userAcc.SaveKeyValue(key1, []byte("value"))
-	_ = userAcc.SaveKeyValue(key2, []byte("value"))
+	_ = userAcc.SaveKeyValue(key1, value)
+	_ = userAcc.SaveKeyValue(key2, value)
 	_ = adb.SaveAccount(userAcc)
 
 	txHash := []byte("accountCreationTxHash")
@@ -493,12 +618,9 @@ func stepCreateAccountWithDataTrieAndCode(
 	assert.Equal(t, serializedAcc, accountStateChange.MainTrieVal)
 	assert.Equal(t, 2, len(accountStateChange.DataTrieChanges))
 	assert.Equal(t, key1, accountStateChange.DataTrieChanges[0].Key)
-	valWithMetadata1 := append([]byte("value"), key1...)
-	valWithMetadata1 = append(valWithMetadata1, address...)
-	assert.Equal(t, valWithMetadata1, accountStateChange.DataTrieChanges[0].Val)
-	valWithMetadata2 := append([]byte("value"), key2...)
-	valWithMetadata2 = append(valWithMetadata2, address...)
-	assert.Equal(t, valWithMetadata2, accountStateChange.DataTrieChanges[1].Val)
+	assert.Equal(t, value, accountStateChange.DataTrieChanges[0].Val)
+	assert.Equal(t, key2, accountStateChange.DataTrieChanges[1].Key)
+	assert.Equal(t, value, accountStateChange.DataTrieChanges[1].Val)
 }
 
 func stepMigrateDataTrieValAndChangeCode(
@@ -507,7 +629,6 @@ func stepMigrateDataTrieValAndChangeCode(
 	address []byte,
 ) {
 	marshaller := &marshallerMock.MarshalizerMock{}
-	hasher := &hashingMocks.HasherMock{}
 
 	acc, _ := adb.LoadAccount(address)
 	userAcc := acc.(state.UserAccountHandler)
@@ -548,16 +669,12 @@ func stepMigrateDataTrieValAndChangeCode(
 	assert.Equal(t, address, accountStateChange.MainTrieKey)
 	assert.Equal(t, serializedAcc, accountStateChange.MainTrieVal)
 	assert.Equal(t, 2, len(accountStateChange.DataTrieChanges))
-	trieVal := &dataTrieValue.TrieLeafData{
-		Value:   []byte("value1"),
-		Key:     []byte("key1"),
-		Address: address,
-	}
-	serializedTrieVal, _ := marshaller.Marshal(trieVal)
-	assert.Equal(t, hasher.Compute("key1"), accountStateChange.DataTrieChanges[0].Key)
-	assert.Equal(t, serializedTrieVal, accountStateChange.DataTrieChanges[0].Val)
+	assert.Equal(t, []byte("key1"), accountStateChange.DataTrieChanges[0].Key)
+	assert.Equal(t, []byte("value1"), accountStateChange.DataTrieChanges[0].Val)
+	assert.Equal(t, uint32(data.NotSpecified), accountStateChange.DataTrieChanges[0].Operation)
 	assert.Equal(t, []byte("key1"), accountStateChange.DataTrieChanges[1].Key)
-	assert.Equal(t, []byte(nil), accountStateChange.DataTrieChanges[1].Val)
+	assert.Equal(t, []byte("value"), accountStateChange.DataTrieChanges[1].Val)
+	assert.Equal(t, uint32(data.Delete), accountStateChange.DataTrieChanges[1].Operation)
 }
 
 func TestAccountsDB_SaveAccountWithSomeValuesShouldWork(t *testing.T) {

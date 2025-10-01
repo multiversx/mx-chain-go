@@ -175,7 +175,7 @@ func logCollectedStateAccesses(message string, stateAccessesForTx map[string]*da
 func stateAccessToString(stateAccess *data.StateAccess) string {
 	dataTrieChanges := make([]string, len(stateAccess.GetDataTrieChanges()))
 	for i, dataTrieChange := range stateAccess.GetDataTrieChanges() {
-		dataTrieChanges[i] = fmt.Sprintf("key: %v, val: %v, type: %v", hex.EncodeToString(dataTrieChange.Key), hex.EncodeToString(dataTrieChange.Val), dataTrieChange.Type)
+		dataTrieChanges[i] = fmt.Sprintf("key: %v, val: %v, type: %v, operation %v, version %v", hex.EncodeToString(dataTrieChange.Key), hex.EncodeToString(dataTrieChange.Val), dataTrieChange.Type, dataTrieChange.Operation, dataTrieChange.Version)
 	}
 	return fmt.Sprintf("type: %v, operation: %v, mainTrieKey: %v, mainTrieVal: %v, index: %v, dataTrieChanges: %v, accountChanges %v",
 		stateAccess.GetType(),

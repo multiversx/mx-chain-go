@@ -624,7 +624,71 @@ func TestStateAccessesCollector_GetCollectedAccesses(t *testing.T) {
 			},
 		})
 	})
+	t.Run("merge data trie changes with different data trie operations", func(t *testing.T) {
+		t.Parallel()
 
+		c, _ := NewCollector(disabled.NewDisabledStateAccessesStorer(), WithCollectWrite())
+		assert.Equal(t, 0, len(c.stateAccesses))
+
+		c.AddStateAccess(&data.StateAccess{
+			Type:           data.Write,
+			TxHash:         []byte("hash"),
+			MainTrieKey:    []byte("account1"),
+			MainTrieVal:    []byte("mainTrieVal1"),
+			AccountChanges: data.BalanceChanged | data.RootHashChanged,
+			DataTrieChanges: []*data.DataTrieChange{
+				{Type: data.Write, Key: []byte("dataTrieKey1"), Val: []byte("dataTrieVal1"), Operation: uint32(data.NotSpecified)},
+			},
+		})
+
+		c.AddStateAccess(&data.StateAccess{
+			Type:           data.Write,
+			TxHash:         []byte("hash"),
+			MainTrieKey:    []byte("account1"),
+			MainTrieVal:    []byte("mainTrieVal2"),
+			AccountChanges: data.BalanceChanged | data.RootHashChanged,
+			DataTrieChanges: []*data.DataTrieChange{
+				{Type: data.Write, Key: []byte("dataTrieKey1"), Val: []byte("dataTrieVal1"), Operation: uint32(data.Delete)},
+			},
+		})
+
+		stateChangesForTx := c.GetCollectedAccesses()
+		require.Len(t, stateChangesForTx, 1)
+		require.Len(t, stateChangesForTx["hash"].StateAccess, 1)
+		require.Len(t, stateChangesForTx["hash"].StateAccess[0].DataTrieChanges, 2)
+		dataTrieChange := stateChangesForTx["hash"].StateAccess[0].DataTrieChanges[0]
+		require.Equal(t, []byte("dataTrieKey1"), dataTrieChange.Key)
+		require.Equal(t, []byte("dataTrieVal1"), dataTrieChange.Val)
+		require.Equal(t, uint32(data.NotSpecified), dataTrieChange.Operation)
+		dataTrieChange = stateChangesForTx["hash"].StateAccess[0].DataTrieChanges[1]
+		require.Equal(t, []byte("dataTrieKey1"), dataTrieChange.Key)
+		require.Equal(t, []byte("dataTrieVal1"), dataTrieChange.Val)
+		require.Equal(t, uint32(data.Delete), dataTrieChange.Operation)
+
+		c.AddStateAccess(&data.StateAccess{
+			Type:           data.Write,
+			TxHash:         []byte("hash"),
+			MainTrieKey:    []byte("account1"),
+			MainTrieVal:    []byte("mainTrieVal2"),
+			AccountChanges: data.BalanceChanged | data.RootHashChanged,
+			DataTrieChanges: []*data.DataTrieChange{
+				{Type: data.Write, Key: []byte("dataTrieKey1"), Val: []byte("dataTrieVal1"), Operation: uint32(data.NotSpecified)},
+			},
+		})
+
+		stateChangesForTx = c.GetCollectedAccesses()
+		require.Len(t, stateChangesForTx, 1)
+		require.Len(t, stateChangesForTx["hash"].StateAccess, 1)
+		require.Len(t, stateChangesForTx["hash"].StateAccess[0].DataTrieChanges, 2)
+		dataTrieChange = stateChangesForTx["hash"].StateAccess[0].DataTrieChanges[0]
+		require.Equal(t, []byte("dataTrieKey1"), dataTrieChange.Key)
+		require.Equal(t, []byte("dataTrieVal1"), dataTrieChange.Val)
+		require.Equal(t, uint32(data.NotSpecified), dataTrieChange.Operation)
+		dataTrieChange = stateChangesForTx["hash"].StateAccess[0].DataTrieChanges[1]
+		require.Equal(t, []byte("dataTrieKey1"), dataTrieChange.Key)
+		require.Equal(t, []byte("dataTrieVal1"), dataTrieChange.Val)
+		require.Equal(t, uint32(data.Delete), dataTrieChange.Operation)
+	})
 	t.Run("merge should work", func(t *testing.T) {
 		t.Parallel()
 
