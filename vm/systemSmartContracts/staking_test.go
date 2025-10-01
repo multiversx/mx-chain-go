@@ -167,6 +167,28 @@ func TestNewStakingSmartContract_NilEnableEpochsHandlerShouldErr(t *testing.T) {
 	assert.Equal(t, vm.ErrNilEnableEpochsHandler, err)
 }
 
+func TestNewStakingSmartContract_NilEnableRoundsHandlerShouldErr(t *testing.T) {
+	t.Parallel()
+
+	args := createMockStakingScArguments()
+	args.EnableRoundsHandler = nil
+	stakingSmartContract, err := NewStakingSmartContract(args)
+
+	assert.Nil(t, stakingSmartContract)
+	assert.Equal(t, vm.ErrNilEnableRoundsHandler, err)
+}
+
+func TestNewStakingSmartContract_NilMarshallerShouldErr(t *testing.T) {
+	t.Parallel()
+
+	args := createMockStakingScArguments()
+	args.Marshalizer = nil
+	stakingSmartContract, err := NewStakingSmartContract(args)
+
+	assert.Nil(t, stakingSmartContract)
+	assert.Equal(t, vm.ErrNilMarshalizer, err)
+}
+
 func TestNewStakingSmartContract_InvalidEnableEpochsHandlerShouldErr(t *testing.T) {
 	t.Parallel()
 
