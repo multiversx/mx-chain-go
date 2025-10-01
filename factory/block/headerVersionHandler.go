@@ -12,7 +12,6 @@ import (
 )
 
 const wildcard = "*"
-const keySize = 8
 
 type headerVersionHandler struct {
 	versions       []config.VersionByEpochs
