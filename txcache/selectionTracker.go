@@ -80,7 +80,7 @@ func (st *selectionTracker) OnProposedBlock(
 		return err
 	}
 
-	err = st.validateTrackedBlocksAndCompileBreadcrumbs(blockBody, tBlock, accountsProvider, blockchainInfo)
+	err = st.validateTrackedBlocksAndCompileBreadcrumbsNoLock(blockBody, tBlock, accountsProvider, blockchainInfo)
 	if err != nil {
 		log.Debug("selectionTracker.OnProposedBlock: error validating the tracked blocks", "err", err)
 		return err
@@ -144,11 +144,11 @@ func (st *selectionTracker) checkReceivedBlockNoLock(blockBody *block.Body, bloc
 	return nil
 }
 
-// validateTrackedBlocksAndCompileBreadcrumbs is used when a new block is proposed.
+// validateTrackedBlocksAndCompileBreadcrumbsNoLock is used when a new block is proposed.
 // Firstly, the method finds the chain of tracked blocks.
 // Secondly, the method extracts the transaction of the new block, compiles its breadcrumbs and adds the new block to the previous returned chain.
 // Then, it validates the entire chain (by nonce and balance of each breadcrumb).
-func (st *selectionTracker) validateTrackedBlocksAndCompileBreadcrumbs(
+func (st *selectionTracker) validateTrackedBlocksAndCompileBreadcrumbsNoLock(
 	blockBody *block.Body,
 	blockToTrack *trackedBlock,
 	accountsProvider common.AccountNonceAndBalanceProvider,
@@ -160,20 +160,20 @@ func (st *selectionTracker) validateTrackedBlocksAndCompileBreadcrumbs(
 		blockToTrack.nonce,
 	)
 	if err != nil {
-		log.Debug("selectionTracker.validateTrackedBlocksAndCompileBreadcrumbs: error creating chain of tracked blocks", "err", err)
+		log.Debug("selectionTracker.validateTrackedBlocksAndCompileBreadcrumbsNoLock: error creating chain of tracked blocks", "err", err)
 		return err
 	}
 
 	// if we pass the first validation, only then we extract the txs to compile the breadcrumbs
 	txs, err := getTransactionsInBlock(blockBody, st.txCache)
 	if err != nil {
-		log.Debug("selectionTracker.validateTrackedBlocksAndCompileBreadcrumbs: error getting transactions from block", "err", err)
+		log.Debug("selectionTracker.validateTrackedBlocksAndCompileBreadcrumbsNoLock: error getting transactions from block", "err", err)
 		return err
 	}
 
 	err = blockToTrack.compileBreadcrumbs(txs)
 	if err != nil {
-		log.Debug("selectionTracker.validateTrackedBlocksAndCompileBreadcrumbs: error compiling breadcrumbs",
+		log.Debug("selectionTracker.validateTrackedBlocksAndCompileBreadcrumbsNoLock: error compiling breadcrumbs",
 			"error", err)
 		return err
 	}
@@ -185,7 +185,7 @@ func (st *selectionTracker) validateTrackedBlocksAndCompileBreadcrumbs(
 	// i.e. continuous with the other proposed blocks and no balance issues
 	err = st.validateBreadcrumbsOfTrackedBlocks(blocksToBeValidated, accountsProvider)
 	if err != nil {
-		log.Debug("selectionTracker.validateTrackedBlocksAndCompileBreadcrumbs: error validating tracked blocks", "err", err)
+		log.Debug("selectionTracker.validateTrackedBlocksAndCompileBreadcrumbsNoLock: error validating tracked blocks", "err", err)
 		return err
 	}
 

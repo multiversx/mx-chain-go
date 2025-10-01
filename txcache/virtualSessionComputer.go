@@ -4,7 +4,6 @@ import (
 	"math/big"
 )
 
-// virtualSessionComputer relies on the internal state of the validator for skipping certain senders
 type virtualSessionComputer struct {
 	session                  SelectionSession
 	virtualAccountsByAddress map[string]*virtualAccountRecord
@@ -17,8 +16,10 @@ func newVirtualSessionComputer(session SelectionSession) *virtualSessionComputer
 	}
 }
 
-// createVirtualSelectionSession iterates over the chain of tracked blocks and for each sender checks that its breadcrumb is continuous
-// If the breadcrumb of an account is continuous, the virtual record of that account is created or updated
+// createVirtualSelectionSession iterates over the global breadcrumbs of the selection tracker.
+// If the global breadcrumb of an account is continuous with the session nonce,
+// the virtual record of that account is created or updated.
+// NOTE: The createVirtualSelectionSession method should receive a deep copy of the globalAccountBreadcrumbs.
 func (computer *virtualSessionComputer) createVirtualSelectionSession(
 	globalAccountBreadcrumbs map[string]*globalAccountBreadcrumb,
 ) (*virtualSelectionSession, error) {
@@ -31,6 +32,8 @@ func (computer *virtualSessionComputer) createVirtualSelectionSession(
 	return virtualSession, nil
 }
 
+// handleGlobalAccountBreadcrumbs iterates over each global account breadcrumb, verifies the continuity with the session nonce
+// and transforms each global account breadcrumb into a virtual record.
 func (computer *virtualSessionComputer) handleGlobalAccountBreadcrumbs(
 	globalAccountBreadcrumbs map[string]*globalAccountBreadcrumb,
 ) error {
@@ -61,6 +64,9 @@ func (computer *virtualSessionComputer) handleGlobalAccountBreadcrumbs(
 	return nil
 }
 
+// fromGlobalBreadcrumbToVirtualRecord transforms a global account breadcrumb simply by:
+// initializing the initialNonce of the virtual record with the latestNonce + 1
+// copying the consumed balance in the initialBalance of the virtual record.
 func (computer *virtualSessionComputer) fromGlobalBreadcrumbToVirtualRecord(
 	address string,
 	accountBalance *big.Int,

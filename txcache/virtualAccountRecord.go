@@ -6,8 +6,6 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 )
 
-// TODO should refactor this; each account virtual record should be simply created from a global account breadcrumb, without further updates
-
 type virtualAccountRecord struct {
 	initialNonce   core.OptionalUint64
 	virtualBalance *virtualAccountBalance
@@ -25,13 +23,14 @@ func newVirtualAccountRecord(initialNonce core.OptionalUint64, initialBalance *b
 	}, nil
 }
 
-// updateVirtualRecord updates the virtualBalance of a virtualAccountRecord and handles the nonces
+// updateVirtualRecord updates the virtualBalance of a virtualAccountRecord and handles the nonces.
+// The updateVirtualRecord is used only once, when the virtual record is created from a global account breadcrumb.
 func (virtualRecord *virtualAccountRecord) updateVirtualRecord(globalBreadcrumb *globalAccountBreadcrumb) {
-	virtualRecord.virtualBalance.accumulateConsumedBalance(globalBreadcrumb.consumedBalance)
+	virtualRecord.accumulateConsumedBalance(globalBreadcrumb.consumedBalance)
 
 	if !globalBreadcrumb.lastNonce.HasValue {
-		// In a certain tracked block, we can have breadcrumbs for accounts that are only used as relayers and never as senders.
-		// Breadcrumb of those accounts don't have a set nonce, here we treat those cases.
+		// We can have global breadcrumbs for accounts that are only used as relayers and never as senders.
+		// The global breadcrumbs of those accounts don't have a set nonce, here we treat those cases.
 		return
 	}
 
