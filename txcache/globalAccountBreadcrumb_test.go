@@ -604,5 +604,12 @@ func Test_reduceConsumedBalance(t *testing.T) {
 
 		err := gab.reduceConsumedBalance(&breadcrumb)
 		require.Nil(t, err)
+
+		err = gab.reduceConsumedBalance(&breadcrumb)
+		require.Nil(t, err)
+		require.Equal(t, big.NewInt(0), gab.consumedBalance)
+
+		gab.extendConsumedBalance(&breadcrumb)
+		require.Equal(t, big.NewInt(5), gab.consumedBalance)
 	})
 }
