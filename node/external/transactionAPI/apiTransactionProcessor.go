@@ -430,6 +430,7 @@ func (atp *apiTransactionProcessor) getFieldGettersForTx(wrappedTx *txcache.Wrap
 		receiverField:    atp.addressPubKeyConverter.SilentEncode(wrappedTx.Tx.GetRcvAddr(), log),
 		gasLimitField:    wrappedTx.Tx.GetGasLimit(),
 		gasPriceField:    wrappedTx.Tx.GetGasPrice(),
+		ppu:              wrappedTx.PricePerUnit,
 		rcvUsernameField: wrappedTx.Tx.GetRcvUserName(),
 		dataField:        wrappedTx.Tx.GetData(),
 		valueField:       getTxValue(wrappedTx),
@@ -667,6 +668,10 @@ func (atp *apiTransactionProcessor) computeTimestampForRound(round uint64) int64
 
 	secondsSinceGenesis := round * atp.roundDuration
 	timestamp := atp.genesisTime.Add(time.Duration(secondsSinceGenesis) * time.Millisecond)
+
+	if atp.enableEpochsHandler.IsFlagEnabled(common.SupernovaFlag) {
+		return timestamp.UnixMilli()
+	}
 
 	return timestamp.Unix()
 }

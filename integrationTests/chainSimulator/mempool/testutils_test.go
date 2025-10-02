@@ -47,7 +47,6 @@ func startChainSimulator(t *testing.T, alterConfigsFunction func(cfg *config.Con
 		TempDir:                t.TempDir(),
 		PathToInitialConfig:    "../../../cmd/node/config/",
 		NumOfShards:            1,
-		GenesisTimestamp:       time.Now().Unix(),
 		RoundDurationInMillis:  uint64(4000),
 		RoundsPerEpoch: core.OptionalUint64{
 			HasValue: true,

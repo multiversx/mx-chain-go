@@ -67,13 +67,31 @@ func GetGeneralConfig() config.Config {
 					MetachainMinNumNodes:        1,
 					Hysteresis:                  0,
 					Adaptivity:                  false,
+					RoundsPerEpoch:              10,
+					MinRoundsBetweenEpochs:      5,
 				},
 			},
 			EpochChangeGracePeriodByEpoch: []config.EpochChangeGracePeriodByEpoch{{EnableEpoch: 0, GracePeriodInRounds: 1}},
+			ProcessConfigsByEpoch: []config.ProcessConfigByEpoch{{
+				EnableEpoch:                       0,
+				MaxMetaNoncesBehind:               15,
+				MaxMetaNoncesBehindForGlobalStuck: 30,
+				MaxShardNoncesBehind:              15,
+			}},
+			ProcessConfigsByRound: []config.ProcessConfigByRound{
+				{EnableRound: 0, MaxRoundsWithoutNewBlockReceived: 10, MaxRoundsWithoutCommittedBlock: 10},
+			},
+			EpochStartConfigsByEpoch: []config.EpochStartConfigByEpoch{
+				{EnableEpoch: 0, GracePeriodRounds: 25, ExtraDelayForRequestBlockInfoInMilliseconds: 3000},
+			},
+			EpochStartConfigsByRound: []config.EpochStartConfigByRound{
+				{EnableRound: 0, MaxRoundsWithoutCommittedStartInEpochBlock: 50},
+			},
+			ConsensusConfigsByEpoch: []config.ConsensusConfigByEpoch{
+				{EnableEpoch: 0, NumRoundsToWaitBeforeSignalingChronologyStuck: 10},
+			},
 		},
 		EpochStartConfig: config.EpochStartConfig{
-			MinRoundsBetweenEpochs:            5,
-			RoundsPerEpoch:                    10,
 			MinNumConnectedPeersToStart:       2,
 			MinNumOfPeersToConsiderBlockValid: 2,
 		},

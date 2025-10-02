@@ -1092,7 +1092,8 @@ func (mp *metaProcessor) requestShardHeadersIfNeeded(
 			"num", hdrsAddedForShard[shardID],
 			"highest nonce", lastShardHdr[shardID].GetNonce())
 
-		roundTooOld := mp.roundHandler.Index() > int64(lastShardHdr[shardID].GetRound()+process.MaxRoundsWithoutNewBlockReceived)
+		lastShardHdrRound := lastShardHdr[shardID].GetRound()
+		roundTooOld := mp.roundHandler.Index() > int64(lastShardHdrRound+mp.getMaxRoundsWithoutBlockReceived(lastShardHdrRound))
 		shouldRequestCrossHeaders := hdrsAddedForShard[shardID] == 0 && roundTooOld
 		if shouldRequestCrossHeaders {
 			fromNonce := lastShardHdr[shardID].GetNonce() + 1

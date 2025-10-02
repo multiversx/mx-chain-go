@@ -94,6 +94,8 @@ func createCoreComponents() factory.CoreComponentsHolder {
 		EnableRoundsHandlerField:           &testscommon.EnableRoundsHandlerStub{},
 		RoundNotifierField:                 &notifierMocks.RoundNotifierStub{},
 		EpochChangeGracePeriodHandlerField: gracePeriod,
+		ProcessConfigsHandlerField:         testscommon.GetDefaultProcessConfigsHandler(),
+		CommonConfigsHandlerField:          testscommon.GetDefaultCommonConfigsHandler(),
 	}
 }
 
