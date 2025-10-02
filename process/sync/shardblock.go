@@ -71,6 +71,7 @@ func NewShardBootstrap(arguments ArgShardBootstrapper) (*ShardBootstrap, error) 
 		repopulateTokensSupplies:     arguments.RepopulateTokensSupplies,
 		enableEpochsHandler:          arguments.EnableEpochsHandler,
 		enableRoundsHandler:          arguments.EnableRoundsHandler,
+		processConfigsHandler:        arguments.ProcessConfigsHandler,
 	}
 
 	if base.isInImportMode {

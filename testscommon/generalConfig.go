@@ -72,6 +72,24 @@ func GetGeneralConfig() config.Config {
 				},
 			},
 			EpochChangeGracePeriodByEpoch: []config.EpochChangeGracePeriodByEpoch{{EnableEpoch: 0, GracePeriodInRounds: 1}},
+			ProcessConfigsByEpoch: []config.ProcessConfigByEpoch{{
+				EnableEpoch:                       0,
+				MaxMetaNoncesBehind:               15,
+				MaxMetaNoncesBehindForGlobalStuck: 30,
+				MaxShardNoncesBehind:              15,
+			}},
+			ProcessConfigsByRound: []config.ProcessConfigByRound{
+				{EnableRound: 0, MaxRoundsWithoutNewBlockReceived: 10, MaxRoundsWithoutCommittedBlock: 10},
+			},
+			EpochStartConfigsByEpoch: []config.EpochStartConfigByEpoch{
+				{EnableEpoch: 0, GracePeriodRounds: 25, ExtraDelayForRequestBlockInfoInMilliseconds: 3000},
+			},
+			EpochStartConfigsByRound: []config.EpochStartConfigByRound{
+				{EnableRound: 0, MaxRoundsWithoutCommittedStartInEpochBlock: 50},
+			},
+			ConsensusConfigsByEpoch: []config.ConsensusConfigByEpoch{
+				{EnableEpoch: 0, NumRoundsToWaitBeforeSignalingChronologyStuck: 10},
+			},
 		},
 		EpochStartConfig: config.EpochStartConfig{
 			MinNumConnectedPeersToStart:       2,
@@ -138,6 +156,7 @@ func GetGeneralConfig() config.Config {
 		},
 		TxCacheBounds: config.TxCacheBoundsConfig{
 			MaxNumBytesPerSenderUpperBound: 33_554_432,
+			MaxTrackedBlocks:               100,
 		},
 		TxCacheSelection: config.TxCacheSelectionConfig{
 			SelectionGasBandwidthIncreasePercent:          400,

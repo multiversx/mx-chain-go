@@ -30,6 +30,7 @@ type coreComponentsHolder interface {
 	RoundNotifier() process.RoundNotifier
 	EnableRoundsHandler() common.EnableRoundsHandler
 	EpochChangeGracePeriodHandler() common.EpochChangeGracePeriodHandler
+	ProcessConfigsHandler() common.ProcessConfigsHandler
 	RoundHandler() consensus.RoundHandler
 	EconomicsData() process.EconomicsDataHandler
 	ProcessStatusHandler() common.ProcessStatusHandler
