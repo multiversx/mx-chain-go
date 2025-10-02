@@ -20,6 +20,8 @@ import (
 	"github.com/multiversx/mx-chain-go/storage"
 )
 
+// TODO add some integration tests for forks scenarios
+
 func TestMempoolWithChainSimulator_Selection(t *testing.T) {
 	if testing.Short() {
 		t.Skip("this is not a short test")

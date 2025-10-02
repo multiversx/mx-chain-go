@@ -11,6 +11,7 @@ import (
 	"golang.org/x/exp/slices"
 )
 
+// TODO should add a reset method which cleans the tracked blocks and the global account breadcrumbs
 // TODO rename this to proposedBlocksTracker
 type selectionTracker struct {
 	mutTracker       sync.RWMutex
@@ -348,6 +349,7 @@ func (st *selectionTracker) deriveVirtualSelectionSession(
 	session SelectionSession,
 	blockchainInfo common.BlockchainInfo,
 ) (*virtualSelectionSession, error) {
+	// TODO should remove all blocks greater than the received nonce from blockchainInfo
 	rootHash, err := session.GetRootHash()
 	if err != nil {
 		log.Debug("selectionTracker.deriveVirtualSelectionSession",

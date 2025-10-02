@@ -8,7 +8,6 @@ import (
 // With the session nonce.
 // With the previous breadcrumbs.
 type breadcrumbsValidator struct {
-	skippedSenders                      map[string]struct{}
 	sendersInContinuityWithSessionNonce map[string]struct{}
 	accountPreviousBreadcrumb           map[string]*accountBreadcrumb
 	virtualBalancesByAddress            map[string]*virtualAccountBalance
@@ -18,7 +17,6 @@ type breadcrumbsValidator struct {
 // At the end of the method it becomes useless.
 func newBreadcrumbValidator() *breadcrumbsValidator {
 	return &breadcrumbsValidator{
-		skippedSenders:                      make(map[string]struct{}),
 		sendersInContinuityWithSessionNonce: make(map[string]struct{}),
 		accountPreviousBreadcrumb:           make(map[string]*accountBreadcrumb),
 		virtualBalancesByAddress:            make(map[string]*virtualAccountBalance),
@@ -63,8 +61,6 @@ func (validator *breadcrumbsValidator) validateContinuityWithSessionNonce(
 
 	continuousWithSessionNonce := breadcrumb.verifyContinuityWithSessionNonce(accountNonce)
 	if !continuousWithSessionNonce {
-		// mark this sender as not continuous
-		validator.skippedSenders[address] = struct{}{}
 		log.Debug("virtualSessionComputer.validateNonceContinuityOfBreadcrumb breadcrumb not continuous with session nonce",
 			"address", address,
 			"accountNonce", accountNonce,
@@ -85,8 +81,6 @@ func (validator *breadcrumbsValidator) validateContinuityWithPreviousBreadcrumb(
 	previousBreadcrumb := validator.accountPreviousBreadcrumb[address]
 	continuousBreadcrumbs := breadcrumb.verifyContinuityBetweenAccountBreadcrumbs(previousBreadcrumb)
 	if !continuousBreadcrumbs {
-		// mark this sender as not continuous
-		validator.skippedSenders[address] = struct{}{}
 		log.Debug("virtualSessionComputer.validateNonceContinuityOfBreadcrumb breadcrumb not continuous with previous breadcrumb",
 			"address", address,
 			"current breadcrumb nonce", breadcrumb.firstNonce,
@@ -98,11 +92,6 @@ func (validator *breadcrumbsValidator) validateContinuityWithPreviousBreadcrumb(
 	validator.accountPreviousBreadcrumb[address] = breadcrumb
 
 	return true
-}
-
-func (validator *breadcrumbsValidator) shouldSkipSender(address string) bool {
-	_, ok := validator.skippedSenders[address]
-	return ok
 }
 
 // validateBalance is used for the OnProposedBlock flow, when validating the compiled breadcrumbs.
