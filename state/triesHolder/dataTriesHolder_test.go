@@ -1,4 +1,4 @@
-package state
+package triesHolder
 
 import (
 	"errors"
@@ -322,7 +322,7 @@ func TestDataTriesHolder_Get(t *testing.T) {
 	})
 }
 
-func TestDataTriesHolder_GetAllDirtyAndResetFlag(t *testing.T) {
+func TestDataTriesHolder_GetAll(t *testing.T) {
 	t.Parallel()
 
 	t.Run("dirty trie not found in tries map does not panic", func(t *testing.T) {
@@ -336,7 +336,7 @@ func TestDataTriesHolder_GetAllDirtyAndResetFlag(t *testing.T) {
 		}
 		delete(dth.tries, string(entries[0].key))
 
-		dirtyTries := dth.GetAllDirtyAndResetFlag()
+		dirtyTries := dth.GetAll()
 		assert.Equal(t, numEntries-1, len(dirtyTries))
 		assert.Equal(t, 0, len(dth.dirtyTries))
 	})
@@ -354,7 +354,7 @@ func TestDataTriesHolder_GetAllDirtyAndResetFlag(t *testing.T) {
 		assert.Equal(t, dth.newestUsed.key, dth.oldestUsed.key)
 		assert.Equal(t, key, dth.newestUsed.key)
 
-		dirtyTries := dth.GetAllDirtyAndResetFlag()
+		dirtyTries := dth.GetAll()
 		assert.Equal(t, 1, len(dirtyTries))
 		assert.Equal(t, 0, len(dth.dirtyTries))
 		assert.Equal(t, 0, len(dth.tries))
@@ -362,7 +362,7 @@ func TestDataTriesHolder_GetAllDirtyAndResetFlag(t *testing.T) {
 		assert.Nil(t, dth.newestUsed)
 		assert.Equal(t, uint64(0), dth.totalTriesSize)
 	})
-	t.Run("trie size is correctly computed after GetAllDirtyAndResetFlag and eviction", func(t *testing.T) {
+	t.Run("trie size is correctly computed after GetAll and eviction", func(t *testing.T) {
 		t.Parallel()
 
 		dth, _ := NewDataTriesHolder(dthSize)
@@ -374,7 +374,7 @@ func TestDataTriesHolder_GetAllDirtyAndResetFlag(t *testing.T) {
 
 		assert.Equal(t, uint64(numEntries*oneKB), dth.totalTriesSize)
 
-		dirtyTries := dth.GetAllDirtyAndResetFlag()
+		dirtyTries := dth.GetAll()
 		assert.Equal(t, numEntries, len(dirtyTries))
 		assert.Equal(t, 0, len(dth.dirtyTries))
 		assert.Equal(t, uint64(numEntries*oneKB), dth.totalTriesSize)
@@ -399,7 +399,7 @@ func TestDataTriesHolder_GetAllDirtyAndResetFlag(t *testing.T) {
 		assert.Equal(t, numEntries+1, len(dth.tries))                              // no eviction
 		assert.Equal(t, 1, len(dth.touchedTries))
 
-		dirtyTries = dth.GetAllDirtyAndResetFlag()
+		dirtyTries = dth.GetAll()
 		assert.Equal(t, 0, len(dirtyTries))
 		assert.Equal(t, 0, len(dth.dirtyTries))
 		assert.Equal(t, uint64(dthSize), dth.totalTriesSize) // size is updated
@@ -414,7 +414,7 @@ func TestDataTriesHolder_GetAllDirtyAndResetFlag(t *testing.T) {
 		assert.Equal(t, uint64(dthSize), dth.totalTriesSize) // size is  not updated
 		assert.Equal(t, numEntries+1, len(dth.tries))        // no eviction
 
-		dirtyTries = dth.GetAllDirtyAndResetFlag()
+		dirtyTries = dth.GetAll()
 		assert.Equal(t, 0, len(dirtyTries))
 		assert.Equal(t, 0, len(dth.dirtyTries))
 		assert.Equal(t, uint64(dthSize-oneKB/2), dth.totalTriesSize) // size is updated
@@ -431,7 +431,7 @@ func TestDataTriesHolder_GetAllDirtyAndResetFlag(t *testing.T) {
 			dth.Put(entries[i].key, entries[i].trie)
 		}
 
-		dirtyTries := dth.GetAllDirtyAndResetFlag()
+		dirtyTries := dth.GetAll()
 		assert.Equal(t, numEntries, len(dirtyTries))
 		assert.Equal(t, 0, len(dth.dirtyTries))
 	})

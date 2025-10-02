@@ -200,7 +200,8 @@ func createAccountAdapter(
 	trieStorage common.StorageManager,
 	handler common.EnableEpochsHandler,
 ) (state.AccountsAdapter, error) {
-	tr, err := trie.NewTrie(trieStorage, marshaller, hasher, handler)
+	tenMbSize := uint64(10485760)
+	tr, err := trie.NewTrie(trieStorage, marshaller, hasher, handler, tenMbSize)
 	if err != nil {
 		return nil, err
 	}

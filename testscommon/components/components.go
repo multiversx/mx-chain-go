@@ -9,6 +9,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/data/endProcess"
 	"github.com/multiversx/mx-chain-core-go/data/outport"
+	"github.com/multiversx/mx-chain-go/state/triesHolder"
 	logger "github.com/multiversx/mx-chain-logger-go"
 	wasmConfig "github.com/multiversx/mx-chain-vm-go/config"
 	"github.com/stretchr/testify/require"
@@ -38,7 +39,6 @@ import (
 	p2pFactory "github.com/multiversx/mx-chain-go/p2p/factory"
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
-	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	commonMocks "github.com/multiversx/mx-chain-go/testscommon/common"
 	"github.com/multiversx/mx-chain-go/testscommon/dblookupext"
@@ -360,11 +360,12 @@ func GetStateFactoryArgs(coreComponents factory.CoreComponentsHolder, statusCore
 	trieStorageManagers[dataRetriever.UserAccountsUnit.String()] = storageManagerUser
 	trieStorageManagers[dataRetriever.PeerAccountsUnit.String()] = storageManagerPeer
 
-	triesHolder := state.NewDataTriesHolder()
-	trieUsers, _ := trie.NewTrie(storageManagerUser, coreComponents.InternalMarshalizer(), coreComponents.Hasher(), coreComponents.EnableEpochsHandler())
-	triePeers, _ := trie.NewTrie(storageManagerPeer, coreComponents.InternalMarshalizer(), coreComponents.Hasher(), coreComponents.EnableEpochsHandler())
-	triesHolder.Put([]byte(dataRetriever.UserAccountsUnit.String()), trieUsers)
-	triesHolder.Put([]byte(dataRetriever.PeerAccountsUnit.String()), triePeers)
+	tiresContainer := triesHolder.NewTriesHolder()
+	tenMBSize := uint64(10485760)
+	trieUsers, _ := trie.NewTrie(storageManagerUser, coreComponents.InternalMarshalizer(), coreComponents.Hasher(), coreComponents.EnableEpochsHandler(), tenMBSize)
+	triePeers, _ := trie.NewTrie(storageManagerPeer, coreComponents.InternalMarshalizer(), coreComponents.Hasher(), coreComponents.EnableEpochsHandler(), tenMBSize)
+	tiresContainer.Put([]byte(dataRetriever.UserAccountsUnit.String()), trieUsers)
+	tiresContainer.Put([]byte(dataRetriever.PeerAccountsUnit.String()), triePeers)
 
 	stateComponentsFactoryArgs := stateComp.StateComponentsFactoryArgs{
 		Config:         GetGeneralConfig(),

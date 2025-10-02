@@ -96,8 +96,9 @@ func CreateAccountsDB(db storage.Storer, enableEpochs common.EnableEpochsHandler
 	args.Hasher = TestHasher
 
 	trieStorage, _ := trie.NewTrieStorageManager(args)
+	tenMBSize := uint64(10485760)
 
-	tr, _ := trie.NewTrie(trieStorage, TestMarshalizer, TestHasher, enableEpochs)
+	tr, _ := trie.NewTrie(trieStorage, TestMarshalizer, TestHasher, enableEpochs, tenMBSize)
 	spm, _ := storagePruningManager.NewStoragePruningManager(ewl, 10)
 
 	argsAccCreator := accountFactory.ArgsAccountCreator{

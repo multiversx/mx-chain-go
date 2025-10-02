@@ -1,4 +1,4 @@
-package state
+package triesHolder
 
 import (
 	"bytes"
@@ -10,6 +10,8 @@ import (
 )
 
 const maxTrieSizeMinValue = 1 * 1024 * 1024 // 1 MB
+
+var log = logger.GetOrCreate("state/dataTriesHolder")
 
 type trieEntry struct {
 	trie      common.Trie
@@ -208,8 +210,9 @@ func (dth *dataTriesHolder) Get(key []byte) common.Trie {
 	return entry.trie
 }
 
-// GetAllDirtyAndResetFlag returns all the tries that are marked as dirty. It also resets their dirty flag and recomputes the total size.
-func (dth *dataTriesHolder) GetAllDirtyAndResetFlag() []common.Trie {
+// GetAll returns all the tries that are marked as dirty for this implementation.
+// It also resets their dirty flag and recomputes the total size.
+func (dth *dataTriesHolder) GetAll() []common.Trie {
 	dth.mutex.Lock()
 	defer dth.mutex.Unlock()
 

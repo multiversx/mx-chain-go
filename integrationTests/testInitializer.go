@@ -102,6 +102,9 @@ var InitialRating = uint32(50)
 // AdditionalGasLimit is the value that can be added on a transaction in the GasLimit
 var AdditionalGasLimit = uint64(999000)
 
+// TenMbSize represents 10 MB in bytes
+const TenMbSize = uint64(10485760)
+
 // GasSchedulePath --
 const GasSchedulePath = "../../../../cmd/node/config/gasSchedules/gasScheduleV4.toml"
 
@@ -463,7 +466,7 @@ func CreateAccountsDBWithEnableEpochsHandler(
 	trieStorageManager common.StorageManager,
 	enableEpochsHandler common.EnableEpochsHandler,
 ) (*state.AccountsDB, common.Trie) {
-	tr, _ := trie.NewTrie(trieStorageManager, TestMarshalizer, TestHasher, enableEpochsHandler)
+	tr, _ := trie.NewTrie(trieStorageManager, TestMarshalizer, TestHasher, enableEpochsHandler, TenMbSize)
 
 	ewlArgs := evictionWaitingList.MemoryEvictionWaitingListArgs{
 		RootHashesSize: 100,
@@ -1108,7 +1111,7 @@ func CreateNewDefaultTrie() common.Trie {
 
 	trieStorage, _ := trie.NewTrieStorageManager(args)
 
-	tr, _ := trie.NewTrie(trieStorage, TestMarshalizer, TestHasher, &enableEpochsHandlerMock.EnableEpochsHandlerStub{})
+	tr, _ := trie.NewTrie(trieStorage, TestMarshalizer, TestHasher, &enableEpochsHandlerMock.EnableEpochsHandlerStub{}, TenMbSize)
 	return tr
 }
 

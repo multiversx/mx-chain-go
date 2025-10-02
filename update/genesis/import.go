@@ -25,6 +25,8 @@ import (
 	"github.com/multiversx/mx-chain-go/update"
 )
 
+const tenMBSize = uint64(10485760)
+
 var _ update.ImportHandler = (*stateImport)(nil)
 
 // ArgsNewStateImport is the arguments structure to create a new state importer
@@ -312,7 +314,7 @@ func (si *stateImport) getTrie(shardID uint32, accType Type) (common.Trie, error
 		trieStorageManager = si.trieStorageManagers[dataRetriever.PeerAccountsUnit.String()]
 	}
 
-	trieForShard, err := trie.NewTrie(trieStorageManager, si.marshalizer, si.hasher, si.enableEpochsHandler)
+	trieForShard, err := trie.NewTrie(trieStorageManager, si.marshalizer, si.hasher, si.enableEpochsHandler, tenMBSize)
 	if err != nil {
 		return nil, err
 	}
@@ -344,7 +346,7 @@ func (si *stateImport) importDataTrie(identifier string, shID uint32, keys [][]b
 		return fmt.Errorf("%w wanted a roothash", update.ErrWrongTypeAssertion)
 	}
 
-	dataTrie, err := trie.NewTrie(si.trieStorageManagers[dataRetriever.UserAccountsUnit.String()], si.marshalizer, si.hasher, si.enableEpochsHandler)
+	dataTrie, err := trie.NewTrie(si.trieStorageManagers[dataRetriever.UserAccountsUnit.String()], si.marshalizer, si.hasher, si.enableEpochsHandler, tenMBSize)
 	if err != nil {
 		return err
 	}

@@ -588,6 +588,7 @@ func createNewAccountsAdapterApi(args scQueryElementArgs, chainHandler data.Chai
 		Identifier:          dataRetriever.UserAccountsUnit.String(),
 		EnableEpochsHandler: args.coreComponents.EnableEpochsHandler(),
 		StatsCollector:      args.statusCoreComponents.StateStatsHandler(),
+		MaxSizeInMemory:     args.generalConfig.StateTriesConfig.MaxUserTrieSizeInMemory,
 	}
 	trieStorageManager, merkleTrie, err := trFactory.Create(trieCreatorArgs)
 	if err != nil {

@@ -89,7 +89,8 @@ func TestUserAccountsSyncer_MissingDataTrieNodeFound(t *testing.T) {
 		},
 	}
 
-	tr, _ := trie.NewTrie(tsm, args.Marshalizer, args.Hasher, &enableEpochsHandlerMock.EnableEpochsHandlerStub{})
+	tenMBSize := uint64(10485760)
+	tr, _ := trie.NewTrie(tsm, args.Marshalizer, args.Hasher, &enableEpochsHandlerMock.EnableEpochsHandlerStub{}, tenMBSize)
 	key := []byte("key")
 	value := []byte("value")
 	_ = tr.Update(key, value)

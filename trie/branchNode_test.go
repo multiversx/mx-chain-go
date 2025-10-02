@@ -22,6 +22,8 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+const tenMBSize = uint64(10485760)
+
 var dtmc = trieMetricsCollector.NewDisabledTrieMetricsCollector()
 
 func getTestMarshalizerAndHasher() (marshal.Marshalizer, hashing.Hasher) {
@@ -94,6 +96,7 @@ func newEmptyTrie() (*patriciaMerkleTrie, *trieStorageManager) {
 		oldRoot:             make([]byte, 0),
 		chanClose:           make(chan struct{}),
 		enableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		maxSizeInMem:        tenMBSize,
 	}
 
 	return tr, trieStorage
@@ -208,8 +211,8 @@ func TestBranchNode_setRootHash(t *testing.T) {
 	trieStorage1, _ := NewTrieStorageManager(GetDefaultTrieStorageManagerParameters())
 	trieStorage2, _ := NewTrieStorageManager(GetDefaultTrieStorageManagerParameters())
 
-	tr1, _ := NewTrie(trieStorage1, marsh, hsh, &enableEpochsHandlerMock.EnableEpochsHandlerStub{})
-	tr2, _ := NewTrie(trieStorage2, marsh, hsh, &enableEpochsHandlerMock.EnableEpochsHandlerStub{})
+	tr1, _ := NewTrie(trieStorage1, marsh, hsh, &enableEpochsHandlerMock.EnableEpochsHandlerStub{}, tenMBSize)
+	tr2, _ := NewTrie(trieStorage2, marsh, hsh, &enableEpochsHandlerMock.EnableEpochsHandlerStub{}, tenMBSize)
 
 	maxIterations := 10000
 	for i := 0; i < maxIterations; i++ {

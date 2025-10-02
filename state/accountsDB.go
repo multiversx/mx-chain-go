@@ -19,6 +19,7 @@ import (
 	"github.com/multiversx/mx-chain-go/common/errChan"
 	"github.com/multiversx/mx-chain-go/common/holders"
 	"github.com/multiversx/mx-chain-go/state/parsers"
+	"github.com/multiversx/mx-chain-go/state/triesHolder"
 	"github.com/multiversx/mx-chain-go/trie/keyBuilder"
 	"github.com/multiversx/mx-chain-go/trie/statistics"
 	logger "github.com/multiversx/mx-chain-logger-go"
@@ -115,7 +116,7 @@ func NewAccountsDB(args ArgsAccountsDB) (*AccountsDB, error) {
 }
 
 func createAccountsDb(args ArgsAccountsDB) *AccountsDB {
-	dth, _ := NewDataTriesHolder(10000000) // TODO make this configurable and check for error
+	dth, _ := triesHolder.NewDataTriesHolder(10000000) // TODO make this configurable and check for error
 	return &AccountsDB{
 		mainTrie:               args.Trie,
 		hasher:                 args.Hasher,
@@ -820,7 +821,7 @@ func (adb *AccountsDB) commit() ([]byte, error) {
 	oldHashes := make(common.ModifiedHashes)
 	newHashes := make(common.ModifiedHashes)
 	// Step 1. commit all data tries
-	dataTries := adb.dataTries.GetAllDirtyAndResetFlag()
+	dataTries := adb.dataTries.GetAll()
 	for i := 0; i < len(dataTries); i++ {
 		err := adb.commitTrie(dataTries[i], oldHashes, newHashes)
 		if err != nil {

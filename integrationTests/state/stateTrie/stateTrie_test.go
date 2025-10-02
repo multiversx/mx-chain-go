@@ -273,7 +273,7 @@ func TestTrieDB_RecreateFromStorageShouldWork(t *testing.T) {
 	args.Hasher = hasher
 	trieStorage, _ := trie.NewTrieStorageManager(args)
 
-	tr1, _ := trie.NewTrie(trieStorage, integrationTests.TestMarshalizer, hasher, &enableEpochsHandlerMock.EnableEpochsHandlerStub{})
+	tr1, _ := trie.NewTrie(trieStorage, integrationTests.TestMarshalizer, hasher, &enableEpochsHandlerMock.EnableEpochsHandlerStub{}, integrationTests.TenMbSize)
 
 	key := hasher.Compute("key")
 	value := hasher.Compute("value")
@@ -1055,7 +1055,7 @@ func createAccounts(
 	args := common2.GetStorageManagerArgs()
 	args.MainStorer = store
 	trieStorage, _ := trie.NewTrieStorageManager(args)
-	tr, _ := trie.NewTrie(trieStorage, integrationTests.TestMarshalizer, integrationTests.TestHasher, &enableEpochsHandlerMock.EnableEpochsHandlerStub{})
+	tr, _ := trie.NewTrie(trieStorage, integrationTests.TestMarshalizer, integrationTests.TestHasher, &enableEpochsHandlerMock.EnableEpochsHandlerStub{}, integrationTests.TenMbSize)
 	spm, _ := storagePruningManager.NewStoragePruningManager(ewl, 10)
 	argsAccCreator := factory.ArgsAccountCreator{
 		Hasher:              integrationTests.TestHasher,
@@ -2727,7 +2727,7 @@ func createAccountsDBTestSetup() *state.AccountsDB {
 	args := common2.GetStorageManagerArgs()
 	args.GeneralConfig = generalCfg
 	trieStorage, _ := trie.NewTrieStorageManager(args)
-	tr, _ := trie.NewTrie(trieStorage, integrationTests.TestMarshalizer, integrationTests.TestHasher, &enableEpochsHandlerMock.EnableEpochsHandlerStub{})
+	tr, _ := trie.NewTrie(trieStorage, integrationTests.TestMarshalizer, integrationTests.TestHasher, &enableEpochsHandlerMock.EnableEpochsHandlerStub{}, integrationTests.TenMbSize)
 	spm, _ := storagePruningManager.NewStoragePruningManager(ewl, 10)
 	argsAccCreator := factory.ArgsAccountCreator{
 		Hasher:              integrationTests.TestHasher,

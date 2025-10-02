@@ -2,6 +2,7 @@ package state
 
 import (
 	"fmt"
+
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	chainData "github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-go/common"

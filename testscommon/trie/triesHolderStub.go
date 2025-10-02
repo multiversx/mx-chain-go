@@ -6,11 +6,11 @@ import (
 
 // TriesHolderStub -
 type TriesHolderStub struct {
-	PutCalled                     func([]byte, common.Trie)
-	RemoveCalled                  func([]byte, common.Trie)
-	GetCalled                     func([]byte) common.Trie
-	GetAllDirtyAndResetFlagCalled func() []common.Trie
-	ResetCalled                   func()
+	PutCalled    func([]byte, common.Trie)
+	RemoveCalled func([]byte, common.Trie)
+	GetCalled    func([]byte) common.Trie
+	GetAllCalled func() []common.Trie
+	ResetCalled  func()
 }
 
 // Put -
@@ -28,10 +28,10 @@ func (ths *TriesHolderStub) Get(key []byte) common.Trie {
 	return nil
 }
 
-// GetAllDirtyAndResetFlag -
-func (ths *TriesHolderStub) GetAllDirtyAndResetFlag() []common.Trie {
-	if ths.GetAllDirtyAndResetFlagCalled != nil {
-		return ths.GetAllDirtyAndResetFlagCalled()
+// GetAll -
+func (ths *TriesHolderStub) GetAll() []common.Trie {
+	if ths.GetAllCalled != nil {
+		return ths.GetAllCalled()
 	}
 	return nil
 }
