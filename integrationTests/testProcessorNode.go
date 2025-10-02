@@ -38,6 +38,7 @@ import (
 
 	nodeFactory "github.com/multiversx/mx-chain-go/cmd/node/factory"
 	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/common/configs"
 	"github.com/multiversx/mx-chain-go/common/enablers"
 	"github.com/multiversx/mx-chain-go/common/errChan"
 	"github.com/multiversx/mx-chain-go/common/forking"
@@ -149,6 +150,23 @@ var TestHasher = sha256.NewSha256()
 
 // TestEpochChangeGracePeriod represents the grace period for epoch change handler
 var TestEpochChangeGracePeriod, _ = graceperiod.NewEpochChangeGracePeriod([]config.EpochChangeGracePeriodByEpoch{{EnableEpoch: 0, GracePeriodInRounds: 1}})
+
+// TestEpochChangeGracePeriod represents the grace period for epoch change handler
+var TestProcessConfigsHandler, _ = configs.NewProcessConfigsHandler([]config.ProcessConfigByEpoch{{
+	EnableEpoch:                       0,
+	MaxMetaNoncesBehind:               15,
+	MaxMetaNoncesBehindForGlobalStuck: 30,
+	MaxShardNoncesBehind:              15,
+}},
+	[]config.ProcessConfigByRound{
+		{
+			EnableRound:                        0,
+			MaxRoundsWithoutNewBlockReceived:   10,
+			MaxRoundsWithoutCommittedBlock:     10,
+			RoundModulusTriggerWhenSyncIsStuck: 20,
+		},
+	},
+)
 
 // TestTxSignHasher represents a sha3 legacy keccak 256 hasher
 var TestTxSignHasher = keccak.NewKeccak()
@@ -426,6 +444,7 @@ type TestProcessorNode struct {
 	EnableRoundsHandler           common.EnableRoundsHandler
 	EnableEpochsHandler           common.EnableEpochsHandler
 	EpochChangeGracePeriodHandler common.EpochChangeGracePeriodHandler
+	ProcessConfigsHandler         common.ProcessConfigsHandler
 	UseValidVmBlsSigVerifier      bool
 
 	TransactionLogProcessor process.TransactionLogProcessor
@@ -535,6 +554,7 @@ func newBaseTestProcessorNode(args ArgTestProcessorNode) *TestProcessorNode {
 		EnableRoundsHandler:           enableRoundsHandler,
 		EnableEpochsHandler:           enableEpochsHandler,
 		EpochChangeGracePeriodHandler: TestEpochChangeGracePeriod,
+		ProcessConfigsHandler:         TestProcessConfigsHandler,
 		EpochProvider:                 &mock.CurrentNetworkEpochProviderStub{},
 		WasmVMChangeLocker:            &sync.RWMutex{},
 		TransactionLogProcessor:       logsProcessor,
@@ -1434,6 +1454,7 @@ func (tpn *TestProcessorNode) initInterceptors(heartbeatPk string) {
 			RoundHandler:         tpn.RoundHandler,
 			AppStatusHandler:     &statusHandlerMock.AppStatusHandlerStub{},
 			EnableEpochsHandler:  tpn.EnableEpochsHandler,
+			CommonConfigsHandler: testscommon.GetDefaultCommonConfigsHandler(),
 		}
 		epochStartTrigger, _ := shardchain.NewEpochStartTrigger(argsShardEpochStart)
 		tpn.EpochStartTrigger = &shardchain.TestTrigger{}
@@ -2279,6 +2300,7 @@ func (tpn *TestProcessorNode) initBlockProcessor() {
 			tpn.EnableRoundsHandler,
 			tpn.DataPool.Proofs(),
 			tpn.ChainParametersHandler,
+			tpn.ProcessConfigsHandler,
 		)
 	} else {
 		tpn.ForkDetector, _ = processSync.NewMetaForkDetector(
@@ -2291,6 +2313,7 @@ func (tpn *TestProcessorNode) initBlockProcessor() {
 			tpn.EnableRoundsHandler,
 			tpn.DataPool.Proofs(),
 			tpn.ChainParametersHandler,
+			tpn.ProcessConfigsHandler,
 		)
 	}
 
@@ -2538,6 +2561,7 @@ func (tpn *TestProcessorNode) initBlockProcessor() {
 				RoundHandler:         tpn.RoundHandler,
 				AppStatusHandler:     &statusHandlerMock.AppStatusHandlerStub{},
 				EnableEpochsHandler:  tpn.EnableEpochsHandler,
+				CommonConfigsHandler: testscommon.GetDefaultCommonConfigsHandler(),
 			}
 			epochStartTrigger, _ := shardchain.NewEpochStartTrigger(argsShardEpochStart)
 			tpn.EpochStartTrigger = &shardchain.TestTrigger{}
@@ -3215,6 +3239,7 @@ func (tpn *TestProcessorNode) initBlockTracker() {
 		EnableEpochsHandler:           tpn.EnableEpochsHandler,
 		EnableRoundsHandler:           tpn.EnableRoundsHandler,
 		EpochChangeGracePeriodHandler: TestEpochChangeGracePeriod,
+		ProcessConfigsHandler:         TestProcessConfigsHandler,
 		ProofsPool:                    tpn.DataPool.Proofs(),
 	}
 
@@ -3485,8 +3510,10 @@ func GetDefaultCoreComponents(
 		ProcessStatusHandlerInternal:       &testscommon.ProcessStatusHandlerStub{},
 		EnableEpochsHandlerField:           enableEpochsHandler,
 		EpochChangeGracePeriodHandlerField: TestEpochChangeGracePeriod,
+		ProcessConfigsHandlerField:         TestProcessConfigsHandler,
 		FieldsSizeCheckerField:             &testscommon.FieldsSizeCheckerMock{},
 		ChainParametersHandlerField:        &chainParameters.ChainParametersHandlerStub{},
+		CommonConfigsHandlerField:          testscommon.GetDefaultCommonConfigsHandler(),
 	}
 }
 

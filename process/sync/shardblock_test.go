@@ -9,6 +9,7 @@ import (
 	"reflect"
 	"strings"
 	goSync "sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -221,6 +222,7 @@ func CreateShardBootstrapMockArguments() sync.ArgShardBootstrapper {
 		RepopulateTokensSupplies:     false,
 		EnableEpochsHandler:          &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 		EnableRoundsHandler:          &testscommon.EnableRoundsHandlerStub{},
+		ProcessConfigsHandler:        testscommon.GetDefaultProcessConfigsHandler(),
 	}
 
 	argsShardBootstrapper := sync.ArgShardBootstrapper{
@@ -1132,6 +1134,7 @@ func TestBootstrap_GetNodeStateShouldReturnNotSynchronizedWhenForkIsDetectedAndI
 		&testscommon.EnableRoundsHandlerStub{},
 		&dataRetrieverMock.ProofsPoolMock{},
 		&chainParameters.ChainParametersHandlerStub{},
+		testscommon.GetDefaultProcessConfigsHandler(),
 	)
 
 	bs, _ := sync.NewShardBootstrap(args)
@@ -1212,6 +1215,7 @@ func TestBootstrap_GetNodeStateShouldReturnSynchronizedWhenForkIsDetectedAndItRe
 		&testscommon.EnableRoundsHandlerStub{},
 		&dataRetrieverMock.ProofsPoolMock{},
 		&chainParameters.ChainParametersHandlerStub{},
+		testscommon.GetDefaultProcessConfigsHandler(),
 	)
 
 	bs, _ := sync.NewShardBootstrap(args)
@@ -2290,12 +2294,12 @@ func TestShardBootstrap_SyncBlock_WithEquivalentProofs(t *testing.T) {
 			}
 		}
 
-		numHeaderCalls := 0
+		var numHeaderCalls atomic.Uint64
 		pools.HeadersCalled = func() dataRetriever.HeadersPool {
 			sds := &mock.HeadersCacherStub{}
 			sds.GetHeaderByNonceAndShardIdCalled = func(hdrNonce uint64, shardId uint32) (handlers []data.HeaderHandler, i [][]byte, e error) {
-				if numHeaderCalls == 0 {
-					numHeaderCalls++
+				if numHeaderCalls.Load() == 0 {
+					numHeaderCalls.Add(1)
 					return nil, nil, errors.New("err")
 				}
 

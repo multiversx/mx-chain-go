@@ -171,6 +171,7 @@ func (cm *commonMessenger) BroadcastBlockData(
 	time.Sleep(extraDelayForBroadcast)
 
 	if len(miniBlocks) > 0 {
+		// TODO: check if we need to pack also miniblock into smaller chunks
 		err := cm.BroadcastMiniBlocks(miniBlocks, pkBytes)
 		if err != nil {
 			log.Warn("commonMessenger.BroadcastBlockData: broadcast miniblocks", "error", err.Error())
