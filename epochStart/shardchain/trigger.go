@@ -1228,7 +1228,7 @@ func (t *trigger) GetSavedStateKey() []byte {
 func (t *trigger) Update(_ uint64, _ uint64) {
 }
 
-// ShouldProposeEpochChange will return true if an epoch change event should be trigger
+// ShouldProposeEpochChange will always return false
 func (t *trigger) ShouldProposeEpochChange(_ uint64, _ uint64) bool {
 	return false
 }

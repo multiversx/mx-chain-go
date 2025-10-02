@@ -62,7 +62,7 @@
         # The value of StartEpoch parameter for version 2 should be the same with the ScheduledMiniBlocksEnableEpoch flag from enableEpoch.toml file
         { StartEpoch = 1, StartRound = 0, Version = "2" },
 
-        # TODO The value of StartRound parameter for version 3 should be the same with the SupernovaEnableEpoch flag from enableEpoch.toml file
+        # TODO The value of StartEpoch parameter for version 3 should be the same with the SupernovaEnableEpoch flag from enableEpoch.toml file and StartRound the same with the SupernovaEnableRound flag from enableRounds.toml
         { StartEpoch = 999999, StartRound = 999999, Version = "3" },
     ]
 
