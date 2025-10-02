@@ -114,6 +114,7 @@ func (cache *TxCache) GetByTxHash(txHash []byte) (*WrappedTransaction, bool) {
 // SelectTransactions selects the best transactions to be included in the next miniblock.
 // It returns up to "options.maxNumTxs" transactions, with total gas <= "options.gasRequested".
 // The selection takes into consideration the proposed blocks which were not yet executed.
+// The SelectTransactions the nonce of the block on which the selection is built.
 func (cache *TxCache) SelectTransactions(
 	session SelectionSession,
 	options common.TxSelectionOptions,
@@ -122,6 +123,11 @@ func (cache *TxCache) SelectTransactions(
 	if check.IfNil(session) {
 		log.Error("TxCache.SelectTransactions", "err", errNilSelectionSession)
 		return nil, 0, errNilSelectionSession
+	}
+
+	if check.IfNil(blockchainInfo) {
+		log.Error("TxCache.SelectTransactions", "err", errNilBlockchainInfo)
+		return nil, 0, errNilBlockchainInfo
 	}
 
 	stopWatch := core.NewStopWatch()

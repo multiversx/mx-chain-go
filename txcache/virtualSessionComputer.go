@@ -52,7 +52,7 @@ func (computer *virtualSessionComputer) handleGlobalAccountBreadcrumbs(
 				"accountNonce", accountNonce,
 				"breadcrumb nonce", globalBreadcrumb.firstNonce,
 			)
-			return errDiscontinuousGlobalBreadcrumbs
+			continue
 		}
 
 		err = computer.fromGlobalBreadcrumbToVirtualRecord(address, accountBalance, globalBreadcrumb)

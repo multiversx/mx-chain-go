@@ -343,6 +343,7 @@ func (st *selectionTracker) updateLatestRootHashNoLock(receivedNonce uint64, rec
 }
 
 // deriveVirtualSelectionSession creates a virtual selection session by transforming the global accounts breadcrumbs into virtual records
+// The deriveVirtualSelectionSession methods needs a SelectionSession and the nonce of the block on which the selection is built.
 func (st *selectionTracker) deriveVirtualSelectionSession(
 	session SelectionSession,
 	blockchainInfo common.BlockchainInfo,
