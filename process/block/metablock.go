@@ -2265,6 +2265,9 @@ func (mp *metaProcessor) setHeaderVersionData(metaHeader data.MetaHeaderHandler)
 	if check.IfNil(metaHeader) {
 		return process.ErrNilHeaderHandler
 	}
+	if metaHeader.IsHeaderV3() {
+		return nil
+	}
 
 	rootHash, err := mp.accountsDB[state.UserAccountsState].RootHash()
 	if err != nil {
