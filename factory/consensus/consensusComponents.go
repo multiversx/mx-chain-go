@@ -514,6 +514,7 @@ func (ccf *consensusComponentsFactory) createShardBootstrapper() (process.Bootst
 		ProcessWaitTime:              time.Duration(ccf.config.GeneralSettings.SyncProcessTimeInMillis) * time.Millisecond,
 		RepopulateTokensSupplies:     ccf.flagsConfig.RepopulateTokensSupplies,
 		EnableEpochsHandler:          ccf.coreComponents.EnableEpochsHandler(),
+		BlocksQueue:                  ccf.processComponents.BlocksQueue(),
 	}
 
 	argsShardBootstrapper := sync.ArgShardBootstrapper{

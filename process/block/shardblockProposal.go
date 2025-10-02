@@ -98,23 +98,7 @@ func (sp *shardProcessor) CreateBlockProposal(
 
 	sp.blockSizeThrottler.Add(shardHdr.GetRound(), uint32(len(marshalledBody)))
 
-	accountsProvider, err := state.NewAccountsEphemeralProvider(sp.accountsDB[state.UserAccountsState])
-	if err != nil {
-		return nil, nil, err
-	}
-
-	lastExecResHandler, err := common.GetLastBaseExecutionResultHandler(shardHdr)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	hash, err := core.CalculateHash(sp.marshalizer, sp.hasher, shardHdr)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	blockChainInfo := holders.NewBlockchainInfo(lastExecResHandler.GetHeaderHash(), shardHdr.GetPrevHash(), shardHdr.GetNonce())
-	err = sp.dataPool.Transactions().OnProposedBlock(hash, body, shardHdr, accountsProvider, blockChainInfo)
+	err = sp.onProposedBlock(body, shardHdr)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -234,6 +218,10 @@ func (sp *shardProcessor) VerifyBlockProposal(
 	// 	return nil, nil, err
 	// }
 
+	return sp.onProposedBlock(body, header)
+}
+
+func (sp *shardProcessor) onProposedBlock(body *block.Body, header data.HeaderHandler) error {
 	accountsProvider, err := state.NewAccountsEphemeralProvider(sp.accountsDB[state.UserAccountsState])
 	if err != nil {
 		return err
@@ -244,13 +232,13 @@ func (sp *shardProcessor) VerifyBlockProposal(
 		return err
 	}
 
-	headerHash, err := core.CalculateHash(sp.marshalizer, sp.hasher, header)
+	hash, err := core.CalculateHash(sp.marshalizer, sp.hasher, header)
 	if err != nil {
 		return err
 	}
 
 	blockChainInfo := holders.NewBlockchainInfo(lastExecResHandler.GetHeaderHash(), header.GetPrevHash(), header.GetNonce())
-	return sp.dataPool.Transactions().OnProposedBlock(headerHash, body, header, accountsProvider, blockChainInfo)
+	return sp.dataPool.Transactions().OnProposedBlock(hash, body, header, accountsProvider, blockChainInfo)
 }
 
 func getHaveTimeForProposal(startTime time.Time, maxDuration time.Duration) func() time.Duration {

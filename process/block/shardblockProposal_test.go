@@ -34,6 +34,14 @@ func getSimpleHeaderV3Mock() *testscommon.HeaderHandlerStub {
 		IsHeaderV3Called: func() bool {
 			return true
 		},
+		GetLastExecutionResultHandlerCalled: func() data.LastExecutionResultHandler {
+			return &block.ExecutionResultInfo{
+				ExecutionResult: &block.BaseExecutionResult{},
+			}
+		},
+		GetPrevHashCalled: func() []byte {
+			return []byte("prev hash")
+		},
 	}
 }
 
@@ -403,10 +411,92 @@ func TestShardProcessor_CreateBlockProposal(t *testing.T) {
 
 		checkCreateBlockProposalResult(t, sp, getSimpleHeaderV3Mock(), haveTimeTrue, expectedErr)
 	})
+	t.Run("nil last execution result should error", func(t *testing.T) {
+		t.Parallel()
+
+		coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
+		dataComponents.BlockChain = &testscommon.ChainHandlerStub{
+			GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
+				return &block.HeaderV2{} // using V2 for simplicity
+			},
+			GetCurrentBlockHeaderHashCalled: func() []byte {
+				return []byte("hash")
+			},
+		}
+		headers := dataComponents.DataPool.Headers()
+		dataComponents.DataPool = &dataRetriever.PoolsHolderStub{
+			ProofsCalled: func() retriever.ProofsPool {
+				return &dataRetriever.ProofsPoolMock{
+					HasProofCalled: func(shardID uint32, headerHash []byte) bool {
+						return true
+					},
+				}
+			},
+			HeadersCalled: func() retriever.HeadersPool {
+				return headers
+			},
+		}
+
+		arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+		arguments.BlockTracker = &mock.BlockTrackerMock{
+			ComputeLongestMetaChainFromLastNotarizedCalled: func() ([]data.HeaderHandler, [][]byte, error) {
+				return []data.HeaderHandler{&block.MetaBlockV3{
+						ShardInfo: []block.ShardData{
+							{
+								ShardID: 1,
+								ShardMiniBlockHeaders: []block.MiniBlockHeader{
+									{
+										SenderShardID:   1,
+										ReceiverShardID: 0,
+									},
+								},
+							},
+						},
+						MiniBlockHeaders: []block.MiniBlockHeader{
+							{},
+						},
+					}},
+					[][]byte{[]byte("hash_ok"), []byte("hash_empty")},
+					nil
+			},
+			GetLastCrossNotarizedHeaderCalled: func(shardID uint32) (data.HeaderHandler, []byte, error) {
+				return &block.MetaBlockV3{}, []byte("hash"), nil // dummy
+			},
+		}
+		providedMb := &block.MiniBlock{
+			TxHashes: [][]byte{[]byte("tx_hash")},
+		}
+		arguments.TxCoordinator = &testscommon.TransactionCoordinatorMock{
+			CreateMbsCrossShardDstMeCalled: func(header data.HeaderHandler, processedMiniBlocksInfo map[string]*processedMb.ProcessedMiniBlockInfo) ([]block.MiniblockAndHash, uint32, bool, error) {
+				return []block.MiniblockAndHash{
+					{
+						Miniblock: providedMb,
+						Hash:      []byte("providedMB"),
+					},
+				}, 0, true, nil
+			},
+		}
+		sp, err := blproc.NewShardProcessor(arguments)
+		require.Nil(t, err)
+
+		header := getSimpleHeaderV3Mock()
+		header.GetLastExecutionResultHandlerCalled = func() data.LastExecutionResultHandler {
+			return nil
+		}
+		hdr, body, err := sp.CreateBlockProposal(header, haveTimeTrue)
+		require.Error(t, err)
+		require.Nil(t, hdr)
+		require.Nil(t, body)
+	})
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
 
 		coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
+		coreComponents.IntMarsh = &mock.MarshalizerStub{
+			MarshalCalled: func(obj interface{}) ([]byte, error) {
+				return []byte("marshalled"), nil
+			},
+		}
 		dataComponents.BlockChain = &testscommon.ChainHandlerStub{
 			GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
 				return &block.HeaderV2{} // using V2 for simplicity
@@ -1046,6 +1136,9 @@ func TestShardProcessor_VerifyBlockProposal(t *testing.T) {
 			Nonce:            1,
 			Round:            2,
 			MiniBlockHeaders: []block.MiniBlockHeader{},
+			LastExecutionResult: &block.ExecutionResultInfo{
+				ExecutionResult: &block.BaseExecutionResult{},
+			},
 		}
 		err = sp.VerifyBlockProposal(header, body, haveTime)
 		require.NoError(t, err)
