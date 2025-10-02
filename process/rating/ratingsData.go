@@ -102,7 +102,7 @@ func NewRatingsData(args RatingsDataArg) (*RatingsData, error) {
 	arg := computeRatingStepArg{
 		shardSize:                       currentChainParameters.ShardMinNumNodes,
 		consensusSize:                   currentChainParameters.ShardConsensusGroupSize,
-		roundTimeMillis:                 args.RoundDurationMilliseconds,
+		roundTimeMillis:                 currentChainParameters.RoundDuration,
 		startRating:                     ratingsConfig.General.StartRating,
 		maxRating:                       ratingsConfig.General.MaxRating,
 		hoursToMaxRatingFromStartRating: shardChainRatingSteps.HoursToMaxRatingFromStartRating,
@@ -120,7 +120,7 @@ func NewRatingsData(args RatingsDataArg) (*RatingsData, error) {
 	arg = computeRatingStepArg{
 		shardSize:                       currentChainParameters.MetachainMinNumNodes,
 		consensusSize:                   currentChainParameters.MetachainConsensusGroupSize,
-		roundTimeMillis:                 args.RoundDurationMilliseconds,
+		roundTimeMillis:                 currentChainParameters.RoundDuration,
 		startRating:                     ratingsConfig.General.StartRating,
 		maxRating:                       ratingsConfig.General.MaxRating,
 		hoursToMaxRatingFromStartRating: metaChainRatingSteps.HoursToMaxRatingFromStartRating,
@@ -229,7 +229,7 @@ func (rd *RatingsData) computeRatingStepsConfigForEpoch(
 	shardRatingsStepsArgs := computeRatingStepArg{
 		shardSize:                       chainParams.ShardMinNumNodes,
 		consensusSize:                   chainParams.ShardConsensusGroupSize,
-		roundTimeMillis:                 rd.roundDurationInMilliseconds,
+		roundTimeMillis:                 chainParams.RoundDuration,
 		startRating:                     rd.ratingsSetup.General.StartRating,
 		maxRating:                       rd.ratingsSetup.General.MaxRating,
 		hoursToMaxRatingFromStartRating: shardChainRatingSteps.HoursToMaxRatingFromStartRating,
@@ -247,7 +247,7 @@ func (rd *RatingsData) computeRatingStepsConfigForEpoch(
 	metaRatingsStepsArgs := computeRatingStepArg{
 		shardSize:                       chainParams.MetachainMinNumNodes,
 		consensusSize:                   chainParams.MetachainConsensusGroupSize,
-		roundTimeMillis:                 rd.roundDurationInMilliseconds,
+		roundTimeMillis:                 chainParams.RoundDuration,
 		startRating:                     rd.ratingsSetup.General.StartRating,
 		maxRating:                       rd.ratingsSetup.General.MaxRating,
 		hoursToMaxRatingFromStartRating: metaChainRatingSteps.HoursToMaxRatingFromStartRating,
