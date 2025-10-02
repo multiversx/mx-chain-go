@@ -313,6 +313,7 @@ func (e *exportHandlerFactory) Create() (update.ExportHandler, error) {
 		RoundHandler:         e.roundHandler,
 		AppStatusHandler:     e.statusCoreComponents.AppStatusHandler(),
 		EnableEpochsHandler:  e.coreComponents.EnableEpochsHandler(),
+		CommonConfigsHandler: e.coreComponents.CommonConfigsHandler(),
 	}
 	epochHandler, err := shardchain.NewEpochStartTrigger(&argsEpochTrigger)
 	if err != nil {

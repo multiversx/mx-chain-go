@@ -165,14 +165,20 @@ func indexRoundInfo(
 	signersIndexes []uint64,
 	enableEpochsHandler common.EnableEpochsHandler,
 ) {
+	timestampSec, timestampMs, err := common.GetHeaderTimestamps(header, enableEpochsHandler)
+	if err != nil {
+		log.Warn("failed to get header timestamps", "error", err)
+		return
+	}
+
 	roundInfo := &outportcore.RoundInfo{
 		Round:            header.GetRound(),
 		SignersIndexes:   signersIndexes,
 		BlockWasProposed: true,
 		ShardId:          shardId,
 		Epoch:            header.GetEpoch(),
-		Timestamp:        uint64(time.Duration(header.GetTimeStamp())),
-		TimestampMs:      uint64(time.Duration(common.ConvertTimeStampSecToMs(header.GetTimeStamp()))),
+		Timestamp:        timestampSec,
+		TimestampMs:      timestampMs,
 	}
 
 	if check.IfNil(lastHeader) {
@@ -182,6 +188,8 @@ func indexRoundInfo(
 
 	lastBlockRound := lastHeader.GetRound()
 	currentBlockRound := header.GetRound()
+
+	// TODO: evaluate more if this handling (based on current header and last header) is needed with one-short finality from andromeda
 	roundDuration := calculateRoundDuration(lastHeader.GetTimeStamp(), header.GetTimeStamp(), lastBlockRound, currentBlockRound)
 
 	roundsInfo := make([]*outportcore.RoundInfo, 0)

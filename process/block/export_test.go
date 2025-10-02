@@ -17,6 +17,7 @@ import (
 	"github.com/multiversx/mx-chain-go/process/missingData"
 	"github.com/multiversx/mx-chain-go/testscommon/economicsmocks"
 
+	"github.com/multiversx/mx-chain-go/common/configs"
 	"github.com/multiversx/mx-chain-go/common/graceperiod"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
@@ -124,7 +125,19 @@ func NewShardProcessorEmptyWith3shards(
 
 	accountsDb := make(map[state.AccountsDbIdentifier]state.AccountsAdapter)
 	accountsDb[state.UserAccountsState] = &stateMock.AccountsStub{}
+
 	gracePeriod, _ := graceperiod.NewEpochChangeGracePeriod([]config.EpochChangeGracePeriodByEpoch{{EnableEpoch: 0, GracePeriodInRounds: 1}})
+	processConfigsHandler, _ := configs.NewProcessConfigsHandler([]config.ProcessConfigByEpoch{{
+		EnableEpoch:                       0,
+		MaxMetaNoncesBehind:               15,
+		MaxMetaNoncesBehindForGlobalStuck: 30,
+		MaxShardNoncesBehind:              15,
+	}},
+		[]config.ProcessConfigByRound{
+			{EnableRound: 0, MaxRoundsWithoutNewBlockReceived: 10},
+		},
+	)
+
 	coreComponents := &mock.CoreComponentsMock{
 		IntMarsh:                           &mock.MarshalizerMock{},
 		Hash:                               &hashingMocks.HasherMock{},
@@ -137,6 +150,7 @@ func NewShardProcessorEmptyWith3shards(
 		RoundNotifierField:                 &epochNotifier.RoundNotifierStub{},
 		EnableRoundsHandlerField:           &testscommon.EnableRoundsHandlerStub{},
 		EpochChangeGracePeriodHandlerField: gracePeriod,
+		ProcessConfigsHandlerField:         processConfigsHandler,
 	}
 	dataComponents := &mock.DataComponentsMock{
 		Storage:    &storageStubs.ChainStorerStub{},

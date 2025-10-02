@@ -11,7 +11,9 @@ import (
 	"github.com/multiversx/mx-chain-go/outport"
 	notifierFactory "github.com/multiversx/mx-chain-go/outport/factory"
 	"github.com/multiversx/mx-chain-go/process/mock"
-	"github.com/multiversx/mx-chain-storage-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
+	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
 	"github.com/stretchr/testify/require"
 )
 
@@ -26,6 +28,8 @@ func createMockArgsOutportHandler(indexerEnabled, notifierEnabled bool) *notifie
 		RetrialInterval:           time.Second,
 		ElasticIndexerFactoryArgs: mockElasticArgs,
 		EventNotifierFactoryArgs:  mockNotifierArgs,
+		EnableEpochsHandler:       &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		EnableRoundsHandler:       &testscommon.EnableRoundsHandlerStub{},
 	}
 }
 
@@ -118,7 +122,7 @@ func TestCreateOutport_SubscribeMultipleHostDrivers(t *testing.T) {
 		},
 		HostDriversArgs: []notifierFactory.ArgsHostDriverFactory{
 			{
-				Marshaller: &testscommon.MarshalizerMock{},
+				Marshaller: &marshallerMock.MarshalizerMock{},
 				HostConfig: config.HostDriversConfig{
 					Enabled:            true,
 					URL:                "ws://localhost",
@@ -128,7 +132,7 @@ func TestCreateOutport_SubscribeMultipleHostDrivers(t *testing.T) {
 				},
 			},
 			{
-				Marshaller: &testscommon.MarshalizerMock{},
+				Marshaller: &marshallerMock.MarshalizerMock{},
 				HostConfig: config.HostDriversConfig{
 					Enabled:            false,
 					URL:                "ws://localhost",
@@ -138,7 +142,7 @@ func TestCreateOutport_SubscribeMultipleHostDrivers(t *testing.T) {
 				},
 			},
 			{
-				Marshaller: &testscommon.MarshalizerMock{},
+				Marshaller: &marshallerMock.MarshalizerMock{},
 				HostConfig: config.HostDriversConfig{
 					Enabled:            true,
 					URL:                "ws://localhost",
@@ -148,6 +152,8 @@ func TestCreateOutport_SubscribeMultipleHostDrivers(t *testing.T) {
 				},
 			},
 		},
+		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		EnableRoundsHandler: &testscommon.EnableRoundsHandlerStub{},
 	}
 
 	outPort, err := notifierFactory.CreateOutport(args)
@@ -171,7 +177,7 @@ func TestCreateAndSubscribeDriversShouldReturnError(t *testing.T) {
 		},
 		HostDriversArgs: []notifierFactory.ArgsHostDriverFactory{
 			{
-				Marshaller: &testscommon.MarshalizerMock{},
+				Marshaller: &marshallerMock.MarshalizerMock{},
 				HostConfig: config.HostDriversConfig{
 					Enabled:            true,
 					URL:                "localhost",
@@ -181,6 +187,8 @@ func TestCreateAndSubscribeDriversShouldReturnError(t *testing.T) {
 				},
 			},
 		},
+		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		EnableRoundsHandler: &testscommon.EnableRoundsHandlerStub{},
 	}
 
 	outPort, err := notifierFactory.CreateOutport(args)
