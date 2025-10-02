@@ -418,3 +418,86 @@ func TestPrettifyStruct(t *testing.T) {
 
 	})
 }
+
+func TestGetLastBaseExecutionResultHandler(t *testing.T) {
+	t.Parallel()
+
+	t.Run("nil header, should return error", func(t *testing.T) {
+		var header data.HeaderHandler
+		result, err := common.GetLastBaseExecutionResultHandler(header)
+		require.Nil(t, result)
+		require.Equal(t, common.ErrNilHeaderHandler, err)
+	})
+	t.Run("nil last execution result (wrong header), should return error", func(t *testing.T) {
+		result, err := common.GetLastBaseExecutionResultHandler(&block.Header{})
+		require.Nil(t, result)
+		require.Equal(t, common.ErrNilLastExecutionResultHandler, err)
+	})
+	t.Run("valid LastMetaExecutionResultHandler, should return handler", func(t *testing.T) {
+		baseMetaExecutionResultsHandler := &block.BaseMetaExecutionResult{
+			BaseExecutionResult: &block.BaseExecutionResult{
+				HeaderHash:  []byte("hash"),
+				HeaderNonce: 100,
+				HeaderRound: 200,
+				RootHash:    []byte("rootHash"),
+			},
+		}
+
+		header := &block.MetaBlockV3{
+			LastExecutionResult: &block.MetaExecutionResultInfo{
+				NotarizedInRound: 201,
+				ExecutionResult:  baseMetaExecutionResultsHandler,
+			},
+		}
+
+		result, err := common.GetLastBaseExecutionResultHandler(header)
+		require.NotNil(t, result)
+		require.Nil(t, err)
+		require.Equal(t, baseMetaExecutionResultsHandler, result)
+	})
+	t.Run("nil internal BaseMetaExecutionResultHandler, should return error", func(t *testing.T) {
+		header := &block.MetaBlockV3{
+			LastExecutionResult: &block.MetaExecutionResultInfo{
+				NotarizedInRound: 201,
+				ExecutionResult:  nil,
+			},
+		}
+
+		result, err := common.GetLastBaseExecutionResultHandler(header)
+		require.Nil(t, result)
+		require.Equal(t, common.ErrNilBaseExecutionResult, err)
+	})
+	t.Run("valid LastShardExecutionResultHandler, should return handler", func(t *testing.T) {
+		baseExecutionResults := &block.BaseExecutionResult{
+			HeaderHash:  []byte("hash"),
+			HeaderNonce: 100,
+			HeaderRound: 200,
+			RootHash:    []byte("rootHash"),
+		}
+		header := &block.HeaderV3{
+			LastExecutionResult: &block.ExecutionResultInfo{
+				NotarizedInRound: 201,
+				ExecutionResult:  baseExecutionResults,
+			},
+		}
+
+		result, err := common.GetLastBaseExecutionResultHandler(header)
+		require.NotNil(t, result)
+		require.Nil(t, err)
+		require.Equal(t, baseExecutionResults, result)
+	})
+
+	t.Run("nil base execution result, should return error", func(t *testing.T) {
+		var baseExecutionResultsHandler *block.BaseExecutionResult
+		header := &block.HeaderV3{
+			LastExecutionResult: &block.ExecutionResultInfo{
+				NotarizedInRound: 201,
+				ExecutionResult:  baseExecutionResultsHandler,
+			},
+		}
+
+		result, err := common.GetLastBaseExecutionResultHandler(header)
+		require.Nil(t, result)
+		require.Equal(t, common.ErrNilBaseExecutionResult, err)
+	})
+}

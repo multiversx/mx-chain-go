@@ -623,6 +623,7 @@ func (ccf *consensusComponentsFactory) createMetaChainBootstrapper() (process.Bo
 		ChainHandler:                 ccf.dataComponents.Blockchain(),
 		RoundHandler:                 ccf.processComponents.RoundHandler(),
 		BlockProcessor:               ccf.processComponents.BlockProcessor(),
+		BlocksQueue:                  ccf.processComponents.BlocksQueue(),
 		WaitTime:                     ccf.processComponents.RoundHandler().TimeDuration(),
 		Hasher:                       ccf.coreComponents.Hasher(),
 		Marshalizer:                  ccf.coreComponents.InternalMarshalizer(),

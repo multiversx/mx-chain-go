@@ -6,6 +6,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/counting"
 	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/block"
 
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/p2p"
@@ -185,6 +186,13 @@ type ShardedDataCacherNotifier interface {
 	IsInterfaceNil() bool
 	CleanupSelfShardTxCache(accountsProvider common.AccountNonceProvider, randomness uint64, maxNum int, cleanupLoopMaximumDuration time.Duration)
 	OnExecutedBlock(blockHeader data.HeaderHandler) error
+	OnProposedBlock(
+		blockHash []byte,
+		blockBody *block.Body,
+		blockHeader data.HeaderHandler,
+		accountsProvider common.AccountNonceAndBalanceProvider,
+		blockchainInfo common.BlockchainInfo,
+	) error
 }
 
 // ShardIdHashMap represents a map for shardId and hash

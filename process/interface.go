@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/multiversx/mx-chain-go/ntp"
+	"github.com/multiversx/mx-chain-go/process/asyncExecution/queue"
 	"github.com/multiversx/mx-chain-go/process/estimator"
 
 	"github.com/multiversx/mx-chain-core-go/core"
@@ -277,8 +278,22 @@ type BlockProcessor interface {
 	SetNumProcessedObj(numObj uint64)
 	RestoreBlockBodyIntoPools(body data.BodyHandler) error
 	NonceOfFirstCommittedBlock() core.OptionalUint64
+	VerifyBlockProposal(
+		headerHandler data.HeaderHandler,
+		bodyHandler data.BodyHandler,
+		haveTime func() time.Duration,
+	) error
 	Close() error
 	IsInterfaceNil() bool
+}
+
+// BlocksQueue defines what a block queue should be able to do
+type BlocksQueue interface {
+	AddOrReplace(pair queue.HeaderBodyPair) error
+	Pop() (queue.HeaderBodyPair, bool)
+	Peek() (queue.HeaderBodyPair, bool)
+	IsInterfaceNil() bool
+	Close()
 }
 
 // SmartContractProcessorFull is the main interface for smart contract result execution engine

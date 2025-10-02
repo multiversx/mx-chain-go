@@ -5,6 +5,7 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core/counting"
 	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/storage"
 )
@@ -28,6 +29,13 @@ type ShardedDataStub struct {
 	KeysCalled                             func() [][]byte
 	CleanupSelfShardTxCacheCalled          func(session interface{}, randomness uint64, maxNum int, cleanupLoopMaximumDuration time.Duration)
 	OnExecutedBlockCalled                  func(blockHeader data.HeaderHandler) error
+	OnProposedBlockCalled                  func(
+		blockHash []byte,
+		blockBody *block.Body,
+		blockHeader data.HeaderHandler,
+		accountsProvider common.AccountNonceAndBalanceProvider,
+		blockchainInfo common.BlockchainInfo,
+	) error
 }
 
 // NewShardedDataStub -
@@ -145,6 +153,20 @@ func (sd *ShardedDataStub) OnExecutedBlock(blockHeader data.HeaderHandler) error
 		return sd.OnExecutedBlockCalled(blockHeader)
 	}
 
+	return nil
+}
+
+// OnProposedBlock -
+func (sd *ShardedDataStub) OnProposedBlock(
+	blockHash []byte,
+	blockBody *block.Body,
+	blockHeader data.HeaderHandler,
+	accountsProvider common.AccountNonceAndBalanceProvider,
+	blockchainInfo common.BlockchainInfo,
+) error {
+	if sd.OnProposedBlockCalled != nil {
+		return sd.OnProposedBlockCalled(blockHash, blockBody, blockHeader, accountsProvider, blockchainInfo)
+	}
 	return nil
 }
 

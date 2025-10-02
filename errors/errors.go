@@ -67,6 +67,9 @@ var ErrNilBlockChainHandler = errors.New("blockchain handler is nil")
 // ErrNilBlockProcessor is raised when a valid block processor is expected but nil used
 var ErrNilBlockProcessor = errors.New("block processor is nil")
 
+// ErrNilBlocksQueue is raised when a valid blocks queue is expected but nil used
+var ErrNilBlocksQueue = errors.New("blocks queue is nil")
+
 // ErrNilBlockSigner signals the nil block signer was provided
 var ErrNilBlockSigner = errors.New("nil block signer")
 

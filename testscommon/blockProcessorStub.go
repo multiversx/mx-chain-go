@@ -25,6 +25,11 @@ type BlockProcessorStub struct {
 	RevertStateToBlockCalled         func(header data.HeaderHandler, rootHash []byte) error
 	NonceOfFirstCommittedBlockCalled func() core.OptionalUint64
 	CloseCalled                      func() error
+	VerifyBlockProposalCalled        func(
+		headerHandler data.HeaderHandler,
+		bodyHandler data.BodyHandler,
+		haveTime func() time.Duration,
+	) error
 }
 
 // SetNumProcessedObj -
@@ -164,6 +169,18 @@ func (bps *BlockProcessorStub) Close() error {
 		return bps.CloseCalled()
 	}
 
+	return nil
+}
+
+// VerifyBlockProposal -
+func (bps *BlockProcessorStub) VerifyBlockProposal(
+	headerHandler data.HeaderHandler,
+	bodyHandler data.BodyHandler,
+	haveTime func() time.Duration,
+) error {
+	if bps.VerifyBlockProposalCalled != nil {
+		return bps.VerifyBlockProposalCalled(headerHandler, bodyHandler, haveTime)
+	}
 	return nil
 }
 

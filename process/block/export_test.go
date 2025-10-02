@@ -675,11 +675,6 @@ func DisplayHeader(
 	return displayHeader(headerHandler, headerProof)
 }
 
-// GetLastBaseExecutionResultHandler -
-func GetLastBaseExecutionResultHandler(header data.HeaderHandler) (data.BaseExecutionResultHandler, error) {
-	return getLastBaseExecutionResultHandler(header)
-}
-
 // CreateBaseProcessorWithMockedTracker -
 func CreateBaseProcessorWithMockedTracker(tracker process.BlockTracker) *baseProcessor {
 	return &baseProcessor{
