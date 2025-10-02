@@ -14,6 +14,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/multiversx/mx-chain-go/common/configs"
 	"github.com/multiversx/mx-chain-go/common/graceperiod"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
@@ -34,6 +35,8 @@ import (
 
 const maxGasLimitPerBlock = uint64(1500000000)
 const maxGasLimitPerMiniBlock = uint64(250000000)
+const maxMetaNoncesBehind = 15
+const maxShardNoncesBehind = 15
 
 func createGenesisBlocks(shardCoordinator sharding.Coordinator) map[uint32]data.HeaderHandler {
 	genesisBlocks := make(map[uint32]data.HeaderHandler)
@@ -132,6 +135,17 @@ func CreateShardTrackerMockArguments() track.ArgShardTracker {
 				GracePeriodInRounds: 1,
 			}})
 
+	processConfigsByEpoch, _ := configs.NewProcessConfigsHandler([]config.ProcessConfigByEpoch{{
+		EnableEpoch:                       0,
+		MaxMetaNoncesBehind:               15,
+		MaxMetaNoncesBehindForGlobalStuck: 30,
+		MaxShardNoncesBehind:              15,
+	}},
+		[]config.ProcessConfigByRound{
+			{EnableRound: 0, MaxRoundsWithoutNewBlockReceived: 10},
+		},
+	)
+
 	arguments := track.ArgShardTracker{
 		ArgBaseTracker: track.ArgBaseTracker{
 			Hasher:           &hashingMocks.HasherMock{},
@@ -150,7 +164,9 @@ func CreateShardTrackerMockArguments() track.ArgShardTracker {
 					return false
 				},
 			},
+			EnableRoundsHandler:           &testscommon.EnableRoundsHandlerStub{},
 			EpochChangeGracePeriodHandler: epochChangeGracePeriod,
+			ProcessConfigsHandler:         processConfigsByEpoch,
 			ProofsPool:                    &dataRetrieverMock.ProofsPoolMock{},
 		},
 	}
@@ -203,7 +219,9 @@ func CreateMetaTrackerMockArguments() track.ArgMetaTracker {
 					return false
 				},
 			},
+			EnableRoundsHandler:           &testscommon.EnableRoundsHandlerStub{},
 			EpochChangeGracePeriodHandler: epochChangeGracePeriod,
+			ProcessConfigsHandler:         testscommon.GetDefaultProcessConfigsHandler(),
 			ProofsPool:                    &dataRetrieverMock.ProofsPoolMock{},
 		},
 	}
@@ -1828,7 +1846,7 @@ func TestIsShardStuck_ShouldReturnFalseWhenMetaIsNotStuck(t *testing.T) {
 	shardArguments := CreateShardTrackerMockArguments()
 	sbt, _ := track.NewShardBlockTrack(shardArguments)
 
-	sbt.AddSelfNotarizedHeader(0, &block.Header{Nonce: nonce + process.MaxShardNoncesBehind}, nil)
+	sbt.AddSelfNotarizedHeader(0, &block.Header{Nonce: nonce + maxShardNoncesBehind}, nil)
 	sbt.AddSelfNotarizedHeader(shardID, &block.Header{Nonce: nonce}, nil)
 
 	assert.False(t, sbt.IsShardStuck(shardID))
@@ -1842,7 +1860,7 @@ func TestIsShardStuck_ShouldReturnTrueWhenMetaIsStuck(t *testing.T) {
 	shardArguments := CreateShardTrackerMockArguments()
 	sbt, _ := track.NewShardBlockTrack(shardArguments)
 
-	sbt.AddSelfNotarizedHeader(0, &block.Header{Nonce: nonce + process.MaxShardNoncesBehind + 1}, nil)
+	sbt.AddSelfNotarizedHeader(0, &block.Header{Nonce: nonce + maxShardNoncesBehind + 1}, nil)
 	sbt.AddSelfNotarizedHeader(shardID, &block.Header{Nonce: nonce}, nil)
 
 	assert.True(t, sbt.IsShardStuck(shardID))
@@ -1858,7 +1876,7 @@ func TestIsShardStuck_ShouldReturnFalseWhenLastShardProcessedMetaNonceIsZero(t *
 
 	sbt.SetLastShardProcessedMetaNonce(shardID, nonce)
 
-	sbt.AddTrackedHeader(&block.MetaBlock{Nonce: nonce + process.MaxMetaNoncesBehind + 1}, []byte("hash"))
+	sbt.AddTrackedHeader(&block.MetaBlock{Nonce: nonce + maxMetaNoncesBehind + 1}, []byte("hash"))
 	assert.False(t, sbt.IsShardStuck(shardID))
 }
 
@@ -1872,10 +1890,10 @@ func TestIsShardStuck_ShouldWorkOnLastShardProcessedMetaNonceDifferences(t *test
 
 	sbt.SetLastShardProcessedMetaNonce(shardID, nonce)
 
-	sbt.AddTrackedHeader(&block.MetaBlock{Nonce: nonce + process.MaxMetaNoncesBehind}, []byte("hash"))
+	sbt.AddTrackedHeader(&block.MetaBlock{Nonce: nonce + maxMetaNoncesBehind}, []byte("hash"))
 	assert.False(t, sbt.IsShardStuck(shardID))
 
-	sbt.AddTrackedHeader(&block.MetaBlock{Nonce: nonce + process.MaxMetaNoncesBehind + 1}, []byte("hash"))
+	sbt.AddTrackedHeader(&block.MetaBlock{Nonce: nonce + maxMetaNoncesBehind + 1}, []byte("hash"))
 	assert.True(t, sbt.IsShardStuck(shardID))
 }
 
@@ -1894,7 +1912,7 @@ func TestIsShardStuck_ShouldWork(t *testing.T) {
 		Nonce: 1,
 		ShardInfo: []block.ShardData{
 			{
-				NumPendingMiniBlocks: uint32(maxNumMiniBlocksForSameReceiverInOneBlock*process.MaxMetaNoncesBehind*uint64(shardArguments.ShardCoordinator.NumberOfShards()) - 1),
+				NumPendingMiniBlocks: uint32(maxNumMiniBlocksForSameReceiverInOneBlock*maxMetaNoncesBehind*uint64(shardArguments.ShardCoordinator.NumberOfShards()) - 1),
 			},
 		},
 		PrevHash:     startHeaderHash,
@@ -1907,7 +1925,7 @@ func TestIsShardStuck_ShouldWork(t *testing.T) {
 		Nonce: 2,
 		ShardInfo: []block.ShardData{
 			{
-				NumPendingMiniBlocks: uint32(maxNumMiniBlocksForSameReceiverInOneBlock * process.MaxMetaNoncesBehind * uint64(shardArguments.ShardCoordinator.NumberOfShards())),
+				NumPendingMiniBlocks: uint32(maxNumMiniBlocksForSameReceiverInOneBlock * maxMetaNoncesBehind * uint64(shardArguments.ShardCoordinator.NumberOfShards())),
 			},
 		},
 		PrevHash:     hdr1Hash,
