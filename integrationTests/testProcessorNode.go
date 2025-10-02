@@ -159,7 +159,12 @@ var TestProcessConfigsHandler, _ = configs.NewProcessConfigsHandler([]config.Pro
 	MaxShardNoncesBehind:              15,
 }},
 	[]config.ProcessConfigByRound{
-		{EnableRound: 0, MaxRoundsWithoutNewBlockReceived: 10},
+		{
+			EnableRound:                        0,
+			MaxRoundsWithoutNewBlockReceived:   10,
+			MaxRoundsWithoutCommittedBlock:     10,
+			RoundModulusTriggerWhenSyncIsStuck: 20,
+		},
 	},
 )
 
@@ -1455,6 +1460,7 @@ func (tpn *TestProcessorNode) initInterceptors(heartbeatPk string) {
 			RoundHandler:         tpn.RoundHandler,
 			AppStatusHandler:     &statusHandlerMock.AppStatusHandlerStub{},
 			EnableEpochsHandler:  tpn.EnableEpochsHandler,
+			CommonConfigsHandler: testscommon.GetDefaultCommonConfigsHandler(),
 		}
 		epochStartTrigger, _ := shardchain.NewEpochStartTrigger(argsShardEpochStart)
 		tpn.EpochStartTrigger = &shardchain.TestTrigger{}
@@ -2566,6 +2572,7 @@ func (tpn *TestProcessorNode) initBlockProcessor() {
 				RoundHandler:         tpn.RoundHandler,
 				AppStatusHandler:     &statusHandlerMock.AppStatusHandlerStub{},
 				EnableEpochsHandler:  tpn.EnableEpochsHandler,
+				CommonConfigsHandler: testscommon.GetDefaultCommonConfigsHandler(),
 			}
 			epochStartTrigger, _ := shardchain.NewEpochStartTrigger(argsShardEpochStart)
 			tpn.EpochStartTrigger = &shardchain.TestTrigger{}
@@ -3517,6 +3524,7 @@ func GetDefaultCoreComponents(
 		ProcessConfigsHandlerField:         TestProcessConfigsHandler,
 		FieldsSizeCheckerField:             &testscommon.FieldsSizeCheckerMock{},
 		ChainParametersHandlerField:        &chainParameters.ChainParametersHandlerStub{},
+		CommonConfigsHandlerField:          testscommon.GetDefaultCommonConfigsHandler(),
 	}
 }
 

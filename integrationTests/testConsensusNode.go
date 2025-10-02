@@ -302,6 +302,7 @@ func (tcn *TestConsensusNode) initNode(args ArgsTestConsensusNode) {
 			RoundHandler:         roundHandler,
 			AppStatusHandler:     &statusHandlerMock.AppStatusHandlerStub{},
 			EnableEpochsHandler:  enableEpochsHandler,
+			CommonConfigsHandler: testscommon.GetDefaultCommonConfigsHandler(),
 		}
 		epochStartTrigger, err := shardchain.NewEpochStartTrigger(argsShardEpochStart)
 		if err != nil {
@@ -561,6 +562,7 @@ func (tcn *TestConsensusNode) initInterceptors(
 			RoundHandler:         roundHandler,
 			AppStatusHandler:     &statusHandlerMock.AppStatusHandlerStub{},
 			EnableEpochsHandler:  enableEpochsHandler,
+			CommonConfigsHandler: testscommon.GetDefaultCommonConfigsHandler(),
 		}
 		_, _ = shardchain.NewEpochStartTrigger(argsShardEpochStart)
 

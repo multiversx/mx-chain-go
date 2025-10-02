@@ -1322,7 +1322,7 @@ func TestApiTransactionProcessor_GetSelectedTransactions(t *testing.T) {
 
 		selectionOptionsAPI := holders.NewTxSelectionOptionsAPI(
 			options,
-			"hash,sender,relayer,nonce",
+			"hash,sender,relayer,nonce,ppu",
 		)
 
 		selectedTxs, err := atp.GetSelectedTransactions(selectionOptionsAPI, blockchainMock, accountsAdapter)
@@ -1337,6 +1337,9 @@ func TestApiTransactionProcessor_GetSelectedTransactions(t *testing.T) {
 			require.False(t, ok)
 
 			_, ok = tx.TxFields["nonce"]
+			require.True(t, ok)
+
+			_, ok = tx.TxFields["ppu"]
 			require.True(t, ok)
 		}
 	})
