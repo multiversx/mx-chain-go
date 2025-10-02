@@ -37,6 +37,7 @@ import (
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/bootstrapMocks"
+	"github.com/multiversx/mx-chain-go/testscommon/chainParameters"
 	txExecOrderStub "github.com/multiversx/mx-chain-go/testscommon/common"
 	"github.com/multiversx/mx-chain-go/testscommon/components"
 	"github.com/multiversx/mx-chain-go/testscommon/cryptoMocks"
@@ -227,6 +228,9 @@ func createMockProcessComponentsFactoryArgs() processComp.ProcessComponentsFacto
 			RatingsConfig:                      &testscommon.RatingsInfoMock{},
 			PathHdl:                            &testscommon.PathManagerStub{},
 			ProcessStatusHandlerInternal:       &testscommon.ProcessStatusHandlerStub{},
+			ChainParametersHandlerField:        &chainParameters.ChainParametersHandlerStub{},
+			ProcessConfigsHandlerField:         testscommon.GetDefaultProcessConfigsHandler(),
+			CommonConfigsHandlerField:          testscommon.GetDefaultCommonConfigsHandler(),
 		},
 		Crypto: &testsMocks.CryptoComponentsStub{
 			BlKeyGen: &cryptoMocks.KeyGenStub{},
@@ -613,14 +617,6 @@ func TestProcessComponentsFactory_Create(t *testing.T) {
 	t.Parallel()
 
 	expectedErr := errors.New("expected error")
-	t.Run("CreateCurrentEpochProvider fails should error", func(t *testing.T) {
-		t.Parallel()
-
-		args := createMockProcessComponentsFactoryArgs()
-		args.Config.EpochStartConfig.RoundsPerEpoch = 0
-		args.PrefConfigs.Preferences.FullArchive = true
-		testCreateWithArgs(t, args, "rounds per epoch")
-	})
 	t.Run("createNetworkShardingCollector fails due to invalid PublicKeyPeerId config should error", func(t *testing.T) {
 		t.Parallel()
 

@@ -628,19 +628,21 @@ func TestCreateNodesShuffleOut(t *testing.T) {
 	t.Run("nil nodes config should error", func(t *testing.T) {
 		t.Parallel()
 
-		shuffler, err := CreateNodesShuffleOut(nil, config.EpochStartConfig{}, make(chan endProcess.ArgEndProcess, 1))
+		chainParameterHandler := &chainParameters.ChainParametersHandlerStub{}
+		shuffler, err := CreateNodesShuffleOut(nil, config.EpochStartConfig{}, make(chan endProcess.ArgEndProcess, 1), chainParameterHandler)
 		require.Equal(t, errErd.ErrNilGenesisNodesSetupHandler, err)
 		require.True(t, check.IfNil(shuffler))
 	})
 	t.Run("invalid MaxShuffledOutRestartThreshold should error", func(t *testing.T) {
 		t.Parallel()
-
+		chainParameterHandler := &chainParameters.ChainParametersHandlerStub{}
 		shuffler, err := CreateNodesShuffleOut(
 			&genesisMocks.NodesSetupStub{},
 			config.EpochStartConfig{
 				MaxShuffledOutRestartThreshold: 5.0,
 			},
 			make(chan endProcess.ArgEndProcess, 1),
+			chainParameterHandler,
 		)
 		require.True(t, strings.Contains(err.Error(), "invalid max threshold for shuffled out handler"))
 		require.True(t, check.IfNil(shuffler))
@@ -648,12 +650,14 @@ func TestCreateNodesShuffleOut(t *testing.T) {
 	t.Run("invalid MaxShuffledOutRestartThreshold should error", func(t *testing.T) {
 		t.Parallel()
 
+		chainParameterHandler := &chainParameters.ChainParametersHandlerStub{}
 		shuffler, err := CreateNodesShuffleOut(
 			&genesisMocks.NodesSetupStub{},
 			config.EpochStartConfig{
 				MinShuffledOutRestartThreshold: 5.0,
 			},
 			make(chan endProcess.ArgEndProcess, 1),
+			chainParameterHandler,
 		)
 		require.True(t, strings.Contains(err.Error(), "invalid min threshold for shuffled out handler"))
 		require.True(t, check.IfNil(shuffler))
@@ -661,10 +665,12 @@ func TestCreateNodesShuffleOut(t *testing.T) {
 	t.Run("NewShuffleOutCloser fails should error", func(t *testing.T) {
 		t.Parallel()
 
+		chainParameterHandler := &chainParameters.ChainParametersHandlerStub{}
 		shuffler, err := CreateNodesShuffleOut(
 			&genesisMocks.NodesSetupStub{},
 			config.EpochStartConfig{},
 			nil, // force NewShuffleOutCloser to fail
+			chainParameterHandler,
 		)
 		require.NotNil(t, err)
 		require.True(t, check.IfNil(shuffler))
@@ -672,6 +678,14 @@ func TestCreateNodesShuffleOut(t *testing.T) {
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
 
+		chainParameterHandler := &chainParameters.ChainParametersHandlerStub{
+			CurrentChainParametersCalled: func() config.ChainParametersByEpochConfig {
+				return config.ChainParametersByEpochConfig{
+					RoundsPerEpoch: 20,
+					RoundDuration:  6000,
+				}
+			},
+		}
 		shuffler, err := CreateNodesShuffleOut(
 			&genesisMocks.NodesSetupStub{
 				GetRoundDurationCalled: func() uint64 {
@@ -679,11 +693,11 @@ func TestCreateNodesShuffleOut(t *testing.T) {
 				},
 			},
 			config.EpochStartConfig{
-				RoundsPerEpoch:                 200,
 				MinShuffledOutRestartThreshold: 0.05,
 				MaxShuffledOutRestartThreshold: 0.25,
 			},
 			make(chan endProcess.ArgEndProcess, 1),
+			chainParameterHandler,
 		)
 		require.Nil(t, err)
 		require.False(t, check.IfNil(shuffler))
