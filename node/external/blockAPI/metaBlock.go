@@ -177,6 +177,43 @@ func (mbp *metaAPIBlockProcessor) convertMetaBlockBytesToAPIBlock(hash []byte, b
 		return nil, err
 	}
 
+	numOfTxs := uint32(0)
+	miniblocks := make([]*api.MiniBlock, 0)
+	for _, mb := range blockHeader.GetMiniBlockHeaderHandlers() {
+		if mb.GetTypeInt32() == int32(block.PeerBlock) {
+			continue
+		}
+
+		numOfTxs += mb.GetTxCount()
+
+		miniblockAPI := &api.MiniBlock{
+			Hash:             hex.EncodeToString(mb.GetHash()),
+			Type:             mb.Type.String(),
+			SourceShard:      mb.GetSenderShardID(),
+			DestinationShard: mb.GetReceiverShardID(),
+		}
+		if options.WithTransactions {
+			miniBlockCopy := mb
+			err = mbp.getAndAttachTxsToMb(miniBlockCopy, blockHeader, miniblockAPI, options)
+			if err != nil {
+				return nil, err
+			}
+		}
+
+		miniblocks = append(miniblocks, miniblockAPI)
+	}
+
+	intraMb, err := mbp.getIntrashardMiniblocksFromReceiptsStorage(blockHeader, hash, options)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(intraMb) > 0 {
+		miniblocks = append(miniblocks, intraMb...)
+	}
+
+	miniblocks = filterOutDuplicatedMiniblocks(miniblocks)
+
 	notarizedBlocks := make([]*api.NotarizedBlock, 0, len(blockHeader.GetShardInfoHandlers()))
 	for _, shardData := range blockHeader.GetShardInfoHandlers() {
 		notarizedBlock := &api.NotarizedBlock{
@@ -189,32 +226,44 @@ func (mbp *metaAPIBlockProcessor) convertMetaBlockBytesToAPIBlock(hash []byte, b
 		notarizedBlocks = append(notarizedBlocks, notarizedBlock)
 	}
 
+	timestampSec, timestampMs, err := common.GetHeaderTimestamps(blockHeader, mbp.enableEpochsHandler)
+	if err != nil {
+		return nil, err
+	}
+
 	apiMetaBlock := &api.Block{
 		Nonce:           blockHeader.GetNonce(),
 		Round:           blockHeader.GetRound(),
 		Epoch:           blockHeader.GetEpoch(),
-		Shard:           core.MetachainShardId,
-		Hash:            hex.EncodeToString(hash),
-		PrevBlockHash:   hex.EncodeToString(blockHeader.GetPrevHash()),
-		NotarizedBlocks: notarizedBlocks,
-		Timestamp:       int64(blockHeader.GetTimeStamp()),
-		TimestampMs:     int64(common.ConvertTimeStampSecToMs(blockHeader.GetTimeStamp())),
-		Status:          BlockStatusOnChain,
-		PubKeyBitmap:    hex.EncodeToString(blockHeader.GetPubKeysBitmap()),
-		Signature:       hex.EncodeToString(blockHeader.GetSignature()),
-		LeaderSignature: hex.EncodeToString(blockHeader.GetLeaderSignature()),
-		ChainID:         string(blockHeader.GetChainID()),
-		SoftwareVersion: hex.EncodeToString(blockHeader.GetSoftwareVersion()),
-		ReceiptsHash:    hex.EncodeToString(blockHeader.GetReceiptsHash()),
-		Reserved:        blockHeader.GetReserved(),
-		RandSeed:        hex.EncodeToString(blockHeader.GetRandSeed()),
-		PrevRandSeed:    hex.EncodeToString(blockHeader.GetPrevRandSeed()),
+		Shard:                  core.MetachainShardId,
+		Hash:                   hex.EncodeToString(hash),
+		PrevBlockHash:          hex.EncodeToString(blockHeader.GetPrevHash()),
+		NumTxs:                 numOfTxs,
+		NotarizedBlocks:        notarizedBlocks,
+		MiniBlocks:             miniblocks,
+		AccumulatedFees:        blockHeader.GetAccumulatedFees().String(),
+		DeveloperFees:          blockHeader.GetDeveloperFees().String(),
+		AccumulatedFeesInEpoch: blockHeader.GetAccumulatedFeesInEpoch().String(),
+		DeveloperFeesInEpoch:   blockHeader.GetDevFeesInEpoch().String(),
+		Timestamp:              int64(timestampSec),
+		TimestampMs:            int64(timestampMs),
+		StateRootHash:          hex.EncodeToString(blockHeader.GetRootHash()),
+		Status:                 BlockStatusOnChain,
+		PubKeyBitmap:           hex.EncodeToString(blockHeader.GetPubKeysBitmap()),
+		Signature:              hex.EncodeToString(blockHeader.GetSignature()),
+		LeaderSignature:        hex.EncodeToString(blockHeader.GetLeaderSignature()),
+		ChainID:                string(blockHeader.GetChainID()),
+		SoftwareVersion:        hex.EncodeToString(blockHeader.GetSoftwareVersion()),
+		ReceiptsHash:           hex.EncodeToString(blockHeader.GetReceiptsHash()),
+		Reserved:               blockHeader.GetReserved(),
+		RandSeed:               hex.EncodeToString(blockHeader.GetRandSeed()),
+		PrevRandSeed:           hex.EncodeToString(blockHeader.GetPrevRandSeed()),
 	}
 
 	if !blockHeader.IsHeaderV3() {
 		err = mbp.addMbsAndNumTxsV1(apiMetaBlock, blockHeader, hash, options)
 	} else {
-		//async execution
+		// async execution
 		err = mbp.addMbsAndNumTxsAsyncExecution(apiMetaBlock, blockHeader, hash, options)
 	}
 	if err != nil {

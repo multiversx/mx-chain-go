@@ -178,6 +178,53 @@ func (sbp *shardAPIBlockProcessor) convertShardBlockBytesToAPIBlock(hash []byte,
 		return nil, err
 	}
 
+	numOfTxs := uint32(0)
+	miniblocks := make([]*api.MiniBlock, 0)
+
+	for _, mb := range blockHeader.GetMiniBlockHeaderHandlers() {
+		if block.Type(mb.GetTypeInt32()) == block.PeerBlock {
+			continue
+		}
+
+		numOfTxs += mb.GetTxCount()
+
+		miniblockAPI := &api.MiniBlock{
+			Hash:                    hex.EncodeToString(mb.GetHash()),
+			Type:                    block.Type(mb.GetTypeInt32()).String(),
+			SourceShard:             mb.GetSenderShardID(),
+			DestinationShard:        mb.GetReceiverShardID(),
+			ProcessingType:          block.ProcessingType(mb.GetProcessingType()).String(),
+			ConstructionState:       block.MiniBlockState(mb.GetConstructionState()).String(),
+			IndexOfFirstTxProcessed: mb.GetIndexOfFirstTxProcessed(),
+			IndexOfLastTxProcessed:  mb.GetIndexOfLastTxProcessed(),
+		}
+		if options.WithTransactions {
+			miniBlockCopy := mb
+			err = sbp.getAndAttachTxsToMb(miniBlockCopy, blockHeader, miniblockAPI, options)
+			if err != nil {
+				return nil, err
+			}
+		}
+
+		miniblocks = append(miniblocks, miniblockAPI)
+	}
+
+	intraMb, err := sbp.getIntrashardMiniblocksFromReceiptsStorage(blockHeader, hash, options)
+	if err != nil {
+		return nil, err
+	}
+
+	miniblocks = append(miniblocks, intraMb...)
+	miniblocks = filterOutDuplicatedMiniblocks(miniblocks)
+
+	statusFilters := filters.NewStatusFilters(sbp.selfShardID)
+	statusFilters.ApplyStatusFilters(miniblocks)
+
+	timestampSec, timestampMs, err := common.GetHeaderTimestamps(blockHeader, sbp.enableEpochsHandler)
+	if err != nil {
+		return nil, err
+	}
+
 	apiBlock := &api.Block{
 		Nonce:           blockHeader.GetNonce(),
 		Round:           blockHeader.GetRound(),
@@ -185,8 +232,12 @@ func (sbp *shardAPIBlockProcessor) convertShardBlockBytesToAPIBlock(hash []byte,
 		Shard:           blockHeader.GetShardID(),
 		Hash:            hex.EncodeToString(hash),
 		PrevBlockHash:   hex.EncodeToString(blockHeader.GetPrevHash()),
-		Timestamp:       int64(blockHeader.GetTimeStamp()),
-		TimestampMs:     int64(common.ConvertTimeStampSecToMs(blockHeader.GetTimeStamp())),
+		NumTxs:          numOfTxs,
+		MiniBlocks:      miniblocks,
+		AccumulatedFees: blockHeader.GetAccumulatedFees().String(),
+		DeveloperFees:   blockHeader.GetDeveloperFees().String(),
+		Timestamp:       int64(timestampSec),
+		TimestampMs:     int64(timestampMs),
 		Status:          BlockStatusOnChain,
 		PubKeyBitmap:    hex.EncodeToString(blockHeader.GetPubKeysBitmap()),
 		Signature:       hex.EncodeToString(blockHeader.GetSignature()),

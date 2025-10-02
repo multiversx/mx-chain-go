@@ -64,7 +64,7 @@ type ArgsNewTxProcessor struct {
 	BadTxForwarder      process.IntermediateTransactionHandler
 	ArgsParser          process.ArgumentsParser
 	ScrForwarder        process.IntermediateTransactionHandler
-	EnableRoundsHandler process.EnableRoundsHandler
+	EnableRoundsHandler common.EnableRoundsHandler
 	EnableEpochsHandler common.EnableEpochsHandler
 	TxVersionChecker    process.TxVersionCheckerHandler
 	GuardianChecker     process.GuardianChecker

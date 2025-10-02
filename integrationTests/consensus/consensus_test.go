@@ -241,6 +241,8 @@ func testConsensusBLSWithFullProcessing(
 		blsConsensusType,
 		numKeysOnEachNode,
 		enableEpochsConfig,
+		integrationTests.GetSupernovaRoundsConfig(),
+		true,
 		roundsPerEpoch,
 	)
 	shard0Node := nodes[0][0]

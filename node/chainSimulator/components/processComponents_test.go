@@ -25,6 +25,7 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/bootstrapMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/chainParameters"
+	"github.com/multiversx/mx-chain-go/testscommon/commonmocks"
 	"github.com/multiversx/mx-chain-go/testscommon/components"
 	"github.com/multiversx/mx-chain-go/testscommon/cryptoMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
@@ -177,6 +178,10 @@ func createArgsProcessComponentsHolder() ArgsProcessComponentsHolder {
 			PathHdl:                            &testscommon.PathManagerStub{},
 			ProcessStatusHandlerInternal:       &testscommon.ProcessStatusHandlerStub{},
 			EpochChangeGracePeriodHandlerField: gracePeriod,
+			ChainParametersHandlerField:        &chainParameters.ChainParametersHandlerStub{},
+			ChainParametersSubscriberField:     &commonmocks.ChainParametersNotifierStub{},
+			ProcessConfigsHandlerField:         testscommon.GetDefaultProcessConfigsHandler(),
+			CommonConfigsHandlerField:      testscommon.GetDefaultCommonConfigsHandler(),
 		},
 		CryptoComponents: &mock.CryptoComponentsStub{
 			BlKeyGen: &cryptoMocks.KeyGenStub{},
