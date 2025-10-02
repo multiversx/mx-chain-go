@@ -2189,8 +2189,9 @@ func (mp *metaProcessor) verifyValidatorStatisticsRootHash(header *block.MetaBlo
 
 // CreateNewHeader creates a new header
 func (mp *metaProcessor) CreateNewHeader(round uint64, nonce uint64) (data.HeaderHandler, error) {
-	// TODO mp.enableRoundsHandler when async execution is enabled we should not call UPDATE
-	mp.epochStartTrigger.Update(round, nonce)
+	if !mp.enableRoundsHandler.IsFlagEnabled(common.SupernovaRoundFlag) {
+		mp.epochStartTrigger.Update(round, nonce)
+	}
 
 	epochChangeProposed := mp.epochStartTrigger.ShouldProposeEpochChange(round, nonce)
 	epoch := mp.epochStartTrigger.Epoch()
