@@ -77,6 +77,11 @@ func (computer *virtualSessionComputer) fromGlobalBreadcrumbToVirtualRecord(
 		initialBalance := accountBalance
 		record, err := newVirtualAccountRecord(globalBreadcrumb.lastNonce, initialBalance)
 		if err != nil {
+			log.Debug("virtualSessionComputer.fromGlobalBreadcrumbToVirtualRecord",
+				"err", err,
+				"address", address,
+				"accountBalance", accountBalance,
+			)
 			return err
 		}
 

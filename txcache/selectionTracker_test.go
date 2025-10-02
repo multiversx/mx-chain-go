@@ -913,7 +913,7 @@ func TestSelectionTracker_addNewBlockNoLock(t *testing.T) {
 func Test_getVirtualNonceOfAccount(t *testing.T) {
 	t.Parallel()
 
-	t.Run("should return errBreadcrumbNotFound error", func(t *testing.T) {
+	t.Run("should return errGlobalBreadcrumbDoesNotExist error", func(t *testing.T) {
 		t.Parallel()
 
 		txCache := newCacheToTest(maxNumBytesPerSenderUpperBoundTest, 3)
@@ -923,7 +923,7 @@ func Test_getVirtualNonceOfAccount(t *testing.T) {
 		tracker.blocks["hash2"] = newTrackedBlock(0, []byte("hash2"), []byte("rootHash0"), []byte("hash1"))
 
 		_, _, err = tracker.getVirtualNonceOfAccountWithRootHash([]byte("alice"))
-		require.Equal(t, errBreadcrumbNotFound, err)
+		require.Equal(t, errGlobalBreadcrumbDoesNotExist, err)
 	})
 
 	t.Run("should work", func(t *testing.T) {

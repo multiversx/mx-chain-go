@@ -449,7 +449,7 @@ func (st *selectionTracker) getVirtualNonceOfAccountWithRootHash(
 ) (uint64, []byte, error) {
 	breadcrumb, err := st.gabc.getGlobalBreadcrumbByAddress(string(address))
 	if err != nil {
-		return 0, nil, errBreadcrumbNotFound
+		return 0, nil, errGlobalBreadcrumbDoesNotExist
 	}
 
 	if !breadcrumb.lastNonce.HasValue {
