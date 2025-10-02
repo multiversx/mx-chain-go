@@ -1465,7 +1465,9 @@ func (txs *transactions) computeSortedTxs(
 		txs.txCacheSelectionConfig.SelectionLoopDurationCheckInterval,
 	)
 
-	sortedTxs, _, err := txCache.SelectTransactions(session, selectionOptions)
+	// TODO should use the right information for the blockchain info (in this case, only the currentNonce is important)
+	blockchainInfo := holders.NewBlockchainInfo(nil, nil, 0)
+	sortedTxs, _, err := txCache.SelectTransactions(session, selectionOptions, blockchainInfo)
 	if err != nil {
 		// TODO re-brainstorm if this error should be propagated or just logged
 		return nil, nil, err

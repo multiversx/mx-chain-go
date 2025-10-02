@@ -192,7 +192,7 @@ func selectTransactions(t *testing.T, simulator testsChainSimulator.ChainSimulat
 	)
 
 	mempool := poolsHolder.ShardDataStore(shardAsString).(*txcache.TxCache)
-	selectedTransactions, gas, err := mempool.SelectTransactions(selectionSession, options)
+	selectedTransactions, gas, err := mempool.SelectTransactions(selectionSession, options, defaultBlockchainInfo)
 	require.NoError(t, err)
 
 	return selectedTransactions, gas
@@ -350,7 +350,8 @@ func testOnProposed(t *testing.T, sw *core.StopWatch, numTxs int, numAddresses i
 
 	require.Equal(t, numTxs, int(txpool.CountTx()))
 
-	selectedTransactions, _, err := txpool.SelectTransactions(selectionSession, options)
+	blockchainInfo := holders.NewBlockchainInfo([]byte("blockHash0"), []byte("blockHash0"), 1)
+	selectedTransactions, _, err := txpool.SelectTransactions(selectionSession, options, blockchainInfo)
 	require.NoError(t, err)
 	require.Equal(t, numTxs, len(selectedTransactions))
 
@@ -405,8 +406,10 @@ func testFirstSelection(t *testing.T, sw *core.StopWatch, numTxs int, numTxsToBe
 
 	require.Equal(t, numTxs, int(txpool.CountTx()))
 
+	blockchainInfo := holders.NewBlockchainInfo([]byte("blockHash0"), []byte("blockHash0"), 1)
+
 	sw.Start(t.Name())
-	selectedTransactions, _, err := txpool.SelectTransactions(selectionSession, options)
+	selectedTransactions, _, err := txpool.SelectTransactions(selectionSession, options, blockchainInfo)
 	sw.Stop(t.Name())
 
 	require.Nil(t, err)
@@ -454,7 +457,8 @@ func testSecondSelection(t *testing.T, sw *core.StopWatch, numTxs int, numTxsToB
 
 	require.Equal(t, numTxs, int(txpool.CountTx()))
 
-	selectedTransactions, _, err := txpool.SelectTransactions(selectionSession, options)
+	blockchainInfo := holders.NewBlockchainInfo([]byte("blockHash0"), []byte("blockHash0"), 1)
+	selectedTransactions, _, err := txpool.SelectTransactions(selectionSession, options, blockchainInfo)
 
 	require.NoError(t, err)
 	require.Equal(t, numTxsToBeSelected, len(selectedTransactions))
@@ -471,9 +475,10 @@ func testSecondSelection(t *testing.T, sw *core.StopWatch, numTxs int, numTxsToB
 	)
 	require.Nil(t, err)
 
+	blockchainInfo = holders.NewBlockchainInfo([]byte("blockHash0"), []byte("blockHash1"), 2)
 	// measure the time for the second selection (now we use the breadcrumbs to create the virtual records)
 	sw.Start(t.Name())
-	selectedTransactions, _, err = txpool.SelectTransactions(selectionSession, options)
+	selectedTransactions, _, err = txpool.SelectTransactions(selectionSession, options, blockchainInfo)
 	sw.Stop(t.Name())
 
 	require.NoError(t, err)
@@ -491,7 +496,8 @@ func testSecondSelection(t *testing.T, sw *core.StopWatch, numTxs int, numTxsToB
 	)
 	require.Nil(t, err)
 
-	selectedTransactions, _, err = txpool.SelectTransactions(selectionSession, options)
+	blockchainInfo = holders.NewBlockchainInfo([]byte("blockHash0"), []byte("blockHash2"), 3)
+	selectedTransactions, _, err = txpool.SelectTransactions(selectionSession, options, blockchainInfo)
 	require.NoError(t, err)
 	require.Equal(t, 0, len(selectedTransactions))
 }
@@ -536,7 +542,8 @@ func testSecondSelectionWithManyTxsInPool(t *testing.T, sw *core.StopWatch, numT
 
 	require.Equal(t, numTxs, int(txpool.CountTx()))
 
-	selectedTransactions, _, err := txpool.SelectTransactions(selectionSession, options)
+	blockchainInfo := holders.NewBlockchainInfo([]byte("blockHash0"), []byte("blockHash0"), 1)
+	selectedTransactions, _, err := txpool.SelectTransactions(selectionSession, options, blockchainInfo)
 	require.NoError(t, err)
 	require.Equal(t, numTxsToBeSelected, len(selectedTransactions))
 
@@ -552,9 +559,11 @@ func testSecondSelectionWithManyTxsInPool(t *testing.T, sw *core.StopWatch, numT
 	)
 	require.Nil(t, err)
 
+	blockchainInfo = holders.NewBlockchainInfo([]byte("blockHash0"), []byte("blockHash1"), 2)
+
 	// measure the time for the second selection (now we use the breadcrumbs to create the virtual records)
 	sw.Start(t.Name())
-	selectedTransactions, _, err = txpool.SelectTransactions(selectionSession, options)
+	selectedTransactions, _, err = txpool.SelectTransactions(selectionSession, options, blockchainInfo)
 	sw.Stop(t.Name())
 
 	require.NoError(t, err)

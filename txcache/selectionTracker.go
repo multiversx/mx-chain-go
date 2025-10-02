@@ -345,6 +345,7 @@ func (st *selectionTracker) updateLatestRootHashNoLock(receivedNonce uint64, rec
 // deriveVirtualSelectionSession creates a virtual selection session by transforming the global accounts breadcrumbs into virtual records
 func (st *selectionTracker) deriveVirtualSelectionSession(
 	session SelectionSession,
+	blockchainInfo common.BlockchainInfo,
 ) (*virtualSelectionSession, error) {
 	rootHash, err := session.GetRootHash()
 	if err != nil {
@@ -353,8 +354,16 @@ func (st *selectionTracker) deriveVirtualSelectionSession(
 		return nil, err
 	}
 
+	latestExecutedBlockHash := blockchainInfo.GetLatestExecutedBlockHash()
+	latestCommittedBlockHash := blockchainInfo.GetLatestCommittedBlockHash()
+	currentNonce := blockchainInfo.GetCurrentNonce()
+
 	log.Debug("selectionTracker.deriveVirtualSelectionSession",
-		"rootHash", rootHash)
+		"rootHash", rootHash,
+		"latestExecutedBlockHash", latestExecutedBlockHash,
+		"latestCommitedBlockHash", latestCommittedBlockHash,
+		"currentNonce", currentNonce,
+	)
 
 	trackedBlocks := st.getTrackedBlocksAsSlice()
 	log.Debug("selectionTracker.deriveVirtualSelectionSession",

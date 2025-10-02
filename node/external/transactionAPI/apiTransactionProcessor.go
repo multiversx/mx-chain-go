@@ -510,7 +510,9 @@ func (atp *apiTransactionProcessor) selectTransactions(accountsAdapter state.Acc
 		return nil, err
 	}
 
-	selectedTxs, _, err := txCache.SelectTransactions(selectionSession, selectionOptions)
+	// TODO use the right information for blockchainInfo
+	blockchainInfo := holders.NewBlockchainInfo(nil, nil, 0)
+	selectedTxs, _, err := txCache.SelectTransactions(selectionSession, selectionOptions, blockchainInfo)
 	if err != nil {
 		log.Warn("apiTransactionProcessor.selectTransactions could not SelectTransactions")
 		return nil, err
