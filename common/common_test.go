@@ -13,6 +13,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
+	commonErrors "github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/chainParameters"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
@@ -259,6 +260,69 @@ func TestConsesusGroupSizeForShardAndEpoch(t *testing.T) {
 		)
 
 		require.Equal(t, int(groupSize), size)
+	})
+}
+
+func TestGetHeaderTimestamps(t *testing.T) {
+	t.Parallel()
+
+	t.Run("nil checks", func(t *testing.T) {
+		t.Parallel()
+
+		header := &block.Header{
+			Epoch:     2,
+			TimeStamp: 123,
+		}
+
+		enableEpochsHandler := &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+			IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
+				return flag != common.SupernovaFlag
+			},
+		}
+
+		_, _, err := common.GetHeaderTimestamps(nil, enableEpochsHandler)
+		require.Equal(t, common.ErrNilHeaderHandler, err)
+
+		_, _, err = common.GetHeaderTimestamps(header, nil)
+		require.Equal(t, commonErrors.ErrNilEnableEpochsHandler, err)
+	})
+
+	t.Run("before supernova epoch activation", func(t *testing.T) {
+		t.Parallel()
+
+		header := &block.Header{
+			Epoch:     2,
+			TimeStamp: 123,
+		}
+
+		enableEpochsHandler := &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+			IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
+				return flag != common.SupernovaFlag
+			},
+		}
+
+		timestampSec, timestampMs, _ := common.GetHeaderTimestamps(header, enableEpochsHandler)
+		require.Equal(t, uint64(123), timestampSec)
+		require.Equal(t, uint64(123000), timestampMs)
+	})
+
+	t.Run("after supernova epoch activation", func(t *testing.T) {
+		t.Parallel()
+
+		header := &block.Header{
+			Epoch:     2,
+			TimeStamp: 1234567, // as milliseconds
+		}
+
+		enableEpochsHandler := &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+			IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
+				return flag == common.SupernovaFlag
+			},
+		}
+
+		timestampSec, timestampMs, _ := common.GetHeaderTimestamps(header, enableEpochsHandler)
+		require.Equal(t, uint64(1234), timestampSec)
+		require.Equal(t, uint64(1234567), timestampMs)
 	})
 }
 

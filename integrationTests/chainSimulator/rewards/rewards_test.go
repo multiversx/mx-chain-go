@@ -9,7 +9,6 @@ import (
 	"os"
 	"path"
 	"testing"
-	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	apiCore "github.com/multiversx/mx-chain-core-go/data/api"
@@ -37,7 +36,6 @@ func TestRewardsAfterAndromedaWithTxs(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	startTime := time.Now().Unix()
 	roundDurationInMillis := uint64(6000)
 	roundsPerEpoch := core.OptionalUint64{
 		HasValue: true,
@@ -52,7 +50,6 @@ func TestRewardsAfterAndromedaWithTxs(t *testing.T) {
 		TempDir:                tempDir,
 		PathToInitialConfig:    defaultPathToInitialConfig,
 		NumOfShards:            numOfShards,
-		GenesisTimestamp:       startTime,
 		RoundDurationInMillis:  roundDurationInMillis,
 		RoundsPerEpoch:         roundsPerEpoch,
 		ApiInterface:           api.NewNoApiInterface(),
@@ -210,7 +207,6 @@ func TestRewardsTxsAfterAndromeda(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	startTime := time.Now().Unix()
 	roundDurationInMillis := uint64(6000)
 	roundsPerEpoch := core.OptionalUint64{
 		HasValue: true,
@@ -225,7 +221,6 @@ func TestRewardsTxsAfterAndromeda(t *testing.T) {
 		TempDir:                tempDir,
 		PathToInitialConfig:    defaultPathToInitialConfig,
 		NumOfShards:            numOfShards,
-		GenesisTimestamp:       startTime,
 		RoundDurationInMillis:  roundDurationInMillis,
 		RoundsPerEpoch:         roundsPerEpoch,
 		ApiInterface:           api.NewNoApiInterface(),
