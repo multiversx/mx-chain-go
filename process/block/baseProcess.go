@@ -201,6 +201,7 @@ func NewBaseProcessor(arguments ArgBaseProcessor) (*baseProcessor, error) {
 		sentSignaturesTracker:         arguments.SentSignaturesTracker,
 		proofsPool:                    arguments.DataComponents.Datapool().Proofs(),
 		hdrsForCurrBlock:              arguments.HeadersForBlock,
+		processConfigsHandler:         arguments.CoreComponents.ProcessConfigsHandler(),
 
 		executionResultsTracker:            arguments.ExecutionResultsTracker,
 		executionResultsInclusionEstimator: arguments.ExecutionResultsInclusionEstimator,

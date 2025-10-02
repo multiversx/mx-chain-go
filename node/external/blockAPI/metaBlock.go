@@ -188,7 +188,7 @@ func (mbp *metaAPIBlockProcessor) convertMetaBlockBytesToAPIBlock(hash []byte, b
 
 		miniblockAPI := &api.MiniBlock{
 			Hash:             hex.EncodeToString(mb.GetHash()),
-			Type:             mb.Type.String(),
+			Type:             block.ProcessingType(mb.GetProcessingType()).String(),
 			SourceShard:      mb.GetSenderShardID(),
 			DestinationShard: mb.GetReceiverShardID(),
 		}
@@ -232,9 +232,9 @@ func (mbp *metaAPIBlockProcessor) convertMetaBlockBytesToAPIBlock(hash []byte, b
 	}
 
 	apiMetaBlock := &api.Block{
-		Nonce:           blockHeader.GetNonce(),
-		Round:           blockHeader.GetRound(),
-		Epoch:           blockHeader.GetEpoch(),
+		Nonce:                  blockHeader.GetNonce(),
+		Round:                  blockHeader.GetRound(),
+		Epoch:                  blockHeader.GetEpoch(),
 		Shard:                  core.MetachainShardId,
 		Hash:                   hex.EncodeToString(hash),
 		PrevBlockHash:          hex.EncodeToString(blockHeader.GetPrevHash()),

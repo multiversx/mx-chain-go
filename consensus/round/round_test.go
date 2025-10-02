@@ -661,7 +661,12 @@ func TestRound_GetTimeStampForRound(t *testing.T) {
 	syncTimerMock := &consensusMocks.SyncTimerMock{}
 
 	startRound := int64(0)
-	rnd, _ := round.NewRound(genesisTime, genesisTime, roundTimeDuration, syncTimerMock, startRound)
+	args := createDefaultRoundArgs()
+	args.GenesisTimeStamp = genesisTime
+	args.SupernovaGenesisTimeStamp = genesisTime
+	args.SyncTimer = syncTimerMock
+	args.StartRound = startRound
+	rnd, _ := round.NewRound(args)
 	require.True(t, rnd.BeforeGenesis())
 
 	roundTimeStamp := rnd.GetTimeStampForRound(0)

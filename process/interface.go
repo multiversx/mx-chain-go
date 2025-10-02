@@ -5,8 +5,6 @@ import (
 	"time"
 
 	"github.com/multiversx/mx-chain-go/ntp"
-
-	"github.com/multiversx/mx-chain-go/ntp"
 	"github.com/multiversx/mx-chain-go/process/estimator"
 
 	"github.com/multiversx/mx-chain-core-go/core"

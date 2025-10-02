@@ -25,7 +25,6 @@ type ArgsRound struct {
 	CurrentTimeStamp          time.Time
 	RoundTimeDuration         time.Duration
 	SupernovaTimeDuration     time.Duration
-	GenesisTimeStamp time.Time
 	SyncTimer                 ntp.SyncTimer
 	StartRound                int64
 	SupernovaStartRound       int64
@@ -39,7 +38,7 @@ type round struct {
 	supernovaGenesisTimeStamp time.Time     // time duration between genesis and the time duration change
 	timeDuration              time.Duration // represents the duration of the round in current chronology
 	supernovaTimeDuration     time.Duration
-	genesisTimeStamp time.Time
+	genesisTimeStamp          time.Time
 	syncTimer                 ntp.SyncTimer
 	startRound                int64
 	supernovaStartRound       int64
@@ -68,7 +67,7 @@ func NewRound(args ArgsRound) (*round, error) {
 		syncTimer:                 args.SyncTimer,
 		startRound:                args.StartRound,
 		supernovaStartRound:       args.SupernovaStartRound,
-		genesisTimeStamp: args.GenesisTimeStamp,
+		genesisTimeStamp:          args.GenesisTimeStamp,
 		RWMutex:                   &sync.RWMutex{},
 		enableRoundsHandler:       args.EnableRoundsHandler,
 	}

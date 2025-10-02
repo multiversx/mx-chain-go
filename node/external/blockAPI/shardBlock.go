@@ -217,9 +217,6 @@ func (sbp *shardAPIBlockProcessor) convertShardBlockBytesToAPIBlock(hash []byte,
 	miniblocks = append(miniblocks, intraMb...)
 	miniblocks = filterOutDuplicatedMiniblocks(miniblocks)
 
-	statusFilters := filters.NewStatusFilters(sbp.selfShardID)
-	statusFilters.ApplyStatusFilters(miniblocks)
-
 	timestampSec, timestampMs, err := common.GetHeaderTimestamps(blockHeader, sbp.enableEpochsHandler)
 	if err != nil {
 		return nil, err
