@@ -271,6 +271,8 @@ func (sr *subroundEndRound) doEndRoundJobByNode() bool {
 		}
 
 		if proofSent {
+			// TODO: confirm that block data is propagated if proof sent (by each node in parallel)
+			//   - check if we can have antiflood protection here also, as with equivalent proofs
 			err := sr.prepareBroadcastBlockData()
 			log.LogIfError(err)
 		}
@@ -707,8 +709,11 @@ func (sr *subroundEndRound) updateMetricsForLeader() {
 	}
 
 	sr.appStatusHandler.Increment(common.MetricCountAcceptedBlocks)
+
+	roundTimeStamp := sr.RoundHandler().TimeStamp()
+	timeSinceRound := time.Since(roundTimeStamp)
 	sr.appStatusHandler.SetStringValue(common.MetricConsensusRoundState,
-		fmt.Sprintf("valid block produced in %f sec", time.Since(sr.RoundHandler().TimeStamp()).Seconds()))
+		fmt.Sprintf("valid block produced in %s", timeSinceRound.String()))
 }
 
 // doEndRoundConsensusCheck method checks if the consensus is achieved

@@ -995,15 +995,15 @@ const MaxSoftwareVersionLengthInBytes = 10
 
 // ExtraDelayForBroadcastBlockInfo represents the number of seconds to wait since a block has been broadcast and the
 // moment when its components, like mini blocks and transactions, would be broadcast too
-const ExtraDelayForBroadcastBlockInfo = 1 * time.Second
+const ExtraDelayForBroadcastBlockInfo = 120 * time.Millisecond
 
 // ExtraDelayBetweenBroadcastMbsAndTxs represents the number of seconds to wait since miniblocks have been broadcast
 // and the moment when theirs transactions would be broadcast too
-const ExtraDelayBetweenBroadcastMbsAndTxs = 1 * time.Second
+const ExtraDelayBetweenBroadcastMbsAndTxs = 100 * time.Millisecond
 
 // ExtraDelayForRequestBlockInfo represents the number of seconds to wait since a block has been received and the
 // moment when its components, like mini blocks and transactions, would be requested too if they are still missing
-const ExtraDelayForRequestBlockInfo = ExtraDelayForBroadcastBlockInfo + ExtraDelayBetweenBroadcastMbsAndTxs + time.Second
+const ExtraDelayForRequestBlockInfo = ExtraDelayForBroadcastBlockInfo + ExtraDelayBetweenBroadcastMbsAndTxs
 
 // CommitMaxTime represents max time accepted for a commit action, after which a warn message is displayed
 const CommitMaxTime = 3 * time.Second
@@ -1040,10 +1040,6 @@ const NotSetDestinationShardID = "disabled"
 // Ex.: normal txs -> aprox. 27000, sc calls or special txs -> aprox. 6250 = 27000 / (AdditionalScrForEachScCallOrSpecialTx + 1),
 // considering that constant below is set to 3
 const AdditionalScrForEachScCallOrSpecialTx = 3
-
-// MaxRoundsWithoutCommittedStartInEpochBlock defines the maximum rounds to wait for start in epoch block to be committed,
-// before a special action to be applied
-const MaxRoundsWithoutCommittedStartInEpochBlock = 50
 
 // DefaultResolversIdentifier represents the identifier that is used in conjunction with regular resolvers
 // (that makes the node run properly)
@@ -1306,4 +1302,13 @@ const (
 	AutomaticActivationOfNodesDisableFlag               core.EnableEpochFlag = "AutomaticActivationOfNodesDisableFlag"
 	FixGetBalanceFlag                                   core.EnableEpochFlag = "FixGetBalanceFlag"
 	// all new flags must be added to createAllFlagsMap method, as part of enableEpochsHandler allFlagsDefined
+)
+
+// EnableRoundFlag defines a flag specific to the enableRounds config
+type EnableRoundFlag string
+
+// EnableRound flag definitions
+const (
+	DisableAsyncCallV1Flag EnableRoundFlag = "DisableAsyncCallV1"
+	SupernovaRoundFlag     EnableRoundFlag = "SupernovaEnableRound"
 )

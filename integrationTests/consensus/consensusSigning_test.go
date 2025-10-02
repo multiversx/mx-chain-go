@@ -29,6 +29,7 @@ func initNodesWithTestSigner(
 
 	enableEpochsConfig := integrationTests.CreateEnableEpochsConfig()
 	enableEpochsConfig.AndromedaEnableEpoch = equivalentProofsActivationEpoch
+	enableEpochsConfig.SupernovaEnableEpoch = 0
 
 	nodes := integrationTests.CreateNodesWithTestFullNode(
 		int(numMetaNodes),
@@ -38,6 +39,8 @@ func initNodesWithTestSigner(
 		consensusType,
 		1,
 		enableEpochsConfig,
+		integrationTests.GetSupernovaRoundsConfig(),
+		false,
 		100,
 	)
 

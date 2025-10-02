@@ -8,6 +8,7 @@ import (
 	"github.com/multiversx/mx-chain-go/factory/mock"
 	mockTests "github.com/multiversx/mx-chain-go/integrationTests/mock"
 	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/commonmocks"
 	"github.com/multiversx/mx-chain-go/testscommon/components"
 	"github.com/multiversx/mx-chain-go/testscommon/economicsmocks"
 	"github.com/multiversx/mx-chain-go/testscommon/genesisMocks"
@@ -42,11 +43,12 @@ func createArgs() (config.Configs, factory.CoreComponentsHolder) {
 	}
 
 	return cfg, &mock.CoreComponentsMock{
-		EconomicsHandler:    &economicsmocks.EconomicsHandlerMock{},
-		IntMarsh:            &testscommon.MarshallerStub{},
-		UInt64ByteSliceConv: &mockTests.Uint64ByteSliceConverterMock{},
-		NodesConfig:         &genesisMocks.NodesSetupStub{},
-		RatingsConfig:       &testscommon.RatingsInfoMock{},
+		EconomicsHandler:               &economicsmocks.EconomicsHandlerMock{},
+		IntMarsh:                       &testscommon.MarshallerStub{},
+		UInt64ByteSliceConv:            &mockTests.Uint64ByteSliceConverterMock{},
+		NodesConfig:                    &genesisMocks.NodesSetupStub{},
+		RatingsConfig:                  &testscommon.RatingsInfoMock{},
+		ChainParametersSubscriberField: &commonmocks.ChainParametersNotifierStub{},
 	}
 }
 

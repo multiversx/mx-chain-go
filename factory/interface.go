@@ -124,11 +124,12 @@ type CoreComponentsHolder interface {
 	NodesShuffler() nodesCoordinator.NodesShuffler
 	EpochNotifier() process.EpochNotifier
 	ChainParametersSubscriber() process.ChainParametersSubscriber
-	EnableRoundsHandler() process.EnableRoundsHandler
+	EnableRoundsHandler() common.EnableRoundsHandler
 	RoundNotifier() process.RoundNotifier
 	EpochStartNotifierWithConfirm() EpochStartNotifierWithConfirm
 	ChanStopNodeProcess() chan endProcess.ArgEndProcess
 	GenesisTime() time.Time
+	SupernovaGenesisTime() time.Time
 	ChainID() string
 	MinTransactionVersion() uint32
 	TxVersionChecker() process.TxVersionCheckerHandler
@@ -141,6 +142,8 @@ type CoreComponentsHolder interface {
 	ChainParametersHandler() process.ChainParametersHandler
 	FieldsSizeChecker() common.FieldsSizeChecker
 	EpochChangeGracePeriodHandler() common.EpochChangeGracePeriodHandler
+	ProcessConfigsHandler() common.ProcessConfigsHandler
+	CommonConfigsHandler() common.CommonConfigsHandler
 	IsInterfaceNil() bool
 }
 

@@ -283,7 +283,8 @@ func (sr *subroundBlock) sendBlockHeader(
 
 	log.Debug("step 1: block header has been sent",
 		"nonce", headerHandler.GetNonce(),
-		"hash", headerHash)
+		"hash", headerHash,
+	)
 
 	sr.SetData(headerHash)
 	sr.SetHeader(headerHandler)
@@ -333,7 +334,7 @@ func (sr *subroundBlock) createHeader() (data.HeaderHandler, error) {
 		return nil, err
 	}
 
-	err = hdr.SetTimeStamp(uint64(sr.RoundHandler().TimeStamp().Unix()))
+	err = hdr.SetTimeStamp(sr.GetUnixTimestampForHeader(hdr.GetEpoch()))
 	if err != nil {
 		return nil, err
 	}

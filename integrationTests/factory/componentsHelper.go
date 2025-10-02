@@ -94,6 +94,8 @@ func computeChainParameters(numInitialNodes uint32, numShardsWithoutMeta uint32)
 			MetachainConsensusGroupSize: nodesPerShards,
 			MetachainMinNumNodes:        nodesPerShards + diff,
 			RoundDuration:               2000,
+			RoundsPerEpoch:              200,
+			MinRoundsBetweenEpochs:      20,
 		},
 	}
 }
