@@ -132,8 +132,6 @@ func (gab *globalAccountBreadcrumb) reduceConsumedBalance(receivedBreadcrumb *ac
 	_ = gab.consumedBalance.Sub(gab.consumedBalance, receivedBreadcrumb.consumedBalance)
 	if gab.consumedBalance.Sign() == -1 {
 		return errNegativeBalanceForBreadcrumb
-	} else if gab.consumedBalance.Sign() == 0 {
-		gab.consumedBalance = big.NewInt(0)
 	}
 
 	return nil

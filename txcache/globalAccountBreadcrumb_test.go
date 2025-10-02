@@ -328,6 +328,26 @@ func Test_updateOnRemoveAccountBreadcrumbOnExecutedBlock(t *testing.T) {
 		require.NoError(t, err)
 		require.True(t, shouldBeDeleted)
 	})
+
+	t.Run("should error", func(t *testing.T) {
+		t.Parallel()
+
+		gabc := newGlobalAccountBreadcrumb()
+		breadcrumb := &accountBreadcrumb{
+			firstNonce: core.OptionalUint64{
+				Value:    10,
+				HasValue: true,
+			},
+			lastNonce: core.OptionalUint64{
+				Value:    16,
+				HasValue: true,
+			},
+			consumedBalance: big.NewInt(10),
+		}
+
+		_, err := gabc.updateOnRemoveAccountBreadcrumbOnExecutedBlock(breadcrumb)
+		require.Equal(t, errNegativeBalanceForBreadcrumb, err)
+	})
 }
 
 func Test_updateOnRemoveAccountBreadcrumbOnProposedBlock(t *testing.T) {
@@ -576,6 +596,57 @@ func Test_updateOnRemoveAccountBreadcrumbOnProposedBlock(t *testing.T) {
 		require.NoError(t, err)
 		require.True(t, shouldDelete)
 	})
+
+	t.Run("should not update with unknown nonces", func(t *testing.T) {
+		t.Parallel()
+
+		gabc := newGlobalAccountBreadcrumb()
+		gabc.firstNonce = core.OptionalUint64{
+			Value:    10,
+			HasValue: true,
+		}
+		gabc.lastNonce = core.OptionalUint64{
+			Value:    12,
+			HasValue: true,
+		}
+		gabc.consumedBalance = big.NewInt(12)
+
+		breadcrumb := &accountBreadcrumb{
+			firstNonce: core.OptionalUint64{
+				Value:    0,
+				HasValue: false,
+			},
+			lastNonce: core.OptionalUint64{
+				Value:    0,
+				HasValue: false,
+			},
+			consumedBalance: big.NewInt(10),
+		}
+
+		shouldDelete, err := gabc.updateOnRemoveAccountBreadcrumbOnProposedBlock(breadcrumb)
+		require.NoError(t, err)
+		require.False(t, shouldDelete)
+	})
+
+	t.Run("should error", func(t *testing.T) {
+		t.Parallel()
+
+		gabc := newGlobalAccountBreadcrumb()
+		breadcrumb := &accountBreadcrumb{
+			firstNonce: core.OptionalUint64{
+				Value:    10,
+				HasValue: true,
+			},
+			lastNonce: core.OptionalUint64{
+				Value:    16,
+				HasValue: true,
+			},
+			consumedBalance: big.NewInt(10),
+		}
+
+		_, err := gabc.updateOnRemoveAccountBreadcrumbOnProposedBlock(breadcrumb)
+		require.Equal(t, errNegativeBalanceForBreadcrumb, err)
+	})
 }
 
 func Test_reduceConsumedBalance(t *testing.T) {
@@ -607,7 +678,7 @@ func Test_reduceConsumedBalance(t *testing.T) {
 
 		err = gab.reduceConsumedBalance(&breadcrumb)
 		require.Nil(t, err)
-		require.Equal(t, big.NewInt(0), gab.consumedBalance)
+		require.Equal(t, 0, gab.consumedBalance.Sign())
 
 		gab.extendConsumedBalance(&breadcrumb)
 		require.Equal(t, big.NewInt(5), gab.consumedBalance)

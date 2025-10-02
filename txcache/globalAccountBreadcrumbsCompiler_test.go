@@ -21,7 +21,9 @@ func requireEqualGlobalAccountsBreadcrumbs(
 	for account, globalBreadcrumb := range expected {
 		_, ok := actual[account]
 		require.True(t, ok)
-		require.Equal(t, globalBreadcrumb, actual[account])
+		require.Equal(t, globalBreadcrumb.lastNonce, actual[account].lastNonce)
+		require.Equal(t, globalBreadcrumb.firstNonce, actual[account].firstNonce)
+		require.Equal(t, 0, globalBreadcrumb.consumedBalance.Cmp(actual[account].consumedBalance))
 	}
 }
 
@@ -574,5 +576,115 @@ func Test_shouldWorkOnDifferentScenarios(t *testing.T) {
 		}
 
 		requireEqualGlobalAccountsBreadcrumbs(t, expectedGlobalBreadcrumbs, gabc.globalAccountBreadcrumbs)
+	})
+}
+
+func Test_updateGlobalBreadcrumbsOnRemovedBlockOnProposed(t *testing.T) {
+	t.Parallel()
+
+	t.Run("should return errGlobalBreadcrumbDoesNotExist error", func(t *testing.T) {
+		t.Parallel()
+
+		gabc := newGlobalAccountBreadcrumbsCompiler()
+
+		tb1 := newTrackedBlock(0, []byte("hash0"), []byte("rootHash"), []byte("prevHash"))
+		tx1 := createTx([]byte("hash14"), "frank", 0).withRelayer([]byte("eve")).withFee(big.NewInt(1))
+		tx2 := createTx([]byte("hash15"), "frank", 1).withRelayer([]byte("eve")).withFee(big.NewInt(1))
+
+		txs := []*WrappedTransaction{
+			tx1, tx2,
+		}
+
+		err := tb1.compileBreadcrumbs(txs)
+		require.NoError(t, err)
+
+		err = gabc.updateGlobalBreadcrumbsOnRemovedBlockOnProposed(tb1)
+		require.Equal(t, errGlobalBreadcrumbDoesNotExist, err)
+	})
+
+	t.Run("should return errNegativeBalanceForBreadcrumb error", func(t *testing.T) {
+		t.Parallel()
+
+		gabc := newGlobalAccountBreadcrumbsCompiler()
+		gabc.globalAccountBreadcrumbs = map[string]*globalAccountBreadcrumb{
+			"frank": {
+				firstNonce:      core.OptionalUint64{},
+				lastNonce:       core.OptionalUint64{},
+				consumedBalance: big.NewInt(0),
+			},
+			"eve": {
+				firstNonce:      core.OptionalUint64{},
+				lastNonce:       core.OptionalUint64{},
+				consumedBalance: big.NewInt(0),
+			},
+		}
+		tb1 := newTrackedBlock(0, []byte("hash0"), []byte("rootHash"), []byte("prevHash"))
+		tx1 := createTx([]byte("hash14"), "frank", 0).withRelayer([]byte("eve")).withFee(big.NewInt(1))
+		tx2 := createTx([]byte("hash15"), "frank", 1).withRelayer([]byte("eve")).withFee(big.NewInt(1))
+
+		txs := []*WrappedTransaction{
+			tx1, tx2,
+		}
+
+		err := tb1.compileBreadcrumbs(txs)
+		require.NoError(t, err)
+
+		err = gabc.updateGlobalBreadcrumbsOnRemovedBlockOnProposed(tb1)
+		require.Equal(t, errNegativeBalanceForBreadcrumb, err)
+	})
+}
+
+func Test_updateGlobalBreadcrumbsOnRemovedBlockOnExecuted(t *testing.T) {
+	t.Parallel()
+
+	t.Run("should return errGlobalBreadcrumbDoesNotExist error", func(t *testing.T) {
+		t.Parallel()
+
+		gabc := newGlobalAccountBreadcrumbsCompiler()
+
+		tb1 := newTrackedBlock(0, []byte("hash0"), []byte("rootHash"), []byte("prevHash"))
+		tx1 := createTx([]byte("hash14"), "frank", 0).withRelayer([]byte("eve")).withFee(big.NewInt(1))
+		tx2 := createTx([]byte("hash15"), "frank", 1).withRelayer([]byte("eve")).withFee(big.NewInt(1))
+
+		txs := []*WrappedTransaction{
+			tx1, tx2,
+		}
+
+		err := tb1.compileBreadcrumbs(txs)
+		require.NoError(t, err)
+
+		err = gabc.updateGlobalBreadcrumbsOnRemovedBlockOnExecuted(tb1)
+		require.Equal(t, errGlobalBreadcrumbDoesNotExist, err)
+	})
+
+	t.Run("should return errNegativeBalanceForBreadcrumb error", func(t *testing.T) {
+		t.Parallel()
+
+		gabc := newGlobalAccountBreadcrumbsCompiler()
+		gabc.globalAccountBreadcrumbs = map[string]*globalAccountBreadcrumb{
+			"frank": {
+				firstNonce:      core.OptionalUint64{},
+				lastNonce:       core.OptionalUint64{},
+				consumedBalance: big.NewInt(0),
+			},
+			"eve": {
+				firstNonce:      core.OptionalUint64{},
+				lastNonce:       core.OptionalUint64{},
+				consumedBalance: big.NewInt(0),
+			},
+		}
+		tb1 := newTrackedBlock(0, []byte("hash0"), []byte("rootHash"), []byte("prevHash"))
+		tx1 := createTx([]byte("hash14"), "frank", 0).withRelayer([]byte("eve")).withFee(big.NewInt(1))
+		tx2 := createTx([]byte("hash15"), "frank", 1).withRelayer([]byte("eve")).withFee(big.NewInt(1))
+
+		txs := []*WrappedTransaction{
+			tx1, tx2,
+		}
+
+		err := tb1.compileBreadcrumbs(txs)
+		require.NoError(t, err)
+
+		err = gabc.updateGlobalBreadcrumbsOnRemovedBlockOnExecuted(tb1)
+		require.Equal(t, errNegativeBalanceForBreadcrumb, err)
 	})
 }
