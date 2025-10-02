@@ -13,8 +13,9 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
-	"github.com/multiversx/mx-chain-go/state"
 	logger "github.com/multiversx/mx-chain-logger-go"
+
+	"github.com/multiversx/mx-chain-go/state"
 
 	"github.com/multiversx/mx-chain-go/common/holders"
 	"github.com/multiversx/mx-chain-go/config"
@@ -61,6 +62,12 @@ type transactions struct {
 	txTypeHandler                process.TxTypeHandler
 	scheduledTxsExecutionHandler process.ScheduledTxsExecutionHandler
 	txCacheSelectionConfig       config.TxCacheSelectionConfig
+
+	unExecutableTransactions map[string]struct{}
+	mutUnExecutableTxs       sync.RWMutex
+
+	createdMiniBlocks    block.MiniBlockSlice
+	mutCreatedMiniBlocks sync.RWMutex
 }
 
 // NewTransactionPreprocessor creates a new transaction preprocessor object
@@ -153,6 +160,9 @@ func NewTransactionPreprocessor(
 	txs.orderedTxHashes = make(map[string][][]byte)
 
 	txs.emptyAddress = make([]byte, txs.pubkeyConverter.Len())
+
+	txs.createdMiniBlocks = make(block.MiniBlockSlice, 0)
+	txs.unExecutableTransactions = make(map[string]struct{})
 
 	return txs, nil
 }
@@ -296,6 +306,28 @@ func (txs *transactions) ProcessBlockTransactions(
 	}
 
 	return process.ErrInvalidBody
+}
+
+// GetCreatedMiniBlocksFromMe returns the created mini blocks from me
+func (txs *transactions) GetCreatedMiniBlocksFromMe() block.MiniBlockSlice {
+	txs.mutCreatedMiniBlocks.RLock()
+	createdMiniBlocks := make(block.MiniBlockSlice, len(txs.createdMiniBlocks))
+	copy(createdMiniBlocks, txs.createdMiniBlocks)
+	txs.mutCreatedMiniBlocks.RUnlock()
+
+	return createdMiniBlocks
+}
+
+// GetUnExecutableTransactions returns the un-executable transactions
+func (txs *transactions) GetUnExecutableTransactions() map[string]struct{} {
+	txs.mutUnExecutableTxs.RLock()
+	unExecutableTransactions := make(map[string]struct{}, len(txs.unExecutableTransactions))
+	for k, v := range txs.unExecutableTransactions {
+		unExecutableTransactions[k] = v
+	}
+	txs.mutUnExecutableTxs.RUnlock()
+
+	return unExecutableTransactions
 }
 
 func (txs *transactions) computeTxsToMe(
@@ -608,6 +640,11 @@ func (txs *transactions) processTxsFromMe(
 	}
 	// TODO: replace the check to use the round activation for async execution
 	if txs.enableEpochsHandler.IsFlagEnabled(common.SupernovaFlag) {
+		// save the calculatedMiniBlocks for later comparison
+		txs.mutCreatedMiniBlocks.Lock()
+		txs.createdMiniBlocks = calculatedMiniBlocks
+		txs.mutCreatedMiniBlocks.Unlock()
+
 		return nil
 	}
 
@@ -747,6 +784,14 @@ func (txs *transactions) CreateBlockStarted() {
 	txs.orderedTxs = make(map[string][]data.TransactionHandler)
 	txs.orderedTxHashes = make(map[string][][]byte)
 	txs.mutOrderedTxs.Unlock()
+
+	txs.mutCreatedMiniBlocks.Lock()
+	txs.createdMiniBlocks = make(block.MiniBlockSlice, 0)
+	txs.mutCreatedMiniBlocks.Unlock()
+
+	txs.mutUnExecutableTxs.Lock()
+	txs.unExecutableTransactions = make(map[string]struct{})
+	txs.mutUnExecutableTxs.Unlock()
 
 	txs.scheduledTxsExecutionHandler.Init()
 }

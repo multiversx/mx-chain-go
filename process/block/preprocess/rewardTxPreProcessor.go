@@ -233,6 +233,11 @@ func (rtp *rewardTxPreprocessor) GetCreatedMiniBlocksFromMe() block.MiniBlockSli
 	return make(block.MiniBlockSlice, 0)
 }
 
+// GetUnExecutableTransactions returns an empty map as reward transactions are always executable
+func (rtp *rewardTxPreprocessor) GetUnExecutableTransactions() map[string]struct{} {
+	return make(map[string]struct{})
+}
+
 // SaveTxsToStorage saves the reward transactions from body into storage
 func (rtp *rewardTxPreprocessor) SaveTxsToStorage(body *block.Body) error {
 	if check.IfNil(body) {

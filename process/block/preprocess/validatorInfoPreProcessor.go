@@ -168,6 +168,11 @@ func (vip *validatorInfoPreprocessor) GetCreatedMiniBlocksFromMe() block.MiniBlo
 	return make(block.MiniBlockSlice, 0)
 }
 
+// GetUnExecutableTransactions returns an empty map as validator info are always executable
+func (vip *validatorInfoPreprocessor) GetUnExecutableTransactions() map[string]struct{} {
+	return make(map[string]struct{})
+}
+
 // SaveTxsToStorage saves validator info from body into storage
 func (vip *validatorInfoPreprocessor) SaveTxsToStorage(body *block.Body) error {
 	if check.IfNil(body) {

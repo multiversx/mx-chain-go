@@ -248,6 +248,7 @@ type PreProcessor interface {
 
 	ProcessBlockTransactions(header data.HeaderHandler, body *block.Body, haveTime func() bool) error
 	GetCreatedMiniBlocksFromMe() block.MiniBlockSlice
+	GetUnExecutableTransactions() map[string]struct{}
 
 	RequestBlockTransactions(body *block.Body) int
 

@@ -1388,3 +1388,9 @@ var ErrInvalidNumberOfExecutionResultsInHeader = errors.New("invalid number of e
 
 // ErrEpochStartInfoNotAvailable signals that epoch start info is not available
 var ErrEpochStartInfoNotAvailable = errors.New("epoch start info not available")
+
+// ErrDuplicatedTransaction signals that a duplicated transaction was found
+var ErrDuplicatedTransaction = errors.New("duplicated transaction")
+
+// ErrTransactionsMissmatch signals that transactions do not match
+var ErrTransactionsMissmatch = errors.New("transactions missmatch")

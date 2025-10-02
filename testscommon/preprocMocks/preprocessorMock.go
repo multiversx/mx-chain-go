@@ -20,6 +20,7 @@ type PreProcessorMock struct {
 	SaveTxsToStorageCalled                             func(body *block.Body) error
 	ProcessBlockTransactionsCalled                     func(header data.HeaderHandler, body *block.Body, haveTime func() bool) error
 	GetCreatedMiniBlocksFromMeCalled                   func() block.MiniBlockSlice
+	GetUnExecutableTransactionsCalled                  func() map[string]struct{}
 	RequestBlockTransactionsCalled                     func(body *block.Body) int
 	CreateMarshalledDataCalled                         func(txHashes [][]byte) ([][]byte, error)
 	GetTransactionsAndRequestMissingForMiniBlockCalled func(miniBlock *block.MiniBlock) ([]data.TransactionHandler, int)
@@ -93,6 +94,14 @@ func (ppm *PreProcessorMock) GetCreatedMiniBlocksFromMe() block.MiniBlockSlice {
 		return nil
 	}
 	return ppm.GetCreatedMiniBlocksFromMeCalled()
+}
+
+// GetUnExecutableTransactions -
+func (ppm *PreProcessorMock) GetUnExecutableTransactions() map[string]struct{} {
+	if ppm.GetUnExecutableTransactionsCalled == nil {
+		return nil
+	}
+	return ppm.GetUnExecutableTransactionsCalled()
 }
 
 // RequestBlockTransactions -

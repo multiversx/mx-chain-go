@@ -367,6 +367,39 @@ func (tc *transactionCoordinator) ProcessBlockTransaction(
 	return nil
 }
 
+// GetCreatedMiniBlocksFromMe returns the created mini blocks from me
+func (tc *transactionCoordinator) getCreatedMiniBlocksFromMe() block.MiniBlockSlice {
+	miniBlocks := make(block.MiniBlockSlice, 0)
+	for _, blockType := range tc.preProcExecution.keysTxPreProcs {
+		preProc := tc.preProcExecution.getPreProcessor(blockType)
+		if check.IfNil(preProc) {
+			log.Error("GetCreatedMiniBlocksFromMe", "error", process.ErrMissingPreProcessor)
+			continue
+		}
+
+		miniBlocks = append(miniBlocks, preProc.GetCreatedMiniBlocksFromMe()...)
+	}
+
+	return miniBlocks
+}
+
+func (tc *transactionCoordinator) getUnExecutableTransactions() map[string]struct{} {
+	unExecutableTxs := make(map[string]struct{})
+	for _, blockType := range tc.preProcExecution.keysTxPreProcs {
+		preProc := tc.preProcExecution.getPreProcessor(blockType)
+		if check.IfNil(preProc) {
+			log.Error("getUnExecutableTransactions", "error", process.ErrMissingPreProcessor)
+			continue
+		}
+
+		for txHash := range preProc.GetUnExecutableTransactions() {
+			unExecutableTxs[txHash] = struct{}{}
+		}
+	}
+
+	return unExecutableTxs
+}
+
 // RequestMiniBlocksAndTransactions forwards the request to block data requester
 func (tc *transactionCoordinator) RequestMiniBlocksAndTransactions(header data.HeaderHandler) {
 	tc.blockDataRequester.RequestMiniBlocksAndTransactions(header)
@@ -1109,9 +1142,12 @@ func (tc *transactionCoordinator) RevertProcessedTxsResults(txHashes [][]byte, k
 
 // VerifyCreatedBlockTransactions checks whether the created transactions are the same as the one proposed
 func (tc *transactionCoordinator) VerifyCreatedBlockTransactions(hdr data.HeaderHandler, body *block.Body) error {
+	if hdr.IsHeaderV3() {
+		return tc.verifyCreatedMiniBlocksSanity(body)
+	}
+
 	errMutex := sync.Mutex{}
 	var errFound error
-
 	wg := sync.WaitGroup{}
 
 	tc.mutInterimProcessors.RLock()
@@ -1158,29 +1194,24 @@ func (tc *transactionCoordinator) VerifyCreatedBlockTransactions(hdr data.Header
 
 // CreateReceiptsHash will return the hash for the receipts
 func (tc *transactionCoordinator) CreateReceiptsHash() ([]byte, error) {
-	tc.mutInterimProcessors.RLock()
-	defer tc.mutInterimProcessors.RUnlock()
+	createdIntermediateMbs := tc.GetCreatedInShardMiniBlocks()
+	return tc.createReceiptHash(createdIntermediateMbs)
+}
 
+func (tc *transactionCoordinator) createReceiptHash(miniBlocks []*block.MiniBlock) ([]byte, error) {
 	allReceiptsHashes := make([][]byte, 0)
 
-	for _, value := range tc.keysInterimProcs {
-		interProc, ok := tc.interimProcessors[value]
-		if !ok {
-			continue
-		}
-
-		mb := interProc.GetCreatedInShardMiniBlock()
+	for _, mb := range miniBlocks {
 		if mb == nil {
-			log.Trace("CreateReceiptsHash nil inshard miniblock for type", "type", value)
+			log.Trace("CreateReceiptsHash nil inshard miniblock")
 			continue
 		}
 
-		log.Trace("CreateReceiptsHash.GetCreatedInShardMiniBlock",
+		log.Trace("CreateReceiptsHash",
 			"type", mb.Type,
 			"senderShardID", mb.SenderShardID,
 			"receiverShardID", mb.ReceiverShardID,
 			"numTxHashes", len(mb.TxHashes),
-			"interimProcType", value,
 		)
 
 		for _, hash := range mb.TxHashes {
@@ -1195,8 +1226,7 @@ func (tc *transactionCoordinator) CreateReceiptsHash() ([]byte, error) {
 		allReceiptsHashes = append(allReceiptsHashes, currHash)
 	}
 
-	finalReceiptHash, err := core.CalculateHash(tc.marshalizer, tc.hasher, &batch.Batch{Data: allReceiptsHashes})
-	return finalReceiptHash, err
+	return core.CalculateHash(tc.marshalizer, tc.hasher, &batch.Batch{Data: allReceiptsHashes})
 }
 
 // GetCreatedInShardMiniBlocks will return the intra-shard created miniblocks
