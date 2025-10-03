@@ -249,7 +249,7 @@ func (st *selectionTracker) addNewTrackedBlockNoLock(blockToBeAddedHash []byte, 
 	// search if in the tracked blocks we already have one with same nonce or greater
 	for bHash, b := range st.blocks {
 		if b.hasSameNonceOrHigher(blockToBeAdded) {
-			err := st.globalBreadcrumbsCompiler.updateGlobalBreadcrumbsOnRemovedBlockOnProposed(b)
+			err := st.globalBreadcrumbsCompiler.updateAfterRemovedBlockWithSameNonceOrAbove(b)
 			if err != nil {
 				return err
 			}
@@ -266,7 +266,7 @@ func (st *selectionTracker) addNewTrackedBlockNoLock(blockToBeAddedHash []byte, 
 
 	// add the new block
 	st.blocks[string(blockToBeAddedHash)] = blockToBeAdded
-	st.globalBreadcrumbsCompiler.updateGlobalBreadcrumbsOnAddedBlockOnProposed(blockToBeAdded)
+	st.globalBreadcrumbsCompiler.updateGlobalBreadcrumbsOnAddedBlock(blockToBeAdded)
 
 	return nil
 }
@@ -292,7 +292,7 @@ func (st *selectionTracker) OnExecutedBlock(blockHeader data.HeaderHandler) erro
 	st.mutTracker.Lock()
 	defer st.mutTracker.Unlock()
 
-	err := st.removeFromTrackedBlocksNoLock(tempTrackedBlock)
+	err := st.removeUpToBlockNoLock(tempTrackedBlock)
 	if err != nil {
 		return err
 	}
@@ -301,11 +301,11 @@ func (st *selectionTracker) OnExecutedBlock(blockHeader data.HeaderHandler) erro
 	return nil
 }
 
-func (st *selectionTracker) removeFromTrackedBlocksNoLock(searchedBlock *trackedBlock) error {
+func (st *selectionTracker) removeUpToBlockNoLock(searchedBlock *trackedBlock) error {
 	removedBlocks := 0
 	for blockHash, b := range st.blocks {
 		if b.sameNonceOrBelow(searchedBlock) {
-			err := st.globalBreadcrumbsCompiler.updateGlobalBreadcrumbsOnRemovedBlockOnExecuted(b)
+			err := st.globalBreadcrumbsCompiler.updateAfterRemovedBlockWithSameNonceOrBelow(b)
 			if err != nil {
 				return err
 			}
@@ -315,7 +315,7 @@ func (st *selectionTracker) removeFromTrackedBlocksNoLock(searchedBlock *tracked
 		}
 	}
 
-	log.Debug("selectionTracker.removeFromTrackedBlocksNoLock",
+	log.Debug("selectionTracker.removeUpToBlockNoLock",
 		"searched block nonce", searchedBlock.nonce,
 		"searched block hash", searchedBlock.hash,
 		"searched block rootHash", searchedBlock.rootHash,

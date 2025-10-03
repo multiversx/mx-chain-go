@@ -15,7 +15,7 @@ func newGlobalAccountBreadcrumbsCompiler() *globalAccountBreadcrumbsCompiler {
 	}
 }
 
-func (gabc *globalAccountBreadcrumbsCompiler) updateGlobalBreadcrumbsOnAddedBlockOnProposed(tb *trackedBlock) {
+func (gabc *globalAccountBreadcrumbsCompiler) updateGlobalBreadcrumbsOnAddedBlock(tb *trackedBlock) {
 	gabc.mutCompiler.Lock()
 	defer gabc.mutCompiler.Unlock()
 
@@ -27,11 +27,11 @@ func (gabc *globalAccountBreadcrumbsCompiler) updateGlobalBreadcrumbsOnAddedBloc
 			gabc.globalAccountBreadcrumbs[account] = globalBreadcrumb
 		}
 
-		globalBreadcrumb.updateOnAddedAccountBreadcrumb(breadcrumb)
+		globalBreadcrumb.updateOnAddedBreadcrumb(breadcrumb)
 	}
 }
 
-func (gabc *globalAccountBreadcrumbsCompiler) updateGlobalBreadcrumbsOnRemovedBlockOnProposed(tb *trackedBlock) error {
+func (gabc *globalAccountBreadcrumbsCompiler) updateAfterRemovedBlockWithSameNonceOrAbove(tb *trackedBlock) error {
 	gabc.mutCompiler.Lock()
 	defer gabc.mutCompiler.Unlock()
 
@@ -42,7 +42,7 @@ func (gabc *globalAccountBreadcrumbsCompiler) updateGlobalBreadcrumbsOnRemovedBl
 			return errGlobalBreadcrumbDoesNotExist
 		}
 
-		shouldBeDeleted, err := globalBreadcrumb.updateOnRemoveAccountBreadcrumbOnProposedBlock(breadcrumb)
+		shouldBeDeleted, err := globalBreadcrumb.updateOnRemoveBreadcrumbWithSameNonceOrAbove(breadcrumb)
 		if err != nil {
 			return err
 		}
@@ -55,7 +55,7 @@ func (gabc *globalAccountBreadcrumbsCompiler) updateGlobalBreadcrumbsOnRemovedBl
 	return nil
 }
 
-func (gabc *globalAccountBreadcrumbsCompiler) updateGlobalBreadcrumbsOnRemovedBlockOnExecuted(tb *trackedBlock) error {
+func (gabc *globalAccountBreadcrumbsCompiler) updateAfterRemovedBlockWithSameNonceOrBelow(tb *trackedBlock) error {
 	gabc.mutCompiler.Lock()
 	defer gabc.mutCompiler.Unlock()
 
@@ -66,7 +66,7 @@ func (gabc *globalAccountBreadcrumbsCompiler) updateGlobalBreadcrumbsOnRemovedBl
 			return errGlobalBreadcrumbDoesNotExist
 		}
 
-		shouldBeDeleted, err := globalBreadcrumb.updateOnRemoveAccountBreadcrumbOnExecutedBlock(breadcrumb)
+		shouldBeDeleted, err := globalBreadcrumb.updateOnRemovedBreadcrumbWithSameNonceOrBelow(breadcrumb)
 		if err != nil {
 			return err
 		}

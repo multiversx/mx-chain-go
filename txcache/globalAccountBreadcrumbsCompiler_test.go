@@ -6,7 +6,6 @@ import (
 	"math/big"
 	"sync"
 	"testing"
-	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/stretchr/testify/require"
@@ -52,21 +51,18 @@ func Test_shouldWorkConcurrently(t *testing.T) {
 
 	for i := 1; i <= numOfBlocks; i++ {
 		tb := newTrackedBlock(uint64(i), []byte(fmt.Sprintf("hash%d", i-1)), []byte("rootHash0"), []byte(fmt.Sprintf("prevHash%d", i-1)))
+
 		go func(tb *trackedBlock) {
 			defer wg.Done()
 
-			gabc.updateGlobalBreadcrumbsOnAddedBlockOnProposed(tb)
-
-			time.Sleep(100 * time.Millisecond)
+			gabc.updateGlobalBreadcrumbsOnAddedBlock(tb)
 		}(tb)
 
 		go func(tb *trackedBlock) {
 			defer wg.Done()
 
-			err := gabc.updateGlobalBreadcrumbsOnRemovedBlockOnExecuted(tb)
+			err := gabc.updateAfterRemovedBlockWithSameNonceOrBelow(tb)
 			require.NoError(t, err)
-
-			time.Sleep(100 * time.Millisecond)
 		}(tb)
 	}
 
@@ -95,7 +91,7 @@ func Test_shouldWorkOnDifferentScenarios(t *testing.T) {
 		require.NoError(t, err)
 
 		// update the global state
-		gabc.updateGlobalBreadcrumbsOnAddedBlockOnProposed(tb1)
+		gabc.updateGlobalBreadcrumbsOnAddedBlock(tb1)
 
 		expectedGlobalBreadcrumbs := map[string]*globalAccountBreadcrumb{
 			"alice": {
@@ -150,7 +146,7 @@ func Test_shouldWorkOnDifferentScenarios(t *testing.T) {
 		require.NoError(t, err)
 
 		// update the global state
-		gabc.updateGlobalBreadcrumbsOnAddedBlockOnProposed(tb2)
+		gabc.updateGlobalBreadcrumbsOnAddedBlock(tb2)
 
 		expectedGlobalBreadcrumbs = map[string]*globalAccountBreadcrumb{
 			"alice": {
@@ -191,7 +187,7 @@ func Test_shouldWorkOnDifferentScenarios(t *testing.T) {
 		requireEqualGlobalAccountsBreadcrumbs(t, expectedGlobalBreadcrumbs, gabc.globalAccountBreadcrumbs)
 
 		// remove the first proposed block and update the global state
-		err = gabc.updateGlobalBreadcrumbsOnRemovedBlockOnExecuted(tb1)
+		err = gabc.updateAfterRemovedBlockWithSameNonceOrBelow(tb1)
 		require.NoError(t, err)
 
 		expectedGlobalBreadcrumbs = map[string]*globalAccountBreadcrumb{
@@ -222,7 +218,7 @@ func Test_shouldWorkOnDifferentScenarios(t *testing.T) {
 		requireEqualGlobalAccountsBreadcrumbs(t, expectedGlobalBreadcrumbs, gabc.globalAccountBreadcrumbs)
 
 		// remove the second proposed block and update the global state
-		err = gabc.updateGlobalBreadcrumbsOnRemovedBlockOnExecuted(tb2)
+		err = gabc.updateAfterRemovedBlockWithSameNonceOrBelow(tb2)
 		require.NoError(t, err)
 
 		expectedGlobalBreadcrumbs = map[string]*globalAccountBreadcrumb{}
@@ -252,7 +248,7 @@ func Test_shouldWorkOnDifferentScenarios(t *testing.T) {
 		require.NoError(t, err)
 
 		// update the global state
-		gabc.updateGlobalBreadcrumbsOnAddedBlockOnProposed(tb3)
+		gabc.updateGlobalBreadcrumbsOnAddedBlock(tb3)
 
 		expectedGlobalBreadcrumbs := map[string]*globalAccountBreadcrumb{
 			"eve": {
@@ -308,7 +304,7 @@ func Test_shouldWorkOnDifferentScenarios(t *testing.T) {
 		require.NoError(t, err)
 
 		// update the global state
-		gabc.updateGlobalBreadcrumbsOnAddedBlockOnProposed(tb4)
+		gabc.updateGlobalBreadcrumbsOnAddedBlock(tb4)
 
 		expectedGlobalBreadcrumbs = map[string]*globalAccountBreadcrumb{
 			"eve": {
@@ -363,7 +359,7 @@ func Test_shouldWorkOnDifferentScenarios(t *testing.T) {
 		require.NoError(t, err)
 
 		// propose
-		gabc.updateGlobalBreadcrumbsOnAddedBlockOnProposed(tb5)
+		gabc.updateGlobalBreadcrumbsOnAddedBlock(tb5)
 
 		expectedGlobalBreadcrumbs = map[string]*globalAccountBreadcrumb{
 			"eve": {
@@ -417,7 +413,7 @@ func Test_shouldWorkOnDifferentScenarios(t *testing.T) {
 		// now, replace the first block in the non-canonical chain
 		// first, remove all the once greater or equal to its nonce
 
-		err = gabc.updateGlobalBreadcrumbsOnRemovedBlockOnProposed(tb4)
+		err = gabc.updateAfterRemovedBlockWithSameNonceOrAbove(tb4)
 		require.NoError(t, err)
 
 		expectedGlobalBreadcrumbs = map[string]*globalAccountBreadcrumb{
@@ -469,7 +465,7 @@ func Test_shouldWorkOnDifferentScenarios(t *testing.T) {
 
 		requireEqualGlobalAccountsBreadcrumbs(t, expectedGlobalBreadcrumbs, gabc.globalAccountBreadcrumbs)
 
-		err = gabc.updateGlobalBreadcrumbsOnRemovedBlockOnProposed(tb5)
+		err = gabc.updateAfterRemovedBlockWithSameNonceOrAbove(tb5)
 		require.NoError(t, err)
 
 		expectedGlobalBreadcrumbs = map[string]*globalAccountBreadcrumb{
@@ -526,7 +522,7 @@ func Test_shouldWorkOnDifferentScenarios(t *testing.T) {
 		require.NoError(t, err)
 
 		// update the global state
-		gabc.updateGlobalBreadcrumbsOnAddedBlockOnProposed(tb6)
+		gabc.updateGlobalBreadcrumbsOnAddedBlock(tb6)
 
 		expectedGlobalBreadcrumbs = map[string]*globalAccountBreadcrumb{
 			"eve": {
@@ -598,7 +594,7 @@ func Test_updateGlobalBreadcrumbsOnRemovedBlockOnProposed(t *testing.T) {
 		err := tb1.compileBreadcrumbs(txs)
 		require.NoError(t, err)
 
-		err = gabc.updateGlobalBreadcrumbsOnRemovedBlockOnProposed(tb1)
+		err = gabc.updateAfterRemovedBlockWithSameNonceOrAbove(tb1)
 		require.Equal(t, errGlobalBreadcrumbDoesNotExist, err)
 	})
 
@@ -629,7 +625,7 @@ func Test_updateGlobalBreadcrumbsOnRemovedBlockOnProposed(t *testing.T) {
 		err := tb1.compileBreadcrumbs(txs)
 		require.NoError(t, err)
 
-		err = gabc.updateGlobalBreadcrumbsOnRemovedBlockOnProposed(tb1)
+		err = gabc.updateAfterRemovedBlockWithSameNonceOrAbove(tb1)
 		require.Equal(t, errNegativeBalanceForBreadcrumb, err)
 	})
 }
@@ -653,7 +649,7 @@ func Test_updateGlobalBreadcrumbsOnRemovedBlockOnExecuted(t *testing.T) {
 		err := tb1.compileBreadcrumbs(txs)
 		require.NoError(t, err)
 
-		err = gabc.updateGlobalBreadcrumbsOnRemovedBlockOnExecuted(tb1)
+		err = gabc.updateAfterRemovedBlockWithSameNonceOrBelow(tb1)
 		require.Equal(t, errGlobalBreadcrumbDoesNotExist, err)
 	})
 
@@ -684,7 +680,7 @@ func Test_updateGlobalBreadcrumbsOnRemovedBlockOnExecuted(t *testing.T) {
 		err := tb1.compileBreadcrumbs(txs)
 		require.NoError(t, err)
 
-		err = gabc.updateGlobalBreadcrumbsOnRemovedBlockOnExecuted(tb1)
+		err = gabc.updateAfterRemovedBlockWithSameNonceOrBelow(tb1)
 		require.Equal(t, errNegativeBalanceForBreadcrumb, err)
 	})
 }
