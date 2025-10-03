@@ -656,10 +656,10 @@ func Test_ResetTracker(t *testing.T) {
 	require.Nil(t, err)
 
 	txs := []*WrappedTransaction{
-		createTx([]byte("txHash1"), "alice", 11).withRelayer([]byte("bob")).withGasLimit(100_000),
-		createTx([]byte("txHash2"), "alice", 12),
-		createTx([]byte("txHash3"), "alice", 13),
-		createTx([]byte("txHash4"), "bob", 11),
+		createTx([]byte("txHash1"), "bob", 11),
+		createTx([]byte("txHash2"), "alice", 11).withRelayer([]byte("bob")).withGasLimit(100_000),
+		createTx([]byte("txHash3"), "alice", 12),
+		createTx([]byte("txHash4"), "alice", 13),
 	}
 	for _, tx := range txs {
 		cache.AddTx(tx)
@@ -691,6 +691,10 @@ func Test_ResetTracker(t *testing.T) {
 
 	require.Equal(t, 1, len(cache.tracker.blocks))
 	require.Equal(t, 2, len(cache.tracker.getGlobalAccountsBreadcrumbs()))
+
+	cache.ResetTracker()
+	require.Equal(t, 0, len(cache.tracker.blocks))
+	require.Equal(t, 0, len(cache.tracker.getGlobalAccountsBreadcrumbs()))
 }
 
 func newUnconstrainedCacheToTest(boundsConfig config.TxCacheBoundsConfig) *TxCache {
