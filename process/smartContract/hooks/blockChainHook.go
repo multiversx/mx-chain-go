@@ -66,7 +66,7 @@ type ArgBlockChainHook struct {
 	Counter                  BlockChainHookCounter
 	MissingTrieNodesNotifier common.MissingTrieNodesNotifier
 	EpochStartTrigger        EpochStartTriggerHandler
-	RoundHandler             RoundHandler // TODO: @laurci - this needs to be replaced when changing the round duration
+	RoundHandler             RoundHandler
 }
 
 // BlockChainHookImpl is a wrapper over AccountsAdapter that satisfy vmcommon.BlockchainHook interface
@@ -85,7 +85,7 @@ type BlockChainHookImpl struct {
 	enableEpochsHandler   common.EnableEpochsHandler
 	counter               BlockChainHookCounter
 	epochStartTrigger     EpochStartTriggerHandler
-	roundHandler          RoundHandler // TODO: @laurci - this needs to be replaced when changing the round duration
+	roundHandler          RoundHandler
 
 	mutCurrentHdr sync.RWMutex
 	currentHdr    data.HeaderHandler
@@ -396,10 +396,13 @@ func (bh *BlockChainHookImpl) LastTimeStamp() uint64 {
 
 // LastTimeStampMs returns the timeStamp in milliseconds from the last committed block
 func (bh *BlockChainHookImpl) LastTimeStampMs() uint64 {
-	if !check.IfNil(bh.blockChain.GetCurrentBlockHeader()) {
-		return common.ConvertTimeStampSecToMs(bh.blockChain.GetCurrentBlockHeader().GetTimeStamp())
+	if check.IfNil(bh.blockChain.GetCurrentBlockHeader()) {
+		return 0
 	}
-	return 0
+
+	_, timestampMs, _ := common.GetHeaderTimestamps(bh.blockChain.GetCurrentBlockHeader(), bh.enableEpochsHandler)
+
+	return timestampMs
 }
 
 // LastRandomSeed returns the random seed from the last committed block
@@ -420,7 +423,6 @@ func (bh *BlockChainHookImpl) LastEpoch() uint32 {
 
 // RoundTime returns the duration of a round
 func (bh *BlockChainHookImpl) RoundTime() uint64 {
-	// TODO: @laurci - this needs to be replaced when changing the round duration
 	roundDuration := bh.roundHandler.TimeDuration()
 
 	return uint64(roundDuration.Milliseconds())
@@ -431,7 +433,8 @@ func (bh *BlockChainHookImpl) EpochStartBlockTimeStampMs() uint64 {
 	bh.mutEpochStartHdr.RLock()
 	defer bh.mutEpochStartHdr.RUnlock()
 
-	timestampMs := common.ConvertTimeStampSecToMs(bh.epochStartHdr.GetTimeStamp())
+	_, timestampMs, _ := common.GetHeaderTimestamps(bh.epochStartHdr, bh.enableEpochsHandler)
+
 	return timestampMs
 }
 
@@ -490,7 +493,9 @@ func (bh *BlockChainHookImpl) CurrentTimeStampMs() uint64 {
 	bh.mutCurrentHdr.RLock()
 	defer bh.mutCurrentHdr.RUnlock()
 
-	return common.ConvertTimeStampSecToMs(bh.currentHdr.GetTimeStamp())
+	_, timestampMs, _ := common.GetHeaderTimestamps(bh.currentHdr, bh.enableEpochsHandler)
+
+	return timestampMs
 }
 
 // CurrentRandomSeed returns the random seed from the current header
