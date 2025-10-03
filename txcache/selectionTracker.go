@@ -266,7 +266,7 @@ func (st *selectionTracker) addNewTrackedBlockNoLock(blockToBeAddedHash []byte, 
 
 	// add the new block
 	st.blocks[string(blockToBeAddedHash)] = blockToBeAdded
-	st.globalBreadcrumbsCompiler.updateGlobalBreadcrumbsOnAddedBlock(blockToBeAdded)
+	st.globalBreadcrumbsCompiler.updateOnAddedBlock(blockToBeAdded)
 
 	return nil
 }

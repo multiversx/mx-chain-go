@@ -15,7 +15,7 @@ func newGlobalAccountBreadcrumbsCompiler() *globalAccountBreadcrumbsCompiler {
 	}
 }
 
-func (gabc *globalAccountBreadcrumbsCompiler) updateGlobalBreadcrumbsOnAddedBlock(tb *trackedBlock) {
+func (gabc *globalAccountBreadcrumbsCompiler) updateOnAddedBlock(tb *trackedBlock) {
 	gabc.mutCompiler.Lock()
 	defer gabc.mutCompiler.Unlock()
 

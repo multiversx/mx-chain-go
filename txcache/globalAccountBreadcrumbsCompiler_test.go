@@ -55,7 +55,7 @@ func Test_shouldWorkConcurrently(t *testing.T) {
 		go func(tb *trackedBlock) {
 			defer wg.Done()
 
-			gabc.updateGlobalBreadcrumbsOnAddedBlock(tb)
+			gabc.updateOnAddedBlock(tb)
 		}(tb)
 
 		go func(tb *trackedBlock) {
@@ -91,7 +91,7 @@ func Test_shouldWorkOnDifferentScenarios(t *testing.T) {
 		require.NoError(t, err)
 
 		// update the global state
-		gabc.updateGlobalBreadcrumbsOnAddedBlock(tb1)
+		gabc.updateOnAddedBlock(tb1)
 
 		expectedGlobalBreadcrumbs := map[string]*globalAccountBreadcrumb{
 			"alice": {
@@ -146,7 +146,7 @@ func Test_shouldWorkOnDifferentScenarios(t *testing.T) {
 		require.NoError(t, err)
 
 		// update the global state
-		gabc.updateGlobalBreadcrumbsOnAddedBlock(tb2)
+		gabc.updateOnAddedBlock(tb2)
 
 		expectedGlobalBreadcrumbs = map[string]*globalAccountBreadcrumb{
 			"alice": {
@@ -248,7 +248,7 @@ func Test_shouldWorkOnDifferentScenarios(t *testing.T) {
 		require.NoError(t, err)
 
 		// update the global state
-		gabc.updateGlobalBreadcrumbsOnAddedBlock(tb3)
+		gabc.updateOnAddedBlock(tb3)
 
 		expectedGlobalBreadcrumbs := map[string]*globalAccountBreadcrumb{
 			"eve": {
@@ -304,7 +304,7 @@ func Test_shouldWorkOnDifferentScenarios(t *testing.T) {
 		require.NoError(t, err)
 
 		// update the global state
-		gabc.updateGlobalBreadcrumbsOnAddedBlock(tb4)
+		gabc.updateOnAddedBlock(tb4)
 
 		expectedGlobalBreadcrumbs = map[string]*globalAccountBreadcrumb{
 			"eve": {
@@ -359,7 +359,7 @@ func Test_shouldWorkOnDifferentScenarios(t *testing.T) {
 		require.NoError(t, err)
 
 		// propose
-		gabc.updateGlobalBreadcrumbsOnAddedBlock(tb5)
+		gabc.updateOnAddedBlock(tb5)
 
 		expectedGlobalBreadcrumbs = map[string]*globalAccountBreadcrumb{
 			"eve": {
@@ -522,7 +522,7 @@ func Test_shouldWorkOnDifferentScenarios(t *testing.T) {
 		require.NoError(t, err)
 
 		// update the global state
-		gabc.updateGlobalBreadcrumbsOnAddedBlock(tb6)
+		gabc.updateOnAddedBlock(tb6)
 
 		expectedGlobalBreadcrumbs = map[string]*globalAccountBreadcrumb{
 			"eve": {
