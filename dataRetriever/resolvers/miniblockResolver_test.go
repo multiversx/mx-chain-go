@@ -124,13 +124,13 @@ func TestMiniblockResolver_ProcessReceivedAntifloodErrorsShouldErr(t *testing.T)
 	arg := createMockArgMiniblockResolver()
 	arg.AntifloodHandler = &mock.P2PAntifloodHandlerStub{
 		CanProcessMessageCalled: func(message p2p.MessageP2P, fromConnectedPeer core.PeerID) error {
-			return expectedErr
+			return errExpected
 		},
 	}
 	mbRes, _ := resolvers.NewMiniblockResolver(arg)
 
 	msgID, err := mbRes.ProcessReceivedMessage(createRequestMsg(dataRetriever.HashType, nil), fromConnectedPeerId, &p2pmocks.MessengerStub{})
-	assert.True(t, errors.Is(err, expectedErr))
+	assert.True(t, errors.Is(err, errExpected))
 	assert.False(t, arg.Throttler.(*mock.ThrottlerStub).StartWasCalled())
 	assert.False(t, arg.Throttler.(*mock.ThrottlerStub).EndWasCalled())
 	assert.Nil(t, msgID)
@@ -280,7 +280,7 @@ func TestMiniblockResolver_ProcessReceivedMessageUnmarshalFails(t *testing.T) {
 		UnmarshalCalled: func(obj interface{}, buff []byte) error {
 			cnt++
 			if cnt > 1 {
-				return expectedErr
+				return errExpected
 			}
 			return goodMarshalizer.Unmarshal(obj, buff)
 		},
@@ -321,7 +321,7 @@ func TestMiniblockResolver_ProcessReceivedMessageUnmarshalFails(t *testing.T) {
 		&p2pmocks.MessengerStub{},
 	)
 
-	assert.True(t, errors.Is(err, expectedErr))
+	assert.True(t, errors.Is(err, errExpected))
 	assert.True(t, arg.Throttler.(*mock.ThrottlerStub).StartWasCalled())
 	assert.True(t, arg.Throttler.(*mock.ThrottlerStub).EndWasCalled())
 	assert.Nil(t, msgID)
@@ -355,7 +355,7 @@ func TestMiniblockResolver_ProcessReceivedMessagePackDataInChunksFails(t *testin
 	arg.Marshaller = goodMarshalizer
 	arg.DataPacker = &mock.DataPackerStub{
 		PackDataInChunksCalled: func(data [][]byte, limit int) ([][]byte, error) {
-			return nil, expectedErr
+			return nil, errExpected
 		},
 	}
 	mbRes, _ := resolvers.NewMiniblockResolver(arg)
@@ -366,7 +366,7 @@ func TestMiniblockResolver_ProcessReceivedMessagePackDataInChunksFails(t *testin
 		&p2pmocks.MessengerStub{},
 	)
 
-	assert.True(t, errors.Is(err, expectedErr))
+	assert.True(t, errors.Is(err, errExpected))
 	assert.True(t, arg.Throttler.(*mock.ThrottlerStub).StartWasCalled())
 	assert.True(t, arg.Throttler.(*mock.ThrottlerStub).EndWasCalled())
 	assert.Nil(t, msgID)
@@ -400,7 +400,7 @@ func TestMiniblockResolver_ProcessReceivedMessageSendFails(t *testing.T) {
 	arg.Marshaller = goodMarshalizer
 	arg.SenderResolver = &mock.TopicResolverSenderStub{
 		SendCalled: func(buff []byte, peer core.PeerID, source p2p.MessageHandler) error {
-			return expectedErr
+			return errExpected
 		},
 	}
 	mbRes, _ := resolvers.NewMiniblockResolver(arg)
@@ -411,7 +411,7 @@ func TestMiniblockResolver_ProcessReceivedMessageSendFails(t *testing.T) {
 		&p2pmocks.MessengerStub{},
 	)
 
-	assert.True(t, errors.Is(err, expectedErr))
+	assert.True(t, errors.Is(err, errExpected))
 	assert.True(t, arg.Throttler.(*mock.ThrottlerStub).StartWasCalled())
 	assert.True(t, arg.Throttler.(*mock.ThrottlerStub).EndWasCalled())
 	assert.Nil(t, msgID)
@@ -501,7 +501,7 @@ func TestMiniblockResolver_ProcessReceivedMessageMarshalFails(t *testing.T) {
 	arg.Marshaller = &mock.MarshalizerStub{
 		UnmarshalCalled: marshalizer.Unmarshal,
 		MarshalCalled: func(obj interface{}) ([]byte, error) {
-			return nil, expectedErr
+			return nil, errExpected
 		},
 	}
 	mbRes, _ := resolvers.NewMiniblockResolver(arg)
@@ -512,7 +512,7 @@ func TestMiniblockResolver_ProcessReceivedMessageMarshalFails(t *testing.T) {
 		&p2pmocks.MessengerStub{},
 	)
 
-	assert.True(t, errors.Is(err, expectedErr))
+	assert.True(t, errors.Is(err, errExpected))
 	assert.True(t, wasResolved)
 	assert.True(t, arg.Throttler.(*mock.ThrottlerStub).StartWasCalled())
 	assert.True(t, arg.Throttler.(*mock.ThrottlerStub).EndWasCalled())

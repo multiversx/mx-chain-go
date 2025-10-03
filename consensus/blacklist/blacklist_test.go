@@ -51,7 +51,9 @@ func TestNewPeerBlacklist(t *testing.T) {
 		pb, err := blacklist.NewPeerBlacklist(args)
 		require.Nil(t, err)
 		require.False(t, pb.IsInterfaceNil())
-		defer pb.Close()
+		defer func() {
+			_ = pb.Close()
+		}()
 
 		wg.Wait()
 

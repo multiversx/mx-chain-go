@@ -107,10 +107,10 @@ func TestGuardedAccount_getConfiguredGuardians(t *testing.T) {
 	t.Run("guardians key not found should return empty", func(t *testing.T) {
 		t.Parallel()
 
-		expectedErr := errors.New("expected error")
+		errExpected := errors.New("expected error")
 		acc := &stateMocks.UserAccountStub{
 			RetrieveValueCalled: func(key []byte) ([]byte, uint32, error) {
-				return nil, 0, expectedErr
+				return nil, 0, errExpected
 			},
 		}
 
@@ -136,11 +136,11 @@ func TestGuardedAccount_getConfiguredGuardians(t *testing.T) {
 	t.Run("unmarshal guardians error should return error", func(t *testing.T) {
 		t.Parallel()
 
-		expectedErr := errors.New("expected error")
+		errExpected := errors.New("expected error")
 		ga := createGuardedAccountWithEpoch(10)
 		ga.marshaller = &marshallerMock.MarshalizerStub{
 			UnmarshalCalled: func(obj interface{}, buff []byte) error {
-				return expectedErr
+				return errExpected
 			},
 		}
 		acc := &stateMocks.UserAccountStub{
@@ -151,7 +151,7 @@ func TestGuardedAccount_getConfiguredGuardians(t *testing.T) {
 
 		configuredGuardians, err := ga.getConfiguredGuardians(acc)
 		require.Nil(t, configuredGuardians)
-		require.Equal(t, expectedErr, err)
+		require.Equal(t, errExpected, err)
 	})
 	t.Run("unmarshal guardians error should return error", func(t *testing.T) {
 		t.Parallel()
@@ -186,16 +186,16 @@ func TestGuardedAccount_saveAccountGuardians(t *testing.T) {
 	t.Run("marshaling error should return err", func(t *testing.T) {
 		t.Parallel()
 
-		expectedErr := errors.New("expected error")
+		errExpected := errors.New("expected error")
 		ga := createGuardedAccountWithEpoch(10)
 		ga.marshaller = &marshallerMock.MarshalizerStub{
 			MarshalCalled: func(obj interface{}) ([]byte, error) {
-				return nil, expectedErr
+				return nil, errExpected
 			},
 		}
 
 		err := ga.saveAccountGuardians(userAccount, nil)
-		require.Equal(t, expectedErr, err)
+		require.Equal(t, errExpected, err)
 	})
 	t.Run("save account guardians OK", func(t *testing.T) {
 		t.Parallel()
@@ -719,10 +719,10 @@ func TestGuardedAccount_HasActiveGuardian(t *testing.T) {
 		require.False(t, ga.HasActiveGuardian(uah))
 	})
 	t.Run("getConfiguredGuardians with err should return false", func(t *testing.T) {
-		expectedErr := errors.New("expected error")
+		errExpected := errors.New("expected error")
 		uah := &stateMocks.UserAccountStub{
 			RetrieveValueCalled: func(key []byte) ([]byte, uint32, error) {
-				return nil, 0, expectedErr
+				return nil, 0, errExpected
 			},
 		}
 		require.False(t, ga.HasActiveGuardian(uah))
@@ -821,10 +821,10 @@ func TestGuardedAccount_HasPendingGuardian(t *testing.T) {
 		require.False(t, ga.HasPendingGuardian(uah))
 	})
 	t.Run("getConfiguredGuardians with err should return false", func(t *testing.T) {
-		expectedErr := errors.New("expected error")
+		errExpected := errors.New("expected error")
 		uah := &stateMocks.UserAccountStub{
 			RetrieveValueCalled: func(key []byte) ([]byte, uint32, error) {
-				return nil, 0, expectedErr
+				return nil, 0, errExpected
 			},
 		}
 		require.False(t, ga.HasPendingGuardian(uah))
@@ -1077,10 +1077,10 @@ func TestGuardedAccount_GetConfiguredGuardians(t *testing.T) {
 	t.Run("empty configured guardians", func(t *testing.T) {
 		t.Parallel()
 
-		expectedErr := errors.New("expected error")
+		errExpected := errors.New("expected error")
 		acc := &stateMocks.UserAccountStub{
 			RetrieveValueCalled: func(key []byte) ([]byte, uint32, error) {
-				return nil, 0, expectedErr
+				return nil, 0, errExpected
 			},
 		}
 		active, pending, err := ga.GetConfiguredGuardians(acc)

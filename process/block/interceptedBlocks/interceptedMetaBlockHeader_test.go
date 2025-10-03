@@ -170,34 +170,34 @@ func TestInterceptedMetaHeader_CheckAgainstRoundHandlerAttesterFailsShouldErr(t 
 	t.Parallel()
 
 	arg := createDefaultMetaArgument()
-	expectedErr := errors.New("expected error")
+	errExpected := errors.New("expected error")
 	arg.ValidityAttester = &mock.ValidityAttesterStub{
 		CheckBlockAgainstRoundHandlerCalled: func(headerHandler data.HeaderHandler) error {
-			return expectedErr
+			return errExpected
 		},
 	}
 	inHdr, _ := interceptedBlocks.NewInterceptedMetaHeader(arg)
 
 	err := inHdr.CheckValidity()
 
-	assert.Equal(t, expectedErr, err)
+	assert.Equal(t, errExpected, err)
 }
 
 func TestInterceptedMetaHeader_CheckAgainstFinalHeaderAttesterFailsShouldErr(t *testing.T) {
 	t.Parallel()
 
 	arg := createDefaultMetaArgument()
-	expectedErr := errors.New("expected error")
+	errExpected := errors.New("expected error")
 	arg.ValidityAttester = &mock.ValidityAttesterStub{
 		CheckBlockAgainstFinalCalled: func(headerHandler data.HeaderHandler) error {
-			return expectedErr
+			return errExpected
 		},
 	}
 	inHdr, _ := interceptedBlocks.NewInterceptedMetaHeader(arg)
 
 	err := inHdr.CheckValidity()
 
-	assert.Equal(t, expectedErr, err)
+	assert.Equal(t, errExpected, err)
 }
 
 // ------- getters
@@ -218,20 +218,20 @@ func TestInterceptedMetaHeader_CheckValidityLeaderSignatureNotCorrectShouldErr(t
 	t.Parallel()
 
 	hdr := createMockMetaHeader()
-	expectedErr := errors.New("expected err")
+	errExpected := errors.New("expected err")
 	buff, _ := testMarshalizer.Marshal(hdr)
 
 	arg := createDefaultMetaArgument()
 	arg.HeaderSigVerifier = &consensus.HeaderSigVerifierMock{
 		VerifyRandSeedAndLeaderSignatureCalled: func(header data.HeaderHandler) error {
-			return expectedErr
+			return errExpected
 		},
 	}
 	arg.HdrBuff = buff
 	inHdr, _ := interceptedBlocks.NewInterceptedMetaHeader(arg)
 
 	err := inHdr.CheckValidity()
-	assert.Equal(t, expectedErr, err)
+	assert.Equal(t, errExpected, err)
 }
 
 func TestInterceptedMetaHeader_CheckValidityLeaderSignatureOkShouldWork(t *testing.T) {

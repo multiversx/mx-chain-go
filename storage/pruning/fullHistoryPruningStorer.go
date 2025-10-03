@@ -118,7 +118,7 @@ func (fhps *FullHistoryPruningStorer) PutInEpoch(key []byte, data []byte, epoch 
 
 func (fhps *FullHistoryPruningStorer) searchInEpoch(key []byte, epoch uint32) ([]byte, error) {
 	if fhps.isEpochActive(epoch) {
-		return fhps.PruningStorer.SearchFirst(key)
+		return fhps.SearchFirst(key)
 	}
 
 	value, err := fhps.getFromOldEpoch(key, epoch)

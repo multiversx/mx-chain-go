@@ -175,11 +175,11 @@ func TestNewNode_ApplyNilOptionShouldError(t *testing.T) {
 func TestGetBalance_GetAccountFailsShouldError(t *testing.T) {
 	t.Parallel()
 
-	expectedErr := errors.New("error")
+	errExpected := errors.New("error")
 
 	accountsRepository := &stateMock.AccountsRepositoryStub{}
 	accountsRepository.GetAccountWithBlockInfoCalled = func(address []byte, options api.AccountQueryOptions) (vmcommon.AccountHandler, common.BlockInfo, error) {
-		return nil, nil, expectedErr
+		return nil, nil, errExpected
 	}
 
 	dataComponents := getDefaultDataComponents()
@@ -196,7 +196,7 @@ func TestGetBalance_GetAccountFailsShouldError(t *testing.T) {
 		node.WithStateComponents(stateComponents),
 	)
 	_, _, err := n.GetBalance(testscommon.TestAddressAlice, api.AccountQueryOptions{})
-	assert.Equal(t, expectedErr, err)
+	assert.Equal(t, errExpected, err)
 }
 
 func createDummyHexAddress(hexChars int) string {
@@ -519,12 +519,12 @@ func TestNode_GetKeyValuePairs_GetAllLeavesShouldFail(t *testing.T) {
 
 	accDB := &stateMock.AccountsStub{}
 
-	expectedErr := errors.New("expected err")
+	errExpected := errors.New("expected err")
 	acc.SetDataTrie(
 		&trieMock.TrieStub{
 			GetAllLeavesOnChannelCalled: func(leavesChannels *common.TrieIteratorChannels, ctx context.Context, rootHash []byte, _ common.KeyBuilder, _ common.TrieLeafParser) error {
 				go func() {
-					leavesChannels.ErrChan.WriteInChanNonBlocking(expectedErr)
+					leavesChannels.ErrChan.WriteInChanNonBlocking(errExpected)
 					close(leavesChannels.LeavesChan)
 				}()
 
@@ -563,7 +563,7 @@ func TestNode_GetKeyValuePairs_GetAllLeavesShouldFail(t *testing.T) {
 
 	pairs, blockInfo, err := n.GetKeyValuePairs(createDummyHexAddress(64), api.AccountQueryOptions{}, context.Background())
 	assert.Nil(t, pairs)
-	assert.Equal(t, expectedErr, err)
+	assert.Equal(t, errExpected, err)
 	assert.Equal(t, api.BlockInfo{}, blockInfo)
 }
 
@@ -911,12 +911,12 @@ func TestNode_GetAllESDTTokens_GetAllLeavesShouldFail(t *testing.T) {
 
 	acc := createAcc(testscommon.TestPubKeyAlice)
 
-	expectedErr := errors.New("expected error")
+	errExpected := errors.New("expected error")
 	acc.SetDataTrie(
 		&trieMock.TrieStub{
 			GetAllLeavesOnChannelCalled: func(leavesChannels *common.TrieIteratorChannels, ctx context.Context, rootHash []byte, _ common.KeyBuilder, _ common.TrieLeafParser) error {
 				go func() {
-					leavesChannels.ErrChan.WriteInChanNonBlocking(expectedErr)
+					leavesChannels.ErrChan.WriteInChanNonBlocking(errExpected)
 					close(leavesChannels.LeavesChan)
 				}()
 
@@ -958,7 +958,7 @@ func TestNode_GetAllESDTTokens_GetAllLeavesShouldFail(t *testing.T) {
 
 	value, blockInfo, err := n.GetAllESDTTokens(testscommon.TestAddressAlice, api.AccountQueryOptions{}, context.Background())
 	assert.Nil(t, value)
-	assert.Equal(t, expectedErr, err)
+	assert.Equal(t, errExpected, err)
 	assert.Equal(t, api.BlockInfo{}, blockInfo)
 }
 
@@ -3555,11 +3555,11 @@ func TestNode_GetAccountAccountExistsShouldReturn(t *testing.T) {
 func TestNode_GetAccountAccountWithKeysErrorShouldFail(t *testing.T) {
 	accnt := createAcc(testscommon.TestPubKeyBob)
 	_ = accnt.AddToBalance(big.NewInt(1))
-	expectedErr := errors.New("expected error")
+	errExpected := errors.New("expected error")
 	accnt.SetDataTrie(
 		&trieMock.TrieStub{
 			GetAllLeavesOnChannelCalled: func(leavesChannels *common.TrieIteratorChannels, ctx context.Context, rootHash []byte, _ common.KeyBuilder, tlp common.TrieLeafParser) error {
-				return expectedErr
+				return errExpected
 			},
 			RootCalled: func() ([]byte, error) {
 				return nil, nil
@@ -3579,7 +3579,7 @@ func TestNode_GetAccountAccountWithKeysErrorShouldFail(t *testing.T) {
 
 	recovAccnt, blockInfo, err := n.GetAccountWithKeys(testscommon.TestAddressBob, api.AccountQueryOptions{WithKeys: true}, context.Background())
 
-	require.Equal(t, expectedErr, err)
+	require.Equal(t, errExpected, err)
 	require.Equal(t, api.AccountResponse{}, recovAccnt)
 	require.Equal(t, api.BlockInfo{}, blockInfo)
 }
@@ -4134,11 +4134,11 @@ func TestNode_ValidateTransactionForSimulation_CheckSignatureFalse(t *testing.T)
 func TestGetKeyValuePairs_CannotDecodeAddress(t *testing.T) {
 	t.Parallel()
 
-	expectedErr := errors.New("local err")
+	errExpected := errors.New("local err")
 	coreComponents := getDefaultCoreComponents()
 	coreComponents.AddrPubKeyConv = &testscommon.PubkeyConverterStub{
 		DecodeCalled: func(humanReadable string) ([]byte, error) {
-			return nil, expectedErr
+			return nil, errExpected
 		},
 	}
 
@@ -4157,7 +4157,7 @@ func TestGetKeyValuePairs_CannotDecodeAddress(t *testing.T) {
 
 	res, _, err := n.GetKeyValuePairs("addr", api.AccountQueryOptions{}, context.Background())
 	require.Nil(t, res)
-	require.True(t, strings.Contains(fmt.Sprintf("%v", err), expectedErr.Error()))
+	require.True(t, strings.Contains(fmt.Sprintf("%v", err), errExpected.Error()))
 }
 
 func TestNode_Close(t *testing.T) {
@@ -4287,11 +4287,11 @@ func TestNode_GetProofShouldWork(t *testing.T) {
 func TestNode_getProofTrieNotPresent(t *testing.T) {
 	t.Parallel()
 
-	expectedErr := fmt.Errorf("expected err")
+	errExpected := fmt.Errorf("expected err")
 	stateComponents := getDefaultStateComponents()
 	stateComponents.AccountsAPI = &stateMock.AccountsStub{
 		GetTrieCalled: func(_ []byte) (common.Trie, error) {
-			return nil, expectedErr
+			return nil, errExpected
 		},
 	}
 	n, _ := node.NewNode(
@@ -4301,20 +4301,20 @@ func TestNode_getProofTrieNotPresent(t *testing.T) {
 
 	response, err := n.ComputeProof([]byte("deadbeef"), []byte("0123"))
 	assert.Nil(t, response)
-	assert.Equal(t, expectedErr, err)
+	assert.Equal(t, errExpected, err)
 }
 
 func TestNode_getProofErrWhenComputingProof(t *testing.T) {
 	t.Parallel()
 
 	dataComponents := getDefaultDataComponents()
-	expectedErr := fmt.Errorf("expected err")
+	errExpected := fmt.Errorf("expected err")
 	stateComponents := getDefaultStateComponents()
 	stateComponents.AccountsAPI = &stateMock.AccountsStub{
 		GetTrieCalled: func(_ []byte) (common.Trie, error) {
 			return &trieMock.TrieStub{
 				GetProofCalled: func(_ []byte) ([][]byte, []byte, error) {
-					return nil, nil, expectedErr
+					return nil, nil, errExpected
 				},
 			}, nil
 		},
@@ -4330,7 +4330,7 @@ func TestNode_getProofErrWhenComputingProof(t *testing.T) {
 
 	response, err := n.ComputeProof([]byte("deadbeef"), []byte("0123"))
 	assert.Nil(t, response)
-	assert.Equal(t, expectedErr, err)
+	assert.Equal(t, errExpected, err)
 }
 
 func TestNode_GetProofDataTrieInvalidRootHash(t *testing.T) {
@@ -4500,11 +4500,11 @@ func TestNode_IsDataTrieMigrated(t *testing.T) {
 	t.Run("load account err", func(t *testing.T) {
 		t.Parallel()
 
-		expectedErr := errors.New("load account error")
+		errExpected := errors.New("load account error")
 		stateComponents := getDefaultStateComponents()
 		stateComponents.AccountsRepo = &stateMock.AccountsRepositoryStub{
 			GetAccountWithBlockInfoCalled: func(_ []byte, _ api.AccountQueryOptions) (vmcommon.AccountHandler, common.BlockInfo, error) {
-				return nil, nil, expectedErr
+				return nil, nil, errExpected
 			},
 		}
 
@@ -4515,7 +4515,7 @@ func TestNode_IsDataTrieMigrated(t *testing.T) {
 
 		isMigrated, err := n.IsDataTrieMigrated("erd1qqqqqqqqqqqqqqqpqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqplllst77y4l", api.AccountQueryOptions{})
 		assert.False(t, isMigrated)
-		assert.Equal(t, expectedErr, err)
+		assert.Equal(t, errExpected, err)
 	})
 
 	t.Run("wrong type assertion", func(t *testing.T) {
@@ -4715,7 +4715,7 @@ func TestNode_Getters(t *testing.T) {
 	)
 	require.Nil(t, err)
 
-	//pointer testing
+	// pointer testing
 	assert.True(t, n.GetCoreComponents() == coreComponents)
 	assert.True(t, n.GetStatusCoreComponents() == statusCoreComponents)
 	assert.True(t, n.GetCryptoComponents() == cryptoComponents)
@@ -4912,7 +4912,7 @@ func sameMessages(provided, received []heartbeatData.PubKeyHeartbeat) bool {
 		r := received[i]
 		areEqual = areEqual &&
 			(p.PublicKey == r.PublicKey) &&
-			(p.TimeStamp == r.TimeStamp) &&
+			p.TimeStamp.Equal(r.TimeStamp) &&
 			(p.IsActive == r.IsActive) &&
 			(p.ReceivedShardID == r.ReceivedShardID) &&
 			(p.ComputedShardID == r.ComputedShardID) &&
@@ -5231,7 +5231,7 @@ func TestNode_GetGuardianData(t *testing.T) {
 func TestNode_getPendingAndActiveGuardians(t *testing.T) {
 	coreComponents := getDefaultCoreComponents()
 	bootstrapComponents := getDefaultBootstrapComponents()
-	expectedErr := errors.New("expected err")
+	errExpected := errors.New("expected err")
 	g1PubKey := bytes.Repeat([]byte{1}, 32)
 	g2PubKey := bytes.Repeat([]byte{2}, 32)
 	g1 := &guardians.Guardian{
@@ -5257,7 +5257,7 @@ func TestNode_getPendingAndActiveGuardians(t *testing.T) {
 	t.Run("get configured guardians with error should propagate error", func(t *testing.T) {
 		bootstrapComponents.GuardedAccountHandlerField = &guardianMocks.GuardedAccountHandlerStub{
 			GetConfiguredGuardiansCalled: func(uah state.UserAccountHandler) (active *guardians.Guardian, pending *guardians.Guardian, err error) {
-				return nil, nil, expectedErr
+				return nil, nil, errExpected
 			},
 		}
 		n, _ := node.NewNode(
@@ -5268,7 +5268,7 @@ func TestNode_getPendingAndActiveGuardians(t *testing.T) {
 		activeGuardian, pendingGuardian, err := n.GetPendingAndActiveGuardians(&stateMock.UserAccountStub{})
 		require.Nil(t, activeGuardian)
 		require.Nil(t, pendingGuardian)
-		require.Equal(t, expectedErr, err)
+		require.Equal(t, errExpected, err)
 	})
 	t.Run("no pending and no active but no error", func(t *testing.T) {
 		bootstrapComponents.GuardedAccountHandlerField = &guardianMocks.GuardedAccountHandlerStub{

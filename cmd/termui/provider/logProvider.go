@@ -55,7 +55,7 @@ func InitLogHandler(args LogHandlerArgs) error {
 		for {
 			webSocket, err = openWebSocket(scheme, args.NodeURL)
 			if err != nil {
-				_, _ = args.Presenter.Write([]byte(fmt.Sprintf("termui websocket error, retrying in %v...", retryDuration)))
+				_, _ = fmt.Fprintf(args.Presenter, "termui websocket error, retrying in %v...", retryDuration)
 				time.Sleep(retryDuration)
 				continue
 			}
@@ -116,9 +116,9 @@ func startListeningOnWebSocket(presenter PresenterHandler, chanNodeIsStarting ch
 
 		_, isConnectionClosed := err.(*websocket.CloseError)
 		if !isConnectionClosed {
-			_, _ = presenter.Write([]byte(fmt.Sprintf("termui websocket error: %s", err.Error())))
+			_, _ = fmt.Fprintf(presenter, "termui websocket error: %s", err.Error())
 		} else {
-			_, _ = presenter.Write([]byte(fmt.Sprintf("termui websocket terminated: %s", err.Error())))
+			_, _ = fmt.Fprintf(presenter, "termui websocket terminated: %s", err.Error())
 		}
 		chanNodeIsStarting <- struct{}{}
 		return

@@ -124,7 +124,7 @@ func TestTxResolver_ProcessReceivedMessageCanProcessMessageErrorsShouldErr(t *te
 	arg := createMockArgTxResolver()
 	arg.AntifloodHandler = &mock.P2PAntifloodHandlerStub{
 		CanProcessMessageCalled: func(message p2p.MessageP2P, fromConnectedPeer core.PeerID) error {
-			return expectedErr
+			return errExpected
 		},
 		CanProcessMessagesOnTopicCalled: func(peer core.PeerID, topic string, numMessages uint32, totalSize uint64, sequence []byte) error {
 			return nil
@@ -134,7 +134,7 @@ func TestTxResolver_ProcessReceivedMessageCanProcessMessageErrorsShouldErr(t *te
 
 	msgID, err := txRes.ProcessReceivedMessage(&p2pmocks.P2PMessageMock{}, connectedPeerId, &p2pmocks.MessengerStub{})
 
-	assert.True(t, errors.Is(err, expectedErr))
+	assert.True(t, errors.Is(err, errExpected))
 	assert.False(t, arg.Throttler.(*mock.ThrottlerStub).StartWasCalled())
 	assert.False(t, arg.Throttler.(*mock.ThrottlerStub).EndWasCalled())
 	assert.Nil(t, msgID)
@@ -285,7 +285,7 @@ func TestTxResolver_ProcessReceivedMessageBatchMarshalFailShouldRetNilAndErr(t *
 		MarshalCalled: func(obj interface{}) (i []byte, e error) {
 			cnt++
 			if cnt > 1 {
-				return nil, expectedErr
+				return nil, errExpected
 			}
 			return marshalizerMock.Marshal(obj)
 		},
@@ -316,7 +316,7 @@ func TestTxResolver_ProcessReceivedMessageBatchMarshalFailShouldRetNilAndErr(t *
 
 	msgID, err := txRes.ProcessReceivedMessage(msg, connectedPeerId, &p2pmocks.MessengerStub{})
 
-	assert.True(t, errors.Is(err, expectedErr))
+	assert.True(t, errors.Is(err, errExpected))
 	assert.True(t, arg.Throttler.(*mock.ThrottlerStub).StartWasCalled())
 	assert.True(t, arg.Throttler.(*mock.ThrottlerStub).EndWasCalled())
 	assert.Nil(t, msgID)
@@ -547,7 +547,7 @@ func TestTxResolver_ProcessReceivedMessageHashArrayUnmarshalFails(t *testing.T) 
 		UnmarshalCalled: func(obj interface{}, buff []byte) error {
 			cnt++
 			if cnt > 1 {
-				return expectedErr
+				return errExpected
 			}
 			return marshalizer.Unmarshal(obj, buff)
 		},
@@ -559,7 +559,7 @@ func TestTxResolver_ProcessReceivedMessageHashArrayUnmarshalFails(t *testing.T) 
 
 	msgID, err := txRes.ProcessReceivedMessage(msg, connectedPeerId, &p2pmocks.MessengerStub{})
 
-	assert.True(t, errors.Is(err, expectedErr))
+	assert.True(t, errors.Is(err, errExpected))
 	assert.True(t, arg.Throttler.(*mock.ThrottlerStub).StartWasCalled())
 	assert.True(t, arg.Throttler.(*mock.ThrottlerStub).EndWasCalled())
 	assert.Nil(t, msgID)
@@ -574,7 +574,7 @@ func TestTxResolver_ProcessReceivedMessageHashArrayPackDataInChunksFails(t *test
 	arg := createMockArgTxResolver()
 	arg.DataPacker = &mock.DataPackerStub{
 		PackDataInChunksCalled: func(data [][]byte, limit int) ([][]byte, error) {
-			return nil, expectedErr
+			return nil, errExpected
 		},
 	}
 	txRes, _ := resolvers.NewTxResolver(arg)
@@ -585,7 +585,7 @@ func TestTxResolver_ProcessReceivedMessageHashArrayPackDataInChunksFails(t *test
 
 	msgID, err := txRes.ProcessReceivedMessage(msg, connectedPeerId, &p2pmocks.MessengerStub{})
 
-	assert.True(t, errors.Is(err, expectedErr))
+	assert.True(t, errors.Is(err, errExpected))
 	assert.True(t, arg.Throttler.(*mock.ThrottlerStub).StartWasCalled())
 	assert.True(t, arg.Throttler.(*mock.ThrottlerStub).EndWasCalled())
 	assert.Nil(t, msgID)
@@ -600,7 +600,7 @@ func TestTxResolver_ProcessReceivedMessageHashArraySendFails(t *testing.T) {
 	arg := createMockArgTxResolver()
 	arg.SenderResolver = &mock.TopicResolverSenderStub{
 		SendCalled: func(buff []byte, peer core.PeerID, source p2p.MessageHandler) error {
-			return expectedErr
+			return errExpected
 		},
 	}
 	txRes, _ := resolvers.NewTxResolver(arg)
@@ -611,7 +611,7 @@ func TestTxResolver_ProcessReceivedMessageHashArraySendFails(t *testing.T) {
 
 	msgID, err := txRes.ProcessReceivedMessage(msg, connectedPeerId, &p2pmocks.MessengerStub{})
 
-	assert.True(t, errors.Is(err, expectedErr))
+	assert.True(t, errors.Is(err, errExpected))
 	assert.True(t, arg.Throttler.(*mock.ThrottlerStub).StartWasCalled())
 	assert.True(t, arg.Throttler.(*mock.ThrottlerStub).EndWasCalled())
 	assert.Nil(t, msgID)

@@ -355,7 +355,7 @@ func TestMultiDataInterceptor_ProcessReceivedMessageOkMessageShouldRetNil(t *tes
 	testProcessReceiveMessageMultiData(t, true, nil, 2)
 }
 
-func testProcessReceiveMessageMultiData(t *testing.T, isForCurrentShard bool, expectedErr error, calledNum int) {
+func testProcessReceiveMessageMultiData(t *testing.T, isForCurrentShard bool, errExpected error, calledNum int) {
 	buffData := [][]byte{[]byte("buff1"), []byte("buff2")}
 
 	marshalizer := &mock.MarshalizerMock{}
@@ -364,7 +364,7 @@ func testProcessReceiveMessageMultiData(t *testing.T, isForCurrentShard bool, ex
 	throttler := createMockThrottler()
 	interceptedData := &testscommon.InterceptedDataStub{
 		CheckValidityCalled: func() error {
-			return expectedErr
+			return errExpected
 		},
 		IsForCurrentShardCalled: func() bool {
 			return isForCurrentShard
@@ -393,7 +393,7 @@ func testProcessReceiveMessageMultiData(t *testing.T, isForCurrentShard bool, ex
 
 	time.Sleep(time.Second)
 
-	assert.Equal(t, expectedErr, err)
+	assert.Equal(t, errExpected, err)
 	assert.Equal(t, int32(calledNum), atomic.LoadInt32(&checkCalledNum))
 	assert.Equal(t, int32(calledNum), atomic.LoadInt32(&processCalledNum))
 	assert.Equal(t, int32(1), throttler.StartProcessingCount())
@@ -418,11 +418,11 @@ func TestMultiDataInterceptor_ProcessReceivedMessageCheckBatchErrors(t *testing.
 	arg.Processor = createMockInterceptorStub(&checkCalledNum, &processCalledNum)
 	arg.Throttler = throttler
 	mdi, _ := interceptors.NewMultiDataInterceptor(arg)
-	expectedErr := errors.New("expected error")
+	errExpected := errors.New("expected error")
 	_ = mdi.SetChunkProcessor(
 		&mock.ChunkProcessorStub{
 			CheckBatchCalled: func(b *batch.Batch, w process.WhiteListHandler) (process.CheckedChunkResult, error) {
-				return process.CheckedChunkResult{}, expectedErr
+				return process.CheckedChunkResult{}, errExpected
 			},
 		},
 	)
@@ -435,7 +435,7 @@ func TestMultiDataInterceptor_ProcessReceivedMessageCheckBatchErrors(t *testing.
 
 	time.Sleep(time.Second)
 
-	assert.Equal(t, expectedErr, err)
+	assert.Equal(t, errExpected, err)
 	assert.Equal(t, int32(1), throttler.StartProcessingCount())
 	assert.Equal(t, int32(1), throttler.EndProcessingCount())
 	assert.Nil(t, msgID)
@@ -604,7 +604,7 @@ func TestMultiDataInterceptor_InvalidTxChainIDShouldBackList(t *testing.T) {
 	processReceivedMessageMultiDataInvalidVersion(t, process.ErrInvalidChainID)
 }
 
-func processReceivedMessageMultiDataInvalidVersion(t *testing.T, expectedErr error) {
+func processReceivedMessageMultiDataInvalidVersion(t *testing.T, errExpected error) {
 	buffData := [][]byte{[]byte("buff1"), []byte("buff2")}
 	marshalizer := &mock.MarshalizerMock{}
 	checkCalledNum := int32(0)
@@ -615,7 +615,7 @@ func processReceivedMessageMultiDataInvalidVersion(t *testing.T, expectedErr err
 			return msgHash
 		},
 		CheckValidityCalled: func() error {
-			return expectedErr
+			return errExpected
 		},
 		IsForCurrentShardCalled: func() bool {
 			return false
@@ -661,7 +661,7 @@ func processReceivedMessageMultiDataInvalidVersion(t *testing.T, expectedErr err
 	}
 
 	msgID, err := mdi.ProcessReceivedMessage(msg, fromConnectedPeerId, &p2pmocks.MessengerStub{})
-	assert.Equal(t, expectedErr, err)
+	assert.Equal(t, errExpected, err)
 	assert.True(t, isFromConnectedPeerBlackListed)
 	assert.True(t, isOriginatorBlackListed)
 	assert.Nil(t, msgID)

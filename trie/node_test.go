@@ -655,7 +655,7 @@ func TestTreatLogError(t *testing.T) {
 		}
 
 		treatLogError(logInstance, err, key)
-		treatLogError(log, err, key) //display only
+		treatLogError(log, err, key) // display only
 	})
 	t.Run("logger instance is in Trace mode, should call", func(t *testing.T) {
 		t.Parallel()
@@ -1179,25 +1179,25 @@ func Test_treatCommitSnapshotErr(t *testing.T) {
 	t.Run("err is not of type GetNodeFromDBError", func(t *testing.T) {
 		t.Parallel()
 
-		expectedErr := errors.New("some error")
-		childIsMissing, err := treatCommitSnapshotError(expectedErr, []byte("hash"), nil)
+		errExpected := errors.New("some error")
+		childIsMissing, err := treatCommitSnapshotError(errExpected, []byte("hash"), nil)
 		assert.False(t, childIsMissing)
-		assert.Equal(t, expectedErr, err)
+		assert.Equal(t, errExpected, err)
 	})
 	t.Run("is closing err", func(t *testing.T) {
 		t.Parallel()
 
-		expectedErr := fmt.Errorf("%w: %s", core.ErrContextClosing, core.GetNodeFromDBErrorString)
-		childIsMissing, err := treatCommitSnapshotError(expectedErr, []byte("hash"), nil)
+		errExpected := fmt.Errorf("%w: %s", core.ErrContextClosing, core.GetNodeFromDBErrorString)
+		childIsMissing, err := treatCommitSnapshotError(errExpected, []byte("hash"), nil)
 		assert.False(t, childIsMissing)
-		assert.Equal(t, expectedErr, err)
+		assert.Equal(t, errExpected, err)
 	})
 	t.Run("child is missing", func(t *testing.T) {
 		t.Parallel()
 
-		expectedErr := fmt.Errorf("%w: %s", ErrKeyNotFound, core.GetNodeFromDBErrorString)
+		errExpected := fmt.Errorf("%w: %s", ErrKeyNotFound, core.GetNodeFromDBErrorString)
 		missingNodesChan := make(chan []byte, 1)
-		childIsMissing, err := treatCommitSnapshotError(expectedErr, []byte("hash"), missingNodesChan)
+		childIsMissing, err := treatCommitSnapshotError(errExpected, []byte("hash"), missingNodesChan)
 		assert.True(t, childIsMissing)
 		assert.Nil(t, err)
 		assert.Equal(t, 1, len(missingNodesChan))

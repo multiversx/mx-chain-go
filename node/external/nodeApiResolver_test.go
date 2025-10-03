@@ -28,7 +28,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-var expectedErr = errors.New("expected error")
+var errExpected = errors.New("expected error")
 
 func createMockArgs() external.ArgNodeApiResolver {
 	return external.ArgNodeApiResolver{
@@ -255,7 +255,7 @@ func TestNodeApiResolver_GetTotalStakedValue(t *testing.T) {
 	nar, _ := external.NewNodeApiResolver(arg)
 	recoveredStakeValue, err := nar.GetTotalStakedValue(context.Background())
 	assert.Nil(t, err)
-	assert.True(t, recoveredStakeValue == stakeValue) //pointer testing
+	assert.True(t, recoveredStakeValue == stakeValue) // pointer testing
 	assert.True(t, wasCalled)
 }
 
@@ -381,18 +381,18 @@ func TestNodeApiResolver_GetTransactionsPool(t *testing.T) {
 	t.Run("should error", func(t *testing.T) {
 		t.Parallel()
 
-		expectedErr := errors.New("expected error")
+		errExpected := errors.New("expected error")
 		arg := createMockArgs()
 		arg.APITransactionHandler = &mock.TransactionAPIHandlerStub{
 			GetTransactionsPoolCalled: func(fields string) (*common.TransactionsPoolAPIResponse, error) {
-				return nil, expectedErr
+				return nil, errExpected
 			},
 		}
 
 		nar, _ := external.NewNodeApiResolver(arg)
 		res, err := nar.GetTransactionsPool("")
 		require.Nil(t, res)
-		require.Equal(t, expectedErr, err)
+		require.Equal(t, errExpected, err)
 	})
 
 	t.Run("should work", func(t *testing.T) {
@@ -441,18 +441,18 @@ func TestNodeApiResolver_GetTransactionsPoolForSender(t *testing.T) {
 	t.Run("should error", func(t *testing.T) {
 		t.Parallel()
 
-		expectedErr := errors.New("expected error")
+		errExpected := errors.New("expected error")
 		arg := createMockArgs()
 		arg.APITransactionHandler = &mock.TransactionAPIHandlerStub{
 			GetTransactionsPoolForSenderCalled: func(sender, parameters string) (*common.TransactionsPoolForSenderApiResponse, error) {
-				return nil, expectedErr
+				return nil, errExpected
 			},
 		}
 
 		nar, _ := external.NewNodeApiResolver(arg)
 		res, err := nar.GetTransactionsPoolForSender("sender", "")
 		require.Nil(t, res)
-		require.Equal(t, expectedErr, err)
+		require.Equal(t, errExpected, err)
 	})
 
 	t.Run("should work", func(t *testing.T) {
@@ -500,18 +500,18 @@ func TestNodeApiResolver_GetLastPoolNonceForSender(t *testing.T) {
 	t.Run("should error", func(t *testing.T) {
 		t.Parallel()
 
-		expectedErr := errors.New("expected error")
+		errExpected := errors.New("expected error")
 		arg := createMockArgs()
 		arg.APITransactionHandler = &mock.TransactionAPIHandlerStub{
 			GetLastPoolNonceForSenderCalled: func(sender string) (uint64, error) {
-				return 0, expectedErr
+				return 0, errExpected
 			},
 		}
 
 		nar, _ := external.NewNodeApiResolver(arg)
 		res, err := nar.GetLastPoolNonceForSender("sender")
 		require.Equal(t, uint64(0), res)
-		require.Equal(t, expectedErr, err)
+		require.Equal(t, errExpected, err)
 	})
 
 	t.Run("should work", func(t *testing.T) {
@@ -539,18 +539,18 @@ func TestNodeApiResolver_GetTransactionsPoolNonceGapsForSender(t *testing.T) {
 	t.Run("should error", func(t *testing.T) {
 		t.Parallel()
 
-		expectedErr := errors.New("expected error")
+		errExpected := errors.New("expected error")
 		arg := createMockArgs()
 		arg.APITransactionHandler = &mock.TransactionAPIHandlerStub{
 			GetTransactionsPoolNonceGapsForSenderCalled: func(sender string, senderAccountNonce uint64) (*common.TransactionsPoolNonceGapsForSenderApiResponse, error) {
-				return nil, expectedErr
+				return nil, errExpected
 			},
 		}
 
 		nar, _ := external.NewNodeApiResolver(arg)
 		res, err := nar.GetTransactionsPoolNonceGapsForSender("sender", 1)
 		require.Nil(t, res)
-		require.Equal(t, expectedErr, err)
+		require.Equal(t, errExpected, err)
 	})
 
 	t.Run("should work", func(t *testing.T) {
@@ -586,18 +586,18 @@ func TestNodeApiResolver_GetSelectedTransactions(t *testing.T) {
 	t.Run("should error", func(t *testing.T) {
 		t.Parallel()
 
-		expectedErr := errors.New("expected error")
+		errExpected := errors.New("expected error")
 		arg := createMockArgs()
 		arg.APITransactionHandler = &mock.TransactionAPIHandlerStub{
 			GetSelectedTransactionsCalled: func(selectionOptions common.TxSelectionOptionsAPI, blockchain coreData.ChainHandler, accountsAdapter state.AccountsAdapter) (*common.TransactionsSelectionSimulationResult, error) {
-				return nil, expectedErr
+				return nil, errExpected
 			},
 		}
 
 		nar, _ := external.NewNodeApiResolver(arg)
 		res, err := nar.GetSelectedTransactions(nil, nil, nil)
 		require.Nil(t, res)
-		require.Equal(t, expectedErr, err)
+		require.Equal(t, errExpected, err)
 	})
 
 	t.Run("should work", func(t *testing.T) {
@@ -638,18 +638,18 @@ func TestNodeApiResolver_GetVirtualNonce(t *testing.T) {
 	t.Run("should error", func(t *testing.T) {
 		t.Parallel()
 
-		expectedErr := errors.New("expected error")
+		errExpected := errors.New("expected error")
 		arg := createMockArgs()
 		arg.APITransactionHandler = &mock.TransactionAPIHandlerStub{
 			GetVirtualNonceCalled: func(address string) (*common.VirtualNonceOfAccountResponse, error) {
-				return nil, expectedErr
+				return nil, errExpected
 			},
 		}
 
 		nar, _ := external.NewNodeApiResolver(arg)
 		res, err := nar.GetVirtualNonce("alice")
 		require.Nil(t, res)
-		require.Equal(t, expectedErr, err)
+		require.Equal(t, errExpected, err)
 	})
 
 	t.Run("should work", func(t *testing.T) {
@@ -895,14 +895,14 @@ func TestNodeApiResolver_GetEligibleManagedKeys(t *testing.T) {
 		args := createMockArgs()
 		args.ManagedPeersMonitor = &testscommon.ManagedPeersMonitorStub{
 			GetEligibleManagedKeysCalled: func() ([][]byte, error) {
-				return nil, expectedErr
+				return nil, errExpected
 			},
 		}
 		nar, err := external.NewNodeApiResolver(args)
 		require.NoError(t, err)
 
 		keys, err := nar.GetEligibleManagedKeys()
-		require.Equal(t, expectedErr, err)
+		require.Equal(t, errExpected, err)
 		require.Nil(t, keys)
 	})
 	t.Run("should work", func(t *testing.T) {
@@ -945,14 +945,14 @@ func TestNodeApiResolver_GetWaitingManagedKeys(t *testing.T) {
 		args := createMockArgs()
 		args.ManagedPeersMonitor = &testscommon.ManagedPeersMonitorStub{
 			GetWaitingManagedKeysCalled: func() ([][]byte, error) {
-				return nil, expectedErr
+				return nil, errExpected
 			},
 		}
 		nar, err := external.NewNodeApiResolver(args)
 		require.NoError(t, err)
 
 		keys, err := nar.GetWaitingManagedKeys()
-		require.Equal(t, expectedErr, err)
+		require.Equal(t, errExpected, err)
 		require.Nil(t, keys)
 	})
 	t.Run("should work", func(t *testing.T) {

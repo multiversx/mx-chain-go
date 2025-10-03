@@ -87,7 +87,7 @@ func TestNewSmartContractsParser_ShouldWork(t *testing.T) {
 	assert.Equal(t, 2, len(scp.InitialSmartContracts()))
 }
 
-//------- process
+// ------- process
 
 func TestSmartContractsParser_ProcessEmptyOwnerAddressShouldErr(t *testing.T) {
 	t.Parallel()
@@ -118,11 +118,11 @@ func TestSmartContractsParser_ProcessInvalidOwnerAddressShouldErr(t *testing.T) 
 func TestSmartContractsParser_ProcessInvalidOwnerPublicKeyShouldErr(t *testing.T) {
 	t.Parallel()
 
-	expectedErr := errors.New("expected error")
+	errExpected := errors.New("expected error")
 	scp := parsing.NewTestSmartContractsParser(createMockHexPubkeyConverter())
 	scp.SetKeyGenerator(&mock.KeyGeneratorStub{
 		CheckPublicKeyValidCalled: func(b []byte) error {
-			return expectedErr
+			return errExpected
 		},
 	})
 	isc := createMockInitialSmartContract("0001")
@@ -164,10 +164,10 @@ func TestSmartContractsParser_FileErrorShouldErr(t *testing.T) {
 	t.Parallel()
 
 	scp := parsing.NewTestSmartContractsParser(createMockHexPubkeyConverter())
-	expectedErr := errors.New("expected error")
+	errExpected := errors.New("expected error")
 	scp.SetFileHandler(
 		func(s string) error {
-			return expectedErr
+			return errExpected
 		},
 	)
 	isc := createMockInitialSmartContract("0001")
@@ -175,10 +175,10 @@ func TestSmartContractsParser_FileErrorShouldErr(t *testing.T) {
 
 	err := scp.Process()
 
-	assert.True(t, errors.Is(err, expectedErr))
+	assert.True(t, errors.Is(err, errExpected))
 }
 
-//------- InitialSmartContractsSplitOnOwnersShards
+// ------- InitialSmartContractsSplitOnOwnersShards
 
 func TestSmartContractsParser_InitialSmartContractsSplitOnOwnersShardsNilShardCoordinatorShouldErr(t *testing.T) {
 	t.Parallel()

@@ -54,12 +54,12 @@ func TestNewBlockSizeComputation_MarshalizerFailsShouldErr(t *testing.T) {
 
 func testMarshalizerFailsShouldErr(t *testing.T, idxCallMarshalFail int) {
 	cnt := 0
-	expectedErr := errors.New("expected error")
+	errExpected := errors.New("expected error")
 	bsc, err := preprocess.NewBlockSizeComputation(
 		&mock.MarshalizerStub{
 			MarshalCalled: func(obj interface{}) (bytes []byte, err error) {
 				if cnt == idxCallMarshalFail {
-					return nil, expectedErr
+					return nil, errExpected
 				}
 				cnt++
 				return []byte("dummy"), nil
@@ -70,7 +70,7 @@ func testMarshalizerFailsShouldErr(t *testing.T, idxCallMarshalFail int) {
 	)
 
 	assert.True(t, check.IfNil(bsc))
-	assert.Equal(t, expectedErr, err)
+	assert.Equal(t, errExpected, err)
 }
 
 func TestBlockSizeComputation_AddNumMiniBlocks(t *testing.T) {

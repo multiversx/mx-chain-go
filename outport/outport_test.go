@@ -587,19 +587,19 @@ func TestOutport_SaveBlockDriverIsNotStuck(t *testing.T) {
 func TestOutport_SettingsRequestAndReceive(t *testing.T) {
 	t.Parallel()
 
-	expectedErr := errors.New("expected error")
+	errExpected := errors.New("expected error")
 	t.Run("RegisterHandlerForSettingsRequest errors, should not add the driver", func(t *testing.T) {
 		t.Parallel()
 
 		driver := &mock.DriverStub{
 			RegisterHandlerCalled: func(handlerFunction func() error, _ string) error {
-				return expectedErr
+				return errExpected
 			},
 		}
 
 		outportHandler, _ := NewOutport(time.Second, outportcore.OutportConfig{}, &enableEpochsHandlerMock.EnableEpochsHandlerStub{}, &testscommon.EnableRoundsHandlerStub{})
 		err := outportHandler.SubscribeDriver(driver)
-		assert.Equal(t, expectedErr, err)
+		assert.Equal(t, errExpected, err)
 		require.False(t, outportHandler.HasDrivers())
 	})
 	t.Run("SetCurrentSettings errors, should not panic", func(t *testing.T) {
@@ -622,7 +622,7 @@ func TestOutport_SettingsRequestAndReceive(t *testing.T) {
 			},
 			SetCurrentSettingsCalled: func(config outportcore.OutportConfig) error {
 				currentSettingsCalled = true
-				return expectedErr
+				return errExpected
 			},
 		}
 
@@ -633,7 +633,7 @@ func TestOutport_SettingsRequestAndReceive(t *testing.T) {
 		assert.False(t, currentSettingsCalled)
 
 		err = callback()
-		assert.Equal(t, expectedErr, err)
+		assert.Equal(t, errExpected, err)
 		assert.True(t, currentSettingsCalled)
 	})
 	t.Run("should work", func(t *testing.T) {

@@ -123,7 +123,7 @@ func TestInternalBlockGroup_getMetaBlockByNonce(t *testing.T) {
 
 		facade := &mock.FacadeStub{
 			GetInternalMetaBlockByNonceCalled: func(_ common.ApiOutputFormat, _ uint64) (interface{}, error) {
-				return nil, expectedErr
+				return nil, errExpected
 			},
 		}
 
@@ -133,7 +133,7 @@ func TestInternalBlockGroup_getMetaBlockByNonce(t *testing.T) {
 			"/internal/raw/metablock/by-nonce/15",
 			nil,
 			http.StatusInternalServerError,
-			formatExpectedErr(apiErrors.ErrGetBlock, expectedErr),
+			formatExpectedErr(apiErrors.ErrGetBlock, errExpected),
 		)
 	})
 	t.Run("should work", func(t *testing.T) {
@@ -174,7 +174,7 @@ func TestInternalBlockGroup_getRawMetaBlockByRound(t *testing.T) {
 
 		facade := &mock.FacadeStub{
 			GetInternalMetaBlockByRoundCalled: func(_ common.ApiOutputFormat, _ uint64) (interface{}, error) {
-				return nil, expectedErr
+				return nil, errExpected
 			},
 		}
 
@@ -184,7 +184,7 @@ func TestInternalBlockGroup_getRawMetaBlockByRound(t *testing.T) {
 			"/internal/raw/metablock/by-round/15",
 			nil,
 			http.StatusInternalServerError,
-			formatExpectedErr(apiErrors.ErrGetBlock, expectedErr),
+			formatExpectedErr(apiErrors.ErrGetBlock, errExpected),
 		)
 	})
 	t.Run("should work", func(t *testing.T) {
@@ -222,7 +222,7 @@ func TestInternalBlockGroup_getRawMetaBlockByHash(t *testing.T) {
 
 		facade := &mock.FacadeStub{
 			GetInternalMetaBlockByHashCalled: func(_ common.ApiOutputFormat, _ string) (interface{}, error) {
-				return nil, expectedErr
+				return nil, errExpected
 			},
 		}
 
@@ -232,7 +232,7 @@ func TestInternalBlockGroup_getRawMetaBlockByHash(t *testing.T) {
 			"/internal/raw/metablock/by-hash/dummyhash",
 			nil,
 			http.StatusInternalServerError,
-			formatExpectedErr(apiErrors.ErrGetBlock, expectedErr),
+			formatExpectedErr(apiErrors.ErrGetBlock, errExpected),
 		)
 	})
 	t.Run("should work", func(t *testing.T) {
@@ -273,7 +273,7 @@ func TestInternalBlockGroup_getRawStartOfEpochMetaBlock(t *testing.T) {
 
 		facade := &mock.FacadeStub{
 			GetInternalStartOfEpochMetaBlockCalled: func(_ common.ApiOutputFormat, epoch uint32) (interface{}, error) {
-				return nil, expectedErr
+				return nil, errExpected
 			},
 		}
 
@@ -283,7 +283,7 @@ func TestInternalBlockGroup_getRawStartOfEpochMetaBlock(t *testing.T) {
 			"/internal/raw/startofepoch/metablock/by-epoch/1",
 			nil,
 			http.StatusInternalServerError,
-			formatExpectedErr(apiErrors.ErrGetBlock, expectedErr),
+			formatExpectedErr(apiErrors.ErrGetBlock, errExpected),
 		)
 	})
 	t.Run("should work", func(t *testing.T) {
@@ -324,7 +324,7 @@ func TestInternalBlockGroup_getRawShardBlockByNonce(t *testing.T) {
 
 		facade := &mock.FacadeStub{
 			GetInternalShardBlockByNonceCalled: func(_ common.ApiOutputFormat, _ uint64) (interface{}, error) {
-				return nil, expectedErr
+				return nil, errExpected
 			},
 		}
 
@@ -334,7 +334,7 @@ func TestInternalBlockGroup_getRawShardBlockByNonce(t *testing.T) {
 			"/internal/raw/shardblock/by-nonce/15",
 			nil,
 			http.StatusInternalServerError,
-			formatExpectedErr(apiErrors.ErrGetBlock, expectedErr),
+			formatExpectedErr(apiErrors.ErrGetBlock, errExpected),
 		)
 	})
 	t.Run("should work", func(t *testing.T) {
@@ -375,7 +375,7 @@ func TestInternalBlockGroup_getRawShardBlockByRound(t *testing.T) {
 
 		facade := &mock.FacadeStub{
 			GetInternalShardBlockByRoundCalled: func(_ common.ApiOutputFormat, _ uint64) (interface{}, error) {
-				return nil, expectedErr
+				return nil, errExpected
 			},
 		}
 
@@ -385,7 +385,7 @@ func TestInternalBlockGroup_getRawShardBlockByRound(t *testing.T) {
 			"/internal/raw/shardblock/by-round/15",
 			nil,
 			http.StatusInternalServerError,
-			formatExpectedErr(apiErrors.ErrGetBlock, expectedErr),
+			formatExpectedErr(apiErrors.ErrGetBlock, errExpected),
 		)
 	})
 	t.Run("should work", func(t *testing.T) {
@@ -423,7 +423,7 @@ func TestInternalBlockGroup_getRawShardBlockByHash(t *testing.T) {
 
 		facade := &mock.FacadeStub{
 			GetInternalShardBlockByHashCalled: func(_ common.ApiOutputFormat, _ string) (interface{}, error) {
-				return nil, expectedErr
+				return nil, errExpected
 			},
 		}
 
@@ -433,7 +433,7 @@ func TestInternalBlockGroup_getRawShardBlockByHash(t *testing.T) {
 			"/internal/raw/shardblock/by-hash/dummyhash",
 			nil,
 			http.StatusInternalServerError,
-			formatExpectedErr(apiErrors.ErrGetBlock, expectedErr),
+			formatExpectedErr(apiErrors.ErrGetBlock, errExpected),
 		)
 	})
 	t.Run("should work", func(t *testing.T) {
@@ -479,7 +479,7 @@ func TestInternalBlockGroup_getRawMiniBlockByHash(t *testing.T) {
 
 		facade := &mock.FacadeStub{
 			GetInternalMiniBlockByHashCalled: func(format common.ApiOutputFormat, txHash string, epoch uint32) (interface{}, error) {
-				return nil, expectedErr
+				return nil, errExpected
 			},
 		}
 
@@ -489,7 +489,7 @@ func TestInternalBlockGroup_getRawMiniBlockByHash(t *testing.T) {
 			"/internal/raw/miniblock/by-hash/aaaa/epoch/1",
 			nil,
 			http.StatusInternalServerError,
-			formatExpectedErr(apiErrors.ErrGetBlock, expectedErr),
+			formatExpectedErr(apiErrors.ErrGetBlock, errExpected),
 		)
 	})
 	t.Run("should work", func(t *testing.T) {
@@ -530,7 +530,7 @@ func TestInternalBlockGroup_getJSONMetaBlockByNonce(t *testing.T) {
 
 		facade := &mock.FacadeStub{
 			GetInternalMetaBlockByNonceCalled: func(_ common.ApiOutputFormat, _ uint64) (interface{}, error) {
-				return nil, expectedErr
+				return nil, errExpected
 			},
 		}
 
@@ -540,7 +540,7 @@ func TestInternalBlockGroup_getJSONMetaBlockByNonce(t *testing.T) {
 			"/internal/json/metablock/by-nonce/15",
 			nil,
 			http.StatusInternalServerError,
-			formatExpectedErr(apiErrors.ErrGetBlock, expectedErr),
+			formatExpectedErr(apiErrors.ErrGetBlock, errExpected),
 		)
 	})
 	t.Run("should work", func(t *testing.T) {
@@ -581,7 +581,7 @@ func TestInternalBlockGroup_getJSONMetaBlockByRound(t *testing.T) {
 
 		facade := &mock.FacadeStub{
 			GetInternalMetaBlockByRoundCalled: func(_ common.ApiOutputFormat, _ uint64) (interface{}, error) {
-				return nil, expectedErr
+				return nil, errExpected
 			},
 		}
 
@@ -591,7 +591,7 @@ func TestInternalBlockGroup_getJSONMetaBlockByRound(t *testing.T) {
 			"/internal/json/metablock/by-round/15",
 			nil,
 			http.StatusInternalServerError,
-			formatExpectedErr(apiErrors.ErrGetBlock, expectedErr),
+			formatExpectedErr(apiErrors.ErrGetBlock, errExpected),
 		)
 	})
 	t.Run("should work", func(t *testing.T) {
@@ -629,7 +629,7 @@ func TestInternalBlockGroup_getJSONMetaBlockByHash(t *testing.T) {
 
 		facade := &mock.FacadeStub{
 			GetInternalMetaBlockByHashCalled: func(_ common.ApiOutputFormat, _ string) (interface{}, error) {
-				return nil, expectedErr
+				return nil, errExpected
 			},
 		}
 
@@ -639,7 +639,7 @@ func TestInternalBlockGroup_getJSONMetaBlockByHash(t *testing.T) {
 			"/internal/json/metablock/by-hash/dummyhash",
 			nil,
 			http.StatusInternalServerError,
-			formatExpectedErr(apiErrors.ErrGetBlock, expectedErr),
+			formatExpectedErr(apiErrors.ErrGetBlock, errExpected),
 		)
 	})
 	t.Run("should work", func(t *testing.T) {
@@ -680,7 +680,7 @@ func TestInternalBlockGroup_getJSONStartOfEpochMetaBlock(t *testing.T) {
 
 		facade := &mock.FacadeStub{
 			GetInternalStartOfEpochMetaBlockCalled: func(_ common.ApiOutputFormat, epoch uint32) (interface{}, error) {
-				return nil, expectedErr
+				return nil, errExpected
 			},
 		}
 
@@ -690,7 +690,7 @@ func TestInternalBlockGroup_getJSONStartOfEpochMetaBlock(t *testing.T) {
 			"/internal/json/startofepoch/metablock/by-epoch/1",
 			nil,
 			http.StatusInternalServerError,
-			formatExpectedErr(apiErrors.ErrGetBlock, expectedErr),
+			formatExpectedErr(apiErrors.ErrGetBlock, errExpected),
 		)
 	})
 	t.Run("should work", func(t *testing.T) {
@@ -731,7 +731,7 @@ func TestInternalBlockGroup_getJSONShardBlockByNonce(t *testing.T) {
 
 		facade := &mock.FacadeStub{
 			GetInternalShardBlockByNonceCalled: func(_ common.ApiOutputFormat, _ uint64) (interface{}, error) {
-				return nil, expectedErr
+				return nil, errExpected
 			},
 		}
 
@@ -741,7 +741,7 @@ func TestInternalBlockGroup_getJSONShardBlockByNonce(t *testing.T) {
 			"/internal/json/shardblock/by-nonce/15",
 			nil,
 			http.StatusInternalServerError,
-			formatExpectedErr(apiErrors.ErrGetBlock, expectedErr),
+			formatExpectedErr(apiErrors.ErrGetBlock, errExpected),
 		)
 	})
 	t.Run("should work", func(t *testing.T) {
@@ -782,7 +782,7 @@ func TestInternalBlockGroup_getJSONShardBlockByRound(t *testing.T) {
 
 		facade := &mock.FacadeStub{
 			GetInternalShardBlockByRoundCalled: func(_ common.ApiOutputFormat, _ uint64) (interface{}, error) {
-				return nil, expectedErr
+				return nil, errExpected
 			},
 		}
 
@@ -792,7 +792,7 @@ func TestInternalBlockGroup_getJSONShardBlockByRound(t *testing.T) {
 			"/internal/json/shardblock/by-round/15",
 			nil,
 			http.StatusInternalServerError,
-			formatExpectedErr(apiErrors.ErrGetBlock, expectedErr),
+			formatExpectedErr(apiErrors.ErrGetBlock, errExpected),
 		)
 	})
 	t.Run("should work", func(t *testing.T) {
@@ -830,7 +830,7 @@ func TestInternalBlockGroup_getJSONShardBlockByHash(t *testing.T) {
 
 		facade := &mock.FacadeStub{
 			GetInternalShardBlockByHashCalled: func(_ common.ApiOutputFormat, _ string) (interface{}, error) {
-				return nil, expectedErr
+				return nil, errExpected
 			},
 		}
 
@@ -840,7 +840,7 @@ func TestInternalBlockGroup_getJSONShardBlockByHash(t *testing.T) {
 			"/internal/json/shardblock/by-hash/dummyhash",
 			nil,
 			http.StatusInternalServerError,
-			formatExpectedErr(apiErrors.ErrGetBlock, expectedErr),
+			formatExpectedErr(apiErrors.ErrGetBlock, errExpected),
 		)
 	})
 	t.Run("should work", func(t *testing.T) {
@@ -886,7 +886,7 @@ func TestInternalBlockGroup_getJSONMiniBlockByHash(t *testing.T) {
 
 		facade := &mock.FacadeStub{
 			GetInternalMiniBlockByHashCalled: func(format common.ApiOutputFormat, txHash string, epoch uint32) (interface{}, error) {
-				return nil, expectedErr
+				return nil, errExpected
 			},
 		}
 
@@ -896,7 +896,7 @@ func TestInternalBlockGroup_getJSONMiniBlockByHash(t *testing.T) {
 			"/internal/json/miniblock/by-hash/aaaa/epoch/1",
 			nil,
 			http.StatusInternalServerError,
-			formatExpectedErr(apiErrors.ErrGetBlock, expectedErr),
+			formatExpectedErr(apiErrors.ErrGetBlock, errExpected),
 		)
 	})
 	t.Run("should work", func(t *testing.T) {
@@ -937,7 +937,7 @@ func TestInternalBlockGroup_getJSONStartOfEpochValidatorsInfo(t *testing.T) {
 
 		facade := &mock.FacadeStub{
 			GetInternalStartOfEpochValidatorsInfoCalled: func(epoch uint32) ([]*state.ShardValidatorInfo, error) {
-				return nil, expectedErr
+				return nil, errExpected
 			},
 		}
 
@@ -947,7 +947,7 @@ func TestInternalBlockGroup_getJSONStartOfEpochValidatorsInfo(t *testing.T) {
 			"/internal/json/startofepoch/validators/by-epoch/1",
 			nil,
 			http.StatusInternalServerError,
-			formatExpectedErr(apiErrors.ErrGetValidatorsInfo, expectedErr),
+			formatExpectedErr(apiErrors.ErrGetValidatorsInfo, errExpected),
 		)
 	})
 	t.Run("should work", func(t *testing.T) {
@@ -1047,7 +1047,7 @@ func TestInternalBlockGroup_UpdateFacadeStub(t *testing.T) {
 
 		newFacade := &mock.FacadeStub{
 			GetInternalStartOfEpochValidatorsInfoCalled: func(epoch uint32) ([]*state.ShardValidatorInfo, error) {
-				return nil, expectedErr
+				return nil, errExpected
 			},
 		}
 		err = blockGroup.UpdateFacade(newFacade)
@@ -1060,7 +1060,7 @@ func TestInternalBlockGroup_UpdateFacadeStub(t *testing.T) {
 		response = internalValidatorsInfoResponse{}
 		loadResponse(resp.Body, &response)
 		assert.Equal(t, http.StatusInternalServerError, resp.Code)
-		assert.True(t, strings.Contains(response.Error, expectedErr.Error()))
+		assert.True(t, strings.Contains(response.Error, errExpected.Error()))
 	})
 }
 
@@ -1086,7 +1086,7 @@ func loadInternalBlockGroupResponse(
 	loadResponse(resp.Body, destination)
 }
 
-func testInternalGroupErrorScenario(url string, body io.Reader, expectedErr string) func(t *testing.T) {
+func testInternalGroupErrorScenario(url string, body io.Reader, errExpected string) func(t *testing.T) {
 	return func(t *testing.T) {
 		t.Parallel()
 
@@ -1096,7 +1096,7 @@ func testInternalGroupErrorScenario(url string, body io.Reader, expectedErr stri
 			url,
 			body,
 			http.StatusBadRequest,
-			expectedErr,
+			errExpected,
 		)
 	}
 }

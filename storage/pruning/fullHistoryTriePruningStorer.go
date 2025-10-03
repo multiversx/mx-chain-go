@@ -25,7 +25,7 @@ func initFullHistoryTriePruningStorer(args FullHistoryStorerArgs, shardId string
 	tps := &triePruningStorer{
 		PruningStorer: fhps.PruningStorer,
 	}
-	fhps.PruningStorer.lastEpochNeededHandler = tps.lastEpochNeeded
+	fhps.lastEpochNeededHandler = tps.lastEpochNeeded
 	tps.registerHandler(args.Notifier)
 
 	return &fullHistoryTriePruningStorer{

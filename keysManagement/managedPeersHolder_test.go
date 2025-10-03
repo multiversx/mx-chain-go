@@ -77,7 +77,7 @@ func createMockKeyGenerator() crypto.KeyGenerator {
 				GeneratePublicStub: func() crypto.PublicKey {
 					pk := &cryptoMocks.PublicKeyStub{
 						ToByteArrayStub: func() ([]byte, error) {
-							pkBytes := bytes.Replace(b, []byte("private"), []byte("public"), -1)
+							pkBytes := bytes.ReplaceAll(b, []byte("private"), []byte("public"))
 
 							return pkBytes, nil
 						},
@@ -189,26 +189,26 @@ func TestNewManagedPeersHolder(t *testing.T) {
 func TestManagedPeersHolder_AddManagedPeer(t *testing.T) {
 	t.Parallel()
 
-	expectedErr := errors.New("expected error")
+	errExpected := errors.New("expected error")
 	t.Run("private key from byte array errors", func(t *testing.T) {
 		args := createMockArgsManagedPeersHolder()
 		args.KeyGenerator = &cryptoMocks.KeyGenStub{
 			PrivateKeyFromByteArrayStub: func(b []byte) (crypto.PrivateKey, error) {
-				return nil, expectedErr
+				return nil, errExpected
 			},
 		}
 
 		holder, _ := keysManagement.NewManagedPeersHolder(args)
 		err := holder.AddManagedPeer([]byte("private key"))
 
-		assert.True(t, errors.Is(err, expectedErr))
+		assert.True(t, errors.Is(err, errExpected))
 	})
 	t.Run("public key from byte array errors", func(t *testing.T) {
 		args := createMockArgsManagedPeersHolder()
 
 		pk := &cryptoMocks.PublicKeyStub{
 			ToByteArrayStub: func() ([]byte, error) {
-				return nil, expectedErr
+				return nil, errExpected
 			},
 		}
 
@@ -227,7 +227,7 @@ func TestManagedPeersHolder_AddManagedPeer(t *testing.T) {
 		holder, _ := keysManagement.NewManagedPeersHolder(args)
 		err := holder.AddManagedPeer([]byte("private key"))
 
-		assert.True(t, errors.Is(err, expectedErr))
+		assert.True(t, errors.Is(err, errExpected))
 	})
 	t.Run("p2p key generation returns an invalid private key creation errors", func(t *testing.T) {
 		args := createMockArgsManagedPeersHolder()
@@ -235,7 +235,7 @@ func TestManagedPeersHolder_AddManagedPeer(t *testing.T) {
 			GeneratePairStub: func() (crypto.PrivateKey, crypto.PublicKey) {
 				return &cryptoMocks.PrivateKeyStub{
 					ToByteArrayStub: func() ([]byte, error) {
-						return nil, expectedErr
+						return nil, errExpected
 					},
 				}, &cryptoMocks.PublicKeyStub{}
 			},
@@ -244,7 +244,7 @@ func TestManagedPeersHolder_AddManagedPeer(t *testing.T) {
 		holder, _ := keysManagement.NewManagedPeersHolder(args)
 		err := holder.AddManagedPeer([]byte("private key"))
 
-		assert.True(t, errors.Is(err, expectedErr))
+		assert.True(t, errors.Is(err, errExpected))
 	})
 	t.Run("should work for a new pk", func(t *testing.T) {
 		args := createMockArgsManagedPeersHolder()

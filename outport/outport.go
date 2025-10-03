@@ -78,7 +78,7 @@ func (o *outport) SaveBlock(args *outportcore.OutportBlockWithHeaderAndBody) err
 			return err
 		}
 
-		args.OutportBlock.BlockData = blockData
+		args.BlockData = blockData
 		o.saveBlockBlocking(args.OutportBlock, driver)
 	}
 

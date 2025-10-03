@@ -222,7 +222,7 @@ func TestBaseTxProcessor_VerifyGuardian(t *testing.T) {
 			return true
 		},
 	}
-	expectedErr := errors.New("expected error")
+	errExpected := errors.New("expected error")
 	tx := &transaction.Transaction{
 		GuardianAddr: []byte("guardian"),
 	}
@@ -286,13 +286,13 @@ func TestBaseTxProcessor_VerifyGuardian(t *testing.T) {
 		}
 		localBaseProc.guardianChecker = &guardianMocks.GuardedAccountHandlerStub{
 			GetActiveGuardianCalled: func(uah vmcommon.UserAccountHandler) ([]byte, error) {
-				return nil, expectedErr
+				return nil, errExpected
 			},
 		}
 
 		err := localBaseProc.VerifyGuardian(&transaction.Transaction{}, guardedAccount)
 		assert.ErrorIs(t, err, process.ErrTransactionNotExecutable)
-		assert.Contains(t, err.Error(), expectedErr.Error())
+		assert.Contains(t, err.Error(), errExpected.Error())
 	})
 	t.Run("guardian address mismatch should error", func(t *testing.T) {
 		t.Parallel()
@@ -338,18 +338,18 @@ func Test_CheckSetGuardianExecutable(t *testing.T) {
 		t.Parallel()
 
 		baseProc := createMockBaseTxProcessor()
-		expectedErr := errors.New("expected error")
+		errExpected := errors.New("expected error")
 
 		baseProc.scProcessor = &testscommon.SCProcessorMock{
 			CheckBuiltinFunctionIsExecutableCalled: func(expectedBuiltinFunction string, tx data.TransactionHandler) error {
-				return expectedErr
+				return errExpected
 			},
 		}
 		tx := &transaction.Transaction{}
 		err := baseProc.CheckSetGuardianExecutable(tx)
 		require.NotNil(t, err)
 		require.True(t, errors.Is(err, process.ErrTransactionNotExecutable))
-		require.True(t, strings.Contains(err.Error(), expectedErr.Error()))
+		require.True(t, strings.Contains(err.Error(), errExpected.Error()))
 	})
 	t.Run("sc processor CheckBuiltinFunctionIsExecutable with no error OK", func(t *testing.T) {
 		t.Parallel()

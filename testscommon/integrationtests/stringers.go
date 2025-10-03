@@ -31,7 +31,7 @@ func TransactionHandlerToString(pubKeyConverter core.PubkeyConverter, txHandlers
 			putSmartContractResultInBuilder(builder, tx, pubKeyConverter, "\t")
 		default:
 			// TODO implement the rest of the transaction handlers
-			builder.WriteString(fmt.Sprintf("not implemented type %T\n", txHandler))
+			_, _ = fmt.Fprintf(builder, "not implemented type %T\n", txHandler)
 		}
 	}
 
@@ -53,26 +53,28 @@ func SmartContractResultsToString(pubKeyConverter core.PubkeyConverter, scrs ...
 
 func putSmartContractResultInBuilder(builder *strings.Builder, scr *smartContractResult.SmartContractResult, pubKeyConverter core.PubkeyConverter, indent string) {
 	if scr == nil {
-		builder.WriteString(fmt.Sprintf("%sSmartContractResult !NIL{}\n", indent))
+		_, _ = fmt.Fprintf(builder, "%sSmartContractResult !NIL{}\n", indent)
 		return
 	}
 
-	builder.WriteString(fmt.Sprintf("%sSmartContractResult %p{\n", indent, scr))
-	defer builder.WriteString(fmt.Sprintf("%s}\n", indent))
+	_, _ = fmt.Fprintf(builder, "%sSmartContractResult %p{\n", indent, scr)
+	defer func() {
+		_, _ = fmt.Fprintf(builder, "%s}\n", indent)
+	}()
 
-	builder.WriteString(fmt.Sprintf("%s%sNonce: %d\n", indent, indent, scr.Nonce))
+	_, _ = fmt.Fprintf(builder, "%s%sNonce: %d\n", indent, indent, scr.Nonce)
 	putBigIntInBuilder(builder, "Value", indent, scr.Value)
 	putAddressInBuilder(builder, "RcvAddr", indent, pubKeyConverter, scr.RcvAddr)
 	putAddressInBuilder(builder, "SndAddr", indent, pubKeyConverter, scr.SndAddr)
 	putAddressInBuilder(builder, "OriginalSender", indent, pubKeyConverter, scr.OriginalSender)
-	builder.WriteString(fmt.Sprintf("%s%sReturnMessage: %s\n", indent, indent, convertStringIfNotASCII(scr.ReturnMessage)))
-	builder.WriteString(fmt.Sprintf("%s%sData: %s\n", indent, indent, convertStringIfNotASCII(scr.Data)))
-	builder.WriteString(fmt.Sprintf("%s%sCallType: %s\n", indent, indent, scr.CallType.ToString()))
-	builder.WriteString(fmt.Sprintf("%s%sCode: %s\n", indent, indent, convertStringIfNotASCII(scr.Code)))
-	builder.WriteString(fmt.Sprintf("%s%sGasLimit: %d\n", indent, indent, scr.GasLimit))
-	builder.WriteString(fmt.Sprintf("%s%sGasPrice: %d\n", indent, indent, scr.GasPrice))
-	builder.WriteString(fmt.Sprintf("%s%sOriginalTxHash: %s\n", indent, indent, convertStringIfNotASCII(scr.OriginalTxHash)))
-	builder.WriteString(fmt.Sprintf("%s%sPrevTxHash: %s\n", indent, indent, convertStringIfNotASCII(scr.PrevTxHash)))
+	_, _ = fmt.Fprintf(builder, "%s%sReturnMessage: %s\n", indent, indent, convertStringIfNotASCII(scr.ReturnMessage))
+	_, _ = fmt.Fprintf(builder, "%s%sData: %s\n", indent, indent, convertStringIfNotASCII(scr.Data))
+	_, _ = fmt.Fprintf(builder, "%s%sCallType: %s\n", indent, indent, scr.CallType.ToString())
+	_, _ = fmt.Fprintf(builder, "%s%sCode: %s\n", indent, indent, convertStringIfNotASCII(scr.Code))
+	_, _ = fmt.Fprintf(builder, "%s%sGasLimit: %d\n", indent, indent, scr.GasLimit)
+	_, _ = fmt.Fprintf(builder, "%s%sGasPrice: %d\n", indent, indent, scr.GasPrice)
+	_, _ = fmt.Fprintf(builder, "%s%sOriginalTxHash: %s\n", indent, indent, convertStringIfNotASCII(scr.OriginalTxHash))
+	_, _ = fmt.Fprintf(builder, "%s%sPrevTxHash: %s\n", indent, indent, convertStringIfNotASCII(scr.PrevTxHash))
 	putAddressInBuilder(builder, "RelayerAddr", indent, pubKeyConverter, scr.RelayerAddr)
 	putBigIntInBuilder(builder, "RelayedValue", indent, scr.RelayedValue)
 }
@@ -83,7 +85,7 @@ func putBigIntInBuilder(builder *strings.Builder, name string, indent string, va
 		strVal = value.String()
 	}
 
-	builder.WriteString(fmt.Sprintf("%s%s%s: %s\n", indent, indent, name, strVal))
+	_, _ = fmt.Fprintf(builder, "%s%s%s: %s\n", indent, indent, name, strVal)
 }
 
 func putAddressInBuilder(builder *strings.Builder, name string, indent string, pubKeyConverter core.PubkeyConverter, slice []byte) {
@@ -97,7 +99,7 @@ func putAddressInBuilder(builder *strings.Builder, name string, indent string, p
 		}
 	}
 
-	builder.WriteString(fmt.Sprintf("%s%s%s: %s\n", indent, indent, name, address))
+	_, _ = fmt.Fprintf(builder, "%s%s%s: %s\n", indent, indent, name, address)
 }
 
 func convertStringIfNotASCII(data []byte) string {

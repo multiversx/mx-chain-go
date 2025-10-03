@@ -28,7 +28,7 @@ func (sc *scProcessor) createVMDeployInput(tx data.TransactionHandler) (*vmcommo
 		return nil, nil, err
 	}
 
-	vmCreateInput.VMInput.Arguments = deployData.Arguments
+	vmCreateInput.Arguments = deployData.Arguments
 
 	return vmCreateInput, deployData.VMType, nil
 }
@@ -124,8 +124,8 @@ func (sc *scProcessor) createVMCallInput(
 		return nil, err
 	}
 
-	vmCallInput.VMInput.AsyncArguments = buildAsyncArgumentsObject(callType, asyncArguments)
-	vmCallInput.VMInput.Arguments = callArguments
+	vmCallInput.AsyncArguments = buildAsyncArgumentsObject(callType, asyncArguments)
+	vmCallInput.Arguments = callArguments
 	if vmCallInput.GasProvided > tx.GetGasLimit() {
 		return nil, process.ErrInvalidVMInputGasComputation
 	}

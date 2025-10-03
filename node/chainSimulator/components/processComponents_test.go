@@ -181,7 +181,7 @@ func createArgsProcessComponentsHolder() ArgsProcessComponentsHolder {
 			ChainParametersHandlerField:        &chainParameters.ChainParametersHandlerStub{},
 			ChainParametersSubscriberField:     &commonmocks.ChainParametersNotifierStub{},
 			ProcessConfigsHandlerField:         testscommon.GetDefaultProcessConfigsHandler(),
-			CommonConfigsHandlerField:      testscommon.GetDefaultCommonConfigsHandler(),
+			CommonConfigsHandlerField:          testscommon.GetDefaultCommonConfigsHandler(),
 		},
 		CryptoComponents: &mock.CryptoComponentsStub{
 			BlKeyGen: &cryptoMocks.KeyGenStub{},
@@ -317,7 +317,7 @@ func TestCreateProcessComponents(t *testing.T) {
 		dataMock.Store = &storage.ChainStorerStub{
 			GetStorerCalled: func(unitType retriever.UnitType) (chainStorage.Storer, error) {
 				if unitType == retriever.ESDTSuppliesUnit {
-					return nil, expectedErr
+					return nil, errExpected
 				}
 				return &storage.StorerStub{}, nil
 			},

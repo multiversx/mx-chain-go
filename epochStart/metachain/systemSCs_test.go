@@ -192,9 +192,9 @@ func TestNewSystemSCProcessor(t *testing.T) {
 	require.True(t, errors.Is(err, core.ErrInvalidEnableEpochsHandler))
 }
 
-func checkConstructorWithNilArg(t *testing.T, args ArgsNewEpochStartSystemSCProcessing, expectedErr error) {
+func checkConstructorWithNilArg(t *testing.T, args ArgsNewEpochStartSystemSCProcessing, errExpected error) {
 	_, err := NewSystemSCProcessor(args)
-	require.Equal(t, expectedErr, err)
+	require.Equal(t, errExpected, err)
 }
 
 func TestSystemSCProcessor_ProcessSystemSmartContract(t *testing.T) {
@@ -984,7 +984,7 @@ func createFullArgumentsForSystemSCProcessing(enableEpochsConfig config.EnableEp
 func TestSystemSCProcessor_ProcessSystemSmartContractInitDelegationMgr(t *testing.T) {
 	t.Parallel()
 
-	expectedErr := errors.New("expected error")
+	errExpected := errors.New("expected error")
 	t.Run("flag not active", func(t *testing.T) {
 		args := createMockArgsForSystemSCProcessor()
 		args.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
@@ -1056,7 +1056,7 @@ func TestSystemSCProcessor_ProcessSystemSmartContractInitDelegationMgr(t *testin
 			RunSmartContractCreateCalled: func(input *vmcommon.ContractCreateInput) (*vmcommon.VMOutput, error) {
 				runSmartContractCreateCalled = true
 
-				return nil, expectedErr
+				return nil, errExpected
 			},
 		}
 		processor, _ := NewSystemSCProcessor(args)
@@ -1064,7 +1064,7 @@ func TestSystemSCProcessor_ProcessSystemSmartContractInitDelegationMgr(t *testin
 
 		validatorsInfo := state.NewShardValidatorsInfoMap()
 		err := processor.ProcessSystemSmartContract(validatorsInfo, &block.Header{})
-		require.ErrorIs(t, err, expectedErr)
+		require.ErrorIs(t, err, errExpected)
 		require.True(t, runSmartContractCreateCalled)
 	})
 }
@@ -1072,7 +1072,7 @@ func TestSystemSCProcessor_ProcessSystemSmartContractInitDelegationMgr(t *testin
 func TestSystemSCProcessor_ProcessSystemSmartContractInitGovernance(t *testing.T) {
 	t.Parallel()
 
-	expectedErr := errors.New("expected error")
+	errExpected := errors.New("expected error")
 	t.Run("flag not active", func(t *testing.T) {
 		args := createMockArgsForSystemSCProcessor()
 		args.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
@@ -1144,7 +1144,7 @@ func TestSystemSCProcessor_ProcessSystemSmartContractInitGovernance(t *testing.T
 			RunSmartContractCallCalled: func(input *vmcommon.ContractCallInput) (*vmcommon.VMOutput, error) {
 				runSmartContractCreateCalled = true
 
-				return nil, expectedErr
+				return nil, errExpected
 			},
 		}
 		processor, _ := NewSystemSCProcessor(args)
@@ -1152,7 +1152,7 @@ func TestSystemSCProcessor_ProcessSystemSmartContractInitGovernance(t *testing.T
 
 		validatorsInfo := state.NewShardValidatorsInfoMap()
 		err := processor.ProcessSystemSmartContract(validatorsInfo, &block.Header{})
-		require.ErrorIs(t, err, expectedErr)
+		require.ErrorIs(t, err, errExpected)
 		require.Contains(t, err.Error(), "governanceV2")
 		require.True(t, runSmartContractCreateCalled)
 	})

@@ -282,7 +282,7 @@ func TestStateExport_ExportTrieShouldExportNodesSetupJson(t *testing.T) {
 
 		args := getDefaultStateExporterArgs()
 
-		expectedErr := errors.New("expected error")
+		errExpected := errors.New("expected error")
 		trie := &trieMock.TrieStub{
 			RootCalled: func() ([]byte, error) {
 				return []byte{}, nil
@@ -294,7 +294,7 @@ func TestStateExport_ExportTrieShouldExportNodesSetupJson(t *testing.T) {
 
 				go func() {
 					channels.LeavesChan <- keyValStorage.NewKeyValStorage([]byte("test"), pacB)
-					channels.ErrChan.WriteInChanNonBlocking(expectedErr)
+					channels.ErrChan.WriteInChanNonBlocking(errExpected)
 					close(channels.LeavesChan)
 				}()
 
@@ -306,7 +306,7 @@ func TestStateExport_ExportTrieShouldExportNodesSetupJson(t *testing.T) {
 		require.NoError(t, err)
 
 		err = stateExporter.exportTrie("test@1@9", trie)
-		require.Equal(t, expectedErr, err)
+		require.Equal(t, errExpected, err)
 	})
 
 	t.Run("should work export nodes setup json", func(t *testing.T) {
@@ -527,11 +527,11 @@ func TestStateExport_ExportValidatorInfo(t *testing.T) {
 	t.Run("export validator info with error", func(t *testing.T) {
 		t.Parallel()
 
-		expectedErr := errors.New("error")
+		errExpected := errors.New("error")
 		args := getDefaultStateExporterArgs()
 		args.HardforkStorer = &mock.HardforkStorerStub{
 			WriteCalled: func(identifier string, key []byte, value []byte) error {
-				return expectedErr
+				return errExpected
 			},
 		}
 
@@ -542,7 +542,7 @@ func TestStateExport_ExportValidatorInfo(t *testing.T) {
 		}
 
 		err := stateExporter.exportValidatorInfo(key, shardValidatorInfo)
-		assert.Equal(t, expectedErr, err)
+		assert.Equal(t, errExpected, err)
 	})
 
 	t.Run("export validator info without error", func(t *testing.T) {

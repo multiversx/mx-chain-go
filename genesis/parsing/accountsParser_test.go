@@ -217,7 +217,7 @@ func TestNewAccountsParser_ShouldWork(t *testing.T) {
 	assert.Equal(t, 6, len(ap.InitialAccounts()))
 }
 
-//------- process
+// ------- process
 
 func TestAccountsParser_ProcessEmptyAddressShouldErr(t *testing.T) {
 	t.Parallel()
@@ -248,11 +248,11 @@ func TestAccountsParser_ProcessInvalidAddressShouldErr(t *testing.T) {
 func TestAccountsParser_ProcessInvalidPublicKeyShouldErr(t *testing.T) {
 	t.Parallel()
 
-	expectedErr := errors.New("expected error")
+	errExpected := errors.New("expected error")
 	ap := parsing.NewTestAccountsParser(createMockHexPubkeyConverter())
 	ap.SetKeyGenerator(&mock.KeyGeneratorStub{
 		CheckPublicKeyValidCalled: func(b []byte) error {
-			return expectedErr
+			return errExpected
 		},
 	})
 	ib := createMockInitialAccount()
@@ -405,7 +405,7 @@ func TestAccountsParser_ProcessShouldWork(t *testing.T) {
 	assert.Nil(t, err)
 }
 
-//------- InitialAccountsSplitOnAddressesShards
+// ------- InitialAccountsSplitOnAddressesShards
 
 func TestAccountsParser_InitialAccountsSplitOnAddressesShardsNilShardCoordinatorShouldErr(t *testing.T) {
 	t.Parallel()
@@ -469,7 +469,7 @@ func TestAccountsParser_GetInitialAccountsForDelegated(t *testing.T) {
 
 	list := ap.GetInitialAccountsForDelegated([]byte(addr1))
 	require.Equal(t, 2, len(list))
-	//order is important
+	// order is important
 	assert.Equal(t, ib1, list[0])
 	assert.Equal(t, ib2, list[1])
 	delegated := ap.GetTotalStakedForDelegationAddress(hex.EncodeToString([]byte(addr1)))
@@ -487,7 +487,7 @@ func TestAccountsParser_GetInitialAccountsForDelegated(t *testing.T) {
 	assert.Equal(t, big.NewInt(0), delegated)
 }
 
-//------- GetMintTransactions
+// ------- GetMintTransactions
 
 func TestAccountsParser_GenerateInitialTransactionsShouldErr(t *testing.T) {
 	t.Parallel()

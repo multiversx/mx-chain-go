@@ -73,7 +73,7 @@ func TestBlockGroup_getBlockByNonce(t *testing.T) {
 
 		facade := &mock.FacadeStub{
 			GetBlockByNonceCalled: func(_ uint64, _ api.BlockQueryOptions) (*api.Block, error) {
-				return nil, expectedErr
+				return nil, errExpected
 			},
 		}
 
@@ -83,7 +83,7 @@ func TestBlockGroup_getBlockByNonce(t *testing.T) {
 			"/block/by-nonce/10",
 			nil,
 			http.StatusInternalServerError,
-			formatExpectedErr(apiErrors.ErrGetBlock, expectedErr),
+			formatExpectedErr(apiErrors.ErrGetBlock, errExpected),
 		)
 	})
 	t.Run("should work", func(t *testing.T) {
@@ -132,7 +132,7 @@ func TestBlockGroup_getBlockByHash(t *testing.T) {
 
 		facade := &mock.FacadeStub{
 			GetBlockByHashCalled: func(_ string, _ api.BlockQueryOptions) (*api.Block, error) {
-				return nil, expectedErr
+				return nil, errExpected
 			},
 		}
 
@@ -142,7 +142,7 @@ func TestBlockGroup_getBlockByHash(t *testing.T) {
 			"/block/by-hash/hash",
 			nil,
 			http.StatusInternalServerError,
-			formatExpectedErr(apiErrors.ErrGetBlock, expectedErr),
+			formatExpectedErr(apiErrors.ErrGetBlock, errExpected),
 		)
 	})
 	t.Run("should work", func(t *testing.T) {
@@ -193,7 +193,7 @@ func TestBlockGroup_getBlockByRound(t *testing.T) {
 
 		facade := &mock.FacadeStub{
 			GetBlockByRoundCalled: func(_ uint64, _ api.BlockQueryOptions) (*api.Block, error) {
-				return nil, expectedErr
+				return nil, errExpected
 			},
 		}
 
@@ -203,7 +203,7 @@ func TestBlockGroup_getBlockByRound(t *testing.T) {
 			"/block/by-round/123",
 			nil,
 			http.StatusInternalServerError,
-			formatExpectedErr(apiErrors.ErrGetBlock, expectedErr),
+			formatExpectedErr(apiErrors.ErrGetBlock, errExpected),
 		)
 	})
 	t.Run("should work", func(t *testing.T) {
@@ -252,7 +252,7 @@ func TestBlockGroup_getAlteredAccountsByNonce(t *testing.T) {
 
 		facade := &mock.FacadeStub{
 			GetAlteredAccountsForBlockCalled: func(options api.GetAlteredAccountsForBlockOptions) ([]*alteredAccount.AlteredAccount, error) {
-				return nil, expectedErr
+				return nil, errExpected
 			},
 		}
 
@@ -262,7 +262,7 @@ func TestBlockGroup_getAlteredAccountsByNonce(t *testing.T) {
 			"/block/altered-accounts/by-nonce/123",
 			nil,
 			http.StatusInternalServerError,
-			formatExpectedErr(apiErrors.ErrGetAlteredAccountsForBlock, expectedErr),
+			formatExpectedErr(apiErrors.ErrGetAlteredAccountsForBlock, errExpected),
 		)
 	})
 	t.Run("should work", func(t *testing.T) {
@@ -321,7 +321,7 @@ func TestBlockGroup_getAlteredAccountsByHash(t *testing.T) {
 		providedHash := hex.EncodeToString([]byte("hash"))
 		facade := &mock.FacadeStub{
 			GetAlteredAccountsForBlockCalled: func(options api.GetAlteredAccountsForBlockOptions) ([]*alteredAccount.AlteredAccount, error) {
-				return nil, expectedErr
+				return nil, errExpected
 			},
 		}
 
@@ -331,7 +331,7 @@ func TestBlockGroup_getAlteredAccountsByHash(t *testing.T) {
 			"/block/altered-accounts/by-hash/"+providedHash,
 			nil,
 			http.StatusInternalServerError,
-			formatExpectedErr(apiErrors.ErrGetAlteredAccountsForBlock, expectedErr),
+			formatExpectedErr(apiErrors.ErrGetAlteredAccountsForBlock, errExpected),
 		)
 	})
 	t.Run("should work", func(t *testing.T) {
@@ -434,7 +434,7 @@ func TestBlockGroup_UpdateFacadeStub(t *testing.T) {
 
 		newFacade := mock.FacadeStub{
 			GetBlockByNonceCalled: func(nonce uint64, options api.BlockQueryOptions) (*api.Block, error) {
-				return nil, expectedErr
+				return nil, errExpected
 			},
 		}
 		err = blockGroup.UpdateFacade(&newFacade)
@@ -447,7 +447,7 @@ func TestBlockGroup_UpdateFacadeStub(t *testing.T) {
 		response = blockResponse{}
 		loadResponse(resp.Body, &response)
 		assert.Equal(t, http.StatusInternalServerError, resp.Code)
-		assert.True(t, strings.Contains(response.Error, expectedErr.Error()))
+		assert.True(t, strings.Contains(response.Error, errExpected.Error()))
 	})
 }
 
@@ -473,7 +473,7 @@ func loadBlockGroupResponse(
 	loadResponse(resp.Body, destination)
 }
 
-func testBlockGroupErrorScenario(url string, body io.Reader, expectedErr string) func(t *testing.T) {
+func testBlockGroupErrorScenario(url string, body io.Reader, errExpected string) func(t *testing.T) {
 	return func(t *testing.T) {
 		t.Parallel()
 
@@ -483,7 +483,7 @@ func testBlockGroupErrorScenario(url string, body io.Reader, expectedErr string)
 			url,
 			body,
 			http.StatusBadRequest,
-			expectedErr,
+			errExpected,
 		)
 	}
 }

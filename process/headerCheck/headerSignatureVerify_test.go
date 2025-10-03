@@ -31,7 +31,7 @@ import (
 
 const defaultChancesSelection = 1
 
-var expectedErr = errors.New("expected error")
+var errExpected = errors.New("expected error")
 
 func createHeaderSigVerifierArgs() *ArgsHeaderSigVerifier {
 	v1, _ := nodesCoordinator.NewValidator([]byte("pubKey1"), 1, defaultChancesSelection)
@@ -895,7 +895,7 @@ func TestHeaderSigVerifier_VerifyHeaderProof(t *testing.T) {
 			GetMultiSignerCalled: func(epoch uint32) (crypto.MultiSigner, error) {
 				cnt++
 				if cnt > 1 {
-					return nil, expectedErr
+					return nil, errExpected
 				}
 				return &cryptoMocks.MultiSignerStub{}, nil
 			},
@@ -904,7 +904,7 @@ func TestHeaderSigVerifier_VerifyHeaderProof(t *testing.T) {
 		require.NoError(t, err)
 
 		err = hdrSigVerifier.VerifyHeaderProof(&dataBlock.HeaderProof{})
-		require.Equal(t, expectedErr, err)
+		require.Equal(t, errExpected, err)
 	})
 	t.Run("getConsensusSignersForEquivalentProofs error should error", func(t *testing.T) {
 		t.Parallel()
@@ -934,7 +934,7 @@ func TestHeaderSigVerifier_VerifyHeaderProof(t *testing.T) {
 		}
 		args.NodesCoordinator = &shardingMocks.NodesCoordinatorMock{
 			GetAllEligibleValidatorsPublicKeysForShardCalled: func(epoch uint32, shardID uint32) ([]string, error) {
-				return nil, expectedErr
+				return nil, errExpected
 			},
 		}
 		hdrSigVerifier, err := NewHeaderSigVerifier(args)
@@ -945,7 +945,7 @@ func TestHeaderSigVerifier_VerifyHeaderProof(t *testing.T) {
 			AggregatedSignature: make([]byte, 10),
 			HeaderHash:          headerHash,
 		})
-		require.Equal(t, expectedErr, err)
+		require.Equal(t, errExpected, err)
 		require.False(t, wasVerifyAggregatedSigCalled)
 	})
 	t.Run("should try multiple times to get header if not available", func(t *testing.T) {
@@ -1084,7 +1084,7 @@ func TestHeaderSigVerifier_getConsensusSignersForEquivalentProofs(t *testing.T) 
 		}
 		args.NodesCoordinator = &shardingMocks.NodesCoordinatorMock{
 			GetAllEligibleValidatorsPublicKeysForShardCalled: func(epoch uint32, shardID uint32) ([]string, error) {
-				return nil, expectedErr
+				return nil, errExpected
 			},
 		}
 		hdrSigVerifier, _ := NewHeaderSigVerifier(args)
@@ -1095,7 +1095,7 @@ func TestHeaderSigVerifier_getConsensusSignersForEquivalentProofs(t *testing.T) 
 			HeaderEpoch:    1,
 		})
 		require.Nil(t, signers)
-		require.Equal(t, expectedErr, err)
+		require.Equal(t, errExpected, err)
 	})
 	t.Run("invalid consensus bitmap error should error", func(t *testing.T) {
 		t.Parallel()

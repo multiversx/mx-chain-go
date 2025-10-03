@@ -219,20 +219,20 @@ func TestNewDataPool_OkValsShouldWork(t *testing.T) {
 func TestNewDataPool_Close(t *testing.T) {
 	t.Parallel()
 
-	expectedErr := errors.New("expected error")
+	errExpected := errors.New("expected error")
 	t.Run("trie nodes close returns error", func(t *testing.T) {
 		t.Parallel()
 
 		args := createMockDataPoolArgs()
 		args.TrieNodes = &cache.CacherStub{
 			CloseCalled: func() error {
-				return expectedErr
+				return errExpected
 			},
 		}
 		tdp, _ := dataPool.NewDataPool(args)
 		assert.NotNil(t, tdp)
 		err := tdp.Close()
-		assert.Equal(t, expectedErr, err)
+		assert.Equal(t, errExpected, err)
 	})
 	t.Run("peer authentications close returns error", func(t *testing.T) {
 		t.Parallel()
@@ -240,13 +240,13 @@ func TestNewDataPool_Close(t *testing.T) {
 		args := createMockDataPoolArgs()
 		args.PeerAuthentications = &cache.CacherStub{
 			CloseCalled: func() error {
-				return expectedErr
+				return errExpected
 			},
 		}
 		tdp, _ := dataPool.NewDataPool(args)
 		assert.NotNil(t, tdp)
 		err := tdp.Close()
-		assert.Equal(t, expectedErr, err)
+		assert.Equal(t, errExpected, err)
 	})
 	t.Run("both fail", func(t *testing.T) {
 		t.Parallel()

@@ -241,7 +241,7 @@ func TestPeerAccountsDB_MarkSnapshotDone(t *testing.T) {
 			}
 		}()
 
-		expectedErr := errors.New("expected error")
+		errExpected := errors.New("expected error")
 		args := createMockAccountsDBArgs()
 		args.Trie = &trieMock.TrieStub{
 			GetStorageManagerCalled: func() common.StorageManager {
@@ -251,7 +251,7 @@ func TestPeerAccountsDB_MarkSnapshotDone(t *testing.T) {
 						return nil
 					},
 					GetLatestStorageEpochCalled: func() (uint32, error) {
-						return 0, expectedErr
+						return 0, errExpected
 					},
 				}
 			},
@@ -270,7 +270,7 @@ func TestPeerAccountsDB_MarkSnapshotDone(t *testing.T) {
 			}
 		}()
 
-		expectedErr := errors.New("expected error")
+		errExpected := errors.New("expected error")
 		putWasCalled := false
 		args := createMockAccountsDBArgs()
 		args.Trie = &trieMock.TrieStub{
@@ -281,7 +281,7 @@ func TestPeerAccountsDB_MarkSnapshotDone(t *testing.T) {
 						assert.Equal(t, common.ActiveDBVal, string(value))
 						putWasCalled = true
 
-						return expectedErr
+						return errExpected
 					},
 				}
 			},
@@ -321,7 +321,7 @@ func TestPeerAccountsDB_SetSyncerAndStartSnapshotIfNeededMarksActiveDB(t *testin
 	t.Parallel()
 
 	rootHash := []byte("rootHash")
-	expectedErr := errors.New("expected error")
+	errExpected := errors.New("expected error")
 	t.Run("epoch 0, GetLatestStorageEpoch errors should not put", func(t *testing.T) {
 		trieStub := &trieMock.TrieStub{
 			RootCalled: func() ([]byte, error) {
@@ -333,7 +333,7 @@ func TestPeerAccountsDB_SetSyncerAndStartSnapshotIfNeededMarksActiveDB(t *testin
 						return true
 					},
 					GetLatestStorageEpochCalled: func() (uint32, error) {
-						return 0, expectedErr
+						return 0, errExpected
 					},
 					PutCalled: func(key []byte, val []byte) error {
 						assert.Fail(t, "should have not called put")
@@ -366,7 +366,7 @@ func TestPeerAccountsDB_SetSyncerAndStartSnapshotIfNeededMarksActiveDB(t *testin
 						return 1, nil
 					},
 					GetFromCurrentEpochCalled: func(i []byte) ([]byte, error) {
-						return nil, expectedErr
+						return nil, errExpected
 					},
 				}
 			},
@@ -447,20 +447,20 @@ func TestGetPeerAccountAndReturnIfNew(t *testing.T) {
 	t.Run("should return error if failed account creation", func(t *testing.T) {
 		t.Parallel()
 
-		expectedErr := errors.New("expected error")
+		errExpected := errors.New("expected error")
 		adb := &testState.AccountsStub{
 			GetExistingAccountCalled: func(addressContainer []byte) (vmcommon.AccountHandler, error) {
 				return nil, errors.New("account does not exist")
 			},
 			LoadAccountCalled: func(container []byte) (vmcommon.AccountHandler, error) {
-				return nil, expectedErr
+				return nil, errExpected
 			},
 		}
 
 		acc, isNew, err := state.GetPeerAccountAndReturnIfNew(adb, []byte("address"))
 		assert.Nil(t, acc)
 		assert.False(t, isNew)
-		assert.Equal(t, expectedErr, err)
+		assert.Equal(t, errExpected, err)
 	})
 
 	t.Run("should return error if wrong type of existent account", func(t *testing.T) {

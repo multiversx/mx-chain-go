@@ -228,7 +228,7 @@ func TestMetaProcessor_receivedShardHeader(t *testing.T) {
 
 		numCalls := atomic.Uint32{}
 		arguments := createMetaProcessorArguments(t, noOfShards)
-		requestHandler, ok := arguments.ArgBaseProcessor.RequestHandler.(*testscommon.RequestHandlerStub)
+		requestHandler, ok := arguments.RequestHandler.(*testscommon.RequestHandlerStub)
 		require.True(t, ok)
 
 		requestHandler.RequestShardHeaderByNonceCalled = func(shardID uint32, nonce uint64) {
@@ -266,7 +266,7 @@ func TestMetaProcessor_receivedShardHeader(t *testing.T) {
 
 		numCalls := atomic.Uint32{}
 		arguments := createMetaProcessorArguments(t, noOfShards)
-		requestHandler, ok := arguments.ArgBaseProcessor.RequestHandler.(*testscommon.RequestHandlerStub)
+		requestHandler, ok := arguments.RequestHandler.(*testscommon.RequestHandlerStub)
 		require.True(t, ok)
 
 		// for requesting attestation header
@@ -311,7 +311,7 @@ func TestMetaProcessor_receivedShardHeader(t *testing.T) {
 
 		headersPoolStub := createPoolsHolderForHeaderRequests()
 		poolsHolder.SetHeadersPool(headersPoolStub)
-		requestHandler, ok := arguments.ArgBaseProcessor.RequestHandler.(*testscommon.RequestHandlerStub)
+		requestHandler, ok := arguments.RequestHandler.(*testscommon.RequestHandlerStub)
 		require.True(t, ok)
 
 		// for requesting attestation header
@@ -372,7 +372,7 @@ func TestMetaProcessor_receivedShardHeader(t *testing.T) {
 
 		headersPoolStub := createPoolsHolderForHeaderRequests()
 		poolsHolder.SetHeadersPool(headersPoolStub)
-		requestHandler, ok := arguments.ArgBaseProcessor.RequestHandler.(*testscommon.RequestHandlerStub)
+		requestHandler, ok := arguments.RequestHandler.(*testscommon.RequestHandlerStub)
 		require.True(t, ok)
 
 		// for requesting attestation header
@@ -522,7 +522,7 @@ func createMetaProcessorArguments(t *testing.T, noOfShards uint32) *blockProcess
 
 	startHeaders := createGenesisBlocks(bootstrapComponents.ShardCoordinator())
 	arguments.BlockTracker = mock.NewBlockTrackerMock(bootstrapComponents.ShardCoordinator(), startHeaders)
-	arguments.ArgBaseProcessor.RequestHandler = &testscommon.RequestHandlerStub{
+	arguments.RequestHandler = &testscommon.RequestHandlerStub{
 		RequestShardHeaderByNonceCalled: func(shardID uint32, nonce uint64) {
 			require.Fail(t, "should not have been called")
 		},
@@ -635,7 +635,7 @@ func updateRequestsHandlerForCountingRequests(
 	metaBlock *block.MetaBlock,
 	numCallsMissingHeaders, numCallsMissingAttestation *atomic.Uint32,
 ) {
-	requestHandler, ok := arguments.ArgBaseProcessor.RequestHandler.(*testscommon.RequestHandlerStub)
+	requestHandler, ok := arguments.RequestHandler.(*testscommon.RequestHandlerStub)
 	require.True(t, ok)
 
 	requestHandler.RequestShardHeaderByNonceCalled = func(shardID uint32, nonce uint64) {

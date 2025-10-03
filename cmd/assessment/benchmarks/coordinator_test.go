@@ -48,7 +48,7 @@ func TestNewCoordinator_ShouldWork(t *testing.T) {
 func TestCoordinator_RunAllOneErrorsShouldRetErr(t *testing.T) {
 	t.Parallel()
 
-	expectedErr := errors.New("expected error")
+	errExpected := errors.New("expected error")
 	c, _ := NewCoordinator([]BenchmarkRunner{
 		&mock.BenchmarkStub{
 			RunCalled: func() (time.Duration, error) {
@@ -57,19 +57,19 @@ func TestCoordinator_RunAllOneErrorsShouldRetErr(t *testing.T) {
 		},
 		&mock.BenchmarkStub{
 			RunCalled: func() (time.Duration, error) {
-				return 3, expectedErr
+				return 3, errExpected
 			},
 		},
 	})
 
 	result := c.RunAllTests()
 	require.NotNil(t, result)
-	assert.Equal(t, expectedErr, result.Error)
+	assert.Equal(t, errExpected, result.Error)
 	assert.Equal(t, time.Duration(5), result.TotalDuration)
 	require.Equal(t, 2, len(result.Results))
 	assert.Equal(t, time.Duration(2), result.Results[0].Duration)
 	assert.Equal(t, time.Duration(3), result.Results[1].Duration)
-	assert.Equal(t, expectedErr, result.Results[1].Error)
+	assert.Equal(t, errExpected, result.Results[1].Error)
 }
 
 func TestCoordinator_RunAllShouldWork(t *testing.T) {

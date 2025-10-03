@@ -21,7 +21,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-var expectedErr = errors.New("expected error")
+var errExpected = errors.New("expected error")
 
 func createMockArgsTestOnlyProcessingNode(t *testing.T) ArgsTestOnlyProcessingNode {
 	outputConfigs, err := configs.CreateChainSimulatorConfigs(configs.ArgsChainSimulatorConfigs{
@@ -193,13 +193,13 @@ func TestTestOnlyProcessingNode_SetKeyValueForAddress(t *testing.T) {
 		nodeLocal.StateComponentsHolder = &factory.StateComponentsMock{
 			Accounts: &state.AccountsStub{
 				LoadAccountCalled: func(container []byte) (vmcommon.AccountHandler, error) {
-					return nil, expectedErr
+					return nil, errExpected
 				},
 			},
 		}
 
 		errLocal = nodeLocal.SetKeyValueForAddress(addressBytes, nil)
-		require.Equal(t, expectedErr, errLocal)
+		require.Equal(t, errExpected, errLocal)
 	})
 	t.Run("account un-castable to UserAccountHandler should error", func(t *testing.T) {
 		argsLocal := createMockArgsTestOnlyProcessingNode(t)
@@ -227,7 +227,7 @@ func TestTestOnlyProcessingNode_SetKeyValueForAddress(t *testing.T) {
 				LoadAccountCalled: func(container []byte) (vmcommon.AccountHandler, error) {
 					return &state.UserAccountStub{
 						SaveKeyValueCalled: func(key []byte, value []byte) error {
-							return expectedErr
+							return errExpected
 						},
 					}, nil
 				},
@@ -235,7 +235,7 @@ func TestTestOnlyProcessingNode_SetKeyValueForAddress(t *testing.T) {
 		}
 
 		errLocal = nodeLocal.SetKeyValueForAddress(addressBytes, goodKeyValueMap)
-		require.Equal(t, expectedErr, errLocal)
+		require.Equal(t, errExpected, errLocal)
 	})
 	t.Run("SaveAccount failure should error", func(t *testing.T) {
 		argsLocal := createMockArgsTestOnlyProcessingNode(t)
@@ -245,13 +245,13 @@ func TestTestOnlyProcessingNode_SetKeyValueForAddress(t *testing.T) {
 		nodeLocal.StateComponentsHolder = &factory.StateComponentsMock{
 			Accounts: &state.AccountsStub{
 				SaveAccountCalled: func(account vmcommon.AccountHandler) error {
-					return expectedErr
+					return errExpected
 				},
 			},
 		}
 
 		errLocal = nodeLocal.SetKeyValueForAddress(addressBytes, goodKeyValueMap)
-		require.Equal(t, expectedErr, errLocal)
+		require.Equal(t, errExpected, errLocal)
 	})
 }
 
@@ -296,13 +296,13 @@ func TestTestOnlyProcessingNode_SetStateForAddress(t *testing.T) {
 		nodeLocal.StateComponentsHolder = &factory.StateComponentsMock{
 			Accounts: &state.AccountsStub{
 				LoadAccountCalled: func(container []byte) (vmcommon.AccountHandler, error) {
-					return nil, expectedErr
+					return nil, errExpected
 				},
 			},
 		}
 
 		errLocal = nodeLocal.SetStateForAddress([]byte("address"), nil)
-		require.Equal(t, expectedErr, errLocal)
+		require.Equal(t, errExpected, errLocal)
 	})
 	t.Run("state balance invalid should error", func(t *testing.T) {
 		addressStateCopy := *addressState
@@ -320,7 +320,7 @@ func TestTestOnlyProcessingNode_SetStateForAddress(t *testing.T) {
 				LoadAccountCalled: func(container []byte) (vmcommon.AccountHandler, error) {
 					return &state.UserAccountStub{
 						AddToBalanceCalled: func(value *big.Int) error {
-							return expectedErr
+							return errExpected
 						},
 						Balance: big.NewInt(0),
 					}, nil
@@ -329,7 +329,7 @@ func TestTestOnlyProcessingNode_SetStateForAddress(t *testing.T) {
 		}
 
 		errLocal = nodeLocal.SetStateForAddress([]byte("address"), addressState)
-		require.Equal(t, expectedErr, errLocal)
+		require.Equal(t, errExpected, errLocal)
 	})
 	t.Run("SaveKeyValue failure should error", func(t *testing.T) {
 		argsLocal := createMockArgsTestOnlyProcessingNode(t)
@@ -341,7 +341,7 @@ func TestTestOnlyProcessingNode_SetStateForAddress(t *testing.T) {
 				LoadAccountCalled: func(container []byte) (vmcommon.AccountHandler, error) {
 					return &state.UserAccountStub{
 						SaveKeyValueCalled: func(key []byte, value []byte) error {
-							return expectedErr
+							return errExpected
 						},
 						Balance: big.NewInt(0),
 					}, nil
@@ -350,7 +350,7 @@ func TestTestOnlyProcessingNode_SetStateForAddress(t *testing.T) {
 		}
 
 		errLocal = nodeLocal.SetStateForAddress(addressBytes, addressState)
-		require.Equal(t, expectedErr, errLocal)
+		require.Equal(t, errExpected, errLocal)
 	})
 	t.Run("invalid sc code should error", func(t *testing.T) {
 		addressStateCopy := *addressState
@@ -411,13 +411,13 @@ func TestTestOnlyProcessingNode_SetStateForAddress(t *testing.T) {
 		nodeLocal.StateComponentsHolder = &factory.StateComponentsMock{
 			Accounts: &state.AccountsStub{
 				SaveAccountCalled: func(account vmcommon.AccountHandler) error {
-					return expectedErr
+					return errExpected
 				},
 			},
 		}
 
 		errLocal = nodeLocal.SetStateForAddress(addressBytes, addressState)
-		require.Equal(t, expectedErr, errLocal)
+		require.Equal(t, errExpected, errLocal)
 	})
 }
 

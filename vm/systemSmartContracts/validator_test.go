@@ -2656,7 +2656,7 @@ func TestValidatorStakingSC_ExecuteUnBondBeforePeriodEnds(t *testing.T) {
 				},
 			},
 			BlsPubKeys:      [][]byte{blsPubKey},
-			TotalStakeValue: big.NewInt(1000), //in v1 this was still set to the unstaked value
+			TotalStakeValue: big.NewInt(1000), // in v1 this was still set to the unstaked value
 			LockedStake:     big.NewInt(0),
 			TotalUnstaked:   big.NewInt(1000),
 		},
@@ -2681,7 +2681,7 @@ func TestValidatorStakingSC_ExecuteUnBondBeforePeriodEnds(t *testing.T) {
 	assert.Equal(t, vmcommon.Ok, retCode)
 	assert.True(t, strings.Contains(eei.returnMessage, "unBond is not possible"))
 	assert.True(t, strings.Contains(eei.returnMessage, "unBond period did not pass"))
-	assert.True(t, len(eei.GetStorage(caller)) != 0) //should have not removed the account data
+	assert.True(t, len(eei.GetStorage(caller)) != 0) // should have not removed the account data
 }
 
 func TestValidatorSC_ExecuteUnBondBeforePeriodEndsForV2(t *testing.T) {
@@ -2741,7 +2741,7 @@ func TestValidatorSC_ExecuteUnBondBeforePeriodEndsForV2(t *testing.T) {
 	assert.Equal(t, vmcommon.Ok, retCode)
 	assert.True(t, strings.Contains(eei.returnMessage, "unBond is not possible"))
 	assert.True(t, strings.Contains(eei.returnMessage, "unBond period did not pass"))
-	assert.True(t, len(eei.GetStorage(caller)) != 0) //should have not removed the account data
+	assert.True(t, len(eei.GetStorage(caller)) != 0) // should have not removed the account data
 }
 
 func TestValidatorStakingSC_ExecuteUnBond(t *testing.T) {
@@ -3018,14 +3018,14 @@ func TestValidatorStakingSC_Claim(t *testing.T) {
 
 	sc, _ := NewValidatorSmartContract(args)
 
-	//do claim should ret error
+	// do claim should ret error
 	doClaim(t, sc, stakerAddress, receiverAddr, vmcommon.UserError)
 
-	//do stake
+	// do stake
 	nodePrice, _ := big.NewInt(0).SetString(args.StakingSCConfig.GenesisNodePrice, 10)
 	stake(t, sc, nodePrice, receiverAddr, stakerAddress, stakerPubKey, nodesToRunBytes)
 
-	//do claim all stake is locked should return Ok
+	// do claim all stake is locked should return Ok
 	doClaim(t, sc, stakerAddress, receiverAddr, vmcommon.Ok)
 
 	// do stake to add more money but not lock the stake
@@ -3353,7 +3353,7 @@ func TestValidatorStakingSC_ChangeRewardAddress(t *testing.T) {
 
 	sc, _ := NewValidatorSmartContract(args)
 
-	//change reward address should error nil arguments
+	// change reward address should error nil arguments
 	changeRewardAddress(t, sc, stakerAddress, nil, vmcommon.UserError)
 	// change reward address should error wrong address
 	eei.returnMessage = ""
@@ -3362,7 +3362,7 @@ func TestValidatorStakingSC_ChangeRewardAddress(t *testing.T) {
 	// change reward address should error because address is not belongs to any validator
 	newRewardAddr := []byte("newAddr11")
 	changeRewardAddress(t, sc, stakerAddress, newRewardAddr, vmcommon.UserError)
-	//do stake
+	// do stake
 	nodePrice, _ := big.NewInt(0).SetString(args.StakingSCConfig.GenesisNodePrice, 10)
 	stake(t, sc, nodePrice, receiverAddr, stakerAddress, stakerPubKey, nodesToRunBytes)
 
@@ -3400,19 +3400,19 @@ func TestValidatorStakingSC_ChangeRewardAddressWithExtraChecks(t *testing.T) {
 
 	eei.returnMessage = ""
 	changeRewardAddress(t, sc, stakerAddress, vm.JailingAddress, vmcommon.UserError)
-	expectedErr := fmt.Errorf("%w when trying to set the jailing address", vm.ErrWrongRewardAddress)
-	assert.Equal(t, expectedErr.Error(), eei.returnMessage)
+	errExpected := fmt.Errorf("%w when trying to set the jailing address", vm.ErrWrongRewardAddress)
+	assert.Equal(t, errExpected.Error(), eei.returnMessage)
 
 	eei.returnMessage = ""
 	changeRewardAddress(t, sc, stakerAddress, vm.EndOfEpochAddress, vmcommon.UserError)
-	expectedErr = fmt.Errorf("%w when trying to set the end-of-epoch reserved address", vm.ErrWrongRewardAddress)
-	assert.Equal(t, expectedErr.Error(), eei.returnMessage)
+	errExpected = fmt.Errorf("%w when trying to set the end-of-epoch reserved address", vm.ErrWrongRewardAddress)
+	assert.Equal(t, errExpected.Error(), eei.returnMessage)
 
 	eei.returnMessage = ""
 	currentShard = core.MetachainShardId
 	changeRewardAddress(t, sc, stakerAddress, bytes.Repeat([]byte{8}, len(vm.JailingAddress)), vmcommon.UserError)
-	expectedErr = fmt.Errorf("%w when trying to set a metachain address", vm.ErrWrongRewardAddress)
-	assert.Equal(t, expectedErr.Error(), eei.returnMessage)
+	errExpected = fmt.Errorf("%w when trying to set a metachain address", vm.ErrWrongRewardAddress)
+	assert.Equal(t, errExpected.Error(), eei.returnMessage)
 }
 
 func TestStakingValidatorSC_UnstakeTokensNotEnabledShouldError(t *testing.T) {
@@ -4724,7 +4724,7 @@ func TestValidatorStakingSC_UnStakeUnBondPaused(t *testing.T) {
 
 	sc, _ := NewValidatorSmartContract(args)
 
-	//do stake
+	// do stake
 	nodePrice, _ := big.NewInt(0).SetString(args.StakingSCConfig.GenesisNodePrice, 10)
 	stake(t, sc, nodePrice, receiverAddr, stakerAddress, stakerPubKey, nodesToRunBytes)
 
@@ -5385,11 +5385,11 @@ func TestStakingValidatorSC_MergeValidatorDataTooMuchNodes(t *testing.T) {
 func TestValidatorSC_getMinUnStakeTokensValueFromDelegationManagerMarshalizerFail(t *testing.T) {
 	t.Parallel()
 
-	expectedErr := errors.New("expected error")
+	errExpected := errors.New("expected error")
 	args := createMockArgumentsForValidatorSC()
 	args.Marshalizer = &mock.MarshalizerStub{
 		UnmarshalCalled: func(obj interface{}, buff []byte) error {
-			return expectedErr
+			return errExpected
 		},
 	}
 
@@ -5408,7 +5408,7 @@ func TestValidatorSC_getMinUnStakeTokensValueFromDelegationManagerMarshalizerFai
 	stakingValidatorSc, _ := NewValidatorSmartContract(args)
 	currentMinUnstakeTokens, err := stakingValidatorSc.getMinUnStakeTokensValue()
 	require.Nil(t, currentMinUnstakeTokens)
-	assert.Equal(t, expectedErr, err)
+	assert.Equal(t, errExpected, err)
 }
 
 func createVmContextWithStakingSc(stakeValue *big.Int, unboundPeriod uint64, blockChainHook vm.BlockchainHook) *vmContext {

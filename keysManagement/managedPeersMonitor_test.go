@@ -12,7 +12,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-var expectedErr = errors.New("expected error")
+var errExpected = errors.New("expected error")
 
 func createMockArgManagedPeersMonitor() ArgManagedPeersMonitor {
 	return ArgManagedPeersMonitor{
@@ -111,14 +111,14 @@ func TestManagedPeersMonitor_GetEligibleManagedKeys(t *testing.T) {
 		args := createMockArgManagedPeersMonitor()
 		args.NodesCoordinator = &shardingMocks.NodesCoordinatorStub{
 			GetAllEligibleValidatorsPublicKeysCalled: func(epoch uint32) (map[uint32][][]byte, error) {
-				return nil, expectedErr
+				return nil, errExpected
 			},
 		}
 		monitor, err := NewManagedPeersMonitor(args)
 		require.NoError(t, err)
 
 		keys, err := monitor.GetEligibleManagedKeys()
-		require.Equal(t, expectedErr, err)
+		require.Equal(t, errExpected, err)
 		require.Nil(t, keys)
 	})
 	t.Run("shard not found should error", func(t *testing.T) {
@@ -190,14 +190,14 @@ func TestManagedPeersMonitor_GetGetWaitingManagedKeys(t *testing.T) {
 		args := createMockArgManagedPeersMonitor()
 		args.NodesCoordinator = &shardingMocks.NodesCoordinatorStub{
 			GetAllWaitingValidatorsPublicKeysCalled: func(epoch uint32) (map[uint32][][]byte, error) {
-				return nil, expectedErr
+				return nil, errExpected
 			},
 		}
 		monitor, err := NewManagedPeersMonitor(args)
 		require.NoError(t, err)
 
 		keys, err := monitor.GetWaitingManagedKeys()
-		require.Equal(t, expectedErr, err)
+		require.Equal(t, errExpected, err)
 		require.Nil(t, keys)
 	})
 	t.Run("shard not found should error", func(t *testing.T) {

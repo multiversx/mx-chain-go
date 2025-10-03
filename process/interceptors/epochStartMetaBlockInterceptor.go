@@ -184,7 +184,7 @@ func checkArgs(args ArgsEpochStartMetaBlockInterceptor) error {
 	if check.IfNil(args.NumConnectedPeersProvider) {
 		return wrapArgsError(process.ErrNilNumConnectedPeersProvider)
 	}
-	if !(args.ConsensusPercentage >= 0 && args.ConsensusPercentage <= 100) {
+	if args.ConsensusPercentage < 0 || args.ConsensusPercentage > 100 {
 		return wrapArgsError(process.ErrInvalidEpochStartMetaBlockConsensusPercentage)
 	}
 

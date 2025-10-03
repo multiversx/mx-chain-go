@@ -38,7 +38,6 @@ import (
 	"github.com/multiversx/mx-chain-go/epochStart/notifier"
 	"github.com/multiversx/mx-chain-go/epochStart/shardchain"
 	errorsMx "github.com/multiversx/mx-chain-go/errors"
-	"github.com/multiversx/mx-chain-go/factory"
 	mainFactory "github.com/multiversx/mx-chain-go/factory"
 	"github.com/multiversx/mx-chain-go/factory/disabled"
 	"github.com/multiversx/mx-chain-go/fallback"
@@ -95,7 +94,7 @@ type processComponents struct {
 	requestersFinder                 dataRetriever.RequestersFinder
 	roundHandler                     consensus.RoundHandler
 	epochStartTrigger                epochStart.TriggerHandler
-	epochStartNotifier               factory.EpochStartNotifier
+	epochStartNotifier               mainFactory.EpochStartNotifier
 	forkDetector                     process.ForkDetector
 	blockProcessor                   process.BlockProcessor
 	blackListHandler                 process.TimeCacher
@@ -111,7 +110,7 @@ type processComponents struct {
 	headerConstructionValidator      process.HeaderConstructionValidator
 	mainPeerShardMapper              process.NetworkShardingCollector
 	fullArchivePeerShardMapper       process.NetworkShardingCollector
-	apiTransactionEvaluator          factory.TransactionEvaluator
+	apiTransactionEvaluator          mainFactory.TransactionEvaluator
 	miniBlocksPoolCleaner            process.PoolsCleaner
 	txsPoolCleaner                   process.PoolsCleaner
 	fallbackHeaderValidator          process.FallbackHeaderValidator
@@ -127,7 +126,7 @@ type processComponents struct {
 	vmFactoryForProcessing           process.VirtualMachinesContainerFactory
 	scheduledTxsExecutionHandler     process.ScheduledTxsExecutionHandler
 	txsSender                        process.TxsSenderHandler
-	hardforkTrigger                  factory.HardforkTrigger
+	hardforkTrigger                  mainFactory.HardforkTrigger
 	processedMiniBlocksTracker       process.ProcessedMiniBlocksTracker
 	esdtDataStorageForApi            vmcommon.ESDTNFTStorageHandler
 	accountsParser                   genesis.AccountsParser
@@ -159,14 +158,14 @@ type ProcessComponentsFactoryArgs struct {
 	HistoryRepo            dblookupext.HistoryRepository
 	FlagsConfig            config.ContextFlagsConfig
 
-	Data                    factory.DataComponentsHolder
-	CoreData                factory.CoreComponentsHolder
-	Crypto                  factory.CryptoComponentsHolder
-	State                   factory.StateComponentsHolder
-	Network                 factory.NetworkComponentsHolder
-	BootstrapComponents     factory.BootstrapComponentsHolder
-	StatusComponents        factory.StatusComponentsHolder
-	StatusCoreComponents    factory.StatusCoreComponentsHolder
+	Data                    mainFactory.DataComponentsHolder
+	CoreData                mainFactory.CoreComponentsHolder
+	Crypto                  mainFactory.CryptoComponentsHolder
+	State                   mainFactory.StateComponentsHolder
+	Network                 mainFactory.NetworkComponentsHolder
+	BootstrapComponents     mainFactory.BootstrapComponentsHolder
+	StatusComponents        mainFactory.StatusComponentsHolder
+	StatusCoreComponents    mainFactory.StatusCoreComponentsHolder
 	TxExecutionOrderHandler common.TxExecutionOrderHandler
 
 	GenesisNonce uint64
@@ -199,14 +198,14 @@ type processComponentsFactory struct {
 	stakingDataProviderAPI peer.StakingDataProviderAPI
 	auctionListSelectorAPI epochStart.AuctionListSelector
 
-	data                    factory.DataComponentsHolder
-	coreData                factory.CoreComponentsHolder
-	crypto                  factory.CryptoComponentsHolder
-	state                   factory.StateComponentsHolder
-	network                 factory.NetworkComponentsHolder
-	bootstrapComponents     factory.BootstrapComponentsHolder
-	statusComponents        factory.StatusComponentsHolder
-	statusCoreComponents    factory.StatusCoreComponentsHolder
+	data                    mainFactory.DataComponentsHolder
+	coreData                mainFactory.CoreComponentsHolder
+	crypto                  mainFactory.CryptoComponentsHolder
+	state                   mainFactory.StateComponentsHolder
+	network                 mainFactory.NetworkComponentsHolder
+	bootstrapComponents     mainFactory.BootstrapComponentsHolder
+	statusComponents        mainFactory.StatusComponentsHolder
+	statusCoreComponents    mainFactory.StatusCoreComponentsHolder
 	txExecutionOrderHandler common.TxExecutionOrderHandler
 
 	genesisNonce uint64
@@ -654,16 +653,16 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 
 	cacheRefreshDuration := time.Duration(pcf.config.ValidatorStatistics.CacheRefreshIntervalInSec) * time.Second
 	argVSP := peer.ArgValidatorsProvider{
-		NodesCoordinator:                  pcf.nodesCoordinator,
-		StartEpoch:                        startEpochNum,
-		EpochStartEventNotifier:           pcf.coreData.EpochStartNotifierWithConfirm(),
-		CacheRefreshIntervalDurationInSec: cacheRefreshDuration,
-		ValidatorStatistics:               validatorStatisticsProcessor,
-		MaxRating:                         pcf.maxRating,
-		ValidatorPubKeyConverter:          pcf.coreData.ValidatorPubKeyConverter(),
-		AddressPubKeyConverter:            pcf.coreData.AddressPubKeyConverter(),
-		AuctionListSelector:               pcf.auctionListSelectorAPI,
-		StakingDataProvider:               pcf.stakingDataProviderAPI,
+		NodesCoordinator:             pcf.nodesCoordinator,
+		StartEpoch:                   startEpochNum,
+		EpochStartEventNotifier:      pcf.coreData.EpochStartNotifierWithConfirm(),
+		CacheRefreshIntervalDuration: cacheRefreshDuration,
+		ValidatorStatistics:          validatorStatisticsProcessor,
+		MaxRating:                    pcf.maxRating,
+		ValidatorPubKeyConverter:     pcf.coreData.ValidatorPubKeyConverter(),
+		AddressPubKeyConverter:       pcf.coreData.AddressPubKeyConverter(),
+		AuctionListSelector:          pcf.auctionListSelectorAPI,
+		StakingDataProvider:          pcf.stakingDataProviderAPI,
 	}
 
 	validatorsProvider, err := peer.NewValidatorsProvider(argVSP)
@@ -1533,7 +1532,7 @@ func (pcf *processComponentsFactory) newInterceptorContainerFactory(
 	requestHandler process.RequestHandler,
 	mainPeerShardMapper *networksharding.PeerShardMapper,
 	fullArchivePeerShardMapper *networksharding.PeerShardMapper,
-	hardforkTrigger factory.HardforkTrigger,
+	hardforkTrigger mainFactory.HardforkTrigger,
 ) (process.InterceptorsContainerFactory, process.TimeCacher, error) {
 	nodeOperationMode := common.NormalOperation
 	if pcf.prefConfigs.Preferences.FullArchive {
@@ -1702,7 +1701,7 @@ func (pcf *processComponentsFactory) newShardInterceptorContainerFactory(
 	requestHandler process.RequestHandler,
 	mainPeerShardMapper *networksharding.PeerShardMapper,
 	fullArchivePeerShardMapper *networksharding.PeerShardMapper,
-	hardforkTrigger factory.HardforkTrigger,
+	hardforkTrigger mainFactory.HardforkTrigger,
 	nodeOperationMode common.NodeOperation,
 ) (process.InterceptorsContainerFactory, process.TimeCacher, error) {
 	headerBlackList := cache.NewTimeCache(timeSpanForBadHeaders)
@@ -1756,7 +1755,7 @@ func (pcf *processComponentsFactory) newMetaInterceptorContainerFactory(
 	requestHandler process.RequestHandler,
 	mainPeerShardMapper *networksharding.PeerShardMapper,
 	fullArchivePeerShardMapper *networksharding.PeerShardMapper,
-	hardforkTrigger factory.HardforkTrigger,
+	hardforkTrigger mainFactory.HardforkTrigger,
 	nodeOperationMode common.NodeOperation,
 ) (process.InterceptorsContainerFactory, process.TimeCacher, error) {
 	headerBlackList := cache.NewTimeCache(timeSpanForBadHeaders)
@@ -1918,7 +1917,7 @@ func (pcf *processComponentsFactory) createExportFactoryHandler(
 	return updateFactory.NewExportHandlerFactory(argsExporter)
 }
 
-func (pcf *processComponentsFactory) createHardforkTrigger(epochStartTrigger update.EpochHandler) (factory.HardforkTrigger, error) {
+func (pcf *processComponentsFactory) createHardforkTrigger(epochStartTrigger update.EpochHandler) (mainFactory.HardforkTrigger, error) {
 	hardforkConfig := pcf.config.Hardfork
 	selfPubKeyBytes := pcf.crypto.PublicKeyBytes()
 	triggerPubKeyBytes, err := pcf.coreData.ValidatorPubKeyConverter().Decode(hardforkConfig.PublicKeyToListenFrom)
@@ -1949,7 +1948,7 @@ func (pcf *processComponentsFactory) createHardforkTrigger(epochStartTrigger upd
 func createNetworkShardingCollector(
 	config *config.Config,
 	nodesCoordinator nodesCoordinator.NodesCoordinator,
-	preferredPeersHolder factory.PreferredPeersHolderHandler,
+	preferredPeersHolder mainFactory.PreferredPeersHolderHandler,
 ) (*networksharding.PeerShardMapper, error) {
 
 	cacheConfig := config.PublicKeyPeerId

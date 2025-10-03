@@ -16,7 +16,7 @@ import (
 
 const fromConnectedPeer = core.PeerID("from connected peer")
 
-//------- canProcessMessage
+// ------- canProcessMessage
 
 func TestMessageProcessor_CanProcessNilMessageShouldErr(t *testing.T) {
 	t.Parallel()
@@ -31,38 +31,38 @@ func TestMessageProcessor_CanProcessNilMessageShouldErr(t *testing.T) {
 func TestMessageProcessor_CanProcessErrorsShouldErr(t *testing.T) {
 	t.Parallel()
 
-	expectedErr := errors.New("expected error")
+	errExpected := errors.New("expected error")
 	mp := &messageProcessor{
 		antifloodHandler: &mock.P2PAntifloodHandlerStub{
 			CanProcessMessageCalled: func(message p2p.MessageP2P, fromConnectedPeer core.PeerID) error {
-				return expectedErr
+				return errExpected
 			},
 		},
 	}
 
 	err := mp.canProcessMessage(&p2pmocks.P2PMessageMock{}, "")
 
-	assert.True(t, errors.Is(err, expectedErr))
+	assert.True(t, errors.Is(err, errExpected))
 }
 
 func TestMessageProcessor_CanProcessOnTopicErrorsShouldErr(t *testing.T) {
 	t.Parallel()
 
-	expectedErr := errors.New("expected error")
+	errExpected := errors.New("expected error")
 	mp := &messageProcessor{
 		antifloodHandler: &mock.P2PAntifloodHandlerStub{
 			CanProcessMessageCalled: func(message p2p.MessageP2P, fromConnectedPeer core.PeerID) error {
 				return nil
 			},
 			CanProcessMessagesOnTopicCalled: func(peer core.PeerID, topic string, numMessages uint32, totalSize uint64, sequence []byte) error {
-				return expectedErr
+				return errExpected
 			},
 		},
 	}
 
 	err := mp.canProcessMessage(&p2pmocks.P2PMessageMock{}, "")
 
-	assert.True(t, errors.Is(err, expectedErr))
+	assert.True(t, errors.Is(err, errExpected))
 }
 
 func TestMessageProcessor_CanProcessThrottlerNotAllowingShouldErr(t *testing.T) {
@@ -119,19 +119,19 @@ func TestMessageProcessor_CanProcessShouldWork(t *testing.T) {
 	assert.True(t, canProcessWasCalled)
 }
 
-//------- parseReceivedMessage
+// ------- parseReceivedMessage
 
 func TestMessageProcessor_ParseReceivedMessageMarshalizerFailsShouldErr(t *testing.T) {
 	t.Parallel()
 
-	expectedErr := errors.New("expected error")
+	errExpected := errors.New("expected error")
 	originatorPid := core.PeerID("originator")
 	originatorBlackListed := false
 	fromConnectedPeerBlackListed := false
 	var mp = &messageProcessor{
 		marshalizer: &mock.MarshalizerStub{
 			UnmarshalCalled: func(obj interface{}, buff []byte) error {
-				return expectedErr
+				return errExpected
 			},
 		},
 		antifloodHandler: &mock.P2PAntifloodHandlerStub{
@@ -153,7 +153,7 @@ func TestMessageProcessor_ParseReceivedMessageMarshalizerFailsShouldErr(t *testi
 
 	assert.True(t, originatorBlackListed)
 	assert.True(t, fromConnectedPeerBlackListed)
-	assert.Equal(t, err, expectedErr)
+	assert.Equal(t, err, errExpected)
 	assert.Nil(t, rd)
 }
 

@@ -46,7 +46,7 @@ func TestNewRewardsCreator_InvalidBaseRewardsCreatorArgs(t *testing.T) {
 	t.Parallel()
 
 	args := getRewardsCreatorV2Arguments()
-	args.BaseRewardsCreatorArgs.NodesConfigProvider = nil
+	args.NodesConfigProvider = nil
 
 	rwd, err := NewRewardsCreatorV2(args)
 	require.True(t, check.IfNil(rwd))
@@ -1043,7 +1043,7 @@ func TestNewRewardsCreatorV35_computeRewardsPer3200NodesWithDifferentTopups(t *t
 			nodesRewardInfo, _ := setupNodeRewardInfo(setupResult, vInfo, topupStakePerNode, tt.validatorTopupStake)
 
 			setupResult.EconomicsDataProvider.SetRewardsToBeDistributedForBlocks(setupResult.rewardsForBlocks)
-			setupResult.RewardsCreatorArgsV2.StakingDataProvider = &stakingcommon.StakingDataProviderStub{
+			setupResult.StakingDataProvider = &stakingcommon.StakingDataProviderStub{
 				GetTotalTopUpStakeEligibleNodesCalled: func() *big.Int {
 					return topupEligibleStake
 				},
@@ -1150,7 +1150,7 @@ func TestNewRewardsCreatorV2_computeRewardsPer3200NodesWithDifferentTopups(t *te
 			nodesRewardInfo, _ := setupNodeRewardInfo(setupResult, vInfo, topupStakePerNode, tt.validatorTopupStake)
 
 			setupResult.EconomicsDataProvider.SetRewardsToBeDistributedForBlocks(setupResult.rewardsForBlocks)
-			setupResult.RewardsCreatorArgsV2.StakingDataProvider = &stakingcommon.StakingDataProviderStub{
+			setupResult.StakingDataProvider = &stakingcommon.StakingDataProviderStub{
 				GetTotalTopUpStakeEligibleNodesCalled: func() *big.Int {
 					return topupEligibleStake
 				},
@@ -1213,7 +1213,7 @@ func setupNodeRewardInfo(
 
 	nrValidatorsToRemoveTopup := big.NewInt(0).Div(validatorTopupStake, topupStakePerNode)
 
-	//remove the newly added topup from some other nodes
+	// remove the newly added topup from some other nodes
 	for i := int64(1); i < nrValidatorsToRemoveTopup.Int64(); i++ {
 		nodesRewardInfo[0][i].topUpStake = big.NewInt(0)
 	}

@@ -26,7 +26,7 @@ const (
 	eqProofsRequester requestHandlerType = "equivalentProofsRequester"
 )
 
-var expectedErr = errors.New("expected error")
+var errExpected = errors.New("expected error")
 
 func Test_Requesters(t *testing.T) {
 	t.Parallel()
@@ -74,7 +74,7 @@ func testRequestDataFromHashArray(t *testing.T, requesterType requestHandlerType
 		args := createMockArgBaseRequester()
 		args.Marshaller = &mock.MarshalizerStub{
 			MarshalCalled: func(obj interface{}) ([]byte, error) {
-				return nil, expectedErr
+				return nil, errExpected
 			},
 		}
 		requester, err := getHandler(requesterType, args)
@@ -82,7 +82,7 @@ func testRequestDataFromHashArray(t *testing.T, requesterType requestHandlerType
 		assert.False(t, check.IfNil(requester))
 		hashArrayHandler, ok := requester.(requestHandlers.HashSliceRequester)
 		assert.True(t, ok)
-		assert.Equal(t, expectedErr, hashArrayHandler.RequestDataFromHashArray(nil, 0))
+		assert.Equal(t, errExpected, hashArrayHandler.RequestDataFromHashArray(nil, 0))
 	})
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()

@@ -94,7 +94,7 @@ func TestTopicResolverSender_SendOutputAntiflooderErrorsShouldNotSendButError(t 
 	pID1 := core.PeerID("peer1")
 	buffToSend := []byte("buff")
 
-	expectedErr := errors.New("can not send to peer")
+	errExpected := errors.New("can not send to peer")
 	arg := createMockArgTopicResolverSender()
 	arg.MainMessenger = &p2pmocks.MessengerStub{
 		SendToConnectedPeerCalled: func(topic string, buff []byte, peerID core.PeerID) error {
@@ -106,7 +106,7 @@ func TestTopicResolverSender_SendOutputAntiflooderErrorsShouldNotSendButError(t 
 	arg.OutputAntiflooder = &mock.P2PAntifloodHandlerStub{
 		CanProcessMessageCalled: func(message p2p.MessageP2P, fromConnectedPeer core.PeerID) error {
 			if fromConnectedPeer == pID1 {
-				return expectedErr
+				return errExpected
 			}
 
 			assert.Fail(t, "wrong peer provided, should have been called with the destination peer")
@@ -117,7 +117,7 @@ func TestTopicResolverSender_SendOutputAntiflooderErrorsShouldNotSendButError(t 
 
 	err := trs.Send(buffToSend, pID1, arg.MainMessenger)
 
-	assert.True(t, errors.Is(err, expectedErr))
+	assert.True(t, errors.Is(err, errExpected))
 }
 
 func TestTopicResolverSender_SendShouldNotCheckAntifloodForPreferred(t *testing.T) {

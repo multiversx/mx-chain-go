@@ -458,7 +458,7 @@ func TestSubroundSignature_DoSignatureJob(t *testing.T) {
 		sr.SetSelfPubKey(leader)
 		container.SetBroadcastMessenger(&consensusMocks.BroadcastMessengerMock{
 			BroadcastConsensusMessageCalled: func(message *consensus.Message) error {
-				return expectedErr
+				return errExpected
 			},
 		})
 		r := sr.DoSignatureJob()
@@ -588,7 +588,7 @@ func TestSubroundSignature_SendSignature(t *testing.T) {
 
 		container.SetSigningHandler(&consensusMocks.SigningHandlerStub{
 			CreateSignatureShareForPublicKeyCalled: func(message []byte, index uint16, epoch uint32, publicKeyBytes []byte) ([]byte, error) {
-				return make([]byte, 0), expErr
+				return make([]byte, 0), errExpected
 			},
 		})
 		consensusState := initializers.InitConsensusStateWithKeysHandler(

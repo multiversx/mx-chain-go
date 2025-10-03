@@ -70,7 +70,7 @@ func (mcc *managedCoreComponents) Close() error {
 		return nil
 	}
 
-	err := mcc.coreComponents.Close()
+	err := mcc.Close()
 	if err != nil {
 		return err
 	}
@@ -175,7 +175,7 @@ func (mcc *managedCoreComponents) InternalMarshalizer() marshal.Marshalizer {
 		return nil
 	}
 
-	return mcc.coreComponents.internalMarshalizer
+	return mcc.internalMarshalizer
 }
 
 // SetInternalMarshalizer sets the internal marshalizer to the one given as parameter
@@ -187,7 +187,7 @@ func (mcc *managedCoreComponents) SetInternalMarshalizer(m marshal.Marshalizer) 
 		return errors.ErrNilCoreComponents
 	}
 
-	mcc.coreComponents.internalMarshalizer = m
+	mcc.internalMarshalizer = m
 
 	return nil
 }
@@ -201,7 +201,7 @@ func (mcc *managedCoreComponents) TxMarshalizer() marshal.Marshalizer {
 		return nil
 	}
 
-	return mcc.coreComponents.txSignMarshalizer
+	return mcc.txSignMarshalizer
 }
 
 // VmMarshalizer returns the core components vm marshalizer
@@ -213,7 +213,7 @@ func (mcc *managedCoreComponents) VmMarshalizer() marshal.Marshalizer {
 		return nil
 	}
 
-	return mcc.coreComponents.vmMarshalizer
+	return mcc.vmMarshalizer
 }
 
 // Hasher returns the core components Hasher
@@ -225,7 +225,7 @@ func (mcc *managedCoreComponents) Hasher() hashing.Hasher {
 		return nil
 	}
 
-	return mcc.coreComponents.hasher
+	return mcc.hasher
 }
 
 // TxSignHasher returns the core components hasher to be used for signed transaction hashes
@@ -237,7 +237,7 @@ func (mcc *managedCoreComponents) TxSignHasher() hashing.Hasher {
 		return nil
 	}
 
-	return mcc.coreComponents.txSignHasher
+	return mcc.txSignHasher
 }
 
 // Uint64ByteSliceConverter returns the core component converter between a byte slice and uint64
@@ -249,7 +249,7 @@ func (mcc *managedCoreComponents) Uint64ByteSliceConverter() typeConverters.Uint
 		return nil
 	}
 
-	return mcc.coreComponents.uint64ByteSliceConverter
+	return mcc.uint64ByteSliceConverter
 }
 
 // AddressPubKeyConverter returns the address to public key converter
@@ -261,7 +261,7 @@ func (mcc *managedCoreComponents) AddressPubKeyConverter() core.PubkeyConverter 
 		return nil
 	}
 
-	return mcc.coreComponents.addressPubKeyConverter
+	return mcc.addressPubKeyConverter
 }
 
 // ValidatorPubKeyConverter returns the validator public key converter
@@ -273,7 +273,7 @@ func (mcc *managedCoreComponents) ValidatorPubKeyConverter() core.PubkeyConverte
 		return nil
 	}
 
-	return mcc.coreComponents.validatorPubKeyConverter
+	return mcc.validatorPubKeyConverter
 }
 
 // PathHandler returns the core components path handler
@@ -285,7 +285,7 @@ func (mcc *managedCoreComponents) PathHandler() storage.PathManagerHandler {
 		return nil
 	}
 
-	return mcc.coreComponents.pathHandler
+	return mcc.pathHandler
 }
 
 // ChainID returns the core components chainID
@@ -297,7 +297,7 @@ func (mcc *managedCoreComponents) ChainID() string {
 		return ""
 	}
 
-	return mcc.coreComponents.chainID
+	return mcc.chainID
 }
 
 // MinTransactionVersion returns the minimum transaction version
@@ -309,7 +309,7 @@ func (mcc *managedCoreComponents) MinTransactionVersion() uint32 {
 		return 0
 	}
 
-	return mcc.coreComponents.minTransactionVersion
+	return mcc.minTransactionVersion
 }
 
 // TxVersionChecker returns the transaction version checker
@@ -321,7 +321,7 @@ func (mcc *managedCoreComponents) TxVersionChecker() process.TxVersionCheckerHan
 		return nil
 	}
 
-	return mcc.coreComponents.txVersionChecker
+	return mcc.txVersionChecker
 }
 
 // EncodedAddressLen returns the length of the encoded address
@@ -333,7 +333,7 @@ func (mcc *managedCoreComponents) EncodedAddressLen() uint32 {
 		return 0
 	}
 
-	return mcc.coreComponents.encodedAddressLen
+	return mcc.encodedAddressLen
 }
 
 // AlarmScheduler returns the alarm scheduler
@@ -345,7 +345,7 @@ func (mcc *managedCoreComponents) AlarmScheduler() core.TimersScheduler {
 		return nil
 	}
 
-	return mcc.coreComponents.alarmScheduler
+	return mcc.alarmScheduler
 }
 
 // SyncTimer returns the ntp synchronization timer
@@ -357,7 +357,7 @@ func (mcc *managedCoreComponents) SyncTimer() ntp.SyncTimer {
 		return nil
 	}
 
-	return mcc.coreComponents.syncTimer
+	return mcc.syncTimer
 }
 
 // GenesisTime returns the time of the genesis block
@@ -369,7 +369,7 @@ func (mcc *managedCoreComponents) GenesisTime() time.Time {
 		return time.Time{}
 	}
 
-	return mcc.coreComponents.genesisTime
+	return mcc.genesisTime
 }
 
 // SupernovaGenesisTime returns the time for supernova round activation
@@ -381,7 +381,7 @@ func (mcc *managedCoreComponents) SupernovaGenesisTime() time.Time {
 		return time.Time{}
 	}
 
-	return mcc.coreComponents.supernovaGenesisTime
+	return mcc.supernovaGenesisTime
 }
 
 // Watchdog returns the minimum watchdog
@@ -393,7 +393,7 @@ func (mcc *managedCoreComponents) Watchdog() core.WatchdogTimer {
 		return nil
 	}
 
-	return mcc.coreComponents.watchdog
+	return mcc.watchdog
 }
 
 // EconomicsData returns the configured economics data
@@ -405,7 +405,7 @@ func (mcc *managedCoreComponents) EconomicsData() process.EconomicsDataHandler {
 		return nil
 	}
 
-	return mcc.coreComponents.economicsData
+	return mcc.economicsData
 }
 
 // APIEconomicsData returns the configured economics data to be used on the REST API sub-system
@@ -417,7 +417,7 @@ func (mcc *managedCoreComponents) APIEconomicsData() process.EconomicsDataHandle
 		return nil
 	}
 
-	return mcc.coreComponents.apiEconomicsData
+	return mcc.apiEconomicsData
 }
 
 // RatingsData returns the configured ratings data
@@ -429,7 +429,7 @@ func (mcc *managedCoreComponents) RatingsData() process.RatingsInfoHandler {
 		return nil
 	}
 
-	return mcc.coreComponents.ratingsData
+	return mcc.ratingsData
 }
 
 // Rater returns the rater
@@ -441,7 +441,7 @@ func (mcc *managedCoreComponents) Rater() sharding.PeerAccountListAndRatingHandl
 		return nil
 	}
 
-	return mcc.coreComponents.rater
+	return mcc.rater
 }
 
 // GenesisNodesSetup returns the genesis nodes setup
@@ -453,7 +453,7 @@ func (mcc *managedCoreComponents) GenesisNodesSetup() sharding.GenesisNodesSetup
 		return nil
 	}
 
-	return mcc.coreComponents.nodesSetupHandler
+	return mcc.nodesSetupHandler
 }
 
 // RoundHandler returns the roundHandler
@@ -465,7 +465,7 @@ func (mcc *managedCoreComponents) RoundHandler() consensus.RoundHandler {
 		return nil
 	}
 
-	return mcc.coreComponents.roundHandler
+	return mcc.roundHandler
 }
 
 // NodesShuffler returns the nodes shuffler
@@ -477,7 +477,7 @@ func (mcc *managedCoreComponents) NodesShuffler() nodesCoordinator.NodesShuffler
 		return nil
 	}
 
-	return mcc.coreComponents.nodesShuffler
+	return mcc.nodesShuffler
 }
 
 // EpochNotifier returns the epoch notifier
@@ -489,7 +489,7 @@ func (mcc *managedCoreComponents) EpochNotifier() process.EpochNotifier {
 		return nil
 	}
 
-	return mcc.coreComponents.epochNotifier
+	return mcc.epochNotifier
 }
 
 // RoundNotifier returns the epoch notifier
@@ -501,7 +501,7 @@ func (mcc *managedCoreComponents) RoundNotifier() process.RoundNotifier {
 		return nil
 	}
 
-	return mcc.coreComponents.roundNotifier
+	return mcc.roundNotifier
 }
 
 // ChainParametersSubscriber returns the chain parameters subscriber
@@ -513,7 +513,7 @@ func (mcc *managedCoreComponents) ChainParametersSubscriber() process.ChainParam
 		return nil
 	}
 
-	return mcc.coreComponents.chainParametersSubscriber
+	return mcc.chainParametersSubscriber
 }
 
 // EnableRoundsHandler returns the rounds activation handler
@@ -525,7 +525,7 @@ func (mcc *managedCoreComponents) EnableRoundsHandler() common.EnableRoundsHandl
 		return nil
 	}
 
-	return mcc.coreComponents.enableRoundsHandler
+	return mcc.enableRoundsHandler
 }
 
 // EpochStartNotifierWithConfirm returns the epoch notifier with confirm
@@ -537,7 +537,7 @@ func (mcc *managedCoreComponents) EpochStartNotifierWithConfirm() factory.EpochS
 		return nil
 	}
 
-	return mcc.coreComponents.epochStartNotifierWithConfirm
+	return mcc.epochStartNotifierWithConfirm
 }
 
 // ChanStopNodeProcess returns the channel for stop node
@@ -549,7 +549,7 @@ func (mcc *managedCoreComponents) ChanStopNodeProcess() chan endProcess.ArgEndPr
 		return nil
 	}
 
-	return mcc.coreComponents.chanStopNodeProcess
+	return mcc.chanStopNodeProcess
 }
 
 // NodeTypeProvider returns the node type provider
@@ -561,7 +561,7 @@ func (mcc *managedCoreComponents) NodeTypeProvider() core.NodeTypeProviderHandle
 		return nil
 	}
 
-	return mcc.coreComponents.nodeTypeProvider
+	return mcc.nodeTypeProvider
 }
 
 // WasmVMChangeLocker returns the wasm VM change locker
@@ -573,7 +573,7 @@ func (mcc *managedCoreComponents) WasmVMChangeLocker() common.Locker {
 		return nil
 	}
 
-	return mcc.coreComponents.wasmVMChangeLocker
+	return mcc.wasmVMChangeLocker
 }
 
 // ProcessStatusHandler returns the process status handler
@@ -585,7 +585,7 @@ func (mcc *managedCoreComponents) ProcessStatusHandler() common.ProcessStatusHan
 		return nil
 	}
 
-	return mcc.coreComponents.processStatusHandler
+	return mcc.processStatusHandler
 }
 
 // HardforkTriggerPubKey returns the hardfork source public key
@@ -597,7 +597,7 @@ func (mcc *managedCoreComponents) HardforkTriggerPubKey() []byte {
 		return nil
 	}
 
-	return mcc.coreComponents.hardforkTriggerPubKey
+	return mcc.hardforkTriggerPubKey
 }
 
 // EnableEpochsHandler returns the enable epochs handler
@@ -609,7 +609,7 @@ func (mcc *managedCoreComponents) EnableEpochsHandler() common.EnableEpochsHandl
 		return nil
 	}
 
-	return mcc.coreComponents.enableEpochsHandler
+	return mcc.enableEpochsHandler
 }
 
 // ChainParametersHandler returns the chain parameters handler
@@ -621,7 +621,7 @@ func (mcc *managedCoreComponents) ChainParametersHandler() process.ChainParamete
 		return nil
 	}
 
-	return mcc.coreComponents.chainParametersHandler
+	return mcc.chainParametersHandler
 }
 
 // FieldsSizeChecker returns the fields size checker component
@@ -633,7 +633,7 @@ func (mcc *managedCoreComponents) FieldsSizeChecker() common.FieldsSizeChecker {
 		return nil
 	}
 
-	return mcc.coreComponents.fieldsSizeChecker
+	return mcc.fieldsSizeChecker
 }
 
 // EpochChangeGracePeriodHandler returns the epoch change grace period handler component
@@ -645,7 +645,7 @@ func (mcc *managedCoreComponents) EpochChangeGracePeriodHandler() common.EpochCh
 		return nil
 	}
 
-	return mcc.coreComponents.epochChangeGracePeriodHandler
+	return mcc.epochChangeGracePeriodHandler
 }
 
 // ProcessConfigsHandler returns the process configs handler component
@@ -657,7 +657,7 @@ func (mcc *managedCoreComponents) ProcessConfigsHandler() common.ProcessConfigsH
 		return nil
 	}
 
-	return mcc.coreComponents.processConfigsHandler
+	return mcc.processConfigsHandler
 }
 
 // CommonConfigsHandler returns the epoch start configs handler component
@@ -669,7 +669,7 @@ func (mcc *managedCoreComponents) CommonConfigsHandler() common.CommonConfigsHan
 		return nil
 	}
 
-	return mcc.coreComponents.epochStartConfigsHandler
+	return mcc.epochStartConfigsHandler
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

@@ -384,7 +384,7 @@ func TestAllRoutes_DecodeAddressPubkeyFailsShouldErr(t *testing.T) {
 		DecodeAddressPubkeyCalled: func(pk string) ([]byte, error) {
 			cnt++
 			if cnt > 1 {
-				return nil, expectedErr
+				return nil, errExpected
 			}
 			return hex.DecodeString(pk)
 		},
@@ -399,7 +399,7 @@ func TestAllRoutes_DecodeAddressPubkeyFailsShouldErr(t *testing.T) {
 		Args:       []string{},
 		CallerAddr: dummyScAddress,
 	}
-	requireErrorOnGetSingleValueRoutes(t, &facade, request, expectedErr)
+	requireErrorOnGetSingleValueRoutes(t, &facade, request, errExpected)
 }
 
 func TestAllRoutes_SetStringFailsShouldErr(t *testing.T) {
@@ -487,7 +487,7 @@ func TestVMValuesGroup_UpdateFacade(t *testing.T) {
 
 				return &vm.VMOutputApi{
 					ReturnData: nil,
-				}, api.BlockInfo{}, expectedErr
+				}, api.BlockInfo{}, errExpected
 			},
 		}
 
@@ -499,7 +499,7 @@ func TestVMValuesGroup_UpdateFacade(t *testing.T) {
 		server.ServeHTTP(responseRecorder, httpRequest)
 		loadResponse(responseRecorder.Body, &responseI)
 		require.Equal(t, http.StatusBadRequest, responseRecorder.Code)
-		require.Contains(t, responseI.Error, expectedErr.Error())
+		require.Contains(t, responseI.Error, errExpected.Error())
 	})
 }
 

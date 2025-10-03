@@ -97,7 +97,7 @@ func TestCreateCryptoComponents(t *testing.T) {
 			ValidatorPubKeyConverterCalled: func() core.PubkeyConverter {
 				return &testscommon.PubkeyConverterStub{
 					EncodeCalled: func(pkBytes []byte) (string, error) {
-						return "", expectedErr
+						return "", errExpected
 					},
 				}
 			},

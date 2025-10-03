@@ -218,7 +218,7 @@ func TestNewJournalEntryDataTrieUpdates_OkValsShouldWork(t *testing.T) {
 func TestJournalEntryDataTrieUpdates_RevertFailsWhenUpdateFails(t *testing.T) {
 	t.Parallel()
 
-	expectedErr := errors.New("error")
+	errExpected := errors.New("error")
 
 	trieUpdates := make([]core.TrieData, 0)
 	trieUpdates = append(trieUpdates, core.TrieData{
@@ -230,7 +230,7 @@ func TestJournalEntryDataTrieUpdates_RevertFailsWhenUpdateFails(t *testing.T) {
 
 	tr := &trieMock.TrieStub{
 		UpdateWithVersionCalled: func(key, value []byte, version core.TrieNodeVersion) error {
-			return expectedErr
+			return errExpected
 		},
 	}
 
@@ -239,13 +239,13 @@ func TestJournalEntryDataTrieUpdates_RevertFailsWhenUpdateFails(t *testing.T) {
 
 	acc, err := entry.Revert()
 	assert.Nil(t, acc)
-	assert.Equal(t, expectedErr, err)
+	assert.Equal(t, errExpected, err)
 }
 
 func TestJournalEntryDataTrieUpdates_RevertFailsWhenAccountRootFails(t *testing.T) {
 	t.Parallel()
 
-	expectedErr := errors.New("error")
+	errExpected := errors.New("error")
 
 	trieUpdates := make([]core.TrieData, 0)
 	trieUpdates = append(trieUpdates, core.TrieData{
@@ -260,7 +260,7 @@ func TestJournalEntryDataTrieUpdates_RevertFailsWhenAccountRootFails(t *testing.
 			return nil
 		},
 		RootCalled: func() ([]byte, error) {
-			return nil, expectedErr
+			return nil, errExpected
 		},
 	}
 
@@ -269,7 +269,7 @@ func TestJournalEntryDataTrieUpdates_RevertFailsWhenAccountRootFails(t *testing.
 
 	acc, err := entry.Revert()
 	assert.Nil(t, acc)
-	assert.Equal(t, expectedErr, err)
+	assert.Equal(t, errExpected, err)
 }
 
 func TestJournalEntryDataTrieUpdates_RevertShouldWork(t *testing.T) {

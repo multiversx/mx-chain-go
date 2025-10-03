@@ -29,7 +29,7 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/statusHandler"
 )
 
-var expectedErr = errors.New("expected error")
+var errExpected = errors.New("expected error")
 
 func TestNewBlocksCreator(t *testing.T) {
 	t.Parallel()
@@ -107,7 +107,7 @@ func TestBlocksCreator_CreateNewBlock(t *testing.T) {
 
 		blockProcess := &testscommon.BlockProcessorStub{
 			CreateNewHeaderCalled: func(round uint64, nonce uint64) (data.HeaderHandler, error) {
-				return nil, expectedErr
+				return nil, errExpected
 			},
 		}
 		nodeHandler := getNodeHandler()
@@ -128,7 +128,7 @@ func TestBlocksCreator_CreateNewBlock(t *testing.T) {
 		require.NoError(t, err)
 
 		err = creator.CreateNewBlock()
-		require.Equal(t, expectedErr, err)
+		require.Equal(t, errExpected, err)
 	})
 	t.Run("SetShardID failure should error", func(t *testing.T) {
 		t.Parallel()
@@ -137,12 +137,12 @@ func TestBlocksCreator_CreateNewBlock(t *testing.T) {
 			CreateNewHeaderCalled: func(round uint64, nonce uint64) (data.HeaderHandler, error) {
 				return &testscommon.HeaderHandlerStub{
 					SetShardIDCalled: func(shardId uint32) error {
-						return expectedErr
+						return errExpected
 					},
 				}, nil
 			},
 		}
-		testCreateNewBlock(t, blockProcess, expectedErr)
+		testCreateNewBlock(t, blockProcess, errExpected)
 	})
 	t.Run("SetPrevHash failure should error", func(t *testing.T) {
 		t.Parallel()
@@ -151,12 +151,12 @@ func TestBlocksCreator_CreateNewBlock(t *testing.T) {
 			CreateNewHeaderCalled: func(round uint64, nonce uint64) (data.HeaderHandler, error) {
 				return &testscommon.HeaderHandlerStub{
 					SetPrevHashCalled: func(hash []byte) error {
-						return expectedErr
+						return errExpected
 					},
 				}, nil
 			},
 		}
-		testCreateNewBlock(t, blockProcess, expectedErr)
+		testCreateNewBlock(t, blockProcess, errExpected)
 	})
 	t.Run("SetPrevRandSeed failure should error", func(t *testing.T) {
 		t.Parallel()
@@ -165,12 +165,12 @@ func TestBlocksCreator_CreateNewBlock(t *testing.T) {
 			CreateNewHeaderCalled: func(round uint64, nonce uint64) (data.HeaderHandler, error) {
 				return &testscommon.HeaderHandlerStub{
 					SetPrevRandSeedCalled: func(seed []byte) error {
-						return expectedErr
+						return errExpected
 					},
 				}, nil
 			},
 		}
-		testCreateNewBlock(t, blockProcess, expectedErr)
+		testCreateNewBlock(t, blockProcess, errExpected)
 	})
 	t.Run("SetPubKeysBitmap failure should error", func(t *testing.T) {
 		t.Parallel()
@@ -179,12 +179,12 @@ func TestBlocksCreator_CreateNewBlock(t *testing.T) {
 			CreateNewHeaderCalled: func(round uint64, nonce uint64) (data.HeaderHandler, error) {
 				return &testscommon.HeaderHandlerStub{
 					SetPubKeysBitmapCalled: func(bitmap []byte) error {
-						return expectedErr
+						return errExpected
 					},
 				}, nil
 			},
 		}
-		testCreateNewBlock(t, blockProcess, expectedErr)
+		testCreateNewBlock(t, blockProcess, errExpected)
 	})
 	t.Run("SetChainID failure should error", func(t *testing.T) {
 		t.Parallel()
@@ -193,12 +193,12 @@ func TestBlocksCreator_CreateNewBlock(t *testing.T) {
 			CreateNewHeaderCalled: func(round uint64, nonce uint64) (data.HeaderHandler, error) {
 				return &testscommon.HeaderHandlerStub{
 					SetChainIDCalled: func(chainID []byte) error {
-						return expectedErr
+						return errExpected
 					},
 				}, nil
 			},
 		}
-		testCreateNewBlock(t, blockProcess, expectedErr)
+		testCreateNewBlock(t, blockProcess, errExpected)
 	})
 	t.Run("SetTimeStamp failure should error", func(t *testing.T) {
 		t.Parallel()
@@ -207,12 +207,12 @@ func TestBlocksCreator_CreateNewBlock(t *testing.T) {
 			CreateNewHeaderCalled: func(round uint64, nonce uint64) (data.HeaderHandler, error) {
 				return &testscommon.HeaderHandlerStub{
 					SetTimeStampCalled: func(timestamp uint64) error {
-						return expectedErr
+						return errExpected
 					},
 				}, nil
 			},
 		}
-		testCreateNewBlock(t, blockProcess, expectedErr)
+		testCreateNewBlock(t, blockProcess, errExpected)
 	})
 	t.Run("ComputeConsensusGroup failure should error", func(t *testing.T) {
 		t.Parallel()
@@ -227,7 +227,7 @@ func TestBlocksCreator_CreateNewBlock(t *testing.T) {
 				},
 				NodesCoord: &shardingMocks.NodesCoordinatorStub{
 					ComputeConsensusGroupCalled: func(randomness []byte, round uint64, shardId uint32, epoch uint32) (leader nodesCoordinator.Validator, validatorsGroup []nodesCoordinator.Validator, err error) {
-						return nil, nil, expectedErr
+						return nil, nil, errExpected
 					},
 				},
 			}
@@ -236,7 +236,7 @@ func TestBlocksCreator_CreateNewBlock(t *testing.T) {
 		require.NoError(t, err)
 
 		err = creator.CreateNewBlock()
-		require.Equal(t, expectedErr, err)
+		require.Equal(t, errExpected, err)
 	})
 	t.Run("key not managed by the current node should return nil", func(t *testing.T) {
 		t.Parallel()
@@ -267,7 +267,7 @@ func TestBlocksCreator_CreateNewBlock(t *testing.T) {
 				KeysHandlerField: kh,
 				SigHandler: &testsConsensus.SigningHandlerStub{
 					CreateSignatureForPublicKeyCalled: func(message []byte, publicKeyBytes []byte) ([]byte, error) {
-						return nil, expectedErr
+						return nil, errExpected
 					},
 				},
 			}
@@ -276,7 +276,7 @@ func TestBlocksCreator_CreateNewBlock(t *testing.T) {
 		require.NoError(t, err)
 
 		err = creator.CreateNewBlock()
-		require.Equal(t, expectedErr, err)
+		require.Equal(t, errExpected, err)
 	})
 	t.Run("SetRandSeed failure should error", func(t *testing.T) {
 		t.Parallel()
@@ -285,12 +285,12 @@ func TestBlocksCreator_CreateNewBlock(t *testing.T) {
 			CreateNewHeaderCalled: func(round uint64, nonce uint64) (data.HeaderHandler, error) {
 				return &testscommon.HeaderHandlerStub{
 					SetRandSeedCalled: func(seed []byte) error {
-						return expectedErr
+						return errExpected
 					},
 				}, nil
 			},
 		}
-		testCreateNewBlock(t, blockProcess, expectedErr)
+		testCreateNewBlock(t, blockProcess, errExpected)
 	})
 	t.Run("CreateBlock failure should error", func(t *testing.T) {
 		t.Parallel()
@@ -300,10 +300,10 @@ func TestBlocksCreator_CreateNewBlock(t *testing.T) {
 				return &testscommon.HeaderHandlerStub{}, nil
 			},
 			CreateBlockCalled: func(initialHdrData data.HeaderHandler, haveTime func() bool) (data.HeaderHandler, data.BodyHandler, error) {
-				return nil, nil, expectedErr
+				return nil, nil, errExpected
 			},
 		}
-		testCreateNewBlock(t, blockProcess, expectedErr)
+		testCreateNewBlock(t, blockProcess, errExpected)
 	})
 	t.Run("setHeaderSignatures.Marshal failure should error", func(t *testing.T) {
 		t.Parallel()
@@ -318,7 +318,7 @@ func TestBlocksCreator_CreateNewBlock(t *testing.T) {
 				InternalMarshalizerCalled: func() marshal.Marshalizer {
 					return &testscommon.MarshallerStub{
 						MarshalCalled: func(obj interface{}) ([]byte, error) {
-							return nil, expectedErr
+							return nil, errExpected
 						},
 					}
 				},
@@ -331,7 +331,7 @@ func TestBlocksCreator_CreateNewBlock(t *testing.T) {
 		require.NoError(t, err)
 
 		err = creator.CreateNewBlock()
-		require.Equal(t, expectedErr, err)
+		require.Equal(t, errExpected, err)
 	})
 	t.Run("setHeaderSignatures.Reset failure should error", func(t *testing.T) {
 		t.Parallel()
@@ -343,7 +343,7 @@ func TestBlocksCreator_CreateNewBlock(t *testing.T) {
 				KeysHandlerField: kh,
 				SigHandler: &testsConsensus.SigningHandlerStub{
 					ResetCalled: func(pubKeys []string) error {
-						return expectedErr
+						return errExpected
 					},
 				},
 			}
@@ -352,7 +352,7 @@ func TestBlocksCreator_CreateNewBlock(t *testing.T) {
 		require.NoError(t, err)
 
 		err = creator.CreateNewBlock()
-		require.Equal(t, expectedErr, err)
+		require.Equal(t, errExpected, err)
 	})
 	t.Run("setHeaderSignatures.CreateSignatureShareForPublicKey failure should error", func(t *testing.T) {
 		t.Parallel()
@@ -364,7 +364,7 @@ func TestBlocksCreator_CreateNewBlock(t *testing.T) {
 				KeysHandlerField: kh,
 				SigHandler: &testsConsensus.SigningHandlerStub{
 					CreateSignatureShareForPublicKeyCalled: func(message []byte, index uint16, epoch uint32, publicKeyBytes []byte) ([]byte, error) {
-						return nil, expectedErr
+						return nil, errExpected
 					},
 				},
 			}
@@ -373,7 +373,7 @@ func TestBlocksCreator_CreateNewBlock(t *testing.T) {
 		require.NoError(t, err)
 
 		err = creator.CreateNewBlock()
-		require.Equal(t, expectedErr, err)
+		require.Equal(t, errExpected, err)
 	})
 	t.Run("setHeaderSignatures.AggregateSigs failure should error", func(t *testing.T) {
 		t.Parallel()
@@ -385,7 +385,7 @@ func TestBlocksCreator_CreateNewBlock(t *testing.T) {
 				KeysHandlerField: kh,
 				SigHandler: &testsConsensus.SigningHandlerStub{
 					AggregateSigsCalled: func(bitmap []byte, epoch uint32) ([]byte, error) {
-						return nil, expectedErr
+						return nil, errExpected
 					},
 				},
 			}
@@ -394,7 +394,7 @@ func TestBlocksCreator_CreateNewBlock(t *testing.T) {
 		require.NoError(t, err)
 
 		err = creator.CreateNewBlock()
-		require.Equal(t, expectedErr, err)
+		require.Equal(t, errExpected, err)
 	})
 	t.Run("setHeaderSignatures.SetSignature failure should error", func(t *testing.T) {
 		t.Parallel()
@@ -409,12 +409,12 @@ func TestBlocksCreator_CreateNewBlock(t *testing.T) {
 						return &testscommon.HeaderHandlerStub{}
 					},
 					SetSignatureCalled: func(signature []byte) error {
-						return expectedErr
+						return errExpected
 					},
 				}, &block.Body{}, nil
 			},
 		}
-		testCreateNewBlock(t, blockProcess, expectedErr)
+		testCreateNewBlock(t, blockProcess, errExpected)
 	})
 	t.Run("createLeaderSignature.SetLeaderSignature failure should error", func(t *testing.T) {
 		t.Parallel()
@@ -428,14 +428,14 @@ func TestBlocksCreator_CreateNewBlock(t *testing.T) {
 					CloneCalled: func() data.HeaderHandler {
 						return &testscommon.HeaderHandlerStub{
 							SetLeaderSignatureCalled: func(signature []byte) error {
-								return expectedErr
+								return errExpected
 							},
 						}
 					},
 				}, &block.Body{}, nil
 			},
 		}
-		testCreateNewBlock(t, blockProcess, expectedErr)
+		testCreateNewBlock(t, blockProcess, errExpected)
 	})
 	t.Run("createLeaderSignature.SetLeaderSignature failure should error", func(t *testing.T) {
 		t.Parallel()
@@ -449,14 +449,14 @@ func TestBlocksCreator_CreateNewBlock(t *testing.T) {
 					CloneCalled: func() data.HeaderHandler {
 						return &testscommon.HeaderHandlerStub{
 							SetLeaderSignatureCalled: func(signature []byte) error {
-								return expectedErr
+								return errExpected
 							},
 						}
 					},
 				}, &block.Body{}, nil
 			},
 		}
-		testCreateNewBlock(t, blockProcess, expectedErr)
+		testCreateNewBlock(t, blockProcess, errExpected)
 	})
 	t.Run("setHeaderSignatures.SetLeaderSignature failure should error", func(t *testing.T) {
 		t.Parallel()
@@ -471,12 +471,12 @@ func TestBlocksCreator_CreateNewBlock(t *testing.T) {
 						return &testscommon.HeaderHandlerStub{}
 					},
 					SetLeaderSignatureCalled: func(signature []byte) error {
-						return expectedErr
+						return errExpected
 					},
 				}, &block.Body{}, nil
 			},
 		}
-		testCreateNewBlock(t, blockProcess, expectedErr)
+		testCreateNewBlock(t, blockProcess, errExpected)
 	})
 	t.Run("CommitBlock failure should error", func(t *testing.T) {
 		t.Parallel()
@@ -493,10 +493,10 @@ func TestBlocksCreator_CreateNewBlock(t *testing.T) {
 				}, &block.Body{}, nil
 			},
 			CommitBlockCalled: func(header data.HeaderHandler, body data.BodyHandler) error {
-				return expectedErr
+				return errExpected
 			},
 		}
-		testCreateNewBlock(t, blockProcess, expectedErr)
+		testCreateNewBlock(t, blockProcess, errExpected)
 	})
 	t.Run("MarshalizedDataToBroadcast failure should error", func(t *testing.T) {
 		t.Parallel()
@@ -513,10 +513,10 @@ func TestBlocksCreator_CreateNewBlock(t *testing.T) {
 				}, &block.Body{}, nil
 			},
 			MarshalizedDataToBroadcastCalled: func(header data.HeaderHandler, body data.BodyHandler) (map[uint32][]byte, map[string][][]byte, error) {
-				return nil, nil, expectedErr
+				return nil, nil, errExpected
 			},
 		}
-		testCreateNewBlock(t, blockProcess, expectedErr)
+		testCreateNewBlock(t, blockProcess, errExpected)
 	})
 	t.Run("BroadcastHeader failure should error", func(t *testing.T) {
 		t.Parallel()
@@ -525,7 +525,7 @@ func TestBlocksCreator_CreateNewBlock(t *testing.T) {
 		nodeHandler.GetBroadcastMessengerCalled = func() consensus.BroadcastMessenger {
 			return &testsConsensus.BroadcastMessengerMock{
 				BroadcastHeaderCalled: func(handler data.HeaderHandler, bytes []byte) error {
-					return expectedErr
+					return errExpected
 				},
 			}
 		}
@@ -533,7 +533,7 @@ func TestBlocksCreator_CreateNewBlock(t *testing.T) {
 		require.NoError(t, err)
 
 		err = creator.CreateNewBlock()
-		require.Equal(t, expectedErr, err)
+		require.Equal(t, errExpected, err)
 	})
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
@@ -546,7 +546,7 @@ func TestBlocksCreator_CreateNewBlock(t *testing.T) {
 	})
 }
 
-func testCreateNewBlock(t *testing.T, blockProcess process.BlockProcessor, expectedErr error) {
+func testCreateNewBlock(t *testing.T, blockProcess process.BlockProcessor, errExpected error) {
 	nodeHandler := getNodeHandler()
 	nc := nodeHandler.GetProcessComponents().NodesCoordinator()
 	nodeHandler.GetProcessComponentsCalled = func() factory.ProcessComponentsHolder {
@@ -559,7 +559,7 @@ func testCreateNewBlock(t *testing.T, blockProcess process.BlockProcessor, expec
 	require.NoError(t, err)
 
 	err = creator.CreateNewBlock()
-	require.Equal(t, expectedErr, err)
+	require.Equal(t, errExpected, err)
 }
 
 func getNodeHandler() *chainSimulator.NodeHandlerMock {

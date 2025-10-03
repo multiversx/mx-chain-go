@@ -41,14 +41,14 @@ func TestErrChan_WriteInChanNonBlocking(t *testing.T) {
 	})
 
 	t.Run("should work", func(t *testing.T) {
-		expectedErr := fmt.Errorf("err1")
+		errExpected := fmt.Errorf("err1")
 		ec := NewErrChanWrapper()
-		ec.WriteInChanNonBlocking(expectedErr)
+		ec.WriteInChanNonBlocking(errExpected)
 		ec.WriteInChanNonBlocking(fmt.Errorf("err2"))
 		ec.WriteInChanNonBlocking(fmt.Errorf("err3"))
 
 		assert.Equal(t, 1, len(ec.ch))
-		assert.Equal(t, expectedErr, <-ec.ch)
+		assert.Equal(t, errExpected, <-ec.ch)
 		assert.Equal(t, 0, len(ec.ch))
 	})
 }
@@ -56,12 +56,12 @@ func TestErrChan_WriteInChanNonBlocking(t *testing.T) {
 func TestErrChan_ReadFromChanNonBlocking(t *testing.T) {
 	t.Parallel()
 
-	expectedErr := fmt.Errorf("err1")
+	errExpected := fmt.Errorf("err1")
 	ec := NewErrChanWrapper()
-	ec.ch <- expectedErr
+	ec.ch <- errExpected
 
 	assert.Equal(t, 1, len(ec.ch))
-	assert.Equal(t, expectedErr, ec.ReadFromChanNonBlocking())
+	assert.Equal(t, errExpected, ec.ReadFromChanNonBlocking())
 	assert.Equal(t, 0, len(ec.ch))
 	assert.Nil(t, ec.ReadFromChanNonBlocking())
 }

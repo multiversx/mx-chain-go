@@ -248,7 +248,7 @@ func TestNewHeartbeatV2ComponentsFactory(t *testing.T) {
 func TestHeartbeatV2Components_Create(t *testing.T) {
 	t.Parallel()
 
-	expectedErr := errors.New("expected error")
+	errExpected := errors.New("expected error")
 	t.Run("main messenger does not have PeerAuthenticationTopic and fails to create it", func(t *testing.T) {
 		t.Parallel()
 
@@ -264,7 +264,7 @@ func TestHeartbeatV2Components_Create(t *testing.T) {
 				},
 				CreateTopicCalled: func(name string, createChannelForTopic bool) error {
 					if name == common.PeerAuthenticationTopic {
-						return expectedErr
+						return errExpected
 					}
 					assert.Fail(t, "should not have been called")
 					return nil
@@ -278,7 +278,7 @@ func TestHeartbeatV2Components_Create(t *testing.T) {
 
 		hc, err := hcf.Create()
 		assert.Nil(t, hc)
-		assert.Equal(t, expectedErr, err)
+		assert.Equal(t, errExpected, err)
 	})
 	t.Run("main messenger does not have HeartbeatV2Topic and fails to create it", func(t *testing.T) {
 		t.Parallel()
@@ -291,7 +291,7 @@ func TestHeartbeatV2Components_Create(t *testing.T) {
 				},
 				CreateTopicCalled: func(name string, createChannelForTopic bool) error {
 					if name == common.HeartbeatV2Topic {
-						return expectedErr
+						return errExpected
 					}
 					assert.Fail(t, "should not have been called")
 					return nil
@@ -305,7 +305,7 @@ func TestHeartbeatV2Components_Create(t *testing.T) {
 
 		hc, err := hcf.Create()
 		assert.Nil(t, hc)
-		assert.Equal(t, expectedErr, err)
+		assert.Equal(t, errExpected, err)
 	})
 	t.Run("full archive messenger does not have PeerAuthenticationTopic and fails to create it", func(t *testing.T) {
 		t.Parallel()
@@ -322,7 +322,7 @@ func TestHeartbeatV2Components_Create(t *testing.T) {
 				},
 				CreateTopicCalled: func(name string, createChannelForTopic bool) error {
 					if name == common.PeerAuthenticationTopic {
-						return expectedErr
+						return errExpected
 					}
 					assert.Fail(t, "should not have been called")
 					return nil
@@ -336,7 +336,7 @@ func TestHeartbeatV2Components_Create(t *testing.T) {
 
 		hc, err := hcf.Create()
 		assert.Nil(t, hc)
-		assert.Equal(t, expectedErr, err)
+		assert.Equal(t, errExpected, err)
 	})
 	t.Run("full archive messenger does not have HeartbeatV2Topic and fails to create it", func(t *testing.T) {
 		t.Parallel()
@@ -349,7 +349,7 @@ func TestHeartbeatV2Components_Create(t *testing.T) {
 				},
 				CreateTopicCalled: func(name string, createChannelForTopic bool) error {
 					if name == common.HeartbeatV2Topic {
-						return expectedErr
+						return errExpected
 					}
 					assert.Fail(t, "should not have been called")
 					return nil
@@ -363,7 +363,7 @@ func TestHeartbeatV2Components_Create(t *testing.T) {
 
 		hc, err := hcf.Create()
 		assert.Nil(t, hc)
-		assert.Equal(t, expectedErr, err)
+		assert.Equal(t, errExpected, err)
 	})
 	t.Run("invalid config should error", func(t *testing.T) {
 		t.Parallel()

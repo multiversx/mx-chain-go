@@ -17,7 +17,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-var expectedError = errors.New("expected error")
+var errExpected = errors.New("expected error")
 
 func createMockTxSelectionOptions(gasRequested uint64, maxNumTxs int, loopMaximumDuration int) common.TxSelectionOptions {
 	return holders.NewTxSelectionOptions(
@@ -57,12 +57,12 @@ func TestTxCache_SelectTransactions(t *testing.T) {
 		cache := newUnconstrainedCacheToTest(boundsConfig)
 		session := &txcachemocks.SelectionSessionMock{
 			GetRootHashCalled: func() ([]byte, error) {
-				return nil, expectedError
+				return nil, errExpected
 			},
 		}
 
 		_, _, err := cache.SelectTransactions(session, options, defaultBlockchainInfo)
-		require.Equal(t, expectedError, err)
+		require.Equal(t, errExpected, err)
 	})
 
 	t.Run("should return errBlockNotFound error from deriveVirtualSelectionSession", func(t *testing.T) {

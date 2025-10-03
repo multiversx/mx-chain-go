@@ -144,7 +144,7 @@ func TestHeaderRequester_RequestDataFromHashNotFoundNotBufferedChannelShouldErr(
 	arg := createMockHeaderRequesterArg()
 	arg.HdrStorage = &storageStubs.StorerStub{
 		SearchFirstCalled: func(key []byte) ([]byte, error) {
-			return nil, expectedErr
+			return nil, errExpected
 		},
 	}
 	arg.ManualEpochStartNotifier = &mock.ManualEpochStartNotifierStub{
@@ -163,7 +163,7 @@ func TestHeaderRequester_RequestDataFromHashNotFoundNotBufferedChannelShouldErr(
 
 	err := hdReq.RequestDataFromHash([]byte("hash"), 0)
 
-	assert.Equal(t, expectedErr, err)
+	assert.Equal(t, errExpected, err)
 	assert.True(t, newEpochCalled)
 	assert.False(t, sendCalled)
 }
@@ -176,7 +176,7 @@ func TestHeaderRequester_RequestDataFromHashNotFoundShouldErr(t *testing.T) {
 	arg := createMockHeaderRequesterArg()
 	arg.HdrStorage = &storageStubs.StorerStub{
 		SearchFirstCalled: func(key []byte) ([]byte, error) {
-			return nil, expectedErr
+			return nil, errExpected
 		},
 	}
 	arg.ManualEpochStartNotifier = &mock.ManualEpochStartNotifierStub{
@@ -196,7 +196,7 @@ func TestHeaderRequester_RequestDataFromHashNotFoundShouldErr(t *testing.T) {
 
 	err := hdReq.RequestDataFromHash([]byte("hash"), 0)
 
-	assert.Equal(t, expectedErr, err)
+	assert.Equal(t, errExpected, err)
 	assert.True(t, newEpochCalled)
 	assert.False(t, sendCalled)
 
@@ -255,7 +255,7 @@ func TestHeaderRequester_RequestDataFromNonceNotFoundShouldErr(t *testing.T) {
 	}
 	arg.HeadersNoncesStorage = &storageStubs.StorerStub{
 		SearchFirstCalled: func(key []byte) ([]byte, error) {
-			return nil, expectedErr
+			return nil, errExpected
 		},
 	}
 	arg.ManualEpochStartNotifier = &mock.ManualEpochStartNotifierStub{
@@ -274,7 +274,7 @@ func TestHeaderRequester_RequestDataFromNonceNotFoundShouldErr(t *testing.T) {
 
 	err := hdReq.RequestDataFromNonce(1, 0)
 
-	assert.Equal(t, expectedErr, err)
+	assert.Equal(t, errExpected, err)
 	assert.False(t, newEpochCalled)
 	assert.False(t, sendCalled)
 }
@@ -346,7 +346,7 @@ func TestHeaderRequester_RequestDataFromEpoch(t *testing.T) {
 		arg := createMockHeaderRequesterArg()
 		arg.HdrStorage = &storageStubs.StorerStub{
 			SearchFirstCalled: func(key []byte) ([]byte, error) {
-				return make([]byte, 0), expectedErr
+				return make([]byte, 0), errExpected
 			},
 		}
 		arg.Messenger = &p2pmocks.MessengerStub{
@@ -358,7 +358,7 @@ func TestHeaderRequester_RequestDataFromEpoch(t *testing.T) {
 		hdReq, _ := NewHeaderRequester(arg)
 
 		err := hdReq.RequestDataFromEpoch(epochIdentifier)
-		assert.Equal(t, expectedErr, err)
+		assert.Equal(t, errExpected, err)
 	})
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()

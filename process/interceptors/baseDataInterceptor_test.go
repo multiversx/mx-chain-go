@@ -15,7 +15,7 @@ import (
 
 const fromConnectedPeer = "from connected peer"
 
-//------- preProcessMessage
+// ------- preProcessMessage
 
 func newBaseDataInterceptorForPreProcess(
 	throttler process.InterceptorThrottler,
@@ -67,17 +67,17 @@ func TestPreProcessMessage_AntifloodCanNotProcessShouldErr(t *testing.T) {
 			return false
 		},
 	}
-	expectedErr := errors.New("expected error")
+	errExpected := errors.New("expected error")
 	antifloodHandler := &mock.P2PAntifloodHandlerStub{
 		CanProcessMessageCalled: func(message p2p.MessageP2P, fromConnectedPeer core.PeerID) error {
-			return expectedErr
+			return errExpected
 		},
 	}
 
 	bdi := newBaseDataInterceptorForPreProcess(throttler, antifloodHandler, &p2pmocks.PeersHolderStub{})
 	err := bdi.preProcessMesage(msg, fromConnectedPeer)
 
-	assert.Equal(t, expectedErr, err)
+	assert.Equal(t, errExpected, err)
 }
 
 func TestPreProcessMessage_AntifloodTopicCanNotProcessShouldErr(t *testing.T) {
@@ -91,17 +91,17 @@ func TestPreProcessMessage_AntifloodTopicCanNotProcessShouldErr(t *testing.T) {
 			return false
 		},
 	}
-	expectedErr := errors.New("expected error")
+	errExpected := errors.New("expected error")
 	antifloodHandler := &mock.P2PAntifloodHandlerStub{
 		CanProcessMessagesOnTopicCalled: func(peer core.PeerID, topic string, numMessages uint32, totalSize uint64, sequence []byte) error {
-			return expectedErr
+			return errExpected
 		},
 	}
 
 	bdi := newBaseDataInterceptorForPreProcess(throttler, antifloodHandler, &p2pmocks.PeersHolderStub{})
 	err := bdi.preProcessMesage(msg, fromConnectedPeer)
 
-	assert.Equal(t, expectedErr, err)
+	assert.Equal(t, errExpected, err)
 }
 
 func TestPreProcessMessage_ThrottlerCanNotProcessShouldErr(t *testing.T) {
@@ -214,7 +214,7 @@ func TestPreProcessMessage_CanProcessFromPreferredPeer(t *testing.T) {
 	assert.Equal(t, int32(1), throttler.StartProcessingCount())
 }
 
-//------- processInterceptedData
+// ------- processInterceptedData
 
 func TestProcessInterceptedData_NotValidShouldCallDoneAndNotCallProcessed(t *testing.T) {
 	t.Parallel()
@@ -276,7 +276,7 @@ func TestProcessInterceptedData_ProcessErrorShouldCallDone(t *testing.T) {
 	assert.True(t, processCalled)
 }
 
-//------- debug
+// ------- debug
 
 func TestProcessDebugInterceptedData_ShouldWork(t *testing.T) {
 	t.Parallel()

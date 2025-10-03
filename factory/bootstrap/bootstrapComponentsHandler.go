@@ -56,7 +56,7 @@ func (mbf *managedBootstrapComponents) Close() error {
 		return nil
 	}
 
-	err := mbf.bootstrapComponents.Close()
+	err := mbf.Close()
 	if err != nil {
 		return err
 	}
@@ -92,7 +92,7 @@ func (mbf *managedBootstrapComponents) EpochStartBootstrapper() factory.EpochSta
 		return nil
 	}
 
-	return mbf.bootstrapComponents.epochStartBootstrapper
+	return mbf.epochStartBootstrapper
 }
 
 // GuardedAccountHandler returns the guarded account handler
@@ -104,7 +104,7 @@ func (mbf *managedBootstrapComponents) GuardedAccountHandler() process.GuardedAc
 		return nil
 	}
 
-	return mbf.bootstrapComponents.guardedAccountHandler
+	return mbf.guardedAccountHandler
 }
 
 // EpochBootstrapParams returns the epoch start bootstrap parameters handler
@@ -116,7 +116,7 @@ func (mbf *managedBootstrapComponents) EpochBootstrapParams() factory.BootstrapP
 		return nil
 	}
 
-	return mbf.bootstrapComponents.bootstrapParamsHolder
+	return mbf.bootstrapParamsHolder
 }
 
 // NodesCoordinatorRegistryFactory returns the NodesCoordinatorRegistryFactory
@@ -128,7 +128,7 @@ func (mbf *managedBootstrapComponents) NodesCoordinatorRegistryFactory() nodesCo
 		return nil
 	}
 
-	return mbf.bootstrapComponents.nodesCoordinatorRegistryFactory
+	return mbf.nodesCoordinatorRegistryFactory
 }
 
 // IsInterfaceNil returns true if the underlying object is nil

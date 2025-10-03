@@ -125,11 +125,7 @@ func (tsm *trieStorageManager) checkGoRoutinesThrottler(
 	goRoutinesThrottler core.Throttler,
 	snapshotRequest *snapshotsQueueEntry,
 ) error {
-	for {
-		if goRoutinesThrottler.CanProcess() {
-			break
-		}
-
+	for !goRoutinesThrottler.CanProcess() {
 		select {
 		case <-time.After(time.Millisecond * 100):
 			continue

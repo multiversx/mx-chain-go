@@ -53,7 +53,7 @@ const gasRequested = 10_000_000_000
 const loopDurationCheckInterval = 10
 
 var oneEGLD = big.NewInt(1000000000000000000)
-var expectedErr = errors.New("expected error")
+var errExpected = errors.New("expected error")
 
 func createMockArgAPITransactionProcessor() *ArgAPITransactionProcessor {
 	return &ArgAPITransactionProcessor{
@@ -1367,7 +1367,7 @@ func TestApiTransactionProcessor_GetSelectedTransactions(t *testing.T) {
 
 		accountsAdapter := &stateMock.AccountsStub{
 			RootHashCalled: func() ([]byte, error) {
-				return nil, expectedErr
+				return nil, errExpected
 			},
 		}
 
@@ -1564,7 +1564,7 @@ func TestApiTransactionProcessor_GetVirtualNonce(t *testing.T) {
 		}
 		args.AddressPubKeyConverter = &testscommon.PubkeyConverterMock{
 			DecodeCalled: func(humanReadable string) ([]byte, error) {
-				return nil, expectedErr
+				return nil, errExpected
 			},
 		}
 
@@ -1573,7 +1573,7 @@ func TestApiTransactionProcessor_GetVirtualNonce(t *testing.T) {
 		require.NotNil(t, atp)
 
 		virtualNonce, err := atp.GetVirtualNonce("alice")
-		require.ErrorContains(t, err, expectedErr.Error())
+		require.ErrorContains(t, err, errExpected.Error())
 		require.Nil(t, virtualNonce)
 	})
 

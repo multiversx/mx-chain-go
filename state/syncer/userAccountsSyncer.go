@@ -317,11 +317,7 @@ func (u *userAccountsSyncer) printDataTrieStatistics() {
 }
 
 func (u *userAccountsSyncer) checkGoRoutinesThrottler(ctx context.Context) error {
-	for {
-		if u.throttler.CanProcess() {
-			break
-		}
-
+	for !u.throttler.CanProcess() {
 		select {
 		case <-time.After(timeBetweenRetries):
 			continue

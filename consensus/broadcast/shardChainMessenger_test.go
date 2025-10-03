@@ -30,7 +30,7 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/p2pmocks"
 )
 
-var expectedErr = errors.New("expected error")
+var errExpected = errors.New("expected error")
 
 func createDelayData(prefix string) ([]byte, *block.Header, map[uint32][]byte, map[string][][]byte) {
 	miniblocks := make(map[uint32][]byte)
@@ -201,12 +201,12 @@ func TestShardChainMessenger_NewShardChainMessengerShouldErr(t *testing.T) {
 			headerBroadcast func(header data.HeaderHandler, pkBytes []byte) error,
 			consensusMessageBroadcast func(message *consensus.Message) error,
 		) error {
-			return expectedErr
+			return errExpected
 		}}
 
 	_, err := broadcast.NewShardChainMessenger(args)
 
-	assert.Equal(t, expectedErr, err)
+	assert.Equal(t, errExpected, err)
 
 }
 
@@ -290,12 +290,13 @@ func TestShardChainMessenger_BroadcastMiniBlocksShouldBeDone(t *testing.T) {
 		err := scm.BroadcastMiniBlocks(miniBlocks, nodePkBytes)
 
 		called := 0
+	waitLoop:
 		for i := 0; i < 4; i++ {
 			select {
 			case <-channelBroadcastCalled:
 				called++
 			case <-time.After(time.Millisecond * 100):
-				break
+				break waitLoop
 			}
 		}
 
@@ -306,12 +307,13 @@ func TestShardChainMessenger_BroadcastMiniBlocksShouldBeDone(t *testing.T) {
 		err := scm.BroadcastMiniBlocks(miniBlocks, []byte("managed key"))
 
 		called := 0
+	waitLoop:
 		for i := 0; i < 4; i++ {
 			select {
 			case <-channelBroadcastUsingPrivateKeyCalled:
 				called++
 			case <-time.After(time.Millisecond * 100):
-				break
+				break waitLoop
 			}
 		}
 
@@ -389,12 +391,13 @@ func TestShardChainMessenger_BroadcastTransactionsShouldBeCalled(t *testing.T) {
 		err := scm.BroadcastTransactions(transactions, nodePkBytes)
 
 		wasCalled := false
+	waitLoop:
 		for i := 0; i < 4; i++ {
 			select {
 			case <-channelBroadcastCalled:
 				wasCalled = true
 			case <-time.After(time.Millisecond * 100):
-				break
+				break waitLoop
 			}
 		}
 
@@ -405,12 +408,13 @@ func TestShardChainMessenger_BroadcastTransactionsShouldBeCalled(t *testing.T) {
 		err := scm.BroadcastTransactions(transactions, []byte("managed key"))
 
 		wasCalled := false
+	waitLoop:
 		for i := 0; i < 4; i++ {
 			select {
 			case <-channelBroadcastUsingPrivateKeyCalled:
 				wasCalled = true
 			case <-time.After(time.Millisecond * 100):
-				break
+				break waitLoop
 			}
 		}
 
@@ -466,12 +470,13 @@ func TestShardChainMessenger_BroadcastHeaderShouldWork(t *testing.T) {
 		err := scm.BroadcastHeader(hdr, nodePkBytes)
 
 		wasCalled := false
+	waitLoop:
 		for i := 0; i < 4; i++ {
 			select {
 			case <-channelBroadcastCalled:
 				wasCalled = true
 			case <-time.After(time.Millisecond * 100):
-				break
+				break waitLoop
 			}
 		}
 
@@ -482,12 +487,13 @@ func TestShardChainMessenger_BroadcastHeaderShouldWork(t *testing.T) {
 		err := scm.BroadcastHeader(hdr, []byte("managed key"))
 
 		wasCalled := false
+	waitLoop:
 		for i := 0; i < 4; i++ {
 			select {
 			case <-channelBroadcastUsingPrivateKeyCalled:
 				wasCalled = true
 			case <-time.After(time.Millisecond * 100):
-				break
+				break waitLoop
 			}
 		}
 
@@ -538,7 +544,7 @@ func TestShardChainMessenger_BroadcastBlockDataLeaderShouldErrDelayedBroadcaster
 
 	args.DelayedBroadcaster = &testscommonConsensus.DelayedBroadcasterMock{
 		SetLeaderDataCalled: func(data *shared.DelayedBroadcastData) error {
-			return expectedErr
+			return errExpected
 		}}
 
 	scm, _ := broadcast.NewShardChainMessenger(args)
@@ -548,7 +554,7 @@ func TestShardChainMessenger_BroadcastBlockDataLeaderShouldErrDelayedBroadcaster
 
 	err := scm.BroadcastBlockDataLeader(header, miniblocks, transactions, []byte("pk bytes"))
 
-	assert.Equal(t, expectedErr, err)
+	assert.Equal(t, errExpected, err)
 }
 
 func TestShardChainMessenger_BroadcastBlockDataLeaderShouldTriggerWaitingDelayedMessage(t *testing.T) {
@@ -644,7 +650,7 @@ func TestShardChainMessenger_PrepareBroadcastHeaderValidatorShouldFailCalculateH
 		}}
 
 	args.Marshalizer = &testscommon.MarshallerStub{MarshalCalled: func(obj interface{}) ([]byte, error) {
-		return nil, expectedErr
+		return nil, errExpected
 	}}
 
 	scm, _ := broadcast.NewShardChainMessenger(args)
@@ -736,7 +742,7 @@ func TestShardChainMessenger_PrepareBroadcastBlockDataValidatorShouldFailCalcula
 
 	args.Marshalizer = &testscommon.MarshallerStub{
 		MarshalCalled: func(obj interface{}) ([]byte, error) {
-			return nil, expectedErr
+			return nil, errExpected
 		},
 	}
 

@@ -18,7 +18,7 @@ func TestTrieStorageMarker_MarkStorerAsSyncedAndActive(t *testing.T) {
 		sm := NewTrieStorageMarker()
 		assert.NotNil(t, sm)
 
-		expectedErr := errors.New("expected err")
+		errExpected := errors.New("expected err")
 
 		getLatestStorageEpochCalled := false
 		putCalled := false
@@ -26,15 +26,15 @@ func TestTrieStorageMarker_MarkStorerAsSyncedAndActive(t *testing.T) {
 		storer := &storageManager.StorageManagerStub{
 			GetLatestStorageEpochCalled: func() (uint32, error) {
 				getLatestStorageEpochCalled = true
-				return 0, expectedErr
+				return 0, errExpected
 			},
 			PutCalled: func(key []byte, val []byte) error {
 				putCalled = true
-				return expectedErr
+				return errExpected
 			},
 			PutInEpochWithoutCacheCalled: func(key []byte, val []byte, epoch uint32) error {
 				putInEpochWithoutCacheCalled = true
-				return expectedErr
+				return errExpected
 			},
 		}
 		sm.MarkStorerAsSyncedAndActive(storer)

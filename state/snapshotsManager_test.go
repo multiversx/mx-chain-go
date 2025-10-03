@@ -208,7 +208,7 @@ func TestSnapshotsManager_StartSnapshotAfterRestartIfNeeded(t *testing.T) {
 	t.Run("tsm get from current epoch error", func(t *testing.T) {
 		t.Parallel()
 
-		expectedErr := errors.New("expected error")
+		errExpected := errors.New("expected error")
 		sm, _ := state.NewSnapshotsManager(getDefaultSnapshotManagerArgs())
 		ts := &mock.AccountsDBSyncerStub{}
 		_ = sm.SetSyncer(ts)
@@ -218,7 +218,7 @@ func TestSnapshotsManager_StartSnapshotAfterRestartIfNeeded(t *testing.T) {
 				return true
 			},
 			GetFromCurrentEpochCalled: func(bytes []byte) ([]byte, error) {
-				return nil, expectedErr
+				return nil, errExpected
 			},
 			GetLatestStorageEpochCalled: func() (uint32, error) {
 				assert.Fail(t, "should not have been called")
@@ -232,7 +232,7 @@ func TestSnapshotsManager_StartSnapshotAfterRestartIfNeeded(t *testing.T) {
 	t.Run("tsm get latest storage epoch error", func(t *testing.T) {
 		t.Parallel()
 
-		expectedErr := errors.New("expected error")
+		errExpected := errors.New("expected error")
 		sm, _ := state.NewSnapshotsManager(getDefaultSnapshotManagerArgs())
 		ts := &mock.AccountsDBSyncerStub{}
 		_ = sm.SetSyncer(ts)
@@ -245,7 +245,7 @@ func TestSnapshotsManager_StartSnapshotAfterRestartIfNeeded(t *testing.T) {
 				return nil, nil
 			},
 			GetLatestStorageEpochCalled: func() (uint32, error) {
-				return 0, expectedErr
+				return 0, errExpected
 			},
 		}
 
@@ -407,7 +407,7 @@ func TestSnapshotsManager_SnapshotState(t *testing.T) {
 	t.Run("waiting for the correct storage epoch fails", func(t *testing.T) {
 		t.Parallel()
 
-		expectedErr := errors.New("some error")
+		errExpected := errors.New("some error")
 		getLatestStorageEpochCalled := atomic.Flag{}
 
 		sm, _ := state.NewSnapshotsManager(getDefaultSnapshotManagerArgs())
@@ -419,7 +419,7 @@ func TestSnapshotsManager_SnapshotState(t *testing.T) {
 					time.Sleep(10 * time.Millisecond)
 				}
 				getLatestStorageEpochCalled.SetValue(true)
-				return 0, expectedErr
+				return 0, errExpected
 			},
 			ShouldTakeSnapshotCalled: func() bool {
 				assert.Fail(t, "the func should have returned before this is called")
@@ -485,7 +485,7 @@ func TestSnapshotsManager_SnapshotState(t *testing.T) {
 	t.Run("snapshot with errors does not mark active and does not remove lastSnapshot", func(t *testing.T) {
 		t.Parallel()
 
-		expectedErr := errors.New("some error")
+		errExpected := errors.New("some error")
 
 		sm, _ := state.NewSnapshotsManager(getDefaultSnapshotManagerArgs())
 		tsm := &storageManager.StorageManagerStub{
@@ -498,7 +498,7 @@ func TestSnapshotsManager_SnapshotState(t *testing.T) {
 			TakeSnapshotCalled: func(_ string, _ []byte, _ []byte, channels *common.TrieIteratorChannels, _ chan []byte, stats common.SnapshotStatisticsHandler, _ uint32) {
 				stats.SnapshotFinished()
 				close(channels.LeavesChan)
-				channels.ErrChan.WriteInChanNonBlocking(expectedErr)
+				channels.ErrChan.WriteInChanNonBlocking(errExpected)
 			},
 		}
 

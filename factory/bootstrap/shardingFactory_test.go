@@ -27,7 +27,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-var expectedErr = errors.New("expected error")
+var errExpected = errors.New("expected error")
 
 func TestCreateShardCoordinator(t *testing.T) {
 	t.Parallel()
@@ -63,13 +63,13 @@ func TestCreateShardCoordinator(t *testing.T) {
 			&genesisMocks.NodesSetupStub{},
 			&cryptoMocks.PublicKeyStub{
 				ToByteArrayStub: func() ([]byte, error) {
-					return nil, expectedErr
+					return nil, errExpected
 				},
 			},
 			config.PreferencesConfig{},
 			&testscommon.LoggerStub{},
 		)
-		require.Equal(t, expectedErr, err)
+		require.Equal(t, errExpected, err)
 		require.Empty(t, nodeType)
 		require.True(t, check.IfNil(shardC))
 	})
@@ -106,7 +106,7 @@ func TestCreateShardCoordinator(t *testing.T) {
 				ToByteArrayStub: func() ([]byte, error) {
 					counter++
 					if counter > 1 {
-						return nil, expectedErr
+						return nil, errExpected
 					}
 					return []byte("public key"), nil
 				},
@@ -117,7 +117,7 @@ func TestCreateShardCoordinator(t *testing.T) {
 			&testscommon.LoggerStub{},
 		)
 		require.NotNil(t, err)
-		require.True(t, errors.Is(err, expectedErr))
+		require.True(t, errors.Is(err, errExpected))
 		require.Equal(t, core.NodeTypeObserver, nodeType)
 		require.True(t, check.IfNil(shardC))
 	})
@@ -392,7 +392,7 @@ func TestCreateNodesCoordinator(t *testing.T) {
 			&mock.EpochStartNotifierStub{},
 			&cryptoMocks.PublicKeyStub{
 				ToByteArrayStub: func() ([]byte, error) {
-					return nil, expectedErr
+					return nil, errExpected
 				},
 			},
 			&marshallerMock.MarshalizerStub{},
@@ -410,7 +410,7 @@ func TestCreateNodesCoordinator(t *testing.T) {
 			&shardingMocks.NodesCoordinatorRegistryFactoryMock{},
 			&chainParameters.ChainParametersHandlerStub{},
 		)
-		require.True(t, errors.Is(err, expectedErr))
+		require.True(t, errors.Is(err, errExpected))
 		require.True(t, check.IfNil(nodesC))
 	})
 	t.Run("ToByteArray fails should error", func(t *testing.T) {
@@ -425,7 +425,7 @@ func TestCreateNodesCoordinator(t *testing.T) {
 			&mock.EpochStartNotifierStub{},
 			&cryptoMocks.PublicKeyStub{
 				ToByteArrayStub: func() ([]byte, error) {
-					return nil, expectedErr
+					return nil, errExpected
 				},
 			},
 			&marshallerMock.MarshalizerStub{},
@@ -443,7 +443,7 @@ func TestCreateNodesCoordinator(t *testing.T) {
 			&shardingMocks.NodesCoordinatorRegistryFactoryMock{},
 			&chainParameters.ChainParametersHandlerStub{},
 		)
-		require.True(t, errors.Is(err, expectedErr))
+		require.True(t, errors.Is(err, errExpected))
 		require.True(t, check.IfNil(nodesC))
 	})
 	t.Run("NewShuffledOutTrigger fails should error", func(t *testing.T) {

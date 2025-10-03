@@ -209,7 +209,7 @@ func TestNewTopicRequestSender(t *testing.T) {
 func TestTopicResolverSender_SendOnRequestTopic(t *testing.T) {
 	t.Parallel()
 
-	expectedErr := errors.New("expected error")
+	errExpected := errors.New("expected error")
 	var defaultHashes = [][]byte{[]byte("hash")}
 
 	t.Run("marshal fails", func(t *testing.T) {
@@ -218,14 +218,14 @@ func TestTopicResolverSender_SendOnRequestTopic(t *testing.T) {
 		arg := createMockArgTopicRequestSender()
 		arg.Marshaller = &mock.MarshalizerStub{
 			MarshalCalled: func(obj interface{}) (bytes []byte, e error) {
-				return nil, expectedErr
+				return nil, errExpected
 			},
 		}
 		trs, _ := topicsender.NewTopicRequestSender(arg)
 
 		err := trs.SendOnRequestTopic(&dataRetriever.RequestData{}, defaultHashes)
 
-		assert.Equal(t, expectedErr, err)
+		assert.Equal(t, errExpected, err)
 	})
 	t.Run("no peers should error", func(t *testing.T) {
 		t.Parallel()
@@ -760,7 +760,7 @@ func TestTopicResolverSender_SendOnRequestTopic(t *testing.T) {
 					sentToPid1 = true
 				}
 
-				return expectedErr
+				return errExpected
 			},
 		}
 		arg.PeerListCreator = &mock.PeerListCreatorStub{

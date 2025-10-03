@@ -372,7 +372,7 @@ func TestMetaChainMessenger_PrepareBroadcastHeaderValidator(t *testing.T) {
 		delayedBroadcaster := &consensusMock.DelayedBroadcasterMock{
 			SetHeaderForValidatorCalled: func(vData *shared.ValidatorHeaderBroadcastData) error {
 				checkVarModified = true
-				return expectedErr
+				return errExpected
 			},
 		}
 		args.DelayedBroadcaster = delayedBroadcaster
@@ -409,7 +409,7 @@ func TestMetaChainMessenger_NewMetaChainMessengerFailSetBroadcast(t *testing.T) 
 			headerBroadcast func(header data.HeaderHandler, pkBytes []byte) error,
 			consensusMessageBroadcast func(message *consensus.Message) error) error {
 			varModified = true
-			return expectedErr
+			return errExpected
 		},
 	}
 	args.DelayedBroadcaster = delayedBroadcaster

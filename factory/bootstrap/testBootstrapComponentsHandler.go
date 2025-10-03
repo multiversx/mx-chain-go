@@ -22,13 +22,13 @@ func NewTestManagedBootstrapComponents(bootstrapComponentsFactory *bootstrapComp
 
 // SetShardCoordinator sets the shard coordinator
 func (mbf *testManagedBootstrapComponents) SetShardCoordinator(shardCoordinator sharding.Coordinator) error {
-	mbf.mutBootstrapComponents.RLock()
-	defer mbf.mutBootstrapComponents.RUnlock()
-
-	if mbf.bootstrapComponents == nil {
+	if mbf == nil {
 		return errors.ErrNilBootstrapComponents
 	}
 
-	mbf.bootstrapComponents.shardCoordinator = shardCoordinator
+	mbf.mutBootstrapComponents.RLock()
+	defer mbf.mutBootstrapComponents.RUnlock()
+
+	mbf.shardCoordinator = shardCoordinator
 	return nil
 }

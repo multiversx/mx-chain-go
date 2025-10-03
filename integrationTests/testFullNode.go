@@ -64,7 +64,6 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/cryptoMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/economicsmocks"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
-	"github.com/multiversx/mx-chain-go/testscommon/factory"
 	testFactory "github.com/multiversx/mx-chain-go/testscommon/factory"
 	"github.com/multiversx/mx-chain-go/testscommon/genesisMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/nodeTypeProviderMock"
@@ -717,21 +716,21 @@ func (tfn *TestFullNode) createEpochStartTrigger() TestEpochStartTrigger {
 		peerMiniBlockSyncer, _ := shardchain.NewPeerMiniBlockSyncer(argsPeerMiniBlocksSyncer)
 
 		argsShardEpochStart := &shardchain.ArgsShardEpochStartTrigger{
-			Marshalizer:              TestMarshalizer,
-			Hasher:                   TestHasher,
-			HeaderValidator:          &mock.HeaderValidatorStub{},
-			Uint64Converter:          TestUint64Converter,
-			DataPool:                 tfn.DataPool,
-			Storage:                  tfn.Storage,
-			RequestHandler:           &testscommon.RequestHandlerStub{},
-			Epoch:                    0,
-			Validity:                 1,
-			Finality:                 1,
-			EpochStartNotifier:       tfn.EpochStartNotifier,
-			PeerMiniBlocksSyncer:     peerMiniBlockSyncer,
-			RoundHandler:             tfn.RoundHandler,
-			AppStatusHandler:         &statusHandlerMock.AppStatusHandlerStub{},
-			EnableEpochsHandler:      tfn.EnableEpochsHandler,
+			Marshalizer:          TestMarshalizer,
+			Hasher:               TestHasher,
+			HeaderValidator:      &mock.HeaderValidatorStub{},
+			Uint64Converter:      TestUint64Converter,
+			DataPool:             tfn.DataPool,
+			Storage:              tfn.Storage,
+			RequestHandler:       &testscommon.RequestHandlerStub{},
+			Epoch:                0,
+			Validity:             1,
+			Finality:             1,
+			EpochStartNotifier:   tfn.EpochStartNotifier,
+			PeerMiniBlocksSyncer: peerMiniBlockSyncer,
+			RoundHandler:         tfn.RoundHandler,
+			AppStatusHandler:     &statusHandlerMock.AppStatusHandlerStub{},
+			EnableEpochsHandler:  tfn.EnableEpochsHandler,
 			CommonConfigsHandler: testscommon.GetDefaultCommonConfigsHandler(),
 		}
 		epochStartTrigger, err := shardchain.NewEpochStartTrigger(argsShardEpochStart)
@@ -822,21 +821,21 @@ func (tfn *TestFullNode) initInterceptors(
 		}
 		peerMiniBlockSyncer, _ := shardchain.NewPeerMiniBlockSyncer(argsPeerMiniBlocksSyncer)
 		argsShardEpochStart := &shardchain.ArgsShardEpochStartTrigger{
-			Marshalizer:              TestMarshalizer,
-			Hasher:                   TestHasher,
-			HeaderValidator:          &mock.HeaderValidatorStub{},
-			Uint64Converter:          TestUint64Converter,
-			DataPool:                 tfn.DataPool,
-			Storage:                  storage,
-			RequestHandler:           &testscommon.RequestHandlerStub{},
-			Epoch:                    0,
-			Validity:                 1,
-			Finality:                 1,
-			EpochStartNotifier:       tfn.EpochStartNotifier,
-			PeerMiniBlocksSyncer:     peerMiniBlockSyncer,
-			RoundHandler:             roundHandler,
-			AppStatusHandler:         &statusHandlerMock.AppStatusHandlerStub{},
-			EnableEpochsHandler:      enableEpochsHandler,
+			Marshalizer:          TestMarshalizer,
+			Hasher:               TestHasher,
+			HeaderValidator:      &mock.HeaderValidatorStub{},
+			Uint64Converter:      TestUint64Converter,
+			DataPool:             tfn.DataPool,
+			Storage:              storage,
+			RequestHandler:       &testscommon.RequestHandlerStub{},
+			Epoch:                0,
+			Validity:             1,
+			Finality:             1,
+			EpochStartNotifier:   tfn.EpochStartNotifier,
+			PeerMiniBlocksSyncer: peerMiniBlockSyncer,
+			RoundHandler:         roundHandler,
+			AppStatusHandler:     &statusHandlerMock.AppStatusHandlerStub{},
+			EnableEpochsHandler:  enableEpochsHandler,
 			CommonConfigsHandler: testscommon.GetDefaultCommonConfigsHandler(),
 		}
 		_, _ = shardchain.NewEpochStartTrigger(argsShardEpochStart)
@@ -1116,7 +1115,7 @@ func (tpn *TestFullNode) initBlockProcessorWithSync(
 
 	statusComponents := GetDefaultStatusComponents()
 
-	statusCoreComponents := &factory.StatusCoreComponentsStub{
+	statusCoreComponents := &testFactory.StatusCoreComponentsStub{
 		AppStatusHandlerField: &statusHandlerMock.AppStatusHandlerStub{},
 	}
 

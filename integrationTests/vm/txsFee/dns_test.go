@@ -36,7 +36,7 @@ func TestDeployDNSContract_TestRegisterAndResolveAndSendTxWithSndAndRcvUserName(
 	defer testContext.Close()
 
 	scAddress, _ := utils.DoDeployDNS(t, testContext, "../../multiShard/smartContract/dns/dns.wasm")
-	fmt.Println(scAddress)
+	fmt.Println(string(scAddress))
 	utils.CleanAccumulatedIntermediateTransactions(t, testContext)
 
 	sndAddr := []byte("12345678901234567890123456789112")
@@ -147,7 +147,7 @@ func TestDeployDNSContract_TestGasWhenSaveUsernameFailsCrossShardBackwardsCompat
 	defer testContextForRelayerAndUser.Close()
 
 	scAddress, _ := utils.DoDeployDNS(t, testContextForDNSContract, "../../multiShard/smartContract/dns/dns.wasm")
-	fmt.Println(scAddress)
+	fmt.Println(string(scAddress))
 	utils.CleanAccumulatedIntermediateTransactions(t, testContextForDNSContract)
 	require.Equal(t, uint32(1), testContextForDNSContract.ShardCoordinator.ComputeId(scAddress))
 
@@ -212,7 +212,7 @@ func TestDeployDNSContract_TestGasWhenSaveUsernameAfterDNSv2IsActivated(t *testi
 	require.Nil(t, err)
 	defer testContextForRelayerAndUser.Close()
 	scAddress, _ := utils.DoDeployDNS(t, testContextForDNSContract, "../../multiShard/smartContract/dns/dns.wasm")
-	fmt.Println(scAddress)
+	fmt.Println(string(scAddress))
 	utils.CleanAccumulatedIntermediateTransactions(t, testContextForDNSContract)
 	require.Equal(t, uint32(1), testContextForDNSContract.ShardCoordinator.ComputeId(scAddress))
 

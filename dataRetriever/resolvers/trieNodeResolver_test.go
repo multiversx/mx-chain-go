@@ -101,7 +101,7 @@ func TestTrieNodeResolver_ProcessReceivedAntiflooderCanProcessMessageErrShouldEr
 	arg := createMockArgTrieNodeResolver()
 	arg.AntifloodHandler = &mock.P2PAntifloodHandlerStub{
 		CanProcessMessageCalled: func(message p2p.MessageP2P, fromConnectedPeer core.PeerID) error {
-			return expectedErr
+			return errExpected
 		},
 		CanProcessMessagesOnTopicCalled: func(peer core.PeerID, topic string, numMessages uint32, totalSize uint64, sequence []byte) error {
 			return nil
@@ -110,7 +110,7 @@ func TestTrieNodeResolver_ProcessReceivedAntiflooderCanProcessMessageErrShouldEr
 	tnRes, _ := resolvers.NewTrieNodeResolver(arg)
 
 	msgID, err := tnRes.ProcessReceivedMessage(&p2pmocks.P2PMessageMock{}, fromConnectedPeer, &p2pmocks.MessengerStub{})
-	assert.True(t, errors.Is(err, expectedErr))
+	assert.True(t, errors.Is(err, errExpected))
 	assert.False(t, arg.Throttler.(*mock.ThrottlerStub).StartWasCalled())
 	assert.False(t, arg.Throttler.(*mock.ThrottlerStub).EndWasCalled())
 	assert.Nil(t, msgID)
@@ -242,7 +242,7 @@ func TestTrieNodeResolver_ProcessReceivedMessageTrieErrorsShouldErr(t *testing.T
 	arg := createMockArgTrieNodeResolver()
 	arg.TrieDataGetter = &trieMock.TrieStub{
 		GetSerializedNodeCalled: func(_ []byte) ([]byte, error) {
-			return nil, expectedErr
+			return nil, errExpected
 		},
 	}
 	tnRes, _ := resolvers.NewTrieNodeResolver(arg)
@@ -251,7 +251,7 @@ func TestTrieNodeResolver_ProcessReceivedMessageTrieErrorsShouldErr(t *testing.T
 	msg := &p2pmocks.P2PMessageMock{DataField: data}
 
 	msgID, err := tnRes.ProcessReceivedMessage(msg, fromConnectedPeer, &p2pmocks.MessengerStub{})
-	assert.Equal(t, expectedErr, err)
+	assert.Equal(t, errExpected, err)
 	assert.True(t, arg.Throttler.(*mock.ThrottlerStub).StartWasCalled())
 	assert.True(t, arg.Throttler.(*mock.ThrottlerStub).EndWasCalled())
 	assert.Nil(t, msgID)
@@ -268,7 +268,7 @@ func TestTrieNodeResolver_ProcessReceivedMessageMultipleHashesUnmarshalFails(t *
 		UnmarshalCalled: func(obj interface{}, buff []byte) error {
 			cnt++
 			if cnt > 1 {
-				return expectedErr
+				return errExpected
 			}
 			return initialMarshaller.Unmarshal(obj, buff)
 		},
@@ -295,7 +295,7 @@ func TestTrieNodeResolver_ProcessReceivedMessageMultipleHashesUnmarshalFails(t *
 	msg := &p2pmocks.P2PMessageMock{DataField: data}
 
 	msgID, err := tnRes.ProcessReceivedMessage(msg, fromConnectedPeer, &p2pmocks.MessengerStub{})
-	assert.Equal(t, expectedErr, err)
+	assert.Equal(t, errExpected, err)
 	assert.True(t, arg.Throttler.(*mock.ThrottlerStub).StartWasCalled())
 	assert.True(t, arg.Throttler.(*mock.ThrottlerStub).EndWasCalled())
 	assert.Nil(t, msgID)
@@ -313,7 +313,7 @@ func TestTrieNodeResolver_ProcessReceivedMessageMultipleHashesGetSerializedNodeE
 	}
 	arg.TrieDataGetter = &trieMock.TrieStub{
 		GetSerializedNodeCalled: func(_ []byte) ([]byte, error) {
-			return nil, expectedErr
+			return nil, errExpected
 		},
 	}
 	tnRes, _ := resolvers.NewTrieNodeResolver(arg)
@@ -367,7 +367,7 @@ func TestTrieNodeResolver_ProcessReceivedMessageMultipleHashesGetSerializedNodes
 			return nil, fmt.Errorf("not found")
 		},
 		GetSerializedNodesCalled: func(i []byte, u uint64) ([][]byte, uint64, error) {
-			return nil, 0, expectedErr
+			return nil, 0, errExpected
 		},
 	}
 	tnRes, _ := resolvers.NewTrieNodeResolver(arg)
@@ -424,7 +424,7 @@ func TestTrieNodeResolver_ProcessReceivedMessageMultipleHashesNotEnoughSpaceShou
 		},
 		GetSerializedNodesCalled: func(i []byte, u uint64) ([][]byte, uint64, error) {
 			assert.Fail(t, "should have not called GetSerializedNodesCalled")
-			return nil, 0, expectedErr
+			return nil, 0, errExpected
 		},
 	}
 	tnRes, _ := resolvers.NewTrieNodeResolver(arg)

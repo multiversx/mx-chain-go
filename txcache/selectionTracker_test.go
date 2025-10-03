@@ -296,7 +296,7 @@ func TestSelectionTracker_OnProposedBlockShouldErr(t *testing.T) {
 	t.Run("should return err from selection session", func(t *testing.T) {
 		t.Parallel()
 
-		expectedErr := errors.New("default err")
+		errExpected := errors.New("default err")
 
 		txCache := newCacheToTest(maxNumBytesPerSenderUpperBoundTest, 3)
 		txCache.txByHash.addTx(createTx([]byte("txHash1"), "alice", 1))
@@ -316,7 +316,7 @@ func TestSelectionTracker_OnProposedBlockShouldErr(t *testing.T) {
 
 		accountsProvider := &txcachemocks.AccountNonceAndBalanceProviderMock{
 			GetAccountNonceAndBalanceCalled: func(address []byte) (uint64, *big.Int, bool, error) {
-				return 0, nil, false, expectedErr
+				return 0, nil, false, errExpected
 			},
 		}
 
@@ -325,7 +325,7 @@ func TestSelectionTracker_OnProposedBlockShouldErr(t *testing.T) {
 			PrevHash: []byte(fmt.Sprintf("prevHash%d", 0)),
 			RootHash: []byte(fmt.Sprintf("rootHash%d", 0)),
 		}, accountsProvider, holders.NewBlockchainInfo([]byte("prevHash0"), nil, 1))
-		require.Equal(t, expectedErr, err)
+		require.Equal(t, errExpected, err)
 	})
 }
 
@@ -698,15 +698,15 @@ func TestSelectionTracker_deriveVirtualSelectionSessionShouldErr(t *testing.T) {
 	tracker, err := NewSelectionTracker(txCache, maxTrackedBlocks)
 	require.Nil(t, err)
 
-	expectedErr := errors.New("expected err")
+	errExpected := errors.New("expected err")
 
 	session := txcachemocks.SelectionSessionMock{}
 	session.GetRootHashCalled = func() ([]byte, error) {
-		return nil, expectedErr
+		return nil, errExpected
 	}
 	virtualSession, actualErr := tracker.deriveVirtualSelectionSession(&session, defaultBlockchainInfo)
 	require.Nil(t, virtualSession)
-	require.Equal(t, expectedErr, actualErr)
+	require.Equal(t, errExpected, actualErr)
 }
 
 func TestSelectionTracker_validateTrackedBlocks(t *testing.T) {

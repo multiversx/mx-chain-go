@@ -142,14 +142,14 @@ func TestEquivalentProofsRequester_RequestDataFromHash(t *testing.T) {
 		args := createMockArgEquivalentProofsRequester()
 		args.Storage = &storage.ChainStorerStub{
 			GetStorerCalled: func(unitType dataRetriever.UnitType) (chainStorage.Storer, error) {
-				return nil, expectedErr
+				return nil, errExpected
 			},
 		}
 		req, err := NewEquivalentProofsRequester(args)
 		require.NoError(t, err)
 
 		err = req.RequestDataFromHash([]byte(common.GetEquivalentProofHashShardKey([]byte("hash"), 1)), 0)
-		require.Equal(t, expectedErr, err)
+		require.Equal(t, errExpected, err)
 	})
 	t.Run("SearchFirst error should error", func(t *testing.T) {
 		t.Parallel()
@@ -159,7 +159,7 @@ func TestEquivalentProofsRequester_RequestDataFromHash(t *testing.T) {
 			GetStorerCalled: func(unitType dataRetriever.UnitType) (chainStorage.Storer, error) {
 				return &storage.StorerStub{
 					SearchFirstCalled: func(key []byte) ([]byte, error) {
-						return nil, expectedErr
+						return nil, errExpected
 					},
 				}, nil
 			},
@@ -168,7 +168,7 @@ func TestEquivalentProofsRequester_RequestDataFromHash(t *testing.T) {
 		require.NoError(t, err)
 
 		err = req.RequestDataFromHash([]byte(common.GetEquivalentProofHashShardKey([]byte("hash"), 1)), 0)
-		require.Equal(t, expectedErr, err)
+		require.Equal(t, errExpected, err)
 	})
 	t.Run("should work and send to self", func(t *testing.T) {
 		t.Parallel()
@@ -220,14 +220,14 @@ func TestEquivalentProofsRequester_RequestDataFromNonce(t *testing.T) {
 		args := createMockArgEquivalentProofsRequester()
 		args.Storage = &storage.ChainStorerStub{
 			GetStorerCalled: func(unitType dataRetriever.UnitType) (chainStorage.Storer, error) {
-				return nil, expectedErr
+				return nil, errExpected
 			},
 		}
 		req, err := NewEquivalentProofsRequester(args)
 		require.NoError(t, err)
 
 		err = req.RequestDataFromNonce([]byte(common.GetEquivalentProofNonceShardKey(123, 1)), 0)
-		require.Equal(t, expectedErr, err)
+		require.Equal(t, errExpected, err)
 	})
 	t.Run("SearchFirst error should error", func(t *testing.T) {
 		t.Parallel()
@@ -237,7 +237,7 @@ func TestEquivalentProofsRequester_RequestDataFromNonce(t *testing.T) {
 			GetStorerCalled: func(unitType dataRetriever.UnitType) (chainStorage.Storer, error) {
 				return &storage.StorerStub{
 					SearchFirstCalled: func(key []byte) ([]byte, error) {
-						return nil, expectedErr
+						return nil, errExpected
 					},
 				}, nil
 			},
@@ -246,7 +246,7 @@ func TestEquivalentProofsRequester_RequestDataFromNonce(t *testing.T) {
 		require.NoError(t, err)
 
 		err = req.RequestDataFromNonce([]byte(common.GetEquivalentProofNonceShardKey(123, core.MetachainShardId)), 0)
-		require.Equal(t, expectedErr, err)
+		require.Equal(t, errExpected, err)
 	})
 	t.Run("should work and send to self", func(t *testing.T) {
 		t.Parallel()

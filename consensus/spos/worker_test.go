@@ -415,14 +415,14 @@ func TestWorker_NewWorkerShouldWork(t *testing.T) {
 func TestWorker_ProcessReceivedMessageShouldErrIfFloodIsDetectedOnTopic(t *testing.T) {
 	t.Parallel()
 
-	expectedErr := errors.New("flood detected")
+	errExpected := errors.New("flood detected")
 	workerArgs := createDefaultWorkerArgs(&statusHandlerMock.AppStatusHandlerStub{})
 	antifloodHandler := &mock.P2PAntifloodHandlerStub{
 		CanProcessMessageCalled: func(message p2p.MessageP2P, fromConnectedPeer core.PeerID) error {
 			return nil
 		},
 		CanProcessMessagesOnTopicCalled: func(peer core.PeerID, topic string, numMessages uint32, totalSize uint64, sequence []byte) error {
-			return expectedErr
+			return errExpected
 		},
 	}
 
@@ -435,7 +435,7 @@ func TestWorker_ProcessReceivedMessageShouldErrIfFloodIsDetectedOnTopic(t *testi
 		SignatureField: []byte("signature"),
 	}
 	msgID, err := wrk.ProcessReceivedMessage(msg, "peer", &p2pmocks.MessengerStub{})
-	assert.Equal(t, expectedErr, err)
+	assert.Equal(t, errExpected, err)
 	assert.Nil(t, msgID)
 }
 

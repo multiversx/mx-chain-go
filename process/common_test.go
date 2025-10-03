@@ -372,17 +372,17 @@ func TestGetShardHeaderFromStorageShouldErrGetHeadersStorageReturnsErr(t *testin
 	t.Parallel()
 	hash := []byte("X")
 
-	expectedErr := errors.New("expected error")
+	errExpected := errors.New("expected error")
 	marshalizer := &mock.MarshalizerMock{}
 	storageService := &storageStubs.ChainStorerStub{
 		GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
-			return nil, expectedErr
+			return nil, errExpected
 		},
 	}
 
 	header, err := process.GetShardHeaderFromStorage(hash, marshalizer, storageService)
 	assert.Nil(t, header)
-	assert.Equal(t, expectedErr, err)
+	assert.Equal(t, errExpected, err)
 }
 
 func TestGetShardHeaderFromStorageShouldErrMissingHeader(t *testing.T) {
@@ -480,17 +480,17 @@ func TestGetMetaHeaderFromStorageShouldErrGetHeadersStorageReturnsErr(t *testing
 	t.Parallel()
 	hash := []byte("X")
 
-	expectedErr := errors.New("expected error")
+	errExpected := errors.New("expected error")
 	marshalizer := &mock.MarshalizerMock{}
 	storageService := &storageStubs.ChainStorerStub{
 		GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
-			return nil, expectedErr
+			return nil, errExpected
 		},
 	}
 
 	header, err := process.GetMetaHeaderFromStorage(hash, marshalizer, storageService)
 	assert.Nil(t, header)
-	assert.Equal(t, expectedErr, err)
+	assert.Equal(t, errExpected, err)
 }
 
 func TestGetMetaHeaderFromStorageShouldErrMissingHeader(t *testing.T) {
@@ -588,17 +588,17 @@ func TestGetMarshalizedHeaderFromStorageShouldErrGetHeadersStorageReturnsErr(t *
 	t.Parallel()
 	hash := []byte("X")
 
-	expectedErr := errors.New("expected error")
+	errExpected := errors.New("expected error")
 	marshalizer := &mock.MarshalizerMock{}
 	storageService := &storageStubs.ChainStorerStub{
 		GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
-			return nil, expectedErr
+			return nil, errExpected
 		},
 	}
 
 	headerMarsh, err := process.GetMarshalizedHeaderFromStorage(dataRetriever.MetaBlockUnit, hash, marshalizer, storageService)
 	assert.Nil(t, headerMarsh)
-	assert.Equal(t, expectedErr, err)
+	assert.Equal(t, errExpected, err)
 }
 
 func TestGetMarshalizedHeaderFromStorageShouldErrMissingHeader(t *testing.T) {
@@ -1236,10 +1236,10 @@ func TestGetShardHeaderFromStorageWithNonceShouldErrGetHeadersStorageReturnsErr(
 	nonce := uint64(1)
 	shardId := uint32(0)
 
-	expectedErr := errors.New("expected error")
+	errExpected := errors.New("expected error")
 	storageService := &storageStubs.ChainStorerStub{
 		GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
-			return nil, expectedErr
+			return nil, errExpected
 		},
 	}
 	uint64Converter := &mock.Uint64ByteSliceConverterMock{}
@@ -1254,7 +1254,7 @@ func TestGetShardHeaderFromStorageWithNonceShouldErrGetHeadersStorageReturnsErr(
 
 	assert.Nil(t, header)
 	assert.Nil(t, hash)
-	assert.Equal(t, expectedErr, err)
+	assert.Equal(t, errExpected, err)
 }
 
 func TestGetShardHeaderFromStorageWithNonceShouldErrMissingHashForHeaderNonce(t *testing.T) {
@@ -1515,10 +1515,10 @@ func TestGetMetaHeaderFromStorageWithNonceShouldErrGetHeadersStorageReturnsErr(t
 	t.Parallel()
 	nonce := uint64(1)
 
-	expectedErr := errors.New("expected error")
+	errExpected := errors.New("expected error")
 	storageService := &storageStubs.ChainStorerStub{
 		GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
-			return nil, expectedErr
+			return nil, errExpected
 		},
 	}
 	uint64Converter := &mock.Uint64ByteSliceConverterMock{}
@@ -1532,7 +1532,7 @@ func TestGetMetaHeaderFromStorageWithNonceShouldErrGetHeadersStorageReturnsErr(t
 
 	assert.Nil(t, header)
 	assert.Nil(t, hash)
-	assert.Equal(t, expectedErr, err)
+	assert.Equal(t, errExpected, err)
 }
 
 func TestGetMetaHeaderFromStorageWithNonceShouldErrMissingHashForHeaderNonce(t *testing.T) {

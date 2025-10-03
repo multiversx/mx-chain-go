@@ -23,7 +23,7 @@ import (
 var (
 	providedKey = []byte("key")
 	providedVal = []byte("value")
-	expectedErr = errorsGo.New("expected error")
+	errExpected = errorsGo.New("expected error")
 )
 
 // errChanWithLen extends the BufferedErrChan interface with a Len method
@@ -425,7 +425,7 @@ func TestTrieStorageManager_ShouldTakeSnapshot(t *testing.T) {
 		args := trie.GetDefaultTrieStorageManagerParameters()
 		args.MainStorer = &trieMock.SnapshotPruningStorerStub{
 			GetFromCurrentEpochCalled: func(key []byte) ([]byte, error) {
-				return nil, expectedErr // isTrieSynced returns false
+				return nil, errExpected // isTrieSynced returns false
 			},
 			GetFromOldEpochsWithoutAddingToCacheCalled: func(key []byte, _ uint32) ([]byte, core.OptionalUint32, error) {
 				return []byte(common.ActiveDBVal), core.OptionalUint32{}, nil
@@ -590,13 +590,13 @@ func TestTrieStorageManager_Close(t *testing.T) {
 		args := trie.GetDefaultTrieStorageManagerParameters()
 		args.MainStorer = &storage.StorerStub{
 			CloseCalled: func() error {
-				return expectedErr
+				return errExpected
 			},
 		}
 		ts, _ := trie.NewTrieStorageManager(args)
 
 		err := ts.Close()
-		assert.True(t, errorsGo.Is(err, expectedErr))
+		assert.True(t, errorsGo.Is(err, errExpected))
 	})
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()

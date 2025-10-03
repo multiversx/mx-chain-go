@@ -55,15 +55,15 @@ func TestCloseHandler(t *testing.T) {
 	lcNoError := &localCloser{}
 	handler.AddComponent(lcNoError)
 
-	lcWithError := &localCloser{expectedError: expectedErr}
+	lcWithError := &localCloser{expectedError: errExpected}
 	handler.AddComponent(lcWithError)
 
 	lcahNoError := &localCloseAllHandler{}
 	handler.AddComponent(lcahNoError)
 
-	lcahWithError := &localCloseAllHandler{expectedError: expectedErr}
+	lcahWithError := &localCloseAllHandler{expectedError: errExpected}
 	handler.AddComponent(lcahWithError)
 
 	err := handler.Close()
-	require.True(t, strings.Contains(err.Error(), expectedErr.Error()))
+	require.True(t, strings.Contains(err.Error(), errExpected.Error()))
 }

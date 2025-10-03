@@ -66,12 +66,12 @@ func createMockShardEpochStartTriggerArguments() *ArgsShardEpochStartTrigger {
 				}, nil
 			},
 		},
-		RequestHandler:           &testscommon.RequestHandlerStub{},
-		EpochStartNotifier:       &mock.EpochStartNotifierStub{},
-		PeerMiniBlocksSyncer:     &mock.ValidatorInfoSyncerStub{},
-		RoundHandler:             &mock.RoundHandlerStub{},
-		AppStatusHandler:         &statusHandlerMock.AppStatusHandlerStub{},
-		EnableEpochsHandler:      &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		RequestHandler:       &testscommon.RequestHandlerStub{},
+		EpochStartNotifier:   &mock.EpochStartNotifierStub{},
+		PeerMiniBlocksSyncer: &mock.ValidatorInfoSyncerStub{},
+		RoundHandler:         &mock.RoundHandlerStub{},
+		AppStatusHandler:     &statusHandlerMock.AppStatusHandlerStub{},
+		EnableEpochsHandler:  &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 		CommonConfigsHandler: testscommon.GetDefaultCommonConfigsHandler(),
 	}
 }
@@ -917,13 +917,13 @@ func TestTrigger_ReceivedProof(t *testing.T) {
 	t.Run("GetHeaderByHash error should early exit", func(t *testing.T) {
 		t.Parallel()
 
-		expectedErr := errors.New("expected error")
+		errExpected := errors.New("expected error")
 		args := createMockShardEpochStartTriggerArguments()
 		args.DataPool = &dataRetrieverMock.PoolsHolderStub{
 			HeadersCalled: func() dataRetriever.HeadersPool {
 				return &mock.HeadersCacherStub{
 					GetHeaderByHashCalled: func(hash []byte) (data.HeaderHandler, error) {
-						return nil, expectedErr
+						return nil, errExpected
 					},
 				}
 			},

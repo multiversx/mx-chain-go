@@ -20,7 +20,7 @@ func TestNewVirtualMachinesContainer_ShouldWork(t *testing.T) {
 	assert.False(t, c.IsInterfaceNil())
 }
 
-//------- Add
+// ------- Add
 
 func TestVirtualMachinesContainer_AddAlreadyExistingShouldErr(t *testing.T) {
 	t.Parallel()
@@ -54,7 +54,7 @@ func TestVirtualMachinesContainer_AddShouldWork(t *testing.T) {
 	assert.Equal(t, 1, c.Len())
 }
 
-//------- AddMultiple
+// ------- AddMultiple
 
 func TestVirtualMachinesContainer_AddMultipleAlreadyExistingShouldErr(t *testing.T) {
 	t.Parallel()
@@ -96,7 +96,7 @@ func TestVirtualMachinesContainer_AddMultipleShouldWork(t *testing.T) {
 	assert.Equal(t, 2, c.Len())
 }
 
-//------- Get
+// ------- Get
 
 func TestVirtualMachinesContainer_GetNotFoundShouldErr(t *testing.T) {
 	t.Parallel()
@@ -143,7 +143,7 @@ func TestVirtualMachinesContainer_GetShouldWork(t *testing.T) {
 	assert.Nil(t, err)
 }
 
-//------- Replace
+// ------- Replace
 
 func TestVirtualMachinesContainer_ReplaceNilValueShouldErrAndNotModify(t *testing.T) {
 	t.Parallel()
@@ -180,7 +180,7 @@ func TestVirtualMachinesContainer_ReplaceShouldWork(t *testing.T) {
 	assert.Nil(t, err)
 }
 
-//------- Remove
+// ------- Remove
 
 func TestVirtualMachinesContainer_RemoveShouldWork(t *testing.T) {
 	t.Parallel()
@@ -199,7 +199,7 @@ func TestVirtualMachinesContainer_RemoveShouldWork(t *testing.T) {
 	assert.True(t, errors.Is(err, process.ErrInvalidContainerKey))
 }
 
-//------- Len
+// ------- Len
 
 func TestVirtualMachinesContainer_LenShouldWork(t *testing.T) {
 	t.Parallel()
@@ -244,12 +244,12 @@ func TestVirtualMachinesContainer_Close(t *testing.T) {
 	}
 
 	closeCalledItem2 := false
-	expectedErr := errors.New("expected Error")
+	errExpected := errors.New("expected Error")
 	item2 := &mock.VMExecutionHandlerStub{
 		CloseCalled: func() error {
 			closeCalledItem2 = true
 
-			return expectedErr
+			return errExpected
 		},
 	}
 
@@ -269,7 +269,7 @@ func TestVirtualMachinesContainer_Close(t *testing.T) {
 	_ = c.Add([]byte("key4"), item4)
 
 	err := c.Close()
-	assert.Equal(t, expectedErr, err)
+	assert.Equal(t, errExpected, err)
 	assert.True(t, closeCalledItem1)
 	assert.True(t, closeCalledItem2)
 	assert.True(t, closeCalledItem4)

@@ -12,20 +12,20 @@ import (
 
 // Cleanup simulates a selection and removes not-executable transactions. Initial implementation: lower nonces
 // TODO Maybe we can think of an alternative fast and simple sort & shuffle at the same time. Maybe we can do a single sorting (in a separate PR).
-func (cache *TxCache) Cleanup(accountsProvider common.AccountNonceProvider, randomness uint64, maxNum int, cleanupLoopMaximumDurationMs time.Duration) uint64 {
+func (cache *TxCache) Cleanup(accountsProvider common.AccountNonceProvider, randomness uint64, maxNum int, cleanupLoopMaximumDuration time.Duration) uint64 {
 	logRemove.Debug(
 		"TxCache.Cleanup: begin",
 		"randomness", randomness,
 		"maxNum", maxNum,
-		"cleanupLoopMaximumDuration", cleanupLoopMaximumDurationMs,
+		"cleanupLoopMaximumDuration", cleanupLoopMaximumDuration,
 		"num bytes", cache.NumBytes(),
 		"num txs", cache.CountTx(),
 		"num senders", cache.CountSenders(),
 	)
-	return cache.RemoveSweepableTxs(accountsProvider, randomness, maxNum, cleanupLoopMaximumDurationMs)
+	return cache.RemoveSweepableTxs(accountsProvider, randomness, maxNum, cleanupLoopMaximumDuration)
 }
 
-func (cache *TxCache) RemoveSweepableTxs(accountsProvider common.AccountNonceProvider, randomness uint64, maxNum int, cleanupLoopMaximumDurationMs time.Duration) uint64 {
+func (cache *TxCache) RemoveSweepableTxs(accountsProvider common.AccountNonceProvider, randomness uint64, maxNum int, cleanupLoopMaximumDuration time.Duration) uint64 {
 	cache.mutTxOperation.Lock()
 	defer cache.mutTxOperation.Unlock()
 
@@ -34,7 +34,7 @@ func (cache *TxCache) RemoveSweepableTxs(accountsProvider common.AccountNoncePro
 	logRemove.Debug("TxCache.RemoveSweepableTxs start",
 		"randomness", randomness,
 		"maxNum", maxNum,
-		"cleanupLoopMaximumDuration", cleanupLoopMaximumDurationMs,
+		"cleanupLoopMaximumDuration", cleanupLoopMaximumDuration,
 	)
 
 	evicted := make([][]byte, 0, cache.txByHash.counter.Get())
@@ -58,7 +58,6 @@ func (cache *TxCache) RemoveSweepableTxs(accountsProvider common.AccountNoncePro
 			continue
 		}
 
-
 		// stop if we reached the max number of evicted transactions for this cleanup loop
 		if len(evicted) >= maxNum {
 			logRemove.Debug("TxCache.RemoveSweepableTxs reached maxNum",
@@ -69,11 +68,11 @@ func (cache *TxCache) RemoveSweepableTxs(accountsProvider common.AccountNoncePro
 		}
 
 		// stop if we reached the maximum duration for this cleanup loop
-		if time.Since(cleanupLoopStartTime) > cleanupLoopMaximumDurationMs {
+		if time.Since(cleanupLoopStartTime) > cleanupLoopMaximumDuration {
 			logRemove.Debug("TxCache.RemoveSweepableTxs reached cleanupLoopMaximumDuration",
 				"len(evicted)", len(evicted),
 				"duration", time.Since(cleanupLoopStartTime),
-				"cleanupLoopMaximumDuration", cleanupLoopMaximumDurationMs,
+				"cleanupLoopMaximumDuration", cleanupLoopMaximumDuration,
 			)
 			break
 		}

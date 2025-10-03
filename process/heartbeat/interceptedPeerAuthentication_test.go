@@ -20,7 +20,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-var expectedErr = errors.New("expected error")
+var errExpected = errors.New("expected error")
 var providedHardforkPubKey = []byte("provided pub key")
 
 func createDefaultInterceptedPeerAuthentication() *heartbeat.PeerAuthentication {
@@ -134,13 +134,13 @@ func TestNewInterceptedPeerAuthentication(t *testing.T) {
 		arg := createMockInterceptedPeerAuthenticationArg(createDefaultInterceptedPeerAuthentication())
 		arg.Marshaller = &mock.MarshalizerStub{
 			UnmarshalCalled: func(obj interface{}, buff []byte) error {
-				return expectedErr
+				return errExpected
 			},
 		}
 
 		ipa, err := NewInterceptedPeerAuthentication(arg)
 		assert.True(t, check.IfNil(ipa))
-		assert.Equal(t, expectedErr, err)
+		assert.Equal(t, errExpected, err)
 	})
 	t.Run("unmarshalable payload returns error", func(t *testing.T) {
 		t.Parallel()
@@ -198,12 +198,12 @@ func TestInterceptedPeerAuthentication_CheckValidity(t *testing.T) {
 		arg := createMockInterceptedPeerAuthenticationArg(createDefaultInterceptedPeerAuthentication())
 		arg.NodesCoordinator = &processMocks.NodesCoordinatorStub{
 			GetValidatorWithPublicKeyCalled: func(publicKey []byte) (validator nodesCoordinator.Validator, shardId uint32, err error) {
-				return nil, 0, expectedErr
+				return nil, 0, errExpected
 			},
 		}
 		ipa, _ := NewInterceptedPeerAuthentication(arg)
 		err := ipa.CheckValidity()
-		assert.Equal(t, expectedErr, err)
+		assert.Equal(t, errExpected, err)
 	})
 	t.Run("signaturesHandler.Verify returns error", func(t *testing.T) {
 		t.Parallel()
@@ -211,12 +211,12 @@ func TestInterceptedPeerAuthentication_CheckValidity(t *testing.T) {
 		arg := createMockInterceptedPeerAuthenticationArg(createDefaultInterceptedPeerAuthentication())
 		arg.SignaturesHandler = &processMocks.SignaturesHandlerStub{
 			VerifyCalled: func(payload []byte, pid core.PeerID, signature []byte) error {
-				return expectedErr
+				return errExpected
 			},
 		}
 		ipa, _ := NewInterceptedPeerAuthentication(arg)
 		err := ipa.CheckValidity()
-		assert.Equal(t, expectedErr, err)
+		assert.Equal(t, errExpected, err)
 	})
 	t.Run("peerSignatureHandler.VerifyPeerSignature returns error", func(t *testing.T) {
 		t.Parallel()
@@ -224,12 +224,12 @@ func TestInterceptedPeerAuthentication_CheckValidity(t *testing.T) {
 		arg := createMockInterceptedPeerAuthenticationArg(createDefaultInterceptedPeerAuthentication())
 		arg.PeerSignatureHandler = &processMocks.PeerSignatureHandlerStub{
 			VerifyPeerSignatureCalled: func(pk []byte, pid core.PeerID, signature []byte) error {
-				return expectedErr
+				return errExpected
 			},
 		}
 		ipa, _ := NewInterceptedPeerAuthentication(arg)
 		err := ipa.CheckValidity()
-		assert.Equal(t, expectedErr, err)
+		assert.Equal(t, errExpected, err)
 	})
 	t.Run("message does not have a valid payload timestamp", func(t *testing.T) {
 		t.Parallel()
@@ -247,14 +247,14 @@ func TestInterceptedPeerAuthentication_CheckValidity(t *testing.T) {
 		arg.Marshaller = marshaller
 		arg.PayloadValidator = &testscommon.PeerAuthenticationPayloadValidatorStub{
 			ValidateTimestampCalled: func(payloadTimestamp int64) error {
-				return expectedErr
+				return errExpected
 			},
 		}
 
 		ipa, _ := NewInterceptedPeerAuthentication(arg)
 
 		err = ipa.CheckValidity()
-		assert.True(t, errors.Is(err, expectedErr))
+		assert.True(t, errors.Is(err, errExpected))
 	})
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
@@ -289,10 +289,10 @@ func testInterceptedPeerAuthenticationPropertyLen(property string, tooLong bool)
 		t.Parallel()
 
 		value := []byte("")
-		expectedError := process.ErrPropertyTooShort
+		errExpectedor := process.ErrPropertyTooShort
 		if tooLong {
 			value = make([]byte, 130)
-			expectedError = process.ErrPropertyTooLong
+			errExpectedor = process.ErrPropertyTooLong
 		}
 
 		arg := createMockInterceptedPeerAuthenticationArg(createDefaultInterceptedPeerAuthentication())
@@ -313,7 +313,7 @@ func testInterceptedPeerAuthenticationPropertyLen(property string, tooLong bool)
 		}
 
 		err := ipa.CheckValidity()
-		assert.True(t, strings.Contains(err.Error(), expectedError.Error()))
+		assert.True(t, strings.Contains(err.Error(), errExpectedor.Error()))
 	}
 }
 

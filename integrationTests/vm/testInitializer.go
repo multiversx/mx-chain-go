@@ -18,7 +18,6 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/data/scheduled"
 	dataTransaction "github.com/multiversx/mx-chain-core-go/data/transaction"
-	dataTx "github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/common/enablers"
@@ -1764,7 +1763,7 @@ func GetVmOutput(
 }
 
 // ComputeGasLimit -
-func ComputeGasLimit(gasSchedule map[string]map[string]uint64, testContext *VMTestContext, tx *dataTx.Transaction) uint64 {
+func ComputeGasLimit(gasSchedule map[string]map[string]uint64, testContext *VMTestContext, tx *dataTransaction.Transaction) uint64 {
 	vmConfig := createDefaultVMConfig()
 	gasScheduleNotifier := mock.NewGasScheduleNotifierMock(gasSchedule)
 	vmContainer, blockChainHook, _ := CreateVMAndBlockchainHookAndDataPool(

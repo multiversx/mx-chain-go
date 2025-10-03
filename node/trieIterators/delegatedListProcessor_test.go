@@ -57,18 +57,18 @@ func TestNewDelegatedListProcessor(t *testing.T) {
 func TestDelegatedListProc_GetDelegatorsListGetAllContractAddressesFailsShouldErr(t *testing.T) {
 	t.Parallel()
 
-	expectedErr := errors.New("expected error")
+	errExpected := errors.New("expected error")
 	arg := createMockArgs()
 	arg.QueryService = &mock.SCQueryServiceStub{
 		ExecuteQueryCalled: func(query *process.SCQuery) (*vmcommon.VMOutput, common.BlockInfo, error) {
-			return nil, nil, expectedErr
+			return nil, nil, errExpected
 		},
 	}
 	dlp, _ := NewDelegatedListProcessor(arg)
 
 	list, err := dlp.GetDelegatorsList(context.Background())
 	assert.Nil(t, list)
-	assert.Equal(t, expectedErr, err)
+	assert.Equal(t, errExpected, err)
 
 	arg = createMockArgs()
 	arg.QueryService = &mock.SCQueryServiceStub{

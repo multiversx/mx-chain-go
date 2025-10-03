@@ -218,12 +218,12 @@ func TestUserAccount_GetAllLeaves(t *testing.T) {
 	t.Run("can not retrieve root hash should err", func(t *testing.T) {
 		t.Parallel()
 
-		expectedErr := fmt.Errorf("root error")
+		errExpected := fmt.Errorf("root error")
 		dtt := &testTrie.DataTrieTrackerStub{
 			DataTrieCalled: func() common.Trie {
 				return &testTrie.TrieStub{
 					RootCalled: func() ([]byte, error) {
-						return nil, expectedErr
+						return nil, errExpected
 					},
 				}
 			},
@@ -236,7 +236,7 @@ func TestUserAccount_GetAllLeaves(t *testing.T) {
 		}
 
 		err := acc.GetAllLeaves(chLeaves, nil)
-		assert.Equal(t, expectedErr, err)
+		assert.Equal(t, errExpected, err)
 	})
 
 	t.Run("should call GetAllLeavesOnChannel from trie", func(t *testing.T) {

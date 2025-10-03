@@ -76,7 +76,7 @@ func (msc *managedStatusComponents) Close() error {
 		msc.cancelFunc()
 	}
 
-	err := msc.statusComponents.Close()
+	err := msc.Close()
 	if err != nil {
 		return err
 	}
@@ -153,7 +153,7 @@ func (msc *managedStatusComponents) OutportHandler() outport.OutportHandler {
 		return nil
 	}
 
-	return msc.statusComponents.outportHandler
+	return msc.outportHandler
 }
 
 // SoftwareVersionChecker returns the software version checker handler
@@ -165,7 +165,7 @@ func (msc *managedStatusComponents) SoftwareVersionChecker() statistics.Software
 		return nil
 	}
 
-	return msc.statusComponents.softwareVersion
+	return msc.softwareVersion
 }
 
 // ManagedPeersMonitor returns the managed peers monitor

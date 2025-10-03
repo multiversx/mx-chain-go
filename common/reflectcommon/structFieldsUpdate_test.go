@@ -972,7 +972,7 @@ func TestAdaptStructureValueBasedOnPath(t *testing.T) {
 
 		err = AdaptStructureValueBasedOnPath(testConfig, overrideConfig.OverridableConfigTomlValues[31].Path, overrideConfig.OverridableConfigTomlValues[31].Value)
 		require.NoError(t, err)
-		require.Equal(t, expectedNewValue, testConfig.TestConfigStruct.ConfigStruct.Description)
+		require.Equal(t, expectedNewValue, testConfig.Description)
 	})
 
 	t.Run("should error with field not found", func(t *testing.T) {
@@ -1022,7 +1022,7 @@ func TestAdaptStructureValueBasedOnPath(t *testing.T) {
 
 		err = AdaptStructureValueBasedOnPath(testConfig, overrideConfig.OverridableConfigTomlValues[34].Path, overrideConfig.OverridableConfigTomlValues[34].Value)
 		require.NoError(t, err)
-		require.Equal(t, expectedNewValue, testConfig.TestConfigNestedStruct.ConfigNestedStruct)
+		require.Equal(t, expectedNewValue, testConfig.ConfigNestedStruct)
 	})
 
 	t.Run("should work on slice and override map", func(t *testing.T) {
@@ -1041,7 +1041,7 @@ func TestAdaptStructureValueBasedOnPath(t *testing.T) {
 
 		err = AdaptStructureValueBasedOnPath(testConfig, overrideConfig.OverridableConfigTomlValues[35].Path, overrideConfig.OverridableConfigTomlValues[35].Value)
 		require.NoError(t, err)
-		require.Equal(t, expectedNewValue, testConfig.TestConfigNestedStruct.ConfigNestedStruct.Message.MessageDescription)
+		require.Equal(t, expectedNewValue, testConfig.MessageDescription)
 	})
 
 	t.Run("should error on slice when override int", func(t *testing.T) {
@@ -1050,7 +1050,7 @@ func TestAdaptStructureValueBasedOnPath(t *testing.T) {
 		testConfig, err := loadTestConfig("../../testscommon/toml/config.toml")
 		require.NoError(t, err)
 
-		path := "TestConfigNestedStruct.ConfigNestedStruct.Message.MessageDescription"
+		path := "TestConfigNestedStruct.ConfigNestedStruct.MessageDescription"
 
 		err = AdaptStructureValueBasedOnPath(testConfig, path, 10)
 		require.Equal(t, "reflect: call of reflect.Value.Len on int Value", err.Error())
@@ -1062,7 +1062,7 @@ func TestAdaptStructureValueBasedOnPath(t *testing.T) {
 		testConfig, err := loadTestConfig("../../testscommon/toml/config.toml")
 		require.NoError(t, err)
 
-		path := "TestConfigNestedStruct.ConfigNestedStruct.Message.MessageDescription"
+		path := "TestConfigNestedStruct.ConfigNestedStruct.MessageDescription"
 
 		expectedNewValue := []int{10, 20}
 
@@ -1076,7 +1076,7 @@ func TestAdaptStructureValueBasedOnPath(t *testing.T) {
 		testConfig, err := loadTestConfig("../../testscommon/toml/config.toml")
 		require.NoError(t, err)
 
-		path := "TestConfigNestedStruct.ConfigNestedStruct.Message.MessageDescription"
+		path := "TestConfigNestedStruct.ConfigNestedStruct.MessageDescription"
 
 		var expectedNewValue = []toml.MessageDescriptionOtherName{
 			{Value: "10"},
@@ -1093,7 +1093,7 @@ func TestAdaptStructureValueBasedOnPath(t *testing.T) {
 		testConfig, err := loadTestConfig("../../testscommon/toml/config.toml")
 		require.NoError(t, err)
 
-		path := "TestConfigNestedStruct.ConfigNestedStruct.Message.MessageDescription"
+		path := "TestConfigNestedStruct.ConfigNestedStruct.MessageDescription"
 
 		var expectedNewValue = []toml.MessageDescriptionOtherType{
 			{Text: 10},
@@ -1110,7 +1110,7 @@ func TestAdaptStructureValueBasedOnPath(t *testing.T) {
 		testConfig, err := loadTestConfig("../../testscommon/toml/config.toml")
 		require.NoError(t, err)
 
-		path := "TestConfigNestedStruct.ConfigNestedStruct.Message.MessageDescription"
+		path := "TestConfigNestedStruct.ConfigNestedStruct.MessageDescription"
 
 		var expectedNewValue = []toml.MessageDescription{
 			{Text: "Text 1"},
@@ -1119,7 +1119,7 @@ func TestAdaptStructureValueBasedOnPath(t *testing.T) {
 
 		err = AdaptStructureValueBasedOnPath(testConfig, path, expectedNewValue)
 		require.NoError(t, err)
-		require.Equal(t, expectedNewValue, testConfig.TestConfigNestedStruct.ConfigNestedStruct.Message.MessageDescription)
+		require.Equal(t, expectedNewValue, testConfig.MessageDescription)
 	})
 
 	t.Run("should work on map, override and insert from config", func(t *testing.T) {
@@ -1133,9 +1133,9 @@ func TestAdaptStructureValueBasedOnPath(t *testing.T) {
 
 		err = AdaptStructureValueBasedOnPath(testConfig, overrideConfig.OverridableConfigTomlValues[36].Path, overrideConfig.OverridableConfigTomlValues[36].Value)
 		require.NoError(t, err)
-		require.Equal(t, 2, len(testConfig.TestMap.Map))
-		require.Equal(t, 10, testConfig.TestMap.Map["Key1"].Number)
-		require.Equal(t, 11, testConfig.TestMap.Map["Key2"].Number)
+		require.Equal(t, 2, len(testConfig.Map))
+		require.Equal(t, 10, testConfig.Map["Key1"].Number)
+		require.Equal(t, 11, testConfig.Map["Key2"].Number)
 	})
 
 	t.Run("should work on map and insert from config", func(t *testing.T) {
@@ -1149,10 +1149,10 @@ func TestAdaptStructureValueBasedOnPath(t *testing.T) {
 
 		err = AdaptStructureValueBasedOnPath(testConfig, overrideConfig.OverridableConfigTomlValues[37].Path, overrideConfig.OverridableConfigTomlValues[37].Value)
 		require.NoError(t, err)
-		require.Equal(t, 3, len(testConfig.TestMap.Map))
-		require.Equal(t, 999, testConfig.TestMap.Map["Key1"].Number)
-		require.Equal(t, 2, testConfig.TestMap.Map["Key2"].Number)
-		require.Equal(t, 3, testConfig.TestMap.Map["Key3"].Number)
+		require.Equal(t, 3, len(testConfig.Map))
+		require.Equal(t, 999, testConfig.Map["Key1"].Number)
+		require.Equal(t, 2, testConfig.Map["Key2"].Number)
+		require.Equal(t, 3, testConfig.Map["Key3"].Number)
 	})
 
 	t.Run("should work on map, override and insert values in map", func(t *testing.T) {
@@ -1169,9 +1169,9 @@ func TestAdaptStructureValueBasedOnPath(t *testing.T) {
 
 		err = AdaptStructureValueBasedOnPath(testConfig, path, expectedNewValue)
 		require.NoError(t, err)
-		require.Equal(t, 2, len(testConfig.TestMap.Map))
-		require.Equal(t, 100, testConfig.TestMap.Map["Key1"].Number)
-		require.Equal(t, 200, testConfig.TestMap.Map["Key2"].Number)
+		require.Equal(t, 2, len(testConfig.Map))
+		require.Equal(t, 100, testConfig.Map["Key1"].Number)
+		require.Equal(t, 200, testConfig.Map["Key2"].Number)
 	})
 
 	t.Run("should error on map when override different map", func(t *testing.T) {
@@ -1214,7 +1214,7 @@ func TestAdaptStructureValueBasedOnPath(t *testing.T) {
 
 		err = AdaptStructureValueBasedOnPath(testConfig, "TestArray.Strings", expectedArray)
 		require.NoError(t, err)
-		require.Equal(t, expectedArray, testConfig.TestArray.Strings)
+		require.Equal(t, expectedArray, testConfig.Strings)
 	})
 
 	t.Run("should work and override int array", func(t *testing.T) {
@@ -1227,7 +1227,7 @@ func TestAdaptStructureValueBasedOnPath(t *testing.T) {
 
 		err = AdaptStructureValueBasedOnPath(testConfig, "TestArray.Ints", expectedArray)
 		require.NoError(t, err)
-		require.Equal(t, expectedArray, testConfig.TestArray.Ints)
+		require.Equal(t, expectedArray, testConfig.Ints)
 	})
 
 	t.Run("should work and override string array from toml", func(t *testing.T) {
@@ -1242,7 +1242,7 @@ func TestAdaptStructureValueBasedOnPath(t *testing.T) {
 		err = AdaptStructureValueBasedOnPath(testConfig, overrideConfig.OverridableConfigTomlValues[38].Path, overrideConfig.OverridableConfigTomlValues[38].Value)
 		require.NoError(t, err)
 		expectedArray := []string{"x", "y", "z"}
-		require.Equal(t, expectedArray, testConfig.TestArray.Strings)
+		require.Equal(t, expectedArray, testConfig.Strings)
 	})
 
 	t.Run("should work and override int array from toml", func(t *testing.T) {
@@ -1257,7 +1257,7 @@ func TestAdaptStructureValueBasedOnPath(t *testing.T) {
 		err = AdaptStructureValueBasedOnPath(testConfig, overrideConfig.OverridableConfigTomlValues[39].Path, overrideConfig.OverridableConfigTomlValues[39].Value)
 		require.NoError(t, err)
 		expectedArray := []int{10, 20, 30}
-		require.Equal(t, expectedArray, testConfig.TestArray.Ints)
+		require.Equal(t, expectedArray, testConfig.Ints)
 	})
 
 	t.Run("should work and override struct of arrays from toml", func(t *testing.T) {
@@ -1273,8 +1273,8 @@ func TestAdaptStructureValueBasedOnPath(t *testing.T) {
 
 		err = AdaptStructureValueBasedOnPath(testConfig, overrideConfig.OverridableConfigTomlValues[40].Path, overrideConfig.OverridableConfigTomlValues[40].Value)
 		require.NoError(t, err)
-		require.Equal(t, expectedStringsArray, testConfig.TestArray.Strings)
-		require.Equal(t, expectedIntsArray, testConfig.TestArray.Ints)
+		require.Equal(t, expectedStringsArray, testConfig.Strings)
+		require.Equal(t, expectedIntsArray, testConfig.Ints)
 	})
 
 }

@@ -64,7 +64,7 @@ func TestNewTrieAccountsIterator(t *testing.T) {
 func TestTrieAccountsIterator_Process(t *testing.T) {
 	t.Parallel()
 
-	var expectedErr = errors.New("expected error")
+	var errExpected = errors.New("expected error")
 
 	t.Run("skip processing if no handler", func(t *testing.T) {
 		t.Parallel()
@@ -86,13 +86,13 @@ func TestTrieAccountsIterator_Process(t *testing.T) {
 		args := getTrieAccountsIteratorArgs()
 		args.Accounts = &stateMock.AccountsStub{
 			RootHashCalled: func() ([]byte, error) {
-				return nil, expectedErr
+				return nil, errExpected
 			},
 		}
 		tai, _ := NewTrieAccountsIterator(args)
 
 		err := tai.Process(dummyIterator)
-		require.Equal(t, expectedErr, err)
+		require.Equal(t, errExpected, err)
 	})
 
 	t.Run("cannot get all leaves", func(t *testing.T) {
@@ -104,13 +104,13 @@ func TestTrieAccountsIterator_Process(t *testing.T) {
 				return []byte("rootHash"), nil
 			},
 			GetAllLeavesCalled: func(_ *common.TrieIteratorChannels, _ context.Context, _ []byte, _ common.TrieLeafParser) error {
-				return expectedErr
+				return errExpected
 			},
 		}
 		tai, _ := NewTrieAccountsIterator(args)
 
 		err := tai.Process(dummyIterator)
-		require.Equal(t, expectedErr, err)
+		require.Equal(t, errExpected, err)
 	})
 
 	t.Run("cannot get existing account", func(t *testing.T) {
@@ -131,13 +131,13 @@ func TestTrieAccountsIterator_Process(t *testing.T) {
 				return nil
 			},
 			GetExistingAccountCalled: func(addressContainer []byte) (vmcommon.AccountHandler, error) {
-				return nil, expectedErr
+				return nil, errExpected
 			},
 		}
 		tai, _ := NewTrieAccountsIterator(args)
 
 		err := tai.Process(dummyIterator)
-		require.Equal(t, expectedErr, err)
+		require.Equal(t, errExpected, err)
 	})
 
 	t.Run("should ignore non-accounts leaves", func(t *testing.T) {
@@ -256,7 +256,7 @@ func TestTrieAccountsIterator_Process(t *testing.T) {
 			return nil
 		}
 		handler2 := func(account state.UserAccountHandler) error {
-			return expectedErr
+			return errExpected
 		}
 		args := getTrieAccountsIteratorArgs()
 		args.Accounts = &stateMock.AccountsStub{
@@ -279,7 +279,7 @@ func TestTrieAccountsIterator_Process(t *testing.T) {
 		tai, _ := NewTrieAccountsIterator(args)
 
 		err := tai.Process(handler1, handler2)
-		require.Equal(t, expectedErr, err)
+		require.Equal(t, errExpected, err)
 	})
 
 	t.Run("should work with handlers", func(t *testing.T) {

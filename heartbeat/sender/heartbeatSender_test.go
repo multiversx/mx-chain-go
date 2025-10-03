@@ -17,7 +17,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-var expectedErr = errors.New("expected error")
+var errExpected = errors.New("expected error")
 
 func createMockHeartbeatSenderArgs(argBase argBaseSender) argHeartbeatSender {
 	return argHeartbeatSender{
@@ -232,7 +232,7 @@ func TestHeartbeatSender_Execute(t *testing.T) {
 		argsBase.timeBetweenSends = time.Second * 2
 		argsBase.marshaller = &marshallerMock.MarshalizerStub{
 			MarshalCalled: func(obj interface{}) ([]byte, error) {
-				return nil, expectedErr
+				return nil, errExpected
 			},
 		}
 
@@ -282,7 +282,7 @@ func TestHeartbeatSender_execute(t *testing.T) {
 		argsBase := createMockBaseArgs()
 		argsBase.marshaller = &marshallerMock.MarshalizerStub{
 			MarshalCalled: func(obj interface{}) ([]byte, error) {
-				return nil, expectedErr
+				return nil, errExpected
 			},
 		}
 
@@ -291,7 +291,7 @@ func TestHeartbeatSender_execute(t *testing.T) {
 		assert.NotNil(t, senderInstance)
 
 		err := senderInstance.execute()
-		assert.Equal(t, expectedErr, err)
+		assert.Equal(t, errExpected, err)
 	})
 	t.Run("marshal returns error second time", func(t *testing.T) {
 		t.Parallel()
@@ -305,7 +305,7 @@ func TestHeartbeatSender_execute(t *testing.T) {
 					return []byte(""), nil
 				}
 
-				return nil, expectedErr
+				return nil, errExpected
 			},
 		}
 
@@ -314,7 +314,7 @@ func TestHeartbeatSender_execute(t *testing.T) {
 		assert.NotNil(t, senderInstance)
 
 		err := senderInstance.execute()
-		assert.Equal(t, expectedErr, err)
+		assert.Equal(t, errExpected, err)
 	})
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()

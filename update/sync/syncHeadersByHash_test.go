@@ -53,10 +53,10 @@ func TestNewMissingheadersByHashSyncer_NilParamsShouldErr(t *testing.T) {
 	nilEnableEpochsHandlerArgs.EnableEpochsHandler = nil
 	testInput[nilEnableEpochsHandlerArgs] = process.ErrNilEnableEpochsHandler
 
-	for args, expectedErr := range testInput {
+	for args, errExpected := range testInput {
 		mhhs, err := NewMissingheadersByHashSyncer(args)
 		require.True(t, check.IfNil(mhhs))
-		require.Equal(t, expectedErr, err)
+		require.Equal(t, errExpected, err)
 	}
 }
 

@@ -32,17 +32,17 @@ func TestNewBootstrapDataProvider_OkValuesShouldWork(t *testing.T) {
 func TestBootstrapDataProvider_LoadForPath_PersisterCreateErr(t *testing.T) {
 	t.Parallel()
 
-	expectedErr := errors.New("expected err")
+	errExpected := errors.New("expected err")
 	bdp, _ := NewBootstrapDataProvider(&mock.MarshalizerMock{})
 	persisterFactory := &mock.PersisterFactoryStub{
 		CreateCalled: func(_ string) (persister storage.Persister, e error) {
-			persister, e = nil, expectedErr
+			persister, e = nil, errExpected
 			return
 		},
 	}
 
 	bootstrapData, storer, err := bdp.LoadForPath(persisterFactory, "")
-	require.Equal(t, expectedErr, err)
+	require.Equal(t, errExpected, err)
 	require.Nil(t, storer)
 	require.Nil(t, bootstrapData)
 }

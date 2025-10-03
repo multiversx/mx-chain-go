@@ -268,10 +268,7 @@ func (sr *subroundSignature) sendSignatureForManagedKey(idx int, pk string) bool
 }
 
 func (sr *subroundSignature) checkGoRoutinesThrottler(ctx context.Context) error {
-	for {
-		if sr.signatureThrottler.CanProcess() {
-			break
-		}
+	for !sr.signatureThrottler.CanProcess() {
 		select {
 		case <-time.After(timeSpentBetweenChecks):
 			continue

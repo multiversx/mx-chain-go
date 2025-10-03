@@ -776,10 +776,7 @@ func (e *esdt) createNewTokenIdentifier(caller []byte, ticker []byte) ([]byte, e
 }
 
 func (e *esdt) upgradeProperties(tokenIdentifier []byte, token *ESDTDataV2, args [][]byte, isCreate bool, callerAddr []byte) error {
-	mintBurnable := true
-	if string(token.TokenType) != core.FungibleESDT {
-		mintBurnable = false
-	}
+	mintBurnable := string(token.TokenType) == core.FungibleESDT
 
 	topics := make([][]byte, 0)
 	nonce := big.NewInt(0)

@@ -185,37 +185,37 @@ func TestNewDelegationSystemSC_NilSystemEnvironmentShouldErr(t *testing.T) {
 func TestNewDelegationSystemSC_InvalidStakingSCAddrShouldErr(t *testing.T) {
 	t.Parallel()
 
-	expectedErr := fmt.Errorf("%w for staking sc address", vm.ErrInvalidAddress)
+	errExpected := fmt.Errorf("%w for staking sc address", vm.ErrInvalidAddress)
 	args := createMockArgumentsForDelegation()
 	args.StakingSCAddress = []byte{}
 
 	d, err := NewDelegationSystemSC(args)
 	assert.Nil(t, d)
-	assert.Equal(t, expectedErr, err)
+	assert.Equal(t, errExpected, err)
 }
 
 func TestNewDelegationSystemSC_InvalidValidatorSCAddrShouldErr(t *testing.T) {
 	t.Parallel()
 
-	expectedErr := fmt.Errorf("%w for validator sc address", vm.ErrInvalidAddress)
+	errExpected := fmt.Errorf("%w for validator sc address", vm.ErrInvalidAddress)
 	args := createMockArgumentsForDelegation()
 	args.ValidatorSCAddress = []byte{}
 
 	d, err := NewDelegationSystemSC(args)
 	assert.Nil(t, d)
-	assert.Equal(t, expectedErr, err)
+	assert.Equal(t, errExpected, err)
 }
 
 func TestNewDelegationSystemSC_InvalidDelegationMgrSCAddrShouldErr(t *testing.T) {
 	t.Parallel()
 
-	expectedErr := fmt.Errorf("%w for delegation sc address", vm.ErrInvalidAddress)
+	errExpected := fmt.Errorf("%w for delegation sc address", vm.ErrInvalidAddress)
 	args := createMockArgumentsForDelegation()
 	args.DelegationMgrSCAddress = []byte{}
 
 	d, err := NewDelegationSystemSC(args)
 	assert.Nil(t, d)
-	assert.Equal(t, expectedErr, err)
+	assert.Equal(t, errExpected, err)
 }
 
 func TestNewDelegationSystemSC_NilMarshalizerShouldErr(t *testing.T) {
@@ -267,11 +267,11 @@ func TestNewDelegationSystemSC_InvalidUnJailValueShouldErr(t *testing.T) {
 
 	args := createMockArgumentsForDelegation()
 	args.StakingSCConfig.UnJailValue = "-1"
-	expectedErr := fmt.Errorf("%w, value is %v", vm.ErrInvalidUnJailCost, args.StakingSCConfig.UnJailValue)
+	errExpected := fmt.Errorf("%w, value is %v", vm.ErrInvalidUnJailCost, args.StakingSCConfig.UnJailValue)
 
 	d, err := NewDelegationSystemSC(args)
 	assert.Nil(t, d)
-	assert.Equal(t, expectedErr, err)
+	assert.Equal(t, errExpected, err)
 }
 
 func TestNewDelegationSystemSC_InvalidMinStakeValueShouldErr(t *testing.T) {
@@ -279,11 +279,11 @@ func TestNewDelegationSystemSC_InvalidMinStakeValueShouldErr(t *testing.T) {
 
 	args := createMockArgumentsForDelegation()
 	args.StakingSCConfig.MinStakeValue = "-1"
-	expectedErr := fmt.Errorf("%w, value is %v", vm.ErrInvalidMinStakeValue, args.StakingSCConfig.MinStakeValue)
+	errExpected := fmt.Errorf("%w, value is %v", vm.ErrInvalidMinStakeValue, args.StakingSCConfig.MinStakeValue)
 
 	d, err := NewDelegationSystemSC(args)
 	assert.Nil(t, d)
-	assert.Equal(t, expectedErr, err)
+	assert.Equal(t, errExpected, err)
 }
 
 func TestNewDelegationSystemSC_InvalidGenesisNodePriceShouldErr(t *testing.T) {
@@ -291,11 +291,11 @@ func TestNewDelegationSystemSC_InvalidGenesisNodePriceShouldErr(t *testing.T) {
 
 	args := createMockArgumentsForDelegation()
 	args.StakingSCConfig.GenesisNodePrice = "-1"
-	expectedErr := fmt.Errorf("%w, value is %v", vm.ErrInvalidNodePrice, args.StakingSCConfig.GenesisNodePrice)
+	errExpected := fmt.Errorf("%w, value is %v", vm.ErrInvalidNodePrice, args.StakingSCConfig.GenesisNodePrice)
 
 	d, err := NewDelegationSystemSC(args)
 	assert.Nil(t, d)
-	assert.Equal(t, expectedErr, err)
+	assert.Equal(t, errExpected, err)
 }
 
 func TestNewDelegationSystemSC_OkParamsShouldWork(t *testing.T) {
@@ -697,8 +697,8 @@ func TestDelegationSystemSC_ExecuteRemoveNodesUserErrors(t *testing.T) {
 	d.gasCost.MetaChainSystemSCsCost.DelegationOps = 10
 	output = d.Execute(vmInput)
 	assert.Equal(t, vmcommon.UserError, output)
-	expectedErr := fmt.Errorf("%w delegation status", vm.ErrDataNotFoundUnderKey)
-	assert.True(t, strings.Contains(eei.returnMessage, expectedErr.Error()))
+	errExpected := fmt.Errorf("%w delegation status", vm.ErrDataNotFoundUnderKey)
+	assert.True(t, strings.Contains(eei.returnMessage, errExpected.Error()))
 }
 
 func TestDelegationSystemSC_ExecuteRemoveNodesNotPresentInNotStakedShouldErr(t *testing.T) {
@@ -814,8 +814,8 @@ func TestDelegationSystemSC_ExecuteStakeNodesUserErrors(t *testing.T) {
 	d.gasCost.MetaChainSystemSCsCost.DelegationOps = 10
 	output = d.Execute(vmInput)
 	assert.Equal(t, vmcommon.UserError, output)
-	expectedErr := fmt.Errorf("%w delegation status", vm.ErrDataNotFoundUnderKey)
-	assert.True(t, strings.Contains(eei.returnMessage, expectedErr.Error()))
+	errExpected := fmt.Errorf("%w delegation status", vm.ErrDataNotFoundUnderKey)
+	assert.True(t, strings.Contains(eei.returnMessage, errExpected.Error()))
 }
 
 func TestDelegationSystemSC_ExecuteStakeNodesNotPresentInNotStakedOrUnStakedShouldErr(t *testing.T) {
@@ -861,8 +861,8 @@ func TestDelegationSystemSC_ExecuteStakeNodesVerifiesBothUnStakedAndNotStaked(t 
 	vmInput := getDefaultVmInputForFunc("stakeNodes", [][]byte{blsKey1, blsKey2})
 	output := d.Execute(vmInput)
 	assert.Equal(t, vmcommon.UserError, output)
-	expectedErr := fmt.Errorf("%w getGlobalFundData", vm.ErrDataNotFoundUnderKey)
-	assert.True(t, strings.Contains(eei.returnMessage, expectedErr.Error()))
+	errExpected := fmt.Errorf("%w getGlobalFundData", vm.ErrDataNotFoundUnderKey)
+	assert.True(t, strings.Contains(eei.returnMessage, errExpected.Error()))
 
 	globalFund := &GlobalFundData{
 		TotalActive: big.NewInt(10),
@@ -1015,8 +1015,8 @@ func TestDelegationSystemSC_ExecuteUnStakeNodesUserErrors(t *testing.T) {
 	d.gasCost.MetaChainSystemSCsCost.DelegationOps = 10
 	output = d.Execute(vmInput)
 	assert.Equal(t, vmcommon.UserError, output)
-	expectedErr := fmt.Errorf("%w delegation status", vm.ErrDataNotFoundUnderKey)
-	assert.True(t, strings.Contains(eei.returnMessage, expectedErr.Error()))
+	errExpected := fmt.Errorf("%w delegation status", vm.ErrDataNotFoundUnderKey)
+	assert.True(t, strings.Contains(eei.returnMessage, errExpected.Error()))
 }
 
 func TestDelegationSystemSC_ExecuteUnStakeNodesNotPresentInStakedShouldErr(t *testing.T) {
@@ -1230,8 +1230,8 @@ func TestDelegationSystemSC_ExecuteUnBondNodesUserErrors(t *testing.T) {
 	d.gasCost.MetaChainSystemSCsCost.DelegationOps = 10
 	output = d.Execute(vmInput)
 	assert.Equal(t, vmcommon.UserError, output)
-	expectedErr := fmt.Errorf("%w delegation status", vm.ErrDataNotFoundUnderKey)
-	assert.True(t, strings.Contains(eei.returnMessage, expectedErr.Error()))
+	errExpected := fmt.Errorf("%w delegation status", vm.ErrDataNotFoundUnderKey)
+	assert.True(t, strings.Contains(eei.returnMessage, errExpected.Error()))
 }
 
 func TestDelegationSystemSC_ExecuteUnBondNodesNotPresentInUnStakedShouldErr(t *testing.T) {
@@ -1334,8 +1334,8 @@ func TestDelegationSystemSC_ExecuteUnJailNodesUserErrors(t *testing.T) {
 	d.gasCost.MetaChainSystemSCsCost.DelegationOps = 0
 	output = d.Execute(vmInput)
 	assert.Equal(t, vmcommon.UserError, output)
-	expectedErr := fmt.Errorf("%w delegation status", vm.ErrDataNotFoundUnderKey)
-	assert.True(t, strings.Contains(eei.returnMessage, expectedErr.Error()))
+	errExpected := fmt.Errorf("%w delegation status", vm.ErrDataNotFoundUnderKey)
+	assert.True(t, strings.Contains(eei.returnMessage, errExpected.Error()))
 
 	_ = d.saveDelegationStatus(&DelegationContractStatus{})
 	vmInput.Arguments = [][]byte{blsKey, blsKey}
@@ -1487,20 +1487,20 @@ func TestDelegationSystemSC_ExecuteDelegateWrongInit(t *testing.T) {
 
 	output := d.Execute(vmInput)
 	assert.Equal(t, vmcommon.UserError, output)
-	expectedErr := fmt.Errorf("%w delegation status", vm.ErrDataNotFoundUnderKey)
-	assert.True(t, strings.Contains(eei.returnMessage, expectedErr.Error()))
+	errExpected := fmt.Errorf("%w delegation status", vm.ErrDataNotFoundUnderKey)
+	assert.True(t, strings.Contains(eei.returnMessage, errExpected.Error()))
 
 	_ = d.saveDelegationStatus(&DelegationContractStatus{})
 	output = d.Execute(vmInput)
 	assert.Equal(t, vmcommon.UserError, output)
-	expectedErr = fmt.Errorf("%w delegation contract config", vm.ErrDataNotFoundUnderKey)
-	assert.True(t, strings.Contains(eei.returnMessage, expectedErr.Error()))
+	errExpected = fmt.Errorf("%w delegation contract config", vm.ErrDataNotFoundUnderKey)
+	assert.True(t, strings.Contains(eei.returnMessage, errExpected.Error()))
 
 	_ = d.saveDelegationContractConfig(&DelegationConfig{})
 	output = d.Execute(vmInput)
 	assert.Equal(t, vmcommon.UserError, output)
-	expectedErr = fmt.Errorf("%w getGlobalFundData", vm.ErrDataNotFoundUnderKey)
-	assert.True(t, strings.Contains(eei.returnMessage, expectedErr.Error()))
+	errExpected = fmt.Errorf("%w getGlobalFundData", vm.ErrDataNotFoundUnderKey)
+	assert.True(t, strings.Contains(eei.returnMessage, errExpected.Error()))
 }
 
 func TestDelegationSystemSC_ExecuteDelegate(t *testing.T) {
@@ -1671,8 +1671,8 @@ func TestDelegationSystemSC_ExecuteUnDelegateUserNotDelegatorOrNoActiveFundShoul
 	})
 	output = d.Execute(vmInput)
 	assert.Equal(t, vmcommon.UserError, output)
-	expectedErr := fmt.Errorf("%w getFund %s", vm.ErrDataNotFoundUnderKey, string(fundKey))
-	assert.True(t, strings.Contains(eei.returnMessage, expectedErr.Error()))
+	errExpected := fmt.Errorf("%w getFund %s", vm.ErrDataNotFoundUnderKey, string(fundKey))
+	assert.True(t, strings.Contains(eei.returnMessage, errExpected.Error()))
 
 	_ = d.saveFund(fundKey, &Fund{
 		Value: big.NewInt(50),
@@ -2037,14 +2037,14 @@ func TestDelegationSystemSC_ExecuteWithdrawWrongInit(t *testing.T) {
 
 	output := d.Execute(vmInput)
 	assert.Equal(t, vmcommon.UserError, output)
-	expectedErr := fmt.Errorf("%w delegation contract config", vm.ErrDataNotFoundUnderKey)
-	assert.True(t, strings.Contains(eei.returnMessage, expectedErr.Error()))
+	errExpected := fmt.Errorf("%w delegation contract config", vm.ErrDataNotFoundUnderKey)
+	assert.True(t, strings.Contains(eei.returnMessage, errExpected.Error()))
 
 	_ = d.saveDelegationContractConfig(&DelegationConfig{})
 	output = d.Execute(vmInput)
 	assert.Equal(t, vmcommon.UserError, output)
-	expectedErr = fmt.Errorf("%w getGlobalFundData", vm.ErrDataNotFoundUnderKey)
-	assert.True(t, strings.Contains(eei.returnMessage, expectedErr.Error()))
+	errExpected = fmt.Errorf("%w getGlobalFundData", vm.ErrDataNotFoundUnderKey)
+	assert.True(t, strings.Contains(eei.returnMessage, errExpected.Error()))
 }
 
 func TestDelegationSystemSC_ExecuteWithdraw(t *testing.T) {
@@ -2250,15 +2250,15 @@ func TestDelegationSystemSC_ExecuteModifyTotalDelegationCapUserErrors(t *testing
 	vmInput.Arguments = [][]byte{newServiceFee}
 	output = d.Execute(vmInput)
 	assert.Equal(t, vmcommon.UserError, output)
-	expectedErr := fmt.Errorf("%w delegation contract config", vm.ErrDataNotFoundUnderKey)
-	assert.True(t, strings.Contains(eei.returnMessage, expectedErr.Error()))
+	errExpected := fmt.Errorf("%w delegation contract config", vm.ErrDataNotFoundUnderKey)
+	assert.True(t, strings.Contains(eei.returnMessage, errExpected.Error()))
 
 	_ = d.saveDelegationContractConfig(&DelegationConfig{})
 	vmInput.Arguments = [][]byte{big.NewInt(70).Bytes()}
 	output = d.Execute(vmInput)
 	assert.Equal(t, vmcommon.UserError, output)
-	expectedErr = fmt.Errorf("%w getGlobalFundData", vm.ErrDataNotFoundUnderKey)
-	assert.True(t, strings.Contains(eei.returnMessage, expectedErr.Error()))
+	errExpected = fmt.Errorf("%w getGlobalFundData", vm.ErrDataNotFoundUnderKey)
+	assert.True(t, strings.Contains(eei.returnMessage, errExpected.Error()))
 }
 
 func TestDelegationSystemSC_ExecuteModifyTotalDelegationCap(t *testing.T) {
@@ -2917,8 +2917,8 @@ func TestDelegation_ExecuteGetNumUsersUserErrors(t *testing.T) {
 	vmInput.Arguments = [][]byte{}
 	output = d.Execute(vmInput)
 	assert.Equal(t, vmcommon.UserError, output)
-	expectedErr := fmt.Errorf("%w delegation status", vm.ErrDataNotFoundUnderKey)
-	assert.True(t, strings.Contains(eei.returnMessage, expectedErr.Error()))
+	errExpected := fmt.Errorf("%w delegation status", vm.ErrDataNotFoundUnderKey)
+	assert.True(t, strings.Contains(eei.returnMessage, errExpected.Error()))
 }
 
 func TestDelegation_ExecuteGetNumUsers(t *testing.T) {
@@ -2977,8 +2977,8 @@ func TestDelegation_ExecuteGetTotalUnStakedUserErrors(t *testing.T) {
 	vmInput.Arguments = [][]byte{}
 	output = d.Execute(vmInput)
 	assert.Equal(t, vmcommon.UserError, output)
-	expectedErr := fmt.Errorf("%w getGlobalFundData", vm.ErrDataNotFoundUnderKey)
-	assert.True(t, strings.Contains(eei.returnMessage, expectedErr.Error()))
+	errExpected := fmt.Errorf("%w getGlobalFundData", vm.ErrDataNotFoundUnderKey)
+	assert.True(t, strings.Contains(eei.returnMessage, errExpected.Error()))
 }
 
 func TestDelegation_ExecuteGetTotalUnStaked(t *testing.T) {
@@ -3039,8 +3039,8 @@ func TestDelegation_ExecuteGetTotalActiveStakeUserErrors(t *testing.T) {
 	vmInput.Arguments = [][]byte{}
 	output = d.Execute(vmInput)
 	assert.Equal(t, vmcommon.UserError, output)
-	expectedErr := fmt.Errorf("%w getGlobalFundData", vm.ErrDataNotFoundUnderKey)
-	assert.True(t, strings.Contains(eei.returnMessage, expectedErr.Error()))
+	errExpected := fmt.Errorf("%w getGlobalFundData", vm.ErrDataNotFoundUnderKey)
+	assert.True(t, strings.Contains(eei.returnMessage, errExpected.Error()))
 }
 
 func TestDelegation_ExecuteGetTotalActiveStake(t *testing.T) {
@@ -3269,8 +3269,8 @@ func TestDelegation_ExecuteGetUserUnBondableUserErrors(t *testing.T) {
 	_ = d.saveDelegatorData([]byte("address"), &DelegatorData{})
 	output = d.Execute(vmInput)
 	assert.Equal(t, vmcommon.UserError, output)
-	expectedErr := fmt.Errorf("%w delegation contract config", vm.ErrDataNotFoundUnderKey)
-	assert.True(t, strings.Contains(eei.returnMessage, expectedErr.Error()))
+	errExpected := fmt.Errorf("%w delegation contract config", vm.ErrDataNotFoundUnderKey)
+	assert.True(t, strings.Contains(eei.returnMessage, errExpected.Error()))
 }
 
 func TestDelegation_ExecuteGetUserUnBondableNoUnStakedFund(t *testing.T) {
@@ -3374,8 +3374,8 @@ func TestDelegation_ExecuteGetNumNodesUserErrors(t *testing.T) {
 	vmInput.Arguments = [][]byte{}
 	output = d.Execute(vmInput)
 	assert.Equal(t, vmcommon.UserError, output)
-	expectedErr := fmt.Errorf("%w delegation status", vm.ErrDataNotFoundUnderKey)
-	assert.True(t, strings.Contains(eei.returnMessage, expectedErr.Error()))
+	errExpected := fmt.Errorf("%w delegation status", vm.ErrDataNotFoundUnderKey)
+	assert.True(t, strings.Contains(eei.returnMessage, errExpected.Error()))
 }
 
 func TestDelegation_ExecuteGetNumNodes(t *testing.T) {
@@ -3430,8 +3430,8 @@ func TestDelegation_ExecuteGetAllNodeStatesUserErrors(t *testing.T) {
 	vmInput.Arguments = [][]byte{}
 	output = d.Execute(vmInput)
 	assert.Equal(t, vmcommon.UserError, output)
-	expectedErr := fmt.Errorf("%w delegation status", vm.ErrDataNotFoundUnderKey)
-	assert.True(t, strings.Contains(eei.returnMessage, expectedErr.Error()))
+	errExpected := fmt.Errorf("%w delegation status", vm.ErrDataNotFoundUnderKey)
+	assert.True(t, strings.Contains(eei.returnMessage, errExpected.Error()))
 }
 
 func TestDelegation_ExecuteGetAllNodeStates(t *testing.T) {
@@ -3496,8 +3496,8 @@ func TestDelegation_ExecuteGetContractConfigUserErrors(t *testing.T) {
 	vmInput.Arguments = [][]byte{}
 	output = d.Execute(vmInput)
 	assert.Equal(t, vmcommon.UserError, output)
-	expectedErr := fmt.Errorf("%w delegation contract config", vm.ErrDataNotFoundUnderKey)
-	assert.True(t, strings.Contains(eei.returnMessage, expectedErr.Error()))
+	errExpected := fmt.Errorf("%w delegation contract config", vm.ErrDataNotFoundUnderKey)
+	assert.True(t, strings.Contains(eei.returnMessage, errExpected.Error()))
 }
 
 func TestDelegation_ExecuteGetContractConfig(t *testing.T) {
@@ -3556,8 +3556,8 @@ func TestDelegation_ExecuteUnknownFunc(t *testing.T) {
 
 	output := d.Execute(vmInput)
 	assert.Equal(t, vmcommon.UserError, output)
-	expectedErr := invalidFunc + " is an unknown function"
-	assert.True(t, strings.Contains(eei.returnMessage, expectedErr))
+	errExpected := invalidFunc + " is an unknown function"
+	assert.True(t, strings.Contains(eei.returnMessage, errExpected))
 }
 
 func TestDelegation_computeAndUpdateRewardsWithTotalActiveZeroDoesNotPanic(t *testing.T) {
@@ -3861,7 +3861,7 @@ func TestDelegation_GetDelegationManagementNoDataShouldError(t *testing.T) {
 func TestDelegation_GetDelegationManagementMarshalizerFailsShouldError(t *testing.T) {
 	t.Parallel()
 
-	expectedErr := errors.New("expected error")
+	errExpected := errors.New("expected error")
 	d := &delegation{
 		eei: &mock.SystemEIStub{
 			GetStorageFromAddressCalled: func(address []byte, key []byte) []byte {
@@ -3870,7 +3870,7 @@ func TestDelegation_GetDelegationManagementMarshalizerFailsShouldError(t *testin
 		},
 		marshalizer: &mock.MarshalizerStub{
 			UnmarshalCalled: func(obj interface{}, buff []byte) error {
-				return expectedErr
+				return errExpected
 			},
 		},
 	}
@@ -3878,7 +3878,7 @@ func TestDelegation_GetDelegationManagementMarshalizerFailsShouldError(t *testin
 	delegationManagement, err := getDelegationManagement(d.eei, d.marshalizer, d.delegationMgrSCAddress)
 
 	assert.Nil(t, delegationManagement)
-	assert.True(t, errors.Is(err, expectedErr))
+	assert.True(t, errors.Is(err, errExpected))
 }
 
 func TestDelegation_GetDelegationManagementShouldWork(t *testing.T) {

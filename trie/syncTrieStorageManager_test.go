@@ -64,17 +64,17 @@ func TestNewSyncTrieStorageManager_PutInFirstEpoch(t *testing.T) {
 func TestNewSyncTrieStorageManager_PutInEpochError(t *testing.T) {
 	t.Parallel()
 
-	expectedErr := errors.New("expected error")
+	errExpected := errors.New("expected error")
 	_, trieStorage := newEmptyTrie()
 	trieStorage.mainStorer = &trie.SnapshotPruningStorerStub{
 		PutInEpochCalled: func(_ []byte, _ []byte, _ uint32) error {
-			return expectedErr
+			return errExpected
 		},
 	}
 	stsm, _ := NewSyncTrieStorageManager(trieStorage)
 
 	err := stsm.Put([]byte("key"), []byte("val"))
-	assert.Equal(t, expectedErr, err)
+	assert.Equal(t, errExpected, err)
 }
 
 func TestNewSyncTrieStorageManager_PutInEpoch(t *testing.T) {

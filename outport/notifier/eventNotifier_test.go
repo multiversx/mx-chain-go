@@ -80,10 +80,10 @@ func TestSaveBlock(t *testing.T) {
 
 		args := createMockEventNotifierArgs()
 
-		expectedErr := errors.New("expected error")
+		errExpected := errors.New("expected error")
 		args.HttpClient = &mock.HTTPClientStub{
 			PostCalled: func(route string, payload interface{}) error {
-				return expectedErr
+				return errExpected
 			},
 		}
 
@@ -159,10 +159,10 @@ func TestRevertIndexedBlock(t *testing.T) {
 
 		args := createMockEventNotifierArgs()
 
-		expectedErr := errors.New("expected error")
+		errExpected := errors.New("expected error")
 		args.HttpClient = &mock.HTTPClientStub{
 			PostCalled: func(route string, payload interface{}) error {
-				return expectedErr
+				return errExpected
 			},
 		}
 
@@ -216,10 +216,10 @@ func TestFinalizedBlock(t *testing.T) {
 
 		args := createMockEventNotifierArgs()
 
-		expectedErr := errors.New("expected error")
+		errExpected := errors.New("expected error")
 		args.HttpClient = &mock.HTTPClientStub{
 			PostCalled: func(route string, payload interface{}) error {
-				return expectedErr
+				return errExpected
 			},
 		}
 

@@ -158,7 +158,7 @@ func TestHeaderResolver_ProcessReceivedCanProcessMessageErrorsShouldErr(t *testi
 	arg := createMockArgHeaderResolver()
 	arg.AntifloodHandler = &mock.P2PAntifloodHandlerStub{
 		CanProcessMessageCalled: func(message p2p.MessageP2P, fromConnectedPeer core.PeerID) error {
-			return expectedErr
+			return errExpected
 		},
 		CanProcessMessagesOnTopicCalled: func(peer core.PeerID, topic string, numMessages uint32, totalSize uint64, sequence []byte) error {
 			return nil
@@ -167,7 +167,7 @@ func TestHeaderResolver_ProcessReceivedCanProcessMessageErrorsShouldErr(t *testi
 	hdrRes, _ := resolvers.NewHeaderResolver(arg)
 
 	msgID, err := hdrRes.ProcessReceivedMessage(createRequestMsg(dataRetriever.NonceType, nil), fromConnectedPeerId, &p2pmocks.MessengerStub{})
-	assert.True(t, errors.Is(err, expectedErr))
+	assert.True(t, errors.Is(err, errExpected))
 	assert.False(t, arg.Throttler.(*mock.ThrottlerStub).StartWasCalled())
 	assert.False(t, arg.Throttler.(*mock.ThrottlerStub).EndWasCalled())
 	assert.Len(t, msgID, 0)
@@ -481,7 +481,7 @@ func TestHeaderResolver_ProcessReceivedMessageRequestNonceTypeNotFoundInHdrNonce
 	}
 	arg.Headers = &mock.HeadersCacherStub{
 		GetHeaderByNonceAndShardIdCalled: func(hdrNonce uint64, shardId uint32) (handlers []data.HeaderHandler, i [][]byte, e error) {
-			return nil, nil, expectedErr
+			return nil, nil, errExpected
 		},
 	}
 	arg.HdrStorage = &storageStubs.StorerStub{
@@ -504,7 +504,7 @@ func TestHeaderResolver_ProcessReceivedMessageRequestNonceTypeNotFoundInHdrNonce
 		fromConnectedPeerId,
 		&p2pmocks.MessengerStub{},
 	)
-	assert.Equal(t, expectedErr, err)
+	assert.Equal(t, errExpected, err)
 	assert.False(t, wasSent)
 	assert.True(t, arg.Throttler.(*mock.ThrottlerStub).StartWasCalled())
 	assert.True(t, arg.Throttler.(*mock.ThrottlerStub).EndWasCalled())
@@ -663,7 +663,7 @@ func TestHeaderResolver_ProcessReceivedMessageRequestNonceTypeFoundInHdrNoncePoo
 	arg.Marshaller = &mock.MarshalizerStub{
 		UnmarshalCalled: initialMarshaller.Unmarshal,
 		MarshalCalled: func(obj interface{}) ([]byte, error) {
-			return nil, expectedErr
+			return nil, errExpected
 		},
 	}
 	hdrRes, _ := resolvers.NewHeaderResolver(arg)
@@ -674,7 +674,7 @@ func TestHeaderResolver_ProcessReceivedMessageRequestNonceTypeFoundInHdrNoncePoo
 		&p2pmocks.MessengerStub{},
 	)
 
-	assert.True(t, errors.Is(err, expectedErr))
+	assert.True(t, errors.Is(err, errExpected))
 	assert.True(t, wasResolved)
 	assert.True(t, arg.Throttler.(*mock.ThrottlerStub).StartWasCalled())
 	assert.True(t, arg.Throttler.(*mock.ThrottlerStub).EndWasCalled())

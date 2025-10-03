@@ -842,10 +842,10 @@ func TestTrackableDataTrie_MigrateDataTrieLeaves(t *testing.T) {
 	t.Run("CollectLeavesForMigrationFails", func(t *testing.T) {
 		t.Parallel()
 
-		expectedErr := errors.New("expected error")
+		errExpected := errors.New("expected error")
 		tr := &trieMock.TrieStub{
 			CollectLeavesForMigrationCalled: func(_ vmcommon.ArgsMigrateDataTrieLeaves) error {
-				return expectedErr
+				return errExpected
 			},
 		}
 
@@ -857,7 +857,7 @@ func TestTrackableDataTrie_MigrateDataTrieLeaves(t *testing.T) {
 			TrieMigrator: &trieMock.DataTrieMigratorStub{},
 		}
 		err := tdt.MigrateDataTrieLeaves(args)
-		assert.Equal(t, expectedErr, err)
+		assert.Equal(t, errExpected, err)
 	})
 
 	t.Run("leaves that need to be migrated are added to dirty data", func(t *testing.T) {

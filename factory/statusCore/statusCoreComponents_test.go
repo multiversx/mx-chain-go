@@ -90,12 +90,12 @@ func TestStatusCoreComponentsFactory_Create(t *testing.T) {
 	t.Run("SetStatusHandler on economics data fails should error", func(t *testing.T) {
 		t.Parallel()
 
-		expectedErr := errors.New("expected error")
+		errExpected := errors.New("expected error")
 		coreCompStub := factory.NewCoreComponentsHolderStubFromRealComponent(componentsMock.GetCoreComponents())
 		coreCompStub.EconomicsDataCalled = func() process.EconomicsDataHandler {
 			return &economicsmocks.EconomicsHandlerMock{
 				SetStatusHandlerCalled: func(statusHandler core.AppStatusHandler) error {
-					return expectedErr
+					return errExpected
 				},
 			}
 		}
@@ -104,18 +104,18 @@ func TestStatusCoreComponentsFactory_Create(t *testing.T) {
 		require.Nil(t, err)
 
 		cc, err := sccf.Create()
-		require.Equal(t, expectedErr, err)
+		require.Equal(t, errExpected, err)
 		require.Nil(t, cc)
 	})
 	t.Run("SetStatusHandler on ratings data fails should error", func(t *testing.T) {
 		t.Parallel()
 
-		expectedErr := errors.New("expected error")
+		errExpected := errors.New("expected error")
 		coreCompStub := factory.NewCoreComponentsHolderStubFromRealComponent(componentsMock.GetCoreComponents())
 		coreCompStub.RatingsDataCalled = func() process.RatingsInfoHandler {
 			return &testscommon.RatingsInfoMock{
 				SetStatusHandlerCalled: func(statusHandler core.AppStatusHandler) error {
-					return expectedErr
+					return errExpected
 				},
 			}
 		}
@@ -124,7 +124,7 @@ func TestStatusCoreComponentsFactory_Create(t *testing.T) {
 		require.Nil(t, err)
 
 		cc, err := sccf.Create()
-		require.Equal(t, expectedErr, err)
+		require.Equal(t, errExpected, err)
 		require.Nil(t, cc)
 	})
 	t.Run("should work", func(t *testing.T) {

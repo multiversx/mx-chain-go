@@ -4329,11 +4329,11 @@ func TestTransactionCoordinator_AddIntermediateTransactions(t *testing.T) {
 
 		tc, _ := NewTransactionCoordinator(args)
 
-		expectedErr := errors.New("expected err")
+		errExpected := errors.New("expected err")
 		tc.keysInterimProcs = append(tc.keysInterimProcs, block.SmartContractResultBlock)
 		tc.interimProcessors[block.SmartContractResultBlock] = &mock.IntermediateTransactionHandlerMock{
 			AddIntermediateTransactionsCalled: func(txs []data.TransactionHandler, key []byte) error {
-				return expectedErr
+				return errExpected
 			},
 		}
 
@@ -4346,7 +4346,7 @@ func TestTransactionCoordinator_AddIntermediateTransactions(t *testing.T) {
 		}
 
 		err := tc.AddIntermediateTransactions(mapSCRs, nil)
-		assert.Equal(t, expectedErr, err)
+		assert.Equal(t, errExpected, err)
 	})
 
 	t.Run("should work", func(t *testing.T) {

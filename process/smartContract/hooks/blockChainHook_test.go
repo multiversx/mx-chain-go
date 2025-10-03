@@ -99,7 +99,7 @@ func TestNewBlockChainHookImpl(t *testing.T) {
 
 	tests := []struct {
 		args        func() hooks.ArgBlockChainHook
-		expectedErr error
+		errExpected error
 	}{
 		{
 			args: func() hooks.ArgBlockChainHook {
@@ -107,7 +107,7 @@ func TestNewBlockChainHookImpl(t *testing.T) {
 				args.Accounts = nil
 				return args
 			},
-			expectedErr: process.ErrNilAccountsAdapter,
+			errExpected: process.ErrNilAccountsAdapter,
 		},
 		{
 			args: func() hooks.ArgBlockChainHook {
@@ -115,7 +115,7 @@ func TestNewBlockChainHookImpl(t *testing.T) {
 				args.PubkeyConv = nil
 				return args
 			},
-			expectedErr: process.ErrNilPubkeyConverter,
+			errExpected: process.ErrNilPubkeyConverter,
 		},
 		{
 			args: func() hooks.ArgBlockChainHook {
@@ -123,7 +123,7 @@ func TestNewBlockChainHookImpl(t *testing.T) {
 				args.StorageService = nil
 				return args
 			},
-			expectedErr: process.ErrNilStorage,
+			errExpected: process.ErrNilStorage,
 		},
 		{
 			args: func() hooks.ArgBlockChainHook {
@@ -131,7 +131,7 @@ func TestNewBlockChainHookImpl(t *testing.T) {
 				args.BlockChain = nil
 				return args
 			},
-			expectedErr: process.ErrNilBlockChain,
+			errExpected: process.ErrNilBlockChain,
 		},
 		{
 			args: func() hooks.ArgBlockChainHook {
@@ -139,7 +139,7 @@ func TestNewBlockChainHookImpl(t *testing.T) {
 				args.ShardCoordinator = nil
 				return args
 			},
-			expectedErr: process.ErrNilShardCoordinator,
+			errExpected: process.ErrNilShardCoordinator,
 		},
 		{
 			args: func() hooks.ArgBlockChainHook {
@@ -147,7 +147,7 @@ func TestNewBlockChainHookImpl(t *testing.T) {
 				args.Marshalizer = nil
 				return args
 			},
-			expectedErr: process.ErrNilMarshalizer,
+			errExpected: process.ErrNilMarshalizer,
 		},
 		{
 			args: func() hooks.ArgBlockChainHook {
@@ -155,7 +155,7 @@ func TestNewBlockChainHookImpl(t *testing.T) {
 				args.Uint64Converter = nil
 				return args
 			},
-			expectedErr: process.ErrNilUint64Converter,
+			errExpected: process.ErrNilUint64Converter,
 		},
 		{
 			args: func() hooks.ArgBlockChainHook {
@@ -163,7 +163,7 @@ func TestNewBlockChainHookImpl(t *testing.T) {
 				args.BuiltInFunctions = nil
 				return args
 			},
-			expectedErr: process.ErrNilBuiltInFunction,
+			errExpected: process.ErrNilBuiltInFunction,
 		},
 		{
 			args: func() hooks.ArgBlockChainHook {
@@ -171,7 +171,7 @@ func TestNewBlockChainHookImpl(t *testing.T) {
 				args.CompiledSCPool = nil
 				return args
 			},
-			expectedErr: process.ErrNilCacher,
+			errExpected: process.ErrNilCacher,
 		},
 		{
 			args: func() hooks.ArgBlockChainHook {
@@ -179,7 +179,7 @@ func TestNewBlockChainHookImpl(t *testing.T) {
 				args.NFTStorageHandler = nil
 				return args
 			},
-			expectedErr: process.ErrNilNFTStorageHandler,
+			errExpected: process.ErrNilNFTStorageHandler,
 		},
 		{
 			args: func() hooks.ArgBlockChainHook {
@@ -187,7 +187,7 @@ func TestNewBlockChainHookImpl(t *testing.T) {
 				args.GlobalSettingsHandler = nil
 				return args
 			},
-			expectedErr: process.ErrNilESDTGlobalSettingsHandler,
+			errExpected: process.ErrNilESDTGlobalSettingsHandler,
 		},
 		{
 			args: func() hooks.ArgBlockChainHook {
@@ -195,7 +195,7 @@ func TestNewBlockChainHookImpl(t *testing.T) {
 				args.EpochNotifier = nil
 				return args
 			},
-			expectedErr: process.ErrNilEpochNotifier,
+			errExpected: process.ErrNilEpochNotifier,
 		},
 		{
 			args: func() hooks.ArgBlockChainHook {
@@ -203,7 +203,7 @@ func TestNewBlockChainHookImpl(t *testing.T) {
 				args.EnableEpochsHandler = nil
 				return args
 			},
-			expectedErr: process.ErrNilEnableEpochsHandler,
+			errExpected: process.ErrNilEnableEpochsHandler,
 		},
 		{
 			args: func() hooks.ArgBlockChainHook {
@@ -211,7 +211,7 @@ func TestNewBlockChainHookImpl(t *testing.T) {
 				args.Counter = nil
 				return args
 			},
-			expectedErr: hooks.ErrNilBlockchainHookCounter,
+			errExpected: hooks.ErrNilBlockchainHookCounter,
 		},
 		{
 			args: func() hooks.ArgBlockChainHook {
@@ -227,7 +227,7 @@ func TestNewBlockChainHookImpl(t *testing.T) {
 				}
 				return args
 			},
-			expectedErr: storage.ErrCacheSizeIsLowerThanBatchSize,
+			errExpected: storage.ErrCacheSizeIsLowerThanBatchSize,
 		},
 		{
 			args: func() hooks.ArgBlockChainHook {
@@ -235,7 +235,7 @@ func TestNewBlockChainHookImpl(t *testing.T) {
 				args.EpochStartTrigger = nil
 				return args
 			},
-			expectedErr: hooks.ErrNilEpochStartTriggerHandler,
+			errExpected: hooks.ErrNilEpochStartTriggerHandler,
 		},
 		{
 			args: func() hooks.ArgBlockChainHook {
@@ -243,7 +243,7 @@ func TestNewBlockChainHookImpl(t *testing.T) {
 				args.RoundHandler = nil
 				return args
 			},
-			expectedErr: hooks.ErrNilRoundHandler,
+			errExpected: hooks.ErrNilRoundHandler,
 		},
 		{
 			args: func() hooks.ArgBlockChainHook {
@@ -251,21 +251,21 @@ func TestNewBlockChainHookImpl(t *testing.T) {
 				args.MissingTrieNodesNotifier = nil
 				return args
 			},
-			expectedErr: hooks.ErrNilMissingTrieNodesNotifier,
+			errExpected: hooks.ErrNilMissingTrieNodesNotifier,
 		},
 		{
 			args: func() hooks.ArgBlockChainHook {
 				return createMockBlockChainHookArgs()
 			},
-			expectedErr: nil,
+			errExpected: nil,
 		},
 	}
 
 	for _, test := range tests {
 		bh, err := hooks.NewBlockChainHookImpl(test.args())
-		require.Equal(t, test.expectedErr, err)
+		require.Equal(t, test.errExpected, err)
 
-		if test.expectedErr != nil {
+		if test.errExpected != nil {
 			require.Nil(t, bh)
 		} else {
 			require.NotNil(t, bh)
@@ -400,12 +400,12 @@ func TestBlockChainHookImpl_GetStorageData(t *testing.T) {
 		args := createMockBlockChainHookArgs()
 		address := []byte("address")
 		index := []byte("i")
-		expectedErr := errors.New("error retrieving value")
+		errExpected := errors.New("error retrieving value")
 
 		dataTrieStub := &trie.DataTrieTrackerStub{
 			RetrieveValueCalled: func(key []byte) ([]byte, uint32, error) {
 				require.Equal(t, index, key)
-				return nil, 0, expectedErr
+				return nil, 0, errExpected
 			},
 		}
 		account := &stateMock.AccountWrapMock{
@@ -451,12 +451,12 @@ func TestBlockChainHookImpl_GetStorageData(t *testing.T) {
 		accnt := stateMock.NewAccountWrapMock(nil)
 		_ = accnt.SaveKeyValue(variableIdentifier, variableValue)
 
-		expectedErr := errors.New("expected error")
+		errExpected := errors.New("expected error")
 		args := createMockBlockChainHookArgs()
 		args.EnableEpochsHandler = enableEpochsHandlerMock.NewEnableEpochsHandlerStub(common.MaxBlockchainHookCountersFlag)
 		args.Counter = &testscommon.BlockChainHookCounterStub{
 			ProcessCrtNumberOfTrieReadsCounterCalled: func() error {
-				return expectedErr
+				return errExpected
 			},
 		}
 		args.Accounts = &stateMock.AccountsStub{
@@ -468,7 +468,7 @@ func TestBlockChainHookImpl_GetStorageData(t *testing.T) {
 
 		value, _, err := bh.GetStorageData(make([]byte, 0), variableIdentifier)
 
-		assert.Equal(t, expectedErr, err)
+		assert.Equal(t, errExpected, err)
 		assert.Nil(t, value)
 	})
 	t.Run("should work before counters activation", func(t *testing.T) {
@@ -2094,10 +2094,10 @@ func TestBlockChainHookImpl_ProcessBuiltInFunction(t *testing.T) {
 				return nil
 			},
 		}
-		expectedErr := errors.New("expected error")
+		errExpected := errors.New("expected error")
 		args.Counter = &testscommon.BlockChainHookCounterStub{
 			ProcessMaxBuiltInCountersCalled: func(input *vmcommon.ContractCallInput) error {
-				return expectedErr
+				return errExpected
 			},
 		}
 
@@ -2105,7 +2105,7 @@ func TestBlockChainHookImpl_ProcessBuiltInFunction(t *testing.T) {
 		input := createContractCallInput(funcName, addrSender, addrSender)
 		output, err := bh.ProcessBuiltInFunction(input)
 
-		require.Equal(t, expectedErr, err)
+		require.Equal(t, errExpected, err)
 		require.Nil(t, output)
 	})
 	t.Run("should work with counters", func(t *testing.T) {
@@ -2188,7 +2188,7 @@ func TestBlockChainHookImpl_GetESDTToken(t *testing.T) {
 	token := []byte("tkn")
 	nonce := uint64(0)
 	emptyESDTData := &esdt.ESDigitalToken{Value: big.NewInt(0)}
-	expectedErr := errors.New("expected error")
+	errExpected := errors.New("expected error")
 	completeEsdtTokenKey := []byte(core.ProtectedKeyPrefix + core.ESDTKeyIdentifier + string(token))
 	testESDTData := &esdt.ESDigitalToken{
 		Type:       uint32(core.Fungible),
@@ -2260,14 +2260,14 @@ func TestBlockChainHookImpl_GetESDTToken(t *testing.T) {
 		args := createMockBlockChainHookArgs()
 		args.Accounts = &stateMock.AccountsStub{
 			GetExistingAccountCalled: func(_ []byte) (vmcommon.AccountHandler, error) {
-				return nil, expectedErr
+				return nil, errExpected
 			},
 		}
 
 		bh, _ := hooks.NewBlockChainHookImpl(args)
 		esdtData, err := bh.GetESDTToken(address, token, nonce)
 		assert.Nil(t, esdtData)
-		assert.Equal(t, expectedErr, err)
+		assert.Equal(t, errExpected, err)
 	})
 	t.Run("backwards compatibility - retrieve value errors, should return error", func(t *testing.T) {
 		t.Parallel()
@@ -2380,7 +2380,7 @@ func TestBlockChainHookImpl_GetESDTToken(t *testing.T) {
 				assert.Equal(t, completeEsdtTokenKey, esdtTokenKey)
 				assert.Equal(t, nftNonce, nonce)
 
-				return nil, false, expectedErr
+				return nil, false, errExpected
 			},
 		}
 		args.EnableEpochsHandler = enableEpochsHandlerMock.NewEnableEpochsHandlerStub(common.OptimizeNFTStoreFlag)
@@ -2389,7 +2389,7 @@ func TestBlockChainHookImpl_GetESDTToken(t *testing.T) {
 
 		esdtData, err := bh.GetESDTToken(address, token, nftNonce)
 		assert.Nil(t, esdtData)
-		assert.Equal(t, expectedErr, err)
+		assert.Equal(t, errExpected, err)
 	})
 	t.Run("new optimized implementation - should return the esdt by calling NFTStorageHandler", func(t *testing.T) {
 		t.Parallel()

@@ -21,7 +21,7 @@ func TestNewResolversContainer_ShouldWork(t *testing.T) {
 	assert.False(t, check.IfNil(c))
 }
 
-//------- Add
+// ------- Add
 
 func TestResolversContainer_AddAlreadyExistingShouldErr(t *testing.T) {
 	t.Parallel()
@@ -64,7 +64,7 @@ func TestResolversContainer_AddShouldWork(t *testing.T) {
 	assert.Nil(t, err)
 }
 
-//------- AddMultiple
+// ------- AddMultiple
 
 func TestResolversContainer_AddMultipleAlreadyExistingShouldErr(t *testing.T) {
 	t.Parallel()
@@ -106,7 +106,7 @@ func TestResolversContainer_AddMultipleShouldWork(t *testing.T) {
 	assert.Equal(t, 2, c.Len())
 }
 
-//------- Get
+// ------- Get
 
 func TestResolversContainer_GetNotFoundShouldErr(t *testing.T) {
 	t.Parallel()
@@ -153,7 +153,7 @@ func TestResolversContainer_GetShouldWork(t *testing.T) {
 	assert.Nil(t, err)
 }
 
-//------- Replace
+// ------- Replace
 
 func TestResolversContainer_ReplaceNilValueShouldErrAndNotModify(t *testing.T) {
 	t.Parallel()
@@ -190,7 +190,7 @@ func TestResolversContainer_ReplaceShouldWork(t *testing.T) {
 	assert.Nil(t, err)
 }
 
-//------- Remove
+// ------- Remove
 
 func TestResolversContainer_RemoveShouldWork(t *testing.T) {
 	t.Parallel()
@@ -209,7 +209,7 @@ func TestResolversContainer_RemoveShouldWork(t *testing.T) {
 	assert.True(t, errors.Is(err, dataRetriever.ErrInvalidContainerKey))
 }
 
-//------- Len
+// ------- Len
 
 func TestResolversContainer_LenShouldWork(t *testing.T) {
 	t.Parallel()
@@ -226,7 +226,7 @@ func TestResolversContainer_LenShouldWork(t *testing.T) {
 	assert.Equal(t, 1, c.Len())
 }
 
-//------- ResolverKeys
+// ------- ResolverKeys
 
 func TestResolversContainer_ResolverKeys(t *testing.T) {
 	t.Parallel()
@@ -243,7 +243,7 @@ func TestResolversContainer_ResolverKeys(t *testing.T) {
 	assert.Equal(t, expectedString, c.ResolverKeys())
 }
 
-//-------- Iterate
+// -------- Iterate
 
 func TestResolversContainer_IterateNilHandlerShouldNotPanic(t *testing.T) {
 	t.Parallel()
@@ -348,11 +348,11 @@ func TestResolversContainer_Close(t *testing.T) {
 	t.Parallel()
 
 	closeCalled := uint32(0)
-	expectedErr := errors.New("expected error")
+	errExpected := errors.New("expected error")
 	res1 := &mock.ResolverStub{
 		CloseCalled: func() error {
 			atomic.AddUint32(&closeCalled, 1)
-			return expectedErr
+			return errExpected
 		},
 	}
 	res2 := &mock.ResolverStub{
@@ -366,6 +366,6 @@ func TestResolversContainer_Close(t *testing.T) {
 	_ = c.Add("key1", res1)
 	_ = c.Add("key2", res2)
 
-	assert.Equal(t, expectedErr, c.Close())
+	assert.Equal(t, errExpected, c.Close())
 	assert.Equal(t, uint32(2), atomic.LoadUint32(&closeCalled))
 }

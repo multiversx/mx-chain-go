@@ -137,7 +137,7 @@ var (
 	hash        = "hash"
 	guardian    = "guardian"
 	signature   = "aabbccdd"
-	expectedErr = errors.New("expected error")
+	errExpected = errors.New("expected error")
 	nonce       = uint64(1)
 	hexTxHash   = "deadbeef"
 	jsonTxStr   = fmt.Sprintf(`{"nonce": %d, "sender":"%s", "receiver":"%s", "value":"%s", "signature":"%s", "data":"%s"}`,
@@ -184,7 +184,7 @@ func TestTransactionsGroup_getTransaction(t *testing.T) {
 
 		facade := mock.FacadeStub{
 			GetTransactionHandler: func(hash string, withEvents bool) (*dataTx.ApiTransactionResult, error) {
-				return nil, expectedErr
+				return nil, errExpected
 			},
 		}
 
@@ -246,7 +246,7 @@ func TestTransactionGroup_sendTransaction(t *testing.T) {
 
 		facade := &mock.FacadeStub{
 			CreateTransactionHandler: func(txArgs *external.ArgsCreateTransaction) (*dataTx.Transaction, []byte, error) {
-				return nil, nil, expectedErr
+				return nil, nil, errExpected
 			},
 			ValidateTransactionHandler: func(tx *dataTx.Transaction) error {
 				require.Fail(t, "should have not been called")
@@ -260,7 +260,7 @@ func TestTransactionGroup_sendTransaction(t *testing.T) {
 			"POST",
 			&dataTx.FrontendTransaction{},
 			http.StatusBadRequest,
-			expectedErr,
+			errExpected,
 		)
 	})
 	t.Run("ValidateTransaction error should error", func(t *testing.T) {
@@ -271,7 +271,7 @@ func TestTransactionGroup_sendTransaction(t *testing.T) {
 				return nil, nil, nil
 			},
 			ValidateTransactionHandler: func(tx *dataTx.Transaction) error {
-				return expectedErr
+				return errExpected
 			},
 			SendBulkTransactionsHandler: func(txs []*dataTx.Transaction) (u uint64, err error) {
 				require.Fail(t, "should have not been called")
@@ -285,7 +285,7 @@ func TestTransactionGroup_sendTransaction(t *testing.T) {
 			"POST",
 			&dataTx.FrontendTransaction{},
 			http.StatusBadRequest,
-			expectedErr,
+			errExpected,
 		)
 	})
 	t.Run("SendBulkTransactions error should error", func(t *testing.T) {
@@ -296,7 +296,7 @@ func TestTransactionGroup_sendTransaction(t *testing.T) {
 				return nil, nil, nil
 			},
 			SendBulkTransactionsHandler: func(txs []*dataTx.Transaction) (u uint64, err error) {
-				return 0, expectedErr
+				return 0, errExpected
 			},
 			ValidateTransactionHandler: func(tx *dataTx.Transaction) error {
 				return nil
@@ -309,7 +309,7 @@ func TestTransactionGroup_sendTransaction(t *testing.T) {
 			"POST",
 			&dataTx.FrontendTransaction{},
 			http.StatusInternalServerError,
-			expectedErr,
+			errExpected,
 		)
 	})
 	t.Run("should work", func(t *testing.T) {
@@ -422,7 +422,7 @@ func TestTransactionGroup_sendMultipleTransactions(t *testing.T) {
 
 		facade := &mock.FacadeStub{
 			CreateTransactionHandler: func(txArgs *external.ArgsCreateTransaction) (*dataTx.Transaction, []byte, error) {
-				return nil, nil, expectedErr
+				return nil, nil, errExpected
 			},
 			ValidateTransactionHandler: func(tx *dataTx.Transaction) error {
 				require.Fail(t, "should not have been called")
@@ -430,7 +430,7 @@ func TestTransactionGroup_sendMultipleTransactions(t *testing.T) {
 			},
 			SendBulkTransactionsHandler: func(txs []*dataTx.Transaction) (uint64, error) {
 				require.Zero(t, len(txs))
-				return 0, expectedErr
+				return 0, errExpected
 			},
 		}
 		testTransactionsGroup(
@@ -440,7 +440,7 @@ func TestTransactionGroup_sendMultipleTransactions(t *testing.T) {
 			"POST",
 			[]*dataTx.FrontendTransaction{{}},
 			http.StatusInternalServerError,
-			expectedErr,
+			errExpected,
 		)
 	})
 	t.Run("ValidateTransaction error should continue, error on SendBulkTransactions", func(t *testing.T) {
@@ -451,11 +451,11 @@ func TestTransactionGroup_sendMultipleTransactions(t *testing.T) {
 				return nil, nil, nil
 			},
 			ValidateTransactionHandler: func(tx *dataTx.Transaction) error {
-				return expectedErr
+				return errExpected
 			},
 			SendBulkTransactionsHandler: func(txs []*dataTx.Transaction) (uint64, error) {
 				require.Zero(t, len(txs))
-				return 0, expectedErr
+				return 0, errExpected
 			},
 		}
 		testTransactionsGroup(
@@ -465,7 +465,7 @@ func TestTransactionGroup_sendMultipleTransactions(t *testing.T) {
 			"POST",
 			[]*dataTx.FrontendTransaction{{}},
 			http.StatusInternalServerError,
-			expectedErr,
+			errExpected,
 		)
 	})
 	t.Run("SendBulkTransactions error error", func(t *testing.T) {
@@ -480,7 +480,7 @@ func TestTransactionGroup_sendMultipleTransactions(t *testing.T) {
 			},
 			SendBulkTransactionsHandler: func(txs []*dataTx.Transaction) (uint64, error) {
 				require.Equal(t, 1, len(txs))
-				return 0, expectedErr
+				return 0, errExpected
 			},
 		}
 		testTransactionsGroup(
@@ -490,7 +490,7 @@ func TestTransactionGroup_sendMultipleTransactions(t *testing.T) {
 			"POST",
 			[]*dataTx.FrontendTransaction{{}},
 			http.StatusInternalServerError,
-			expectedErr,
+			errExpected,
 		)
 	})
 	t.Run("should work", func(t *testing.T) {
@@ -552,7 +552,7 @@ func TestTransactionGroup_computeTransactionGasLimit(t *testing.T) {
 
 		facade := &mock.FacadeStub{
 			CreateTransactionHandler: func(txArgs *external.ArgsCreateTransaction) (*dataTx.Transaction, []byte, error) {
-				return nil, nil, expectedErr
+				return nil, nil, errExpected
 			},
 			ComputeTransactionGasLimitHandler: func(tx *dataTx.Transaction) (*dataTx.CostResponse, error) {
 				require.Fail(t, "should not have been called")
@@ -566,7 +566,7 @@ func TestTransactionGroup_computeTransactionGasLimit(t *testing.T) {
 			"POST",
 			&dataTx.FrontendTransaction{},
 			http.StatusInternalServerError,
-			expectedErr,
+			errExpected,
 		)
 	})
 	t.Run("ComputeTransactionGasLimit error should error", func(t *testing.T) {
@@ -577,7 +577,7 @@ func TestTransactionGroup_computeTransactionGasLimit(t *testing.T) {
 				return nil, nil, nil
 			},
 			ComputeTransactionGasLimitHandler: func(tx *dataTx.Transaction) (*dataTx.CostResponse, error) {
-				return nil, expectedErr
+				return nil, errExpected
 			},
 		}
 		testTransactionsGroup(
@@ -587,7 +587,7 @@ func TestTransactionGroup_computeTransactionGasLimit(t *testing.T) {
 			"POST",
 			&dataTx.FrontendTransaction{},
 			http.StatusInternalServerError,
-			expectedErr,
+			errExpected,
 		)
 	})
 	t.Run("should work", func(t *testing.T) {
@@ -644,7 +644,7 @@ func TestTransactionGroup_simulateTransaction(t *testing.T) {
 
 		facade := &mock.FacadeStub{
 			CreateTransactionHandler: func(txArgs *external.ArgsCreateTransaction) (*dataTx.Transaction, []byte, error) {
-				return nil, nil, expectedErr
+				return nil, nil, errExpected
 			},
 			ValidateTransactionForSimulationHandler: func(tx *dataTx.Transaction, bypassSignature bool) error {
 				require.Fail(t, "should have not been called")
@@ -658,7 +658,7 @@ func TestTransactionGroup_simulateTransaction(t *testing.T) {
 			"POST",
 			&dataTx.FrontendTransaction{},
 			http.StatusBadRequest,
-			expectedErr,
+			errExpected,
 		)
 	})
 	t.Run("ValidateTransactionForSimulation error should error", func(t *testing.T) {
@@ -669,7 +669,7 @@ func TestTransactionGroup_simulateTransaction(t *testing.T) {
 				return nil, nil, nil
 			},
 			ValidateTransactionForSimulationHandler: func(tx *dataTx.Transaction, bypassSignature bool) error {
-				return expectedErr
+				return errExpected
 			},
 			SimulateTransactionExecutionHandler: func(tx *dataTx.Transaction) (*txSimData.SimulationResultsWithVMOutput, error) {
 				require.Fail(t, "should have not been called")
@@ -683,7 +683,7 @@ func TestTransactionGroup_simulateTransaction(t *testing.T) {
 			"POST",
 			&dataTx.FrontendTransaction{},
 			http.StatusBadRequest,
-			expectedErr,
+			errExpected,
 		)
 	})
 	t.Run("SimulateTransactionExecution error should error", func(t *testing.T) {
@@ -697,7 +697,7 @@ func TestTransactionGroup_simulateTransaction(t *testing.T) {
 				return nil
 			},
 			SimulateTransactionExecutionHandler: func(tx *dataTx.Transaction) (*txSimData.SimulationResultsWithVMOutput, error) {
-				return nil, expectedErr
+				return nil, errExpected
 			},
 		}
 		testTransactionsGroup(
@@ -707,7 +707,7 @@ func TestTransactionGroup_simulateTransaction(t *testing.T) {
 			"POST",
 			&dataTx.FrontendTransaction{},
 			http.StatusInternalServerError,
-			expectedErr,
+			errExpected,
 		)
 	})
 	t.Run("should work", func(t *testing.T) {
@@ -780,7 +780,7 @@ func TestTransactionGroup_getTransactionsPool(t *testing.T) {
 
 		facade := &mock.FacadeStub{
 			GetTransactionsPoolCalled: func(fields string) (*common.TransactionsPoolAPIResponse, error) {
-				return nil, expectedErr
+				return nil, errExpected
 			},
 		}
 		testTransactionsGroup(
@@ -790,7 +790,7 @@ func TestTransactionGroup_getTransactionsPool(t *testing.T) {
 			"GET",
 			nil,
 			http.StatusInternalServerError,
-			expectedErr,
+			errExpected,
 		)
 	})
 	t.Run("GetTransactionsPoolForSender error should error", func(t *testing.T) {
@@ -798,7 +798,7 @@ func TestTransactionGroup_getTransactionsPool(t *testing.T) {
 
 		facade := &mock.FacadeStub{
 			GetTransactionsPoolForSenderCalled: func(sender, fields string) (*common.TransactionsPoolForSenderApiResponse, error) {
-				return nil, expectedErr
+				return nil, errExpected
 			},
 		}
 		testTransactionsGroup(
@@ -808,7 +808,7 @@ func TestTransactionGroup_getTransactionsPool(t *testing.T) {
 			"GET",
 			nil,
 			http.StatusInternalServerError,
-			expectedErr,
+			errExpected,
 		)
 	})
 	t.Run("GetLastPoolNonceForSender error should error", func(t *testing.T) {
@@ -816,7 +816,7 @@ func TestTransactionGroup_getTransactionsPool(t *testing.T) {
 
 		facade := &mock.FacadeStub{
 			GetLastPoolNonceForSenderCalled: func(sender string) (uint64, error) {
-				return 0, expectedErr
+				return 0, errExpected
 			},
 		}
 		testTransactionsGroup(
@@ -826,7 +826,7 @@ func TestTransactionGroup_getTransactionsPool(t *testing.T) {
 			"GET",
 			nil,
 			http.StatusInternalServerError,
-			expectedErr,
+			errExpected,
 		)
 	})
 	t.Run("GetTransactionsPoolNonceGapsForSender error should error", func(t *testing.T) {
@@ -834,7 +834,7 @@ func TestTransactionGroup_getTransactionsPool(t *testing.T) {
 
 		facade := &mock.FacadeStub{
 			GetTransactionsPoolNonceGapsForSenderCalled: func(sender string) (*common.TransactionsPoolNonceGapsForSenderApiResponse, error) {
-				return nil, expectedErr
+				return nil, errExpected
 			},
 		}
 		testTransactionsGroup(
@@ -844,7 +844,7 @@ func TestTransactionGroup_getTransactionsPool(t *testing.T) {
 			"GET",
 			nil,
 			http.StatusInternalServerError,
-			expectedErr,
+			errExpected,
 		)
 	})
 
@@ -982,7 +982,7 @@ func TestTransactionGroup_getTransactionsPool(t *testing.T) {
 	})
 }
 
-func testTxPoolWithInvalidQuery(query string, expectedErr error) func(t *testing.T) {
+func testTxPoolWithInvalidQuery(query string, errExpected error) func(t *testing.T) {
 	return func(t *testing.T) {
 		t.Parallel()
 
@@ -1001,7 +1001,7 @@ func testTxPoolWithInvalidQuery(query string, expectedErr error) func(t *testing
 
 		assert.Equal(t, http.StatusBadRequest, resp.Code)
 		assert.True(t, strings.Contains(txResp.Error, apiErrors.ErrValidation.Error()))
-		assert.True(t, strings.Contains(txResp.Error, expectedErr.Error()))
+		assert.True(t, strings.Contains(txResp.Error, errExpected.Error()))
 	}
 }
 
@@ -1013,7 +1013,7 @@ func TestTransactionsGroup_GetSelectedTransactions(t *testing.T) {
 
 		facade := &mock.FacadeStub{
 			GetSelectedTransactionsCalled: func(fields string) (*common.TransactionsSelectionSimulationResult, error) {
-				return nil, expectedErr
+				return nil, errExpected
 			},
 		}
 
@@ -1024,7 +1024,7 @@ func TestTransactionsGroup_GetSelectedTransactions(t *testing.T) {
 			"GET",
 			nil,
 			http.StatusInternalServerError,
-			expectedErr,
+			errExpected,
 		)
 	})
 
@@ -1072,7 +1072,7 @@ func TestTransactionsGroup_GetVirtualNonce(t *testing.T) {
 
 		facade := &mock.FacadeStub{
 			GetVirtualNonceCalled: func(address string) (*common.VirtualNonceOfAccountResponse, error) {
-				return nil, expectedErr
+				return nil, errExpected
 			},
 		}
 
@@ -1083,7 +1083,7 @@ func TestTransactionsGroup_GetVirtualNonce(t *testing.T) {
 			"GET",
 			nil,
 			http.StatusInternalServerError,
-			expectedErr,
+			errExpected,
 		)
 	})
 
@@ -1167,7 +1167,7 @@ func TestTransactionsGroup_UpdateFacade(t *testing.T) {
 
 		newFacade := mock.FacadeStub{
 			GetTransactionsPoolCalled: func(fields string) (*common.TransactionsPoolAPIResponse, error) {
-				return nil, expectedErr
+				return nil, errExpected
 			},
 		}
 
@@ -1180,7 +1180,7 @@ func TestTransactionsGroup_UpdateFacade(t *testing.T) {
 
 		loadResponse(resp.Body, &txsPoolResp)
 		assert.Equal(t, http.StatusInternalServerError, resp.Code)
-		assert.True(t, strings.Contains(txsPoolResp.Error, expectedErr.Error()))
+		assert.True(t, strings.Contains(txsPoolResp.Error, errExpected.Error()))
 	})
 }
 

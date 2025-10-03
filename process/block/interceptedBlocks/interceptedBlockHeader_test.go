@@ -203,12 +203,12 @@ func TestInterceptedHeader_CheckValidityLeaderSignatureNotCorrectShouldErr(t *te
 	arg := createDefaultShardArgumentWithV2Support()
 	marshaller := arg.Marshalizer
 	hdr := createMockShardHeader()
-	expectedErr := errors.New("expected err")
+	errExpected := errors.New("expected err")
 	buff, _ := marshaller.Marshal(hdr)
 
 	arg.HeaderSigVerifier = &consensus.HeaderSigVerifierMock{
 		VerifyRandSeedAndLeaderSignatureCalled: func(header data.HeaderHandler) error {
-			return expectedErr
+			return errExpected
 		},
 	}
 	arg.EpochStartTrigger = &mock.EpochStartTriggerStub{}
@@ -216,7 +216,7 @@ func TestInterceptedHeader_CheckValidityLeaderSignatureNotCorrectShouldErr(t *te
 	inHdr, _ := interceptedBlocks.NewInterceptedHeader(arg)
 
 	err := inHdr.CheckValidity()
-	assert.Equal(t, expectedErr, err)
+	assert.Equal(t, errExpected, err)
 }
 
 func TestInterceptedHeader_CheckValidityLeaderSignatureOkShouldWork(t *testing.T) {
@@ -319,10 +319,10 @@ func TestInterceptedHeader_CheckAgainstRoundHandlerErrorsShouldErr(t *testing.T)
 	t.Parallel()
 
 	arg := createDefaultShardArgumentWithV2Support()
-	expectedErr := errors.New("expected error")
+	errExpected := errors.New("expected error")
 	arg.ValidityAttester = &mock.ValidityAttesterStub{
 		CheckBlockAgainstRoundHandlerCalled: func(headerHandler data.HeaderHandler) error {
-			return expectedErr
+			return errExpected
 		},
 	}
 	inHdr, err := interceptedBlocks.NewInterceptedHeader(arg)
@@ -331,17 +331,17 @@ func TestInterceptedHeader_CheckAgainstRoundHandlerErrorsShouldErr(t *testing.T)
 
 	err = inHdr.CheckValidity()
 
-	assert.Equal(t, expectedErr, err)
+	assert.Equal(t, errExpected, err)
 }
 
 func TestInterceptedHeader_CheckAgainstFinalHeaderErrorsShouldErr(t *testing.T) {
 	t.Parallel()
 
 	arg := createDefaultShardArgumentWithV2Support()
-	expectedErr := errors.New("expected error")
+	errExpected := errors.New("expected error")
 	arg.ValidityAttester = &mock.ValidityAttesterStub{
 		CheckBlockAgainstFinalCalled: func(headerHandler data.HeaderHandler) error {
-			return expectedErr
+			return errExpected
 		},
 	}
 	inHdr, err := interceptedBlocks.NewInterceptedHeader(arg)
@@ -350,7 +350,7 @@ func TestInterceptedHeader_CheckAgainstFinalHeaderErrorsShouldErr(t *testing.T) 
 
 	err = inHdr.CheckValidity()
 
-	assert.Equal(t, expectedErr, err)
+	assert.Equal(t, errExpected, err)
 }
 
 // ------- getters

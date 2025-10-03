@@ -642,7 +642,7 @@ func TestHistoryRepository_CommitOnForkThenNewEpochThenCommit(t *testing.T) {
 func TestHistoryRepository_getMiniblockMetadataByMiniblockHashGetFromEpochErrorsShouldErr(t *testing.T) {
 	t.Parallel()
 
-	expectedErr := errors.New("expected error")
+	errExpected := errors.New("expected error")
 	hr := &historyRepository{
 		epochByHashIndex: newHashToEpochIndex(
 			&storageStubs.StorerStub{
@@ -654,14 +654,14 @@ func TestHistoryRepository_getMiniblockMetadataByMiniblockHashGetFromEpochErrors
 		),
 		miniblocksMetadataStorer: &storageStubs.StorerStub{
 			GetFromEpochCalled: func(key []byte, epoch uint32) ([]byte, error) {
-				return nil, expectedErr
+				return nil, errExpected
 			},
 		},
 	}
 
 	mbMetadata, err := hr.getMiniblockMetadataByMiniblockHash([]byte("hash"))
 	assert.Nil(t, mbMetadata)
-	assert.Equal(t, err, expectedErr)
+	assert.Equal(t, err, errExpected)
 }
 
 func TestHistoryRepository_ConcurrentlyRecordAndNotarizeSameBlockMultipleTimes_Loop(t *testing.T) {

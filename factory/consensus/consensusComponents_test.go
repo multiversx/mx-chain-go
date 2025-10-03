@@ -26,7 +26,6 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/cache"
 	consensusMocks "github.com/multiversx/mx-chain-go/testscommon/consensus"
 	"github.com/multiversx/mx-chain-go/testscommon/cryptoMocks"
-	"github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
 	dataRetrieverMocks "github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
 	"github.com/multiversx/mx-chain-go/testscommon/dblookupext"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
@@ -95,7 +94,7 @@ func createMockConsensusComponentsFactoryArgs() consensusComp.ConsensusComponent
 			SigHandler:       &consensusMocks.SigningHandlerStub{},
 		},
 		DataComponents: &testsMocks.DataComponentsStub{
-			DataPool: &dataRetriever.PoolsHolderStub{
+			DataPool: &dataRetrieverMocks.PoolsHolderStub{
 				MiniBlocksCalled: func() storage.Cacher {
 					return &cache.CacherStub{}
 				},
@@ -233,7 +232,7 @@ func TestNewConsensusComponentsFactory(t *testing.T) {
 
 		args := createMockConsensusComponentsFactoryArgs()
 		args.DataComponents = &testsMocks.DataComponentsStub{
-			DataPool:   &dataRetriever.PoolsHolderStub{},
+			DataPool:   &dataRetrieverMocks.PoolsHolderStub{},
 			BlockChain: nil,
 		}
 		ccf, err := consensusComp.NewConsensusComponentsFactory(args)
@@ -419,7 +418,7 @@ func TestNewConsensusComponentsFactory(t *testing.T) {
 func TestConsensusComponentsFactory_Create(t *testing.T) {
 	t.Parallel()
 
-	expectedErr := errors.New("expected error")
+	errExpected := errors.New("expected error")
 	t.Run("invalid shard id should error", func(t *testing.T) {
 		t.Parallel()
 
@@ -651,14 +650,14 @@ func TestConsensusComponentsFactory_Create(t *testing.T) {
 		require.True(t, ok)
 		cryptoCompStub.PubKey = &cryptoMocks.PublicKeyStub{
 			ToByteArrayStub: func() ([]byte, error) {
-				return nil, expectedErr
+				return nil, errExpected
 			},
 		}
 		ccf, _ := consensusComp.NewConsensusComponentsFactory(args)
 		require.NotNil(t, ccf)
 
 		cc, err := ccf.Create()
-		require.Equal(t, expectedErr, err)
+		require.Equal(t, errExpected, err)
 		require.Nil(t, cc)
 	})
 	t.Run("createConsensusState fails due to GetConsensusWhitelistedNodes failure should error", func(t *testing.T) {
@@ -670,7 +669,7 @@ func TestConsensusComponentsFactory_Create(t *testing.T) {
 		processCompStub.NodesCoordinatorCalled = func() nodesCoordinator.NodesCoordinator {
 			return &shardingMocks.NodesCoordinatorMock{
 				GetConsensusWhitelistedNodesCalled: func(epoch uint32) (map[string]struct{}, error) {
-					return nil, expectedErr
+					return nil, errExpected
 				},
 			}
 		}
@@ -678,7 +677,7 @@ func TestConsensusComponentsFactory_Create(t *testing.T) {
 		require.NotNil(t, ccf)
 
 		cc, err := ccf.Create()
-		require.Equal(t, expectedErr, err)
+		require.Equal(t, errExpected, err)
 		require.Nil(t, cc)
 	})
 	t.Run("GetConsensusCoreFactory failure should error", func(t *testing.T) {
@@ -797,14 +796,14 @@ func TestConsensusComponentsFactory_Create(t *testing.T) {
 				return false
 			},
 			CreateTopicCalled: func(name string, createChannelForTopic bool) error {
-				return expectedErr
+				return errExpected
 			},
 		}
 		ccf, _ := consensusComp.NewConsensusComponentsFactory(args)
 		require.NotNil(t, ccf)
 
 		cc, err := ccf.Create()
-		require.Equal(t, expectedErr, err)
+		require.Equal(t, errExpected, err)
 		require.Nil(t, cc)
 	})
 	t.Run("createConsensusState fails due to nil KeysHandler should error", func(t *testing.T) {
@@ -852,14 +851,14 @@ func TestConsensusComponentsFactory_Create(t *testing.T) {
 		require.True(t, ok)
 		processCompStub.HardforkTriggerField = &testscommon.HardforkTriggerStub{
 			AddCloserCalled: func(closer update.Closer) error {
-				return expectedErr
+				return errExpected
 			},
 		}
 		ccf, _ := consensusComp.NewConsensusComponentsFactory(args)
 		require.NotNil(t, ccf)
 
 		cc, err := ccf.Create()
-		require.Equal(t, expectedErr, err)
+		require.Equal(t, errExpected, err)
 		require.Nil(t, cc)
 	})
 	t.Run("should work", func(t *testing.T) {

@@ -364,7 +364,7 @@ func ProcessSCRResult(
 	testContext *vm.VMTestContext,
 	tx data.TransactionHandler,
 	expectedCode vmcommon.ReturnCode,
-	expectedErr error,
+	errExpected error,
 ) {
 	scProcessor := testContext.ScProcessor
 	require.NotNil(nil, scProcessor)
@@ -374,7 +374,7 @@ func ProcessSCRResult(
 
 	retCode, err := scProcessor.ProcessSmartContractResult(scr)
 	require.Equal(tb, expectedCode, retCode)
-	require.Equal(tb, expectedErr, err)
+	require.Equal(tb, errExpected, err)
 }
 
 // CleanAccumulatedIntermediateTransactions -

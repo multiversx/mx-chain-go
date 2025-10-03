@@ -11,7 +11,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-var expectedErr = errors.New("err")
+var errExpected = errors.New("err")
 
 func TestSetEpochHandlerToHdrResolver(t *testing.T) {
 	t.Parallel()
@@ -21,13 +21,13 @@ func TestSetEpochHandlerToHdrResolver(t *testing.T) {
 
 		resolverContainer := &dataRetrieverMock.ResolversContainerStub{
 			GetCalled: func(key string) (resolver dataRetriever.Resolver, err error) {
-				return nil, expectedErr
+				return nil, errExpected
 			},
 		}
 		epochHandler := &mock.EpochHandlerStub{}
 
 		err := dataRetriever.SetEpochHandlerToHdrResolver(resolverContainer, epochHandler)
-		require.Equal(t, expectedErr, err)
+		require.Equal(t, errExpected, err)
 	})
 	t.Run("set epoch handler errors should return error", func(t *testing.T) {
 		t.Parallel()
@@ -36,7 +36,7 @@ func TestSetEpochHandlerToHdrResolver(t *testing.T) {
 			GetCalled: func(key string) (resolver dataRetriever.Resolver, err error) {
 				return &mock.HeaderResolverStub{
 					SetEpochHandlerCalled: func(epochHandler dataRetriever.EpochHandler) error {
-						return expectedErr
+						return errExpected
 					},
 				}, nil
 			},
@@ -44,7 +44,7 @@ func TestSetEpochHandlerToHdrResolver(t *testing.T) {
 		epochHandler := &mock.EpochHandlerStub{}
 
 		err := dataRetriever.SetEpochHandlerToHdrResolver(resolverContainer, epochHandler)
-		require.Equal(t, expectedErr, err)
+		require.Equal(t, errExpected, err)
 	})
 	t.Run("wrong type should return error", func(t *testing.T) {
 		t.Parallel()
@@ -82,13 +82,13 @@ func TestSetEpochHandlerToHdrRequester(t *testing.T) {
 
 		requestersContainer := &dataRetrieverMock.RequestersContainerStub{
 			GetCalled: func(key string) (requester dataRetriever.Requester, err error) {
-				return nil, expectedErr
+				return nil, errExpected
 			},
 		}
 		epochHandler := &mock.EpochHandlerStub{}
 
 		err := dataRetriever.SetEpochHandlerToHdrRequester(requestersContainer, epochHandler)
-		require.Equal(t, expectedErr, err)
+		require.Equal(t, errExpected, err)
 	})
 	t.Run("set epoch handler errors should return error", func(t *testing.T) {
 		t.Parallel()
@@ -97,7 +97,7 @@ func TestSetEpochHandlerToHdrRequester(t *testing.T) {
 			GetCalled: func(key string) (requester dataRetriever.Requester, err error) {
 				return &mock.HeaderRequesterStub{
 					SetEpochHandlerCalled: func(epochHandler dataRetriever.EpochHandler) error {
-						return expectedErr
+						return errExpected
 					},
 				}, nil
 			},
@@ -105,7 +105,7 @@ func TestSetEpochHandlerToHdrRequester(t *testing.T) {
 		epochHandler := &mock.EpochHandlerStub{}
 
 		err := dataRetriever.SetEpochHandlerToHdrRequester(requestersContainer, epochHandler)
-		require.Equal(t, expectedErr, err)
+		require.Equal(t, errExpected, err)
 	})
 	t.Run("wrong type should return error", func(t *testing.T) {
 		t.Parallel()

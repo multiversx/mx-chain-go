@@ -422,11 +422,7 @@ func (sr *subroundEndRound) aggregateSigsAndHandleInvalidSigners(bitmap []byte, 
 }
 
 func (sr *subroundEndRound) checkGoRoutinesThrottler(ctx context.Context) error {
-	for {
-		if sr.signatureThrottler.CanProcess() {
-			break
-		}
-
+	for !sr.signatureThrottler.CanProcess() {
 		select {
 		case <-time.After(time.Millisecond):
 			continue

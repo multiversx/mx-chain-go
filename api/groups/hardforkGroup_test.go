@@ -44,7 +44,7 @@ func TestHardforkGroup_TriggerCannotExecuteShouldErr(t *testing.T) {
 
 	hardforkFacade := &mock.HardforkFacade{
 		TriggerCalled: func(_ uint32, _ bool) error {
-			return expectedErr
+			return errExpected
 		},
 	}
 
@@ -66,7 +66,7 @@ func TestHardforkGroup_TriggerCannotExecuteShouldErr(t *testing.T) {
 	loadResponse(resp.Body, &response)
 
 	assert.Equal(t, resp.Code, http.StatusInternalServerError)
-	assert.Contains(t, response.Error, expectedErr.Error())
+	assert.Contains(t, response.Error, errExpected.Error())
 }
 
 func TestHardforkGroup_TriggerWrongRequestTypeShouldErr(t *testing.T) {
@@ -234,7 +234,7 @@ func TestHardforkGroup_UpdateFacadeStub(t *testing.T) {
 
 		newFacade := &mock.HardforkFacade{
 			TriggerCalled: func(_ uint32, _ bool) error {
-				return expectedErr
+				return errExpected
 			},
 		}
 		err = hardforkGroup.UpdateFacade(newFacade)
@@ -247,7 +247,7 @@ func TestHardforkGroup_UpdateFacadeStub(t *testing.T) {
 		response = shared.GenericAPIResponse{}
 		loadResponse(resp.Body, &response)
 		assert.Equal(t, http.StatusInternalServerError, resp.Code)
-		assert.True(t, strings.Contains(response.Error, expectedErr.Error()))
+		assert.True(t, strings.Contains(response.Error, errExpected.Error()))
 	})
 }
 

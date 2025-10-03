@@ -450,13 +450,13 @@ func TestNewValidatorInfoPreprocessor_RestoreValidatorsInfo(t *testing.T) {
 	t.Run("restore validators info with not all txs found in storage", func(t *testing.T) {
 		t.Parallel()
 
-		expectedErr := errors.New("error")
+		errExpected := errors.New("error")
 		hasher := &hashingMocks.HasherMock{}
 		marshalizer := &marshallerMock.MarshalizerMock{}
 		blockSizeComputation := &testscommon.BlockSizeComputationStub{}
 		storer := &storage.ChainStorerStub{
 			GetAllCalled: func(unitType dataRetriever.UnitType, keys [][]byte) (map[string][]byte, error) {
-				return nil, expectedErr
+				return nil, errExpected
 			},
 		}
 		tdp := initDataPool()
@@ -471,7 +471,7 @@ func TestNewValidatorInfoPreprocessor_RestoreValidatorsInfo(t *testing.T) {
 
 		miniBlock := &block.MiniBlock{}
 		err := rtp.restoreValidatorsInfo(miniBlock)
-		assert.Equal(t, expectedErr, err)
+		assert.Equal(t, errExpected, err)
 	})
 
 	t.Run("restore validators info with all txs found in storage", func(t *testing.T) {
