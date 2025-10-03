@@ -66,6 +66,11 @@ func (txCoordinator *TxCoordinator) ProcessBlockTransaction(_ data.HeaderHandler
 	return nil
 }
 
+// GetCreatedMiniBlocksFromMe does nothing as it is disabled
+func (txCoordinator *TxCoordinator) GetCreatedMiniBlocksFromMe() block.MiniBlockSlice {
+	return make(block.MiniBlockSlice, 0)
+}
+
 // CreateBlockStarted does nothing as it is disabled
 func (txCoordinator *TxCoordinator) CreateBlockStarted() {
 }

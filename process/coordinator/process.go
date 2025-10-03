@@ -368,7 +368,7 @@ func (tc *transactionCoordinator) ProcessBlockTransaction(
 }
 
 // GetCreatedMiniBlocksFromMe returns the created mini blocks from me
-func (tc *transactionCoordinator) getCreatedMiniBlocksFromMe() block.MiniBlockSlice {
+func (tc *transactionCoordinator) GetCreatedMiniBlocksFromMe() block.MiniBlockSlice {
 	miniBlocks := make(block.MiniBlockSlice, 0)
 	for _, blockType := range tc.preProcExecution.keysTxPreProcs {
 		preProc := tc.preProcExecution.getPreProcessor(blockType)

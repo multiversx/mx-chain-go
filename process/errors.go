@@ -218,9 +218,6 @@ var ErrNilDataToProcess = errors.New("nil data to process")
 // ErrNilPoolsHolder signals that an operation has been attempted to or with a nil pools holder object
 var ErrNilPoolsHolder = errors.New("nil pools holder")
 
-// ErrNilTxStorage signals that a nil transaction storage has been provided
-var ErrNilTxStorage = errors.New("nil transaction storage")
-
 // ErrNilStorage signals that a nil storage has been provided
 var ErrNilStorage = errors.New("nil storage")
 
@@ -377,9 +374,6 @@ var ErrNilRewardTxDataPool = errors.New("reward transactions pool is nil")
 
 // ErrNilUnsignedTxDataPool signals that the unsigned transactions pool is nil
 var ErrNilUnsignedTxDataPool = errors.New("unsigned transactions pool is nil")
-
-// ErrNilUTxStorage signals that unsigned transaction storage is nil
-var ErrNilUTxStorage = errors.New("unsigned transactions storage is nil")
 
 // ErrNilScAddress signals that a nil smart contract address has been provided
 var ErrNilScAddress = errors.New("nil SC address")
@@ -603,7 +597,7 @@ var ErrNilPeerShardMapper = errors.New("nil peer shard mapper")
 // ErrNilBlockTracker signals that a nil block tracker was provided
 var ErrNilBlockTracker = errors.New("nil block tracker")
 
-// ErrHeaderIsBlackListed signals that the header provided is black listed
+// ErrHeaderIsBlackListed signals that the header provided is blacklisted
 var ErrHeaderIsBlackListed = errors.New("header is black listed")
 
 // ErrNilEconomicsData signals that nil economics data has been provided
@@ -1394,3 +1388,6 @@ var ErrDuplicatedTransaction = errors.New("duplicated transaction")
 
 // ErrTransactionsMissmatch signals that transactions do not match
 var ErrTransactionsMissmatch = errors.New("transactions missmatch")
+
+// ErrGasUsedExceedsGasProvided signals that gas used exceeds gas provided
+var ErrGasUsedExceedsGasProvided = errors.New("gas used exceeds gas provided")

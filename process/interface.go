@@ -163,7 +163,7 @@ type TransactionCoordinator interface {
 	RemoveTxsFromPool(body *block.Body) error
 
 	ProcessBlockTransaction(header data.HeaderHandler, body *block.Body, haveTime func() time.Duration) error
-	// GetCreatedMiniBlocksFromMe() block.MiniBlockSlice
+	GetCreatedMiniBlocksFromMe() block.MiniBlockSlice
 
 	CreateBlockStarted()
 	CreateMbsAndProcessCrossShardTransactionsDstMe(header data.HeaderHandler, processedMiniBlocksInfo map[string]*processedMb.ProcessedMiniBlockInfo, haveTime func() bool, haveAdditionalTime func() bool, scheduledMode bool) (block.MiniBlockSlice, uint32, bool, error)
