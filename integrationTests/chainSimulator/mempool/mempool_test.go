@@ -1896,8 +1896,3 @@ func Test_SelectionWhenFeeExceedsBalanceWithMax2TxsSelected(t *testing.T) {
 	require.Equal(t, 1, len(selectedTransactions))
 	require.Equal(t, "bob", string(selectedTransactions[0].Tx.GetSndAddr()))
 }
-
-func Test_Selection_Forks(t *testing.T) {
-	t.Parallel()
-
-}
