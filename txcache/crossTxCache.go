@@ -132,6 +132,9 @@ func (cache *CrossTxCache) OnExecutedBlock(data.HeaderHandler) error {
 	return nil
 }
 
+// ResetTracker does nothing (only to satisfy the interface)
+func (cache *CrossTxCache) ResetTracker() {}
+
 // Cleanup does nothing (only to satisfy the interface)
 func (cache *CrossTxCache) Cleanup(_ common.AccountNonceProvider, _ uint64, _ int, _ time.Duration) uint64 {
 	return 0

@@ -189,6 +189,7 @@ func (cache *TxCache) OnExecutedBlock(blockHeader data.HeaderHandler) error {
 	return cache.tracker.OnExecutedBlock(blockHeader)
 }
 
+// ResetTracker resets the SelectionTracker
 func (cache *TxCache) ResetTracker() {
 	cache.tracker.ResetTracker()
 }
