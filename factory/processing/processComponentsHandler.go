@@ -64,7 +64,7 @@ func (m *managedProcessComponents) Close() error {
 		return nil
 	}
 
-	err := m.Close()
+	err := m.processComponents.Close()
 	if err != nil {
 		return err
 	}
