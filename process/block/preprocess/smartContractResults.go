@@ -298,6 +298,16 @@ func (scr *smartContractResults) ProcessBlockTransactions(
 	return nil
 }
 
+// GetCreatedMiniBlocksFromMe returns nil as this preprocessor does not create any mini blocks
+func (scr *smartContractResults) GetCreatedMiniBlocksFromMe() block.MiniBlockSlice {
+	return make(block.MiniBlockSlice, 0)
+}
+
+// GetUnExecutableTransactions returns an empty map as this preprocessor does not handle un-executable transactions
+func (scr *smartContractResults) GetUnExecutableTransactions() map[string]struct{} {
+	return make(map[string]struct{})
+}
+
 // SaveTxsToStorage saves smart contract results from body into storage
 func (scr *smartContractResults) SaveTxsToStorage(body *block.Body) error {
 	if check.IfNil(body) {

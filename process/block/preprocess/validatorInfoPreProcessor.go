@@ -163,6 +163,16 @@ func (vip *validatorInfoPreprocessor) ProcessBlockTransactions(
 	return nil
 }
 
+// GetCreatedMiniBlocksFromMe returns nil as this preprocessor does not create any mini blocks
+func (vip *validatorInfoPreprocessor) GetCreatedMiniBlocksFromMe() block.MiniBlockSlice {
+	return make(block.MiniBlockSlice, 0)
+}
+
+// GetUnExecutableTransactions returns an empty map as validator info are always executable
+func (vip *validatorInfoPreprocessor) GetUnExecutableTransactions() map[string]struct{} {
+	return make(map[string]struct{})
+}
+
 // SaveTxsToStorage saves validator info from body into storage
 func (vip *validatorInfoPreprocessor) SaveTxsToStorage(body *block.Body) error {
 	if check.IfNil(body) {

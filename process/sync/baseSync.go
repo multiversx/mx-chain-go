@@ -78,6 +78,7 @@ type baseBootstrap struct {
 	blockBootstrapper   blockBootstrapper
 	blackListHandler    process.TimeCacher
 	enableEpochsHandler common.EnableEpochsHandler
+	enableRoundsHandler common.EnableRoundsHandler
 
 	mutHeader     sync.RWMutex
 	headerNonce   *uint64
@@ -90,7 +91,6 @@ type baseBootstrap struct {
 	statusHandler core.AppStatusHandler
 
 	chStopSync chan bool
-	waitTime   time.Duration
 
 	mutNodeState          sync.RWMutex
 	isNodeSynchronized    bool
@@ -119,8 +119,9 @@ type baseBootstrap struct {
 	storageBootstrapper  process.BootstrapperFromStorage
 	currentEpochProvider process.CurrentNetworkEpochProviderHandler
 
-	outportHandler   outport.OutportHandler
-	accountsDBSyncer process.AccountsDBSyncer
+	outportHandler        outport.OutportHandler
+	accountsDBSyncer      process.AccountsDBSyncer
+	processConfigsHandler common.ProcessConfigsHandler
 
 	chRcvMiniBlocks              chan bool
 	mutRcvMiniBlocks             sync.Mutex
@@ -133,6 +134,17 @@ type baseBootstrap struct {
 	processWaitTime              time.Duration
 
 	repopulateTokensSupplies bool
+}
+
+// TODO: remove this handling after async exec
+func (boot *baseBootstrap) getProcessWaitTime() time.Duration {
+	if boot.enableRoundsHandler.IsFlagEnabled(common.SupernovaRoundFlag) {
+		processWaitTimeMs := boot.processWaitTime.Milliseconds()
+
+		return time.Duration(processWaitTimeMs/10) * time.Millisecond
+	}
+
+	return boot.processWaitTime
 }
 
 // setRequestedHeaderNonce method sets the header nonce requested by the sync mechanism
@@ -401,12 +413,16 @@ func (boot *baseBootstrap) getEpochOfCurrentBlock() uint32 {
 	return epoch
 }
 
+func (boot *baseBootstrap) getWaitTime() time.Duration {
+	return boot.roundHandler.TimeDuration()
+}
+
 // waitForHeaderAndProofByNonce method wait for header with the requested nonce to be received
 func (boot *baseBootstrap) waitForHeaderAndProofByNonce() error {
 	select {
 	case <-boot.chRcvHdrNonce:
 		return nil
-	case <-time.After(boot.waitTime):
+	case <-time.After(boot.getWaitTime()):
 		return process.ErrTimeIsOut
 	}
 }
@@ -416,7 +432,7 @@ func (boot *baseBootstrap) waitForHeaderAndProofByHash() error {
 	select {
 	case <-boot.chRcvHdrHash:
 		return nil
-	case <-time.After(boot.waitTime):
+	case <-time.After(boot.getWaitTime()):
 		return process.ErrTimeIsOut
 	}
 }
@@ -490,7 +506,10 @@ func (boot *baseBootstrap) shouldTryToRequestHeaders() bool {
 		return true
 	}
 
-	return boot.roundHandler.Index()%process.RoundModulusTriggerWhenSyncIsStuck == 0
+	roundIndex := boot.roundHandler.Index()
+	roundModulusTriggerWhenSyncIsStuck := boot.processConfigsHandler.GetRoundModulusTriggerWhenSyncIsStuck(uint64(roundIndex))
+
+	return roundIndex%int64(roundModulusTriggerWhenSyncIsStuck) == 0
 }
 
 func (boot *baseBootstrap) requestHeadersIfSyncIsStuck() {
@@ -501,7 +520,7 @@ func (boot *baseBootstrap) requestHeadersIfSyncIsStuck() {
 	}
 
 	roundDiff := uint64(boot.roundHandler.Index()) - lastSyncedRound
-	if roundDiff <= process.MaxRoundsWithoutNewBlockReceived {
+	if roundDiff <= boot.getMaxRoundsWithoutBlockReceived(lastSyncedRound) {
 		return
 	}
 
@@ -519,6 +538,10 @@ func (boot *baseBootstrap) requestHeadersIfSyncIsStuck() {
 		"probable highest nonce", boot.forkDetector.ProbableHighestNonce())
 
 	boot.requestHeaders(fromNonce, toNonce)
+}
+
+func (boot *baseBootstrap) getMaxRoundsWithoutBlockReceived(round uint64) uint64 {
+	return uint64(boot.processConfigsHandler.GetMaxRoundsWithoutNewBlockReceivedByRound(round))
 }
 
 func (boot *baseBootstrap) removeHeaderFromPools(header data.HeaderHandler) []byte {
@@ -633,6 +656,9 @@ func checkBaseBootstrapParameters(arguments ArgBaseBootstrapper) error {
 	}
 	if check.IfNil(arguments.EnableEpochsHandler) {
 		return process.ErrNilEnableEpochsHandler
+	}
+	if check.IfNil(arguments.EnableRoundsHandler) {
+		return process.ErrNilEnableRoundsHandler
 	}
 
 	return nil
@@ -797,7 +823,7 @@ func (boot *baseBootstrap) syncBlockLegacy() error {
 	}
 
 	startTime := time.Now()
-	waitTime := boot.processWaitTime
+	waitTime := boot.getProcessWaitTime()
 	haveTime := func() time.Duration {
 		return waitTime - time.Since(startTime)
 	}
@@ -1667,7 +1693,7 @@ func (boot *baseBootstrap) waitForMiniBlocks() error {
 	select {
 	case <-boot.chRcvMiniBlocks:
 		return nil
-	case <-time.After(boot.waitTime):
+	case <-time.After(boot.getWaitTime()):
 		return process.ErrTimeIsOut
 	}
 }

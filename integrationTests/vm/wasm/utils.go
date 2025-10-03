@@ -93,7 +93,7 @@ type TestContext struct {
 	GasSchedule map[string]map[string]uint64
 
 	EpochNotifier       process.EpochNotifier
-	EnableRoundsHandler process.EnableRoundsHandler
+	EnableRoundsHandler common.EnableRoundsHandler
 	RoundNotifier       process.RoundNotifier
 	EnableEpochsHandler common.EnableEpochsHandler
 	UnsignexTxHandler   process.TransactionFeeHandler
@@ -409,26 +409,25 @@ func (context *TestContext) initTxProcessorWithOneSCExecutorWithVMs() {
 	require.Nil(context.T, err)
 
 	argsNewTxProcessor := processTransaction.ArgsNewTxProcessor{
-		Accounts:                context.Accounts,
-		Hasher:                  hasher,
-		PubkeyConv:              pkConverter,
-		Marshalizer:             marshalizer,
-		SignMarshalizer:         marshalizer,
-		ShardCoordinator:        oneShardCoordinator,
-		ScProcessor:             context.ScProcessor,
-		TxFeeHandler:            context.UnsignexTxHandler,
-		TxTypeHandler:           txTypeHandler,
-		EconomicsFee:            context.EconomicsFee,
-		ReceiptForwarder:        &mock.IntermediateTransactionHandlerMock{},
-		BadTxForwarder:          &mock.IntermediateTransactionHandlerMock{},
-		UnExecutableTxForwarder: &mock.IntermediateTransactionHandlerMock{},
-		ArgsParser:              smartContract.NewArgumentParser(),
-		ScrForwarder:            &mock.IntermediateTransactionHandlerMock{},
-		EnableRoundsHandler:     context.EnableRoundsHandler,
-		EnableEpochsHandler:     context.EnableEpochsHandler,
-		TxVersionChecker:        &testscommon.TxVersionCheckerStub{},
-		GuardianChecker:         &guardianMocks.GuardedAccountHandlerStub{},
-		TxLogsProcessor:         context.TxLogsProcessor,
+		Accounts:            context.Accounts,
+		Hasher:              hasher,
+		PubkeyConv:          pkConverter,
+		Marshalizer:         marshalizer,
+		SignMarshalizer:     marshalizer,
+		ShardCoordinator:    oneShardCoordinator,
+		ScProcessor:         context.ScProcessor,
+		TxFeeHandler:        context.UnsignexTxHandler,
+		TxTypeHandler:       txTypeHandler,
+		EconomicsFee:        context.EconomicsFee,
+		ReceiptForwarder:    &mock.IntermediateTransactionHandlerMock{},
+		BadTxForwarder:      &mock.IntermediateTransactionHandlerMock{},
+		ArgsParser:          smartContract.NewArgumentParser(),
+		ScrForwarder:        &mock.IntermediateTransactionHandlerMock{},
+		EnableRoundsHandler: context.EnableRoundsHandler,
+		EnableEpochsHandler: context.EnableEpochsHandler,
+		TxVersionChecker:    &testscommon.TxVersionCheckerStub{},
+		GuardianChecker:     &guardianMocks.GuardedAccountHandlerStub{},
+		TxLogsProcessor:     context.TxLogsProcessor,
 	}
 
 	context.TxProcessor, err = processTransaction.NewTxProcessor(argsNewTxProcessor)

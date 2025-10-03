@@ -355,11 +355,14 @@ func (ccf *consensusComponentsFactory) createChronology() (consensus.ChronologyH
 	}
 
 	chronologyArg := chronology.ArgChronology{
-		GenesisTime:      ccf.coreComponents.GenesisTime(),
-		RoundHandler:     ccf.processComponents.RoundHandler(),
-		SyncTimer:        ccf.coreComponents.SyncTimer(),
-		Watchdog:         wd,
-		AppStatusHandler: ccf.statusCoreComponents.AppStatusHandler(),
+		GenesisTime:         ccf.coreComponents.GenesisTime(),
+		RoundHandler:        ccf.processComponents.RoundHandler(),
+		SyncTimer:           ccf.coreComponents.SyncTimer(),
+		Watchdog:            wd,
+		AppStatusHandler:    ccf.statusCoreComponents.AppStatusHandler(),
+		EnableEpochsHandler: ccf.coreComponents.EnableEpochsHandler(),
+		EnableRoundsHandler: ccf.coreComponents.EnableRoundsHandler(),
+		ConfigsHandler:      ccf.coreComponents.CommonConfigsHandler(),
 	}
 	return chronology.NewChronology(chronologyArg)
 }
@@ -490,7 +493,6 @@ func (ccf *consensusComponentsFactory) createShardBootstrapper() (process.Bootst
 		ChainHandler:                 ccf.dataComponents.Blockchain(),
 		RoundHandler:                 ccf.processComponents.RoundHandler(),
 		BlockProcessor:               ccf.processComponents.BlockProcessor(),
-		WaitTime:                     ccf.processComponents.RoundHandler().TimeDuration(),
 		Hasher:                       ccf.coreComponents.Hasher(),
 		Marshalizer:                  ccf.coreComponents.InternalMarshalizer(),
 		ForkDetector:                 ccf.processComponents.ForkDetector(),
@@ -515,6 +517,8 @@ func (ccf *consensusComponentsFactory) createShardBootstrapper() (process.Bootst
 		RepopulateTokensSupplies:     ccf.flagsConfig.RepopulateTokensSupplies,
 		EnableEpochsHandler:          ccf.coreComponents.EnableEpochsHandler(),
 		BlocksQueue:                  ccf.processComponents.BlocksQueue(),
+		EnableRoundsHandler:          ccf.coreComponents.EnableRoundsHandler(),
+		ProcessConfigsHandler:        ccf.coreComponents.ProcessConfigsHandler(),
 	}
 
 	argsShardBootstrapper := sync.ArgShardBootstrapper{
@@ -625,7 +629,6 @@ func (ccf *consensusComponentsFactory) createMetaChainBootstrapper() (process.Bo
 		RoundHandler:                 ccf.processComponents.RoundHandler(),
 		BlockProcessor:               ccf.processComponents.BlockProcessor(),
 		BlocksQueue:                  ccf.processComponents.BlocksQueue(),
-		WaitTime:                     ccf.processComponents.RoundHandler().TimeDuration(),
 		Hasher:                       ccf.coreComponents.Hasher(),
 		Marshalizer:                  ccf.coreComponents.InternalMarshalizer(),
 		ForkDetector:                 ccf.processComponents.ForkDetector(),
@@ -649,6 +652,8 @@ func (ccf *consensusComponentsFactory) createMetaChainBootstrapper() (process.Bo
 		ProcessWaitTime:              time.Duration(ccf.config.GeneralSettings.SyncProcessTimeInMillis) * time.Millisecond,
 		RepopulateTokensSupplies:     ccf.flagsConfig.RepopulateTokensSupplies,
 		EnableEpochsHandler:          ccf.coreComponents.EnableEpochsHandler(),
+		EnableRoundsHandler:          ccf.coreComponents.EnableRoundsHandler(),
+		ProcessConfigsHandler:        ccf.coreComponents.ProcessConfigsHandler(),
 	}
 
 	argsMetaBootstrapper := sync.ArgMetaBootstrapper{

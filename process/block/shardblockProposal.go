@@ -218,6 +218,10 @@ func (sp *shardProcessor) VerifyBlockProposal(
 	// 	return nil, nil, err
 	// }
 
+	// TODO: the verification needs a cutoff handler as well - e.g stop after the block including the execution results for
+	// the configured cutoff round/nonce/epoch
+	// errCutoff := sp.blockProcessingCutoffHandler.HandleProcessErrorCutoff(header)
+
 	return sp.onProposedBlock(body, header)
 }
 
@@ -308,7 +312,7 @@ func (sp *shardProcessor) ProcessBlockProposal(
 		return nil, err
 	}
 
-	// todo: add also a request if it is missing as a fallback, although it should not be missing at this point
+	// TODO: improvement - add also a request if it is missing as a fallback, although it should not be missing at this point
 	err = sp.checkEpochStartInfoAvailableIfNeeded(header)
 	if err != nil {
 		return nil, err
@@ -345,39 +349,28 @@ func (sp *shardProcessor) ProcessBlockProposal(
 		return nil, err
 	}
 
-	// executionResult, err := sp.txCoordinator.CollectExecutionResults(header, body)
-	// if err != nil {
-	// 	return nil, err
-	// }
+	err = sp.txCoordinator.VerifyCreatedBlockTransactions(header, body)
+	if err != nil {
+		return nil, err
+	}
 
-	// err = sp.txCoordinator.VerifyCreatedBlockTransactions(header, body)
-	// if err != nil {
-	// 	return nil, err
-	// }
-	//
-	// err = sp.txCoordinator.VerifyCreatedMiniBlocks(header, body)
-	// if err != nil {
-	// 	return nil, err
-	// }
+	// TODO: should receive the header hash instead of re-computing it
+	headerHash, err := core.CalculateHash(sp.marshalizer, sp.hasher, header)
+	if err != nil {
+		return nil, err
+	}
 
-	//
-	// err = sp.verifyFees(header)
-	// if err != nil {
-	// 	return nil, err
-	// }
-	//
-	// if !sp.verifyStateRoot(header.GetRootHash()) {
-	// 	err = process.ErrRootStateDoesNotMatch
-	// 	return err
-	// }
-	//
+	executionResult, err := sp.CollectExecutionResults(headerHash, header, body)
+	if err != nil {
+		return nil, err
+	}
+
 	errCutoff := sp.blockProcessingCutoffHandler.HandleProcessErrorCutoff(header)
 	if errCutoff != nil {
 		return nil, errCutoff
 	}
 
-	// return executionResult, nil
-	return nil, nil
+	return executionResult, nil
 }
 
 func (sp *shardProcessor) checkInclusionEstimationForExecutionResults(header data.HeaderHandler) error {
@@ -694,4 +687,72 @@ func (sp *shardProcessor) checkMetaHeadersValidityAndFinalityProposal(header dat
 	}
 
 	return nil
+}
+
+func (sp *shardProcessor) CollectExecutionResults(headerHash []byte, header data.HeaderHandler, body *block.Body) (data.BaseExecutionResultHandler, error) {
+	crossShardIncomingMiniBlocks := sp.getCrossShardIncomingMiniBlocksFromBody(body)
+	// TODO: make sure the miniBlocks are saved in the DB somewhere, otherwise they cannot be synchronized by other nodes
+	// this is for the miniBlocksFromSelf and postProcessMiniBlocks
+	// should be saved on the commit of the block that includes the execution results, but until then need to be cached
+	miniBlocksFromSelf := sp.txCoordinator.GetCreatedMiniBlocksFromMe()
+	postProcessMiniBlocks := sp.txCoordinator.CreatePostProcessMiniBlocks()
+
+	allMiniBlocks := make([]*block.MiniBlock, 0, len(crossShardIncomingMiniBlocks)+len(miniBlocksFromSelf)+len(postProcessMiniBlocks))
+	allMiniBlocks = append(allMiniBlocks, crossShardIncomingMiniBlocks...)
+	allMiniBlocks = append(allMiniBlocks, miniBlocksFromSelf...)
+	allMiniBlocks = append(allMiniBlocks, postProcessMiniBlocks...)
+
+	receiptHash, err := sp.txCoordinator.CreateReceiptsHash()
+	if err != nil {
+		return nil, err
+	}
+
+	gasAndFees := sp.getGasAndFees()
+	gasNotUsedForProcessing := gasAndFees.GetGasPenalized() + gasAndFees.GetGasRefunded()
+	if gasAndFees.GetGasProvided() < gasNotUsedForProcessing {
+		return nil, process.ErrGasUsedExceedsGasProvided
+	}
+
+	gasUsed := gasAndFees.GetGasProvided() - gasNotUsedForProcessing // needed for inclusion estimation
+
+	bodyAfterExecution := &block.Body{MiniBlocks: allMiniBlocks}
+	// remove the self-receipts and self smart contract results mini blocks - similar to Pre-Supernova
+	sanitizedBodyAfterExecution := deleteSelfReceiptsMiniBlocks(bodyAfterExecution)
+
+	// giving an empty processedMiniBlockInfo would cause all miniBlockHeaders to be created as fully processed.
+	processedMiniBlockInfo := make(map[string]*processedMb.ProcessedMiniBlockInfo)
+
+	totalTxCount, miniBlockHeaderHandlers, err := sp.createMiniBlockHeaderHandlers(sanitizedBodyAfterExecution, processedMiniBlockInfo)
+
+	executionResult := &block.ExecutionResult{
+		BaseExecutionResult: &block.BaseExecutionResult{
+			HeaderHash:  headerHash,
+			HeaderNonce: header.GetNonce(),
+			HeaderRound: header.GetRound(),
+			HeaderEpoch: header.GetEpoch(),
+			RootHash:    sp.getRootHash(),
+			GasUsed:     gasUsed,
+		},
+		ReceiptsHash:    receiptHash,
+		DeveloperFees:   gasAndFees.GetDeveloperFees(),
+		AccumulatedFees: gasAndFees.GetAccumulatedFees(),
+		ExecutedTxCount: uint64(totalTxCount),
+	}
+
+	err = executionResult.SetMiniBlockHeadersHandlers(miniBlockHeaderHandlers)
+	if err != nil {
+		return nil, err
+	}
+
+	return executionResult, nil
+}
+
+func (sp *shardProcessor) getCrossShardIncomingMiniBlocksFromBody(body *block.Body) []*block.MiniBlock {
+	miniBlocks := make([]*block.MiniBlock, 0)
+	for _, mb := range body.MiniBlocks {
+		if mb.ReceiverShardID == sp.shardCoordinator.SelfId() && mb.SenderShardID != sp.shardCoordinator.SelfId() {
+			miniBlocks = append(miniBlocks, mb)
+		}
+	}
+	return miniBlocks
 }

@@ -16,11 +16,6 @@ func (txProc *TxProcessor) ProcessTransaction(_ *transaction.Transaction) (vmcom
 	return 0, nil
 }
 
-// RegisterUnExecutableTransaction does nothing as it is disabled
-func (txProc *TxProcessor) RegisterUnExecutableTransaction(_ *transaction.Transaction, _ []byte) error {
-	return nil
-}
-
 // VerifyTransaction does nothing as it is disabled
 func (txProc *TxProcessor) VerifyTransaction(_ *transaction.Transaction) error {
 	return nil

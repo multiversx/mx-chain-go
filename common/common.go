@@ -14,6 +14,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-go/config"
+	"github.com/multiversx/mx-chain-go/errors"
 	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
@@ -208,9 +209,41 @@ func GetNonceAndShardFromKey(nonceShardKey []byte) (uint64, uint32, error) {
 }
 
 // ConvertTimeStampSecToMs will convert unix timestamp from seconds to milliseconds
-// TODO: this has to be handled properly when round timestamp granularity will be changed to milliseconds
 func ConvertTimeStampSecToMs(timeStamp uint64) uint64 {
 	return timeStamp * 1000
+}
+
+func convertTimeStampMsToSec(timeStamp uint64) uint64 {
+	return timeStamp / 1000
+}
+
+// GetHeaderTimestamps will return timestamps as seconds and milliseconds based on supernova round activation
+func GetHeaderTimestamps(
+	header data.HeaderHandler,
+	enableEpochsHandler EnableEpochsHandler,
+) (uint64, uint64, error) {
+	if check.IfNil(header) {
+		return 0, 0, ErrNilHeaderHandler
+	}
+	if check.IfNil(enableEpochsHandler) {
+		return 0, 0, errors.ErrNilEnableEpochsHandler
+	}
+
+	headerTimestamp := header.GetTimeStamp()
+
+	timestampSec := headerTimestamp
+	timestampMs := headerTimestamp
+
+	if !enableEpochsHandler.IsFlagEnabledInEpoch(SupernovaFlag, header.GetEpoch()) {
+		timestampMs = ConvertTimeStampSecToMs(headerTimestamp)
+		return timestampSec, timestampMs, nil
+	}
+
+	// reduce block timestamp (which now comes as milliseconds) to seconds to keep backwards compatibility
+	// from now on timestampMs will be used for milliseconds granularity
+	timestampSec = convertTimeStampMsToSec(headerTimestamp)
+
+	return timestampSec, timestampMs, nil
 }
 
 // PrettifyStruct returns a JSON string representation of a struct, converting byte slices to hex

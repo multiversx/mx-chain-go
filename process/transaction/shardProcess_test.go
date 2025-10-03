@@ -80,26 +80,25 @@ func createAccountStub(sndAddr, rcvAddr []byte,
 
 func createArgsForTxProcessor() txproc.ArgsNewTxProcessor {
 	args := txproc.ArgsNewTxProcessor{
-		Accounts:                &stateMock.AccountsStub{},
-		Hasher:                  &hashingMocks.HasherMock{},
-		PubkeyConv:              createMockPubKeyConverter(),
-		Marshalizer:             &mock.MarshalizerMock{},
-		SignMarshalizer:         &mock.MarshalizerMock{},
-		ShardCoordinator:        mock.NewOneShardCoordinatorMock(),
-		ScProcessor:             &testscommon.SCProcessorMock{},
-		TxFeeHandler:            &mock.FeeAccumulatorStub{},
-		TxTypeHandler:           &testscommon.TxTypeHandlerMock{},
-		EconomicsFee:            feeHandlerMock(),
-		ReceiptForwarder:        &mock.IntermediateTransactionHandlerMock{},
-		BadTxForwarder:          &mock.IntermediateTransactionHandlerMock{},
-		UnExecutableTxForwarder: &mock.IntermediateTransactionHandlerMock{},
-		ArgsParser:              &testscommon.ArgumentParserMock{},
-		ScrForwarder:            &mock.IntermediateTransactionHandlerMock{},
-		EnableEpochsHandler:     enableEpochsHandlerMock.NewEnableEpochsHandlerStub(common.PenalizedTooMuchGasFlag, common.FixRelayedBaseCostFlag),
-		GuardianChecker:         &guardianMocks.GuardedAccountHandlerStub{},
-		TxVersionChecker:        &testscommon.TxVersionCheckerStub{},
-		TxLogsProcessor:         &mock.TxLogsProcessorStub{},
-		EnableRoundsHandler:     &testscommon.EnableRoundsHandlerStub{},
+		Accounts:            &stateMock.AccountsStub{},
+		Hasher:              &hashingMocks.HasherMock{},
+		PubkeyConv:          createMockPubKeyConverter(),
+		Marshalizer:         &mock.MarshalizerMock{},
+		SignMarshalizer:     &mock.MarshalizerMock{},
+		ShardCoordinator:    mock.NewOneShardCoordinatorMock(),
+		ScProcessor:         &testscommon.SCProcessorMock{},
+		TxFeeHandler:        &mock.FeeAccumulatorStub{},
+		TxTypeHandler:       &testscommon.TxTypeHandlerMock{},
+		EconomicsFee:        feeHandlerMock(),
+		ReceiptForwarder:    &mock.IntermediateTransactionHandlerMock{},
+		BadTxForwarder:      &mock.IntermediateTransactionHandlerMock{},
+		ArgsParser:          &testscommon.ArgumentParserMock{},
+		ScrForwarder:        &mock.IntermediateTransactionHandlerMock{},
+		EnableEpochsHandler: enableEpochsHandlerMock.NewEnableEpochsHandlerStub(common.PenalizedTooMuchGasFlag, common.FixRelayedBaseCostFlag),
+		GuardianChecker:     &guardianMocks.GuardedAccountHandlerStub{},
+		TxVersionChecker:    &testscommon.TxVersionCheckerStub{},
+		TxLogsProcessor:     &mock.TxLogsProcessorStub{},
+		EnableRoundsHandler: &testscommon.EnableRoundsHandlerStub{},
 	}
 	return args
 }
@@ -3571,4 +3570,14 @@ func TestTxProcessor_IsInterfaceNil(t *testing.T) {
 
 	proc, _ = txproc.NewTxProcessor(createArgsForTxProcessor())
 	require.False(t, proc.IsInterfaceNil())
+}
+
+func Test_test(t *testing.T) {
+	bigValue1 := big.NewInt(0)
+	bigValue2 := big.NewInt(0)
+	bigValue3 := big.NewInt(100)
+	bigValue4 := big.NewInt(0).Sub(bigValue3, big.NewInt(100))
+
+	require.Equal(t, bigValue1, bigValue2)
+	require.Equal(t, 0, bigValue4.Cmp(big.NewInt(0)))
 }

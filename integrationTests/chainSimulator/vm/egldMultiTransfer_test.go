@@ -6,7 +6,6 @@ import (
 	"math/big"
 	"strings"
 	"testing"
-	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
@@ -26,7 +25,6 @@ func TestChainSimulator_EGLD_MultiTransfer(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	startTime := time.Now().Unix()
 	roundDurationInMillis := uint64(6000)
 	roundsPerEpoch := core.OptionalUint64{
 		HasValue: true,
@@ -43,7 +41,6 @@ func TestChainSimulator_EGLD_MultiTransfer(t *testing.T) {
 		TempDir:                  t.TempDir(),
 		PathToInitialConfig:      defaultPathToInitialConfig,
 		NumOfShards:              numOfShards,
-		GenesisTimestamp:         startTime,
 		RoundDurationInMillis:    roundDurationInMillis,
 		RoundsPerEpoch:           roundsPerEpoch,
 		ApiInterface:             api.NewNoApiInterface(),
@@ -211,7 +208,6 @@ func TestChainSimulator_EGLD_MultiTransfer_Insufficient_Funds(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	startTime := time.Now().Unix()
 	roundDurationInMillis := uint64(6000)
 	roundsPerEpoch := core.OptionalUint64{
 		HasValue: true,
@@ -228,7 +224,6 @@ func TestChainSimulator_EGLD_MultiTransfer_Insufficient_Funds(t *testing.T) {
 		TempDir:                  t.TempDir(),
 		PathToInitialConfig:      defaultPathToInitialConfig,
 		NumOfShards:              numOfShards,
-		GenesisTimestamp:         startTime,
 		RoundDurationInMillis:    roundDurationInMillis,
 		RoundsPerEpoch:           roundsPerEpoch,
 		ApiInterface:             api.NewNoApiInterface(),
@@ -333,7 +328,6 @@ func TestChainSimulator_EGLD_MultiTransfer_Invalid_Value(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	startTime := time.Now().Unix()
 	roundDurationInMillis := uint64(6000)
 	roundsPerEpoch := core.OptionalUint64{
 		HasValue: true,
@@ -350,7 +344,6 @@ func TestChainSimulator_EGLD_MultiTransfer_Invalid_Value(t *testing.T) {
 		TempDir:                  t.TempDir(),
 		PathToInitialConfig:      defaultPathToInitialConfig,
 		NumOfShards:              numOfShards,
-		GenesisTimestamp:         startTime,
 		RoundDurationInMillis:    roundDurationInMillis,
 		RoundsPerEpoch:           roundsPerEpoch,
 		ApiInterface:             api.NewNoApiInterface(),
@@ -455,7 +448,6 @@ func TestChainSimulator_Multiple_EGLD_Transfers(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	startTime := time.Now().Unix()
 	roundDurationInMillis := uint64(6000)
 	roundsPerEpoch := core.OptionalUint64{
 		HasValue: true,
@@ -472,7 +464,6 @@ func TestChainSimulator_Multiple_EGLD_Transfers(t *testing.T) {
 		TempDir:                  t.TempDir(),
 		PathToInitialConfig:      defaultPathToInitialConfig,
 		NumOfShards:              numOfShards,
-		GenesisTimestamp:         startTime,
 		RoundDurationInMillis:    roundDurationInMillis,
 		RoundsPerEpoch:           roundsPerEpoch,
 		ApiInterface:             api.NewNoApiInterface(),
@@ -666,7 +657,6 @@ func TestChainSimulator_IssueToken_EGLDTicker(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	startTime := time.Now().Unix()
 	roundDurationInMillis := uint64(6000)
 	roundsPerEpoch := core.OptionalUint64{
 		HasValue: true,
@@ -683,7 +673,6 @@ func TestChainSimulator_IssueToken_EGLDTicker(t *testing.T) {
 		TempDir:                  t.TempDir(),
 		PathToInitialConfig:      defaultPathToInitialConfig,
 		NumOfShards:              numOfShards,
-		GenesisTimestamp:         startTime,
 		RoundDurationInMillis:    roundDurationInMillis,
 		RoundsPerEpoch:           roundsPerEpoch,
 		ApiInterface:             api.NewNoApiInterface(),
@@ -779,7 +768,6 @@ func TestScCallTransferValueESDT(t *testing.T) {
 		TempDir:                  t.TempDir(),
 		PathToInitialConfig:      defaultPathToInitialConfig,
 		NumOfShards:              3,
-		GenesisTimestamp:         time.Now().Unix(),
 		RoundDurationInMillis:    roundDurationInMillis,
 		RoundsPerEpoch:           roundsPerEpochOpt,
 		ApiInterface:             api.NewNoApiInterface(),

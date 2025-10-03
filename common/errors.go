@@ -35,6 +35,9 @@ var ErrInvalidHashShardKey = errors.New("invalid hash shard key")
 // ErrInvalidNonceShardKey signals that the provided nonce-shard key is invalid
 var ErrInvalidNonceShardKey = errors.New("invalid nonce shard key")
 
+// ErrNilCommonConfigsHandler signals that a nil common configs handler has been provided
+var ErrNilCommonConfigsHandler = errors.New("nil common configs handler")
+
 // ErrWrongTypeAssertion signals that a type assertion failed
 var ErrWrongTypeAssertion = errors.New("wrong type assertion")
 

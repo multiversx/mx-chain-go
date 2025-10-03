@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"math/big"
 	"testing"
-	"time"
 
 	"github.com/multiversx/mx-chain-go/config"
 	chainSimulatorIntegrationTests "github.com/multiversx/mx-chain-go/integrationTests/chainSimulator"
@@ -56,7 +55,6 @@ func testStakingProviderWithNodesReStakeUnStaked(t *testing.T, stakingV4Activati
 		TempDir:                  t.TempDir(),
 		PathToInitialConfig:      defaultPathToInitialConfig,
 		NumOfShards:              3,
-		GenesisTimestamp:         time.Now().Unix(),
 		RoundDurationInMillis:    roundDurationInMillis,
 		RoundsPerEpoch:           roundsPerEpoch,
 		ApiInterface:             api.NewNoApiInterface(),

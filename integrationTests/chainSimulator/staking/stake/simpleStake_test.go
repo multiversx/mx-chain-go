@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"math/big"
 	"testing"
-	"time"
 
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
@@ -56,7 +55,6 @@ func testChainSimulatorSimpleStake(t *testing.T, targetEpoch int32, nodesStatus 
 	if testing.Short() {
 		t.Skip("this is not a short test")
 	}
-	startTime := time.Now().Unix()
 	roundDurationInMillis := uint64(6000)
 	roundsPerEpoch := core.OptionalUint64{
 		HasValue: true,
@@ -70,7 +68,6 @@ func testChainSimulatorSimpleStake(t *testing.T, targetEpoch int32, nodesStatus 
 		TempDir:                  t.TempDir(),
 		PathToInitialConfig:      defaultPathToInitialConfig,
 		NumOfShards:              numOfShards,
-		GenesisTimestamp:         startTime,
 		RoundDurationInMillis:    roundDurationInMillis,
 		RoundsPerEpoch:           roundsPerEpoch,
 		ApiInterface:             api.NewNoApiInterface(),
@@ -166,7 +163,6 @@ func TestChainSimulator_StakingV4Step2APICalls(t *testing.T) {
 		TempDir:                t.TempDir(),
 		PathToInitialConfig:    defaultPathToInitialConfig,
 		NumOfShards:            3,
-		GenesisTimestamp:       time.Now().Unix(),
 		RoundDurationInMillis:  uint64(6000),
 		RoundsPerEpoch: core.OptionalUint64{
 			HasValue: true,

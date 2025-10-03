@@ -157,11 +157,6 @@ func (txProc *metaTxProcessor) ProcessTransaction(tx *transaction.Transaction) (
 	return vmcommon.UserError, nil
 }
 
-// RegisterUnExecutableTransaction registers the un-executable transaction in the smart contract processor
-func (txProc *metaTxProcessor) RegisterUnExecutableTransaction(_ *transaction.Transaction, _ []byte) error {
-	return process.ErrOperationNotSupportedOnMetaChain
-}
-
 func (txProc *metaTxProcessor) processSCDeployment(
 	tx *transaction.Transaction,
 	adrSrc []byte,

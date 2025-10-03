@@ -60,7 +60,6 @@ func NewMetaBootstrap(arguments ArgMetaBootstrapper) (*MetaBootstrap, error) {
 		headers:                      arguments.PoolsHolder.Headers(),
 		proofs:                       arguments.PoolsHolder.Proofs(),
 		roundHandler:                 arguments.RoundHandler,
-		waitTime:                     arguments.WaitTime,
 		hasher:                       arguments.Hasher,
 		marshalizer:                  arguments.Marshalizer,
 		forkDetector:                 arguments.ForkDetector,
@@ -84,6 +83,8 @@ func NewMetaBootstrap(arguments ArgMetaBootstrapper) (*MetaBootstrap, error) {
 		scheduledTxsExecutionHandler: arguments.ScheduledTxsExecutionHandler,
 		processWaitTime:              arguments.ProcessWaitTime,
 		enableEpochsHandler:          arguments.EnableEpochsHandler,
+		enableRoundsHandler:          arguments.EnableRoundsHandler,
+		processConfigsHandler:        arguments.ProcessConfigsHandler,
 	}
 
 	if base.isInImportMode {

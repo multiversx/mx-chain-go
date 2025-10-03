@@ -351,10 +351,6 @@ func (pcf *processComponentsFactory) createArgsTxSimulatorProcessorShard(
 	if err != nil {
 		return args, nil, nil, nil, err
 	}
-	unExecutableTxInterim, err := intermediateProcessorsContainer.Get(dataBlock.UnExecutableBlock)
-	if err != nil {
-		return args, nil, nil, nil, err
-	}
 
 	argsParser := smartContract.NewArgumentParser()
 
@@ -389,26 +385,25 @@ func (pcf *processComponentsFactory) createArgsTxSimulatorProcessorShard(
 	}
 
 	argsTxProcessor := transaction.ArgsNewTxProcessor{
-		Accounts:                accountsAdapter,
-		Hasher:                  pcf.coreData.Hasher(),
-		PubkeyConv:              pcf.coreData.AddressPubKeyConverter(),
-		Marshalizer:             pcf.coreData.InternalMarshalizer(),
-		SignMarshalizer:         pcf.coreData.TxMarshalizer(),
-		ShardCoordinator:        pcf.bootstrapComponents.ShardCoordinator(),
-		ScProcessor:             scProcessorProxy,
-		TxFeeHandler:            txFeeHandler,
-		TxTypeHandler:           txTypeHandler,
-		EconomicsFee:            pcf.coreData.EconomicsData(),
-		ReceiptForwarder:        receiptTxInterim,
-		BadTxForwarder:          badTxInterim,
-		UnExecutableTxForwarder: unExecutableTxInterim,
-		ArgsParser:              argsParser,
-		ScrForwarder:            scForwarder,
-		EnableEpochsHandler:     pcf.coreData.EnableEpochsHandler(),
-		EnableRoundsHandler:     pcf.coreData.EnableRoundsHandler(),
-		TxVersionChecker:        pcf.coreData.TxVersionChecker(),
-		GuardianChecker:         pcf.bootstrapComponents.GuardedAccountHandler(),
-		TxLogsProcessor:         txLogsProcessor,
+		Accounts:            accountsAdapter,
+		Hasher:              pcf.coreData.Hasher(),
+		PubkeyConv:          pcf.coreData.AddressPubKeyConverter(),
+		Marshalizer:         pcf.coreData.InternalMarshalizer(),
+		SignMarshalizer:     pcf.coreData.TxMarshalizer(),
+		ShardCoordinator:    pcf.bootstrapComponents.ShardCoordinator(),
+		ScProcessor:         scProcessorProxy,
+		TxFeeHandler:        txFeeHandler,
+		TxTypeHandler:       txTypeHandler,
+		EconomicsFee:        pcf.coreData.EconomicsData(),
+		ReceiptForwarder:    receiptTxInterim,
+		BadTxForwarder:      badTxInterim,
+		ArgsParser:          argsParser,
+		ScrForwarder:        scForwarder,
+		EnableEpochsHandler: pcf.coreData.EnableEpochsHandler(),
+		EnableRoundsHandler: pcf.coreData.EnableRoundsHandler(),
+		TxVersionChecker:    pcf.coreData.TxVersionChecker(),
+		GuardianChecker:     pcf.bootstrapComponents.GuardedAccountHandler(),
+		TxLogsProcessor:     txLogsProcessor,
 	}
 
 	txProcessor, err := transaction.NewTxProcessor(argsTxProcessor)
