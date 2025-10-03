@@ -2526,6 +2526,27 @@ func TestShardBootstrap_SyncBlockV3(t *testing.T) {
 		}
 	}
 
+	setupForkDetector := func(highestNonce uint64) process.ForkDetector {
+		return &mock.ForkDetectorMock{
+			CheckForkCalled: func() *process.ForkInfo {
+				return process.NewForkInfo()
+			},
+			GetHighestFinalBlockNonceCalled: func() uint64 {
+				return highestNonce
+			},
+			GetHighestFinalBlockHashCalled: func() []byte {
+				return []byte("hash")
+			},
+			ProbableHighestNonceCalled: func() uint64 {
+				return highestNonce
+			},
+			RemoveHeaderCalled: func(nonce uint64, hash []byte) {},
+			GetNotarizedHeaderHashCalled: func(nonce uint64) []byte {
+				return nil
+			},
+		}
+	}
+
 	setupPools := func(header data.HeaderHandler, hash []byte) dataRetriever.PoolsHolder {
 		pools := dataRetrieverMock.NewPoolsHolderStub()
 		pools.HeadersCalled = func() dataRetriever.HeadersPool {
@@ -2597,26 +2618,7 @@ func TestShardBootstrap_SyncBlockV3(t *testing.T) {
 
 		prevHdr := &block.HeaderV3{Nonce: 1}
 		args.Store = setupStore(args.Marshalizer, prevHdr, nil)
-
-		forkDetector := &mock.ForkDetectorMock{
-			CheckForkCalled: func() *process.ForkInfo {
-				return process.NewForkInfo()
-			},
-			GetHighestFinalBlockNonceCalled: func() uint64 {
-				return hdr.Nonce
-			},
-			GetHighestFinalBlockHashCalled: func() []byte {
-				return []byte("hash")
-			},
-			ProbableHighestNonceCalled: func() uint64 {
-				return 3
-			},
-			RemoveHeaderCalled: func(nonce uint64, hash []byte) {},
-			GetNotarizedHeaderHashCalled: func(nonce uint64) []byte {
-				return nil
-			},
-		}
-		args.ForkDetector = forkDetector
+		args.ForkDetector = setupForkDetector(3)
 
 		return args
 	}
@@ -2716,17 +2718,7 @@ func TestShardBootstrap_SyncBlockV3(t *testing.T) {
 		}
 		args.ChainHandler = blkc
 
-		forkDetector := &mock.ForkDetectorMock{}
-		forkDetector.CheckForkCalled = func() *process.ForkInfo {
-			return process.NewForkInfo()
-		}
-		forkDetector.GetHighestFinalBlockNonceCalled = func() uint64 {
-			return hdr.Nonce
-		}
-		forkDetector.ProbableHighestNonceCalled = func() uint64 {
-			return hdr.Nonce // synced
-		}
-		args.ForkDetector = forkDetector
+		args.ForkDetector = setupForkDetector(hdr.Nonce) // synced
 
 		bs, err := sync.NewShardBootstrap(args)
 		require.Nil(t, err)
@@ -2798,39 +2790,7 @@ func TestShardBootstrap_SyncBlockV3(t *testing.T) {
 			Round:         1,
 			BlockBodyType: block.TxBlock,
 		}
-
-		pools := dataRetrieverMock.NewPoolsHolderStub()
-		pools.HeadersCalled = func() dataRetriever.HeadersPool {
-			sds := &mock.HeadersCacherStub{}
-			sds.GetHeaderByNonceAndShardIdCalled = func(hdrNonce uint64, shardId uint32) (handlers []data.HeaderHandler, i [][]byte, e error) {
-				if hdrNonce == 2 {
-					return []data.HeaderHandler{header}, [][]byte{hash}, nil
-				}
-				return nil, nil, errors.New("err")
-			}
-
-			return sds
-		}
-		pools.MiniBlocksCalled = func() storage.Cacher {
-			cs := cache.NewCacherStub()
-			cs.RegisterHandlerCalled = func(i func(key []byte, value interface{})) {}
-			cs.GetCalled = func(key []byte) (value interface{}, ok bool) {
-				return make(block.MiniBlockSlice, 0), true
-			}
-
-			return cs
-		}
-		pools.TransactionsCalled = func() dataRetriever.ShardedDataCacherNotifier {
-			return &testscommon.ShardedDataStub{
-				OnExecutedBlockCalled: func(header data.HeaderHandler) error {
-					return nil
-				},
-			}
-		}
-		pools.ProofsCalled = func() dataRetriever.ProofsPool {
-			return &dataRetrieverMock.ProofsPoolMock{}
-		}
-		args.PoolsHolder = pools
+		args.PoolsHolder = setupPools(header, hash)
 
 		bs, err := sync.NewShardBootstrap(args)
 		require.Nil(t, err)
@@ -2868,7 +2828,7 @@ func TestShardBootstrap_SyncBlockV3(t *testing.T) {
 		pools.HeadersCalled = func() dataRetriever.HeadersPool {
 			sds := &mock.HeadersCacherStub{}
 			sds.GetHeaderByNonceAndShardIdCalled = func(hdrNonce uint64, shardId uint32) (handlers []data.HeaderHandler, i [][]byte, e error) {
-				if hdrNonce == 2 {
+				if hdrNonce == header.Nonce {
 					return []data.HeaderHandler{header}, [][]byte{hash}, nil
 				}
 				return nil, nil, errors.New("err")
