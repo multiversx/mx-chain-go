@@ -1151,3 +1151,31 @@ func TestSelectionTracker_GetBulkOfUntrackedTransactions(t *testing.T) {
 	bulk := tracker.GetBulkOfUntrackedTransactions(txs)
 	require.Len(t, bulk, 4)
 }
+
+func TestSelectionTracker_ResetTracker(t *testing.T) {
+	t.Parallel()
+
+	txCache := newCacheToTest(maxNumBytesPerSenderUpperBoundTest, 6)
+	tracker, err := NewSelectionTracker(txCache, maxTrackedBlocks)
+	require.Nil(t, err)
+
+	txCache.tracker = tracker
+
+	tracker.blocks = map[string]*trackedBlock{
+		"hash1": {},
+		"hash2": {},
+	}
+
+	tracker.gabc.globalAccountBreadcrumbs = map[string]*globalAccountBreadcrumb{
+		"alice": {},
+		"bob":   {},
+		"carol": {},
+	}
+
+	require.Equal(t, 2, len(tracker.blocks))
+	require.Equal(t, 3, len(tracker.gabc.globalAccountBreadcrumbs))
+
+	tracker.ResetTracker()
+	require.Equal(t, 0, len(tracker.blocks))
+	require.Equal(t, 0, len(tracker.gabc.globalAccountBreadcrumbs))
+}

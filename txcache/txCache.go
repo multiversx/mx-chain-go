@@ -189,6 +189,10 @@ func (cache *TxCache) OnExecutedBlock(blockHeader data.HeaderHandler) error {
 	return cache.tracker.OnExecutedBlock(blockHeader)
 }
 
+func (cache *TxCache) ResetTracker() {
+	cache.tracker.ResetTracker()
+}
+
 func (cache *TxCache) getSenders() []*txListForSender {
 	return cache.txListBySender.getSenders()
 }

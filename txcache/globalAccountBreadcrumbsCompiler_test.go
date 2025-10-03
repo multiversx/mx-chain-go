@@ -576,3 +576,18 @@ func Test_shouldWork(t *testing.T) {
 		requireEqualGlobalAccountsBreadcrumbs(t, expectedGlobalBreadcrumbs, gabc.globalAccountBreadcrumbs)
 	})
 }
+
+func Test_cleanGlobalBreadcrumbs(t *testing.T) {
+	t.Parallel()
+
+	gabc := newGlobalAccountBreadcrumbsCompiler()
+	gabc.globalAccountBreadcrumbs = map[string]*globalAccountBreadcrumb{
+		"alice": {},
+		"bob":   {},
+	}
+
+	require.Equal(t, 2, len(gabc.globalAccountBreadcrumbs))
+
+	gabc.cleanGlobalBreadcrumbs()
+	require.Equal(t, 0, len(gabc.globalAccountBreadcrumbs))
+}
