@@ -64,7 +64,7 @@ func (mcc *managedCryptoComponents) Close() error {
 		return nil
 	}
 
-	err := mcc.Close()
+	err := mcc.cryptoComponents.Close()
 	if err != nil {
 		return err
 	}

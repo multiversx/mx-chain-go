@@ -56,7 +56,7 @@ func (msc *managedStateComponents) Close() error {
 		return nil
 	}
 
-	err := msc.Close()
+	err := msc.stateComponents.Close()
 	if err != nil {
 		return err
 	}

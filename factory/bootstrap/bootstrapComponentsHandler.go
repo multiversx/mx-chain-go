@@ -56,7 +56,7 @@ func (mbf *managedBootstrapComponents) Close() error {
 		return nil
 	}
 
-	err := mbf.Close()
+	err := mbf.bootstrapComponents.Close()
 	if err != nil {
 		return err
 	}

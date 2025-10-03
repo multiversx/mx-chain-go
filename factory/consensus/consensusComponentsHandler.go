@@ -56,7 +56,7 @@ func (mcc *managedConsensusComponents) Close() error {
 		return nil
 	}
 
-	err := mcc.Close()
+	err := mcc.consensusComponents.Close()
 	if err != nil {
 		return err
 	}

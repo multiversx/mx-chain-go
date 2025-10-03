@@ -59,7 +59,7 @@ func (mscc *managedStatusCoreComponents) Close() error {
 		return nil
 	}
 
-	err := mscc.Close()
+	err := mscc.statusCoreComponents.Close()
 	if err != nil {
 		return err
 	}

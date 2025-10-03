@@ -57,7 +57,7 @@ func (mdc *managedDataComponents) Close() error {
 		return nil
 	}
 
-	err := mdc.Close()
+	err := mdc.dataComponents.Close()
 	if err != nil {
 		return err
 	}

@@ -62,7 +62,7 @@ func (mnc *managedNetworkComponents) Close() error {
 		return nil
 	}
 
-	err := mnc.Close()
+	err := mnc.networkComponents.Close()
 	if err != nil {
 		return err
 	}

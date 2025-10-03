@@ -76,7 +76,7 @@ func (msc *managedStatusComponents) Close() error {
 		msc.cancelFunc()
 	}
 
-	err := msc.Close()
+	err := msc.statusComponents.Close()
 	if err != nil {
 		return err
 	}

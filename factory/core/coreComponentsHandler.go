@@ -70,7 +70,7 @@ func (mcc *managedCoreComponents) Close() error {
 		return nil
 	}
 
-	err := mcc.Close()
+	err := mcc.coreComponents.Close()
 	if err != nil {
 		return err
 	}
