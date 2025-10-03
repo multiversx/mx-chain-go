@@ -324,7 +324,7 @@ func prettifyBigNumbers(val reflect.Value) (string, bool) {
 	return "", false
 }
 
-// GetLastBaseExecutionResultHandler returns the BaseExecutionResultHandler of the provided header, based on its type
+// GetLastBaseExecutionResultHandler extracts the BaseExecutionResultHandler from the provided header, based on its type
 func GetLastBaseExecutionResultHandler(header data.HeaderHandler) (data.BaseExecutionResultHandler, error) {
 	if check.IfNil(header) {
 		return nil, ErrNilHeaderHandler
