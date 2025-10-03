@@ -80,6 +80,7 @@ func createMockComponentHolders() (*processMocks.CoreComponentsMock, *processMoc
 		EnableEpochsHandlerField:           &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 		FieldsSizeCheckerField:             &testscommon.FieldsSizeCheckerMock{},
 		EpochChangeGracePeriodHandlerField: gracePeriod,
+		ProcessConfigsHandlerField:         testscommon.GetDefaultProcessConfigsHandler(),
 	}
 	cryptoComponents := &processMocks.CryptoComponentsMock{
 		BlockSig:          createMockSigner(),

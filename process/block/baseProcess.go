@@ -98,12 +98,13 @@ type baseProcessor struct {
 	epochNotifier                 process.EpochNotifier
 	enableEpochsHandler           common.EnableEpochsHandler
 	roundNotifier                 process.RoundNotifier
-	enableRoundsHandler           process.EnableRoundsHandler
+	enableRoundsHandler           common.EnableRoundsHandler
 	vmContainerFactory            process.VirtualMachinesContainerFactory
 	vmContainer                   process.VirtualMachinesContainer
 	gasConsumedProvider           gasConsumedProvider
 	economicsData                 process.EconomicsDataHandler
 	epochChangeGracePeriodHandler common.EpochChangeGracePeriodHandler
+	processConfigsHandler         common.ProcessConfigsHandler
 
 	processDataTriesOnCommitEpoch bool
 	lastRestartNonce              uint64
@@ -200,6 +201,7 @@ func NewBaseProcessor(arguments ArgBaseProcessor) (*baseProcessor, error) {
 		sentSignaturesTracker:         arguments.SentSignaturesTracker,
 		proofsPool:                    arguments.DataComponents.Datapool().Proofs(),
 		hdrsForCurrBlock:              arguments.HeadersForBlock,
+		processConfigsHandler:         arguments.CoreComponents.ProcessConfigsHandler(),
 
 		executionResultsTracker:            arguments.ExecutionResultsTracker,
 		executionResultsInclusionEstimator: arguments.ExecutionResultsInclusionEstimator,
@@ -2387,4 +2389,9 @@ func getLastBaseExecutionResultHandler(header data.HeaderHandler) (data.BaseExec
 	}
 
 	return baseExecutionResultsHandler, nil
+}
+
+func (bp *baseProcessor) getMaxRoundsWithoutBlockReceived(round uint64) uint64 {
+	maxRoundsWithoutNewBlockReceived := bp.processConfigsHandler.GetMaxRoundsWithoutNewBlockReceivedByRound(round)
+	return uint64(maxRoundsWithoutNewBlockReceived)
 }

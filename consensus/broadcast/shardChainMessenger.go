@@ -180,6 +180,7 @@ func (scm *shardChainMessenger) prepareDataToBroadcast(
 		return nil, err
 	}
 
+	// TODO: check if miniblocks and txs are set in a deterministic way (check if there are map iterations that can generate non-deterministic results)
 	metaMiniBlocks, metaTransactions := scm.extractMetaMiniBlocksAndTransactions(miniBlocks, transactions)
 
 	dtb := &dataToBroadcast{
