@@ -498,7 +498,7 @@ func Test_OnProposedBlock_ShouldWork(t *testing.T) {
 				Value:    13,
 				HasValue: true,
 			},
-			consumedBalance: big.NewInt(200000000000000),
+			consumedBalance: big.NewInt(200000000000000), // txHash2 + txHash3 + txHash7
 		},
 		"bob": {
 			firstNonce: core.OptionalUint64{
@@ -509,7 +509,7 @@ func Test_OnProposedBlock_ShouldWork(t *testing.T) {
 				Value:    11,
 				HasValue: true,
 			},
-			consumedBalance: big.NewInt(250000000000000),
+			consumedBalance: big.NewInt(250000000000000), // txHash1 + txHash4 + txHash6
 		},
 		"carol": {
 			firstNonce: core.OptionalUint64{
@@ -520,15 +520,17 @@ func Test_OnProposedBlock_ShouldWork(t *testing.T) {
 				Value:    14,
 				HasValue: true,
 			},
-			consumedBalance: big.NewInt(50000000000000),
+			consumedBalance: big.NewInt(50000000000000), // txHash5
 		},
 		"eve": {
-			consumedBalance: big.NewInt(100000000000000),
+			consumedBalance: big.NewInt(100000000000000), // txHash8
 		},
 	}
 
 	require.Equal(t, 1, len(cache.tracker.blocks))
-	require.Equal(t, expectedBreadcrumbs, cache.tracker.blocks["hash1"].breadcrumbsByAddress)
+	tb, ok := cache.tracker.blocks["hash1"]
+	require.True(t, ok)
+	require.Equal(t, expectedBreadcrumbs, tb.breadcrumbsByAddress)
 }
 
 func TestSelectionTracker_OnExecutedBlockShouldError(t *testing.T) {

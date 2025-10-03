@@ -28,14 +28,19 @@ func (breadcrumb *accountBreadcrumb) accumulateConsumedBalance(transferredValue 
 	}
 }
 
-func (breadcrumb *accountBreadcrumb) updateFirstNonce(initialNonce core.OptionalUint64) {
-	breadcrumb.firstNonce = initialNonce
+// updateFirstNonce is called only in the updateNonceRange method
+func (breadcrumb *accountBreadcrumb) updateFirstNonce(firstNonce core.OptionalUint64) {
+	breadcrumb.firstNonce = firstNonce
 }
 
+// updateNonceRange updates:
+// the last nonce of a sender breadcrumb.
+// the first nonce, in case the sender was previously ony a relayer.
 func (breadcrumb *accountBreadcrumb) updateNonceRange(lastNonce core.OptionalUint64) error {
 	if !lastNonce.HasValue {
 		return errReceivedLastNonceNotSet
 	}
+
 	if breadcrumb.lastNonce.HasValue && breadcrumb.lastNonce.Value+1 != lastNonce.Value {
 		// validate that we have txs with sequential nonces inside the tracked block used for breadcrumbs
 		return errNonceGap

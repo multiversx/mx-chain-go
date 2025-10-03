@@ -127,7 +127,7 @@ func Test_updateNonceRange(t *testing.T) {
 		require.Equal(t, uint64(4), breadcrumb.lastNonce.Value)
 	})
 
-	t.Run("should update the first nonce in case of relayer", func(t *testing.T) {
+	t.Run("should update the first nonce in case of previously relayer", func(t *testing.T) {
 		t.Parallel()
 
 		feePayerBreadcrumb := accountBreadcrumb{
@@ -136,7 +136,7 @@ func Test_updateNonceRange(t *testing.T) {
 				HasValue: false,
 			},
 			lastNonce: core.OptionalUint64{
-				Value:    3,
+				Value:    0,
 				HasValue: false,
 			},
 			consumedBalance: big.NewInt(10),
