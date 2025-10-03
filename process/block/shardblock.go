@@ -2101,7 +2101,7 @@ func (sp *shardProcessor) createMiniBlocks(haveTime func() bool, randomness []by
 	return &block.Body{MiniBlocks: miniBlocks}, processedMiniBlocksDestMeInfo, nil
 }
 
-func shouldDisableOutgoingTxs(enableEpochsHandler common.EnableEpochsHandler, enableRoundsHandler process.EnableRoundsHandler) bool {
+func shouldDisableOutgoingTxs(enableEpochsHandler common.EnableEpochsHandler, enableRoundsHandler common.EnableRoundsHandler) bool {
 	// // TODO: use flag for async execution
 	// isSupernovaEnabled := enableEpochsHandler.IsFlagEnabled(common.SupernovaFlag)
 	// asyncExecutionEnabled := enableRoundsHandler.IsFlagEnabled(common.SupernovaAsyncExecution)

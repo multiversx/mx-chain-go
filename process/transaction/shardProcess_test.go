@@ -3571,13 +3571,3 @@ func TestTxProcessor_IsInterfaceNil(t *testing.T) {
 	proc, _ = txproc.NewTxProcessor(createArgsForTxProcessor())
 	require.False(t, proc.IsInterfaceNil())
 }
-
-func Test_test(t *testing.T) {
-	bigValue1 := big.NewInt(0)
-	bigValue2 := big.NewInt(0)
-	bigValue3 := big.NewInt(100)
-	bigValue4 := big.NewInt(0).Sub(bigValue3, big.NewInt(100))
-
-	require.Equal(t, bigValue1, bigValue2)
-	require.Equal(t, 0, bigValue4.Cmp(big.NewInt(0)))
-}
