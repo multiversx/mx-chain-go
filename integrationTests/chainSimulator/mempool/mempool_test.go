@@ -1149,7 +1149,7 @@ func Test_Selection_ProposeBlocksWithSameNonceToTriggerForkScenarios(t *testing.
 		)
 		require.Nil(t, err)
 
-		// because the block with nonce 2 was replaced, we expect to still have two selections
+		// because the block with nonce 2 was replaced, we expect to still have two non-empty selections
 		blockchainInfo = holders.NewBlockchainInfo([]byte("blockHash0"), []byte("blockHashF1"), 3)
 		selectedTransactions, _, err = txpool.SelectTransactions(selectionSession, options, blockchainInfo)
 		require.Nil(t, err)
@@ -1168,7 +1168,7 @@ func Test_Selection_ProposeBlocksWithSameNonceToTriggerForkScenarios(t *testing.
 		)
 		require.Nil(t, err)
 
-		// expect one more good selection
+		// expect one more non-empty selection
 		blockchainInfo = holders.NewBlockchainInfo([]byte("blockHash0"), []byte("blockHashF2"), 4)
 		selectedTransactions, _, err = txpool.SelectTransactions(selectionSession, options, blockchainInfo)
 		require.Nil(t, err)
