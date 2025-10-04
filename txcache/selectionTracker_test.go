@@ -420,7 +420,7 @@ func TestSelectionTracker_OnProposedBlockWhenMaxTrackedBlocksIsReached(t *testin
 	require.Equal(t, 5, len(tracker.blocks))
 }
 
-func Test_OnProposedBlock_ShouldWork(t *testing.T) {
+func Test_OnProposedBlockAndDeriveShouldWork_ShouldWork(t *testing.T) {
 	t.Parallel()
 
 	accountsProvider := &txcachemocks.AccountNonceAndBalanceProviderMock{
@@ -447,6 +447,7 @@ func Test_OnProposedBlock_ShouldWork(t *testing.T) {
 	require.Nil(t, err)
 
 	txs := []*WrappedTransaction{
+		// txs for firs block
 		createTx([]byte("txHash1"), "alice", 11).withRelayer([]byte("bob")).withGasLimit(100_000), // the fee is 100000000000000
 		createTx([]byte("txHash2"), "alice", 12),                                                  // the fee is 50000000000000
 		createTx([]byte("txHash3"), "alice", 13),
@@ -455,6 +456,10 @@ func Test_OnProposedBlock_ShouldWork(t *testing.T) {
 		createTx([]byte("txHash6"), "carol", 12).withRelayer([]byte("bob")).withGasLimit(100_000),
 		createTx([]byte("txHash7"), "carol", 13).withRelayer([]byte("alice")).withGasLimit(100_000),
 		createTx([]byte("txHash8"), "carol", 14).withRelayer([]byte("eve")).withGasLimit(100_000),
+
+		// txs for second block
+		createTx([]byte("txHash9"), "carol", 15),
+		createTx([]byte("txHash10"), "eve", 11).withRelayer([]byte("bob")).withGasLimit(100_000),
 	}
 	for _, tx := range txs {
 		cache.AddTx(tx)
@@ -531,6 +536,181 @@ func Test_OnProposedBlock_ShouldWork(t *testing.T) {
 	tb, ok := cache.tracker.blocks["hash1"]
 	require.True(t, ok)
 	require.Equal(t, expectedBreadcrumbs, tb.breadcrumbsByAddress)
+
+	// propose another block
+	err = cache.OnProposedBlock(
+		[]byte("hash2"),
+		&block.Body{
+			MiniBlocks: []*block.MiniBlock{
+				{
+					TxHashes: [][]byte{
+						[]byte("txHash9"),
+						[]byte("txHash10"),
+					},
+				},
+			},
+		},
+		&block.Header{
+			Nonce:    uint64(1),
+			PrevHash: []byte("hash1"),
+			RootHash: []byte("rootHash0"),
+		},
+		accountsProvider,
+		holders.NewBlockchainInfo([]byte("hash0"), []byte("hash1"), 1),
+	)
+	require.Nil(t, err)
+
+	expectedBreadcrumbs = map[string]*accountBreadcrumb{
+		"bob": {
+			firstNonce: core.OptionalUint64{
+				Value:    0,
+				HasValue: false,
+			},
+			lastNonce: core.OptionalUint64{
+				Value:    0,
+				HasValue: false,
+			},
+			consumedBalance: big.NewInt(100000000000000),
+		},
+		"carol": {
+			firstNonce: core.OptionalUint64{
+				Value:    15,
+				HasValue: true,
+			},
+			lastNonce: core.OptionalUint64{
+				Value:    15,
+				HasValue: true,
+			},
+			consumedBalance: big.NewInt(50000000000000),
+		},
+		"eve": {
+			firstNonce: core.OptionalUint64{
+				Value:    11,
+				HasValue: true,
+			},
+			lastNonce: core.OptionalUint64{
+				Value:    11,
+				HasValue: true,
+			},
+			consumedBalance: big.NewInt(0), // txHash8
+		},
+	}
+	require.Equal(t, 2, len(cache.tracker.blocks))
+	tb, ok = cache.tracker.blocks["hash2"]
+	require.True(t, ok)
+	require.Equal(t, expectedBreadcrumbs, tb.breadcrumbsByAddress)
+
+	selectionSession := &txcachemocks.SelectionSessionMock{
+		GetAccountNonceAndBalanceCalled: func(address []byte) (uint64, *big.Int, bool, error) {
+			return 11, big.NewInt(8 * 100000 * oneBillion), true, nil
+		},
+	}
+
+	blockchainInfo := holders.NewBlockchainInfo([]byte("hash0"), []byte("hash2"), 2)
+	virtualSession, err := cache.tracker.deriveVirtualSelectionSession(selectionSession, blockchainInfo)
+
+	require.Nil(t, err)
+	require.NotNil(t, virtualSession)
+
+	expectedVirtualRecords := map[string]*virtualAccountRecord{
+		"alice": {
+			initialNonce: core.OptionalUint64{
+				Value:    14,
+				HasValue: true,
+			},
+			virtualBalance: &virtualAccountBalance{
+				initialBalance:  big.NewInt(8 * 100000 * oneBillion),
+				consumedBalance: big.NewInt(200000000000000),
+			},
+		},
+		"bob": {
+			initialNonce: core.OptionalUint64{
+				Value:    12,
+				HasValue: true,
+			},
+			virtualBalance: &virtualAccountBalance{
+				initialBalance:  big.NewInt(8 * 100000 * oneBillion),
+				consumedBalance: big.NewInt(350000000000000),
+			},
+		},
+		"carol": {
+			initialNonce: core.OptionalUint64{
+				Value:    16,
+				HasValue: true,
+			},
+			virtualBalance: &virtualAccountBalance{
+				initialBalance:  big.NewInt(8 * 100000 * oneBillion),
+				consumedBalance: big.NewInt(100000000000000),
+			},
+		},
+		"eve": {
+			initialNonce: core.OptionalUint64{
+				Value:    12,
+				HasValue: true,
+			},
+			virtualBalance: &virtualAccountBalance{
+				initialBalance:  big.NewInt(8 * 100000 * oneBillion),
+				consumedBalance: big.NewInt(100000000000000),
+			},
+		},
+	}
+	require.Equal(t, expectedVirtualRecords, virtualSession.virtualAccountsByAddress)
+
+	// execute the first block
+	err = cache.OnExecutedBlock(&block.Header{
+		Nonce:    uint64(0),
+		PrevHash: []byte("hash0"),
+		RootHash: []byte("rootHash0"),
+	})
+	require.Nil(t, err)
+
+	// update the session nonce
+	selectionSession = &txcachemocks.SelectionSessionMock{
+		GetAccountNonceAndBalanceCalled: func(address []byte) (uint64, *big.Int, bool, error) {
+			if string(address) == "carol" {
+				return 15, big.NewInt(8 * 100000 * oneBillion), true, nil
+			}
+			return 11, big.NewInt(8 * 100000 * oneBillion), true, nil
+		},
+	}
+
+	blockchainInfo = holders.NewBlockchainInfo([]byte("hash1"), []byte("hash2"), 2)
+	virtualSession, err = cache.tracker.deriveVirtualSelectionSession(selectionSession, blockchainInfo)
+	require.Nil(t, err)
+
+	expectedVirtualRecords = map[string]*virtualAccountRecord{
+		"bob": {
+			initialNonce: core.OptionalUint64{
+				Value:    0,
+				HasValue: false,
+			},
+			virtualBalance: &virtualAccountBalance{
+				initialBalance:  big.NewInt(8 * 100000 * oneBillion),
+				consumedBalance: big.NewInt(100000000000000),
+			},
+		},
+		"carol": {
+			initialNonce: core.OptionalUint64{
+				Value:    16,
+				HasValue: true,
+			},
+			virtualBalance: &virtualAccountBalance{
+				initialBalance:  big.NewInt(8 * 100000 * oneBillion),
+				consumedBalance: big.NewInt(50000000000000),
+			},
+		},
+		"eve": {
+			initialNonce: core.OptionalUint64{
+				Value:    12,
+				HasValue: true,
+			},
+			virtualBalance: &virtualAccountBalance{
+				initialBalance:  big.NewInt(8 * 100000 * oneBillion),
+				consumedBalance: big.NewInt(0),
+			},
+		},
+	}
+	require.Equal(t, expectedVirtualRecords, virtualSession.virtualAccountsByAddress)
 }
 
 func TestSelectionTracker_OnExecutedBlockShouldError(t *testing.T) {

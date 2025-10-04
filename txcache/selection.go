@@ -126,6 +126,10 @@ func selectTransactionsFromBunches(
 func detectSkippableSender(virtualSession *virtualSelectionSession, item *transactionsHeapItem, virtualRecord *virtualAccountRecord) bool {
 	nonce, err := virtualRecord.getInitialNonce()
 	if err != nil {
+		// TODO brainstorm if this should remain like this
+		// There is a chance that our sender was only a relayer in the proposed blocks:
+		// in the current implementation, its virtual record will not have a set nonce.
+		// However, this shouldn't lead to not selecting its transactions where he behaves as a sender.
 		log.Debug("detectSkippableSender", "err", err)
 		return true
 	}
@@ -146,6 +150,10 @@ func detectSkippableSender(virtualSession *virtualSelectionSession, item *transa
 func detectSkippableTransaction(virtualSession *virtualSelectionSession, item *transactionsHeapItem, virtualRecord *virtualAccountRecord) bool {
 	nonce, err := virtualRecord.getInitialNonce()
 	if err != nil {
+		// TODO brainstorm if this should remain like this
+		// There is a chance that our sender was only a relayer in the proposed blocks:
+		// in the current implementation, its virtual record will not have a set nonce.
+		// However, this shouldn't lead to not selecting its transactions where he behaves as a sender.
 		log.Debug("detectSkippableTransaction", "err", err)
 		return true
 	}
