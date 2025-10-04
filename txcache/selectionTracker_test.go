@@ -447,7 +447,7 @@ func Test_CompleteFlowShouldWork(t *testing.T) {
 	require.Nil(t, err)
 
 	txs := []*WrappedTransaction{
-		// txs for firs block
+		// txs for first block
 		createTx([]byte("txHash1"), "alice", 11).withRelayer([]byte("bob")).withGasLimit(100_000), // the fee is 100000000000000
 		createTx([]byte("txHash2"), "alice", 12),                                                  // the fee is 50000000000000
 		createTx([]byte("txHash3"), "alice", 13),
@@ -698,8 +698,10 @@ func Test_CompleteFlowShouldWork(t *testing.T) {
 
 	expectedVirtualRecords = map[string]*virtualAccountRecord{
 		"bob": {
+			// bob was only relayer in the last proposed block (which is still tracked).
+			// However, its initialNonce shouldn't remain uninitialized, so it's initialized with the session nonce.
 			initialNonce: core.OptionalUint64{
-				Value:    12, // bob was only in the last proposed block relayer, but its initialNonce shouldn't remain uninitialized, so it's initialized with the session nonce
+				Value:    12,
 				HasValue: true,
 			},
 			virtualBalance: &virtualAccountBalance{
