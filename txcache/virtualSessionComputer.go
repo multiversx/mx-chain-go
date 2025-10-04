@@ -2,6 +2,8 @@ package txcache
 
 import (
 	"math/big"
+
+	"github.com/multiversx/mx-chain-core-go/core"
 )
 
 // virtualSessionComputer relies on the internal state of the validator for skipping certain senders
@@ -57,7 +59,7 @@ func (computer *virtualSessionComputer) handleTrackedBlock(tb *trackedBlock) err
 			continue
 		}
 
-		err = computer.fromBreadcrumbToVirtualRecord(address, accountBalance, breadcrumb)
+		err = computer.fromBreadcrumbToVirtualRecord(address, accountNonce, accountBalance, breadcrumb)
 		if err != nil {
 			return err
 		}
@@ -68,13 +70,23 @@ func (computer *virtualSessionComputer) handleTrackedBlock(tb *trackedBlock) err
 
 func (computer *virtualSessionComputer) fromBreadcrumbToVirtualRecord(
 	address string,
+	accountNonce uint64,
 	accountBalance *big.Int,
 	breadcrumb *accountBreadcrumb,
 ) error {
 	virtualRecord, ok := computer.virtualAccountsByAddress[address]
 	if !ok {
+		initialNonce := core.OptionalUint64{
+			Value:    accountNonce,
+			HasValue: true,
+		}
 		initialBalance := accountBalance
-		record, err := newVirtualAccountRecord(breadcrumb.firstNonce, initialBalance)
+
+		// We initialize the virtual record with the session nonce because an account might be only a relayer in the proposed blocks.
+		// Without this initialization, the initialNonce remains without a value.
+		// On the selection side, a virtual account record that has an initial nonce without a value
+		// will lead to incorrect non-selection of a specific tx where the account is a sender.
+		record, err := newVirtualAccountRecord(initialNonce, initialBalance)
 		if err != nil {
 			return err
 		}

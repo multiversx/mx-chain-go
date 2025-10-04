@@ -420,7 +420,7 @@ func TestSelectionTracker_OnProposedBlockWhenMaxTrackedBlocksIsReached(t *testin
 	require.Equal(t, 5, len(tracker.blocks))
 }
 
-func Test_OnProposedBlockAndDeriveShouldWork_ShouldWork(t *testing.T) {
+func Test_CompleteFlowShouldWork(t *testing.T) {
 	t.Parallel()
 
 	accountsProvider := &txcachemocks.AccountNonceAndBalanceProviderMock{
@@ -460,9 +460,25 @@ func Test_OnProposedBlockAndDeriveShouldWork_ShouldWork(t *testing.T) {
 		// txs for second block
 		createTx([]byte("txHash9"), "carol", 15),
 		createTx([]byte("txHash10"), "eve", 11).withRelayer([]byte("bob")).withGasLimit(100_000),
+
+		// tx to be selected
+		createTx([]byte("txHash11"), "bob", 12),
+		createTx([]byte("txHash12"), "carol", 13), // this one should not be selected
+		createTx([]byte("txHash13"), "eve", 14),   // this one should not be selected
 	}
 	for _, tx := range txs {
 		cache.AddTx(tx)
+	}
+
+	proposedBlock1 := [][]byte{
+		[]byte("txHash1"),
+		[]byte("txHash2"),
+		[]byte("txHash3"),
+		[]byte("txHash4"),
+		[]byte("txHash5"),
+		[]byte("txHash6"),
+		[]byte("txHash7"),
+		[]byte("txHash8"),
 	}
 
 	err = cache.OnProposedBlock(
@@ -470,16 +486,7 @@ func Test_OnProposedBlockAndDeriveShouldWork_ShouldWork(t *testing.T) {
 		&block.Body{
 			MiniBlocks: []*block.MiniBlock{
 				{
-					TxHashes: [][]byte{
-						[]byte("txHash1"),
-						[]byte("txHash2"),
-						[]byte("txHash3"),
-						[]byte("txHash4"),
-						[]byte("txHash5"),
-						[]byte("txHash6"),
-						[]byte("txHash7"),
-						[]byte("txHash8"),
-					},
+					TxHashes: proposedBlock1,
 				},
 			},
 		},
@@ -664,12 +671,23 @@ func Test_OnProposedBlockAndDeriveShouldWork_ShouldWork(t *testing.T) {
 	})
 	require.Nil(t, err)
 
+	for _, txHash := range proposedBlock1 {
+		cache.RemoveTxByHash(txHash)
+	}
+
 	// update the session nonce
 	selectionSession = &txcachemocks.SelectionSessionMock{
 		GetAccountNonceAndBalanceCalled: func(address []byte) (uint64, *big.Int, bool, error) {
+			if string(address) == "alice" {
+				return 14, big.NewInt(8 * 100000 * oneBillion), true, nil
+			}
+			if string(address) == "bob" {
+				return 12, big.NewInt(8 * 100000 * oneBillion), true, nil
+			}
 			if string(address) == "carol" {
 				return 15, big.NewInt(8 * 100000 * oneBillion), true, nil
 			}
+
 			return 11, big.NewInt(8 * 100000 * oneBillion), true, nil
 		},
 	}
@@ -681,8 +699,8 @@ func Test_OnProposedBlockAndDeriveShouldWork_ShouldWork(t *testing.T) {
 	expectedVirtualRecords = map[string]*virtualAccountRecord{
 		"bob": {
 			initialNonce: core.OptionalUint64{
-				Value:    0,
-				HasValue: false,
+				Value:    12, // bob was only in the last proposed block relayer, but its initialNonce shouldn't remain uninitialized, so it's initialized with the session nonce
+				HasValue: true,
 			},
 			virtualBalance: &virtualAccountBalance{
 				initialBalance:  big.NewInt(8 * 100000 * oneBillion),
@@ -711,6 +729,23 @@ func Test_OnProposedBlockAndDeriveShouldWork_ShouldWork(t *testing.T) {
 		},
 	}
 	require.Equal(t, expectedVirtualRecords, virtualSession.virtualAccountsByAddress)
+
+	options := holders.NewTxSelectionOptions(
+		10_000_000_000,
+		10,
+		selectionLoopMaximumDuration,
+		10,
+	)
+
+	blockchainInfo = holders.NewBlockchainInfo([]byte("hash1"), []byte("hash2"), 2)
+	selectedTxs, _, err := cache.SelectTransactions(
+		selectionSession,
+		options,
+		blockchainInfo,
+	)
+	require.Nil(t, err)
+	require.Len(t, selectedTxs, 1)
+	require.Equal(t, "txHash11", string(selectedTxs[0].TxHash))
 }
 
 func TestSelectionTracker_OnExecutedBlockShouldError(t *testing.T) {

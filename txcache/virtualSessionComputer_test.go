@@ -14,6 +14,7 @@ func Test_fromBreadcrumbToVirtualRecord(t *testing.T) {
 	t.Parallel()
 
 	address := "bob"
+	sessionNonce := uint64(1)
 	accountBalance := big.NewInt(2)
 
 	breadcrumbBob := accountBreadcrumb{
@@ -40,7 +41,7 @@ func Test_fromBreadcrumbToVirtualRecord(t *testing.T) {
 	}
 
 	computer := newVirtualSessionComputer(nil)
-	err := computer.fromBreadcrumbToVirtualRecord(address, accountBalance, &breadcrumbBob)
+	err := computer.fromBreadcrumbToVirtualRecord(address, sessionNonce, accountBalance, &breadcrumbBob)
 	require.Nil(t, err)
 
 	actualVirtualRecord, ok := computer.virtualAccountsByAddress[address]
