@@ -487,17 +487,23 @@ func TestGetLastBaseExecutionResultHandler(t *testing.T) {
 	t.Parallel()
 
 	t.Run("nil header, should return error", func(t *testing.T) {
+		t.Parallel()
+
 		var header data.HeaderHandler
 		result, err := common.GetLastBaseExecutionResultHandler(header)
 		require.Nil(t, result)
 		require.Equal(t, common.ErrNilHeaderHandler, err)
 	})
 	t.Run("nil last execution result (wrong header), should return error", func(t *testing.T) {
+		t.Parallel()
+
 		result, err := common.GetLastBaseExecutionResultHandler(&block.Header{})
 		require.Nil(t, result)
 		require.Equal(t, common.ErrNilLastExecutionResultHandler, err)
 	})
 	t.Run("valid LastMetaExecutionResultHandler, should return handler", func(t *testing.T) {
+		t.Parallel()
+
 		baseMetaExecutionResultsHandler := &block.BaseMetaExecutionResult{
 			BaseExecutionResult: &block.BaseExecutionResult{
 				HeaderHash:  []byte("hash"),
@@ -520,6 +526,8 @@ func TestGetLastBaseExecutionResultHandler(t *testing.T) {
 		require.Equal(t, baseMetaExecutionResultsHandler, result)
 	})
 	t.Run("nil internal BaseMetaExecutionResultHandler, should return error", func(t *testing.T) {
+		t.Parallel()
+
 		header := &block.MetaBlockV3{
 			LastExecutionResult: &block.MetaExecutionResultInfo{
 				NotarizedInRound: 201,
@@ -532,6 +540,8 @@ func TestGetLastBaseExecutionResultHandler(t *testing.T) {
 		require.Equal(t, common.ErrNilBaseExecutionResult, err)
 	})
 	t.Run("valid LastShardExecutionResultHandler, should return handler", func(t *testing.T) {
+		t.Parallel()
+
 		baseExecutionResults := &block.BaseExecutionResult{
 			HeaderHash:  []byte("hash"),
 			HeaderNonce: 100,
@@ -552,6 +562,8 @@ func TestGetLastBaseExecutionResultHandler(t *testing.T) {
 	})
 
 	t.Run("nil base execution result, should return error", func(t *testing.T) {
+		t.Parallel()
+
 		var baseExecutionResultsHandler *block.BaseExecutionResult
 		header := &block.HeaderV3{
 			LastExecutionResult: &block.ExecutionResultInfo{

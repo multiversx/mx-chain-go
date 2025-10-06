@@ -918,15 +918,15 @@ func (boot *baseBootstrap) syncBlockV3() error {
 		return err
 	}
 
+	if !header.IsHeaderV3() {
+		return process.ErrInvalidHeader
+	}
+
 	go boot.requestHeadersFromNonceIfMissing(header.GetNonce() + 1)
 
 	body, err = boot.blockBootstrapper.getBlockBodyRequestingIfMissing(header)
 	if err != nil {
 		return err
-	}
-
-	if !header.IsHeaderV3() {
-		return process.ErrInvalidHeader
 	}
 
 	err = boot.prepareTxPoolToSyncBlock()
@@ -996,7 +996,13 @@ func (boot *baseBootstrap) prepareTxPoolToSyncBlock() error {
 	}
 
 	txPool := boot.poolsHolder.Transactions()
-	return txPool.OnExecutedBlock(lastExecutedHeader)
+	err = txPool.OnExecutedBlock(lastExecutedHeader)
+	if err != nil {
+		// TODO: reset the txPool context in case of error, once this will be implemented
+		return err
+	}
+
+	return nil
 }
 
 func (boot *baseBootstrap) handleTrieSyncError(err error, ctx context.Context) {
