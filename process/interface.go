@@ -138,7 +138,7 @@ type InterceptedData interface {
 // InterceptorProcessor further validates and saves received data
 type InterceptorProcessor interface {
 	Validate(data InterceptedData, fromConnectedPeer core.PeerID) error
-	Save(data InterceptedData, fromConnectedPeer core.PeerID, topic string) (bool, error)
+	Save(data InterceptedData, fromConnectedPeer core.PeerID, topic string) (dataSaved bool, err error)
 	RegisterHandler(handler func(topic string, hash []byte, data interface{}))
 	IsInterfaceNil() bool
 }
