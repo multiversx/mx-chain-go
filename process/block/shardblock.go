@@ -289,7 +289,7 @@ func (sp *shardProcessor) checkEpochStartInfoAvailableIfNeeded(header data.Shard
 	}
 
 	if !sp.proofsPool.HasProof(core.MetachainShardId, header.GetEpochStartMetaHash()) {
-		return fmt.Errorf("%w: missing proof for epoch start meta header %s", process.ErrEpochStartInfoNotAvailable)
+		return fmt.Errorf("%w: missing proof for epoch start meta header", process.ErrEpochStartInfoNotAvailable)
 	}
 
 	return nil
