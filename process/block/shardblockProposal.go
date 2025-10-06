@@ -697,6 +697,9 @@ func (sp *shardProcessor) CollectExecutionResults(headerHash []byte, header data
 	processedMiniBlockInfo := make(map[string]*processedMb.ProcessedMiniBlockInfo)
 
 	totalTxCount, miniBlockHeaderHandlers, err := sp.createMiniBlockHeaderHandlers(sanitizedBodyAfterExecution, processedMiniBlockInfo)
+	if err != nil {
+		return nil, err
+	}
 
 	executionResult := &block.ExecutionResult{
 		BaseExecutionResult: &block.BaseExecutionResult{
