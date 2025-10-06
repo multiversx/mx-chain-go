@@ -2201,10 +2201,6 @@ func (mp *metaProcessor) CreateNewHeader(round uint64, nonce uint64) (data.Heade
 
 	epochChangeProposed := mp.epochStartTrigger.ShouldProposeEpochChange(round, nonce)
 	epoch := mp.epochStartTrigger.Epoch()
-	if epochChangeProposed {
-		// if this header proposes an epoch change, we should increment the epoch here.
-		// (it hasn’t been incremented yet by the epoch trigger because Update was not called.)
-	}
 
 	header := mp.versionedHeaderFactory.Create(epoch, round)
 	metaHeader, ok := header.(data.MetaHeaderHandler)
