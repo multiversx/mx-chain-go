@@ -501,42 +501,10 @@ func Test_CompleteFlowShouldWork(t *testing.T) {
 	require.Nil(t, err)
 
 	expectedBreadcrumbs := map[string]*accountBreadcrumb{
-		"alice": {
-			firstNonce: core.OptionalUint64{
-				Value:    11,
-				HasValue: true,
-			},
-			lastNonce: core.OptionalUint64{
-				Value:    13,
-				HasValue: true,
-			},
-			consumedBalance: big.NewInt(200000000000000), // txHash2 + txHash3 + txHash7
-		},
-		"bob": {
-			firstNonce: core.OptionalUint64{
-				Value:    11,
-				HasValue: true,
-			},
-			lastNonce: core.OptionalUint64{
-				Value:    11,
-				HasValue: true,
-			},
-			consumedBalance: big.NewInt(250000000000000), // txHash1 + txHash4 + txHash6
-		},
-		"carol": {
-			firstNonce: core.OptionalUint64{
-				Value:    11,
-				HasValue: true,
-			},
-			lastNonce: core.OptionalUint64{
-				Value:    14,
-				HasValue: true,
-			},
-			consumedBalance: big.NewInt(50000000000000), // txHash5
-		},
-		"eve": {
-			consumedBalance: big.NewInt(100000000000000), // txHash8
-		},
+		"alice": createExpectedBreadcrumb(true, 11, 13, big.NewInt(200000000000000)), // feeOf(txHash2) + feeOf(txHash3) + feeOf(txHash7)
+		"bob":   createExpectedBreadcrumb(true, 11, 11, big.NewInt(250000000000000)), // feeOf(txHash1) + feeOf(txHash4) + feeOf(txHash6)
+		"carol": createExpectedBreadcrumb(true, 11, 14, big.NewInt(50000000000000)),  // feeOf(txHash5)
+		"eve":   createExpectedBreadcrumb(false, 0, 0, big.NewInt(100000000000000)),  // feeOf(txHash8)
 	}
 
 	require.Equal(t, 1, len(cache.tracker.blocks))
@@ -568,39 +536,9 @@ func Test_CompleteFlowShouldWork(t *testing.T) {
 	require.Nil(t, err)
 
 	expectedBreadcrumbs = map[string]*accountBreadcrumb{
-		"bob": {
-			firstNonce: core.OptionalUint64{
-				Value:    0,
-				HasValue: false,
-			},
-			lastNonce: core.OptionalUint64{
-				Value:    0,
-				HasValue: false,
-			},
-			consumedBalance: big.NewInt(100000000000000),
-		},
-		"carol": {
-			firstNonce: core.OptionalUint64{
-				Value:    15,
-				HasValue: true,
-			},
-			lastNonce: core.OptionalUint64{
-				Value:    15,
-				HasValue: true,
-			},
-			consumedBalance: big.NewInt(50000000000000),
-		},
-		"eve": {
-			firstNonce: core.OptionalUint64{
-				Value:    11,
-				HasValue: true,
-			},
-			lastNonce: core.OptionalUint64{
-				Value:    11,
-				HasValue: true,
-			},
-			consumedBalance: big.NewInt(0), // txHash8
-		},
+		"bob":   createExpectedBreadcrumb(false, 0, 0, big.NewInt(100000000000000)),
+		"carol": createExpectedBreadcrumb(true, 15, 15, big.NewInt(50000000000000)),
+		"eve":   createExpectedBreadcrumb(true, 11, 11, big.NewInt(0)), // feeOf(txHash8)
 	}
 	require.Equal(t, 2, len(cache.tracker.blocks))
 	tb, ok = cache.tracker.blocks["hash2"]
@@ -620,46 +558,10 @@ func Test_CompleteFlowShouldWork(t *testing.T) {
 	require.NotNil(t, virtualSession)
 
 	expectedVirtualRecords := map[string]*virtualAccountRecord{
-		"alice": {
-			initialNonce: core.OptionalUint64{
-				Value:    14,
-				HasValue: true,
-			},
-			virtualBalance: &virtualAccountBalance{
-				initialBalance:  big.NewInt(8 * 100000 * oneBillion),
-				consumedBalance: big.NewInt(200000000000000),
-			},
-		},
-		"bob": {
-			initialNonce: core.OptionalUint64{
-				Value:    12,
-				HasValue: true,
-			},
-			virtualBalance: &virtualAccountBalance{
-				initialBalance:  big.NewInt(8 * 100000 * oneBillion),
-				consumedBalance: big.NewInt(350000000000000),
-			},
-		},
-		"carol": {
-			initialNonce: core.OptionalUint64{
-				Value:    16,
-				HasValue: true,
-			},
-			virtualBalance: &virtualAccountBalance{
-				initialBalance:  big.NewInt(8 * 100000 * oneBillion),
-				consumedBalance: big.NewInt(100000000000000),
-			},
-		},
-		"eve": {
-			initialNonce: core.OptionalUint64{
-				Value:    12,
-				HasValue: true,
-			},
-			virtualBalance: &virtualAccountBalance{
-				initialBalance:  big.NewInt(8 * 100000 * oneBillion),
-				consumedBalance: big.NewInt(100000000000000),
-			},
-		},
+		"alice": createExpectedVirtualRecord(true, 14, big.NewInt(8*100000*oneBillion), big.NewInt(200000000000000)),
+		"bob":   createExpectedVirtualRecord(true, 12, big.NewInt(8*100000*oneBillion), big.NewInt(350000000000000)),
+		"carol": createExpectedVirtualRecord(true, 16, big.NewInt(8*100000*oneBillion), big.NewInt(100000000000000)),
+		"eve":   createExpectedVirtualRecord(true, 12, big.NewInt(8*100000*oneBillion), big.NewInt(100000000000000)),
 	}
 	require.Equal(t, expectedVirtualRecords, virtualSession.virtualAccountsByAddress)
 
@@ -697,38 +599,11 @@ func Test_CompleteFlowShouldWork(t *testing.T) {
 	require.Nil(t, err)
 
 	expectedVirtualRecords = map[string]*virtualAccountRecord{
-		"bob": {
-			// bob was only relayer in the last proposed block (which is still tracked).
-			// However, its initialNonce shouldn't remain uninitialized, so it's initialized with the session nonce.
-			initialNonce: core.OptionalUint64{
-				Value:    12,
-				HasValue: true,
-			},
-			virtualBalance: &virtualAccountBalance{
-				initialBalance:  big.NewInt(8 * 100000 * oneBillion),
-				consumedBalance: big.NewInt(100000000000000),
-			},
-		},
-		"carol": {
-			initialNonce: core.OptionalUint64{
-				Value:    16,
-				HasValue: true,
-			},
-			virtualBalance: &virtualAccountBalance{
-				initialBalance:  big.NewInt(8 * 100000 * oneBillion),
-				consumedBalance: big.NewInt(50000000000000),
-			},
-		},
-		"eve": {
-			initialNonce: core.OptionalUint64{
-				Value:    12,
-				HasValue: true,
-			},
-			virtualBalance: &virtualAccountBalance{
-				initialBalance:  big.NewInt(8 * 100000 * oneBillion),
-				consumedBalance: big.NewInt(0),
-			},
-		},
+		// bob was only relayer in the last proposed block (which is still tracked).
+		// However, its initialNonce shouldn't remain uninitialized, so it's initialized with the session nonce.
+		"bob":   createExpectedVirtualRecord(true, 12, big.NewInt(8*100000*oneBillion), big.NewInt(100000000000000)),
+		"carol": createExpectedVirtualRecord(true, 16, big.NewInt(8*100000*oneBillion), big.NewInt(50000000000000)),
+		"eve":   createExpectedVirtualRecord(true, 12, big.NewInt(8*100000*oneBillion), big.NewInt(0)),
 	}
 	require.Equal(t, expectedVirtualRecords, virtualSession.virtualAccountsByAddress)
 

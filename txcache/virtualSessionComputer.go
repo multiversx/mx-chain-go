@@ -85,7 +85,7 @@ func (computer *virtualSessionComputer) fromBreadcrumbToVirtualRecord(
 		// We initialize the virtual record with the session nonce because an account might be only a relayer in the proposed blocks.
 		// Without this initialization, the initialNonce remains without a value.
 		// On the selection side, a virtual account record that has an initial nonce without a value
-		// will lead to incorrect skip of a specific tx where the account is a sender.
+		// will lead to an incorrect skip of a specific tx where the account is a sender.
 		record, err := newVirtualAccountRecord(initialNonce, initialBalance)
 		if err != nil {
 			return err

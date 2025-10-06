@@ -35,7 +35,7 @@ func (breadcrumb *accountBreadcrumb) updateFirstNonce(firstNonce core.OptionalUi
 
 // updateNonceRange updates:
 // the last nonce of a sender breadcrumb.
-// the first nonce, in case the sender was previously ony a relayer.
+// the first nonce, in case the sender was previously only a relayer.
 func (breadcrumb *accountBreadcrumb) updateNonceRange(lastNonce core.OptionalUint64) error {
 	if !lastNonce.HasValue {
 		return errReceivedLastNonceNotSet
