@@ -274,11 +274,7 @@ func (sp *shardProcessor) shouldEpochStartInfoBeAvailable(header data.ShardHeade
 	if sp.epochStartTrigger.MetaEpoch() >= header.GetEpoch() {
 		return false
 	}
-	if sp.epochStartTrigger.IsEpochStart() {
-		return false
-	}
-
-	return true
+	return !sp.epochStartTrigger.IsEpochStart()
 }
 
 func (sp *shardProcessor) checkEpochStartInfoAvailableIfNeeded(header data.ShardHeaderHandler) error {
@@ -286,7 +282,17 @@ func (sp *shardProcessor) checkEpochStartInfoAvailableIfNeeded(header data.Shard
 		return nil
 	}
 
-	return process.ErrEpochStartInfoNotAvailable
+	headersPool := sp.dataPool.Headers()
+	_, err := headersPool.GetHeaderByHash(header.GetEpochStartMetaHash())
+	if err != nil {
+		return fmt.Errorf("%w: missing epoch start meta header", process.ErrEpochStartInfoNotAvailable)
+	}
+
+	if !sp.proofsPool.HasProof(core.MetachainShardId, header.GetEpochStartMetaHash()) {
+		return fmt.Errorf("%w: missing proof for epoch start meta header %s", process.ErrEpochStartInfoNotAvailable)
+	}
+
+	return nil
 }
 
 func (sp *shardProcessor) requestEpochStartInfo(header data.ShardHeaderHandler, haveTime func() time.Duration) error {

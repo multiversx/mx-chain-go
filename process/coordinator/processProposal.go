@@ -201,7 +201,7 @@ func (tc *transactionCoordinator) verifyCreatedMiniBlocksSanity(body *block.Body
 	}
 
 	if !reflect.DeepEqual(allTxsInBody, allCollectedTxs) {
-		return process.ErrTransactionsMissmatch
+		return process.ErrTransactionsMismatch
 	}
 
 	return nil
