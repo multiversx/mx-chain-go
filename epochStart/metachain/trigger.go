@@ -192,11 +192,6 @@ func (t *trigger) ForceEpochStart(round uint64) {
 	log.Debug("set new epoch start round", "round", t.nextEpochStartRound)
 }
 
-// ShouldProposeEpochChange will return true if an epoch change event should be trigger
-func (t *trigger) ShouldProposeEpochChange(_ uint64, _ uint64) bool {
-	return false
-}
-
 func (t *trigger) getRoundsPerEpoch(epoch uint32) uint64 {
 	chainParametersForEpoch, err := t.chainParametersHandler.ChainParametersForEpoch(epoch)
 	if err != nil {
@@ -217,6 +212,31 @@ func (t *trigger) getMinRoundsBetweenEpochs(epoch uint32) uint64 {
 	return uint64(chainParametersForEpoch.MinRoundsBetweenEpochs)
 }
 
+// UpdateRound will set the current round
+func (t *trigger) UpdateRound(round uint64) {
+	t.mutTrigger.Lock()
+	defer t.mutTrigger.Unlock()
+
+	t.currentRound = round
+}
+
+// ShouldProposeEpochChange will return true if an epoch change event should be trigger
+func (t *trigger) ShouldProposeEpochChange(currentRound uint64, currentNonce uint64) bool {
+	t.mutTrigger.RLock()
+	defer t.mutTrigger.RUnlock()
+
+	return t.shouldTriggerEpochStart(currentRound, currentNonce)
+}
+
+func (t *trigger) shouldTriggerEpochStart(currentRound uint64, currentNonce uint64) bool {
+	isZeroEpochEdgeCase := currentNonce < minimumNonceToStartEpoch
+	isNormalEpochStart := currentRound > t.currEpochStartRound+t.getRoundsPerEpoch(t.epoch)
+	isWithEarlyEndOfEpoch := currentRound >= t.nextEpochStartRound
+	shouldTriggerEpochStart := (isNormalEpochStart || isWithEarlyEndOfEpoch) && !isZeroEpochEdgeCase
+
+	return shouldTriggerEpochStart
+}
+
 // Update processes changes in the trigger
 func (t *trigger) Update(round uint64, nonce uint64) {
 	t.mutTrigger.Lock()
@@ -228,22 +248,30 @@ func (t *trigger) Update(round uint64, nonce uint64) {
 		return
 	}
 
-	isZeroEpochEdgeCase := nonce < minimumNonceToStartEpoch
-	isNormalEpochStart := t.currentRound > t.currEpochStartRound+t.getRoundsPerEpoch(t.epoch)
-	isWithEarlyEndOfEpoch := t.currentRound >= t.nextEpochStartRound
-	shouldTriggerEpochStart := (isNormalEpochStart || isWithEarlyEndOfEpoch) && !isZeroEpochEdgeCase
-	if shouldTriggerEpochStart {
-		t.epoch += 1
-		t.isEpochStart = true
-		t.prevEpochStartRound = t.currEpochStartRound
-		t.currEpochStartRound = t.currentRound
-
-		msg := fmt.Sprintf("EPOCH %d BEGINS IN ROUND (%d)", t.epoch, t.currentRound)
-		log.Debug(display.Headline(msg, "", "#"))
-		log.Debug("trigger.Update", "isEpochStart", t.isEpochStart)
-		logger.SetCorrelationEpoch(t.epoch)
-		t.nextEpochStartRound = disabledRoundForForceEpochStart
+	if t.shouldTriggerEpochStart(round, nonce) {
+		t.setEpochChange()
 	}
+}
+
+// SetEpochChange will increment the epoch field and all fields related with epoch change
+func (t *trigger) SetEpochChange() {
+	t.mutTrigger.Lock()
+	defer t.mutTrigger.Unlock()
+
+	t.setEpochChange()
+}
+
+func (t *trigger) setEpochChange() {
+	t.epoch += 1
+	t.isEpochStart = true
+	t.prevEpochStartRound = t.currEpochStartRound
+	t.currEpochStartRound = t.currentRound
+
+	msg := fmt.Sprintf("EPOCH %d BEGINS IN ROUND (%d)", t.epoch, t.currentRound)
+	log.Debug(display.Headline(msg, "", "#"))
+	log.Debug("trigger.Update", "isEpochStart", t.isEpochStart)
+	logger.SetCorrelationEpoch(t.epoch)
+	t.nextEpochStartRound = disabledRoundForForceEpochStart
 }
 
 // SetProcessed sets start of epoch to false and cleans underlying structure

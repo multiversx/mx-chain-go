@@ -3228,7 +3228,7 @@ func TestCreateNewHeaderV3(t *testing.T) {
 	newHeader, err := mp.CreateNewHeader(round, nonce)
 	require.Nil(t, err)
 	require.IsType(t, &block.MetaBlockV3{}, newHeader)
-	require.Equal(t, epoch+1, newHeader.GetEpoch())
+	require.Equal(t, epoch, newHeader.GetEpoch())
 }
 
 func TestMetaProcessor_ProcessEpochStartMetaBlock(t *testing.T) {

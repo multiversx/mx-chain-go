@@ -206,7 +206,11 @@ func (mp *metaProcessor) ProcessBlock(
 		return err
 	}
 
-	mp.epochStartTrigger.Update(header.GetRound(), header.GetNonce())
+	if mp.enableRoundsHandler.IsFlagEnabled(common.SupernovaRoundFlag) {
+		mp.epochStartTrigger.UpdateRound(header.GetRound())
+	} else {
+		mp.epochStartTrigger.Update(header.GetRound(), header.GetNonce())
+	}
 
 	err = mp.checkEpochCorrectness(header)
 	if err != nil {
@@ -2189,7 +2193,9 @@ func (mp *metaProcessor) verifyValidatorStatisticsRootHash(header *block.MetaBlo
 
 // CreateNewHeader creates a new header
 func (mp *metaProcessor) CreateNewHeader(round uint64, nonce uint64) (data.HeaderHandler, error) {
-	if !mp.enableRoundsHandler.IsFlagEnabled(common.SupernovaRoundFlag) {
+	if mp.enableRoundsHandler.IsFlagEnabled(common.SupernovaRoundFlag) {
+		mp.epochStartTrigger.UpdateRound(round)
+	} else {
 		mp.epochStartTrigger.Update(round, nonce)
 	}
 
@@ -2198,7 +2204,6 @@ func (mp *metaProcessor) CreateNewHeader(round uint64, nonce uint64) (data.Heade
 	if epochChangeProposed {
 		// if this header proposes an epoch change, we should increment the epoch here.
 		// (it hasn’t been incremented yet by the epoch trigger because Update was not called.)
-		epoch++
 	}
 
 	header := mp.versionedHeaderFactory.Create(epoch, round)

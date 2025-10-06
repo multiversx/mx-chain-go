@@ -21,6 +21,24 @@ type EpochStartTriggerStub struct {
 	EpochFinalityAttestingRoundCalled func() uint64
 	EpochStartMetaHdrHashCalled       func() []byte
 	ShouldProposeEpochChangeCalled    func(round uint64, nonce uint64) bool
+	UpdateRoundCalled                 func(round uint64)
+	SetEpochChangeCalled              func()
+}
+
+// UpdateRound -
+func (e *EpochStartTriggerStub) UpdateRound(round uint64) {
+	if e.UpdateRoundCalled != nil {
+		e.UpdateRoundCalled(round)
+	}
+
+}
+
+// SetEpochChange -
+func (e *EpochStartTriggerStub) SetEpochChange() {
+	if e.SetEpochChangeCalled != nil {
+		e.SetEpochChangeCalled()
+	}
+
 }
 
 // RevertStateToBlock -
