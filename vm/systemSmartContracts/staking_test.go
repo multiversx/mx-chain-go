@@ -1596,6 +1596,7 @@ func TestStakingSc_ExecuteStakeWithSupernova(t *testing.T) {
 	stakerAddress := []byte("stakerAddr")
 	callerAddress := []byte("data")
 
+	// keys have to be the same len
 	pubKey1 := []byte("firsstKey")
 	pubKey2 := []byte("secondKey")
 	pubKey3 := []byte("thirddKey")
