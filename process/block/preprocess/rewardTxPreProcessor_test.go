@@ -629,3 +629,27 @@ func createDefaultRewardsProcessorArgs(tdp dataRetriever.PoolsHolder) RewardsPre
 		RewardProcessor: &testscommon.RewardTxProcessorMock{},
 	}
 }
+
+func TestRewardTxPreprocessor_GetCreatedMiniBlocksFromMe(t *testing.T) {
+	t.Parallel()
+
+	tdp := initDataPool()
+	args := createDefaultRewardsProcessorArgs(tdp)
+	rtp, _ := NewRewardTxPreprocessor(args)
+
+	// always returns empty
+	createdMbs := rtp.GetCreatedMiniBlocksFromMe()
+	assert.Len(t, createdMbs, 0)
+}
+
+func TestRewardTxPreprocessor_GetUnExecutableTransactions(t *testing.T) {
+	t.Parallel()
+
+	tdp := initDataPool()
+	args := createDefaultRewardsProcessorArgs(tdp)
+	rtp, _ := NewRewardTxPreprocessor(args)
+
+	// always returns empty
+	unexecTxs := rtp.GetUnExecutableTransactions()
+	assert.Len(t, unexecTxs, 0)
+}

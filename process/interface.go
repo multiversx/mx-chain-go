@@ -185,8 +185,6 @@ type TransactionCoordinator interface {
 
 	SelectOutgoingTransactions() [][]byte
 	CreateMbsCrossShardDstMe(header data.HeaderHandler, processedMiniBlocksInfo map[string]*processedMb.ProcessedMiniBlockInfo) ([]block.MiniblockAndHash, uint32, bool, error)
-
-	// CollectExecutionResults(header data.HeaderHandler, body *block.Body) (data.BaseExecutionResultHandler, error)
 }
 
 // SmartContractProcessor is the main interface for the smart contract caller engine

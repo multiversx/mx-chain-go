@@ -1084,3 +1084,27 @@ func createDefaultSmartContractProcessorArgs(tdp dataRetriever.PoolsHolder) Smar
 		ScrProcessor: &testscommon.TxProcessorMock{},
 	}
 }
+
+func TestSmartContractResults_GetCreatedMiniBlocksFromMe(t *testing.T) {
+	t.Parallel()
+
+	tdp := initDataPool()
+	args := createDefaultSmartContractProcessorArgs(tdp)
+	scrPreproc, _ := NewSmartContractResultPreprocessor(args)
+
+	// always returns empty
+	createdMbs := scrPreproc.GetCreatedMiniBlocksFromMe()
+	assert.Len(t, createdMbs, 0)
+}
+
+func TestSmartContractResult_GetUnExecutableTransactions(t *testing.T) {
+	t.Parallel()
+
+	tdp := initDataPool()
+	args := createDefaultSmartContractProcessorArgs(tdp)
+	scrPreproc, _ := NewSmartContractResultPreprocessor(args)
+
+	// always returns empty
+	unexecTxs := scrPreproc.GetUnExecutableTransactions()
+	assert.Len(t, unexecTxs, 0)
+}

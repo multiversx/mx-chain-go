@@ -334,7 +334,7 @@ func (sp *shardProcessor) ProcessBlockProposal(
 		return nil, err
 	}
 
-	executionResult, err := sp.CollectExecutionResults(headerHash, header, body)
+	executionResult, err := sp.collectExecutionResults(headerHash, header, body)
 	if err != nil {
 		return nil, err
 	}
@@ -663,8 +663,8 @@ func (sp *shardProcessor) checkMetaHeadersValidityAndFinalityProposal(header dat
 	return nil
 }
 
-// CollectExecutionResults collects the execution results after processing the block
-func (sp *shardProcessor) CollectExecutionResults(headerHash []byte, header data.HeaderHandler, body *block.Body) (data.BaseExecutionResultHandler, error) {
+// collectExecutionResults collects the execution results after processing the block
+func (sp *shardProcessor) collectExecutionResults(headerHash []byte, header data.HeaderHandler, body *block.Body) (data.BaseExecutionResultHandler, error) {
 	crossShardIncomingMiniBlocks := sp.getCrossShardIncomingMiniBlocksFromBody(body)
 	// TODO: make sure the miniBlocks are saved in the DB somewhere, otherwise they cannot be synchronized by other nodes
 	// this is for the miniBlocksFromSelf and postProcessMiniBlocks
