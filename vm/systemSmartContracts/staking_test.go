@@ -1594,97 +1594,103 @@ func TestStakingSc_ExecuteStakeWithSupernova(t *testing.T) {
 	stakingSmartContract, _ := NewStakingSmartContract(args)
 
 	stakerAddress := []byte("stakerAddr")
-	stakerPubKey := []byte("stakerPublicKey")
 	callerAddress := []byte("data")
 
-	// do stake should work
-	doStake(t, stakingSmartContract, stakingAccessAddress, stakerAddress, []byte("firsstKey"))
-	doStake(t, stakingSmartContract, stakingAccessAddress, stakerAddress, []byte("secondKey"))
-	doStake(t, stakingSmartContract, stakingAccessAddress, stakerAddress, stakerPubKey)
-	doStake(t, stakingSmartContract, stakingAccessAddress, stakerAddress, []byte("fourthKey"))
+	pubKey1 := []byte("firsstKey")
+	pubKey2 := []byte("secondKey")
+	pubKey3 := []byte("thirddKey")
+	pubKey4 := []byte("fourthKey")
+	pubKey5 := []byte("fifthhKey")
+	pubKey6 := []byte("sixthhKey")
+	pubKey7 := []byte("seventKey")
 
-	checkIsStaked(t, stakingSmartContract, callerAddress, []byte("firsstKey"), vmcommon.Ok)
-	checkIsStaked(t, stakingSmartContract, callerAddress, []byte("secondKey"), vmcommon.Ok)
-	checkIsStaked(t, stakingSmartContract, callerAddress, stakerPubKey, vmcommon.UserError)
-	checkIsStaked(t, stakingSmartContract, callerAddress, []byte("fourthKey"), vmcommon.UserError)
+	// do stake should work
+	doStake(t, stakingSmartContract, stakingAccessAddress, stakerAddress, pubKey1)
+	doStake(t, stakingSmartContract, stakingAccessAddress, stakerAddress, pubKey2)
+	doStake(t, stakingSmartContract, stakingAccessAddress, stakerAddress, pubKey3)
+	doStake(t, stakingSmartContract, stakingAccessAddress, stakerAddress, pubKey4)
+
+	checkIsStaked(t, stakingSmartContract, callerAddress, pubKey1, vmcommon.Ok)
+	checkIsStaked(t, stakingSmartContract, callerAddress, pubKey2, vmcommon.Ok)
+	checkIsStaked(t, stakingSmartContract, callerAddress, pubKey3, vmcommon.UserError)
+	checkIsStaked(t, stakingSmartContract, callerAddress, pubKey4, vmcommon.UserError)
 
 	arguments := CreateVmContractCallInput()
 	arguments.Function = "switchJailedWithWaiting"
 	arguments.CallerAddr = args.EndOfEpochAccessAddr
-	arguments.Arguments = [][]byte{[]byte("firsstKey")}
+	arguments.Arguments = [][]byte{pubKey1}
 	retCode := stakingSmartContract.Execute(arguments)
 	assert.Equal(t, retCode, vmcommon.Ok)
 	// check if account is staked should return error code
-	checkIsStaked(t, stakingSmartContract, callerAddress, stakerPubKey, vmcommon.Ok)
-	checkIsStaked(t, stakingSmartContract, callerAddress, []byte("firsstKey"), vmcommon.UserError)
+	checkIsStaked(t, stakingSmartContract, callerAddress, pubKey1, vmcommon.UserError)
 
 	arguments = CreateVmContractCallInput()
 	arguments.Function = "switchJailedWithWaiting"
 	arguments.CallerAddr = args.EndOfEpochAccessAddr
-	arguments.Arguments = [][]byte{[]byte("secondKey")}
+	arguments.Arguments = [][]byte{pubKey2}
 	retCode = stakingSmartContract.Execute(arguments)
 	assert.Equal(t, retCode, vmcommon.Ok)
-	checkIsStaked(t, stakingSmartContract, callerAddress, []byte("fourthKey"), vmcommon.Ok)
-	checkIsStaked(t, stakingSmartContract, callerAddress, []byte("secondKey"), vmcommon.UserError)
+	checkIsStaked(t, stakingSmartContract, callerAddress, pubKey4, vmcommon.Ok)
+	checkIsStaked(t, stakingSmartContract, callerAddress, pubKey2, vmcommon.UserError)
 
-	doStake(t, stakingSmartContract, stakingAccessAddress, stakerAddress, []byte("fifthhKey"))
-	checkIsStaked(t, stakingSmartContract, callerAddress, []byte("fifthhKey"), vmcommon.UserError)
+	doStake(t, stakingSmartContract, stakingAccessAddress, stakerAddress, pubKey5)
+	checkIsStaked(t, stakingSmartContract, callerAddress, pubKey5, vmcommon.UserError)
 
-	doGetStatus(t, stakingSmartContract, eei, []byte("firsstKey"), "jailed")
-	doUnJail(t, stakingSmartContract, stakingAccessAddress, []byte("firsstKey"), vmcommon.Ok)
-	doGetStatus(t, stakingSmartContract, eei, []byte("firsstKey"), "queued")
-	doUnJail(t, stakingSmartContract, stakingAccessAddress, []byte("secondKey"), vmcommon.Ok)
+	doGetStatus(t, stakingSmartContract, eei, pubKey1, "jailed")
+	doUnJail(t, stakingSmartContract, stakingAccessAddress, pubKey1, vmcommon.Ok)
+	doGetStatus(t, stakingSmartContract, eei, pubKey1, "queued")
+	doUnJail(t, stakingSmartContract, stakingAccessAddress, pubKey2, vmcommon.Ok)
 
 	waitingList, _ := stakingSmartContract.getWaitingListHead()
 	assert.Equal(t, uint32(3), waitingList.Length)
-	assert.Equal(t, []byte("w_secondKey"), waitingList.LastJailedKey)
-	assert.Equal(t, []byte("w_firsstKey"), waitingList.FirstKey)
-	assert.Equal(t, []byte("w_fifthhKey"), waitingList.LastKey)
+	assert.Equal(t, []byte("w_"+string(pubKey2)), waitingList.LastJailedKey)
+	assert.Equal(t, []byte("w_"+string(pubKey1)), waitingList.FirstKey)
+	assert.Equal(t, []byte("w_"+string(pubKey5)), waitingList.LastKey)
 
-	doStake(t, stakingSmartContract, stakingAccessAddress, stakerAddress, []byte("sixthhKey"))
-	doGetWaitingListIndex(t, stakingSmartContract, eei, []byte("firsstKey"), vmcommon.Ok, 1)
-	doGetWaitingListIndex(t, stakingSmartContract, eei, []byte("secondKey"), vmcommon.Ok, 2)
-	doGetWaitingListIndex(t, stakingSmartContract, eei, []byte("fifthhKey"), vmcommon.Ok, 3)
-	doGetWaitingListIndex(t, stakingSmartContract, eei, []byte("sixthhKey"), vmcommon.Ok, 4)
+	doStake(t, stakingSmartContract, stakingAccessAddress, stakerAddress, pubKey6)
+	doGetWaitingListIndex(t, stakingSmartContract, eei, pubKey1, vmcommon.Ok, 1)
+	doGetWaitingListIndex(t, stakingSmartContract, eei, pubKey2, vmcommon.Ok, 2)
+	doGetWaitingListIndex(t, stakingSmartContract, eei, pubKey5, vmcommon.Ok, 3)
+	doGetWaitingListIndex(t, stakingSmartContract, eei, pubKey6, vmcommon.Ok, 4)
 
 	outPut := doGetWaitingListRegisterNonceAndRewardAddress(t, stakingSmartContract, eei)
 	assert.Equal(t, 12, len(outPut))
 
 	stakingSmartContract.unBondPeriod = 0
-	doUnStake(t, stakingSmartContract, stakingAccessAddress, stakerAddress, []byte("secondKey"), vmcommon.Ok)
-	doUnBond(t, stakingSmartContract, stakingAccessAddress, []byte("secondKey"), vmcommon.Ok)
+	doUnStake(t, stakingSmartContract, stakingAccessAddress, stakerAddress, pubKey2, vmcommon.Ok)
+	doUnBond(t, stakingSmartContract, stakingAccessAddress, pubKey2, vmcommon.Ok)
 	waitingList, _ = stakingSmartContract.getWaitingListHead()
-	assert.Equal(t, []byte("w_firsstKey"), waitingList.LastJailedKey)
+	assert.Equal(t, []byte("w_"+string(pubKey1)), waitingList.LastJailedKey)
 
-	doUnStake(t, stakingSmartContract, stakingAccessAddress, stakerAddress, []byte("firsstKey"), vmcommon.Ok)
-	doUnBond(t, stakingSmartContract, stakingAccessAddress, []byte("firsstKey"), vmcommon.Ok)
+	doUnStake(t, stakingSmartContract, stakingAccessAddress, stakerAddress, pubKey1, vmcommon.Ok)
+	doUnBond(t, stakingSmartContract, stakingAccessAddress, pubKey1, vmcommon.Ok)
 	waitingList, _ = stakingSmartContract.getWaitingListHead()
 	assert.Equal(t, 0, len(waitingList.LastJailedKey))
 
 	doGetWaitingListSize(t, stakingSmartContract, eei, 2)
-	doGetRewardAddress(t, stakingSmartContract, eei, []byte("fifthhKey"), string(stakerAddress))
-	doGetStatus(t, stakingSmartContract, eei, []byte("fifthhKey"), "queued")
-	doGetStatus(t, stakingSmartContract, eei, []byte("fourthKey"), "staked")
+	doGetRewardAddress(t, stakingSmartContract, eei, pubKey5, string(stakerAddress))
+	doGetStatus(t, stakingSmartContract, eei, pubKey5, "queued")
+	doGetStatus(t, stakingSmartContract, eei, pubKey4, "staked")
 
 	stakingSmartContract.unBondPeriod = 10
 	stakingSmartContract.unBondPeriodSupernova = 100
 	blockChainHook.CurrentNonceCalled = func() uint64 {
 		return 1
 	}
-	doUnStake(t, stakingSmartContract, stakingAccessAddress, stakerAddress, []byte("fourthKey"), vmcommon.Ok)
-	doGetRemainingUnbondPeriod(t, stakingSmartContract, eei, []byte("fourthKey"), 100)
+	doUnStake(t, stakingSmartContract, stakingAccessAddress, stakerAddress, pubKey4, vmcommon.Ok)
+	doGetRemainingUnbondPeriod(t, stakingSmartContract, eei, pubKey4, 100)
 
 	blockChainHook.CurrentNonceCalled = func() uint64 {
 		return 50
 	}
-	doGetRemainingUnbondPeriod(t, stakingSmartContract, eei, []byte("fourthKey"), 51)
+	doGetRemainingUnbondPeriod(t, stakingSmartContract, eei, pubKey4, 51)
 
 	blockChainHook.CurrentNonceCalled = func() uint64 {
 		return 101
 	}
-	doGetRemainingUnbondPeriod(t, stakingSmartContract, eei, []byte("fourthKey"), 0)
+	doGetRemainingUnbondPeriod(t, stakingSmartContract, eei, pubKey4, 0)
 
-	doStake(t, stakingSmartContract, stakingAccessAddress, stakerAddress, []byte("seventKey"))
+	doStake(t, stakingSmartContract, stakingAccessAddress, stakerAddress, pubKey7)
 	doGetWaitingListSize(t, stakingSmartContract, eei, 2)
 	outPut = doGetWaitingListRegisterNonceAndRewardAddress(t, stakingSmartContract, eei)
 	assert.Equal(t, 6, len(outPut))
