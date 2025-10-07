@@ -6,13 +6,13 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
-
 	"math/big"
 	"sync"
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/core/pubkeyConverter"
 	"github.com/multiversx/mx-chain-core-go/core/sharding"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/api"
@@ -26,10 +26,13 @@ import (
 	"github.com/multiversx/mx-chain-go/factory"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/components"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/components/heartbeat"
+	"github.com/multiversx/mx-chain-go/node/chainSimulator/components/fetcher"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/configs"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/dtos"
 	chainSimulatorErrors "github.com/multiversx/mx-chain-go/node/chainSimulator/errors"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/process"
+	"github.com/multiversx/mx-chain-go/state"
+	"github.com/multiversx/mx-chain-go/state/trackableDataTrie"
 	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
@@ -63,6 +66,15 @@ type ArgsChainSimulator struct {
 	ApiInterface               components.APIConfigurator
 	AlterConfigsFunction       func(cfg *config.Configs)
 	VmQueryDelayAfterStartInMs uint64
+	FetchStateConfig           FetchStateFromProvidedChainConfig
+}
+
+type FetchStateFromProvidedChainConfig struct {
+	Enabled    bool
+	FetchNonce bool
+	FetchRound bool
+	FetchEpoch bool
+	GatewayURL string
 }
 
 // ArgsBaseChainSimulator holds the arguments needed to create a new instance of simulator
@@ -82,6 +94,7 @@ type simulator struct {
 	nodes                  map[uint32]process.NodeHandler
 	numOfShards            uint32
 	mutex                  sync.RWMutex
+	chainFetcher           ChainFetcher
 }
 
 // NewChainSimulator will create a new instance of simulator
@@ -113,7 +126,43 @@ func NewBaseChainSimulator(args ArgsBaseChainSimulator) (*simulator, error) {
 	return instance, nil
 }
 
+func (s *simulator) enableChainFetcherIfNeeded(args *ArgsBaseChainSimulator) error {
+	if !args.FetchStateConfig.Enabled {
+		return nil
+	}
+
+	addressConverter, err := pubkeyConverter.NewBech32PubkeyConverter(32, "erd")
+	if err != nil {
+		return err
+	}
+	dataFetcher := fetcher.NewDataFetcher(args.FetchStateConfig.GatewayURL, addressConverter)
+
+	s.chainFetcher = dataFetcher
+
+	networkInfo, err := dataFetcher.GetNetworkInfo()
+	if err != nil {
+		return err
+	}
+
+	if args.FetchStateConfig.FetchNonce {
+		args.InitialNonce = networkInfo.CurrentNonce
+	}
+	if args.FetchStateConfig.FetchRound {
+		args.InitialRound = networkInfo.CurrentRound
+	}
+	if args.FetchStateConfig.FetchEpoch {
+		args.InitialEpoch = networkInfo.CurrentEpoch
+	}
+
+	return nil
+}
+
 func (s *simulator) createChainHandlers(args ArgsBaseChainSimulator) error {
+	err := s.enableChainFetcherIfNeeded(&args)
+	if err != nil {
+		return err
+	}
+
 	outputConfigs, err := configs.CreateChainSimulatorConfigs(configs.ArgsChainSimulatorConfigs{
 		NumOfShards:                 args.NumOfShards,
 		OriginalConfigsPath:         args.PathToInitialConfig,
@@ -219,6 +268,11 @@ func (s *simulator) createChainHandlers(args ArgsBaseChainSimulator) error {
 		"genesis timestamp", args.GenesisTimestamp,
 		"original config path", args.PathToInitialConfig,
 		"temporary path", args.TempDir)
+
+	if args.FetchStateConfig.Enabled {
+		state.SetDataFetcher(s.chainFetcher)
+		trackableDataTrie.SetDataFetcher(s.chainFetcher)
+	}
 
 	return nil
 }
@@ -400,6 +454,14 @@ func (s *simulator) allNodesCreateBlocks() error {
 	}
 
 	return nil
+}
+
+// ChainFetcher returns the chain fetcher
+func (s *simulator) ChainFetcher() ChainFetcher {
+	s.mutex.RLock()
+	defer s.mutex.RUnlock()
+
+	return s.chainFetcher
 }
 
 // GetNodeHandler returns the node handler from the provided shardID
