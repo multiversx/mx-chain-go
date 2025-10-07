@@ -182,8 +182,11 @@ type TransactionCoordinator interface {
 	AddTransactions(txHandlers []data.TransactionHandler, blockType block.Type)
 	IsInterfaceNil() bool
 
-	SelectOutgoingTransactions() [][]byte
-	CreateMbsCrossShardDstMe(header data.HeaderHandler, processedMiniBlocksInfo map[string]*processedMb.ProcessedMiniBlockInfo) ([]block.MiniblockAndHash, uint32, bool, error)
+	SelectOutgoingTransactions() (selectedTxHashes [][]byte, selectedPendingIncomingMiniBlocks []data.MiniBlockHeaderHandler)
+	CreateMbsCrossShardDstMe(
+		header data.HeaderHandler,
+		processedMiniBlocksInfo map[string]*processedMb.ProcessedMiniBlockInfo,
+	) (addedMiniBlocksAndHashes []block.MiniblockAndHash, pendingMiniBlocksAndHashes []block.MiniblockAndHash, numTransactions uint32, allMiniBlocksAdded bool, err error)
 }
 
 // SmartContractProcessor is the main interface for the smart contract caller engine
@@ -1481,11 +1484,11 @@ type GasComputation interface {
 	CheckIncomingMiniBlocks(
 		miniBlocks []data.MiniBlockHeaderHandler,
 		transactions map[string][]data.TransactionHandler,
-	) (int, int, error)
+	) (lastMiniBlockIndex int, pendingMiniBlocks int, err error)
 	CheckOutgoingTransactions(
 		txHashes [][]byte,
 		transactions []data.TransactionHandler,
-	) ([][]byte, error)
+	) (addedTxHashes [][]byte, pendingMiniBlocksAdded []data.MiniBlockHeaderHandler, err error)
 	GetBandwidthForTransactions() uint64
 	TotalGasConsumed() uint64
 	DecreaseIncomingLimit()
