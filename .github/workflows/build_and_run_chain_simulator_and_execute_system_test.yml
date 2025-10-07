@@ -289,55 +289,37 @@ jobs:
         run: |
           set +e
           pytest mx-chain-testing-suite/scenarios/ --html=report.html --self-contained-html --continue-on-collection-errors
-          INITIAL_PYTEST_EXIT_CODE=$?
+          PYTEST_EXIT_CODE=$?
           set -e
-
-          echo "Initial pytest exit code: $INITIAL_PYTEST_EXIT_CODE"
-
-          # Parse the HTML report to determine actual test status
-          FINAL_PYTEST_EXIT_CODE=$INITIAL_PYTEST_EXIT_CODE
-
+          
+          echo "Pytest exit code: $PYTEST_EXIT_CODE"
+          
           if [ -f "report.html" ]; then
             echo "Report generated successfully."
-
-            # Extract test summary from HTML report using multiple parsing approaches
-            FAILED_TESTS=$(grep -E '[0-9]+ Failed|Failed.*[0-9]+' report.html | head -1 | grep -o '[0-9]\+' | head -1 || echo "0")
-            ERROR_TESTS=$(grep -E '[0-9]+ Errors|Errors.*[0-9]+' report.html | head -1 | grep -o '[0-9]\+' | head -1 || echo "0")
-            RERUN_TESTS=$(grep -E '[0-9]+ Reruns|Reruns.*[0-9]+' report.html | head -1 | grep -o '[0-9]\+' | head -1 || echo "0")
-
-            # Fallback: check for "0 Failed" pattern directly
-            if grep -q "0 Failed" report.html && [ "$INITIAL_PYTEST_EXIT_CODE" -ne 0 ]; then
-              echo "Detected '0 Failed' pattern in report despite non-zero exit code - likely successful reruns"
-              FAILED_TESTS=0
-            fi
-
+          
+            # Extract test metrics from HTML checkbox spans
+            FAILED_TESTS=$(grep -oP '\d+(?= Failed,)' report.html | head -1 || echo "0")
+            ERROR_TESTS=$(grep -oP '\d+(?= Errors,)' report.html | head -1 || echo "0")
+            RERUN_TESTS=$(grep -oP '\d+(?= Reruns)' report.html | head -1 || echo "0")
+            PASSED_TESTS=$(grep -oP '\d+(?= Passed,)' report.html | head -1 || echo "0")
+          
             echo "Failed tests: $FAILED_TESTS"
             echo "Error tests: $ERROR_TESTS" 
             echo "Rerun tests: $RERUN_TESTS"
-
-            # Determine final status based on actual test results
-            if [ "$FAILED_TESTS" -eq 0 ] && [ "$ERROR_TESTS" -eq 0 ]; then
-              if [ "$RERUN_TESTS" -gt 0 ]; then
-                echo "✅ All tests passed after $RERUN_TESTS reruns - considering as SUCCESS"
-              else
-                echo "✅ All tests passed on first attempt"
-              fi
-              FINAL_PYTEST_EXIT_CODE=0
-            else
-              echo "❌ Tests have genuine failures: $FAILED_TESTS failed, $ERROR_TESTS errors"
-              FINAL_PYTEST_EXIT_CODE=1
-            fi
-
-            # Move report to reports directory
+            echo "Passed tests: $PASSED_TESTS"
+          
+            echo "FAILED_TESTS=$FAILED_TESTS" >> $GITHUB_ENV
+            echo "ERROR_TESTS=$ERROR_TESTS" >> $GITHUB_ENV
+            echo "RERUN_TESTS=$RERUN_TESTS" >> $GITHUB_ENV
+            echo "PASSED_TESTS=$PASSED_TESTS" >> $GITHUB_ENV
+          
             mkdir -p ./reports
             mv report.html ./reports/
           else
-            echo "❌ Report not found - using original exit code"
-            FINAL_PYTEST_EXIT_CODE=$INITIAL_PYTEST_EXIT_CODE
+            echo "Report not found"
           fi
-
-          echo "PYTEST_EXIT_CODE=$FINAL_PYTEST_EXIT_CODE" >> $GITHUB_ENV
-          echo "Final pytest exit code: $FINAL_PYTEST_EXIT_CODE"
+          
+          echo "PYTEST_EXIT_CODE=$PYTEST_EXIT_CODE" >> $GITHUB_ENV
 
       - name: Stage report for R2
         run: |
@@ -512,13 +494,22 @@ jobs:
           SIMULATOR_COMMIT_HASH: ${{ env.SIMULATOR_COMMIT_HASH }}
           TS: ${{ env.TS }}
           PYTEST_EXIT_CODE: ${{ env.PYTEST_EXIT_CODE }}
+          FAILED_TESTS: ${{ env.FAILED_TESTS }}
+          ERROR_TESTS: ${{ env.ERROR_TESTS }}
+          RERUN_TESTS: ${{ env.RERUN_TESTS }}
+          PASSED_TESTS: ${{ env.PASSED_TESTS }}
         run: |
           status="❌ FAILED"
           [ "${PYTEST_EXIT_CODE}" = "0" ] && status="✅ PASSED"
           repo="${GITHUB_REPOSITORY##*/}"
           base="${{ github.base_ref }}"
+          pr_url="https://github.com/${{ github.repository }}/pull/${{ github.event.pull_request.number }}"
           
           msg="*MX-CHAIN-GO ChainSimulator CI – ${status}*\
+          \n============================================\
+          \n${PASSED_TESTS:-0} PASSED | ${FAILED_TESTS:-0} FAILED | ${ERROR_TESTS:-0} ERRORS | ${RERUN_TESTS:-0} RERUNS\
+          \n============================================\
+          \n• *PR:* <${pr_url}|#${{ github.event.pull_request.number }}>\
           \n• *Report:* <${R2_REPORT_URL:-N/A}|HTML>\
           \n• *Repository:* \`${repo}\`\
           \n• *Branch:* \`${BRANCH_NAME}\` → \`${base:-main}\`\
