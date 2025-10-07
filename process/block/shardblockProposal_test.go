@@ -233,8 +233,8 @@ func TestShardProcessor_CreateBlockProposal(t *testing.T) {
 			},
 		}
 		arguments.TxCoordinator = &testscommon.TransactionCoordinatorMock{
-			CreateMbsCrossShardDstMeCalled: func(header data.HeaderHandler, processedMiniBlocksInfo map[string]*processedMb.ProcessedMiniBlockInfo) ([]block.MiniblockAndHash, uint32, bool, error) {
-				return nil, 0, false, expectedError
+			CreateMbsCrossShardDstMeCalled: func(header data.HeaderHandler, processedMiniBlocksInfo map[string]*processedMb.ProcessedMiniBlockInfo) ([]block.MiniblockAndHash, []block.MiniblockAndHash, uint32, bool, error) {
+				return nil, nil, 0, false, expectedError
 			},
 		}
 		sp, err := blproc.NewShardProcessor(arguments)
@@ -466,13 +466,13 @@ func TestShardProcessor_CreateBlockProposal(t *testing.T) {
 			TxHashes: [][]byte{[]byte("tx_hash")},
 		}
 		arguments.TxCoordinator = &testscommon.TransactionCoordinatorMock{
-			CreateMbsCrossShardDstMeCalled: func(header data.HeaderHandler, processedMiniBlocksInfo map[string]*processedMb.ProcessedMiniBlockInfo) ([]block.MiniblockAndHash, uint32, bool, error) {
+			CreateMbsCrossShardDstMeCalled: func(header data.HeaderHandler, processedMiniBlocksInfo map[string]*processedMb.ProcessedMiniBlockInfo) ([]block.MiniblockAndHash, []block.MiniblockAndHash, uint32, bool, error) {
 				return []block.MiniblockAndHash{
 					{
 						Miniblock: providedMb,
 						Hash:      []byte("providedMB"),
 					},
-				}, 0, true, nil
+				}, nil, 0, true, nil
 			},
 		}
 		sp, err := blproc.NewShardProcessor(arguments)
@@ -522,7 +522,7 @@ func TestShardProcessor_SelectIncomingMiniBlocks(t *testing.T) {
 		sp, err := blproc.NewShardProcessor(arguments)
 		require.Nil(t, err)
 
-		err = sp.SelectIncomingMiniBlocks(providedLastCrossNotarizedMetaHdr, providedOrderedMetaBlocks, providedOrderedMetaBlocksHashes, haveTimeFalse)
+		_, err = sp.SelectIncomingMiniBlocks(providedLastCrossNotarizedMetaHdr, providedOrderedMetaBlocks, providedOrderedMetaBlocksHashes, haveTimeFalse)
 		require.NoError(t, err)
 	})
 	t.Run("too many referenced blocks should break and return nil", func(t *testing.T) {
@@ -552,7 +552,7 @@ func TestShardProcessor_SelectIncomingMiniBlocks(t *testing.T) {
 		sp, err := blproc.NewShardProcessor(arguments)
 		require.Nil(t, err)
 
-		err = sp.SelectIncomingMiniBlocks(providedLastCrossNotarizedMetaHdr, providedOrderedMetaBlocks, providedOrderedMetaBlocksHashes, haveTimeTrue)
+		_, err = sp.SelectIncomingMiniBlocks(providedLastCrossNotarizedMetaHdr, providedOrderedMetaBlocks, providedOrderedMetaBlocksHashes, haveTimeTrue)
 		require.NoError(t, err)
 	})
 	t.Run("nonce too high for one meta header should break", func(t *testing.T) {
@@ -581,7 +581,7 @@ func TestShardProcessor_SelectIncomingMiniBlocks(t *testing.T) {
 		providedOrderedMetaBlocksCopy := make([]data.HeaderHandler, len(providedOrderedMetaBlocks))
 		copy(providedOrderedMetaBlocksCopy, providedOrderedMetaBlocks)
 		_ = providedOrderedMetaBlocksCopy[1].SetNonce(10)
-		err = sp.SelectIncomingMiniBlocks(providedLastCrossNotarizedMetaHdr, providedOrderedMetaBlocksCopy, providedOrderedMetaBlocksHashes, haveTimeTrue)
+		_, err = sp.SelectIncomingMiniBlocks(providedLastCrossNotarizedMetaHdr, providedOrderedMetaBlocksCopy, providedOrderedMetaBlocksHashes, haveTimeTrue)
 		require.NoError(t, err)
 		require.Equal(t, 1, cntHasProof)
 	})
@@ -617,7 +617,7 @@ func TestShardProcessor_SelectIncomingMiniBlocks(t *testing.T) {
 				},
 			},
 		}
-		err = sp.SelectIncomingMiniBlocks(providedLastCrossNotarizedMetaHdr, orderedMetaBlocks, providedOrderedMetaBlocksHashes, haveTimeTrue)
+		_, err = sp.SelectIncomingMiniBlocks(providedLastCrossNotarizedMetaHdr, orderedMetaBlocks, providedOrderedMetaBlocksHashes, haveTimeTrue)
 		require.NoError(t, err)
 	})
 	t.Run("createMbsCrossShardDstMe fails due to error on AddMiniBlocksAndHashes", func(t *testing.T) {
@@ -644,13 +644,13 @@ func TestShardProcessor_SelectIncomingMiniBlocks(t *testing.T) {
 			},
 		}
 		arguments.TxCoordinator = &testscommon.TransactionCoordinatorMock{
-			CreateMbsCrossShardDstMeCalled: func(header data.HeaderHandler, processedMiniBlocksInfo map[string]*processedMb.ProcessedMiniBlockInfo) ([]block.MiniblockAndHash, uint32, bool, error) {
+			CreateMbsCrossShardDstMeCalled: func(header data.HeaderHandler, processedMiniBlocksInfo map[string]*processedMb.ProcessedMiniBlockInfo) ([]block.MiniblockAndHash, []block.MiniblockAndHash, uint32, bool, error) {
 				return []block.MiniblockAndHash{
 					{
 						Miniblock: &block.MiniBlock{},
 						Hash:      []byte("providedMB"),
 					},
-				}, 0, true, nil
+				}, nil, 0, true, nil
 			},
 		}
 		sp, err := blproc.NewShardProcessor(arguments)
@@ -671,7 +671,7 @@ func TestShardProcessor_SelectIncomingMiniBlocks(t *testing.T) {
 		}
 		orderedMetaBlocksHashes := providedOrderedMetaBlocksHashes
 		orderedMetaBlocksHashes = orderedMetaBlocksHashes[:1]
-		err = sp.SelectIncomingMiniBlocks(providedLastCrossNotarizedMetaHdr, orderedMetaBlocks, orderedMetaBlocksHashes, haveTimeTrue)
+		_, err = sp.SelectIncomingMiniBlocks(providedLastCrossNotarizedMetaHdr, orderedMetaBlocks, orderedMetaBlocksHashes, haveTimeTrue)
 		require.Equal(t, expectedErr, err)
 	})
 	t.Run("should work", func(t *testing.T) {
@@ -700,7 +700,7 @@ func TestShardProcessor_SelectIncomingMiniBlocks(t *testing.T) {
 		}
 		cntCreateMbsCrossShardDstMeCalled := 0
 		arguments.TxCoordinator = &testscommon.TransactionCoordinatorMock{
-			CreateMbsCrossShardDstMeCalled: func(header data.HeaderHandler, processedMiniBlocksInfo map[string]*processedMb.ProcessedMiniBlockInfo) ([]block.MiniblockAndHash, uint32, bool, error) {
+			CreateMbsCrossShardDstMeCalled: func(header data.HeaderHandler, processedMiniBlocksInfo map[string]*processedMb.ProcessedMiniBlockInfo) ([]block.MiniblockAndHash, []block.MiniblockAndHash, uint32, bool, error) {
 				cntCreateMbsCrossShardDstMeCalled++
 				if cntCreateMbsCrossShardDstMeCalled < 2 {
 					return []block.MiniblockAndHash{
@@ -708,9 +708,9 @@ func TestShardProcessor_SelectIncomingMiniBlocks(t *testing.T) {
 							Miniblock: &block.MiniBlock{},
 							Hash:      []byte("providedMB"),
 						},
-					}, 0, true, nil
+					}, nil, 0, true, nil
 				}
-				return nil, 0, false, nil // shouldContinue = false -> only for coverage
+				return nil, nil, 0, false, nil // shouldContinue = false -> only for coverage
 			},
 		}
 		sp, err := blproc.NewShardProcessor(arguments)
@@ -750,7 +750,7 @@ func TestShardProcessor_SelectIncomingMiniBlocks(t *testing.T) {
 		}
 		orderedMetaBlocksHashes := providedOrderedMetaBlocksHashes
 		orderedMetaBlocksHashes = append(orderedMetaBlocksHashes, []byte("hash4"))
-		err = sp.SelectIncomingMiniBlocks(providedLastCrossNotarizedMetaHdr, orderedMetaBlocks, orderedMetaBlocksHashes, haveTimeTrue)
+		_, err = sp.SelectIncomingMiniBlocks(providedLastCrossNotarizedMetaHdr, orderedMetaBlocks, orderedMetaBlocksHashes, haveTimeTrue)
 		require.NoError(t, err)
 		require.Equal(t, 2, cntAddReferencedMetaBlockCalled) // should be called twice, the third hdr returns shouldContinue false
 	})
@@ -1513,13 +1513,13 @@ func TestShardBlockProposal_CreateAndVerifyProposal_WithTransactions(t *testing.
 	}
 	mbHash, _ := core.CalculateHash(arguments.CoreComponents.InternalMarshalizer(), arguments.CoreComponents.Hasher(), providedMb)
 	arguments.TxCoordinator = &testscommon.TransactionCoordinatorMock{
-		CreateMbsCrossShardDstMeCalled: func(header data.HeaderHandler, processedMiniBlocksInfo map[string]*processedMb.ProcessedMiniBlockInfo) ([]block.MiniblockAndHash, uint32, bool, error) {
+		CreateMbsCrossShardDstMeCalled: func(header data.HeaderHandler, processedMiniBlocksInfo map[string]*processedMb.ProcessedMiniBlockInfo) ([]block.MiniblockAndHash, []block.MiniblockAndHash, uint32, bool, error) {
 			return []block.MiniblockAndHash{
 				{
 					Miniblock: providedMb,
 					Hash:      mbHash,
 				},
-			}, 0, true, nil
+			}, nil, 0, true, nil
 		},
 	}
 
@@ -1671,8 +1671,8 @@ func TestShardProcessor_VerifyGasLimit(t *testing.T) {
 			CheckIncomingMiniBlocksCalled: func(miniBlocks []data.MiniBlockHeaderHandler, transactions map[string][]data.TransactionHandler) (int, int, error) {
 				return len(miniBlocks), 0, nil
 			},
-			CheckOutgoingTransactionsCalled: func(txHashes [][]byte, transactions []data.TransactionHandler) ([][]byte, error) {
-				return nil, expectedError
+			CheckOutgoingTransactionsCalled: func(txHashes [][]byte, transactions []data.TransactionHandler) ([][]byte, []data.MiniBlockHeaderHandler, error) {
+				return nil, nil, expectedError
 			},
 		}
 		sp, err := blproc.NewShardProcessor(arguments)
@@ -1693,8 +1693,8 @@ func TestShardProcessor_VerifyGasLimit(t *testing.T) {
 			CheckIncomingMiniBlocksCalled: func(miniBlocks []data.MiniBlockHeaderHandler, transactions map[string][]data.TransactionHandler) (int, int, error) {
 				return len(miniBlocks), 0, nil
 			},
-			CheckOutgoingTransactionsCalled: func(txHashes [][]byte, transactions []data.TransactionHandler) ([][]byte, error) {
-				return txHashes[:len(txHashes)-1], nil // one tx over the limit
+			CheckOutgoingTransactionsCalled: func(txHashes [][]byte, transactions []data.TransactionHandler) ([][]byte, []data.MiniBlockHeaderHandler, error) {
+				return txHashes[:len(txHashes)-1], nil, nil // one tx over the limit
 			},
 		}
 		sp, err := blproc.NewShardProcessor(arguments)

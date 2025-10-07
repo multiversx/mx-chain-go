@@ -47,10 +47,11 @@ func TestTransactionCoordinator_CreateMbsCrossShardDstMe_NilHeader(t *testing.T)
 	require.Nil(t, err)
 	require.NotNil(t, tc)
 
-	miniBlocks, numTxs, allAdded, err := tc.CreateMbsCrossShardDstMe(nil, nil)
+	miniBlocks, pendingMiniBlocks, numTxs, allAdded, err := tc.CreateMbsCrossShardDstMe(nil, nil)
 
 	require.Equal(t, process.ErrNilHeaderHandler, err)
 	require.Equal(t, 0, len(miniBlocks))
+	require.Equal(t, 0, len(pendingMiniBlocks))
 	require.Equal(t, uint32(0), numTxs)
 	require.False(t, allAdded)
 }
@@ -99,7 +100,7 @@ func TestTransactionCoordinator_CreateMbsCrossShardDstMe_UsesProposalContext(t *
 	cacheId = process.ShardCacherIdentifier(td.mb2Info.Miniblock.SenderShardID, td.mb2Info.Miniblock.ReceiverShardID)
 	ph.Transactions().AddData(td.tx3Hash, &transaction.Transaction{}, 100, cacheId)
 
-	miniBlocks, numTxs, allAdded, err := tc.CreateMbsCrossShardDstMe(td.hdr, nil)
+	miniBlocks, _, numTxs, allAdded, err := tc.CreateMbsCrossShardDstMe(td.hdr, nil)
 
 	require.Nil(t, err)
 	require.Equal(t, expectedMiniBlocks, miniBlocks)
@@ -135,7 +136,7 @@ func TestTransactionCoordinator_CreateMbsCrossShardDstMe_MaxBlockSizeReached(t *
 		},
 	}
 
-	miniBlocks, numTxs, allAdded, err := tc.CreateMbsCrossShardDstMe(td.hdr, nil)
+	miniBlocks, _, numTxs, allAdded, err := tc.CreateMbsCrossShardDstMe(td.hdr, nil)
 
 	require.Nil(t, err)
 	require.Equal(t, 0, len(miniBlocks))
@@ -189,7 +190,7 @@ func TestTransactionCoordinator_CreateMbsCrossShardDstMe_MiniBlockProcessing(t *
 		},
 	}
 
-	miniBlocks, numTxs, allAdded, err := tc.CreateMbsCrossShardDstMe(td.hdr, nil)
+	miniBlocks, _, numTxs, allAdded, err := tc.CreateMbsCrossShardDstMe(td.hdr, nil)
 
 	require.Nil(t, err)
 	require.Equal(t, 1, len(miniBlocks))
@@ -239,7 +240,7 @@ func TestTransactionCoordinator_CreateMbsCrossShardDstMe_SkipShardOnMissingMiniB
 		},
 	}
 
-	miniBlocks, numTxs, allAdded, err := tc.CreateMbsCrossShardDstMe(td.hdr, nil)
+	miniBlocks, _, numTxs, allAdded, err := tc.CreateMbsCrossShardDstMe(td.hdr, nil)
 
 	require.Nil(t, err)
 	require.Equal(t, 0, len(miniBlocks))
@@ -271,7 +272,7 @@ func TestTransactionCoordinator_CreateMbsCrossShardDstMe_SkipShardOnMissingTrans
 	cacheId := process.ShardCacherIdentifier(td.mb2Info.Miniblock.SenderShardID, td.mb2Info.Miniblock.ReceiverShardID)
 	ph.Transactions().AddData(td.tx3Hash, &transaction.Transaction{}, 100, cacheId)
 
-	miniBlocks, numTxs, allAdded, err := tc.CreateMbsCrossShardDstMe(td.hdr, nil)
+	miniBlocks, _, numTxs, allAdded, err := tc.CreateMbsCrossShardDstMe(td.hdr, nil)
 
 	require.Nil(t, err)
 	require.Equal(t, 1, len(miniBlocks))
@@ -322,7 +323,7 @@ func TestTransactionCoordinator_CreateMbsCrossShardDstMe_ErrorOnUnknownBlockType
 		},
 	}
 
-	miniBlocks, numTxs, allAdded, err := tc.CreateMbsCrossShardDstMe(hdr, nil)
+	miniBlocks, _, numTxs, allAdded, err := tc.CreateMbsCrossShardDstMe(hdr, nil)
 
 	require.NotNil(t, err)
 	require.Contains(t, err.Error(), "unknown block type")
@@ -357,7 +358,7 @@ func TestTransactionCoordinator_SelectOutgoingTransactions_EmptyResult(t *testin
 		},
 	}
 
-	txHashes := tc.SelectOutgoingTransactions()
+	txHashes, _ := tc.SelectOutgoingTransactions()
 
 	require.Equal(t, 0, len(txHashes))
 
@@ -395,7 +396,7 @@ func TestTransactionCoordinator_SelectOutgoingTransactions_ReturnsTransactions(t
 		},
 	}
 
-	txHashes := tc.SelectOutgoingTransactions()
+	txHashes, _ := tc.SelectOutgoingTransactions()
 
 	require.Equal(t, len(expectedTxHashes), len(txHashes))
 	for i, expectedHash := range expectedTxHashes {
@@ -430,7 +431,7 @@ func TestTransactionCoordinator_SelectOutgoingTransactions_MultipleBlockTypes(t 
 	// Add both block types to the keys
 	tc.preProcProposal.keysTxPreProcs = []block.Type{block.TxBlock, block.SmartContractResultBlock}
 
-	txHashes := tc.SelectOutgoingTransactions()
+	txHashes, _ := tc.SelectOutgoingTransactions()
 
 	// Should contain hashes from TxBlock type, for SmartContractsResultsBlock type the selection returns empty
 	expectedTotal := len(txHashesType1)
@@ -464,7 +465,7 @@ func TestTransactionCoordinator_SelectOutgoingTransactions_HandlesErrors(t *test
 		},
 	}
 
-	txHashes := tc.SelectOutgoingTransactions()
+	txHashes, _ := tc.SelectOutgoingTransactions()
 
 	// Function should continue and return empty slice despite error
 	require.Equal(t, 0, len(txHashes))
@@ -481,7 +482,7 @@ func TestTransactionCoordinator_SelectOutgoingTransactions_HandlesNilPreprocesso
 	// Set proposal preprocessor to nil
 	tc.preProcProposal.txPreProcessors[block.TxBlock] = nil
 
-	txHashes := tc.SelectOutgoingTransactions()
+	txHashes, _ := tc.SelectOutgoingTransactions()
 
 	// Function should handle nil preprocessor gracefully
 	require.Equal(t, 0, len(txHashes))
@@ -519,7 +520,7 @@ func TestTransactionCoordinator_CreateMbsCrossShardDstMe_ProcessedMiniBlocksInfo
 		},
 	}
 
-	miniBlocks, numTxs, allAdded, err := tc.CreateMbsCrossShardDstMe(hdr, processedMiniBlocksInfo)
+	miniBlocks, _, numTxs, allAdded, err := tc.CreateMbsCrossShardDstMe(hdr, processedMiniBlocksInfo)
 
 	require.Nil(t, err)
 	require.Equal(t, 0, len(miniBlocks)) // Should skip already processed mini block
@@ -561,7 +562,7 @@ func TestTransactionCoordinator_CreateMbsCrossShardDstMe_TypeAssertion(t *testin
 		},
 	}
 
-	miniBlocks, numTxs, allAdded, err := tc.CreateMbsCrossShardDstMe(hdr, nil)
+	miniBlocks, _, numTxs, allAdded, err := tc.CreateMbsCrossShardDstMe(hdr, nil)
 
 	require.Nil(t, err)
 	require.Equal(t, 0, len(miniBlocks)) // Should skip due to type assertion failure

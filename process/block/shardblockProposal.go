@@ -232,12 +232,16 @@ func (sp *shardProcessor) verifyGasLimit(header data.ShardHeaderHandler) error {
 		return fmt.Errorf("%w, incoming mini blocks exceeded the limit", process.ErrInvalidMaxGasLimitPerMiniBlock)
 	}
 
-	addedTxHashes, err := sp.gasComputation.CheckOutgoingTransactions(outgoingTransactionHashes, outgoingTransactions)
+	addedTxHashes, pendingMiniBlocksAdded, err := sp.gasComputation.CheckOutgoingTransactions(outgoingTransactionHashes, outgoingTransactions)
 	if err != nil {
 		return err
 	}
 	if len(addedTxHashes) != len(outgoingTransactionHashes) {
 		return fmt.Errorf("%w, outgoing transactions exceeded the limit", process.ErrInvalidMaxGasLimitPerMiniBlock)
+	}
+
+	if len(pendingMiniBlocksAdded) != 0 {
+		return fmt.Errorf("%w, should have not added any pending mini block", process.ErrInvalidMaxGasLimitPerMiniBlock)
 	}
 
 	return nil
@@ -398,7 +402,7 @@ func (sp *shardProcessor) createBlockBodyProposal(
 
 func (sp *shardProcessor) selectIncomingMiniBlocksForProposal(
 	haveTime func() bool,
-) error {
+) ([]block.MiniblockAndHash, error) {
 	log.Debug("selectIncomingMiniBlocksForProposal has been started")
 
 	sw := core.NewStopWatch()
@@ -407,19 +411,19 @@ func (sp *shardProcessor) selectIncomingMiniBlocksForProposal(
 	sw.Stop("ComputeLongestMetaChainFromLastNotarized")
 	log.Debug("measurements", sw.GetMeasurements()...)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	log.Debug("meta blocks ordered", "num meta blocks", len(orderedMetaBlocks))
 
 	lastMetaHdr, _, err := sp.blockTracker.GetLastCrossNotarizedHeader(core.MetachainShardId)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	err = sp.selectIncomingMiniBlocks(lastMetaHdr, orderedMetaBlocks, orderedMetaBlocksHashes, haveTime)
+	pendingMiniBlocks, err := sp.selectIncomingMiniBlocks(lastMetaHdr, orderedMetaBlocks, orderedMetaBlocksHashes, haveTime)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	referencedMetaBlocks := sp.miniBlocksSelectionSession.GetReferencedMetaBlocks()
@@ -441,7 +445,7 @@ func (sp *shardProcessor) selectIncomingMiniBlocksForProposal(
 		"num txs added", sp.miniBlocksSelectionSession.GetNumTxsAdded(),
 		"num referenced meta blocks", len(sp.miniBlocksSelectionSession.GetReferencedMetaBlocks()))
 
-	return nil
+	return pendingMiniBlocks, nil
 }
 
 func (sp *shardProcessor) selectIncomingMiniBlocks(
@@ -449,9 +453,12 @@ func (sp *shardProcessor) selectIncomingMiniBlocks(
 	orderedMetaBlocks []data.HeaderHandler,
 	orderedMetaBlocksHashes [][]byte,
 	haveTime func() bool,
-) error {
+) ([]block.MiniblockAndHash, error) {
 	var currentMetaBlock data.HeaderHandler
 	var currentMetaBlockHash []byte
+	var pendingMiniBlocks []block.MiniblockAndHash
+	var errCreated error
+	var shouldContinue bool
 	for i := 0; i < len(orderedMetaBlocks); i++ {
 		if !haveTime() {
 			log.Debug("time is up after putting cross txs with destination to current shard",
@@ -496,9 +503,9 @@ func (sp *shardProcessor) selectIncomingMiniBlocks(
 		}
 
 		currProcessedMiniBlocksInfo := sp.processedMiniBlocksTracker.GetProcessedMiniBlocksInfo(currentMetaBlockHash)
-		shouldContinue, errCreated := sp.createMbsCrossShardDstMe(currentMetaBlockHash, metaBlock, currProcessedMiniBlocksInfo)
+		shouldContinue, pendingMiniBlocks, errCreated = sp.createMbsCrossShardDstMe(currentMetaBlockHash, metaBlock, currProcessedMiniBlocksInfo)
 		if errCreated != nil {
-			return errCreated
+			return nil, errCreated
 		}
 		if !shouldContinue {
 			break
@@ -507,25 +514,25 @@ func (sp *shardProcessor) selectIncomingMiniBlocks(
 		sp.miniBlocksSelectionSession.AddReferencedMetaBlock(currentMetaBlock, currentMetaBlockHash)
 	}
 
-	return nil
+	return pendingMiniBlocks, nil
 }
 
 func (sp *shardProcessor) createMbsCrossShardDstMe(
 	currentMetaBlockHash []byte,
 	currentMetaBlock data.MetaHeaderHandler,
 	miniBlockProcessingInfo map[string]*processedMb.ProcessedMiniBlockInfo,
-) (bool, error) {
-	currMiniBlocksAdded, currNumTxsAdded, hdrFinished, errCreate := sp.txCoordinator.CreateMbsCrossShardDstMe(
+) (bool, []block.MiniblockAndHash, error) {
+	currMiniBlocksAdded, pendingMiniBlocks, currNumTxsAdded, hdrFinished, errCreate := sp.txCoordinator.CreateMbsCrossShardDstMe(
 		currentMetaBlock,
 		miniBlockProcessingInfo,
 	)
 	if errCreate != nil {
-		return false, errCreate
+		return false, nil, errCreate
 	}
 
 	err := sp.miniBlocksSelectionSession.AddMiniBlocksAndHashes(currMiniBlocksAdded)
 	if err != nil {
-		return false, err
+		return false, nil, err
 	}
 
 	if !hdrFinished {
@@ -536,10 +543,10 @@ func (sp *shardProcessor) createMbsCrossShardDstMe(
 			"num mbs added", len(currMiniBlocksAdded),
 			"num txs added", currNumTxsAdded)
 
-		return false, nil
+		return false, pendingMiniBlocks, nil
 	}
 
-	return true, nil
+	return true, pendingMiniBlocks, nil
 }
 
 func (sp *shardProcessor) createProposalMiniBlocks(haveTime func() bool) error {
@@ -548,14 +555,19 @@ func (sp *shardProcessor) createProposalMiniBlocks(haveTime func() bool) error {
 		return nil
 	}
 	startTime := time.Now()
-	err := sp.selectIncomingMiniBlocksForProposal(haveTime)
+	pendingMiniBlocksLeft, err := sp.selectIncomingMiniBlocksForProposal(haveTime)
 	if err != nil {
 		return err
 	}
 	elapsedTime := time.Since(startTime)
 	log.Debug("elapsed time to create mbs to me", "time", elapsedTime)
 
-	outgoingTransactions := sp.selectOutgoingTransactions()
+	outgoingTransactions, pendingIncomingMiniBlocksAdded := sp.selectOutgoingTransactions()
+
+	err = sp.appendPendingMiniBlocksAddedAfterSelectingOutgoingTransactions(pendingMiniBlocksLeft, pendingIncomingMiniBlocksAdded)
+	if err != nil {
+		return err
+	}
 
 	err = sp.miniBlocksSelectionSession.CreateAndAddMiniBlockFromTransactions(outgoingTransactions)
 	if err != nil {
@@ -568,7 +580,39 @@ func (sp *shardProcessor) createProposalMiniBlocks(haveTime func() bool) error {
 	return nil
 }
 
-func (sp *shardProcessor) selectOutgoingTransactions() [][]byte {
+func (sp *shardProcessor) appendPendingMiniBlocksAddedAfterSelectingOutgoingTransactions(
+	pendingMiniBlocksLeft []block.MiniblockAndHash,
+	pendingIncomingMiniBlocksAdded []data.MiniBlockHeaderHandler,
+) error {
+	if len(pendingIncomingMiniBlocksAdded) == 0 {
+		return nil
+	}
+
+	pendingMiniBlocksLeftMap := miniBlocksAndHashesSliceToMap(pendingMiniBlocksLeft)
+	extraMiniBlocksAdded := make([]block.MiniblockAndHash, 0, len(pendingIncomingMiniBlocksAdded))
+	for i, pendingMbAdded := range pendingIncomingMiniBlocksAdded {
+		miniBlockAndHash, ok := pendingMiniBlocksLeftMap[string(pendingMbAdded.GetHash())]
+		if !ok {
+			log.Error("pending mini block added does not exists in the remaining pending list")
+			return process.ErrInvalidHash
+		}
+
+		extraMiniBlocksAdded[i] = miniBlockAndHash
+	}
+
+	return sp.miniBlocksSelectionSession.AddMiniBlocksAndHashes(extraMiniBlocksAdded)
+}
+
+func miniBlocksAndHashesSliceToMap(providedSlice []block.MiniblockAndHash) map[string]block.MiniblockAndHash {
+	result := make(map[string]block.MiniblockAndHash)
+	for _, miniBlockAndHash := range providedSlice {
+		result[string(miniBlockAndHash.Hash)] = miniBlockAndHash
+	}
+
+	return result
+}
+
+func (sp *shardProcessor) selectOutgoingTransactions() ([][]byte, []data.MiniBlockHeaderHandler) {
 	log.Debug("selectOutgoingTransactions has been started")
 
 	sw := core.NewStopWatch()
@@ -578,11 +622,12 @@ func (sp *shardProcessor) selectOutgoingTransactions() [][]byte {
 		log.Debug("measurements", sw.GetMeasurements()...)
 	}()
 
-	outgoingTransactions := sp.txCoordinator.SelectOutgoingTransactions()
+	outgoingTransactions, pendingIncomingMiniBlocksAdded := sp.txCoordinator.SelectOutgoingTransactions()
 	log.Debug("selectOutgoingTransactions has been finished",
-		"num txs", len(outgoingTransactions))
+		"num txs", len(outgoingTransactions),
+		"num pending mini blocks added", len(pendingIncomingMiniBlocksAdded))
 
-	return outgoingTransactions
+	return outgoingTransactions, pendingIncomingMiniBlocksAdded
 }
 
 func (sp *shardProcessor) checkMetaHeadersValidityAndFinalityProposal(header data.ShardHeaderHandler) error {

@@ -218,8 +218,8 @@ func createArgBaseProcessor(
 			CheckIncomingMiniBlocksCalled: func(miniBlocks []data.MiniBlockHeaderHandler, transactions map[string][]data.TransactionHandler) (int, int, error) {
 				return len(miniBlocks), 0, nil
 			},
-			CheckOutgoingTransactionsCalled: func(txHashes [][]byte, transactions []data.TransactionHandler) ([][]byte, error) {
-				return txHashes, nil
+			CheckOutgoingTransactionsCalled: func(txHashes [][]byte, transactions []data.TransactionHandler) ([][]byte, []data.MiniBlockHeaderHandler, error) {
+				return txHashes, nil, nil
 			},
 		},
 	}
@@ -479,8 +479,8 @@ func createMockTransactionCoordinatorArguments(
 			CheckIncomingMiniBlocksCalled: func(miniBlocks []data.MiniBlockHeaderHandler, transactions map[string][]data.TransactionHandler) (int, int, error) {
 				return len(miniBlocks), 0, nil
 			},
-			CheckOutgoingTransactionsCalled: func(txHashes [][]byte, transactions []data.TransactionHandler) ([][]byte, error) {
-				return txHashes, nil
+			CheckOutgoingTransactionsCalled: func(txHashes [][]byte, transactions []data.TransactionHandler) ([][]byte, []data.MiniBlockHeaderHandler, error) {
+				return txHashes, nil, nil
 			},
 		},
 	}

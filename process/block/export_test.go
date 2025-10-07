@@ -677,7 +677,7 @@ func (sp *shardProcessor) SelectIncomingMiniBlocks(
 	orderedMetaBlocks []data.HeaderHandler,
 	orderedMetaBlocksHashes [][]byte,
 	haveTime func() bool,
-) error {
+) ([]block.MiniblockAndHash, error) {
 	return sp.selectIncomingMiniBlocks(lastCrossNotarizedMetaHdr, orderedMetaBlocks, orderedMetaBlocksHashes, haveTime)
 }
 
