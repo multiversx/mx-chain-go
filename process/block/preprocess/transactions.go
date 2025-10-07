@@ -135,6 +135,7 @@ func NewTransactionPreprocessor(
 		enableEpochsHandler:        args.EnableEpochsHandler,
 		processedMiniBlocksTracker: args.ProcessedMiniBlocksTracker,
 		txExecutionOrderHandler:    args.TxExecutionOrderHandler,
+		enableRoundsHandler:        args.EnableRoundsHandler,
 	}
 
 	txs := &transactions{

@@ -147,6 +147,18 @@ func TestNewRewardTxPreprocessor_NilGasHandlerShouldErr(t *testing.T) {
 	assert.Equal(t, process.ErrNilGasHandler, err)
 }
 
+func TestNewRewardTxPreprocessor_NilEnableRoundsHandlerShouldErr(t *testing.T) {
+	t.Parallel()
+
+	tdp := initDataPool()
+	args := createDefaultRewardsProcessorArgs(tdp)
+	args.EnableRoundsHandler = nil
+	rtp, err := NewRewardTxPreprocessor(args)
+
+	assert.Nil(t, rtp)
+	assert.Equal(t, process.ErrNilEnableRoundsHandler, err)
+}
+
 func TestNewRewardTxPreprocessor_NilPubkeyConverterShouldErr(t *testing.T) {
 	t.Parallel()
 

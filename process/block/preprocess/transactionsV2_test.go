@@ -891,5 +891,17 @@ func TestTransactions_GetUnExecutableTransactions(t *testing.T) {
 }
 
 func TestTransactions_processTxsFromMe(t *testing.T) {
-
+	// t.Parallel()
+	//
+	// preprocessor := createTransactionPreprocessor()
+	// preprocessor.txsForCurrBlock = &txsForBlock{
+	// 	txHashAndInfo: make(map[string]*TxInfo),
+	// }
+	//
+	// tx1 := &transaction.Transaction{Nonce: 1, RcvAddr: []byte("smart contract address")}
+	// tx2 := &transaction.Transaction{Nonce: 2, RcvAddr: []byte("smart contract address")}
+	// tx3 := &transaction.Transaction{Nonce: 3}
+	// tx4 := &transaction.Transaction{Nonce: 4, RcvAddr: []byte("smart contract address")}
+	//
+	// preprocessor.txsForCurrBlock.(*txsForBlock).txHashAndInfo["txHash1"] = &TxInfo{Tx: tx1, ReceiverShardID: 1}
 }

@@ -185,6 +185,19 @@ func TestScrsPreprocessor_NewSmartContractResultPreprocessorNilGasHandler(t *tes
 	assert.Equal(t, process.ErrNilGasHandler, err)
 }
 
+func TestScrsPreprocessor_NewSmartContractResultPreprocessorNilEnableRoundsHandler(t *testing.T) {
+	t.Parallel()
+
+	tdp := initDataPool()
+	args := createDefaultSmartContractProcessorArgs(tdp)
+	args.EnableRoundsHandler = nil
+
+	txs, err := NewSmartContractResultPreprocessor(args)
+
+	assert.Nil(t, txs)
+	assert.Equal(t, process.ErrNilEnableRoundsHandler, err)
+}
+
 func TestScrsPreprocessor_NewSmartContractResultPreprocessorShouldWork(t *testing.T) {
 	t.Parallel()
 
