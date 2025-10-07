@@ -215,7 +215,7 @@ func (sp *shardProcessor) verifyGasLimit(header data.ShardHeaderHandler) error {
 	}
 
 	sp.gasComputation.Reset()
-	_, _, err = sp.gasComputation.CheckIncomingMiniBlocks(incomingMiniBlocks, incomingTransactions)
+	_, pendingMiniBlocks, err := sp.gasComputation.CheckIncomingMiniBlocks(incomingMiniBlocks, incomingTransactions)
 	if err != nil {
 		return err
 	}
@@ -228,8 +228,8 @@ func (sp *shardProcessor) verifyGasLimit(header data.ShardHeaderHandler) error {
 		return fmt.Errorf("%w, outgoing transactions exceeded the limit", process.ErrInvalidMaxGasLimitPerMiniBlock)
 	}
 
-	if len(pendingMiniBlocksAdded) != 0 {
-		return fmt.Errorf("%w, should have not added any pending mini block", process.ErrInvalidMaxGasLimitPerMiniBlock)
+	if pendingMiniBlocks != len(pendingMiniBlocksAdded) {
+		return fmt.Errorf("%w, incoming mini blocks exceeded the limit", process.ErrInvalidMaxGasLimitPerMiniBlock)
 	}
 
 	return nil

@@ -1719,7 +1719,7 @@ func TestShardProcessor_VerifyGasLimit(t *testing.T) {
 
 		err = sp.VerifyGasLimit(createHeaderFromMBs(outgoingMbh, incomingMbh))
 		require.ErrorIs(t, err, process.ErrInvalidMaxGasLimitPerMiniBlock)
-		require.Contains(t, err.Error(), "should have not added any pending mini block")
+		require.Contains(t, err.Error(), "incoming mini blocks exceeded the limit")
 	})
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
