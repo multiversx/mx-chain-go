@@ -441,14 +441,14 @@ func (st *selectionTracker) getChainOfTrackedPendingBlocks(
 }
 
 func (st *selectionTracker) getGlobalAccountsBreadcrumbs() map[string]*globalAccountBreadcrumb {
-	return st.gabc.getGlobalBreadcrumbs()
+	return st.globalBreadcrumbsCompiler.getGlobalBreadcrumbs()
 }
 
 // getVirtualNonceOfAccountWithRootHash searches the global breadcrumb of the given address and return its nonce
 func (st *selectionTracker) getVirtualNonceOfAccountWithRootHash(
 	address []byte,
 ) (uint64, []byte, error) {
-	breadcrumb, err := st.gabc.getGlobalBreadcrumbByAddress(string(address))
+	breadcrumb, err := st.globalBreadcrumbsCompiler.getGlobalBreadcrumbByAddress(string(address))
 	if err != nil {
 		return 0, nil, errGlobalBreadcrumbDoesNotExist
 	}
@@ -486,7 +486,7 @@ func (st *selectionTracker) isTransactionTracked(transaction *WrappedTransaction
 	sender := transaction.Tx.GetSndAddr()
 	txNonce := transaction.Tx.GetNonce()
 
-	senderGlobalBreadcrumb, err := st.gabc.getGlobalBreadcrumbByAddress(string(sender))
+	senderGlobalBreadcrumb, err := st.globalBreadcrumbsCompiler.getGlobalBreadcrumbByAddress(string(sender))
 	if err != nil {
 		return false
 	}

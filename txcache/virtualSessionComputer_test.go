@@ -143,8 +143,8 @@ func Test_createVirtualSelectionSession(t *testing.T) {
 			},
 		}
 
-		gabc.updateGlobalBreadcrumbsOnAddedBlockOnProposed(trackedBlocks[0])
-		gabc.updateGlobalBreadcrumbsOnAddedBlockOnProposed(trackedBlocks[1])
+		gabc.updateOnAddedBlock(trackedBlocks[0])
+		gabc.updateOnAddedBlock(trackedBlocks[1])
 
 		computer := newVirtualSessionComputer(&sessionMock)
 		_, err := computer.createVirtualSelectionSession(gabc.getGlobalBreadcrumbs())
@@ -222,8 +222,8 @@ func Test_createVirtualSelectionSession(t *testing.T) {
 			},
 		}
 
-		gabc.updateGlobalBreadcrumbsOnAddedBlockOnProposed(trackedBlocks[0])
-		gabc.updateGlobalBreadcrumbsOnAddedBlockOnProposed(trackedBlocks[1])
+		gabc.updateOnAddedBlock(trackedBlocks[0])
+		gabc.updateOnAddedBlock(trackedBlocks[1])
 
 		computer := newVirtualSessionComputer(&sessionMock)
 		_, err := computer.createVirtualSelectionSession(gabc.getGlobalBreadcrumbs())

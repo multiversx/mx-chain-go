@@ -943,7 +943,7 @@ func Test_getVirtualNonceOfAccount(t *testing.T) {
 		tb := newTrackedBlock(0, []byte("hash2"), []byte("rootHash0"), []byte("hash1"))
 		tb.breadcrumbsByAddress["alice"] = breadcrumb
 
-		tracker.gabc.updateGlobalBreadcrumbsOnAddedBlockOnProposed(tb)
+		tracker.globalBreadcrumbsCompiler.updateOnAddedBlock(tb)
 
 		nonce, _, err := tracker.getVirtualNonceOfAccountWithRootHash([]byte("alice"))
 		require.Nil(t, err)
