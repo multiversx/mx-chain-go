@@ -595,7 +595,7 @@ func TestSelectionTracker_removeFromTrackedBlocks(t *testing.T) {
 
 	r := newTrackedBlock(0, nil, nil, []byte("prevHash1"))
 
-	err = tracker.removeFromTrackedBlocksNoLock(r)
+	err = tracker.removeUpToBlockNoLock(r)
 	require.Nil(t, err)
 	require.Equal(t, 1, len(tracker.blocks))
 

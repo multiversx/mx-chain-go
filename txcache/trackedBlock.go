@@ -33,7 +33,7 @@ func (tb *trackedBlock) sameNonceOrBelow(otherBlock *trackedBlock) bool {
 	return tb.nonce <= otherBlock.nonce
 }
 
-func (tb *trackedBlock) sameNonceOrHigher(otherBlock *trackedBlock) bool {
+func (tb *trackedBlock) hasSameNonceOrHigher(otherBlock *trackedBlock) bool {
 	return tb.nonce >= otherBlock.nonce
 }
 

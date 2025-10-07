@@ -6,7 +6,6 @@ import (
 	"math/big"
 	"sync"
 	"testing"
-	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/stretchr/testify/require"
@@ -21,7 +20,9 @@ func requireEqualGlobalAccountsBreadcrumbs(
 	for account, globalBreadcrumb := range expected {
 		_, ok := actual[account]
 		require.True(t, ok)
-		require.Equal(t, globalBreadcrumb, actual[account])
+		require.Equal(t, globalBreadcrumb.lastNonce, actual[account].lastNonce)
+		require.Equal(t, globalBreadcrumb.firstNonce, actual[account].firstNonce)
+		require.Equal(t, 0, globalBreadcrumb.consumedBalance.Cmp(actual[account].consumedBalance))
 	}
 }
 
@@ -50,30 +51,27 @@ func Test_shouldWorkConcurrently(t *testing.T) {
 
 	for i := 1; i <= numOfBlocks; i++ {
 		tb := newTrackedBlock(uint64(i), []byte(fmt.Sprintf("hash%d", i-1)), []byte("rootHash0"), []byte(fmt.Sprintf("prevHash%d", i-1)))
+
 		go func(tb *trackedBlock) {
 			defer wg.Done()
 
-			gabc.updateGlobalBreadcrumbsOnAddedBlockOnProposed(tb)
-
-			time.Sleep(100 * time.Millisecond)
+			gabc.updateOnAddedBlock(tb)
 		}(tb)
 
 		go func(tb *trackedBlock) {
 			defer wg.Done()
 
-			err := gabc.updateGlobalBreadcrumbsOnRemovedBlockOnExecuted(tb)
+			err := gabc.updateAfterRemovedBlockWithSameNonceOrBelow(tb)
 			require.NoError(t, err)
-
-			time.Sleep(100 * time.Millisecond)
 		}(tb)
 	}
 
 	wg.Wait()
 }
 
-func Test_shouldWork(t *testing.T) {
+func Test_shouldWorkOnDifferentScenarios(t *testing.T) {
 	t.Parallel()
-	t.Run("should work", func(t *testing.T) {
+	t.Run("should work on most common scenario", func(t *testing.T) {
 		t.Parallel()
 
 		gabc := newGlobalAccountBreadcrumbsCompiler()
@@ -93,7 +91,7 @@ func Test_shouldWork(t *testing.T) {
 		require.NoError(t, err)
 
 		// update the global state
-		gabc.updateGlobalBreadcrumbsOnAddedBlockOnProposed(tb1)
+		gabc.updateOnAddedBlock(tb1)
 
 		expectedGlobalBreadcrumbs := map[string]*globalAccountBreadcrumb{
 			"alice": {
@@ -148,7 +146,7 @@ func Test_shouldWork(t *testing.T) {
 		require.NoError(t, err)
 
 		// update the global state
-		gabc.updateGlobalBreadcrumbsOnAddedBlockOnProposed(tb2)
+		gabc.updateOnAddedBlock(tb2)
 
 		expectedGlobalBreadcrumbs = map[string]*globalAccountBreadcrumb{
 			"alice": {
@@ -189,7 +187,7 @@ func Test_shouldWork(t *testing.T) {
 		requireEqualGlobalAccountsBreadcrumbs(t, expectedGlobalBreadcrumbs, gabc.globalAccountBreadcrumbs)
 
 		// remove the first proposed block and update the global state
-		err = gabc.updateGlobalBreadcrumbsOnRemovedBlockOnExecuted(tb1)
+		err = gabc.updateAfterRemovedBlockWithSameNonceOrBelow(tb1)
 		require.NoError(t, err)
 
 		expectedGlobalBreadcrumbs = map[string]*globalAccountBreadcrumb{
@@ -220,7 +218,7 @@ func Test_shouldWork(t *testing.T) {
 		requireEqualGlobalAccountsBreadcrumbs(t, expectedGlobalBreadcrumbs, gabc.globalAccountBreadcrumbs)
 
 		// remove the second proposed block and update the global state
-		err = gabc.updateGlobalBreadcrumbsOnRemovedBlockOnExecuted(tb2)
+		err = gabc.updateAfterRemovedBlockWithSameNonceOrBelow(tb2)
 		require.NoError(t, err)
 
 		expectedGlobalBreadcrumbs = map[string]*globalAccountBreadcrumb{}
@@ -228,7 +226,7 @@ func Test_shouldWork(t *testing.T) {
 
 	})
 
-	t.Run("should work for forks", func(t *testing.T) {
+	t.Run("should work for forks scenarios", func(t *testing.T) {
 		t.Parallel()
 
 		gabc := newGlobalAccountBreadcrumbsCompiler()
@@ -250,7 +248,7 @@ func Test_shouldWork(t *testing.T) {
 		require.NoError(t, err)
 
 		// update the global state
-		gabc.updateGlobalBreadcrumbsOnAddedBlockOnProposed(tb3)
+		gabc.updateOnAddedBlock(tb3)
 
 		expectedGlobalBreadcrumbs := map[string]*globalAccountBreadcrumb{
 			"eve": {
@@ -306,7 +304,7 @@ func Test_shouldWork(t *testing.T) {
 		require.NoError(t, err)
 
 		// update the global state
-		gabc.updateGlobalBreadcrumbsOnAddedBlockOnProposed(tb4)
+		gabc.updateOnAddedBlock(tb4)
 
 		expectedGlobalBreadcrumbs = map[string]*globalAccountBreadcrumb{
 			"eve": {
@@ -361,7 +359,7 @@ func Test_shouldWork(t *testing.T) {
 		require.NoError(t, err)
 
 		// propose
-		gabc.updateGlobalBreadcrumbsOnAddedBlockOnProposed(tb5)
+		gabc.updateOnAddedBlock(tb5)
 
 		expectedGlobalBreadcrumbs = map[string]*globalAccountBreadcrumb{
 			"eve": {
@@ -415,7 +413,7 @@ func Test_shouldWork(t *testing.T) {
 		// now, replace the first block in the non-canonical chain
 		// first, remove all the once greater or equal to its nonce
 
-		err = gabc.updateGlobalBreadcrumbsOnRemovedBlockOnProposed(tb4)
+		err = gabc.updateAfterRemovedBlockWithSameNonceOrAbove(tb4)
 		require.NoError(t, err)
 
 		expectedGlobalBreadcrumbs = map[string]*globalAccountBreadcrumb{
@@ -467,7 +465,7 @@ func Test_shouldWork(t *testing.T) {
 
 		requireEqualGlobalAccountsBreadcrumbs(t, expectedGlobalBreadcrumbs, gabc.globalAccountBreadcrumbs)
 
-		err = gabc.updateGlobalBreadcrumbsOnRemovedBlockOnProposed(tb5)
+		err = gabc.updateAfterRemovedBlockWithSameNonceOrAbove(tb5)
 		require.NoError(t, err)
 
 		expectedGlobalBreadcrumbs = map[string]*globalAccountBreadcrumb{
@@ -524,7 +522,7 @@ func Test_shouldWork(t *testing.T) {
 		require.NoError(t, err)
 
 		// update the global state
-		gabc.updateGlobalBreadcrumbsOnAddedBlockOnProposed(tb6)
+		gabc.updateOnAddedBlock(tb6)
 
 		expectedGlobalBreadcrumbs = map[string]*globalAccountBreadcrumb{
 			"eve": {
@@ -574,5 +572,115 @@ func Test_shouldWork(t *testing.T) {
 		}
 
 		requireEqualGlobalAccountsBreadcrumbs(t, expectedGlobalBreadcrumbs, gabc.globalAccountBreadcrumbs)
+	})
+}
+
+func Test_updateGlobalBreadcrumbsOnRemovedBlockOnProposed(t *testing.T) {
+	t.Parallel()
+
+	t.Run("should return errGlobalBreadcrumbDoesNotExist error", func(t *testing.T) {
+		t.Parallel()
+
+		gabc := newGlobalAccountBreadcrumbsCompiler()
+
+		tb1 := newTrackedBlock(0, []byte("hash0"), []byte("rootHash"), []byte("prevHash"))
+		tx1 := createTx([]byte("hash14"), "frank", 0).withRelayer([]byte("eve")).withFee(big.NewInt(1))
+		tx2 := createTx([]byte("hash15"), "frank", 1).withRelayer([]byte("eve")).withFee(big.NewInt(1))
+
+		txs := []*WrappedTransaction{
+			tx1, tx2,
+		}
+
+		err := tb1.compileBreadcrumbs(txs)
+		require.NoError(t, err)
+
+		err = gabc.updateAfterRemovedBlockWithSameNonceOrAbove(tb1)
+		require.Equal(t, errGlobalBreadcrumbDoesNotExist, err)
+	})
+
+	t.Run("should return errNegativeBalanceForBreadcrumb error", func(t *testing.T) {
+		t.Parallel()
+
+		gabc := newGlobalAccountBreadcrumbsCompiler()
+		gabc.globalAccountBreadcrumbs = map[string]*globalAccountBreadcrumb{
+			"frank": {
+				firstNonce:      core.OptionalUint64{},
+				lastNonce:       core.OptionalUint64{},
+				consumedBalance: big.NewInt(0),
+			},
+			"eve": {
+				firstNonce:      core.OptionalUint64{},
+				lastNonce:       core.OptionalUint64{},
+				consumedBalance: big.NewInt(0),
+			},
+		}
+		tb1 := newTrackedBlock(0, []byte("hash0"), []byte("rootHash"), []byte("prevHash"))
+		tx1 := createTx([]byte("hash14"), "frank", 0).withRelayer([]byte("eve")).withFee(big.NewInt(1))
+		tx2 := createTx([]byte("hash15"), "frank", 1).withRelayer([]byte("eve")).withFee(big.NewInt(1))
+
+		txs := []*WrappedTransaction{
+			tx1, tx2,
+		}
+
+		err := tb1.compileBreadcrumbs(txs)
+		require.NoError(t, err)
+
+		err = gabc.updateAfterRemovedBlockWithSameNonceOrAbove(tb1)
+		require.Equal(t, errNegativeBalanceForBreadcrumb, err)
+	})
+}
+
+func Test_updateGlobalBreadcrumbsOnRemovedBlockOnExecuted(t *testing.T) {
+	t.Parallel()
+
+	t.Run("should return errGlobalBreadcrumbDoesNotExist error", func(t *testing.T) {
+		t.Parallel()
+
+		gabc := newGlobalAccountBreadcrumbsCompiler()
+
+		tb1 := newTrackedBlock(0, []byte("hash0"), []byte("rootHash"), []byte("prevHash"))
+		tx1 := createTx([]byte("hash14"), "frank", 0).withRelayer([]byte("eve")).withFee(big.NewInt(1))
+		tx2 := createTx([]byte("hash15"), "frank", 1).withRelayer([]byte("eve")).withFee(big.NewInt(1))
+
+		txs := []*WrappedTransaction{
+			tx1, tx2,
+		}
+
+		err := tb1.compileBreadcrumbs(txs)
+		require.NoError(t, err)
+
+		err = gabc.updateAfterRemovedBlockWithSameNonceOrBelow(tb1)
+		require.Equal(t, errGlobalBreadcrumbDoesNotExist, err)
+	})
+
+	t.Run("should return errNegativeBalanceForBreadcrumb error", func(t *testing.T) {
+		t.Parallel()
+
+		gabc := newGlobalAccountBreadcrumbsCompiler()
+		gabc.globalAccountBreadcrumbs = map[string]*globalAccountBreadcrumb{
+			"frank": {
+				firstNonce:      core.OptionalUint64{},
+				lastNonce:       core.OptionalUint64{},
+				consumedBalance: big.NewInt(0),
+			},
+			"eve": {
+				firstNonce:      core.OptionalUint64{},
+				lastNonce:       core.OptionalUint64{},
+				consumedBalance: big.NewInt(0),
+			},
+		}
+		tb1 := newTrackedBlock(0, []byte("hash0"), []byte("rootHash"), []byte("prevHash"))
+		tx1 := createTx([]byte("hash14"), "frank", 0).withRelayer([]byte("eve")).withFee(big.NewInt(1))
+		tx2 := createTx([]byte("hash15"), "frank", 1).withRelayer([]byte("eve")).withFee(big.NewInt(1))
+
+		txs := []*WrappedTransaction{
+			tx1, tx2,
+		}
+
+		err := tb1.compileBreadcrumbs(txs)
+		require.NoError(t, err)
+
+		err = gabc.updateAfterRemovedBlockWithSameNonceOrBelow(tb1)
+		require.Equal(t, errNegativeBalanceForBreadcrumb, err)
 	})
 }

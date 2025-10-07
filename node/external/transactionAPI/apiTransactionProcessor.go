@@ -430,6 +430,7 @@ func (atp *apiTransactionProcessor) getFieldGettersForTx(wrappedTx *txcache.Wrap
 		receiverField:    atp.addressPubKeyConverter.SilentEncode(wrappedTx.Tx.GetRcvAddr(), log),
 		gasLimitField:    wrappedTx.Tx.GetGasLimit(),
 		gasPriceField:    wrappedTx.Tx.GetGasPrice(),
+		ppu:              wrappedTx.PricePerUnit,
 		rcvUsernameField: wrappedTx.Tx.GetRcvUserName(),
 		dataField:        wrappedTx.Tx.GetData(),
 		valueField:       getTxValue(wrappedTx),

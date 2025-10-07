@@ -58,13 +58,13 @@ func TestTrackedBlock_sameNonceOrHigher(t *testing.T) {
 
 	newProposedBlock := newTrackedBlock(2, []byte("blockHash1"), []byte("blockRootHash2"), []byte("blockPrevHash1"))
 
-	shouldRemoveBlock := trackedBlock1.sameNonceOrHigher(newProposedBlock)
+	shouldRemoveBlock := trackedBlock1.hasSameNonceOrHigher(newProposedBlock)
 	require.True(t, shouldRemoveBlock)
 
-	shouldRemoveBlock = trackedBlock2.sameNonceOrHigher(newProposedBlock)
+	shouldRemoveBlock = trackedBlock2.hasSameNonceOrHigher(newProposedBlock)
 	require.True(t, shouldRemoveBlock)
 
-	shouldRemoveBlock = trackedBlock0.sameNonceOrHigher(newProposedBlock)
+	shouldRemoveBlock = trackedBlock0.hasSameNonceOrHigher(newProposedBlock)
 	require.False(t, shouldRemoveBlock)
 }
 
