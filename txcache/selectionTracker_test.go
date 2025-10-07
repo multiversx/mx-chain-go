@@ -595,7 +595,8 @@ func TestSelectionTracker_removeFromTrackedBlocks(t *testing.T) {
 
 	r := newTrackedBlock(0, nil, nil, []byte("prevHash1"))
 
-	tracker.removeFromTrackedBlocksNoLock(r)
+	err = tracker.removeUpToBlockNoLock(r)
+	require.Nil(t, err)
 	require.Equal(t, 1, len(tracker.blocks))
 
 	_, ok := tracker.blocks[string(expectedTrackedBlock.hash)]
@@ -892,14 +893,21 @@ func TestSelectionTracker_addNewBlockNoLock(t *testing.T) {
 	tracker, err := NewSelectionTracker(txCache, maxTrackedBlocks)
 	require.Nil(t, err)
 
-	tb1 := newTrackedBlock(0, []byte("blockHash1"), []byte("rootHash0"), []byte("blockHash0"))
-	tb2 := newTrackedBlock(0, []byte("blockHash2"), []byte("rootHash0"), []byte("blockHash0"))
+	tb0 := newTrackedBlock(0, []byte("blockHash0"), []byte("rootHash0"), []byte("blockHash"))
+	tb1 := newTrackedBlock(1, []byte("blockHash1"), []byte("rootHash0"), []byte("blockHash0"))
+	tb2 := newTrackedBlock(1, []byte("blockHash2"), []byte("rootHash0"), []byte("blockHash0"))
 
-	tracker.addNewTrackedBlockNoLock([]byte("blockHash1"), tb1)
+	err = tracker.addNewTrackedBlockNoLock([]byte("blockHash0"), tb0)
+	require.Nil(t, err)
 	require.Equal(t, len(tracker.blocks), 1)
 
-	tracker.addNewTrackedBlockNoLock([]byte("blockHash1"), tb2)
-	require.Equal(t, len(tracker.blocks), 1)
+	err = tracker.addNewTrackedBlockNoLock([]byte("blockHash1"), tb1)
+	require.Nil(t, err)
+	require.Equal(t, len(tracker.blocks), 2)
+
+	err = tracker.addNewTrackedBlockNoLock([]byte("blockHash2"), tb2)
+	require.Nil(t, err)
+	require.Equal(t, len(tracker.blocks), 2)
 }
 
 func Test_getVirtualNonceOfAccount(t *testing.T) {
