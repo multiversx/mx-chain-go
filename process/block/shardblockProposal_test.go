@@ -465,16 +465,29 @@ func TestShardProcessor_CreateBlockProposal(t *testing.T) {
 		providedMb := &block.MiniBlock{
 			TxHashes: [][]byte{[]byte("tx_hash")},
 		}
+		providedPendingMb := &block.MiniBlock{
+			TxHashes: [][]byte{[]byte("tx_hash2")},
+		}
 		arguments.TxCoordinator = &testscommon.TransactionCoordinatorMock{
 			CreateMbsCrossShardDstMeCalled: func(header data.HeaderHandler, processedMiniBlocksInfo map[string]*processedMb.ProcessedMiniBlockInfo) ([]block.MiniblockAndHash, []block.MiniblockAndHash, uint32, bool, error) {
 				return []block.MiniblockAndHash{
-					{
-						Miniblock: providedMb,
-						Hash:      []byte("providedMB"),
+						{
+							Miniblock: providedMb,
+							Hash:      []byte("providedMB"),
+						},
 					},
-				}, nil, 0, true, nil
+					[]block.MiniblockAndHash{
+						{
+							Miniblock: providedPendingMb,
+							Hash:      []byte("providedPendingMB"),
+						},
+					}, 0, true, nil
+			},
+			SelectOutgoingTransactionsCalled: func() ([][]byte, []data.MiniBlockHeaderHandler) {
+				return [][]byte{}, []data.MiniBlockHeaderHandler{&block.MiniBlockHeader{Hash: []byte("providedPendingMB")}}
 			},
 		}
+
 		sp, err := blproc.NewShardProcessor(arguments)
 		require.Nil(t, err)
 
@@ -485,8 +498,9 @@ func TestShardProcessor_CreateBlockProposal(t *testing.T) {
 
 		rawBody, ok := body.(*block.Body)
 		require.True(t, ok)
-		require.Len(t, rawBody.MiniBlocks, 1)
+		require.Len(t, rawBody.MiniBlocks, 2)
 		require.Equal(t, providedMb, rawBody.MiniBlocks[0])
+		require.Equal(t, providedPendingMb, rawBody.MiniBlocks[1])
 	})
 }
 
@@ -1703,6 +1717,29 @@ func TestShardProcessor_VerifyGasLimit(t *testing.T) {
 		err = sp.VerifyGasLimit(createHeaderFromMBs(outgoingMbh, incomingMbh))
 		require.ErrorIs(t, err, process.ErrInvalidMaxGasLimitPerMiniBlock)
 		require.Contains(t, err.Error(), "outgoing transactions exceeded")
+	})
+	t.Run("CheckOutgoingTransactions adds extra pending mini blocks on CheckOutgoingTransactions", func(t *testing.T) {
+		t.Parallel()
+
+		outgoingMbh, outgoingMb, incomingMbh, incomingMb := createMiniBlocks()
+		coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
+		dataPool := adaptDataPoolForVerifyGas(t, dataComponents.DataPool, outgoingMb, incomingMb)
+		dataComponents.DataPool = dataPool
+		arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+		arguments.GasComputation = &testscommon.GasComputationMock{
+			CheckIncomingMiniBlocksCalled: func(miniBlocks []data.MiniBlockHeaderHandler, transactions map[string][]data.TransactionHandler) (int, int, error) {
+				return len(miniBlocks), 0, nil // no pending mini blocks left
+			},
+			CheckOutgoingTransactionsCalled: func(txHashes [][]byte, transactions []data.TransactionHandler) ([][]byte, []data.MiniBlockHeaderHandler, error) {
+				return txHashes, []data.MiniBlockHeaderHandler{&block.MiniBlockHeader{}}, nil // one pending mini block added
+			},
+		}
+		sp, err := blproc.NewShardProcessor(arguments)
+		require.NoError(t, err)
+
+		err = sp.VerifyGasLimit(createHeaderFromMBs(outgoingMbh, incomingMbh))
+		require.ErrorIs(t, err, process.ErrInvalidMaxGasLimitPerMiniBlock)
+		require.Contains(t, err.Error(), "should have not added any pending mini block")
 	})
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()

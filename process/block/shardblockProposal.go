@@ -214,14 +214,6 @@ func (sp *shardProcessor) verifyGasLimit(header data.ShardHeaderHandler) error {
 		return err
 	}
 
-	// TODO: decide if we reset gasComputation here and call the common methods
-	// Or implement new methods for verification only.
-	// Have in mind that the limits can be modified for one direction on this node,
-	// which may be different than what proposer used for proposal.
-	// Perhaps consider here the following two calls as well, although this can be problematic
-	// if the current node will be proposer afterwards:
-	// sp.gasComputation.ResetIncomingLimit()
-	// sp.gasComputation.ResetOutgoingLimit()
 	sp.gasComputation.Reset()
 	lastMiniBlockIndex, pendingMiniBlocks, err := sp.gasComputation.CheckIncomingMiniBlocks(incomingMiniBlocks, incomingTransactions)
 	if err != nil {
@@ -589,7 +581,7 @@ func (sp *shardProcessor) appendPendingMiniBlocksAddedAfterSelectingOutgoingTran
 	}
 
 	pendingMiniBlocksLeftMap := miniBlocksAndHashesSliceToMap(pendingMiniBlocksLeft)
-	extraMiniBlocksAdded := make([]block.MiniblockAndHash, 0, len(pendingIncomingMiniBlocksAdded))
+	extraMiniBlocksAdded := make([]block.MiniblockAndHash, len(pendingIncomingMiniBlocksAdded))
 	for i, pendingMbAdded := range pendingIncomingMiniBlocksAdded {
 		miniBlockAndHash, ok := pendingMiniBlocksLeftMap[string(pendingMbAdded.GetHash())]
 		if !ok {
