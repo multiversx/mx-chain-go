@@ -513,6 +513,25 @@ func TestTxCache_TransactionIsAdded_EvenWhenInternalMapsAreInconsistent(t *testi
 	cache.Clear()
 }
 
+func TestTxCache_GetDimensionOfTrackedBlocks(t *testing.T) {
+	t.Parallel()
+
+	txCache := newCacheToTest(maxNumBytesPerSenderUpperBoundTest, 3)
+	tracker, err := NewSelectionTracker(txCache, maxTrackedBlocks)
+	require.Nil(t, err)
+	txCache.tracker = tracker
+
+	tracker.blocks = map[string]*trackedBlock{}
+	require.Equal(t, len(tracker.blocks), 0)
+
+	tracker.blocks = map[string]*trackedBlock{
+		"hash1": {},
+		"hash2": {},
+		"hash3": {},
+	}
+	require.Equal(t, len(tracker.blocks), 3)
+}
+
 func TestTxCache_NoCriticalInconsistency_WhenConcurrentAdditionsAndRemovals(t *testing.T) {
 	boundsConfig := createMockTxBoundsConfig()
 	cache := newUnconstrainedCacheToTest(boundsConfig)

@@ -132,6 +132,11 @@ func (cache *CrossTxCache) OnExecutedBlock(data.HeaderHandler) error {
 	return nil
 }
 
+// GetDimensionOfTrackedBlocks returns 0 (only to satisfy the interface)
+func (cache *CrossTxCache) GetDimensionOfTrackedBlocks() uint64 {
+	return 0
+}
+
 // Cleanup does nothing (only to satisfy the interface)
 func (cache *CrossTxCache) Cleanup(_ common.AccountNonceProvider, _ uint64, _ int, _ time.Duration) uint64 {
 	return 0

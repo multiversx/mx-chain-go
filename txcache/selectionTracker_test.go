@@ -987,3 +987,26 @@ func Test_getVirtualNonceOfAccount(t *testing.T) {
 		require.Equal(t, []byte("rootHash0"), rootHash)
 	})
 }
+
+func Test_getDimensionOfTrackedBlocks(t *testing.T) {
+	t.Parallel()
+
+	t.Run("should return the number of tracked blocks", func(t *testing.T) {
+		t.Parallel()
+
+		txCache := newCacheToTest(maxNumBytesPerSenderUpperBoundTest, 3)
+		tracker, err := NewSelectionTracker(txCache, maxTrackedBlocks)
+		require.Nil(t, err)
+		txCache.tracker = tracker
+
+		tracker.blocks = map[string]*trackedBlock{}
+		require.Equal(t, len(tracker.blocks), 0)
+
+		tracker.blocks = map[string]*trackedBlock{
+			"hash1": {},
+			"hash2": {},
+			"hash3": {},
+		}
+		require.Equal(t, len(tracker.blocks), 3)
+	})
+}

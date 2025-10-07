@@ -118,6 +118,11 @@ func (cache *DisabledCache) ImmunizeTxsAgainstEviction(_ [][]byte) {
 func (cache *DisabledCache) Diagnose(_ bool) {
 }
 
+// GetDimensionOfTrackedBlocks returns 0
+func (cache *DisabledCache) GetDimensionOfTrackedBlocks() uint64 {
+	return 0
+}
+
 // GetTransactionsPoolForSender returns an empty slice
 func (cache *DisabledCache) GetTransactionsPoolForSender(_ string) []*WrappedTransaction {
 	return make([]*WrappedTransaction, 0)
