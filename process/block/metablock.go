@@ -1164,6 +1164,11 @@ func (mp *metaProcessor) CommitBlock(
 	mp.saveMetaHeader(header, headerHash, marshalizedHeader)
 	mp.saveBody(body, header, headerHash)
 
+	err = mp.saveExecutedData(header, headerHash)
+	if err != nil {
+		return err
+	}
+
 	err = mp.commitAll(headerHandler)
 	if err != nil {
 		return err
@@ -2113,7 +2118,7 @@ func (mp *metaProcessor) applyBodyToHeader(metaHdr data.MetaHeaderHandler, bodyH
 		return nil, err
 	}
 
-	totalTxCount, miniBlockHeaderHandlers, err := mp.createMiniBlockHeaderHandlers(body, make(map[string]*processedMb.ProcessedMiniBlockInfo))
+	totalTxCount, miniBlockHeaderHandlers, err := mp.createMiniBlockHeaderHandlers(body, make(map[string]*processedMb.ProcessedMiniBlockInfo), metaHdr.IsHeaderV3())
 	if err != nil {
 		return nil, err
 	}

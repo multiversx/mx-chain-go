@@ -972,6 +972,11 @@ func (sp *shardProcessor) CommitBlock(
 
 	sp.saveBody(body, header, headerHash)
 
+	err = sp.saveExecutedData(header, headerHash)
+	if err != nil {
+		return err
+	}
+
 	processedMetaHdrs, err := sp.getOrderedProcessedMetaBlocksFromHeader(header)
 	if err != nil {
 		return err
@@ -2163,7 +2168,7 @@ func (sp *shardProcessor) applyBodyToHeader(
 	newBody := deleteSelfReceiptsMiniBlocks(body)
 
 	sw.Start("createMiniBlockHeaders")
-	totalTxCount, miniBlockHeaderHandlers, err := sp.createMiniBlockHeaderHandlers(newBody, processedMiniBlocksDestMeInfo)
+	totalTxCount, miniBlockHeaderHandlers, err := sp.createMiniBlockHeaderHandlers(newBody, processedMiniBlocksDestMeInfo, shardHeader.IsHeaderV3())
 	sw.Stop("createMiniBlockHeaders")
 	if err != nil {
 		return nil, err
