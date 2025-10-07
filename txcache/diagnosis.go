@@ -33,6 +33,7 @@ func (cache *TxCache) Diagnose(_ bool) {
 	cache.diagnoseTransactions()
 }
 
+// GetDimensionOfTrackedBlocks returns the dimension of the tracked blocks
 func (cache *TxCache) GetDimensionOfTrackedBlocks() uint64 {
 	return cache.tracker.getDimensionOfTrackedBlocks()
 }

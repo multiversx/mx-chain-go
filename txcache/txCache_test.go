@@ -10,6 +10,8 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-go/common/holders"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/testscommon/txcachemocks"
 	"github.com/multiversx/mx-chain-storage-go/common"
@@ -521,15 +523,39 @@ func TestTxCache_GetDimensionOfTrackedBlocks(t *testing.T) {
 	require.Nil(t, err)
 	txCache.tracker = tracker
 
-	tracker.blocks = map[string]*trackedBlock{}
-	require.Equal(t, len(tracker.blocks), 0)
+	accountsProvider := txcachemocks.NewAccountNonceAndBalanceProviderMock()
 
-	tracker.blocks = map[string]*trackedBlock{
-		"hash1": {},
-		"hash2": {},
-		"hash3": {},
-	}
-	require.Equal(t, len(tracker.blocks), 3)
+	blockchainInfo := holders.NewBlockchainInfo([]byte("hash0"), nil, 1)
+	err = txCache.OnProposedBlock(
+		[]byte("hash1"),
+		&block.Body{},
+		&block.Header{
+			Nonce:    uint64(1),
+			PrevHash: []byte("hash0"),
+			RootHash: []byte("rootHash0"),
+		},
+		accountsProvider,
+		blockchainInfo,
+	)
+	require.Nil(t, err)
+
+	require.Equal(t, len(tracker.blocks), 1)
+
+	// replacing the block with nonce 1
+	err = txCache.OnProposedBlock(
+		[]byte("hash2"),
+		&block.Body{},
+		&block.Header{
+			Nonce:    uint64(1),
+			PrevHash: []byte("hash0"),
+			RootHash: []byte("rootHash0"),
+		},
+		accountsProvider,
+		blockchainInfo,
+	)
+	require.Nil(t, err)
+
+	require.Equal(t, len(tracker.blocks), 1)
 }
 
 func TestTxCache_NoCriticalInconsistency_WhenConcurrentAdditionsAndRemovals(t *testing.T) {
