@@ -50,8 +50,8 @@ func (handler *manualRoundHandler) UpdateRound(_ time.Time, _ time.Time) {
 func (handler *manualRoundHandler) TimeStamp() time.Time {
 	rounds := atomic.LoadInt64(&handler.index)
 	timeFromGenesis := handler.roundDuration * time.Duration(rounds)
-	timestamp := time.Unix(handler.genesisTimeStamp, 0).Add(timeFromGenesis)
-	timestamp = time.Unix(timestamp.Unix()-int64(handler.roundDuration.Seconds())*handler.initialRound, 0)
+	timestamp := time.UnixMilli(handler.genesisTimeStamp).Add(timeFromGenesis)
+	timestamp = time.UnixMilli(timestamp.UnixMilli() - int64(handler.roundDuration.Milliseconds())*handler.initialRound)
 	return timestamp
 }
 

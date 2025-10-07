@@ -27,7 +27,6 @@ func createMockArgsTestOnlyProcessingNode(t *testing.T) ArgsTestOnlyProcessingNo
 	outputConfigs, err := configs.CreateChainSimulatorConfigs(configs.ArgsChainSimulatorConfigs{
 		NumOfShards:                 3,
 		OriginalConfigsPath:         "../../../cmd/node/config/",
-		GenesisTimeStamp:            0,
 		RoundDurationInMillis:       6000,
 		TempDir:                     t.TempDir(),
 		MinNodesPerShard:            1,
