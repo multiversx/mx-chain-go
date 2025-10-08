@@ -206,7 +206,7 @@ func (mp *metaProcessor) ProcessBlock(
 		return err
 	}
 
-	mp.epochStartTrigger.Update(header.GetRound(), header.GetNonce())
+	mp.updateEpochStartTrigger(header.GetRound(), header.GetNonce())
 
 	err = mp.checkEpochCorrectness(header)
 	if err != nil {
@@ -318,6 +318,14 @@ func (mp *metaProcessor) ProcessBlock(
 	}
 
 	return nil
+}
+
+func (mp *metaProcessor) updateEpochStartTrigger(round, nonce uint64) {
+	if mp.enableRoundsHandler.IsFlagEnabled(common.SupernovaRoundFlag) {
+		mp.epochStartTrigger.UpdateRound(round)
+	} else {
+		mp.epochStartTrigger.Update(round, nonce)
+	}
 }
 
 func (mp *metaProcessor) processEpochStartMetaBlock(
@@ -673,7 +681,7 @@ func (mp *metaProcessor) CreateBlock(
 	mp.processStatusHandler.SetBusy("metaProcessor.CreateBlock")
 	defer mp.processStatusHandler.SetIdle()
 
-	metaHdr.SoftwareVersion = []byte(mp.headerIntegrityVerifier.GetVersion(metaHdr.Epoch))
+	metaHdr.SoftwareVersion = []byte(mp.headerIntegrityVerifier.GetVersion(metaHdr.Epoch, metaHdr.Round))
 	mp.epochNotifier.CheckEpoch(metaHdr)
 
 	var body data.BodyHandler
@@ -2189,13 +2197,19 @@ func (mp *metaProcessor) verifyValidatorStatisticsRootHash(header *block.MetaBlo
 
 // CreateNewHeader creates a new header
 func (mp *metaProcessor) CreateNewHeader(round uint64, nonce uint64) (data.HeaderHandler, error) {
-	mp.epochStartTrigger.Update(round, nonce)
+	mp.updateEpochStartTrigger(round, nonce)
+
+	epochChangeProposed := mp.epochStartTrigger.ShouldProposeEpochChange(round, nonce)
 	epoch := mp.epochStartTrigger.Epoch()
 
-	header := mp.versionedHeaderFactory.Create(epoch)
+	header := mp.versionedHeaderFactory.Create(epoch, round)
 	metaHeader, ok := header.(data.MetaHeaderHandler)
 	if !ok {
 		return nil, process.ErrWrongTypeAssertion
+	}
+
+	if metaHeader.IsHeaderV3() {
+		metaHeader.SetEpochChangeProposed(epochChangeProposed)
 	}
 
 	err := metaHeader.SetRound(round)
@@ -2211,22 +2225,7 @@ func (mp *metaProcessor) CreateNewHeader(round uint64, nonce uint64) (data.Heade
 		return nil, err
 	}
 
-	err = metaHeader.SetAccumulatedFees(big.NewInt(0))
-	if err != nil {
-		return nil, err
-	}
-
-	err = metaHeader.SetAccumulatedFeesInEpoch(big.NewInt(0))
-	if err != nil {
-		return nil, err
-	}
-
-	err = metaHeader.SetDeveloperFees(big.NewInt(0))
-	if err != nil {
-		return nil, err
-	}
-
-	err = metaHeader.SetDevFeesInEpoch(big.NewInt(0))
+	err = initializeFeesDataMetaHeaderIfNeeded(metaHeader)
 	if err != nil {
 		return nil, err
 	}
@@ -2239,9 +2238,40 @@ func (mp *metaProcessor) CreateNewHeader(round uint64, nonce uint64) (data.Heade
 	return metaHeader, nil
 }
 
+func initializeFeesDataMetaHeaderIfNeeded(metaHeader data.MetaHeaderHandler) error {
+	if metaHeader.IsHeaderV3() {
+		return nil
+	}
+
+	err := metaHeader.SetAccumulatedFees(big.NewInt(0))
+	if err != nil {
+		return err
+	}
+
+	err = metaHeader.SetAccumulatedFeesInEpoch(big.NewInt(0))
+	if err != nil {
+		return err
+	}
+
+	err = metaHeader.SetDeveloperFees(big.NewInt(0))
+	if err != nil {
+		return err
+	}
+
+	err = metaHeader.SetDevFeesInEpoch(big.NewInt(0))
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (mp *metaProcessor) setHeaderVersionData(metaHeader data.MetaHeaderHandler) error {
 	if check.IfNil(metaHeader) {
 		return process.ErrNilHeaderHandler
+	}
+	if metaHeader.IsHeaderV3() {
+		return nil
 	}
 
 	rootHash, err := mp.accountsDB[state.UserAccountsState].RootHash()

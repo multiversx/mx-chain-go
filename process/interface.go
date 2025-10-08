@@ -479,6 +479,9 @@ type VirtualMachinesContainerFactory interface {
 // EpochStartTriggerHandler defines that actions which are needed by processor for start of epoch
 type EpochStartTriggerHandler interface {
 	Update(round uint64, nonce uint64)
+	UpdateRound(round uint64)
+	SetEpochChange()
+	ShouldProposeEpochChange(round uint64, nonce uint64) bool
 	IsEpochStart() bool
 	Epoch() uint32
 	MetaEpoch() uint32
@@ -909,7 +912,7 @@ type InterceptedHeaderSigVerifier interface {
 // HeaderIntegrityVerifier encapsulates methods useful to check that a header's integrity is correct
 type HeaderIntegrityVerifier interface {
 	Verify(header data.HeaderHandler) error
-	GetVersion(epoch uint32) string
+	GetVersion(epoch uint32, round uint64) string
 	IsInterfaceNil() bool
 }
 
