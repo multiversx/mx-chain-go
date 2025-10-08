@@ -376,6 +376,9 @@ func TestGasConsumption_CheckOutgoingTransactions(t *testing.T) {
 		require.Equal(t, 2, pendingMbs)  // 2 pending mini blocks
 		require.Equal(t, 7, lastMbIndex) // last index saved 7
 
+		pending := gc.GetPendingMiniBlocks()
+		require.Len(t, pending, 2)
+
 		// maxGasLimitPerBlock = 400
 		// half of it * factor (200% by default) will be used for txs
 		// thus 400 is the total max limit for transactions
@@ -388,6 +391,9 @@ func TestGasConsumption_CheckOutgoingTransactions(t *testing.T) {
 		require.Equal(t, 2, len(addedPendingMbs)) // added all pending mbs
 
 		require.Equal(t, maxGasLimitPerBlock*2, gc.TotalGasConsumed()) // *2 due to the 200% factor
+
+		pending = gc.GetPendingMiniBlocks()
+		require.Len(t, pending, 0)
 	})
 	t.Run("should work with multiple destination shards", func(t *testing.T) {
 		t.Parallel()
@@ -566,7 +572,7 @@ func TestGasConsumption_ConcurrentOps(t *testing.T) {
 
 		for i := 0; i < numCalls; i++ {
 			go func(idx int) {
-				switch idx % 8 {
+				switch idx % 9 {
 				case 0:
 					_, _, _ = gc.CheckOutgoingTransactions(txHashes, txs)
 				case 1:
@@ -583,6 +589,8 @@ func TestGasConsumption_ConcurrentOps(t *testing.T) {
 					gc.ResetIncomingLimit()
 				case 7:
 					gc.TotalGasConsumed()
+				case 8:
+					_ = gc.GetPendingMiniBlocks()
 				default:
 					require.Fail(t, "should have not been called")
 				}
