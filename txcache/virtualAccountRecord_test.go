@@ -36,6 +36,7 @@ func Test_getInitialNonce(t *testing.T) {
 	require.NoError(t, err)
 
 	initialNonce, err := record.getInitialNonce()
+	require.NoError(t, err)
 	require.Equal(t, expectedInitialNonce.Value, initialNonce)
 }
 
