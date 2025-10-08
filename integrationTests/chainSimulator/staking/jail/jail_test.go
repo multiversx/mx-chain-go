@@ -284,7 +284,7 @@ func TestJailNodes(t *testing.T) {
 				"DisableAsyncCallV1": {
 					Round: "9999999",
 				},
-				// TODO set to 0 when async execution is done
+				// TODO: Set to 0 when async execution is done
 				"SupernovaEnableRound": {
 					Round: "8000",
 				},

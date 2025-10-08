@@ -92,7 +92,7 @@ func (hvh *headerVersionHandler) getVersionFromConfig(epoch uint32, round uint64
 		crtVer := hvh.versions[idx]
 		nextVer := hvh.versions[idx+1]
 
-		if crtVer.StartEpoch <= epoch && epoch < nextVer.StartEpoch || round < nextVer.StartRound {
+		if (crtVer.StartEpoch <= epoch && epoch < nextVer.StartEpoch) || round < nextVer.StartRound {
 			return crtVer.Version
 		}
 	}
