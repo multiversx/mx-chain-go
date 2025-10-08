@@ -22,6 +22,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/multiversx/mx-chain-go/testscommon/cache"
 	"github.com/multiversx/mx-chain-go/testscommon/pool"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 	"github.com/stretchr/testify/assert"
@@ -2696,6 +2697,175 @@ func TestShardProcessor_CommitBlockShouldRevertCurrentBlockWhenErr(t *testing.T)
 	err := bp.CommitBlock(nil, nil)
 	assert.NotNil(t, err)
 	assert.Equal(t, 0, journalEntries)
+}
+
+func TestShardProcessor_MarshalizedDataToBroadcast_WithSupernova(t *testing.T) {
+	t.Parallel()
+
+	marshalizer := &mock.MarshalizerMock{
+		Fail: false,
+	}
+
+	mb1 := &block.MiniBlock{
+		TxHashes:        [][]byte{[]byte("txHash1")},
+		ReceiverShardID: 1,
+		SenderShardID:   0,
+	}
+	mb2 := &block.MiniBlock{
+		TxHashes:        [][]byte{[]byte("txHash2")},
+		ReceiverShardID: 1,
+		SenderShardID:   0,
+	}
+	mb3 := &block.MiniBlock{
+		TxHashes:        [][]byte{[]byte("txHash3")},
+		ReceiverShardID: 1,
+		SenderShardID:   0,
+	}
+	mb4 := &block.MiniBlock{
+		TxHashes:        [][]byte{[]byte("txHash4")},
+		ReceiverShardID: 1,
+		SenderShardID:   0,
+	}
+
+	mbsMap := make(map[string]*block.MiniBlock)
+	mbsMap["mbHash1"] = mb1
+	mbsMap["mbHash2"] = mb2
+	mbsMap["mbHash3"] = mb3
+	mbsMap["mbHash4"] = mb4
+
+	miniBlocksSlice := []*block.MiniBlock{
+		mb1, mb2, mb3, mb4,
+	}
+
+	executionResults := []*block.ExecutionResult{
+		&block.ExecutionResult{
+			MiniBlockHeaders: []block.MiniBlockHeader{
+				block.MiniBlockHeader{
+					Hash:            []byte("mbHash1"),
+					ReceiverShardID: 1,
+					SenderShardID:   0,
+				},
+				block.MiniBlockHeader{
+					Hash:            []byte("mbHash2"),
+					ReceiverShardID: 1,
+					SenderShardID:   0,
+				},
+			},
+		},
+		&block.ExecutionResult{
+			MiniBlockHeaders: []block.MiniBlockHeader{
+				block.MiniBlockHeader{
+					Hash:            []byte("mbHash3"),
+					ReceiverShardID: 1,
+					SenderShardID:   0,
+				},
+				block.MiniBlockHeader{
+					Hash:            []byte("mbHash4"),
+					ReceiverShardID: 1,
+					SenderShardID:   0,
+				},
+			},
+		},
+	}
+
+	executedMBs := &cache.CacherStub{
+		GetCalled: func(key []byte) (value interface{}, ok bool) {
+			mb, ok := mbsMap[string(key)]
+			if ok {
+				mbBytes, _ := marshalizer.Marshal(mb)
+				return mbBytes, ok
+			}
+
+			return nil, false
+		},
+	}
+	dataPool := initDataPool()
+	dataPool.ExecutedMiniBlocksCalled = func() storage.Cacher {
+		return executedMBs
+	}
+
+	// mini blocks related to current processing block
+	txHash00 := []byte("txHash00")
+	mb00 := block.MiniBlock{
+		ReceiverShardID: 0,
+		SenderShardID:   0,
+		TxHashes:        [][]byte{txHash00},
+	}
+	txHash01 := []byte("txHash01")
+	mb01 := block.MiniBlock{
+		ReceiverShardID: 1,
+		SenderShardID:   0,
+		TxHashes:        [][]byte{txHash01},
+	}
+	body := &block.Body{}
+	body.MiniBlocks = append(body.MiniBlocks, &mb00)
+	body.MiniBlocks = append(body.MiniBlocks, &mb01)
+
+	factory, err := shard.NewPreProcessorsContainerFactory(
+		mock.NewMultiShardsCoordinatorMock(3),
+		initStore(),
+		marshalizer,
+		&hashingMocks.HasherMock{},
+		dataPool,
+		createMockPubkeyConverter(),
+		initAccountsMock(),
+		initAccountsMock(),
+		&testscommon.RequestHandlerStub{},
+		&testscommon.TxProcessorMock{},
+		&testscommon.SCProcessorMock{},
+		&testscommon.SmartContractResultsProcessorMock{},
+		&testscommon.RewardTxProcessorMock{},
+		&economicsmocks.EconomicsHandlerMock{},
+		&testscommon.GasHandlerStub{},
+		&mock.BlockTrackerMock{},
+		&testscommon.BlockSizeComputationStub{},
+		&testscommon.BalanceComputationStub{},
+		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		&testscommon.TxTypeHandlerMock{},
+		&testscommon.ScheduledTxsExecutionStub{},
+		&testscommon.ProcessedMiniBlocksTrackerStub{},
+		&commonMock.TxExecutionOrderHandlerStub{},
+		createMockTxCacheSelectionConfig(),
+	)
+	require.NoError(t, err)
+
+	container, err := factory.Create()
+	require.NoError(t, err)
+	containerPreProcProposal, err := factory.Create()
+	require.NoError(t, err)
+
+	argsTransactionCoordinator := createMockTransactionCoordinatorArguments(initAccountsMock(), dataPool, container, containerPreProcProposal)
+	tc, err := coordinator.NewTransactionCoordinator(argsTransactionCoordinator)
+	assert.Nil(t, err)
+
+	coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
+	dataComponents.DataPool = dataPool
+	coreComponents.IntMarsh = marshalizer
+
+	arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+	arguments.TxCoordinator = tc
+	sp, _ := blproc.NewShardProcessor(arguments)
+
+	tc.AddTxsFromMiniBlocks(miniBlocksSlice)
+
+	marshalledBlockBody, marshalledTxs, err := sp.MarshalizedDataToBroadcast(&block.HeaderV3{
+		ExecutionResults: executionResults,
+	}, body)
+	require.Nil(t, err)
+	require.NotNil(t, marshalledBlockBody)
+	require.NotNil(t, marshalledTxs)
+
+	fmt.Println(marshalledBlockBody)
+	fmt.Println(marshalledTxs)
+
+	blockBody := &block.Body{}
+	err = marshalizer.Unmarshal(blockBody, marshalledBlockBody[1])
+	assert.Nil(t, err)
+	assert.Equal(t, len(blockBody.MiniBlocks), 4)
+	assert.Equal(t, mb1, blockBody.MiniBlocks[0])
+	assert.Equal(t, mb2, blockBody.MiniBlocks[1])
+	assert.Equal(t, mb3, blockBody.MiniBlocks[2])
+	assert.Equal(t, mb4, blockBody.MiniBlocks[3])
 }
 
 func TestShardProcessor_MarshalizedDataToBroadcastShouldWork(t *testing.T) {
