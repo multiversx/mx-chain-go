@@ -34,7 +34,7 @@ func TestManualRoundHandler_Operations(t *testing.T) {
 	require.Equal(t, providedIndex, handler.Index())
 	handler.IncrementIndex()
 	require.Equal(t, providedIndex+1, handler.Index())
-	expectedTimestamp := time.Unix(handler.genesisTimeStamp, 0).Add(providedRoundDuration)
+	expectedTimestamp := time.UnixMilli(handler.genesisTimeStamp).Add(providedRoundDuration)
 	require.Equal(t, expectedTimestamp, handler.TimeStamp())
 	require.Equal(t, providedRoundDuration, handler.TimeDuration())
 	providedMaxTime := time.Minute

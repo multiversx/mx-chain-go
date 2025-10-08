@@ -69,7 +69,7 @@ func (tb *trackedBlock) compileBreadcrumb(tx *WrappedTransaction) error {
 	transferredValue := tx.TransferredValue
 	senderBreadcrumb.accumulateConsumedBalance(transferredValue)
 
-	err := senderBreadcrumb.updateLastNonce(core.OptionalUint64{
+	err := senderBreadcrumb.updateNonceRange(core.OptionalUint64{
 		Value:    latestNonce,
 		HasValue: true,
 	})

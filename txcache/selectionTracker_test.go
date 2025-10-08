@@ -3,6 +3,7 @@ package txcache
 import (
 	"errors"
 	"fmt"
+	"math"
 	"math/big"
 	"sync"
 	"testing"
@@ -417,6 +418,211 @@ func TestSelectionTracker_OnProposedBlockWhenMaxTrackedBlocksIsReached(t *testin
 	)
 	require.Nil(t, err)
 	require.Equal(t, 5, len(tracker.blocks))
+}
+
+func Test_CompleteFlowShouldWork(t *testing.T) {
+	t.Parallel()
+
+	accountsProvider := &txcachemocks.AccountNonceAndBalanceProviderMock{
+		GetAccountNonceAndBalanceCalled: func(address []byte) (uint64, *big.Int, bool, error) {
+			return 11, big.NewInt(8 * 100000 * oneBillion), true, nil
+		},
+	}
+
+	config := ConfigSourceMe{
+		Name:                        "test",
+		NumChunks:                   16,
+		NumBytesThreshold:           maxNumBytesUpperBound,
+		NumBytesPerSenderThreshold:  maxNumBytesPerSenderUpperBoundTest,
+		CountThreshold:              math.MaxUint32,
+		CountPerSenderThreshold:     math.MaxUint32,
+		EvictionEnabled:             true,
+		NumItemsToPreemptivelyEvict: 1,
+		TxCacheBoundsConfig:         createMockTxBoundsConfig(),
+	}
+
+	host := txcachemocks.NewMempoolHostMock()
+
+	cache, err := NewTxCache(config, host)
+	require.Nil(t, err)
+
+	txs := []*WrappedTransaction{
+		// txs for first block
+		createTx([]byte("txHash1"), "alice", 11).withRelayer([]byte("bob")).withGasLimit(100_000), // the fee is 100000000000000
+		createTx([]byte("txHash2"), "alice", 12),                                                  // the fee is 50000000000000
+		createTx([]byte("txHash3"), "alice", 13),
+		createTx([]byte("txHash4"), "bob", 11),
+		createTx([]byte("txHash5"), "carol", 11),
+		createTx([]byte("txHash6"), "carol", 12).withRelayer([]byte("bob")).withGasLimit(100_000),
+		createTx([]byte("txHash7"), "carol", 13).withRelayer([]byte("alice")).withGasLimit(100_000),
+		createTx([]byte("txHash8"), "carol", 14).withRelayer([]byte("eve")).withGasLimit(100_000),
+
+		// txs for second block
+		createTx([]byte("txHash9"), "carol", 15),
+		createTx([]byte("txHash10"), "eve", 11).withRelayer([]byte("bob")).withGasLimit(100_000),
+
+		// tx to be selected
+		createTx([]byte("txHash11"), "bob", 12),
+		createTx([]byte("txHash12"), "carol", 13), // this one should not be selected
+		createTx([]byte("txHash13"), "eve", 14),   // this one should not be selected
+	}
+	for _, tx := range txs {
+		cache.AddTx(tx)
+	}
+
+	proposedBlock1 := [][]byte{
+		[]byte("txHash1"),
+		[]byte("txHash2"),
+		[]byte("txHash3"),
+		[]byte("txHash4"),
+		[]byte("txHash5"),
+		[]byte("txHash6"),
+		[]byte("txHash7"),
+		[]byte("txHash8"),
+	}
+
+	err = cache.OnProposedBlock(
+		[]byte("hash1"),
+		&block.Body{
+			MiniBlocks: []*block.MiniBlock{
+				{
+					TxHashes: proposedBlock1,
+				},
+			},
+		},
+		&block.Header{
+			Nonce:    uint64(0),
+			PrevHash: []byte("hash0"),
+			RootHash: []byte("rootHash0"),
+		},
+		accountsProvider,
+		holders.NewBlockchainInfo([]byte("hash0"), []byte("hash0"), 0),
+	)
+	require.Nil(t, err)
+
+	expectedBreadcrumbs := map[string]*accountBreadcrumb{
+		"alice": createExpectedBreadcrumb(true, 11, 13, big.NewInt(200000000000000)), // feeOf(txHash2) + feeOf(txHash3) + feeOf(txHash7)
+		"bob":   createExpectedBreadcrumb(true, 11, 11, big.NewInt(250000000000000)), // feeOf(txHash1) + feeOf(txHash4) + feeOf(txHash6)
+		"carol": createExpectedBreadcrumb(true, 11, 14, big.NewInt(50000000000000)),  // feeOf(txHash5)
+		"eve":   createExpectedBreadcrumb(false, 0, 0, big.NewInt(100000000000000)),  // feeOf(txHash8)
+	}
+
+	require.Equal(t, 1, len(cache.tracker.blocks))
+	tb, ok := cache.tracker.blocks["hash1"]
+	require.True(t, ok)
+	require.Equal(t, expectedBreadcrumbs, tb.breadcrumbsByAddress)
+
+	// propose another block
+	err = cache.OnProposedBlock(
+		[]byte("hash2"),
+		&block.Body{
+			MiniBlocks: []*block.MiniBlock{
+				{
+					TxHashes: [][]byte{
+						[]byte("txHash9"),
+						[]byte("txHash10"),
+					},
+				},
+			},
+		},
+		&block.Header{
+			Nonce:    uint64(1),
+			PrevHash: []byte("hash1"),
+			RootHash: []byte("rootHash0"),
+		},
+		accountsProvider,
+		holders.NewBlockchainInfo([]byte("hash0"), []byte("hash1"), 1),
+	)
+	require.Nil(t, err)
+
+	expectedBreadcrumbs = map[string]*accountBreadcrumb{
+		"bob":   createExpectedBreadcrumb(false, 0, 0, big.NewInt(100000000000000)),
+		"carol": createExpectedBreadcrumb(true, 15, 15, big.NewInt(50000000000000)),
+		"eve":   createExpectedBreadcrumb(true, 11, 11, big.NewInt(0)), // feeOf(txHash8)
+	}
+	require.Equal(t, 2, len(cache.tracker.blocks))
+	tb, ok = cache.tracker.blocks["hash2"]
+	require.True(t, ok)
+	require.Equal(t, expectedBreadcrumbs, tb.breadcrumbsByAddress)
+
+	selectionSession := &txcachemocks.SelectionSessionMock{
+		GetAccountNonceAndBalanceCalled: func(address []byte) (uint64, *big.Int, bool, error) {
+			return 11, big.NewInt(8 * 100000 * oneBillion), true, nil
+		},
+	}
+
+	blockchainInfo := holders.NewBlockchainInfo([]byte("hash0"), []byte("hash2"), 2)
+	virtualSession, err := cache.tracker.deriveVirtualSelectionSession(selectionSession, blockchainInfo)
+
+	require.Nil(t, err)
+	require.NotNil(t, virtualSession)
+
+	expectedVirtualRecords := map[string]*virtualAccountRecord{
+		"alice": createExpectedVirtualRecord(true, 14, big.NewInt(8*100000*oneBillion), big.NewInt(200000000000000)),
+		"bob":   createExpectedVirtualRecord(true, 12, big.NewInt(8*100000*oneBillion), big.NewInt(350000000000000)),
+		"carol": createExpectedVirtualRecord(true, 16, big.NewInt(8*100000*oneBillion), big.NewInt(100000000000000)),
+		"eve":   createExpectedVirtualRecord(true, 12, big.NewInt(8*100000*oneBillion), big.NewInt(100000000000000)),
+	}
+	require.Equal(t, expectedVirtualRecords, virtualSession.virtualAccountsByAddress)
+
+	// execute the first block
+	err = cache.OnExecutedBlock(&block.Header{
+		Nonce:    uint64(0),
+		PrevHash: []byte("hash0"),
+		RootHash: []byte("rootHash0"),
+	})
+	require.Nil(t, err)
+
+	for _, txHash := range proposedBlock1 {
+		cache.RemoveTxByHash(txHash)
+	}
+
+	// update the session nonce
+	selectionSession = &txcachemocks.SelectionSessionMock{
+		GetAccountNonceAndBalanceCalled: func(address []byte) (uint64, *big.Int, bool, error) {
+			if string(address) == "alice" {
+				return 14, big.NewInt(8 * 100000 * oneBillion), true, nil
+			}
+			if string(address) == "bob" {
+				return 12, big.NewInt(8 * 100000 * oneBillion), true, nil
+			}
+			if string(address) == "carol" {
+				return 15, big.NewInt(8 * 100000 * oneBillion), true, nil
+			}
+
+			return 11, big.NewInt(8 * 100000 * oneBillion), true, nil
+		},
+	}
+
+	blockchainInfo = holders.NewBlockchainInfo([]byte("hash1"), []byte("hash2"), 2)
+	virtualSession, err = cache.tracker.deriveVirtualSelectionSession(selectionSession, blockchainInfo)
+	require.Nil(t, err)
+
+	expectedVirtualRecords = map[string]*virtualAccountRecord{
+		// bob was only relayer in the last proposed block (which is still tracked).
+		// However, its initialNonce shouldn't remain uninitialized, so it's initialized with the session nonce.
+		"bob":   createExpectedVirtualRecord(true, 12, big.NewInt(8*100000*oneBillion), big.NewInt(100000000000000)),
+		"carol": createExpectedVirtualRecord(true, 16, big.NewInt(8*100000*oneBillion), big.NewInt(50000000000000)),
+		"eve":   createExpectedVirtualRecord(true, 12, big.NewInt(8*100000*oneBillion), big.NewInt(0)),
+	}
+	require.Equal(t, expectedVirtualRecords, virtualSession.virtualAccountsByAddress)
+
+	options := holders.NewTxSelectionOptions(
+		10_000_000_000,
+		10,
+		selectionLoopMaximumDuration,
+		10,
+	)
+
+	blockchainInfo = holders.NewBlockchainInfo([]byte("hash1"), []byte("hash2"), 2)
+	selectedTxs, _, err := cache.SelectTransactions(
+		selectionSession,
+		options,
+		blockchainInfo,
+	)
+	require.Nil(t, err)
+	require.Len(t, selectedTxs, 1)
+	require.Equal(t, "txHash11", string(selectedTxs[0].TxHash))
 }
 
 func TestSelectionTracker_OnExecutedBlockShouldError(t *testing.T) {
@@ -934,7 +1140,7 @@ func Test_getVirtualNonceOfAccount(t *testing.T) {
 		require.Nil(t, err)
 
 		breadcrumb := newAccountBreadcrumb(core.OptionalUint64{HasValue: true, Value: 10})
-		err = breadcrumb.updateLastNonce(core.OptionalUint64{
+		err = breadcrumb.updateNonceRange(core.OptionalUint64{
 			HasValue: true,
 			Value:    20,
 		})

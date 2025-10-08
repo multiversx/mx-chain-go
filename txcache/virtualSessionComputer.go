@@ -2,6 +2,8 @@ package txcache
 
 import (
 	"math/big"
+
+	"github.com/multiversx/mx-chain-core-go/core"
 )
 
 type virtualSessionComputer struct {
@@ -55,7 +57,7 @@ func (computer *virtualSessionComputer) handleGlobalAccountBreadcrumbs(
 			continue
 		}
 
-		err = computer.fromGlobalBreadcrumbToVirtualRecord(address, accountBalance, globalBreadcrumb)
+		err = computer.fromGlobalBreadcrumbToVirtualRecord(address, accountNonce, accountBalance, globalBreadcrumb)
 		if err != nil {
 			return err
 		}
@@ -69,13 +71,23 @@ func (computer *virtualSessionComputer) handleGlobalAccountBreadcrumbs(
 // copying the consumed balance in the initialBalance of the virtual record.
 func (computer *virtualSessionComputer) fromGlobalBreadcrumbToVirtualRecord(
 	address string,
+	accountNonce uint64,
 	accountBalance *big.Int,
 	globalBreadcrumb *globalAccountBreadcrumb,
 ) error {
 	_, ok := computer.virtualAccountsByAddress[address]
 	if !ok {
+		initialNonce := core.OptionalUint64{
+			Value:    accountNonce,
+			HasValue: true,
+		}
 		initialBalance := accountBalance
-		record, err := newVirtualAccountRecord(globalBreadcrumb.lastNonce, initialBalance)
+
+		// We initialize the virtual record with the session nonce because an account might be only a relayer in the proposed blocks.
+		// Without this initialization, the initialNonce remains without a value.
+		// On the selection side, a virtual account record that has an initial nonce without a value
+		// will lead to an incorrect skip of a specific tx where the account is a sender.
+		record, err := newVirtualAccountRecord(initialNonce, initialBalance)
 		if err != nil {
 			log.Debug("virtualSessionComputer.fromGlobalBreadcrumbToVirtualRecord",
 				"err", err,

@@ -51,7 +51,9 @@ type baseBlockTrack struct {
 	whitelistHandler                      process.WhiteListHandler
 	feeHandler                            process.FeeHandler
 	enableEpochsHandler                   common.EnableEpochsHandler
+	enableRoundsHandler                   common.EnableRoundsHandler
 	epochChangeGracePeriodHandler         common.EpochChangeGracePeriodHandler
+	processConfigsHandler                 common.ProcessConfigsHandler
 
 	mutHeaders                  sync.RWMutex
 	headers                     map[uint32]map[uint64][]*HeaderInfo
@@ -121,7 +123,9 @@ func createBaseBlockTrack(arguments ArgBaseTracker) (*baseBlockTrack, error) {
 		whitelistHandler:                      arguments.WhitelistHandler,
 		feeHandler:                            arguments.FeeHandler,
 		enableEpochsHandler:                   arguments.EnableEpochsHandler,
+		enableRoundsHandler:                   arguments.EnableRoundsHandler,
 		epochChangeGracePeriodHandler:         arguments.EpochChangeGracePeriodHandler,
+		processConfigsHandler:                 arguments.ProcessConfigsHandler,
 	}
 
 	return bbt, nil
@@ -654,9 +658,12 @@ func (bbt *baseBlockTrack) ShouldSkipMiniBlocksCreationFromSelf() bool {
 		return false
 	}
 
+	currentEpoch := bbt.enableEpochsHandler.GetCurrentEpoch()
+	maxMetaNoncesBehind := bbt.processConfigsHandler.GetMaxMetaNoncesBehindForGlobalStuckByEpoch(currentEpoch)
+
 	shards := bbt.shardCoordinator.NumberOfShards()
 	for shardID := uint32(0); shardID < shards; shardID++ {
-		if bbt.isShardBehind(shardID, process.MaxMetaNoncesBehindForGlobalStuck) {
+		if bbt.isShardBehind(shardID, uint64(maxMetaNoncesBehind)) {
 			return true
 		}
 	}
@@ -674,7 +681,9 @@ func (bbt *baseBlockTrack) IsShardStuck(shardID uint32) bool {
 		return bbt.isMetaStuck()
 	}
 
-	return bbt.isShardBehind(shardID, process.MaxMetaNoncesBehind)
+	currentEpoch := bbt.enableEpochsHandler.GetCurrentEpoch()
+	maxMetaNoncesBehind := bbt.processConfigsHandler.GetMaxMetaNoncesBehindByEpoch(currentEpoch)
+	return bbt.isShardBehind(shardID, uint64(maxMetaNoncesBehind))
 }
 
 func (bbt *baseBlockTrack) isShardBehind(shardID uint32, maxMetaNoncesBehind uint64) bool {
@@ -739,7 +748,11 @@ func (bbt *baseBlockTrack) computeMetaBlocksBehind() int64 {
 
 func (bbt *baseBlockTrack) isMetaStuck() bool {
 	noncesBehind := bbt.computeMetaBlocksBehind()
-	isMetaStuck := noncesBehind > process.MaxShardNoncesBehind
+
+	currentEpoch := bbt.enableEpochsHandler.GetCurrentEpoch()
+	maxShardNoncesBehind := bbt.processConfigsHandler.GetMaxShardNoncesBehindByEpoch(currentEpoch)
+
+	isMetaStuck := noncesBehind > int64(maxShardNoncesBehind)
 	return isMetaStuck
 }
 
@@ -838,6 +851,9 @@ func checkTrackerNilParameters(arguments ArgBaseTracker) error {
 	}
 	if check.IfNil(arguments.EpochChangeGracePeriodHandler) {
 		return process.ErrNilEpochChangeGracePeriodHandler
+	}
+	if check.IfNil(arguments.ProcessConfigsHandler) {
+		return process.ErrNilProcessConfigsHandler
 	}
 
 	return nil

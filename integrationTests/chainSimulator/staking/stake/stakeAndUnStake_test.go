@@ -6,7 +6,6 @@ import (
 	"math/big"
 	"strings"
 	"testing"
-	"time"
 
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
@@ -48,7 +47,6 @@ func TestChainSimulator_AddValidatorKey(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	startTime := time.Now().Unix()
 	roundDurationInMillis := uint64(6000)
 	roundsPerEpoch := core.OptionalUint64{
 		HasValue: true,
@@ -61,7 +59,6 @@ func TestChainSimulator_AddValidatorKey(t *testing.T) {
 		TempDir:                  t.TempDir(),
 		PathToInitialConfig:      defaultPathToInitialConfig,
 		NumOfShards:              numOfShards,
-		GenesisTimestamp:         startTime,
 		RoundDurationInMillis:    roundDurationInMillis,
 		RoundsPerEpoch:           roundsPerEpoch,
 		ApiInterface:             api.NewNoApiInterface(),
@@ -184,7 +181,6 @@ func TestChainSimulator_AddANewValidatorAfterStakingV4(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	startTime := time.Now().Unix()
 	roundDurationInMillis := uint64(6000)
 	roundsPerEpoch := core.OptionalUint64{
 		HasValue: true,
@@ -196,7 +192,6 @@ func TestChainSimulator_AddANewValidatorAfterStakingV4(t *testing.T) {
 		TempDir:                t.TempDir(),
 		PathToInitialConfig:    defaultPathToInitialConfig,
 		NumOfShards:            numOfShards,
-		GenesisTimestamp:       startTime,
 		RoundDurationInMillis:  roundDurationInMillis,
 		RoundsPerEpoch:         roundsPerEpoch,
 		ApiInterface:           api.NewNoApiInterface(),
@@ -316,7 +311,6 @@ func TestChainSimulatorStakeUnStakeUnBond(t *testing.T) {
 }
 
 func testStakeUnStakeUnBond(t *testing.T, targetEpoch int32) {
-	startTime := time.Now().Unix()
 	roundDurationInMillis := uint64(6000)
 	roundsPerEpoch := core.OptionalUint64{
 		HasValue: true,
@@ -328,7 +322,6 @@ func testStakeUnStakeUnBond(t *testing.T, targetEpoch int32) {
 		TempDir:                t.TempDir(),
 		PathToInitialConfig:    defaultPathToInitialConfig,
 		NumOfShards:            numOfShards,
-		GenesisTimestamp:       startTime,
 		RoundDurationInMillis:  roundDurationInMillis,
 		RoundsPerEpoch:         roundsPerEpoch,
 		ApiInterface:           api.NewNoApiInterface(),
@@ -459,7 +452,6 @@ func TestChainSimulator_DirectStakingNodes_StakeFunds(t *testing.T) {
 			TempDir:                  t.TempDir(),
 			PathToInitialConfig:      defaultPathToInitialConfig,
 			NumOfShards:              3,
-			GenesisTimestamp:         time.Now().Unix(),
 			RoundDurationInMillis:    roundDurationInMillis,
 			RoundsPerEpoch:           roundsPerEpoch,
 			ApiInterface:             api.NewNoApiInterface(),
@@ -489,7 +481,6 @@ func TestChainSimulator_DirectStakingNodes_StakeFunds(t *testing.T) {
 			TempDir:                  t.TempDir(),
 			PathToInitialConfig:      defaultPathToInitialConfig,
 			NumOfShards:              3,
-			GenesisTimestamp:         time.Now().Unix(),
 			RoundDurationInMillis:    roundDurationInMillis,
 			RoundsPerEpoch:           roundsPerEpoch,
 			ApiInterface:             api.NewNoApiInterface(),
@@ -519,7 +510,6 @@ func TestChainSimulator_DirectStakingNodes_StakeFunds(t *testing.T) {
 			TempDir:                  t.TempDir(),
 			PathToInitialConfig:      defaultPathToInitialConfig,
 			NumOfShards:              3,
-			GenesisTimestamp:         time.Now().Unix(),
 			RoundDurationInMillis:    roundDurationInMillis,
 			RoundsPerEpoch:           roundsPerEpoch,
 			ApiInterface:             api.NewNoApiInterface(),
@@ -549,7 +539,6 @@ func TestChainSimulator_DirectStakingNodes_StakeFunds(t *testing.T) {
 			TempDir:                  t.TempDir(),
 			PathToInitialConfig:      defaultPathToInitialConfig,
 			NumOfShards:              3,
-			GenesisTimestamp:         time.Now().Unix(),
 			RoundDurationInMillis:    roundDurationInMillis,
 			RoundsPerEpoch:           roundsPerEpoch,
 			ApiInterface:             api.NewNoApiInterface(),
@@ -684,7 +673,6 @@ func TestChainSimulator_DirectStakingNodes_UnstakeFundsWithDeactivation(t *testi
 			TempDir:                  t.TempDir(),
 			PathToInitialConfig:      defaultPathToInitialConfig,
 			NumOfShards:              3,
-			GenesisTimestamp:         time.Now().Unix(),
 			RoundDurationInMillis:    roundDurationInMillis,
 			RoundsPerEpoch:           roundsPerEpoch,
 			ApiInterface:             api.NewNoApiInterface(),
@@ -715,7 +703,6 @@ func TestChainSimulator_DirectStakingNodes_UnstakeFundsWithDeactivation(t *testi
 			TempDir:                  t.TempDir(),
 			PathToInitialConfig:      defaultPathToInitialConfig,
 			NumOfShards:              3,
-			GenesisTimestamp:         time.Now().Unix(),
 			RoundDurationInMillis:    roundDurationInMillis,
 			RoundsPerEpoch:           roundsPerEpoch,
 			ApiInterface:             api.NewNoApiInterface(),
@@ -747,7 +734,6 @@ func TestChainSimulator_DirectStakingNodes_UnstakeFundsWithDeactivation(t *testi
 			TempDir:                  t.TempDir(),
 			PathToInitialConfig:      defaultPathToInitialConfig,
 			NumOfShards:              3,
-			GenesisTimestamp:         time.Now().Unix(),
 			RoundDurationInMillis:    roundDurationInMillis,
 			RoundsPerEpoch:           roundsPerEpoch,
 			ApiInterface:             api.NewNoApiInterface(),
@@ -779,7 +765,6 @@ func TestChainSimulator_DirectStakingNodes_UnstakeFundsWithDeactivation(t *testi
 			TempDir:                  t.TempDir(),
 			PathToInitialConfig:      defaultPathToInitialConfig,
 			NumOfShards:              3,
-			GenesisTimestamp:         time.Now().Unix(),
 			RoundDurationInMillis:    roundDurationInMillis,
 			RoundsPerEpoch:           roundsPerEpoch,
 			ApiInterface:             api.NewNoApiInterface(),
@@ -968,7 +953,6 @@ func TestChainSimulator_DirectStakingNodes_UnstakeFundsWithDeactivation_WithReac
 			TempDir:                  t.TempDir(),
 			PathToInitialConfig:      defaultPathToInitialConfig,
 			NumOfShards:              3,
-			GenesisTimestamp:         time.Now().Unix(),
 			RoundDurationInMillis:    roundDurationInMillis,
 			RoundsPerEpoch:           roundsPerEpoch,
 			ApiInterface:             api.NewNoApiInterface(),
@@ -999,7 +983,6 @@ func TestChainSimulator_DirectStakingNodes_UnstakeFundsWithDeactivation_WithReac
 			TempDir:                  t.TempDir(),
 			PathToInitialConfig:      defaultPathToInitialConfig,
 			NumOfShards:              3,
-			GenesisTimestamp:         time.Now().Unix(),
 			RoundDurationInMillis:    roundDurationInMillis,
 			RoundsPerEpoch:           roundsPerEpoch,
 			ApiInterface:             api.NewNoApiInterface(),
@@ -1031,7 +1014,6 @@ func TestChainSimulator_DirectStakingNodes_UnstakeFundsWithDeactivation_WithReac
 			TempDir:                  t.TempDir(),
 			PathToInitialConfig:      defaultPathToInitialConfig,
 			NumOfShards:              3,
-			GenesisTimestamp:         time.Now().Unix(),
 			RoundDurationInMillis:    roundDurationInMillis,
 			RoundsPerEpoch:           roundsPerEpoch,
 			ApiInterface:             api.NewNoApiInterface(),
@@ -1063,7 +1045,6 @@ func TestChainSimulator_DirectStakingNodes_UnstakeFundsWithDeactivation_WithReac
 			TempDir:                  t.TempDir(),
 			PathToInitialConfig:      defaultPathToInitialConfig,
 			NumOfShards:              3,
-			GenesisTimestamp:         time.Now().Unix(),
 			RoundDurationInMillis:    roundDurationInMillis,
 			RoundsPerEpoch:           roundsPerEpoch,
 			ApiInterface:             api.NewNoApiInterface(),
@@ -1208,7 +1189,6 @@ func TestChainSimulator_DirectStakingNodes_WithdrawUnstakedFundsBeforeUnbonding(
 			TempDir:                  t.TempDir(),
 			PathToInitialConfig:      defaultPathToInitialConfig,
 			NumOfShards:              3,
-			GenesisTimestamp:         time.Now().Unix(),
 			RoundDurationInMillis:    roundDurationInMillis,
 			RoundsPerEpoch:           roundsPerEpoch,
 			ApiInterface:             api.NewNoApiInterface(),
@@ -1238,7 +1218,6 @@ func TestChainSimulator_DirectStakingNodes_WithdrawUnstakedFundsBeforeUnbonding(
 			TempDir:                  t.TempDir(),
 			PathToInitialConfig:      defaultPathToInitialConfig,
 			NumOfShards:              3,
-			GenesisTimestamp:         time.Now().Unix(),
 			RoundDurationInMillis:    roundDurationInMillis,
 			RoundsPerEpoch:           roundsPerEpoch,
 			ApiInterface:             api.NewNoApiInterface(),
@@ -1268,7 +1247,6 @@ func TestChainSimulator_DirectStakingNodes_WithdrawUnstakedFundsBeforeUnbonding(
 			TempDir:                  t.TempDir(),
 			PathToInitialConfig:      defaultPathToInitialConfig,
 			NumOfShards:              3,
-			GenesisTimestamp:         time.Now().Unix(),
 			RoundDurationInMillis:    roundDurationInMillis,
 			RoundsPerEpoch:           roundsPerEpoch,
 			ApiInterface:             api.NewNoApiInterface(),
@@ -1298,7 +1276,6 @@ func TestChainSimulator_DirectStakingNodes_WithdrawUnstakedFundsBeforeUnbonding(
 			TempDir:                  t.TempDir(),
 			PathToInitialConfig:      defaultPathToInitialConfig,
 			NumOfShards:              3,
-			GenesisTimestamp:         time.Now().Unix(),
 			RoundDurationInMillis:    roundDurationInMillis,
 			RoundsPerEpoch:           roundsPerEpoch,
 			ApiInterface:             api.NewNoApiInterface(),
@@ -1445,7 +1422,6 @@ func TestChainSimulator_DirectStakingNodes_WithdrawUnstakedInWithdrawEpoch(t *te
 			TempDir:                  t.TempDir(),
 			PathToInitialConfig:      defaultPathToInitialConfig,
 			NumOfShards:              3,
-			GenesisTimestamp:         time.Now().Unix(),
 			RoundDurationInMillis:    roundDurationInMillis,
 			RoundsPerEpoch:           roundsPerEpoch,
 			ApiInterface:             api.NewNoApiInterface(),
@@ -1476,7 +1452,6 @@ func TestChainSimulator_DirectStakingNodes_WithdrawUnstakedInWithdrawEpoch(t *te
 			TempDir:                  t.TempDir(),
 			PathToInitialConfig:      defaultPathToInitialConfig,
 			NumOfShards:              3,
-			GenesisTimestamp:         time.Now().Unix(),
 			RoundDurationInMillis:    roundDurationInMillis,
 			RoundsPerEpoch:           roundsPerEpoch,
 			ApiInterface:             api.NewNoApiInterface(),
@@ -1507,7 +1482,6 @@ func TestChainSimulator_DirectStakingNodes_WithdrawUnstakedInWithdrawEpoch(t *te
 			TempDir:                  t.TempDir(),
 			PathToInitialConfig:      defaultPathToInitialConfig,
 			NumOfShards:              3,
-			GenesisTimestamp:         time.Now().Unix(),
 			RoundDurationInMillis:    roundDurationInMillis,
 			RoundsPerEpoch:           roundsPerEpoch,
 			ApiInterface:             api.NewNoApiInterface(),
@@ -1538,7 +1512,6 @@ func TestChainSimulator_DirectStakingNodes_WithdrawUnstakedInWithdrawEpoch(t *te
 			TempDir:                  t.TempDir(),
 			PathToInitialConfig:      defaultPathToInitialConfig,
 			NumOfShards:              3,
-			GenesisTimestamp:         time.Now().Unix(),
 			RoundDurationInMillis:    roundDurationInMillis,
 			RoundsPerEpoch:           roundsPerEpoch,
 			ApiInterface:             api.NewNoApiInterface(),
@@ -1715,7 +1688,6 @@ func TestChainSimulator_DirectStakingNodes_WithdrawUnstakedInBatches(t *testing.
 			TempDir:                  t.TempDir(),
 			PathToInitialConfig:      defaultPathToInitialConfig,
 			NumOfShards:              3,
-			GenesisTimestamp:         time.Now().Unix(),
 			RoundDurationInMillis:    roundDurationInMillis,
 			RoundsPerEpoch:           roundsPerEpoch,
 			ApiInterface:             api.NewNoApiInterface(),
@@ -1747,7 +1719,6 @@ func TestChainSimulator_DirectStakingNodes_WithdrawUnstakedInBatches(t *testing.
 			TempDir:                  t.TempDir(),
 			PathToInitialConfig:      defaultPathToInitialConfig,
 			NumOfShards:              3,
-			GenesisTimestamp:         time.Now().Unix(),
 			RoundDurationInMillis:    roundDurationInMillis,
 			RoundsPerEpoch:           roundsPerEpoch,
 			ApiInterface:             api.NewNoApiInterface(),
@@ -1779,7 +1750,6 @@ func TestChainSimulator_DirectStakingNodes_WithdrawUnstakedInBatches(t *testing.
 			TempDir:                  t.TempDir(),
 			PathToInitialConfig:      defaultPathToInitialConfig,
 			NumOfShards:              3,
-			GenesisTimestamp:         time.Now().Unix(),
 			RoundDurationInMillis:    roundDurationInMillis,
 			RoundsPerEpoch:           roundsPerEpoch,
 			ApiInterface:             api.NewNoApiInterface(),
@@ -1811,7 +1781,6 @@ func TestChainSimulator_DirectStakingNodes_WithdrawUnstakedInBatches(t *testing.
 			TempDir:                  t.TempDir(),
 			PathToInitialConfig:      defaultPathToInitialConfig,
 			NumOfShards:              3,
-			GenesisTimestamp:         time.Now().Unix(),
 			RoundDurationInMillis:    roundDurationInMillis,
 			RoundsPerEpoch:           roundsPerEpoch,
 			ApiInterface:             api.NewNoApiInterface(),
@@ -2078,7 +2047,6 @@ func TestChainSimulator_DirectStakingNodes_WithdrawUnstakedInEpoch(t *testing.T)
 			TempDir:                  t.TempDir(),
 			PathToInitialConfig:      defaultPathToInitialConfig,
 			NumOfShards:              3,
-			GenesisTimestamp:         time.Now().Unix(),
 			RoundDurationInMillis:    roundDurationInMillis,
 			RoundsPerEpoch:           roundsPerEpoch,
 			ApiInterface:             api.NewNoApiInterface(),
@@ -2110,7 +2078,6 @@ func TestChainSimulator_DirectStakingNodes_WithdrawUnstakedInEpoch(t *testing.T)
 			TempDir:                  t.TempDir(),
 			PathToInitialConfig:      defaultPathToInitialConfig,
 			NumOfShards:              3,
-			GenesisTimestamp:         time.Now().Unix(),
 			RoundDurationInMillis:    roundDurationInMillis,
 			RoundsPerEpoch:           roundsPerEpoch,
 			ApiInterface:             api.NewNoApiInterface(),
@@ -2142,7 +2109,6 @@ func TestChainSimulator_DirectStakingNodes_WithdrawUnstakedInEpoch(t *testing.T)
 			TempDir:                  t.TempDir(),
 			PathToInitialConfig:      defaultPathToInitialConfig,
 			NumOfShards:              3,
-			GenesisTimestamp:         time.Now().Unix(),
 			RoundDurationInMillis:    roundDurationInMillis,
 			RoundsPerEpoch:           roundsPerEpoch,
 			ApiInterface:             api.NewNoApiInterface(),
@@ -2174,7 +2140,6 @@ func TestChainSimulator_DirectStakingNodes_WithdrawUnstakedInEpoch(t *testing.T)
 			TempDir:                  t.TempDir(),
 			PathToInitialConfig:      defaultPathToInitialConfig,
 			NumOfShards:              3,
-			GenesisTimestamp:         time.Now().Unix(),
 			RoundDurationInMillis:    roundDurationInMillis,
 			RoundsPerEpoch:           roundsPerEpoch,
 			ApiInterface:             api.NewNoApiInterface(),
@@ -2357,7 +2322,6 @@ func TestChainSimulator_UnStakeOneActiveNodeAndCheckAPIAuctionList(t *testing.T)
 		t.Skip("this is not a short test")
 	}
 
-	startTime := time.Now().Unix()
 	roundDurationInMillis := uint64(6000)
 	roundsPerEpoch := core.OptionalUint64{
 		HasValue: true,
@@ -2374,7 +2338,6 @@ func TestChainSimulator_UnStakeOneActiveNodeAndCheckAPIAuctionList(t *testing.T)
 		TempDir:                  t.TempDir(),
 		PathToInitialConfig:      defaultPathToInitialConfig,
 		NumOfShards:              numOfShards,
-		GenesisTimestamp:         startTime,
 		RoundDurationInMillis:    roundDurationInMillis,
 		RoundsPerEpoch:           roundsPerEpoch,
 		ApiInterface:             api.NewNoApiInterface(),
@@ -2436,7 +2399,6 @@ func TestChainSimulator_EdgeCaseLowWaitingList(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	startTime := time.Now().Unix()
 	roundDurationInMillis := uint64(6000)
 	roundsPerEpoch := core.OptionalUint64{
 		HasValue: true,
@@ -2453,7 +2415,6 @@ func TestChainSimulator_EdgeCaseLowWaitingList(t *testing.T) {
 		TempDir:                  t.TempDir(),
 		PathToInitialConfig:      defaultPathToInitialConfig,
 		NumOfShards:              numOfShards,
-		GenesisTimestamp:         startTime,
 		RoundDurationInMillis:    roundDurationInMillis,
 		RoundsPerEpoch:           roundsPerEpoch,
 		ApiInterface:             api.NewNoApiInterface(),

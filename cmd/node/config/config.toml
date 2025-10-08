@@ -42,14 +42,42 @@
 
     # ChainParametersByEpoch defines chain operation configurable values that can be modified based on epochs
     ChainParametersByEpoch = [
-        { EnableEpoch = 0, RoundDuration = 6000, ShardConsensusGroupSize = 7, ShardMinNumNodes = 10, MetachainConsensusGroupSize = 10, MetachainMinNumNodes = 10, Hysteresis = 0.2, Adaptivity = false },
-        { EnableEpoch = 1, RoundDuration = 6000, ShardConsensusGroupSize = 10, ShardMinNumNodes = 10, MetachainConsensusGroupSize = 10, MetachainMinNumNodes = 10, Hysteresis = 0.2, Adaptivity = false }
+        { EnableEpoch = 0, RoundDuration = 6000, RoundsPerEpoch = 200, MinRoundsBetweenEpochs = 20, ShardConsensusGroupSize = 7, ShardMinNumNodes = 10, MetachainConsensusGroupSize = 10, MetachainMinNumNodes = 10, Hysteresis = 0.2, Adaptivity = false },
+        { EnableEpoch = 1, RoundDuration = 6000, RoundsPerEpoch = 200, MinRoundsBetweenEpochs = 20, ShardConsensusGroupSize = 10, ShardMinNumNodes = 10, MetachainConsensusGroupSize = 10, MetachainMinNumNodes = 10, Hysteresis = 0.2, Adaptivity = false },
+        { EnableEpoch = 2, RoundDuration = 600, RoundsPerEpoch = 2000, MinRoundsBetweenEpochs = 50, ShardConsensusGroupSize = 10, ShardMinNumNodes = 10, MetachainConsensusGroupSize = 10, MetachainMinNumNodes = 10, Hysteresis = 0.2, Adaptivity = false }
     ]
 
     # EpochChangeGracePeriodEnableEpoch represents the configuration of different grace periods for epoch change with their activation epochs
     EpochChangeGracePeriodByEpoch = [
         {EnableEpoch = 0, GracePeriodInRounds = 1 },
         {EnableEpoch = 1, GracePeriodInRounds = 10 }, # Andromeda epoch comes with a longer grace period
+        {EnableEpoch = 2, GracePeriodInRounds = 100 }, # Supernova epoch comes with an even longer grace period due to round duration reduction
+    ]
+
+    # ProcessConfigsByEpoch represents the configuration of process configuration parameters by epoch
+    ProcessConfigsByEpoch = [
+        { EnableEpoch = 0, MaxMetaNoncesBehind = 15, MaxMetaNoncesBehindForGlobalStuck = 30, MaxShardNoncesBehind = 15 },
+        { EnableEpoch = 2, MaxMetaNoncesBehind = 75, MaxMetaNoncesBehindForGlobalStuck = 120, MaxShardNoncesBehind = 75 },
+    ]
+
+    ProcessConfigsByRound = [
+        { EnableRound = 0, MaxRoundsWithoutNewBlockReceived = 10, MaxRoundsWithoutCommittedBlock = 10, RoundModulusTriggerWhenSyncIsStuck = 20 },
+        { EnableRound = 2, MaxRoundsWithoutNewBlockReceived = 100, MaxRoundsWithoutCommittedBlock = 100, RoundModulusTriggerWhenSyncIsStuck = 200 },
+    ]
+
+    EpochStartConfigsByEpoch = [
+        { EnableEpoch = 0, GracePeriodRounds = 25, ExtraDelayForRequestBlockInfoInMilliseconds = 3000 },
+        { EnableEpoch = 2, GracePeriodRounds = 250, ExtraDelayForRequestBlockInfoInMilliseconds = 220 },
+    ]
+
+    EpochStartConfigsByRound = [
+        { EnableRound = 0, MaxRoundsWithoutCommittedStartInEpochBlock = 50 },
+        { EnableRound = 2, MaxRoundsWithoutCommittedStartInEpochBlock = 500 },
+    ]
+
+    ConsensusConfigsByEpoch = [
+        { EnableEpoch = 0, NumRoundsToWaitBeforeSignalingChronologyStuck = 10 },
+        { EnableEpoch = 2, NumRoundsToWaitBeforeSignalingChronologyStuck = 100 },
     ]
 
 [HardwareRequirements]
@@ -515,6 +543,7 @@
     BadRatedCacheCapacity = 5000
 
 [PoolsCleanersConfig]
+    # TODO: update these (maybe in txpool feat)
     MaxRoundsToKeepUnprocessedMiniBlocks = 300   # max number of rounds unprocessed miniblocks are kept in pool
     MaxRoundsToKeepUnprocessedTransactions = 300 # max number of rounds unprocessed transactions are kept in pool
 
@@ -663,8 +692,6 @@
 
 [EpochStartConfig]
     GenesisEpoch = 0
-    MinRoundsBetweenEpochs = 20
-    RoundsPerEpoch         = 200
     # Min and Max ShuffledOutRestartThreshold represents the minimum and maximum duration of an epoch (in percentage) after a node which
     # has been shuffled out has to restart its process in order to start in a new shard
     MinShuffledOutRestartThreshold = 0.05
@@ -672,7 +699,7 @@
 
     MinNumConnectedPeersToStart       = 2
     MinNumOfPeersToConsiderBlockValid = 2
-    ExtraDelayForRequestBlockInfoInMilliseconds = 3000
+    ExtraDelayForRequestBlockInfoInMilliseconds = 220
 
 # ResourceStats, if enabled, will output in a folder called "stats"
 # resource statistics. For example: number of active go routines, memory allocation, number of GC sweeps, etc.
@@ -695,6 +722,9 @@
     TimeoutMilliseconds = 100
     SyncPeriodSeconds = 3600
     Version = 0  # Setting 0 means 'use default value'
+    # OutOfBoundsThreshold defines the threshold in milliseconds for checking out of bound
+    # limit in ntp syncer
+    OutOfBoundsThreshold = 120
 
 [StateTriesConfig]
     SnapshotsEnabled = true

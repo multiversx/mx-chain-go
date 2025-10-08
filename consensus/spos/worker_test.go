@@ -1161,7 +1161,7 @@ func TestWorker_ProcessReceivedMessageReceivedMessageIsFromSelfShouldRetNilAndNo
 func TestWorker_ProcessReceivedMessageWhenRoundIsCanceledShouldRetNilAndNotProcess(t *testing.T) {
 	t.Parallel()
 	wrk := *initWorker(&statusHandlerMock.AppStatusHandlerStub{})
-	wrk.ConsensusState().RoundCanceled = true
+	wrk.ConsensusState().SetRoundCanceled(true)
 	blk := &block.Body{}
 	blkStr, _ := mock.MarshalizerMock{}.Marshal(blk)
 	cnsMsg := consensus.NewConsensusMessage(
@@ -1461,7 +1461,7 @@ func TestWorker_CheckSelfStateShouldErrMessageFromItself(t *testing.T) {
 func TestWorker_CheckSelfStateShouldErrRoundCanceled(t *testing.T) {
 	t.Parallel()
 	wrk := *initWorker(&statusHandlerMock.AppStatusHandlerStub{})
-	wrk.ConsensusState().RoundCanceled = true
+	wrk.ConsensusState().SetRoundCanceled(true)
 	cnsMsg := consensus.NewConsensusMessage(
 		nil,
 		nil,
@@ -1975,7 +1975,7 @@ func TestWorker_ExtendShouldReturnWhenRoundIsCanceled(t *testing.T) {
 		},
 	}
 	wrk.SetBootstrapper(bootstrapperMock)
-	wrk.ConsensusState().RoundCanceled = true
+	wrk.ConsensusState().SetRoundCanceled(true)
 	wrk.Extend(0)
 
 	assert.False(t, executed)
